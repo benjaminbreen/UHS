@@ -368,7 +368,9 @@ export function planSettlement(
   const cityGround =
     profile.radius < 45
       ? undefined
-      : (pack.setting?.year ?? 0) >= 1900 || plotted
+      : !!pack.setting && industrialized(pack.setting) && !plotted && pack.setting.year < 1900
+        ? "paving"
+        : (pack.setting?.year ?? 0) >= 1900 || plotted
         ? "grass"
         : "dirt";
   const motorAge = !!pack.setting && motorized(pack.setting);
@@ -1164,7 +1166,7 @@ export function planSettlement(
     // or paving, with grass only as edging round the houses.
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
-      (pack.setting?.year ?? 0) >= 1900 ? "grass" : (cityGround ?? "grass");
+      (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
     const paintBlock = (block: Rect, ground: Terrain = blockGround) =>
       eachCell(block, (x, y) => {
         const k = cellKey(x, y);
@@ -1195,7 +1197,8 @@ export function planSettlement(
       eachCell(rect, (x, y) => {
         const k = cellKey(x, y);
         if (plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
-        if (setSurface(k, "grass", 4)) {
+        // An industrial city's boulevard trees stand in pits in the paving.
+        if (setSurface(k, industrialAge && !plotted ? "paving" : "grass", 4)) {
           plan.pavement!.set(k, "verge");
           plan.reserved.add(k);
         }

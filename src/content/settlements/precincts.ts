@@ -85,8 +85,9 @@ const NAMES: Record<string, string> = {
 /** Rows of pitches with aisles between, clear of whatever stands at the head. */
 function pitches(w: number, h: number, top: number): [number, number, number][] {
   const out: [number, number, number][] = [];
-  for (let y = top + 2, row = 0; y < h - 2; y += 4, row++)
-    for (let x = 2; x < w - 3; x += 4) out.push([x, y, row]);
+  // Stalls in pairs down the aisles, not a grid over the whole ground.
+  for (let y = top + 2, row = 0; y < h - 2; y += 5, row++)
+    for (let x = 2; x < w - 3; x += 4) if ((x >> 2) % 3 !== 2) out.push([x, y, row]);
   return out;
 }
 

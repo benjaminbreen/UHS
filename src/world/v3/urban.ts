@@ -872,6 +872,8 @@ export function urbanNeighborhood(
   // how long a plan may take to route, spent from the centre outward.
   const quarters = new Map<Block, Quarter>();
   const uses = new Map<Block, LandUse>();
+  const yardRanges = new Map<Block, boolean>();
+  const atelierFrames = Object.keys(buildingModels).filter((f) => /^modern-atelier-\d+$/.test(f));
   const blockKits = new Map<Block, string[]>();
   const rowLanes = new Map<Block, (() => void)[]>();
   const industry = zoning && industrySector();
@@ -1322,6 +1324,13 @@ export function urbanNeighborhood(
               : modern
                 ? ["row", "midrise", "tall"]
                 : ["row", "tall"];
+    // The industrial city rebuilt its streets in its own idiom: where the
+    // modern kit covers this use, it wins over the older period houses.
+    const rebuilt =
+      use && pack.setting && industrialized(pack.setting)
+        ? modernBuildings(pack.setting, use).filter((f) => buildingModels[f])
+        : [];
+    if (rebuilt.length) return rebuilt;
     const period = frames.filter(isPeriod);
     if (period.length) {
       const roles =
@@ -1373,7 +1382,12 @@ export function urbanNeighborhood(
     return modern ? preferStyle(pool, quarter) : pool;
   }
 
+  function tallKit(frame: string) {
+    return (buildingModel(frame) as { obliqueModern?: string }).obliqueModern === "kit" && !frame.startsWith("modern-atelier-");
+  }
+
   function framesForBlock(block: Block) {
+    if (yardRanges.get(block)) return atelierFrames;
     let pool = blockKits.get(block);
     if (pool) return pool;
     pool = framesFor(quarters.get(block) ?? "residential", uses.get(block));
@@ -1548,6 +1562,7 @@ export function urbanNeighborhood(
         }
       return true;
     };
+    const kitWall = !!zoning && framesFor(quarterFor("tenement"), "tenement").some(tallKit);
     for (const door of doors) {
       if (lots.length >= capacity) return;
       const reach = door.d / layout.half;
@@ -1555,7 +1570,10 @@ export function urbanNeighborhood(
       // candidate kit is a handful of shops per street, the kit's own infill
       // is 3x2 stalls that would otherwise stand shoulder to shoulder from the
       // square to the edge.
-      if (!americanStrip && rand("open", door.x, door.y) > 0.9 - 0.5 * reach)
+      // A street wall is not thinned: the kit's ranges stand shoulder to
+      // shoulder along the north side of every street.
+      const streetWall = zoning && door.facing.ny < 0 && !door.facing.nx && kitWall;
+      if (!americanStrip && !streetWall && rand("open", door.x, door.y) > 0.9 - 0.5 * reach)
         continue;
       const k = cellKey(door.x, door.y);
       if (used.has(k) || !api.dry({ x: door.x, y: door.y, w: 1, h: 1 }, false))
@@ -1572,8 +1590,12 @@ export function urbanNeighborhood(
             ? "commercial"
             : zoning.inner
           : undefined;
-      const available = here ? framesFor(quarterFor(here), here) : [];
-      const civicHomes = zoning && reach < 0.4 ? modernBuildings(pack.setting!, "tenement") : [];
+      // The city kit's tall ranges only stand as a block's street wall; one
+      // dropped behind any footway hides whatever is north of it.
+      const wall = (f: string) => facing === "south" || !tallKit(f);
+      const available = here ? framesFor(quarterFor(here), here).filter(wall) : [];
+      const civicHomes = zoning && reach < 0.4
+        ? modernBuildings(pack.setting!, "tenement").filter(wall) : [];
       const choices = (
         here
           ? (civicHomes.length ? civicHomes : available).map((base) => ({
@@ -1637,6 +1659,7 @@ export function urbanNeighborhood(
     const block = rank.block;
     const use = uses.get(block);
     if (use === "estate" || use === "industrial" || use === "tenement" || use === "rowhouse") return;
+    if (framesForBlock(block).some(tallKit)) return;
     // Offices, shops and works build over their whole block; homes keep yards.
     const own =
       use === "downtown" || use === "commercial";
@@ -1835,6 +1858,26 @@ export function urbanNeighborhood(
     const out: UrbanLot[] = [];
     const use = uses.get(block);
     const kit = use ? framesForBlock(block) : frames;
+    // Seen from the south, a range of five storeys rises over the ten cells
+    // behind it: one street wall on the block's south side, its court and the
+    // next street's view of its roofs behind. A north-facing row would stand
+    // in front of the shops across the street.
+    // Its back and ends are walled with yard ranges of one storey, low
+    // enough to leave the roofs behind in view.
+    if (kit.length && kit.every(tallKit)) {
+      const south = terrace(block, block.y + block.h, "south", 0,
+        Math.min(Math.max(...kit.map((f) => buildingModel(f).footprint[1])), block.h));
+      out.push(...south.lots);
+      const back = block.y + block.h - (south.depth || 0);
+      if (back - block.y >= 4 + 3) {
+        yardRanges.set(block, true);
+        out.push(...terrace(block, block.y, "north", 1, 4).lots);
+        for (const [edge, face] of [[block.x, "west"], [block.x + block.w, "east"]] as const)
+          out.push(...terrace(block, edge, face, 2, 4, block.y + 5, back - 1).lots);
+        yardRanges.delete(block);
+      }
+      return out;
+    }
     const depths = kit.map((f) => buildingModel(f).footprint[1]);
     const widths = kit.map((f) => buildingModel(f).footprint[0]);
     const deepest = Math.max(...depths),

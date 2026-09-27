@@ -586,7 +586,7 @@ class Immeuble(Oblique):
                 c.hl(0, W - 1, fy + STOREY - 1, st[3])
             tall = 24 if s in (1, 2) else 20 if s < self.storeys - 1 else 18
             wy = fy + STOREY - 4 - tall
-            balcony = s == 1 or s == self.storeys - 1
+            balcony = s == 1 or (self.storeys >= 4 and s == self.storeys - 1)
             for k, ax in enumerate(axes):
                 wx = ax - 5
                 french_window(c, wx, wy, 10, tall, st, self.seed + k * 7 + s,
@@ -1060,53 +1060,95 @@ class Mairie(Oblique):
 
 
 class Atelier(Oblique):
-    """A yard outbuilding: rendered walls, a pantile lean-to roof, a board
-    door and a small window. It stands behind walls, not on the street."""
+    """A yard range of one storey: a workshop, stable or coach house, rendered
+    or brick, under pantiles or slate. It lines a block's back and ends below
+    the tall street range, so the lane behind is walled, not open."""
 
-    def __init__(self, seed=0):
-        self.seed = seed
-        super().__init__(44, 40, 16, 10)
+    def __init__(self, seed=0, W=44, sd=10, roof='tile', wall=WARM_LIME, coach=False):
+        self.seed, self.roof, self.wallc, self.coach = seed, roof, wall, coach
+        super().__init__(W, 44, 18, sd)
 
     def render(self):
-        W, c, sd = self.W, self.c, self.sd
+        W, c, sd, wl = self.W, self.c, self.sd, self.wallc
         H = self.H
         wt = H - self.wall
-        side = C(sd, self.wall + 10)
-        side.rect(0, 0, sd - 1, side.h - 1, WARM_LIME[3])
+        rise = 14
+        side = C(sd, self.wall + rise)
+        side.rect(0, 0, sd - 1, side.h - 1, wl[2])
         for x in range(sd):
-            for y in range(0, 10 - x):
+            apex = rise - int(rise * min(1, x / max(1, sd * 0.6)))
+            for y in range(0, apex):
                 side.px(x, y, (0, 0, 0, 0))
-        self.side(side.im, wt - 10)
-        for y in range(wt - 12, wt + 3):
-            t = (wt + 3 - y) / 15
+        self.side(side.im, wt - rise)
+        tile = self.roof == 'tile'
+        for y in range(wt - rise - sd // 2, wt + 3):
+            t = (wt + 3 - y) / (rise + sd // 2 + 3)
             xl = -2 + round(t * sd * 0.6)
             for x in range(xl, W + 2 + round(t * sd * 0.6)):
-                col = TERRA[3] if (x // 3) % 2 else TERRA[2]
-                if (y - wt) % 4 == 0:
-                    col = TERRA[1]
-                if (x // 3) % 2 and (x % 3) == 0:
-                    col = TERRA[4]
+                if tile:
+                    col = TERRA[3] if (x // 3) % 2 else TERRA[2]
+                    if (y - wt) % 4 == 0:
+                        col = TERRA[1]
+                    elif (x // 3) % 2 and x % 3 == 0:
+                        col = TERRA[4]
+                else:
+                    row = (wt - y) // 3
+                    col = SLATE[2] if (wt - y) % 3 == 0 or (x + (row % 2) * 3) % 6 == 0 else SLATE[3]
+                if y == wt - rise - sd // 2:
+                    col = TERRA[4] if tile else SLATE[5]
                 c.px(x, y, col)
-        c.rect(0, wt + 3, W - 1, H - 1, WARM_LIME[4])
-        c.hl(0, W - 1, wt + 3, WARM_LIME[1])
+        c.hl(-2, W + 1, wt + 3, IRON[1])
+        brick = wl is BRICK
+        c.rect(0, wt + 4, W - 1, H - 1, wl[4])
         for x in range(W):
             for y in range(wt + 4, H):
-                if h2(x // 6, y // 5, self.seed) < 0.12:
-                    c.px(x, y, WARM_LIME[3])
-        c.rect(0, H - 6, W - 1, H - 1, WARM_LIME[3])
-        c.rect(4, H - 34, 19, H - 1, OAK[1])
-        for x in range(5, 19):
-            c.vl(x, H - 33, H - 1, OAK[3] if x % 3 == 0 else OAK[2])
-        c.hl(5, 18, H - 28, OAK[1])
-        c.hl(5, 18, H - 8, OAK[1])
-        for i in range(14):
-            c.px(5 + i, H - 9 - i * 19 // 14, OAK[1])
-        c.rect(26, H - 30, 37, H - 18, '#ede7da')
-        glass(c, 27, H - 29, 36, H - 19, 3)
-        c.vl(31, H - 29, H - 19, '#ede7da')
-        c.hl(27, 36, H - 24, '#ede7da')
-        c.rect(25, H - 17, 38, H - 16, WARM_LIME[5])
-        c.hl(0, W - 1, H - 1, WARM_LIME[1])
+                if brick and (y % 4 == 3 or ((x + (y // 4 % 2) * 4) % 8 == 0 and h2(x // 8, y // 4, self.seed) < 0.6)):
+                    c.px(x, y, wl[3])
+                elif not brick and h2(x // 6, y // 5, self.seed) < 0.12:
+                    c.px(x, y, wl[3])
+        c.hl(0, W - 1, wt + 4, wl[2])
+        c.rect(0, H - 5, W - 1, H - 1, LIME[3])
+        c.hl(0, W - 1, H - 5, LIME[5])
+        units = max(1, (W - 4) // 22)
+        pitch = (W - 4) / units
+        door_unit = 0 if not self.coach else units // 2
+        for u in range(units):
+            ux = int(2 + u * pitch + pitch / 2)
+            if u == door_unit and self.coach:
+                x0, x1, top = ux - 9, ux + 8, H - 38
+                for y in range(top, H):
+                    for x in range(x0, x1 + 1):
+                        r = 9
+                        if y >= top + r or (x - ux + .5) ** 2 + (top + r - y) ** 2 <= r * r:
+                            k = (x - x0) % 4
+                            c.px(x, y, OAK[3] if k == 0 else OAK[2])
+                for y in range(top + 2, H):
+                    for x in (x0 - 1, x1 + 1):
+                        if y >= top + 9:
+                            c.px(x, y, LIME[5] if x < ux else LIME[3])
+                c.vl(ux, top + 9, H - 1, OAK[0])
+                c.hl(x0, x1, top + 20, OAK[1])
+                self.door_x = ux
+            elif u == door_unit:
+                x0 = ux - 8
+                c.rect(x0, H - 36, x0 + 15, H - 1, OAK[1])
+                for x in range(x0 + 1, x0 + 15):
+                    c.vl(x, H - 35, H - 1, OAK[3] if x % 3 == 0 else OAK[2])
+                c.hl(x0 + 1, x0 + 14, H - 29, OAK[1])
+                c.hl(x0 + 1, x0 + 14, H - 8, OAK[1])
+                for i in range(14):
+                    c.px(x0 + 1 + i, H - 9 - i * 19 // 14, OAK[1])
+                c.rect(x0 - 2, H - 38, x0 + 17, H - 37, LIME[5])
+                self.door_x = ux
+            else:
+                x0 = ux - 6
+                c.rect(x0 - 1, H - 32, x0 + 12, H - 17, '#ede7da')
+                glass(c, x0, H - 31, x0 + 11, H - 18, u + self.seed)
+                c.vl(x0 + 5, H - 31, H - 18, '#ede7da')
+                c.hl(x0, x0 + 11, H - 25, '#ede7da')
+                c.rect(x0 - 2, H - 16, x0 + 13, H - 15, LIME[5])
+                c.rect(x0 - 2, H - 35, x0 + 13, H - 33, LIME[4] if not brick else wl[5])
+        c.hl(0, W - 1, H - 1, LIME[1])
         return outline(c.im)
 
 
@@ -1662,17 +1704,21 @@ AWN_GREEN = (GREEN[1:5], ('#b9ad92', '#e8dec6', '#f6efdc', '#fff8e8'))
 
 # name: (kind, footprint, storeys, seed, options)
 KIT = {
-    'modern-immeuble-0': ('immeuble', [7, 6], 5, 2, dict(shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
-    'modern-immeuble-1': ('immeuble', [6, 6], 4, 5, dict(stone=WARM_LIME, entrance=-1, shop=(NAVY, '~~', goods_bread, None))),
-    'modern-immeuble-2': ('immeuble', [8, 6], 4, 9, dict(entrance=2, boxes=0.6, shop=(OXBLOOD, '~~', goods_books, None, GREEN, '~', goods_pharma))),
-    'modern-immeuble-3': ('immeuble', [6, 6], 5, 13, dict(entrance=2, boxes=0.5)),
-    'modern-immeuble-4': ('immeuble', [9, 6], 5, 17, dict(stone=WARM_LIME, entrance=0, shop=(GREEN, 'HOTEL', goods_cafe, AWN_GREEN))),
-    'modern-brickshop-0': ('immeuble', [7, 6], 4, 21, dict(stone=BRICK, brick=True, shop=(NAVY, '~~', goods_bread, AWN_GREEN))),
+    'modern-immeuble-0': ('immeuble', [7, 6], 3, 2, dict(shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
+    'modern-immeuble-1': ('immeuble', [6, 6], 3, 5, dict(stone=WARM_LIME, entrance=-1, shop=(NAVY, '~~', goods_bread, None))),
+    'modern-immeuble-2': ('immeuble', [8, 6], 3, 9, dict(entrance=2, boxes=0.6, shop=(OXBLOOD, '~~', goods_books, None, GREEN, '~', goods_pharma))),
+    'modern-immeuble-3': ('immeuble', [6, 6], 3, 13, dict(entrance=2, boxes=0.5)),
+    'modern-immeuble-4': ('immeuble', [9, 6], 4, 17, dict(stone=WARM_LIME, entrance=0, shop=(GREEN, 'HOTEL', goods_cafe, AWN_GREEN))),
+    'modern-brickshop-0': ('immeuble', [7, 6], 3, 21, dict(stone=BRICK, brick=True, shop=(NAVY, '~~', goods_bread, AWN_GREEN))),
     'modern-brickshop-1': ('immeuble', [6, 5], 3, 25, dict(stone=BRICK, brick=True, entrance=-1, shop=(OXBLOOD, '~~', goods_books, None))),
-    'modern-brickshop-2': ('immeuble', [8, 6], 4, 29, dict(stone=BRICK, brick=True, entrance=2, shop=(GREEN, 'CAFE', goods_cafe, AWN_RED, NAVY, '~~', goods_pharma))),
+    'modern-brickshop-2': ('immeuble', [8, 6], 3, 29, dict(stone=BRICK, brick=True, entrance=2, shop=(GREEN, 'CAFE', goods_cafe, AWN_RED, NAVY, '~~', goods_pharma))),
     'modern-townhouse-0': ('townhouse', [5, 5], 3, 1, dict()),
     'modern-townhouse-1': ('townhouse', [6, 5], 3, 6, dict(door_col=NAVY)),
-    'modern-townhouse-2': ('townhouse', [5, 5], 4, 11, dict(door_col=OXBLOOD)),
+    'modern-townhouse-2': ('townhouse', [5, 5], 3, 11, dict(door_col=OXBLOOD)),
+    'modern-atelier-0': ('atelier', [5, 4], 1, 31, dict()),
+    'modern-atelier-1': ('atelier', [7, 4], 1, 33, dict(roof='slate', coach=True)),
+    'modern-atelier-2': ('atelier', [4, 4], 1, 35, dict(wall=BRICK, roof='slate')),
+    'modern-atelier-3': ('atelier', [6, 4], 1, 37, dict(wall=BRICK, coach=True)),
     'modern-civic-hall-0': ('mairie', [14, 6], 2, 3, dict(sign='~')),
     'modern-civic-hall-1': ('mairie', [18, 7], 2, 11, dict(sign='~')),
 }
@@ -1680,6 +1726,7 @@ KIT = {
 ABOUT = {
     'immeuble': 'An apartment house of the boulevard age: shops in a rusticated ground storey, iron balconies, a cornice and a slate mansard with dormers.',
     'townhouse': 'A brick terrace house: stone quoins and dressings, sash windows, a door raised up a stoop behind area railings.',
+    'atelier': 'A yard range of one storey: a workshop, stable or coach house behind the street front.',
     'mairie': 'A town hall: a pedimented pavilion on columns, wings of tall windows, a roof lantern with the flag.',
 }
 
@@ -1687,13 +1734,14 @@ ABOUT = {
 def kit_recipes(side_depth):
     out = {}
     for name, (kind, fp, storeys, seed, o) in KIT.items():
-        deep = storeys >= 4 or kind == 'mairie'
+        deep = (storeys >= 4 or kind == 'mairie') and kind != 'atelier'
         out[name] = {
-            'label': {'immeuble': 'Apartment house', 'townhouse': 'Brick town house', 'mairie': 'Town hall'}[kind]
+            'label': {'immeuble': 'Apartment house', 'townhouse': 'Brick town house', 'mairie': 'Town hall',
+                      'atelier': 'Yard workshop'}[kind]
             if 'brickshop' not in name else 'Brick shop block',
             'footprint': fp, 'entrance': [fp[0] // 2, fp[1]],
             'wall': 'grey-brick', 'roof': 'flat', 'roofMaterial': 'slate', 'attachments': [],
-            'opening': 'door', 'height': GROUND + STOREY * storeys + 30,
+            'opening': 'door', 'height': 62 if kind == 'atelier' else GROUND + STOREY * storeys + 30,
             'description': ABOUT[kind], 'obliqueModern': 'kit', 'seed': seed,
             'stories': storeys, 'deep': deep,
         }
@@ -1711,6 +1759,8 @@ def kit_building(r, side_depth):
         if o.get('entrance') == -1:
             o['entrance'] = (W - 8) // 20 - 1
         return Immeuble(storeys=storeys, seed=seed, W=W, sd=sd, **o)
+    if kind == 'atelier':
+        return Atelier(seed=seed, W=W, sd=sd, **o)
     if kind == 'townhouse':
         return TownHouse(storeys=storeys, seed=seed, W=W, sd=sd, **o)
     return Mairie(seed=seed, W=W, sd=sd, **o)
@@ -1761,7 +1811,7 @@ def make(out, zoom=3):
     town = TownHouse(3, 3, seed=1)
     town2 = TownHouse(4, 3, seed=6, door_col=NAVY)
     mairie = Mairie()
-    atelier = Atelier()
+    atelier = Atelier(roof='slate', coach=True, W=64)
     ims = {k: v.render() for k, v in
            dict(cafe=cafe, bakery=bakery, books=books, town=town, town2=town2, mairie=mairie, atelier=atelier).items()}
     props = dict(lamp=lamp(), bench=bench(), tree=plane_tree(3), tree2=plane_tree(8, 19), cafe=cafe_set(),
