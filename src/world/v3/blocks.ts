@@ -1157,6 +1157,40 @@ export function composeUrban(
     if (!split) break;
     readBlocks();
   }
+  // From the boulevard age a city's buildings outgrew the old plots: a local
+  // street that only cuts off a scrap too small to build on is dropped, so the
+  // plan keeps its shape but not its slivers. Only a through street goes; one
+  // another street stops against would leave that street blind.
+  if ((year ?? 0) >= 1850)
+    for (let pass = 0; pass < 3; pass++) {
+      const tol = hiA + margin(2) + 1;
+      const small = (b: Block) => b.w < 10 || b.h < 10 || b.w * b.h < 120;
+      let merged = 0;
+      for (const s of [...streets]) {
+        if (s.tier !== 2) continue;
+        const level = across(s);
+        const beside = blocks.filter((b) => {
+          const [b0, b1, c0, c1] = axisOf(s) === "x"
+            ? [b.x, b.x + b.w, b.y - 1, b.y + b.h]
+            : [b.y, b.y + b.h, b.x - 1, b.x + b.w];
+          return b1 > lo(s) && b0 < hi(s) &&
+            (Math.abs(level - c0) <= tol || Math.abs(level - c1) <= tol);
+        });
+        if (beside.length < 2 || !beside.some(small)) continue;
+        const stops = (o: Segment) => axisOf(o) !== axisOf(s) &&
+          [o.a, o.b].some((p) => {
+            const v = axisOf(s) === "x" ? p.x : p.y, c = axisOf(s) === "x" ? p.y : p.x;
+            return Math.abs(c - level) <= tol && v > lo(s) + 1 && v < hi(s) - 1;
+          });
+        if (streets.some((o) => o !== s && stops(o))) continue;
+        streets.splice(streets.indexOf(s), 1);
+        merged++;
+      }
+      if (!merged) break;
+      lines.clear();
+      for (const s of streets) mark(s);
+      readBlocks();
+    }
   tidy();
   if (civicBlock) {
     const { west, east, north, south } = civicBlock;

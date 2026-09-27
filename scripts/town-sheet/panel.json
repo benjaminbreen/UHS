@@ -269,5 +269,10 @@
     "name": "vienna-2008",
     "query": "Vienna 2008",
     "radius": 130
+  },
+  {
+    "name": "paris-1888",
+    "query": "A traveler in Paris, 1888 CE",
+    "radius": 70
   }
 ]
