@@ -539,6 +539,9 @@ export function planSettlement(
   const controlCrossings = () => {
     if (!pack.setting || !marks) return;
     const { signal, sign } = trafficControl(pack.setting);
+    // A post never stands where any junction's crossing lands.
+    const landed = new Set((plan.junctions ?? []).flatMap((j) =>
+      j.approaches.filter((a) => a.crossing).flatMap((a) => a.landings.map((p) => cellKey(p.x, p.y)))));
     for (const junction of plan.junctions ?? []) {
       if (junction.approaches.length < 3) continue;
       const widest = Math.max(...junction.approaches.map((a) => a.span));
@@ -557,7 +560,8 @@ export function planSettlement(
         const at = [0, 1, 2, 3, 4].map((d) => a.axis === "x"
           ? { x: landing.x - a.toward * 2, y: landing.y + side * d }
           : { x: landing.x + side * d, y: landing.y - a.toward * 2 })
-          .find((p) => plan.pavement?.get(cellKey(p.x, p.y)) === "footway" && !plan.solid.has(cellKey(p.x, p.y)));
+          .find((p) => plan.pavement?.get(cellKey(p.x, p.y)) === "footway" && !plan.solid.has(cellKey(p.x, p.y)) &&
+            !landed.has(cellKey(p.x, p.y)));
         if (!at) continue;
         const k = cellKey(at.x, at.y);
         if (plan.pavement?.get(k) !== "footway" || plan.solid.has(k)) continue;

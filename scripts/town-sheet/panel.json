@@ -274,5 +274,20 @@
     "name": "paris-1888",
     "query": "A traveler in Paris, 1888 CE",
     "radius": 70
+  },
+  {
+    "name": "london-1890",
+    "query": "A clerk in London, 1890 CE",
+    "radius": 70
+  },
+  {
+    "name": "vienna-1900",
+    "query": "A traveler in Vienna, 1900 CE",
+    "radius": 70
+  },
+  {
+    "name": "chicago-1895",
+    "query": "A traveler in Chicago, 1895 CE",
+    "radius": 70
   }
 ]

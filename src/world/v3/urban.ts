@@ -1862,18 +1862,16 @@ export function urbanNeighborhood(
     // behind it: one street wall on the block's south side, its court and the
     // next street's view of its roofs behind. A north-facing row would stand
     // in front of the shops across the street.
-    // Its back and ends are walled with yard ranges of one storey, low
+    // Its back is walled with yard ranges of one storey, low
     // enough to leave the roofs behind in view.
     if (kit.length && kit.every(tallKit)) {
       const south = terrace(block, block.y + block.h, "south", 0,
         Math.min(Math.max(...kit.map((f) => buildingModel(f).footprint[1])), block.h));
       out.push(...south.lots);
       const back = block.y + block.h - (south.depth || 0);
-      if (back - block.y >= 4 + 3) {
+      if (back - block.y >= 5) {
         yardRanges.set(block, true);
         out.push(...terrace(block, block.y, "north", 1, 4).lots);
-        for (const [edge, face] of [[block.x, "west"], [block.x + block.w, "east"]] as const)
-          out.push(...terrace(block, edge, face, 2, 4, block.y + 5, back - 1).lots);
         yardRanges.delete(block);
       }
       return out;

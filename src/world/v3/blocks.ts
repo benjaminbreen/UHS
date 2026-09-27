@@ -711,7 +711,13 @@ export function composeUrban(
    * where it meets another street, at the edge, or blind. Where the fabric
    * is irregular a lane kinks sideways as it goes, so nothing lines up. */
   function grow(d: District, i: number) {
-    const [bw, bh] = d.spec.block;
+    // A boulevard-age city kept its old lanes' pattern but not their scraps:
+    // its blocks had to hold ranges of five storeys round a court, so the
+    // lanes that survived are fewer, straighter and rarely blind.
+    const renewed = (year ?? 0) >= 1850;
+    const [bw, bh] = renewed
+      ? [Math.round(d.spec.block[0] * 1.4), Math.round(d.spec.block[1] * 1.4)]
+      : d.spec.block;
     // Motor-age rebuilding straightened what it kept of the old lanes.
     const reg = form.motor
       ? Math.max(0.85, d.spec.regularity)
@@ -740,7 +746,7 @@ export function composeUrban(
       const at = (u: number, v: number) =>
         other === "x" ? { x: v, y: u } : { x: u, y: v }; // u along parent axis? no: u is the parent-axis coordinate, v the branch coordinate
       // A branch too near a parallel one leaves no block between them.
-      const gap = Math.max(8, Math.floor(pitch * 0.6));
+      const gap = Math.max(renewed ? 12 : 8, Math.floor(pitch * 0.6));
       const crowdedAt = (u: number, v: number) => {
         for (let k = 1; k <= gap; k++)
           for (const off of [-k, k]) {
@@ -786,7 +792,7 @@ export function composeUrban(
         }
         if (len >= target) {
           const blind =
-            rand("blind", i, n) < form.deadEnds || len >= target * 2;
+            rand("blind", i, n) < form.deadEnds * (renewed ? 0.3 : 1) || len >= target * 2;
           if (blind) {
             pieces.push(at(u, v));
             ended = true;
@@ -796,6 +802,7 @@ export function composeUrban(
         }
         if (
           reg < 0.85 &&
+          !renewed &&
           len % 6 === 0 &&
           rand("kink", i, n, len) < (1 - reg) * 0.7
         ) {
