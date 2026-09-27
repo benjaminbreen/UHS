@@ -1,3 +1,4 @@
+import { resolveJunctions } from "./junctions";
 import { planCamp } from "./camps";
 import {
   generateCharacter,
@@ -525,103 +526,46 @@ export function planSettlement(
         at: (axis === "x" ? y - a.y : x - a.x) + lo,
         span: road.span!,
         marks,
-        ...(tram && { tram }),
-        ...(!tram && road.span! >= BOULEVARD && { boulevard: true }),
+        ...(tram && axis === "x" && { tram: true }),
+        ...(!(tram && axis === "x") && road.span! >= BOULEVARD && { boulevard: true }),
       });
     });
   };
-  /** Crossings and stop lines belong in the few cells before a junction. */
-  const approaches = () => {
-    for (const [k, lane] of plan.lanes ?? []) {
-      if (lane.junction || lane.span < 2) continue;
-      const [x, y] = k.split(",").map(Number);
-      const along = (d: number) =>
-        plan.lanes!.get(
-          lane.axis === "x" ? cellKey(x + d, y) : cellKey(x, y + d),
-        );
-      // Where a junction is only a few cells off, people cross there; a
-      // second crossing at the square's edge would stack on it.
-      let junctionNear = false;
-      for (let d = -7; d <= 7 && !junctionNear; d++)
-        junctionNear = !!d && !!along(d)?.junction;
-      for (const dir of [-1, 1])
-        for (let d = 1; d <= 3; d++) {
-          const k =
-            lane.axis === "x" ? cellKey(x + dir * d, y) : cellKey(x, y + dir * d);
-          const n = plan.lanes!.get(k);
-          // A street that runs into the square is crossed where it meets it;
-          // one that only brushes a corner of it is not.
-          const mid = (lane.span >> 1) - lane.at;
-          const square =
-            !junctionNear &&
-            plan.pavement?.get(k) === "square" &&
-            plan.pavement?.get(
-              lane.axis === "x"
-                ? cellKey(x + dir * d, y + mid)
-                : cellKey(x + mid, y + dir * d),
-            ) === "square";
-          if (!n && !square) break;
-          if (n && !n.junction && !square) continue;
-          if (lane.toJunction === undefined || Math.abs(lane.toJunction) > d)
-            lane.toJunction = dir * d;
-          break;
-        }
-    }
-  };
-  /** Signals at the corners where an arterial crosses; a sign on the
-   * approach of the lesser street where two quiet streets meet. */
   const controlCrossings = () => {
-    if (!pack.setting || !marks || !plan.lanes) return;
+    if (!pack.setting || !marks) return;
     const { signal, sign } = trafficControl(pack.setting);
-    if (signal === undefined && sign === undefined) return;
-    const widest = Math.max(...[...plan.lanes.values()].map((l) => l.span));
-    const keepsRight = marks.drive === "right";
-    for (const [k, lane] of plan.lanes) {
-      if (!lane.junction) continue;
-      const [jx, jy] = k.split(",").map(Number);
-      for (const [sx, sy] of [
-        [-1, -1],
-        [1, -1],
-        [-1, 1],
-        [1, 1],
-      ]) {
-        const fx = jx + sx,
-          fy = jy + sy,
-          f = cellKey(fx, fy);
-        if (plan.pavement?.get(f) !== "footway" || plan.solid.has(f)) continue;
-        // The corner's two neighbours toward the junction: one on each street.
-        const alongY = plan.lanes.get(cellKey(jx, fy)),
-          alongX = plan.lanes.get(cellKey(fx, jy));
-        if (!alongY || !alongX || alongY.axis === alongX.axis) continue;
-        const busy = Math.max(alongY.span, alongX.span) >= widest - 1;
-        let sprite: string | undefined, name: string | undefined;
-        if (busy && signal !== undefined) {
-          sprite = `study-propb-traffic-signal-${signal}`;
-          name = "Traffic signal";
-        } else if (!busy && sign !== undefined) {
-          // The lesser street stops. A driver keeping right meets the sign
-          // on the corner to their right as they arrive.
-          const minorY = alongY.span <= alongX.span;
-          const approach = minorY ? -sy : -sx;
-          const right = minorY
-            ? sx === (approach > 0 ? -1 : 1) * (keepsRight ? 1 : -1)
-            : sy === (approach > 0 ? 1 : -1) * (keepsRight ? 1 : -1);
-          if (!right) continue;
-          sprite = `study-propb-traffic-sign-${sign}`;
-          name = sign === 1 ? "Give way sign" : "Stop sign";
-        }
+    for (const junction of plan.junctions ?? []) {
+      if (junction.approaches.length < 3) continue;
+      const widest = Math.max(...junction.approaches.map((a) => a.span));
+      const busy = junction.approaches.filter((a) => a.span >= 8).length >= 3;
+      for (const a of junction.approaches) {
+        if (!busy && a.span > widest / 2) continue;
+        for (let d = 0; d < 4; d++)
+          for (let u = a.start; u < a.start + a.span; u++) {
+            const k = a.axis === "x" ? cellKey(a.edge - a.toward * d, u) : cellKey(u, a.edge - a.toward * d);
+            const lane = plan.lanes?.get(k);
+            if (lane) lane.stopLine = true;
+          }
+        const index = (a.axis === "x" ? a.toward > 0 : a.toward < 0) === (marks.drive === "right") ? 1 : 0;
+        const landing = a.landings[index];
+        const side = index ? 1 : -1;
+        const at = [0, 1, 2, 3, 4].map((d) => a.axis === "x"
+          ? { x: landing.x - a.toward * 2, y: landing.y + side * d }
+          : { x: landing.x + side * d, y: landing.y - a.toward * 2 })
+          .find((p) => plan.pavement?.get(cellKey(p.x, p.y)) === "footway" && !plan.solid.has(cellKey(p.x, p.y)));
+        if (!at) continue;
+        const k = cellKey(at.x, at.y);
+        if (plan.pavement?.get(k) !== "footway" || plan.solid.has(k)) continue;
+        const sprite = busy && signal !== undefined ? `study-propb-traffic-signal-${signal}`
+          : sign !== undefined ? `study-propb-traffic-sign-${sign}` : undefined;
         if (!sprite) continue;
         plan.objects.push({
-          id: `${site.id}-control-${fx}-${fy}`,
-          name: name!,
-          kind: "monument",
-          sprite,
-          pos: pos({ x: fx, y: fy }),
-          inventory: {},
-          claim: "landscape",
+          id: `${site.id}-control-${at.x}-${at.y}`,
+          name: busy ? "Traffic signal" : sign === 1 ? "Give way sign" : "Stop sign",
+          kind: "monument", sprite, pos: pos(at), inventory: {}, claim: "landscape",
         });
-        plan.solid.add(f);
-        plan.reserved.add(f);
+        plan.solid.add(k);
+        plan.reserved.add(k);
       }
     }
   };
@@ -902,6 +846,62 @@ export function planSettlement(
     pos: Point;
   }[] = [];
   if (urban) {
+    const composeModernSquare = (court: Rect) => {
+      const cx = court.x + (court.w >> 1), cy = court.y + (court.h >> 1) - 2;
+      plan.objects = plan.objects.filter((o) => o.id !== `${site.id}-hearth`);
+      eachCell(court, (x, y) => {
+        const k = cellKey(x, y);
+        const border = x === court.x || x === court.x + court.w - 1 || y === court.y || y === court.y + court.h - 1;
+        plan.streetSurfaces!.set(k, border ? "basalt" : "concrete");
+        plan.lanes?.delete(k);
+      });
+      const place = (tag: string, name: string, sprite: string, at: Point, width = 1) => {
+        const rect = { x: at.x - (width >> 1), y: at.y, w: width, h: 1 };
+        if (!dry(rect, false)) return;
+        eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.reserved.add(cellKey(x, y)); });
+        plan.objects.push({ id: `${site.id}-square-${tag}`, name, sprite,
+          kind: "monument", pos: pos(at), inventory: {}, claim: "landscape" });
+      };
+      const focus = focusFor(pack);
+      const ornament = fabric.square.focus ? ornaments[fabric.square.focus] : undefined;
+      if (focus || ornament) {
+        eachCell({ x: cx - 1, y: cy - 1, w: 3, h: 3 }, (x, y) => {
+          const k = cellKey(x, y);
+          plan.pavement!.set(k, "dais");
+          plan.streetSurfaces!.set(k, "slab");
+        });
+        place("focus", focus?.label ?? ornament!.label,
+          focus?.sprite ?? ornament!.focusSprite ?? ornament!.sprite, { x: cx, y: cy });
+      }
+      for (const [i, x] of [court.x + 2, court.x + court.w - 5].entries()) {
+        for (const [j, y] of [court.y + 3, court.y + court.h - 7].entries()) {
+          const bed = { x, y, w: 3, h: 3 };
+          if (!dry(bed, false)) continue;
+          eachCell(bed, (bx, by) => {
+            const k = cellKey(bx, by);
+            setSurface(k, "grass", 11);
+            plan.pavement!.set(k, "verge");
+            plan.reserved.add(k);
+          });
+          const at = { x: x + 1, y: y + 1 };
+          plan.solid.add(cellKey(at.x, at.y));
+          plan.objects.push({ id: `${site.id}-square-tree-${i}-${j}`, name: "Square tree",
+            kind: "tree", pos: pos(at), sprite: pack.trees[0], inventory: {}, claim: "landscape" });
+          place(`bench-${i}-${j}`, "Park bench", "study-propb-park-bench-0", { x: x + 1, y: y + 4 }, 3);
+        }
+        const lamp = lampFor(pack);
+        place(`lamp-${i}`, lamp.label, lamp.sprite, { x: x + 1, y: court.y + (court.h >> 1) });
+      }
+      const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
+      source.name = "Public water pump";
+      source.sprite = "study-propb-pump-0";
+      source.pos = pos({ x: court.x + 1, y: court.y + court.h - 2 });
+      waterStand.x = source.pos.x + 1; waterStand.y = source.pos.y;
+      place("newsstand", "Newspaper kiosk", "study-propb-newsstand-2",
+        { x: court.x + court.w - 3, y: court.y + court.h - 2 }, 3);
+      socialCenter.x = cx; socialCenter.y = cy + 3;
+      plan.spawn = { ...socialCenter };
+    };
     /** A square is composed from the fabric's spec: one centrepiece on a dais
      * scaled to the square, four corners, stalls along the lower edge. The
      * shared water and hearth objects already exist for routines; the first
@@ -1130,7 +1130,8 @@ export function planSettlement(
       if (square) {
         socialCenter.x = court.x + Math.floor(court.w / 2);
         socialCenter.y = court.y + Math.floor(court.h / 2);
-        composeSquare(court, civicRect);
+        if (fabric.motor) composeModernSquare(court);
+        else composeSquare(court, civicRect);
         // The centre is now the monument; anything that entered there
         // enters at its foot instead.
         for (const plot of plan.plots)
@@ -1162,8 +1163,11 @@ export function planSettlement(
       (pack.setting?.year ?? 0) >= 1900 ? "grass" : (cityGround ?? "grass");
     const paintBlock = (block: Rect, ground: Terrain = blockGround) =>
       eachCell(block, (x, y) => {
-        if (dry({ x, y, w: 1, h: 1 }, false))
-          setSurface(cellKey(x, y), ground, 2);
+        const k = cellKey(x, y);
+        if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, ground, 2) && ground === "paving") {
+          plan.pavement!.set(k, "footway");
+          plan.streetSurfaces!.set(k, footwaySurface ?? "slab");
+        }
       });
     const paintFootway = (rect: Rect) => {
       // A town of house plots had no sidewalks until the industrial age.
@@ -1192,21 +1196,21 @@ export function planSettlement(
           plan.reserved.add(k);
         }
       });
-    const paintVergeWalk = (rect: Rect) => {
+    const paintVergeWalk = (rect: import("./blocks").Verge) => {
       if (!profile.paved) return;
-      const horizontal = rect.w >= rect.h,
-        before = horizontal ? rect.y < c.y : rect.x < c.x,
+      const horizontal = rect.axis === "x",
+        before = rect.side < 0,
         walk = horizontal
           ? {
               x: rect.x,
-              y: before ? rect.y - 1 : rect.y + rect.h,
+              y: before ? rect.y - 2 : rect.y + rect.h,
               w: rect.w,
-              h: 1,
+              h: 2,
             }
           : {
-              x: before ? rect.x - 1 : rect.x + rect.w,
+              x: before ? rect.x - 2 : rect.x + rect.w,
               y: rect.y,
-              w: 1,
+              w: 2,
               h: rect.h,
             };
       eachCell(walk, (x, y) => {
@@ -1648,7 +1652,11 @@ export function planSettlement(
           paintCourt,
           paintBlock,
         );
-    approaches();
+    // Composed buildings are installed later; crossings must already respect them.
+    const crossingObstacles = new Set(plan.solid);
+    for (const lot of urbanLots)
+      eachCell(lot.rect, (x, y) => crossingObstacles.add(cellKey(x, y)));
+    plan.junctions = resolveJunctions(plan, crossingObstacles);
     // A boulevard's median is planted and kerbed, and stops short of each
     // junction so the crossing and the turn have room.
     for (const [k, lane] of plan.lanes ?? []) {
@@ -3110,7 +3118,8 @@ export function planSettlement(
       entranceLabel,
     });
     if (urban) {
-      paint(yard, "dirt");
+      const pavedLot = fabric.motor && !!lot.use && ["downtown", "commercial", "tenement", "rowhouse"].includes(lot.use);
+      paint(yard, pavedLot ? "paving" : "dirt");
       // Grass is edging: a ring round the house, not a field between them.
       if (cityGround)
         eachCell(
@@ -3118,7 +3127,10 @@ export function planSettlement(
           (x, y) => {
             const k = cellKey(x, y);
             if (plan.solid.has(k) || roads.has(k)) return;
-            if (dry({ x, y, w: 1, h: 1 }, false)) setSurface(k, "grass", 3);
+            if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, pavedLot ? "paving" : "grass", 3) && pavedLot) {
+              plan.pavement!.set(k, "footway");
+              plan.streetSurfaces!.set(k, footwaySurface ?? "concrete");
+            }
           },
         );
       // The strip behind a house is worn to earth; the block stays grass.
@@ -3135,7 +3147,7 @@ export function planSettlement(
             w: 1,
             h: rect.h,
           };
-      if (cityGround !== "grass")
+      if (cityGround !== "grass" && !pavedLot)
         eachCell(back, (x, y) => {
           const k = cellKey(x, y);
           if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false))
@@ -4193,6 +4205,7 @@ export function planSettlement(
           !plan.solid.has(cellKey(p.x, p.y)) &&
           !plan.traffic.has(cellKey(p.x, p.y)) &&
           !plan.reserved.has(cellKey(p.x, p.y)) &&
+          (!fabric.motor || plan.pavement?.get(cellKey(p.x, p.y)) === "footway") &&
           dry({ ...p, w: 1, h: 1 }, false),
       );
       if (!out) continue;
@@ -4203,10 +4216,10 @@ export function planSettlement(
       plan.solid.add(cellKey(out.x, out.y));
       plan.objects.push({
         id: `${site.id}-quarter-well${wells.length}`,
-        name: "Shared water source",
+        name: fabric.motor ? "Public water pump" : "Shared water source",
         kind: "well",
         pos: pos(out),
-        sprite: "well",
+        sprite: fabric.motor ? "study-propb-pump-0" : "well",
         inventory: {},
       });
     }

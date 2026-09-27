@@ -20,6 +20,11 @@ const BRICK_BLOCKS = new Set([
 // Lever House (1952); a city had its first by about 1960.
 const CURTAIN_WALL = 1955;
 
+export function modernCivicBuilding(s: Pick<WorldSetting, "lon" | "lat" | "year">): string | undefined {
+  return s.year >= 1900 && BRICK_BLOCKS.has(modernity(s).id)
+    ? "modern-civic-hall-0" : undefined;
+}
+
 type StyleRule = {
   style: string;
   uses: readonly LandUse[];

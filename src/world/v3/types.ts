@@ -90,6 +90,7 @@ export type SettlementPlan = {
   >;
   pavement?: Map<string, Pavement>;
   lanes?: Map<string, Lane>;
+  junctions?: Junction[];
   tracks?: Map<string, Track>;
   traffic: Set<string>;
   reserved: Set<string>;
@@ -145,7 +146,20 @@ export type Lane = {
   /** Cells to the nearest junction along the street, signed toward it; set
    * only within the few cells where a crossing and stop line belong. */
   toJunction?: number;
+  crossing?: boolean;
+  stopLine?: boolean;
   marks: import("../../content/settlements/streets/markings").RoadMarkings;
+};
+export type Junction = Rect & {
+  approaches: {
+    axis: "x" | "y";
+    start: number;
+    edge: number;
+    span: number;
+    toward: -1 | 1;
+    crossing: boolean;
+    landings: Point[];
+  }[];
 };
 export const cellKey = (x: number, y: number) => `${x},${y}`;
 export const inside = (r: Rect, x: number, y: number) =>

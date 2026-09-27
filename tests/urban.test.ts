@@ -6,6 +6,7 @@ import { settlementProfile } from "../src/content/settlements/profiles";
 import { planSettlement } from "../src/world/v3/plan";
 import { route } from "../src/core/routing";
 import { civicProfile } from "../src/content/settlements/civic";
+import { inside } from "../src/world/v3/types";
 const resolved = resolveSetting("Rome 100 BCE");
 if ("error" in resolved) throw Error(resolved.error);
 const setting = integratedSetting(resolved.setting);
@@ -170,6 +171,40 @@ it("keeps urban geometry deterministic and the old selection opt-in", () => {
   const old = { ...setting, urbanRevision: undefined };
   expect(settlementProfile(old).pattern).toBe("planned");
   expect(settlementProfile(setting).pattern).toBe("dense");
+});
+
+it("frames modern civic squares without roads, market stalls or a shared fire", () => {
+  const r = resolveSetting("Moscow 1975");
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting);
+  for (const seed of ["modern-square-review", "another-square"]) {
+    const p = planSettlement({ id: "city", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+      profile: { ...settlementProfile(s), radius: 90 } }, packForSetting(s), seed, flat, []);
+    const square = p.plots.find((p) => p.id.startsWith("city-square-"))!;
+    expect(square.w).toBeLessThanOrEqual(21);
+    expect(p.objects.some((o) => o.id === "city-hearth")).toBe(false);
+    expect(p.objects.filter((o) => inside(square, o.pos.x, o.pos.y)).some((o) =>
+      o.kind === "fire" || o.prop === "marketCounter")).toBe(false);
+    expect(p.places.some((p) => p.id === "city-civic" && p.sprite.startsWith("modern-civic-hall"))).toBe(true);
+    for (let y = square.y; y < square.y + square.h; y++)
+      for (let x = square.x; x < square.x + square.w; x++) expect(p.lanes!.has(`${x},${y}`)).toBe(false);
+    expect(p.objects.filter((o) => o.sprite === "study-propb-park-bench-0")).toHaveLength(4);
+    for (const o of p.objects.filter((o) => o.id.includes("-quarter-well"))) {
+      expect(o.sprite).toBe("study-propb-pump-0");
+      expect(p.pavement!.get(`${o.pos.x},${o.pos.y}`)).toBe("footway");
+    }
+    expect(p.junctions!.some((j) => j.approaches.some((a) => a.crossing))).toBe(true);
+    for (const j of p.junctions!)
+      for (const a of j.approaches.filter((a) => a.crossing))
+        for (const landing of a.landings) {
+          const k = `${landing.x},${landing.y}`;
+          expect(p.solid.has(k), k).toBe(false);
+          expect(["footway", "square"]).toContain(p.pavement!.get(k));
+        }
+    const hall = p.places.find((p) => p.id === "city-civic")!;
+    expect(route(p.spawn, hall.entrance, (q) =>
+      p.solid.has(`${q.x},${q.y}`) || Math.abs(q.x) > 150 || Math.abs(q.y) > 150 ? Infinity : 1).status).toBe("found");
+  }
 });
 it("selects civic institutions by local date, with an explicitly unresearched fallback", () => {
   expect(civicProfile(setting).label).toBe("Civic basilica");

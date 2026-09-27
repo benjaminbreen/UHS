@@ -244,13 +244,13 @@ export function carriagewayPixel(
   const tyred = u >= P && Math.abs(Math.abs(u - centre) - laneW * 0.28) <= 3;
   const paint = (colour: RGB): RGB => {
     const flake = waterNoise(v, u, 2.5, 781);
-    if (flake > (tyred ? 0.66 : 0.78) || hash(v, u, 782) < 0.025)
-      return mix(colour, base, 0.72);
+    if (flake > (tyred ? 0.82 : 0.9) || hash(v, u, 782) < 0.006)
+      return mix(colour, base, 0.45);
     return mix(colour, base, Math.max(0, flake - 0.3) * 0.3);
   };
   const inside = u >= GUTTER && u < W - GUTTER;
 
-  if (toJunction < 32 && inside && m.crossing !== "none") {
+  if (toJunction < 32 && inside && lane.crossing !== false && m.crossing !== "none") {
     const bars = m.crossing === "zebra" || m.crossing === "ladder";
     const edges = m.crossing === "ladder" || m.crossing === "lines";
     if (edges && (toJunction <= 3 && toJunction >= 2 || toJunction >= 27 && toJunction <= 28))
@@ -260,7 +260,7 @@ export function carriagewayPixel(
     return base;
   }
   if (toJunction < 32) return base;
-  if (m.stopLine && toJunction >= 33 && toJunction <= 35 && inside) {
+  if (m.stopLine && lane.stopLine !== false && toJunction >= 33 && toJunction <= 35 && inside) {
     const toward = near! > 0 ? 1 : -1;
     const high = lane.axis === "x" ? toward > 0 : toward < 0;
     const half = (m.drive === "right") === high ? u >= W / 2 : u < W / 2;

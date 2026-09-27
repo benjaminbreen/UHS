@@ -6,7 +6,7 @@ show both. Nothing here replaces a production sprite.
 from .wells import low_well, framed_well, trough, pump
 from .harvest import sheaf, spade
 from .town import town_well, grinder, sickle, axe, pick, drying_rack
-from .workshop import chest, bench, anvil, loom
+from .workshop import chest, bench, park_bench, anvil, loom
 from .household import sack, cooking_pot, stool, catch
 from .industrial import dustbin, steel_drum, wheelbarrow, washing_line
 from . import fallen as _fallen
@@ -49,6 +49,7 @@ DRAW_B = {
  'drying-rack': drying_rack,
  'strapped-chest': chest,
  'bench': bench,
+ 'park-bench': park_bench,
  'anvil': anvil,
  'loom': loom,
  'sack': sack,
@@ -99,7 +100,7 @@ DRAW_B.update(SACRED)
 
 # Boxy families that stand beside buildings take the buildings' oblique view.
 # Round ones are left alone: a barrel looks the same from every side.
-OBLIQUE = ['crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench',
+OBLIQUE = ['crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench', 'park-bench',
            'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern', *PITCHES,
            'saint-niche', 'newsstand', 'street-fountain', 'street-notice', 'market-display', 'water-station',
            'farm-cart', 'privy-shed', 'privy-stone', 'privy-outhouse', 'granary-staddle', 'granary-stilt']

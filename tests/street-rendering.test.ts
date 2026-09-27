@@ -6,6 +6,38 @@ import { carriagewayPixel } from "../src/render/carriageway";
 import { roadMarkings } from "../src/content/settlements/streets/markings";
 import type { WorldSetting } from "../src/content/geography/types";
 import type { TopographySample } from "../src/core/topography";
+import { resolveJunctions } from "../src/world/v3/junctions";
+import { cellKey, type SettlementPlan } from "../src/world/v3/types";
+
+it("resolves a T-junction into complete crossings with two walkable landings", () => {
+  const marks = roadMarkings({ lon: 37.6, lat: 55.7, year: 1975 } as WorldSetting);
+  const p = { lanes: new Map(), pavement: new Map(), surface: new Map(),
+    streetSurfaces: new Map(), solid: new Set(), reserved: new Set(), traffic: new Set() } as SettlementPlan;
+  for (let y = -6; y <= 16; y++)
+    for (let x = -16; x <= 16; x++) {
+      const k = cellKey(x, y);
+      const horizontal = y >= -2 && y <= 2;
+      const vertical = x >= -2 && x <= 2 && y >= 0;
+      p.surface.set(k, "paving");
+      if (horizontal || vertical)
+        p.lanes!.set(k, { axis: horizontal ? "x" : "y", at: horizontal ? y + 2 : x + 2,
+          span: 5, junction: horizontal && vertical, marks });
+      else p.pavement!.set(k, "footway");
+    }
+  const [j] = resolveJunctions(p);
+  expect(j.approaches).toHaveLength(3);
+  expect(j.approaches.every((a) => a.crossing)).toBe(true);
+  for (const a of j.approaches) {
+    for (const at of a.landings) expect(p.pavement!.get(cellKey(at.x, at.y))).toBe("footway");
+    for (let i = 0; i < a.span; i++) {
+      const k = a.axis === "x" ? cellKey(a.edge, a.start + i) : cellKey(a.start + i, a.edge);
+      expect(p.lanes!.get(k)).toMatchObject({ toJunction: a.toward, crossing: true });
+    }
+  }
+  const blocked = j.approaches[0].landings[0];
+  p.solid.add(cellKey(blocked.x, blocked.y));
+  expect(resolveJunctions(p)[0].approaches[0].crossing).toBe(false);
+});
 it("simplifies staircase footpaths into continuous diagonals without changing routes", () => {
   const points = [
     { x: 0, y: 0 },

@@ -101,6 +101,30 @@ def bench(v=0):
  return c.image()
 
 
+def park_bench(v=0):
+ c = Canvas(39, 26)
+ w, iron = RAMPS[WOOD7[v]], RAMPS['blackiron7']
+ for x in (5, 32):
+  c.rect(x, 3, x + 2, 24, iron[2])
+  c.vline(x, 4, 23, iron[4])
+  c.hline(x - 1, x + 3, 25, iron[1])
+ for y in (4, 8, 12):
+  c.rect(3, y, 35, y + 2, w[4])
+  c.hline(3, 35, y, w[6])
+  c.hline(3, 35, y + 2, w[2])
+  streak(c, 8, 30, y + 1, w, 4)
+  for x in (6, 33): c.set(x, y + 1, iron[4])
+ for y in (16, 18):
+  c.hline(1, 37, y, w[5])
+  c.hline(1, 37, y + 1, w[3])
+ c.hline(1, 37, 20, w[1])
+ for x in (1, 36):
+  c.rect(x, 12, x + 1, 20, iron[2])
+  c.hline(x, x + 2, 12, iron[5])
+ c.rim(iron)
+ return c.image()
+
+
 def anvil(v=0):
  """A smith's anvil on its block: horn out to the left, face about 0.8 m up.
 

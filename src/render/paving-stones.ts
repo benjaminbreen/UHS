@@ -52,13 +52,13 @@ export function asphaltPixel(wx: number, wy: number): Color {
   const mottle = waterNoise(wx, wy, 11, 741) * 0.6 + waterNoise(wx, wy, 4, 742) * 0.4;
   let c: Color = tint([56, 60, 63], Math.round((mottle - 0.5) * 9));
   const grain = hash(wx, wy, 720);
-  if (grain > 0.978) c = grain > 0.996 ? [98, 99, 94] : tint(c, 12);
-  else if (grain < 0.04) c = tint(c, -8);
+  if (grain > 0.994) c = tint(c, 7);
+  else if (grain < 0.02) c = tint(c, -4);
   // Utility cuts: rectangles of newer, blacker binder with a sealed seam.
   const px = Math.floor(wx / 40),
     py = Math.floor(wy / 32);
   const cut = hash(px, py, 743);
-  if (cut < 0.16) {
+  if (cut < 0.045) {
     const x0 = px * 40 + 4 + Math.floor(hash(px, py, 744) * 14),
       y0 = py * 32 + 3 + Math.floor(hash(px, py, 745) * 10),
       w = 10 + Math.floor(hash(px, py, 746) * 18),
@@ -75,7 +75,7 @@ export function asphaltPixel(wx: number, wy: number): Color {
   const crack = waterNoise(wx, wy, 23, 748);
   if (Math.abs(crack - 0.5) < 0.008 && waterNoise(wx, wy, 37, 749) > 0.62) {
     const above = waterNoise(wx, wy - 1, 23, 748);
-    return (above - 0.5) * (crack - 0.5) < 0 && above > crack ? [92, 96, 102] : [30, 32, 36];
+    return (above - 0.5) * (crack - 0.5) < 0 && above > crack ? [66, 70, 73] : [43, 46, 49];
   }
   return c;
 }
@@ -139,6 +139,15 @@ export function pavingStonePixel(
     return tint(wood, tone + grain + edge + g.lift);
   }
   if (material === "asphalt") return asphaltPixel(wx, wy);
+  if (material === "concrete" && grade === "broad") {
+    const row = Math.floor(wy / 16), col = Math.floor(wx / 24);
+    const x = mod(wx, 24), y = mod(wy, 16);
+    const tone = Math.round((hash(col, row, 766) - 0.5) * 8);
+    const face: Color = [171 + tone, 173 + tone, 164 + tone];
+    if (x === 0 || y === 0) return tint(face, -12);
+    if (x === 1 || y === 1) return tint(face, 3);
+    return face;
+  }
   if (material === "concrete" && grade === "street") return sidewalkPixel(wx, wy);
   // Rounded fieldstones and dressed granite blocks have different silhouettes,
   // not merely different tints of the flagstone texture.

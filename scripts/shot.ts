@@ -40,6 +40,10 @@ if (!(await up())) {
 const browser = await launchBrowser();
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  if (process.env.UHS_SEED)
+    await page.addInitScript(`Object.defineProperty(crypto, "randomUUID", {
+      value: () => ${JSON.stringify(process.env.UHS_SEED)}
+    })`);
   page.on("pageerror", (e) => console.error("pageerror", e.message));
   await page.goto(base);
   await page.getByPlaceholder(/A hunter in Anatolia/).fill(prompt);
@@ -58,11 +62,20 @@ try {
   // The arrival card holds play until "Enter life" is pressed.
   await page
     .getByRole("button", { name: /Enter life/ })
-    .click({ timeout: 120000 });
+    .click({ timeout: 120000 }).catch(async (error) => {
+      mkdirSync(dirname(out), { recursive: true });
+      await page.screenshot({ path: out.replace(/\.png$/, "-failure.png") });
+      console.error(await page.locator("body").innerText());
+      throw error;
+    });
   await page.waitForFunction(() => !!(window as any).historySim, null, {
     timeout: 30000,
   });
   await page.waitForSelector(".game-container canvas", { timeout: 30000 });
+  if (process.env.UHS_SEED)
+    await page.evaluate(() => (window as any).__uhs.stop());
+  if (process.env.UHS_ZOOM)
+    await page.evaluate((zoom) => (window as any).__uhs.setZoom(zoom), Number(process.env.UHS_ZOOM));
   // Let the first frames settle so the shot is not of a half-drawn world.
   await page.waitForTimeout(2500);
   // UHS_AT="x,y" stands the player on that cell first (needs the dev server).
@@ -79,6 +92,12 @@ try {
     await page.waitForTimeout(4000);
   }
   // UHS_KEYS="m" opens the region map, and so on for any key the game binds.
+  await page.waitForSelector('.game-container canvas[data-terrain-ready="true"]', { timeout: 120000 });
+  if (process.env.UHS_SEED)
+    console.log(await page.evaluate(() => {
+      const r = (window as any).__uhs;
+      return { seed: r.engine.state.manifest.seed, camera: r.engine.state.player.pos, zoom: r.zoom };
+    }));
   for (const key of process.env.UHS_KEYS ?? "") {
     await page.keyboard.press(key);
     await page.waitForTimeout(4000);

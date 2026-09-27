@@ -811,6 +811,14 @@
       ]
     },
     {
+      "id": "park-bench",
+      "name": "Park bench",
+      "group": "Street furniture",
+      "size": [46, 31],
+      "description": "Slatted timber back and seat on cast-iron legs, with armrests.",
+      "variants": ["Warm wood", "Dark wood", "Pale wood"]
+    },
+    {
       "id": "workbench",
       "name": "Table or workbench",
       "group": "Household",

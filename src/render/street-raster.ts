@@ -187,6 +187,7 @@ export function rasterStreetTile(
       ] as const).flatMap(([dx, dy]) => {
         const l = at(dx, dy)?.lane;
         return l &&
+          l.crossing !== false &&
           l.marks.tactile !== "none" &&
           Math.abs(l.toJunction ?? 9) <= 2 &&
           (l.axis === "x") === (dy !== 0)
@@ -357,7 +358,11 @@ export function rasterStreetTile(
         .filter(([on]) => on)
         .sort((a, b) => a[2] - b[2])[0];
       if (kerbSide) {
-        const edged = kerbTone(
+        const crossing = lane && lane.crossing && Math.abs(lane.toJunction ?? 9) <= 2 &&
+          (lane.axis === "x" ? kerbSide[1] === "n" || kerbSide[1] === "s" : kerbSide[1] === "w" || kerbSide[1] === "e");
+        const edged = crossing
+          ? kerbSide[2] < 2 ? lit(kerbStone(material), -1) : undefined
+          : kerbTone(
           kerbSide[1],
           kerbSide[2],
           kerbSide[3],

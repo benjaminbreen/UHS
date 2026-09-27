@@ -35,6 +35,7 @@ export type Wall = {
   openings: Set<string>;
 };
 export type Furniture = { kind: StreetFurniture; x: number; y: number };
+export type Verge = Rect & { axis: "x" | "y"; side: -1 | 1 };
 /** A double-track line straight through the town and out past its edge:
  * `level` is its first row or column, `lo` to `hi` its run along `axis`. */
 export type Rail = {
@@ -58,7 +59,7 @@ export type UrbanLayout = {
    * none of its sizes would fit. */
   grounds: (Rect | undefined)[];
   /** Planted strips beside the arterials. */
-  verges: Rect[];
+  verges: Verge[];
   furniture: Furniture[];
   half: number;
   /** Street widths in cells by tier, after the arterial is narrowed for a
@@ -432,7 +433,9 @@ export function composeUrban(
   // Placed before the arterials so they can terminate on it. Its scale is read
   // against the radius, not the width: against the width a fifth put a third
   // of the town under one square.
-  const size = Math.max(7, even(half * form.plazaScale) + 1);
+  const size = form.motor
+    ? Math.max(15, Math.min(21, even(half * form.plazaScale) + 1))
+    : Math.max(7, even(half * form.plazaScale) + 1);
   if (plazaBias) {
     const length = Math.hypot(plazaBias.x, plazaBias.y) || 1;
     plazaBias = { x: plazaBias.x / length, y: plazaBias.y / length };
@@ -482,6 +485,13 @@ export function composeUrban(
     w: size,
     h: size,
   };
+
+  const civicBlock = form.motor && half >= 40 ? {
+    west: plaza.x - 12 - hiA,
+    east: plaza.x + plaza.w + 11 + loA,
+    north: plaza.y - 14 - hiA,
+    south: plaza.y + plaza.h + 2 + spanOffsets(street)[0],
+  } : undefined;
 
   // --- Arterials -------------------------------------------------------------
   // One axis-aligned run per gate, bent where the fabric is irregular so the
@@ -833,6 +843,17 @@ export function composeUrban(
     streets.push(...cut);
   }
 
+  if (civicBlock) {
+    // The civic block contains its frontages; through traffic goes around it.
+    const { west, east, north, south } = civicBlock;
+    cutStreets({ x: west + 1, y: north + 1, w: east - west - 1, h: south - north - 1 });
+    const corners = [{ x: west, y: north }, { x: east, y: north },
+      { x: east, y: south }, { x: west, y: south }];
+    for (const [i, a] of corners.entries()) streets.push({ a, b: corners[(i + 1) % 4], tier: i === 2 ? 1 : 0 });
+    lines.clear();
+    for (const s of streets) mark(s);
+  }
+
   // --- Further squares and diagonals ----------------------------------------
   const squares: Rect[] = [];
   if (form.squares) {
@@ -1011,7 +1032,7 @@ export function composeUrban(
     }
     for (const s of diagonals)
       for (const p of line(s.a, s.b)) clearAround(p.x, p.y, hiA + 2);
-    clearRect(plaza, Math.max(loA, hiA) + 1);
+    clearRect(plaza, form.motor ? 1 : Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
     for (const r of grounds) if (r) clearRect(r, 1);
     if (rail)
@@ -1125,6 +1146,21 @@ export function composeUrban(
     readBlocks();
   }
   tidy();
+  if (civicBlock) {
+    const { west, east, north, south } = civicBlock;
+    const perimeter = streets.filter((s) => axisOf(s) === "x"
+      ? across(s) === north || across(s) === south
+      : across(s) === west || across(s) === east);
+    for (const s of perimeter) streets.splice(streets.indexOf(s), 1);
+    cutStreets({ x: west + 1, y: north + 1, w: east - west - 1, h: south - north - 1 });
+    streets.push(...perimeter);
+    for (const s of streets)
+      if ((axisOf(s) === "x" && across(s) === south) ||
+        (axisOf(s) === "y" && across(s) >= plaza.x && across(s) < plaza.x + plaza.w && lo(s) >= south))
+        s.tier = 1;
+    lines.clear();
+    for (const s of streets) mark(s);
+  }
   readBlocks();
   for (const b of blocks) {
     const key = `${b.x},${b.y}`;
@@ -1141,7 +1177,7 @@ export function composeUrban(
   }
 
   // --- Verges and furniture --------------------------------------------------
-  const verges: Rect[] = [];
+  const verges: Verge[] = [];
   const furniture: Furniture[] = [];
   const wants = (k: StreetFurniture) => !!form.furniture?.includes(k);
   const junctionNear = (x: number, y: number, r: number) => {
@@ -1160,7 +1196,7 @@ export function composeUrban(
           axisOf(s) === "x"
             ? { x: lo(s), y: across(s) + off, w: hi(s) - lo(s) + 1, h: verge }
             : { x: across(s) + off, y: lo(s), w: verge, h: hi(s) - lo(s) + 1 };
-        verges.push(r);
+        verges.push({ ...r, axis: axisOf(s), side });
         if (!wants("tree")) continue;
         const phase = 2 + Math.floor(rand("trees", s.a.x, s.a.y, side) * 4);
         for (let v = lo(s) + phase; v <= hi(s) - 2; v += 6) {
@@ -1262,7 +1298,7 @@ export function composeUrban(
       py = plaza.y - 1,
       qx = plaza.x + plaza.w,
       qy = plaza.y + plaza.h;
-    const edges: Segment[] = [plaza, ...squares].flatMap((r) => {
+    const edges: Segment[] = [...(form.motor ? [] : [plaza]), ...squares].flatMap((r) => {
       const px = r.x - 1,
         py = r.y - 1,
         qx = r.x + r.w,

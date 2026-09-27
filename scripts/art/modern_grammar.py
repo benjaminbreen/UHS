@@ -518,10 +518,59 @@ class Glass(Style):
             top.rect(px0, yy, px0 + pw - 1, yy, p['rim'][0])
 
 
+@style
+class CivicHall(Style):
+    key = 'civic-hall'
+    label = 'Municipal hall'
+    about = 'An illustrative twentieth-century public hall with a pale stone facade, tall windows and a recessed central entrance.'
+    since = 1900
+    bay = 24
+    crown_h = 14
+    ground_h = STOREY + 16
+
+    def palette(self, seed):
+        return {'wall': ramp('#c6c2ac'), 'trim': ramp('#ddd8c4'), 'roof': '#767a72'}
+
+    def storey(self, b, f, y, n, p):
+        w, t = p['wall'], p['trim']
+        f.rect(0, y + self.storey_h - 2, b.W - 1, y + self.storey_h - 1, t[2])
+        for i, (x0, x1) in enumerate(self.bays(b.W)):
+            self.window(f, (x0 + x1) // 2 - 5, y + 5, 10, 17, b.lit(i, n), p, t[3])
+
+    def ground(self, b, f, y, p):
+        w, t = p['wall'], p['trim']
+        H = f.h
+        f.rect(0, y, b.W - 1, H - 1, w[2])
+        for yy in range(y + 5, H - 2, 7):
+            f.rect(0, yy, b.W - 1, yy, w[1])
+        for i, (x0, x1) in enumerate(self.bays(b.W)):
+            x = (x0 + x1) // 2
+            if abs(x - b.W // 2) < 22:
+                continue
+            self.window(f, x - 5, y + 10, 10, 20, b.lit(i, 0), p, t[3])
+        cx = b.W // 2
+        f.rect(cx - 23, y + 2, cx + 23, H - 2, w[0])
+        f.rect(cx - 21, y + 4, cx + 21, H - 2, w[1])
+        for x in (cx - 25, cx + 20):
+            f.rect(x, y + 2, x + 5, H - 3, t[2])
+            f.rect(x, y + 2, x + 1, H - 3, t[4])
+            f.rect(x - 2, y, x + 7, y + 3, t[3])
+        for x in (b.door_x - 13, b.door_x, b.door_x + 13):
+            door(f, x, H, ['#261e18', '#3b2e22', '#654936', '#9b7850'], t[1], GLASS[1], fan=5)
+        f.rect(cx - 30, y - 3, cx + 30, y - 1, t[3])
+        f.rect(cx - 30, y - 3, cx + 30, y - 3, t[4])
+
+    def crown(self, b, f, p):
+        t = p['trim']
+        for y, tone in [(0, 4), (1, 3), (2, 2), (10, 3), (11, 4), (12, 2), (13, 0)]:
+            f.rect(0, y, b.W - 1, y, t[tone])
+
+
 # --- Catalogue ------------------------------------------------------------
 
 # name: (style, footprint, storeys, seed). The atlas frames the city builds.
 CATALOG = {
+    'modern-civic-hall-0': ('civic-hall', [14, 6], 3, 3),
     'modern-gruenderzeit-0': ('gruenderzeit', [10, 6], 5, 3),
     'modern-gruenderzeit-1': ('gruenderzeit', [8, 6], 5, 11),
     'modern-gruenderzeit-2': ('gruenderzeit', [8, 6], 4, 19),
@@ -538,6 +587,7 @@ CATALOG = {
 # --- Review sheet ---------------------------------------------------------
 
 SAMPLES = [
+    ('civic-hall', 14, 6, 3),
     ('gruenderzeit', 10, 6, 5), ('gruenderzeit', 8, 6, 4),
     ('khrushchyovka', 12, 6, 5), ('khrushchyovka', 8, 6, 5),
     ('glass', 8, 8, 14), ('glass', 6, 6, 9),

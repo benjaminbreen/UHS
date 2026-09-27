@@ -24,7 +24,7 @@ import {
   motorized,
 } from "../../content/settlements/modernity";
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
-import { modernBuildings } from "../../content/settlements/modern-buildings";
+import { modernBuildings, modernCivicBuilding } from "../../content/settlements/modern-buildings";
 import {
   BOULEVARD,
   MOTOR_SPANS,
@@ -39,6 +39,7 @@ import {
   type Wall,
   type Furniture,
   type Rail,
+  type Verge,
 } from "./blocks";
 import { cellKey, type Rect, type Road, type Site } from "./types";
 
@@ -95,7 +96,7 @@ export type UrbanSurface = {
   /** Planted strip beside an arterial. */
   paintVerge(rect: Rect): void;
   /** Sidewalk just beyond a planted arterial strip. */
-  paintVergeWalk(rect: Rect): void;
+  paintVergeWalk(rect: Verge): void;
   /** Paved footway beside a street. */
   paintFootway(rect: Rect): void;
   /** A small public green or deliberately undeveloped lot. */
@@ -589,9 +590,9 @@ export function urbanNeighborhood(
   let civicRect: Rect | undefined;
   // The civic range takes the plaza's head before the square is painted, so the
   // square keeps its full depth in front of the building rather than behind it.
-  const civicBase = pack.buildings.find(
-    (base) => buildingModels[`${base}-urban-${civic.form}`],
-  );
+  const civicBase = modernCivicBuilding(pack.setting!) ?? pack.buildings
+    .map((base) => `${base}-urban-${civic.form}`)
+    .find((frame) => buildingModels[frame]);
   if (civicBase) {
     // Sides in the order this fabric prefers, each tried at the middle of the
     // plaza edge and then to either side of it: an arterial meets the plaza at
@@ -614,7 +615,7 @@ export function urbanNeighborhood(
     const candidates = sides.flatMap(([nx, ny]) => {
       const facing =
         nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
-      const base = `${civicBase}-urban-${civic.form}`;
+      const base = civicBase;
       const frame = facing === "south" ? base : `${base}-${facing}`;
       if (!buildingModels[frame]) return [];
       const model = buildingModel(frame),
@@ -661,7 +662,9 @@ export function urbanNeighborhood(
         yard: chosen.rect,
         workPoint: point,
         civic,
-      });
+      }, { apron: chosen.ny < 0
+        ? { x: chosen.rect.x, y: chosen.rect.y + chosen.rect.h, w: chosen.rect.w, h: 1 }
+        : undefined });
       civicRect = chosen.rect;
     }
   }
@@ -994,7 +997,8 @@ export function urbanNeighborhood(
           w: rank.block.w + 2,
           h: rank.block.h + 2,
         },
-        use === "industrial" ? "dirt" : use === "downtown" ? "paving" : undefined,
+        use === "industrial" ? "dirt"
+          : use && ["downtown", "commercial", "tenement", "rowhouse"].includes(use) ? "paving" : undefined,
       );
     }
   for (const [i, rank] of [...parkRanks].entries()) {
@@ -1032,7 +1036,11 @@ export function urbanNeighborhood(
         planted++;
       }
     }
-  for (const piece of layout.furniture) api.furnish(piece);
+  for (const piece of layout.furniture) {
+    if (form.motor && piece.x >= plaza.x - 1 && piece.x <= plaza.x + plaza.w &&
+      piece.y >= plaza.y - 1 && piece.y <= plaza.y + plaza.h + 6) continue;
+    api.furnish(piece);
+  }
   api.paintCity((x, y) => layout.holds(x, y, 1));
   return lots;
 
