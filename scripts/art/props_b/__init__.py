@@ -11,6 +11,7 @@ from .household import sack, cooking_pot, stool, catch
 from .industrial import dustbin, litter_bin, municipal_planter, works_fence, steel_drum, wheelbarrow, washing_line
 from . import fallen as _fallen
 from .lamps import LAMPS
+from .city import city_plane
 from .traffic import TRAFFIC
 from .stalls import STALLS
 from .pitches import PITCHES
@@ -50,6 +51,7 @@ DRAW_B = {
  'strapped-chest': chest,
  'bench': bench,
  'park-bench': park_bench,
+ 'city-plane': city_plane,
  'anvil': anvil,
  'loom': loom,
  'sack': sack,

@@ -436,7 +436,9 @@ export function composeUrban(
   // of the town under one square.
   const size = form.motor
     ? Math.max(15, Math.min(21, even(half * form.plazaScale) + 1))
-    : Math.max(7, even(half * form.plazaScale) + 1);
+    : // A boulevard-age square was a place framed by its buildings, not
+      // the open ground of a market town.
+      Math.max(7, Math.min((year ?? 0) >= 1850 ? 13 : Infinity, even(half * form.plazaScale) + 1));
   if (plazaBias) {
     const length = Math.hypot(plazaBias.x, plazaBias.y) || 1;
     plazaBias = { x: plazaBias.x / length, y: plazaBias.y / length };

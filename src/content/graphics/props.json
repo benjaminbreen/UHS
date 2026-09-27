@@ -811,6 +811,14 @@
       ]
     },
     {
+      "id": "city-plane",
+      "name": "Street plane tree",
+      "group": "Street furniture",
+      "size": [60, 90],
+      "description": "A pollarded plane in an iron grate: clumped crown, mottled bark.",
+      "variants": ["Young", "Grown", "Old"]
+    },
+    {
       "id": "park-bench",
       "name": "Park bench",
       "group": "Street furniture",

@@ -1475,7 +1475,10 @@ export function planSettlement(
           name: "Street tree",
           kind: "tree",
           pos: pos(piece),
-          sprite: pack.trees[0],
+          // An industrial city planted its own plane, smaller than the wild tree.
+          sprite: industrialAge && !plotted
+            ? `study-propb-city-plane-${Math.floor(rand("plane", piece.x, piece.y) * 3)}`
+            : pack.trees[0],
           inventory: {},
         });
         return;

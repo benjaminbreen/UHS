@@ -87,7 +87,7 @@ function pitches(w: number, h: number, top: number): [number, number, number][] 
   const out: [number, number, number][] = [];
   // Stalls in pairs down the aisles, not a grid over the whole ground.
   for (let y = top + 2, row = 0; y < h - 2; y += 5, row++)
-    for (let x = 2; x < w - 3; x += 4) if ((x >> 2) % 3 !== 2) out.push([x, y, row]);
+    for (let x = 2 + (row % 2); x < w - 3; x += 4) if ((x >> 2) % 3 !== 2) out.push([x, y, row]);
   return out;
 }
 
@@ -118,7 +118,11 @@ export function precinctPlans(
         : 1;
     for (let n = 0; n < copies; n++) {
       // Later markets are a step smaller than the first.
-      const scales = allowed.slice(Math.min(n, allowed.length - 1));
+      // An industrial city's open market is what the halls left: the
+      // smallest ground on the ladder.
+      const scales = kind === "market" && industrialized(s)
+        ? allowed.slice(-1)
+        : allowed.slice(Math.min(n, allowed.length - 1));
       plans.push({
         kind,
         label: spec.label,
