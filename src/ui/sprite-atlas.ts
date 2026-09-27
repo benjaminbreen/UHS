@@ -14,6 +14,7 @@ const sheets = {
   buildings: "/packs/buildings",
   regionalBuildings: "/packs/regional-buildings",
   campBuildings: "/packs/camp-buildings",
+  modernBuildings: "/packs/modern-buildings",
   civic: "/packs/civic",
   atlas: "/packs/atlas",
 } as const;

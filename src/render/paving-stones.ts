@@ -1,6 +1,6 @@
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { Pavement } from "../world/v3/types";
-import { waterHash as hash } from "./water-style";
+import { waterHash as hash, waterNoise } from "./water-style";
 import { shade } from "./palette";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type Color = readonly [number, number, number];
@@ -45,6 +45,68 @@ const tint = (c: Color, v: number): Color => {
   return [s[0], s[1], s[2]];
 };
 
+/** Asphalt: a mottled binder with aggregate showing through, the square
+ * scars of trenches dug and filled since it was laid, and cracks run with
+ * sealant that catches the light along one edge. */
+export function asphaltPixel(wx: number, wy: number): Color {
+  const mottle = waterNoise(wx, wy, 11, 741) * 0.6 + waterNoise(wx, wy, 4, 742) * 0.4;
+  let c: Color = tint([56, 60, 63], Math.round((mottle - 0.5) * 9));
+  const grain = hash(wx, wy, 720);
+  if (grain > 0.978) c = grain > 0.996 ? [98, 99, 94] : tint(c, 12);
+  else if (grain < 0.04) c = tint(c, -8);
+  // Utility cuts: rectangles of newer, blacker binder with a sealed seam.
+  const px = Math.floor(wx / 40),
+    py = Math.floor(wy / 32);
+  const cut = hash(px, py, 743);
+  if (cut < 0.16) {
+    const x0 = px * 40 + 4 + Math.floor(hash(px, py, 744) * 14),
+      y0 = py * 32 + 3 + Math.floor(hash(px, py, 745) * 10),
+      w = 10 + Math.floor(hash(px, py, 746) * 18),
+      h = 6 + Math.floor(hash(px, py, 747) * 12);
+    const ix = wx - x0,
+      iy = wy - y0;
+    if (ix >= 0 && iy >= 0 && ix < w && iy < h) {
+      if (ix === 0 || iy === 0 || ix === w - 1 || iy === h - 1)
+        return iy === 0 || ix === 0 ? [42, 45, 49] : [64, 67, 69];
+      return grain > 0.985 ? tint(c, 8) : tint([49, 52, 57], Math.round((mottle - 0.5) * 5));
+    }
+  }
+  // Sealed cracks follow one contour of a slow field, broken into runs.
+  const crack = waterNoise(wx, wy, 23, 748);
+  if (Math.abs(crack - 0.5) < 0.008 && waterNoise(wx, wy, 37, 749) > 0.62) {
+    const above = waterNoise(wx, wy - 1, 23, 748);
+    return (above - 0.5) * (crack - 0.5) < 0 && above > crack ? [92, 96, 102] : [30, 32, 36];
+  }
+  return c;
+}
+
+/** A poured sidewalk scored into squares: a tooled joint with a lit lip on
+ * its far side, a broom finish, panels a shade apart where they were poured on
+ * different days, the odd crack and the grime of feet. */
+export function sidewalkPixel(wx: number, wy: number): Color {
+  const S = 12;
+  const col = Math.floor(wx / S),
+    row = Math.floor(wy / S);
+  const x = mod(wx, S),
+    y = mod(wy, S);
+  const pour = hash(col, row, 761);
+  if (x === 0 || y === 0) return x === 0 && y === 0 ? [118, 119, 114] : [132, 134, 128];
+  let face: Color = tint([174, 175, 167], Math.round((pour - 0.5) * 9));
+  if (x === 1 || y === 1) face = tint(face, 5);
+  else if (x === S - 1 || y === S - 1) face = tint(face, -3);
+  // Broom lines run across the pour.
+  if (mod(wy, 2) === 0 && hash(wx >> 1, wy, 762) < 0.35) face = tint(face, -2);
+  const grime = waterNoise(wx, wy, 9, 763);
+  if (grime > 0.68) face = tint(face, -Math.round((grime - 0.68) * 30));
+  // One panel in twenty-five has settled and cracked corner to corner.
+  if (pour < 0.04) {
+    const d = pour < 0.02 ? x - y : x + y - S;
+    if (d === Math.floor(hash(col, row, 764) * 3) - 1) return [120, 121, 116];
+  }
+  if (hash(wx, wy, 765) > 0.994) return [138, 136, 128];
+  return face;
+}
+
 /** Native-pixel broken flagstones, continuously addressed in world coordinates.
  * Short edge accents describe individual stones without outlining every face.
  * Row offsets vary independently, avoiding both tile seams and a regular brick grid.
@@ -76,14 +138,8 @@ export function pavingStonePixel(
     if (i === 2 && (cut === 2 || cut === 27)) return [70, 56, 42];
     return tint(wood, tone + grain + edge + g.lift);
   }
-  if (material === "asphalt") {
-    const variation =
-      Math.floor(hash(Math.floor(wx / 3), Math.floor(wy / 3), 719) * 11) - 5;
-    const base: Color = [55, 59, 58];
-    // Asphalt has aggregate variation, but no repeating masonry joints.
-    if (hash(wx, wy, 720) > 0.965) return [91, 92, 84];
-    return tint(base, variation);
-  }
+  if (material === "asphalt") return asphaltPixel(wx, wy);
+  if (material === "concrete" && grade === "street") return sidewalkPixel(wx, wy);
   // Rounded fieldstones and dressed granite blocks have different silhouettes,
   // not merely different tints of the flagstone texture.
   if (material === "cobble" || material === "sett") {

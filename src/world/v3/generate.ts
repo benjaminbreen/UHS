@@ -22,6 +22,12 @@ import { trimCache } from "../../core/cache";
 import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
 import { pathArt } from "./path-art";
+import {
+  blacktopLine,
+  roadMarkings,
+} from "../../content/settlements/streets/markings";
+import { motorized } from "../../content/settlements/modernity";
+import { poleStyle } from "../../content/settlements/streets/control";
 import { streetMaterial } from "../../content/settlements/streets";
 import {
   pavingReach,
@@ -556,6 +562,102 @@ export function createSettlementWorld(
     neighborCache.set(key, result);
     return result;
   }
+  // In the motor age the country roads between towns are blacktop, drawn
+  // from their routes as strokes like any town's roads.
+  const blacktop =
+    pack.setting && motorized(pack.setting)
+      ? blacktopLine(roadMarkings(pack.setting).centre)
+      : undefined;
+  const regionalArt = new Map<string, ReturnType<typeof pathArt>>();
+  function regionalStrokes(x: number, y: number) {
+    if (!blacktop || !transport) return [];
+    const c = coord(x, y),
+      key = cellKey(c.x, c.y);
+    let index = regionalArt.get(key);
+    if (!index) {
+      const area = {
+        x: c.x * DISTRICT_SIZE - land.origin.x - 8,
+        y: c.y * DISTRICT_SIZE - land.origin.y - 8,
+        w: DISTRICT_SIZE + 16,
+        h: DISTRICT_SIZE + 16,
+      };
+      index = pathArt(
+        transport.roadsIn(area).filter((r) => r.kind !== "bridge"),
+        true,
+        false,
+        false,
+        blacktop,
+      );
+      trimCache(regionalArt, 32);
+      regionalArt.set(key, index);
+    }
+    return index.get(cellKey(x, y)) ?? [];
+  }
+  /** Every road stroke drawn on a cell: its settlements' roads and, in the
+   * motor age, the country roads between them. */
+  function strokesAt(x: number, y: number) {
+    return nearby(x, y)
+      .flatMap((p) => {
+        let index = pathArtCache.get(p);
+        if (!index) {
+          const revised = !!pack.setting?.streetRevision;
+          index = pathArt(
+            p.site.profile.paved && !revised && !blacktop
+              ? []
+              : blacktop
+                ? // Composed streets are drawn as paving; indexing them as
+                  // strokes too cost seconds at startup and drew nothing.
+                  p.roads.filter((r) => !/-(street|avenue|row)-/.test(r.id))
+                : p.roads,
+            !!pack.setting?.roadRevision,
+            revised && !wheeledTraffic(pack.setting!) ? false : undefined,
+            // Motor traffic had cleared horses off most streets by about 1920.
+            (pack.setting?.year ?? 0) >= 1920 ? false : undefined,
+            blacktop,
+          );
+          pathArtCache.set(p, index);
+        }
+        return index.get(cellKey(x, y)) ?? [];
+      })
+      .concat(regionalStrokes(x, y));
+  }
+  const poles = pack.setting ? poleStyle(pack.setting) : 0;
+  /** Poles stand just past the ditch of a country road, one every ten cells
+   * along it, counted in world coordinates so a bend does not bunch them. */
+  const POLE_SPACING = 10;
+  function poleAt(x: number, y: number) {
+    for (const s of strokesAt(x, y)) {
+      if (!s.paved) continue;
+      const [ax, ay] = s.a,
+        [bx, by] = s.b,
+        len = Math.hypot(bx - ax, by - ay);
+      if (len < 2) continue;
+      const ux = (bx - ax) / len,
+        uy = (by - ay) / len,
+        cx = x + 0.5 - ax,
+        cy = y + 0.5 - ay;
+      const along = cx * ux + cy * uy,
+        side = cx * -uy + cy * ux;
+      if (along < 0 || along > len || Math.abs(side - (s.radius + 1.4)) > 0.75)
+        continue;
+      const world = (x + 0.5) * ux + (y + 0.5) * uy;
+      if (((world % POLE_SPACING) + POLE_SPACING) % POLE_SPACING >= 1.3) continue;
+      const variant =
+        poles === 0 && random(seed, "pole", x, y) < 0.2 ? 2 : poles;
+      return {
+        id: `pole-${x}-${y}`,
+        x,
+        y,
+        sprite: `study-propb-utility-pole-${variant}`,
+        solid: true,
+        wire: {
+          x: Math.floor(x + 0.5 + ux * POLE_SPACING),
+          y: Math.floor(y + 0.5 + uy * POLE_SPACING),
+        },
+      };
+    }
+    return undefined;
+  }
   const roadCache = new Map<string, Map<string, Terrain>>(prepared?.roads);
   function regionalRoads(x: number, y: number) {
     if (relief && !regional) return new Map<string, Terrain>();
@@ -1015,6 +1117,8 @@ export function createSettlementWorld(
       regionalRoads(x, y).has(k)
     )
       return;
+    const pole = blacktop && poleAt(x, y);
+    if (pole) return pole;
     const h = environment ? habitat(x, y) : undefined;
     if (
       h &&
@@ -1370,6 +1474,24 @@ export function createSettlementWorld(
         if (!levels.has(k)) levels.set(k, level);
       });
     }
+    // A rail deck runs level between the banks it spans.
+    for (const [k, track] of p.tracks ?? []) {
+      if (p.surface.get(k) !== "bridge" || levels.has(k)) continue;
+      const [x, y] = k.split(",").map(Number);
+      const [dx, dy] = track.axis === "x" ? [1, 0] : [0, 1];
+      const run: string[] = [];
+      let a = { x, y };
+      while (p.surface.get(cellKey(a.x - dx, a.y - dy)) === "bridge")
+        a = { x: a.x - dx, y: a.y - dy };
+      let b = a;
+      for (; p.surface.get(cellKey(b.x, b.y)) === "bridge"; b = { x: b.x + dx, y: b.y + dy })
+        run.push(cellKey(b.x, b.y));
+      const level = Math.max(
+        tier({ x: a.x - dx, y: a.y - dy }),
+        tier(b),
+      ) as HeightTier;
+      for (const r of run) levels.set(r, level);
+    }
     return levels;
   }
   const streetLevelCache = new WeakMap<SettlementPlan, Map<string, number>>();
@@ -1554,6 +1676,17 @@ export function createSettlementWorld(
                       ? "dry"
                       : "grass"
               : eco.surface;
+      // The road off the edge of the map is metalled once cars use it.
+      if (
+        f.water >= 0 &&
+        f.travelRoad &&
+        blacktop &&
+        !regionalStrokes(x, y).length
+      ) {
+        cell.surface = "gravel";
+        cell.feature = "paving";
+        cell.streetMaterial = "asphalt";
+      }
       // A creek's edge is painted per pixel by the ground raster (a dark wet
       // line and stones on turf); marking whole cells as gravel drew a
       // stepped grey band along it.
@@ -1593,7 +1726,12 @@ export function createSettlementWorld(
         "grass";
       if (cell.feature === "bank") delete cell.feature;
     }
-    if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
+    if (t === "bridge") {
+      const track = nearby(x, y)
+        .map((p) => p.tracks?.get(cellKey(x, y)))
+        .find(Boolean);
+      return { ...cell, surface: "soil", bridge: true, ...(track && { track }) };
+    }
     if (t === "field") {
       cell.surface = "soil";
       cell.feature = "field";
@@ -1627,6 +1765,7 @@ export function createSettlementWorld(
     if (regional && regionalRoads(x, y).has(cellKey(x, y)) && t !== "paving") {
       const local = regional.settingAt(x, y);
       if (
+        !blacktop &&
         regional.placeAt(x, y) &&
         settlementProfile(local).paved &&
         (!local.streetRevision ||
@@ -1635,7 +1774,7 @@ export function createSettlementWorld(
         cell.surface = "gravel";
         cell.feature = "paving";
         cell.streetMaterial = streetMaterial(local);
-      } else cell.surface = "soil";
+      } else if (!blacktop) cell.surface = "soil";
     }
     if (pack.setting?.urbanRevision) {
       for (const p of nearby(x, y)) {
@@ -1648,11 +1787,19 @@ export function createSettlementWorld(
             delete cell.streetMaterial;
           } else cell.streetMaterial = material;
         }
+        const pavement = p.pavement?.get(key);
+        // A verge is grass, not paving, but the kerb beside it needs to know.
         if (
-          p.pavement?.has(key) &&
-          (!pack.setting?.streetRevision || cell.feature === "paving")
+          pavement &&
+          (!pack.setting?.streetRevision ||
+            cell.feature === "paving" ||
+            pavement === "verge")
         )
-          cell.pavement = p.pavement.get(key);
+          cell.pavement = pavement;
+        const lane = p.lanes?.get(key);
+        if (lane && cell.feature === "paving") cell.lane = lane;
+        const track = p.tracks?.get(key);
+        if (track && cell.feature === "paving") cell.track = track;
         // Authored block ground and courts are areas, not thin paths. Preserve
         // their extent instead of reinterpreting only road centers as worn soil.
         if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size)
@@ -1688,21 +1835,7 @@ export function createSettlementWorld(
       !cell.bridge &&
       !cell.feature
     ) {
-      const strokes = nearby(x, y).flatMap((p) => {
-        let index = pathArtCache.get(p);
-        if (!index) {
-          const revised = !!pack.setting?.streetRevision;
-          index = pathArt(
-            p.site.profile.paved && !revised ? [] : p.roads,
-            !!pack.setting?.roadRevision,
-            revised && !wheeledTraffic(pack.setting!) ? false : undefined,
-            // Motor traffic had cleared horses off most streets by about 1920.
-            (pack.setting?.year ?? 0) >= 1920 ? false : undefined,
-          );
-          pathArtCache.set(p, index);
-        }
-        return index.get(cellKey(x, y)) ?? [];
-      });
+      const strokes = strokesAt(x, y);
       if (strokes.length)
         cell.pathArt = strokes.map((s) => ({
           a: [s.a[0] - x, s.a[1] - y],
@@ -1710,6 +1843,7 @@ export function createSettlementWorld(
           radius: s.radius,
           ...(s.ruts === false && { ruts: s.ruts }),
           ...(s.dung === false && { dung: s.dung }),
+          ...(s.paved && { paved: s.paved }),
         }));
     }
     if (terraces && cell.surface !== "water") {

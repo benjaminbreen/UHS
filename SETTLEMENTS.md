@@ -96,6 +96,87 @@ filled from the city's own small forms, thinned toward the edge the way an
 older town is — without that thinning, 3x2 stalls stand shoulder to shoulder
 from the square to the boundary.
 
+## Industrial-age cities grow in rings
+
+`src/content/settlements/modernity.ts` dates two onsets per region: when mills
+and railways began to shape towns, and when mass car ownership did. Nothing
+else in this section applies before the first.
+
+After it, `src/content/settlements/zoning.ts` gives each block of a city a land
+use: the old centre is rebuilt as a downtown a set number of years after the
+onset; one sector, toward the water or the bridge, is factories and yards; the
+rest is housing in the idiom of the date its ring was laid out: `inner` before
+the motor onset (terraces, tenements), `outer` after it (suburbs), with a share
+of estates and, where the region had them, self-built quarters at the edge. The
+ring's date comes from its distance from the centre and from which of the
+fabric's districts it lies in, since `districts` are listed oldest first.
+Every placed building carries its `landUse`.
+
+In the motor age a city also sprawls: `form.motor` adds districts on all four
+sides and in the corners between them, so a metropolis fills its map rather
+than making a cross. Open-air market precincts give way to shops at the
+industrial onset (one market) and disappear at the motor onset.
+
+A gazetteer village of three thousand or more in an industrialised region is
+ranked a town (`settingFor`), and a travel tile takes the population of the
+gazetteer place standing on it, so a tile named for a suburb is built as part of
+its city. Until the modern buildings are redrawn, each land use builds from the
+existing kit forms listed in `FORMS` in `src/world/v3/urban.ts`.
+
+## Carriageways and their paint
+
+A motor-age city lays its streets at `MOTOR_SPANS` in
+`src/content/settlements/streets/markings.ts` (ten cells for an arterial: a
+two-cell parking lane each side of two travel lanes), wide enough for a car.
+Each paved cell of a straight composed street records a `Lane`: its axis, its
+place across the road, the road's width, whether it is a junction, and within
+three cells of one which way the junction lies. `roadMarkings` chooses the
+paint by place and date: driving side, centre line, crossing type, gutter and
+whether the outer lanes are for parking. Streets before 1915, or where no rule
+applies, are guttered but unmarked.
+
+`src/render/carriageway.ts` draws from that alone, pixel by pixel in world
+coordinates: gutter pans or sett channels with drain grates, manholes centred
+in a lane, wheel-polished tracks and oil down the middle, flaking paint,
+crossings and stop lines on the approach side for the driving side, parking
+ticks. Country roads in the motor age are asphalt with a painted centre line
+(`blacktopPixel`); farm lanes stay earth.
+
+Surfaces are dated by region in `streets/industrial.ts`: granite setts in the
+railway age, American brick from the 1880s and poured concrete side streets
+from the 1910s, asphalt with the car; colonial and later cities metalled only
+their main roads first. Side streets and alleys take their own surface. Large
+cities ran trams on their arterials in the windows of `streets/trams.ts`; the
+rails lie in a band of setts. A metropolis lays its arterials as boulevards
+with a planted median that stops short of each junction.
+
+At a junction the footway corner is rounded and its kerb and gutter follow
+the arc; where a marked crossing lands, tactile paving in the region's colour
+from the date it was adopted. Busy crossings get the signal of their date
+(`streets/control.ts`: interwar post-top, postwar yellow, modern black); quiet
+ones a stop or give-way sign on the approach side for the driving side.
+
+An industrial-age town has a double-track railway straight through it,
+skirting the old centre and running on past the edge (`Rail` in `blocks.ts`).
+Streets cross it on the level, with planks between the rails; the block beside
+the line nearest the square is the station and its forecourt, with a platform
+at least two cells wide between it and the rails, and the factory sector turns
+toward the tracks. A river up to `RAIL_BRIDGE` cells wide is crossed on an
+open-deck girder bridge at bank level; wider water ends the line at the shore.
+Signals run a quarter-minute cycle as motion frames.
+
+In the motor age the country roads, the town's own roads past its built edge
+and the regional routes, are blacktop strokes with a centre line, gravel
+shoulders and ditches, and utility poles every ten cells whose wires the scene
+strings between them.
+
+Cars park one to a `STALL` in the parking lanes, facing the way traffic runs
+on their side, chosen from `src/content/settlements/vehicles.ts`: a weighted
+pool per region whose models come and go with their dates and linger a decade
+and a half after. `parkingShare` fills a few stalls in the first motoring
+years and most of them after the motor onset. A parked car is an inspectable
+`monument` whose cells are solid.
+
 ## Shop signs
 
 The word over a shop door is drawn at runtime, not baked into the atlas. The

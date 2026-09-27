@@ -1,10 +1,31 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
+import { prepareSettingSession } from "../src/runtime/preparation";
 import { createSession } from "../src/runtime/session";
 import { createSettlementWorld } from "../src/world/v3/generate";
 import { integratedSetting } from "../src/content/geography/defaults";
 import { packForSetting } from "../src/content/geography/pack";
 import { places } from "../src/content/geography/places";
 import { settingFor } from "../src/content/geography/resolve";
+
+it("cancels preparation with one worker termination and no lingering timeout", async () => {
+  const controller = new AbortController();
+  const terminate = vi.fn();
+  vi.useFakeTimers();
+  vi.stubGlobal("Worker", class {
+    terminate = terminate;
+    postMessage() { controller.abort(); }
+  });
+  try {
+    const setting = settingFor(places.find((p) => p.id === "konya")!, -6499);
+    await expect(prepareSettingSession(setting, "cancel", controller.signal, false))
+      .rejects.toMatchObject({ name: "AbortError" });
+    expect(terminate).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});
 
 it.each(["konya", "alexandria"])(
   "prepared %s preserves initial state, geometry and command outcomes",

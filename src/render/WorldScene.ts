@@ -2755,6 +2755,33 @@ export class WorldScene extends Phaser.Scene {
         return 1;
     }
   }
+  /** The wires from one utility pole's crossarm to the next, sagging between
+   * them. Drawn above the ground at the nearer pole's depth. */
+  private wires(x: number, y: number, to: { x: number; y: number }) {
+    const g = this.add.graphics();
+    const x0 = x * 16 + 8,
+      y0 = y * 16 + 16 - this.lift(x * 16 + 8, y * 16 + 16),
+      x1 = to.x * 16 + 8,
+      y1 = to.y * 16 + 16 - this.lift(to.x * 16 + 8, to.y * 16 + 16);
+    const sag = Math.min(10, Math.hypot(x1 - x0, y1 - y0) * 0.06);
+    // The crossarm's two outer insulators, above the pole's foot.
+    for (const [dx, tone] of [
+      [-10, 0x23262a],
+      [9, 0x2e3236],
+    ] as const) {
+      g.lineStyle(1, tone, 0.9);
+      g.beginPath();
+      for (let i = 0; i <= 12; i++) {
+        const t = i / 12;
+        const px = x0 + dx + (x1 - x0) * t,
+          py = y0 - 78 + (y1 - y0) * t + sag * 4 * t * (1 - t);
+        if (i) g.lineTo(Math.round(px), Math.round(py));
+        else g.moveTo(Math.round(px), Math.round(py));
+      }
+      g.strokePath();
+    }
+    return g.setDepth(Math.max(y, to.y) * 16 + 13);
+  }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false) return undefined;
     const key = shadowFrame(this.shadowPhase, frame);
@@ -2763,7 +2790,9 @@ export class WorldScene extends Phaser.Scene {
         ? "nature-shadows"
         : this.texture(frame) === "props"
           ? "prop-shadows"
-          : "lighting-shadows";
+          : frame.startsWith("vehicle-")
+            ? "vehicle-shadows"
+            : "lighting-shadows";
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
       .image(x, transient ? y : y - this.lift(x, y), texture, key)
@@ -3360,6 +3389,13 @@ export class WorldScene extends Phaser.Scene {
                 );
               if (d?.solid)
                 this.plantHeights.set(d.id, decoration.displayHeight);
+              // The next pole is near where the spacing puts it, not always on it.
+              const next =
+                d?.wire &&
+                [0, -1, 1]
+                  .flatMap((j) => [0, -1, 1].map((i) => w.decoration(d.wire!.x + i, d.wire!.y + j)))
+                  .find((n) => n?.wire);
+              if (next) this.layers.push(this.wires(x, y, next));
               if (d) {
                 const key = `${x},${y}`;
                 this.plantImages.set(key, [
@@ -3804,7 +3840,9 @@ export class WorldScene extends Phaser.Scene {
           ? "nature-shadows"
           : texture === "props"
             ? "prop-shadows"
-            : "lighting-shadows";
+            : frame.startsWith("vehicle-")
+              ? "vehicle-shadows"
+              : "lighting-shadows";
       if (
         shade &&
         !frame.startsWith("human-") &&
@@ -4313,16 +4351,16 @@ export class WorldScene extends Phaser.Scene {
     const h = (((this.runtime.displayClock() / 3600) % 24) + 24) % 24;
     const share = h >= 17 && h < 22.5 ? 0.8 : h >= 4.5 && h < 8 ? 0.45 : 0.15;
     if (random(this.runtime.engine.state.manifest.seed, "lamp", place.id) >= share) return;
-    const key = windowGlow(
-      this,
-      image.texture.key,
-      image.frame.name,
-      (placement.model as { door?: number[] }).door,
-    );
+    // A painter that draws its own lit rooms ships them as a frame beside the
+    // building's; the rest are found in the art's glass.
+    const authored = (placement.model as { glow?: string }).glow;
+    const [key, frame] = authored
+      ? [image.texture.key, authored]
+      : [windowGlow(this, image.texture.key, image.frame.name, (placement.model as { door?: number[] }).door), undefined];
     if (!key) return;
     const at = (depth: number) =>
       this.add
-        .image(image.x, image.y, key)
+        .image(image.x, image.y, key, frame)
         .setOrigin(image.originX, image.originY)
         .setDepth(depth)
         .setVisible(false);

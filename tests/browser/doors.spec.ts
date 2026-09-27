@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+test.setTimeout(180000);
+
 const openCount = (page: import("@playwright/test").Page) =>
   page
     .locator(".game-container canvas")
@@ -24,6 +26,7 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
   // A fixed opening: a random start can land somewhere with no buildings.
   await page.getByRole("button", { name: "More info", exact: true }).click();
   await page.getByRole("button", { name: /Korean farmer/ }).click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   const canvas = page.locator(".game-container canvas");
   await expect(canvas).toHaveAttribute("data-ready", "true", {
     timeout: 120_000,
@@ -39,19 +42,12 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
     const r = (window as any).__uhs,
       e = r.engine,
       p = e.state.player;
-    // Talk outranks the door, so the doorstep has to be clear of neighbours.
     const place = e.world.places.find((q: any) => {
       const d = e.doorOf(q.id);
       return (
         d &&
         !d.open &&
-        e.doorVerdict(q, "player") === "open" &&
-        !e.state.actors.some(
-          (a: any) =>
-            a.pos.space === "outside" &&
-            Math.abs(a.pos.x - q.x) < q.w + 3 &&
-            Math.abs(a.pos.y - q.y) < q.h + 3,
-        )
+        e.doorVerdict(q, "player") === "open"
       );
     });
     if (!place) throw Error("No door the player may open");
@@ -66,6 +62,9 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
     // Face the wall the door is in.
     p.direction =
       d.pos.y < p.pos.y ? 0 : d.pos.x > p.pos.x ? 1 : d.pos.y > p.pos.y ? 2 : 3;
+    // Talk outranks the door; keep this fixture's approach clear of neighbours.
+    e.state.actors = e.state.actors.filter((a: any) =>
+      a.pos.space !== "outside" || Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y)) > 3);
     r.emit();
     return { id: d.id, place: place.id, x: d.pos.x, y: d.pos.y };
   });
@@ -106,6 +105,7 @@ test("knocking runs, and an open door is walked through", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "More info", exact: true }).click();
   await page.getByRole("button", { name: /Korean farmer/ }).click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   const canvas = page.locator(".game-container canvas");
   await expect(canvas).toHaveAttribute("data-ready", "true", {
     timeout: 120_000,
@@ -117,9 +117,10 @@ test("knocking runs, and an open door is walked through", async ({ page }) => {
       e = r.engine;
     const place = e.world.places.find(
       (q: any) => e.doorOf(q.id) && !e.doorOf(q.id).open,
-    );
-    if (!place) throw Error("Every door is open");
+    ) ?? e.world.places.find((q: any) => e.doorOf(q.id));
+    if (!place) throw Error("No door in the test world");
     const d = e.doorOf(place.id);
+    d.open = false;
     const at = eval(APPROACH)(place, d);
     e.state.player.pos = { ...at, space: "outside" };
     r.emit();

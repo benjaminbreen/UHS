@@ -1,3 +1,45 @@
+## Modern oblique gold masters — September 26, 2026
+
+The first oblique buildings for the industrial and modern city: a brick
+commercial block of about 1895 (three sizes), a sawtooth weaving shed with its
+mill stack (two), and a curtain-wall office tower of about 1960 (five, nine and
+fourteen storeys). They stand on commercial, industrial and downtown blocks by
+region and date (`src/content/settlements/modern-buildings.ts`), pack to their
+own `modern-buildings` atlas page, and ship a painted lit-room frame the scene
+uses after dark. Stations have platforms, rivers are bridged by the railway,
+and traffic signals cycle. See `OBLIQUE_ART.md`.
+
+## Street paint and parked cars — September 26, 2026
+
+Motor-age streets are wide enough to drive and park on and are painted in the
+style of their place and date: centre lines, crossings, stop lines on the
+driving side, gutters with drains, manholes, parking stalls, scored
+sidewalks; country roads are blacktop. Nineteen period cars, from a 1915
+touring car to a 2010 SUV by way of the Beetle, the Mini, the Volga, the
+Ambassador and the kei car, park by region and date, drawn from 3D models so
+all four headings share one light. See `SETTLEMENTS.md` and `PROP_ART.md`.
+Also now: dated regional road surfaces (setts, brick, concrete, asphalt),
+tram rails on large cities' arterials, boulevards with planted medians,
+rounded kerbs with tactile paving at crossings, period traffic signals and
+signs, a railway through every industrial-age town with level crossings and a
+station, and blacktop country roads with centre lines, ditches and wired
+utility poles.
+
+## Industrial-age city layout — September 26, 2026
+
+Phase 1 of the modern city revamp. Cities after their region's industrial
+onset are zoned: a rebuilt downtown, a factory sector toward the water, and
+rings of housing in the idiom of each ring's date (terraces, tenements,
+suburbs, estates, self-built quarters) by region. Motor-age cities sprawl into
+the corners of their extent, and open-air market fields give way to shops.
+Modern fabrics now exist for Japan, the Soviet bloc, South Asia, North Africa
+and West Asia, sub-Saharan Africa, Southeast Asia, Latin America and
+Australasia; before this each fell through to the generic fabric. A 1980 mill
+or cannery town such as Sitka is built as a town, not a medieval village, and a
+tile inside a metropolis takes the metropolis's size. See `SETTLEMENTS.md`.
+Buildings still use the existing flat-front modern kit; the oblique redraw,
+street cross-sections, furniture, parked cars and animation are later phases.
+
 ## Daily agendas: occasions, holidays and commissions — September 26, 2026
 
 Each person's day now carries one or two occasions beside their work, picked

@@ -11,6 +11,7 @@ from .household import sack, cooking_pot, stool, catch
 from .industrial import dustbin, steel_drum, wheelbarrow, washing_line
 from . import fallen as _fallen
 from .lamps import LAMPS
+from .traffic import TRAFFIC
 from .stalls import STALLS
 from .pitches import PITCHES
 from .farm import FARM
@@ -71,6 +72,7 @@ DRAW_B = {
  'wheelbarrow': wheelbarrow,
  'washing-line': washing_line,
  **LAMPS,
+ **TRAFFIC,
  **STALLS,
  **PITCHES,
  **FARM,
@@ -141,6 +143,7 @@ ANIMATED = {
  'backstrap-loom': 4,
  'dye-vats': 4,
  'bloomery': 4,
+ 'traffic-signal': 16,
  # Cloth stirs on a covered pitch.
  **{key: 4 for key in PITCHES},
 }

@@ -42,7 +42,7 @@ export async function prepareSettingSession(
     const prepared = await new Promise<PreparedSettlement>(
       (resolve, reject) => {
         const abort = () => {
-          worker.terminate();
+          cleanup();
           reject(signal!.reason);
         };
         const timer = setTimeout(() => {

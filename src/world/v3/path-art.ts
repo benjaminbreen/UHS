@@ -20,6 +20,8 @@ export function pathArt(
   shared = false,
   ruts?: false,
   dung?: false,
+  /** Motor-age roads are blacktop, painted with this centre line. */
+  paved?: PathStroke["paved"],
 ) {
   if (shared) roads = uniqueRoads(roads);
   const index = new Map<string, PathStroke[]>();
@@ -60,6 +62,8 @@ export function pathArt(
       out.push(selected[selected.length - 1]);
       selected = out;
     }
+    // A blacktop road is two car lanes wide whatever the track under it was.
+    const blacktop = paved && road.width >= 1;
     for (let i = 1; i < selected.length; i++) {
       const a = selected[i - 1],
         b = selected[i],
@@ -69,13 +73,20 @@ export function pathArt(
           // Art half-width only; the route's reserved cells are unchanged. A
           // cart road at the generated width painted a 48px ribbon through a
           // village, roughly twice what the reference art carries.
-          radius: road.width ? road.width * 0.72 + 0.44 : shared ? 0.5 : 0.66,
+          radius: blacktop
+            ? 2.6
+            : road.width
+              ? road.width * 0.72 + 0.44
+              : shared
+                ? 0.5
+                : 0.66,
           ...(ruts === false && { ruts }),
           ...(dung === false && { dung }),
+          ...(blacktop && { paved }),
         };
       const count = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2),
         seen = new Set<string>(),
-        pad = road.width + 1;
+        pad = blacktop ? 4 : road.width + 1;
       for (let j = 0; j <= count; j++) {
         const x = Math.floor(a.x + ((b.x - a.x) * j) / (count || 1)),
           y = Math.floor(a.y + ((b.y - a.y) * j) / (count || 1));

@@ -4,6 +4,7 @@ import { containsDate, glacialTundraLatitude } from "../../content/history/dates
 import { environmentFor } from "../../content/geography/defaults";
 import { farms, networkOnset } from "../../content/geography/onsets";
 import { settingFor } from "../../content/geography/resolve";
+import { populationAt } from "../../content/geography/eras";
 import type { AtlasPlace, WorldSetting } from "../../content/geography/types";
 import {
   atlasSample,
@@ -102,10 +103,18 @@ export function settingForTravelStop(stop: TravelStop, year: number) {
     stop.environment.year === year
       ? stop.environment
       : resolveMapEnvironment(stop.environment.anchor, year);
+  // The gazetteer place standing on this ground, if any: a tile inside a
+  // modern metropolis is named for its suburb but built as part of the city.
+  const gazetteer = places.find(
+    (p) =>
+      !!p.population &&
+      Math.hypot(p.lon - e.anchor.lon, p.lat - e.anchor.lat) < 0.15,
+  );
   const place: AtlasPlace = {
     id: stop.locationId ?? `travel-${stop.id}`,
     name: stop.name,
     aliases: [],
+    population: gazetteer && populationAt(gazetteer, year),
     ...e.anchor,
     climate: e.climate,
     relief: e.relief,

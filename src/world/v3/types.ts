@@ -12,7 +12,16 @@ export type Rect = Point & { w: number; h: number };
 /** How a street cell is used. `verge` marks a planted grass strip between a
  * roadway and its footway; the cell's surface is grass, not paving, and a kerb
  * is drawn where paving meets it. */
-export type Pavement = "square" | "dais" | "footway" | "lane" | "verge";
+export type Pavement =
+  | "square"
+  | "dais"
+  | "footway"
+  | "lane"
+  | "verge"
+  | "rail"
+  | "platform";
+/** Where a cell sits across a railway: `at` counts from its west or north edge. */
+export type Track = { axis: "x" | "y"; at: number };
 export type Site = {
   id: string;
   cx: number;
@@ -80,6 +89,8 @@ export type SettlementPlan = {
     import("../../content/settlements/streets/palettes").StreetSurface
   >;
   pavement?: Map<string, Pavement>;
+  lanes?: Map<string, Lane>;
+  tracks?: Map<string, Track>;
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;
@@ -118,6 +129,23 @@ export type SettlementPlan = {
     /** Milliseconds per planning phase. */
     timing?: Record<string, number>;
   };
+};
+/** Where a cell sits in a composed street's cross-section. */
+export type Lane = {
+  axis: "x" | "y";
+  /** Cells from the west or north kerb, 0 to `span - 1`. */
+  at: number;
+  span: number;
+  /** Two streets cross here: no lane paint. */
+  junction?: boolean;
+  /** Tram rails run down the middle. */
+  tram?: boolean;
+  /** A planted median divides the two directions. */
+  boulevard?: boolean;
+  /** Cells to the nearest junction along the street, signed toward it; set
+   * only within the few cells where a crossing and stop line belong. */
+  toJunction?: number;
+  marks: import("../../content/settlements/streets/markings").RoadMarkings;
 };
 export const cellKey = (x: number, y: number) => `${x},${y}`;
 export const inside = (r: Rect, x: number, y: number) =>

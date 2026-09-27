@@ -9,6 +9,7 @@ test("a historical journey preserves the original date and connects the family",
   await page.waitForFunction(() => !!(document.querySelector("#opening-prompt") as HTMLInputElement)?.value);
   await page.getByPlaceholder("A hunter in Anatolia, 7000 BCE").fill("Naples 100 CE");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await page.locator(".game-container canvas").waitFor({ timeout: 120000 });
   const state = () => page.evaluate(() => {
     const r = (window as any).__uhs;

@@ -29,6 +29,8 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
                   ? sheets.regionalBuildings
                   : name in sheets.campBuildings.frames
                     ? sheets.campBuildings
+                    : name in sheets.modernBuildings.frames
+                    ? sheets.modernBuildings
                     : name in sheets.civic.frames
                     ? sheets.civic
                     : sheets.atlas;

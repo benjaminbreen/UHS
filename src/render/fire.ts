@@ -29,9 +29,14 @@ export const motionFrames = (names: string[]) => {
 };
 export const MOTION_FRAME_MS = 190;
 /** More frames means a slower movement, not a faster one: a scale settling
- * takes a few seconds, a bee's round takes under one. */
+ * takes a few seconds, a bee's round takes under one, and a traffic signal's
+ * sixteen frames make a cycle of a quarter-minute. */
 export const motionPeriod = (frames: number) =>
-  frames > 4 ? MOTION_FRAME_MS * 2 : MOTION_FRAME_MS;
+  frames > 8
+    ? MOTION_FRAME_MS * 5
+    : frames > 4
+      ? MOTION_FRAME_MS * 2
+      : MOTION_FRAME_MS;
 export const FIRE_FRAME_MS = 105;
 /** How strongly a fire lights the ground round it, over the night wash. */
 export const lightAlpha: Record<LightingId, number> = {

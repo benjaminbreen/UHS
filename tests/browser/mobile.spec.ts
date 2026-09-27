@@ -10,17 +10,9 @@ test.setTimeout(180000);
 test("pinch zooms the world and a tap still walks", async ({ page }) => {
   await page.goto("/");
   const canvas = page.locator(".game-container canvas");
-  for (let i = 0; i < 6; i++) {
-    await page.getByRole("button", { name: "Begin", exact: true }).click();
-    try {
-      await canvas.waitFor({ timeout: 25000 });
-      break;
-    } catch {
-      await page
-        .getByRole("button", { name: "Random start", exact: true })
-        .click();
-    }
-  }
+  await page.getByPlaceholder(/A hunter in Anatolia/).fill("Farmer in Seoul 1750");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute(
     "data-ready",
     "true",

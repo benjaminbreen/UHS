@@ -25,6 +25,21 @@ import {
   streetPalette,
   chooseStreetSurface,
 } from "../../content/settlements/streets/palettes";
+import {
+  BOULEVARD,
+  PARKING,
+  STALL,
+  roadMarkings,
+} from "../../content/settlements/streets/markings";
+import { tramways } from "../../content/settlements/streets/trams";
+import { industrialized, motorized } from "../../content/settlements/modernity";
+import { trafficControl } from "../../content/settlements/streets/control";
+import {
+  carLength,
+  parkedCar,
+  parkingShare,
+  vehiclePool,
+} from "../../content/settlements/vehicles";
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardProp } from "../../content/settlements/yards";
@@ -79,6 +94,7 @@ import {
   planAccess,
   joinNetwork,
   roadCells,
+  spanOffsets,
   type Sample,
 } from "./roads";
 import { planRoutines } from "./routines";
@@ -104,6 +120,8 @@ import {
 } from "./placement";
 /** The livelihood activity that keeps animals, as the character tables name it. */
 const HERDING = "Tending animals";
+// The longest water a town's line bridges, in 2 m cells.
+const RAIL_BRIDGE = 60;
 
 const now = () =>
   typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -327,6 +345,8 @@ export function planSettlement(
   const stone = palette && chooseStreetSurface(palette, "main", rand("paving"));
   const laneSurface =
     palette && chooseStreetSurface(palette, "lane", rand("lanes"));
+  const localSurface =
+    palette && chooseStreetSurface(palette, "local", rand("locals"));
   const squareStone =
     palette && chooseStreetSurface(palette, "square", rand("square-paving"));
   const footwaySurface =
@@ -347,14 +367,16 @@ export function planSettlement(
       : (pack.setting?.year ?? 0) >= 1900 || plotted
         ? "grass"
         : "dirt";
-  const addRoad = (road: Road) => {
+  const motorAge = !!pack.setting && motorized(pack.setting);
+  const industrialAge = !!pack.setting && industrialized(pack.setting);
+  const addRoad = (road: Road, surface?: typeof stone, composed = false) => {
     road = {
       ...road,
       baselineYear: road.baselineYear ?? pack.setting?.year ?? 0,
       state: road.state ?? "used",
       condition: road.condition ?? 1,
     };
-    const material = road.kind === "lane" ? laneSurface : stone;
+    const material = surface ?? (road.kind === "lane" ? laneSurface : stone);
     plan.roads.push(road);
     for (const p of road.points) centers.add(cellKey(p.x, p.y));
     roadCells(road, (x, y) => {
@@ -363,6 +385,16 @@ export function planSettlement(
       if (f.water < 0 && !bridges.has(k)) return;
       roads.add(k);
       plan.reserved.add(k);
+      // Past the built edge a motor-age road out of town is the country
+      // road's blacktop, drawn from its route, not a paved street.
+      if (
+        motorAge &&
+        urban &&
+        !composed &&
+        road.width >= 1 &&
+        Math.hypot(x - c.x, y - c.y) > profile.radius - 4
+      )
+        return;
       // Composed lanes are paved in a paved town; access paths and doorsteps
       // are not.
       // A plotted town cobbles its main street and square; the rest is earth.
@@ -464,6 +496,204 @@ export function planSettlement(
     else if (!road) plan.diagnostics.routeFailures++;
     return road;
   };
+  const marks = pack.setting && roadMarkings(pack.setting);
+  /** Each paved cell of a straight composed street records where it sits
+   * across the road; where two streets overlap it is a junction. */
+  // A large city's arterials carry the trams, where it ran them.
+  const trams =
+    !!pack.setting && tramways(pack.setting) && profile.radius >= 50;
+  const carriageway = (road: Road, tram = false) => {
+    if (!marks || !profile.paved || !road.span) return;
+    const a = road.points[0],
+      b = road.points.at(-1)!;
+    // A diagonal avenue is a staircase of cells with no cross-section.
+    if (a.x !== b.x && a.y !== b.y) return;
+    const axis = a.y === b.y ? "x" : "y";
+    const [lo] = spanOffsets(road.span);
+    const lanes = (plan.lanes ??= new Map());
+    roadCells(road, (x, y) => {
+      const k = cellKey(x, y);
+      if (plan.surface.get(k) !== "paving") return;
+      const old = lanes.get(k);
+      if (old && old.axis !== axis) {
+        old.junction = true;
+        return;
+      }
+      if (old && old.span >= road.span!) return;
+      lanes.set(k, {
+        axis,
+        at: (axis === "x" ? y - a.y : x - a.x) + lo,
+        span: road.span!,
+        marks,
+        ...(tram && { tram }),
+        ...(!tram && road.span! >= BOULEVARD && { boulevard: true }),
+      });
+    });
+  };
+  /** Crossings and stop lines belong in the few cells before a junction. */
+  const approaches = () => {
+    for (const [k, lane] of plan.lanes ?? []) {
+      if (lane.junction || lane.span < 2) continue;
+      const [x, y] = k.split(",").map(Number);
+      const along = (d: number) =>
+        plan.lanes!.get(
+          lane.axis === "x" ? cellKey(x + d, y) : cellKey(x, y + d),
+        );
+      // Where a junction is only a few cells off, people cross there; a
+      // second crossing at the square's edge would stack on it.
+      let junctionNear = false;
+      for (let d = -7; d <= 7 && !junctionNear; d++)
+        junctionNear = !!d && !!along(d)?.junction;
+      for (const dir of [-1, 1])
+        for (let d = 1; d <= 3; d++) {
+          const k =
+            lane.axis === "x" ? cellKey(x + dir * d, y) : cellKey(x, y + dir * d);
+          const n = plan.lanes!.get(k);
+          // A street that runs into the square is crossed where it meets it;
+          // one that only brushes a corner of it is not.
+          const mid = (lane.span >> 1) - lane.at;
+          const square =
+            !junctionNear &&
+            plan.pavement?.get(k) === "square" &&
+            plan.pavement?.get(
+              lane.axis === "x"
+                ? cellKey(x + dir * d, y + mid)
+                : cellKey(x + mid, y + dir * d),
+            ) === "square";
+          if (!n && !square) break;
+          if (n && !n.junction && !square) continue;
+          if (lane.toJunction === undefined || Math.abs(lane.toJunction) > d)
+            lane.toJunction = dir * d;
+          break;
+        }
+    }
+  };
+  /** Signals at the corners where an arterial crosses; a sign on the
+   * approach of the lesser street where two quiet streets meet. */
+  const controlCrossings = () => {
+    if (!pack.setting || !marks || !plan.lanes) return;
+    const { signal, sign } = trafficControl(pack.setting);
+    if (signal === undefined && sign === undefined) return;
+    const widest = Math.max(...[...plan.lanes.values()].map((l) => l.span));
+    const keepsRight = marks.drive === "right";
+    for (const [k, lane] of plan.lanes) {
+      if (!lane.junction) continue;
+      const [jx, jy] = k.split(",").map(Number);
+      for (const [sx, sy] of [
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1],
+      ]) {
+        const fx = jx + sx,
+          fy = jy + sy,
+          f = cellKey(fx, fy);
+        if (plan.pavement?.get(f) !== "footway" || plan.solid.has(f)) continue;
+        // The corner's two neighbours toward the junction: one on each street.
+        const alongY = plan.lanes.get(cellKey(jx, fy)),
+          alongX = plan.lanes.get(cellKey(fx, jy));
+        if (!alongY || !alongX || alongY.axis === alongX.axis) continue;
+        const busy = Math.max(alongY.span, alongX.span) >= widest - 1;
+        let sprite: string | undefined, name: string | undefined;
+        if (busy && signal !== undefined) {
+          sprite = `study-propb-traffic-signal-${signal}`;
+          name = "Traffic signal";
+        } else if (!busy && sign !== undefined) {
+          // The lesser street stops. A driver keeping right meets the sign
+          // on the corner to their right as they arrive.
+          const minorY = alongY.span <= alongX.span;
+          const approach = minorY ? -sy : -sx;
+          const right = minorY
+            ? sx === (approach > 0 ? -1 : 1) * (keepsRight ? 1 : -1)
+            : sy === (approach > 0 ? 1 : -1) * (keepsRight ? 1 : -1);
+          if (!right) continue;
+          sprite = `study-propb-traffic-sign-${sign}`;
+          name = sign === 1 ? "Give way sign" : "Stop sign";
+        }
+        if (!sprite) continue;
+        plan.objects.push({
+          id: `${site.id}-control-${fx}-${fy}`,
+          name: name!,
+          kind: "monument",
+          sprite,
+          pos: pos({ x: fx, y: fy }),
+          inventory: {},
+          claim: "landscape",
+        });
+        plan.solid.add(f);
+        plan.reserved.add(f);
+      }
+    }
+  };
+  /** Cars along the kerb, one to a stall, facing the way traffic runs on
+   * their side of the street. Stalls are world-aligned, as their painted
+   * ticks are, and a stall with a crossing, a junction or anything standing
+   * in it stays empty. */
+  const parkCars = () => {
+    const setting = pack.setting;
+    if (!setting || !marks?.parking || !plan.lanes) return;
+    const pool = vehiclePool(setting);
+    if (!pool.length) return;
+    const share = parkingShare(setting);
+    const mod = (n: number, d: number) => ((n % d) + d) % d;
+    for (const [k, lane] of plan.lanes) {
+      if (lane.junction || lane.span < 6 || lane.toJunction !== undefined) continue;
+      const alongX = lane.axis === "x";
+      // The stall's anchor: on an east-west street its south row, on a
+      // north-south one its west column; first cell along the street.
+      const low = lane.at === (alongX ? PARKING - 1 : 0);
+      const high = lane.at === (alongX ? lane.span - 1 : lane.span - PARKING);
+      if (!low && !high) continue;
+      const [x, y] = k.split(",").map(Number);
+      if (mod(alongX ? x : y, STALL)) continue;
+      const cells: string[] = [];
+      for (let i = 0; i < STALL; i++)
+        for (let j = 0; j < PARKING; j++)
+          cells.push(
+            alongX ? cellKey(x + i, y - j) : cellKey(x + j, y + i),
+          );
+      const clear = cells.every((c) => {
+        const l = plan.lanes!.get(c);
+        return (
+          l &&
+          l.axis === lane.axis &&
+          !l.junction &&
+          l.toJunction === undefined &&
+          !plan.solid.has(c)
+        );
+      });
+      if (!clear || rand("park", x, y) >= share) continue;
+      const car = parkedCar(pool, rand("car", x, y), rand("paint", x, y));
+      if (!car) continue;
+      // Traffic keeps to the right: on an east-west street the north kerb's
+      // cars point west, on a north-south one the west kerb's point south.
+      const keepsRight = marks.drive === "right";
+      const heading = alongX
+        ? low === keepsRight ? "w" : "e"
+        : low === keepsRight ? "s" : "n";
+      const length = carLength(car.model, lane.axis);
+      const at = alongX
+        ? { x: x + (STALL >> 1) - 1, y }
+        : { x, y: y + ((STALL + length) >> 1) - 1 };
+      plan.objects.push({
+        id: `${site.id}-car-${x}-${y}`,
+        name: car.label,
+        description: car.about,
+        kind: "monument",
+        sprite: `vehicle-${car.model}-${car.paint}-${heading}`,
+        pos: pos(at),
+        inventory: {},
+        claim: "landscape",
+      });
+      const start = (STALL - length) >> 1;
+      for (let i = start; i < start + length; i++)
+        for (let j = 0; j < PARKING; j++) {
+          const c = alongX ? cellKey(x + i, y - j) : cellKey(x + j, y + i);
+          plan.solid.add(c);
+          plan.reserved.add(c);
+        }
+    }
+  };
   /** A composed street is already known to be straight and on chosen ground,
    * so it needs validating, not searching. A wet or reserved cell clips the
    * street rather than refusing it: the runs either side still serve their
@@ -518,7 +748,19 @@ export function planSettlement(
         kind: kind ?? (span >= 2 ? "street" : "lane"),
         cost: points.length,
       };
-      addRoad(road);
+      // A composed town's side streets take their own surface: setts on the
+      // high street and brick or earth round the corner.
+      addRoad(
+        road,
+        label.startsWith("street-1")
+          ? localSurface
+          : label.startsWith("street-2")
+            ? laneSurface
+            : undefined,
+        true,
+      );
+      if (!outside && !kind)
+        carriageway(road, trams && label.startsWith("street-0"));
       first ??= road;
       // A street that meets a creek crosses it: the wet gap to the next run
       // is decked over, so the network is not cut in two by a stream.
@@ -918,13 +1160,14 @@ export function planSettlement(
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
       (pack.setting?.year ?? 0) >= 1900 ? "grass" : (cityGround ?? "grass");
-    const paintBlock = (block: Rect) =>
+    const paintBlock = (block: Rect, ground: Terrain = blockGround) =>
       eachCell(block, (x, y) => {
         if (dry({ x, y, w: 1, h: 1 }, false))
-          setSurface(cellKey(x, y), blockGround, 2);
+          setSurface(cellKey(x, y), ground, 2);
       });
     const paintFootway = (rect: Rect) => {
-      if (!profile.paved || plotted) return;
+      // A town of house plots had no sidewalks until the industrial age.
+      if (!profile.paved || (plotted && !industrialAge)) return;
       eachCell(rect, (x, y) => {
         const k = cellKey(x, y);
         if (
@@ -1139,9 +1382,9 @@ export function planSettlement(
           if (
             profile.paved &&
             besideRoad &&
-            plan.pavement!.get(k) !== "verge"
+            plan.pavement!.get(k) !== "verge" &&
+            setSurface(k, "paving", 5)
           ) {
-            setSurface(k, "paving", 5);
             plan.pavement!.set(k, "footway");
             if (footwaySurface) plan.streetSurfaces!.set(k, footwaySurface);
           }
@@ -1311,6 +1554,70 @@ export function planSettlement(
             eachCell(rect, (x, y) =>
               plan.placement.clearance.add(cellKey(x, y)),
             ),
+          railway: (rail) => {
+            const tracks = (plan.tracks ??= new Map());
+            const at = (v: number, a: number) =>
+              rail.axis === "x"
+                ? { x: v, y: rail.level + a }
+                : { x: rail.level + a, y: v };
+            const wet = (v: number) => {
+              const q = at(v, rail.span >> 1);
+              return sample(q.x, q.y).water < 0;
+            };
+            // A river is bridged; open sea or a lake too wide to span ends
+            // the line at the shore.
+            const reach = (from: number, end: number, step: number) => {
+              let run = 0;
+              for (let v = from; v !== end + step; v += step) {
+                run = wet(v) ? run + 1 : 0;
+                if (run > RAIL_BRIDGE) return v - step * run;
+              }
+              return end;
+            };
+            const mid = (rail.lo + rail.hi) >> 1;
+            const lo = reach(mid, rail.lo, -1),
+              hi = reach(mid, rail.hi, 1);
+            for (let v = lo; v <= hi; v++)
+              for (let a = 0; a < rail.span; a++) {
+                const { x, y } = at(v, a),
+                  k = cellKey(x, y);
+                if (plan.solid.has(k)) continue;
+                tracks.set(k, { axis: rail.axis, at: a });
+                // A level crossing keeps its street; the rails lie in it.
+                if (plan.lanes?.has(k)) continue;
+                const water = sample(x, y).water < 0;
+                if (!setSurface(k, water ? "bridge" : "paving", 7)) continue;
+                if (!water) plan.pavement!.set(k, "rail");
+                plan.streetSurfaces!.delete(k);
+                plan.reserved.add(k);
+                noRoad.add(k);
+              }
+          },
+          platform: (rect, alongX) => {
+            eachCell(rect, (x, y) => {
+              const k = cellKey(x, y);
+              if (plan.solid.has(k) || plan.lanes?.has(k) || plan.tracks?.has(k))
+                return;
+              if (!dry({ x, y, w: 1, h: 1 }, false)) return;
+              if (!setSurface(k, "paving", 8)) return;
+              plan.pavement!.set(k, "platform");
+              plan.streetSurfaces!.set(k, footwaySurface ?? "concrete");
+              plan.reserved.add(k);
+              noRoad.add(k);
+            });
+            // Lamps down the back of the platform, clear of the edge.
+            const back = alongX
+              ? plan.tracks?.has(cellKey(rect.x, rect.y - 1)) ? rect.y + rect.h - 1 : rect.y
+              : plan.tracks?.has(cellKey(rect.x - 1, rect.y)) ? rect.x + rect.w - 1 : rect.x;
+            const [start, end] = alongX
+              ? [rect.x + 2, rect.x + rect.w - 2]
+              : [rect.y + 2, rect.y + rect.h - 2];
+            for (let v = start; v < end; v += 6)
+              furnish({
+                  kind: "lamp",
+                  ...(alongX ? { x: v, y: back } : { x: back, y: v }),
+                });
+          },
           buildWall: (wall, parts) => {
             for (const part of parts) {
               const k = cellKey(part.x, part.y);
@@ -1341,6 +1648,23 @@ export function planSettlement(
           paintCourt,
           paintBlock,
         );
+    approaches();
+    // A boulevard's median is planted and kerbed, and stops short of each
+    // junction so the crossing and the turn have room.
+    for (const [k, lane] of plan.lanes ?? []) {
+      if (!lane.boulevard || lane.junction || lane.toJunction !== undefined)
+        continue;
+      const mid = lane.span >> 1;
+      if (lane.at !== mid - 1 && lane.at !== mid) continue;
+      if (!setSurface(k, "grass", 9)) continue;
+      plan.pavement!.set(k, "verge");
+      plan.reserved.add(k);
+      const [x, y] = k.split(",").map(Number);
+      if (lane.at === mid - 1 && (((lane.axis === "x" ? x : y) % 6) + 6) % 6 === 3)
+        furnish({ kind: "tree", x, y });
+    }
+    controlCrossings();
+    parkCars();
     for (const lot of urbanLots)
       eachCell(lot.rect, (x, y) => noRoad.add(cellKey(x, y)));
     if (selected) {
@@ -2603,6 +2927,8 @@ export function planSettlement(
       owner !== "player" &&
       owner !== owners.at(-1) &&
       !lot.venue &&
+      // A curtain wall is too young to have been abandoned decades ago.
+      (model as { obliqueModern?: string }).obliqueModern !== "tower" &&
       rand("ruin", i) < 0.05 + 0.05 * edge
     ) {
       const year = pack.setting?.year ?? 0;
@@ -2754,6 +3080,7 @@ export function planSettlement(
               (TRAFFIC[lot.quarter ?? "residential"] ?? 0.4) * 0.5,
           }
         : {}),
+      ...(lot.use ? { landUse: lot.use } : {}),
       id,
       name: lot.venue
         ? lot.venue.label
@@ -2827,7 +3154,7 @@ export function planSettlement(
             w: 2,
             h: rect.h,
           };
-      const material = stone;
+      const material = footwaySurface ?? stone;
       // A footway runs beside a street; a house on open ground gets none, so
       // no stone patches stand alone.
       const streetNear = (x: number, y: number) => {
@@ -4159,10 +4486,6 @@ export function planSettlement(
       plan.fields.delete(k);
       if (plan.canals?.delete(k)) plan.culverts?.add(k);
     }
-    // Yard grass is a field cell; a gravestone, tree or well stood on it
-    // since takes the cell.
-    for (const k of plan.fields.keys())
-      if (plan.solid.has(k)) plan.fields.delete(k);
   }
   // Every place gets a door, last, so nothing placed earlier lands on the cell
   // and the hole it punches in the wall survives the rest of the build.
@@ -4197,6 +4520,9 @@ export function planSettlement(
   }
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
+  // Props and routine markers claim ground after the fields were planted.
+  for (const k of plan.fields?.keys() ?? [])
+    if (plan.solid.has(k)) plan.fields!.delete(k);
   plan.diagnostics.timing!.routines = Math.round(now() - tRoutines);
   plan.diagnostics.timing!.total = Math.round(now() - tPlan);
   return plan;

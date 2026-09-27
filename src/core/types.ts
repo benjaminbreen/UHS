@@ -248,6 +248,8 @@ export type Place = {
   /** 0-1. How a trading place is doing, from its holder's means and the
    * traffic the quarter brings past the door. */
   trade?: number;
+  /** What the block it stands in became as an industrial-age city grew. */
+  landUse?: import("../content/settlements/zoning").LandUse;
 };
 export type WorldObject = {
   resource?: Resource;
@@ -306,7 +308,13 @@ export type WorldObject = {
   tipped?: boolean;
   lean?: -1 | 1;
 };
-export type Decoration = Point & { id: string; sprite: string; solid: boolean };
+export type Decoration = Point & {
+  id: string;
+  sprite: string;
+  solid: boolean;
+  /** A pole's wires run on to the pole at this cell. */
+  wire?: Point;
+};
 export type Terrain =
   | "grass"
   | "dry"

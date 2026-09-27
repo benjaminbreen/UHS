@@ -78,6 +78,93 @@ it("encloses public squares and courts with varied, non-overlapping ranges and r
         expect(p.solid.has(`${q.x},${q.y}`)).toBe(false);
   }
 }, 30000);
+it("zones an industrial-age city into a downtown, factories and the housing of each ring's date", () => {
+  const plan = (query: string) => {
+    const r = resolveSetting(query);
+    if ("error" in r) throw Error(r.error);
+    const s = integratedSetting(r.setting);
+    return planSettlement(
+      {
+        id: "city",
+        cx: 0,
+        cy: 0,
+        home: true,
+        center: { x: 0, y: 0 },
+        profile: { ...settlementProfile(s), radius: 90 },
+      },
+      packForSetting(s),
+      "zoning",
+      flat,
+      [],
+    );
+  };
+  const uses = (p: ReturnType<typeof plan>) =>
+    new Set(p.places.map((q) => q.landUse).filter(Boolean));
+  const richmond = plan("Richmond 2014");
+  expect([...uses(richmond)]).toEqual(
+    expect.arrayContaining(["downtown", "industrial", "suburb"]),
+  );
+  // Downtown is the rebuilt centre; the suburbs are the last ring.
+  const distance = (use: string) => {
+    const at = richmond.places.filter((q) => q.landUse === use);
+    return at.reduce((d, q) => d + Math.hypot(q.x, q.y), 0) / at.length;
+  };
+  expect(distance("downtown")).toBeLessThan(distance("suburb"));
+  // The modern gold masters: sheds by the works, blocks on the shopping
+  // streets, curtain-wall towers downtown once the date allows them.
+  const built = (use: string, name: string) =>
+    richmond.places.some((q) => q.landUse === use && q.sprite.startsWith(name));
+  expect(built("industrial", "modern-sawtooth-shed")).toBe(true);
+  expect(built("commercial", "modern-commercial-block")).toBe(true);
+  expect(built("downtown", "modern-curtain-tower")).toBe(true);
+  expect(
+    plan("Richmond 1935").places.some((q) => q.sprite.startsWith("modern-curtain-tower")),
+  ).toBe(false);
+  expect(uses(plan("Moscow 1975")).has("estate")).toBe(true);
+  // Before the industrial onset there is no zoning at all.
+  expect(uses(plan("Richmond 1790")).size).toBe(0);
+  // Open-air market pitches give way to shops once cars come.
+  expect(
+    richmond.objects.filter((o) => o.id.includes("-pitch-")),
+  ).toHaveLength(0);
+  // Its streets are wide enough to park on, cross at junctions and are
+  // marked for crossing on the approach.
+  const lanes = [...richmond.lanes!.values()];
+  // A city this size lays its arterials as boulevards with planted medians.
+  expect(Math.max(...lanes.map((l) => l.span))).toBe(12);
+  expect(lanes.some((l) => l.boulevard)).toBe(true);
+  expect(lanes.some((l) => l.junction)).toBe(true);
+  expect(lanes.some((l) => l.toJunction === 1 || l.toJunction === -1)).toBe(true);
+  for (const l of lanes) expect(l.at).toBeGreaterThanOrEqual(0);
+  for (const l of lanes) expect(l.at).toBeLessThan(l.span);
+  // Cars of the date park along the kerb, facing the way their side drives,
+  // standing on cells nobody can walk through.
+  const cars = richmond.objects.filter((o) => o.sprite.startsWith("vehicle-"));
+  expect(cars.length).toBeGreaterThan(20);
+  for (const car of cars) {
+    expect(richmond.solid.has(`${car.pos.x},${car.pos.y}`)).toBe(true);
+    expect(car.sprite).not.toMatch(/tourer|1935|1948/);
+  }
+  expect(new Set(cars.map((c) => c.sprite.at(-1)))).toEqual(
+    new Set(["e", "w", "n", "s"]),
+  );
+  expect(
+    plan("Richmond 1790").objects.some((o) => o.sprite.startsWith("vehicle-")),
+  ).toBe(false);
+  expect(richmond.objects.some((o) => o.sprite.includes("traffic-signal-2"))).toBe(true);
+
+  // Between the wars: trams on the arterials, concrete side streets, the
+  // railway through town with its station, and the first signals.
+  const interwar = plan("Richmond 1935");
+  const lanes35 = [...interwar.lanes!.values()];
+  expect(lanes35.some((l) => l.tram)).toBe(true);
+  expect(new Set(interwar.streetSurfaces!.values())).toContain("concrete");
+  expect([...interwar.pavement!.values()]).toContain("rail");
+  expect(interwar.places.some((p) => p.name === "Railway station")).toBe(true);
+  expect([...interwar.pavement!.values()]).toContain("platform");
+  expect(interwar.objects.some((o) => o.sprite.includes("traffic-signal-0"))).toBe(true);
+});
+
 it("keeps urban geometry deterministic and the old selection opt-in", () => {
   expect(city("same").places).toEqual(city("same").places);
   const old = { ...setting, urbanRevision: undefined };

@@ -25,7 +25,7 @@ OWN_NUMBERS = re.compile(r'^(K|STOREY|OVER|VERGE)\s*=', re.M)
 
 def oblique(all_r):
     return {n: r for n, r in all_r.items()
-            if (r.get('oblique') or r.get('family') == 'parish') and not re.search(r'-(north|east|west)$', n)}
+            if (r.get('oblique') or r.get('obliqueModern') or r.get('family') == 'parish') and not re.search(r'-(north|east|west)$', n)}
 
 
 def audit():

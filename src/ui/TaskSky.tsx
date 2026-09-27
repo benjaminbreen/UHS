@@ -165,7 +165,7 @@ export function TaskSky({
 
   if (!view)
     return (
-      <div className="tasks" role="dialog" aria-label="Task">
+      <div className="tasks" role="dialog" aria-modal="true" data-modal="true" aria-label="Task">
         <button className="tasks-close" onClick={onClose}>✕</button>
       </div>
     );
@@ -173,7 +173,7 @@ export function TaskSky({
   const setting = runtime.engine.world.pack.setting;
   const year = setting?.year ?? runtime.engine.world.pack.year;
   return (
-    <div className="tasks" data-leaving={leaving || undefined} data-settled={settled || undefined} data-part={view.part} role="dialog" aria-label={view.title}>
+    <div className="tasks" data-leaving={leaving || undefined} data-settled={settled || undefined} data-part={view.part} role="dialog" aria-modal="true" data-modal="true" aria-label={view.title}>
       <div className="tasks-canvas">
         <canvas ref={canvas} key={style} aria-hidden="true" />
       </div>

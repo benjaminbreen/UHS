@@ -1,5 +1,6 @@
-import { pavingGrade, pavingStonePixel } from "./paving-stones";
-import { kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
+import { asphaltPixel, pavingGrade, pavingStonePixel } from "./paving-stones";
+import { carriagewayPixel, concreteRoadPixel, levelCrossing, railPixel } from "./carriageway";
+import { kerbCorner, kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
 import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
@@ -26,6 +27,13 @@ const COURSE: Record<StreetMaterial, RGB> = {
   asphalt: [150, 152, 148],
   concrete: [170, 172, 164],
   plank: [120, 90, 60],
+};
+/** Radius of a kerb rounded at a street corner, in native pixels. */
+const CURB_R = 11;
+const TACTILE: Record<string, RGB> = {
+  yellow: [214, 178, 58],
+  buff: [190, 158, 116],
+  grey: [150, 152, 148],
 };
 // Brick and asphalt streets were kerbed in stone, not in themselves.
 const kerbStone = (m: StreetMaterial) =>
@@ -85,6 +93,9 @@ function kerbTone(
   const tone = profile[side][d];
   return peg && tone && d === 1 ? lit(stone, -4) : tone;
 }
+const PLATFORM_WALL: RGB = [166, 160, 146];
+const PLATFORM_FOOT: RGB = [62, 58, 52];
+const SAFETY_LINE: RGB = [222, 196, 92];
 const courseOffset = (side: Side) => ({ n: 0.1, s: 0.55, w: 0.3, e: 0.8 })[side];
 export { wornEdge };
 /** Shared native-pixel paving materials. Place/date selection happens in content. */
@@ -122,6 +133,8 @@ export function rasterStreetTile(
       n.pavement !== "dais" &&
       n.height === c.height &&
       (n.pavement === "verge" ||
+        // A carriageway is kerbed where it meets a square, as at a footway.
+        (!!c.lane && !c.pavement && n.pavement === "square") ||
         (c.pavement !== "footway" && kerbed(sample, x + dx, y + dy)))
     );
   };
@@ -143,12 +156,97 @@ export function rasterStreetTile(
     stepS = step(0, 1),
     stepW = step(-1, 0),
     stepE = step(1, 0);
+  // A footway corner at a junction is rounded; the straight kerbs of the road
+  // cells beside it stop where its arc takes over.
+  const bend = c.pavement === "footway" ? kerbCorner(sample, x, y) : undefined;
+  const bends = [
+    [0, -1],
+    [0, 1],
+    [-1, 0],
+    [1, 0],
+  ].map(([dx, dy]) => {
+    const b = kerbCorner(sample, x + dx, y + dy);
+    return b && (dx ? b[0] === -dx : b[1] === -dy) ? b : undefined;
+  });
+  const rounded = (dx: number, dy: number, px: number, py: number) => {
+    const b = bends[dy < 0 ? 0 : dy > 0 ? 1 : dx < 0 ? 2 : 3];
+    if (!b) return false;
+    return dx
+      ? b[1] < 0 ? py < CURB_R : py > 15 - CURB_R
+      : b[0] < 0 ? px < CURB_R : px > 15 - CURB_R;
+  };
+  const beside =
+    c.pavement === "footway" ? roadwayMaterial(sample, x, y) ?? "asphalt" : undefined;
+  // Tactile paving on the kerb where a marked crossing lands.
+  const tactile = c.pavement === "footway"
+    ? ([
+        [0, -1],
+        [0, 1],
+        [-1, 0],
+        [1, 0],
+      ] as const).flatMap(([dx, dy]) => {
+        const l = at(dx, dy)?.lane;
+        return l &&
+          l.marks.tactile !== "none" &&
+          Math.abs(l.toJunction ?? 9) <= 2 &&
+          (l.axis === "x") === (dy !== 0)
+          ? [{ dx, dy, colour: l.marks.tactile }]
+          : [];
+      })
+    : [];
+  const lane =
+    !c.pavement &&
+    (material === "asphalt" ||
+      material === "concrete" ||
+      material === "sett" ||
+      material === "brick")
+      ? c.lane
+      : undefined;
   const shadowed = !dais && at(0, -1)?.pavement === "dais",
     shadowedE = !dais && at(-1, 0)?.pavement === "dais";
+  const track = c.track;
+  // A platform's edge is the side that drops to the rails.
+  const sides = [
+    [0, -1],
+    [0, 1],
+    [-1, 0],
+    [1, 0],
+  ] as const;
+  const drop =
+    c.pavement === "platform"
+      ? sides.find(([dx, dy]) => at(dx, dy)?.track)
+      : undefined;
+  // Beside the rails, the platform's north face shows as a wall.
+  const face = track && at(0, -1)?.pavement === "platform";
+  const lee = track
+    ? sides.find(([dx, dy]) => dy >= 0 && at(dx, dy)?.pavement === "platform")
+    : undefined;
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = (x + ox) * 16 + px,
         wy = (y + oy) * 16 + py;
+      if (track && c.pavement === "rail") {
+        const alongX = track.axis === "x";
+        pixels.set(
+          [...railPixel(track.at * 16 + (alongX ? py : px), alongX ? wx : wy, wx, wy), 255],
+          (py * 16 + px) * 4,
+        );
+        const wall = face && py < 5;
+        const d = lee ? (lee[0] < 0 ? px : lee[0] > 0 ? 15 - px : 15 - py) : 99;
+        if (wall || d < 2)
+          pixels.set(
+            [
+              ...(wall
+                ? py === 4
+                  ? PLATFORM_FOOT
+                  : lit(PLATFORM_WALL, mod(wx, 12) === 0 ? -3 : py === 0 ? 1 : 0)
+                : lit(railPixel(track.at * 16 + (alongX ? py : px), alongX ? wx : wy, wx, wy), d ? -2 : -4)),
+              255,
+            ],
+            (py * 16 + px) * 4,
+          );
+        continue;
+      }
       const straight = Math.min(
         north ? py : 99,
         south ? 15 - py : 99,
@@ -195,6 +293,23 @@ export function rasterStreetTile(
           (north || south) && !(west || east),
         );
       }
+      if (lane) {
+        const alongX = lane.axis === "x";
+        tone = carriagewayPixel(
+          material === "concrete"
+            ? concreteRoadPixel(lane, lane.at * 16 + (alongX ? py : px), alongX ? wx : wy, alongX ? wy : wx)
+            : tone,
+          lane,
+          lane.at * 16 + (alongX ? py : px),
+          alongX ? wx : wy,
+          alongX ? wy : wx,
+          {
+            low: lane.at === 0 && (alongX ? kerbN && !rounded(0, -1, px, py) : kerbW && !rounded(-1, 0, px, py)),
+            high: lane.at === lane.span - 1 && (alongX ? kerbS && !rounded(0, 1, px, py) : kerbE && !rounded(1, 0, px, py)),
+          },
+          material === "asphalt" || material === "concrete",
+        );
+      }
       const course = COURSE[material];
       if (border < 3 && !nearest)
         tone = cutEdge(
@@ -233,10 +348,10 @@ export function rasterStreetTile(
             : lit(course, seam[1] === "s" || seam[1] === "e" ? -1 : 2);
       const kerbSide = (
         [
-          [kerbN, "n", py, wx],
-          [kerbS, "s", 15 - py, wx],
-          [kerbW, "w", px, wy],
-          [kerbE, "e", 15 - px, wy],
+          [kerbN && !rounded(0, -1, px, py), "n", py, wx],
+          [kerbS && !rounded(0, 1, px, py), "s", 15 - py, wx],
+          [kerbW && !rounded(-1, 0, px, py), "w", px, wy],
+          [kerbE && !rounded(1, 0, px, py), "e", 15 - px, wy],
         ] as const
       )
         .filter(([on]) => on)
@@ -252,6 +367,37 @@ export function rasterStreetTile(
           material === "plank",
         );
         if (edged) tone = edged;
+      }
+      for (const t of tactile) {
+        const d = t.dx ? (t.dx < 0 ? px : 15 - px) : t.dy < 0 ? py : 15 - py;
+        if (d > 4) continue;
+        const face = TACTILE[t.colour];
+        tone =
+          mod(wx, 3) === 1 && mod(wy, 3) === 1
+            ? lit(face, 3)
+            : mod(wx, 3) === 2 && mod(wy, 3) === 2
+              ? lit(face, -2)
+              : face;
+      }
+      if (bend) {
+        const [sx, sy] = bend;
+        const cx = sx < 0 ? CURB_R : 15 - CURB_R,
+          cy = sy < 0 ? CURB_R : 15 - CURB_R;
+        if ((sx < 0 ? px < cx : px > cx) && (sy < 0 ? py < cy : py > cy)) {
+          const dx = px - cx,
+            dy = py - cy,
+            d = Math.hypot(dx, dy);
+          const stone = kerbStone(beside!);
+          if (d > CURB_R + 0.5)
+            tone =
+              beside === "asphalt"
+                ? asphaltPixel(wx, wy)
+                : pavingStonePixel(wx, wy, beside!, "street");
+          else if (d > CURB_R - 0.5) tone = lit(stone, -4);
+          else if (d > CURB_R - 3)
+            // The kerb's top, lit where the arc turns toward the light.
+            tone = lit(stone, (dx + dy) / d < -0.3 ? 3 : (dx + dy) / d > 0.5 ? -2 : 1);
+        }
       }
       // A worn edge: the outermost stones are broken and sunk, and grit from
       // the ground beside creeps over the last pixel or two.
@@ -351,6 +497,23 @@ export function rasterStreetTile(
         south && east ? 30 - px - py : 99,
       );
       if (corner < 3) tone = corner === 0 ? lit(course, -3) : lit(course, corner === 1 ? 2 : 0);
+      if (drop) {
+        const [dx, dy] = drop;
+        const d = dx ? (dx < 0 ? px : 15 - px) : dy < 0 ? py : 15 - py;
+        const along = dx ? wy : wx;
+        // Coping stone over the edge, then the painted line to stand behind.
+        if (d === 0) tone = lit(course, -4);
+        else if (d < 3) tone = lit(PLATFORM_WALL, d === 1 ? 3 : 1);
+        else if (d === 3) tone = lit(course, -2);
+        else if ((d === 5 || d === 6) && mod(along, 8) < 6) tone = SAFETY_LINE;
+      }
+      if (track)
+        tone = levelCrossing(
+          tone,
+          track.at * 16 + (track.axis === "x" ? py : px),
+          track.axis === "x" ? wx : wy,
+          !!lane && lane.axis !== track.axis,
+        );
       const i = (py * 16 + px) * 4;
       pixels.set([...tone, 255], i);
     }

@@ -10,6 +10,8 @@ export const wornEdge = (n?: TopographyCell) =>
   !!n &&
   !paved(n) &&
   n.surface !== "water" &&
+  // A planted verge or median is kerbed, not worn into.
+  n.pavement !== "verge" &&
   (n.field ? !raisedFieldEdge(n) : n.feature !== "field");
 
 /** The roadway a footway runs beside, within two cells. */
@@ -34,6 +36,25 @@ export function kerbed(sample: TopographySample, x: number, y: number) {
   if (sample(x, y)?.pavement !== "footway") return false;
   const road = roadwayMaterial(sample, x, y);
   return !!road && road !== "cobble" && road !== "slab";
+}
+
+/** Direction from a kerbed footway cell to the junction it rounds, where its
+ * two neighbours on that side and the corner between them are all carriageway. */
+export function kerbCorner(
+  sample: TopographySample,
+  x: number,
+  y: number,
+): readonly [number, number] | undefined {
+  if (!kerbed(sample, x, y)) return undefined;
+  const road = (dx: number, dy: number) => !!sample(x + dx, y + dy)?.lane;
+  for (const [sx, sy] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ] as const)
+    if (road(sx, 0) && road(0, sy) && road(sx, sy)) return [sx, sy];
+  return undefined;
 }
 
 /** A one-cell slot of ground between paving reads as a hole; draw it paved. */

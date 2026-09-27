@@ -20,6 +20,7 @@ import { bannerFor, defaultBanner, smokeFor } from "./splash-banner";
 import { BannerSmoke } from "./BannerSmoke";
 import { SplashStars } from "./SplashStars";
 import { Arrival } from "./Arrival";
+import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
 import "./splash.css";
 type Starter = typeof import("../content/geography/random-start");
 let starter: Starter | null = null;
@@ -107,9 +108,16 @@ export function Splash({
     engine: Promise<Engine>;
     abort: AbortController;
   }>(undefined);
+  const cancelWarm = () => {
+    const ready = warm.current;
+    warm.current = undefined;
+    if (!ready) return;
+    ready.abort.abort();
+    void ready.engine.then((engine) => releaseTerrainWorker(engine.world)).catch(() => {});
+  };
   const prewarm = (next: { seed: string; setting: WorldSetting }) => {
     if (controller.current) return;
-    warm.current?.abort.abort();
+    cancelWarm();
     const abort = new AbortController();
     const engine = import("../runtime/map-travel").then((m) =>
       m.prepareConnectedStart(next.setting, next.seed, abort.signal),
@@ -118,7 +126,7 @@ export function Splash({
     engine.catch(() => {});
     warm.current = { ...next, engine, abort };
   };
-  useEffect(() => () => warm.current?.abort.abort(), []);
+  useEffect(() => cancelWarm, []);
   const applyStart = (next: ReturnType<typeof randomStart>) => {
     setSelected(next);
     prewarm(next);
@@ -150,6 +158,7 @@ export function Splash({
     selection: typeof selected | null = selected,
   ) => {
     if (controller.current) return;
+    randomizeCall.current++;
     setError("");
     const abort = new AbortController();
     controller.current = abort;
@@ -182,10 +191,16 @@ export function Splash({
       }
       setArrival({ setting, cancel: () => abort.abort() });
       const ready = warm.current;
+      const reuse = ready?.seed === worldSeed && ready.setting === setting;
+      if (!reuse) cancelWarm();
       // Handed over: unmounting the splash must not abort the world it started.
       warm.current = undefined;
+      if (reuse) abort.signal.addEventListener("abort", () => {
+        ready.abort.abort();
+        void ready.engine.then((engine) => releaseTerrainWorker(engine.world)).catch(() => {});
+      }, { once: true });
       const engine =
-        ready?.seed === worldSeed && ready.setting === setting
+        reuse
           ? await ready.engine.catch(() =>
               prepareConnectedStart(setting, worldSeed, abort.signal),
             )
@@ -210,7 +225,7 @@ export function Splash({
   };
   return (
     <main className="splash">
-      {arrival && <Arrival setting={arrival.setting} engine={arrival.engine} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); controller.current = null; setArrival(undefined); setBusy(""); }} />}
+      {arrival && <Arrival setting={arrival.setting} engine={arrival.engine} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); if (arrival.engine) releaseTerrainWorker(arrival.engine.world); controller.current = null; setArrival(undefined); setBusy(""); }} />}
       <div className="splash-frame">
         <SplashStars />
         <div className="splash-content" inert={panel ? true : undefined}>
@@ -274,6 +289,8 @@ export function Splash({
                       : "short"
                 }
                 onChange={(e) => {
+                  randomizeCall.current++;
+                  cancelWarm();
                   setSelected(undefined);
                   setPrompt(e.target.value);
                 }}

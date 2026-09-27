@@ -16,6 +16,7 @@ import {
   type GroundMaterial,
 } from "./ground-style";
 import { rasterStreetTile } from "./street-raster";
+import { blacktopPixel } from "./carriageway";
 import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
 import { mottle, shade } from "./palette";
@@ -1026,6 +1027,13 @@ function rasterGroundTile(
           wear > (routed?.coverage ?? 0)
             ? { coverage: wear, radius: 0.7, cross: 0.5 }
             : routed;
+        if (routed?.paved && field === routed && inside) {
+          const tone = blacktopPixel(routed, wx, wy);
+          if (tone) {
+            pixels.set(tone, (py * 16 + px) * 4);
+            continue;
+          }
+        }
         const path = field?.coverage ?? 0;
         // Two grouped hashes sum to a tapered offset of every wear threshold,
         // so turf survives a few pixels inside the road, grit strays a few

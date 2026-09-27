@@ -21,6 +21,9 @@ export type Block = Rect & {
   reach: number;
   /** A private lane into the interior, for fabrics with blind alleys. */
   lane?: Segment;
+  /** Index of the district it lies in; 0 is the core, later ones were laid
+   * out later. */
+  district: number;
 };
 /** The defensive circuit, as a ring of cells with the gate openings removed. */
 export type Wall = {
@@ -32,6 +35,16 @@ export type Wall = {
   openings: Set<string>;
 };
 export type Furniture = { kind: StreetFurniture; x: number; y: number };
+/** A double-track line straight through the town and out past its edge:
+ * `level` is its first row or column, `lo` to `hi` its run along `axis`. */
+export type Rail = {
+  axis: "x" | "y";
+  level: number;
+  lo: number;
+  hi: number;
+  span: number;
+};
+export const RAIL_SPAN = 4;
 export type UrbanLayout = {
   gates: Gate[];
   streets: Segment[];
@@ -52,6 +65,7 @@ export type UrbanLayout = {
    * small town. */
   tiers: readonly [number, number, number];
   wall?: Wall;
+  rail?: Rail;
   /** Distance from the centre to the built edge on this bearing, in radians. */
   edge(angle: number): number;
   /** Whether a point lies inside the built edge, less an optional margin. */
@@ -169,6 +183,8 @@ export function composeUrban(
   year?: number,
   /** Courts, arenas and markets, each as its sizes largest first. */
   precincts?: { sizes: readonly (readonly [number, number])[] }[],
+  /** An industrial-age town has a railway through it. */
+  railway = false,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -177,7 +193,7 @@ export function composeUrban(
 
   // Widths are whole cells. A fabric's avenue is for its large cities; a
   // small town of the same fabric gets a three-cell main street.
-  const cap = radius < 40 ? 3 : radius < 60 ? 4 : 6;
+  const cap = form.motor ? Infinity : radius < 40 ? 3 : radius < 60 ? 4 : 6;
   const arterial = Math.max(1, Math.min(form.tiers[0], cap)),
     street = Math.max(1, Math.min(form.tiers[1], arterial)),
     lane = Math.max(1, Math.min(form.tiers[2], street));
@@ -206,7 +222,9 @@ export function composeUrban(
     : [{ plan: form.plan, block: form.block, regularity: form.regularity }];
   const core = specs[0];
   const single = specs.length === 1;
-  const coreHalf = single ? half : Math.max(14, Math.round(half * 0.6));
+  const coreHalf = single
+    ? half
+    : Math.max(14, Math.round(half * (form.motor ? 0.42 : 0.6)));
   // A grid was laid out as a rectangle, and not a square one.
   const stretch = aspect
     ? Math.max(aspect, 1 / aspect)
@@ -232,7 +250,11 @@ export function composeUrban(
     { spec: core, rect: coreRect, shape: coreRect, core: true },
   ];
   const order = [0, 1, 2, 3].sort((a, b) => rand("side", a) - rand("side", b));
-  specs.slice(1, 5).forEach((spec, i) => {
+  const extensions =
+    form.motor && !single
+      ? [0, 1, 2, 3].map((i) => specs[Math.min(i + 1, specs.length - 1)])
+      : specs.slice(1, 5);
+  extensions.forEach((spec, i) => {
     const s = sides[order[i]];
     const breadth = Math.round(coreHalf * (0.7 + rand("breadth", i) * 0.5));
     const shift = even((rand("shift", i) - 0.5) * coreHalf * 0.4);
@@ -256,6 +278,34 @@ export function composeUrban(
       : { ...rect, y: s.ny > 0 ? center.y : rect.y, h: reach + coreB + 1 };
     districts.push({ spec, core: false, rect, shape });
   });
+  if (form.motor && !single) {
+    const spec = specs[specs.length - 1];
+    for (const [sx, sy] of [
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ]) {
+      const w = half - coreA,
+        h = half - coreB;
+      if (w < 12 || h < 12) continue;
+      const rect = {
+        x: sx > 0 ? center.x + coreA + 1 : center.x - half,
+        y: sy > 0 ? center.y + coreB + 1 : center.y - half,
+        w,
+        h,
+      };
+      // Reaching back to the centre, so a round core leaves no gap on the
+      // diagonal between it and the corner.
+      const shape = {
+        x: Math.min(rect.x, center.x),
+        y: Math.min(rect.y, center.y),
+        w: w + coreA + 1,
+        h: h + coreB + 1,
+      };
+      districts.push({ spec, core: false, rect, shape });
+    }
+  }
   const inRect = (x: number, y: number, r: Rect) =>
     x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 
@@ -501,6 +551,29 @@ export function composeUrban(
     streets.push({ a: cursor, b: end, tier: 0 });
     cuts[across].add(lateral);
   }
+  // A boulevard on the line of the old core's demolished walls.
+  if (form.ring && grown(core.plan) && !single) {
+    const inset = hiA + margin(0);
+    const [x0, x1] = [coreRect.x + inset, coreRect.x + coreRect.w - 1 - inset],
+      [y0, y1] = [coreRect.y + inset, coreRect.y + coreRect.h - 1 - inset];
+    const corners = [
+      { x: x0, y: y0 },
+      { x: x1, y: y0 },
+      { x: x1, y: y1 },
+      { x: x0, y: y1 },
+    ];
+    for (const [k, a] of corners.entries()) {
+      const b = corners[(k + 1) % 4];
+      if (
+        line(a, b).every(
+          (p) => holds(p.x, p.y, wallMargin) && (!usable || usable(p.x, p.y)),
+        )
+      )
+        streets.push({ a, b, tier: 0 });
+    }
+    cuts.x.add(x0).add(x1);
+    cuts.y.add(y0).add(y1);
+  }
   // Further arterials so a quarter is never many blocks deep. How many follows
   // from the block module, not from the settlement's size alone.
   for (const axis of ["x", "y"] as const) {
@@ -628,7 +701,10 @@ export function composeUrban(
    * is irregular a lane kinks sideways as it goes, so nothing lines up. */
   function grow(d: District, i: number) {
     const [bw, bh] = d.spec.block;
-    const reg = d.spec.regularity;
+    // Motor-age rebuilding straightened what it kept of the old lanes.
+    const reg = form.motor
+      ? Math.max(0.85, d.spec.regularity)
+      : d.spec.regularity;
     const want = Math.round(((d.rect.w * d.rect.h) / (bw * bh)) * 1.3);
     let made = 0;
     for (let n = 0; n < want * 10 && made < want; n++) {
@@ -644,7 +720,8 @@ export function composeUrban(
         4 +
         Math.floor(rand("pos", i, n) * (hi(parent) - lo(parent) - 8));
       const dir: -1 | 1 = rand("dir", i, n) < 0.5 ? -1 : 1;
-      const tier: Tier = parent.tier === 0 ? 1 : 2;
+      // An old core kept its lanes when the cars came; only its arterials widened.
+      const tier: Tier = parent.tier === 0 && !form.motor ? 1 : 2;
       // Pitch along the parent between branches of this orientation.
       const pitch = (axis === "x" ? bw : bh) + span(tier) + margin(tier) * 2;
       const [plo, phi] = spanOffsets(span(parent.tier));
@@ -870,6 +947,35 @@ export function composeUrban(
     }
   }
 
+  // The railway skirts the old centre, as the lines did that reached towns
+  // already built, and runs on past the edge. No street runs along it.
+  const rail: Rail | undefined = railway
+    ? (() => {
+        const axis = rand("rail-axis") < 0.5 ? "x" : "y";
+        const side = rand("rail-side") < 0.5 ? -1 : 1;
+        const origin = axis === "x" ? center.x : center.y;
+        return {
+          axis,
+          level:
+            (axis === "x" ? focus.y : focus.x) +
+            side * Math.round(half * (0.3 + rand("rail-at") * 0.2)),
+          lo: origin - half - 40,
+          hi: origin + half + 40,
+          span: RAIL_SPAN,
+        };
+      })()
+    : undefined;
+  if (rail)
+    for (let i = streets.length - 1; i >= 0; i--) {
+      const s = streets[i];
+      if (
+        axisOf(s) === rail.axis &&
+        across(s) >= rail.level - 4 &&
+        across(s) <= rail.level + rail.span + 3
+      )
+        streets.splice(i, 1);
+    }
+
   // --- Blocks read off the ground -------------------------------------------
   const W = bounds.w,
     H = bounds.h;
@@ -908,6 +1014,13 @@ export function composeUrban(
     clearRect(plaza, Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
     for (const r of grounds) if (r) clearRect(r, 1);
+    if (rail)
+      clearRect(
+        rail.axis === "x"
+          ? { x: bounds.x, y: rail.level, w: W, h: rail.span }
+          : { x: rail.level, y: bounds.y, w: rail.span, h: H },
+        1,
+      );
   }
   /** The largest open rectangle at least 8 cells each way, by the histogram
    * method over the open grid. */
@@ -949,10 +1062,15 @@ export function composeUrban(
       const r = largest();
       if (!r) break;
       clearRect(r, 0);
+      const mid = { x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) };
       blocks.push({
         ...r,
         depth: 0,
         court: false,
+        district: Math.max(
+          0,
+          districts.findIndex((d) => inRect(mid.x, mid.y, d.rect)),
+        ),
         reach: density
           ? 1 - density(r.x + r.w / 2, r.y + r.h / 2)
           : Math.max(
@@ -1131,6 +1249,7 @@ export function composeUrban(
     edge,
     holds,
     wall: circuit(),
+    rail,
   };
 
   /** No street ends in the open. Every end is carried on to the next street

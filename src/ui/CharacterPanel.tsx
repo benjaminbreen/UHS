@@ -827,6 +827,12 @@ export function CharacterPanel({
                         role={onTask ? "button" : undefined}
                         tabIndex={onTask ? 0 : undefined}
                         onClick={() => onTask?.({ kind: "plan", actorId: actor.id, label: entry.label, activity: entry.activity, minute: entry.minute })}
+                        onKeyDown={(e) => {
+                          if (onTask && (e.key === "Enter" || e.key === " ")) {
+                            e.preventDefault();
+                            onTask({ kind: "plan", actorId: actor.id, label: entry.label, activity: entry.activity, minute: entry.minute });
+                          }
+                        }}
                       >
                         <Icon size={22} />
                         <time>{timeLabel(entry.minute * 60)}</time>
@@ -847,7 +853,13 @@ export function CharacterPanel({
                     );
                   })}
                   {errands.map((g) => (
-                    <li key={g.id} data-state={g.done ? "done" : "later"} data-activity="visit" data-open={onTask ? true : undefined} role={onTask ? "button" : undefined} tabIndex={onTask ? 0 : undefined} onClick={() => onTask?.({ kind: "goal", id: g.id })}>
+                    <li key={g.id} data-state={g.done ? "done" : "later"} data-activity="visit" data-open={onTask ? true : undefined} role={onTask ? "button" : undefined} tabIndex={onTask ? 0 : undefined} onClick={() => onTask?.({ kind: "goal", id: g.id })}
+                      onKeyDown={(e) => {
+                        if (onTask && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault();
+                          onTask({ kind: "goal", id: g.id });
+                        }
+                      }}>
                       <Hand size={22} />
                       <time>today</time>
                       <span>{g.text}</span>

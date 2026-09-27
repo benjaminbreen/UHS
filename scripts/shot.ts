@@ -65,6 +65,19 @@ try {
   await page.waitForSelector(".game-container canvas", { timeout: 30000 });
   // Let the first frames settle so the shot is not of a half-drawn world.
   await page.waitForTimeout(2500);
+  // UHS_AT="x,y" stands the player on that cell first (needs the dev server).
+  if (process.env.UHS_AT) {
+    const [x, y] = process.env.UHS_AT.split(",").map(Number);
+    await page.evaluate(
+      ([x, y]) => {
+        const r = (window as any).__uhs;
+        r.engine.state.player.pos = { x, y, space: "outside" };
+        r.emit();
+      },
+      [x, y],
+    );
+    await page.waitForTimeout(4000);
+  }
   // UHS_KEYS="m" opens the region map, and so on for any key the game binds.
   for (const key of process.env.UHS_KEYS ?? "") {
     await page.keyboard.press(key);

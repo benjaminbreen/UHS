@@ -2,6 +2,8 @@ import { expect, it } from "vitest";
 import { pathArt } from "../src/world/v3/path-art";
 import { streetMaterial } from "../src/content/settlements/streets";
 import { rasterStreetTile } from "../src/render/street-raster";
+import { carriagewayPixel } from "../src/render/carriageway";
+import { roadMarkings } from "../src/content/settlements/streets/markings";
 import type { WorldSetting } from "../src/content/geography/types";
 import type { TopographySample } from "../src/core/topography";
 it("simplifies staircase footpaths into continuous diagonals without changing routes", () => {
@@ -23,6 +25,45 @@ it("simplifies staircase footpaths into continuous diagonals without changing ro
   expect(
     pathArt([{ id: "b", points, width: 0, kind: "bridge", cost: 1 }]).size,
   ).toBe(0);
+});
+it("paints road markings in the style of the place and date", () => {
+  const at = (lon: number, lat: number, year: number) =>
+    roadMarkings({ lon, lat, year } as WorldSetting);
+  expect(at(-77.4, 37.5, 2014)).toMatchObject({
+    centre: "yellow-double",
+    drive: "right",
+    crossing: "ladder",
+  });
+  expect(at(-77.4, 37.5, 1955).centre).toBe("white-dashed");
+  expect(at(-1.5, 52.5, 1990)).toMatchObject({ drive: "left", crossing: "zebra" });
+  expect(at(139.7, 35.7, 1990).drive).toBe("left");
+  expect(at(2.3, 48.8, 1975).gutter).toBe("sett");
+  expect(at(-77.4, 37.5, 1905).centre).toBe("none");
+  // Parking lanes arrive with the motor age, not with paint.
+  expect(at(2.3, 48.8, 1940).parking).toBe(false);
+
+  // Double yellow at the centre, a crossing's bars before a junction, and
+  // nothing painted inside the junction itself.
+  const marks = at(-77.4, 37.5, 2014);
+  const base = [60, 60, 60];
+  const lane = { axis: "x" as const, at: 0, span: 10, marks };
+  const kerbs = { low: true, high: true };
+  const yellow = (c: readonly number[]) => c[0] > c[2] + 60;
+  const light = (c: readonly number[]) => c[0] > 140 && c[2] > 140;
+  const run = (u: number) =>
+    Array.from({ length: 40 }, (_, v) =>
+      yellow(carriagewayPixel(base, lane, u, v, 0, kerbs)),
+    ).filter(Boolean).length;
+  expect(run(78)).toBeGreaterThan(24);
+  expect(run(70)).toBe(0);
+  const bars = Array.from({ length: 40 }, (_, u) =>
+    light(carriagewayPixel(base, { ...lane, toJunction: 1 }, 40 + u, 8, 0, kerbs)),
+  );
+  expect(bars.filter(Boolean).length).toBeGreaterThan(12);
+  expect(bars.filter((b) => !b).length).toBeGreaterThan(12);
+  expect(
+    carriagewayPixel(base, { ...lane, junction: true }, 78, 5, 0, kerbs),
+  ).toBe(base);
 });
 it("selects regional paving by date and location", () => {
   const s = {
