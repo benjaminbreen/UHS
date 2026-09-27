@@ -30,7 +30,7 @@ def _slats(c, x0, x1, y0, rows, ramp, back=0):
 def bench(v=0):
     """0 timber, 1 Parisian cast iron and green slats, 2 Soviet concrete ends,
     3 modern galvanised steel."""
-    W, b = 40, 25
+    W, b = 48, 25
     c = C(W, b + 1)
     seat = b - 11
     slat = [OAK, GREEN, PALE, STEEL][v]
@@ -47,7 +47,7 @@ def bench(v=0):
         c.hl(3 + dx, W - 5 + dx, y, slat[4] if i < 2 else slat[3])
         c.hl(3 + dx, W - 5 + dx, y + 1, slat[2])
         c.px(3 + dx, y, slat[5])
-    _slats(c, 2, W - 6, seat - 3, 4, slat)
+    _slats(c, 2, W - 6, seat - 4, 5, slat)
     c.hl(2, W - 6, seat + 1, slat[3])
     c.hl(2, W - 6, seat + 2, slat[1])
     for x in ends:
@@ -303,38 +303,39 @@ def news_kiosk(v=0):
 
 def cafe(v=0):
     """A bistro table and two cane chairs at true height, 1 with a parasol."""
-    c = C(36, 52)
+    c = C(38, 52)
     b = 51
-    for cx in (6, 29):
-        for y in range(b - 18, b - 9):
-            for x in range(cx - 3, cx + 4):
-                if abs(x - cx) == 3 or (y + x) % 2 == 0:
+    for cx in (5, 32):
+        for y in range(b - 20, b - 10):
+            for x in range(cx - 4, cx + 5):
+                if abs(x - cx) == 4 or (y + x) % 2 == 0:
                     c.px(x, y, '#c9a868' if (x + y) % 2 else '#9a7a44')
-        c.hl(cx - 3, cx + 3, b - 18, '#6a4a28')
-        c.rect(cx - 4, b - 9, cx + 4, b - 8, '#b89458')
-        c.hl(cx - 4, cx + 4, b - 9, '#e0c080')
-        c.vl(cx - 3, b - 7, b, '#6a4a28')
-        c.vl(cx + 3, b - 7, b, '#6a4a28')
-        c.hl(cx - 3, cx + 3, b - 3, '#8a6a38')
-    c.vl(17, b - 13, b - 1, IRON[1])
-    c.vl(18, b - 13, b - 1, IRON[2])
-    c.hl(14, 21, b, IRON[1])
-    c.ellipse(17.5, b - 15, 7.5, 2.2, '#e9e5de')
-    c.hl(11, 24, b - 14, '#a6a1a8')
-    c.hl(12, 22, b - 16, '#fbf8f0')
-    c.rect(13, b - 18, 14, b - 16, '#f4f4ff')
-    c.px(20, b - 17, '#c8a060')
-    c.px(21, b - 17, '#8a5a28')
+        c.hl(cx - 4, cx + 4, b - 20, '#6a4a28')
+        c.rect(cx - 5, b - 10, cx + 5, b - 8, '#b89458')
+        c.hl(cx - 5, cx + 5, b - 10, '#e0c080')
+        c.hl(cx - 5, cx + 5, b - 8, '#8a6a38')
+        c.vl(cx - 4, b - 7, b, '#6a4a28')
+        c.vl(cx + 4, b - 7, b, '#6a4a28')
+        c.hl(cx - 4, cx + 4, b - 3, '#8a6a38')
+    c.vl(18, b - 13, b - 1, IRON[1])
+    c.vl(19, b - 13, b - 1, IRON[2])
+    c.hl(15, 22, b, IRON[1])
+    c.ellipse(18.5, b - 15, 7.5, 2.2, '#e9e5de')
+    c.hl(12, 25, b - 14, '#a6a1a8')
+    c.hl(13, 23, b - 16, '#fbf8f0')
+    c.rect(14, b - 18, 15, b - 16, '#f4f4ff')
+    c.px(21, b - 17, '#c8a060')
+    c.px(22, b - 17, '#8a5a28')
     if v:
-        c.vl(17, b - 46, b - 16, OAK[2])
+        c.vl(18, b - 46, b - 16, OAK[2])
         for i in range(9):
             y = b - 47 + i
-            for x in range(17 - 2 - i * 2, 17 + 3 + i * 2):
-                col = ['#efe6d0', '#b8323a'][((x - 17) // 3) % 2]
+            for x in range(18 - 2 - i * 2, 18 + 3 + i * 2):
+                col = ['#efe6d0', '#b8323a'][((x - 18) // 3) % 2]
                 if i > 6:
                     col = mix(col, INKY, 0.25)
                 c.px(x, y, col)
-        for x in range(0, 36, 3):
+        for x in range(0, 38, 3):
             c.px(x, b - 38, '#8e2430')
     return outline(c.im)
 

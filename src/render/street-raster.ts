@@ -30,7 +30,7 @@ const COURSE: Record<StreetMaterial, RGB> = {
   plank: [120, 90, 60],
 };
 /** Radius of a kerb rounded at a street corner, in native pixels. */
-const CURB_R = 11;
+const CURB_R = 14;
 const TACTILE: Record<string, RGB> = {
   yellow: [214, 178, 58],
   buff: [190, 158, 116],
@@ -99,6 +99,7 @@ function kerbTone(
   const tone = profile[side][d];
   return peg && tone && d === 1 ? lit(stone, -4) : tone;
 }
+const SQUARE_LIP: Record<Side, number[]> = { n: [4, 2], s: [-5, -2, 3], w: [3, 1], e: [-4, -1] };
 const PLATFORM_WALL: RGB = [166, 160, 146];
 const PLATFORM_FOOT: RGB = [62, 58, 52];
 const SAFETY_LINE: RGB = [222, 196, 92];
@@ -182,6 +183,14 @@ export function rasterStreetTile(
       ? b[1] < 0 ? py < CURB_R : py > 15 - CURB_R
       : b[0] < 0 ? px < CURB_R : px > 15 - CURB_R;
   };
+  // A square stands a step above the carriageway: a lit arris, and on its
+  // south face the riser in shadow.
+  const lip = c.pavement === "square"
+    ? ([[0, -1, "n"], [0, 1, "s"], [-1, 0, "w"], [1, 0, "e"]] as const).filter(([dx, dy]) => {
+        const n = at(dx, dy);
+        return !!n?.lane && !n.pavement && n.height === c.height;
+      })
+    : [];
   const beside =
     c.pavement === "footway" ? roadwayMaterial(sample, x, y) ?? "asphalt" : undefined;
   // Tactile paving on the kerb where a marked crossing lands.
@@ -406,6 +415,11 @@ export function rasterStreetTile(
           material === "plank",
         );
         if (edged) tone = edged;
+      }
+      for (const [dx, dy, side] of lip) {
+        const d = dx ? (dx < 0 ? px : 15 - px) : dy < 0 ? py : 15 - py;
+        const v = SQUARE_LIP[side][d];
+        if (v !== undefined) tone = lit(tone, v);
       }
       for (const t of tactile) {
         const d = t.dx ? (t.dx < 0 ? px : 15 - px) : t.dy < 0 ? py : 15 - py;

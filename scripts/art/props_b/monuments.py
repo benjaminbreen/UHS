@@ -8,7 +8,7 @@ portraits of any particular monument.
 import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
-from art.city_kit import C, outline, mix, rgba, h2, LIME, WATER, IRON, GOLD
+from art.city_kit import C, outline, mix, rgba, h2, sphere, LIME, WATER, IRON, GOLD, LEAF
 
 VERDIGRIS = ['#11161b', '#1b2a2b', '#27413a', '#33594a', '#46785e', '#68a07d', '#a2cfa8']
 BRONZE = ['#140f16', '#2b1c1c', '#4a3025', '#6d4a31', '#936a40', '#b98f57', '#dcbd84']
@@ -522,28 +522,211 @@ def roman_column(stone=MARBLE, metal=GILT):
     return outline(c.im)
 
 
+# ---------------------------------------------------------------- carving
+
+def turned(c, cx, yb, h, hw0, hw1, ramp, lo=1, polish=False, flutes=False):
+    """A round shaft tapering from hw0 to hw1, lit from the left."""
+    for k in range(h):
+        hw = hw0 + (hw1 - hw0) * k / max(1, h - 1)
+        for x in range(round(cx - hw), round(cx + hw) + 1):
+            u = (x - cx) / (hw + 0.5)
+            t = max(0.0, 1 - ((u + 0.35) / 1.35) ** 2)
+            i = lo + round(t * (5 - lo))
+            if polish and -0.6 < u < -0.3:
+                i = 6
+            if flutes and abs(u) < 0.85 and (x - cx) % 3 == 0:
+                i = max(0, i - 2)
+            c.px(x, yb - k, ramp[i])
+
+
+def shaft(c, cx, yb, h, hw0, hw1, ramp, face=4):
+    """A square shaft with chamfered arrises: lit left arris, dark right chamfer."""
+    for k in range(h):
+        hw = round(hw0 + (hw1 - hw0) * k / max(1, h - 1))
+        y = yb - k
+        c.hl(cx - hw, cx + hw, y, ramp[face])
+        c.px(cx - hw, y, ramp[face + 1]); c.px(cx - hw + 1, y, ramp[min(6, face + 2)])
+        c.px(cx + hw, y, ramp[face - 2]); c.px(cx + hw - 1, y, ramp[face - 1])
+
+
+def under(c, x0, x1, y, ramp, k=0.45):
+    """The shadow a ledge throws on what lies just below it."""
+    for x in range(x0, x1 + 1):
+        for dy, t in ((0, k), (1, k * 0.45)):
+            p = c.get(x, y + dy)
+            if p[3]:
+                c.px(x, y + dy, mix(p, ramp[0], t))
+
+
+def weather(c, x0, x1, y, n, ramp, s=0):
+    """Rain streaks running down from a ledge, fading as they go."""
+    for x in range(x0, x1 + 1):
+        if h2(x, s, 7) > 0.32:
+            continue
+        m = 3 + int(h2(x, s, 8) * n)
+        for j in range(m):
+            p = c.get(x, y + j)
+            if p[3]:
+                c.px(x, y + j, mix(p, ramp[1], 0.3 * (1 - j / m)))
+
+
+def incise(c, pts, ramp, deep=1):
+    """A cut line: shadow on its upper-left wall, a lit lip below-right."""
+    for x, y in pts:
+        c.px(x, y, ramp[deep])
+    s = set(pts)
+    for x, y in pts:
+        if (x + 1, y + 1) not in s and c.get(x + 1, y + 1)[3]:
+            c.px(x + 1, y + 1, ramp[5])
+
+
+def ledge(c, cx, base, hw, h, ramp, depth=None, face=4):
+    top, d = box(c, cx, base, hw, h, ramp, depth, face)
+    under(c, cx - hw + 1, cx + hw + 1, base + 1, ramp)
+    return top, d
+
+
+def figure(c, x, y, ramp, arm=0):
+    """A relief figure about ten pixels tall, raised from its ground."""
+    c.ellipse(x, y - 9, 1.6, 1.6, ramp[5]); c.px(x - 1, y - 10, ramp[6]); c.px(x + 1, y - 8, ramp[2])
+    for k in range(5):
+        hw = 1 + k // 3
+        c.hl(x - hw, x + hw, y - 7 + k, ramp[4]); c.px(x - hw, y - 7 + k, ramp[5]); c.px(x + hw, y - 7 + k, ramp[1])
+    c.px(x - 1, y - 1, ramp[4]); c.px(x - 1, y, ramp[5]); c.px(x + 1, y - 1, ramp[2]); c.px(x + 1, y, ramp[2])
+    ax = x + (2 if arm else -2)
+    c.px(ax, y - 6, ramp[4]); c.px(ax + (1 if arm else -1), y - 7 - arm, ramp[5 if not arm else 4])
+
+
+def frieze(c, x0, y0, x1, y1, ramp):
+    """A sunk panel with a procession under a hanging garland."""
+    c.rect(x0, y0, x1, y1, ramp[2])
+    c.hl(x0, x1, y0, ramp[1]); c.vl(x0, y0, y1, ramp[1])
+    c.hl(x0, x1, y1, ramp[5]); c.vl(x1, y0, y1, ramp[4])
+    n = max(2, (x1 - x0 - 2) // 6)
+    step = (x1 - x0) / n
+    for i in range(n):
+        figure(c, round(x0 + step * (i + 0.5)), y1 - 1, ramp, arm=i % 2)
+    for i in range(n + 1):
+        xa = x0 + 1 + step * i
+        for j in range(int(step) + 1):
+            x = round(xa - step / 2 + j)
+            if x0 < x < x1:
+                sag = round(2.4 * math.sin(math.pi * j / step))
+                c.px(x, y0 + 2 + sag, ramp[5]); c.px(x, y0 + 3 + sag, ramp[3])
+
+
+def interlace(c, x0, y0, x1, y1, ramp):
+    """A sunk panel of two-strand knotwork."""
+    c.rect(x0, y0, x1, y1, ramp[2])
+    for y in range(y0 + 1, y1):
+        for x in range(x0 + 1, x1):
+            a, b = (x - x0 + y - y0) % 6, (x - x0 - y + y0) % 6
+            if a in (0, 1) or b in (0, 1):
+                over = (((x - x0 + y - y0) // 6) + ((x - x0 - y + y0) // 6)) % 2
+                on = a in (0, 1) if over else b not in (0, 1)
+                c.px(x, y, ramp[5 if on and (a == 0 or b == 0) else 4] if on or a in (0, 1) else ramp[4])
+    c.hl(x0, x1, y0, ramp[1]); c.vl(x0, y0, y1, ramp[1]); c.hl(x0, x1, y1, ramp[5])
+
+
+def quatrefoil(c, x, y, ramp):
+    for dx, dy in ((0, -2), (0, 2), (-2, 0), (2, 0)):
+        c.ellipse(x + dx, y + dy, 1.6, 1.6, ramp[2])
+    for dx, dy in ((0, -3), (-3, 0)):
+        c.px(x + dx, y + dy, ramp[1])
+    for dx, dy in ((1, 3), (3, 1)):
+        c.px(x + dx, y + dy, ramp[5])
+
+
 def market_cross(lantern=False, stone=LIME):
     c = C(72, 130)
     cx, base = 34, 126
-    y, d = stack(c, cx, base, [(30, 5), (24, 5), (18, 5), (10, 6)], stone)
-    for k in range(56):
-        hw = 3 - k // 30
-        c.hl(cx - hw, cx + hw, y - k, stone[4]); c.px(cx - hw, y - k, stone[5]); c.px(cx + hw, y - k, stone[2])
-    y -= 56
+    y, d = stack(c, cx, base, [(30, 5), (24, 5), (18, 5)], stone)
+    for yy, hw in ((base - 1, 30), (base - 6, 24), (base - 11, 18)):
+        weather(c, cx - hw, cx + hw, yy - 3, 2, stone, yy)
+    sb = y - (d - 6) // 2
+    t, sd = ledge(c, cx, sb, 10, 11, stone, depth=6)
+    quatrefoil(c, cx - 4, t + 6, stone); quatrefoil(c, cx + 4, t + 6, stone)
+    c.hl(cx - 10, cx + 10, t + 1, stone[5])
+    sb = t - sd // 2
+    shaft(c, cx, sb, 52, 3, 2, stone)
+    weather(c, cx - 2, cx + 3, sb - 50, 20, stone, 3)
+    y = sb - 52
     if lantern:
-        box(c, cx, y, 7, 3, stone, depth=3)
-        for x0 in (cx - 6, cx + 2):
-            c.rect(x0, y - 13, x0 + 4, y - 3, stone[4]); c.rect(x0 + 1, y - 11, x0 + 3, y - 4, stone[1])
-            c.px(x0 + 2, y - 12, stone[1])
-        box(c, cx, y - 13, 8, 2, stone, depth=3)
-        for k in range(8):
-            c.hl(cx - 6 + k * 3 // 4, cx + 6 - k * 3 // 4, y - 16 - k, stone[4 if k % 2 else 5])
-        c.vl(cx, y - 30, y - 24, stone[5]); c.hl(cx - 2, cx + 2, y - 28, stone[5])
+        t, dd = ledge(c, cx, y + 1, 6, 3, stone, depth=3)
+        for x0 in (cx - 6, cx + 1):
+            c.rect(x0, t - 13, x0 + 5, t - 1, stone[4]); c.vl(x0, t - 13, t - 1, stone[5]); c.vl(x0 + 5, t - 13, t - 1, stone[2])
+            c.rect(x0 + 1, t - 11, x0 + 4, t - 3, stone[1])
+            c.px(x0 + 2, t - 12, stone[1]); c.px(x0 + 3, t - 12, stone[1])
+            figure(c, x0 + 2 + (x0 > cx), t - 3, BRONZE if False else stone)
+        t2, _ = ledge(c, cx, t - 14, 8, 2, stone, depth=3)
+        for k in range(10):
+            hw = 7 - k * 7 // 10
+            c.hl(cx - hw, cx + hw, t2 - 1 - k, stone[4]); c.hl(cx - hw, cx - hw // 2, t2 - 1 - k, stone[5])
+            c.px(cx + hw, t2 - 1 - k, stone[2])
+            if k % 3 == 1:
+                c.px(cx - hw - 1, t2 - 1 - k, stone[5])
+        for dx in (-7, 7):
+            c.vl(cx + dx, t2 - 5, t2, stone[4]); c.px(cx + dx, t2 - 6, stone[6])
+        c.vl(cx, t2 - 17, t2 - 11, stone[5]); c.hl(cx - 2, cx + 2, t2 - 15, stone[5])
+        c.px(cx + 1, t2 - 16, stone[2]); c.px(cx + 2, t2 - 14, stone[2])
     else:
-        c.rect(cx - 2, y - 22, cx + 2, y, stone[4]); c.vl(cx - 2, y - 22, y, stone[5]); c.vl(cx + 2, y - 22, y, stone[2])
-        c.rect(cx - 10, y - 16, cx + 10, y - 12, stone[4]); c.hl(cx - 10, cx + 10, y - 16, stone[5]); c.hl(cx - 10, cx + 10, y - 12, stone[2])
-        for dx in (-10, 10, 0):
-            c.px(cx + dx, y - 14 if dx else y - 23, stone[6])
+        for yy in range(y - 22, y + 1):
+            c.hl(cx - 2, cx + 2, yy, stone[4]); c.px(cx - 2, yy, stone[5]); c.px(cx + 2, yy, stone[2])
+        for yy in range(y - 17, y - 11):
+            c.hl(cx - 10, cx + 10, yy, stone[4])
+        c.hl(cx - 10, cx + 10, y - 17, stone[6]); c.hl(cx - 10, cx + 10, y - 11, stone[2])
+        under(c, cx - 2, cx + 2, y - 10, stone)
+        for dx in (-11, 11):
+            c.rect(cx + dx - 1, y - 18, cx + dx + 1, y - 10, stone[4])
+            c.vl(cx + dx - 1, y - 18, y - 10, stone[5]); c.vl(cx + dx + 1, y - 18, y - 10, stone[2])
+        c.rect(cx - 3, y - 25, cx + 3, y - 23, stone[4]); c.hl(cx - 3, cx + 3, y - 25, stone[6]); c.hl(cx - 3, cx + 3, y - 23, stone[2])
+        c.ellipse(cx, y - 14, 2, 2, stone[5]); c.px(cx + 1, y - 13, stone[2])
+        weather(c, cx - 10, cx + 10, y - 10, 4, stone, 9)
+    return outline(c.im)
+
+
+def high_cross(stone=SANDSTONE):
+    """A ringed stone cross on a stepped base, its shaft carved with knotwork
+    panels: the early medieval high crosses of Ireland and Britain."""
+    c = C(64, 130)
+    cx, base = 30, 126
+    t, d = ledge(c, cx, base, 16, 10, stone, depth=8, face=3)
+    for k in range(3):
+        c.hl(cx - 16 + k, cx + 16 - k, t + 1 + k, stone[4 - (k > 1)])
+    quatrefoil(c, cx - 8, t + 6, stone); quatrefoil(c, cx + 8, t + 6, stone)
+    weather(c, cx - 16, cx + 16, t + 1, 4, stone, 2)
+    sb = t - d // 2
+    shaft(c, cx, sb, 62, 6, 5, stone)
+    for y0 in (sb - 58, sb - 38, sb - 18):
+        interlace(c, cx - 3, y0, cx + 3, y0 + 15, stone)
+    y = sb - 62
+    ring_y = y - 12
+    for yy in range(ring_y - 14, ring_y + 15):
+        for xx in range(cx - 14, cx + 15):
+            r = math.hypot(xx - cx + 0.5, yy - ring_y + 0.5)
+            if 9.5 <= r <= 13:
+                u = (xx - cx) / 13 + (yy - ring_y) / 13
+                c.px(xx, yy, stone[5 if u < -0.5 else 4 if u < 0.6 else 2])
+    for yy in range(ring_y - 28, y + 1):
+        c.hl(cx - 4, cx + 4, yy, stone[4]); c.px(cx - 4, yy, stone[5]); c.px(cx + 4, yy, stone[2])
+    for xx in range(cx - 22, cx + 23):
+        c.vl(xx, ring_y - 4, ring_y + 4, stone[4])
+    c.hl(cx - 22, cx + 22, ring_y - 4, stone[6]); c.hl(cx - 22, cx + 22, ring_y + 4, stone[2])
+    c.vl(cx - 22, ring_y - 4, ring_y + 4, stone[5]); c.vl(cx + 22, ring_y - 4, ring_y + 4, stone[1])
+    for dx in (-19, 19):
+        c.hl(cx + dx - 1, cx + dx + 1, ring_y - 5, stone[5]); c.hl(cx + dx - 1, cx + dx + 1, ring_y + 5, stone[2])
+    c.hl(cx - 4, cx + 4, ring_y - 28, stone[6])
+    under(c, cx - 22, cx + 22, ring_y + 5, stone, 0.35)
+    sphere(c, cx, ring_y, 3.2, stone, lo=2)
+    for dx, dy in ((-9, 0), (9, 0), (0, -9), (0, 9)):
+        sphere(c, cx + dx, ring_y + dy, 1.8, stone, lo=2)
+    for yy in (ring_y - 22, ring_y + 13):
+        incise(c, [(cx - 2 + k, yy + k % 2) for k in range(5)], stone, 2)
+    c.rect(cx - 5, ring_y - 32, cx + 5, ring_y - 29, stone[4]); c.hl(cx - 5, cx + 5, ring_y - 32, stone[6])
+    c.hl(cx - 5, cx + 5, ring_y - 29, stone[2]); c.px(cx - 5, ring_y - 33, stone[5])
+    for k in range(3):
+        c.hl(cx - 4 + k, cx + 4 - k, ring_y - 33 - k, stone[5 if k < 2 else 6])
+    weather(c, cx - 22, cx + 22, ring_y + 5, 8, stone, 5)
     return outline(c.im)
 
 
@@ -552,40 +735,213 @@ def sadirvan(stone=MARBLE, roof=LEAD):
     c = C(104, 104)
     cx, base = 50, 100
     basin(c, cx, base - 10, 34, 10, 10, stone, octagon=True)
-    c.rect(cx - 26, base - 20, cx + 26, base - 12, stone[4])
+    c.rect(cx - 26, base - 22, cx + 26, base - 12, stone[4])
+    c.hl(cx - 26, cx + 26, base - 22, stone[6]); c.vl(cx - 26, base - 22, base - 12, stone[5]); c.vl(cx + 26, base - 22, base - 12, stone[2])
+    for i, x in enumerate(range(cx - 24, cx + 19, 12)):
+        c.rect(x, base - 20, x + 9, base - 15, stone[3])
+        c.hl(x, x + 9, base - 20, stone[2]); c.vl(x, base - 20, base - 15, stone[2]); c.hl(x, x + 9, base - 15, stone[5])
+        c.ellipse(x + 5, base - 17, 2, 1.6, stone[5]); c.px(x + 5, base - 17, stone[2])
     for x in range(cx - 24, cx + 25, 6):
-        c.px(x, base - 13, BRONZE[5]); c.px(x, base - 12, BRONZE[3]); c.px(x, base - 11, WATER[5])
+        c.px(x, base - 13, BRONZE[5]); c.px(x, base - 12, BRONZE[2]); c.px(x, base - 11, WATER[5]); c.px(x, base - 10, WATER[4])
     for x in (cx - 40, cx - 20, cx + 20, cx + 40):
-        c.rect(x - 1, base - 58, x + 1, base - 10 if abs(x - cx) > 30 else base - 20, TILE_TEAL[5] if x < cx else TILE_TEAL[3])
-    for k in range(10):
-        hw = 50 - k * 2
-        c.hl(cx - hw, cx + hw, base - 60 - k, roof[5 if k < 2 else 4])
-        c.hl(cx + hw - 12, cx + hw, base - 60 - k, roof[2])
-    c.hl(cx - 50, cx + 50, base - 59, roof[1])
-    for k in range(18):
-        hw = round(24 * math.sqrt(max(0, 1 - (k / 18) ** 2)))
-        c.hl(cx - hw, cx + hw, base - 70 - k, roof[4])
-        c.hl(cx - hw, cx - hw + max(1, hw // 3), base - 70 - k, roof[5])
-        c.hl(cx + hw - max(1, hw // 3), cx + hw, base - 70 - k, roof[2])
-    c.vl(cx, base - 96, base - 88, GOLD[2]); c.px(cx, base - 94, GOLD[3]); c.px(cx - 1, base - 92, GOLD[3])
+        yb = base - 10 if abs(x - cx) > 30 else base - 23
+        turned(c, x, yb, yb - (base - 56), 1.6, 1.4, MARBLE, lo=2)
+        c.hl(x - 2, x + 2, base - 57, MARBLE[5]); c.hl(x - 2, x + 2, base - 56, MARBLE[2])
+        c.hl(x - 1, x + 1, yb, MARBLE[2])
+    for k in range(4):
+        c.hl(cx - 52 + k, cx + 52 - k, base - 58 - k // 2, roof[1] if k < 2 else TILE_TEAL[3])
+    for x in range(cx - 48, cx + 49, 4):
+        c.px(x, base - 58, TILE_TEAL[5]); c.px(x + 2, base - 57, TILE_TEAL[2])
+    for k in range(12):
+        hw = 52 - k * 2
+        y = base - 61 - k
+        for x in range(cx - hw, cx + hw + 1):
+            u = (x - cx) / hw
+            i = 5 if u < -0.55 else 4 if u < 0.1 else 3 if u < 0.6 else 2
+            if (x - cx) % 7 == 0 and k > 0:
+                i = max(1, i - 1)
+            c.px(x, y, roof[i])
+        c.px(cx - hw, y, roof[6])
+    c.hl(cx - 52, cx + 52, base - 61, roof[5])
+    f = Sculpt(c, cx, base - 73, 1, roof)
+    f.part(ell(0, -6, 22, 16), soft=3)
+    f.part(poly((-23, -5), (23, -5), (23, 0), (-23, 0)), soft=1)
+    f.done()
+    for a in (-14, -6, 6, 14):
+        for k in range(12):
+            x = cx + round(a * math.cos(k / 12 * 1.2))
+            c.px(x, base - 78 - k, roof[2 if a > 0 else 5])
+    c.vl(cx, base - 99, base - 94, GOLD[3])
+    sphere(c, cx, base - 95, 1.6, GILT, lo=2)
+    for k in range(4):
+        c.px(cx - 2 + (k > 1) * 4 - (k % 2) * (1 if k < 2 else -1), base - 101 + k % 2, GOLD[3])
+    weather(c, cx - 26, cx + 26, base - 22, 5, stone, 1)
     return outline(c.im)
 
 
 def stone_lantern(stone=GRANITE):
+    """A tōrō: hexagonal foot, round post, firebox and curled-corner roof."""
     c = C(56, 100)
     cx, base = 26, 96
-    y, d = stack(c, cx, base, [(18, 4), (12, 5)], stone)
-    for k in range(30):
-        hw = 5 - (k % 10 == 0)
-        c.hl(cx - hw, cx + hw, y - k, stone[4]); c.px(cx - hw, y - k, stone[5]); c.px(cx + hw, y - k, stone[2])
-    y, d = stack(c, cx, y - 29, [(12, 4), (9, 14), (10, 2)], stone)
-    c.rect(cx - 4, y + 5, cx + 4, y + 13, stone[0]); c.rect(cx - 3, y + 7, cx + 3, y + 12, FLAME[1])
-    for k in range(9):
+    t, d = ledge(c, cx, base, 16, 4, stone, depth=7)
+    f = Sculpt(c, cx, t, 1, stone)
+    f.part(ell(0, -1, 12, 4), soft=1.5)
+    f.done()
+    for dx in range(-9, 10, 3):
+        c.px(cx + dx, t - 2 + abs(dx) // 5, stone[5 if dx < 0 else 3])
+    turned(c, cx, t - 3, 26, 4, 3.5, stone)
+    for yy in (t - 14, t - 15):
+        c.hl(cx - 4, cx + 4, yy, stone[2 if yy == t - 14 else 5])
+    y = t - 29
+    t2, d2 = ledge(c, cx, y, 12, 4, stone, depth=5)
+    for dx in range(-11, 12, 4):
+        c.px(cx + dx, t2 + 2, stone[5]); c.px(cx + dx + 1, t2 + 3, stone[2])
+    fb = t2 - d2 // 2
+    c.rect(cx - 8, fb - 14, cx + 8, fb, stone[4])
+    c.vl(cx - 8, fb - 14, fb, stone[5]); c.vl(cx + 8, fb - 14, fb, stone[2]); c.vl(cx + 9, fb - 15, fb - 1, stone[1])
+    c.rect(cx - 4, fb - 11, cx + 4, fb - 3, stone[0])
+    c.rect(cx - 3, fb - 9, cx + 3, fb - 3, FLAME[1]); c.rect(cx - 2, fb - 7, cx + 2, fb - 4, FLAME[2]); c.px(cx - 1, fb - 5, FLAME[3])
+    c.hl(cx - 4, cx + 4, fb - 12, stone[2])
+    c.ellipse(cx - 6, fb - 7, 1, 1, stone[2]); c.ellipse(cx + 6, fb - 7, 1, 1, stone[2])
+    y = fb - 15
+    for k in range(10):
         hw = 22 - k * 2
-        c.hl(cx - hw, cx + hw, y - k, stone[5 if k < 3 else 4]); c.px(cx + hw, y - k, stone[2])
-    c.px(cx - 23, y + 1, stone[4]); c.px(cx + 23, y + 1, stone[3])
-    for yy, r in ((y - 12, 4), (y - 18, 3)):
-        c.ellipse(cx, yy, r, r, stone[4]); c.px(cx - 1, yy - 1, stone[6])
+        for x in range(cx - hw, cx + hw + 1):
+            u = (x - cx) / hw
+            i = 6 if u < -0.6 and k > 2 else 5 if u < -0.1 else 4 if u < 0.5 else 3
+            if k < 2:
+                i = 3 if k == 0 else 4
+            c.px(x, y - k, stone[i])
+        if k in (3, 6):
+            c.hl(cx - hw + 3, cx - hw + 7, y - k, mix(stone[5], LEAF[4], 0.35))
+    for s in (-1, 1):
+        c.px(cx + s * 23, y - 1, stone[5 if s < 0 else 3]); c.px(cx + s * 24, y - 2, stone[5 if s < 0 else 3])
+        c.px(cx + s * 24, y - 3, stone[4])
+    under(c, cx - 20, cx + 20, y + 1, stone, 0.5)
+    f = Sculpt(c, cx, y - 9, 1, stone)
+    f.part(ell(0, -2, 5, 3), soft=1.2)
+    f.part(ell(0, -7, 3.5, 4), soft=1.2)
+    f.part(poly((-1.5, -13), (1.5, -13), (0, -16)), soft=0.8)
+    f.done()
+    weather(c, cx - 8, cx + 9, fb - 14, 6, stone, 4)
+    return outline(c.im)
+
+
+def chhatri(stone=RED_SANDSTONE):
+    """A domed pavilion on four pillars with a sloping chhajja eave."""
+    c = C(80, 120)
+    cx, base = 38, 116
+    y, d = stack(c, cx, base, [(34, 6), (28, 10), (26, 3, 5)], stone)
+    for x in range(cx - 21, cx + 22, 10):
+        c.rect(x - 3, y + 6, x + 3, y + 12, stone[1])
+        c.ellipse(x, y + 6, 3, 2.5, stone[1])
+        c.vl(x + 3, y + 5, y + 12, stone[5]); c.hl(x - 3, x + 3, y + 12, stone[5])
+    weather(c, cx - 28, cx + 28, y + 4, 4, stone, 2)
+    c.rect(cx - 17, y - 28, cx + 17, y - 1, stone[0])
+    c.rect(cx - 15, y - 26, cx + 15, y - 3, stone[1])
+    for x in (cx - 20, cx - 7, cx + 7, cx + 20):
+        turned(c, x, y, 26, 2.2, 2, stone, lo=2)
+        c.hl(x - 3, x + 3, y - 1, stone[3]); c.hl(x - 3, x + 3, y, stone[2])
+        for k in range(3):
+            c.hl(x - 2 - k, x + 2 + k, y - 26 - k, stone[5 - (k == 2)])
+        c.px(x + 2 + 2, y - 28, stone[2])
+    c.ellipse(cx, y - 20, 13, 9, stone[1])
+    for k in range(5):
+        hw = 30 - k
+        c.hl(cx - hw, cx + hw, y - 29 - k, stone[4 if k else 2])
+        c.px(cx - hw, y - 29 - k, stone[5]); c.px(cx + hw, y - 29 - k, stone[2])
+    c.hl(cx - 29, cx + 29, y - 33, stone[6])
+    under(c, cx - 26, cx + 26, y - 28, stone, 0.55)
+    y -= 34
+    for x in range(cx - 16, cx + 17, 4):
+        c.ellipse(x, y - 1, 2, 2, stone[4]); c.px(x - 1, y - 2, stone[6]); c.px(x + 1, y, stone[2])
+    f = Sculpt(c, cx, y - 2, 1, stone)
+    f.part(ell(0, -10, 17, 15), poly((-17, -10), (17, -10), (15, 0), (-15, 0)), soft=2.8)
+    f.done()
+    for a in (-11, -4, 4, 11):
+        for k in range(14):
+            x = cx + round(a * math.cos(k / 14 * 1.3))
+            c.px(x, y - 4 - k, stone[3 if a > 0 else 5])
+    t = y - 26
+    for k, r in enumerate((4, 3, 2, 3, 1.5)):
+        sphere(c, cx, t - k * 2.2, r, GILT, lo=1, flat=0.6)
+    c.vl(cx, t - 14, t - 10, GILT[4])
+    return outline(c.im)
+
+
+def lion(c, x, y, s, ramp, facing):
+    f = Sculpt(c, x, y, s, ramp)
+    f.part(ell(-5 * facing, -6, 6, 7), dim=1, soft=1.4)
+    f.part(limb(3.5, (3 * facing, -8), (4 * facing, 0)), dim=1)
+    f.part(ell(2 * facing, -12, 6, 7), soft=1.6)
+    f.part(ell(4 * facing, -17, 3.4, 3.2), dim=0)
+    f.part(ell(7 * facing, -16, 1.8, 1.6), dim=1)
+    f.done()
+
+
+def lion_pillar(stone=SANDSTONE):
+    """A polished monolith with a bell capital and addorsed lions: Mauryan."""
+    c = C(48, 160)
+    cx, base = 22, 156
+    y, d = stack(c, cx, base, [(18, 3, 3), (14, 3)], stone)
+    weather(c, cx - 18, cx + 18, base - 3, 3, stone, 1)
+    turned(c, cx, y, 104, 4.5, 3.2, stone, lo=2, polish=True)
+    y -= 104
+    for k in range(11):
+        hw = 3 + k * 0.55
+        yy = y - 10 + k
+        for x in range(round(cx - hw), round(cx + hw) + 1):
+            u = (x - cx) / (hw + 0.5)
+            i = 5 if u < -0.3 else 4 if u < 0.4 else 2
+            if k > 3 and (x - cx) % 2 == 0:
+                i = max(1, i - 2)
+            c.px(x, yy, stone[i])
+    c.hl(cx - 9, cx + 9, y + 1, stone[5]); c.hl(cx - 9, cx + 9, y + 2, stone[2])
+    c.hl(cx - 4, cx + 4, y - 11, stone[6])
+    t, dd = ledge(c, cx, y - 12, 9, 5, stone, depth=3)
+    for x in range(cx - 7, cx + 8, 5):
+        c.ellipse(x, t + 2.5, 1.6, 1.6, stone[2]); c.px(x, t + 2, stone[5])
+    lion(c, cx - 5, t - 1, 0.5, stone, -1)
+    lion(c, cx + 5, t - 1, 0.5, stone, 1)
+    lion(c, cx + 1, t + 1, 0.55, stone, 1)
+    return outline(c.im, 0.3, 0.6)
+
+
+def obelisk(stone=RED_GRANITE, pedestal=None, cap=GOLD):
+    c = C(60, 170)
+    cx, base = 28, 166
+    y = base
+    if pedestal:
+        y, d = stack(c, cx, base, [(22, 4), (18, 4), (15, 24, 4), (17, 3, 5)], pedestal)
+        c.rect(cx - 10, y + 10, cx + 10, y + 22, pedestal[3])
+        c.hl(cx - 10, cx + 10, y + 10, pedestal[2]); c.vl(cx - 10, y + 10, y + 22, pedestal[2])
+        c.hl(cx - 10, cx + 10, y + 22, pedestal[5]); c.vl(cx + 10, y + 10, y + 22, pedestal[5])
+        frieze(c, cx - 8, y + 12, cx + 8, y + 21, BRONZE)
+        weather(c, cx - 17, cx + 17, y + 4, 10, pedestal, 3)
+        y -= d // 2
+    h = 110 if pedestal else 128
+    for k in range(h):
+        hw = round(9 - 3 * k / h)
+        yy = y - k
+        c.hl(cx - hw, cx + hw, yy, stone[4])
+        c.px(cx - hw, yy, stone[6]); c.px(cx - hw + 1, yy, stone[5])
+        c.px(cx + hw, yy, stone[2]); c.px(cx + hw - 1, yy, stone[3])
+        c.px(cx + hw + 1, yy - 1, stone[1])
+    glyphs = [[(0, 0), (1, 0), (2, 0)], [(0, 0), (1, 1), (2, 0), (1, -1)], [(1, -2), (1, -1), (0, 0), (1, 0), (2, 0), (1, 1)],
+              [(0, 0), (0, -1), (1, -2), (2, -2), (2, -1)], [(0, -1), (1, 0), (2, -1)], [(1, -1), (1, 0), (1, 1)]]
+    for k in range(10, h - 12, 5):
+        g = glyphs[int(h2(k, 3, 1) * len(glyphs))]
+        incise(c, [(cx - 1 + gx, y - k + gy) for gx, gy in g], stone, 2)
+    c.hl(cx - 8, cx + 8, y - 6, stone[2]); c.hl(cx - 8, cx + 8, y - 5, stone[5])
+    weather(c, cx - 8, cx + 8, y - h + 2, 30, stone, 6)
+    y -= h
+    for k in range(8):
+        hw = 6 - k * 6 // 8
+        c.hl(cx - hw, cx, y - k, cap[3]); c.hl(cx + 1, cx + hw, y - k, cap[1])
+        c.px(cx - hw, y - k, cap[3])
+    c.px(cx - 1, y - 6, cap[3])
+    if pedestal:
+        c.vl(cx, y - 13, y - 7, IRON[3]); c.hl(cx - 2, cx + 2, y - 11, IRON[3])
     return outline(c.im)
 
 
@@ -628,57 +984,6 @@ def bixi(stone=GRANITE):
     return outline(c.im, 0.3, 0.6)
 
 
-def chhatri(stone=RED_SANDSTONE):
-    c = C(80, 120)
-    cx, base = 38, 116
-    y, d = stack(c, cx, base, [(34, 6), (28, 10), (26, 3, 5)], stone)
-    for x in range(cx - 20, cx + 21, 10):
-        c.rect(x - 7, y + 6, x - 3, y + 11, stone[2])
-    for x in (cx - 20, cx + 20, cx - 7, cx + 7):
-        c.rect(x - 2, y - 30, x + 2, y, stone[5] if x < cx else stone[3])
-        c.px(x - 2, y - 30, stone[6])
-    c.rect(cx - 17, y - 30, cx + 17, y - 20, stone[0])
-    for k in range(4):
-        c.hl(cx - 28 + k, cx + 28 - k, y - 30 - k, stone[5 if k == 3 else 3])
-    c.hl(cx - 28, cx + 28, y - 29, stone[1])
-    y -= 34
-    for k in range(22):
-        hw = round(18 * math.sqrt(max(0, 1 - (k / 22) ** 2)))
-        c.hl(cx - hw, cx + hw, y - k, stone[4])
-        c.hl(cx - hw, cx - hw + hw // 2, y - k, stone[5])
-        c.hl(cx + hw - hw // 3, cx + hw, y - k, stone[2])
-    for k, r in enumerate((3, 2, 3, 1)):
-        c.hl(cx - r, cx + r, y - 22 - k * 2, GOLD[2]); c.hl(cx - r, cx + r, y - 23 - k * 2, GOLD[3])
-    return outline(c.im)
-
-
-def lion_pillar(stone=SANDSTONE):
-    """A polished monolith with a bell capital and addorsed lions: Mauryan."""
-    c = C(48, 160)
-    cx, base = 22, 156
-    y, d = stack(c, cx, base, [(18, 3, 3), (14, 3)], stone)
-    for k in range(104):
-        hw = 4 if k < 60 else 3
-        c.hl(cx - hw, cx + hw, y - k, stone[5]); c.px(cx - hw + 1, y - k, stone[6]); c.px(cx + hw, y - k, stone[3])
-        c.px(cx - hw, y - k, stone[4])
-    y -= 104
-    for k in range(10):
-        hw = 3 + k // 2
-        c.hl(cx - hw, cx + hw, y - 9 + k, stone[4]); c.px(cx - hw, y - 9 + k, stone[5]); c.px(cx + hw, y - 9 + k, stone[2])
-        if k % 3 == 1:
-            c.hl(cx - hw + 1, cx + hw - 1, y - 9 + k, stone[3])
-    t, dd = box(c, cx, y - 10, 8, 4, stone, depth=2)
-    for x in range(cx - 7, cx + 8, 3):
-        c.px(x, t + 2, stone[2])
-    f = Sculpt(c, cx, t - 1, 0.32, stone)
-    f.part(ell(-14, -12, 9, 12), ell(14, -12, 9, 12), dim=1, soft=1.5)
-    f.part(ell(0, -24, 12, 22), soft=2)
-    f.part(ell(0, -48, 13, 12), soft=2)
-    f.part(ell(0, -44, 7, 5), dim=1)
-    f.done()
-    return outline(c.im, 0.3, 0.6)
-
-
 def maya_stela(stone=LIME):
     """A carved stela with a ruler in plumed headdress, glyph columns at its
     sides, and a drum altar before it: Classic Maya plazas."""
@@ -714,29 +1019,6 @@ def maya_stela(stone=LIME):
     for x in range(cx - 12, cx + 13, 4):
         c.rect(x, base - 5, x + 2, base - 3, stone[2])
     return outline(c.im, 0.3, 0.6)
-def obelisk(stone=RED_GRANITE, pedestal=None, cap=GOLD):
-    c = C(60, 170)
-    cx, base = 28, 166
-    y = base
-    if pedestal:
-        y, d = stack(c, cx, base, [(22, 4), (18, 4), (15, 24, 4), (17, 3, 5)], pedestal)
-        y -= d // 2
-    h = 110 if pedestal else 128
-    for k in range(h):
-        hw = round(9 - 3 * k / h)
-        c.hl(cx - hw, cx + hw, y - k, stone[4])
-        c.px(cx - hw, y - k, stone[5]); c.px(cx + hw, y - k, stone[2]); c.px(cx + hw - 1, y - k, stone[3])
-        if not pedestal and 8 < k < h - 10 and k % 4 < 2:
-            c.px(cx - 3, y - k, stone[2]); c.px(cx + 2, y - k, stone[2])
-    y -= h
-    for k in range(7):
-        hw = 6 - k
-        c.hl(cx - hw, cx + hw, y - k, cap[2]); c.hl(cx - hw, cx, y - k, cap[3])
-    if pedestal:
-        c.vl(cx, y - 13, y - 7, IRON[3]); c.hl(cx - 2, cx + 2, y - 11, IRON[3])
-    return outline(c.im)
-
-
 def pedestal(c, cx, base, hw, h, stone, rails=False, relief=False):
     """Steps, a moulded base course, a panelled die and a cornice.
     Returns the y of the cornice top and its depth, for what stands on it."""
@@ -753,11 +1035,7 @@ def pedestal(c, cx, base, hw, h, stone, rails=False, relief=False):
     c.hl(x0, x1, y0, stone[2]); c.vl(x0, y0, y1, stone[2])
     c.hl(x0, x1, y1, stone[5]); c.vl(x1, y0, y1, stone[5])
     if relief:
-        c.rect(x0 + 2, y0 + 2, x1 - 2, y1 - 2, BRONZE[3])
-        for k, x in enumerate(range(x0 + 4, x1 - 2, 5)):
-            c.vl(x, y1 - 9 - (k % 2) * 2, y1 - 3, BRONZE[5]); c.px(x, y1 - 10 - (k % 2) * 2, BRONZE[6])
-            c.vl(x + 1, y1 - 8 - (k % 2) * 2, y1 - 3, BRONZE[1])
-        c.hl(x0 + 2, x1 - 2, y0 + 2, BRONZE[5]); c.hl(x0 + 2, x1 - 2, y1 - 2, BRONZE[1])
+        frieze(c, x0 + 1, y0 + 1, x1 - 1, y1 - 1, BRONZE)
     else:
         py = y0 + 3
         plaque(c, cx - hw // 2, py, cx + hw // 2, py + 6, stone)
@@ -829,6 +1107,7 @@ PIECES = [
     ('Granite obelisk', lambda: obelisk()),
     ('Obelisk on a pedestal', lambda: obelisk(RED_GRANITE, LIME)),
     ('Heroic worker, bronze', lambda: hero(RED_GRANITE, BRONZE, banner=False)),
+    ('Ringed high cross', lambda: high_cross()),
 ]
 VARIANTS = [name for name, _ in PIECES]
 

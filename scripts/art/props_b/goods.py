@@ -219,32 +219,41 @@ def bicycle(v=0):
 
 def handcart(v=0):
  """A two-wheeled barrow pushed by its shafts: the costermonger's, the
- builder's, the rag-and-bone man's. About 1.4 m long."""
- c = Canvas(31, 20)
+ builder's, the rag-and-bone man's. About 1.6 m long, the bed at the hip,
+ on wheels most of a metre across."""
+ c = Canvas(40, 30)
  w = RAMPS[['oak7', 'ash7', 'walnut7'][v]]
- gy, r = 14, 5
- for x in range(0, 9):                            # the shafts, to the left
-  c.set(x, 8 + x // 5, w[4]); c.set(x, 9 + x // 5, w[2])
- c.set(0, 8, w[5])
- _box(c, 8, 12, 21, 4, 2, w, dr=1, planks=2)       # the bed and a low side
- for x in (8, 15, 22, 28): c.vline(x, 9, 12, w[2])
- _circle(c, 17, gy, r, '#1d2023')                 # an iron-tyred wheel
- _circle(c, 17, gy, r - 1, w[2], lit=w[4])
- for a in range(0, 180, 30):
+ iron = RAMPS['blackiron7']
+ gy, r = 20, 9
+ for x in range(0, 11):                           # the shafts, handles at the hand
+  y = 11 + x // 4
+  c.set(x, y, w[5]); c.set(x, y + 1, w[3]); c.set(x, y + 2, w[1])
+ c.set(0, 11, w[6])
+ _box(c, 10, 17, 28, 5, 2, w, dr=1, planks=2)      # the bed and a low side
+ for x in (10, 19, 28, 37): c.vline(x, 11, 16, w[2])  # side stakes
+ c.vline(36, 18, 29, w[2]); c.vline(37, 18, 29, w[0])  # the prop leg
+ c.vline(11, 18, 24, w[3])
+ cx = 23
+ for y in range(gy - r - 1, gy + r + 2):          # an iron-tyred wheel, felloes and spokes
+  for x in range(cx - r - 1, cx + r + 2):
+   d = sqrt((x + .5 - cx - .5) ** 2 + (y + .5 - gy - .5) ** 2)
+   if d > r + 0.5: continue
+   if d > r - 0.6: c.set(x, y, iron[4] if x < cx and y < gy else iron[2] if x < cx or y < gy else iron[1])
+   elif d > r - 2.2: c.set(x, y, w[5] if x - cx + y - gy < -3 else w[3] if x - cx + y - gy < 4 else w[2])
+ for a in (0, 60, 120):                          # six spokes, as three diameters
   t = a * pi / 180
-  c.line((17 - cos(t) * 3, gy - sin(t) * 3), (17 + cos(t) * 3, gy + sin(t) * 3), w[3])
- c.set(17, gy, '#525759')
- c.vline(27, 13, 19, w[2]); c.vline(28, 13, 19, w[1])   # the prop leg
- c.vline(9, 13, 18, w[3])
+  c.line((cx - cos(t) * (r - 2), gy - sin(t) * (r - 2)), (cx + cos(t) * (r - 2), gy + sin(t) * (r - 2)), w[4] if a < 90 else w[3])
+ c.rect(cx - 1, gy - 1, cx + 1, gy + 1, iron[3]); c.set(cx - 1, gy - 1, iron[5])
  if v == 0:                                       # a load of sacks
   s = RAMPS['burlap7']
-  _ball(c, 13, 6, 4.2, 3.2, s, lo=2, hi=6, flat_bottom=8)
-  _ball(c, 21, 6, 4.4, 3.4, s, lo=2, hi=6, flat_bottom=8)
+  _ball(c, 17, 8, 6, 4.5, s, lo=2, hi=6, flat_bottom=11)
+  _ball(c, 29, 8, 6.2, 4.8, s, lo=2, hi=6, flat_bottom=11)
+  _ball(c, 23, 4, 5.4, 4.0, s, lo=2, hi=6, flat_bottom=7)
  elif v == 1:                                     # crates of greens
-  _box(c, 11, 8, 7, 4, 1, w, dr=1, planks=5, lit=5)
-  _box(c, 19, 8, 7, 4, 1, w, dr=1, planks=5, lit=5)
-  for x in range(12, 26, 2):
-   if x not in (18,): c.set(x, 3, '#4b8f38'); c.set(x + 1, 3, '#77b64a')
+  _box(c, 13, 11, 11, 5, 2, w, dr=1, planks=6, lit=5)
+  _box(c, 25, 11, 11, 5, 2, w, dr=1, planks=6, lit=5)
+  for x in range(13, 37, 2):
+   if x not in (24, 25): c.set(x, 4, '#4b8f38'); c.set(x + 1, 4, '#77b64a'); c.set(x, 3, '#77b64a')
  soft_outline(c, w[0], w[3])
  return c.image()
 

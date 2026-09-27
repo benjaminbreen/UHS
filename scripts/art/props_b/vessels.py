@@ -4,6 +4,7 @@ Every ceramic body is a profile of half-widths through `revolve`, so a pot, a
 jar and an amphora catch the light the same way. What tells them apart is the
 profile and the fittings: rim, neck, handles, foot.
 """
+from math import sqrt
 from .core import (Canvas, RAMPS, belly, revolve,
                    soft_outline)
 
@@ -197,7 +198,48 @@ def bowl(v=0):
  return c.image()
 
 
+def _mouth(c, cx, cy, rx, ry, p, inside):
+ """An open top seen from a little above: a lit rim ring round a dark inside,
+ the inside's near half lit where the light falls past the far rim."""
+ for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
+  for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+   U, V = (x + .5 - cx) / rx, (y + .5 - cy) / ry
+   r2 = U * U + V * V
+   if r2 > 1: continue
+   if r2 > 0.5: c.set(x, y, p[6] if U < -0.2 or V > 0.4 and U < 0.4 else p[4] if V > 0 else p[3])
+   else: c.set(x, y, inside[0] if V < 0.1 else inside[1])
+
+
 def bucket(v=0):
+ """A 0.5 m pail with a bail handle. Variants 3-5 are the small 0.35 m one."""
+ if v >= 3: return _small_bucket(v - 3)
+ c = Canvas(15, 19)
+ w = RAMPS[['oak7', 'ash7', 'walnut7'][v]]
+ m = RAMPS['blackiron7']
+ cx, top, bot = 7.0, 5, 18
+ prof = belly(top, bot, [6.8, 6.3, 5.8, 5.2])
+ revolve(c, cx, prof, w)
+ for y, h in prof.items():                        # stave joints, crowding at the sides
+  for k in (-0.75, -0.3, 0.2, 0.65):
+   c.set(round(cx + h * k), y, w[2] if k < 0 else w[1])
+ for y0 in (8, 15):                               # hoops on the rim's curve
+  h = prof[y0]
+  for x in range(15):
+   u = (x + .5 - cx) / h
+   if abs(u) > 1: continue
+   y = y0 + round(1.6 * sqrt(1 - u * u))
+   c.set(x, y - 1, m[5] if u < 0.1 else m[3]); c.set(x, y, m[2] if u < 0.1 else m[1])
+ _mouth(c, cx, top, 6.8, 2.2, w, (w[1], w[2]))
+ for x, y in [(1, 4), (1, 3), (2, 2), (3, 1), (4, 0), (5, 0)]:   # the bail, left half lit
+  c.set(x, y, m[5])
+ for x, y in [(9, 0), (10, 0), (11, 1), (12, 2), (13, 3), (13, 4)]:
+  c.set(x, y, m[3])
+ c.hline(6, 8, 0, RAMPS['oak7'][5])               # the wooden grip
+ soft_outline(c, w[0], w[2])
+ return c.image()
+
+
+def _small_bucket(v=0):
  """Staves and two hoops, 0.35 m: a pail, not a barrel."""
  c = Canvas(10, 12)
  w = RAMPS[['oak7', 'ash7', 'walnut7'][v]]
@@ -258,9 +300,41 @@ def basket(v=0, lid=False):
  return c.image()
 
 
+def _big_basket(v=0, lid=False):
+ """A 0.5 m storage basket: coils banded round a revolved body, an open
+ elliptical mouth, or a domed lid with a loop."""
+ dy = 3 if lid else 0
+ c = Canvas(19, 15 + dy)
+ p = RAMPS[['wicker7', 'ash7', 'buffclay7'][v]]
+ cx = 9.0
+ prof = {y + dy: h for y, h in belly(3, 14, [8.6, 8.4, 7.6, 6.0]).items()}
+ revolve(c, cx, prof, p)
+ for y, half in prof.items():                     # coils, and the stitches binding them
+  if y % 2: continue
+  for x in range(int(cx - half), int(cx + half) + 1):
+   u = (x + .5 - cx) / max(half, .5)
+   if abs(u) > 1: continue
+   c.set(x, y, p[2] if u > 0.25 else p[3])
+   if (x + y // 2 * 3) % 4 == 0 and y + 1 in prof: c.set(x, y + 1, p[5] if u < 0 else p[3])
+ if lid:
+  for y in range(0, dy + 4):                      # a shallow dome
+   for x in range(19):
+    U, V = (x + .5 - cx) / 8.8, (y + .5 - (dy + 3)) / (dy + 2.5)
+    if U * U + V * V > 1 or y > dy + 3: continue
+    lit = U * 0.6 + V * 0.8
+    c.set(x, y, p[6] if lit < -0.45 else p[5] if lit < 0.05 else p[4] if lit < 0.45 else p[3])
+  for x in range(2, 17): c.set(x, dy + 3, p[1] if x > 5 else p[2])
+  c.set(8, 0, p[5]); c.set(9, 0, p[4]); c.set(10, 0, p[3])
+ else:
+  _mouth(c, cx, 3, 8.6, 2.6, p, (p[0], p[1]))
+ soft_outline(c, p[0], p[2])
+ return c.image()
+
+
 def open_basket(v=0):
- return basket(v)
+ """Variants 0-2 the big storage basket, 3-5 the small one."""
+ return _big_basket(v) if v < 3 else basket(v - 3)
 
 
 def lidded_basket(v=0):
- return basket(v, lid=True)
+ return _big_basket(v, lid=True) if v < 3 else basket(v - 3, lid=True)

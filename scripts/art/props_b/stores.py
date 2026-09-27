@@ -6,8 +6,8 @@ about 17 source px to the metre. These are placed pixel by rule rather than
 shaded by a lighting function: at this size a form reads from a hard lit
 band, a hard core shadow and a dark keyline, and a smooth ramp reads as mud.
 """
-from math import sqrt
-from .core import Canvas
+from math import sqrt, sin, asin, pi
+from .core import Canvas, RAMPS, soft_outline
 
 INK = '#24140d'
 # dark, shade, mid, light, highlight
@@ -74,13 +74,56 @@ def _head(c, cx, cy, rx, ry, w):
 
 
 def barrel(v=0):
- """A 0.9 m cask: bulged staves, iron hoops top and bottom, an open chime."""
- c = Canvas(15, 19)
- w = WOOD[v]
- _cask(c, 7.5, 2, 18, [5.4, 6.6, 7.2, 7.2, 6.6, 5.4], w, (4, 7, 12, 15))
- _head(c, 7.5, 2, 5.4, 2.2, w)
- c.set(8, 10, INK); c.set(7, 10, w[4])             # the bung
- c.outline(INK)
+ """A 0.95 m cask seen from a little above: the head is a lit ellipse, the
+ staves run top to bottom and crowd at the sides, and every hoop follows the
+ same ellipse as the chime, so it bows down toward the eye."""
+ w = RAMPS[['oak7', 'walnut7', 'ash7'][v]]
+ m = RAMPS['blackiron7']
+ c = Canvas(17, 24)
+ cx, rx0, ry, top, bot = 8.5, 6.6, 2.6, 3, 21
+ def half(y):                                      # the bulge, widest at the bung
+  t = (y - top) / (bot - top)
+  return rx0 + 1.6 * sin(pi * t)
+ def arc(x, y0, r):                                # the near half of an ellipse
+  u = (x + .5 - cx) / r
+  return y0 + ry * sqrt(max(0, 1 - u * u)) if abs(u) <= 1 else None
+ for x in range(17):
+  for y in range(top, bot + 4):
+   h = half(min(y, bot))
+   u = (x + .5 - cx) / h
+   if abs(u) > 1: continue
+   if y > bot and (arc(x, bot, h) is None or y > arc(x, bot, h)): continue
+   # a cylinder lit from the upper left: highlight a third in, core shadow
+   # past the middle, a little bounce on the far edge
+   tone = 3 if u < -0.8 else 5 if u < -0.52 else 6 if u < -0.3 else 4 if u < 0.05 else 3 if u < 0.45 else 2 if u < 0.86 else 3
+   th = asin(max(-1, min(1, u)))                   # stave joints, even round the girth
+   if abs((th / pi * 9 + 0.5) % 1 - 0.5) < 0.09 * (1 + abs(u)): tone = max(1, tone - 2)
+   c.set(x, y, w[tone])
+ for y0 in (6, 10, 15, 19):                         # hoops on the chime's curve
+  h = half(y0)
+  for x in range(17):
+   y = arc(x, y0, h + 0.3)
+   if y is None: continue
+   u = (x + .5 - cx) / h
+   y = round(y) - 1
+   c.set(x, y, m[6] if -0.62 < u < -0.25 else m[5] if u < 0.2 else m[3])
+   c.set(x, y + 1, m[2] if u < 0.2 else m[1])
+ for x in range(17):                               # the head, above the top hoop
+  for y in range(0, top + 3):
+   U, V = (x + .5 - cx) / rx0, (y + .5 - top) / ry
+   r2 = U * U + V * V
+   if r2 > 1: continue
+   if r2 > 0.55: tone = 6 if U < 0.2 else 4       # the chime
+   elif V < -0.1: tone = 3                         # the far chime's shadow on the head
+   else: tone = 5
+   c.set(x, y, w[tone])
+  y = arc(x, top, rx0)
+  if y is not None: c.set(x, round(y) + 1, w[1])   # under the near chime's lip
+ for bx in (6, 11):                                # the head's board joints
+  for y in range(top, top + 2):
+   if c.get(bx, y) in (w[3], w[4]): c.set(bx, y, w[2])
+ c.set(9, 12, w[1]); c.set(8, 12, w[6])            # the bung
+ soft_outline(c, w[1], w[3])
  return c.image()
 
 
@@ -109,48 +152,48 @@ def _box(c, x0, y0, wide, tall, w, brace='x'):
 
 
 def crate(v=0):
- c = Canvas(18, 15)
- _box(c, 0, 0, 18, 15, WOOD[v])
+ c = Canvas(22, 19)
+ _box(c, 0, 0, 22, 19, WOOD[v])
  c.outline(INK)
  return c.image()
 
 
 def crate_stack(v=0):
  """Two cases and a smaller one on top, not squared up."""
- c = Canvas(29, 25)
- _box(c, 0, 11, 15, 14, WOOD[v])
- _box(c, 15, 13, 14, 12, WOOD[(v + 2) % 3], brace='/')
- _box(c, 6, 0, 14, 12, WOOD[(v + 1) % 3])
- c.hline(6, 19, 12, INK)                           # the shade the top one throws
+ c = Canvas(37, 32)
+ _box(c, 0, 14, 19, 18, WOOD[v])
+ _box(c, 19, 17, 18, 15, WOOD[(v + 2) % 3], brace='/')
+ _box(c, 8, 0, 18, 15, WOOD[(v + 1) % 3])
+ c.hline(8, 25, 15, INK)                           # the shade the top one throws
  c.outline(INK)
  return c.image()
 
 
 def woodpile(v=0):
- """A cord of logs between two stakes. The cut ends are the whole drawing:
- a bark ring, pale sapwood, a darker heart and a drying crack."""
- c = Canvas(30, 18)
+ """A cord of logs between two stakes, chest high. The cut ends are the whole
+ drawing: a bark ring, pale sapwood, a darker heart and a drying crack."""
+ c = Canvas(38, 26)
  w, bark = WOOD[(v + 2) % 3], WOOD[1]
- c.rect(1, 3, 28, 17, INK)
+ c.rect(1, 4, 36, 25, INK)
  def log(cx, cy, split=False):
-  for yy in range(cy - 2, cy + 3):
-   for xx in range(cx - 2, cx + 3):
+  for yy in range(cy - 3, cy + 4):
+   for xx in range(cx - 3, cx + 4):
     d = (xx - cx) ** 2 + (yy - cy) ** 2
-    if d > 5 or (split and yy > cy): continue
-    lit = xx <= cx and yy <= cy
-    c.set(xx, yy, (bark[2] if lit else bark[1]) if d > 2 else w[4] if lit else w[3])
-  c.set(cx, cy, w[1])
-  if not split: c.set(cx + 1, cy, w[2])
+    if d > 11 or (split and yy > cy): continue
+    lit = xx - cx + yy - cy < 0
+    c.set(xx, yy, (bark[2] if lit else bark[1]) if d > 6 else w[4] if lit else w[3])
+  c.set(cx, cy, w[1]); c.set(cx + 1, cy - 1, w[2])
+  if not split: c.set(cx + 1, cy + 1, bark[1])      # the drying crack
  n = v * 5
- for row, cy in enumerate((15, 11, 7)):
-  for k, cx in enumerate(range(3 + (row % 2) * 2, 27, 5)):
+ for row, cy in enumerate((22, 16, 10)):
+  for cx in range(4 + (row % 2) * 3, 35, 7):
    n += 1
    log(cx, cy, split=(n * 7 + row) % 5 == 0)
- for x in range(3, 27):                            # two logs lying along the top
-  c.set(x, 3, w[4] if x < 15 else w[3]); c.set(x, 4, w[2]); c.set(x, 5, w[1])
- for x in (9, 20): c.vline(x, 3, 5, bark[0])
- for x, tone in ((0, bark[3]), (29, bark[1])):     # the stakes
-  c.vline(x, 0, 17, tone)
+ for x in range(3, 35):                            # two logs lying along the top
+  c.set(x, 4, bark[3] if x < 19 else bark[2]); c.set(x, 5, bark[2] if x < 19 else bark[1]); c.set(x, 6, bark[0])
+ for x in (12, 26): c.vline(x, 4, 6, bark[0])
+ for x, tone in ((0, bark[3]), (37, bark[1])):     # the stakes
+  c.vline(x, 0, 25, tone)
  c.outline(INK)
  return c.image()
 
@@ -177,13 +220,13 @@ def _sack(c, cx, base, rx, tall, p, lean=0):
 
 def grain_sacks(v=0):
  """Tied sacks slumped against each other."""
- c = Canvas(23, 17)
+ c = Canvas(32, 23)
  p = SACK if v != 1 else ['#57503a', '#7f775a', '#a8a07e', '#ccc5a3', '#e8e3c8']
- _sack(c, 5, 16, 5, 10, p, lean=-1)
- _sack(c, 17, 16, 5.5, 9, p, lean=1)
- _sack(c, 11, 16, 5.5, 12, p)
+ _sack(c, 7, 22, 7, 14, p, lean=-1)
+ _sack(c, 24, 22, 7.5, 13, p, lean=1)
+ _sack(c, 15.5, 22, 7.5, 17, p)
  if v == 2:
-  for x, y in ((20, 16), (21, 16), (22, 16), (21, 15)): c.set(x, y, '#e3c264')
+  for x, y in ((28, 22), (29, 22), (31, 22), (30, 21)): c.set(x, y, '#e3c264')
  c.outline(INK)
  return c.image()
 

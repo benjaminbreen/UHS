@@ -136,7 +136,7 @@ def steel_drum(v=0):
 def wheelbarrow(v=0):
  """A barrow: planked tray, spoked wheel in an iron tyre, two handles."""
  from math import hypot
- c = Canvas(38, 24)
+ c = Canvas(40, 24)
  steel = v == 2
  w = RAMPS['galvanised7'] if steel else RAMPS[WOOD7[v]]
  m = RAMPS['blackiron7']
@@ -159,10 +159,10 @@ def wheelbarrow(v=0):
   for y in range(4, 13):
    if c.get(bx, y): c.set(bx, y, m[4] if bx < 20 else m[3])
    if c.get(bx + 1, y): c.set(bx + 1, y, m[1])
- for i, x in enumerate(range(30, 38)):            # the handle bar, running back
-  y = 11 + i // 3
+ for i, x in enumerate(range(28, 40)):            # the handles, rising to the hand
+  y = 12 - (i * 7) // 11
   c.set(x, y, w[5]); c.set(x, y + 1, w[3]); c.set(x, y + 2, w[1])
- c.set(37, 13, w[6]); c.set(37, 14, w[4])
+ c.rect(38, 4, 39, 6, w[4]); c.set(38, 4, w[6])   # the grips
  for lx in (20, 26):                              # the legs it stands on
   for y in range(14, 19):
    c.set(lx, y, w[3]); c.set(lx + 1, y, w[1])

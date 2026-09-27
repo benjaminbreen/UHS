@@ -170,7 +170,8 @@ export function focusFor(
     // the 19th-century bronze, interwar memorials, Soviet-bloc heroic figures.
     if (year >= -200 && year < 450)
       return one([13, "Honorific column"], [14, "Statue of a magistrate"], [15, "Gilt equestrian statue"]);
-    if (year >= 450 && year < 1150) return undefined;
+    // Carved standing crosses, ringed in Ireland and Britain, from about 700.
+    if (year >= 450 && year < 1150) return one([27, "High cross"]);
     if (year < 1550) return one([16, "Market cross"], [17, "Market cross"]);
     if (year < 1780)
       return one([7, "Public fountain"], [25, "Obelisk"], [4, "Marble statue"], [1, "Equestrian statue"]);

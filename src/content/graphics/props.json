@@ -172,14 +172,17 @@
       "name": "Open work basket",
       "group": "Storage & carrying",
       "size": [
-        13,
-        12
+        21,
+        17
       ],
       "description": "A shallow oval basket with a thick woven rim and large, legible bands of wicker.",
       "variants": [
-        "Dry fiber",
-        "Green fiber",
-        "Pale fiber"
+        "Large dry fiber",
+        "Large green fiber",
+        "Large pale fiber",
+        "Small dry fiber",
+        "Small green fiber",
+        "Small pale fiber"
       ]
     },
     {
@@ -187,14 +190,17 @@
       "name": "Lidded storage basket",
       "group": "Storage & carrying",
       "size": [
-        13,
-        16
+        21,
+        20
       ],
       "description": "A taller woven container with a distinct fitted lid, binding straps and a shaded lower edge.",
       "variants": [
-        "Dry fiber",
-        "Green fiber",
-        "Pale fiber"
+        "Large dry fiber",
+        "Large green fiber",
+        "Large pale fiber",
+        "Small dry fiber",
+        "Small green fiber",
+        "Small pale fiber"
       ]
     },
     {
@@ -277,8 +283,8 @@
       "name": "Barrel",
       "group": "Storage & carrying",
       "size": [
-        17,
-        21
+        19,
+        26
       ],
       "description": "A bulging stave-built barrel with an elliptical top, dark hoops and a small bung or lid.",
       "variants": [
@@ -292,8 +298,8 @@
       "name": "Transport crate",
       "group": "Storage & carrying",
       "size": [
-        20,
-        17
+        27,
+        24
       ],
       "description": "A framed packing case: a lid seen from above, a battened front with a crossed brace and iron nail heads.",
       "variants": [
@@ -307,14 +313,17 @@
       "name": "Bucket or pail",
       "group": "Storage & carrying",
       "size": [
-        11,
-        13
+        17,
+        21
       ],
       "description": "A stave-built wooden pail with a curved metal handle, wooden grip, open mouth and iron hoops.",
       "variants": [
-        "Warm wood",
-        "Dark wood",
-        "Pale wood"
+        "Large warm wood",
+        "Large dark wood",
+        "Large pale wood",
+        "Small warm wood",
+        "Small dark wood",
+        "Small pale wood"
       ]
     },
     {
@@ -561,8 +570,8 @@
       "name": "Firewood pile",
       "group": "Work & agriculture",
       "size": [
-        32,
-        20
+        44,
+        32
       ],
       "description": "A compact stack of irregular logs shows bright cut ends, dark bark and gaps between pieces.",
       "variants": [
@@ -786,7 +795,7 @@
       "group": "Household",
       "size": [
         18,
-        16
+        19
       ],
       "description": "A compact seat rests on visibly separated legs, with wood, woven-seat or later metal variants.",
       "variants": [
@@ -800,8 +809,8 @@
       "name": "Bench",
       "group": "Household",
       "size": [
-        42,
-        17
+        58,
+        23
       ],
       "description": "A long simple seat has stout supports, a worn upper edge and optional locally selected backrest.",
       "variants": [
@@ -822,7 +831,7 @@
       "id": "park-bench",
       "name": "Park bench",
       "group": "Street furniture",
-      "size": [46, 31],
+      "size": [55, 32],
       "description": "Slatted timber back and seat on cast-iron legs, with armrests.",
       "variants": ["Warm wood", "Dark wood", "Pale wood"]
     },
@@ -936,8 +945,8 @@
       "name": "Wheelbarrow",
       "group": "Work & agriculture",
       "size": [
-        39,
-        22
+        42,
+        26
       ],
       "description": "A single-wheeled barrow with a flared tray and a handle bar: a yard, a building site, a smallholding.",
       "variants": [
@@ -1626,8 +1635,8 @@
       "name": "Stacked crates",
       "group": "Storage & carrying",
       "size": [
-        31,
-        27
+        43,
+        38
       ],
       "description": "Two packing cases with a smaller third set askew on top, each in its own wood.",
       "variants": [
@@ -1641,8 +1650,8 @@
       "name": "Grain sacks",
       "group": "Storage & carrying",
       "size": [
-        25,
-        19
+        34,
+        25
       ],
       "description": "Three tied sacks slumped against each other, gathered at the neck and full at the foot.",
       "variants": [
@@ -2938,7 +2947,7 @@
       "id": "street-bench",
       "name": "Street bench",
       "group": "Street furniture",
-      "size": [40, 26],
+      "size": [48, 26],
       "description": "A knee-high slatted bench by period: timber, Parisian cast iron, Soviet concrete trestles, galvanised steel.",
       "variants": ["Timber", "Cast iron", "Concrete ends", "Steel"]
     },
@@ -3002,7 +3011,7 @@
       "id": "cafe-terrace",
       "name": "Cafe terrace",
       "group": "Street furniture",
-      "size": [36, 52],
+      "size": [38, 52],
       "description": "A marble bistro table and two cane chairs, with or without a parasol.",
       "variants": ["Open", "Parasol"]
     },
@@ -3029,7 +3038,7 @@
     {"id": "coal-sacks", "name": "Coal sacks", "group": "Storage & carrying", "size": [26, 19], "description": "The coalman's hundredweight sacks stood open at a door, coal heaped at the rolled hem: 1830-1960.", "variants": ["Three sacks", "Two sacks", "Three with a spill"]},
     {"id": "newspapers", "name": "Newspaper bundles", "group": "Household", "size": [18, 15], "description": "String-tied bundles of the day's papers dropped at a kiosk or door, the top page showing its columns: from 1850.", "variants": ["White newsprint", "Two bundles", "Pink or buff sheet"]},
     {"id": "bicycle", "name": "Bicycle", "group": "Household", "size": [38, 23], "description": "A diamond-frame roadster on its stand, wire wheels, saddle and chain: from 1890.", "variants": ["Black", "Green", "Red"]},
-    {"id": "handcart", "name": "Handcart", "group": "Storage & carrying", "size": [33, 22], "description": "A two-wheeled barrow pushed by its shafts, with a prop leg: the costermonger's, builder's and rag-and-bone man's, 1500-1960.", "variants": ["Sacks", "Crates of greens", "Empty"]},
+    {"id": "handcart", "name": "Handcart", "group": "Storage & carrying", "size": [42, 32], "description": "A two-wheeled barrow pushed by its shafts, with a prop leg: the costermonger's, builder's and rag-and-bone man's, 1500-1960.", "variants": ["Sacks", "Crates of greens", "Empty"]},
     {"id": "amphora-stack", "name": "Amphorae in sand", "group": "Storage & carrying", "size": [28, 26], "description": "Transport amphorae stood toe-down in a bed of sand against a warehouse or shop wall: the classical Mediterranean.", "variants": ["Terracotta", "Buff clay", "Red earth, two"]},
     {"id": "hurdle", "name": "Wattle hurdle", "group": "Work & agriculture", "size": [34, 21], "description": "Hazel rods woven round split sails, pitched to pen sheep or close a gap: Neolithic to 1900 on the same pattern.", "variants": ["Fresh hazel", "Weathered", "Old, a rod gone"]},
     {"id": "log-pile", "name": "Log pile", "group": "Work & agriculture", "size": [32, 17], "description": "Unsplit roundwood with the bark on, laid in a pyramid with sawn ends showing: a camp's or first village's fuel.", "variants": ["Pine", "Birch", "Oak"]}

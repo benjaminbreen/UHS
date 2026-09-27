@@ -68,20 +68,20 @@ def stool(v=0):
  The seat is shaded in clean bands with no dither. At fourteen pixels across,
  a dithered board looks chewed rather than round.
  """
- c = Canvas(16, 16)
+ c = Canvas(16, 17)
  w = RAMPS[WOOD7[v]]
  cx, cy, rx, ry = 7.5, 3.6, 7.0, 3.0
  legs = [(3, -2), (12, 2), (8, 0)]                # left, right, and the front
  for i, (lx, lean) in enumerate(legs):
   top = 6 if i < 2 else 7
-  bottom = 12 if i < 2 else 14
+  bottom = 13 if i < 2 else 15
   for k in range(bottom - top + 1):
    x = lx + (lean * k) // 5
    y = top + k
    c.set(x, y, w[4]); c.set(x + 1, y, w[2])
    if k == 0: c.set(x, y, w[5])
   c.set(x, bottom, w[1]); c.set(x + 1, bottom, w[1])
- for y in range(16):                              # the board, in clean bands
+ for y in range(8):                               # the board, in clean bands
   for x in range(16):
    X, Y = x + .5 - cx, y + .5 - cy
    d = hypot(X / rx, Y / ry)

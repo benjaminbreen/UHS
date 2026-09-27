@@ -934,6 +934,10 @@ export function planSettlement(
       const hearth = plan.objects.find((o) => o.id === `${site.id}-hearth`)!;
       let water = false,
         fire = false;
+      // Gas and coal cooked indoors: an industrial city's square keeps no open fire.
+      const brazier = spec.hearth === "brazier" && !industrialAge;
+      if (industrialAge && spec.hearth !== "hidden")
+        plan.objects = plan.objects.filter((o) => o !== hearth);
       const bed = (rect: Rect, tag: string) => {
         if (!dry(rect, false)) return false;
         eachCell(rect, (x, y) => {
@@ -969,7 +973,7 @@ export function planSettlement(
           return;
         }
         if (piece.kind === "fire") {
-          if (fire || spec.hearth !== "brazier") return;
+          if (fire || !brazier) return;
           fire = true;
           hearth.name = piece.label;
           hearth.pos = pos(spot);
@@ -1033,11 +1037,11 @@ export function planSettlement(
       socialCenter.y = cy + Math.max(1, daisHalf) + 1;
       plan.spawn = { x: cx, y: socialCenter.y };
       // Corners. Every square gets water; a brazier fabric gets its fire.
-      const list = [...spec.corners];
+      const list = spec.corners.filter((k) => brazier || k !== "brazier");
       const waterKeys = ["well", "fountain"];
       if (!water && !list.some((k) => waterKeys.includes(k)))
         list.splice(Math.min(3, list.length), 0, "well");
-      if (spec.hearth === "brazier" && !list.includes("brazier"))
+      if (brazier && !list.includes("brazier"))
         list.splice(Math.min(3, list.length), 0, "brazier");
       const anchors: [number, number, number, number][] = [
         [court.x, court.y, 1, 1],
@@ -1119,6 +1123,15 @@ export function planSettlement(
           owner: `${site.id}-community`,
         });
       }
+      // Costermongers' barrows work the square's upper edge.
+      if (industrialAge && pack.setting?.culture === "european" && min >= 11)
+        for (const [i, x] of [court.x + inset + 1, court.x + court.w - inset - 2].entries()) {
+          const at = { x, y: court.y + 2 };
+          if (plan.solid.has(cellKey(x, at.y)) || !dry({ ...at, w: 1, h: 1 }, false)) continue;
+          plan.solid.add(cellKey(x, at.y));
+          plan.objects.push({ id: `${site.id}-square-barrow-${i}`, name: "Street barrow", kind: "monument",
+            sprite: `study-propb-street-barrow-${Math.floor(rand("barrow", i) * 3)}`, pos: pos(at), inventory: {} });
+        }
     };
     const paintForecourt = (rect: Rect) => {
       const material = squareStone;

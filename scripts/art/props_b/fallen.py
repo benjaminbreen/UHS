@@ -167,20 +167,22 @@ def steel_drum(v=0):
 
 
 def bucket(v=0):
- """A pail on its side with the water run out of it."""
- c = Canvas(20, 13)
- w = RAMPS[['oak7', 'ash7', 'walnut7'][v]]
+ """A pail on its side with the water run out of it. Variants 0-2 are the
+ large pail, 3-5 the small one, as upright."""
+ k = 1.45 if v < 3 else 1.0
+ c = Canvas(round(20 * k), round(13 * k))
+ w = RAMPS[['oak7', 'ash7', 'walnut7'][v % 3]]
  m = RAMPS['blackiron7']
- cy = 7.5
- revolve_x(c, cy, belly(4, 17, [4.6, 4.2, 3.8, 3.2]), w)
- for x in (8, 13):                                # the hoops
-  for y in range(0, 13):
+ cy = 7.5 * k
+ revolve_x(c, cy, belly(4, round(17 * k), [4.6 * k, 4.2 * k, 3.8 * k, 3.2 * k]), w)
+ for x in (round(8 * k), round(13 * k)):         # the hoops
+  for y in range(0, c.h):
    if c.get(x, y): c.set(x, y, m[4] if y < cy else m[1])
- for x in range(4, 18):                           # staves, running lengthwise
-  for y in (5, 9):
+ for x in range(4, round(18 * k)):                # staves, running lengthwise
+  for y in (round(cy - 2.5 * k), round(cy + 1.5 * k)):
    if c.get(x, y) and x % 3 == 0: c.set(x, y, w[2])
- _mouth_disc(c, 4, cy, 4.6, w, depth=2)
- _spill(c, 2, 11, RAMPS['water'], n=4)
+ _mouth_disc(c, 4, cy, 4.6 * k, w, depth=2)
+ _spill(c, 2, c.h - 2, RAMPS['water'], n=4)
  soft_outline(c, w[0], w[2])
  return c.image()
 
@@ -232,11 +234,12 @@ def stool(v=0):
 
 
 def open_basket(v=0, lid=False):
- """A basket on its side; what it held has rolled out."""
- c = Canvas(20, 13)
- p = RAMPS[['wicker7', 'ash7', 'buffclay7'][v]]
- cy = 7.0
- prof = belly(4, 17, [5.6, 5.2, 4.6, 3.4])
+ """A basket on its side; what it held has rolled out. 0-2 large, 3-5 small."""
+ k = 1.5 if v < 3 else 1.0
+ c = Canvas(round(20 * k), round(13 * k))
+ p = RAMPS[['wicker7', 'ash7', 'buffclay7'][v % 3]]
+ cy = 7.0 * k
+ prof = belly(4, round(17 * k), [5.6 * k, 5.2 * k, 4.6 * k, 3.4 * k])
  revolve_x(c, cy, prof, p)
  for x, half in prof.items():                     # the coils, running across
   for y in range(int(cy - half), int(cy + half) + 1):
@@ -246,13 +249,14 @@ def open_basket(v=0, lid=False):
     c.set(x, y, p[2] if v2 > 0.2 else p[4])
    elif (x + y) % 2 == 0:
     c.set(x, y, p[1] if v2 > 0.2 else p[5])
- _mouth_disc(c, 4, cy, 5.6, p, depth=2)
+ _mouth_disc(c, 4, cy, 5.6 * k, p, depth=2)
+ lx = round(17 * k)
  if lid:
-  for y, half in ((0, 4.4), (1, 5.0), (2, 4.0)):  # the lid, off to one side
-   for x in range(int(17 - half), int(17 + half) + 1):
-    if abs((x - 17) / half) > 1: continue
-    c.set(x, y + 9, p[4] if x < 17 else p[2])
- _spill(c, 2, 10, RAMPS['straw'], n=4)
+  for y, half in ((0, 4.4 * k), (1, 5.0 * k), (2, 4.0 * k)):  # the lid, off to one side
+   for x in range(int(lx - half), int(lx + half) + 1):
+    if abs((x - lx) / half) > 1: continue
+    c.set(x, y + c.h - 4, p[4] if x < lx else p[2])
+ _spill(c, 2, c.h - 3, RAMPS['straw'], n=4)
  soft_outline(c, p[0], p[2])
  return c.image()
 

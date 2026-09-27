@@ -70,14 +70,14 @@ def chest(v=0):
 
 
 def bench(v=0):
- """A plank bench about 2.4 m long and knee high: three tiles of seat."""
- c = Canvas(41, 16)
+ """A plank bench about 2.2 m long and knee high."""
+ c = Canvas(52, 17)
  w = RAMPS[WOOD7[v]]
- x0, x1, dx, dy = 0, 35, 5, 4
+ x0, x1, dx, dy = 0, 46, 5, 4
  seat = 5
- for lx, back in [(3, False), (29, False), (9, True), (35, True)]:
+ for lx, back in [(3, False), (40, False), (9, True), (46, True)]:
   top = seat + (1 if back else 3)
-  base = 13 if back else 15
+  base = 14 if back else 16
   for y in range(top, base + 1):
    c.set(lx, y, w[3] if back else w[4])
    c.set(lx + 1, y, w[4] if back else w[5])
@@ -95,30 +95,30 @@ def bench(v=0):
  for y, tone in [(seat, 5), (seat + 1, 4), (seat + 2, 3)]:   # the front edge
   c.hline(x0, x1, y, w[tone]); streak(c, x0, x1, y, w, tone)
  c.hline(x0, x1, seat - 1, w[6])
- for x in (2, 14, 26):                            # nail heads
+ for x in (2, 14, 26, 38):                        # nail heads
   c.set(x, seat - 2, RAMPS['iron7'][5]); c.set(x, seat - 1, RAMPS['iron7'][2])
  c.rim(w)
  return c.image()
 
 
 def park_bench(v=0):
- c = Canvas(39, 26)
+ c = Canvas(49, 26)
  w, iron = RAMPS[WOOD7[v]], RAMPS['blackiron7']
- for x in (5, 32):
+ for x in (5, 42):
   c.rect(x, 3, x + 2, 24, iron[2])
   c.vline(x, 4, 23, iron[4])
   c.hline(x - 1, x + 3, 25, iron[1])
  for y in (4, 8, 12):
-  c.rect(3, y, 35, y + 2, w[4])
-  c.hline(3, 35, y, w[6])
-  c.hline(3, 35, y + 2, w[2])
-  streak(c, 8, 30, y + 1, w, 4)
-  for x in (6, 33): c.set(x, y + 1, iron[4])
- for y in (16, 18):
-  c.hline(1, 37, y, w[5])
-  c.hline(1, 37, y + 1, w[3])
- c.hline(1, 37, 20, w[1])
- for x in (1, 36):
+  c.rect(3, y, 45, y + 2, w[4])
+  c.hline(3, 45, y, w[6])
+  c.hline(3, 45, y + 2, w[2])
+  streak(c, 8, 40, y + 1, w, 4)
+  for x in (6, 43): c.set(x, y + 1, iron[4])
+ for y in (14, 16):
+  c.hline(1, 47, y, w[5])
+  c.hline(1, 47, y + 1, w[3])
+ c.hline(1, 47, 18, w[1])
+ for x in (1, 46):
   c.rect(x, 12, x + 1, 20, iron[2])
   c.hline(x, x + 2, 12, iron[5])
  c.rim(iron)
