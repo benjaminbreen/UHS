@@ -277,6 +277,7 @@ export class Engine {
             pack: world.pack.id,
             schema: world.pack.setting ? 2 : 1,
             simulation: world.generatorVersion === 3 ? 2 : 1,
+            hazards: 1,
             generator: world.generatorVersion ?? (world.pack.setting ? 2 : 1),
             content: 1,
             atlas: world.pack.setting ? 2 : 1,
@@ -1708,7 +1709,71 @@ export class Engine {
       (this.knows("calm-hand") && !this.lastStep.run ? 0.8 : 1)
     );
   }
-  private lastStep = { clock: -99, run: false };
+  private lastStep = { clock: -99, run: false, dx: 0, dy: 0, steps: 0 };
+  lastImpact?: "collision";
+  private runningCollision(c: Extract<PlayerCommand, { type: "move" }>) {
+    const p = this.state.player;
+    if (!this.state.manifest.hazards || !c.run || c.jump || c.traverse || p.perch ||
+        p.afloat || this.lastStep.steps < 2 || this.state.clock - this.lastStep.clock > 4 ||
+        c.dx !== this.lastStep.dx || c.dy !== this.lastStep.dy) return false;
+    const x = p.pos.x + c.dx, y = p.pos.y + c.dy;
+    if (!this.playerBlocked(x, y) || this.lowPropAhead(c.dx, c.dy) ||
+        this.toppleTarget(c.dx, c.dy, true) || this.onWall() && this.wallAt(x, y, p.pos.space)) return false;
+    const push = this.shovePlan(c.dx, c.dy);
+    if (push && !("refused" in push)) return false;
+    // Let diagonal input slide along an open side without taking an impact.
+    return !(c.dx && c.dy) || this.playerBlocked(x, p.pos.y) && this.playerBlocked(p.pos.x, y);
+  }
+  private hurt(damage: number, cause: string, injury?: string) {
+    const p = this.state.player;
+    if (p.dead || damage <= 0) return;
+    p.health = Math.max(0, (p.health ?? 100) - damage);
+    if (injury) p.injury = { name: injury, until: Math.max(p.injury?.until ?? 0, this.state.clock + 3 * 86400) };
+    if (p.health > 0) return;
+    p.dead = cause;
+    p.activity = "Dead";
+    this.pendingCollapse = undefined;
+    this.event(`You die from ${cause}.`);
+  }
+  private fall(from: Position, to: Position, extra = 0) {
+    if (!this.state.manifest.hazards) return;
+    const height = (q: Position) => q.space !== "outside" ? 0 :
+      this.world.topography?.(q.x, q.y)?.height ?? (this.world.elevation?.(q.x, q.y) ?? 0) / TERRAIN_STEP;
+    const drop = Math.max(0, height(from) + extra - height(to));
+    if (drop <= 1) return;
+    const ground = this.groundClass(to.x, to.y, to.space);
+    const cushion = ground === "sand" || ground === "snow" ? 0.8 :
+      ground === "stone" || ground === "rock" ? 1.25 : 1;
+    const damage = Math.round(18 * Math.pow(drop - 1, 1.5) * cushion);
+    this.hurt(damage, "a fall", damage >= 35 ? "injured leg" : damage >= 15 ? "sprained ankle" : undefined);
+    this.lastStep.steps = 0;
+    this.event(`You hit the ground hard and lose ${damage} health.`);
+  }
+  fireUntil(now = this.state.clock) {
+    if (!this.state.manifest.hazards) return 0;
+    const p = this.state.player;
+    const at = p.perch?.at ?? p.pos;
+    const fires = (this.state.fires ?? []).filter((f) => f.until > now &&
+      (f.place ? p.pos.space === f.place || p.pos.space === "outside" &&
+        this.buildingAt(at.x, at.y)?.id === f.place :
+        p.pos.space === "outside" && f.x === at.x && f.y === at.y));
+    const hearth = this.state.objects.some((o) => o.kind === "fire" && !o.carriedBy &&
+      !o.broken && !o.depleted && o.pos.space === p.pos.space && covers(o, at.x, at.y));
+    return hearth ? Infinity : Math.max(0, ...fires.map((f) => f.until));
+  }
+  private fireExposure(seconds: number, started: number) {
+    const duration = Math.min(seconds, Math.max(0, this.fireUntil(started) - started));
+    if (!duration) return;
+    const p = this.state.player;
+    const fatal = duration * 5 >= (p.health ?? 100);
+    if (fatal) this.state.clock = started + Math.max(1, Math.ceil((p.health ?? 100) / 5));
+    if (started - this.lastBurnNotice >= 15 || fatal) {
+      this.event("The flames burn you. Get clear of the fire!");
+      this.lastBurnNotice = started;
+    }
+    this.hurt(duration * 5, "burns", "burned skin");
+  }
+  private lastBurnNotice = -Infinity;
   private lastJump = -99;
   /** Striking a kept animal is striking its keeper's property. Anyone who
    * sees it thinks less of you; the keeper most of all, and they say so. */
@@ -2916,7 +2981,7 @@ export class Engine {
     return capital ? `The ${name}` : `the ${name}`;
   }
   climbable():
-    | { id: string; label: string; rise: number; at: Point; to?: Point }
+    | { id: string; label: string; rise: number; at: Point; to?: Point; drop?: number }
     | undefined {
     const p = this.state.player;
     if (p.perch || this.onWall()) return undefined;
@@ -2940,6 +3005,7 @@ export class Engine {
         id: object.id,
         label: object.name,
         rise: 12,
+        drop: 0.75,
         at: { x: object.pos.x, y: object.pos.y },
       };
     if (p.pos.space === "outside") {
@@ -2962,6 +3028,7 @@ export class Engine {
             id: plant.id,
             label: treeName(plant.sprite),
             rise: 24,
+            drop: plantClass(plant.sprite) === "large" ? 5 : plantClass(plant.sprite) === "small" ? 2 : 3,
             at: q,
           };
       }
@@ -3057,6 +3124,7 @@ export class Engine {
     id: string;
     label: string;
     rise: number;
+    drop?: number;
     at?: Point;
     to?: Point;
   }) {
@@ -3071,6 +3139,7 @@ export class Engine {
       on: target.id,
       label: target.label,
       rise: target.rise,
+      drop: target.drop ?? (target.rise <= 12 ? 0.75 : 2),
       // Standing on the thing, not beside it: the renderer draws the player
       // over this cell while pos, and so collision, stays put.
       ...(target.at ? { at: { ...target.at } } : {}),
@@ -3097,6 +3166,8 @@ export class Engine {
     if (jump) {
       const label = p.perch?.label ?? "the wall";
       const height = p.perch?.rise ?? 1;
+      const from = { ...p.pos, ...(p.perch?.at ?? {}) };
+      const drop = p.perch?.drop ?? (p.perch ? 2 : 1.5);
       p.perch = undefined;
       p.pos = { ...jump, space: p.pos.space };
       p.direction = dir.dy < 0 ? 0 : dir.dx > 0 ? 1 : dir.dy > 0 ? 2 : 3;
@@ -3108,6 +3179,7 @@ export class Engine {
         drop: height >= 10 ? 2 : 1,
         reason: `You drop clear of ${label}.`,
       };
+      this.fall(from, p.pos, drop);
       this.advance(12);
       this.event(`You jump down from ${label} and land clear of it.`);
       return;
@@ -3994,6 +4066,7 @@ export class Engine {
   }
   validate(c: PlayerCommand): string | undefined {
     const p = this.state.player;
+    if (p.dead) return `You are dead from ${p.dead}. Start a new world or load an earlier save.`;
     if (c.type === "interact" && c.action === "descend")
       return p.perch || this.onWall() ? undefined : "You are not up anything.";
     if (
@@ -4074,6 +4147,7 @@ export class Engine {
         ) > MAX_WADING_DEPTH
       )
         return "Too deep to wade — find a shallower crossing or a bridge.";
+      if (this.runningCollision(c)) return;
       const push = this.shovePlan(c.dx, c.dy);
       const toppling = this.toppleTarget(c.dx, c.dy, c.run);
       if (!toppling && push && "refused" in push) return push.reason;
@@ -4605,6 +4679,9 @@ export class Engine {
   }
   execute(c: PlayerCommand) {
     const p = this.state.player;
+    if (p.dead) return;
+    this.lastImpact = undefined;
+    if (c.type !== "move" && c.type !== "pass") this.lastStep.steps = 0;
     if (c.type === "learn") {
       (p.techniques ??= []).push(c.technique);
       const t = technique(c.technique);
@@ -5010,6 +5087,18 @@ export class Engine {
     }
     if (c.type === "move") {
       delete this.lastShove;
+      if (this.runningCollision(c)) {
+        this.lastImpact = "collision";
+        delete this.lastLeap;
+        delete this.lastJostle;
+        const damage = 6 + Math.min(9, this.lastStep.steps * 2);
+        this.lastStep.steps = 0;
+        this.hurt(damage, "a collision");
+        this.event(`You slam into the obstacle and lose ${damage} health.`);
+        this.advance(2);
+        return;
+      }
+      const from = { ...p.pos };
       const toppling = !c.jump && !c.traverse && this.toppleTarget(c.dx, c.dy, c.run);
       if (toppling) {
         const outcome = this.tiltProp(toppling, c.dx, c.dy);
@@ -5038,7 +5127,9 @@ export class Engine {
             : 0;
         p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
         this.populateNearby();
+        this.fall(from, p.pos);
         this.advance(leap.seconds);
+        if (p.dead) return;
         const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
         if (!this.state.visited.includes(key)) this.state.visited.push(key);
         return;
@@ -5119,7 +5210,9 @@ export class Engine {
           : 0;
       if (p.pos.space === "outside") this.swimStep(depth);
       p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
-      this.lastStep = { clock: this.state.clock, run: !!c.run };
+      const steps = c.run && this.lastStep.run && this.state.clock - this.lastStep.clock <= 4 &&
+        c.dx === this.lastStep.dx && c.dy === this.lastStep.dy ? this.lastStep.steps + 1 : 1;
+      this.lastStep = { clock: this.state.clock, run: !!c.run, dx: c.dx, dy: c.dy, steps: c.run ? steps : 0 };
       if (p.pos.space === "outside")
         this.grantXp(
           "wayfaring",
@@ -5149,6 +5242,7 @@ export class Engine {
           seconds: 0,
           reason: rise > 0 ? "You scramble up." : "You drop down.",
         };
+      this.fall(from, p.pos);
       this.advance(
         Math.ceil(
           (c.run && !depth ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) *
@@ -5162,6 +5256,7 @@ export class Engine {
       );
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
+      if (p.dead) return;
       this.walkThroughDoor();
       if ((p.swum ?? 0) >= SWIM_RANGE) this.washAshore();
       return;
@@ -5172,6 +5267,7 @@ export class Engine {
     }
     if (c.type === "wait") {
       this.advance(c.seconds);
+      if (p.dead) return;
       this.event(
         `You wait ${c.seconds >= 60 ? Math.round(c.seconds / 60) + " minutes" : c.seconds + " seconds"}.`,
       );
@@ -6063,6 +6159,7 @@ export class Engine {
    */
   sleep(seconds: number) {
     const p = this.state.player;
+    if (p.dead) return;
     const started = this.state.clock;
     const { bed, own, indoors, covered } = this.shelter();
     const setting = this.world.pack.setting;
@@ -6071,6 +6168,7 @@ export class Engine {
     const day = this.state.today;
     p.activity = "Sleeping";
     this.advance(seconds);
+    if (p.dead) return;
     p.activity = before === "Sleeping" ? "Exploring" : before;
 
     const hours = seconds / 3600;
@@ -6139,6 +6237,7 @@ export class Engine {
   }
 
   advance(seconds: number, heldActor?: string) {
+    if (this.state.player.dead) return;
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
     this.tickObstacles = new Map();
@@ -6189,6 +6288,8 @@ export class Engine {
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
+      this.fireExposure(elapsed, next - elapsed);
+      if (player.dead) break;
       player.hunger = Math.min(100, player.hunger + elapsed / 1800);
       player.fatigue = Math.min(
         100,

@@ -1,0 +1,173 @@
+{
+  "station-1": {
+    "footprint": [
+      14,
+      8
+    ],
+    "sourceSize": [
+      239,
+      171
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "vaulted concourse / clock tower",
+    "animation": {
+      "frames": 16,
+      "previewFrameMs": 180,
+      "patchRegions": {
+        "clock": [
+          189,
+          56,
+          214,
+          81
+        ],
+        "departure-board": [
+          81,
+          114,
+          139,
+          125
+        ]
+      },
+      "integrated": false
+    }
+  },
+  "station-2": {
+    "footprint": [
+      16,
+      8
+    ],
+    "sourceSize": [
+      271,
+      171
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "vaulted concourse / clock tower"
+  },
+  "market-1": {
+    "footprint": [
+      14,
+      8
+    ],
+    "sourceSize": [
+      239,
+      169
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "covered market / four trading bays",
+    "animation": {
+      "frames": 16,
+      "previewFrameMs": 180,
+      "patchRegions": {
+        "extractor": [
+          105,
+          42,
+          120,
+          57
+        ],
+        "banner-1": [
+          32,
+          108,
+          42,
+          122
+        ],
+        "banner-2": [
+          76,
+          108,
+          86,
+          122
+        ],
+        "banner-3": [
+          161,
+          108,
+          171,
+          122
+        ],
+        "banner-4": [
+          205,
+          108,
+          215,
+          122
+        ]
+      },
+      "integrated": false
+    }
+  },
+  "market-2": {
+    "footprint": [
+      16,
+      8
+    ],
+    "sourceSize": [
+      271,
+      169
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "covered market / four trading bays"
+  },
+  "hospital-1": {
+    "footprint": [
+      14,
+      8
+    ],
+    "sourceSize": [
+      239,
+      211
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "5 storeys / ward and circulation wings",
+    "animation": {
+      "frames": 16,
+      "previewFrameMs": 180,
+      "patchRegions": {
+        "roof-fan": [
+          97,
+          39,
+          109,
+          47
+        ],
+        "lift": [
+          201,
+          69,
+          211,
+          182
+        ],
+        "sliding-doors": [
+          65,
+          180,
+          115,
+          203
+        ],
+        "ward-light": [
+          39,
+          89,
+          63,
+          104
+        ]
+      },
+      "integrated": false
+    }
+  },
+  "hospital-2": {
+    "footprint": [
+      16,
+      8
+    ],
+    "sourceSize": [
+      271,
+      239
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "6 storeys / ward and circulation wings"
+  }
+}

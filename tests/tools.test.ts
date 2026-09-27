@@ -462,3 +462,74 @@ it("fills a pail at a well and puts out a burning tree and, pail by pail, a hous
   expect(place.structure!.abandoned).toBeUndefined();
   expect(snapshotSchema.safeParse(engine.snapshot()).success).toBe(true);
 });
+
+
+it("burns on direct contact, counts short exposures and stops hurting after leaving the flames", () => {
+  const engine = createSession("roman", "fire-contact");
+  ground(engine);
+  engine.world.topography = undefined;
+  engine.world.elevation = () => 0;
+  engine.state.player.health = 100;
+  engine.state.fires = [{ x: 0, y: 0, until: engine.state.clock + 300 }];
+  engine.advance(1);
+  expect(engine.state.player.health).toBe(95);
+  expect(engine.state.player.injury?.name).toBe("burned skin");
+  engine.advance(1);
+  expect(engine.state.player.health).toBe(90);
+  engine.execute({ type: "move", dx: 1, dy: 0 });
+  expect(engine.state.player.health).toBe(90);
+  engine.advance(10);
+  expect(engine.state.player.health).toBe(90);
+});
+
+it("makes contact with hearth flames hurt but leaves adjacent cooking safe", () => {
+  const engine = createSession("roman", "hearth-contact");
+  ground(engine);
+  const p = engine.state.player;
+  p.health = 100;
+  engine.state.objects = [{ id: "hearth", name: "Hearth", kind: "fire", pos: { ...p.pos, x: 1 },
+    sprite: "fire", inventory: {} }];
+  engine.advance(12);
+  expect(p.health).toBe(100);
+  p.pos.x = 1;
+  engine.advance(1);
+  expect(p.health).toBe(95);
+});
+
+it("burns inside a burning building, respects fire expiry, and makes prolonged exposure fatal", () => {
+  const engine = createSession("roman", "building-contact");
+  ground(engine);
+  const p = engine.state.player;
+  const place = engine.world.places[0];
+  p.pos = { x: 3, y: 3, space: place.id };
+  p.health = 100;
+  engine.state.fires = [{ x: place.x, y: place.y, place: place.id, until: engine.state.clock + 1 }];
+  engine.advance(3);
+  expect(p.health).toBe(95);
+  engine.advance(3);
+  expect(p.health).toBe(95);
+  engine.state.fires = [{ x: place.x, y: place.y, place: place.id, until: engine.state.clock + 300 }];
+  engine.advance(3);
+  expect(p.health).toBe(80);
+  // A ground fire also keeps burning between structural fire ticks.
+  p.pos = { x: 0, y: 0, space: "outside" };
+  engine.state.fires = [{ x: 0, y: 0, until: engine.state.clock + 300 }];
+  engine.advance(30);
+  expect(p.health).toBe(0);
+  expect(p.dead).toBe("burns");
+  expect(p.activity).toBe("Dead");
+});
+
+
+it("burns a player perched over a burning tree and does not hurt them after it is extinguished", () => {
+  const engine = createSession("roman", "burning-perch");
+  ground(engine);
+  engine.state.player.health = 100;
+  engine.state.player.perch = { on: "tree", label: "Tree", rise: 24, drop: 3, at: { x: 1, y: 0 } };
+  engine.state.fires = [{ x: 1, y: 0, until: engine.state.clock + 300 }];
+  engine.advance(1);
+  expect(engine.state.player.health).toBe(95);
+  engine.state.fires = [];
+  engine.advance(6);
+  expect(engine.state.player.health).toBe(95);
+});

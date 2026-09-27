@@ -1,0 +1,86 @@
+{
+  "art-deco-1": {
+    "footprint": [
+      8,
+      7
+    ],
+    "sourceSize": [
+      142,
+      326
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "10 storeys"
+  },
+  "art-deco-2": {
+    "footprint": [
+      10,
+      7
+    ],
+    "sourceSize": [
+      174,
+      382
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "12 storeys"
+  },
+  "apartment-1": {
+    "footprint": [
+      10,
+      7
+    ],
+    "sourceSize": [
+      174,
+      182
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "5 storeys"
+  },
+  "apartment-2": {
+    "footprint": [
+      12,
+      7
+    ],
+    "sourceSize": [
+      206,
+      210
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "6 storeys"
+  },
+  "split-level-1": {
+    "footprint": [
+      10,
+      6
+    ],
+    "sourceSize": [
+      175,
+      119
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "split level + garage"
+  },
+  "split-level-2": {
+    "footprint": [
+      11,
+      6
+    ],
+    "sourceSize": [
+      191,
+      119
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "split level + garage"
+  }
+}

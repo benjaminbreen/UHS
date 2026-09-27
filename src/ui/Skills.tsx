@@ -272,24 +272,34 @@ export function SkillsPanel({
 /** What the player reads on coming round. */
 export function CollapseNotice({
   collapse,
+  dead,
+  onNewWorld,
 }: {
   collapse?: { serial: number; title: string; text: string };
+  dead?: string;
+  onNewWorld?: () => void;
 }) {
   const [dismissed, setDismissed] = useState(collapse?.serial ?? 0);
-  if (!collapse || collapse.serial <= dismissed) return null;
+  const [dismissedDeath, setDismissedDeath] = useState<string>();
+  useEffect(() => {
+    if (!dead) setDismissedDeath(undefined);
+  }, [dead]);
+  if (dead && dead === dismissedDeath) return null;
+  if (!dead && (!collapse || collapse.serial <= dismissed)) return null;
   return (
     <div
       className="collapse-notice"
       role="alertdialog"
-      aria-label={collapse.title}
+      aria-label={dead ? "You died" : collapse!.title}
     >
       <div>
-        <small>YOU WAKE</small>
-        <h2>{collapse.title}</h2>
-        <p>{collapse.text}</p>
-        <button autoFocus onClick={() => setDismissed(collapse.serial)}>
-          Get up
+        <small>{dead ? "YOUR LIFE HAS ENDED" : "YOU WAKE"}</small>
+        <h2>{dead ? "You died" : collapse!.title}</h2>
+        <p>{dead ? `You died from ${dead}. Start a new world, or dismiss this notice to load an earlier save from Settings.` : collapse!.text}</p>
+        <button autoFocus onClick={dead ? onNewWorld : () => setDismissed(collapse!.serial)}>
+          {dead ? "New world" : "Get up"}
         </button>
+        {dead && <button onClick={() => setDismissedDeath(dead)}>Dismiss</button>}
       </div>
     </div>
   );

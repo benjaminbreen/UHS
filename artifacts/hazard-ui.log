@@ -1,0 +1,37 @@
+
+Running 1 test using 1 worker
+
+(node:22772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/browser/situations.spec.ts:107:1 › running impacts hurt and fatal fire offers a new world (3.5m)
+(node:23076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 tests/browser/situations.spec.ts:107:1 › running impacts hurt and fatal fire offers a new world (retry #1) (14.0s)
+
+
+  1) tests/browser/situations.spec.ts:107:1 › running impacts hurt and fatal fire offers a new world 
+
+    Test timeout of 180000ms exceeded.
+
+    TimeoutError: locator.click: Timeout 120000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: /Enter life/ })
+
+
+      112 |   await page.getByPlaceholder(/A hunter in Anatolia/).fill("A Roman baker in Ostia, 100 CE");
+      113 |   await page.getByRole("button", { name: "Begin", exact: true }).click();
+    > 114 |   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
+          |                                                          ^
+      115 |   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
+      116 |   await page.evaluate(() => {
+      117 |     const r = (window as any).__uhs, e = r.engine;
+        at /Users/benbreen/Code/UHS/tests/browser/situations.spec.ts:114:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/situations-running-impacts-6a1d9-tal-fire-offers-a-new-world/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/situations-running-impacts-6a1d9-tal-fire-offers-a-new-world/error-context.md
+
+  1 flaky
+    tests/browser/situations.spec.ts:107:1 › running impacts hurt and fatal fire offers a new world 

@@ -349,6 +349,7 @@ export class MapTravel {
       .concat(carried);
     next.clock = source.clock + seconds;
     next.manifest.sky = skySeed(source.manifest);
+    next.manifest.hazards = source.manifest.hazards;
     destination.engine.runEconomy();
     next.notes = source.notes;
     next.catalog = { ...next.catalog, ...source.catalog };

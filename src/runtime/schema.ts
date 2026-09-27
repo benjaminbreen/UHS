@@ -271,6 +271,7 @@ export const characterAppearanceSchema = z.object({
 const actor = z.object({
   stats: stats.optional(),
   health: z.number().min(0).max(100).optional(),
+  dead: z.string().optional(),
   skills: z.partialRecord(z.enum(skillIds), z.number()).optional(),
   techniques: z.array(z.enum(techniqueIds)).optional(),
   injury: z.object({ name: z.string(), until: z.number() }).optional(),
@@ -328,7 +329,7 @@ const actor = z.object({
   heldItem: z.string().max(64).optional(),
   torchOut: z.number().optional(),
   perch: z
-    .object({ on: z.string(), label: z.string(), rise: z.number() })
+    .object({ on: z.string(), label: z.string(), rise: z.number(), at: point.optional(), drop: z.number().nonnegative().optional() })
     .optional(),
   direction: z.number().int().min(0).max(3),
   facing: z.number().int().min(0).max(7).optional(),
@@ -721,6 +722,7 @@ export const snapshotSchema = z.object({
         pack: z.enum(["roman", "neolithic"]),
         schema: z.literal(1),
         simulation: z.literal(1),
+        hazards: z.literal(1).optional(),
         generator: z.literal(1),
         content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(1),
@@ -732,6 +734,7 @@ export const snapshotSchema = z.object({
         pack: z.literal("atlas"),
         schema: z.literal(2),
         simulation: z.literal(1),
+        hazards: z.literal(1).optional(),
         generator: z.literal(2),
         content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(2),
@@ -744,6 +747,7 @@ export const snapshotSchema = z.object({
         pack: z.literal("atlas"),
         schema: z.literal(2),
         simulation: z.literal(2),
+        hazards: z.literal(1).optional(),
         generator: z.literal(3),
         content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(2),

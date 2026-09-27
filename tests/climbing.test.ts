@@ -80,6 +80,9 @@ it("climbs a tree, a wall and a ledge, and comes back down", () => {
 
 it("jumps down the far side of a tree and a wall", () => {
   const engine = createSession("roman", "dismount");
+  engine.world.topography = undefined;
+  engine.world.elevation = () => 0;
+  engine.world.terrain = () => "grass";
   engine.state.actors = [];
   engine.state.objects = [];
   engine.world.blocked = (x) => x === 2;
@@ -99,7 +102,7 @@ it("jumps down the far side of a tree and a wall", () => {
   ];
   engine.world.decoration = (x, y) =>
     x === -1 && y === 0
-      ? { id: "decor--1-0", x, y, sprite: "nature-oak", solid: true }
+      ? { id: "decor--1-0", x, y, sprite: "nature-broadleaf-sapling", solid: true }
       : undefined;
   engine.world.places = [];
   engine.state.player.pos = { x: 0, y: 0, space: "outside" };
@@ -112,6 +115,8 @@ it("jumps down the far side of a tree and a wall", () => {
   expect(engine.state.player.perch).toBeUndefined();
   expect(engine.state.player.pos).toMatchObject({ x: -2, y: 0 });
   expect(engine.lastLeap?.kind).toBe("drop");
+  expect(engine.state.player.health).toBe(82);
+  expect(engine.state.player.injury?.name).toBe("sprained ankle");
 
   engine.state.player.pos = { x: 1, y: 0, space: "outside" };
   runtime.climb();
@@ -129,4 +134,29 @@ it("jumps down the far side of a tree and a wall", () => {
   expect(engine.state.player.perch).toBeUndefined();
   expect(engine.state.player.pos).toMatchObject({ x: 0, y: 0 });
   runtime.dispose();
+});
+
+
+it("makes jumping from a tall tree dangerous while climbing down is safe", () => {
+  const engine = createSession("roman", "tree-fall");
+  engine.state.actors = [];
+  engine.state.objects = [];
+  engine.state.fauna = [];
+  engine.world.fauna = undefined;
+  engine.world.topography = undefined;
+  engine.world.elevation = () => 0;
+  engine.world.terrain = () => "grass";
+  engine.world.blocked = () => false;
+  engine.world.places = [];
+  engine.world.decoration = (x, y) => x === 1 && y === 0
+    ? { id: "tree", x, y, sprite: "nature-broadleaf-giant", solid: true } : undefined;
+  engine.state.player.pos = { x: 0, y: 0, space: "outside" };
+  engine.state.player.health = 100;
+  engine.perch(engine.climbable()!);
+  engine.descend();
+  expect(engine.state.player.health).toBe(100);
+  engine.perch(engine.climbable()!);
+  engine.descend({ dx: 1, dy: 0 });
+  expect(engine.state.player.health).toBe(0);
+  expect(engine.state.player.dead).toBe("a fall");
 });

@@ -1,0 +1,62 @@
+
+> universal-history-simulator@0.1.0 test:browser
+> playwright test
+
+
+Running 10 tests using 5 workers
+
+(node:21822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21821) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21818) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   3 tests/browser/mobile.spec.ts:10:1 › pinch zooms the world and a tap still walks (13.8s)
+  ✓   1 tests/browser/time-travel.spec.ts:3:1 › a historical journey preserves the original date and connects the family (19.7s)
+CHUNKS before=25 indoors=25 back=25 | rasterised before=25 after=25
+  ✓   4 tests/browser/terrain-retention.spec.ts:5:1 › rasterised terrain survives a trip indoors (23.1s)
+  ✓   2 tests/browser/situations.spec.ts:3:1 › task views browse the day without moving the player or opening game shortcuts (26.1s)
+  ✓   6 tests/browser/situations.spec.ts:46:3 › island starts through World Weaver (5.1s)
+  ✘   5 tests/browser/doors.spec.ts:20:1 › a door is solid until it is opened, and the leaf follows it (35.1s)
+(node:22078) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 tests/browser/situations.spec.ts:46:3 › pilot starts through World Weaver (5.2s)
+  ✓   9 tests/browser/situations.spec.ts:46:3 › everest starts through World Weaver (7.2s)
+  ✓   8 tests/browser/doors.spec.ts:20:1 › a door is solid until it is opened, and the leaf follows it (retry #1) (10.3s)
+  ✓  10 tests/browser/situations.spec.ts:46:3 › roman starts through World Weaver (6.5s)
+  ✓  11 tests/browser/doors.spec.ts:102:1 › knocking runs, and an open door is walked through (8.3s)
+
+
+  1) tests/browser/doors.spec.ts:20:1 › a door is solid until it is opened, and the leaf follows it 
+
+    Error: expect(received).toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has value: null
+
+    Call Log:
+    - Timeout 20000ms exceeded while waiting on the predicate
+
+      34 |   await expect
+      35 |     .poll(() => canvas.getAttribute("data-doors"), { timeout: 20_000 })
+    > 36 |     .toMatch(/\/[1-9]/);
+         |      ^
+      37 |   // Shops and a minority of houses stand open from the start.
+      38 |   const standing = await openCount(page);
+      39 |
+        at /Users/benbreen/Code/UHS/tests/browser/doors.spec.ts:36:6
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/doors-a-door-is-solid-unti-ad1c4-ned-and-the-leaf-follows-it/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/doors-a-door-is-solid-unti-ad1c4-ned-and-the-leaf-follows-it/error-context.md
+
+  1 flaky
+    tests/browser/doors.spec.ts:20:1 › a door is solid until it is opened, and the leaf follows it ─
+  9 passed (55.5s)

@@ -4980,7 +4980,8 @@ export class WorldScene extends Phaser.Scene {
               this.runtime.engine.state.player.pos.x === beforeMove.x &&
               this.runtime.engine.state.player.pos.y === beforeMove.y &&
               this.runtime.engine.state.objects.some(o => o.id === shoulderTarget && (o.lean || o.tipped));
-            if (moved?.status === "rejected" || shouldered) {
+            const collided = moved?.status === "completed" && this.runtime.engine.lastImpact === "collision";
+            if (moved?.status === "rejected" || shouldered || collided) {
               this.runtime.face(dx, dy);
               this.blockedFacing = facingFromStep(
                 dx,
@@ -5004,7 +5005,7 @@ export class WorldScene extends Phaser.Scene {
                 this.slip(dx, dy, time);
             }
             if (
-              (moved?.status === "rejected" || shouldered) &&
+              (moved?.status === "rejected" || shouldered || collided) &&
               this.shiftHeld &&
               this.runSteps >= 2
             )

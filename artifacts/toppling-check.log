@@ -1,0 +1,507 @@
+
+> universal-history-simulator@0.1.0 check
+> npm test && npm run build
+
+
+> universal-history-simulator@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/benbreen/Code/UHS
+
+(node:8288) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8284) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8283) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8286) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8282) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8292) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/ground-motifs.test.ts (2 tests) 1639ms
+   ✓ keeps empty ground between placed motifs rather than varying every pixel  1637ms
+(node:8323) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/urban-form.test.ts (14 tests) 1877ms
+   ✓ composes axis-aligned streets and non-overlapping blocks clear of the plaza  573ms
+   ✓ varies the interior with the world seed while the layout stays deterministic  503ms
+   ✓ never paves or densifies a settlement before its region has towns  376ms
+(node:8326) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/travel.test.ts (10 tests) 2070ms
+   ✓ geographic travel foundation > crosses oceans with reciprocal paths and retained boat transfers  858ms
+   ✓ geographic travel foundation > compresses the Atlantic separately while naming southern US landscapes  497ms
+   ✓ geographic travel foundation > applies ocean spacing in all five basins independent of land spacing  480ms
+stdout | tests/terrain-world.test.ts > generates broad zones with limited slopes and reachable households
+Anatolia generation ms 1007
+slopes 6 houses 8
+
+ ✓ tests/terrain-world.test.ts (2 tests) 2037ms
+   ✓ generates broad zones with limited slopes and reachable households  1047ms
+   ✓ accepts outdoor diagonal commands on flat relief terrain  990ms
+(node:8330) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/bank-receivers.test.ts (2 tests) 1549ms
+   ✓ keeps contour pixels identical when producing shadow receivers  1021ms
+   ✓ casts only onto visible ground and assigns its actual projected row  528ms
+ ✓ tests/tools.test.ts (21 tests) 1733ms
+ ✓ tests/name-coverage.test.ts (8 tests) 6815ms
+   ✓ naming atlas > keeps coverage from regressing  6783ms
+ ✓ tests/world-v2.test.ts (4 tests) 4782ms
+   ✓ shared World Weaver / procedural geography > keeps north sea and east-west river geometry independent of request order, including negative chunks  2988ms
+   ✓ shared World Weaver / procedural geography > has usable nearby entrances and conserves layout through worker construction  1396ms
+(node:8338) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/swing.test.ts (18 tests) 1468ms
+ ✓ tests/audio.test.ts (8 tests) 7193ms
+   ✓ original soundtrack scores > writes complete phrases and playable notes in every season, time and era  1509ms
+   ✓ original soundtrack scores > fills every bar of the place and era themes in every time of day  471ms
+   ✓ original soundtrack scores > loops every layer of the layered pieces within the piece  5188ms
+ ✓ tests/mcp.test.ts (1 test) 1637ms
+   ✓ an actual MCP client observes, inspects, acts, and retries safely  1637ms
+ ✓ tests/road-simplification.test.ts (5 tests) 1424ms
+   ✓ attaches generated hamlet lanes to centerlines rather than painted shoulders  1355ms
+(node:8343) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/place-eras.test.ts (5 tests) 7767ms
+   ✓ community coverage > never falls through to the unresearched profile  7765ms
+ ✓ tests/landscape-features.test.ts (3 tests) 1109ms
+   ✓ landscape features > lays creeks, arroyos and trails into the land sample  1106ms
+ ✓ tests/living-water.test.ts (5 tests) 1241ms
+   ✓ living water map presentation > keeps masks and rock deflection continuous across chunk boundaries  1136ms
+(node:8352) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/travel-naming.test.ts (4 tests) 953ms
+   ✓ global geographic names > audits globally and makes remaining source gaps explicit  530ms
+   ✓ global geographic names > names unrelated global routes without asserting undated cities  413ms
+(node:8356) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/skills.test.ts (18 tests) 1134ms
+ ✓ tests/permanent-maps.test.ts (10 tests) 916ms
+   ✓ continues the coast across a border  399ms
+(node:8360) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/combat.test.ts (13 tests) 1022ms
+(node:8362) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/urban.test.ts (4 tests) 7633ms
+   ✓ encloses public squares and courts with varied, non-overlapping ranges and reachable entrances  4020ms
+   ✓ keeps urban geometry deterministic and the old selection opt-in  1319ms
+   ✓ assigns coherent, deterministic materials to civic squares and street lanes  2292ms
+ ✓ tests/coast-polish.test.ts (2 tests) 775ms
+   ✓ scallops and beach edges match across independently prepared chunks  772ms
+(node:8372) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/road-network.test.ts (3 tests) 588ms
+   ✓ routes access around solid obstacles and does not cross unbridged water  581ms
+ ✓ tests/agenda.test.ts (10 tests) 563ms
+   ✓ puts a region's own lore before the worldwide fallbacks  501ms
+ ✓ tests/chronicle-review.test.ts (4 tests) 507ms
+   ✓ backs off on a rate limit but not on a bad key  503ms
+ ✓ tests/jostle.test.ts (8 tests) 734ms
+(node:8375) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/cues.test.ts (9 tests) 694ms
+ ✓ tests/playthrough.test.ts (6 tests) 7921ms
+   ✓ walks to a target in one call and folds the walk into one recorded line  470ms
+   ✓ crosses a night without asking the model, and closes the day  6997ms
+(node:8374) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8383) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/chronicle.test.ts (4 tests) 831ms
+   ✓ treats the idle clock as elapsed time, not as decisions  348ms
+ ✓ tests/wardrobe.test.ts (36 tests) 538ms
+ ✓ tests/shove.test.ts (16 tests) 969ms
+   ✓ leans away from a western push and leaves rooted and built-in objects fixed  335ms
+(node:8388) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/fauna-world.test.ts (28 tests) 400ms
+(node:8390) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/coastal-sites.test.ts (3 tests) 599ms
+   ✓ coastal sites > puts city-miami in 2000 on its waterfront  318ms
+ ✓ tests/runtime-performance.test.ts (4 tests) 454ms
+ ✓ tests/doors.test.ts (10 tests) 778ms
+ ✓ tests/beliefs.test.ts (12 tests) 454ms
+   ✓ covers the places and dates the app can actually generate  395ms
+ ✓ tests/step-over.test.ts (2 tests) 275ms
+ ✓ tests/rendering.test.ts (2 tests) 264ms
+(node:8396) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8398) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/map-travel.test.ts (6 tests) 768ms
+ ✓ tests/terrain-banks.test.ts (1 test) 254ms
+ ✓ tests/portraits.test.ts (14 tests) 225ms
+ ✓ tests/connected-tributaries.test.ts (4 tests) 139ms
+ ✓ tests/boulders.test.ts (12 tests) 405ms
+(node:8407) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/hand-items.test.ts (3 tests) 402ms
+ ✓ tests/courtyard-lighting.test.ts (2 tests) 110ms
+ ✓ tests/habitat-rendering.test.ts (4 tests) 178ms
+ ✓ tests/field-raster.test.ts (9 tests) 170ms
+ ✓ tests/character-generation.test.ts (15 tests) 284ms
+ ✓ tests/travel-environment.test.ts (4 tests) 408ms
+ ✓ tests/movement.test.ts (2 tests) 362ms
+ ✓ tests/climbing.test.ts (3 tests) 356ms
+(node:8424) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/props.test.ts (14 tests) 10400ms
+   ✓ interactive props > hides contents until opened, carries identity, drops and conserves goods across break and reload  442ms
+   ✓ keeps broad yard props clear of houses and one another  8799ms
+   ✓ wood takes several strikes and damage persists without spilling early  383ms
+ ✓ tests/random-start.test.ts (4 tests) 11986ms
+   ✓ random starts > puts a realistic start where the people were, not where the map is dense  2235ms
+   ✓ random starts > leaves no place unreachable, including the curated anchors  9739ms
+ ✓ tests/lighting.test.ts (2 tests) 114ms
+ ✓ tests/situations.test.ts (10 tests) 208ms
+ ✓ tests/contour-surfaces.test.ts (7 tests) 129ms
+ ✓ tests/fauna.test.ts (7 tests) 230ms
+ ✓ tests/glyphs.test.ts (4 tests) 100ms
+ ✓ tests/setting-routing.test.ts (3 tests) 137ms
+ ✓ tests/terrain-art.test.ts (3 tests) 86ms
+ ✓ tests/time-travel.test.ts (10 tests) 242ms
+ ✓ tests/livelihood-mix.test.ts (9 tests) 166ms
+ ✓ tests/water-crossings.test.ts (2 tests) 62ms
+ ✓ tests/core.test.ts (18 tests) 11046ms
+   ✓ shared deterministic foundation > replays identical commands, including uncertainty, to the same physical hash  626ms
+   ✓ shared deterministic foundation > starts outside buildings with reachable entrances across varied seeds  3842ms
+   ✓ shared deterministic foundation > supports a full procedural day in each pack, with persistent activity and no API  5054ms
+ ✓ tests/standing.test.ts (6 tests) 29ms
+ ✓ tests/habitat-communities.test.ts (4 tests) 69ms
+ ✓ tests/material-edges.test.ts (6 tests) 30ms
+ ✓ tests/officiants.test.ts (4 tests) 147ms
+ ✓ tests/signage.test.ts (3 tests) 123ms
+ ✓ tests/herders.test.ts (2 tests) 101ms
+ ✓ tests/atlas-index.test.ts (2 tests) 38ms
+ ✓ tests/river-continuity.test.ts (1 test) 33ms
+ ✓ tests/characters.test.ts (12 tests) 64ms
+ ✓ tests/movement-controls.test.ts (4 tests) 124ms
+ ✓ tests/history.test.ts (7 tests) 173ms
+ ✓ tests/street-rendering.test.ts (5 tests) 66ms
+ ✓ tests/economy.test.ts (7 tests) 30ms
+(node:8455) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/biome-variants.test.ts (5 tests) 29ms
+ ✓ tests/ground-pages.test.ts (2 tests) 21ms
+ ✓ tests/landscape-composition.test.ts (2 tests) 11ms
+ ✓ tests/content.test.ts (3 tests) 21ms
+ ✓ tests/hydrology-policy.test.ts (3 tests) 14ms
+ ✓ tests/deity-icons.test.ts (3 tests) 10ms
+ ✓ tests/terrain-style-initialization.test.ts (1 test) 14ms
+ ✓ tests/persona.test.ts (11 tests) 21ms
+ ✓ tests/agriculture.test.ts (6 tests) 13ms
+ ✓ tests/brief.test.ts (11 tests) 8ms
+stdout | tests/tmp-fauna-count.test.ts > count > counts
+konya -6499 | available: house-sparrow,rock-dove,sheep,goat,pig,cattle,dog,cat,mouse,red-deer,gray-wolf,aurochs,wild-boar,red-fox,brown-bear
+   groups/9blocks: {"red-fox":4,"sheep":1,"gray-wolf":1,"cattle":1,"aurochs":1} members: 23 → per 64x64 block: 2.6
+london 1400 | available: house-sparrow,rock-dove,chicken,sheep,goat,pig,cattle,dog,cat,mouse,donkey,red-deer,gray-wolf,wild-boar,horse,foal,rabbit,rabbit-kit,red-fox,brown-bear
+   groups/9blocks: {"rabbit":4,"red-fox":4,"rabbit-kit":3,"gray-wolf":1} members: 34 → per 64x64 block: 3.8
+rome 100 | available: house-sparrow,rock-dove,chicken,sheep,goat,pig,cattle,dog,cat,mouse,donkey,red-deer,gray-wolf,wild-boar,horse,foal,rabbit,rabbit-kit,red-fox,brown-bear
+   groups/9blocks: {"rabbit":4,"red-fox":4,"rabbit-kit":3,"gray-wolf":1} members: 34 → per 64x64 block: 3.8
+
+ ✓ tests/tmp-fauna-count.test.ts (1 test) 10ms
+ ✓ tests/weather.test.ts (1 test) 5ms
+ ✓ tests/wind.test.ts (2 tests) 2ms
+ ✓ tests/fence-graph.test.ts (4 tests) 39ms
+ ✓ tests/biome-boundaries.test.ts (2 tests) 9ms
+ ✓ tests/day-plan.test.ts (4 tests) 4ms
+ ✓ tests/graphics.test.ts (5 tests) 93ms
+ ✓ tests/wading.test.ts (4 tests) 3ms
+ ✓ tests/land-potential.test.ts (3 tests) 3ms
+ ✓ tests/find.test.ts (8 tests) 4ms
+ ✓ tests/placement-envelopes.test.ts (2 tests) 2ms
+ ✓ tests/regional-roads.test.ts (3 tests) 17ms
+ ✓ tests/ecotones.test.ts (1 test) 5ms
+ ✓ tests/ecology-sampling.test.ts (3 tests) 5ms
+ ✓ tests/belief-hierarchy.test.ts (3 tests) 3ms
+ ✓ tests/sleep.test.ts (6 tests) 21244ms
+   ✓ sleeps through to morning, clearing fatigue and advancing hunger  3724ms
+   ✓ refuses a span that is not a rest  3151ms
+   ✓ mends you under a roof and costs you in the open  7116ms
+   ✓ spends the same night on every replay  3534ms
+   ✓ can take something from a sleeper in the open, and says so  3668ms
+ ✓ tests/dialogue.test.ts (13 tests) 22905ms
+   ✓ a conversation leaves a trace > records what was said on the person spoken to, and reads it back  8797ms
+   ✓ a conversation leaves a trace > refuses an exchange with someone out of reach  6303ms
+   ✓ a conversation leaves a trace > walks off when they have had enough  4222ms
+   ✓ a conversation leaves a trace > remembers being bumped a moment ago  3552ms
+
+ Test Files  103 passed (103)
+      Tests  663 passed (663)
+   Start at  19:32:59
+   Duration  25.85s (transform 5.63s, setup 0ms, collect 51.30s, tests 157.85s, environment 18ms, prepare 4.49s)
+
+
+> universal-history-simulator@0.1.0 build
+> tsc -b && vite build && node scripts/build-api.mjs
+
+▲ [WARNING] Duplicate key "mat" in object literal [duplicate-object-key]
+
+    src/content/graphics/regional-houses.json:623:4:
+      623 │     "mat": ["#3a3020", "#5c4c32", "#827048", "#a69262", "#c4b080"...
+          ╵     ~~~~~
+
+  The original key "mat" is here:
+
+    src/content/graphics/regional-houses.json:621:4:
+      621 │     "mat": ["#3a2e1c", "#5e4a2c", "#86703e", "#a8925a", "#c4ae78"...
+          ╵     ~~~~~
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 2507 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/assets/12-D1rpIjOc.js                         0.03 kB
+dist/assets/-15-B5f5tAqU.js                        0.06 kB
+dist/assets/11-CDeUaMC2.js                         0.08 kB
+dist/assets/15-CGXO3ohM.js                         0.20 kB
+dist/assets/9-Dqz8u6Vq.js                          0.27 kB
+dist/assets/-14-bZF7rKmZ.js                        0.49 kB
+dist/index.html                                    0.59 kB │ gzip:     0.37 kB
+dist/assets/-13-BPuYCwkH.js                        0.79 kB
+dist/assets/8-CIRXTFUc.js                          1.07 kB
+dist/assets/7-DM7laGHS.js                          3.95 kB
+dist/assets/trees-CZWsmqfn.png                     6.06 kB
+dist/assets/9-hAy429Pq.js                          9.04 kB
+dist/assets/Goldleaf Tree-GAVmJdby.png             9.65 kB
+dist/assets/Birch Tree 1-GlPhNLNW.png             10.09 kB
+dist/assets/Oak Tree-D9mCtBNA.png                 10.21 kB
+dist/assets/Willow Tree-CxF_JbN8.png              10.58 kB
+dist/assets/Maple Tree-Cqhy4v5o.png               10.76 kB
+dist/assets/10-C7icOye6.js                        11.89 kB
+dist/assets/-12-BM5DTj8X.js                       12.77 kB
+dist/assets/Crystal Birch Tree-B4esqCs1.png       12.88 kB
+dist/assets/Fir Tree-CeVCITn4.png                 13.21 kB
+dist/assets/Apple Tree-DUSCcsQ7.png               15.13 kB
+dist/assets/Dragonwood Tree-BgiUlTN-.png          16.02 kB
+dist/assets/Hazel Tree-DGkNU7Sx.png               17.54 kB
+dist/assets/6-Dot9LlSm.js                         19.57 kB
+dist/assets/Cedar Tree-BjGpOsJX.png               20.98 kB
+dist/assets/Cherry Blossom Tree-BCcUDAgp.png      25.23 kB
+dist/assets/8-BRiAgRuX.js                         32.43 kB
+dist/assets/-11-DB_YJ63K.js                       44.94 kB
+dist/assets/5-CwRrmA_6.js                         49.08 kB
+dist/assets/14-B2OH24eQ.js                        49.22 kB
+dist/assets/13-B9BlOMZ_.js                        50.07 kB
+dist/assets/7-Ut8WXy9e.js                         51.86 kB
+dist/assets/2-DY0wih6L.js                         53.29 kB
+dist/assets/0-B1t-gDmL.js                         64.48 kB
+dist/assets/4-CZR3CYZd.js                         65.67 kB
+dist/assets/-1-h5QmNaRA.js                        66.00 kB
+dist/assets/11-BiYGGr-C.js                        73.80 kB
+dist/assets/1-DgedFeKB.js                         76.31 kB
+dist/assets/3-C_waOMCB.js                         80.82 kB
+dist/assets/12-C-w8KZTT.js                        83.77 kB
+dist/assets/6-CksGydEm.js                         85.48 kB
+dist/assets/-14-Bc9JiRHr.js                       95.61 kB
+dist/assets/-3-uvkpanoA.js                       150.46 kB
+dist/assets/-2-CfuNhMIL.js                       160.83 kB
+dist/assets/-13-CLKzQsqW.js                      166.70 kB
+dist/assets/-4-DsuuPCeo.js                       172.76 kB
+dist/assets/-10-CNqYA63g.js                      174.70 kB
+dist/assets/5-D5l-4lWN.js                        183.75 kB
+dist/assets/-5-BfnimXTo.js                       209.70 kB
+dist/assets/4-BSNhCP7O.js                        245.61 kB
+dist/assets/-1-CbBvPP1x.js                       256.40 kB
+dist/assets/3-CQ26btix.js                        267.73 kB
+dist/assets/1-DcMxl8nq.js                        270.46 kB
+dist/assets/-3-CQuLZWtq.js                       286.17 kB
+dist/assets/0-5V6_0NZ-.js                        286.19 kB
+dist/assets/2-Ddqp2fqf.js                        290.35 kB
+dist/assets/-2-CA-bCX07.js                       291.84 kB
+dist/assets/-4-Ck1ebsit.js                       342.75 kB
+dist/assets/-6-B9zmffX-.js                       398.85 kB
+dist/assets/-5-BnQrrYWO.js                       415.00 kB
+dist/assets/-7-B6o2tzAL.js                       490.19 kB
+dist/assets/-6-FqcOcfvV.js                       499.91 kB
+dist/assets/-12-BAgJ26Yl.js                      505.26 kB
+dist/assets/-9-CYj68Rw6.js                       565.13 kB
+dist/assets/-8-DkKsUamM.js                       577.91 kB
+dist/assets/-8-DKs0nvOJ.js                       594.21 kB
+dist/assets/-7-HgtzurIY.js                       622.02 kB
+dist/assets/-11-DsYdB7Md.js                      681.11 kB
+dist/assets/-10-CKciV4mG.js                      691.73 kB
+dist/assets/-9-BvtukQKr.js                       755.72 kB
+dist/assets/worker-sKXN7QHm.js                10,126.37 kB
+dist/assets/network-worker-DYqcQcOv.js        10,129.60 kB
+dist/assets/worker-DQ8dXMSx.js                10,510.47 kB
+dist/assets/MaterialsLab-CvqRxKHv.css              1.17 kB │ gzip:     0.56 kB
+dist/assets/terrain-experiments-wxuM60QP.css       2.04 kB │ gzip:     0.81 kB
+dist/assets/NatureLab-C8OJ9oDs.css                 3.16 kB │ gzip:     1.18 kB
+dist/assets/WaterExperiments-BJpGSaf_.css          3.21 kB │ gzip:     1.11 kB
+dist/assets/HistoryLab-CB_ebFeW.css                3.22 kB │ gzip:     1.16 kB
+dist/assets/GraphicsLab-WdDUiNDo.css               3.68 kB │ gzip:     1.22 kB
+dist/assets/PropLab-CaBQU6I9.css                   4.26 kB │ gzip:     1.46 kB
+dist/assets/arrival-DAH4OIYH.css                   4.44 kB │ gzip:     1.52 kB
+dist/assets/BuildingLab-It5aDsSb.css               4.50 kB │ gzip:     1.31 kB
+dist/assets/GrassLab-CPMJx00P.css                  4.72 kB │ gzip:     1.57 kB
+dist/assets/CharacterLab-DrI7rr_Z.css              4.84 kB │ gzip:     1.58 kB
+dist/assets/ArtAuditLab-Dl9xak3S.css               5.32 kB │ gzip:     1.68 kB
+dist/assets/FaunaLab-Cy1j5iFC.css                  5.58 kB │ gzip:     1.78 kB
+dist/assets/PortraitLab-DpWs0eqy.css               6.03 kB │ gzip:     1.74 kB
+dist/assets/TreeLab-AEemQvth.css                   6.06 kB │ gzip:     1.91 kB
+dist/assets/TerrainLab-DB7dnhvW.css                6.42 kB │ gzip:     1.87 kB
+dist/assets/GeographyLab-Cqwo5p_1.css              7.44 kB │ gzip:     2.19 kB
+dist/assets/TaskSky-Sq-5tip_.css                   8.33 kB │ gzip:     2.64 kB
+dist/assets/AudioLab-ChKB5_9L.css                  9.47 kB │ gzip:     2.69 kB
+dist/assets/Splash-fgubHLjM.css                   12.26 kB │ gzip:     3.30 kB
+dist/assets/App-CIwi2FmI.css                      39.65 kB │ gzip:     8.95 kB
+dist/assets/index-vgxGisdH.css                   118.77 kB │ gzip:    25.25 kB
+dist/assets/12-K6fnWhzg.js                         0.03 kB │ gzip:     0.05 kB
+dist/assets/art-version-Bh038_LS.js                0.05 kB │ gzip:     0.07 kB
+dist/assets/-15-CoYLTosg.js                        0.06 kB │ gzip:     0.08 kB
+dist/assets/11-DdVfX26n.js                         0.08 kB │ gzip:     0.10 kB
+dist/assets/calendar-DY4JpDtN.js                   0.14 kB │ gzip:     0.14 kB
+dist/assets/cache-CbzV41Ac.js                      0.15 kB │ gzip:     0.14 kB
+dist/assets/15-BuGFCM6e.js                         0.20 kB │ gzip:     0.11 kB
+dist/assets/9-uw4k2Qt7.js                          0.27 kB │ gzip:     0.20 kB
+dist/assets/facing-CuUoG4si.js                     0.44 kB │ gzip:     0.28 kB
+dist/assets/index-DFmIyDkE.js                      0.45 kB │ gzip:     0.31 kB
+dist/assets/-14-7gH7e-Kg.js                        0.49 kB │ gzip:     0.30 kB
+dist/assets/name-sex-oOe7fBOu.js                   0.52 kB │ gzip:     0.35 kB
+dist/assets/lighting-C8xQBxco.js                   0.75 kB │ gzip:     0.32 kB
+dist/assets/-13-DKFdbwNZ.js                        0.79 kB │ gzip:     0.45 kB
+dist/assets/atlas-DhVHGvvm.js                      0.89 kB │ gzip:     0.29 kB
+dist/assets/lighting-BB07Qudn.js                   0.92 kB │ gzip:     0.55 kB
+dist/assets/8-BQKE_qoK.js                          1.07 kB │ gzip:     0.55 kB
+dist/assets/random-C8jnaCxp.js                     1.15 kB │ gzip:     0.58 kB
+dist/assets/perf-switches-Bjo8C2Ke.js              1.25 kB │ gzip:     0.72 kB
+dist/assets/routing-C9FAfBps.js                    1.88 kB │ gzip:     0.98 kB
+dist/assets/terrain-experiments-D-hiAlX-.js        1.93 kB │ gzip:     0.94 kB
+dist/assets/structure-C8_l19a-.js                  2.00 kB │ gzip:     1.00 kB
+dist/assets/preparation-ByO0M05U.js                2.53 kB │ gzip:     1.30 kB
+dist/assets/pixels-D-4XQBDC.js                     2.62 kB │ gzip:     1.16 kB
+dist/assets/components-BSsxP4b1.js                 2.80 kB │ gzip:     1.34 kB
+dist/assets/profiles-Bj455-4z.js                   2.87 kB │ gzip:     1.04 kB
+dist/assets/environment-D2IsFSz8.js                2.88 kB │ gzip:     1.39 kB
+dist/assets/scene-assets-D8a-cjjR.js               3.37 kB │ gzip:     1.47 kB
+dist/assets/7-CLbNQiu7.js                          3.96 kB │ gzip:     1.69 kB
+dist/assets/fixtures-CLS_qzAo.js                   5.21 kB │ gzip:     2.29 kB
+dist/assets/GeographyPreview-BU0PLjty.js           5.59 kB │ gzip:     2.64 kB
+dist/assets/PermanentMaps-Cy7tmGj5.js              6.06 kB │ gzip:     2.61 kB
+dist/assets/NatureLab-APU7TRob.js                  6.54 kB │ gzip:     2.65 kB
+dist/assets/cloth-CbQHucRl.js                      6.77 kB │ gzip:     2.85 kB
+dist/assets/GrassLab-DA0XGSjo.js                   7.81 kB │ gzip:     3.19 kB
+dist/assets/GraphicsLab-DzMcz7zY.js                8.26 kB │ gzip:     3.21 kB
+dist/assets/geometry--4dPOCXG.js                   8.35 kB │ gzip:     3.02 kB
+dist/assets/9-CiNn9wf1.js                          9.05 kB │ gzip:     3.15 kB
+dist/assets/character-DyIyDwRj.js                  9.83 kB │ gzip:     4.36 kB
+dist/assets/TreeLab-CZl9-Oc9.js                   11.29 kB │ gzip:     4.50 kB
+dist/assets/resolve-D6IDIlmQ.js                   11.42 kB │ gzip:     5.05 kB
+dist/assets/map-travel-CHKGOG0Q.js                11.70 kB │ gzip:     4.50 kB
+dist/assets/10-6ecxaiuC.js                        11.90 kB │ gzip:     4.56 kB
+dist/assets/seams-CgWTzy30.js                     12.03 kB │ gzip:     5.10 kB
+dist/assets/MaterialsLab-CKgmzA-b.js              12.73 kB │ gzip:     5.42 kB
+dist/assets/-12-BVNYCkH9.js                       12.77 kB │ gzip:     5.16 kB
+dist/assets/draw-EOWKOy9n.js                      13.19 kB │ gzip:     4.95 kB
+dist/assets/AudioLab-CUpQIXj1.js                  13.31 kB │ gzip:     4.96 kB
+dist/assets/network-DJDJ1222.js                   14.47 kB │ gzip:     4.73 kB
+dist/assets/bootstrap-Dl0ywDIh.js                 15.74 kB │ gzip:     5.19 kB
+dist/assets/ArtAuditLab-BEIPK9B1.js               16.25 kB │ gzip:     6.36 kB
+dist/assets/CharacterLab-Blzu6HDJ.js              16.26 kB │ gzip:     6.30 kB
+dist/assets/WorldSetup-D3Ov66-h.js                16.36 kB │ gzip:     6.39 kB
+dist/assets/EdgeLab-BUyMGsL3.js                   16.69 kB │ gzip:     7.30 kB
+dist/assets/StartPreview-D4oAiRky.js              18.55 kB │ gzip:     7.88 kB
+dist/assets/6-BMpneorF.js                         19.57 kB │ gzip:     7.11 kB
+dist/assets/TerrainExperiments--1-9Aykh.js        20.51 kB │ gzip:     7.39 kB
+dist/assets/GeographyLab-BlDAnUNJ.js              21.05 kB │ gzip:     7.95 kB
+dist/assets/WaterExperiments-DFhFTzvv.js          21.55 kB │ gzip:     7.97 kB
+dist/assets/decay-B5Xzgo3m.js                     21.87 kB │ gzip:     9.68 kB
+dist/assets/PortraitLab-B0KfuAGo.js               24.94 kB │ gzip:     9.29 kB
+dist/assets/index-CCnoCU6_.js                     26.44 kB │ gzip:     9.94 kB
+dist/assets/Splash-B8ZPzzfC.js                    27.44 kB │ gzip:    10.13 kB
+dist/assets/surface-DIsO-1-W.js                   27.70 kB │ gzip:    11.97 kB
+dist/assets/8-Bp4Kb1-e.js                         32.43 kB │ gzip:     9.76 kB
+dist/assets/fence-pass-CaPni4ba.js                37.08 kB │ gzip:    13.26 kB
+dist/assets/TerrainLab-DDgWSy-c.js                37.16 kB │ gzip:    13.51 kB
+dist/assets/renderers-DQ_b4rbT.js                 40.20 kB │ gzip:    14.81 kB
+dist/assets/-11-PFm93OIv.js                       44.94 kB │ gzip:    16.64 kB
+dist/assets/atlas-p79Ku8nK.js                     46.09 kB │ gzip:     3.91 kB
+dist/assets/5-VObz-ity.js                         49.08 kB │ gzip:    16.95 kB
+dist/assets/14-B8yLx32m.js                        49.22 kB │ gzip:    10.28 kB
+dist/assets/13-DqfzRUJ1.js                        50.08 kB │ gzip:    11.64 kB
+dist/assets/7-BA3Tl17r.js                         51.86 kB │ gzip:    15.36 kB
+dist/assets/2-BEUn2enq.js                         53.29 kB │ gzip:    17.46 kB
+dist/assets/schemas-BLaJx6lc.js                   54.29 kB │ gzip:    14.51 kB
+dist/assets/constructed-ZACc2qru.js               60.96 kB │ gzip:    22.64 kB
+dist/assets/0-yU5la8YR.js                         64.49 kB │ gzip:    21.21 kB
+dist/assets/4-CidqSmtw.js                         65.67 kB │ gzip:    22.05 kB
+dist/assets/-1-9UjM1vgK.js                        66.00 kB │ gzip:    22.25 kB
+dist/assets/looks-BCucHMwq.js                     70.81 kB │ gzip:    15.74 kB
+dist/assets/11-BLx-i9fA.js                        73.80 kB │ gzip:    20.81 kB
+dist/assets/1-CTUYwQwZ.js                         76.31 kB │ gzip:    24.51 kB
+dist/assets/habitat-raster-Dp5C42ps.js            79.80 kB │ gzip:    29.75 kB
+dist/assets/3-Bn5fqW26.js                         80.82 kB │ gzip:    25.31 kB
+dist/assets/12-CYGMP7sH.js                        83.77 kB │ gzip:    21.18 kB
+dist/assets/6-CkW0EMJk.js                         85.48 kB │ gzip:    23.95 kB
+dist/assets/-14-CW47VX5k.js                       95.61 kB │ gzip:    25.28 kB
+dist/assets/garment-icons-CsKtz1mr.js            104.49 kB │ gzip:     9.26 kB
+dist/assets/BuildingLab-C1-psOsC.js              107.46 kB │ gzip:    23.76 kB
+dist/assets/-3-CItt0fX3.js                       150.46 kB │ gzip:    51.13 kB
+dist/assets/-2-C2kYM7z4.js                       160.84 kB │ gzip:    53.39 kB
+dist/assets/-13-C6dzK5PX.js                      166.70 kB │ gzip:    42.57 kB
+dist/assets/-4-BTfR0mqb.js                       172.77 kB │ gzip:    57.44 kB
+dist/assets/-10-ZsplV7wl.js                      174.70 kB │ gzip:    60.78 kB
+dist/assets/5-ChTVZNld.js                        183.76 kB │ gzip:    52.32 kB
+dist/assets/index-leBw8GLv.js                    199.53 kB │ gzip:    63.26 kB
+dist/assets/-5-gAVPsuCw.js                       209.70 kB │ gzip:    71.53 kB
+dist/assets/4-DylPnijW.js                        245.62 kB │ gzip:    70.80 kB
+dist/assets/-1-C1-uhmdv.js                       256.40 kB │ gzip:    78.99 kB
+dist/assets/3-rYumfKU_.js                        267.74 kB │ gzip:    76.94 kB
+dist/assets/1-CvyCDEKj.js                        270.46 kB │ gzip:    77.87 kB
+dist/assets/atlas-C7Z61zWg.js                    273.41 kB │ gzip:    10.58 kB
+dist/assets/-3-5G2KviZy.js                       286.17 kB │ gzip:    95.81 kB
+dist/assets/0-BDS9BL20.js                        286.19 kB │ gzip:    84.29 kB
+dist/assets/2-B9ZFMRBW.js                        290.36 kB │ gzip:    85.24 kB
+dist/assets/-2-PTq-kPxT.js                       291.84 kB │ gzip:    95.30 kB
+dist/assets/-4-2Jq_YFEd.js                       342.75 kB │ gzip:   109.71 kB
+dist/assets/-6-CF1lMD-4.js                       398.85 kB │ gzip:   138.48 kB
+dist/assets/random-start-BIsect8X.js             405.11 kB │ gzip:   181.54 kB
+dist/assets/-5-DMzBCdMn.js                       415.00 kB │ gzip:   133.71 kB
+dist/assets/-7-CdRduD1a.js                       490.19 kB │ gzip:   151.25 kB
+dist/assets/-6-D1n_sXKM.js                       499.91 kB │ gzip:   161.13 kB
+dist/assets/-12-CH4sIVGG.js                      505.26 kB │ gzip:   126.43 kB
+dist/assets/session-BQBcErNk.js                  558.40 kB │ gzip:   175.37 kB
+dist/assets/-9-CUu6KfgU.js                       565.13 kB │ gzip:   195.83 kB
+dist/assets/-8-5giq93pr.js                       577.91 kB │ gzip:   175.97 kB
+dist/assets/App-CjUZ5rHR.js                      584.24 kB │ gzip:   191.87 kB
+dist/assets/WorldScene-DMeHSRCS.js               593.79 kB │ gzip:   120.61 kB
+dist/assets/-8-petDKmPD.js                       594.21 kB │ gzip:   205.35 kB
+dist/assets/-7-GoffKtcl.js                       622.02 kB │ gzip:   212.78 kB
+dist/assets/HistoryLab-BQ5xhIsi.js               623.26 kB │ gzip:    32.80 kB
+dist/assets/-11-BC3vMzAe.js                      681.11 kB │ gzip:   176.04 kB
+dist/assets/-10-9sDdRPQN.js                      691.73 kB │ gzip:   190.57 kB
+dist/assets/-9-B3-uhJR2.js                       755.72 kB │ gzip:   216.22 kB
+dist/assets/FaunaLab-bHMVGMLC.js               1,085.14 kB │ gzip:    35.25 kB
+dist/assets/phaser-CwxaZ3q6.js                 1,208.18 kB │ gzip:   330.12 kB
+dist/assets/types-BGy4uprf.js                  1,840.21 kB │ gzip:   433.19 kB
+dist/assets/TaskSky-yBEKWumC.js                2,060.28 kB │ gzip:   725.22 kB
+dist/assets/PropLab-Bfm9OIl1.js                2,220.10 kB │ gzip:   122.11 kB
+dist/assets/environment-CU9vYUVh.js            3,577.76 kB │ gzip:   377.13 kB
+dist/assets/geography-B7faSahL.js              3,626.89 kB │ gzip: 1,289.78 kB
+dist/assets/resolve-WWrVz9OR.js                4,738.04 kB │ gzip: 1,454.96 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 11.81s
+▲ [WARNING] Duplicate key "mat" in object literal [duplicate-object-key]
+
+    src/content/graphics/regional-houses.json:623:4:
+      623 │     "mat": ["#3a3020", "#5c4c32", "#827048", "#a69262", "#c4b080"...
+          ╵     ~~~~~
+
+  The original key "mat" is here:
+
+    src/content/graphics/regional-houses.json:621:4:
+      621 │     "mat": ["#3a2e1c", "#5e4a2c", "#86703e", "#a8925a", "#c4ae78"...
+          ╵     ~~~~~
+

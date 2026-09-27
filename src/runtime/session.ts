@@ -846,7 +846,7 @@ export class Runtime {
    * since the last command. Monotonic, and never behind the simulation. */
   displayClock() {
     if (this.timeVisualClock !== undefined) return this.timeVisualClock;
-    if (this.timeTravelLocked) return this.engine.state.clock;
+    if (this.timeTravelLocked || this.engine.state.player.dead) return this.engine.state.clock;
     if (this.journey?.busy) return this.engine.state.clock;
     // A short grace period means the gaps between walking steps contribute
     // nothing; only actually standing still lets the clock run on.
@@ -953,7 +953,7 @@ export class Runtime {
     return result;
   }
   private dispatch(command: PlayerCommand) {
-    if (this.journey?.intercept(command)) {
+    if (!this.engine.state.player.dead && this.journey?.intercept(command)) {
       this.emit(false);
       return {
         actionId: "travel-" + ++this.serial,
@@ -1573,6 +1573,7 @@ export class Runtime {
   devHeal() {
     this.engine.state.player.health = 100;
     delete this.engine.state.player.injury;
+    delete this.engine.state.player.dead;
     this.engine.state.revision++;
     this.emit();
   }
@@ -1828,7 +1829,7 @@ export class Runtime {
     }
   }
   tick() {
-    if (this.timeTravelLocked) return;
+    if (this.timeTravelLocked || this.engine.state.player.dead) return;
     if (this.replay) {
       if (this.replay.playing) this.stepReplay();
       return;
@@ -1844,6 +1845,7 @@ export class Runtime {
       // the world in one lump just before the blow, and the quarry is gone.
       const block =
         this.engine.state.clock < this.engine.combatUntil ||
+        this.engine.fireUntil() > this.engine.state.clock ||
         this.charge ||
         this.aiming
           ? 6
@@ -1964,6 +1966,7 @@ export class Runtime {
       envelope.manifest.content,
       envelope.manifest.generator,
     );
+    this.engine.state.manifest = structuredClone(envelope.manifest);
     this.selected = undefined;
     this.replay = {
       commands,
@@ -2021,6 +2024,7 @@ export class Runtime {
       replay.manifest.content,
       replay.manifest.generator,
     );
+    this.engine.state.manifest = structuredClone(replay.manifest);
     replay.index = 0;
     for (
       let i = 0;

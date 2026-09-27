@@ -1,0 +1,100 @@
+{
+  "terrace-1": {
+    "footprint": [
+      9,
+      5
+    ],
+    "sourceSize": [
+      159,
+      118
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "3 houses / 2 storeys"
+  },
+  "terrace-2": {
+    "footprint": [
+      12,
+      5
+    ],
+    "sourceSize": [
+      207,
+      146
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "4 houses / 3 storeys"
+  },
+  "corner-shop-1": {
+    "footprint": [
+      8,
+      6
+    ],
+    "sourceSize": [
+      143,
+      158
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "3 storeys + attic"
+  },
+  "corner-shop-2": {
+    "footprint": [
+      10,
+      6
+    ],
+    "sourceSize": [
+      175,
+      186
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "4 storeys + attic"
+  },
+  "factory-1": {
+    "footprint": [
+      10,
+      8
+    ],
+    "sourceSize": [
+      175,
+      212
+    ],
+    "sideDepth": 12,
+    "seed": 2,
+    "integrated": false,
+    "description": "3 storeys / steam mill",
+    "smoke": [
+      [
+        135,
+        10,
+        "chimney"
+      ]
+    ]
+  },
+  "factory-2": {
+    "footprint": [
+      12,
+      8
+    ],
+    "sourceSize": [
+      207,
+      240
+    ],
+    "sideDepth": 12,
+    "seed": 5,
+    "integrated": false,
+    "description": "4 storeys / steam mill",
+    "smoke": [
+      [
+        28,
+        10,
+        "chimney"
+      ]
+    ]
+  }
+}

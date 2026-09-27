@@ -171,6 +171,7 @@ export type Actor = {
   swum?: number;
   stats?: Stats;
   health?: number;
+  dead?: string;
   /** Experience by skill. The player's only; residents have none stored. */
   skills?: import("./skills").Skills;
   /** Techniques chosen at skill milestones. */
@@ -210,8 +211,8 @@ export type Actor = {
   /** Render-only eight-way facing; `direction` remains authoritative. */
   facing?: number;
   /** Perched on top of something: one cell, no roaming. `rise` is the sprite
-   * lift in world pixels, which is also what the view reaches over. */
-  perch?: { on: string; label: string; rise: number; at?: Point };
+   * lift in world pixels. `drop` is the physical height in terrain tiers. */
+  perch?: { on: string; label: string; rise: number; at?: Point; drop?: number };
   held?: string;
   /** An inventory item taken in hand. A carried world object wins over this,
    * and the engine never lets both be set. */
@@ -375,6 +376,8 @@ export type WorldManifest = {
   pack: PackId;
   schema: 1 | 2;
   simulation: 1 | 2;
+  /** Absent in older saves and replays, which retain harmless impacts. */
+  hazards?: 1;
   generator: 1 | 2 | 3;
   content: 1 | 2;
   atlas: 1 | 2;

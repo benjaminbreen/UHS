@@ -1,0 +1,143 @@
+Built 7734 lighting masks; shadow atlas (4096, 2406).
+139 audit notes:
+  gourd-0: 13x20 over 9x13
+  gourd-1: 13x20 over 9x13
+  gourd-2: 13x20 over 9x13
+  plain-box-0: 33x22 over 19x13
+  plain-box-1: 33x22 over 19x13
+  plain-box-2: 33x22 over 19x13
+  strapped-chest-0 (B): 33x27 over its 30x24 budget
+  strapped-chest-1 (B): 33x27 over its 30x24 budget
+  strapped-chest-2 (B): 33x27 over its 30x24 budget
+  painted-chest-0: 28x27 over 19x14
+  painted-chest-1: 28x27 over 19x14
+  painted-chest-2: 28x27 over 19x14
+  crate-0 (B): 23x20 over its 20x17 budget
+  crate-1 (B): 23x20 over its 20x17 budget
+  crate-2 (B): 23x20 over its 20x17 budget
+  trough-0 (B): 52x27 over its 48x23 budget
+  trough-1 (B): 52x27 over its 48x23 budget
+  trough-2 (B): left edge of the 52x32 canvas cuts through the drawing
+  trough-2 (B): 52x27 over its 48x23 budget
+  well-0 (B): left edge of the 44x36 canvas cuts through the drawing
+  well-1 (B): left edge of the 44x36 canvas cuts through the drawing
+  well-2 (B): left edge of the 44x36 canvas cuts through the drawing
+  town-well-0 (B): left edge of the 56x47 canvas cuts through the drawing
+  town-well-1 (B): left edge of the 56x47 canvas cuts through the drawing
+  town-well-2 (B): left edge of the 56x47 canvas cuts through the drawing
+  mortar-0: 25x34 over 9x10
+  mortar-1: 25x34 over 9x10
+  mortar-2: 25x34 over 9x10
+  woodpile-0 (B): 35x23 over its 32x20 budget
+  woodpile-1 (B): 35x23 over its 32x20 budget
+  woodpile-2 (B): 35x23 over its 32x20 budget
+  oven-0: 36x38 over 27x29
+  oven-0: 36x38 over 27x29
+  oven-0: 36x38 over 27x29
+  oven-0: 36x38 over 27x29
+  oven-1: 36x38 over 27x29
+  oven-1: 36x38 over 27x29
+  oven-1: 36x38 over 27x29
+  oven-1: 36x38 over 27x29
+  oven-2: 36x38 over 27x29
+  oven-2: 36x38 over 27x29
+  oven-2: 36x38 over 27x29
+  oven-2: 36x38 over 27x29
+  tannur-0: 38x34 over 25x23
+  tannur-0: 38x35 over 25x23
+  tannur-0: 38x39 over 25x23
+  tannur-0: 38x33 over 25x23
+  tannur-1: 38x34 over 25x23
+  tannur-1: 38x35 over 25x23
+  tannur-1: 38x39 over 25x23
+  tannur-1: 38x33 over 25x23
+  tannur-2: 38x34 over 25x23
+  tannur-2: 38x35 over 25x23
+  tannur-2: 38x39 over 25x23
+  tannur-2: 38x33 over 25x23
+  brazier-0: 27x35 over 17x25
+  brazier-0: 27x36 over 17x25
+  brazier-0: 27x40 over 17x25
+  brazier-0: 27x34 over 17x25
+  brazier-1: 27x35 over 17x25
+  brazier-1: 27x36 over 17x25
+  brazier-1: 27x40 over 17x25
+  brazier-1: 27x34 over 17x25
+  stove-0: 33x35 over 27x27
+  stove-0: 33x38 over 27x27
+  stove-0: 33x35 over 27x27
+  stove-0: 33x38 over 27x27
+  stove-1: 33x35 over 27x27
+  stove-1: 33x38 over 27x27
+  stove-1: 33x35 over 27x27
+  stove-1: 33x38 over 27x27
+  stove-2: 33x35 over 27x27
+  stove-2: 33x38 over 27x27
+  stove-2: 33x35 over 27x27
+  stove-2: 33x38 over 27x27
+  fire-basket-0: 24x28 over 15x21
+  fire-basket-0: 24x29 over 15x21
+  fire-basket-0: 24x33 over 15x21
+  fire-basket-0: 24x27 over 15x21
+  oil-drum-0: 25x44 over 15x21
+  oil-drum-0: 25x45 over 15x21
+  oil-drum-0: 25x47 over 15x21
+  oil-drum-0: 25x43 over 15x21
+  oil-lamp-0: 18x20 over 9x7
+  oil-lamp-1: 18x20 over 9x7
+  oil-lamp-2: 18x20 over 9x7
+  lantern-0: 21x34 over 11x17
+  lantern-1: 21x34 over 11x17
+  lantern-2: 21x34 over 11x17
+  bench-0 (B): 45x21 over its 42x17 budget
+  bench-1 (B): 45x21 over its 42x17 budget
+  bench-2 (B): left edge of the 47x22 canvas cuts through the drawing
+  bench-2 (B): 45x21 over its 42x17 budget
+  workbench-0: 41x28 over 31x19
+  workbench-1: 41x28 over 31x19
+  workbench-2: 41x28 over 31x19
+  bedroll-0: 33x26 over 27x13
+  bedroll-1: 33x26 over 27x13
+  bedroll-2: 33x26 over 27x13
+  metal-tin-0: 20x25 over 9x13
+  metal-tin-1: 20x25 over 9x13
+  metal-tin-2: 20x25 over 9x13
+  plastic-bin-0: 21x18 over 11x13
+  plastic-bin-1: 21x18 over 11x13
+  plastic-bin-2: 21x18 over 11x13
+  cardboard-box-0: 20x24 over 13x13
+  cardboard-box-1: 20x24 over 13x13
+  cardboard-box-2: 20x24 over 13x13
+  stall-trestle-0 (B): 42x23 over its 38x19 budget
+  stall-trestle-1 (B): 42x23 over its 38x19 budget
+  stall-trestle-2 (B): 42x23 over its 38x19 budget
+  stall-awning-0 (B): 52x39 over its 49x35 budget
+  stall-awning-1 (B): 52x39 over its 49x35 budget
+  stall-awning-2 (B): 52x39 over its 49x35 budget
+  stall-booth-0 (B): 56x42 over its 52x38 budget
+  stall-booth-1 (B): 56x42 over its 52x38 budget
+  stall-booth-2 (B): 56x42 over its 52x38 budget
+  stall-cart-0 (B): 47x36 over its 43x32 budget
+  stall-cart-1 (B): 47x36 over its 43x32 budget
+  stall-cart-2 (B): 47x36 over its 43x32 budget
+  stall-modern-0 (B): 54x39 over its 50x35 budget
+  stall-modern-1 (B): 54x39 over its 50x35 budget
+  stall-modern-2 (B): 54x39 over its 50x35 budget
+  farm-cart-0 (B): 89x51 over its 85x54 budget
+  farm-cart-1 (B): 89x58 over its 85x54 budget
+  farm-cart-2 (B): 89x51 over its 85x54 budget
+  granary-staddle-0 (B): 88x97 over its 88x93 budget
+  granary-staddle-1 (B): 88x97 over its 88x93 budget
+  granary-staddle-2 (B): 91x97 over its 88x93 budget
+  granary-stilt-0 (B): 96x105 over its 93x101 budget
+  granary-stilt-1 (B): 96x105 over its 93x101 budget
+  granary-stilt-2 (B): 95x105 over its 93x101 budget
+  crate-stack-0 (B): 34x30 over its 31x27 budget
+  crate-stack-1 (B): 34x30 over its 31x27 budget
+  crate-stack-2 (B): 34x30 over its 31x27 budget
+  hay-rick-2 (B): 5 tones over 514 pixels; too flat to read as a solid
+  standing-stone-4 (B): 5 tones over 464 pixels; too flat to read as a solid
+  dung-stack-0 (B): 5 tones over 347 pixels; too flat to read as a solid
+  dung-stack-1 (B): 5 tones over 353 pixels; too flat to read as a solid
+Art stamp 65d94c08a1
+Built 177 prop families / 1393 study frames.

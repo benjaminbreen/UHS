@@ -876,7 +876,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             />
             </Suspense>
           )}
-          <CollapseNotice collapse={runtime.engine.lastCollapse} />
+          {modal !== "world" && <CollapseNotice collapse={runtime.engine.lastCollapse} dead={p.dead} onNewWorld={openWorld} />}
           <BagFlights
             inventory={p.inventory}
             world={obs.manifest.seed}
