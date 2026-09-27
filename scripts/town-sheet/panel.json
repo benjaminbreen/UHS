@@ -264,5 +264,10 @@
     "name": "moscow-1975",
     "query": "Moscow 1975",
     "radius": 130
+  },
+  {
+    "name": "vienna-2008",
+    "query": "Vienna 2008",
+    "radius": 130
   }
 ]

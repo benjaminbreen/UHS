@@ -81,6 +81,8 @@ export type UrbanForm = {
   motor?: boolean;
   /** Further public squares at street crossings away from the main square. */
   squares?: number;
+  /** A boulevard round a grown core, where its walls came down. */
+  ring?: boolean;
   /** Diagonal avenues cut from the square's corners to the built edge. */
   diagonals?: number;
   /** Houses stand in their own green plots rather than in rows on the street,

@@ -222,7 +222,9 @@ export function composeUrban(
     : [{ plan: form.plan, block: form.block, regularity: form.regularity }];
   const core = specs[0];
   const single = specs.length === 1;
-  const coreHalf = single ? half : Math.max(14, Math.round(half * 0.6));
+  const coreHalf = single
+    ? half
+    : Math.max(14, Math.round(half * (form.motor ? 0.42 : 0.6)));
   // A grid was laid out as a rectangle, and not a square one.
   const stretch = aspect
     ? Math.max(aspect, 1 / aspect)
@@ -541,6 +543,29 @@ export function composeUrban(
     streets.push({ a: cursor, b: end, tier: 0 });
     cuts[across].add(lateral);
   }
+  // A boulevard on the line of the old core's demolished walls.
+  if (form.ring && grown(core.plan) && !single) {
+    const inset = hiA + margin(0);
+    const [x0, x1] = [coreRect.x + inset, coreRect.x + coreRect.w - 1 - inset],
+      [y0, y1] = [coreRect.y + inset, coreRect.y + coreRect.h - 1 - inset];
+    const corners = [
+      { x: x0, y: y0 },
+      { x: x1, y: y0 },
+      { x: x1, y: y1 },
+      { x: x0, y: y1 },
+    ];
+    for (const [k, a] of corners.entries()) {
+      const b = corners[(k + 1) % 4];
+      if (
+        line(a, b).every(
+          (p) => holds(p.x, p.y, wallMargin) && (!usable || usable(p.x, p.y)),
+        )
+      )
+        streets.push({ a, b, tier: 0 });
+    }
+    cuts.x.add(x0).add(x1);
+    cuts.y.add(y0).add(y1);
+  }
   // Further arterials so a quarter is never many blocks deep. How many follows
   // from the block module, not from the settlement's size alone.
   for (const axis of ["x", "y"] as const) {
@@ -684,7 +709,8 @@ export function composeUrban(
         4 +
         Math.floor(rand("pos", i, n) * (hi(parent) - lo(parent) - 8));
       const dir: -1 | 1 = rand("dir", i, n) < 0.5 ? -1 : 1;
-      const tier: Tier = parent.tier === 0 ? 1 : 2;
+      // An old core kept its lanes when the cars came; only its arterials widened.
+      const tier: Tier = parent.tier === 0 && !form.motor ? 1 : 2;
       // Pitch along the parent between branches of this orientation.
       const pitch = (axis === "x" ? bw : bh) + span(tier) + margin(tier) * 2;
       const [plo, phi] = spanOffsets(span(parent.tier));

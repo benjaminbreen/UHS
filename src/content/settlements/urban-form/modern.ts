@@ -481,7 +481,7 @@ export const modernForms: UrbanFormRule[] = [
       { plan: "orthogonal", block: [30, 22], regularity: 0.95 },
     ],
     squares: 2,
-    diagonals: 2,
+    ring: true,
     verge: 1,
     furniture: ["lamp", "tree", "planter"],
     square: {
@@ -493,7 +493,7 @@ export const modernForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "Closed blocks built to the street line around a shared interior court, on boulevards cut wider than the streets they replaced, follow the Haussmann works in Paris and Cerda's Eixample in Barcelona. Applying it broadly across Europe is an inference; individual cities differ substantially.",
+      note: "Closed blocks built to the street line around a shared interior court, on boulevards cut wider than the streets they replaced, follow the Haussmann works in Paris and Cerda's Eixample in Barcelona; the boulevard round the old core follows Vienna's Ringstrasse (from 1857) and the rings laid on razed walls in Cologne, Krakow and Moscow. Paris's diagonal cuts are left out: blocks here are rectangles, and a diagonal only takes ground from them. Applying it broadly across Europe is an inference; individual cities differ substantially.",
     },
   },
   {
