@@ -363,13 +363,15 @@ def build_buildings(root, sprites):
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
     from art.regional_houses import regional_house_recipes
     from art.camps import CampBuilding, camp_recipes
+    from art.oblique_modern import ObliqueModern, modern_recipes
     build_banner(sprites)
     recipes={**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
              **meso_landmark_recipes(root, source), **precinct_recipes(root, source),
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
-             **hall_recipes(root, source), **period_recipes(root, source)}
+             **hall_recipes(root, source), **period_recipes(root, source),
+             **modern_recipes()}
     for name,r in list(recipes.items()):
         # Tents and shelters draw their door on the front whatever the facing,
         # and camps pitch them all opening south, so turned copies would lie.
@@ -378,9 +380,10 @@ def build_buildings(root, sprites):
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,
                                       # Same silhouette whichever way it faces, so one set of cast masks.
-                                      **({'shadowFrame':name} if r.get('oblique') else {})}
+                                      **({'shadowFrame':name} if r.get('oblique') or r.get('obliqueModern') else {})}
     for name,r in recipes.items():
-        painter=(CampBuilding if r.get('campStyle') else
+        painter=(ObliqueModern if r.get('obliqueModern') else
+                 CampBuilding if r.get('campStyle') else
                  PrecinctPiece if r.get('precinctPiece') else
                  ObliqueMesoLandmark if r.get('mesoLandmark') else
                  ObliqueMeso if r.get('mesoamerican') else
@@ -403,6 +406,8 @@ def build_buildings(root, sprites):
         artist=painter(r,source['materials'][r['wall']])
         im=artist.render()
         sprites[name]=im
+        # Lit rooms after dark, drawn by the painter; turned copies share it.
+        if r.get('obliqueModern') and 'facing' not in r: sprites[name+'-glow']=artist.glow
         w,h=im.size
         models[name]={
             **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),
@@ -431,6 +436,8 @@ def build_buildings(root, sprites):
             **({'banner':artist.banner} if getattr(artist,'banner',None) else {}),
             **({'courtyardLight':artist.court_light} if getattr(artist,'court_light',None) else {}),
             **({'smoke':artist.smoke} if getattr(artist,'smoke',None) else {}),
+            **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
+                'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),

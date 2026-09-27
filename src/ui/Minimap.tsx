@@ -21,7 +21,7 @@ import { boxBlur } from "./ArrivalMap";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
-type BuildingSheet = "buildings" | "regionalBuildings" | "campBuildings";
+type BuildingSheet = "buildings" | "regionalBuildings" | "campBuildings" | "modernBuildings";
 const atlasImages: Partial<Record<BuildingSheet, HTMLImageElement>> = {};
 const sheetLoaded = new Set<() => void>();
 /** Fetched on first use: each sheet decodes to 60 MB, and a camp needs one. */
@@ -76,6 +76,8 @@ function buildingTones(sprite: string) {
     ? "regionalBuildings"
     : sheets?.campBuildings.frames[sprite]
       ? "campBuildings"
+      : sheets?.modernBuildings.frames[sprite]
+        ? "modernBuildings"
       : "buildings";
   const frames = sheets?.[sheet].frames;
   const image = sprites(sheet);

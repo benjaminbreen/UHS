@@ -4345,16 +4345,16 @@ export class WorldScene extends Phaser.Scene {
     const h = (((this.runtime.displayClock() / 3600) % 24) + 24) % 24;
     const share = h >= 17 && h < 22.5 ? 0.8 : h >= 4.5 && h < 8 ? 0.45 : 0.15;
     if (random(this.runtime.engine.state.manifest.seed, "lamp", place.id) >= share) return;
-    const key = windowGlow(
-      this,
-      image.texture.key,
-      image.frame.name,
-      (placement.model as { door?: number[] }).door,
-    );
+    // A painter that draws its own lit rooms ships them as a frame beside the
+    // building's; the rest are found in the art's glass.
+    const authored = (placement.model as { glow?: string }).glow;
+    const [key, frame] = authored
+      ? [image.texture.key, authored]
+      : [windowGlow(this, image.texture.key, image.frame.name, (placement.model as { door?: number[] }).door), undefined];
     if (!key) return;
     const at = (depth: number) =>
       this.add
-        .image(image.x, image.y, key)
+        .image(image.x, image.y, key, frame)
         .setOrigin(image.originX, image.originY)
         .setDepth(depth)
         .setVisible(false);

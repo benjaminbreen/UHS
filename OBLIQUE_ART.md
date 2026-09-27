@@ -101,6 +101,18 @@ and the published connected route stay quiet.
 These oversized families live in `/packs/regional-buildings`; loaders and art
 tools must search it alongside the ordinary building and civic pages.
 
+## Modern gold masters
+
+`scripts/art/oblique_modern.py` paints the industrial and modern standards:
+the brick commercial block, the sawtooth shed and the curtain-wall tower.
+`python3 scripts/art/oblique_modern.py out.png` builds their review sheet, day
+and night. Each painter also fills an emissive layer, the rooms lit after
+dark, which the build ships as `<frame>-glow` and the scene draws in place of
+the glass it would otherwise guess at. Towers are baked at a few fixed
+heights from a base, a repeating storey and a crown; the slices are what a
+runtime-stacked tower would use. Which land use builds which, from what date
+and where, is `src/content/settlements/modern-buildings.ts`.
+
 ## Adding a region
 
 1. Materials and recipes go in `src/content/graphics/buildings.json` with

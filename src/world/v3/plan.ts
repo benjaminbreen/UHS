@@ -2927,6 +2927,8 @@ export function planSettlement(
       owner !== "player" &&
       owner !== owners.at(-1) &&
       !lot.venue &&
+      // A curtain wall is too young to have been abandoned decades ago.
+      (model as { obliqueModern?: string }).obliqueModern !== "tower" &&
       rand("ruin", i) < 0.05 + 0.05 * edge
     ) {
       const year = pack.setting?.year ?? 0;

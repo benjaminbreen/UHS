@@ -1,3 +1,14 @@
+## Modern oblique gold masters — September 26, 2026
+
+The first oblique buildings for the industrial and modern city: a brick
+commercial block of about 1895 (three sizes), a sawtooth weaving shed with its
+mill stack (two), and a curtain-wall office tower of about 1960 (five, nine and
+fourteen storeys). They stand on commercial, industrial and downtown blocks by
+region and date (`src/content/settlements/modern-buildings.ts`), pack to their
+own `modern-buildings` atlas page, and ship a painted lit-room frame the scene
+uses after dark. Stations have platforms, rivers are bridged by the railway,
+and traffic signals cycle. See `OBLIQUE_ART.md`.
+
 ## Street paint and parked cars — September 26, 2026
 
 Motor-age streets are wide enough to drive and park on and are painted in the

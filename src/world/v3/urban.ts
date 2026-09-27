@@ -24,6 +24,7 @@ import {
   motorized,
 } from "../../content/settlements/modernity";
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
+import { modernBuildings } from "../../content/settlements/modern-buildings";
 import {
   BOULEVARD,
   MOTOR_SPANS,
@@ -1328,11 +1329,12 @@ export function urbanNeighborhood(
       const pool = homes.length
         ? homes
         : [
-            ...(use === "downtown" || use === "estate" ? towers : frames),
-            ...small,
-          ].filter((f) =>
-            FORMS[use].some((w) => f.endsWith(`-urban-${w}`)),
-          );
+            ...modernBuildings(pack.setting!, use).filter((f) => buildingModels[f]),
+            ...[
+              ...(use === "downtown" || use === "estate" ? towers : frames),
+              ...small,
+            ].filter((f) => FORMS[use].some((w) => f.endsWith(`-urban-${w}`))),
+          ];
       if (pool.length) return modern ? preferStyle(pool, quarter) : pool;
     }
     // A researched fabric names its own forms; `house` is the pack's own
@@ -1393,7 +1395,11 @@ export function urbanNeighborhood(
             : quarter === "edge"
               ? ["veranda", "arcade"]
               : ["veranda", "block"];
-    const chosen = pool.filter((f) => want.includes(modernStyle(f) ?? "block"));
+    const chosen = pool.filter(
+      (f) =>
+        (buildingModels[f] as { obliqueModern?: string }).obliqueModern ||
+        want.includes(modernStyle(f) ?? "block"),
+    );
     return chosen.length ? chosen : pool;
   }
 

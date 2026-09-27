@@ -110,6 +110,16 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
     return at.reduce((d, q) => d + Math.hypot(q.x, q.y), 0) / at.length;
   };
   expect(distance("downtown")).toBeLessThan(distance("suburb"));
+  // The modern gold masters: sheds by the works, blocks on the shopping
+  // streets, curtain-wall towers downtown once the date allows them.
+  const built = (use: string, name: string) =>
+    richmond.places.some((q) => q.landUse === use && q.sprite.startsWith(name));
+  expect(built("industrial", "modern-sawtooth-shed")).toBe(true);
+  expect(built("commercial", "modern-commercial-block")).toBe(true);
+  expect(built("downtown", "modern-curtain-tower")).toBe(true);
+  expect(
+    plan("Richmond 1935").places.some((q) => q.sprite.startsWith("modern-curtain-tower")),
+  ).toBe(false);
   expect(uses(plan("Moscow 1975")).has("estate")).toBe(true);
   // Before the industrial onset there is no zoning at all.
   expect(uses(plan("Richmond 1790")).size).toBe(0);
