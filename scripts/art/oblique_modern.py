@@ -725,6 +725,7 @@ ABOUT = {
 def modern_recipes():
     from art.modern_grammar import STYLES, CATALOG
     out = {}
+    from art.city_kit import kit_recipes
     for name, (key, footprint, storeys, seed) in CATALOG.items():
         st = STYLES[key]
         out[name] = {
@@ -735,6 +736,7 @@ def modern_recipes():
             'description': st.about, 'obliqueModern': 'grammar', 'style': key,
             'seed': seed, 'stories': storeys, 'deep': storeys >= 6,
         }
+    out.update(kit_recipes(side_depth))
     for name, (kind, footprint, seed, storeys, label) in MODERN_BUILDINGS.items():
         fw, fh = footprint
         height = (STOREY + 10 + STOREY * (storeys - 1) + 17 if kind == 'block' else
@@ -756,7 +758,13 @@ class ObliqueModern:
     def __init__(self, r, material=None):
         fw, fh = r['footprint']
         kind, seed, storeys = r['obliqueModern'], r['seed'], r['stories']
-        if kind == 'grammar':
+        if kind == 'kit':
+            from art.city_kit import kit_building
+            b = kit_building(r, side_depth)
+            im, em = b.build()
+            b.sw = b.sd
+            b.door_x -= DOOR_W // 2
+        elif kind == 'grammar':
             from art.modern_grammar import Facade
             b = Facade(r['style'], fw, fh, storeys, seed=seed, deep=r['deep'])
             im, em = b.build()

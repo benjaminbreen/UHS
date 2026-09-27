@@ -118,7 +118,7 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
   const built = (use: string, name: string) =>
     richmond.places.some((q) => q.landUse === use && q.sprite.startsWith(name));
   expect(richmond.places.some((q) => q.landUse === "industrial" && /^modern-(works|sawtooth-shed)/.test(q.sprite))).toBe(true);
-  expect(built("commercial", "modern-commercial-block")).toBe(true);
+  expect(built("commercial", "modern-brickshop")).toBe(true);
   expect(built("downtown", "modern-curtain-tower")).toBe(true);
   expect(
     plan("Richmond 1935").places.some((q) => q.sprite.startsWith("modern-curtain-tower")),

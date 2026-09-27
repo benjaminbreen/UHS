@@ -30,6 +30,7 @@ export function modernBuildingSince(frame: string): number | undefined {
   const rule = STYLES.find((r) => frame.startsWith(`modern-${r.style}-`));
   if (rule) return rule.from;
   if (frame.startsWith("modern-works-")) return 1880;
+  if (frame.startsWith("modern-brickshop-")) return 1860;
   if (frame.startsWith("modern-civic-hall-")) return 1900;
   return undefined;
 }
@@ -48,10 +49,16 @@ const STYLES: readonly StyleRule[] = [
   // The rental palaces of the boom rings, Vienna and Berlin to Budapest,
   // Barcelona and Paris; they stood through every later rebuilding.
   {
-    style: "gruenderzeit",
-    uses: ["tenement", "commercial"],
+    style: "immeuble",
+    uses: ["tenement", "commercial", "downtown"],
     regions: ["western-europe", "eastern-europe"],
-    from: 1860,
+    from: 1850,
+  },
+  {
+    style: "townhouse",
+    uses: ["rowhouse"],
+    regions: ["britain", "north-america", "australasia", "western-europe"],
+    from: 1840,
   },
   // Khrushchev's five storeys from 1957; the same industrial panels built
   // the grands ensembles, the Plattenbau and China's work-unit walk-ups.
@@ -97,9 +104,7 @@ export function modernBuildings(
       s.year < (r.to ?? Infinity) &&
       (!r.regions || r.regions.includes(region)),
   ).flatMap((r) => framesOf(r.style));
-  const blocks = BRICK_BLOCKS.has(region)
-    ? ["modern-commercial-block-0", "modern-commercial-block-1", "modern-commercial-block-2"]
-    : [];
+  const blocks = BRICK_BLOCKS.has(region) ? framesOf("brickshop") : [];
   const towers =
     s.year >= CURTAIN_WALL
       ? ["modern-curtain-tower-0", "modern-curtain-tower-1", "modern-curtain-tower-2"]
