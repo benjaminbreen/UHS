@@ -7,6 +7,8 @@ import { planSettlement } from "../src/world/v3/plan";
 import { route } from "../src/core/routing";
 import { civicProfile } from "../src/content/settlements/civic";
 import { inside } from "../src/world/v3/types";
+import { roadCells } from "../src/world/v3/roads";
+import { modernBuildingSince } from "../src/content/settlements/modern-buildings";
 const resolved = resolveSetting("Rome 100 BCE");
 if ("error" in resolved) throw Error(resolved.error);
 const setting = integratedSetting(resolved.setting);
@@ -115,7 +117,7 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
   // streets, curtain-wall towers downtown once the date allows them.
   const built = (use: string, name: string) =>
     richmond.places.some((q) => q.landUse === use && q.sprite.startsWith(name));
-  expect(built("industrial", "modern-sawtooth-shed")).toBe(true);
+  expect(richmond.places.some((q) => q.landUse === "industrial" && /^modern-(works|sawtooth-shed)/.test(q.sprite))).toBe(true);
   expect(built("commercial", "modern-commercial-block")).toBe(true);
   expect(built("downtown", "modern-curtain-tower")).toBe(true);
   expect(
@@ -186,9 +188,38 @@ it("frames modern civic squares without roads, market stalls or a shared fire", 
     expect(p.objects.filter((o) => inside(square, o.pos.x, o.pos.y)).some((o) =>
       o.kind === "fire" || o.prop === "marketCounter")).toBe(false);
     expect(p.places.some((p) => p.id === "city-civic" && p.sprite.startsWith("modern-civic-hall"))).toBe(true);
+    const road = new Set<string>();
+    for (const r of p.roads.filter((r) => /-(street-\d|avenue-)/.test(r.id)))
+      roadCells(r, (x, y) => road.add(`${x},${y}`));
+    const queue = [road.values().next().value!];
+    road.delete(queue[0]);
+    for (let i = 0; i < queue.length; i++) {
+      const [x, y] = queue[i].split(",").map(Number);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const k = `${x + dx},${y + dy}`;
+        if (road.delete(k)) queue.push(k);
+      }
+    }
+    expect(road.size, "laid streets remain connected after terrain clipping").toBe(0);
+    for (const park of p.plots.filter((p) => p.id.startsWith("city-park-"))) {
+      expect(p.solid.has(`${park.access.x},${park.access.y}`)).toBe(false);
+      expect(p.places.some((b) => b.x < park.x + park.w && b.x + b.w > park.x &&
+        b.y < park.y + park.h && b.y + b.h > park.y)).toBe(false);
+    }
+    for (const enclosure of p.enclosures.filter((e) => e.parts?.some((part) => part.frame.includes("works-fence"))))
+      expect(p.solid.has(`${enclosure.gate.x},${enclosure.gate.y}`)).toBe(false);
+    for (const b of p.places.filter((b) => b.landUse === "industrial"))
+      expect(route(p.spawn, b.entrance, (q) => p.solid.has(`${q.x},${q.y}`) ||
+        Math.abs(q.x) > 160 || Math.abs(q.y) > 160 ? Infinity : 1).status, b.id).toBe("found");
+    expect(p.loadingBays!.size).toBeGreaterThan(0);
+    for (const k of p.loadingBays!.keys()) expect(p.solid.has(k), `loading access ${k}`).toBe(false);
+    for (const b of p.places) {
+      const since = modernBuildingSince(b.sprite);
+      if (since && b.structure) expect(b.structure.built).toBeGreaterThanOrEqual(since);
+    }
     for (let y = square.y; y < square.y + square.h; y++)
       for (let x = square.x; x < square.x + square.w; x++) expect(p.lanes!.has(`${x},${y}`)).toBe(false);
-    expect(p.objects.filter((o) => o.sprite === "study-propb-park-bench-0")).toHaveLength(4);
+    expect(p.objects.filter((o) => o.id.startsWith("city-square-bench-") && o.sprite === "study-propb-park-bench-0")).toHaveLength(4);
     for (const o of p.objects.filter((o) => o.id.includes("-quarter-well"))) {
       expect(o.sprite).toBe("study-propb-pump-0");
       expect(p.pavement!.get(`${o.pos.x},${o.pos.y}`)).toBe("footway");

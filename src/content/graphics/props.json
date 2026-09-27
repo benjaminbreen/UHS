@@ -2887,6 +2887,44 @@
         "Weathered granite",
         "Pale stone"
       ]
+    },
+    {
+      "id": "litter-bin",
+      "name": "Municipal litter basket",
+      "group": "Storage & carrying",
+      "size": [
+        17,
+        26
+      ],
+      "description": "A compact open iron basket with a rolled rim and slatted sides, for parks and civic footways.",
+      "variants": [
+        "Park green",
+        "Blue grey",
+        "Russet"
+      ]
+    },
+    {
+      "id": "municipal-planter",
+      "name": "Municipal flower trough",
+      "group": "Storage & carrying",
+      "size": [
+        34,
+        26
+      ],
+      "description": "A low cast-stone trough with geraniums, for civic footways and park entrances.",
+      "variants": [
+        "Limestone",
+        "Sandstone",
+        "Blue concrete"
+      ]
+    },
+    {
+      "id": "works-fence",
+      "name": "Factory wire fence",
+      "group": "Storage & carrying",
+      "size": [16, 42],
+      "description": "Continuous galvanized mesh panels on steel posts, aligned to the ground grid.",
+      "variants": ["Across", "Depth"]
     }
   ]
 }

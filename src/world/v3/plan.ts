@@ -1,4 +1,6 @@
+import { modernBuildingSince } from "../../content/settlements/modern-buildings";
 import { resolveJunctions } from "./junctions";
+import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
 import {
   generateCharacter,
@@ -102,6 +104,7 @@ import { planRoutines } from "./routines";
 import {
   cellKey,
   eachCell,
+  inside,
   type Rect,
   type Road,
   type SettlementPlan,
@@ -711,7 +714,7 @@ export function planSettlement(
       const next = runs[i + 1];
       if (!next || span < 2) continue;
       const gap = line(points.at(-1)!, next[0]);
-      const wet = gap.every((p) => {
+      const wet = gap.slice(1, -1).every((p) => {
         const f = sample(p.x, p.y);
         const k = cellKey(p.x, p.y);
         return (
@@ -891,6 +894,7 @@ export function planSettlement(
         }
         const lamp = lampFor(pack);
         place(`lamp-${i}`, lamp.label, lamp.sprite, { x: x + 1, y: court.y + (court.h >> 1) });
+        place(`bin-${i}`, "Litter basket", "study-propb-litter-bin-0", { x: x + 3, y: court.y + court.h - 3 });
       }
       const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
       source.name = "Public water pump";
@@ -1246,6 +1250,56 @@ export function planSettlement(
         }
       });
       if (usable < 6) return;
+      if (fabric.motor && rect.w >= 8 && rect.h >= 8) {
+        const cx = rect.x + (rect.w >> 1), cy = rect.y + (rect.h >> 1);
+        const path = (x: number, y: number) => {
+          const k = cellKey(x, y);
+          if (plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
+          setSurface(k, "paving", 12);
+          plan.pavement!.set(k, "footway");
+          plan.streetSurfaces!.set(k, "concrete");
+          plan.traffic.add(k);
+          plan.reserved.add(k);
+        };
+        eachCell(rect, (x, y) => {
+          if (Math.abs(x - cx) <= 1 || Math.abs(y - cy) <= 1 ||
+            x === rect.x || y === rect.y || x === rect.x + rect.w - 1 || y === rect.y + rect.h - 1) path(x, y);
+        });
+        for (let d = -2; d <= 2; d++) {
+          path(rect.x - 1, cy + d); path(rect.x + rect.w, cy + d);
+          path(cx + d, rect.y - 1); path(cx + d, rect.y + rect.h);
+        }
+        plan.plots.push({ ...rect, id: `${site.id}-park-${index}`, kind: "public", access: { x: cx, y: cy } });
+        for (const [i, x] of [rect.x + 3, rect.x + rect.w - 4].entries())
+          for (const [j, y] of [rect.y + 3, rect.y + rect.h - 4].entries()) {
+            if (Math.abs(x - cx) < 3 || Math.abs(y - cy) < 3) continue;
+            const k = cellKey(x, y);
+            if (plan.solid.has(k)) continue;
+            plan.solid.add(k);
+            plan.objects.push({ id: `${site.id}-park-${index}-tree-${i}-${j}`, name: "Park tree", kind: "tree",
+              sprite: pack.trees[(i + j) % pack.trees.length], pos: pos({ x, y }), inventory: {} });
+          }
+        for (const [i, x] of [cx - 3, cx + 3].entries()) {
+          const at = { x, y: cy + 3 }, k = cellKey(x, cy + 3);
+          if (plan.solid.has(k) || x <= rect.x || x >= rect.x + rect.w - 1) continue;
+          plan.objects.push({ id: `${site.id}-park-${index}-bench-${i}`, name: "Park bench", kind: "monument",
+            sprite: "study-propb-park-bench-0", pos: pos(at), inventory: {} });
+          for (let dx = -1; dx <= 1; dx++) plan.solid.add(cellKey(x + dx, at.y));
+        }
+        for (const [i, x] of [cx - 4, cx + 4].entries()) {
+          if (x - 1 <= rect.x || x + 1 >= rect.x + rect.w - 1) continue;
+          const at = { x, y: cy - 3 };
+          if (plan.solid.has(cellKey(x, at.y))) continue;
+          plan.objects.push({ id: `${site.id}-park-${index}-flowers-${i}`, name: "Flower trough", kind: "monument",
+            sprite: "study-propb-municipal-planter-0", pos: pos(at), inventory: {} });
+          for (let dx = -1; dx <= 1; dx++) plan.solid.add(cellKey(x + dx, at.y));
+        }
+        const bin = { x: cx + 2, y: rect.y + rect.h - 2 };
+        plan.objects.push({ id: `${site.id}-park-${index}-bin`, name: "Litter basket", kind: "monument",
+          sprite: "study-propb-litter-bin-0", pos: pos(bin), inventory: {} });
+        plan.solid.add(cellKey(bin.x, bin.y));
+        return;
+      }
       const at = { x: rect.x + (rect.w >> 1), y: rect.y + (rect.h >> 1) },
         treeKey = cellKey(at.x, at.y);
       plan.plots.push({
@@ -1427,7 +1481,7 @@ export function planSettlement(
         id: `${site.id}-${item.id}-${piece.x}-${piece.y}`,
         name: lamp?.label ?? item.label,
         kind: item.kind,
-        sprite: lamp?.sprite ?? item.sprite,
+        sprite: lamp?.sprite ?? (fabric.motor ? "study-propb-municipal-planter-0" : item.sprite),
         pos: pos(piece),
         inventory: {},
       });
@@ -1471,6 +1525,57 @@ export function planSettlement(
           paintVergeWalk,
           paintFootway,
           paintPark,
+          paintIndustrial: (rect, buildings, index) => {
+            const built = (x: number, y: number) => buildings.some((b) => inside(b, x, y));
+            const access = rect.x + rect.w - 2;
+            eachCell(rect, (x, y) => {
+              const k = cellKey(x, y);
+              if (plan.solid.has(k) || plan.lanes?.has(k)) return;
+              setSurface(k, "paving", 12);
+              plan.pavement!.set(k, "square");
+              plan.streetSurfaces!.set(k, x >= access - 2 && !built(x, y) ? "asphalt" : "concrete");
+              plan.reserved.add(k);
+            });
+            const compound = buildings.every((b) => b.x > rect.x && b.y > rect.y &&
+              b.x + b.w <= rect.x + rect.w - 5 && b.y + b.h <= rect.y + rect.h - 5);
+            if (compound) {
+              const gate = { x: rect.x + rect.w - 1, y: rect.y + (rect.h >> 1) };
+              const parts: { x: number; y: number; frame: string }[] = [];
+              eachCell(rect, (x, y) => {
+                const horizontal = y === rect.y || y === rect.y + rect.h - 1;
+                if (!horizontal && x !== rect.x && x !== rect.x + rect.w - 1) return;
+                if (built(x, y) || (horizontal && x >= access - 3) ||
+                  (x === gate.x && Math.abs(y - gate.y) <= 2)) return;
+                parts.push({ x, y, frame: `study-propb-works-fence-${horizontal ? 0 : 1}` });
+                plan.solid.add(cellKey(x, y));
+              });
+              plan.enclosures.push({ ...rect, gate, parts });
+            }
+            plan.loadingBays ??= new Map();
+            for (const [i, b] of buildings.entries()) {
+              const bay = { x: b.x + 2, y: b.y + b.h + 1, w: Math.min(5, b.w - 4), h: 3 };
+              if (bay.y + bay.h < rect.y + rect.h)
+                eachCell(bay, (x, y) => {
+                  if (!built(x, y) && !plan.solid.has(cellKey(x, y))) plan.loadingBays!.set(cellKey(x, y), bay);
+                });
+              const at = { x: b.x + b.w - 2, y: b.y + b.h + 2 };
+              if (at.y >= rect.y + rect.h - 1 || built(at.x, at.y) || plan.solid.has(cellKey(at.x, at.y))) continue;
+              for (let n = 0; n < 2; n++) {
+                const p = { x: at.x + n, y: at.y };
+                if (p.x >= access - 2 || built(p.x, p.y)) continue;
+                plan.objects.push({ id: `${site.id}-works-${index}-drum-${i}-${n}`, name: "Factory oil drum", kind: "monument",
+                  sprite: `study-propb-steel-drum-${(i + n) % 3}`, pos: pos(p), inventory: {} });
+                plan.solid.add(cellKey(p.x, p.y));
+              }
+              const stack = { x: b.x + b.w + 1, y: at.y };
+              if (stack.x + 1 < access - 2 && !built(stack.x, stack.y) && !built(stack.x + 1, stack.y)) {
+                plan.objects.push({ id: `${site.id}-works-${index}-load-${i}`, name: "Packed factory supplies", kind: "monument",
+                  sprite: `study-propb-crate-stack-${i % 3}`, pos: pos(stack), inventory: {} });
+                plan.solid.add(cellKey(stack.x, stack.y));
+                plan.solid.add(cellKey(stack.x + 1, stack.y));
+              }
+            }
+          },
           churchyard: (yard, church) => churchyards.push({ yard, church }),
           plant: (at, key) => {
             const k = cellKey(at.x, at.y);
@@ -1652,6 +1757,7 @@ export function planSettlement(
           paintCourt,
           paintBlock,
         );
+    composeStreetGeometry(plan, urbanLots.flatMap((lot) => lot.rect ? [lot.rect] : []));
     // Composed buildings are installed later; crossings must already respect them.
     const crossingObstacles = new Set(plan.solid);
     for (const lot of urbanLots)
@@ -2889,6 +2995,7 @@ export function planSettlement(
       plan.places.push({
         id,
         name: lot.civic.label,
+        ...(motorAge ? { condition: 0.98 } : {}),
         owner: `${site.id}-community`,
         description: lot.civic.about,
         ...rect,
@@ -2935,8 +3042,10 @@ export function planSettlement(
       owner !== "player" &&
       owner !== owners.at(-1) &&
       !lot.venue &&
+      !(motorAge && (edge < 0.4 || lot.use === "industrial")) &&
       // A curtain wall is too young to have been abandoned decades ago.
       (model as { obliqueModern?: string }).obliqueModern !== "tower" &&
+      (modernBuildingSince(frame) ?? -Infinity) < (pack.setting?.year ?? 0) - 85 &&
       rand("ruin", i) < 0.05 + 0.05 * edge
     ) {
       const year = pack.setting?.year ?? 0;
@@ -2961,7 +3070,7 @@ export function planSettlement(
           seed,
           id,
           fabricOf(model.wall),
-          abandoned - 20 - Math.round(rand("built", i) * 80),
+          Math.max(modernBuildingSince(frame) ?? -Infinity, abandoned - 20 - Math.round(rand("built", i) * 80)),
           abandoned,
           year,
           climate === "arid"
@@ -2993,6 +3102,8 @@ export function planSettlement(
     const wanted =
       owner === "player"
         ? pack.role
+        : lot.use === "industrial" && industrialAge
+          ? "factory-hand"
         : lot.quarter === "market"
           ? "trader"
           : lot.quarter === "craft"
@@ -3066,8 +3177,10 @@ export function planSettlement(
     const central =
       1 -
       Math.min(1, Math.hypot(rect.x - c.x, rect.y - c.y) / (profile.radius || 1));
-    const age = Math.round(
-      (4 + rand("built", i) ** 2 * 150) * (0.35 + central * 0.85),
+    const earliest = modernBuildingSince(frame);
+    const age = Math.min(
+      earliest === undefined ? Infinity : Math.max(0, (pack.setting?.year ?? 0) - earliest),
+      Math.round((4 + rand("built", i) ** 2 * 150) * (0.35 + central * 0.85)),
     );
     const means = MEANS[livelihood?.rank ?? "labouring"];
     const structure = weatherStructure(
@@ -3078,6 +3191,7 @@ export function planSettlement(
       pack.setting?.year ?? 0,
       means,
     );
+    if (motorAge) structure.vegetation *= 0.15;
     plan.places.push({
       structure,
       condition: conditionOf(structure),
@@ -3092,6 +3206,8 @@ export function planSettlement(
       id,
       name: lot.venue
         ? lot.venue.label
+        : lot.use === "industrial"
+          ? model.label.split(" · ")[0]
         : camp
           ? shopfront
             ? `${role}'s ${dwelling.toLowerCase()}`

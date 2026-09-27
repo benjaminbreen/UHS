@@ -349,7 +349,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       // Half the buildings in a town get nothing in the yard at all. Every
       // house with its own bin and washing line is what made a street read as
       // a back yard. The frontage below is placed either way.
-      const bareYard = random(seed, "yard-empty", b.id) < bare;
+      const bareYard = b.landUse === "industrial" || b.landUse === "downtown" ||
+        b.landUse === "commercial" || random(seed, "yard-empty", b.id) < bare;
       // Side-of-house and yard pockets, never entrance tiles or street centers.
       const planned = world.propSlots?.(b.id);
       const pockets: Position[] = planned

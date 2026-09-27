@@ -101,6 +101,7 @@ export type UrbanSurface = {
   paintFootway(rect: Rect): void;
   /** A small public green or deliberately undeveloped lot. */
   paintPark(rect: Rect, index: number): void;
+  paintIndustrial?(rect: Rect, buildings: Rect[], index: number): void;
   /** A tree on open ground inside a block. */
   plant?(at: Point, key: number): boolean;
   /** A walled yard round a church, with its trees and stones. */
@@ -231,9 +232,7 @@ export function siteForm(site: Site, pack: Pack): UrbanForm {
             site.profile.radius >= 90
               ? ([BOULEVARD, MOTOR_SPANS[1], MOTOR_SPANS[2]] as const)
               : MOTOR_SPANS,
-          // A diagonal avenue as wide as these is a staircase of cells with
-          // no kerb or lane to follow it; the grid carries the traffic.
-          diagonals: 0,
+          diagonals: site.profile.radius >= 90 ? 1 : 0,
         }
       : {}),
   };
@@ -507,7 +506,7 @@ export function urbanNeighborhood(
     .entries())
     api.lay(s.a, s.b, `street-${s.tier}-${i}`, layout.tiers[s.tier]);
   for (const [i, s] of layout.diagonals.entries())
-    api.lay(s.a, s.b, `avenue-${i}`, layout.tiers[0]);
+    api.lay(s.a, s.b, `avenue-${i}`, layout.tiers[s.tier]);
   for (const r of layout.verges) {
     api.paintVerge(r);
     api.paintVergeWalk(r);
@@ -590,7 +589,7 @@ export function urbanNeighborhood(
   let civicRect: Rect | undefined;
   // The civic range takes the plaza's head before the square is painted, so the
   // square keeps its full depth in front of the building rather than behind it.
-  const civicBase = modernCivicBuilding(pack.setting!) ?? pack.buildings
+  const civicBase = modernCivicBuilding(pack.setting!, site.profile.radius >= 100) ?? pack.buildings
     .map((base) => `${base}-urban-${civic.form}`)
     .find((frame) => buildingModels[frame]);
   if (civicBase) {
@@ -873,6 +872,7 @@ export function urbanNeighborhood(
   // how long a plan may take to route, spent from the centre outward.
   const quarters = new Map<Block, Quarter>();
   const uses = new Map<Block, LandUse>();
+  const blockKits = new Map<Block, string[]>();
   const rowLanes = new Map<Block, (() => void)[]>();
   const industry = zoning && industrySector();
   // A city with its own cores never reads 0 at the centre, so land value is
@@ -968,12 +968,14 @@ export function urbanNeighborhood(
       )
       .slice(0, parkTarget),
   );
+  for (const rank of parkRanks) reserve(rank.block);
   for (const rank of ranks) {
     if (parkRanks.has(rank) || lots.length >= capacity) continue;
     for (const lot of blockLots(rank.block)) {
       if (lots.length >= capacity) break;
       place(rank, lot);
     }
+    if (uses.get(rank.block) === "industrial" && rank.built) reserve(rank.block);
   }
   if ((candidateBases.length || zoning) && !plotted)
     for (const rank of ranks) {
@@ -1005,6 +1007,11 @@ export function urbanNeighborhood(
     const b = rank.block;
     api.paintPark({ x: b.x + 1, y: b.y + 1, w: b.w - 2, h: b.h - 2 }, i);
   }
+  for (const [i, rank] of ranks.entries())
+    if (uses.get(rank.block) === "industrial" && rank.built)
+      api.paintIndustrial?.(rank.block, lots.filter((l) => l.use === "industrial" &&
+        l.rect.x >= rank.block.x && l.rect.x < rank.block.x + rank.block.w &&
+        l.rect.y >= rank.block.y && l.rect.y < rank.block.y + rank.block.h).map((l) => l.rect), i);
   // Open ground in a plotted town grows trees: singly and in twos and
   // threes, never in a house's overhang or its garden.
   if ((plotted || uses.size) && api.plant)
@@ -1130,7 +1137,7 @@ export function urbanNeighborhood(
       ? side < 0 ? "north" : "south"
       : side < 0 ? "west" : "east";
     const bases = [
-      ...(civicBase ? [`${civicBase}-urban-${civic.form}`] : []),
+      ...(civicBase ? [civicBase] : []),
       ...[...frames].sort(
         (a, b) => buildingModel(b).footprint[0] - buildingModel(a).footprint[0],
       ),
@@ -1190,17 +1197,18 @@ export function urbanNeighborhood(
   }
 
   function onArterial(block: Block) {
-    return layout.streets.some(
-      (s) =>
-        s.tier === 0 &&
-        Math.min(
-          Math.abs(s.a.x - block.x),
-          Math.abs(s.a.x - block.x - block.w),
-          Math.abs(s.a.y - block.y),
-          Math.abs(s.a.y - block.y - block.h),
-        ) <=
-          layout.tiers[0] + 2,
-    );
+    return layout.streets.some((s) => {
+      if (s.tier !== 0) return false;
+      const horizontal = s.a.y === s.b.y;
+      const start = horizontal ? block.x : block.y;
+      const end = start + (horizontal ? block.w : block.h);
+      const lo = Math.min(horizontal ? s.a.x : s.a.y, horizontal ? s.b.x : s.b.y);
+      const hi = Math.max(horizontal ? s.a.x : s.a.y, horizontal ? s.b.x : s.b.y);
+      const level = horizontal ? s.a.y : s.a.x;
+      const side = horizontal ? block.y : block.x;
+      const depth = horizontal ? block.h : block.w;
+      return end > lo && start < hi && Math.min(Math.abs(level - side), Math.abs(level - side - depth)) <= layout.tiers[0] / 2 + (form.verge ?? 0) + 3;
+    });
   }
 
   /** Blocks nearest the square trade; the rest are craft rows, a few grander
@@ -1363,6 +1371,20 @@ export function urbanNeighborhood(
     const chosen = frames.filter((f) => want.some((w) => f.endsWith(`-${w}`)));
     const pool = chosen.length ? chosen : frames;
     return modern ? preferStyle(pool, quarter) : pool;
+  }
+
+  function framesForBlock(block: Block) {
+    let pool = blockKits.get(block);
+    if (pool) return pool;
+    pool = framesFor(quarters.get(block) ?? "residential", uses.get(block));
+    if (zoning && uses.get(block) !== "industrial") {
+      const families = [...new Set(pool.map((f) => f.replace(/-\d+$/, "")))];
+      const family = families[Math.floor(rand("block-family", block.x, block.y) * families.length)];
+      const coherent = pool.filter((f) => f.replace(/-\d+$/, "") === family);
+      if (coherent.length) pool = coherent;
+    }
+    blockKits.set(block, pool);
+    return pool;
   }
 
   function wealthForQuarter(quarter: Quarter) {
@@ -1550,9 +1572,11 @@ export function urbanNeighborhood(
             ? "commercial"
             : zoning.inner
           : undefined;
+      const available = here ? framesFor(quarterFor(here), here) : [];
+      const civicHomes = zoning && reach < 0.4 ? modernBuildings(pack.setting!, "tenement") : [];
       const choices = (
         here
-          ? framesFor(quarterFor(here), here).map((base) => ({
+          ? (civicHomes.length ? civicHomes : available).map((base) => ({
               base,
               model: buildingModel(base),
               kind: here,
@@ -1612,12 +1636,12 @@ export function urbanNeighborhood(
   function infill(rank: (typeof ranks)[number]) {
     const block = rank.block;
     const use = uses.get(block);
-    if (use === "estate") return;
+    if (use === "estate" || use === "industrial" || use === "tenement" || use === "rowhouse") return;
     // Offices, shops and works build over their whole block; homes keep yards.
     const own =
-      use === "downtown" || use === "commercial" || use === "industrial";
+      use === "downtown" || use === "commercial";
     const pool = own
-      ? framesFor(quarters.get(block)!, use).map((base) => ({
+      ? framesForBlock(block).map((base) => ({
           base,
           model: buildingModel(base),
           kind: use,
@@ -1772,10 +1796,45 @@ export function urbanNeighborhood(
    * much taller than it is wide is filled as two columns facing east and
    * west instead. Ends of rows are party walls, so the short sides carry no
    * separate range. */
+  function industrialLots(block: Block): UrbanLot[] {
+    const out: UrbanLot[] = [];
+    const pool = framesForBlock(block).sort((a, b) => {
+      const am = buildingModel(a), bm = buildingModel(b);
+      return Number(b.startsWith("modern-works")) - Number(a.startsWith("modern-works")) ||
+        bm.footprint[0] * bm.footprint[1] - am.footprint[0] * am.footprint[1];
+    });
+    for (let y = block.y + 1, row = 0; y + 11 <= block.y + block.h && row < 5; row++) {
+      let x = block.x + 1, depth = 0;
+      for (let n = 0; n < 5 && x < block.x + block.w - 5; n++) {
+        const choices = n || row || rand("works-kind", block.x, block.y) < 0.35
+          ? [...pool].sort((a, b) => Number(b.includes("sawtooth")) - Number(a.includes("sawtooth"))) : pool;
+        const frame = choices.find((f) => {
+          const [w, h] = buildingModel(f).footprint;
+          return x + w <= block.x + block.w - 5 && y + h + 5 <= block.y + block.h;
+        });
+        if (!frame) break;
+        const model = buildingModel(frame), [w, h] = model.footprint;
+        const rect = { x, y, w, h };
+        const point = { x: x + model.entrance[0], y: y + model.entrance[1] };
+        out.push({ frame, rect, yard: rect, point, workPoint: { x: point.x + 1, y: point.y },
+          nx: 0, ny: -1, quarter: "craft", use: "industrial" });
+        x += w + 4;
+        depth = Math.max(depth, h);
+      }
+      if (!depth) break;
+      y += depth + 10;
+    }
+    return out;
+  }
+
   function blockLots(block: Block): UrbanLot[] {
+    if (uses.get(block) === "industrial") {
+      const works = industrialLots(block);
+      if (works.length) return works;
+    }
     const out: UrbanLot[] = [];
     const use = uses.get(block);
-    const kit = use ? framesFor(quarters.get(block)!, use) : frames;
+    const kit = use ? framesForBlock(block) : frames;
     const depths = kit.map((f) => buildingModel(f).footprint[1]);
     const widths = kit.map((f) => buildingModel(f).footprint[0]);
     const deepest = Math.max(...depths),
@@ -1893,7 +1952,7 @@ export function urbanNeighborhood(
     const vertical = face === "east" || face === "west";
     const nx = face === "west" ? 1 : face === "east" ? -1 : 0,
       ny = face === "north" ? 1 : face === "south" ? -1 : 0;
-    const pool = framesFor(quarter, use).filter((base) => {
+    const pool = framesForBlock(block).filter((base) => {
       const [w, h] = buildingModel(base).footprint;
       return (
         (vertical ? w : h) <= maxDepth &&

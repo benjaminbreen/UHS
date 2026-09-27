@@ -20,9 +20,18 @@ const BRICK_BLOCKS = new Set([
 // Lever House (1952); a city had its first by about 1960.
 const CURTAIN_WALL = 1955;
 
-export function modernCivicBuilding(s: Pick<WorldSetting, "lon" | "lat" | "year">): string | undefined {
+export function modernCivicBuilding(s: Pick<WorldSetting, "lon" | "lat" | "year">, large = false): string | undefined {
   return s.year >= 1900 && BRICK_BLOCKS.has(modernity(s).id)
-    ? "modern-civic-hall-0" : undefined;
+    ? `modern-civic-hall-${large ? 1 : 0}` : undefined;
+}
+
+export function modernBuildingSince(frame: string): number | undefined {
+  if (frame.startsWith("modern-curtain-tower-")) return CURTAIN_WALL;
+  const rule = STYLES.find((r) => frame.startsWith(`modern-${r.style}-`));
+  if (rule) return rule.from;
+  if (frame.startsWith("modern-works-")) return 1880;
+  if (frame.startsWith("modern-civic-hall-")) return 1900;
+  return undefined;
 }
 
 type StyleRule = {
@@ -101,7 +110,7 @@ export function modernBuildings(
     case "commercial":
       return [...styled, ...blocks];
     case "industrial":
-      return ["modern-sawtooth-shed-0", "modern-sawtooth-shed-1"];
+      return [...(s.year >= 1880 ? ["modern-works-0", "modern-works-1", "modern-works-2"] : []), "modern-sawtooth-shed-0", "modern-sawtooth-shed-1"];
     case "estate":
       return styled.length ? styled : towers.slice(0, 1);
     default:

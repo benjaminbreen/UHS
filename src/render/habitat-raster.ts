@@ -240,6 +240,14 @@ function bareHabitatTile(
   cell: TopographyCell,
 ): GroundTileData {
   const street = cell.feature === "paving";
+  if (street && cell.streetGeometry && cell.habitat) {
+    const under = { ...cell, feature: undefined, pavement: undefined, streetMaterial: undefined, surface: "grass" as const };
+    const tile = rasterGroundTile(sample, x, y, ox, oy, art, under);
+    const top = rasterStreetTile(sample, x, y, ox, oy).pixels;
+    for (let i = 0; i < top.length; i += 4)
+      if (top[i + 3]) tile.pixels.set(top.subarray(i, i + 4), i);
+    return tile;
+  }
   if (!street && (!cell.habitat || !wornEdge(cell)))
     return rasterGroundTile(sample, x, y, ox, oy, art, cell);
   if (!street && enclosed(sample, x, y)) {

@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { pathArt } from "../src/world/v3/path-art";
 import { streetMaterial } from "../src/content/settlements/streets";
+import { rasterHabitatTile } from "../src/render/habitat-raster";
 import { rasterStreetTile } from "../src/render/street-raster";
 import { carriagewayPixel } from "../src/render/carriageway";
 import { roadMarkings } from "../src/content/settlements/streets/markings";
@@ -8,6 +9,25 @@ import type { WorldSetting } from "../src/content/geography/types";
 import type { TopographySample } from "../src/core/topography";
 import { resolveJunctions } from "../src/world/v3/junctions";
 import { cellKey, type SettlementPlan } from "../src/world/v3/types";
+import { streetDistance } from "../src/world/v3/street-geometry";
+
+it("keeps diagonal asphalt, curb and sidewalk continuous across tile boundaries", () => {
+  const stroke = { a: [-10.5, -10.5] as [number, number], b: [20.5, 20.5] as [number, number], radius: 2.5 };
+  expect(streetDistance(stroke, 5.5, 5.5)).toBe(-2.5);
+  const sample = (() => ({ height: 0, surface: "grass", feature: "paving", streetMaterial: "asphalt", streetGeometry: { strokes: [stroke], infill: false } })) as TopographySample;
+  const a = rasterStreetTile(sample, 0, 0, 0, 0);
+  const b = rasterStreetTile(sample, -8, -8, 8, 8);
+  expect(a!.pixels).toEqual(b!.pixels);
+  const sidewalk = rasterStreetTile(sample, 4, 0, 0, 0);
+  expect(sidewalk!.pixels).not.toEqual(a!.pixels);
+  const lawnEdge = (() => ({ ...sample(7, 0)!, habitat: {
+    ecology: "grassland", kind: "meadow", wet: 0.4, cover: 0.5, exposed: 0, season: "spring",
+  } })) as TopographySample;
+  const clipped = rasterStreetTile(lawnEdge, 7, 0, 0, 0).pixels;
+  const composed = rasterHabitatTile(lawnEdge, 7, 0, 0, 0).pixels;
+  expect([...clipped].filter((_, i) => i % 4 === 3)).toContain(0);
+  expect([...composed].filter((_, i) => i % 4 === 3).every((v) => v === 255)).toBe(true);
+});
 
 it("resolves a T-junction into complete crossings with two walkable landings", () => {
   const marks = roadMarkings({ lon: 37.6, lat: 55.7, year: 1975 } as WorldSetting);

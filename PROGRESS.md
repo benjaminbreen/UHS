@@ -1,3 +1,21 @@
+## Modern city reference — September 27, 2026
+
+Moscow 1975, seed `world-modern-square-review`, is the fixed in-game reference
+for modern city work. Open `/?start=A%20traveler%20in%20Moscow%2C%201975%20CE&seed=world-modern-square-review`
+and press Begin, then Enter life. The square has a larger clock-fronted hall,
+coherent tenement frontages and municipal furniture. Parks reserve their ground
+before infill. Industrial blocks have brick works, shed ranges, loading bays,
+service access and wire fences with open gates. Street fragments reconnect
+before parcels are placed; diagonal roads share continuous asphalt/curb geometry.
+The prepared-world cache is version 12.
+
+Judge changes in-game at the same seed and 1.25× zoom. Use the existing shot tool:
+`UHS_SEED=modern-square-review UHS_ZOOM=1.25 UHS_AT=0,-3 npm run shot -- artifacts/modern-city-review/showpiece-square.png 'A traveler in Moscow, 1975 CE'`.
+Other reference cameras: diagonal street `65,53`, park `22,-73`, factories
+`-117,69`. Keep park paths, factory gates and building entrances usable; crossing
+paint must land on a clear footway. The street and urban tests cover those layout
+contracts, but a green suite does not replace reviewing these four views.
+
 ## Modern oblique gold masters — September 26, 2026
 
 The first oblique buildings for the industrial and modern city: a brick

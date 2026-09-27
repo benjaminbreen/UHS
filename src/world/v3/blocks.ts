@@ -9,6 +9,7 @@ import type {
 import { urbanFootprint } from "../../content/settlements/scale";
 import { line, spanOffsets } from "./roads";
 import { cellKey, type Rect } from "./types";
+import { connectStreetComponents } from "./street-network";
 
 export type Gate = { point: Point; nx: number; ny: number; axis: "x" | "y" };
 export type Tier = 0 | 1 | 2;
@@ -955,16 +956,27 @@ export function composeUrban(
       [1, 1],
       [-1, 1],
     ].sort((a, b) => rand("diag", a[0], a[1]) - rand("diag", b[0], b[1]));
-    for (const [sx, sy] of corners.slice(0, form.diagonals)) {
+    for (const [sx, sy] of corners) {
+      if (diagonals.length >= form.diagonals) break;
       const a = {
-        x: sx < 0 ? plaza.x - 1 : plaza.x + plaza.w,
-        y: sy < 0 ? plaza.y - 1 : plaza.y + plaza.h,
+        x: civicBlock ? sx < 0 ? civicBlock.west : civicBlock.east : sx < 0 ? plaza.x - 1 : plaza.x + plaza.w,
+        y: civicBlock ? sy < 0 ? civicBlock.north : civicBlock.south : sy < 0 ? plaza.y - 1 : plaza.y + plaza.h,
       };
       let b = a;
       while (holds(b.x + sx, b.y + sy, wallMargin + 1))
         b = { x: b.x + sx, y: b.y + sy };
       if (Math.abs(b.x - a.x) < 12) continue;
-      diagonals.push({ a, b, tier: 0 });
+      if (form.motor) {
+        const meets = streets.flatMap((s) => {
+          const d = axisOf(s) === "x" ? (s.a.y - a.y) / sy : (s.a.x - a.x) / sx;
+          const q = { x: a.x + sx * d, y: a.y + sy * d };
+          const v = axisOf(s) === "x" ? q.x : q.y;
+          return d >= 12 && d <= Math.abs(b.x - a.x) && v >= lo(s) && v <= hi(s) ? [{ q, d }] : [];
+        }).sort((p, q) => q.d - p.d);
+        if (!meets.length) continue;
+        b = meets[0].q;
+      }
+      diagonals.push({ a, b, tier: form.motor ? 1 : 0 });
     }
   }
 
@@ -1161,6 +1173,25 @@ export function composeUrban(
     lines.clear();
     for (const s of streets) mark(s);
   }
+  if (form.motor) {
+    for (const r of squares) {
+      const gap = Math.ceil(street / 2) + 2;
+      const corners = [{ x: r.x - gap, y: r.y - gap }, { x: r.x + r.w + gap - 1, y: r.y - gap },
+        { x: r.x + r.w + gap - 1, y: r.y + r.h + gap - 1 }, { x: r.x - gap, y: r.y + r.h + gap - 1 }];
+      for (const [i, a] of corners.entries()) {
+        const b = corners[(i + 1) % 4];
+        if (line(a, b).every((p) => holds(p.x, p.y, 2))) streets.push({ a, b, tier: 1 });
+      }
+    }
+    connectStreetComponents(streets, (p) => {
+      if (!holds(p.x, p.y, 2)) return false;
+      const spaces = [plaza, ...squares, ...grounds.filter((r): r is Rect => !!r)];
+      if (spaces.some((r) => p.x >= r.x - 2 && p.x < r.x + r.w + 2 && p.y >= r.y - 2 && p.y < r.y + r.h + 2)) return false;
+      return !civicBlock || p.x <= civicBlock.west || p.x >= civicBlock.east || p.y <= civicBlock.north || p.y >= civicBlock.south;
+    });
+    lines.clear();
+    for (const s of streets) mark(s);
+  }
   readBlocks();
   for (const b of blocks) {
     const key = `${b.x},${b.y}`;
@@ -1322,7 +1353,7 @@ export function composeUrban(
       for (const o of all) {
         if (o === s) continue;
         if (axisOf(o) === axisOf(s)) {
-          if (Math.abs(across(o) - level) > tol) continue;
+          if (across(o) !== level) continue;
           out.push({ at: lo(o), reach: 1 }, { at: hi(o), reach: 1 });
           continue;
         }
@@ -1357,7 +1388,9 @@ export function composeUrban(
     const met = (xs: Crossing[], v: number) =>
       xs.some((c) => Math.abs(c.at - v) <= c.reach);
     const carry = (s: Segment, end: number, dir: -1 | 1, xs: Crossing[]) => {
-      if (met(xs, end)) return end;
+      const touching = xs.filter((c) => Math.abs(c.at - end) <= c.reach)
+        .sort((a, b) => Math.abs(a.at - end) - Math.abs(b.at - end))[0];
+      if (touching) return touching.at;
       const ahead = xs
         .filter((c) => (c.at - end) * dir > 0)
         .sort((a, b) => Math.abs(a.at - end) - Math.abs(b.at - end));

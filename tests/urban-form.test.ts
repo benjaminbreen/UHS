@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { composeUrban, urbanGates, nearestGate } from "../src/world/v3/blocks";
+import { streetComponents } from "../src/world/v3/street-network";
 import {
   urbanForm,
   genericForm,
@@ -34,6 +35,18 @@ const pack = packForSetting(
 const center = { x: 0, y: 0 };
 const compose = (form: UrbanForm, radius = 96, seed = "seed") =>
   composeUrban("site", center, radius, form, seed);
+
+it("connects modern districts around pedestrian squares before parcel placement", () => {
+  const form = { ...at("european", 37.6, 55.7, 1975), motor: true, tiers: [12, 5, 3] as const, diagonals: 1 };
+  for (const radius of [90, 140])
+    for (const seed of ["modern-square-review", "zoning", "another-square", "north", "south"]) {
+      const p = compose(form, radius, seed);
+      expect(new Set(streetComponents(p.streets)).size, `${radius}/${seed}`).toBe(1);
+      for (const s of p.streets)
+        expect(s.a.x === s.b.x || s.a.y === s.b.y).toBe(true);
+      if (radius === 140) expect(p.diagonals.length).toBeGreaterThan(0);
+    }
+});
 
 it("selects street fabric by culture, date and place, with a labelled fallback", () => {
   expect(at("east-asian", 116, 40, 1450).id).toBe("chinese-ward-grid");

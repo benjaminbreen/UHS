@@ -91,6 +91,8 @@ export type SettlementPlan = {
   pavement?: Map<string, Pavement>;
   lanes?: Map<string, Lane>;
   junctions?: Junction[];
+  streetGeometry?: Map<string, import("./street-geometry").StreetGeometry>;
+  loadingBays?: Map<string, Rect>;
   tracks?: Map<string, Track>;
   traffic: Set<string>;
   reserved: Set<string>;

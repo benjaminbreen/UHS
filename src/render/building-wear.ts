@@ -27,7 +27,7 @@ export function buildingWear(
     forge?: number[];
   },
 ) {
-  const moss = Math.round((damp[options.climate ?? ""] ?? 0.5) * (0.5 + options.neglect) * 4);
+  const moss = Math.round((damp[options.climate ?? ""] ?? 0.5) * options.neglect * 4);
   const key = `wear:${frame}:${moss}:${options.forge ? 1 : 0}`;
   if (scene.textures.exists(key)) return key;
   if (!moss && !options.smoke.length && !options.forge) return undefined;

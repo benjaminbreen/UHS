@@ -36,6 +36,8 @@ export type TopographyCell = {
   moisture?: number;
   pavement?: import("../world/v3/types").Pavement;
   lane?: import("../world/v3/types").Lane;
+  streetGeometry?: import("../world/v3/street-geometry").StreetGeometry;
+  loadingBay?: import("../world/v3/types").Rect;
   track?: import("../world/v3/types").Track;
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
   habitat?: import("../world/v3/habitats").Habitat;

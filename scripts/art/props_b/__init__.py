@@ -8,7 +8,7 @@ from .harvest import sheaf, spade
 from .town import town_well, grinder, sickle, axe, pick, drying_rack
 from .workshop import chest, bench, park_bench, anvil, loom
 from .household import sack, cooking_pot, stool, catch
-from .industrial import dustbin, steel_drum, wheelbarrow, washing_line
+from .industrial import dustbin, litter_bin, municipal_planter, works_fence, steel_drum, wheelbarrow, washing_line
 from . import fallen as _fallen
 from .lamps import LAMPS
 from .traffic import TRAFFIC
@@ -69,6 +69,9 @@ DRAW_B = {
  'flask': flask,
  'bowl': bowl,
  'dustbin': dustbin,
+ 'litter-bin': litter_bin,
+ 'municipal-planter': municipal_planter,
+ 'works-fence': works_fence,
  'steel-drum': steel_drum,
  'wheelbarrow': wheelbarrow,
  'washing-line': washing_line,
@@ -100,7 +103,7 @@ DRAW_B.update(SACRED)
 
 # Boxy families that stand beside buildings take the buildings' oblique view.
 # Round ones are left alone: a barrel looks the same from every side.
-OBLIQUE = ['crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench', 'park-bench',
+OBLIQUE = ['municipal-planter', 'crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench', 'park-bench',
            'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern', *PITCHES,
            'saint-niche', 'newsstand', 'street-fountain', 'street-notice', 'market-display', 'water-station',
            'farm-cart', 'privy-shed', 'privy-stone', 'privy-outhouse', 'granary-staddle', 'granary-stilt']

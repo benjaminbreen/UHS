@@ -1,3 +1,4 @@
+import { motorized } from "../../content/settlements/modernity";
 import { carryKit, withLoads } from "../../content/economy/carrying";
 import {
   characterSex,
@@ -140,6 +141,7 @@ export function populateHouseholds(
         ...weatherStructure(seed, place.id, fabric, story.weatherFrom, year, story.fortune),
         built,
       };
+      if (pack.setting && motorized(pack.setting)) place.structure.vegetation *= 0.15;
       place.condition = conditionOf(place.structure);
     }
     let partnerId: string | undefined;

@@ -5,6 +5,7 @@ import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
+import { streetDistance } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type RGB = readonly number[];
 const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
@@ -246,6 +247,33 @@ export function rasterStreetTile(
             ],
             (py * 16 + px) * 4,
           );
+        continue;
+      }
+      if (c.loadingBay && !track) {
+        const bay = c.loadingBay, bx = wx - bay.x * 16, by = wy - bay.y * 16;
+        const edge = bx < 2 || bx >= bay.w * 16 - 2 || by < 2;
+        const colour = edge && hash(wx, wy, 793) > 0.07
+          ? [222, 211, 161] : pavingStonePixel(wx, wy, "concrete", "broad");
+        pixels.set([...colour, 255], (py * 16 + px) * 4);
+        continue;
+      }
+      if (c.streetGeometry && !track) {
+        const { strokes, infill } = c.streetGeometry;
+        const distances = strokes.map((s) => streetDistance(s, (wx + 0.5) / 16, (wy + 0.5) / 16) * 16);
+        const d = Math.min(...distances);
+        if (d > 32 && !infill) continue;
+        let colour: RGB = d < 0 ? asphaltPixel(wx, wy) : pavingStonePixel(wx, wy, "concrete", "street");
+        if (d >= -4 && d < 0) colour = lit(COURSE.sett, -2);
+        if (d >= 0 && d < 3) colour = lit(COURSE.concrete, d < 1 ? 2 : -2);
+        if (d < -5) for (const [i, s] of strokes.entries()) {
+          if (distances.some((v, j) => j !== i && v < 12)) continue;
+          const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len = Math.hypot(dx, dy);
+          const px = wx + 0.5 - s.a[0] * 16, py = wy + 0.5 - s.a[1] * 16;
+          const side = (px * dy - py * dx) / len, along = (px * dx + py * dy) / len;
+          if (along > 32 && along < len * 16 - 32 && Math.abs(side) < 1 && mod(along, 48) < 22)
+            colour = [224, 222, 208];
+        }
+        pixels.set([...colour, 255], (py * 16 + px) * 4);
         continue;
       }
       const straight = Math.min(

@@ -5,6 +5,68 @@ from .workshop import streak
 WOOD7 = ['oak7', 'walnut7', 'ash7']
 
 
+def litter_bin(v=0):
+ """An open municipal basket, with a rolled rim and slats on an iron stand."""
+ c = Canvas(15, 24)
+ palettes = [ ['#1e302e', '#304742', '#456058', '#658071', '#98aa8d'],
+              ['#263138', '#3b4d58', '#536a73', '#789099', '#a6b7b7'],
+              ['#392b29', '#58403a', '#79574b', '#a07960', '#bba68a'] ]
+ p = palettes[v]
+ for y in range(3, 9):
+  for x in range(2, 13):
+   if ((x - 7) / 5.5) ** 2 + ((y - 5.5) / 3) ** 2 <= 1:
+    c.set(x, y, p[0] if 3 < x < 11 and 4 <= y <= 6 else p[2])
+ for x in range(3, 13, 2):
+  c.rect(x, 7, x, 19, p[3] if x < 7 else p[1])
+  c.set(x, 8, p[4] if x < 7 else p[2])
+ for y in (9, 17, 20):
+  c.hline(3, 11, y, p[2]); c.hline(3, 6, y, p[3])
+ c.rect(6, 20, 8, 23, p[1])
+ c.hline(4, 10, 23, p[2])
+ c.hline(3, 11, 3, p[3]); c.hline(4, 8, 3, p[4])
+ return c.image()
+
+
+def municipal_planter(v=0):
+ """A low cast-stone trough with geraniums; about 1.6 metres across."""
+ c = Canvas(29, 23)
+ stone = [['#595f5b', '#7b8076', '#a5a899', '#c6c5ad', '#e2dcc2'],
+          ['#5b5550', '#81796b', '#a89d85', '#c8b99c', '#e1cfad'],
+          ['#444e53', '#66747b', '#8b9b9d', '#b0bbba', '#d4d8cf']][v]
+ c.rect(2, 11, 26, 19, stone[2]); c.hline(3, 25, 20, stone[1])
+ c.rect(4, 21, 8, 22, stone[0]); c.rect(21, 21, 24, 22, stone[0])
+ c.rect(0, 8, 28, 11, stone[3]); c.hline(0, 28, 8, stone[4])
+ c.hline(2, 26, 9, '#454238'); c.hline(2, 26, 12, stone[1])
+ for x in range(4, 26, 5):
+  c.rect(x, 5, x + 1, 9, '#435c36')
+  c.hline(x - 2, x + 3, 6, '#638049'); c.hline(x - 1, x + 2, 5, '#8d9a54')
+  c.rect(x - 1, 2 + x % 3, x + 2, 4 + x % 3, '#913f47')
+  c.hline(x - 1, x + 1, 2 + x % 3, '#d47772'); c.set(x, 3 + x % 3, '#e7ad81')
+ for x in (5, 14, 22): c.set(x, 15, stone[3]); c.set(x + 1, 17, stone[1])
+ return c.image()
+
+
+def works_fence(v=0):
+ """One ground-grid cell of wire mesh, 1.4m high; across and into the scene."""
+ c = Canvas(16, 26 if v == 0 else 42)
+ if v == 0:
+  for y in range(4, 24):
+   for x in range(16):
+    if (x + y) % 7 == 0 or (x - y) % 7 == 0:
+     c.set(x, y, '#839087' if (x + y) % 7 == 0 else '#526663')
+  for y in (3, 23): c.hline(0, 15, y, '#667b77')
+  c.rect(0, 1, 1, 25, '#445751'); c.vline(0, 1, 24, '#a0aaa0')
+  c.hline(0, 2, 0, '#b9c0ae'); c.hline(0, 3, 25, '#394942')
+ else:
+  for y in range(4, 40):
+   c.set(8, y, '#5a716b')
+   if y % 4 < 2: c.set(9, y, '#91a096')
+  c.rect(6, 0, 7, 25, '#425750'); c.vline(6, 0, 24, '#a0aaa0')
+  c.rect(6, 16, 7, 41, '#425750'); c.vline(6, 16, 40, '#a0aaa0')
+  c.hline(5, 8, 16, '#bdc2b0'); c.hline(5, 9, 41, '#394942')
+ return c.image()
+
+
 def dustbin(v=0):
  """A galvanised bin: ribbed body, rimmed lid, riveted handles, one dent."""
  c = Canvas(19, 26)

@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from art.buildings import DOOR_W, DOOR_H  # noqa: E402
 from art.oblique_style import STOREY  # noqa: E402
 from art.oblique_modern import (  # noqa: E402
-    Face, Modern, h2, night, GLASS, WARM, COOL, TAR, STONE, ALUMINIUM,
+    Face, Modern, h2, night, GLASS, WARM, COOL, TAR, STONE, ALUMINIUM, brick_wall,
 )
 
 STYLES = {}
@@ -140,7 +140,7 @@ class Facade(Modern):
         s.crown(self, front, p)
         side = Face(D, H)
         s.side(self, side, H, p)
-        above = 14
+        above = getattr(s, 'headroom', 14)
         rim = p.get('rim', STONE + ['#f1ead3'])
         top, _ = self.flat_top(W + D + 1, D + above + 2, D + above + 1,
                                p.get('roof', s.roof_fill), rim,
@@ -252,7 +252,12 @@ class Gruenderzeit(Style):
                 continue
             f.rect(x0, y + 6, x1, H - 3, s[1])
             f.rect(x0 + 1, y + 8, x1 - 1, H - 7, GLASS[1])
-            f.rect(x0 + 1, y + 8, x1 - 1, y + 10, GLASS[2])
+            f.rect(x0 + 1, y + 8, x1 - 1, y + 14, '#789594')
+            f.rect(x0 + 1, y + 15, x1 - 1, y + 17, '#546f70')
+            for sx in range(x0 + 4, x1 - 4, 11):
+                f.rect(sx, H - 12, sx + 4, H - 8, '#8b7856')
+                f.rect(sx, H - 13, sx + 3, H - 12, '#b5ab84')
+            f.d.line((x0 + 2, y + 9, x0 + 8, y + 15), fill='#a2b5a9')
             f.glow(x0 + 1, y + 8, x1 - 1, H - 7)
             for mx in range(x0 + 1 + (x1 - x0) // 3, x1 - 1, max(4, (x1 - x0) // 3)):
                 f.rect(mx, y + 8, mx, H - 7, s[3])
@@ -527,6 +532,7 @@ class CivicHall(Style):
     bay = 24
     crown_h = 14
     ground_h = STOREY + 16
+    headroom = 30
 
     def palette(self, seed):
         return {'wall': ramp('#c6c2ac'), 'trim': ramp('#ddd8c4'), 'roof': '#767a72'}
@@ -536,6 +542,10 @@ class CivicHall(Style):
         f.rect(0, y + self.storey_h - 2, b.W - 1, y + self.storey_h - 1, t[2])
         for i, (x0, x1) in enumerate(self.bays(b.W)):
             self.window(f, (x0 + x1) // 2 - 5, y + 5, 10, 17, b.lit(i, n), p, t[3])
+        for x in (5, 10, b.W - 14, b.W - 9, b.W // 2 - 31, b.W // 2 + 28):
+            f.rect(x, y, x + 3, y + self.storey_h - 3, t[2])
+            f.rect(x, y, x, y + self.storey_h - 3, t[4])
+            f.rect(x - 1, y, x + 4, y + 2, t[3])
 
     def ground(self, b, f, y, p):
         w, t = p['wall'], p['trim']
@@ -564,6 +574,84 @@ class CivicHall(Style):
         t = p['trim']
         for y, tone in [(0, 4), (1, 3), (2, 2), (10, 3), (11, 4), (12, 2), (13, 0)]:
             f.rect(0, y, b.W - 1, y, t[tone])
+        for x in range(4, b.W - 3, 6):
+            f.rect(x, 5, x + 2, 8, t[3])
+            f.rect(x + 2, 7, x + 3, 9, t[0])
+
+    def roof(self, b, top, base_y, p):
+        t, cx = p['trim'], b.W // 2 + b.sw // 2
+        y = base_y - b.sw // 2
+        top.rect(cx - 32, y - 12, cx + 32, y, t[2])
+        for k in range(14):
+            half = 34 - k * 2
+            top.rect(cx - half, y - 12 - k, cx + half, y - 12 - k, t[3])
+            top.px(cx - half, y - 12 - k, t[4])
+            top.px(cx + half, y - 12 - k, t[0])
+        top.rect(cx - 32, y - 11, cx + 32, y - 9, t[4])
+        top.d.ellipse((cx - 6, y - 22, cx + 6, y - 10), fill=t[0])
+        top.d.ellipse((cx - 5, y - 21, cx + 5, y - 11), fill='#e8dfb9')
+        top.d.line((cx, y - 20, cx, y - 16, cx + 3, y - 14), fill='#4e554e')
+        for x in range(6, b.W - 5, 9):
+            if abs(x - cx) < 36: continue
+            top.rect(x, y - 5, x + 2, y, t[2])
+            top.rect(x, y - 6, x + 6, y - 5, t[4])
+
+
+@style
+class Works(Style):
+    key = 'works'
+    label = 'Brick engineering works'
+    about = 'A brick workshop range with steel-framed factory windows, loading doors, a hoist beam and a working boiler stack.'
+    since = 1880
+    bay = 26
+    ground_h = STOREY + 16
+    crown_h = 9
+    headroom = 48
+    material = 'grey-brick'
+
+    def palette(self, seed):
+        return {'wall': ramp('#9a6250'), 'trim': ramp('#b8b4a0'), 'roof': '#59625b'}
+
+    def wall(self, f, x0, y0, x1, y1, p, seed, side=False):
+        pal = [shade(c, -20) for c in p['wall']] if side else p['wall']
+        brick_wall(f, x0, y0, x1, y1, pal, seed, mortar='#827a67')
+
+    def storey(self, b, f, y, n, p):
+        for i, (x0, x1) in enumerate(self.bays(b.W)):
+            x, w = x0 + 5, x1 - x0 - 9
+            self.window(f, x, y + 5, w, 19, b.lit(i, n), p, '#798679')
+            for yy in (y + 11, y + 17):
+                f.rect(x, yy, x + w - 1, yy, '#536055')
+            f.rect(x - 2, y + 25, x + w + 1, y + 26, p['trim'][2])
+        for x in range(0, b.W, self.bay):
+            f.rect(x, y, x + 2, y + self.storey_h - 1, p['wall'][1])
+            f.rect(x, y, x, y + self.storey_h - 1, p['wall'][4])
+
+    def ground(self, b, f, y, p):
+        self.storey(b, f, y, 0, p)
+        for cx in (b.W // 4, b.W * 3 // 4):
+            f.rect(cx - 13, y + 6, cx + 13, f.h - 2, p['trim'][1])
+            f.rect(cx - 11, y + 8, cx + 11, f.h - 2, '#344b49')
+            for yy in range(y + 10, f.h - 2, 4): f.rect(cx - 10, yy, cx + 10, yy, '#546861')
+            f.rect(cx, y + 8, cx, f.h - 2, '#233b3b')
+            f.rect(cx - 16, y + 3, cx + 16, y + 5, '#343d3a')
+            f.px(cx - 14, y + 4, '#a9a48b')
+            f.px(cx + 14, y + 4, '#a9a48b')
+        door(f, b.door_x, f.h, ramp('#466057'), p['trim'][2], GLASS[1])
+        f.rect(b.door_x - 6, y - 1, b.door_x + 16, y + 2, '#3f504c')
+
+    def roof(self, b, top, base_y, p):
+        x, y = b.W - 24, base_y - b.sw // 2
+        top.rect(x, y - 43, x + 10, y, p['wall'][2])
+        top.rect(x, y - 43, x + 2, y, p['wall'][4])
+        top.rect(x + 8, y - 43, x + 10, y, p['wall'][0])
+        for yy in range(y - 40, y, 5): top.rect(x, yy, x + 10, yy, p['wall'][1])
+        top.rect(x - 2, y - 45, x + 12, y - 42, p['wall'][3])
+        top.rect(x, y - 45, x + 10, y - 44, '#34372f')
+        b.smoke = [[x + 5, y - 45, 'chimney']]
+        for vx in range(24, b.W - 45, 38):
+            top.rect(vx, y - 8, vx + 10, y, '#56645e')
+            top.rect(vx - 2, y - 9, vx + 12, y - 7, '#b2b5a1')
 
 
 # --- Catalogue ------------------------------------------------------------
@@ -571,6 +659,10 @@ class CivicHall(Style):
 # name: (style, footprint, storeys, seed). The atlas frames the city builds.
 CATALOG = {
     'modern-civic-hall-0': ('civic-hall', [14, 6], 3, 3),
+    'modern-civic-hall-1': ('civic-hall', [18, 7], 3, 11),
+    'modern-works-0': ('works', [14, 8], 2, 5),
+    'modern-works-1': ('works', [10, 7], 2, 13),
+    'modern-works-2': ('works', [8, 6], 1, 21),
     'modern-gruenderzeit-0': ('gruenderzeit', [10, 6], 5, 3),
     'modern-gruenderzeit-1': ('gruenderzeit', [8, 6], 5, 11),
     'modern-gruenderzeit-2': ('gruenderzeit', [8, 6], 4, 19),
@@ -587,6 +679,7 @@ CATALOG = {
 # --- Review sheet ---------------------------------------------------------
 
 SAMPLES = [
+    ('works', 14, 8, 2), ('works', 8, 6, 1),
     ('civic-hall', 14, 6, 3),
     ('gruenderzeit', 10, 6, 5), ('gruenderzeit', 8, 6, 4),
     ('khrushchyovka', 12, 6, 5), ('khrushchyovka', 8, 6, 5),

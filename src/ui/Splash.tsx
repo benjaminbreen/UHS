@@ -52,7 +52,7 @@ export function Splash({
   }>();
   const [aboutOpen, setAboutOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(() => new URLSearchParams(location.search).get("start") ?? "");
   const [mode, setMode] = useState<"local" | "model">("local");
   const [busy, setBusy] = useState("");
   const [arrival, setArrival] = useState<{ setting: WorldSetting; engine?: Engine; cancel?: () => void }>();
@@ -60,7 +60,7 @@ export function Splash({
   const [panel, setPanel] = useState<"world" | "about" | "sources" | null>(
     null,
   );
-  const [seed] = useState(() => `world-${crypto.randomUUID()}`);
+  const [seed] = useState(() => new URLSearchParams(location.search).get("seed") ?? `world-${crypto.randomUUID()}`);
   const controller = useRef<AbortController | null>(null);
   const dialog = useRef<HTMLElement>(null);
   const bannerImg = useRef<HTMLImageElement>(null);
@@ -146,7 +146,7 @@ export function Splash({
   };
   // Open on a random start rather than an empty box.
   useEffect(() => {
-    void randomize();
+    if (!new URLSearchParams(location.search).has("start")) void randomize();
   }, []);
   const region = selected
     ? regionAt(selected.setting.lon, selected.setting.lat)
@@ -167,7 +167,7 @@ export function Splash({
     void import("../render/scene-assets").then((m) => m.warmSceneAssets());
     try {
       const { prepareConnectedStart } = await import("../runtime/map-travel");
-      let worldSeed = `world-${crypto.randomUUID()}`;
+      let worldSeed = seed;
       let setting;
       if (selection) {
         setting = selection.setting;

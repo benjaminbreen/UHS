@@ -1798,6 +1798,10 @@ export function createSettlementWorld(
           cell.pavement = pavement;
         const lane = p.lanes?.get(key);
         if (lane && cell.feature === "paving") cell.lane = lane;
+        const geometry = p.streetGeometry?.get(key);
+        if (geometry && cell.feature === "paving") cell.streetGeometry = geometry;
+        const bay = p.loadingBays?.get(key);
+        if (bay && cell.feature === "paving") cell.loadingBay = bay;
         const track = p.tracks?.get(key);
         if (track && cell.feature === "paving") cell.track = track;
         // Authored block ground and courts are areas, not thin paths. Preserve
