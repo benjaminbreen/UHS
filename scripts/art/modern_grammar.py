@@ -634,9 +634,6 @@ class Works(Style):
 CATALOG = {
     'modern-civic-hall-0': ('civic-hall', [14, 6], 3, 3),
     'modern-civic-hall-1': ('civic-hall', [18, 7], 3, 11),
-    'modern-works-0': ('works', [14, 8], 2, 5),
-    'modern-works-1': ('works', [10, 7], 2, 13),
-    'modern-works-2': ('works', [8, 6], 1, 21),
     'modern-gruenderzeit-0': ('gruenderzeit', [10, 6], 5, 3),
     'modern-gruenderzeit-1': ('gruenderzeit', [8, 6], 5, 11),
     'modern-gruenderzeit-2': ('gruenderzeit', [8, 6], 4, 19),

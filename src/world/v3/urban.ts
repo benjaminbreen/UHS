@@ -968,7 +968,10 @@ export function urbanNeighborhood(
   const parkTarget = Math.round(layout.blocks.length * (form.greenSpaces ?? 0));
   const parkRanks = new Set(
     ranks
-      .filter((rank) => rank.block.reach > 0.3)
+      // Not a block a landmark already stands on.
+      .filter((rank) => rank.block.reach > 0.3 && !lots.some(({ rect: r }) =>
+        r.x < rank.block.x + rank.block.w && rank.block.x < r.x + r.w &&
+        r.y < rank.block.y + rank.block.h && rank.block.y < r.y + r.h))
       .sort(
         (a, b) =>
           rand("park", a.block.x, a.block.y) -

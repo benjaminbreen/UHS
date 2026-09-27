@@ -1770,6 +1770,27 @@ KIT = {
     'modern-atelier-1': ('atelier', [7, 4], 1, 33, dict(roof='slate', coach=True)),
     'modern-atelier-2': ('atelier', [4, 4], 1, 35, dict(wall=BRICK, roof='slate')),
     'modern-atelier-3': ('atelier', [6, 4], 1, 37, dict(wall=BRICK, coach=True)),
+    'modern-hoteldeville-small-0': ('hotel', [12, 8], 2, 71, dict(stone=WARM_LIME)),
+    'modern-hoteldeville-medium-0': ('hotel', [16, 9], 3, 72, dict(stone=LIME)),
+    'modern-hoteldeville-large-0': ('hotel', [22, 10], 3, 73, dict(stone=WARM_LIME)),
+    'modern-opera-small-0': ('opera', [11, 8], 2, 81, dict()),
+    'modern-opera-medium-0': ('opera', [16, 10], 2, 82, dict()),
+    'modern-opera-large-0': ('opera', [22, 12], 2, 83, dict()),
+    'religious-gothic-small-0': ('church', [8, 6], 2, 91, dict(look=0)),
+    'religious-gothic-small-1': ('church', [8, 6], 2, 94, dict(look=1)),
+    'religious-gothic-small-2': ('church', [8, 6], 2, 97, dict(look=2)),
+    'religious-gothic-medium-0': ('church', [14, 8], 2, 92, dict(look=0)),
+    'religious-gothic-medium-1': ('church', [14, 8], 2, 95, dict(look=1)),
+    'religious-gothic-medium-2': ('church', [14, 8], 2, 98, dict(look=2)),
+    'religious-gothic-large-0': ('church', [20, 10], 2, 93, dict(look=0)),
+    'religious-gothic-large-1': ('church', [20, 10], 2, 96, dict(look=1)),
+    'religious-gothic-large-2': ('church', [20, 10], 2, 99, dict(look=2)),
+    'modern-works-0': ('mill', [18, 10], 3, 5, dict()),
+    'modern-works-1': ('mill', [14, 9], 3, 13, dict()),
+    'modern-works-2': ('mill', [10, 8], 2, 21, dict()),
+    'modern-institute-small-0': ('institute', [9, 7], 2, 101, dict()),
+    'modern-institute-medium-0': ('institute', [12, 8], 2, 102, dict()),
+    'modern-institute-large-0': ('institute', [16, 9], 2, 103, dict()),
     'modern-civic-hall-0': ('mairie', [14, 6], 2, 3, dict(sign='~')),
     'modern-civic-hall-1': ('mairie', [18, 7], 2, 11, dict(sign='~')),
 }
@@ -1778,6 +1799,11 @@ ABOUT = {
     'immeuble': 'An apartment house of the boulevard age: shops in a rusticated ground storey, iron balconies, a cornice and a slate mansard with dormers.',
     'townhouse': 'A brick terrace house: stone quoins and dressings, sash windows, a door raised up a stoop behind area railings.',
     'atelier': 'A yard range of one storey: a workshop, stable or coach house behind the street front.',
+    'hotel': 'The town hall of a boulevard-age city: a rusticated arcade, pedimented windows between pilasters, pavilions under steep roofs and a belfry over the clock.',
+    'opera': 'An opera house of the boulevard age: steps the width of the front, an arcaded loggia, paired columns, a gilt attic and a copper dome over the stage.',
+    'church': 'A Gothic parish church seen from the south: a west tower and spire, buttressed aisles under a clerestory, the transept gable with its rose window over the south door, and the apse at the east end.',
+    'mill': 'A brick mill of the 1880s: storeys of segmental windows between pilaster strips, loading doors under a hoist, a stair tower with its water tank, and the stack.',
+    'institute': 'A workers\' institute: a meeting hall over reading rooms in red brick and stone, a pedimented door up a flight of steps, a lantern on the ridge.',
     'mairie': 'A town hall: a pedimented pavilion on columns, wings of tall windows, a roof lantern with the flag.',
 }
 
@@ -1785,14 +1811,14 @@ ABOUT = {
 def kit_recipes(side_depth):
     out = {}
     for name, (kind, fp, storeys, seed, o) in KIT.items():
-        deep = (storeys >= 4 or kind == 'mairie') and kind != 'atelier'
+        deep = (storeys >= 4 or kind in ('mairie', 'hotel', 'opera', 'church', 'mill', 'institute')) and kind != 'atelier'
         out[name] = {
             'label': {'immeuble': 'Apartment house', 'townhouse': 'Brick town house', 'mairie': 'Town hall',
-                      'atelier': 'Yard workshop'}[kind]
+                      'atelier': 'Yard workshop', 'hotel': 'Town hall', 'opera': 'Opera house', 'church': 'Parish church', 'mill': 'Works', 'institute': 'Institute'}[kind]
             if 'brickshop' not in name else 'Brick shop block',
             'footprint': fp, 'entrance': [fp[0] // 2, fp[1]],
             'wall': 'grey-brick', 'roof': 'flat', 'roofMaterial': 'slate', 'attachments': [],
-            'opening': 'door', 'height': 62 if kind == 'atelier' else GROUND + STOREY * storeys + 30,
+            'opening': 'door', 'height': 62 if kind == 'atelier' else 200 if kind in ('hotel', 'opera', 'church', 'mill', 'institute') else GROUND + STOREY * storeys + 30,
             'description': ABOUT[kind], 'obliqueModern': 'kit', 'seed': seed,
             'stories': storeys, 'deep': deep,
         }
@@ -1812,6 +1838,22 @@ def kit_building(r, side_depth):
         return Immeuble(storeys=storeys, seed=seed, W=W, sd=sd, **o)
     if kind == 'atelier':
         return Atelier(seed=seed, W=W, sd=sd, **o)
+    if kind == 'hotel':
+        from art.city_civic import HotelDeVille
+        return HotelDeVille(W=W, sd=sd, seed=seed, storeys=storeys, **o)
+    if kind == 'opera':
+        from art.city_civic import OperaHouse
+        return OperaHouse(W=W, sd=sd, seed=seed, **o)
+    if kind == 'mill':
+        from art.city_civic import Mill
+        return Mill(W=W - 26, sd=sd, seed=seed, storeys=storeys)
+    if kind == 'institute':
+        from art.city_civic import Institute
+        return Institute(W=W, sd=sd, seed=seed)
+    if kind == 'church':
+        from art.city_civic import GothicChurch, GREY_STONE, RED_SAND, LEAD
+        stone, roof = ((GREY_STONE, LEAD), (WARM_LIME, SLATE), (RED_SAND, SLATE))[o['look']]
+        return GothicChurch(W=W, sd=sd, seed=seed, stone=stone, roof=roof)
     if kind == 'townhouse':
         return TownHouse(storeys=storeys, seed=seed, W=W, sd=sd, **o)
     return Mairie(seed=seed, W=W, sd=sd, **o)

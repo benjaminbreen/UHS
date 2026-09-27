@@ -528,7 +528,10 @@ export const venues: readonly Venue[] = [
     weight: 12,
     sign: "lantern",
     building: "theatre-opera-house",
-    eras: [{ from: 1680, to: 1800, building: "theatre-court-opera" }],
+    eras: [
+      { from: 1680, to: 1800, building: "theatre-court-opera" },
+      { from: 1830, to: 10001, building: "modern-opera" },
+    ],
     note: "A box taken for the season, and the performance the least of what happens there.",
     sources: [],
   },
@@ -710,6 +713,7 @@ export const venues: readonly Venue[] = [
     eras: [
       { from: 400, to: 1500, building: "hall-moot-hall" },
       { from: 1500, to: 1800, building: "hall-rathaus" },
+      { from: 1830, to: 10001, building: "modern-hoteldeville" },
     ],
     note: "The corporation's own room, with the measures and the charter locked in it.",
     sources: [],
@@ -747,6 +751,7 @@ export const venues: readonly Venue[] = [
     eras: [
       { from: 400, to: 1500, building: "hall-moot-hall" },
       { from: 1500, to: 1800, building: "hall-rathaus" },
+      { from: 1800, to: 10001, building: "modern-institute" },
     ],
     note: "The trade's own room, its feast and its funeral fund, shut to everyone else.",
     sources: [],
@@ -791,6 +796,7 @@ export const venues: readonly Venue[] = [
     weight: 14,
     sign: "board",
     building: "hall-union-hall",
+    eras: [{ from: 1850, to: 10001, building: "modern-institute", cultures: ["european"] }],
     note: "A hired room, a subscription book, and the only place the trade meets whole.",
     sources: [],
   },
