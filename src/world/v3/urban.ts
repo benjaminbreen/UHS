@@ -1402,9 +1402,12 @@ export function urbanNeighborhood(
     if (pool) return pool;
     pool = framesFor(quarters.get(block) ?? "residential", uses.get(block));
     if (zoning && uses.get(block) !== "industrial") {
-      const families = [...new Set(pool.map((f) => f.replace(/-\d+$/, "")))];
+      // A family is one kit's base in all its widths (`modern-shop-urban-*`),
+      // or one numbered design; a block of one width leaves gaps it cannot fill.
+      const familyOf = (f: string) => f.includes("-urban-") ? f.slice(0, f.indexOf("-urban-")) : f.replace(/-\d+$/, "");
+      const families = [...new Set(pool.map(familyOf))];
       const family = families[Math.floor(rand("block-family", block.x, block.y) * families.length)];
-      const coherent = pool.filter((f) => f.replace(/-\d+$/, "") === family);
+      const coherent = pool.filter((f) => familyOf(f) === family);
       if (coherent.length) pool = coherent;
     }
     blockKits.set(block, pool);

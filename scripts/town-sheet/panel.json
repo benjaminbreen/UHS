@@ -289,5 +289,15 @@
     "name": "chicago-1895",
     "query": "A traveler in Chicago, 1895 CE",
     "radius": 70
+  },
+  {
+    "name": "tokyo-1910",
+    "query": "A clerk in Tokyo, 1910 CE",
+    "radius": 70
+  },
+  {
+    "name": "nairobi-1950",
+    "query": "A clerk in Nairobi, 1950 CE",
+    "radius": 70
   }
 ]
