@@ -372,6 +372,15 @@ def modern_label(style, form, default):
     return STYLE_LABELS.get(style, {}).get(form, default)
 
 
-# The street kit's modern bases are drawn by the city kit's painter; the class
-# above stays for the review sheets that compare against it.
-from art.city_world import WorldBlock as ModernBuilding  # noqa: E402,F811
+# The street kit's modern bases are drawn by the city kit's painter, the
+# walk-up of three storeys and more in voxels; the class above stays for the
+# review sheets that compare against it.
+from art.city_world import WorldBlock  # noqa: E402
+
+
+def ModernBuilding(recipe, material):  # noqa: F811
+    if recipe.get('modernBase') == 'modern-walkup' and recipe.get('stories', 1) >= 3:
+        # Imported here: the voxel renderer needs numpy and the audit must not.
+        from art.city_walkup import VoxelWalkup
+        return VoxelWalkup(recipe, material)
+    return WorldBlock(recipe, material)
