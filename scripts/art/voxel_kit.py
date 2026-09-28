@@ -644,23 +644,83 @@ class VoxelBuilding:
         return img
 
     def night(self, buf):
-        """Rooms lit after dark, a window at a time, and every lamp."""
+        """Every room lit, for the scene to show a floor or a shop at a time,
+        and the rects it shows them by: `lights` is [x, y, w, h, kind], kind 0
+        a household's floor, 1 a shop. Lamps go in a frame of their own."""
         h, w = buf['glass'].shape
         glow = np.zeros((h, w, 4), np.uint8)
-        lamp = np.isin(buf['mat'], [i for i, m in enumerate(self.g.mats) if m and m.lamp])
-        rng = random.Random(self.seed + 5)
-        lit = [rng.random() < 0.55 for _ in self.windows]
         panes = buf['gmat'] == self.GLASS
-        for win, on in zip(self.windows, lit):
-            win['lit'] = on
-            if not on:
-                continue
+        floors = {}
+        for win in self.windows:
             x0, y0 = self.screen(win['x0'], win['y'], win['z1'] - 1)
             x1, y1 = self.screen(win['x1'] - 1, win['y'], win['z0'])
-            box = panes[y0 - 1:y1 + 2, x0 - 1:x1 + 2]
+            y0, x0 = max(0, y0 - 1), max(0, x0 - 1)
+            box = panes[y0:y1 + 2, x0:x1 + 2]
             ys, xs = np.nonzero(box)
-            for yy, xx in zip(ys + y0 - 1, xs + x0 - 1):
-                glow[yy, xx] = (255, 200, 110, 230) if (xx + yy) % 5 else (255, 226, 160, 240)
-        glow[buf['gmat'] == self.SHOPGLASS] = (255, 214, 140, 235)
-        glow[lamp] = (255, 238, 180, 255)
+            if not len(ys):
+                continue
+            ys, xs = ys + y0, xs + x0
+            glow[ys, xs] = np.where(((xs + ys) % 5 == 0)[:, None], (255, 226, 160, 240), (255, 200, 110, 230))
+            b = floors.setdefault(win['storey'], [w, h, 0, 0])
+            b[0], b[1] = min(b[0], xs.min()), min(b[1], ys.min())
+            b[2], b[3] = max(b[2], xs.max()), max(b[3], ys.max())
+        shop = buf['gmat'] == self.SHOPGLASS
+        glow[shop] = (255, 214, 140, 235)
+        self.lights = [[int(b[0]), int(b[1]), int(b[2] - b[0] + 1), int(b[3] - b[1] + 1), 0]
+                       for _, b in sorted(floors.items())]
+        cols = np.nonzero(shop.any(0))[0]
+        if len(cols):
+            runs = np.split(cols, np.nonzero(np.diff(cols) > 4)[0] + 1)
+            for run in runs:
+                rows = np.nonzero(shop[:, run[0]:run[-1] + 1].any(1))[0]
+                self.lights.append([int(run[0]), int(rows[0]), int(run[-1] - run[0] + 1),
+                                    int(rows[-1] - rows[0] + 1), 1])
+        lamps = np.zeros((h, w, 4), np.uint8)
+        for i, m in enumerate(self.g.mats):
+            if m and m.lamp:
+                k = buf['mat'] == i
+                lamps[k, :3] = [min(255, c + 40) for c in m.ramp[-1]]
+                lamps[k, 3] = 255
+        self.lamp_glow = Image.fromarray(lamps)
         return Image.fromarray(glow)
+
+    def weather_frames(self):
+        """Snow on what faces up and is open to the sky, a lip of it over each
+        ledge; and the same surfaces wet, darkened with a glint here and there."""
+        buf, g = self.buf, self.g
+        see = np.array([bool(m and (m.glass or m.see)) for m in g.mats] + [False] * (256 - len(g.mats)))
+        solid = (g.m > 0) & ~see[g.m]
+        above = (np.cumsum(solid[:, :, ::-1], axis=2)[:, :, ::-1] - solid) > 0
+        c = buf['coords']
+        ok = (c[..., 2] >= 0) & (buf['gmat'] == 0)
+        xi = np.clip(c[..., 0] - g.x0, 0, g.m.shape[0] - 1)
+        yi = np.clip(c[..., 1] - g.y0, 0, g.m.shape[1] - 1)
+        zi = np.clip(c[..., 2], 0, g.m.shape[2] - 1)
+        lampish = np.isin(buf['mat'], [i for i, m in enumerate(g.mats) if m and m.lamp])
+        open_up = ok & (buf['nz'] > 0.55) & ~above[xi, yi, zi] & ~lampish
+        ramp = np.array([(138, 154, 184), (168, 184, 208), (196, 210, 228), (221, 230, 240), (238, 243, 248),
+                         (251, 253, 255)])
+        lengths = np.array([len(m.ramp) if m else 1 for m in g.mats] + [1] * (256 - len(g.mats)))
+        t = buf['level'] / np.maximum(1, lengths[buf['mat']] - 1)
+        idx = np.clip(np.round(t * 5 + 0.6), 0, 5).astype(int)
+        h, w = open_up.shape
+        snow = np.zeros((h, w, 4), np.uint8)
+        snow[open_up, :3] = ramp[idx[open_up]]
+        snow[open_up, 3] = 255
+        # The lip: a pixel of snow standing over each ledge's front edge.
+        alpha = np.array(self.im)[..., 3] > 0
+        lip = np.zeros_like(open_up)
+        lip[:-1] = open_up[1:] & ~open_up[:-1] & (~alpha[:-1] | (buf['nz'][:-1] < 0.3))
+        snow[lip, :3] = ramp[5]
+        snow[lip, 3] = 255
+        wet = np.zeros((h, w, 4), np.uint8)
+        wet[open_up] = (18, 24, 38, 110)
+        ys, xs = np.nonzero(open_up)
+        glint = (h3(xs // 2, ys, 7, self.seed) < 0.07)
+        wet[ys[glint], xs[glint]] = (215, 225, 240, 150)
+        out = []
+        for a in (snow, wet):
+            im = Image.fromarray(a)
+            im.info['trim'] = True
+            out.append(im)
+        return out

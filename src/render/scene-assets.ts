@@ -28,6 +28,7 @@ const atlases = {
   "camp-buildings": "/packs/camp-buildings",
   "modern-buildings": "/packs/modern-buildings",
   "street-buildings": "/packs/street-buildings",
+  "street-weather": "/packs/street-weather",
   civic: "/packs/civic",
   precincts: "/packs/precincts",
   "lighting-shadows": "/packs/lighting-shadows",
@@ -43,6 +44,8 @@ export const lazySheets = [
   "camp-buildings",
   "modern-buildings",
   "street-buildings",
+  // Snow and rain on the voxel street: only in that weather.
+  "street-weather",
   "civic",
   "precincts",
   // Parked cars: nowhere before the motor age.

@@ -124,6 +124,7 @@ import {
 import { beastVoiceOf, voiceOf } from "../audio/voices";
 import type { HitClass } from "../core/reactions";
 import { hash, random } from "../core/random";
+import { voxelLamps, voxelWeather, type VoxelModel } from "./voxel-life";
 import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
@@ -563,7 +564,12 @@ export class WorldScene extends Phaser.Scene {
   >();
   private hearths = new Map<string, Phaser.GameObjects.Image[]>();
   /** Lit panes and their halo over the night wash, faded in with the hour. */
-  private lamps: { pane: Phaser.GameObjects.Image; halo: Phaser.GameObjects.Image }[] = [];
+  private lamps: {
+    pane: Phaser.GameObjects.Image;
+    halo: Phaser.GameObjects.Image;
+    /** A room on its own hours; otherwise lit whenever lamps are. */
+    lit?: (hour: number) => boolean;
+  }[] = [];
   private washKey = "";
   private fires = new Map<string, FireEffect>();
   private fireFrames = new Map<string, number>();
@@ -3647,6 +3653,9 @@ export class WorldScene extends Phaser.Scene {
                   .setTint(this.tint)
                   .setDepth(image.depth + 0.3),
               );
+            const weathered = voxelWeather(this, image, placement.model as VoxelModel, this.snow,
+              this.weather?.wetness ?? 0, (frame) => this.texture(frame));
+            if (weathered) this.layers.push(weathered.setTint(this.tint));
             this.addChurchBanner(b, placement, w.pack.setting, image.y);
             this.addBuildingSign(b, placement, w.pack.setting, image.y);
             if (
@@ -4403,7 +4412,8 @@ export class WorldScene extends Phaser.Scene {
     // Low sun is lost behind cloud.
     const golden = graded ? w.golden * 0.14 * (1 - weather / 0.3) : 0;
     const lamps = graded ? w.lamps : 0;
-    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${lamps.toFixed(2)}`;
+    // Rooms go dark one at a time, so the hour is part of the key.
+    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${lamps.toFixed(2)}:${Math.floor(clock / 900)}`;
     if (key === this.washKey) return;
     this.washKey = key;
     const x = -this.scale.width * 4,
@@ -4413,9 +4423,11 @@ export class WorldScene extends Phaser.Scene {
     this.night!.clear().fillStyle(w.color, graded ? w.alpha : 0).fillRect(x, y, width, height);
     if (golden > 0) this.night!.fillStyle(0xff9a4a, golden).fillRect(x, y, width, height);
     if (weather > 0) this.night!.fillStyle(0x4a5f80, weather).fillRect(x, y, width, height);
+    const hour = (((clock / 3600) % 24) + 24) % 24;
     for (const l of this.lamps) {
-      l.pane.setAlpha(lamps).setVisible(lamps > 0);
-      l.halo.setAlpha(lamps * 0.45).setVisible(lamps > 0);
+      const on = lamps > 0 && (l.lit?.(hour) ?? true);
+      l.pane.setAlpha(lamps).setVisible(on);
+      l.halo.setAlpha(lamps * 0.45).setVisible(on);
     }
   }
   /** Lamps behind the glass of an occupied house after dark: most of them
@@ -4425,6 +4437,14 @@ export class WorldScene extends Phaser.Scene {
     placement: ReturnType<typeof buildingPlacement>,
     image: Phaser.GameObjects.Image,
   ) {
+    // A voxel building lights a floor or a shop at a time, each on its hours.
+    if ((placement.model as VoxelModel).lights) {
+      const rooms = voxelLamps(this, image, placement.model as VoxelModel, this.runtime.engine.state.manifest.seed, place.id);
+      this.layers.push(...rooms.flatMap((r) => [r.pane, r.halo]));
+      this.lamps.push(...rooms);
+      this.washKey = "";
+      return;
+    }
     const h = (((this.runtime.displayClock() / 3600) % 24) + 24) % 24;
     const share = h >= 17 && h < 22.5 ? 0.8 : h >= 4.5 && h < 8 ? 0.45 : 0.15;
     if (random(this.runtime.engine.state.manifest.seed, "lamp", place.id) >= share) return;

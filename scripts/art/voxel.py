@@ -238,9 +238,11 @@ def _shade(g, hit, face, dist, ghit, gdist, width, height, ambient, sun):
     level = np.full(N, -1, np.int16)
     matbuf = np.zeros(N, np.uint8)
     coords = np.full((N, 3), -1, np.int64)
+    nz = np.zeros(N)
     sel = np.where(hit >= 0)[0]
     fn = FACES[face[sel]]
     light, lit, nrm, ao = _light(g, hit[sel], fn, ambient, sun, occ)
+    nz[sel] = nrm[:, 2]
     m = g.m.reshape(-1)[hit[sel]]
     xi, yi, zi = _unravel(g, hit[sel])
     wx, wy = xi + g.x0, yi + g.y0
@@ -312,5 +314,5 @@ def _shade(g, hit, face, dist, ghit, gdist, width, height, ambient, sun):
     img = rgb.reshape(height, width, 4)
     buf = {'mat': matbuf.reshape(height, width), 'coords': coords.reshape(height, width, 3),
            'dist': d2, 'glass': glass_px.reshape(height, width), 'level': level.reshape(height, width),
-           'gmat': gmat.reshape(height, width)}
+           'gmat': gmat.reshape(height, width), 'nz': nz.reshape(height, width)}
     return img, buf

@@ -954,14 +954,6 @@ class Roadside(VoxelBuilding):
             x = int(cx + rng.uniform(-0.45, 0.45) * (z - z0))
             self.box(x - 1, x + 2, -4, -3, z - 1, z + 2, self.RED)
 
-    # ------------------------------------------------------------ output
-    def night(self, buf):
-        glow = super().night(buf)
-        neon = np.isin(buf['mat'], [self.NEON])
-        a = np.array(glow)
-        a[neon] = (255, 90, 110, 255)
-        return Image.fromarray(a)
-
 
 def make(out, zoom=2):
     from art.review_sheet import recipes

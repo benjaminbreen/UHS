@@ -419,6 +419,9 @@ def build_buildings(root, sprites):
             sprites[name+'-glow']=artist.glow
             from art.voxel_kit import SHADOWS
             for phase,shadow in artist.cast(phases).items():SHADOWS[f'{phase}:{name}']=shadow
+            artist.lamp_glow.info['trim']=True
+            sprites[name+'-lamps']=artist.lamp_glow
+            sprites[name+'-snow'],sprites[name+'-wet']=artist.weather_frames()
         w,h=im.size
         models[name]={
             **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),
@@ -450,7 +453,8 @@ def build_buildings(root, sprites):
             **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
-            **({'voxel':True,'glow':name+'-glow'} if voxel else {}),
+            **({'voxel':True,'glow':name+'-glow','lampFrame':name+'-lamps','lights':artist.lights,
+                'snowFrame':name+'-snow','wetFrame':name+'-wet'} if voxel else {}),
             **({'clocks':artist.clocks} if getattr(artist,'clocks',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),
