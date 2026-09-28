@@ -53,13 +53,13 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
 
 const portraits = new Map<string, HTMLCanvasElement>();
 /** Region of the 64×80 bust shown in the UI: hair top to the shoulders. */
-const CROP = { x: 2, y: 2, w: 60, h: 70 };
+export const CROP = { x: 2, y: 2, w: 60, h: 70 };
 /**
  * Three-quarter bust from the same recipe, cached per appearance, age and
  * blink frame. A blink is then two drawImage calls, not a re-render: the shut
  * frame is only ever painted for the faces that actually blink.
  */
-function portraitCanvas(
+export function portraitCanvas(
   appearance: CharacterAppearance,
   age: number,
   key: string,

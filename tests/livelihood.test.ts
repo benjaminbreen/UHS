@@ -7,6 +7,7 @@ import {
   harvestResource,
   refreshResource,
   householdActivity,
+  depositSupplies,
   grazeActivity,
 } from "../src/core/livelihood";
 import { items } from "../src/content/packs";
@@ -281,3 +282,17 @@ it("works a trade in stages at home, stocks the house, and minds neglect", () =>
   e.runEconomy();
   expect(head.trust).toBe(trust - 1);
 }, 30000);
+
+it("keeps personal accessories through household routines and supply deposits", () => {
+  const a = { inventory: { "walking-cane": 1, fruit: 3 }, heldItem: "load:basket", pos: { x: 0, y: 0, space: "outside" } } as any;
+  const s = { households: [], objects: [], clock: 9 * 3600 } as any;
+  expect(householdActivity(a, s, items, () => {})).toBe(false);
+  expect(a.heldItem).toBe("walking-cane");
+  const store = { pos: a.pos, inventory: {} } as any;
+  expect(depositSupplies(a, store)).toBe(3);
+  expect(a.inventory["walking-cane"]).toBe(1);
+  expect(store.inventory["walking-cane"]).toBeUndefined();
+  a.inventory["walking-cane"] = 0;
+  householdActivity(a, s, items, () => {});
+  expect(a.heldItem).toBeUndefined();
+});

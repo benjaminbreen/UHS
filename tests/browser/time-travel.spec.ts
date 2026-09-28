@@ -1,5 +1,55 @@
 import { expect, test } from "@playwright/test";
 
+test("arrival reveals the real character early and prepares a paused first frame", async ({ page }) => {
+  test.setTimeout(180000);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/src/world/worker.ts*", async route => {
+    await pending;
+    await route.continue().catch(() => {});
+  });
+  await page.goto("/?start=Farmer%20in%20Seoul%201750&seed=arrival-regression");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await expect(page.getByLabel("Character appearance")).toBeVisible({ timeout: 30000 });
+  const identity = await page.locator(".arrival-details>p").first().innerText();
+  await expect(page.locator(".arrival-enter")).toBeDisabled();
+  await expect(page.locator(".game-container canvas")).toHaveCount(0);
+  await page.locator(".arrival").getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.locator(".arrival")).toHaveCount(0);
+  release();
+  await page.unroute("**/src/world/worker.ts*");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  const canvas = page.locator('.game-container canvas[data-terrain-ready="true"]');
+  await canvas.waitFor({ state: "attached", timeout: 120000 });
+  await expect(page.locator(".arrival")).toBeVisible();
+  await expect(page.locator(".arrival-details>p").first()).toHaveText(identity);
+  await expect(page.locator(".arrival-portrait")).toHaveClass("arrival-portrait is-settled");
+  const state = () => page.evaluate(() => {
+    const runtime = (window as any).uhs;
+    return { clock: runtime.engine.state.clock, pos: runtime.engine.state.player.pos,
+      locked: runtime.timeTravelLocked, public: !!(window as any).historySim };
+  });
+  const prepared = await state();
+  expect(prepared.locked).toBe(true);
+  expect(prepared.public).toBe(false);
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("KeyI");
+  expect(await state()).toEqual(prepared);
+  await page.locator(".arrival").getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.locator(".game-container canvas")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => (window as any).__vitals.now().counts.workers)).toBe(0);
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await canvas.waitFor({ state: "attached", timeout: 120000 });
+  await page.getByRole("button", { name: /Enter life/ }).click();
+  await expect(page.locator(".arrival")).toHaveCount(0);
+  expect((await state()).locked).toBe(false);
+  expect((await state()).public).toBe(true);
+  await expect(page.locator(".game-container")).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
 test("a historical journey preserves the original date and connects the family", async ({ page }) => {
   test.setTimeout(240000);
   const errors: string[] = [];

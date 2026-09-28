@@ -1,5 +1,6 @@
 import { shownStock } from "../core/economy";
 import { parseLoad } from "../content/economy/carrying";
+import { propDefs } from "../content/props/catalog";
 import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
 import { Watercraft } from "./watercraft";
@@ -94,7 +95,7 @@ import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
 import { FaunaMotion } from "./fauna-motion";
 import { spriteShadow } from "./characters/shadow";
-import { frameCount, poseTiming, type CharacterPose } from "./characters/poses";
+import { frameCount, poseTiming, workPoseFor, type CharacterPose } from "./characters/poses";
 import type { Actor } from "../core/types";
 import { waterStyle } from "./water-style";
 import { TerrainStream, restyleTerrain } from "./terrain-stream";
@@ -306,6 +307,21 @@ const workAlternates: Partial<
   stoop: ["kneel", "work"],
   tug: ["stoop", "sway"],
 };
+const workTargets: Partial<Record<CharacterPose, readonly string[]>> = {
+  tug: ["well", "framed-well", "town-well", "trough"],
+  "work-stir": ["cooking-pot", "hearth", "camp-hearth", "communal-hearth", "three-stone-hearth", "firepit", "stove", "barrel", "storage-jar", "dye-vats"],
+  "work-knead": ["oven", "earth-oven", "tannur", "bench", "mud-bricks", "earthen-pot"],
+  "work-pound": ["anvil", "knapping-floor", "pounding-mortar", "grinder", "metate", "quern", "grindstone", "woodpile", "chopping-block"],
+  "work-quern": ["quern"],
+  "work-grind": ["grinder", "metate"],
+  "work-weave": ["loom", "warp-loom", "backstrap-loom", "open-basket", "hide-frame", "bench"],
+  "work-scrub": ["wash-tub", "washing-line", "tanning-pits", "hide-frame"],
+  "work-rinse": ["shallow-water"],
+  "work-fish": ["shallow-water", "fish-weir"],
+  "work-hang": ["drying-rack"],
+  "work-tend": ["crop", "hoe", "rake", "sheaf", "stock-pen", "trough", "beehive", "log-hive", "pipe-hive", "chicken-coop"],
+  "work-sort": ["market-counter", "beam-scale", "crate-stack", "grain-sacks", "bench", "barrel", "storage-jar"],
+};
 type WindSprite = {
   image: Phaser.GameObjects.Image;
   baseX: number;
@@ -385,6 +401,7 @@ export class WorldScene extends Phaser.Scene {
   private characters?: WorldCharacters;
   private wading?: WadingEffects;
   private heldSprites = new Map<string, string>();
+  private loadWeights = new Map<string, number>();
   private humanActors = new Map<
     string,
     Pick<
@@ -397,6 +414,9 @@ export class WorldScene extends Phaser.Scene {
       | "facing"
       | "activity"
       | "held"
+      | "heldItem"
+      | "fatigue"
+      | "trust"
     >
   >();
   private canopies: {
@@ -437,7 +457,7 @@ export class WorldScene extends Phaser.Scene {
   /** Last drawn pose frame per person, so a footfall fires once per contact. */
   private footfalls = new Map<string, number>();
   /** Facing actually drawn, which chases the real one a step at a time. */
-  private turning = new Map<string, { facing: number; until: number }>();
+  private turning = new Map<string, { facing: number; until: number; next?: number; started?: number; sign?: number }>();
   /** When each person set off and came to rest, and the last walking frame
    * drawn, held through a gap between steps. */
   private gaits = new Map<
@@ -491,6 +511,8 @@ export class WorldScene extends Phaser.Scene {
     { image: Phaser.GameObjects.Image; phase: number; baseX: number }
   >();
   private ambient = new Map<string, Ambient>();
+  private workObjects = new Map<string, { id: string; x: number; y: number; family: string }>();
+  private workBeats = new Map<string, string>();
   /** Not drawn: indoors, or waiting on a routine. */
   private indoors = new Set<string>();
   /** Residents in range with no routine yet, nearest first. */
@@ -702,7 +724,7 @@ export class WorldScene extends Phaser.Scene {
         if (this.cropImages.get(id) === image) this.cropImages.delete(id);
       });
     });
-    this.characters = new WorldCharacters(this);
+    this.characters = new WorldCharacters(this, this.runtime.engine.state.manifest.seed);
     this.characters.outline = this.liveGraphics.characterOutline;
     this.characters.renderer = this.liveGraphics.characterSprites;
     this.characters.palette = this.runtime.palette();
@@ -717,6 +739,7 @@ export class WorldScene extends Phaser.Scene {
       this.cueFx?.dispose();
     });
     this.events.once("shutdown", () => this.characters?.destroy());
+    this.events.once("destroy", () => this.characters?.destroy());
     this.fireFrames = animatedFrames(
       this.textures.get("props").getFrameNames(),
     );
@@ -1584,8 +1607,7 @@ export class WorldScene extends Phaser.Scene {
     const tiles = Math.hypot(im.x - me.x, im.y - me.y) / 16;
     if (tiles > FORGET_TILES) this.near.delete(id);
     if (tiles > NOTICE_TILES || this.near.has(id)) return;
-    this.near.add(id);
-    if (pose !== "idle" && pose !== "breathe" && pose !== "walk") return;
+    if (pose !== "idle" && pose !== "breathe") return;
     if (
       time - this.lastNotice < NOTICE_GAP_MS ||
       time - (this.noticedAt.get(id) ?? -Infinity) < NOTICE_AGAIN_MS
@@ -1593,7 +1615,9 @@ export class WorldScene extends Phaser.Scene {
       return;
     this.lastNotice = time;
     this.noticedAt.set(id, time);
-    this.cues.react(id, "notice", { x: (me.x - 8) / 16, y: (me.y - 16) / 16 });
+    this.near.add(id);
+    const trust = this.humanActors.get(id)?.trust ?? 0;
+    this.cues.react(id, trust >= 2 ? "wave" : trust >= 0 ? "nod" : "notice", { x: (me.x - 8) / 16, y: (me.y - 16) / 16 });
   }
   private onlookers(x: number, y: number, tiles: number, kind: CueKind) {
     const toward = { x: (x - 8) / 16, y: (y - 16) / 16 };
@@ -3920,6 +3944,15 @@ export class WorldScene extends Phaser.Scene {
         objects: e.state.objects.filter((o) => visible(o.pos)),
       },
       keep = new Set<string>();
+    this.workObjects.clear();
+    for (const o of obs.objects) {
+      if (o.pos.space !== "outside" || o.carriedBy) continue;
+      const family = o.kind === "crop" ? "crop"
+        : o.kind === "well" ? propDefs[o.prop ?? ""]?.family ?? "well"
+        : propDefs[o.prop ?? ""]?.family;
+      if (!family) continue;
+      this.workObjects.set(o.id, { id: o.id, x: o.pos.x, y: o.pos.y, family });
+    }
     this.separate(p);
 
     const renderEntity = (
@@ -3989,7 +4022,7 @@ export class WorldScene extends Phaser.Scene {
       const drawn = rigid ?? frame;
       if (im.texture.key !== texture || animatedBase(im.frame.name) !== drawn)
         im.setTexture(texture, drawn);
-      if (/-lean-(left|right)$/.test(frame)) im.setOriginFromFrame();
+      if (im.frame.customPivot) im.setOriginFromFrame();
       else im.setOrigin(0.5, 1);
       const fire = frame === "fire" || this.fireFrames.has(frame);
       if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
@@ -4015,7 +4048,7 @@ export class WorldScene extends Phaser.Scene {
         if (!hang) {
           const image = this.add
             .image(tx, ty, texture, swinging)
-            .setOrigin(0.5, 1);
+            .setOriginFromFrame();
           hang = {
             image,
             baseX: tx,
@@ -4310,10 +4343,13 @@ export class WorldScene extends Phaser.Scene {
         : Math.max(0, Math.min(1, (sky.tempC - 8) / 14)),
     );
     this.heldSprites.clear();
+    this.loadWeights.clear();
     // An item taken in hand is drawn the same way a carried prop is, but a
     // real object in the hand wins.
     if (e.state.player.heldItem)
       this.heldSprites.set("player", `icon:${e.state.player.heldItem}`);
+    if (e.state.player.heldItem && /^(wood|basket|vessel|bundle|grain|water)$/.test(e.state.player.heldItem))
+      this.loadWeights.set("player", 1);
     for (const a of e.state.actors)
       if (a.heldItem) {
         const load = parseLoad(a.heldItem);
@@ -4323,10 +4359,14 @@ export class WorldScene extends Phaser.Scene {
           a.id,
           sprite ? `${sprite}@${load!.style}` : `icon:${a.heldItem}`,
         );
+        if (load || /^(wood|basket|vessel|bundle|grain|water)$/.test(a.heldItem))
+          this.loadWeights.set(a.id, 1);
       }
     for (const object of e.state.objects)
-      if (object.carriedBy)
+      if (object.carriedBy) {
         this.heldSprites.set(object.carriedBy, object.sprite);
+        this.loadWeights.set(object.carriedBy, (propDefs[object.prop ?? ""]?.shove?.mass ?? 1) >= 2 ? 2 : 1);
+      }
     this.humanActors.clear();
     for (const a of [obs.player, ...obs.actors]) {
       if (a.kind === "human")
@@ -4482,6 +4522,7 @@ export class WorldScene extends Phaser.Scene {
         this.destinations.delete(id);
         this.actorFrames.delete(id);
         this.footfalls.delete(id);
+        this.workBeats.delete(id);
         this.turning.delete(id);
         this.stepAt.delete(id);
         if (!dying) shade?.destroy();
@@ -5176,6 +5217,7 @@ export class WorldScene extends Phaser.Scene {
             )
               this.motionDuration *= 1 + (this.snow - 0.5) * 1.2;
           }
+          this.motionDuration *= 1 + (this.runtime.engine.state.player.fatigue > 65 ? 0.14 : 0) + (this.loadWeights.get("player") ?? 0) * 0.12;
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
           if (!this.vault(dx, dy, time)) {
@@ -5322,6 +5364,10 @@ export class WorldScene extends Phaser.Scene {
         const active =
           action && elapsed < (arcMs ?? poseTiming(action.pose) * 4);
         const sinceLanding = arcMs === undefined ? -1 : elapsed - arcMs;
+        const recoveryAge = action && /^(swing|chop|slash|thrust|spear-thrust|spear-throw|knife-thrust|stick-swing|axe-chop|pick-strike|shovel-dig|rake-pull|sickle-cut|scythe-sweep|pitchfork-jab|reap|till|dig)$/.test(action.pose)
+          ? elapsed - poseTiming(action.pose) * 4
+          : Infinity;
+        const recovering = id === "player" && recoveryAge >= 0 && recoveryAge < 220 && !moving;
         // A plain landing gives way to walking; a stagger, a roll or a haul
         // up over an edge plays out.
         const after = action?.after ?? "land";
@@ -5358,13 +5404,19 @@ export class WorldScene extends Phaser.Scene {
         if (wetPos?.space === "outside" && !arcLift && water <= 0.025)
           reflectIn(this, id, im);
         const heldSprite = this.heldSprites.get(id);
+        const loadWeight = this.loadWeights.get(id) ?? 0;
+        const tired = human.fatigue > 65;
+        const condition = loadWeight + (tired ? 3 : 0);
+        const work = id !== "player" && at && !moving && !this.options.freeze
+          ? this.workMotion(id, at, time) : undefined;
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active || winding) pose = action!.pose;
         else if (landed) pose = after;
+        else if (recovering) pose = "recover";
         else if (moving)
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
         else if (seat) pose = seat.seated ? "sit" : "idle";
-        else if (at) pose = this.ambientPose(id, at, time);
+        else if (at) pose = work?.pose ?? this.ambientPose(id, at, time);
         else if (/rest|sleep/i.test(human.activity)) pose = "sit";
         else if (/gathering|working/i.test(human.activity)) pose = "work";
         else if (/eating/i.test(human.activity)) pose = "give";
@@ -5378,16 +5430,23 @@ export class WorldScene extends Phaser.Scene {
         const cued =
           id !== "player" && !moving ? this.cues.poseFor(id) : undefined;
         if (cued) pose = cued.pose;
+        const npcGesture = id !== "player" && !moving && !cued && pose === "idle" && !this.options.freeze
+          ? this.idleGesture(id, time, !!heldSprite, !!human.appearance?.wearing.headwear && human.appearance.wearing.headwear !== "none", loadWeight)
+          : undefined;
+        if (npcGesture) pose = npcGesture.pose;
         const me = this.runtime.engine.state.player;
         const fidget =
           id === "player" && !this.options.freeze
             ? this.feel.idle(
                 time,
-                pose === "breathe" && !this.runtime.charge && !this.aimStarted,
+                pose === "breathe" && loadWeight < 2 && !this.runtime.charge && !this.aimStarted,
                 {
                   injured: !!me.injury,
                   tired: me.fatigue > 65,
                   cold: (this.weather?.tempC ?? 20) < 4,
+                  hat: !!human.appearance?.wearing.headwear && human.appearance.wearing.headwear !== "none",
+                  held: !!heldSprite,
+                  burden: loadWeight > 0,
                 },
                 Math.random,
               )
@@ -5398,8 +5457,8 @@ export class WorldScene extends Phaser.Scene {
         const slinging = drawing && me.heldItem === "sling";
         if (drawing) pose = slinging ? "whirl" : "draw";
         // Something heavy in the arms shortens the stride.
-        const laden =
-          id === "player" && !!me.held && !this.runtime.engine.armed();
+        const laden = loadWeight > 0;
+        const cadence = 1 / (1 + loadWeight * 0.12 + (tired ? 0.14 : 0));
         let g = this.gaits.get(id);
         if (!g)
           this.gaits.set(
@@ -5416,7 +5475,7 @@ export class WorldScene extends Phaser.Scene {
           g.still = undefined;
         } else g.still ??= time;
         let gaitFrame: number | undefined;
-        if (!active && !landed && !stunt && !cued && !fidget?.pose) {
+        if (!active && !landed && !recovering && !stunt && !cued && !fidget?.pose && !npcGesture) {
           const still = g.still === undefined ? 0 : time - g.still,
             walked = (g.still ?? time) - g.since;
           if (
@@ -5432,7 +5491,7 @@ export class WorldScene extends Phaser.Scene {
             // From the push-off, so every walk starts on the same foot.
             gaitFrame =
               Math.floor(
-                ((time - g.since - SETOFF_MS) * (laden ? 0.72 : 1)) /
+                ((time - g.since - SETOFF_MS) * cadence) /
                   poseTiming(pose),
               ) % frameCount(pose);
           else if (
@@ -5471,10 +5530,16 @@ export class WorldScene extends Phaser.Scene {
                     : Math.min(3, Math.floor(elapsed / poseTiming(pose)))
                   : landed
                     ? Math.min(3, Math.floor(sinceLanding / poseTiming(after)))
+                    : recovering
+                      ? Math.min(3, Math.floor(recoveryAge / 55))
+                    : work && pose === work.pose
+                      ? work.index
                     : this.options.freeze
                       ? 0
                       : cued
                         ? cued.index
+                        : npcGesture
+                          ? npcGesture.index
                         : fidget?.pose
                           ? Math.min(
                               3,
@@ -5486,24 +5551,38 @@ export class WorldScene extends Phaser.Scene {
                             )
                           : pose === "wade"
                             ? (this.wading?.frame(id) ?? 0)
-                            : this.poseFrame(id, pose, laden ? time * 0.72 : time));
+                            : this.poseFrame(id, pose, (tired || laden) ? time * cadence : time));
+        if (work?.beat && pose === work.pose && index === 2)
+          this.workBeat(id, pose, work.beat, work.site, im);
+        if (id === "player" && active && pose.startsWith("work-") && pose !== "work-check" && index === 2 && action) {
+          const target = action.target && this.runtime.engine.state.objects.find((o) => o.id === action.target);
+          const site = target && target.pos.space === "outside"
+            ? { id: target.id, x: target.pos.x, y: target.pos.y, family: target.kind === "crop" ? "crop" : propDefs[target.prop ?? ""]?.family ?? "" }
+            : undefined;
+          this.workBeat(id, pose, String(action.serial), site, im);
+        }
         const prop =
           heldSprite ??
-          (at?.activity === "haul-catch" ? CATCH : undefined) ??
+          (at?.activity === "haul-catch" && (!work || work.pose === "work-hang" && work.index < 2) ? CATCH : undefined) ??
           // A thrown object stays in the hand through the windup. Striking
           // also swings, but then the hand is still full and this never runs.
           (active &&
-          (action.pose === "drop" || action.pose === "swing" || action.pose === "cast") &&
+          (action.pose === "drop" || action.pose === "swing" || action.pose === "cast" || action.pose === "spear-throw") &&
           index < 2
             ? action.prop
             : undefined);
         // Turning is drawn through the facings in between. Without it a
         // half turn is a single frame, which the eight-way sprites make
         // more obvious than the four-way ones did.
+        const workFacing = work?.site && pose === work.pose &&
+          Math.hypot(work.site.x - at!.x, work.site.y - at!.y) > 0.35
+            ? facingFromStep(work.site.x - at!.x, work.site.y - at!.y, at!.direction)
+            : undefined;
         const ahead =
           seat?.facing ??
           (id === "player" ? this.blockedFacing : undefined) ??
           cued?.facing ??
+          workFacing ??
           human.facing ??
           facingFromDirection(human.direction);
         // A glance aside and back, in the second and third quarters of it.
@@ -5516,7 +5595,12 @@ export class WorldScene extends Phaser.Scene {
             : ahead;
         let turn = this.turning.get(id);
         if (!turn) this.turning.set(id, (turn = { facing: wanted, until: 0 }));
-        else if (turn.facing !== wanted && time >= turn.until) {
+        else {
+          if (turn.next !== undefined && time - (turn.started ?? time) >= 25) {
+            turn.facing = turn.next;
+            turn.next = undefined;
+          }
+          if (turn.facing !== wanted && time >= turn.until) {
           // Reversing at a run digs the heels in.
           if (pose === "run" && Math.abs(turn.facing - wanted) === 4)
             this.kickDust(im.x, im.y, 4, 0.8);
@@ -5526,9 +5610,16 @@ export class WorldScene extends Phaser.Scene {
             g.pivot = time;
             if (id === "player") this.kickDust(im.x, im.y, 2, 0.5);
           }
-          turn.facing = turnToward(turn.facing, wanted);
-          turn.until = time + TURN_HOLD_MS;
+          turn.sign = ((turnToward(turn.facing, wanted) - turn.facing + 8) % 8) === 1 ? 1 : -1;
+          turn.started = time;
+          turn.next = turnToward(turn.facing, wanted);
+          turn.until = time + TURN_HOLD_MS + 30;
+          }
         }
+        const turnAge = time - (turn.started ?? -Infinity);
+        const turnMotion = turnAge < 90 && turn.sign
+          ? turn.sign * (turnAge < 25 ? 3 : turnAge < 58 ? 2 : 1)
+          : 0;
         const texture = this.characters.frame(
           // Their own facing, or wherever a cue or a glance has turned them.
           turn.facing === (human.facing ?? facingFromDirection(human.direction))
@@ -5537,8 +5628,11 @@ export class WorldScene extends Phaser.Scene {
           pose,
           index,
           prop,
+          turnMotion,
+          condition,
         );
         // A hit-stop holds the figures too, not only what is tweened.
+        im.setVisible(!!texture);
         const horse = id === "player" && this.runtime.devHorse
           ? this.horseFrame(moving, turn.facing, time)
           : undefined;
@@ -5546,11 +5640,11 @@ export class WorldScene extends Phaser.Scene {
           const base = `vhorse-ride-${horse}`;
           if (im.frame.name !== base) im.setTexture(this.texture(base), base);
           // The sheet's hooves stand four pixels up from its foot.
-          im.setOrigin(0.5, (im.height - 4) / im.height);
+          im.setOrigin(0.5, (im.height - 4) / im.height).setVisible(true);
           this.ride(im, human.appearance, horse);
         } else {
           if (id === "player") this.riderImage?.setVisible(false);
-          if (this.tweens.timeScale && im.texture.key !== texture) {
+          if (texture && this.tweens.timeScale && im.texture.key !== texture) {
             im.setTexture(texture);
             im.setOrigin(0.5, 1);
           }
@@ -5619,7 +5713,8 @@ export class WorldScene extends Phaser.Scene {
             ? sample(wetPos.x, wetPos.y)?.waterVisual?.flow
             : undefined,
         );
-        if (this.options.shadows !== false) {
+        if (!texture) this.shadows.get(id)?.setVisible(false);
+        if (texture && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
             this.shadowPhase,
@@ -5629,6 +5724,7 @@ export class WorldScene extends Phaser.Scene {
             shade = this.add.image(im.x, im.y, shadowTexture);
             this.shadows.set(id, shade);
           }
+          shade.setVisible(true);
           if (shade.texture.key !== shadowTexture)
             shade.setTexture(shadowTexture);
           if (shade.originY !== 32 / 96) shade.setOrigin(0.5, 32 / 96);
@@ -5902,6 +5998,97 @@ export class WorldScene extends Phaser.Scene {
     }
     return offset;
   }
+  private workSite(at: Ambient, pose?: CharacterPose) {
+    const assigned = at.target;
+    if (!assigned) return undefined;
+    const site = assigned.id ? this.workObjects.get(assigned.id) : assigned;
+    if (!site || pose && workTargets[pose] && !workTargets[pose]!.includes(site.family)) return undefined;
+    return Math.hypot(site.x - at.x, site.y - at.y) < 3.5 ? site : undefined;
+  }
+  private workMotion(id: string, at: Ambient, time: number) {
+    const pose = workPoseFor(at.activity, at.label, this.workSite(at)?.family);
+    if (!pose) return undefined;
+    const offset = this.poseOffset(id);
+    const cycle = 3500 + offset % 650;
+    const age = (time + offset) % cycle;
+    const round = Math.floor((time + offset) / cycle);
+    const stroke = poseTiming(pose) * 4;
+    const second = stroke + 190;
+    const site = this.workSite(at, pose);
+    if (age < stroke) return { pose, index: Math.floor(age / poseTiming(pose)), beat: `${pose}:${round}:0`, site };
+    if (age < second) return { pose, index: 3, site };
+    if (age < second + stroke) return { pose, index: Math.floor((age - second) / poseTiming(pose)), beat: `${pose}:${round}:1`, site };
+    if (round % 3 === 0 && age < second + stroke + 920)
+      return { pose: "work-check" as CharacterPose, index: Math.min(3, Math.floor((age - second - stroke) / poseTiming("work-check"))), site };
+    return { pose: "idle" as CharacterPose, index: 0, site };
+  }
+  private workBeat(id: string, pose: CharacterPose, beat: string, site: ReturnType<WorldScene["workSite"]>, actor: Phaser.GameObjects.Image) {
+    if (this.workBeats.get(id) === beat) return;
+    this.workBeats.set(id, beat);
+    const player = this.entities.get("player");
+    if (!actor.visible || player && Math.hypot(actor.x - player.x, actor.y - player.y) > 16 * 12) return;
+    const image = site?.id ? this.entities.get(site.id) : undefined;
+    const x = image?.x ?? (site ? site.x * 16 + 8 : actor.x + 5);
+    const y = image ? image.y - Math.min(10, image.displayHeight * 0.32)
+      : site ? site.y * 16 + 8 : actor.y - 10;
+    const mark = (dx: number, dy: number, width: number, height: number, color: number, driftX: number, driftY: number, duration = 320) => {
+      const dot = this.add.rectangle(x + dx, y + dy, width, height, color).setDepth(actor.depth + 1);
+      this.tweens.add({ targets: dot, x: dot.x + driftX, y: dot.y + driftY, alpha: 0,
+        duration, ease: "Quad.easeOut", onComplete: () => dot.destroy() });
+    };
+    if (pose === "work-stir") {
+      mark(-3, 0, 2, 2, 0xe9e1bd, -2, -9, 550);
+      mark(2, -2, 1, 3, 0xd8d4b6, 2, -11, 690);
+    } else if (pose === "tug" && site) {
+      mark(-1, -3, 2, 2, 0xb5e2e8, -2, 5, 400);
+      mark(2, -2, 1, 2, 0xd6eff0, 2, 6, 480);
+    } else if (pose === "work-knead") {
+      mark(-2, 0, 2, 2, 0xe3cfab, -5, -3);
+      mark(2, 0, 2, 2, 0xe3cfab, 5, -2);
+    } else if (pose === "work-pound") {
+      const metal = site?.family === "anvil";
+      const color = metal ? 0xffd17a : 0xc9ad83;
+      mark(-2, 0, 2, 1, color, -6, metal ? -5 : 2, 260);
+      mark(2, -1, 1, 2, color, 5, metal ? -7 : -2, 300);
+      mark(0, 1, 1, 1, metal ? 0xffedaa : color, 1, 4, 240);
+    } else if (pose === "work-quern") {
+      if (image) {
+        const peg = this.add.rectangle(x + 3, y, 2, 3, 0xb99b68).setDepth(image.depth + 1);
+        const turn = { angle: 0 };
+        this.tweens.add({ targets: turn, angle: Math.PI * 2, duration: 560,
+          onUpdate: () => peg.setPosition(x + Math.round(Math.cos(turn.angle) * 3), y + Math.round(Math.sin(turn.angle) * 2)),
+          onComplete: () => peg.destroy() });
+      }
+      mark(-2, 1, 1, 1, 0xd2bd8e, -3, 2, 260);
+    } else if (pose === "work-grind") {
+      mark(-3, 1, 2, 1, 0xc8b99b, -4, 1, 300);
+      mark(3, 1, 1, 1, 0xd8c9a8, 3, 1, 300);
+    } else if (pose === "work-weave") {
+      mark(-4, 0, 5, 1, 0xdcc18a, 8, -1, 280);
+      mark(1, -2, 1, 2, 0xf0ddaa, 4, -4, 300);
+    } else if (pose === "work-scrub") {
+      mark(-2, -1, 2, 2, 0xb8dce1, -4, 5, 360);
+      mark(2, 0, 1, 2, 0xd4edf0, 3, 6, 400);
+      mark(3, -2, 1, 1, 0xb8dce1, 5, 3, 330);
+    } else if (pose === "work-rinse") {
+      mark(-2, -2, 2, 2, 0xb4dfe4, -4, 6, 440);
+      mark(2, -3, 1, 2, 0xd0eef0, 3, 7, 480);
+      mark(0, 0, 1, 1, 0x91c4d2, 1, 5, 380);
+    } else if (pose === "work-fish") {
+      mark(-3, 0, 2, 1, 0xc7e8ec, -5, 1, 340);
+      mark(2, 0, 2, 1, 0xa0d6dc, 5, 1, 420);
+      mark(0, -2, 1, 1, 0xe2eeee, 0, -5, 370);
+    } else if (pose === "work-hang") {
+      mark(-2, -4, 3, 1, 0xc59d69, -1, 3, 350);
+      mark(2, -3, 2, 1, 0x8f7355, 2, 3, 420);
+    } else if (pose === "work-tend") {
+      mark(-2, 0, 2, 1, 0x816841, -4, 3);
+      mark(2, -1, 1, 2, 0x9fba69, 3, -5, 480);
+    } else if (pose === "work-sort") {
+      mark(-1, -1, 2, 1, 0xd9bf87, 3, -3, 280);
+      mark(1, 1, 1, 1, 0xbba175, -3, 2, 260);
+    }
+  }
   /** A knot of people is not a chorus. Each takes a turn talking and a longer
    * turn listening, on their own beat. */
   private ambientPose(id: string, at: Ambient, time: number): CharacterPose {
@@ -5918,6 +6105,18 @@ export class WorldScene extends Phaser.Scene {
     }
     const beat = 2600 + (offset % 2400);
     return Math.floor((time + offset) / beat) % 3 ? "idle" : "talk";
+  }
+  private idleGesture(id: string, time: number, held: boolean, hat: boolean, load: number) {
+    if (load >= 2) return undefined;
+    const offset = this.poseOffset(id), cycle = 16000 + offset % 14000;
+    const beat = (time + offset) % cycle;
+    if (beat >= 640) return undefined;
+    const choice = offset % 5;
+    const pose: CharacterPose = held && !load && choice < 2 ? "inspect-held"
+      : hat && !held && choice < 3 ? "adjust-hat"
+      : choice === 3 ? "straighten"
+      : !held && choice === 4 ? "touch-face" : "sway";
+    return { pose, index: Math.min(3, Math.floor(beat / 160)) };
   }
   /** Idle draws only two things: eyes open, and the blink on frame three. Both
    * the rate and the phase are per-actor, so a street does not wink in unison,

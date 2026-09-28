@@ -75,3 +75,12 @@ export function chooseStreetSurface(
     Math.min(mix.length - 1, Math.max(0, Math.floor(draw * mix.length)))
   ];
 }
+
+/** Inside a kept old core: the souk street flagged, the lanes behind it
+ * beaten earth where they always were, whatever the new town round it laid. */
+export function oldCorePalette(setting: WorldSetting): { street: StreetSurface; lane: StreetSurface } {
+  return {
+    street: "slab",
+    lane: setting.culture === "north-african-west-asian" ? "earth" : "slab",
+  };
+}

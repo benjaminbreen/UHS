@@ -433,7 +433,7 @@ export function CharacterLab({
                 setPreviewAge(age);
                 setAppearance((a) => ({
                   ...a,
-                  height: age < 6 ? -2 : age < 16 ? -1 : 0,
+                  height: age < 13 ? -2 : age < 16 ? -1 : 0,
                   ...(age < 16 ? { beard: "none", build: -1 } : {}),
                 }));
               }}
@@ -493,6 +493,7 @@ export function CharacterLab({
             ["unspecified", "male", "female"],
             (v) =>
               change("physique", {
+                ...appearance.physique,
                 strength: appearance.physique?.strength ?? 50,
                 sex: v as "male" | "female" | "unspecified",
               }),
@@ -507,6 +508,7 @@ export function CharacterLab({
               value={appearance.physique?.strength ?? 50}
               onChange={(e) =>
                 change("physique", {
+                  ...appearance.physique,
                   sex: appearance.physique?.sex ?? "unspecified",
                   strength: Number(e.target.value),
                 })
@@ -542,7 +544,15 @@ export function CharacterLab({
           {select("Garment", appearance.wearing.garment, garments, (v) =>
             wear("garment", v as CharacterAppearance["wearing"]["garment"]),
           )}
+          {select("Clothing cut", appearance.wearing.cut ?? "straight", ["straight", "fitted", "full"], (v) =>
+            wear("cut", v as CharacterAppearance["wearing"]["cut"]),
+          )}
+          {select("Garment front", appearance.wearing.front ?? "closed", ["closed", "open", "cross"], (v) =>
+            wear("front", v as CharacterAppearance["wearing"]["front"]),
+          )}
           <div className="cl-two">
+            {color("Hat cloth", appearance.wearing.headColor ?? appearance.wearing.color, (v) => wear("headColor", v))}
+            {color("Inner layer", appearance.wearing.innerColor ?? appearance.wearing.trim, (v) => wear("innerColor", v))}
             {color("Cloth", appearance.wearing.color, (v) => wear("color", v))}
             {color("Trousers / skirt", appearance.wearing.lowerColor, (v) =>
               wear("lowerColor", v),
@@ -556,7 +566,7 @@ export function CharacterLab({
             wear("headwear", v as CharacterAppearance["wearing"]["headwear"]),
           )}
           <div className="cl-checks">
-            {(["cloak", "necklace", "earrings", "shoulderCloth"] as const).map(
+            {(["cloak", "mantle", "necklace", "earrings", "shoulderCloth"] as const).map(
               (k) => (
                 <label key={k}>
                   <input

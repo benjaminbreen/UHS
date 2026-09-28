@@ -4,6 +4,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { worldWeaver } from "./world-weaver";
 import { narrator } from "./narrator";
 import { dialogue } from "./dialogue";
+import { education } from "./edu";
+export const handleEdu = handler("/api/edu", education, 100000);
 export const handleTimeArrival = handler("/api/time-arrival", timeArrival, 6000);
 export const handleTaskLore = handler("/api/task-lore", taskLore, 3000);
 type Route = (request: Request) => Promise<Response>;
@@ -43,7 +45,8 @@ function handler(path: string, route: Route, limit: number) {
       res.on("close", () => {
         if (!res.writableEnded) abort.abort();
       });
-      const request = new Request(`http://localhost${path}`, {
+      const query = new URL(req.url ?? path, "http://localhost").search;
+      const request = new Request(`http://localhost${path}${query}`, {
         method: req.method,
         headers,
         ...(body ? { body } : {}),

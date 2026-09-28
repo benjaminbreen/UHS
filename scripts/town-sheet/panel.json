@@ -309,5 +309,11 @@
     "name": "syracuse-1995",
     "query": "A bricklayer in Syracuse, 1995 CE",
     "radius": 60
+  },
+  {
+    "name": "zuwara-2017",
+    "query": "A boilermaker in Zuwara, 2017 CE",
+    "radius": 70,
+    "seed": "world-zuwara-a"
   }
 ]

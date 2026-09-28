@@ -212,7 +212,7 @@ export class PlayerFeel {
   idle(
     time: number,
     still: boolean,
-    state: { injured: boolean; tired: boolean; cold: boolean },
+    state: { injured: boolean; tired: boolean; cold: boolean; hat: boolean; held: boolean; burden: boolean },
     roll: () => number,
   ): Fidget | undefined {
     if (!still) {
@@ -222,7 +222,7 @@ export class PlayerFeel {
     }
     if (this.fidget && time < this.fidget.until) return this.fidget;
     this.fidget = undefined;
-    if (!this.nextFidget) this.nextFidget = time + 5000 + roll() * 4000;
+    if (!this.nextFidget) this.nextFidget = time + 11000 + roll() * 11000;
     if (time < this.nextFidget) return undefined;
     this.nextFidget = 0;
     const r = roll();
@@ -230,12 +230,19 @@ export class PlayerFeel {
       ? { pose: "hurt", from: time, until: time + 640 }
       : state.cold && r < 0.6
         ? { shiver: true, from: time, until: time + 800 }
-        : state.tired && r < 0.7
-          ? { pose: "stoop", from: time, until: time + 1600 }
-          : r < 0.55
+        : state.tired && r < 0.55
+          ? { pose: "stoop", from: time, until: time + 1200 }
+          : r < 0.3
             ? // A look one way, then the other.
               { look: roll() < 0.5 ? 1 : -1, from: time, until: time + 1500 }
-            : { pose: "sway", from: time, until: time + 1280 };
+            : {
+                pose: state.hat && !state.held && r < 0.46 ? "adjust-hat"
+                  : state.held && !state.burden && r < 0.65 ? "inspect-held"
+                  : r < 0.77 ? "straighten"
+                  : !state.held && r < 0.91 ? "touch-face" : "sway",
+                from: time,
+                until: time + 640,
+              };
     return this.fidget;
   }
 

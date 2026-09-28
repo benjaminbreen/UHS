@@ -41,7 +41,7 @@ export type WearerScope = {
   roles?: readonly string[];
 };
 /** One choice in a slot. `weight` defaults to 1. */
-export type Option<T> = WearerScope & { value: T; weight?: number };
+export type Option<T> = WearerScope & { value: T; weight?: number; garments?: readonly Garment[] };
 
 /** Everything a kit may say about how people here dress. Every slot is
  * optional: a kit that only knows about hats says only that, and the rest
@@ -59,6 +59,8 @@ export type GarmentKit = {
   footwear?: readonly Option<Footwear>[];
   belt?: readonly Option<Belt>[];
   sleeves?: readonly Option<Sleeves>[];
+  cut?: readonly Option<"straight" | "fitted" | "full">[];
+  front?: readonly Option<"closed" | "open" | "cross">[];
   /** Worn over the garment. A mantle stops at the elbow; a cloak falls to
    * the hem. */
   over?: readonly Option<"none" | "cloak" | "mantle" | "shoulder-cloth">[];
@@ -71,6 +73,7 @@ export type GarmentKit = {
   eyewear?: readonly Option<(typeof eyewear)[number]>[];
   /** A kit that says nothing leaves the base roll's necklace alone. */
   neck?: readonly Option<"none" | "beads" | "chain">[];
+  accessory?: readonly Option<"none" | "walking-cane" | "fan">[];
 };
 export type Motif = (typeof motifs)[number];
 export type WardrobeSlot = Exclude<
@@ -80,6 +83,8 @@ export type WardrobeSlot = Exclude<
 export const wardrobeSlots = [
   "garment",
   "sleeves",
+  "cut",
+  "front",
   "headwear",
   "leggings",
   "footwear",
@@ -90,6 +95,7 @@ export const wardrobeSlots = [
   "motif",
   "eyewear",
   "neck",
+  "accessory",
 ] as const;
 
 /** The person a kit is dressing. Everything but `id` is optional: an actor

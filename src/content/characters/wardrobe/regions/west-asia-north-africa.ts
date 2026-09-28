@@ -15,6 +15,8 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     id: "wana-ancient",
     label: "West Asia & North Africa · linen and the draped cloth",
     scope: { years: [-1000000, 650], cultures: ["north-african-west-asian"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "loose", weight: 3, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "long-tunic", weight: 5 },
       { value: "wrap", weight: 4 },
@@ -56,6 +58,8 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     id: "wana-medieval",
     label: "West Asia & North Africa · the robe over the shift",
     scope: { years: [650, 1500], cultures: ["north-african-west-asian"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "loose", weight: 3, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "long-tunic", weight: 5 },
       { value: "open-robe", weight: 5 },
@@ -91,6 +95,8 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     id: "wana-early-modern",
     label: "West Asia & North Africa · kaftan and turban",
     scope: { years: [1500, 1850], cultures: ["north-african-west-asian"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "loose", weight: 3, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "open-robe", weight: 6 },
       { value: "long-tunic", weight: 5 },
@@ -120,6 +126,8 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     id: "wana-modern",
     label: "West Asia & North Africa · the fez, then the shirt",
     scope: { years: [1850, 10001], cultures: ["north-african-west-asian"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "loose", weight: 3, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "long-tunic", weight: 5 },
       { value: "shirt", weight: 5 },

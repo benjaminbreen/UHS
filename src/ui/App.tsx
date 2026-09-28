@@ -10,6 +10,7 @@ import {
   Suspense,
   type PointerEvent as ReactPointerEvent,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -144,7 +145,11 @@ const REST_OPTIONS: {
   },
 ];
 
-export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
+export function App({ runtime, onReady, active = true }: { runtime: Runtime; writer: boolean; onReady?: () => void; active?: boolean }) {
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const view = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
   // Dev builds only: a handle for driving the game from the console.
   if (import.meta.env.DEV)
@@ -186,10 +191,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [statDetails, setStatDetails] = useState(false);
   const [provider, setProvider] = useState(narratorProvider);
   useEffect(() => {
+    if (!active) return;
     const director = new AudioDirector();
     setAudio(director);
     return () => director.dispose();
-  }, []);
+  }, [active]);
   const [restOpen, setRestOpen] = useState(false);
   const [modal, setModal] = useState<
     | "time"
@@ -357,6 +363,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const upload = useRef<HTMLInputElement>(null);
   const replayUpload = useRef<HTMLInputElement>(null);
   const game = useRef<Phaser.Game | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (active && game.current?.canvas.dataset.ready === "false")
+      game.current.canvas.dataset.ready = "true";
+  }, [active]);
   useEffect(() => {
     if (!mount.current) return;
     const scene = new WorldScene(runtime);
@@ -380,6 +390,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       banner: false,
     });
     game.current = g;
+    const ready = () => {
+      if (!activeRef.current && g.canvas?.dataset.ready === "true")
+        g.canvas.dataset.ready = "false";
+      if (g.canvas?.dataset.terrainReady !== "true") return;
+      g.events.off(Phaser.Core.Events.POST_RENDER, ready);
+      onReadyRef.current?.();
+    };
+    g.events.on(Phaser.Core.Events.POST_RENDER, ready);
     watchGame(g);
     // iOS collapses and expands the URL bar as the page scrolls, and RESIZE
     // mode reallocates the drawing buffer for every one of those. A phone
@@ -414,6 +432,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       registerGame(undefined);
       watchGame(undefined);
       markEvent("game destroyed");
+      g.events.off(Phaser.Core.Events.POST_RENDER, ready);
       g.destroy(true);
     };
   }, [runtime]);
@@ -546,12 +565,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if (e.code !== "Backquote" || !(e.metaKey || e.ctrlKey)) return;
+      if (runtime.timeTravelLocked) return;
       e.preventDefault();
       if (!e.repeat) setGraphicsOpen((open) => !open);
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, []);
+  }, [runtime]);
   const day = Math.floor(obs.clock / 86400) + 1;
   const hour = Math.floor(obs.clock / 3600) % 24;
   const period =

@@ -22,7 +22,7 @@ import {
   pickBeard,
 } from "../../core/character";
 import { wornFromWearing } from "../../core/wearing";
-import { clothFor, rolesFrom, wardrobeFor } from "./wardrobe";
+import { accessoryFor, clothFor, rolesFrom, wardrobeFor } from "./wardrobe";
 import { pickHair } from "../../core/character";
 import type { CharacterPhysique } from "../../core/character";
 
@@ -480,7 +480,7 @@ export function generateCharacter(
     bodySex,
     livelihood.rank,
   );
-  if (s.situation) appearance.wearing = wardrobeFor({
+  appearance.wearing = wardrobeFor({
     id, age, sex: bodySex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role),
   }, { year: s.year, setting: s }, appearance.wearing);
   const cloth = clothFor(
@@ -508,14 +508,17 @@ export function generateCharacter(
         id,
       ),
     };
+  const accessory = accessoryFor({ id, age, sex: bodySex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role) },
+    { year: s.year, setting: s }, appearance.wearing.garment);
+  const inventory: Inventory = eligibleInventory(livelihood.inventory, context);
+  if (/hunter|archer|bowman/i.test(livelihood.label)) Object.assign(inventory, { bow: 1, arrow: 12 });
+  else if (/shepherd|herd|slinger/i.test(livelihood.label)) Object.assign(inventory, { sling: 1, pebble: 8 });
+  if (accessory) inventory[accessory] = 1;
   return {
+    ...(accessory && { heldItem: accessory }),
     name: explicitName || naming.display,
     role,
-    inventory: /hunter|archer|bowman/i.test(livelihood.label)
-      ? { ...eligibleInventory(livelihood.inventory, context), bow: 1, arrow: 12 }
-      : /shepherd|herd|slinger/i.test(livelihood.label)
-        ? { ...eligibleInventory(livelihood.inventory, context), sling: 1, pebble: 8 }
-        : eligibleInventory(livelihood.inventory, context),
+    inventory,
     appearance,
     worn: wornFromWearing(appearance.wearing, cloth),
     origin: {

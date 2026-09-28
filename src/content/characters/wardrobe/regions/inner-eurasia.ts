@@ -16,6 +16,9 @@ export const innerEurasia: readonly GarmentKit[] = [
     id: "ie-early",
     label: "Inner Eurasia · riding dress",
     scope: { years: [-1500, 600], cultures: ["inner-eurasian"] },
+    front: [{ value: "cross", garments: ["open-robe"] }],
+    sleeves: [{ value: "long", weight: 8 }, { value: "short", weight: 1, garments: ["shirt", "tunic"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["open-robe", "long-tunic"] }],
     garment: [
       { value: "open-robe", weight: 5 },
       { value: "tunic", weight: 5 },
@@ -56,6 +59,9 @@ export const innerEurasia: readonly GarmentKit[] = [
     id: "ie-medieval",
     label: "Inner Eurasia · the wrapped coat",
     scope: { years: [600, 1500], cultures: ["inner-eurasian"] },
+    front: [{ value: "cross", garments: ["open-robe"] }],
+    sleeves: [{ value: "long", weight: 8 }, { value: "short", weight: 1, garments: ["shirt", "tunic"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["open-robe", "long-tunic"] }],
     garment: [
       { value: "open-robe", weight: 7 },
       { value: "coat", weight: 4 },
@@ -95,6 +101,9 @@ export const innerEurasia: readonly GarmentKit[] = [
     id: "ie-early-modern",
     label: "Inner Eurasia · felt, fur and the sash",
     scope: { years: [1500, 1900], cultures: ["inner-eurasian"] },
+    front: [{ value: "cross", garments: ["open-robe"] }],
+    sleeves: [{ value: "long", weight: 8 }, { value: "short", weight: 1, garments: ["shirt", "tunic"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["open-robe", "long-tunic"] }],
     garment: [
       { value: "open-robe", weight: 6 },
       { value: "coat", weight: 5 },
@@ -123,6 +132,9 @@ export const innerEurasia: readonly GarmentKit[] = [
     id: "ie-modern",
     label: "Inner Eurasia · the coat over the shirt",
     scope: { years: [1900, 10001], cultures: ["inner-eurasian"] },
+    front: [{ value: "cross", garments: ["open-robe"] }],
+    sleeves: [{ value: "long", weight: 8 }, { value: "short", weight: 1, garments: ["shirt", "tunic"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["open-robe", "long-tunic"] }],
     garment: [
       { value: "shirt", weight: 6 },
       { value: "coat", weight: 5 },

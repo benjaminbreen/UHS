@@ -362,3 +362,24 @@ it("uses stable fictional names for still-uncovered contexts without claiming lo
     ).name,
   ).toBe("My chosen name");
 });
+
+it("puts generated personal accessories in real inventory and in the hand", () => {
+  const setting = settingFor(place("kyoto"), 1850);
+  const people = Array.from({ length: 40 }, (_, i) => generateCharacter(setting, "accessories", `person-${i}`, 30, "Geisha"));
+  const held = people.filter((person) => person.heldItem === "fan");
+  expect(held.length).toBeGreaterThan(20);
+  for (const person of held) expect(person.inventory.fan).toBe(1);
+  const early = generateCharacter(settingFor(place("kyoto"), 1200), "accessories", "early", 30, "Geisha");
+  expect(early.heldItem).toBeUndefined();
+});
+
+it("applies regional wardrobes to ordinary generated residents as well as scenarios", () => {
+  const people = Array.from({ length: 30 }, (_, i) => generateCharacter(settingFor(place("paris"), 1888), "ordinary-wardrobe", `resident-${i}`, 34));
+  for (const person of people) {
+    expect(["shirt", "coat", "dress", "skirt", "gown"]).toContain(person.appearance.wearing.garment);
+    expect(person.appearance.wearing.cut).toBeDefined();
+  }
+  const gentleman = generateCharacter(settingFor(place("paris"), 1888), "ordinary-wardrobe", "gentleman", 34, "Gentleman", "Jacques Laurent", undefined, "male");
+  expect(gentleman.appearance.wearing.garment).toBe("coat");
+  expect(["bowler", "top-hat"]).toContain(gentleman.appearance.wearing.headwear);
+});

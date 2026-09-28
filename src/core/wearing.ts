@@ -7,6 +7,7 @@ import type { ItemDef, ItemId } from "./types";
 import {
   clothId,
   dyeAt,
+  dyes,
   parseCloth,
   type Cloth,
 } from "../content/characters/wardrobe/cloth";
@@ -19,6 +20,10 @@ export function bareWearing(base: Wearing): Wearing {
   return {
     ...base,
     garment: "none",
+    sleeves: "none",
+    cut: undefined,
+    front: undefined,
+    hem: undefined,
     headwear: "none",
     necklace: false,
     neckStyle: undefined,
@@ -45,7 +50,26 @@ export function composeWearing(
   for (const slot of wearSlots) {
     const id = worn[slot];
     const def = id ? item(id) : undefined;
-    if (def?.wear?.slot === slot) out = { ...out, ...def.wear.look };
+    if (def?.wear?.slot === slot) {
+      out = { ...out, ...def.wear.look };
+      if (slot === "body") {
+        if (def.wear.look.garment === base.garment) {
+          out.cut = def.wear.look.cut ?? base.cut;
+          out.front = def.wear.look.front ?? base.front;
+          out.hem = def.wear.look.hem ?? base.hem;
+          if (base.cut || base.front) out.sleeves = base.sleeves ?? out.sleeves;
+        }
+      }
+      const cloth = id ? parseCloth(id) : undefined;
+      const color = cloth ? dyes[cloth.cloth.dye].hex : undefined;
+      if (color) {
+        if (slot === "body") out.color = color;
+        else if (slot === "head") out.headColor = color;
+        else if (slot === "legs") out.lowerColor = color;
+        else if (slot === "belt") out.trim = color;
+        else if (slot === "over") out.cloakColor = color;
+      }
+    }
   }
   // The body garment's cloth, carried out of the item id so the drawing and
   // the item's name describe the same thing.
@@ -72,8 +96,9 @@ export function wornFromWearing(w: Wearing, cloth?: Cloth): Worn {
   };
   const worn: Worn = {};
   if (w.garment !== "none") worn.body = of(`garment-${w.garment}`, w.color);
-  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`, w.lowerColor);
+  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`, w.headColor ?? w.lowerColor);
   if (w.cloak) worn.over = of("cloak", w.cloakColor);
+  else if (w.mantle) worn.over = of("mantle", w.cloakColor);
   else if (w.shoulderCloth) worn.over = of("shoulder-cloth", w.cloakColor);
   if (w.belt && w.belt !== "none") worn.belt = of(`belt-${w.belt}`, w.trim);
   if (w.necklace) worn.neck = w.neckStyle === "chain" ? "chain" : "necklace";

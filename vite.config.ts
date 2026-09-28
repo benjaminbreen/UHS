@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { handleTimeArrival, handleTaskLore, handleDialogue, handleNarrator, handleWorldWeaver } from "./server/node-handler";
+import { handleTimeArrival, handleTaskLore, handleDialogue, handleNarrator, handleWorldWeaver, handleEdu } from "./server/node-handler";
 import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -21,6 +21,9 @@ export default defineConfig({
           "UHS_WORLD_WEAVER_ACCESS_CODE",
           "UHS_WORLD_WEAVER_MODEL",
           "OPENAI_API_KEY",
+          "DATABASE_URL",
+          "UHS_EDU_CLASS_CODE",
+          "UHS_EDU_TEACHER_TOKEN",
           "UHS_NARRATOR_ACCESS_CODE",
           "UHS_NARRATOR_OPENAI_MODEL",
           "UHS_NARRATOR_GEMINI_MODEL",
@@ -37,6 +40,7 @@ export default defineConfig({
         server.middlewares.use("/api/dialogue", (req, res) => {
           void handleDialogue(req, res);
         });
+        server.middlewares.use("/api/edu", (req, res) => { void handleEdu(req, res); });
         // Dev only: the building panel writes a recipe file and recompiles
         // the art. Paths are confined to the graphics content directory.
         server.middlewares.use("/api/art", (req, res) => {

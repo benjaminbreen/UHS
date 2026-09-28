@@ -3,6 +3,10 @@ import { runEconomy } from "../src/core/economy";
 import { harvestResource } from "../src/core/livelihood";
 import { parseLoad, withLoads } from "../src/content/economy/carrying";
 import type { Economy, Household } from "../src/core/types";
+import { panelCity } from "../scripts/review/panel";
+import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
+import { processFor } from "../src/content/economy/processes";
+import type { SettlementPlan } from "../src/world/v3/types";
 
 const village = (): Household[] => {
   const h = (id: string, x: number, makes: string[], buys: [string, string][]) => ({
@@ -20,6 +24,68 @@ const village = (): Household[] => {
 };
 const everyone = (h: Household) => h.members.length;
 const ledger = (): Economy => ({ hour: 0, stock: {}, short: {} });
+
+it("keeps basket weaving and cordage away from cloth looms", () => {
+  const kit = (id: string) => commonLivelihoods.find((l) => l.id === id)!;
+  expect(processFor(kit("basket-maker"))?.stations).toEqual(["open-basket"]);
+  expect(processFor(kit("rope-maker"))?.stations).toEqual([]);
+});
+
+it("routes work and children's errands to their actual destinations", () => {
+  const world = panelCity("london", 1400).engine.world;
+  const miller = world.initialActors.find((a) => a.origin?.livelihood === "miller" &&
+    world.itinerary?.(a.id)?.segments.some((s) => s.target?.family === "quern"));
+  const turn = miller && world.itinerary?.(miller.id)?.segments.find((s) => s.target?.family === "quern");
+  expect(turn?.target?.id).toBeTruthy();
+  expect(Math.abs(turn!.pos.x - turn!.target!.x) + Math.abs(turn!.pos.y - turn!.target!.y)).toBe(1);
+  expect(world.initialObjects.some((o) => o.id === turn!.target!.id)).toBe(true);
+  const trader = world.initialActors.find((a) => a.origin?.livelihood === "trader" &&
+    world.itinerary?.(a.id)?.segments.some((s) => s.target?.family === "market-counter"));
+  expect(trader, "merchant at a counter").toBeTruthy();
+  const shore = world.initialActors.flatMap((a) => world.itinerary?.(a.id)?.segments ?? [])
+    .find((s) => s.target?.family === "shallow-water" && /washing clothes/.test(s.label.toLowerCase()));
+  expect(shore, "laundry at the water").toBeTruthy();
+  expect(world.terrain(shore!.pos.x, shore!.pos.y)).not.toBe("water");
+  expect(world.terrain(shore!.target!.x, shore!.target!.y)).toBe("water");
+  const child = world.initialActors.find((a) =>
+    world.itinerary?.(a.id)?.segments.some((s) => s.label === "Sent for water"));
+  const route = child && world.itinerary?.(child.id);
+  expect(route, "child with a daily water errand").toBeTruthy();
+  expect(route!.segments.filter((s) => s.label === "Sent for water")).toHaveLength(1);
+  const well = route!.segments.find((s) => s.label === "Sent for water")?.target;
+  expect(["well", "town-well", "framed-well", "pump"]).toContain(well?.family);
+  expect(world.initialObjects.some((o) => o.id === well?.id)).toBe(true);
+  expect(route!.segments.some((s) => s.label === "Walking to the open ground")).toBe(false);
+  for (const leg of route!.segments.filter((s) => s.path?.length))
+    expect(Math.abs(leg.path![0].x - leg.pos.x) + Math.abs(leg.path![0].y - leg.pos.y)).toBeLessThanOrEqual(1);
+});
+
+it("keeps indoor workers at their actual workplace and social visits local", () => {
+  const { engine, plan: generated } = panelCity("london", 2000);
+  const plan = generated as SettlementPlan;
+  const world = engine.world;
+  const indoor = world.initialActors.map((a) => ({ actor: a, route: world.itinerary?.(a.id) }))
+    .flatMap(({ actor, route }) => (route?.segments ?? [])
+      .filter((s) => s.activity === "rest" && s.placeId && s.label !== "At home" && s.label !== "At school")
+      .map((segment) => ({ actor, route: route!, segment })))[0];
+  expect(indoor, "a worker assigned to a real building").toBeTruthy();
+  const resident = engine.state.actors.find((a) => a.id === indoor.actor.id)!;
+  (engine as any).followRoutine(resident, indoor.route,
+    (indoor.route.start + (indoor.segment.from + indoor.segment.to) / 2) * 60);
+  expect(resident.pos.space).toBe(indoor.segment.placeId);
+  const misplaced = [...plan.stations].flatMap(([id, stations]) => stations
+    .filter((s) => /rite|record|watch|sick/i.test(s.label) && s.activity === "rest")
+    .filter((s) => plan.places.some((p) => p.entrance.x === s.pos.x && p.entrance.y === s.pos.y &&
+      p.access === "household" && p.owner !== id)));
+  expect(misplaced).toHaveLength(0);
+  const social = [...plan.stations].flatMap(([id, stations]) => stations
+    .filter((s) => s.label.startsWith("At ") && s.label !== "At school" &&
+      plan.venues?.some((v) => s.toward === v.venue.label.replace(/^The /, "the ")))
+    .map((s) => Math.hypot(s.pos.x - plan.work.get(id)!.home.x,
+      s.pos.y - plan.work.get(id)!.home.y)));
+  expect(social.length).toBeGreaterThan(0);
+  expect(Math.max(...social)).toBeLessThanOrEqual(63);
+});
 
 it("keeps household stocks bounded and fed while every trade works", () => {
   const e = ledger();

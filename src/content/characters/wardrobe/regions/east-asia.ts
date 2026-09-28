@@ -12,9 +12,28 @@ import type { GarmentKit } from "../types";
  */
 export const eastAsia: readonly GarmentKit[] = [
   {
+    id: "japan-kosode",
+    label: "Japan · kosode, obi and sandals",
+    scope: { years: [1500, 1900], cultures: ["east-asian"], bounds: [130, 30, 146, 46] },
+    garment: [{ value: "open-robe", weight: 7 }, { value: "tunic", weight: 2, livelihoods: ["farmer", "fisher"] }],
+    front: [{ value: "cross" }],
+    sleeves: [{ value: "loose", weight: 7, garments: ["open-robe"] }, { value: "long", weight: 2 }],
+    cut: [{ value: "straight" }],
+    leggings: [{ value: "none", weight: 6 }, { value: "wide", weight: 2, sex: ["male"] }],
+    belt: [{ value: "sash", weight: 8 }, { value: "wide", weight: 2 }],
+    headwear: [{ value: "none", weight: 8 }, { value: "conical", weight: 3, livelihoods: ["farmer", "fisher"] }],
+    footwear: [{ value: "sandals", weight: 8 }, { value: "none", weight: 1, means: ["poor"] }],
+    over: [{ value: "none" }],
+    accessory: [{ value: "fan", weight: 8, roles: ["geisha"] }, { value: "fan", weight: 1, means: ["wealthy"], ages: ["adult", "elder"] },
+      { value: "none", weight: 4 }],
+  },
+  {
     id: "ea-early",
     label: "East Asia · hemp and the wrapped robe",
     scope: { years: [-2000, 600], cultures: ["east-asian"] },
+    front: [{ value: "cross", garments: ["open-robe", "robe", "long-tunic"] }],
+    sleeves: [{ value: "long", weight: 5 }, { value: "loose", weight: 4, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "open-robe", weight: 5 },
       { value: "long-tunic", weight: 4 },
@@ -65,6 +84,9 @@ export const eastAsia: readonly GarmentKit[] = [
     id: "ea-classical",
     label: "East Asia · the robe and the cap",
     scope: { years: [600, 1400], cultures: ["east-asian"] },
+    front: [{ value: "cross", garments: ["open-robe", "robe", "long-tunic"] }],
+    sleeves: [{ value: "long", weight: 5 }, { value: "loose", weight: 4, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "open-robe", weight: 6 },
       { value: "long-tunic", weight: 4 },
@@ -104,6 +126,9 @@ export const eastAsia: readonly GarmentKit[] = [
     id: "ea-late-imperial",
     label: "East Asia · cotton spreads, the robe stays",
     scope: { years: [1400, 1900], cultures: ["east-asian"] },
+    front: [{ value: "cross", garments: ["open-robe", "robe", "long-tunic"] }],
+    sleeves: [{ value: "long", weight: 5 }, { value: "loose", weight: 4, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "open-robe", weight: 6 },
       { value: "long-tunic", weight: 4 },
@@ -134,6 +159,9 @@ export const eastAsia: readonly GarmentKit[] = [
     id: "ea-modern",
     label: "East Asia · the shirt, and the robe kept for occasions",
     scope: { years: [1900, 10001], cultures: ["east-asian"] },
+    front: [{ value: "cross", garments: ["open-robe", "robe", "long-tunic"] }],
+    sleeves: [{ value: "long", weight: 5 }, { value: "loose", weight: 4, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
       { value: "shirt", weight: 6 },
       { value: "coat", weight: 3 },

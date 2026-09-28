@@ -1,5 +1,7 @@
 import { expect, it } from "vitest";
-import { createSession, Runtime } from "../src/runtime/session";
+import { createSession, createSettingSession, Runtime } from "../src/runtime/session";
+import { settingFor } from "../src/content/geography/resolve";
+import { places } from "../src/content/geography/places";
 import { commandSchema, snapshotSchema } from "../src/runtime/schema";
 import { editedDecoration, tileKey } from "../src/core/tile-edits";
 import { fellingSwings } from "../src/content/ecology/vegetation";
@@ -48,6 +50,20 @@ it("accepts chop, dig and reap as interact actions", () => {
     ).toBe(true);
 });
 
+it("shows a potter's actual work motion at the work station", () => {
+  const konya = places.find((p) => p.id === "konya")!;
+  const engine = createSettingSession({ ...settingFor(konya, -6499), role: "Potter" }, "potter-motion");
+  const home = engine.state.households!.find((h) => h.members.includes("player"))!;
+  const store = engine.state.objects.find((o) => o.id === home.storeId)!;
+  engine.state.player.pos = { ...store.pos, x: store.pos.x + 1 };
+  const affordance = engine.inspect(store.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "work")!;
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  expect(runtime.command(affordance.command)?.status).toBe("completed");
+  expect(runtime.characterAction?.pose).toBe("work-knead");
+  expect(runtime.characterAction?.target).toBe(store.id);
+  runtime.dispose();
+});
+
 it("counts swings by the size of the plant", () => {
   expect(fellingSwings("nature-understory-low-leafy-shrub")).toBe(1);
   expect(fellingSwings("nature-broadleaf-sapling")).toBe(3);
@@ -72,6 +88,8 @@ it("fells a tree, leaves logs, and bucks them into firewood", () => {
   for (let i = 0; i < 6; i++) {
     expect(runtime.propControls().primary).toMatchObject({ action: "chop" });
     runtime.propAction("KeyF");
+    expect(runtime.characterAction?.pose).toBe("axe-chop");
+    expect(runtime.toolEffect?.contactMs).toBe(250);
   }
   // The trunk lies where it fell, and the cell no longer blocks the way.
   expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-logs");
@@ -79,6 +97,7 @@ it("fells a tree, leaves logs, and bucks them into firewood", () => {
   expect(engine.state.player.inventory.wood).toBeUndefined();
   expect(runtime.propControls().primaryLabel).toBe("Buck the fallen trunk");
   runtime.propAction("KeyF");
+  expect(runtime.characterAction?.pose).toBe("axe-chop");
   expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-stump");
   expect(engine.state.player.inventory.wood).toBe(3);
   // A stump is not worth another swing.
@@ -98,6 +117,7 @@ it("takes a shrub off at the root and clears the stems", () => {
   holding(engine, "axe");
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.propAction("KeyF");
+  expect(runtime.characterAction?.pose).toBe("axe-chop");
   expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-cut-thorns");
   runtime.propAction("KeyF");
   expect(engine.world.decoration(1, 0)).toBeUndefined();
@@ -121,6 +141,7 @@ it("refuses to chop grass and cuts it with the scythe instead", () => {
   holding(engine, "sickle");
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.propAction("KeyF");
+  expect(runtime.characterAction?.pose).toBe("sickle-cut");
   expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-stubble");
 });
 
@@ -132,6 +153,7 @@ it("digs a furrow in the ground underfoot when nothing faces the player", () => 
   holding(engine, "spade");
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.propAction("KeyF");
+  expect(runtime.characterAction?.pose).toBe("shovel-dig");
   expect(engine.world.decoration(0, 0)?.sprite).toBe("nature-furrow");
   expect(engine.state.tilesRevision).toBe(1);
   // Turned ground stays turned.
@@ -140,11 +162,11 @@ it("digs a furrow in the ground underfoot when nothing faces the player", () => 
   );
 });
 
-it("reaps a standing crop into the player's hands", () => {
+it("sweeps a standing crop with a scythe", () => {
   const engine = createSession("roman", "tools");
   ground(engine);
   plant(engine, undefined);
-  holding(engine, "sickle");
+  holding(engine, "scythe");
   engine.state.objects.push({
     id: "crop-1-0",
     name: "Cultivated grain",
@@ -156,6 +178,7 @@ it("reaps a standing crop into the player's hands", () => {
   const runtime = new Runtime(engine, { cacheTerrain: false });
   expect(runtime.propControls().primaryLabel).toBe("Cut the cultivated grain");
   runtime.propAction("KeyF");
+  expect(runtime.characterAction?.pose).toBe("scythe-sweep");
   expect(engine.state.player.inventory.grain).toBe(3);
   expect(engine.state.objects.find((o) => o.id === "crop-1-0")?.depleted).toBe(
     true,
@@ -239,7 +262,11 @@ it("breaks a rock into rubble and clears it away", () => {
   holding(engine, "pick");
   const runtime = new Runtime(engine, { cacheTerrain: false });
   expect(runtime.propControls().primaryLabel).toBe("Break the rock");
-  for (let i = 0; i < 4; i++) runtime.propAction("KeyF");
+  for (let i = 0; i < 4; i++) {
+    runtime.propAction("KeyF");
+    expect(runtime.characterAction?.pose).toBe("pick-strike");
+    expect(runtime.toolEffect?.contactMs).toBe(250);
+  }
   expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-rubble");
   expect(engine.world.decoration(1, 0)?.solid).toBe(false);
   expect(engine.state.player.inventory.stone).toBe(2);

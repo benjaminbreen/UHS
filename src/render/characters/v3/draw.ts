@@ -1,6 +1,7 @@
 import type { CharacterAppearance } from "../../../core/character";
 import type { CharacterPose } from "../poses";
 import type { CarriedArt } from "../props";
+import type { RestingExpression } from "../../../core/persona";
 import { drawHead } from "../v2/head";
 import { lightKey, mix, Pixels, ramp, type Ramp } from "../v2/pixels";
 
@@ -98,7 +99,10 @@ export const drawCharacter = (
   frame: number,
   prop?: CarriedArt,
   facing?: number,
-) => draw("c", ctx, a, direction, pose, frame, prop, facing);
+  expression: RestingExpression = "neutral",
+  turn = 0,
+  condition = 0,
+) => draw("c", ctx, a, direction, pose, frame, prop, facing, expression, turn, condition);
 export const drawCharacterD = (
   ctx: CanvasRenderingContext2D,
   a: CharacterAppearance,
@@ -107,7 +111,10 @@ export const drawCharacterD = (
   frame: number,
   prop?: CarriedArt,
   facing?: number,
-) => draw("d", ctx, a, direction, pose, frame, prop, facing);
+  expression: RestingExpression = "neutral",
+  turn = 0,
+  condition = 0,
+) => draw("d", ctx, a, direction, pose, frame, prop, facing, expression, turn, condition);
 
 function draw(
   style: "c" | "d",
@@ -118,18 +125,22 @@ function draw(
   frame: number,
   prop?: CarriedArt,
   facing?: number,
+  expression: RestingExpression = "neutral",
+  turn = 0,
+  condition = 0,
 ) {
   S = styles[style];
   ctx.clearRect(0, 0, 80, 80);
   ctx.imageSmoothingEnabled = false;
   const face8 = facing ?? [0, 2, 4, 6][direction & 3];
-  const rig = pose3d(a, pose, frame, !!prop);
+  const rig = pose3d(a, pose, frame, prop?.kind, turn, condition);
   const model = build(a, rig);
   const image = ctx.getImageData(0, 0, 80, 80);
-  raster(image.data, a, model, rig, face8);
+  const cells = raster(image.data, a, model, rig, face8);
   ctx.putImageData(image, 0, 0);
-  if (S.spriteHead) spriteHead(ctx, a, model, pose, frame, face8, rig.trail);
-  if (prop) drawProp(ctx, prop, rig, face8);
+  if (S.spriteHead) spriteHead(ctx, a, model, pose, frame, (face8 + (Math.abs(turn) === 3 ? Math.sign(turn) : 0) + 8) % 8, rig.trail, expression);
+  if (prop) drawProp(ctx, prop, rig, model, face8, pose, frame, cells);
+  if (pose.startsWith("work-")) drawWorkDetail(ctx, model, rig, face8, pose, frame, !!prop);
 }
 
 // ---------------------------------------------------------------- the pose
@@ -145,6 +156,9 @@ type Rig = {
   twist: number;
   /** How far anything hanging off the head lags, in pixels. */
   trail: number;
+  bank: number;
+  clothX: number;
+  clothY: number;
   legs: { hip: V; knee: V; ankle: V; toe: number }[];
   arms: { shoulder: V; elbow: V; wrist: V }[];
   /** Hem swing: which way the skirt's foot is carried. */
@@ -159,14 +173,19 @@ function pose3d(
   a: CharacterAppearance,
   pose: CharacterPose,
   frame: number,
-  carrying: boolean,
+  carrying?: CarriedArt["kind"],
+  turn = 0,
+  condition = 0,
 ): Rig {
-  const child = a.height <= -2;
-  const extra = a.height * 3;
+  const child = a.height === -2;
   const female = a.physique?.sex === "female";
   const k = S.leg / 19;
-  const leg = S.leg + extra * 0.6 * k - (child ? 1 : 0);
-  const torso = S.torso + extra * 0.4 * k - (child ? 1 : 0);
+  // D's previous default is now the tall male; -2 remains the child category.
+  const extra = S.spriteHead
+    ? child ? -9 : a.height * 2 - 2 - (female ? 2 : 0)
+    : a.height * 3 * k;
+  const leg = S.leg + extra * 0.6 - (!S.spriteHead && child ? 1 : 0);
+  const torso = S.torso + extra * 0.4 - (!S.spriteHead && child ? 1 : 0);
   const hip = leg + 1.5,
     waist = hip + torso * 0.3,
     chest = hip + torso * 0.62,
@@ -199,9 +218,10 @@ function pose3d(
     twist = 0,
     trail = 0;
   const idle = pose === "idle" || pose === "breathe";
+  const burden = condition % 3, tired = condition >= 3;
   let lift = 0;
   if (pose === "walk" || pose === "carry" || pose === "wade") {
-    const A = 24;
+    const A = 24 - burden * 3 - (tired ? 3 : 0);
     thigh = [A * s, -A * s];
     // The leg coming through bends; the planted one stays nearly straight.
     knee = [8 + 38 * Math.max(0, c), 8 + 38 * Math.max(0, -c)];
@@ -210,12 +230,12 @@ function pose3d(
     armA = [-24 * s, 24 * s];
     elbow = [8 + 26 * Math.max(0, -s), 8 + 26 * Math.max(0, s)];
     armOut = [5 - 5 * Math.max(0, -s), 5 - 5 * Math.max(0, s)];
-    lean = 3;
+    lean = 3 + burden * 4 + (tired ? 5 : 0);
     swing = -s;
     twist = rad(8) * s;
     trail = Math.round(-s);
   } else if (pose === "run") {
-    const A = 42;
+    const A = 42 - burden * 4 - (tired ? 5 : 0);
     thigh = [A * s + 14, -A * s + 14];
     // The recovering leg folds up under the body; the driving one extends.
     knee = [20 + 95 * Math.max(0, c), 20 + 95 * Math.max(0, -c)];
@@ -224,15 +244,79 @@ function pose3d(
     armA = [-48 * s, 48 * s];
     elbow = [75 + 25 * Math.max(0, -s), 75 + 25 * Math.max(0, s)];
     armOut = [10, 10];
-    lean = 13;
+    lean = 13 + burden * 3 + (tired ? 5 : 0);
     swing = -1.6 * s;
     twist = rad(13) * s;
     trail = -2;
     // Off the ground just after each push.
-    lift = [0.3, 1.6, 0.8, 0, 0.3, 1.6, 0.8, 0][w];
+    lift = [0.3, 1.6, 0.8, 0, 0.3, 1.6, 0.8, 0][w] * (tired || burden ? 0.6 : 1);
+  } else if (pose === "setoff") {
+    thigh = [28, -16];
+    knee = [42, 8];
+    armA = [-24, 32];
+    elbow = [18, 45];
+    lean = 12;
+    twist = rad(-8);
+    swing = -1;
+    trail = -2;
+  } else if (pose === "halt") {
+    // The scene uses frame 0 to brake and frame 1 to settle.
+    const brake = w === 0;
+    thigh = brake ? [27, -12] : [4, -2];
+    knee = brake ? [10, 24] : [10, 8];
+    armA = brake ? [24, -18] : [7, 3];
+    elbow = brake ? [42, 18] : [16, 10];
+    lean = brake ? -11 : 2;
+    twist = rad(brake ? 9 : -2);
+    swing = brake ? 1.2 : -0.2;
+    trail = brake ? 2 : -1;
+  } else if (pose === "skid") {
+    thigh = [[38, -16], [42, -12], [34, -8], [16, -4]][w];
+    knee = [[12, 24], [18, 34], [24, 30], [18, 14]][w];
+    armA = [35, 24];
+    elbow = [55, 65];
+    armOut = [25, 30];
+    lean = [-16, -23, -15, -3][w];
+    twist = rad([0, 10, 20, 8][w]);
+    swing = [1.5, 2, 1, -0.3][w];
+    trail = [2, 3, 2, 0][w];
+  } else if (pose === "nod") {
+    thigh = [3, -2];
+    knee = [7, 5];
+    lean = [0, 5, 3, 0][w];
+  } else if (pose === "wave") {
+    armA = [[125, 4], [150, 4], [145, 4], [115, 4]][w];
+    elbow = [[35, 10], [55, 10], [25, 10], [45, 10]][w];
+    armOut = [30, 5];
+    twist = rad(-5);
+    lean = -2;
+  } else if (pose === "adjust-hat") {
+    armA = [[4, 110], [4, 135], [4, 130], [4, 65]][w];
+    elbow = [10, 65];
+    lean = [0, -2, -2, 0][w];
+  } else if (pose === "straighten") {
+    armA = [[20, 4], [42, 4], [30, 4], [8, 4]][w];
+    elbow = [[80, 10], [110, 10], [85, 10], [25, 10]][w];
+    armOut = [-12, 5];
+    lean = [2, 5, 2, 0][w];
+  } else if (pose === "touch-face") {
+    armA = [[4, 60], [4, 90], [4, 65], [4, 8]][w];
+    elbow = [10, 105];
+  } else if (pose === "inspect-held") {
+    armA = [[5, 40], [5, 72], [5, 58], [5, 15]][w];
+    elbow = [10, 80];
+    lean = [0, 6, 8, 0][w];
+  } else if (pose === "recover") {
+    thigh = [[10, -5], [7, -2], [3, 0], [0, 0]][w];
+    knee = [[18, 12], [13, 8], [8, 5], [4, 4]][w];
+    armA = [[-12, 45], [0, 25], [4, 12], [4, 4]][w];
+    elbow = [[25, 60], [20, 45], [12, 25], [10, 10]][w];
+    lean = [-11, -4, 2, 0][w];
+    trail = [2, 1, -1, 0][w];
   } else if (idle) {
     lift = pose === "breathe" ? (w === 1 || w === 2 ? 0.5 : 0) : w === 2 ? 0.4 : 0;
     armA = [3, 3];
+    lean = burden * 3 + (tired ? 5 : 0);
     const stance = a.posture ?? "upright";
     if (stance === "hands-together") {
       armA = [28, 28];
@@ -257,9 +341,7 @@ function pose3d(
     pose === "dig" ||
     pose === "reap" ||
     pose === "till" ||
-    pose === "kneel" ||
-    pose === "lift" ||
-    pose === "tug"
+    pose === "kneel"
   ) {
     const depth = [0.3, 0.7, 1, 0.6][w];
     lean = 40 * depth;
@@ -267,12 +349,233 @@ function pose3d(
     knee = [55 * depth, 45 * depth];
     armA = [50 * depth + 10, 40 * depth + 10];
     elbow = [15, 15];
+  } else if (pose === "lift") {
+    thigh = [[45, 36], [55, 42], [27, 20], [8, 6]][w];
+    knee = [[95, 85], [110, 100], [65, 60], [18, 16]][w];
+    armA = [[60, 55], [78, 72], [120, 115], [75, 70]][w];
+    elbow = [[25, 25], [35, 35], [50, 50], [32, 32]][w];
+    lean = [35, 42, 10, -6][w];
+    armOut = [-10, -10];
+    trail = [0, 0, -2, 1][w];
+  } else if (pose === "tug") {
+    thigh = [[30, -22], [35, -25], [25, -20], [12, -8]][w];
+    knee = [[32, 18], [45, 25], [38, 22], [20, 12]][w];
+    armA = [[70, 65], [83, 78], [65, 60], [35, 32]][w];
+    elbow = [[20, 20], [35, 35], [60, 60], [30, 30]][w];
+    lean = [-8, -18, -25, -4][w];
+    armOut = [-8, -8];
+    trail = [0, 1, 2, 0][w];
+  } else if (pose === "work-stir") {
+    thigh = [9, -5]; knee = [15, 11];
+    armA = [[45, 58], [54, 70], [48, 62], [40, 48]][w];
+    elbow = [[48, 70], [52, 83], [62, 76], [48, 62]][w];
+    armOut = [-10, 7];
+    lean = [9, 13, 11, 7][w];
+    twist = rad([-8, 0, 9, 1][w]);
+    trail = [0, 1, 0, -1][w];
+  } else if (pose === "work-knead") {
+    thigh = [16, -8]; knee = [25, 17];
+    armA = [[50, 35], [70, 40], [38, 68], [42, 42]][w];
+    elbow = [[80, 64], [102, 70], [65, 100], [70, 68]][w];
+    armOut = [-12, -12];
+    lean = [19, 26, 23, 15][w];
+    twist = rad([-5, -9, 8, 2][w]);
+    trail = [0, 1, 1, 0][w];
+  } else if (pose === "work-pound") {
+    thigh = [[-8, 13], [-12, 20], [23, -12], [6, 0]][w];
+    knee = [[14, 20], [20, 28], [30, 22], [12, 12]][w];
+    armA = [[42, 105], [55, 145], [42, 38], [25, 35]][w];
+    elbow = [[35, 38], [28, 18], [35, 65], [45, 50]][w];
+    armOut = [-7, 5];
+    lean = [-5, -12, 26, 8][w];
+    twist = rad([-13, -22, 18, 4][w]);
+    trail = [1, 2, -2, 0][w];
+  } else if (pose === "work-quern") {
+    thigh = [24, -10]; knee = [36, 25];
+    armA = [[52, 50], [65, 60], [68, 72], [54, 58]][w];
+    elbow = [[65, 72], [82, 78], [88, 65], [68, 58]][w];
+    armOut = [[-12, 10], [8, 15], [14, -8], [-10, -14]][w];
+    lean = [18, 23, 24, 19][w];
+    twist = rad([-10, 2, 12, -1][w]);
+    trail = [0, 1, 1, 0][w];
+  } else if (pose === "work-grind") {
+    thigh = [30, -12]; knee = [44, 27];
+    armA = [[53, 55], [74, 68], [64, 58], [42, 40]][w];
+    elbow = [[70, 72], [92, 88], [88, 80], [65, 64]][w];
+    armOut = [-10, -9];
+    lean = [20, 30, 27, 16][w];
+    twist = rad([-5, -11, 7, 2][w]);
+    trail = [0, 1, 1, 0][w];
+  } else if (pose === "work-weave") {
+    thigh = [8, -5]; knee = [14, 10];
+    armA = [[65, 38], [37, 70], [72, 35], [43, 56]][w];
+    elbow = [[60, 95], [90, 55], [55, 100], [80, 65]][w];
+    armOut = [[-15, 18], [12, -15], [-15, 18], [10, -10]][w];
+    lean = [10, 13, 9, 6][w];
+    twist = rad([-11, 9, -9, 6][w]);
+    trail = [0, 1, 0, -1][w];
+  } else if (pose === "work-scrub") {
+    thigh = [25, -10]; knee = [38, 24];
+    armA = [[58, 54], [72, 65], [53, 77], [45, 55]][w];
+    elbow = [[65, 75], [82, 87], [84, 68], [65, 70]][w];
+    armOut = [-15, -12];
+    lean = [22, 29, 26, 17][w];
+    twist = rad([-5, -9, 8, 2][w]);
+    trail = [0, 1, 1, 0][w];
+  } else if (pose === "work-rinse") {
+    thigh = [27, -11]; knee = [40, 28];
+    armA = [[42, 45], [72, 72], [96, 92], [48, 47]][w];
+    elbow = [[55, 60], [87, 91], [65, 70], [45, 58]][w];
+    armOut = [[-12, -8], [-15, -11], [-8, -6], [-12, -8]][w];
+    lean = [17, 34, 15, 13][w];
+    twist = rad([-4, -8, 5, 1][w]);
+    trail = [0, 1, 2, 0][w];
+  } else if (pose === "work-fish") {
+    thigh = [[12, -6], [18, -8], [29, -12], [8, -4]][w];
+    knee = [[20, 12], [31, 16], [43, 19], [16, 10]][w];
+    armA = [[35, 40], [58, 62], [95, 102], [44, 53]][w];
+    elbow = [[42, 48], [67, 73], [109, 106], [55, 64]][w];
+    armOut = [[-18, -12], [-12, -8], [5, -4], [-15, -10]][w];
+    lean = [4, -10, 18, 5][w];
+    twist = rad([-5, -16, 12, -2][w]);
+    trail = [0, 0, 1, 0][w];
+  } else if (pose === "work-hang") {
+    thigh = [4, -4]; knee = [8, 8];
+    armA = [[55, 62], [88, 92], [115, 112], [68, 70]][w];
+    elbow = [[65, 72], [102, 105], [120, 118], [75, 78]][w];
+    armOut = [[-11, -8], [-5, -3], [4, 3], [-7, -5]][w];
+    lean = [5, -2, -6, 3][w];
+    twist = rad([-3, -9, 3, -1][w]);
+    trail = [0, 0, 0, 0][w];
+  } else if (pose === "work-tend") {
+    thigh = [[30, -12], [45, -18], [36, -12], [20, -6]][w];
+    knee = [[50, 25], [75, 35], [65, 31], [35, 18]][w];
+    armA = [[48, 44], [72, 60], [65, 50], [40, 35]][w];
+    elbow = [[55, 60], [82, 75], [96, 88], [56, 65]][w];
+    armOut = [-12, -10];
+    lean = [24, 36, 31, 17][w];
+    twist = rad([-4, -8, 7, 1][w]);
+    trail = [0, 1, 2, 0][w];
+  } else if (pose === "work-sort") {
+    thigh = [6, -4]; knee = [12, 8];
+    armA = [[48, 36], [62, 52], [35, 65], [28, 42]][w];
+    elbow = [[65, 75], [85, 72], [70, 95], [50, 65]][w];
+    armOut = [[-12, 8], [-18, 12], [10, -18], [5, -10]][w];
+    lean = [7, 13, 11, 4][w];
+    twist = rad([-8, -13, 11, 2][w]);
+    trail = [0, 1, 0, -1][w];
+  } else if (pose === "work-check") {
+    thigh = [5, -3]; knee = [11, 8];
+    armA = [[25, 42], [18, 58], [15, 48], [8, 20]][w];
+    elbow = [[55, 85], [55, 95], [45, 72], [25, 45]][w];
+    lean = [-1, -4, 2, 0][w];
+    twist = rad([-7, -12, 5, 0][w]);
+    trail = [1, 1, -1, 0][w];
   } else if (pose === "sit") {
     // On the ground, knees up a little, hands on them.
     thigh = [112, 104];
     knee = [92, 88];
     armA = [38, 34];
     elbow = [24, 28];
+  } else if (pose === "spear-thrust") {
+    thigh = [[8, -18], [16, -25], [42, -28], [12, -12]][w];
+    knee = [[10, 24], [18, 36], [25, 45], [15, 20]][w];
+    armA = [[52, 38], [72, 52], [85, 95], [40, 45]][w];
+    elbow = [[42, 60], [30, 48], [8, 5], [45, 55]][w];
+    armOut = [-8, 8];
+    lean = [-8, -13, 22, 2][w];
+    twist = rad([-16, -23, 16, 5][w]);
+    trail = [1, 2, -2, 1][w];
+  } else if (pose === "spear-throw") {
+    thigh = [[-12, 20], [-25, 34], [40, -25], [18, -12]][w];
+    knee = [[16, 22], [20, 36], [28, 42], [18, 20]][w];
+    armA = [[45, 125], [65, 158], [20, 105], [8, 40]][w];
+    elbow = [[30, 38], [40, 18], [15, 4], [12, 20]][w];
+    armOut = [35, 18];
+    lean = [-12, -20, 26, 12][w];
+    twist = rad([-22, -34, 24, 9][w]);
+    trail = [1, 2, -3, -1][w];
+  } else if (pose === "knife-thrust") {
+    thigh = [[4, -14], [14, -20], [34, -23], [8, -6]][w];
+    knee = [[15, 25], [20, 30], [24, 38], [12, 14]][w];
+    armA = [[18, 45], [30, 65], [35, 102], [10, 28]][w];
+    elbow = [[55, 100], [55, 85], [45, 4], [25, 75]][w];
+    armOut = [24, 6];
+    lean = [-5, -10, 17, 1][w];
+    twist = rad([-10, -17, 20, 4][w]);
+    trail = [0, 1, -1, 0][w];
+  } else if (pose === "stick-swing") {
+    thigh = [[-10, 18], [-18, 24], [28, -18], [8, -8]][w];
+    knee = [[12, 25], [17, 30], [24, 32], [10, 18]][w];
+    armA = [[20, 110], [28, 150], [35, 48], [8, 15]][w];
+    elbow = [[22, 18], [20, 5], [18, 25], [12, 55]][w];
+    armOut = [20, 20];
+    lean = [-6, -12, 16, 3][w];
+    twist = rad([-18, -27, 30, 9][w]);
+    trail = [1, 2, -2, 0][w];
+  } else if (pose === "axe-chop") {
+    thigh = [[-12, 18], [-16, 25], [35, -20], [12, -8]][w];
+    knee = [[12, 25], [18, 30], [45, 35], [20, 18]][w];
+    armA = [[118, 120], [158, 160], [42, 38], [28, 24]][w];
+    elbow = [[32, 30], [12, 10], [20, 18], [45, 42]][w];
+    armOut = [-12, -12];
+    lean = [-12, -18, 34, 14][w];
+    twist = rad([-12, -20, 16, 4][w]);
+    trail = [1, 2, -3, -1][w];
+  } else if (pose === "pick-strike") {
+    thigh = [[-18, 22], [-20, 28], [28, -18], [12, -8]][w];
+    knee = [[16, 24], [22, 30], [48, 38], [26, 18]][w];
+    armA = [[95, 105], [135, 148], [50, 44], [20, 22]][w];
+    elbow = [[38, 35], [22, 18], [40, 35], [65, 60]][w];
+    armOut = [-10, -10];
+    lean = [-10, -24, 39, 19][w];
+    twist = rad([-22, -34, 24, 8][w]);
+    trail = [1, 2, -3, -1][w];
+  } else if (pose === "shovel-dig") {
+    thigh = [[26, -12], [42, -18], [52, -24], [18, -8]][w];
+    knee = [[30, 20], [55, 30], [80, 46], [35, 20]][w];
+    armA = [[62, 66], [82, 90], [48, 55], [95, 100]][w];
+    elbow = [[35, 30], [40, 35], [70, 60], [48, 42]][w];
+    armOut = [-8, -8];
+    lean = [18, 35, 45, 8][w];
+    twist = rad([-8, -14, 10, 16][w]);
+    trail = [0, 1, 2, -1][w];
+  } else if (pose === "rake-pull") {
+    thigh = [[26, -16], [32, -20], [22, -16], [6, -4]][w];
+    knee = [[28, 18], [35, 22], [40, 28], [14, 10]][w];
+    armA = [[65, 70], [92, 95], [45, 50], [28, 30]][w];
+    elbow = [[24, 20], [18, 18], [78, 75], [35, 35]][w];
+    armOut = [-8, -8];
+    lean = [17, 27, -12, 3][w];
+    twist = rad([-7, -10, 12, 0][w]);
+    trail = [0, 1, 2, 0][w];
+  } else if (pose === "sickle-cut") {
+    thigh = [[8, -12], [18, -16], [26, -20], [8, -7]][w];
+    knee = [[14, 18], [22, 24], [28, 34], [12, 12]][w];
+    armA = [[14, 55], [20, 75], [26, 48], [8, 18]][w];
+    elbow = [[25, 80], [25, 95], [25, 45], [18, 25]][w];
+    armOut = [20, 10];
+    lean = [2, 5, 15, 2][w];
+    twist = rad([-18, -25, 24, 6][w]);
+    trail = [0, 1, -1, 0][w];
+  } else if (pose === "scythe-sweep") {
+    thigh = [[-15, 18], [-22, 24], [28, -18], [12, -6]][w];
+    knee = [[15, 24], [20, 30], [32, 36], [16, 15]][w];
+    armA = [[64, 72], [70, 78], [78, 70], [35, 38]][w];
+    elbow = [[45, 42], [35, 32], [18, 18], [45, 42]][w];
+    armOut = [-10, -10];
+    lean = [-8, -12, 16, 5][w];
+    twist = rad([-32, -38, 35, 12][w]);
+    trail = [1, 2, -2, 0][w];
+  } else if (pose === "pitchfork-jab") {
+    thigh = [[12, -18], [20, -24], [32, -26], [10, -10]][w];
+    knee = [[12, 25], [22, 32], [28, 40], [15, 18]][w];
+    armA = [[50, 45], [68, 65], [85, 90], [42, 40]][w];
+    elbow = [[35, 45], [22, 28], [8, 8], [38, 42]][w];
+    armOut = [-8, 8];
+    lean = [-4, -9, 18, 3][w];
+    twist = rad([-12, -18, 12, 3][w]);
+    trail = [0, 1, -1, 0][w];
   } else if (
     pose === "swing" ||
     pose === "chop" ||
@@ -297,23 +600,95 @@ function pose3d(
     elbow = [100, 100];
     armOut = [40, 40];
     lift = pose === "startle" ? 1 : 0;
-  } else if (pose === "jump" || pose === "land" || pose === "stumble" || pose === "hang" || pose === "climb") {
-    const k = [60, 10, 40, 70][w];
-    thigh = [k, k * 0.8];
-    knee = [k * 1.5, k * 1.4];
-    armA = [pose === "hang" || pose === "climb" ? 170 : 40, pose === "hang" || pose === "climb" ? 170 : 40];
+  } else if (pose === "jump") {
+    thigh = [[58, 46], [8, -8], [62, 45], [28, 12]][w];
+    knee = [[105, 95], [12, 20], [120, 110], [30, 25]][w];
+    armA = [[-28, -28], [135, 125], [72, 65], [35, 30]][w];
+    elbow = [25, 25];
+    lean = [18, 5, 8, -5][w];
+    swing = [0, -1, 1.5, 0.5][w];
+    trail = [0, -2, -1, 1][w];
+  } else if (pose === "land") {
+    const compression = [1, 0.75, 0.3, 0][w];
+    thigh = [60 * compression, 50 * compression];
+    knee = [4 + 108 * compression, 4 + 98 * compression];
+    armA = [45 * compression, 40 * compression];
+    elbow = [20 + 30 * compression, 20 + 30 * compression];
+    armOut = [5 + 15 * compression, 5 + 15 * compression];
+    lean = 20 * compression;
+    swing = -compression;
+    trail = [2, 1, -1, 0][w];
+  } else if (pose === "stumble") {
+    thigh = [[48, -22], [-15, 48], [24, -8], [4, 0]][w];
+    knee = [[35, 40], [45, 28], [25, 18], [8, 4]][w];
+    armA = [[65, 45], [40, 75], [30, 40], [8, 8]][w];
+    elbow = [25, 30];
+    armOut = [30, 35];
+    lean = [32, 22, 12, 2][w];
+    twist = rad([-10, 12, -5, 0][w]);
+    swing = [-1.5, 1.5, -0.5, 0][w];
+    trail = [-2, -1, 1, 0][w];
+  } else if (pose === "kick") {
+    thigh = [[80, -10], [95, 28], [50, 0], [12, 6]][w];
+    knee = [[35, 22], [55, 70], [15, 28], [18, 12]][w];
+    armA = [65, 45];
+    elbow = [40, 55];
+    lean = [8, 20, -12, 5][w];
+    trail = [0, -1, 2, 0][w];
+  } else if (pose === "hang" || pose === "climb") {
+    const pulling = pose === "climb" || w >= 2;
+    thigh = pulling ? [65, 25] : [5, -5];
+    knee = pulling ? [100, 50] : [15, 20];
+    armA = [170, 165];
+    elbow = pulling ? [55, 45] : [10, 15];
+    lean = pulling ? 15 : 0;
+  } else if (pose === "sway") {
+    thigh = [6, -4];
+    knee = [12, 8];
+    armA = [8, 8];
     elbow = [20, 20];
-    lean = 10;
+    lean = [-5, 0, 5, 0][w];
+    twist = rad([-6, 0, 6, 0][w]);
+    trail = [1, 0, -1, 0][w];
   } else if (pose === "hurt") {
     lean = [-8, -14, -10, -4][w];
     armOut = [30, 30];
     armA = [25, 25];
     elbow = [60, 60];
   }
-  if (carrying && (idle || pose === "walk" || pose === "carry") && pose !== "walk") {
-    armA[1] = 30;
-    elbow[1] = 50;
+  if (carrying && (idle || pose === "walk" || pose === "run" || pose === "carry" || pose === "setoff" || pose === "halt" || pose === "skid")) {
+    if (carrying === "cane" || carrying === "stick") {
+      armA[1] = 20 + (eight ? s * 8 : 0);
+      elbow[1] = 42;
+      armOut[1] = 12;
+    } else if (carrying === "fan") {
+      armA[1] = 18;
+      elbow[1] = 85 + (idle ? Math.sin(phase) * 8 : 0);
+      armOut[1] = 10;
+    } else if (carrying === "head" && burden) {
+      armA[1] = 145;
+      elbow[1] = 35;
+      armOut[1] = 25;
+    } else if (carrying === "back" && burden) {
+      armA[1] = 42;
+      elbow[1] = 90;
+      armOut[1] = 18;
+    } else if (carrying !== "head" && carrying !== "back") {
+      armA[1] = burden >= 2 ? 32 : 25;
+      elbow[1] = burden >= 2 ? 80 : 65;
+      if (carrying === "both") {
+        armA[0] = armA[1];
+        elbow[0] = elbow[1];
+        armOut = [-12, -12];
+      }
+    }
   }
+  const direction = Math.sign(turn), beat = Math.abs(turn);
+  const bank = direction * (pose === "run" ? 7 : 3) * (beat === 2 ? 1 : beat === 3 ? 0.35 : beat === 1 ? 0.45 : 0);
+  twist -= rad(direction * (beat === 3 ? 11 : beat === 2 ? 5 : beat === 1 ? -3 : 0));
+  const clothX = -direction * (beat === 2 ? 1.25 : beat === 1 ? 0.7 : beat === 3 ? 0.35 : 0);
+  const clothY = swing * 0.55 + (pose === "run" ? -0.8 : pose === "halt" && w === 0 ? 1 : 0);
+  if (beat) trail += direction * (beat === 1 ? 1 : -1);
 
   const thighL = leg * 0.5,
     shinL = leg * 0.47;
@@ -340,8 +715,11 @@ function pose3d(
     const out = rad(armOut[i]) * side;
     const u = rad(armA[i]),
       e = rad(armA[i] + elbow[i]);
-    const upper = S.upper * (child ? 0.82 : 1),
-      fore = S.fore * (child ? 0.82 : 1);
+    const armScale = S.spriteHead
+      ? Math.sqrt((leg + torso) / (S.leg + S.torso))
+      : child ? 0.82 : 1;
+    const upper = S.upper * armScale,
+      fore = S.fore * armScale;
     const el = add(sh, [
       Math.sin(out) * upper,
       Math.sin(u) * upper * Math.cos(out),
@@ -354,6 +732,10 @@ function pose3d(
     ]);
     return { shoulder: sh, elbow: el, wrist: wr };
   });
+  if (carrying && (pose === "spear-thrust" || pose === "pitchfork-jab" || pose === "axe-chop" || pose === "pick-strike" || pose === "shovel-dig" || pose === "rake-pull" || pose === "scythe-sweep")) {
+    const grip = arms[1].wrist;
+    arms[0].wrist = [grip[0] - 0.7, grip[1] + (w === 2 ? 3 : 1), grip[2] + (w === 2 ? 0.4 : 2)];
+  }
   return {
     hip: hip + up,
     waist: waist + up,
@@ -363,6 +745,9 @@ function pose3d(
     lean: rad(lean),
     twist,
     trail,
+    bank: rad(bank),
+    clothX,
+    clothY,
     legs,
     arms,
     swing,
@@ -384,13 +769,14 @@ type Model = {
   neck: V;
   /** Body space to the leaning, twisting upper body's own frame. */
   upper: (p: V) => V;
+  world: (p: V) => V;
 };
 
 function hemFor(a: CharacterAppearance, r: Rig): number | undefined {
   const g = a.wearing.garment;
   const knee = (r.legs[0].knee[2] + r.legs[1].knee[2]) / 2;
   const leggings = a.wearing.leggings ?? "none";
-  if (leggings === "sarong" || leggings === "wide") return 2.2;
+  if (leggings === "sarong") return 2.2;
   switch (g) {
     case "coat":
       return knee - 1;
@@ -423,43 +809,56 @@ function build(a: CharacterAppearance, r: Rig): Model {
   const female = a.physique?.sex === "female";
   const hem = hemFor(a, r);
   const gown = g === "gown";
-  const trousers = !["dress", "skirt", "gown", "robe", "wrap"].includes(g);
+  const full = gown || a.wearing.cut === "full";
+  const fitted = a.wearing.cut === "fitted" || g === "coat" || g === "dress";
   const headR: V = r.child ? [3.6, 3.7, 4.2] : [3.25, 3.4, 3.95];
   const lean = r.lean;
   const cl = Math.cos(lean),
     sl = Math.sin(lean);
+  const cb = Math.cos(r.bank), sb = Math.sin(r.bank);
   // Lean pivots the upper body about the hip.
   const ct = Math.cos(r.twist),
     st = Math.sin(r.twist);
   const bend = (p: V): V => {
     const z = p[2] - r.hip;
-    const y = p[1] * cl - z * sl;
-    return [p[0] * ct + y * st, -p[0] * st + y * ct, r.hip + p[1] * sl + z * cl];
+    const x = p[0] * cb - z * sb,
+      bz = p[0] * sb + z * cb;
+    const y = p[1] * cl - bz * sl;
+    return [x * ct + y * st, -x * st + y * ct, r.hip + p[1] * sl + bz * cl];
   };
   const unbend = (q: V): V => {
     const x = q[0] * ct - q[1] * st,
       y0 = q[0] * st + q[1] * ct,
       z = q[2] - r.hip;
-    return [x, y0 * cl + z * sl, r.hip - y0 * sl + z * cl];
+    const bz = -y0 * sl + z * cl;
+    return [x * cb + bz * sb, y0 * cl + z * sl, r.hip - x * sb + bz * cb];
   };
   const head: V = unbend([0, 0.4, r.headZ]);
   const headwear = a.wearing.headwear;
   const hair = a.hair;
   const w = r.shoulderW;
+  const limb = S.limb * (S.spriteHead && r.child ? 0.85 : 1);
   const chestD = female ? 3.2 : 3.0;
   const torsoKeys: [number, number, number][] = [
-    [r.hip - 2.2, r.hipW + (g === "coat" ? 0.4 : 0), 2.8],
-    [r.waist, w - (female ? 1.6 : 1.1), 2.6],
-    [r.chest, w - 0.3, chestD],
-    [r.shoulder - 1.3, w, 2.7],
+    [r.hip - 2.2, r.hipW + (full ? 1.5 : g === "coat" ? 0.4 : 0), 2.8],
+    [r.waist, fitted ? w - (female ? 1.6 : 1.1) : w - 0.5 + (full ? 0.8 : 0), 2.6],
+    [r.chest, w - 0.3 + (full ? 0.8 : 0), chestD],
+    [r.shoulder - 1.3, w + (full ? 0.8 : 0), 2.7],
   ];
+  const hemReach = hem === undefined || !S.spriteHead || r.seated ? [0, 0] : r.legs.map((l) => {
+    const t = clamp((l.hip[2] - hem) / (l.hip[2] - l.ankle[2] || 1), 0, 1);
+    return l.hip[1] + (l.ankle[1] - l.hip[1]) * t;
+  });
+  const hemBack = Math.min(0, ...hemReach), hemFront = Math.max(0, ...hemReach);
+  const hemCenter = (hemBack + hemFront) / 2;
+  const hemDepth = Math.max(3.6 + (full ? 2 : 0), (hemFront - hemBack) / 2 + 1.5);
   const hemKeys: [number, number, number][] | undefined =
     hem === undefined
       ? undefined
       : [
-          [hem, r.hipW + (gown ? 4 : g === "coat" ? 1.2 : 1.0) + (r.hip - hem) * 0.07, 3.6 + (gown ? 2 : 0)],
+          [hem, r.hipW + (gown ? 4 : full ? 2.4 : g === "dress" || g === "skirt" ? 1.8 : g === "loincloth" ? -1.2 : 0.6) + (r.hip - hem) * 0.07, hemDepth],
           [r.hip - 1, r.hipW + 0.5, 3.0],
-          [r.waist, w - (female ? 1.6 : 1.1) + 0.2, 2.7],
+          [r.waist, torsoKeys[1][1] + 0.2, 2.7],
         ];
   const knees = (r.legs[0].knee[1] + r.legs[1].knee[1]) / 2;
   return {
@@ -467,6 +866,7 @@ function build(a: CharacterAppearance, r: Rig): Model {
     headR,
     neck: unbend([0, 0.4, r.shoulder + 0.8]),
     upper: bend,
+    world: unbend,
     sdf(p0: V): Hit {
       // Lower body: legs in hip space; upper body bent by the lean.
       let best: Hit = { d: 1e9, part: "leg" };
@@ -474,38 +874,60 @@ function build(a: CharacterAppearance, r: Rig): Model {
         if (d < best.d) best = { d, part };
       };
       for (const l of r.legs) {
-        const thigh = cone(p0, l.hip, l.knee, 2.0 * S.limb, 1.65 * S.limb);
-        const shin = cone(p0, l.knee, l.ankle, 1.6 * S.limb, 1.25 * S.limb);
+        const wide = a.wearing.leggings === "wide";
+        const thigh = cone(p0, l.hip, l.knee, (wide ? 2.5 : 2.0) * limb, (wide ? 2.3 : 1.65) * limb);
+        const shin = cone(p0, l.knee, l.ankle, (wide ? 2.3 : 1.6) * limb, (wide ? 2.1 : 1.25) * limb);
         // Under a skirt the legs begin at the hem, so a stride never pokes a
         // knee through the cloth.
         put(
           Math.max(
             Math.min(thigh, shin),
+            S.spriteHead ? l.ankle[2] + 0.3 - p0[2] : -1e9,
             hem === undefined || r.seated ? -1e9 : p0[2] - hem + 0.4,
           ),
           "leg",
         );
-        const foot = smin(
-          ellipsoid(p0, add(l.ankle, [0, 1.3, -0.6]), [1.4, 2.5, 1.2]),
-          cone(p0, add(l.ankle, [0, 0, 1.2]), add(l.ankle, [0, 0.2, -0.6]), 1.4, 1.45),
-          0.6,
-        );
-        put(Math.max(foot, -p0[2] + (l.ankle[2] - 1.9)), "shoe");
+        let foot: number;
+        if (S.spriteHead) {
+          const size = r.child ? 0.85 : 1;
+          const q = sub(p0, add(l.ankle, [0, 1.6 * size, -0.55]));
+          const box: V = [Math.abs(q[0]) - 1.1 * size, Math.abs(q[1]) - 1.9 * size, Math.abs(q[2]) - 0.45];
+          const toe = Math.hypot(Math.max(0, box[0]), Math.max(0, box[1]), Math.max(0, box[2])) + Math.min(Math.max(...box), 0) - 0.4;
+          const ankle = ellipsoid(p0, add(l.ankle, [0, 0, 0.1]), [1.25 * size, 1.4 * size, 0.8]);
+          // A broad, flat sole; the shin ends above it instead of swallowing it.
+          foot = Math.max(smin(toe, ankle, 0.3), l.ankle[2] - 1.3 - p0[2]);
+        } else {
+          foot = Math.max(smin(
+            ellipsoid(p0, add(l.ankle, [0, 1.3, -0.6]), [1.4, 2.5, 1.2]),
+            cone(p0, add(l.ankle, [0, 0, 1.2]), add(l.ankle, [0, 0.2, -0.6]), 1.4, 1.45),
+            0.6,
+          ), l.ankle[2] - 1.9 - p0[2]);
+        }
+        put(foot, "shoe");
       }
       const p = bend(p0);
       let skirt = 1e9;
       if (hemKeys) {
-        // The hem is carried a little behind the stride: cloth follows.
-        // Cloth hangs from the hips whatever the trunk does.
+        // The lower cloth spans the stride while the waist stays fitted.
         const t = clamp((r.waist - p0[2]) / (r.waist - hemKeys[0][0] || 1), 0, 1);
-        const q: V = [p0[0], p0[1] - (knees * 0.5 + r.swing * 0.9) * t * t, p0[2]];
+        const center = S.spriteHead && !r.seated ? hemCenter : knees * 0.5 + r.swing * 0.9;
+        const q: V = [p0[0] - r.clothX * t * t, p0[1] - (center + r.clothY) * t * t, p0[2]];
         skirt = column(q, 0, hemKeys);
+        if (g === "loincloth" && a.wearing.leggings !== "sarong") skirt = Math.max(skirt, Math.abs(q[0]) - r.hipW * 0.58, 1.8 - Math.abs(q[1]));
+        else if (a.wearing.hem === "split" && g !== "gown" && g !== "dress" && g !== "skirt")
+          skirt = Math.max(skirt, Math.min(0.6 - Math.abs(q[0]), hemKeys[0][0] + 2.2 - q[2]));
+        else if (a.wearing.hem === "slanted") skirt = Math.max(skirt, hemKeys[0][0] + (q[0] + r.hipW) * 0.17 - q[2]);
       }
-      const torso = smin(
+      let torso = smin(
         column(p, 0.1, torsoKeys),
         cone(p, [-w + 1.2, 0, r.shoulder - 1.5], [w - 1.2, 0, r.shoulder - 1.5], 1.9, 1.9),
         1.2,
       );
+      if (g === "poncho") {
+        const t = clamp((r.shoulder - p[2]) / (r.shoulder - (hem ?? r.hip) || 1), 0, 1);
+        torso = Math.max(Math.abs(p[0]) - (w + 2.5 - t * 0.6), Math.abs(p[1]) - (2.8 + t * 0.5),
+          p[2] - r.shoulder + 0.4, (hem ?? r.hip - 3) - p[2]);
+      }
       // One garment from shoulder to hem: no seam where the skirt meets the body.
       put(smin(torso, skirt, 1), skirt < torso ? "skirt" : "top");
       const neck = cone(
@@ -517,16 +939,22 @@ function build(a: CharacterAppearance, r: Rig): Model {
       );
       put(neck, "skin");
       for (const arm of r.arms) {
-        const upper = cone(p, arm.shoulder, arm.elbow, 1.5 * S.limb, 1.25 * S.limb);
-        const fore = cone(p, arm.elbow, arm.wrist, loose ? 1.5 : 1.2, loose ? 1.6 : 1.0);
-        put(smin(upper, fore, 0.4), "sleeve");
+        const sleeved = !bare && g !== "poncho" && a.wearing.sleeves !== "none";
+        const upper = cone(p, arm.shoulder, arm.elbow, (sleeved ? 1.6 : 1.3) * limb, (loose && sleeved ? 1.9 : 1.2) * limb);
+        const fore = cone(p, arm.elbow, arm.wrist, loose && sleeved ? 2.1 : 1.2, loose && sleeved ? 2.2 : 1.0);
+        let sleeve = smin(upper, fore, 0.4);
+        if (loose && sleeved) {
+          const center = add(scale(add(arm.elbow, arm.wrist), 0.5), [r.clothX * 0.55, r.clothY * 0.45, -1.3]);
+          sleeve = smin(sleeve, ellipsoid(p, center, [2.0, 2.0, 2.3]), 0.4);
+        }
+        put(sleeve, "sleeve");
         const hand = ellipsoid(p, add(arm.wrist, [0, 0.2, -0.9]), [0.95, 1.05, 1.35]);
         put(hand, "skin");
       }
       if (a.wearing.cloak) {
         const cloak = Math.max(
           column(
-            [p[0], p[1] + 0.9, p[2]],
+            [p[0] - r.clothX * clamp((r.shoulder - p[2]) / (r.shoulder - (hem ?? r.legs[0].knee[2]) || 1), 0, 1), p[1] + 0.9 - r.clothY * clamp((r.shoulder - p[2]) / (r.shoulder - (hem ?? r.legs[0].knee[2]) || 1), 0, 1), p[2]],
             0,
             [
               [(hem ?? r.legs[0].knee[2]) - 0.5, w + 1.6, 3.4],
@@ -540,13 +968,19 @@ function build(a: CharacterAppearance, r: Rig): Model {
       }
       if (a.wearing.mantle && !a.wearing.cloak)
         put(
-          column(p, 0, [
+          column([p[0] - r.clothX * 0.4, p[1] - r.clothY * 0.4, p[2]], 0, [
             [r.chest - 2.4, w + 1.9, 3.6],
             [r.shoulder - 0.6, w + 1.2, 3.1],
             [r.shoulder + 0.5, w - 0.4, 2.3],
           ]),
           "mantle",
         );
+      if (a.wearing.shoulderCloth) {
+        const drape = column([p[0] + w * 0.5 - r.clothX, p[1] - r.clothY, p[2]], 0.2, [
+          [r.hip - 2.8, 1.9, 3.3], [r.chest, 1.5, 3.6], [r.shoulder + 0.2, 1.7, 2.8],
+        ]);
+        put(drape, "mantle");
+      }
       if (S.spriteHead) return best;
       // Head: cranium, jaw and a nose that stands proud in profile.
       const h = sub(p, [0, 0.4, r.headZ]);
@@ -604,8 +1038,6 @@ function build(a: CharacterAppearance, r: Rig): Model {
       }
       const hat = headgear(h, headwear, headR);
       if (hat < 1e8) put(hat, "hat");
-      void bare;
-      void trousers;
       return best;
     },
   };
@@ -621,6 +1053,8 @@ function headgear(h: V, kind: CharacterAppearance["wearing"]["headwear"], r: V) 
   const crown = (radius: number, z0: number, z1: number) =>
     Math.max(Math.hypot(h[0] / 1, (h[1] + 0.1) / 1.1) - radius, h[2] - z1, z0 - h[2]);
   switch (kind) {
+    case "top-hat":
+      return Math.min(crown(r[0] - 0.1, 1.8, top + 3.5), brim(r[1] + 1.1, 1.7));
     case "bowler":
       return Math.min(
         Math.max(ellipsoid(h, [0, -0.1, 1.9], [r[0] + 0.25, r[1] + 0.25, 3.2]), 1.4 - h[2]),
@@ -803,6 +1237,7 @@ function raster(
     }
   if (!S.spriteHead) face(out, cells, a, model, rig, toWorld, facing);
   contour(out, cells, key);
+  return cells;
 }
 
 /** A dark line outside the silhouette, from the material it borders. Kept
@@ -878,7 +1313,8 @@ function materials(a: CharacterAppearance) {
     lower = ramp(a.wearing.lowerColor),
     trim = ramp(a.wearing.trim),
     cloak = ramp(a.wearing.cloakColor),
-    felt = ramp(a.wearing.lowerColor),
+    felt = ramp(a.wearing.headColor ?? a.wearing.lowerColor),
+    inner = ramp(a.wearing.innerColor ?? a.wearing.trim),
     leather = ramp("#4a3428"),
     boot = ramp("#3b2c26"),
     sole = ramp("#dcd8cf");
@@ -887,11 +1323,11 @@ function materials(a: CharacterAppearance) {
   const footwear = a.wearing.footwear ?? "shoes";
   const sleeves = bare || g === "poncho" ? "none" : (a.wearing.sleeves ?? (g === "shirt" || g === "coat" || g === "robe" || g === "suit" ? "long" : "short"));
   // Tucked shirt, blouse and skirt, or a dress: which colour is below the belt.
-  const skirtRamp = g === "skirt" || leggings === "sarong" || leggings === "wide" ? lower : cloth;
+  const skirtRamp = g === "skirt" || leggings === "sarong" ? lower : cloth;
   const legRamp =
     g === "suit"
       ? cloth
-      : leggings === "none" && ["tunic", "wrap", "skirt", "dress", "loincloth", "none"].includes(g) && g !== "none"
+      : leggings === "none"
         ? skin
         : lower;
   const beard = a.beard;
@@ -934,6 +1370,10 @@ function materials(a: CharacterAppearance) {
       case "jersey":
         return z > r.shoulder - 1.4 ? { ramp: lower } : { ramp: base };
     }
+    if (z < r.hip && ["robe", "open-robe", "wrap", "dress", "gown", "skirt", "long-tunic"].includes(g)) {
+      const pleat = Math.cos(Math.atan2(u[0], u[1]) * (g === "gown" ? 12 : 8));
+      if (pleat < -0.75) return { ramp: base, flat: 2 };
+    }
     return { ramp: base };
   };
   /** Things on the chest: plackets, buttons, the jersey's number. Front only. */
@@ -960,7 +1400,7 @@ function materials(a: CharacterAppearance) {
     if (belt === "none" || Math.abs(z - r.waist + 0.3) >= (belt === "wide" || belt === "sash" ? 1 : 0.55))
       return;
     if (belt !== "sash" && u[1] > 0.6 && Math.abs(u[0]) < 0.6) return { ramp: trim, flat: 0 };
-    return { ramp: belt === "sash" ? lower : belt === "cord" ? trim : leather };
+    return { ramp: belt === "sash" ? trim : belt === "cord" ? trim : leather };
   };
   let hem: number | undefined;
   return (
@@ -990,17 +1430,23 @@ function materials(a: CharacterAppearance) {
         return { ramp: hair, soft: true };
       case "hat":
         return {
-          ramp: a.wearing.headwear === "headscarf" || a.wearing.headwear === "veil" || a.wearing.headwear === "hood" || a.wearing.headwear === "turban" || a.wearing.headwear === "wrap" || a.wearing.headwear === "band"
+          ramp: a.wearing.headColor ? felt : a.wearing.headwear === "headscarf" || a.wearing.headwear === "veil" || a.wearing.headwear === "hood" || a.wearing.headwear === "turban" || a.wearing.headwear === "wrap" || a.wearing.headwear === "band"
             ? trim
             : felt,
         };
       case "cloak":
         return { ramp: cloak };
-      case "shoe":
+      case "shoe": {
+        const ankle = r.legs[p[0] < 0 ? 0 : 1].ankle[2];
+        const soleZ = S.spriteHead ? p[2] - ankle + 1.3 : p[2];
         if (footwear === "none") return { ramp: skin, soft: true };
-        if (footwear === "sneakers") return { ramp: p[2] - r.legs[0].ankle[2] < -1.2 && p[2] < 1.2 ? sole : cloth };
-        if (footwear === "sandals") return { ramp: p[2] < 0.7 ? leather : skin, soft: p[2] >= 0.7 };
+        if (footwear === "sneakers") {
+          const white = S.spriteHead ? soleZ < 0.65 : p[2] - r.legs[0].ankle[2] < -1.2 && p[2] < 1.2;
+          return { ramp: white ? sole : cloth };
+        }
+        if (footwear === "sandals") return { ramp: soleZ < 0.7 ? leather : skin, soft: soleZ >= 0.7 };
         return { ramp: footwear === "boots" ? boot : leather };
+      }
       case "leg": {
         // Seated, the lap is the garment's.
         if (r.seated && hem !== undefined && p[2] > hem) return { ramp: skirtRamp };
@@ -1019,7 +1465,11 @@ function materials(a: CharacterAppearance) {
         // A border at the hem of anything short enough to show one.
         if (hem !== undefined && p[2] - hem < 0.7 && g !== "coat" && g !== "dress" && g !== "gown")
           return { ramp: trim, flat: 2 };
-        return pattern(skirtRamp, m.upper(p), r);
+        const u = m.upper(p);
+        if (g === "open-robe" && (a.wearing.front ?? "open") === "open" && u[1] > 0.6 && Math.abs(u[0]) < 1.2 + (r.hip - p[2]) * 0.06)
+          return { ramp: inner };
+        if (g === "wrap" && u[1] > 0.6 && Math.abs(u[0] + (r.hip - p[2]) * 0.23) < 0.45) return { ramp: trim, flat: 2 };
+        return pattern(skirtRamp, u, r);
       }
       case "sleeve": {
         p = m.upper(p);
@@ -1045,20 +1495,30 @@ function materials(a: CharacterAppearance) {
         if (band) return band;
         const bead = necklace(u, r);
         if (bead) return bead;
-        if (g === "coat" && face) {
+        if (g === "coat" && face && (a.wearing.front ?? "open") === "open") {
           // Lapels open over a shirt and tie: the V that makes a coat a coat.
           const v = (r.shoulder - 0.4 - z) * 0.38;
           if (z > r.chest - 2 && x < v)
             return x < 0.6 && z < r.shoulder - 1.6
               ? { ramp: lower, flat: 2 }
-              : { ramp: trim, flat: 1 };
+              : { ramp: inner, flat: 1 };
           if (z > r.chest - 2.6 && x < v + 0.9) return { ramp: cloth, flat: 0 };
           // Two buttons below the lapels.
           if (Math.abs(x - 0.9) < 0.4 && [r.chest - 3.3, r.chest - 5.3].some((b) => Math.abs(z - b) < 0.4))
             return { ramp: cloth, flat: 3 };
         }
+        if (g === "coat" && face && a.wearing.front === "closed" && x < 0.5 && z < r.shoulder - 1)
+          return { ramp: cloth, flat: ((z % 2) + 2) % 2 < 0.6 ? 3 : 2 };
+        if (g === "wrap" && z > r.chest + 0.5 && u[0] < -0.5)
+          return necklace(u, r) ?? { ramp: skin, soft: true };
         if ((g === "dress" || g === "gown" || g === "skirt") && face && z > r.shoulder - 1.2 && x < 1.3)
           return { ramp: skin, soft: true };
+        if (face && (a.wearing.front === "cross" || g === "wrap")) {
+          const edge = (r.shoulder - z) * 0.6 - 1.5;
+          if (z > r.waist && Math.abs(u[0] - edge) < 0.55) return { ramp: trim, flat: 2 };
+          if (z > r.shoulder - 2 && u[0] > edge && x < 2) return { ramp: inner };
+          return pattern(cloth, u, r);
+        }
         // Necklines: a V on shirts and robes, a band round the collar otherwise.
         if (face && z > r.shoulder - 1.8 && ["shirt", "robe", "open-robe"].includes(g)) {
           if (Math.abs(x - (r.shoulder - 0.2 - z) * 0.6) < 0.45) return { ramp: trim, flat: 1 };
@@ -1068,7 +1528,7 @@ function materials(a: CharacterAppearance) {
         if (g === "shirt" && z < r.waist - 0.4 && (a.wearing.leggings ?? "trousers") !== "none")
           return { ramp: lower };
         if (g === "skirt" && z < r.waist) return { ramp: lower };
-        if (g === "open-robe" && face && x < 1.4) return { ramp: trim };
+        if (g === "open-robe" && face && x < 1.4) return { ramp: inner };
         return front(u, r) ?? pattern(cloth, u, r);
       }
     }
@@ -1157,6 +1617,7 @@ function spriteHead(
   frame: number,
   facing: number,
   trail: number,
+  expression: RestingExpression,
 ) {
   const ang = (facing * Math.PI) / 4;
   const F: V = [Math.sin(ang), -Math.cos(ang), 0],
@@ -1164,7 +1625,7 @@ function spriteHead(
   const n = m.neck;
   const w = add(add(scale(R, n[0]), scale(F, n[1])), [0, 0, n[2]]);
   const nx = Math.round(ORIGIN_X + w[0] - 0.5),
-    ny = Math.round(ORIGIN_Y - (w[2] - CAMERA_TILT * w[1]));
+    ny = Math.round(ORIGIN_Y - (w[2] - CAMERA_TILT * w[1])) + (pose === "nod" && (frame & 3) !== 0 && (frame & 3) !== 3 ? 1 : 0);
   const west = facing >= 5,
     side = facing === 2 || facing === 6,
     back = facing <= 1 || facing === 7,
@@ -1173,10 +1634,12 @@ function spriteHead(
   const anchor = side ? 11 : turn ? 9 : 10;
   const size = a.headSize ?? "medium";
   // Drawn apart first, so it can be lit and shadowed before it joins the body.
-  headCanvas ??= document.createElement("canvas");
+  headCanvas ??= typeof document === "undefined"
+    ? new OffscreenCanvas(W, H)
+    : document.createElement("canvas");
   headCanvas.width = W;
   headCanvas.height = H;
-  const hc = headCanvas.getContext("2d", { willReadFrequently: true })!;
+  const hc = headCanvas.getContext("2d", { willReadFrequently: true })! as CanvasRenderingContext2D;
   hc.clearRect(0, 0, W, H);
   hc.save();
   if (west) {
@@ -1190,7 +1653,7 @@ function spriteHead(
     size === "large"
       ? { rows: [5], cols: side ? [6] : [5] }
       : { rows: [5, 14], cols: side ? [6] : [5, 15] };
-  drawHead(p, a, side, back, pose, ((frame % 4) + 4) % 4, trail, turn);
+  drawHead(p, a, side, back, pose, ((frame % 4) + 4) % 4, trail, turn, expression);
   hc.restore();
   const head = hc.getImageData(0, 0, W, H).data,
     body = ctx.getImageData(0, 0, W, H);
@@ -1198,7 +1661,7 @@ function spriteHead(
   ctx.putImageData(body, 0, 0);
 }
 
-let headCanvas: HTMLCanvasElement | undefined;
+let headCanvas: HTMLCanvasElement | OffscreenCanvas | undefined;
 
 /** B's head is flat colour with hand-placed accents; the body is lit. This
  * lights the head from the same key by walking each pixel one step along its
@@ -1221,7 +1684,7 @@ function finishHead(
     });
   learn(ramp(a.skin, "skin"), "skin");
   learn(ramp(a.hairColor, "hair"), "hair");
-  for (const c of [a.wearing.color, a.wearing.cloakColor, a.wearing.trim, a.wearing.lowerColor])
+  for (const c of [a.wearing.color, a.wearing.cloakColor, a.wearing.trim, a.wearing.lowerColor, a.wearing.headColor ?? a.wearing.color])
     learn(ramp(c), "other");
   const at = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < W && y < H && head[(y * W + x) * 4 + 3] > 0;
@@ -1352,24 +1815,177 @@ function hairTone(
 
 // ---------------------------------------------------------------- props
 
-function drawProp(ctx: CanvasRenderingContext2D, prop: CarriedArt, r: Rig, facing: number) {
+function drawWorkDetail(ctx: CanvasRenderingContext2D, model: Model, rig: Rig, facing: number, pose: CharacterPose, frame: number, carrying: boolean) {
+  const ang = facing * Math.PI / 4;
+  const right: V = [Math.cos(ang), Math.sin(ang), 0];
+  const forward: V = [Math.sin(ang), -Math.cos(ang), 0];
+  const hand = (side: number) => {
+    const p = model.world(rig.arms[side].wrist);
+    const x = dot(p, right), y = dot(p, forward);
+    return [Math.round(ORIGIN_X + x), Math.round(ORIGIN_Y - p[2] + CAMERA_TILT * y)] as const;
+  };
+  const [lx, ly] = hand(0), [rx, ry] = hand(1);
+  const pixel = (x: number, y: number, color: string, w = 1, h = 1) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  };
+  if (pose === "work-stir" && !carrying) {
+    pixel(rx, ry - 5, "#483824");
+    pixel(rx + (frame === 1 ? 1 : 0), ry - 4, "#8d6e43", 1, 5);
+    pixel(rx + (frame === 2 ? 2 : 1), ry + 1, "#b69b69", 2);
+  } else if (pose === "work-pound" && !carrying) {
+    const up = frame === 1 ? 6 : frame === 2 ? -1 : 3;
+    pixel(rx, ry - up, "#664b30", 1, 5);
+    pixel(rx - 2, ry - up - 2, "#424447", 5, 2);
+    pixel(rx - 1, ry - up - 3, "#84817b", 3);
+  } else if (pose === "work-quern" && !carrying) {
+    pixel(rx - 1, ry - 4, "#6d5438", 2, 5);
+    pixel(rx - 2, ry - 4, "#b69567", 3);
+  } else if (pose === "work-grind" && !carrying) {
+    const x = Math.round((lx + rx) / 2), y = Math.max(ly, ry);
+    pixel(x - 3, y, "#66635b", 6, 2);
+    pixel(x - 2, y, "#a49a83", 4);
+  } else if (pose === "work-weave" && !carrying) {
+    const x = frame % 2 ? lx : rx, y = frame % 2 ? ly : ry;
+    pixel(x - 3, y, "#584432", 6);
+    pixel(x - 1, y - 1, "#d2b68a", 3);
+  } else if (pose === "work-knead" && !carrying) {
+    const x = Math.round((lx + rx) / 2), y = Math.max(ly, ry) + 1;
+    pixel(x - 2, y, "#8f7654", 5, 2);
+    pixel(x - 1, y, "#e2c99b", 3);
+  } else if (pose === "work-scrub" && !carrying) {
+    pixel(rx - 1, ry, "#647c83", 3, 2);
+    pixel(rx, ry, "#b7c8bd", 2);
+  } else if (pose === "work-rinse" && !carrying) {
+    const x = Math.round((lx + rx) / 2), y = Math.max(ly, ry);
+    pixel(x - 3, y, "#6b8791", 7, 2);
+    pixel(x - 1, y + 2, "#a6bfbb", 4, 2);
+    if (frame === 2) { pixel(x - 2, y + 5, "#aad7db"); pixel(x + 2, y + 6, "#aad7db"); }
+  } else if (pose === "work-fish" && !carrying) {
+    const tip = frame === 2 ? -12 : -8;
+    pixel(rx, ry - 10, "#70583b", 1, 11);
+    pixel(rx + 1, ry + tip, "#947b50");
+    if (frame >= 2) pixel(rx + 2, ry + tip + 1, "#d9d3b0", 1, 4);
+  } else if (pose === "work-hang" && !carrying) {
+    const y = Math.min(ly, ry);
+    pixel(Math.round((lx + rx) / 2), y - 2, "#8f7355", 3, 2);
+  } else if (pose === "work-tend" && frame === 2) {
+    pixel(rx + 1, ry + 1, "#88a850", 2);
+    pixel(rx + 2, ry, "#b0c867");
+  } else if (pose === "work-sort" && !carrying) {
+    const x = frame < 2 ? rx : lx, y = frame < 2 ? ry : ly;
+    pixel(x - 1, y, "#6b5034", 3, 2);
+    pixel(x, y, "#d6b27d");
+  }
+}
+
+const actionAxes: Partial<Record<CharacterPose, readonly V[]>> = {
+  "spear-thrust": [[0, 0.38, 0.92], [0, -0.38, 0.93], [0, 0.98, 0.18], [0, 0.65, 0.76]],
+  "spear-throw": [[0, -0.55, 0.84], [0, -0.28, 0.96], [0, 0.96, 0.25], [0, 0.55, 0.83]],
+  "knife-thrust": [[0, 0.2, 0.98], [0, -0.25, 0.97], [0, 0.97, 0.23], [0, 0.35, 0.94]],
+  "axe-chop": [[0, -0.5, 0.87], [0, -0.2, 0.98], [0, 0.75, -0.66], [0, 0.4, 0.92]],
+  "pick-strike": [[-0.25, -0.7, 0.67], [-0.3, -0.35, 0.89], [0.15, 0.55, -0.82], [0, 0.4, 0.92]],
+  "shovel-dig": [[0, 0.8, -0.6], [0, 0.72, -0.7], [0, 0.55, -0.84], [0, -0.5, 0.87]],
+  "rake-pull": [[0, 0.75, -0.66], [0, 0.88, -0.48], [0, 0.48, -0.88], [0, 0.38, 0.92]],
+  "sickle-cut": [[-0.65, 0.2, 0.73], [-0.7, 0.48, 0.53], [0.78, 0.58, 0.22], [0.3, 0.4, 0.87]],
+  "scythe-sweep": [[-0.75, 0.6, 0.28], [-0.85, 0.5, 0.16], [0.82, 0.56, 0.1], [0.28, 0.55, 0.78]],
+  "pitchfork-jab": [[0, 0.4, 0.92], [0, -0.2, 0.98], [0, 0.98, 0.18], [0, 0.55, 0.83]],
+};
+
+function drawProp(ctx: CanvasRenderingContext2D, prop: CarriedArt, r: Rig, m: Model, facing: number, pose: CharacterPose, frame: number, cells: (Cell | undefined)[]) {
   const ang = (facing * Math.PI) / 4;
-  const F: V = [Math.sin(ang), -Math.cos(ang), 0],
-    R: V = [Math.cos(ang), Math.sin(ang), 0];
-  const hand = r.arms[1].wrist;
-  const w = add(add(scale(R, hand[0]), scale(F, hand[1])), [0, 0, hand[2] - 1]);
-  const x = Math.round(ORIGIN_X + w[0]),
-    y = Math.round(ORIGIN_Y - (w[2] - CAMERA_TILT * w[1]));
-  // The hand is in front of the figure when its depth is toward the viewer.
-  const behind = w[1] < -0.5;
-  ctx.save();
-  if (behind) ctx.globalCompositeOperation = "destination-over";
-  if (prop.kind === "stick" || prop.kind === "tool" || prop.kind === "haft")
-    ctx.drawImage(prop.image, x - Math.round(prop.width / 2), y - prop.height + 4);
-  else if (prop.kind === "head") ctx.drawImage(prop.image, 40 - Math.round(prop.width / 2), Math.round(ORIGIN_Y - r.headZ - 5 - prop.height));
-  else if (prop.kind === "back") {
-    ctx.globalCompositeOperation = facing >= 3 && facing <= 5 ? "destination-over" : "source-over";
-    ctx.drawImage(prop.image, 40 - Math.round(prop.width / 2), Math.round(ORIGIN_Y - r.shoulder - 1));
-  } else ctx.drawImage(prop.image, x - Math.round(prop.width / 2), y - Math.round(prop.height / 2));
-  ctx.restore();
+  const F: V = [Math.sin(ang), -Math.cos(ang), 0], R: V = [Math.cos(ang), Math.sin(ang), 0];
+  const project = (p: V): V => {
+    const w = add(add(scale(R, p[0]), scale(F, p[1])), [0, 0, p[2]]);
+    return [ORIGIN_X + w[0], ORIGIN_Y - w[2] + CAMERA_TILT * w[1], (30 - w[1]) * Math.sqrt(1 + CAMERA_TILT ** 2)];
+  };
+  const grip = add(prop.kind === "both" ? scale(add(r.arms[0].wrist, r.arms[1].wrist), 0.5) : r.arms[1].wrist, [0, 0.2, -0.9]);
+  const hand = m.world(grip);
+  const h = project(hand);
+  const hands = r.arms.map((arm) => project(m.world(add(arm.wrist, [0, 0.2, -0.9]))));
+  const pixel = (x: number, y: number, depth: number, color: string) => {
+    x = Math.round(x); y = Math.round(y);
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    const cell = cells[y * W + x];
+    if (cell && (cell.depth < depth - 0.5 || cell.part === "skin" && hands.some((v) => Math.hypot(x - v[0], y - v[1]) < 1.4))) return;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, 1, 1);
+  };
+  const direction = actionAxes[pose]?.[frame & 3];
+  if (direction) {
+    if (pose === "spear-throw" && frame >= 2) return;
+    const axis = norm(direction);
+    const small = pose === "knife-thrust" || pose === "sickle-cut";
+    const pivotY = small ? prop.height - 2 : prop.height * (pose === "scythe-sweep" ? 0.68 : 0.72);
+    const pivotX = (prop.width - 1) / 2;
+    const scaleArt = Math.min(1, (small ? 13 : pose === "spear-thrust" || pose === "spear-throw" ? 31 : 27) / prop.height);
+    const source = prop.image.getContext("2d")!.getImageData(0, 0, prop.width, prop.height).data;
+    for (let y = 0; y < prop.height; y++)
+      for (let x = 0; x < prop.width; x++) {
+        const i = (y * prop.width + x) * 4;
+        if (!source[i + 3]) continue;
+        const p = project(m.world(add(grip, [
+          ((x - pivotX) + (pivotY - y) * axis[0]) * scaleArt,
+          (pivotY - y) * axis[1] * scaleArt,
+          (pivotY - y) * axis[2] * scaleArt,
+        ])));
+        const color = "#" + [source[i], source[i + 1], source[i + 2]].map((v) => v.toString(16).padStart(2, "0")).join("");
+        pixel(p[0], p[1], p[2], color);
+      }
+    if (frame === 2 && pose !== "rake-pull" && pose !== "shovel-dig") {
+      const tip = project(m.world(add(grip, scale(axis, pivotY * scaleArt))));
+      pixel(tip[0], tip[1], tip[2], "#fff0b4");
+      pixel(tip[0] + 1, tip[1] - 1, tip[2], "#d8cfaa");
+    }
+    return;
+  }
+  if (prop.kind === "stick" && pose === "stick-swing") {
+    const axis: V = [[0, -0.65, 0.76], [0, -0.2, 0.98], [0, 0.9, -0.4], [0, 0.45, 0.9]][frame & 3] as V;
+    const tip = project(m.world(add(grip, scale(axis, Math.max(12, Math.min(19, prop.height))))));
+    const steps = Math.max(1, Math.ceil(Math.hypot(tip[0] - h[0], tip[1] - h[1])));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      pixel(h[0] + (tip[0] - h[0]) * t, h[1] + (tip[1] - h[1]) * t, h[2] + (tip[2] - h[2]) * t, t > 0.92 ? "#a98553" : i % 4 ? "#795439" : "#4d3525");
+    }
+    if (frame === 2) {
+      for (let i = 1; i <= 3; i++) pixel(tip[0] + i, tip[1] - i, tip[2], "#e6d6a4");
+    }
+    return;
+  }
+  if (prop.kind === "cane" || prop.kind === "stick") {
+    const stride = pose === "walk" || pose === "run" || pose === "carry";
+    const support = pose === "idle" || pose === "breathe" || pose === "walk" || pose === "carry" || pose === "setoff" || pose === "halt" || pose === "skid";
+    const length = (len(sub(r.legs[0].hip, r.legs[0].knee)) + len(sub(r.legs[0].knee, r.legs[0].ankle)) + r.shoulder - r.hip) * 0.55;
+    const plant: V = [hand[0] + 0.7, hand[1] + (stride ? Math.sin(frame * Math.PI / 4) * 2 : 0.5), !support ? Math.max(1.5, hand[2] - length) : stride ? Math.max(0, Math.cos(frame * Math.PI / 4)) * 1.2 : 0];
+    const tip = project(plant), steps = Math.ceil(Math.hypot(tip[0] - h[0], tip[1] - h[1]));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      pixel(h[0] + (tip[0] - h[0]) * t, h[1] + (tip[1] - h[1]) * t, h[2] + (tip[2] - h[2]) * t, i === steps ? "#34302d" : "#795439");
+    }
+    pixel(h[0] - 1, h[1] - 1, h[2], "#b99a6a");
+    pixel(h[0], h[1] - 1, h[2], "#b99a6a");
+    return;
+  }
+  if (prop.kind === "head" || prop.kind === "back") {
+    const anchor = project(m.world([0, prop.kind === "back" ? -3.5 : 0, prop.kind === "head" ? r.headZ + 5 : r.shoulder]));
+    ctx.save();
+    if (prop.kind === "back" && facing >= 3 && facing <= 5) ctx.globalCompositeOperation = "destination-over";
+    ctx.drawImage(prop.image, Math.round(anchor[0] - prop.width / 2), Math.round(anchor[1] - (prop.kind === "head" ? prop.height : 0)));
+    ctx.restore();
+    return;
+  }
+  const fan = prop.kind === "fan", shaft = prop.kind === "tool" || prop.kind === "haft";
+  const pivotX = (prop.width - 1) / 2, pivotY = fan ? prop.height - 1 : shaft ? prop.height - 4 : prop.kind === "side" ? 2 : (prop.height - 1) / 2;
+  const fore = sub(m.world(r.arms[1].wrist), m.world(r.arms[1].elbow));
+  const slope = fan ? Math.sin(frame * Math.PI / 2) * 0.18 : shaft ? clamp(dot(fore, R) / (Math.abs(fore[2]) + 2), -0.5, 0.5) : 0;
+  const ca = Math.cos(slope), sa = Math.sin(slope);
+  const pixels = prop.image.getContext("2d")!.getImageData(0, 0, prop.width, prop.height).data;
+  for (let y = 0; y < prop.height; y++)
+    for (let x = 0; x < prop.width; x++) {
+      const i = (y * prop.width + x) * 4;
+      if (!pixels[i + 3]) continue;
+      const dx = (x - pivotX) * (fan ? Math.max(0.3, Math.abs(Math.cos(ang))) : 1), dy = y - pivotY;
+      const color = "#" + [pixels[i], pixels[i + 1], pixels[i + 2]].map((v) => v.toString(16).padStart(2, "0")).join("");
+      pixel(h[0] + dx * ca - dy * sa, h[1] + dx * sa + dy * ca, h[2] - 0.7, color);
+    }
 }

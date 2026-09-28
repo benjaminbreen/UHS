@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { buildItinerary, dayPlan, itineraryAt } from "../src/core/itinerary";
+import { memberRoutine } from "../src/world/v3/routines";
 const path = (
   _from: { x: number; y: number },
   to: { x: number; y: number },
@@ -65,4 +66,70 @@ it("walks a one-off errand once and keeps the day whole", () => {
   expect(visits).toHaveLength(1);
   expect(visits[0].to - visits[0].from).toBe(60);
   expect(dayPlan(day, 8 * 3600).map((p) => p.label)).toContain("At the shrine");
+});
+
+it("gives children named play destinations and one daily water errand", () => {
+  const home = { x: 0, y: 0 };
+  const plan = {
+    objects: [
+      { kind: "well", name: "Irrigation well", pos: { x: 2, y: 0 } },
+      { kind: "well", pos: { x: 80, y: 0 } },
+      { kind: "well", pos: { x: 8, y: 0 } },
+    ],
+    plots: [],
+    work: new Map([
+      ["child", { home }],
+      ["neighbour", { home: { x: 12, y: 0 } }],
+    ]),
+    gatherings: [{ x: 5, y: 5 }],
+    solid: new Set<string>(),
+    surface: new Map(),
+  } as unknown as Parameters<typeof memberRoutine>[0];
+  const stations = memberRoutine(plan, "seed", "child", home, 1400, true);
+  expect(stations.filter((s) => s.activity === "play")).toHaveLength(3);
+  expect(stations.filter((s) => s.activity === "play").every((s) => s.toward)).toBe(true);
+  const water = stations.find((s) => s.label === "Sent for water")!;
+  expect(Math.hypot(water.pos.x - 8, water.pos.y)).toBeLessThan(4);
+  const day = buildItinerary(stations, 360, path)!;
+  expect(day.segments.some((s) => s.label === "Walking to the open ground")).toBe(false);
+  expect(day.segments.filter((s) => s.label === "Sent for water")).toHaveLength(1);
+  expect(day.segments.filter((s) => s.activity === "play" && !s.path).length).toBeLessThan(24);
+  expect(day.period).toBeCloseTo(1440, 5);
+});
+
+it("sends a child to an actual school once rather than a neighbour's house repeatedly", () => {
+  const home = { x: 0, y: 0 };
+  const plan = {
+    objects: [], plots: [], places: [], work: new Map(), gatherings: [{ x: 5, y: 5 }], solid: new Set<string>(), surface: new Map(),
+    venues: [{ venue: { kind: "school", label: "The school" }, pos: { x: 10, y: 0 } }],
+  } as unknown as Parameters<typeof memberRoutine>[0];
+  const stations = memberRoutine(plan, "seed", "child", home, 2000, true);
+  const day = buildItinerary(stations, 360, path)!;
+  expect(day.segments.filter((s) => s.label === "At school")).toHaveLength(1);
+  expect(day.segments.find((s) => s.label === "At school")?.pos).toEqual({ x: 10, y: 0 });
+  expect(day.segments.some((s) => s.label === "Walking to the school")).toBe(true);
+  expect(day.segments.filter((s) => s.label === "Walking to the school").every((s) => s.activity === "visit")).toBe(true);
+  expect(day.period).toBeCloseTo(1440, 5);
+});
+
+it("walks household errands once and keeps play spots out of mapped water", () => {
+  const home = { x: 0, y: 0 };
+  const surface = new Map<string, "water">();
+  const plan = {
+    objects: [{ kind: "well", pos: { x: 8, y: 0 } }], plots: [],
+    work: new Map([["neighbour", { home: { x: 12, y: 0 } }]]),
+    gatherings: [{ x: 5, y: 5 }], solid: new Set<string>(), surface,
+  } as unknown as Parameters<typeof memberRoutine>[0];
+  const first = memberRoutine(plan, "seed", "child", home, 1400, true)
+    .find((s) => s.label === "Playing near home")!.pos;
+  surface.set(`${first.x},${first.y}`, "water");
+  const next = memberRoutine(plan, "seed", "child", home, 1400, true)
+    .find((s) => s.label === "Playing near home")!.pos;
+  expect(next).not.toEqual(first);
+  const stations = memberRoutine(plan, "seed", "adult", home, 1400, false);
+  const errand = stations.find((s) => s.part === "morning");
+  expect(errand).toBeTruthy();
+  const day = buildItinerary(stations, 360, path)!;
+  expect(day.segments.filter((s) => s.label === errand!.label && !s.path)).toHaveLength(1);
+  expect(day.period).toBeCloseTo(1440, 5);
 });

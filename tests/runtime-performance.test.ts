@@ -3,6 +3,7 @@ import { createSession, Runtime } from "../src/runtime/session";
 import { prepareSettingSession } from "../src/runtime/preparation";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
+import { actorAppearance, appearanceForAge } from "../src/core/character";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -61,6 +62,36 @@ it("terminates world preparation when the loading view is cancelled", async () =
   controller.abort();
   await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   expect(terminate).toHaveBeenCalled();
+});
+
+it("prepares the same character shown in the completed world", async () => {
+  vi.stubGlobal("Worker", undefined);
+  const onCharacter = vi.fn();
+  const engine = await prepareSettingSession(
+    settingFor(places.find((p) => p.id === "alexandria")!, -225),
+    "arrival-character",
+    undefined,
+    false,
+    onCharacter,
+  );
+  expect(onCharacter).toHaveBeenCalledTimes(1);
+  const [setting, character] = onCharacter.mock.calls[0];
+  const player = engine.state.player;
+  expect(setting).toEqual(engine.state.manifest.setting);
+  expect({ name: character.name, role: character.role, age: character.age, origin: character.origin })
+    .toEqual({ name: player.name, role: player.role, age: player.age, origin: player.origin });
+  expect(appearanceForAge(character.appearance, character.age)).toEqual(actorAppearance(player));
+});
+
+it("does not publish a character after preparation is cancelled", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const onCharacter = vi.fn();
+  await expect(prepareSettingSession(
+    settingFor(places.find((p) => p.id === "alexandria")!, -225),
+    "cancel-character", controller.signal, false, onCharacter,
+  )).rejects.toMatchObject({ name: "AbortError" });
+  expect(onCharacter).not.toHaveBeenCalled();
 });
 
 it("matches full-world visibility after movement, interiors and building changes", () => {

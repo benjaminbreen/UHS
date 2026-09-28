@@ -15,6 +15,8 @@ export const southAsia: readonly GarmentKit[] = [
     id: "sa-early",
     label: "South Asia · unstitched cloth",
     scope: { years: [-3000, 500], cultures: ["south-asian"] },
+    sleeves: [{ value: "long", weight: 4 }, { value: "short", weight: 3, garments: ["tunic", "shirt"] }, { value: "loose", weight: 2, garments: ["open-robe", "robe"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 3, garments: ["wrap", "long-tunic", "open-robe"] }],
     garment: [
       { value: "wrap", weight: 5 },
       { value: "none", weight: 4, sex: ["male"] },
@@ -52,6 +54,8 @@ export const southAsia: readonly GarmentKit[] = [
     id: "sa-medieval",
     label: "South Asia · wound cloth, stitched at the edges",
     scope: { years: [500, 1500], cultures: ["south-asian"] },
+    sleeves: [{ value: "long", weight: 4 }, { value: "short", weight: 3, garments: ["tunic", "shirt"] }, { value: "loose", weight: 2, garments: ["open-robe", "robe"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 3, garments: ["wrap", "long-tunic", "open-robe"] }],
     garment: [
       { value: "wrap", weight: 5 },
       { value: "none", weight: 3, sex: ["male"] },
@@ -87,6 +91,8 @@ export const southAsia: readonly GarmentKit[] = [
     id: "sa-early-modern",
     label: "South Asia · the jama and the turban",
     scope: { years: [1500, 1850], cultures: ["south-asian"] },
+    sleeves: [{ value: "long", weight: 4 }, { value: "short", weight: 3, garments: ["tunic", "shirt"] }, { value: "loose", weight: 2, garments: ["open-robe", "robe"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 3, garments: ["wrap", "long-tunic", "open-robe"] }],
     garment: [
       // The open-fronted jama and angarkha are the northern courtly form; the
       // wound cloth underneath never went away.
@@ -123,6 +129,8 @@ export const southAsia: readonly GarmentKit[] = [
     id: "sa-modern",
     label: "South Asia · mill cloth over the dhoti",
     scope: { years: [1850, 10001], cultures: ["south-asian"] },
+    sleeves: [{ value: "long", weight: 4 }, { value: "short", weight: 3, garments: ["tunic", "shirt"] }, { value: "loose", weight: 2, garments: ["open-robe", "robe"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 3, garments: ["wrap", "long-tunic", "open-robe"] }],
     garment: [
       { value: "shirt", weight: 5 },
       { value: "long-tunic", weight: 4 },

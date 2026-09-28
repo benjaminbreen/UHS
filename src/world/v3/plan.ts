@@ -30,6 +30,7 @@ import { aboutBuilding } from "../../content/settlements/about-buildings";
 import {
   streetPalette,
   chooseStreetSurface,
+  oldCorePalette,
 } from "../../content/settlements/streets/palettes";
 import {
   BOULEVARD,
@@ -717,16 +718,19 @@ export function planSettlement(
       };
       // A composed town's side streets take their own surface: setts on the
       // high street and brick or earth round the corner.
+      const old = label.startsWith("old-") && pack.setting ? oldCorePalette(pack.setting) : undefined;
       addRoad(
         road,
-        label.startsWith("street-1")
-          ? localSurface
-          : label.startsWith("street-2")
-            ? laneSurface
-            : undefined,
+        old
+          ? label.startsWith("old-1") ? old.street : old.lane
+          : label.startsWith("street-1")
+            ? localSurface
+            : label.startsWith("street-2")
+              ? laneSurface
+              : undefined,
         true,
       );
-      if (!outside && !kind)
+      if (!outside && !kind && !old)
         carriageway(road, trams && label.startsWith("street-0"));
       first ??= road;
       // A street that meets a creek crosses it: the wet gap to the next run

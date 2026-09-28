@@ -12,9 +12,43 @@ import type { GarmentKit } from "../types";
  */
 export const europe: readonly GarmentKit[] = [
   {
+    id: "eu-before-bowler",
+    label: "Europe · caps and tall hats before the bowler",
+    scope: { years: [1700, 1850], cultures: ["european"] },
+    headwear: [{ value: "cap", weight: 4, sex: ["male"] }, { value: "brimmed", weight: 4 },
+      { value: "headscarf", weight: 5, sex: ["female"] }, { value: "none", weight: 2 }],
+  },
+  {
+    id: "eu-early-top-hat",
+    label: "Europe · the tall town hat",
+    scope: { years: [1790, 1850], cultures: ["european"] },
+    headwear: [{ value: "top-hat", weight: 4, sex: ["male"], means: ["wealthy"] },
+      { value: "cap", weight: 4, sex: ["male"] }, { value: "brimmed", weight: 3 },
+      { value: "headscarf", weight: 5, sex: ["female"] }, { value: "none", weight: 2 }],
+  },
+  {
+    id: "eu-19c-tailoring",
+    label: "Europe · tailored town dress",
+    scope: { years: [1850, 1920], cultures: ["european"] },
+    garment: [{ value: "coat", weight: 7, sex: ["male"], means: ["wealthy"] }],
+    headwear: [{ value: "top-hat", weight: 4, sex: ["male"], means: ["wealthy"], ages: ["adult", "elder"] },
+      { value: "bowler", weight: 4, sex: ["male"], means: ["wealthy"] },
+      { value: "brimmed", weight: 2, sex: ["female"], means: ["wealthy"] }],
+    leggings: [{ value: "trousers", sex: ["male"] }],
+    belt: [{ value: "none", garments: ["coat", "dress", "skirt"] }],
+    over: [{ value: "none", weight: 8 }, { value: "cloak", weight: 1 }],
+    dye: [{ value: "soot", weight: 5, garments: ["coat"] }, { value: "ash", weight: 3, garments: ["coat"] },
+      { value: "walnut", weight: 2, garments: ["coat"] }],
+    motif: [{ value: "plain" }],
+    accessory: [{ value: "walking-cane", weight: 3, sex: ["male"], means: ["wealthy"], ages: ["adult", "elder"], garments: ["coat"] },
+      { value: "fan", weight: 1, sex: ["female"], means: ["wealthy"], ages: ["adult", "elder"] }, { value: "none", weight: 5 }],
+  },
+  {
     id: "eu-classical",
     label: "Europe · the draped length of wool",
     scope: { years: [-2000, 500], cultures: ["european"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 2, garments: ["tunic", "long-tunic", "robe"] }, { value: "placket", weight: 2, garments: ["shirt", "coat"] }],
     garment: [
       { value: "tunic", weight: 6 },
       { value: "long-tunic", weight: 4 },
@@ -60,6 +94,8 @@ export const europe: readonly GarmentKit[] = [
     id: "eu-medieval",
     label: "Europe · hose, hood and a fitted tunic",
     scope: { years: [500, 1350], cultures: ["european"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 2, garments: ["tunic", "long-tunic", "robe"] }, { value: "placket", weight: 2, garments: ["shirt", "coat"] }],
     garment: [
       { value: "tunic", weight: 6 },
       { value: "long-tunic", weight: 4 },
@@ -100,6 +136,9 @@ export const europe: readonly GarmentKit[] = [
     id: "eu-early-modern",
     label: "Europe · the doublet and the broad hat",
     scope: { years: [1350, 1700], cultures: ["european"] },
+    front: [{ value: "closed", garments: ["coat"] }],
+    sleeves: [{ value: "long", weight: 6 }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 2, garments: ["tunic", "long-tunic", "robe"] }, { value: "placket", weight: 2, garments: ["shirt", "coat"] }],
     garment: [
       { value: "shirt", weight: 5 },
       { value: "coat", weight: 5 },
@@ -131,6 +170,8 @@ export const europe: readonly GarmentKit[] = [
     id: "eu-industrial",
     label: "Europe · mill cloth and the hat that says which street",
     scope: { years: [1700, 1920], cultures: ["european"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 2, garments: ["tunic", "long-tunic", "robe"] }, { value: "placket", weight: 2, garments: ["shirt", "coat"] }],
     garment: [
       { value: "shirt", weight: 6, sex: ["male", "unspecified"] },
       { value: "coat", weight: 5, sex: ["male", "unspecified"] },
@@ -162,6 +203,8 @@ export const europe: readonly GarmentKit[] = [
     id: "eu-modern",
     label: "Europe · factory clothing",
     scope: { years: [1920, 10001], cultures: ["european"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 2, garments: ["tunic", "long-tunic", "robe"] }, { value: "placket", weight: 2, garments: ["shirt", "coat"] }],
     garment: [
       { value: "shirt", weight: 7 },
       { value: "coat", weight: 4 },

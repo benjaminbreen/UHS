@@ -1,0 +1,23 @@
+.edu-entry, .edu-teacher { min-height: 100vh; padding: 6rem 1.5rem; background: #151c2d; color: #e9dfc2; font: 16px/1.5 system-ui, sans-serif; }
+.edu-card { max-width: 920px; margin: auto; padding: 2rem; background: #202c3c; border: 1px solid #456174; border-radius: 14px; }
+.edu-card h1 { margin: 1rem 0; font-size: 2rem; }
+.edu-card a { color: #e5c781; }
+.edu-card form { display: grid; gap: 1rem; margin-top: 2rem; }
+.edu-card label { display: grid; gap: .4rem; }
+.edu-card input { padding: .7rem; font: inherit; color: #152033; background: #f4efe4; border: 0; border-radius: 5px; }
+.edu-card .edu-check { display: flex; align-items: center; }
+.edu-card .edu-check input { width: 1.2rem; height: 1.2rem; }
+.edu-card button, .edu-status button { padding: .65rem 1rem; color: #152033; background: #e5c781; border: 0; border-radius: 5px; cursor: pointer; font: inherit; }
+.edu-card button:disabled { opacity: .5; cursor: default; }
+.edu-card [role="alert"] { color: #ffb7ad; }
+.edu-status { position: fixed; z-index: 10000; top: .6rem; right: .6rem; display: flex; align-items: center; gap: .7rem; max-width: min(90vw, 800px); padding: .5rem .7rem; background: #202c3c; color: #e9dfc2; border: 1px solid #e5c781; border-radius: 6px; font: 13px system-ui, sans-serif; pointer-events: none; }
+.edu-status button { padding: .4rem .6rem; pointer-events: auto; }
+.edu-teacher .edu-card { max-width: 1300px; }
+.edu-teacher-grid { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(400px, 2fr); gap: 1.5rem; margin-top: 2rem; }
+.edu-teacher-grid section { min-width: 0; }
+.edu-teacher-grid section > button { display: block; margin: .5rem 0; text-align: left; width: 100%; }
+.edu-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.edu-events { max-height: 65vh; overflow: auto; padding-left: 1.5rem; }
+.edu-events li { padding: .6rem 0; border-bottom: 1px solid #456174; overflow-wrap: anywhere; }
+.edu-events small { display: block; color: #b9c8c7; }
+@media (max-width: 760px) { .edu-teacher-grid { grid-template-columns: 1fr; } .edu-status { left: .5rem; right: .5rem; flex-wrap: wrap; } }

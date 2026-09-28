@@ -1,4 +1,5 @@
 import { populateCharacter } from "../content/geography/character";
+import { generateCharacter } from "../content/characters/generate";
 import { createSession } from "./session";
 import { integratedSetting } from "../content/geography/defaults";
 import { packForSetting } from "../content/geography/pack";
@@ -13,6 +14,9 @@ import { markEvent } from "./vitals";
  * enough that a slow device preparing a large settlement is not cut off. */
 const PREPARE_TIMEOUT_MS = 90_000;
 
+export type StartingCharacter = ReturnType<typeof generateCharacter> & { age: number };
+export type CharacterPrepared = (setting: WorldSetting, character: StartingCharacter) => void;
+
 /** The same generator runs synchronously in Node and prepares cloneable geometry
  * in the browser worker. The renderer takes over that already-warm worker. */
 export async function prepareSettingSession(
@@ -20,11 +24,18 @@ export async function prepareSettingSession(
   seed: string,
   signal?: AbortSignal,
   cachePrepared = true,
+  onCharacter?: CharacterPrepared,
 ) {
   const resolved = populateCharacter(
     integratedSetting(settingSchema.parse(setting)),
     seed,
   );
+  signal?.throwIfAborted();
+  onCharacter?.(resolved, {
+    ...generateCharacter(resolved, resolved.character!.appearanceSeed ?? seed,
+      "player", resolved.character!.age!, resolved.role, resolved.characterName),
+    age: resolved.character!.age!,
+  });
   if (typeof Worker === "undefined")
     return createSession("atlas", seed, undefined, resolved);
   signal?.throwIfAborted();

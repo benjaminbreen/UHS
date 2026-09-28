@@ -479,10 +479,11 @@ export async function prepareConnectedStart(
   setting: import("../content/geography/types").WorldSetting,
   seed: string,
   signal?: AbortSignal,
+  onCharacter?: import("./preparation").CharacterPrepared,
 ) {
   if (setting.situation) {
     const { prepareSettingSession } = await import("./preparation");
-    return prepareSettingSession(setting, seed, signal);
+    return prepareSettingSession(setting, seed, signal, true, onCharacter);
   }
   const id = mapForCoordinate({ lon: setting.lon, lat: setting.lat });
   await loadTileNames([id]);
@@ -504,5 +505,5 @@ export async function prepareConnectedStart(
     playableMap: travelSetting(map, exits, setting.year).playableMap,
   };
   const { prepareSettingSession } = await import("./preparation");
-  return prepareSettingSession(bounded, seed, signal);
+  return prepareSettingSession(bounded, seed, signal, true, onCharacter);
 }

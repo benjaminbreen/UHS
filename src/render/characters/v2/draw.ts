@@ -1,4 +1,5 @@
 import type { CharacterAppearance } from "../../../core/character";
+import type { RestingExpression } from "../../../core/persona";
 import type { CharacterPose } from "../poses";
 import type { CarriedArt } from "../props";
 import { drawHead } from "./head";
@@ -16,6 +17,7 @@ export function drawCharacter(
   frame: number,
   prop?: CarriedArt,
   facing?: number,
+  expression: RestingExpression = "neutral",
 ) {
   ctx.clearRect(0, 0, 80, 80);
   ctx.imageSmoothingEnabled = false;
@@ -2038,9 +2040,9 @@ export function drawCharacter(
     // head over it.
     ctx.save();
     ctx.translate(1, 0);
-    drawHead(p, a, false, headAway, pose, f, trail, true);
+    drawHead(p, a, false, headAway, pose, f, trail, true, expression);
     ctx.restore();
-  } else drawHead(p, a, side, back, pose, f, trail);
+  } else drawHead(p, a, side, back, pose, f, trail, false, expression);
   p.squeeze = undefined;
   p.modeling = true;
   ctx.restore();

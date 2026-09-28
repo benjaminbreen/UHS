@@ -256,6 +256,7 @@ export const cueKinds = [
   "warm",
   /** A small yes: an ordinary friendly exchange. */
   "nod",
+  "wave",
   /** An offer turned down. */
   "refuse",
   "point",

@@ -216,6 +216,8 @@ export function propKit(pack: Pack): PropKit {
       (culture === "north-african-west-asian" && year < -999))
   )
     contexts.work.push("warpLoom");
+  if (pack.setting?.settlement !== "camp" && year >= -1999 && year < 1900 &&
+      (oldWorld || african)) contexts.work.push("loom");
   if (
     year >= -7999 &&
     year < 500 &&

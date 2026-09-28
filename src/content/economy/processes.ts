@@ -40,19 +40,19 @@ const byActivity: Record<string, Entry> = {
   "Working stone": ["gather", "pick", "boulder"],
   "Working the salt": ["gather", "sack"],
 
-  "Working the grain": ["transform", "grinder", "pounding-mortar"],
+  "Working the grain": ["transform", "quern", "grinder", "pounding-mortar", "metate"],
   "Preparing food": ["transform", "grinder", "pounding-mortar", "oven", "tannur", "earth-oven"],
   Cooking: ["transform", "cooking-pot", "hearth", "stove"],
   Brewing: ["transform", "barrel", "storage-jar"],
   "Pressing oil": ["transform", "amphora", "pithos"],
-  "Working cloth": ["transform", "loom", "warp-loom"],
-  Weaving: ["transform", "loom", "warp-loom"],
-  "Twisting fibre": ["transform", "loom"],
-  "Making clothes": ["transform"],
-  "Household craft work": ["transform", "loom"],
+  "Working cloth": ["transform", "warp-loom", "backstrap-loom", "loom"],
+  Weaving: ["transform", "warp-loom", "backstrap-loom", "loom"],
+  "Twisting fibre": ["transform"],
+  "Making clothes": ["transform", "bench"],
+  "Household craft work": ["transform"],
   "Working hides": ["transform", "hide-frame"],
-  "Working leather": ["transform", "hide-frame"],
-  "Making shoes": ["transform"],
+  "Working leather": ["transform", "tanning-pits", "hide-frame", "bench"],
+  "Making shoes": ["transform", "bench"],
   "Working metal": ["transform", "anvil"],
   "Making tools": ["transform", "knapping-floor", "anvil"],
   "Working wood": ["transform", "woodpile"],
@@ -78,9 +78,9 @@ const byActivity: Record<string, Entry> = {
   "Clearing waste": ["carry", "wheelbarrow"],
   "Working the wharf": ["carry", "crate-stack", "barrel"],
 
-  "Exchanging goods": ["serve", "beam-scale"],
-  "Exchanging supplies": ["serve"],
-  "Minding the stall": ["serve", "beam-scale"],
+  "Exchanging goods": ["serve", "market-counter", "beam-scale", "crate-stack", "grain-sacks"],
+  "Exchanging supplies": ["serve", "market-counter", "beam-scale", "crate-stack", "grain-sacks"],
+  "Minding the stall": ["serve", "market-counter", "beam-scale", "crate-stack"],
   "Keeping the house": ["serve"],
   "Keeping the record": ["serve"],
   "Standing watch": ["serve"],
@@ -107,5 +107,6 @@ export function processFor(kit: Livelihood): Process | undefined {
   const entry = byActivity[kit.activity];
   if (!entry) return undefined;
   const [family, ...stations] = entry;
+  if (["basket-maker", "basket-weaver"].includes(kit.id)) stations.splice(0, stations.length, "open-basket");
   return { family, ...processFamilies[family], stations, makes: goodsOf(kit) };
 }

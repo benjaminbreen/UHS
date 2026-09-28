@@ -1,9 +1,10 @@
 import { PARKING, STALL } from "../content/settlements/streets/markings";
 import type { Lane } from "../world/v3/types";
 import { waterHash as hash, waterNoise } from "./water-style";
-import { asphaltPixel } from "./paving-stones";
+import { asphaltPixel, SAND, sandBank, sunAndSand } from "./paving-stones";
 
 type RGB = readonly number[];
+type Color = readonly [number, number, number];
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
 const tint = (c: RGB, v: number): RGB => [clamp(c[0] + v), clamp(c[1] + v), clamp(c[2] + v * 1.1)];
@@ -23,23 +24,34 @@ export function blacktopPixel(
   f: { radius: number; side?: number; along?: number; paved?: "yellow" | "white" | "none" },
   wx: number,
   wy: number,
+  dust = 0,
 ): RGB | undefined {
   const d = Math.abs(f.side ?? 0),
     r = f.radius * 16,
     along = f.along ?? 0;
-  // A ditch either side, a grassy trough with water standing in its bottom.
+  // A ditch either side, a grassy trough with water standing in its bottom;
+  // in dry country a shallow scrape the sand fills.
   if (d >= r + 6) return;
   if (d >= r + 2) {
     const depth = 1 - Math.abs(d - (r + 4)) / 2;
+    if (dust >= 0.5)
+      return depth > 0.6 ? tint(SAND, -12) : depth > 0.2 ? tint(SAND, -6) : undefined;
     if (depth > 0.6 && hash(wx >> 1, wy >> 1, 793) < 0.07) return [72, 98, 112];
     return depth > 0.6 ? [44, 62, 40] : depth > 0.2 ? [56, 78, 46] : [70, 96, 54];
   }
   if (d >= r + 1) return;
   if (d >= r - 2) {
     const g = hash(wx, wy, 791);
-    return g < 0.3 ? [104, 98, 86] : g < 0.8 ? [134, 127, 112] : [158, 150, 132];
+    const gravel: RGB = g < 0.3 ? [104, 98, 86] : g < 0.8 ? [134, 127, 112] : [158, 150, 132];
+    return dust ? sunAndSand(gravel as Color, dust, wx, wy, false) : gravel;
   }
-  let base: RGB = asphaltPixel(wx, wy);
+  // Sand blown off the desert lies along the edge of the blacktop.
+  if (dust) {
+    const out = d - (r - 2);
+    const bank = sandBank(sunAndSand(asphaltPixel(wx, wy), dust, wx, wy, true), dust, -out, along, 7);
+    if (-out < 9) return bank;
+  }
+  let base: RGB = dust ? sunAndSand(asphaltPixel(wx, wy), dust, wx, wy, true) : asphaltPixel(wx, wy);
   // Tyres run a lane's width either side of the line.
   if (Math.abs(d - r * 0.45) <= 2) base = tint(base, 5);
   const flake = waterNoise(wx, wy, 2.5, 792);

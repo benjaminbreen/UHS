@@ -1,9 +1,19 @@
 import { createRoot } from "react-dom/client";
+import { lazy, Suspense, useState } from "react";
+import type { Engine } from "./core/engine";
 import "./ui/style.css";
 import { PropLabHost } from "./dev/PropLabHost";
 import { installVitals } from "./runtime/vitals";
+const Game = lazy(() => import("./runtime/bootstrap").then((m) => ({ default: m.Game })));
 async function start() {
   installVitals();
+  if (window.location.pathname === "/edumode" || window.location.pathname === "/edumode/teacher") {
+    const { EduMode, EduTeacher } = await import("./edu/EduMode");
+    createRoot(document.getElementById("root")!).render(
+      window.location.pathname === "/edumode/teacher" ? <EduTeacher /> : <EduMode />,
+    );
+    return;
+  }
   if (window.location.pathname === "/water-experiments") {
     const { WaterExperiments } = await import("./dev/WaterExperiments");
     createRoot(document.getElementById("root")!).render(<WaterExperiments />);
@@ -100,13 +110,20 @@ async function start() {
   }
   const { Splash } = await import("./ui/Splash");
   const root = createRoot(document.getElementById("root")!);
-  root.render(
-    <Splash
-      onStart={async (engine) => {
-        const { startGame } = await import("./runtime/bootstrap");
-        startGame(root, engine);
-      }}
-    />,
-  );
+  function Session() {
+    const [engine, setEngine] = useState<Engine>();
+    const [entered, setEntered] = useState(false);
+    const [ready, setReady] = useState(false);
+    return <>
+      {engine && <div className="prepared-game" inert={!entered}><Suspense fallback={null}>
+        <Game engine={engine} active={entered} onReady={() => setReady(true)} />
+      </Suspense></div>}
+      {!entered && <Splash ready={ready}
+        onPrepared={(engine) => { setReady(false); setEngine(engine); }}
+        onStart={() => setEntered(true)}
+        onCancel={() => { setEngine(undefined); setReady(false); }} />}
+    </>;
+  }
+  root.render(<Session />);
 }
 void start();

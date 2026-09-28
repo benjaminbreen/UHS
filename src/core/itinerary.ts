@@ -31,7 +31,7 @@ export const destination: Record<StationActivity, string> = {
   gather: "the edge of the settlement",
   visit: "a neighbour's house",
   graze: "the pasture",
-  play: "the open ground",
+  play: "a place to play",
   cook: "the hearth",
   warm: "the fire",
 };
@@ -39,6 +39,8 @@ export type Station = {
   pos: Point;
   activity: StationActivity;
   label: string;
+  target?: { id?: string; x: number; y: number; family: string };
+  placeId?: string;
   /** Destination noun for the walk to this station. The label is a verb phrase,
    * so "Walking to ${label}" reads as "walking to calling on a neighbour". */
   toward?: string;
@@ -62,6 +64,8 @@ type Segment = {
   pos: Point;
   activity: StationActivity;
   label: string;
+  target?: Station["target"];
+  placeId?: string;
   carry?: ItemId;
 };
 export type Itinerary = {
@@ -76,6 +80,8 @@ export type Ambient = {
   y: number;
   activity: StationActivity;
   label: string;
+  target?: Station["target"];
+  placeId?: string;
   moving: boolean;
   direction: number;
   carry?: ItemId;
@@ -99,7 +105,7 @@ const dwellCap: Record<StationActivity, number> = {
   gather: 13,
   visit: 26,
   graze: 45,
-  play: 3,
+  play: 20,
   cook: 24,
   warm: 40,
   "haul-catch": 12,
@@ -128,7 +134,9 @@ export function buildItinerary(
   if (stations.length < 3) return undefined;
   const night = stations[stations.length - 1];
   if (night.activity !== "rest") return undefined;
-  const errands = stations.slice(0, -1);
+  const errands = stations.slice(0, -1).filter((s) => !s.part);
+  if (errands.length < 2) return undefined;
+  once = [...stations.slice(0, -1).filter((s) => s.part), ...once];
   const between = errands
     .slice(0, -1)
     .map((s, i) => path(s.pos, errands[i + 1].pos));
@@ -182,6 +190,8 @@ export function buildItinerary(
       pos: s.pos,
       activity: s.activity,
       label,
+      ...(s.target ? { target: s.target } : {}),
+      ...(s.placeId ? { placeId: s.placeId } : {}),
       ...(s.carry ? { carry: s.carry } : {}),
     });
     at += minutes;
@@ -195,7 +205,9 @@ export function buildItinerary(
       pos: from.pos,
       // A leg out of the house belongs to the errand: marked "rest" it would
       // count as time indoors and never be drawn.
-      activity: from.activity === "rest" ? to.activity : from.activity,
+      activity: from.activity === "rest"
+        ? to.activity === "rest" ? "visit" : to.activity
+        : from.activity,
       label: `Walking to ${to.toward ?? destination[to.activity]}`,
       // A load is in hand on the way to where it is wanted, not on the way
       // back from where it was left.
@@ -261,6 +273,8 @@ export function itineraryAt(itinerary: Itinerary, clock: number): Ambient {
       y: seg.pos.y,
       activity: seg.activity,
       label: seg.label,
+      target: seg.target,
+      placeId: seg.placeId,
       moving: false,
       direction: 2,
       carry: seg.carry,

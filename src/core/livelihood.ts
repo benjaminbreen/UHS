@@ -60,7 +60,9 @@ export function householdActivity(
   /** What this place carries water, gatherings and bundles in. */
   loads?: { vessel: string; basket: string },
 ): boolean {
-  delete a.heldItem;
+  const personal = ["walking-cane", "fan"].find((id) => (a.inventory[id] ?? 0) > 0);
+  if (personal) a.heldItem = personal;
+  else delete a.heldItem;
   const bear = (load?: string) => load && (a.heldItem = load);
   const h = s.households?.find((h) => h.id === a.householdId);
   if (!h) return false;
@@ -99,7 +101,7 @@ export function householdActivity(
       a.knownResources.push(o.id);
   const carried = (Object.keys(a.inventory) as ItemId[]).filter(
     (k) =>
-      !["tool", "water", "coin", "obsidian"].includes(k) &&
+      !["tool", "water", "coin", "obsidian", "walking-cane", "fan"].includes(k) &&
       (a.inventory[k] ?? 0) > 0,
   );
   if (carried.length) {
@@ -246,7 +248,7 @@ export function depositSupplies(
   let total = 0;
   for (const key of Object.keys(a.inventory) as ItemId[]) {
     if (
-      ["tool", "coin", "obsidian"].includes(key) ||
+      ["tool", "coin", "obsidian", "walking-cane", "fan"].includes(key) ||
       (!includeWater && key === "water")
     )
       continue;

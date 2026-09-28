@@ -73,6 +73,9 @@ export type UrbanLayout = {
   tiers: readonly [number, number, number];
   wall?: Wall;
   rail?: Rail;
+  /** Inside the ring round an old core the city grew round rather than
+   * through: its lanes are the old ones, narrow, unkerbed and without cars. */
+  oldCore?: Rect;
   /** Distance from the centre to the built edge on this bearing, in radians. */
   edge(angle: number): number;
   /** Whether a point lies inside the built edge, less an optional margin. */
@@ -201,6 +204,8 @@ export function composeUrban(
   // Widths are whole cells. A fabric's avenue is for its large cities; a
   // small town of the same fabric gets a three-cell main street.
   const cap = form.motor ? Infinity : radius < 40 ? 3 : radius < 60 ? 4 : 6;
+  // A core laid out for cars, as against an old one the cars went round.
+  const motorCore = !!form.motor && !form.oldCore;
   const arterial = Math.max(1, Math.min(form.tiers[0], cap)),
     street = Math.max(1, Math.min(form.tiers[1], arterial)),
     lane = Math.max(1, Math.min(form.tiers[2], street));
@@ -231,7 +236,9 @@ export function composeUrban(
   const single = specs.length === 1;
   const coreHalf = single
     ? half
-    : Math.max(14, Math.round(half * (form.motor ? 0.42 : 0.6)));
+    : form.oldCore
+      ? Math.max(26, Math.round(half * 0.5))
+      : Math.max(14, Math.round(half * (form.motor ? 0.42 : 0.6)));
   // A grid was laid out as a rectangle, and not a square one.
   const stretch = aspect
     ? Math.max(aspect, 1 / aspect)
@@ -439,7 +446,7 @@ export function composeUrban(
   // Placed before the arterials so they can terminate on it. Its scale is read
   // against the radius, not the width: against the width a fifth put a third
   // of the town under one square.
-  const size = form.motor
+  const size = motorCore
     ? Math.max(15, Math.min(21, even(half * form.plazaScale) + 1))
     : // A boulevard-age square was a place framed by its buildings, not
       // the open ground of a market town.
@@ -494,14 +501,14 @@ export function composeUrban(
     h: size,
   };
 
-  const civicBlock = form.motor && half >= 40 ? {
+  const civicBlock = motorCore && half >= 40 ? {
     west: plaza.x - 12 - hiA,
     east: plaza.x + plaza.w + 11 + loA,
     north: plaza.y - 14 - hiA,
     south: plaza.y + plaza.h + 2 + spanOffsets(street)[0],
   } : undefined;
 
-  const framed = !civicBlock && (form.motor || core.plan === "orthogonal");
+  const framed = !civicBlock && (motorCore || core.plan === "orthogonal");
 
   // --- Arterials -------------------------------------------------------------
   // One axis-aligned run per gate, bent where the fabric is irregular so the
@@ -580,9 +587,13 @@ export function composeUrban(
     streets.push({ a: cursor, b: end, tier: 0 });
     cuts[across].add(lateral);
   }
+  const gateRuns = streets.length;
+  let oldCore: Rect | undefined;
   // A boulevard on the line of the old core's demolished walls.
   if (form.ring && grown(core.plan) && !single) {
-    const inset = hiA + margin(0);
+    // On the line of the walls; round a core that stood, just outside it, so
+    // its kerb and not its carriageway meets the old houses.
+    const inset = form.oldCore ? -(loA + margin(0) + 1) : hiA + margin(0);
     const [x0, x1] = [coreRect.x + inset, coreRect.x + coreRect.w - 1 - inset],
       [y0, y1] = [coreRect.y + inset, coreRect.y + coreRect.h - 1 - inset];
     const corners = [
@@ -602,7 +613,9 @@ export function composeUrban(
     }
     cuts.x.add(x0).add(x1);
     cuts.y.add(y0).add(y1);
+    if (form.oldCore) oldCore = coreRect;
   }
+  const ringRuns = streets.length;
   // Further arterials so a quarter is never many blocks deep. How many follows
   // from the block module, not from the settlement's size alone.
   for (const axis of ["x", "y"] as const) {
@@ -638,6 +651,29 @@ export function composeUrban(
           : { a: { x: lo, y: at }, b: { x: hi, y: at }, tier: 0 },
       );
     }
+  }
+  // The ring takes the traffic round an old core: an avenue stops at it, and
+  // a route in from a gate goes on inside as an ordinary street.
+  if (oldCore) {
+    const r = oldCore;
+    const kept = streets.splice(0).flatMap((s, i) => {
+      if (i >= gateRuns && i < ringRuns) return [s];
+      const x = s.a.y === s.b.y;
+      const level = x ? s.a.y : s.a.x;
+      if (x ? level < r.y || level >= r.y + r.h : level < r.x || level >= r.x + r.w) return [s];
+      const [lo, hi] = x
+        ? [Math.min(s.a.x, s.b.x), Math.max(s.a.x, s.b.x)]
+        : [Math.min(s.a.y, s.b.y), Math.max(s.a.y, s.b.y)];
+      const [in0, in1] = x ? [r.x, r.x + r.w - 1] : [r.y, r.y + r.h - 1];
+      const at = (v: number) => (x ? { x: v, y: level } : { x: level, y: v });
+      const parts: Segment[] = [];
+      if (lo < in0) parts.push({ a: at(lo), b: at(Math.min(hi, in0 - 1)), tier: 0 });
+      if (hi > in1) parts.push({ a: at(Math.max(lo, in1 + 1)), b: at(hi), tier: 0 });
+      if (i < gateRuns && hi >= in0 && lo <= in1)
+        parts.push({ a: at(Math.max(lo, in0 - 1)), b: at(Math.min(hi, in1 + 1)), tier: 1 });
+      return parts.filter((p) => p.a.x !== p.b.x || p.a.y !== p.b.y);
+    });
+    streets.push(...kept);
   }
 
   // --- Street cells ----------------------------------------------------------
@@ -732,12 +768,15 @@ export function composeUrban(
     // A boulevard-age city kept its old lanes' pattern but not their scraps:
     // its blocks had to hold ranges of five storeys round a court, so the
     // lanes that survived are fewer, straighter and rarely blind.
-    const renewed = (year ?? 0) >= 1850;
-    const [bw, bh] = renewed
-      ? [Math.round(d.spec.block[0] * 1.4), Math.round(d.spec.block[1] * 1.4)]
+    const kept = !!form.oldCore && d.core;
+    const renewed = (year ?? 0) >= 1850 && !kept;
+    // A kept core's lanes still bend and end blind, but they now front
+    // houses of three and four storeys round a court, not one-room cells.
+    const [bw, bh] = renewed || kept
+      ? [Math.round(d.spec.block[0] * 1.5), Math.round(d.spec.block[1] * 1.5)]
       : d.spec.block;
     // Motor-age rebuilding straightened what it kept of the old lanes.
-    const reg = form.motor
+    const reg = form.motor && !kept
       ? Math.max(0.85, d.spec.regularity)
       : d.spec.regularity;
     const want = Math.round(((d.rect.w * d.rect.h) / (bw * bh)) * 1.3);
@@ -764,7 +803,7 @@ export function composeUrban(
       const at = (u: number, v: number) =>
         other === "x" ? { x: v, y: u } : { x: u, y: v }; // u along parent axis? no: u is the parent-axis coordinate, v the branch coordinate
       // A branch too near a parallel one leaves no block between them.
-      const gap = Math.max(renewed ? 12 : 8, Math.floor(pitch * 0.6));
+      const gap = Math.max(renewed || kept ? 12 : 8, Math.floor(pitch * 0.6));
       const crowdedAt = (u: number, v: number) => {
         for (let k = 1; k <= gap; k++)
           for (const off of [-k, k]) {
@@ -1136,7 +1175,7 @@ export function composeUrban(
     }
     for (const s of diagonals)
       for (const p of line(s.a, s.b)) clearAround(p.x, p.y, hiA + 2);
-    clearRect(plaza, form.motor ? 1 : Math.max(loA, hiA) + 1);
+    clearRect(plaza, motorCore ? 1 : form.oldCore ? 2 : Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
     for (const r of grounds) if (r) clearRect(r, 1);
     if (rail)
@@ -1460,6 +1499,7 @@ export function composeUrban(
     holds,
     wall: circuit(),
     rail,
+    oldCore,
   };
 
   /** No street ends in the open. Every end is carried on to the next street
@@ -1472,7 +1512,7 @@ export function composeUrban(
       py = plaza.y - 1,
       qx = plaza.x + plaza.w,
       qy = plaza.y + plaza.h;
-    const edges: Segment[] = [...(form.motor || frame ? [] : [plaza]), ...squares].flatMap((r) => {
+    const edges: Segment[] = [...(motorCore || frame ? [] : [plaza]), ...squares].flatMap((r) => {
       const px = r.x - 1,
         py = r.y - 1,
         qx = r.x + r.w,

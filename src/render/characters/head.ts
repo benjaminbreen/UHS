@@ -430,6 +430,12 @@ export function drawHead(
     p.rect(4, 5, side ? 12 : 13, 1, a.wearing.trim);
     p.rect(4, 6, side ? 7 : 13, 1, mix(a.wearing.trim, "#614b43", 0.35));
   }
+  if (a.wearing.headwear === "top-hat") {
+    const felt = ramp(a.wearing.headColor ?? a.wearing.lowerColor);
+    p.shape([[6, 4], [6, -5], [14, -5], [14, 4]], felt);
+    p.rect(3, 4, side ? 14 : 15, 1, felt.base);
+    p.rect(4, 5, side ? 12 : 13, 1, felt.shade);
+  }
   if (a.wearing.headwear === "cap") {
     p.shape(
       [

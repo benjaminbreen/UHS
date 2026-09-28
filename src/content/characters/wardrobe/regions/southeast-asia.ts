@@ -15,6 +15,8 @@ export const southeastAsia: readonly GarmentKit[] = [
     id: "sea-early",
     label: "Southeast Asia · the wound cloth",
     scope: { years: [-2000, 1400], cultures: ["southeast-asian"] },
+    sleeves: [{ value: "short", weight: 5, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 3 }, { value: "loose", weight: 2, garments: ["open-robe", "robe"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 3, garments: ["wrap", "long-tunic", "open-robe"] }],
     garment: [
       { value: "none", weight: 6, sex: ["male"] },
       { value: "wrap", weight: 5 },
@@ -52,6 +54,8 @@ export const southeastAsia: readonly GarmentKit[] = [
     id: "sea-classical",
     label: "Southeast Asia · a jacket over the sarong",
     scope: { years: [1400, 1900], cultures: ["southeast-asian"] },
+    sleeves: [{ value: "short", weight: 5, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 3 }, { value: "loose", weight: 2, garments: ["open-robe", "robe"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 3, garments: ["wrap", "long-tunic", "open-robe"] }],
     garment: [
       { value: "none", weight: 4, sex: ["male"] },
       { value: "wrap", weight: 4 },
@@ -89,6 +93,8 @@ export const southeastAsia: readonly GarmentKit[] = [
     id: "sea-modern",
     label: "Southeast Asia · the shirt arrives, the sarong stays",
     scope: { years: [1900, 10001], cultures: ["southeast-asian"] },
+    sleeves: [{ value: "short", weight: 5, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 3 }, { value: "loose", weight: 2, garments: ["open-robe", "robe"] }],
+    motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 3, garments: ["wrap", "long-tunic", "open-robe"] }],
     garment: [
       { value: "shirt", weight: 6 },
       { value: "tunic", weight: 3 },

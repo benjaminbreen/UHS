@@ -1,7 +1,7 @@
 import { carryKit, withLoads } from "../../content/economy/carrying";
 import { goodsOf } from "../../content/economy/goods";
 import type { Station } from "../../core/itinerary";
-import type { Actor, Pack, Point } from "../../core/types";
+import type { Actor, Pack, Point, WorldModel, WorldObject } from "../../core/types";
 import type { Livelihood } from "../../content/characters/context-types";
 import {
   workplaceFor,
@@ -17,7 +17,9 @@ import type { Rank } from "../../content/characters/context-types";
 import type { StanceTag } from "../../content/outlook/types";
 import type { WorldSetting } from "../../content/geography/types";
 import { cellKey, type SettlementPlan, type WorkSite } from "./types";
-import { propVisualCells } from "../../content/props/catalog";
+import { propDefs, propVisualCells } from "../../content/props/catalog";
+import { processFor } from "../../content/economy/processes";
+import { MAX_WADING_DEPTH, waterDepthAt } from "../../core/water-field";
 import { buildingRoofCells } from "../../content/graphics/models";
 import { asDoing, type AgendaItem } from "../../core/agenda";
 import type { Festival, PlaceWant } from "../../content/days/types";
@@ -37,8 +39,16 @@ const store = (plan: SettlementPlan, owner: string) =>
       o.pos.space === "outside" &&
       !o.prop,
   )?.pos;
-const wellAt = (plan: SettlementPlan) =>
-  plan.objects.find((o) => o.kind === "well")?.pos;
+function wellAt(plan: SettlementPlan, near: Point, field = false) {
+  let best: WorldObject | undefined;
+  let distance = Infinity;
+  for (const o of plan.objects) {
+    if (o.kind !== "well" || (!field && o.name === "Irrigation well")) continue;
+    const d = (o.pos.x - near.x) ** 2 + (o.pos.y - near.y) ** 2;
+    if (d < distance) { best = o; distance = d; }
+  }
+  return best?.pos;
+}
 const hearthAt = (plan: SettlementPlan) =>
   plan.objects.find((o) => o.kind === "fire")?.pos;
 /** How far from the fire a household still cooks and sits at it. A village
@@ -126,7 +136,7 @@ function farmerRoutine(
   const picked = rows.length
     ? rows.map((_, i) => rows[(i + rotate) % rows.length])
     : [field.access];
-  const water = wellAt(plan);
+  const water = wellAt(plan, field.access, true);
   const depot = store(plan, owner);
   return [
     {
@@ -174,7 +184,7 @@ function herderRoutine(
   gatePos: Point,
   pasture: Point | undefined,
 ): Station[] {
-  const water = wellAt(plan);
+  const water = wellAt(plan, gatePos);
   return [
     {
       pos: gatePos,
@@ -217,7 +227,7 @@ function craftRoutine(
   work: Point,
   label: string,
 ): Station[] {
-  const water = wellAt(plan);
+  const water = wellAt(plan, home);
   const depot = store(plan, owner);
   const doors = neighbours(plan, owner, home);
   const call =
@@ -279,36 +289,45 @@ function doorFor(
   id: string,
   activity: string,
   home: Point,
+  work: Point,
 ): Point | undefined {
-  const hall = plan.places.find((p) => p.claim.startsWith("civic-"));
-  const sanctuary = plan.places.find((p) => p.claim.startsWith("religious-"));
+  const nearest = (places: typeof plan.places) => places.sort(
+    (a, b) => Math.hypot(a.entrance.x - home.x, a.entrance.y - home.y) -
+      Math.hypot(b.entrance.x - home.x, b.entrance.y - home.y),
+  )[0];
+  const hall = nearest(plan.places.filter((p) => p.claim.startsWith("civic-")));
+  const sanctuary = nearest(plan.places.filter((p) => p.claim.startsWith("religious-")));
+  const assigned = plan.places.find((p) => p.access === "public" &&
+    p.entrance.x === work.x && p.entrance.y === work.y);
   const shops = plan.places
     .filter(
       (p) =>
-        p.owner !== id &&
         p.access === "public" &&
         !p.claim.startsWith("civic-") &&
         /shop|workshop/i.test(p.name),
     )
-    .map((p) => p.entrance);
+    .sort((a, b) => Math.hypot(a.entrance.x - home.x, a.entrance.y - home.y) -
+      Math.hypot(b.entrance.x - home.x, b.entrance.y - home.y))
+    .slice(0, 3);
   const pickShop = () =>
     shops.length
-      ? shops[Math.floor(random(seed, "routine", id, "shop") * shops.length)]
+      ? shops[Math.floor(random(seed, "routine", id, "shop") * shops.length)].entrance
       : undefined;
   if (/rite/i.test(activity)) return (sanctuary ?? hall)?.entrance;
   if (/record|watch|sick/i.test(activity)) return hall?.entrance;
   if (/machine|line|building|roof/i.test(activity))
-    return pickShop() ?? hall?.entrance;
-  return pickShop() ?? farDoor(plan, seed, id, home);
+    return assigned?.entrance ?? pickShop() ?? hall?.entrance;
+  return assigned?.entrance ?? pickShop();
 }
 /** Indoors somewhere that is not home: drawn walking there and back, hidden
  * while inside. The same rule that hides a resident at rest hides them at
  * the office, the school or the shop floor. */
-const inside = (pos: Point, label: string, minutes: number): Station => ({
+const inside = (plan: SettlementPlan, pos: Point, label: string, minutes: number, placeId?: string): Station => ({
   pos,
   activity: "rest",
   label,
   minutes,
+  placeId: placeId ?? plan.places.find((p) => p.entrance.x === pos.x && p.entrance.y === pos.y)?.id,
 });
 /** Residents whose day is spent under a roof: their own house, or the house
  * they keep for someone else. One short errand outside, chosen by era, and
@@ -324,10 +343,10 @@ export function memberRoutine(
   market?: { pos: Point; label: string },
 ): Station[] {
   const when = era(year);
-  const water = wellAt(plan);
+  const water = wellAt(plan, home);
   const doors = neighbours(plan, id, home);
   const call =
-    doors[Math.floor(random(seed, "routine", id, "call") * doors.length)];
+    doors[Math.floor(random(seed, "routine", id, "call") * Math.min(5, doors.length))];
   const square = plan.plots.find((p) => p.kind === "public");
   const shop = square
     ? { x: square.x + Math.floor(square.w / 2), y: square.y + square.h - 1 }
@@ -335,63 +354,41 @@ export function memberRoutine(
   const pick = random(seed, "routine", id, "errand");
   const rest = (share: number): Station => ({ ...night(home), share });
   if (child) {
-    // Children run: a short circuit of doorsteps and corners with almost no
-    // dwell, so they are seen moving rather than standing. Water is the one
-    // errand they are sent on before piped supply.
     const run: Station = { ...night(home), share: 0.3, pace: 0.18 };
-    // The fire is the first gathering, so it is already on the circuit.
-    const spots = [
-      ...doors.slice(0, 3),
-      ...(plan.gatherings ?? []).slice(0, 2),
+    const meeting = [...(plan.gatherings ?? [])].sort(
+      (a, b) => Math.hypot(a.x - home.x, a.y - home.y) - Math.hypot(b.x - home.x, b.y - home.y),
+    )[0] ?? square?.access;
+    const neighbour = doors[0];
+    const play: Station[] = [
+      { pos: nearby(plan, seed, `${id}-play-home`, home), activity: "play",
+        label: "Playing near home", toward: "home", minutes: 20 },
+      { pos: nearby(plan, seed, `${id}-play-houses`, neighbour ?? meeting ?? home), activity: "play",
+        label: neighbour ? "Running between houses" : meeting ? "Playing by the meeting place" : "Playing near home",
+        toward: neighbour ? "the neighbouring houses" : meeting ? "the meeting place" : "home", minutes: 20 },
+      { pos: nearby(plan, seed, `${id}-play-meeting`, meeting ?? doors[1] ?? home), activity: "play",
+        label: meeting ? "Playing at the meeting place" : doors[1] ? "Chasing between houses" : "Playing near home",
+        toward: meeting ? "the meeting place" : doors[1] ? "the neighbouring houses" : "home", minutes: 20 },
     ];
-    const played = circuit(
-      plan,
-      seed,
-      id,
-      spots,
-      "Running between houses",
-      "play",
-    );
-    const played2 = circuit(
-      plan,
-      seed,
-      `${id}-b`,
-      [home, ...spots],
-      "Playing in the street",
-      "play",
-    );
-    const played3 = circuit(
-      plan,
-      seed,
-      `${id}-c`,
-      [...spots].reverse(),
-      "Chasing the others",
-      "play",
-    );
-    if (when === "modern") {
-      const school = farDoor(plan, seed, id, home);
-      return [
-        ...(school ? [inside(school, "At school", 200)] : []),
-        ...played,
-        ...played2,
-        ...played3,
-        run,
-      ];
-    }
+    const school = when === "modern" ? plan.venues
+      ?.filter((v) => v.venue.kind === "school")
+      .sort((a, b) => Math.hypot(a.pos.x - home.x, a.pos.y - home.y) -
+        Math.hypot(b.pos.x - home.x, b.pos.y - home.y))[0] : undefined;
     return [
-      ...played,
-      ...(water
+      ...(school && Math.hypot(school.pos.x - home.x, school.pos.y - home.y) <= 60
+        ? [{ ...inside(plan, school.pos, "At school", 180, school.placeId), toward: school.venue.label.toLowerCase(), part: "midday" as const }]
+        : []),
+      ...play,
+      ...(when !== "modern" && water
         ? [
             {
               pos: nearby(plan, seed, id, water),
               activity: "draw-water" as const,
               label: "Sent for water",
+              part: "morning" as const,
               minutes: 8,
             },
           ]
         : []),
-      ...played2,
-      ...played3,
       run,
     ];
   }
@@ -441,22 +438,26 @@ export function memberRoutine(
                 label: "Out for air",
                 minutes: 20,
               }
-            : undefined;
+          : undefined;
+  const shore = plan.outdoors?.shore;
+  const laundry = when === "premodern" && shore &&
+    Math.hypot(shore.x - home.x, shore.y - home.y) < 55 &&
+    random(seed, "laundry", id) < 0.35
+      ? { pos: nearby(plan, seed, `${id}-laundry`, shore), activity: "work" as const,
+          label: "Washing clothes at the water", toward: "the washing place", minutes: 20 }
+      : undefined;
   return [
     ...cooking(plan, seed, id, home, year),
-    ...(errand ? [errand] : []),
+    ...(errand ? [{ ...errand, part: "morning" as const }] : []),
+    ...(laundry ? [{ ...laundry, part: "midday" as const }] : []),
     socialStop(plan, seed, id, home),
-    ...(errand
-      ? []
-      : [
-          {
-            pos: nearby(plan, seed, `${id}-step`, home),
-            activity: "visit" as const,
-            label: "On the doorstep",
-            toward: "their own door",
-            minutes: 10,
-          },
-        ]),
+    {
+      pos: nearby(plan, seed, `${id}-step`, home),
+      activity: "visit",
+      label: "On the doorstep",
+      toward: "their own door",
+      minutes: 10,
+    },
     ...fireside(plan, seed, id, home, year),
     rest(0.07),
   ];
@@ -515,7 +516,8 @@ function nearby(plan: SettlementPlan, seed: string, id: string, at: Point) {
       x: at.x + Math.round(Math.cos(angle) * reach),
       y: at.y + Math.round(Math.sin(angle) * reach),
     };
-    if (!plan.solid.has(`${p.x},${p.y}`)) return p;
+    const key = cellKey(p.x, p.y);
+    if (!plan.solid.has(key) && plan.surface.get(key) !== "water") return p;
   }
   return at;
 }
@@ -726,16 +728,94 @@ export function livelihoodOf(pack: Pack, actor?: Actor) {
     kitsFor.set(pack, kits);
   }
   const kit = kits.get(actor.origin.livelihood);
-  if (kit?.id !== "apprentice")
+  if (!kit || !["apprentice", "journeyman", "guild-master"].includes(kit.id))
     return kit;
-  const specialty = actor.origin.roleLabel?.startsWith("Apprentice ")
-    ? actor.origin.roleLabel.slice("Apprentice ".length).toLowerCase()
-    : undefined;
+  const specialty = actor.origin.roleLabel?.replace(/^(Apprentice|Journeyman|Master) /, "").toLowerCase();
   const trade = kits.get(actor.origin.specialty ?? "") ??
     [...kits.values()].find((l) => l.label.toLowerCase() === specialty);
   return trade
     ? { ...kit, label: actor.origin.roleLabel ?? kit.label, activity: trade.activity, workplace: trade.workplace }
     : kit;
+}
+
+/** The prop overlay refreshes prewarmed routes so workshop fittings exist here. */
+export function bindWorkStations(
+  plan: SettlementPlan,
+  id: string,
+  actor: Actor | undefined,
+  stations: Station[],
+  world: WorldModel,
+) {
+  const kit = livelihoodOf(world.pack, actor);
+  const process = kit && processFor(kit);
+  const home = plan.work.get(id)?.home;
+  const objects = world.initialObjects.filter((o) => o.pos.space === "outside" && !o.carriedBy && !o.broken);
+  const occupied = new Set(objects.filter((o) => o.prop && propDefs[o.prop]?.solid)
+    .map((o) => cellKey(o.pos.x, o.pos.y)));
+  const free = (p: Point) => !world.blocked(p.x, p.y, "outside") && !occupied.has(cellKey(p.x, p.y));
+  const beside = (o: WorldObject, from: Point) => {
+    const cells = [o.pos];
+    const footprint = new Set(cells.map((p) => cellKey(p.x, p.y)));
+    return cells.flatMap((p) => [
+      { x: p.x, y: p.y + 1 }, { x: p.x - 1, y: p.y },
+      { x: p.x + 1, y: p.y }, { x: p.x, y: p.y - 1 },
+    ]).filter((p) => !footprint.has(cellKey(p.x, p.y)) && free(p))
+      .sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y))[0];
+  };
+  const waterside = (from: Point) => {
+    if (!world.topography) return undefined;
+    let best: { stand: Point; water: Point; distance: number } | undefined;
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const stand = { x: from.x + dx, y: from.y + dy };
+      if (world.terrain(stand.x, stand.y) === "water" || !free(stand)) continue;
+      for (const [wx, wy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+        const water = { x: stand.x + wx, y: stand.y + wy };
+        if (world.terrain(water.x, water.y) !== "water" ||
+            world.topography(water.x, water.y).waterDepth !== "shallow" ||
+            waterDepthAt(world.topography, water.x + 0.5, water.y + 0.5) > MAX_WADING_DEPTH) continue;
+        const distance = Math.hypot(dx, dy);
+        if (!best || distance < best.distance) best = { stand, water, distance };
+      }
+    }
+    return best;
+  };
+  return stations.map((s) => {
+    if (!(["work", "tend", "cook", "haul-catch", "draw-water"] as string[]).includes(s.activity)) return s;
+    const label = s.label.toLowerCase();
+    const washing = /wash|launder|scrub.*cloth/.test(label);
+    const fishing = /working (near )?(the )?water|fishing/.test(label);
+    const tradeWork = label === kit?.activity.toLowerCase() || /showing .* how the work is done/.test(label);
+    const families = s.activity === "draw-water" ? ["well", "framed-well", "town-well", "trough"]
+      : washing ? ["wash-tub"]
+      : fishing ? ["fish-weir"]
+      : s.activity === "cook" ? ["cooking-pot", "hearth", "camp-hearth", "communal-hearth", "three-stone-hearth", "firepit", "stove"]
+      : s.activity === "haul-catch" ? ["drying-rack"]
+      : s.activity === "tend" || /\bfield\b|\bcrop\b/.test(label) ? [...(process?.stations ?? []), "crop", "stock-pen", "trough"]
+      : tradeWork ? process?.stations ?? [] : [];
+    const matched = objects.map((o) => {
+      if (s.activity === "draw-water" && o.kind !== "well") return undefined;
+      const family = o.kind === "crop" ? "crop"
+        : o.kind === "well" ? propDefs[o.prop ?? ""]?.family ?? "well"
+        : propDefs[o.prop ?? ""]?.family;
+      if (!family || !families.includes(family)) return undefined;
+      if (o.owner && o.owner !== id && !o.owner.endsWith("-community") &&
+          (!home || !plan.work.get(o.owner) ||
+           cellKey(plan.work.get(o.owner)!.home.x, plan.work.get(o.owner)!.home.y) !== cellKey(home.x, home.y))) return undefined;
+      const distance = Math.hypot(o.pos.x - s.pos.x, o.pos.y - s.pos.y);
+      if (distance > (o.owner === id ? 12 : 7)) return undefined;
+      const stand = beside(o, s.pos);
+      return stand && { o, family, stand, score: distance - (o.owner === id ? 2 : 0) };
+    }).filter((v): v is NonNullable<typeof v> => !!v)
+      .sort((a, b) => a.score - b.score)[0];
+    if (matched) return { ...s, pos: matched.stand,
+      target: { id: matched.o.id, x: matched.o.pos.x, y: matched.o.pos.y, family: matched.family } };
+    if (washing || fishing) {
+      const edge = waterside(s.pos);
+      if (edge) return { ...s, pos: edge.stand,
+        target: { x: edge.water.x, y: edge.water.y, family: "shallow-water" } };
+    }
+    return s;
+  });
 }
 /** One resident's day, from what the plan gave them and what their
  * livelihood does. Used for owners at planning time and for household
@@ -907,21 +987,18 @@ function workdayFor(
         : [];
     }
     case "civic": {
-      const doors = neighbours(plan, id, home);
-      const site2 =
-        doors[Math.floor(random(seed, "civic", id) * doors.length)] ??
-        plan.gatherings?.[0];
-      const roof = doorFor(plan, seed, id, label, home) ?? site2;
+      const roof = doorFor(plan, seed, id, label, home, site.work);
       if (indoorWork && roof)
         return [
-          inside(roof, label, 300),
+          inside(plan, roof, label, 300),
           socialStop(plan, seed, id, home),
           { ...night(home), share: 0.1 },
         ];
-      return site2
+      const publicSite = roof ?? site.work;
+      return publicSite
         ? [
             {
-              pos: nearby(plan, seed, id, site2),
+              pos: nearby(plan, seed, id, publicSite),
               activity: "work",
               label,
               minutes: 45,
@@ -934,11 +1011,11 @@ function workdayFor(
       return memberRoutine(plan, seed, id, home, year, false);
     default: {
       const bench = indoorWork
-        ? doorFor(plan, seed, id, label, home)
+        ? doorFor(plan, seed, id, label, home, site.work)
         : undefined;
       if (bench)
         return [
-          inside(bench, label, 300),
+          inside(plan, bench, label, 300),
           socialStop(plan, seed, id, home),
           { ...night(home), share: 0.1 },
         ];
@@ -1041,7 +1118,7 @@ export function socialStop(
   setting?: WorldSetting,
 ): Station {
   const drawn =
-    actor && setting ? venueFor(plan, seed, actor, setting) : undefined;
+    actor && setting ? venueFor(plan, seed, actor, setting, home) : undefined;
   if (drawn)
     return {
       pos: nearby(plan, seed, id, drawn.pos),
@@ -1058,6 +1135,7 @@ function venueFor(
   seed: string,
   actor: Actor,
   setting: WorldSetting,
+  home: Point,
 ) {
   const built = plan.venues ?? [];
   if (!built.length) return undefined;
@@ -1071,9 +1149,9 @@ function venueFor(
         rank,
         outlook.tags,
         actor.origin?.livelihood,
-      ),
+      ) / (1 + Math.hypot(entry.pos.x - home.x, entry.pos.y - home.y) / 20),
     }))
-    .filter((entry) => entry.score > 0);
+    .filter((entry) => entry.score > 0 && Math.hypot(entry.pos.x - home.x, entry.pos.y - home.y) <= 60);
   if (!scored.length) return undefined;
   const total = scored.reduce((n, entry) => n + entry.score, 0);
   let roll = random(seed, "venue", actor.id) * total;
@@ -1095,7 +1173,7 @@ function legacySocialStop(
     ranked[
       random(seed, "knot-pick", id) < 0.7
         ? 0
-        : Math.floor(random(seed, "knot-far", id) * ranked.length)
+        : Math.floor(random(seed, "knot-far", id) * Math.min(3, ranked.length))
     ];
   return {
     pos: pick ? nearby(plan, seed, id, pick) : home,
@@ -1145,7 +1223,7 @@ export function placeFor(
       return { pos: fire ?? home, toward: fire ? "the fire" : "the hearth" };
     }
     case "well": {
-      const w = wellAt(plan);
+      const w = wellAt(plan, home);
       return w && { pos: w, toward: "the well" };
     }
     case "sanctuary": {

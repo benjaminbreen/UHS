@@ -168,6 +168,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
     abort.current = controller;
     void dialogueTurn(runtime, actorId, "", [], controller.signal, realRef.current, situationRef.current).then((result) => {
       if (controller.signal.aborted) return;
+      runtime.onRecord?.("dialogue", { actorId, opening: result.text, error: result.error });
       setBusy(false);
       if (result.error) setError(result.error);
       else {
@@ -231,6 +232,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
     const controller = new AbortController();
     abort.current = controller;
     const result = await dialogueTurn(runtime, actorId, text, next, controller.signal, realRef.current);
+    runtime.onRecord?.("dialogue", { actorId, input: text, response: result.text, error: result.error, aborted: result.aborted });
     if (controller.signal.aborted) return;
     setBusy(false);
     if (result.error) setError(result.error);

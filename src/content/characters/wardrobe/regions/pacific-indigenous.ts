@@ -88,6 +88,8 @@ export const indigenousAmerican: readonly GarmentKit[] = [
     id: "nai-general",
     label: "Indigenous America · cloth and hide",
     scope: { years: [-1000000, 1850], cultures: ["other-indigenous-american"] },
+    sleeves: [{ value: "short", weight: 6, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
+    motif: [{ value: "plain", weight: 6 }, { value: "band", weight: 3, garments: ["wrap", "poncho", "tunic"] }],
     garment: [
       { value: "tunic", weight: 5 },
       { value: "wrap", weight: 4 },
@@ -120,6 +122,8 @@ export const indigenousAmerican: readonly GarmentKit[] = [
     id: "nai-modern",
     label: "Indigenous America · trade cloth and after",
     scope: { years: [1850, 10001], cultures: ["other-indigenous-american"] },
+    sleeves: [{ value: "short", weight: 6, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
+    motif: [{ value: "plain", weight: 6 }, { value: "band", weight: 3, garments: ["wrap", "poncho", "tunic"] }],
     garment: [
       { value: "shirt", weight: 6 },
       { value: "coat", weight: 4 },
@@ -161,6 +165,8 @@ export const australiaPacific: readonly GarmentKit[] = [
     id: "ap-early",
     label: "Australia & the Pacific · bark cloth and the cape",
     scope: { years: [-1000000, 1830], cultures: ["australian-pacific"] },
+    sleeves: [{ value: "short", weight: 6, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
+    motif: [{ value: "plain", weight: 6 }, { value: "band", weight: 3, garments: ["wrap", "poncho", "tunic"] }],
     garment: [
       { value: "none", weight: 8, sex: ["male"] },
       { value: "wrap", weight: 5 },
@@ -195,6 +201,8 @@ export const australiaPacific: readonly GarmentKit[] = [
     id: "ap-modern",
     label: "Australia & the Pacific · the gown and the lavalava",
     scope: { years: [1830, 10001], cultures: ["australian-pacific"] },
+    sleeves: [{ value: "short", weight: 6, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
+    motif: [{ value: "plain", weight: 6 }, { value: "band", weight: 3, garments: ["wrap", "poncho", "tunic"] }],
     garment: [
       { value: "shirt", weight: 5 },
       // The island dress: loose, to the ankle, and everywhere within a

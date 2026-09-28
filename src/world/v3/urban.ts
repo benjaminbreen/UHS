@@ -49,6 +49,7 @@ export type Quarter = "market" | "craft" | "elite" | "residential" | "edge";
 
 /** Kit forms each land use builds with, until each has art of its own. */
 const FORMS: Record<LandUse, readonly string[]> = {
+  historic: ["row", "shop", "wide", "tall", "cottage"],
   downtown: ["office", "midrise", "tall"],
   commercial: ["shop", "tall", "row"],
   industrial: ["wide", "row"],
@@ -174,6 +175,11 @@ export function plottedTown(pack: Pack): boolean {
 
 /** Period street facades are complete frames rather than base-and-form kits;
  * they carry their own storeys and a role the quarters sort by. */
+/** A house of the old core, kept for the blocks inside its ring. */
+function isHistoric(frame: string): boolean {
+  return frame.startsWith("modern-medina-");
+}
+
 function isPeriod(frame: string): boolean {
   return !!(buildingModels[frame] as { period?: boolean } | undefined)?.period;
 }
@@ -224,16 +230,25 @@ export function siteGate(
  * regular whatever the region, and a waterfront turns its public space seaward. */
 export function siteForm(site: Site, pack: Pack): UrbanForm {
   const motor = motorized(pack.setting!);
+  const base = urbanForm(pack.setting!);
+  const oldCore =
+    industrialized(pack.setting!) &&
+    !!zoningFor(pack.setting!).keepsCore &&
+    (base.plan === "organic" || base.plan === "radial") &&
+    (base.districts?.length ?? 1) > 1;
   const regional = {
-    ...urbanForm(pack.setting!),
+    ...base,
     motor,
+    ...(oldCore ? { oldCore, ring: true } : {}),
     ...(motor
       ? {
-          tiers:
-            site.profile.radius >= 90
-              ? ([BOULEVARD, MOTOR_SPANS[1], MOTOR_SPANS[2]] as const)
-              : MOTOR_SPANS,
-          diagonals: site.profile.radius >= 90 ? 1 : 0,
+          tiers: [
+            site.profile.radius >= 90 ? BOULEVARD : MOTOR_SPANS[0],
+            MOTOR_SPANS[1],
+            // No car goes down an old core's lanes.
+            oldCore ? 2 : MOTOR_SPANS[2],
+          ] as const,
+          diagonals: site.profile.radius >= 90 && !oldCore ? 1 : 0,
         }
       : {}),
   };
@@ -274,12 +289,16 @@ export function urbanNeighborhood(
   const cottages = plotted
     ? pack.buildings.filter((b) => buildingModels[b])
     : [];
-  const frames = [...urbanFrames(pack, form.storeys), ...cottages];
-  if (!frames.length) return [];
-  const small = urbanFrames(pack, form.storeys, true);
+  const everyFrame = [...urbanFrames(pack, form.storeys), ...cottages];
+  if (!everyFrame.length) return [];
+  const historicFrames = everyFrame.filter(
+    (f) => isHistoric(f) && FORMS.historic.some((w) => f.endsWith(`-urban-${w}`)),
+  );
+  const frames = everyFrame.filter((f) => !isHistoric(f));
+  const small = urbanFrames(pack, form.storeys, true).filter((f) => !isHistoric(f));
   // A fabric's storey cap describes the town it laid out; offices and estates
   // rebuilt on it later are not bound by it.
-  const towers = urbanFrames(pack);
+  const towers = urbanFrames(pack).filter((f) => !isHistoric(f));
   const modern = (pack.setting?.year ?? 0) >= 1900;
   const year = pack.setting?.year ?? 0;
   const zoning =
@@ -502,10 +521,15 @@ export function urbanNeighborhood(
   }
 
   // Streets first, widest first, so a junction takes the wider surface.
+  const old = (s: { a: Point; b: Point; tier: number }) => {
+    const r = layout.oldCore;
+    return !!r && s.tier > 0 &&
+      [s.a, s.b].every((p) => p.x >= r.x - 1 && p.x <= r.x + r.w && p.y >= r.y - 1 && p.y <= r.y + r.h);
+  };
   for (const [i, s] of [...layout.streets]
     .sort((a, b) => a.tier - b.tier)
     .entries())
-    api.lay(s.a, s.b, `street-${s.tier}-${i}`, layout.tiers[s.tier]);
+    api.lay(s.a, s.b, `${old(s) ? "old" : "street"}-${s.tier}-${i}`, layout.tiers[s.tier]);
   for (const [i, s] of layout.diagonals.entries())
     api.lay(s.a, s.b, `avenue-${i}`, layout.tiers[s.tier]);
   for (const r of layout.verges) {
@@ -517,6 +541,7 @@ export function urbanNeighborhood(
   if (modern || zoning)
     for (const s of layout.streets) {
       if (s.tier === 0 && form.verge) continue;
+      if (old(s)) continue;
       if (form.footways === "main" && s.tier > 0) continue;
       const span = layout.tiers[s.tier],
         walk = s.tier < 2 ? 2 : 1,
@@ -890,7 +915,7 @@ export function urbanNeighborhood(
   for (const block of layout.blocks) {
     const use = zoning && landUseOf(block);
     if (use) uses.set(block, use);
-    quarters.set(block, use ? quarterFor(use) : quarterOf(block));
+    quarters.set(block, use ? quarterFor(use, block) : quarterOf(block));
   }
   const useAt = new Map<string, LandUse>();
   for (const [block, use] of uses)
@@ -1078,6 +1103,7 @@ export function urbanNeighborhood(
     const use = uses.get(block);
     if (use)
       return {
+        historic: 0.92,
         downtown: 0.9,
         commercial: 0.8,
         industrial: 0.6,
@@ -1239,7 +1265,8 @@ export function urbanNeighborhood(
     return roll < 0.72 ? "craft" : "residential";
   }
 
-  function quarterFor(use: LandUse): Quarter {
+  function quarterFor(use: LandUse, block?: Block): Quarter {
+    if (use === "historic") return block ? quarterOf(block) : "market";
     return use === "downtown" || use === "commercial"
       ? "market"
       : use === "industrial"
@@ -1275,8 +1302,11 @@ export function urbanNeighborhood(
     // A metropolis's map is a slice of its inner city, not the whole of it:
     // its edge is still in the tenement rings, not out in the suburbs.
     const reach = rel(block) * Math.min(1, 70 / site.profile.radius);
+    if (form.oldCore && block.district === 0) return "historic";
     if (block.district === 0 && reach < centre)
-      return big && year >= industrial + z.downtownAfter
+      return big &&
+        year >= industrial + z.downtownAfter &&
+        (pack.setting?.population ?? Infinity) >= (z.downtownFrom ?? 0)
         ? "downtown"
         : "commercial";
     const ring = Math.min(
@@ -1347,6 +1377,11 @@ export function urbanNeighborhood(
         ? modernBuildings(pack.setting, use).filter((f) => buildingModels[f])
         : [];
     if (rebuilt.length) return rebuilt;
+    // An old core is built of its own old houses, and nowhere else is.
+    if (use === "historic" && historicFrames.length) {
+      const shops = historicFrames.filter((f) => /-urban-shop$/.test(f));
+      return quarter === "market" && shops.length ? [...shops, ...historicFrames] : historicFrames;
+    }
     const period = frames.filter(isPeriod);
     if (period.length) {
       const roles =
@@ -1683,7 +1718,7 @@ export function urbanNeighborhood(
     if (framesForBlock(block).some(tallKit)) return;
     // Offices, shops and works build over their whole block; homes keep yards.
     const own =
-      use === "downtown" || use === "commercial";
+      use === "downtown" || use === "commercial" || use === "historic";
     const pool = own
       ? framesForBlock(block).map((base) => ({
           base,

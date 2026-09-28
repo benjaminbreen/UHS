@@ -36,7 +36,8 @@ import {
   type AppearancePalette,
 } from "../core/character";
 import type { Actor, Intent, ItemId } from "../core/types";
-import { poseContactMs, poseTiming, type CharacterPose } from "../render/characters/poses";
+import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
+import { livelihoodOf } from "../world/v3/routines";
 import type {
   ToolEffect,
   SwingEffect,
@@ -83,10 +84,10 @@ export type Verb = {
   command?: Extract<PlayerCommand, { type: "interact" }>;
 };
 const TOOL_POSES: Record<ToolAction, CharacterPose> = {
-  chop: "chop",
-  dig: "dig",
-  reap: "reap",
-  mine: "chop",
+  chop: "axe-chop",
+  dig: "shovel-dig",
+  reap: "scythe-sweep",
+  mine: "pick-strike",
 };
 import { DAY, timetable, trainsAt } from "../world/v3/railway";
 import { findPath } from "../core/pathfinding";
@@ -176,6 +177,7 @@ export function createSession(
       );
     }
     if (resolved?.character) {
+      engine.state.player.age ??= resolved.character.age;
       engine.state.player.hunger = resolved.character.hunger;
       engine.state.player.fatigue = resolved.character.fatigue;
       if (resolved.character.appearanceSeed && !resolved.characterRevision) {
@@ -297,7 +299,7 @@ export class Runtime {
   engine: Engine;
   /** The written record of this playthrough. Human play produces the same
    * document an agent does, minus the stated reasoning. */
-  chronicle: Chronicle;
+  chronicle!: Chronicle;
   journey?: import("./map-travel").MapTravel;
   /** Set while the player holds a ticket for the train at the platform: the
    * map then plans the journey by rail. */
@@ -392,6 +394,7 @@ export class Runtime {
     pose: CharacterPose;
     at: number;
     prop?: string;
+    target?: string;
     /** Sprite arc for a jump: the shadow stays on the ground beneath it. */
     arc?: { height: number; duration: number };
     /** What follows the arc. A fall of two tiers, or a long running jump,
@@ -475,6 +478,7 @@ export class Runtime {
     this.toolEffect = {
       serial: ++this.characterSerial,
       kind,
+      pose: action === "douse" || action === "fill" ? undefined : this.toolPose(action as ToolAction),
       at,
       cells:
         action === "dig" || action === "reap"
@@ -483,7 +487,7 @@ export class Runtime {
       contactMs:
         action === "douse" || action === "fill"
           ? 150
-          : poseContactMs(TOOL_POSES[action as ToolAction]),
+          : poseContactMs(this.toolPose(action as ToolAction)),
       from: { x: p.x, y: p.y },
       facing: this.engine.state.player.direction,
       sprite: previousPlant,
@@ -591,13 +595,14 @@ export class Runtime {
         };
       }
     }
+    const throwPose: CharacterPose = command.type === "throw" && this.engine.lastThrow?.straight ? "spear-throw" : "cast";
     if (command.type === "throw" || command.type === "shoot") {
       const flight = this.engine.lastThrow;
       if (flight)
         this.throwEffect = {
           serial: ++this.characterSerial,
           ...flight,
-          launchMs: command.type === "shoot" ? (flight.sling ? 30 : 75) : poseContactMs("cast"),
+          launchMs: command.type === "shoot" ? (flight.sling ? 30 : 75) : poseContactMs(throwPose),
         };
       if (command.type === "shoot") {
         this.characterAction = {
@@ -625,6 +630,7 @@ export class Runtime {
         const p = this.engine.state.player.pos;
         this.swingEffect = {
           serial: ++this.characterSerial,
+          pose,
           from: { x: p.x, y: p.y },
           facing: swing.direction,
           tool: swing.tool,
@@ -633,7 +639,7 @@ export class Runtime {
           creatures: swing.creatures,
           power: swing.power,
           thrust: swing.thrust,
-          knife: pose === "slash",
+          knife: pose === "slash" || pose === "knife-thrust",
           contactMs: poseContactMs(pose),
         };
       }
@@ -657,22 +663,28 @@ export class Runtime {
       return;
     }
     const action = command.type === "interact" ? command.action : command.type;
+    const target = command.type === "interact" ? this.engine.state.objects.find((o) => o.id === command.target) : undefined;
+    const workPose = action === "work"
+      ? workPoseFor("work", livelihoodOf(this.engine.world.pack, this.engine.state.player)?.activity ?? "", propDefs[target?.prop ?? ""]?.family)
+      : undefined;
     const pose: CharacterPose | undefined = (
       {
         pickup: "pickup",
         drop: "drop",
         climb: "climb",
         descend: "climb",
-        throw: "cast",
+        throw: throwPose,
         strike: "swing",
-        chop: "chop",
-        dig: "dig",
-        reap: "reap",
-        mine: "chop",
+        chop: this.toolPose("chop"),
+        dig: this.toolPose("dig"),
+        reap: this.toolPose("reap"),
+        mine: this.toolPose("mine"),
         talk: "talk",
         trade: "give",
+        work: workPose ?? "work",
+        cook: "work-stir",
         // A knife in hand makes it close, careful work.
-        harvest: this.engine.state.player.heldItem === "tool" ? "carve" : "work",
+        harvest: this.engine.state.player.heldItem === "tool" ? "carve" : "work-tend",
         drink: "give",
         rest: "sit",
         use: "give",
@@ -697,31 +709,51 @@ export class Runtime {
         pose,
         at: performance.now(),
         prop: previousProp,
+        target: target?.id,
       };
   }
   private swingPose(thrust = false): CharacterPose {
     const held = heldObject(this.engine.state);
     const item = this.engine.state.player.heldItem;
     const def = propDefs[held?.prop ?? ""];
-    if (def?.tool) return TOOL_POSES[TOOL_ACTIONS[def.tool]];
-    if (def?.attack === "rake") return "till";
-    if (def?.attack === "hook") return "reap";
-    if (!held && item === "tool") return "slash";
+    if (held?.prop === "sickle") return "sickle-cut";
+    if (def?.tool) return this.toolPose(TOOL_ACTIONS[def.tool]);
+    if (held?.prop === "spear") return "spear-thrust";
+    if (held?.prop === "branch") return "stick-swing";
+    if (def?.attack === "rake") return "rake-pull";
+    if (def?.attack === "hook") return "sickle-cut";
+    if (held?.prop === "pitchfork") return "pitchfork-jab";
+    if (!held && item === "tool") return "knife-thrust";
     return def?.attack === "thrust" || item === "torch" || thrust
       ? "thrust"
       : "swing";
   }
+  private toolPose(action: ToolAction): CharacterPose {
+    const prop = heldObject(this.engine.state)?.prop;
+    if (prop === "sickle") return "sickle-cut";
+    return TOOL_POSES[action];
+  }
   private subscribers = new Set<() => void>();
+  private disposed = false;
   private cached: ReturnType<Runtime["view"]>;
   onChange?: () => void;
+  onRecord?: (kind: "world" | "command" | "text" | "note" | "selection" | "dialogue", data: Record<string, unknown>) => void;
   private observation?: Observation;
   constructor(engine: Engine, options: { cacheTerrain?: boolean } = {}) {
     this.chunks = new ChunkCache(options.cacheTerrain !== false);
     this.engine = engine;
-    this.chronicle = startChronicle(engine, "human");
+    this.attachChronicle(engine);
     this.syncAmbient();
     this.cached = this.view();
     this.startJourney(engine);
+  }
+  private attachChronicle(engine: Engine) {
+    this.chronicle = startChronicle(engine, "human");
+    const chronicle = engine.onAct;
+    engine.onAct = (request, result) => {
+      chronicle?.(request, result);
+      this.onRecord?.("command", { request, result });
+    };
   }
   /** Map travel reaches h3-js, a multi-megabyte emscripten build. Loading it
    * on demand keeps it off the startup path; nothing can issue a command
@@ -733,7 +765,7 @@ export class Runtime {
       year = engine.state.manifest.setting!.year;
     void import("./map-travel").then(({ MapTravel }) => {
       // A replacement world may have arrived while the module loaded.
-      if (this.engine === engine) new MapTravel(this, id, year);
+      if (!this.disposed && this.engine === engine) new MapTravel(this, id, year);
     });
   }
   private view(refresh = true) {
@@ -785,6 +817,7 @@ export class Runtime {
     };
   }
   dispose() {
+    this.disposed = true;
     this.journey?.dispose();
     releaseTerrainWorker(this.engine.world);
     this.stop(false);
@@ -820,6 +853,7 @@ export class Runtime {
     if (id) this.flushAmbient();
     if (id && id === this.selected) this.reselected++;
     this.selected = id;
+    this.onRecord?.("selection", { targetId: id ?? null, name: id ? this.engine.inspect(id)?.name : undefined });
     this.emit(false);
   }
   setZoom(z: number) {
@@ -842,7 +876,8 @@ export class Runtime {
     this.replay = undefined;
     this.stop();
     this.engine = engine;
-    this.chronicle = startChronicle(engine, "human");
+    this.attachChronicle(engine);
+    this.onRecord?.("world", { manifest: engine.state.manifest });
     if (!preserveJourney) this.startJourney(engine);
     this.selected = undefined;
     this.syncAmbient();
@@ -893,17 +928,21 @@ export class Runtime {
   /** One narrator turn from free text. "Find the goats" and its kin are
    * answered here instead, from the loaded world: no model call, the same
    * answer every time, and the player walks off at once. */
-  say(input: string): Promise<Turn> {
+  async say(input: string): Promise<Turn> {
     const terms = parseFind(input);
+    let turn: Turn;
     if (terms) {
       this.engine.syncFauna();
       const found = findNearest(this.engine.state, terms);
-      if (found) return Promise.resolve(this.walkToFound(input, found));
-      const animal = namedAnimal(terms);
-      if (animal) return Promise.resolve(this.noneFound(input, animal));
+      if (found) turn = this.walkToFound(input, found);
+      else {
+        const animal = namedAnimal(terms);
+        turn = animal ? this.noneFound(input, animal) : await narratorTurn(this, input);
+      }
       // Nothing of that name is loaded; let the narrator answer as before.
-    }
-    return narratorTurn(this, input);
+    } else turn = await narratorTurn(this, input);
+    this.onRecord?.("text", { input: input.trim().slice(0, 600), response: turn.text, error: turn.error });
+    return turn;
   }
   /** Walks to a found target and logs it as a narration turn, so the search
    * reads back in the log beside everything else the player has said. */
@@ -1400,7 +1439,7 @@ export class Runtime {
               : hands.attack === "rake"
                 ? `Rake with the ${hands.name.toLowerCase()}`
                 : hands.attack === "hook" || hands.attack === "slice"
-                  ? `Slash with ${hands.name.toLowerCase()}`
+                  ? `${item?.id === "tool" ? "Thrust" : "Slash"} with ${hands.name.toLowerCase()}`
                   : hands.attack === "brand"
                     ? `Brand with ${hands.name.toLowerCase()}`
                     : `Swing ${hands.name.toLowerCase()}`,
@@ -2123,12 +2162,14 @@ export class Runtime {
     if (!text.trim()) return;
     const setting = this.engine.world.pack.setting;
     void gameAudio()?.sound(writing(writingTool(setting?.year, setting?.culture)), "write");
-    this.engine.state.notes.push({
+    const entry = {
       id: this.engine.state.notes.length + 1,
       text: text.trim().slice(0, 4000),
       time: this.engine.state.clock,
       evidence,
-    });
+    };
+    this.engine.state.notes.push(entry);
+    this.onRecord?.("note", { note: entry });
     this.onChange?.();
     this.emit();
   }

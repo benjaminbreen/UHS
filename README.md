@@ -64,6 +64,16 @@ For an MCP client, use `node` as the executable and arguments `--import`, `tsx`,
 
 The browser also exposes `window.historySim.observe()`, `.inspect(id)`, and `.act(request)`. Optional WebMCP registration is feature-detected. The experimental browser registry was not available for native verification; the actual stdio MCP transport is covered by a client integration test.
 
+## Opt-in classroom recording
+
+`/edumode` is a separate entry point. The ordinary `/` route does not upload play records. A student enters a name and class code, sees what is recorded, and chooses to start. Classroom sessions record submitted actions and their outcomes (including rejected actions), selected targets, submitted text, conversations and responses, notebook entries, world changes, simulation time, and wall time. Unsent events remain in that browser and retry when it reconnects. The status bar shows whether events are saved or waiting to sync. Finishing a session clears its local recording token after upload succeeds. A resumed recording starts a new game world; its earlier world remains in the session timeline.
+
+The deployed route requires a Neon Postgres database. Run [`server/edu.sql`](server/edu.sql) in the database SQL editor, then set `DATABASE_URL`, `UHS_EDU_CLASS_CODE`, and `UHS_EDU_TEACHER_TOKEN` as server-only environment variables. Use independent, long random values for the two secrets. Without all three, classroom collection is unavailable. The teacher opens `/edumode/teacher`, enters the teacher token, and can review timelines, export JSONL/CSV, download the first world as a game replay, or delete a session. Import a replay through Settings → Replay a journey. Later world changes remain in the timeline and exports; they are not yet included in that replay file.
+
+Names are self-entered; a shared class code does not verify an individual student's identity. The teacher token controls access to collected records and must not be distributed to students. Set a class retention policy and delete sessions when they are no longer needed. Classroom events are observational records from the student's browser, not server-authoritative proof against a modified client.
+
+For a shared starting prompt and seed, distribute a URL such as `/edumode?start=A%20Roman%20baker%20in%20Ostia%2C%20100%20CE&seed=class-1`. The class code is entered on the page and should never be included in the URL.
+
 ## Extend the world
 
 - `src/core`: plain state, action rules, time, visibility, randomness, and shared pathfinding. It does not import Phaser, browser APIs, or concrete historical content.

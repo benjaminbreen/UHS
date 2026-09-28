@@ -278,3 +278,19 @@ HEADS['plume'] = R(
  "  oooooooooooooooooo    ",
  "   oooooooooooooooo     ",
 )
+
+HEADS['top-hat'] = R(
+ "",
+ "       oooooooooo       ",
+ "      oooooooooooo      ",
+ "      oooooooooooo      ",
+ "      oooooooooooo      ",
+ "      oooooooooooo      ",
+ "      oooooooooooo      ",
+ "      oooooooooooo      ",
+ "      oooooooooooo      ",
+ "      tttttttttttt      ",
+ "      tttttttttttt      ",
+ "   oooooooooooooooooo   ",
+ "   oooooooooooooooooo   ",
+)

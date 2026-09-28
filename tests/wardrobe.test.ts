@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   ageBandOf,
+  accessoryFor,
   kitsFor,
   meansOf,
   wardrobeFor,
@@ -551,4 +552,34 @@ it("keeps modern men out of dresses, hemp and mauve", () => {
     clothFor({ id: `h-${i}` }, { year: 2009, setting }).material,
   ).filter((m) => m === "hemp").length;
   expect(hemp).toBeLessThan(15);
+});
+
+it("resolves compatible outfit details after selecting the garment", () => {
+  const pool: GarmentKit[] = [{ id: "compat", label: "Compat", scope: { years: [0, 2000] },
+    garment: [{ value: "shirt" }], sleeves: [{ value: "loose", garments: ["robe"] }, { value: "long", garments: ["shirt"] }],
+    front: [{ value: "cross", garments: ["robe"] }], cut: [{ value: "full", garments: ["robe"] }] }];
+  const w = wardrobeFor({ id: "compatible" }, { year: 1000 }, base, pool);
+  expect(w.sleeves).toBe("long");
+  expect(w.front).toBe("closed");
+  expect(w.cut).toBe("straight");
+});
+
+it("keeps unsewn clothing sleeveless and robe cloth coherent across regions", () => {
+  for (const culture of ["european", "east-asian", "south-asian", "southeast-asian", "west-central-african", "andean", "australian-pacific"]) {
+    for (const w of crowd(culture, 1200)) {
+      if (["wrap", "none", "loincloth", "poncho"].includes(w.garment)) expect(w.sleeves).toBe("none");
+      if (["robe", "open-robe", "dress", "long-tunic"].includes(w.garment)) expect(w.lowerColor).toBe(w.color);
+    }
+  }
+});
+
+it("scopes historical accessories to their wearers and keeps the bowler out of earlier Europe", () => {
+  expect(crowd("european", 1800).map((w) => w.headwear)).not.toContain("bowler");
+  const paris = place("european", 1888), japan = place("east-asian", 1850, 135.77, 35.01);
+  const canes = Array.from({ length: 80 }, (_, i) => accessoryFor({ id: `cane-${i}`, sex: "male", age: 50, means: "wealthy" }, { year: 1888, setting: paris }, "coat"));
+  expect(canes).toContain("walking-cane");
+  expect(accessoryFor({ id: "child", sex: "male", age: 8, means: "wealthy" }, { year: 1888, setting: paris }, "coat")).toBeUndefined();
+  const fans = Array.from({ length: 40 }, (_, i) => accessoryFor({ id: `fan-${i}`, sex: "female", age: 30, roles: ["geisha"] }, { year: 1850, setting: japan }, "open-robe"));
+  expect(fans.filter((id) => id === "fan").length).toBeGreaterThan(20);
+  expect(accessoryFor({ id: "elsewhere", roles: ["geisha"] }, { year: 1850, setting: paris }, "open-robe")).toBeUndefined();
 });

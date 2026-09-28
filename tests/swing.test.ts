@@ -125,7 +125,7 @@ it("takes an item in hand, swings it, and gives it back on stow", () => {
   expect(engine.state.player.inventory.tool).toBeUndefined();
   expect(runtime.verbs().primary).toMatchObject({
     kind: "strike",
-    label: "Slash with small knife",
+    label: "Thrust with small knife",
   });
 
   // A blade in hand shears brush rather than thumping it.
@@ -149,7 +149,7 @@ it("thrusts immediately at the end of a spear's reach", () => {
   runtime.pressSwing();
   expect(engine.lastSwing?.hits).toHaveLength(2);
   expect(pot.broken).toBe(true);
-  expect(runtime.characterAction?.pose).toBe("thrust");
+  expect(runtime.characterAction?.pose).toBe("spear-thrust");
   expect(runtime.swingEffect?.contactMs).toBe(210);
   runtime.releaseCharge();
   runtime.dispose();
@@ -161,7 +161,7 @@ it("shows a held spear windup over empty ground before release", () => {
   prop(engine, "spear", 0, 0, true);
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.pressSwing();
-  expect(runtime.characterAction?.pose).toBe("thrust");
+  expect(runtime.characterAction?.pose).toBe("spear-thrust");
   expect(engine.lastSwing).toBeUndefined();
   runtime.releaseCharge();
   expect(engine.lastSwing?.thrust).toBe(true);
@@ -176,13 +176,13 @@ it("gives the pitchfork a jab and the rake a pulling stroke", () => {
   expect(runtime.verbs().primary?.label).toBe("Thrust pitchfork");
   runtime.propAction("KeyF");
   expect(engine.lastSwing?.hits).toHaveLength(2);
-  expect(runtime.characterAction?.pose).toBe("thrust");
+  expect(runtime.characterAction?.pose).toBe("pitchfork-jab");
   fork.prop = "rake";
   fork.name = "rake";
   fork.sprite = "study-prop-rake-0";
   expect(runtime.verbs().primary?.label).toBe("Rake with the rake");
   runtime.propAction("KeyF");
-  expect(runtime.characterAction?.pose).toBe("till");
+  expect(runtime.characterAction?.pose).toBe("rake-pull");
   runtime.dispose();
 });
 
@@ -192,8 +192,8 @@ it("casts a thrown spear after its release pose", () => {
   prop(engine, "spear", 0, 0, true);
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.throwHeld(1, 0);
-  expect(runtime.characterAction?.pose).toBe("cast");
-  expect(runtime.throwEffect?.launchMs).toBe(240);
+  expect(runtime.characterAction?.pose).toBe("spear-throw");
+  expect(runtime.throwEffect?.launchMs).toBe(200);
   runtime.dispose();
 });
 
@@ -210,7 +210,7 @@ it("aims spears and sticks between the old eight directions", () => {
     expect(engine.lastThrow?.to).toEqual(preview.at(-1));
     expect(engine.state.objects.find((o) => o.id === engine.lastThrow?.id)?.projectile)
       .toMatchObject({ dx: target.x, dy: target.y });
-    expect(runtime.characterAction?.pose).toBe("cast");
+    expect(runtime.characterAction?.pose).toBe(weapon === "spear" ? "spear-throw" : "cast");
     runtime.dispose();
   }
 });
@@ -266,14 +266,14 @@ it("whirls a sling, spends a stone, and leaves it where it fell", () => {
   runtime.dispose();
 });
 
-it("slashes with a knife in hand", () => {
+it("thrusts with a knife in hand", () => {
   const engine = createSession("roman", "knife-slash");
   ground(engine);
   engine.state.player.heldItem = "tool";
   engine.state.player.inventory = { tool: 1 };
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.command({ type: "swing" });
-  expect(runtime.characterAction?.pose).toBe("slash");
+  expect(runtime.characterAction?.pose).toBe("knife-thrust");
   runtime.dispose();
 });
 

@@ -18,6 +18,8 @@ export const items: Record<
   ...floraItems,
   ...wearableItems,
   ...dungItems,
+  "walking-cane": { id: "walking-cane", name: "Walking cane", sprite: "walking-cane", value: 4, hand: {} },
+  fan: { id: "fan", name: "Folding fan", sprite: "fan", value: 3, hand: {} },
   bow: { id: "bow", name: "Bow", sprite: "bow", value: 8, hand: {} },
   arrow: { id: "arrow", name: "Arrow", sprite: "arrow", value: 1 },
   sling: { id: "sling", name: "Sling", sprite: "sling", value: 3, hand: {} },

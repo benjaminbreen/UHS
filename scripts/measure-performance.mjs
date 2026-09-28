@@ -2,20 +2,22 @@ import { chromium } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 const base = process.env.PERF_URL ?? "http://127.0.0.1:4173";
 const label = process.argv[2] ?? "current";
+const frameCount = Number(process.env.PERF_FRAMES ?? 360);
 const browser = await chromium.launch({ channel: "chrome" });
 const reports = [];
 try {
-  for (const world of ["anatolia", "alexandria"]) {
+  for (const world of process.env.PERF_WORLD ? ["custom"] : ["anatolia", "alexandria"]) {
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
     });
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.addInitScript(() => {
+    await page.addInitScript(({ renderer }) => {
       // Keep generated world seeds identical across benchmark runs.
       let serial = 0;
       crypto.randomUUID = () =>
         `00000000-0000-4000-8000-${String(++serial).padStart(12, "0")}`;
+      if (renderer) localStorage.setItem("uhs-character-sprites", renderer);
       window.longTasks = [];
       new PerformanceObserver((list) =>
         window.longTasks.push(
@@ -24,7 +26,7 @@ try {
             .map((e) => ({ start: e.startTime, ms: e.duration })),
         ),
       ).observe({ type: "longtask", buffered: true });
-    });
+    }, { renderer: process.env.PERF_RENDERER });
     const start = Date.now();
     await page.goto(base);
     await page
@@ -36,15 +38,16 @@ try {
     await setup
       .getByLabel("Describe your starting situation")
       .fill(
-        world === "anatolia"
+        process.env.PERF_WORLD ?? (world === "anatolia"
           ? "A hunter in Anatolia, 6500 BCE"
-          : "Hellenistic Alexandria",
+          : "Hellenistic Alexandria"),
       );
     await page.evaluate(() => {
       window.longTasks = [];
     });
     const selection = Date.now();
     await setup.getByRole("button", { name: "Begin", exact: true }).click();
+    await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
     const canvas = page.locator(
       '.game-container canvas[data-terrain-ready="true"]',
     );
@@ -59,12 +62,28 @@ try {
       : undefined;
     await profiler?.send("Profiler.enable");
     await profiler?.send("Profiler.start");
-    const sample = await page.evaluate(async () => {
+    const sample = await page.evaluate(async (frameCount) => {
       const frames = [],
         commands = [],
         statuses = {};
       let last = performance.now(),
         direction = 0;
+      const scene = window.uhsGame?.scene.getScene("world");
+      const characters = scene?.characters;
+      const originalFrame = characters?.frame;
+      const characterCalls = [];
+      const frameCalls = [];
+      let frameWork = 0;
+      if (characters) characters.frame = function (...args) {
+        const began = performance.now();
+        try { return originalFrame.apply(this, args); }
+        finally {
+          const ms = performance.now() - began;
+          characterCalls.push(ms);
+          frameWork += ms;
+        }
+      };
+      window.longTasks = [];
       const start = window.historySim.observe().player.pos;
       const dirs = [
         [1, 0],
@@ -72,11 +91,13 @@ try {
         [-1, 0],
         [0, -1],
       ];
-      for (let i = 0; i < 360; i++) {
+      for (let i = 0; i < frameCount; i++) {
         await new Promise((resolve) =>
           requestAnimationFrame((now) => {
             frames.push(now - last);
             last = now;
+            frameCalls.push(frameWork);
+            frameWork = 0;
             resolve();
           }),
         );
@@ -96,12 +117,24 @@ try {
         }
       }
       frames.splice(0, 5);
+      if (characters) characters.frame = originalFrame;
       frames.sort((a, b) => a - b);
       commands.sort((a, b) => a - b);
+      characterCalls.sort((a, b) => a - b);
+      frameCalls.sort((a, b) => a - b);
       return {
         p50: frames[Math.floor(frames.length * 0.5)],
         p95: frames[Math.floor(frames.length * 0.95)],
         max: frames.at(-1),
+        hitches: frames.filter((ms) => ms >= 24).length,
+        characterCallP95: characterCalls[Math.floor(characterCalls.length * 0.95)],
+        characterCallMax: characterCalls.at(-1),
+        characterWorkP95: frameCalls[Math.floor(frameCalls.length * 0.95)],
+        characterWorkMax: frameCalls.at(-1),
+        characterFrames: characters?.cache.size,
+        characterPending: characters?.pending?.size,
+        characterWorkers: characters?.pool?.length,
+        longTasks: window.longTasks,
         commandP95: commands[Math.floor(commands.length * 0.95)],
         commandMax: commands.at(-1),
         statuses,
@@ -110,7 +143,7 @@ try {
         manifest: window.historySim.observe().manifest,
         heap: performance.memory?.usedJSHeapSize,
       };
-    });
+    }, frameCount);
     const metrics = await canvas.evaluate((c) => ({ ...c.dataset }));
     mkdirSync("artifacts/performance", { recursive: true });
     if (profiler) {

@@ -31,13 +31,15 @@ const sleeves: Partial<
     CharacterAppearance["wearing"]["garment"],
     NonNullable<CharacterAppearance["wearing"]["sleeves"]>
   >
-> = { robe: "loose", coat: "long", wrap: "none" };
+> = { tunic: "short", "long-tunic": "long", skirt: "short", dress: "long", shirt: "long",
+  robe: "loose", "open-robe": "long", coat: "long", wrap: "none", poncho: "none", loincloth: "none", gown: "loose", suit: "long" };
 const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   band: "Headband",
   cap: "Cap",
   hood: "Hood",
   wrap: "Head wrap",
   bowler: "Bowler hat",
+  "top-hat": "Top hat",
   "flat-cap": "Flat cap",
   "ball-cap": "Peaked cap",
   brimmed: "Broad-brimmed hat",
@@ -152,6 +154,8 @@ export const wearableItems: Record<ItemId, ItemDef> = Object.fromEntries([
       wear: { slot: "over", look: { cloak: true } },
     },
   ],
+  ["mantle", { id: "mantle", name: "Mantle", sprite: "wool", value: 3,
+    wear: { slot: "over", look: { mantle: true } } }],
   [
     "shoulder-cloth",
     {

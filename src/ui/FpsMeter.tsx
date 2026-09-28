@@ -52,7 +52,8 @@ export function FpsMeter() {
     let reported = performance.now();
     let frames = 0;
     const history: number[] = [];
-    const tick = (now: number) => {
+    const tick = () => {
+      const now = performance.now();
       frameTick(now);
       frames++;
       if (now - reported > 400) {

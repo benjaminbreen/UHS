@@ -31,7 +31,7 @@ const byActivity: Record<string, Workplace> = {
   "Tending cultivation": "field",
   "Bringing in the crop": "field",
   "Working the smallholding": "field",
-  "Working the grain": "field",
+  "Working the grain": "workshop",
   "Tending animals": "pasture",
   "Working underground": "extraction",
   "Working stone": "extraction",

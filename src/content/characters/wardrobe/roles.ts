@@ -8,6 +8,8 @@
  * upstream normalises it.
  */
 const patterns: Record<string, RegExp> = {
+  gentleman: /\b(gentleman|gentlewoman|dandy)\b/,
+  geisha: /\b(geisha|geiko|maiko)\b/,
   pilot: /\b(pilot|aviator|airman)\b/,
   mountaineer: /\b(mountaineer|climber|expedition member)\b/,
   astronaut:

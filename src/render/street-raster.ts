@@ -1,4 +1,4 @@
-import { asphaltPixel, pavingGrade, pavingStonePixel } from "./paving-stones";
+import { asphaltPixel, dustOf, pavingGrade, pavingStonePixel, sandBank, sunAndSand } from "./paving-stones";
 import { carriagewayPixel, concreteRoadPixel, levelCrossing, railPixel } from "./carriageway";
 import { kerbCorner, kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
 import type { TopographySample } from "../core/topography";
@@ -8,6 +8,7 @@ import { waterHash as hash } from "./water-style";
 import { streetDistance } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type RGB = readonly number[];
+type Color = readonly [number, number, number];
 const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
 /** A hue-shifted value step: light warms toward straw, shade cools toward
  * slate, so an edge reads as lit stone rather than a lighter grey. */
@@ -100,6 +101,8 @@ function kerbTone(
   const tone = profile[side][d];
   return peg && tone && d === 1 ? lit(stone, -4) : tone;
 }
+/** Pixels of kerb and cast shadow `kerbTone` draws on the road, past which sand banks. */
+const KERB_REACH: Record<Side, number> = { n: 10, s: 6, w: 6, e: 4 };
 const SQUARE_LIP: Record<Side, number[]> = { n: [4, 2], s: [-5, -2, 3], w: [3, 1], e: [-4, -1] };
 const PLATFORM_WALL: RGB = [166, 160, 146];
 const PLATFORM_FOOT: RGB = [62, 58, 52];
@@ -123,6 +126,7 @@ export function rasterStreetTile(
       c.streetMaterial ??
       "slab",
     grade = pavingGrade(c.pavement),
+    dust = dustOf(c.biome),
     pixels = new Uint8ClampedArray(1024);
   const dais = c.pavement === "dais";
   const at = (dx: number, dy: number) => sample(x + dx, y + dy);
@@ -289,9 +293,12 @@ export function rasterStreetTile(
           if (along > 32 && along < len * 16 - 32 && Math.abs(side) < 1 && mod(along, 48) < 22)
             colour = [224, 222, 208];
         }
+        if (dust) colour = sunAndSand(colour as Color, dust, wx, wy, d < -4);
         pixels.set([...colour, 255], (py * 16 + px) * 4);
         continue;
       }
+      /** Pixels out from the kerb or edge, along the street, and a key constant along it. */
+      let bank: [number, number, number] | undefined;
       const straight = Math.min(
         north ? py : 99,
         south ? 15 - py : 99,
@@ -416,6 +423,10 @@ export function rasterStreetTile(
           material === "plank",
         );
         if (edged) tone = edged;
+        else if (dust && !crossing) {
+          const side = kerbSide[1];
+          bank = [kerbSide[2] - KERB_REACH[side], kerbSide[3], side === "n" || side === "s" ? y * 4 + (side === "n" ? 0 : 1) : x * 4 + 2];
+        }
       }
       for (const [dx, dy, side] of lip) {
         const d = dx ? (dx < 0 ? px : 15 - px) : dy < 0 ? py : 15 - py;
@@ -568,6 +579,15 @@ export function rasterStreetTile(
           track.axis === "x" ? wx : wy,
           !!lane && lane.axis !== track.axis,
         );
+      if (dust) {
+        // Sand banks against the kerbs and creeps in over a worn edge.
+        if (!bank && border < 6 && nearest && !dais) {
+          const across = border === (north ? py : 99) || border === (south ? 15 - py : 99);
+          bank = [border - 1, across ? wx : wy, across ? y * 4 + 3 : x * 4 + 3];
+        }
+        tone = sunAndSand(tone as Color, dust, wx, wy, material === "asphalt");
+        if (bank) tone = sandBank(tone as Color, dust, bank[0], bank[1], bank[2]);
+      }
       const i = (py * 16 + px) * 4;
       pixels.set([...tone, 255], i);
     }

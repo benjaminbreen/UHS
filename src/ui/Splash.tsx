@@ -21,6 +21,7 @@ import { BannerSmoke } from "./BannerSmoke";
 import { SplashStars } from "./SplashStars";
 import { Arrival } from "./Arrival";
 import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
+import type { CharacterPrepared, StartingCharacter } from "../runtime/preparation";
 import "./splash.css";
 type Starter = typeof import("../content/geography/random-start");
 let starter: Starter | null = null;
@@ -43,8 +44,14 @@ const WorldSetup = lazy(() =>
 );
 export function Splash({
   onStart,
+  onPrepared,
+  onCancel,
+  ready,
 }: {
   onStart: (engine: Engine) => void | Promise<void>;
+  onPrepared?: (engine: Engine) => void;
+  onCancel?: () => void;
+  ready?: boolean;
 }) {
   const [selected, setSelected] = useState<{
     seed: string;
@@ -55,7 +62,7 @@ export function Splash({
   const [prompt, setPrompt] = useState(() => new URLSearchParams(location.search).get("start") ?? "");
   const [mode, setMode] = useState<"local" | "model">("local");
   const [busy, setBusy] = useState("");
-  const [arrival, setArrival] = useState<{ setting: WorldSetting; engine?: Engine; cancel?: () => void }>();
+  const [arrival, setArrival] = useState<{ setting: WorldSetting; character?: StartingCharacter; engine?: Engine; cancel?: () => void }>();
   const [error, setError] = useState("");
   const [panel, setPanel] = useState<"world" | "about" | "sources" | null>(
     null,
@@ -102,12 +109,15 @@ export function Splash({
   /** The start being generated ahead of the click, if it is still the one on
    * screen. Generating a settlement takes about six seconds, which is time
    * the reader is already spending on this page. */
-  const warm = useRef<{
+  type WarmStart = {
     seed: string;
     setting: WorldSetting;
     engine: Promise<Engine>;
     abort: AbortController;
-  }>(undefined);
+    preview?: { setting: WorldSetting; character: StartingCharacter };
+    onCharacter?: CharacterPrepared;
+  };
+  const warm = useRef<WarmStart>(undefined);
   const cancelWarm = () => {
     const ready = warm.current;
     warm.current = undefined;
@@ -119,12 +129,15 @@ export function Splash({
     if (controller.current) return;
     cancelWarm();
     const abort = new AbortController();
-    const engine = import("../runtime/map-travel").then((m) =>
-      m.prepareConnectedStart(next.setting, next.seed, abort.signal),
-    );
+    const prepared: WarmStart = { ...next, abort, engine: import("../runtime/map-travel").then((m) =>
+      m.prepareConnectedStart(next.setting, next.seed, abort.signal, (setting, character) => {
+        prepared.preview = { setting, character };
+        prepared.onCharacter?.(setting, character);
+      }),
+    ) };
     // A rejection here is never awaited unless the reader clicks Begin.
-    engine.catch(() => {});
-    warm.current = { ...next, engine, abort };
+    prepared.engine.catch(() => {});
+    warm.current = prepared;
   };
   useEffect(() => cancelWarm, []);
   const applyStart = (next: ReturnType<typeof randomStart>) => {
@@ -190,8 +203,15 @@ export function Splash({
         worldSeed = start.seed;
       }
       setArrival({ setting, cancel: () => abort.abort() });
+      const showCharacter: CharacterPrepared = (setting, character) => {
+        if (!abort.signal.aborted) setArrival({ setting, character, cancel: () => abort.abort() });
+      };
       const ready = warm.current;
       const reuse = ready?.seed === worldSeed && ready.setting === setting;
+      if (reuse) {
+        ready.onCharacter = showCharacter;
+        if (ready.preview) showCharacter(ready.preview.setting, ready.preview.character);
+      }
       if (!reuse) cancelWarm();
       // Handed over: unmounting the splash must not abort the world it started.
       warm.current = undefined;
@@ -202,11 +222,12 @@ export function Splash({
       const engine =
         reuse
           ? await ready.engine.catch(() =>
-              prepareConnectedStart(setting, worldSeed, abort.signal),
+              prepareConnectedStart(setting, worldSeed, abort.signal, showCharacter),
             )
-          : await prepareConnectedStart(setting, worldSeed, abort.signal);
+          : await prepareConnectedStart(setting, worldSeed, abort.signal, showCharacter);
       abort.signal.throwIfAborted();
-      setArrival({ setting, engine });
+      setArrival((current) => ({ ...current, setting: engine.state.manifest.setting!, engine }));
+      onPrepared?.(engine);
     } catch (err) {
       if (!abort.signal.aborted) {
         setArrival(undefined);
@@ -225,7 +246,7 @@ export function Splash({
   };
   return (
     <main className="splash">
-      {arrival && <Arrival setting={arrival.setting} engine={arrival.engine} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); if (arrival.engine) releaseTerrainWorker(arrival.engine.world); controller.current = null; setArrival(undefined); setBusy(""); }} />}
+      {arrival && <Arrival setting={arrival.setting} character={arrival.character} engine={arrival.engine} ready={ready} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); if (arrival.engine) releaseTerrainWorker(arrival.engine.world); onCancel?.(); controller.current = null; setArrival(undefined); setBusy(""); }} />}
       <div className="splash-frame">
         <SplashStars />
         <div className="splash-content" inert={panel ? true : undefined}>
@@ -534,7 +555,11 @@ export function Splash({
                   initialPrompt={selected ? "" : prompt}
                   initialMode={mode}
                   onPreparing={(setting, cancel) => setArrival({ setting, cancel })}
-                  onStart={(engine) => setArrival({ setting: engine.state.manifest.setting!, engine })}
+                  onCharacter={(setting, character) => setArrival((current) => current ? { ...current, setting, character } : current)}
+                  onStart={(engine) => {
+                    setArrival((current) => ({ ...current, setting: engine.state.manifest.setting!, engine }));
+                    onPrepared?.(engine);
+                  }}
                 />
               </Suspense>
             ) : panel === "about" ? (

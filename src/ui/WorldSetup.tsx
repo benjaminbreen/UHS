@@ -19,6 +19,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import type { Engine } from "../core/engine";
+import type { CharacterPrepared } from "../runtime/preparation";
 
 import { places, featuredPlaces } from "../content/geography/places";
 import { resolveSetting, settingFor } from "../content/geography/resolve";
@@ -30,6 +31,7 @@ import { AtlasMap } from "./AtlasMap";
 export function WorldSetup({
   onStart,
   onPreparing,
+  onCharacter,
   initialSeed,
   initialPrompt = "",
   initialMode = "local",
@@ -37,6 +39,7 @@ export function WorldSetup({
 }: {
   onStart: (engine: Engine) => void;
   onPreparing?: (setting: WorldSetting, cancel: () => void) => void;
+  onCharacter?: CharacterPrepared;
   initialSeed: string;
   initialSetting?: WorldSetting;
   initialPrompt?: string;
@@ -246,7 +249,7 @@ export function WorldSetup({
         }),
         worldSeed,
       );
-      onPreparing?.(parsed, () => controller.current?.abort());
+      onPreparing?.(parsed, () => { controller.current?.abort(); setBusy(false); });
       // The world takes seconds in the worker; the scene's code and art can be
       // on the way in the meantime.
       void import("../runtime/bootstrap");
@@ -256,6 +259,7 @@ export function WorldSetup({
         parsed,
         worldSeed,
         controller.current.signal,
+        onCharacter,
       );
       if (!controller.current.signal.aborted) onStart(engine);
     } catch (err) {

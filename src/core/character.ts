@@ -126,6 +126,7 @@ export const headwear = [
   "helmet",
   /** A sealed bubble helmet with a visor across it. */
   "visor",
+  "top-hat",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -654,10 +655,14 @@ export type CharacterAppearance = {
     sleeves?: (typeof sleeveStyles)[number];
     hem?: (typeof hemStyles)[number];
     shoulderCloth?: boolean;
+    cut?: "straight" | "fitted" | "full";
+    front?: "closed" | "open" | "cross";
     garment: (typeof garments)[number];
     belt?: (typeof beltStyles)[number];
     color: string;
     lowerColor: string;
+    headColor?: string;
+    innerColor?: string;
     trim: string;
     cloak: boolean;
     cloakColor: string;
@@ -708,11 +713,11 @@ export const clothColors = [
   "#d59a76",
 ];
 export const heightLabels: Record<CharacterAppearance["height"], string> = {
-  [-2]: "Child · −6 pixels",
-  [-1]: "Youth / short adult · −3 pixels",
-  0: "Original · average adult",
-  1: "Tall · +3 pixels",
-  2: "Tallest · +6 pixels",
+  [-2]: "Child",
+  [-1]: "Youth / short adult",
+  0: "Medium · default adult",
+  1: "Tall",
+  2: "Tallest",
 };
 export function allowedHeights(age = 30): CharacterAppearance["height"][] {
   return age < 13 ? [-2, -1] : age < 16 ? [-1, 0] : [-1, 0, 1, 2];

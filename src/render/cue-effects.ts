@@ -42,8 +42,9 @@ const ACTS: Record<
   },
   // Stamps twice and steams, under a throbbing vein: the Stardew fit.
   fury: { pose: "point", ms: 1700, move: "stomp", sound: "alarm" },
-  warm: { ms: 1100, mark: { glyph: "heart", color: 0xd9527a }, move: "dip" },
-  nod: { ms: 320, move: "dip" },
+  warm: { pose: "wave", ms: 650, mark: { glyph: "heart", color: 0xd9527a } },
+  nod: { pose: "nod", ms: 390 },
+  wave: { pose: "wave", ms: 650 },
   refuse: { pose: "shrug", ms: 900, mark: { glyph: "dots", color: 0x5c6470 } },
   point: { pose: "point", ms: 800 },
   // Stops, turns to look, and a small hop under the mark.

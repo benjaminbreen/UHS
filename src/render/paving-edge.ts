@@ -46,7 +46,11 @@ export function kerbCorner(
   y: number,
 ): readonly [number, number] | undefined {
   if (!kerbed(sample, x, y)) return undefined;
-  const road = (dx: number, dy: number) => !!sample(x + dx, y + dy)?.lane;
+  // A square opens like a junction, so the footway's corner turns into it too.
+  const road = (dx: number, dy: number) => {
+    const n = sample(x + dx, y + dy);
+    return !!n?.lane || n?.pavement === "square";
+  };
   for (const [sx, sy] of [
     [-1, -1],
     [1, -1],

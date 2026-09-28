@@ -38,6 +38,18 @@ const singles: Record<Trait, [low: string, high: string]> = {
 const HIGH = 62;
 const LOW = 38;
 
+export type RestingExpression = "neutral" | "smile" | "soft" | "serious" | "concerned";
+
+export function restingExpressionOf(stats: Stats): RestingExpression {
+  // The triangular 10–90 roll puts about a tenth of people at 72 or above.
+  if (stats.extraversion >= 72) return "smile";
+  if (stats.neuroticism >= 75) return "concerned";
+  if (stats.agreeableness >= 72) return "soft";
+  if (stats.agreeableness <= 22 ||
+      (stats.agreeableness <= 28 && stats.conscientiousness >= 62)) return "serious";
+  return "neutral";
+}
+
 /** One word for how this person comes across. Read off the five traits only:
  * strength and wit are not personality. */
 export function dispositionOf(stats: Stats): string {

@@ -131,6 +131,7 @@ export type SettlementPlan = {
   spawn: Point;
   diagnostics: {
     routeFailures: number;
+    routineDrops?: number;
     rejectedBuildings: number;
     /** Milliseconds per planning phase. */
     timing?: Record<string, number>;

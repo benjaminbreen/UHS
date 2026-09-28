@@ -3,7 +3,7 @@ import { agendaOf, festivalOf, type Person } from "../../core/agenda";
 import { lifeAimOf } from "../../core/life-aim";
 import { carryKit } from "../../content/economy/carrying";
 import { commutes, isVisitor, railDay } from "./rail-travellers";
-import { dayStations, livelihoodOf, placeFor } from "./routines";
+import { bindWorkStations, dayStations, livelihoodOf, placeFor } from "./routines";
 import { adjacentTerrain } from "../travel/terrain-preview";
 import { waterDepthAt, MAX_WADING_DEPTH } from "../../core/water-field";
 import { mapEntrances, type MapEntrance } from "../travel/entrances";
@@ -2240,13 +2240,17 @@ export function createSettlementWorld(
           day.festival,
           carryKit(pack),
         ));
+      once = [...stations.filter((s) => s.part), ...once];
+      stations = stations.filter((s) => !s.part);
+      stations = bindWorkStations(plan, id, self, stations, world);
+      once = bindWorkStations(plan, id, self, once, world);
     }
     if (stations && site && stations.length > 1) {
       // Buildings and terrain are in world.blocked; the furniture the plan puts
       // in a yard is not, and a routine that walked through a loom would be
       // worse than one that goes round it.
       const furniture = new Set(
-        plan!.objects
+        world.initialObjects
           .filter(
             (o) =>
               o.pos.space === "outside" &&
@@ -2284,6 +2288,24 @@ export function createSettlementWorld(
           },
         );
         return result.status === "found" ? result.path : undefined;
+      };
+      const reach = (from: Point, station: Station, returnHome = false) => {
+        const at = station.pos;
+        const offsets = station.placeId ? [] : [
+          [0, 1], [1, 0], [0, -1], [-1, 0],
+          [1, 1], [1, -1], [-1, 1], [-1, -1],
+        ];
+        for (const [dx, dy] of [[0, 0], ...offsets]) {
+          const pos = { x: at.x + dx, y: at.y + dy };
+          if (world.blocked(pos.x, pos.y, "outside") ||
+              station.target && Math.hypot(pos.x - station.target.x, pos.y - station.target.y) > 2.5) continue;
+          const there = leg(from, pos);
+          const back = returnHome && there ? leg(pos, from) : [];
+          if (there && (!returnHome || back))
+            return { station: dx || dy ? { ...station, pos } : station, there, back: back ?? [] };
+        }
+        plan!.diagnostics.routineDrops = (plan!.diagnostics.routineDrops ?? 0) + 1;
+        return undefined;
       };
       // A traveller's day is the timetable's, not a round of errands.
       if (isVisitor(id) || commutes(plan!, seed, pack.year, self)) {
@@ -2353,22 +2375,24 @@ export function createSettlementWorld(
       const legs: Point[][] = [];
       let at = bed;
       for (const station of meet && parting ? [meet, parting, ...stations] : stations) {
-        const path = station === parting ? route0.slice(0, split + 1) : leg(at, station.pos);
-        if (!path) continue;
-        reachable.push(station);
-        legs.push(path);
-        at = station.pos;
+        const found = station === parting
+          ? { station, there: route0.slice(0, split + 1) }
+          : reach(at, station);
+        if (!found) continue;
+        reachable.push(found.station);
+        legs.push(found.there);
+        at = found.station.pos;
       }
       const onceOut = new Map<Point, Point[]>(),
         onceBack = new Map<Point, Point[]>();
-      const walked = once.filter((s) => {
-        const there = leg(bed, s.pos),
-          returning = there && leg(s.pos, bed);
-        if (!there || !returning) return false;
-        onceOut.set(s.pos, there);
-        onceBack.set(s.pos, returning);
-        return true;
-      });
+      const walked: Station[] = [];
+      for (const station of once) {
+        const found = reach(bed, station, true);
+        if (!found) continue;
+        walked.push(found.station);
+        onceOut.set(found.station.pos, found.there);
+        onceBack.set(found.station.pos, found.back);
+      }
       if (reachable.length > 1)
         built = buildItinerary(
           reachable,
@@ -2642,6 +2666,13 @@ export function createSettlementWorld(
     itinerary: (id) => routineFor(id),
     vehicle: (id) => planForEntity(id)?.vehicles?.find((v) => v.id === id),
     ward: (id) => planForEntity(id)?.wards?.find((w) => w.id === id),
+    refreshRoutines: () => {
+      routines.clear();
+      routineDay.clear();
+      routineRank.clear();
+      dormant.clear();
+      warmRoutines();
+    },
     agenda: (actor, clock) => {
       const plan =
         actor.id === "player"

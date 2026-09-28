@@ -14,10 +14,12 @@ export function PropLabHost({
   children,
   onOpen,
   standalone = false,
+  enabled = true,
 }: {
   children?: ReactNode;
   onOpen?: () => void;
   standalone?: boolean;
+  enabled?: boolean;
 }) {
   const [open, setOpen] = useState(standalone);
   const callback = useRef(onOpen);
@@ -27,6 +29,7 @@ export function PropLabHost({
     else setOpen(false);
   };
   useEffect(() => {
+    if (!enabled) return;
     const show = () => {
       callback.current?.();
       setOpen(true);
@@ -58,7 +61,7 @@ export function PropLabHost({
       window.removeEventListener("keydown", key, true);
       window.removeEventListener("uhs-open-props", show);
     };
-  }, [open, standalone]);
+  }, [open, standalone, enabled]);
   return (
     <>
       {children}

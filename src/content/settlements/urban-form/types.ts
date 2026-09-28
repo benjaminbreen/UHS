@@ -83,6 +83,10 @@ export type UrbanForm = {
   squares?: number;
   /** A boulevard round a grown core, where its walls came down. */
   ring?: boolean;
+  /** The grown core stood when the city industrialised: new building went
+   * round it, so it keeps its lanes and houses inside the ring. Set from the
+   * region's zoning, not by a fabric entry. */
+  oldCore?: boolean;
   /** Diagonal avenues cut from the square's corners to the built edge. */
   diagonals?: number;
   /** Houses stand in their own green plots rather than in rows on the street,

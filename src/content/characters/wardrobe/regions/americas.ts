@@ -48,6 +48,7 @@ export const americas: readonly GarmentKit[] = [
     id: "andes",
     label: "Andes · the loomed rectangle",
     scope: { years: [-2500, 1550], cultures: ["andean"] },
+    sleeves: [{ value: "short", weight: 7, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
     garment: [
       { value: "poncho", weight: 6 },
       { value: "tunic", weight: 5 },
@@ -95,6 +96,7 @@ export const americas: readonly GarmentKit[] = [
     id: "andes-colonial",
     label: "Andes · the loom under the shirt",
     scope: { years: [1550, 10001], cultures: ["andean"] },
+    sleeves: [{ value: "short", weight: 7, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
     garment: [
       { value: "shirt", weight: 5 },
       { value: "poncho", weight: 5 },
@@ -134,6 +136,7 @@ export const americas: readonly GarmentKit[] = [
     id: "mesoamerica",
     label: "Mesoamerica · cotton off the backstrap loom",
     scope: { years: [-2000, 1550], cultures: ["mesoamerican"] },
+    sleeves: [{ value: "short", weight: 7, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
     garment: [
       { value: "none", weight: 5, sex: ["male"] },
       { value: "poncho", weight: 4 },
@@ -181,6 +184,7 @@ export const americas: readonly GarmentKit[] = [
     id: "mesoamerica-colonial",
     label: "Mesoamerica · the shirt over the loom",
     scope: { years: [1550, 10001], cultures: ["mesoamerican"] },
+    sleeves: [{ value: "short", weight: 7, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "long", weight: 2, garments: ["shirt", "coat", "dress"] }],
     garment: [
       { value: "shirt", weight: 5 },
       { value: "long-tunic", weight: 4, sex: ["female"] },

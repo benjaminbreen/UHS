@@ -2,14 +2,14 @@ from shapes import ART
 ORDER = [
  ('body', ['tunic','long-tunic','shirt','coat','robe','open-robe','dress','gown',
            'skirt','wrap','poncho','loincloth','suit']),
- ('over', ['cloak','shoulder-cloth']),
+ ('over', ['cloak','mantle','shoulder-cloth']),
  ('head', ['band','cap','hood','wrap_head','turban','headscarf','veil','brimmed',
-           'conical','bowler','flat-cap','ball-cap','fez','fillet','plume','wig',
+           'conical','bowler','top-hat','flat-cap','ball-cap','fez','fillet','plume','wig',
            'helmet','visor']),
  ('legs', ['trousers','wide','hose','wrapped','sarong']),
- ('feet', ['sandals','shoes','boots']),
+ ('feet', ['sandals','shoes','boots','sneakers']),
  ('belt', ['cord','sash','leather','belt-wide']),
- ('jewellery', ['necklace','earrings']),
+ ('jewellery', ['necklace','earrings','chain','glasses','sunglasses']),
 ]
 def key(k):
     return k if k.replace('-','').isalnum() and '-' not in k else '"%s"' % k
@@ -28,7 +28,9 @@ out = ['''/**
  */
 export const GARMENT_ICON = 24;
 
-export const garmentArt: Record<string, readonly string[]> = {''']
+export type IconArt = readonly string[];
+
+export const garmentArt: Record<string, IconArt> = {''']
 seen = set()
 for label, names in ORDER:
     out.append('  // ── %s %s' % (label, '─'*(66-len(label))))

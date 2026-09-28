@@ -45,6 +45,65 @@ const tint = (c: Color, v: number): Color => {
   return [s[0], s[1], s[2]];
 };
 
+/** How much sun and blown sand a town's paving takes, from the ecology its
+ * ground lies in. */
+export function dustOf(biome?: string): number {
+  return biome === "desert"
+    ? 1
+    : biome === "dry-scrub"
+      ? 0.7
+      : biome === "savanna"
+        ? 0.45
+        : biome === "grassland"
+          ? 0.15
+          : 0;
+}
+export const SAND: Color = [206, 188, 150];
+const mixC = (a: Color, b: Color, t: number): Color => [
+  Math.round(a[0] + (b[0] - a[0]) * t),
+  Math.round(a[1] + (b[1] - a[1]) * t),
+  Math.round(a[2] + (b[2] - a[2]) * t),
+];
+
+/** Paving in a dry country: dark binder bleached by the sun to a warm grey,
+ * every surface taking the ground's colour into its pores, and a fine grit
+ * of blown sand over it that gathers where feet and wheels do not sweep. */
+export function sunAndSand(c: Color, dust: number, wx: number, wy: number, asphalt: boolean): Color {
+  if (!dust) return c;
+  let out = c;
+  // Paint and pale aggregate are already bleached; only the binder fades.
+  if (asphalt && c[0] + c[1] + c[2] < 330) {
+    const k = dust * 0.9;
+    out = [
+      Math.round(c[0] + (c[0] * 0.4 + 48) * k),
+      Math.round(c[1] + (c[1] * 0.34 + 42) * k),
+      Math.round(c[2] + (c[2] * 0.22 + 32) * k),
+    ];
+  }
+  out = mixC(out, SAND, 0.18 * dust);
+  // Blown sand lies in soft patches where feet and wheels do not sweep, in
+  // two steps with a dithered edge, and a stray grain here and there.
+  const lie = waterNoise(wx, wy, 14, 581) + (hash(wx, wy, 583) - 0.5) * 0.06;
+  const deep = 0.84 - 0.1 * dust,
+    thin = 0.72 - 0.1 * dust;
+  if (lie > deep) return mixC(out, SAND, 0.42);
+  if (lie > thin) return mixC(out, SAND, 0.2);
+  if (hash(wx, wy, 584) < 0.012 * dust) return mixC(out, SAND, 0.5);
+  return out;
+}
+
+/** Sand the wind has dropped against a kerb or a wall, `d` pixels out from
+ * it: a bank that swells and thins along the street, rippled, with a pale
+ * feathered lip where it runs out over the paving. */
+export function sandBank(c: Color, dust: number, d: number, along: number, seed: number): Color {
+  const swell = waterNoise(along, seed, 23, 591);
+  const reach = dust * (1 + 9 * Math.max(0, swell - 0.3));
+  if (d >= reach + 1.5) return c;
+  if (d >= reach) return hash(along, d, 592) < 0.5 ? mixC(c, SAND, 0.45) : c;
+  const ripple = mod(along + Math.round(d) * 2, 6) === 0 ? -6 : 0;
+  return tint(SAND, ripple + (d < 1 ? -8 : d < 2 ? -3 : 3));
+}
+
 /** Asphalt: a mottled binder with aggregate showing through, the square
  * scars of trenches dug and filled since it was laid, and cracks run with
  * sealant that catches the light along one edge. */

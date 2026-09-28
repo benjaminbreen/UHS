@@ -111,7 +111,8 @@ export function warmSceneAssets() {
   warmed = true;
   const { atlases, images, sheets } = sceneAssets();
   const urls = [
-    ...atlases.flatMap((a) => [a.data, a.image]),
+    ...atlases.flatMap((a) => (lazySheets as readonly string[]).includes(a.key)
+      ? [a.data] : [a.data, a.image]),
     ...images.map((i) => i.url),
     ...sheets.map((s) => s.url),
   ];

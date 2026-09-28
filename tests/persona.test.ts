@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { dispositionOf, standingOf, standings } from "../src/core/persona";
+import { dispositionOf, restingExpressionOf, standingOf, standings } from "../src/core/persona";
 import { rollStats, statsOf, describeStats } from "../src/core/stats";
 import { abilitiesOf } from "../src/content/characters/abilities";
 import { snapshotSchema } from "../src/runtime/schema";
@@ -20,6 +20,25 @@ const flat = (over: Partial<Stats> = {}): Stats => ({
   agreeableness: 50,
   neuroticism: 50,
   ...over,
+});
+
+it("keeps reserved people neutral and gives strong traits distinct resting expressions", () => {
+  expect(restingExpressionOf(flat())).toBe("neutral");
+  expect(restingExpressionOf(flat({ extraversion: 10 }))).toBe("neutral");
+  expect(restingExpressionOf(flat({ extraversion: 72 }))).toBe("smile");
+  expect(restingExpressionOf(flat({ agreeableness: 80 }))).toBe("soft");
+  expect(restingExpressionOf(flat({ agreeableness: 25, conscientiousness: 80 }))).toBe("serious");
+  expect(restingExpressionOf(flat({ neuroticism: 80 }))).toBe("concerned");
+});
+
+it("gives a seeded population mostly neutral faces and about a tenth smiles", () => {
+  const counts = { neutral: 0, smile: 0, soft: 0, serious: 0, concerned: 0 };
+  for (let i = 0; i < 10000; i++)
+    counts[restingExpressionOf(statsOf("expression-review", actor({ id: `npc-${i}` })))]++;
+  expect(counts.neutral).toBeGreaterThan(6500);
+  expect(counts.smile).toBeGreaterThan(900);
+  expect(counts.smile).toBeLessThan(1200);
+  expect(Object.values(counts).every((n) => n > 0)).toBe(true);
 });
 
 it("rolls endurance inside the same range as every other stat", () => {

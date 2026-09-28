@@ -670,7 +670,10 @@ const CUTS: Record<string, Cut> = {
 };
 
 function cutFor(m: Model): Cut {
-  return CUTS[m.a.wearing.garment] ?? CUTS.tunic;
+  let cut = CUTS[m.a.wearing.garment] ?? CUTS.tunic;
+  if (m.a.wearing.front === "cross") cut = { ...cut, neck: "v", collar: "band", inner: "none" };
+  else if (m.a.wearing.front === "closed" && m.a.wearing.garment === "coat") cut = { ...cut, neck: "high", collar: "stand", inner: "none" };
+  return m.a.wearing.cut === "full" ? { ...cut, spread: cut.spread + 2 } : cut;
 }
 
 const NECKLINES: Record<Cut["neck"], Pt[]> = {
@@ -1067,6 +1070,12 @@ function drawWrapEdge(r: Raster, m: Model) {
 /** What is under and over an open front: the shirt in a coat or suit, the
  * contrasting panel in an open robe or a gown's stomacher, and the lapels. */
 function drawFront(r: Raster, m: Model, cut: Cut) {
+  if (m.a.wearing.front === "cross") {
+    const bx = (x: number) => 36 + (x - 36) * m.bodyScale;
+    r.stroke([[bx(27), 51], [bx(43), 65], [bx(48), 83]], m.trim.shade, 3, undefined, MAT.trim);
+    r.stroke([[bx(28), 51], [bx(44), 65], [bx(49), 83]], m.trim.base, 2, undefined, MAT.trim);
+    return;
+  }
   if (cut.inner === "none" && cut.collar !== "lapel") return;
   const { cloth, trim, lower, a } = m;
   const bs = m.bodyScale;
@@ -1074,7 +1083,7 @@ function drawFront(r: Raster, m: Model, cut: Cut) {
   if (cut.inner === "shirt") {
     // Linen: the lower colour lifted, never the garment's own cloth, or the
     // opening vanishes.
-    const linen = tones(mix(a.wearing.lowerColor, "#efe4c8", 0.55), "cloth");
+    const linen = tones(a.wearing.innerColor ?? mix(a.wearing.lowerColor, "#efe4c8", 0.55), "cloth");
     const panel = r.region([
       [bx(32), 50],
       [bx(40), 50],
@@ -3369,7 +3378,8 @@ function drawHoodBack(r: Raster, m: Model) {
 }
 
 function drawHeadwear(r: Raster, m: Model) {
-  const { a, cloth, trim, nearX, farX, top, volume: v, chin, hairline } = m;
+  const { a, trim, nearX, farX, top, volume: v, chin, hairline } = m;
+  const cloth = a.wearing.headColor ? tones(a.wearing.headColor, "cloth") : m.cloth;
   const wear = a.wearing.headwear;
   if (wear === "none") return;
   const nearOut = nearX - v - 2,
@@ -3959,7 +3969,7 @@ function drawHat(r: Raster, m: Model, wear: string) {
     return;
   }
 
-  if (wear === "bowler" || wear === "brimmed" || wear === "ball-cap") {
+  if (wear === "top-hat" || wear === "bowler" || wear === "brimmed" || wear === "ball-cap") {
     const wide = wear === "brimmed";
     const brimY = hairline + 2;
     drawBrim(
@@ -3996,7 +4006,7 @@ function drawHat(r: Raster, m: Model, wear: string) {
     }
     const crown = stiffCrown(
       m,
-      wear === "brimmed" ? 4 : wear === "bowler" ? 2 : 0,
+      wear === "top-hat" ? 12 : wear === "brimmed" ? 4 : wear === "bowler" ? 2 : 0,
       wear === "bowler" ? -1.5 : 0,
       hairline + 1,
       wear === "bowler" ? 2 : 0,

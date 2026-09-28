@@ -12,6 +12,124 @@ import { withPage, characterLab, shootCanvas, writeDataUrl, base } from "./lib";
 const out = (name: string) => `artifacts/characters/${name}.png`;
 
 const presets: Record<string, (page: Page) => Promise<void>> = {
+  async expressions(page) {
+    await characterLab(page);
+    await page.getByLabel("Generated character variants").waitFor();
+    const sheet = await page.evaluate(async () => {
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { originalAppearance } = await import("/src/core/character.ts" as string);
+      const expressions = ["neutral", "smile", "soft", "serious", "concerned"];
+      const rows = [
+        ["Straight nose", "straight", "#f0ceb0", 4, "idle"],
+        ["Broad nose", "broad", "#f0ceb0", 4, "idle"],
+        ["Snub nose", "snub", "#f0ceb0", 3, "idle"],
+        ["Dark complexion", "straight", "#70472f", 4, "idle"],
+        ["Profile", "straight", "#f0ceb0", 2, "idle"],
+        ["Hurt overrides resting face", "straight", "#f0ceb0", 4, "hurt"],
+      ];
+      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+      sheet.width = 1100; sheet.height = rows.length * 190;
+      frame.width = frame.height = 80;
+      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#c8cbc1"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([label, nose, skin, facing, pose], row) => {
+        const a = { ...originalAppearance, skin, hair: "cropped", beard: "none", head: "original", jaw: "original",
+          face: { ...originalAppearance.face, nose, mouth: "soft", detail: "clear" },
+          wearing: { ...originalAppearance.wearing, headwear: "none", eyewear: "none" } };
+        expressions.forEach((expression, col) => {
+          renderers.d.draw(fc, a, 2, pose, 0, undefined, facing, expression);
+          ctx.drawImage(frame, 22, 30, 36, 48, col * 220 + 6, row * 190 + 32, 108, 144);
+          ctx.drawImage(frame, 30, 36, 20, 20, col * 220 + 120, row * 190 + 62, 80, 80);
+          ctx.fillStyle = "#29332f"; ctx.font = "13px monospace";
+          ctx.fillText(`${label}`, col * 220 + 6, row * 190 + 15);
+          ctx.fillText(expression, col * 220 + 6, row * 190 + 30);
+        });
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("expressions"));
+  },
+  async wardrobe(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheets = await page.evaluate(async () => {
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const { wardrobeFor, clothFor, accessoryFor } = await import("/src/content/characters/wardrobe/index.ts" as string);
+      const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+      const { drawGarmentIcon, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
+      const groups = [
+        [["Rome", "rome", 100], ["Medieval Europe", "london", 1200], ["Paris", "paris", 1888], ["Mongolia", "mongolia", 1200], ["West Asia", "konya", 1400]],
+        [["China", "beijing", 1400], ["Japan", "kyoto", 1850], ["South Asia", "delhi", 1600], ["Southeast Asia", "java", 950], ["Modern Europe", "paris", 2009]],
+        [["West Africa", "timbuktu", 1400], ["East Africa", "ethiopia", 1400], ["Andes", "cusco", 1400], ["Mesoamerica", "mexico", 1450], ["Pacific", "polynesia", 1500], ["Indigenous America", "great-plains-early", 1400], ["Australia", "australia", 1400]],
+      ];
+      return groups.map((rows, group) => {
+        const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+        sheet.width = 1280; sheet.height = rows.length * 176;
+        frame.width = frame.height = 80;
+        const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+        ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+        rows.forEach(([label, placeId, year], row) => {
+          const setting = settingFor(places.find((p: any) => p.id === placeId), year);
+          for (let person = 0; person < 4; person++) {
+            const age = [35, 30, 60, 9][person], sex = person === 1 ? "female" : "male", means = ["poor", "common", "wealthy", "common"][person];
+            const id = `wardrobe-review-${group}-${row}-${person}`;
+            const a = generateCharacter(setting, "wardrobe-review", id, age).appearance;
+            a.physique = { ...a.physique, sex }; a.beard = sex === "female" || age < 13 ? "none" : a.beard;
+            const wearer = { id, age, sex, means, roles: label === "Japan" && person === 1 ? ["geisha"] : [] };
+            a.wearing = wardrobeFor(wearer, { year, setting }, a.wearing);
+            const cloth = clothFor(wearer, { year, setting }, undefined, a.wearing.color);
+            a.wearing.material = cloth.material; a.wearing.quality = cloth.quality;
+            const accessory = accessoryFor(wearer, { year, setting }, a.wearing.garment);
+            const prop = accessory ? iconCarriedArt(`icon:${accessory}`, (c: CanvasRenderingContext2D) => drawGarmentIcon(c, accessory, 0, 0), GARMENT_ICON) : undefined;
+            for (let d = 0; d < 2; d++) {
+              renderers.d.draw(fc, a, 1, "walk", 2, prop, d ? 2 : 3);
+              ctx.drawImage(frame, 16, 30, 48, 48, (person * 2 + d) * 160 + 8, row * 176 + 20, 144, 144);
+            }
+          }
+          ctx.fillStyle = "#26352c"; ctx.font = "14px monospace";
+          ctx.fillText(`${label} · ${year} · poor man / woman / wealthy elder / child`, 8, row * 176 + 16);
+        });
+        return sheet.toDataURL();
+      });
+    });
+    for (let i = 0; i < sheets.length; i++) await writeDataUrl(sheets[i], out(`wardrobe-${i + 1}`));
+  },
+
+  async accessories(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { originalAppearance } = await import("/src/core/character.ts" as string);
+      const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+      const { drawGarmentIcon, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
+      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+      sheet.width = 1280; sheet.height = 6 * 192; frame.width = frame.height = 80;
+      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      ["walking-cane", "fan"].forEach((id, j) => {
+        const prop = iconCarriedArt(`icon:${id}`, (c: CanvasRenderingContext2D) => drawGarmentIcon(c, id, 0, 0), GARMENT_ICON);
+        const a = { ...originalAppearance, physique: { sex: j ? "female" : "male", mass: 0, strength: 0 },
+          wearing: { ...originalAppearance.wearing, garment: j ? "open-robe" : "coat", sleeves: j ? "loose" : "long", cut: "fitted", front: j ? "cross" : "open",
+            color: j ? "#755481" : "#3c414a", headwear: j ? "none" : "top-hat", headColor: "#303238", innerColor: "#e5dcc3", leggings: j ? "none" : "trousers", footwear: j ? "sandals" : "shoes", cloak: false, shoulderCloth: false, mantle: false, necklace: false, motif: "plain", belt: j ? "sash" : "none" } };
+        ["idle", "walk", "run"].forEach((pose, k) => {
+          const row = j * 3 + k;
+          for (let f = 0; f < 8; f++) {
+            renderers.d.draw(fc, a, 1, pose, f, prop, k === 0 ? f : 2);
+            ctx.drawImage(frame, 14, 24, 52, 54, f * 160 + 2, row * 192 + 16, 156, 162);
+          }
+          ctx.fillStyle = "#26352c"; ctx.font = "14px monospace"; ctx.fillText(`${id} · ${pose}`, 8, row * 192 + 187);
+        });
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("accessories"));
+  },
+
   async weapons(page) {
     await characterLab(page);
     await page.evaluate(async () => {
@@ -22,16 +140,17 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       const art = await loadCarriedArt();
       const rows = [
         ["Bow · draw", "bow", "draw"],
-        ["Spear · thrust", "spear", "thrust"],
-        ["Spear · cast", "spear", "cast"],
-        ["Stick · cast", "stick", "cast"],
-        ["Pitchfork · thrust", "pitchfork", "thrust"],
-        ["Rake · pull", "rake", "till"],
-        ["Sickle · cut", "sickle", "reap"],
-        ["Scythe · sweep", "scythe", "reap"],
-        ["Shovel · dig", "shovel", "dig"],
-        ["Axe · chop", "axe", "chop"],
-        ["Knife · slash", "tool", "slash"],
+        ["Spear · thrust", "spear", "spear-thrust"],
+        ["Spear · throw", "spear", "spear-throw"],
+        ["Stick · swing", "stick", "stick-swing"],
+        ["Pitchfork · jab", "pitchfork", "pitchfork-jab"],
+        ["Rake · pull", "rake", "rake-pull"],
+        ["Sickle · cut", "sickle", "sickle-cut"],
+        ["Scythe · sweep", "scythe", "scythe-sweep"],
+        ["Shovel · dig", "shovel", "shovel-dig"],
+        ["Axe · chop", "axe", "axe-chop"],
+        ["Pick · strike", "pick", "pick-strike"],
+        ["Knife · thrust", "tool", "knife-thrust"],
         ["Knife · carve", "tool", "carve"],
         ["Sling · whirl", "sling", "whirl"],
         ["Sling · carried", "sling", "walk"],
@@ -63,6 +182,46 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       sheet.style.imageRendering = "pixelated";
     });
     await shootCanvas(page, out("weapons"));
+  },
+  async work(page) {
+    await characterLab(page);
+    await page.evaluate(async () => {
+      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { originalAppearance } = await import("/src/core/character.ts" as string);
+      const rows = [
+        ["Stir · broth or dye", "work-stir"],
+        ["Knead · dough or clay", "work-knead"],
+        ["Pound · grain or metal", "work-pound"],
+        ["Turn · rotary quern", "work-quern"],
+        ["Grind · handstone or metate", "work-grind"],
+        ["Weave · shuttle and warp", "work-weave"],
+        ["Scrub · cloth or vessel", "work-scrub"],
+        ["Rinse · water and cloth", "work-rinse"],
+        ["Fish · cast and draw line", "work-fish"],
+        ["Hang · dry the catch", "work-hang"],
+        ["Tend · crop and garden", "work-tend"],
+        ["Sort · goods and records", "work-sort"],
+        ["Check · assess the work", "work-check"],
+      ] as const;
+      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+      sheet.width = 8 * 144; sheet.height = rows.length * 156;
+      frame.width = frame.height = 80;
+      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#667c57"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([label, pose], row) => {
+        for (let direction = 0; direction < 2; direction++)
+          for (let f = 0; f < 4; f++) {
+            drawCharacter(fc, originalAppearance, direction ? 2 : 1, pose, f);
+            ctx.drawImage(frame, 22, 24, 40, 46, (direction * 4 + f) * 144 + 8, row * 156 + 3, 128, 140);
+          }
+        ctx.fillStyle = "#f5e9c8"; ctx.font = "12px monospace";
+        ctx.fillText(label, 8, row * 156 + 151);
+      });
+      document.body.replaceChildren(sheet);
+      sheet.style.imageRendering = "pixelated";
+    });
+    await shootCanvas(page, out("work"));
   },
   /** The lab's own panels: the generated population and the direction sheet. */
   async lab(page) {
@@ -103,53 +262,230 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     console.log("wrote walk-sheet, profile");
   },
 
-  /** Every height against a fixed ground line, idle and walking. */
+  async cloth(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { renderers, outlineCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { originalAppearance } = await import("/src/core/character.ts" as string);
+      const { ramp } = await import("/src/render/characters/v2/pixels.ts" as string);
+      const rows = [
+        ["Robe · side walk", "robe", 0, "female", 2, "walk"],
+        ["Dress · side walk", "dress", 0, "female", 2, "walk"],
+        ["Skirt · side walk", "skirt", 0, "female", 2, "walk"],
+        ["Robe · side run", "robe", 0, "female", 2, "run"],
+        ["Dress · side run", "dress", 0, "female", 2, "run"],
+        ["Robe · diagonal", "robe", 0, "male", 3, "walk"],
+        ["Dress · front", "dress", 0, "female", 4, "walk"],
+        ["Child · robe", "robe", -2, "male", 2, "walk"],
+        ["Short · dress", "dress", -1, "female", 2, "run"],
+        ["Tall · robe", "robe", 1, "male", 2, "run"],
+      ] as const;
+      const frame = document.createElement("canvas"), sheet = document.createElement("canvas");
+      frame.width = frame.height = 80;
+      const cellW = 192, cellH = 208;
+      sheet.width = 8 * cellW;
+      sheet.height = rows.length * cellH;
+      const fc = frame.getContext("2d")!, ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#a4b0a6";
+      ctx.fillRect(0, 0, sheet.width, sheet.height);
+      const cloth = ramp("#b86b48");
+      const colors = new Set([cloth.light, cloth.base, cloth.shade, cloth.edge, cloth.shadowEdge ?? cloth.edge]
+        .map((c: string) => parseInt(c.slice(1), 16)));
+      const widths: number[][] = [];
+      rows.forEach(([label, garment, height, sex, facing, pose], row) => {
+        widths[row] = [];
+        for (let f = 0; f < 8; f++) {
+          const a = { ...originalAppearance, height, physique: { sex, strength: 50, mass: 40 },
+            wearing: { ...originalAppearance.wearing, garment, footwear: "shoes", color: "#b86b48", lowerColor: "#645675", motif: "plain", belt: "none" } };
+          renderers.d.draw(fc, a, 2, pose, f, undefined, facing);
+          const pixels = fc.getImageData(0, 0, 80, 80).data;
+          let left = 80, right = -1;
+          for (let y = 66; y < 76; y++) for (let x = 14; x < 66; x++) {
+            const i = (y * 80 + x) * 4;
+            if (pixels[i + 3] && colors.has((pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2])) {
+              left = Math.min(left, x); right = Math.max(right, x);
+            }
+          }
+          widths[row].push(right - left + 1);
+          outlineCharacter(fc);
+          ctx.drawImage(frame, 16, 34, 48, 46, f * cellW, row * cellH, 192, 184);
+          ctx.fillStyle = "#263820";
+          ctx.font = "12px monospace";
+          ctx.fillText(`${label} ${f}`, f * cellW + 4, row * cellH + 202);
+        }
+      });
+      for (const row of [0, 3])
+        if (Math.max(widths[row][2], widths[row][6]) <= widths[row][0])
+          throw Error(`${rows[row][0]}: hem did not spread with stride (${widths[row]})`);
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("cloth"));
+  },
+
+  async feet(page) {
+    await characterLab(page);
+    const sheet = await page.evaluate(async () => {
+      const { renderers, outlineCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { originalAppearance } = await import("/src/core/character.ts" as string);
+      const shoes = ["none", "sandals", "shoes", "boots", "sneakers"] as const;
+      const rows = [
+        ["Skirt front", "skirt", 0, "female", 4, "idle", 0],
+        ["Skirt diagonal", "skirt", 0, "female", 3, "idle", 0],
+        ["Skirt side", "skirt", 0, "female", 2, "idle", 0],
+        ["Shirt back", "shirt", 0, "male", 0, "idle", 0],
+        ["Short front", "shirt", -1, "female", 4, "idle", 0],
+        ["Child side", "shirt", -2, "male", 2, "idle", 0],
+        ["Walk side", "shirt", 0, "male", 2, "walk", 2],
+        ["Walk diagonal", "skirt", 0, "female", 3, "walk", 2],
+        ["Run side", "shirt", 0, "male", 2, "run", 2],
+        ["Run recovery", "shirt", 0, "male", 2, "run", 0],
+      ] as const;
+      const frame = document.createElement("canvas"), sheet = document.createElement("canvas");
+      frame.width = frame.height = 80;
+      const cellW = 192, cellH = 212;
+      sheet.width = shoes.length * cellW;
+      sheet.height = rows.length * cellH;
+      const fc = frame.getContext("2d")!, ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#a4b0a6";
+      ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([label, garment, height, sex, facing, pose, f], row) => shoes.forEach((footwear, col) => {
+        const a = { ...originalAppearance, height, physique: { sex, strength: 50, mass: 40 },
+          wearing: { ...originalAppearance.wearing, garment, footwear, color: "#677b37", lowerColor: "#645675" } };
+        renderers.d.draw(fc, a, 2, pose, f, undefined, facing);
+        if (row === 9 && footwear === "sneakers") {
+          const pixels = fc.getImageData(0, 0, 80, 80).data;
+          let raisedSole = false;
+          for (let y = 60; y < 75; y++) for (let x = 20; x < 60; x++) {
+            const i = (y * 80 + x) * 4;
+            const rgb = [pixels[i], pixels[i + 1], pixels[i + 2]];
+            if (pixels[i + 3] && Math.min(...rgb) > 110 && Math.max(...rgb) - Math.min(...rgb) < 30)
+              raisedSole = true;
+          }
+          if (!raisedSole) throw Error("Raised sneaker lost its sole during run recovery");
+        }
+        outlineCharacter(fc);
+        ctx.drawImage(frame, 16, 34, 48, 46, col * cellW, row * cellH, 192, 184);
+        ctx.fillStyle = "#263820";
+        ctx.font = "12px monospace";
+        ctx.fillText(`${label} · ${footwear}`, col * cellW + 4, row * cellH + 204);
+      }));
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out(process.env.REVIEW_NAME ?? "feet"));
+  },
+
+  /** D's adult ranges and child proportions, with identical clothing and heads. */
   async heights(page) {
     await characterLab(page);
-    await page.evaluate(async () => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/draw.ts" as string
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheets = await page.evaluate(async () => {
+      const { renderers, outlineCharacter } = await import(
+        "/src/render/characters/renderers.ts" as string
       );
-      const { originalAppearance } = await import(
-        "/src/core/character.ts" as string
-      );
-      const b = document.createElement("canvas"),
-        c = document.createElement("canvas");
-      b.width = b.height = 80;
-      c.width = 700;
-      c.height = 420;
-      const ctx = c.getContext("2d")!,
-        bc = b.getContext("2d")!;
-      ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = "#829255";
-      ctx.fillRect(0, 0, c.width, c.height);
-      const names = [
-        "Under 6",
-        "Child / short adult",
-        "Original adult",
-        "Tall adult",
-        "Tallest adult",
-      ];
-      for (let row = 0; row < 3; row++)
-        for (let i = 0; i < 5; i++) {
-          const a = { ...originalAppearance, height: i - 2 };
-          drawCharacter(
-            bc,
-            a,
-            row === 1 ? 1 : 2,
-            row === 2 ? "walk" : "idle",
-            row === 2 ? 1 : 0,
-          );
-          ctx.drawImage(b, 20, 40, 40, 40, i * 140 + 10, row * 140, 120, 120);
-          ctx.fillStyle = "#263820";
-          ctx.fillRect(i * 140 + 10, row * 140 + 121, 120, 1);
-          ctx.font = "11px monospace";
-          ctx.fillText(names[i], i * 140 + 4, row * 140 + 137);
+      const { originalAppearance } = await import("/src/core/character.ts" as string);
+      const { loadCarriedArt, portableProps } = await import("/src/render/characters/props.ts" as string);
+      const art = await loadCarriedArt();
+      const held = (id: string) => art.get(portableProps.find((p: any) => p.id === id)!.sprite);
+      const variants = [
+        ["Tall man", 1, "male"],
+        ["Medium man", 0, "male"],
+        ["Short man", -1, "male"],
+        ["Tall woman", 1, "female"],
+        ["Medium woman", 0, "female"],
+        ["Short woman", -1, "female"],
+        ["Child", -2, "male"],
+      ] as const;
+      const people = variants.map(([, height, sex]) => ({
+        ...originalAppearance, height, headSize: "medium", hair: "cropped",
+        physique: { sex, strength: 50, mass: 40 },
+        wearing: { ...originalAppearance.wearing, garment: "shirt", color: "#387748", lowerColor: "#645675" },
+      }));
+      const buffer = document.createElement("canvas");
+      buffer.width = buffer.height = 80;
+      const bc = buffer.getContext("2d")!;
+      const bounds = () => {
+        const data = bc.getImageData(0, 0, 80, 80).data;
+        let top = 80, bottom = -1, left = 80, right = -1;
+        for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++)
+          if (data[(y * 80 + x) * 4 + 3]) {
+            top = Math.min(top, y); bottom = Math.max(bottom, y);
+            left = Math.min(left, x); right = Math.max(right, x);
+          }
+        if (bottom < top || top === 0 || left === 0 || right === 79)
+          throw Error(`Empty or clipped D frame: ${left},${top}–${right},${bottom}`);
+        return { top, bottom, height: bottom - top + 1 };
+      };
+      const heights = people.map((a) => {
+        renderers.d.draw(bc, a, 2, "idle", 0);
+        return bounds().height;
+      });
+      for (const [i, delta] of [[1, 2], [2, 4], [3, 2], [4, 4], [5, 6]] as const)
+        if (heights[0] - heights[i] !== delta)
+          throw Error(`${variants[i][0]}: expected ${delta}px shorter, got ${heights[0] - heights[i]}`);
+      if (heights[0] - heights[6] < 8) throw Error("Child must be at least 8px shorter than tall adult");
+      for (const a of people)
+        for (const facing of [0, 1, 2, 3, 4, 5, 6, 7]) {
+          renderers.d.draw(bc, a, 0, "idle", 0, undefined, facing);
+          bounds();
         }
-      document.body.replaceChildren(c);
-      c.style.imageRendering = "pixelated";
+      const sheet = document.createElement("canvas");
+      const rows = [
+        ["Front · idle", 4, "idle", 0, undefined],
+        ["Side · idle", 2, "idle", 0, undefined],
+        ["Back · idle", 0, "idle", 0, undefined],
+        ["Walk", 3, "walk", 2, undefined],
+        ["Run", 2, "run", 2, undefined],
+        ["Pickup", 4, "pickup", 2, undefined],
+        ["Sit", 3, "sit", 0, undefined],
+        ["Carry basket", 4, "carry", 0, held("basket")],
+        ["Swing stick", 2, "swing", 2, held("stick")],
+        ["Long robe", 3, "walk", 2, undefined],
+      ] as const;
+      const cellW = 144, cellH = 154;
+      sheet.width = people.length * cellW;
+      sheet.height = rows.length * cellH;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#c8cbc1";
+      ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([label, facing, pose, f, prop], row) => people.forEach((a, col) => {
+        const appearance = row === 9 ? { ...a, wearing: { ...a.wearing, garment: "robe", cloak: true } } : a;
+        renderers.d.draw(bc, appearance, 2, pose, f, prop, facing);
+        bounds();
+        outlineCharacter(bc);
+        ctx.drawImage(buffer, 16, 34, 48, 46, col * cellW, row * cellH + 2, 144, 138);
+        ctx.fillStyle = "#263820";
+        ctx.fillRect(col * cellW + 8, row * cellH + 140, 128, 1);
+        ctx.font = "11px monospace";
+        ctx.fillText(`${variants[col][0]} · ${label}`, col * cellW + 4, row * cellH + 152);
+      }));
+      const gait = document.createElement("canvas");
+      gait.width = 8 * 144;
+      gait.height = people.length * 2 * cellH;
+      const gc = gait.getContext("2d")!;
+      gc.imageSmoothingEnabled = false;
+      gc.fillStyle = "#c8cbc1";
+      gc.fillRect(0, 0, gait.width, gait.height);
+      people.forEach((a, i) => ["walk", "run"].forEach((pose, j) => {
+        for (let f = 0; f < 8; f++) {
+          renderers.d.draw(bc, a, 1, pose, f);
+          bounds();
+          outlineCharacter(bc);
+          const row = i * 2 + j;
+          gc.drawImage(buffer, 16, 34, 48, 46, f * 144, row * cellH + 2, 144, 138);
+          gc.fillStyle = "#263820";
+          gc.font = "11px monospace";
+          gc.fillText(`${variants[i][0]} · ${pose} ${f}`, f * 144 + 4, row * cellH + 152);
+        }
+      }));
+      return { heights, sheet: sheet.toDataURL(), gait: gait.toDataURL() };
     });
-    await shootCanvas(page, out("heights"));
+    await writeDataUrl(sheets.sheet, out("heights"));
+    await writeDataUrl(sheets.gait, out("height-gait"));
+    console.log("D standing heights:", sheets.heights);
   },
 
   /** Large, medium and small heads on the game renderer, bald and haired,

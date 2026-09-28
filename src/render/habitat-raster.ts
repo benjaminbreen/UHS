@@ -18,7 +18,7 @@ import {
 import { rasterStreetTile } from "./street-raster";
 import { blacktopPixel } from "./carriageway";
 import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
-import { pavingGrade, pavingStonePixel } from "./paving-stones";
+import { dustOf, pavingGrade, pavingStonePixel } from "./paving-stones";
 import { mottle, shade } from "./palette";
 import { rasterFieldTile, tilled } from "./field-raster";
 import { bold, width as fenceWidth } from "./fences";
@@ -1036,7 +1036,7 @@ function rasterGroundTile(
             ? { coverage: wear, radius: 0.7, cross: 0.5 }
             : routed;
         if (routed?.paved && field === routed && inside) {
-          const tone = blacktopPixel(routed, wx, wy);
+          const tone = blacktopPixel(routed, wx, wy, dustOf(cell.biome));
           if (tone) {
             pixels.set(tone, (py * 16 + px) * 4);
             continue;

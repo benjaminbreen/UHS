@@ -108,3 +108,5 @@ ART.update(HEADS)
 
 from extras import EXTRAS
 ART.update(EXTRAS)
+
+ART['mantle'] = garment(3, 14, 16, 17, 10, 21, sl='none', nk='round', hem=13, foldcols=(7, 17))

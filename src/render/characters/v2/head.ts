@@ -1,4 +1,5 @@
 import type { CharacterAppearance } from "../../../core/character";
+import type { RestingExpression } from "../../../core/persona";
 import type { CharacterPose } from "../poses";
 import { flush, lightKey, luma, mix, Pixels, ramp, type Point } from "./pixels";
 export function drawHead(
@@ -12,10 +13,12 @@ export function drawHead(
   sway = 0,
   /** A front or back head turned a little toward +x, for the diagonals. */
   turn = false,
+  expression: RestingExpression = "neutral",
 ) {
+  if (pose === "hurt" || pose === "startle") expression = "neutral";
   const skin = ramp(a.skin, "skin"),
     hair = ramp(a.hairColor, "hair"),
-    cloth = ramp(a.wearing.color),
+    cloth = ramp(a.wearing.headColor ?? a.wearing.color),
     cloak = ramp(a.wearing.cloakColor);
   const deep = luma(a.skin) < 0.4,
     eye = deep ? "#130d12" : mix(a.hairColor, "#2a2230", 0.75),
@@ -113,8 +116,15 @@ export function drawHead(
       p.rect(13, 6, 3, 1, frame);
       p.rect(11, 7, 2, 1, frame);
     }
-    p.rect(15, 11, 2, 1, skin.shade);
+    p.rect(16, 10, 1, 1, mix(skin.base, skin.shade, 0.5));
     p.rect(13, 13, 2, 1, skin.shade);
+    if (expression === "smile")
+      p.rect(15, 12, 1, 1, skin.shade);
+    if (expression === "soft" && !blink) p.rect(14, 7, 1, 1, skin.base);
+    if (expression === "serious") p.rect(13, 6, 2, 1, skin.shade);
+    if (expression === "concerned") p.rect(13, 5, 1, 1, skin.shade);
+    if ((pose === "talk" && f % 2) || pose === "startle")
+      p.rect(15, 12, 1, 2, skin.edge);
   } else {
     p.shape(
       [
@@ -197,10 +207,10 @@ export function drawHead(
           p.rect(x, 9, 1, 1, skin.shade);
           continue;
         }
-        p.rect(x, slit ? 9 : 8, 1, slit ? 1 : 2, eye);
+        p.rect(x, slit || expression === "soft" ? 9 : 8, 1, slit || expression === "soft" ? 1 : 2, eye);
         // Always one pixel wide: a second column, or a brow above, reads as a
         // scowl at this size.
-        if (face?.eyeSize === "large" && !slit) p.rect(x, 8, 1, 1, glint);
+        if (face?.eyeSize === "large" && !slit && expression !== "soft") p.rect(x, 8, 1, 1, glint);
       }
       if (a.wearing.eyewear === "sunglasses") {
         p.rect(6 + t, 8, 4, 2, frame);
@@ -217,7 +227,8 @@ export function drawHead(
         broad = nose === "broad" || nose === "bulbous" || nose === "flat";
       p.rect(10 + t, 10, broad ? 2 : 1, 1, skin.light);
       if (nose !== "short" && nose !== "snub")
-        p.rect(broad ? 10 + t : 11 + t, 11, broad ? 2 : 1, 1, skin.shade);
+        // A skin row separates the nose from the mouth, including smile corners.
+        p.rect(broad ? 10 + t : 11 + t, 10, broad ? 2 : 1, 1, mix(skin.base, skin.shade, 0.5));
       const detail = face?.detail ?? "clear";
       for (const [x, out] of eyes) {
         if (detail === "freckles") {
@@ -228,9 +239,25 @@ export function drawHead(
           p.rect(x + out * (detail === "lines" ? 1 : 0), detail === "lines" ? 9 : 11, 1, 1, skin.shade);
       }
       const mouth = face?.mouth ?? "soft",
-        mw = mouth === "narrow" ? 2 : mouth === "wide" ? 4 : 3;
-      p.rect(mouth === "narrow" ? 10 + t : 9 + t, 12, mw, 1, skin.shade);
-      if (mouth === "full") p.rect(10 + t, 13, 1, 1, flush(a.skin));
+        mw = mouth === "wide" ? 3 : 2,
+        lip = mix(skin.shade, skin.edge, expression === "serious" ? 0.5 : 0.2);
+      if (expression === "smile") {
+        p.rect(9 + t, 12, 1, 1, lip);
+        p.rect(10 + t, 13, 2, 1, lip);
+        p.rect(12 + t, 12, 1, 1, lip);
+      } else if (expression === "concerned") {
+        p.rect(10 + t, 12, 2, 1, lip);
+        p.rect(9 + t, 13, 1, 1, lip);
+        p.rect(12 + t, 13, 1, 1, lip);
+      } else p.rect(10 + t, 12, mw, 1, lip);
+      if (mouth === "full" && expression !== "smile") p.rect(10 + t, 13, 1, 1, flush(a.skin));
+      if (expression === "serious") {
+        p.rect(9 + t, 8, 1, 1, skin.shade);
+        p.rect(11 + t, 8, 1, 1, skin.shade);
+      } else if (expression === "concerned") {
+        p.rect(9 + t, 7, 1, 1, skin.shade);
+        p.rect(11 + t, 7, 1, 1, skin.shade);
+      }
       if (turn) p.rect(13, 10, 1, 1, skin.shade);
       if (pose === "talk" && f % 2) p.rect(10 + t, 12, 2, 2, skin.edge);
       if (pose === "startle") p.rect(10 + t, 12, 2, 2, skin.edge);
@@ -620,8 +647,16 @@ export function drawHead(
   }
   // A stiff crown and a narrow curled brim. The brim is the whole tell at this
   // size, so it runs a pixel proud of the skull on both sides.
+  if (a.wearing.headwear === "top-hat") {
+    const felt = ramp(a.wearing.headColor ?? a.wearing.lowerColor);
+    p.shape([[6, 4], [6, -5], [14, -5], [14, 4]], felt);
+    p.rect(7, -4, 1, 7, felt.light);
+    p.rect(6, 3, 9, 1, felt.shade);
+    p.rect(3, 4, side ? 14 : 15, 1, felt.base);
+    p.rect(4, 5, side ? 12 : 13, 1, felt.shade);
+  }
   if (a.wearing.headwear === "bowler") {
-    const felt = ramp(a.wearing.lowerColor);
+    const felt = ramp(a.wearing.headColor ?? a.wearing.lowerColor);
     // Tall domed crown over a brim that clears the skull by a pixel each side
     // and curls back up at the ends. Any wider and it reads as a sun hat.
     p.shape(
@@ -687,7 +722,7 @@ export function drawHead(
   }
   // A wide brim, straw or felt, against sun or rain.
   if (a.wearing.headwear === "brimmed") {
-    const straw = ramp(a.wearing.lowerColor);
+    const straw = ramp(a.wearing.headColor ?? a.wearing.lowerColor);
     p.shape(
       [
         [6, 5],
@@ -704,7 +739,7 @@ export function drawHead(
   }
   // One woven cone. The apex is a single pixel or it reads as a dunce cap.
   if (a.wearing.headwear === "conical") {
-    const straw = ramp(a.wearing.lowerColor);
+    const straw = ramp(a.wearing.headColor ?? a.wearing.lowerColor);
     p.shape(
       [
         [10, -3],
@@ -853,7 +888,7 @@ export function drawHead(
   }
   // A hard dome with a rim standing off the skull.
   if (a.wearing.headwear === "helmet") {
-    const steel = ramp(a.wearing.lowerColor);
+    const steel = ramp(a.wearing.headColor ?? a.wearing.lowerColor);
     p.shape(
       [
         [5, 6],
@@ -873,7 +908,7 @@ export function drawHead(
   // through the glass or there is nobody in the suit. The corners are cut
   // back on both axes, or it reads as a box rather than a sphere.
   if (a.wearing.headwear === "visor") {
-    const shell = ramp(a.wearing.lowerColor);
+    const shell = ramp(a.wearing.headColor ?? a.wearing.lowerColor);
     const glass = ramp(a.wearing.trim);
     const r = side ? 16 : 18;
     // Crown, shoulders of the sphere, then the sides.

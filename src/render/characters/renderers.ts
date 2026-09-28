@@ -1,4 +1,5 @@
 import type { CharacterAppearance } from "../../core/character";
+import type { RestingExpression } from "../../core/persona";
 import type { CharacterPose } from "./poses";
 import type { CarriedArt } from "./props";
 import { drawCharacter as drawA } from "./draw";
@@ -14,6 +15,11 @@ export type CharacterRenderer = (
   prop?: CarriedArt,
   /** Eight-way facing; renderers that only have four views ignore it. */
   facing?: number,
+  expression?: RestingExpression,
+  /** Signed three-beat turn: head leads, body pivots, cloth settles. */
+  turn?: number,
+  /** Load weight 0–2, plus 3 while visibly tired. */
+  condition?: number,
 ) => void;
 export const rendererIds = ["a", "b", "c", "d"] as const;
 export type RendererId = (typeof rendererIds)[number];

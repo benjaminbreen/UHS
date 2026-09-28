@@ -6,6 +6,7 @@ import type { CreatureHit } from "../core/combat";
 import type { Point } from "../core/types";
 import { spritePalette } from "./sprite-palette";
 import { LootEffects } from "./loot-effects";
+import type { CharacterPose } from "./characters/poses";
 
 /** The freeze on a blow that lands on scenery. */
 const HIT_STOP_MS = 55;
@@ -27,6 +28,7 @@ export type ToolEffectKind =
 export type ToolEffect = {
   serial: number;
   kind: ToolEffectKind;
+  pose?: CharacterPose;
   /** The worked cell, and the cell the player swung from. */
   at: { x: number; y: number };
   cells?: Point[];
@@ -42,6 +44,7 @@ export type ToolEffect = {
 /** One swing: where it came from, and what each cell of the arc found. */
 export type SwingEffect = {
   serial: number;
+  pose?: CharacterPose;
   from: { x: number; y: number };
   facing: number;
   tool: ToolClass;
@@ -204,7 +207,9 @@ export class ToolEffects {
     const [facing, ...corners] = effect.hits;
     // A wound-up swing draws its own ring; see CombatEffects.
     if (facing && !effect.power) {
-      if (effect.knife) this.slice(from, this.point(facing.at));
+      if (effect.pose === "rake-pull") this.pull(from, this.point(facing.at));
+      else if (effect.pose === "scythe-sweep") this.groundSweep(from, this.point(facing.at));
+      else if (effect.knife) this.slice(from, this.point(facing.at));
       else if (effect.thrust)
         this.thrust(from, this.point((effect.hits.find((hit) => hit.solid) ?? effect.hits.at(-1)!).at));
       else this.arc(from, this.point(facing.at));
@@ -588,7 +593,9 @@ export class ToolEffects {
       from.x -= dx * 10;
       from.y -= dy * 10;
     }
-    if (effect.kind !== "dig") this.arc(from, target);
+    if (effect.pose === "scythe-sweep") this.groundSweep(from, target);
+    else if (effect.pose === "sickle-cut") this.slice(from, target);
+    else if (effect.kind !== "dig") this.arc(from, target);
     if (effect.kind === "miss") return;
     if (effect.kind === "dig")
       for (const cell of effect.cells ?? [effect.at])
@@ -672,6 +679,33 @@ export class ToolEffects {
         g.destroy();
       },
     });
+  }
+  /** The teeth scrape back across the ground, with no airborne swing halo. */
+  private pull(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const g = this.scene.add.graphics().setDepth(to.y + 5000);
+    const dx = from.x - to.x, dy = from.y - to.y;
+    const length = Math.max(1, Math.hypot(dx, dy));
+    const sideX = -dy / length * 3, sideY = dx / length * 3;
+    g.lineStyle(1, 0xd4c7a2, 0.8);
+    for (const offset of [-1, 0, 1])
+      g.lineBetween(to.x + sideX * offset, to.y + sideY * offset - 2,
+        to.x + dx * 0.55 + sideX * offset, to.y + dy * 0.55 + sideY * offset - 2);
+    this.live.add(g);
+    this.scene.tweens.add({ targets: g, alpha: 0, duration: 190, ease: "Quad.easeOut",
+      onComplete: () => { this.live.delete(g); g.destroy(); } });
+  }
+  /** A broad cutting path close to the crop rather than above the head. */
+  private groundSweep(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const g = this.scene.add.graphics().setDepth(to.y + 5000);
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    g.lineStyle(2, 0xe6e1c5, 0.85);
+    g.beginPath();
+    g.arc(0, 0, 13, -1.1, 1.1);
+    g.strokePath();
+    g.setPosition(to.x - Math.cos(angle) * 4, to.y - 4).setRotation(angle);
+    this.live.add(g);
+    this.scene.tweens.add({ targets: g, scaleX: 1.4, alpha: 0, duration: 190, ease: "Quad.easeOut",
+      onComplete: () => { this.live.delete(g); g.destroy(); } });
   }
   /** A knife leaves no arc, only a thin bright cut drawn across the air. */
   private slice(from: { x: number; y: number }, to: { x: number; y: number }) {

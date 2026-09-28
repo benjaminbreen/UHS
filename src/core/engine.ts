@@ -6073,22 +6073,29 @@ export class Engine {
       const rack = this.object(sites.rackId);
       if (rack) rack.open = at.activity !== "rest";
     }
-    if (at.activity === "rest" && household?.residence && !this.burningPlace(household.residence)) {
-      const index = Math.max(0, household.members.indexOf(a.id));
+    const indoorPlace = at.placeId && this.world.place(at.placeId);
+    const homeRest = at.activity === "rest" && !at.placeId;
+    const room = indoorPlace && !this.burningPlace(indoorPlace.id)
+      ? indoorPlace.id
+      : homeRest && household?.residence && !this.burningPlace(household.residence)
+        ? household.residence
+        : undefined;
+    if (at.activity === "rest" && room) {
+      const index = Math.max(0, household?.members.indexOf(a.id) ?? 0);
       this.moveActor(a, {
         x: 3 + (index % 4),
         y: 3,
-        space: household.residence,
+        space: room,
       });
       a.activity = at.label;
-      a.fatigue = Math.max(0, a.fatigue - 0.1);
+      if (homeRest) a.fatigue = Math.max(0, a.fatigue - 0.1);
       // Eating at home is what keeps a resident under the hunger gate below and
       // so on their routine at all. Without it the whole settlement drifts onto
       // the pathfinding fallback over a long session.
       // High enough that one meal covers the night's ~16 points of hunger:
       // followRoutine runs every 12 seconds, and a lower gate empties the
       // household store in a few days.
-      if (a.hunger > 35) this.feed(a, household);
+      if (homeRest && household && a.hunger > 35) this.feed(a, household);
       // Indoors the routine's outdoor coordinates mean nothing: let the drawn
       // position fall back to the simulated one.
       a.offRoutine = true;

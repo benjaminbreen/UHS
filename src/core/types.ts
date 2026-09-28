@@ -710,6 +710,8 @@ export interface WorldModel {
   /** A vehicle working a settlement, by id, and warded ground by id. */
   vehicle?(id: string): import("../world/v3/conveyances").Vehicle | undefined;
   ward?(id: string): import("../world/v3/conveyances").Ward | undefined;
+  /** Rebuild the starting settlement's routes after its furniture is placed. */
+  refreshRoutines?(): void;
   /** The day's own doings for one person, and the day the settlement keeps,
    * with where each happens. */
   agenda?(

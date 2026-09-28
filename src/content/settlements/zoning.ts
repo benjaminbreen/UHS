@@ -4,6 +4,7 @@ import { modernity, type Modernity } from "./modernity";
 /** What a block of an industrial-age city is for. Older towns keep the
  * market/craft/elite quarters; these replace them once a region industrialises. */
 export type LandUse =
+  | "historic"
   | "downtown"
   | "commercial"
   | "industrial"
@@ -20,6 +21,11 @@ export type LandUse =
 export type Zoning = {
   /** Years after the industrial onset before the centre is rebuilt as offices. */
   downtownAfter: number;
+  /** Smallest city whose centre became a downtown of office blocks; a smaller
+   * one's centre stayed its shops. Omitted, any city of size. */
+  downtownFrom?: number;
+  /** The old town stood: the city grew round it, not through it. */
+  keepsCore?: boolean;
   /** Share of the ring beyond the old centre given to factories and yards. */
   industry: number;
   inner: LandUse;
@@ -82,6 +88,7 @@ const zonings: Record<string, Zoning> = {
   },
   "south-asia": {
     downtownAfter: 70,
+    downtownFrom: 1000000,
     industry: 0.16,
     inner: "tenement",
     outer: "estate",
@@ -91,6 +98,7 @@ const zonings: Record<string, Zoning> = {
   },
   "latin-america": {
     downtownAfter: 50,
+    downtownFrom: 300000,
     industry: 0.16,
     inner: "rowhouse",
     outer: "suburb",
@@ -100,15 +108,18 @@ const zonings: Record<string, Zoning> = {
   },
   "west-asia-north-africa": {
     downtownAfter: 40,
-    industry: 0.12,
-    inner: "tenement",
-    outer: "estate",
-    estates: { from: 1960, share: 0.4 },
-    informal: { from: 1960, share: 0.25 },
-    note: "A planned new town of apartment blocks beside the old city, and informal quarters beyond it.",
+    downtownFrom: 600000,
+    keepsCore: true,
+    industry: 0.08,
+    inner: "rowhouse",
+    outer: "rowhouse",
+    estates: { from: 1960, share: 0.2 },
+    informal: { from: 1960, share: 0.15 },
+    note: "The medina left standing inside a ring road, a planned new town of apartment blocks beside it in the cities, and beyond both the flat-roofed courtyard houses families build a floor at a time.",
   },
   "sub-saharan-africa": {
     downtownAfter: 30,
+    downtownFrom: 400000,
     industry: 0.1,
     inner: "rowhouse",
     outer: "suburb",
@@ -127,6 +138,7 @@ const zonings: Record<string, Zoning> = {
   },
   "southeast-asia": {
     downtownAfter: 50,
+    downtownFrom: 500000,
     industry: 0.14,
     inner: "rowhouse",
     outer: "estate",

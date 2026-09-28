@@ -20,6 +20,9 @@ import { placeSettlementDetails } from "./settlement-details/place";
 import { middenContents, middenYears } from "./midden";
 import { faunaAt } from "../fauna";
 import type { FaunaGroup } from "../../core/fauna";
+import { livelihoodOf } from "../../world/v3/routines";
+import { processFor } from "../economy/processes";
+import { workplaceFor } from "../characters/workplace";
 
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
@@ -174,20 +177,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     }
   };
   for (const o of world.initialObjects) index(o);
-  const roofCells = new Set(
-    world.places.flatMap((b) =>
-      buildingRoofCells(b.sprite, b).map((p) => at({ ...p, space: "outside" })),
-    ),
-  );
-  const actorsAt = new Set(world.initialActors.map((a) => at(a.pos)));
-  const actorById = new Map(world.initialActors.map((a) => [a.id, a]));
+  const roofCells = new Set<string>();
+  const actorsAt = new Set<string>();
+  const actorById = new Map<string, (typeof world.initialActors)[number]>();
   const doorsAt = new Set<string>();
-  for (const b of world.places)
-    for (let dy = -1; dy <= 1; dy++)
-      for (let dx = -1; dx <= 1; dx++)
-        doorsAt.add(
-          at({ x: b.entrance.x + dx, y: b.entrance.y + dy, space: "outside" }),
-        );
   const occupied = (p: Position, ignore?: string, prop?: string) => {
     const footprint = prop ? propVisualCells(prop, p) : [p];
     for (const q of footprint) {
@@ -240,6 +233,17 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     !objectsAt.get(at(p))?.length &&
     !actorsAt.has(at(p));
   const populate = () => {
+    for (const a of world.initialActors) {
+      actorsAt.add(at(a.pos));
+      actorById.set(a.id, a);
+    }
+    for (const b of world.places) {
+      for (const p of buildingRoofCells(b.sprite, b))
+        roofCells.add(at({ ...p, space: "outside" }));
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          doorsAt.add(at({ x: b.entrance.x + dx, y: b.entrance.y + dy, space: "outside" }));
+    }
     if (world.places.length) {
       let far = 0;
       for (const b of world.places)
@@ -346,11 +350,30 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     for (const b of world.places) {
       if (places.has(b.id) || isRuin(b)) continue;
       places.add(b.id);
+      const worker = actorById.get(b.owner);
+      const livelihood = worker && livelihoodOf(world.pack, worker);
+      const process = livelihood && processFor(livelihood);
+      const fittingChoices = process?.family === "transform" && workplaceFor(livelihood!.activity) === "workshop"
+        ? process.stations.flatMap((family) =>
+            [...kit.contexts.work, ...kit.contexts.tool, ...kit.contexts.yard, ...kit.contexts.household]
+              .filter((key) => propDefs[key]?.family === family))
+        : [];
+      const fitting = tradeFitting(
+        b.name, world.pack.year,
+        tech.balance && rareScale(b.name, random(seed, "scale", b.id)) &&
+          scales.every((p) => Math.hypot(p.x - b.x, p.y - b.y) >= 24),
+      ) ?? fittingChoices[0];
+      const alreadyFitted = fitting && world.initialObjects.some((o) =>
+        propDefs[o.prop ?? ""]?.family === propDefs[fitting]?.family &&
+        (!o.owner || o.owner === b.owner) &&
+        Math.hypot(o.pos.x - b.entrance.x, o.pos.y - b.entrance.y) < 5);
       // Half the buildings in a town get nothing in the yard at all. Every
       // house with its own bin and washing line is what made a street read as
       // a back yard. The frontage below is placed either way.
-      const bareYard = b.landUse === "industrial" || b.landUse === "downtown" ||
-        b.landUse === "commercial" || random(seed, "yard-empty", b.id) < bare;
+      const bareYard = !fitting || alreadyFitted
+        ? b.landUse === "industrial" || b.landUse === "downtown" ||
+          b.landUse === "commercial" || random(seed, "yard-empty", b.id) < bare
+        : false;
       // Side-of-house and yard pockets, never entrance tiles or street centers.
       const planned = world.propSlots?.(b.id);
       const pockets: Position[] = planned
@@ -397,21 +420,12 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         };
         // The trade's own fitting goes in the work slot when the building
         // names a trade that needs one; otherwise tools, otherwise the yard.
-        const fitting =
-          slot === 0
-            ? tradeFitting(
-                b.name,
-                world.pack.year,
-                tech.balance &&
-                  rareScale(b.name, random(seed, "scale", b.id)) &&
-                  scales.every((p) => Math.hypot(p.x - b.x, p.y - b.y) >= 24),
-              )
-            : undefined;
+        const slotFitting = slot === 0 && !alreadyFitted ? fitting : undefined;
         const works = worksite.test(`${b.name} ${b.entranceLabel}`);
         const tools =
           slot !== 1 && (works || random(seed, "tool-slot", o.id) < 0.16);
-        const chosen = fitting
-          ? fitting
+        const chosen = slotFitting
+          ? slotFitting
           : pick(
               o.id,
               slot === 1 ? "yard" : tools ? "tool" : "work",
@@ -699,6 +713,41 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       },
       reserve: (cells) => cells.forEach((p) => reserved.add(at(p))),
     });
+    if (world.pack.year < 1750) for (const actor of world.initialActors) {
+      if (actor.kind !== "human" || done.has(`${actor.id}-work-fitting`)) continue;
+      done.add(`${actor.id}-work-fitting`);
+      const site = world.activitySites?.(actor.id);
+      const livelihood = livelihoodOf(world.pack, actor);
+      const process = livelihood && processFor(livelihood);
+      if (!site || process?.family !== "transform" || workplaceFor(livelihood!.activity) !== "workshop") continue;
+      const localPack = world.geography?.packAt(site.work.x, site.work.y);
+      const localKit = localPack ? propKit(localPack) : kit;
+      const fitting = process.stations.flatMap((family) =>
+        [...localKit.contexts.work, ...localKit.contexts.tool, ...localKit.contexts.yard, ...localKit.contexts.household]
+          .filter((key) => propDefs[key]?.family === family))[0];
+      if (!fitting) continue;
+      const family = propDefs[fitting].family;
+      if (world.initialObjects.some((o) => o.pos.space === "outside" &&
+        propDefs[o.prop ?? ""]?.family === family &&
+        (!o.owner || o.owner === actor.id ||
+          (site.home.x === world.activitySites?.(o.owner)?.home.x &&
+           site.home.y === world.activitySites?.(o.owner)?.home.y)) &&
+        Math.hypot(o.pos.x - site.work.x, o.pos.y - site.work.y) <= 7)) continue;
+      const positions = [
+        [0, -2], [-2, 0], [2, 0], [0, 2],
+        [-2, -1], [2, -1], [-1, 2], [1, 2],
+        [0, -3], [-3, 0], [3, 0], [0, 3],
+      ];
+      const pos = positions.map(([dx, dy]) => ({ x: site.work.x + dx, y: site.work.y + dy, space: "outside" }))
+        .find((p) => usable(p, undefined, fitting));
+      if (!pos) continue;
+      const o: WorldObject = { id: `${actor.id}-work-fitting`, name: "", kind: "container",
+        pos, sprite: "", inventory: {} };
+      stamp(o, fitting);
+      world.initialObjects.push(o);
+      index(o);
+      done.add(o.id);
+    }
     // An unowned fallen stick near the arrival point makes the initial interaction
     // discoverable without giving every character a historically specific weapon.
     if (!done.has("prop-arrival-stick")) {
@@ -774,6 +823,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     restore = world.restoreDistricts?.bind(world),
     fauna = world.fauna?.bind(world);
   populate();
+  world.refreshRoutines?.();
   return {
     ...world,
     activate: activate

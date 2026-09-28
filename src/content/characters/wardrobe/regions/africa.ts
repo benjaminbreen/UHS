@@ -15,6 +15,8 @@ export const westCentralAfrica: readonly GarmentKit[] = [
     id: "wca-early",
     label: "West & Central Africa · raffia and the wrapper",
     scope: { years: [-1000000, 1100], cultures: ["west-central-african"] },
+    cut: [{ value: "full", garments: ["robe", "open-robe"] }],
+    sleeves: [{ value: "short", weight: 3, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "loose", weight: 6, garments: ["robe", "open-robe", "long-tunic"] }, { value: "long", weight: 2 }],
     garment: [
       { value: "none", weight: 6, sex: ["male"] },
       { value: "wrap", weight: 5 },
@@ -49,6 +51,8 @@ export const westCentralAfrica: readonly GarmentKit[] = [
     id: "wca-strip-loom",
     label: "West & Central Africa · strip cloth and the wide robe",
     scope: { years: [1100, 1900], cultures: ["west-central-african"] },
+    cut: [{ value: "full", garments: ["robe", "open-robe"] }],
+    sleeves: [{ value: "short", weight: 3, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "loose", weight: 6, garments: ["robe", "open-robe", "long-tunic"] }, { value: "long", weight: 2 }],
     garment: [
       { value: "open-robe", weight: 5 },
       { value: "robe", weight: 4 },
@@ -99,6 +103,8 @@ export const westCentralAfrica: readonly GarmentKit[] = [
     id: "wca-modern",
     label: "West & Central Africa · the robe beside the shirt",
     scope: { years: [1900, 10001], cultures: ["west-central-african"] },
+    cut: [{ value: "full", garments: ["robe", "open-robe"] }],
+    sleeves: [{ value: "short", weight: 3, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "loose", weight: 6, garments: ["robe", "open-robe", "long-tunic"] }, { value: "long", weight: 2 }],
     garment: [
       { value: "shirt", weight: 5 },
       { value: "open-robe", weight: 4 },
@@ -141,6 +147,8 @@ export const eastSouthernAfrica: readonly GarmentKit[] = [
     id: "esa-early",
     label: "East & Southern Africa · the draped rectangle",
     scope: { years: [-1000000, 1000], cultures: ["east-southern-african"] },
+    cut: [{ value: "full", garments: ["robe", "open-robe"] }],
+    sleeves: [{ value: "short", weight: 3, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "loose", weight: 6, garments: ["robe", "open-robe", "long-tunic"] }, { value: "long", weight: 2 }],
     garment: [
       { value: "wrap", weight: 6 },
       { value: "none", weight: 5, sex: ["male"] },
@@ -174,6 +182,8 @@ export const eastSouthernAfrica: readonly GarmentKit[] = [
     id: "esa-middle",
     label: "East & Southern Africa · woven cloth on the coast",
     scope: { years: [1000, 1850], cultures: ["east-southern-african"] },
+    cut: [{ value: "full", garments: ["robe", "open-robe"] }],
+    sleeves: [{ value: "short", weight: 3, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "loose", weight: 6, garments: ["robe", "open-robe", "long-tunic"] }, { value: "long", weight: 2 }],
     garment: [
       { value: "wrap", weight: 6 },
       { value: "long-tunic", weight: 4 },
@@ -207,6 +217,8 @@ export const eastSouthernAfrica: readonly GarmentKit[] = [
     id: "esa-modern",
     label: "East & Southern Africa · the shirt over the shuka",
     scope: { years: [1850, 10001], cultures: ["east-southern-african"] },
+    cut: [{ value: "full", garments: ["robe", "open-robe"] }],
+    sleeves: [{ value: "short", weight: 3, garments: ["tunic", "long-tunic", "shirt", "dress", "skirt"] }, { value: "loose", weight: 6, garments: ["robe", "open-robe", "long-tunic"] }, { value: "long", weight: 2 }],
     garment: [
       { value: "shirt", weight: 5 },
       { value: "wrap", weight: 4 },

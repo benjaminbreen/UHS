@@ -70,7 +70,7 @@ export function resetPerf() {
 // Frame profiler
 //
 // A 60 fps average hides a 40 ms frame every four seconds. The clock is the
-// meter's own rAF, so a frame covers everything between two paints — the
+// meter's own rAF callback clock, so a frame covers the callback interval — the
 // scene update, Phaser's render, the React commit, worker messages and any
 // GC — not just the part of it this file can see. Whatever the named sections
 // do not account for is reported as "unattributed", which is what points at
@@ -110,8 +110,8 @@ function add(name: string, ms: number) {
   sections.set(name, (sections.get(name) ?? 0) + ms);
 }
 
-/** Closes the frame that was running and opens the next one. Driven by the
- * meter's requestAnimationFrame, so it lines up with what the eye sees. */
+/** Use performance.now(), not the rAF batch timestamp: earlier callbacks may
+ * have spent the interval drawing before the meter gets to run. */
 export function frameTick(now: number) {
   if (!profiling) return;
   if (frameStart) {

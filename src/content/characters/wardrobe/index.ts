@@ -69,6 +69,7 @@ export function meansOf(w: Wearer): Means {
   if (w.means) return w.means;
   if (w.standing === "unfree") return "poor";
   if ((w.roles ?? []).includes("aristocrat")) return "elite";
+  if ((w.roles ?? []).includes("gentleman")) return "wealthy";
   const r = random(w.id, "wardrobe-means");
   // One in five hundred. A world of a thousand people holds a couple of them,
   // which is about right for the people who got painted.
@@ -120,7 +121,7 @@ function weighted<T>(
 ): T | undefined {
   if (!options.length) return undefined;
   const total = options.reduce((n, o) => n + (o.weight ?? 1), 0);
-  let roll = random(id, "wardrobe-v2", key) * total;
+  let roll = random(id, "wardrobe-v3", key) * total;
   for (const o of options) if ((roll -= o.weight ?? 1) < 0) return o.value;
   return options[options.length - 1].value;
 }
@@ -133,7 +134,7 @@ function pick<T>(
   const usable = options.filter((o) => fits(o, w, band));
   if (!usable.length) return undefined;
   const total = usable.reduce((n, o) => n + (o.weight ?? 1), 0);
-  let roll = random(w.id, "wardrobe-v2", key) * total;
+  let roll = random(w.id, "wardrobe-v3", key) * total;
   for (const o of usable) if ((roll -= o.weight ?? 1) < 0) return o.value;
   return usable[usable.length - 1].value;
 }
@@ -265,7 +266,7 @@ export function wardrobeFor(
     for (const kit of kits) {
       const options = kit[slot];
       if (!options?.length) continue;
-      const value = pick(options as readonly Option<unknown>[], w, band, slot);
+      const value = pick((options as readonly Option<unknown>[]).filter((o) => !o.garments || o.garments.includes((chosen.garment ?? base.garment) as typeof base.garment)), w, band, slot);
       if (value !== undefined) {
         chosen[slot] = value;
         break;
@@ -275,21 +276,19 @@ export function wardrobeFor(
     (chosen.garment as CharacterAppearance["wearing"]["garment"]) ??
     base.garment;
   const dye = chosen.dye as DyeId | undefined;
-  // Trim and lower cloth come from the same palette, or a figure ends up with
-  // a period-correct body and an anachronistic hem. They must not land on the
-  // body's own colour, though: banding drawn in the garment's colour is
-  // invisible, which is the whole point of the pattern.
-  const palette = slotOptions<DyeId>(
-    kits,
-    "dye",
-    (o) => fits(o, w, band) && o.value !== dye,
-  );
-  const lower = weighted(palette, w.id, "dye-lower");
-  const trim = weighted(
-    palette.filter((o) => o.value !== lower),
-    w.id,
-    "dye-trim",
-  );
+  const palette = slotOptions<DyeId>(kits, "dye", (o) => fits(o, w, band) && (!o.garments || o.garments.includes(garment)) && o.value !== dye);
+  const separateLower = ["shirt", "skirt", "coat", "none", "loincloth", "poncho"].includes(garment);
+  const lower = separateLower ? weighted(palette, w.id, "dye-lower") : dye;
+  // Trim on the lower cloth's colour would vanish against it.
+  const trim = weighted(palette.filter((o) => o.value !== lower), w.id, "dye-trim");
+  const tailored = garment === "coat" || garment === "shirt";
+  const headwear = (chosen.headwear as typeof base.headwear) ?? base.headwear;
+  const straw = headwear === "conical" || (headwear === "brimmed" &&
+    (place.year < 1500 || ["farmer", "herder", "fisher"].includes(w.livelihood ?? "")));
+  const headColor = headwear === "fez" ? dyes.madder.hex
+    : headwear === "flat-cap" ? dyes[(["ash", "walnut", "soot"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 3)]].hex
+    : headwear === "bowler" || headwear === "top-hat" ? dyes.soot.hex
+    : straw ? dyes.undyed.hex : lower ? dyes[lower].hex : base.lowerColor;
   const neck = chosen.neck as "none" | "beads" | "chain" | undefined;
   const over = chosen.over as
     | "none"
@@ -306,26 +305,27 @@ export function wardrobeFor(
     ...(trim ? { trim: dyes[trim].hex } : {}),
     ...(lower ? { cloakColor: dyes[lower].hex } : {}),
     garment,
+    cut: (chosen.cut as typeof base.cut) ?? (["coat", "dress", "gown"].includes(garment) ? "fitted" : "straight"),
+    front: (chosen.front as typeof base.front) ?? (garment === "open-robe" || garment === "coat" ? "open" : "closed"),
+    headColor,
+    innerColor: tailored ? dyes.bleached.hex : dyes.undyed.hex,
     sleeves:
+      ["wrap", "none", "poncho", "loincloth"].includes(garment) ? "none" :
       (chosen.sleeves as CharacterAppearance["wearing"]["sleeves"]) ??
-      (garment === "wrap" || garment === "none"
-        ? "none"
-        : garment === "robe"
+      (garment === "robe"
           ? "loose"
-          : garment === "coat"
+          : ["coat", "open-robe", "suit", "dress", "gown"].includes(garment)
             ? "long"
-            : random(w.id, "wardrobe-v2", "sleeves") < 0.34
+            : random(w.id, "wardrobe-v3", "sleeves") < 0.34
               ? "long"
               : "short"),
     hem:
       garment === "wrap"
         ? "slanted"
-        : random(w.id, "wardrobe-v2", "hem") < 0.34
+        : random(w.id, "wardrobe-v3", "hem") < 0.34
           ? "split"
           : "plain",
-    headwear:
-      (chosen.headwear as CharacterAppearance["wearing"]["headwear"]) ??
-      base.headwear,
+    headwear,
     // A flared skirt over a pair of trousers is nobody's dress, anywhere in
     // this atlas. The slots are resolved independently, so the pairing has to
     // be enforced here.
@@ -348,4 +348,12 @@ export function wardrobeFor(
     mantle: over === "mantle",
     shoulderCloth: over === "shoulder-cloth",
   };
+}
+
+export function accessoryFor(wearer: Wearer, place: { year: number; setting?: WorldSetting }, garment: CharacterAppearance["wearing"]["garment"]) {
+  const w = { ...wearer, sex: sexOf(wearer), means: meansOf(wearer) }, band = ageBandOf(wearer.age);
+  const options = slotOptions<"none" | "walking-cane" | "fan">(kitsFor(place.setting, place.year), "accessory",
+    (o) => fits(o, w, band) && (!o.garments || o.garments.includes(garment)));
+  const selected = weighted(options, w.id, "accessory");
+  return selected === "none" ? undefined : selected;
 }
