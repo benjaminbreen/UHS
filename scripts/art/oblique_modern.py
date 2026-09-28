@@ -783,6 +783,8 @@ class ObliqueModern:
             im, em = b.build(storeys=storeys)
         self.sw, self.anchor_x, self.door_x = b.sw, b.anchor_x, b.door_x + DOOR_W // 2
         self.smoke = getattr(b, 'smoke', None)
+        self.overlays = getattr(b, 'overlays', None) or None
+        self.clocks = [[round(v, 1) for v in k] for k in getattr(b, 'clocks', [])] or None
         self.w, self.h = im.width, im.height + FOOT
         self.bottom = self.h - 6
         self.image = Image.new('RGBA', (self.w, self.h))

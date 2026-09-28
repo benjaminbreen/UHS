@@ -315,6 +315,26 @@ type BuildingAnimationRecipe = {
   chance?: number;
 };
 type BuildingAnimation = {
+/** Hour and minute hands on a painted dial, a pixel at a time so they stay
+ * pixel art at any angle. */
+function drawClockHands(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  cy: number,
+  r: number,
+  minute: number,
+) {
+  g.clear().fillStyle(0x2a2630);
+  const m = ((minute % 1440) + 1440) % 1440;
+  for (const [turn, length] of [
+    [(m / 720) % 1, 0.5],
+    [(m % 60) / 60, 0.8],
+  ]) {
+    const a = turn * Math.PI * 2;
+    for (let t = 0; t <= r * length; t += 0.5)
+      g.fillRect(Math.floor(cx + Math.sin(a) * t), Math.floor(cy - Math.cos(a) * t), 1, 1);
+  }
+}
   image: Phaser.GameObjects.Image;
   kind: string;
   period: number;
@@ -530,6 +550,8 @@ export class WorldScene extends Phaser.Scene {
     string,
     {
       image: Phaser.GameObjects.Image;
+  /** Station and tower clocks, whose hands keep the game's hour. */
+  private clockHands: { g: Phaser.GameObjects.Graphics; x: number; y: number; r: number; minute: number }[] = [];
       openness: number;
       shut: boolean;
       knockSeen?: number;
@@ -2045,7 +2067,17 @@ export class WorldScene extends Phaser.Scene {
       this.buildingAnimations.set(`${id}-overlay-${i}`, {
         image,
         kind,
-        period: kind.startsWith("flame") ? 110 : kind === "ball" ? 150 : 240,
+        period: kind.startsWith("flame")
+          ? 110
+          : kind === "ball"
+            ? 150
+            : kind === "pigeons"
+              ? 700
+              : kind === "flapboard"
+                ? 420
+                : kind === "pennant"
+                  ? 170
+                  : 240,
         phase: random(seed, "building-overlay", id, i) * 4,
       });
     });
@@ -3053,6 +3085,7 @@ export class WorldScene extends Phaser.Scene {
       this.lamps = [];
       this.game.canvas.dataset.hearths = "0";
       this.ground?.destroy();
+      this.clockHands = [];
       this.tilemap?.destroy();
       const margin = w.topography ? perf.sceneryReach + 6 : 20;
       const halfX = Math.ceil(this.scale.width / rt.zoom / 32) + margin,
@@ -3563,6 +3596,18 @@ export class WorldScene extends Phaser.Scene {
               climate: w.pack.setting?.climate,
               neglect: 1 - (b.condition ?? 0.7),
               smoke: model.smoke ?? [],
+            const clocks = (placement.model as { clocks?: [number, number, number][] }).clocks;
+            for (const [x, y, r] of clocks ?? []) {
+              const g = this.add.graphics().setDepth(placement.depth + 1);
+              this.layers.push(g);
+              this.clockHands.push({
+                g,
+                x: placement.x - placement.model.anchor[0] + x,
+                y: image.y - placement.model.anchor[1] + y,
+                r,
+                minute: -1,
+              });
+            }
               forge: /smith|forge/i.test(b.name) ? model.door : undefined,
             });
             if (wear)
@@ -4770,6 +4815,12 @@ export class WorldScene extends Phaser.Scene {
     if (perf.wind)
       for (const [, hang] of this.hangings) {
         const sway = this.options.freeze
+    const minute = Math.floor(this.runtime.engine.state.clock / 60);
+    for (const hand of this.clockHands)
+      if (hand.minute !== minute) {
+        hand.minute = minute;
+        drawClockHands(hand.g, hand.x, hand.y, hand.r, minute);
+      }
           ? { x: 0 }
           : windSway(time, hang.phase, HANGING, hang.baseX, hang.image.y);
         const x = hang.baseX + sway.x;

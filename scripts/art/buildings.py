@@ -358,6 +358,8 @@ def build_buildings(root, sprites):
     from art.oblique_lodge import ObliqueLodge
     from art.oblique_meso_landmarks import ObliqueMesoLandmark, build_meso_animations, meso_landmark_recipes
     build_meso_animations(sprites)
+    from art.city_station import build_station_animations
+    build_station_animations(sprites)
     from art.precincts import PrecinctPiece, build_precinct_sprites, precinct_recipes
     build_precinct_sprites(sprites)
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
@@ -439,6 +441,7 @@ def build_buildings(root, sprites):
             **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
+            **({'clocks':artist.clocks} if getattr(artist,'clocks',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),
                 'detailSet':r.get('detailSet','plain')} if r.get('goldMaster') else {}),

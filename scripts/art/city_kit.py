@@ -1791,6 +1791,17 @@ KIT = {
     'modern-institute-small-0': ('institute', [9, 7], 2, 101, dict()),
     'modern-institute-medium-0': ('institute', [12, 8], 2, 102, dict()),
     'modern-institute-large-0': ('institute', [16, 9], 2, 103, dict()),
+    'modern-station-terminus-large-0': ('terminus', [20, 9], 2, 111, dict(look='stock')),
+    'modern-station-terminus-large-1': ('terminus', [20, 9], 2, 112, dict(look='brick')),
+    'modern-station-terminus-medium-0': ('terminus', [14, 8], 2, 113, dict(look='ashlar')),
+    'modern-station-terminus-medium-1': ('terminus', [14, 8], 2, 114, dict(look='brick')),
+    'modern-station-town-medium-0': ('townstation', [14, 7], 2, 121, dict(look='stock')),
+    'modern-station-town-medium-1': ('townstation', [14, 7], 2, 122, dict(look='brick')),
+    'modern-station-town-small-0': ('townstation', [10, 6], 2, 123, dict(look='brick')),
+    'modern-station-town-small-1': ('townstation', [10, 6], 2, 124, dict(look='green')),
+    'modern-station-postwar-large-0': ('postwar', [20, 9], 5, 131, dict(look='travertine')),
+    'modern-station-postwar-large-1': ('postwar', [20, 9], 6, 132, dict(look='concrete')),
+    'modern-station-postwar-medium-0': ('postwar', [14, 8], 3, 133, dict(look='travertine')),
     'modern-civic-hall-0': ('mairie', [14, 6], 2, 3, dict(sign='~')),
     'modern-civic-hall-1': ('mairie', [18, 7], 2, 11, dict(sign='~')),
 }
@@ -1804,6 +1815,9 @@ ABOUT = {
     'church': 'A Gothic parish church seen from the south: a west tower and spire, buttressed aisles under a clerestory, the transept gable with its rose window over the south door, and the apse at the east end.',
     'mill': 'A brick mill of the 1880s: storeys of segmental windows between pilaster strips, loading doors under a hoist, a stair tower with its water tank, and the stack.',
     'institute': 'A workers\' institute: a meeting hall over reading rooms in red brick and stone, a pedimented door up a flight of steps, a lantern on the ridge.',
+    'terminus': 'A terminus of the high railway age: great glazed arches at the ends of the train sheds, a clock, office ranges ending in pavilions, and the sheds\' vaults running back behind.',
+    'townstation': 'A town\'s railway station: the station master\'s house under a fretted gable, the booking hall and waiting rooms, and a canopy with a sawtooth valance over the platform.',
+    'postwar': 'A station rebuilt after the war: a glass concourse under a cantilevered concrete roof, offices in a slab behind, a clock on a pylon.',
     'mairie': 'A town hall: a pedimented pavilion on columns, wings of tall windows, a roof lantern with the flag.',
 }
 
@@ -1811,14 +1825,16 @@ ABOUT = {
 def kit_recipes(side_depth):
     out = {}
     for name, (kind, fp, storeys, seed, o) in KIT.items():
-        deep = (storeys >= 4 or kind in ('mairie', 'hotel', 'opera', 'church', 'mill', 'institute')) and kind != 'atelier'
+        station = kind in ('terminus', 'townstation', 'postwar')
+        deep = (storeys >= 4 or station or kind in ('mairie', 'hotel', 'opera', 'church', 'mill', 'institute')) and kind != 'atelier'
         out[name] = {
             'label': {'immeuble': 'Apartment house', 'townhouse': 'Brick town house', 'mairie': 'Town hall',
-                      'atelier': 'Yard workshop', 'hotel': 'Town hall', 'opera': 'Opera house', 'church': 'Parish church', 'mill': 'Works', 'institute': 'Institute'}[kind]
+                      'atelier': 'Yard workshop', 'hotel': 'Town hall', 'opera': 'Opera house', 'church': 'Parish church', 'mill': 'Works', 'institute': 'Institute',
+                      'terminus': 'Railway station', 'townstation': 'Railway station', 'postwar': 'Railway station'}[kind]
             if 'brickshop' not in name else 'Brick shop block',
             'footprint': fp, 'entrance': [fp[0] // 2, fp[1]],
             'wall': 'grey-brick', 'roof': 'flat', 'roofMaterial': 'slate', 'attachments': [],
-            'opening': 'door', 'height': 62 if kind == 'atelier' else 200 if kind in ('hotel', 'opera', 'church', 'mill', 'institute') else GROUND + STOREY * storeys + 30,
+            'opening': 'door', 'height': 62 if kind == 'atelier' else 200 if station or kind in ('hotel', 'opera', 'church', 'mill', 'institute') else GROUND + STOREY * storeys + 30,
             'description': ABOUT[kind], 'obliqueModern': 'kit', 'seed': seed,
             'stories': storeys, 'deep': deep,
         }
@@ -1854,6 +1870,9 @@ def kit_building(r, side_depth):
         from art.city_civic import GothicChurch, GREY_STONE, RED_SAND, LEAD
         stone, roof = ((GREY_STONE, LEAD), (WARM_LIME, SLATE), (RED_SAND, SLATE))[o['look']]
         return GothicChurch(W=W, sd=sd, seed=seed, stone=stone, roof=roof)
+    if kind in ('terminus', 'townstation', 'postwar'):
+        from art.city_station import station
+        return station(kind, W, sd, seed, storeys, o['look'])
     if kind == 'townhouse':
         return TownHouse(storeys=storeys, seed=seed, W=W, sd=sd, **o)
     return Mairie(seed=seed, W=W, sd=sd, **o)

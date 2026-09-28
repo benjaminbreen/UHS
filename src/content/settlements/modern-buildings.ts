@@ -25,6 +25,30 @@ export function modernCivicBuilding(s: Pick<WorldSetting, "lon" | "lat" | "year"
     ? `modern-civic-hall-${large ? 1 : 0}` : undefined;
 }
 
+/** A railway town's station, largest first. A city's terminus of the high
+ * railway age stood through later rebuilding unless it was pulled down for a
+ * post-war concourse, as Euston (1968) and Roma Termini (1950) were; `roll`
+ * says which, and which brick or stone it was built in. */
+export function stationBuildings(
+  s: Pick<WorldSetting, "lon" | "lat" | "year">,
+  radius: number,
+  roll: number,
+): string[] {
+  const look = (n: number) => Math.floor(roll * 7919) % n;
+  const town = [`modern-station-town-medium-${look(2)}`, `modern-station-town-small-${look(2)}`];
+  const frames =
+    s.year >= 1955 && roll < 0.4
+      ? ["modern-station-postwar-large-" + look(2), "modern-station-postwar-medium-0", ...town]
+      : radius >= 60 && s.year >= 1850
+        ? [
+            `modern-station-terminus-large-${modernity(s).id === "britain" ? look(2) : 1}`,
+            `modern-station-terminus-medium-${modernity(s).id === "britain" ? 1 : look(2)}`,
+            ...town,
+          ]
+        : town;
+  return frames.filter((f) => buildingModels[f]);
+}
+
 export function modernBuildingSince(frame: string): number | undefined {
   if (frame.startsWith("modern-curtain-tower-")) return CURTAIN_WALL;
   const rule = STYLES.find((r) => frame.startsWith(`modern-${r.style}-`));

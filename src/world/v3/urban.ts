@@ -24,7 +24,7 @@ import {
   motorized,
 } from "../../content/settlements/modernity";
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
-import { modernBuildings, modernCivicBuilding } from "../../content/settlements/modern-buildings";
+import { modernBuildings, modernCivicBuilding, stationBuildings } from "../../content/settlements/modern-buildings";
 import {
   BOULEVARD,
   MOTOR_SPANS,
@@ -1147,7 +1147,8 @@ export function urbanNeighborhood(
     const facing = alongX
       ? side < 0 ? "north" : "south"
       : side < 0 ? "west" : "east";
-    const bases = [
+    const stations = stationBuildings(pack.setting!, site.profile.radius, rand("station"));
+    const bases = stations.length ? stations : [
       ...(civicBase ? [civicBase] : []),
       ...[...frames].sort(
         (a, b) => buildingModel(b).footprint[0] - buildingModel(a).footprint[0],
