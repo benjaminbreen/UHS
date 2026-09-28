@@ -17,6 +17,9 @@ export type ReligiousProfile = {
   about: string;
   /** Paved apron between the square and the door, in cells. */
   forecourt: number;
+  /** Holy ground a stranger may not walk onto: the town keeps guards on
+   * watch over it. */
+  warded?: boolean;
   evidence: {
     status: "inferred" | "fictional";
     sources: string[];

@@ -5,6 +5,7 @@ import { drawGarmentIcon } from "./garment-icons";
 import { Watercraft } from "./watercraft";
 import { TrainLayer } from "./trains";
 import { CabLayer } from "./cabs";
+import { VehicleLayer, crewPlace, vehiclePose } from "./vehicles";
 import type { CharacterAppearance } from "../core/character";
 import type { SettlementPlan } from "../world/v3/types";
 import { ruinTexture, releaseRuins } from "./ruins";
@@ -559,6 +560,11 @@ export class WorldScene extends Phaser.Scene {
   private watercraft = new Watercraft(this);
   private trains = new TrainLayer(this, (frame) => this.texture(frame));
   private cabs = new CabLayer(this, (frame) => this.texture(frame));
+  private vehicleLayer = new VehicleLayer(this, (frame) => this.texture(frame));
+  /** Crew in their vehicles: sitting or standing, which way the vehicle
+   * faces, and the depth that puts them between its two layers. */
+  private mounted = new Map<string, { seated: boolean; facing: number; depth: number }>();
+  private mountedActors = new Map<string, Actor>();
   private courtyardLighting = new CourtyardLighting(this);
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
@@ -964,6 +970,7 @@ export class WorldScene extends Phaser.Scene {
       this.watercraft.dispose();
       this.trains.dispose();
       this.cabs.dispose();
+      this.vehicleLayer.dispose();
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
     };
@@ -1980,6 +1987,24 @@ export class WorldScene extends Phaser.Scene {
       this.layers.push(image);
     }
   }
+  /** Where someone in a vehicle is drawn: their crew place in it, turned
+   * with it, in tile units as the ambient crowd is placed. */
+  private mountAt(a: Actor, clock: number): Ambient | undefined {
+    const v = a.mount && this.runtime.engine.world.vehicle?.(a.mount.vehicle);
+    if (!v || !a.mount) return undefined;
+    const pose = vehiclePose(v, clock);
+    const place = crewPlace(v, pose, a.mount.place);
+    if (!place) return undefined;
+    this.mounted.set(a.id, { seated: place.seated, facing: pose.facing, depth: place.depth });
+    return {
+      x: (place.x - 8) / 16,
+      y: (place.y - 16) / 16,
+      activity: "visit",
+      label: v.doing,
+      moving: false,
+      direction: Math.round(pose.facing / 2) % 4,
+    };
+  }
   /** The developer's horse: its gait from the player's pace, its heading
    * from their facing, eight frames a stride. */
   private horseFrame(moving: boolean, facing: number, time: number) {
@@ -2056,6 +2081,8 @@ export class WorldScene extends Phaser.Scene {
       p,
     );
     this.cabs.update(plan, w.pack.setting, e.state.manifest.seed, this.runtime.displayClock(), this.cameras.main.worldView, this.tint);
+    this.vehicleLayer.update(plan?.vehicles ?? [], this.runtime.displayClock(), this.cameras.main.worldView, this.tint,
+      (x, y) => this.lift(x, y));
   }
   /** Doors swing to follow the door objects the engine owns.
    *
@@ -3831,6 +3858,16 @@ export class WorldScene extends Phaser.Scene {
       Math.max(this.scale.width, this.scale.height) / rt.zoom / 32 +
       AMBIENT_MARGIN;
     for (const a of e.state.actors) {
+      // In a vehicle: placed in their crew place from the vehicle's clock,
+      // wherever the simulation last left them.
+      if (a.mount && a.kind === "human") {
+        const at = this.mountAt(a, drawnClock);
+        if (at && Math.abs(at.x - p.x) <= range && Math.abs(at.y - p.y) <= range) {
+          this.mountedActors.set(a.id, a);
+          this.ambient.set(a.id, at);
+          continue;
+        }
+      }
       if (
         a.offRoutine ||
         a.kind !== "human" ||
@@ -3842,6 +3879,8 @@ export class WorldScene extends Phaser.Scene {
       // Asked before itinerary(), because itinerary() builds one on demand at
       // around 3ms. Queued for buildRoutines to spend a couple per frame; until
       // then the resident is held back rather than drawn standing still.
+      this.mounted.delete(a.id);
+      this.mountedActors.delete(a.id);
       if (w.routinePending?.(a.id)) {
         this.indoors.add(a.id);
         pending.push({
@@ -5233,7 +5272,9 @@ export class WorldScene extends Phaser.Scene {
         arcLift = 0;
       }
       const perched = this.perchRise(id);
-      const depth =
+      const seat = this.mounted.get(id);
+      this.shadows.get(id)?.setVisible(!seat);
+      const depth = seat ? seat.depth : 
         im.y +
         arcLift +
         // Standing on the thing means drawing in front of it, foliage and
@@ -5322,6 +5363,7 @@ export class WorldScene extends Phaser.Scene {
         else if (landed) pose = after;
         else if (moving)
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
+        else if (seat) pose = seat.seated ? "sit" : "idle";
         else if (at) pose = this.ambientPose(id, at, time);
         else if (/rest|sleep/i.test(human.activity)) pose = "sit";
         else if (/gathering|working/i.test(human.activity)) pose = "work";
@@ -5459,6 +5501,7 @@ export class WorldScene extends Phaser.Scene {
         // half turn is a single frame, which the eight-way sprites make
         // more obvious than the four-way ones did.
         const ahead =
+          seat?.facing ??
           (id === "player" ? this.blockedFacing : undefined) ??
           cued?.facing ??
           human.facing ??
@@ -5713,6 +5756,7 @@ export class WorldScene extends Phaser.Scene {
     // is O(n²), and nobody off screen needs to stand nicely.
     const people: Ambient[] = [];
     for (const id of this.drawnCrowd) {
+      if (this.mounted.has(id)) continue;
       const at = this.ambient.get(id);
       if (at) people.push(at);
     }
@@ -5779,6 +5823,12 @@ export class WorldScene extends Phaser.Scene {
   private moveAmbient(clock: number) {
     for (const id of this.ambient.keys()) {
       if (!this.entities.has(id)) continue;
+      const rider = this.mountedActors.get(id);
+      if (rider?.mount) {
+        const at = this.mountAt(rider, clock);
+        if (at) this.ambient.set(id, at);
+        continue;
+      }
       const routine = this.runtime.engine.world.itinerary?.(id);
       if (!routine) continue;
       const at = itineraryAt(routine, clock);

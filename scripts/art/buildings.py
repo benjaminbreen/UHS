@@ -369,6 +369,7 @@ def build_buildings(root, sprites):
     from art.regional_houses import regional_house_recipes
     from art.camps import CampBuilding, camp_recipes
     from art.oblique_modern import ObliqueModern, modern_recipes
+    from art.sacred import VoxelTemple, sacred_recipes
     build_banner(sprites)
     recipes={**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
@@ -376,7 +377,7 @@ def build_buildings(root, sprites):
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source),
-             **modern_recipes()}
+             **modern_recipes(), **sacred_recipes()}
     for name,r in list(recipes.items()):
         # Tents and shelters draw their door on the front whatever the facing,
         # and camps pitch them all opening south, so turned copies would lie.
@@ -387,7 +388,8 @@ def build_buildings(root, sprites):
                                       # Same silhouette whichever way it faces, so one set of cast masks.
                                       **({'shadowFrame':name} if r.get('oblique') or r.get('obliqueModern') else {})}
     for name,r in recipes.items():
-        painter=(ObliqueModern if r.get('obliqueModern') else
+        painter=(VoxelTemple if r.get('sacredVoxel') else
+                 ObliqueModern if r.get('obliqueModern') else
                  CampBuilding if r.get('campStyle') else
                  PrecinctPiece if r.get('precinctPiece') else
                  ObliqueMesoLandmark if r.get('mesoLandmark') else

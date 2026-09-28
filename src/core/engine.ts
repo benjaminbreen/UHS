@@ -84,6 +84,7 @@ import { advanceLifeAim } from "./life-aim";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
+import { vehicleAt } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
@@ -3282,6 +3283,8 @@ export class Engine {
   /** Who just answered a knock, for the UI to open the conversation on. Read
    * once and cleared; never part of the saved state. */
   doorAnswer?: string;
+  /** A guard who has just barred the player's way, for the dialogue to open on. */
+  challenger?: string;
   /** Whether a door opens for this caller right now. The rules are in
    * doors.ts; the engine only supplies who is inside and who is welcome. */
   doorVerdict(place: Place, actorId: string): DoorVerdict {
@@ -6099,6 +6102,92 @@ export class Engine {
     a.direction = at.direction;
     a.activity = at.label;
   }
+  /** A guard's watch over warded ground. A stranger coming close to it, or
+   * going in, brings them down off their vehicle -- all but the driver, who
+   * keeps the team -- and across: to bar the way outside, or in through the
+   * gate after them. One who stays after the warning is walked out through the
+   * gate. With the ground clear again they go back and climb aboard. */
+  private keepWatch(a: Actor, clock: number) {
+    const guard = a.guard!;
+    const ward = this.world.ward?.(guard.ward);
+    if (!ward) return;
+    const p = this.state.player.pos;
+    const r = ward.rect;
+    const inside = p.space === ward.placeId;
+    const near = p.space === "outside" && p.x >= r.x - 3 && p.x < r.x + r.w + 3 && p.y >= r.y - 3 && p.y < r.y + r.h + 3;
+    if (inside || near) guard.since = clock;
+    const alarmed = guard.since !== undefined && clock - guard.since < 90;
+    const mount = a.mount ?? a.dismounted;
+    const v = mount && this.world.vehicle?.(mount.vehicle);
+    const gate = { x: ward.gate.x, y: ward.gate.y, space: "outside" };
+    if (alarmed && a.mount) {
+      const to = inside ? gate : p;
+      if (Math.hypot(a.pos.x - to.x, a.pos.y - to.y) > 40) return;
+      if (a.mount.place === 0 && v && v.crew.length > 1) return;
+      a.dismounted = a.mount;
+      delete a.mount;
+      const step = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1]]
+        .map(([dx, dy]) => ({ x: a.pos.x + dx, y: a.pos.y + dy }))
+        .find((q) => !this.blocked(q.x, q.y, "outside"));
+      if (step) this.moveActor(a, { ...step, space: "outside" });
+      this.event(`${a.name} leaps down from the ${(v?.label ?? "cart").toLowerCase()} and comes striding toward you.`);
+      this.cue(a.id, "alarm", to);
+      return;
+    }
+    if (alarmed && !a.mount) {
+      // Following in: from the gate, through it, to the stranger's side.
+      if (inside && a.pos.space === "outside" && Math.hypot(a.pos.x - gate.x, a.pos.y - gate.y) <= 1.6) {
+        const beside = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+          .map(([dx, dy]) => ({ x: p.x + dx, y: p.y + dy }))
+          .find((q) => !this.blocked(q.x, q.y, ward.placeId)) ?? { x: p.x, y: p.y + 1 };
+        this.moveActor(a, { ...beside, space: ward.placeId });
+        this.event(`${a.name} comes in through the gate after you.`);
+      }
+      const here = a.pos.space === p.space;
+      const to = here ? p : gate;
+      a.errand = { to: { ...to }, label: "Coming to turn a stranger back", until: clock + 120 };
+      a.offRoutine = true;
+      if (here && Math.hypot(a.pos.x - p.x, a.pos.y - p.y) <= 1.6) {
+        if (guard.warned === undefined || clock - guard.warned > 300) {
+          guard.warned = clock;
+          this.challenger = a.id;
+          this.cue(a.id, "point", p);
+          this.event(
+            inside
+              ? `${a.name} bars your way. "This is the god's house. Out, the way you came."`
+              : `${a.name} steps across your path. "Keep back from the god's gate, stranger."`,
+          );
+        } else if (inside && clock - guard.warned > 45) {
+          guard.warned = clock;
+          // Out past the ground they watch, so a stranger who walks on is let be.
+          const out = { x: ward.gate.x, y: ward.gate.y + 4, space: "outside" as const };
+          if (!this.blocked(out.x, out.y, "outside")) this.moveActor(this.state.player, out);
+          this.moveActor(a, { x: ward.gate.x + 1, y: ward.gate.y + 1, space: "outside" });
+          this.cue(a.id, "anger", out);
+          this.event(`${a.name} takes you hard by the arm and marches you out through the gate.`);
+        }
+      }
+      return;
+    }
+    if (!alarmed && a.dismounted && v) {
+      // Out of a precinct first, then back to the vehicle.
+      if (a.pos.space !== "outside") {
+        this.moveActor(a, { x: ward.gate.x, y: ward.gate.y + 1, space: "outside" });
+        return;
+      }
+      const at = vehicleAt(v, clock);
+      const to = { x: Math.round(at.x), y: Math.round(at.y), space: "outside" as const };
+      if (Math.hypot(a.pos.x - to.x, a.pos.y - to.y) <= 2.2) {
+        a.mount = a.dismounted;
+        delete a.dismounted;
+        delete a.errand;
+        a.offRoutine = false;
+      } else {
+        a.errand = { to, label: `Going back to the ${v.label.toLowerCase()}`, until: clock + 120 };
+        a.offRoutine = true;
+      }
+    }
+  }
   /** Keeps a dormant resident indoors at their household, or at their door
    * when the house has no interior. */
   private park(a: Actor) {
@@ -6327,7 +6416,11 @@ export class Engine {
           distance(
             a.pos.space === "outside"
               ? a.pos
-              : (this.household(a.householdId)?.home ?? a.pos),
+              : (this.household(a.householdId)?.home ??
+                  // Inside a building not their own: where its door is.
+                  (this.world.place(a.pos.space)
+                    ? { ...this.world.place(a.pos.space)!.entrance, space: "outside" }
+                    : a.pos)),
             focus,
           ) > (this.state.manifest.simulation === 2 ? 220 : 80)
         )
@@ -6352,6 +6445,20 @@ export class Engine {
             this.moveActor(a, copy(target));
         }
         if (a.kind === "human" && next % 60 === 0) this.discover(a);
+        if (a.kind === "human" && a.guard) this.keepWatch(a, next);
+        if (a.kind === "human" && a.mount) {
+          const v = this.world.vehicle?.(a.mount.vehicle);
+          if (v) {
+            const at = vehicleAt(v, next);
+            const x = Math.round(at.x),
+              y = Math.round(at.y);
+            if (a.pos.x !== x || a.pos.y !== y || a.pos.space !== "outside")
+              this.moveActor(a, { x, y, space: "outside" });
+            a.activity = v.doing;
+            a.offRoutine = false;
+          }
+          continue;
+        }
         if (a.kind === "human" && a.tends) {
           if (next % 12 === 0) this.tendHerd(a, next);
           continue;

@@ -225,6 +225,13 @@ export type Actor = {
   goal?: Position;
   /** Out with a herd at grass: stays by it, at a place of their own. */
   tends?: { herd: string; seat: number };
+  /** In a vehicle, in one of its crew places; the vehicle moves them. */
+  mount?: { vehicle: string; place: number };
+  /** Stepped down from a vehicle for a while, to go back to it after. */
+  dismounted?: { vehicle: string; place: number };
+  /** On watch over warded ground. `since` is when they last saw a stranger
+   * on it; `warned` when they last told one to go. */
+  guard?: { ward: string; since?: number; warned?: number };
 };
 export type Place = {
   id: string;
@@ -700,6 +707,9 @@ export interface WorldModel {
   /** A resident's whole day as a route. Built on demand and cached by the
    * world: sampling it costs a binary search, not a path search. */
   itinerary?(actorId: string): import("./itinerary").Itinerary | undefined;
+  /** A vehicle working a settlement, by id, and warded ground by id. */
+  vehicle?(id: string): import("../world/v3/conveyances").Vehicle | undefined;
+  ward?(id: string): import("../world/v3/conveyances").Ward | undefined;
   /** The day's own doings for one person, and the day the settlement keeps,
    * with where each happens. */
   agenda?(

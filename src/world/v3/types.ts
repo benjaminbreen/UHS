@@ -95,6 +95,8 @@ export type SettlementPlan = {
   loadingBays?: Map<string, Rect>;
   tracks?: Map<string, Track>;
   railway?: import("./railway").Railway;
+  vehicles?: import("./conveyances").Vehicle[];
+  wards?: import("./conveyances").Ward[];
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;

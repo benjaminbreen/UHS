@@ -2,11 +2,12 @@ import type { WorldSetting } from "../../geography/types";
 import type { ReligiousProfile, ReligiousRule } from "./types";
 import { europeReligious } from "./europe";
 import { americasReligious } from "./americas";
+import { nearEastReligious } from "./near-east";
 
 /** Narrower date ranges win, so a specific period is not shadowed by a
  * broad one. No rule means no religious building: the setting's tradition
  * has not been researched for this engine, not that it had none. */
-const rules: ReligiousRule[] = [...europeReligious, ...americasReligious].sort(
+const rules: ReligiousRule[] = [...europeReligious, ...americasReligious, ...nearEastReligious].sort(
   (a, b) => a.to - a.from - (b.to - b.from) || a.id.localeCompare(b.id),
 );
 

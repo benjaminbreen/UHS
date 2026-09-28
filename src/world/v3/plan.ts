@@ -3,6 +3,8 @@ import { resolveJunctions } from "./junctions";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
 import { railStaff, railVisitors } from "./rail-travellers";
+import { planConveyances } from "./conveyances";
+import { religiousProfile, religiousScale } from "../../content/settlements/religious";
 import {
   generateCharacter,
   characterLivelihood,
@@ -2427,6 +2429,34 @@ export function planSettlement(
   // Venues before the houses, so the ones that need a door take the lots
   // nearest the centre. A venue with no building of its own is recorded
   // straight away against a gathering point.
+  // A village or an unplanned town still has its sanctuary: the lot nearest
+  // the centre that will hold its precinct. A composed town sets its own
+  // against the square.
+  const sacred = !urban && !camp && pack.setting ? religiousProfile(pack.setting) : undefined;
+  if (sacred) {
+    const scale = religiousScale(profile.radius);
+    const base = `religious-${sacred.recipe}-${scale}-${Math.floor(rand("religious-look") * 3)}`;
+    for (const lot of frontage) {
+      if (lot.religious || lot.venue || lot.civic) continue;
+      // The precinct's gate is drawn in its south wall, so it takes a lot
+      // whose door faces south, where the gate is.
+      if (lot.nx || lot.ny > 0) continue;
+      const frame = base;
+      if (!buildingModels[frame]) continue;
+      const model = buildingModel(frame),
+        [w, h] = model.footprint;
+      const door = { x: lot.point.x + lot.nx * 2, y: lot.point.y + lot.ny * 2 };
+      const rect = { x: door.x - model.entrance[0], y: door.y - model.entrance[1], w, h };
+      const yard = { x: rect.x - 1, y: rect.y - 1, w: w + 2, h: h + 2 };
+      if (!dry(yard, true, rect)) continue;
+      Object.assign(lot, { religious: { ...sacred, scale }, frame, rect, yard, point: door });
+      // Second in the queue, so the houses cannot use up the settlement's
+      // count before it is built; the first lot is the player's own house.
+      frontage.splice(frontage.indexOf(lot), 1);
+      frontage.splice(Math.min(1, frontage.length), 0, lot);
+      break;
+    }
+  }
   const wanted = venuesFor(pack.setting, limit);
   plan.venues = [...groundVenues];
   const already = new Set([
@@ -3023,6 +3053,14 @@ export function planSettlement(
         claim: `religious-${lot.religious.id}`,
         entranceLabel: "Enter",
       });
+      if (lot.religious.warded)
+        (plan.wards ??= []).push({
+          id: `${id}-ward`,
+          label: lot.religious.labels[lot.religious.scale],
+          rect: { ...rect },
+          gate: { ...door },
+          placeId: id,
+        });
       plan.objects.push({
         id: `${id}-exit`,
         name: "Return to the square",
@@ -4733,6 +4771,7 @@ export function planSettlement(
   planRoutines(plan, seed, pack, sample);
   railVisitors(plan, seed, pack);
   railStaff(plan, seed, pack);
+  planConveyances(plan, seed, pack);
   // Props and routine markers claim ground after the fields were planted.
   for (const k of plan.fields?.keys() ?? [])
     if (plan.solid.has(k)) plan.fields!.delete(k);

@@ -2640,6 +2640,8 @@ export function createSettlementWorld(
       return planForEntity(id)?.work.get(id);
     },
     itinerary: (id) => routineFor(id),
+    vehicle: (id) => planForEntity(id)?.vehicles?.find((v) => v.id === id),
+    ward: (id) => planForEntity(id)?.wards?.find((w) => w.id === id),
     agenda: (actor, clock) => {
       const plan =
         actor.id === "player"

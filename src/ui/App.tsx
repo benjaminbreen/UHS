@@ -340,6 +340,17 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, obs.clock, modal]);
+  // A guard who has come down to bar your way has something to say.
+  useEffect(() => {
+    const guard = runtime.engine.challenger;
+    if (!guard || modal) return;
+    runtime.engine.challenger = undefined;
+    openDialogue(
+      guard,
+      "The player has walked onto the sacred ground you guard. You have come down to bar their way and order them out, and you will not be talked round.",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runtime, obs.clock, modal]);
   const mount = useRef<HTMLDivElement>(null);
   const bagButton = useRef<HTMLButtonElement>(null);
   const sheetSummary = useRef<HTMLButtonElement>(null);

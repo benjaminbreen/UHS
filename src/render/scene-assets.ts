@@ -22,6 +22,7 @@ const atlases = {
   vehicles: "/props/vehicles",
   trains: "/props/trains",
   "horse-voxel": "/fauna-v/horse",
+  conveyances: "/fauna-v/vehicles",
   "vehicle-shadows": "/props/vehicle-shadows",
   atlas: "/packs/atlas",
   buildings: "/packs/buildings",
@@ -55,6 +56,8 @@ export const lazySheets = [
   "trains",
   // The voxel horse: the developer's ride, for now.
   "horse-voxel",
+  // Carts, wagons and chariots: where the period and place drove them.
+  "conveyances",
   // The megafauna: most worlds are too late or too far south for them.
   "faunam",
   "faunar",
