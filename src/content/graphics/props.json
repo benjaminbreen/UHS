@@ -820,6 +820,30 @@
       ]
     },
     {
+      "id": "city-willow",
+      "name": "Street willow",
+      "group": "Street furniture",
+      "size": [62, 94],
+      "description": "A weeping willow of the Ginza kind, its crown falling in long curtains.",
+      "variants": ["Young", "Grown"]
+    },
+    {
+      "id": "meiji-pole",
+      "name": "Utility pole",
+      "group": "Street furniture",
+      "size": [36, 98],
+      "description": "A timber telegraph and power pole with two cross-arms of insulators and a transformer can.",
+      "variants": ["Pole"]
+    },
+    {
+      "id": "rickshaw",
+      "name": "Rickshaw",
+      "group": "Street furniture",
+      "size": [48, 36],
+      "description": "A jinrikisha at rest, shafts down, the hood folded back over a red seat.",
+      "variants": ["Rickshaw"]
+    },
+    {
       "id": "city-plane",
       "name": "Street plane tree",
       "group": "Street furniture",

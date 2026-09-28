@@ -517,6 +517,7 @@ export function urbanNeighborhood(
   if (modern || zoning)
     for (const s of layout.streets) {
       if (s.tier === 0 && form.verge) continue;
+      if (form.footways === "main" && s.tier > 0) continue;
       const span = layout.tiers[s.tier],
         walk = s.tier < 2 ? 2 : 1,
         lo = Math.floor((span - 1) / 2),
@@ -1396,7 +1397,8 @@ export function urbanNeighborhood(
   }
 
   function tallKit(frame: string) {
-    return (buildingModel(frame) as { obliqueModern?: string }).obliqueModern === "kit" && !frame.startsWith("modern-atelier-");
+    return (buildingModel(frame) as { obliqueModern?: string }).obliqueModern === "kit" &&
+      !/^modern-(atelier|machiya|nagaya|ginza)-/.test(frame);
   }
 
   function framesForBlock(block: Block) {

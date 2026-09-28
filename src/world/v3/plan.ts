@@ -36,7 +36,7 @@ import {
   roadMarkings,
 } from "../../content/settlements/streets/markings";
 import { tramways } from "../../content/settlements/streets/trams";
-import { industrialized, motorized } from "../../content/settlements/modernity";
+import { industrialized, modernity, motorized } from "../../content/settlements/modernity";
 import { trafficControl } from "../../content/settlements/streets/control";
 import {
   carLength,
@@ -377,6 +377,8 @@ export function planSettlement(
         : "dirt";
   const motorAge = !!pack.setting && motorized(pack.setting);
   const industrialAge = !!pack.setting && industrialized(pack.setting);
+  // Meiji and Taisho Tokyo, before the earthquake and the war rebuilt it.
+  const meiji = !!pack.setting && modernity(pack.setting).id === "japan" && pack.setting.year < 1945;
   const furniture = streetFurnitureFor(pack);
   const municipal = (key: string) =>
     key === "bench" ? furniture?.bench
@@ -758,6 +760,15 @@ export function planSettlement(
   /** Dry, unreserved ground. Level is required only inside `core` (the whole
    * rect by default): a yard or pen margin may step down onto the next
    * terrace, but the footprint itself may not. */
+  /** A stall's awning would stand in a street tree's crown. */
+  const clearTrees = (at: Point) => {
+    plan.objects = plan.objects.filter((o) => {
+      const near = o.kind === "tree" && o.id.includes("street-tree") &&
+        Math.abs(o.pos.x - at.x) <= 2 && Math.abs(o.pos.y - at.y) <= 2;
+      if (near) plan.solid.delete(cellKey(o.pos.x, o.pos.y));
+      return !near;
+    });
+  };
   const dry = (rect: Rect, occupied = true, core: Rect = rect) => {
     let lo = Infinity,
       hi = -Infinity,
@@ -1111,6 +1122,7 @@ export function planSettlement(
         court.x + court.w - inset - 1,
       ].entries()) {
         const stall = stallFor(pack, i + Math.floor(rand("stall") * 3));
+        clearTrees({ x, y: court.y + court.h - 2 });
         plan.objects.push({
           id: `${site.id}-market-${i}`,
           name: stall.label,
@@ -1124,7 +1136,16 @@ export function planSettlement(
           owner: `${site.id}-community`,
         });
       }
-      // Costermongers' barrows work the square's upper edge.
+      // Costermongers' barrows work the square's upper edge; in Tokyo the
+      // rickshaws wait there for fares.
+      if (industrialAge && meiji && min >= 9)
+        for (const [i, x] of [court.x + inset + 1, court.x + court.w - inset - 3].entries()) {
+          const at = { x, y: court.y + 2 };
+          if (plan.solid.has(cellKey(x, at.y)) || !dry({ ...at, w: 1, h: 1 }, false)) continue;
+          plan.solid.add(cellKey(x, at.y));
+          plan.objects.push({ id: `${site.id}-square-rickshaw-${i}`, name: "Rickshaw", kind: "monument",
+            sprite: "study-propb-rickshaw-0", pos: pos(at), inventory: {} });
+        }
       if (industrialAge && pack.setting?.culture === "european" && min >= 11)
         for (const [i, x] of [court.x + inset + 1, court.x + court.w - inset - 2].entries()) {
           const at = { x, y: court.y + 2 };
@@ -1207,8 +1228,10 @@ export function planSettlement(
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
       (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
-    const paintBlock = (block: Rect, ground: Terrain = blockGround) =>
+    const paintBlock = (block: Rect, given: Terrain = blockGround) =>
       eachCell(block, (x, y) => {
+        // Behind a Tokyo street front the yards and lanes were beaten earth.
+        const ground = meiji && given === "paving" ? "dirt" : given;
         const k = cellKey(x, y);
         if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, ground, 2) && ground === "paving") {
           plan.pavement!.set(k, "footway");
@@ -1514,7 +1537,9 @@ export function planSettlement(
           kind: "tree",
           pos: pos(piece),
           // An industrial city planted its own plane, smaller than the wild tree.
-          sprite: industrialAge && !plotted
+          sprite: industrialAge && meiji
+            ? `study-propb-city-willow-${Math.floor(rand("plane", piece.x, piece.y) * 2)}`
+            : industrialAge && !plotted
             ? `study-propb-city-plane-${Math.floor(rand("plane", piece.x, piece.y) * 3)}`
             : pack.trees[0],
           inventory: {},
@@ -1678,6 +1703,7 @@ export function planSettlement(
           },
           stall: (at, i, trade) => {
             const stall = stallFor(pack, i, trade);
+            clearTrees(at);
             plan.objects.push({
               id: `${site.id}-pitch-${at.x}-${at.y}`,
               name: stall.label,

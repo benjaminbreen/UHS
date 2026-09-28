@@ -55,6 +55,8 @@ export function modernBuildingSince(frame: string): number | undefined {
   if (rule) return rule.from;
   if (frame.startsWith("modern-works-")) return 1880;
   if (frame.startsWith("modern-brickshop-")) return 1860;
+  if (frame.startsWith("modern-ginza-")) return 1872;
+  if (frame.startsWith("modern-machiya-") || frame.startsWith("modern-nagaya-")) return 1700;
   if (frame.startsWith("modern-civic-hall-")) return 1900;
   return undefined;
 }
@@ -97,6 +99,12 @@ const STYLES: readonly StyleRule[] = [
     ],
     from: 1957,
   },
+  // Meiji and Taisho Tokyo: merchant houses and storehouse-shops on the
+  // streets, lane tenements behind, the Ginza's brick rows downtown. The 1923
+  // earthquake and the 1945 fires ended most of them.
+  { style: "machiya", uses: ["downtown", "commercial", "rowhouse", "tenement"], regions: ["japan"], from: 1600, to: 1945 },
+  { style: "nagaya", uses: ["tenement", "rowhouse"], regions: ["japan"], from: 1600, to: 1945 },
+  { style: "ginza", uses: ["downtown"], regions: ["japan"], from: 1872, to: 1945 },
   { style: "glass", uses: ["downtown"], from: 1995 },
   { style: "glass", uses: ["estate"], regions: ["east-asia", "southeast-asia"], from: 1995 },
 ];

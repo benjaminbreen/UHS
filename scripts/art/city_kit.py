@@ -1802,6 +1802,16 @@ KIT = {
     'modern-station-postwar-large-0': ('postwar', [20, 9], 5, 131, dict(look='travertine')),
     'modern-station-postwar-large-1': ('postwar', [20, 9], 6, 132, dict(look='concrete')),
     'modern-station-postwar-medium-0': ('postwar', [14, 8], 3, 133, dict(look='travertine')),
+    'modern-machiya-0': ('machiya', [5, 5], 2, 111, dict()),
+    'modern-machiya-1': ('machiya', [6, 5], 2, 112, dict(wood='bengara')),
+    'modern-machiya-2': ('machiya', [7, 5], 2, 113, dict(shop=False, upper='lattice')),
+    'modern-machiya-3': ('machiya', [5, 5], 2, 114, dict(wood='bengara', upper='lattice')),
+    'modern-machiya-4': ('dozo', [7, 6], 2, 115, dict()),
+    'modern-machiya-5': ('machiya', [6, 5], 2, 116, dict()),
+    'modern-nagaya-0': ('nagaya', [10, 5], 1, 117, dict()),
+    'modern-nagaya-1': ('nagaya', [8, 5], 1, 118, dict()),
+    'modern-ginza-0': ('ginza', [11, 6], 2, 119, dict()),
+    'modern-ginza-1': ('ginza', [9, 6], 2, 120, dict()),
     'modern-civic-hall-0': ('mairie', [14, 6], 2, 3, dict(sign='~')),
     'modern-civic-hall-1': ('mairie', [18, 7], 2, 11, dict(sign='~')),
 }
@@ -1818,6 +1828,10 @@ ABOUT = {
     'terminus': 'A terminus of the high railway age: great glazed arches at the ends of the train sheds, a clock, office ranges ending in pavilions, and the sheds\' vaults running back behind.',
     'townstation': 'A town\'s railway station: the station master\'s house under a fretted gable, the booking hall and waiting rooms, and a canopy with a sawtooth valance over the platform.',
     'postwar': 'A station rebuilt after the war: a glass concourse under a cantilevered concrete roof, offices in a slab behind, a clock on a pylon.',
+    'machiya': 'A merchant house of the Tokyo street: slatted plaster windows over a tiled pent roof, the shop open behind noren, firewalls on the party walls.',
+    'dozo': 'A fireproof storehouse-shop in black lacquered plaster, heavy stepped shutters, a great ridge and a signboard on the roof.',
+    'nagaya': 'A lane tenement of one storey: a row of lattice doors under one roof, pot plants and rain barrels on the step.',
+    'ginza': 'A Ginza bricktown row: two storeys of red brick, a colonnade along the footway carrying a balcony, green shutters, a tiled roof.',
     'mairie': 'A town hall: a pedimented pavilion on columns, wings of tall windows, a roof lantern with the flag.',
 }
 
@@ -1830,11 +1844,12 @@ def kit_recipes(side_depth):
         out[name] = {
             'label': {'immeuble': 'Apartment house', 'townhouse': 'Brick town house', 'mairie': 'Town hall',
                       'atelier': 'Yard workshop', 'hotel': 'Town hall', 'opera': 'Opera house', 'church': 'Parish church', 'mill': 'Works', 'institute': 'Institute',
+                      'machiya': 'Merchant house', 'dozo': 'Storehouse shop', 'nagaya': 'Lane tenement', 'ginza': 'Brick row',
                       'terminus': 'Railway station', 'townstation': 'Railway station', 'postwar': 'Railway station'}[kind]
             if 'brickshop' not in name else 'Brick shop block',
             'footprint': fp, 'entrance': [fp[0] // 2, fp[1]],
             'wall': 'grey-brick', 'roof': 'flat', 'roofMaterial': 'slate', 'attachments': [],
-            'opening': 'door', 'height': 62 if kind == 'atelier' else 200 if station or kind in ('hotel', 'opera', 'church', 'mill', 'institute') else GROUND + STOREY * storeys + 30,
+            'opening': 'door', 'height': 62 if kind == 'atelier' else 200 if station or kind in ('hotel', 'opera', 'church', 'mill', 'institute') else 120 if kind in ('machiya', 'dozo', 'ginza') else 70 if kind == 'nagaya' else GROUND + STOREY * storeys + 30,
             'description': ABOUT[kind], 'obliqueModern': 'kit', 'seed': seed,
             'stories': storeys, 'deep': deep,
         }
@@ -1866,6 +1881,12 @@ def kit_building(r, side_depth):
     if kind == 'institute':
         from art.city_civic import Institute
         return Institute(W=W, sd=sd, seed=seed)
+    if kind in ('machiya', 'dozo', 'nagaya', 'ginza'):
+        from art import city_japan as j
+        if kind == 'machiya':
+            return j.Machiya(W=W, sd=sd, seed=seed, shop=o.get('shop', True), upper=o.get('upper', 'mushiko'),
+                             wood=j.BENGARA if o.get('wood') == 'bengara' else j.CEDAR)
+        return {'dozo': j.Dozo, 'nagaya': j.Nagaya, 'ginza': j.GinzaBrick}[kind](W=W, sd=sd, seed=seed)
     if kind == 'church':
         from art.city_civic import GothicChurch, GREY_STONE, RED_SAND, LEAD
         stone, roof = ((GREY_STONE, LEAD), (WARM_LIME, SLATE), (RED_SAND, SLATE))[o['look']]

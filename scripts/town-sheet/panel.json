@@ -299,5 +299,10 @@
     "name": "nairobi-1950",
     "query": "A clerk in Nairobi, 1950 CE",
     "radius": 70
+  },
+  {
+    "name": "lima-1925",
+    "query": "A tailor in Lima, 1925 CE",
+    "radius": 70
   }
 ]

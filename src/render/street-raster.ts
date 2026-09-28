@@ -28,6 +28,7 @@ const COURSE: Record<StreetMaterial, RGB> = {
   asphalt: [150, 152, 148],
   concrete: [170, 172, 164],
   plank: [120, 90, 60],
+  macadam: [168, 156, 132],
 };
 /** Radius of a kerb rounded at a street corner, in native pixels. */
 const CURB_R = 14;

@@ -80,6 +80,21 @@ export function asphaltPixel(wx: number, wy: number): Color {
   return c;
 }
 
+/** Water-bound macadam: crushed stone rolled into a warm buff crust, the
+ * aggregate showing as small lit and shaded chips, two worn tracks where the
+ * wheels run, and the dark of old wet patches. */
+export function macadamPixel(wx: number, wy: number): Color {
+  const mottle = waterNoise(wx, wy, 13, 861) * 0.6 + waterNoise(wx, wy, 5, 862) * 0.4;
+  let c: Color = tint([164, 150, 124], Math.round((mottle - 0.5) * 10));
+  const chip = hash(wx >> 1, wy >> 1, 863);
+  if (chip > 0.93) c = tint(c, 10);
+  else if (chip < 0.07) c = tint(c, -9);
+  else if (hash(wx, wy, 864) > 0.97) c = tint(c, -14);
+  const wet = waterNoise(wx, wy, 31, 865);
+  if (wet > 0.7) c = [c[0] - 16, c[1] - 14, c[2] - 8];
+  return c;
+}
+
 /** A poured sidewalk scored into squares: a tooled joint with a lit lip on
  * its far side, a broom finish, panels a shade apart where they were poured on
  * different days, the odd crack and the grime of feet. */
@@ -139,6 +154,7 @@ export function pavingStonePixel(
     return tint(wood, tone + grain + edge + g.lift);
   }
   if (material === "asphalt") return asphaltPixel(wx, wy);
+  if (material === "macadam") return macadamPixel(wx, wy);
   if (material === "concrete" && grade === "broad") {
     const row = Math.floor(wy / 16), col = Math.floor(wx / 24);
     const x = mod(wx, 24), y = mod(wy, 16);

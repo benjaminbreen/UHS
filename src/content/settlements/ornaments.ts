@@ -35,6 +35,9 @@ export function lampFor(pack: Pack): { sprite: string; label: string } {
   });
   if (year >= 2005) return { sprite: "study-propb-city-lamp-2", label: "Street lamp" };
   if (year >= 1960) return lamp("sodium-lamp", "Street lamp");
+  // Meiji Tokyo lit its streets from the poles that carried the wires.
+  if (year >= 1890 && year < 1945 && pack.anchor.lon >= 128 && pack.anchor.lon <= 146 && culture === "east-asian")
+    return { sprite: "study-propb-meiji-pole-0", label: "Utility pole" };
   if (year >= 1890) return lamp("electric-lamp", "Street lamp");
   if (year >= 1840 && culture === "european")
     return { sprite: "study-propb-city-lamp-0", label: "Gas lamp" };
@@ -62,6 +65,10 @@ export function streetFurnitureFor(pack: Pack):
     (culture === "inner-eurasian" || (culture === "european" && lon >= 23 && lat >= 44));
   const paris = culture === "european" && year < 1960;
   const at = (id: string, v: number) => `study-propb-${id}-${v}`;
+  // Meiji and Taisho Tokyo: a plank bench, stacked fire buckets, stone
+  // lanterns where a European square has urns.
+  if (culture === "east-asian" && lon >= 128 && lon <= 146 && year < 1945)
+    return { bench: at("bench", 0), bin: at("bucket", 1), planter: at("stone-lantern", 0), bollard: at("street-bollard", 0) };
   return {
     bench: at("street-bench", soviet ? 2 : year >= 1960 ? 3 : paris ? 1 : 0),
     bin: at("street-bin", soviet ? 1 : year >= 1960 ? 2 : 0),

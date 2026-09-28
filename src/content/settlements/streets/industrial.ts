@@ -71,7 +71,21 @@ const stages: Record<string, Stage[]> = {
     { until: 1990, palette: settsAndFlags("asphalt") },
   ],
   "eastern-europe": [{ until: 1955, palette: setts }],
-  japan: [{ until: 1955, palette: mainOnly("earth") }],
+  // Meiji Tokyo's main streets were macadamised from the 1870s, the Ginza's
+  // with brick footways and kerbstones; the side streets stayed earth.
+  japan: [
+    {
+      until: 1925,
+      palette: {
+        main: ["macadam"],
+        local: ["macadam", "earth"],
+        lane: ["earth"],
+        square: ["macadam"],
+        footway: ["brick"],
+      },
+    },
+    { until: 1955, palette: mainOnly("earth") },
+  ],
   australasia: [{ until: 1925, palette: mainOnly("earth") }],
 };
 

@@ -105,6 +105,9 @@ export type UrbanForm = {
   >;
   /** Planted grass strip, in cells, between an arterial and its footway. */
   verge?: number;
+  /** Which streets have footways once the city has any: all of them, or
+   * only the main streets, the side streets left to the shop fronts. */
+  footways?: "all" | "main";
   /** Share of untouched blocks reserved for pocket parks or vacant lots. */
   greenSpaces?: number;
   /** Street furniture this fabric places: lamps at block corners on the

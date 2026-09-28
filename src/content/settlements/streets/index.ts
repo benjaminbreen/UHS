@@ -10,7 +10,8 @@ export type StreetMaterial =
   | "slab"
   | "brick"
   | "sett"
-  | "plank";
+  | "plank"
+  | "macadam";
 /** Content resolves place/date into material; rendering never branches on culture. */
 export function streetMaterial(s: WorldSetting): StreetMaterial {
   const industrial = industrialStreets(s)?.main[0];
