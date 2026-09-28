@@ -2,7 +2,7 @@ import { modernBuildingSince } from "../../content/settlements/modern-buildings"
 import { resolveJunctions } from "./junctions";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
-import { railVisitors } from "./rail-travellers";
+import { railStaff, railVisitors } from "./rail-travellers";
 import {
   generateCharacter,
   characterLivelihood,
@@ -4732,6 +4732,7 @@ export function planSettlement(
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
   railVisitors(plan, seed, pack);
+  railStaff(plan, seed, pack);
   // Props and routine markers claim ground after the fields were planted.
   for (const k of plan.fields?.keys() ?? [])
     if (plan.solid.has(k)) plan.fields!.delete(k);

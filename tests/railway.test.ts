@@ -92,3 +92,17 @@ it("fits travellers' days to trains that are standing at the platform", () => {
     expect(platformDoors(line, arriving!.run)).toContainEqual(off.pos);
   }
 });
+
+it("staffs the station: a stationmaster and porters working the platform", () => {
+  const plan = town("rail-days");
+  const staff = plan.actors.filter((a) => a.id.includes("-railstaff-"));
+  expect(staff.map((a) => a.role)).toContain("Stationmaster");
+  expect(staff.some((a) => a.role === "Porter")).toBe(true);
+  const p = plan.railway!.station!.platform;
+  for (const a of staff) {
+    const stations = plan.stations.get(a.id)!;
+    expect(stations.at(-1)!.activity).toBe("rest");
+    // Their work is on the platform or at the station's door.
+    expect(stations.slice(0, -1).some((s) => s.pos.x >= p.x && s.pos.x < p.x + p.w && s.pos.y >= p.y && s.pos.y < p.y + p.h)).toBe(true);
+  }
+});

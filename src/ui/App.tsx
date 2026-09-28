@@ -279,6 +279,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     // The key can be held into a wide swing; a click cannot.
     const verb = pressed ? runtime.pressSwing() : runtime.runVerb(slot);
     if (verb?.kind === "talk" && verb.actor) openDialogue(verb.actor);
+    // Where to is the map's question: it plans the journey by rail.
+    if (verb?.kind === "board") setModal("map");
     // Whoever answered a knock is standing in their own doorway waiting to be
     // spoken to; opening the conversation is what knocking was for.
     const answered = runtime.engine.doorAnswer;
@@ -1873,7 +1875,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </>
             )}
             {modal === "map" && (
-              <MapModal runtime={runtime} onClose={() => setModal(null)} />
+              <MapModal runtime={runtime} onClose={() => { runtime.rail = undefined; setModal(null); }} />
             )}
             {modal === "settings" && (
               <>

@@ -73,7 +73,9 @@ export type Verb = {
     /** Select a building, as clicking it does: outline, and the sidebar. */
     | "inspect"
     /** Work the door of the building in front of you. */
-    | "door";
+    | "door"
+    /** Step aboard the train standing at the platform. */
+    | "board";
   /** What the HUD prints beside the key. */
   label: string;
   /** Talk: whom to open the dialogue panel on. Inspect: what to select. */
@@ -86,6 +88,7 @@ const TOOL_POSES: Record<ToolAction, CharacterPose> = {
   reap: "reap",
   mine: "chop",
 };
+import { DAY, timetable, trainsAt } from "../world/v3/railway";
 import { findPath } from "../core/pathfinding";
 import {
   distance,
@@ -110,7 +113,7 @@ import { ChunkCache } from "./chunks";
 import { z } from "zod";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
 import { packForSetting } from "../content/geography/pack";
-import { createSettlementWorld } from "../world/v3/generate";
+import { createSettlementWorld, type SettlementWorld } from "../world/v3/generate";
 import { createAtlasWorld } from "../world/v2/generate";
 import { integratedSetting } from "../content/geography/defaults";
 import { ecologyProfiles } from "../content/ecology/profiles";
@@ -296,6 +299,9 @@ export class Runtime {
    * document an agent does, minus the stated reasoning. */
   chronicle: Chronicle;
   journey?: import("./map-travel").MapTravel;
+  /** Set while the player holds a ticket for the train at the platform: the
+   * map then plans the journey by rail. */
+  rail?: { departs: number; label: string };
   selected?: string;
   notice = "";
   running = false;
@@ -1275,6 +1281,25 @@ export class Runtime {
   }
   /** What F and E do right now. Two slots, resolved in a fixed order so the
    * player can learn it, and labelled so they never have to guess. */
+  /** The train the player could step aboard: a stopping train standing at the
+   * platform they are on, on a map with somewhere else to go. */
+  boardable() {
+    const p = this.engine.state.player.pos;
+    const setting = this.engine.world.pack.setting;
+    if (!this.journey || p.space !== "outside" || !setting) return;
+    const w = this.engine.world as SettlementWorld;
+    const plan = w.planAt?.(Math.round(p.x), Math.round(p.y));
+    const line = plan?.railway;
+    const r = line?.station?.platform;
+    if (!line || !r || p.x < r.x - 1 || p.y < r.y - 1 || p.x > r.x + r.w || p.y > r.y + r.h) return;
+    const clock = this.displayClock();
+    const runs = timetable(this.engine.state.manifest.seed, plan.site.id, setting, line);
+    const train = trainsAt(line, runs, clock).find((t) => t.standing);
+    if (!train) return;
+    const departs = Math.floor(clock / DAY) * DAY + train.run.at + train.run.dwell;
+    const m = Math.round(((departs % DAY) + DAY) % DAY / 60);
+    return { departs, label: `${Math.floor(m / 60) % 24}.${String(m % 60).padStart(2, "0")}` };
+  }
   verbs(): { primary?: Verb; alternate?: Verb } {
     const c = this.propControls();
     const p = this.engine.state.player;
@@ -1316,6 +1341,7 @@ export class Runtime {
           }
         : undefined;
     let primary: Verb | undefined;
+    const train = this.boardable();
     const facing = this.engine.facingCell();
     const burn = {
       type: "interact" as const,
@@ -1339,6 +1365,7 @@ export class Runtime {
       primary = { kind: "shoot", label: (p.inventory.arrow ?? 0) > 0 ? "Draw bow" : "No arrows" };
     else if (item?.id === "sling")
       primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
+    else if (train) primary = { kind: "board", label: `Board the ${train.label} train` };
     else if (speaker)
       primary = {
         kind: "talk",
@@ -1462,6 +1489,11 @@ export class Runtime {
     }
     this.stop(false);
     if (verb.kind === "talk") return verb;
+    if (verb.kind === "board") {
+      const train = this.boardable();
+      this.rail = train;
+      return train ? verb : undefined;
+    }
     if (verb.kind === "inspect") {
       this.select(verb.actor);
       return verb;

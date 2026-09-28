@@ -1465,6 +1465,58 @@ def glow(im):
     return out
 
 
+def signal(kind, clear):
+    """A signal beside the line. A semaphore: a white wooden post with its
+    finial and ladder, the red arm level at danger and dropped at clear, the
+    spectacle glass swung over the lamp. A colour light: a slim post, a black
+    head on a backboard, the red or the green lit."""
+    W, H = 20, 76
+    c = C(W, H)
+    base = H - 2
+    px_ = 10
+    if kind == 'sem':
+        post = ['#6a6860', '#a8a498', '#d8d4c8', '#f2efe6']
+        c.rect(px_ - 1, 8, px_ + 1, base, post[2])
+        c.vl(px_ - 1, 8, base, post[3])
+        c.vl(px_ + 1, 8, base, post[0])
+        c.rect(px_ - 3, base - 3, px_ + 3, base, IRON[3])
+        # Finial and cap.
+        c.rect(px_ - 2, 6, px_ + 2, 7, IRON[3])
+        c.vl(px_, 2, 5, IRON[4])
+        sphere(c, px_ + 0.5, 2, 1.5, IRON, lo=2)
+        # Ladder up the right side.
+        c.vl(px_ + 3, 14, base - 3, IRON[3])
+        c.vl(px_ + 5, 14, base - 3, IRON[3])
+        for y in range(16, base - 3, 3):
+            c.hl(px_ + 3, px_ + 5, y, IRON[4])
+        # The arm, pivoted on the post's left: level at danger, down at clear.
+        ay = 12
+        for i in range(12):
+            dy = int(i * 0.8) if clear else 0
+            x = px_ - 2 - i
+            for k in range(3):
+                col = LIVERY['red'][4] if not (7 <= i <= 8) else '#f2efe6'
+                if k == 2:
+                    col = LIVERY['red'][2] if not (7 <= i <= 8) else '#b8b4a8'
+                c.px(x, ay + k + dy, col)
+        # Spectacle: red glass at danger, green at clear, over the lamp.
+        lamp_y = ay + 8
+        c.rect(px_ + 2, lamp_y - 2, px_ + 4, lamp_y + 2, IRON[2])
+        c.px(px_ + 3, lamp_y, '#ff5040' if not clear else '#50e878')
+        c.px(px_ + 2, ay + 1, IRON[4])
+    else:
+        c.rect(px_, 20, px_ + 1, base, IRON[3])
+        c.vl(px_, 20, base, IRON[5])
+        c.rect(px_ - 4, 6, px_ + 5, 21, '#f2efe6')
+        c.rect(px_ - 3, 7, px_ + 4, 20, IRON[1])
+        for k, (cy, on_col, off_col) in enumerate(((10, '#50e878', '#1c3a28'), (16, '#ff5040', '#3a1c1c'))):
+            lit = (k == 0) == clear
+            c.ellipse(px_ + 0.5, cy + 0.5, 2.2, 2.2, on_col if lit else off_col)
+            c.hl(px_ - 2, px_ + 3, cy - 3, IRON[3])
+        c.rect(px_ - 3, base - 2, px_ + 4, base, IRON[3])
+    return outline(c.im)
+
+
 def _smoke(side, spec):
     """Where steam or exhaust leaves the vehicle, in its side view."""
     return getattr(side, 'smoke', None)
@@ -1513,6 +1565,17 @@ def build(out_dir, generated):
             b = st['brake']
             add('brake', 'brake', b, wagon, lambda sd, b=b: {'': top_wagon(b, sd)})
         catalog[name] = parts
+    for kind in ('sem', 'light'):
+        for clear in (0, 1):
+            im = signal(kind, clear)
+            sprites[f'rail-signal-{kind}-{clear}'] = im
+            g = Image.new('RGBA', im.size)
+            src, q = im.load(), g.load()
+            for y in range(im.height):
+                for x in range(im.width):
+                    if src[x, y][:3] in (rgba('#ff5040')[:3], rgba('#50e878')[:3]):
+                        q[x, y] = src[x, y]
+            sprites[f'rail-signal-{kind}-{clear}-glow'] = g
     from art.atlas import pack_atlas
     pack_atlas(sprites, out_dir, 'trains', 2048)
     (generated / 'trains.generated.json').write_text(json.dumps(catalog, indent=1))

@@ -25,6 +25,7 @@ import {
 } from "../world/travel/network";
 import { settingForTravelStop } from "../world/travel/environment";
 import type { SettlementWorld } from "../world/v3/generate";
+import { DAY, railSpeed, timetable } from "../world/v3/railway";
 import type { MapEntrance } from "../world/travel/entrances";
 export function travelSetting(
   map: PermanentMap,
@@ -362,7 +363,7 @@ export class MapTravel {
   }
   /** A long journey the player does not walk: the map at the far end is
    * prepared and the days on the road pass at once. */
-  async voyage(to: Coordinate) {
+  async voyage(to: Coordinate, rail?: { departs: number; label: string }) {
     if (this.busy || this.closed) return;
     const id = mapForCoordinate(to);
     if (id === this.id) return;
@@ -374,7 +375,7 @@ export class MapTravel {
     }
     this.busy = true;
     this.runtime.stop(false);
-    this.runtime.notice = "Setting out…";
+    this.runtime.notice = rail ? `Aboard the ${rail.label}…` : "Setting out…";
     this.runtime.emit(false);
     try {
       const plan = journeyPlan(tileCentre(this.id), to);
@@ -390,11 +391,43 @@ export class MapTravel {
         x: Math.max(-half, Math.min(half, here.x - c.x)),
         y: Math.max(-half, Math.min(half, here.y - c.y)),
       };
-      const point = world.blocked(aim.x, aim.y, "outside") ? world.spawn : aim;
-      this.arrive(destination, id, point, plan.days * 86400);
+      let point = world.blocked(aim.x, aim.y, "outside") ? world.spawn : aim;
+      let seconds = plan.days * 86400;
+      let told = `After ${plan.days} day${plan.days === 1 ? "" : "s"} on the road${plan.sea ? " and at sea" : ""}, you reach ${permanentMap(id, this.year).name}.`;
+      if (rail) {
+        // From the moment the train pulls out, at the line's pace; off onto
+        // the platform at the far end, where there is one.
+        const hours = plan.land / railSpeed(this.year);
+        seconds = Math.max(0, rail.departs - this.runtime.engine.state.clock) + Math.round(hours * 3600);
+        const s = world as SettlementWorld;
+        const at = s.planAt?.(Math.round(world.spawn.x), Math.round(world.spawn.y)) ?? s.planAt?.(0, 0);
+        const station = at?.railway?.station;
+        const name = permanentMap(id, this.year).name;
+        const setting = destination.engine.state.manifest.setting;
+        if (station && at && setting) {
+          const p = station.platform;
+          point = { x: p.x + (p.w >> 1), y: p.y + (p.h >> 1) };
+          // Off the train that brings them: the first to stand at this
+          // platform once the journey is run.
+          const due = this.runtime.engine.state.clock + seconds;
+          const runs = timetable(destination.engine.state.manifest.seed, at.site.id, setting, at.railway!)
+            .filter((r) => r.dwell);
+          const day = Math.floor(due / DAY);
+          const next = [day, day + 1]
+            .flatMap((d) => runs.map((r) => d * DAY + r.at + 40))
+            .filter((t) => t >= due)
+            .sort((a, b) => a - b)[0];
+          if (next !== undefined) seconds = next - this.runtime.engine.state.clock;
+        }
+        const m = Math.max(10, Math.round((hours * 60) / 10) * 10);
+        const took = m < 60 ? `${m} minutes` : `${Math.floor(m / 60)} hour${m >= 120 ? "s" : ""}${m % 60 ? ` and ${m % 60} minutes` : ""}`;
+        told = station
+          ? `After ${took} on the train, you step down onto the platform at ${name}.`
+          : `After ${took} on the train and the last miles on foot, you reach ${name}.`;
+      }
+      this.arrive(destination, id, point, seconds);
       this.arrival = undefined;
-      destination.engine.grantXp("wayfaring", 40 + plan.days * 10);
-      const told = `After ${plan.days} day${plan.days === 1 ? "" : "s"} on the road${plan.sea ? " and at sea" : ""}, you reach ${permanentMap(id, this.year).name}.`;
+      destination.engine.grantXp("wayfaring", 40 + Math.round(seconds / 8640));
       destination.engine.event(told, "system");
       this.runtime.notice = told;
     } catch (e) {

@@ -85,6 +85,82 @@ export function railVisitors(plan: SettlementPlan, seed: string, pack: Pack) {
   }
 }
 
+/** The station's own people: a stationmaster between the booking office and
+ * the platform, and a porter or two working the platform. They live at the
+ * station as far as the town can see, and are out on the platform much of
+ * the day. */
+export function railStaff(plan: SettlementPlan, seed: string, pack: Pack) {
+  const station = plan.railway?.station;
+  const setting = pack.setting;
+  if (!station?.building || !setting || setting.year < 1840) return;
+  const p = station.platform;
+  const alongX = plan.railway!.axis === "x";
+  const edge = station.side < 0 ? (alongX ? p.y + p.h - 1 : p.x + p.w - 1) : alongX ? p.y : p.x;
+  const back = station.side < 0 ? (alongX ? p.y : p.x) : alongX ? p.y + p.h - 1 : p.x + p.w - 1;
+  const length = alongX ? p.w : p.h;
+  const start = alongX ? p.x : p.y;
+  const at = (t: number, across: number): Point =>
+    alongX ? { x: start + Math.round(t * (length - 1)), y: across } : { x: across, y: start + Math.round(t * (length - 1)) };
+  const bed = {
+    x: station.building.x + (station.building.w >> 1),
+    y: station.building.y + (station.building.h >> 1),
+  };
+  const staff = [
+    ["stationmaster", "Stationmaster", 45],
+    ...Array.from({ length: plan.site.profile.radius >= 60 ? 2 : 1 }, () => ["porter", "Porter", 30] as const),
+  ] as const;
+  staff.forEach(([wanted, role, age], i) => {
+    const id = `${plan.site.id}-railstaff-${i}`;
+    const roll = (k: string) => random(seed, id, k);
+    const pos = { ...station.door, space: "outside" as const };
+    const actor: Actor = {
+      id,
+      name: proceduralName(setting, seed, id),
+      role,
+      kind: "human",
+      pos: { ...pos },
+      home: { ...pos },
+      work: { ...at(0.5, edge), space: "outside" },
+      sprite: `human-${i % 3}-${Math.floor(roll("sprite") * 6)}`,
+      inventory: { water: 1 },
+      activity: role === "Porter" ? "Carrying a load" : "Keeping the record",
+      fatigue: 0,
+      hunger: 5,
+      trust: 1,
+      memories: [],
+      direction: 2,
+    };
+    if (setting.characterRevision) {
+      Object.assign(actor, generateCharacter(setting, seed, id, age + Math.floor(roll("age") * 15), wanted));
+      actor.role = role;
+    }
+    plan.actors.push(actor);
+    plan.work.set(id, {
+      home: station.door,
+      work: at(0.5, edge),
+      water: station.door,
+      social: station.door,
+      label: role === "Porter" ? "Carrying luggage" : "Keeping the station",
+      offset: Math.floor(roll("offset") * 120),
+    });
+    const s = roll("side");
+    plan.stations.set(id, role === "Porter"
+      ? [
+          { pos: at(0.2 + s * 0.2, edge), activity: "haul", label: "Carrying a trunk along the platform", toward: "the platform", minutes: 10 },
+          { pos: station.door, activity: "haul", label: "Fetching luggage from the booking hall", toward: "the booking hall", minutes: 8 },
+          { pos: at(0.6 + s * 0.3, edge), activity: "haul", label: "Carrying a trunk along the platform", toward: "the platform", minutes: 10 },
+          { pos: at(0.5, back), activity: "work", label: "Sweeping the platform", toward: "the platform", minutes: 14 },
+          { pos: bed, activity: "rest", label: "In the porters' room", minutes: 480, share: 0.55 },
+        ]
+      : [
+          { pos: station.door, activity: "work", label: "At the booking office", toward: "the booking office", minutes: 25 },
+          { pos: at(0.5, edge), activity: "work", label: "Seeing the trains in and out", toward: "the platform", minutes: 25 },
+          { pos: at(s < 0.5 ? 0 : 1, edge), activity: "work", label: "Watching the line", toward: "the platform end", minutes: 12 },
+          { pos: bed, activity: "rest", label: "In the stationmaster's office", minutes: 480, share: 0.45 },
+        ]);
+  });
+}
+
 /** Where a visitor spends the day: the square, a venue, a shop door. */
 function destinations(plan: SettlementPlan, seed: string, id: string) {
   const places: { pos: Point; label: string; toward: string }[] = [

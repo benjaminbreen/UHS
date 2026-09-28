@@ -53,6 +53,13 @@ export type Run = {
 };
 
 export const DAY = 86400;
+
+/** A journey's average by train, stops and changes included, in km/h: a
+ * Stephenson line's thirty, an express age's sixty, a high-speed line's
+ * hundred and more. */
+export function railSpeed(year: number) {
+  return year < 1860 ? 30 : year < 1900 ? 42 : year < 1940 ? 55 : year < 1970 ? 70 : year < 2000 ? 95 : 130;
+}
 /** Tiles per game second squared. At line speed a stopping train starts
  * braking some eighty tiles out and takes three minutes of game time to stop. */
 const BRAKE = 0.006;

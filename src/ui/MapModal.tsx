@@ -9,11 +9,17 @@ import { SettlementGlyph, glyphFor } from "./map-glyphs";
 import { formatHistoricalYear } from "../core/calendar";
 import { PeriodMap, footprints, periodCaptions, periodStyle } from "./period-map";
 import { noise } from "../world/geography/noise";
+import { railSpeed } from "../world/v3/railway";
 
 const W = 880, H = 540;
 // One world tile is two metres, as the old "km across" readout had it.
 const METRES = 2;
 const MAX_SPAN = 131072;
+
+const railTime = (hours: number) => {
+  const m = Math.max(10, Math.round((hours * 60) / 10) * 10);
+  return m < 60 ? `About ${m} minutes` : `About ${Math.floor(m / 60)} hour${m >= 120 ? "s" : ""}${m % 60 ? ` ${m % 60} minutes` : ""}`;
+};
 
 export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () => void }) {
   const world = runtime.engine.world;
@@ -38,7 +44,8 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
     try { localStorage.setItem("uhs.periodMap", period ? "0" : "1"); } catch { /* private window */ }
   };
   const [destination, setDestination] = useState<{ lon: number; lat: number; name?: string }>();
-  const [plan, setPlan] = useState<{ name: string; days?: number; sea?: number; error?: string }>();
+  const [plan, setPlan] = useState<{ name: string; days?: number; sea?: number; hours?: number; error?: string }>();
+  const rail = runtime.rail;
   const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number; glyph: ReturnType<typeof glyphFor> }[]>([]);
   const [homeGlyph, setHomeGlyph] = useState<ReturnType<typeof glyphFor>>();
   const [roads, setRoads] = useState<Point[][]>([]);
@@ -98,7 +105,9 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         if (id === runtime.journey?.id) return setPlan({ name, error: "You are here." });
         try {
           const route = travel.journeyPlan(lonLat, destination);
-          setPlan({ name, days: route.days, sea: Math.round(route.sea) });
+          setPlan(rail && !route.sea
+            ? { name, hours: route.land / railSpeed(pack.setting!.year) }
+            : { name, days: route.days, sea: Math.round(route.sea) });
         } catch {
           setPlan({ name, error: "No route there at this scale." });
         }
@@ -175,11 +184,16 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const journey = destination && <div className="map-journey">
     {!plan ? <span>Finding the road…</span> : <>
       <strong>{plan.name}</strong>
-      {plan.error ? <span>{plan.error}</span> : <span>
+      {plan.error ? <span>{plan.error}</span> : plan.hours !== undefined ? <span>
+        {railTime(plan.hours)} by train from the {rail!.label}
+      </span> : <span>
         About {plan.days} day{plan.days === 1 ? "" : "s"} on the road{plan.sea ? `, ${plan.sea} km of it by sea` : ""}
       </span>}
       <div>
-        {!plan.error && <button className="primary" onClick={() => { void runtime.journey?.voyage(destination); onClose(); }}>Set out</button>}
+        {!plan.error && <button className="primary" onClick={() => {
+          void runtime.journey?.voyage(destination, plan.hours !== undefined ? rail : undefined);
+          onClose();
+        }}>{plan.hours !== undefined ? "Take the train" : "Set out"}</button>}
         <button onClick={() => setDestination(undefined)}>Cancel</button>
       </div>
     </>}

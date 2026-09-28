@@ -13,6 +13,7 @@ import {
   Search,
   Sword,
   Target,
+  TrainFront,
   type LucideIcon,
 } from "lucide-react";
 import type { Verb } from "../runtime/session";
@@ -31,6 +32,7 @@ const ICONS: Record<Verb["kind"], LucideIcon> = {
   climb: Mountain,
   inspect: Search,
   door: DoorOpen,
+  board: TrainFront,
 };
 
 /** The scene's side of the controls. */

@@ -57,6 +57,7 @@ export class TrainLayer {
         if (!runs) this.runs.set(key, (runs = timetable(seed, key, setting, line)));
         for (const train of trainsAt(line, runs, clock))
           this.drawTrain(line, train, seen, view, tint, now, freeze);
+        this.drawSignals(key, line, runs, clock, setting.year, seen, tint);
         if (!freeze) this.listen(line, runs, clock);
       }
     this.heard = clock;
@@ -136,6 +137,41 @@ export class TrainLayer {
     }
   }
 
+  /** A signal at each end of the platform, beside the platform road. Each
+   * comes off for a train braking in towards it from beyond and for one about
+   * to leave past it; otherwise it stands at danger. */
+  private drawSignals(key: string, line: Railway, runs: Run[], clock: number, year: number, seen: Set<string>, tint: number) {
+    const p = line.station?.platform;
+    if (!p) return;
+    const alongX = line.axis === "x";
+    const [a, b] = alongX ? [p.x, p.x + p.w] : [p.y, p.y + p.h];
+    const across = line.station!.side < 0 ? line.level - 1 : line.level + line.span;
+    const day = Math.floor(clock / DAY);
+    const kind = year < 1960 ? "sem" : "light";
+    for (const [end, along] of [[1, b], [-1, a - 1]] as const) {
+      const clear = runs.some((run) => {
+        if (!run.dwell) return false;
+        return [day - 1, day].some((d) => {
+          const t = clock - (d * DAY + run.at);
+          return run.dir === end
+            ? t >= run.dwell - 20 && t <= run.dwell + 50
+            : t >= -170 && t <= -3;
+        });
+      });
+      const id = `${key}-signal-${end}`;
+      const frame = `rail-signal-${kind}-${clear ? 1 : 0}`;
+      seen.add(id);
+      let image = this.cars.get(id);
+      if (!image) {
+        image = this.scene.add.image(0, 0, this.texture(frame), frame).setOrigin(0.5, 1);
+        this.cars.set(id, image);
+      } else if (image.frame.name !== frame || image.texture.key === "__DEFAULT") image.setTexture(this.texture(frame), frame);
+      const [x, y] = alongX ? [along, across] : [across, along];
+      image.setPosition(x * 16 + 8, y * 16 + 15).setTint(tint).setDepth(y * 16 + 12);
+      if (this.lamps > 0) this.light(id, image, `${frame}-glow`);
+    }
+  }
+
   /** Whistles at the moments the working gives them: the driver's as a
    * stopping train brakes in and as it starts, the guard's just before, a
    * long one from a train running through. Heard only on a clock that ran
@@ -174,7 +210,7 @@ export class TrainLayer {
     }
     for (const [layer, alpha] of [[glow.pane, this.lamps], [glow.halo, this.lamps * 0.45]] as const) {
       if (layer.frame.name !== frame || layer.texture.key === "__DEFAULT") layer.setTexture(this.texture(frame), frame);
-      layer.setPosition(image.x, image.y).setFlipX(image.flipX).setAlpha(alpha);
+      layer.setOrigin(image.originX, image.originY).setPosition(image.x, image.y).setFlipX(image.flipX).setAlpha(alpha);
     }
     glow.pane.setDepth(image.depth + 0.5);
   }
