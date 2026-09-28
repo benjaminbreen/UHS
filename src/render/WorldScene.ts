@@ -4,6 +4,8 @@ import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
 import { Watercraft } from "./watercraft";
 import { TrainLayer } from "./trains";
+import { CabLayer } from "./cabs";
+import type { CharacterAppearance } from "../core/character";
 import type { SettlementPlan } from "../world/v3/types";
 import { ruinTexture, releaseRuins } from "./ruins";
 import { Burning, TorchFlame } from "./burning";
@@ -337,6 +339,16 @@ function drawClockHands(
       g.fillRect(Math.floor(cx + Math.sin(a) * t), Math.floor(cy - Math.cos(a) * t), 1, 1);
   }
 }
+/** Seven shades of a character's colour for the rider's keyed greys: the
+ * fourth is the colour itself, shadows cool toward violet, lights warm. */
+function riderRamp(hex: string): [number, number, number][] {
+  const n = parseInt(hex.replace("#", "").slice(0, 6), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const mix = (to: number[], t: number) => c.map((v, i) => Math.round(v + (to[i] - v) * t)) as [number, number, number];
+  return [0, 1, 2, 3, 4, 5, 6].map((l) =>
+    l < 4 ? mix([28, 20, 40], Math.min(0.85, (4 - l) * 0.21)) : mix([255, 240, 216], (l - 4) * 0.16),
+  );
+}
 type BuildingAnimation = {
   image: Phaser.GameObjects.Image;
   kind: string;
@@ -546,6 +558,7 @@ export class WorldScene extends Phaser.Scene {
   private drawnWorld?: WorldModel;
   private watercraft = new Watercraft(this);
   private trains = new TrainLayer(this, (frame) => this.texture(frame));
+  private cabs = new CabLayer(this, (frame) => this.texture(frame));
   private courtyardLighting = new CourtyardLighting(this);
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
@@ -950,6 +963,7 @@ export class WorldScene extends Phaser.Scene {
       this.courtyardLighting.dispose();
       this.watercraft.dispose();
       this.trains.dispose();
+      this.cabs.dispose();
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
     };
@@ -1971,7 +1985,53 @@ export class WorldScene extends Phaser.Scene {
   private horseFrame(moving: boolean, facing: number, time: number) {
     const gait = moving ? (this.shiftHeld ? "gallop" : "trot") : "idle";
     const period = gait === "gallop" ? 420 : gait === "trot" ? 520 : 2600;
-    return `vhorse-${gait}-${facing}-${Math.floor((time / period) * 8) % 8}`;
+    return `${gait}-${facing}-${Math.floor((time / period) * 8) % 8}`;
+  }
+  private riderImage?: Phaser.GameObjects.Image;
+  /** The player in the saddle: the sheet's rider drawn in keyed greys,
+   * recoloured from their own skin, hair, clothes and hat. */
+  private ride(horse: Phaser.GameObjects.Image, appearance: CharacterAppearance | undefined, frame: string) {
+    const w = appearance?.wearing;
+    const hat = !!w?.headwear && w.headwear !== "none";
+    const colours = [
+      appearance?.skin ?? "#c08a64",
+      appearance?.hairColor ?? "#3a2a20",
+      w?.color ?? "#4a4038",
+      w?.lowerColor ?? "#3a3430",
+      "#2a1c16",
+      // A hat of its own colour where the wardrobe gives one.
+      (w as { headColor?: string } | undefined)?.headColor ?? "#221e24",
+    ];
+    const source = `vrider-${hat ? "hat" : "bare"}-${frame}`;
+    const sheet = this.texture(source);
+    if (sheet === "__DEFAULT") return;
+    const key = `rider:${colours.join("")}:${source}`;
+    if (!this.textures.exists(key)) {
+      const src = this.textures.getFrame(sheet, source);
+      const canvas = this.textures.createCanvas(key, src.cutWidth, src.cutHeight)!;
+      const ctx = canvas.getContext();
+      ctx.drawImage(src.source.image as CanvasImageSource, src.cutX, src.cutY, src.cutWidth, src.cutHeight, 0, 0, src.cutWidth, src.cutHeight);
+      const data = ctx.getImageData(0, 0, src.cutWidth, src.cutHeight);
+      const ramps = colours.map(riderRamp);
+      for (let i = 0; i < data.data.length; i += 4) {
+        if (!data.data[i + 3]) continue;
+        const r = data.data[i];
+        const [cr, cg, cb] = ramps[Math.min(5, r >> 5)][Math.min(6, r & 31)];
+        data.data[i] = cr;
+        data.data[i + 1] = cg;
+        data.data[i + 2] = cb;
+      }
+      ctx.putImageData(data, 0, 0);
+      canvas.refresh();
+    }
+    this.riderImage ??= this.add.image(0, 0, key);
+    this.riderImage
+      .setTexture(key)
+      .setOrigin(horse.originX, horse.originY)
+      .setPosition(horse.x, horse.y)
+      .setDepth(horse.depth + 0.05)
+      .setTint(this.tint)
+      .setVisible(true);
   }
   /** The railway of the town the player is in, and of any town beside it
    * whose line runs into view. */
@@ -1995,6 +2055,7 @@ export class WorldScene extends Phaser.Scene {
       this.options.colorGrade !== false ? washAt(this.runtime.displayClock()).lamps : 0,
       p,
     );
+    this.cabs.update(plan, w.pack.setting, e.state.manifest.seed, this.runtime.displayClock(), this.cameras.main.worldView, this.tint);
   }
   /** Doors swing to follow the door objects the engine owns.
    *
@@ -5439,12 +5500,17 @@ export class WorldScene extends Phaser.Scene {
           ? this.horseFrame(moving, turn.facing, time)
           : undefined;
         if (horse) {
-          if (im.frame.name !== horse) im.setTexture(this.texture(horse), horse);
+          const base = `vhorse-ride-${horse}`;
+          if (im.frame.name !== base) im.setTexture(this.texture(base), base);
           // The sheet's hooves stand four pixels up from its foot.
           im.setOrigin(0.5, (im.height - 4) / im.height);
-        } else if (this.tweens.timeScale && im.texture.key !== texture) {
-          im.setTexture(texture);
-          im.setOrigin(0.5, 1);
+          this.ride(im, human.appearance, horse);
+        } else {
+          if (id === "player") this.riderImage?.setVisible(false);
+          if (this.tweens.timeScale && im.texture.key !== texture) {
+            im.setTexture(texture);
+            im.setOrigin(0.5, 1);
+          }
         }
         // Dust off a run's contact frames. Walking raises none, or a quiet
         // street would be permanently hazy; jumps are covered by `launch`.
