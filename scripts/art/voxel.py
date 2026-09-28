@@ -57,9 +57,13 @@ def h3(x, y, z, seed=0):
 
 
 class Mat:
-    def __init__(self, ramp, glass=False, see=False, tex=None, gain=1.0, bias=0.0, lamp=False, depth=5):
+    def __init__(self, ramp, glass=False, see=False, tex=None, gain=1.0, bias=0.0, lamp=False, depth=5,
+                 paint=False):
         self.ramp = [hexrgb(c) if isinstance(c, str) else c for c in ramp]
         self.glass, self.see, self.tex = glass, see, tex
+        # Coloured voxel by voxel from Grid.paint, stepped by light: a decal
+        # such as a figure at a window, not a surface of the building.
+        self.paint = paint
         # How far behind a pane things still show through it.
         self.depth = depth
         self.gain, self.bias, self.lamp = gain, bias, lamp
@@ -75,6 +79,31 @@ class Grid:
         self.n = np.zeros_like(self.m)
         self.mats = [None]
         self.normals = [np.zeros(3)]
+        self.paint = None
+
+    def decal(self, x0, y, z0, rgba, m, only_empty=True):
+        """Stand an RGBA image upright at depth y, its bottom-left voxel at
+        (x0, z0), as voxels of the painted material `m`; only into empty
+        space unless told otherwise, so a wall or a sill stays in front."""
+        if self.paint is None:
+            self.paint = np.zeros(self.m.shape + (3,), np.uint8)
+        h, w = rgba.shape[:2]
+        X, Y, Z = self.m.shape
+        yi = y - self.y0
+        for r in range(h):
+            z = z0 + (h - 1 - r)
+            for c in range(w):
+                if rgba[r, c, 3] < 128:
+                    continue
+                xi = x0 + c - self.x0
+                if not (0 <= xi < X and 0 <= yi < Y and 0 <= z < Z):
+                    continue
+                if only_empty and self.m[xi, yi, z] and not self.mats[self.m[xi, yi, z]].glass \
+                        and not self.mats[self.m[xi, yi, z]].see:
+                    continue
+                self.m[xi, yi, z] = m
+                self.n[xi, yi, z] = 0
+                self.paint[xi, yi, z] = rgba[r, c, :3]
 
     def mat(self, *a, **k):
         self.mats.append(Mat(*a, **k))
@@ -130,12 +159,13 @@ def _occlusion(solid, r=2):
     return t / k ** 3
 
 
-def render(g, width, height, sx0, base, depth, ambient=0.52, sun=0.62):
+def render(g, width, height, sx0, base, depth, ambient=0.52, sun=0.62, region=None):
     """Cast the grid into a `width` x `height` RGBA image.
 
     World (x, y, z) lands at screen (sx0 + x + y*DRIFT/depth, base - z - K*y).
     Returns the image and per-pixel buffers the painter may use: material,
-    voxel coords, the ray distance to the hit, and glass-ness."""
+    voxel coords, the ray distance to the hit, and glass-ness. `region`
+    (x0, y0, x1, y1) casts only the rays in that rect; the rest stay empty."""
     M = g.m
     X, Y, Z = M.shape
     r = DRIFT / depth
@@ -152,6 +182,9 @@ def render(g, width, height, sx0, base, depth, ambient=0.52, sun=0.62):
     ghit = np.full(N, -1, np.int64)
     gdist = np.full(N, 1e9)
     act = np.arange(N)
+    if region:
+        rx0, ry0, rx1, ry1 = region
+        act = act[(px >= rx0) & (px < rx1) & (py >= ry0) & (py < ry1)]
     step = 0.25
     ys = np.arange(g.y0, g.y0 + Y, step)
     prev = None
@@ -269,9 +302,19 @@ def _shade(g, hit, face, dist, ghit, gdist, width, height, ambient, sun):
     far_b[:-1, :] = d2[1:, :] > d2[:-1, :] + 6
     edge = (far_r | far_b).reshape(-1) & (level >= 0)
     level[edge] = np.maximum(0, level[edge] - 1)
+    lightbuf = np.zeros(N)
+    lightbuf[sel] = light
     for mid in np.unique(matbuf[level >= 0]):
         mat = g.mats[mid]
         k = (matbuf == mid) & (level >= 0)
+        if mat.paint:
+            c = coords[k]
+            pc = g.paint[c[:, 0] - g.x0, c[:, 1] - g.y0, c[:, 2]].astype(float)
+            L = lightbuf[k]
+            f = np.where(L > 0.8, 1.0, np.where(L > 0.6, 0.8, 0.62))
+            rgb[k, :3] = np.clip(pc * f[:, None], 0, 255).astype(np.uint8)
+            rgb[k, 3] = 255
+            continue
         ramp = np.array(mat.ramp, np.uint8)
         rgb[k, :3] = ramp[np.clip(level[k], 0, len(ramp) - 1)]
         rgb[k, 3] = 255

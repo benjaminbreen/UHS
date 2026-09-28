@@ -101,6 +101,22 @@ class Roadside(VoxelBuilding):
         self.OVEN = g.mat(['#6a1a04', '#b83a08', '#f07018', '#ffb040'], bias=1.5, lamp=True)
         self.BLUE = g.mat(['#060e2a', '#0e1e56', '#1a3290', '#2e50c0', '#5c80e8'], bias=0.3)
 
+    def life(self):
+        rng = random.Random(self.seed + 71)
+        specs = []
+        if not self.shops:
+            leaners = self.leaners(2, rng)
+            specs += [self.lean_out(w, rng) for w in leaners[:1]] + [self.curtain_twitch(w) for w in leaners[1:]]
+        elif self.business not in ('motel', 'gas station', 'auto workshop', 'tire shop', 'burger drive-in'):
+            specs += self.shop_life()
+        if self.business == 'barber shop':
+            specs.append({'k': 'loop', 'states': [{'spin': p} for p in range(4)], 'ms': 160})
+        if self.business == 'motel':
+            specs.append({'k': 'loop', 'states': [{'neon': p} for p in range(4)], 'ms': 180, 'night': True})
+            leaners = self.leaners(1, rng)
+            specs += [self.curtain_twitch(w) for w in leaners]
+        return specs
+
     def build(self):
         getattr(self, {
             'residential': 'home', 'residential duplex': 'duplex', 'corner store': 'store',
@@ -192,6 +208,7 @@ class Roadside(VoxelBuilding):
     def storefront(self, x0, x1, z0, z1, frame=None, depth=3):
         fr = frame or self.TRIM
         f = self.front
+        self.shops_x.append((x0, x1))
         self.cut(x0, x1, f - 1, f + depth + 1, z0, z1)
         self.box(x0, x1, f + depth, f + depth + 1, z0, z1, self.SHOPGLASS)
         self.box(x0, x1, f + depth - 1, f + depth + 1, z0, z0 + 1, fr)
@@ -200,6 +217,8 @@ class Roadside(VoxelBuilding):
             self.box(x, x + 1, f + depth - 1, f + depth + 1, z0, z1, fr)
         self.box(x1 - 1, x1, f + depth - 1, f + depth + 1, z0, z1, fr)
         self.box(x0 + 1, x1 - 1, f + depth + 1, f + 30, 0, 1, self.CHECK)
+        if x0 in self.state.get('closed', ()):
+            self.grille(x0, x1, f, z0, z1)
 
     def interior(self, x0, x1, f=0, h=40):
         self.front, keep = 0, self.front
@@ -706,8 +725,11 @@ class Roadside(VoxelBuilding):
         self.box(px - 2, px + 26, -9, -5, 2 * f1 + 10, 2 * f1 + 24, self.ENAMEL)
         self.box(px - 3, px + 27, -10, -4, 2 * f1 + 24, 2 * f1 + 25, self.WHITE)
         self.box(px - 3, px + 27, -10, -4, 2 * f1 + 9, 2 * f1 + 10, self.WHITE)
+        chase = self.state.get('neon')
         for i in range(8):
-            self.box(px + 1 + i * 3, px + 2 + i * 3, -10, -9, 2 * f1 + 6 - (i % 2), 2 * f1 + 7 - (i % 2), self.NEON)
+            lit = chase is None or (i - chase) % 4 < 2
+            self.box(px + 1 + i * 3, px + 2 + i * 3, -10, -9, 2 * f1 + 6 - (i % 2), 2 * f1 + 7 - (i % 2),
+                     self.NEON if lit else self.IRON)
         self.lamps.append((px + 12, -10, 2 * f1 + 6))
         self.sign_band = [self.sx0 + px, self.base - (2 * f1 + 21) - 5, 24, 6]
 
@@ -918,7 +940,8 @@ class Roadside(VoxelBuilding):
             self.box(cx - 7, cx + 7, 26, 27, 14, 30, self.SKY)
         cx, cy, r = 4, -4, 2.6
         self.box(2, 7, -7, -1, 4, 5, self.CHROME)
-        stripe = lambda X, Y, Z, k: ((Z + np.degrees(np.arctan2(Y + 0.5 - cy, X + 0.5 - cx)) / 30) % 6 // 2) == k
+        spin = self.state.get('spin', 0) * 1.5
+        stripe = lambda X, Y, Z, k: ((Z + spin + np.degrees(np.arctan2(Y + 0.5 - cy, X + 0.5 - cx)) / 30) % 6 // 2) == k
         cyl = lambda X, Y: (X + 0.5 - cx) ** 2 + (Y + 0.5 - cy) ** 2 <= r * r
         for k, m in enumerate((self.RED, self.WHITE, self.BLUE)):
             self.fill(1, 8, -8, 0, 5, 26, lambda X, Y, Z, k=k: cyl(X, Y) & stripe(X, Y, Z, k), m)

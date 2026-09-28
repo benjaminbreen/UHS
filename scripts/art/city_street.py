@@ -112,6 +112,15 @@ class CommercialBlock(FlatRoofed):
         self.roof()
         self.pipe(W - 4, t + 2)
 
+    def life(self):
+        rng = random.Random(self.seed + 71)
+        leaners = self.leaners(3, rng, range(1, self.stories))
+        specs = [self.lean_out(w, rng) for w in leaners[:2]] + [self.curtain_twitch(w) for w in leaners[2:]]
+        specs += self.shop_life()
+        if self.washing:
+            specs.append({'k': 'loop', 'states': [{'wind': p} for p in range(4)], 'ms': 280})
+        return specs
+
     def ground(self):
         W = self.W
         self.box(0, W, -1, 0, 0, 4, self.PLINTH)
@@ -258,7 +267,8 @@ class CommercialBlock(FlatRoofed):
         self.chimney(6, D - 14, t, w=7, d=6, h=11, pots=2, m=self.BRICK)
         if self.stories > 1 and W >= 112:
             self.stairhead(W // 2 - 2, D // 2 + 6, t)
-        if rng.random() < 0.5 and W >= 96:
+        self.washing = rng.random() < 0.5 and W >= 96
+        if self.washing:
             self.laundry(10, W // 2 - 8, D - 18, t, rng=rng)
 
 
@@ -296,6 +306,14 @@ class ModerneApartment(FlatRoofed):
             self.stair_tower(self.axes[self.tower])
         self.crown()
         self.pipe(W - 4, t + 2)
+
+    def life(self):
+        rng = random.Random(self.seed + 71)
+        leaners = self.leaners(2, rng, range(1, self.stories))
+        specs = [self.lean_out(w, rng) for w in leaners[:1]] + [self.curtain_twitch(w) for w in leaners[1:]]
+        specs += self.shop_life()
+        specs.append({'k': 'loop', 'states': [{'wind': p} for p in range(4)], 'ms': 280})
+        return specs
 
     def lines(self):
         """Three speed lines at every floor, stopped short of the tower."""
@@ -423,10 +441,13 @@ class ModerneApartment(FlatRoofed):
         if self.stories < 4 and self.seed % 3:
             return
         self.box(ax - 1, ax, -2, -1, t + 28, t + 52, self.PIPE)
+        self.flagged = True
+        phase = self.state.get('wind', 0) * np.pi / 2
         for i in range(10):
+            wave = round(np.sin(i * 0.8 - phase) * min(1, i / 3))
             for z in range(6):
-                self.box(ax + i, ax + i + 1, -2 + round(np.sin(i * 0.8)), -1 + round(np.sin(i * 0.8)),
-                         t + 45 + z, t + 46 + z, self.FLAG[(i // 5 + z // 3) % 2])
+                self.box(ax + i, ax + i + 1, -2 + wave, -1 + wave, t + 45 + z - (i > 6 and phase > 2),
+                         t + 46 + z - (i > 6 and phase > 2), self.FLAG[(i // 5 + z // 3) % 2])
 
     def crown(self):
         W, D, t = self.W, self.D, self.top
@@ -595,10 +616,16 @@ class OfficeBlock(FlatRoofed):
         if self.stories >= 4:
             self.flag(lx + 3, ly + 3, t + 20)
 
+    def life(self):
+        if self.stories >= 4:
+            return [{'k': 'loop', 'states': [{'wind': p} for p in range(4)], 'ms': 240}]
+        return []
+
     def flag(self, fx, fy, z):
         self.box(fx, fx + 1, fy, fy + 1, z, z + 38, self.PIPE)
+        phase = self.state.get('wind', 0) * np.pi / 2
         for i in range(12):
-            wave = round(np.sin(i * 0.7))
+            wave = round(np.sin(i * 0.7 - phase) * min(1, i / 3))
             for dz in range(7):
                 self.box(fx + 1 + i, fx + 2 + i, fy + wave, fy + 1 + wave, z + 30 + dz, z + 31 + dz,
                          self.FLAG[(dz // 4) % 2])

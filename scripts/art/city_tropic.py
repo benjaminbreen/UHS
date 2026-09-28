@@ -78,6 +78,14 @@ class Shophouse(VoxelBuilding):
         self.roof()
         self.pipe(W - 3, t)
 
+    def life(self):
+        rng = random.Random(self.seed + 71)
+        leaners = self.leaners(2, rng, range(1, self.stories))
+        specs = [self.lean_out(w, rng) for w in leaners]
+        specs += self.shop_life()
+        specs.append({'k': 'loop', 'states': [{'wind': p} for p in range(4)], 'ms': 300})
+        return specs
+
     def arcade(self):
         """The five-foot way: piers carrying the floor above on shallow
         arches, the shop set back behind, lanterns hung from the soffit."""
@@ -192,7 +200,7 @@ class Shophouse(VoxelBuilding):
             if x + w > b - 1:
                 break
             if rng.random() < 0.8:
-                self.box(x, x + w, -7, -6, z - rng.randint(5, 10), z, rng.choice(self.LINEN))
+                self.hang(x, x + w, -7, z, rng.randint(5, 10), rng.choice(self.LINEN))
             x += w + 1
 
     def crown(self):
@@ -312,6 +320,11 @@ class VerandaHouse(VoxelBuilding):
             for z in range(0, fl - 2):
                 if (x + z) % 6 in (1, 2, 4):
                     self.cut(x, x + 1, -1, 0, z, z + 1)
+
+    def life(self):
+        rng = random.Random(self.seed + 71)
+        leaners = self.leaners(2, rng)
+        return [self.lean_out(w, rng) for w in leaners[:1]] + [self.curtain_twitch(w) for w in leaners[1:]]
 
     def house_front(self):
         bw, V, fl = self.body_w, self.V, self.floor

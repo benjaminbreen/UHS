@@ -422,6 +422,11 @@ def build_buildings(root, sprites):
             artist.lamp_glow.info['trim']=True
             sprites[name+'-lamps']=artist.lamp_glow
             sprites[name+'-snow'],sprites[name+'-wet']=artist.weather_frames()
+            life=[]
+            for k,spec in enumerate(artist.bake_life()):
+                names=[f'{name}~{k}-{f}' for f in range(len(spec['frames']))]
+                for n,im in zip(names,spec['frames']):sprites[n]=im
+                life.append({**{a:b for a,b in spec.items() if a!='frames'},'f':names})
         w,h=im.size
         models[name]={
             **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),
@@ -454,7 +459,7 @@ def build_buildings(root, sprites):
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
             **({'voxel':True,'glow':name+'-glow','lampFrame':name+'-lamps','lights':artist.lights,
-                'snowFrame':name+'-snow','wetFrame':name+'-wet'} if voxel else {}),
+                'snowFrame':name+'-snow','wetFrame':name+'-wet','life':life} if voxel else {}),
             **({'clocks':artist.clocks} if getattr(artist,'clocks',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),

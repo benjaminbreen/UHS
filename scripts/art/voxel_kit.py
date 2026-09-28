@@ -90,6 +90,58 @@ RAILS = {'scroll': ['.#...#.', '#.#.#.#', '#..#..#', '#..#..#', '#.#.#.#', '.#..
          'bars': ['#.#.#.#', '#.#.#.#', '#.#.#.#', '#.#.#.#', '#.#.#.#', '#.#.#.#']}
 
 
+# Townspeople at their windows, drawn as the game draws its figures: an
+# outlined head, eyes a pixel each, a blush, the shirt to the sill and the
+# forearms resting on it. h hair, s skin, S skin shade, e eye, b blush,
+# c shirt, C shirt shade, k collar, a forearm, t hat.
+BUSTS = {
+    'short': ['..hhhhhhh...', '.hhhhhhhhh..', '.hhhsssshhh.', '.hssssssssh.', '.sseesseess.',
+              '.sbssssssbs.', '..ssssSsss..', '...ssSSss...', '....SssS....', '.cccckkcccc.',
+              'cccccckccccc', 'cccccccccccC', 'aacccccccCaa'],
+    'bun': ['....hhh.....', '...hhhhh....', '.hhhhhhhhh..', '.hhssssshhh.', '.hssssssssh.',
+            '.sseesseess.', '.sbssssssbs.', '..ssssSsss..', '...ssSSss...', '.cccSssSccc.',
+            'ccccckkccccc', 'cccccccccccC', 'aacccccccCaa'],
+    'long': ['..hhhhhhh...', '.hhhhhhhhh..', 'hhhhsssshhhh', 'hhssssssssh.', 'hsseesseessh',
+             'hsbssssssbsh', 'hhssssSssshh', 'hh.ssSSss.hh', 'hh..SssS..hh', 'hcccckkccccc',
+             'cccccckccccc', 'cccccccccccC', 'aacccccccCaa'],
+    'hat': ['...tttttt...', '..tttttttt..', 'tttttttttttt', '.hssssssssh.', '.sseesseess.',
+            '.sbssssssbs.', '..ssssSsss..', '...ssSSss...', '....SssS....', '.cccckkcccc.',
+            'cccccckccccc', 'cccccccccccC', 'aacccccccCaa'],
+    'scarf': ['...tttttt...', '..tttttttt..', '.tttssssttt.', '.tssssssssst', '.tseesseest.',
+              '.tbssssssbt.', '..tsssSsst..', '...ttSSttt..', '....ttttt...', '.cccckkcccc.',
+              'cccccckccccc', 'cccccccccccC', 'aacccccccCaa'],
+}
+SKINS = [((88, 52, 36), (120, 76, 52), (164, 112, 76)), ((120, 78, 52), (160, 112, 76), (204, 150, 106)),
+         ((150, 102, 70), (196, 144, 100), (232, 184, 140)), ((176, 128, 96), (222, 172, 132), (246, 208, 172))]
+HAIRS = [(28, 22, 26), (58, 36, 26), (96, 60, 34), (150, 110, 60), (170, 168, 164)]
+SHIRTS = [(232, 228, 216), (70, 96, 150), (150, 56, 60), (64, 110, 84), (196, 150, 70), (120, 90, 130), (60, 60, 70)]
+
+
+def bust(style, skin, hair, shirt, hat=None):
+    """A figure from the waist up, as RGBA, outlined dark on its shadow side."""
+    rows = BUSTS[style]
+    sk = SKINS[skin]
+    hat = hat or tuple(max(0, c - 40) for c in SHIRTS[(SHIRTS.index(shirt) + 3) % len(SHIRTS)])
+    col = {'h': hair, 's': sk[2], 'S': sk[1], 'e': (26, 18, 24), 'b': (min(255, sk[2][0] + 20), sk[2][1] - 20, sk[2][2] - 10),
+           'c': shirt, 'C': tuple(int(v * 0.72) for v in shirt), 'k': tuple(min(255, v + 30) for v in shirt),
+           'a': shirt if style != 'short' else sk[2], 't': hat}
+    h, w = len(rows), len(rows[0])
+    a = np.zeros((h + 2, w + 2, 4), np.uint8)
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch != '.':
+                a[r + 1, c + 1, :3] = col[ch]
+                a[r + 1, c + 1, 3] = 255
+    solid = a[..., 3] > 0
+    ring = np.zeros_like(solid)
+    for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        ring |= np.roll(np.roll(solid, dy, 0), dx, 1)
+    ring &= ~solid
+    a[ring] = (34, 22, 30, 255)
+    a[-1] = 0
+    return a
+
+
 class VoxelBuilding:
     """The frame every street building is built in. Subclasses set `ztop`
     and `build`; the rest is parts."""
@@ -194,12 +246,15 @@ class VoxelBuilding:
         self.TIN = g.mat(TIN, tex=corrugated, bias=-1.4)
         self.LINEN = [g.mat(c, bias=0.2) for c in LINEN]
         self.ZINC = g.mat(ZINC, bias=-1.6)
+        self.FIGURE = g.mat(['#000000', '#808080', '#ffffff'], paint=True)
+        self.GRILLE = g.mat(['#1c1e26', '#2e323c', '#454a56', '#5e6470', '#7a808c', '#989ea8', '#b8bec6'], bias=-0.8,
+                            tex=lambda i: 1.0 * (i['z'] % 3 == 0) - 0.9 * (i['z'] % 3 == 2))
 
     # ------------------------------------------------------------ render
     def render(self, **state):
         self.state = state
         self.rng = random.Random(self.seed)
-        self.windows, self.lamps, self.pots = [], [], []
+        self.windows, self.lamps, self.pots, self.shops_x = [], [], [], []
         self.sign_band = None
         W, D = self.W, self.D
         zt = self.ztop()
@@ -214,6 +269,7 @@ class VoxelBuilding:
         self.streaks()
         img, buf = render(self.g, width, height, self.sx0, self.base, D)
         self.buf = buf
+        self.raw = img
         im = self.outline(Image.fromarray(img))
         self.im, self.w, self.h = im, width, height
         self.bottom = height - 3
@@ -223,6 +279,111 @@ class VoxelBuilding:
         self.smoke = [[self.sx0 + x + round(y * DRIFT / D), self.base - z - round(K * y), kind]
                       for x, y, z, kind in self.pots]
         return im
+
+    # ------------------------------------------------------------ life
+    def life(self):
+        """What moves on this building, as specs: `k` is 'hours' (shown over
+        a span of the day), 'event' (played now and then) or 'loop'; `states`
+        are the state to render for each frame. The rest passes to the scene."""
+        return []
+
+    def bake_life(self):
+        """Render each spec's states and keep the rect they change, cropped
+        from the whole outlined sprite so edges stay true."""
+        snap = dict(self.__dict__)
+        base_m, base_raw, base_im = self.g.m.copy(), self.raw, np.array(self.im)
+        specs = self.life()
+        out = []
+        for spec in specs:
+            imgs = [self._variant(st, base_m, base_raw) for st in spec['states']]
+            diff = np.zeros(base_im.shape[:2], bool)
+            for img in imgs:
+                diff |= np.any(img != base_im, axis=2)
+            if not diff.any():
+                continue
+            ys, xs = np.nonzero(diff)
+            x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+            # Only what a frame changes is painted; the rest shows the building,
+            # and its lamps, through.
+            frames = []
+            for img in imgs:
+                crop = img[y0:y1, x0:x1].copy()
+                same = np.all(crop == base_im[y0:y1, x0:x1], axis=2)
+                crop[same] = 0
+                frames.append(Image.fromarray(crop))
+            out.append({**{k: v for k, v in spec.items() if k != 'states'}, 'at': [int(x0), int(y0)], 'frames': frames})
+        self.__dict__.update(snap)
+        self.life_frames = out
+        return out
+
+    def _variant(self, state, base_m, base_raw):
+        """The whole sprite with `state` in place of the base's, recast only
+        around the voxels that changed and what their shadows can reach."""
+        self.state = state
+        self.rng = random.Random(self.seed)
+        self.windows, self.lamps, self.pots, self.shops_x = [], [], [], []
+        W, D = self.W, self.D
+        zt = self.ztop()
+        self.g = Grid(-8, W + 10, -26, D + 2, zt + 2)
+        self.weather = np.zeros((W, zt + 2))
+        self.materials()
+        self.build()
+        self.streaks()
+        changed = self.g.m != base_m
+        if not changed.any():
+            return np.array(self.outline(Image.fromarray(base_raw)))
+        xi, yi, zi = np.nonzero(changed)
+        wx, wy = xi + self.g.x0, yi + self.g.y0
+        sx = self.sx0 + wx + wy * DRIFT / D
+        sy = self.base - zi - K * wy
+        x0, x1 = int(sx.min()) - 3, int(sx.max()) + 20
+        y0, y1 = int(sy.min()) - 4, int(sy.max()) + 24
+        img, _ = render(self.g, self.w, self.h, self.sx0, self.base, D, region=(x0, y0, x1, y1))
+        raw = base_raw.copy()
+        y0, x0 = max(0, y0), max(0, x0)
+        raw[y0:y1, x0:x1] = img[y0:y1, x0:x1]
+        return np.array(self.outline(Image.fromarray(raw)))
+
+    def leaners(self, n, rng, storeys=None):
+        """Windows someone may lean out of: upper floors, not dormers."""
+        wins = [w for w in self.windows if (storeys is None or w['storey'] in storeys) and w['x1'] - w['x0'] >= 9]
+        rng.shuffle(wins)
+        return wins[:n]
+
+    def lean_out(self, win, rng, **extra):
+        """Someone comes to the window, looks up and down the street, and goes
+        back in: open the shutters, rise, lean each way, sink, shut again."""
+        i = win['i']
+        who = (rng.choice(list(BUSTS)), rng.randrange(len(SKINS)), rng.randrange(len(HAIRS)),
+               rng.randrange(len(SHIRTS)))
+        opened = {'shut': {i: 'open'}}
+        at = lambda dz, dx: {**opened, 'figure': {i: (*who, dz, dx)}}
+        return {'k': 'event', 'states': [opened, at(-4, 0), at(0, 0), at(0, -1), at(0, 1)],
+                'seq': [[0, 500], [1, 220], [2, 1600], [3, 1300], [2, 700], [4, 1300], [2, 1200], [1, 220],
+                        [0, 500]],
+                'every': [35, 150], 'when': [7.2, 21.8], **extra}
+
+    def shop_hours(self, x0, x1):
+        """Grille down and awning rolled whenever the shop is shut; `shop` is
+        the index of its lit window in `lights`, whose hours it keeps."""
+        sx0, sx1 = self.sx0 + x0, self.sx0 + x1
+        for k, (lx, ly, lw, lh, kind) in enumerate(self.lights):
+            if kind == 1 and lx < sx1 and lx + lw > sx0:
+                return {'k': 'hours', 'states': [{'closed': {x0}}], 'shop': k}
+        return None
+
+    def shop_life(self):
+        return [s for s in (self.shop_hours(x0, x1) for x0, x1 in self.shops_x) if s]
+
+    def curtain_twitch(self, win):
+        i = win['i']
+        return {'k': 'event', 'states': [{'curtain': {i: 'twitch'}}, {'curtain': {i: 'drawn'}}],
+                'seq': [[0, 1400], [1, 900], [0, 1200]], 'every': [60, 220], 'when': [9, 23]}
+
+    def night_shutters(self, win, rng):
+        """Shutters closed for the night, a household at a time."""
+        return {'k': 'hours', 'states': [{'shut': {win['i']: 'both'}}],
+                'on': [round(21.5 + rng.random() * 2.5, 2), round(6.5 + rng.random() * 1.5, 2)]}
 
     def cast(self, phases, cap=0.6):
         """The building's shadow on the ground for each lighting phase: every
@@ -314,7 +475,8 @@ class VoxelBuilding:
         self.box(x0, x0 + 1, f0, f1, z0, z1, fr)
         self.box(x1 - 1, x1, f0, f1, z0, z1, fr)
         h = z1 - z0
-        if kind == 'casement':
+        figure = self.state.get('figure', {}).get(i)
+        if kind == 'casement' and not figure:
             self.box(ax - 1, ax + 1, f0, f1, z0, z1, fr)
             tr = z1 - max(6, h // 4)
             self.box(x0, x1, f0, f1, tr, tr + 1, fr)
@@ -323,8 +485,11 @@ class VoxelBuilding:
                 self.box(x0, x1, gy, gy + 1, zz, zz + 1, fr)
         elif kind == 'sash':
             mid = z0 + h // 2
+            if figure:
+                # The lower sash thrown up behind the upper to lean out of.
+                mid = z1 - 3
             self.box(x0, x1, f0, f1, mid, mid + 1, fr)
-            self.box(ax, ax + 1, gy, gy + 1, z0, z1, fr)
+            self.box(ax, ax + 1, gy, gy + 1, max(z0, mid - h // 2) if figure else z0, z1, fr)
         elif kind == 'steel':
             for zz in range(z0 + 4, z1 - 1, 4):
                 self.box(x0, x1, gy, gy + 1, zz, zz + 1, fr)
@@ -348,7 +513,7 @@ class VoxelBuilding:
         if shutters == 'reveal':
             closed = 'both' if roll < 0.2 else ('left' if side < 0.5 else 'right') if roll < 0.42 else None
             if shut is not None:
-                closed = shut
+                closed = None if shut == 'open' else shut
             if closed in ('both', 'left'):
                 self.box(x0, ax + (1 if closed == 'both' else 0), y + 1, y + 2, z0, z1, self.SHUT)
             if closed in ('both', 'right'):
@@ -368,12 +533,19 @@ class VoxelBuilding:
                 self.box(x0 - 2 - leaf, x0 - 2, y - 1, y, z0, z1, self.SHUT)
                 self.box(x1 + 2, x1 + 2 + leaf, y - 1, y, z0, z1, self.SHUT)
             record['closed'] = 'both' if closed else None
-        if not record.get('closed') and lace < curtains:
+        curtain = self.state.get('curtain', {}).get(i)
+        if not record.get('closed') and (lace < curtains or curtain):
             tie = z0 + h // 3
             for zz in range(z0, z1 - 3):
                 spread = 3 if zz > tie else 2
-                self.box(x0 + 1, x0 + 1 + spread, gy + 1, gy + 2, zz, zz + 1, self.LACE)
-                self.box(x1 - 1 - spread, x1 - 1, gy + 1, gy + 2, zz, zz + 1, self.LACE)
+                left = x1 - x0 - 2 if curtain == 'drawn' else spread + 3 if curtain == 'twitch' else spread
+                self.box(x0 + 1, x0 + 1 + left, gy + 1, gy + 2, zz, zz + 1, self.LACE)
+                if curtain != 'drawn':
+                    self.box(x1 - 1 - spread, x1 - 1, gy + 1, gy + 2, zz, zz + 1, self.LACE)
+        if figure:
+            style, skin, hair, shirt, dz, dx = figure
+            b = bust(style, skin, HAIRS[hair], SHIRTS[shirt])
+            self.g.decal(ax - b.shape[1] // 2 + dx, gy - 1, z0 + 8 + dz, b, self.FIGURE)
         return i
 
     def railing(self, x0, x1, y, z0, h, pattern='scroll', along_y=False, m=None):
@@ -474,12 +646,24 @@ class VoxelBuilding:
         self.box(x0 + 1, x1 - 1, f - 3, f - 2, top + 1, top + 2, rule)
         self.box(x0 + 1, x1 - 1, f - 3, f - 2, bt - 2, bt - 1, rule)
         band = [self.sx0 + x0 + 2, self.base - (bt - 3) - round(K * f), x1 - x0 - 4, 6]
-        if awning is not None and not self.state.get('awnings_up'):
+        self.shops_x.append((x0, x1))
+        shut = x0 in self.state.get('closed', ())
+        if shut:
+            self.grille(x0, x1, f, 3, top)
+        if awning is not None and not shut:
             self.awning(x0 + 1, x1 - 1, top, self.AWN[awning])
         elif awning is not None:
             # Rolled up into its box under the board.
             self.box(x0 + 1, x1 - 1, f - 3, f, top - 3, top, self.AWN[awning][0])
         return band
+
+    def grille(self, x0, x1, f, z0, z1):
+        """A roller shutter pulled down over a shop for the night, its box
+        above and a padlock at the foot."""
+        self.box(x0, x1, f - 2, f - 1, z0, z1, self.GRILLE)
+        self.box(x0 - 1, x1 + 1, f - 4, f - 1, z1 - 3, z1 + 1, self.GRILLE)
+        mid = (x0 + x1) // 2
+        self.box(mid - 1, mid + 1, f - 3, f - 2, z0 + 1, z0 + 3, self.BRASS)
 
     def stock(self, x0, x1, f, top, kind):
         rng = random.Random(self.seed + x0)
@@ -603,8 +787,16 @@ class VoxelBuilding:
                 break
             if rng.random() < 0.8:
                 c = rng.choice(self.LINEN)
-                self.box(x, x + w, y, y + 1, z + 13 - rng.randint(4, 8), z + 13, c)
+                drop = rng.randint(4, 8)
+                self.hang(x, x + w, y, z + 13, drop, c)
             x += w + 1
+
+    def hang(self, x0, x1, y, z, drop, m):
+        """A cloth pegged at the top, its hem blown aside by the wind."""
+        sway = [0, 1, 0, -1][(self.state.get('wind', 0) + x0) % 4]
+        for k in range(drop):
+            dx = round(sway * k / max(1, drop - 1))
+            self.box(x0 + dx, x1 + dx, y, y + 1, z - 1 - k, z - k, m)
 
     def chimney(self, x, y, z, w=6, d=6, h=12, pots=1, m=None):
         m = m or self.BRICK
@@ -679,7 +871,10 @@ class VoxelBuilding:
         for i, m in enumerate(self.g.mats):
             if m and m.lamp:
                 k = buf['mat'] == i
-                lamps[k, :3] = [min(255, c + 40) for c in m.ramp[-1]]
+                # Lamplight is warm whatever the glass; neon keeps its colour.
+                top = np.array(m.ramp[-1], float)
+                warm = top if top[0] - top[2] > 60 else top * 0.35 + np.array([255, 206, 130]) * 0.65
+                lamps[k, :3] = np.clip(warm, 0, 255).astype(np.uint8)
                 lamps[k, 3] = 255
         self.lamp_glow = Image.fromarray(lamps)
         return Image.fromarray(glow)

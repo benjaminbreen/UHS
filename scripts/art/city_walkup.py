@@ -85,6 +85,19 @@ class VoxelWalkup(VoxelBuilding):
             self.rooms(f, GROUND if s == 0 else STOREY)
 
     # ----------------------------------------------------------- the street
+    def life(self):
+        rng = random.Random(self.seed + 71)
+        upper = range(1, self.stories)
+        leaners = self.leaners(3, rng, upper)
+        specs = [self.lean_out(w, rng) for w in leaners[:2]]
+        specs += [self.curtain_twitch(w) for w in leaners[2:]]
+        rest = [w for w in self.windows if w['storey'] in upper and w not in leaners]
+        specs += [self.night_shutters(w, rng) for w in rng.sample(rest, min(3, len(rest)))]
+        specs += self.shop_life()
+        if not self.mansard:
+            specs.append({'k': 'loop', 'states': [{'wind': p} for p in range(4)], 'ms': 280})
+        return specs
+
     def ground_floor(self):
         W = self.W
         # Channelled rustication: a groove every seventh course.

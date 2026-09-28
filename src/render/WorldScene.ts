@@ -124,7 +124,7 @@ import {
 import { beastVoiceOf, voiceOf } from "../audio/voices";
 import type { HitClass } from "../core/reactions";
 import { hash, random } from "../core/random";
-import { voxelLamps, voxelWeather, type VoxelModel } from "./voxel-life";
+import { VoxelLife, voxelLamps, voxelWeather, type VoxelModel } from "./voxel-life";
 import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
@@ -549,6 +549,7 @@ export class WorldScene extends Phaser.Scene {
   private courtyardLighting = new CourtyardLighting(this);
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
+  private voxelLife = new VoxelLife();
   /** Station and tower clocks, whose hands keep the game's hour. */
   private clockHands: { g: Phaser.GameObjects.Graphics; x: number; y: number; r: number; minute: number }[] = [];
   /** One leaf per drawn building, hidden while shut. */
@@ -3120,6 +3121,7 @@ export class WorldScene extends Phaser.Scene {
       this.ripples = [];
       this.buildings.clear();
       this.buildingAnimations.clear();
+      this.voxelLife.clear();
       this.clockHands = [];
       this.doors.clear();
       for (const puffs of this.hearths.values())
@@ -3663,6 +3665,10 @@ export class WorldScene extends Phaser.Scene {
             const weathered = voxelWeather(this, image, placement.model as VoxelModel, this.snow,
               this.weather?.wetness ?? 0, (frame) => this.texture(frame));
             if (weathered) this.layers.push(weathered.setTint(this.tint));
+            this.layers.push(
+              ...this.voxelLife.add(this, image, (placement.model as VoxelModel).life,
+                this.runtime.engine.state.manifest.seed, b.id, (frame) => this.texture(frame), this.tint),
+            );
             this.addChurchBanner(b, placement, w.pack.setting, image.y);
             this.addBuildingSign(b, placement, w.pack.setting, image.y);
             if (
@@ -4842,6 +4848,10 @@ export class WorldScene extends Phaser.Scene {
     mark("fires");
     this.swingDoors();
     mark("doors");
+    if (perf.buildingAnimations) {
+      const clock = this.runtime.displayClock();
+      this.voxelLife.update(time, (((clock / 3600) % 24) + 24) % 24, washAt(clock).lamps);
+    }
     if (perf.buildingAnimations)
       for (const animation of this.buildingAnimations.values()) {
         const frame = this.options.freeze

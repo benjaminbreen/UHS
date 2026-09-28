@@ -178,7 +178,7 @@ modern_frames={k:S.pop(k) for k in list(S)
 # The street kit built in voxels, with its lit rooms and lamps; its snow and
 # wet layers load only when the weather asks for them.
 def _voxel(k):
-    base=next((k[:-len(x)] for x in ('-glow','-lamps','-snow','-wet') if k.endswith(x)),k)
+    base=k.split('~')[0] if '~' in k else next((k[:-len(x)] for x in ('-glow','-lamps','-snow','-wet') if k.endswith(x)),k)
     return (buildings.get(base) or {}).get('voxel')
 weather_frames={k:S.pop(k) for k in list(S) if _voxel(k) and k.endswith(('-snow','-wet'))}
 street_frames={k:S.pop(k) for k in list(S) if _voxel(k)}
