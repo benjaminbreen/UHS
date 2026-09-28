@@ -31,6 +31,7 @@ const atlases = {
   civic: "/packs/civic",
   precincts: "/packs/precincts",
   "lighting-shadows": "/packs/lighting-shadows",
+  "street-shadows": "/packs/street-shadows",
   topography: "/topography/atlas",
 } as const;
 /** Building sheets, in lookup order. Each decodes to up to 64 MB and most

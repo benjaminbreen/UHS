@@ -333,6 +333,7 @@ def door_rect(artist):
 
 def build_buildings(root, sprites):
     source=json.loads((root/'src/content/graphics/buildings.json').read_text())
+    phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
     source['materials'].update(json.loads((root/'src/content/graphics/urban.json').read_text()).get('materials',{}))
     models={}
     from art.urban import (InfillBuilding, UrbanBuilding, urban_recipes,
@@ -416,6 +417,8 @@ def build_buildings(root, sprites):
         if voxel:
             artist.glow.info['trim']=True
             sprites[name+'-glow']=artist.glow
+            from art.voxel_kit import SHADOWS
+            for phase,shadow in artist.cast(phases).items():SHADOWS[f'{phase}:{name}']=shadow
         w,h=im.size
         models[name]={
             **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),

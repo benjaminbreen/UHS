@@ -10,13 +10,15 @@ def pack_atlas(sprites, output, name, width=1024):
         # A frame that is mostly air (a lit-window layer) may ask to be packed
         # trimmed; Phaser places it by spriteSourceSize within the full size.
         trim=im.getbbox() if im.info.get('trim') else None
+        anchor=im.info.get('anchor')
+        full=im.size
         if trim:
-            full=im.size;im=im.crop(trim)
+            im=im.crop(trim)
         w,h=im.size
         if w+2>width:raise ValueError(f'{key} exceeds atlas width')
         # A building drawn the same whichever way its lot faces is packed once;
         # every name points at the one rect.
-        mark=(im.size,tuple(im.info.get('anchor',())),im.tobytes())
+        mark=(im.size,tuple(anchor or ()),trim,im.tobytes())
         if mark in seen:
             frames[key]=seen[mark];continue
         if x+w+2>width:x=0;y+=rowh+2;rowh=0
@@ -24,8 +26,8 @@ def pack_atlas(sprites, output, name, width=1024):
         if trim:
             frame['sourceSize']={'w':full[0],'h':full[1]}
             frame['spriteSourceSize']={'x':trim[0],'y':trim[1],'w':w,'h':h};frame['trimmed']=True
-        if 'anchor' in im.info:
-            ax,ay=im.info['anchor'];frame['pivot']={'x':ax/w,'y':ay/h}
+        if anchor:
+            ax,ay=anchor;frame['pivot']={'x':ax/full[0],'y':ay/full[1]}
         frames[key]=frame;seen[mark]=frame;placements.append((im,x,y));x+=w+2;rowh=max(rowh,h)
     # Keep each texture within a conservative GPU limit as modular kits grow.
     # Repack wider before allocating; never silently emit an unusable tall atlas.

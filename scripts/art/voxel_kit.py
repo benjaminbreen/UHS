@@ -20,6 +20,9 @@ from art.oblique_style import DRIFT  # noqa: E402
 from art.voxel import Grid, K, h3, ramp_from, render  # noqa: E402
 
 GROUND, STOREY = 54, 40
+# Ground shadows cast from the voxels, keyed `phase:frame`, for shadows.py to
+# pack beside the silhouette shadows it makes itself.
+SHADOWS = {}
 
 LIMESTONE = ['#2c2436', '#4b3f4b', '#6d5f5e', '#918070', '#b3a085', '#cfbc9b', '#e6d6b4', '#f7ecd0']
 PORTLAND = ['#26242e', '#43404a', '#625e64', '#85807f', '#a8a29b', '#c8c2b6', '#e0dbcd', '#f2eee2']
@@ -220,6 +223,47 @@ class VoxelBuilding:
         self.smoke = [[self.sx0 + x + round(y * DRIFT / D), self.base - z - round(K * y), kind]
                       for x, y, z, kind in self.pots]
         return im
+
+    def cast(self, phases, cap=0.6):
+        """The building's shadow on the ground for each lighting phase: every
+        solid voxel carried along the phase's cast to the ground, so a canopy
+        on posts, a railing or a stack lays down its own shape. The ground is
+        drawn square on, a pixel of depth to a pixel of screen."""
+        g = self.g
+        see = np.array([bool(m and (m.glass or m.see)) for m in g.mats] + [False] * (256 - len(g.mats)))
+        solid = (g.m > 0) & ~see[g.m]
+        xi, yi, zi = np.nonzero(solid)
+        gx = self.sx0 + xi + g.x0 + 0.5
+        gy = self.bottom - (yi + g.y0) + 0.5
+        w, h = self.w, self.h
+        out = {}
+        for phase in phases:
+            vx, vy = phase['cast']
+            reach = np.hypot(vx, vy)
+            if reach > cap:
+                vx, vy = vx / reach * cap, vy / reach * cap
+            alpha = round(255 * phase['opacity'])
+            px = np.floor(gx + zi * vx).astype(int)
+            py = np.floor(gy + zi * vy).astype(int)
+            minx, maxx = min(0, px.min()) - 2, max(w, px.max() + 2) + 2
+            miny, maxy = min(0, py.min()) - 2, max(h, py.max() + 2) + 2
+            a = np.zeros((maxy - miny + 1, maxx - minx + 1), bool)
+            if alpha:
+                a[py - miny, px - minx] = True
+                a[py - miny, px - minx + 1] = True
+            # What falls under the building's own sprite is never seen.
+            body = np.array(self.im)[..., 3] > 0
+            a[-miny:-miny + h, -minx:-minx + w] &= ~body
+            img = np.zeros(a.shape + (4,), np.uint8)
+            img[a] = (28, 35, 42, alpha)
+            # The contact under the front wall does not swing with the sun.
+            y0 = self.bottom - miny
+            img[y0 - 1:y0 + 2, self.sx0 - minx:self.sx0 + self.W - minx] = (31, 30, 26, 91)
+            im = Image.fromarray(img)
+            im.info['anchor'] = [self.anchor_x - minx, h - miny]
+            im.info['trim'] = True
+            out[phase['id']] = im
+        return out
 
     def screen(self, x, y, z):
         """Sprite pixel of world voxel (x, y, z)'s front face."""

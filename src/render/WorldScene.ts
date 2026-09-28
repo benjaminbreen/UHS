@@ -2854,7 +2854,9 @@ export class WorldScene extends Phaser.Scene {
           ? "prop-shadows"
           : frame.startsWith("vehicle-")
             ? "vehicle-shadows"
-            : "lighting-shadows";
+            : this.texture(frame) === "street-buildings"
+              ? "street-shadows"
+              : "lighting-shadows";
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
       .image(x, transient ? y : y - this.lift(x, y), texture, key)

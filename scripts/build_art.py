@@ -146,6 +146,9 @@ build_shadows(ROOT, S, buildings)
 from art.fields import build_fields
 S.update(build_fields())
 from art.atlas import pack_atlas
+# Voxel buildings cast their own shadows, from their geometry, on a page of their own.
+from art.voxel_kit import SHADOWS
+pack_atlas(SHADOWS, OUT, 'street-shadows', 2048)
 # Buildings pack separately. They are the largest sprites in the game and the
 # one family still growing; sharing a page with everything else is what put
 # the main atlas against its 4096px ceiling. The renderer already routes by
