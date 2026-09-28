@@ -54,6 +54,11 @@ export type UrbanLayout = {
   diagonals: Segment[];
   blocks: Block[];
   plaza: Rect;
+  /** Where the streets framing the plaza end and building may begin, when a
+   * gridded or motor-age town runs its streets round the square. */
+  plazaFront?: Rect;
+  /** The square paved out to the inner kerb of that frame. */
+  plazaCourt?: Rect;
   /** Further squares at crossings, each painted like the main one. */
   squares: Rect[];
   /** Ground cut out for each precinct requested, in order; undefined where
@@ -496,6 +501,8 @@ export function composeUrban(
     south: plaza.y + plaza.h + 2 + spanOffsets(street)[0],
   } : undefined;
 
+  const framed = !civicBlock && (form.motor || core.plan === "orthogonal");
+
   // --- Arterials -------------------------------------------------------------
   // One axis-aligned run per gate, bent where the fabric is irregular so the
   // network does not collapse into a single central crossing.
@@ -504,7 +511,16 @@ export function composeUrban(
   for (const [i, gate] of gates.entries()) {
     const along = gate.axis;
     const across = along === "x" ? "y" : "x";
-    const target = along === "x" ? focus.y : focus.x;
+    // An old town's streets come into its square at the corners, each along a
+    // different side, as Sitte drew them turning like a pinwheel: the view
+    // down a street closes on a building, and the middle of every side is
+    // left to the buildings that front the square.
+    const pinwheel = grown(core.plan) && !framed;
+    const target = !pinwheel
+      ? along === "x" ? focus.y : focus.x
+      : along === "x"
+        ? gate.nx < 0 ? plaza.y + hiA : plaza.y + plaza.h - 1 - loA
+        : gate.ny < 0 ? plaza.x + plaza.w - 1 - loA : plaza.x + hiA;
     const startAcross = along === "x" ? gate.point.y : gate.point.x;
     const legs = grown(core.plan)
       ? 2 + Math.round(rand("bend-count", i))
@@ -864,6 +880,72 @@ export function composeUrban(
     for (const s of streets) mark(s);
   }
 
+  // --- The square's frame ---------------------------------------------------
+  // In a gridded or motor-age town the square is a block the streets run
+  // round, the missing block of the grid as the Laws of the Indies laid it out
+  // and every courthouse square copies. Roads meet the frame; none ends at
+  // the square itself, and the buildings face it across the street. A big
+  // city's civic block is its own frame.
+  // The frame carries the arterials' traffic round the square, so it is laid
+  // as one: their width, their surface, their verges.
+  const frameGap = hiA + margin(0) + 2;
+  const frame = framed
+    ? {
+        w: plaza.x - frameGap,
+        e: plaza.x + plaza.w - 1 + frameGap,
+        n: plaza.y - frameGap,
+        s: plaza.y + plaza.h - 1 + frameGap,
+      }
+    : undefined;
+  const frameInterior = frame && { x: frame.w + 1, y: frame.n + 1, w: frame.e - frame.w - 1, h: frame.s - frame.n - 1 };
+  const frameSides: Segment[] = [];
+  if (frame) {
+    // A street that would pass the frame too close to leave a block between
+    // them is brought up against it instead, and the frame reaches out to meet it.
+    const near = arterial + margin(0) + 4;
+    const reach = { w: [frame.n, frame.s], e: [frame.n, frame.s], n: [frame.w, frame.e], s: [frame.w, frame.e] };
+    for (const s of [...streets]) {
+      const level = across(s);
+      const [f0, f1, g0, g1] = axisOf(s) === "x"
+        ? [frame.n, frame.s, frame.w, frame.e]
+        : [frame.w, frame.e, frame.n, frame.s];
+      if (hi(s) < g0 || lo(s) > g1 || (level >= f0 && level <= f1)) continue;
+      if (level < f0 - near || level > f1 + near) continue;
+      streets.splice(streets.indexOf(s), 1);
+      const [before, after] = axisOf(s) === "x" ? (["w", "e"] as const) : (["n", "s"] as const);
+      if (lo(s) < g0) {
+        streets.push({ a: point(s, lo(s)), b: point(s, g0), tier: s.tier });
+        reach[before] = [Math.min(reach[before][0], level), Math.max(reach[before][1], level)];
+      }
+      if (hi(s) > g1) {
+        streets.push({ a: point(s, g1), b: point(s, hi(s)), tier: s.tier });
+        reach[after] = [Math.min(reach[after][0], level), Math.max(reach[after][1], level)];
+      }
+    }
+    cutStreets(frameInterior!);
+    frameSides.push(
+      { a: { x: frame.w, y: reach.w[0] }, b: { x: frame.w, y: reach.w[1] }, tier: 0 },
+      { a: { x: frame.e, y: reach.e[0] }, b: { x: frame.e, y: reach.e[1] }, tier: 0 },
+      { a: { x: reach.n[0], y: frame.n }, b: { x: reach.n[1], y: frame.n }, tier: 0 },
+      { a: { x: reach.s[0], y: frame.s }, b: { x: reach.s[1], y: frame.s }, tier: 0 },
+    );
+    streets.push(...frameSides);
+    lines.clear();
+    for (const s of streets) mark(s);
+  }
+  const plazaCourt = frame && {
+    x: frame.w + hiA + 1,
+    y: frame.n + hiA + 1,
+    w: frame.e - frame.w - loA - hiA - 1,
+    h: frame.s - frame.n - loA - hiA - 1,
+  };
+  const plazaFront = frame && {
+    x: frame.w - loA - margin(0),
+    y: frame.n - loA - margin(0),
+    w: frame.e - frame.w + loA + hiA + margin(0) * 2 + 1,
+    h: frame.s - frame.n + loA + hiA + margin(0) * 2 + 1,
+  };
+
   // --- Further squares and diagonals ----------------------------------------
   const squares: Rect[] = [];
   if (form.squares) {
@@ -967,10 +1049,11 @@ export function composeUrban(
     ].sort((a, b) => rand("diag", a[0], a[1]) - rand("diag", b[0], b[1]));
     for (const [sx, sy] of corners) {
       if (diagonals.length >= form.diagonals) break;
-      const a = {
-        x: civicBlock ? sx < 0 ? civicBlock.west : civicBlock.east : sx < 0 ? plaza.x - 1 : plaza.x + plaza.w,
-        y: civicBlock ? sy < 0 ? civicBlock.north : civicBlock.south : sy < 0 ? plaza.y - 1 : plaza.y + plaza.h,
-      };
+      const a = civicBlock
+        ? { x: sx < 0 ? civicBlock.west : civicBlock.east, y: sy < 0 ? civicBlock.north : civicBlock.south }
+        : frame
+          ? { x: sx < 0 ? frame.w : frame.e, y: sy < 0 ? frame.n : frame.s }
+          : { x: sx < 0 ? plaza.x - 1 : plaza.x + plaza.w, y: sy < 0 ? plaza.y - 1 : plaza.y + plaza.h };
       let b = a;
       while (holds(b.x + sx, b.y + sy, wallMargin + 1))
         b = { x: b.x + sx, y: b.y + sy };
@@ -1201,6 +1284,18 @@ export function composeUrban(
       readBlocks();
     }
   tidy();
+  if (frame) {
+    // Tidying carries street ends on to what they meet; none may cross in.
+    const onFrame = (s: Segment) => axisOf(s) === "x"
+      ? across(s) === frame.n || across(s) === frame.s
+      : across(s) === frame.w || across(s) === frame.e;
+    const sides = streets.filter(onFrame);
+    for (const s of sides) streets.splice(streets.indexOf(s), 1);
+    cutStreets(frameInterior!);
+    streets.push(...sides);
+    lines.clear();
+    for (const s of streets) mark(s);
+  }
   if (civicBlock) {
     const { west, east, north, south } = civicBlock;
     const perimeter = streets.filter((s) => axisOf(s) === "x"
@@ -1226,9 +1321,12 @@ export function composeUrban(
         if (line(a, b).every((p) => holds(p.x, p.y, 2))) streets.push({ a, b, tier: 1 });
       }
     }
+  }
+  // A framed town's streets all reach each other without crossing a square.
+  if (form.motor || framed) {
     connectStreetComponents(streets, (p) => {
       if (!holds(p.x, p.y, 2)) return false;
-      const spaces = [plaza, ...squares, ...grounds.filter((r): r is Rect => !!r)];
+      const spaces = [frameInterior ?? plaza, ...squares, ...grounds.filter((r): r is Rect => !!r)];
       if (spaces.some((r) => p.x >= r.x - 2 && p.x < r.x + r.w + 2 && p.y >= r.y - 2 && p.y < r.y + r.h + 2)) return false;
       return !civicBlock || p.x <= civicBlock.west || p.x >= civicBlock.east || p.y <= civicBlock.north || p.y >= civicBlock.south;
     });
@@ -1350,6 +1448,8 @@ export function composeUrban(
     diagonals,
     blocks,
     plaza,
+    plazaFront,
+    plazaCourt,
     squares,
     grounds,
     verges,
@@ -1372,7 +1472,7 @@ export function composeUrban(
       py = plaza.y - 1,
       qx = plaza.x + plaza.w,
       qy = plaza.y + plaza.h;
-    const edges: Segment[] = [...(form.motor ? [] : [plaza]), ...squares].flatMap((r) => {
+    const edges: Segment[] = [...(form.motor || frame ? [] : [plaza]), ...squares].flatMap((r) => {
       const px = r.x - 1,
         py = r.y - 1,
         qx = r.x + r.w,

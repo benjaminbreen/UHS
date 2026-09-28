@@ -588,6 +588,8 @@ export function urbanNeighborhood(
   }
   const civic = civicProfile(pack.setting!);
   const plaza = { ...layout.plaza };
+  // Landmarks stand back from the square's frame of streets, where there is one.
+  const front = layout.plazaFront ?? plaza;
   let civicRect: Rect | undefined;
   // The civic range takes the plaza's head before the square is painted, so the
   // square keeps its full depth in front of the building rather than behind it.
@@ -631,14 +633,14 @@ export function urbanNeighborhood(
           rect: {
             x: nx
               ? nx < 0
-                ? plaza.x - w - 1
-                : plaza.x + plaza.w + 1
-              : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
+                ? front.x - w - 1
+                : front.x + front.w + 1
+              : Math.floor(front.x + (front.w - w) / 2) + shift,
             y: ny
               ? ny < 0
-                ? plaza.y - h - 1
-                : plaza.y + plaza.h + 1
-              : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
+                ? front.y - h - 1
+                : front.y + front.h + 1
+              : Math.floor(front.y + (front.h - h) / 2) + shift,
             w,
             h,
           },
@@ -678,11 +680,11 @@ export function urbanNeighborhood(
     const base = `religious-${religious.recipe}-${scale}-${look}`;
     const civicSide: [number, number] | undefined =
       civicRect &&
-      (civicRect.y + civicRect.h <= plaza.y
+      (civicRect.y + civicRect.h <= front.y
         ? [0, -1]
-        : civicRect.y >= plaza.y + plaza.h
+        : civicRect.y >= front.y + front.h
           ? [0, 1]
-          : civicRect.x >= plaza.x + plaza.w
+          : civicRect.x >= front.x + front.w
             ? [1, 0]
             : [-1, 0]);
     const named: Record<string, [number, number]> = {
@@ -719,28 +721,28 @@ export function urbanNeighborhood(
         const rect = {
           x: nx
             ? nx < 0
-              ? plaza.x - w - gap
-              : plaza.x + plaza.w + gap
-            : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
+              ? front.x - w - gap
+              : front.x + front.w + gap
+            : Math.floor(front.x + (front.w - w) / 2) + shift,
           y: ny
             ? ny < 0
-              ? plaza.y - h - gap
-              : plaza.y + plaza.h + gap
-            : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
+              ? front.y - h - gap
+              : front.y + front.h + gap
+            : Math.floor(front.y + (front.h - h) / 2) + shift,
           w,
           h,
         };
         // The forecourt spans the building's width between it and the square.
         const forecourt = nx
           ? {
-              x: nx < 0 ? rect.x + w : plaza.x + plaza.w,
+              x: nx < 0 ? rect.x + w : front.x + front.w,
               y: rect.y,
               w: gap,
               h,
             }
           : {
               x: rect.x,
-              y: ny < 0 ? rect.y + h : plaza.y + plaza.h,
+              y: ny < 0 ? rect.y + h : front.y + front.h,
               w,
               h: gap,
             };
@@ -802,20 +804,20 @@ export function urbanNeighborhood(
             const [w, h] = model.footprint;
             // A block back from the square, and shifted along it so several
             // venues do not stack on the same approach.
-            const set = form.tiers[0] + 4;
+            const set = layout.plazaFront ? 1 : form.tiers[0] + 4;
             return [0, 1, -1, 2, -2].map((step) => {
               const shift = step * (w + 3);
               const rect = {
                 x: nx
                   ? nx < 0
-                    ? plaza.x - w - set
-                    : plaza.x + plaza.w + set
-                  : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
+                    ? front.x - w - set
+                    : front.x + front.w + set
+                  : Math.floor(front.x + (front.w - w) / 2) + shift,
                 y: ny
                   ? ny < 0
-                    ? plaza.y - h - set
-                    : plaza.y + plaza.h + set
-                  : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
+                    ? front.y - h - set
+                    : front.y + front.h + set
+                  : Math.floor(front.y + (front.h - h) / 2) + shift,
                 w,
                 h,
               };
@@ -863,7 +865,7 @@ export function urbanNeighborhood(
       { apron: placed.apron },
     );
   }
-  api.paintCourt(plaza, civic.square, civicRect);
+  api.paintCourt(layout.plazaCourt ?? plaza, civic.square, civicRect);
   for (const [i, r] of layout.squares.entries()) api.paintSquare(r, i);
   if (layout.rail) api.railway?.(layout.rail);
   const station = layout.rail && raiseStation(layout.rail);
@@ -1540,7 +1542,8 @@ export function urbanNeighborhood(
         }
       }
     }
-    for (const r of [layout.plaza, ...layout.squares]) {
+    // A framed square is fronted across its streets, like any block.
+    for (const r of [...(layout.plazaFront ? [] : [layout.plaza]), ...layout.squares]) {
       for (let x = r.x - 1; x <= r.x + r.w; x++) {
         frontage.set(cellKey(x, r.y - 1), { nx: 0, ny: -1, square: true });
         frontage.set(cellKey(x, r.y + r.h), { nx: 0, ny: 1, square: true });

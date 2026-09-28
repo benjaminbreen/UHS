@@ -36,6 +36,48 @@ const center = { x: 0, y: 0 };
 const compose = (form: UrbanForm, radius = 96, seed = "seed") =>
   composeUrban("site", center, radius, form, seed);
 
+it("runs a gridded or motor-age town's streets round its square, never into it", () => {
+  const forms = [
+    at("mesoamerican", -77, -12, 1925),
+    at("european", -76, 43, 1995),
+    { ...at("european", 37.6, 55.7, 1975), motor: true, tiers: [12, 5, 3] as const },
+  ];
+  for (const form of forms)
+    for (const seed of ["plaza-a", "plaza-b", "plaza-c"]) {
+      const p = compose(form, 70, seed);
+      if (!p.plazaCourt) continue;
+      const c = p.plazaCourt;
+      const inside = (x: number, y: number) => x >= c.x && x < c.x + c.w && y >= c.y && y < c.y + c.h;
+      for (const s of p.streets)
+        for (const q of [s.a, s.b, { x: (s.a.x + s.b.x) >> 1, y: (s.a.y + s.b.y) >> 1 }])
+          expect(inside(q.x, q.y), `${seed}: street at ${q.x},${q.y}`).toBe(false);
+      expect(new Set(streetComponents(p.streets)).size, seed).toBe(1);
+    }
+});
+
+it("brings an old town's streets into its square at the corners", () => {
+  const form = at("european", -0.1, 51.5, 1300);
+  for (const seed of ["sitte-a", "sitte-b", "sitte-c", "sitte-d"]) {
+    const p = compose(form, 60, seed);
+    if (p.plazaFront) continue;
+    const q = p.plaza;
+    const [w] = p.tiers;
+    for (const s of p.streets) {
+      if (s.tier !== 0) continue;
+      const horizontal = s.a.y === s.b.y;
+      const level = horizontal ? s.a.y : s.a.x;
+      const ends = [s.a, s.b].filter((e) =>
+        horizontal
+          ? (e.x === q.x - 1 || e.x === q.x + q.w) && level >= q.y && level < q.y + q.h
+          : (e.y === q.y - 1 || e.y === q.y + q.h) && level >= q.x && level < q.x + q.w,
+      );
+      if (!ends.length) continue;
+      const [lo, hi] = horizontal ? [q.y, q.y + q.h - 1] : [q.x, q.x + q.w - 1];
+      expect(Math.min(level - lo, hi - level), `${seed}: an arterial meets the square mid-side`).toBeLessThan(w);
+    }
+  }
+});
+
 it("connects modern districts around pedestrian squares before parcel placement", () => {
   const form = { ...at("european", 37.6, 55.7, 1975), motor: true, tiers: [12, 5, 3] as const, diagonals: 1 };
   for (const radius of [90, 140])
