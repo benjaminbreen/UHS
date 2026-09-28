@@ -72,7 +72,7 @@ it("compiles the American infill kit, each on a lot a figure can stand beside", 
     ([id, model]) =>
       (model as any).candidate && !/-(north|east|west)$/.test(id),
   );
-  expect(candidates).toHaveLength(18);
+  expect(candidates).toHaveLength(25);
   for (const [, model] of candidates) {
     const [w, h] = (model as any).footprint;
     expect(w).toBeGreaterThanOrEqual(4);

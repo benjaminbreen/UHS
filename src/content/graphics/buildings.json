@@ -1199,6 +1199,244 @@
    "description": "A compact cafe with a deep striped awning, central door and large street-facing windows.",
    "from": 1900
   },
+  "candidate-modern-burger-drive-in": {
+   "label": "Burger drive-in",
+   "footprint": [
+    7,
+    4
+   ],
+   "entrance": [
+    3,
+    4
+   ],
+   "canvas": [
+    112,
+    124
+   ],
+   "height": 72,
+   "wall": "concrete-frame",
+   "roof": "flat",
+   "roofMaterial": "grey-tile",
+   "roofDepth": 18,
+   "roofStyle": "flat",
+   "roofDetail": "vent",
+   "opening": "door",
+   "attachments": [],
+   "seed": 937,
+   "variant": 1,
+   "candidate": true,
+   "candidateType": "burger drive-in",
+   "candidateGroup": "shops",
+   "business": "burger drive-in",
+   "sign": "BURGERS",
+   "awning": true,
+   "description": "A drive-in: a walk-up counter under an upswept roof, a canopy where the carhops bring the tray out, and a burger on a pole.",
+   "from": 1940
+  },
+  "candidate-modern-ice-cream": {
+   "label": "Ice cream stand",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "canvas": [
+    64,
+    136
+   ],
+   "height": 92,
+   "wall": "concrete-frame",
+   "roof": "flat",
+   "roofMaterial": "grey-tile",
+   "roofDepth": 18,
+   "roofStyle": "flat",
+   "roofDetail": "vent",
+   "opening": "door",
+   "attachments": [],
+   "seed": 974,
+   "variant": 2,
+   "candidate": true,
+   "candidateType": "ice cream stand",
+   "candidateGroup": "shops",
+   "business": "ice cream stand",
+   "sign": "ICE CREAM",
+   "awning": true,
+   "description": "A walk-up stand with two service windows, a striped canopy, and a cone on the roof.",
+   "from": 1920
+  },
+  "candidate-modern-music-shop": {
+   "label": "Music shop",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "canvas": [
+    80,
+    116
+   ],
+   "height": 72,
+   "wall": "concrete-frame",
+   "roof": "flat",
+   "roofMaterial": "grey-tile",
+   "roofDepth": 18,
+   "roofStyle": "flat",
+   "roofDetail": "vent",
+   "opening": "door",
+   "attachments": [],
+   "seed": 1011,
+   "variant": 3,
+   "candidate": true,
+   "candidateType": "music shop",
+   "candidateGroup": "shops",
+   "business": "music shop",
+   "sign": "MUSIC",
+   "awning": true,
+   "description": "Guitars hung in the window, a drum kit and racks of records behind, a record the size of the shopfront on the roof.",
+   "from": 1900
+  },
+  "candidate-modern-sporting-goods": {
+   "label": "Sporting goods",
+   "footprint": [
+    6,
+    4
+   ],
+   "entrance": [
+    3,
+    4
+   ],
+   "canvas": [
+    96,
+    124
+   ],
+   "height": 72,
+   "wall": "concrete-frame",
+   "roof": "flat",
+   "roofMaterial": "grey-tile",
+   "roofDepth": 18,
+   "roofStyle": "flat",
+   "roofDetail": "vent",
+   "opening": "door",
+   "attachments": [],
+   "seed": 1048,
+   "variant": 4,
+   "candidate": true,
+   "candidateType": "sporting goods",
+   "candidateGroup": "shops",
+   "business": "sporting goods",
+   "sign": "SPORTS",
+   "awning": true,
+   "description": "Bicycles, skis and balls in the window, and a baseball and bat on a pole by the door.",
+   "from": 1900
+  },
+  "candidate-modern-tire-shop": {
+   "label": "Tire and auto service",
+   "footprint": [
+    7,
+    4
+   ],
+   "entrance": [
+    3,
+    4
+   ],
+   "canvas": [
+    112,
+    128
+   ],
+   "height": 76,
+   "wall": "concrete-frame",
+   "roof": "flat",
+   "roofMaterial": "grey-tile",
+   "roofDepth": 18,
+   "roofStyle": "flat",
+   "roofDetail": "vent",
+   "opening": "door",
+   "attachments": [],
+   "seed": 1085,
+   "variant": 5,
+   "candidate": true,
+   "candidateType": "tire shop",
+   "candidateGroup": "shops",
+   "business": "tire shop",
+   "sign": "TIRES",
+   "awning": true,
+   "description": "Two service bays, a car on the lift, tires stacked by the door and one stood on the roof.",
+   "from": 1920
+  },
+  "candidate-modern-barber": {
+   "label": "Barber shop",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "canvas": [
+    64,
+    104
+   ],
+   "height": 60,
+   "wall": "concrete-frame",
+   "roof": "flat",
+   "roofMaterial": "grey-tile",
+   "roofDepth": 18,
+   "roofStyle": "flat",
+   "roofDetail": "vent",
+   "opening": "door",
+   "attachments": [],
+   "seed": 1122,
+   "variant": 0,
+   "candidate": true,
+   "candidateType": "barber shop",
+   "candidateGroup": "shops",
+   "business": "barber shop",
+   "sign": "BARBER",
+   "awning": true,
+   "description": "A narrow shop with a barber chair before the mirror and the striped pole turning by the door.",
+   "from": 1900
+  },
+  "candidate-modern-pizzeria": {
+   "label": "Pizzeria",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "canvas": [
+    80,
+    120
+   ],
+   "height": 76,
+   "wall": "concrete-frame",
+   "roof": "flat",
+   "roofMaterial": "grey-tile",
+   "roofDepth": 18,
+   "roofStyle": "flat",
+   "roofDetail": "vent",
+   "opening": "door",
+   "attachments": [],
+   "seed": 1159,
+   "variant": 1,
+   "candidate": true,
+   "candidateType": "pizzeria",
+   "candidateGroup": "shops",
+   "business": "pizzeria",
+   "sign": "PIZZA",
+   "awning": true,
+   "description": "Checked tablecloths in the window, the oven glowing at the back, and a slice on the parapet.",
+   "from": 1945
+  },
   "candidate-modern-cottage": {
    "label": "Cape Cod cottage",
    "footprint": [

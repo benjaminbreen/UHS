@@ -34,6 +34,17 @@ ICING = ['#4a1830', '#7a2848', '#b0406a', '#e060a0', '#f898c8', '#ffd0e8']
 CAR = [['#2a0a0a', '#5a1414', '#8a2020', '#b83028', '#e04a3a'], ['#0a1a2a', '#14304e', '#1e4a78', '#2e66a0', '#5088c4'],
        ['#1a2a1a', '#2a4a2a', '#3c6a3c', '#529052', '#78b478']]
 RUBBER = ['#0c0c10', '#16161c', '#222228', '#303038']
+BUN = ['#4a2410', '#7a4018', '#b06a28', '#d8943c', '#f0bc62', '#fcdc96']
+PATTY = ['#1c0e0a', '#341a10', '#4e2a18', '#6a3c22']
+CHEESE = ['#6a4a06', '#b08a10', '#e8bc20', '#fce060']
+LETTUCE = ['#10300c', '#1e5214', '#347a20', '#56a830']
+WAFFLE = ['#4a2c10', '#7a4c1e', '#a8702e', '#cc9448', '#e8b868']
+SCOOPS = [['#5a1a30', '#9a3050', '#d45a80', '#f890b0', '#ffc8d8'], ['#2a1408', '#4a2410', '#6a3818', '#8a5028', '#a86c40'],
+          ['#1a4a34', '#2a7050', '#48a078', '#78c8a0', '#b0e8cc']]
+VINYL = ['#060608', '#0e0e12', '#18181e', '#26262e', '#3a3a46']
+BALL = ['#6a6860', '#a8a498', '#d8d4c8', '#f4f2ea', '#ffffff']
+BASKET = ['#4a1a06', '#8a360c', '#c85a18', '#ec8030', '#ffa858']
+CHAIR = ['#2a0608', '#5a0c12', '#8a141c', '#b82028', '#e04040']
 
 
 class Roadside(VoxelBuilding):
@@ -74,6 +85,21 @@ class Roadside(VoxelBuilding):
         self.SHRUB = g.mat(['#0e2019', '#173a24', '#23552b', '#2f6a30', '#3f7f36'], bias=0.1,
                            tex=lambda i: (h3(i['x'], i['y'], i['z'], 5) - 0.5) * 1.6)
         self.CONCRETE = g.mat(CONCRETE, bias=-0.4)
+        self.BUN = g.mat(BUN, bias=0.1)
+        self.PATTY = g.mat(PATTY, bias=0.2)
+        self.CHEESE = g.mat(CHEESE, bias=0.4)
+        self.LETTUCE = g.mat(LETTUCE, bias=0.4)
+        self.WAFFLE = g.mat(WAFFLE, bias=0.2, tex=lambda i: -1.0 * (((i['x'] + i['z']) % 4 == 0) | ((i['x'] - i['z']) % 4 == 0)))
+        self.SCOOPS = [g.mat(c, bias=0.3) for c in SCOOPS]
+        self.VINYL = g.mat(VINYL, bias=0.4, tex=lambda i: 1.0 * ((i['x'] * 7 + i['z'] * 3) % 11 == 0))
+        self.BALL = g.mat(BALL, bias=-0.2)
+        self.BASKET = g.mat(BASKET, bias=0.2)
+        self.CHAIR = g.mat(CHAIR, bias=0.3)
+        self.RED = g.mat(['#3a0608', '#7a0e14', '#b81c22', '#e8383a', '#ff7068'], bias=0.3)
+        self.CHECKCLOTH = g.mat(['#3a0608', '#7a0e14', '#b81c22', '#e8383a', '#ff7068'], bias=0.3,
+                                tex=lambda i: np.where(((i['x'] // 2) + (i['y'] // 2)) % 2 == 0, 3.0, 0))
+        self.OVEN = g.mat(['#6a1a04', '#b83a08', '#f07018', '#ffb040'], bias=1.5, lamp=True)
+        self.BLUE = g.mat(['#060e2a', '#0e1e56', '#1a3290', '#2e50c0', '#5c80e8'], bias=0.3)
 
     def build(self):
         getattr(self, {
@@ -81,6 +107,8 @@ class Roadside(VoxelBuilding):
             'gas station': 'gas', 'donut shop': 'donuts', 'diner': 'diner', 'pharmacy': 'drugstore',
             'laundromat': 'laundromat', 'neighborhood market': 'market', 'cafe': 'cafe', 'clinic': 'clinic',
             'motel': 'motel', 'auto workshop': 'garage', 'grocery': 'grocery',
+            'burger drive-in': 'burgers', 'ice cream stand': 'ice_cream', 'music shop': 'music',
+            'sporting goods': 'sports', 'tire shop': 'tires', 'barber shop': 'barber', 'pizzeria': 'pizzeria',
         }.get(self.business, 'store'))()
 
     # ------------------------------------------------------------ parts
@@ -682,6 +710,249 @@ class Roadside(VoxelBuilding):
             self.box(px + 1 + i * 3, px + 2 + i * 3, -10, -9, 2 * f1 + 6 - (i % 2), 2 * f1 + 7 - (i % 2), self.NEON)
         self.lamps.append((px + 12, -10, 2 * f1 + 6))
         self.sign_band = [self.sx0 + px, self.base - (2 * f1 + 21) - 5, 24, 6]
+
+
+    # ------------------------------------------------------------ the sign shops
+    def pole(self, x, y, z1, w=2):
+        self.box(x, x + w, y, y + w, 0, z1, self.IRON)
+        self.box(x - 1, x + w + 1, y - 1, y + w + 1, 0, 2, self.CONCRETE)
+
+    def burgers(self):
+        """A drive-in: a glass counter under an upswept roof, a canopy on
+        raked posts where the tray comes out to the car, and a burger on a
+        pole as tall as the building."""
+        W, D = self.W, self.D
+        y0 = 26
+        self.wallm = self.WHITE
+        self.box(0, W, y0, D, 0, 32, self.WHITE)
+        self.front = y0
+        self.interior(1, W - 1, 0, 32)
+        self.box(0, W, y0 - 1, y0, 0, 3, self.CONCRETE)
+        self.storefront(24, W - 4, 4, 28, frame=self.CHROME)
+        self.shop_door(16)
+        self.box(0, W, y0 - 1, y0, 28, 32, self.ENAMEL)
+        self.front = 0
+        # The roof sweeps up toward the street like a wing.
+        n = self.g.normal((0, -0.35, 1))
+        self.fill(-2, W + 2, y0 - 12, D + 1, 32, 48,
+                  lambda X, Y, Z: np.abs(Z - (32 + (D - Y) * 0.2)) < 1.2, self.RED, n)
+        self.box(-2, W + 2, y0 - 13, y0 - 11, 36, 40, self.WHITE)
+        self.sign_band = [self.sx0 + 26, self.base - 39 - round(0.5 * (y0 - 13)) - 1, W - 30, 5]
+        # The carhop canopy on V posts, a car pulled in under it.
+        self.box(20, W - 2, 0, y0 - 10, 34, 36, self.WHITE)
+        self.box(20, W - 2, -1, 1, 33, 37, self.RED)
+        for x in (26, W - 10):
+            for dx in (-3, 3):
+                self.fill(x - 4, x + 5, 2, 5, 1, 34,
+                          lambda X, Y, Z, x=x, dx=dx: np.abs(X + 0.5 - x - dx * (Z / 34)) < 0.9, self.CHROME)
+            self.box(x - 1, x + 2, 2, 5, 30, 33, self.GLOBE)
+            self.lamps.append((x, 3, 31))
+        self.car(34, 4, 0)
+        self.box(58, 66, 4, 8, 12, 13, self.CHROME)
+        # The burger: bun, lettuce, cheese, patty, bun, on its pole.
+        cx, cz = 9, 70
+        self.pole(cx - 1, -4, cz - 10)
+        bun = lambda X, Y, dz, r: (X + 0.5 - cx) ** 2 + ((Y + 3) * 1.3) ** 2 + (dz) ** 2 <= r * r
+        self.fill(cx - 12, cx + 13, -12, 6, cz - 12, cz - 7,
+                  lambda X, Y, Z: bun(X, Y, 0, 10) & (Z >= cz - 12), self.BUN)
+        self.fill(cx - 12, cx + 13, -12, 6, cz - 7, cz - 4, lambda X, Y, Z: bun(X, Y, 0, 11), self.PATTY)
+        self.fill(cx - 12, cx + 13, -13, 6, cz - 4, cz - 3,
+                  lambda X, Y, Z: bun(X, Y, 0, 11.5) & ((X + Y) % 5 != 0), self.CHEESE)
+        self.fill(cx - 13, cx + 14, -13, 7, cz - 3, cz - 2,
+                  lambda X, Y, Z: bun(X, Y, 0, 12) & ((X * 3 + Y) % 4 != 0), self.LETTUCE)
+        self.fill(cx - 12, cx + 13, -12, 6, cz - 2, cz + 9,
+                  lambda X, Y, Z: (X + 0.5 - cx) ** 2 + ((Y + 3) * 1.3) ** 2 + ((Z - cz + 2) * 1.1) ** 2 <= 110,
+                  self.BUN)
+        rng = random.Random(self.seed)
+        for _ in range(9):
+            x, z = cx + rng.randint(-7, 7), cz + rng.randint(3, 7)
+            self.box(x, x + 1, -12, -11, z, z + 1, self.CHEESE)
+        self.door_x = self.sx0 + 16
+        self.door_ground = self.base - 1 - y0 // 2
+
+    def ice_cream(self):
+        """A walk-up stand: two service windows under a striped canopy, and
+        on the roof a cone with three scoops and a cherry."""
+        W, D = self.W, self.D
+        self.box_shop(34, self.WHITE, z1=28, sign=True, parapet=4)
+        for x0 in (6, W - 26):
+            self.box(x0, x0 + 20, -3, 0, 12, 14, self.CHROME)
+        self.shop_door(W // 2)
+        self.awning_over(1, W - 1, 30, k=0)
+        cx, cy = W / 2, D / 2 + 4
+        base = 38
+        self.fill(int(cx) - 8, int(cx) + 9, int(cy) - 8, int(cy) + 9, base, base + 22,
+                  lambda X, Y, Z: (X + 0.5 - cx) ** 2 + (Y + 0.5 - cy) ** 2 <= ((Z - base) * 0.34) ** 2, self.WAFFLE)
+        for k, (dz, r) in enumerate(((26, 8.5), (35, 7.5), (43, 6.2))):
+            m = self.SCOOPS[(k + self.seed) % 3]
+            self.fill(int(cx) - 10, int(cx) + 11, int(cy) - 10, int(cy) + 11, base + dz - 9, base + dz + 9,
+                      lambda X, Y, Z, dz=dz, r=r: (X + 0.5 - cx) ** 2 + (Y + 0.5 - cy) ** 2 + ((Z - base - dz) * 1.15) ** 2 <= r * r,
+                      m)
+        self.fill(int(cx) - 3, int(cx) + 4, int(cy) - 3, int(cy) + 4, base + 48, base + 53,
+                  lambda X, Y, Z: (X + 0.5 - cx) ** 2 + (Y + 0.5 - cy) ** 2 + (Z - base - 50) ** 2 <= 5, self.RED)
+        self.box(int(cx), int(cx) + 1, int(cy), int(cy) + 1, base + 52, base + 56, self.LETTUCE)
+        self.box(3, 13, -6, -1, 0, 8, self.WHITE)
+        self.box(3, 13, -6, -1, 8, 9, self.BLUE)
+
+    def music(self):
+        """Guitars in the window, a drum kit and record racks behind, a
+        record on the roof as wide as the shop."""
+        W, D = self.W, self.D
+        self.box_shop(40, self.BRICKW, z1=32)
+        self.shop_door(W - 12)
+        rng = random.Random(self.seed + 2)
+        colours = [self.RED, self.BUN, self.BLUE, self.VINYL]
+        for k, x in enumerate(range(8, W - 20, 9)):
+            m = colours[k % 4]
+            self.box(x + 2, x + 3, 6, 7, 18, 30, self.OAK)
+            self.fill(x - 1, x + 6, 6, 8, 5, 19,
+                      lambda X, Y, Z, x=x: ((X + 0.5 - x - 2.5) ** 2 + ((Z - 9) * 1.1) ** 2 <= 9)
+                      | ((X + 0.5 - x - 2.5) ** 2 + ((Z - 15) * 1.2) ** 2 <= 5), m)
+            self.box(x + 2, x + 3, 5, 6, 9, 16, self.IRON)
+        for x in range(8, W - 20, 4):
+            self.box(x, x + 3, 22, 24, 1, 10, rng.choice(self.GOODS))
+            self.box(x, x + 3, 24, 26, 1, 12, self.OAK)
+        self.fill(W - 30, W - 20, 12, 20, 1, 9, lambda X, Y, Z: (X + 0.5 - W + 25) ** 2 + ((Y - 15.5) * 1.2) ** 2 <= 12,
+                  self.RED)
+        # The record: a black disc stood on the roof, grooves, a red label.
+        cx, cz, R = W / 2, 40 + 6 + 20, 19
+        disc = lambda X, Z: (X + 0.5 - cx) ** 2 + (Z + 0.5 - cz) ** 2
+        for x in (int(cx) - 8, int(cx) + 7):
+            self.box(x, x + 1, D // 2, D // 2 + 1, 40, cz - 12, self.IRON)
+        self.fill(int(cx - R), int(cx + R) + 1, D // 2 - 1, D // 2 + 1, cz - R, cz + R + 1,
+                  lambda X, Y, Z: disc(X, Z) <= R * R, self.VINYL)
+        self.fill(int(cx - R), int(cx + R) + 1, D // 2 - 2, D // 2 - 1, cz - R, cz + R + 1,
+                  lambda X, Y, Z: disc(X, Z) <= 30, self.RED)
+        self.fill(int(cx - R), int(cx + R) + 1, D // 2 - 3, D // 2 - 2, cz - R, cz + R + 1,
+                  lambda X, Y, Z: disc(X, Z) <= 1.5, self.VINYL)
+
+    def sports(self):
+        """Bikes, skis and balls in the window; a baseball and a bat on a
+        pole by the door."""
+        W, D = self.W, self.D
+        self.box_shop(40, self.STONE, z1=32)
+        self.shop_door(12)
+        self.awning_over(22, W - 2, 34)
+        for x in (26, 46):
+            for wx in (x, x + 11):
+                self.fill(wx - 5, wx + 5, 7, 8, 1, 12,
+                          lambda X, Y, Z, wx=wx: np.abs(np.hypot(X + 0.5 - wx, Z + 0.5 - 6) - 4.2) < 0.8, self.IRON)
+            self.box(x, x + 12, 7, 8, 8, 9, self.RED)
+            self.box(x + 5, x + 6, 7, 8, 6, 13, self.RED)
+        for k, x in enumerate(range(W - 26, W - 6, 4)):
+            self.box(x, x + 2, 12, 13, 1, 30, [self.RED, self.BLUE, self.CHEESE, self.WHITE, self.RED][k % 5])
+        for k, x in enumerate(range(26, W - 30, 7)):
+            self.fill(x, x + 6, 9, 15, 20, 26, lambda X, Y, Z, x=x: (X + 0.5 - x - 3) ** 2 + (Y - 11.5) ** 2 + (Z - 23) ** 2 <= 8,
+                      [self.BASKET, self.BALL][k % 2])
+        # The baseball on its pole, stitched, and a bat across.
+        cx, cz, r = W - 6, 64, 9
+        self.pole(cx - 1, -5, cz - r)
+        self.fill(cx - r, cx + r + 1, -5 - r, -5 + r, cz - r, cz + r + 1,
+                  lambda X, Y, Z: (X + 0.5 - cx) ** 2 + (Y + 4.5) ** 2 + (Z + 0.5 - cz) ** 2 <= r * r, self.BALL)
+        for sgn in (-1, 1):
+            self.fill(cx - r, cx + r + 1, -5 - r - 1, -4, cz - r, cz + r + 1,
+                      lambda X, Y, Z, sgn=sgn: (np.abs((X + 0.5 - cx) * sgn - 4 - ((Z + 0.5 - cz) / r) ** 2 * 3) < 0.8)
+                      & ((X + 0.5 - cx) ** 2 + (Y + 4.5) ** 2 + (Z + 0.5 - cz) ** 2 <= (r + 0.8) ** 2)
+                      & ((Z + X) % 2 == 0) & (Y + 4.5 < -r * 0.3), self.RED)
+        self.fill(cx - 22, cx + 2, -9, -6, cz - 18, cz - 2,
+                  lambda X, Y, Z: np.abs((Z - cz + 18) - (X - cx + 22) * 0.66) < 1.3 + (X - cx + 22) * 0.05, self.BUN)
+
+    def tires(self):
+        """Tire and auto service: two bays, a car up on the lift, tires
+        stacked by the door, and one stood on the roof with a white wall."""
+        W, D = self.W, self.D
+        self.wallm = self.CONCRETE
+        self.box(0, W, 0, D, 0, 40, self.CONCRETE)
+        self.interior(1, W - 1, 0, 40)
+        self.box(0, W, -1, 0, 0, 3, self.CONCRETE)
+        for k, (b0, b1) in enumerate(((30, 64), (68, W - 4))):
+            self.cut(b0, b1, -1, 36, 1, 32)
+            self.box(b0, b1, 36, 38, 1, 32, self.PAPER[1])
+            self.box(b0, b1, -1, 1, 32, 34, self.STEEL)
+            self.box(b0, b1, 1, 36, 0, 1, self.CONCRETE)
+            if k == 0:
+                self.box(b0 + 6, b0 + 8, 14, 18, 1, 12, self.ENAMEL)
+                self.box(b0 + 24, b0 + 26, 14, 18, 1, 12, self.ENAMEL)
+                self.car(b0 + 5, 11, 12, m=self.CARS[(self.seed + 2) % 3])
+            else:
+                for x in range(b0 + 3, b1 - 6, 7):
+                    for z in (0, 3, 6):
+                        self.fill(x, x + 6, 20, 26, z, z + 3,
+                                  lambda X, Y, Z, x=x: np.abs(np.hypot(X + 0.5 - x - 3, Y - 22.5) - 2.2) < 1.1, self.RUBBER)
+        self.storefront(3, 26, 4, 30, frame=self.CHROME)
+        self.shop_door(20)
+        self.flat_top(40, 4, self.CONCRETE, sign=True)
+        for sx in (4, 12):
+            for k in range(5):
+                self.fill(sx, sx + 7, -8, -1, k * 3, k * 3 + 3,
+                          lambda X, Y, Z, sx=sx: np.abs(np.hypot(X + 0.5 - sx - 3.5, Y + 4.5) - 2.6) < 1.3, self.RUBBER)
+        self.box(W - 3, W - 1, -4, -2, 0, 16, self.RED)
+        self.box(W - 4, W, -5, -1, 16, 18, self.RED)
+        # The tire on the roof: a black ring on its tread, a white wall, a hub.
+        cx, cz, R = W / 2 + 10, 40 + 4 + 18, 17
+        ring = lambda X, Z: np.hypot(X + 0.5 - cx, Z + 0.5 - cz)
+        y = D // 2
+        self.fill(int(cx - R), int(cx + R) + 1, y - 3, y + 3, cz - R, cz + R + 1,
+                  lambda X, Y, Z: (ring(X, Z) <= R) & (ring(X, Z) > R - 7), self.RUBBER)
+        self.fill(int(cx - R), int(cx + R) + 1, y - 4, y - 3, cz - R, cz + R + 1,
+                  lambda X, Y, Z: (ring(X, Z) <= R - 3) & (ring(X, Z) > R - 5), self.WHITE)
+        self.fill(int(cx - R), int(cx + R) + 1, y - 3, y + 1, cz - R, cz + R + 1,
+                  lambda X, Y, Z: ring(X, Z) <= R - 7, self.CHROME)
+        self.fill(int(cx - R), int(cx + R) + 1, y - 5, y - 3, cz - R, cz + R + 1,
+                  lambda X, Y, Z: ring(X, Z) <= 3, self.CHROME)
+        for dx in (-9, 9):
+            self.box(int(cx + dx), int(cx + dx) + 2, y - 1, y + 1, 44, cz - R + 3, self.IRON)
+
+    def barber(self):
+        """A narrow shop: the red chair before a mirror, and the striped pole
+        by the door under its glass globe."""
+        W, D = self.W, self.D
+        self.box_shop(40, self.BRICKW, z1=32)
+        self.shop_door(W - 12)
+        for cx in (14, 30):
+            self.box(cx - 4, cx + 4, 12, 18, 1, 4, self.CHROME)
+            self.box(cx - 4, cx + 4, 12, 18, 4, 12, self.CHAIR)
+            self.box(cx - 4, cx + 4, 17, 19, 12, 22, self.CHAIR)
+            self.box(cx - 5, cx - 4, 12, 18, 10, 14, self.CHROME)
+            self.box(cx + 4, cx + 5, 12, 18, 10, 14, self.CHROME)
+            self.box(cx - 7, cx + 7, 26, 27, 14, 30, self.SKY)
+        cx, cy, r = 4, -4, 2.6
+        self.box(2, 7, -7, -1, 4, 5, self.CHROME)
+        stripe = lambda X, Y, Z, k: ((Z + np.degrees(np.arctan2(Y + 0.5 - cy, X + 0.5 - cx)) / 30) % 6 // 2) == k
+        cyl = lambda X, Y: (X + 0.5 - cx) ** 2 + (Y + 0.5 - cy) ** 2 <= r * r
+        for k, m in enumerate((self.RED, self.WHITE, self.BLUE)):
+            self.fill(1, 8, -8, 0, 5, 26, lambda X, Y, Z, k=k: cyl(X, Y) & stripe(X, Y, Z, k), m)
+        self.box(2, 7, -7, -1, 26, 27, self.CHROME)
+        self.fill(1, 8, -8, 0, 27, 32, lambda X, Y, Z: (X + 0.5 - cx) ** 2 + (Y + 0.5 - cy) ** 2 + (Z - 29) ** 2 <= 7,
+                  self.GLOBE)
+        self.lamps.append((cx, cy, 29))
+        self.barber_pole = (cx, cy)
+
+    def pizzeria(self):
+        """Checked cloths in the window, the oven glowing at the back, and a
+        slice propped on the parapet."""
+        W, D = self.W, self.D
+        self.box_shop(40, self.BRICKW, z1=32)
+        self.shop_door(W - 12)
+        self.awning(1, W - 1, 34, [self.RED, self.WHITE], reach=10, drop=5)
+        for tx in (10, 30):
+            self.box(tx + 3, tx + 4, 9, 10, 1, 10, self.IRON)
+            self.fill(tx - 1, tx + 9, 6, 14, 10, 11, lambda X, Y, Z: True, self.CHECKCLOTH)
+        self.box(W // 2 - 10, W // 2 + 10, 26, 30, 1, 18, self.BRICK)
+        self.fill(W // 2 - 6, W // 2 + 6, 25, 27, 4, 14, lambda X, Y, Z: (X + 0.5 - W // 2) ** 2 / 36 + (Z - 4) ** 2 / 100 <= 1,
+                  self.OVEN)
+        self.lamps.append((W // 2, 25, 8))
+        # The slice, tip down on the sign board: cheese in its crust, pepperoni.
+        cx, z0 = W - 22, 55
+        tri = lambda X, Z: (Z >= z0) & (np.abs(X + 0.5 - cx) <= (Z - z0) * 0.62)
+        self.fill(cx - 16, cx + 17, -3, -1, z0, z0 + 24, lambda X, Y, Z: tri(X, Z) & (Z < z0 + 21), self.CHEESE)
+        self.fill(cx - 17, cx + 18, -4, -1, z0 + 20, z0 + 25,
+                  lambda X, Y, Z: np.abs(X + 0.5 - cx) <= (Z - z0) * 0.64 + 1, self.BUN)
+        rng = random.Random(self.seed + 4)
+        for _ in range(7):
+            z = rng.randint(z0 + 6, z0 + 18)
+            x = int(cx + rng.uniform(-0.45, 0.45) * (z - z0))
+            self.box(x - 1, x + 2, -4, -3, z - 1, z + 2, self.RED)
 
     # ------------------------------------------------------------ output
     def night(self, buf):
