@@ -357,6 +357,7 @@ def build_buildings(root, sprites):
     from art.oblique_steppe import ObliqueSteppe
     from art.oblique_forager import ObliqueForager
     from art.oblique_lodge import ObliqueLodge
+    from art.city_roadside import Roadside
     from art.oblique_meso_landmarks import ObliqueMesoLandmark, build_meso_animations, meso_landmark_recipes
     build_meso_animations(sprites)
     from art.city_station import build_station_animations
@@ -399,7 +400,7 @@ def build_buildings(root, sprites):
                  ObliquePlayhouse if r.get('form')=='oblique-ring' else
                  ObliqueBuilding if r.get('oblique') else
                  ObliqueChurch if r.get('family')=='parish' else
-                 InfillBuilding if r.get('candidate') else
+                 Roadside if r.get('candidate') else
                  ModernBuilding if r.get('modern') else
                  PeriodBuilding if r.get('period') else
                  ReligiousBuilding if r.get('religious') else

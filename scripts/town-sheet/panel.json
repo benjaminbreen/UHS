@@ -304,5 +304,10 @@
     "name": "lima-1925",
     "query": "A tailor in Lima, 1925 CE",
     "radius": 70
+  },
+  {
+    "name": "syracuse-1995",
+    "query": "A bricklayer in Syracuse, 1995 CE",
+    "radius": 60
   }
 ]
