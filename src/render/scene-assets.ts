@@ -21,6 +21,7 @@ const atlases = {
   "prop-shadows": "/props/shadows",
   vehicles: "/props/vehicles",
   trains: "/props/trains",
+  "horse-voxel": "/fauna-v/horse",
   "vehicle-shadows": "/props/vehicle-shadows",
   atlas: "/packs/atlas",
   buildings: "/packs/buildings",
@@ -52,6 +53,8 @@ export const lazySheets = [
   "vehicles",
   // Rolling stock: only where a railway runs.
   "trains",
+  // The voxel horse: the developer's ride, for now.
+  "horse-voxel",
   // The megafauna: most worlds are too late or too far south for them.
   "faunam",
   "faunar",

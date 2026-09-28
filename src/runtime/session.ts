@@ -302,6 +302,14 @@ export class Runtime {
   /** Set while the player holds a ticket for the train at the platform: the
    * map then plans the journey by rail. */
   rail?: { departs: number; label: string };
+  /** Developer setting: the player is drawn as a horse. */
+  devHorse = (() => {
+    try {
+      return localStorage.getItem("uhs.devHorse") === "1";
+    } catch {
+      return false;
+    }
+  })();
   selected?: string;
   notice = "";
   running = false;

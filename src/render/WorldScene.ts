@@ -1965,6 +1965,13 @@ export class WorldScene extends Phaser.Scene {
       this.layers.push(image);
     }
   }
+  /** The developer's horse: its gait from the player's pace, its heading
+   * from their facing, eight frames a stride. */
+  private horseFrame(moving: boolean, facing: number, time: number) {
+    const gait = moving ? (this.shiftHeld ? "gallop" : "trot") : "idle";
+    const period = gait === "gallop" ? 420 : gait === "trot" ? 520 : 2600;
+    return `vhorse-${gait}-${facing}-${Math.floor((time / period) * 8) % 8}`;
+  }
   /** The railway of the town the player is in, and of any town beside it
    * whose line runs into view. */
   private driveTrains(time: number) {
@@ -5418,8 +5425,17 @@ export class WorldScene extends Phaser.Scene {
           prop,
         );
         // A hit-stop holds the figures too, not only what is tweened.
-        if (this.tweens.timeScale && im.texture.key !== texture)
+        const horse = id === "player" && this.runtime.devHorse
+          ? this.horseFrame(moving, turn.facing, time)
+          : undefined;
+        if (horse) {
+          if (im.frame.name !== horse) im.setTexture(this.texture(horse), horse);
+          // The sheet's hooves stand four pixels up from its foot.
+          im.setOrigin(0.5, (im.height - 4) / im.height);
+        } else if (this.tweens.timeScale && im.texture.key !== texture) {
           im.setTexture(texture);
+          im.setOrigin(0.5, 1);
+        }
         // Dust off a run's contact frames. Walking raises none, or a quiet
         // street would be permanently hazy; jumps are covered by `launch`.
         if (this.footfalls.get(id) !== index) {

@@ -1935,6 +1935,22 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   className="settings-tools"
                 >
                   <p>Inspect artwork and content in the development labs.</p>
+                  <label className="settings-row">
+                    <span>Become a horse</span>
+                    <input
+                      type="checkbox"
+                      defaultChecked={runtime.devHorse}
+                      onChange={(e) => {
+                        runtime.devHorse = e.target.checked;
+                        try {
+                          localStorage.setItem("uhs.devHorse", e.target.checked ? "1" : "0");
+                        } catch {
+                          /* A private window keeps it for the session. */
+                        }
+                        runtime.emit();
+                      }}
+                    />
+                  </label>
                   {import.meta.env.DEV && (
                     <button
                       className="action settings-featured"
