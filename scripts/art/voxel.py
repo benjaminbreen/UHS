@@ -276,7 +276,9 @@ def _shade(g, hit, face, dist, ghit, gdist, width, height, ambient, sun):
     # Glass over what is behind it.
     gsel = np.where(ghit >= 0)[0]
     glass_px = np.zeros(N, bool)
+    gmat = np.zeros(N, np.uint8)
     if len(gsel):
+        gmat[gsel] = g.m.reshape(-1)[ghit[gsel]]
         gm = g.m.reshape(-1)[ghit[gsel]]
         gx, gy, gz = _unravel(g, ghit[gsel])
         gfn = FACES[np.ones(len(gsel), np.int8)]
@@ -309,5 +311,6 @@ def _shade(g, hit, face, dist, ghit, gdist, width, height, ambient, sun):
             glass_px[a] = ~close
     img = rgb.reshape(height, width, 4)
     buf = {'mat': matbuf.reshape(height, width), 'coords': coords.reshape(height, width, 3),
-           'dist': d2, 'glass': glass_px.reshape(height, width), 'level': level.reshape(height, width)}
+           'dist': d2, 'glass': glass_px.reshape(height, width), 'level': level.reshape(height, width),
+           'gmat': gmat.reshape(height, width)}
     return img, buf

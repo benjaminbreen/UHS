@@ -27,6 +27,7 @@ const atlases = {
   "regional-buildings": "/packs/regional-buildings",
   "camp-buildings": "/packs/camp-buildings",
   "modern-buildings": "/packs/modern-buildings",
+  "street-buildings": "/packs/street-buildings",
   civic: "/packs/civic",
   precincts: "/packs/precincts",
   "lighting-shadows": "/packs/lighting-shadows",
@@ -40,6 +41,7 @@ export const lazySheets = [
   "regional-buildings",
   "camp-buildings",
   "modern-buildings",
+  "street-buildings",
   "civic",
   "precincts",
   // Parked cars: nowhere before the motor age.

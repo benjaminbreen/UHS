@@ -172,18 +172,23 @@ regional_frames={k:S.pop(k) for k in list(buildings)
 # share the house page.
 modern_frames={k:S.pop(k) for k in list(S)
                if (buildings.get(k) or buildings.get(k[:-5]) or {}).get('obliqueModern')}
+# The street kit built in voxels, with a lit-room frame for every one.
+street_frames={k:S.pop(k) for k in list(S)
+               if (buildings.get(k) or buildings.get(k[:-5]) or {}).get('voxel')}
 building_frames={k:S.pop(k) for k in list(buildings) if k in S}
 atlas=pack_atlas(S,OUT,'atlas')
 buildings_atlas=pack_atlas(building_frames,OUT,'buildings')
 regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings')
 camp_atlas=pack_atlas(camp_frames,OUT,'camp-buildings')
 modern_atlas=pack_atlas(modern_frames,OUT,'modern-buildings')
+street_atlas=pack_atlas(street_frames,OUT,'street-buildings')
 civic_atlas=pack_atlas(civic_frames,OUT,'civic')
 precinct_atlas=pack_atlas(precinct_frames,OUT,'precincts')
 print(f'Buildings atlas {buildings_atlas.size} ({len(building_frames)} frames); '
       f'regional atlas {regional_atlas.size} ({len(regional_frames)} frames); '
       f'camp atlas {camp_atlas.size} ({len(camp_frames)} frames); '
       f'modern atlas {modern_atlas.size} ({len(modern_frames)} frames); '
+      f'street atlas {street_atlas.size} ({len(street_frames)} frames); '
       f'civic atlas {civic_atlas.size} ({len(civic_frames)} frames); '
       f'precinct atlas {precinct_atlas.size} ({len(precinct_frames)} frames).')
 # Reviewable original-asset proof at exactly 3x nearest-neighbor scaling.
@@ -202,4 +207,4 @@ tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i fo
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','civic.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','street-buildings.json','civic.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())

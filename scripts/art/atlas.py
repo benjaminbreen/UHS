@@ -7,6 +7,11 @@ def pack_atlas(sprites, output, name, width=1024):
     # Tallest first: shelves stay full instead of leaving air under short sprites.
     seen={}
     for key,im in sorted(sprites.items(),key=lambda kv:(-kv[1].size[1],-kv[1].size[0],kv[0])):
+        # A frame that is mostly air (a lit-window layer) may ask to be packed
+        # trimmed; Phaser places it by spriteSourceSize within the full size.
+        trim=im.getbbox() if im.info.get('trim') else None
+        if trim:
+            full=im.size;im=im.crop(trim)
         w,h=im.size
         if w+2>width:raise ValueError(f'{key} exceeds atlas width')
         # A building drawn the same whichever way its lot faces is packed once;
@@ -16,6 +21,9 @@ def pack_atlas(sprites, output, name, width=1024):
             frames[key]=seen[mark];continue
         if x+w+2>width:x=0;y+=rowh+2;rowh=0
         frame={'frame':{'x':x,'y':y,'w':w,'h':h},'sourceSize':{'w':w,'h':h},'spriteSourceSize':{'x':0,'y':0,'w':w,'h':h},'rotated':False,'trimmed':False}
+        if trim:
+            frame['sourceSize']={'w':full[0],'h':full[1]}
+            frame['spriteSourceSize']={'x':trim[0],'y':trim[1],'w':w,'h':h};frame['trimmed']=True
         if 'anchor' in im.info:
             ax,ay=im.info['anchor'];frame['pivot']={'x':ax/w,'y':ay/h}
         frames[key]=frame;seen[mark]=frame;placements.append((im,x,y));x+=w+2;rowh=max(rowh,h)

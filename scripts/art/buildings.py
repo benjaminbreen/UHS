@@ -324,7 +324,8 @@ def door_rect(artist):
     Every facing has one: the world moves the walkable doorway to the wall the
     art drew it on, rather than leaving a building with a blank front.
     """
-    ground = getattr(artist, 'bottom', None)
+    # A door set back under a veranda or arcade stands higher on the sprite.
+    ground = getattr(artist, 'door_ground', None) or getattr(artist, 'bottom', None)
     if ground is None: ground = artist.ground
     x = getattr(artist, 'door_x', artist.w // 2)
     return [x - DOOR_W // 2, ground - DOOR_H - 1, DOOR_W, DOOR_H]
@@ -410,6 +411,10 @@ def build_buildings(root, sprites):
         sprites[name]=im
         # Lit rooms after dark, drawn by the painter; turned copies share it.
         if r.get('obliqueModern') and 'facing' not in r: sprites[name+'-glow']=artist.glow
+        voxel=getattr(artist,'voxel',False)
+        if voxel:
+            artist.glow.info['trim']=True
+            sprites[name+'-glow']=artist.glow
         w,h=im.size
         models[name]={
             **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),
@@ -441,6 +446,7 @@ def build_buildings(root, sprites):
             **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
+            **({'voxel':True,'glow':name+'-glow'} if voxel else {}),
             **({'clocks':artist.clocks} if getattr(artist,'clocks',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),
