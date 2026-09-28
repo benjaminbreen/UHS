@@ -3,6 +3,8 @@ import { parseLoad } from "../content/economy/carrying";
 import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
 import { Watercraft } from "./watercraft";
+import { TrainLayer } from "./trains";
+import type { SettlementPlan } from "../world/v3/types";
 import { ruinTexture, releaseRuins } from "./ruins";
 import { Burning, TorchFlame } from "./burning";
 import { BUILDING_BURN } from "../content/ecology/metals";
@@ -314,7 +316,6 @@ type BuildingAnimationRecipe = {
   phase?: number;
   chance?: number;
 };
-type BuildingAnimation = {
 /** Hour and minute hands on a painted dial, a pixel at a time so they stay
  * pixel art at any angle. */
 function drawClockHands(
@@ -335,6 +336,7 @@ function drawClockHands(
       g.fillRect(Math.floor(cx + Math.sin(a) * t), Math.floor(cy - Math.cos(a) * t), 1, 1);
   }
 }
+type BuildingAnimation = {
   image: Phaser.GameObjects.Image;
   kind: string;
   period: number;
@@ -542,16 +544,17 @@ export class WorldScene extends Phaser.Scene {
   private terrainAnchor?: { x: number; y: number };
   private drawnWorld?: WorldModel;
   private watercraft = new Watercraft(this);
+  private trains = new TrainLayer(this, (frame) => this.texture(frame));
   private courtyardLighting = new CourtyardLighting(this);
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
+  /** Station and tower clocks, whose hands keep the game's hour. */
+  private clockHands: { g: Phaser.GameObjects.Graphics; x: number; y: number; r: number; minute: number }[] = [];
   /** One leaf per drawn building, hidden while shut. */
   private doors = new Map<
     string,
     {
       image: Phaser.GameObjects.Image;
-  /** Station and tower clocks, whose hands keep the game's hour. */
-  private clockHands: { g: Phaser.GameObjects.Graphics; x: number; y: number; r: number; minute: number }[] = [];
       openness: number;
       shut: boolean;
       knockSeen?: number;
@@ -939,6 +942,7 @@ export class WorldScene extends Phaser.Scene {
       this.unsubscribe?.();
       this.courtyardLighting.dispose();
       this.watercraft.dispose();
+      this.trains.dispose();
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
     };
@@ -1954,6 +1958,29 @@ export class WorldScene extends Phaser.Scene {
         .setDepth(placement.depth + 1);
       this.layers.push(image);
     }
+  }
+  /** The railway of the town the player is in, and of any town beside it
+   * whose line runs into view. */
+  private driveTrains(time: number) {
+    const e = this.runtime.engine;
+    const w = e.world as typeof e.world & { planAt?: (x: number, y: number) => SettlementPlan | undefined };
+    const p = e.state.player.pos;
+    const plan = p.space === "outside" ? w.planAt?.(Math.round(p.x), Math.round(p.y)) : undefined;
+    const lines = plan?.railway
+      ? [{ key: plan.site.id, line: plan.railway, radius: plan.site.profile.radius }]
+      : [];
+    this.trains.update(
+      lines,
+      w.pack.setting,
+      e.state.manifest.seed,
+      this.runtime.displayClock(),
+      time,
+      this.cameras.main.worldView,
+      this.tint,
+      !!this.options.freeze,
+      this.options.colorGrade !== false ? washAt(this.runtime.displayClock()).lamps : 0,
+      p,
+    );
   }
   /** Doors swing to follow the door objects the engine owns.
    *
@@ -3078,6 +3105,7 @@ export class WorldScene extends Phaser.Scene {
       this.ripples = [];
       this.buildings.clear();
       this.buildingAnimations.clear();
+      this.clockHands = [];
       this.doors.clear();
       for (const puffs of this.hearths.values())
         for (const puff of puffs) this.tweens.killTweensOf(puff);
@@ -3085,7 +3113,6 @@ export class WorldScene extends Phaser.Scene {
       this.lamps = [];
       this.game.canvas.dataset.hearths = "0";
       this.ground?.destroy();
-      this.clockHands = [];
       this.tilemap?.destroy();
       const margin = w.topography ? perf.sceneryReach + 6 : 20;
       const halfX = Math.ceil(this.scale.width / rt.zoom / 32) + margin,
@@ -3589,13 +3616,6 @@ export class WorldScene extends Phaser.Scene {
               placement.model as { overlays?: [string, number, number][] }
             ).overlays;
             if (overlays) this.addBuildingOverlays(b.id, placement, overlays);
-            this.addDoor(b, placement, image.y);
-            this.lightWindows(b, placement, image);
-            const model = placement.model as { smoke?: [number, number, string][]; door?: number[] };
-            const wear = buildingWear(this, image.texture.key, image.frame.name, {
-              climate: w.pack.setting?.climate,
-              neglect: 1 - (b.condition ?? 0.7),
-              smoke: model.smoke ?? [],
             const clocks = (placement.model as { clocks?: [number, number, number][] }).clocks;
             for (const [x, y, r] of clocks ?? []) {
               const g = this.add.graphics().setDepth(placement.depth + 1);
@@ -3608,6 +3628,13 @@ export class WorldScene extends Phaser.Scene {
                 minute: -1,
               });
             }
+            this.addDoor(b, placement, image.y);
+            this.lightWindows(b, placement, image);
+            const model = placement.model as { smoke?: [number, number, string][]; door?: number[] };
+            const wear = buildingWear(this, image.texture.key, image.frame.name, {
+              climate: w.pack.setting?.climate,
+              neglect: 1 - (b.condition ?? 0.7),
+              smoke: model.smoke ?? [],
               forge: /smith|forge/i.test(b.name) ? model.door : undefined,
             });
             if (wear)
@@ -4801,7 +4828,15 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.buildingAnimations = String(
         this.buildingAnimations.size,
       );
+    const minute = Math.floor(this.runtime.displayClock() / 60);
+    for (const hand of this.clockHands)
+      if (hand.minute !== minute) {
+        hand.minute = minute;
+        drawClockHands(hand.g, hand.x, hand.y, hand.r, minute);
+      }
     mark("building animations");
+    this.driveTrains(time);
+    mark("trains");
     if (perf.wind)
       for (const wind of this.windSprites) {
         const sway = this.options.freeze
@@ -4815,12 +4850,6 @@ export class WorldScene extends Phaser.Scene {
     if (perf.wind)
       for (const [, hang] of this.hangings) {
         const sway = this.options.freeze
-    const minute = Math.floor(this.runtime.engine.state.clock / 60);
-    for (const hand of this.clockHands)
-      if (hand.minute !== minute) {
-        hand.minute = minute;
-        drawClockHands(hand.g, hand.x, hand.y, hand.r, minute);
-      }
           ? { x: 0 }
           : windSway(time, hang.phase, HANGING, hang.baseX, hang.image.y);
         const x = hang.baseX + sway.x;

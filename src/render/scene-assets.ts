@@ -20,6 +20,7 @@ const atlases = {
   props: "/props/atlas",
   "prop-shadows": "/props/shadows",
   vehicles: "/props/vehicles",
+  trains: "/props/trains",
   "vehicle-shadows": "/props/vehicle-shadows",
   atlas: "/packs/atlas",
   buildings: "/packs/buildings",
@@ -43,6 +44,8 @@ export const lazySheets = [
   "precincts",
   // Parked cars: nowhere before the motor age.
   "vehicles",
+  // Rolling stock: only where a railway runs.
+  "trains",
   // The megafauna: most worlds are too late or too far south for them.
   "faunam",
   "faunar",

@@ -90,6 +90,9 @@ vehicles=vehicle_sprites()
 pack_atlas(vehicles,OUT,'vehicles',1024)
 pack_atlas(vehicle_shadows(vehicles,json.loads((ROOT/'src/content/graphics/lighting.json').read_text())),OUT,'vehicle-shadows',1024)
 (ROOT/'src/content/graphics/vehicles.generated.json').write_text(json.dumps(vehicle_catalog(),indent=1))
+# Trains on their own sheet too, with the catalogue the railway makes them up from.
+from art.trains import build as build_trains
+build_trains(OUT,ROOT/'src/content/graphics')
 # The families the game should draw from the B set, for src/content/props.
 (ROOT/'src/render/generated/props-b.json').write_text(json.dumps(sorted(DRAW_B)))
 for source,target in [('atlas','props'),('shadows','prop-shadows')]:

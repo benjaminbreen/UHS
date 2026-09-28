@@ -120,8 +120,9 @@ export type UrbanSurface = {
   buildWall(wall: Wall, parts: { x: number; y: number; frame: string }[]): void;
   /** Lay the railway, after the streets it crosses on the level. */
   railway?(rail: Rail): void;
-  /** A station platform along the line, from the track edge to the building. */
-  platform?(rect: Rect, alongX: boolean): void;
+  /** A station platform along the line, from the track edge to the building
+   * whose door is given. */
+  platform?(rect: Rect, alongX: boolean, door: Point, building: Rect): void;
   /** Direction of open water, for fabrics whose public space faces it. */
   shore?: Point;
   /** Land within two cells of water, where a quay and its street can stand. */
@@ -1202,6 +1203,8 @@ export function urbanNeighborhood(
           ? { x: block.x, y: from, w: block.w, h: to - from + 1 }
           : { x: from, y: block.y, w: to - from + 1, h: block.h },
         alongX,
+        point,
+        rect,
       );
       return block;
     }

@@ -2,6 +2,7 @@ import { modernBuildingSince } from "../../content/settlements/modern-buildings"
 import { resolveJunctions } from "./junctions";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
+import { railVisitors } from "./rail-travellers";
 import {
   generateCharacter,
   characterLivelihood,
@@ -1733,6 +1734,7 @@ export function planSettlement(
             const mid = (rail.lo + rail.hi) >> 1;
             const lo = reach(mid, rail.lo, -1),
               hi = reach(mid, rail.hi, 1);
+            plan.railway = { axis: rail.axis, level: rail.level, lo, hi, span: rail.span };
             for (let v = lo; v <= hi; v++)
               for (let a = 0; a < rail.span; a++) {
                 const { x, y } = at(v, a),
@@ -1749,7 +1751,14 @@ export function planSettlement(
                 noRoad.add(k);
               }
           },
-          platform: (rect, alongX) => {
+          platform: (rect, alongX, door, building) => {
+            if (plan.railway)
+              plan.railway.station = {
+                door: { x: door.x, y: door.y },
+                platform: { ...rect },
+                building: { ...building },
+                side: (alongX ? rect.y : rect.x) < plan.railway.level ? -1 : 1,
+              };
             eachCell(rect, (x, y) => {
               const k = cellKey(x, y);
               if (plan.solid.has(k) || plan.lanes?.has(k) || plan.tracks?.has(k))
@@ -4696,6 +4705,7 @@ export function planSettlement(
   }
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
+  railVisitors(plan, seed, pack);
   // Props and routine markers claim ground after the fields were planted.
   for (const k of plan.fields?.keys() ?? [])
     if (plan.solid.has(k)) plan.fields!.delete(k);

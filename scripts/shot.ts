@@ -91,6 +91,12 @@ try {
     );
     await page.waitForTimeout(4000);
   }
+  // UHS_EVAL runs in the page with `r` bound to window.__uhs: a clock to set,
+  // a place to stand. Whatever it returns is printed.
+  if (process.env.UHS_EVAL) {
+    console.log(await page.evaluate(`(async (r) => { ${process.env.UHS_EVAL} })(window.__uhs)`));
+    await page.waitForTimeout(Number(process.env.UHS_WAIT ?? 3000));
+  }
   // UHS_KEYS="m" opens the region map, and so on for any key the game binds.
   await page.waitForSelector('.game-container canvas[data-terrain-ready="true"]', { timeout: 120000 });
   if (process.env.UHS_SEED)

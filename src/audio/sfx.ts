@@ -666,6 +666,35 @@ export const events = {
 } satisfies Record<string, () => Sound>;
 export type EventId = keyof typeof events;
 
+/** The railway. `near` is 0 at the edge of hearing, 1 on the platform. */
+export const railway = {
+  /** A steam whistle: three pipes sounding a chord over the rush of steam,
+   * swelling in as the valve opens. */
+  whistle: (near: number, long = false): Sound => {
+    const dur = long ? 1.6 : 0.9;
+    const base = vary(470, 0.04);
+    return [
+      ...[1, 1.26, 1.5].map((r) => tone(0, dur, 0.05 * near, base * r, { wave: "triangle", attack: 0.12, to: base * r * 1.01 })),
+      noise(0, dur, 0.05 * near, 2400, { q: 0.8, attack: 0.1 }),
+    ];
+  },
+  /** A diesel's two-tone horn. */
+  horn: (near: number): Sound => [
+    tone(0, 0.55, 0.05 * near, 311, { wave: "sawtooth", attack: 0.04 }),
+    tone(0, 0.55, 0.04 * near, 370, { wave: "sawtooth", attack: 0.04 }),
+    tone(0.62, 0.8, 0.05 * near, 311, { wave: "sawtooth", attack: 0.04 }),
+    tone(0.62, 0.8, 0.04 * near, 262, { wave: "sawtooth", attack: 0.04 }),
+  ],
+  /** The guard's whistle: a pea trilling high and short. */
+  guard: (near: number): Sound =>
+    Array.from({ length: 9 }, (_, i) => tone(i * 0.07, 0.07, 0.035 * near, vary(2900, 0.02) * (i % 2 ? 1.04 : 1), { attack: 0.005 })),
+  /** One exhaust beat: a soft chuff of steam from the chimney. */
+  chuff: (near: number, hard: number): Sound => [
+    noise(0, 0.16 + 0.1 * (1 - hard), 0.09 * near * (0.4 + hard * 0.6), 700 + hard * 500, { q: 0.7, to: 300, attack: 0.008 }),
+    noise(0, 0.06, 0.04 * near * hard, 2200, { q: 1.2 }),
+  ],
+};
+
 /** Fire. `near` is 0 at the edge of hearing, 1 standing beside it. */
 export const fire = {
   /** Sap and resin popping over a low roar; call it every fraction of a

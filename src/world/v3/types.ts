@@ -94,6 +94,7 @@ export type SettlementPlan = {
   streetGeometry?: Map<string, import("./street-geometry").StreetGeometry>;
   loadingBays?: Map<string, Rect>;
   tracks?: Map<string, Track>;
+  railway?: import("./railway").Railway;
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;

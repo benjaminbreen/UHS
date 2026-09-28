@@ -2,6 +2,7 @@ import { herdersFor } from "./herders";
 import { agendaOf, festivalOf, type Person } from "../../core/agenda";
 import { lifeAimOf } from "../../core/life-aim";
 import { carryKit } from "../../content/economy/carrying";
+import { commutes, isVisitor, railDay } from "./rail-travellers";
 import { dayStations, livelihoodOf, placeFor } from "./routines";
 import { adjacentTerrain } from "../travel/terrain-preview";
 import { waterDepthAt, MAX_WADING_DEPTH } from "../../core/water-field";
@@ -2192,7 +2193,7 @@ export function createSettlementWorld(
     // Whether this resident is inside the settlement's budget, decided by a
     // fixed order over its own residents so the answer never depends on who
     // asked first or on how long the last search took.
-    if (plan && id !== "player") {
+    if (plan && id !== "player" && !isVisitor(id)) {
       const key = plan.site.id;
       let ranked = routineRank.get(key);
       if (!ranked) {
@@ -2284,6 +2285,15 @@ export function createSettlementWorld(
         );
         return result.status === "found" ? result.path : undefined;
       };
+      // A traveller's day is the timetable's, not a round of errands.
+      if (isVisitor(id) || commutes(plan!, seed, pack.year, self)) {
+        const rail = railDay(plan!, seed, pack, id, site.home, leg);
+        if (rail || isVisitor(id)) {
+          routines.set(id, rail);
+          routineDay.set(id, today);
+          return rail;
+        }
+      }
       // A friend close by who heads the same way first thing: call at their
       // door and set off together. The lower id leads, so nobody waits on
       // someone who is waiting on them.

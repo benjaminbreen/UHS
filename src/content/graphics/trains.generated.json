@@ -1,0 +1,815 @@
+{
+ "early": {
+  "loco": {
+   "kind": "steam",
+   "length": 86,
+   "height": 77,
+   "width": 30,
+   "sideHeight": 82,
+   "smoke": [
+    76,
+    4
+   ],
+   "steam": true
+  },
+  "tender": {
+   "kind": "tender",
+   "length": 46,
+   "height": 28,
+   "width": 30,
+   "sideHeight": 29,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 64,
+   "height": 56,
+   "width": 30,
+   "sideHeight": 57,
+   "doors": [
+    8,
+    20,
+    32,
+    44
+   ],
+   "steam": false
+  },
+  "coach1": {
+   "kind": "coach",
+   "length": 58,
+   "height": 48,
+   "width": 30,
+   "sideHeight": 59,
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 46,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 46,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 46,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    23,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "victorian": {
+  "loco": {
+   "kind": "steam",
+   "length": 116,
+   "height": 68,
+   "width": 30,
+   "sideHeight": 78,
+   "smoke": [
+    104,
+    10
+   ],
+   "steam": true
+  },
+  "tender": {
+   "kind": "tender",
+   "length": 72,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 36,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 108,
+   "height": 65,
+   "width": 30,
+   "sideHeight": 67,
+   "doors": [
+    8,
+    29,
+    50,
+    71,
+    92
+   ],
+   "steam": false
+  },
+  "coach1": {
+   "kind": "coach",
+   "length": 108,
+   "height": 65,
+   "width": 30,
+   "sideHeight": 67,
+   "doors": [
+    8,
+    29,
+    50,
+    71,
+    92
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "victorian-crimson": {
+  "loco": {
+   "kind": "steam",
+   "length": 116,
+   "height": 68,
+   "width": 30,
+   "sideHeight": 78,
+   "smoke": [
+    104,
+    10
+   ],
+   "steam": true
+  },
+  "tender": {
+   "kind": "tender",
+   "length": 72,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 36,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 108,
+   "height": 65,
+   "width": 30,
+   "sideHeight": 67,
+   "doors": [
+    8,
+    29,
+    50,
+    71,
+    92
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "american": {
+  "loco": {
+   "kind": "steam",
+   "length": 120,
+   "height": 79,
+   "width": 30,
+   "sideHeight": 86,
+   "smoke": [
+    108,
+    6
+   ],
+   "steam": true
+  },
+  "tender": {
+   "kind": "tender",
+   "length": 74,
+   "height": 30,
+   "width": 30,
+   "sideHeight": 31,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 128,
+   "height": 66,
+   "width": 30,
+   "sideHeight": 67,
+   "doors": [
+    8,
+    33,
+    58,
+    83,
+    108
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 46,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 46,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "american-late": {
+  "loco": {
+   "kind": "steam",
+   "length": 120,
+   "height": 78,
+   "width": 30,
+   "sideHeight": 86,
+   "smoke": [
+    108,
+    12
+   ],
+   "steam": true
+  },
+  "tender": {
+   "kind": "tender",
+   "length": 74,
+   "height": 30,
+   "width": 30,
+   "sideHeight": 31,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 140,
+   "height": 68,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    36,
+    64,
+    92,
+    120
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "edwardian": {
+  "loco": {
+   "kind": "steam",
+   "length": 152,
+   "height": 74,
+   "width": 30,
+   "sideHeight": 82,
+   "smoke": [
+    137,
+    16
+   ],
+   "steam": true
+  },
+  "tender": {
+   "kind": "tender",
+   "length": 84,
+   "height": 39,
+   "width": 30,
+   "sideHeight": 40,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 144,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    36,
+    64,
+    92,
+    120
+   ],
+   "steam": false
+  },
+  "coach1": {
+   "kind": "coach",
+   "length": 144,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    36,
+    64,
+    92,
+    120
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "interwar-black": {
+  "loco": {
+   "kind": "steam",
+   "length": 152,
+   "height": 74,
+   "width": 30,
+   "sideHeight": 82,
+   "smoke": [
+    137,
+    16
+   ],
+   "steam": true
+  },
+  "tender": {
+   "kind": "tender",
+   "length": 84,
+   "height": 39,
+   "width": 30,
+   "sideHeight": 40,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 144,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    36,
+    64,
+    92,
+    120
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "diesel": {
+  "loco": {
+   "kind": "diesel",
+   "length": 164,
+   "height": 69,
+   "width": 30,
+   "sideHeight": 77,
+   "smoke": [
+    90,
+    7
+   ],
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 150,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    38,
+    68,
+    98,
+    128
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "streamline-us": {
+  "loco": {
+   "kind": "diesel",
+   "length": 150,
+   "height": 73,
+   "width": 30,
+   "sideHeight": 81,
+   "smoke": [
+    83,
+    7
+   ],
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 150,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    38,
+    68,
+    98,
+    128
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 32,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 42,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 48,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "brake": {
+   "kind": "brake",
+   "length": 48,
+   "height": 45,
+   "width": 30,
+   "sideHeight": 46,
+   "smoke": [
+    24,
+    -3
+   ],
+   "steam": false
+  }
+ },
+ "soviet": {
+  "loco": {
+   "kind": "diesel",
+   "length": 164,
+   "height": 71,
+   "width": 30,
+   "sideHeight": 79,
+   "smoke": [
+    90,
+    7
+   ],
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 150,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    38,
+    68,
+    98,
+    128
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 100,
+   "height": 38,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 100,
+   "height": 38,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 60,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  }
+ },
+ "blue": {
+  "loco": {
+   "kind": "diesel",
+   "length": 160,
+   "height": 76,
+   "width": 30,
+   "sideHeight": 77,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 150,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    38,
+    68,
+    98,
+    128
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 100,
+   "height": 38,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 100,
+   "height": 38,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 60,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  }
+ },
+ "modern": {
+  "loco": {
+   "kind": "diesel",
+   "length": 150,
+   "height": 68,
+   "width": 30,
+   "sideHeight": 77,
+   "steam": false
+  },
+  "coach0": {
+   "kind": "coach",
+   "length": 150,
+   "height": 67,
+   "width": 30,
+   "sideHeight": 69,
+   "doors": [
+    8,
+    38,
+    68,
+    98,
+    128
+   ],
+   "steam": false
+  },
+  "wagon0": {
+   "kind": "wagon",
+   "length": 100,
+   "height": 38,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon1": {
+   "kind": "wagon",
+   "length": 100,
+   "height": 38,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  },
+  "wagon2": {
+   "kind": "wagon",
+   "length": 60,
+   "height": 35,
+   "width": 30,
+   "sideHeight": 46,
+   "steam": false
+  }
+ }
+}
