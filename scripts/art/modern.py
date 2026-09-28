@@ -337,7 +337,7 @@ def modernise(r, kit, base, form):
     r['roofDepth'] = cfg.get('verandaRoofDepth', 30) if style == 'veranda' else cfg.get('roofDepth', 18)
     # Its storefront is drawn by the painter, not hung on as a market awning.
     r['attachments'] = [a for a in r.get('attachments', []) if a != 'urban-shop']
-    return {'modern': True, 'modernStyle': style,
+    return {'modern': True, 'modernStyle': style, 'modernBase': base,
             'modernRole': 'shop' if form in cfg.get('shopForms', []) else r.get('modernRole', 'home')}
 
 
@@ -370,3 +370,8 @@ STYLE_LABELS = {
 
 def modern_label(style, form, default):
     return STYLE_LABELS.get(style, {}).get(form, default)
+
+
+# The street kit's modern bases are drawn by the city kit's painter; the class
+# above stays for the review sheets that compare against it.
+from art.city_world import WorldBlock as ModernBuilding  # noqa: E402,F811
