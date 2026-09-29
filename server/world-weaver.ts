@@ -50,6 +50,10 @@ const weaverSchema = z
   })
   .strict();
 const digest = (s: string) => createHash("sha256").update(s).digest();
+const requestedName = (prompt: string) => {
+  const match = /\b(?:I am|I'm|my name is|play as)\s+((?!A\b|An\b|The\b)[A-Z][\p{L}]+(?:[-'’][A-Z]?[\p{L}]+)*(?:\s+[A-Z][\p{L}]+(?:[-'’][A-Z]?[\p{L}]+)*)?)/u.exec(prompt);
+  return match?.[1];
+};
 // A local concurrency guard, not a distributed billing limit. Provider/project quotas remain authoritative.
 let inFlight = 0;
 export async function worldWeaver(
@@ -116,7 +120,7 @@ export async function worldWeaver(
 Choose a place from the catalog below and set placeId to its id, placeName/lon/lat to its values. Only when the description names somewhere absent from the catalog, use placeId "custom" with your own name and approximate Earth coordinates.
 Years use astronomical numbering: 100 BCE = -99. When the description names an era or a broad period rather than a date, pick a year at random from anywhere inside that era, not its midpoint or its round centuries; two readings of the same description should land on different years.
 Interpret vague, playful or fragmentary descriptions generously rather than refusing them: settle on one specific real place on Earth, one specific year, and one ordinary human role that a person could plausibly have held there and then. "A weird little guy in a weird place" is a fair request for, say, a reclusive toymaker in Austin in 2013, or a hermit charcoal-burner in the Harz in 1540. Never invent a fictional settlement name, magic, or a role the simulation could not stage; the player must always be an ordinary person somewhere real.
-role, characterName and community describe the person the player asked to be, not the place: an "orphan boy" is an orphan boy whatever the settlement does for a living. Give a plausible period- and culture-appropriate personal name. community is one short phrase for the household or group they belong to, or "" when they belong to none.
+role, characterName and community describe the person the player asked to be, not the place: an "orphan boy" is an orphan boy whatever the settlement does for a living. If the player states their personal name, use it exactly as characterName; otherwise give a plausible period- and culture-appropriate personal name. community is one short phrase for the household or group they belong to, or "" when they belong to none.
 climate, water, relief, culture, settlement and architecture are used only for a "custom" place; fill them plausibly regardless.
 The optional situation field preserves explicitly requested local circumstances even at a catalog location. Use islet with width/depth in game cells for tiny islands, open-ocean with raft/boat/swimming support for stranded people, or local with military/expedition/pastoral/gathering camp. people excludes the player. Never silently replace the requested camp or predicament with a conventional town. Omit situation for ordinary starts.
 Catalog: ${JSON.stringify(candidates)}
@@ -180,7 +184,7 @@ User description: ${input.prompt}`;
     const setting = settingSchema.parse({
       ...settingFor(place, chosen.year),
       role: chosen.role,
-      characterName: chosen.characterName,
+      characterName: requestedName(input.prompt) ?? chosen.characterName,
       community: chosen.community,
     });
     return json({ setting: chosen.situation ? applySituation(setting, chosen.situation) : setting });

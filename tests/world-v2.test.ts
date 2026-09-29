@@ -178,6 +178,16 @@ describe("shared World Weaver / procedural geography", () => {
     const body = await response.json();
     expect(body.setting).toEqual(setting);
     expect(calls).toBe(1);
+    const named = await worldWeaver(
+      new Request("http://local/api/world-weaver", {
+        method: "POST",
+        headers: { "X-World-Weaver-Code": "class" },
+        body: JSON.stringify({ prompt: "I am Ea-Nasir in Mesopotamia, 1750 BCE" }),
+      }),
+      env,
+      provider,
+    );
+    expect((await named.json()).setting.characterName).toBe("Ea-Nasir");
     const legacyRequest = new Request("http://local/api/world-weaver", {
       method: "POST",
       headers: { "X-Classroom-Code": "class" },
