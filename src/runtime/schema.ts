@@ -426,6 +426,7 @@ export const commandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("swing"),
       power: z.union([z.literal(1), z.literal(2)]).optional(),
+      plunge: z.boolean().optional(),
     })
     .strict(),
   z.object({ type: z.literal("stow") }).strict(),

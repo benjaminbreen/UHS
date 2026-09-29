@@ -138,7 +138,7 @@ function draw(
   const image = ctx.getImageData(0, 0, 80, 80);
   const cells = raster(image.data, a, model, rig, face8);
   ctx.putImageData(image, 0, 0);
-  if (S.spriteHead) spriteHead(ctx, a, model, pose, frame, (face8 + (Math.abs(turn) === 3 ? Math.sign(turn) : 0) + 8) % 8, rig.trail, expression);
+  if (S.spriteHead) spriteHead(ctx, a, model, pose, pose === "spin" ? frame & 3 : frame, (face8 + (Math.abs(turn) === 3 ? Math.sign(turn) : 0) + 8) % 8, rig.trail, expression);
   if (prop) drawProp(ctx, prop, rig, model, face8, pose, frame, cells);
   if (pose.startsWith("work-")) drawWorkDetail(ctx, model, rig, face8, pose, frame, !!prop);
 }
@@ -576,6 +576,29 @@ function pose3d(
     lean = [-4, -9, 18, 3][w];
     twist = rad([-12, -18, 12, 3][w]);
     trail = [0, 1, -1, 0][w];
+  } else if (pose === "spin") {
+    // Drawn back and held up at the shoulder, blade to the sky, as the charge
+    // builds; then uncoiling, arm straight out with the blade level, and the
+    // wrap-round after. Frame 4 is the held frame with the charge glinting.
+    thigh = [[22, -14], [24, -20], [26, -26], [12, -8]][w];
+    knee = [[34, 26], [36, 30], [30, 30], [18, 14]][w];
+    armA = [[35, 55], [45, 70], [55, 82], [30, 70]][w];
+    elbow = [[45, 95], [30, 25], [20, 0], [35, 35]][w];
+    armOut = [[15, 22], [45, 20], [55, 62], [20, -20]][w];
+    lean = [4, 10, 12, 6][w];
+    twist = rad([-22, -12, 22, 34][w]);
+    trail = [-1, 1, 2, 1][w];
+  } else if (pose === "plunge") {
+    // Overhead at the top of the jump, driving down, the blow in a deep
+    // crouch, and up again.
+    thigh = [[55, 42], [42, 30], [72, 58], [30, 18]][w];
+    knee = [[95, 85], [62, 50], [122, 112], [46, 38]][w];
+    armA = [[165, 170], [115, 118], [62, 66], [40, 44]][w];
+    elbow = [[25, 20], [8, 8], [5, 5], [25, 25]][w];
+    armOut = [-8, -8];
+    lean = [-6, 18, 30, 12][w];
+    swing = [0, -1, 1.5, 0.5][w];
+    trail = [0, -1, 2, 0][w];
   } else if (
     pose === "swing" ||
     pose === "chop" ||
@@ -732,7 +755,7 @@ function pose3d(
     ]);
     return { shoulder: sh, elbow: el, wrist: wr };
   });
-  if (carrying && (pose === "spear-thrust" || pose === "pitchfork-jab" || pose === "axe-chop" || pose === "pick-strike" || pose === "shovel-dig" || pose === "rake-pull" || pose === "scythe-sweep")) {
+  if (carrying && (pose === "spear-thrust" || pose === "pitchfork-jab" || pose === "axe-chop" || pose === "pick-strike" || pose === "shovel-dig" || pose === "rake-pull" || pose === "scythe-sweep" || pose === "plunge")) {
     const grip = arms[1].wrist;
     arms[0].wrist = [grip[0] - 0.7, grip[1] + (w === 2 ? 3 : 1), grip[2] + (w === 2 ? 0.4 : 2)];
   }
@@ -1890,6 +1913,8 @@ const actionAxes: Partial<Record<CharacterPose, readonly V[]>> = {
   "sickle-cut": [[-0.65, 0.2, 0.73], [-0.7, 0.48, 0.53], [0.78, 0.58, 0.22], [0.3, 0.4, 0.87]],
   "scythe-sweep": [[-0.75, 0.6, 0.28], [-0.85, 0.5, 0.16], [0.82, 0.56, 0.1], [0.28, 0.55, 0.78]],
   "pitchfork-jab": [[0, 0.4, 0.92], [0, -0.2, 0.98], [0, 0.98, 0.18], [0, 0.55, 0.83]],
+  spin: [[0.34, -0.22, 0.91], [0.62, 0.5, 0.6], [0.74, 0.66, 0.1], [-0.45, 0.82, 0.35]],
+  plunge: [[0, -0.4, 0.92], [0, 0.72, 0.1], [0, 0.72, -0.69], [0, 0.78, -0.5]],
 };
 
 function drawProp(ctx: CanvasRenderingContext2D, prop: CarriedArt, r: Rig, m: Model, facing: number, pose: CharacterPose, frame: number, cells: (Cell | undefined)[]) {
@@ -1932,7 +1957,12 @@ function drawProp(ctx: CanvasRenderingContext2D, prop: CarriedArt, r: Rig, m: Mo
         const color = "#" + [source[i], source[i + 1], source[i + 2]].map((v) => v.toString(16).padStart(2, "0")).join("");
         pixel(p[0], p[1], p[2], color);
       }
-    if (frame === 2 && pose !== "rake-pull" && pose !== "shovel-dig") {
+    if (pose === "spin" && frame === 4) {
+      // The charge, full: a four-point star on the tip.
+      const tip = project(m.world(add(grip, scale(axis, pivotY * scaleArt + 1))));
+      for (const [dx, dy, color] of [[0, 0, "#ffffff"], [1, 0, "#fff4c8"], [-1, 0, "#fff4c8"], [0, 1, "#fff4c8"], [0, -1, "#fff4c8"], [2, 0, "#ffd34d"], [-2, 0, "#ffd34d"], [0, 2, "#ffd34d"], [0, -2, "#ffd34d"]] as const)
+        pixel(tip[0] + dx, tip[1] + dy, 0, color);
+    } else if (frame === 2 && pose !== "rake-pull" && pose !== "shovel-dig") {
       const tip = project(m.world(add(grip, scale(axis, pivotY * scaleArt))));
       pixel(tip[0], tip[1], tip[2], "#fff0b4");
       pixel(tip[0] + 1, tip[1] - 1, tip[2], "#d8cfaa");

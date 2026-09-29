@@ -127,6 +127,7 @@ import { pendingPicks, technique, type TechniqueId } from "./techniques";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 import { herdNoun } from "../content/fauna/herding";
 import { crops, pickable } from "../content/agriculture/crops";
+import { gardenPlant, vegetableId } from "../content/agriculture/gardens";
 
 /** How a crop's stage reads in a prompt that is telling you to come back. */
 const STAGE_WORD: Record<string, string> = {
@@ -871,9 +872,11 @@ export class Engine {
         ? 1
         : 0;
     const taken = 1 + extra;
-    p.inventory[crop.yields] = (p.inventory[crop.yields] ?? 0) + taken;
-    const what = this.lootName(crop.yields, taken);
-    const picking = crop.plant ?? crop.label;
+    const plant = this.cropPlant(crop, y);
+    const item = plant.yields ?? crop.yields;
+    p.inventory[item] = (p.inventory[item] ?? 0) + taken;
+    const what = this.lootName(item, taken);
+    const picking = plant.name;
     if (this.worksFor(field.owner)) {
       this.grantXp("farming", 8);
       this.event(`You take ${what} off the ${picking.toLowerCase()}.`);
@@ -882,7 +885,7 @@ export class Engine {
     }
     this.grantXp("farming", 3);
     this.event(`You take ${what} from a crop that is not yours.`);
-    p.memories.push(`theft:crop-${x}-${y}:${crop.yields}`);
+    p.memories.push(`theft:crop-${x}-${y}:${item}`);
     // Judged before the clock moves: whoever is standing there now is who
     // saw it, not whoever has wandered past twenty seconds later.
     this.offend({
@@ -902,6 +905,69 @@ export class Engine {
       },
     });
     this.advance(20);
+  }
+  /** What is growing in a cell: a kitchen garden's bed is a particular
+   * vegetable of its place and time, a field is its crop. */
+  cropPlant(crop: (typeof crops)[keyof typeof crops], y: number) {
+    const setting = this.state.manifest.setting;
+    const bed = crop.id === "vegetables" && setting
+      ? gardenPlant(setting, this.state.manifest.seed, y)
+      : undefined;
+    return {
+      name: bed?.name ?? crop.plant ?? crop.label,
+      latin: bed?.latin ?? crop.latin,
+      yields: bed ? vegetableId(bed) : crop.yields,
+    };
+  }
+  /** A swing through standing crops cuts them down; a ripe one is gathered
+   * as it falls. Someone else's is a loss they will notice. */
+  private cutCrops(hits: Hit[]) {
+    const p = this.state.player;
+    let cut: { name: string; x: number; y: number; owner?: string } | undefined;
+    const got: Record<string, number> = {};
+    for (const h of hits) {
+      if (h.solid) continue;
+      const { x, y } = h.at;
+      const field = this.world.topography?.(x, y)?.field;
+      const crop = field && crops[field.crop];
+      if (!field || !pickable(crop) || (field.stage !== "green" && field.stage !== "ripe")) continue;
+      const edit = this.editAt(x, y);
+      if (edit.picked) continue;
+      edit.picked = this.state.clock;
+      h.damaged = true;
+      const plant = this.cropPlant(crop, y);
+      if (!cut || (!this.worksFor(field.owner) && this.worksFor(cut.owner)))
+        cut = { name: plant.name, x, y, owner: field.owner };
+      if (field.stage !== "ripe") continue;
+      const item = plant.yields ?? crop.yields;
+      got[item] = (got[item] ?? 0) + 1;
+      h.loot = [...(h.loot ?? []), { item, n: 1 }];
+    }
+    if (!cut) return undefined;
+    this.tilesChanged();
+    for (const [item, n] of Object.entries(got))
+      p.inventory[item] = (p.inventory[item] ?? 0) + n;
+    const name = cut.name.toLowerCase();
+    if (!this.worksFor(cut.owner)) {
+      const at = cut;
+      this.offend({
+        owner: at.owner,
+        cost: (theirs) => (theirs ? 5 : 2),
+        memory: (theirs) =>
+          theirs
+            ? `Saw player cut down my ${name} at ${at.x},${at.y}`
+            : `Saw player cut down a neighbour's ${name} at ${at.x},${at.y}`,
+        text: (w, theirs) =>
+          theirs
+            ? `${w.name} sees you hack down their ${name}.`
+            : `${w.name} sees you hack down a crop that is not yours.`,
+        lost: { what: `the ${name} cut down`, pos: { x: at.x, y: at.y, space: "outside" } },
+      });
+    } else this.grantXp("farming", 2);
+    const gathered = Object.entries(got).map(([item, n]) => this.lootName(item, n));
+    return gathered.length
+      ? `You cut down the ${name} and gather ${listing(gathered)}.`
+      : `You cut down the ${name}, green as it is.`;
   }
   /** Whether ground held by `owner` is the player's to work: their own, their
    * household's, or nobody's. Anything else is somebody else's crop. */
@@ -1337,16 +1403,18 @@ export class Engine {
   private hurtProp(
     prop: WorldObject,
     hit: HitClass,
+    blows = 1,
+    push?: readonly number[],
   ): "broke" | "damaged" | "tipped" | "leaned" | undefined {
     const def = propDefs[prop.prop!];
     if (!def) return undefined;
     if (def.topples && !prop.tipped && !prop.broken) {
-      const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][this.state.player.direction];
+      const [dx, dy] = push ?? [[0, -1], [1, 0], [0, 1], [-1, 0]][this.state.player.direction];
       return this.tiltProp(prop, dx, dy);
     }
     if (def.breakable && !prop.broken) {
       this.propOwnership(prop, "break");
-      prop.damage = (prop.damage ?? 0) + 1;
+      prop.damage = (prop.damage ?? 0) + blows;
       if (prop.damage < (toughness(hit) ?? 2)) return "damaged";
       prop.broken = true;
       prop.open = true;
@@ -1372,6 +1440,8 @@ export class Engine {
     power: number;
     /** A spear goes straight in rather than round. */
     thrust: boolean;
+    /** Brought down out of a jump. */
+    plunge: boolean;
   };
   /** Clock until which a fight is on. The runtime keeps the world ticking
    * through it instead of letting an idle player freeze the animals. */
@@ -2344,13 +2414,14 @@ export class Engine {
   }
   /** A swing through low growth: grass and reeds to stubble, brush to
    * stems, blooms away. Returns the plant cut, or false if nothing was. */
-  private cutGrowth(x: number, y: number): Species | undefined | false {
+  private cutGrowth(x: number, y: number, power = 0): Species | undefined | false {
     const plant = this.world.decoration(x, y);
     const c = plantClass(plant?.sprite);
     if (plant && (c === "grass" || c === "shrub")) {
       const species = this.plantSpecies(plant.sprite, x, y);
       if (c === "grass") this.editAt(x, y).cut = true;
-      else this.editAt(x, y).stage = "stems";
+      // A wound-up swing takes brush to the ground, not only to stems.
+      else this.editAt(x, y).stage = power ? "clear" : "stems";
       return species;
     }
     if (plant) return false;
@@ -3654,13 +3725,14 @@ export class Engine {
       const mine = this.worksFor(field.owner);
       const picked = !!this.state.tiles?.[tileKey(pos.x, pos.y)]?.picked;
       const near = distance(this.state.player.pos, pos) <= 1.5;
-      const what = (sown.plant ?? sown.label).toLowerCase();
+      const plant = this.cropPlant(sown, pos.y);
+      const what = plant.name.toLowerCase();
       const enabled = near && field.stage === "ripe" && !picked;
       return {
         id,
         pos,
-        name: sown.plant ?? sown.label,
-        latin: sown.latin,
+        name: plant.name,
+        latin: plant.latin,
         kind: "vegetation",
         claim: field.owner && !mine ? "owned" : undefined,
         description: field.garden
@@ -4713,11 +4785,12 @@ export class Engine {
           this.nuisance.set(w.id, { what: `swung ${tool === "bare" ? "their" : "a"} ${swung.toLowerCase()} close to you`, at: this.state.clock });
           if (tool !== "bare") this.affront(w);
         }
-      const power = c.power ?? 0;
-      const cone = this.swingCone(p.direction, power, weapon.reach);
+      const power = c.plunge ? 2 : (c.power ?? 0);
+      // Coming down out of a jump, the ring lands all at once and at any reach.
+      const cone = this.swingCone(p.direction, power, c.plunge ? 0 : weapon.reach);
       const hits: Hit[] = [];
       const creatures: CreatureHit[] = [];
-      const force = [1, 1.5, 2][power];
+      const force = c.plunge ? 2.5 : [1, 1.5, 2][power];
       const push = [
         [0, -1],
         [1, 0],
@@ -4747,6 +4820,7 @@ export class Engine {
               knock:
                 weapon.knock +
                 (power ? 1 : 0) +
+                (c.plunge ? 1 : 0) +
                 (this.knows("heavy-swing") ? 1 : 0),
             },
             out,
@@ -4767,14 +4841,19 @@ export class Engine {
           id: found.prop?.id,
         };
         // The cell you face takes the blow; the corners only rattle, so a
-        // wide arc never breaks three pots at once.
-        // Bare hands still break pottery.
+        // plain arc never breaks three pots at once. A wound-up one breaks
+        // the lot, and hard enough to do with bare hands what a tool would.
         if (
-          (i === 0 || (weapon.reach && !hits.some((hit) => hit.solid))) &&
+          (i === 0 || power || (weapon.reach && !hits.some((hit) => hit.solid))) &&
           found.prop &&
-          (tool !== "bare" || found.hit === "pottery")
+          (tool !== "bare" || power || found.hit === "pottery")
         ) {
-          const outcome = this.hurtProp(found.prop, found.hit);
+          const outcome = this.hurtProp(
+            found.prop,
+            found.hit,
+            1 + power,
+            power ? [Math.sign(at.x - p.pos.x), Math.sign(at.y - p.pos.y)] : undefined,
+          );
           h.damaged = !!outcome;
           const name = found.prop.name.toLowerCase();
           // What spills goes straight to the player, as it would in an
@@ -4809,7 +4888,7 @@ export class Engine {
         const got: string[] = [];
         for (const h of hits) {
           if (h.solid) continue;
-          const species = this.cutGrowth(h.at.x, h.at.y);
+          const species = this.cutGrowth(h.at.x, h.at.y, power);
           if (species === false) continue;
           changed = true;
           h.damaged = true;
@@ -4825,6 +4904,8 @@ export class Engine {
         if (changed) this.tilesChanged();
         if (got.length && !told)
           told = `You cut ${cut[0].common.toLowerCase()} and gather ${listing(got)}.`;
+        const reaped = this.cutCrops(hits);
+        if (reaped && !told) told = reaped;
       }
       this.lastSwing = {
         hits,
@@ -4832,7 +4913,8 @@ export class Engine {
         direction: p.direction,
         creatures,
         power,
-        thrust: !!weapon.reach,
+        thrust: !!weapon.reach && !c.plunge,
+        plunge: !!c.plunge,
       };
       if (power) p.fatigue = Math.min(100, p.fatigue + power * 0.6);
       if (creatures.length)

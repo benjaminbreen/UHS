@@ -87,6 +87,20 @@ it("rings off rock, thumps a tree and shatters a pot", () => {
   runtime.dispose();
 });
 
+it("a full wind-up breaks what stands all round, and a plunge does too", () => {
+  const engine = createSession("roman", "swing-spin");
+  ground(engine);
+  const pots = [[1, 0], [-1, 0], [0, 1], [-1, -1]].map(([x, y]) => prop(engine, "pot", x, y));
+  engine.execute({ type: "swing", power: 2 });
+  expect(engine.lastSwing?.hits).toHaveLength(8);
+  expect(pots.every((p) => p.broken)).toBe(true);
+
+  const more = [[0, -1], [1, 1]].map(([x, y]) => prop(engine, "pot", x, y));
+  engine.execute({ type: "swing", plunge: true });
+  expect(engine.lastSwing).toMatchObject({ plunge: true, power: 2 });
+  expect(more.every((p) => p.broken)).toBe(true);
+});
+
 it("turns to what you obviously meant", () => {
   const engine = createSession("roman", "swing-aim");
   ground(engine);

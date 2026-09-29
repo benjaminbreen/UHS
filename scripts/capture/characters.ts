@@ -1040,18 +1040,26 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
 
   /** A spread wide enough to judge the shading engine rather than one draw:
    * dark and light palettes, bare and clothed, thin limbs, all four views.
-   * POSES, SCALE and ONLY narrow it when chasing one case. */
+   * POSES, SCALE and ONLY narrow it when chasing one case; RENDERER (a–d),
+   * PROP (a carried sprite) and FRAMES (all, or a list) study an action. */
   async "sprite-study"(page) {
     const knobs = {
       poses: (process.env.POSES ?? "idle,chop").split(","),
       scale: Number(process.env.SCALE ?? 4),
       only: process.env.ONLY === undefined ? undefined : Number(process.env.ONLY),
+      renderer: process.env.RENDERER ?? "b",
+      prop: process.env.PROP,
+      frames: process.env.FRAMES === "all" ? [0, 1, 2, 3] : process.env.FRAMES?.split(",").map(Number),
     };
     await characterLab(page);
     const sheet = await page.evaluate(async (k) => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/v2/draw.ts" as string
+      const { renderers } = await import(
+        "/src/render/characters/renderers.ts" as string
       );
+      const drawCharacter = renderers[k.renderer].draw;
+      const art = k.prop
+        ? (await (await import("/src/render/characters/props.ts" as string)).loadCarriedArt()).get(k.prop)
+        : undefined;
       const { originalAppearance } = await import(
         "/src/core/character.ts" as string
       );
@@ -1071,8 +1079,9 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           wearing: { garment: "robe", sleeves: "long", color: "#2f625b", lowerColor: "#38798b", cloak: true, cloakColor: "#743f45" } },
       ];
       const { poses, scale: S, only } = k;
+      const frames = k.frames;
       const cell = 64,
-        cols = poses.length * 4,
+        cols = poses.length * 4 * (frames?.length ?? 1),
         rows = only === undefined ? people.length : 1;
       const c = document.createElement("canvas"),
         b = document.createElement("canvas");
@@ -1088,12 +1097,13 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         const a = { ...base, ...p, wearing: { ...base.wearing, ...p.wearing } };
         let col = 0;
         for (const pose of poses)
-          for (const dir of [2, 1, 0, 3]) {
-            bc.clearRect(0, 0, 80, 80);
-            drawCharacter(bc, a, dir, pose, pose === "idle" ? 0 : 1);
-            ctx.drawImage(b, 8, 16, cell, cell, col * cell * S, row * cell * S, cell * S, cell * S);
-            col++;
-          }
+          for (const dir of [2, 1, 0, 3])
+            for (const frame of frames ?? [pose === "idle" ? 0 : 1]) {
+              bc.clearRect(0, 0, 80, 80);
+              drawCharacter(bc, a, dir, pose, frame, art, dir * 2);
+              ctx.drawImage(b, 8, 16, cell, cell, col * cell * S, row * cell * S, cell * S, cell * S);
+              col++;
+            }
       });
       return c.toDataURL();
     }, knobs);

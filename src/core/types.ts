@@ -426,7 +426,7 @@ export type PlayerCommand =
   | { type: "shoot"; target: Point; power?: number }
   /** A swing of whatever is in hand, at whatever the arc finds. Takes no
    * target: the cone in front of the player is the target. */
-  | { type: "swing"; power?: 1 | 2 }
+  | { type: "swing"; power?: 1 | 2; plunge?: boolean }
   | { type: "learn"; technique: import("./techniques").TechniqueId }
   | { type: "wait"; seconds: number }
   /** Time passing while the player stands still. Logged so a replay keeps the

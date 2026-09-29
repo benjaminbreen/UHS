@@ -7,6 +7,7 @@ import { metalItems } from "./ecology/metals";
 import { floraItems } from "./ecology/flora";
 import { wearableItems } from "./characters/wearables";
 import { dungItems } from "./fauna/dung";
+import { vegetableItems } from "./agriculture/gardens";
 export const items: Record<
   import("../core/types").ItemId,
   import("../core/types").ItemDef
@@ -18,6 +19,7 @@ export const items: Record<
   ...floraItems,
   ...wearableItems,
   ...dungItems,
+  ...vegetableItems,
   "walking-cane": { id: "walking-cane", name: "Walking cane", sprite: "walking-cane", value: 4, hand: {} },
   fan: { id: "fan", name: "Folding fan", sprite: "fan", value: 3, hand: {} },
   bow: { id: "bow", name: "Bow", sprite: "bow", value: 8, hand: {} },

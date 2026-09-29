@@ -843,3 +843,95 @@ item('fan', '#e4d6af', '#ad633e', [
  "         tt             ",
  "         tt             ",
 ])
+
+# Kitchen-garden vegetables. Each plant in src/content/agriculture/gardens.ts
+# names one of these shapes and its own two colours.
+item('veg-head', '#a8c878', '#6f9a48', [
+ "",
+ "",
+ "         tttttt         ",
+ "       ttoooooott       ",
+ "      tooooooooot       ",
+ "     toooootoooooot     ",
+ "     tooootoootoooot    ",
+ "     toootoooootooot    ",
+ "     tootooootooooot    ",
+ "      totoootoootot     ",
+ "      ttoooooootott     ",
+ "       ttttoootttt      ",
+ "         tttttt         ",
+])
+item('veg-bulb', '#c08a4a', '#6f8a3a', [
+ "",
+ "          t  t          ",
+ "          t  t          ",
+ "          tttt          ",
+ "           tt           ",
+ "           tt           ",
+ "          oooo          ",
+ "        oooooooo        ",
+ "       oooooooooo       ",
+ "      oooooooooooo      ",
+ "      oooooooooooo      ",
+ "       oooooooooo       ",
+ "        oooooooo        ",
+ "          oooo          ",
+ "           oo           ",
+])
+item('veg-root', '#e8dccc', '#6f9a48', [
+ "",
+ "       t     t          ",
+ "       tt   tt          ",
+ "        tt tt  t        ",
+ "         tttttt         ",
+ "          tt            ",
+ "         oooo           ",
+ "        oooooo          ",
+ "        oooooo          ",
+ "        oooooo          ",
+ "         oooo           ",
+ "         oooo           ",
+ "          oo            ",
+ "          oo            ",
+ "           o            ",
+])
+item('veg-pod', '#7aa048', '#5a7a34', [
+ "",
+ "",
+ "                  tt    ",
+ "                 tt     ",
+ "               oooo     ",
+ "             oooooo     ",
+ "           oooooooo     ",
+ "         oooooooo       ",
+ "       oooooooo         ",
+ "     oooooooo           ",
+ "    oooooo              ",
+ "    ooo                 ",
+])
+item('veg-fruit', '#5a2a6a', '#5f8a3a', [
+ "",
+ "          tt            ",
+ "        tttttt          ",
+ "       tttttttt         ",
+ "        oooooo          ",
+ "       oooooooo         ",
+ "       ooooooooo        ",
+ "      oooooooooo        ",
+ "      oooooooooo        ",
+ "      ooooooooooo       ",
+ "       oooooooooo       ",
+ "       ooooooooo        ",
+ "        ooooooo         ",
+ "          ooo           ",
+])
+
+def _vegetables():
+    import re, unicodedata
+    src = open(__file__.rsplit('/scripts/', 1)[0] + '/src/content/agriculture/gardens.ts').read()
+    for name, shape, base, accent in re.findall(
+            r'name: "([^"]+)"[^}]*?shape: "(\w+)", colors: \["(#\w+)", "(#\w+)"\]', src):
+        slug = unicodedata.normalize('NFD', name.lower())
+        slug = re.sub(r'\s+', '-', ''.join(c for c in slug if not unicodedata.combining(c)))
+        like(slug, 'herbs' if shape == 'leaf' else 'veg-' + shape, base, accent)
+_vegetables()

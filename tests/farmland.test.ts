@@ -250,6 +250,16 @@ describe("harvesting a crop cell", () => {
       "no theft recorded",
     ).toBe(false);
   });
+  it("cuts a standing crop down with a swing, and gathers it if ripe", () => {
+    const e = harvestWorld();
+    const at = ripeCell(e, true);
+    e.state.player.pos = { x: at.x, y: at.y - 1, space: "outside" };
+    e.state.player.direction = 2;
+    const before = e.state.player.inventory[crops[at.field.crop].yields!] ?? 0;
+    e.execute({ type: "swing" });
+    expect(e.state.tiles?.[`${at.x},${at.y}`]?.picked).toBeDefined();
+    expect(e.state.player.inventory[crops[at.field.crop].yields!]).toBeGreaterThan(before);
+  });
   it("will not let you pick a crop that is not ready", () => {
     const e = harvestWorld();
     const spawn = e.world.spawn;

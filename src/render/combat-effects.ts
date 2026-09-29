@@ -10,6 +10,21 @@ const HIT_STOP_MS = 70;
 const BLOOD = [0x9c2f2a, 0x7a1f1f, 0xc24a3a];
 const DUST = [0xe6d5c0, 0xc9b199, 0xffffff];
 const FEATHER = [0xffffff, 0xe8e2d4, 0xcfc8b8];
+/** Radius, colour, alpha, outside in: a white edge over a warm core. */
+const BLADE = [
+  [22, 0xffffff, 0.95],
+  [21, 0xffffff, 0.9],
+  [20, 0xfff4c8, 0.75],
+  [19, 0xffe39a, 0.5],
+  [18, 0xffd34d, 0.25],
+] as const;
+const QUAKE = [
+  [0, 0xffffff, 0.9],
+  [-1, 0xe6d5c0, 0.6],
+  [-3, 0xc9b199, 0.35],
+] as const;
+/** As in WorldScene: how long a spin holds each facing. */
+const SPIN_STEP_MS = 36;
 const STARS = [0xffe06a, 0xfff4b8, 0xffffff];
 const DROP: Record<string, number> = {
   meat: 0xc24a3a,
@@ -107,44 +122,96 @@ export class CombatEffects {
       this.scene.tweens.timeScale = 1;
     });
   }
-  /** The wide swing itself: a half ring in front, or a whole one. */
+  /** The wide swing itself: a blade trail that follows the body round,
+   * half the circle or all of it, drawn on the pixel grid. */
   private sweep(effect: SwingEffect) {
     const player = this.view.entityAt("player");
     if (!player) return;
-    const g = this.scene.add
-      .graphics()
-      .setPosition(player.x, player.y - 5)
-      .setDepth(player.y + 4300);
+    const layer = (depth: number) => {
+      const g = this.scene.add.graphics().setPosition(Math.round(player.x), Math.round(player.y) - 8).setDepth(depth);
+      this.live.add(g);
+      return g;
+    };
+    // The far half of the circle passes behind the figure.
+    const back = layer(player.depth - 1),
+      front = layer(player.y + 4300);
+    const full = effect.power === 2;
+    // Screen angles: 0 east, a quarter turn south; facings run clockwise from north.
+    const start = (effect.facing * 2 - (full ? 0 : 2)) * (Math.PI / 4) - Math.PI / 2;
+    const span = full ? Math.PI * 2 : Math.PI;
+    const ms = (full ? 8 : 4) * SPIN_STEP_MS;
+    const t = { v: 0 };
+    this.scene.tweens.add({
+      targets: t,
+      v: 1,
+      duration: ms + 140,
+      onUpdate: () => {
+        back.clear();
+        front.clear();
+        const now = t.v * (ms + 140);
+        const head = start + span * Math.min(1, now / ms);
+        const tail = Math.max(start, head - 1.6) + Math.max(0, now - ms) / 140 * 1.6;
+        for (let a = tail; a <= head; a += 0.035) {
+          const fresh = (a - tail) / Math.max(0.01, head - tail);
+          const g = Math.sin(a) < 0 ? back : front;
+          for (const [r, color, alpha] of BLADE) {
+            g.fillStyle(color, alpha * fresh);
+            g.fillRect(Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r * 0.62), 1, 1);
+          }
+        }
+      },
+      onComplete: () => {
+        for (const g of [back, front]) {
+          this.live.delete(g);
+          g.destroy();
+        }
+      },
+    });
+    void gameAudio()?.sound(strike("blunt", "air", "whoosh"), "air");
+    if (full)
+      this.scene.time.delayedCall(ms / 2, () => void gameAudio()?.sound(strike("blunt", "air", "whoosh"), "air"));
+    this.scene.time.delayedCall(ms, () => {
+      this.burst(player.x, player.y - 1, DUST, full ? 8 : 4);
+      if (full) this.scene.cameras.main.shake(90, 0.0025);
+    });
+  }
+  /** Down out of a jump: a ring of force along the ground, and the ground
+   * shaking with it. */
+  private quake(effect: SwingEffect) {
+    const player = this.view.entityAt("player");
+    if (!player) return;
+    const g = this.scene.add.graphics().setPosition(Math.round(player.x), Math.round(player.y) - 1).setDepth(player.depth - 1);
     this.live.add(g);
-    // Screen angles: 0 east, a quarter turn south.
-    const facing = [-Math.PI / 2, 0, Math.PI / 2, Math.PI][effect.facing] ?? 0;
-    const half = effect.power === 2 ? Math.PI : Math.PI * 0.6;
-    const ring = { r: 10, a: 1 };
+    const ring = { r: 5 };
     this.scene.tweens.add({
       targets: ring,
-      r: 30,
-      a: 0,
-      duration: effect.power === 2 ? 300 : 230,
+      r: 36,
+      duration: 300,
       ease: "Quad.easeOut",
       onUpdate: () => {
         g.clear();
-        for (const [width, color, alpha] of [
-          [5, 0xfff4c8, 0.35],
-          [2, 0xffffff, 0.95],
-        ]) {
-          g.lineStyle(width, color, alpha * ring.a);
-          g.beginPath();
-          g.arc(0, 0, ring.r, facing - half, facing + half);
-          g.strokePath();
-        }
-        g.setScale(1, 0.62);
+        const fade = 1 - (ring.r - 5) / 31;
+        for (const [dr, color, alpha] of QUAKE)
+          for (let a = 0; a < Math.PI * 2; a += 1.2 / ring.r) {
+            g.fillStyle(color, alpha * fade);
+            g.fillRect(Math.round(Math.cos(a) * (ring.r + dr)), Math.round(Math.sin(a) * (ring.r + dr) * 0.55), 1, 1);
+          }
       },
       onComplete: () => {
         this.live.delete(g);
         g.destroy();
       },
     });
-    void gameAudio()?.sound(strike("blunt", "air", "whoosh"), "air");
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      this.burst(player.x + Math.cos(a) * 10, player.y + Math.sin(a) * 5, DUST, 3);
+    }
+    this.scene.cameras.main.shake(190, 0.007);
+    void gameAudio()?.sound(strike("blunt", "soil", "thud", true), "strike");
+    if (!effect.creatures?.length) {
+      this.scene.tweens.timeScale = 0;
+      this.scene.time.delayedCall(HIT_STOP_MS, () => (this.scene.tweens.timeScale = 1));
+    }
   }
   private aimMark?: Phaser.GameObjects.Graphics;
   /** A fine sight line from the hand to the landing mark. */
@@ -254,7 +321,8 @@ export class CombatEffects {
     if (!effect.creatures?.length && !effect.power) return;
     this.scene.time.delayedCall(effect.contactMs ?? CONTACT_MS, () => {
       this.landed = effect.serial;
-      if (effect.power && !effect.thrust) this.sweep(effect);
+      if (effect.plunge) this.quake(effect);
+      else if (effect.power && !effect.thrust) this.sweep(effect);
       if (!effect.creatures?.length) return;
       for (const c of effect.creatures) this.land(c, effect.facing);
       this.hitStop(effect.creatures.some((c) => c.killed || c.crit));

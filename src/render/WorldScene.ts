@@ -1182,6 +1182,7 @@ export class WorldScene extends Phaser.Scene {
     const ex = tx - ((tx - im.x) / travel) * short,
       ey = ty - ((ty - im.y) / travel) * short + (after === "hang" ? 11 : 0);
     const carry = poseTiming(after) * (after === "hang" ? 4 : 3);
+    let trailAt = 0;
     const flight = this.tweens.add({
       targets: im,
       x: ex,
@@ -1189,14 +1190,19 @@ export class WorldScene extends Phaser.Scene {
       duration: arc.duration,
       ease: "Linear",
       onUpdate: (tween: Phaser.Tweens.Tween) => {
-        // Sine, not a parabola: it leaves and meets the ground less abruptly.
-        const rise = arc.height * Math.sin(Math.PI * tween.progress);
+        // Sine, not a parabola, flattened on top so a jump hangs at its apex.
+        const rise = arc.height * Math.sin(Math.PI * tween.progress) ** 0.7;
         im.y -= rise;
         im.setData("arcLift", rise);
         // Stretch off the ground, square at the apex, squash into the landing.
         const p = tween.progress;
         const shape = p < 0.25 ? p / 0.25 : p > 0.8 ? -(p - 0.8) / 0.2 : 0;
         im.setScale(1 - 0.12 * shape, 1 + 0.16 * shape);
+        // A long jump streaks.
+        if (isPlayer && arc.height >= 30 && this.time.now >= trailAt) {
+          trailAt = this.time.now + 45;
+          this.afterimage(im, 0.22);
+        }
       },
       onComplete: () => {
         im.setPosition(ex, ey);
@@ -1573,6 +1579,60 @@ export class WorldScene extends Phaser.Scene {
       if (im) this.feel.puff(im.x, im.y, [0xffffff, 0xe3ecf5, 0xc9d8e6], 6, 0.9);
       void gameAudio()?.sound(landing("stone", running ? 1.8 : 1.1), "step");
       this.runtime.engine.event("You slip on the ice.");
+    });
+  }
+  /** The wound-up swing turns the body through the circle, the wind-up
+   * coils for it, and a jump with F in it comes down overhead. */
+  private swingMotion(
+    action: Runtime["characterAction"],
+    elapsed: number,
+    human: Parameters<WorldCharacters["frame"]>[0],
+    held: string | undefined,
+    condition: number,
+  ): { pose: CharacterPose; index: number; facing?: number } | undefined {
+    const charge = this.runtime.charge;
+    if (charge && !this.runtime.chargeSwung) {
+      const since = performance.now() - charge.at;
+      // A tap is a plain swing; a spear winds up its own way.
+      if (since < 110 || (action && THRUSTS.has(action.pose))) return undefined;
+      // Draw the circle while the player is still winding, so the spin does
+      // not wait on the workers for its first turn.
+      if (this.spinWarmed !== charge.at) {
+        this.spinWarmed = charge.at;
+        for (let f = 0; f < 8; f++)
+          for (const frame of [1, 2, 3, 4])
+            this.characters?.frame({ ...human, id: "player~spin", facing: f }, "spin", frame, held, 0, condition);
+      }
+      // Drawn back over two beats, then held, the tip flashing once full.
+      if (since < 170) return { pose: "swing", index: 0 };
+      return { pose: "spin", index: since >= charge.full && Math.floor(since / 110) % 2 ? 4 : 0 };
+    }
+    if (!action) return undefined;
+    if (action.pose === "jump" && action.plunge && action.arc && elapsed < action.arc.duration)
+      return { pose: "plunge", index: elapsed < action.arc.duration * 0.45 ? 0 : 1 };
+    const power = this.runtime.swingEffect?.power ?? 0;
+    if (action.pose !== "spin" || !power) return undefined;
+    const steps = power === 2 ? 8 : 4;
+    const k = Math.floor(elapsed / SPIN_STEP_MS);
+    if (k > steps + 2) return undefined;
+    const start = (this.runtime.swingEffect?.facing ?? 0) * 2 - (power === 2 ? 0 : 2);
+    const facing = (start + Math.min(k, steps) + 8) % 8;
+    return { pose: "spin", index: k === 0 ? 1 : k < steps ? 2 : 3, facing };
+  }
+  private spinWarmed = 0;
+  /** A pale copy of the figure left where it just was, fading. */
+  private afterimage(im: Phaser.GameObjects.Image, alpha = 0.45) {
+    const ghost = this.add
+      .image(im.x, im.y, im.texture.key, im.frame.name)
+      .setOrigin(im.originX, im.originY)
+      .setDepth(im.depth - 1)
+      .setTintFill(0xfff4c8)
+      .setAlpha(alpha);
+    this.tweens.add({
+      targets: ghost,
+      alpha: 0,
+      duration: 160,
+      onComplete: () => ghost.destroy(),
     });
   }
   /** Plays a pose on the player over whatever else would be showing. */
@@ -5453,6 +5513,8 @@ export class WorldScene extends Phaser.Scene {
             : undefined;
         if (fidget?.pose) pose = fidget.pose;
         if (stunt) pose = stunt.pose;
+        const motion = id === "player" ? this.swingMotion(action, elapsed, human, heldSprite, condition) : undefined;
+        if (motion) pose = motion.pose;
         const drawing = id === "player" && this.aimKind === "bow" && this.aimStarted !== undefined;
         const slinging = drawing && me.heldItem === "sling";
         if (drawing) pose = slinging ? "whirl" : "draw";
@@ -5511,7 +5573,9 @@ export class WorldScene extends Phaser.Scene {
           g.pose = pose;
         }
         const index =
-          slinging
+          motion
+            ? motion.index
+            : slinging
             ? Math.floor(this.slingTurns(time - this.aimStarted!) * 3) % 3
             : drawing
             ? Math.min(2, Math.floor((time - this.aimStarted!) / poseTiming("draw")))
@@ -5579,6 +5643,7 @@ export class WorldScene extends Phaser.Scene {
             ? facingFromStep(work.site.x - at!.x, work.site.y - at!.y, at!.direction)
             : undefined;
         const ahead =
+          motion?.facing ??
           seat?.facing ??
           (id === "player" ? this.blockedFacing : undefined) ??
           cued?.facing ??
@@ -5595,7 +5660,12 @@ export class WorldScene extends Phaser.Scene {
             : ahead;
         let turn = this.turning.get(id);
         if (!turn) this.turning.set(id, (turn = { facing: wanted, until: 0 }));
-        else {
+        else if (motion?.facing !== undefined) {
+          // A spin is the turn itself: no easing between facings.
+          if (turn.facing !== wanted) this.afterimage(im);
+          turn.facing = wanted;
+          turn.next = turn.sign = undefined;
+        } else {
           if (turn.next !== undefined && time - (turn.started ?? time) >= 25) {
             turn.facing = turn.next;
             turn.next = undefined;
@@ -6219,6 +6289,10 @@ export class WorldScene extends Phaser.Scene {
     ];
   }
 }
+
+const THRUSTS = new Set<CharacterPose>(["thrust", "spear-thrust", "knife-thrust", "pitchfork-jab", "rake-pull"]);
+/** How long a spin holds each of the eight facings. */
+const SPIN_STEP_MS = 36;
 
 type Stunt = {
   pose: CharacterPose;

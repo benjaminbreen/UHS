@@ -39,6 +39,8 @@ export const poses = [
   "sickle-cut",
   "scythe-sweep",
   "pitchfork-jab",
+  "spin",
+  "plunge",
   "cast",
   "draw",
   "whirl",
@@ -151,6 +153,10 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "sickle-cut") return 85;
   if (pose === "scythe-sweep") return 135;
   if (pose === "pitchfork-jab") return 110;
+  // The scene turns the body through the circle; these only set the arm.
+  if (pose === "spin") return 90;
+  // Raise and dive are spread over the jump; the impact and rise are quick.
+  if (pose === "plunge") return 80;
   if (pose === "cast") return 120;
   if (pose === "draw") return 140;
   // The last of these is the release; the scene loops the first three while aiming.

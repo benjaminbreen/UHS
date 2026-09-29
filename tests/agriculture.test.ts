@@ -9,6 +9,9 @@ import {
 } from "../src/content/agriculture";
 import type { Climate, CropId, FarmSystem } from "../src/content/agriculture";
 import type { CultureId } from "../src/content/history/types";
+import { cultures } from "../src/content/history/types";
+import { gardenPlant } from "../src/content/agriculture/gardens";
+const cultureIds = () => cultures.map(([id]) => id as CultureId);
 
 const cropIds: CropId[] = [
   "wheat", "barley", "rye", "oats", "millet", "sorghum", "teff", "rice",
@@ -102,5 +105,17 @@ describe("cropStage", () => {
     expect(cropStage("maize", "spring", -30)).toBe("ripe");
     expect(cropStage("maize", "winter", -30)).toBe("green");
     expect(cropStage("wheat", "winter", -35)).toBe("ripe");
+  });
+});
+
+describe("kitchen gardens", () => {
+  it("grow something of their own place and time in every culture", () => {
+    const cultures = cultureIds();
+    for (const culture of cultures)
+      for (const year of [-2000, 500, 1400, 1900])
+        expect(gardenPlant({ culture, year }, "s", 3), `${culture} ${year}`).toBeDefined();
+    const beds = new Set([0, 1, 2, 3, 4, 5, 6, 7].map((y) => gardenPlant({ culture: "european", year: 1200 }, "s", y)?.name));
+    expect(beds.has("Tomatoes")).toBe(false);
+    expect(beds.size).toBeGreaterThan(2);
   });
 });

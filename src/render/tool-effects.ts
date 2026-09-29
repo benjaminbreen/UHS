@@ -55,6 +55,8 @@ export type SwingEffect = {
   creatures?: CreatureHit[];
   /** 1 a half circle, 2 all the way round. */
   power?: number;
+  /** Brought down out of a jump. */
+  plunge?: boolean;
   /** A spear: straight in, not round. */
   thrust?: boolean;
   knife?: boolean;
@@ -202,11 +204,20 @@ export class ToolEffects {
       if (generation === this.generation) this.playSwing(effect);
     });
   }
+  /** Milliseconds into a spin before the blade reaches this cell. */
+  private passing(effect: SwingEffect, hit: Hit) {
+    if (effect.plunge) return 0;
+    const full = effect.power === 2;
+    const start = (effect.facing * 2 - (full ? 0 : 2)) * (Math.PI / 4) - Math.PI / 2;
+    const a = Math.atan2(hit.at.y - effect.from.y, hit.at.x - effect.from.x);
+    const turned = (a - start + Math.PI * 4) % (Math.PI * 2);
+    return (turned / (full ? Math.PI * 2 : Math.PI)) * (full ? 8 : 4) * 36;
+  }
   private playSwing(effect: SwingEffect) {
     const from = this.point(effect.from);
     const [facing, ...corners] = effect.hits;
     // A wound-up swing draws its own ring; see CombatEffects.
-    if (facing && !effect.power) {
+    if (facing && !effect.power && !effect.plunge) {
       if (effect.pose === "rake-pull") this.pull(from, this.point(facing.at));
       else if (effect.pose === "scythe-sweep") this.groundSweep(from, this.point(facing.at));
       else if (effect.knife) this.slice(from, this.point(facing.at));
@@ -232,19 +243,24 @@ export class ToolEffects {
     const rest = () => {
       if (facing) this.react(facing, 1);
       // The corners rattle rather than break: half the debris, no sound.
+      // A wound-up swing hits all round, each cell as the blade passes it.
       for (const hit of corners)
-        if (hit.solid || hit.kind === "swish") this.react(hit, 0.45);
+        if (effect.power && !effect.thrust)
+          this.scene.time.delayedCall(this.passing(effect, hit), () => {
+            if (generation === this.generation) this.react(hit, 1);
+          });
+        else if (hit.solid || hit.kind === "swish") this.react(hit, 0.45);
       for (const h of effect.hits)
         if (h.loot?.length) this.spill(this.point(h.at), h.loot);
       if (loudest?.kind === "shatter" || loudest?.kind === "topple")
         this.scene.cameras.main.shake(110, 0.0022);
       else if (loudest?.damaged) this.scene.cameras.main.shake(70, 0.0011);
     };
+    const generation = this.generation;
     if (!landed.length) return rest();
     // Hitstop: everything tweened holds for a beat, then the debris flies.
     const tweens = this.scene.tweens;
     tweens.timeScale = 0;
-    const generation = this.generation;
     this.scene.time.delayedCall(HIT_STOP_MS, () => {
       tweens.timeScale = 1;
       if (generation === this.generation) rest();

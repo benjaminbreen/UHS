@@ -287,7 +287,8 @@ export const JUMP_MS = 260;
 export const LONG_JUMP_MS = 300;
 export const JUMP_CHARGE_MS = 240;
 /** Airtime scales with the tiles cleared: 260, 300, 340, 380. */
-export const jumpMs = (distance: number) => 220 + 40 * distance;
+// Long enough in the air to strike from it, as in Zelda.
+export const jumpMs = (distance: number) => 300 + 50 * distance;
 export const ZOOM_STEPS = [
   0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6,
 ];
@@ -425,6 +426,8 @@ export class Runtime {
     /** What follows the arc. A fall of two tiers, or a long running jump,
      * staggers on; three tiers rolls out of it; a near miss hangs. */
     after?: "land" | "stumble" | "roll" | "hang";
+    /** F came during the jump: it lands as a blow. */
+    plunge?: boolean;
   };
   private characterSerial = 0;
   /** What the last tool blow did, for the scene to throw chips and drop a
@@ -577,7 +580,7 @@ export class Runtime {
           at: performance.now(),
           arc: {
             height: command.jump
-              ? 12 + leap.distance * 6 + this.leapLift
+              ? 14 + leap.distance * 7 + this.leapLift
               : leap.kind === "leap"
                 ? 15
                 : leap.kind === "drop"
@@ -643,11 +646,16 @@ export class Runtime {
       const swing = this.engine.lastSwing;
       const held = heldObject(this.engine.state);
       const item = this.engine.state.player.heldItem;
-      const pose = this.swingPose(swing?.thrust);
+      const pose = swing?.plunge
+        ? "plunge"
+        : swing?.power && !swing.thrust
+          ? "spin"
+          : this.swingPose(swing?.thrust);
       this.characterAction = {
         serial: ++this.characterSerial,
         pose,
-        at: performance.now(),
+        // A plunge already raised and dived in the air: land on the blow.
+        at: performance.now() - (pose === "plunge" ? poseTiming(pose) * 2 : 0),
         prop:
           held?.sprite ?? (item ? this.engine.item(item)?.sprite : undefined),
       };
@@ -664,8 +672,9 @@ export class Runtime {
           creatures: swing.creatures,
           power: swing.power,
           thrust: swing.thrust,
+          plunge: swing.plunge,
           knife: pose === "slash" || pose === "knife-thrust",
-          contactMs: poseContactMs(pose),
+          contactMs: pose === "plunge" ? 0 : pose === "spin" ? 30 : poseContactMs(pose),
         };
       }
       return;
@@ -1646,6 +1655,7 @@ export class Runtime {
    * swing waits for the release, so a wind-up does not start with a flail
    * that sends the game running before the wide one lands. */
   pressSwing(): Verb | undefined {
+    if (!this.replay && this.armPlunge()) return undefined;
     const verb = this.verbs().primary;
     if (verb?.kind !== "strike" || verb.command) return this.runVerb("primary");
     const now = this.engine.swingFinds();
@@ -1750,7 +1760,24 @@ export class Runtime {
     this.leapLift = lift;
     this.command({ type: "move", dx, dy, jump: power, run: running });
     this.leapLift = 0;
+    // F already held as the jump goes: it comes down as a blow.
+    if (this.charge) this.armPlunge();
     return this.engine.leapDistance();
+  }
+  /** Turns the jump in the air into a plunge, landing as a ring blow. */
+  private armPlunge() {
+    const action = this.characterAction;
+    if (action?.pose !== "jump" || !action.arc || action.plunge || action.after === "hang")
+      return false;
+    // A press a moment after touching down still counts: late is forgiven.
+    const left = action.at + action.arc.duration - performance.now();
+    if (left < -120) return false;
+    action.plunge = true;
+    this.charge = undefined;
+    setTimeout(() => {
+      if (this.characterAction === action) this.command({ type: "swing", plunge: true });
+    }, Math.max(0, left));
+    return true;
   }
   private leapLift = 0;
   /** A line for the event bar that no command produced. */
