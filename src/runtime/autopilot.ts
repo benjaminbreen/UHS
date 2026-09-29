@@ -2,8 +2,8 @@ import type { Engine } from "../core/engine";
 import { forageTable, TIRED } from "../core/intents";
 import { forageByCover, forageByTerrain } from "../content/ecology/forage";
 import { findPath } from "../core/pathfinding";
-import { distance, type ItemId, type Point } from "../core/types";
-import { doorApproach } from "../core/doors";
+import { distance, type Actor, type ItemId, type Place, type Point } from "../core/types";
+import { doorApproach, doorId } from "../core/doors";
 
 /**
  * Something the player has been set to do that outlasts one command: roam and
@@ -15,7 +15,8 @@ export type Plan =
   | { kind: "forage"; item?: ItemId }
   | { kind: "go"; to: Point; label: string }
   | { kind: "workday" }
-  | { kind: "roam"; run: boolean };
+  | { kind: "roam"; run: boolean }
+  | { kind: "seek"; actor: string; label: string };
 
 /** What the runtime should do next: walk a route, run one command, hold
  * still a tick so a pose can be seen, or stop with a line saying why. */
@@ -65,6 +66,8 @@ export class Autopilot {
         return this.work();
       case "roam":
         return this.roam(this.plan.run);
+      case "seek":
+        return this.seek(this.plan.actor, this.plan.label);
     }
   }
   /** The route the runtime was handed was refused partway. */
@@ -173,6 +176,40 @@ export class Autopilot {
     return { route };
   }
 
+  /** Goes to a person wherever they are, through their door if they are in. */
+  private seek(id: string, label: string): Step {
+    const e = this.engine,
+      p = e.state.player.pos;
+    const a = e.state.actors.find((x) => x.id === id);
+    if (!a) return { done: `${label} is nowhere about.` };
+    if (a.pos.space === p.space) {
+      if (distance(a.pos, p) <= 1.8) return { done: `You find ${label}.` };
+      if (p.space === "outside" && distance(a.pos, p) > LEG) return this.go(a.pos, label);
+      // A few steps at a time: they may be walking too.
+      const route = this.routeNear(a.pos, 1).slice(0, 6);
+      if (!route.length) return { done: `You cannot get to ${label}.` };
+      return { route };
+    }
+    if (p.space !== "outside") return this.leave();
+    const place = e.world.places.find((pl) => pl.id === a.pos.space);
+    if (!place) return { done: `${label} is somewhere you cannot follow.` };
+    return this.door(place, label);
+  }
+
+  /** Walks to a building's door and goes in. */
+  private door(place: Place, label: string): Step {
+    const p = this.engine.state.player.pos,
+      at = doorApproach(place);
+    if (Math.hypot(at.x - p.x, at.y - p.y) > 1.5) {
+      const route = this.routeNear(at, 1);
+      if (!route.length) return { done: `You cannot get to ${label}.` };
+      return { route };
+    }
+    const shut = this.engine.state.objects.find((o) => o.id === doorId(place) && !o.open);
+    if (shut) return { command: { type: "interact", target: shut.id, action: "open" } };
+    return { command: { type: "interact", target: place.id, action: "enter" } };
+  }
+
   /** Loops about the ground nearby, for no reason but the going. */
   private roam(run: boolean): Step {
     const e = this.engine,
@@ -201,13 +238,7 @@ export class Autopilot {
       if (p.pos.space !== "outside") return this.leave();
       const place = e.world.places.find((pl) => pl.id === station.pos.space);
       if (!place) return { done: "You cannot get to your work." };
-      const door = doorApproach(place);
-      if (Math.hypot(door.x - p.pos.x, door.y - p.pos.y) > 1.5) {
-        const route = this.routeNear(door, 1);
-        if (!route.length) return { done: "You cannot get to your work." };
-        return { route };
-      }
-      return { command: { type: "interact", target: place.id, action: "enter" } };
+      return this.door(place, "your work");
     }
     if (distance(station.pos, p.pos) > 1.5) {
       const route = this.routeNear(station.pos, 1);
@@ -332,12 +363,69 @@ const GATHER =
   /\b(?:forag\w*|gather\w*|pick(?:ing)?|collect\w*|look(?:ing)? for|search(?:ing)? for|berry|berries)\b/i;
 const ROAM =
   /\b(?:(?:run|jog|sprint|walk|wander|stroll|pace|roam|dash)\w* (?:a?round|about)|stretch (?:my|your) legs|go (?:for )?a (?:walk|run|stroll|jog)|^\s*(?:wander|roam|run|jog)\s*$)/i;
+const SEEK =
+  /^\s*(?:find|look for|search for|go (?:and )?(?:to|see|find)|visit|see|where(?:'s| is))\s+(.+?)[?.!]*\s*$/i;
+const KIN: Record<string, SocialRelationKind> = {
+  husband: "partner", wife: "partner", spouse: "partner", partner: "partner",
+  mother: "parent", father: "parent", mum: "parent", mom: "parent", dad: "parent", parent: "parent",
+  son: "child", daughter: "child", child: "child", kid: "child",
+  friend: "friend", master: "master", apprentice: "apprentice",
+};
+type SocialRelationKind = NonNullable<Actor["relations"]>[number]["kind"];
+
+/** The person a phrase names: kin by relation ("my husband"), anyone by name. */
+export function personNamed(phrase: string, engine: Engine): Actor | undefined {
+  const s = engine.state,
+    p = s.player;
+  const words = phrase.toLowerCase().split(/[^a-z\u00c0-\u024f]+/).filter((w) => w.length > 1);
+  const word = words.find((w) => KIN[w] ?? KIN[w.replace(/s$/, "")]);
+  const kin = word && (KIN[word] ?? KIN[word.replace(/s$/, "")]);
+  const sex = word && (/^(?:husband|father|dad|son)/.test(word) ? "male" : /^(?:wife|mother|mum|mom|daughter)/.test(word) ? "female" : undefined);
+  if (kin) {
+    const ids = (p.relations ?? []).filter((r) => r.kind === kin).map((r) => r.other);
+    const found = s.actors.find((a) => ids.includes(a.id));
+    if (found) return found;
+    // Many households record only "co-resident"; guess the kin from age.
+    const age = p.age ?? 30;
+    const home = (p.relations ?? [])
+      .filter((r) => r.kind === "co-resident")
+      .map((r) => s.actors.find((a) => a.id === r.other))
+      .filter((a): a is Actor => !!a && a.age !== undefined && (!sex || a.origin?.sex === sex));
+    const gap = (a: Actor) => a.age! - age;
+    const fits =
+      kin === "partner"
+        ? home.filter((a) => a.age! >= 16 && Math.abs(gap(a)) <= 15).sort((a, b) => Math.abs(gap(a)) - Math.abs(gap(b)))
+        : kin === "parent"
+          ? home.filter((a) => gap(a) >= 15).sort((a, b) => gap(a) - gap(b))
+          : kin === "child"
+            ? home.filter((a) => gap(a) <= -15).sort((a, b) => gap(b) - gap(a))
+            : [];
+    if (fits[0]) return fits[0];
+  }
+  const named = s.actors.filter(
+    (a) =>
+      a.kind === "human" &&
+      a.id !== "player" &&
+      words.some((w) => a.name.toLowerCase().split(/\s+/).includes(w)),
+  );
+  // Your own people first, then whoever is nearest.
+  const mine = new Set((p.relations ?? []).map((r) => r.other));
+  return named.sort(
+    (a, b) =>
+      Number(mine.has(b.id)) - Number(mine.has(a.id)) ||
+      Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y) - Math.hypot(b.pos.x - p.pos.x, b.pos.y - p.pos.y),
+  )[0];
+}
+
 const WORK =
   /\b(?:(?:go|get|set|back) (?:to|about) work|work (?:for )?(?:the|all) day|day'?s work|do (?:my|the|some) (?:job|work|chores|tasks)|(?:my|the) (?:trade|daily tasks|chores)|^\s*work\s*$)/i;
 
 /** Reads a typed line as a plan, or returns undefined to let the narrator
  * have it. Keywords only; a model can stand in front of this later. */
 export function parsePlan(input: string, engine: Engine): Plan | undefined {
+  const seek = SEEK.exec(input);
+  const who = seek && personNamed(seek[1], engine);
+  if (who) return { kind: "seek", actor: who.id, label: who.name };
   if (WORK.test(input)) return { kind: "workday" };
   const edge = EDGE.test(input);
   const heading = (Object.keys(COMPASS) as (keyof typeof COMPASS)[]).find((d) =>
@@ -382,6 +470,12 @@ export function planOf(
       return { kind: "workday" };
     case "forage":
       return { kind: "forage", item: errand.item && engine.item(errand.item) ? errand.item : undefined };
+    case "seek": {
+      const who =
+        engine.state.actors.find((a) => a.id === errand.target) ??
+        (errand.target ? personNamed(errand.target, engine) : undefined);
+      return who && { kind: "seek", actor: who.id, label: who.name };
+    }
     case "go": {
       if (errand.direction) return edgePlan(engine, errand.direction);
       const place = engine.world.places.find((pl) => pl.id === errand.target);

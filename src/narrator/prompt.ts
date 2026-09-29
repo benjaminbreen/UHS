@@ -25,7 +25,8 @@ When the player sets off on foot, give an errand and the game walks them there; 
 - roam: moving about with no destination (run around, go for a walk, pace). run: true for running.
 - forage: roaming the country to gather, with an optional item id from the catalog. Use this rather than a forage intent when they go off to look, not search the spot they stand on.
 - workday: the character's own trade for the day.
-- go: to a listed place or person (target: its SCENE id) or toward an edge (direction: north|south|east|west).
+- go: to a listed place (target: its SCENE id) or toward an edge (direction: north|south|east|west).
+- seek: to find a person, in view or not, indoors or out (target: their SCENE id, or their name or kin word such as "husband" when they are not in the SCENE).
 Also, when the player plainly asks for a listed action on a listed target, put it in command with the target id, exactly as the SCENE offers it. Use at most one command per turn and only the affordances listed. Leave intents empty when nothing changes.
 
 Reply with JSON only: {"narration": string, "intents": [...], "command"?: {...}, "errand"?: {...}}.`;

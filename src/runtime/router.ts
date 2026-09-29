@@ -35,6 +35,11 @@ export function routeQuestion(engine: Engine, input: string) {
     .filter((pl) => !seen.has(pl.name) && !!seen.add(pl.name))
     .slice(0, PLACES);
 
+  const kinOf = new Map((p.relations ?? []).map((r) => [r.other, r.kind]));
+  const people = s.actors
+    .filter((a) => a.kind === "human" && a.id !== "player")
+    .sort((a, b) => Number(kinOf.has(b.id)) - Number(kinOf.has(a.id)) || Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y) - Math.hypot(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
+    .slice(0, 40);
   const state = {
     said: input.trim().slice(0, 300),
     who: `${p.name}, ${p.role}`,
@@ -49,8 +54,17 @@ export function routeQuestion(engine: Engine, input: string) {
         forage: "Roam the countryside gathering or foraging: berries, herbs, firewood, mushrooms, anything picked up from the land.",
         go: "Walk somewhere: a named building or landmark, a direction, the edge of the land, far away.",
         workday: "Do the character's own trade or job, or the day's work and chores.",
+        seek: "Go and find a particular person: family, a friend, someone by name.",
         roam: "Move about on foot with no destination: run around, go for a walk, pace, stretch the legs, play.",
         none: "Anything else: talking, asking a question, a single action here and now, a feeling, or nothing that fits the others.",
+      },
+    },
+    who: {
+      type: "choice",
+      instructions: "If `said` asks to find a person, which of these is it?",
+      criteria: {
+        ...Object.fromEntries(people.map((a) => [a.id, `${a.name}${kinOf.get(a.id) ? ` (the player's ${kinOf.get(a.id)})` : ""}`])),
+        none: "No one here is meant.",
       },
     },
     pace: {
@@ -93,6 +107,11 @@ export function planFrom(engine: Engine, e: Evaluation): Plan | undefined {
   const errand = pick(e, "errand");
   if (!errand || errand.choice === "none" || errand.p < SURE) return undefined;
   if (errand.choice === "workday") return { kind: "workday" };
+  if (errand.choice === "seek") {
+    const who = pick(e, "who");
+    const a = who && who.p >= SURE && engine.state.actors.find((x) => x.id === who.choice);
+    return a ? { kind: "seek", actor: a.id, label: a.name } : undefined;
+  }
   if (errand.choice === "roam") return { kind: "roam", run: pick(e, "pace")?.choice === "run" };
   if (errand.choice === "forage") {
     const item = pick(e, "item");

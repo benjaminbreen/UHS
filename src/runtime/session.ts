@@ -991,7 +991,9 @@ export class Runtime {
         ? `You set off for ${plan.label}.`
         : plan.kind === "workday"
           ? "You set about the day's work."
-          : plan.kind === "roam"
+          : plan.kind === "seek"
+            ? `You go looking for ${plan.label}.`
+            : plan.kind === "roam"
             ? plan.run
               ? "You break into a run."
               : "You wander about."
@@ -1018,13 +1020,15 @@ export class Runtime {
     if ("route" in step) this.route = step.route;
     else if ("command" in step) {
       const result = this.command(step.command);
-      if (result?.status === "rejected") this.autopilot?.blocked();
-    } else if ("done" in step) {
-      this.stop(false);
-      this.log("", step.done);
-      this.notice = step.done;
-      this.emit();
-    }
+      // A shut door or a refused harvest ends the errand with the engine's reason.
+      if (result?.status === "rejected") this.finish(result.reason ?? "You can go no further.");
+    } else if ("done" in step) this.finish(step.done);
+  }
+  private finish(text: string) {
+    this.stop(false);
+    this.log("", text);
+    this.notice = text;
+    this.emit();
   }
   /** Walks to a found target and logs it as a narration turn, so the search
    * reads back in the log beside everything else the player has said. */

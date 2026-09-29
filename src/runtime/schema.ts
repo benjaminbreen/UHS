@@ -536,7 +536,7 @@ export const narratorReplySchema = z
       .optional(),
     errand: z
       .object({
-        kind: z.enum(["roam", "forage", "workday", "go"]),
+        kind: z.enum(["roam", "forage", "workday", "go", "seek"]),
         run: z.boolean().optional(),
         item: z.string().max(40).optional(),
         target: z.string().max(100).optional(),

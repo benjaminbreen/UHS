@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createSettingSession, Runtime } from "../src/runtime/session";
 import { panelSetting } from "../scripts/review/panel";
-import { parsePlan, planOf } from "../src/runtime/autopilot";
+import { parsePlan, personNamed, planOf } from "../src/runtime/autopilot";
 import { planFrom, routeQuestion } from "../src/runtime/router";
 import { jevRoute } from "../server/jev";
 import type { Evaluation } from "../src/chronicle/jev";
@@ -62,6 +62,35 @@ describe("typed errands", () => {
     expect(await drive(runtime, "run around", 200)).toBe("You pull up, out of breath.");
     const p = runtime.engine.state.player.pos;
     expect(p.x !== start.x || p.y !== start.y).toBe(true);
+  });
+
+  it("finds kin by relation, through the door of the house they are in", async () => {
+    const runtime = new Runtime(world("kyoto", 1000), { cacheTerrain: false });
+    const s = runtime.engine.state;
+    const home = s.households!.find((h) => h.members.includes("player"))!.residence!;
+    const parent = s.actors.find((a) => a.id === s.player.relations!.find((r) => r.kind === "parent")!.other)!;
+    // Out of the routine budget, the engine parks a resident indoors and keeps them there.
+    const dormant = runtime.engine.world.dormant;
+    runtime.engine.world.dormant = (id) => id === parent.id || !!dormant?.(id);
+    parent.pos = { x: 3, y: 3, space: home };
+    expect(parsePlan("find my mother", runtime.engine)).toMatchObject({ kind: "seek", actor: parent.id });
+    expect(await drive(runtime, "find my mother", 300)).toBe(`You find ${parent.name}.`);
+    expect(s.player.pos.space).toBe(home);
+  });
+
+  it("guesses kin from age and sex when the household records only co-residents", () => {
+    const e = world("kyoto", 1000);
+    const [a, b] = e.state.actors.filter((x) => x.kind === "human" && x.id !== "player");
+    e.state.player.age = 50;
+    e.state.player.relations = [
+      { other: a.id, kind: "co-resident" },
+      { other: b.id, kind: "co-resident" },
+    ];
+    Object.assign(a, { age: 20, origin: { ...a.origin, sex: "male" } });
+    Object.assign(b, { age: 48, origin: { ...b.origin, sex: "female" } });
+    expect(personNamed("my son", e)?.id).toBe(a.id);
+    expect(personNamed("my wife", e)?.id).toBe(b.id);
+    expect(personNamed("my daughter", e)).toBeUndefined();
   });
 
   it("takes an errand from the narrator only when the world has it", () => {
