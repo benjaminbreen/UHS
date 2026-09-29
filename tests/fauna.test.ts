@@ -18,6 +18,17 @@ const borrowed: Record<string, string> = {
   wapiti: "red-deer",
   "wild-turkey": "turkey",
   "wild-horse": "horse",
+  rook: "crow",
+  "house-crow": "crow",
+  "jungle-crow": "crow",
+  "american-crow": "crow",
+  "red-billed-quelea": "house-sparrow",
+  "tree-sparrow": "house-sparrow",
+  "desert-locust": "locust",
+  "migratory-locust": "locust",
+  "rocky-mountain-locust": "locust",
+  "south-american-locust": "locust",
+  "australian-plague-locust": "locust",
 };
 const directional = faunaProfiles.filter((profile) => profile.directions);
 

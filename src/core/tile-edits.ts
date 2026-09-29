@@ -18,6 +18,8 @@ export type TileEdit = {
   /** The standing crop on this cell has been picked. Cleared by nothing: a
    * cell is picked for the rest of the season it was picked in. */
   picked?: number;
+  /** Mouthfuls taken by pests from the crop here, short of eating it. */
+  nibbled?: number;
   /** A fungus here has been stepped on and lies squashed. */
   trodden?: boolean;
   /** Fire went through: what stands here is charred. */

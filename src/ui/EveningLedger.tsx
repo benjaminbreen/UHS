@@ -104,6 +104,21 @@ export function EveningLedger({
       ),
     });
 
+  if (evening.pests)
+    rows.push({
+      label: "The fields",
+      body: (on) => (
+        <>
+          <span className="ledger-detail">Raids on the crops turned back</span>
+          <span className="ledger-values">
+            <span className="ledger-value">
+              <Tally to={evening.pests!} on={on} />
+            </span>
+          </span>
+        </>
+      ),
+    });
+
   if (evening.stock.length)
     rows.push({
       label: "The house holds",

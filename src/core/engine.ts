@@ -111,7 +111,10 @@ import {
   type FaunaTier,
   type Weapon,
 } from "./combat";
-import { faunaCombat, faunaProfile } from "../content/fauna";
+import { faunaAt, faunaCombat, faunaProfile } from "../content/fauna";
+import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../content/agriculture/pests";
+import { livelihoodById } from "../content/characters/livelihoods";
+import { workplaceFor } from "../content/characters/workplace";
 import { propSprite } from "../content/props/place";
 import {
   levelOf,
@@ -140,6 +143,15 @@ const STAGE_WORD: Record<string, string> = {
 
 /** Cells either side of the player whose animal groups stay in the save. */
 const FAUNA_KEEP = 160;
+/** Clock seconds between looks for a new raid, and the odds each time. A game
+ * minute is about three real seconds. */
+const RAID_CHECK = 60;
+const RAID_CHANCE = 0.3;
+const RAID_CAP = 2;
+const RAID_REACH = 22;
+/** Cells a raid eats before it has had its fill, and the longest it stays. */
+const RAID_FILL = 30;
+const RAID_STAY = 1500;
 /** Seconds before grass closes over a hole an animal dug. */
 const SCRAPE_HEALS = 5 * 86400;
 import {
@@ -511,6 +523,7 @@ export class Engine {
       regard: Object.entries(day?.trust ?? {})
         .filter(([, delta]) => delta)
         .map(([id, delta]) => ({ id, delta })),
+      pests: day?.pests,
       short,
       households: s.households?.length ?? 0,
       tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
@@ -4690,6 +4703,219 @@ export class Engine {
       else if (clock > this.combatUntil) delete o.projectile!.lodgedIn;
     }
   }
+  /** Species that could come down on a crop here, by range and date. */
+  private pestSpecies?: Set<string>;
+  private nextRaidCheck = 0;
+  private raidSerial = 0;
+  /** Pests come down on growing crops near the player, eat until someone
+   * drives them off or they have had their fill, and come back another day. */
+  private raidCrops(clock: number) {
+    const raids = (this.state.fauna ?? []).filter((g) => g.raid);
+    for (const g of raids) this.raidStep(g, clock);
+    const setting = this.state.manifest.setting;
+    const sample = this.world.topography;
+    const p = this.state.player.pos;
+    if (!setting || !sample || p.space !== "outside" || clock < this.nextRaidCheck) return;
+    this.nextRaidCheck = clock + RAID_CHECK;
+    if (raids.filter((g) => !g.raid!.left).length >= RAID_CAP) return;
+    if (this.rng("raid") > RAID_CHANCE) return;
+    const present = (this.pestSpecies ??= new Set(faunaAt(setting).map((f) => f.id)));
+    const hour = (clock / 3600) % 24;
+    for (let i = 0; i < 40; i++) {
+      const x = p.x + Math.round((this.rng("raid-x") - 0.5) * 2 * RAID_REACH),
+        y = p.y + Math.round((this.rng("raid-y") - 0.5) * 2 * RAID_REACH);
+      if (Math.hypot(x - p.x, y - p.y) < 7) continue;
+      const field = sample(x, y)?.field;
+      const crop = field && crops[field.crop];
+      if (!field || !pickable(crop) || this.state.tiles?.[tileKey(x, y)]?.picked) continue;
+      const pests = pestsFor(crop, field.stage, hour, present);
+      if (!pests.length) continue;
+      let roll = this.rng("raid-pest") * pests.reduce((n, q) => n + q.weight, 0);
+      const pest = pests.find((q) => (roll -= q.weight) < 0) ?? pests[0];
+      this.startRaid(pest, { x, y }, clock);
+      return;
+    }
+  }
+  private startRaid(pest: CropPest, at: Point, clock: number) {
+    const profile = faunaProfile(pest.species);
+    if (!profile) return;
+    const [lo, hi] = profile.groupSize;
+    const count = lo + Math.floor(this.rng("raid-size") * (hi - lo + 1));
+    // In from the far side, so they are seen arriving rather than appearing.
+    const p = this.state.player.pos;
+    const away = Math.atan2(at.y - p.y, at.x - p.x) + (this.rng("raid-angle") - 0.5) * 1.4;
+    const entry = { x: at.x + Math.round(Math.cos(away) * 9), y: at.y + Math.round(Math.sin(away) * 9) };
+    const members: FaunaMember[] = [];
+    for (let ring = 0; ring <= 4 && members.length < count; ring++)
+      for (let dy = -ring; dy <= ring && members.length < count; dy++)
+        for (let dx = -ring; dx <= ring && members.length < count; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+          const x = entry.x + dx, y = entry.y + dy;
+          if (this.blocked(x, y, "outside") || this.faunaAt(x, y)) continue;
+          members.push({ x, y, direction: at.x < x ? 3 : 1 });
+        }
+    if (!members.length) return;
+    const bird = profile.locomotion === "ground-and-flight";
+    const target = { x: at.x, y: at.y, space: "outside" };
+    const group: FaunaGroup = {
+      id: `raid-${clock}-${this.raidSerial++}`,
+      speciesId: pest.species,
+      members,
+      pos: { x: members[0].x, y: members[0].y, space: "outside" },
+      home: { ...target },
+      homeRadius: 2,
+      state: bird ? "takeoff" : "wander",
+      target,
+      nextDecisionAt: clock + (bird ? 6 : 40),
+      stride: 0,
+      since: clock,
+      raid: { x: at.x, y: at.y, since: clock, eaten: 0 },
+    };
+    this.enrol(group);
+    (this.state.fauna ??= []).push(group);
+    this.state.revision++;
+    if (distance(p, target) > 20) return;
+    const field = this.world.topography?.(at.x, at.y)?.field;
+    const what = field ? this.cropPlant(crops[field.crop], at.y).name.toLowerCase() : "crop";
+    this.event(`${pestArrival(pest.species)} ${what}.`);
+    this.cue("player", "alarm", at);
+  }
+  /** One tick of a raid: feed on the crop underfoot, or, once put up, go. */
+  private raidStep(g: FaunaGroup, clock: number) {
+    const r = g.raid!;
+    const sample = this.world.topography;
+    if (r.left !== undefined) {
+      const far = Math.hypot(g.pos.x - r.x, g.pos.y - r.y) > 22;
+      if (far || clock - r.left > 120 || !g.members.length) {
+        this.state.fauna = this.state.fauna?.filter((o) => o !== g);
+        this.state.revision++;
+      }
+      return;
+    }
+    if ((g.panic ?? 0) > 0.3 || (g.hurtUntil ?? 0) > clock) return this.raidRouted(g, clock);
+    const pest = sample ? pestOf(g.speciesId) : undefined;
+    if (!pest || aerialStates.has(g.state) || g.state === "flee") return;
+    let changed = false;
+    for (const m of g.members) {
+      const field = sample!(m.x, m.y)?.field;
+      const crop = field && crops[field.crop];
+      if (!field || !pickable(crop) || (field.stage !== "green" && field.stage !== "ripe")) continue;
+      const edit = this.editAt(m.x, m.y);
+      if (edit.picked || this.rng("raid-bite") > 0.35) continue;
+      edit.nibbled = (edit.nibbled ?? 0) + 1;
+      if (edit.nibbled < pest.bites) continue;
+      edit.picked = clock;
+      r.eaten++;
+      changed = true;
+      this.signal({ kind: "eaten", at: { x: m.x, y: m.y }, species: g.speciesId });
+    }
+    if (changed) this.tilesChanged();
+    // Keep to what is left of the crop, not the patch already stripped.
+    if (this.state.tiles?.[tileKey(g.home.x, g.home.y)]?.picked) {
+      const next = this.uneatenNear(g.home, 4);
+      if (next) g.home = { ...next, space: "outside" };
+    }
+    if (r.eaten >= RAID_FILL || clock - r.since > RAID_STAY) {
+      r.left = clock;
+      this.sendOff(g, g.home);
+    }
+  }
+  private uneatenNear(at: Point, radius: number) {
+    const sample = this.world.topography;
+    for (let ring = 1; ring <= radius; ring++)
+      for (let dy = -ring; dy <= ring; dy++)
+        for (let dx = -ring; dx <= ring; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+          const x = at.x + dx, y = at.y + dy;
+          const field = sample?.(x, y)?.field;
+          if (field && pickable(crops[field.crop]) && !this.state.tiles?.[tileKey(x, y)]?.picked)
+            return { x, y };
+        }
+    return undefined;
+  }
+  /** Off the crop and away from whoever put them up. */
+  private sendOff(g: FaunaGroup, from: Point) {
+    const a = Math.atan2(g.pos.y - from.y, g.pos.x - from.x) || this.rng("raid-off") * 6.28;
+    g.home = { x: Math.round(g.pos.x + Math.cos(a) * 28), y: Math.round(g.pos.y + Math.sin(a) * 28), space: "outside" };
+    g.homeRadius = 4;
+    g.target = { ...g.home };
+  }
+  /** Someone has put the raid up. The player is thanked for it; someone
+   * else doing it is worth a line if the player saw. */
+  private raidRouted(g: FaunaGroup, clock: number) {
+    const r = g.raid!;
+    r.left = clock;
+    const p = this.state.player;
+    const chasers = this.state.actors.filter(
+      (a) => a.kind === "human" && a.pos.space === "outside" && distance(a.pos, g.pos) < 7,
+    );
+    const player = p.pos.space === "outside" && distance(p.pos, g.pos) < 8;
+    const by = player ? p.pos : chasers[0]?.pos;
+    this.sendOff(g, by ?? g.pos);
+    const field = this.world.topography?.(r.x, r.y)?.field;
+    if (!field) return;
+    const crop = this.cropPlant(crops[field.crop], r.y).name.toLowerCase();
+    const pest = pestOf(g.speciesId);
+    const them = pestNoun(g.speciesId);
+    if (!player) {
+      const a = chasers[0];
+      if (a && distance(p.pos, a.pos) < 16)
+        this.event(`${a.name} ${pest?.verb ?? "drives"}s the ${them} off the ${crop}.`, "social");
+      return;
+    }
+    const mine = this.worksFor(field.owner);
+    const owner = field.owner ? this.state.actors.find((a) => a.id === field.owner) : undefined;
+    const day = this.today();
+    day.pests = (day.pests ?? 0) + 1;
+    this.grantXp("farming", 3 + g.members.length);
+    const whose = mine ? "your" : owner ? `${owner.name}'s` : "the";
+    const saved = r.eaten ? "" : " before they have taken any of it";
+    this.event(`You ${pest?.verb ?? "drive"} the ${them} off ${whose} ${crop}${saved}.`);
+    if (day.pests > 1 && [3, 5, 10].includes(day.pests))
+      this.event(`That is ${day.pests} raids you have turned back today.`);
+    if (mine) return;
+    let thanked = false;
+    for (const w of this.witnesses(14)) {
+      if (!this.minds(w, field.owner)) continue;
+      this.regard(w, 2, "warm");
+      if (!thanked) this.event(`${w.name} calls out their thanks.`, "social");
+      thanked = true;
+    }
+    if (!thanked && owner) {
+      owner.memories.push(`The player drove the ${them} off my ${crop}`);
+      this.regard(owner, 1, "nod");
+    }
+  }
+  /** A farmer, a crop watcher or anyone whose field it is goes after a raid
+   * they can see. The animals do the rest: a person coming at them is a
+   * threat, and they go. */
+  private shooPests(a: Actor, clock: number) {
+    if (a.pos.space !== "outside" || a.age !== undefined && a.age < 7) return false;
+    const raids = this.state.fauna?.filter((g) => g.raid && g.raid.left === undefined);
+    if (!raids?.length) return false;
+    const kit = a.origin && livelihoodById(a.origin.livelihood);
+    const watcher = kit?.id === "crop-watcher";
+    const farmer = watcher || (!!kit && workplaceFor(kit.activity) === "field");
+    const hour = (clock / 3600) % 24;
+    if (!watcher && (hour < 6 || hour >= 20)) return false;
+    const reach = watcher ? 30 : 16;
+    const raid = raids
+      .filter((g) => {
+        if (distance(a.pos, g.pos) > reach) return false;
+        const owner = this.world.topography?.(g.raid!.x, g.raid!.y)?.field?.owner;
+        return farmer || this.minds(a, owner) || owner === a.id;
+      })
+      .sort((m, n) => distance(a.pos, m.pos) - distance(a.pos, n.pos))[0];
+    if (!raid) return false;
+    const field = this.world.topography?.(raid.raid!.x, raid.raid!.y)?.field;
+    const crop = field ? this.cropPlant(crops[field.crop], raid.raid!.y).name.toLowerCase() : "crop";
+    a.offRoutine = true;
+    a.activity = `Chasing the ${pestNoun(raid.speciesId)} off the ${crop}`;
+    if (clock % 6 === 0)
+      for (let i = 0; i < 2 && distance(a.pos, raid.pos) > 1.5; i++) this.stepToward(a, raid.pos);
+    if (clock % 18 === 0 && distance(a.pos, raid.pos) < 6) this.cue(a.id, "point", raid.pos);
+    return true;
+  }
   /** Where a group has been living is not clean ground: a few days' dung
    * round its home, the older the further from the fold. */
   private soil(g: FaunaGroup) {
@@ -6571,6 +6797,7 @@ export class Engine {
           if (next % 12 === 0) this.tendHerd(a, next);
           continue;
         }
+        if (a.kind === "human" && this.shooPests(a, next)) continue;
         if (a.kind === "human" && a.errand) {
           if (next < a.errand.until) {
             a.activity = a.errand.label;
@@ -6752,6 +6979,7 @@ export class Engine {
         }
       }
       this.stepFauna(next);
+      this.raidCrops(next);
     }
     // Commands can end between routine ticks; collision must use the same
     // itinerary time that the renderer draws after the command.

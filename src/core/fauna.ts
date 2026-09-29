@@ -114,4 +114,13 @@ export type FaunaGroup = {
   owner?: string;
   gateId?: string;
   pasture?: Position;
+  /** Come down on a crop: the cell it went for, and how it has gone. */
+  raid?: {
+    x: number;
+    y: number;
+    since: number;
+    eaten: number;
+    /** Clock it was put up, by a person or by having had its fill. */
+    left?: number;
+  };
 };

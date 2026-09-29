@@ -25,6 +25,7 @@ const QUAKE = [
 ] as const;
 /** As in WorldScene: how long a spin holds each facing. */
 const SPIN_STEP_MS = 36;
+const CHAFF = [0x8fb45c, 0xd6b96a, 0x6f8f46];
 const STARS = [0xffe06a, 0xfff4b8, 0xffffff];
 const DROP: Record<string, number> = {
   meat: 0xc24a3a,
@@ -338,6 +339,12 @@ export class CombatEffects {
       this.seen = e.serial;
       // How people took things is `CueEffects`' business.
       if (e.kind === "cue" || e.kind === "bump") continue;
+      if (e.kind === "eaten") {
+        // Torn leaf and husk where the crop went.
+        const at = this.cell(e.at);
+        this.burst(at.x, at.y - 5, CHAFF, 5);
+        continue;
+      }
       const id = faunaSpriteId(e.group, e.n);
       const image = this.view.entityAt(id);
       if (e.kind === "windup") this.tell(id, e.seconds);

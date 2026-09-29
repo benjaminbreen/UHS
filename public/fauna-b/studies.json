@@ -23,6 +23,54 @@
       14
     ]
   },
+  "crow": {
+    "palette": [
+      "#0b0c10",
+      "#15171d",
+      "#23262f",
+      "#343a48",
+      "#56607a",
+      "#6e6a70",
+      "#c9ced8",
+      "#1c1c20"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    },
+    "size": [
+      18,
+      18
+    ]
+  },
+  "locust": {
+    "palette": [
+      "#3f3014",
+      "#7a6224",
+      "#c4a236",
+      "#e6dca6",
+      "#f4efcf",
+      "#8a6a2a",
+      "#2a1a08",
+      "#6a4c1c"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    },
+    "size": [
+      12,
+      10
+    ]
+  },
   "rock-dove": {
     "palette": [
       "#3f4b50",

@@ -39,6 +39,17 @@ const beast = (
 
 const table: Record<string, FaunaCombat> = {
   "house-sparrow": bird(1),
+  rook: bird(3, 1),
+  "house-crow": bird(3, 1),
+  "jungle-crow": bird(3, 1),
+  "american-crow": bird(3, 1),
+  "red-billed-quelea": bird(1),
+  "tree-sparrow": bird(1),
+  // One blow and it is done; the swarm is the problem, not the insect.
+  ...Object.fromEntries(
+    ["desert-locust", "migratory-locust", "rocky-mountain-locust", "south-american-locust", "australian-plague-locust"]
+      .map((id) => [id, { hp: 1, mass: 0, temper: "bolt", damage: 0, yields: {} } as FaunaCombat]),
+  ),
   "rock-dove": bird(2, 1),
   chicken: bird(3, 1),
   "cattle-egret": bird(3, 1),

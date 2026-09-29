@@ -29,6 +29,7 @@ const byActivity: Record<string, Workplace> = {
   Washing: "water",
   "Carrying water": "water",
   "Tending cultivation": "field",
+  "Watching the crop": "field",
   "Bringing in the crop": "field",
   "Working the smallholding": "field",
   "Working the grain": "workshop",

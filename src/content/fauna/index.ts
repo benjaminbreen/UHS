@@ -1,5 +1,6 @@
 import { americanFauna } from "./americas";
 import { birds } from "./birds";
+import { pests } from "./pests";
 import { directionalFauna } from "./directional";
 import { domesticFauna } from "./domestic";
 import { bears } from "./bears";
@@ -13,6 +14,7 @@ import { matchesCharacterScope, subsistenceFor } from "../characters/resolve";
 export const faunaProfiles = [
   ...americanFauna,
   ...birds,
+  ...pests,
   ...domesticFauna,
   ...workingFauna,
   ...temperateFauna,

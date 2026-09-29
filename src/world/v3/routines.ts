@@ -154,6 +154,15 @@ function farmerRoutine(
       minutes: 45,
       carry: "tool" as const,
     })),
+    // Down the far side for birds and beasts before going in.
+    ...(crops.length
+      ? [{
+          pos: crops[crops.length - 1],
+          activity: "work" as const,
+          label: "Looking the crop over for pests",
+          minutes: 15,
+        }]
+      : []),
     ...(water
       ? [
           {
@@ -176,6 +185,30 @@ function farmerRoutine(
         ]
       : []),
   ];
+}
+/** Someone paid to keep pests off other people's fields: a round of the
+ * nearest ones, standing a while at each corner where the view is widest. */
+function watcherRoutine(plan: SettlementPlan, seed: string, id: string, home: Point): Station[] {
+  const fields = plan.plots
+    .filter((p) => p.kind === "field" && p.state !== "abandoned")
+    .sort((a, b) => Math.hypot(a.x - home.x, a.y - home.y) - Math.hypot(b.x - home.x, b.y - home.y))
+    .slice(0, 3);
+  if (!fields.length) return [];
+  const turn = Math.floor(random(seed, "routine", id, "watch") * 4);
+  return fields.flatMap((f) => {
+    const corners = [
+      { x: f.x, y: f.y },
+      { x: f.x + f.w - 1, y: f.y },
+      { x: f.x + f.w - 1, y: f.y + f.h - 1 },
+      { x: f.x, y: f.y + f.h - 1 },
+    ];
+    return [0, 2].map((k) => ({
+      pos: nearby(plan, seed, id, corners[(k + turn) % 4]),
+      activity: "work" as const,
+      label: "Watching the crop",
+      minutes: 50,
+    }));
+  });
 }
 function herderRoutine(
   plan: SettlementPlan,
@@ -899,7 +932,7 @@ function workdayFor(
     : [];
   switch (place) {
     case "field":
-      return field ? farmerRoutine(plan, seed, id, id, field) : [];
+      return field ? farmerRoutine(plan, seed, id, id, field) : watcherRoutine(plan, seed, id, home);
     case "pasture":
       return herderRoutine(
         plan,

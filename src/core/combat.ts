@@ -301,6 +301,8 @@ export type Signal = { serial: number } & (
       to: Point;
     }
   | { kind: "dodged"; group: string; n: number }
+  /** A pest has taken the crop off a cell. */
+  | { kind: "eaten"; at: Point; species: string }
 );
 /** Distributive, so each variant keeps its own fields. */
 export type SignalInput = Signal extends infer E

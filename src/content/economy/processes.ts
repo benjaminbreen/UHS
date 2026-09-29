@@ -24,6 +24,7 @@ type Entry = [ProcessFamily, ...string[]];
 /** Family, then the prop families where the work is done, if any has one. */
 const byActivity: Record<string, Entry> = {
   "Tending cultivation": ["tend", "hoe", "rake"],
+  "Watching the crop": ["tend"],
   "Bringing in the crop": ["tend", "sickle", "scythe", "sheaf"],
   "Working the smallholding": ["tend", "hoe", "chicken-coop"],
   "Tending animals": ["tend", "stock-pen", "trough", "milk-churn"],

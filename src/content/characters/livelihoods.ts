@@ -46,6 +46,26 @@ export const livelihoods: readonly Livelihood[] = [
     capabilities: ["settled_agriculture"],
     inventory: { water: 2, grain: 3, tool: 1 },
   },
+  // Kept the birds and beasts off the standing crop: boys with clappers and
+  // slings in England, watchmen on a raised machan in India, children on
+  // platforms in the sorghum of the Sahel.
+  {
+    id: "crop-watcher",
+    rank: "labouring",
+    weight: 3,
+    label: "Crop Watcher",
+    activity: "Watching the crop",
+    workplace: "field",
+    needs: ["cultivation"],
+    capabilities: ["settled_agriculture"],
+    labels: [
+      { scope: { years: [800, 1880], bounds: [-11, 42, 32, 62] }, label: "Bird-scarer" },
+      { scope: { years: [1200, 1880], bounds: [-11, 49, 3, 61] }, label: "Crow-keeper" },
+      { scope: { years: [-1500, 1950], bounds: [60, 5, 98, 36] }, label: "Field Watchman" },
+      { scope: { years: [-500, 1950], bounds: [-18, 0, 50, 20] }, label: "Bird Scarer" },
+    ],
+    inventory: { water: 2, fruit: 1 },
+  },
   {
     id: "herder",
     rank: "labouring",

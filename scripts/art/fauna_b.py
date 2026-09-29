@@ -16,6 +16,10 @@ PALETTES = {
     "pig": {"o": "#6b4038", "d": "#9a6259", "m": "#c08d81", "l": "#d8aa9d", "h": "#efcdc0", "b": "#7d4a41", "e": "#291613", "a": "#5a3630"},
     "chicken": {"o": "#7a4a22", "d": "#b7732d", "m": "#e2a247", "l": "#f3c975", "h": "#fbe7ad", "b": "#d9402f", "e": "#26190f", "a": "#e9b53a"},
     "rock-dove": {"o": "#3f4b50", "d": "#5b6a6f", "m": "#8b9b9d", "l": "#bbc6c2", "h": "#e8eade", "b": "#6c5687", "e": "#1e2224", "a": "#cf8a6a"},
+    # Glossy black with a blue-violet sheen; the eye catches the light.
+    "crow": {"o": "#0b0c10", "d": "#15171d", "m": "#23262f", "l": "#343a48", "h": "#56607a", "b": "#6e6a70", "e": "#c9ced8", "a": "#1c1c20"},
+    # Desert locust in its swarming phase: yellow body, clear brown-veined wings.
+    "locust": {"o": "#3f3014", "d": "#7a6224", "m": "#c4a236", "l": "#e6dca6", "h": "#f4efcf", "b": "#8a6a2a", "e": "#2a1a08", "a": "#6a4c1c"},
     "house-sparrow": {"o": "#4d371f", "d": "#6b4a2d", "m": "#a27848", "l": "#cba770", "h": "#f0e2bf", "b": "#3c3025", "e": "#1e1610", "a": "#d9b978"},
     # A bull aurochs is near-black with a pale muzzle ring, a pale line down
     # the spine and pale horns tipped in black.
@@ -30,6 +34,8 @@ PALETTES = {
 }
 STATES = {
     "house-sparrow": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
+    "crow": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
+    "locust": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
     "rock-dove": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
     "chicken": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
     "sheep": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
@@ -47,6 +53,8 @@ STATES = {
 # Sized against the 29px standing human: deer shoulder ~20px, wolf ~13px, sheep ~12px.
 NATIVE_SIZES = {
     "house-sparrow": (14, 14),
+    "crow": (18, 18),
+    "locust": (12, 10),
     "rock-dove": (16, 16),
     "chicken": (18, 20),
     "sheep": (28, 26),
@@ -1409,6 +1417,119 @@ DOVE = {
     "legs": (6, 9),
 }
 
+CROW = {
+    "stand": [
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "...........llll...",
+        "..........lmmmea..",
+        "..........mmmmaaa.",
+        "..........mmmm....",
+        "...dd...mmmmmd....",
+        "..ddmmmmmmmdlll...",
+        ".dddmmmmmmddlhl...",
+        "dddmmmmmmmmmlll...",
+        "..ddmmmmmmmmll....",
+        "....dddmmmmml.....",
+        ".......a...a......",
+        "......aa...aa.....",
+        "..................",
+        "..................",
+    ],
+    "peck": [
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "....dd............",
+        "...ddmmmm.........",
+        "..dddmmmmmmdl.....",
+        ".dddmmmmmmmddll...",
+        "dddmmmmmmmmmmlhl..",
+        "...ddmmmmmmmmlllm.",
+        ".....dddmmmm.lmmea",
+        ".......a...a..maaa",
+        "......aa...aa...a.",
+        "..................",
+        "..................",
+        "..................",
+    ],
+    "fly": [
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "............llll..",
+        "...ddmmmmmmmmmmea.",
+        "ddddmmmmmmmmlllmaa",
+        "..dddmmmmmmllll...",
+        "....ddddmmmll.....",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+        "..................",
+    ],
+    "wings": {
+        "up": (["......d", ".....dl", "....dll", "...dll.", "..dll..", ".dll...", "dll...."], 4, 1),
+        "mid": (["dddddddl", ".dddddl."], 4, 8),
+        "down": (["d.......", "dl......", ".dll....", "..dll...", "...dll..", "....dl.."], 5, 9),
+    },
+    "legs": (7, 11),
+}
+LOCUST = {
+    "stand": [
+        "............",
+        "............",
+        "............",
+        ".....aa.....",
+        "...lllla..a.",
+        "..lhllllla..",
+        ".dmmmmmmmmme",
+        "..dmmmmmmmm.",
+        "...a.a..a.a.",
+        "..a..a...a..",
+    ],
+    "peck": [
+        "............",
+        "............",
+        "............",
+        "............",
+        "......aa....",
+        "...lllllla..",
+        "..dmmmmmmmm.",
+        "...dmmmmmmme",
+        "...a.a..a.aa",
+        "..a..a...a..",
+    ],
+    "fly": [
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "..........a.",
+        ".dmmmmmmmmme",
+        "..dmmmmmmmm.",
+        "....a..a....",
+        "............",
+    ],
+    "wings": {
+        "up": (["...hl", "..hll", ".hll.", "hll.."], 3, 2),
+        "mid": (["hhllllll"], 2, 5),
+        "down": ([".hll.", "..hll", "...hl"], 3, 7),
+    },
+    "legs": (4, 8),
+}
+
 
 def _blit(c, grid, ox=0, oy=0):
     pixels = {}
@@ -1421,7 +1542,7 @@ def _blit(c, grid, ox=0, oy=0):
 
 def bird(species, state, frame):
     c = Canvas(species)
-    art = DOVE if species == "rock-dove" else SPARROW
+    art = {"rock-dove": DOVE, "crow": CROW, "locust": LOCUST}.get(species, SPARROW)
     flying = state in {"takeoff", "flight", "approach", "landing"}
     if state == "flight":
         pose = ["up", "up", "mid", "down", "down", "down", "mid", "up"][frame]
@@ -1476,7 +1597,7 @@ def fauna_b():
     for species, states in STATES.items():
         for state, count in states.items():
             for frame in range(count):
-                if species in {"house-sparrow", "rock-dove"}:
+                if species in {"house-sparrow", "rock-dove", "crow", "locust"}:
                     im = bird(species, state, frame)
                 elif species == "chicken":
                     im = chicken(state, frame)

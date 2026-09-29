@@ -89,6 +89,7 @@ export type Evening = {
   };
   stock: { good: string; n: number; cap: number }[];
   regard: { id: string; delta: number }[];
+  pests?: number;
   short: Record<string, number>;
   households: number;
   tomorrow: { condition: string; label: string; tempC: number };
@@ -571,6 +572,8 @@ export type Snapshot = {
     day: number;
     made: Record<string, number>;
     trust: Record<string, number>;
+    /** Raids on the crops the player turned back. */
+    pests?: number;
   };
   /** The account of the day just slept on. */
   evening?: Evening;
