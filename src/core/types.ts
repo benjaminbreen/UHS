@@ -184,6 +184,8 @@ export type Actor = {
   /** Items on the body, by slot. Not counted in `inventory`; `wearing` derives from these. */
   worn?: Partial<Record<WearSlot, ItemId>>;
   age?: number;
+  /** A gender other than man or woman, in the words of the time and place. */
+  gender?: { term: string; pronoun?: "they" };
   householdId?: string;
   relations?: SocialRelation[];
   knownResources?: string[];

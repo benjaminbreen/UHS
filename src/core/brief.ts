@@ -79,10 +79,11 @@ export function personBrief(
   itemName: (id: string) => string | undefined,
   carrying?: string,
 ): PersonBrief {
-  const sex = sexOf(actor);
+  const sex = actor.gender?.pronoun === "they" ? undefined : sexOf(actor);
   const identity: BriefSpan[] = [{ text: actor.role, tone: "role" }];
   if (actor.age !== undefined) identity.push({ text: `, ${actor.age}` });
   identity.push({ text: "." });
+  if (actor.gender) identity.push({ text: ` ${actor.gender.term}.` });
   const kin = (actor.relations ?? [])
     .filter((r) => r.kind !== "co-resident" && nameOf(r.other))
     .sort((a, b) => (RANK[a.kind] ?? 3) - (RANK[b.kind] ?? 3))

@@ -1,3 +1,4 @@
+import { assignGender } from "../../content/characters/gender";
 import { herdersFor } from "./herders";
 import { agendaOf, festivalOf, type Person } from "../../core/agenda";
 import { lifeAimOf } from "../../core/life-aim";
@@ -2766,6 +2767,7 @@ export function createSettlementWorld(
     world.initialActors.push(...p.actors);
     keptFauna.push(...(p.fauna ?? []));
     if (environment) populateHouseholds(world, p, seed);
+    for (const a of p.actors) assignGender(a, pack, seed);
     world.enclosures.push(...p.enclosures);
   }
   /** The starting town's plan, once the world has one. */
