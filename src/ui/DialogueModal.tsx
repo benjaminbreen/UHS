@@ -4,7 +4,7 @@ import { setRealLanguage, useRealLanguage } from "./real-language";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
 import { dialogueTurn, explainDialogue, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
-import { CharacterSprite } from "./CharacterSprite";
+import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import type { Expression } from "../render/portraits/constructed";
 import { calm, useTypewriter } from "./motion";
 import { visemeFor, type Viseme } from "../render/portraits/constructed";
@@ -281,7 +281,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
       </button>
       <div className="dialogue-heading">
         <div className="dialogue-face">
-          <div className="dialogue-portrait" data-took={took && !calm() ? took.cue : undefined}><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} expression={expression} viseme={viseme} motion="npc" /></div>
+          <div className="dialogue-portrait" data-took={took && !calm() ? took.cue : undefined}><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} expression={expression} viseme={viseme} motion="npc" facing={npcFacing(actor.id)} /></div>
           {took && (
             <span key={took.serial} className="dialogue-took" role="status">
               <CueMark cue={took.cue} />

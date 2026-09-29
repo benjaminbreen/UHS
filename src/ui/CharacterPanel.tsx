@@ -37,7 +37,7 @@ import {
   Wheat,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { CharacterSprite } from "./CharacterSprite";
+import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { accentFor, patternFor, sceneFor } from "./culture-theme";
 import { ItemIcon, timeLabel } from "./components";
 import { dayPlan } from "../core/itinerary";
@@ -725,6 +725,8 @@ export function CharacterPanel({
                   portrait
                   expression={look}
                   motion="profile"
+                  facing={actor.id === "player" ? "right" : npcFacing(actor.id)}
+                  framing="full"
                 />
               </div>
             </div>

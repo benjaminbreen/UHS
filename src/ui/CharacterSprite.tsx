@@ -58,7 +58,20 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
 
 const portraits = new Map<string, HTMLCanvasElement>();
 /** Region of the 64×80 bust shown in the UI: hair top to the shoulders. */
-export const CROP = { x: 2, y: 2, w: 60, h: 70 };
+/** Regions of the 64×80 bust: head and shoulders for cards and conversation, the whole bust for the profile. */
+export const CROPS = {
+  bust: { x: 4, y: 3, w: 56, h: 65 },
+  full: { x: 0, y: 0, w: 64, h: 80 },
+};
+export const CROP = CROPS.bust;
+
+/** Which way someone faces at rest. The player looks right; everyone else keeps one of three, their own. */
+export type Facing = "right" | "left" | "front";
+export function npcFacing(id: string): Facing {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) | 0;
+  return (["right", "left", "front"] as const)[Math.abs(h) % 3];
+}
 /**
  * Three-quarter bust from the same recipe, cached per appearance, age and
  * blink frame. A blink is then two drawImage calls, not a re-render: the shut
@@ -123,6 +136,8 @@ export function CharacterSprite({
   expression = "neutral",
   viseme,
   motion,
+  facing = "right",
+  framing = "bust",
 }: {
   appearance: CharacterAppearance;
   portrait?: boolean;
@@ -148,7 +163,12 @@ export function CharacterSprite({
    * Without it the head only nods and glances down now and then.
    */
   motion?: "npc" | "player" | "profile";
+  /** Portraits only: the resting direction. Left is the right-facing bust mirrored. */
+  facing?: Facing;
+  /** Portraits only: how much of the bust shows. */
+  framing?: keyof typeof CROPS;
 }) {
+  const crop = CROPS[framing];
   const ref = useRef<HTMLCanvasElement>(null);
   // The key is the identity of the drawing. Deriving it here rather than
   // inside the effect keeps the blink timer from restarting every time the
@@ -172,7 +192,8 @@ export function CharacterSprite({
   const lids = useRef<Blink>(0);
   const mouth = useRef(false);
   const glance = useRef(0);
-  const pose = useRef<Pose>(REST);
+  const rest = facing === "front" ? 0 : 1;
+  const pose = useRef<Pose>({ ...REST, turn: rest });
   const turnToViewer = useRef<(() => void) | null>(null);
   // Once someone has spoken to the player they keep facing them.
   const engaged = useRef(false);
@@ -216,7 +237,8 @@ export function CharacterSprite({
       lids.current = blink;
       out.clearRect(0, 0, canvas.width, canvas.height);
       if (portrait) {
-        // Bust crop at two whole pixels per native pixel.
+        // Bust crop at two whole pixels per native pixel, mirrored for a left-facing rest.
+        out.setTransform(facing === "left" ? -1 : 1, 0, 0, 1, facing === "left" ? canvas.width : 0, 0);
         out.drawImage(
           portraitCanvas(
             appearance,
@@ -230,15 +252,16 @@ export function CharacterSprite({
             glance.current,
             pose.current,
           ),
-          CROP.x,
-          CROP.y,
-          CROP.w,
-          CROP.h,
+          crop.x,
+          crop.y,
+          crop.w,
+          crop.h,
           0,
           0,
-          CROP.w * 2,
-          CROP.h * 2,
+          crop.w * 2,
+          crop.h * 2,
         );
+        out.setTransform(1, 0, 0, 1, 0, 0);
       } else {
         const { source, x0, y0, width, height } = portraitSource(
           appearance,
@@ -312,7 +335,7 @@ export function CharacterSprite({
       glance.current = 0;
       window.clearTimeout(timer);
     };
-  }, [key, portrait]);
+  }, [key, portrait, facing, framing]);
   // The head's own movement, on a clock separate from the lids and the mouth.
   // The turn steps through the traced quarter-angles, about a quarter second
   // end to end; each angle is traced once per face and then cached.
@@ -357,7 +380,7 @@ export function CharacterSprite({
       });
     };
     const face = (hold: number, then: () => void) =>
-      turnTo(0, () => at(hold, () => turnTo(1, then)));
+      turnTo(0, () => at(hold, () => turnTo(rest, then)));
     const talking = motion === "npc" && speaking;
     if (talking) engaged.current = true;
     const idle = (): void => {
@@ -388,7 +411,7 @@ export function CharacterSprite({
       motion === "profile" ? () => face(2500, idle) : null;
     if (talking) turnTo(0, () => undefined);
     else if (engaged.current) idle();
-    else if (pose.current.turn !== 1) turnTo(1, idle);
+    else if (pose.current.turn !== rest) turnTo(rest, idle);
     else idle();
     if (motion === "player") visitLater();
     return () => {
@@ -398,7 +421,7 @@ export function CharacterSprite({
       turnToViewer.current = null;
       if (pose.current.pitch || pose.current.gazeY) pose.current = { ...pose.current, pitch: 0, gazeY: 0 };
     };
-  }, [portrait, motion, speaking, key]);
+  }, [portrait, motion, speaking, key, rest]);
   useEffect(() => () => {
     engaged.current = false;
   }, [key]);
@@ -433,8 +456,8 @@ export function CharacterSprite({
   return (
     <canvas
       ref={ref}
-      width={portrait ? CROP.w * 2 : 32}
-      height={portrait ? CROP.h * 2 : 40}
+      width={portrait ? crop.w * 2 : 32}
+      height={portrait ? crop.h * 2 : 40}
       aria-label={portrait ? "Character appearance" : "Person appearance"}
       onClick={
         portrait

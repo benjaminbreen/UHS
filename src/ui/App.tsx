@@ -1,5 +1,5 @@
 import { TimeModal } from "./time/TimeModal";
-import { CharacterSprite } from "./CharacterSprite";
+import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
 import { smallMemoryDevice } from "../runtime/device";
@@ -1381,6 +1381,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         appearance={runtime.appearanceFor(focusActor)}
                         age={focusActor.age}
                         portrait
+                        facing={npcFacing(focusActor.id)}
                       />
                     </div>
                   ) : (
