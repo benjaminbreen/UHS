@@ -786,6 +786,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 appearance={runtime.appearanceFor(p)}
                 age={p.age}
                 portrait
+                motion="player"
               />
               <i aria-hidden="true" />
             </button>
@@ -1265,6 +1266,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   appearance={runtime.appearanceFor(p)}
                   age={p.age}
                   portrait
+                  motion="player"
                 />
               </div>
               <div>

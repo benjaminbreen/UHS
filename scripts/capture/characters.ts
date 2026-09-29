@@ -12,6 +12,114 @@ import { withPage, characterLab, shootCanvas, writeDataUrl, base } from "./lib";
 const out = (name: string) => `artifacts/characters/${name}.png`;
 
 const presets: Record<string, (page: Page) => Promise<void>> = {
+  /** Families (head, partner, then three children) and one face under each body record. */
+  async family(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const { inheritLikeness } = await import("/src/core/character.ts" as string);
+      const where = [["rome", 100], ["kyoto", 1850], ["timbuktu", 1400], ["london", 1200], ["cusco", 1400]];
+      const rows = where.map(([id, year], i) => {
+        const setting = settingFor(places.find((p: any) => p.id === id), year);
+        const gen = (who: string, age: number, sex: string) => generateCharacter(setting, "family-review", who, age, undefined, undefined, undefined, sex).appearance;
+        const head = { ...gen(`h${i}`, 44, "male"), lineage: `family-${i}` };
+        const partner = gen(`p${i}`, 40, "female");
+        const kids = [[16, "female"], [12, "male"], [7, "female"]].map(([age, sex], k) =>
+          [inheritLikeness(gen(`c${i}-${k}`, age as number, sex as string), [head, partner], "family-review", `c${i}-${k}`), age]);
+        const stranger = gen(`s${i}`, 16, "female");
+        return [[head, 44], [partner, 40], ...kids, [stranger, 16]];
+      });
+      const base = rows[0][1][0];
+      const records = [{}, { gaunt: 2 }, { tired: true }, { pale: true }, { sun: 2 }, { soot: true }, { injury: "burned skin" }, { injury: "torn arm" },
+        { injury: "injured leg" }, { scars: ["burned skin", "injured leg"] }, { scars: ["torn arm"], sun: 2 }];
+      const cols = Math.max(6, records.length), W = 192, H = 240;
+      const sheet = document.createElement("canvas");
+      sheet.width = cols * (W + 6); sheet.height = (rows.length + 1) * (H + 6);
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      const cell = (a: any, age: number, x: number, y: number, bg = "#2a3a78") => {
+        const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+        drawSculptedPortrait(c.getContext("2d")!, a, age);
+        ctx.fillStyle = bg; ctx.fillRect(x, y, W, H);
+        ctx.drawImage(c, x, y, W, H);
+      };
+      rows.forEach((row, r) => row.forEach(([a, age]: any, c: number) => cell(a, age, c * (W + 6), r * (H + 6), c === 5 ? "#4a2a3a" : "#2a3a78")));
+      records.forEach((record, c) => cell({ ...base, wearing: { ...base.wearing, garment: c === 10 ? "none" : base.wearing.garment }, record }, 44, c * (W + 6), rows.length * (H + 6)));
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("family"));
+  },
+  /** Generated people from sixteen places, then every headwear and garment, and a strip of head poses and expressions. */
+  async ab(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const { headwear, garments } = await import("/src/core/character.ts" as string);
+      const where = [["rome", 100], ["london", 1200], ["paris", 1888], ["mongolia", 1200], ["konya", 1400], ["beijing", 1400], ["kyoto", 1850], ["delhi", 1600],
+        ["java", 950], ["paris", 2009], ["timbuktu", 1400], ["ethiopia", 1400], ["cusco", 1400], ["mexico", 1450], ["polynesia", 1500], ["australia", 1400]];
+      const people = where.flatMap(([id, year], i) => {
+        const setting = settingFor(places.find((p: any) => p.id === id), year);
+        return [0, 1].map((k) => {
+          const age = [24, 38, 62, 30][(i + k) % 4];
+          return [generateCharacter(setting, "portrait-review", `p-${i}-${k}`, age).appearance, age];
+        });
+      });
+      const base = people[3][0];
+      const hats = headwear.map((hw: string) => [{ ...base, wearing: { ...base.wearing, headwear: hw, headColor: "#8a5a38" } }, 30]);
+      const clothes = garments.map((g: string, i: number) => [{ ...people[i % people.length][0], wearing: { ...people[i % people.length][0].wearing, garment: g, headwear: "none", cloak: false, mantle: false } }, 30]);
+      const W = 192, H = 240, cols = 16;
+      const cells: [any, any, number][] = [
+        ...people.map(([a, age]: any) => [drawSculptedPortrait, a, age] as [any, any, number]),
+        ...[...hats, ...clothes].map(([a, age]: any) => [drawSculptedPortrait, a, age] as [any, any, number]),
+      ];
+      const sheet = document.createElement("canvas");
+      sheet.width = cols * (W + 6); sheet.height = Math.ceil(cells.length / cols) * (H + 6);
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      cells.forEach(([draw, a, age], i) => {
+        const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+        draw(c.getContext("2d")!, a, age);
+        const x = (i % cols) * (W + 6), y = Math.floor(i / cols) * (H + 6);
+        ctx.fillStyle = "#2a3a78"; ctx.fillRect(x, y, W, H);
+        ctx.drawImage(c, x, y, W, H);
+      });
+      return sheet.toDataURL();
+    });
+    const strip = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const where = [["rome", 100], ["kyoto", 1850], ["timbuktu", 1400], ["paris", 1888], ["delhi", 1600], ["cusco", 1400]];
+      const people = where.map(([id, year], i) => generateCharacter(settingFor(places.find((p: any) => p.id === id), year), "portrait-review", `p-${i}-0`, 34).appearance);
+      // One row per frame: the idle turn to face the viewer, a nod, talking, then a few dialogue faces.
+      const frames = [{}, { turn: 0.75 }, { turn: 0.5 }, { turn: 0.25 }, { turn: 0 }, { turn: 0, blink: 2 }, { turn: 0, mouth: 1 }, { turn: 0, mouth: 2 },
+        { pitch: 1, gazeY: 1 }, { gazeY: 1 }, { expression: "laugh" }, { expression: "sad" }, { expression: "angry" }, { expression: "surprised" }, { turn: 0, expression: "smile" }, { breath: 1 }];
+      const sheet = document.createElement("canvas");
+      sheet.width = people.length * 192; sheet.height = frames.length * 240;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      frames.forEach((options, row) => people.forEach((a: any, col: number) => {
+        const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+        drawSculptedPortrait(c.getContext("2d")!, a, 34, options);
+        ctx.fillStyle = "#2a3a78"; ctx.fillRect(col * 192, row * 240, 192, 240);
+        ctx.drawImage(c, col * 192, row * 240, 192, 240);
+      }));
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(strip, out("ab-idle"));
+    await writeDataUrl(sheet, out("ab"));
+  },
   async expressions(page) {
     await characterLab(page);
     await page.getByLabel("Generated character variants").waitFor();

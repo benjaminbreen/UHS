@@ -1,3 +1,4 @@
+import { inheritLikeness } from "../../core/character";
 import { motorized } from "../../content/settlements/modernity";
 import { carryKit, withLoads } from "../../content/economy/carrying";
 import {
@@ -224,6 +225,15 @@ export function populateHouseholds(
           drawn = draw(salt);
         }
         Object.assign(a, drawn);
+        // Kin look like kin: a child takes after the head and their partner,
+        // and the head's own parent is drawn to match the head.
+        const headLooks = adult?.appearance ?? ownerCharacter?.appearance;
+        if (headLooks && !headLooks.lineage) headLooks.lineage = id;
+        if (a.appearance && headLooks && (kin || m.fromHead === "parent")) {
+          const parents = m.fromHead === "parent" ? [headLooks]
+            : m.ofPartner ? [partner?.appearance] : [headLooks, partner?.appearance];
+          a.appearance = inheritLikeness(a.appearance, parents.filter((p) => !!p), seed, memberId);
+        }
         if (child) {
           a.role = "Child";
           a.inventory = { water: 1 };

@@ -2,13 +2,18 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import type { CharacterAppearance } from "../core/character";
 import { drawCharacter } from "../render/characters/renderers";
 import {
-  drawConstructedPortrait,
   PORTRAIT_HEIGHT,
   PORTRAIT_WIDTH,
   type Blink,
   type Expression,
   type Viseme,
 } from "../render/portraits/constructed";
+import { drawSculptedPortrait, warmSculpted } from "../render/portraits/sculpted";
+
+/** Head pose on top of the face: 1 is the resting three-quarter view, 0 faces the viewer. */
+export type Pose = { turn: number; pitch: number; gazeY: number };
+const REST: Pose = { turn: 1, pitch: 0, gazeY: 0 };
+const MOUTH: Record<Viseme, 0 | 1 | 2> = { closed: 0, narrow: 1, wide: 2 };
 
 type PortraitSource = {
   source: HTMLCanvasElement;
@@ -69,11 +74,13 @@ export function portraitCanvas(
   intensity = 1,
   viseme: Viseme = "narrow",
   glance = 0,
+  pose: Pose = REST,
 ) {
   const resting = expression === "neutral" || intensity === 0;
+  const posed = pose.turn !== 1 || pose.pitch || pose.gazeY;
   const id =
-    blink || speaking || !resting || glance
-      ? `${key}|${blink}${speaking ? `s${viseme[0]}` : ""}${glance}${resting ? "" : `${expression}${intensity}`}`
+    blink || speaking || !resting || glance || posed
+      ? `${key}|${blink}${speaking ? `s${viseme[0]}` : ""}${glance}${resting ? "" : `${expression}${intensity}`}|${pose.turn},${pose.pitch},${pose.gazeY}`
       : key;
   const cached = portraits.get(id);
   if (cached) {
@@ -84,13 +91,15 @@ export function portraitCanvas(
   const source = document.createElement("canvas");
   source.width = PORTRAIT_WIDTH;
   source.height = PORTRAIT_HEIGHT;
-  drawConstructedPortrait(source.getContext("2d")!, appearance, age, {
+  drawSculptedPortrait(source.getContext("2d")!, appearance, age, {
     blink,
-    speaking,
+    mouth: speaking ? MOUTH[viseme] : 0,
     expression,
     intensity,
-    viseme,
-    glance,
+    gazeX: glance,
+    turn: pose.turn,
+    pitch: pose.pitch,
+    gazeY: pose.gazeY,
   });
   portraits.set(id, source);
   if (portraits.size > SOURCE_LIMIT)
@@ -113,6 +122,7 @@ export function CharacterSprite({
   speaking = false,
   expression = "neutral",
   viseme,
+  motion,
 }: {
   appearance: CharacterAppearance;
   portrait?: boolean;
@@ -131,6 +141,13 @@ export function CharacterSprite({
    * conversation that often to move a lip is not a trade worth making.
    */
   viseme?: RefObject<Viseme>;
+  /**
+   * Portraits only: how the head moves on its own. `npc` faces the viewer to
+   * talk and drifts between views otherwise; `player` turns to the viewer
+   * every couple of minutes; `profile` turns and blinks when clicked.
+   * Without it the head only nods and glances down now and then.
+   */
+  motion?: "npc" | "player" | "profile";
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   // The key is the identity of the drawing. Deriving it here rather than
@@ -155,6 +172,10 @@ export function CharacterSprite({
   const lids = useRef<Blink>(0);
   const mouth = useRef(false);
   const glance = useRef(0);
+  const pose = useRef<Pose>(REST);
+  const turnToViewer = useRef<(() => void) | null>(null);
+  // Once someone has spoken to the player they keep facing them.
+  const engaged = useRef(false);
   const repaint = useRef<(() => void) | null>(null);
   // The pose being drawn right now, which trails the prop while the change
   // plays out.
@@ -207,6 +228,7 @@ export function CharacterSprite({
             shown.current.intensity,
             viseme?.current ?? "narrow",
             glance.current,
+            pose.current,
           ),
           CROP.x,
           CROP.y,
@@ -291,6 +313,95 @@ export function CharacterSprite({
       window.clearTimeout(timer);
     };
   }, [key, portrait]);
+  // The head's own movement, on a clock separate from the lids and the mouth.
+  // The turn steps through the traced quarter-angles, about a quarter second
+  // end to end; each angle is traced once per face and then cached.
+  useEffect(() => {
+    if (!portrait) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (motion) warmSculpted(latest.current.appearance, latest.current.age);
+    let timer = 0;
+    let alive = true;
+    const at = (ms: number, then: () => void) => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => alive && then(), ms);
+    };
+    const set = (next: Partial<Pose>) => {
+      pose.current = { ...pose.current, ...next };
+      repaint.current?.();
+    };
+    const turnTo = (target: number, then: () => void) => {
+      const now = pose.current.turn;
+      if (now === target) return then();
+      set({ turn: Math.round((now + Math.sign(target - now) * 0.25) * 4) / 4 });
+      at(65, () => turnTo(target, then));
+    };
+    const nod = (then: () => void) => {
+      set({ pitch: 0.5 });
+      at(160, () => {
+        set({ pitch: 0 });
+        at(200, () => {
+          set({ pitch: 0.5 });
+          at(160, () => {
+            set({ pitch: 0 });
+            then();
+          });
+        });
+      });
+    };
+    const lookDown = (then: () => void) => {
+      set({ gazeY: 1 });
+      at(900 + Math.random() * 900, () => {
+        set({ gazeY: 0 });
+        then();
+      });
+    };
+    const face = (hold: number, then: () => void) =>
+      turnTo(0, () => at(hold, () => turnTo(1, then)));
+    const talking = motion === "npc" && speaking;
+    if (talking) engaged.current = true;
+    const idle = (): void => {
+      if (talking) return;
+      const gap =
+        motion === "npc" ? 3000 + Math.random() * 4000 : 14000 + Math.random() * 16000;
+      at(gap, () => {
+        const r = Math.random();
+        if (motion === "npc" && !engaged.current && r < 0.45)
+          face(2000 + Math.random() * 3000, idle);
+        else if (r < 0.7) lookDown(idle);
+        else nod(idle);
+      });
+    };
+    // The player's own face turns to them every couple of minutes, on its own clock.
+    let visit = 0;
+    const visitLater = () => {
+      visit = window.setTimeout(() => {
+        if (!alive) return;
+        window.clearTimeout(timer);
+        face(3000 + Math.random() * 1500, () => {
+          idle();
+          visitLater();
+        });
+      }, 100000 + Math.random() * 40000);
+    };
+    turnToViewer.current =
+      motion === "profile" ? () => face(2500, idle) : null;
+    if (talking) turnTo(0, () => undefined);
+    else if (engaged.current) idle();
+    else if (pose.current.turn !== 1) turnTo(1, idle);
+    else idle();
+    if (motion === "player") visitLater();
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+      window.clearTimeout(visit);
+      turnToViewer.current = null;
+      if (pose.current.pitch || pose.current.gazeY) pose.current = { ...pose.current, pitch: 0, gazeY: 0 };
+    };
+  }, [portrait, motion, speaking, key]);
+  useEffect(() => () => {
+    engaged.current = false;
+  }, [key]);
   // Changing expression plays through the resting face rather than cutting to
   // the new one: out of the old pose, into the new one, then all the way. At
   // three frames it is barely a fifth of a second, which is what makes a face
@@ -325,7 +436,14 @@ export function CharacterSprite({
       width={portrait ? CROP.w * 2 : 32}
       height={portrait ? CROP.h * 2 : 40}
       aria-label={portrait ? "Character appearance" : "Person appearance"}
-      onClick={portrait ? () => poke.current?.() : undefined}
+      onClick={
+        portrait
+          ? () => {
+              poke.current?.();
+              turnToViewer.current?.();
+            }
+          : undefined
+      }
       data-skin={appearance.skin}
       style={{
         width: portrait ? "100%" : 24 * scale,

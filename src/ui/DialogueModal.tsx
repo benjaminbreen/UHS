@@ -281,7 +281,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
       </button>
       <div className="dialogue-heading">
         <div className="dialogue-face">
-          <div className="dialogue-portrait" data-took={took && !calm() ? took.cue : undefined}><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} expression={expression} viseme={viseme} /></div>
+          <div className="dialogue-portrait" data-took={took && !calm() ? took.cue : undefined}><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} expression={expression} viseme={viseme} motion="npc" /></div>
           {took && (
             <span key={took.serial} className="dialogue-took" role="status">
               <CueMark cue={took.cue} />

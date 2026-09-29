@@ -634,9 +634,29 @@ export function faceFromTraits(
     age < 13 ? "large" : s < 0.2 ? "large" : s < 0.75 ? "medium" : "small";
   return { head, jaw, headSize };
 }
+/**
+ * What a life has done to the body, read off the actor's state when the
+ * appearance is resolved. Coarse on purpose: it keys portrait caches.
+ */
+export type BodyRecord = {
+  /** 1 hungry, 2 hungry in a poor house. */
+  gaunt?: 1 | 2;
+  tired?: boolean;
+  pale?: boolean;
+  /** The injury still healing, by the engine's name for it. */
+  injury?: string;
+  /** Injuries that healed and left a mark. */
+  scars?: string[];
+  /** Years of outdoor work: 1 some, 2 a lifetime. */
+  sun?: 1 | 2;
+  soot?: boolean;
+};
 export type CharacterAppearance = {
   physique?: CharacterPhysique;
   face?: CharacterFace;
+  /** Shared by a family line, so kin share the small proportions that no face field names. */
+  lineage?: string;
+  record?: BodyRecord;
   /** Absent on saves written before ornaments and marks existed. */
   adornment?: FaceAdornment;
   head?: (typeof headShapes)[number];
@@ -733,6 +753,51 @@ export function heightForAge(
   if (age < 16) return roll < 0.7 ? -1 : 0;
   // Adults: 10% short, 80% original, 9% tall, 1% tallest.
   return roll < 0.1 ? -1 : roll < 0.9 ? 0 : roll < 0.99 ? 1 : 2;
+}
+const blendHex = (a: string, b: string, t: number) =>
+  `#${[1, 3, 5]
+    .map((i) =>
+      Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+const INHERITED = ["eyeShape", "eyeSpacing", "eyelid", "epicanthus", "brows", "nose", "noseBridge", "mouth", "chin", "hairTexture", "hairline", "detail"] as const;
+
+/**
+ * A child's looks drawn from their parents: skin between the two, hair and
+ * each feature from one or the other (now and then their own), and the
+ * family's lineage for everything finer. Sex, age, hair style and dress stay
+ * the child's own.
+ */
+export function inheritLikeness(
+  own: CharacterAppearance,
+  parents: readonly CharacterAppearance[],
+  seed: string,
+  id: string,
+): CharacterAppearance {
+  const from = parents.filter((p) => p.face);
+  if (!from.length || !own.face) return own;
+  const r = (key: string) => random(seed, "likeness-v1", id, key);
+  const pick = (key: string) => from[Math.floor(r(key) * from.length)];
+  const face = { ...own.face } as Record<string, unknown>;
+  for (const key of INHERITED)
+    if (r(key) < 0.8) face[key] = (pick(key).face as Record<string, unknown>)[key] ?? face[key];
+  const hairParent = pick("hair-color");
+  // A grey parent's hair was not grey when the child was born.
+  const hairColor = hairParent.hairColor === "#aaa699" ? own.hairColor : hairParent.hairColor;
+  return {
+    ...own,
+    face: face as CharacterFace,
+    skin:
+      from.length > 1
+        ? blendHex(from[0].skin, from[1].skin, 0.25 + r("skin") * 0.5)
+        : blendHex(own.skin, from[0].skin, 0.7),
+    hairColor,
+    head: pick("head").head ?? own.head,
+    jaw: pick("jaw").jaw ?? own.jaw,
+    lineage: from.find((p) => p.lineage)?.lineage ?? own.lineage,
+  };
 }
 export function appearanceForAge(
   appearance: CharacterAppearance,

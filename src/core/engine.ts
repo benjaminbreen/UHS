@@ -1725,11 +1725,17 @@ export class Engine {
     // Let diagonal input slide along an open side without taking an impact.
     return !(c.dx && c.dy) || this.playerBlocked(x, p.pos.y) && this.playerBlocked(p.pos.x, y);
   }
+  private scar(injury: string) {
+    const p = this.state.player;
+    if (!p.scars?.includes(injury)) p.scars = [...(p.scars ?? []), injury].slice(-4);
+  }
   private hurt(damage: number, cause: string, injury?: string) {
     const p = this.state.player;
     if (p.dead || damage <= 0) return;
     p.health = Math.max(0, (p.health ?? 100) - damage);
     if (injury) p.injury = { name: injury, until: Math.max(p.injury?.until ?? 0, this.state.clock + 3 * 86400) };
+    // A bad fall or a burn heals to a mark that stays.
+    if (injury && (damage >= 35 || injury === "burned skin")) this.scar(injury);
     if (p.health > 0) return;
     p.dead = cause;
     p.activity = "Dead";
@@ -1890,6 +1896,7 @@ export class Engine {
     p.health = rescuer ? 35 : 20;
     p.hunger = Math.min(100, p.hunger + 15);
     p.injury = { name: part, until: this.state.clock + 3 * 86400 };
+    this.scar(part);
     const text = [
       `${by} put you on the ground.`,
       rescuer

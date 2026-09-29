@@ -38,13 +38,14 @@ import {
 import type { Actor, Intent, ItemId } from "../core/types";
 import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
+import { workplaceFor } from "../content/characters/workplace";
 import type {
   ToolEffect,
   SwingEffect,
   ThrowEffect,
   ShoveEffect,
 } from "../render/tool-effects";
-import { allowedHeights, type CharacterAppearance } from "../core/character";
+import { allowedHeights, type BodyRecord, type CharacterAppearance } from "../core/character";
 import { characterAppearanceSchema } from "./schema";
 import { heldObject, nearbyProp } from "../core/props";
 import { withProps } from "../content/props/place";
@@ -347,11 +348,13 @@ export class Runtime {
   }
   appearanceFor(
     actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn"> &
-      Partial<Pick<Actor, "role" | "origin">>,
+      Partial<Pick<Actor, "role" | "origin" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId">>,
   ): CharacterAppearance {
-    const base = actor.appearance
+    const drawn = actor.appearance
       ? actorAppearance(actor)
       : this.defaultAppearance(actor);
+    const record = this.bodyRecord(actor);
+    const base = record ? { ...drawn, record } : drawn;
     if (!actor.worn) return base;
     return {
       ...base,
@@ -359,6 +362,28 @@ export class Runtime {
         this.engine.item(id),
       ),
     };
+  }
+  /** What the actor's life has done to their body, in steps coarse enough to key a portrait. */
+  private bodyRecord(
+    actor: Partial<Pick<Actor, "origin" | "age" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId">>,
+  ): BodyRecord | undefined {
+    const r: BodyRecord = {};
+    const fortune = actor.householdId
+      ? this.engine.state.households?.find((h) => h.id === actor.householdId)?.fortune
+      : undefined;
+    if ((actor.hunger ?? 0) > 70) r.gaunt = fortune !== undefined && fortune < 0.25 ? 2 : 1;
+    if ((actor.fatigue ?? 0) > 65) r.tired = true;
+    if ((actor.health ?? 100) < 40) r.pale = true;
+    if (actor.injury && actor.injury.until > this.engine.state.clock) r.injury = actor.injury.name;
+    if (actor.scars?.length) r.scars = actor.scars;
+    const kit = livelihoodOf(this.engine.world.pack, actor as Actor);
+    if (kit) {
+      const place = kit.workplace ?? workplaceFor(kit.activity);
+      if (["wild", "water", "field", "pasture", "carrying", "extraction"].includes(place))
+        r.sun = (actor.age ?? 30) > 35 ? 2 : 1;
+      if (place === "extraction" || /smith|charcoal|coll|forge|miner|kiln|lime|found/.test(kit.id)) r.soot = true;
+    }
+    return Object.keys(r).length ? r : undefined;
   }
   private defaultAppearance(
     actor: Pick<Actor, "id" | "sprite" | "appearance" | "age"> &

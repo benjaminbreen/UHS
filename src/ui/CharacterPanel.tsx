@@ -724,6 +724,7 @@ export function CharacterPanel({
                   age={actor.age}
                   portrait
                   expression={look}
+                  motion="profile"
                 />
               </div>
             </div>

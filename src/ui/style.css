@@ -1483,8 +1483,8 @@ kbd {
   }
 }
 .dialogue-portrait {
-  width: 92px;
-  height: 104px;
+  width: 132px;
+  height: 154px;
   flex: 0 0 auto;
   overflow: hidden;
   border: 2px solid var(--gold);
@@ -1687,8 +1687,8 @@ kbd {
     padding: 22px 18px 18px;
   }
   .dialogue-portrait {
-    width: 70px;
-    height: 82px;
+    width: 96px;
+    height: 112px;
   }
   .dialogue-heading {
     gap: 12px;

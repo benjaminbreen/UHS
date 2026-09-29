@@ -181,6 +181,8 @@ export type Actor = {
   injury?: { name: string; until: number };
   origin?: CharacterOrigin;
   appearance?: CharacterAppearance;
+  /** Injuries that left a mark, oldest first. */
+  scars?: string[];
   /** Items on the body, by slot. Not counted in `inventory`; `wearing` derives from these. */
   worn?: Partial<Record<WearSlot, ItemId>>;
   age?: number;
