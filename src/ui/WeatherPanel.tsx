@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LightingId } from "../render/lighting";
 import { toFahrenheit, type Weather } from "../core/weather";
+import { mountSky } from "./sky-shader";
 
 const skies: Record<LightingId, [string, string, string]> = {
   "early-morning": ["#101a3a", "#4d5c8f", "#e0a27a"],
@@ -56,7 +57,21 @@ function Cloud({
   );
 }
 
-function Scene({
+function Scene(props: { weather: Weather; lighting: LightingId }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const sky = useRef<ReturnType<typeof mountSky>>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    sky.current = ref.current && mountSky(ref.current, props);
+    if (!sky.current) setFailed(true);
+    return () => sky.current?.dispose();
+  }, []);
+  useEffect(() => sky.current?.update(props), [props.weather, props.lighting]);
+  if (failed) return <SvgScene {...props} />;
+  return <canvas ref={ref} className="sky-scene" aria-hidden="true" />;
+}
+
+function SvgScene({
   weather,
   lighting,
 }: {

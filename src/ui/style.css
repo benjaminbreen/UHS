@@ -537,6 +537,16 @@ body {
     transparent 82%
   );
 }
+.sky:has(canvas.sky-scene) {
+  mask-image:
+    radial-gradient(125% 140% at 100% 0%, #000 48%, #000a 64%, transparent 82%),
+    linear-gradient(#000 55%, transparent);
+  -webkit-mask-image:
+    radial-gradient(125% 140% at 100% 0%, #000 48%, #000a 64%, transparent 82%),
+    linear-gradient(#000 55%, transparent);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
 .sky-scene {
   position: absolute;
   inset: 0;
