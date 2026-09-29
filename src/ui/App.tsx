@@ -332,6 +332,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setDialogueActorId(id);
     setModal("dialogue");
   };
+  useEffect(() => {
+    runtime.engine.conversing = modal === "dialogue" ? (dialogueActorId ?? undefined) : undefined;
+  }, [runtime, modal, dialogueActorId]);
   // Standing in someone's way long enough and they will say something about it.
   useEffect(() => {
     const complaint = runtime.engine.blockComplaint;
@@ -342,7 +345,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     if (modal || obs.clock - complaint.at > 5) return;
     openDialogue(
       complaint.id,
-      "The player has been standing in your way, and you cannot get past. You are annoyed, and say so.",
+      complaint.bumped
+        ? "The player has just bumped into you again. You turn to them and say something about it."
+        : "The player has been standing in your way, and you cannot get past. You are annoyed, and say so.",
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, obs.clock, modal]);

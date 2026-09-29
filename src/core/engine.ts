@@ -5821,7 +5821,9 @@ export class Engine {
   /** How long each actor has had the player square in its way, in clock
    * seconds, and the one that has finally had enough of it. */
   private blockedSince = new Map<string, number>();
-  blockComplaint?: { id: string; at: number };
+  blockComplaint?: { id: string; at: number; bumped?: boolean };
+  /** Whoever the player is in conversation with stands still, facing them. */
+  conversing?: string;
   /** Clock second each actor last took offence at a collision or a swing,
    * so leaning on them or swinging again does not keep costing trust. */
   private affronts = new Map<string, number>();
@@ -5832,7 +5834,8 @@ export class Engine {
   private collide(a: Actor, by: "player" | "actor", run = false) {
     const p = this.state.player;
     const now = this.state.clock;
-    if (now - (this.bumpedAt.get(a.id) ?? -Infinity) < BUMP_GAP) return;
+    const last = this.bumpedAt.get(a.id) ?? -Infinity;
+    if (now - last < BUMP_GAP) return;
     this.bumpedAt.set(a.id, now);
     this.signal({
       kind: "bump",
@@ -5843,8 +5846,12 @@ export class Engine {
       run,
     });
     if (a.kind !== "human") return;
-    if (by === "player")
+    if (by === "player") {
       this.nuisance.set(a.id, { what: run ? "ran full into you" : "bumped into you", at: now });
+      // Bumped twice in a few game minutes, anyone turns and says something.
+      if (now - last < 180 && !this.blockComplaint)
+        this.blockComplaint = { id: a.id, at: now, bumped: true };
+    }
     if (!run) {
       this.cue(a.id, "alarm", p.pos);
       this.event(`You collide with ${a.name}, who starts.`, "social");
@@ -6419,6 +6426,11 @@ export class Engine {
       }
       for (const a of actors) {
         if (a.id === heldActor) continue;
+        if (a.id === this.conversing && a.pos.space === player.pos.space) {
+          a.direction = this.directionTo(a.pos, player.pos);
+          delete a.facing;
+          continue;
+        }
         const focus =
           this.state.manifest.simulation === 2 && player.pos.space !== "outside"
             ? {
