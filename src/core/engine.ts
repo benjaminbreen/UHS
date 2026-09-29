@@ -489,6 +489,22 @@ export class Engine {
       },
     ];
   }
+  /** The nearest station where today's work can go on, "done" once it is
+   * finished, or undefined for a player with no trade or no station. */
+  workStation(): WorldObject | "done" | undefined {
+    const p = this.state.player.pos;
+    // A station behind a door is still a station, just a long walk away.
+    const far = (o: WorldObject) => Math.min(distance(o.pos, p), 1e6);
+    let best: WorldObject | undefined,
+      done = false;
+    for (const o of this.state.objects) {
+      const work = this.workAt(o, true)[0];
+      if (!work) continue;
+      if (!work.enabled) done = true;
+      else if (!best || far(o) < far(best)) best = o;
+    }
+    return best ?? (done ? "done" : undefined);
+  }
   private today() {
     const s = this.state;
     const day = Math.floor(s.clock / 86400);

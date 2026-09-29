@@ -21,6 +21,7 @@ import {
   ArrowRight,
   BookOpen,
   ChevronDown,
+  ChevronRight,
   Compass,
   Download,
   Footprints,
@@ -100,6 +101,7 @@ import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
+import { ItemInspect, itemKind } from "./ItemInspect";
 import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
 import { CombatTestPanel } from "../dev/CombatTestPanel";
 import { SkillTestPanel } from "../dev/SkillTestPanel";
@@ -197,6 +199,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     return () => director.dispose();
   }, [active]);
   const [restOpen, setRestOpen] = useState(false);
+  const [inspecting, setInspecting] = useState<string>();
   const [modal, setModal] = useState<
     | "time"
     | "world"
@@ -276,6 +279,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [sheetSnap, setSheetSnap] = useState<"peek" | "half" | "full">("peek");
   const sheetPointerStart = useRef<number | null>(null);
   const [mapRegion, setMapRegion] = useState(false);
+  const [nearbyAll, setNearbyAll] = useState(false);
   const [sideTab, setSideTab] = useState<
     "around" | "inventory" | "skills" | "today"
   >("today");
@@ -697,7 +701,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         ? runtime.appearanceFor(p).physique?.sex
         : sexFromName(p.name);
   const focusActor = obs.actors.find((a) => a.id === selection?.id);
-  const nearby = sideTab === "around" ? runtime.engine.nearby() : [];
+  const nearby =
+    sideTab !== "around"
+      ? []
+      : nearbyAll
+        ? runtime.engine.nearby()
+        : runtime.engine.nearby(10, 40).filter((t) => t.kind === "person");
   const focusSprite =
     selection &&
     (selection.sprite ??
@@ -756,9 +765,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         ) : (
           <div className="brand">
             <Compass size={24} />
-            <div>
-              Universal History Simulator <i aria-hidden="true">✦</i>
-            </div>
+            <img
+              src="/brand/uhs-wordmark.png"
+              alt="Universal History Simulator"
+              width="1129"
+              height="102"
+            />
           </div>
         )}
         <button
@@ -766,7 +778,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           onClick={() => { setModal(runtime.engine.world.pack.setting ? "time" : "world"); setError(""); }}
           title="Change your world"
         >
-          <i aria-hidden="true">◆</i>
+          <i className="selector-flourish" aria-hidden="true" />
           <span>
             <strong>{pack.name}</strong>
             <small>
@@ -777,7 +789,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               </em>
             </small>
           </span>
-          <i aria-hidden="true">◆</i>
+          <i className="selector-flourish" aria-hidden="true" />
           <Pencil size={15} />
         </button>
         <div className="header-actions">
@@ -799,7 +811,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           <button
             className="icon-button"
             aria-label="Audio studio"
-            title="Audio studio (⌘1 / Ctrl+1)"
+            data-tip="Audio · ⌘1"
             onClick={() => {
               runtime.stop();
               setModal(null);
@@ -809,11 +821,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             <Music2 size={19} />
           </button>
           <button className="quiet-button new-world" onClick={openWorld}>
-            <Plus size={16} /> New world
+            <BookOpen size={16} /> New world
           </button>
           <button
             aria-label="Notebook"
-            title="Notebook (N)"
+            data-tip="Notebook · N"
             className="icon-button"
             onClick={() => setModal("notebook")}
           >
@@ -821,6 +833,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           </button>
           <button
             aria-label="Settings"
+            data-tip="Settings"
             className="icon-button"
             onClick={() => setModal("settings")}
           >
@@ -974,6 +987,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           <div className="map-controls">
             <button
               aria-label="Zoom out"
+              data-tip="Zoom out"
               onClick={() => runtime.stepZoom(-1)}
               disabled={view.zoom <= ZOOM_STEPS[0]}
             >
@@ -982,6 +996,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             <span>{formatZoom(view.zoom)}×</span>
             <button
               aria-label="Zoom in"
+              data-tip="Zoom in"
               onClick={() => runtime.stepZoom(1)}
               disabled={view.zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
             >
@@ -989,6 +1004,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             </button>
             <button
               aria-label="Toggle character panel"
+              data-tip="Panel"
               onClick={toggleCharacterPanel}
             >
               <PanelRightClose size={17} />
@@ -1046,14 +1062,15 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               // A new notice arrives; the same one repeated does not twitch.
               key={view.running ? "walking" : view.notice}
               className="world-notice"
+              data-walking={view.running || undefined}
               role="status"
             >
               {view.running ? (
                 <>
-                  <Footprints size={16} />
-                  <span>Walking through the world…</span>
+                  <Footprints size={13} />
+                  <span>Walking…</span>
                   <button onClick={() => runtime.stop()}>
-                    <Pause size={14} /> Stop
+                    <Pause size={11} /> Stop
                   </button>
                 </>
               ) : (
@@ -1188,11 +1205,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               </button>
             </form>
             <div className="keyboard-hint">
-              <span className="hint-event">
-                <i aria-hidden="true">✦</i>
-                {obs.events.at(-1)?.text}
-                <i aria-hidden="true">✦</i>
-              </span>
+              <span className="hint-event">{obs.events.at(-1)?.text}</span>
               <span>
                 <kbd>W</kbd>
                 <kbd>A</kbd>
@@ -1489,6 +1502,21 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 </div>
                 {sideTab === "around" && (
                   <div className="nearby-list">
+                    <div className="nearby-head">
+                      <span>
+                        {!nearby.length
+                          ? ""
+                          : nearbyAll
+                          ? `${nearby.length} things`
+                          : `${nearby.length} ${nearby.length === 1 ? "person" : "people"}`}
+                      </span>
+                      <button
+                        aria-pressed={nearbyAll}
+                        onClick={() => setNearbyAll((all) => !all)}
+                      >
+                        {nearbyAll ? "People only" : "Show everything"}
+                      </button>
+                    </div>
                     {nearby.map((t) => {
                       const actor =
                         t.kind === "person"
@@ -1510,34 +1538,40 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                             />
                           ) : t.sprite ? (
                             <Sprite name={t.sprite} scale={1} />
-                          ) : null}
+                          ) : (
+                            <i className="nearby-blank" aria-hidden="true" />
+                          )}
                           <span>
                             {t.count ? `${t.name} ×${t.count}` : t.name}
                             {t.detail && <small>{t.detail}</small>}
                           </span>
-                          {t.id && <ChevronDown size={13} />}
+                          {t.id && <ChevronRight size={14} />}
                         </button>
                       );
                     })}
-                    {nearby.length === 0 && <p>{pack.concern}</p>}
+                    {nearby.length === 0 && (
+                      <p>{nearbyAll ? pack.concern : "No one within earshot."}</p>
+                    )}
                   </div>
                 )}
                 {sideTab === "inventory" && (
-                  <div className="nearby-list">
+                  <div className="nearby-list inventory-list">
                     {Object.entries(p.inventory)
                       .filter(([, n]) => n! > 0)
                       .map(([id, n]) => (
-                        <button key={id} onClick={() => setModal("inventory")}>
-                          <ItemIcon
-                            id={id}
-                            sprite={runtime.item(id)!.sprite}
-                            scale={1}
-                          />
+                        <button key={id} onClick={() => setInspecting(id)}>
+                          <span className="inventory-well">
+                            <ItemIcon
+                              id={id}
+                              sprite={runtime.item(id)!.sprite}
+                              scale={2}
+                            />
+                          </span>
                           <span>
                             {runtime.item(id)!.name}
-                            <small>Quantity: {n}</small>
+                            <small>{itemKind(runtime.item(id)!)}</small>
                           </span>
-                          <ChevronDown size={13} />
+                          {n! > 1 && <b className="inventory-count">×{n}</b>}
                         </button>
                       ))}
                     {!Object.values(p.inventory).some((n) => n! > 0) && (
@@ -1611,6 +1645,21 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           runtime={runtime}
           evening={evening}
           onClose={() => setModal(null)}
+        />
+      )}
+      {inspecting && runtime.item(inspecting) && (p.inventory[inspecting] ?? 0) > 0 && (
+        <ItemInspect
+          id={inspecting}
+          def={runtime.item(inspecting)!}
+          count={p.inventory[inspecting] ?? 0}
+          actions={[
+            runtime.item(inspecting)!.edible
+              ? { label: "Eat", onClick: () => runtime.command({ type: "use", item: inspecting }) }
+              : runtime.item(inspecting)!.wear
+                ? { label: "Wear", onClick: () => runtime.command({ type: "wear", item: inspecting }) }
+                : { label: "Take in hand", onClick: () => runtime.command({ type: "hold", item: inspecting }) },
+          ]}
+          onClose={() => setInspecting(undefined)}
         />
       )}
       {modal && modal !== "dialogue" && modal !== "time" && modal !== "evening" && (

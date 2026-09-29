@@ -33,24 +33,17 @@ export type QualifiedContent = {
 export type NameKit = QualifiedContent & {
   scope: CharacterScope;
   /** Personal names may themselves contain multiple words; never split on spaces. */
-  names: readonly string[];
-  format?:
-    | "personal"
-    | "family-personal"
-    | "personal-family"
-    | "personal-two-families"
-    /** A personal name plus a non-hereditary parent-derived element. */
-    | "personal-patronymic";
+  masculine: readonly string[];
+  feminine: readonly string[];
+  /** Names the record does not mark for gender, drawn for anyone. */
+  unisex?: readonly string[];
+  format?: NameTradition["format"];
   familyNames?: readonly string[];
   secondFamilyNames?: readonly string[];
-  /** Complete patronymic/metronymic displays; never inherited as a family name. */
-  patronymics?: readonly string[];
-  /**
-   * Preferred over `patronymics`: a parent's name plus a suffix chosen by the
-   * child's sex. A flat list of finished displays cannot know the sex, which
-   * is how women ended up called -sson.
-   */
+  /** A parent's name plus a suffix chosen by the child's sex. */
   patronymic?: { parents: readonly string[]; male: string; female: string };
+  /** Ported traditions drawn beside the kit, which itself weighs 1. */
+  alongside?: readonly { tradition: string; weight: number }[];
 };
 /**
  * A naming tradition's components, gendered. Ported from the Historical Persona
@@ -61,14 +54,19 @@ export type NameTradition = {
   label: string;
   masculine: readonly string[];
   feminine: readonly string[];
+  unisex?: readonly string[];
   /** Empty where the tradition carries no family element at all. */
   familyNames: readonly string[];
+  /** One surname from each parent; falls back to `familyNames`. */
+  secondFamilyNames?: readonly string[];
   /** Share of people in this tradition who carry no family name, 0-1. */
   noFamilyName: number;
   format:
     | "personal"
     | "personal-family"
     | "family-personal"
+    | "personal-two-families"
+    /** A personal name plus a non-hereditary parent-derived element. */
     | "personal-patronymic";
   /**
    * Suffixes for a parent-derived element, by the child's sex. Built from a
@@ -252,6 +250,8 @@ export type Livelihood = {
   withoutCapability?: readonly SocietyCapability[];
   /** Work done overwhelmingly by one sex where that is documented. */
   sex?: "male" | "female";
+  /** The year the work opened to both sexes; absent means it never did. */
+  sexUntil?: number;
   /**
    * Who does this work. Absent means anyone. `unfree` marks work that was
    * done by people held in bondage, which is not a separate set of trades so

@@ -1,4 +1,5 @@
 import { nameTraditions } from "./profiles/traditions.generated";
+import { nameKits } from "./name-kits";
 
 let index: Map<string, "male" | "female" | "both"> | undefined;
 function build() {
@@ -10,15 +11,13 @@ function build() {
       m.set(k, prev && prev !== sex ? "both" : sex);
     }
   };
-  for (const t of nameTraditions) {
+  for (const t of [...nameKits, ...nameTraditions]) {
     add(t.masculine, "male");
     add(t.feminine, "female");
   }
-  add(["Sergius", "Gregorius", "Stephanus", "Johannes", "Georgius", "Theodorus"], "male");
-  add(["Maria", "Anna", "Anastasia", "Theodora"], "female");
   return m;
 }
-/** Display heuristic for characters whose kit left sex unspecified. */
+/** Display heuristic for actors saved without a recorded sex. */
 export function sexFromName(name: string): "male" | "female" | undefined {
   index ??= build();
   const first = name.trim().split(/\s+/)[0]?.toLowerCase() ?? "";

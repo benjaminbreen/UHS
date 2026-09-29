@@ -1,6 +1,7 @@
 import type { Runtime } from "../runtime/session";
 import { narratorReplySchema, type NarratorReply } from "../runtime/schema";
 import { sceneDigest, worldCard } from "./prompt";
+import { planOf } from "../runtime/autopilot";
 export type Provider = "openai" | "gemini";
 export const PROVIDER_KEY = "uhs-narrator-provider";
 export function narratorProvider(): Provider {
@@ -73,6 +74,8 @@ export async function narratorTurn(
       );
     }
   }
+  const plan = reply.errand && planOf(reply.errand, engine);
+  if (plan) runtime.setOff(plan);
   const text = lines.filter(Boolean).join(" ");
   const s = engine.state;
   s.narration = [...(s.narration ?? []), { clock: s.clock, input, text }].slice(

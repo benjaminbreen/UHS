@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "art": "if [ -x .venv/bin/python ]; then .venv/bin/python scripts/build_art.py; else python3 scripts/build_art.py; fi",
-    "art:nature": "python3 scripts/build_nature.py",
+    "art:nature": ".venv/bin/python scripts/build_nature.py",
     "art:fauna": "python3 scripts/build_fauna.py",
     "art:fauna-b": "python3 scripts/build_fauna_b.py",
     "art:fauna-c": "python3 scripts/build_fauna_c.py",

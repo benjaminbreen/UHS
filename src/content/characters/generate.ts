@@ -15,7 +15,6 @@ import {
   type CharacterContext,
 } from "./resolve";
 import { asOfficiant } from "./officiant";
-import { sexFromName } from "./name-sex";
 import {
   generateAdornment,
   metalForMeans,
@@ -46,127 +45,100 @@ export function characterNameParts(
   sex: Sex = characterSex(seed, id),
   inheritedTradition?: string,
 ) {
-  const kit = context.names;
-  if (!kit) {
-    const drawn = context.traditions;
-    if (!drawn) {
-      const personal = inventedName(seed, id);
-      return {
-        display: personal,
-        personal,
-        families: [] as string[],
-        format: "invented",
-      };
-    }
-    const total = drawn.options.reduce((n, o) => n + o.weight, 0);
-    let roll = random(seed, "character-v1", id, "tradition") * total;
-    // A household shares one tradition: inheriting a surname from a parent who
-    // drew a different tradition would put a Chinese surname on a Swedish name.
-    const tradition =
-      (inheritedTradition
-        ? drawn.options.find((o) => o.tradition.id === inheritedTradition)
-            ?.tradition
-        : undefined) ??
-      (
-        drawn.options.find((o) => (roll -= o.weight) < 0) ??
-        drawn.options[drawn.options.length - 1]
-      ).tradition;
-    // A tradition may document one gender only; fall back to the whole set.
-    const gendered =
-      sex === "female" ? tradition.feminine : tradition.masculine;
-    const personal = pick(
-      gendered.length
-        ? gendered
-        : [...tradition.masculine, ...tradition.feminine],
+  const drawn = context.traditions;
+  if (!drawn) {
+    const personal = inventedName(seed, id);
+    return {
+      display: personal,
+      personal,
+      families: [] as string[],
+      format: "invented",
+    };
+  }
+  const total = drawn.options.reduce((n, o) => n + o.weight, 0);
+  let roll = random(seed, "character-v1", id, "tradition") * total;
+  // A household shares one tradition: inheriting a surname from a parent who
+  // drew a different tradition would put a Chinese surname on a Swedish name.
+  const tradition =
+    (inheritedTradition
+      ? drawn.options.find((o) => o.tradition.id === inheritedTradition)
+          ?.tradition
+      : undefined) ??
+    (
+      drawn.options.find((o) => (roll -= o.weight) < 0) ??
+      drawn.options[drawn.options.length - 1]
+    ).tradition;
+  // A tradition may document one gender only; fall back to the whole set.
+  const gendered = [
+    ...(sex === "female" ? tradition.feminine : tradition.masculine),
+    ...(tradition.unisex ?? []),
+  ];
+  const personal = pick(
+    gendered.length
+      ? gendered
+      : [...tradition.masculine, ...tradition.feminine],
+    seed,
+    id,
+    "name",
+  );
+  const provenance = {
+    tradition: tradition.id,
+    region: drawn.region,
+    note: tradition.note,
+  };
+  if (tradition.format === "personal-patronymic" && tradition.patronymic) {
+    // Named for a parent, so the element is that parent's name plus a
+    // suffix for this person's sex, and is never inherited further.
+    const parent = pick(
+      tradition.patronymic.parents ?? tradition.masculine,
       seed,
       id,
-      "name",
+      "parent-name",
     );
-    if (tradition.format === "personal-patronymic" && tradition.patronymic) {
-      // Named for a parent, so the element is that parent's name plus a
-      // suffix for this person's sex, and is never inherited further.
-      const parent = pick(
-        tradition.patronymic.parents ?? tradition.masculine,
-        seed,
-        id,
-        "parent-name",
-      );
-      const suffix = tradition.patronymic[sex === "female" ? "female" : "male"];
-      return {
-        display: `${personal} ${parent}${suffix}`,
-        personal,
-        families: [] as string[],
-        format: "personal-patronymic",
-        tradition: tradition.id,
-        region: drawn.region,
-        note: tradition.note,
-      };
-    }
-    const inherited = inheritedFamilies?.[0];
-    // A hereditary family name is an invention with a date, and most of these
-    // pools carry one for a period long before their people did.
-    const surnamed =
-      tradition.familyNamesFrom === undefined ||
-      s.year >= tradition.familyNamesFrom;
-    const family =
-      inherited ??
-      (surnamed &&
-      tradition.familyNames.length &&
-      random(seed, "character-v1", id, "has-family-name") >=
-        tradition.noFamilyName
-        ? pick(tradition.familyNames, seed, id, "family-name")
-        : undefined);
+    const suffix = tradition.patronymic[sex === "female" ? "female" : "male"];
     return {
-      display: !family
-        ? personal
-        : tradition.format === "family-personal"
-          ? `${family} ${personal}`
-          : `${personal} ${family}`,
+      display: `${personal} ${parent}${suffix}`,
       personal,
-      families: family ? [family] : [],
-      format: family ? tradition.format : "personal",
-      tradition: tradition.id,
-      region: drawn.region,
-      note: tradition.note,
+      families: [] as string[],
+      format: "personal-patronymic",
+      ...provenance,
     };
   }
-  const personal = pick(kit.names, seed, id, "name");
-  const format = kit.format ?? "personal";
-  const families: string[] = [];
-  if (format === "personal-patronymic") {
-    const patronymic = kit.patronymic
-      ? pick(kit.patronymic.parents, seed, id, "parent-name") +
-        kit.patronymic[sex === "female" ? "female" : "male"]
-      : pick(kit.patronymics!, seed, id, "patronymic");
-    return {
-      display: `${personal} ${patronymic}`,
-      personal,
-      // A patronymic identifies a parent, not a hereditary household name.
-      families,
-      format,
-    };
-  }
-  if (format !== "personal") {
+  const inherited = inheritedFamilies?.[0];
+  // A hereditary family name is an invention with a date, and most of these
+  // pools carry one for a period long before their people did.
+  const surnamed =
+    tradition.familyNamesFrom === undefined ||
+    s.year >= tradition.familyNamesFrom;
+  const family =
+    inherited ??
+    (surnamed &&
+    tradition.familyNames.length &&
+    random(seed, "character-v1", id, "has-family-name") >=
+      tradition.noFamilyName
+      ? pick(tradition.familyNames, seed, id, "family-name")
+      : undefined);
+  const families = family ? [family] : [];
+  if (family && tradition.format === "personal-two-families")
     families.push(
-      inheritedFamilies?.[0] ?? pick(kit.familyNames!, seed, id, "family-name"),
+      inheritedFamilies?.[1] ??
+        pick(
+          tradition.secondFamilyNames ?? tradition.familyNames,
+          seed,
+          id,
+          "second-family-name",
+        ),
     );
-    if (format === "personal-two-families")
-      families.push(
-        inheritedFamilies?.[1] ??
-          pick(
-            kit.secondFamilyNames ?? kit.familyNames!,
-            seed,
-            id,
-            "second-family-name",
-          ),
-      );
-  }
-  const display = (
-    format === "family-personal"
+  return {
+    display: (tradition.format === "family-personal"
       ? [...families, personal]
       : [personal, ...families]
-  ).join(" ");
-  return { display, personal, families, format };
+    ).join(" "),
+    personal,
+    families,
+    format: family ? tradition.format : "personal",
+    ...provenance,
+  };
 }
 export function characterName(
   s: WorldSetting,
@@ -421,16 +393,13 @@ export function generateCharacter(
   const community = characterCommunity(s, seed, id);
   const context = resolveCharacterContext(s, community);
   const standing = characterStanding(s, seed, id, community);
-  // The hand-written kits are not split by gender yet, so a drawn sex would
-  // contradict the name half the time. Ported traditions are split.
-  const drawn: Sex = context.names ? "unspecified" : sex;
   const naming = characterNameParts(
     s,
     seed,
     id,
     context,
     inheritedFamilies,
-    drawn,
+    sex,
     inheritedTradition,
   );
   const livelihood = characterLivelihood(
@@ -439,7 +408,7 @@ export function generateCharacter(
     id,
     requestedRole,
     context,
-    drawn,
+    sex,
     standing,
   );
   const recognized =
@@ -465,29 +434,23 @@ export function generateCharacter(
       "household member",
     ].includes(requestedRole.toLowerCase());
   const role = recognized ? livelihood.label : requestedRole!;
-  // The body follows the name where the kit could not be told a sex, so a
-  // woman named Anna is never drawn with a beard.
-  const bodySex: Sex =
-    drawn === "unspecified"
-      ? (sexFromName(explicitName || naming.display) ?? sex)
-      : drawn;
   const appearance = characterAppearance(
     s,
     seed,
     id,
     age,
     context,
-    bodySex,
+    sex,
     livelihood.rank,
   );
   appearance.wearing = wardrobeFor({
-    id, age, sex: bodySex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role),
+    id, age, sex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role),
   }, { year: s.year, setting: s }, appearance.wearing);
   const cloth = clothFor(
     {
       id,
       age,
-      sex: bodySex,
+      sex,
       livelihood: livelihood.id,
       roles: rolesFrom(requestedRole, role),
     },
@@ -508,7 +471,7 @@ export function generateCharacter(
         id,
       ),
     };
-  const accessory = accessoryFor({ id, age, sex: bodySex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role) },
+  const accessory = accessoryFor({ id, age, sex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role) },
     { year: s.year, setting: s }, appearance.wearing.garment);
   const inventory: Inventory = eligibleInventory(livelihood.inventory, context);
   if (/hunter|archer|bowman/i.test(livelihood.label)) Object.assign(inventory, { bow: 1, arrow: 12 });
@@ -528,7 +491,7 @@ export function generateCharacter(
       nameKit: context.names?.id,
       nameTradition: "tradition" in naming ? naming.tradition : undefined,
       nameRegion: "region" in naming ? naming.region : undefined,
-      sex: drawn,
+      sex,
       standing,
       nameFormat:
         explicitName && explicitName !== naming.display

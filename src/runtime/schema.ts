@@ -534,6 +534,16 @@ export const narratorReplySchema = z
     command: z
       .discriminatedUnion("type", commandSchema.options.slice(0, -1) as never)
       .optional(),
+    errand: z
+      .object({
+        kind: z.enum(["roam", "forage", "workday", "go"]),
+        run: z.boolean().optional(),
+        item: z.string().max(40).optional(),
+        target: z.string().max(100).optional(),
+        direction: z.enum(["north", "south", "east", "west"]).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type NarratorReply = z.infer<typeof narratorReplySchema>;

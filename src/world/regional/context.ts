@@ -59,6 +59,9 @@ export function createRegionalContext(start: WorldSetting) {
   if (
     start.geographyMode !== "configured" &&
     start.settlement !== "camp" &&
+    // Starts are snapped to their square's centre, so a named city can sit
+    // well outside the 0.025° test below; re-anchoring it there lost Dubai.
+    !named.has(start.placeId) &&
     !profiles.some(
       (p) =>
         p.settlement !== "procedural" &&

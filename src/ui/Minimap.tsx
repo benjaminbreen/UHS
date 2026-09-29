@@ -64,6 +64,7 @@ const shade: Record<string, string> = {
   sand: "#c4b47c",
 };
 const roofCache = new Map<string, { roof: string; wall: string }>();
+let toneCanvas: HTMLCanvasElement | undefined;
 /** Roof and wall tone read from the building's own sprite, so each region's houses keep their colours. */
 function buildingTones(sprite: string) {
   const cached = roofCache.get(sprite);
@@ -86,13 +87,15 @@ function buildingTones(sprite: string) {
   if (!frames || !image.complete || !image.naturalWidth) return fallback;
   const f = frames[sprite]?.frame;
   if (!f) return fallback;
-  const c = document.createElement("canvas");
-  c.width = f.w;
-  c.height = f.h;
-  const ctx = c.getContext("2d")!;
+  toneCanvas ??= document.createElement("canvas");
+  toneCanvas.width = f.w;
+  toneCanvas.height = f.h;
+  // A GPU-backed canvas made each first sighting of a sprite a readback stall.
+  const ctx = toneCanvas.getContext("2d", { willReadFrequently: true })!;
   ctx.drawImage(image, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+  const pixels = ctx.getImageData(0, 0, f.w, f.h).data;
   const avg = (y0: number, y1: number) => {
-    const d = ctx.getImageData(0, y0, f.w, Math.max(1, y1 - y0)).data;
+    const d = pixels.subarray(y0 * f.w * 4, Math.max(y0 + 1, y1) * f.w * 4);
     let r = 0,
       g = 0,
       b = 0,

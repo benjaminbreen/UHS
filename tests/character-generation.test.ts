@@ -270,6 +270,20 @@ it("renders an Icelandic patronymic without treating it as a hereditary family n
   expect(name.families).toEqual([]);
 });
 
+it("gives a hand-written kit's people names that match their sex, beside the kit's other traditions", async () => {
+  const { characterNameParts } = await import(
+    "../src/content/characters/generate"
+  );
+  const rome = settingFor(place("rome"), 100);
+  const kit = resolveCharacterContext(rome).names!;
+  expect(kit.id).toBe("names-roman-italy-100bce-476ce");
+  const women = Array.from({ length: 60 }, (_, i) =>
+    characterNameParts(rome, "roman-names", `w-${i}`, undefined, undefined, "female"),
+  );
+  for (const n of women.filter((n) => "tradition" in n && n.tradition === kit.id))
+    expect(kit.feminine).toContain(n.personal);
+  expect(women.some((n) => "tradition" in n && n.tradition === "ancient-greek")).toBe(true);
+});
 it("keeps multiword Burmese personal names intact and scopes them to the Burmese scenario", async () => {
   const { characterNameParts } = await import(
     "../src/content/characters/generate"

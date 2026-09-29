@@ -337,7 +337,9 @@ writeFileSync(
       (r.needs.length ? `    capabilities: ${JSON.stringify(r.needs)},\n` : "") +
       (r.needsAny.length ? `    anyCapability: ${JSON.stringify(r.needsAny)},\n` : "") +
       (r.excludes.length ? `    withoutCapability: ${JSON.stringify(r.excludes)},\n` : "") +
-      (r.sex ? `    sex: ${JSON.stringify(r.sex)},\n` : "") +
+      ((sex = scopes[r.id]?.sex ?? r.sex) =>
+        sex ? `    sex: ${JSON.stringify(sex)},\n` : "")() +
+      (scopes[r.id]?.sexUntil ? `    sexUntil: ${scopes[r.id].sexUntil},\n` : "") +
       `    rank: ${JSON.stringify(rankOf.get(r.id) ?? RANKS.default)},\n` +
       `    inventory: ${JSON.stringify(r.inventory)},\n  },`,
     ).join("\n") +

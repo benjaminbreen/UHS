@@ -5,7 +5,13 @@ import {
   forageByTerrain,
   lookSprites,
 } from "../content/ecology/forage";
-import { distance, type Intent, type ItemDef, type ItemId } from "./types";
+import {
+  distance,
+  type Intent,
+  type ItemDef,
+  type ItemId,
+  type Position,
+} from "./types";
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, v));
 export const MAX_INTENTS = 6;
@@ -147,17 +153,17 @@ function climb(engine: Engine, target: string) {
   });
   return `Climbed onto ${named?.name ?? reachable?.label ?? target}.`;
 }
-function forage(engine: Engine, wanted?: ItemId) {
-  const p = engine.state.player;
+/** What the ground within reach of a spot gives, by weight. */
+export function forageTable(engine: Engine, pos: Position) {
   const table = new Map<ItemId, number>();
   const add = (rows: [ItemId, number][]) =>
     rows.forEach(([id, w]) => table.set(id, (table.get(id) ?? 0) + w));
-  if (p.pos.space === "outside") {
+  if (pos.space === "outside") {
     const cover: string[] = [];
     for (let dy = -2; dy <= 2; dy++)
       for (let dx = -2; dx <= 2; dx++) {
-        const x = p.pos.x + dx,
-          y = p.pos.y + dy;
+        const x = pos.x + dx,
+          y = pos.y + dy;
         // Underfoot counts double; the ring around counts once; the outer
         // ring only for water, which is reachable from the bank.
         const ring = Math.max(Math.abs(dx), Math.abs(dy)),
@@ -169,11 +175,16 @@ function forage(engine: Engine, wanted?: ItemId) {
         if (d) cover.push(d.sprite);
       }
     for (const o of engine.state.objects)
-      if (o.kind === "tree" && distance(o.pos, p.pos) <= 2.5)
+      if (o.kind === "tree" && distance(o.pos, pos) <= 2.5)
         cover.push(o.sprite);
     for (const [pattern, rows] of forageByCover)
       if (cover.some((s) => pattern.test(s))) add(rows);
   }
+  return table;
+}
+function forage(engine: Engine, wanted?: ItemId) {
+  const p = engine.state.player;
+  const table = forageTable(engine, p.pos);
   if (!table.size) {
     engine.event("There is nothing to gather here.");
     return "Nothing to forage here.";

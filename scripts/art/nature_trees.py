@@ -10,7 +10,6 @@ from art import canopy
 BARK = ['#302d2a', '#574033', '#805339', '#a67343', '#c79a59', '#e3be77']
 PINE = ['#0f2223', '#1a3d31', '#29603d', '#417b38', '#729a41', '#a4b85e']
 THORN = ['#1b2b21', '#2f4928', '#506b28', '#78892c', '#a7a23f', '#cdc071']
-SPRUCE = ['#0e2124', '#193e37', '#246049', '#397d58', '#659d6a', '#a4be86']
 PALM = ['#0f2520', '#1c492f', '#2d7532', '#50982f', '#90ba3a', '#c3cf6b']
 
 
@@ -94,28 +93,6 @@ def sahel_thorn():
     # A few hanging pods and leaf twigs, kept separate from the foliage silhouette.
     for x,y in [(17,35),(29,34),(58,38),(74,35)]:
         d.line([(x,y),(x,y+3),(x+1,y+4)],fill=BARK[1]);d.point((x,y+1),fill=BARK[3])
-    return im
-
-
-def boreal_spruce():
-    im,d=canvas((64,96))
-    branch(d,[(32,88),(31,68),(32,43),(31,12)],5)
-    d.polygon([(28,84),(35,84),(37,91),(32,89),(27,91),(29,87)],fill=BARK[0])
-    d.line((30,82,30,88),fill=BARK[4],width=2)
-    # Authored irregular tiers, narrowing upward. Each bough has pointed fingers.
-    for cx,cy,rx,ry,seed in [(31,75,25,8,11),(33,66,22,9,21),(29,56,20,10,31),(32,46,17,10,41),(30,36,13,10,51),(31,26,10,10,61),(31,16,6,9,71)]:
-        crown(im,cx,cy,rx,ry,SPRUCE,seed)
-        d=ImageDraw.Draw(im)
-        for j in range(-2,3):
-            x=cx+j*max(2,rx//3);y=cy+ry-1-abs(j)
-            d.line([(x-2,y-3),(x,y+2),(x+2,y)],fill=SPRUCE[0],width=2)
-            d.line([(x-2,y-4),(x,y),(x+1,y-1)],fill=SPRUCE[2],width=1)
-        # One continuous sloped light band on a few upper branch faces.
-        d.line([(cx-rx+4,cy-1),(cx-rx+8,cy-4),(cx-4,cy-5)],fill=SPRUCE[4])
-    d=ImageDraw.Draw(im)
-    d.line([(31,13),(31,4)],fill=SPRUCE[0],width=2)
-    d.line([(30,10),(31,6)],fill=SPRUCE[4])
-    d.line([(28,13),(31,9),(34,15)],fill=SPRUCE[2])
     return im
 
 
@@ -266,15 +243,12 @@ def trees():
         'nature-redwood':canopy.redwood(1),'nature-redwood-2':canopy.redwood(2),'nature-redwood-3':canopy.redwood(5),
         'nature-douglas-fir':canopy.douglas_fir(1),'nature-douglas-fir-2':canopy.douglas_fir(3),'nature-douglas-fir-3':canopy.douglas_fir(4),
         'nature-cedar':canopy.cedar(1),'nature-cedar-2':canopy.cedar(2),
-        'nature-cypress':canopy.cypress(1),'nature-cypress-2':canopy.cypress(2),'nature-cypress-3':canopy.cypress(3),
         'nature-oak':canopy.oak(1),'nature-oak-2':canopy.oak(2),'nature-oak-3':canopy.oak(3),
         'nature-oak-autumn':canopy.oak(1,autumn=True),'nature-oak-2-autumn':canopy.oak(2,autumn=True),'nature-oak-3-autumn':canopy.oak(3,autumn=True),
         'nature-oak-bare':canopy.oak(1,bare=True),'nature-oak-2-bare':canopy.oak(2,bare=True),'nature-oak-3-bare':canopy.oak(3,bare=True),
         'nature-olive':canopy.olive(1),'nature-olive-2':canopy.olive(2),'nature-olive-3':canopy.olive(3),
-        'nature-acacia':canopy.acacia(1),'nature-acacia-2':canopy.acacia(2),'nature-acacia-3':canopy.acacia(3),
         'nature-spreading-pine-2':canopy.conifer((112,120),2,9),
         'nature-spreading-pine-3':canopy.conifer((112,120),4,9),
-        'nature-boreal-spruce':boreal_spruce(),
         'nature-sahel-thorn':sahel_thorn(),
         'nature-silver-birch':silver_birch(),
         'nature-tropical-broadleaf':canopy.tropical_broadleaf(),

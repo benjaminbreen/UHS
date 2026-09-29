@@ -2261,6 +2261,7 @@ export function createSettlementWorld(
           )
           .map((o) => cellKey(o.pos.x, o.pos.y)),
       );
+      let exhausted = false;
       const leg = (from: Point, to: Point) => {
         if (from.x === to.x && from.y === to.y) return [];
         const goal = cellKey(to.x, to.y);
@@ -2288,6 +2289,7 @@ export function createSettlementWorld(
             },
           },
         );
+        exhausted = result.status === "budget";
         return result.status === "found" ? result.path : undefined;
       };
       const reach = (from: Point, station: Station, returnHome = false) => {
@@ -2304,6 +2306,9 @@ export function createSettlementWorld(
           const back = returnHome && there ? leg(pos, from) : [];
           if (there && (!returnHome || back))
             return { station: dx || dy ? { ...station, pos } : station, there, back: back ?? [] };
+          // A search that ran out of budget runs out again one cell over; the
+          // retries cost a full budget each, half a second for one resident.
+          if (exhausted) break;
         }
         plan!.diagnostics.routineDrops = (plan!.diagnostics.routineDrops ?? 0) + 1;
         return undefined;

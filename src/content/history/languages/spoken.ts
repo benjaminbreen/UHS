@@ -18,7 +18,8 @@ const LEVANT: Box = [34, 29, 42, 37.5];
 const MESOPOTAMIA: Box = [42, 29, 49, 37.5];
 const EGYPT: Box = [24, 22, 36, 32];
 const MAGHREB: Box = [-17, 27, 24, 37.5];
-const IRAN: Box = [44, 25, 63, 40];
+// South edge at 26° keeps the Emirates coast out of Iran.
+const IRAN: Box = [44, 26, 63, 40];
 const NORTH_CHINA: Box = [100, 30, 125, 42];
 const SOUTH_CHINA: Box = [100, 18, 122, 30];
 const JAPAN: Box = [129, 30, 146, 46];

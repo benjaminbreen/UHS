@@ -103,6 +103,8 @@ import {
 import { items, packs } from "../content/packs";
 import { rollStats } from "../core/stats";
 import { narratorTurn, type Turn } from "../narrator/turn";
+import { Autopilot, parsePlan, type Plan } from "./autopilot";
+import { routePlan } from "./router";
 import {
   findNearest,
   namedAnimal,
@@ -319,6 +321,8 @@ export class Runtime {
   running = false;
   zoom = 2;
   route: Point[] = [];
+  /** A standing errand typed into the narrator: roam, walk far, work. */
+  autopilot?: Autopilot;
   private follow?: string;
   private steps = 0;
   private serial = 0;
@@ -964,19 +968,63 @@ export class Runtime {
    * answer every time, and the player walks off at once. */
   async say(input: string): Promise<Turn> {
     const terms = parseFind(input);
+    const plan = parsePlan(input, this.engine);
     let turn: Turn;
-    if (terms) {
+    let found: FindTarget | undefined;
+    if (!plan && terms) {
       this.engine.syncFauna();
-      const found = findNearest(this.engine.state, terms);
-      if (found) turn = this.walkToFound(input, found);
-      else {
-        const animal = namedAnimal(terms);
-        turn = animal ? this.noneFound(input, animal) : await narratorTurn(this, input);
-      }
-      // Nothing of that name is loaded; let the narrator answer as before.
-    } else turn = await narratorTurn(this, input);
+      found = findNearest(this.engine.state, terms);
+    }
+    const animal = terms && namedAnimal(terms);
+    const routed = plan || found || animal ? undefined : await routePlan(this.engine, input);
+    if (plan ?? routed) turn = this.startPlan(input, (plan ?? routed)!);
+    else if (found) turn = this.walkToFound(input, found);
+    else if (animal) turn = this.noneFound(input, animal);
+    else turn = await narratorTurn(this, input);
     this.onRecord?.("text", { input: input.trim().slice(0, 600), response: turn.text, error: turn.error });
     return turn;
+  }
+  private startPlan(input: string, plan: Plan): Turn {
+    this.setOff(plan);
+    const text =
+      plan.kind === "go"
+        ? `You set off for ${plan.label}.`
+        : plan.kind === "workday"
+          ? "You set about the day's work."
+          : plan.kind === "roam"
+            ? plan.run
+              ? "You break into a run."
+              : "You wander about."
+            : `You wander off to gather${plan.item ? ` ${this.engine.item(plan.item)?.name.toLowerCase() ?? plan.item}` : ""}.`;
+    return this.log(input, text);
+  }
+  /** Starts a standing errand; the narrator uses this when its turn sends the
+   * player somewhere. */
+  setOff(plan: Plan) {
+    this.flushAmbient();
+    this.stop(false);
+    this.autopilot = new Autopilot(plan, this.engine);
+    this.running = true;
+  }
+  private log(input: string, text: string): Turn {
+    const s = this.engine.state;
+    s.narration = [...(s.narration ?? []), { clock: s.clock, input, text }].slice(-200);
+    this.touch();
+    return { text, outcomes: [] };
+  }
+  /** One step of a standing errand, taken when the last route has run out. */
+  private pilot() {
+    const step = this.autopilot!.next();
+    if ("route" in step) this.route = step.route;
+    else if ("command" in step) {
+      const result = this.command(step.command);
+      if (result?.status === "rejected") this.autopilot?.blocked();
+    } else if ("done" in step) {
+      this.stop(false);
+      this.log("", step.done);
+      this.notice = step.done;
+      this.emit();
+    }
   }
   /** Walks to a found target and logs it as a narration turn, so the search
    * reads back in the log beside everything else the player has said. */
@@ -1985,6 +2033,10 @@ export class Runtime {
         this.flushAmbient();
       return;
     }
+    if (this.autopilot && !this.route.length) {
+      this.pilot();
+      return;
+    }
     const p = this.engine.state.player.pos;
     if (this.follow) {
       const a = this.engine.state.actors.find((a) => a.id === this.follow);
@@ -2034,17 +2086,25 @@ export class Runtime {
       this.stop();
       return;
     }
+    const plan = this.autopilot?.plan;
     const result = this.command({
       type: "move",
       dx: step.x - p.x,
       dy: step.y - p.y,
+      ...(plan?.kind === "roam" && plan.run ? { run: true } : {}),
     });
-    if (result?.status === "rejected") this.stop();
-    if (!this.route.length && !this.follow) this.stop();
+    if (result?.status === "rejected") {
+      if (this.autopilot) {
+        this.route = [];
+        this.autopilot.blocked();
+      } else this.stop();
+    }
+    if (!this.route.length && !this.follow && !this.autopilot) this.stop();
   }
   stop(emit = true) {
     this.route = [];
     this.follow = undefined;
+    this.autopilot = undefined;
     this.running = false;
     if (emit) this.emit(false);
   }

@@ -34,7 +34,9 @@ export function validateCharacterContent() {
   unique(nameRegions);
   for (const kit of nameKits) {
     const barred = barredNameEntries([
-      ...kit.names,
+      ...kit.masculine,
+      ...kit.feminine,
+      ...(kit.unisex ?? []),
       ...(kit.familyNames ?? []),
       ...(kit.secondFamilyNames ?? []),
     ]);
@@ -76,20 +78,21 @@ export function validateCharacterContent() {
   }
   for (const kit of nameKits) {
     scope(kit.scope);
-    if (kit.format && kit.format !== "personal" && !kit.familyNames?.length)
-      if (
-        kit.format !== "personal-patronymic" ||
-        !(kit.patronymics?.length || kit.patronymic?.parents.length)
-      )
-        throw Error(`Missing family names: ${kit.id}`);
     if (
-      kit.format === "personal-patronymic" &&
-      !kit.patronymic?.parents.length &&
-      (!kit.patronymics?.length || kit.patronymics.some((n) => !n.trim()))
+      kit.format &&
+      kit.format !== "personal" &&
+      kit.format !== "personal-patronymic" &&
+      !kit.familyNames?.length
     )
+      throw Error(`Missing family names: ${kit.id}`);
+    if (kit.format === "personal-patronymic" && !kit.patronymic?.parents.length)
       throw Error(`Missing patronymics: ${kit.id}`);
-    if (!kit.names.length || kit.names.some((n) => !n.trim()))
+    const all = [...kit.masculine, ...kit.feminine, ...(kit.unisex ?? [])];
+    if (!all.length || all.some((n) => !n.trim()))
       throw Error("Empty name kit");
+    for (const o of kit.alongside ?? [])
+      if (!traditionIds.has(o.tradition))
+        throw Error(`Unknown tradition ${o.tradition} in ${kit.id}`);
   }
   for (const kit of appearanceKits) {
     if (

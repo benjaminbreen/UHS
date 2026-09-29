@@ -40,6 +40,7 @@ import type { LucideIcon } from "lucide-react";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { accentFor, patternFor, sceneFor } from "./culture-theme";
 import { ItemIcon, timeLabel } from "./components";
+import { ItemInspect } from "./ItemInspect";
 import { dayPlan } from "../core/itinerary";
 import { asDoing } from "../core/agenda";
 import type { TaskSource } from "./task-view";
@@ -498,6 +499,7 @@ export function CharacterPanel({
     undefined,
   );
   const [shown, setShown] = useState<string | undefined>(undefined);
+  const [inspecting, setInspecting] = useState<string>();
   const [selectedPowerName, setSelectedPowerName] = useState<
     string | undefined
   >(undefined);
@@ -677,6 +679,32 @@ export function CharacterPanel({
         } as CSSProperties
       }
     >
+      {inspecting && runtime.item(inspecting) && (
+        <ItemInspect
+          id={inspecting}
+          def={runtime.item(inspecting)!}
+          count={actor.inventory[inspecting] ?? 0}
+          rarity={
+            rarityFor(inspecting) !== "common"
+              ? {
+                  label: rarityLabels[rarityFor(inspecting)],
+                  color: rarityColors[rarityFor(inspecting)],
+                }
+              : undefined
+          }
+          actions={
+            isPlayer && inspecting === shownId && equipAction
+              ? [
+                  {
+                    label: equipAction.label,
+                    onClick: () => runtime.command(equipAction.command),
+                  },
+                ]
+              : undefined
+          }
+          onClose={() => setInspecting(undefined)}
+        />
+      )}
       <i className="culture-strip" aria-hidden="true" />
       <header className="character-header">
         <span className="header-avatar" aria-hidden="true">
@@ -989,7 +1017,13 @@ export function CharacterPanel({
                     onDragStart={(e) =>
                       e.dataTransfer.setData("text/plain", id)
                     }
-                    onClick={() => setShown(id)}
+                    onClick={() =>
+                      (shown ?? goods[0]?.[0]) === id
+                        ? setInspecting(id)
+                        : setShown(id)
+                    }
+                    onDoubleClick={() => setInspecting(id)}
+                    title="Click again to inspect"
                   >
                     <ItemIcon id={id} sprite={runtime.item(id)?.sprite} scale={3} />
                     {n > 1 && <b>×{n}</b>}
@@ -1019,6 +1053,11 @@ export function CharacterPanel({
               </strong>
               {goods.length > 0 && (
                 <span>{runtime.item(shown ?? goods[0][0])?.description}</span>
+              )}
+              {shownDef && (
+                <button className="wear-action" onClick={() => setInspecting(shownId)}>
+                  Inspect
+                </button>
               )}
               {isPlayer && equipAction && (
                 <button

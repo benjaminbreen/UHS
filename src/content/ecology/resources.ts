@@ -3,6 +3,7 @@ export const ecologicalItems: Record<string, ItemDef> = {
   fruit: {
     id: "fruit",
     name: "Wild fruit",
+    description: "Picked ripe from a wild tree or vine; sweet, bruised and best eaten the day it falls.",
     sprite: "ecology-fruit-item",
     value: 1,
     edible: 18,
@@ -10,14 +11,16 @@ export const ecologicalItems: Record<string, ItemDef> = {
   berries: {
     id: "berries",
     name: "Berries",
+    description: "A handful gathered from the brambles, staining the fingers; eaten on the spot or dried for later.",
     sprite: "ecology-berries-item",
     value: 1,
     edible: 12,
   },
-  reeds: { id: "reeds", name: "Reeds", sprite: "reeds", value: 1 },
+  reeds: { id: "reeds", name: "Reeds", description: "Tall hollow stems cut at the water's edge, for thatch, mats, baskets and pens.", sprite: "reeds", value: 1 },
   meat: {
     id: "meat",
     name: "Raw meat",
+    description: "Freshly butchered flesh. Cook it before it turns; raw, it sickens as often as it feeds.",
     sprite: "meat",
     value: 4,
     edible: 14,
@@ -26,12 +29,13 @@ export const ecologicalItems: Record<string, ItemDef> = {
   "cooked-meat": {
     id: "cooked-meat",
     name: "Cooked meat",
+    description: "Meat roasted over the fire until the juices run clear: rich, filling and rarely wasted.",
     sprite: "cooked-meat",
     value: 6,
     edible: 40,
     health: 12,
   },
-  hide: { id: "hide", name: "Raw hide", sprite: "hide", value: 6 },
-  feathers: { id: "feathers", name: "Feathers", sprite: "feathers", value: 1 },
-  fodder: { id: "fodder", name: "Forage", sprite: "ecology-grazing", value: 1 },
+  hide: { id: "hide", name: "Raw hide", description: "A skin fresh off the carcass, heavy and greasy. Scraped and tanned, it becomes leather.", sprite: "hide", value: 6 },
+  feathers: { id: "feathers", name: "Feathers", description: "Plucked or picked up where birds have been; they fletch arrows, stuff bedding and trim hats.", sprite: "feathers", value: 1 },
+  fodder: { id: "fodder", name: "Forage", description: "Cut grass and leaves bundled for animals; what keeps a beast alive through the lean months.", sprite: "ecology-grazing", value: 1 },
 };

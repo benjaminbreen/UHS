@@ -931,7 +931,7 @@ export const nameRegions: readonly NameRegion[] = [
   {
     id: "mena-persian-plateau",
     label: "Persian Plateau",
-    bounds: [44,25,63,40],
+    bounds: [44,26,63,40],
     culture: "north-african-west-asian",
     windows: [
       { years: [-1000000, -2700], options: [{ tradition: "early-west-eurasia", weight: 1 }] },

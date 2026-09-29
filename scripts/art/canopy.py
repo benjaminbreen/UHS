@@ -486,7 +486,6 @@ REDWOOD_WOOD = ['#2a1410', '#4e2418', '#7a3a24', '#a2552f', '#c27a48', '#dba36a'
 FIR_LEAF = ['#0c1d1c', '#142f2c', '#1d4838', '#2a6142', '#3d7f4e', '#5f9e5e', '#8fbd7c']
 FIR_WOOD = ['#241c18', '#3f312a', '#5c4a3e', '#7b6553', '#9a836c', '#b8a288']
 CEDAR_LEAF = ['#0e1f1e', '#17352f', '#22503d', '#2f6a46', '#43864f', '#69a463', '#9cc283']
-CYPRESS_LEAF = ['#0d1c18', '#152f24', '#1f472d', '#2b5f33', '#3c7a3a', '#5a9448', '#8bb166']
 OAK_LEAF = ['#1e2f1a', '#324f25', '#4a722d', '#659334', '#87b040', '#acc955', '#d3df7e']
 OAK_WOOD = ['#251b16', '#463328', '#66493a', '#87664e', '#a88a6a', '#c8ac88']
 OAK_AUTUMN = ['#33200f', '#5e3814', '#8b561b', '#b47a25', '#d1a033', '#e4c14e', '#f2dd82']
@@ -516,29 +515,6 @@ def cedar(seed):
                    whorls=4, trunk_w=12, pad=1.3)
 
 
-def cypress(seed):
-    """Italian cypress: one dark column, no visible limbs."""
-    W, H = 32, 112
-    rng = random.Random(seed)
-    im = Image.new('RGBA', (W, H))
-    base = (W // 2, H - 4)
-    segs = [(base[0], base[1], base[0] + rng.uniform(-1, 1), H * 0.12, 4.0, 1.2, 0)]
-    for p, t in paint_wood((W, H), segs, rng).items():
-        im.putpixel(p, rgb(OAK_WOOD[t]))
-    clumps = []
-    y = base[1] - 4
-    while y > 10:
-        t = (y - 10) / (base[1] - 14)
-        r = 2.2 + 4.2 * math.sin(min(1.0, t * 1.15) * math.pi * 0.5) * (0.9 if t > 0.85 else 1)
-        clumps.append((base[0] + rng.uniform(-1.2, 1.2), y, r, (1 - t) * 6 + rng.uniform(0, 2),
-                       (rng.uniform(0, 6.3), rng.uniform(0, 6.3), 0.06, 0.03)))
-        y -= 3
-    tones = paint_leaves((W, H), clumps, rng, 4, tuft=0.55, gaps=0.04, needle=True, shade=0.25)
-    for p, t in tones.items():
-        im.putpixel(p, rgb(CYPRESS_LEAF[t]))
-    return im
-
-
 def oak(seed, autumn=False, bare=False):
     """Quercus: a stout short trunk and a wide crooked crown, wider than tall."""
     return tree((112, 104), seed, 4, 13, 9, spread=1.05, leaf=OAK_AUTUMN if autumn else OAK_LEAF,
@@ -549,31 +525,3 @@ def olive(seed):
     """Olea: a gnarled pale trunk that leans, a loose silver-grey crown."""
     return tree((72, 72), seed, 3, 8, 6, lean=random.Random(seed).uniform(-0.25, 0.25), spread=1.0,
                 leaf=OLIVE_LEAF, wood=OLIVE_WOOD, trunk=0.3, tuft=0.4, gaps=0.18, shade=0.12)
-
-
-def acacia(seed):
-    """Umbrella thorn: limbs fan out from a tall clear bole and stop at one
-    level, a flat plate of fine leaf spread across the top."""
-    W, H = 112, 108
-    rng = random.Random(seed)
-    base = (W // 2, H - 8)
-    lean = rng.uniform(-0.1, 0.1)
-    _, probe = skeleton(random.Random(seed), base, H - 8, 3, 9, lean, 1.35, 0.42)
-    scale = min((base[1] - 16) / max(1.0, base[1] - min(y for _, y, *_ in probe)),
-                (W / 2 - 10) / max(1.0, max(abs(x - base[0]) for x, *_ in probe)))
-    rng = random.Random(seed)
-    segs, tips = skeleton(rng, base, (H - 8) * scale, 3, 9, lean, 1.35, 0.42)
-    im = Image.new('RGBA', (W, H))
-    for p, t in paint_wood((W, H), segs + roots(rng, base, 9), rng).items():
-        im.putpixel(p, rgb(ACACIA_WOOD[t]))
-    top = min(y for _, y, *_ in tips)
-    level = top + 9
-    clumps = []
-    for x, y, *_ in tips:
-        for ox in (-7, 0, 7):
-            clumps.append((x + ox + rng.uniform(-1, 1), level + rng.uniform(-3, 3), 9 * rng.uniform(0.85, 1.1),
-                           rng.uniform(0, 4), (rng.uniform(0, 6.3), rng.uniform(0, 6.3), 0.06, 0.04)))
-    tones = paint_leaves((W, H), clumps, rng, 9, tuft=0.36, gaps=0.14, needle=True, shade=0.05)
-    for p, t in tones.items():
-        im.putpixel(p, rgb(ACACIA_LEAF[t]))
-    return im

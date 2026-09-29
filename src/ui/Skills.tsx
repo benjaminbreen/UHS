@@ -5,7 +5,6 @@ import {
   Crosshair,
   Footprints,
   Hammer,
-  Heart,
   Leaf,
   MessageCircle,
   PawPrint,
@@ -33,7 +32,6 @@ import {
   type TechniqueId,
   type Tier,
 } from "../core/techniques";
-import { DrainBar } from "./motion";
 
 const ICONS: Record<SkillId, LucideIcon> = {
   hunting: Crosshair,
@@ -82,21 +80,48 @@ export function Vitals({
   clock: number;
 }) {
   const days = injury ? Math.ceil((injury.until - clock) / 86400) : 0;
+  const was = useRef(health);
+  const [flash, setFlash] = useState<{ kind: "hurt" | "heal"; n: number }>();
+  useEffect(() => {
+    const delta = Math.round(health) - Math.round(was.current);
+    was.current = health;
+    if (delta)
+      setFlash((f) => ({ kind: delta < 0 ? "hurt" : "heal", n: (f?.n ?? 0) + 1 }));
+  }, [health]);
+  const hp = Math.round(health);
   return (
     <div
+      key={flash?.n}
       className="vitals"
       data-low={health < 35 || undefined}
+      data-flash={flash?.kind}
+      data-tip={`Health ${hp} / 100${injury && days > 0 ? ` · ${injury.name}` : ""}`}
       role="status"
-      aria-label={`Health ${Math.round(health)} of 100`}
+      aria-label={`Health ${hp} of 100`}
     >
-      <Heart size={13} fill="currentColor" />
-      <DrainBar value={health} className="vitals-bar" />
+      {HEARTS.map((i) => (
+        <HeartContainer key={i} fill={Math.max(0, Math.min(1, (health - i * 20) / 20))} />
+      ))}
       {injury && days > 0 && (
         <span className="vitals-injury">
-          <Bandage size={12} /> {injury.name} · {days}d
+          <Bandage size={12} /> {days}d
         </span>
       )}
     </div>
+  );
+}
+
+const HEARTS = [0, 1, 2, 3, 4];
+// 7x6 pixel heart; each container holds 20 health, filled in quarters.
+const HEART_PATH = "M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z";
+
+function HeartContainer({ fill }: { fill: number }) {
+  const q = Math.ceil(fill * 4) / 4;
+  return (
+    <svg className="heart" viewBox="0 0 7 6" data-empty={q === 0 || undefined}>
+      <path d={HEART_PATH} className="heart-empty" />
+      <path d={HEART_PATH} className="heart-full" style={{ clipPath: `inset(0 ${100 - q * 100}% 0 0)` }} />
+    </svg>
   );
 }
 

@@ -732,20 +732,30 @@ export function paintSculpted(appearance: CharacterAppearance, age = 30, options
   return r;
 }
 
-/** Trace the turn's in-between angles in idle time, one per callback, so the first turn does not stall. */
+let tracer: Worker | undefined;
+const tracing = new Map<string, [CharacterAppearance, number, HeadPose]>();
+/** Trace the turn's in-between angles off the main thread: each is a few hundred
+ * ms of sphere marching, which stalled the game even from an idle callback. */
 export function warmSculpted(appearance: CharacterAppearance, age = 30) {
-  const idle = (window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 30))) as (f: () => void) => number;
-  const next = (turns: number[]) => {
-    if (!turns.length) return;
-    idle(() => {
-      paintSculpted(appearance, age, { turn: turns[0] });
-      next(turns.slice(1));
-    });
-  };
-  next([0.75, 0.5, 0.25, 0]);
+  if (!tracer) {
+    tracer = new Worker(new URL("./sculpted-worker.ts", import.meta.url), { type: "module" });
+    tracer.onmessage = ({ data: { key, color, mat, layer, depth } }) => {
+      const job = tracing.get(key);
+      tracing.delete(key);
+      if (!job || bases.has(key)) return;
+      bases.set(key, { m: model(job[0], job[1]), f: frame(job[2]), color, mat, layer, depth });
+      if (bases.size > 96) bases.delete(bases.keys().next().value!);
+    };
+  }
+  for (const turn of [0.75, 0.5, 0.25, 0]) {
+    const key = JSON.stringify([appearance, age, turn, 0]);
+    if (bases.has(key) || tracing.has(key)) continue;
+    tracing.set(key, [appearance, age, { turn, pitch: 0 }]);
+    tracer.postMessage({ key, appearance, age, pose: { turn, pitch: 0 } });
+  }
 }
 
-function trace(appearance: CharacterAppearance, age: number, pose: HeadPose): Base {
+export function trace(appearance: CharacterAppearance, age: number, pose: HeadPose): Base {
   const m = model(appearance, age);
   const scene = build(m);
   const f = frame(pose);

@@ -21,9 +21,14 @@ You do not change the world yourself. You propose intents and the engine resolve
 - receive: a listed person hands the player something. Give from (their SCENE id) and the item as invent describes one. Only when they have reason to part with it.
 - regard: how onlookers now see the player, -3..3, with a short reason. Use for anything shameful, generous, frightening or absurd done in view of others.
 - fact: one short standing fact worth remembering (a debt, a promise, a name learned, an injury). Rarely.
+When the player sets off on foot, give an errand and the game walks them there; never narrate the player moving without one (or a move command). Your narration is the setting-off, not the arrival:
+- roam: moving about with no destination (run around, go for a walk, pace). run: true for running.
+- forage: roaming the country to gather, with an optional item id from the catalog. Use this rather than a forage intent when they go off to look, not search the spot they stand on.
+- workday: the character's own trade for the day.
+- go: to a listed place or person (target: its SCENE id) or toward an edge (direction: north|south|east|west).
 Also, when the player plainly asks for a listed action on a listed target, put it in command with the target id, exactly as the SCENE offers it. Use at most one command per turn and only the affordances listed. Leave intents empty when nothing changes.
 
-Reply with JSON only: {"narration": string, "intents": [...], "command"?: {...}}.`;
+Reply with JSON only: {"narration": string, "intents": [...], "command"?: {...}, "errand"?: {...}}.`;
 const compass = (from: Position, to: Position) => {
   const dx = to.x - from.x,
     dy = to.y - from.y,

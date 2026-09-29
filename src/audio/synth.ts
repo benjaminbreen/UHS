@@ -39,21 +39,13 @@ function pluckString(
   for (let i = 0; i < data.length; i++) data[i] *= 0.7 / (peak || 1);
 }
 
-function instrument(
-  ctx: Context,
+export function synthesize(
   voice: Voice,
   midi: number,
-  cents = 0,
-  bend = 0,
-): AudioBuffer {
-  let cache = caches.get(ctx);
-  if (!cache) {
-    cache = new Map();
-    caches.set(ctx, cache);
-  }
-  const key = `${voice}:${midi}:${cents}:${bend}`;
-  const existing = cache.get(key);
-  if (existing) return existing;
+  cents: number,
+  bend: number,
+  rate: number,
+): Float32Array<ArrayBuffer> {
   const duration =
     voice === "brush" ||
     voice === "shaker" ||
@@ -97,12 +89,7 @@ function instrument(
               voice === "bronze"
             ? 6
             : 4;
-  const buffer = ctx.createBuffer(
-    1,
-    Math.ceil(duration * ctx.sampleRate),
-    ctx.sampleRate,
-  );
-  const data = buffer.getChannelData(0),
+  const data = new Float32Array(Math.ceil(duration * rate)),
     frequency = 440 * 2 ** ((midi + cents / 100 - 69) / 12);
   const random = noiseGenerator(midi * 9277 + 13);
   if (
@@ -131,7 +118,7 @@ function instrument(
     }[voice];
     pluckString(
       data,
-      ctx.sampleRate,
+      rate,
       frequency,
       random,
       brightness,
@@ -142,19 +129,17 @@ function instrument(
     if (voice === "fuzz")
       for (let i = 0; i < data.length; i++)
         data[i] = Math.tanh(data[i] * 5) * 0.45;
-    cache.set(key, buffer);
-    if (cache.size > 128) cache.delete(cache.keys().next().value!);
-    return buffer;
+    return data;
   }
   let breath = 0,
     slide = 0,
     scoop = 0;
   for (let i = 0; i < data.length; i++) {
-    const t = i / ctx.sampleRate;
+    const t = i / rate;
     // A scooped note starts `bend` semitones low and reaches pitch in about 70 ms.
     scoop +=
       (2 * Math.PI * frequency * 2 ** ((-bend * Math.exp(-t * 30)) / 12)) /
-      ctx.sampleRate;
+      rate;
     const phase = bend ? scoop : 2 * Math.PI * frequency * t;
     breath = breath * 0.72 + random() * 0.28;
     let sample = 0;
@@ -168,7 +153,7 @@ function instrument(
         breath * 0.065;
     } else if (voice === "strings") {
       for (let harmonic = 1; harmonic <= 6; harmonic++) {
-        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        if (frequency * harmonic > rate * 0.45) continue;
         sample +=
           ((Math.sin(phase * harmonic * 0.9985) +
             Math.sin(phase * harmonic * 1.0015)) *
@@ -177,7 +162,7 @@ function instrument(
       }
     } else if (voice === "harp") {
       for (let harmonic = 1; harmonic <= 7; harmonic++) {
-        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        if (frequency * harmonic > rate * 0.45) continue;
         sample +=
           (0.58 / harmonic ** 1.7) *
           Math.sin(phase * harmonic) *
@@ -212,7 +197,7 @@ function instrument(
           : 0;
       for (let harmonic = 1; harmonic <= 12; harmonic++) {
         const f = frequency * harmonic;
-        if (f > ctx.sampleRate * 0.45) continue;
+        if (f > rate * 0.45) continue;
         const formant = 1 / (1 + ((f - 1100) / 700) ** 2);
         sample +=
           ((voice === "reed" ? 0.25 + formant : 0.5 + formant * 0.3) *
@@ -282,7 +267,7 @@ function instrument(
         random() * 0.08 * Math.exp(-t * 150);
     } else if (voice === "sho") {
       for (let harmonic = 1; harmonic <= 8; harmonic++) {
-        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        if (frequency * harmonic > rate * 0.45) continue;
         sample +=
           ((harmonic % 2 ? 1 : 0.5) * Math.sin(phase * harmonic)) /
           harmonic ** 1.5;
@@ -318,7 +303,7 @@ function instrument(
     } else if (voice === "throat") {
       for (let harmonic = 1; harmonic <= 24; harmonic++) {
         const f = frequency * harmonic;
-        if (f > ctx.sampleRate * 0.45) continue;
+        if (f > rate * 0.45) continue;
         const formant =
           1 / (1 + ((f - 650) / 250) ** 2) +
           0.6 / (1 + ((f - 1600) / 120) ** 2);
@@ -344,7 +329,7 @@ function instrument(
       // Brass brightens as the lips settle into the note.
       const bright = 0.2 + 0.25 * Math.min(1, t * 5);
       for (let harmonic = 1; harmonic <= 10; harmonic++) {
-        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        if (frequency * harmonic > rate * 0.45) continue;
         sample +=
           (Math.sin(phase * harmonic) *
             Math.exp(-(harmonic - 1) / (bright * 6))) /
@@ -369,7 +354,7 @@ function instrument(
       // Stiff strings: overtones run slightly sharp and die faster.
       for (let harmonic = 1; harmonic <= 8; harmonic++) {
         const f = frequency * harmonic * Math.sqrt(1 + 0.0004 * harmonic ** 2);
-        if (f > ctx.sampleRate * 0.45) continue;
+        if (f > rate * 0.45) continue;
         sample +=
           (Math.sin(2 * Math.PI * f * t) / harmonic ** 1.1) *
           Math.exp(-t * (0.6 + 0.45 * harmonic));
@@ -391,7 +376,7 @@ function instrument(
     } else if (voice === "accordion") {
       // Two reed banks tuned slightly apart: the musette tremolo.
       for (let harmonic = 1; harmonic <= 10; harmonic++) {
-        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        if (frequency * harmonic > rate * 0.45) continue;
         sample +=
           (Math.sin(phase * harmonic) + Math.sin(phase * harmonic * 1.004)) /
           harmonic ** 1.1;
@@ -403,7 +388,7 @@ function instrument(
         0.035 * Math.sin(2 * Math.PI * 6 * t) * Math.min(1, t * 1.5);
       for (let harmonic = 1; harmonic <= 10; harmonic++) {
         const f = frequency * harmonic;
-        if (f > ctx.sampleRate * 0.45) continue;
+        if (f > rate * 0.45) continue;
         const formant = 1 / (1 + ((f - 1000) / 500) ** 2);
         sample +=
           ((0.3 + formant) * Math.sin(harmonic * (phase + vibrato))) / harmonic;
@@ -417,7 +402,7 @@ function instrument(
           ((-2 * Math.exp(-t * 6) +
             0.22 * Math.sin(2 * Math.PI * 5.8 * t) * Math.min(1, t * 0.8)) /
             12);
-      slide += (2 * Math.PI * f) / ctx.sampleRate;
+      slide += (2 * Math.PI * f) / rate;
       sample = 0.55 * Math.sin(slide) + 0.08 * Math.sin(2 * slide);
     } else if (voice === "rockgong") {
       // A ringing boulder: a few stiff, inharmonic modes and a stony strike.
@@ -439,7 +424,7 @@ function instrument(
     } else if (voice === "khene") {
       // Free reeds in bamboo pipes: bright and even, quick to speak, with a breathy edge.
       for (let harmonic = 1; harmonic <= 10; harmonic++) {
-        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        if (frequency * harmonic > rate * 0.45) continue;
         sample +=
           ((harmonic % 2 ? 1 : 0.7) * Math.sin(phase * harmonic)) /
           harmonic ** 0.8;
@@ -468,7 +453,7 @@ function instrument(
         Math.min(1, Math.max(0, t - 0.2) * 2);
       for (let harmonic = 1; harmonic <= 12; harmonic++) {
         const f = frequency * harmonic;
-        if (f > ctx.sampleRate * 0.45) continue;
+        if (f > rate * 0.45) continue;
         const formant = 1 / (1 + ((f - 1600) / 450) ** 2);
         sample +=
           ((0.15 + formant) * Math.sin(harmonic * (phase + vibrato))) /
@@ -480,7 +465,7 @@ function instrument(
       const vibrato =
         0.015 * Math.sin(2 * Math.PI * 5 * t) * Math.min(1, t * 1.5);
       for (let harmonic = 1; harmonic <= 11; harmonic++) {
-        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        if (frequency * harmonic > rate * 0.45) continue;
         sample +=
           ((harmonic % 2 ? 1 : 0.1) * Math.sin(harmonic * (phase + vibrato))) /
           harmonic;
@@ -495,7 +480,7 @@ function instrument(
       for (const detune of voice === "singer" ? [1, 1] : [0.996, 1, 1.004])
         for (let harmonic = 1; harmonic <= 16; harmonic++) {
           const f = frequency * harmonic * detune;
-          if (f > ctx.sampleRate * 0.45) break;
+          if (f > rate * 0.45) break;
           const vowel =
             1 / (1 + ((f - 700) / 130) ** 2) +
             0.6 / (1 + ((f - 1150) / 150) ** 2) +
@@ -537,7 +522,7 @@ function instrument(
         [6, 0.1],
         [8, 0.1],
       ])
-        if (frequency * harmonic < ctx.sampleRate * 0.45)
+        if (frequency * harmonic < rate * 0.45)
           sample +=
             level *
             Math.sin(
@@ -564,7 +549,7 @@ function instrument(
       const cutoff = voice === "saw" ? 600 + 3000 * Math.exp(-t * 6) : 1800;
       for (let harmonic = 1; harmonic <= 16; harmonic++) {
         const f = frequency * harmonic;
-        if (f > ctx.sampleRate * 0.45) continue;
+        if (f > rate * 0.45) continue;
         const level = 1 / harmonic / (1 + (f / cutoff) ** 2);
         sample +=
           voice === "saw"
@@ -586,7 +571,7 @@ function instrument(
           ((-1.2 * Math.exp(-t * 20) +
             0.1 * Math.sin(2 * Math.PI * 5.5 * t) * Math.min(1, t)) /
             12);
-      slide += (2 * Math.PI * f) / ctx.sampleRate;
+      slide += (2 * Math.PI * f) / rate;
       sample =
         (0.55 * Math.sin(slide) +
           0.2 * Math.sin(2 * slide) +
@@ -599,10 +584,53 @@ function instrument(
     } else sample = (random() * 0.5 + breath * 0.3) * Math.exp(-t * 32);
     data[i] = sample;
   }
+  return data;
+}
+
+function store(ctx: Context, key: string, data: Float32Array<ArrayBuffer>) {
+  let cache = caches.get(ctx);
+  if (!cache) {
+    cache = new Map();
+    caches.set(ctx, cache);
+  }
+  const buffer = ctx.createBuffer(1, data.length, ctx.sampleRate);
+  buffer.copyToChannel(data, 0);
   cache.set(key, buffer);
   // Keep long listening sessions bounded as the player auditions different scores.
   if (cache.size > 128) cache.delete(cache.keys().next().value!);
   return buffer;
+}
+
+function instrument(
+  ctx: Context,
+  voice: Voice,
+  midi: number,
+  cents = 0,
+  bend = 0,
+): AudioBuffer {
+  const key = `${voice}:${midi}:${cents}:${bend}`;
+  return (
+    caches.get(ctx)?.get(key) ??
+    store(ctx, key, synthesize(voice, midi, cents, bend, ctx.sampleRate))
+  );
+}
+
+let worker: Worker | undefined;
+let requests = 0;
+const waiting = new Map<number, (data: Float32Array<ArrayBuffer>) => void>();
+/** A six-second voice is ~300k samples of per-sample harmonics: tens of ms each,
+ * which stalled the game for up to a second while a score prepared. */
+function synthesizeOff(voice: Voice, midi: number, cents: number, bend: number, rate: number) {
+  if (!worker) {
+    worker = new Worker(new URL("./synth-worker.ts", import.meta.url), { type: "module" });
+    worker.onmessage = ({ data }: MessageEvent<{ id: number; data: Float32Array<ArrayBuffer> }>) => {
+      waiting.get(data.id)?.(data.data);
+      waiting.delete(data.id);
+    };
+  }
+  const id = ++requests;
+  worker.postMessage({ id, voice, midi, cents, bend, rate });
+  return new Promise<Float32Array<ArrayBuffer>>((resolve) => waiting.set(id, resolve));
 }
 
 /** Prepare timbres before the audio clock starts, so synthesis cannot delay attacks. */
@@ -611,15 +639,16 @@ export async function prepareScore(
   score: Score,
   current: () => boolean,
 ) {
-  const prepared = new Set<string>();
+  const jobs = new Map<string, Promise<Float32Array<ArrayBuffer>>>();
   for (const note of score.notes) {
-    if (!current()) return;
     const key = `${note.voice}:${note.midi}:${note.cents ?? 0}:${note.bend ?? 0}`;
-    if (prepared.has(key)) continue;
-    instrument(ctx, note.voice, note.midi, note.cents, note.bend);
-    prepared.add(key);
-    if (prepared.size % 4 === 0)
-      await new Promise((resolve) => setTimeout(resolve, 0));
+    if (jobs.has(key) || caches.get(ctx)?.has(key)) continue;
+    jobs.set(key, synthesizeOff(note.voice, note.midi, note.cents ?? 0, note.bend ?? 0, ctx.sampleRate));
+  }
+  for (const [key, job] of jobs) {
+    const data = await job;
+    if (!current()) return;
+    store(ctx, key, data);
   }
 }
 

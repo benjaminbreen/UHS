@@ -24,7 +24,9 @@
         1200,
         10001
       ],
-      "why": "Gated only on urban settlement, so available in Uruk around 3500 BCE, some three and a half thousand years before window glass."
+      "why": "Gated only on urban settlement, so available in Uruk around 3500 BCE, some three and a half thousand years before window glass.",
+      "sex": "male",
+      "sexUntil": 1970
     },
     "cooper": {
       "years": [
@@ -44,14 +46,18 @@
         -800,
         1950
       ],
-      "why": "Gated only on draft animals, so from 3500 BCE; saddles are later. Follows the working horse."
+      "why": "Gated only on draft animals, so from 3500 BCE; saddles are later. Follows the working horse.",
+      "sex": "male",
+      "sexUntil": 1970
     },
     "miller": {
       "years": [
         -300,
         10001
       ],
-      "why": "A miller presupposes a mill. Grinding by quern is household work, not a trade."
+      "why": "A miller presupposes a mill. Grinding by quern is household work, not a trade.",
+      "sex": "male",
+      "sexUntil": 1900
     },
     "charcoal-burner": {
       "years": [
@@ -93,7 +99,9 @@
         -5000,
         1900
       ],
-      "why": "Hand threshing with a flail ends with the threshing machine. Hand threshing with a flail ends with the threshing machine."
+      "why": "Hand threshing with a flail ends with the threshing machine. Hand threshing with a flail ends with the threshing machine.",
+      "sex": "male",
+      "sexUntil": 1900
     },
     "ploughman": {
       "weight": 12,
@@ -437,7 +445,9 @@
         -3000,
         10001
       ],
-      "why": "Monumental stone dressing is Bronze Age; it was locked behind the industrial tier."
+      "why": "Monumental stone dressing is Bronze Age; it was locked behind the industrial tier.",
+      "sex": "male",
+      "sexUntil": 1970
     },
     "bricklayer": {
       "years": [
@@ -526,14 +536,18 @@
         -1000,
         1850
       ],
-      "why": "Combing is mechanised early in the textile factories."
+      "why": "Combing is mechanised early in the textile factories.",
+      "sex": "male",
+      "sexUntil": 1900
     },
     "fuller": {
       "years": [
         -500,
         1800
       ],
-      "why": "Fulling by foot and by stock gives way to the fulling mill and then the factory."
+      "why": "Fulling by foot and by stock gives way to the fulling mill and then the factory.",
+      "sex": "male",
+      "sexUntil": 1900
     },
     "scullion": {
       "years": [
@@ -582,7 +596,9 @@
         -1000,
         1950
       ],
-      "why": "Wooden wheels for carts and carriages."
+      "why": "Wooden wheels for carts and carriages.",
+      "sex": "male",
+      "sexUntil": 1970
     },
     "chimney-sweep": {
       "years": [
@@ -645,7 +661,9 @@
         -3000,
         1850
       ],
-      "why": "Writing for other people as a trade fades as literacy spreads."
+      "why": "Writing for other people as a trade fades as literacy spreads.",
+      "sex": "male",
+      "sexUntil": 1850
     },
     "water-carrier": {
       "years": [
@@ -659,7 +677,9 @@
         1800,
         1950
       ],
-      "why": "Ends with electric street lighting."
+      "why": "Ends with electric street lighting.",
+      "sex": "male",
+      "sexUntil": 1900
     },
     "thatcher": {
       "years": [
@@ -667,6 +687,93 @@
         1900
       ],
       "why": "Survives as a heritage trade rather than ordinary work."
+    },
+    "mason": {
+      "sex": "male",
+      "sexUntil": 1970
+    },
+    "smith": {
+      "sex": "male",
+      "sexUntil": 1970
+    },
+    "blacksmith": {
+      "sex": "male",
+      "sexUntil": 1970
+    },
+    "armourer": {
+      "sex": "male",
+      "sexUntil": 1970
+    },
+    "fletcher": {
+      "sex": "male",
+      "sexUntil": 1970
+    },
+    "boatwright": {
+      "sex": "male",
+      "sexUntil": 1970
+    },
+    "cabinetmaker": {
+      "sex": "male",
+      "sexUntil": 1970
+    },
+    "tanner": {
+      "sex": "male",
+      "sexUntil": 1900
+    },
+    "barber": {
+      "sex": "male",
+      "sexUntil": 1900
+    },
+    "watchmaker": {
+      "sex": "male",
+      "sexUntil": 1900
+    },
+    "money-changer": {
+      "sex": "male",
+      "sexUntil": 1900
+    },
+    "town-watchman": {
+      "sex": "male",
+      "sexUntil": 1900
+    },
+    "gate-keeper": {
+      "sex": "male",
+      "sexUntil": 1900
+    },
+    "tax-collector": {
+      "sex": "male",
+      "sexUntil": 1900
+    },
+    "printer": {
+      "sex": "male",
+      "sexUntil": 1850
+    },
+    "policeman": {
+      "sex": "male",
+      "sexUntil": 1915
+    },
+    "postman": {
+      "sex": "male",
+      "sexUntil": 1915
+    },
+    "bank-clerk": {
+      "sex": "male",
+      "sexUntil": 1915
+    },
+    "stationmaster": {
+      "sex": "male",
+      "sexUntil": 1915
+    },
+    "bus-driver": {
+      "sex": "male",
+      "sexUntil": 1975
+    },
+    "_sex": {
+      "why": "Work the upstream table leaves open but records show was done overwhelmingly by one sex until `sexUntil`: guild rolls, wage books, censuses. Widows did keep shops going; that is the exception, not the draw."
+    },
+    "carpenter": {
+      "sex": "male",
+      "sexUntil": 1970
     }
   },
   "extraRoles": {

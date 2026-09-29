@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSheets } from "./sprite-atlas";
 import { parseCloth } from "../content/characters/wardrobe/cloth";
 import {
@@ -7,6 +7,11 @@ import {
   itemIconFor,
   GARMENT_ICON,
 } from "../render/garment-icons";
+import {
+  loadVoxelItems,
+  voxelIcon,
+  voxelItemsReady,
+} from "../render/voxel-items";
 
 export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
   const sheets = useSheets();
@@ -77,6 +82,13 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
 }
 /** A worn item's own art, coloured by the cloth in its id. Falls back to the
  * atlas sprite for anything without a drawing. */
+export function useVoxelItems() {
+  const [ready, setReady] = useState(voxelItemsReady);
+  useEffect(() => {
+    if (!ready) loadVoxelItems().then(() => setReady(true), () => {});
+  }, [ready]);
+  return ready;
+}
 export function ItemIcon({
   id,
   sprite,
@@ -85,6 +97,48 @@ export function ItemIcon({
   id: string;
   sprite?: string;
   scale?: number;
+}) {
+  const ready = useVoxelItems();
+  const voxel = ready ? voxelIcon(id) : undefined;
+  if (voxel) return <VoxelIcon canvas={voxel} scale={scale} />;
+  return <DrawnIcon id={id} sprite={sprite} scale={scale} />;
+}
+function VoxelIcon({ canvas, scale }: { canvas: HTMLCanvasElement; scale: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const ctx = ref.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(canvas, 0, 0);
+  }, [canvas]);
+  // The art is 48px where the drawn icons were 24; whole multiples keep it
+  // crisp, and at the smallest size it is smoothed down rather than dropped.
+  const size = scale < 2 ? 24 : 48 * Math.round(scale / 2);
+  return (
+    <canvas
+      ref={ref}
+      width={canvas.width}
+      height={canvas.height}
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        maxWidth: "100%",
+        maxHeight: "100%",
+        imageRendering: scale < 2 ? "auto" : "pixelated",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+function DrawnIcon({
+  id,
+  sprite,
+  scale,
+}: {
+  id: string;
+  sprite?: string;
+  scale: number;
 }) {
   const parsed = parseCloth(id);
   const base = parsed?.base ?? id;

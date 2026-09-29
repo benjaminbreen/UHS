@@ -33,9 +33,10 @@ it("keeps basket weaving and cordage away from cloth looms", () => {
 
 it("routes work and children's errands to their actual destinations", () => {
   const world = panelCity("london", 1400).engine.world;
-  const miller = world.initialActors.find((a) => a.origin?.livelihood === "miller" &&
-    world.itinerary?.(a.id)?.segments.some((s) => s.target?.family === "quern"));
-  const turn = miller && world.itinerary?.(miller.id)?.segments.find((s) => s.target?.family === "quern");
+  // Any worker at a station: which trades have one depends on who the draw makes a householder.
+  const turn = world.initialActors
+    .flatMap((a) => world.itinerary?.(a.id)?.segments ?? [])
+    .find((s) => s.target?.family && s.target.family !== "market-counter");
   expect(turn?.target?.id).toBeTruthy();
   expect(Math.abs(turn!.pos.x - turn!.target!.x) + Math.abs(turn!.pos.y - turn!.target!.y)).toBe(1);
   expect(world.initialObjects.some((o) => o.id === turn!.target!.id)).toBe(true);

@@ -170,6 +170,24 @@ export function capabilitiesFor(s: WorldSetting): Set<SocietyCapability> {
   return available;
 }
 const traditionsById = new Map(nameTraditions.map((t) => [t.id, t]));
+/** Drops options whose own attested era excludes the year. */
+const inEra = (
+  options: readonly { tradition: string; weight: number }[],
+  year: number,
+) =>
+  options.flatMap((o) => {
+    const tradition = traditionsById.get(o.tradition);
+    if (!tradition) return [];
+    const [from, to] = tradition.era;
+    return year >= from && year < to ? [{ tradition, weight: o.weight }] : [];
+  });
+const kitTradition = (kit: NameKit): NameTradition => ({
+  ...kit,
+  familyNames: kit.familyNames ?? [],
+  noFamilyName: 0,
+  format: kit.format ?? "personal",
+  era: kit.scope.years,
+});
 /**
  * The smallest box containing the point wins; a tie falls to the earlier id.
  * regionAt sorts the same array for the map label, so the two must agree.
@@ -189,12 +207,7 @@ export function nameTraditionsFor(s: WorldSetting) {
     // keep looking outward if that empties the window.
     for (const window of region.windows) {
       if (!(s.year >= window.years[0] && s.year < window.years[1])) continue;
-      const options = window.options.flatMap((o) => {
-        const tradition = traditionsById.get(o.tradition);
-        if (!tradition) return [];
-        const [from, to] = tradition.era;
-        return s.year >= from && s.year < to ? [{ tradition, weight: o.weight }] : [];
-      });
+      const options = inEra(window.options, s.year);
       if (options.length) return { region: region.id, options };
     }
   }
@@ -393,17 +406,16 @@ export function resolveCharacterContext(
   const names = scopedNames[0];
   // A hand-written kit is the most specific answer; a community's own
   // traditions beat the region's; the region table is the fallback.
-  const profileTraditions = profile.nameTraditions?.flatMap((o) => {
-    const tradition = traditionsById.get(o.tradition);
-    if (!tradition) return [];
-    const [from, to] = tradition.era;
-    return s.year >= from && s.year < to
-      ? [{ tradition, weight: o.weight }]
-      : [];
-  });
+  const profileTraditions = inEra(profile.nameTraditions ?? [], s.year);
   const traditions = names
-    ? undefined
-    : profileTraditions?.length
+    ? {
+        region: names.id,
+        options: [
+          { tradition: kitTradition(names), weight: 1 },
+          ...inEra(names.alongside ?? [], s.year),
+        ],
+      }
+    : profileTraditions.length
       ? { region: profile.id, options: profileTraditions }
       : nameTraditionsFor(s);
   const capabilities = capabilitiesFor(s);
@@ -457,7 +469,11 @@ export function resolveCharacterContext(
           ? playable
           : livelihoods.filter((l) => l.id === "traveler")),
         ...tiered,
-      ]),
+      ]).map((l) =>
+        l.sexUntil !== undefined && s.year >= l.sexUntil
+          ? { ...l, sex: undefined }
+          : l,
+      ),
       s,
       capabilities,
     ),

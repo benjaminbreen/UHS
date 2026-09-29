@@ -1,9 +1,10 @@
 """Build the reviewed nature additions separately from legacy world assets."""
+import re
 from pathlib import Path
 from PIL import Image, ImageDraw
 from art.nature_trees import trees
 from art.nature_understory import understory
-from art.broadleaf_ages import broadleaf_ages
+from art.voxel_trees import voxel_trees
 from art.small_shrubs import small_shrubs
 from art.shrubs import shrubs
 from art.habitat_plants import habitat_plants
@@ -19,7 +20,7 @@ from art.atlas import pack_atlas
 from art.shadows import build_shadows
 root=Path(__file__).resolve().parent.parent
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **broadleaf_ages(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders()}
+sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name
@@ -47,7 +48,8 @@ for i,(name,im) in enumerate(understory().items()):
 understory_review.save(root/'artifacts/nature-lab/understory.png')
 
 ages=Image.new('RGB',(1280,900),'#5f9e3e')
-for i,(name,im) in enumerate(broadleaf_ages().items()):
+ages_sprites={n:im for n,im in sprites.items() if n.startswith('nature-broadleaf-') and not re.search(r'-[23](-|$)',n)}
+for i,(name,im) in enumerate(ages_sprites.items()):
     scaled=im.resize((im.width*2,im.height*2),Image.Resampling.NEAREST)
     col,row=i%4,i//4
     ages.paste(scaled,(col*320+(320-scaled.width)//2,row*450+400-scaled.height),scaled)
