@@ -891,6 +891,7 @@ export function routineFor(
     pack.year,
     field,
     pasture,
+    !!kit && processFor(kit)?.indoors,
   );
   if (errands.length && errands[errands.length - 1].activity === "rest")
     return errands;
@@ -915,6 +916,7 @@ function workdayFor(
   year: number,
   field?: { access: Point },
   pasture?: { x: number; y: number; w: number; h: number },
+  indoorTrade = false,
 ): Station[] {
   const depot = store(plan, id);
   // From the factory age on, most trades happen under somebody else's roof:
@@ -1051,6 +1053,16 @@ function workdayFor(
           inside(plan, bench, label, 300),
           socialStop(plan, seed, id, home),
           { ...night(home), share: 0.1 },
+        ];
+      // A trade worked indoors is worked at the bench in the house itself.
+      const house = indoorTrade
+        ? plan.places.find((p) => p.owner === id && p.access === "household")
+        : undefined;
+      if (house)
+        return [
+          inside(plan, house.entrance, label, 240, house.id),
+          socialStop(plan, seed, id, home),
+          { ...night(home), share: 0.15 },
         ];
       return craftRoutine(plan, seed, id, id, home, site.work, label);
     }

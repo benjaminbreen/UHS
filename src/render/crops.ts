@@ -299,6 +299,12 @@ export function setCropSelector(
 ) {
   selectors.set(scene, select);
 }
+const indoors = new WeakSet<Phaser.Scene>();
+/** Indoors the street's plants stay out of sight, whatever the view says. */
+export function setCropsIndoors(scene: Phaser.Scene, inside: boolean) {
+  if (inside) indoors.add(scene);
+  else indoors.delete(scene);
+}
 /** Loose images, one per plant, depth-sorted by their base like every other
  * standing sprite; a per-chunk patch record culls and sways them together. */
 export function addCrops(
@@ -326,11 +332,11 @@ export function addCrops(
         const dx = first.x - patch.sprites[0].spot.x,
           dy = first.y - patch.sprites[0].spot.y;
         const inView =
-          !view.width ||
+          !indoors.has(scene) && (!view.width ||
           (dx + patch.bounds.x < view.right + 16 &&
             dx + patch.bounds.right > view.x - 16 &&
             dy + patch.bounds.y < view.bottom + 48 &&
-            dy + patch.bounds.bottom > view.y - 48);
+            dy + patch.bounds.bottom > view.y - 48));
         for (const s of patch.sprites) if (s.image.visible !== inView) s.image.setVisible(inView);
         if (inView) sway(patch, frame);
       }

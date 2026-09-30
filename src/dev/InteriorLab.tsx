@@ -32,7 +32,7 @@ export function InteriorLab() {
     () => ({ ...resolveRoom(profile, c), ...Object.fromEntries(Object.entries(over).filter(([, v]) => v !== undefined)) }),
     [profile, c, over],
   );
-  const [view, setView] = useState<"hybrid" | "both" | "pixel" | "voxel">("hybrid");
+  const [view, setView] = useState<"hybrid" | "compare" | "both" | "pixel" | "voxel">("compare");
   const [tool, setTool] = useState<"hand" | "hammer">("hand");
   const [traceDetail, setTraceDetail] = useState<1 | 2>(2);
   const [dither, setDither] = useState(false);
@@ -47,6 +47,9 @@ export function InteriorLab() {
   const props = useMemo<Prop[]>(() => planRoom(p), [layout]); // eslint-disable-line react-hooks/exhaustive-deps
   const big = p.w * p.d;
   const pix = useRef<Stage>({ canvas: null });
+  // The same room lit the new way, beside the traced one.
+  const stepped = useRef<Stage>({ canvas: null });
+  const layered = useRef<Stage>({ canvas: null });
   const vox = useRef<Stage>({ canvas: null });
   const voxDirty = useRef(true);
   const pRef = useRef(p);
@@ -64,6 +67,18 @@ export function InteriorLab() {
   useEffect(() => {
     if (pix.current.canvas && !pix.current.room) pix.current.room = new PixelRoom(pix.current.canvas);
     (pix.current.room as PixelRoom | undefined)?.set(p, props);
+    if (stepped.current.canvas && !stepped.current.room) {
+      const room = new PixelRoom(stepped.current.canvas);
+      room.lighting = "stepped";
+      stepped.current.room = room;
+    }
+    (stepped.current.room as PixelRoom | undefined)?.set(p, props);
+    if (layered.current.canvas && !layered.current.room) {
+      const room = new PixelRoom(layered.current.canvas);
+      room.lighting = "layer";
+      layered.current.room = room;
+    }
+    (layered.current.room as PixelRoom | undefined)?.set(p, props);
     voxDirty.current = true;
   }, [p, props, view]);
   useEffect(() => {
@@ -77,7 +92,11 @@ export function InteriorLab() {
       last = now;
       if (playing) setC((o) => ({ ...o, hour: (o.hour + dt * 0.8) % 24 }));
       const pr = pix.current.room as PixelRoom | undefined;
-      if (view === "hybrid") {
+      if (view === "compare") {
+        (stepped.current.room as PixelRoom | undefined)?.frame(dt);
+        (layered.current.room as PixelRoom | undefined)?.frame(dt);
+      }
+      if (view === "hybrid" || view === "compare") {
         tracer.current ??= new VoxelRoom(document.createElement("canvas"));
         if (voxDirty.current && now - lastVox > (playing ? 450 : 90)) {
           voxDirty.current = false;
@@ -179,9 +198,9 @@ export function InteriorLab() {
           <p>{interiorGroups.reduce((n, g) => n + g.profiles.length, 0)} dwellings, three levels of finish, six room shapes. Click doors, fires, lamps, chests, bedding and the cat; take a hammer to the rest.</p>
         </div>
         <div className="ilab-views" role="group" aria-label="View">
-          {(["hybrid", "both", "pixel", "voxel"] as const).map((v) => (
+          {(["compare", "hybrid", "both", "pixel", "voxel"] as const).map((v) => (
             <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>
-              {v === "both" ? "Side by side" : label(v)}
+              {v === "both" ? "Side by side" : v === "compare" ? "A/B light" : label(v)}
             </button>
           ))}
         </div>
@@ -319,7 +338,7 @@ export function InteriorLab() {
               {playing ? "Pause the day" : "Run the day"}
             </button>
           </section>
-          {view === "hybrid" && (
+          {(view === "hybrid" || view === "compare") && (
             <section>
               <h2>Traced light</h2>
               <label className="ilab-select">
@@ -366,6 +385,9 @@ export function InteriorLab() {
           )}
         </aside>
         <main className={`ilab-stages ilab-${view}`}>
+          {view === "compare" && stage(pix, "A · traced light", "Voxel ray tracer, blurred, with bloom and grade")}
+          {view === "compare" && stage(stepped, "B · stepped light", "Light in bands, hard sun patches under a shaft of lit air, oval shadows")}
+          {view === "compare" && stage(layered, "C · light layer", "Ambient colour for the hour, soft pools and sun patches multiplied over crisp pixels")}
           {view === "hybrid" &&
             stage(pix, `${STATUS[c.status]} ${profile.label.toLowerCase()}${profile.rooms ? " · " + profile.rooms[c.room ?? 0].label.toLowerCase() : ""}`, `${p.w} × ${p.d} tiles · ${props.length} pieces · pixels lit by the voxel ray tracer`)}
           {(view === "both" || view === "pixel") &&

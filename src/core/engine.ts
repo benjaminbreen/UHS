@@ -84,6 +84,7 @@ import { advanceLifeAim } from "./life-aim";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
+import { buildInterior, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { vehicleAt } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
@@ -264,6 +265,7 @@ function migrateWorn(snapshot: Snapshot): Snapshot {
 /** Whether an object stands on a cell. A wide prop, such as a big hearth,
  * covers the cells its `span` reaches either side of its own. */
 const covers = (o: WorldObject, x: number, y: number) => {
+  if (o.size) return x >= o.pos.x && x < o.pos.x + o.size[0] && y >= o.pos.y && y < o.pos.y + o.size[1];
   const span = o.prop ? propDefs[o.prop]?.span : undefined;
   return span
     ? Math.abs(o.pos.x - x) <= span[0] && Math.abs(o.pos.y - y) <= span[1]
@@ -948,6 +950,7 @@ export class Engine {
   private loads?: ReturnType<typeof carryKit>;
   private resourceObjects?: WorldObject[];
   private terrainCollision = new Map<string, boolean>();
+  private interiors = new Map<string, InteriorLayout | null>();
   private wallCells?: Set<string>;
   private wallCellsFor = -1;
   /** A cell belonging to an enclosure circuit: a wall you can stand on, as
@@ -1198,16 +1201,134 @@ export class Engine {
     return space === "outside" && afloatAt(this.world, this.floater(this.deep(x, y)), x, y)
       ? false : this.blocked(x, y, space);
   }
-  blocked(x: number, y: number, space = this.state.player.pos.space) {
+  /** The generated room of a house, built the first time anyone needs it.
+   * The household's bed, chest, work station and way out move onto the
+   * room's own pieces, so what is drawn is what is used. */
+  interiorOf(space: string): InteriorLayout | undefined {
+    if (space === "outside") return undefined;
+    const known = this.interiors.get(space);
+    if (known !== undefined) return known ?? undefined;
+    const place = this.world.place(space);
+    const s = this.world.pack.setting;
+    const household = this.state.households?.find((h) => h.residence === space);
+    if (!place || (place.access !== "household" && !household) || !s) {
+      this.interiors.set(space, null);
+      return undefined;
+    }
+    const head = [this.state.player, ...this.state.actors].find((a) => a.id === (household?.members[0] ?? place.owner));
+    const exit = this.state.objects.find((o) => o.kind === "exit" && o.pos.space === space);
+    const room = buildInterior(
+      place,
+      {
+        lon: s.lon,
+        lat: s.lat,
+        year: s.year,
+        settlement: s.settlement,
+        camp: s.settlement === "camp" || (!!s.situation && s.situation.camp !== "none"),
+        roofHatch: exit?.sprite === "ladder",
+      },
+      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24 },
+    );
+    this.interiors.set(space, room);
+    const move = (id: string, p: Point) => {
+      const o = this.object(id);
+      if (o) o.pos = { x: p.x, y: p.y, space };
+    };
+    move(`${space}-exit`, room.exit);
+    move(`${space}-bed`, room.bedCell);
+    move(`${space}-chest`, room.store);
+    move(`${space}-work`, room.workCell);
+    // A room met again, from a save or a second engine, keeps the furniture it has.
+    if (!this.state.objects.some((o) => o.id.startsWith(`${space}-room-`)))
+      for (const f of room.furniture)
+        this.state.objects.push({
+          id: `${space}-room-${f.propId}`,
+          name: propDefs[f.def].name,
+          kind: "monument",
+          prop: f.def,
+          pos: { ...f.pos, space },
+          sprite: "",
+          inventory: {},
+          owner: place.owner,
+          ...(f.size[0] * f.size[1] > 1 ? { size: f.size } : {}),
+        });
+    for (const k of [...this.terrainCollision.keys()]) if (k.startsWith(`${space}:`)) this.terrainCollision.delete(k);
+    return room;
+  }
+  private indoorUses = new Map<string, Spot & { role: SpotRole; space: string; cooking?: boolean }>();
+  /** What someone indoors is at: the bed they lie in, the seat they sit on,
+   * the work or fire they stand at. Undefined for anyone just standing about. */
+  indoorUse(id: string, pos: Position): (Spot & { role: SpotRole; cooking?: boolean }) | undefined {
+    const room = pos.space === "outside" ? undefined : this.interiorOf(pos.space);
+    if (!room) return undefined;
+    const sent = this.indoorUses.get(id);
+    if (sent && sent.space === pos.space && sent.x === pos.x && sent.y === pos.y) return sent;
+    // Placed before this engine was: read it off where they are.
+    return spotsAt(room, pos.x, pos.y)[0];
+  }
+  /** Where someone indoors stands: by their bed at night, at the household's
+   * work while working, at the fire to cook or eat, else a seat; never on
+   * top of anyone else, and facing what they are at. */
+  indoorSpot(a: Actor, space: string, label = "", index = 0): Position {
+    const room = this.interiorOf(space);
+    if (!room) return { x: 3 + (index % 4), y: 3, space };
+    const hour = (this.state.clock / 3600) % 24;
+    const l = label.toLowerCase();
+    const trade = livelihoodOf(this.world.pack, a)?.activity.toLowerCase().split(/\s+/)[0];
+    const sleeping = /sleep|night|\bbed/.test(l) || hour < 5.5 || hour >= 22;
+    const cooking = !sleeping && /cook|eat|meal|supper|breakfast|dinner|hearth|fire|kitchen/.test(l);
+    const working = !sleeping && !cooking && ((!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));
+    const order = sleeping ? [room.beds] : working ? [room.work, room.fire, room.seats] : cooking ? [room.fire, room.seats] : [room.seats, room.fire, room.work];
+    const taken = new Set(
+      [this.state.player, ...this.state.actors]
+        .filter((o) => o !== a && o.pos.space === space)
+        .map((o) => `${o.pos.x},${o.pos.y}`),
+    );
+    const moved = new Set(
+      room.furniture
+        .filter((f) => {
+          const o = this.object(`${space}-room-${f.propId}`);
+          return !o || o.broken || o.tipped || o.pos.x !== f.pos.x || o.pos.y !== f.pos.y;
+        })
+        .map((f) => f.propId),
+    );
+    for (const [n, list] of order.entries()) {
+      const free = list.filter((p) => !taken.has(`${p.x},${p.y}`) && !moved.has(p.propId) && (p.on || !this.blocked(p.x, p.y, space)));
+      if (!free.length) continue;
+      // The front of the work goes to whoever works it; seats and beds are shared out.
+      const spot = n === 0 && working ? free[0] : free[index % free.length];
+      a.direction = spot.facing;
+      delete a.facing;
+      this.indoorUses.set(a.id, { ...spot, role: list === room.beds ? "bed" : list === room.work ? "work" : list === room.fire ? "fire" : "seat", space, cooking });
+      return { x: spot.x, y: spot.y, space };
+    }
+    const exit = `${room.exit.x},${room.exit.y}`;
+    // Whoever has no bed sleeps on the floor, near the fire if there is one.
+    const warm = room.fire[0] ?? room.entry;
+    const floor = [...room.walk]
+      .map((k) => k.split(",").map(Number))
+      .filter(([x, y]) => !taken.has(`${x},${y}`) && `${x},${y}` !== exit && !this.blocked(x, y, space) && !(x === room.entry.x && y === room.entry.y))
+      .sort(([ax, ay], [bx, by]) => (sleeping ? Math.hypot(ax - warm.x, ay - warm.y) - Math.hypot(bx - warm.x, by - warm.y) : 0));
+    const [x, y] = floor[sleeping ? index % Math.min(3, floor.length || 1) : 0] ?? exit.split(",").map(Number);
+    if (sleeping) this.indoorUses.set(a.id, { x, y, facing: 2, kind: "mat", propId: -1, on: "bed", role: "bed", space });
+    return { x, y, space };
+  }
+  /** Walls, water and built-in pieces: what stands there whatever anyone moves. */
+  private ground(x: number, y: number, space: string) {
     const key = `${space}:${x},${y}`;
     let fixed = this.terrainCollision.get(key);
     if (fixed === undefined) {
-      fixed = this.world.blocked(x, y, space);
+      const room = space === "outside" ? undefined : this.interiorOf(space);
+      fixed = room ? !room.floor.has(`${x},${y}`) : this.world.blocked(x, y, space);
       trimCache(this.terrainCollision, 16384);
       this.terrainCollision.set(key, fixed);
     }
+    return fixed;
+  }
+  blocked(x: number, y: number, space = this.state.player.pos.space) {
+    const key = `${space}:${x},${y}`;
     return (
-      fixed ||
+      this.ground(x, y, space) ||
       (
         this.tickObstacles?.get(key) ??
         (this.tickObstacles ? [] : this.state.objects)
@@ -1382,9 +1503,8 @@ export class Engine {
       (o) =>
         o.prop &&
         !o.carriedBy &&
-        o.pos.x === x &&
-        o.pos.y === y &&
         o.pos.space === space &&
+        covers(o, x, y) &&
         o.id !== this.state.player.held,
     );
     if (prop) {
@@ -2339,7 +2459,7 @@ export class Engine {
   }
   private shoveWorld(): ShoveWorld {
     return {
-      ground: (x, y, space) => this.world.blocked(x, y, space),
+      ground: (x, y, space) => this.ground(x, y, space),
       propAt: (x, y, space) => this.solidPropAt(x, y, space),
       actorAt: (x, y, space) =>
         this.state.actors.some(
@@ -2357,7 +2477,7 @@ export class Engine {
     const p = this.state.player.pos;
     const o = this.solidPropAt(p.x + dx, p.y + dy, p.space);
     return o && !o.tipped && propDefs[o.prop!]?.topples && (run || o.lean) &&
-      !this.world.blocked(o.pos.x, o.pos.y, o.pos.space) ? o : undefined;
+      !this.ground(o.pos.x, o.pos.y, o.pos.space) ? o : undefined;
   }
   private tiltProp(o: WorldObject, dx: number, dy: number): "leaned" | "tipped" {
     this.propOwnership(o, "topple");
@@ -2416,7 +2536,7 @@ export class Engine {
       // A person stops a stone: the roll ends against them, and the landing
       // table is what decides whether that hurt.
       clear: (x, y) =>
-        !this.world.blocked(x, y, space) &&
+        !this.ground(x, y, space) &&
         !this.solidPropAt(x, y, space) &&
         !this.state.actors.some(
           (a) => a.pos.space === space && a.pos.x === x && a.pos.y === y,
@@ -3511,7 +3631,8 @@ export class Engine {
       if (!door?.open || !door.placeId) return;
       const place = this.world.place(door.placeId);
       if (!place) return;
-      p.pos = { x: 6, y: 8, space: place.id };
+      const room = this.interiorOf(place.id);
+      p.pos = room ? { ...room.entry, space: place.id } : { x: 6, y: 8, space: place.id };
       p.activity = "Indoors";
       this.state.goalFlags?.visited.push(
         `${place.name} ${place.sprite}`.toLowerCase(),
@@ -3637,7 +3758,7 @@ export class Engine {
             !gate ||
             !human ||
             (actorId !== "player" && gate.owner && gate.owner !== actorId) ||
-            this.world.blocked(to.x, to.y, start.space)
+            this.ground(to.x, to.y, start.space)
           )
             return Infinity;
           return 5;
@@ -6072,7 +6193,8 @@ export class Engine {
       case "enter":
         if (b) {
           this.advance(10);
-          p.pos = { x: 6, y: 8, space: b.id };
+          const room = this.interiorOf(b.id);
+          p.pos = room ? { ...room.entry, space: b.id } : { x: 6, y: 8, space: b.id };
           p.activity = "Visiting a household";
           this.event(
             `You ${this.world.pack.entryLabel.toLowerCase()} ${b.name.toLowerCase()}.`,
@@ -6611,11 +6733,7 @@ export class Engine {
         : undefined;
     if (at.activity === "rest" && room) {
       const index = Math.max(0, household?.members.indexOf(a.id) ?? 0);
-      this.moveActor(a, {
-        x: 3 + (index % 4),
-        y: 3,
-        space: room,
-      });
+      if (a.pos.space !== room || a.activity !== at.label) this.moveActor(a, this.indoorSpot(a, room, at.label, index));
       a.activity = at.label;
       if (homeRest) a.fatigue = Math.max(0, a.fatigue - 0.1);
       // Eating at home is what keeps a resident under the hunger gate below and
@@ -6734,11 +6852,7 @@ export class Engine {
     a.fatigue = Math.max(0, a.fatigue - 0.1);
     if (household?.residence && !this.burningPlace(household.residence)) {
       const index = Math.max(0, household.members.indexOf(a.id));
-      this.moveActor(a, {
-        x: 3 + (index % 4),
-        y: 3,
-        space: household.residence,
-      });
+      if (a.pos.space !== household.residence) this.moveActor(a, this.indoorSpot(a, household.residence, a.activity, index));
     } else if (a.pos.space === "outside" && distance(a.pos, a.home) > 0) {
       this.moveActor(a, copy(a.home));
     }
@@ -6875,8 +6989,9 @@ export class Engine {
       if (o.kind !== "gate" && o.kind !== "door" && !o.prop) continue;
       const key = `${o.pos.space}:${o.pos.x},${o.pos.y}`;
       const [sx, sy] = (o.prop && propDefs[o.prop]?.span) || [0, 0];
-      for (let dy = -sy; dy <= sy; dy++)
-        for (let dx = -sx; dx <= sx; dx++) {
+      const [w, d] = o.size ?? [sx + 1, sy + 1];
+      for (let dy = o.size ? 0 : -sy; dy < d; dy++)
+        for (let dx = o.size ? 0 : -sx; dx < w; dx++) {
           const k =
             dx || dy ? `${o.pos.space}:${o.pos.x + dx},${o.pos.y + dy}` : key;
           const at = this.tickObstacles.get(k) ?? [];
@@ -7056,6 +7171,7 @@ export class Engine {
               (target) =>
                 this.findRoute(a.pos, target, a.id, 1500).status === "found",
               (this.loads ??= carryKit(this.world.pack)),
+              (who, residence, index) => this.indoorSpot(who, residence, "Sleeping at home", index),
             );
           // householdActivity moves residents indoors itself.
           this.syncActor(a);

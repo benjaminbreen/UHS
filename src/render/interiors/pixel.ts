@@ -2,21 +2,35 @@ import type { LightField } from "./voxel";
 import { LETTERS, SPRITES } from "./sprites";
 import {
   courtParams, floorColor, hash, wornTiles, mix, palette, roomMask, scale, sky, sun, wallColor,
-  type Palette, type Prop, type RoomParams,
+  type Kind, type Palette, type Prop, type RoomParams,
 } from "./room";
 
 export const T = 16;
 const WH = 48, S = 10, CAP = 6;
+/** Where floor tile (0, 0) starts on the room's canvas. */
+export const FLOOR_X = S, FLOOR_Y = CAP + WH;
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
 type Hit = { u: number; v: number; hits: number; seed: number; base: number };
 type Debris = { x: number; y: number; vx: number; vy: number; c: number; floor: number; rest: boolean };
 type Light = { x: number; y: number; c: number; rad: number; k: number; phase: number };
+// Lain on the floor: whoever crosses the room walks over these, never behind them.
+const LOW: Kind[] = ["rug", "cat", "clutter", "mat", "cushions", "ladder"];
+/** A standing piece's place in the cut-out sheet. */
+export type Cutout = { id: number; ax: number; ay: number; w: number; h: number };
 
 export class PixelRoom {
   W = 0;
   H = 0;
   hover = -1;
   dither = false;
+  /** How the room is lit without a traced field: smooth light, or light in
+   * a few crisp bands with hard-edged sun through the windows. */
+  lighting: "smooth" | "stepped" | "layer" = "smooth";
+  /** With `layer` lighting: the canvases a scene lays over the room itself,
+   * so the people in it are lit too. Without them the room composites its
+   * own light. */
+  layers?: { light: CanvasRenderingContext2D; add: CanvasRenderingContext2D; glow: CanvasRenderingContext2D };
+  private ownLayers?: PixelRoom["layers"];
   props: Prop[] = [];
   private col = new Uint32Array(0);
   private ids = new Int16Array(0);
@@ -32,7 +46,7 @@ export class PixelRoom {
   private lights: Light[] = [];
   private fires: { x: number; y: number; w: number; h: number; lit: boolean }[] = [];
   private flames: { x: number; y: number }[] = [];
-  private beams: { x0: number; x1: number; top: number; floor: number; len: number; skew: number; k: number; c: number }[] = [];
+  private beams: { x0: number; x1: number; top: number; floor: number; len: number; skew: number; k: number; c: number; sill?: number; style?: number }[] = [];
   private mask = new Uint8Array(0);
   /** Each column's back-wall row, -1 for a column with no floor. */
   private top: number[] = [];
@@ -44,8 +58,71 @@ export class PixelRoom {
   private tiles = new Map<number, Hit>();
   private debris: Debris[] = [];
 
-  constructor(canvas: HTMLCanvasElement) {
+  /** Standing pieces lifted out of each finished frame onto their own sheet,
+   * for a scene that has people to pass behind them. */
+  cutouts: Cutout[] = [];
+  /** People without a bed, asleep on a pallet on the floor, by room tile. */
+  floorSleepers: { x: number; y: number }[] = [];
+  /** Where the head of a sleeper lies on the room's canvas: the k-th in a
+   * piece, front first, or on a floor pallet at a tile. The scene draws the
+   * head there; the room draws the rest of them under the covers. */
+  pillow(at: { propId: number; k: number } | { x: number; y: number }) {
+    if ("x" in at) return { x: S + at.x * T + 2, y: this.oy + at.y * T + 9 };
+    const q = this.props[at.propId], X = S + q.x * T, Y = this.oy + q.y * T, PD = q.d * T;
+    if (q.kind === "bed") return { x: X + 10 + at.k, y: Y + PD - 12 - at.k * 4 };
+    if (q.kind === "boxbed") return { x: X + 7, y: Y - 3 };
+    return { x: X + 5, y: Y + PD - 8 };
+  }
+  private sheet?: { ctx: CanvasRenderingContext2D; img: ImageData };
+
+  constructor(canvas: HTMLCanvasElement, sheet?: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
+    if (sheet) this.sheet = { ctx: sheet.getContext("2d")!, img: new ImageData(1, 1) };
+  }
+  /** Where a cut-out sits on the room's canvas now. */
+  cutoutAt(c: Cutout) {
+    const q = this.props[c.id];
+    return { x: S + q.x * T - 8, y: this.oy + (q.y + Math.max(1, q.d)) * T + 2 - c.h };
+  }
+  private layCutouts() {
+    if (!this.sheet) return;
+    let x = 0, y = 0, row = 0;
+    this.cutouts = [];
+    for (const q of this.props) {
+      if (q.wall || LOW.includes(q.kind)) continue;
+      const w = q.w * T + 16, h = Math.max(1, q.d) * T + 52;
+      if (x + w > 512) (x = 0), (y += row), (row = 0);
+      this.cutouts.push({ id: q.id, ax: x, ay: y, w, h });
+      x += w;
+      row = Math.max(row, h);
+    }
+    const c = this.sheet.ctx.canvas;
+    c.width = 512;
+    c.height = Math.max(1, y + row);
+    this.sheet.img = this.sheet.ctx.createImageData(c.width, c.height);
+  }
+  private cut() {
+    if (!this.sheet) return;
+    const { W, H, ids } = this, src = this.img!.data, out = this.sheet.img, dst = out.data;
+    dst.fill(0);
+    for (const c of this.cutouts) {
+      if (this.props[c.id].wrecked) continue;
+      const at = this.cutoutAt(c);
+      for (let j = 0; j < c.h; j++) {
+        const y = at.y + j;
+        if (y < 0 || y >= H) continue;
+        for (let i = 0; i < c.w; i++) {
+          const x = at.x + i;
+          if (x < 0 || x >= W || ids[y * W + x] !== c.id) continue;
+          const o = (y * W + x) * 4, n = ((c.ay + j) * out.width + c.ax + i) * 4;
+          dst[n] = src[o];
+          dst[n + 1] = src[o + 1];
+          dst[n + 2] = src[o + 2];
+          dst[n + 3] = 255;
+        }
+      }
+    }
+    this.sheet.ctx.putImageData(out, 0, 0);
   }
   private get oy() {
     return CAP + WH;
@@ -75,6 +152,7 @@ export class PixelRoom {
     this.ctx.canvas.width = this.W;
     this.ctx.canvas.height = this.H;
     this.img = this.ctx.createImageData(this.W, this.H);
+    this.layCutouts();
   }
 
   pick(x: number, y: number) {
@@ -182,12 +260,24 @@ export class PixelRoom {
       }
     }
     this.paint();
-    if (field) this.traced(field);
+    if (!field && this.lighting === "layer") {
+      this.albedo();
+      this.outline();
+      this.particles(true);
+      this.ctx.putImageData(this.img, 0, 0);
+      this.cut();
+      this.lightLayer();
+      return;
+    }
+    const stepped = !field && this.lighting === "stepped";
+    if (stepped) this.stepped();
+    else if (field) this.traced(field);
     else this.shade();
     this.outline();
-    this.grade();
+    if (!stepped) this.grade();
     this.particles(!field);
     this.ctx.putImageData(this.img, 0, 0);
+    this.cut();
   }
 
   private s(x: number, y: number, c: number) {
@@ -211,6 +301,19 @@ export class PixelRoom {
   private r(x: number, y: number, w: number, h: number, c: number | ((i: number, j: number) => number)) {
     for (let j = 0; j < h; j++)
       for (let i = 0; i < w; i++) this.s(x + i, y + j, typeof c === "number" ? c : c(i, j));
+  }
+  /** An oval of shade on the floor under a piece: a dark core and a lighter
+   * rim, stepped, with a dithered edge between. */
+  private contact(cx: number, cy: number, rx: number, ry: number) {
+    for (let j = Math.floor(-ry - 1); j <= ry + 1; j++)
+      for (let i = Math.floor(-rx - 1); i <= rx + 1; i++) {
+        const x = Math.round(cx + i), y = Math.round(cy + j);
+        if (x < 0 || y < 0 || x >= this.W || y >= this.H) continue;
+        const e = (i * i) / (rx * rx) + (j * j) / (ry * ry), th = BAYER[(y & 3) * 4 + (x & 3)];
+        if (e > 1 + th * 0.3) continue;
+        const n = y * this.W + x;
+        this.col[n] = scale(this.col[n], e < 0.45 + th * 0.2 ? 0.62 : 0.8);
+      }
   }
   private dim(x: number, y: number, w: number, h: number, k: number) {
     for (let j = 0; j < h; j++)
@@ -263,6 +366,70 @@ export class PixelRoom {
       }
     });
     return rows.length;
+  }
+  /** The shape of someone asleep under the covers, their head (drawn by the
+   * scene) on the bolster at (hx, hy): a lit ridge rising and falling as they
+   * breathe, a shaded flank, the sheet turned down at the shoulder. */
+  private sleeper(hx: number, hy: number, cover: number[], len: number) {
+    const { P } = this;
+    const breath = Math.sin(this.t * 1.7 + hx * 0.3) > 0.2 ? 1 : 0;
+    for (let i = 0; i < len; i++) {
+      const x = hx + 7 + i, chest = i < len * 0.45 ? breath : 0, taper = i > len - 3 ? 1 : 0;
+      this.s(x, hy - 2 - chest + taper, cover[5]);
+      this.s(x, hy - 1 - chest + taper, cover[4]);
+      for (let j = hy - chest + taper; j <= hy + 3; j++) this.s(x, j, cover[j > hy + 2 ? 2 : 3]);
+      this.s(x, hy + 4, cover[1]);
+    }
+    for (let j = -3; j <= 4; j++) {
+      this.s(hx + 5, hy + j, P.linen[j === -3 ? 5 : 4]);
+      this.s(hx + 6, hy + j, P.linen[j === 4 ? 2 : 3]);
+    }
+    this.zz.push({ x: hx + 3, y: hy - 13 });
+  }
+  /** A sprite rocked to one side, or lying where it fell. */
+  private fallen(name: string, x: number, y: number, q: Prop) {
+    const rows = SPRITES[name], h = rows.length, P = this.P as unknown as Record<string, number[]>;
+    const side = q.lean ?? (q.seed % 2 ? 1 : -1);
+    rows.forEach((row, j) => {
+      for (let i = 0; i < row.length; i++) {
+        if (row[i] === ".") continue;
+        const [ramp, k] = LETTERS[row[i]];
+        // Fallen, the seat faces sideways and the legs point along the floor.
+        const [px, py] = q.tipped
+          ? [side > 0 ? x + 2 + j : x + row.length - 3 - j, y + h - row.length + i + 1]
+          : [x + i + side * Math.round((h - 1 - j) / 4), y + j + (j < 3 ? 1 : 0)];
+        this.s(px, py, P[ramp][k]);
+      }
+    });
+  }
+  /** What is left of a piece after the axe: boards, shards or a slumped heap. */
+  private wreck(q: Prop) {
+    const { P } = this, X = S + q.x * T, Y = this.oy + q.y * T, w = q.w * T, d = Math.max(1, q.d) * T;
+    const clay = ["jars", "claybin", "plant"].includes(q.kind), soft = ["basket", "sacks", "pack"].includes(q.kind);
+    const R = clay ? P.clay : soft ? P.straw : P.wood;
+    this.dim(X + 1, Y + d - 9, w - 2, 7, 0.78);
+    const n = clay ? 9 * q.w : soft ? 4 * q.w : 5 * q.w + 2;
+    for (let k = 0; k < n; k++) {
+      const cx = X + 3 + hash(k, 1, q.seed) * (w - 8), cy = Y + d - 10 + hash(k, 2, q.seed) * 7;
+      if (clay) {
+        // Curved shards, bright on the broken edge.
+        const len = 2 + ((hash(k, 3, q.seed) * 3) | 0);
+        for (let i = 0; i < len; i++) {
+          this.s(cx + i, cy - (i === 0 || i === len - 1 ? 0 : 1), R[i === 0 ? 5 : 3]);
+          this.s(cx + i, cy + 1, R[1]);
+        }
+        continue;
+      }
+      const a = (hash(k, 3, q.seed) - 0.5) * (soft ? 0.5 : 1.5), len = (soft ? 6 : 5) + hash(k, 4, q.seed) * (soft ? 5 : 7);
+      for (let i = 0; i < len; i++) {
+        const x = cx + Math.cos(a) * i, y = cy + Math.sin(a) * i * 0.6;
+        this.s(x, y - 1, R[i < 1 ? 5 : 4]);
+        this.s(x, y, R[soft ? 3 : 2 + (k % 2)]);
+        this.s(x, y + 1, R[1]);
+      }
+      // A split end, paler where the wood tore.
+      if (!soft) this.s(cx + Math.cos(a) * len, cy + Math.sin(a) * len * 0.6 - 1, P.linen[4]);
+    }
   }
   private disc(cx: number, cy: number, rr: number, R: number[]) {
     for (let j = -rr; j <= rr; j++)
@@ -343,10 +510,22 @@ export class PixelRoom {
         this.clutterItem(q, S + q.x * T, oy + q.y * T);
       }
     this.cur = -1;
+    for (const f of this.floorSleepers) {
+      const X = S + f.x * T, Y = oy + f.y * T;
+      // A straw tick, longer than the tile: whoever lies on it is taller than one.
+      this.dim(X - 3, Y + 13, T + 8, 3, 0.75);
+      this.sprite("pallet", X - 4, Y + 6);
+      const at = this.pillow(f);
+      this.sleeper(at.x, at.y, P.pale, 13);
+    }
     for (const q of this.props) if (q.kind === "hearth") this.hearthSlab(q);
     for (const q of this.props) {
-      if (q.wall || q.kind === "rug" || q.kind === "cat" || q.kind === "clutter") continue;
+      if (q.wall || q.wrecked || q.kind === "rug" || q.kind === "cat" || q.kind === "clutter") continue;
       const X = S + q.x * T, Y = oy + (q.y + q.d) * T;
+      if (this.lighting !== "smooth") {
+        this.contact(X + (q.w * T) / 2, Y - 3, q.w * T * 0.46, 3.2);
+        continue;
+      }
       this.dim(X, Y - 4, q.w * T, 5, 0.72);
       this.dim(X + 1, Y - 6, q.w * T - 2, 2, 0.86);
     }
@@ -356,7 +535,8 @@ export class PixelRoom {
       .sort((a, b) => (a.wall === b.wall ? a.y + a.d - (b.y + b.d) || (a.kind === "cat" ? 1 : 0) - (b.kind === "cat" ? 1 : 0) : a.wall ? -1 : 1));
     for (const q of order) {
       this.cur = q.id;
-      this.draw(q, sunNow);
+      if (q.wrecked) this.wreck(q);
+      else this.draw(q, sunNow);
     }
     this.cur = -1;
     for (const d of this.debris) if (!d.rest) this.s(d.x, d.y, d.c);
@@ -372,7 +552,7 @@ export class PixelRoom {
     return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
   }
   private caps(solid: Uint8Array) {
-    const { W, H, P } = this, R = 5;
+    const { W, H, P } = this, R = 7;
     const near = new Uint8Array(W * H), row = new Uint8Array(W * H);
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
@@ -387,13 +567,25 @@ export class PixelRoom {
         near[y * W + x] = hit;
       }
     const at = (a: Uint8Array, x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && a[y * W + x] === 1;
+    // A thick wall top, as in Stardew: a dark outer line, a bevel lit from the
+    // upper left, a flat face, and a shadow where it meets the room.
+    const rim = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++)
+        if (near[y * W + x] && !solid[y * W + x] && (!at(near, x - 1, y) || !at(near, x + 1, y) || !at(near, x, y - 1) || !at(near, x, y + 1))) rim[y * W + x] = 1;
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
         const i = y * W + x;
         if (solid[i] || !near[i]) continue;
         const touch = at(solid, x - 1, y) || at(solid, x + 1, y) || at(solid, x, y - 1) || at(solid, x, y + 1);
-        const rim = !at(near, x - 1, y) || !at(near, x + 1, y) || !at(near, x, y + 1);
-        this.s(x, y, touch || rim ? P.trim[1] : !at(near, x, y - 1) ? P.trim[4] : hash(x, y, 5) < 0.1 ? P.trim[2] : P.trim[3]);
+        let c: number;
+        if (rim[i]) c = mix(P.trim[0], 0x0c0810, 0.5);
+        else if (touch) c = P.trim[1];
+        else if (at(rim, x, y - 1) || at(rim, x - 1, y)) c = P.trim[5];
+        else if (at(rim, x, y + 1) || at(rim, x + 1, y)) c = P.trim[2];
+        else if (at(solid, x, y + 2) || at(solid, x, y - 2) || at(solid, x + 2, y) || at(solid, x - 2, y)) c = P.trim[2];
+        else c = hash(x >> 1, y >> 1, 5) < 0.06 ? P.trim[2] : P.trim[3];
+        this.s(x, y, c);
       }
   }
   /** Small deliberate things on natural floors: pebbles, twigs, strewn rush
@@ -410,7 +602,7 @@ export class PixelRoom {
       for (let gx = 0; gx < (p.w * T) / cell; gx++) {
         const h = hash(gx, gy, p.seed + 21), x = gx * cell + Math.floor(hash(gx, gy, p.seed + 22) * cell), y = gy * cell + Math.floor(hash(gx, gy, p.seed + 23) * cell);
         // Rushes lie mostly one way, as if swept, with a few across them.
-        if (fp === "rushes" && h < 0.16) {
+        if (fp === "rushes" && h < 0.09) {
           const a = (hash(gx, gy, p.seed + 24) - 0.5) * 0.7 + (h < 0.08 ? Math.PI / 2.2 : 0.35), len = 4 + Math.floor(hash(gx, gy, p.seed + 25) * 4);
           for (let k = 0; k < len; k++) {
             const px = Math.round(x + Math.cos(a) * k), py = Math.round(y + Math.sin(a) * k * 0.7);
@@ -418,14 +610,14 @@ export class PixelRoom {
             at(px, py, mix(k < len / 2 ? P.straw[4] : P.straw[3], F[3], 0.35));
           }
           if (h < 0.04) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, -1]]) at(x + dx, y + dy, P.linen[5]);
-        } else if (h > 0.16 && h < 0.185) {
+        } else if (h > 0.16 && h < 0.172) {
           at(x, y, P.stone[4]);
           at(x + 1, y, P.stone[3]);
           at(x, y + 1, P.stone[2]);
           at(x + 1, y + 1, P.stone[2]);
           at(x + 1, y + 2, F[1]);
           at(x + 2, y + 1, F[1]);
-        } else if (h > 0.2 && h < 0.21) {
+        } else if (h > 0.2 && h < 0.205) {
           for (let k = 0; k < 5; k++) {
             at(x + k, y + (k >> 1), P.wood[k === 0 ? 4 : 2]);
             at(x + k, y + (k >> 1) + 1, F[1]);
@@ -663,9 +855,14 @@ export class PixelRoom {
           leaf(Math.round(x0 - 7 * pr));
           leaf(Math.round(x0 + 5 + 7 * pr));
         }
+        const moon = p.hour > 20 || p.hour < 4.5;
+        if (open > 0.02 && moon && style !== 2) {
+          const len = 44, skew = ((p.hour + 12) % 24 - 12) * -2.5;
+          this.beams.push({ x0: x0, x1: x0 + 10, top, floor: oy, len, skew, k: open * 0.35, c: 0x9fb4f0, sill: top + h, style });
+        }
         if (open > 0.02 && sunNow.strength > 0) {
           const len = 20 + (1 - sunNow.dir[2]) * 46, skew = (sunNow.dir[0] / Math.max(0.2, -sunNow.dir[1])) * len * -0.6;
-          this.beams.push({ x0: x0, x1: x0 + 10, top, floor: oy, len, skew, k: open * sunNow.strength * [1.1, 0.55, 0.35][style], c: sunNow.color });
+          this.beams.push({ x0: x0, x1: x0 + 10, top, floor: oy, len, skew, k: open * sunNow.strength * [1.1, 0.55, 0.35][style], c: sunNow.color, sill: top + h, style });
         }
         this.lights.push({ x: x0 + 5, y: top + 11, c: mix(0x404a88, 0xbcd8ff, sunNow.strength), rad: 44, k: open * (0.1 + sunNow.strength * 0.35), phase: -1 });
         break;
@@ -824,10 +1021,11 @@ export class PixelRoom {
       }
       case "loom": {
         const bx0 = X + 3, bx1 = X + PW - 4, back = Y + 6, top = back - 44;
-        const post = (x: number, y: number, h: number) => this.r(x, y - h, 3, h, (i) => W[i === 0 ? 4 : i === 1 ? 3 : 1]);
-        post(bx0 - 1, back, 46);
+        const post = (x: number, y: number, h: number) => this.r(x, y - h, 4, h, (i, j) => (j === 0 ? W[5] : W[i === 0 ? 4 : i === 1 ? 3 : i === 2 ? 2 : 1]));
+        post(bx0 - 2, back, 46);
         post(bx1 - 1, back, 46);
-        this.r(bx0 - 2, top - 2, bx1 - bx0 + 5, 4, (_i, j) => W[j === 0 ? 5 : j === 3 ? 1 : 3]);
+        // The cloth beam: a round roll with the finished cloth wound on it.
+        this.r(bx0 - 3, top - 3, bx1 - bx0 + 7, 5, (i, j) => (i < 2 || i > bx1 - bx0 + 4 ? W[j === 0 ? 5 : j === 4 ? 1 : 3] : [P.acc[4], P.acc[3], P.acc2[3], P.acc[2], P.acc[1]][j]));
         const cloth = 17, weights = back - 6;
         for (let i = bx0 + 2; i < bx1 - 1; i++) {
           const u = i - bx0;
@@ -837,7 +1035,9 @@ export class PixelRoom {
           }
           if (u % 2 === 0) for (let y = top + 2 + cloth; y < weights; y++) this.s(i, y, P.linen[u % 4 === 0 ? 4 : 3]);
         }
-        this.r(bx0 + 1, top + 2 + cloth + 6, bx1 - bx0 - 1, 1, W[3]);
+        // Heddle bar and shed rod across the warp.
+        this.r(bx0 - 1, top + 2 + cloth + 5, bx1 - bx0 + 3, 2, (_i, j) => W[j === 0 ? 4 : 2]);
+        this.r(bx0 + 1, top + 2 + cloth + 10, bx1 - bx0 - 1, 1, W[3]);
         for (let i = bx0 + 2; i < bx1 - 2; i += 4) this.vase(i + 1, weights + 3, 4, (t) => 1.4 - t * 0.3, P.clay, false);
         this.r(bx0 + 4, top + 2 + cloth - 2, 6, 2, (_i, j) => (j === 0 ? W[5] : W[3]));
         this.box(X + PW / 2 - 9, Y + PD - 8, 18, 5, 8, W, W);
@@ -846,23 +1046,33 @@ export class PixelRoom {
         break;
       }
       case "spinwheel": {
-        const cx = X + 9, cy = Y + PD - 18, rr = 7, a = this.turn.get(q.id) ?? 0;
-        this.r(X + 3, Y + PD - 8, 12, 3, (_i, j) => W[j === 0 ? 4 : 2]);
-        this.r(X + 4, Y + PD - 5, 1, 4, W[1]);
-        this.r(X + 13, Y + PD - 5, 1, 4, W[1]);
-        this.r(cx, cy, 1, 10, W[1]);
-        for (let k = 0; k < 48; k++) {
-          const t = (k / 48) * Math.PI * 2;
-          this.s(cx + Math.cos(t) * rr, cy + Math.sin(t) * rr, W[t < Math.PI ? 2 : 4]);
+        // A Saxony wheel: a bench on three splayed legs, a rimmed wheel of eight
+        // spokes turning when in use, the flyer and bobbin, and the distaff of fibre.
+        const cx = X + 10, cy = Y + PD - 17, rr = 7, a = this.turn.get(q.id) ?? 0;
+        this.r(X + 2, Y + PD - 9, 14, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : j === 2 ? W[1] : W[3]));
+        for (const [lx, sk] of [[X + 3, -1], [X + 14, 1], [X + 9, 0]] as const)
+          for (let j = 0; j < 5; j++) this.r(lx + Math.round(sk * j * 0.4), Y + PD - 6 + j, 2, 1, W[j < 2 ? 3 : 2]);
+        this.r(X + 5, Y + PD - 2, 9, 1, W[2]);
+        for (const px of [cx - 1, cx + 1]) this.r(px, cy, 1, Y + PD - 9 - cy, W[px < cx ? 4 : 2]);
+        for (let k = 0; k < 64; k++) {
+          const t = (k / 64) * Math.PI * 2, top = Math.sin(t) < 0;
+          this.s(cx + Math.cos(t) * rr, cy + Math.sin(t) * rr, W[top ? 5 : 2]);
+          this.s(cx + Math.cos(t) * (rr - 1), cy + Math.sin(t) * (rr - 1), W[top ? 3 : 1]);
         }
-        for (let k = 0; k < 6; k++) {
-          const t = a + (k / 6) * Math.PI * 2;
-          for (let s = 1; s < rr; s++) this.s(cx + Math.cos(t) * s, cy + Math.sin(t) * s, W[3]);
+        for (let k = 0; k < 8; k++) {
+          const t = a + (k / 8) * Math.PI * 2;
+          for (let s2 = 1; s2 < rr - 1; s2++) this.s(cx + Math.cos(t) * s2, cy + Math.sin(t) * s2, W[s2 < 3 ? 4 : 3]);
         }
-        this.s(cx, cy, P.iron[4]);
-        this.r(X + 3, Y + PD - 24, 1, 16, W[2]);
-        this.disc(X + 3, Y + PD - 26, 3, P.linen);
-        this.r(X + 3, cy - 1, cx - X - 3, 1, P.linen[4]);
+        this.disc(cx, cy, 1, P.brass);
+        // Flyer and bobbin on the left, the drive band running to it.
+        this.r(X + 2, cy - 3, 5, 3, (i, j) => (j === 1 ? P.linen[i % 2 ? 4 : 5] : W[j === 0 ? 4 : 2]));
+        this.r(X + 4, cy - 2, cx - X - 4, 1, P.linen[3]);
+        this.r(X + 4, cy - 1 + rr, cx - X - 4, 1, P.linen[2]);
+        this.r(X + 4, cy - 1, 1, rr + 1, P.linen[3]);
+        // The distaff, a cloud of fibre on a stick.
+        this.r(X + 15, Y + PD - 26, 1, 17, W[2]);
+        this.disc(X + 15, Y + PD - 27, 3, P.linen);
+        this.s(X + 14, Y + PD - 29, P.linen[5]);
         break;
       }
       case "basket": {
@@ -1014,7 +1224,12 @@ export class PixelRoom {
           this.s(X + 1, Y + PD - 24, P.brass[5]);
           this.s(X + 4, Y + PD - 24, P.brass[4]);
         }
-        if (messy > 0.5) for (let i = 0; i < 12; i++) this.s(X + 16 + i, Y + PD - 16 + Math.round(Math.sin(i * 0.9) * 2), P.acc[1]);
+        if (messy > 0.5 && !q.sleepers) for (let i = 0; i < 12; i++) this.s(X + 16 + i, Y + PD - 16 + Math.round(Math.sin(i * 0.9) * 2), P.acc[1]);
+        // Two in a bed lie one behind the other on the bolster.
+        for (let k = Math.min(2, q.sleepers ?? 0) - 1; k >= 0; k--) {
+          const at = this.pillow({ propId: q.id, k });
+          this.sleeper(at.x, at.y, P.acc, 12);
+        }
         void d;
         break;
       }
@@ -1022,7 +1237,7 @@ export class PixelRoom {
         const fin = p.finish, painted = p.styles.chest === "painted";
         const swap: Record<string, string> = painted ? { y: "h", t: "g", r: "f", e: "d", w: "s", q: "a" } : {};
         if (fin === 0) Object.assign(swap, { m: "e", M: "r" });
-        const x0 = X, y0 = Y + PD - 13;
+        const x0 = X, y0 = Y + PD - SPRITES.chest.length;
         if (pr > 0.05) this.r(x0 + 2, y0 - Math.round(7 * pr), 12, Math.round(7 * pr) + 1, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[2]));
         this.sprite("chest", x0, y0, {}, swap);
         if (pr > 0.3) {
@@ -1045,7 +1260,8 @@ export class PixelRoom {
               if ((i * i) / 169 + (j * j) / 25 <= 1) this.s(cx + i, cy + j, (i * i) / 169 + (j * j) / 25 > 0.8 ? W[j < 0 ? 5 : 2] : W[3]);
           for (let i = -12; i <= 12; i++) this.s(cx + i, cy + 6, W[1]);
         } else if (q.w === 2) {
-          this.sprite(style === "trestle" ? "trestle" : "table", X, Y + PD - 20);
+          const name = style === "trestle" ? "trestle" : "table";
+          this.sprite(name, X, Y + PD - SPRITES[name].length);
         } else {
           this.r(X + 1, top - h, PW - 2, d, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : style === "trestle" && j % 5 === 4 ? W[2] : W[3]));
           this.r(X + 1, top + d - h, PW - 2, 3, (_i, j) => W[j === 0 ? 3 : 1]);
@@ -1073,12 +1289,13 @@ export class PixelRoom {
         break;
       }
       case "stool": {
-        const x0 = X + 2, base = Y + PD - 3;
-        if (p.styles.stool === "chair") {
-          const h = this.sprite("chair", x0, base - 18);
-          if (p.finish === 2) this.r(x0 + 2, base - 18 + 10, 8, 2, (_i, j) => P.acc[j ? 3 : 5]);
-          void h;
-        } else this.sprite("stool", x0, base - 9);
+        const x0 = X + 1, base = Y + PD - 3, name = p.styles.stool === "chair" ? "chair" : "stool", top = base - SPRITES[name].length;
+        if (q.tipped || q.lean) this.fallen(name, x0, top, q);
+        else {
+          this.sprite(name, x0, top);
+          // A cushion on the good chairs.
+          if (name === "chair" && p.finish === 2) this.r(x0 + 3, top + 12, 8, 2, (_i, j) => P.acc[j ? 3 : 5]);
+        }
         break;
       }
       case "plant": {
@@ -1141,7 +1358,11 @@ export class PixelRoom {
       }
       case "mat": {
         const plain: Record<string, string> = p.finish === 0 ? { f: "v", d: "x", g: "b", s: "z" } : {};
-        this.sprite(pr > 0.5 ? "futon" : "bedroll", X, Y + PD - 15, {}, plain);
+        this.sprite(pr > 0.5 || q.sleepers ? "futon" : "bedroll", X, Y + PD - 15, {}, plain);
+        if (q.sleepers) {
+          const at = this.pillow({ propId: q.id, k: 0 });
+          this.sleeper(at.x, at.y, P.acc, 13);
+        }
         break;
       }
       case "boxbed": {
@@ -1149,6 +1370,10 @@ export class PixelRoom {
         this.box(x0, y0, w, d, 10, P.stone, P.stone);
         this.r(x0 + 3, y0 - 8, w - 6, d - 4, (i, j) => (hash(i, j, q.seed) < 0.3 ? P.straw[4] : P.straw[3 - (j & 1)]));
         this.r(x0 + 12, y0 - 8, w - 15, d - 4, (i, j) => P.fur[j === 0 ? 5 : (i + j) % 5 === 0 ? 2 : 3]);
+        if (q.sleepers) {
+          const at = this.pillow({ propId: q.id, k: 0 });
+          this.sleeper(at.x, at.y, P.fur, 7);
+        }
         for (const bx of [x0 + 9, x0 + w - 4]) this.r(bx, y0 - 10, 2, 11 + d - 10, P.stone[1]);
         break;
       }
@@ -1224,11 +1449,21 @@ export class PixelRoom {
         break;
       }
       case "stove": {
-        const cx = X + 8, base = Y + PD - 4;
-        this.box(cx - 6, base - 8, 12, 8, 10, P.iron, P.iron);
-        this.r(cx - 2, base - 70, 3, 60, (i) => P.iron[i === 0 ? 4 : 2]);
-        for (let i = -3; i <= 3; i++) (q.on ? this.g.bind(this) : this.s.bind(this))(cx + i, base - 4, q.on ? 0xff8a30 : P.iron[0]);
-        if (q.on) this.lights.push({ x: cx, y: base - 2, c: 0xff8a3a, rad: 40, k: 1.3, phase: q.seed % 80 });
+        // A pot-bellied iron stove on three short legs, its grate glowing when lit.
+        const cx = X + 8, base = Y + PD - 3, I = P.iron;
+        for (const lx of [cx - 5, cx, cx + 4]) this.r(lx, base - 3, 2, 3, (i) => I[i ? 1 : 3]);
+        this.vase(cx, base - 3, 15, (t) => 3.5 + Math.sin(t * Math.PI) * 2.6, I, false);
+        this.r(cx - 6, base - 18, 13, 2, (i, j) => (j === 0 ? I[5] : i === 0 || i === 12 ? I[1] : I[3]));
+        this.r(cx - 5, base - 20, 11, 2, (_i, j) => (j === 0 ? I[4] : I[2]));
+        this.r(cx - 5, base - 12, 11, 1, P.brass[p.finish ? 3 : 1]);
+        const on = q.on, glow = on ? this.g.bind(this) : this.s.bind(this);
+        for (let j = 0; j < 4; j++)
+          for (let i = 0; i < 6; i++) glow(cx - 3 + i, base - 10 + j, on ? (i % 2 ? [0xffb040, 0xff8a30, 0xff6a20, 0xd84818][j] : I[0]) : i % 2 ? I[1] : I[0]);
+        this.s(cx + 3, base - 8, P.brass[4]);
+        // The flue: up to the ceiling, banded where the joints are.
+        this.r(cx - 1, CAP, 3, base - 20 - CAP, (i, j) => ((base - 20 - CAP - j) % 14 === 0 ? I[4] : I[i === 0 ? 4 : i === 1 ? 2 : 1]));
+        if (p.finish > 0) this.vase(cx + 2, base - 20, 4, (t) => 2.4 - t * 0.6, p.finish === 2 ? P.brass : I);
+        if (on) this.lights.push({ x: cx, y: base - 8, c: 0xff8a3a, rad: 42, k: 1.3, phase: q.seed % 80 });
         break;
       }
       case "pole":
@@ -1736,6 +1971,209 @@ export class PixelRoom {
       }
   }
 
+  /** The drawn colours as they are, for a light layer to be laid over. */
+  private albedo() {
+    const { col } = this, data = this.img!.data;
+    for (let i = 0, n = col.length; i < n; i++) {
+      const c = col[i], o = i * 4;
+      data[o] = (c >> 16) & 255;
+      data[o + 1] = (c >> 8) & 255;
+      data[o + 2] = c & 255;
+      data[o + 3] = 255;
+    }
+  }
+  /** Light as its own layer, the way Stardew lights a room: an ambient colour
+   * for the hour, soft pools from fires and lamps, the sun's patch on the
+   * floor, all multiplied over the crisp drawing; then a shaft of lit air
+   * from each window and a small warm core at each flame, added on top; and
+   * whatever gives its own light (flames, the sky in a window) drawn back
+   * over at full strength. Nothing is blurred into the drawing itself. */
+  private lightLayer() {
+    const { W, H, p, ctx } = this;
+    const make = () => document.createElement("canvas").getContext("2d")!;
+    const own = !this.layers;
+    const { light: L, add: A, glow: G } = this.layers ?? (this.ownLayers ??= { light: make(), add: make(), glow: make() });
+    for (const c of [L, A, G]) if (c.canvas.width !== W || c.canvas.height !== H) (c.canvas.width = W), (c.canvas.height = H);
+    const sunNow = sun(p.hour), day = sunNow.strength;
+    const windows = this.props.filter((q) => q.kind === "window" && (q.on || p.windowStyle !== "shutter")).length;
+    const dusk = Math.max(0, 1 - Math.abs(p.hour - 18.6) / 1.8) + Math.max(0, 1 - Math.abs(p.hour - 6.2) / 1.4);
+    // Night is a deep blue-violet; dusk and dawn amber; day near white, dimmer with fewer windows.
+    const bright = 0.72 + Math.min(3, windows) * 0.08;
+    const dayCol = mix(0x282a62, mix(0xb8b0c8, 0xfff6ec, bright), Math.min(1, day * 1.4));
+    const amb = mix(dayCol, 0xe8a070, Math.min(0.55, dusk * 0.45) * (0.4 + day));
+    const hex = (c: number, a = 1) => `rgba(${(c >> 16) & 255},${(c >> 8) & 255},${c & 255},${a})`;
+    L.globalCompositeOperation = "source-over";
+    L.filter = "none";
+    L.fillStyle = hex(amb);
+    L.fillRect(0, 0, W, H);
+    L.globalCompositeOperation = "lighter";
+    const t = this.t;
+    for (const l of this.lights) {
+      const flick = l.phase < 0 ? 1 : 0.9 + 0.07 * Math.sin(t * 7 + l.phase) + 0.03 * Math.sin(t * 19 + l.phase * 2);
+      const r = l.rad * 1.6 * flick, a = Math.min(1, l.k * 0.6);
+      const g = L.createRadialGradient(l.x, l.y, 0, l.x, l.y, r);
+      g.addColorStop(0, hex(l.c, a));
+      g.addColorStop(0.3, hex(l.c, a * 0.6));
+      g.addColorStop(0.65, hex(l.c, a * 0.18));
+      g.addColorStop(1, hex(l.c, 0));
+      L.fillStyle = g;
+      L.save();
+      // Pools lie on the floor: squashed a little, as the view looks down at an angle.
+      L.translate(l.x, l.y);
+      L.scale(1, 0.8);
+      L.translate(-l.x, -l.y);
+      L.fillRect(l.x - r, l.y - r, r * 2, r * 2);
+      L.restore();
+    }
+    // The sun on the floor: a soft-edged parallelogram, warm and bright.
+    L.filter = "blur(1px)";
+    for (const b of this.beams) {
+      const near = b.floor + b.len * 0.2, far = b.floor + b.len;
+      const s0 = b.skew * ((near - b.floor) / b.len), s1 = b.skew;
+      L.fillStyle = hex(b.c, Math.min(1, b.k * 0.95));
+      L.beginPath();
+      L.moveTo(b.x0 + s0, near);
+      L.lineTo(b.x1 + s0, near);
+      L.lineTo(b.x1 + s1, far);
+      L.lineTo(b.x0 + s1, far);
+      L.closePath();
+      L.fill();
+    }
+    L.filter = "none";
+    // Added over the multiplied room: shafts of lit air and warm cores.
+    A.clearRect(0, 0, W, H);
+    A.globalCompositeOperation = "lighter";
+    for (const b of this.beams) {
+      const far = b.floor + b.len;
+      const g = A.createLinearGradient(0, b.top, 0, far);
+      g.addColorStop(0, hex(b.c, 0.3 * Math.min(1, b.k)));
+      g.addColorStop(0.6, hex(b.c, 0.12 * Math.min(1, b.k)));
+      g.addColorStop(1, hex(b.c, 0));
+      A.fillStyle = g;
+      A.beginPath();
+      A.moveTo(b.x0, b.top);
+      A.lineTo(b.x1, b.top);
+      A.lineTo(b.x1 + b.skew, far);
+      A.lineTo(b.x0 + b.skew, far);
+      A.closePath();
+      A.fill();
+    }
+    for (const l of this.lights) {
+      if (l.phase < 0) continue;
+      const r = l.rad * 0.45, g = A.createRadialGradient(l.x, l.y, 0, l.x, l.y, r);
+      g.addColorStop(0, hex(l.c, 0.28 * (1 - day * 0.6)));
+      g.addColorStop(1, hex(l.c, 0));
+      A.fillStyle = g;
+      A.fillRect(l.x - r, l.y - r, r * 2, r * 2);
+    }
+    // What gives its own light keeps its colour: flames, embers, the sky in a window.
+    const lit = G.createImageData(W, H), src = this.img!.data, dst = lit.data;
+    for (let i = 0; i < this.glow.length; i++)
+      if (this.glow[i]) {
+        const o = i * 4;
+        dst[o] = src[o];
+        dst[o + 1] = src[o + 1];
+        dst[o + 2] = src[o + 2];
+        dst[o + 3] = 255;
+      }
+    G.putImageData(lit, 0, 0);
+    if (!own) return;
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(L.canvas, 0, 0);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.drawImage(A.canvas, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage(G.canvas, 0, 0);
+  }
+
+  /** Light in a few crisp bands. Brightness is summed from the day, the
+   * fires and lamps and the sun on the floor, then snapped to a band, with a
+   * Bayer dither only where two bands meet; the light's colour is kept, and
+   * the darkest bands lean toward a cool plum. The sun through a window is a
+   * hard-edged patch on the floor under a shaft of lit air. */
+  private stepped() {
+    const { W, H, col, glow, p, oy } = this;
+    const data = this.img!.data;
+    const sunNow = sun(p.hour), day = sunNow.strength;
+    const windows = this.props.filter((q) => q.kind === "window" && (q.on || p.windowStyle !== "shutter")).length;
+    const base = 0.22 + day * (0.3 + Math.min(3, windows) * 0.08), cool = 1 - day;
+    const amb = [base * (1 - cool * 0.22), base * (1 - cool * 0.12), base];
+    const lights = this.lights.map((l) => {
+      const f = l.phase < 0 ? 1 : 0.86 + 0.1 * Math.sin(this.t * 7 + l.phase) + 0.04 * Math.sin(this.t * 19 + l.phase * 2);
+      return { ...l, f: l.k * f, r: ((l.c >> 16) & 255) / 255, g: ((l.c >> 8) & 255) / 255, b: (l.c & 255) / 255 };
+    });
+    const sr = ((sunNow.color >> 16) & 255) / 255, sg = ((sunNow.color >> 8) & 255) / 255, sb = (sunNow.color & 255) / 255;
+    // Where the sun falls: from a little out from the wall to the patch's far edge.
+    const patches = this.beams.map((b) => ({ ...b, near: b.floor + Math.round(b.len * 0.2), far: b.floor + b.len }));
+    const FACT = [0.3, 0.44, 0.58, 0.72, 0.86, 1, 1.12, 1.22];
+    const shadow = [0.3, 0.2, 0.1, 0.04];
+    const air = new Float32Array(W * H);
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, c = col[i], o = i * 4;
+        if (glow[i]) {
+          data[o] = (c >> 16) & 255;
+          data[o + 1] = (c >> 8) & 255;
+          data[o + 2] = c & 255;
+          data[o + 3] = 255;
+          continue;
+        }
+        let lr = amb[0], lg = amb[1], lb = amb[2];
+        for (const l of lights) {
+          const dx = x - l.x, dy = (y - l.y) * 1.25, d2 = dx * dx + dy * dy;
+          const k = (l.f / (1 + d2 / (l.rad * l.rad * 0.3))) * Math.max(0, 1 - Math.sqrt(d2) / (l.rad * 2.2));
+          lr += k * l.r;
+          lg += k * l.g;
+          lb += k * l.b;
+        }
+        const cx = (x - S) >> 4, cy = (y - oy) >> 4;
+        const court = y >= oy && x >= S && cx < p.w && cy < p.d && this.mask[cy * p.w + cx] === 2;
+        if (court) (lr += day * sr), (lg += day * sg), (lb += day * sb);
+        for (const b of patches) {
+          if (y >= b.near && y < b.far) {
+            const t = (y - b.floor) / b.len, off = b.skew * t;
+            if (x >= b.x0 + off - 1 && x < b.x1 + off + 1) {
+              // Lattice and shoji throw their pattern; glazed panes their mullions.
+              const u = x - b.x0 - off, v = y - b.near;
+              const bar = b.style === 1 ? (Math.round(u + v * 0.5) % 4 === 0) : b.style === 2 ? false : Math.abs(u - 5) < 0.6 || v === Math.round((b.far - b.near) * 0.45);
+              const k = b.k * (bar ? 0.35 : 1) * (1 - t * 0.25);
+              lr += k * sr;
+              lg += k * sg;
+              lb += k * sb;
+            }
+          }
+          // The shaft: every row between the window and the far edge of its patch.
+          if (y >= b.top && y < b.far) {
+            const t = (y - b.top) / (b.far - b.top), off = b.skew * t;
+            if (x >= b.x0 + off && x < b.x1 + off) air[i] = Math.max(air[i], b.k * (1 - t) * (y < (b.sill ?? b.top) ? 0.5 : 1));
+          }
+        }
+        const lum = lr * 0.3 + lg * 0.5 + lb * 0.2;
+        const th = BAYER[(y & 3) * 4 + (x & 3)];
+        // Night's ambient lands on the second band, a two-window noon on the sixth (the drawn colour).
+        const band = Math.max(0, Math.min(FACT.length - 1, Math.floor((lum - 0.3) * 9 + 2 + (th - 0.5) * 0.14)));
+        // The light's own colour, softened so a fire tints rather than floods.
+        const k = FACT[band], hue = (v: number) => k * (1 + (v / Math.max(0.05, lum) - 1) * 0.7);
+        let r = ((c >> 16) & 255) * hue(lr), g = ((c >> 8) & 255) * hue(lg), bl = (c & 255) * hue(lb);
+        const sh = shadow[band] ?? 0;
+        if (sh) (r += (40 - r) * sh), (g += (26 - g) * sh), (bl += (58 - bl) * sh);
+        data[o] = Math.min(255, r);
+        data[o + 1] = Math.min(255, g);
+        data[o + 2] = Math.min(255, bl);
+        data[o + 3] = 255;
+      }
+    // Lit air over everything, in three steps of strength, so the shaft fades
+    // from the window without a smear.
+    for (let i = 0, n = W * H; i < n; i++) {
+      const a = air[i];
+      if (a < 0.08) continue;
+      const k = a > 0.6 ? 0.2 : a > 0.3 ? 0.13 : 0.07, o = i * 4;
+      data[o] = Math.min(255, data[o] + (255 * sr - data[o] * 0.4) * k);
+      data[o + 1] = Math.min(255, data[o + 1] + (255 * sg - data[o + 1] * 0.4) * k);
+      data[o + 2] = Math.min(255, data[o + 2] + (255 * sb - data[o + 2] * 0.4) * k);
+    }
+  }
+
   /** Hand-drawn albedo lit by the voxel scene's traced light. The top-down
    * voxel view shares this oblique, so pixel (x, y) sees the k×k voxel-screen
    * pixels at the offsets below. */
@@ -1910,11 +2348,13 @@ export class PixelRoom {
       const x = n.x + Math.sin(life * 6) * 3 + life * 4, y = n.y - life * 16;
       for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [2, -1], [2, 0], [2, -2], [2, -3], [3, -3]]) this.put(x + dx, y + dy, 0xfff0c0, 1 - life);
     }
-    for (const z of this.zz) {
-      const life = (t * 0.4) % 1;
-      const x = z.x - life * 5, y = z.y - life * 10;
-      for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [1, 1], [0, 2], [1, 2], [2, 2]]) this.put(x + dx, y + dy, 0xf4f0ff, 1 - life);
-    }
+    const Z = [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [3, 1], [2, 2], [1, 3], [0, 4], [1, 4], [2, 4], [3, 4], [4, 4]];
+    for (const [k, z] of this.zz.entries())
+      for (const n of [0, 1]) {
+        const life = (t * 0.35 + n * 0.5 + k * 0.23) % 1;
+        const x = Math.round(z.x + life * 4 + Math.sin(life * 5) * 1.5), y = Math.round(z.y - life * 12);
+        for (const [dx, dy] of Z) this.put(x + dx, y + dy, 0xf4f0ff, Math.min(1, (1 - life) * 1.4));
+      }
   }
 
   private outline() {

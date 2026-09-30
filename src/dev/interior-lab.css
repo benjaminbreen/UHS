@@ -142,7 +142,8 @@
   gap: 22px;
   min-width: 0;
 }
-.ilab-both {
+.ilab-both,
+.ilab-compare {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
 }
 .ilab-stage {

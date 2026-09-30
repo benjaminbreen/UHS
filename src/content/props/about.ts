@@ -1,3 +1,5 @@
+import { furnitureAbout } from "./furniture";
+
 /**
  * What each prop is, said plainly, for the focus card. One or two sentences
  * a person on the street would say, not a note on the evidence. Keyed by the
@@ -169,4 +171,5 @@ export const about: Record<string, string> = {
   stick: "A stout stick, good for leaning on or hitting things.",
   spear: "A spear for hunting or fighting.",
   branch: "A fallen branch.",
+  ...furnitureAbout,
 };

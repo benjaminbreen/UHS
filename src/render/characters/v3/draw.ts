@@ -498,6 +498,14 @@ function pose3d(
     knee = [92, 88];
     armA = [38, 34];
     elbow = [24, 28];
+  } else if (pose === "sit-seat") {
+    // Thighs level, shins straight down, hands in the lap; a slow breath.
+    thigh = [86, 90];
+    knee = [84, 92];
+    armA = [30, 34];
+    elbow = [52, 48];
+    armOut = [2, 2];
+    lean = [3, 4, 4, 3][w];
   } else if (pose === "spear-thrust") {
     thigh = [[8, -18], [16, -25], [42, -28], [12, -12]][w];
     knee = [[10, 24], [18, 36], [25, 45], [15, 20]][w];
@@ -798,7 +806,7 @@ function pose3d(
     shoulderW,
     hipW,
     child,
-    seated: pose === "sit",
+    seated: pose === "sit" || pose === "sit-seat",
   };
 }
 

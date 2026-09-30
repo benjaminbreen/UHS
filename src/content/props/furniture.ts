@@ -1,0 +1,64 @@
+import type { PropDef } from "./catalog";
+
+const seat = { topples: true, shove: { as: "free", mass: 0.5 }, solid: true } as const;
+const wood = { solid: true, breakable: "wood" } as const;
+
+/** What stands in a generated room. The room draws these itself; the families
+ * shared with yard props (stool, loom, quern, bench, stove) bring their uses. */
+export const furnitureProps: Record<string, PropDef> = {
+  "room-stool": { ...seat, name: "Stool", family: "stool" },
+  "room-chair": { ...seat, name: "Chair", family: "stool" },
+  "room-table": { ...wood, name: "Table", family: "room-table" },
+  "room-lowtable": { ...wood, name: "Low table", family: "room-table" },
+  "room-desk": { ...wood, name: "Writing desk", family: "room-table" },
+  "room-counter": { ...wood, name: "Counter", family: "room-table" },
+  "room-chest": { ...wood, shove: { as: "free", mass: 1.4 }, name: "Chest", family: "room-chest" },
+  "room-crate": { ...wood, shove: { as: "free", mass: 1 }, name: "Crate", family: "room-chest" },
+  "room-armchair": { ...wood, shove: { as: "free", mass: 1.6 }, name: "Armchair", family: "bench" },
+  "room-sofa": { ...wood, name: "Sofa", family: "bench" },
+  "room-divan": { ...wood, name: "Divan", family: "bench" },
+  "room-loom": { ...wood, name: "Loom", family: "loom" },
+  "room-spinwheel": { ...wood, shove: { as: "free", mass: 0.8 }, name: "Spinning wheel", family: "room-wheel" },
+  "room-throw": { ...wood, name: "Potter's wheel", family: "room-wheel" },
+  "room-radio": { ...wood, name: "Cabinet radio", family: "room-cabinet" },
+  "room-icebox": { ...wood, name: "Icebox", family: "room-cabinet" },
+  "room-potrack": { ...wood, name: "Drying rack", family: "room-rack" },
+  "room-firewood": { ...wood, name: "Stacked firewood", family: "room-rack" },
+  "room-quern": { solid: true, shove: { as: "free", mass: 2.4 }, name: "Quern", family: "quern" },
+  "room-jars": { solid: true, breakable: "clay", shove: { as: "free", mass: 1.2 }, name: "Storage jars", family: "room-jars" },
+  "room-claybin": { solid: true, breakable: "clay", name: "Clay bin", family: "room-jars" },
+  "room-plant": { solid: true, breakable: "clay", shove: { as: "free", mass: 0.8 }, name: "Potted plant", family: "room-jars" },
+  "room-lamp": { solid: true, breakable: "glaze", name: "Lamp", family: "room-lamp" },
+  "room-basket": { solid: true, breakable: "fiber", shove: { as: "free", mass: 0.5 }, name: "Basket", family: "room-basket" },
+  "room-sacks": { solid: true, breakable: "fiber", shove: { as: "free", mass: 1.8 }, name: "Sacks", family: "room-basket" },
+  "room-pack": { solid: true, breakable: "fiber", shove: { as: "free", mass: 0.8 }, name: "Pack", family: "room-basket" },
+};
+
+export const furnitureAbout: Record<string, string> = {
+  "room-stool": "A stool to sit on.",
+  "room-chair": "A chair to sit on.",
+  "room-table": "The table the household eats and works at.",
+  "room-lowtable": "A low table, used sitting on the floor.",
+  "room-desk": "A desk for writing and keeping accounts.",
+  "room-counter": "A counter for laying out goods and serving over.",
+  "room-chest": "A wooden chest for clothes, linen and valuables.",
+  "room-crate": "A wooden crate for moving goods.",
+  "room-armchair": "An upholstered chair with arms.",
+  "room-sofa": "An upholstered seat for two or three.",
+  "room-divan": "A long cushioned seat along the wall.",
+  "room-loom": "A loom for weaving cloth.",
+  "room-spinwheel": "A wheel for spinning fibre into thread.",
+  "room-throw": "A wheel for shaping pots as it turns.",
+  "room-radio": "A radio in a wooden cabinet.",
+  "room-icebox": "A cupboard kept cold with a block of ice.",
+  "room-potrack": "A rack where new pots dry before firing.",
+  "room-firewood": "Firewood, split and stacked to dry.",
+  "room-quern": "A hand mill for grinding grain.",
+  "room-jars": "Clay jars for keeping grain, oil or water.",
+  "room-claybin": "A bin of wet clay, kept covered.",
+  "room-plant": "A plant in a pot.",
+  "room-lamp": "A lamp for the evening.",
+  "room-basket": "A woven basket.",
+  "room-sacks": "Sacks of grain or goods.",
+  "room-pack": "A pack, ready for the road.",
+};

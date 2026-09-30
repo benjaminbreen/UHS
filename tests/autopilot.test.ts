@@ -72,7 +72,8 @@ describe("typed errands", () => {
     // Out of the routine budget, the engine parks a resident indoors and keeps them there.
     const dormant = runtime.engine.world.dormant;
     runtime.engine.world.dormant = (id) => id === parent.id || !!dormant?.(id);
-    parent.pos = { x: 3, y: 3, space: home };
+    const seat = runtime.engine.interiorOf(home)!.seats[0];
+    parent.pos = { x: seat.x, y: seat.y, space: home };
     expect(parsePlan("find my mother", runtime.engine)).toMatchObject({ kind: "seek", actor: parent.id });
     expect(await drive(runtime, "find my mother", 300)).toBe(`You find ${parent.name}.`);
     expect(s.player.pos.space).toBe(home);

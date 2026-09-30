@@ -265,7 +265,10 @@ import {
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 import { bloomAt, setBloomCut } from "./flowers";
-import { setCropSelector, setCropCut } from "./crops";
+import { FLOOR_X, FLOOR_Y, PixelRoom } from "./interiors/pixel";
+import type { Kind, Prop } from "./interiors/room";
+import { ROOM_ORIGIN } from "../world/interior";
+import { setCropSelector, setCropCut, setCropsIndoors } from "./crops";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
@@ -297,6 +300,15 @@ const ambientPoses: Record<StationActivity, CharacterPose> = {
   cook: "stoop",
   warm: "sit",
   "haul-catch": "carry",
+};
+/** Rows of a character frame shown above the covers: the head and a little of the shoulders. */
+const HEAD_ROWS = 13;
+/** The motion each piece of a room's work asks for. */
+const INDOOR_WORK: Partial<Record<Kind, CharacterPose>> = {
+  loom: "work-weave", spinwheel: "work-weave", basket: "work-weave", bolts: "work-sort", vat: "work-stir",
+  counter: "work-sort", jars: "work-sort", crate: "work-sort", sacks: "work-sort", potrack: "work-sort", icebox: "work-sort",
+  throw: "work-knead", claybin: "work-knead", table: "work-knead", lowtable: "work-knead",
+  desk: "work-check", scrolls: "work-check", hides: "work-scrub", quern: "work-quern", range: "work-stir",
 };
 /** What an actor on the catch errand is holding. */
 const CATCH = "study-propb-catch-0";
@@ -566,6 +578,28 @@ export class WorldScene extends Phaser.Scene {
   private ripples: { image: Phaser.GameObjects.Image; phase: number }[] = [];
   private rippleTime = -1;
   private entities = new Map<string, Phaser.GameObjects.Image>();
+  /** Where a sleeper's head lies, in world pixels, and how deep to draw it. */
+  private pillows = new Map<string, { x: number; y: number; depth: number }>();
+  /** The first opaque row of a character frame: the top of the head. */
+  private crowns = new Map<string, number>();
+  /** The generated room the player is standing in, if their space has one. */
+  private roomView?: {
+    space: string;
+    pixel: PixelRoom;
+    /** The room's light, multiplied and added over it and everyone in it, then its own glow. */
+    light: Phaser.GameObjects.Image[];
+    key: string;
+    texture: Phaser.Textures.CanvasTexture;
+    image: Phaser.GameObjects.Image;
+    litAt: number;
+    /** The room's own copy of its pieces, moved and broken as the engine's are. */
+    props: Prop[];
+    sheet: Phaser.Textures.CanvasTexture;
+    cutouts: Map<number, Phaser.GameObjects.Image>;
+    /** What the furniture looked like at the last relight. */
+    stamp: string;
+    wait: number;
+  };
   private glowSprites: Phaser.GameObjects.Image[] = [];
   private mycelium?: Mycelium;
   private hoverTip?: HTMLDivElement;
@@ -3145,7 +3179,10 @@ export class WorldScene extends Phaser.Scene {
       this.options.colorGrade === false
         ? 0xffffff
         : parseInt(this.light.tint, 16);
-    this.shadowPhase = p.space === "outside" ? this.light.id : "night";
+    // A generated room lights its people with its own layer.
+    const lit = p.space !== "outside" && !!e.interiorOf?.(p.space);
+    if (lit) this.tint = 0xffffff;
+    this.shadowPhase = p.space === "outside" ? this.light.id : lit ? "midday" : "night";
     // The figures are lit for the same hour their shadows are cast for.
     if (this.characters) this.characters.light = this.shadowPhase;
     const setting = w.pack.setting;
@@ -3401,7 +3438,7 @@ export class WorldScene extends Phaser.Scene {
           }
         this.layers.push(g);
       }
-      if (!w.topography || p.space !== "outside") {
+      if ((!w.topography || p.space !== "outside") && !e.interiorOf?.(p.space)) {
         const data = Array.from({ length: height }, (_, iy) =>
           Array.from({ length: width }, (_, ix) => {
             const x = startX + ix,
@@ -3955,6 +3992,13 @@ export class WorldScene extends Phaser.Scene {
               )
                 this.sprite("fence", x * 16 + 8, y * 16 + 16, y * 16 + 10);
         }
+      } else if (e.interiorOf?.(p.space)) {
+        this.courtyardLighting.end();
+        // The generated room draws its own walls; around it is only dark.
+        const dark = this.add.graphics().setDepth(-99995);
+        dark.fillStyle(0x0c0a10, 1);
+        dark.fillRect((startX - 1) * 16, (startY - 1) * 16, (width + 2) * 16, (height + 2) * 16);
+        this.layers.push(dark);
       } else {
         this.courtyardLighting.end();
         const dark = this.add.graphics().setDepth(-50000);
@@ -4336,8 +4380,14 @@ export class WorldScene extends Phaser.Scene {
     // Whatever was just thrown is still in the air: the effect draws it
     // until it lands, then asks for this pass again.
     const flying = this.toolEffects?.flying(rt.throwEffect);
+    const room = p.space === "outside" ? undefined : e.interiorOf?.(p.space);
+    // The room draws its own bed, chest, work and way out.
+    const drawnByRoom = room
+      ? new Set([...["exit", "bed", "chest", "work"].map((k) => `${p.space}-${k}`), ...room.furniture.map((f) => `${p.space}-room-${f.propId}`)])
+      : undefined;
     for (const o of obs.objects) {
       if (o.carriedBy || o.id === flying) continue;
+      if (drawnByRoom?.has(o.id)) continue;
       // The building art already paints the door; the leaf overlay animates it.
       if (o.kind === "door") continue;
       if (
@@ -4686,6 +4736,112 @@ export class WorldScene extends Phaser.Scene {
     this.paintWash();
     this.game.canvas.dataset.lighting = this.light.id;
   }
+  /** A house with a generated room is drawn from it: the hand-drawn pixels,
+   * with a light layer over the room and its people, redrawn for fire, light and weather. */
+  private syncRoom(delta: number) {
+    const e = this.runtime.engine, space = e.state.player.pos.space;
+    const room = space === "outside" ? undefined : e.interiorOf?.(space);
+    setCropsIndoors(this, space !== "outside");
+    if (!room) return this.dropRoom();
+    let v = this.roomView;
+    if (!v || v.space !== space) {
+      this.dropRoom();
+      const canvas = document.createElement("canvas"), cut = document.createElement("canvas");
+      const pixel = new PixelRoom(canvas, cut);
+      pixel.lighting = "layer";
+      const layer = () => document.createElement("canvas").getContext("2d")!;
+      pixel.layers = { light: layer(), add: layer(), glow: layer() };
+      const props = room.props.map((q) => ({ ...q }));
+      pixel.set(room.params, props);
+      // Sized before Phaser takes them as textures, which keep the size they start with.
+      for (const c of Object.values(pixel.layers)) (c.canvas.width = pixel.W), (c.canvas.height = pixel.H);
+      const key = `interior-room-${space}`;
+      for (const k of [key, `${key}-cut`, `${key}-light`, `${key}-add`, `${key}-glow`]) if (this.textures.exists(k)) this.textures.remove(k);
+      const texture = this.textures.addCanvas(key, canvas)!;
+      const sheet = this.textures.addCanvas(`${key}-cut`, cut)!;
+      const image = this.add
+        .image(ROOM_ORIGIN * 16 - FLOOR_X, ROOM_ORIGIN * 16 - FLOOR_Y, key)
+        .setOrigin(0, 0)
+        .setDepth(-99990);
+      const cutouts = new Map(
+        pixel.cutouts.map((c) => {
+          sheet.add(String(c.id), 0, c.ax, c.ay, c.w, c.h);
+          return [c.id, this.add.image(0, 0, sheet.key, String(c.id)).setOrigin(0, 0)] as const;
+        }),
+      );
+      // Over everyone in the room but under the markers and labels drawn at y + 4000.
+      const light = (["light", "add", "glow"] as const).map((k, i) =>
+        this.add
+          .image(image.x, image.y, this.textures.addCanvas(`${key}-${k}`, pixel.layers![k].canvas)!.key)
+          .setOrigin(0, 0)
+          .setDepth(3000 + i)
+          .setBlendMode([Phaser.BlendModes.MULTIPLY, Phaser.BlendModes.ADD, Phaser.BlendModes.NORMAL][i]),
+      );
+      v = this.roomView = { space, pixel, light, key, texture, image, litAt: -99, props, sheet, cutouts, stamp: "", wait: 0 };
+    }
+    // Furniture stands where the engine has it, and lies as the engine left it.
+    const byId = new Map(e.state.objects.filter((o) => o.pos.space === space && o.prop).map((o) => [o.id, o]));
+    let stamp = "";
+    for (const f of room.furniture) {
+      const o = byId.get(`${space}-room-${f.propId}`), q = v.props[f.propId];
+      q.x = (o?.pos.x ?? f.pos.x) - ROOM_ORIGIN;
+      q.y = (o?.pos.y ?? f.pos.y) - ROOM_ORIGIN;
+      // A lamp has its own broken look; everything else goes to pieces.
+      q.wrecked = (!o || !!o.broken) && q.kind !== "lamp";
+      if (q.kind === "lamp" && (!o || o.broken)) (q.broken = true), (q.on = false);
+      q.tipped = !!o?.tipped;
+      q.lean = o?.lean;
+      stamp += `${q.x},${q.y},${q.wrecked ? 1 : 0}${q.broken ? 1 : 0}${q.tipped ? 1 : 0};`;
+    }
+    // Sleepers: the room draws them under the covers, and each head goes on its pillow.
+    for (const q of v.props) q.sleepers = undefined;
+    v.pixel.floorSleepers = [];
+    this.pillows.clear();
+    for (const a of e.state.actors) {
+      if (a.pos.space !== space || a.kind !== "human") continue;
+      const use = e.indoorUse(a.id, a.pos);
+      if (use?.role !== "bed") continue;
+      const q = v.props[use.propId];
+      const k = q ? (q.sleepers = (q.sleepers ?? 0) + 1) - 1 : 0;
+      if (q && k > 1) continue;
+      const cell = { x: a.pos.x - ROOM_ORIGIN, y: a.pos.y - ROOM_ORIGIN };
+      if (!q) v.pixel.floorSleepers.push(cell);
+      const at = v.pixel.pillow(q ? { propId: q.id, k } : cell);
+      const row = q ? q.y + Math.max(1, q.d) - 1 : cell.y;
+      this.pillows.set(a.id, { x: v.image.x + at.x, y: v.image.y + at.y, depth: (ROOM_ORIGIN + row) * 16 + 9 - k * 0.1 });
+    }
+    const hour = (this.runtime.displayClock() / 3600) % 24;
+    room.params.hour = hour;
+    const relit = v.litAt === -99 || stamp !== v.stamp;
+    v.litAt = hour;
+    v.stamp = stamp;
+    for (const c of v.pixel.cutouts) {
+      const at = v.pixel.cutoutAt(c), q = v.props[c.id];
+      // In front of anyone a row back; behind anyone level with it, who is sat on it or beside it.
+      v.cutouts.get(c.id)!
+        .setPosition(v.image.x + at.x, v.image.y + at.y)
+        .setDepth((ROOM_ORIGIN + q.y + Math.max(1, q.d) - 1) * 16 + 8)
+        .setVisible(!q.wrecked);
+    }
+    // Firelight flickers well at thirty frames a second, and the room is repainted whole.
+    const dt = this.options.freeze ? 0 : Math.min(0.1, delta / 1000);
+    v.wait += dt;
+    if (v.wait < 1 / 30 && !relit) return;
+    v.pixel.frame(v.wait);
+    v.wait = 0;
+    v.texture.refresh();
+    v.sheet.refresh();
+    for (const im of v.light) (im.texture as Phaser.Textures.CanvasTexture).refresh();
+  }
+  private dropRoom() {
+    const v = this.roomView;
+    if (!v) return;
+    v.image.destroy();
+    for (const im of [...v.cutouts.values(), ...v.light]) im.destroy();
+    for (const k of [v.key, v.sheet.key, ...["light", "add", "glow"].map((k) => `${v.key}-${k}`)]) if (this.textures.exists(k)) this.textures.remove(k);
+    this.roomView = undefined;
+  }
+
   private paintWash() {
     const clock = this.options.lighting
       ? lightingPreset(this.options.lighting).hour * 3600
@@ -5057,7 +5213,8 @@ export class WorldScene extends Phaser.Scene {
       !!this.options.freeze,
     );
     updatePuddles(this, time);
-    if (this.night) this.paintWash();
+    this.syncRoom(delta);
+    if (this.night && !this.roomView) this.paintWash();
     this.followTiltFocus();
     mark("weather");
     if (perf.fauna)
@@ -5540,6 +5697,7 @@ export class WorldScene extends Phaser.Scene {
         const condition = loadWeight + (tired ? 3 : 0);
         const work = id !== "player" && at && !moving && !this.options.freeze
           ? this.workMotion(id, at, time) : undefined;
+        const use = id !== "player" && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active || winding) pose = action!.pose;
         else if (landed) pose = after;
@@ -5548,6 +5706,7 @@ export class WorldScene extends Phaser.Scene {
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
         else if (seat) pose = seat.seated ? "sit" : "idle";
         else if (at) pose = work?.pose ?? this.ambientPose(id, at, time);
+        else if (use) pose = use.role === "bed" ? "idle" : this.indoorPose(use, human.activity, wetPos!.space);
         else if (/rest|sleep/i.test(human.activity)) pose = "sit";
         else if (/gathering|working/i.test(human.activity)) pose = "work";
         else if (/eating/i.test(human.activity)) pose = "give";
@@ -5561,7 +5720,8 @@ export class WorldScene extends Phaser.Scene {
         const cued =
           id !== "player" && !moving ? this.cues.poseFor(id) : undefined;
         if (cued) pose = cued.pose;
-        const npcGesture = id !== "player" && !moving && !cued && pose === "idle" && !this.options.freeze
+        const asleep = use?.role === "bed" && this.pillows.has(id);
+        const npcGesture = id !== "player" && !moving && !cued && !asleep && pose === "idle" && !this.options.freeze
           ? this.idleGesture(id, time, !!heldSprite, !!human.appearance?.wearing.headwear && human.appearance.wearing.headwear !== "none", loadWeight)
           : undefined;
         if (npcGesture) pose = npcGesture.pose;
@@ -5713,7 +5873,7 @@ export class WorldScene extends Phaser.Scene {
           Math.hypot(work.site.x - at!.x, work.site.y - at!.y) > 0.35
             ? facingFromStep(work.site.x - at!.x, work.site.y - at!.y, at!.direction)
             : undefined;
-        const ahead =
+        const ahead = asleep ? 4 :
           motion?.facing ??
           seat?.facing ??
           (id === "player" ? this.blockedFacing : undefined) ??
@@ -5763,17 +5923,21 @@ export class WorldScene extends Phaser.Scene {
           : 0;
         const texture = this.characters.frame(
           // Their own facing, or wherever a cue or a glance has turned them.
-          turn.facing === (human.facing ?? facingFromDirection(human.direction))
-            ? human
-            : { ...human, facing: turn.facing },
+          asleep
+            ? { ...human, facing: 4, appearance: this.bareHeaded(human.appearance) }
+            : turn.facing === (human.facing ?? facingFromDirection(human.direction))
+              ? human
+              : { ...human, facing: turn.facing },
           pose,
-          index,
+          // Eyes shut: the blink frame.
+          asleep ? 3 : index,
           prop,
           turnMotion,
           condition,
         );
         // A hit-stop holds the figures too, not only what is tweened.
         im.setVisible(!!texture);
+        if (asleep) this.shadows.get(id)?.setVisible(false);
         const horse = id === "player" && this.runtime.devHorse
           ? this.horseFrame(moving, turn.facing, time)
           : undefined;
@@ -5854,6 +6018,18 @@ export class WorldScene extends Phaser.Scene {
             ? sample(wetPos.x, wetPos.y)?.waterVisual?.flow
             : undefined,
         );
+        // Asleep, only the head shows, on the pillow; the room draws the rest
+        // under the covers. After wading, which uncrops anyone on dry ground.
+        const pillow = asleep ? this.pillows.get(id) : undefined;
+        if (pillow && texture) {
+          // Turned a quarter, crown to the bolster: lying on their back, face up.
+          const crown = this.crownOf(texture);
+          im.setCrop(0, crown, im.width, HEAD_ROWS)
+            .setOrigin(0.5, (crown + HEAD_ROWS / 2) / im.height)
+            .setAngle(-90)
+            .setPosition(pillow.x, pillow.y)
+            .setDepth(pillow.depth);
+        } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
         if (!texture) this.shadows.get(id)?.setVisible(false);
         if (texture && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
@@ -6258,6 +6434,35 @@ export class WorldScene extends Phaser.Scene {
       : choice === 3 ? "straighten"
       : !held && choice === 4 ? "touch-face" : "sway";
     return { pose, index: Math.min(3, Math.floor(beat / 160)) };
+  }
+  private bare = new WeakMap<object, Actor["appearance"]>();
+  /** Hat and hood off for bed. */
+  private bareHeaded(a: Actor["appearance"]) {
+    if (!a || a.wearing.headwear === "none") return a;
+    let out = this.bare.get(a);
+    if (!out) this.bare.set(a, (out = { ...a, wearing: { ...a.wearing, headwear: "none" } }));
+    return out;
+  }
+  private crownOf(key: string) {
+    let top = this.crowns.get(key);
+    if (top === undefined) {
+      const src = this.textures.get(key).getSourceImage() as HTMLCanvasElement;
+      const data = src.getContext?.("2d")?.getImageData(0, 0, src.width, src.height).data;
+      top = 0;
+      if (data) for (let i = 3; i < data.length; i += 4) if (data[i]) { top = Math.floor((i >> 2) / src.width); break; }
+      this.crowns.set(key, top);
+      if (this.crowns.size > 512) this.crowns.delete(this.crowns.keys().next().value!);
+    }
+    return top;
+  }
+  /** What someone is doing at the piece of their room they are at. */
+  private indoorPose(use: NonNullable<ReturnType<Runtime["engine"]["indoorUse"]>>, activity: string, space: string): CharacterPose {
+    const meal = /eat|meal|supper|breakfast|dinner/i.test(activity);
+    if (use.role === "seat") return use.on === "seat" ? "sit-seat" : use.on === "floor" ? "sit" : meal ? "give" : "idle";
+    if (use.role === "fire")
+      return use.cooking || /cook|brew/i.test(activity) || meal ? "work-stir"
+        : this.runtime.engine.interiorOf(space)?.params.seating === "floor" ? "sit" : "idle";
+    return INDOOR_WORK[use.kind] ?? "work-sort";
   }
   /** Idle draws only two things: eyes open, and the blink on frame three. Both
    * the rate and the phase are per-actor, so a street does not wink in unison,

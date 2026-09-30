@@ -70,6 +70,12 @@ export type Prop = {
   /** Open, lit, awake, spinning or unmade, depending on the kind. */
   on: boolean;
   broken?: boolean;
+  /** Smashed to pieces, knocked flat, or rocked to one side. */
+  wrecked?: boolean;
+  tipped?: boolean;
+  lean?: -1 | 1;
+  /** How many are asleep in it. */
+  sleepers?: number;
   /** For clutter: which small thing. */
   item?: string;
   seed: number;
@@ -258,7 +264,8 @@ export function roomMask(p: Pick<RoomParams, "w" | "d" | "shape">) {
  * sample these, so a pattern change reads the same in pixels and voxels. */
 export function wallColor(p: RoomParams, P: Palette, u: number, v: number) {
   const Tr = P.trim;
-  if (v < 3) return v === 2 ? Tr[4] : Tr[2];
+  // A skirting board: a lit top edge, a face, a dark foot.
+  if (v < 5) return v === 4 ? Tr[5] : v === 3 ? Tr[4] : v === 0 ? Tr[1] : Tr[2];
   let c = wallPattern(p.wallPattern, p, P, u, v);
   if (p.finish >= 1 && p.dado && v < 17) c = v >= 15 ? Tr[v === 16 ? 5 : 3] : wallPattern(p.dado, p, P, u, v);
   if (p.finish === 2 && v >= 40) {
@@ -767,7 +774,7 @@ export function planRoom(p: RoomParams): Prop[] {
   };
   const taken = new Set<number>();
   const items = p.clutter.length ? p.clutter : ["bowl", "cloth", "cup"];
-  const nClutter = [5, 3, 2][p.finish] + Math.floor((w * d) / 70);
+  const nClutter = [3, 2, 1][p.finish] + Math.floor((w * d) / 110);
   for (let i = 0; i < nClutter; i++) {
     const item = items[Math.floor(r() * items.length)], a = near1(item);
     const ax = a ? a.x + a.w / 2 : r() * w, ay = a ? a.y + (a.wall ? 0.5 : a.d / 2) : r() * d;

@@ -2149,6 +2149,8 @@ export class Runtime {
         this.route = this.engine.findRoute(p, goal).path;
         if (!this.route.length) this.notice = "The route is now blocked.";
         else if (this.engine.actorAt({ ...this.route[0], space: p.space }, "player")) {
+          // An errand re-plans from here, and is done if it is already beside its person.
+          if (this.autopilot) this.route = [];
           this.command({ type: "wait", seconds: 1 });
           return;
         }

@@ -59,6 +59,8 @@ export function householdActivity(
   reachable: (p: Position) => boolean = () => true,
   /** What this place carries water, gatherings and bundles in. */
   loads?: { vessel: string; basket: string },
+  /** Where in the house a resident goes to bed; a fixed row without one. */
+  indoors: (a: Actor, residence: string, index: number) => Position = (_a, residence, index) => ({ x: 3 + (index % 4), y: 3, space: residence }),
 ): boolean {
   const personal = ["walking-cane", "fan"].find((id) => (a.inventory[id] ?? 0) > 0);
   if (personal) a.heldItem = personal;
@@ -74,11 +76,7 @@ export function householdActivity(
     a.task = undefined;
     a.activity = "Returning home";
     if (distance(a.pos, home) < 2.2 && h.residence) {
-      a.pos = {
-        x: 3 + (h.members.indexOf(a.id) % 4),
-        y: 3,
-        space: h.residence,
-      };
+      a.pos = indoors(a, h.residence, Math.max(0, h.members.indexOf(a.id)));
       a.activity = "Sleeping at home";
       a.fatigue = Math.max(0, a.fatigue - 0.1);
     } else if (a.pos.space !== "outside") a.activity = "Sleeping at home";

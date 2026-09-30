@@ -75,6 +75,8 @@ export const poses = [
   "skid",
   "hurt",
   "sit",
+  /** On a stool, a chair or a bench, feet on the floor. */
+  "sit-seat",
 ] as const;
 export type CharacterPose = (typeof poses)[number];
 /** A small set of physical verbs shared by trades in every era. */

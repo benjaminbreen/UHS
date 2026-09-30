@@ -1,6 +1,7 @@
 import { signpostDefs } from "./signage";
 import { detailProps } from "./settlement-details";
 import { urbanProps } from "./urban";
+import { furnitureProps } from "./furniture";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
 
@@ -1167,6 +1168,7 @@ export const propDefs: Record<string, PropDef> = {
     strike: true,
     variants: 1,
   },
+  ...furnitureProps,
 };
 export { propKit } from "./selection";
 export type { PropContext, PropKit } from "./selection";

@@ -388,6 +388,7 @@ const object = z.object({
   claim: z.string().optional(),
   seasons: z.array(z.string()).optional(),
   tipped: z.boolean().optional(),
+  size: z.tuple([z.number(), z.number()]).optional(),
 });
 const event = z.object({
   id: z.number().int(),

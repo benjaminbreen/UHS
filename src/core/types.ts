@@ -322,6 +322,8 @@ export type WorldObject = {
   /** Knocked over: draws its fallen sprite and spills what it held. */
   tipped?: boolean;
   lean?: -1 | 1;
+  /** Cells it stands on, across and down from `pos`, when more than one. */
+  size?: [number, number];
 };
 export type Decoration = Point & {
   id: string;
