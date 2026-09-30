@@ -31,6 +31,9 @@ export type RoomParams = {
   entrance?: number;
   /** Floor cells kept clear for a doorway through to the next room. */
   openings?: [number, number][];
+  /** Where a doorway from another room lets onto this one: kept clear in
+   * front and joined to the way in by an aisle, as people keep them. */
+  ports?: [number, number][];
   windows: number;
   windowStyle: WindowStyle;
   fire: Fire;
@@ -552,6 +555,30 @@ export function planRoom(p: RoomParams): Prop[] {
     if (inside(doorX, top[doorX] + 1)) occ[top[doorX] + 1][doorX] = 2;
   }
   const fromDoor = (x: number) => (doorX < 0 ? 2 : Math.min(Math.abs(x - doorX), 4));
+  // Nobody sets a table across a doorway: each way in keeps an apron clear
+  // three wide and two deep, and an aisle runs between the ways in.
+  const lowest = (x: number) => { for (let y = d - 1; y >= 0; y--) if (inside(x, y)) return y; return 0; };
+  const ports: [number, number][] = [...(p.ports ?? []).filter(([x, y]) => inside(x, y))];
+  if (p.entrance !== undefined) ports.unshift([p.entrance, lowest(p.entrance)]);
+  const clear = (x: number, y: number) => { if (inside(x, y) && occ[y][x] === 0) occ[y][x] = 2; };
+  for (const [px, py] of ports) {
+    const [ix, iy] = !inside(px, py + 1) ? [0, -1] : !inside(px, py - 1) ? [0, 1] : !inside(px - 1, py) ? [1, 0] : [-1, 0];
+    for (let k = 0; k < 3; k++) for (let s2 = -1; s2 <= 1; s2++) clear(px + ix * k + (iy ? s2 : 0), py + iy * k + (ix ? s2 : 0));
+  }
+  for (let n = 1; n < ports.length; n++) {
+    const [ax, ay] = ports[0], [bx, by] = ports[n];
+    const prev = new Int32Array(w * d).fill(-1), q = [ay * w + ax];
+    prev[q[0]] = q[0];
+    for (let h = 0; h < q.length; h++) {
+      const c = q[h], x = c % w, y = (c / w) | 0;
+      if (x === bx && y === by) break;
+      for (const [dx, dy] of [[0, -1], [0, 1], [1, 0], [-1, 0]]) {
+        const nx = x + dx, ny = y + dy, k = ny * w + nx;
+        if (inside(nx, ny) && prev[k] < 0 && occ[ny][nx] !== 1) (prev[k] = c), q.push(k);
+      }
+    }
+    for (let k = by * w + bx; prev[k] >= 0 && prev[k] !== k; k = prev[k]) clear(k % w, (k / w) | 0);
+  }
 
   let hearth: Prop | undefined;
   if (p.fire === "hearth" && cols >= 4) {
@@ -579,6 +606,7 @@ export function planRoom(p: RoomParams): Prop[] {
     return true;
   };
   const start = (() => {
+    if (p.entrance !== undefined) return lowest(p.entrance) * w + p.entrance;
     if (doorX >= 0) return top[doorX] * w + doorX;
     for (let i = 0; i < w * d; i++) if (mask[i]) return i;
     return 0;
@@ -793,7 +821,7 @@ export function planRoom(p: RoomParams): Prop[] {
     for (let y = 0; y < d; y++)
       for (let x = 0; x < w; x++) {
         const k = y * w + x;
-        if (!inside(x, y) || occ[y][x] === 1 || taken.has(k)) continue;
+        if (!inside(x, y) || occ[y][x] !== 0 || taken.has(k)) continue;
         const s = -Math.hypot(x + 0.5 - ax, y + 0.5 - ay) + r() * 1.5;
         if (s > bs) (bs = s), (best = k);
       }

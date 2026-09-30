@@ -66,13 +66,15 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
   const mask = new Uint8Array(w * d), cells = new Int16Array(w * d).fill(-1);
   const rooms: RoomParams[] = [];
   for (const [ri, b] of boxes.entries()) {
-    const openings: [number, number][] = [];
+    const openings: [number, number][] = [], ports: [number, number][] = [];
     for (const dw of doorways) {
       if (dw.a !== b && dw.b !== b) continue;
       for (const [cx, cy] of dw.cells)
         for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const lx = cx + ox - b.x, ly = cy + oy - b.y;
-          if (lx >= 0 && ly >= 0 && lx < b.w && ly < b.d) openings.push([lx, ly]);
+          if (lx < 0 || ly < 0 || lx >= b.w || ly >= b.d) continue;
+          openings.push([lx, ly]);
+          if (ox || oy) ports.push([lx, ly]);
         }
     }
     // A courtyard needs room to open: small ones are roofed over.
@@ -81,6 +83,7 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     // Where the house has a room to sleep in, the others keep no beds unless their own template says so.
     if ((boxes.some((o) => o.role === "sleep") && b.role !== "sleep" && profile.rooms?.[b.i].sleep === undefined) || b === court) params.sleep = "none";
     params.openings = openings;
+    params.ports = ports;
     if (b === entry) params.entrance = entrance - b.x;
     rooms.push(params);
     const planned = planRoom(params).filter((q) => q.kind !== "door");
@@ -112,14 +115,14 @@ type Box = { i: number; role: RoomRole; label: string; shape: Shape; w: number; 
 type Link = { a: Box; b: Box; cells: [number, number][] };
 /** A doorway up through the wall between a room and the one behind it. */
 function through(under: Box, b: Box): Link {
-  const lo = Math.max(b.x, under.x) + 1, hi = Math.min(b.x + b.w, under.x + under.w) - 2;
+  const lo = Math.max(b.x, under.x) + 1, hi = Math.min(b.x + b.w, under.x + under.w) - 3;
   const px = hi >= lo ? Math.floor((lo + hi) / 2) : under.x + 1;
-  return { a: under, b, cells: Array.from({ length: BEHIND }, (_, j) => [px, b.y + b.d + j]) };
+  return { a: under, b, cells: Array.from({ length: BEHIND }, (_, j) => [[px, b.y + b.d + j], [px + 1, b.y + b.d + j]] as [number, number][]).flat() };
 }
 /** A doorway through the side wall between neighbours, near the foot of the shorter. */
 function beside(a: Box, b: Box): Link {
   const y = Math.max(a.y, b.y) + Math.min(a.y + a.d, b.y + b.d) - Math.max(a.y, b.y) - 2;
-  return { a, b, cells: [[a.x + a.w, y]] };
+  return { a, b, cells: [[a.x + a.w, y - 1], [a.x + a.w, y]] };
 }
 /** Whichever of these a room behind them most overlaps. */
 function below(b: Box, under: Box[]) {

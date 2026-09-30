@@ -4,6 +4,7 @@ import { interiorProfileFor } from "../src/content/interiors/select";
 import { buildInterior } from "../src/world/interior";
 import { planRoom, roomMask, type Shape } from "../src/render/interiors/room";
 import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
+import { planBuilding } from "../src/render/interiors/building";
 import type { Place } from "../src/core/types";
 import { createSettingSession } from "../src/runtime/session";
 import { panelSetting } from "../scripts/review/panel";
@@ -126,5 +127,35 @@ describe("interior profiles", () => {
   it("draws every sprite with letters that have a colour", () => {
     for (const [name, rows] of Object.entries(SPRITES))
       for (const ch of rows.join("")) if (ch !== "." && ch !== "#") expect(LETTERS[ch], `${name} uses "${ch}"`).toBeDefined();
+  });
+
+  it("keeps doorways two wide and clear of furniture, in front and through", () => {
+    const flat = ["rug", "cat", "clutter", "mat", "cushions", "ladder"];
+    for (const profile of interiorProfiles)
+      for (const status of [0, 1, 2] as const)
+        for (let seed = 1; seed <= 5; seed++) {
+          const { plan, props, doorways } = planBuilding(profile, { seed, status, colorway: 0, w: profile.size[0], d: profile.size[1], hour: 12, trade: profile.trades[seed % profile.trades.length] });
+          const where = `${profile.id} ${status} #${seed}`;
+          const solid = new Set<string>();
+          for (const q of props)
+            if (!q.wall && !flat.includes(q.kind))
+              for (let y = q.y; y < q.y + Math.max(1, q.d); y++) for (let x = q.x; x < q.x + q.w; x++) solid.add(`${x},${y}`);
+          const floor = (x: number, y: number) => x >= 0 && y >= 0 && x < plan.w && y < plan.d && plan.mask[y * plan.w + x] > 0;
+          for (const dw of doorways) {
+            const xs = new Set(dw.cells.map(([x]) => x)), ys = new Set(dw.cells.map(([, y]) => y));
+            expect(xs.size === 1 ? ys.size : xs.size, `${where} doorway width`).toBe(2);
+            const own = new Set(dw.cells.map(([x, y]) => `${x},${y}`));
+            // The cell each side of the doorway, and the one beyond it into the room.
+            for (const [x, y] of dw.cells)
+              for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]])
+                for (const k of [1, 2]) {
+                  const cx = x + dx * k, cy = y + dy * k;
+                  if (!floor(cx, cy) || own.has(`${cx},${cy}`) || !own.has(`${x + dx * (k - 1)},${y + dy * (k - 1)}`) && k === 2) continue;
+                  expect(solid.has(`${cx},${cy}`), `${where} furniture at ${cx},${cy} in a doorway`).toBe(false);
+                }
+          }
+          const [ex, ey] = plan.entrance;
+          if (ex >= 0) for (const dy of [0, 1, 2]) if (floor(ex, ey - dy)) expect(solid.has(`${ex},${ey - dy}`), `${where} furniture in the way in`).toBe(false);
+        }
   });
 });

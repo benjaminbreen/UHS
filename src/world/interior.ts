@@ -140,7 +140,9 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const door = props.find((q) => q.kind === "door");
   const ladder = props.find((q) => q.kind === "ladder");
   const exitProp = door ?? ladder;
-  let exit = plan.entrance[0] >= 0 ? at(plan.entrance[0], plan.entrance[1]) : exitProp ? at(exitProp.x, exitProp.y) : at(Math.floor(params.w / 2), params.d - 1);
+  // The way out is the step below the entrance, outside the room, so no path across the room steps on it.
+  let exit = plan.entrance[0] >= 0 ? at(plan.entrance[0], plan.entrance[1] + 1) : exitProp ? at(exitProp.x, exitProp.y) : at(Math.floor(params.w / 2), params.d - 1);
+  if (plan.entrance[0] >= 0) (walk.add(key(exit)), floor.add(key(exit)));
   if (!open(exit)) exit = [...walk].map((s) => ({ x: +s.split(",")[0], y: +s.split(",")[1] }))[0] ?? exit;
   walk.add(key(exit));
   const inward = plan.entrance[0] >= 0 ? -1 : 1;

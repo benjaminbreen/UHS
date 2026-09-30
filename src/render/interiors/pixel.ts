@@ -629,23 +629,25 @@ export class PixelRoom {
   private doorways() {
     for (const dw of this.plan.doorways) {
       const P = this.palettes[dw.to], rp = this.plan.rooms[dw.to], W = P.wood;
-      const [cx] = dw.cells[0], y1 = Math.max(...dw.cells.map((c) => c[1]));
-      const X = S + cx * T, foot = this.oy + (y1 + 1) * T;
-      // Through a back wall the frame is a wall's height; through a side wall, a tile's.
-      const tall = dw.cells.length > 1 ? WH : T, head = foot - tall;
-      for (const jx of [X, X + T - 2]) this.r(jx, head, 2, tall, (i) => P.trim[jx === X ? (i ? 3 : 4) : i ? 1 : 2]);
-      this.r(X - 1, head - 3, T + 2, 3, (_i, j) => P.trim[j === 0 ? 5 : j === 2 ? 1 : 3]);
-      this.r(X + 2, foot - 2, T - 4, 2, (_i, j) => P.stone[j ? 2 : 4]);
+      const xs = dw.cells.map((c) => c[0]), ys = dw.cells.map((c) => c[1]);
+      const x0 = Math.min(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), wide = (Math.max(...xs) - x0 + 1) * T;
+      const X = S + x0 * T, foot = this.oy + (y1 + 1) * T;
+      // Through a back wall the frame is a wall's height; through a side wall, the doorway's own.
+      const upright = new Set(xs).size > 1 || ys.length > 2;
+      const tall = upright ? WH : (y1 - y0 + 1) * T, head = foot - tall;
+      for (const jx of [X, X + wide - 2]) this.r(jx, head, 2, tall, (i) => P.trim[jx === X ? (i ? 3 : 4) : i ? 1 : 2]);
+      this.r(X - 1, head - 3, wide + 2, 3, (_i, j) => P.trim[j === 0 ? 5 : j === 2 ? 1 : 3]);
+      this.r(X + 2, foot - 2, wide - 4, 2, (_i, j) => P.stone[j ? 2 : 4]);
       if (dw.private) {
         // A plank door, swung open against the frame.
-        this.r(X + 2, head + 1, 4, tall - 3, (i, j) => (j % 9 === 0 ? W[1] : W[i === 0 ? 4 : i === 3 ? 1 : 3]));
-        this.s(X + 5, head + (tall >> 1), P.iron[4]);
+        this.r(X + 2, head + 1, 5, tall - 3, (i, j) => (j % 9 === 0 ? W[1] : W[i === 0 ? 4 : i === 4 ? 1 : 3]));
+        this.s(X + 6, head + (tall >> 1), P.iron[4]);
       } else if (rp.door === "curtain" || rp.door === "flap" || rp.seating === "floor") {
         const C = rp.door === "flap" ? P.pale : P.acc;
         for (let j = 0; j < Math.min(tall - 4, 20); j++) {
-          const pull = Math.round((j / 20) * 3);
-          this.r(X + 2, head + j, 4 - pull, 1, C[j % 4 === 0 ? 4 : 3]);
-          this.r(X + T - 6 + pull, head + j, 4 - pull, 1, C[j % 4 === 0 ? 3 : 2]);
+          const pull = Math.round((j / 20) * 4);
+          this.r(X + 2, head + j, 6 - pull, 1, C[j % 4 === 0 ? 4 : 3]);
+          this.r(X + wide - 8 + pull, head + j, 6 - pull, 1, C[j % 4 === 0 ? 3 : 2]);
         }
       }
     }
