@@ -1,4 +1,5 @@
 import type { CharacterAppearance } from "../../../core/character";
+import { finishBody } from "../finish";
 import type { CharacterPose } from "../poses";
 import type { CarriedArt } from "../props";
 import type { RestingExpression } from "../../../core/persona";
@@ -85,9 +86,12 @@ type Style = {
   shoulder: number;
   spriteHead: boolean;
 };
-const styles: Record<"c" | "d", Style> = {
+const styles: Record<"c" | "d" | "e", Style> = {
   c: { leg: 19, torso: 13, upper: 6.2, fore: 5.6, limb: 1, shoulder: 0, spriteHead: false },
   d: { leg: 14, torso: 10, upper: 4.4, fore: 4.1, limb: 1.22, shoulder: 0.5, spriteHead: true },
+  // Stardew-like: shorter legs so the head carries more of the height, and
+  // stockier limbs that hold a two-tone cluster instead of a one-pixel line.
+  e: { leg: 12, torso: 9.5, upper: 4.2, fore: 3.9, limb: 1.45, shoulder: 0.4, spriteHead: true },
 };
 let S = styles.c; // ground foreshortening: one pixel of depth reads as half a pixel up
 
@@ -116,8 +120,21 @@ export const drawCharacterD = (
   condition = 0,
 ) => draw("d", ctx, a, direction, pose, frame, prop, facing, expression, turn, condition);
 
+export const drawCharacterE = (
+  ctx: CanvasRenderingContext2D,
+  a: CharacterAppearance,
+  direction: number,
+  pose: CharacterPose,
+  frame: number,
+  prop?: CarriedArt,
+  facing?: number,
+  expression: RestingExpression = "neutral",
+  turn = 0,
+  condition = 0,
+) => draw("e", ctx, a, direction, pose, frame, prop, facing, expression, turn, condition);
+
 function draw(
-  style: "c" | "d",
+  style: "c" | "d" | "e",
   ctx: CanvasRenderingContext2D,
   a: CharacterAppearance,
   direction: number,
@@ -138,6 +155,7 @@ function draw(
   const image = ctx.getImageData(0, 0, 80, 80);
   const cells = raster(image.data, a, model, rig, face8);
   ctx.putImageData(image, 0, 0);
+  if (style === "e") finishBody(ctx);
   if (S.spriteHead) spriteHead(ctx, a, model, pose, pose === "spin" ? frame & 3 : frame, (face8 + (Math.abs(turn) === 3 ? Math.sign(turn) : 0) + 8) % 8, rig.trail, expression);
   if (prop) drawProp(ctx, prop, rig, model, face8, pose, frame, cells);
   if (pose.startsWith("work-")) drawWorkDetail(ctx, model, rig, face8, pose, frame, !!prop);
@@ -224,7 +242,10 @@ function pose3d(
     const A = 24 - burden * 3 - (tired ? 3 : 0);
     thigh = [A * s, -A * s];
     // The leg coming through bends; the planted one stays nearly straight.
-    knee = [8 + 38 * Math.max(0, c), 8 + 38 * Math.max(0, -c)];
+    // The flex both take at contact is the bob; straighter legs bob under a
+    // pixel, which rounds away.
+    const give = 18 * s * s;
+    knee = [8 + give + 38 * Math.max(0, c), 8 + give + 38 * Math.max(0, -c)];
     // The arm going forward bends at the elbow and comes in toward the
     // body's line; the one going back hangs nearly straight.
     armA = [-24 * s, 24 * s];
@@ -1197,7 +1218,8 @@ function raster(
         g([0, 0, k]) - g([0, 0, -k]),
       ]);
       const n = toWorld(nB);
-      const { ramp: rp, soft, flat } = palette(hit.part, q, rig, model);
+      let { ramp: rp, soft, flat, print } = palette(hit.part, q, rig, model);
+      if (print && y % 2 === 0 && (x + y / 2) % 2 === 0) [rp, flat] = [print, 2];
       const i = dot(n, L);
       // Skin and hair take fewer, softer steps: at this size a dark core on a
       // face is a bruise.
@@ -1222,6 +1244,20 @@ function raster(
       cells[y * W + x] = { part: hit.part, depth: t, n, p: q, tone, ramp: rp };
     }
   tidy(cells);
+  if (S === styles.e)
+    // A hand is a two-tone cluster, lit above and shaded on its lowest row,
+    // not a lit ellipsoid.
+    for (const arm of rig.arms) {
+      const h = model.world(add(arm.wrist, [0, 0.2, -0.9]));
+      const cx = ORIGIN_X + dot(h, R), cy = ORIGIN_Y - h[2] + CAMERA_TILT * dot(h, F);
+      for (let y = Math.floor(cy - 2); y <= cy + 2; y++)
+        for (let x = Math.floor(cx - 2); x <= cx + 2; x++) {
+          const c = cells[y * W + x];
+          if (c?.part !== "skin" || Math.hypot(x - cx, y - cy) > 1.7) continue;
+          const below = cells[(y + 1) * W + x];
+          c.tone = below?.part === "skin" ? 1 : 2;
+        }
+    }
   // A step back in depth is a fold or an overlap: the far side of it takes a
   // dark pixel, which is what separates an arm from the coat behind it.
   const edge = new Uint8Array(W * H);
@@ -1368,7 +1404,9 @@ function materials(a: CharacterAppearance) {
         : named;
   const belt = bare || g === "gown" ? "none" : (a.wearing.belt ?? "leather");
   const gold = ramp("#d8b35a");
-  type Paint = { ramp: Ramp; soft?: boolean; flat?: Tone };
+  /** `print`: a dot pattern E places on the screen grid, since dots wrapped
+   * round the body land at uneven spacing and read as dirt. */
+  type Paint = { ramp: Ramp; soft?: boolean; flat?: Tone; print?: Ramp };
   /** Patterns wrap the body: `u` is the upper body's own frame, so a stripe
    * follows the torso round a turn instead of sliding across it. */
   const pattern = (base: Ramp, u: V, r: Rig): Paint => {
@@ -1380,6 +1418,7 @@ function materials(a: CharacterAppearance) {
         return k % 2 ? { ramp: (k >> 1) % 2 ? lower : trim } : { ramp: base };
       }
       case "plaid": {
+        if (S === styles.e) return { ramp: base, print: trim };
         const row = ((z % 2) + 2) % 2 < 0.6,
           col = ((around % 2) + 2) % 2 < 0.6;
         return row && col ? { ramp: trim, flat: 3 } : row || col ? { ramp: trim, flat: 2 } : { ramp: base };
@@ -1431,7 +1470,7 @@ function materials(a: CharacterAppearance) {
     p: V,
     r: Rig,
     m: Model,
-  ): { ramp: Ramp; soft?: boolean; flat?: Tone } => {
+  ): Paint => {
     hem ??= hemFor(a, r);
     switch (part) {
       case "head": {

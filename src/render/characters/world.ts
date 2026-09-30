@@ -13,6 +13,7 @@ import {
 import {
   defaultRenderer,
   outlineCharacter,
+  outlined,
   renderers,
   type RendererId,
 } from "./renderers";
@@ -333,7 +334,7 @@ export class WorldCharacters {
         resolved.expression,
         ...((turn || condition ? [turn, condition] : []) as [turn?: number, condition?: number]),
       );
-      if (this.outline) outlineCharacter(c.getContext("2d")!);
+      if (this.outline && !outlined(this.renderer)) outlineCharacter(c.getContext("2d")!);
       setSpriteLight(undefined);
       entry = this.install(signature, c);
     }

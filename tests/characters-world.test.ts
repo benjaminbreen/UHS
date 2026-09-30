@@ -16,6 +16,7 @@ vi.mock("../src/render/characters/renderers", () => ({
   defaultRenderer: "d",
   renderers: Object.fromEntries(["a", "b", "c", "d"].map((id) => [id, { draw: vi.fn() }])),
   outlineCharacter: vi.fn(),
+  outlined: () => false,
 }));
 
 class FakeWorker {

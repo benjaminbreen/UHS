@@ -23,7 +23,7 @@ export type LiveGraphicsSettings = {
   roundPixels: boolean;
   characterOutline: boolean;
   /** Which character renderer the world draws with. */
-  characterSprites: "b" | "c" | "d";
+  characterSprites: "b" | "c" | "d" | "e";
   textureSampling: TextureSampling;
   canvasSampling: CanvasSampling;
   zoomDuration: number;
@@ -67,7 +67,7 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   frameCap: 60,
   roundPixels: false,
   characterOutline: true,
-  characterSprites: "d",
+  characterSprites: "e",
   textureSampling: "nearest",
   canvasSampling: "pixelated",
   zoomDuration: 130,
@@ -109,8 +109,8 @@ export const CHARACTER_SPRITES_KEY = "uhs-character-sprites";
 export function storedCharacterSprites(): LiveGraphicsSettings["characterSprites"] {
   try {
     const id = localStorage.getItem(CHARACTER_SPRITES_KEY);
-    return id === "b" || id === "c" ? id : "d";
+    return id === "b" || id === "c" || id === "d" ? id : "e";
   } catch {
-    return "d";
+    return "e";
   }
 }

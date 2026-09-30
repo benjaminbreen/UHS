@@ -2322,7 +2322,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     >
                       <option value="b">B · drawn</option>
                       <option value="c">C · modelled prototype</option>
-                      <option value="d">D · default</option>
+                      <option value="d">D · unfinished</option>
+                      <option value="e">E · default</option>
                     </select>
                   </div>
                   <h3>Narrator</h3>

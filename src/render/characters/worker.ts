@@ -1,6 +1,6 @@
 import type { RestingExpression } from "../../core/persona";
 import type { CharacterAppearance } from "../../core/character";
-import { renderers, outlineCharacter, type RendererId } from "./renderers";
+import { renderers, outlineCharacter, outlined, type RendererId } from "./renderers";
 import type { CharacterPose } from "./poses";
 import type { CarriedArt } from "./props";
 import { setSpriteLight, type SpriteLight } from "./v2/pixels";
@@ -50,7 +50,7 @@ self.onmessage = (event: MessageEvent<CharacterFrameRequest>) => {
       context, request.appearance, request.direction, request.pose,
       request.frame, prop, request.facing, request.expression, request.turn, request.condition,
     );
-    if (request.outline) outlineCharacter(context);
+    if (request.outline && !outlined(request.renderer)) outlineCharacter(context);
     const pixels = ctx.getImageData(0, 0, 80, 80).data;
     self.postMessage({ signature: request.signature, pixels }, {
       transfer: [pixels.buffer],

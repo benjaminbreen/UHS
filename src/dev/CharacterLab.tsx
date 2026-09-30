@@ -26,6 +26,7 @@ import type { Runtime } from "../runtime/session";
 import {
   defaultRenderer,
   outlineCharacter,
+  outlined as finished,
   renderers,
   type CharacterRenderer,
   type RendererId,
@@ -60,7 +61,7 @@ function download(name: string, href: string) {
   a.href = href;
   a.click();
 }
-const pairs = { ab: ["a", "b"], bc: ["b", "c"], bd: ["b", "d"], cd: ["c", "d"] } as const satisfies Record<
+const pairs = { ab: ["a", "b"], bc: ["b", "c"], bd: ["b", "d"], cd: ["c", "d"], de: ["d", "e"] } as const satisfies Record<
   string,
   readonly [RendererId, RendererId]
 >;
@@ -150,16 +151,16 @@ export function CharacterLab({
     const b = buffer.getContext("2d")!;
     const pair = engine in pairs ? pairs[engine as Pair] : undefined,
       compare = !!pair;
-    const outlined = (id: RendererId): CharacterRenderer => {
+    const withOutline = (id: RendererId): CharacterRenderer => {
       const draw = renderers[id].draw;
-      return outline
+      return outline && !finished(id)
         ? (c, ...rest) => {
             draw(c, ...rest);
             outlineCharacter(c);
           }
         : draw;
     };
-    const drawCharacter = outlined(pair ? pair[1] : (engine as RendererId));
+    const drawCharacter = withOutline(pair ? pair[1] : (engine as RendererId));
     const galleryPhases = new Map<number, HTMLCanvasElement>();
     // `direction` is the eight-way facing here; the cardinal is what the
     // four-view legacy renderer gets.
@@ -191,7 +192,7 @@ export function CharacterLab({
           c.clearRect(0, 0, hero.current.width, 80);
           c.drawImage(buffer, compare ? 80 : 0, 0);
           if (compare) {
-            outlined(pair[0])(
+            withOutline(pair[0])(
               b,
               appearance,
               cardinal(direction),
@@ -723,7 +724,7 @@ export function CharacterLab({
                 ["2", "3", "4", "5", "6", "8"],
                 (v) => setZoom(Number(v)),
               )}
-              {select("Renderer", engine, ["a", "b", "c", "d", "ab", "bc", "bd", "cd"], (v) =>
+              {select("Renderer", engine, ["a", "b", "c", "d", "e", "ab", "bc", "bd", "cd", "de"], (v) =>
                 setEngine(v as RendererId | Pair),
               )}
               {color("Ground", background, setBackground)}
