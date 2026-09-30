@@ -268,7 +268,7 @@ import { bloomAt, setBloomCut } from "./flowers";
 import { setCropSelector, setCropCut } from "./crops";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
-import { alternateTrees, lazySheets, sceneAssets } from "./scene-assets";
+import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
 import { TiltShiftPipeline } from "./tilt-shift";
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
@@ -688,14 +688,19 @@ export class WorldScene extends Phaser.Scene {
         this.load.atlas(a.key, a.image, a.data);
         continue;
       }
-      this.sheetImages.set(a.key, a.image);
       this.load.json(`${a.key}-index`, a.data);
       // Queued inside preload, so the places already sited arrive drawn.
       this.load.once(
         `filecomplete-json-${a.key}-index`,
-        (_key: string, _type: string, json: { frames: object }) => {
-          if (Object.keys(json.frames).some((f) => sprites.has(f)))
-            this.load.atlas(a.key, a.image, json);
+        (_key: string, _type: string, json: { frames: object } | object[]) => {
+          const pages = Array.isArray(json) ? json : [json.frames];
+          pages.forEach((frames, i) => {
+            if (!Object.keys(frames).some((f) => sprites.has(f))) return;
+            const key = Array.isArray(json) ? `${a.key}@${i}` : a.key;
+            const image = Array.isArray(json) ? pageImage(a.key, i) : a.image;
+            this.sheetLoading.add(key);
+            this.load.atlas(key, image, { frames });
+          });
         },
       );
     }
@@ -2494,21 +2499,19 @@ export class WorldScene extends Phaser.Scene {
     for (const puff of fire.smoke) puff.destroy();
     this.fires.delete(id);
   }
-  /** Frames each building sheet holds, read off its index. A name test would
-   * need every recipe prefix; the index already knows what it holds. */
-  private sheetFrames?: [string, Set<string>][];
-  private sheetImages = new Map<string, string>();
+  /** The texture (a sheet, or a page of one) each lazy frame sits on, read off
+   * the indexes. A name test would need every recipe prefix. */
+  private sheetFrames?: Map<string, string>;
+  private sheetImages = new Map<string, [string, object]>();
   private sheetLoading = new Set<string>();
   /** Fetches a building sheet the preload did not, then redraws the scenery
    * that stood in for it. */
   private loadSheet(key: string) {
-    if (this.sheetLoading.has(key)) return;
+    const sheet = this.sheetImages.get(key);
+    if (!sheet || this.sheetLoading.has(key)) return;
     this.sheetLoading.add(key);
-    this.load.atlas(
-      key,
-      this.sheetImages.get(key)!,
-      this.cache.json.get(`${key}-index`),
-    );
+    const [image, frames] = sheet;
+    this.load.atlas(key, image, { frames });
     this.load.once(`filecomplete-atlasjson-${key}`, () => {
       this.staticKey = "";
       if (this.scene?.isActive()) this.draw();
@@ -2579,17 +2582,31 @@ export class WorldScene extends Phaser.Scene {
   }
   private texture(frame: string) {
     if (frame === "bow" || frame === "arrow" || frame === "sling") return frame;
-    this.sheetFrames ??= lazySheets.map((key) => [
-      key,
-      new Set(Object.keys(this.cache.json.get(`${key}-index`)?.frames ?? {})),
-    ]);
-    for (const [key, frames] of this.sheetFrames)
-      if (frames.has(frame)) {
-        if (this.textures.exists(key)) return key;
-        this.loadSheet(key);
-        // Transparent until the sheet lands and the scenery redraws.
-        return "__DEFAULT";
+    if (!this.sheetFrames) {
+      this.sheetFrames = new Map();
+      const { atlases } = sceneAssets();
+      for (const sheet of lazySheets) {
+        const json = this.cache.json.get(`${sheet}-index`);
+        if (!json) continue;
+        const pages: Record<string, unknown>[] =
+          (pagedSheets as readonly string[]).includes(sheet) ? json : [json.frames];
+        pages.forEach((frames, i) => {
+          const key = pages === json ? `${sheet}@${i}` : sheet;
+          const image = pages === json
+            ? pageImage(sheet, i)
+            : atlases.find((a) => a.key === sheet)!.image;
+          this.sheetImages.set(key, [image, frames]);
+          for (const f in frames) if (!this.sheetFrames!.has(f)) this.sheetFrames!.set(f, key);
+        });
       }
+    }
+    const lazy = this.sheetFrames.get(frame);
+    if (lazy) {
+      if (this.textures.exists(lazy)) return lazy;
+      this.loadSheet(lazy);
+      // Transparent until the sheet lands and the scenery redraws.
+      return "__DEFAULT";
+    }
     if (frame.startsWith("study-sheet-tree-")) return "tree-study";
     if (frame.startsWith("study-tree-"))
       return frame.slice(0, frame.lastIndexOf("-"));
@@ -3040,7 +3057,7 @@ export class WorldScene extends Phaser.Scene {
           ? "prop-shadows"
           : frame.startsWith("vehicle-")
             ? "vehicle-shadows"
-            : this.texture(frame) === "street-buildings"
+            : this.texture(frame).startsWith("street-buildings@")
               ? "street-shadows"
               : "lighting-shadows";
     if (!this.textures.get(texture).has(key)) return undefined;

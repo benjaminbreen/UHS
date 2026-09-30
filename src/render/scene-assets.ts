@@ -66,6 +66,22 @@ export const lazySheets = [
   "faunau",
 ] as const;
 
+/** Building sheets the game reads as 1024px pages (scripts/art/page_sheets.py),
+ * so a town decodes the few pages its houses sit on, not whole 4096px sheets. */
+export const pagedSheets = [
+  "buildings",
+  "regional-buildings",
+  "camp-buildings",
+  "modern-buildings",
+  "street-buildings",
+  "street-weather",
+  "civic",
+  "precincts",
+] as const;
+const paged = (key: string) => (pagedSheets as readonly string[]).includes(key);
+export const pageImage = (key: string, page: number) =>
+  `/packs/pages/${key}-${page}.png?v=${artStamp}`;
+
 export const alternateTrees = {
   oak: ["Oak Tree.png", 7],
   birch: ["Birch Tree 1.png", 6],
@@ -86,7 +102,9 @@ export function sceneAssets(shadows = true) {
       .map(([key, path]) => ({
         key,
         image: `${path}.png?v=${artStamp}`,
-        data: `${path}.json?v=${artStamp}`,
+        data: paged(key)
+          ? `/packs/pages/${key}.json?v=${artStamp}`
+          : `${path}.json?v=${artStamp}`,
       })),
     images: [
       { key: "terrain", url: `/packs/terrain.png?v=${artStamp}` },

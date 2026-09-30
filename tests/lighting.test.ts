@@ -52,3 +52,17 @@ it("all shadow casters have six pivoted masks; low sun reverses direction and ni
   expect(Math.hypot(...noon.cast)).toBeLessThan(Math.hypot(...morning.cast));
   expect(night.opacity).toBe(0);
 });
+
+it("pages every building sheet frame onto a phone-sized page", async () => {
+  const { pagedSheets } = await import("../src/render/scene-assets");
+  for (const sheet of pagedSheets) {
+    const full = JSON.parse(readFileSync(`public/packs/${sheet}.json`, "utf8")).frames;
+    const pages: object[] = JSON.parse(readFileSync(`public/packs/pages/${sheet}.json`, "utf8"));
+    expect(pages.flatMap(Object.keys).sort()).toEqual(Object.keys(full).sort());
+    pages.forEach((_, i) => {
+      const png = readFileSync(`public/packs/pages/${sheet}-${i}.png`);
+      // IHDR width and height; more than this and iOS Safari runs out of room.
+      expect(png.readUInt32BE(16) * png.readUInt32BE(20)).toBeLessThanOrEqual(1024 * 1024);
+    });
+  }
+});

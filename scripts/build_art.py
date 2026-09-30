@@ -205,6 +205,8 @@ d.text((30,20),'UHS / ORIGINAL PIXEL LANGUAGE / 16px terrain / multi-cell silhou
 for n,x,y in [('house-roman-0',20,55),('house-roman-2',285,55),('house-mud-0',565,95),('house-mud-1',820,95),('hall',20,440),('olive',390,490),('cypress',550,490),('hackberry',690,490),('amphora',380,775),('basket',450,775),('sheep0',520,775),('human-0-0-2-0',630,775),('human-1-3-2-0',715,775)]:
  im=ALL[n].resize((ALL[n].width*3,ALL[n].height*3),Image.Resampling.NEAREST);proof.paste(im,(x,y),im);d.text((x,y+im.height+6),{'human-0-0-2-0':'traveler','human-1-3-2-0':'farmer'}.get(n,n),fill='#b9b5aa')
 (ROOT/'artifacts').mkdir(exist_ok=True);proof.save(ROOT/'artifacts/art-proof.png')
+from art.page_sheets import SHEETS, page
+for n in SHEETS:page(n)
 from art.stamp import write_stamp
 print(f'Art stamp {write_stamp(ROOT)}')
 print(f'Built {len(S)} original frames; atlas {atlas.size}.')
