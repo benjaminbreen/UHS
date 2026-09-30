@@ -16,11 +16,23 @@ export function launchBrowser() {
   return chromium.launch(path ? { executablePath: path } : { channel: "chrome" });
 }
 
+/** Other projects' dev servers also default to 5173; loading one looks like the game hanging. */
+export async function assertGameServer() {
+  const html = await fetch(base, { signal: AbortSignal.timeout(5000) })
+    .then((r) => r.text())
+    .catch(() => "");
+  if (!html.includes("<title>Universal History Simulator</title>"))
+    throw Error(
+      `${base} is not this game's dev server. Start it (npm run dev) and pass its port as PORT=<port> or UHS_URL=<url>.`,
+    );
+}
+
 /** Open a page, run the capture, and close the browser even if it throws. */
 export async function withPage(
   { width = 1440, height = 1100 }: { width?: number; height?: number },
   run: (page: Page) => Promise<void>,
 ) {
+  await assertGameServer();
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage({ viewport: { width, height } });

@@ -40,6 +40,23 @@ const reviews: Record<string, Review> = {
     studies: [
       ["rural-paths", "ecology=grassland&year=-6499&pattern=clustered&population=sparse"],
       ["rome-100", "place=rome&ecology=dry-scrub&year=100&pattern=planned&population=settled"],
+      ["konya-roads", "place=konya&ecology=desert&year=-6499&pattern=clustered&population=sparse"],
+    ],
+  },
+  cities: {
+    dir: "artifacts/cities",
+    title: "Dense cities: paving, squares and shop signs",
+    seed: "city-review",
+    common: "pattern=dense&population=settled&water=none&landform=plain&start=resident",
+    centre: "spawn",
+    paving: true,
+    studies: [
+      ["rome-99bce", "place=rome&ecology=dry-scrub&year=-99"],
+      ["new-york-1850", "place=city-new-york&ecology=grassland&year=1850"],
+      ["mexico-1780", "place=mexico&ecology=dry-scrub&year=1780"],
+      ["cheyenne-1957", "place=city-cheyenne&year=1957"],
+      ["surakarta-1957", "place=city-surakarta&year=1957"],
+      ["dakar-1960", "place=city-dakar&year=1960"],
     ],
   },
   polish: {

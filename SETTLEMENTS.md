@@ -204,5 +204,5 @@ for ever, so the entire game had twelve of them.
 - **The ink** is black or cream by the luminance of the board it sits on. A
   dark ink on a dark board is the one failure that makes a sign unreadable.
 
-`npx tsx scripts/capture-signs.ts` shoots three cities against the dev server
-for review.
+`npm run capture:terrain -- cities` shoots the sign cities (Cheyenne,
+Surakarta, Dakar) among others for review.

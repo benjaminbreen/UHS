@@ -1,11 +1,6 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/browser",
-  // tests/browser holds the specs worth running: they drive the game, assert
-  // something, and pass. Everything under legacy/ was written to memorialise
-  // one review and left to rot; it is kept for reference, not run.
-  // `npm run test:legacy -- <pattern>` if you need one of them.
-  testIgnore: process.env.UHS_LEGACY ? [] : ["**/legacy/**"],
   timeout: 45000,
   // These specs build worlds and wait on canvases, so they fail under load
   // rather than because of a change; a machine shared with another agent is

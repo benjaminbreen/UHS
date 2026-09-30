@@ -32,7 +32,6 @@ Sources are attached to the civic building's inspection claim. The permanent era
 - `npx tsx scripts/check-cities.ts` checks deterministic flat-ground composition and prints planner timings.
 - `npx vitest run tests/urban-form.test.ts` checks fabric selection, evidence, block partitioning, gate agreement and capacity scaling.
 - `npx vitest run tests/urban.test.ts tests/street-rendering.test.ts tests/road-network.test.ts tests/rendering.test.ts --maxWorkers=1`
-- `UHS_CITY_URL=http://127.0.0.1:5174 npx playwright test tests/browser/cities.spec.ts` verifies a production preview, civic entry/exit, missing frames and local frame cadence.
-- `UHS_CITY_URL=http://127.0.0.1:5174 npx tsx scripts/capture-cities.ts` captures matching neighborhood and detail views.
+- `npm run capture:terrain -- cities` captures neighborhood and 2× detail views of six dense cities.
 
 Review images live in `artifacts/cities/`. Browser measurements are local samples, not a device-independent frame-rate guarantee.

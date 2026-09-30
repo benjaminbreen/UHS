@@ -7,14 +7,13 @@
  * the way out; an already-running server is left alone. This is the supported
  * way to look at the game. Prefer it to writing another capture script.
  */
-import { launchBrowser } from "./capture/lib";
+import { assertGameServer, base, launchBrowser } from "./capture/lib";
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 const [out = "artifacts/shot.png", prompt = "A Roman baker in Ostia, 100 CE", review] =
   process.argv.slice(2);
-const base = process.env.UHS_URL ?? "http://127.0.0.1:5173";
 
 const up = async () => {
   try {
@@ -27,7 +26,11 @@ const up = async () => {
 let server: ReturnType<typeof spawn> | undefined;
 if (!(await up())) {
   console.log(`no server at ${base}; starting one`);
-  server = spawn("npx", ["vite", "--host", "127.0.0.1"], { stdio: "ignore" });
+  server = spawn(
+    "npx",
+    ["vite", "--host", "127.0.0.1", "--port", new URL(base).port, "--strictPort"],
+    { stdio: "ignore" },
+  );
   // Vite is usually listening in well under a second, but a cold optimize
   // pass can take longer on a fresh checkout.
   const deadline = Date.now() + 60000;
@@ -36,6 +39,7 @@ if (!(await up())) {
     await new Promise((r) => setTimeout(r, 500));
   }
 }
+await assertGameServer();
 
 const browser = await launchBrowser();
 try {

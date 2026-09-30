@@ -40,13 +40,8 @@ when the task is actually about its subject:
   game and assert something. It starts the dev server itself and reuses one
   already up. Worth running when you touch movement, doors, situations, time
   travel or the mobile layout.
-- `tests/browser/legacy/` holds the other 54 specs, and nothing runs them.
-  They were written to memorialise one review and left: 37 were never revised
-  after the commit that created them, and 24 drive a developer lab rather than
-  the game. They are long red, and the red is older than you. Reach for one
-  with `npm run test:legacy -- <pattern>` only to read what it once checked.
-  Do not run them all, do not count the failures, and do not adopt fixing them
-  as a side quest.
+- Docs sometimes cite a browser spec that no longer exists. Those 54 review
+  specs were deleted; `git show bef96b22^:tests/browser/<name>` reads one.
 
 The Python art pipeline (`npm run art*`, the `scripts/art/` sheets) needs PIL,
 numpy, shapely, pyproj and pyshp in a `.venv`, which a fresh checkout does not
