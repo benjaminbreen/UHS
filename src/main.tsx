@@ -69,6 +69,11 @@ async function start() {
     createRoot(document.getElementById("root")!).render(<MaterialsLab />);
     return;
   }
+  if (window.location.pathname === "/interior-lab") {
+    const { InteriorLab } = await import("./dev/InteriorLab");
+    createRoot(document.getElementById("root")!).render(<InteriorLab />);
+    return;
+  }
   if (window.location.pathname === "/tree-lab") {
     const { TreeLab } = await import("./dev/TreeLab");
     createRoot(document.getElementById("root")!).render(<TreeLab />);

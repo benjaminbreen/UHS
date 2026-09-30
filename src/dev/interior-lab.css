@@ -1,0 +1,260 @@
+.ilab {
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at top, #2a2140, #0c0a14 70%);
+  color: #f1ebe2;
+  padding: 28px clamp(16px, 3vw, 44px);
+  box-sizing: border-box;
+}
+.ilab-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.ilab-head h1 {
+  font-size: 36px;
+  margin: 6px 0;
+}
+.ilab-head p {
+  margin: 0;
+  color: #bdb3c9;
+}
+.ilab-eyebrow {
+  color: #e8c27a !important;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.ilab button,
+.ilab select {
+  background: #1b1628;
+  color: #e6ddf0;
+  border: 1px solid #5d5178;
+  border-radius: 4px;
+  padding: 7px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.ilab button:hover {
+  border-color: #b59ce0;
+}
+.ilab button[aria-pressed="true"] {
+  background: #4a3a70;
+  border-color: #e8c27a;
+  color: #fff4d8;
+}
+.ilab-views {
+  display: flex;
+  gap: 6px;
+}
+.ilab-body {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+.ilab-panel {
+  display: grid;
+  gap: 14px;
+  position: sticky;
+  top: 16px;
+}
+.ilab-panel section {
+  background: linear-gradient(150deg, #211a33, #15111f);
+  border: 1px solid #3f3558;
+  border-radius: 6px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+.ilab-panel h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #e8c27a;
+  margin: 0;
+}
+.ilab-chips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.ilab-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.ilab-row button {
+  flex: 1;
+}
+.ilab-slider,
+.ilab-select {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: #cfc5dc;
+}
+.ilab-slider input {
+  width: 100%;
+  accent-color: #e8c27a;
+}
+.ilab-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  font-size: 11px;
+  text-align: center;
+  color: #b5aac4;
+}
+.ilab-swatches label {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+}
+.ilab-swatches input {
+  width: 36px;
+  height: 30px;
+  border: 1px solid #5d5178;
+  border-radius: 4px;
+  background: none;
+  padding: 1px;
+  cursor: pointer;
+}
+.ilab-check {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  align-items: center;
+}
+.ilab-wide {
+  width: 100%;
+}
+.ilab-stat {
+  margin: 0;
+  font-size: 12px;
+  color: #8e84a0;
+  font-variant-numeric: tabular-nums;
+}
+.ilab-stages {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+.ilab-both {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+}
+.ilab-stage {
+  margin: 0;
+  background: #0a0810;
+  border: 1px solid #3f3558;
+  border-radius: 6px;
+  padding: 14px;
+  min-width: 0;
+}
+.ilab-stage figcaption {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #9d93ae;
+}
+.ilab-stage figcaption strong {
+  color: #f1ebe2;
+  font-size: 15px;
+}
+.ilab-canvas {
+  display: grid;
+  place-items: center;
+}
+.ilab-canvas canvas {
+  image-rendering: pixelated;
+  width: 100%;
+  height: auto;
+  max-height: 78vh;
+  object-fit: contain;
+}
+.ilab-tip {
+  position: fixed;
+  pointer-events: none;
+  background: #1b1628f0;
+  border: 1px solid #e8c27a;
+  color: #fff4d8;
+  padding: 5px 9px;
+  border-radius: 4px;
+  font-size: 13px;
+  z-index: 10;
+}
+@media (max-width: 800px) {
+  .ilab-body {
+    grid-template-columns: 1fr;
+  }
+  .ilab-panel {
+    position: static;
+  }
+}
+.ilab-three {
+  grid-template-columns: repeat(3, 1fr);
+}
+.ilab-off {
+  opacity: 0.6;
+}
+.ilab-card {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #c9bfd6;
+  display: grid;
+  gap: 6px;
+}
+.ilab-card p {
+  margin: 0;
+}
+.ilab-meta {
+  color: #e8dcc4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.ilab-basis {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+.ilab-basis-documented { color: #9fd8a8; }
+.ilab-basis-archaeological { color: #e8c27a; }
+.ilab-basis-reconstructed { color: #e89a7a; }
+.ilab-basis-modern { color: #9ac0e8; }
+.ilab-ways {
+  display: grid;
+  gap: 6px;
+}
+.ilab-ways button {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 5px 8px;
+}
+.ilab-strip {
+  display: flex;
+  height: 16px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ilab-strip i {
+  flex: 1;
+}
+.ilab-ways small {
+  font-size: 12px;
+}
+.ilab-panel select.ilab-wide {
+  width: 100%;
+}

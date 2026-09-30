@@ -1,0 +1,65 @@
+import type { InteriorProfile } from "./types";
+
+// Hundreds of Aboriginal nations built in different ways; these are two
+// well-evidenced forms, not a single "Aboriginal house".
+export const australia: InteriorProfile[] = [
+  {
+    id: "arnhem-bark-shelter",
+    clutter: ["grain", "bowl"],
+    label: "Stringybark wet-season shelter",
+    region: "Arnhem Land",
+    period: "Long practised; recorded 1880 – 1950",
+    when: { start: { year: -3000 }, end: { year: 1950 } },
+    basis: "documented",
+    note: "Sheets of stringybark over a pole frame, raised or on sand, with a smoky fire against mosquitoes. Coolamons, dilly bags, pandanus mats and ochre come from ethnographic collections; the layout is a composite.",
+    shapes: ["oval", "rect"],
+    size: [8, 6],
+    door: "opening",
+    windowStyle: "none",
+    fire: "firepit",
+    smokehole: true,
+    seating: "floor",
+    sleep: "mat",
+    trades: ["household", "hunter", "weaver"],
+    furnish: ["coolamon", "basket", "quern", "pegs", "hides"],
+    looks: [
+      { wall: "bark", floor: "sand", wear: 0.4, soot: 0.5 },
+      { wall: "bark", floor: "sand", wear: 0.25, soot: 0.4, furnish: ["basket"] },
+      { wall: "bark", floor: "mat", wear: 0.15, soot: 0.3, furnish: ["coolamon", "basket"] },
+    ],
+    colorways: [
+      { name: "Stringybark", wall: "#7a5a3e", trim: "#3a2a1e", floor: "#d8c8a2", wood: "#6a4a30", accent: "#b8402a" },
+      { name: "Paperbark", wall: "#c8b89a", trim: "#5a4a36", floor: "#e0d2b0", wood: "#8a6a48", accent: "#d8b040" },
+      { name: "Ochre-painted", wall: "#6a4a32", trim: "#e8e0d0", floor: "#c8a878", wood: "#5a3e28", accent: "#a8302a" },
+    ],
+  },
+  {
+    id: "gunditjmara-stone-house",
+    clutter: ["grain", "cloth"],
+    label: "Gunditjmara stone house",
+    region: "Budj Bim, south-west Victoria",
+    period: "At least 1000 – 1850",
+    when: { start: { year: 1000 }, end: { year: 1850 } },
+    basis: "reconstructed",
+    note: "Round basalt footings survive beside the Budj Bim eel traps. The domed roof of timber, bark and turf is reconstructed from early colonial accounts; possum-skin cloaks and eel baskets are documented.",
+    shapes: ["round"],
+    size: [8, 8],
+    door: "opening",
+    windowStyle: "none",
+    fire: "firepit",
+    smokehole: true,
+    seating: "floor",
+    sleep: "mat",
+    trades: ["household", "hunter", "weaver"],
+    furnish: ["hides", "basket", "coolamon", "quern", "pegs"],
+    looks: [
+      { wall: "stone", floor: "earth", wear: 0.45, soot: 0.55 },
+      { wall: "stone", floor: "earth", wear: 0.3, soot: 0.4, furnish: ["hides"] },
+      { wall: "stone", floor: "mat", wear: 0.15, soot: 0.3, furnish: ["hides", "basket"] },
+    ],
+    colorways: [
+      { name: "Basalt", wall: "#4a4640", trim: "#2a2622", floor: "#6a5a48", wood: "#5a4632", accent: "#a8402a" },
+      { name: "Lichened basalt", wall: "#5e5e4e", trim: "#2e2e26", floor: "#6e604a", wood: "#5a4a34", accent: "#d8c070" },
+    ],
+  },
+];

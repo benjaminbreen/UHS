@@ -1,0 +1,1972 @@
+import type { LightField } from "./voxel";
+import { LETTERS, SPRITES } from "./sprites";
+import {
+  courtParams, floorColor, hash, wornTiles, mix, palette, roomMask, scale, sky, sun, wallColor,
+  type Palette, type Prop, type RoomParams,
+} from "./room";
+
+export const T = 16;
+const WH = 48, S = 10, CAP = 6;
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
+type Hit = { u: number; v: number; hits: number; seed: number; base: number };
+type Debris = { x: number; y: number; vx: number; vy: number; c: number; floor: number; rest: boolean };
+type Light = { x: number; y: number; c: number; rad: number; k: number; phase: number };
+
+export class PixelRoom {
+  W = 0;
+  H = 0;
+  hover = -1;
+  dither = false;
+  props: Prop[] = [];
+  private col = new Uint32Array(0);
+  private ids = new Int16Array(0);
+  private glow = new Uint8Array(0);
+  private img?: ImageData;
+  private ctx: CanvasRenderingContext2D;
+  private p!: RoomParams;
+  private P!: Palette;
+  private prog = new Map<number, number>();
+  private turn = new Map<number, number>();
+  private cur = -1;
+  private t = 0;
+  private lights: Light[] = [];
+  private fires: { x: number; y: number; w: number; h: number; lit: boolean }[] = [];
+  private flames: { x: number; y: number }[] = [];
+  private beams: { x0: number; x1: number; top: number; floor: number; len: number; skew: number; k: number; c: number }[] = [];
+  private mask = new Uint8Array(0);
+  /** Each column's back-wall row, -1 for a column with no floor. */
+  private top: number[] = [];
+  private smoke: { x: number; y: number }[] = [];
+  private zz: { x: number; y: number }[] = [];
+  private notes: { x: number; y: number }[] = [];
+  private worn = new Float32Array(0);
+  private walls: Hit[] = [];
+  private tiles = new Map<number, Hit>();
+  private debris: Debris[] = [];
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.ctx = canvas.getContext("2d")!;
+  }
+  private get oy() {
+    return CAP + WH;
+  }
+
+  set(p: RoomParams, props: Prop[]) {
+    this.p = p;
+    this.P = palette(p);
+    const keep = this.props.length === props.length && this.props.every((q, i) => q.kind === props[i].kind);
+    this.props = props;
+    if (!keep) {
+      this.prog = new Map(props.map((q) => [q.id, q.on ? 1 : 0]));
+      this.repair();
+    }
+    this.mask = roomMask(p);
+    this.worn = wornTiles(p, props);
+    this.top = Array.from({ length: p.w }, (_, x) => {
+      for (let y = 0; y < p.d; y++) if (this.mask[y * p.w + x]) return y;
+      return -1;
+    });
+    this.W = p.w * T + 2 * S;
+    this.H = CAP + WH + p.d * T + S;
+    const n = this.W * this.H;
+    this.col = new Uint32Array(n);
+    this.ids = new Int16Array(n);
+    this.glow = new Uint8Array(n);
+    this.ctx.canvas.width = this.W;
+    this.ctx.canvas.height = this.H;
+    this.img = this.ctx.createImageData(this.W, this.H);
+  }
+
+  pick(x: number, y: number) {
+    x |= 0;
+    y |= 0;
+    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return -1;
+    for (let r = 0; r < 3; r++)
+      for (const [dx, dy] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= this.W || yy >= this.H) continue;
+        const id = this.ids[yy * this.W + xx];
+        if (id >= 0 && this.props[id].kind !== "rug") return id;
+      }
+    return -1;
+  }
+
+  repair() {
+    this.walls = [];
+    this.tiles.clear();
+    this.debris = [];
+    for (const q of this.props) q.broken = false;
+  }
+
+  /** Hammer blow at canvas pixel (x, y). Returns what changed so the caller
+   * knows whether the traced light needs rebuilding. */
+  hit(x: number, y: number): "prop" | "wall" | "floor" | undefined {
+    const { P, oy } = this;
+    const hung = ["tapestry", "pegs", "plates", "map"];
+    let q: Prop | undefined = this.props[this.pick(x, y)];
+    if (q && hung.includes(q.kind)) q = undefined;
+    const fw = this.p.w * T, u = Math.floor(x - S);
+    if (q) {
+      if ((q.kind === "lamp" || q.kind === "lantern" || q.kind === "window") && !q.broken) {
+        q.broken = true;
+        q.on = q.kind === "window";
+        const floor = q.kind === "lamp" ? oy + (q.y + q.d) * T - 4 : oy + 3;
+        this.spray(x, y, 26, [0xe4f4ff, 0xb8d8ec, 0x8fb4cc, P.brass[4]], floor, 70);
+        return "prop";
+      }
+      this.spray(x, y, 3, [P.wood[3], P.wood[2]], y + 4, 30);
+      return;
+    }
+    if (u < 0 || u >= fw) return;
+    const cx = Math.floor(u / T), ty = this.top[cx], base = oy + ty * T;
+    if (ty >= 0 && y >= base - WH && y < base) {
+      const v = base - 1 - Math.floor(y);
+      const near = this.walls.find((h) => h.base === base && Math.hypot(h.u - u, h.v - v) < 8);
+      if (near) near.hits++;
+      else this.walls.push({ u, v, hits: 1, seed: (Math.random() * 1e6) | 0, base });
+      this.spray(x, y, 10, [P.wall[3], P.wall[4], P.wall[2], P.stone[3]], base + 2 + Math.random() * 6, 45);
+      return "wall";
+    }
+    const cy = Math.floor((y - oy) / T);
+    if (y >= oy && cy < this.p.d && this.mask[cy * this.p.w + cx]) {
+      const v = Math.floor(y) - oy, key = (u >> 3) + (v >> 3) * 1024;
+      const t = this.tiles.get(key) ?? { u, v, hits: 0, seed: (Math.random() * 1e6) | 0, base: 0 };
+      t.hits++;
+      this.tiles.set(key, t);
+      this.spray(x, y, 3 + t.hits * 2, [P.floor[4], P.floor[3], P.floor[2]], y + 1, 22);
+      return "floor";
+    }
+  }
+
+  /** Back-wall voxels the hammer has knocked through, as x + z * 4096. */
+  holes() {
+    const out = new Set<number>();
+    for (const h of this.walls) {
+      if (h.hits < 3) continue;
+      const r = (h.hits - 2) * 3;
+      for (let dv = -r; dv <= r; dv++)
+        for (let du = -r; du <= r; du++)
+          if (du * du + dv * dv <= r * r) out.add(1 + ((h.u + du) >> 1) + (1 + ((h.v + dv) >> 1)) * 4096);
+    }
+    return out;
+  }
+
+  private spray(x: number, y: number, n: number, cols: number[], floor: number, speed: number) {
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI * (0.1 + Math.random() * 0.8);
+      this.debris.push({
+        x, y, vx: Math.cos(a) * speed * (0.3 + Math.random()), vy: Math.sin(a) * speed * (0.5 + Math.random()),
+        c: cols[i % cols.length], floor: floor + Math.random() * 5, rest: false,
+      });
+    }
+    if (this.debris.length > 900) this.debris.splice(0, this.debris.length - 900);
+  }
+
+  frame(dt: number, field?: LightField) {
+    if (!this.img) return;
+    this.t += dt;
+    for (const q of this.props) {
+      const cur = this.prog.get(q.id) ?? 0, to = q.on ? 1 : 0;
+      this.prog.set(q.id, cur + Math.sign(to - cur) * Math.min(Math.abs(to - cur), dt * 3.2));
+      if (q.on && (q.kind === "spinwheel" || q.kind === "throw")) this.turn.set(q.id, (this.turn.get(q.id) ?? 0) + dt * 5);
+    }
+    for (const d of this.debris) {
+      if (d.rest) continue;
+      d.vy += 320 * dt;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      if (d.y >= d.floor) {
+        d.y = d.floor;
+        if (d.vy > 50) (d.vy *= -0.3), (d.vx *= 0.5);
+        else d.rest = true;
+      }
+    }
+    this.paint();
+    if (field) this.traced(field);
+    else this.shade();
+    this.outline();
+    this.grade();
+    this.particles(!field);
+    this.ctx.putImageData(this.img, 0, 0);
+  }
+
+  private s(x: number, y: number, c: number) {
+    x |= 0;
+    y |= 0;
+    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return;
+    const i = y * this.W + x;
+    this.col[i] = c;
+    this.ids[i] = this.cur;
+    this.glow[i] = 0;
+  }
+  private g(x: number, y: number, c: number) {
+    x |= 0;
+    y |= 0;
+    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return;
+    const i = y * this.W + x;
+    this.col[i] = c;
+    this.ids[i] = this.cur;
+    this.glow[i] = 1;
+  }
+  private r(x: number, y: number, w: number, h: number, c: number | ((i: number, j: number) => number)) {
+    for (let j = 0; j < h; j++)
+      for (let i = 0; i < w; i++) this.s(x + i, y + j, typeof c === "number" ? c : c(i, j));
+  }
+  private dim(x: number, y: number, w: number, h: number, k: number) {
+    for (let j = 0; j < h; j++)
+      for (let i = 0; i < w; i++) {
+        const xx = (x + i) | 0, yy = (y + j) | 0;
+        if (xx < 0 || yy < 0 || xx >= this.W || yy >= this.H) continue;
+        const n = yy * this.W + xx;
+        this.col[n] = scale(this.col[n], k);
+      }
+  }
+  /** Oblique box: footprint (x, y, w, d) on the floor raised h px. */
+  private box(x: number, y: number, w: number, d: number, h: number, top: number[], front: number[]) {
+    this.r(x, y - h, w, d, (i, j) => (j === 0 ? top[5] : i === 0 ? top[4] : top[3]));
+    this.r(x, y + d - h, w, h, (_i, j) => (j === 0 ? front[3] : j === h - 1 ? front[1] : front[2]));
+  }
+  private vase(cx: number, base: number, h: number, rad: (t: number) => number, R: number[], mouth = true) {
+    for (let j = 0; j < h; j++) {
+      const n = Math.max(0, Math.round(rad(j / Math.max(1, h - 1))));
+      // Lit from the upper left: a band down the left third, the belly
+      // darkening toward the foot, one bright point where the light lands.
+      const tj = j / Math.max(1, h - 1);
+      for (let i = -n; i <= n; i++) {
+        const k = (i + n + 0.5) / (2 * n + 1) + (tj < 0.25 ? 0.12 : 0) - (tj > 0.7 ? 0.1 : 0);
+        let c = R[k < 0.22 ? 4 : k < 0.5 ? 3 : k < 0.8 ? 2 : 1];
+        if (n > 1 && i === -Math.round(n * 0.45) && Math.abs(tj - 0.6) < 0.08) c = R[5];
+        if (n > 1 && i === n && tj > 0.3 && tj < 0.8) c = mix(c, R[3], 0.4);
+        this.s(cx + i, base - j, c);
+      }
+      if (j === h - 1) {
+        for (let i = -n; i <= n; i++) this.s(cx + i, base - j, R[5]);
+        if (mouth && n > 1) for (let i = -n + 1; i < n; i++) this.s(cx + i, base - j + 1, R[0]);
+      }
+    }
+  }
+  /** Blit a hand-drawn sprite at (x, y), its letters resolved to this room's ramps. */
+  private sprite(name: string, x: number, y: number, over: Record<string, number[]> = {}, swap: Record<string, string> = {}) {
+    const P = this.P as unknown as Record<string, number[]>;
+    const band = this.p.finish === 0 ? this.P.straw : this.p.finish === 2 ? this.P.brass : this.P.iron;
+    const rows = SPRITES[name];
+    rows.forEach((row, j) => {
+      for (let i = 0; i < row.length; i++) {
+        const ch = swap[row[i]] ?? row[i];
+        if (ch === ".") continue;
+        if (ch === "#") {
+          this.s(x + i, y + j, 0x22161a);
+          continue;
+        }
+        const [ramp, k] = LETTERS[ch];
+        this.s(x + i, y + j, (over[ramp] ?? (ramp === "band" ? band : P[ramp]))[k]);
+      }
+    });
+    return rows.length;
+  }
+  private disc(cx: number, cy: number, rr: number, R: number[]) {
+    for (let j = -rr; j <= rr; j++)
+      for (let i = -rr; i <= rr; i++) {
+        const q = i * i + j * j;
+        if (q > rr * rr + rr * 0.6) continue;
+        const k = (i + j) / (2 * rr + 0.01);
+        this.s(cx + i, cy + j, R[q > (rr - 1) * (rr - 1) + 1 ? 1 : k < -0.35 ? 5 : k < 0 ? 4 : k < 0.4 ? 3 : 2]);
+      }
+  }
+
+  private paint() {
+    const { p, P, W, H, oy } = this;
+    this.col.fill(0x120d16);
+    this.ids.fill(-1);
+    this.glow.fill(0);
+    this.lights = [];
+    this.fires = [];
+    this.flames = [];
+    this.beams = [];
+    this.smoke = [];
+    this.zz = [];
+    this.notes = [];
+    this.cur = -1;
+    const { mask, top } = this, w = p.w, d = p.d;
+    const inside = (cx: number, cy: number) => cx >= 0 && cy >= 0 && cx < w && cy < d && mask[cy * w + cx] > 0;
+    const solid = new Uint8Array(W * H), court = courtParams(p);
+    const soft = p.floorPattern === "carpet" || p.floorPattern === "mat" || p.floorPattern === "paper";
+    const earthy = p.floorPattern === "earth" || p.floorPattern === "sand" || p.floorPattern === "rushes";
+    for (let cy = 0; cy < d; cy++)
+      for (let cx = 0; cx < w; cx++) {
+        if (!inside(cx, cy)) continue;
+        const n = !inside(cx, cy - 1), so = !inside(cx, cy + 1), we = !inside(cx - 1, cy), ea = !inside(cx + 1, cy);
+        for (let j = 0; j < T; j++)
+          for (let i = 0; i < T; i++) {
+            const u = cx * T + i, v = cy * T + j;
+            const open = mask[cy * w + cx] === 2;
+            let c = floorColor(open ? court : p, P, u, v);
+            const wv = soft ? 0 : this.wearAt(u, v);
+            if (wv > 0.04) c = mix(c, earthy ? P.floor[3] : P.floor[4], Math.min(0.25, wv * (0.12 + p.wear * 0.25)));
+            if (open) {
+              // A kerb where the court meets the roofed floor, and the eave's shadow on it.
+              const rn = cy > 0 && mask[(cy - 1) * w + cx] === 1, rs = cy < d - 1 && mask[(cy + 1) * w + cx] === 1;
+              const rw = cx > 0 && mask[cy * w + cx - 1] === 1, re = cx < w - 1 && mask[cy * w + cx + 1] === 1;
+              if ((rn && j < 2) || (rs && j > T - 3) || (rw && i < 2) || (re && i > T - 3)) c = mix(c, (rn && j === 0) || (rw && i === 0) ? P.stone[4] : P.stone[2], 0.4);
+              else if (rn && j < 6) c = scale(c, 0.82);
+            }
+            const e = Math.min(n ? j : 9, so ? T - 1 - j : 9, we ? i : 9, ea ? T - 1 - i : 9);
+            if (e < 4) c = scale(c, 0.72 + e * 0.07);
+            this.s(S + u, oy + v, c);
+            solid[(oy + v) * W + S + u] = 1;
+          }
+      }
+    this.decals(inside);
+    if (p.finish === 2 && ["tile", "terrazzo", "parquet", "plank", "flag"].includes(p.floorPattern)) this.inlay(inside);
+    // A column's back wall stands on its first floor row, so an L or a round
+    // room gets a stepped wall line; its ends shade where the next one differs.
+    for (let cx = 0; cx < w; cx++) {
+      const ty = top[cx];
+      if (ty < 0) continue;
+      const base = oy + ty * T, lEdge = top[cx - 1] !== ty, rEdge = top[cx + 1] !== ty;
+      for (let j = 0; j < WH; j++)
+        for (let i = 0; i < T; i++) {
+          let c = wallColor(p, P, cx * T + i, j);
+          if ((lEdge && i < 2) || (rEdge && i > T - 3)) c = scale(c, 0.55 + 0.35 * (j / WH));
+          this.s(S + cx * T + i, base - 1 - j, c);
+          solid[(base - 1 - j) * W + S + cx * T + i] = 1;
+        }
+    }
+    this.caps(solid);
+    const sunNow = sun(p.hour);
+    this.wallDamage(sunNow.strength);
+    this.tileDamage();
+    for (const q of this.props) if (q.kind === "rug") this.rug(q);
+    for (const q of this.props)
+      if (q.kind === "clutter") {
+        this.cur = q.id;
+        this.clutterItem(q, S + q.x * T, oy + q.y * T);
+      }
+    this.cur = -1;
+    for (const q of this.props) if (q.kind === "hearth") this.hearthSlab(q);
+    for (const q of this.props) {
+      if (q.wall || q.kind === "rug" || q.kind === "cat" || q.kind === "clutter") continue;
+      const X = S + q.x * T, Y = oy + (q.y + q.d) * T;
+      this.dim(X, Y - 4, q.w * T, 5, 0.72);
+      this.dim(X + 1, Y - 6, q.w * T - 2, 2, 0.86);
+    }
+    for (const d of this.debris) if (d.rest) this.s(d.x, d.y, d.c);
+    const order = this.props
+      .filter((q) => q.kind !== "rug" && q.kind !== "clutter")
+      .sort((a, b) => (a.wall === b.wall ? a.y + a.d - (b.y + b.d) || (a.kind === "cat" ? 1 : 0) - (b.kind === "cat" ? 1 : 0) : a.wall ? -1 : 1));
+    for (const q of order) {
+      this.cur = q.id;
+      this.draw(q, sunNow);
+    }
+    this.cur = -1;
+    for (const d of this.debris) if (!d.rest) this.s(d.x, d.y, d.c);
+  }
+
+  /** Wall tops: a band around the floor and the wall faces, cut where the
+   * walls stand between room and viewer. */
+  private wearAt(u: number, v: number) {
+    const { p, worn } = this, gx = u / T - 0.5, gy = v / T - 0.5;
+    const x0 = Math.max(0, Math.floor(gx)), y0 = Math.max(0, Math.floor(gy)), x1 = Math.min(p.w - 1, x0 + 1), y1 = Math.min(p.d - 1, y0 + 1);
+    const fx = Math.min(1, Math.max(0, gx - x0)), fy = Math.min(1, Math.max(0, gy - y0));
+    const a = worn[y0 * p.w + x0], b = worn[y0 * p.w + x1], c = worn[y1 * p.w + x0], d = worn[y1 * p.w + x1];
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+  }
+  private caps(solid: Uint8Array) {
+    const { W, H, P } = this, R = 5;
+    const near = new Uint8Array(W * H), row = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        let hit = 0;
+        for (let i = Math.max(0, x - R); i <= Math.min(W - 1, x + R) && !hit; i++) hit = solid[y * W + i];
+        row[y * W + x] = hit;
+      }
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        let hit = 0;
+        for (let j = Math.max(0, y - R); j <= Math.min(H - 1, y + R) && !hit; j++) hit = row[j * W + x];
+        near[y * W + x] = hit;
+      }
+    const at = (a: Uint8Array, x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && a[y * W + x] === 1;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (solid[i] || !near[i]) continue;
+        const touch = at(solid, x - 1, y) || at(solid, x + 1, y) || at(solid, x, y - 1) || at(solid, x, y + 1);
+        const rim = !at(near, x - 1, y) || !at(near, x + 1, y) || !at(near, x, y + 1);
+        this.s(x, y, touch || rim ? P.trim[1] : !at(near, x, y - 1) ? P.trim[4] : hash(x, y, 5) < 0.1 ? P.trim[2] : P.trim[3]);
+      }
+  }
+  /** Small deliberate things on natural floors: pebbles, twigs, strewn rush
+   * stalks, a sprig of strewing herb. Each has its own lit side and shadow. */
+  private decals(inside: (x: number, y: number) => boolean) {
+    const { p, P, oy } = this, fp = p.floorPattern;
+    if (fp !== "earth" && fp !== "rushes" && fp !== "sand") return;
+    const F = P.floor, cell = fp === "rushes" ? 8 : 9;
+    const at = (x: number, y: number, c: number) => {
+      const cx = Math.floor(x / T), cy = Math.floor(y / T);
+      if (inside(cx, cy) && this.mask[cy * p.w + cx] === 1) this.s(S + x, oy + y, c);
+    };
+    for (let gy = 0; gy < (p.d * T) / cell; gy++)
+      for (let gx = 0; gx < (p.w * T) / cell; gx++) {
+        const h = hash(gx, gy, p.seed + 21), x = gx * cell + Math.floor(hash(gx, gy, p.seed + 22) * cell), y = gy * cell + Math.floor(hash(gx, gy, p.seed + 23) * cell);
+        // Rushes lie mostly one way, as if swept, with a few across them.
+        if (fp === "rushes" && h < 0.16) {
+          const a = (hash(gx, gy, p.seed + 24) - 0.5) * 0.7 + (h < 0.08 ? Math.PI / 2.2 : 0.35), len = 4 + Math.floor(hash(gx, gy, p.seed + 25) * 4);
+          for (let k = 0; k < len; k++) {
+            const px = Math.round(x + Math.cos(a) * k), py = Math.round(y + Math.sin(a) * k * 0.7);
+            at(px, py + 1, mix(F[1], F[2], 0.5));
+            at(px, py, mix(k < len / 2 ? P.straw[4] : P.straw[3], F[3], 0.35));
+          }
+          if (h < 0.04) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, -1]]) at(x + dx, y + dy, P.linen[5]);
+        } else if (h > 0.16 && h < 0.185) {
+          at(x, y, P.stone[4]);
+          at(x + 1, y, P.stone[3]);
+          at(x, y + 1, P.stone[2]);
+          at(x + 1, y + 1, P.stone[2]);
+          at(x + 1, y + 2, F[1]);
+          at(x + 2, y + 1, F[1]);
+        } else if (h > 0.2 && h < 0.21) {
+          for (let k = 0; k < 5; k++) {
+            at(x + k, y + (k >> 1), P.wood[k === 0 ? 4 : 2]);
+            at(x + k, y + (k >> 1) + 1, F[1]);
+          }
+        } else if (h > 0.3 && h < 0.3 && fp !== "sand") {
+          at(x, y, P.straw[4]);
+          at(x + 1, y + 1, P.straw[4]);
+          at(x + 2, y + 1, P.straw[3]);
+        }
+      }
+  }
+  /** Elite floors: a border inlaid a tile in from the walls. */
+  private inlay(inside: (x: number, y: number) => boolean) {
+    const { P, p, oy } = this;
+    for (let cy = 0; cy < p.d; cy++)
+      for (let cx = 0; cx < p.w; cx++) {
+        if (!inside(cx, cy) || this.mask[cy * p.w + cx] === 2) continue;
+        const ring = [[0, -1], [0, 1], [-1, 0], [1, 0]].some(([a, b]) => !inside(cx + a, cy + b));
+        if (ring) continue;
+        const nearWall = [[0, -2], [0, 2], [-2, 0], [2, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]].some(([a, b]) => !inside(cx + a, cy + b));
+        if (!nearWall) continue;
+        for (let j = 0; j < T; j++)
+          for (let i = 0; i < T; i++) {
+            const e = (i + j) % 8;
+            if ((j === 7 || i === 7) && e < 4) {
+              const at = (oy + cy * T + j) * this.W + S + cx * T + i;
+              this.s(S + cx * T + i, oy + cy * T + j, mix(this.col[at], e < 2 ? P.acc[3] : P.trim[4], 0.45));
+            }
+          }
+      }
+  }
+
+  private wallDamage(day: number) {
+    const { p } = this;
+    const fw = p.w * T;
+    for (const h of this.walls) {
+      const chip = 2.5 + h.hits * 2.2, hole = h.hits >= 3 ? (h.hits - 2) * 3 : 0;
+      for (let k = 0; k < 2 + h.hits * 2; k++) {
+        let a = hash(k, 0, h.seed) * Math.PI * 2, x = h.u, y = h.v;
+        const len = chip * (1.3 + hash(k, 1, h.seed) * 1.6);
+        for (let s = 0; s < len; s++) {
+          a += (hash(k, s, h.seed) - 0.5) * 0.9;
+          x += Math.cos(a);
+          y += Math.sin(a);
+          if (x >= 0 && x < fw && y >= 0 && y < WH) this.dim(S + x, h.base - 1 - y, 1, 1, 0.55);
+        }
+      }
+      const R = Math.ceil(chip + 2);
+      for (let dv = -R; dv <= R; dv++)
+        for (let du = -R; du <= R; du++) {
+          const u = h.u + du, v = h.v + dv;
+          if (u < 0 || u >= fw || v < 0 || v >= WH) continue;
+          const d = Math.hypot(du, dv) + (hash(u, v, h.seed) - 0.5) * 2.2;
+          const sx = S + u, sy = h.base - 1 - v;
+          if (d < hole) this.g(sx, sy, v < 9 ? mix(0x1e2a1a, 0x6f9a4a, day) : sky(p.hour, 1 - v / WH));
+          else if (hole && d < hole + 1.3) this.s(sx, sy, 0x241814);
+          else if (d < chip) this.s(sx, sy, this.core(u, v, h.seed));
+          else if (d < chip + 1) this.dim(sx, sy, 1, 1, 0.72);
+        }
+    }
+  }
+  /** What a wall is made of under its face: lath behind plaster, the brick
+   * core behind brick, wattle behind a timber frame's infill. */
+  private core(u: number, v: number, seed: number) {
+    const { P, p } = this;
+    if (p.wallPattern === "brick") {
+      const row = v >> 2, bu = (u + (row & 1) * 4) & 7;
+      return (v & 3) === 0 || bu === 0 ? P.stone[2] : P.clay[1 + (hash((u + (row & 1) * 4) >> 3, row, seed) < 0.5 ? 0 : 1)];
+    }
+    if (p.wallPattern === "timber") return ((u >> 1) + (v >> 1)) & 1 ? P.straw[2] : P.wood[1];
+    return v % 3 === 0 ? 0x22160f : P.wood[2 + (hash(u >> 3, v, seed) < 0.4 ? 1 : 0)];
+  }
+  private tileDamage() {
+    const { p, P, oy } = this;
+    const bed = (u: number, v: number) =>
+      p.floorPattern === "plank" ? (hash(u, v, 2) < 0.5 ? 0x1e140e : 0x2e2016)
+        : p.floorPattern === "earth" ? scale(P.floor[1], 0.7)
+          : p.floorPattern === "mat" ? P.straw[2 + (hash(u, v, 2) < 0.4 ? 1 : 0)]
+            : hash(u, v, 2) < 0.25 ? P.stone[2] : P.pale[1];
+    for (const h of this.tiles.values()) {
+      const cu = h.u & ~7, cv = h.v & ~7;
+      const inCell = (u: number, v: number) => u > cu && u < cu + 8 && v > cv && v < cv + 8;
+      if (h.hits >= 3) {
+        for (let v = cv + 1; v < cv + 8; v++)
+          for (let u = cu + 1; u < cu + 8; u++) {
+            const e = Math.min(u - cu, v - cv, cu + 8 - u, cv + 8 - v);
+            // A pit: shadowed under its top and left rims, the far lip catching light.
+            const shard = e === 1 && hash(u, v, h.seed) < 0.3;
+            let c = shard ? P.floor[4] : hash(u, v, h.seed + 1) < 0.1 ? P.stone[4] : scale(bed(u, v), 0.62);
+            if (!shard && (v <= cv + 2 || u <= cu + 1)) c = scale(c, 0.55);
+            if (!shard && v === cv + 7) c = mix(c, 0xffffff, 0.18);
+            this.s(S + u, oy + v, c);
+          }
+        continue;
+      }
+      for (let k = 0; k < h.hits * 2; k++) {
+        let a = hash(k, 0, h.seed) * Math.PI * 2, x = h.u, y = h.v;
+        for (let s = 0; s < 9; s++) {
+          if (!inCell(Math.round(x), Math.round(y))) break;
+          this.s(S + x, oy + y, 0x2a1810);
+          if (inCell(Math.round(x), Math.round(y) + 1)) this.s(S + x, oy + y + 1, P.floor[5]);
+          a += (hash(k, s, h.seed) - 0.5) * 0.8;
+          x += Math.cos(a);
+          y += Math.sin(a);
+        }
+      }
+      if (h.hits >= 2) {
+        const a = hash(0, 0, h.seed) * Math.PI * 2;
+        for (let v = cv + 1; v < cv + 8; v++)
+          for (let u = cu + 1; u < cu + 8; u++) {
+            if ((u - h.u) * Math.cos(a) + (v - h.v) * Math.sin(a) > 0) this.dim(S + u, oy + v, 1, 1, 0.84);
+            if (Math.hypot(u - h.u, v - h.v) < 1.6) this.s(S + u, oy + v, bed(u, v));
+          }
+      }
+    }
+  }
+
+  private rug(q: Prop) {
+    const { P } = this;
+    this.cur = q.id;
+    const X = S + q.x * T + 3, Y = this.oy + q.y * T + 3, w = q.w * T - 6, h = q.d * T - 6;
+    const A = P.acc, Tr = P.trim;
+    // A flat field, a two-line border with a simple repeat, one medallion.
+    for (let j = 0; j < h; j++)
+      for (let i = 0; i < w; i++) {
+        const e = Math.min(i, j, w - 1 - i, h - 1 - j);
+        const dm = Math.abs(i - w / 2) / (w / 2) + Math.abs(j - h / 2) / (h / 2);
+        let c: number;
+        if (e === 0) c = A[1];
+        else if (e < 4) c = e === 2 && (i + j) % 4 === 0 ? mix(Tr[4], A[3], 0.3) : mix(A[3], Tr[4], 0.25);
+        else if (e === 4) c = A[1];
+        else if (dm < 0.26) c = dm < 0.12 ? mix(Tr[4], A[3], 0.4) : P.acc2[2];
+        else if (dm < 0.31) c = A[1];
+        else c = A[2];
+        this.s(X + i, Y + j, c);
+      }
+    for (let j = 1; j < h - 1; j += 2) {
+      this.s(X - 1, Y + j, P.linen[4]);
+      this.s(X + w, Y + j, P.linen[4]);
+    }
+  }
+
+  private hearthSlab(q: Prop) {
+    const { P } = this, oy = this.oy + q.y * T;
+    this.cur = q.id;
+    const X = S + q.x * T - 3, w = q.w * T + 6;
+    this.r(X, oy + 10, w, 11, (i, j) => {
+      const sx = (i + (j >> 2) * 5) % 9, crack = sx === 0 || j % 4 === 0;
+      return crack ? P.stone[1] : j === 0 ? P.stone[4] : P.stone[hash((i + (j >> 2) * 5) / 9 | 0, j >> 2, 3) < 0.5 ? 3 : 2];
+    });
+    for (let i = 0; i < 5; i++) this.s(X + 5 + hash(i, 1, q.seed) * (w - 10), oy + 12 + hash(i, 2, q.seed) * 7, P.stone[0]);
+  }
+
+  private draw(q: Prop, sunNow: ReturnType<typeof sun>) {
+    const { P, p } = this;
+    // Wall pieces sit on their own column's wall line.
+    const oy = this.oy + (q.wall ? q.y * T : 0);
+    const X = S + q.x * T, Y = this.oy + q.y * T, PW = q.w * T, PD = q.d * T;
+    const pr = this.prog.get(q.id) ?? 0;
+    const W = P.wood;
+    switch (q.kind) {
+      case "door": {
+        if (p.door !== "door") {
+          this.doorway(q, X + 1, oy, p.door === "opening" ? 1 : pr, sunNow);
+          break;
+        }
+        const x0 = X + 1, top = oy - 33;
+        this.r(x0 - 2, top - 3, 18, 36, (i, j) => (j < 3 ? P.trim[j === 0 ? 4 : 2] : i < 2 || i > 15 ? P.trim[i === 0 || i === 17 ? 1 : 3] : P.trim[1]));
+        const day = sunNow.strength;
+        for (let j = 0; j < 33; j++)
+          for (let i = 0; i < 14; i++) {
+            const v = j / 33, horizon = 18 + Math.round(2 * Math.sin((i + q.seed) * 0.7));
+            let c = j < horizon ? sky(p.hour, v * 1.6) : mix(mix(0x20301c, 0x7fa150, day), 0xb89a6a, Math.abs(i - 7) < 3 - (j - horizon) * -0.2 ? 0.7 : 0);
+            if (j < horizon && (p.hour > 20 || p.hour < 5) && hash(i, j, 77) < 0.03) c = 0xfff4d0;
+            this.g(x0 + i, top + j, c);
+          }
+        const lw = Math.round(14 * (1 - pr));
+        for (let j = 0; j < 33; j++)
+          for (let i = 0; i < lw; i++) {
+            const plank = ((i * 14) / Math.max(1, lw)) | 0;
+            let c = plank % 4 === 3 ? W[1] : W[2 + (hash(plank, 0, q.seed) < 0.5 ? 0 : 1)];
+            if (j === 6 || j === 26) c = i < lw - 2 ? P.iron[2] : c;
+            if (hash(plank, j >> 2, q.seed) < 0.08) c = W[1];
+            this.s(x0 + i, top + j, scale(c, 1 - pr * 0.4));
+          }
+        if (lw > 4) {
+          this.s(x0 + lw - 3, top + 17, P.iron[4]);
+          this.s(x0 + lw - 3, top + 18, P.iron[1]);
+        }
+        this.r(x0 - 1, oy - 1, 16, 2, P.stone[4]);
+        if (pr > 0.02) {
+          this.beams.push({ x0: x0, x1: x0 + 14, top: oy - 2, floor: oy, len: 38, skew: 0, k: pr * (0.25 + day * 0.9), c: mix(0x8aa0d8, sunNow.color, day) });
+          this.lights.push({ x: x0 + 7, y: oy - 10, c: mix(0x5a6ab0, 0xfff0dc, day), rad: 40, k: pr * (0.15 + day * 0.5), phase: -1 });
+        }
+        break;
+      }
+      case "window": {
+        const x0 = X + 3, top = oy - 38, h = 22;
+        const style = p.windowStyle === "lattice" ? 1 : p.windowStyle === "shoji" ? 2 : 0, open = style ? 1 : pr;
+        this.r(x0 - 1, top - 1, 12, h + 2, P.trim[1]);
+        for (let j = 0; j < h; j++)
+          for (let i = 0; i < 10; i++) {
+            const hill = 14 + Math.round(3 * Math.sin((i + q.seed % 7) * 0.5) + 2 * Math.sin(i * 1.3));
+            let c = sky(p.hour, j / h);
+            if (j > hill) c = mix(mix(0x1a2436, 0x6c8f5a, sunNow.strength), c, 0.25);
+            if ((p.hour > 20 || p.hour < 5) && hash(i, j, q.seed) < 0.05 && j < hill) c = 0xfff2c8;
+            if (!q.broken && (i - j + 40) % 9 < 1) c = mix(c, 0xffffff, 0.3);
+            if (q.broken) {
+              // Shards left in the corners of each pane, jagged toward the middle.
+              const pi = i < 5 ? i : 9 - i, pj = j < 11 ? j : h - 1 - j;
+              if (pi + pj < 2 + hash(i, j, q.seed) * 3) c = mix(c, 0xd8ecf4, 0.55);
+            }
+            if (style === 1 && ((i + j) % 3 === 0 || (i - j + 30) % 3 === 0)) this.s(x0 + i, top + j, W[(i + j) % 2 ? 2 : 3]);
+            else if (style === 2) this.g(x0 + i, top + j, i % 5 === 0 || j % 6 === 0 ? P.trim[3] : mix(P.paper[5], c, 0.2));
+            else if (i === 4 || i === 5 || j === 10) this.s(x0 + i, top + j, P.trim[j === 10 || i === 4 ? 4 : 2]);
+            else this.g(x0 + i, top + j, c);
+          }
+        this.r(x0 - 2, top + h + 1, 14, 2, (_i, j) => P.trim[j === 0 ? 5 : 2]);
+        this.r(x0 - 2, top - 2, 14, 1, P.trim[3]);
+        if (q.seed % 3 === 0) {
+          this.r(x0, top + h - 2, 10, 3, W[2]);
+          for (let i = 0; i < 10; i++) {
+            const f = hash(i, 0, q.seed);
+            this.s(x0 + i, top + h - 3 - (f * 3 | 0), P.leaf[2 + (i & 1)]);
+            if (f > 0.6) this.s(x0 + i, top + h - 5 - (f * 2 | 0), [P.acc[4], 0xf4e6f0, P.acc3[4]][i % 3]);
+          }
+        }
+        const leaf = (lx: number) =>
+          this.r(lx, top, 5, h, (i, j) => (i === 0 || i === 4 ? W[1] : j % 3 === 0 ? W[2] : W[3 + (hash(i, j, q.seed) < 0.1 ? 1 : 0)]));
+        if (q.broken)
+          for (const lx of [x0 - 7, x0 + 12])
+            for (let j = 0; j < h; j++) if (hash(lx, j >> 2, q.seed) < 0.55) this.r(lx + (j % 3), top + j, 5 - (j % 3) - ((hash(j, 1, q.seed) * 3) | 0), 1, W[(j & 1) + 2]);
+        if (q.broken) this.r(x0 - 1, top + h, 12, 1, 0xcfe4ee);
+        if (!q.broken && style === 0) {
+          leaf(Math.round(x0 - 7 * pr));
+          leaf(Math.round(x0 + 5 + 7 * pr));
+        }
+        if (open > 0.02 && sunNow.strength > 0) {
+          const len = 20 + (1 - sunNow.dir[2]) * 46, skew = (sunNow.dir[0] / Math.max(0.2, -sunNow.dir[1])) * len * -0.6;
+          this.beams.push({ x0: x0, x1: x0 + 10, top, floor: oy, len, skew, k: open * sunNow.strength * [1.1, 0.55, 0.35][style], c: sunNow.color });
+        }
+        this.lights.push({ x: x0 + 5, y: top + 11, c: mix(0x404a88, 0xbcd8ff, sunNow.strength), rad: 44, k: open * (0.1 + sunNow.strength * 0.35), phase: -1 });
+        break;
+      }
+      case "hearth": {
+        const bodyTop = oy - 30;
+        const stone = (i: number, j: number) => {
+          const row = j >> 2, sx = (i + (row & 1) * 3) % 6;
+          if (sx === 0 || (j & 3) === 0) return P.stone[1];
+          return P.stone[2 + (hash((i + (row & 1) * 3) / 6 | 0, row, q.seed) < 0.55 ? 1 : 0) + ((j & 3) === 1 ? 1 : 0)];
+        };
+        this.r(X + 5, CAP, 22, bodyTop - CAP, (i, j) => (i === 0 || i === 21 ? P.stone[1] : scale(stone(i, j), 0.95)));
+        for (let j = 0; j < (bodyTop - CAP); j++) if (p.wear > 0.2) this.s(X + 14 + Math.round(Math.sin(j * 0.3) * 2), CAP + j, scale(P.stone[1], 0.8));
+        this.r(X, bodyTop, PW, 40, (i, j) => (i === 0 || i === PW - 1 ? P.stone[1] : stone(i, j)));
+        this.r(X - 2, bodyTop - 3, PW + 4, 4, (i, j) => (j === 0 ? W[5] : j === 3 ? W[1] : i === 0 || i === PW + 3 ? W[1] : W[3]));
+        this.vase(X + 5, bodyTop - 4, 5, (t) => 1.6 - t * 0.4, P.clay);
+        this.r(X + PW - 8, bodyTop - 9, 2, 5, P.linen[5]);
+        this.flames.push({ x: X + PW - 7, y: bodyTop - 11 });
+        this.vase(X + PW - 13, bodyTop - 4, 4, () => 1.2, P.iron);
+        const fx = X + 7, fy = oy - 14, fwid = PW - 14, fh = 22;
+        for (let j = 0; j < fh; j++)
+          for (let i = 0; i < fwid; i++) {
+            const arch = j < 4 && Math.abs(i - fwid / 2 + 0.5) > fwid / 2 - (4 - j) * 1.4;
+            if (arch) continue;
+            this.s(fx + i, fy + j, mix(0x0d0808, 0x2a1a14, j / fh));
+          }
+        const lit = q.on;
+        for (let i = 0; i < fwid - 2; i++) {
+          this.s(fx + 1 + i, fy + fh - 3, W[i % 5 === 0 ? 4 : 2]);
+          this.s(fx + 1 + i, fy + fh - 2, W[1]);
+          if (i > 2 && i < fwid - 5) this.s(fx + 2 + i, fy + fh - 5, W[i % 4 === 0 ? 4 : 3]);
+        }
+        this.r(fx + fwid / 2, fy + 2, 1, 7, P.iron[1]);
+        this.vase(fx + fwid / 2, fy + 13, 5, (t) => 3 - Math.abs(t - 0.4) * 2, P.iron, true);
+        this.fires.push({ x: fx + 1, y: fy + fh - 4, w: fwid - 2, h: 12, lit });
+        if (lit) {
+          this.lights.push({ x: fx + fwid / 2, y: fy + fh - 8, c: 0xff8a3a, rad: 58, k: 1.6, phase: q.seed % 100 });
+          this.smoke.push({ x: fx + fwid / 2, y: fy + 6 });
+        }
+        break;
+      }
+      case "shelf": {
+        const x0 = X + 1, w = PW - 2, style = p.styles.shelf ?? "bookcase", dens = [0.45, 0.75, 1][p.finish];
+        if (style === "niche") {
+          // An arched recess in the wall itself, tile-framed in finer houses.
+          const top = oy - 40, nw = w - 4, nx = x0 + 2, nh = 30;
+          for (let j = -2; j < nh + 2; j++)
+            for (let i = -2; i < nw + 2; i++) {
+              const archY = j - Math.max(0, 6 - Math.round(Math.sqrt(Math.max(0, 36 - (i - nw / 2 + 0.5) ** 2 * (36 / (nw * nw / 4))))));
+              const inside = i >= 0 && i < nw && j >= 0 && j < nh && archY >= 0;
+              const rim = !inside && i >= -2 && i < nw + 2 && j < nh + 2 && archY >= -2;
+              if (inside) this.s(nx + i, top + j, mix(0x2a1c16, P.wall[1], 0.4 + (j / nh) * 0.3));
+              else if (rim) this.s(nx + i, top + j, p.finish === 2 ? ((i + j) & 1 ? P.acc[3] : P.linen[4]) : P.trim[(i + j) % 3 === 0 ? 2 : 3]);
+            }
+          for (const bj of [14, 29]) this.r(nx, top + bj, nw, 2, (_i, j) => W[j === 0 ? 4 : 2]);
+          this.goods(nx + 1, top + 13, nw - 2, q.seed, dens);
+          this.goods(nx + 1, top + 28, nw - 2, q.seed + 5, dens);
+          break;
+        }
+        if (style === "tansu") {
+          const h = 28;
+          this.box(x0, oy, w, 6, h, W, W);
+          const fy = oy + 6 - h + 2, rows = 3, cols = Math.max(1, Math.round(w / 12));
+          for (let rr = 0; rr < rows; rr++)
+            for (let cc = 0; cc < cols; cc++) {
+              const dx = x0 + 1 + Math.round((cc * (w - 2)) / cols), dw = Math.round((w - 2) / cols) - 1, dyy = fy + rr * 8;
+              this.r(dx, dyy, dw, 7, (i, j) => (i === 0 || j === 0 ? W[4] : i === dw - 1 || j === 6 ? W[1] : W[3]));
+              this.r(dx + (dw >> 1) - 1, dyy + 3, 3, 1, P.iron[1]);
+            }
+          for (const cx of [x0, x0 + w - 2]) this.r(cx, oy + 6 - h, 2, 3, P.iron[2]);
+          if (p.finish > 0) this.vase(x0 + 5, oy + 6 - h - 1, 5, (t) => 2 - t * 0.6, P.clay);
+          break;
+        }
+        if (style === "open") {
+          const h = 40;
+          for (const lx of [x0, x0 + w - 2]) this.r(lx, oy + 5 - h, 2, h, (i) => W[i ? 1 : 3]);
+          const boards = [oy + 3, oy - 9, oy - 21, oy - 33];
+          for (const bb of boards) this.r(x0, bb, w, 2, (_i, j) => W[j === 0 ? 4 : 2]);
+          boards.slice(1).forEach((bb, row) => this.goods(x0 + 2, bb, w - 4, q.seed + row * 17, Math.min(1, dens + 0.2)));
+          break;
+        }
+        if (style === "hutch") {
+          this.box(x0, oy, w, 6, 16, W, W);
+          for (let k = 0; k < Math.max(1, Math.floor(w / 10)); k++) this.r(x0 + 2 + k * 10, oy - 7, 8, 10, (i, j) => (i === 0 || j === 0 ? W[4] : i === 7 || j === 9 ? W[1] : W[2]));
+          this.r(x0 + 1, oy - 40, w - 2, 30, W[1]);
+          for (const bb of [oy - 30, oy - 20]) this.r(x0, bb, w, 2, (_i, j) => W[j === 0 ? 4 : 2]);
+          for (let i = 3; i < w - 4; i += 7) {
+            this.plate(x0 + i + 2, oy - 35, q.seed + i);
+            if (hash(i, 1, q.seed) < dens) this.vase(x0 + i + 2, oy - 21, 5, (t) => 2 - Math.abs(t - 0.5), P.acc);
+          }
+          this.r(x0 - 1, oy - 42, w + 2, 3, (_i, j) => W[j === 0 ? 5 : 3]);
+          break;
+        }
+        if (q.w <= 2) {
+          this.sprite(q.w === 1 ? "bookcase1" : "bookcase2", X, oy + 5 - 46);
+          break;
+        }
+        const h = 42;
+        this.box(x0, oy, w, 5, h, W, W);
+        this.r(x0 + 2, oy + 5 - h + 2, w - 4, h - 4, W[0]);
+        const boards = [oy + 3, oy - 8, oy - 19, oy - 30];
+        for (const bb of boards) this.r(x0 + 1, bb, w - 2, 2, (_i, j) => W[j === 0 ? 4 : 2]);
+        this.r(x0, oy + 5 - h, 2, h, W[2]);
+        this.r(x0 + w - 2, oy + 5 - h, 2, h, W[1]);
+        boards.slice(1).forEach((bb, row) => this.goods(x0 + 3, bb, w - 6, q.seed + row * 17, dens));
+        if (p.finish === 2) this.r(x0 - 1, oy + 5 - h - 2, w + 2, 2, (_i, j) => W[j === 0 ? 5 : 3]);
+        this.vase(x0 + w / 2, oy - h + 4, 5, (t) => 3 - t, P.straw, false);
+        break;
+      }
+      case "tapestry": {
+        const x0 = X + 1, top = oy - 44, w = 14, h = 28;
+        this.r(x0 - 1, top - 2, w + 2, 2, W[3]);
+        this.s(x0 - 2, top - 2, W[4]);
+        this.s(x0 + w + 1, top - 2, W[4]);
+        for (let j = 0; j < h; j++)
+          for (let i = 0; i < w; i++) {
+            const dm = Math.abs(i - 6.5) + Math.abs((j % 12) - 6);
+            const c = i === 0 || i === w - 1 ? P.acc[1] : j % 12 === 0 ? P.trim[4] : dm < 3 ? P.acc3[4] : dm < 5 ? P.acc2[2] : dm === 6 ? P.trim[4] : P.acc[2 + ((i + j) & 1)];
+            this.s(x0 + i, top + j, c);
+          }
+        for (let i = 0; i < w; i += 2) this.r(x0 + i, top + h, 1, 2 + (i % 4 === 0 ? 1 : 0), P.acc[3]);
+        break;
+      }
+      case "plates": {
+        this.r(X, oy - 36, PW, 2, W[3]);
+        this.r(X, oy - 24, PW, 2, W[3]);
+        for (let k = 0; k < 2; k++) this.plate(X + 4 + k * 8, oy - 31, q.seed + k);
+        this.vase(X + 5, oy - 26, 5, (t) => 2 - t, P.clay);
+        this.vase(X + 11, oy - 26, 6, (t) => 2.2 - Math.abs(t - 0.5) * 1.5, P.acc);
+        break;
+      }
+      case "map": {
+        const x0 = X + 1, top = oy - 40, w = 14, h = 14;
+        for (let j = 0; j < h; j++)
+          for (let i = 0; i < w; i++) {
+            const land = hash(i >> 1, j >> 1, q.seed) + Math.sin(i * 0.5 + j * 0.3) * 0.3 > 0.55;
+            this.s(x0 + i, top + j, i === 0 || j === 0 || i === w - 1 || j === h - 1 ? P.paper[2] : land ? P.paper[3] : mix(P.paper[4], 0x6aa0c0, 0.35));
+          }
+        for (let i = 2; i < 12; i += 2) this.s(x0 + i, top + 4 + Math.round(Math.sin(i) * 2 + i * 0.4), 0xa8302a);
+        this.s(x0, top, P.brass[4]);
+        this.s(x0 + w - 1, top, P.brass[4]);
+        break;
+      }
+      case "pegs": {
+        this.r(X, oy - 38, PW, 2, (_i, j) => W[j === 0 ? 4 : 2]);
+        const kinds = this.p.trade === "weaver" ? [P.acc, P.acc2, P.acc3] : [P.leaf, P.straw, P.pale];
+        for (let k = 0; k < 3; k++) {
+          const bx = X + 3 + k * 5, len = 7 + (hash(k, 0, q.seed) * 5 | 0), R = kinds[(k + q.seed) % 3];
+          this.s(bx, oy - 37, P.iron[3]);
+          for (let j = 0; j < len; j++) {
+            const wd = Math.round(Math.min(j + 1, len - j) * 0.6);
+            for (let i = -wd; i <= wd; i++) this.s(bx + i, oy - 36 + j, R[(i + j) % 3 === 0 ? 4 : i > 0 ? 2 : 3]);
+          }
+        }
+        break;
+      }
+      case "loom": {
+        const bx0 = X + 3, bx1 = X + PW - 4, back = Y + 6, top = back - 44;
+        const post = (x: number, y: number, h: number) => this.r(x, y - h, 3, h, (i) => W[i === 0 ? 4 : i === 1 ? 3 : 1]);
+        post(bx0 - 1, back, 46);
+        post(bx1 - 1, back, 46);
+        this.r(bx0 - 2, top - 2, bx1 - bx0 + 5, 4, (_i, j) => W[j === 0 ? 5 : j === 3 ? 1 : 3]);
+        const cloth = 17, weights = back - 6;
+        for (let i = bx0 + 2; i < bx1 - 1; i++) {
+          const u = i - bx0;
+          for (let y = top + 2; y < top + 2 + cloth; y++) {
+            const v = y - top, dm = Math.abs((u % 10) - 5) + Math.abs((v % 10) - 5);
+            this.s(i, y, v === cloth - 1 ? P.linen[2] : dm === 4 ? P.acc3[4] : dm < 2 ? P.acc2[3] : v % 10 < 2 ? P.trim[3] : P.acc[(u + v) % 2 ? 3 : 2]);
+          }
+          if (u % 2 === 0) for (let y = top + 2 + cloth; y < weights; y++) this.s(i, y, P.linen[u % 4 === 0 ? 4 : 3]);
+        }
+        this.r(bx0 + 1, top + 2 + cloth + 6, bx1 - bx0 - 1, 1, W[3]);
+        for (let i = bx0 + 2; i < bx1 - 2; i += 4) this.vase(i + 1, weights + 3, 4, (t) => 1.4 - t * 0.3, P.clay, false);
+        this.r(bx0 + 4, top + 2 + cloth - 2, 6, 2, (_i, j) => (j === 0 ? W[5] : W[3]));
+        this.box(X + PW / 2 - 9, Y + PD - 8, 18, 5, 8, W, W);
+        this.r(X + PW / 2 - 7, Y + PD - 3, 2, 3, W[1]);
+        this.r(X + PW / 2 + 5, Y + PD - 3, 2, 3, W[1]);
+        break;
+      }
+      case "spinwheel": {
+        const cx = X + 9, cy = Y + PD - 18, rr = 7, a = this.turn.get(q.id) ?? 0;
+        this.r(X + 3, Y + PD - 8, 12, 3, (_i, j) => W[j === 0 ? 4 : 2]);
+        this.r(X + 4, Y + PD - 5, 1, 4, W[1]);
+        this.r(X + 13, Y + PD - 5, 1, 4, W[1]);
+        this.r(cx, cy, 1, 10, W[1]);
+        for (let k = 0; k < 48; k++) {
+          const t = (k / 48) * Math.PI * 2;
+          this.s(cx + Math.cos(t) * rr, cy + Math.sin(t) * rr, W[t < Math.PI ? 2 : 4]);
+        }
+        for (let k = 0; k < 6; k++) {
+          const t = a + (k / 6) * Math.PI * 2;
+          for (let s = 1; s < rr; s++) this.s(cx + Math.cos(t) * s, cy + Math.sin(t) * s, W[3]);
+        }
+        this.s(cx, cy, P.iron[4]);
+        this.r(X + 3, Y + PD - 24, 1, 16, W[2]);
+        this.disc(X + 3, Y + PD - 26, 3, P.linen);
+        this.r(X + 3, cy - 1, cx - X - 3, 1, P.linen[4]);
+        break;
+      }
+      case "basket": {
+        const cx = X + 8, base = Y + PD - 3;
+        this.sprite("basket", cx - 6, base - 8);
+        const balls = [P.acc, P.acc2, P.linen, P.acc3];
+        this.disc(cx - 3, base - 11, 3, balls[q.seed % 4]);
+        this.disc(cx + 2, base - 12, 3, balls[(q.seed + 1) % 4]);
+        this.disc(cx, base - 10, 2, balls[(q.seed + 2) % 4]);
+        break;
+      }
+      case "bolts": {
+        const R = [P.acc, P.acc2, P.acc3, P.linen];
+        for (let k = 0; k < 3; k++) {
+          const yb = Y + PD - 4 - k * 5, R0 = R[(q.seed + k) % 4];
+          this.r(X + 2 + (k === 2 ? 2 : 0), yb - 4, 12 - (k === 2 ? 4 : 0), 5, (i, j) => R0[j === 0 ? 5 : j === 4 ? 1 : i % 5 === 0 ? 2 : 3]);
+          this.disc(X + 2 + (k === 2 ? 2 : 0), yb - 2, 2, R0);
+          this.s(X + 2 + (k === 2 ? 2 : 0), yb - 2, R0[0]);
+        }
+        break;
+      }
+      case "vat": {
+        const cx = X + 8, base = Y + PD - 3, dye = P.dye[q.seed % 3];
+        this.vase(cx, base, 9, () => 6, W, false);
+        this.r(cx - 6, base - 2, 13, 1, P.iron[2]);
+        this.r(cx - 6, base - 6, 13, 1, P.iron[2]);
+        for (let i = -5; i <= 5; i++) {
+          const wave = Math.sin(this.t * 2 + i * 0.8 + q.seed) > 0.8;
+          this.s(cx + i, base - 9, wave ? dye[5] : dye[2]);
+          this.s(cx + i, base - 10, i === -5 || i === 5 ? W[4] : dye[3]);
+        }
+        this.r(cx + 6, base - 14, 1, 7, W[3]);
+        break;
+      }
+      case "counter": {
+        if (p.styles.counter === "deco") {
+          const h = 18, y0 = Y + 3, d = PD - 5;
+          this.box(X + 1, y0, PW - 2, d, h, P.stone, P.trim);
+          for (let i = 3; i < PW - 4; i++) {
+            const k = (i % 12) - 6;
+            for (let j = 3; j < h - 3; j++) if (Math.abs(k) === ((j - 3) % 7)) this.s(X + 1 + i, y0 + d - h + j, P.brass[4]);
+          }
+          this.r(X + 1, y0 + d - h + 1, PW - 2, 1, P.brass[5]);
+          this.disc(X + 10, y0 - h + 4, 2, P.brass);
+          this.r(X + PW - 16, y0 - h + 3, 10, 5, (i, j) => (i === 5 ? P.paper[1] : j === 0 ? P.paper[5] : P.paper[4]));
+          break;
+        }
+        const h = 18, y0 = Y + 3, d = PD - 5;
+        this.box(X + 1, y0, PW - 2, d, h, W, W);
+        for (let i = 6; i < PW - 6; i += 12) this.r(X + i, y0 + d - h + 4, 8, h - 7, (a, b) => (a === 0 || b === 0 ? W[1] : a === 7 || b === h - 8 ? W[4] : W[2]));
+        const top = y0 - h + 2;
+        this.r(X + 6, top + 1, 1, 7, P.brass[3]);
+        this.r(X + 2, top, 9, 1, P.brass[4]);
+        this.r(X + 1, top + 4, 3, 1, P.brass[2]);
+        this.r(X + 8, top + 3, 3, 1, P.brass[2]);
+        this.s(X + 2, top + 1, P.brass[3]);
+        this.s(X + 9, top + 1, P.brass[3]);
+        for (let k = 0; k < 3; k++) for (let j = 0; j <= k + 1; j++) this.r(X + 14 + k * 3, top + 6 - j, 2, 1, P.brass[j % 2 ? 5 : 3]);
+        this.r(X + PW - 16, top + 3, 10, 5, (i, j) => (i === 5 ? P.paper[1] : j === 0 ? P.paper[5] : (j & 1) && i % 5 > 0 && i % 5 < 4 ? P.paper[2] : P.paper[4]));
+        this.r(X + PW - 16, top + 8, 10, 1, P.acc[1]);
+        break;
+      }
+      case "jars": {
+        const n = q.w * 2, R = [P.clay, P.pale, P.clay, P.acc];
+        for (let k = 0; k < n; k++) {
+          const tall = hash(k, 1, q.seed) < 0.55, x = X + 1 + k * Math.floor((PW - 9) / Math.max(1, n - 1));
+          this.sprite(tall ? "amphora" : "pot", x, Y + PD - (tall ? 17 : 11) - (k & 1) * 2, { clay: R[(k + q.seed) % 4] });
+        }
+        break;
+      }
+      case "crate": {
+        this.sprite("crate", X, Y + PD - 15);
+        if (q.seed % 2 === 0) this.sprite("barrel", X + 2, Y + PD - 26);
+        break;
+      }
+      case "sacks": {
+        this.sprite("sack", X, Y + PD - 16);
+        this.sprite("sack", X + 7, Y + PD - 14, { straw: P.linen });
+        for (let i = 0; i < 6; i++) this.s(X + 3 + hash(i, 1, q.seed) * 10, Y + PD - 1 - hash(i, 2, q.seed) * 2, P.straw[5]);
+        break;
+      }
+      case "throw": {
+        const cx = X + 8, base = Y + PD - 4, a = this.turn.get(q.id) ?? 0;
+        this.box(X + 2, base - 4, 12, 4, 5, P.stone, P.stone);
+        this.r(X + 3, base - 13, 10, 3, (i, j) => (j === 0 ? W[5] : W[(i + Math.floor(a * 3)) % 4 === 0 ? 4 : 2]));
+        this.vase(cx, base - 13, 7, (t) => 2 + Math.sin(t * 3) * 1.4, P.pale);
+        if (q.on) this.s(cx - 2 + (Math.floor(a * 4) % 5), base - 16, P.pale[5]);
+        break;
+      }
+      case "claybin": {
+        const cx = X + 8, base = Y + PD - 3;
+        this.vase(cx, base, 7, () => 6, W, false);
+        this.r(cx - 6, base - 3, 13, 1, P.iron[2]);
+        for (let i = -5; i <= 5; i++) this.s(cx + i, base - 7 - Math.round(2 - Math.abs(i) * 0.4), P.pale[i < 0 ? 3 : 2]);
+        this.r(cx - 5, base - 8, 11, 1, P.pale[1]);
+        break;
+      }
+      case "potrack": {
+        this.r(X + 2, Y + PD - 30, 2, 28, W[1]);
+        this.r(X + PW - 4, Y + PD - 30, 2, 28, W[1]);
+        for (const [by, R] of [[Y + PD - 6, P.clay], [Y + PD - 18, P.pale]] as const) {
+          this.r(X + 1, by, PW - 2, 2, (_i, j) => W[j === 0 ? 4 : 2]);
+          for (let k = 0; k < 4; k++) this.vase(X + 6 + k * 7, by - 1, 5 + (k % 2) * 3, (t) => 2.4 - t * 0.8 + (k % 2) * Math.sin(t * 3), R);
+        }
+        break;
+      }
+      case "desk": {
+        const top = Y + 2, h = 13;
+        this.r(X + 1, top - h, PW - 2, PD - 4, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
+        this.r(X + 1, top + PD - 4 - h, PW - 2, 3, W[2]);
+        for (const lx of [X + 2, X + PW - 4]) this.r(lx, top + PD - 1 - h, 2, h - 2, W[1]);
+        this.r(X + 9, top - h + 3, 13, 7, (i, j) => (i === 6 ? P.paper[1] : j === 0 ? P.paper[5] : j % 2 === 1 && i % 6 > 0 && i % 6 < 5 ? P.paper[2] : P.paper[4]));
+        this.r(X + 4, top - h + 4, 3, 3, P.iron[1]);
+        this.s(X + 5, top - h + 4, P.iron[4]);
+        this.r(X + 7, top - h - 2, 1, 5, P.linen[5]);
+        this.r(X + PW - 7, top - h - 3, 2, 6, P.linen[5]);
+        this.r(X + PW - 8, top - h + 2, 4, 1, P.brass[3]);
+        if (q.on) {
+          this.flames.push({ x: X + PW - 7, y: top - h - 5 });
+          this.lights.push({ x: X + PW - 6, y: top - h - 5, c: 0xffc070, rad: 28, k: 0.9, phase: q.seed % 50 });
+        }
+        for (let k = 0; k < 3; k++) this.r(X + PW - 20, top - h + 2 - k * 2, 7, 2, [P.acc, P.acc2, P.acc3][k][k === 1 ? 2 : 3]);
+        break;
+      }
+      case "scrolls": {
+        const cx = X + 8, base = Y + PD - 3;
+        for (let k = 0; k < 5; k++) {
+          const sx = cx - 4 + k * 2, h = 12 + (hash(k, 0, q.seed) * 5 | 0);
+          this.r(sx, base - h, 2, h, (i, j) => (j === 0 ? P.paper[5] : P.paper[i ? 2 : 4]));
+          this.s(sx, base - h + 3, [0xa8302a, P.acc[3], P.brass[3]][k % 3]);
+        }
+        this.vase(cx, base, 8, () => 6, P.straw, false);
+        break;
+      }
+      case "bed": {
+        const y0 = Y + 2, d = PD - 4, messy = pr, fin = p.finish;
+        if (p.styles.bed === "charpai") {
+          // A string cot: a wooden frame on turned legs, the webbing showing.
+          for (const [lx, ly] of [[X + 2, y0 + d - 2], [X + PW - 4, y0 + d - 2]]) this.r(lx, ly - 8, 2, 8, W[1]);
+          this.r(X + 1, y0 - 8, PW - 2, d, (i, j) => (i < 2 || j < 2 || i > PW - 5 || j > d - 3 ? W[i < 2 || j < 2 ? 4 : 2] : (i + j) % 3 === 0 || (i - j + 99) % 3 === 0 ? P.straw[2] : P.straw[4]));
+          if (fin > 0) this.r(X + 12 + Math.round(messy * 4), y0 - 7, PW - 16, d - 3, (i, j) => (j === 0 ? P.acc[5] : (i >> 2) % 2 ? P.acc[3] : P.acc3[3]));
+          this.r(X + 4, y0 - 7, 7, 5, (i, j) => (j === 0 ? P.linen[5] : i === 6 ? P.linen[2] : P.linen[4]));
+          break;
+        }
+        // Humble: one plain wool blanket; elite: brass on the headboard.
+        const plain: Record<string, string> = fin === 0 ? { f: "v", d: "x", g: "b", s: "z" } : {};
+        this.sprite("bed", X, Y + PD - 26, {}, plain);
+        if (fin === 2) {
+          this.s(X + 1, Y + PD - 24, P.brass[5]);
+          this.s(X + 4, Y + PD - 24, P.brass[4]);
+        }
+        if (messy > 0.5) for (let i = 0; i < 12; i++) this.s(X + 16 + i, Y + PD - 16 + Math.round(Math.sin(i * 0.9) * 2), P.acc[1]);
+        void d;
+        break;
+      }
+      case "chest": {
+        const fin = p.finish, painted = p.styles.chest === "painted";
+        const swap: Record<string, string> = painted ? { y: "h", t: "g", r: "f", e: "d", w: "s", q: "a" } : {};
+        if (fin === 0) Object.assign(swap, { m: "e", M: "r" });
+        const x0 = X, y0 = Y + PD - 13;
+        if (pr > 0.05) this.r(x0 + 2, y0 - Math.round(7 * pr), 12, Math.round(7 * pr) + 1, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[2]));
+        this.sprite("chest", x0, y0, {}, swap);
+        if (pr > 0.3) {
+          this.r(x0 + 2, y0 + 1, 12, 3, W[0]);
+          for (let i = 0; i < 2 + fin * 2; i++) this.s(x0 + 3 + i * 2, y0 + 2 + (i & 1), P.brass[4 + (i % 2)]);
+          this.r(x0 + 4, y0 + 2, 4, 1, P.acc[3]);
+        }
+        if (painted) for (let i = 4; i < 12; i += 3) this.s(x0 + i, y0 + 7, P.acc2[4]);
+        break;
+      }
+      case "table": {
+        const top = Y + 3, h = 12, d = PD - 6, fin = p.finish;
+        const style = p.styles.table ?? (fin === 0 ? "trestle" : "plain");
+        if (style === "round") {
+          const cx = X + PW / 2, cy = top - h + d / 2;
+          this.r(cx - 1, cy + 2, 3, h, W[1]);
+          this.r(cx - 5, top + d - 3, 11, 2, W[1]);
+          for (let j = -5; j <= 5; j++)
+            for (let i = -13; i <= 13; i++)
+              if ((i * i) / 169 + (j * j) / 25 <= 1) this.s(cx + i, cy + j, (i * i) / 169 + (j * j) / 25 > 0.8 ? W[j < 0 ? 5 : 2] : W[3]);
+          for (let i = -12; i <= 12; i++) this.s(cx + i, cy + 6, W[1]);
+        } else if (q.w === 2) {
+          this.sprite(style === "trestle" ? "trestle" : "table", X, Y + PD - 20);
+        } else {
+          this.r(X + 1, top - h, PW - 2, d, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : style === "trestle" && j % 5 === 4 ? W[2] : W[3]));
+          this.r(X + 1, top + d - h, PW - 2, 3, (_i, j) => W[j === 0 ? 3 : 1]);
+          if (style === "trestle")
+            for (const lx of [X + 4, X + PW - 7])
+              for (let j = 0; j < h - 3; j++) {
+                this.s(lx + Math.round(j * 0.35), top + d - h + 3 + j, W[1]);
+                this.s(lx + 3 - Math.round(j * 0.35), top + d - h + 3 + j, W[2]);
+              }
+          else for (const lx of [X + 2, X + PW - 4]) this.r(lx, top + d - h + 3, 2, h - 3, (i) => W[i ? 1 : 2]);
+          if (fin === 2) this.r(X + 4, top - h + 1, PW - 8, d - 2, (i, j) => (j === 0 || j === d - 3 ? P.trim[5] : (i + j) % 6 === 0 ? P.acc[4] : P.linen[4]));
+        }
+        const ty = top - h + 2;
+        this.vase(X + 8, ty + 6, 4, (t) => 3.5 - t * 1.5 + (t > 0.9 ? 1.4 : 0), P.clay);
+        if (fin > 0) this.r(X + 15, ty + 2, 7, 3, (i, j) => (j === 0 ? P.straw[5] : i % 3 === 0 && j === 1 ? P.straw[2] : P.straw[3]));
+        if (fin > 0) this.vase(X + PW - 6, ty + 6, 8, (t) => 2.4 - Math.abs(t - 0.35) * 2 + (t > 0.85 ? 0.3 : 0), P.pale);
+        if (fin === 2) {
+          this.r(X + 20, ty - 2, 1, 5, P.linen[5]);
+          this.flames.push({ x: X + 20, y: ty - 4 });
+          this.lights.push({ x: X + 20, y: ty - 4, c: 0xffc070, rad: 26, k: 0.7, phase: q.seed % 50 });
+        }
+        this.s(X + 24, ty + 4, 0xb8302a);
+        this.s(X + 25, ty + 5, 0xd84a3a);
+        this.s(X + 22, ty + 5, P.leaf[4]);
+        break;
+      }
+      case "stool": {
+        const x0 = X + 2, base = Y + PD - 3;
+        if (p.styles.stool === "chair") {
+          const h = this.sprite("chair", x0, base - 18);
+          if (p.finish === 2) this.r(x0 + 2, base - 18 + 10, 8, 2, (_i, j) => P.acc[j ? 3 : 5]);
+          void h;
+        } else this.sprite("stool", x0, base - 9);
+        break;
+      }
+      case "plant": {
+        const cx = X + 8, base = Y + PD - 3;
+        this.vase(cx, base, 7, (t) => 3.8 - t * 1.2 + (t > 0.85 ? 0.8 : 0), P.clay);
+        // Fronds: a stem arching out and down, leaflets either side, the
+        // upper side lit, the ones behind drawn first and darker.
+        for (let f = 0; f < 9; f++) {
+          const back = f % 2 === 0, a0 = -Math.PI / 2 + ((f / 8) - 0.5) * 2.8 + (hash(f, 0, q.seed) - 0.5) * 0.3;
+          const len = 8 + hash(f, 1, q.seed) * 5, sway = Math.sin(this.t * 1.2 + f) * 0.04;
+          for (let k = 0; k < len; k++) {
+            const a = a0 + sway * k, x = cx + Math.cos(a) * k, y = base - 8 + Math.sin(a) * k + k * k * 0.05;
+            const dim = back ? 1 : 0;
+            this.s(x, y, P.leaf[2 - dim]);
+            if (k > 1 && k % 2 === 0) {
+              const nx = -Math.sin(a), ny = Math.cos(a);
+              this.s(x + nx * 1.4, y + ny * 1.4, P.leaf[3 - dim]);
+              this.s(x - nx * 1.4, y - ny * 1.4, P.leaf[(Math.cos(a) < 0 ? 5 : 4) - dim]);
+            }
+          }
+        }
+        break;
+      }
+      case "dresser": {
+        const x0 = X + 1, w = PW - 2;
+        for (const lx of [x0, x0 + w - 3]) this.r(lx, oy - 34, 3, 38, (i) => P.stone[i === 0 ? 4 : 2]);
+        for (const [h, k] of [[4, 0], [16, 1], [28, 2]] as const) {
+          this.r(x0 - 1, oy - h - 2, w + 2, 4, (i, j) => (j === 0 ? P.stone[5] : j === 3 ? P.stone[1] : P.stone[3 + ((i >> 2) % 2)]));
+          for (let i = 3; i < w - 4; i += 5 + k) this.vase(x0 + i + 2, oy - h - 3, 4 + ((hash(i, k, q.seed) * 3) | 0), (t) => 2 - t * 0.5 + (t > 0.8 ? 0.5 : 0), [P.clay, P.pale][k % 2]);
+        }
+        break;
+      }
+      case "shrine": {
+        const x0 = X + 2, top = oy - 40;
+        this.r(x0 - 1, top - 3, 14, 26, (i, j) => (j < 3 ? P.trim[j === 0 ? 5 : 3] : i === 0 || i === 13 ? P.trim[2] : P.trim[1]));
+        this.r(x0 + 1, top, 10, 18, (_i, j) => mix(0x1a1010, 0x3a2418, j / 18));
+        this.r(x0 - 2, top + 18, 16, 3, (_i, j) => W[j === 0 ? 5 : 2]);
+        this.r(x0 + 5, top + 8, 2, 10, (i) => P.brass[i ? 3 : 5]);
+        this.disc(x0 + 6, top + 7, 1, P.brass);
+        this.vase(x0 + 2, top + 17, 3, () => 1.2, P.clay);
+        for (let i = 0; i < 3; i++) this.s(x0 + 9 + (i % 2), top + 15 - i, [P.acc[4], 0xf2d24a, P.acc3[4]][i]);
+        if (q.on) {
+          this.r(x0 + 9, top + 13, 1, 4, P.linen[5]);
+          this.flames.push({ x: x0 + 9, y: top + 11 });
+          this.lights.push({ x: x0 + 9, y: top + 11, c: 0xffc070, rad: 30, k: 0.8, phase: q.seed % 40 });
+        }
+        break;
+      }
+      case "horns": {
+        const cx = X + 8, top = oy - 36;
+        this.r(X + 1, top + 12, 14, 16, (i, j) => ((i + j) % 6 < 2 ? P.acc[3] : (i + j + 3) % 6 < 1 ? P.acc[1] : P.wall[4]));
+        this.r(cx - 3, top + 2, 6, 9, (i, j) => (j > 6 ? P.linen[3] : i === 0 ? P.linen[5] : P.linen[4]));
+        this.s(cx - 2, top + 5, P.linen[1]);
+        this.s(cx + 1, top + 5, P.linen[1]);
+        for (let j = 0; j < 7; j++) {
+          this.s(cx - 4 - (j >> 1), top + 3 - j + (j > 4 ? 2 : 0), P.pale[j < 3 ? 2 : 1]);
+          this.s(cx + 3 + (j >> 1), top + 3 - j + (j > 4 ? 2 : 0), P.pale[j < 3 ? 2 : 1]);
+        }
+        break;
+      }
+      case "mat": {
+        const plain: Record<string, string> = p.finish === 0 ? { f: "v", d: "x", g: "b", s: "z" } : {};
+        this.sprite(pr > 0.5 ? "futon" : "bedroll", X, Y + PD - 15, {}, plain);
+        break;
+      }
+      case "boxbed": {
+        const x0 = X + 1, y0 = Y + 2, w = PW - 2, d = PD - 4;
+        this.box(x0, y0, w, d, 10, P.stone, P.stone);
+        this.r(x0 + 3, y0 - 8, w - 6, d - 4, (i, j) => (hash(i, j, q.seed) < 0.3 ? P.straw[4] : P.straw[3 - (j & 1)]));
+        this.r(x0 + 12, y0 - 8, w - 15, d - 4, (i, j) => P.fur[j === 0 ? 5 : (i + j) % 5 === 0 ? 2 : 3]);
+        for (const bx of [x0 + 9, x0 + w - 4]) this.r(bx, y0 - 10, 2, 11 + d - 10, P.stone[1]);
+        break;
+      }
+      case "lowtable": {
+        const x0 = X - 1, y0 = Y + PD - 13;
+        this.sprite("lowtable", x0, y0);
+        this.vase(x0 + 7, y0 + 3, 5, (t) => 2.2 - Math.abs(t - 0.4) * 2, P.brass);
+        this.s(x0 + 10, y0 + 1, P.brass[4]);
+        this.r(x0 + 12, y0 + 2, 2, 2, P.linen[5]);
+        this.r(x0 + 3, y0 + 3, 2, 2, P.linen[5]);
+        break;
+      }
+      case "cushions": {
+        this.sprite("cushion", X, Y + PD - 16);
+        this.sprite("cushion", X + 2, Y + PD - 10, { acc: P.acc2 });
+        break;
+      }
+      case "divan": {
+        const x0 = X + 1, y0 = Y + 2, w = PW - 2;
+        this.box(x0, y0, w, PD - 5, 7, W, W);
+        this.r(x0, y0 - 7, w, PD - 6, (i, j) => (j === 0 ? P.acc[5] : (i >> 3) % 2 ? P.acc[3] : P.acc[2 + (j === 1 ? 1 : 0)]));
+        for (let k = 0; k < Math.floor(w / 12); k++) this.r(x0 + 2 + k * 12, y0 - 13, 10, 7, (i, j) => (j === 0 ? P.acc2[5] : i === 9 ? P.acc2[1] : P.acc2[3]));
+        this.disc(x0 + 2, y0 - 5, 3, P.acc3);
+        this.disc(x0 + w - 3, y0 - 5, 3, P.acc3);
+        break;
+      }
+      case "lantern": {
+        const cx = X + 8, base = Y + PD - 4;
+        if (q.broken) {
+          this.r(cx - 3, base - 2, 7, 2, P.iron[2]);
+          this.r(cx + 2, base - 3, 4, 1, P.iron[3]);
+          break;
+        }
+        this.r(cx - 3, base - 2, 7, 2, P.iron[2]);
+        this.r(cx - 3, base - 11, 1, 9, P.iron[3]);
+        this.r(cx + 3, base - 11, 1, 9, P.iron[1]);
+        this.r(cx - 3, base - 12, 7, 2, P.iron[3]);
+        this.r(cx - 1, base - 15, 3, 1, P.iron[3]);
+        for (let j = 0; j < 8; j++) for (let i = -2; i <= 2; i++) (q.on ? this.g.bind(this) : this.s.bind(this))(cx + i, base - 10 + j, q.on ? mix(0xffd88a, 0xfff4d8, j / 8) : mix(P.linen[3], P.iron[4], 0.5));
+        if (q.on) this.lights.push({ x: cx, y: base - 7, c: 0xffc070, rad: 42, k: 1, phase: q.seed % 60 });
+        break;
+      }
+      case "firepit":
+      case "irori": {
+        const cx = X + PW / 2, cy = Y + PD / 2, rr = PW / 2 - 3;
+        if (q.kind === "irori") {
+          this.r(X + 2, Y + 2, PW - 4, PD - 4, (i, j) => (i < 3 || j < 3 || i > PW - 8 || j > PD - 8 ? W[i < 3 || j < 3 ? 3 : 1] : hash(i, j, q.seed) < 0.2 ? P.stone[3] : P.stone[4]));
+          this.r(cx, Y - 40, 1, 40 + PD / 2 - 6, P.iron[1]);
+          this.vase(cx, cy - 2, 6, (t) => 3.5 - t * 1.2, P.iron);
+        } else {
+          for (let j = -rr; j <= rr; j++)
+            for (let i = -rr; i <= rr; i++) {
+              const r0 = Math.hypot(i, j * 1.15);
+              if (r0 > rr) continue;
+              this.s(cx + i, cy + j, r0 < rr - 3 ? (hash(i, j, q.seed) < 0.15 ? 0x5a3a28 : mix(0x3a3432, 0x6a625c, hash(i >> 1, j >> 1, q.seed))) : P.stone[1]);
+            }
+          for (let a = 0; a < 14; a++) {
+            const t = (a / 14) * Math.PI * 2;
+            this.disc(Math.round(cx + Math.cos(t) * (rr - 1)), Math.round(cy + Math.sin(t) * (rr - 1) / 1.15), 2, P.stone);
+          }
+          this.r(cx - 5, cy - 1, 10, 2, W[2]);
+          this.r(cx - 1, cy - 4, 2, 7, W[3]);
+        }
+        this.fire(cx, cy + 1, q.kind === "irori" ? 8 : Math.max(8, rr), q.on, q.seed, q.kind === "irori" ? 1.2 : 1.8);
+        break;
+      }
+      case "brazier": {
+        const cx = X + 8, base = Y + PD - 4;
+        for (const lx of [cx - 4, cx + 3]) this.r(lx, base - 8, 1, 8, P.brass[2]);
+        this.vase(cx, base - 7, 5, (t) => 5 - (1 - t) * 1.5, P.brass, true);
+        for (let i = -3; i <= 3; i++) (q.on ? this.g.bind(this) : this.s.bind(this))(cx + i, base - 11, q.on ? [0xffb040, 0xff6a20, 0xffd060][(i + 9) % 3] : P.iron[1]);
+        this.fire(cx, base - 11, 6, q.on, q.seed, 1.2);
+        break;
+      }
+      case "stove": {
+        const cx = X + 8, base = Y + PD - 4;
+        this.box(cx - 6, base - 8, 12, 8, 10, P.iron, P.iron);
+        this.r(cx - 2, base - 70, 3, 60, (i) => P.iron[i === 0 ? 4 : 2]);
+        for (let i = -3; i <= 3; i++) (q.on ? this.g.bind(this) : this.s.bind(this))(cx + i, base - 4, q.on ? 0xff8a30 : P.iron[0]);
+        if (q.on) this.lights.push({ x: cx, y: base - 2, c: 0xff8a3a, rad: 40, k: 1.3, phase: q.seed % 80 });
+        break;
+      }
+      case "pole":
+        this.r(X + 7, Y + PD - 8 - 86, 3, 86, (i) => W[i === 0 ? 4 : i === 1 ? 3 : 1]);
+        this.r(X + 5, Y + PD - 40, 7, 6, P.fur[2]);
+        break;
+      case "ladder":
+        for (let j = 0; j < 44; j++) {
+          const lx = X + 3 + Math.round(j / 12);
+          this.s(lx, Y + PD - 4 - j, W[3]);
+          this.s(lx + 8, Y + PD - 4 - j, W[2]);
+          if (j % 6 === 3) this.r(lx + 1, Y + PD - 4 - j, 7, 1, W[4]);
+        }
+        break;
+      case "quern":
+        this.sprite("quern", X, Y + PD - 12);
+        break;
+      case "hides": {
+        const x0 = X + 1, base = Y + PD - 3;
+        for (let k = 0; k < 4; k++) {
+          const R = [P.fur, P.pale, P.fur, P.straw][(k + q.seed) % 4];
+          this.r(x0 + (k & 1), base - 4 - k * 3, 14 - (k & 1) * 2, 4, (i, j) => (j === 0 ? R[4] : i % 4 === 0 && j === 3 ? R[1] : R[3 - (j >> 1)]));
+        }
+        break;
+      }
+      case "coolamon": {
+        const cx = X + 8, cy = Y + PD - 7;
+        for (let j = -2; j <= 2; j++)
+          for (let i = -7; i <= 7; i++) {
+            if ((i * i) / 49 + (j * j) / 6 > 1) continue;
+            const rim = (i * i) / 49 + (j * j) / 6 > 0.6;
+            this.s(cx + i, cy + j, rim ? W[j < 0 ? 4 : 2] : hash(i, j, q.seed) < 0.4 ? [0xa8302a, 0x3a2a4a, P.straw[4]][(i + 9) % 3] : W[1]);
+          }
+        for (let i = 0; i < 16; i++) this.s(X + i, Y + PD - 3 - (i >> 2), W[3]);
+        break;
+      }
+      case "screen": {
+        for (let k = 0; k < 4; k++) {
+          const x0 = X + 1 + k * 8, back = k % 2 === 0;
+          this.r(x0, Y + PD - 32 - (back ? 2 : 0), 8, 28, (i, j) => {
+            if (i === 0 || j === 0 || j === 27) return P.trim[2];
+            const hill = 18 - Math.round(4 * Math.sin((x0 + i) * 0.25) + 2 * Math.sin((x0 + i) * 0.7));
+            const c = j > hill ? P.acc2[2 + ((i + j) & 1)] : j < 5 ? P.paper[5] : P.paper[4];
+            return back ? scale(c, 0.86) : c;
+          });
+        }
+        break;
+      }
+      case "fountain": {
+        const cx = X + PW / 2 - 0.5, cy = Y + PD / 2 - 0.5, rr = PW / 2 - 2;
+        const oct = (i: number, j: number) => Math.max(Math.abs(i), Math.abs(j), (Math.abs(i) + Math.abs(j)) * 0.72);
+        const water = mix(0x2a5a78, sky(p.hour, 0.3), 0.25);
+        for (let j = -rr; j <= rr; j++)
+          for (let i = -rr; i <= rr; i++) {
+            const r0 = oct(i, j);
+            if (r0 > rr) continue;
+            let c: number;
+            if (r0 > rr - 4) {
+              // Rim: lit on its upper-left faces, a carved groove along the middle.
+              const lit = i + j < 0;
+              c = r0 > rr - 1 ? P.stone[lit ? 2 : 1] : r0 > rr - 2 ? P.stone[lit ? 5 : 3] : r0 > rr - 3 ? (p.finish === 2 ? ((i + j) & 1 ? P.acc[3] : P.linen[5]) : P.stone[2]) : P.stone[lit ? 4 : 3];
+            } else {
+              const depth = r0 / (rr - 4), ring = Math.sin(r0 * 1.1 - this.t * 3.2);
+              c = mix(water, 0x10243a, depth * 0.45);
+              if (ring > 0.86) c = mix(c, 0xcfeefa, 0.55);
+              if (i + j < -rr * 0.6 && r0 > rr - 6) c = mix(c, 0x0e1c2c, 0.4);
+            }
+            this.s(cx + i, cy + j, c);
+          }
+        this.vase(Math.round(cx), Math.round(cy) + 3, 5, (t) => 1.3 + (t > 0.7 ? 1.5 : 0), P.stone, true);
+        for (let k = 0; k < 4; k++) {
+          const a = (k / 4) * Math.PI * 2 + 0.4, ph = (this.t * 1.4 + k * 0.25) % 1;
+          for (let s2 = 0; s2 < 7; s2++) {
+            const tt = s2 / 7, x = cx + Math.cos(a) * tt * 7, y = cy - 2 + Math.sin(a) * tt * 5 - Math.sin(tt * Math.PI) * 5;
+            if (Math.abs(tt - ph) < 0.2) this.g(x, y, s2 % 2 ? 0xffffff : 0xcfefff);
+          }
+        }
+        this.g(Math.round(cx), Math.round(cy) - 3, 0xffffff);
+        break;
+      }
+      case "pack": {
+        const x0 = X + 3, base = Y + PD - 3;
+        this.r(x0, base - 14, 10, 14, (i, j) => (j === 0 || i === 0 ? P.acc[4] : i === 9 || j === 13 ? P.acc[1] : j > 7 && i > 2 && i < 7 ? P.acc[2] : P.acc[3]));
+        this.r(x0 - 1, base - 18, 12, 4, (i, j) => P.acc2[j === 0 ? 5 : i % 4 === 0 ? 2 : 3]);
+        this.r(x0 + 2, base - 12, 1, 10, P.iron[3]);
+        this.r(x0 + 7, base - 12, 1, 10, P.iron[3]);
+        break;
+      }
+      case "armchair": {
+        const U = p.finish === 2 ? P.acc3 : p.finish === 0 ? P.acc2 : P.acc;
+        this.sprite("armchair", X + (-2), Y + PD - 24, { acc: U });
+        break;
+      }
+      case "sofa": {
+        const U = p.finish === 2 ? P.acc3 : p.finish === 0 ? P.acc2 : P.acc;
+        this.sprite("sofa", X + (0), Y + PD - 24, { acc: U });
+        break;
+      }
+      case "radio": {
+        const x0 = X + 3, base = Y + PD - 3;
+        this.box(x0 - 1, base - 6, 12, 5, 8, W, W);
+        for (let j = 0; j < 14; j++)
+          for (let i = 0; i < 10; i++) {
+            const arch = j < 4 && Math.abs(i - 4.5) > 1 + j * 1.2;
+            if (arch) continue;
+            const edge = i === 0 || i === 9 || j === 0 || (j < 4 && Math.abs(i - 4.5) > j * 1.2 - 0.5);
+            this.s(x0 + i, base - 22 + j, edge ? W[4] : j > 9 ? W[2] : (i + j) % 2 ? P.linen[2] : P.linen[3]);
+          }
+        (q.on ? this.g.bind(this) : this.s.bind(this))(x0 + 4, base - 11, q.on ? 0xffd070 : P.brass[2]);
+        (q.on ? this.g.bind(this) : this.s.bind(this))(x0 + 5, base - 11, q.on ? 0xffe8a0 : P.brass[3]);
+        if (q.on) this.notes.push({ x: x0 + 5, y: base - 24 });
+        break;
+      }
+      case "range": {
+        const x0 = X + 1, base = Y + PD - 3, w = PW - 2, E = P.linen;
+        this.box(x0, base - 6, w, 6, 14, P.iron, P.iron);
+        this.r(x0 + 2, base - 12, w - 4, 8, (i, j) => (i === 0 || j === 0 ? E[5] : j === 7 || i === w - 5 ? E[2] : E[4]));
+        this.r(x0 + 4, base - 9, 8, 1, P.iron[4]);
+        this.r(x0 + w - 12, base - 9, 8, 1, P.iron[4]);
+        this.vase(x0 + 7, base - 21, 5, (t) => 3 - t * 0.8, P.iron);
+        this.r(x0 + 10, base - 21, 3, 1, P.iron[3]);
+        this.vase(x0 + w - 8, base - 21, 4, () => 3.4, P.iron);
+        this.r(x0 + w - 5, base - 74, 3, 54, (i) => P.iron[i === 0 ? 4 : 2]);
+        for (let i = 0; i < 6; i++) (q.on ? this.g.bind(this) : this.s.bind(this))(x0 + w / 2 - 3 + i, base - 5, q.on ? [0xff8a30, 0xffb040][i % 2] : P.iron[0]);
+        if (q.on) {
+          this.lights.push({ x: x0 + w / 2, y: base - 5, c: 0xff8a3a, rad: 38, k: 1.1, phase: q.seed % 80 });
+          this.smoke.push({ x: x0 + 7, y: base - 26 });
+        }
+        break;
+      }
+      case "icebox": {
+        const x0 = X + 2, base = Y + PD - 3;
+        this.box(x0, base - 6, 12, 6, 26, W, W);
+        for (const [dy2, dh] of [[-28, 10], [-16, 12]]) this.r(x0 + 1, base + dy2, 10, dh, (i, j) => (i === 0 || j === 0 ? W[4] : i === 9 || j === dh - 1 ? W[1] : W[3]));
+        for (const yy of [base - 24, base - 11]) this.r(x0 + 8, yy, 2, 3, P.brass[4]);
+        break;
+      }
+      case "clock": {
+        const cx = X + 8, top = oy - 44;
+        this.r(cx - 5, top, 11, 30, (i, j) => (i === 0 || i === 10 ? W[1] : j < 2 ? W[5] : W[3]));
+        for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) if (i * i + j * j <= 17) this.s(cx + i, top + 7 + j, i * i + j * j > 12 ? P.brass[4] : P.linen[5]);
+        // The hands tell the room's hour.
+        const ha = ((p.hour % 12) / 12) * Math.PI * 2, ma = ((p.hour % 1) * Math.PI * 2);
+        for (let k = 1; k <= 2; k++) this.s(cx + Math.round(Math.sin(ha) * k), top + 7 - Math.round(Math.cos(ha) * k), P.iron[0]);
+        for (let k = 1; k <= 3; k++) this.s(cx + Math.round(Math.sin(ma) * k), top + 7 - Math.round(Math.cos(ma) * k), P.iron[1]);
+        const sw = Math.round(Math.sin(this.t * 3.1) * 2.5);
+        for (let j = 13; j < 24; j++) this.s(cx + Math.round((sw * (j - 13)) / 11), top + j, P.brass[3]);
+        this.disc(cx + sw, top + 25, 1, P.brass);
+        break;
+      }
+      case "elevator": {
+        const x0 = X + 1, top = oy - 38;
+        this.r(x0 - 1, top - 8, 16, 46, (i, j) => (j < 8 ? (Math.abs(i - 7.5) < 8 - j * 0.9 ? P.brass[j % 2 ? 3 : 4] : P.trim[2]) : i < 2 || i > 13 ? P.brass[i % 13 === 0 ? 2 : 4] : P.trim[1]));
+        for (let j = 0; j < 36; j++)
+          for (let i = 2; i < 14; i++) {
+            const k = Math.abs(((i - 2) % 6) - 3);
+            this.s(x0 - 1 + i, top + j, i === 7 || i === 8 ? P.iron[0] : k === j % 7 ? P.brass[4] : P.iron[2 + ((i + j) & 1)]);
+          }
+        const a = Math.sin(this.t * 0.4) * 1.2;
+        for (let k = 0; k < 5; k++) this.s(x0 + 7 + Math.round(Math.sin(a) * k), top - 3 - Math.round(Math.cos(a) * k * 0.6), P.iron[0]);
+        this.g(x0 + 17, top + 18, 0xffd070);
+        break;
+      }
+      case "frame": {
+        const style = p.styles.frame ?? "painting", fin = p.finish;
+        if (style === "scroll") {
+          // A hanging scroll: silk mount, a paper panel with an ink landscape, rollers.
+          const x0 = X + 4, top = oy - 44, w = 8, h = 26;
+          this.r(x0 - 1, top, w + 2, 2, W[2]);
+          this.r(x0, top + 2, w, h, (i, j) => (i === 0 || i === w - 1 || j < 3 || j > h - 4 ? P.acc2[3] : P.paper[5]));
+          for (let i = 1; i < w - 1; i++) {
+            const m = 12 + Math.round(3 * Math.sin((i + q.seed) * 1.3));
+            for (let j = m; j < h - 5; j++) this.s(x0 + i, top + 2 + j, mix(P.paper[4], P.iron[1], j === m ? 0.7 : 0.25));
+          }
+          this.s(x0 + 5, top + 8, 0xa8302a);
+          this.r(x0 - 1, top + h + 2, w + 2, 2, W[2]);
+          this.s(x0 - 2, top + h + 2, W[4]);
+          this.s(x0 + w + 1, top + h + 2, W[4]);
+          break;
+        }
+        const x0 = X + 1, top = oy - 40, w = 14, h = 12, F = fin === 2 || style === "miniature" ? P.brass : W;
+        const portrait = hash(q.seed, 5, 1) < 0.35;
+        for (let j = 0; j < h; j++)
+          for (let i = 0; i < w; i++) {
+            const e = Math.min(i, j, w - 1 - i, h - 1 - j);
+            let c: number;
+            if (e < 2) c = e === 0 ? F[1] : i < w / 2 && j < h / 2 ? F[4] : F[2];
+            else if (portrait) {
+              const dx = (i - w / 2 + 0.5) / 2.6, dy = (j - 5) / 2.6;
+              c = dx * dx + dy * dy < 1 ? P.pale[3] : j > 7 && Math.abs(i - w / 2 + 0.5) < 4 ? P.acc[2] : mix(P.acc2[1], P.wood[1], 0.5);
+            } else {
+              const hill = 6 + Math.round(1.5 * Math.sin((i + q.seed) * 0.7));
+              c = j < hill ? mix(P.acc2[4], P.linen[5], (j - 2) / 6) : j === hill ? P.leaf[3] : P.leaf[2 - (j > hill + 2 ? 1 : 0)];
+              if (i === 9 && j >= hill - 2 && j <= hill) c = P.wood[1];
+              if (Math.abs(i - 9) <= 1 && j === hill - 3) c = P.leaf[3];
+            }
+            if (style === "miniature" && e === 2) c = P.acc[3];
+            this.s(x0 + i, top + j, c);
+          }
+        break;
+      }
+      case "clutter": {
+        this.clutterItem(q, X, Y);
+        break;
+      }
+      case "lamp": {
+        const cx = X + 8, base = Y + PD - 4;
+        this.r(cx - 3, base - 2, 7, 2, P.iron[2]);
+        if (q.broken) {
+          this.r(cx, base - 16, 1, 15, P.iron[3]);
+          for (let j = 0; j < 7; j++) this.s(cx + 1 + (j >> 1), base - 16 - j, P.iron[3]);
+          this.r(cx + 4, base - 1, 5, 2, (i) => P.brass[i < 2 ? 4 : 2]);
+          this.s(cx + 9, base - 1, P.iron[1]);
+          break;
+        }
+        this.r(cx, base - 30, 1, 29, P.iron[3]);
+        this.r(cx - 3, base - 32, 7, 3, (i) => P.brass[i < 2 ? 5 : 3]);
+        if (q.on) {
+          this.flames.push({ x: cx, y: base - 34 });
+          this.lights.push({ x: cx, y: base - 34, c: 0xffb45a, rad: 44, k: 1.1, phase: q.seed % 70 });
+        }
+        break;
+      }
+      case "firewood": {
+        for (let row = 0; row < 3; row++)
+          for (let k = 0; k < 3 - (row === 2 ? 1 : 0); k++) {
+            const cx = X + 4 + k * 4 + (row === 2 ? 2 : 0), cy = Y + PD - 5 - row * 4;
+            this.r(cx - 2, cy - 1, 5, 3, W[2]);
+            this.s(cx, cy, W[5]);
+            this.s(cx - 1, cy, W[4]);
+            this.s(cx + 1, cy - 1, W[1]);
+          }
+        this.r(X + 12, Y + PD - 20, 1, 8, P.iron[2]);
+        this.r(X + 11, Y + PD - 21, 3, 2, P.iron[3]);
+        break;
+      }
+      case "broom": {
+        for (let j = 0; j < 26; j++) this.s(X + 6 + (j >> 3), Y + PD - 12 - 26 + j, W[3]);
+        for (let j = 0; j < 9; j++)
+          for (let i = -2 - (j >> 2); i <= 2 + (j >> 2); i++) this.s(X + 9 + i, Y + PD - 12 + j, P.straw[(i + j) % 3 === 0 ? 2 : j === 0 ? 5 : 4]);
+        this.r(X + 7, Y + PD - 12, 5, 1, 0xa8302a);
+        break;
+      }
+      case "cat": {
+        const perch = this.props.find((o) => o !== q && !o.wall && o.kind !== "rug" && o.kind !== "cat" && q.x >= o.x && q.x < o.x + o.w && q.y >= o.y && q.y < o.y + o.d);
+        const lift = perch ? (perch.kind === "counter" ? 16 : 11) : 0;
+        const cx = X + 8, base = Y + 10 - lift, F = P.fur;
+        if (pr < 0.5) {
+          for (let j = 0; j < 6; j++)
+            for (let i = -5; i <= 5; i++) {
+              if ((j === 0 && Math.abs(i) > 3) || (j === 1 && Math.abs(i) > 4)) continue;
+              this.s(cx + i, base - j, (i + 9) % 4 === 0 && j > 1 ? F[2] : F[j > 3 ? 4 : 3]);
+            }
+          const breathe = Math.sin(this.t * 2) > 0 ? 1 : 0;
+          this.s(cx - 5, base - 6 - breathe, F[3]);
+          this.s(cx - 3, base - 6 - breathe, F[3]);
+          this.r(cx - 5, base - 5, 3, 3, F[4]);
+          for (let i = -4; i <= 5; i++) this.s(cx + i, base + 1, F[2]);
+          this.zz.push({ x: cx - 4, y: base - 8 });
+        } else {
+          for (let j = 0; j < 8; j++) for (let i = -3; i <= 3; i++) if (!(j > 5 && Math.abs(i) > 2)) this.s(cx + i, base - j, F[j < 2 ? 2 : i < 0 ? 4 : 3]);
+          this.r(cx - 2, base - 12, 5, 4, F[4]);
+          this.s(cx - 2, base - 13, F[3]);
+          this.s(cx + 2, base - 13, F[3]);
+          const blink = (this.t % 3.2) < 0.15;
+          this.s(cx - 1, base - 10, blink ? F[2] : 0x2a3a18);
+          this.s(cx + 1, base - 10, blink ? F[2] : 0x2a3a18);
+          const tail = Math.round(Math.sin(this.t * 3) * 2);
+          for (let j = 0; j < 5; j++) this.s(cx + 4 + (j > 2 ? tail : 0), base - j, F[2]);
+        }
+        break;
+      }
+    }
+  }
+
+  /** Doorways without a hinged door: a hide flap, a hung curtain, a plain opening. */
+  private doorway(q: Prop, x0: number, oy: number, open: number, sunNow: ReturnType<typeof sun>) {
+    const { P, p } = this, top = oy - 33, day = sunNow.strength, flap = p.door === "flap";
+    const half = (j: number) => (flap ? Math.max(1, Math.round((7 * (j + 2)) / 35)) : 7);
+    for (let j = 0; j < 33; j++)
+      for (let i = 7 - half(j); i < 7 + half(j); i++) {
+        const v = j / 33, c = v < 0.55 ? sky(p.hour, v * 1.6) : mix(0x20301c, 0x7fa150, day);
+        this.g(x0 + i, top + j, c);
+      }
+    for (let j = 0; j < 33; j++) {
+      this.s(x0 + 6 - half(j), top + j, P.wall[0]);
+      this.s(x0 + 7 + half(j), top + j, P.wall[0]);
+    }
+    if (p.door === "curtain") {
+      const cw = Math.round(14 * (1 - open));
+      for (let j = 0; j < 33; j++)
+        for (let i = 0; i < cw; i++) this.s(x0 + i, top + j, (i + (j >> 3)) % 4 < 2 ? P.acc[3] : P.acc[2 - (i % 4 === 3 ? 1 : 0)]);
+      if (open > 0.3) this.r(x0 - 1, top, 3, 33, (i, j) => P.acc[j % 5 === 0 ? 1 : 3 - i]);
+      this.r(x0 - 2, top - 2, 18, 2, P.wood[3]);
+    } else if (flap) {
+      const shut = 1 - open;
+      for (let j = 0; j < 33; j++) {
+        const hw = half(j), reach = Math.round(hw * 2 * shut);
+        for (let i = 0; i < reach; i++) this.s(x0 + 7 - hw + i, top + j, P.wall[(i + j) % 7 === 0 ? 2 : 3]);
+        if (shut > 0.5) this.s(x0 + 7, top + j, j % 3 === 0 ? P.trim[1] : P.wall[2]);
+        if (open > 0.3 && j > 10) this.r(x0 - 3 - Math.round((33 - j) / 8), top + j, 3, 1, P.wall[2]);
+      }
+    }
+    if (open > 0.02) {
+      this.beams.push({ x0: x0 + 2, x1: x0 + 12, top: oy - 2, floor: oy, len: 32, skew: 0, k: open * (0.2 + day * 0.8), c: mix(0x8aa0d8, sunNow.color, day) });
+      this.lights.push({ x: x0 + 7, y: oy - 10, c: mix(0x5a6ab0, 0xfff0dc, day), rad: 40, k: open * (0.15 + day * 0.5), phase: -1 });
+    }
+    void q;
+  }
+  private fire(cx: number, base: number, w: number, lit: boolean, seed: number, k: number) {
+    this.fires.push({ x: cx - (w >> 1), y: base, w, h: Math.round(w * 0.9), lit });
+    if (!lit) return;
+    this.lights.push({ x: cx, y: base - 4, c: 0xff8a3a, rad: 30 + w * 2.4, k, phase: seed % 100 });
+    this.smoke.push({ x: cx, y: base - w });
+    if (this.p.smokehole) {
+      const day = sun(this.p.hour).strength;
+      if (day > 0) this.lights.push({ x: cx, y: base - 6, c: sky(this.p.hour, 0.2), rad: 34, k: day * 0.55, phase: -1 });
+    }
+  }
+
+  private clutterItem(q: Prop, X: number, Y: number) {
+    const { P } = this, W = P.wood;
+    const ox = X + 3 + Math.floor(hash(q.seed, 1, 3) * 8), oy = Y + 5 + Math.floor(hash(q.seed, 2, 3) * 7);
+    switch (q.item) {
+      case "shoes":
+        for (const dx of [0, 4]) this.r(ox + dx, oy, 3, 5, (i, j) => (j === 0 ? P.fur[3] : i === 1 && j < 3 ? P.fur[0] : P.fur[1 + (j === 4 ? 0 : 1)]));
+        break;
+      case "grain":
+        for (let k = 0; k < 14; k++) this.s(ox + hash(k, 0, q.seed) * 8, oy + hash(k, 1, q.seed) * 4 + (k % 3), P.straw[k % 3 ? 4 : 5]);
+        break;
+      case "bowl":
+        this.r(ox, oy + 1, 6, 2, (i, j) => (j === 0 ? P.clay[4] : P.clay[i === 0 ? 3 : 2]));
+        this.r(ox + 1, oy, 4, 1, P.clay[1]);
+        this.s(ox + 2, oy, P.straw[4]);
+        break;
+      case "pot":
+        this.vase(ox + 2, oy + 4, 5, (t) => 2.2 - Math.abs(t - 0.4) * 1.5, P.clay);
+        break;
+      case "cloth":
+        this.r(ox, oy, 7, 4, (i, j) => (j === 0 ? P.acc2[5] : j === 3 ? P.acc2[1] : i % 3 === 0 ? P.acc2[4] : P.acc2[3]));
+        break;
+      case "cup":
+        this.r(ox, oy, 3, 3, (i, j) => (j === 0 ? P.linen[5] : i === 2 ? P.linen[2] : P.linen[4]));
+        this.s(ox + 3, oy + 1, P.linen[3]);
+        break;
+      case "toy":
+        this.r(ox, oy + 1, 5, 2, W[3]);
+        this.r(ox + 4, oy - 1, 2, 2, W[4]);
+        this.s(ox, oy + 3, W[1]);
+        this.s(ox + 4, oy + 3, W[1]);
+        this.s(ox - 1, oy + 1, P.acc[3]);
+        break;
+      case "yarn":
+        this.disc(ox + 2, oy + 2, 2, P.acc);
+        for (let i = 0; i < 6; i++) this.s(ox + 4 + i, oy + 3 + Math.round(Math.sin(i) * 1), P.acc[3]);
+        break;
+      case "book":
+        this.r(ox, oy, 6, 4, (i, j) => (j === 3 ? P.paper[3] : i === 0 ? P.acc[1] : P.acc[3]));
+        break;
+      case "shards":
+        for (let k = 0; k < 5; k++) this.r(ox + hash(k, 0, q.seed) * 7, oy + hash(k, 1, q.seed) * 4, 2, 1, P.clay[2 + (k % 3)]);
+        break;
+      case "flowers":
+        this.vase(ox + 2, oy + 4, 4, () => 1.3, P.clay);
+        for (const [dx, dy, c] of [[0, -2, P.acc[4]], [2, -3, 0xf4e6f0], [4, -2, P.acc3[4]]] as const) {
+          this.s(ox + dx, oy + dy + 1, P.leaf[3]);
+          this.s(ox + dx, oy + dy, c);
+        }
+        break;
+      case "paper":
+        this.r(ox, oy, 5, 4, (i, j) => (j === 1 && i > 0 && i < 4 ? P.paper[2] : P.paper[5]));
+        this.r(ox + 3, oy + 2, 5, 3, P.paper[4]);
+        break;
+      default:
+        this.disc(ox + 2, oy + 2, 2, P.straw);
+    }
+  }
+
+  private plate(cx: number, cy: number, seed: number) {
+    const { P } = this;
+    for (let j = -4; j <= 4; j++)
+      for (let i = -4; i <= 4; i++) {
+        const q = i * i + j * j;
+        if (q > 18) continue;
+        this.s(cx + i, cy + j, q > 12 ? P.clay[2] : q > 6 ? (seed % 2 ? P.acc[3] : P.acc2[3]) : q < 2 ? P.acc[4] : P.paper[4]);
+      }
+  }
+  private goods(x: number, base: number, w: number, seed: number, dens = 1) {
+    const { P } = this;
+    let i = 0;
+    const R = [P.acc, P.acc2, P.acc3, P.linen, P.clay, P.leaf];
+    while (i < w - 1) {
+      const k = hash(i, 0, seed);
+      if (hash(i, 9, seed) > dens) {
+        i += 4;
+        continue;
+      }
+      switch (this.p.trade) {
+        case "scholar": {
+          const bw = 1 + (k * 2 | 0), h = 6 + (hash(i, 1, seed) * 4 | 0), c = R[(k * 6) | 0];
+          if (k > 0.85) {
+            this.r(x + i, base - 3, 5, 3, (a, b) => (a === 0 ? P.paper[5] : b === 0 ? P.paper[4] : P.paper[2]));
+            i += 6;
+          } else {
+            this.r(x + i, base - h, bw, h, (a, b) => (b === 1 ? P.brass[4] : a === 0 ? c[4] : c[2]));
+            i += bw + (k > 0.7 ? 1 : 0);
+          }
+          break;
+        }
+        case "potter": {
+          const h = 4 + (k * 5 | 0), R0 = k > 0.5 ? P.clay : k > 0.25 ? P.acc : P.pale;
+          this.vase(x + i + 2, base - 1, h, (t) => 2 - Math.abs(t - 0.4) * 1.5 + (t > 0.85 ? 0.5 : 0), R0);
+          i += 5;
+          break;
+        }
+        case "weaver": {
+          if (k > 0.5) {
+            const R0 = R[(k * 3) | 0];
+            for (let l = 0; l < 3; l++) this.r(x + i, base - 2 - l * 2, 6, 2, (_a, b) => R0[b === 0 ? 5 - l : 2]);
+            i += 7;
+          } else {
+            this.disc(x + i + 2, base - 3, 2, R[((k * 8) | 0) % 6]);
+            i += 5;
+          }
+          break;
+        }
+        default: {
+          if (k > 0.6) {
+            this.r(x + i, base - 5, 5, 5, (a, b) => (b === 0 ? P.wood[5] : a === 0 ? P.wood[4] : P.wood[2]));
+            i += 6;
+          } else {
+            const R0 = [P.pale, P.clay, P.leaf, P.acc2][(k * 4) | 0];
+            this.vase(x + i + 1, base - 1, 5 + (k * 4 | 0), (t) => (t > 0.7 ? 0.6 : 1.6), R0);
+            i += 4;
+          }
+        }
+      }
+    }
+  }
+
+  private shade() {
+    const { W, H, col, glow, p } = this;
+    const data = this.img!.data;
+    const sunNow = sun(p.hour);
+    const day = sunNow.strength;
+    const amb = [0.2 + day * 0.32, 0.22 + day * 0.3, 0.34 + day * 0.24];
+    const lights = this.lights.map((l) => {
+      const f = l.phase < 0 ? 1 : 0.84 + 0.1 * Math.sin(this.t * 9 + l.phase) + 0.06 * Math.sin(this.t * 23 + l.phase * 2);
+      return { ...l, f: l.k * f, r: ((l.c >> 16) & 255) / 255, g: ((l.c >> 8) & 255) / 255, b: (l.c & 255) / 255 };
+    });
+    const beams = this.beams.map((b) => ({ ...b, r: ((b.c >> 16) & 255) / 255, g: ((b.c >> 8) & 255) / 255, bl: (b.c & 255) / 255 }));
+    const oy = this.oy;
+    const sr = ((sunNow.color >> 16) & 255) / 255, sg = ((sunNow.color >> 8) & 255) / 255, sb = (sunNow.color & 255) / 255;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, c = col[i], o = i * 4;
+        if (glow[i]) {
+          data[o] = (c >> 16) & 255;
+          data[o + 1] = (c >> 8) & 255;
+          data[o + 2] = c & 255;
+          data[o + 3] = 255;
+          continue;
+        }
+        let lr = amb[0], lg = amb[1], lb = amb[2];
+        for (const l of lights) {
+          const dx = x - l.x, dy = (y - l.y) * 1.2, d2 = dx * dx + dy * dy;
+          const k = (l.f / (1 + d2 / (l.rad * l.rad * 0.35))) * Math.max(0, 1 - Math.sqrt(d2) / (l.rad * 2.4));
+          lr += k * l.r;
+          lg += k * l.g;
+          lb += k * l.b;
+        }
+        const cx = (x - S) >> 4, cy = (y - oy) >> 4;
+        if (y >= oy && x >= S && cx < p.w && cy < p.d && this.mask[cy * p.w + cx] === 2) {
+          lr += day * 1.1 * sr;
+          lg += day * 1.1 * sg;
+          lb += day * 1.1 * sb;
+        }
+        for (const b of beams) {
+          if (y >= b.floor && y < b.floor + b.len) {
+            const t = (y - b.floor) / b.len, off = b.skew * t;
+            const edge = Math.min(x - (b.x0 + off), b.x1 + off - x);
+            if (edge > -1) {
+              const k = b.k * Math.min(1, (edge + 1) / 2) * (1 - t * 0.35);
+              lr += k * b.r;
+              lg += k * b.g;
+              lb += k * b.bl;
+            }
+          }
+          if (y >= b.top && y < b.floor + b.len) {
+            const t = (y - b.top) / (b.floor + b.len - b.top), off = b.skew * t;
+            if (x >= b.x0 + off && x < b.x1 + off) {
+              const k = b.k * 0.14 * (1 - t) * (0.8 + 0.2 * Math.sin(this.t * 0.7 + y * 0.2));
+              lr += k * b.r;
+              lg += k * b.g;
+              lb += k * b.bl;
+            }
+          }
+        }
+        const th = BAYER[(y & 3) * 4 + (x & 3)];
+        const q = (v: number) => Math.floor(Math.min(1.7, v) * 7 + th) / 7;
+        data[o] = Math.min(255, ((c >> 16) & 255) * q(lr));
+        data[o + 1] = Math.min(255, ((c >> 8) & 255) * q(lg));
+        data[o + 2] = Math.min(255, (c & 255) * q(lb));
+        data[o + 3] = 255;
+      }
+  }
+
+  /** Hand-drawn albedo lit by the voxel scene's traced light. The top-down
+   * voxel view shares this oblique, so pixel (x, y) sees the k×k voxel-screen
+   * pixels at the offsets below. */
+  private traced(F: LightField) {
+    const { W, H, col, glow } = this;
+    const data = this.img!.data, oy = this.oy, k = F.k;
+    const sr = ((F.sun >> 16) & 255) / 255, sg = ((F.sun >> 8) & 255) / 255, sb = (F.sun & 255) / 255;
+    const bloom = new Float32Array(W * H * 3);
+    const light = new Float32Array(W * H * 3), haze = new Float32Array(W * H);
+    let lr = 0.5, lg = 0.48, lb = 0.5;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        const vx = k * (x - S) + 2 * k + F.offX, vy = k * (y - oy) + F.offY;
+        let n = 0, ar = 0, ag = 0, ab = 0, hz = 0;
+        for (let j = 0; j < k; j++)
+          for (let m = 0; m < k; m++) {
+            const px = vx + m, py = vy + j;
+            if (px < 0 || py < 0 || px >= F.W || py >= F.H) continue;
+            const q = py * F.W + px;
+            hz += F.haze[q];
+            if (F.light[q * 3] < 0) continue;
+            ar += F.light[q * 3];
+            ag += F.light[q * 3 + 1];
+            ab += F.light[q * 3 + 2];
+            n++;
+          }
+        if (x < S || x >= W - S || y < CAP || y >= H - S) (lr = 0.5), (lg = 0.48), (lb = 0.5);
+        else if (n) (lr = ar / n), (lg = ag / n), (lb = ab / n);
+        light[i * 3] = lr;
+        light[i * 3 + 1] = lg;
+        light[i * 3 + 2] = lb;
+        haze[i] = hz / (k * k);
+      }
+    // Light varies voxel by voxel; a 3-px blur grades it across the drawing
+    // instead of stamping each voxel's block onto the pixels.
+    if (!this.dither) {
+      boxBlur(light, W, H, 2, true);
+      boxBlur(light, W, H, 2, false);
+    }
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, c = col[i], o = i * 4;
+        const cr = (c >> 16) & 255, cg = (c >> 8) & 255, cb = c & 255;
+        if (glow[i]) {
+          data[o] = cr;
+          data[o + 1] = cg;
+          data[o + 2] = cb;
+          data[o + 3] = 255;
+          bloom[i * 3] = cr;
+          bloom[i * 3 + 1] = cg;
+          bloom[i * 3 + 2] = cb;
+          continue;
+        }
+        const th = BAYER[(y & 3) * 4 + (x & 3)];
+        const q = (v: number) => (this.dither ? Math.floor(v * 12 + th) / 10 : v * 1.2);
+        // Open courts take several times a window's light; compress it before
+        // it meets the albedo, then roll off so sunlit stone keeps its colour.
+        const tm = (v: number, a: number) => {
+          const lc = (q(v) / (1 + q(v) * 0.5)) * 1.5;
+          return (1 - Math.exp(-(a / 255) * lc * 1.6)) * 262;
+        };
+        const hz = haze[i] / (1 + haze[i] * 6);
+        const r = tm(light[i * 3], cr) + hz * 255 * sr, g = tm(light[i * 3 + 1], cg) + hz * 255 * sg, b = tm(light[i * 3 + 2], cb) + hz * 255 * sb;
+        data[o] = Math.min(255, r);
+        data[o + 1] = Math.min(255, g);
+        data[o + 2] = Math.min(255, b);
+        data[o + 3] = 255;
+        if (r + g + b > 650) {
+          bloom[i * 3] = r * 0.5;
+          bloom[i * 3 + 1] = g * 0.5;
+          bloom[i * 3 + 2] = b * 0.5;
+        }
+      }
+    for (let pass = 0; pass < 2; pass++) {
+      boxBlur(bloom, W, H, 4, true);
+      boxBlur(bloom, W, H, 4, false);
+    }
+    for (let i = 0, n = W * H; i < n; i++) {
+      if (glow[i]) continue;
+      const o = i * 4;
+      data[o] = Math.min(255, data[o] + bloom[i * 3] * 0.32);
+      data[o + 1] = Math.min(255, data[o + 1] + bloom[i * 3 + 1] * 0.3);
+      data[o + 2] = Math.min(255, data[o + 2] + bloom[i * 3 + 2] * 0.26);
+    }
+  }
+
+  /** Colour grading after the light: shadows sink toward plum instead of
+   * grey, bright surfaces warm a little, and the room darkens and cools
+   * toward its edges like a lit stage. */
+  private grade() {
+    const { W, H, glow } = this, d = this.img!.data;
+    const cx = W / 2, cy = (this.oy + H) / 2 - T;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, o = i * 4;
+        let r = d[o], g = d[o + 1], b = d[o + 2];
+        if (!glow[i]) {
+          const lum = (r * 0.3 + g * 0.59 + b * 0.11) / 255;
+          const sh = (1 - lum) * (1 - lum) * 0.3;
+          r += (46 - r) * sh;
+          g += (24 - g) * sh;
+          b += (60 - b) * sh;
+          const hi = Math.max(0, lum - 0.55) * 0.3;
+          r += (255 - r) * hi * 0.35;
+          g += (216 - g) * hi * 0.3;
+          b += (170 - b) * hi * 0.15;
+        }
+        const e = Math.hypot((x - cx) / (W * 0.55), (y - cy) / (H * 0.6));
+        const v = 1 - 0.38 * Math.min(1, Math.max(0, (e - 0.45) / 0.75)) ** 1.5;
+        d[o] = r * v;
+        d[o + 1] = g * v;
+        d[o + 2] = b * (v + (1 - v) * 0.35);
+      }
+  }
+
+  private put(x: number, y: number, c: number, a = 1) {
+    x |= 0;
+    y |= 0;
+    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return;
+    const o = (y * this.W + x) * 4, d = this.img!.data;
+    d[o] = d[o] * (1 - a) + ((c >> 16) & 255) * a;
+    d[o + 1] = d[o + 1] * (1 - a) + ((c >> 8) & 255) * a;
+    d[o + 2] = d[o + 2] * (1 - a) + (c & 255) * a;
+  }
+
+  private particles(beamMotes: boolean) {
+    const t = this.t;
+    for (const f of this.fires) {
+      if (!f.lit) {
+        for (let i = 0; i < f.w; i += 3) if (Math.sin(t * 2 + i) > 0.2) this.put(f.x + i, f.y + 1, 0xc0401c);
+        continue;
+      }
+      for (let i = 0; i < f.w; i++) {
+        const u = i / f.w, env = Math.sin(u * Math.PI);
+        const h = f.h * env * (0.55 + 0.3 * Math.sin(t * 11 + i * 1.7) + 0.15 * Math.sin(t * 17 - i * 0.9));
+        for (let j = 0; j < h; j++) {
+          const v = j / Math.max(1, h);
+          const c = v < 0.25 ? 0xfff2b0 : v < 0.55 ? 0xffc040 : v < 0.8 ? 0xf06a1c : 0xa82a14;
+          if (v > 0.8 && hash(i, j, (t * 12) | 0) < 0.5) continue;
+          this.put(f.x + i, f.y - j, c);
+        }
+      }
+      for (let k = 0; k < 6; k++) {
+        const life = (t * 0.7 + k * 0.37) % 1;
+        const x = f.x + f.w / 2 + Math.sin(k * 3.1 + t * 2) * 4 * life + (hash(k, 0, 1) - 0.5) * f.w * 0.6;
+        this.put(x, f.y - f.h * 0.6 - life * 18, life < 0.6 ? 0xffd070 : 0xe0501c, 1 - life);
+      }
+    }
+    for (const f of this.flames) {
+      const fl = Math.sin(t * 13 + f.x) > 0.3 ? 1 : 0;
+      this.put(f.x, f.y, 0xfff4c0);
+      this.put(f.x, f.y - 1, 0xffc850);
+      if (fl) this.put(f.x, f.y - 2, 0xff8a30);
+      this.put(f.x + 1, f.y, 0xffb040, 0.6);
+    }
+    for (const s of this.smoke)
+      for (let k = 0; k < 5; k++) {
+        const life = (t * 0.35 + k / 5) % 1;
+        this.put(s.x + Math.sin(life * 6 + k) * 2, s.y - life * 26, 0xd8d0c8, 0.35 * (1 - life));
+      }
+    for (const b of beamMotes ? this.beams : [])
+      for (let k = 0; k < 14; k++) {
+        const a = hash(k, 1, 7), v = (a + t * 0.02 * (1 + hash(k, 3, 7))) % 1;
+        const y = b.top + v * (b.floor + b.len - b.top) * 0.9;
+        const tt = (y - b.top) / (b.floor + b.len - b.top);
+        const x = b.x0 + b.skew * tt + ((hash(k, 2, 7) + Math.sin(t * 0.5 + k) * 0.08 + 1) % 1) * (b.x1 - b.x0);
+        this.put(x, y, 0xfff6dc, Math.min(1, b.k) * (0.4 + 0.4 * Math.sin(t * 2 + k)));
+      }
+    for (const [k, n] of this.notes.entries()) {
+      const life = (t * 0.5 + k * 0.5) % 1;
+      const x = n.x + Math.sin(life * 6) * 3 + life * 4, y = n.y - life * 16;
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [2, -1], [2, 0], [2, -2], [2, -3], [3, -3]]) this.put(x + dx, y + dy, 0xfff0c0, 1 - life);
+    }
+    for (const z of this.zz) {
+      const life = (t * 0.4) % 1;
+      const x = z.x - life * 5, y = z.y - life * 10;
+      for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [1, 1], [0, 2], [1, 2], [2, 2]]) this.put(x + dx, y + dy, 0xf4f0ff, 1 - life);
+    }
+  }
+
+  private outline() {
+    const { W, H, ids, img } = this;
+    const d = img!.data;
+    const rug = this.props.find((q) => q.kind === "rug")?.id ?? -9;
+    const src = new Uint8ClampedArray(d);
+    for (let y = 1; y < H - 1; y++)
+      for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x, id = ids[i];
+        if (id < 0 || id === rug || this.glow[i]) continue;
+        const o = i * 4;
+        // A dark hue-kept outline all round, heaviest underneath, and a lit
+        // pixel just inside the top edge.
+        const below = ids[i + W] !== id, side = ids[i - 1] !== id || ids[i + 1] !== id, above = ids[i - W] !== id;
+        const t = below ? 0.72 : side || above ? 0.58 : 0;
+        if (t) for (let c = 0; c < 3; c++) d[o + c] = src[o + c] * (1 - t) + [30, 16, 34][c] * t;
+        else if (ids[i - 2 * W] !== id && y > 1) for (let c = 0; c < 3; c++) d[o + c] = Math.min(255, src[o + c] * 1.1);
+      }
+    if (this.hover < 0) return;
+    const h = this.hover, pulse = 0.65 + 0.35 * Math.sin(this.t * 6);
+    for (let y = 1; y < H - 1; y++)
+      for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x;
+        if (ids[i] === h) continue;
+        if (ids[i - 1] === h || ids[i + 1] === h || ids[i - W] === h || ids[i + W] === h) this.put(x, y, 0xfff0a0, pulse);
+      }
+  }
+}
+
+function boxBlur(a: Float32Array, W: number, H: number, r: number, horizontal: boolean) {
+  const line = new Float32Array((horizontal ? W : H) * 3);
+  const n = horizontal ? W : H, lines = horizontal ? H : W;
+  for (let l = 0; l < lines; l++) {
+    const at = (i: number) => (horizontal ? l * W + i : i * W + l) * 3;
+    for (let i = 0; i < n; i++) for (let c = 0; c < 3; c++) line[i * 3 + c] = a[at(i) + c];
+    let sr = 0, sg = 0, sb = 0;
+    for (let i = -r; i <= r; i++) {
+      const j = Math.max(0, Math.min(n - 1, i));
+      sr += line[j * 3];
+      sg += line[j * 3 + 1];
+      sb += line[j * 3 + 2];
+    }
+    for (let i = 0; i < n; i++) {
+      const o = at(i), w = 2 * r + 1;
+      a[o] = sr / w;
+      a[o + 1] = sg / w;
+      a[o + 2] = sb / w;
+      const add = Math.min(n - 1, i + r + 1), sub = Math.max(0, i - r);
+      sr += line[add * 3] - line[sub * 3];
+      sg += line[add * 3 + 1] - line[sub * 3 + 1];
+      sb += line[add * 3 + 2] - line[sub * 3 + 2];
+    }
+  }
+}
