@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { resolveSetting } from "../src/content/geography/resolve";
+import { resolveSetting, settingFor as placeSetting } from "../src/content/geography/resolve";
+import { places } from "../src/content/geography/places";
+import { curatedStarts } from "../src/content/geography/curated-starts";
 import {
   resolveCharacterContext,
   workAt,
@@ -152,4 +154,16 @@ describe("what the work is called here", () => {
       for (const st of p!.stations) expect(families, st).toContain(st);
     }
   });
+});
+
+it("gives every curated start the work its title names, not a random draw", () => {
+  for (const c of curatedStarts) {
+    const place = places.find((p) => p.id === c.placeId);
+    if (!place) continue;
+    const s = placeSetting(place, c.year);
+    const context = resolveCharacterContext(s);
+    const [a, b] = (["female", "male"] as const).map((sex) =>
+      characterLivelihood(s, sex, "player", c.role, context, sex).id);
+    expect(a, c.role).toBe(b);
+  }
 });

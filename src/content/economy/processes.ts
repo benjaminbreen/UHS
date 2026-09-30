@@ -96,12 +96,94 @@ const byActivity: Record<string, Entry> = {
   Washing: ["serve", "washing-line"],
 };
 
+/** Trades done under a roof: their station stands inside the house, not in the yard. */
+const indoors = new Set([
+  "Working the grain", "Cooking", "Brewing", "Working cloth", "Weaving",
+  "Twisting fibre", "Making clothes", "Household craft work", "Making shoes",
+  "At the workbench", "Turning pots", "Making candles", "Keeping the record",
+  "Household work", "Looking after the household", "Keeping the house",
+  "Tending the sick", "Playing and telling",
+]);
+
+/** One stage of a day: a short name for the strip, the thing to do, and
+ * whether it happens at a client's house instead of at home. */
+export type Step = { name: string; task: string; client?: boolean };
+
+const familySteps: Record<ProcessFamily, Step[]> = {
+  tend: [
+    { name: "prepare", task: "Get your tools ready" },
+    { name: "tend", task: "Tend the stock" },
+    { name: "take", task: "Take in what is ready" },
+  ],
+  gather: [
+    { name: "find", task: "Look for a good patch" },
+    { name: "take", task: "Gather what you can" },
+    { name: "bring home", task: "Bring it home to the stores" },
+  ],
+  transform: [
+    { name: "prepare", task: "Set out tools and materials" },
+    { name: "work", task: "Work steadily at it" },
+    { name: "finish", task: "Finish off and clear up" },
+  ],
+  carry: [
+    { name: "load", task: "Load up at home" },
+    { name: "carry", task: "Carry it across town" },
+    { name: "deliver", task: "Hand it over" },
+  ],
+  serve: [
+    { name: "wait", task: "Be ready when you are wanted" },
+    { name: "attend", task: "See to what is needed" },
+    { name: "settle", task: "Settle up for the day" },
+  ],
+};
+
+/** Trades that go out to someone else's house for the day's job. */
+const callOuts: [RegExp, Step[]][] = [
+  [/^(painter-and-decorator)$/, [
+    { name: "load up", task: "Load brushes and paint" },
+    { name: "paint", task: "Paint the rooms", client: true },
+    { name: "get paid", task: "Show the work and get paid", client: true },
+  ]],
+  [/^(plumber|electrician|glazier|chimney-sweep|thatcher|roofer)$/, [
+    { name: "load up", task: "Pack your tools" },
+    { name: "fix", task: "Do the job", client: true },
+    { name: "get paid", task: "Show the work and get paid", client: true },
+  ]],
+  [/^(builder|bricklayer|mason|stonemason|construction-labourer|navvy)$/, [
+    { name: "load up", task: "Gather tools and mortar" },
+    { name: "build", task: "Put up the wall", client: true },
+    { name: "get paid", task: "Take the day's wage", client: true },
+  ]],
+  [/^(laundress|washerwoman|laundry-worker)$/, [
+    { name: "collect", task: "Collect the washing", client: true },
+    { name: "wash", task: "Wash and dry it at home" },
+    { name: "return", task: "Take it back, clean", client: true },
+  ]],
+  [/^(midwife|healer|nurse|care-worker|herbalist)$/, [
+    { name: "prepare", task: "Pack remedies and cloths" },
+    { name: "visit", task: "Call on the patient", client: true },
+    { name: "tend", task: "Stay and see it through", client: true },
+  ]],
+  [/^(charwoman|cleaner|housemaid|domestic-servant|servant|scullion)$/, [
+    { name: "set out", task: "Take your brushes and pail" },
+    { name: "clean", task: "Clean the house", client: true },
+    { name: "get paid", task: "Take your pay", client: true },
+  ]],
+  [/^(porter|errand-boy|postman|carter|water-carrier)$/, [
+    { name: "load", task: "Load up at home" },
+    { name: "carry", task: "Carry it across town" },
+    { name: "deliver", task: "Hand it over at the door", client: true },
+  ]],
+];
+
 export type Process = {
   family: ProcessFamily;
+  steps: Step[];
   stages: readonly string[];
   hours: number;
   stations: string[];
   makes: string[];
+  indoors: boolean;
 };
 
 export function processFor(kit: Livelihood): Process | undefined {
@@ -109,5 +191,9 @@ export function processFor(kit: Livelihood): Process | undefined {
   if (!entry) return undefined;
   const [family, ...stations] = entry;
   if (["basket-maker", "basket-weaver"].includes(kit.id)) stations.splice(0, stations.length, "open-basket");
-  return { family, ...processFamilies[family], stations, makes: goodsOf(kit) };
+  const steps = callOuts.find(([re]) => re.test(kit.id))?.[1] ?? familySteps[family];
+  return {
+    family, ...processFamilies[family], steps, stages: steps.map((s) => s.name),
+    stations, makes: goodsOf(kit), indoors: indoors.has(kit.activity),
+  };
 }

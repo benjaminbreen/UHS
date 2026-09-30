@@ -36,6 +36,36 @@ const pick = <T>(
   purpose: string,
 ): T =>
   values[Math.floor(random(seed, "character-v1", id, purpose) * values.length)];
+/** Titles the tables do not carry, and the local work nearest each, best
+ * first. The curated starts ask for these; unmatched, they drew at random. */
+const kin: Record<string, string[]> = {
+  featherworker: ["craftsperson", "carver"],
+  player: ["musician", "storyteller"],
+  librarian: ["scribe", "clerk"],
+  "silk merchant": ["trader", "market-seller", "shopkeeper", "pedlar"],
+  "court poet": ["storyteller", "scribe", "musician"],
+  tilemaker: ["brickmaker", "potter"],
+  "manuscript copyist": ["scribe", "clerk"],
+  glassblower: ["craftsperson", "potter"],
+  "coffee seller": ["hawker", "street-vendor", "market-seller", "innkeeper"],
+  shaman: ["religious-specialist", "healer"],
+  "wild-grain harvester": ["gatherer", "forager"],
+  painter: ["painter-and-decorator", "craftsperson", "carver"],
+  "miniature painter": ["craftsperson", "scribe"],
+  navigator: ["sailor", "boatman", "fisher"],
+  "bronze caster": ["smith", "blacksmith"],
+};
+
+/** The local work closest to a title the tables do not list by that name:
+ * "Stonemason" is a mason here, "Head cook" a cook. Longest match wins. */
+function nearest(key: string, kits: readonly Livelihood[]) {
+  const words = key.replace(/[^a-z ]/g, " ");
+  return kits
+    .map((l) => ({ l, name: l.label.toLowerCase() }))
+    .filter(({ name }) => name.length >= 4 && (words.endsWith(name) || new RegExp(`\\b${name}\\b`).test(words)))
+    .sort((a, b) => b.name.length - a.name.length)[0]?.l;
+}
+
 export function characterNameParts(
   s: WorldSetting,
   seed: string,
@@ -218,7 +248,9 @@ export function characterLivelihood(
       ) ??
       (alias[key]
         ? context.livelihoods.find((l) => l.id === alias[key])
-        : undefined))
+        : undefined) ??
+      kin[key]?.map((k) => context.livelihoods.find((l) => l.id === k)).find(Boolean) ??
+      nearest(key, context.livelihoods))
     : undefined;
   // A request still has to pass the filters a drawn role passes, and a
   // religious office still takes its title from what people here believe.

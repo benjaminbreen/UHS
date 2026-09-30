@@ -211,12 +211,17 @@ export function KeyPrompt({
   letter,
   label,
   className,
+  kind,
+  hold,
   onClick,
 }: {
   code: string;
   letter: string;
   label: string;
   className?: string;
+  kind?: string;
+  /** When a held run began; the keycap's ring fills from then. */
+  hold?: number;
   onClick: () => void;
 }) {
   const [down, setDown] = useState(false);
@@ -237,11 +242,15 @@ export function KeyPrompt({
     <button
       className={`key-prompt ${className ?? ""}`}
       data-down={down || undefined}
+      data-kind={kind}
+      data-holding={hold !== undefined || undefined}
       onClick={onClick}
     >
-      <kbd>{letter}</kbd>
-      {" · "}
-      {label}
+      <kbd>
+        {letter}
+        {hold !== undefined && <i className="key-ring" key={hold} />}
+      </kbd>
+      <span className="key-label">{label}</span>
     </button>
   );
 }

@@ -76,6 +76,8 @@ export type Economy = {
   short: Record<string, string[]>;
   /** The player's place in today's work: stages done, on which day. */
   work?: { day: number; stage: number };
+  /** The day the household plot was last seen to. */
+  side?: number;
 };
 /** The account of a day, shown on waking. */
 export type Evening = {
@@ -447,6 +449,7 @@ export type PlayerCommand =
         | "store"
         | "work"
         | "harvest"
+        | "tend-plot"
         | "capture"
         | "herd"
         | "knock"

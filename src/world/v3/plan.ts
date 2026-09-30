@@ -51,6 +51,7 @@ import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardProp } from "../../content/settlements/yards";
 import { propDefs, propVisualCells } from "../../content/props/catalog";
+import { processFor } from "../../content/economy/processes";
 import {
   penBoundary as localPen,
   pickBoundary,
@@ -2570,6 +2571,23 @@ export function planSettlement(
     return true;
   };
   const propCells = new Set<string>();
+  /** An indoor trade's station, inside the house; the workbench stands in
+   * for a family whose interior art is not drawn yet. */
+  const indoorStation = (id: string, owner: string, kit: Parameters<typeof processFor>[0] | undefined) => {
+    const process = kit && processFor(kit);
+    if (!kit || !process?.indoors) return [];
+    const prop = Object.keys(propDefs).find((k) => process.stations.includes(propDefs[k].family));
+    return [{
+      id: `${id}-work`,
+      name: prop ? propDefs[prop].name : `Where the ${kit.activity.toLowerCase()} is done`,
+      kind: "container" as const,
+      prop,
+      pos: { x: 6, y: 5, space: id },
+      sprite: prop ? `study-propb-${propDefs[prop].family}-0` : "study-prop-workbench-0",
+      inventory: {},
+      owner,
+    }];
+  };
   /** A household's yard: the ground in front, a bed to one side, and what the
    * kit and the resident's trade put in it. Three shapes, by the kit's
    * shares: fenced right round, fenced round the bed only, or open. */
@@ -3591,6 +3609,7 @@ export function planSettlement(
           : { grain: 3, wood: 2 },
         owner,
       },
+      ...indoorStation(id, owner, livelihood),
     );
   }
   // Yards take what ground the houses left, so they never cost a house.

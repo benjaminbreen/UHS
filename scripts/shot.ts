@@ -39,7 +39,9 @@ if (!(await up())) {
 
 const browser = await launchBrowser();
 try {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  // UHS_VIEWPORT="390x844" for a phone.
+  const [width, height] = (process.env.UHS_VIEWPORT ?? "1440x1100").split("x").map(Number);
+  const page = await browser.newPage({ viewport: { width, height }, hasTouch: width < 700, isMobile: width < 700 });
   if (process.env.UHS_SEED)
     await page.addInitScript(`Object.defineProperty(crypto, "randomUUID", {
       value: () => ${JSON.stringify(process.env.UHS_SEED)}

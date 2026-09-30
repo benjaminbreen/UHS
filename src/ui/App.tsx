@@ -48,6 +48,11 @@ import {
   ScrollText,
   Menu,
   Maximize2,
+  Hammer,
+  Utensils,
+  PartyPopper,
+  MapPin,
+  Users,
 } from "lucide-react";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
@@ -72,7 +77,7 @@ import { restoreSession, ZOOM_STEPS } from "../runtime/session";
 const formatZoom = (z: number) =>
   Number.isInteger(z) ? `${z}` : z.toFixed(2).replace(/0$/, "");
 import { download } from "../runtime/storage";
-import { distance, type PlayerCommand, type Point } from "../core/types";
+import { distance, type PlayerCommand } from "../core/types";
 import { describeStats, statKeys } from "../core/stats";
 import { describeStanding, standingOf } from "../core/standing";
 import { outlookOf, shortLabel } from "../core/outlook";
@@ -93,6 +98,8 @@ const RESIZE_SETTLE_MS = 250;
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { DialogueModal } from "./DialogueModal";
+import { WorkCard } from "./WorkCard";
+import { Toasts } from "./Toasts";
 import { EveningLedger } from "./EveningLedger";
 import { setRealLanguage, useRealLanguage } from "./real-language";
 import { VitalsOverlay } from "./VitalsOverlay";
@@ -165,10 +172,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [sky, setSky] = useState<{ skill?: SkillId; pick?: Pick; levelUp?: boolean }>();
   const [task, setTask] = useState<TaskSource>();
-  const [guide, setGuide] = useState<Point>();
   const [aimGoal, setAimGoal] = useState<string>();
-  // The route home is cleared once walked.
-  if (guide && p.pos.space === "outside" && Math.hypot(p.pos.x - guide.x, p.pos.y - guide.y) < 3) setGuide(undefined);
+  const guide = runtime.guideTarget();
   const pending = runtime.engine.pendingPicks();
   const known = runtime.engine.state.player.techniques ?? [];
   const lastGain = runtime.engine.skillGains.at(-1);
@@ -926,7 +931,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               runtime={runtime}
               start={task}
               onClose={() => setTask(undefined)}
-              onGuide={(to) => setGuide(to)}
+              onGuide={(to) => runtime.setGuide({ ...to, space: "outside" })}
               onPin={(id) => setAimGoal((was) => (was === id ? undefined : id))}
               pinned={aimGoal}
             />
@@ -952,6 +957,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onPrimaryUp={() => runtime.releaseCharge()}
             onAlternate={() => runVerb("alternate")}
           />
+          <WorkCard runtime={runtime} />
+          <Toasts events={obs.events} />
           <div className="prop-prompts" data-testid="prop-prompts">
             {obs.manifest.content === 1 && (
               <span>
@@ -959,13 +966,15 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 interactive props.
               </span>
             )}
-            {verbs.held && <span>Holding: {verbs.held.name}</span>}
+            {verbs.held && <span className="prompt-note">Holding <b>{verbs.held.name}</b></span>}
             {verbs.primary && (
               <KeyPrompt
                 key={verbs.primary.label}
                 code="KeyF"
                 letter="F"
                 label={verbs.primary.label}
+                kind={verbs.primary.kind}
+                hold={verbs.primary.kind === "work" ? runtime.workHold : undefined}
                 onClick={() => runVerb("primary")}
               />
             )}
@@ -973,13 +982,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               ? <span>Right mouse · Aim and shoot · {p.inventory.arrow ?? 0} arrows</span>
               : p.heldItem === "sling"
               ? <span>Right mouse · Whirl and let fly · {runtime.engine.ammo() ? "stones ready" : "no stones"}</span>
-              : (p.held || p.heldItem) && <span>X · Throw (hold to aim)</span>}
+              : (p.held || p.heldItem) && <span className="prompt-note"><kbd>X</kbd> Throw, hold to aim</span>}
             {verbs.alternate && (
               <KeyPrompt
                 key={verbs.alternate.label}
                 code="KeyE"
                 letter="E"
                 label={verbs.alternate.label}
+                kind={verbs.alternate.kind}
                 onClick={() => runVerb("alternate")}
               />
             )}
@@ -1084,7 +1094,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              <Minimap runtime={runtime} regional={mapRegion} route={guide} />
+              <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} />
               <span className="minimap-expand" aria-hidden="true">
                 <Maximize2 size={13} />
               </span>
@@ -1116,7 +1126,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           />
           <footer className="bottom-bar">
             <div className="quick-actions">
-              <button onClick={talkToNearest}>
+              <button onClick={talkToNearest} aria-label="Talk">
                 <MessageCircle size={17} />
                 <span>Talk</span>
                 <kbd>{speaker ? "Enter" : "Q"}</kbd>
@@ -1149,7 +1159,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 <span>Inspect</span>
                 <kbd>E</kbd>
               </button>
-              <button onClick={() => setModal("map")}>
+              <button onClick={() => setModal("map")} aria-label="Travel">
                 <MapIcon size={17} />
                 <span>Travel</span>
                 <kbd>R</kbd>
@@ -1172,6 +1182,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   </div>
                 )}
                 <button
+                  aria-label="Rest"
                   aria-expanded={restOpen}
                   onClick={() => setRestOpen((open) => !open)}
                 >
@@ -1205,7 +1216,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               </button>
             </form>
             <div className="keyboard-hint">
-              <span className="hint-event">{obs.events.at(-1)?.text}</span>
+              <span className="hint-event" />
               <span>
                 <kbd>W</kbd>
                 <kbd>A</kbd>
@@ -1365,7 +1376,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              {!phone && <Minimap runtime={runtime} regional={mapRegion} route={guide} />}
+              {!phone && <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} />}
               <span className="north">N ↑</span>
               <span className="map-scale">
                 <i />
@@ -1588,35 +1599,56 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   />
                 )}
                 {sideTab === "today" && (
-                  <div className="event-log">
+                  <div className="today">
                     {aim && (
-                      <div className="event-open" role="button" tabIndex={0} onClick={() => setTask({ kind: "aim" })} onKeyDown={(e) => e.key === "Enter" && setTask({ kind: "aim" })}>
-                        <time>Life aim</time>
-                        <span>{aim.text}{aim.step && <small className="life-aim-step">{aim.step.text} {aim.step.type === "work" ? `(${aim.step.progress}/${aim.step.target})` : aim.step.done ? "(done)" : ""}</small>}</span>
-                      </div>
+                      <button className="today-aim" onClick={() => setTask({ kind: "aim" })}>
+                        <small>Life aim</small>
+                        <b>{aim.text}</b>
+                        {aim.step && (
+                          <span>
+                            {aim.step.text}
+                            {aim.step.type === "work" ? (
+                              <i className="today-steps">
+                                {Array.from({ length: aim.step.target }, (_, i) => <em key={i} data-done={(aim.step?.type === "work" && i < aim.step.progress) || undefined} />)}
+                              </i>
+                            ) : aim.step.done ? " ✓" : ""}
+                          </span>
+                        )}
+                      </button>
                     )}
-                    {runtime.engine.dailyGoals().length > 0 ? (
-                      [...runtime.engine.dailyGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g) => (
-                        <div key={g.id} className="event-open" data-aim={g.id === aimGoal || undefined} role="button" tabIndex={0} onClick={() => setTask({ kind: "goal", id: g.id })} onKeyDown={(e) => e.key === "Enter" && setTask({ kind: "goal", id: g.id })}>
-                          <time>{g.done ? "Done" : g.slot === "work" ? "Work" : g.slot === "need" ? "Need" : g.slot === "own" ? (g.id.startsWith("fest.") ? "Holiday" : "Errand") : "Social"}</time>
-                          <span>{g.text}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div>
-                        <time>Aim</time>
-                        <span>{pack.concern}</span>
-                      </div>
-                    )}
-                    {[...runtime.engine.state.events]
-                      .reverse()
-                      .slice(0, 8)
-                      .map((e) => (
-                        <div key={e.id}>
-                          <time>{timeLabel(e.time)}</time>
-                          <span>{e.text}</span>
-                        </div>
-                      ))}
+                    <ul className="today-goals">
+                      {runtime.engine.dailyGoals().length > 0 ? (
+                        [...runtime.engine.dailyGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g, i) => {
+                          const [Icon, kind] = g.slot === "work" ? [Hammer, "Work"] : g.slot === "need" ? [Utensils, "Need"] : g.slot === "own" ? (g.id.startsWith("fest.") ? [PartyPopper, "Holiday"] : [MapPin, "Errand"]) : [Users, "Social"];
+                          return (
+                            <li key={g.id} style={{ "--i": i } as React.CSSProperties}>
+                              <button data-aim={g.id === aimGoal || undefined} data-done={g.done || undefined} onClick={() => setTask({ kind: "goal", id: g.id })}>
+                                <span className="today-icon"><Icon size={15} /></span>
+                                <span className="today-text">
+                                  <small>{kind}{g.id === aimGoal && " · today's aim"}</small>
+                                  {g.text}
+                                </span>
+                                <span className="today-check" aria-label={g.done ? "Done" : "Not done"} />
+                              </button>
+                            </li>
+                          );
+                        })
+                      ) : (
+                        <li className="today-empty">{pack.concern}</li>
+                      )}
+                    </ul>
+                    <h3 className="today-head">Lately</h3>
+                    <ol className="today-log">
+                      {[...runtime.engine.state.events]
+                        .reverse()
+                        .slice(0, 8)
+                        .map((e) => (
+                          <li key={e.id}>
+                            <time>{timeLabel(e.time)}</time>
+                            <span>{e.text}</span>
+                          </li>
+                        ))}
+                    </ol>
                   </div>
                 )}
               </>
@@ -2070,6 +2102,17 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     Skill test · set levels, learn techniques
                     <small>Opens a panel over the world you are in</small>
                   </button>
+                  <a
+                    className="action settings-featured"
+                    href="/interior-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Interior lab{" "}
+                    <small>
+                      One procedural room as pixel art and as lit voxels ↗
+                    </small>
+                  </a>
                   <a
                     className="action settings-featured"
                     href="/materials-lab"

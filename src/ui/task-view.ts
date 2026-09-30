@@ -274,13 +274,20 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
     }
     if (goal.slot === "work") {
       const [vignette, skill, where] = WORKPLACE[kit ? (kit.workplace ?? workplaceFor(kit.activity)) : "workshop"] ?? WORKPLACE.workshop;
-      const job = s.economy?.work;
-      const today = Math.floor(s.clock / 86400);
-      const done = job?.day === today ? job.stage : 0;
+      const plan = engine.workPlan();
+      const station = plan?.station;
+      const home = station && station.pos.space !== "outside" ? world.place(station.pos.space) : undefined;
       const facts: Fact[] = [
         { label: "Your trade", text: `${kit?.label ?? actor.role}: ${(kit?.activity ?? "the day's work").toLowerCase()}, ${where}.` },
+        ...(plan ? [{ label: "Today's work", text: plan.stages.map((st, i) => (i < plan.done ? `${st} ✓` : st)).join(" › ") }] : []),
         { label: "Skill", text: `${SKILLS[skill].name}, level ${levelOf(engine.skills()[skill])}.` },
-        { label: "Progress", text: done ? `${done} stage${done === 1 ? "" : "s"} of the day's work done.` : "Not yet begun. Use Work at your workplace to take it in stages." },
+        {
+          label: "How",
+          text: !plan ? "Work at your workplace, a stage at a time."
+            : plan.done >= plan.stages.length ? "Done for today."
+            : station ? `Hold F at the ${station.name.toLowerCase()}${home ? ", inside the house," : ""} and the work goes on a stage at a time. Or leave it to the day and watch.`
+            : "There is nowhere to hand to work today.",
+        },
       ];
       return {
         ...extra,
@@ -289,7 +296,7 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
         who,
         part: "morning",
         vignette,
-        where: whereOf("Where you work", actor.work),
+        where: home ? whereOf(`${station!.name}, inside the house`, home.entrance) : whereOf("Where you work", station?.pos ?? actor.work),
         facts,
         record: workRecord(skill),
         lore: lore(`A day's work as ${kit?.label ?? actor.role}: ${kit?.activity ?? ""}`),

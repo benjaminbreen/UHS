@@ -232,6 +232,17 @@ export class Autopilot {
     const e = this.engine,
       p = e.state.player;
     const station = e.workStation();
+    const side = e.sideJob();
+    if (station === "done" && side && !side.done) {
+      if (p.pos.space !== "outside") return this.leave();
+      if (distance(side.pos, p.pos) > 1.5) {
+        const route = this.routeNear(side.pos, 1);
+        if (!route.length) return { done: "You cannot get to the garden." };
+        return { route };
+      }
+      this.pause = 6;
+      return { command: { type: "interact", target: side.id, action: "tend-plot" } };
+    }
     if (station === "done") return { done: "Today's work is done." };
     if (!station) return { done: "You have no trade to work at here." };
     if (station.pos.space !== p.pos.space) {

@@ -1359,6 +1359,59 @@ export class WorldScene extends Phaser.Scene {
       }
     }
   }
+  private guideMark?: Phaser.GameObjects.Graphics;
+  private guideAt?: { x: number; y: number };
+  private guideChecked = 0;
+  /** A bobbing arrow over where the guide points, or at the edge of the
+   * view, aimed at it, while it is out of sight. */
+  private drawGuide(time: number) {
+    if (time - this.guideChecked > 200) {
+      this.guideChecked = time;
+      const g = this.runtime.guideTarget();
+      this.guideAt = g && g.pos.space === this.runtime.engine.state.player.pos.space ? g.pos : undefined;
+    }
+    const mark = (this.guideMark ??= this.add.graphics());
+    mark.clear();
+    const at = this.guideAt;
+    if (!at) return;
+    const view = this.cameras.main.worldView;
+    const tx = at.x * 16 + 8,
+      ty = at.y * 16 + 8 - this.lift(at.x * 16 + 8, at.y * 16 + 16);
+    const pad = 18;
+    const inView = tx > view.left + pad && tx < view.right - pad && ty > view.top + pad && ty < view.bottom - pad;
+    const gold = 0xf2cf6b,
+      ink = 0x1a1410;
+    mark.setDepth(1e7);
+    if (inView) {
+      const pulse = (time % 1400) / 1400;
+      mark.lineStyle(1.5, gold, 0.9 * (1 - pulse));
+      mark.strokeEllipse(tx, ty + 5, 10 + pulse * 14, 5 + pulse * 7);
+      // A little hop with a hang at the top, like a quest marker.
+      const bob = Math.abs(Math.sin(time / 260)) * 5;
+      const y = ty - 22 - bob;
+      mark.fillStyle(ink, 1).fillTriangle(tx - 7, y - 6, tx + 7, y - 6, tx, y + 4);
+      mark.fillStyle(gold, 1).fillTriangle(tx - 5, y - 5, tx + 5, y - 5, tx, y + 2);
+      mark.fillStyle(0xfff4d0, 1).fillRect(tx - 3, y - 5, 2, 2);
+      return;
+    }
+    const cx = view.centerX,
+      cy = view.centerY;
+    const a = Math.atan2(ty - cy, tx - cx);
+    const k = Math.min(
+      (view.width / 2 - pad) / Math.abs(Math.cos(a) || 1e-6),
+      (view.height / 2 - pad) / Math.abs(Math.sin(a) || 1e-6),
+    );
+    const nudge = Math.sin(time / 220) * 2;
+    const ex = cx + Math.cos(a) * (k + nudge),
+      ey = cy + Math.sin(a) * (k + nudge);
+    const tip = (d: number, r: number) => [ex + Math.cos(a + r) * d, ey + Math.sin(a + r) * d] as const;
+    mark.fillStyle(ink, 0.55).fillCircle(ex, ey, 9);
+    mark.lineStyle(1.5, gold, 1).strokeCircle(ex, ey, 9);
+    const [ax, ay] = tip(6, 0),
+      [bx, by] = tip(5, 2.4),
+      [dx, dy] = tip(5, -2.4);
+    mark.fillStyle(gold, 1).fillTriangle(ax, ay, bx, by, dx, dy);
+  }
   /** Squat, tremble, sweat, heave: a rock going up over the head. */
   private heaveUp(heave: NonNullable<Runtime["heaveEffect"]>) {
     const now = this.time.now;
@@ -5159,6 +5212,7 @@ export class WorldScene extends Phaser.Scene {
         lightAlpha[this.light.id],
       );
     this.drawTarget(time);
+    this.drawGuide(time);
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
     this.combat().consumeEvents(this.runtime.engine.signals);

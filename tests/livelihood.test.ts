@@ -283,6 +283,14 @@ it("works a trade in stages at home, stocks the house, and minds neglect", () =>
   expect(head.trust).toBe(trust - 1);
 }, 30000);
 
+it("sends an indoor trade to a station inside the house", () => {
+  const konya = places.find((p) => p.id === "konya")!;
+  const e = createSettingSession({ ...settingFor(konya, -6499), role: "Potter" }, "probe");
+  const station = e.workStation();
+  expect(station).toMatchObject({ owner: "player" });
+  expect((station as { pos: { space: string } }).pos.space).not.toBe("outside");
+});
+
 it("keeps personal accessories through household routines and supply deposits", () => {
   const a = { inventory: { "walking-cane": 1, fruit: 3 }, heldItem: "load:basket", pos: { x: 0, y: 0, space: "outside" } } as any;
   const s = { households: [], objects: [], clock: 9 * 3600 } as any;
@@ -295,4 +303,39 @@ it("keeps personal accessories through household routines and supply deposits", 
   a.inventory["walking-cane"] = 0;
   householdActivity(a, s, items, () => {});
   expect(a.heldItem).toBeUndefined();
+});
+
+it("sends a call-out trade to a neighbour's house for the job itself", () => {
+  const london = places.find((p) => p.id === "london")!;
+  const e = createSettingSession({ ...settingFor(london, 1986), role: "Painter and Decorator" }, "probe");
+  const s = e.state;
+  const home = s.households!.find((h) => h.members.includes("player"))!;
+  expect(e.workPlan()!.steps[1].client).toBe(true);
+  s.economy = { hour: Math.floor(s.clock / 3600), stock: {}, short: {}, work: { day: Math.floor(s.clock / 86400), stage: 1 } };
+  const plan = e.workPlan()!;
+  const client = s.households!.find((h) => h.storeId === plan.station?.id)!;
+  expect(client).toBeDefined();
+  expect(client).not.toBe(home);
+  expect(plan.where).toMatch(/'s house$/);
+
+  s.economy.work!.stage = 2;
+  const station = e.workPlan()!.station!;
+  s.player.pos = { ...station.pos, x: station.pos.x + 1 };
+  const pay = e.inspect(station.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "work")!;
+  const coins = s.player.inventory.coin ?? 0;
+  expect(e.act({ actionId: "paid", expectedRevision: s.revision, command: pay.command }).status).toBe("completed");
+  expect(s.player.inventory.coin).toBeGreaterThan(coins);
+});
+
+it("gives a craft household a turn in its own garden, once a day", () => {
+  const normandy = places.find((p) => p.id === "normandy")!;
+  const e = createSettingSession({ ...settingFor(normandy, 1100), role: "Stonemason" }, "probe");
+  const s = e.state;
+  expect(e.item("coin")!.name).toBe("Silver deniers");
+  const side = e.sideJob()!;
+  expect(side.done).toBe(false);
+  s.player.pos = { ...side.pos, x: side.pos.x + 1 };
+  const tend = e.inspect(side.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "tend-plot")!;
+  expect(e.act({ actionId: "garden", expectedRevision: s.revision, command: tend.command }).status).toBe("completed");
+  expect(e.sideJob()!.done).toBe(true);
 });

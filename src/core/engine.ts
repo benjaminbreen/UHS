@@ -114,6 +114,8 @@ import {
 import { faunaAt, faunaCombat, faunaProfile } from "../content/fauna";
 import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../content/agriculture/pests";
 import { livelihoodById } from "../content/characters/livelihoods";
+import { capabilitiesFor } from "../content/characters/resolve";
+import { moneyFor } from "../content/economy/money";
 import { workplaceFor } from "../content/characters/workplace";
 import { propSprite } from "../content/props/place";
 import {
@@ -396,8 +398,12 @@ export class Engine {
       "system",
     );
   }
+  private money?: ItemDef;
   item(id: ItemId): ItemDef | undefined {
     const known = this.items[id] ?? this.state.catalog?.[id];
+    const setting = this.world.pack.setting;
+    if (id === "coin" && known && setting)
+      return (this.money ??= { ...known, name: moneyFor(setting).name });
     if (known) return known;
     // A garment carries its cloth in its id. Everything a worn item does —
     // the look it adds, the slot it fills — comes from the base definition;
@@ -467,22 +473,21 @@ export class Engine {
     const stage = s.economy?.work?.day === day ? s.economy.work.stage : 0;
     return { household, kit, process, day, stage };
   }
-  private workAt(o: WorldObject, close: boolean): Affordance[] {
-    const t = this.trade();
+  private workAt(o: WorldObject, close: boolean, t = this.trade()): Affordance[] {
     if (!t) return [];
     const { process, stage } = t;
+    const clientStore = process.steps[stage]?.client ? this.client(t)?.storeId : undefined;
     // Your own stores always serve; a tool or hearth, only if it is no one else's.
-    const station =
+    const station = clientStore ? o.id === clientStore :
       o.id === t.household.storeId ||
+      (o.owner === "player" && o.pos.space !== "outside" && o.id === `${o.pos.space}-work`) ||
       ((!o.owner || o.owner === "player") &&
         process.stations.includes(propDefs[o.prop ?? ""]?.family ?? ""));
     if (!station) return [];
     const done = stage >= process.stages.length;
     return [
       {
-        label: done
-          ? "Today's work is done"
-          : `${t.kit.activity}: ${process.stages[stage]}`,
+        label: done ? "Today's work is done" : process.steps[stage].task,
         command: { type: "interact", target: o.id, action: "work" },
         enabled: close && !done,
         reason: done ? "Come back tomorrow" : close ? undefined : "Walk closer",
@@ -494,16 +499,57 @@ export class Engine {
   workStation(): WorldObject | "done" | undefined {
     const p = this.state.player.pos;
     // A station behind a door is still a station, just a long walk away.
-    const far = (o: WorldObject) => Math.min(distance(o.pos, p), 1e6);
+    // An indoor trade goes to the bench in the house, past any in the yard.
+    const far = (o: WorldObject) =>
+      o.id === `${o.pos.space}-work` ? -1 : Math.min(distance(o.pos, p), 1e6);
     let best: WorldObject | undefined,
       done = false;
+    const t = this.trade();
+    if (!t) return undefined;
     for (const o of this.state.objects) {
-      const work = this.workAt(o, true)[0];
+      const work = this.workAt(o, true, t)[0];
       if (!work) continue;
       if (!work.enabled) done = true;
       else if (!best || far(o) < far(best)) best = o;
     }
     return best ?? (done ? "done" : undefined);
+  }
+  /** The household a call-out trade works for today: one of the nearest
+   * neighbours, a different one most days. */
+  private client(t: NonNullable<ReturnType<Engine["trade"]>>) {
+    const near = (this.state.households ?? [])
+      .filter((h) => h !== t.household && h.residence && !h.members.includes("player"))
+      .sort((a, b) => distance(a.home, t.household.home) - distance(b.home, t.household.home))
+      .slice(0, 8);
+    return near.length ? near[Math.floor(random(this.state.manifest.seed, "client", t.day) * near.length)] : undefined;
+  }
+  /** Today's work for the HUD: the stages, how far along, and where the next
+   * one is done, named for a person rather than by whatever prop stands there. */
+  workPlan() {
+    const t = this.trade();
+    if (!t) return undefined;
+    const station = this.workStation();
+    const target = typeof station === "object" ? station : undefined;
+    const step = t.process.steps[t.stage];
+    const client = step?.client ? this.client(t) : undefined;
+    const place = target && target.pos.space !== "outside" ? this.world.place(target.pos.space) : undefined;
+    const host = client && this.state.actors.find((a) => client.members.includes(a.id));
+    const where = !target ? undefined
+      : client ? `${host?.name ?? "A neighbour"}'s house`
+      : place ? place.owner === "player" ? "Your house" : place.name
+      : target.id === t.household.storeId ? "Your yard"
+      : target.owner === "player" ? "Your yard" : target.name;
+    return {
+      activity: t.kit.activity,
+      stages: t.process.stages,
+      steps: t.process.steps,
+      done: t.stage,
+      station: target,
+      where,
+      // Where to walk to from outside: the door of a house, else the spot.
+      door: place ? { ...place.entrance, space: "outside" } : target?.pos,
+      side: this.sideJob(),
+    };
   }
   private today() {
     const s = this.state;
@@ -554,10 +600,10 @@ export class Engine {
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     s.economy.work = { day: t.day, stage: t.stage + 1 };
     if (t.stage + 1 < process.stages.length) {
-      this.event(`You ${process.stages[t.stage]}. ${kit.activity} goes on.`);
+      this.event(`${process.steps[t.stage].task}: done. Next, ${process.steps[t.stage + 1].task.toLowerCase()}.`);
       return;
     }
-    const made = dayOfWork(s.economy, household);
+    const made = process.steps.at(-1)?.client ? this.pay(t) : dayOfWork(s.economy, household);
     // Work that makes nothing the town trades in, a forager's or a fisher's,
     // comes home in the hand instead.
     if (!Object.keys(made).length)
@@ -577,6 +623,87 @@ export class Engine {
     );
     if (advanceLifeAim(s, { type: "work" }))
       this.event("You have completed a step toward your life aim.");
+  }
+  /** Most households kept a garden beside whatever their trade was. The
+   * day's turn in it, for anyone whose trade is not already the land. */
+  sideJob() {
+    const t = this.trade();
+    if (!t || t.process.family === "tend") return;
+    const cell = this.garden(t.household);
+    if (!cell) return;
+    return {
+      task: "Weed and water the kitchen garden",
+      id: `crop-${cell.x}-${cell.y}`,
+      pos: { ...cell, space: "outside" } as Position,
+      done: this.state.economy?.side === t.day,
+    };
+  }
+  private gardens = new Map<string, Point | null>();
+  /** The household's garden cell nearest its door, or null if it has none. */
+  private garden(h: Household) {
+    if (this.gardens.has(h.id)) return this.gardens.get(h.id)!;
+    let best: Point | null = null,
+      far = Infinity;
+    for (let dy = -16; dy <= 16; dy++)
+      for (let dx = -16; dx <= 16; dx++) {
+        const x = h.home.x + dx,
+          y = h.home.y + dy;
+        const field = this.world.topography?.(x, y)?.field;
+        if (!field?.garden || !field.owner || !h.members.includes(field.owner)) continue;
+        const d = Math.abs(dx) + Math.abs(dy);
+        if (d < far) (best = { x, y }), (far = d);
+      }
+    this.gardens.set(h.id, best);
+    return best;
+  }
+  private tendGarden() {
+    const t = this.trade();
+    const side = this.sideJob();
+    if (!t || !side || side.done) return;
+    const s = this.state;
+    s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
+    s.economy.side = t.day;
+    this.advance(90 * 60);
+    s.player.fatigue = Math.min(100, s.player.fatigue + 6);
+    this.grantXp("farming", 10);
+    const field = this.world.topography?.(side.pos.x, side.pos.y)?.field;
+    const crop = field && crops[field.crop];
+    const item = crop && (this.cropPlant(crop, side.pos.y).yields ?? crop.yields);
+    if (item && this.item(item)) {
+      s.player.inventory[item] = (s.player.inventory[item] ?? 0) + 1;
+      this.today().made[item] = (this.today().made[item] ?? 0) + 1;
+      this.event(`You weed and water the garden, and bring in ${this.lootName(item, 1)}.`);
+    } else this.event("You weed and water the garden. It will repay the care.");
+  }
+  /** A client settles for the day: coin where there is coinage, otherwise
+   * something from their own stores. Returns what changed hands. */
+  private pay(t: NonNullable<ReturnType<Engine["trade"]>>): Record<string, number> {
+    const s = this.state;
+    const client = this.client(t);
+    const host = client && s.actors.find((a) => client.members.includes(a.id));
+    const name = host?.name ?? "The household";
+    if (host) this.regard(host, 1);
+    const setting = this.world.pack.setting;
+    if (setting && capabilitiesFor(setting).has("coinage") && this.item("coin")) {
+      // A labourer's day, a few small coins; a better-off client pays a little more.
+      const n = 2 + Math.floor(this.rng("wage") * 2) + Math.round((client?.fortune ?? 0.5) * 2);
+      s.player.inventory.coin = (s.player.inventory.coin ?? 0) + n;
+      this.event(`${name} pays you ${n} ${moneyFor(setting).unit} for the work.`);
+      return { coin: n };
+    }
+    const store = client && s.objects.find((o) => o.id === client.storeId);
+    const kind = store && Object.entries(store.inventory ?? {}).find(([id, n]) => n && id !== "tool" && this.item(id)?.edible);
+    if (!store || !kind) {
+      this.event(`${name} has nothing to spare today, but will remember the work.`);
+      if (host) this.regard(host, 1);
+      return {};
+    }
+    const [item, have] = kind;
+    const n = Math.min(have!, 2);
+    store.inventory![item] = have! - n;
+    s.player.inventory[item] = (s.player.inventory[item] ?? 0) + n;
+    this.event(`${name} pays you in ${this.item(item)!.name.toLowerCase()}.`);
+    return { [item]: n };
   }
   /** Today's goals, picked at the first call of each game day. */
   dailyGoals() {
@@ -867,7 +994,7 @@ export class Engine {
   }
   /** Same-cell test standing in for `actors.some(o => distance(o.pos, p) < 1)`;
    * positions are integer cells, so the two agree. */
-  private actorAt(p: Position, excludeId: string) {
+  actorAt(p: Position, excludeId: string) {
     if (this.actorsAt)
       return (
         this.actorsAt
@@ -3103,7 +3230,8 @@ export class Engine {
           !o.carriedBy &&
           !o.broken &&
           !!o.prop &&
-          !!propDefs[o.prop]?.solid,
+          !!propDefs[o.prop]?.solid &&
+          !this.workAt(o, true).length,
       )
       .sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
     // object.name, not inspect(): inspect() asks this method for its climb
@@ -3480,6 +3608,10 @@ export class Engine {
           (occupied ? occupied.has(`${to.x},${to.y}`) : cellOccupied(to))
         )
           return Infinity;
+        // The player steps round anyone close by; farther off they will have moved.
+        if (actorId === "player" && Math.abs(to.x - start.x) + Math.abs(to.y - start.y) <= 6 &&
+          cellOccupied(to))
+          return 40;
         // Round the player where that is cheap; through them, and a
         // collision, where it is the only way.
         if (actorId !== "player" && this.playerOn({ ...to, space: start.space }))
@@ -3750,7 +3882,8 @@ export class Engine {
         ? this.world.topography?.(pos.x, pos.y)?.field
         : undefined;
       const sown = field && crops[field.crop];
-      if (!sown || !pickable(sown)) return;
+      const side = this.sideJob();
+      if (!sown || (!pickable(sown) && side?.id !== id)) return;
       const mine = this.worksFor(field.owner);
       const picked = !!this.state.tiles?.[tileKey(pos.x, pos.y)]?.picked;
       const near = distance(this.state.player.pos, pos) <= 1.5;
@@ -3768,6 +3901,14 @@ export class Engine {
           ? "Planted in a kitchen garden beside the houses."
           : "Growing in a worked field.",
         affordances: [
+          ...(side && side.id === id
+            ? [{
+                label: side.task,
+                command: { type: "interact" as const, target: id, action: "tend-plot" as const },
+                enabled: near && !side.done,
+                reason: side.done ? "Done for today" : near ? undefined : "Walk closer to reach it",
+              }]
+            : []),
           {
             label: mine
               ? `Harvest the ${what}`
@@ -5717,6 +5858,10 @@ export class Engine {
         this.event(`You pick up ${loose.name.toLowerCase()}.`);
         return;
       }
+    }
+    if (c.type === "interact" && c.action === "tend-plot") {
+      this.tendGarden();
+      return;
     }
     if (c.type === "interact" && c.action === "harvest") {
       const at = /^crop-(-?\d+)-(-?\d+)$/.exec(c.target);

@@ -35,7 +35,7 @@ import {
   generateAppearance,
   type AppearancePalette,
 } from "../core/character";
-import type { Actor, Intent, ItemId } from "../core/types";
+import type { Actor, Intent, ItemId, Position } from "../core/types";
 import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
@@ -77,13 +77,16 @@ export type Verb = {
     /** Work the door of the building in front of you. */
     | "door"
     /** Step aboard the train standing at the platform. */
-    | "board";
+    | "board"
+    /** A stage of the day's work at your station; held, it goes on. */
+    | "work";
   /** What the HUD prints beside the key. */
   label: string;
   /** Talk: whom to open the dialogue panel on. Inspect: what to select. */
   actor?: string;
   command?: Extract<PlayerCommand, { type: "interact" }>;
 };
+export const WORK_STAGE_MS = 1100;
 const TOOL_POSES: Record<ToolAction, CharacterPose> = {
   chop: "axe-chop",
   dig: "shovel-dig",
@@ -1474,6 +1477,10 @@ export class Runtime {
           }
         : undefined;
     let primary: Verb | undefined;
+    const work = held || item ? undefined : this.engine.state.objects
+      .filter((o) => distance(o.pos, p.pos) < 1.6)
+      .flatMap((o) => this.engine.inspect(o.id)?.affordances ?? [])
+      .find((a) => a.command.type === "interact" && a.command.action === "work");
     const train = this.boardable();
     const facing = this.engine.facingCell();
     const burn = {
@@ -1505,6 +1512,9 @@ export class Runtime {
         label: `Talk to ${speaker.name}`,
         actor: speaker.id,
       };
+    else if (work?.command.type === "interact" && work.enabled)
+      // Without the stage, so the button keeps its identity through a held run.
+      primary = { kind: "work", label: work.label.split(":")[0], command: work.command };
     else if (
       c.primary &&
       ["chop", "dig", "reap", "mine"].includes(c.primary.action)
@@ -1648,7 +1658,7 @@ export class Runtime {
       return verb;
     }
     if (verb.command) {
-      this.selected = verb.command.target;
+      if (verb.kind !== "work") this.selected = verb.command.target;
       this.command(verb.command);
       return verb;
     }
@@ -1689,7 +1699,41 @@ export class Runtime {
       full: 1100 * quick,
     };
   }
+  /** When F went down at a work station; each WORK_STAGE_MS held is a stage. */
+  workHold?: number;
+  /** A marked destination, or "work" to follow the day's work from stage to
+   * stage. Drawn on the minimap and, when in view, in the world. */
+  guide?: Position | "work";
+  setGuide(guide: Position | "work" | undefined) {
+    this.guide = guide;
+    this.emit(false);
+  }
+  /** Where the guide points now, and what to call it. A fixed point clears
+   * once reached; the work guide once the day's work is done. */
+  guideTarget(): { pos: Position; label?: string; work?: boolean } | undefined {
+    const g = this.guide;
+    const p = this.engine.state.player.pos;
+    if (!g) return;
+    if (g !== "work") {
+      if (g.space === p.space && Math.hypot(p.x - g.x, p.y - g.y) < 3) this.guide = undefined;
+      return this.guide && { pos: g };
+    }
+    const plan = this.engine.workPlan();
+    const station = plan?.station;
+    const garden = plan && plan.done >= plan.stages.length && plan.side && !plan.side.done ? plan.side : undefined;
+    if (garden) return p.space === "outside" ? { pos: garden.pos, label: "Your garden", work: true } : undefined;
+    if (!plan || !station || plan.done >= plan.stages.length) {
+      this.guide = undefined;
+      return;
+    }
+    const pos = station.pos.space === p.space ? station.pos : plan.door;
+    return pos && { pos, label: plan.where, work: true };
+  }
   releaseCharge() {
+    if (this.workHold !== undefined) {
+      this.workHold = undefined;
+      this.emit();
+    }
     const c = this.charge;
     this.charge = undefined;
     if (!c) return;
@@ -1709,6 +1753,12 @@ export class Runtime {
   pressSwing(): Verb | undefined {
     if (!this.replay && this.armPlunge()) return undefined;
     const verb = this.verbs().primary;
+    if (verb?.kind === "work") {
+      this.stop(false);
+      this.workHold = performance.now();
+      this.emit();
+      return verb;
+    }
     if (verb?.kind !== "strike" || verb.command) return this.runVerb("primary");
     const now = this.engine.swingFinds();
     if (now) this.runVerb("primary");
@@ -2018,6 +2068,14 @@ export class Runtime {
       return;
     }
     if (!this.running) {
+      if (this.workHold !== undefined && performance.now() - this.workHold >= WORK_STAGE_MS) {
+        const verb = this.verbs().primary;
+        if (verb?.kind === "work") {
+          this.runVerb("primary");
+          this.workHold = this.verbs().primary?.kind === "work" ? performance.now() : undefined;
+        } else this.workHold = undefined;
+        this.emit();
+      }
       // Standing still still spends time. Small blocks, because the whole block
       // is simulated in one frame: 600 seconds at once is a visible hitch, and
       // anyone the engine rather than a routine moves stands frozen until it
@@ -2079,10 +2137,14 @@ export class Runtime {
         if (result?.status !== "completed") this.stop();
         return;
       }
-      if (this.engine.playerBlocked(upcoming.x, upcoming.y)) {
+      if (this.engine.playerBlocked(upcoming.x, upcoming.y) || this.engine.actorAt({ ...upcoming, space: p.space }, "player")) {
         const goal = this.route.at(-1)!;
         this.route = this.engine.findRoute(p, goal).path;
         if (!this.route.length) this.notice = "The route is now blocked.";
+        else if (this.engine.actorAt({ ...this.route[0], space: p.space }, "player")) {
+          this.command({ type: "wait", seconds: 1 });
+          return;
+        }
       }
     }
     const step = this.route.shift();

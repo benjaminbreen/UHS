@@ -7,6 +7,7 @@ import {
   Eye,
   Gift,
   GlassWater,
+  Hammer,
   Hand,
   MessageCircle,
   Mountain,
@@ -33,6 +34,7 @@ const ICONS: Record<Verb["kind"], LucideIcon> = {
   inspect: Search,
   door: DoorOpen,
   board: TrainFront,
+  work: Hammer,
 };
 
 /** The scene's side of the controls. */

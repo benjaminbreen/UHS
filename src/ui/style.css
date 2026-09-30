@@ -2694,26 +2694,6 @@ button:disabled {
   align-items: flex-start;
   pointer-events: none;
 }
-.prop-prompts button,
-.prop-prompts span {
-  pointer-events: auto;
-  color: #e8d6ad;
-  background: #202a28ed;
-  border: 1px solid #887b56;
-  border-radius: 4px;
-  padding: 7px 12px;
-  font:
-    14px Georgia,
-    serif;
-}
-
-/* A person in reach is the one prompt worth more than the prop it sits beside. */
-.prop-prompts .talk-prompt {
-  color: #f3e3b8;
-  border-color: #d3b167;
-  box-shadow: 0 0 0 1px #d3b16733;
-}
-
 /* World Weaver: an atlas desk, framed in brass. */
 .modal-world {
   width: min(1130px, 100%);
@@ -6117,39 +6097,6 @@ button:disabled {
     transform: translateY(-14px);
   }
 }
-.prop-prompts .key-prompt {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  white-space: pre;
-  animation: prompt-in 0.18s cubic-bezier(0.2, 1.3, 0.4, 1);
-  transition:
-    transform 0.06s ease-out,
-    background 0.06s;
-}
-.prop-prompts .key-prompt kbd {
-  display: inline-grid;
-  place-items: center;
-  min-width: 18px;
-  height: 18px;
-  margin-right: 1px;
-  font: 11px var(--pixel);
-  color: #202a28;
-  background: #e8d6ad;
-  border-radius: 3px;
-  box-shadow: 0 2px 0 #887b56;
-  transition:
-    transform 0.06s ease-out,
-    box-shadow 0.06s;
-}
-.prop-prompts .key-prompt[data-down] {
-  transform: translateY(1px);
-  background: #2a3633;
-}
-.prop-prompts .key-prompt[data-down] kbd {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 #887b56;
-}
 @keyframes prompt-in {
   from {
     opacity: 0;
@@ -7658,9 +7605,6 @@ button:disabled {
 .side-tabs + * {
   animation: rise-in 0.18s ease-out;
 }
-.prop-prompts > * {
-  animation: rise-in 0.15s ease-out;
-}
 
 @media (max-width: 1400px) and (min-width: 641px) {
   .keyboard-hint span:not(.hint-event):nth-last-child(-n + 3) {
@@ -8037,4 +7981,968 @@ button:disabled {
   border: 1px solid var(--line-soft);
   border-radius: 10px;
   background: #d9b47712;
+}
+
+
+/* Corner prompts and the work card: one family. Dark glass, a warm hairline
+   that catches light along its top edge, a pixel kicker over a serif line. */
+.prop-prompts,
+.work-card {
+  --glass: linear-gradient(180deg, #26302ef2, #171e1df2);
+  --edge: #8f7f55;
+  --gold: #e3c37a;
+  --ink: #efe2c0;
+  --muted: #a99d7e;
+}
+.prop-prompts {
+  gap: 7px;
+}
+.prop-prompts > button,
+.prop-prompts > span {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  color: var(--ink);
+  background: var(--glass);
+  border: 1px solid #8f7f5599;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 6px 18px -6px #000c,
+    0 1px 2px #0008;
+  backdrop-filter: blur(6px);
+  font: 14px var(--serif);
+  white-space: nowrap;
+  animation: prompt-in 0.42s cubic-bezier(0.16, 1.2, 0.3, 1) both;
+}
+.prop-prompts > :nth-child(2) { animation-delay: 0.04s; }
+.prop-prompts > :nth-child(3) { animation-delay: 0.08s; }
+.prop-prompts > span {
+  padding-left: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.prop-prompts > span b {
+  color: var(--ink);
+  font-weight: normal;
+}
+.prop-prompts .key-prompt {
+  cursor: pointer;
+  transition:
+    transform 0.18s cubic-bezier(0.2, 1.4, 0.4, 1),
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.prop-prompts .key-prompt:hover {
+  transform: translateX(3px);
+  border-color: var(--gold);
+}
+/* A sheen crosses a prompt as it arrives, so a new verb is noticed. */
+.prop-prompts .key-prompt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 30%, #f3dfa433 50%, transparent 70%) no-repeat;
+  background-size: 250% 100%;
+  animation: prompt-sheen 0.9s 0.15s ease-out both;
+  pointer-events: none;
+}
+.prop-prompts kbd {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  color: #231c10;
+  background: linear-gradient(180deg, #f4e2b2, #d9bc78);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 -2px 0 #a9894799,
+    0 2px 0 #5d4b27,
+    0 0 0 1px #0006;
+  font: 11px var(--pixel);
+  transition:
+    transform 0.08s ease-out,
+    box-shadow 0.08s ease-out;
+}
+.prop-prompts > span kbd {
+  min-width: 20px;
+  height: 20px;
+  margin-left: -8px;
+  font-size: 9px;
+}
+.prop-prompts .key-prompt[data-down] {
+  transform: translateY(1px) scale(0.985);
+}
+.prop-prompts .key-prompt[data-down] kbd {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 -1px 0 #a9894799,
+    0 0 0 #5d4b27,
+    0 0 0 1px #0006;
+}
+.prop-prompts .key-prompt[data-kind="talk"],
+.prop-prompts .key-prompt[data-kind="work"],
+.prop-prompts .talk-prompt {
+  border-color: #d3b167cc;
+  animation:
+    prompt-in 0.42s cubic-bezier(0.16, 1.2, 0.3, 1) both,
+    prompt-glow 2.4s 0.5s ease-in-out infinite;
+}
+/* Held work: a ring runs round the keycap once per stage. */
+.key-ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: conic-gradient(var(--gold) calc(var(--p) * 1turn), #e3c37a26 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  animation: ring-fill var(--stage-ms, 1100ms) linear infinite;
+}
+.prop-prompts .key-prompt[data-holding] kbd {
+  transform: translateY(2px);
+  box-shadow: inset 0 -1px 0 #a9894799, 0 0 0 1px #0006, 0 0 14px #e3c37a88;
+}
+@property --p {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+@keyframes ring-fill {
+  from { --p: 0; }
+  to { --p: 1; }
+}
+@keyframes prompt-in {
+  from {
+    opacity: 0;
+    transform: translateX(-14px) scale(0.96);
+    filter: blur(3px);
+  }
+}
+@keyframes prompt-sheen {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+@keyframes prompt-glow {
+  50% {
+    box-shadow:
+      inset 0 1px 0 #ffffff14,
+      0 6px 18px -6px #000c,
+      0 0 0 3px #d3b16722;
+  }
+}
+
+.work-card {
+  position: absolute;
+  top: 128px;
+  left: 20px;
+  z-index: 4;
+  width: 268px;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--glass);
+  border: 1px solid #8f7f5599;
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 14px 34px -12px #000d,
+    0 1px 2px #0008;
+  backdrop-filter: blur(8px);
+  font: 14px var(--serif);
+  animation: card-in 0.5s cubic-bezier(0.16, 1.1, 0.3, 1) both;
+}
+/* The day's progress as a hairline along the top edge. */
+.work-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, #b8913e, var(--gold));
+  transform: scaleX(var(--progress));
+  transform-origin: left;
+  transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.work-card[data-here] {
+  border-color: #d3b167cc;
+}
+.work-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px 8px;
+  color: inherit;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.work-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  color: #231c10;
+  background: linear-gradient(180deg, #f4e2b2, #d9bc78);
+  border-radius: 8px;
+  box-shadow: inset 0 -2px 0 #a9894799, 0 2px 0 #5d4b27;
+}
+.work-card .work-icon svg {
+  color: #231c10;
+  opacity: 1;
+  stroke-width: 2.4;
+}
+.work-card[data-holding] .work-icon svg {
+  animation: hammer 0.55s ease-in-out infinite;
+  transform-origin: 70% 70%;
+}
+.work-title {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.work-title small {
+  color: var(--gold);
+  font: 8px var(--pixel);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.work-title b {
+  overflow: hidden;
+  font: 17px var(--serif);
+  font-weight: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.work-count {
+  color: var(--muted);
+  font: 10px var(--pixel);
+}
+.work-body {
+  display: grid;
+  gap: 9px;
+  padding: 2px 12px 12px;
+}
+/* Stages as a stepper: dots on a track that fills as they are done. */
+.work-stages {
+  display: flex;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.work-stages li {
+  position: relative;
+  display: grid;
+  flex: 1;
+  justify-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12.5px;
+  transition: color 0.3s;
+}
+.work-stages li + li::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold) 50%, #8f7f5544 50%) 100% 0 / 200% 100%;
+  transition: background-position 0.5s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+.work-stages li[data-done]::before,
+.work-stages li[data-now]::before {
+  background-position: 0 0;
+}
+.work-stages i {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  background: #1c2322;
+  border: 2px solid #8f7f55aa;
+  border-radius: 50%;
+  transition:
+    background 0.3s,
+    border-color 0.3s,
+    transform 0.35s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+.work-stages li[data-done] i {
+  background: var(--gold);
+  border-color: var(--gold);
+  transform: scale(0.8);
+}
+.work-stages li[data-done] i::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
+  height: 7px;
+  border: solid #231c10;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.work-stages li[data-now] {
+  color: var(--ink);
+}
+.work-stages li[data-now] i {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px #e3c37a22;
+  animation: stage-pulse 1.8s ease-in-out infinite;
+}
+.work-stages em {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: conic-gradient(var(--gold) calc(var(--p) * 1turn), transparent 0);
+  animation: ring-fill var(--stage-ms) linear infinite;
+}
+.work-where {
+  margin: 0;
+  padding: 7px 10px;
+  color: #d7c9a4;
+  background: #0000002b;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.work-card[data-here] .work-where {
+  color: var(--gold);
+}
+.work-actions {
+  display: flex;
+  gap: 6px;
+}
+.work-actions:empty {
+  display: none;
+}
+.work-title b {
+  white-space: normal;
+  line-height: 1.2;
+  animation: task-in 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.work-where {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.work-where svg {
+  flex: none;
+  color: var(--gold);
+}
+.work-where span {
+  flex: 1;
+  min-width: 0;
+}
+.work-where small {
+  color: var(--muted);
+  font: 9px var(--pixel);
+  font-variant-numeric: tabular-nums;
+}
+.work-hold kbd {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  color: #231c10;
+  background: linear-gradient(180deg, #f4e2b2, #d9bc78);
+  border-radius: 5px;
+  box-shadow: 0 2px 0 #5d4b27;
+  font: 9px var(--pixel);
+  animation: key-nudge 1.4s ease-in-out infinite;
+}
+.work-card[data-holding] .work-hold kbd {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #5d4b27;
+  animation: none;
+}
+.work-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.work-actions button[data-on] {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: #e3c37a1a;
+}
+.work-actions button[data-on] svg {
+  animation: compass-swing 2.4s ease-in-out infinite;
+}
+.work-stages li[data-done] i {
+  animation: stage-pop 0.5s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+.work-card[data-finished] {
+  border-color: var(--gold);
+  animation: card-in 0.5s cubic-bezier(0.16, 1.1, 0.3, 1) both, card-out 0.5s ease-in 3.1s forwards;
+}
+.work-card[data-finished] .work-icon {
+  animation: stage-pop 0.6s cubic-bezier(0.2, 1.8, 0.4, 1), glint 1.6s ease-in-out infinite 0.6s;
+}
+.work-side {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -2px 2px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.work-side svg {
+  color: #9fc27a;
+}
+.work-side[data-done] span {
+  text-decoration: line-through;
+  text-decoration-color: #9fc27a99;
+}
+.work-cheer {
+  color: var(--gold);
+}
+.work-actions button {
+  flex: 1;
+  padding: 7px 8px;
+  white-space: nowrap;
+  color: var(--ink);
+  background: #ffffff0a;
+  border: 1px solid #8f7f5599;
+  border-radius: 7px;
+  font: 13px var(--serif);
+  cursor: pointer;
+  transition:
+    transform 0.15s cubic-bezier(0.2, 1.4, 0.4, 1),
+    background 0.2s,
+    border-color 0.2s;
+}
+.work-actions button:hover {
+  transform: translateY(-1px);
+  border-color: var(--gold);
+  background: #ffffff14;
+}
+.work-actions button:active {
+  transform: translateY(1px);
+}
+.work-actions .primary {
+  color: #231c10;
+  background: linear-gradient(180deg, #f1dca6, #d4b36c);
+  border-color: #f1dca6;
+  box-shadow: inset 0 -2px 0 #a9894799;
+}
+.work-actions .primary:hover {
+  background: linear-gradient(180deg, #f7e6b9, #dcbd78);
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+    filter: blur(4px);
+  }
+}
+@keyframes stage-pulse {
+  50% { box-shadow: 0 0 0 7px #e3c37a00; }
+}
+@keyframes task-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+@keyframes stage-pop {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.3); box-shadow: 0 0 0 8px #e3c37a44; }
+}
+@keyframes key-nudge {
+  50% { transform: translateY(1px); box-shadow: 0 1px 0 #5d4b27; }
+}
+@keyframes compass-swing {
+  25% { transform: rotate(-18deg); }
+  75% { transform: rotate(14deg); }
+}
+@keyframes glint {
+  50% { box-shadow: inset 0 -2px 0 #a9894799, 0 2px 0 #5d4b27, 0 0 14px #e3c37a88; }
+}
+@keyframes card-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+}
+@keyframes hammer {
+  50% { transform: rotate(-28deg); }
+}
+/* On a phone the card is a single line until tapped, clear of the thumbs. */
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .work-card {
+    top: 112px;
+    left: 12px;
+    width: min(300px, calc(100% - 24px));
+  }
+  .work-card-head {
+    padding: 8px 10px 7px;
+  }
+  .work-actions button {
+    padding: 11px 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prop-prompts > *,
+  .prop-prompts .key-prompt::after,
+  .work-card,
+  .work-card *,
+  .work-stages li[data-now] i,
+  .work-card[data-holding] .work-icon svg {
+    animation: none;
+  }
+}
+
+/* Hearts: the same glass as the prompts beneath them. */
+.vitals {
+  gap: 4px;
+  padding: 6px 11px;
+  background: linear-gradient(180deg, #ffffff1f, #ffffff08);
+  border: 1px solid #ffffff2e;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 6px 18px -6px #000c;
+  backdrop-filter: blur(10px) saturate(1.3);
+  animation: prompt-in 0.5s cubic-bezier(0.16, 1.2, 0.3, 1) both;
+}
+.vitals[data-flash="hurt"] {
+  border-color: #e0645acc;
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 0 0 3px #e0645a33,
+    0 6px 18px -6px #000c;
+}
+.vitals[data-flash="heal"] {
+  border-color: #d3b167cc;
+}
+.vitals[data-low] {
+  border-color: #e0645a99;
+  animation: vitals-low 1.8s ease-in-out infinite;
+}
+@keyframes vitals-low {
+  50% { box-shadow: inset 0 1px 0 #ffffff14, 0 0 0 4px #e0645a26, 0 6px 18px -6px #000c; }
+}
+
+/* Action bar: raised buttons with gold keycaps that sink when pressed. */
+.quick-actions button {
+  background: linear-gradient(180deg, #ffffff0a, #00000014), var(--bg);
+  border-color: #8f7f5580;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 #ffffff12,
+    0 2px 0 #0000004d;
+  transition:
+    transform 0.15s cubic-bezier(0.2, 1.4, 0.4, 1),
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background-color 0.2s;
+}
+.quick-actions button:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold);
+  box-shadow:
+    inset 0 1px 0 #ffffff1a,
+    0 4px 0 #0000004d,
+    0 8px 18px -8px #d3b16755;
+}
+.quick-actions button:active,
+.quick-actions button[aria-expanded="true"] {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 6px #0006;
+}
+.quick-actions button svg {
+  color: var(--gold);
+  transition: transform 0.25s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.quick-actions button:hover svg {
+  transform: scale(1.12) rotate(-6deg);
+}
+.quick-actions kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  color: #231c10;
+  background: linear-gradient(180deg, #f4e2b2, #d9bc78);
+  border: 0;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 -1.5px 0 #a9894799,
+    0 1.5px 0 #5d4b27;
+  font: 8px var(--pixel);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+.quick-actions button:active kbd {
+  translate: 0 1px;
+  box-shadow: inset 0 -1px 0 #a9894799;
+}
+
+/* Today: the aim, the day's goals as rows to tick, then what happened. */
+.today {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 16px;
+}
+.today-aim {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  color: var(--cream);
+  background: #ffffff08;
+  border: 1px solid #8f7f5580;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  animation: rise-in 0.3s ease-out both;
+  transition:
+    border-color 0.2s,
+    transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.today-aim:hover {
+  border-color: var(--gold);
+  transform: translateX(2px);
+}
+.today-aim small,
+.today-head,
+.today-text small {
+  color: var(--gold);
+  font: 8px var(--pixel);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.today-aim b {
+  font: 16px/1.35 var(--serif);
+  font-weight: normal;
+}
+.today-aim > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.today-steps {
+  display: inline-flex;
+  gap: 4px;
+}
+.today-steps em {
+  width: 14px;
+  height: 5px;
+  background: #ffffff1a;
+  border-radius: 3px;
+  transition: background 0.4s;
+}
+.today-steps em[data-done] {
+  background: var(--gold);
+}
+.today-goals {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.today-goals li {
+  animation: rise-in 0.3s calc(var(--i) * 45ms + 60ms) ease-out both;
+}
+.today-goals button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 10px;
+  color: var(--cream);
+  background: #ffffff06;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.today-goals button:hover {
+  background: #ffffff0f;
+  border-color: #8f7f5580;
+  transform: translateX(2px);
+}
+.today-goals button[data-aim] {
+  border-color: #d3b16788;
+  background: #d3b16712;
+}
+.today-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  color: var(--gold);
+  background: #0000002e;
+  border: 1px solid #8f7f5566;
+  border-radius: 7px;
+}
+.today-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  font: 14px/1.35 var(--serif);
+}
+.today-text small {
+  color: var(--muted);
+}
+.today-goals button[data-aim] .today-text small {
+  color: var(--gold);
+}
+.today-check {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border: 1.5px solid #8f7f5599;
+  border-radius: 50%;
+  transition:
+    background 0.3s,
+    border-color 0.3s,
+    transform 0.35s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+.today-goals button[data-done] .today-check {
+  background: var(--gold);
+  border-color: var(--gold);
+  transform: scale(1.05);
+}
+.today-goals button[data-done] .today-check::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid #231c10;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.today-goals button[data-done] .today-text {
+  color: var(--muted);
+}
+.today-goals button[data-done] .today-icon {
+  opacity: 0.55;
+}
+.today-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+.today-head {
+  margin: 4px 0 -6px;
+  color: var(--muted);
+}
+.today-log {
+  display: grid;
+  margin: 0;
+  padding: 0 0 0 16px;
+  list-style: none;
+  background: linear-gradient(var(--line), var(--line)) 4px 0 / 1px 100% no-repeat;
+  max-height: 260px;
+  overflow: auto;
+}
+.today-log li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 8px;
+  padding: 7px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.today-log li::before {
+  content: "";
+  position: absolute;
+  left: -15px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  background: var(--line);
+  border-radius: 50%;
+}
+.today-log li:first-child {
+  color: var(--cream);
+  animation: rise-in 0.35s ease-out;
+}
+.today-log li:first-child::before {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px #d3b16733;
+}
+.today-log time {
+  padding-top: 2px;
+  font: 8px var(--pixel);
+}
+
+/* On a phone the bar is icons only, so the command line gets the room. */
+@media (max-width: 640px) {
+  .quick-actions button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .quick-actions button span,
+  .quick-actions kbd {
+    display: none;
+  }
+  .quick-actions button svg {
+    width: 19px;
+    height: 19px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vitals,
+  .today *,
+  .quick-actions * {
+    animation: none !important;
+  }
+}
+
+.work-card:not([data-open]) .work-body {
+  display: none;
+}
+.work-card[data-open] .work-body {
+  animation: rise-in 0.25s ease-out;
+}
+.work-card-head {
+  padding-right: 40px;
+}
+.work-close {
+  position: absolute;
+  top: 9px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.work-close:hover {
+  color: var(--ink);
+  background: #ffffff14;
+}
+.work-count {
+  transition: opacity 0.2s;
+}
+
+/* Toasts: news from the world, quiet and brief, at the top of the view. */
+.toasts {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(440px, calc(100% - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 8px 16px 8px 12px;
+  color: #f1e6cb;
+  background: linear-gradient(180deg, #1b2221d9, #121817d9);
+  border: 1px solid #ffffff1c;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 #ffffff12,
+    0 10px 28px -12px #000c;
+  backdrop-filter: blur(10px) saturate(1.2);
+  font: 14px/1.35 var(--serif);
+  text-shadow: 0 1px 1px #0008;
+  animation: toast-in 0.55s cubic-bezier(0.16, 1.1, 0.3, 1) both;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease,
+    filter 0.4s ease;
+}
+/* Older news sits back behind the newest. */
+.toast:nth-child(2) {
+  opacity: 0.75;
+  transform: scale(0.97);
+}
+.toast:nth-child(3) {
+  opacity: 0.45;
+  transform: scale(0.94);
+}
+.toast[data-leaving] {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.96);
+  filter: blur(2px);
+}
+.toast i {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: #e3c37a;
+  box-shadow: 0 0 0 3px #e3c37a26, 0 0 8px #e3c37a88;
+}
+.toast[data-kind="social"] i {
+  background: #9cc7a4;
+  box-shadow: 0 0 0 3px #9cc7a426, 0 0 8px #9cc7a488;
+}
+.toast[data-kind="world"] i {
+  background: #8fb3d9;
+  box-shadow: 0 0 0 3px #8fb3d926, 0 0 8px #8fb3d988;
+}
+.toast[data-kind="system"] i {
+  background: #b9b0a0;
+  box-shadow: none;
+}
+.toast span {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+    filter: blur(4px);
+  }
+}
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .toasts {
+    top: 62px;
+  }
+  .toast {
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+    transition: opacity 0.3s;
+  }
 }
