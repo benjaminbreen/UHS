@@ -163,6 +163,14 @@ function goingWithout(runtime: Runtime, household?: Household) {
   return `Going short of: ${lines.join("; ")}. It is on your mind and may come up.`;
 }
 
+/** Still shaking from a break-in. */
+const terrified = (runtime: Runtime, actor: Actor) => !!actor.terror && runtime.engine.state.clock <= actor.terror.until;
+/** How a terrified person says anything: in capitals, every stop an exclamation. */
+export function shout(text: string) {
+  const loud = text.toUpperCase().replace(/[.?]+(?=\s|$)/g, "!!").replace(/,\s/g, "! ");
+  return /!\s*$/.test(loud) ? loud : `${loud}!!!`;
+}
+
 export function dialogueContext(runtime: Runtime, actor: Actor) {
   const engine = runtime.engine;
   const state = engine.state;
@@ -251,6 +259,9 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
+    terrified(runtime, actor)
+      ? `YOU ARE TERRIFIED. The player has just smashed down the door of your home with a heavy tool and is inside, or right there. ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
+      : "",
     intruding
       ? homePlace?.access === "public"
         ? `The player has walked into ${homePlace.name}, which is your household's home as well as where you work. Whether that is normal depends on your trade: a trader, shopkeeper, innkeeper or craftsman selling goods expects buyers to walk in by day and may treat them as a customer; a herder, farmer, labourer or anyone else does not, and for them a stranger walking in is an intrusion. It is also an intrusion if the player looks odd, armed or dangerous (see "In front of you"). If it is an intrusion: ${intrusionReaction(state.manifest.seed, actor, stats)}`
@@ -381,6 +392,8 @@ export async function dialogueTurn(
           `${data.tokens?.out ?? 0} out (${data.tokens?.reasoning ?? 0} reasoning)`,
       );
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
+    // Whatever the model makes of it, a terrified person shouts.
+    if (terrified(runtime, actor)) data.text = shout(data.text);
     return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.

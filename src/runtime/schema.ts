@@ -339,6 +339,7 @@ const actor = z.object({
   direction: z.number().int().min(0).max(3),
   facing: z.number().int().min(0).max(7).optional(),
   offRoutine: z.boolean().optional(),
+  terror: z.object({ until: z.number(), place: z.string(), fight: z.boolean(), staggered: z.number().optional() }).optional(),
   lastUpdated: z.number().int().optional(),
   goal: pos.optional(),
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),

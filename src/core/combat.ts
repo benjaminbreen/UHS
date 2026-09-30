@@ -263,6 +263,10 @@ export const cueKinds = [
   "beckon",
   /** Caught sight of the player close by. The scene's own, never the engine's. */
   "notice",
+  /** A blow thrown at somebody. */
+  "strike",
+  /** A blow taken. */
+  "struck",
 ] as const;
 export type CueKind = (typeof cueKinds)[number];
 

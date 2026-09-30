@@ -55,6 +55,8 @@ const ACTS: Record<
     move: "hop",
   },
   beckon: { pose: "beckon", ms: 960 },
+  strike: { pose: "swing", ms: 480, move: "shake" },
+  struck: { pose: "hurt", ms: 520, move: "shake", sound: "alarm" },
 };
 /** Feet to just over the hair. A person's canvas is mostly empty headroom,
  * so its height says nothing about where the head is. */

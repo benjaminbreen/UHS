@@ -219,3 +219,44 @@ describe("walking through", () => {
     }
   });
 });
+
+describe("breaking in", () => {
+  it("takes a shut door down with an axe, and the household comes at the one who did it", () => {
+    const e = createSettingSession({ ...panelSetting("london", 1400), season: "summer" }, "break-in");
+    e.state.clock = Math.floor(e.state.clock / 86400) * 86400 + 11 * 3600;
+    const h = e.state.households!.find((g) => g.residence && !g.members.includes("player") && g.members.length)!;
+    const house = e.world.place(h.residence!)!;
+    const door = e.state.objects.find((o) => o.kind === "door" && o.placeId === house.id)!;
+    door.open = false;
+    // A grown householder at home.
+    const inside = e.state.actors.find((a) => a.id === h.members[0])!;
+    inside.age = 35;
+    const room = e.interiorOf(house.id)!;
+    inside.pos = { ...room.entry, x: room.entry.x, y: room.entry.y - 1, space: house.id };
+    const d = doorCell(house), from = doorApproach(house);
+    for (const a of e.state.actors) if (a !== inside && a.pos.space === "outside" && Math.abs(a.pos.x - d.x) <= 1 && Math.abs(a.pos.y - d.y) <= 2) a.pos = { x: 9999, y: 9999, space: "outside" };
+    e.state.objects.push({ id: "axe-in-hand", name: "Hafted axe", kind: "container", prop: "axe", carriedBy: "player", pos: { ...from, space: "outside" }, sprite: "study-prop-axe-0", inventory: {} });
+    e.state.player.held = "axe-in-hand";
+    e.state.player.pos = { ...from, space: "outside" };
+    e.state.player.direction = 0;
+    for (let n = 0; n < 3 && !door.broken; n++) act(e, { type: "swing" });
+    expect(door.broken).toBe(true);
+    expect(door.open).toBe(true);
+    expect(inside.terror?.fight).toBe(true);
+    // Broken, it will not shut again.
+    act(e, { type: "interact", target: door.id, action: "close" });
+    expect(door.open).toBe(true);
+    // In through the wreck; they come at you and you take blows.
+    act(e, { type: "move", dx: d.x - from.x, dy: d.y - from.y });
+    expect(e.state.player.pos.space).toBe(house.id);
+    const health = e.state.player.health ?? 100;
+    for (let n = 0; n < 12; n++) act(e, { type: "wait", seconds: 6 });
+    expect(e.state.player.health ?? 100).toBeLessThan(health);
+  });
+
+  it("shouts: capitals, and every stop an exclamation", async () => {
+    const { shout } = await import("../src/narrator/dialogue");
+    expect(shout("Get out of my house. Who are you?")).toBe("GET OUT OF MY HOUSE!! WHO ARE YOU!!");
+  });
+});
+

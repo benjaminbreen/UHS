@@ -2086,6 +2086,87 @@ export class Engine {
     const p = this.state.player;
     if (!p.scars?.includes(injury)) p.scars = [...(p.scars ?? []), injury].slice(-4);
   }
+  /** One blow of a heavy tool at a shut door. Three blows' worth and it gives:
+   * it stands open for good, and the household inside is terrified. */
+  private bashDoor(at: Point, space: string, blows: number) {
+    if (space !== "outside") return undefined;
+    const door = this.barrierAt(at, space);
+    if (!door || door.kind !== "door" || door.open || door.broken) return undefined;
+    door.damage = Math.min(3, (door.damage ?? 0) + blows);
+    door.knocked = this.state.clock;
+    const place = door.placeId ? this.world.place(door.placeId) : undefined;
+    if (door.damage < 3) return "The door shudders under the blow and splinters. Someone inside screams.";
+    door.broken = true;
+    door.open = true;
+    if (place) this.breakIn(place);
+    return "THE DOOR BURSTS INWARD. Screams from inside!";
+  }
+  /** Everyone at home when the door comes in: the able-bodied grown come at
+   * the intruder, children and the old cower and run. Nobody forgets it. */
+  private breakIn(place: Place) {
+    const household = this.state.households?.find((h) => h.residence === place.id);
+    const home = (a: Actor) => a.pos.space === place.id || (household?.members.includes(a.id) && a.pos.space === "outside" && distance(a.pos, this.state.player.pos) < 12);
+    for (const a of this.state.actors) {
+      if (a.kind !== "human" || !home(a)) continue;
+      const age = a.age ?? 30;
+      a.terror = { until: this.state.clock + 2 * 3600, place: place.id, fight: age >= 15 && age < 65 && !a.injury };
+      a.offRoutine = true;
+      a.memories.push(`Saw player break down the door of ${place.name.toLowerCase()} with an axe`);
+      this.regard(a, -4, "fury");
+      this.cue(a.id, "alarm", this.state.player.pos);
+    }
+  }
+  private stagger(a: Actor, push: readonly number[]) {
+    const to = { ...a.pos, x: a.pos.x + push[0], y: a.pos.y + push[1] };
+    if (!this.blocked(to.x, to.y, to.space) && !this.actorAt(to, a.id)) this.moveActor(a, to);
+    if (a.terror) a.terror.staggered = this.state.clock;
+  }
+  /** Each tick of a break-in: whoever fights closes on the player and hits
+   * them; whoever cannot backs away into a corner. It ends in a couple of
+   * hours, or at once when the player is gone. */
+  private brawl() {
+    const p = this.state.player;
+    for (const a of this.state.actors) {
+      const t = a.terror;
+      if (!t) continue;
+      if (this.state.clock > t.until) {
+        delete a.terror;
+        a.offRoutine = false;
+        continue;
+      }
+      if (a.pos.space !== p.pos.space || p.dead || distance(a.pos, p.pos) > 10) continue;
+      const near = Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y));
+      if (t.fight && near <= 1) {
+        // A blow every twelve seconds, and none just after being driven back.
+        if (this.state.clock % 12 !== 0 || this.state.clock - (t.staggered ?? -99) < 12) continue;
+        this.struckBy(a);
+        continue;
+      }
+      const toward = t.fight ? 1 : -1;
+      const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        .map(([dx, dy]) => ({ ...a.pos, x: a.pos.x + dx, y: a.pos.y + dy }))
+        .filter((c) => !this.blocked(c.x, c.y, c.space) && !this.actorAt(c, a.id) && !(c.x === p.pos.x && c.y === p.pos.y))
+        .sort((c1, c2) => toward * (distance(c1, p.pos) - distance(c2, p.pos)));
+      if (steps[0] && toward * (distance(steps[0], p.pos) - distance(a.pos, p.pos)) < 0) this.moveActor(a, steps[0]);
+      a.direction = Math.abs(p.pos.x - a.pos.x) > Math.abs(p.pos.y - a.pos.y) ? (p.pos.x > a.pos.x ? 1 : 3) : p.pos.y > a.pos.y ? 2 : 0;
+    }
+  }
+  /** A householder's blow: a fist, or whatever they are holding. It knocks
+   * the player back a step; enough of them and the player goes down, to wake
+   * wherever someone carries them. */
+  private struckBy(a: Actor) {
+    const p = this.state.player;
+    const armed = !!a.heldItem;
+    const damage = (armed ? 12 : 7) + Math.floor(random(this.state.manifest.seed, "blow", a.id, this.state.clock) * 5);
+    const dir = { x: Math.sign(p.pos.x - a.pos.x), y: Math.sign(p.pos.y - a.pos.y) };
+    const next = { ...p.pos, x: p.pos.x + dir.x, y: p.pos.y + dir.y };
+    if (!this.blocked(next.x, next.y, next.space) && !this.actorAt(next, "player")) p.pos = next;
+    p.health = Math.max(0, (p.health ?? 100) - damage);
+    this.cue(a.id, "strike", p.pos);
+    this.cue("player", "struck", a.pos);
+    this.event(`${a.name.toUpperCase()} HITS YOU${armed ? ` WITH THE ${this.item(a.heldItem!)?.name.toUpperCase() ?? "WEAPON"}` : ""}! (-${damage})`);
+    if (p.health <= 0) this.pendingCollapse = { by: a.name, part: "cracked ribs" };
+  }
   private hurt(damage: number, cause: string, injury?: string) {
     const p = this.state.player;
     if (p.dead || damage <= 0) return;
@@ -4339,7 +4420,8 @@ export class Engine {
         ? this.world.place(object.placeId)
         : undefined;
       const verdict = place ? this.doorVerdict(place, "player") : "open";
-      if (object.open) interact("close", "Close the door");
+      if (object.broken) interact("close", "Close the door", false, "It hangs off its hinges");
+      else if (object.open) interact("close", "Close the door");
       else if (verdict === "open") interact("open", "Open the door");
       // A door that will not open can still be knocked on. Whether anything
       // answers is the knock's business, not the prompt's.
@@ -5359,6 +5441,19 @@ export class Engine {
       ][p.direction];
       let told: string | undefined;
       for (const [i, at] of cone.entries()) {
+        // A heavy tool takes a shut door off its hinges in a few blows.
+        if ((i === 0 || power) && (tool === "blade" || tool === "blunt")) {
+          const broke = this.bashDoor(at, p.pos.space, 1 + power);
+          if (broke) {
+            told = broke;
+            continue;
+          }
+        }
+        const fighter = this.state.actors.find((a) => a.terror?.fight && a.pos.space === p.pos.space && a.pos.x === at.x && a.pos.y === at.y);
+        if (fighter && tool !== "bare") {
+          this.stagger(fighter, push);
+          told = `You drive ${fighter.name} back!`;
+        }
         const animal =
           p.pos.space === "outside" ? this.faunaAt(at.x, at.y) : undefined;
         const found = this.hitClass(at.x, at.y, p.pos.space);
@@ -6228,6 +6323,7 @@ export class Engine {
       }
       case "open":
       case "close":
+        if (o?.broken) break;
         if (o) {
           o.open = c.action === "open";
           this.advance(3);
@@ -7058,6 +7154,7 @@ export class Engine {
       );
       if (next % 6 !== 0) continue;
       this.burnStep();
+      this.brawl();
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
       if (next % 3600 === 0) {
         this.world.rotateRoutines?.(next);

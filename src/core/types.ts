@@ -239,6 +239,9 @@ export type Actor = {
   /** On watch over warded ground. `since` is when they last saw a stranger
    * on it; `warned` when they last told one to go. */
   guard?: { ward: string; since?: number; warned?: number };
+  /** Terrified by someone breaking into their home: until when, which home,
+   * whether they fight or cower, and when a blow last set them back. */
+  terror?: { until: number; place: string; fight: boolean; staggered?: number };
 };
 export type Place = {
   id: string;
