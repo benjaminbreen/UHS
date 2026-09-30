@@ -35,6 +35,7 @@ const ICONS: Record<Verb["kind"], LucideIcon> = {
   door: DoorOpen,
   board: TrainFront,
   work: Hammer,
+  use: Hand,
 };
 
 /** The scene's side of the controls. */

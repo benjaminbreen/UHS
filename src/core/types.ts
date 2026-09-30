@@ -450,6 +450,7 @@ export type PlayerCommand =
         | "work"
         | "harvest"
         | "tend-plot"
+        | "use-prop"
         | "capture"
         | "herd"
         | "knock"

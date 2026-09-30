@@ -195,6 +195,15 @@ it("leaves a shoved crate standing to be climbed", () => {
   expect(engine.climbable()?.id).toBe("it");
 });
 
+it("offers a mortar to use, not to climb", () => {
+  const { engine } = field("poundingMortar");
+  expect(engine.climbable()).toBeUndefined();
+  expect(engine.usable()).toMatchObject({ id: "it", use: "pound" });
+  const clock = engine.state.clock;
+  engine.act({ actionId: "use", expectedRevision: engine.state.revision, command: { type: "interact", target: "it", action: "use-prop" } });
+  expect(engine.state.clock).toBeGreaterThan(clock);
+});
+
 it("leans a freestanding marker on a running collision, then topples it with a walking push", () => {
   const { engine, runtime } = field("standingStone");
   const marker = engine.state.objects[0];

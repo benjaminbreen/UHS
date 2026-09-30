@@ -8583,6 +8583,9 @@ button:disabled {
   letter-spacing: 0.5px;
   line-height: 1;
 }
+.quick-actions button:has(kbd[data-wide]) {
+  padding-right: 56px;
+}
 .quick-actions button:active kbd {
   translate: 0 1px;
   box-shadow: inset 0 -1px 0 #a9894799;

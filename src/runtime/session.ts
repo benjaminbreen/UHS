@@ -36,6 +36,7 @@ import {
   type AppearancePalette,
 } from "../core/character";
 import type { Actor, Intent, ItemId, Position } from "../core/types";
+import { useOf } from "../content/props/uses";
 import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
@@ -79,7 +80,9 @@ export type Verb = {
     /** Step aboard the train standing at the platform. */
     | "board"
     /** A stage of the day's work at your station; held, it goes on. */
-    | "work";
+    | "work"
+    /** Work a prop that is too heavy to lift: a quern, a well, a bench. */
+    | "use";
   /** What the HUD prints beside the key. */
   label: string;
   /** Talk: whom to open the dialogue panel on. Inspect: what to select. */
@@ -705,6 +708,7 @@ export class Runtime {
     }
     const action = command.type === "interact" ? command.action : command.type;
     const target = command.type === "interact" ? this.engine.state.objects.find((o) => o.id === command.target) : undefined;
+    const usePose = action === "use-prop" ? useOf(propDefs[target?.prop ?? ""]?.family)?.pose : undefined;
     const workPose = action === "work"
       ? workPoseFor("work", livelihoodOf(this.engine.world.pack, this.engine.state.player)?.activity ?? "", propDefs[target?.prop ?? ""]?.family)
       : undefined;
@@ -723,6 +727,7 @@ export class Runtime {
         talk: "talk",
         trade: "give",
         work: workPose ?? "work",
+        "use-prop": usePose ?? "give",
         cook: "work-stir",
         // A knife in hand makes it close, careful work.
         harvest: this.engine.state.player.heldItem === "tool" ? "carve" : "work-tend",
@@ -1467,6 +1472,7 @@ export class Runtime {
     const door = this.doorVerb();
     const descend = !p.afloat && (!!p.perch || this.engine.onWall());
     const climbTarget = descend || p.afloat ? undefined : this.engine.climbable();
+    const use = descend || p.afloat || held || item ? undefined : this.engine.usable();
     const climb: Verb | undefined =
       descend || climbTarget
         ? {
@@ -1591,6 +1597,7 @@ export class Runtime {
       };
     // E lifts or climbs; F is always the swing.
     else if (pickup) alternate = pickup;
+    else if (use) alternate = { kind: "use", label: use.label, command: { type: "interact", target: use.id, action: "use-prop" } };
     else if (climb) alternate = climb;
     else if (held)
       alternate = {

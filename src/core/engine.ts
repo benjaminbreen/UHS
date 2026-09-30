@@ -116,6 +116,7 @@ import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../conte
 import { livelihoodById } from "../content/characters/livelihoods";
 import { capabilitiesFor } from "../content/characters/resolve";
 import { moneyFor } from "../content/economy/money";
+import { climbable, useOf } from "../content/props/uses";
 import { workplaceFor } from "../content/characters/workplace";
 import { propSprite } from "../content/props/place";
 import {
@@ -3215,6 +3216,43 @@ export class Engine {
     const name = plantName(sprite);
     return capital ? `The ${name}` : `the ${name}`;
   }
+  /** The nearest prop within reach that can be used, and how. */
+  usable() {
+    const p = this.state.player;
+    if (p.perch) return undefined;
+    const object = this.state.objects
+      .filter((o) => o.pos.space === p.pos.space && !o.carriedBy && !o.broken &&
+        Math.max(Math.abs(o.pos.x - p.pos.x), Math.abs(o.pos.y - p.pos.y)) <= 1 &&
+        !!useOf(propDefs[o.prop ?? ""]?.family) && !this.workAt(o, true).length)
+      .sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
+    const use = object && useOf(propDefs[object.prop!].family);
+    return object && use && { id: object.id, label: `${use.verb} the ${object.name.toLowerCase()}`, ...use };
+  }
+  private useProp() {
+    const u = this.usable();
+    if (!u) return;
+    const p = this.state.player;
+    this.advance(u.minutes * 60);
+    const name = this.state.objects.find((o) => o.id === u.id)?.name.toLowerCase() ?? "it";
+    switch (u.use) {
+      case "draw":
+        if (this.item("water")) p.inventory.water = Math.max(p.inventory.water ?? 0, 2);
+        p.fatigue = Math.min(100, p.fatigue + 1);
+        this.event(`You draw water at the ${name} and fill your vessel.`);
+        break;
+      case "sit":
+      case "warm":
+        p.fatigue = Math.max(0, p.fatigue - 8);
+        this.event(u.use === "sit" ? `You sit a while on the ${name} and rest your legs.` : `You warm your hands at the ${name}.`);
+        break;
+      case "pray":
+        this.event(`You stand before the ${name} and make your prayer.`);
+        break;
+      default:
+        p.fatigue = Math.min(100, p.fatigue + 3);
+        this.event(`You ${u.verb.toLowerCase().replace(/ (at|on)$/, "")} the ${name} a while.`);
+    }
+  }
   climbable():
     | { id: string; label: string; rise: number; at: Point; to?: Point; drop?: number }
     | undefined {
@@ -3231,6 +3269,7 @@ export class Engine {
           !o.broken &&
           !!o.prop &&
           !!propDefs[o.prop]?.solid &&
+          climbable.has(propDefs[o.prop].family) &&
           !this.workAt(o, true).length,
       )
       .sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
@@ -3988,6 +4027,8 @@ export class Engine {
     ) => add(label, { type: "interact", target: id, action }, enabled, reason);
     const reachable = this.climbable();
     if (reachable?.id === id) interact("climb", `Climb ${reachable.label}`);
+    const use = this.usable();
+    if (use?.id === id) interact("use-prop", use.label);
     if (this.state.player.perch?.on === id)
       interact("descend", "Climb down", true);
     if (actor) {
@@ -4339,6 +4380,8 @@ export class Engine {
       return this.lightProblem(c.target);
     if (c.type === "interact" && c.action === "burn")
       return this.burnProblem(c.target);
+    if (c.type === "interact" && c.action === "use-prop")
+      return this.usable()?.id === c.target ? undefined : "There is nothing here to use.";
     if (c.type === "interact" && c.action === "climb") {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
@@ -6099,6 +6142,9 @@ export class Engine {
         this.event(`${answerer.name} opens the door and looks you over.`);
         break;
       }
+      case "use-prop":
+        this.useProp();
+        break;
       case "climb": {
         const target = this.climbable();
         if (target) this.perch(target);

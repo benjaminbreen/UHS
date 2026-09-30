@@ -1129,7 +1129,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               <button onClick={talkToNearest} aria-label="Talk">
                 <MessageCircle size={17} />
                 <span>Talk</span>
-                <kbd>{speaker ? "Enter" : "Q"}</kbd>
+                <kbd data-wide={speaker ? true : undefined}>{speaker ? "Enter" : "Q"}</kbd>
               </button>
               <button
                 onClick={() => {
