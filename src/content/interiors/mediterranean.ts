@@ -4,6 +4,14 @@ import type { InteriorProfile } from "./types";
 export const mediterranean: InteriorProfile[] = [
   {
     id: "roman-domus",
+    rooms: [
+      { id: "atrium", label: "Atrium", role: "entry", size: [12, 10], shapes: ["courtyard"], fire: "none", furnish: ["shrine", "plant", "plant", "jars", "lamp", "chest"], clutter: ["cup", "flowers"] },
+      { id: "tablinum", label: "Tablinum", role: "work", size: [8, 7], fire: "none", furnish: ["shelf", "chest", "lamp", "frame"], kits: { household: ["desk"] } },
+      { id: "triclinium", label: "Triclinium", role: "hall", size: [9, 8], fire: "brazier", seating: "floor", furnish: ["divan", "divan", "lamp", "plant", "rug", "frame"], clutter: ["cup", "bowl", "flowers"] },
+      { id: "culina", label: "Culina", role: "kitchen", size: [7, 6], fire: "hearth", furnish: ["jars", "shelf", "basket", "firewood"], kits: { household: ["quern", "table"] }, clutter: ["pot", "bowl", "grain"], looks: [{ floor: "earth" }, { floor: "earth", wall: "plaster" }, { floor: "tile", wall: "plaster" }] },
+      { id: "cubiculum", label: "Cubiculum", role: "sleep", size: [6, 6], fire: "none", sleep: "bed", windowStyle: "none", furnish: ["chest", "lamp", "shelf"], clutter: ["cloth", "shoes"] },
+      { id: "cella", label: "Cella penaria", role: "store", size: [6, 5], fire: "none", windowStyle: "none", furnish: ["jars", "jars", "sacks", "shelf"], clutter: ["grain"], looks: [{ floor: "earth", wall: "plaster" }, { floor: "earth", wall: "plaster" }, { floor: "earth", wall: "plaster" }] },
+    ],
     styles: { shelf: "open", table: "round" },
     clutter: ["bowl", "cup", "cloth", "toy", "pot"],
     label: "Roman house",
@@ -25,7 +33,7 @@ export const mediterranean: InteriorProfile[] = [
     looks: [
       { wall: "plaster", floor: "earth", wear: 0.55, soot: 0.3 },
       { wall: "panel", floor: "tile", wear: 0.3, soot: 0.12 },
-      { wall: "panel", floor: "carpet", dado: "stripe", wear: 0.05, soot: 0, furnish: ["tapestry"] },
+      { wall: "panel", floor: "tile", dado: "stripe", wear: 0.05, soot: 0, furnish: ["tapestry"] },
     ],
     colorways: [
       { name: "Pompeian red", wall: "#9e3b2c", trim: "#2b2320", floor: "#b8683f", wood: "#6b4a30", accent: "#d9b24a" },

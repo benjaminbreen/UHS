@@ -3,6 +3,12 @@ import type { InteriorProfile } from "./types";
 export const eastAsia: InteriorProfile[] = [
   {
     id: "japanese-minka",
+    rooms: [
+      { id: "doma", label: "Doma", role: "entry", size: [7, 9], fire: "hearth", seating: "floor", furnish: ["jars", "sacks", "basket", "firewood", "broom"], kits: { household: ["quern", "basket"] }, clutter: ["shoes", "grain", "pot"], looks: [{ floor: "earth", wall: "mud" }, { floor: "earth", wall: "mud" }, { floor: "earth", wall: "mud" }] },
+      { id: "hiroma", label: "Hiroma", role: "hall", size: [9, 9], fire: "irori", clutter: ["cup", "cloth", "book"] },
+      { id: "zashiki", label: "Zashiki", role: "hall", size: [8, 8], fire: "none", furnish: ["shrine", "frame", "lowtable", "cushions", "screen", "lantern"], clutter: ["flowers", "book"], looks: [{ floor: "mat" }, { floor: "mat", wall: "shoji" }, { floor: "mat", wall: "shoji" }] },
+      { id: "nando", label: "Nando", role: "sleep", size: [6, 6], fire: "none", sleep: "mat", windowStyle: "none", furnish: ["chest", "shelf", "lantern"], clutter: ["cloth"], looks: [{ floor: "plank" }, { floor: "mat" }, { floor: "mat" }] },
+    ],
     styles: { frame: "scroll", shelf: "tansu" },
     clutter: ["shoes", "cup", "book", "cloth", "flowers"],
     label: "Minka farmhouse",

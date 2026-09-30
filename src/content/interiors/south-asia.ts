@@ -3,6 +3,13 @@ import type { InteriorProfile } from "./types";
 export const southAsia: InteriorProfile[] = [
   {
     id: "rajasthani-haveli",
+    rooms: [
+      { id: "chowk", label: "Chowk", role: "entry", size: [12, 10], shapes: ["courtyard"], fire: "none", furnish: ["plant", "plant", "shrine", "jars", "lantern"], clutter: ["shoes", "flowers"] },
+      { id: "baithak", label: "Baithak", role: "hall", size: [9, 7], fire: "none", furnish: ["divan", "cushions", "rug", "frame", "frame", "lantern"], clutter: ["cup"] },
+      { id: "rasoi", label: "Rasoi", role: "kitchen", size: [7, 6], fire: "firepit", seating: "floor", furnish: ["jars", "jars", "shelf", "basket"], kits: { household: ["quern", "basket"] }, clutter: ["pot", "bowl", "grain"], looks: [{ floor: "earth" }, { floor: "earth", wall: "plaster" }, { floor: "flag", wall: "plaster" }] },
+      { id: "zenana", label: "Zenana", role: "sleep", size: [8, 7], fire: "none", sleep: "bed", furnish: ["chest", "shelf", "rug", "cushions", "frame", "lantern"], clutter: ["cloth", "toy"] },
+      { id: "kotha", label: "Kotha", role: "store", size: [6, 5], fire: "none", windowStyle: "none", furnish: ["sacks", "jars", "crate"], clutter: ["grain"] },
+    ],
     styles: { frame: "miniature", shelf: "niche", bed: "charpai" },
     clutter: ["shoes", "cup", "flowers", "cloth"],
     label: "Haveli room",

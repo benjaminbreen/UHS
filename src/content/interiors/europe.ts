@@ -3,6 +3,12 @@ import type { InteriorProfile } from "./types";
 export const europe: InteriorProfile[] = [
   {
     id: "flemish-townhouse",
+    rooms: [
+      { id: "voorhuis", label: "Voorhuis", role: "entry", size: [9, 8], fire: "none", furnish: ["chest", "frame", "map", "plant", "shelf"], clutter: ["shoes", "book"] },
+      { id: "binnenhaard", label: "Binnenhaard", role: "hall", size: [10, 8], sleep: "boxbed", clutter: ["cup", "cloth", "toy"] },
+      { id: "achterkeuken", label: "Achterkeuken", role: "kitchen", size: [7, 6], fire: "hearth", sleep: "none", furnish: ["jars", "shelf", "basket", "firewood"], kits: { household: ["table"] }, clutter: ["pot", "bowl"], looks: [{ floor: "flag" }, { floor: "flag" }, { floor: "tile" }] },
+      { id: "opkamer", label: "Opkamer", role: "sleep", size: [7, 6], fire: "none", sleep: "bed", furnish: ["chest", "frame", "lamp", "shelf"], clutter: ["cloth", "shoes"] },
+    ],
     styles: { shelf: "hutch", stool: "chair" },
     clutter: ["shoes", "cup", "cloth", "toy", "book"],
     label: "Flemish townhouse",
@@ -65,6 +71,11 @@ export const europe: InteriorProfile[] = [
   },
   {
     id: "medieval-cottage",
+    rooms: [
+      { id: "hall", label: "Hall", role: "entry", size: [9, 7], clutter: ["grain", "bowl", "pot", "toy"] },
+      { id: "chamber", label: "Inner chamber", role: "sleep", size: [6, 6], fire: "none", sleep: "mat", windowStyle: "none", furnish: ["chest", "pegs", "basket"], clutter: ["cloth"] },
+      { id: "byre", label: "Byre", role: "store", size: [6, 6], fire: "none", windowStyle: "none", furnish: ["sacks", "basket", "firewood", "broom"], clutter: ["grain"], looks: [{ floor: "earth", wall: "mud" }, { floor: "earth", wall: "mud" }, { floor: "earth", wall: "timber" }] },
+    ],
     styles: { table: "trestle" },
     clutter: ["grain", "bowl", "pot", "cloth", "toy"],
     label: "Peasant cottage",

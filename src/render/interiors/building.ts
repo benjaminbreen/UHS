@@ -1,6 +1,6 @@
 import { resolveRoom, type RoomChoice } from "../../content/interiors/resolve";
 import type { InteriorProfile, RoomRole } from "../../content/interiors/types";
-import { planRoom, roomMask, type Prop, type RoomParams } from "./room";
+import { planRoom, roomMask, type Prop, type RoomParams, type Shape } from "./room";
 
 /** Rooms laid out on one grid: which room each cell belongs to, and each
  * room's own look. Cells of a doorway between rooms are floor too. */
@@ -46,11 +46,12 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
   const chosen = roomsFor(profile, c.status);
   if (chosen.length < 2) return single(profile, c, chosen[0]?.i);
   const k = [0.8, 0.9, 1][c.status];
-  type Box = { i: number; role: RoomRole; label: string; w: number; d: number; x: number; y: number; params?: RoomParams; props?: Prop[] };
+  type Box = { i: number; role: RoomRole; label: string; shape: Shape; w: number; d: number; x: number; y: number };
   const boxes: Box[] = chosen.map(({ t, i, role }) => ({
     i,
     role,
     label: t.label,
+    shape: t.shapes?.[0] ?? "rect",
     w: Math.max(5, Math.round(t.size[0] * k)),
     d: Math.max(4, Math.round(t.size[1] * k)),
     x: 0,
@@ -106,7 +107,11 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
           if (lx >= 0 && ly >= 0 && lx < b.w && ly < b.d) openings.push([lx, ly]);
         }
     }
-    const params = resolveRoom(profile, { ...c, room: b.i, w: b.w, d: b.d, shape: "rect" });
+    // A courtyard needs room to open: small ones are roofed over.
+    const shape = b.shape === "courtyard" && (b.w < 9 || b.d < 8) ? "rect" : b.shape;
+    const params = resolveRoom(profile, { ...c, room: b.i, w: b.w, d: b.d, shape });
+    // Where the house has a room to sleep in, the others keep no beds unless their own template says so.
+    if (boxes.some((o) => o.role === "sleep") && b.role !== "sleep" && profile.rooms?.[b.i].sleep === undefined) params.sleep = "none";
     params.openings = openings;
     if (b === entry) params.entrance = entrance - b.x;
     rooms.push(params);

@@ -3,6 +3,12 @@ import type { InteriorProfile } from "./types";
 export const northAfrica: InteriorProfile[] = [
   {
     id: "maghrebi-dar",
+    rooms: [
+      { id: "wast", label: "Wast ad-dar", role: "entry", size: [12, 10], shapes: ["courtyard"], fire: "none", furnish: ["plant", "plant", "lantern", "jars"], clutter: ["shoes", "flowers"] },
+      { id: "bayt", label: "Bayt", role: "hall", size: [10, 6], fire: "brazier", furnish: ["divan", "cushions", "rug", "lantern", "shelf"], clutter: ["cup", "cloth"] },
+      { id: "matbakh", label: "Matbakh", role: "kitchen", size: [7, 6], fire: "brazier", furnish: ["jars", "basket", "shelf", "sacks"], kits: { household: ["quern", "lowtable"] }, clutter: ["bowl", "pot", "grain"] },
+      { id: "bayt-nawm", label: "Bayt an-nawm", role: "sleep", size: [8, 6], fire: "none", sleep: "mat", furnish: ["chest", "cushions", "shelf", "lantern"], clutter: ["cloth"] },
+    ],
     styles: { shelf: "niche", table: "round" },
     kits: { merchant: ["sacks", "jars", "basket", "crate"] },
     clutter: ["shoes", "cup", "cloth", "flowers", "bowl"],
