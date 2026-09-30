@@ -462,4 +462,6 @@ export const LETTERS: Record<string, [string, number]> = {
   0: ["stone", 0], 1: ["stone", 1], 2: ["stone", 2], 3: ["stone", 3], 4: ["stone", 4], 5: ["stone", 5],
   6: ["clay", 1], 7: ["clay", 2], 8: ["clay", 3], 9: ["clay", 4], "+": ["clay", 5],
   S: ["straw", 1], D: ["straw", 2], F: ["straw", 3], G: ["straw", 4], H: ["straw", 5],
+  // Book spines and a pale page edge.
+  P: ["acc3", 4], O: ["acc3", 2], K: ["paper", 5],
 };

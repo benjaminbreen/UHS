@@ -1198,8 +1198,16 @@ export class Engine {
     return this.world.canCross?.(from, to) ?? true;
   }
   playerBlocked(x: number, y: number, space = this.state.player.pos.space) {
+    if (space !== "outside" && this.interiorOf(space)?.locks.has(`${x},${y}`) && !this.welcomeIn(space)) return true;
     return space === "outside" && afloatAt(this.world, this.floater(this.deep(x, y)), x, y)
       ? false : this.blocked(x, y, space);
+  }
+  /** A household's private rooms open to its own, and to anyone one of them
+   * trusts well: Stardew's two hearts. */
+  welcomeIn(space: string) {
+    const h = this.state.households?.find((g) => g.residence === space);
+    if (!h || h.members.includes("player")) return true;
+    return h.members.some((id) => (this.state.actors.find((a) => a.id === id)?.trust ?? 0) >= 2);
   }
   /** The generated room of a house, built the first time anyone needs it.
    * The household's bed, chest, work station and way out move onto the

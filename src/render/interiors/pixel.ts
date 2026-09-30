@@ -1,5 +1,6 @@
 import type { LightField } from "./voxel";
 import { LETTERS, SPRITES } from "./sprites";
+import type { RoomPlan } from "./building";
 import {
   courtParams, floorColor, hash, wornTiles, mix, palette, roomMask, scale, sky, sun, wallColor,
   type Kind, type Palette, type Prop, type RoomParams,
@@ -128,17 +129,40 @@ export class PixelRoom {
     return CAP + WH;
   }
 
-  set(p: RoomParams, props: Prop[]) {
+  /** Rooms laid out on one grid; a single room is a plan of one. */
+  private plan!: RoomPlan;
+  private palettes: Palette[] = [];
+  private main!: { p: RoomParams; P: Palette };
+  /** Draw as the room a piece or a cell belongs to: its colours and its finish. */
+  private inRoom(i = 0) {
+    const r = this.plan.rooms[i] ?? this.main.p;
+    r.hour = this.main.p.hour;
+    this.p = r;
+    this.P = this.palettes[i] ?? this.main.P;
+  }
+  private outOfRoom() {
+    this.p = this.main.p;
+    this.P = this.main.P;
+  }
+
+  set(p: RoomParams, props: Prop[], plan?: RoomPlan) {
     this.p = p;
     this.P = palette(p);
+    this.main = { p, P: this.P };
+    if (!plan) {
+      const mask = roomMask(p);
+      plan = { w: p.w, d: p.d, mask, cells: new Int16Array(p.w * p.d).map((_, i) => (mask[i] ? 0 : -1)), rooms: [p], entrance: [p.entrance ?? -1, p.d - 1], doorways: [] };
+    }
+    this.plan = plan;
+    this.palettes = plan.rooms.map((r) => (r === p ? this.P : palette(r)));
     const keep = this.props.length === props.length && this.props.every((q, i) => q.kind === props[i].kind);
     this.props = props;
     if (!keep) {
       this.prog = new Map(props.map((q) => [q.id, q.on ? 1 : 0]));
       this.repair();
     }
-    this.mask = roomMask(p);
-    this.worn = wornTiles(p, props);
+    this.mask = plan.mask;
+    this.worn = wornTiles({ ...p, entrance: plan.entrance[0] >= 0 ? plan.entrance[0] : undefined }, props, plan.mask);
     this.top = Array.from({ length: p.w }, (_, x) => {
       for (let y = 0; y < p.d; y++) if (this.mask[y * p.w + x]) return y;
       return -1;
@@ -367,6 +391,13 @@ export class PixelRoom {
     });
     return rows.length;
   }
+  /** The top of the wall behind a piece: where a flue or a hanging line meets the ceiling. */
+  private ceiling(q: Prop) {
+    const { w } = this.plan;
+    let y = q.y;
+    while (y > 0 && this.mask[(y - 1) * w + q.x]) y--;
+    return this.oy + y * T - WH;
+  }
   /** The shape of someone asleep under the covers, their head (drawn by the
    * scene) on the bolster at (hx, hy): a lit ridge rising and falling as they
    * breathe, a shaded flank, the sheet turned down at the shoulder. */
@@ -454,22 +485,25 @@ export class PixelRoom {
     this.zz = [];
     this.notes = [];
     this.cur = -1;
-    const { mask, top } = this, w = p.w, d = p.d;
+    const { mask } = this, w = p.w, d = p.d;
     const inside = (cx: number, cy: number) => cx >= 0 && cy >= 0 && cx < w && cy < d && mask[cy * w + cx] > 0;
-    const solid = new Uint8Array(W * H), court = courtParams(p);
-    const soft = p.floorPattern === "carpet" || p.floorPattern === "mat" || p.floorPattern === "paper";
-    const earthy = p.floorPattern === "earth" || p.floorPattern === "sand" || p.floorPattern === "rushes";
+    const solid = new Uint8Array(W * H);
+    const { cells, rooms } = this.plan;
+    for (const r of rooms) r.hour = p.hour;
     for (let cy = 0; cy < d; cy++)
       for (let cx = 0; cx < w; cx++) {
         if (!inside(cx, cy)) continue;
+        const rp = rooms[Math.max(0, cells[cy * w + cx])], P = this.palettes[Math.max(0, cells[cy * w + cx])], court = courtParams(rp);
+        const soft = rp.floorPattern === "carpet" || rp.floorPattern === "mat" || rp.floorPattern === "paper";
+        const earthy = rp.floorPattern === "earth" || rp.floorPattern === "sand" || rp.floorPattern === "rushes";
         const n = !inside(cx, cy - 1), so = !inside(cx, cy + 1), we = !inside(cx - 1, cy), ea = !inside(cx + 1, cy);
         for (let j = 0; j < T; j++)
           for (let i = 0; i < T; i++) {
             const u = cx * T + i, v = cy * T + j;
             const open = mask[cy * w + cx] === 2;
-            let c = floorColor(open ? court : p, P, u, v);
+            let c = floorColor(open ? court : rp, P, u, v);
             const wv = soft ? 0 : this.wearAt(u, v);
-            if (wv > 0.04) c = mix(c, earthy ? P.floor[3] : P.floor[4], Math.min(0.25, wv * (0.12 + p.wear * 0.25)));
+            if (wv > 0.04) c = mix(c, earthy ? P.floor[3] : P.floor[4], Math.min(0.25, wv * (0.12 + rp.wear * 0.25)));
             if (open) {
               // A kerb where the court meets the roofed floor, and the eave's shadow on it.
               const rn = cy > 0 && mask[(cy - 1) * w + cx] === 1, rs = cy < d - 1 && mask[(cy + 1) * w + cx] === 1;
@@ -485,31 +519,38 @@ export class PixelRoom {
       }
     this.decals(inside);
     if (p.finish === 2 && ["tile", "terrazzo", "parquet", "plank", "flag"].includes(p.floorPattern)) this.inlay(inside);
-    // A column's back wall stands on its first floor row, so an L or a round
-    // room gets a stepped wall line; its ends shade where the next one differs.
-    for (let cx = 0; cx < w; cx++) {
-      const ty = top[cx];
-      if (ty < 0) continue;
-      const base = oy + ty * T, lEdge = top[cx - 1] !== ty, rEdge = top[cx + 1] !== ty;
-      for (let j = 0; j < WH; j++)
-        for (let i = 0; i < T; i++) {
-          let c = wallColor(p, P, cx * T + i, j);
-          if ((lEdge && i < 2) || (rEdge && i > T - 3)) c = scale(c, 0.55 + 0.35 * (j / WH));
-          this.s(S + cx * T + i, base - 1 - j, c);
-          solid[(base - 1 - j) * W + S + cx * T + i] = 1;
-        }
-    }
+    // A back wall stands on every floor cell with nothing behind it, so an L,
+    // a round room or a room behind another gets its own stepped wall line;
+    // its ends shade where the next column's wall differs.
+    const walled = (cx: number, cy: number) => inside(cx, cy) && !inside(cx, cy - 1);
+    for (let cy = 0; cy < d; cy++)
+      for (let cx = 0; cx < w; cx++) {
+        if (!walled(cx, cy)) continue;
+        const ri = Math.max(0, cells[cy * w + cx]), rp = rooms[ri], P = this.palettes[ri];
+        const base = oy + cy * T, lEdge = !walled(cx - 1, cy), rEdge = !walled(cx + 1, cy);
+        for (let j = 0; j < WH; j++)
+          for (let i = 0; i < T; i++) {
+            let c = wallColor(rp, P, cx * T + i, j);
+            if ((lEdge && i < 2) || (rEdge && i > T - 3)) c = scale(c, 0.55 + 0.35 * (j / WH));
+            this.s(S + cx * T + i, base - 1 - j, c);
+            solid[(base - 1 - j) * W + S + cx * T + i] = 1;
+          }
+      }
+    this.threshold(solid);
     this.caps(solid);
+    this.doorways();
     const sunNow = sun(p.hour);
     this.wallDamage(sunNow.strength);
     this.tileDamage();
-    for (const q of this.props) if (q.kind === "rug") this.rug(q);
+    for (const q of this.props) if (q.kind === "rug") (this.inRoom(q.room), this.rug(q));
     for (const q of this.props)
       if (q.kind === "clutter") {
         this.cur = q.id;
+        this.inRoom(q.room);
         this.clutterItem(q, S + q.x * T, oy + q.y * T);
       }
     this.cur = -1;
+    this.outOfRoom();
     for (const f of this.floorSleepers) {
       const X = S + f.x * T, Y = oy + f.y * T;
       // A straw tick, longer than the tile: whoever lies on it is taller than one.
@@ -518,7 +559,8 @@ export class PixelRoom {
       const at = this.pillow(f);
       this.sleeper(at.x, at.y, P.pale, 13);
     }
-    for (const q of this.props) if (q.kind === "hearth") this.hearthSlab(q);
+    for (const q of this.props) if (q.kind === "hearth") (this.inRoom(q.room), this.hearthSlab(q));
+    this.outOfRoom();
     for (const q of this.props) {
       if (q.wall || q.wrecked || q.kind === "rug" || q.kind === "cat" || q.kind === "clutter") continue;
       const X = S + q.x * T, Y = oy + (q.y + q.d) * T;
@@ -535,10 +577,12 @@ export class PixelRoom {
       .sort((a, b) => (a.wall === b.wall ? a.y + a.d - (b.y + b.d) || (a.kind === "cat" ? 1 : 0) - (b.kind === "cat" ? 1 : 0) : a.wall ? -1 : 1));
     for (const q of order) {
       this.cur = q.id;
+      this.inRoom(q.room);
       if (q.wrecked) this.wreck(q);
       else this.draw(q, sunNow);
     }
     this.cur = -1;
+    this.outOfRoom();
     for (const d of this.debris) if (!d.rest) this.s(d.x, d.y, d.c);
   }
 
@@ -550,6 +594,61 @@ export class PixelRoom {
     const fx = Math.min(1, Math.max(0, gx - x0)), fy = Math.min(1, Math.max(0, gy - y0));
     const a = worn[y0 * p.w + x0], b = worn[y0 * p.w + x1], c = worn[y1 * p.w + x0], d = worn[y1 * p.w + x1];
     return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+  }
+  /** The way in, at the foot of the room as outside: a gap in the wall top
+   * with a step down, posts either side, and a mat or a flap by the kind of door. */
+  private threshold(solid: Uint8Array) {
+    const [ex, ey] = this.plan.entrance;
+    if (ex < 0) return;
+    const ri = Math.max(0, this.plan.cells[ey * this.plan.w + ex]), rp = this.plan.rooms[ri], P = this.palettes[ri], W = P.wood;
+    const X = S + ex * T, Y = this.oy + (ey + 1) * T;
+    const step = rp.door === "door" ? P.stone : rp.door === "opening" ? P.floor : W;
+    for (let j = 0; j < S; j++)
+      for (let i = -1; i < T + 1; i++) {
+        const x = X + i, y = Y + j;
+        if (x < 0 || y >= this.H) continue;
+        const c = i < 1 || i > T - 2 ? P.trim[i < 1 ? 4 : 1] : j === 0 ? step[5] : j < 3 ? step[3] : j < 6 ? step[2] : step[1];
+        this.s(x, y, c);
+        solid[y * this.W + x] = 1;
+      }
+    if (rp.door === "flap" || rp.door === "curtain") {
+      // Hide or cloth tied back to either side of the opening.
+      const C = rp.door === "flap" ? P.pale : P.acc;
+      for (let j = 0; j < 9; j++) {
+        this.r(X - 3, Y - 6 + j, 4 - (j >> 2), 1, C[j < 2 ? 4 : 3]);
+        this.r(X + T - 1 + (j >> 2), Y - 6 + j, 4 - (j >> 2), 1, C[j < 2 ? 3 : 2]);
+      }
+    } else if (rp.door === "door") {
+      // A rush mat inside the door.
+      this.r(X + 2, Y - 8, T - 4, 6, (i, j) => (j === 0 || j === 5 || i === 0 || i === T - 5 ? P.straw[2] : (i + j) % 2 ? P.straw[3] : P.straw[4]));
+    }
+  }
+  /** Doorways between rooms: posts and a lintel where one runs through a
+   * wall, a curtain where the house hangs one, a door stood open onto a
+   * private room. */
+  private doorways() {
+    for (const dw of this.plan.doorways) {
+      const P = this.palettes[dw.to], rp = this.plan.rooms[dw.to], W = P.wood;
+      const [cx] = dw.cells[0], y1 = Math.max(...dw.cells.map((c) => c[1]));
+      const X = S + cx * T, foot = this.oy + (y1 + 1) * T;
+      // Through a back wall the frame is a wall's height; through a side wall, a tile's.
+      const tall = dw.cells.length > 1 ? WH : T, head = foot - tall;
+      for (const jx of [X, X + T - 2]) this.r(jx, head, 2, tall, (i) => P.trim[jx === X ? (i ? 3 : 4) : i ? 1 : 2]);
+      this.r(X - 1, head - 3, T + 2, 3, (_i, j) => P.trim[j === 0 ? 5 : j === 2 ? 1 : 3]);
+      this.r(X + 2, foot - 2, T - 4, 2, (_i, j) => P.stone[j ? 2 : 4]);
+      if (dw.private) {
+        // A plank door, swung open against the frame.
+        this.r(X + 2, head + 1, 4, tall - 3, (i, j) => (j % 9 === 0 ? W[1] : W[i === 0 ? 4 : i === 3 ? 1 : 3]));
+        this.s(X + 5, head + (tall >> 1), P.iron[4]);
+      } else if (rp.door === "curtain" || rp.door === "flap" || rp.seating === "floor") {
+        const C = rp.door === "flap" ? P.pale : P.acc;
+        for (let j = 0; j < Math.min(tall - 4, 20); j++) {
+          const pull = Math.round((j / 20) * 3);
+          this.r(X + 2, head + j, 4 - pull, 1, C[j % 4 === 0 ? 4 : 3]);
+          this.r(X + T - 6 + pull, head + j, 4 - pull, 1, C[j % 4 === 0 ? 3 : 2]);
+        }
+      }
+    }
   }
   private caps(solid: Uint8Array) {
     const { W, H, P } = this, R = 7;
@@ -874,8 +973,9 @@ export class PixelRoom {
           if (sx === 0 || (j & 3) === 0) return P.stone[1];
           return P.stone[2 + (hash((i + (row & 1) * 3) / 6 | 0, row, q.seed) < 0.55 ? 1 : 0) + ((j & 3) === 1 ? 1 : 0)];
         };
-        this.r(X + 5, CAP, 22, bodyTop - CAP, (i, j) => (i === 0 || i === 21 ? P.stone[1] : scale(stone(i, j), 0.95)));
-        for (let j = 0; j < (bodyTop - CAP); j++) if (p.wear > 0.2) this.s(X + 14 + Math.round(Math.sin(j * 0.3) * 2), CAP + j, scale(P.stone[1], 0.8));
+        const flue = this.ceiling(q);
+        this.r(X + 5, flue, 22, bodyTop - flue, (i, j) => (i === 0 || i === 21 ? P.stone[1] : scale(stone(i, j), 0.95)));
+        for (let j = 0; j < bodyTop - flue; j++) if (p.wear > 0.2) this.s(X + 14 + Math.round(Math.sin(j * 0.3) * 2), flue + j, scale(P.stone[1], 0.8));
         this.r(X, bodyTop, PW, 40, (i, j) => (i === 0 || i === PW - 1 ? P.stone[1] : stone(i, j)));
         this.r(X - 2, bodyTop - 3, PW + 4, 4, (i, j) => (j === 0 ? W[5] : j === 3 ? W[1] : i === 0 || i === PW + 3 ? W[1] : W[3]));
         this.vase(X + 5, bodyTop - 4, 5, (t) => 1.6 - t * 0.4, P.clay);
@@ -1460,8 +1560,9 @@ export class PixelRoom {
         for (let j = 0; j < 4; j++)
           for (let i = 0; i < 6; i++) glow(cx - 3 + i, base - 10 + j, on ? (i % 2 ? [0xffb040, 0xff8a30, 0xff6a20, 0xd84818][j] : I[0]) : i % 2 ? I[1] : I[0]);
         this.s(cx + 3, base - 8, P.brass[4]);
-        // The flue: up to the ceiling, banded where the joints are.
-        this.r(cx - 1, CAP, 3, base - 20 - CAP, (i, j) => ((base - 20 - CAP - j) % 14 === 0 ? I[4] : I[i === 0 ? 4 : i === 1 ? 2 : 1]));
+        // The flue: up to the top of the room's wall, banded where the joints are.
+        const flue = this.ceiling(q);
+        this.r(cx - 1, flue, 3, base - 20 - flue, (i, j) => ((base - 20 - flue - j) % 14 === 0 ? I[4] : I[i === 0 ? 4 : i === 1 ? 2 : 1]));
         if (p.finish > 0) this.vase(cx + 2, base - 20, 4, (t) => 2.4 - t * 0.6, p.finish === 2 ? P.brass : I);
         if (on) this.lights.push({ x: cx, y: base - 8, c: 0xff8a3a, rad: 42, k: 1.3, phase: q.seed % 80 });
         break;
@@ -1553,12 +1654,12 @@ export class PixelRoom {
         break;
       }
       case "armchair": {
-        const U = p.finish === 2 ? P.acc3 : p.finish === 0 ? P.acc2 : P.acc;
+        const U = p.finish === 0 ? P.acc2 : P.acc;
         this.sprite("armchair", X + (-2), Y + PD - 24, { acc: U });
         break;
       }
       case "sofa": {
-        const U = p.finish === 2 ? P.acc3 : p.finish === 0 ? P.acc2 : P.acc;
+        const U = p.finish === 0 ? P.acc2 : P.acc;
         this.sprite("sofa", X + (0), Y + PD - 24, { acc: U });
         break;
       }
@@ -1586,7 +1687,8 @@ export class PixelRoom {
         this.vase(x0 + 7, base - 21, 5, (t) => 3 - t * 0.8, P.iron);
         this.r(x0 + 10, base - 21, 3, 1, P.iron[3]);
         this.vase(x0 + w - 8, base - 21, 4, () => 3.4, P.iron);
-        this.r(x0 + w - 5, base - 74, 3, 54, (i) => P.iron[i === 0 ? 4 : 2]);
+        const flue = this.ceiling(q);
+        this.r(x0 + w - 5, flue, 3, base - 20 - flue, (i) => P.iron[i === 0 ? 4 : 2]);
         for (let i = 0; i < 6; i++) (q.on ? this.g.bind(this) : this.s.bind(this))(x0 + w / 2 - 3 + i, base - 5, q.on ? [0xff8a30, 0xffb040][i % 2] : P.iron[0]);
         if (q.on) {
           this.lights.push({ x: x0 + w / 2, y: base - 5, c: 0xff8a3a, rad: 38, k: 1.1, phase: q.seed % 80 });

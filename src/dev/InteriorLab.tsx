@@ -5,6 +5,7 @@ import {
 } from "../render/interiors/room";
 import { interiorGroups, interiorProfile, resolveRoom, type RoomChoice } from "../content/interiors";
 import { PixelRoom } from "../render/interiors/pixel";
+import { planBuilding } from "../render/interiors/building";
 import { VoxelRoom, type VoxelOptions } from "../render/interiors/voxel";
 import "./interior-lab.css";
 
@@ -44,16 +45,24 @@ export function InteriorLab() {
   const [, bump] = useState(0);
   // Colours and surfaces restyle the room in place; anything that moves furniture replans it.
   const layout = [p.seed, p.w, p.d, p.shape, p.trade, p.finish, p.door, p.fire, p.windows, p.windowStyle, p.seating, p.sleep, p.pole, p.smokehole, p.furnish.join()].join("|");
-  const props = useMemo<Prop[]>(() => planRoom(p), [layout]); // eslint-disable-line react-hooks/exhaustive-deps
-  const big = p.w * p.d;
+  const oneRoom = useMemo<Prop[]>(() => planRoom(p), [layout]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The whole house: every room the household has, laid out as the game lays it out.
+  const [whole, setWhole] = useState(false);
+  const building = useMemo(() => (whole ? planBuilding(profile, c) : undefined), [whole, profile, c]);
+  const props = building?.props ?? oneRoom;
+  const main = useMemo<RoomParams>(
+    () => (building ? { ...building.plan.rooms[0], w: building.plan.w, d: building.plan.d, entrance: building.plan.entrance[0], hour: p.hour } : p),
+    [building, p],
+  );
+  const big = main.w * main.d;
   const pix = useRef<Stage>({ canvas: null });
   // The same room lit the new way, beside the traced one.
   const stepped = useRef<Stage>({ canvas: null });
   const layered = useRef<Stage>({ canvas: null });
   const vox = useRef<Stage>({ canvas: null });
   const voxDirty = useRef(true);
-  const pRef = useRef(p);
-  pRef.current = p;
+  const pRef = useRef(main);
+  pRef.current = main;
 
   const choose = (patch: Partial<Choice>) => setC((o) => ({ ...o, ...patch }));
   const update = (patch: Partial<RoomParams>) => setOver((o) => ({ ...o, ...patch }));
@@ -66,21 +75,21 @@ export function InteriorLab() {
 
   useEffect(() => {
     if (pix.current.canvas && !pix.current.room) pix.current.room = new PixelRoom(pix.current.canvas);
-    (pix.current.room as PixelRoom | undefined)?.set(p, props);
+    (pix.current.room as PixelRoom | undefined)?.set(main, props, building?.plan);
     if (stepped.current.canvas && !stepped.current.room) {
       const room = new PixelRoom(stepped.current.canvas);
       room.lighting = "stepped";
       stepped.current.room = room;
     }
-    (stepped.current.room as PixelRoom | undefined)?.set(p, props);
+    (stepped.current.room as PixelRoom | undefined)?.set(main, props, building?.plan);
     if (layered.current.canvas && !layered.current.room) {
       const room = new PixelRoom(layered.current.canvas);
       room.lighting = "layer";
       layered.current.room = room;
     }
-    (layered.current.room as PixelRoom | undefined)?.set(p, props);
+    (layered.current.room as PixelRoom | undefined)?.set(main, props, building?.plan);
     voxDirty.current = true;
-  }, [p, props, view]);
+  }, [main, props, view, building]);
   useEffect(() => {
     voxDirty.current = true;
   }, [vo, traceDetail]);
@@ -96,7 +105,7 @@ export function InteriorLab() {
         (stepped.current.room as PixelRoom | undefined)?.frame(dt);
         (layered.current.room as PixelRoom | undefined)?.frame(dt);
       }
-      if (view === "hybrid" || view === "compare") {
+      if ((view === "hybrid" || view === "compare") && !building) {
         tracer.current ??= new VoxelRoom(document.createElement("canvas"));
         if (voxDirty.current && now - lastVox > (playing ? 450 : 90)) {
           voxDirty.current = false;
@@ -125,7 +134,7 @@ export function InteriorLab() {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [props, vo, playing, view, traceDetail, dither, big]);
+  }, [props, vo, playing, view, traceDetail, dither, big, building]);
 
   const locate = (e: React.MouseEvent<HTMLCanvasElement>, s: Stage) => {
     const c = e.currentTarget, r = c.getBoundingClientRect();
@@ -241,6 +250,7 @@ export function InteriorLab() {
             </div>
             {profile.rooms && (
               <div className="ilab-chips">
+                <button aria-pressed={whole} onClick={() => setWhole((v) => !v)}>Whole house</button>
                 {profile.rooms.map((rm, i) => (
                   <button key={rm.id} aria-pressed={(c.room ?? 0) === i} onClick={() => { setOver({}); choose({ room: i, w: rm.size[0], d: rm.size[1], trade: undefined }); }}>
                     {rm.label}

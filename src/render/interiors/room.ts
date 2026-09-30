@@ -26,6 +26,11 @@ export type RoomParams = {
   /** Lower-wall band on finished rooms; the plain wall pattern if unset. */
   dado?: WallPattern;
   door: Door;
+  /** The way in, as a column of the front row; the room is then entered from
+   * the bottom, as outside, and no door is set in the back wall. */
+  entrance?: number;
+  /** Floor cells kept clear for a doorway through to the next room. */
+  openings?: [number, number][];
   windows: number;
   windowStyle: WindowStyle;
   fire: Fire;
@@ -76,6 +81,8 @@ export type Prop = {
   lean?: -1 | 1;
   /** How many are asleep in it. */
   sleepers?: number;
+  /** Which room of a building it stands in. */
+  room?: number;
   /** For clutter: which small thing. */
   item?: string;
   seed: number;
@@ -534,7 +541,11 @@ export function planRoom(p: RoomParams): Prop[] {
   const cols = top.filter((t) => t >= 0).length;
   const edge = (x: number) => (x <= 0 || x >= w - 1 || top[x - 1] !== top[x] || top[x + 1] !== top[x] ? -3 : 0);
   let doorX = -1;
-  if (p.door !== "none") {
+  for (const [ox, oy] of p.openings ?? []) if (inside(ox, oy)) occ[oy][ox] = 2;
+  if (p.entrance !== undefined) {
+    doorX = p.entrance;
+    for (const y of [d - 1, d - 2]) if (inside(doorX, y)) occ[y][doorX] = 2;
+  } else if (p.door !== "none") {
     doorX = onWall(1, (x) => edge(x) + (p.shape === "round" || p.shape === "oval" ? -Math.abs(x + 0.5 - w / 2) * 0.3 : 0));
     add("door", doorX, top[doorX], 1, 0, true, p.door === "opening");
     occ[top[doorX]][doorX] = 2;
@@ -797,15 +808,17 @@ export function planRoom(p: RoomParams): Prop[] {
 
 /** How much each tile is walked: shortest paths from the way in to where the
  * household spends its day, summed and scaled to 0–1. */
-export function wornTiles(p: RoomParams, props: Prop[]) {
-  const { w, d } = p, mask = roomMask(p), out = new Float32Array(w * d);
+export function wornTiles(p: Pick<RoomParams, "w" | "d" | "shape" | "entrance">, props: Prop[], mask = roomMask(p)) {
+  const { w, d } = p, out = new Float32Array(w * d);
   const block = new Uint8Array(w * d);
   for (const q of props)
     if (!q.wall && q.kind !== "rug" && q.kind !== "cat" && q.kind !== "clutter")
       for (let y = q.y; y < q.y + q.d; y++) for (let x = q.x; x < q.x + q.w; x++) block[y * w + x] = 1;
-  const entry = props.find((q) => q.kind === "door" || q.kind === "ladder");
+  // Entered from below: the lowest floor cell in the entrance's column.
+  const low = (x: number) => { for (let y = d - 1; y >= 0; y--) if (mask[y * w + x]) return y; return 0; };
+  const entry = p.entrance !== undefined ? { x: p.entrance, y: low(p.entrance) } : props.find((q) => q.kind === "door" || q.kind === "ladder");
   if (!entry) return out;
-  const start = entry.kind === "door" ? entry.y * w + entry.x : entry.y * w + entry.x;
+  const start = entry.y * w + entry.x;
   const prev = new Int32Array(w * d).fill(-1), seen = new Uint8Array(w * d), q = [start];
   seen[start] = 1;
   for (let h = 0; h < q.length; h++) {

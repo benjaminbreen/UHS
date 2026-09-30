@@ -4752,7 +4752,7 @@ export class WorldScene extends Phaser.Scene {
       const layer = () => document.createElement("canvas").getContext("2d")!;
       pixel.layers = { light: layer(), add: layer(), glow: layer() };
       const props = room.props.map((q) => ({ ...q }));
-      pixel.set(room.params, props);
+      pixel.set(room.params, props, room.plan);
       // Sized before Phaser takes them as textures, which keep the size they start with.
       for (const c of Object.values(pixel.layers)) (c.canvas.width = pixel.W), (c.canvas.height = pixel.H);
       const key = `interior-room-${space}`;

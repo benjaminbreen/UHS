@@ -1,6 +1,6 @@
-import { resolveRoom } from "../content/interiors/resolve";
 import { interiorProfileFor, type InteriorSite } from "../content/interiors/select";
-import { planRoom, roomMask, type Finish, type Kind, type Prop, type RoomParams, type Trade } from "../render/interiors/room";
+import { planBuilding, type PlacedRoom, type RoomPlan } from "../render/interiors/building";
+import type { Finish, Kind, Prop, RoomParams, Trade } from "../render/interiors/room";
 import type { Place, Point } from "../core/types";
 
 /** A standing place and the way to face while there (0 N, 1 E, 2 S, 3 W). */
@@ -13,7 +13,12 @@ export type Spot = Point & {
 };
 export type SpotRole = "bed" | "seat" | "work" | "fire";
 export type InteriorLayout = {
+  /** The house as a whole; each room's own look is in `plan.rooms`. */
   params: RoomParams;
+  plan: RoomPlan;
+  rooms: PlacedRoom[];
+  /** Doorways into private rooms, as "x,y" game cells: shut to a stranger. */
+  locks: Set<string>;
   props: Prop[];
   /** Room cells people can stand on as it is first furnished, as "x,y" in game cells. */
   walk: Set<string>;
@@ -87,7 +92,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const [tw, td] = profile.rooms?.[0].size ?? profile.size;
   const k = [0.85, 1, 1.2][status];
   const shapes = profile.shapes;
-  const params = resolveRoom(profile, {
+  const building = planBuilding(profile, {
     seed,
     status,
     colorway: -1,
@@ -97,8 +102,10 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
     trade: tradeFor(o.activity),
     hour: o.hour ?? 12,
   });
-  const props = planRoom(params);
-  const mask = roomMask(params);
+  const { plan, props } = building;
+  // The house as a whole: its size, its way in, and the first room's look for what is not a room's own.
+  const params: RoomParams = { ...plan.rooms[0], w: plan.w, d: plan.d, entrance: plan.entrance[0] >= 0 ? plan.entrance[0] : undefined };
+  const mask = plan.mask;
   const walk = new Set<string>();
   for (let y = 0; y < params.d; y++) for (let x = 0; x < params.w; x++) if (mask[y * params.w + x]) walk.add(key(at(x, y)));
   const floor = new Set(walk);
@@ -133,10 +140,11 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const door = props.find((q) => q.kind === "door");
   const ladder = props.find((q) => q.kind === "ladder");
   const exitProp = door ?? ladder;
-  let exit = exitProp ? at(exitProp.x, exitProp.y) : at(Math.floor(params.w / 2), params.d - 1);
+  let exit = plan.entrance[0] >= 0 ? at(plan.entrance[0], plan.entrance[1]) : exitProp ? at(exitProp.x, exitProp.y) : at(Math.floor(params.w / 2), params.d - 1);
   if (!open(exit)) exit = [...walk].map((s) => ({ x: +s.split(",")[0], y: +s.split(",")[1] }))[0] ?? exit;
   walk.add(key(exit));
-  const entry = [{ x: exit.x, y: exit.y + 1 }, { x: exit.x - 1, y: exit.y }, { x: exit.x + 1, y: exit.y }, { x: exit.x, y: exit.y - 1 }].find(open) ?? exit;
+  const inward = plan.entrance[0] >= 0 ? -1 : 1;
+  const entry = [{ x: exit.x, y: exit.y + inward }, { x: exit.x - 1, y: exit.y }, { x: exit.x + 1, y: exit.y }, { x: exit.x, y: exit.y - inward }].find(open) ?? exit;
   // Whatever the door cannot lead to is not part of the room: no one stands in it.
   const reached = new Set([key(entry)]);
   for (const k of reached) {
@@ -194,8 +202,12 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
       pos: at(q.x, q.y),
       size: [q.w, Math.max(1, q.d)] as [number, number],
     }));
+  const locks = new Set(building.doorways.filter((dw) => dw.private).flatMap((dw) => dw.cells.map(([x, y]) => key(at(x, y)))));
   return {
     params,
+    plan,
+    rooms: building.rooms,
+    locks,
     props,
     walk,
     floor,

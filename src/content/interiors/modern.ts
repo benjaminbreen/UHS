@@ -33,15 +33,27 @@ export const modern: InteriorProfile[] = [
       { name: "Peach and silver", wall: "#e8c4a8", trim: "#5a6a7a", floor: "#d8c8b8", wood: "#5a3a2a", accent: "#4a7aa8" },
     ],
     rooms: [
-      { id: "lobby", label: "Lobby", size: [16, 10] },
+      { id: "lobby", label: "Lobby", role: "lobby", size: [16, 10] },
       {
         id: "flat",
         label: "Flat, living room",
+        role: "entry",
         size: [12, 9],
         furnish: ["frame", "frame", "sofa", "armchair", "radio", "rug", "lamp", "shelf", "clock", "plant", "table"],
         kits: { household: [] },
         clutter: ["book", "paper", "cup", "flowers", "shoes"],
         looks: [{ wall: "wallpaper", floor: "plank" }, { wall: "deco", floor: "parquet" }, { wall: "deco", floor: "parquet", dado: "panel" }],
+      },
+      {
+        id: "flat-bedroom",
+        label: "Flat, bedroom",
+        role: "sleep",
+        size: [9, 7],
+        sleep: "bed",
+        furnish: ["frame", "dresser", "lamp", "rug", "clock", "chest"],
+        kits: { household: [] },
+        clutter: ["shoes", "book", "cloth"],
+        looks: [{ wall: "wallpaper", floor: "plank" }, { wall: "deco", floor: "carpet" }, { wall: "deco", floor: "carpet", dado: "panel" }],
       },
     ],
   },
@@ -77,10 +89,11 @@ export const modern: InteriorProfile[] = [
       { name: "Sage", wall: "#b8c4a0", trim: "#4a3a2a", floor: "#8a6e4e", wood: "#6a4a30", accent: "#a85a2a" },
     ],
     rooms: [
-      { id: "parlour", label: "Parlour", size: [11, 8] },
+      { id: "parlour", label: "Parlour", role: "entry", size: [11, 8] },
       {
         id: "kitchen",
         label: "Kitchen",
+        role: "kitchen",
         size: [11, 8],
         fire: "none",
         furnish: ["shelf", "lamp", "basket", "jars", "cat"],
@@ -92,6 +105,7 @@ export const modern: InteriorProfile[] = [
       {
         id: "dining",
         label: "Dining room",
+        role: "hall",
         size: [10, 8],
         fire: "none",
         furnish: ["frame", "frame", "table", "shelf", "clock", "lamp", "rug", "plant"],
@@ -100,6 +114,7 @@ export const modern: InteriorProfile[] = [
       {
         id: "pantry",
         label: "Pantry",
+        role: "store",
         size: [6, 5],
         fire: "none",
         windowStyle: "none",
@@ -111,6 +126,7 @@ export const modern: InteriorProfile[] = [
       {
         id: "bedroom",
         label: "Bedroom",
+        role: "sleep",
         size: [10, 8],
         fire: "none",
         sleep: "bed",

@@ -3,6 +3,7 @@ import { interiorProfiles, resolveRoom } from "../src/content/interiors";
 import { interiorProfileFor } from "../src/content/interiors/select";
 import { buildInterior } from "../src/world/interior";
 import { planRoom, roomMask, type Shape } from "../src/render/interiors/room";
+import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
 import type { Place } from "../src/core/types";
 import { createSettingSession } from "../src/runtime/session";
 import { panelSetting } from "../scripts/review/panel";
@@ -120,5 +121,10 @@ describe("interior profiles", () => {
       expect(spots.some((s) => s.x === at.x && s.y === at.y)).toBe(false);
       expect(e.blocked(at.x, at.y, home)).toBe(false);
     }
+  });
+
+  it("draws every sprite with letters that have a colour", () => {
+    for (const [name, rows] of Object.entries(SPRITES))
+      for (const ch of rows.join("")) if (ch !== "." && ch !== "#") expect(LETTERS[ch], `${name} uses "${ch}"`).toBeDefined();
   });
 });
