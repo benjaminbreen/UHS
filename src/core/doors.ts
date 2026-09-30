@@ -1,3 +1,4 @@
+import { buildingModels } from "../content/graphics/models";
 import type { Place, Point, WorldObject } from "./types";
 
 /** A door is a gate in a wall.
@@ -7,15 +8,22 @@ import type { Place, Point, WorldObject } from "./types";
  * made solid. Opening a door therefore only ever opens the map up; it never
  * takes a cell away from the street.
  */
+/** The footprint cell under the door the building's art paints, if it paints
+ * one there. The art is what the player aims at, so where it has a door the
+ * doorway is that cell, on the front wall, whatever side the street is on. */
+export function paintedDoor(place: Place): Point | undefined {
+  const model = buildingModels[place.sprite] as { door?: number[]; anchor: number[] } | undefined;
+  const rect = model?.door;
+  if (!model || !rect) return undefined;
+  const x = Math.floor(((place.x + place.w / 2) * 16 - model.anchor[0] + rect[0] + rect[2] / 2) / 16);
+  const y = Math.floor(((place.y + place.h) * 16 - model.anchor[1] + rect[1] + rect[3] - 1) / 16);
+  if (x < place.x || x >= place.x + place.w || y < place.y || y >= place.y + place.h) return undefined;
+  return { x, y };
+}
+
 export function doorCell(place: Place): Point {
-  // A back-on building is still drawn front-on, and the art puts its door on
-  // that front wall. The doorway follows the art rather than the street, so
-  // the leaf always swings on the opening the player is looking at.
-  if (place.sprite.endsWith("-north"))
-    return {
-      x: place.x + Math.floor(place.w / 2),
-      y: place.y + place.h - 1,
-    };
+  if (place.door) return place.door;
+  // Without one, the wall beside the street entrance.
   const { entrance: e } = place;
   const inside =
     e.x >= place.x &&
@@ -32,6 +40,8 @@ export function doorCell(place: Place): Point {
 
 /** The cell a caller stands in to use this door. */
 export function doorApproach(place: Place): Point {
+  // A chosen door is on the front wall: it is approached from below.
+  if (place.door) return { x: place.door.x, y: place.door.y + 1 };
   const d = doorCell(place);
   const dx = d.x - (place.x + (place.w - 1) / 2),
     dy = d.y - (place.y + (place.h - 1) / 2);
@@ -104,4 +114,24 @@ export function doorAccess(ctx: {
 export function isDoorway(place: Place, x: number, y: number) {
   const d = doorCell(place);
   return d.x === x && d.y === y;
+}
+
+/** Nothing stands on a doorstep: a household's store, a pot or a counter set
+ * out on one is moved to the nearest free cell beside it. */
+export function clearDoorsteps(objects: WorldObject[], places: Place[], blocked: (x: number, y: number) => boolean) {
+  const key = (x: number, y: number) => `${x},${y}`;
+  const steps = new Set(places.flatMap((p) => (p.door ? [key(p.door.x, p.door.y + 1)] : [])));
+  if (!steps.size) return;
+  const taken = new Set(objects.filter((o) => o.pos.space === "outside").map((o) => key(o.pos.x, o.pos.y)));
+  for (const o of objects) {
+    if (o.kind === "door" || o.kind === "tree" || o.carriedBy || o.pos.space !== "outside" || !steps.has(key(o.pos.x, o.pos.y))) continue;
+    for (const [dx, dy] of [[-1, 0], [1, 0], [-1, 1], [1, 1], [0, 1], [-2, 0], [2, 0], [0, 2]]) {
+      const x = o.pos.x + dx, y = o.pos.y + dy;
+      if (steps.has(key(x, y)) || taken.has(key(x, y)) || blocked(x, y)) continue;
+      taken.delete(key(o.pos.x, o.pos.y));
+      taken.add(key(x, y));
+      o.pos = { ...o.pos, x, y };
+      break;
+    }
+  }
 }

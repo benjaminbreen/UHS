@@ -250,6 +250,8 @@ export type Place = {
   h: number;
   sprite: string;
   entrance: Point;
+  /** The doorway cell, where the town was built with the painted door in mind. */
+  door?: Point;
   access: "public" | "household";
   owner: string;
   claim: string;

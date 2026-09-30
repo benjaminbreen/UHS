@@ -195,6 +195,7 @@ const AFFRONT_GAP = 30;
 import { facingFromStep } from "./facing";
 import {
   doorAccess,
+  clearDoorsteps,
   doorApproach,
   isShutBarrier,
   type DoorVerdict,
@@ -356,6 +357,7 @@ export class Engine {
       const place = world.place(id);
       if (place) this.setStructure(place, structure);
     }
+    clearDoorsteps(this.state.objects, world.places, (x, y) => world.blocked(x, y, "outside"));
   }
   initialize(seed: string) {
     this.state.manifest.seed = seed;
@@ -3635,6 +3637,8 @@ export class Engine {
   private walkThroughDoor() {
     const p = this.state.player;
     if (p.pos.space === "outside") {
+      // The cell index is built with the place index; ask for one to be sure of both.
+      this.doorOf("");
       const door = this.doorsByCell?.get(`${p.pos.x},${p.pos.y}`);
       if (!door?.open || !door.placeId) return;
       const place = this.world.place(door.placeId);
@@ -4745,6 +4749,7 @@ export class Engine {
           );
         this.state.objects.push(next);
       }
+    clearDoorsteps(this.state.objects, this.world.places, (x, y) => this.world.blocked(x, y, "outside"));
     this.syncFauna();
   }
   /** Copies the animal groups near the player into the snapshot and drops the

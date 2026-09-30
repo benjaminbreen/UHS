@@ -116,7 +116,7 @@ import {
   type SettlementPlan,
   type Site,
 } from "./types";
-import { makeDoor } from "../../core/doors";
+import { makeDoor, paintedDoor } from "../../core/doors";
 import {
   genericBand,
   genericCamp,
@@ -4766,6 +4766,15 @@ export function planSettlement(
     place.condition ??= 1;
     for (const p of buildingRoofCells(place.sprite, place))
       plan.placement.clearance.add(cellKey(p.x, p.y));
+    // The door the art paints, where the step in front of it is clear;
+    // otherwise the wall beside the street entrance.
+    const painted = paintedDoor(place);
+    if (painted) {
+      const step = { x: painted.x, y: painted.y + 1 };
+      const inOther = plan.places.some((o) => o !== place && step.x >= o.x && step.x < o.x + o.w && step.y >= o.y && step.y < o.y + o.h);
+      // The entrance is where a visitor stands: the step in front of the door.
+      if (!inOther && !plan.solid.has(cellKey(step.x, step.y))) (place.door = painted), (place.entrance = step);
+    }
     const door = makeDoor(place);
     plan.solid.delete(cellKey(door.pos.x, door.pos.y));
     plan.objects.push(door);

@@ -4,10 +4,12 @@ import {
   doorApproach,
   doorCell,
   makeDoor,
+  paintedDoor,
   startsOpen,
 } from "../src/core/doors";
 import type { Place } from "../src/core/types";
-import { createSession } from "../src/runtime/session";
+import { createSession, createSettingSession } from "../src/runtime/session";
+import { panelSetting } from "../scripts/review/panel";
 
 let serial = 0;
 const act = (
@@ -194,5 +196,26 @@ describe("walking through", () => {
       dy: door.pos.y - from.y,
     });
     expect(e.state.player.pos.space).toBe("outside");
+  });
+
+  it("puts the doorway where the building's art paints its door, and walks in from its step", () => {
+    const e = createSettingSession({ ...panelSetting("rome", 100), season: "summer" }, "doors");
+    const painted = e.world.places.filter((p) => paintedDoor(p));
+    const aligned = painted.filter((p) => {
+      const a = paintedDoor(p)!, d = doorCell(p);
+      return a.x === d.x && a.y === d.y;
+    });
+    expect(aligned.length / painted.length).toBeGreaterThan(0.95);
+    // No door cell looked up beforehand: stepping onto one is enough.
+    for (const b of aligned.slice(0, 20)) {
+      const door = e.state.objects.find((o) => o.kind === "door" && o.placeId === b.id)!;
+      door.open = true;
+      const d = doorCell(b), from = doorApproach(b);
+      expect(e.blocked(from.x, from.y, "outside"), `${b.sprite} step`).toBe(false);
+      for (const a of e.state.actors) if (a.pos.space === "outside" && Math.abs(a.pos.x - d.x) <= 1 && Math.abs(a.pos.y - d.y) <= 2) a.pos = { x: 9999, y: 9999, space: "outside" };
+      e.state.player.pos = { ...from, space: "outside" };
+      act(e, { type: "move", dx: d.x - from.x, dy: d.y - from.y });
+      expect(e.state.player.pos.space, b.sprite).toBe(b.id);
+    }
   });
 });
