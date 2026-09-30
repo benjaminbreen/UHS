@@ -31,7 +31,8 @@ const BACK: RoomRole[] = ["sleep", "store"];
 function roomsFor(profile: InteriorProfile, status: RoomChoice["status"]) {
   const all = (profile.rooms ?? []).map((t, i) => ({ t, i, role: t.role ?? (i === 0 ? "entry" : "hall") })).filter((r) => r.role !== "lobby");
   if (all.length < 2) return all;
-  const sleeps = (r: (typeof all)[number]) => (r.t.sleep ?? profile.sleep) !== "none";
+  // Nobody sleeps in the court.
+  const sleeps = (r: (typeof all)[number]) => (r.t.sleep ?? profile.sleep) !== "none" && r.t.shapes?.[0] !== "courtyard";
   const keep = [all[0]];
   const bed = all.find((r) => r !== all[0] && sleeps(r));
   if (!sleeps(all[0]) && bed) keep.push(bed);
@@ -40,13 +41,12 @@ function roomsFor(profile: InteriorProfile, status: RoomChoice["status"]) {
   return all.filter((r) => keep.includes(r));
 }
 
-/** The rooms of a house laid out as the public rooms in a row along the front,
- * entered from below, and the private rooms and stores behind them. */
+/** The rooms of a household laid out on one grid, entered from below: round
+ * a court where the house opens on one, else in rows. */
 export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building {
   const chosen = roomsFor(profile, c.status);
   if (chosen.length < 2) return single(profile, c, chosen[0]?.i);
   const k = [0.8, 0.9, 1][c.status];
-  type Box = { i: number; role: RoomRole; label: string; shape: Shape; w: number; d: number; x: number; y: number };
   const boxes: Box[] = chosen.map(({ t, i, role }) => ({
     i,
     role,
@@ -57,41 +57,9 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     x: 0,
     y: 0,
   }));
-  const front = boxes.filter((b) => !BACK.includes(b.role));
-  const back = boxes.filter((b) => BACK.includes(b.role));
-  if (!front.length) front.push(back.shift()!);
-  // Front row: top-aligned, so the back wall runs level along the street side.
-  let x = 0;
-  for (const b of front) (b.x = x), (x += b.w + BESIDE);
-  const rowTop = back.length ? Math.max(...back.map((b) => b.d)) + BEHIND : 0;
-  for (const b of front) b.y = rowTop;
-  // Back row: each room over the front room it opens from, stores by the kitchen.
-  let bx = 0;
-  const doorways: { a: Box; b: Box; cells: [number, number][] }[] = [];
-  // Stores sit behind the kitchen, sleeping rooms behind the entry, in that order along the row.
-  const parent = (b: Box) => (b.role === "store" && front.find((f) => f.role === "kitchen")) || front[0];
-  back.sort((a, b) => parent(a).x - parent(b).x);
-  for (const b of back) {
-    b.x = Math.max(bx, parent(b).x);
-    b.y = rowTop - BEHIND - b.d;
-    bx = b.x + b.w + BESIDE;
-    // It opens from whichever front room it most overlaps.
-    const span = (f: Box) => Math.min(b.x + b.w, f.x + f.w) - Math.max(b.x, f.x);
-    const under = front.reduce((best, f) => (span(f) > span(best) ? f : best), front[0]);
-    const lo = Math.max(b.x, under.x) + 1, hi = Math.min(b.x + b.w, under.x + under.w) - 2;
-    const px = hi >= lo ? Math.floor((lo + hi) / 2) : under.x + 1;
-    doorways.push({ a: under, b, cells: Array.from({ length: BEHIND }, (_, j) => [px, b.y + b.d + j]) });
-  }
-  // Side doors between neighbours in a row, near the bottom of the shorter.
-  for (const row of [front, back])
-    for (let n = 1; n < row.length; n++) {
-      const a = row[n - 1], b = row[n];
-      if (b.x !== a.x + a.w + BESIDE) continue;
-      const y = Math.max(a.y, b.y) + Math.min(a.y + a.d, b.y + b.d) - Math.max(a.y, b.y) - 2;
-      doorways.push({ a, b, cells: [[a.x + a.w, y]] });
-    }
+  const court = boxes[0].shape === "courtyard" && boxes[0].w >= 9 && boxes[0].d >= 8 ? boxes[0] : undefined;
+  const { doorways, entry } = court ? aroundCourt(boxes, court) : inRows(boxes);
   const w = Math.max(...boxes.map((b) => b.x + b.w)), d = Math.max(...boxes.map((b) => b.y + b.d));
-  const entry = front[0];
   const entrance = entry.x + Math.floor(entry.w / 2);
   // Each room planned in its own coordinates, kept clear where a doorway meets it.
   const props: Prop[] = [];
@@ -111,7 +79,7 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     const shape = b.shape === "courtyard" && (b.w < 9 || b.d < 8) ? "rect" : b.shape;
     const params = resolveRoom(profile, { ...c, room: b.i, w: b.w, d: b.d, shape });
     // Where the house has a room to sleep in, the others keep no beds unless their own template says so.
-    if (boxes.some((o) => o.role === "sleep") && b.role !== "sleep" && profile.rooms?.[b.i].sleep === undefined) params.sleep = "none";
+    if ((boxes.some((o) => o.role === "sleep") && b.role !== "sleep" && profile.rooms?.[b.i].sleep === undefined) || b === court) params.sleep = "none";
     params.openings = openings;
     if (b === entry) params.entrance = entrance - b.x;
     rooms.push(params);
@@ -138,6 +106,79 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     rooms: boxes.map((b) => ({ label: b.label, role: b.role, x: b.x, y: b.y, w: b.w, d: b.d, private: b.role === "sleep" })),
     doorways: ways,
   };
+}
+
+type Box = { i: number; role: RoomRole; label: string; shape: Shape; w: number; d: number; x: number; y: number };
+type Link = { a: Box; b: Box; cells: [number, number][] };
+/** A doorway up through the wall between a room and the one behind it. */
+function through(under: Box, b: Box): Link {
+  const lo = Math.max(b.x, under.x) + 1, hi = Math.min(b.x + b.w, under.x + under.w) - 2;
+  const px = hi >= lo ? Math.floor((lo + hi) / 2) : under.x + 1;
+  return { a: under, b, cells: Array.from({ length: BEHIND }, (_, j) => [px, b.y + b.d + j]) };
+}
+/** A doorway through the side wall between neighbours, near the foot of the shorter. */
+function beside(a: Box, b: Box): Link {
+  const y = Math.max(a.y, b.y) + Math.min(a.y + a.d, b.y + b.d) - Math.max(a.y, b.y) - 2;
+  return { a, b, cells: [[a.x + a.w, y]] };
+}
+/** Whichever of these a room behind them most overlaps. */
+function below(b: Box, under: Box[]) {
+  const span = (f: Box) => Math.min(b.x + b.w, f.x + f.w) - Math.max(b.x, f.x);
+  return under.reduce((best, f) => (span(f) > span(best) ? f : best), under[0]);
+}
+
+/** Public rooms in a row along the front, top-aligned so the back wall runs
+ * level; sleeping rooms and stores behind, stores behind the kitchen. */
+function inRows(boxes: Box[]) {
+  const front = boxes.filter((b) => !BACK.includes(b.role));
+  const back = boxes.filter((b) => BACK.includes(b.role));
+  if (!front.length) front.push(back.shift()!);
+  let x = 0;
+  for (const b of front) (b.x = x), (x += b.w + BESIDE);
+  const rowTop = back.length ? Math.max(...back.map((b) => b.d)) + BEHIND : 0;
+  for (const b of front) b.y = rowTop;
+  const parent = (b: Box) => (b.role === "store" && front.find((f) => f.role === "kitchen")) || front[0];
+  back.sort((a, b) => parent(a).x - parent(b).x);
+  const doorways: Link[] = [];
+  let bx = 0;
+  for (const b of back) {
+    b.x = Math.max(bx, parent(b).x);
+    b.y = rowTop - BEHIND - b.d;
+    bx = b.x + b.w + BESIDE;
+    doorways.push(through(below(b, front), b));
+  }
+  for (const row of [front, back])
+    for (let n = 1; n < row.length; n++) if (row[n].x === row[n - 1].x + row[n - 1].w + BESIDE) doorways.push(beside(row[n - 1], row[n]));
+  return { doorways, entry: front[0] };
+}
+
+/** A house turned inward on its court, as a domus on its atrium, a haveli on
+ * its chowk, a dar on its wast: the court entered straight from the street,
+ * a sleeping room to either side, and the rest across the back behind the
+ * court's far wall, each opening onto the court or the room below it. */
+function aroundCourt(boxes: Box[], court: Box) {
+  const others = boxes.filter((b) => b !== court);
+  const west = others.find((b) => b.role === "sleep");
+  const east = others.find((b) => b !== west && (b.role === "sleep" || b.role === "kitchen" || b.role === "store"));
+  const north = others.filter((b) => b !== west && b !== east);
+  for (const side of [west, east]) if (side) side.d = Math.min(side.d, court.d);
+  const top = north.length ? Math.max(...north.map((b) => b.d)) + BEHIND : 0;
+  court.x = west ? west.w + BESIDE : 0;
+  court.y = top;
+  if (west) (west.x = 0), (west.y = top);
+  if (east) (east.x = court.x + court.w + BESIDE), (east.y = top);
+  // The back range, centred on the whole front.
+  const front = [west, court, east].filter((b): b is Box => !!b);
+  const wide = front[front.length - 1].x + front[front.length - 1].w;
+  const span = north.reduce((n, b) => n + b.w, 0) + BESIDE * Math.max(0, north.length - 1);
+  let x = Math.max(0, Math.floor((wide - span) / 2));
+  for (const b of north) (b.x = x), (b.y = top - BEHIND - b.d), (x += b.w + BESIDE);
+  const doorways: Link[] = [];
+  if (west) doorways.push(beside(west, court));
+  if (east) doorways.push(beside(court, east));
+  for (const b of north) doorways.push(through(below(b, front), b));
+  for (let n = 1; n < north.length; n++) doorways.push(beside(north[n - 1], north[n]));
+  return { doorways, entry: court };
 }
 
 /** A one-room dwelling, entered from below. Tents, huts and a Çatalhöyük

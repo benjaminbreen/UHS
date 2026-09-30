@@ -2127,6 +2127,14 @@ export class PixelRoom {
       L.fillRect(l.x - r, l.y - r, r * 2, r * 2);
       L.restore();
     }
+    // An open court has the sky over it: full daylight, or the moon.
+    L.globalCompositeOperation = "source-over";
+    L.filter = "blur(3px)";
+    L.fillStyle = hex(day > 0.05 ? mix(0xfff0dc, sunNow.color, 0.3) : 0x4a5690);
+    for (let cy = 0; cy < p.d; cy++)
+      for (let cx = 0; cx < p.w; cx++) if (this.mask[cy * p.w + cx] === 2) L.fillRect(S + cx * T, this.oy + cy * T, T, T);
+    L.filter = "none";
+    L.globalCompositeOperation = "lighter";
     // The sun on the floor: a soft-edged parallelogram, warm and bright.
     L.filter = "blur(1px)";
     for (const b of this.beams) {
