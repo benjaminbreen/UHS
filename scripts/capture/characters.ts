@@ -648,7 +648,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async faces(page) {
     await characterLab(page);
     await page.evaluate(async (facing) => {
-      const { drawCharacter, outlineCharacter } = await import(
+      const { drawCharacter, outlineCharacter, outlined, defaultRenderer } = await import(
         "/src/render/characters/renderers.ts" as string
       );
       const { generateAppearance } = await import(
@@ -672,15 +672,16 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       skins.forEach((skin, row) => {
         for (let i = 0; i < cols; i++) {
           const a = generateAppearance("faces", row * cols + i, 30);
-          drawCharacter(bc, { ...a, skin }, facing, "idle", 0);
-          outlineCharacter(bc);
+          // FACING is 0–7, north clockwise, so diagonals can be reviewed too.
+          drawCharacter(bc, { ...a, skin }, Math.round(facing / 2) % 4, "idle", 0, undefined, facing);
+          if (!outlined(defaultRenderer)) outlineCharacter(bc);
           ctx.drawImage(b, 21, 32, w, h, i * w * S, row * h * S, w * S, h * S);
         }
       });
       document.body.replaceChildren(c);
       c.style.imageRendering = "pixelated";
-    }, Number(process.env.FACING ?? 2));
-    await shootCanvas(page, out("faces"));
+    }, Number(process.env.FACING ?? 4));
+    await shootCanvas(page, out(`faces-${process.env.FACING ?? 4}`));
   },
 
   /** Every frame of the walk and the run on the game renderer: profile,

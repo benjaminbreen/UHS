@@ -90,7 +90,8 @@ export function luma(hex: string) {
  * deeper rose-brown on dark, never a pastel patch. */
 export function flush(skin: string) {
   const [h, s, l] = toHsl(skin);
-  return mix(skin, fromHsl([toward(h, 0, 14), s + 0.08, l]), 0.6);
+  // Dark skin needs more saturation than pale for the same flush to show.
+  return mix(skin, fromHsl([toward(h, 0, 14), s + (l < 0.4 ? 0.2 : 0.08), l + (l < 0.3 ? 0.04 : 0)]), 0.6);
 }
 /** Each step darker also turns toward violet and gains saturation; each step
  * lighter turns toward gold. Darkening by scaling RGB greys every shadow into

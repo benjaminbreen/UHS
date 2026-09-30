@@ -24,6 +24,9 @@ export function drawHead(
     eye = deep ? "#130d12" : mix(a.hairColor, "#2a2230", 0.75),
     // Faint glint, kept close to the iris so eyes don't read as gray.
     glint = mix(eye, skin.light, 0.3),
+    // The white beside the pupil is what makes an eye read on any skin; on
+    // dark skin a dark pupil alone vanishes into the face.
+    sclera = mix("#f3ece0", skin.light, 0.2),
     frame = a.wearing.eyewear === "sunglasses" ? "#1c1a1e" : "#3a3238",
     blink = pose === "idle" && f === 3;
   const shape = a.head ?? "original",
@@ -34,6 +37,7 @@ export function drawHead(
   // Hair hides the top of the skull; bare, the flat-topped block underneath
   // read as a box. A bald head gets a dome with the same brow and cheeks.
   const bald = a.hair === "bald" && a.wearing.headwear === "none";
+  let drawEyes: (() => void) | undefined;
   if (side) {
     // Actual east profile: occiput → forehead → nose → chin → neck.
     // Nose is a 1px bump. Only soft and small jaws recede well behind it; a
@@ -106,9 +110,14 @@ export function drawHead(
     );
     p.rect(12, 6, 4, 5, skin.base);
     p.rect(16, 9, 2, 1, skin.base);
-    p.rect(14, 7, 1, blink ? 1 : 2, blink ? skin.shade : eye);
-    if (!blink) p.rect(14, 7, 1, 1, glint);
-    p.rect(15, 7, 1, 1, skin.light);
+    drawEyes = () => {
+      p.rect(14, 7, 1, blink ? 1 : 2, blink ? skin.shade : eye);
+      if (!blink) p.rect(14, 7, 1, 1, glint);
+      p.rect(15, 7, 1, 1, skin.light);
+      // In profile the iris is at the front of the eye; the white shows behind it.
+      if (!blink) p.rect(13, 8, 1, 1, sclera);
+    };
+    drawEyes();
     if (a.wearing.eyewear === "sunglasses") {
       p.rect(13, 7, 3, 2, frame);
       p.rect(11, 7, 2, 1, frame);
@@ -194,24 +203,32 @@ export function drawHead(
       // pixel or two, so a crowd varies without anyone looking deformed.
       const face = a.face,
         // Spacing stays fixed: a pixel either way is a third of the gap.
+        // Turned, the far eye stays put while the rest moves: it closes
+        // toward the nose.
         eyes: [number, number][] = [
           [8 + t, -1],
-          [12 + t, 1],
+          [12, 1],
         ],
         slit =
           face?.eyeShape === "narrow" ||
           face?.eyeSize === "small" ||
           face?.eyelid === "monolid";
-      for (const [x] of eyes) {
-        if (blink) {
-          p.rect(x, 9, 1, 1, skin.shade);
-          continue;
+      // A dark second column or a brow reads as a scowl at this size; a
+      // light one beside the pupil reads as an open eye.
+      drawEyes = () => {
+        for (const [x, out] of eyes) {
+          if (blink) {
+            p.rect(x, 9, 1, 1, skin.shade);
+            continue;
+          }
+          const low = slit || expression === "soft";
+          // Turned, the far eye foreshortens to the pupil alone.
+          if (!(turn && out > 0)) p.rect(x + out, low ? 9 : 8, 1, low ? 1 : 2, sclera);
+          p.rect(x, low ? 9 : 8, 1, low ? 1 : 2, eye);
+          if (face?.eyeSize === "large" && !low) p.rect(x, 8, 1, 1, glint);
         }
-        p.rect(x, slit || expression === "soft" ? 9 : 8, 1, slit || expression === "soft" ? 1 : 2, eye);
-        // Always one pixel wide: a second column, or a brow above, reads as a
-        // scowl at this size.
-        if (face?.eyeSize === "large" && !slit && expression !== "soft") p.rect(x, 8, 1, 1, glint);
-      }
+      };
+      drawEyes();
       if (a.wearing.eyewear === "sunglasses") {
         p.rect(6 + t, 8, 4, 2, frame);
         p.rect(11 + t, 8, 4 - t, 2, frame);
@@ -240,7 +257,9 @@ export function drawHead(
       }
       const mouth = face?.mouth ?? "soft",
         mw = mouth === "wide" ? 3 : 2,
-        lip = mix(skin.shade, skin.edge, expression === "serious" ? 0.5 : 0.2);
+        // Warmer and darker than the skin's own shade, or the mouth, and with
+        // it the expression, vanishes on mid and dark skin.
+        lip = mix(skin.edge, "#8a3438", expression === "serious" ? 0.15 : 0.35);
       if (expression === "smile") {
         p.rect(9 + t, 12, 1, 1, lip);
         p.rect(10 + t, 13, 2, 1, lip);
@@ -258,7 +277,12 @@ export function drawHead(
         p.rect(9 + t, 7, 1, 1, skin.shade);
         p.rect(11 + t, 7, 1, 1, skin.shade);
       }
-      if (turn) p.rect(13, 10, 1, 1, skin.shade);
+      if (turn) {
+        p.rect(13, 10, 1, 1, skin.shade);
+        // The nose breaks the near cheek's line, and the far ear shows.
+        p.rect(15 + cheek, 10, 1, 1, skin.base);
+        p.rect(4 - cheek, 9, 1, 2, skin.shade);
+      }
       if (pose === "talk" && f % 2) p.rect(10 + t, 12, 2, 2, skin.edge);
       if (pose === "startle") p.rect(10 + t, 12, 2, 2, skin.edge);
       if (pose === "hurt") {
@@ -934,5 +958,12 @@ export function drawHead(
   if (a.wearing.earrings && !back) {
     p.rect(side ? 10 : 4, 12, 1, 2, "#dfbb70");
     if (!side) p.rect(16, 12, 1, 2, "#dfbb70");
+  }
+  // Hair and hats are drawn over the face; a fringe that reaches the eyes
+  // would leave a face with no one in it. Bare heads also keep a skin row
+  // of brow above them.
+  if (drawEyes && a.wearing.eyewear !== "sunglasses" && a.wearing.headwear !== "veil" && a.wearing.headwear !== "visor") {
+    if (a.wearing.headwear === "none" && a.hair !== "bald" && !side) p.rect(8 + (turn ? 1 : 0), 7, 5, 1, skin.base);
+    drawEyes();
   }
 }
