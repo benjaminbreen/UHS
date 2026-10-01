@@ -105,6 +105,8 @@ import { setRealLanguage, useRealLanguage } from "./real-language";
 import { VitalsOverlay } from "./VitalsOverlay";
 import { markEvent, vitalsEnabled, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
+import { PlotCard } from "./PlotCard";
+import { markOf, type PlotCard as PlotCardData } from "../core/plot";
 import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
@@ -327,6 +329,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   };
   const [situation, setSituation] = useState<string | undefined>(undefined);
   const openDialogue = (id: string, opening?: string) => {
+    const sent = runtime.engine.approacher;
+    if (!opening && sent?.id === id && runtime.engine.state.clock < sent.until) {
+      opening = sent.situation;
+      runtime.engine.approacher = undefined;
+    }
     const actor = runtime.engine.state.actors.find(
       (candidate) => candidate.id === id,
     );
@@ -360,6 +367,17 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, obs.clock, modal]);
+  const [card, setCard] = useState<PlotCardData>();
+  useEffect(() => {
+    if (card || modal) return;
+    const next = runtime.engine.cards.shift();
+    if (!next) return;
+    runtime.hold(true);
+    setCard(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runtime, obs.clock, modal, card]);
+  const lookAt = (id?: string) =>
+    (game.current?.scene.getScene("world") as WorldScene | undefined)?.lookAt(id);
   // A guard who has come down to bar your way has something to say.
   useEffect(() => {
     const guard = runtime.engine.challenger;
@@ -1400,7 +1418,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 </div>
                 <div className="focus-card">
                   {focusActor?.kind === "human" ? (
-                    <div className="focus-thumbnail portrait">
+                    <div className="focus-thumbnail portrait" data-mark={markOf(runtime.engine.state, focusActor.id)}>
                       <CharacterSprite
                         appearance={runtime.appearanceFor(focusActor)}
                         age={focusActor.age}
@@ -1537,6 +1555,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         <button
                           key={t.id ?? `${t.kind}:${t.name}`}
                           disabled={!t.id}
+                          data-mark={t.id ? markOf(runtime.engine.state, t.id) : undefined}
                           onClick={() => {
                             if (!t.id) return;
                             runtime.select(t.id);
@@ -1670,6 +1689,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         <Suspense fallback={<div data-modal="true">Loading audio…</div>}>
           <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
         </Suspense>
+      )}
+      {card && (
+        <PlotCard
+          runtime={runtime}
+          card={card}
+          onLook={lookAt}
+          onAnswer={(id) => openDialogue(id)}
+          onClose={() => {
+            runtime.hold(false);
+            setCard(undefined);
+          }}
+        />
       )}
       {modal === "time" && <TimeModal runtime={runtime} onClose={() => setModal(null)} onNewWorld={openWorld} />}
       {modal === "evening" && evening && (

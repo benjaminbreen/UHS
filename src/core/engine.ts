@@ -81,6 +81,7 @@ import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim } from "./life-aim";
+import { endPlot, plotLine, stepPlot, type PlotCard } from "./plot";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
@@ -3773,6 +3774,12 @@ export class Engine {
   doorAnswer?: string;
   /** A guard who has just barred the player's way, for the dialogue to open on. */
   challenger?: string;
+  /** Someone the plot sent to the player, and what they came to say. Talking
+   * to them in time opens on it. */
+  approacher?: { id: string; situation: string; until: number };
+  private approaching?: { id: string; line: string; until: number };
+  /** Plot cards waiting to be shown, oldest first. */
+  cards: PlotCard[] = [];
   /** Whether a door opens for this caller right now. The rules are in
    * doors.ts; the engine only supplies who is inside and who is welcome. */
   doorVerdict(place: Place, actorId: string): DoorVerdict {
@@ -4248,6 +4255,10 @@ export class Engine {
     if (actor) {
       if (actor.kind === "human") {
         interact("talk", "Talk");
+        const plot = this.state.plot;
+        if (plot && !plot.ended && plot.cast.creditor === id && (plot.owed ?? 0) > 0)
+          interact("pay", "Pay what you owe", close && this.payable().length > 0,
+            close ? "You have nothing they will take" : undefined);
         interact(
           "follow",
           "Ask to accompany",
@@ -6286,6 +6297,19 @@ export class Engine {
             this.event("You have completed a step toward your life aim.");
         }
         break;
+      case "pay":
+        if (a) {
+          const given = this.settle(p.inventory, a, this.payable());
+          this.advance(30, a.id);
+          this.regard(a, 1);
+          const owed = this.state.plot?.owed ?? 0;
+          this.event(
+            `You pay ${a.name} ${given}.${owed > 0 ? " It is not yet enough." : ""}`,
+            "social",
+          );
+          this.runPlot();
+        }
+        break;
       case "follow":
         if (a) {
           this.advance(30, a.id);
@@ -6605,6 +6629,102 @@ export class Engine {
     }
     this.affront(a);
     this.event(`You run full into ${a.name}, who rounds on you.`, "social");
+  }
+  private runPlot() {
+    const s = this.state, plot = s.plot!;
+    for (const e of stepPlot(s)) {
+      const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
+      if (e.type === "title")
+        this.cards.push({ kind: "title", title: plot.title, text: plotLine(plot, e.line), aim: s.lifeAim?.text });
+      else if (e.type === "card")
+        this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, e.line), focus: e.focus && plot.cast[e.focus] });
+      else if (e.type === "approach" && who)
+        this.approaching = { id: who.id, line: plotLine(plot, e.line), until: s.clock + 7200 };
+      else if (e.type === "regard" && who) this.regard(who, e.delta);
+      else if (e.type === "seize" && who) {
+        const h = this.household(s.player.householdId);
+        const store = h && s.objects.find((o) => o.id === h.storeId);
+        if (store) {
+          const before = plot.owed ?? 0;
+          this.settle((store.inventory ??= {}), who, Object.keys(store.inventory));
+          plot.seized = (plot.seized ?? 0) + before - (plot.owed ?? 0);
+        }
+      } else if (e.type === "walk-off" && who) this.walkOff(who, e.to);
+      else if (e.type === "extend") plot.deadline += e.hours * 3600;
+    }
+    const ending = endPlot(s);
+    if (ending) this.cards.push({ kind: "ending", title: plot.title, text: plotLine(plot, ending.id), ending: ending.id });
+  }
+  /** What the player can hand over toward a debt: money where there is
+   * coinage, food where there is not. */
+  private payable() {
+    const setting = this.world.pack.setting;
+    const coined = !!setting && capabilitiesFor(setting).has("coinage");
+    return Object.keys(this.state.player.inventory).filter((id) =>
+      (this.state.player.inventory[id] ?? 0) > 0 && (this.item(id)?.value ?? 0) > 0 &&
+      (coined ? id === "coin" : !!this.item(id)?.edible));
+  }
+  /** Moves goods from `from` to `to` until the plot's debt is met, money first
+   * and then the dearest. Returns what changed hands, for the line. */
+  private settle(from: Inventory, to: Actor, ids: ItemId[]) {
+    const plot = this.state.plot!;
+    const handed: string[] = [];
+    const order = [...ids].sort((a, b) =>
+      Number(b === "coin") - Number(a === "coin") || (this.item(b)?.value ?? 0) - (this.item(a)?.value ?? 0));
+    for (const id of order) {
+      const value = this.item(id)?.value ?? 0;
+      let n = 0;
+      while ((plot.owed ?? 0) > 0 && (from[id] ?? 0) > 0 && value > 0) {
+        from[id]!--;
+        to.inventory[id] = (to.inventory[id] ?? 0) + 1;
+        plot.owed = (plot.owed ?? 0) - value;
+        n++;
+      }
+      if (n) handed.push(`${n} ${this.item(id)!.name.toLowerCase()}`);
+    }
+    return handed.join(", ") || "nothing";
+  }
+  /** The plot's messenger walks over and says their piece. */
+  private approach(clock: number) {
+    const ap = this.approaching!, p = this.state.player;
+    const a = this.actorsById?.get(ap.id);
+    if (!a || a.dead || clock > ap.until) {
+      this.approaching = undefined;
+      return;
+    }
+    if (p.dead || this.conversing) return;
+    if (a.pos.space === p.pos.space && distance(a.pos, p.pos) <= 1.6) {
+      this.approaching = undefined;
+      a.errand = { to: copy(a.pos), label: "Waiting for an answer", until: clock + 120 };
+      a.direction = this.directionTo(a.pos, p.pos);
+      delete a.facing;
+      this.cue(a.id, "beckon", p.pos);
+      this.cards.push({ kind: "speech", title: this.state.plot?.title ?? "", text: ap.line, speaker: a.id });
+      this.approacher = {
+        id: a.id,
+        situation: `You have just walked up to the player and said: “${ap.line}” You want an answer.`,
+        until: clock + 300,
+      };
+      return;
+    }
+    const inside = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
+    const to: Position = inside ? { ...doorApproach(inside), space: "outside" } : p.pos;
+    const from = a.pos.space !== to.space && this.world.place(a.pos.space);
+    if (from) this.moveActor(a, { ...doorApproach(from), space: "outside" });
+    // Beyond the simulated ring nobody walks; they have come most of the way unseen.
+    const d = distance(a.pos, to);
+    if (a.pos.space === to.space && d > 60)
+      for (const r of [30, 34, 38, 42]) {
+        const q = {
+          x: Math.round(to.x + ((a.pos.x - to.x) / d) * r),
+          y: Math.round(to.y + ((a.pos.y - to.y) / d) * r),
+          space: to.space,
+        };
+        if (this.blocked(q.x, q.y, q.space) || this.visible(q)) continue;
+        this.moveActor(a, q);
+        break;
+      }
+    a.errand = { to: copy(to), label: "Coming to find you", until: clock + 60 };
   }
   /** Someone who has had enough of the player goes elsewhere for an hour. */
   walkOff(a: Actor, where: WalkOff) {
@@ -7153,6 +7273,8 @@ export class Engine {
                 (this.knows("long-stride") ? 1.25 : 1)),
       );
       if (next % 6 !== 0) continue;
+      if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
+      if (this.approaching) this.approach(next);
       this.burnStep();
       this.brawl();
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();

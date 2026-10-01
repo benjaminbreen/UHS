@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { doorApproach } from "../src/core/doors";
-import { createSession, restoreSession } from "../src/runtime/session";
+import { createSession, createSettingSession, restoreSession } from "../src/runtime/session";
+import { startPlot } from "../src/core/plot";
 import { createWorld } from "../src/world/generate";
 import { packs } from "../src/content/packs";
 import { findPath } from "../src/core/pathfinding";
@@ -150,6 +151,43 @@ describe("shared deterministic foundation", () => {
     expect(advanceLifeAim(e.state, { type: "work" })).toBe(false);
     expect(advanceLifeAim(e.state, { type: "work" })).toBe(true);
     expect(advanceLifeAim(e.state, { type: "work" })).toBe(false);
+  });
+  it("binds a seeded debt, sends the creditor over, and ends it by payment or seizure", () => {
+    const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
+    const e = createSettingSession(setting, "b");
+    const plot = e.state.plot!;
+    expect(plot.id).toBe("debt");
+    expect(e.state.lifeAim?.id).toBe("plot:debt");
+    const again = structuredClone(e.state);
+    delete again.plot;
+    expect(startPlot(again, setting)?.cast).toEqual(plot.cast);
+
+    const creditor = e.state.actors.find((a) => a.id === plot.cast.creditor)!;
+    for (let i = 0; i < 30 && !e.approacher; i++) act(e, { type: "wait", seconds: 60 });
+    expect(e.approacher?.id).toBe(creditor.id);
+    expect(e.cards.find((c) => c.kind === "speech")?.text).toContain(plot.words.amount);
+
+    const coin = e.item("coin")!.value, owed = plot.owed!;
+    e.state.player.inventory.coin = 3;
+    expect(act(e, { type: "interact", target: creditor.id, action: "pay" }).status).toBe("completed");
+    expect(plot.owed).toBe(owed - 3 * coin);
+    expect(plot.ended).toBeUndefined();
+
+    const home = e.state.households!.find((h) => h.members.includes(e.state.player.id))!;
+    const store = e.state.objects.find((o) => o.id === home.storeId)!;
+    store.inventory = { ...store.inventory, coin: 20 };
+    plot.deadline = e.state.clock;
+    act(e, { type: "wait", seconds: 120 });
+    expect(plot.fired).toEqual(["opening", "remind", "seize"]);
+    expect(plot.ended).toBe("seized");
+    expect(e.state.lifeAim?.id).toBe(plot.aim?.id);
+
+    delete e.state.plot;
+    const next = startPlot(e.state, setting)!;
+    creditor.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    e.state.player.inventory.coin = next.owed!;
+    expect(act(e, { type: "interact", target: creditor.id, action: "pay" }).status).toBe("completed");
+    expect(next.ended).toBe("paid");
   });
   it("replays identical commands, including uncertainty, to the same physical hash", () => {
     const a = createSession("roman", "repeat"),

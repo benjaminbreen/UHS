@@ -131,6 +131,7 @@ import { colorwayLabels } from "../content/ecology/variants";
 import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
 import { fromAtlas, toAtlas } from "../world/geography/coordinates";
 import { ensureLifeAim } from "../core/life-aim";
+import { startPlot } from "../core/plot";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 export function createSession(
   packId = "roman",
@@ -242,6 +243,7 @@ export function createSession(
       (["eat", "food-store", "sleep", "water", "firewood"].includes(goal.id) ? "need" : "social");
   }
   ensureLifeAim(engine.state, pack.setting);
+  startPlot(engine.state, pack.setting);
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn
@@ -941,7 +943,7 @@ export class Runtime {
    * since the last command. Monotonic, and never behind the simulation. */
   displayClock() {
     if (this.timeVisualClock !== undefined) return this.timeVisualClock;
-    if (this.timeTravelLocked || this.engine.state.player.dead) return this.engine.state.clock;
+    if (this.timeTravelLocked || this.held || this.engine.state.player.dead) return this.engine.state.clock;
     if (this.journey?.busy) return this.engine.state.clock;
     // A short grace period means the gaps between walking steps contribute
     // nothing; only actually standing still lets the clock run on.
@@ -952,6 +954,13 @@ export class Runtime {
     );
   }
   resumeAmbient() {
+    this.syncAmbient();
+  }
+  /** Stops the world under a card without locking out commands. */
+  held = false;
+  hold(on: boolean) {
+    if (on) this.flushAmbient();
+    this.held = on;
     this.syncAmbient();
   }
   private syncAmbient() {

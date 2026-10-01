@@ -1,0 +1,315 @@
+@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&display=swap");
+
+.plot-veil,
+.plot-floor,
+.plot-stage {
+  --display: "Pixelify Sans", "Silkscreen", monospace;
+  --hi: color-mix(in srgb, var(--edge), var(--light) 38%);
+  --lo: color-mix(in srgb, var(--edge), var(--ink) 55%);
+  --soft: color-mix(in srgb, var(--light), var(--fill) 30%);
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  color: var(--light);
+}
+.plot-veil {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  animation: plot-fade 0.2s steps(4) both;
+}
+.plot-floor {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px 20px max(20px, 6vh);
+  pointer-events: none;
+}
+.plot-veil[data-leaving],
+.plot-floor[data-leaving],
+.plot-stage[data-leaving] {
+  animation: plot-out 0.18s steps(3) both;
+  pointer-events: none;
+}
+
+/* A carpenter's frame in the plot's colours: notched corners from the four
+   offset shadows, a two-pixel bevel inside, a hard shadow under it. */
+/* An old console window: a wooden band with a bright rule inside it, and a
+   fill that darkens downward in hard bands rather than a smooth gradient. */
+.plot-frame {
+  position: relative;
+  background: linear-gradient(
+    var(--fill) 0 30%,
+    color-mix(in srgb, var(--fill), var(--ink) 14%) 30% 60%,
+    color-mix(in srgb, var(--fill), var(--ink) 26%) 60% 85%,
+    color-mix(in srgb, var(--fill), var(--ink) 36%) 85%
+  );
+  box-shadow:
+    inset 1px 1px 0 0 var(--hi),
+    inset -1px -1px 0 0 var(--lo),
+    inset 0 0 0 4px var(--edge),
+    inset 0 0 0 5px color-mix(in srgb, var(--light), var(--edge) 25%),
+    inset 0 0 0 7px var(--ink),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink),
+    9px 9px 0 0 color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.plot-card {
+  width: min(520px, 100%);
+  padding: 12px 12px 24px;
+  text-align: center;
+  animation: plot-rise 0.32s steps(5) both;
+}
+.plot-scene {
+  position: relative;
+  margin-bottom: 14px;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.plot-emblem {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+.plot-where {
+  display: block;
+  padding: 7px 0 5px;
+  background: var(--ink);
+  font: 9px var(--pixel, "Silkscreen", monospace);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--soft);
+  text-shadow: 1px 1px 0 var(--ink);
+}
+.plot-card h1 {
+  margin: 0 18px;
+  font: 700 clamp(36px, 7vw, 52px) / 1 var(--display);
+  letter-spacing: 0.02em;
+  color: var(--light);
+  text-shadow: 3px 3px 0 var(--ink);
+}
+.plot-card h1 span {
+  display: inline-block;
+  animation: plot-letter 0.3s steps(3) both;
+}
+.plot-text {
+  margin: 14px auto 0;
+  padding: 0 22px;
+  max-width: 40ch;
+  font: 17px / 1.45 var(--serif, Georgia, serif);
+  animation: plot-resolve 0.4s 0.5s steps(4) both;
+}
+.plot-aim {
+  margin: 16px 22px 0;
+  padding: 12px 14px;
+  font: 16px / 1.4 var(--serif, Georgia, serif);
+  background: var(--ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--edge), var(--ink) 30%);
+  animation: plot-resolve 0.4s 0.65s steps(4) both;
+}
+.plot-aim small {
+  display: block;
+  margin-bottom: 5px;
+  font: 9px var(--pixel, "Silkscreen", monospace);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent), var(--light) 35%);
+}
+.plot-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+  margin-top: 20px;
+  animation: plot-resolve 0.4s 0.8s steps(4) both;
+}
+
+/* Choices as words, with a pointing hand on the one in play. */
+.plot-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 30px; }
+.plot-choice {
+  position: relative;
+  padding: 6px 4px;
+  font: 600 19px var(--display);
+  color: var(--soft);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+.plot-choice[data-on] { color: var(--light); }
+.plot-choice:focus { outline: none; }
+.plot-hand {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  margin: -9px 6px 0 0;
+  image-rendering: pixelated;
+  animation: plot-point 0.7s steps(2) infinite;
+}
+.plot-hand .hand-X { fill: var(--ink); }
+.plot-hand .hand-W { fill: var(--light); }
+.plot-hand .hand-s { fill: color-mix(in srgb, var(--light), var(--edge) 45%); }
+
+/* Someone speaking: the box along the bottom, their face in its own frame. */
+.plot-speech {
+  display: flex;
+  gap: 18px;
+  width: min(760px, 100%);
+  padding: 18px 20px 16px;
+  pointer-events: auto;
+  animation: plot-up 0.24s steps(4) both;
+}
+.plot-portrait {
+  flex: none;
+  width: 104px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--edge), var(--fill) 40%), var(--ink) 80%);
+  box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 4px var(--edge);
+}
+.plot-portrait canvas { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.plot-speech-body { position: relative; flex: 1; min-width: 0; }
+.plot-name {
+  position: absolute;
+  top: -32px;
+  left: 0;
+  padding: 3px 12px 4px;
+  font: 600 16px var(--display);
+  color: var(--light);
+  background: var(--edge);
+  box-shadow: inset 0 2px 0 0 var(--hi), -2px 0 0 0 var(--ink), 2px 0 0 0 var(--ink), 0 -2px 0 0 var(--ink);
+}
+.plot-speech p {
+  margin: 8px 0 0;
+  min-height: 3.2em;
+  font: 19px / 1.45 var(--serif, Georgia, serif);
+}
+.plot-rest { visibility: hidden; }
+.plot-speech-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 6px;
+  gap: 14px;
+  margin-top: 10px;
+  opacity: 0;
+  transition: opacity 0.15s steps(2);
+}
+.plot-speech-actions[data-ready] { opacity: 1; }
+
+/* The staged version: letterbox over the frozen world. */
+.plot-stage { pointer-events: none; }
+.plot-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 max(16px, 4vw);
+  background: var(--ink);
+  pointer-events: auto;
+}
+.plot-bar-top {
+  top: 0;
+  height: 11vh;
+  min-height: 52px;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 3px 0 0 var(--edge);
+  animation: plot-bar-down 0.3s steps(5) both;
+}
+.plot-bar-top span { font: 700 clamp(22px, 3vw, 30px) var(--display); text-shadow: 2px 2px 0 var(--lo); }
+.plot-bar-top small {
+  font: 9px var(--pixel, "Silkscreen", monospace);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--soft);
+  text-align: right;
+}
+.plot-bar-bottom {
+  bottom: 0;
+  min-height: 15vh;
+  padding-block: 12px;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 -3px 0 0 var(--edge);
+  animation: plot-bar-up 0.3s steps(5) both;
+}
+.plot-row {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  overflow-x: auto;
+}
+.plot-row li { animation: plot-slide 0.3s 0.25s steps(4) both; }
+.plot-row button {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 70px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--fill);
+  border: 0;
+  box-shadow: inset 0 0 0 3px var(--mark);
+  opacity: 0.5;
+  cursor: pointer;
+}
+.plot-row [data-on] button { opacity: 1; transform: translateY(-4px); }
+.plot-row canvas { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.plot-stage-actions { display: flex; align-items: center; gap: 18px; flex: none; }
+.plot-who {
+  position: absolute;
+  left: max(16px, 4vw);
+  bottom: calc(max(15vh, 94px) + 22px);
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 16px 20px 18px;
+  animation: plot-up 0.24s 0.15s steps(4) both;
+}
+.plot-who small {
+  font: 9px var(--pixel, "Silkscreen", monospace);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mark);
+}
+.plot-who strong { display: block; margin-top: 6px; font: 700 26px / 1.1 var(--display); }
+.plot-who p { margin: 6px 0 0; font: 16px / 1.4 var(--serif, Georgia, serif); }
+
+/* Marked people anywhere: gold for whoever the plot has drawn in, red for your own. */
+[data-mark="plot"] { --mark: #e2b65c; }
+[data-mark="kin"] { --mark: #d9523f; }
+.focus-thumbnail[data-mark],
+.nearby-list [data-mark] canvas { box-shadow: 0 0 0 2px var(--mark); }
+
+@keyframes plot-fade { from { opacity: 0; } }
+@keyframes plot-point { 50% { transform: translateX(-3px); } }
+@keyframes plot-out { to { opacity: 0; } }
+@keyframes plot-rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes plot-up { from { opacity: 0; transform: translateY(20px); } }
+@keyframes plot-letter { from { opacity: 0; transform: translateY(-0.4em); } }
+@keyframes plot-resolve { from { opacity: 0; transform: translateY(4px); } }
+@keyframes plot-bar-down { from { transform: translateY(-100%); } }
+@keyframes plot-bar-up { from { transform: translateY(100%); } }
+@keyframes plot-slide { from { opacity: 0; transform: translateX(-10px); } }
+
+@media (max-width: 630px) {
+  .plot-text { font-size: 16px; padding: 0 12px; }
+  .plot-aim { margin-inline: 8px; }
+  .plot-choices { flex-direction: column; align-items: center; }
+  .plot-speech { padding: 16px 14px 14px; gap: 12px; }
+  .plot-portrait { width: 72px; height: 86px; }
+  .plot-speech p { font-size: 17px; }
+  .plot-bar-bottom { flex-direction: column; align-items: stretch; }
+  .plot-stage-actions { justify-content: space-between; }
+  .plot-who { bottom: calc(max(15vh, 94px) + 100px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plot-veil, .plot-floor, .plot-stage, .plot-veil *, .plot-floor *, .plot-stage * { animation: none !important; transition: none !important; }
+}

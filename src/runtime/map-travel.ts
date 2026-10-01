@@ -356,6 +356,8 @@ export class MapTravel {
     next.catalog = { ...next.catalog, ...source.catalog };
     next.ledger = source.ledger;
     next.narration = source.narration;
+    next.plot = source.plot;
+    next.lifeAim = source.lifeAim;
     this.visited.delete(to);
     this.id = to;
     this.staged = undefined;

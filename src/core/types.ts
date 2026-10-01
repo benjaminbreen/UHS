@@ -462,6 +462,7 @@ export type PlayerCommand =
         | "herd"
         | "knock"
         | "follow"
+        | "pay"
         | "take"
         | "rest"
         | "sleep"
@@ -576,6 +577,7 @@ export type Snapshot = {
   goals?: import("../content/goals/types").DailyGoal[];
   goalDay?: number;
   lifeAim?: import("../content/goals/types").PersonalAim;
+  plot?: import("./plot").PlotState;
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
   /** What the player's day has held so far, for the evening's account. */

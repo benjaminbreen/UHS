@@ -465,6 +465,7 @@ export const commandSchema = z.discriminatedUnion("type", [
         "open",
         "close",
         "knock",
+        "pay",
         "drink",
         "cook",
         "store",
@@ -626,6 +627,19 @@ const faunaGroup = z
     owner: z.string().optional(),
     gateId: z.string().optional(),
     pasture: pos.optional(),
+  })
+  .strict();
+const lifeAim = z
+  .object({
+    id: z.string().max(80),
+    text: z.string().max(240),
+    subjects: z.array(z.string().max(100)).max(8),
+    revision: z.literal(1).optional(),
+    step: z.discriminatedUnion("type", [
+      z.object({ type: z.literal("talk"), actor: z.string().max(100), text: z.string().max(160), done: z.boolean().optional() }).strict(),
+      z.object({ type: z.literal("give"), actor: z.string().max(100), items: z.array(item).max(12), text: z.string().max(160), done: z.boolean().optional() }).strict(),
+      z.object({ type: z.literal("work"), target: z.number().int().min(1).max(30), progress: z.number().int().nonnegative().max(30), text: z.string().max(160) }).strict(),
+    ]).optional(),
   })
   .strict();
 export const snapshotSchema = z.object({
@@ -855,17 +869,22 @@ export const snapshotSchema = z.object({
         .strict(),
     )
     .optional(),
-  lifeAim: z
+  lifeAim: lifeAim.optional(),
+  plot: z
     .object({
-      id: z.string().max(80),
-      text: z.string().max(240),
-      subjects: z.array(z.string().max(100)).max(8),
-      revision: z.literal(1).optional(),
-      step: z.discriminatedUnion("type", [
-        z.object({ type: z.literal("talk"), actor: z.string().max(100), text: z.string().max(160), done: z.boolean().optional() }).strict(),
-        z.object({ type: z.literal("give"), actor: z.string().max(100), items: z.array(item).max(12), text: z.string().max(160), done: z.boolean().optional() }).strict(),
-        z.object({ type: z.literal("work"), target: z.number().int().min(1).max(30), progress: z.number().int().nonnegative().max(30), text: z.string().max(160) }).strict(),
-      ]).optional(),
+      id: z.string().max(40),
+      title: z.string().max(80),
+      wording: z.number().int().nonnegative(),
+      words: z.record(z.string().max(40), z.string().max(160)),
+      cast: z.record(z.string().max(40), z.string().max(100)),
+      began: z.number(),
+      deadline: z.number(),
+      owed: z.number().optional(),
+      total: z.number().optional(),
+      seized: z.number().optional(),
+      fired: z.array(z.string().max(40)).max(40),
+      ended: z.string().max(40).optional(),
+      aim: lifeAim.optional(),
     })
     .strict()
     .optional(),

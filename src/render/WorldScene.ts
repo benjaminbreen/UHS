@@ -136,6 +136,7 @@ import {
 import { ToolEffects, ROLL_MS, projectileArrowTexture } from "./tool-effects";
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
+import { markOf } from "../core/plot";
 import { CueEffects } from "./cue-effects";
 import { TIERS, type CueKind } from "../core/combat";
 import {
@@ -1391,6 +1392,43 @@ export class WorldScene extends Phaser.Scene {
         mark.lineTo(x, y - sy * arm);
         mark.strokePath();
       }
+    }
+  }
+  /** Takes the camera off the player to someone the plot names, or, with no
+   * one, gives it back. Only the people in sight are drawn, so anyone else
+   * leaves the camera on the player. */
+  lookAt(id?: string): void {
+    const c = this.cameras?.main;
+    const player = this.entities.get("player");
+    if (!c || !player) return;
+    const ms = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1;
+    if (!id) {
+      c.pan(player.x, player.y, 650 * ms, "Sine.easeInOut", true, (_c, t) => {
+        if (t === 1) c.startFollow(player, false, this.liveGraphics.followLerp, this.liveGraphics.followLerp);
+      });
+      return;
+    }
+    const im = this.entities.get(id);
+    if (!im?.visible) return this.lookAt();
+    c.stopFollow();
+    c.pan(im.x, im.y - 12, 900 * ms, "Sine.easeInOut", true);
+  }
+  private castMarks?: Phaser.GameObjects.Graphics;
+  /** A small diamond over the people who matter to this life. */
+  private drawCastMarks(time: number) {
+    const g = (this.castMarks ??= this.add.graphics());
+    g.clear().setDepth(1e7 - 1);
+    const s = this.runtime.engine.state;
+    const ids = new Set([...Object.values(s.plot?.cast ?? {}), ...(s.player.relations ?? []).map((r) => r.other)]);
+    const bob = Math.round(Math.sin(time / 420));
+    for (const id of ids) {
+      const mark = markOf(s, id);
+      const im = this.entities.get(id);
+      if (!mark || !im?.visible) continue;
+      // The frame is taller than the body in it; a grown person stands about 28px.
+      const x = Math.round(im.x), y = Math.round(im.y) - 34 + bob;
+      g.fillStyle(0x1a1410, 0.9).fillPoints([{ x, y: y - 4 }, { x: x + 4, y }, { x, y: y + 4 }, { x: x - 4, y }], true);
+      g.fillStyle(mark === "kin" ? 0xd9523f : 0xf2cf6b, 1).fillPoints([{ x, y: y - 3 }, { x: x + 3, y }, { x, y: y + 3 }, { x: x - 3, y }], true);
     }
   }
   private guideMark?: Phaser.GameObjects.Graphics;
@@ -5370,6 +5408,7 @@ export class WorldScene extends Phaser.Scene {
       );
     this.drawTarget(time);
     this.drawGuide(time);
+    this.drawCastMarks(time);
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
     this.combat().consumeEvents(this.runtime.engine.signals);
