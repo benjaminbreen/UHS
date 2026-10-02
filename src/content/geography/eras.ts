@@ -42,6 +42,26 @@ export type SettlerEra = {
  */
 export const settlerEras: readonly SettlerEra[] = [
   {
+    id: "era.ottoman-constantinople",
+    label: "Constantinople and Thrace under the Ottomans",
+    bounds: [26, 40, 30, 42.2],
+    replaces: ["european"],
+    from: 1453,
+    culture: "north-african-west-asian",
+    sources: ["https://doi.org/10.1017/CHOL9780521620932"],
+    note: "Bursa was Ottoman from 1326 and Constantinople from 1453; the later date is used for both, since the gazetteer's two cities sit in one box.",
+  },
+  {
+    id: "era.islamic-maghreb",
+    label: "Coast of the Maghreb after the Arab conquest",
+    bounds: [-10, 29, 12, 37.3],
+    replaces: ["european"],
+    from: 698,
+    culture: "north-african-west-asian",
+    sources: ["https://doi.org/10.1017/CHOL9780521200929"],
+    note: "Carthage fell in 698. The coastal cities the gazetteer files as European were Roman, Vandal and Byzantine before it; French Algeria's settlers stayed a minority and are not modelled as a change of culture.",
+  },
+  {
     id: "era.atlantic-seaboard",
     label: "Atlantic seaboard of North America",
     bounds: [-82, 25, -52, 52],

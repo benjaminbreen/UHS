@@ -170,7 +170,11 @@ export function urbanFrames(
 /** Laid out in plots rather than rows. The setting decides; the sprites only
  * say how much ground their overhang needs kept clear. */
 export function plottedTown(pack: Pack): boolean {
-  return settlementLayout(pack.setting) === "plots";
+  if (settlementLayout(pack.setting) === "plots") return true;
+  // A city whose houses have no terrace frames (the courtyard compounds of the
+  // Islamic world, as yet) is built in plots rather than shrunk to a village.
+  const city = pack.setting?.settlement === "city" || pack.setting?.settlement === "port";
+  return city && urbanFrames(pack).length === 0;
 }
 
 /** Period street facades are complete frames rather than base-and-form kits;
