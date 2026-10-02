@@ -56,3 +56,5 @@ character_modal_backgrounds/
 Pixel Crawler - Free Pack/
 Basic Asset Pack for Animals/
 *.tmp.mts
+reference/*
+!reference/mockup target 3.png
