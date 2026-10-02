@@ -41,7 +41,6 @@ The manifest distinguishes generator 1/simulation 1, generator 2/simulation 1 an
 npm test -- --maxWorkers=1
 npm run build
 npx tsx scripts/check-settlements.ts
-npx playwright test tests/browser/settlements.spec.ts tests/browser/world-v2.spec.ts
 ```
 
 The settlement tests cover all six forms, reachable entrances/work areas, plot overlap, river-versus-sea crossings, closed pens, autonomous gates, recorded player gate opening, chunk query order, save continuation and replay. The diagnostic script prints actual building/field/pen counts and unreachable destinations for six geographically different settings. Browser screenshots are in `artifacts/settlement-*.png`.
@@ -62,7 +61,7 @@ Local neighborhood lanes and doors join actual road centerlines with one bounded
 
 The paired semicircle bug came from ending a lane on the painted shoulder of another road. Shared centerline endpoints now make continuous junctions. Short approaches can straighten on validated level, dry ground; their authoritative cells change with the art. Drawing unions duplicate cardinal edges, retains junctions and assigns shared segments the widest width before simplification. Regional bridge searches use unit steps to enter narrow decks reliably, and routes carry the geometry of any crossing they reuse.
 
-Review `artifacts/roads/after.png` and `after-junction.png`; `scripts/capture-roads.ts` captures production preview and checks eight actual movement steps across the junction after entering play. `scripts/measure-roads.ts` compares the previous and new revision with the same setting and seed; results are in `artifacts/roads/comparison.json`. These are local measurements, not steady-FPS claims. Pinned worlds without the road revision keep the previous routing; regenerate to see the changes. No commit or deployment.
+Review `artifacts/roads/after.png` and `after-junction.png`; the deleted `scripts/capture-roads.ts` captured production preview and checks eight actual movement steps across the junction after entering play. `scripts/measure-roads.ts` compares the previous and new revision with the same setting and seed; results are in `artifacts/roads/comparison.json`. These are local measurements, not steady-FPS claims. Pinned worlds without the road revision keep the previous routing; regenerate to see the changes. No commit or deployment.
 
 ## Urban neighborhoods — September 8, 2026
 

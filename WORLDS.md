@@ -79,7 +79,6 @@ The bundled catalog combines featured settings, Natural Earth place coordinates,
 npm run prepare:atlas
 npm run headless -- --prompt "Elizabethan London"
 npx vitest run tests/world-v2.test.ts
-npx playwright test tests/browser/world-v2.spec.ts
 ```
 
 Atlas preparation uses Python's standard library, caches pinned public-domain Natural Earth inputs, and records checksums. Generated files ship with the application; players do not download GIS datasets. Source details are in `ASSET_PROVENANCE.md`.

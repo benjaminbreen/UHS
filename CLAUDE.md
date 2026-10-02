@@ -4,20 +4,27 @@ A pixel-art historical simulation. Vite + TypeScript, Vitest, Playwright.
 
 ## Read only what the task needs
 
-There are 30 docs at the root, about 140k tokens in total. **Do not read them to
+There are about 35 docs at the root. **Do not read them to
 orient yourself.** This file is the orientation. Open one of the others only
 when the task is actually about its subject:
 
 | Task is about | Read |
 |---|---|
 | Architecture, design intent | `UHS_DESIGN.md` |
-| What shipped recently, current priorities | top of `PROGRESS.md` only — it is 155k |
+| What shipped recently, current priorities | `PROGRESS.md` (older entries in `PROGRESS_ARCHIVE.md`; do not open it unprompted) |
 | Eras, dates, historical content | `HISTORY.md` |
 | Characters, appearance, wardrobe | `CHARACTERS.md` |
 | Settlements, layout, roads | `SETTLEMENTS.md` |
-| Buildings and props (drawing rules) | `OBLIQUE_ART.md`, `PROP_ART.md`, `PROPS.md` |
-| Terrain, water, vegetation, ecology | `GRAPHICS.md`, then the specific one |
+| Buildings and props (drawing rules) | `OBLIQUE_ART.md`, `BUILDING_ART.md`, `CITY_ART.md`, `PROP_ART.md`, `PROPS.md`, `PROP_PLAN.md` |
+| Terrain, water, vegetation, ecology | `GRAPHICS.md`, then `TERRAIN_ART`, `TOPOGRAPHY`, `WATER`, `VEGETATION`, `ECOLOGY`, `FAUNA` |
 | World generation, geography | `WORLDS.md` |
+| Travel, the region map, time travel | `TRAVEL.md`, `TIME.md` |
+| Plots, kin, generations | `PLOTS.md`, `GENERATIONS.md` |
+| Starting scenarios | `SCENARIOS.md` |
+| Classroom / edu mode | `CLASSROOM.md` |
+| Character generation pipeline | `CHARACTER_GENERATION.md` |
+| Performance | `PERFORMANCE.md` (`PERFORMANCE_REVIEW.md` is a past audit) |
+| Licences of third-party art | `ASSET_PROVENANCE.md` |
 | Audio | `AUDIO.md` |
 
 ## Verifying
@@ -25,7 +32,7 @@ when the task is actually about its subject:
 - `npm run check` — **the gate before you call work done.** Typecheck, unit
   tests and a production build, 2.8 min, green on main. It is the only thing
   you need to pass; nothing below is a gate.
-- `npm test` — 17s, 581 tests, **green on main**. If it is red, you broke it.
+- `npm test` — about 40s, ~750 tests, **green on main**. If it is red, you broke it.
 - `npx vitest run tests/<name>.test.ts` — after an edit, run just what covers it.
 - `npm run shot -- artifacts/x.png "A Roman baker in Ostia, 100 CE"` — one
   screenshot of the running game. Starts the dev server itself if needed.
@@ -63,6 +70,20 @@ If a suite is mostly red already, or covers nothing you touched, running it
 buys nothing and costs the session. Prefer the narrowest check that would
 actually catch the mistake you might have made: the one test file over the
 suite, one spec over all of them, one screenshot over a full review sheet.
+
+## Code that looks dead but is live
+
+`src/world/v2/` is the atlas (region) world and `src/world/v3/` the local
+scene; both run. `v3/urban-v1.ts` and `src/content/legacy-packs.ts` are also
+imported. Do not delete or ignore them for their names.
+
+Do not grep or read these whole; they are generated or bulk content:
+`src/content/task-lore/`, `*.generated.ts`, `src/audio/layered-themes.ts`.
+`src/core/engine.ts` and `src/render/WorldScene.ts` are each over 250k: search
+for the symbol and read a range.
+
+`npm run headless` and `npm run mcp` drive the game without a browser; see
+`README.md` ("Saves, recordings, and agents").
 
 ## Do not add scaffolding
 

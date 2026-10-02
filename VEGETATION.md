@@ -21,7 +21,7 @@ Revision 1 retains the original habitat candidate spacing. Revision 2 applies cr
 
 `public/nature/atlas.*` supplies normal world sprites, UI previews and minimap trees. `public/nature/shadows.*` supplies 144 precomputed masks (24 plants × six lighting phases). Rebuild both with `npm run art:nature`. WorldScene selects textures by asset prefix, uses the shared native-pixel origin/light tint and ground lift, and loads prebuilt shadow pivots. No per-frame sprite generation or pixel processing was added.
 
-Validation: `tests/vegetation.test.ts` checks climatic/geographic filters and samples six generated environments, finding all twelve plants while checking collision, terrain exclusion, atlas and shadow coverage. Existing habitat and worker preparation checks cover deterministic composition and prepared-world parity. `tests/browser/vegetation.spec.ts` exercises four rendered ecologies and a normal Korean game/minimap. Captures are in `artifacts/nature-lab/map-*.png`.
+Validation: `tests/vegetation.test.ts` checks climatic/geographic filters and samples six generated environments, finding all twelve plants while checking collision, terrain exclusion, atlas and shadow coverage. Existing habitat and worker preparation checks cover deterministic composition and prepared-world parity. The deleted `vegetation.spec.ts` (`git show bef96b22^:tests/browser/vegetation.spec.ts`) exercises four rendered ecologies and a normal Korean game/minimap. Captures are in `artifacts/nature-lab/map-*.png`.
 
 ## Revision 2: scale and composition
 
@@ -31,7 +31,7 @@ Four independently authored tropical broadleaf ages use native canvases: sapling
 
 Woodland understory is thinned, and covered woodland gains earth/litter raster details. Canopy and trunk use separate crops of the same native sprite. A crown smoothly fades when it overlaps the displayed player, while the lower trunk stays opaque. Shadows remain precomputed; no per-frame pixel processing is required.
 
-`tests/vegetation-composition.test.ts` checks age coverage, density reduction, deterministic spacing, native dimensions and canopy overlap. `tests/browser/canopy.spec.ts` verifies fading/restoration, opaque trunks and 1× sprite scale in the rendered scene. The current composition capture is `artifacts/nature-lab/composition-tropical.png`; native age comparison is `artifacts/nature-lab/broadleaf-ages.png`. Prior manifests retain their selected revision.
+`tests/vegetation-composition.test.ts` checks age coverage, density reduction, deterministic spacing, native dimensions and canopy overlap. The deleted `canopy.spec.ts` (`git show bef96b22^:tests/browser/canopy.spec.ts`) verifies fading/restoration, opaque trunks and 1× sprite scale in the rendered scene. The current composition capture is `artifacts/nature-lab/composition-tropical.png`; native age comparison is `artifacts/nature-lab/broadleaf-ages.png`. Prior manifests retain their selected revision.
 
 ## Revision 3: quieter low vegetation and plant inspection
 

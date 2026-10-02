@@ -499,7 +499,7 @@ For a new supported setting, author a small **local identity package**: characte
 | Melbourne around 1950 | Later stress test for modern infrastructure and shared European-derived components outside Europe. |
 | Content for all twelve families | Deferred; prove the approach with actual settings before expanding the libraries. |
 
-The proposed test set is Rome, Neolithic Anatolia, Java and Melbourne. Java and Melbourne are recommendations for sequencing, not newly supported world-selector entries. The earlier tropical South American suggestion remains a useful later test. All new playable setting expansion is deferred behind the current user review and prop priorities. Current blockers and implementation acceptance are tracked in [PROGRESS.md](PROGRESS.md#current-handoff-review-eras-before-props).
+The proposed test set is Rome, Neolithic Anatolia, Java and Melbourne. Java and Melbourne are recommendations for sequencing, not newly supported world-selector entries. The earlier tropical South American suggestion remains a useful later test. All new playable setting expansion is deferred behind the current user review and prop priorities. Current blockers and implementation acceptance are tracked in [PROGRESS.md](PROGRESS_ARCHIVE.md#current-handoff-review-eras-before-props).
 
 ## 21. Fixed eras and the current review gate
 

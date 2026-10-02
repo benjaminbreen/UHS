@@ -14,7 +14,7 @@ The opt-in `setting.terrainRevision: 1` is saved with generator 3. Omission pres
 
 This first integration uses a composed valley and seeded river course, not downhill watershed routing, erosion or worldwide climate simulation. The uplands use broad, seeded lobes rather than independently quantized tile noise. Wet margins include gravel shelves and scattered boulders. Terrain sampling and contour rasterization run in a worker; the renderer retains bounded 16×16 terrain chunks and installs one completed chunk per frame. The old duplicate ground tilemap and unused legacy tile prefetch are skipped for relief worlds. See the streaming section below for current validation.
 
-Validation: `tests/terrain-world.test.ts` covers tiers, water depths, biome coverage, limited slope counts and reachable households. Save restoration is not an early-development priority. `tests/browser/terrain-world.spec.ts` creates and renders the preset and verifies the owned-house route. Screenshot: `artifacts/anatolia-topography-v3.png`.
+Validation: `tests/terrain-world.test.ts` covers tiers, water depths, biome coverage, limited slope counts and reachable households. Save restoration is not an early-development priority. The deleted `terrain-world.spec.ts` (`git show bef96b22^:tests/browser/terrain-world.spec.ts`) creates and renders the preset and verifies the owned-house route. Screenshot: `artifacts/anatolia-topography-v3.png`.
 
 ---
 
@@ -53,7 +53,6 @@ The composed buildings and vegetation reuse current atlas sprites. All terrain p
 ```sh
 python3 scripts/build_topography.py
 npx vitest run tests/topography.test.ts
-npx playwright test tests/browser/terrain-lab.spec.ts
 npm run build
 ```
 

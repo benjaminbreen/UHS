@@ -110,7 +110,7 @@ Future generation should consume the resolver's output and supplied context. Bui
 - `/history-lab`: family, profile, all twelve eras, exact date, placement context, explicit local capabilities, exploratory toggle, existing sprite previews, sources, rule explanations, coverage, reproducible URL and JSON export.
 - The inspector branches before save loading, writer locking and the player API. `window.historyLab.describe()` returns a cloned report for automated inspection. It has no action API.
 - `npm test`: chronology, malformed dates, source/definition references, all 144 combinations, exact-day politics, prehistoric hypotheses, exclusions/context/capability gates, conflict failures, pack equality, and existing saved-journey replay tests.
-- `npx playwright test tests/browser/history-lab.spec.ts`: real browser interaction, links/report reproducibility, no save alteration, mobile overflow and invalid URL handling.
+- the deleted `history-lab.spec.ts`: real browser interaction, links/report reproducibility, no save alteration, mobile overflow and invalid URL handling.
 - `npm run build`: production TypeScript and Vite checks.
 
 Before implementing item/prop mechanics, have the user review the era inspector and `PROP_PLAN.md`. This pause is explicitly requested by the user, not a general approval requirement for future maintenance.

@@ -43,8 +43,8 @@ Six local-time presets now change cast direction and length, while authored buil
 ## Verification and restore points
 
 - `npm run check` — core/content/graphics checks and production build.
-- `npm run test:browser` — all browser interactions and graphics-lab checks, with a dev server on port 5173.
-- `npm run test:graphics` — quick lab comparison suite; saves review screenshots under `artifacts/lab-*.png`.
+- `npm run test:browser` — five specs that drive the real game; starts its own dev server.
+- `npm run shot` / `npm run capture:terrain` — screenshots for visual review (see CLAUDE.md).
 - `window.graphicsLab.describe()` — lab-only, read-only description of the active fixture and compiled models, useful to automation.
 
 The original working version is commit `e9966ca`, tag **`checkpoint-before-graphics-refactor`**. This is a local Git repository; nothing has been pushed. Downloaded reference packs, dependencies, caches and environment files are ignored.
@@ -73,7 +73,7 @@ Color treatment multiplies the existing pixel colors and applies a restrained am
 
 [Design section 20](UHS_DESIGN.md#20-cultural-content-families-and-dated-local-profiles) defines the planned twelve production families and dated local profiles. A graphics-lab construction study is neither one of those complete families nor a playable historical setting. Profiles should select existing recipes and justify new parts through a concrete scene; family names must not become renderer branches. Everyday housing, clothing, workplaces and props are part of a setting's identity, alongside distinctive large structures.
 
-The next recommended proof is a profile-based reproduction of the two existing packs, then a small Javanese setting; detailed gates are in [PROGRESS.md](PROGRESS.md#recommended-next-milestone-dated-local-content-profiles). Keep physical geometry and save compatibility explicit while adding new visual vocabulary.
+The next recommended proof is a profile-based reproduction of the two existing packs, then a small Javanese setting; detailed gates are in [PROGRESS.md](PROGRESS_ARCHIVE.md#recommended-next-milestone-dated-local-content-profiles). Keep physical geometry and save compatibility explicit while adding new visual vocabulary.
 
 ## Era framework and next prop review
 

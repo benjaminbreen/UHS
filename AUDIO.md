@@ -49,7 +49,6 @@ The authoring script requires Chrome and `ffmpeg`, writes full WAV masters under
 
 ```sh
 npx vitest run tests/audio.test.ts
-npx playwright test tests/browser/audio-lab.spec.ts
 npm run build
 ```
 
@@ -59,4 +58,4 @@ Score tests validate all 96 combinations, phrase durations, pitch/event bounds, 
 
 The [main design, section 20](UHS_DESIGN.md#20-cultural-content-families-and-dated-local-profiles), now records the twelve reusable content families and required dated local profiles. Family identity, historical date, technology and local seasons are separate selections; none of that resolution is implemented by the current three era-preview buttons. Future profiles should retain recognizable themes while choosing justified instruments, tuning, ornament and rhythmic treatment. A panpipe/drum texture is not a universal ancient-world sound, and technological change does not force all music toward electronics.
 
-The current 28-day/four-season cycle cannot establish an appropriate calendar for Melbourne or Java. A future regional seasonal profile must define the relevant timing and its mapping to musical moods before automatic following is presented as geographically appropriate. The [recommended next work](PROGRESS.md#recommended-next-milestone-dated-local-content-profiles) also includes connecting selected SFX to actual successful world actions within a concrete playable slice.
+The current 28-day/four-season cycle cannot establish an appropriate calendar for Melbourne or Java. A future regional seasonal profile must define the relevant timing and its mapping to musical moods before automatic following is presented as geographically appropriate. The [recommended next work](PROGRESS_ARCHIVE.md#recommended-next-milestone-dated-local-content-profiles) also includes connecting selected SFX to actual successful world actions within a concrete playable slice.

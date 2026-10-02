@@ -24,7 +24,7 @@ Clicking the sidebar portrait opens a profile for the player; clicking a person 
 - **Today** comes from the resident's existing routine (`dayPlan` in `src/core/itinerary.ts`). The routine walks the same circuit several times a day, so repeats collapse to one entry and the time shown is the nearest round. The player has no routine and sees recent events instead.
 - **Available** is the engine's own affordance list for that person, and disappears when they walk out of sight.
 
-These are playable derivations from generated data, not biography. `tests/persona.test.ts`, `tests/day-plan.test.ts` and `tests/browser/character-panel.spec.ts` cover them; the browser spec captures `artifacts/character-panel-*.png`.
+These are playable derivations from generated data, not biography. `tests/persona.test.ts`, `tests/day-plan.test.ts` and the deleted `character-panel.spec.ts` (`git show bef96b22^:tests/browser/character-panel.spec.ts`) cover them; the browser spec captures `artifacts/character-panel-*.png`.
 
 ## Beliefs
 
@@ -38,7 +38,7 @@ Every system carries a `wiki` link to its tradition's English Wikipedia article,
 
 Where nothing is recorded for a place and date, `unscopedBeliefs` supplies an unnamed practice — the ancestors, the sky, the water, the land — at `fictional` status. No proper deity name is ever invented and presented as recovered.
 
-Each power carries a pixel glyph. `src/render/glyphs/` holds 161 of them, eleven pixels square, written as text — `.` contour, `o` body, `O` highlight — and drawn straight to a canvas, tinted by rank. `src/content/beliefs/icons.ts` picks one per power from what it is called and what it is for, name first, so "the waters, healing" is water before it is medicine. About a tenth fall back to a rank default. `tests/browser/glyph-sheet.spec.ts` renders a contact sheet to `artifacts/glyph-sheet.png`; pass `GLYPHS=a,b,c` to render only some.
+Each power carries a pixel glyph. `src/render/glyphs/` holds 161 of them, eleven pixels square, written as text — `.` contour, `o` body, `O` highlight — and drawn straight to a canvas, tinted by rank. `src/content/beliefs/icons.ts` picks one per power from what it is called and what it is for, name first, so "the waters, healing" is water before it is medicine. About a tenth fall back to a rank default. The deleted `glyph-sheet.spec.ts` (`git show bef96b22^:tests/browser/glyph-sheet.spec.ts`) renders a contact sheet to `artifacts/glyph-sheet.png`; pass `GLYPHS=a,b,c` to render only some.
 
 A person's own belief is derived, not stored: `beliefOf` picks a patron from the powers near to hand, an observance level from their traits, and one practice line they keep. `tests/beliefs.test.ts` checks the shape of every system, that relations point at powers in their own list, and that documented entries carry sources.
 
@@ -74,14 +74,13 @@ Runtime command outcomes trigger presentation animations without moving inventor
 
 ## Verification and review
 
-`tests/characters.test.ts` checks variant coverage, repeatability, validation, explicit clothing precedence and complete portable-art coverage. `tests/browser/characters.spec.ts` exercises the editor, 192-person batches, frame stepping/export, all props in all directions, crisp alpha, profile/stride distinctions and actual game pickup/swing/drop/customization. Existing prop browser and rule tests also pass.
+`tests/characters.test.ts` checks variant coverage, repeatability, validation, explicit clothing precedence and complete portable-art coverage. The deleted `characters.spec.ts` (`git show bef96b22^:tests/browser/characters.spec.ts`) exercises the editor, 192-person batches, frame stepping/export, all props in all directions, crisp alpha, profile/stride distinctions and actual game pickup/swing/drop/customization. Existing prop browser and rule tests also pass.
 
 Run:
 
 ```sh
 npm run build
 npx vitest run tests/characters.test.ts tests/props.test.ts
-npx playwright test tests/browser/characters.spec.ts tests/browser/props.spec.ts
 ```
 
 `npm run capture:characters -- refinement` captures a green-shirt/brown-hair four-direction walk and the same outfit in the world. Run it with no argument for every sheet, or name one of `lab`, `walk`, `heights`, `props`, `polish`, `refinement`, `village`, `sprite-light`, `sprite-study`. It starts against the development server on port 5173; review images live in `artifacts/characters/`.
@@ -126,4 +125,4 @@ The player's own portrait shows what the condition column says: a wound outranks
 
 **Saying what the portrait shows.** `describeAdornment` turns the recipe into plain phrases — "Bone spool in a stretched lobe", "Lines across both cheeks, cut into the skin" — and the character panel lists them under the portrait as **Worn and marked**, above Carrying, for the player and for anyone opened from Around you. The phrasing is description only: it names the shape and the material and never a design, a people, or what a mark might mean to the person wearing it. A person wearing nothing gets no heading. One metal covers a person's ear ornament, nose ornament and necklace, so the drawn beads and the described ones agree.
 
-`npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament` writes contact sheets to `artifacts/portrait-lab/`. `tests/portraits.test.ts` covers the pose table and the adornment pools; `tests/browser/portrait-lab.spec.ts` exercises the lab.
+`npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament` writes contact sheets to `artifacts/portrait-lab/`. `tests/portraits.test.ts` covers the pose table and the adornment pools; the deleted `portrait-lab.spec.ts` (`git show bef96b22^:tests/browser/portrait-lab.spec.ts`) exercises the lab.

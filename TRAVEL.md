@@ -59,7 +59,7 @@ Next integration decisions: freeze the shared compression/stop policy; connect d
 
 `npx vitest run tests/travel.test.ts` covers identity, date-independent geography, reciprocal land edges and return paths, compression, waypoint preservation, island disconnection, sea routing, polar cells, and invalid input.
 
-`TRAVEL_BASE_URL=http://127.0.0.1:5186 npx playwright test tests/browser/geography-lab.spec.ts` checks the production review UI, dates, compression, cell inspection, share state, mobile width, and the existing local renderer/boundary overlay. Run a production preview on that port first; without the environment variable the tests use the standard development server on 5173.
+The deleted `geography-lab.spec.ts` checks the production review UI, dates, compression, cell inspection, share state, mobile width, and the existing local renderer/boundary overlay. Run a production preview on that port first; without the environment variable the tests use the standard development server on 5173.
 
 ## Reviewed default
 

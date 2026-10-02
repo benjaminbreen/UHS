@@ -101,13 +101,7 @@ In the original v1 compatibility worlds, the Roman river uses a pinned, public-d
 
 ## Verify
 
-```sh
-npm test
-npm run build
-npm run test:browser
-```
-
-Browser tests expect the development server on port 5173 and installed Chrome. Set `CHROME_PATH` to an executable if needed. Tests cover deterministic generation, identity and conservation, visibility, saves, both content packs, browser/Node parity, real interface interactions, narrow screens, replay branching, and an actual MCP client.
+See the Verifying section of [CLAUDE.md](CLAUDE.md); `npm run check` is the gate.
 
 ## Current boundary
 
@@ -123,7 +117,7 @@ The target-3 rendering pass adds exposed earth banks with corner-aware transitio
 
 **Settings → Graphics lab** opens an isolated review mode at `/graphics-lab`. Compare classical and mudbrick recipes, construction studies for later settings, landscape materials, lighting, integer pixel scales and viewport formats. Fixture URLs include camera/settings; frozen previews and PNG export make comparisons repeatable. The lab uses the production `WorldScene` and cannot overwrite the playable save.
 
-See [GRAPHICS.md](GRAPHICS.md) for module ownership, recipe authoring, current limits, verification and the pre-refactor Git restore point. Run `npm run test:graphics` for the focused browser review suite.
+See [GRAPHICS.md](GRAPHICS.md) for module ownership, recipe authoring, current limits, verification and the pre-refactor Git restore point.
 
 ## Music and sound development
 
@@ -133,7 +127,7 @@ See [GRAPHICS.md](GRAPHICS.md) for module ownership, recipe authoring, current l
 
 [Design section 20](UHS_DESIGN.md#20-cultural-content-families-and-dated-local-profiles) records the twelve reusable content families and required place/date/community profiles. These are production groupings, not twelve interchangeable cultural identities. Technology, institutions, ecology and seasons remain separate dimensions. The resolver and twelve fixed eras are implemented; only the Roman and Neolithic packs are playable.
 
-The two worlds now pass through validated profiles. World creation now uses the shared v2 setting pipeline; prop gameplay remains a separate approval and implementation slice. Java and Melbourne remain later stress-test candidates. See [PROGRESS.md](PROGRESS.md#current-handoff-review-eras-before-props) for current constraints, priorities and acceptance checks.
+The two worlds now pass through validated profiles. World creation now uses the shared v2 setting pipeline; prop gameplay remains a separate approval and implementation slice. Java and Melbourne remain later stress-test candidates. See the top of [PROGRESS.md](PROGRESS.md) for current priorities.
 
 ### History and content inspection
 
@@ -143,4 +137,4 @@ The twelve eras are settled in [HISTORY.md](HISTORY.md); this is a central conte
 
 ### Prop art review
 
-Open **Command+2 / Ctrl+2** from the world or graphics/history labs, or visit `/prop-lab`. Browse 40 prop families (117 variants), compare material palettes, inspect at integer zoom with character scale, change shadow phases, and export previews. The gallery is review-only; it does not place props or enable item interactions. Rebuild its separate atlas with `npm run art:props`. See `PROP_PLAN.md`.
+See [GRAPHICS.md](GRAPHICS.md#prop-art-review) for `/prop-lab`.
