@@ -12,6 +12,7 @@ import {
 } from "../../core/character";
 import {
   defaultRenderer,
+  workerDrawn,
   outlineCharacter,
   outlined,
   renderers,
@@ -273,8 +274,8 @@ export class WorldCharacters {
       art = this.carried(prop);
     const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}:${turn}:${condition}:${this.renderer}`;
     this.wanted.set(actor.id, signature);
-    if (this.renderer === "c" || this.renderer === "d") this.startWorkers();
-    if (this.pool.length && (this.renderer === "c" || this.renderer === "d")) {
+    if (workerDrawn(this.renderer)) this.startWorkers();
+    if (this.pool.length && workerDrawn(this.renderer)) {
       const preset = lightingPreset(this.light);
       const request: CharacterFrameRequest = {
         signature, renderer: this.renderer, appearance: a,

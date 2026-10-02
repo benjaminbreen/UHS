@@ -21,6 +21,7 @@ import type { CharacterAppearance } from "../src/core/character";
 import type { RestingExpression } from "../src/core/persona";
 import type { CharacterPose } from "../src/render/characters/poses";
 import { workPoseFor } from "../src/render/characters/poses";
+import { defaultRenderer, workerDrawn } from "../src/render/characters/renderers";
 
 it("selects physical work by the task instead of treating every station alike", () => {
   expect(workPoseFor("work", "Brewing")).toBe("work-stir");
@@ -92,6 +93,10 @@ it("draws five distinct resting faces while hurt and startle override them", () 
 });
 
 describe("character recipes", () => {
+  // b81615cb made E the default while only C and D went to workers: 79 hitches a walk.
+  it("draws the default renderer off the main thread", () => {
+    expect(workerDrawn(defaultRenderer)).toBe(true);
+  });
   it("has repeatable independent body and clothing variety", () => {
     const people = Array.from({ length: 192 }, (_, i) =>
       generateAppearance("study", i),

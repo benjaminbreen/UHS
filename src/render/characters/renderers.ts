@@ -46,6 +46,9 @@ export const outlined = (id: RendererId) => id === "e";
  * else should import `drawCharacter` from here rather than a variant directly,
  * so switching back is one line. */
 export const defaultRenderer: RendererId = "e";
+/** Renderers the game draws in a worker. A and B touch the DOM; anything drawn
+ * on the main thread here costs a frame per new pose, so the default must be one. */
+export const workerDrawn = (id: RendererId) => id !== "a" && id !== "b";
 export const drawCharacter = renderers[defaultRenderer].draw;
 /** A dark line around the outside of a finished frame, taken from what it
  * borders, so a figure separates from ground of the same value. Full dark on
