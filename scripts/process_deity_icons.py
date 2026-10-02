@@ -12,8 +12,10 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageStat
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSET_ROOT = ROOT / "public" / "beliefs" / "deities" / "v1"
-SOURCE_ROOT = ASSET_ROOT / "sources"
-EXTRACTED_ROOT = ASSET_ROOT / "extracted"
+# Inputs and review output stay out of public/, which ships with every deploy.
+WORK_ROOT = ROOT / "scripts" / "data" / "deities-v1"
+SOURCE_ROOT = WORK_ROOT / "sources"
+EXTRACTED_ROOT = WORK_ROOT / "extracted"
 ICON_ROOT = ASSET_ROOT / "icons"
 SPRITE_SIZE = 64
 ATLAS_COLUMNS = 8
@@ -521,7 +523,7 @@ def main() -> None:
         text_width = text_box[2] - text_box[0]
         draw.rectangle((x, y + 98, x + cell_width - 1, y + cell_height - 1), fill=(8, 18, 35))
         draw.text((x + (cell_width - text_width) // 2, y + 101), proof_label, font=font, fill=(247, 234, 190))
-    proof.save(ASSET_ROOT / "proof.png", optimize=True)
+    proof.save(WORK_ROOT / "proof.png", optimize=True)
     print(f"Wrote {len(sprites)} icons, {atlas.size[0]}x{atlas.size[1]} atlas, and transparency proof")
 
 
