@@ -18,6 +18,8 @@ export type PreparedSettlement = {
    * residents the routine budget left at home. */
   routines?: [string, import("../../core/itinerary").Itinerary | undefined][];
   dormant?: string[];
+  /** The routines above were searched with the props in place. */
+  propsRouted?: boolean;
   sites: [string, PreparedSite | null][];
   regionalSites?: [string, PreparedSite[]][];
   plans: [string, Omit<SettlementPlan, "site"> & { site: PreparedSite }][];

@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { prepareSettingSession } from "../src/runtime/preparation";
 import { createSession } from "../src/runtime/session";
-import { createSettlementWorld } from "../src/world/v3/generate";
+import { prepareSettlement } from "../src/world/v3/generate";
 import { integratedSetting } from "../src/content/geography/defaults";
 import { packForSetting } from "../src/content/geography/pack";
 import { places } from "../src/content/geography/places";
@@ -37,8 +37,7 @@ it.each(["konya", "alexandria"])(
       ),
     );
     const seed = "tiber-100";
-    const world = createSettlementWorld(packForSetting(setting), seed);
-    const prepared = structuredClone(world.prepare());
+    const prepared = structuredClone(prepareSettlement(packForSetting(setting), seed).prepared);
     const engine = createSession(
       "atlas",
       seed,

@@ -11,6 +11,58 @@ export type CarriedArt = {
   height: number;
 };
 let pending: Promise<Map<string, CarriedArt>> | undefined;
+/** Crops a frame the first time it is asked for: cropping all 1,500 up front
+ * cost 700ms of pixel readback at every world start. */
+class CroppedArt extends Map<string, CarriedArt> {
+  constructor(private image: HTMLImageElement) {
+    super();
+  }
+  get(sprite: string) {
+    const known = super.get(sprite);
+    if (known || !(sprite in atlas.frames)) return known;
+    const art = crop(this.image, sprite);
+    if (art) this.set(sprite, art);
+    return art;
+  }
+}
+function crop(image: HTMLImageElement, sprite: string): CarriedArt | undefined {
+  const { x, y, w, h } = atlas.frames[sprite as keyof typeof atlas.frames].frame;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(image, x, y, w, h, 0, 0, w, h);
+  const pixels = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w,
+    y0 = h,
+    x1 = 0,
+    y1 = 0;
+  for (let j = 0; j < h; j++)
+    for (let i = 0; i < w; i++)
+      if (pixels[(j * w + i) * 4 + 3]) {
+        x0 = Math.min(x0, i);
+        y0 = Math.min(y0, j);
+        x1 = Math.max(x1, i);
+        y1 = Math.max(y1, j);
+      }
+  if (x0 === w) return undefined;
+  const out = document.createElement("canvas");
+  out.width = x1 - x0 + 1;
+  out.height = y1 - y0 + 1;
+  out
+    .getContext("2d")!
+    .drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  const kind = sprite.includes("stick")
+    ? "stick"
+    : /-(pitchfork|rake|scythe|shovel|spear)-/.test(sprite)
+      ? "haft"
+      : /-(spade|hoe|sickle|pick)-/.test(sprite)
+        ? "tool"
+        : /sack|water-jug|metal-tin/.test(sprite)
+          ? "side"
+          : "both";
+  return { sprite, kind, image: out, width: out.width, height: out.height };
+}
 /** Crop only transparent storage padding; occupied pixels retain native scale. */
 export function loadCarriedArt() {
   return (pending ??= new Promise<Map<string, CarriedArt>>(
@@ -20,64 +72,7 @@ export function loadCarriedArt() {
         pending = undefined;
         reject(Error("Unable to load prop artwork"));
       };
-      image.onload = () => {
-        const result = new Map<string, CarriedArt>();
-        for (const [sprite, entry] of Object.entries(atlas.frames)) {
-          const { x, y, w, h } = entry.frame;
-          const c = document.createElement("canvas");
-          c.width = w;
-          c.height = h;
-          const ctx = c.getContext("2d")!;
-          ctx.drawImage(image, x, y, w, h, 0, 0, w, h);
-          const pixels = ctx.getImageData(0, 0, w, h).data;
-          let x0 = w,
-            y0 = h,
-            x1 = 0,
-            y1 = 0;
-          for (let j = 0; j < h; j++)
-            for (let i = 0; i < w; i++)
-              if (pixels[(j * w + i) * 4 + 3]) {
-                x0 = Math.min(x0, i);
-                y0 = Math.min(y0, j);
-                x1 = Math.max(x1, i);
-                y1 = Math.max(y1, j);
-              }
-          if (x0 === w) continue;
-          const crop = document.createElement("canvas");
-          crop.width = x1 - x0 + 1;
-          crop.height = y1 - y0 + 1;
-          crop
-            .getContext("2d")!
-            .drawImage(
-              c,
-              x0,
-              y0,
-              crop.width,
-              crop.height,
-              0,
-              0,
-              crop.width,
-              crop.height,
-            );
-          const kind = sprite.includes("stick")
-            ? "stick"
-            : /-(pitchfork|rake|scythe|shovel|spear)-/.test(sprite)
-              ? "haft"
-              : /-(spade|hoe|sickle|pick)-/.test(sprite)
-                ? "tool"
-                : /sack|water-jug|metal-tin/.test(sprite)
-                  ? "side"
-                  : "both";
-          result.set(sprite, {
-            sprite,
-            kind,
-            image: crop,
-            width: crop.width,
-            height: crop.height,
-          });
-        }
-        resolve(result);
-      };
+      image.onload = () => resolve(new CroppedArt(image));
       // Same URL as the scene, so it is one download.
       image.src = `/props/atlas.png?v=${artStamp}`;
     },

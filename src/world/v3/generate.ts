@@ -23,6 +23,7 @@ import {
 import { trimCache } from "../../core/cache";
 import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
+import { withProps } from "../../content/props/place";
 import { pathArt } from "./path-art";
 import {
   blacktopLine,
@@ -96,11 +97,30 @@ const roadless = (p: Pack) =>
   p.setting!.settlement === "camp" ||
   ["encampment", "band"].includes(settlementProfile(p.setting!).pattern);
 
+/** What the browser worker hands the main thread. Its routines are searched
+ * after the props are placed, as createSession's withProps would, so arrival
+ * does not spend a second and a half searching them again on the main thread. */
+export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSettlement) {
+  // Not warmed here: withProps clears and searches every routine again.
+  const world = createSettlementWorld(pack, seed, cached, false);
+  const prepared = cached ?? world.prepare();
+  if (prepared.propsRouted) return { world, prepared };
+  const routed = (
+    withProps(createSettlementWorld(pack, seed, structuredClone(prepared)), seed) as SettlementWorld
+  ).prepare();
+  return {
+    world,
+    prepared: { ...prepared, routines: routed.routines, dormant: routed.dormant, propsRouted: true },
+  };
+}
 export function createSettlementWorld(
   pack: Pack,
   seed: string,
   prepared?: PreparedSettlement,
+  warm = true,
 ): SettlementWorld {
+  // Routines already searched around the props: withProps need not search again.
+  let routedAroundProps = !!prepared?.propsRouted;
   const regional = pack.setting?.geographyRevision && !pack.setting.situation
     ? createRegionalContext(pack.setting)
     : undefined;
@@ -2170,6 +2190,25 @@ export function createSettlementWorld(
       dormant.delete(waking);
     }
   }
+  function rankFor(plan: SettlementPlan) {
+    let ranked = routineRank.get(plan.site.id);
+    if (ranked) return ranked;
+    // Nearest the player's home first, so the budget is spent on the
+    // streets they start in rather than scattered across a large town.
+    const anchor = plan.work.get("player")?.home ?? {
+      x: plan.site.cx,
+      y: plan.site.cy,
+    };
+    const from = (r: string) => {
+      const h = plan.work.get(r)?.home;
+      return h ? Math.hypot(h.x - anchor.x, h.y - anchor.y) : Infinity;
+    };
+    ranked = [...plan.stations.keys()].sort(
+      (a, b) => from(a) - from(b) || a.localeCompare(b),
+    );
+    routineRank.set(plan.site.id, ranked);
+    return ranked;
+  }
   /** Legs are searched once per resident and then never again: a routine is
    * read back with a binary search, so the crowd costs nothing per tick.
    *
@@ -2196,23 +2235,7 @@ export function createSettlementWorld(
     // asked first or on how long the last search took.
     if (plan && id !== "player" && !isVisitor(id)) {
       const key = plan.site.id;
-      let ranked = routineRank.get(key);
-      if (!ranked) {
-        // Nearest the player's home first, so the budget is spent on the
-        // streets they start in rather than scattered across a large town.
-        const anchor = plan.work.get("player")?.home ?? {
-          x: plan.site.cx,
-          y: plan.site.cy,
-        };
-        const from = (r: string) => {
-          const h = plan.work.get(r)?.home;
-          return h ? Math.hypot(h.x - anchor.x, h.y - anchor.y) : Infinity;
-        };
-        ranked = [...plan.stations.keys()].sort(
-          (a, b) => from(a) - from(b) || a.localeCompare(b),
-        );
-        routineRank.set(key, ranked);
-      }
+      const ranked = rankFor(plan);
       const rank = ranked.indexOf(id);
       const offset = routineOffset.get(key) ?? 0;
       if (
@@ -2466,12 +2489,10 @@ export function createSettlementWorld(
       entrances: entrances(),
       // The starting town's routines are searched here, off the main thread,
       // so arrival costs a lookup rather than seconds of path searches.
-      routines: [...routines].filter(([id]) =>
-        startPlan()?.actors.some((a) => a.id === id),
-      ),
-      dormant: [...dormant].filter((id) =>
-        startPlan()?.actors.some((a) => a.id === id),
-      ),
+      // All of them: warming the town also routes residents its plan does not
+      // list, and a filter here left those to diverge on the main thread.
+      routines: [...routines],
+      dormant: [...dormant],
       sites: [...sites].map(([key, s]) => [key, s ? preparedSite(s) : null]),
       regionalSites: regionalPlanner?.prepare(),
       plans: [...plans].map(([key, p]) => [
@@ -2673,6 +2694,7 @@ export function createSettlementWorld(
     vehicle: (id) => planForEntity(id)?.vehicles?.find((v) => v.id === id),
     ward: (id) => planForEntity(id)?.wards?.find((w) => w.id === id),
     refreshRoutines: () => {
+      if (routedAroundProps) return void (routedAroundProps = false);
       routines.clear();
       routineDay.clear();
       routineRank.clear();
@@ -2792,6 +2814,10 @@ export function createSettlementWorld(
       routineDay.set(id, 0);
     }
     for (const id of prepared.dormant ?? []) dormant.add(id);
+    // Searching ranks the town as a side effect; turnover walks the ranks, so
+    // loaded routines need them too or residents never rotate.
+    const start = startPlan();
+    if (prepared.routines && start) rankFor(start);
     // `active` came over already filled, so activate() will skip these plans.
     for (const id of active) keptFauna.push(...(plans.get(id)?.fauna ?? []));
     if (!prepared.routines) warmRoutines();
@@ -2904,6 +2930,6 @@ export function createSettlementWorld(
       });
   }
   // After the households are in, so the ranked list of residents is complete.
-  warmRoutines();
+  if (warm) warmRoutines();
   return world;
 }

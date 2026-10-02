@@ -6,7 +6,7 @@ import { packForSetting } from "../content/geography/pack";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { retainTerrainWorker } from "./terrain-worker-owner";
-import { loadPrepared, preparedKey, savePrepared } from "./prepared-store";
+import { preparedKey } from "./prepared-store";
 import { markEvent } from "./vitals";
 
 /** A phone killed for memory takes its worker with it without firing onerror,
@@ -43,13 +43,6 @@ export async function prepareSettingSession(
     type: "module",
   });
   try {
-    // A world seen before is handed to the worker ready-made, so it only has
-    // to rebuild the functions around the geometry.
-    const key = preparedKey(resolved, seed);
-    const cached = cachePrepared
-      ? await loadPrepared(key).catch(() => undefined)
-      : undefined;
-    signal?.throwIfAborted();
     const prepared = await new Promise<PreparedSettlement>(
       (resolve, reject) => {
         const abort = () => {
@@ -80,12 +73,17 @@ export async function prepareSettingSession(
           reject(Error(e.message));
         };
         worker.postMessage({
-          prepare: { pack: packForSetting(resolved), seed, prepared: cached },
+          // A world seen before comes ready-made from the worker's cache, so it
+          // only has to rebuild the functions around the geometry.
+          prepare: {
+            pack: packForSetting(resolved),
+            seed,
+            key: cachePrepared ? preparedKey(resolved, seed) : undefined,
+          },
         });
       },
     );
     signal?.throwIfAborted();
-    if (!cached && cachePrepared) void savePrepared(key, prepared);
     const engine = createSession(
       "atlas",
       seed,
