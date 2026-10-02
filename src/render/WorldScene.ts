@@ -136,7 +136,7 @@ import {
 import { ToolEffects, ROLL_MS, projectileArrowTexture } from "./tool-effects";
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
-import { markOf } from "../core/plot";
+import { kinOf } from "../core/kin";
 import { CueEffects } from "./cue-effects";
 import { TIERS, type CueKind } from "../core/combat";
 import {
@@ -933,6 +933,7 @@ export class WorldScene extends Phaser.Scene {
       if (phoneLayout()) {
         this.runtime.select(undefined);
         this.runtime.walkTo({ x, y });
+        this.walkGoal = this.time.now;
         return;
       }
       const obs = this.runtime.getSnapshot().observation;
@@ -948,6 +949,7 @@ export class WorldScene extends Phaser.Scene {
       else {
         this.runtime.select(undefined);
         this.runtime.walkTo({ x, y });
+        this.walkGoal = this.time.now;
       }
     });
     this.input.on(
@@ -1325,6 +1327,9 @@ export class WorldScene extends Phaser.Scene {
   private targetMark?: Phaser.GameObjects.Graphics;
   private targetCell?: { x: number; y: number; at: number };
   private targetChecked = 0;
+  private targetImage?: Phaser.GameObjects.Image;
+  private targetShown = false;
+  private walkGoal?: number;
   /** Corner brackets on the cell F or E would act on. */
   private drawTarget(time: number) {
     const engine = this.runtime.engine;
@@ -1337,6 +1342,10 @@ export class WorldScene extends Phaser.Scene {
         p.pos.space === "outside" || !p.pos.space
           ? engine.hitClass(cell.x, cell.y, p.pos.space).hit
           : "air";
+      // Brush and crops cover green country; marked bare-handed, every step
+      // lands on one and the marker stops meaning anything.
+      const tool = engine.heldTool();
+      const blade = tool === "scythe" || tool === "axe";
       const worth =
         !p.perch &&
         (alternate?.kind === "pickup" ||
@@ -1344,16 +1353,27 @@ export class WorldScene extends Phaser.Scene {
           (primary?.kind === "strike" && !!primary.command) ||
           primary?.kind === "talk" ||
           primary?.kind === "door" ||
-          [
-            "rock",
-            "trunk",
-            "tree",
-            "brush",
-            "pottery",
-            "timber",
-            "fiber",
-            "crop",
-          ].includes(hit));
+          ["rock", "trunk", "tree", "pottery", "timber"].includes(hit) ||
+          (blade && ["brush", "fiber", "crop"].includes(hit)));
+      const id =
+        primary?.kind === "talk"
+          ? primary.actor
+          : alternate?.kind === "pickup"
+            ? alternate.command?.target
+            : primary?.kind === "strike"
+              ? primary.command?.target
+              : undefined;
+      const on = (o: { pos: { x: number; y: number; space?: string } }) =>
+        o.pos.x === cell.x && o.pos.y === cell.y && o.pos.space === p.pos.space;
+      const animal = engine.state.actors.find((a) => a.kind !== "human" && !a.dead && on(a));
+      const crop = engine.state.objects.find((o) => o.kind === "crop" && !o.depleted && on(o));
+      const image =
+        worth && id
+          ? (this.entities.get(id) ?? this.cropImages.get(id))
+          : animal
+            ? this.entities.get(animal.id)
+            : crop && this.cropImages.get(crop.id);
+      this.targetImage = image?.active ? image : undefined;
       const same =
         this.targetCell?.x === cell.x && this.targetCell?.y === cell.y;
       this.targetCell = worth
@@ -1364,8 +1384,20 @@ export class WorldScene extends Phaser.Scene {
     }
     const mark = (this.targetMark ??= this.add.graphics());
     mark.clear();
-    const at = this.targetCell;
-    if (!at || time < this.nextInput - 40) return;
+    // Only once the player stands: walking, it would chase every tile.
+    const still = this.gaits.get("player")?.still;
+    const settled = still !== undefined && time - still > 250;
+    this.targetShown = settled;
+    // A clicked walk marks where it ends until the player arrives.
+    const route = this.runtime.route;
+    if (!route.length) this.walkGoal = undefined;
+    const end = this.walkGoal !== undefined ? route[route.length - 1] : undefined;
+    const at = end
+      ? { ...end, at: this.walkGoal! }
+      : settled && !this.targetImage && time >= this.nextInput - 40
+        ? this.targetCell
+        : undefined;
+    if (!at) return;
     const cx = at.x * 16 + 8,
       cy = at.y * 16 + 8 - this.lift(at.x * 16 + 8, at.y * 16 + 16);
     // Snaps in from wide when it first lands on a cell, then breathes.
@@ -1419,10 +1451,11 @@ export class WorldScene extends Phaser.Scene {
     const g = (this.castMarks ??= this.add.graphics());
     g.clear().setDepth(1e7 - 1);
     const s = this.runtime.engine.state;
-    const ids = new Set([...Object.values(s.plot?.cast ?? {}), ...(s.player.relations ?? []).map((r) => r.other)]);
+    const cast = new Set(s.plot && !s.plot.ended ? Object.values(s.plot.cast) : []);
+    const kin = new Set(kinOf(s).map((k) => k.actor.id));
     const bob = Math.round(Math.sin(time / 420));
-    for (const id of ids) {
-      const mark = markOf(s, id);
+    for (const id of new Set([...cast, ...kin])) {
+      const mark = cast.has(id) ? "plot" : "kin";
       const im = this.entities.get(id);
       if (!mark || !im?.visible) continue;
       // The frame is taller than the body in it; a grown person stands about 28px.
@@ -2061,18 +2094,29 @@ export class WorldScene extends Phaser.Scene {
   /** A ring of tinted copies behind the sprite: the fringe that shows past its
    * own silhouette is the outline, and additive blending makes it glow. */
   private drawSelectionGlow(time: number) {
-    const target = this.selectedImage();
+    const selected = this.selectedImage();
+    this.drawGlow(this.glowSprites, selected, 0xffd9a0, 0.78 + 0.22 * Math.sin(time / 420));
+    // The thing F or E would act on, fainter than a selection and never both.
+    const aimed = this.targetShown && this.targetImage !== selected ? this.targetImage : undefined;
+    this.drawGlow(this.targetGlow, aimed, 0xfff4d0, 0.4 + 0.1 * Math.sin(time / 300));
+  }
+  private targetGlow: Phaser.GameObjects.Image[] = [];
+  private drawGlow(
+    sprites: Phaser.GameObjects.Image[],
+    target: Phaser.GameObjects.Image | undefined,
+    tint: number,
+    pulse: number,
+  ) {
     if (!target || !target.visible) {
-      for (const g of this.glowSprites) g.setVisible(false);
+      for (const g of sprites) g.setVisible(false);
       return;
     }
-    const pulse = 0.78 + 0.22 * Math.sin(time / 420);
     GLOW_RING.forEach((offset, i) => {
-      let g = this.glowSprites[i];
+      let g = sprites[i];
       if (!g) {
         g = this.add.image(0, 0, target.texture.key, target.frame.name);
         g.setBlendMode(Phaser.BlendModes.ADD);
-        this.glowSprites[i] = g;
+        sprites[i] = g;
       }
       if (
         g.texture.key !== target.texture.key ||
@@ -2084,7 +2128,7 @@ export class WorldScene extends Phaser.Scene {
         .setScale(target.scaleX, target.scaleY)
         .setPosition(target.x + offset.dx, target.y + offset.dy)
         .setDepth(target.depth - 1)
-        .setTint(0xffd9a0)
+        .setTint(tint)
         .setAlpha(offset.alpha * pulse * target.alpha)
         .setVisible(true);
       // Trees are cropped below the canopy; the outline has to stop there too.

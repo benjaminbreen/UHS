@@ -3,6 +3,7 @@ import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { formatHistoricalYear } from "../core/calendar";
 import { seasonAt } from "../core/livelihood";
 import { sexOf } from "../core/brief";
+import { kinOf } from "../core/kin";
 import { plotLine, plotTemplate, type PlotCard as Card } from "../core/plot";
 import { ROLE_NAMES } from "../content/plots";
 import type { PlotLook } from "../content/plots/types";
@@ -17,6 +18,7 @@ const KIN: Record<string, [string, string, string]> = {
   partner: ["Wife", "Husband", "Partner"],
   child: ["Daughter", "Son", "Child"],
   parent: ["Mother", "Father", "Parent"],
+  sibling: ["Sister", "Brother", "Sibling"],
 };
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -30,9 +32,9 @@ function castOf(runtime: Runtime): Member[] {
         return a ? [{ id, name: a.name, role: ROLE_NAMES[role as keyof typeof ROLE_NAMES] ?? role, line: plotLine(plot, `cast-${role}`), mark: "plot" as const }] : [];
       })
     : [];
-  const kin = (s.player.relations ?? []).flatMap((r) => {
-    const a = byId.get(r.other), names = KIN[r.kind];
-    if (!a || !names || drawn.some((m) => m.id === a.id)) return [];
+  const kin = kinOf(s).flatMap(({ actor: a, kind }) => {
+    const names = KIN[kind];
+    if (drawn.some((m) => m.id === a.id)) return [];
     const sex = sexOf(a);
     const role = names[sex === "female" ? 0 : sex === "male" ? 1 : 2];
     return [{ id: a.id, name: a.name, role, line: `Your ${role.toLowerCase()}${a.age === undefined ? "" : `, ${a.age}`}.`, mark: "kin" as const }];

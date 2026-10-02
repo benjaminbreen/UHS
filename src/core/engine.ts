@@ -82,6 +82,7 @@ import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim } from "./life-aim";
 import { endPlot, plotLine, stepPlot, type PlotCard } from "./plot";
+import { kinCall } from "./kin";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
@@ -6103,6 +6104,12 @@ export class Engine {
       const def = this.item(c.item)!;
       delete p.heldItem;
       a.inventory[c.item] = (a.inventory[c.item] ?? 0) + 1;
+      // Someone hungry eats what they are handed, there and then.
+      if (def.edible && a.hunger > 40) {
+        a.inventory[c.item]!--;
+        a.hunger = Math.max(0, a.hunger - def.edible);
+      }
+      if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
       this.regard(a, 1);
       a.memories.push(`You gave them ${def.name.toLowerCase()}.`);
       this.advance(20, a.id);
@@ -6257,6 +6264,7 @@ export class Engine {
     switch (c.action) {
       case "talk":
         if (a) {
+          if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
           if (this.state.goalFlags) {
             this.state.goalFlags.talked = true;
             (this.state.goalFlags.talkedTo ??= []).push(a.id);
@@ -6654,6 +6662,34 @@ export class Engine {
     }
     const ending = endPlot(s);
     if (ending) this.cards.push({ kind: "ending", title: plot.title, text: plotLine(plot, ending.id), ending: ending.id });
+  }
+  /** The player's own people: whether one of them has reason to come over,
+   * and what it costs to leave them unanswered. */
+  private kinStep(clock: number) {
+    const s = this.state, p = s.player;
+    const k = (s.kin ??= { since: clock, said: {}, talked: {} });
+    const h = this.household(p.householdId);
+    if (h && (p.pos.space === h.residence || (p.pos.space === "outside" && distance(p.pos, h.home) < 8))) k.home = clock;
+    const wait = k.waiting;
+    if (wait && clock - wait.at >= 3600) {
+      const a = s.actors.find((x) => x.id === wait.id);
+      if (a && (k.talked[wait.id] ?? -1) < wait.at) {
+        this.regard(a, -1, "refuse");
+        a.memories.push("Went to the player and was not answered");
+      }
+      k.waiting = undefined;
+    }
+    const hour = Math.floor(clock / 3600) % 24;
+    // One call at a time, none at night, and never more than one an hour and a half.
+    if (this.approaching || p.dead || hour < 6 || hour >= 21 || clock - (k.last ?? -Infinity) < 5400) return;
+    const store = h && s.objects.find((o) => o.id === h.storeId);
+    const food = Object.entries(store?.inventory ?? {}).reduce((n, [id, c]) => n + (this.item(id)?.edible ? c ?? 0 : 0), 0);
+    const call = kinCall(s, k, clock, food);
+    if (!call) return;
+    k.said[`${call.id}:${call.need}`] = clock;
+    k.last = clock;
+    k.waiting = { id: call.id, need: call.need, at: clock };
+    this.approaching = { id: call.id, line: call.line, until: clock + 3600 };
   }
   /** What the player can hand over toward a debt: money where there is
    * coinage, food where there is not. */
@@ -7274,6 +7310,7 @@ export class Engine {
       );
       if (next % 6 !== 0) continue;
       if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
+      if (next % 600 === 0) this.kinStep(next);
       if (this.approaching) this.approach(next);
       this.burnStep();
       this.brawl();

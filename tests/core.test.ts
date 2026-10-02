@@ -189,6 +189,34 @@ describe("shared deterministic foundation", () => {
     expect(act(e, { type: "interact", target: creditor.id, action: "pay" }).status).toBe("completed");
     expect(next.ended).toBe("paid");
   });
+  it("sends a hungry child to the player, minds being ignored, and eats what it is given", () => {
+    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    delete e.state.plot;
+    const child = e.state.actors.find((a) =>
+      a.kind === "human" && a.id !== e.state.player.id && a.householdId && !a.mount && !a.tends && !a.guard)!;
+    const home = e.state.households!.find((h) => h.members.includes(e.state.player.id))!;
+    e.state.objects.find((o) => o.id === home.storeId)!.inventory = {};
+    child.age = 6;
+    child.hunger = 80;
+    e.state.player.relations = [...(e.state.player.relations ?? []), { other: child.id, kind: "child" }];
+    e.state.clock = Math.ceil(e.state.clock / 86400) * 86400 + 10 * 3600;
+    for (let i = 0; i < 40 && !e.approacher; i++) act(e, { type: "wait", seconds: 60 });
+    expect(e.approacher?.id).toBe(child.id);
+    expect(e.cards.find((c) => c.kind === "speech" && c.speaker === child.id)?.text).toMatch(/hungry|eat|bread/);
+
+    const trust = child.trust;
+    for (let i = 0; i < 70; i++) act(e, { type: "wait", seconds: 60 });
+    expect(child.trust).toBe(trust - 1);
+
+    child.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    child.trust = 0;
+    child.hunger = 80;
+    e.state.player.inventory.bread = 1;
+    expect(act(e, { type: "hold", item: "bread" }).status).toBe("completed");
+    const hunger = child.hunger;
+    expect(act(e, { type: "give", target: child.id, item: "bread" }).status).toBe("completed");
+    expect(child.hunger).toBeLessThan(hunger);
+  });
   it("replays identical commands, including uncertainty, to the same physical hash", () => {
     const a = createSession("roman", "repeat"),
       b = createSession("roman", "repeat");

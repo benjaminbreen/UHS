@@ -40,14 +40,6 @@ export type PlotCard = {
 
 export const plotTemplate = (plot: PlotState) => PLOTS.find((t) => t.id === plot.id);
 
-/** Red for the player's own people, gold for whoever the plot has drawn in. */
-export function markOf(s: Snapshot, id: string): "kin" | "plot" | undefined {
-  const plot = s.plot;
-  if (plot && !plot.ended && Object.values(plot.cast).includes(id)) return "plot";
-  if (s.player.relations?.some((r) => r.other === id && ["partner", "child", "parent"].includes(r.kind)))
-    return "kin";
-}
-
 const templateOf = (plot: PlotState) => PLOTS.find((t) => t.id === plot.id);
 
 export function plotLine(plot: PlotState, key: string) {

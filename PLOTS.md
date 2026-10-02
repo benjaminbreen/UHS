@@ -244,11 +244,25 @@ arrival screen's gold panel:
   Plot lines spoken this way are written without the speaker's name.
 - Titles use Pixelify Sans; prose stays in Baskervville.
 
-### Phase 3: the permanent cast
+### Phase 3: the permanent cast (done)
 
-- Sibling derivation.
-- Urge for child, partner, parent; their approach lines by age and scope.
-- Tests: a hungry child approaches; a cooldown holds; ignoring lowers regard.
+- `src/core/kin.ts`: `kinOf` (partner, children, parents, and siblings by a
+  shared parent, since no sibling relation is recorded), `markOf`, and
+  `kinCall`, which picks the most pressing reason one of them has to come
+  over. Lines are in `src/content/plots/kin.ts`; a plot can add a
+  `kin-partner` line for the partner to raise it.
+- Reasons, most pressing first: a child (3 to 15) hungry or the household
+  store empty; the partner raising the plot, once; the store nearly empty; a
+  young child who has not seen the player for 4 hours; the partner, after
+  19:00, when the player has been away 3 hours; a parent over 55 not spoken
+  to for 5 hours; a sibling for 8.
+- Checked every 10 game minutes. One call at a time, a plot's messenger
+  first, none between 21:00 and 06:00, at most one every 90 game minutes,
+  the same reason from the same person at most every 6 hours.
+- A call unanswered for an hour (no talk or gift since) costs a point of
+  regard and leaves a memory. Food handed to someone hungry is eaten at once.
+- Residents parked out of the simulated ring have hunger capped at 30, so a
+  child's hunger alone is unreliable; the empty store is what carries it.
 
 ### Phase 4: plots that need no new engine work
 

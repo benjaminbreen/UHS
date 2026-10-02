@@ -888,4 +888,15 @@ export const snapshotSchema = z.object({
     })
     .strict()
     .optional(),
+  kin: z
+    .object({
+      since: z.number(),
+      said: z.record(z.string().max(160), z.number()),
+      talked: z.record(z.string().max(100), z.number()),
+      home: z.number().optional(),
+      last: z.number().optional(),
+      waiting: z.object({ id: z.string().max(100), need: z.string().max(20), at: z.number() }).strict().optional(),
+    })
+    .strict()
+    .optional(),
 });

@@ -102,6 +102,7 @@ export const debt: PlotTemplate = {
       title: "The Debt",
       lines: {
         aim: "Repay {creditor} the loan of {good}, with its interest, {due}.",
+        "kin-partner": "{creditor} came to the door about the loan. How much is owed now, with the interest?",
         "cast-creditor": "Lent you the {good} at interest, and holds the tablet that records it.",
         opening: "You took {good} from {creditor} on loan, and the interest has grown. Now the loan is called in.",
         dun: "You owe me {amount} for the {good}, with its interest. Pay it {due}, or {pledge} will work it off in my house.",
@@ -118,6 +119,7 @@ export const debt: PlotTemplate = {
       title: "The Debt",
       lines: {
         aim: "Settle what you owe {creditor} for the {good}, {due}.",
+        "kin-partner": "{creditor} was asking after you in the lane. What do we owe for the {good}?",
         "cast-creditor": "Let you have the {good} on trust, and will plead it at the manor court if need be.",
         opening: "You had {good} of {creditor} on trust, and the trust has run out.",
         dun: "You owe me {amount} for the {good}. I want it {due}, or I plead it at the manor court.",
@@ -134,6 +136,7 @@ export const debt: PlotTemplate = {
       title: "The Debt",
       lines: {
         aim: "Settle what you owe {creditor} for the {good}, {due}.",
+        "kin-partner": "{creditor} came by asking for you. How much is on that slate?",
         "cast-creditor": "Has your name on the slate for the {good}.",
         opening: "Your name is on {creditor}'s slate for the {good}, and the slate is full.",
         dun: "You owe me {amount} for the {good}, and I'll have it {due}. I'll not be put off with promises.",
@@ -149,6 +152,7 @@ export const debt: PlotTemplate = {
       title: "The Debt",
       lines: {
         aim: "Settle what you owe {creditor} for the {good}, {due}.",
+        "kin-partner": "{creditor} came asking for you. How much do we owe?",
         "cast-creditor": "Let you have the {good} on trust, and wants paying.",
         opening: "You owe {creditor} for the {good}, and the waiting is over.",
         dun: "You owe me {amount} for the {good}. I want it {due}.",

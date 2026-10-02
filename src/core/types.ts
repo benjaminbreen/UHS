@@ -578,6 +578,7 @@ export type Snapshot = {
   goalDay?: number;
   lifeAim?: import("../content/goals/types").PersonalAim;
   plot?: import("./plot").PlotState;
+  kin?: import("./kin").KinState;
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
   /** What the player's day has held so far, for the evening's account. */
