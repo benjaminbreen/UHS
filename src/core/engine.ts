@@ -1223,7 +1223,7 @@ export class Engine {
     const place = this.world.place(space);
     const s = this.world.pack.setting;
     const household = this.state.households?.find((h) => h.residence === space);
-    if (!place || (place.access !== "household" && !household) || !s) {
+    if (!place || (place.access !== "household" && !household && !place.claim.startsWith("venue-")) || !s) {
       this.interiors.set(space, null);
       return undefined;
     }
@@ -1238,6 +1238,7 @@ export class Engine {
         settlement: s.settlement,
         camp: s.settlement === "camp" || (!!s.situation && s.situation.camp !== "none"),
         roofHatch: exit?.sprite === "ladder",
+        venue: place.claim.startsWith("venue-") ? place.claim.slice(6) : undefined,
       },
       { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24 },
     );
@@ -1287,10 +1288,13 @@ export class Engine {
     const hour = (this.state.clock / 3600) % 24;
     const l = label.toLowerCase();
     const trade = livelihoodOf(this.world.pack, a)?.activity.toLowerCase().split(/\s+/)[0];
-    const sleeping = /sleep|night|\bbed/.test(l) || hour < 5.5 || hour >= 22;
+    // In a taproom the household serves while it is up, and nobody else is put to bed.
+    const serving = room.params.program === "serve", resident = this.household(a.householdId)?.residence === space;
+    const sleeping = /sleep|night|\bbed/.test(l) || ((resident || !serving) && (hour < 5.5 || hour >= 22));
     const cooking = !sleeping && /cook|eat|meal|supper|breakfast|dinner|hearth|fire|kitchen/.test(l);
-    const working = !sleeping && !cooking && ((!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));
-    const order = sleeping ? [room.beds] : working ? [room.work, room.fire, room.seats] : cooking ? [room.fire, room.seats] : [room.seats, room.fire, room.work];
+    const working = !sleeping && !cooking && ((serving && resident && (a.age ?? 30) >= 14) || (!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));
+    const order = sleeping ? [room.beds] : working ? [room.work, room.fire, room.seats] : cooking ? [room.fire, room.seats]
+      : serving && !resident ? [room.seats.filter((s) => s.on), room.seats, room.fire] : [room.seats, room.fire, room.work];
     const taken = new Set(
       [this.state.player, ...this.state.actors]
         .filter((o) => o !== a && o.pos.space === space)
@@ -2144,7 +2148,14 @@ export class Engine {
         this.struckBy(a);
         continue;
       }
-      const toward = t.fight ? 1 : -1;
+      if (t.fight) {
+        // Round the furniture, not just straight at you.
+        const step = findPath(a.pos, p.pos, (x, y) => this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id), 400)[0];
+        if (step && !(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
+        a.direction = Math.abs(p.pos.x - a.pos.x) > Math.abs(p.pos.y - a.pos.y) ? (p.pos.x > a.pos.x ? 1 : 3) : p.pos.y > a.pos.y ? 2 : 0;
+        continue;
+      }
+      const toward = -1;
       const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]]
         .map(([dx, dy]) => ({ ...a.pos, x: a.pos.x + dx, y: a.pos.y + dy }))
         .filter((c) => !this.blocked(c.x, c.y, c.space) && !this.actorAt(c, a.id) && !(c.x === p.pos.x && c.y === p.pos.y))
@@ -7111,6 +7122,15 @@ export class Engine {
    * when the house has no interior. */
   private park(a: Actor) {
     const household = this.household(a.householdId);
+    const room = this.regularsAt()?.get(a.id);
+    if (room) {
+      a.offRoutine = true;
+      if (a.pos.space !== room.space || a.activity !== room.label) {
+        a.activity = room.label;
+        this.moveActor(a, this.indoorSpot(a, room.space, room.label, room.index));
+      }
+      return;
+    }
     a.offRoutine = true;
     a.activity = "At home";
     a.hunger = Math.min(a.hunger, 30);
@@ -7121,6 +7141,30 @@ export class Engine {
     } else if (a.pos.space === "outside" && distance(a.pos, a.home) > 0) {
       this.moveActor(a, copy(a.home));
     }
+  }
+  private regulars?: { key: string; seated?: Map<string, { space: string; label: string; index: number }> };
+  /** Who is in the communal room the player stands in, beyond those whose
+   * day is simulated: grown neighbours off the routine budget, a fresh draw
+   * each day and hour, enough to fill the room's share of seats. Only while
+   * the player is inside, since nobody else sees the room. */
+  private regularsAt() {
+    const space = this.state.player.pos.space, hour = Math.floor((this.state.clock / 3600) % 24);
+    const key = `${space}:${Math.floor(this.state.clock / 3600)}`;
+    if (this.regulars?.key === key) return this.regulars.seated;
+    this.regulars = { key };
+    const room = space === "outside" ? undefined : this.interiorOf(space);
+    const place = room?.regulars && this.world.place(space);
+    if (!room?.regulars || !place) return;
+    const [from, to] = room.regulars.hours;
+    if (from <= to ? hour < from || hour >= to : hour < from && hour >= to) return;
+    const day = Math.floor(this.state.clock / 86400);
+    const near = this.state.actors
+      .filter((a) => a.kind === "human" && (a.age ?? 30) >= 16 && !a.terror && this.world.dormant?.(a.id) &&
+        this.household(a.householdId)?.residence !== space && Math.hypot(a.home.x - place.entrance.x, a.home.y - place.entrance.y) <= 60)
+      .sort((a, b) => random(this.state.manifest.seed, "regular", a.id, day) - random(this.state.manifest.seed, "regular", b.id, day));
+    const label = `At ${place.name.replace(/^The /, "the ")}`;
+    this.regulars.seated = new Map(near.slice(0, Math.round(room.seats.length * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));
+    return this.regulars.seated;
   }
   /** Seconds from now until the next morning, for a night's sleep. */
   untilMorning(hour = 6) {

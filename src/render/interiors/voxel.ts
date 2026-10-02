@@ -458,6 +458,29 @@ function build(p: RoomParams, props: Prop[], holes: Set<number>) {
         }
         break;
       }
+      case "bar":
+        box(bx, by + 2, 1, ex, ey - 1, 8, (_x, y, z) => (z === 8 ? W[4] : y === ey - 1 ? W[2] : W[3]));
+        break;
+      case "casks":
+        for (let x = bx + 1; x < ex; x += 8) lathe(x + 3, by + 3, 1, 6, () => 3, W, false);
+        break;
+      case "slab":
+        box(bx, by + 1, 1, ex, ey - 1, 4, P.stone[4]);
+        break;
+      case "basin":
+        box(bx + 1, by + 2, 1, ex - 1, ey - 2, 4, P.stone[3]);
+        break;
+      case "ledge":
+        box(bx, by, 1, ex, ey, 3, P.wall[3]);
+        break;
+      case "bench":
+        box(bx, by + 2, 3, ex, ey - 2, 3, W[4]);
+        for (const x of [bx + 1, ex - 1]) box(x, by + 2, 1, x, ey - 2, 2, W[1]);
+        break;
+      case "settle":
+        box(bx, by + 1, 1, ex, by + 2, 11, W[3]);
+        box(bx, by + 3, 1, ex, ey - 1, 3, (_x, _y, z) => (z === 3 ? W[4] : W[2]));
+        break;
       case "table": {
         box(bx, by + 1, 6, ex, ey - 1, 6, (x, y) => (y === ey - 1 ? W[5] : hash(x >> 2, y, q.seed) < 0.1 ? W[3] : W[4]));
         for (const x of [bx + 1, ex - 1]) for (const y of [by + 2, ey - 2]) box(x, y, 1, x, y, 5, W[1]);

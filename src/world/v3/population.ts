@@ -22,6 +22,7 @@ import { workplaceFor } from "../../content/characters/workplace";
 import { conditionOf, weatherStructure } from "../../core/time/structure";
 import { householdStory } from "./household-story";
 import { MEANS } from "./plan";
+import { keeperLivesIn } from "../../content/interiors/select";
 import { marriagePracticeFor } from "../../content/households/practices";
 const seasons = ["spring", "summer", "autumn", "winter"];
 /** Households as the result of a life (household-story.ts), then the ties
@@ -278,6 +279,27 @@ export function populateHouseholds(
       adult?.relations?.push({ other: memberId, kind: m.fromHead });
       pending.push({ id: memberId, a, child, site: sites, household });
     });
+  }
+
+  // Nobody lives in a kiva or a bath house: the household that keeps one
+  // lodges with the nearest household that has a house to live in.
+  const setting = pack.setting!;
+  const venueOf = (h: Household) => {
+    const claim = plan.places.find((p) => p.id === h.residence)?.claim ?? "";
+    return claim.startsWith("venue-") ? claim.slice(6) : undefined;
+  };
+  for (const h of made) {
+    const venue = venueOf(h);
+    if (!venue || keeperLivesIn({ lon: setting.lon, lat: setting.lat, year, venue })) continue;
+    const host = made
+      .filter((o) => o !== h && !venueOf(o))
+      .sort((a, b) => Math.hypot(a.home.x - h.home.x, a.home.y - h.home.y) - Math.hypot(b.home.x - h.home.x, b.home.y - h.home.y))[0];
+    if (!host) continue;
+    h.residence = host.residence;
+    h.home = { ...host.home };
+    const work = plan.work.get(h.members[0]);
+    if (work) plan.work.set(h.members[0], { ...work, home: { x: host.home.x, y: host.home.y } });
+    for (const p of pending) if (p.household === h) p.site = { ...p.site, home: { x: host.home.x, y: host.home.y } };
   }
 
   // Every household buys what it needs and does not make, from the nearest

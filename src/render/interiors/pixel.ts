@@ -10,6 +10,8 @@ export const T = 16;
 const WH = 48, S = 10, CAP = 6;
 /** Where floor tile (0, 0) starts on the room's canvas. */
 export const FLOOR_X = S, FLOOR_Y = CAP + WH;
+/** Sprites widened by `stretch`, keyed `name@width`. */
+const WIDE = new Map<string, string[]>();
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
 type Hit = { u: number; v: number; hits: number; seed: number; base: number };
 type Debris = { x: number; y: number; vx: number; vy: number; c: number; floor: number; rest: boolean };
@@ -372,11 +374,137 @@ export class PixelRoom {
       }
     }
   }
+  /** A sprite widened to `w` px by repeating its middle columns: a long board from a table. */
+  private stretch(name: string, w: number) {
+    const rows = SPRITES[name], key = `${name}@${w}`;
+    if (rows[0].length === w) return name;
+    if (WIDE.has(key)) return key;
+    const edge = 12, mid = rows[0].length - edge * 2;
+    WIDE.set(key, rows.map((row) => {
+      let out = row.slice(0, edge);
+      for (let i = 0; i < w - edge * 2; i++) out += row[edge + (i % mid)];
+      return out + row.slice(-edge);
+    }));
+    return key;
+  }
+  /** A barrel lying on the stillage, seen end-on: staves lit from the upper
+   * left, an iron hoop, the strength chalked on the head, a brass tap. */
+  private caskEnd(cx: number, cy: number, rr: number, seed: number, tap: boolean) {
+    const { P } = this, W = P.wood;
+    // End grain reads paler than the staves' sides.
+    const H = W.map((c, i) => mix(c, P.straw[i], 0.35));
+    for (let j = -rr; j <= rr; j++)
+      for (let i = -rr; i <= rr; i++) {
+        const d = Math.hypot(i, j);
+        if (d > rr + 0.35) continue;
+        let c: number;
+        if (d > rr - 0.65) c = W[0];
+        else if (d > rr - 1.8) c = i + j < -rr * 0.9 ? P.iron[3] : P.iron[1];
+        else {
+          const seam = (i + rr) % 4 === 0;
+          const lit = i + j < -rr * 0.4 ? 1 : i + j > rr * 0.5 ? -1 : 0;
+          c = seam ? H[1] : H[Math.max(1, Math.min(5, 3 + lit - (((i + rr) >> 2) & 1)))];
+        }
+        this.s(cx + i, cy + j, c);
+      }
+    // The strength in chalk: X, XX or XXX.
+    const xs = 1 + (seed % 3);
+    for (let k = 0; k < xs; k++) {
+      const x = cx - (xs * 4 - 1) / 2 + k * 4, y = cy - rr + 3;
+      for (const [dx, dy] of [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]]) this.s(x + dx, y + dy, P.linen[5]);
+    }
+    if (!tap) return;
+    this.r(cx - 2, cy + 2, 5, 1, (i) => P.brass[i === 0 ? 5 : i === 4 ? 2 : 4]);
+    this.r(cx, cy + 3, 2, 3, (i, j) => P.brass[j === 2 ? 2 : i ? 2 : 4]);
+  }
+  /** A drinking pot standing on its base: 0 pewter, 1 stoneware, 2 a leather jack. */
+  private mug(x: number, base: number, kind: number) {
+    const { P } = this;
+    const R = kind === 0 ? [0x2a2c34, 0x4e535e, 0x7a808a, 0x9ea4ac, 0xc4c8cc, 0xe8eaea] : kind === 1 ? P.pale : P.fur.map((c) => scale(c, 0.55));
+    const h = kind === 2 ? 7 : 6, w = kind === 2 ? 5 : 4;
+    this.r(x, base - h, w, h, (i, j) => (j === 0 ? R[5] : j === h - 1 ? R[1] : i === 0 ? R[4] : i === w - 1 ? R[1] : i === 1 ? R[3] : R[2]));
+    if (kind === 0) this.r(x, base - h - 1, w - 1, 1, R[4]);
+    this.r(x + w, base - h + 1, 1, 1, R[2]);
+    this.r(x + w + 1, base - h + 2, 1, 2, R[1]);
+    this.r(x + w, base - h + 4, 1, 1, R[2]);
+  }
+  /** A stoneware jug with a handle, mottled brown above as salt glaze fires. */
+  private jug(cx: number, base: number) {
+    const { P } = this;
+    const R = P.clay.map((c, i) => mix(c, 0x5a3a22, 0.35 - i * 0.03));
+    this.vase(cx, base, 9, (t) => 3.2 - Math.abs(t - 0.35) * 3 + (t > 0.85 ? 0.6 : 0), R);
+    this.r(cx + 3, base - 7, 1, 1, R[2]);
+    this.r(cx + 4, base - 6, 1, 3, R[1]);
+    this.r(cx + 3, base - 3, 1, 1, R[2]);
+  }
+  /** A tallow candle in a pricket dish, lit. */
+  private candle(x: number, base: number, seed: number) {
+    const { P } = this;
+    this.r(x - 2, base, 5, 1, P.brass[3]);
+    this.s(x - 2, base, P.brass[5]);
+    this.r(x, base - 5, 2, 5, (i, j) => (j === 0 ? P.linen[5] : i ? P.linen[3] : P.linen[4]));
+    this.s(x + 1, base - 4, P.linen[5]);
+    this.flames.push({ x, y: base - 7 });
+    this.lights.push({ x, y: base - 7, c: 0xffb860, rad: 46, k: 1.15, phase: seed % 80 });
+  }
+  /** A sake flask, white glaze with a blue band. */
+  private tokkuri(x: number, base: number, k: number) {
+    const R = [0x3a4050, 0x8a909a, 0xb8bcc0, 0xd8dad8, 0xecebe4, 0xffffff];
+    this.vase(x, base, 7, (t) => 2.4 - Math.abs(t - 0.3) * 2.6 + (t > 0.85 ? 0.4 : 0), R);
+    this.r(x - 1, base - 4, 3, 1, k % 2 ? 0x2f4a8a : 0x4a6aa8);
+  }
+  /** A thimble of a sake cup. */
+  private choko(x: number, base: number) {
+    this.r(x, base - 2, 3, 2, (i, j) => (j === 0 ? 0xf2f0e8 : i === 2 ? 0x9aa0a8 : 0xd8dad8));
+  }
+  /** A calligraphy panel in a gilt frame: gold strokes on dark green. */
+  private levha(x: number, y: number, w: number, h: number, seed: number) {
+    const { P } = this;
+    this.r(x, y, w, h, (i, j) => (i === 0 || j === 0 ? P.brass[4] : i === w - 1 || j === h - 1 ? P.brass[1] : 0x1e3a2e));
+    for (let i = 2; i < w - 2; i++) {
+      const j = Math.round(h / 2 + Math.sin(i * 0.9 + seed) * (h / 4));
+      this.s(x + i, y + j, P.brass[5]);
+      if (i % 3 === 0) this.s(x + i, y + j - 2, P.brass[4]);
+    }
+  }
+  /** What stands on a low table where drink is served: flasks and cups, or a tray of coffee. */
+  private lowBoard(x0: number, y0: number, seed: number) {
+    const { P } = this;
+    if ((this.p.styles.bar ?? "ale") === "coffee") {
+      this.r(x0 + 3, y0 + 1, 11, 3, (i, j) => (j === 0 ? P.brass[5] : i === 0 || i === 10 ? P.brass[2] : P.brass[4]));
+      for (const dx of [5, 9]) this.r(x0 + dx, y0, 2, 2, (_i, j) => (j === 0 ? P.linen[5] : P.acc[3]));
+      if (seed % 2) this.vase(x0 + 13, y0 + 2, 5, (t) => 1.8 - t * 0.6, P.brass);
+      return;
+    }
+    this.tokkuri(x0 + 5, y0 + 4, seed);
+    this.choko(x0 + 9, y0 + 3);
+    this.r(x0 + 13, y0 - 3, 3, 5, (i, j) => (j === 0 || j === 4 ? P.wood[1] : i === 2 ? P.paper[3] : P.paper[5]));
+    this.lights.push({ x: x0 + 14, y: y0 - 2, c: 0xffc070, rad: 34, k: 0.8, phase: seed % 70 });
+    if (seed % 2) this.choko(x0 + 12, y0 + 4);
+    this.r(x0 + 2, y0 + 3, 2, 1, 0x8a5a3a);
+  }
+  /** What stands on a tavern board: pots, a jug, the candle, a pipe, a spill. */
+  private tavernBoard(X: number, ty: number, PW: number, seed: number) {
+    const { P } = this;
+    const slots = Math.floor((PW - 8) / 9);
+    const lamp = Math.floor(slots / 2);
+    for (let k = 0; k < slots; k++) {
+      const x = X + 5 + k * 9 + Math.floor(hash(k, 1, seed) * 3), b = ty + 5 + (k & 1);
+      const pick = hash(k, 2, seed);
+      if (k === lamp) this.candle(x + 2, b, seed + k);
+      else if (pick < 0.45) this.mug(x, b, pick < 0.3 ? 0 : 1);
+      else if (pick < 0.6) this.jug(x + 3, b + 1);
+      else if (pick < 0.75) {
+        for (let i = 0; i < 7; i++) this.s(x + i, b - 1 - (i >> 2), P.linen[5]);
+        this.s(x + 6, b - 3, P.linen[4]);
+      } else if (pick < 0.85) this.dim(x, b - 3, 5, 2, 0.82);
+    }
+  }
   /** Blit a hand-drawn sprite at (x, y), its letters resolved to this room's ramps. */
   private sprite(name: string, x: number, y: number, over: Record<string, number[]> = {}, swap: Record<string, string> = {}) {
     const P = this.P as unknown as Record<string, number[]>;
     const band = this.p.finish === 0 ? this.P.straw : this.p.finish === 2 ? this.P.brass : this.P.iron;
-    const rows = SPRITES[name];
+    const rows = SPRITES[name] ?? WIDE.get(name)!;
     rows.forEach((row, j) => {
       for (let i = 0; i < row.length; i++) {
         const ch = swap[row[i]] ?? row[i];
@@ -969,6 +1097,16 @@ export class PixelRoom {
         break;
       }
       case "hearth": {
+        if (p.styles.hearth === "firebox") {
+          // A firebox fed from outside: a low arched mouth in a patch of blackened stone, embers within.
+          const fx = X + 6, fy = oy - 14, fw = PW - 12, fh = 13;
+          this.r(X + 2, oy - 20, PW - 4, 20, (i, j) => (hash(i >> 2, j >> 2, q.seed) < 0.5 ? P.stone[1] : P.stone[2]));
+          for (let j = 0; j < fh; j++)
+            for (let i = 0; i < fw; i++)
+              if (!(j < 3 && Math.abs(i - fw / 2 + 0.5) > fw / 2 - (3 - j) * 1.5)) this.s(fx + i, fy + j, j > fh - 4 ? (hash(i, j, q.seed) < 0.5 ? 0xd8582a : 0x8a2a1a) : 0x120a08);
+          if (q.on) this.lights.push({ x: fx + fw / 2, y: fy + fh - 3, c: 0xff6a2a, rad: 50, k: 1.3, phase: q.seed % 100 });
+          break;
+        }
         const bodyTop = oy - 30;
         const stone = (i: number, j: number) => {
           const row = j >> 2, sx = (i + (row & 1) * 3) % 6;
@@ -1361,9 +1499,9 @@ export class PixelRoom {
             for (let i = -13; i <= 13; i++)
               if ((i * i) / 169 + (j * j) / 25 <= 1) this.s(cx + i, cy + j, (i * i) / 169 + (j * j) / 25 > 0.8 ? W[j < 0 ? 5 : 2] : W[3]);
           for (let i = -12; i <= 12; i++) this.s(cx + i, cy + 6, W[1]);
-        } else if (q.w === 2) {
+        } else if (q.w >= 2) {
           const name = style === "trestle" ? "trestle" : "table";
-          this.sprite(name, X, Y + PD - SPRITES[name].length);
+          this.sprite(this.stretch(name, PW), X, Y + PD - SPRITES[name].length);
         } else {
           this.r(X + 1, top - h, PW - 2, d, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : style === "trestle" && j % 5 === 4 ? W[2] : W[3]));
           this.r(X + 1, top + d - h, PW - 2, 3, (_i, j) => W[j === 0 ? 3 : 1]);
@@ -1377,6 +1515,10 @@ export class PixelRoom {
           if (fin === 2) this.r(X + 4, top - h + 1, PW - 8, d - 2, (i, j) => (j === 0 || j === d - 3 ? P.trim[5] : (i + j) % 6 === 0 ? P.acc[4] : P.linen[4]));
         }
         const ty = top - h + 2;
+        if (p.program === "serve") {
+          this.tavernBoard(X, ty, PW, q.seed);
+          break;
+        }
         this.vase(X + 8, ty + 6, 4, (t) => 3.5 - t * 1.5 + (t > 0.9 ? 1.4 : 0), P.clay);
         if (fin > 0) this.r(X + 15, ty + 2, 7, 3, (i, j) => (j === 0 ? P.straw[5] : i % 3 === 0 && j === 1 ? P.straw[2] : P.straw[3]));
         if (fin > 0) this.vase(X + PW - 6, ty + 6, 8, (t) => 2.4 - Math.abs(t - 0.35) * 2 + (t > 0.85 ? 0.3 : 0), P.pale);
@@ -1482,6 +1624,10 @@ export class PixelRoom {
       case "lowtable": {
         const x0 = X - 1, y0 = Y + PD - 13;
         this.sprite("lowtable", x0, y0);
+        if (p.program === "serve") {
+          this.lowBoard(x0, y0, q.seed);
+          break;
+        }
         this.vase(x0 + 7, y0 + 3, 5, (t) => 2.2 - Math.abs(t - 0.4) * 2, P.brass);
         this.s(x0 + 10, y0 + 1, P.brass[4]);
         this.r(x0 + 12, y0 + 2, 2, 2, P.linen[5]);
@@ -1489,6 +1635,21 @@ export class PixelRoom {
         break;
       }
       case "cushions": {
+        if (p.styles.cushions === "petate") {
+          // A palm mat to lie on.
+          this.r(X + 1, Y + PD - 9, 14, 6, (i, j) => (i === 0 || j === 0 || i === 13 || j === 5 ? P.straw[1] : (i + j) % 2 ? P.straw[3] : P.straw[4]));
+          break;
+        }
+        if (p.styles.cushions === "boughs") {
+          // Sage and spruce strewn to sit on.
+          for (let k = 0; k < 22; k++) {
+            const a = hash(k, 1, q.seed) * 6.28, r0 = hash(k, 2, q.seed) * 6;
+            const x = X + 8 + Math.cos(a) * r0, y = Y + PD - 7 + Math.sin(a) * r0 * 0.5;
+            this.r(x, y, 3, 1, P.leaf[2 + ((k + q.seed) % 4)]);
+            if (k % 5 === 0) this.s(x + 1, y - 1, mix(P.leaf[4], P.linen[5], 0.4));
+          }
+          break;
+        }
         this.sprite("cushion", X, Y + PD - 16);
         this.sprite("cushion", X + 2, Y + PD - 10, { acc: P.acc2 });
         break;
@@ -1535,6 +1696,19 @@ export class PixelRoom {
           for (let a = 0; a < 14; a++) {
             const t = (a / 14) * Math.PI * 2;
             this.disc(Math.round(cx + Math.cos(t) * (rr - 1)), Math.round(cy + Math.sin(t) * (rr - 1) / 1.15), 2, P.stone);
+          }
+          if (p.styles.firepit === "stones") {
+            // Stones heated outside and carried in, glowing; water on them is steam, not flame.
+            for (let k = 0; k < 7; k++) {
+              const a = (k / 7) * 6.28 + q.seed, r0 = k === 6 ? 0 : rr * 0.45;
+              const hot = q.on ? [0x2a0e0a, 0x6a1e12, 0xa8341a, 0xd8582a, 0xf08a3a, 0xffc070] : P.stone;
+              this.disc(Math.round(cx + Math.cos(a) * r0), Math.round(cy + Math.sin(a) * r0 * 0.8) - 1, 2, hot);
+            }
+            if (q.on) {
+              this.lights.push({ x: cx, y: cy - 2, c: 0xff5a2a, rad: 46, k: 1.2, phase: q.seed % 100 });
+              this.smoke.push({ x: cx, y: cy - 4 });
+            }
+            break;
           }
           this.r(cx - 5, cy - 1, 10, 2, W[2]);
           this.r(cx - 1, cy - 4, 2, 7, W[3]);
@@ -1733,6 +1907,10 @@ export class PixelRoom {
       }
       case "frame": {
         const style = p.styles.frame ?? "painting", fin = p.finish;
+        if (style === "levha") {
+          this.levha(X + 1, oy - 42, 14, 12, q.seed);
+          break;
+        }
         if (style === "scroll") {
           // A hanging scroll: silk mount, a paper panel with an ink landscape, rollers.
           const x0 = X + 4, top = oy - 44, w = 8, h = 26;
@@ -1809,6 +1987,230 @@ export class PixelRoom {
         for (let j = 0; j < 9; j++)
           for (let i = -2 - (j >> 2); i <= 2 + (j >> 2); i++) this.s(X + 9 + i, Y + PD - 12 + j, P.straw[(i + j) % 3 === 0 ? 2 : j === 0 ? 5 : 4]);
         this.r(X + 7, Y + PD - 12, 5, 1, 0xa8302a);
+        break;
+      }
+      case "casks": {
+        const base = Y + PD - 2, drink = p.styles.bar ?? "ale";
+        if (drink === "sake") {
+          // Komodaru: casks wrapped in straw matting, roped, the brewer's mark on the front.
+          const cask = (x: number, b: number, k: number) => {
+            this.r(x, b - 14, 13, 14, (i, j) => (i === 0 || i === 12 || j === 0 || j === 13 ? W[0] : j === 1 ? P.straw[5] : j === 4 || j === 11 ? P.wood[1] : i < 3 ? P.straw[4] : i > 9 ? P.straw[2] : P.straw[3]));
+            this.r(x + 3, b - 10, 7, 6, (i, j) => (i === 0 || j === 0 || i === 6 || j === 5 ? P.acc[1] : P.linen[5]));
+            const mark = (q.seed + k) % 3;
+            if (mark === 0) this.disc(x + 6, b - 7, 1, [0, 0xa8302a, 0xa8302a, 0xc8402a, 0xc8402a, 0xd85a3a]);
+            else this.r(x + 5 + (mark - 1), b - 9, 2, 4, P.iron[0]);
+          };
+          for (let k = 0; k < q.w; k++) cask(X + 2 + k * 15, base, k);
+          for (let k = 0; k < q.w - 1; k++) cask(X + 9 + k * 15, base - 14, k + 5);
+          break;
+        }
+        if (drink === "coffee") {
+          // Shelves of small cups and the long-handled pots, sacks of beans below.
+          for (const [j, row] of [[base - 26, 0], [base - 14, 1]] as const) {
+            this.r(X + 1, j, PW - 2, 2, (_i, jj) => W[jj ? 1 : 4]);
+            for (let k = 0; k < (PW - 6) / 5; k++) {
+              const cx = X + 3 + k * 5;
+              if ((k + row + q.seed) % 4 === 3) this.vase(cx + 1, j - 1, 6, (t) => 1.6 - t * 0.6, P.brass);
+              else this.r(cx, j - 3, 3, 3, (i, jj) => (jj === 0 ? P.linen[5] : i === 2 ? P.acc[2] : (k + row) % 2 ? P.acc[4] : P.linen[4]));
+            }
+          }
+          this.sprite("sack", X + 2, base - 12);
+          this.sprite("sack", X + PW - 16, base - 12, { straw: P.linen });
+          break;
+        }
+        // The stillage: two lit beams on squat legs.
+        for (const lx of [X + 2, X + PW - 6]) this.r(lx, base - 3, 4, 3, (i) => W[i === 0 ? 0 : i === 1 ? 3 : i === 3 ? 0 : 2]);
+        this.r(X + 1, base - 6, PW - 2, 3, (i, j) => (i === 0 || i === PW - 3 ? W[0] : j === 0 ? W[4] : j === 1 ? W[3] : W[1]));
+        const n = q.w, r0 = 7;
+        for (let k = 0; k < n; k++) this.caskEnd(X + 8 + k * 16, base - 6 - r0, r0, q.seed + k, true);
+        for (let k = 0; k < n - 1; k++) this.caskEnd(X + 16 + k * 16, base - 6 - r0 * 2 - 5, 6, q.seed + 9 + k, false);
+        // A pail under the taps catches the drip.
+        const px = X + 8 + (q.seed % n) * 16;
+        this.r(px - 3, base - 1, 7, 1, W[0]);
+        this.r(px - 3, base - 5, 7, 4, (i, j) => (i === 0 || i === 6 ? W[0] : j === 0 ? W[5] : j === 2 ? P.iron[2] : W[2 + (i < 3 ? 1 : 0)]));
+        break;
+      }
+      case "bar": {
+        const h = 21, y0 = Y + 3, d = PD - 6, top = y0 - h;
+        // The serving board: a lit edge, planks with seams, a thick lip.
+        this.r(X, top - 1, PW, 1, W[0]);
+        this.r(X, top, PW, d, (i, j) => (i === 0 || i === PW - 1 ? W[0] : j === 0 ? W[5] : i % 16 === 15 ? W[2] : i === 1 ? W[5] : hash(i >> 4, j, q.seed) < 0.06 ? W[3] : W[4]));
+        this.r(X, top + d, PW, 2, (i, j) => (i === 0 || i === PW - 1 ? W[0] : j === 0 ? W[3] : W[1]));
+        // Upright boards down the front, a rail under the lip, a dark kick at the foot.
+        const fy = top + d + 2, fh = y0 + d - fy;
+        this.r(X, fy, PW, fh, (i, j) => {
+          if (i === 0 || i === PW - 1 || j === fh - 1) return W[0];
+          if (j < 2) return W[j === 0 ? 1 : 3];
+          if (j >= fh - 4) return W[j === fh - 4 ? 3 : 1];
+          const b = (i - 1) % 5;
+          return b === 0 ? W[1] : b === 1 ? W[3] : hash((i - 1) / 5 | 0, j >> 3, q.seed) < 0.2 ? W[1] : W[2];
+        });
+        // The flap at the room end, where the keeper comes through.
+        const fx = q.seed % 2 ? X + PW - 13 : X + 12;
+        this.r(fx, top, 1, d + 2, W[1]);
+        this.r(fx, fy, 1, fh - 1, W[0]);
+        const ty = top + 2, drink = p.styles.bar ?? "ale";
+        if (drink === "coffee") {
+          // The ocak: the coffee maker's hearth, charcoal glowing in a tiled box, the pots in the embers.
+          this.r(X + 4, top + 1, PW - 8, d - 3, (i, j) => (j === 0 ? P.stone[1] : hash(i, j, q.seed) < 0.5 ? 0xd0542a : 0x8a2a1a));
+          for (let k = 0; k < Math.floor((PW - 12) / 9); k++) {
+            const cx = X + 9 + k * 9;
+            this.vase(cx, ty + 4, 5, (t) => 2.4 - t * 0.8, P.brass);
+            this.r(cx + 3, ty + 1, 4, 1, P.brass[2]);
+          }
+          this.r(X + 1, fy + 2, PW - 2, fh - 6, (i, j) => (i % 8 === 0 || j % 8 === 0 ? P.linen[4] : ((i >> 3) + (j >> 3)) % 2 ? P.acc[3] : P.linen[5]));
+          this.lights.push({ x: X + PW / 2, y: ty + 2, c: 0xff8a3a, rad: 40, k: 0.9, phase: q.seed % 90 });
+          break;
+        }
+        if (drink === "sake") {
+          for (let k = 0; k < Math.floor((PW - 6) / 8); k++) {
+            const x = X + 5 + k * 8;
+            if (k % 2) this.choko(x, ty + 6);
+            else this.tokkuri(x + 1, ty + 6, k);
+          }
+          this.r(X + PW - 14, ty + 2, 10, 4, (i, j) => (j === 0 ? 0x5a1a1a : i === 0 || i === 9 ? 0x2a0e0e : 0x8a2420));
+          break;
+        }
+        this.mug(X + 5, ty + 5, 0);
+        this.mug(X + 11, ty + 6, 1);
+        if (PW > 48) this.mug(X + PW - 22, ty + 5, 0);
+        this.jug(X + PW - 10, ty + 7);
+        this.r(X + 19, ty + 3, 9, 3, (i, j) => (j === 0 ? P.linen[5] : i === 8 ? P.linen[2] : P.linen[4]));
+        this.candle(X + PW / 2 + 4, ty + 4, q.seed);
+        break;
+      }
+      case "bench": {
+        const base = Y + PD - 3, top = base - 12;
+        this.r(X + 1, top, PW - 2, 1, W[0]);
+        this.r(X + 1, top + 1, PW - 2, 6, (i, j) =>
+          i === 0 || i === PW - 3 ? W[0] : j === 0 ? W[5] : j < 3 ? (i === 1 ? W[5] : hash(i >> 3, j, q.seed) < 0.12 ? W[3] : W[4]) : j === 3 ? W[3] : j === 4 ? W[2] : W[1]);
+        this.r(X + 1, top + 7, PW - 2, 1, W[0]);
+        for (const lx of [X + 5, X + PW - 9]) {
+          this.r(lx, top + 8, 4, 4, (i) => W[i === 0 || i === 3 ? 0 : i === 1 ? 3 : 2]);
+          this.r(lx - 1, base - 1, 6, 1, W[0]);
+        }
+        this.r(X + 9, top + 9, PW - 18, 2, (_i, j) => W[j ? 1 : 2]);
+        break;
+      }
+      case "settle": {
+        const base = Y + PD - 3, top = base - 37, sy = base - 13, x1 = X + PW;
+        // A hood over a back of raised panels, wings down either side, a box seat.
+        this.r(X, top, PW, 5, (i, j) => (i === 0 || i === PW - 1 || j === 4 ? W[0] : j === 0 ? W[0] : j === 1 ? W[5] : j === 2 ? W[4] : W[2]));
+        this.dim(X + 3, top + 5, PW - 6, 2, 0.7);
+        for (const cx of [X, x1 - 4])
+          this.r(cx, top + 5, 4, base - top - 5, (i, j) => (i === 0 || i === 3 ? W[0] : j > sy - top - 9 && j < sy - top - 5 ? W[i === 1 ? 5 : 4] : i === 1 && cx === X ? W[4] : i === 1 ? W[3] : W[2]));
+        const bx = X + 4, bw = PW - 8, by = top + 5, bh = sy - by;
+        this.r(bx, by, bw, bh, W[3]);
+        const n = 2, gap = 2, pw = Math.floor((bw - gap * (n + 1)) / n);
+        for (let k = 0; k < n; k++) {
+          const px = bx + gap + k * (pw + gap), py = by + 3, ph = bh - 6;
+          this.r(px, py, pw, ph, (i, j) => {
+            if (j === 0 || i === 0) return W[1];
+            if (j === ph - 1 || i === pw - 1) return W[5];
+            const e = Math.min(i - 1, j - 1, pw - 2 - i, ph - 2 - j);
+            if (e === 0) return i - 1 === 0 || j - 1 === 0 ? W[4] : W[2];
+            return hash(i >> 1, j >> 2, q.seed) < 0.12 ? W[2] : W[3];
+          });
+        }
+        this.r(X + 4, sy - 1, PW - 8, 1, W[0]);
+        if (p.finish > 0) this.r(X + 4, sy - 3, PW - 8, 3, (i, j) => (j === 0 ? P.acc[4] : j === 2 ? P.acc[1] : i % 7 === 3 ? P.acc[2] : P.acc[3]));
+        this.r(X + 4, sy, PW - 8, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[5] : W[4]));
+        this.r(X + 4, sy + 3, PW - 8, 1, W[0]);
+        const fh = base - sy - 4;
+        this.r(X + 4, sy + 4, PW - 8, fh, (i, j) => (j === fh - 1 ? W[0] : j === 0 ? W[3] : i === 2 || j === 2 ? W[1] : i === PW - 11 || j === fh - 3 ? W[4] : W[2]));
+        break;
+      }
+      case "pool": {
+        // A sunk basin: a lit marble kerb, the drop inside it, water lit from above.
+        const tub = p.styles.pool === "tub", R = tub ? W : P.stone;
+        const hot = p.styles.pool !== "cold";
+        const water = (i: number, j: number) => {
+          const deep = j / PD;
+          const c = mix(tub ? 0x6a8a7a : 0x3a8a9a, tub ? 0x2a4a44 : 0x1a4a62, Math.min(1, deep * 1.4));
+          return Math.sin(i * 0.45 + j * 0.9 + q.seed + this.t * 2) > 0.92 ? mix(c, 0xffffff, 0.35) : c;
+        };
+        this.r(X, Y, PW, PD, (i, j) => {
+          const e = Math.min(i, j, PW - 1 - i, PD - 1 - j);
+          if (e < 2) return j < 2 ? R[5 - j] : i < 2 ? R[4] : R[2 + (e === 0 ? -1 : 0)];
+          if (e === 2 && j === 2) return R[1];
+          return water(i, j);
+        });
+        if (hot) for (let k = 0; k < 3; k++) this.smoke.push({ x: X + 6 + k * Math.floor((PW - 12) / 2), y: Y + 6 });
+        break;
+      }
+      case "slab": {
+        // The göbek taşı: a raised marble platform heated from beneath.
+        const h = 7, top = Y + 2;
+        this.r(X + 1, top - h, PW - 2, PD - 3, (i, j) => (j === 0 ? P.linen[5] : i === 0 ? P.linen[5] : hash(i >> 2, j >> 2, q.seed) < 0.2 ? P.stone[4] : P.linen[4]));
+        this.r(X + 1, top + PD - 3 - h, PW - 2, h, (_i, j) => (j === 0 ? P.stone[4] : j === h - 1 ? P.stone[1] : P.stone[3]));
+        this.smoke.push({ x: X + PW / 2, y: top - h });
+        break;
+      }
+      case "basin": {
+        // A kurna or labrum against the wall, its spout above.
+        const base = Y + PD - 3;
+        this.r(X + 2, base - 8, 12, 8, (i, j) => (j === 0 ? P.linen[5] : j === 1 && i > 1 && i < 10 ? 0x3a8a9a : i === 0 ? P.linen[4] : j === 7 ? P.stone[1] : P.stone[3]));
+        this.r(X + 7, base - 16, 2, 6, (i) => P.brass[i ? 2 : 4]);
+        this.s(X + 7, base - 10, 0x9ad0e0);
+        break;
+      }
+      case "ledge": {
+        // A plastered bench built against the wall, one tile of it.
+        const top = Y + PD - 12;
+        this.r(X, top, PW, 4, (i, j) => (j === 0 ? P.wall[5] : i === 0 ? P.wall[4] : P.wall[4 - (j >> 1)]));
+        this.r(X, top + 4, PW, 7, (_i, j) => (j === 0 ? P.wall[2] : j === 6 ? P.wall[0] : P.wall[2 - (j > 3 ? 1 : 0)]));
+        break;
+      }
+      case "sipapu": {
+        const cx = X + 8, cy = Y + 8;
+        for (let j = -3; j <= 3; j++)
+          for (let i = -4; i <= 4; i++) {
+            const e = Math.hypot(i, j * 1.3);
+            if (e <= 2.2) this.s(cx + i, cy + j, j < 0 ? 0x0e0a0a : 0x1e1612);
+            else if (e <= 3.4) this.s(cx + i, cy + j, j < 0 ? P.floor[1] : P.floor[4]);
+          }
+        break;
+      }
+      case "tankards": {
+        const ry = oy - 33;
+        this.r(X, ry, 16, 2, (_i, j) => W[j ? 1 : 4]);
+        this.s(X, ry + 2, W[0]);
+        this.s(X + 15, ry + 2, W[0]);
+        for (let k = 0; k < 3; k++) {
+          const hx = X + 2 + k * 5;
+          this.s(hx + 1, ry + 2, W[0]);
+          this.mug(hx, ry + 10 + (k & 1), (q.seed + k) % 3 === 2 ? 2 : (q.seed + k) % 2);
+        }
+        break;
+      }
+      case "tally": {
+        const x0 = X + 2, y0 = oy - 36, drink = p.styles.bar ?? "ale";
+        if (drink === "sake") {
+          // Menu slips: the day's dishes brushed on paper and pinned up in a row.
+          for (let k = 0; k < 3; k++) {
+            const sx = X + 2 + k * 5, sy = oy - 40 + (k % 2);
+            this.r(sx, sy, 4, 14, (i, j) => (j === 0 ? P.paper[3] : i === 3 ? P.paper[3] : P.paper[5]));
+            for (let j = 2; j < 12; j += 2 + ((q.seed + k + j) % 2)) this.r(sx + 1, sy + j, 2, 1, P.iron[0]);
+          }
+          break;
+        }
+        if (drink === "coffee") {
+          this.levha(X + 2, oy - 36, 12, 9, q.seed);
+          break;
+        }
+        this.s(x0 + 6, y0 - 3, P.iron[2]);
+        this.s(x0 + 4, y0 - 2, W[1]);
+        this.s(x0 + 8, y0 - 2, W[1]);
+        this.r(x0, y0, 12, 10, (i, j) => (i === 0 || j === 0 ? W[4] : i === 11 || j === 9 ? W[1] : i === 1 || j === 1 || i === 10 || j === 8 ? W[2] : hash(i, j, q.seed) < 0.1 ? 0x3a4046 : 0x2c3036));
+        // Chalked reckonings: fives struck through, one score half-rubbed.
+        const marks = 4 + (q.seed % 9);
+        for (let m = 0; m < marks; m++) {
+          const g = (m / 5) | 0, k = m % 5, mx = x0 + 3 + (g % 2) * 4 + (k < 4 ? k : 0), my = y0 + 2 + ((g / 2) | 0) * 3;
+          const c = g === 1 ? P.linen[3] : P.linen[5];
+          if (my > y0 + 7) break;
+          if (k < 4) this.r(mx, my, 1, 2, c);
+          else for (let t = 0; t < 4; t++) this.s(mx + t, my + 1 - (t >> 1), c);
+        }
         break;
       }
       case "cat": {
@@ -1936,6 +2338,11 @@ export class PixelRoom {
           this.s(ox + dx, oy + dy + 1, P.leaf[3]);
           this.s(ox + dx, oy + dy, c);
         }
+        break;
+      case "pipe":
+        for (let i = 0; i < 8; i++) this.s(ox + i, oy + 2 - (i >> 2), P.linen[i < 2 ? 4 : 5]);
+        this.r(ox + 7, oy - 1, 2, 2, (i) => P.linen[i ? 3 : 5]);
+        this.s(ox + 7, oy - 1, 0x3a2a22);
         break;
       case "paper":
         this.r(ox, oy, 5, 4, (i, j) => (j === 1 && i > 0 && i < 4 ? P.paper[2] : P.paper[5]));

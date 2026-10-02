@@ -3,7 +3,8 @@ import {
   interactive, planRoom,
   type Finish, type FloorPattern, type Prop, type RoomParams, type Shape, type WallPattern,
 } from "../render/interiors/room";
-import { interiorGroups, interiorProfile, resolveRoom, type RoomChoice } from "../content/interiors";
+import { interiorGroups, interiorProfile, publicInteriorGroups, resolveRoom, type RoomChoice } from "../content/interiors";
+import { venues } from "../content/venues";
 import { PixelRoom } from "../render/interiors/pixel";
 import { planBuilding } from "../render/interiors/building";
 import { VoxelRoom, type VoxelOptions } from "../render/interiors/voxel";
@@ -71,6 +72,7 @@ export function InteriorLab() {
     setOver({});
     const size = pr.rooms?.[0].size ?? pr.size;
     setC((o) => ({ ...o, profile: id, room: 0, colorway: 0, shape: undefined, trade: undefined, w: size[0], d: size[1] }));
+    if (pr.venues) setWhole(true);
   };
 
   useEffect(() => {
@@ -204,7 +206,7 @@ export function InteriorLab() {
         <div>
           <p className="ilab-eyebrow">Universal History Simulator · development</p>
           <h1>Interior lab</h1>
-          <p>{interiorGroups.reduce((n, g) => n + g.profiles.length, 0)} dwellings, three levels of finish, six room shapes. Click doors, fires, lamps, chests, bedding and the cat; take a hammer to the rest.</p>
+          <p>{interiorGroups.reduce((n, g) => n + g.profiles.length, 0)} dwellings and {publicInteriorGroups.reduce((n, g) => n + g.profiles.length, 0)} public buildings, three levels of finish, six room shapes. Click doors, fires, lamps, chests, bedding and the cat; take a hammer to the rest.</p>
         </div>
         <div className="ilab-views" role="group" aria-label="View">
           {(["compare", "hybrid", "both", "pixel", "voxel"] as const).map((v) => (
@@ -234,8 +236,18 @@ export function InteriorLab() {
           </section>
           <section>
             <h2>Dwelling</h2>
-            <select className="ilab-wide" value={c.profile} onChange={(e) => pickProfile(e.target.value)}>
+            <select className="ilab-wide" value={profile.venues ? "" : c.profile} onChange={(e) => pickProfile(e.target.value)}>
+              <option value="" disabled>Choose a dwelling</option>
               {interiorGroups.map((g) => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.profiles.map((pr) => <option key={pr.id} value={pr.id}>{pr.label}</option>)}
+                </optgroup>
+              ))}
+            </select>
+            <h2>Public building</h2>
+            <select className="ilab-wide" value={profile.venues ? c.profile : ""} onChange={(e) => pickProfile(e.target.value)}>
+              <option value="" disabled>Choose a building</option>
+              {publicInteriorGroups.map((g) => (
                 <optgroup key={g.label} label={g.label}>
                   {g.profiles.map((pr) => <option key={pr.id} value={pr.id}>{pr.label}</option>)}
                 </optgroup>
@@ -247,10 +259,11 @@ export function InteriorLab() {
                 <span className={`ilab-basis ilab-basis-${profile.basis}`}>{BASIS[profile.basis]}</span>
               </p>
               <p>{profile.note}</p>
+              {profile.venues && <p className="ilab-meta">Houses {profile.venues.map((id) => venues.find((v) => v.id === id)?.label ?? id).join(", ").toLowerCase()}</p>}
             </div>
             {profile.rooms && (
               <div className="ilab-chips">
-                <button aria-pressed={whole} onClick={() => setWhole((v) => !v)}>Whole house</button>
+                <button aria-pressed={whole} onClick={() => setWhole((v) => !v)}>{profile.venues ? "Whole building" : "Whole house"}</button>
                 {profile.rooms.map((rm, i) => (
                   <button key={rm.id} aria-pressed={(c.room ?? 0) === i} onClick={() => { setOver({}); choose({ room: i, w: rm.size[0], d: rm.size[1], trade: undefined }); }}>
                     {rm.label}

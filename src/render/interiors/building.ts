@@ -30,7 +30,7 @@ const BACK: RoomRole[] = ["sleep", "store"];
  * first living room and somewhere to sleep, the comfortable add the rest. */
 function roomsFor(profile: InteriorProfile, status: RoomChoice["status"]) {
   const all = (profile.rooms ?? []).map((t, i) => ({ t, i, role: t.role ?? (i === 0 ? "entry" : "hall") })).filter((r) => r.role !== "lobby");
-  if (all.length < 2) return all;
+  if (all.length < 2 || profile.venues) return all;
   // Nobody sleeps in the court.
   const sleeps = (r: (typeof all)[number]) => (r.t.sleep ?? profile.sleep) !== "none" && r.t.shapes?.[0] !== "courtyard";
   const keep = [all[0]];
@@ -46,7 +46,8 @@ function roomsFor(profile: InteriorProfile, status: RoomChoice["status"]) {
 export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building {
   const chosen = roomsFor(profile, c.status);
   if (chosen.length < 2) return single(profile, c, chosen[0]?.i);
-  const k = [0.8, 0.9, 1][c.status];
+  // A public room is sized for its trade, not its keeper's means.
+  const k = profile.venues ? 1 : [0.8, 0.9, 1][c.status];
   const boxes: Box[] = chosen.map(({ t, i, role }) => ({
     i,
     role,

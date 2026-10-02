@@ -40,6 +40,7 @@ export type RoomTemplate = {
   styles?: Partial<Record<Kind, string>>;
   kits?: Partial<Record<Trade, Kind[]>>;
   clutter?: string[];
+  program?: RoomParams["program"];
 };
 export type Basis = "documented" | "archaeological" | "reconstructed" | "modern";
 export type InteriorProfile = {
@@ -69,6 +70,14 @@ export type InteriorProfile = {
   /** Culturally fitting work pieces for a trade, replacing the default kit. */
   kits?: Partial<Record<Trade, Kind[]>>;
   clutter?: string[];
+  /** For a single-room public building; a building of rooms sets it on the room. */
+  program?: RoomParams["program"];
   /** Rooms of a larger building; a profile without them is a single room. */
   rooms?: RoomTemplate[];
+  /** The venue rows (`src/content/venues`) this public building houses; absent for a dwelling. */
+  venues?: string[];
+  /** When residents who are not being simulated still come in, and what
+   * share of the seats they fill: the evening's drinkers, a service's
+   * congregation. Hours may run past midnight, as [17, 1]. */
+  regulars?: { hours: [number, number]; fill: number };
 };

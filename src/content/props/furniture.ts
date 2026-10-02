@@ -32,11 +32,13 @@ export const furnitureProps: Record<string, PropDef> = {
   "room-basket": { solid: true, breakable: "fiber", shove: { as: "free", mass: 0.5 }, name: "Basket", family: "room-basket" },
   "room-sacks": { solid: true, breakable: "fiber", shove: { as: "free", mass: 1.8 }, name: "Sacks", family: "room-basket" },
   "room-pack": { solid: true, breakable: "fiber", shove: { as: "free", mass: 0.8 }, name: "Pack", family: "room-basket" },
+  "room-bench": { ...wood, shove: { as: "free", mass: 1.2 }, name: "Form", family: "bench" },
 };
 
 export const furnitureAbout: Record<string, string> = {
   "room-stool": "A stool to sit on.",
   "room-chair": "A chair to sit on.",
+  "room-bench": "A long backless bench, drawn up to a table.",
   "room-table": "The table the household eats and works at.",
   "room-lowtable": "A low table, used sitting on the floor.",
   "room-desk": "A desk for writing and keeping accounts.",

@@ -47,6 +47,38 @@ describe("interior profiles", () => {
     expect(interiorProfileFor({ lon: 32.8, lat: 37.7, year: -7000 }).id).toBe("catalhoyuk-house");
     expect(interiorProfileFor({ lon: 106, lat: 47, year: 1600, camp: true }).id).toBe("mongol-ger");
     expect(interiorProfileFor({ lon: -90, lat: 41, year: 1935, settlement: "village" }).id).toBe("farmhouse-1930s");
+    expect(interiorProfileFor({ lon: -0.1, lat: 51.5, year: 1700, settlement: "city", venue: "venue.alehouse" }).id).toBe("english-tavern");
+    expect(interiorProfileFor({ lon: -0.1, lat: 51.5, year: 1700, settlement: "city", venue: "venue.town-hall" }).id).not.toBe("english-tavern");
+    expect(interiorProfileFor({ lon: 135.8, lat: 35, year: 1700, settlement: "city", venue: "venue.alehouse" }).id).toBe("japanese-minka");
+    // A generic venue becomes what its region and century made of it.
+    const venue = (lon: number, lat: number, year: number, v: string) => interiorProfileFor({ lon, lat, year, settlement: "city", venue: v }).id;
+    expect(venue(29, 41, 1650, "venue.bath-house")).toBe("hammam");
+    expect(venue(29, 41, 400, "venue.bath-house")).toBe("roman-baths");
+    expect(venue(12.5, 41.9, 1300, "venue.bath-house")).not.toBe("hammam");
+    expect(venue(-4.8, 37.9, 1000, "venue.bath-house")).toBe("hammam");
+    expect(venue(-4.8, 37.9, 1600, "venue.bath-house")).not.toBe("hammam");
+    expect(venue(31.2, 30, 1530, "venue.coffee-house")).toBe("kahvehane");
+    expect(venue(-0.1, 51.5, 1700, "venue.coffee-house")).not.toBe("kahvehane");
+    expect(venue(-99, 19, 1450, "venue.sweat-lodge")).toBe("temazcal");
+    expect(venue(4.9, 52.4, 1650, "venue.alehouse")).toBe("english-tavern");
+  });
+
+  it("serves every drinking house from behind its counter, with seats and a bed for the household", () => {
+    const sites = [
+      { id: "english-tavern", lon: -0.1, lat: 51.5, year: 1700, venue: "venue.alehouse", seat: "bench" },
+      { id: "izakaya", lon: 139.7, lat: 35.7, year: 1800, venue: "venue.izakaya", seat: "cushions" },
+      { id: "kahvehane", lon: 29, lat: 41, year: 1650, venue: "venue.kahvehane", seat: "divan" },
+    ];
+    for (const { id, seat, ...site } of sites)
+      for (const fortune of [0.1, 0.5, 0.9])
+        for (let n = 0; n < 15; n++) {
+          const room = buildInterior({ id: `t-${id}-${n}`, access: "public", claim: `venue-${site.venue}` } as Place, { ...site, settlement: "city" }, { fortune });
+          const where = `${id} ${fortune} #${n}`;
+          expect(interiorProfileFor(site).id, where).toBe(id);
+          expect(room.work[0], where).toMatchObject({ kind: "bar", facing: 2 });
+          expect(room.beds.length, where).toBeGreaterThan(0);
+          expect(room.seats.some((s) => s.kind === seat), where).toBe(true);
+        }
   });
 
   it("gives every house a way in and out, and every place to stand can be walked to from the door", () => {
@@ -75,6 +107,7 @@ describe("interior profiles", () => {
       { lon: 133, lat: -12, year: 1500 },
       { lon: 142, lat: -38, year: 1500 },
       { lon: 10, lat: 50, year: 2000, camp: true },
+      { lon: -0.1, lat: 51.5, year: 1700, settlement: "city", venue: "venue.alehouse" },
     ];
     const hit = new Set<string>();
     for (const [i, site] of sites.entries())
@@ -100,7 +133,72 @@ describe("interior profiles", () => {
             for (const c of [room.bedCell, room.workCell, room.store])
               expect([c, { x: c.x + 1, y: c.y }, { x: c.x - 1, y: c.y }, { x: c.x, y: c.y + 1 }, { x: c.x, y: c.y - 1 }].some(reach), `${where} station out of reach`).toBe(true);
           }
-    expect(hit.size).toBeGreaterThanOrEqual(21);
+    expect(hit.size).toBeGreaterThanOrEqual(22);
+  });
+
+  it("rings the seats of a gathering place round its fire or its water, with nobody behind a counter", () => {
+    const sites = [
+      { id: "sweat-lodge", lon: -101, lat: 44, year: 1850, venue: "venue.sweat-lodge", seat: "cushions", also: ["firepit"] },
+      { id: "kiva", lon: -108.5, lat: 37.2, year: 1100, venue: "venue.kiva", seat: "ledge", also: ["firepit", "sipapu", "ladder"] },
+      { id: "temazcal", lon: -90, lat: 17, year: 700, venue: "venue.temazcal", seat: "cushions", also: ["hearth"] },
+      { id: "roman-baths", lon: 14.5, lat: 40.75, year: 70, venue: "venue.bath-house", seat: "ledge", also: ["pool", "basin", "brazier"] },
+      { id: "hammam", lon: 29, lat: 41, year: 1600, venue: "venue.hammam", seat: "ledge", also: ["slab", "basin", "pool"] },
+      { id: "sento", lon: 139.7, lat: 35.7, year: 1800, venue: "venue.sento", seat: "ledge", also: ["pool"] },
+    ];
+    for (const { id, seat, also, ...site } of sites)
+      for (const fortune of [0.1, 0.5, 0.9])
+        for (let n = 0; n < 10; n++) {
+          const room = buildInterior({ id: `t-${id}-${n}`, access: "public", claim: `venue-${site.venue}` } as Place, site, { fortune });
+          const where = `${id} ${fortune} #${n}`;
+          expect(interiorProfileFor(site).id, where).toBe(id);
+          expect(room.params.program, where).toBe("gather");
+          expect(room.seats.filter((s) => s.kind === seat).length, where).toBeGreaterThanOrEqual(4);
+          for (const k of also) expect(room.props.some((q) => q.kind === k), `${where} ${k}`).toBe(true);
+          expect(room.props.some((q) => q.kind === "bar"), where).toBe(false);
+        }
+  });
+
+  it("lodges whoever keeps a kiva with a neighbouring household, and leaves the kiva to its gatherings", () => {
+    const e = createSettingSession({ ...panelSetting("area-colorado-plateau", 1100), settlement: "city", season: "summer" }, "cust");
+    const kiva = e.world.places.find((p) => p.claim === "venue-venue.kiva")!;
+    expect(e.state.households!.some((h) => h.residence === kiva.id)).toBe(false);
+    const keeper = e.state.households!.find((h) => h.members.includes(kiva.owner))!;
+    expect(e.world.place(keeper.residence!)!.claim.startsWith("venue-")).toBe(false);
+    expect(e.interiorOf(kiva.id)!.params.program).toBe("gather");
+  });
+
+  it("keeps a grown member of the household behind the bar and sits drinkers down late", () => {
+    const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
+    const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
+    const room = e.interiorOf(ale.id)!;
+    const home = e.state.households!.find((h) => h.residence === ale.id)!;
+    const member = e.state.actors.find((a) => a.householdId === home.id)!;
+    const visitor = e.state.actors.find((a) => a.kind === "human" && a.householdId !== home.id)!;
+    const onWork = (p: { x: number; y: number }) => room.work.some((s) => s.x === p.x && s.y === p.y);
+    const hour = (h: number) => (e.state.clock += ((h - (e.state.clock / 3600) % 24 + 24) % 24) * 3600);
+    hour(20);
+    member.age = 40;
+    expect(e.indoorSpot(member, ale.id, "At home")).toMatchObject({ x: room.work[0].x, y: room.work[0].y });
+    member.age = 8;
+    expect(onWork(e.indoorSpot(member, ale.id, "At home"))).toBe(false);
+    hour(23);
+    const drinker = e.indoorSpot(visitor, ale.id, "At the alehouse");
+    expect(room.seats.some((s) => s.x === drinker.x && s.y === drinker.y)).toBe(true);
+  });
+
+  it("fills the taproom with neighbours off the routine budget while the player is in it", () => {
+    const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
+    const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
+    const room = e.interiorOf(ale.id)!;
+    e.advance(((19 - (e.state.clock / 3600) % 24 + 24) % 24) * 3600);
+    e.state.player.pos = { ...room.entry, space: ale.id };
+    e.advance(60);
+    const regulars = e.state.actors.filter((a) => a.pos.space === ale.id && e.world.dormant?.(a.id));
+    expect(regulars.length).toBeGreaterThanOrEqual(8);
+    expect(regulars.every((a) => room.seats.some((s) => s.x === a.pos.x && s.y === a.pos.y))).toBe(true);
+    e.state.player.pos = { ...ale.entrance, space: "outside" };
+    e.advance(60);
+    expect(regulars.filter((a) => a.pos.space === ale.id)).toEqual([]);
   });
 
   it("stands furniture in the house as things that block, shift and break", () => {

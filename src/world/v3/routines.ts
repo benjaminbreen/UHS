@@ -13,6 +13,7 @@ import { random } from "../../core/random";
 import { outlookOf } from "../../core/outlook";
 import { standingOf } from "../../core/standing";
 import { venuesFor, type Venue } from "../../content/venues";
+import { keeperLivesIn, publicInteriorFor } from "../../content/interiors/select";
 import type { Rank } from "../../content/characters/context-types";
 import type { StanceTag } from "../../content/outlook/types";
 import type { WorldSetting } from "../../content/geography/types";
@@ -1162,8 +1163,22 @@ export function socialStop(
   actor?: Actor,
   setting?: WorldSetting,
 ): Station {
+  // Whoever keeps a venue spends the evening keeping it.
+  const kept = plan.venues?.find((v) => v.placeId && plan.places.find((p) => p.id === v.placeId)?.owner === id);
+  const site = kept && setting && { lon: setting.lon, lat: setting.lat, year: setting.year, venue: kept.venue.id };
+  if (kept && site && publicInteriorFor(site) && keeperLivesIn(site))
+    return {
+      ...inside(plan, kept.pos, `Keeping ${the(kept.venue.label)}`, 180, kept.placeId),
+      toward: the(kept.venue.label),
+    };
   const drawn =
     actor && setting ? venueFor(plan, seed, actor, setting, home) : undefined;
+  // A venue whose building has a room of its own is visited inside it.
+  if (drawn?.placeId && setting && publicInteriorFor({ lon: setting.lon, lat: setting.lat, year: setting.year, venue: drawn.venue.id }))
+    return {
+      ...inside(plan, drawn.pos, `At ${the(drawn.venue.label)}`, drawn.venue.minutes, drawn.placeId),
+      toward: the(drawn.venue.label),
+    };
   if (drawn)
     return {
       pos: nearby(plan, seed, id, drawn.pos),
@@ -1182,7 +1197,8 @@ function venueFor(
   setting: WorldSetting,
   home: Point,
 ) {
-  const built = plan.venues ?? [];
+  // This is the stop after work, so only the places that belong to the evening.
+  const built = (plan.venues ?? []).filter((v) => v.venue.slot === "evening");
   if (!built.length) return undefined;
   const outlook = outlookOf(seed, actor, setting);
   const rank = standingOf(seed, actor)?.rank;

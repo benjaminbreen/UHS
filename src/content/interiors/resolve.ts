@@ -64,6 +64,8 @@ export function resolveRoom(base: InteriorProfile, c: RoomChoice): RoomParams {
     pole: !!pr.pole,
     furnish: [...(look.furnish ?? []), ...pr.furnish],
     trade,
+    // Only the room that names it: a taproom's program is not its kitchen's.
+    program: t ? t.program : base.program,
     styles: pr.styles ?? {},
     kit: pr.kits?.[trade],
     clutter: pr.clutter ?? [],

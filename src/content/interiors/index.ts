@@ -4,6 +4,7 @@ import { europe } from "./europe";
 import { mediterranean } from "./mediterranean";
 import { modern } from "./modern";
 import { northAfrica } from "./north-africa";
+import { baths, gatherings, taverns } from "./public";
 import { prehistoric } from "./prehistoric";
 import { southAsia } from "./south-asia";
 import { tents } from "./tents";
@@ -20,7 +21,13 @@ export const interiorGroups: { label: string; profiles: InteriorProfile[] }[] = 
   { label: "Tents and portable dwellings", profiles: tents },
   { label: "Twentieth century", profiles: modern },
 ];
-export const interiorProfiles = interiorGroups.flatMap((g) => g.profiles);
+/** Buildings people go to rather than live in, by what they are for. */
+export const publicInteriorGroups: { label: string; profiles: InteriorProfile[] }[] = [
+  { label: "Drink and talk", profiles: taverns },
+  { label: "Gathering", profiles: gatherings },
+  { label: "Baths", profiles: baths },
+];
+export const interiorProfiles = [...interiorGroups, ...publicInteriorGroups].flatMap((g) => g.profiles);
 export const interiorProfile = (id: string) => interiorProfiles.find((p) => p.id === id);
 export { resolveRoom, type RoomChoice } from "./resolve";
 export type { InteriorProfile } from "./types";

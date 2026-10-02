@@ -1,4 +1,4 @@
-export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" | "hunter";
+export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" | "hunter" | "host";
 export type Shape = "rect" | "L" | "round" | "oval" | "apse" | "courtyard";
 export type WallPattern =
   | "plaster" | "brick" | "timber" | "panel" | "stripe" | "zellige" | "mud" | "stone"
@@ -51,6 +51,9 @@ export type RoomParams = {
   /** Small things left about: which ones this household leaves. */
   clutter: string[];
   trade: Trade;
+  /** A public room's layout: `serve` sets a counter and seats about the
+   * floor, `gather` rings the seats round the fire. Absent in a dwelling. */
+  program?: "serve" | "gather";
   hour: number;
   wear: number;
   soot: number;
@@ -66,7 +69,8 @@ export type Kind =
   | "plant" | "lamp" | "lantern" | "rug" | "cat"
   | "firepit" | "irori" | "brazier" | "stove" | "pole" | "ladder"
   | "quern" | "hides" | "coolamon" | "screen" | "fountain" | "pack"
-  | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame";
+  | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame"
+  | "bar" | "casks" | "bench" | "settle" | "tankards" | "tally" | "ledge" | "sipapu" | "pool" | "slab" | "basin";
 export type Prop = {
   id: number;
   kind: Kind;
@@ -509,11 +513,12 @@ const RULES: Partial<Record<Kind, Rule>> = {
   range: { w: 2, d: 1, place: "wall" }, icebox: { w: 1, d: 1, place: "wall" }, counter: { w: 3, d: 1, place: "centre" },
   loom: { w: 3, d: 2, place: "wall" }, spinwheel: { w: 1, d: 1, place: "any" }, throw: { w: 1, d: 1, place: "any" },
   claybin: { w: 1, d: 1, place: "wall" }, desk: { w: 2, d: 1, place: "wall" }, table: { w: 2, d: 1, place: "centre" },
+  settle: { w: 2, d: 1, place: "side" }, casks: { w: 3, d: 1, place: "wall" }, basin: { w: 1, d: 1, place: "wall" },
 };
-const HUNG: Kind[] = ["tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame"];
+const HUNG: Kind[] = ["tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame", "tankards", "tally"];
 
 export function planRoom(p: RoomParams): Prop[] {
-  const r = rng(p.seed * 7919 + ["household", "weaver", "merchant", "potter", "scholar", "hunter"].indexOf(p.trade));
+  const r = rng(p.seed * 7919 + ["household", "weaver", "merchant", "potter", "scholar", "hunter", "host"].indexOf(p.trade));
   const { w, d } = p;
   const mask = roomMask(p);
   const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < d && mask[y * w + x] > 0;
@@ -536,6 +541,8 @@ export function planRoom(p: RoomParams): Prop[] {
     for (let x = 0; x + pw <= w; x++) {
       if (used.slice(x, x + pw).some(Boolean) || top.slice(x, x + pw).some((t) => t !== top[x])) continue;
       const s = score(x) + r() * 0.8;
+      // Nothing is set into the wall where a doorway goes through it.
+      if (occ[top[x]].slice(x, x + pw).some((o) => o === 2)) continue;
       if (s > bs) (bs = s), (best = x);
     }
     for (let i = 0; i < pw && best >= 0; i++) used[best + i] = true;
@@ -580,26 +587,6 @@ export function planRoom(p: RoomParams): Prop[] {
     for (let k = by * w + bx; prev[k] >= 0 && prev[k] !== k; k = prev[k]) clear(k % w, (k / w) | 0);
   }
 
-  let hearth: Prop | undefined;
-  if (p.fire === "hearth" && cols >= 4) {
-    const hx = onWall(2, (x) => -Math.abs(x + 1 - w / 2) * 0.4 + fromDoor(x) * 0.5);
-    if (hx >= 0) {
-      const ty = top[hx];
-      hearth = add("hearth", hx, ty, 2, 1, true, true);
-      occ[ty][hx] = occ[ty][hx + 1] = 1;
-      if (inside(hx, ty + 1) && inside(hx + 1, ty + 1)) occ[ty + 1][hx] = occ[ty + 1][hx + 1] = 2;
-    }
-  }
-  const windows: Prop[] = [];
-  const nWin = p.windowStyle === "none" ? 0 : Math.min(p.windows, Math.max(1, Math.floor(cols / 5)));
-  for (let i = 0; i < nWin; i++) {
-    const x = onWall(1, (x) =>
-      fromDoor(x) * 0.6 + edge(x) * 0.3 + (hearth ? Math.min(Math.abs(x - hearth.x), 3) * 0.3 : 0) +
-      windows.reduce((s, o) => s + Math.min(Math.abs(x - o.x), 4) * 0.5, 0));
-    if (x >= 0) windows.push(add("window", x, top[x], 1, 0, true, true));
-  }
-  const win = windows[0]?.x ?? w / 2;
-
   const fits = (x: number, y: number, pw: number, pd: number) => {
     if (x < 0 || y < 0 || x + pw > w || y + pd > d) return false;
     for (let j = y; j < y + pd; j++) for (let i = x; i < x + pw; i++) if (occ[j][i] !== 0) return false;
@@ -627,10 +614,15 @@ export function planRoom(p: RoomParams): Prop[] {
     for (const row of occ) for (const o of row) if (o !== 1) open++;
     return seen.size === open;
   };
-  const place = (kind: Kind, pw: number, pd: number, score: (x: number, y: number) => number, on = false) => {
+  /** Strict placement takes only spots scored above zero, or nothing. */
+  const place = (kind: Kind, pw: number, pd: number, score: (x: number, y: number) => number, on = false, strict = false) => {
     const cands: [number, number, number][] = [];
     for (let y = 0; y < d; y++)
-      for (let x = 0; x < w; x++) if (fits(x, y, pw, pd)) cands.push([score(x, y) + r() * 0.7, x, y]);
+      for (let x = 0; x < w; x++) {
+        if (!fits(x, y, pw, pd)) continue;
+        const s = score(x, y);
+        if (!strict || s > 0) cands.push([s + r() * 0.7, x, y]);
+      }
     cands.sort((a, b) => b[0] - a[0]);
     for (const [, x, y] of cands) {
       for (let j = y; j < y + pd; j++) for (let i = x; i < x + pw; i++) occ[j][i] = 1;
@@ -638,6 +630,52 @@ export function planRoom(p: RoomParams): Prop[] {
       for (let j = y; j < y + pd; j++) for (let i = x; i < x + pw; i++) occ[j][i] = 0;
     }
   };
+  let hearth: Prop | undefined;
+  const setHearth = () => {
+    if (p.fire !== "hearth" || cols < 4) return;
+    const hx = onWall(2, (x) => -Math.abs(x + 1 - w / 2) * 0.4 + fromDoor(x) * 0.5);
+    if (hx < 0) return;
+    const ty = top[hx];
+    hearth = add("hearth", hx, ty, 2, 1, true, true);
+    occ[ty][hx] = occ[ty][hx + 1] = 1;
+    if (inside(hx, ty + 1) && inside(hx + 1, ty + 1)) occ[ty + 1][hx] = occ[ty + 1][hx + 1] = 2;
+  };
+  // A taproom sets its casks and bar first and fits the fire round them.
+  if (p.program === "serve") {
+    // The casks along the back wall, the bar a pace in front of them with the
+    // keeper's walk between, open at an end. Tried together, best first, since
+    // in a small room the aisles to the other doors leave few places for both.
+    const tries: [number, number, number, number][] = [];
+    for (let x = 0; x + 3 <= w; x++) {
+      const y = top[x];
+      if (y < 0 || top[x + 2] !== y || !fits(x, y, 3, 1) || occ[y + 1]?.slice(x, x + 3).some((o) => o === 1)) continue;
+      for (const bw of new Set([Math.min(4, w - 3), 3]))
+        for (const bx of new Set([x, x + 3 - bw]))
+          if (fits(bx, y + 2, bw, 1)) tries.push([bw + r() * 0.5, x, bx, bw]);
+    }
+    tries.sort((a, b) => b[0] - a[0]);
+    for (const [, x, bx, bw] of tries) {
+      const y = top[x];
+      if (!place("casks", 3, 1, (cx, cy) => (cx === x && cy === y ? 1 : -1), false, true)) continue;
+      if (place("bar", bw, 1, (cx, cy) => (cx === bx && cy === y + 2 ? 1 : -1), false, true)) {
+        for (let i = x; i < x + 3; i++) clear(i, y + 1);
+        break;
+      }
+      props.pop();
+      for (let i = x; i < x + 3; i++) occ[y][i] = 0;
+    }
+  }
+  setHearth();
+  const windows: Prop[] = [];
+  const nWin = p.windowStyle === "none" ? 0 : Math.min(p.windows, Math.max(1, Math.floor(cols / 5)));
+  for (let i = 0; i < nWin; i++) {
+    const x = onWall(1, (x) =>
+      fromDoor(x) * 0.6 + edge(x) * 0.3 + (hearth ? Math.min(Math.abs(x - hearth.x), 3) * 0.3 : 0) +
+      windows.reduce((s, o) => s + Math.min(Math.abs(x - o.x), 4) * 0.5, 0));
+    if (x >= 0) windows.push(add("window", x, top[x], 1, 0, true, true));
+  }
+  const win = windows[0]?.x ?? w / 2;
+
   const near = (x: number, y: number, pw: number, pd: number, t?: { x: number; y: number; w: number; d: number }) =>
     t ? -Math.hypot(x + pw / 2 - (t.x + t.w / 2), y + pd / 2 - (t.y + t.d / 2)) : 0;
   // How many sides of the footprint touch a wall, the back one counting most.
@@ -668,15 +706,16 @@ export function planRoom(p: RoomParams): Prop[] {
   }
   if (p.door === "none") place("ladder", 1, 1, (x, y) => near(x, y, 1, 1, fire ?? centre) * 1.2 + walls(x, y, 1, 1) * 0.5);
 
-  const hanging: Record<Trade, Kind> = { household: "pegs", weaver: "tapestry", merchant: "pegs", potter: "plates", scholar: "map", hunter: "pegs" };
+  const hanging: Record<Trade, Kind> = { household: "pegs", weaver: "tapestry", merchant: "pegs", potter: "plates", scholar: "map", hunter: "pegs", host: "tankards" };
   const hungFromProfile = p.furnish.filter((k) => HUNG.includes(k));
-  for (const k of [...hungFromProfile, hanging[p.trade]].slice(0, 1 + p.finish)) {
+  // A public room is dressed whatever the keeper's means: every hung piece it lists goes up.
+  for (const k of [...hungFromProfile, hanging[p.trade]].slice(0, p.program ? hungFromProfile.length : 1 + p.finish)) {
     const hx = onWall(1, (x) => -Math.abs(x - win) * 0.2);
     if (hx >= 0) add(k, hx, top[hx], 1, 0, true, k === "shrine");
   }
   // Finer households hang more on their walls: pictures, plates, hangings.
   const decor = hungFromProfile.filter((k) => k === "frame" || k === "plates" || k === "tapestry" || k === "pegs");
-  for (let i = 0; decor.length && i < Math.floor(cols / 4) * p.finish; i++) {
+  for (let i = 0; decor.length && !p.program && i < Math.floor(cols / 4) * p.finish; i++) {
     const hx = onWall(1, () => 0);
     if (hx >= 0) add(decor[i % decor.length], hx, top[hx], 1, 0, true);
   }
@@ -697,7 +736,24 @@ export function planRoom(p: RoomParams): Prop[] {
     }
   }
 
-  if (p.kit) {
+  if (p.program === "gather") {
+    // A bath gathers round its water or its hot stone; anywhere else round the fire.
+    const [pw, pd] = has("pool") ? [Math.max(2, Math.min(6, w - 6)), Math.max(2, Math.min(4, d - 5))] : [Math.min(3, w - 6), Math.min(3, d - 5)];
+    const at = (x: number, y: number) => -Math.abs(x + pw / 2 - w / 2) - Math.abs(y + pd / 2 - d * 0.55);
+    const pool = has("pool") || has("slab") ? place(has("pool") ? "pool" : "slab", pw, pd, at) : undefined;
+    if (pool) for (let y = pool.y - 1; y <= pool.y + pool.d; y++) for (let x = pool.x - 1; x <= pool.x + pool.w; x++) clear(x, y);
+    for (let i = 0; has("basin") && i < 2 + p.finish; i++) place("basin", 1, 1, (x, y) => walls(x, y, 1, 1) * 1.5 - (pool ? near(x, y, 1, 1, pool) * -0.1 : 0));
+    const focus = pool ?? fire ?? centre, fx = focus.x + focus.w / 2, fy = focus.y + focus.d / 2;
+    if (has("sipapu")) place("sipapu", 1, 1, (x, y) => (y < focus.y && Math.abs(x + 0.5 - fx) < 1 ? 2 - (focus.y - y) * 0.5 : -1), false, true);
+    // A bench all round the wall, or seats on the ground in a ring about the fire.
+    const ring = p.seating === "chair"
+      ? (x: number, y: number) => (walls(x, y, 1, 1) > 0 ? 1 : -1)
+      : (x: number, y: number) => 1 - Math.abs(Math.hypot(x + 0.5 - fx, (y + 0.5 - fy) * 1.2) - Math.min(w, d) * 0.32);
+    const cells: [number, number][] = [];
+    for (let y = 0; y < d; y++) for (let x = 0; x < w; x++) if (fits(x, y, 1, 1) && ring(x, y) > 0) cells.push([x, y]);
+    cells.sort((a, b) => Math.atan2(a[1] + 0.5 - fy, a[0] + 0.5 - fx) - Math.atan2(b[1] + 0.5 - fy, b[0] + 0.5 - fx));
+    for (const [cx, cy] of cells) place(p.seating === "chair" ? "ledge" : "cushions", 1, 1, (x, y) => (x === cx && y === cy ? 1 : -1), false, true);
+  } else if (p.kit) {
     for (const k of p.kit) {
       const rule = RULES[k] ?? { w: 1, d: 1, place: "any" };
       place(k, rule.w, rule.d, (x, y) => (rule.place === "wall" ? walls(x, y, rule.w, rule.d) * 1.5 : rule.place === "centre" ? near(x, y, rule.w, rule.d, centre) : underWindow(x, y, rule.w) * 0.3), lit.includes(k));
@@ -725,6 +781,31 @@ export function planRoom(p: RoomParams): Prop[] {
     const desk = place("desk", 2, 1, (x, y) => underWindow(x, y, 2) + 1, true);
     place("scrolls", 1, 1, (x, y) => near(x, y, 1, 1, desk) * 0.6);
     if (p.seating === "chair") place("stool", 1, 1, (x, y) => (desk && y === desk.y + 1 && x >= desk.x && x <= desk.x + 1 ? 5 : -9));
+  } else if (p.program === "serve" && p.seating === "floor") {
+    // Low tables with a cushion to each side, an aisle kept round each.
+    const set: Prop[] = [];
+    for (let n = 0; n < Math.max(1, Math.round((w * d) / 26)); n++) {
+      const t = place("lowtable", 1, 1, (x, y) =>
+        -Math.abs(y - d * 0.6) * 0.3 + set.reduce((s, o) => s + Math.min(3, Math.hypot(x - o.x, y - o.y)) * 0.6, 0));
+      if (!t) break;
+      set.push(t);
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, 1]]) place("cushions", 1, 1, (x, y) => (x === t.x + dx && y === t.y + dy ? 1 : -1), false, true);
+      for (let y = t.y - 1; y <= t.y + 2; y++) for (let x = t.x - 2; x <= t.x + 2; x++) clear(x, y);
+    }
+  } else if (p.program === "serve") {
+    // Long tables with a form either side, an aisle kept round each.
+    const tables = Math.max(1, Math.round((w * d) / 34));
+    const set: Prop[] = [];
+    for (let n = 0; n < tables; n++) {
+      const t = place("table", 3, 1, (x, y) =>
+        (fits(x, y - 1, 3, 1) ? 2 : 0) + (fits(x, y + 1, 3, 1) ? 2 : 0) - Math.abs(y - d * 0.62) * 0.4 + set.reduce((s, o) => s + Math.min(4, Math.hypot(x - o.x, (y - o.y) * 1.5)) * 0.6, 0));
+      if (!t) break;
+      set.push(t);
+      for (const by of [t.y - 1, t.y + 1]) place("bench", 3, 1, (x, y) => (x === t.x && y === by ? 1 : -1), false, true);
+      for (const sx of [t.x - 1, t.x + 3]) place("stool", 1, 1, (x, y) => (x === sx && y === t.y ? 1 : -1), false, true);
+      for (let y = t.y - 2; y <= t.y + 2; y++) for (let x = t.x - 1; x <= t.x + 3; x++) clear(x, y);
+    }
+    place("settle", 2, 1, (x, y) => walls(x, y, 2, 1) + near(x, y, 2, 1, hearth ?? centre) * 0.6);
   } else if (p.trade === "hunter") {
     place("hides", 1, 1, (x, y) => walls(x, y, 1, 1));
     place("hides", 1, 1, (x, y) => walls(x, y, 1, 1));
@@ -732,10 +813,13 @@ export function planRoom(p: RoomParams): Prop[] {
 
   const sleepKind = p.sleep as Kind;
   const bed = d >= 4 && p.sleep !== "none" ? place(sleepKind, 2, 1, (x, y) => walls(x, y, 2, 1) * 1.5 + y * 0.3 - near(x, y, 2, 1, fire) * 0.1) : undefined;
+  // Room to climb in: the chest and lamp go beside the bed, not across it.
+  if (bed) clear(bed.x, bed.y + 1);
   if (bed && p.finish >= 1 && has("chest")) place("chest", 1, 1, (x, y) => near(x, y, 1, 1, bed) * 0.8 + walls(x, y, 1, 1) * 0.3);
   if (p.finish === 2 && bed && w * d > 90 && p.sleep !== "none") place(sleepKind, 2, 1, (x, y) => walls(x, y, 2, 1) * 1.5 + near(x, y, 2, 1, bed) * 0.2);
   let table: Prop | undefined;
-  if (p.seating === "chair") {
+  if (p.program) table = props.find((q) => q.kind === "table" || q.kind === "lowtable");
+  else if (p.seating === "chair") {
     table = place("table", 2, 1, (x, y) => -Math.abs(x + 1 - w * 0.55) * 0.3 - Math.abs(y - d * 0.62) * 0.35);
     if (table) {
       place("stool", 1, 1, (x, y) => (y === table!.y && (x === table!.x - 1 || x === table!.x + 2) ? 5 : -9));

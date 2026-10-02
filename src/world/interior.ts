@@ -32,6 +32,8 @@ export type InteriorLayout = {
   work: Spot[];
   fire: Spot[];
   seats: Spot[];
+  /** From the profile: when residents off the routine budget come in anyway. */
+  regulars?: { hours: [number, number]; fill: number };
   /** Where the household's chest, bed and work station sit: always a real
    * piece of the room where it has one, else a floor cell you can reach. */
   store: Point;
@@ -45,7 +47,7 @@ const at = (x: number, y: number): Point => ({ x: x + ROOM_ORIGIN, y: y + ROOM_O
 const key = (p: Point) => `${p.x},${p.y}`;
 
 // Things people walk over or lie on; everything else on the floor is in the way.
-const FLAT: Kind[] = ["rug", "cat", "clutter", "mat", "cushions", "ladder", "door", "window", "tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame"];
+const FLAT: Kind[] = ["sipapu", "rug", "cat", "clutter", "mat", "cushions", "ladder", "door", "window", "tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame"];
 // Everything else standing in a room is built in: beds, fires, wall pieces.
 const FURNITURE: Partial<Record<Kind, string>> = {
   stool: "room-stool", table: "room-table", lowtable: "room-lowtable", desk: "room-desk", counter: "room-counter",
@@ -53,8 +55,9 @@ const FURNITURE: Partial<Record<Kind, string>> = {
   loom: "room-loom", spinwheel: "room-spinwheel", throw: "room-throw", radio: "room-radio", icebox: "room-icebox",
   potrack: "room-potrack", firewood: "room-firewood", quern: "room-quern", jars: "room-jars", claybin: "room-claybin",
   plant: "room-plant", lamp: "room-lamp", basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
+  bench: "room-bench",
 };
-const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan"];
+const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab"];
 const FIRES: Kind[] = ["hearth", "firepit", "irori", "brazier", "stove", "range"];
 const WORK: Record<Trade, Kind[]> = {
   weaver: ["loom", "spinwheel", "basket"],
@@ -63,6 +66,7 @@ const WORK: Record<Trade, Kind[]> = {
   merchant: ["counter", "sacks", "jars", "crate"],
   hunter: ["hides"],
   household: ["quern", "table", "lowtable", "basket"],
+  host: ["bar"],
 };
 
 /** The interior trade a livelihood's activity reads as. */
@@ -160,7 +164,8 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   // A bed sleeps two, as beds did; a mat or a box bed one.
   const beds = sleepers.flatMap((q) => cells(q).slice(0, q.kind === "bed" ? 2 : 1).map((p): Spot => ({ ...p, facing: 2, kind: q.kind, propId: q.id, on: "bed" })));
   const trade = params.trade;
-  const work = of(WORK[trade]).flatMap(stands);
+  // The keeper works from behind the bar, facing the room.
+  const work = of(WORK[trade]).flatMap((q) => (q.kind === "bar" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
   const fire = of(FIRES).flatMap(stands);
   // A stool is turned to the table or the fire it stands at; anything with a back faces the room.
   const boards = of(["table", "lowtable", "desk", "counter", ...FIRES]);
@@ -170,7 +175,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   };
   const seats = [
     ...of(SEATS).flatMap((q) =>
-      cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" ? toward(p) : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" ? "floor" : "seat" })),
+      cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" ? "floor" : "seat" })),
     ),
     ...of(["table", "lowtable"]).flatMap(stands),
   ];
@@ -207,6 +212,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const locks = new Set(building.doorways.filter((dw) => dw.private).flatMap((dw) => dw.cells.map(([x, y]) => key(at(x, y)))));
   return {
     params,
+    regulars: profile.regulars,
     plan,
     rooms: building.rooms,
     locks,
