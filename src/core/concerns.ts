@@ -1,4 +1,7 @@
 import { whyLeft } from "../content/bonds";
+import { MOMENTS, TEMPER } from "../content/intro";
+import { statKeys, statsOf } from "./stats";
+import { skySeed, weatherAt } from "./weather";
 import { outlookOf } from "./outlook";
 import { kinOf } from "./kin";
 import { sexOf } from "./brief";
@@ -188,6 +191,22 @@ export function concernsOf(s: Snapshot, setting: WorldSetting | undefined, here:
       add("rival", 0.4, [{ text: "you and " }, ...them, { text: `, the other ${p.role.toLowerCase()} in ${here}, have not spoken since last winter` }], a.id);
     else if (b.kind === "estranged")
       add("estranged", 0.35, [{ text: "you have not spoken to " }, ...them, { text: ` in ${inWords(2 + Math.floor(random(seed, "estranged") * 7))} years` }], a.id);
+  }
+
+  // A marked temperament says something about anyone; the extremes are the rare line's.
+  const stats = statsOf(seed, p);
+  const temper = statKeys
+    .filter((k) => (stats[k] >= 68 && stats[k] < 86) || (stats[k] <= 32 && stats[k] > 14))
+    .map((k) => ({ key: `${k}:${stats[k] > 50 ? "high" : "low"}` as const, by: Math.abs(stats[k] - 50) }))
+    .filter((t) => TEMPER[t.key])
+    .sort((a, b) => b.by - a.by)[0];
+  if (temper) add("temper", 0.2, [{ text: TEMPER[temper.key]! }]);
+
+  // Now and then the moment outweighs the years.
+  if (random(seed, "moment", p.name) < 0.06) {
+    const w = setting && weatherAt(skySeed(s.manifest), setting.climate, setting.season, clock);
+    const fair = !!w && (w.condition === "clear" || w.condition === "light-clouds") && w.tempC >= 14 && !w.night;
+    add("moment", 0.95, [{ text: pick(MOMENTS.filter((m) => !m.sun || fair).map((m) => m.line), "moment", p.name) }]);
   }
 
   // A belief earns its place only where it collides with the life.
