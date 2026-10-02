@@ -8139,43 +8139,36 @@ button:disabled {
 
 .work-card {
   position: absolute;
-  top: 128px;
-  left: 20px;
+  top: 58px;
+  left: 16px;
   z-index: 4;
-  width: 268px;
+  width: 256px;
   overflow: hidden;
   color: var(--ink);
-  background: var(--glass);
-  border: 1px solid #8f7f5599;
-  border-radius: 10px;
+  background: linear-gradient(180deg, #1e2625a6, #141a19a6);
+  border: 1px solid #ffffff26;
+  border-radius: 14px;
   box-shadow:
-    inset 0 1px 0 #ffffff14,
-    0 14px 34px -12px #000d,
-    0 1px 2px #0008;
-  backdrop-filter: blur(8px);
+    inset 0 1px 0 #ffffff17,
+    0 10px 28px -14px #000c;
+  backdrop-filter: blur(12px) saturate(1.3);
+  text-shadow: 0 1px 1px #0007;
+  transition: border-color 0.3s, background 0.3s;
   font: 14px var(--serif);
   animation: card-in 0.5s cubic-bezier(0.16, 1.1, 0.3, 1) both;
 }
-/* The day's progress as a hairline along the top edge. */
-.work-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, #b8913e, var(--gold));
-  transform: scaleX(var(--progress));
-  transform-origin: left;
-  transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1);
-}
 .work-card[data-here] {
-  border-color: #d3b167cc;
+  border-color: #e3c37a80;
+}
+.work-card:not([data-open]):hover {
+  background: linear-gradient(180deg, #232c2bbf, #171e1dbf);
 }
 .work-card-head {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 11px 12px 8px;
+  padding: 7px 34px 7px 8px;
   color: inherit;
   background: none;
   border: 0;
@@ -8185,18 +8178,40 @@ button:disabled {
 .work-icon {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   flex: none;
-  color: #231c10;
-  background: linear-gradient(180deg, #f4e2b2, #d9bc78);
-  border-radius: 8px;
-  box-shadow: inset 0 -2px 0 #a9894799, 0 2px 0 #5d4b27;
+  background: #e3c37a1f;
+  border: 1px solid #e3c37a55;
+  border-radius: 50%;
 }
 .work-card .work-icon svg {
-  color: #231c10;
-  opacity: 1;
-  stroke-width: 2.4;
+  width: 13px;
+  height: 13px;
+  color: var(--gold);
+  stroke-width: 2.2;
+}
+.work-pips {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.work-pips i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff26;
+  transition: background 0.4s, box-shadow 0.4s;
+}
+.work-pips i[data-done] {
+  background: var(--gold);
+}
+.work-pips i[data-now] {
+  background: #e3c37a66;
+  box-shadow: 0 0 0 2px #e3c37a26;
+}
+.work-card[data-open] .work-pips {
+  display: none;
 }
 .work-card[data-holding] .work-icon svg {
   animation: hammer 0.55s ease-in-out infinite;
@@ -8213,9 +8228,13 @@ button:disabled {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+.work-card:not([data-open]) .work-title small {
+  display: none;
+}
 .work-title b {
   overflow: hidden;
-  font: 17px var(--serif);
+  white-space: nowrap;
+  font: 15px var(--serif);
   font-weight: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -8827,13 +8846,11 @@ button:disabled {
 .work-card[data-open] .work-body {
   animation: rise-in 0.25s ease-out;
 }
-.work-card-head {
-  padding-right: 40px;
-}
+
 .work-close {
   position: absolute;
-  top: 9px;
-  right: 8px;
+  top: 8px;
+  right: 6px;
   display: grid;
   place-items: center;
   width: 24px;
@@ -8843,7 +8860,17 @@ button:disabled {
   border: 0;
   border-radius: 6px;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, opacity 0.2s;
+}
+.work-card:not([data-open]) {
+  width: auto;
+  max-width: 300px;
+}
+.work-card:not([data-open]) .work-card-head {
+  padding-right: 12px;
+}
+.work-card:not([data-open]) .work-close {
+  display: none;
 }
 .work-close:hover {
   color: var(--ink);

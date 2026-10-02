@@ -7,8 +7,8 @@ import { WORK_STAGE_MS, type Runtime } from "../runtime/session";
 /** The day's work as a strip of stages: what to do next, where, how far, and
  * a hand-off to autopilot for anyone who would rather watch. */
 export function WorkCard({ runtime }: { runtime: Runtime }) {
-  // Folded to one line on a phone until tapped; open on a desk.
-  const [open, setOpen] = useState(() => !matchMedia("(max-width: 640px), (pointer: coarse) and (max-width: 1024px)").matches);
+  // One line until asked for more.
+  const [open, setOpen] = useState(false);
   const [closedOn, setClosedOn] = useState<number>();
   const [cheer, setCheer] = useState<number>();
   const plan = runtime.engine.workPlan();
@@ -57,6 +57,11 @@ export function WorkCard({ runtime }: { runtime: Runtime }) {
           <small>{finished || garden ? "Today's work" : `Today's work · ${plan.done + 1} of ${plan.stages.length}`}</small>
           <b key={finished ? "done" : garden ? "garden" : plan.done}>{finished ? "All done for today!" : garden ? garden.task : step.task}</b>
         </span>
+        {!finished && (
+          <span className="work-pips" aria-hidden>
+            {plan.stages.map((st, n) => <i key={st} data-done={n < plan.done || undefined} data-now={n === plan.done || undefined} />)}
+          </span>
+        )}
       </button>
       <button className="work-close" onClick={() => setClosedOn(day)} aria-label="Hide until tomorrow" title="Hide until tomorrow">
         <X size={14} />
