@@ -581,6 +581,10 @@ export type Snapshot = {
   kin?: import("./kin").KinState;
   /** The opening card has been shown for this life. */
   introduced?: boolean;
+  /** Illnesses and hurts under way, anyone's. */
+  ailments?: import("./health").Ailment[];
+  /** Who the player loves, is matched with, is at odds with. */
+  bonds?: import("./bonds").Bond[];
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
   /** What the player's day has held so far, for the evening's account. */

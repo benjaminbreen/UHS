@@ -3,62 +3,22 @@ import { TIDINGS } from "../content/history/tidings";
 import { PLOTS } from "../content/plots";
 import { matchesCharacterScope } from "../content/characters/resolve";
 import { regionPhrase } from "../content/geography/region-label";
-import { outlookOf } from "./outlook";
 import { unusualOf } from "./unusual";
 import { kinOf } from "./kin";
-import { sexOf } from "./brief";
 import { seasonAt } from "./livelihood";
 import { skySeed, weatherAt } from "./weather";
 import { random } from "./random";
+import { concernsOf, fill, inWords, kinWord, type Concern, type IntroSpan } from "./concerns";
 import type { Actor, Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
 
-/** A run of the opening text. `ref` names someone the reader can ask about;
- * `note` glosses a term from the wider world. */
-export type IntroSpan = { text: string; ref?: string; mark?: "kin" | "plot" | "note"; note?: string };
+export type { IntroSpan } from "./concerns";
 /** Paragraphs, then the one line about what is rare in this person, if anything is. */
 export type Intro = { body: IntroSpan[][]; uncommon?: string };
 
-const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-export function inWords(n: number) {
-  if (n < 20) return ONES[n];
-  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? `-${ONES[n % 10]}` : "");
-  return String(n);
-}
-
-/** "takes the sacred text exactly as written" as said to the holder. */
-export function secondPerson(clause: string) {
-  const [verb, ...rest] = clause.split(" ");
-  const said =
-    verb === "is" ? "are" : verb === "has" ? "have" : verb === "does" ? "do" : verb === "goes" ? "go"
-      : verb.endsWith("ies") ? `${verb.slice(0, -3)}y`
-      : /(ss|sh|ch|x|z)es$/.test(verb) ? verb.slice(0, -2)
-      : verb.endsWith("s") && !verb.endsWith("ss") ? verb.slice(0, -1)
-      : verb;
-  return [said, ...rest].join(" ");
-}
-
 const article = (word: string) => (/^[aeiou]/i.test(word) ? "an" : "a");
-const KIN_WORD: Record<string, [string, string, string]> = {
-  partner: ["wife", "husband", "partner"],
-  child: ["daughter", "son", "child"],
-  parent: ["mother", "father", "parent"],
-  sibling: ["sister", "brother", "sibling"],
-};
-const kinWord = (kind: string, a: Actor) => {
-  const sex = sexOf(a);
-  return KIN_WORD[kind][sex === "female" ? 0 : sex === "male" ? 1 : 2];
-};
-
-/** A line with `{key}` slots, each filled with a span or with plain words. */
-function fill(line: string, slot: (key: string) => IntroSpan | string | undefined): IntroSpan[] {
-  return line.split(/(\{\w[\w ]*\})/).flatMap((part) => {
-    if (!/^\{.+\}$/.test(part)) return part ? [{ text: part }] : [];
-    const got = slot(part.slice(1, -1));
-    return got === undefined ? [] : typeof got === "string" ? [{ text: got }] : [got];
-  });
-}
+const capital = (spans: IntroSpan[]) =>
+  spans.map((x, i) => (i === 0 ? { ...x, text: x.text.charAt(0).toUpperCase() + x.text.slice(1) } : x));
 
 /** Plain runs joined, so a paragraph is as few spans as it can be. */
 function tidy(spans: IntroSpan[]) {
@@ -108,31 +68,11 @@ function scene(s: Snapshot, setting: WorldSetting, here: string) {
   return `You begin another day as ${article(role)} ${role} in ${here}${gloss}, ${sky}.`;
 }
 
-/** One thing that makes this person someone in particular: a loss or a
- * change in the household lately, else the rarest view they hold. */
-function self(s: Snapshot, setting: WorldSetting | undefined, here: string, partner: Actor | undefined) {
+/** Who you are, and the heaviest thing on you. */
+function self(s: Snapshot, top: Concern | undefined): IntroSpan[] {
   const p = s.player;
   const head = `You are ${p.name}${p.age === undefined ? "" : `, ${inWords(p.age)}`}`;
-  const history = s.households?.find((h) => h.members.includes(p.id))?.history ?? [];
-  const ago = (year: number) => (setting ? setting.year - year : Infinity);
-  const latest = (kind: string, as?: string[]) =>
-    [...history].reverse().find((e) => e.kind === kind && (!as || as.includes(e.as ?? "")));
-  const lost = !partner && latest("died", ["wife", "husband", "partner"]);
-  if (lost && ago(lost.year) <= 1) return `${head}, and newly widowed.`;
-  if (lost && ago(lost.year) <= 12) return `${head}, and widowed these ${inWords(ago(lost.year))} years.`;
-  const moved = latest("moved");
-  if (moved && ago(moved.year) <= 1) return `${head}, and newly come to ${here}.`;
-  if (moved && ago(moved.year) <= 5) return `${head}, and only ${inWords(ago(moved.year))} years in ${here}.`;
-  const wed = latest("wed");
-  if (wed && partner && ago(wed.year) <= 1) return `${head}, and newly married.`;
-  // A view peculiar to this time and place says more than one held everywhere.
-  const held = setting ? outlookOf(s.manifest.seed, p, setting).stances : [];
-  // How someone holds beliefs at all needs more context than what they believe.
-  const general = held.filter((v) => v.kind !== "temper");
-  const pool = general.length ? general : held;
-  const view = held.find((v) => v.scope.cultures || v.scope.bounds || v.scope.places || v.scope.communities) ??
-    pool[Math.floor(random(s.manifest.seed, "intro", "view") * pool.length)];
-  return view ? `${head}, and you ${secondPerson(view.clause)}.` : `${head}.`;
+  return top ? [{ text: `${head}, and ` }, ...top.spans, { text: "." }] : [{ text: `${head}.` }];
 }
 
 function tiding(setting: WorldSetting, here: string, community: string): IntroSpan[] {
@@ -160,12 +100,14 @@ function plotParagraph(s: Snapshot): IntroSpan[] {
 }
 
 /** Who shares the house, for a life without a plot to introduce them. */
-function household(s: Snapshot): IntroSpan[] {
+function household(s: Snapshot, told: ReadonlySet<string>): IntroSpan[] {
   const home = s.player.householdId;
   if (!home) return [];
   const kin = kinOf(s).filter((k) => k.actor.householdId === home);
-  const named = (kind: string, a: Actor): IntroSpan[] =>
-    [{ text: `your ${kinWord(kind, a)} ` }, { text: a.name, ref: a.id, mark: "kin" }];
+  // Someone the paragraph has already named is just "your sister" here.
+  const named = (kind: string, a: Actor): IntroSpan[] => told.has(a.id)
+    ? [{ text: `your ${kinWord(kind, a)}` }]
+    : [{ text: `your ${kinWord(kind, a)} ` }, { text: a.name, ref: a.id, mark: "kin" }];
   const of = (kind: string) => kin.filter((k) => k.kind === kind).map((k) => k.actor)
     .sort((a, b) => (b.age ?? 0) - (a.age ?? 0));
   const items: IntroSpan[][] = of("partner").map((a) => named("partner", a));
@@ -205,20 +147,23 @@ function uncommon(s: Snapshot, setting: WorldSetting | undefined, here: string) 
   }
 }
 
-/** The opening paragraphs of a life: where and who you are, the news, then
- * the plot or the household. Every clause is dropped when its fact is missing. */
+/** The opening paragraphs of a life: where and who you are, the heaviest
+ * thing on you, the news, then the plot, or the household and what else
+ * weighs on it. Every clause is dropped when its fact is missing. */
 export function composeIntro(s: Snapshot, setting?: WorldSetting, place?: string): Intro {
   const here = herePhrase(place || setting?.location || "the village");
-  const partner = kinOf(s).find((k) => k.kind === "partner")?.actor;
-  const first = setting
-    ? [
-        ...sentence([{ text: scene(s, setting, here) }]),
-        ...sentence([{ text: self(s, setting, here, partner) }]),
-        ...tiding(setting, here, s.player.origin?.community ?? "*"),
-      ]
-    : sentence([{ text: self(s, setting, here, partner) }]);
+  const concerns = concernsOf(s, setting, here);
+  const [top, next] = concerns;
+  const first = [
+    ...(setting ? sentence([{ text: scene(s, setting, here) }]) : []),
+    ...sentence(self(s, top)),
+    ...(setting ? tiding(setting, here, s.player.origin?.community ?? "*") : []),
+  ];
   const plotted = plotParagraph(s);
-  const second = plotted.length ? plotted : [...hardship(s, setting), ...household(s)];
+  const also = next && next.weight >= 0.5 && next.kind !== top?.kind ? next : undefined;
+  const told = new Set([top, also].flatMap((c) => c?.spans.flatMap((x) => (x.ref ? [x.ref] : [])) ?? []));
+  const second = plotted.length ? plotted
+    : [...hardship(s, setting), ...(also ? sentence([...capital(also.spans), { text: "." }]) : []), ...household(s, told)];
   const trim = (p: IntroSpan[]) => {
     const spans = tidy(p);
     const last = spans.at(-1);

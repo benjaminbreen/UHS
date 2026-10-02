@@ -82,8 +82,10 @@ import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim } from "./life-aim";
 import { endPlot, plotLine, stepPlot, type PlotCard } from "./plot";
-import { kinCall } from "./kin";
+import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
+import { ailmentDef, onsets, severity } from "./health";
+import { kinWord } from "./concerns";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
@@ -6650,6 +6652,52 @@ export class Engine {
     this.affront(a);
     this.event(`You run full into ${a.name}, who rounds on you.`, "social");
   }
+  private laid?: Map<string, string>;
+  /** What keeps someone in bed today, if anything. */
+  laidUp(id: string) {
+    const clock = this.state.clock;
+    this.laid ??= new Map((this.state.ailments ?? [])
+      .filter((x) => severity(x, clock) >= 0.35)
+      .map((x) => [x.who, ailmentDef(x.id).laid]));
+    return this.laid.get(id);
+  }
+  /** Each game hour: courses run out, the sick who were sat with may turn,
+   * the dying die, and new cases begin. Nobody the plot needs falls ill. */
+  private healthStep(clock: number) {
+    const s = this.state, setting = this.world.pack.setting;
+    const spare = new Set(s.plot && !s.plot.ended ? Object.values(s.plot.cast) : []);
+    const list = (s.ailments ??= []);
+    for (const ail of [...list]) {
+      if (ail.course === "die" && !ail.tended && severity(ail, clock) > 0.6 && (s.kin?.talked[ail.who] ?? -Infinity) >= ail.since) {
+        ail.tended = true;
+        if (random(s.manifest.seed, "tended", ail.who, ail.id) < 0.4) ail.course = "mend";
+      }
+      if (clock < ail.since + ail.days * 86400) continue;
+      list.splice(list.indexOf(ail), 1);
+      const a = s.actors.find((x) => x.id === ail.who);
+      if (a && ail.course === "die" && a.id !== s.player.id && !spare.has(a.id)) this.dies(a, ailmentDef(ail.id).died);
+    }
+    list.push(...onsets(s, setting, spare));
+    this.laid = undefined;
+  }
+  /** Someone dies of an illness: gone from the world, written into their
+   * household's history, and a card if they were the player's own. */
+  private dies(a: Actor, how: string) {
+    const s = this.state, year = this.world.pack.setting?.year;
+    const own = kinOf(s).find((k) => k.actor.id === a.id);
+    const word = own && kinWord(own.kind, a);
+    const h = this.household(a.householdId);
+    const home = !!h?.members.includes(s.player.id);
+    if (h) {
+      h.members = h.members.filter((id) => id !== a.id);
+      if (year !== undefined) (h.history ??= []).push({ year, kind: "died", name: a.name, ...(home && word ? { as: word } : {}) });
+    }
+    a.dead = how;
+    s.actors = s.actors.filter((x) => x.id !== a.id);
+    this.routes.delete(a.id);
+    if (own || home) this.cards.push({ kind: "turn", title: "A Death", text: `${a.name}${word ? `, your ${word},` : ""} has died ${how}.` });
+    else this.event(`Word goes round that ${a.name} has died ${how}.`, "social");
+  }
   /** The opening card, once a life: who and where you are, and the plot. */
   private introduce() {
     const s = this.state, setting = this.world.pack.setting;
@@ -6708,7 +6756,7 @@ export class Engine {
     if (this.approaching || p.dead || hour < 6 || hour >= 21 || clock - (k.last ?? -Infinity) < 5400) return;
     const store = h && s.objects.find((o) => o.id === h.storeId);
     const food = Object.entries(store?.inventory ?? {}).reduce((n, [id, c]) => n + (this.item(id)?.edible ? c ?? 0 : 0), 0);
-    const call = kinCall(s, k, clock, food);
+    const call = kinCall(s, k, clock, food, (id) => !!this.laidUp(id));
     if (!call) return;
     k.said[`${call.id}:${call.need}`] = clock;
     k.last = clock;
@@ -7367,6 +7415,7 @@ export class Engine {
       );
       if (next % 6 !== 0) continue;
       if (!this.state.introduced) this.introduce();
+      if (next % 3600 === 0) this.healthStep(next);
       if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
       if (next % 600 === 0) this.kinStep(next);
       if (this.approaching) this.approach(next);
@@ -7457,6 +7506,12 @@ export class Engine {
             continue;
           }
           delete a.errand;
+        }
+        const laid = a.kind === "human" && a.id !== player.id ? this.laidUp(a.id) : undefined;
+        if (laid) {
+          this.park(a);
+          a.activity = laid;
+          continue;
         }
         if (a.kind === "human") {
           // Past the routine budget a resident is furniture: home, fed, and

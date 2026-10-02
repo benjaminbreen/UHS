@@ -132,6 +132,8 @@ import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
 import { fromAtlas, toAtlas } from "../world/geography/coordinates";
 import { ensureLifeAim } from "../core/life-aim";
 import { startPlot } from "../core/plot";
+import { seedAilments } from "../core/health";
+import { bondsFor } from "../core/bonds";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 export function createSession(
   packId = "roman",
@@ -244,6 +246,8 @@ export function createSession(
   }
   ensureLifeAim(engine.state, pack.setting);
   startPlot(engine.state, pack.setting);
+  engine.state.ailments ??= seedAilments(engine.state, pack.setting, new Set(Object.values(engine.state.plot?.cast ?? {})));
+  engine.state.bonds ??= bondsFor(engine.state, pack.setting);
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn

@@ -47,7 +47,7 @@ export function markOf(s: Snapshot, id: string): "kin" | "plot" | undefined {
 
 /** The one of the player's people with the most pressing reason to come over
  * now, and what they say. `food` is what is left in the household store. */
-export function kinCall(s: Snapshot, k: KinState, clock: number, food: number) {
+export function kinCall(s: Snapshot, k: KinState, clock: number, food: number, abed?: (id: string) => boolean) {
   const away = clock - (k.home ?? k.since);
   const hour = Math.floor(clock / HOUR) % 24;
   const plot = s.plot;
@@ -70,7 +70,7 @@ export function kinCall(s: Snapshot, k: KinState, clock: number, food: number) {
   const kin = kinOf(s).sort((a, b) => (a.actor.id < b.actor.id ? -1 : 1));
   for (const [kind, need, holds] of needs)
     for (const { actor, kind: is } of kin) {
-      if (is !== kind || !cooled(actor.id, need) || !holds(actor)) continue;
+      if (is !== kind || abed?.(actor.id) || !cooled(actor.id, need) || !holds(actor)) continue;
       if (need === "plot") return { id: actor.id, need, line: plotLine(plot!, "kin-partner") };
       const young = (actor.age ?? 0) < 9;
       const key = `${kind}:${need}${kind === "child" ? (young ? ":young" : ":old") : ""}`;

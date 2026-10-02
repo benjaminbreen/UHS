@@ -890,6 +890,31 @@ export const snapshotSchema = z.object({
     .strict()
     .optional(),
   introduced: z.boolean().optional(),
+  ailments: z
+    .array(
+      z.object({
+        id: z.string().max(40),
+        who: z.string().max(100),
+        since: z.number(),
+        days: z.number(),
+        course: z.enum(["mend", "linger", "die"]),
+        tended: z.boolean().optional(),
+      }).strict(),
+    )
+    .max(2000)
+    .optional(),
+  bonds: z
+    .array(
+      z.object({
+        kind: z.enum(["beloved", "match", "rival", "estranged"]),
+        with: z.string().max(100),
+        mutual: z.boolean().optional(),
+        secret: z.boolean().optional(),
+        opposed: z.boolean().optional(),
+      }).strict(),
+    )
+    .max(20)
+    .optional(),
   kin: z
     .object({
       since: z.number(),

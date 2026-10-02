@@ -20,6 +20,7 @@ when the task is actually about its subject:
 | World generation, geography | `WORLDS.md` |
 | Travel, the region map, time travel | `TRAVEL.md`, `TIME.md` |
 | Plots, kin, generations | `PLOTS.md`, `GENERATIONS.md` |
+| Health, conditions, bonds, the opening card's text | `LIVES.md` |
 | Starting scenarios | `SCENARIOS.md` |
 | Classroom / edu mode | `CLASSROOM.md` |
 | Character generation pipeline | `CHARACTER_GENERATION.md` |

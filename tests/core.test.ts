@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { doorApproach } from "../src/core/doors";
 import { createSession, createSettingSession, restoreSession } from "../src/runtime/session";
 import { startPlot } from "../src/core/plot";
-import { composeIntro, secondPerson } from "../src/core/intro";
+import { composeIntro, introText } from "../src/core/intro";
 import { unusualOf } from "../src/core/unusual";
 import { createWorld } from "../src/world/generate";
 import { packs } from "../src/content/packs";
@@ -203,17 +203,30 @@ describe("shared deterministic foundation", () => {
     expect(titles[0].intro!.body.flat().map((s) => s.ref)).toContain(e.state.plot!.cast.creditor);
     expect(composeIntro(e.state, setting, "London")).toEqual(composeIntro(structuredClone(e.state), setting, "London"));
   });
-  it("speaks to the player in the second person and remarks only on what is rare", () => {
-    expect(secondPerson("takes the sacred text exactly as written")).toBe("take the sacred text exactly as written");
-    expect(secondPerson("denies the gods")).toBe("deny the gods");
-    expect(secondPerson("addresses the dead")).toBe("address the dead");
-    expect(secondPerson("is shamed by a hoard")).toBe("are shamed by a hoard");
+  it("remarks only on what is rare", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const p = e.state.player, setting = e.world.pack.setting;
     p.stats = { strength: 50, agility: 50, endurance: 50, wit: 50, openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50 };
     expect(unusualOf(e.state.manifest.seed, p, setting, e.state.actors)).toEqual([]);
     p.stats.strength = 90;
     expect(composeIntro(e.state, setting, "London").uncommon).toBe("Nobody in London is stronger than you, and everyone knows it.");
+  });
+  it("opens on a sick child, keeps them in bed, and lets the illness run its course", () => {
+    const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
+    const e = createSettingSession(setting, "b");
+    delete e.state.plot;
+    const child = e.state.actors.find((a) => a.kind === "human" && a.id !== e.state.player.id && a.householdId && !a.mount && !a.tends && !a.guard)!;
+    child.age = 8;
+    e.state.player.relations = [...(e.state.player.relations ?? []), { other: child.id, kind: "child" }];
+    e.state.ailments = [{ id: "fever", who: child.id, since: e.state.clock - 3 * 86400, days: 6, course: "die" }];
+    expect(introText(composeIntro(e.state, setting, "London"))).toContain(`${child.name} has had a fever for three days`);
+    act(e, { type: "wait", seconds: 60 });
+    expect(child.activity).toBe("Laid up with a fever");
+    e.state.ailments[0].since = e.state.clock - 6 * 86400 + 60;
+    act(e, { type: "wait", seconds: 3600 });
+    expect(e.state.actors.some((a) => a.id === child.id)).toBe(false);
+    expect(e.state.households!.find((h) => h.id === child.householdId)!.history!.at(-1)).toMatchObject({ kind: "died", name: child.name });
+    expect(e.cards.find((c) => c.kind === "turn")?.text).toContain(`${child.name}, your`);
   });
   it("sends a hungry child to the player, minds being ignored, and eats what it is given", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
