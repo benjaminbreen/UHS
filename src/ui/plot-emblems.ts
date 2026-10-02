@@ -26,6 +26,62 @@ export function drawEmblem(
   o: { marks: number; ending?: string },
 ) {
   if (look.emblem === "slate") slate(ctx, look.palette, t, o);
+  else dawn(ctx, look.palette, t);
+}
+
+/** A life with no plot: first light over the hills, and a lit window. */
+function dawn(ctx: CanvasRenderingContext2D, pal: PlotLook["palette"], t: number) {
+  const ink = rgb(pal.ink), fill = rgb(pal.fill), wood = rgb(pal.edge), light = rgb(pal.light), glow = rgb(pal.accent);
+  const px = (x: number, y: number, c: string) => {
+    ctx.fillStyle = c;
+    ctx.fillRect(x, y, 1, 1);
+  };
+  const rise = ease(t / 1600);
+  const sunX = 54, sunY = Math.round(46 - 9 * rise);
+  const ridge = (x: number) => 41 + Math.round(3 * Math.sin(x / 13) + 1.6 * Math.sin(x / 5.3));
+  const ground = (x: number) => 50 + Math.round(2.5 * Math.sin(x / 21 + 1));
+  for (let y = 0; y < EMBLEM_H; y++)
+    for (let x = 0; x < EMBLEM_W; x++) {
+      const b = BAYER[(y % 4) * 4 + (x % 4)];
+      if (y >= ground(x)) {
+        px(x, y, mix(ink, wood, y === ground(x) ? 0.32 : 0.18));
+        continue;
+      }
+      if (y >= ridge(x)) {
+        px(x, y, mix(ink, fill, 0.55));
+        continue;
+      }
+      // Sky in hard bands, dithered at each edge: dark above, warm at the hills.
+      const h = y / 44 + (b - 0.5) * 0.18;
+      const d = Math.hypot(x - sunX, (y - sunY) * 1.4);
+      const warm = Math.max(0, 1 - d / 46) * rise;
+      const sky = h < 0.35 ? mix(ink, fill, 0.2) : h < 0.6 ? mix(ink, fill, 0.6) : h < 0.82 ? mix(fill, glow, 0.18) : mix(fill, glow, 0.38);
+      px(x, y, warm > 0.55 + b * 0.3 ? mix(fill, glow, 0.55) : sky);
+      if (d < 6.5 && y < ridge(x)) px(x, y, d < 5 ? mix(light, glow, 0.25) : mix(glow, fill, 0.2));
+    }
+  // A few stars still out where the sky is dark.
+  for (let i = 0; i < 14; i++) {
+    const x = Math.floor(hash(i) * EMBLEM_W), y = Math.floor(hash(i + 50) * 16);
+    if (Math.hypot(x - sunX, y - sunY) > 30 && hash(i + 7) > rise * 0.6) px(x, y, mix(ink, light, 0.55));
+  }
+  // The house, its roof, and the one window already lit.
+  const hx = 112, hy = ground(hx) - 7;
+  ctx.fillStyle = mix(ink, wood, 0.55);
+  ctx.fillRect(hx, hy, 12, 7);
+  for (let i = 0; i < 5; i++) {
+    ctx.fillStyle = mix(ink, wood, 0.35);
+    ctx.fillRect(hx - 1 + i, hy - 1 - i, 14 - i * 2, 1);
+  }
+  ctx.fillStyle = mix(ink, wood, 0.15);
+  ctx.fillRect(hx + 2, hy + 3, 2, 4);
+  ctx.fillStyle = Math.floor(t / 900) % 7 === 3 ? mix(glow, light, 0.2) : mix(glow, light, 0.45);
+  ctx.fillRect(hx + 7, hy + 2, 2, 2);
+  // Dithered away to the wall colour at both ends, as the slate's candlelight is.
+  for (let y = 0; y < EMBLEM_H; y++)
+    for (let x = 0; x < EMBLEM_W; x++) {
+      const edge = Math.min(x, EMBLEM_W - 1 - x) / 18;
+      if (edge < 1 && BAYER[(y % 4) * 4 + (x % 4)] > edge) px(x, y, pal.ink);
+    }
 }
 
 function slate(

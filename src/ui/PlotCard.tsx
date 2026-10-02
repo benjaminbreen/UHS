@@ -1,46 +1,34 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { formatHistoricalYear } from "../core/calendar";
 import { seasonAt } from "../core/livelihood";
 import { sexOf } from "../core/brief";
 import { kinOf } from "../core/kin";
 import { plotLine, plotTemplate, type PlotCard as Card } from "../core/plot";
-import { ROLE_NAMES } from "../content/plots";
+import { settlementName, type IntroSpan } from "../core/intro";
 import type { PlotLook } from "../content/plots/types";
 import { gameAudio } from "../audio/director";
 import { drawEmblem, EMBLEM_H, EMBLEM_W } from "./plot-emblems";
+import { patternFor } from "./culture-theme";
 import type { Runtime } from "../runtime/session";
 import "./plot-card.css";
 
-type Member = { id: string; name: string; role: string; line: string; mark: "kin" | "plot" };
+/** Which dress the story cards wear: the framed slate, or the first pixel card. */
+export type StoryLook = "framed" | "pixel";
+export const STORY_LOOK_KEY = "uhs.storyCards";
 
+/** A life with no plot gets first light over the hills, in the game's own blues. */
+const DAWN: PlotLook = {
+  emblem: "dawn",
+  palette: { ink: "#0c1226", fill: "#1b2547", edge: "#7a5c34", light: "#eee8dc", accent: "#e3b455" },
+};
 const KIN: Record<string, [string, string, string]> = {
-  partner: ["Wife", "Husband", "Partner"],
-  child: ["Daughter", "Son", "Child"],
-  parent: ["Mother", "Father", "Parent"],
-  sibling: ["Sister", "Brother", "Sibling"],
+  partner: ["wife", "husband", "partner"],
+  child: ["daughter", "son", "child"],
+  parent: ["mother", "father", "parent"],
+  sibling: ["sister", "brother", "sibling"],
 };
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-/** Who the staged version introduces: the plot's people, then the player's own. */
-function castOf(runtime: Runtime): Member[] {
-  const s = runtime.engine.state, plot = s.plot;
-  const byId = new Map(s.actors.map((a) => [a.id, a]));
-  const drawn: Member[] = plot
-    ? Object.entries(plot.cast).flatMap(([role, id]) => {
-        const a = byId.get(id);
-        return a ? [{ id, name: a.name, role: ROLE_NAMES[role as keyof typeof ROLE_NAMES] ?? role, line: plotLine(plot, `cast-${role}`), mark: "plot" as const }] : [];
-      })
-    : [];
-  const kin = kinOf(s).flatMap(({ actor: a, kind }) => {
-    const names = KIN[kind];
-    if (drawn.some((m) => m.id === a.id)) return [];
-    const sex = sexOf(a);
-    const role = names[sex === "female" ? 0 : sex === "male" ? 1 : 2];
-    return [{ id: a.id, name: a.name, role, line: `Your ${role.toLowerCase()}${a.age === undefined ? "" : `, ${a.age}`}.`, mark: "kin" as const }];
-  });
-  return [...drawn, ...kin].slice(0, 6);
-}
 
 function Emblem({ look, marks, ending }: { look: PlotLook; marks: number; ending?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -65,6 +53,63 @@ function Emblem({ look, marks, ending }: { look: PlotLook; marks: number; ending
   return <canvas ref={ref} className="plot-emblem" width={EMBLEM_W} height={EMBLEM_H} aria-hidden="true" />;
 }
 
+/** The card's title in the dress of the game's wordmark: condensed Western
+ * capitals, cream over pale blue, a navy block under them, at native pixels. */
+function Wordmark({ text }: { text: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let live = true;
+    const H = 22, squeeze = 0.7, font = (px: number) => `${px}px Rye, Georgia, serif`;
+    void document.fonts.load(font(H)).catch(() => {}).then(() => {
+      const c = ref.current;
+      if (!live || !c) return;
+      // Small capitals: each word's first letter full height, the rest smaller.
+      const parts = text.split(" ").flatMap((word, i) => [
+        ...(i ? [{ t: " ", px: Math.round(H * 0.8) }] : []),
+        { t: word.charAt(0).toUpperCase(), px: H },
+        { t: word.slice(1).toUpperCase(), px: Math.round(H * 0.8) },
+      ]);
+      const ink = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+      const width = parts.reduce((w, p) => ((ink.font = font(p.px)), w + ink.measureText(p.t).width + 0.6), 0);
+      const W = Math.ceil(width * squeeze) + 6, HT = H + 7;
+      ink.canvas.width = W;
+      ink.canvas.height = HT;
+      ink.scale(squeeze, 1);
+      ink.fillStyle = "#fff";
+      let at = 2 / squeeze;
+      for (const p of parts) {
+        ink.font = font(p.px);
+        ink.fillText(p.t, at, H + 1);
+        at += ink.measureText(p.t).width + 0.6;
+      }
+      const mask = ink.getImageData(0, 0, W, HT).data;
+      const on = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < HT && mask[(y * W + x) * 4 + 3] > 100;
+      c.width = W;
+      c.height = HT;
+      const ctx = c.getContext("2d")!;
+      const out = ctx.createImageData(W, HT);
+      const put = (x: number, y: number, rgb: number[]) => out.data.set([...rgb, 255], (y * W + x) * 4);
+      for (let y = 0; y < HT; y++)
+        for (let x = 0; x < W; x++) {
+          if (on(x, y)) put(x, y, y < H * 0.55 ? [241, 234, 215] : [201, 208, 222]);
+          else if (on(x, y - 1) || on(x, y - 2) || on(x, y - 3)) put(x, y, [44, 47, 110]);
+          else if (on(x - 1, y) || on(x + 1, y) || on(x, y + 1)) put(x, y, [22, 24, 46]);
+        }
+      ctx.putImageData(out, 0, 0);
+      c.style.width = `${W * 2}px`;
+    });
+    return () => {
+      live = false;
+    };
+  }, [text]);
+  return (
+    <h1 className="plot-title">
+      <canvas ref={ref} aria-hidden="true" />
+      <span className="visually-hidden">{text}</span>
+    </h1>
+  );
+}
+
 // A pointing hand at native pixels: X outline, W glove, s its shade.
 const HAND = [
   "...XXXXX......",
@@ -77,11 +122,14 @@ const HAND = [
   "..XssssX......",
   "...XXXX.......",
 ];
-function Hand() {
+// The sun on the horizon, for a goal with a deadline.
+const SUN = ["......X......", "..X.......X..", "....XXXXX....", "...XXXXXXX...", "XX.XXXXXXX.XX", "..XXXXXXXXX..", "XXXXXXXXXXXXX"];
+
+function Pixels({ rows, className, size }: { rows: string[]; className: string; size: [number, number] }) {
   return (
-    <svg className="plot-hand" viewBox="0 0 14 9" width="28" height="18" aria-hidden="true" shapeRendering="crispEdges">
-      {HAND.flatMap((row, y) => [...row].flatMap((c, x) =>
-        c === "." ? [] : [<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" className={`hand-${c}`} />]))}
+    <svg className={className} viewBox={`0 0 ${rows[0].length} ${rows.length}`} width={size[0]} height={size[1]} aria-hidden="true" shapeRendering="crispEdges">
+      {rows.flatMap((row, y) => [...row].flatMap((c, x) =>
+        c === "." ? [] : [<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" className={`px-${c}`} />]))}
     </svg>
   );
 }
@@ -120,7 +168,7 @@ function Choices({ items, focus }: {
           onFocus={() => setOn(i)}
           onClick={item.pick}
         >
-          {i === on && <Hand />}
+          {i === on && <Pixels rows={HAND} className="plot-hand" size={[28, 18]} />}
           {item.label}
         </button>
       ))}
@@ -142,9 +190,86 @@ function useTyped(text: string) {
   return [text.slice(0, shown), shown >= text.length, () => setShown(text.length)] as const;
 }
 
-export function PlotCard({ runtime, card, onLook, onAnswer, onClose }: {
+/** The wooden frame of the framed look: four stepped rims, outermost first. */
+function Frame({ children }: { children: ReactNode }) {
+  return (
+    <div className="pf">
+      <div className="pf-lit">
+        <div className="pf-wood">
+          <div className="pf-dark">
+            <div className="pf-body">{children}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type Asked = { span: IntroSpan; x: number; y: number };
+
+/** What a named person or a glossed term is, under the word that named it. */
+function Ask({ runtime, asked }: { runtime: Runtime; asked: Asked }) {
+  const s = runtime.engine.state, plot = s.plot;
+  const a = asked.span.ref ? s.actors.find((x) => x.id === asked.span.ref) : undefined;
+  const role = plot && a && Object.entries(plot.cast).find(([, id]) => id === a.id)?.[0];
+  const kin = a && kinOf(s).find((k) => k.actor.id === a.id);
+  const sex = a && sexOf(a);
+  const line = role ? plotLine(plot!, `cast-${role}`)
+    : kin ? `Your ${KIN[kin.kind][sex === "female" ? 0 : sex === "male" ? 1 : 2]}.` : asked.span.note;
+  return (
+    <div className="plot-ask" data-mark={asked.span.mark} style={{ left: asked.x, top: asked.y }} role="note">
+      {a && (
+        <div className="plot-ask-face">
+          <CharacterSprite appearance={runtime.appearanceFor(a)} age={a.age} portrait facing={npcFacing(a.id)} />
+        </div>
+      )}
+      <div>
+        <strong>{a?.name ?? asked.span.text}</strong>
+        {a && <small>{a.role}{a.age === undefined ? "" : `, ${a.age}`}</small>}
+        {line && <p>{line}</p>}
+      </div>
+    </div>
+  );
+}
+
+function Prose({ body, uncommon, onAsk }: {
+  body: IntroSpan[][];
+  uncommon?: string;
+  onAsk: (span: IntroSpan, at: HTMLElement) => void;
+}) {
+  return (
+    <div className="plot-prose">
+      {body.map((p, i) => (
+        <p key={i}>
+          {p.map((span, j) =>
+            span.ref || span.note ? (
+              <button key={j} type="button" className="plot-ref" data-mark={span.mark} onClick={(e) => onAsk(span, e.currentTarget)}>
+                {span.text}
+              </button>
+            ) : (
+              span.text
+            ))}
+        </p>
+      ))}
+      {uncommon && <p className="plot-uncommon">{uncommon}</p>}
+    </div>
+  );
+}
+
+/** The goal, with its deadline picked out. */
+function Goal({ aim, due }: { aim: string; due?: string }) {
+  const at = due ? aim.lastIndexOf(due) : -1;
+  return (
+    <p className="plot-goal">
+      {at < 0 ? aim : <>{aim.slice(0, at)}<em>{due}</em>{aim.slice(at + due!.length)}</>}
+    </p>
+  );
+}
+
+export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose }: {
   runtime: Runtime;
   card: Card;
+  look: StoryLook;
   /** Points the camera at someone, or back at the player with none. */
   onLook: (id?: string) => void;
   /** Opens the conversation with whoever just spoke. */
@@ -152,27 +277,25 @@ export function PlotCard({ runtime, card, onLook, onAnswer, onClose }: {
   onClose: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
-  const [staged, setStaged] = useState(false);
-  const [step, setStep] = useState(0);
-  const cast = useMemo(() => castOf(runtime), [runtime]);
+  const [asked, setAsked] = useState<Asked>();
   const begin = useRef<HTMLButtonElement>(null);
+  const section = useRef<HTMLElement>(null);
   const plot = runtime.engine.state.plot;
-  const look = (plot && plotTemplate(plot)?.look) ?? {
-    emblem: "slate" as const,
-    palette: { ink: "#10141c", fill: "#1b2330", edge: "#4a3a2a", light: "#ece4d0", accent: "#b8483a" },
-  };
+  const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
+  const setting = runtime.engine.world.pack.setting;
   const colours = {
     "--ink": look.palette.ink,
     "--fill": look.palette.fill,
     "--edge": look.palette.edge,
     "--light": look.palette.light,
     "--accent": look.palette.accent,
+    "--culture-pattern": patternFor(setting?.culture),
   } as CSSProperties;
-  const setting = runtime.engine.world.pack.setting;
   const season = setting && seasonAt(setting.season, runtime.engine.state.clock);
-  const where = setting
-    ? `${setting.location} · ${season ? `${season}, ` : ""}${formatHistoricalYear(setting.year)}`
-    : "";
+  const name = settlementName(runtime.engine.world.pack.name);
+  const when = setting ? `${season ? `${season}, ` : ""}${formatHistoricalYear(setting.year)}` : "";
+  // A card titled with the place need not name it twice.
+  const where = setting ? (card.title === name ? when.charAt(0).toUpperCase() + when.slice(1) : `${name} · ${when}`) : "";
   const speaker = card.speaker ? runtime.engine.state.actors.find((a) => a.id === card.speaker) : undefined;
   const [typed, done, finish] = useTyped(card.kind === "speech" || card.kind === "turn" ? card.text : "");
   const close = (then?: () => void) => {
@@ -184,139 +307,132 @@ export function PlotCard({ runtime, card, onLook, onAnswer, onClose }: {
       then?.();
     }, still() ? 0 : 180);
   };
+  const ask = (span: IntroSpan, at: HTMLElement) => {
+    if (asked?.span === span) return setAsked(undefined);
+    const box = section.current!.getBoundingClientRect(), r = at.getBoundingClientRect();
+    setAsked({ span, x: Math.max(8, Math.min(r.left - box.left, box.width - 288)), y: r.bottom - box.top + 6 });
+    if (span.ref) onLook(span.ref);
+  };
   useEffect(() => {
     begin.current?.focus();
     onLook(card.focus ?? card.speaker);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    if (!staged) return;
-    onLook(cast[step]?.id);
-    if (step >= cast.length - 1) return;
-    const t = window.setTimeout(() => setStep((i) => i + 1), 3400);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staged, step]);
-  useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape") asked ? setAsked(undefined) : close();
       else if (!done && (e.key === "Enter" || e.key === " ")) finish();
-      else if (staged && e.key === "ArrowRight") setStep((i) => Math.min(cast.length - 1, i + 1));
-      else if (staged && e.key === "ArrowLeft") setStep((i) => Math.max(0, i - 1));
       else return;
       e.preventDefault();
     };
+    const away = (e: MouseEvent) => {
+      if (!(e.target as Element).closest?.(".plot-ask, .plot-ref")) setAsked(undefined);
+    };
     window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
+    window.addEventListener("mousedown", away);
+    return () => {
+      window.removeEventListener("keydown", key);
+      window.removeEventListener("mousedown", away);
+    };
   });
 
-  if (card.kind === "speech" || card.kind === "turn")
+  if (card.kind === "speech" || card.kind === "turn") {
+    const body = (
+      <>
+        {speaker && (
+          <div className="plot-portrait">
+            <CharacterSprite
+              appearance={runtime.appearanceFor(speaker)}
+              age={speaker.age}
+              portrait
+              speaking={!done}
+              facing={npcFacing(speaker.id)}
+            />
+          </div>
+        )}
+        <div className="plot-speech-body">
+          <span className="plot-name">{speaker?.name ?? card.title}</span>
+          <p aria-live="polite">
+            {typed}
+            {!done && <span className="plot-rest" aria-hidden="true">{card.text.slice(typed.length)}</span>}
+          </p>
+          <div className="plot-speech-actions" data-ready={done || undefined}>
+            <Choices
+              focus={begin}
+              items={[
+                ...(speaker && runtime.engine.approacher?.id === speaker.id
+                  ? [{ label: "Answer", pick: () => close(() => onAnswer(speaker.id)), primary: true }]
+                  : []),
+                { label: speaker ? "Later" : "Continue", pick: () => (done ? close() : finish()) },
+              ]}
+            />
+          </div>
+        </div>
+      </>
+    );
     return (
-      <div className="plot-floor" style={colours} data-leaving={leaving || undefined}>
+      <div className="plot-floor" data-look={dress} style={colours} data-leaving={leaving || undefined}>
         <section
-          className="plot-frame plot-speech"
+          className="plot-speech"
           data-portrait={speaker ? true : undefined}
           role="dialog"
           aria-label={speaker ? `${speaker.name} speaks` : card.title}
           onClick={() => !done && finish()}
         >
-          {speaker && (
-            <div className="plot-portrait">
-              <CharacterSprite
-                appearance={runtime.appearanceFor(speaker)}
-                age={speaker.age}
-                portrait
-                speaking={!done}
-                facing={npcFacing(speaker.id)}
-              />
-            </div>
-          )}
-          <div className="plot-speech-body">
-            <span className="plot-name">{speaker?.name ?? card.title}</span>
-            <p aria-live="polite">
-              {typed}
-              {!done && <span className="plot-rest" aria-hidden="true">{card.text.slice(typed.length)}</span>}
-            </p>
-            <div className="plot-speech-actions" data-ready={done || undefined}>
-              <Choices
-                focus={begin}
-                items={[
-                  ...(speaker && runtime.engine.approacher?.id === speaker.id
-                    ? [{ label: "Answer", pick: () => close(() => onAnswer(speaker.id)), primary: true }]
-                    : []),
-                  { label: speaker ? "Later" : "Continue", pick: () => (done ? close() : finish()) },
-                ]}
-              />
-            </div>
-          </div>
+          {dress === "framed" ? <Frame><div className="plot-speech-row">{body}</div></Frame> : <div className="plot-frame plot-speech-row">{body}</div>}
         </section>
-      </div>
-    );
-
-  if (staged) {
-    const m = cast[step];
-    return (
-      <div className="plot-stage" style={colours} data-leaving={leaving || undefined} role="dialog" aria-label={`${card.title}: the people`}>
-        <div className="plot-bar plot-bar-top"><span>{card.title}</span><small>{where}</small></div>
-        {m && (
-          <div className="plot-frame plot-who" key={m.id} data-mark={m.mark} aria-live="polite">
-            <small>{m.role}</small>
-            <strong>{m.name}</strong>
-            <p>{m.line}</p>
-          </div>
-        )}
-        <div className="plot-bar plot-bar-bottom">
-          <ol className="plot-row">
-            {cast.map((c, i) => {
-              const a = runtime.engine.state.actors.find((x) => x.id === c.id);
-              return (
-                <li key={c.id} data-mark={c.mark} data-on={i === step || undefined} style={{ animationDelay: `${i * 90}ms` }}>
-                  <button onClick={() => setStep(i)} aria-label={`${c.role}: ${c.name}`}>
-                    {a && <CharacterSprite appearance={runtime.appearanceFor(a)} age={a.age} portrait />}
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-          <div className="plot-stage-actions">
-            <Choices
-              focus={begin}
-              items={[
-                ...(step < cast.length - 1 ? [{ label: "Next", pick: () => setStep(step + 1) }] : []),
-                { label: "Begin", pick: () => close(), primary: true },
-              ]}
-            />
-          </div>
-        </div>
       </div>
     );
   }
 
+  const intro = card.intro;
+  const text = intro
+    ? <Prose body={intro.body} uncommon={intro.uncommon} onAsk={ask} />
+    : <div className="plot-prose"><p>{card.text}</p></div>;
+  const choices = (
+    <Choices
+      focus={begin}
+      items={[{ label: card.kind === "ending" ? "Go on living" : "Continue", pick: () => close(), primary: true }]}
+    />
+  );
+  const emblem = (
+    <div className="plot-scene">
+      <Emblem look={look} marks={Math.max(1, Math.min(15, plot?.total ?? 5))} ending={card.ending} />
+    </div>
+  );
+  const place = card.kind === "ending" ? `${where} · the end` : where;
   return (
-    <div className="plot-veil" style={colours} data-leaving={leaving || undefined}>
-      <section className="plot-frame plot-card" data-kind={card.kind} role="dialog" aria-label={card.title}>
-        <div className="plot-scene">
-          <Emblem look={look} marks={Math.max(1, Math.min(15, plot?.total ?? 5))} ending={card.ending} />
-          {where && <small className="plot-where">{card.kind === "ending" ? `${where} · the end` : where}</small>}
-        </div>
-        <h1 aria-label={card.title}>
-          {[...card.title].map((ch, i) => (
-            <span key={i} aria-hidden="true" style={{ animationDelay: `${200 + i * 45}ms` }}>{ch === " " ? " " : ch}</span>
-          ))}
-        </h1>
-        <p className="plot-text">{card.text}</p>
-        {card.aim && <p className="plot-aim"><small>What you must do</small>{card.aim}</p>}
-        <div className="plot-actions">
-          <Choices
-            focus={begin}
-            items={[
-              { label: card.kind === "title" ? "Begin" : "Go on living", pick: () => close(), primary: true },
-              ...(card.kind === "title" && cast.length > 0
-                ? [{ label: `More · ${cast.length} ${cast.length === 1 ? "person" : "people"}`, pick: () => setStaged(true) }]
-                : []),
-            ]}
-          />
-        </div>
+    <div className="plot-veil" data-look={dress} style={colours} data-leaving={leaving || undefined}>
+      <section ref={section} className="plot-card" data-kind={card.kind} role="dialog" aria-label={card.title}>
+        {dress === "framed" ? (
+          <Frame>
+            <i className="plot-band" aria-hidden="true" />
+            {emblem}
+            <div className="plot-copy">
+              <header className="plot-head">
+                <Wordmark text={card.title} />
+                {place && <small>{place}</small>}
+              </header>
+              {text}
+              <footer className="plot-foot">
+                {card.aim && <Pixels rows={SUN} className="plot-sun" size={[26, 14]} />}
+                {card.aim ? <Goal aim={card.aim} due={plot?.words.due} /> : <span className="plot-goal" />}
+                {choices}
+              </footer>
+            </div>
+            <i className="plot-band" aria-hidden="true" />
+          </Frame>
+        ) : (
+          <div className="plot-frame plot-old">
+            {emblem}
+            {place && <small className="plot-where">{place}</small>}
+            <Wordmark text={card.title} />
+            {text}
+            {card.aim && <div className="plot-aim"><small>What you must do</small><Goal aim={card.aim} due={plot?.words.due} /></div>}
+            <div className="plot-actions">{choices}</div>
+          </div>
+        )}
+        {asked && <Ask runtime={runtime} asked={asked} />}
       </section>
     </div>
   );

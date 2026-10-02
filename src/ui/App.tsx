@@ -105,7 +105,7 @@ import { setRealLanguage, useRealLanguage } from "./real-language";
 import { VitalsOverlay } from "./VitalsOverlay";
 import { markEvent, vitalsEnabled, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
-import { PlotCard } from "./PlotCard";
+import { PlotCard, STORY_LOOK_KEY, type StoryLook } from "./PlotCard";
 import { type PlotCard as PlotCardData } from "../core/plot";
 import { markOf } from "../core/kin";
 import { WorldSetup } from "./WorldSetup";
@@ -369,6 +369,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, obs.clock, modal]);
   const [card, setCard] = useState<PlotCardData>();
+  const [storyLook, setStoryLook] = useState<StoryLook>(() => {
+    try {
+      return localStorage.getItem(STORY_LOOK_KEY) === "pixel" ? "pixel" : "framed";
+    } catch {
+      return "framed";
+    }
+  });
   useEffect(() => {
     if (card || modal) return;
     const next = runtime.engine.cards.shift();
@@ -881,6 +888,19 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four). F does the action shown on screen — talk, pick up, swing, throw or climb. E does the second action shown, such as putting down what you hold. Up a tree or on a wall, Space with a direction jumps down that side."
             tabIndex={0}
           />
+          {card && (
+            <PlotCard
+              runtime={runtime}
+              card={card}
+              look={storyLook}
+              onLook={lookAt}
+              onAnswer={(id) => openDialogue(id)}
+              onClose={() => {
+                runtime.hold(false);
+                setCard(undefined);
+              }}
+            />
+          )}
           {graphicsOpen && (
             <LiveGraphicsPanel
               settings={liveGraphics}
@@ -1691,18 +1711,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
         </Suspense>
       )}
-      {card && (
-        <PlotCard
-          runtime={runtime}
-          card={card}
-          onLook={lookAt}
-          onAnswer={(id) => openDialogue(id)}
-          onClose={() => {
-            runtime.hold(false);
-            setCard(undefined);
-          }}
-        />
-      )}
       {modal === "time" && <TimeModal runtime={runtime} onClose={() => setModal(null)} onNewWorld={openWorld} />}
       {modal === "evening" && evening && (
         <EveningLedger
@@ -2399,6 +2407,25 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       <option value="c">C · modelled prototype</option>
                       <option value="d">D · unfinished</option>
                       <option value="e">E · default</option>
+                    </select>
+                  </div>
+                  <div className="settings-row">
+                    <span>Story cards</span>
+                    <select
+                      aria-label="Story cards"
+                      value={storyLook}
+                      onChange={(e) => {
+                        const next = e.target.value as StoryLook;
+                        setStoryLook(next);
+                        try {
+                          localStorage.setItem(STORY_LOOK_KEY, next);
+                        } catch {
+                          /* private mode */
+                        }
+                      }}
+                    >
+                      <option value="framed">Framed</option>
+                      <option value="pixel">Pixel</option>
                     </select>
                   </div>
                   <h3>Narrator</h3>

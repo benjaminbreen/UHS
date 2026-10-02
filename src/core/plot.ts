@@ -4,6 +4,7 @@ import { random } from "./random";
 import type { Condition, Effect, PlotContext } from "../content/plots/types";
 import type { Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
+import type { Intro } from "./intro";
 
 export type PlotState = {
   id: string;
@@ -11,6 +12,8 @@ export type PlotState = {
   /** Which of the template's wordings, chosen by scope at the start. */
   wording: number;
   words: Record<string, string>;
+  /** Which words name someone: `creditor` to the creditor's id. */
+  refs?: Record<string, string>;
   cast: Record<string, string>;
   began: number;
   deadline: number;
@@ -29,6 +32,8 @@ export type PlotCard = {
   kind: "title" | "turn" | "speech" | "ending";
   title: string;
   text: string;
+  /** The opening paragraphs, for the title card. */
+  intro?: Intro;
   aim?: string;
   /** Who the camera finds while the card is up. */
   focus?: string;
@@ -76,6 +81,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
     title: chosen.wording[wording].title,
     wording,
     words: begun.words,
+    refs: begun.refs,
     cast: Object.fromEntries(Object.entries(cast).map(([role, a]) => [role, a!.id])),
     began: snapshot.clock,
     deadline: begun.deadline,

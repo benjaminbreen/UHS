@@ -83,6 +83,7 @@ import { commissionFor } from "./agenda";
 import { advanceLifeAim } from "./life-aim";
 import { endPlot, plotLine, stepPlot, type PlotCard } from "./plot";
 import { kinCall } from "./kin";
+import { composeIntro, introText, settlementName } from "./intro";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
@@ -6649,13 +6650,25 @@ export class Engine {
     this.affront(a);
     this.event(`You run full into ${a.name}, who rounds on you.`, "social");
   }
+  /** The opening card, once a life: who and where you are, and the plot. */
+  private introduce() {
+    const s = this.state, setting = this.world.pack.setting;
+    const place = settlementName(this.world.pack.name);
+    s.introduced = true;
+    const intro = composeIntro(s, setting, place);
+    this.cards.unshift({
+      kind: "title",
+      title: s.plot?.title ?? place,
+      text: introText(intro),
+      intro,
+      aim: s.lifeAim?.text,
+    });
+  }
   private runPlot() {
     const s = this.state, plot = s.plot!;
     for (const e of stepPlot(s)) {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
-      if (e.type === "title")
-        this.cards.push({ kind: "title", title: plot.title, text: plotLine(plot, e.line), aim: s.lifeAim?.text });
-      else if (e.type === "card")
+      if (e.type === "card")
         this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, e.line), focus: e.focus && plot.cast[e.focus] });
       else if (e.type === "approach" && who)
         this.approaching = { id: who.id, line: plotLine(plot, e.line), until: s.clock + 7200 };
@@ -7353,6 +7366,7 @@ export class Engine {
                 (this.knows("long-stride") ? 1.25 : 1)),
       );
       if (next % 6 !== 0) continue;
+      if (!this.state.introduced) this.introduce();
       if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
       if (next % 600 === 0) this.kinStep(next);
       if (this.approaching) this.approach(next);

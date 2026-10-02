@@ -579,6 +579,8 @@ export type Snapshot = {
   lifeAim?: import("../content/goals/types").PersonalAim;
   plot?: import("./plot").PlotState;
   kin?: import("./kin").KinState;
+  /** The opening card has been shown for this life. */
+  introduced?: boolean;
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
   /** What the player's day has held so far, for the evening's account. */

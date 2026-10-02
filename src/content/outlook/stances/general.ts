@@ -19,7 +19,7 @@ export const generals: readonly Stance[] = [
     label: "The dead remain among the living",
     short: "Ghost-minded",
     icon: "ancestors",
-    clause: "keeps the household dead close and fed",
+    clause: "keeps the household's dead close and fed",
     kind: "cosmic",
     tags: ["traditionalist", "oral", "devout"],
     scope: { years: ALL },

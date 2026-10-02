@@ -28,8 +28,6 @@ export type Condition =
 
 export type Effect =
   | { type: "approach"; role: PlotRole; line: string }
-  /** The plot's title card, once, at the start. */
-  | { type: "title"; line: string }
   /** A turn: the world stops and the card shows this line, the camera on `focus`. */
   | { type: "card"; line: string; focus?: PlotRole }
   | { type: "regard"; role: PlotRole; delta: number }
@@ -47,7 +45,7 @@ export type PlotWording = {
 /** How the plot's cards look: a drawn emblem and the five colours its frame,
  * text and emblem share. */
 export type PlotLook = {
-  emblem: "slate";
+  emblem: "slate" | "dawn";
   palette: { ink: string; fill: string; edge: string; light: string; accent: string };
 };
 
@@ -61,6 +59,8 @@ export type PlotTemplate = {
     deadline: number;
     owed?: number;
     words: Record<string, string>;
+    /** The words that name someone, by word: `creditor` to the creditor's id. */
+    refs?: Record<string, string>;
   };
   opening: Effect[];
   developments: { id: string; when: Condition; then: Effect[] }[];

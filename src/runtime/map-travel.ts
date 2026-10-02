@@ -357,6 +357,7 @@ export class MapTravel {
     next.ledger = source.ledger;
     next.narration = source.narration;
     next.plot = source.plot;
+    next.introduced = source.introduced;
     next.lifeAim = source.lifeAim;
     this.visited.delete(to);
     this.id = to;

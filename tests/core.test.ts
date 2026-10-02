@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { doorApproach } from "../src/core/doors";
 import { createSession, createSettingSession, restoreSession } from "../src/runtime/session";
 import { startPlot } from "../src/core/plot";
+import { composeIntro, secondPerson } from "../src/core/intro";
+import { unusualOf } from "../src/core/unusual";
 import { createWorld } from "../src/world/generate";
 import { packs } from "../src/content/packs";
 import { findPath } from "../src/core/pathfinding";
@@ -188,6 +190,30 @@ describe("shared deterministic foundation", () => {
     e.state.player.inventory.coin = next.owed!;
     expect(act(e, { type: "interact", target: creditor.id, action: "pay" }).status).toBe("completed");
     expect(next.ended).toBe("paid");
+  });
+  it("opens a life with one card naming the player, the place and the plot's people", () => {
+    const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
+    const e = createSettingSession(setting, "b");
+    act(e, { type: "wait", seconds: 60 });
+    act(e, { type: "wait", seconds: 60 });
+    const titles = e.cards.filter((c) => c.kind === "title");
+    expect(titles).toHaveLength(1);
+    expect(titles[0].text).toContain(`You are ${e.state.player.name}`);
+    expect(titles[0].text).not.toMatch(/undefined|[{}]/);
+    expect(titles[0].intro!.body.flat().map((s) => s.ref)).toContain(e.state.plot!.cast.creditor);
+    expect(composeIntro(e.state, setting, "London")).toEqual(composeIntro(structuredClone(e.state), setting, "London"));
+  });
+  it("speaks to the player in the second person and remarks only on what is rare", () => {
+    expect(secondPerson("takes the sacred text exactly as written")).toBe("take the sacred text exactly as written");
+    expect(secondPerson("denies the gods")).toBe("deny the gods");
+    expect(secondPerson("addresses the dead")).toBe("address the dead");
+    expect(secondPerson("is shamed by a hoard")).toBe("are shamed by a hoard");
+    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const p = e.state.player, setting = e.world.pack.setting;
+    p.stats = { strength: 50, agility: 50, endurance: 50, wit: 50, openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50 };
+    expect(unusualOf(e.state.manifest.seed, p, setting, e.state.actors)).toEqual([]);
+    p.stats.strength = 90;
+    expect(composeIntro(e.state, setting, "London").uncommon).toBe("Nobody in London is stronger than you, and everyone knows it.");
   });
   it("sends a hungry child to the player, minds being ignored, and eats what it is given", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");

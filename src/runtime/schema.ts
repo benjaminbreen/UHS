@@ -876,6 +876,7 @@ export const snapshotSchema = z.object({
       title: z.string().max(80),
       wording: z.number().int().nonnegative(),
       words: z.record(z.string().max(40), z.string().max(160)),
+      refs: z.record(z.string().max(40), z.string().max(100)).optional(),
       cast: z.record(z.string().max(40), z.string().max(100)),
       began: z.number(),
       deadline: z.number(),
@@ -888,6 +889,7 @@ export const snapshotSchema = z.object({
     })
     .strict()
     .optional(),
+  introduced: z.boolean().optional(),
   kin: z
     .object({
       since: z.number(),
