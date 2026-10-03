@@ -6,6 +6,7 @@ import { modern } from "./modern";
 import { northAfrica } from "./north-africa";
 import { baths, gatherings, taverns } from "./public";
 import { worship } from "./worship";
+import { civic } from "./civic";
 import { prehistoric } from "./prehistoric";
 import { southAsia } from "./south-asia";
 import { tents } from "./tents";
@@ -28,6 +29,7 @@ export const publicInteriorGroups: { label: string; profiles: InteriorProfile[] 
   { label: "Gathering", profiles: gatherings },
   { label: "Baths", profiles: baths },
   { label: "Worship", profiles: worship },
+  { label: "Civic and schools", profiles: civic },
 ];
 export const interiorProfiles = [...interiorGroups, ...publicInteriorGroups].flatMap((g) => g.profiles);
 export const interiorProfile = (id: string) => interiorProfiles.find((p) => p.id === id);

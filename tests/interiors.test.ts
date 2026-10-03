@@ -145,6 +145,8 @@ describe("interior profiles", () => {
       { id: "roman-baths", lon: 14.5, lat: 40.75, year: 70, use: "venue.bath-house", seat: "ledge", also: ["pool", "basin", "brazier"] },
       { id: "hammam", lon: 29, lat: 41, year: 1600, use: "venue.hammam", seat: "ledge", also: ["slab", "basin", "pool"] },
       { id: "sento", lon: 139.7, lat: 35.7, year: 1800, use: "venue.sento", seat: "ledge", also: ["pool"] },
+      { id: "madrasa", lon: 51.7, lat: 32.7, year: 1650, use: "venue.madrasa", seat: "cushions", also: ["lectern"] },
+      { id: "quranic-school", lon: -3, lat: 16.8, year: 1500, use: "venue.quranic-school", seat: "cushions", also: ["lectern"] },
     ];
     for (const { id, seat, also, ...site } of sites)
       for (const fortune of [0.1, 0.5, 0.9])
@@ -183,6 +185,11 @@ describe("interior profiles", () => {
       { id: "classical-temple", lon: 12.5, lat: 41.9, year: 100, use: "venue.temple-precinct" },
       { id: "mesopotamian-temple", lon: 44.4, lat: 32.5, year: -2000, use: "religious.mesopotamian-temple" },
       { id: "maya-temple", lon: -89.6, lat: 17.2, year: 700, use: "religious.maya-temple-pyramid" },
+      { id: "council-chamber", lon: 4.4, lat: 51.2, year: 1550, use: "venue.town-hall" },
+      { id: "roman-basilica", lon: 14.5, lat: 40.75, year: 70, use: "civic.republican-imperial-italy" },
+      { id: "grammar-school", lon: -1.3, lat: 51, year: 1600, use: "venue.school" },
+      { id: "board-school", lon: -0.1, lat: 51.5, year: 1900, use: "venue.school" },
+      { id: "terakoya", lon: 139.7, lat: 35.7, year: 1800, use: "venue.terakoya" },
     ];
     for (const { id, ...site } of sites)
       for (const fortune of [0.1, 0.9])

@@ -175,7 +175,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   };
   const seats = [
     ...of(SEATS).flatMap((q) =>
-      cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : q.kind === "pew" || q.kind === "prayer" ? 0 : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" || q.kind === "prayer" ? "floor" : "seat" })),
+      cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : q.kind === "pew" || q.kind === "prayer" ? 0 : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" || q.kind === "prayer" || (q.kind === "pew" && params.styles.pew === "lowdesk") ? "floor" : "seat" })),
     ),
     ...of(["table", "lowtable"]).flatMap(stands),
   ];

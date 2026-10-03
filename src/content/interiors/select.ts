@@ -73,6 +73,13 @@ const PUBLIC: Rule[] = [
   { lon: [-10, 50], lat: [28, 48], from: -600, to: 400, pick: () => "classical-temple" },
   { lon: [25, 60], lat: [28, 42], from: -3000, to: -500, pick: () => "mesopotamian-temple" },
   { lon: [-106, -84], lat: [12, 24], from: 250, to: 1550, pick: () => "maya-temple" },
+  { lon: [-11, 32], lat: [36, 72], from: 1200, to: 1900, pick: () => "council-chamber" },
+  { lon: [-10, 30], lat: [35, 48], from: -130, to: 400, pick: () => "roman-basilica" },
+  { lon: [-11, 32], lat: [36, 72], from: 1400, to: 1850, pick: () => "grammar-school" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1850, to: 1960, pick: () => "board-school" },
+  { lon: [128, 146], lat: [30, 46], from: 1600, to: 1880, pick: () => "terakoya" },
+  { lon: [-18, 75], lat: [5, 46], from: 1000, pick: () => "madrasa" },
+  { lon: [-18, 25], lat: [5, 22], from: 1100, pick: () => "quranic-school" },
 ];
 
 /** A place's claim as the key its interior is chosen by: `venue-venue.x` is
@@ -82,9 +89,43 @@ export function buildingUse(claim: string) {
   if (/^(religious|civic)-/.test(claim)) return claim.replace("-", ".");
 }
 
+const halls = new Map<string, InteriorProfile>();
+/** Where nobody has researched a town's institutions, its hall is built the
+ * way its houses are: the same walls, floors and colours, laid out to face a
+ * plain dais. Illustrative, and its note says so. */
+function meetingHall(site: InteriorSite): InteriorProfile {
+  const home = interiorProfileFor({ ...site, use: undefined });
+  const known = halls.get(home.id);
+  if (known) return known;
+  const floor = home.seating === "floor";
+  const hall: InteriorProfile = {
+    ...home,
+    id: `meeting-hall-${home.id}`,
+    label: "Meeting hall",
+    uses: ["civic.illustrative-public-hall"],
+    program: "rows",
+    regulars: { hours: [17, 20], fill: 0.3 },
+    rooms: undefined,
+    styles: { ...home.styles, altar: "dais-plain" },
+    furnish: floor ? ["cushions", "lamp", "frame"] : ["lamp", "frame"],
+    kits: undefined,
+    shapes: [home.shapes[0] === "round" || home.shapes[0] === "oval" ? home.shapes[0] : "rect"],
+    size: [13, 11],
+    fire: "none",
+    sleep: "none",
+    pole: false,
+    trades: ["household"],
+    basis: "reconstructed",
+    note: `An illustrative hall, built as ${home.label.toLowerCase()}s are: the institution and its form have not been researched for this place and date.`,
+  };
+  halls.set(home.id, hall);
+  return hall;
+}
+
 /** The interior a public building has here and now, if one has been made. */
 export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefined {
   if (!site.use) return;
+  if (site.use === "civic.illustrative-public-hall") return meetingHall(site);
   for (const r of PUBLIC) {
     if (site.lon < r.lon[0] || site.lon > r.lon[1] || site.lat < r.lat[0] || site.lat > r.lat[1]) continue;
     if (r.from !== undefined && site.year < r.from) continue;

@@ -870,6 +870,186 @@ classical()
 mesopotamian()
 maya()
 
+# ---------------------------------------------------------------- civic
+def chair(cv, x0, y0, tall, wood=('E', 'e', 'q'), seat='R'):
+    """A chair seen from the front: back of `tall` px, seat, legs."""
+    E, e, q = wood
+    for y in range(y0, y0 + tall):
+        cv.set(x0, y, E); cv.set(x0 + 5, y, e)
+        for x in range(x0 + 1, x0 + 5): cv.set(x, y, seat if 2 <= y - y0 < tall - 1 else e)
+    cv.set(x0, y0 - 1, E); cv.set(x0 + 5, y0 - 1, e)
+    for x in range(x0, x0 + 6): cv.set(x, y0 + tall, E if x < x0 + 3 else e); cv.set(x, y0 + tall + 1, q)
+    for y in range(y0 + tall + 2, y0 + tall + 5): cv.set(x0, y, e); cv.set(x0 + 5, y, q)
+
+def dais(cv, y0, a_max=23):
+    for y in range(y0, 62):
+        for x in range(48):
+            a = cv.a(x)
+            step = 0 if y < y0 + 5 else 1
+            if a <= a_max - step * 2:
+                cv.set(x, y, 'E' if y in (y0, y0 + 5) else ('q' if y in (y0 + 4, 61) else 'e'))
+
+def dais_europe():
+    cv = Canvas(48, 62)
+    # The cloth of estate: a tester and a hanging behind the mayor's chair.
+    for y in range(6, 44):
+        for x in range(14, 34):
+            if y < 10: cv.set(x, y, 'g' if y == 6 else ('R' if y < 9 else 'k'))
+            elif 15 <= x <= 32: cv.set(x, y, 'R' if (x - y) % 7 else 'r')
+    for x in range(14, 34, 2): cv.set(x, 10, 'g')
+    # The town's arms: a shield, quartered, on the hanging.
+    for y in range(13, 26):
+        half = 6 if y < 21 else 6 - (y - 20)
+        for x in range(int(23.5 - half), int(23.5 + half) + 1):
+            q = (x < 24) == (y < 19)
+            cv.set(x, y, 'G' if abs(x - 23.5) >= half - 0.5 or y == 13 else ('B' if q else 'g'))
+    for (x, y) in ((21, 16), (21, 17), (26, 21), (26, 22), (25, 21)): cv.set(x, y, 'g')
+    chair(cv, 21, 29, 15)
+    chair(cv, 6, 36, 8)
+    chair(cv, 36, 36, 8)
+    dais(cv, 49)
+    cv.right(shade={'E': 'e', 'g': 'h'})
+    SPRITES['dais-europe'] = {'rows': cv.rows(), 'ink': {**GOLD, 'R': 0x8a1e26, 'r': 0x6a1420, 'B': 0x2a3a8a,
+        'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1]}}
+
+def tribunal():
+    cv = Canvas(48, 62)
+    for y in range(2, 46):   # the apse niche, painted, with the emperor's statue
+        for x in range(8, 40):
+            r = math.hypot(x - 23.5, y - 18)
+            if y < 18 and r > 15.5: continue
+            rim = r > 14.5 or x in (8, 39)
+            cv.set(x, y, 'M' if rim and x < 24 else ('m' if rim else ('X' if y < 30 else 'x')))
+    emperor = [
+        "....MMM....",
+        "...MMMMm...",
+        "...MSSsm...",
+        "....Mmm....",
+        "..MMMMMMm..",
+        ".MMRMMMmmm.",
+        "MM.RMMMmm.m",
+        "M..RMMMmm..",
+        "...RMMMmmm.",
+        "..MRMMMmmmm",
+        "..MRMMMmmmm",
+        "..MRMMmmmmm",
+        "..MRMMmmmmm",
+        "..MRMMmmmm.",
+        "..MRMmmmmm.",
+        "...MMmmmm..",
+        "...MM.mm...",
+        "..MMm.mmm..",
+        "mmmmmmmmmmm",
+    ]
+    cv.stamp(emperor, 18, 12)
+    for x in range(10, 38):
+        cv.set(x, 33, 'r'); cv.set(x, 35, 'r')
+        cv.set(x, 34, 'G' if x % 3 else 'r')
+    for y in range(36, 62):  # podium with steps
+        for x in range(48):
+            a = cv.a(x)
+            if y < 52 and a <= 19: cv.set(x, y, 'M' if y in (36, 37) else ('m' if (y == 51 or a == 19) else 'M'))
+            elif y >= 52 and a <= 23 - (61 - y) // 3: cv.set(x, y, 'M' if (y - 52) % 3 == 0 else 'm')
+    curule = ["G.......G", ".G.....G.", "WWWWWWWWW", "..G...G..", "...G.G...", "....G....", "...G.G...", "..G...G..", ".G.....G."]
+    cv.stamp(curule, 19, 27)
+    for x in (4, 43):   # fasces: rods bound round an axe
+        for y in range(24, 50):
+            cv.set(x, y, 'e'); cv.set(x + 1, y, 'E' if y % 4 else 'r')
+        for (dx, dy) in ((-2, 22), (-1, 22), (-2, 23), (-1, 23), (-1, 24)): cv.set(x + dx if x < 24 else x - dx + 1, dy, 'M')
+    cv.right(shade={'M': 'm'})
+    SPRITES['tribunal'] = {'rows': cv.rows(), 'ink': {**GOLD, **FLESH, 'M': 0xf0e8da, 'm': 0xc8bfae, 'X': 0x7a3a2a, 'x': 0x5a2a20,
+        'R': 0x8a2a5a, 'r': 0xa8302a, 'W': 0xf4ecdc, 'E': 0xb08a5a, 'e': 0x7a5a3a}}
+
+def dais_plain():
+    cv = Canvas(48, 62)
+    for y in range(4, 40):   # a hanging in the room's own colour
+        for x in range(16, 32):
+            if y == 4: cv.set(x, y, 'E')
+            elif y > 34 and abs(x - 23.5) > (39 - y) * 1.6: continue
+            else: cv.set(x, y, 'A' if x in (16, 31) or y in (5, 34) else ('a' if (x + y) % 9 else 'A'))
+    for y in range(12, 24):
+        for x in range(20, 28):
+            if abs(x - 23.5) + abs(y - 18) <= 5: cv.set(x, y, 'L' if abs(x - 23.5) + abs(y - 18) > 3.5 else 'G')
+    chair(cv, 21, 31, 11)
+    for y in range(40, 48):   # a plain table
+        for x in range(12, 36):
+            cv.set(x, y, 'E' if y == 40 else ('e' if y < 43 else ('q' if x in (13, 34) else '.')))
+    for x in range(15, 20): cv.set(x, 39, 'L')
+    dais(cv, 50)
+    cv.right(shade={'E': 'e'})
+    SPRITES['dais-plain'] = {'rows': cv.rows(), 'ink': {**GOLD, 'A': ['acc', 2], 'a': ['acc', 3], 'L': ['linen', 5],
+        'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1], 'R': ['acc', 2]}}
+
+def school_grammar():
+    cv = Canvas(48, 62)
+    for y in range(4, 14):   # the motto board
+        for x in range(8, 40):
+            cv.set(x, y, 'g' if y in (4, 13) or x in (8, 39) else ('h' if y in (7, 10) and x % 4 and 10 < x < 37 else 'D'))
+    for y in range(17, 27):  # hornbook and the birch
+        for x in range(9, 15): cv.set(x, y, 'E' if x in (9, 14) or y in (17, 26) else ('D' if (y + x) % 3 else 'W'))
+    cv.set(11, 27, 'E'); cv.set(12, 27, 'E'); cv.set(11, 28, 'e'); cv.set(12, 28, 'e')
+    for k in range(10): cv.set(35 + k // 3, 17 + k, 'e'); cv.set(36 + k // 3, 17 + k, 'N')
+    chair(cv, 21, 20, 13)
+    for y in range(34, 50):  # the master's raised desk
+        for x in range(13, 35):
+            if y == 34: cv.set(x, y, 'E')
+            elif y < 37: cv.set(x, y, 'e')
+            else: cv.set(x, y, 'E' if x in (13, 23) else ('q' if x in (34, 24) or y == 49 else 'e'))
+    for x in range(16, 21): cv.set(x, 33, 'W')
+    cv.set(29, 33, 'D'); cv.set(29, 32, 'W')
+    dais(cv, 50)
+    cv.right(shade={'E': 'e'})
+    SPRITES['school-grammar'] = {'rows': cv.rows(), 'ink': {**GOLD, 'D': 0x1a1618, 'W': 0xece4d0, 'N': 0x6a4a2a, 'R': 0x6a3a2a,
+        'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1]}}
+
+def school_board():
+    cv = Canvas(48, 62)
+    for y in range(6, 30):   # blackboard, chalked
+        for x in range(4, 30):
+            frame = x in (4, 29) or y in (6, 29)
+            chalk = (y in (10, 11) and 7 <= x <= 16 and (x - 7) % 4 != 3) or (y == 16 and 7 <= x <= 22 and x % 3) or (y == 21 and 7 <= x <= 19 and x % 4 != 1)
+            cv.set(x, y, 'E' if frame else ('W' if chalk else ('D' if (x + y) % 11 else 'd')))
+    for x in range(4, 30): cv.set(x, 30, 'e')
+    for y in range(6, 28):   # world map, rolled down
+        for x in range(32, 45):
+            if y == 6: cv.set(x, y, 'E')
+            else: cv.set(x, y, 'S' if ((x * 7 + y * 3) % 13 < 5 and 9 < y < 26) else 'b')
+    for y in range(34, 50):  # teacher's desk, a bell and a globe on it
+        for x in range(10, 38):
+            cv.set(x, y, 'E' if y == 34 else ('e' if y < 38 else ('q' if x in (10, 37) or y == 49 else ('e' if x in (11, 36) else '.'))))
+    for (x, y, c) in ((15, 32, 'G'), (14, 33, 'g'), (15, 33, 'g'), (16, 33, 'h')): cv.set(x, y, c)
+    ellipse(cv, 30, 29, 2.6, 2.6, lambda e, x, y: 'S' if (x + y) % 3 == 0 else 'b')
+    cv.set(30, 32, 'g'); cv.set(30, 33, 'g')
+    dais(cv, 50)
+    cv.right(shade={'E': 'e'})
+    SPRITES['school-board'] = {'rows': cv.rows(), 'ink': {**GOLD, 'D': 0x2a3430, 'd': 0x34403a, 'W': 0xe8ece4, 'S': 0xc8b878, 'b': 0x6a9ab8,
+        'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1]}}
+
+def terakoya():
+    cv = Canvas(48, 62)
+    for k, x0 in enumerate((6, 13, 20, 27, 34)):   # calligraphy models hung up
+        for y in range(6, 30):
+            for x in range(x0, x0 + 6):
+                cv.set(x, y, 'P' if y == 6 or x in (x0, x0 + 5) else ('K' if (x - x0 in (2, 3) and (y - 8) % 5 in (0, 1, 2) and y < 28 and (y + k) % 7) else 'W'))
+    for y in range(40, 50):  # the master's low desk: brush, inkstone, paper
+        for x in range(12, 36):
+            cv.set(x, y, 'E' if y == 40 else ('e' if y < 43 else ('q' if x in (13, 34) else '.')))
+    for x in range(15, 23): cv.set(x, 39, 'W')
+    for x in (26, 27, 28): cv.set(x, 39, 'K')
+    for y in range(35, 40): cv.set(31, y, 'N')
+    cv.set(31, 34, 'K')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    SPRITES['terakoya'] = {'rows': cv.rows(), 'ink': {**GOLD, 'W': 0xf0eadc, 'K': 0x1a1418, 'P': 0x8a6a4a, 'N': 0x6a4a2a,
+        'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1], 'T': ['floor', 4], 't': ['floor', 3]}}
+
+dais_europe()
+tribunal()
+dais_plain()
+school_grammar()
+school_board()
+terakoya()
+
 import os
 with open(os.path.join(os.path.dirname(__file__), '../../src/render/interiors/altars.ts'), 'w') as out:
     out.write('// Generated by scripts/art/compose_altars.py; edit the art there and rerun it.\n')

@@ -1968,7 +1968,7 @@ export class PixelRoom {
         break;
       }
       case "cushions": {
-        if (p.program === "rows") {
+        if (p.program && !p.styles.cushions) {
           // A flat kneeling cushion, piped at the edge.
           const A = P.acc, y0 = Y + PD - 9;
           this.r(X + 2, y0, 12, 6, (i, j) => (j === 0 ? A[4] : j === 5 ? A[1] : i === 0 || i === 11 ? A[2] : j === 1 ? A[4] : A[3]));
@@ -2503,8 +2503,32 @@ export class PixelRoom {
         this.altar(p.styles.altar ?? "gothic", q, X, Y, PW, PD);
         break;
       case "pew": {
+        const base = Y + PD - 2;
+        if (p.styles.pew === "desk") {
+          // A school form: the sloped desk the pupils face, inkwells sunk in it, and the bench before it.
+          this.r(X + 1, base - 15, PW - 2, 4, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
+          this.r(X + 1, base - 11, PW - 2, 5, (i, j) => (j === 4 || i === 0 || i === PW - 3 ? W[1] : W[2]));
+          for (let k = 6; k < PW - 4; k += 12) {
+            this.s(X + k, base - 14, 0x1a1a24);
+            this.r(X + k + 3, base - 15, 5, 2, (_i, j) => (j ? P.paper[3] : P.paper[5]));
+          }
+          this.r(X + 1, base - 4, PW - 2, 2, (_i, j) => W[j ? 2 : 4]);
+          for (const lx of [X + 2, X + PW - 4]) this.r(lx, base - 2, 2, 2, W[1]);
+          break;
+        }
+        if (p.styles.pew === "lowdesk") {
+          // A long low writing desk; the pupils kneel behind it on the mats.
+          this.r(X + 1, base - 10, PW - 2, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
+          this.r(X + 1, base - 7, PW - 2, 1, W[1]);
+          for (const lx of [X + 2, X + PW - 4]) this.r(lx, base - 6, 2, 5, W[2]);
+          for (let k = 3; k < PW - 6; k += 10) {
+            this.r(X + k, base - 10, 6, 2, (_i, j) => (j ? P.paper[4] : P.paper[5]));
+            this.r(X + k + 7, base - 11, 1, 3, 0x2a2420);
+          }
+          break;
+        }
         // Seen from behind, as the congregation faces away: the back board, its rail, the ends.
-        const base = Y + PD - 2, box = p.styles.pew === "box";
+        const box = p.styles.pew === "box";
         const h = box ? 20 : 15;
         this.r(X + 1, base - 9, PW - 2, 3, (i, j) => (j === 0 ? W[4] : W[3 - (i === 0 ? 1 : 0)]));
         this.r(X + 1, base - h, PW - 2, h - 2, (i, j) => {
@@ -2538,6 +2562,18 @@ export class PixelRoom {
         if (p.styles.pulpit === "minbar") this.minbar(X, Y + PD - 3);
         else this.pulpit(X, Y + PD - 3, q.seed);
         break;
+      case "lectern": {
+        // A rahle: a folding stand of two crossed boards holding the book open.
+        const cx = X + 8, base = Y + PD - 3;
+        for (let j = 0; j < 9; j++) {
+          this.s(cx - 4 + j, base - j, W[3]);
+          this.s(cx + 4 - j, base - j, W[2]);
+        }
+        this.r(cx - 5, base - 13, 5, 4, (i, j) => (j === 0 ? P.paper[5] : i === 4 ? P.paper[2] : j % 2 ? 0x2a2420 : P.paper[4]));
+        this.r(cx + 1, base - 13, 5, 4, (i, j) => (j === 0 ? P.paper[5] : i === 0 ? P.paper[2] : j % 2 ? 0x2a2420 : P.paper[4]));
+        this.r(cx - 6, base - 9, 13, 1, P.acc[2]);
+        break;
+      }
       case "ledge": {
         // A plastered bench built against the wall, one tile of it.
         const top = Y + PD - 12;
