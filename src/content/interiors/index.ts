@@ -7,6 +7,8 @@ import { northAfrica } from "./north-africa";
 import { baths, gatherings, taverns } from "./public";
 import { worship } from "./worship";
 import { civic } from "./civic";
+import { factoryFor } from "./factories";
+import { theatres } from "./theatres";
 import { prehistoric } from "./prehistoric";
 import { southAsia } from "./south-asia";
 import { tents } from "./tents";
@@ -30,6 +32,8 @@ export const publicInteriorGroups: { label: string; profiles: InteriorProfile[] 
   { label: "Baths", profiles: baths },
   { label: "Worship", profiles: worship },
   { label: "Civic and schools", profiles: civic },
+  { label: "Theatres", profiles: theatres },
+  { label: "Works", profiles: ["Weaving shed", "Spinning room", "Machine shop", "Foundry", "Printing works"].map((name) => factoryFor(name, 1900, 0)) },
 ];
 export const interiorProfiles = [...interiorGroups, ...publicInteriorGroups].flatMap((g) => g.profiles);
 export const interiorProfile = (id: string) => interiorProfiles.find((p) => p.id === id);

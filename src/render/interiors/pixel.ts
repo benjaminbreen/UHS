@@ -676,6 +676,76 @@ export class PixelRoom {
     for (let k = 0; k < 3; k++) this.r(X + 10 + k * 6, base - 16, 4 + (k & 1) * 2, 2, tools[k]);
     for (let k = 0; k < 6; k++) this.s(X + 4 + hash(k, 2, seed) * (PW - 8), base - 1, style === "timber" ? P.straw[4] : W[4]);
   }
+  /** A machine of the works, with the belt rising from its pulley to the line shaft overhead. */
+  private machine(style: string, X: number, base: number, PW: number, seed: number) {
+    const { P } = this, W = P.wood, I = P.iron;
+    // The line shaft over the row, hung from the beams, a pulley over each machine.
+    const sy = base - 46;
+    this.r(X - 4, sy, PW + 8, 2, (_i, j) => I[j ? 1 : 3]);
+    for (let x = X; x < X + PW + 4; x += 16) this.r(x, sy - 6, 1, 6, I[2]);
+    const px = X + PW - 6;
+    for (let j = -3; j <= 3; j++) for (let i = -3; i <= 3; i++) if (i * i + j * j <= 10) this.s(px + i, sy + 1 + j, i * i + j * j > 5 ? I[1] : (i + j) % 2 ? I[3] : I[4]);
+    switch (style) {
+      case "frame": {
+        // A spinning frame: an iron bed, a long row of white bobbins on their spindles.
+        const top = base - 16;
+        for (let j = top + 2; j < sy + 3; j++) this.s(px + 2, j, 0x4a3a2a);
+        this.r(X + 1, top, PW - 2, 10, (i, j) => (j === 0 ? I[4] : i === 0 || i === PW - 3 ? I[1] : j === 9 ? I[0] : I[2]));
+        for (let x = X + 3; x < X + PW - 3; x += 3) {
+          this.r(x, top - 6, 2, 6, (i, j) => (j === 0 ? P.linen[5] : i ? P.linen[3] : P.linen[4]));
+          this.s(x, top - 7, I[3]);
+        }
+        for (const lx of [X + 2, X + PW - 4]) this.r(lx, top + 10, 2, 6, I[1]);
+        break;
+      }
+      case "lathe": {
+        // A lathe: the bed on its legs, the headstock with its cone pulley, the work turning in the chuck.
+        const top = base - 13;
+        for (let j = top - 6; j < sy + 3; j++) this.s(X + 6, j, 0x4a3a2a);
+        this.r(X + 1, top, PW - 2, 4, (i, j) => (j === 0 ? I[4] : i === 0 ? I[3] : I[2]));
+        for (const lx of [X + 3, X + PW - 5]) this.r(lx, top + 4, 3, 9, (i) => I[i ? 1 : 3]);
+        this.r(X + 2, top - 9, 9, 9, (i, j) => (j === 0 ? I[4] : i === 0 ? I[3] : j === 8 ? I[0] : I[2]));
+        for (let k = 0; k < 3; k++) this.r(X + 4 + k, top - 8 + k * 2, 5 - k, 2, I[4 - (k & 1)]);
+        this.r(X + 11, top - 5, PW - 18, 3, (i, j) => (j === 0 ? 0xf0f0f0 : i % 3 === 0 ? I[3] : I[4]));
+        this.r(X + PW - 8, top - 7, 5, 7, (i, j) => (j === 0 ? I[4] : i === 4 ? I[1] : I[2]));
+        break;
+      }
+      case "press": {
+        // An iron hand press: the arched frame, the platen, the bed and its tympan, the bar.
+        const top = base - 30;
+        for (const lx of [X + 4, X + PW - 7]) this.r(lx, top, 3, 30, (i) => I[i === 0 ? 4 : i === 2 ? 1 : 2]);
+        this.r(X + 4, top - 2, PW - 8, 3, (_i, j) => (j === 0 ? I[4] : I[2]));
+        this.r(X + 9, top + 4, PW - 18, 6, (i, j) => (j === 0 ? I[4] : i === 0 ? I[3] : I[1]));
+        this.r(X + 1, base - 12, PW - 2, 4, (_i, j) => (j === 0 ? W[4] : W[2]));
+        this.r(X + 3, base - 14, 10, 2, P.paper[5]);
+        this.r(X + PW - 4, top + 8, 6, 1, I[3]);
+        this.disc(X + PW / 2, top - 4, 2, P.brass);
+        break;
+      }
+      case "moulds": {
+        // Sand moulds in their wooden flasks, a ladle beside them.
+        for (let k = 0; k < PW / 16; k++) {
+          const x = X + 2 + k * 16;
+          this.r(x, base - 8, 12, 8, (i, j) => (j === 0 ? W[4] : i === 0 || i === 11 || j === 7 ? W[1] : j < 3 ? 0x3a302a : 0x2a221e));
+          if ((seed + k) % 2) this.g(x + 4, base - 7, 0xff9a30), this.g(x + 5, base - 7, 0xffc040);
+        }
+        this.r(X + PW - 8, base - 22, 1, 16, I[3]);
+        this.vase(X + PW - 8, base - 3, 4, () => 2.5, I);
+        break;
+      }
+      default: {
+        // A power loom: cast-iron sides, the warp running to the reed, the cloth wound on its beam.
+        const top = base - 20;
+        for (let j = top - 2; j < sy + 3; j++) this.s(px + 2, j, 0x4a3a2a);
+        for (const lx of [X + 1, X + PW - 4]) this.r(lx, top, 3, 20, (i, j) => (j % 6 === 0 ? I[4] : I[i === 0 ? 3 : i === 2 ? 0 : 2]));
+        for (let j = 0; j < 8; j++) this.r(X + 4, top + 2 + j, PW - 8, 1, j % 2 ? P.linen[3] : P.acc[3 + (j % 4 === 0 ? 1 : 0)]);
+        this.r(X + 4, top + 10, PW - 8, 2, W[4]);
+        this.r(X + 4, top + 13, PW - 8, 4, (_i, j) => (j === 0 ? P.linen[5] : j === 3 ? P.linen[2] : P.linen[4]));
+        this.r(X + 4, top + 17, PW - 8, 1, I[1]);
+        this.disc(X + PW - 5, top + 6, 3, I);
+      }
+    }
+  }
   /** A saint or worshipper in a panel or niche: halo, face, robe. */
   private saint(cx: number, top: number, h: number, robe: number[], halo = true) {
     const { P } = this;
@@ -2744,6 +2814,15 @@ export class PixelRoom {
           for (const lx of [X + 2, X + PW - 4]) this.r(lx, base - 2, 2, 2, W[1]);
           break;
         }
+        if (p.styles.pew === "seat") {
+          // Theatre seats seen from behind: plush backs in a row, a gilt or wooden rail along them.
+          for (let x = X + 1; x < X + PW - 6; x += 8) {
+            this.r(x, base - 14, 7, 9, (i, j) => (j === 0 ? 0xc84040 : i === 0 ? 0xb03030 : i === 6 ? 0x5a1018 : j === 8 ? 0x4a0e14 : 0x8a1e24));
+            this.r(x + 1, base - 5, 5, 3, W[1]);
+          }
+          this.r(X + 1, base - 15, PW - 2, 1, P.brass[3]);
+          break;
+        }
         if (p.styles.pew === "lowdesk") {
           // A long low writing desk; the pupils kneel behind it on the mats.
           this.r(X + 1, base - 10, PW - 2, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
@@ -2799,6 +2878,26 @@ export class PixelRoom {
       case "fixture":
         this.fixture(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
         break;
+      case "machine":
+        this.machine(p.styles.machine ?? "loom", X, Y + PD - 2, PW, q.seed);
+        break;
+      case "furnace": {
+        // A cupola: a brick shaft banded with iron, the tap glowing, the runner below.
+        const cx = X + (PW >> 1), base = Y + PD - 2;
+        for (let j = 0; j < 46; j++) {
+          const half = j < 4 ? 6 : 10;
+          for (let i = -half; i <= half; i++) {
+            const band = j % 10 === 6;
+            this.s(cx + i, base - 46 + j, band ? P.iron[i < 0 ? 3 : 1] : (i + (j >> 2) * 3 + 30) % 6 === 0 || j % 4 === 0 ? P.clay[1] : P.clay[i < -5 ? 4 : i > 5 ? 2 : 3]);
+          }
+        }
+        for (let j = 0; j < 4; j++) for (let i = -2; i <= 2; i++) this.g(cx + i, base - 10 + j, j > 1 ? 0xffd040 : 0xff7a1a);
+        this.r(cx + 2, base - 7, 12, 2, (i) => (i % 3 ? 0xff9a2a : 0xd04a10));
+        for (let i = 0; i < 12; i++) this.g(cx + 2 + i, base - 7, i % 3 ? 0xffb040 : 0xff7a1a);
+        this.lights.push({ x: cx, y: base - 8, c: 0xff7a2a, rad: 60, k: 1.4, phase: q.seed % 100 });
+        for (let k = 0; k < 3; k++) this.smoke.push({ x: cx - 2 + k * 2, y: base - 48 });
+        break;
+      }
       case "anvil": {
         const cx = X + 8, base = Y + PD - 3;
         this.r(cx - 4, base - 8, 9, 8, (i, j) => (j === 0 ? W[4] : i === 0 ? W[3] : i === 8 ? W[1] : (j % 3 === 1 ? W[1] : W[2])));

@@ -7225,7 +7225,9 @@ export class Engine {
         this.household(a.householdId)?.residence !== space && Math.hypot(a.home.x - place.entrance.x, a.home.y - place.entrance.y) <= 60)
       .sort((a, b) => random(this.state.manifest.seed, "regular", a.id, day) - random(this.state.manifest.seed, "regular", b.id, day));
     const label = `At ${place.name.replace(/^The /, "the ")}`;
-    this.regulars.seated = new Map(near.slice(0, Math.round(room.seats.length * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));
+    // Where people stand, as in a medieval nave or a playhouse pit, the floor sets the count.
+    const room_ = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
+    this.regulars.seated = new Map(near.slice(0, Math.round(room_ * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));
     return this.regulars.seated;
   }
   /** Seconds from now until the next morning, for a night's sleep. */

@@ -285,11 +285,12 @@ export function populateHouseholds(
   // lodges with the nearest household that has a house to live in.
   const setting = pack.setting!;
   const venueOf = (h: Household) => {
-    return buildingUse(plan.places.find((p) => p.id === h.residence)?.claim ?? "");
+    const place = plan.places.find((p) => p.id === h.residence);
+    return place?.landUse === "industrial" ? "works" : buildingUse(place?.claim ?? "");
   };
   for (const h of made) {
     const venue = venueOf(h);
-    if (!venue || keeperLivesIn({ lon: setting.lon, lat: setting.lat, year, use: venue })) continue;
+    if (!venue || (venue !== "works" && keeperLivesIn({ lon: setting.lon, lat: setting.lat, year, use: venue }))) continue;
     const host = made
       .filter((o) => o !== h && !venueOf(o))
       .sort((a, b) => Math.hypot(a.home.x - h.home.x, a.home.y - h.home.y) - Math.hypot(b.home.x - h.home.x, b.home.y - h.home.y))[0];

@@ -80,6 +80,12 @@ const PUBLIC: Rule[] = [
   { lon: [128, 146], lat: [30, 46], from: 1600, to: 1880, pick: () => "terakoya" },
   { lon: [-18, 75], lat: [5, 46], from: 1000, pick: () => "madrasa" },
   { lon: [-18, 25], lat: [5, 22], from: 1100, pick: () => "quranic-school" },
+  { lon: [-11, 2], lat: [49.5, 61], from: 1570, to: 1660, pick: () => "elizabethan-playhouse" },
+  { lon: [-11, 45], lat: [34, 72], from: 1660, to: 1950, pick: () => "proscenium-playhouse" },
+  { lon: [-11, 45], lat: [34, 72], from: 1680, to: 1950, pick: () => "opera-house" },
+  { lon: [128, 146], lat: [30, 46], from: 1400, to: 1950, pick: () => "noh-theatre" },
+  { lon: [128, 146], lat: [30, 46], from: 1650, to: 1950, pick: () => "kabuki-theatre" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1910, pick: () => "cinema" },
 ];
 
 /** A place's claim as the key its interior is chosen by: `venue-venue.x` is

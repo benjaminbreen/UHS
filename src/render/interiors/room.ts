@@ -4,7 +4,7 @@ export type WallPattern =
   | "plaster" | "brick" | "timber" | "panel" | "stripe" | "zellige" | "mud" | "stone"
   | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper";
 export type FloorPattern =
-  | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum";
+  | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum" | "broadloom";
 export type Door = "door" | "flap" | "curtain" | "opening" | "none";
 export type WindowStyle = "shutter" | "lattice" | "shoji" | "stained" | "none";
 export type Fire = "hearth" | "firepit" | "irori" | "brazier" | "stove" | "none";
@@ -54,7 +54,7 @@ export type RoomParams = {
   /** A public room's layout: `serve` sets a counter and seats about the
    * floor, `gather` rings the seats round the fire, `rows` faces them all to
    * an altar on the back wall. Absent in a dwelling. */
-  program?: "serve" | "gather" | "rows" | "shop";
+  program?: "serve" | "gather" | "rows" | "shop" | "works";
   hour: number;
   wear: number;
   soot: number;
@@ -73,7 +73,7 @@ export type Kind =
   | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame"
   | "bar" | "casks" | "bench" | "settle" | "tankards" | "tally" | "ledge" | "sipapu" | "pool" | "slab" | "basin"
   | "altar" | "pew" | "prayer" | "font" | "pulpit" | "lectern"
-  | "stock" | "shopcounter" | "fixture" | "anvil";
+  | "stock" | "shopcounter" | "fixture" | "anvil" | "machine" | "furnace";
 export type Prop = {
   id: number;
   kind: Kind;
@@ -579,6 +579,12 @@ export function floorColor(p: RoomParams, P: Palette, u: number, v: number) {
       if (dd === 26 || dd === 20) c = mix(P.brass[4], c, 0.2);
       break;
     }
+    case "broadloom": {
+      // Fitted carpet: one colour, a small diamond repeat, a pile that shades as it is walked.
+      const du = ((u % 12) + 12) % 12 - 6, dv = ((v % 12) + 12) % 12 - 6, dm = Math.abs(du) + Math.abs(dv);
+      c = dm === 3 ? mix(F[3], P.brass[3], 0.35) : dm < 2 ? F[4] : soft(0.45 + vnoise(u, v, 18, p.seed) * 0.2);
+      break;
+    }
     case "linoleum": {
       const k = (((u >> 3) + (v >> 3)) & 1) === 0;
       c = k ? F[3] : mix(F[3], P.linen[5], 0.55);
@@ -748,7 +754,7 @@ export function planRoom(p: RoomParams): Prop[] {
   // An altar takes the head of the room before anything is hung or shelved there.
   let altar: Prop | undefined;
   if (p.program === "rows" && p.styles.altar) {
-    const aw = Math.min(3, w - 4);
+    const aw = Math.min(p.styles.altar.startsWith("stage") ? 9 : 3, w - 4);
     altar = place("altar", aw, 1, (x, y) => (y === top[x] && top[x + aw - 1] === y ? 6 - Math.abs(x + aw / 2 - w / 2) : -9), false, true);
     if (altar) for (let i = altar.x; i < altar.x + aw; i++) used[i] = true;
   }
@@ -849,7 +855,17 @@ export function planRoom(p: RoomParams): Prop[] {
     }
   }
 
-  if (p.program === "shop") {
+  if (p.program === "works") {
+    // Machines in rows across the floor, a gangway down the middle and at the
+    // walls, the furnace at the head of a foundry.
+    const mw = p.styles.machine === "frame" ? 3 : 2;
+    if (p.styles.machine === "moulds") place("furnace", 2, 1, (x, y) => (y === top[x] && top[x + 1] === y ? 4 - Math.abs(x + 1 - w / 2) : -1), true, true);
+    const mid = Math.floor(w / 2);
+    for (let x = 0; x < w; x++) clear(x, (top[x] ?? 0) + 1);
+    for (let y = 2; y < d - 2; y += 3)
+      for (const [x0, x1] of [[1, mid - 1], [mid + 1, w - 1]] as const)
+        for (let x = x0; x + mw <= x1; x += mw) place("machine", mw, 1, (cx, cy) => (cx === x && cy === y ? 1 : -1), false, true);
+  } else if (p.program === "shop") {
     // Stock along the back wall, a counter two rows before it with the keeper's
     // walk between, open at one end; the trade's fixtures against the side walls.
     for (let x = 0; x + 2 <= w; x++) place("stock", 2, 1, (cx, cy) => (cx === x && cy === top[x] && top[x + 1] === cy ? 1 : -1), false, true);

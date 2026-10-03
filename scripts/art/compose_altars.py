@@ -1050,6 +1050,170 @@ school_grammar()
 school_board()
 terakoya()
 
+# ---------------------------------------------------------------- stages (144 px, nine tiles)
+def stage_floor(cv, y0, ink=('E', 'e', 'q')):
+    """The stage platform: planked top, a lip, the front boards to the floor."""
+    E, e, q = ink
+    for y in range(y0, cv.h):
+        for x in range(cv.w):
+            if y == y0: cv.set(x, y, E)
+            elif y < y0 + 5: cv.set(x, y, E if x % 24 == 0 else e)
+            elif y == y0 + 5: cv.set(x, y, q)
+            else: cv.set(x, y, q if x % 16 == 0 else e if y % 2 else 'e')
+
+def proscenium(cv, y_top, y_floor, inner, gold=('G', 'g', 'h', 'k')):
+    G, g, h, k = gold
+    for y in range(y_top, y_floor):
+        for x in range(cv.w):
+            if inner(x, y): continue
+            cv.set(x, y, G if (x + y) % 9 == 0 else (g if x < cv.w // 2 else h))
+    for y in range(y_top, y_floor):
+        for x in range(cv.w):
+            if inner(x, y) and (not inner(x - 1, y) or not inner(x + 1, y) or not inner(x, y - 1)): cv.set(x, y, k)
+
+def footlights(cv, y):
+    for x in range(6, cv.w - 6, 8): cv.set(x, y, '*'); cv.set(x, y + 1, 'k')
+
+def stage_playhouse():
+    cv = Canvas(144, 64)
+    inner = lambda x, y: 14 <= x <= 129 and y >= 12 + max(0, 6 - min(x - 14, 129 - x) // 3)
+    for y in range(12, 46):     # painted street scene
+        for x in range(14, 130):
+            sky = y < 26
+            house = (x // 18) % 2 == 0 and y >= 18 + (x % 18 > 8)
+            cv.set(x, y, ('Y' if y < 20 else 'y') if sky and not house else ('B' if house and (x % 18 in (4, 5, 12, 13) and y % 8 in (2, 3, 4)) else ('b' if house else 'c')))
+    proscenium(cv, 4, 46, inner)
+    for side in (0, 1):         # curtains swagged back
+        for y in range(12, 46):
+            reach = 16 - int((y - 12) * 0.35)
+            for i in range(max(2, reach)):
+                x = 14 + i if side == 0 else 129 - i
+                cv.set(x, y, 'R' if (i + y // 3) % 4 else 'r')
+    for x in range(14, 130): cv.set(x, 12, 'r'); cv.set(x, 13, 'R' if x % 6 else 'g')
+    stage_floor(cv, 46)
+    footlights(cv, 45)
+    SPRITES['stage-playhouse'] = {'rows': cv.rows(), 'ink': {**GOLD, 'R': 0xa8202a, 'r': 0x6a1018, 'Y': 0x9ab8d8, 'y': 0xc8d8e4,
+        'B': 0xe8d088, 'b': 0x8a7a68, 'c': 0x6a6a58, 'E': ['wood', 4], 'e': ['wood', 3], 'q': ['wood', 1]}}
+
+def stage_elizabethan():
+    cv = Canvas(144, 64)
+    for y in range(4, 46):      # the tiring-house front: two doors, a gallery over them
+        for x in range(4, 140):
+            door = (24 <= x <= 40 or 103 <= x <= 119) and y >= 26
+            gallery = 16 <= y <= 22 and 10 <= x <= 133
+            if door: cv.set(x, y, 'K' if y > 27 and 26 <= x <= 38 or y > 27 and 105 <= x <= 117 else 'E')
+            elif gallery: cv.set(x, y, 'E' if y in (16, 22) else ('K' if x % 10 not in (0, 1) else 'e'))
+            else: cv.set(x, y, 'R' if (x // 12 + y // 10) % 2 and y < 16 else ('e' if x % 12 == 0 else 'E' if y % 9 == 0 else 'w'))
+    for x in range(4, 140):     # the heavens, painted
+        for y in range(0, 4): cv.set(x, y, 'B' if (x + y * 3) % 11 else 'G')
+    for px in (14, 128):        # stage posts, painted as marble
+        for y in range(4, 46): cv.set(px, y, 'M'); cv.set(px + 1, y, 'm'); cv.set(px + 2, y, 'm')
+    stage_floor(cv, 46)
+    for x in range(0, 144, 3): cv.set(x, 52, 'q')
+    SPRITES['stage-elizabethan'] = {'rows': cv.rows(), 'ink': {**GOLD, 'R': 0x8a2a1a, 'B': 0x2a3a6a, 'K': 0x1a1210,
+        'M': 0xe8e0d0, 'm': 0xb8b0a0, 'w': ['wall', 3], 'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1]}}
+
+def stage_opera():
+    cv = Canvas(144, 64)
+    inner = lambda x, y: 18 <= x <= 125 and y >= 10 + max(0, 8 - min(x - 18, 125 - x) // 2)
+    for y in range(10, 44):     # painted landscape: sky, distant hills, a temple
+        for x in range(18, 126):
+            hill = y > 30 - int(4 * math.sin(x / 9))
+            temple = 62 <= x <= 82 and 22 <= y <= 34 and (x % 4 == 0 or y in (22, 23))
+            cv.set(x, y, 'M' if temple else ('L' if hill and y > 36 else ('l' if hill else ('Y' if y < 22 else 'y'))))
+    proscenium(cv, 0, 44, inner)
+    for x in range(0, 144, 6):  # gilded cartouche ornament along the top
+        cv.set(x, 2, 'G'); cv.set(x + 1, 3, 'G')
+    ellipse(cv, 71.5, 4, 8, 4, lambda e, x, y: 'G' if e > 0.7 else 'R')
+    for side in (0, 1):
+        for y in range(10, 44):
+            reach = 22 - int((y - 10) * 0.5)
+            for i in range(max(3, reach)):
+                x = 18 + i if side == 0 else 125 - i
+                cv.set(x, y, 'R' if (i + y // 3) % 4 else 'r')
+            cv.set(18 + max(3, reach) if side == 0 else 125 - max(3, reach), y, 'G')
+    for x in range(18, 126): cv.set(x, 10, 'g'); cv.set(x, 11, 'R' if x % 6 else 'G'); cv.set(x, 12, 'r')
+    stage_floor(cv, 44)
+    footlights(cv, 43)
+    for y in range(56, 64):     # the orchestra pit
+        for x in range(10, 134): cv.set(x, y, 'K' if y > 56 else 'g')
+    for x in range(16, 130, 10): cv.set(x, 58, 'W'); cv.set(x, 59, 'k')
+    SPRITES['stage-opera'] = {'rows': cv.rows(), 'ink': {**GOLD, 'R': 0xb01c2a, 'r': 0x6a0e18, 'Y': 0xe8c8a0, 'y': 0xd8a888,
+        'L': 0x4a6a3a, 'l': 0x6a8a5a, 'M': 0xf0e8d8, 'K': 0x140c10, 'W': 0xf0ecdc,
+        'E': ['wood', 4], 'e': ['wood', 3], 'q': ['wood', 1]}}
+
+def stage_noh():
+    cv = Canvas(144, 64)
+    for y in range(0, 10):      # the stage's own roof, under the theatre's
+        for x in range(30, 130):
+            a = abs(x - 79.5)
+            if y >= a * 0.18 - 0.5 and y < 10: cv.set(x, y, 'k' if y == 9 else ('D' if (x + y) % 3 else 'd'))
+    for y in range(10, 46):     # the kagami-ita, its great pine
+        for x in range(36, 124): cv.set(x, y, 'B' if (x + y) % 7 else 'b')
+    for (cx, cy, rx, ry) in ((80, 20, 22, 6), (66, 28, 16, 5), (96, 30, 14, 4.5), (80, 36, 10, 4)):
+        ellipse(cv, cx, cy, rx, ry, lambda e, x, y: 'L' if (x * 3 + y) % 5 else 'l')
+    for y in range(22, 46): cv.set(80 + (y - 22) // 6, y, 'N'); cv.set(81 + (y - 22) // 6, y, 'n')
+    for px in (32, 126):        # corner pillars
+        for y in range(8, 46): cv.set(px, y, 'E'); cv.set(px + 1, y, 'e'); cv.set(px + 2, y, 'e')
+    for x in range(0, 34):      # the bridge running off to the left, its rail
+        y = 38 - x // 6
+        for k in range(0, 3): cv.set(x, y + k, 'E' if k == 0 else 'e')
+        if x % 5 == 0:
+            for k in range(1, 8): cv.set(x, y - k, 'e')
+        cv.set(x, y - 7, 'E')
+    for y in range(46, 52):
+        for x in range(30, 130): cv.set(x, y, 'E' if y == 46 else 'e')
+    for y in range(52, 64):     # white gravel before it
+        for x in range(0, 144): cv.set(x, y, 'W' if (x * 7 + y * 3) % 5 else 'w')
+    SPRITES['stage-noh'] = {'rows': cv.rows(), 'ink': {**GOLD, 'D': 0x2a2a30, 'd': 0x3a3a42, 'B': 0xd8c8a0, 'b': 0xc8b48a,
+        'L': 0x3a6a3a, 'l': 0x2a4a2a, 'N': 0x5a3a24, 'n': 0x3a2416, 'W': 0xe8e4dc, 'w': 0xc8c4bc,
+        'E': ['wood', 5], 'e': ['wood', 4]}}
+
+def stage_kabuki():
+    cv = Canvas(144, 64)
+    for y in range(4, 46):      # the joshiki-maku: black, persimmon and green
+        for x in range(0, 144):
+            band = (x // 8) % 3
+            cv.set(x, y, ('K', 'P', 'L')[band] if (x % 8) else ('k', 'p', 'l')[band])
+    for x in range(0, 144):
+        for y in range(0, 4): cv.set(x, y, 'E' if y in (0, 3) else 'e')
+        if x % 12 == 6:
+            for y in range(4, 10): cv.set(x, y, 'W')
+    stage_floor(cv, 46)
+    SPRITES['stage-kabuki'] = {'rows': cv.rows(), 'ink': {**GOLD, 'K': 0x1a1614, 'k': 0x0e0c0a, 'P': 0xc8582a, 'p': 0x9a3e1a,
+        'L': 0x2a6a4a, 'l': 0x1a4a32, 'W': 0xe8e0d0, 'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1]}}
+
+def stage_cinema():
+    cv = Canvas(144, 64)
+    inner = lambda x, y: 16 <= x <= 127 and y >= 8
+    for y in range(8, 42):      # the screen, a picture on it
+        for x in range(16, 128):
+            lit = 24 <= x <= 119 and 12 <= y <= 38
+            if not lit: cv.set(x, y, 'k'); continue
+            hill = y > 30 - int(3 * math.sin(x / 7))
+            cv.set(x, y, 'S' if not hill else 's')
+    for y in range(18, 30):
+        for x in range(60, 70): cv.set(x, y, 'd' if abs(x - 64.5) < 2 or y < 21 else 'S')
+    proscenium(cv, 0, 42, inner)
+    for x in range(0, 144, 8):  # zigzag deco band
+        for k in range(4): cv.set(x + k, 3 + (k if k < 2 else 3 - k), 'G')
+    for side in (0, 1):
+        for y in range(8, 42):
+            for i in range(8):
+                x = 16 + i if side == 0 else 127 - i
+                cv.set(x, y, 'R' if (i + y // 3) % 4 else 'r')
+    stage_floor(cv, 42)
+    for (x, y, c) in ((4, 50, 'X'), (5, 50, 'X'), (6, 50, 'X'), (137, 50, 'X'), (138, 50, 'X'), (139, 50, 'X')): cv.set(x, y, c)
+    SPRITES['stage-cinema'] = {'rows': cv.rows(), 'ink': {**GOLD, 'R': 0x9a1a2a, 'r': 0x5a0e18, 'S': 0xd8dce4, 's': 0x9aa0a8,
+        'd': 0x4a4e58, 'X': 0x30d060, 'E': ['wood', 4], 'e': ['wood', 3], 'q': ['wood', 1]}}
+
+stage_playhouse()
+stage_elizabethan()
+stage_opera()
+stage_noh()
+stage_kabuki()
+stage_cinema()
+
 import os
 with open(os.path.join(os.path.dirname(__file__), '../../src/render/interiors/altars.ts'), 'w') as out:
     out.write('// Generated by scripts/art/compose_altars.py; edit the art there and rerun it.\n')

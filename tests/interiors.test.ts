@@ -190,6 +190,11 @@ describe("interior profiles", () => {
       { id: "grammar-school", lon: -1.3, lat: 51, year: 1600, use: "venue.school" },
       { id: "board-school", lon: -0.1, lat: 51.5, year: 1900, use: "venue.school" },
       { id: "terakoya", lon: 139.7, lat: 35.7, year: 1800, use: "venue.terakoya" },
+      { id: "elizabethan-playhouse", lon: -0.1, lat: 51.5, year: 1600, use: "venue.playhouse" },
+      { id: "opera-house", lon: 16.4, lat: 48.2, year: 1800, use: "venue.opera-house" },
+      { id: "noh-theatre", lon: 135.8, lat: 35, year: 1700, use: "venue.noh-stage" },
+      { id: "kabuki-theatre", lon: 139.7, lat: 35.7, year: 1800, use: "venue.kabuki-theatre" },
+      { id: "cinema", lon: -74, lat: 40.7, year: 1930, use: "venue.cinema" },
     ];
     for (const { id, ...site } of sites)
       for (const fortune of [0.1, 0.9])
@@ -223,6 +228,19 @@ describe("interior profiles", () => {
           expect(room.work[0], where).toMatchObject({ kind: "shopcounter", facing: 2 });
           expect(room.beds.length, where).toBeGreaterThan(0);
         }
+  });
+
+  it("fills a works with rows of its machines, named or drawn by date", () => {
+    const works = [["Sawtooth weaving shed", 1900, "loom"], ["Works", 1760, "moulds"], ["Iron foundry", 1880, "moulds"], ["Works", 1900, undefined]] as const;
+    for (const [name, year, machine] of works)
+      for (let n = 0; n < 6; n++) {
+        const where = `${name} ${year} #${n}`;
+        const room = buildInterior({ id: `t-works-${n}`, name, access: "public", claim: "landscape", landUse: "industrial" } as Place, { lon: -2.2, lat: 53.5, year, settlement: "city" }, { activity: "Weaving cloth" });
+        expect(room.params.program, where).toBe("works");
+        if (machine) expect(room.params.styles.machine, where).toBe(machine);
+        expect(room.props.filter((q) => q.kind === "machine").length, where).toBeGreaterThanOrEqual(6);
+        expect(room.seats.some((s) => s.kind === "machine"), where).toBe(true);
+      }
   });
 
   it("keeps a grown member of the household behind the bar and sits drinkers down late", () => {

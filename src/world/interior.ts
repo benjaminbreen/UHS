@@ -1,5 +1,6 @@
 import { buildingUse, interiorProfileFor, type InteriorSite } from "../content/interiors/select";
 import { shopFor, shopKind } from "../content/interiors/shops";
+import { factoryFor } from "../content/interiors/factories";
 import { planBuilding, type PlacedRoom, type RoomPlan } from "../render/interiors/building";
 import type { Finish, Kind, Prop, RoomParams, Trade } from "../render/interiors/room";
 import type { Place, Point } from "../core/types";
@@ -94,9 +95,10 @@ function seedOf(id: string) {
 export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string }): InteriorLayout {
   const seed = seedOf(place.id);
   const home = interiorProfileFor(site);
-  // A house open to the street is its keeper's shop, if their trade keeps one.
-  const kind = place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
-  const profile = kind ? shopFor(home, kind, site) : home;
+  // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
+  const works = place.landUse === "industrial" && !buildingUse(place.claim) ? factoryFor(place.name, site.year, seed) : undefined;
+  const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
+  const profile = works ?? (kind ? shopFor(home, kind, site) : home);
   const status: Finish = o.fortune === undefined ? 1 : o.fortune < 0.34 ? 0 : o.fortune < 0.72 ? 1 : 2;
   const [tw, td] = profile.rooms?.[0].size ?? profile.size;
   const k = [0.85, 1, 1.2][status];
@@ -182,7 +184,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
     ...of(SEATS).flatMap((q) =>
       cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : q.kind === "pew" || q.kind === "prayer" ? 0 : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" || q.kind === "prayer" || (q.kind === "pew" && params.styles.pew === "lowdesk") ? "floor" : "seat" })),
     ),
-    ...of(["table", "lowtable"]).flatMap(stands),
+    ...of(["table", "lowtable", "machine"]).flatMap(stands),
   ];
   // One spot per piece before a second at any, so a household spreads
   // round the room instead of queueing at one table.
