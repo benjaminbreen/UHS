@@ -1,4 +1,5 @@
-import { interiorProfileFor, type InteriorSite } from "../content/interiors/select";
+import { buildingUse, interiorProfileFor, type InteriorSite } from "../content/interiors/select";
+import { shopFor, shopKind } from "../content/interiors/shops";
 import { planBuilding, type PlacedRoom, type RoomPlan } from "../render/interiors/building";
 import type { Finish, Kind, Prop, RoomParams, Trade } from "../render/interiors/room";
 import type { Place, Point } from "../core/types";
@@ -67,6 +68,7 @@ const WORK: Record<Trade, Kind[]> = {
   hunter: ["hides"],
   household: ["quern", "table", "lowtable", "basket"],
   host: ["bar"],
+  shopkeep: ["shopcounter"],
 };
 
 /** The interior trade a livelihood's activity reads as. */
@@ -89,9 +91,12 @@ function seedOf(id: string) {
 /** Builds the room a household lives in: its profile from place and date, its
  * finish from the household's fortune, its furniture from the trade. Rooms
  * are larger than the building outside; that is deliberate. */
-export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number }): InteriorLayout {
+export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string }): InteriorLayout {
   const seed = seedOf(place.id);
-  const profile = interiorProfileFor(site);
+  const home = interiorProfileFor(site);
+  // A house open to the street is its keeper's shop, if their trade keeps one.
+  const kind = place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
+  const profile = kind ? shopFor(home, kind, site) : home;
   const status: Finish = o.fortune === undefined ? 1 : o.fortune < 0.34 ? 0 : o.fortune < 0.72 ? 1 : 2;
   const [tw, td] = profile.rooms?.[0].size ?? profile.size;
   const k = [0.85, 1, 1.2][status];
@@ -165,7 +170,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const beds = sleepers.flatMap((q) => cells(q).slice(0, q.kind === "bed" ? 2 : 1).map((p): Spot => ({ ...p, facing: 2, kind: q.kind, propId: q.id, on: "bed" })));
   const trade = params.trade;
   // The keeper works from behind the bar, facing the room.
-  const work = of(WORK[trade]).flatMap((q) => (q.kind === "bar" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
+  const work = of(WORK[trade]).flatMap((q) => (q.kind === "bar" || q.kind === "shopcounter" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
   const fire = of(FIRES).flatMap(stands);
   // A stool is turned to the table or the fire it stands at; anything with a back faces the room.
   const boards = of(["table", "lowtable", "desk", "counter", ...FIRES]);

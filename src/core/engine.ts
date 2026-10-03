@@ -1244,7 +1244,7 @@ export class Engine {
         roofHatch: exit?.sprite === "ladder",
         use: buildingUse(place.claim),
       },
-      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24 },
+      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0] },
     );
     this.interiors.set(space, room);
     const move = (id: string, p: Point) => {
@@ -1293,7 +1293,7 @@ export class Engine {
     const l = label.toLowerCase();
     const trade = livelihoodOf(this.world.pack, a)?.activity.toLowerCase().split(/\s+/)[0];
     // In a taproom the household serves while it is up, and nobody else is put to bed.
-    const serving = room.params.program === "serve", resident = this.household(a.householdId)?.residence === space;
+    const serving = room.params.program === "serve" || room.params.program === "shop", resident = this.household(a.householdId)?.residence === space;
     const sleeping = /sleep|night|\bbed/.test(l) || ((resident || !serving) && (hour < 5.5 || hour >= 22));
     const cooking = !sleeping && /cook|eat|meal|supper|breakfast|dinner|hearth|fire|kitchen/.test(l);
     const working = !sleeping && !cooking && ((serving && resident && (a.age ?? 30) >= 14) || (!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));

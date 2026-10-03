@@ -1,4 +1,4 @@
-export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" | "hunter" | "host";
+export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" | "hunter" | "host" | "shopkeep";
 export type Shape = "rect" | "L" | "round" | "oval" | "apse" | "courtyard";
 export type WallPattern =
   | "plaster" | "brick" | "timber" | "panel" | "stripe" | "zellige" | "mud" | "stone"
@@ -54,7 +54,7 @@ export type RoomParams = {
   /** A public room's layout: `serve` sets a counter and seats about the
    * floor, `gather` rings the seats round the fire, `rows` faces them all to
    * an altar on the back wall. Absent in a dwelling. */
-  program?: "serve" | "gather" | "rows";
+  program?: "serve" | "gather" | "rows" | "shop";
   hour: number;
   wear: number;
   soot: number;
@@ -72,7 +72,8 @@ export type Kind =
   | "quern" | "hides" | "coolamon" | "screen" | "fountain" | "pack"
   | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame"
   | "bar" | "casks" | "bench" | "settle" | "tankards" | "tally" | "ledge" | "sipapu" | "pool" | "slab" | "basin"
-  | "altar" | "pew" | "prayer" | "font" | "pulpit" | "lectern";
+  | "altar" | "pew" | "prayer" | "font" | "pulpit" | "lectern"
+  | "stock" | "shopcounter" | "fixture" | "anvil";
 export type Prop = {
   id: number;
   kind: Kind;
@@ -622,7 +623,7 @@ const RULES: Partial<Record<Kind, Rule>> = {
 const HUNG: Kind[] = ["tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame", "tankards", "tally"];
 
 export function planRoom(p: RoomParams): Prop[] {
-  const r = rng(p.seed * 7919 + ["household", "weaver", "merchant", "potter", "scholar", "hunter", "host"].indexOf(p.trade));
+  const r = rng(p.seed * 7919 + ["household", "weaver", "merchant", "potter", "scholar", "hunter", "host", "shopkeep"].indexOf(p.trade));
   const { w, d } = p;
   const mask = roomMask(p);
   const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < d && mask[y * w + x] > 0;
@@ -818,7 +819,7 @@ export function planRoom(p: RoomParams): Prop[] {
   }
   if (p.door === "none") place("ladder", 1, 1, (x, y) => near(x, y, 1, 1, fire ?? centre) * 1.2 + walls(x, y, 1, 1) * 0.5);
 
-  const hanging: Record<Trade, Kind> = { household: "pegs", weaver: "tapestry", merchant: "pegs", potter: "plates", scholar: "map", hunter: "pegs", host: "tankards" };
+  const hanging: Record<Trade, Kind> = { household: "pegs", weaver: "tapestry", merchant: "pegs", potter: "plates", scholar: "map", hunter: "pegs", host: "tankards", shopkeep: "pegs" };
   const hungFromProfile = p.furnish.filter((k) => HUNG.includes(k));
   // A public room is dressed whatever the keeper's means: every hung piece it lists goes up.
   for (const k of [...hungFromProfile, hanging[p.trade]].slice(0, p.program ? hungFromProfile.length : 1 + p.finish)) {
@@ -848,7 +849,25 @@ export function planRoom(p: RoomParams): Prop[] {
     }
   }
 
-  if (p.program === "rows") {
+  if (p.program === "shop") {
+    // Stock along the back wall, a counter two rows before it with the keeper's
+    // walk between, open at one end; the trade's fixtures against the side walls.
+    for (let x = 0; x + 2 <= w; x++) place("stock", 2, 1, (cx, cy) => (cx === x && cy === top[x] && top[x + 1] === cy ? 1 : -1), false, true);
+    const cw = Math.min(3, w - 4), sides = r() < 0.5 ? [1, w - 1 - cw] : [w - 1 - cw, 1];
+    let row = 0;
+    for (const side of sides) {
+      const want = Math.min(d - 3, (top[side] ?? 0) + 2);
+      const got = place("shopcounter", cw, 1, (x, y) => (x === side && y >= want && y <= want + 2 ? 3 - (y - want) : -1), false, true);
+      if (!got) continue;
+      row = got.y;
+      for (let x = side - 1; x <= side + cw; x++) clear(x, row - 1);
+      break;
+    }
+    for (const k of ["fixture", "throw"] as Kind[])
+      if (has(k)) place(k, k === "fixture" ? 2 : 1, 1, (x, y) => (y > row && (x === 0 || x + (k === "fixture" ? 2 : 1) === w) ? 2 - Math.abs(y - row - 2) * 0.2 : -1), k === "throw", true);
+    const forge = props.find((q) => q.kind === "fixture");
+    if (has("anvil")) place("anvil", 1, 1, (x, y) => (forge && Math.abs(x - forge.x - 1) + Math.abs(y - forge.y) <= 2 && y > row ? 2 - Math.abs(x - forge.x - 1) * 0.3 : -1), false, true);
+  } else if (p.program === "rows") {
     // The altar at the head, the floor before it kept clear, an aisle from the door.
     const head = (altar?.y ?? 0) + 1;
     for (let y = head; y < head + 2; y++) for (let x = 1; x < w - 1; x++) clear(x, y);
@@ -981,7 +1000,7 @@ export function planRoom(p: RoomParams): Prop[] {
     }
   }
   // A public room's layout has already placed what it is for.
-  const pool = p.furnish.filter((k) => RULES[k] && k !== "lowtable" && !(k === "chest" && bed) && !(p.program && ["table", "cushions", "prayer"].includes(k)));
+  const pool = p.furnish.filter((k) => RULES[k] && k !== "lowtable" && !(k === "chest" && bed) && !(p.program && ["table", "cushions", "prayer", "throw"].includes(k)));
   const keep = Math.ceil(pool.length * [0.5, 0.8, 1][p.finish]);
   // Large rooms furnish again from the same list rather than stay bare.
   const rounds = Math.max(1, Math.round((w * d) / 75));

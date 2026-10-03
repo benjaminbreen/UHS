@@ -205,6 +205,26 @@ describe("interior profiles", () => {
         }
   });
 
+  it("opens a shopfront house as its keeper's shop, the keeper behind the counter", () => {
+    const shops = [
+      { name: "Baker's shop", site: { lon: 4.9, lat: 52.4, year: 1650 }, stock: "bread", counter: "counter" },
+      { name: "Blacksmith's workshop", site: { lon: -0.1, lat: 51.5, year: 1400 }, stock: "tools", counter: "counter" },
+      { name: "Trader's shop", site: { lon: 12.5, lat: 41.9, year: 100 }, stock: "general", counter: "taberna" },
+      { name: "Tea Broker's shop", site: { lon: 135.8, lat: 35, year: 1750 }, stock: "tea", counter: "platform" },
+      { name: "Silk Mercer's shop", site: { lon: 29, lat: 41, year: 1650 }, stock: "cloth", counter: "platform" },
+      { name: "Grocer's shop", site: { lon: -0.1, lat: 51.5, year: 1900 }, stock: "general", counter: "glazed" },
+    ];
+    for (const { name, site, stock, counter } of shops)
+      for (const fortune of [0.1, 0.9])
+        for (let n = 0; n < 5; n++) {
+          const where = `${name} ${site.year} ${fortune} #${n}`;
+          const room = buildInterior({ id: `t-shop-${n}`, name, access: "public", claim: "landscape" } as Place, { ...site, settlement: "city" }, { fortune });
+          expect(room.plan.rooms[0].styles, where).toMatchObject({ stock, shopcounter: counter });
+          expect(room.work[0], where).toMatchObject({ kind: "shopcounter", facing: 2 });
+          expect(room.beds.length, where).toBeGreaterThan(0);
+        }
+  });
+
   it("keeps a grown member of the household behind the bar and sits drinkers down late", () => {
     const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
     const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;

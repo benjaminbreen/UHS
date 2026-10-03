@@ -48,13 +48,14 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
   if (chosen.length < 2) return single(profile, c, chosen[0]?.i);
   // A public room is sized for its trade, not its keeper's means.
   const k = profile.uses ? 1 : [0.8, 0.9, 1][c.status];
+  // A shop, like a public room, is the size its trade needs.
   const boxes: Box[] = chosen.map(({ t, i, role }) => ({
     i,
     role,
     label: t.label,
     shape: t.shapes?.[0] ?? "rect",
-    w: Math.max(5, Math.round(t.size[0] * k)),
-    d: Math.max(4, Math.round(t.size[1] * k)),
+    w: Math.max(5, Math.round(t.size[0] * (t.program ? 1 : k))),
+    d: Math.max(4, Math.round(t.size[1] * (t.program ? 1 : k))),
     x: 0,
     y: 0,
   }));
