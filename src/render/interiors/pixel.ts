@@ -1112,6 +1112,11 @@ export class PixelRoom {
   /** What stands on a low table where drink is served: flasks and cups, or a tray of coffee. */
   private lowBoard(x0: number, y0: number, seed: number) {
     const { P } = this;
+    if ((this.p.styles.bar ?? "ale") === "chai" || (this.p.styles.bar ?? "ale") === "tea") {
+      this.vase(x0 + 6, y0 + 4, 5, (t) => 2.6 - Math.abs(t - 0.4) * 2, this.p.styles.bar === "chai" ? [0x1a2a5a, 0x2a4a8a, 0x5a7ab8, 0xc8d4e4, 0xe8eef4, 0xffffff] : P.pale);
+      for (const dx of [10, 13]) this.r(x0 + dx, y0 + 1, 2, 2, (_i, j) => (j === 0 ? 0xe8b070 : 0xb05a20));
+      return;
+    }
     if ((this.p.styles.bar ?? "ale") === "coffee") {
       this.r(x0 + 3, y0 + 1, 11, 3, (i, j) => (j === 0 ? P.brass[5] : i === 0 || i === 10 ? P.brass[2] : P.brass[4]));
       for (const dx of [5, 9]) this.r(x0 + dx, y0, 2, 2, (_i, j) => (j === 0 ? P.linen[5] : P.acc[3]));
@@ -1128,6 +1133,21 @@ export class PixelRoom {
   /** What stands on a tavern board: pots, a jug, the candle, a pipe, a spill. */
   private tavernBoard(X: number, ty: number, PW: number, seed: number) {
     const { P } = this;
+    const drink = this.p.styles.bar ?? "ale";
+    if (drink !== "ale") {
+      // Gourd cups and clay mugs, wooden keros, or a teapot and its cups.
+      for (let k = 0; k < Math.floor((PW - 8) / 8); k++) {
+        const x = X + 5 + k * 8, b = ty + 5 + (k & 1);
+        if (drink === "tea") {
+          if (k % 3 === 0) this.vase(x + 2, b, 4, (t) => 2.4 - Math.abs(t - 0.4) * 1.6, P.pale);
+          else this.r(x, b - 2, 3, 2, (_i, j) => (j === 0 ? P.linen[5] : P.linen[3]));
+        } else if (drink === "chicha") this.r(x, b - 4, 4, 4, (i, j) => (j === 0 ? P.wood[5] : j === 2 ? P.acc[3] : i === 0 ? P.wood[4] : P.wood[2]));
+        else if (k % 2) this.r(x, b - 3, 5, 3, (i, j) => (j === 0 ? 0xc8a050 : i === 4 ? 0x6a4a1a : 0x9a7a3a));
+        else this.vase(x + 2, b, 4, () => 2, P.clay);
+      }
+      if (drink !== "tea") this.candle(X + (PW >> 1), ty + 5, seed);
+      return;
+    }
     const slots = Math.floor((PW - 8) / 9);
     const lamp = Math.floor(slots / 2);
     for (let k = 0; k < slots; k++) {
@@ -2634,6 +2654,29 @@ export class PixelRoom {
       }
       case "casks": {
         const base = Y + PD - 2, drink = p.styles.bar ?? "ale";
+        if (drink === "tea" || drink === "chai") {
+          this.stock(drink === "tea" ? "tea" : "pots", X, base, PW, q.seed);
+          break;
+        }
+        if (drink === "pulque") {
+          // Tinacales: tall wooden vats, hooped, each painted with its name.
+          for (let k = 0; k < q.w; k++) {
+            const x = X + 2 + k * 16;
+            this.r(x, base - 22, 12, 22, (i, j) => (i === 0 || i === 11 ? W[0] : j % 7 === 3 ? P.iron[2] : j === 0 ? W[5] : i < 3 ? W[4] : i > 8 ? W[2] : W[3]));
+            this.r(x + 2, base - 15, 8, 4, [P.acc[3], P.acc2[3], P.acc3[3]][(k + q.seed) % 3]);
+            this.r(x + 3, base - 14, 6, 1, P.linen[5]);
+          }
+          break;
+        }
+        if (drink === "chicha") {
+          // Great clay jars with pointed feet and painted bands, as the Inka aryballos.
+          for (let k = 0; k < q.w; k++) {
+            const cx = X + 8 + k * 16;
+            this.vase(cx, base - 1, 22, (t) => (t < 0.15 ? 2 + t * 20 : t < 0.75 ? 5.5 - Math.abs(t - 0.45) * 4 : 2.6 - (t - 0.75) * 4), P.clay);
+            for (let i = -4; i <= 4; i++) { this.s(cx + i, base - 12, i % 2 ? 0x1a1410 : P.linen[5]); this.s(cx + i, base - 14, 0x8a2a1a); }
+          }
+          break;
+        }
         if (drink === "sake") {
           // Komodaru: casks wrapped in straw matting, roped, the brewer's mark on the front.
           const cask = (x: number, b: number, k: number) => {
@@ -2693,6 +2736,45 @@ export class PixelRoom {
         this.r(fx, top, 1, d + 2, W[1]);
         this.r(fx, fy, 1, fh - 1, W[0]);
         const ty = top + 2, drink = p.styles.bar ?? "ale";
+        if (drink === "tea") {
+          // A brick stove let into the counter, copper kettles steaming on it, teapots at the end.
+          this.r(X + 4, top + 1, 26, d - 3, (i, j) => (j === 0 ? P.clay[1] : (i + j) % 4 === 0 ? P.clay[2] : P.clay[3]));
+          for (const kx of [X + 9, X + 22]) {
+            this.vase(kx, ty + 4, 6, (t) => 3.2 - Math.abs(t - 0.4) * 2.5, [0x3a1a10, 0x7a3a1a, 0xb0602a, 0xd0864a, 0xe8b07a, 0xf8d8b0]);
+            this.r(kx + 3, ty, 3, 1, 0xb0602a);
+            this.smoke.push({ x: kx, y: ty - 4 });
+          }
+          for (let k = 0; k < 3; k++) this.vase(X + 36 + k * 7, ty + 4, 4, (t) => 2.2 - Math.abs(t - 0.4) * 1.5, k % 2 ? P.pale : [0x1a2a5a, 0x2a4a8a, 0x5a7ab8, 0xc8d4e4, 0xe8eef4, 0xffffff]);
+          this.lights.push({ x: X + 16, y: ty, c: 0xff8a3a, rad: 34, k: 0.7, phase: q.seed % 90 });
+          break;
+        }
+        if (drink === "chai") {
+          // The samovar: a tall brass urn, its tap, its chimney, the teapot warming on its crown.
+          const sx = X + PW / 2;
+          this.vase(sx, ty + 6, 16, (t) => (t < 0.15 ? 3 : t < 0.8 ? 5 - Math.abs(t - 0.45) * 3 : 2.4), P.brass);
+          this.r(sx + 5, ty - 4, 3, 1, P.brass[4]);
+          this.r(sx + 7, ty - 3, 1, 2, P.brass[2]);
+          this.vase(sx, ty - 10, 5, (t) => 2.6 - Math.abs(t - 0.4) * 2, [0x1a2a5a, 0x2a4a8a, 0x5a7ab8, 0xc8d4e4, 0xe8eef4, 0xffffff]);
+          this.smoke.push({ x: sx, y: ty - 16 });
+          for (let k = 0; k < 4; k++) this.r(X + 5 + k * 5, ty + 2, 2, 3, (_i, j) => (j === 0 ? 0xe8b070 : 0xb05a20));
+          break;
+        }
+        if (drink === "pulque") {
+          for (let k = 0; k < Math.floor((PW - 6) / 7); k++) {
+            const x = X + 4 + k * 7;
+            if (k % 2) this.r(x, ty + 2, 5, 3, (i, j) => (j === 0 ? 0xc8a050 : i === 4 ? 0x6a4a1a : 0x9a7a3a));
+            else this.vase(x + 2, ty + 5, 4, () => 2, P.clay);
+          }
+          break;
+        }
+        if (drink === "chicha") {
+          for (let k = 0; k < Math.floor((PW - 6) / 7); k++) {
+            const x = X + 4 + k * 7;
+            this.r(x, ty + 1, 4, 4, (i, j) => (j === 0 ? W[5] : j === 2 ? P.acc[3] : i === 0 ? W[4] : W[2]));
+          }
+          this.vase(X + PW - 8, ty + 6, 8, (t) => 3.4 - Math.abs(t - 0.45) * 3, P.clay);
+          break;
+        }
         if (drink === "coffee") {
           // The ocak: the coffee maker's hearth, charcoal glowing in a tiled box, the pots in the embers.
           this.r(X + 4, top + 1, PW - 8, d - 3, (i, j) => (j === 0 ? P.stone[1] : hash(i, j, q.seed) < 0.5 ? 0xd0542a : 0x8a2a1a));

@@ -48,6 +48,11 @@ const PUBLIC: Rule[] = [
   // Coffee houses from Cairo and Mecca in the 1510s, Istanbul in 1554, Persia by 1600.
   { lon: [-18, 62], lat: [12, 45], from: 1510, pick: () => "kahvehane" },
   { lon: [-114, -104], lat: [31, 40], from: 700, pick: () => "kiva" },
+  { lon: [-106, -84], lat: [12, 24], from: 1550, pick: () => "pulqueria" },
+  { lon: [-82, -62], lat: [-25, 2], from: 1400, pick: () => "chicheria" },
+  { lon: [128, 146], lat: [30, 46], from: 1400, to: 1950, pick: () => "chaya" },
+  { lon: [98, 128], lat: [18, 46], from: 800, pick: () => "chinese-teahouse" },
+  { lon: [50, 100], lat: [25, 48], from: 1400, pick: () => "chaikhana" },
   // In Mesoamerica the sweat bath is the temazcal, whichever row brought it.
   { lon: [-106, -84], lat: [12, 24], pick: () => "temazcal" },
   { lon: [-170, -52], lat: [24, 72], pick: () => "sweat-lodge" },

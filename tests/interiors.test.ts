@@ -69,6 +69,11 @@ describe("interior profiles", () => {
       { id: "english-tavern", lon: -0.1, lat: 51.5, year: 1700, use: "venue.alehouse", seat: "bench" },
       { id: "izakaya", lon: 139.7, lat: 35.7, year: 1800, use: "venue.izakaya", seat: "cushions" },
       { id: "kahvehane", lon: 29, lat: 41, year: 1650, use: "venue.kahvehane", seat: "divan" },
+      { id: "pulqueria", lon: -99, lat: 19.4, year: 1750, use: "venue.pulqueria", seat: "bench" },
+      { id: "chicheria", lon: -72, lat: -13.5, year: 1600, use: "venue.chicheria", seat: "bench" },
+      { id: "chinese-teahouse", lon: 120, lat: 30, year: 1200, use: "venue.teahouse-east", seat: "bench" },
+      { id: "chaya", lon: 135.8, lat: 35, year: 1700, use: "venue.teahouse-east", seat: "cushions" },
+      { id: "chaikhana", lon: 64.4, lat: 39.8, year: 1800, use: "venue.chaikhana", seat: "cushions" },
     ];
     for (const { id, seat, ...site } of sites)
       for (const fortune of [0.1, 0.5, 0.9])
