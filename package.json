@@ -25,6 +25,7 @@
     "shot": "tsx scripts/shot.ts",
     "capture:characters": "tsx scripts/capture/characters.ts",
     "capture:terrain": "tsx scripts/capture/terrain.ts",
+    "capture:interiors": "tsx scripts/capture/interiors.ts",
     "preview": "vite preview --host 127.0.0.1",
     "mcp": "tsx scripts/mcp-server.ts",
     "prepare:tile-names": "python3 scripts/prepare-tile-names.py",

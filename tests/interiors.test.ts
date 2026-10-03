@@ -4,6 +4,7 @@ import { interiorProfileFor } from "../src/content/interiors/select";
 import { buildInterior } from "../src/world/interior";
 import { planRoom, roomMask, type Shape } from "../src/render/interiors/room";
 import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
+import { ALTARS } from "../src/render/interiors/altars";
 import { planBuilding } from "../src/render/interiors/building";
 import type { Place } from "../src/core/types";
 import { createSettingSession } from "../src/runtime/session";
@@ -47,11 +48,11 @@ describe("interior profiles", () => {
     expect(interiorProfileFor({ lon: 32.8, lat: 37.7, year: -7000 }).id).toBe("catalhoyuk-house");
     expect(interiorProfileFor({ lon: 106, lat: 47, year: 1600, camp: true }).id).toBe("mongol-ger");
     expect(interiorProfileFor({ lon: -90, lat: 41, year: 1935, settlement: "village" }).id).toBe("farmhouse-1930s");
-    expect(interiorProfileFor({ lon: -0.1, lat: 51.5, year: 1700, settlement: "city", venue: "venue.alehouse" }).id).toBe("english-tavern");
-    expect(interiorProfileFor({ lon: -0.1, lat: 51.5, year: 1700, settlement: "city", venue: "venue.town-hall" }).id).not.toBe("english-tavern");
-    expect(interiorProfileFor({ lon: 135.8, lat: 35, year: 1700, settlement: "city", venue: "venue.alehouse" }).id).toBe("japanese-minka");
+    expect(interiorProfileFor({ lon: -0.1, lat: 51.5, year: 1700, settlement: "city", use: "venue.alehouse" }).id).toBe("english-tavern");
+    expect(interiorProfileFor({ lon: -0.1, lat: 51.5, year: 1700, settlement: "city", use: "venue.town-hall" }).id).not.toBe("english-tavern");
+    expect(interiorProfileFor({ lon: 135.8, lat: 35, year: 1700, settlement: "city", use: "venue.alehouse" }).id).toBe("japanese-minka");
     // A generic venue becomes what its region and century made of it.
-    const venue = (lon: number, lat: number, year: number, v: string) => interiorProfileFor({ lon, lat, year, settlement: "city", venue: v }).id;
+    const venue = (lon: number, lat: number, year: number, v: string) => interiorProfileFor({ lon, lat, year, settlement: "city", use: v }).id;
     expect(venue(29, 41, 1650, "venue.bath-house")).toBe("hammam");
     expect(venue(29, 41, 400, "venue.bath-house")).toBe("roman-baths");
     expect(venue(12.5, 41.9, 1300, "venue.bath-house")).not.toBe("hammam");
@@ -65,14 +66,14 @@ describe("interior profiles", () => {
 
   it("serves every drinking house from behind its counter, with seats and a bed for the household", () => {
     const sites = [
-      { id: "english-tavern", lon: -0.1, lat: 51.5, year: 1700, venue: "venue.alehouse", seat: "bench" },
-      { id: "izakaya", lon: 139.7, lat: 35.7, year: 1800, venue: "venue.izakaya", seat: "cushions" },
-      { id: "kahvehane", lon: 29, lat: 41, year: 1650, venue: "venue.kahvehane", seat: "divan" },
+      { id: "english-tavern", lon: -0.1, lat: 51.5, year: 1700, use: "venue.alehouse", seat: "bench" },
+      { id: "izakaya", lon: 139.7, lat: 35.7, year: 1800, use: "venue.izakaya", seat: "cushions" },
+      { id: "kahvehane", lon: 29, lat: 41, year: 1650, use: "venue.kahvehane", seat: "divan" },
     ];
     for (const { id, seat, ...site } of sites)
       for (const fortune of [0.1, 0.5, 0.9])
         for (let n = 0; n < 15; n++) {
-          const room = buildInterior({ id: `t-${id}-${n}`, access: "public", claim: `venue-${site.venue}` } as Place, { ...site, settlement: "city" }, { fortune });
+          const room = buildInterior({ id: `t-${id}-${n}`, access: "public", claim: `venue-${site.use}` } as Place, { ...site, settlement: "city" }, { fortune });
           const where = `${id} ${fortune} #${n}`;
           expect(interiorProfileFor(site).id, where).toBe(id);
           expect(room.work[0], where).toMatchObject({ kind: "bar", facing: 2 });
@@ -107,7 +108,7 @@ describe("interior profiles", () => {
       { lon: 133, lat: -12, year: 1500 },
       { lon: 142, lat: -38, year: 1500 },
       { lon: 10, lat: 50, year: 2000, camp: true },
-      { lon: -0.1, lat: 51.5, year: 1700, settlement: "city", venue: "venue.alehouse" },
+      { lon: -0.1, lat: 51.5, year: 1700, settlement: "city", use: "venue.alehouse" },
     ];
     const hit = new Set<string>();
     for (const [i, site] of sites.entries())
@@ -138,17 +139,17 @@ describe("interior profiles", () => {
 
   it("rings the seats of a gathering place round its fire or its water, with nobody behind a counter", () => {
     const sites = [
-      { id: "sweat-lodge", lon: -101, lat: 44, year: 1850, venue: "venue.sweat-lodge", seat: "cushions", also: ["firepit"] },
-      { id: "kiva", lon: -108.5, lat: 37.2, year: 1100, venue: "venue.kiva", seat: "ledge", also: ["firepit", "sipapu", "ladder"] },
-      { id: "temazcal", lon: -90, lat: 17, year: 700, venue: "venue.temazcal", seat: "cushions", also: ["hearth"] },
-      { id: "roman-baths", lon: 14.5, lat: 40.75, year: 70, venue: "venue.bath-house", seat: "ledge", also: ["pool", "basin", "brazier"] },
-      { id: "hammam", lon: 29, lat: 41, year: 1600, venue: "venue.hammam", seat: "ledge", also: ["slab", "basin", "pool"] },
-      { id: "sento", lon: 139.7, lat: 35.7, year: 1800, venue: "venue.sento", seat: "ledge", also: ["pool"] },
+      { id: "sweat-lodge", lon: -101, lat: 44, year: 1850, use: "venue.sweat-lodge", seat: "cushions", also: ["firepit"] },
+      { id: "kiva", lon: -108.5, lat: 37.2, year: 1100, use: "venue.kiva", seat: "ledge", also: ["firepit", "sipapu", "ladder"] },
+      { id: "temazcal", lon: -90, lat: 17, year: 700, use: "venue.temazcal", seat: "cushions", also: ["hearth"] },
+      { id: "roman-baths", lon: 14.5, lat: 40.75, year: 70, use: "venue.bath-house", seat: "ledge", also: ["pool", "basin", "brazier"] },
+      { id: "hammam", lon: 29, lat: 41, year: 1600, use: "venue.hammam", seat: "ledge", also: ["slab", "basin", "pool"] },
+      { id: "sento", lon: 139.7, lat: 35.7, year: 1800, use: "venue.sento", seat: "ledge", also: ["pool"] },
     ];
     for (const { id, seat, also, ...site } of sites)
       for (const fortune of [0.1, 0.5, 0.9])
         for (let n = 0; n < 10; n++) {
-          const room = buildInterior({ id: `t-${id}-${n}`, access: "public", claim: `venue-${site.venue}` } as Place, site, { fortune });
+          const room = buildInterior({ id: `t-${id}-${n}`, access: "public", claim: `venue-${site.use}` } as Place, site, { fortune });
           const where = `${id} ${fortune} #${n}`;
           expect(interiorProfileFor(site).id, where).toBe(id);
           expect(room.params.program, where).toBe("gather");
@@ -165,6 +166,36 @@ describe("interior profiles", () => {
     const keeper = e.state.households!.find((h) => h.members.includes(kiva.owner))!;
     expect(e.world.place(keeper.residence!)!.claim.startsWith("venue-")).toBe(false);
     expect(e.interiorOf(kiva.id)!.params.program).toBe("gather");
+  });
+
+  it("faces every place of worship to its altar down an aisle no column stands in", () => {
+    const sites = [
+      { id: "romanesque-church", lon: 2, lat: 47, year: 1100, use: "religious.romanesque-parish" },
+      { id: "gothic-church", lon: 2, lat: 47, year: 1350, use: "religious.gothic-parish" },
+      { id: "reformed-church", lon: -1, lat: 52, year: 1700, use: "religious.gothic-parish" },
+      { id: "baroque-church", lon: -3.7, lat: 40.4, year: 1700, use: "religious.gothic-parish" },
+      { id: "baroque-church", lon: -99, lat: 19, year: 1700, use: "religious.spanish-american-church" },
+      { id: "mosque", lon: 36.3, lat: 33.5, year: 1200, use: "venue.mosque-court" },
+      { id: "chinese-temple", lon: 116, lat: 40, year: 1500, use: "venue.temple-court-east" },
+      { id: "japanese-temple", lon: 135.8, lat: 35, year: 1700, use: "venue.temple-court-east" },
+      { id: "wat", lon: 100.5, lat: 13.7, year: 1800, use: "venue.wat" },
+      { id: "hindu-temple", lon: 78, lat: 11, year: 1100, use: "venue.temple-court-south" },
+      { id: "classical-temple", lon: 12.5, lat: 41.9, year: 100, use: "venue.temple-precinct" },
+      { id: "mesopotamian-temple", lon: 44.4, lat: 32.5, year: -2000, use: "religious.mesopotamian-temple" },
+      { id: "maya-temple", lon: -89.6, lat: 17.2, year: 700, use: "religious.maya-temple-pyramid" },
+    ];
+    for (const { id, ...site } of sites)
+      for (const fortune of [0.1, 0.9])
+        for (let n = 0; n < 6; n++) {
+          const where = `${id} ${site.year} ${fortune} #${n}`;
+          expect(interiorProfileFor(site).id, where).toBe(id);
+          const room = buildInterior({ id: `t-${id}-${n}`, access: "public", claim: site.use.replace(".", "-") } as Place, site, { fortune });
+          const altar = room.props.find((q) => q.kind === "altar");
+          expect(altar, where).toBeDefined();
+          const mid = altar!.x + Math.floor(altar!.w / 2);
+          for (const q of room.props.filter((q) => (q.kind === "pole" || q.kind === "pew") && q.room === altar!.room))
+            expect(q.x <= mid && mid < q.x + q.w && q.y > altar!.y, `${where} ${q.kind} in the aisle`).toBe(false);
+        }
   });
 
   it("keeps a grown member of the household behind the bar and sits drinkers down late", () => {
@@ -190,7 +221,7 @@ describe("interior profiles", () => {
     const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
     const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
     const room = e.interiorOf(ale.id)!;
-    e.advance(((19 - (e.state.clock / 3600) % 24 + 24) % 24) * 3600);
+    e.state.clock += ((19 - (e.state.clock / 3600) % 24 + 24) % 24) * 3600;
     e.state.player.pos = { ...room.entry, space: ale.id };
     e.advance(60);
     const regulars = e.state.actors.filter((a) => a.pos.space === ale.id && e.world.dormant?.(a.id));
@@ -225,6 +256,8 @@ describe("interior profiles", () => {
   it("draws every sprite with letters that have a colour", () => {
     for (const [name, rows] of Object.entries(SPRITES))
       for (const ch of rows.join("")) if (ch !== "." && ch !== "#") expect(LETTERS[ch], `${name} uses "${ch}"`).toBeDefined();
+    for (const [name, art] of Object.entries(ALTARS))
+      for (const ch of art.rows.join("")) if (!".*%".includes(ch)) expect(art.ink[ch], `altar ${name} uses "${ch}"`).toBeDefined();
   });
 
   it("keeps doorways two wide and clear of furniture, in front and through", () => {

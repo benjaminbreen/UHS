@@ -1165,7 +1165,7 @@ export function socialStop(
 ): Station {
   // Whoever keeps a venue spends the evening keeping it.
   const kept = plan.venues?.find((v) => v.placeId && plan.places.find((p) => p.id === v.placeId)?.owner === id);
-  const site = kept && setting && { lon: setting.lon, lat: setting.lat, year: setting.year, venue: kept.venue.id };
+  const site = kept && setting && { lon: setting.lon, lat: setting.lat, year: setting.year, use: kept.venue.id };
   if (kept && site && publicInteriorFor(site) && keeperLivesIn(site))
     return {
       ...inside(plan, kept.pos, `Keeping ${the(kept.venue.label)}`, 180, kept.placeId),
@@ -1174,7 +1174,7 @@ export function socialStop(
   const drawn =
     actor && setting ? venueFor(plan, seed, actor, setting, home) : undefined;
   // A venue whose building has a room of its own is visited inside it.
-  if (drawn?.placeId && setting && publicInteriorFor({ lon: setting.lon, lat: setting.lat, year: setting.year, venue: drawn.venue.id }))
+  if (drawn?.placeId && setting && publicInteriorFor({ lon: setting.lon, lat: setting.lat, year: setting.year, use: drawn.venue.id }))
     return {
       ...inside(plan, drawn.pos, `At ${the(drawn.venue.label)}`, drawn.venue.minutes, drawn.placeId),
       toward: the(drawn.venue.label),

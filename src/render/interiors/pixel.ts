@@ -1,8 +1,9 @@
 import type { LightField } from "./voxel";
+import { ALTARS } from "./altars";
 import { LETTERS, SPRITES } from "./sprites";
 import type { RoomPlan } from "./building";
 import {
-  courtParams, floorColor, hash, wornTiles, mix, palette, roomMask, scale, sky, sun, wallColor,
+  carpetColor, courtParams, floorColor, hash, wornTiles, mix, palette, roomMask, scale, sky, sun, wallColor,
   type Kind, type Palette, type Prop, type RoomParams,
 } from "./room";
 
@@ -446,6 +447,349 @@ export class PixelRoom {
     this.s(x + 1, base - 4, P.linen[5]);
     this.flames.push({ x, y: base - 7 });
     this.lights.push({ x, y: base - 7, c: 0xffb860, rad: 46, k: 1.15, phase: seed % 80 });
+  }
+  /** A saint or worshipper in a panel or niche: halo, face, robe. */
+  private saint(cx: number, top: number, h: number, robe: number[], halo = true) {
+    const { P } = this;
+    if (halo) for (let a = 0; a < 16; a++) this.s(cx + Math.round(Math.cos(a / 2.55) * 3), top + 3 + Math.round(Math.sin(a / 2.55) * 3), P.brass[a < 8 ? 5 : 3]);
+    this.r(cx - 1, top + 2, 3, 3, (i, j) => (j === 2 ? 0xc8987a : i === 0 ? 0xf0d0b0 : 0xe0b894));
+    for (let j = 0; j < h - 5; j++) {
+      const half = 1 + Math.floor(j / 3);
+      for (let i = -half; i <= half; i++) this.s(cx + i, top + 5 + j, robe[i < 0 ? 4 : i === 0 ? 3 : (i + j) % 4 === 0 ? 1 : 2]);
+    }
+  }
+  /** A lit candle on a stick: a brass foot, the wax, the flame and its light. */
+  private taper(x: number, base: number, h: number, seed: number, k = 0.7) {
+    const { P } = this;
+    this.r(x - 1, base - 1, 3, 1, P.brass[3]);
+    this.r(x, base - h, 1, h - 1, P.brass[4]);
+    this.r(x, base - h - 4, 1, 4, P.linen[5]);
+    this.flames.push({ x, y: base - h - 6 });
+    this.lights.push({ x, y: base - h - 6, c: 0xffc070, rad: 30, k, phase: seed % 90 });
+  }
+  /** A tall pointed window of coloured glass in lead, throwing coloured light. */
+  private lancet(x0: number, top: number, w: number, h: number, seed: number, sunNow: ReturnType<typeof sun>) {
+    const { P } = this;
+    const glass = [0xb8202a, 0x2a4ab0, 0xe0b030, 0x2a8a5a, 0x8a3aa0];
+    const arch = (i: number, j: number) => j < w / 2 && Math.hypot(i - (w - 1) / 2, j - w / 2) > w / 2 + 0.2 && Math.abs(i - (w - 1) / 2) > j * 0.9;
+    for (let j = -2; j < h + 2; j++)
+      for (let i = -2; i < w + 2; i++) {
+        const inside = i >= 0 && i < w && j >= 0 && j < h && !arch(i, j);
+        const frame = !inside && i >= -2 && i < w + 2 && j < h + 2 && !arch(Math.max(0, Math.min(w - 1, i)), j + 2);
+        if (frame) this.s(x0 + i, top + j, j === h + 1 ? P.stone[1] : i < 0 ? P.stone[4] : P.stone[2]);
+        if (!inside) continue;
+        const lead = i % 4 === 0 || j % 5 === 0 || Math.abs(i - (w - 1) / 2) < 0.6;
+        const c = glass[Math.floor(hash(i >> 2, Math.floor(j / 5), seed) * glass.length)];
+        const lit = 0.55 + sunNow.strength * 0.45;
+        this.g(x0 + i, top + j, lead ? 0x1a1418 : mix(scale(c, lit), 0xffffff, hash(i, j, seed) < 0.1 ? 0.3 : 0));
+      }
+    this.r(x0 - 3, top + h + 2, w + 6, 2, (_i, j) => P.stone[j ? 2 : 4]);
+    if (sunNow.strength > 0)
+      for (let k = 0; k < 3; k++) {
+        const len = 22 + (1 - sunNow.dir[2]) * 40, skew = (sunNow.dir[0] / Math.max(0.2, -sunNow.dir[1])) * len * -0.6;
+        this.beams.push({ x0: x0 + k * 3, x1: x0 + k * 3 + 4, top: top + 4, floor: top + h + 8, len, skew, k: sunNow.strength * 0.5, c: glass[(seed + k) % 3] });
+      }
+  }
+  /** A column: base, shaft and capital, in stone, red lacquer or timber. */
+  private column(cx: number, base: number, style: string) {
+    const { P } = this, W = P.wood;
+    const h = 70, R = style === "red" ? [0x3a0e0a, 0x6a1a14, 0x9a2a1e, 0xb83a26, 0xd05a3a, 0xe88a5a] : style === "timber" ? W : P.stone;
+    this.r(cx - 5, base - 4, 11, 4, (i, j) => (j === 0 ? P.stone[5] : i === 0 ? P.stone[4] : P.stone[2]));
+    this.r(cx - 3, base - h, 7, h - 4, (i, j) => (style === "stone" && i % 2 === 1 && j % 9 !== 0 ? R[i < 3 ? 4 : 2] : R[i === 0 ? 4 : i === 1 ? 5 : i < 4 ? 3 : i === 6 ? 1 : 2]));
+    if (style === "red") this.r(cx - 3, base - h + 8, 7, 3, (i) => P.brass[i < 3 ? 5 : 3]);
+    this.r(cx - 5, base - h - 4, 11, 4, (i, j) => (j === 0 ? R[5] : j === 3 ? R[1] : i === 0 ? R[4] : R[3]));
+    this.dim(cx + 4, base - h, 2, h - 4, 0.8);
+  }
+  /** A pulpit raised on a stem, its stair and its sounding board. */
+  private pulpit(X: number, base: number, seed: number) {
+    const { P } = this, W = P.wood;
+    this.r(X + 6, base - 14, 4, 14, (i) => W[i === 0 ? 4 : i === 3 ? 1 : 2]);
+    this.r(X + 1, base - 30, 14, 16, (i, j) => (j === 0 ? W[5] : j === 1 ? W[3] : i === 0 || i === 13 ? W[1] : (i - 3) % 5 === 0 ? W[1] : (i - 3) % 5 === 1 ? W[4] : j === 15 ? W[1] : W[2]));
+    this.r(X + 4, base - 33, 8, 2, (i) => (i < 4 ? P.acc[3] : P.acc[2]));
+    this.r(X + 3, base - 34, 4, 1, P.paper[5]);
+    this.r(X - 1, base - 52, 18, 3, (i, j) => (j === 0 ? W[5] : j === 2 ? W[1] : i % 4 === 0 ? W[2] : W[4]));
+    this.r(X + 7, base - 49, 2, 15, W[1]);
+    for (let s = 0; s < 6; s++) this.r(X + 14 + s, base - 2 - s * 4, 2, 1, W[4 - (s & 1)]);
+    void seed;
+  }
+  /** A minbar: the stair to the preacher's seat, its gate and its little dome. */
+  private minbar(X: number, base: number) {
+    const { P } = this, W = P.wood;
+    this.r(X, base - 30, 16, 30, (i, j) => {
+      if (i === 0 || i === 15 || j === 29) return W[1];
+      const gate = i > 3 && i < 12 && j > 10;
+      if (gate) return j < 13 && Math.abs(i - 7.5) > j - 9 ? W[3] : 0x24181a;
+      return ((i + j) % 6 === 0 || (i - j + 60) % 6 === 0) ? W[1] : W[i < 3 ? 4 : 3];
+    });
+    this.r(X + 3, base - 36, 10, 6, (i, j) => (j === 5 ? W[1] : i === 0 || i === 9 ? W[2] : W[3]));
+    for (let j = 0; j < 9; j++) this.r(X + 8 - Math.ceil((9 - j) / 2), base - 45 + j, Math.ceil((9 - j) / 2) * 2, 1, j === 0 ? P.brass[5] : W[j < 3 ? 4 : 3]);
+    this.r(X + 7, base - 48, 2, 3, P.brass[4]);
+  }
+  /** The focus a room of rows faces, in the form of its faith and age. */
+  private altar(style: string, q: Prop, X: number, Y: number, PW: number, PD: number) {
+    const { P } = this, W = P.wood, cx = X + (PW >> 1), base = Y + PD - 3;
+    const art = ALTARS[style];
+    if (art) {
+      const R = P as unknown as Record<string, number[]>, w = art.rows[0].length, x0 = cx - (w >> 1), y0 = Y + PD - 1 - art.rows.length;
+      art.rows.forEach((row, j) => {
+        for (let i = 0; i < row.length; i++) {
+          const ch = row[i];
+          if (ch === ".") continue;
+          if (ch === "%") {
+            this.g(x0 + i, y0 + j, 0xffd890);
+            continue;
+          }
+          if (ch === "*") {
+            this.flames.push({ x: x0 + i, y: y0 + j });
+            this.lights.push({ x: x0 + i, y: y0 + j, c: 0xffc070, rad: 30, k: 0.45, phase: (q.seed + i) % 90 });
+            continue;
+          }
+          const ink = art.ink[ch];
+          this.s(x0 + i, y0 + j, typeof ink === "number" ? ink : R[ink[0]][ink[1]]);
+        }
+      });
+      return;
+    }
+    const lapis = [0x101a3a, 0x1a2a5a, 0x23387a, 0x30489a, 0x4a64b8, 0x7a90d8];
+    const red = [0x3a0e0e, 0x6a1a16, 0x9a2a22, 0xb8402e, 0xd0604a, 0xe89070];
+    const cloth = (tx: number, tw: number, top: number, h: number, band: number[]) => {
+      this.r(tx, top, tw, h, (i, j) => (j === 0 ? P.linen[5] : i === 0 ? P.linen[4] : j === h - 1 ? P.linen[2] : j > 2 && j < 5 ? band[3] : P.linen[4 - ((i + j) % 7 === 0 ? 1 : 0)]));
+    };
+    const table = (tw: number, h: number, R: number[]) => {
+      const tx = cx - (tw >> 1);
+      this.box(tx, Y + 2, tw, PD - 5, h, R, R);
+      return tx;
+    };
+    switch (style) {
+      case "romanesque": {
+        // Christ in Majesty in a mandorla, painted on the apse above a plain stone altar.
+        const my = Y - 40;
+        for (let j = 0; j < 30; j++)
+          for (let i = -9; i <= 9; i++) {
+            const e = (i * i) / 81 + ((j - 15) * (j - 15)) / 225;
+            if (e > 1) continue;
+            this.s(cx + i, my + j, e > 0.8 ? 0xc89a4a : e > 0.7 ? 0x8a3a2a : 0x3a5a8a);
+          }
+        this.saint(cx, my + 5, 20, red);
+        for (const sx of [-15, 15]) this.saint(cx + sx, my + 12, 14, sx < 0 ? [0x2a3a2a, 0x3a5a3a, 0x4a6a4a, 0x5a7a4a, 0x7a9a6a, 0x9aba8a] : red, true);
+        const tx = table(Math.min(30, PW - 10), 13, P.stone);
+        cloth(tx, Math.min(30, PW - 10), Y - 11, 6, P.acc);
+        this.r(cx, Y - 22, 1, 9, P.brass[4]);
+        this.r(cx - 2, Y - 19, 5, 1, P.brass[4]);
+        this.taper(tx + 3, Y - 10, 4, q.seed);
+        this.taper(tx + Math.min(30, PW - 10) - 4, Y - 10, 4, q.seed + 3);
+        break;
+      }
+      case "reformed": {
+        // A communion table under boards of the Commandments, Creed and Lord's Prayer.
+        for (const [k, bx] of [[0, cx - 20], [1, cx + 4]] as const) {
+          for (let j = 0; j < 26; j++)
+            for (let i = 0; i < 16; i++) {
+              const r0 = Math.hypot(i - 7.5, j - 8);
+              if (j < 8 && r0 > 8.2) continue;
+              const rim = i === 0 || i === 15 || j === 25 || (j < 8 && r0 > 7.2);
+              this.s(bx + i, Y - 42 + j, rim ? P.brass[i === 0 || j < 4 ? 4 : 2] : j > 8 && j < 23 && j % 3 === 0 && i > 2 && i < 13 && hash(i, j, k) < 0.8 ? P.brass[4] : 0x18141a);
+            }
+        }
+        const tw = Math.min(30, PW - 8), tx = cx - (tw >> 1);
+        for (const lx of [tx + 1, tx + tw - 3]) this.r(lx, base - 12, 2, 12, (i, j) => W[j % 4 === 0 ? 4 : i ? 1 : 3]);
+        cloth(tx, tw, base - 18, 7, P.linen);
+        this.vase(tx + 8, base - 18, 7, (t) => 2.2 - Math.abs(t - 0.3) * 1.5, P.iron);
+        this.vase(tx + tw - 9, base - 18, 4, (t) => 1.6 - t * 0.6, P.brass);
+        break;
+      }
+      case "baroque": {
+        // A gilded retablo: twisted columns, saints in niches, the Virgin at the heart, a burst of rays above.
+        const rw = PW - 2, rx = X + 1, top = Y - 46, gold = P.brass;
+        this.r(rx, top + 6, rw, 44, (i, j) => (hash(i, j, 3) < 0.12 ? gold[5] : (i + j) % 5 === 0 ? gold[2] : gold[3 + ((i >> 1) % 2)]));
+        for (let k = 0; k <= 3; k++) {
+          const colX = rx + 1 + Math.round((k * (rw - 4)) / 3);
+          for (let j = 0; j < 40; j++) this.r(colX, top + 8 + j, 3, 1, (i) => ((i + j) % 4 < 2 ? gold[5] : gold[1]));
+        }
+        const niche = (nx: number, nw: number, ny: number, nh: number, fig: number[], crown = false) => {
+          this.r(nx, ny, nw, nh, (i, j) => (j < nw / 2 && Math.hypot(i - (nw - 1) / 2, j - nw / 2) > nw / 2 ? gold[4] : j === nh - 1 ? gold[1] : 0x3a1a2a));
+          this.saint(nx + (nw >> 1), ny + 3, nh - 5, fig, !crown);
+          if (crown) this.r(nx + (nw >> 1) - 1, ny + 2, 3, 1, gold[5]);
+        };
+        const cw = Math.round((rw - 4) / 3);
+        niche(rx + 3, cw - 4, top + 18, 20, [0x2a1a10, 0x4a2e1a, 0x6a4428, 0x8a5a36, 0xa87a50, 0xc89a70]);
+        niche(rx + rw - cw + 1, cw - 4, top + 18, 20, red);
+        niche(cx - 5, 11, top + 12, 28, lapis, true);
+        for (let a = 0; a < 12; a++) {
+          const t = (a / 11) * Math.PI;
+          for (let r0 = 3; r0 < 9; r0++) this.g(cx + Math.round(Math.cos(t) * r0), top + 7 - Math.round(Math.sin(t) * r0 * 0.7), gold[5]);
+        }
+        const tw = Math.min(36, PW - 6), tx = table(tw, 12, P.stone);
+        cloth(tx, tw, Y - 10, 6, red);
+        for (let k = 0; k < 6; k++) this.taper(tx + 2 + Math.round((k * (tw - 4)) / 5), Y - 9, 5 + (k === 0 || k === 5 ? 0 : 2), q.seed + k, 0.5);
+        break;
+      }
+      case "mihrab": {
+        // The niche in the qibla wall: a tiled frame, a calligraphy band, a lamp in the hollow.
+        const nw = Math.min(22, PW - 8), nh = 36, nx = cx - (nw >> 1), top = Y - nh - 2;
+        this.levha(nx - 4, top - 9, nw + 8, 7, q.seed);
+        for (let j = 0; j < nh; j++)
+          for (let i = 0; i < nw; i++) {
+            const r = Math.hypot(i - (nw - 1) / 2, j - nw / 2);
+            if (j < nw / 2 && r > nw / 2) continue;
+            const edge = i < 3 || i > nw - 4 || (j < nw / 2 && r > nw / 2 - 3);
+            if (edge) this.s(nx + i, top + j, (Math.floor(i / 2) + Math.floor(j / 2)) % 2 ? P.acc[3] : P.linen[5]);
+            else this.s(nx + i, top + j, mix(0x3a2a30, 0x120c14, Math.min(1, (j + Math.abs(i - nw / 2)) / nh)));
+          }
+        this.r(cx, top + 10, 1, 6, P.brass[2]);
+        this.vase(cx, top + 21, 5, (t) => 2.5 - Math.abs(t - 0.5) * 2, [0x2a5a4a, 0x3a8a6a, 0x6ac0a0, 0xa0e8d0, 0xd0fff0, 0xffffff]);
+        this.g(cx, top + 18, 0xfff0b0);
+        this.lights.push({ x: cx, y: top + 18, c: 0xffd890, rad: 34, k: 0.8, phase: q.seed % 60 });
+        break;
+      }
+      case "buddha":
+      case "buddha-jp": {
+        const jp = style === "buddha-jp", gold = P.brass, by = Y - 2;
+        // Halo or flame mandorla first, then the Buddha on the lotus, then the offering table before him.
+        if (jp) for (let j = 0; j < 40; j++) {
+          const half = Math.round(Math.sin((j / 40) * Math.PI) * 15 + (j > 20 ? 2 : 0));
+          for (let i = -half; i <= half; i++) this.s(cx + i, by - 44 + j, Math.abs(i) > half - 2 ? gold[4] : hash(i, j, 5) < 0.1 ? gold[5] : 0x3a1a14);
+        } else {
+          for (let a = 0; a < 48; a++) for (const r0 of [10, 11]) this.s(cx + Math.round(Math.cos(a / 7.6) * r0), by - 31 + Math.round(Math.sin(a / 7.6) * r0), r0 === 10 ? gold[5] : gold[2]);
+          this.r(X, Y - 46, PW, 5, (i, j) => (j === 4 ? gold[4] : i % 6 === 0 && j > 1 ? gold[3] : red[2 + (j === 0 ? 1 : 0)]));
+        }
+        for (let i = -13; i <= 13; i++) {
+          const pet = Math.abs(((i + 13) % 6) - 3);
+          for (let j = 0; j < 6 - pet / 2; j++) this.s(cx + i, by - j, j === 0 ? gold[1] : jp ? gold[3 + (j > 3 ? 1 : 0)] : mix(0xe89aa0, gold[4], j / 6));
+        }
+        for (let i = -10; i <= 10; i++) for (let j = 0; j < 5; j++) if ((i * i) / 100 + ((j - 2) * (j - 2)) / 6 <= 1) this.s(cx + i, by - 6 - j, gold[i < -3 ? 4 : i > 5 ? 2 : 3]);
+        for (let j = 0; j < 12; j++) {
+          const half = 6 - Math.floor(j / 4);
+          for (let i = -half; i <= half; i++) this.s(cx + i, by - 11 - j, gold[i < -half + 2 ? 5 : i > half - 2 ? 2 : 3]);
+        }
+        for (let j = 0; j < 9; j++) this.s(cx - 3 + Math.floor(j / 2), by - 20 + j, gold[1]);
+        this.r(cx - 2, by - 12, 5, 2, gold[4]);
+        const hy = by - 28;
+        for (let j = -5; j <= 5; j++) for (let i = -5; i <= 5; i++) if (i * i + j * j <= 26) this.s(cx + i, hy + j, j < -2 ? (jp ? 0x1a1a24 : 0x2a3a6a) : gold[i < -1 ? 5 : i > 2 ? 3 : 4]);
+        this.r(cx - 1, hy - 8, 3, 3, jp ? 0x1a1a24 : 0x2a3a6a);
+        for (const ex of [-6, 6]) this.r(cx + ex, hy - 1, 1, 6, gold[2]);
+        this.r(cx - 3, hy + 1, 2, 1, gold[1]);
+        this.r(cx + 2, hy + 1, 2, 1, gold[1]);
+        for (const [dx, dy] of [[-4, -3], [3, -3], [0, -9], [-2, 0]]) this.g(cx + dx, hy + dy + 6, gold[5]);
+        const tw = Math.min(34, PW - 6), tx = cx - (tw >> 1), lac = jp ? [0x0e0808, 0x1e1210, 0x2e1c18, 0x3e2620, 0x5a3a2e, 0x7a5040] : red;
+        this.box(tx, Y + 2, tw, PD - 5, 12, lac, lac);
+        this.r(tx, Y - 1, tw, 1, gold[4]);
+        this.vase(cx, Y - 10, 6, (t) => 3.2 - Math.abs(t - 0.4) * 2.4, P.iron);
+        this.r(cx - 3, Y - 16, 7, 1, P.iron[3]);
+        for (let k = 0; k < 3; k++) this.smoke.push({ x: cx - 1 + k, y: Y - 17 });
+        for (const sx of [tx + 4, tx + tw - 5]) this.taper(sx, Y - 10, 3, q.seed + sx, 0.6);
+        for (const sx of [tx + 9, tx + tw - 10]) {
+          this.vase(sx, Y - 10, 4, () => 1.4, gold);
+          for (const [dx, dy] of [[-1, -6], [1, -7], [0, -8]]) this.s(sx + dx, Y - 10 + dy, jp ? P.leaf[3] : 0xe8a0b0);
+        }
+        break;
+      }
+      case "hindu": {
+        // The sanctum door: carved jambs and lintel, bells, and the god dark and garlanded within, lit by lamps.
+        const dw = Math.min(30, PW - 6), dx = cx - (dw >> 1), top = Y - 44;
+        this.r(dx - 4, top - 4, dw + 8, 48, (i, j) => (j < 6 ? P.stone[j === 0 ? 5 : (i + (j >> 1)) % 3 === 0 ? 2 : 4] : (i < 4 || i > dw + 3) ? P.stone[(j % 6 === 0 ? 1 : i % 4 === 0 ? 2 : 3) + (i < 2 ? 1 : 0)] : 0x140c0c));
+        for (let k = 0; k < 5; k++) this.saint(dx + 2 + Math.round((k * (dw - 4)) / 4), top - 3, 6, P.stone, false);
+        const gy = Y - 6;
+        this.r(cx - 4, gy - 2, 9, 2, P.stone[3]);
+        for (let j = 0; j < 24; j++) {
+          const half = j < 6 ? 2 : j < 16 ? 3 : 4;
+          for (let i = -half; i <= half; i++) this.s(cx + i, gy - 26 + j, [0x0c0a0e, 0x1a1820, 0x2a2834][i < 0 ? 2 : i === 0 ? 1 : 0]);
+        }
+        this.r(cx - 3, gy - 30, 7, 4, (i, j) => P.brass[j === 0 ? 5 : i % 2 ? 3 : 4]);
+        for (let a = 0; a < 18; a++) this.s(cx + Math.round(Math.cos(a / 2.9) * 5), gy - 18 + Math.round(Math.abs(Math.sin(a / 2.9)) * 6), a % 2 ? 0xe8901a : 0xf0b030);
+        this.s(cx, gy - 24, 0xd02020);
+        this.r(cx - 4, gy - 8, 9, 6, (i, j) => (j === 0 ? 0xf0c040 : (i + j) % 3 === 0 ? 0xc02a2a : 0xd84a2a));
+        for (const lx of [dx + 2, dx + dw - 3]) {
+          this.r(lx - 1, gy - 1, 3, 1, P.clay[3]);
+          this.flames.push({ x: lx, y: gy - 3 });
+          this.lights.push({ x: lx, y: gy - 3, c: 0xffb050, rad: 34, k: 1, phase: (q.seed + lx) % 80 });
+        }
+        for (const bx of [dx + 6, dx + dw - 7]) {
+          this.r(bx, top + 2, 1, 6, P.iron[2]);
+          this.vase(bx, top + 12, 4, (t) => 2.2 - t, P.brass, false);
+        }
+        for (let k = 0; k < 10; k++) this.s(dx + hash(k, 1, q.seed) * dw, Y + 4 + hash(k, 2, q.seed) * 6, k % 2 ? 0xe8901a : 0xc02a2a);
+        break;
+      }
+      case "classical": {
+        // The cult statue on its podium, marble with gilt, a small altar smoking before it.
+        const top = Y - 46, marble = [0x6a6460, 0x9a948c, 0xc4beb4, 0xdcd6cc, 0xece8e0, 0xfaf8f2];
+        this.r(cx - 10, Y - 10, 21, 10, (i, j) => (j === 0 ? marble[5] : j === 9 ? marble[1] : i === 0 ? marble[4] : j === 4 ? marble[2] : marble[3]));
+        this.r(cx - 7, Y - 6, 15, 1, P.brass[3]);
+        for (let j = 0; j < 30; j++) {
+          const half = j < 6 ? 2 : j < 14 ? 3 + (j > 9 ? 1 : 0) : 4 + Math.floor((j - 14) / 6);
+          for (let i = -half; i <= half; i++) this.s(cx + i, top + 6 + j, marble[i < -1 ? 5 : i > 1 ? 2 : (j + i) % 5 === 0 ? 2 : 4]);
+        }
+        this.r(cx - 2, top + 2, 5, 4, (i) => marble[i < 2 ? 5 : 3]);
+        this.r(cx - 3, top + 1, 7, 1, P.brass[5]);
+        this.r(cx + 6, top - 2, 1, 36, P.brass[3]);
+        this.disc(cx - 7, top + 22, 4, P.brass);
+        const ax = cx - 3, ay = base;
+        this.r(ax, ay - 8, 7, 8, (i, j) => (j === 0 ? marble[5] : i === 0 ? marble[4] : marble[3]));
+        this.flames.push({ x: ax + 3, y: ay - 10 });
+        this.lights.push({ x: ax + 3, y: ay - 10, c: 0xffb050, rad: 30, k: 0.9, phase: q.seed % 70 });
+        this.smoke.push({ x: ax + 3, y: ay - 12 });
+        break;
+      }
+      case "mesopotamian": {
+        // The god in the cella: a buttressed niche, the horned crown, the flounced robe, offerings on a table.
+        const top = Y - 46, brick = P.clay;
+        this.r(cx - 14, top, 29, 46, (i, j) => (i < 3 || i > 25 ? brick[(j % 4 === 0 ? 1 : 3) + (i % 3 === 0 ? -1 : 0)] : i < 6 || i > 22 ? brick[(j % 4 === 0 ? 1 : 2)] : 0x2a1a14));
+        for (let j = 0; j < 28; j++) {
+          const half = j < 7 ? 2 : j < 12 ? 4 : 4 + Math.floor((j - 12) / 4);
+          for (let i = -half; i <= half; i++) this.s(cx + i, top + 12 + j, j < 4 ? 0xe0b890 : j < 8 ? lapis[3 + (i & 1)] : j < 12 ? 0xe0b890 : (j - 12) % 3 === 0 ? 0xc8b48a : 0xece0c4);
+        }
+        for (let k = 0; k < 4; k++) this.r(cx - 3 + (k & 1), top + 5 + k * 2, 7 - (k & 1) * 2, 1, P.brass[k % 2 ? 3 : 5]);
+        this.s(cx - 1, top + 14, 0x1a1418);
+        this.s(cx + 1, top + 14, 0x1a1418);
+        const tw = Math.min(24, PW - 8), tx = table(tw, 10, P.clay);
+        this.r(tx + 3, Y - 10, 6, 3, P.straw[4]);
+        this.vase(tx + tw - 5, Y - 8, 7, (t) => 2.6 - Math.abs(t - 0.4) * 2, P.clay);
+        break;
+      }
+      case "maya": {
+        // A carved stela painted red, glyph blocks down its side, a copal censer smoking before it.
+        const sw = 18, sx = cx - 9, top = Y - 44, R = red;
+        this.r(sx, top, sw, 42, (i, j) => (j === 0 ? R[5] : i === 0 ? R[4] : i === sw - 1 ? R[1] : i > sw - 6 && (j % 6 === 0 || i === sw - 6) ? R[1] : i > sw - 6 ? R[3] : R[2]));
+        for (let k = 0; k < 6; k++) this.r(sx + sw - 5, top + 2 + k * 6, 3, 4, (i, j) => (i === 1 && j === 1 ? 0x1a3a5a : R[4]));
+        this.saint(sx + 6, top + 8, 26, [0x0e2a3a, 0x1a4a5a, 0x2a6a7a, 0x3a8a8a, 0x5aaaa0, 0x8acac0], false);
+        for (let k = 0; k < 7; k++) this.s(sx + 2 + k, top + 7 - (k % 2) * 2, P.leaf[4]);
+        this.vase(cx, base, 8, (t) => 3.4 - Math.abs(t - 0.5) * 2, P.clay);
+        this.r(cx - 3, base - 8, 7, 1, 0xd0602a);
+        this.lights.push({ x: cx, y: base - 9, c: 0xff8a3a, rad: 30, k: 0.9, phase: q.seed % 70 });
+        for (let k = 0; k < 3; k++) this.smoke.push({ x: cx - 1 + k, y: base - 10 });
+        break;
+      }
+      default: {
+        // Gothic: a painted triptych on the altar's back, the crucifixion at its heart; a frontal and candles.
+        const rw = Math.min(40, PW - 6), rx = cx - (rw >> 1), ry = Y - 40, rh = 28, gold = P.brass;
+        const cw = Math.round(rw * 0.4), sw = (rw - cw - 4) >> 1;
+        this.r(rx, ry, rw, rh, (i, j) => (i === 0 || j === 0 ? gold[5] : i === rw - 1 || j === rh - 1 ? gold[1] : gold[3]));
+        const panel = (px: number, pw: number, py: number, ph: number) => {
+          for (let j = 0; j < ph; j++)
+            for (let i = 0; i < pw; i++) {
+              if (j < pw / 2 && Math.abs(i - (pw - 1) / 2) > j + 0.5) continue;
+              this.s(px + i, py + j, hash(i, j, 9) < 0.04 ? gold[5] : lapis[2 + (j > ph * 0.6 ? 0 : 1)]);
+            }
+        };
+        panel(rx + 2, sw, ry + 5, rh - 7);
+        panel(rx + rw - 2 - sw, sw, ry + 5, rh - 7);
+        panel(cx - (cw >> 1), cw, ry + 2, rh - 4);
+        for (let k = 0; k < 5; k++) this.s(rx + Math.round((k * (rw - 1)) / 4), ry - 1 - (k === 2 ? 3 : 1), gold[5]);
+        this.r(cx, ry + 6, 1, rh - 9, W[2]);
+        this.r(cx - 4, ry + 10, 9, 1, W[2]);
+        this.r(cx, ry + 10, 1, 7, 0xe8d0b0);
+        this.r(cx - 3, ry + 10, 7, 1, 0xe8d0b0);
+        this.saint(rx + 2 + (sw >> 1), ry + 10, 14, lapis);
+        this.saint(rx + rw - 2 - (sw >> 1) - 1, ry + 10, 14, red);
+        const tw = Math.min(34, PW - 8), tx = table(tw, 13, P.stone);
+        cloth(tx, tw, Y - 11, 9, red);
+        this.r(cx, Y - 9, 1, 5, gold[5]);
+        this.r(cx - 2, Y - 8, 5, 1, gold[5]);
+        this.taper(tx + 3, Y - 11, 6, q.seed);
+        this.taper(tx + tw - 4, Y - 11, 6, q.seed + 5);
+      }
+    }
   }
   /** A sake flask, white glaze with a blue band. */
   private tokkuri(x: number, base: number, k: number) {
@@ -965,28 +1309,13 @@ export class PixelRoom {
   }
 
   private rug(q: Prop) {
-    const { P } = this;
     this.cur = q.id;
-    const X = S + q.x * T + 3, Y = this.oy + q.y * T + 3, w = q.w * T - 6, h = q.d * T - 6;
-    const A = P.acc, Tr = P.trim;
-    // A flat field, a two-line border with a simple repeat, one medallion.
+    const X = S + q.x * T + 2, Y = this.oy + q.y * T + 2, w = q.w * T - 4, h = q.d * T - 4;
     for (let j = 0; j < h; j++)
       for (let i = 0; i < w; i++) {
-        const e = Math.min(i, j, w - 1 - i, h - 1 - j);
-        const dm = Math.abs(i - w / 2) / (w / 2) + Math.abs(j - h / 2) / (h / 2);
-        let c: number;
-        if (e === 0) c = A[1];
-        else if (e < 4) c = e === 2 && (i + j) % 4 === 0 ? mix(Tr[4], A[3], 0.3) : mix(A[3], Tr[4], 0.25);
-        else if (e === 4) c = A[1];
-        else if (dm < 0.26) c = dm < 0.12 ? mix(Tr[4], A[3], 0.4) : P.acc2[2];
-        else if (dm < 0.31) c = A[1];
-        else c = A[2];
-        this.s(X + i, Y + j, c);
+        if ((j === 0 || j === h - 1) && i % 2) continue;
+        this.s(X + i, Y + j, carpetColor(i, j, w, h, q.seed));
       }
-    for (let j = 1; j < h - 1; j += 2) {
-      this.s(X - 1, Y + j, P.linen[4]);
-      this.s(X + w, Y + j, P.linen[4]);
-    }
   }
 
   private hearthSlab(q: Prop) {
@@ -1044,6 +1373,10 @@ export class PixelRoom {
         break;
       }
       case "window": {
+        if (p.windowStyle === "stained") {
+          this.lancet(X + 3, oy - 44, 10, 34, q.seed, sunNow);
+          break;
+        }
         const x0 = X + 3, top = oy - 38, h = 22;
         const style = p.windowStyle === "lattice" ? 1 : p.windowStyle === "shoji" ? 2 : 0, open = style ? 1 : pr;
         this.r(x0 - 1, top - 1, 12, h + 2, P.trim[1]);
@@ -1635,6 +1968,14 @@ export class PixelRoom {
         break;
       }
       case "cushions": {
+        if (p.program === "rows") {
+          // A flat kneeling cushion, piped at the edge.
+          const A = P.acc, y0 = Y + PD - 9;
+          this.r(X + 2, y0, 12, 6, (i, j) => (j === 0 ? A[4] : j === 5 ? A[1] : i === 0 || i === 11 ? A[2] : j === 1 ? A[4] : A[3]));
+          this.r(X + 2, y0 + 4, 12, 1, A[2]);
+          this.s(X + 7, y0 + 2, A[1]);
+          break;
+        }
         if (p.styles.cushions === "petate") {
           // A palm mat to lie on.
           this.r(X + 1, Y + PD - 9, 14, 6, (i, j) => (i === 0 || j === 0 || i === 13 || j === 5 ? P.straw[1] : (i + j) % 2 ? P.straw[3] : P.straw[4]));
@@ -1744,6 +2085,10 @@ export class PixelRoom {
         break;
       }
       case "pole":
+        if (p.styles.pole) {
+          this.column(X + 8, Y + PD - 4, p.styles.pole);
+          break;
+        }
         this.r(X + 7, Y + PD - 8 - 86, 3, 86, (i) => W[i === 0 ? 4 : i === 1 ? 3 : 1]);
         this.r(X + 5, Y + PD - 40, 7, 6, P.fur[2]);
         break;
@@ -2154,6 +2499,45 @@ export class PixelRoom {
         this.s(X + 7, base - 10, 0x9ad0e0);
         break;
       }
+      case "altar":
+        this.altar(p.styles.altar ?? "gothic", q, X, Y, PW, PD);
+        break;
+      case "pew": {
+        // Seen from behind, as the congregation faces away: the back board, its rail, the ends.
+        const base = Y + PD - 2, box = p.styles.pew === "box";
+        const h = box ? 20 : 15;
+        this.r(X + 1, base - 9, PW - 2, 3, (i, j) => (j === 0 ? W[4] : W[3 - (i === 0 ? 1 : 0)]));
+        this.r(X + 1, base - h, PW - 2, h - 2, (i, j) => {
+          if (j === 0) return W[5];
+          if (j === 1) return W[3];
+          if (i === 0 || i === PW - 3) return W[1];
+          if (box) return (i - 2) % 14 === 0 || j === 4 || j === h - 5 ? W[1] : (i - 2) % 14 === 1 || j === 5 ? W[4] : W[2];
+          return j === h - 3 ? W[1] : j > 2 && j < 5 ? W[3] : W[2];
+        });
+        for (const ex of [X + 1, X + PW - 3]) this.r(ex, base - h - 1, 2, h + 1, (i, j) => (j === 0 ? W[5] : i ? W[1] : W[3]));
+        if (box) this.s(X + PW - 6, base - 9, P.brass[4]);
+        break;
+      }
+      case "prayer": {
+        // A prayer rug, its niche pointing to the qibla.
+        for (let j = 0; j < 14; j++)
+          for (let i = 0; i < 12; i++) if (!((j === 0 || j === 13) && i % 2)) this.s(X + 2 + i, Y + 1 + j, carpetColor(i, j, 12, 14, q.seed, "prayer"));
+        break;
+      }
+      case "font": {
+        // An octagonal stone bowl on a stem, a carved band round it, a lid.
+        const cx = X + 8, base = Y + PD - 3;
+        this.r(cx - 5, base - 3, 11, 3, (i, j) => (j === 0 ? P.stone[4] : i === 0 ? P.stone[3] : P.stone[1 + (j > 1 ? 0 : 1)]));
+        this.r(cx - 2, base - 11, 5, 8, (i) => P.stone[i === 0 ? 4 : i === 4 ? 1 : 3]);
+        this.r(cx - 6, base - 20, 13, 9, (i, j) => (j === 0 ? P.stone[5] : i === 0 || i === 12 ? P.stone[1] : j === 4 ? P.stone[2] : (i % 4 === 1 && j > 1 && j < 8) ? P.stone[2] : P.stone[i < 4 ? 4 : 3]));
+        this.r(cx - 5, base - 22, 11, 2, (_i, j) => (j ? W[2] : W[4]));
+        this.r(cx, base - 25, 1, 3, P.brass[4]);
+        break;
+      }
+      case "pulpit":
+        if (p.styles.pulpit === "minbar") this.minbar(X, Y + PD - 3);
+        else this.pulpit(X, Y + PD - 3, q.seed);
+        break;
       case "ledge": {
         // A plastered bench built against the wall, one tile of it.
         const top = Y + PD - 12;

@@ -47,7 +47,7 @@ const at = (x: number, y: number): Point => ({ x: x + ROOM_ORIGIN, y: y + ROOM_O
 const key = (p: Point) => `${p.x},${p.y}`;
 
 // Things people walk over or lie on; everything else on the floor is in the way.
-const FLAT: Kind[] = ["sipapu", "rug", "cat", "clutter", "mat", "cushions", "ladder", "door", "window", "tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame"];
+const FLAT: Kind[] = ["prayer", "sipapu", "rug", "cat", "clutter", "mat", "cushions", "ladder", "door", "window", "tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame"];
 // Everything else standing in a room is built in: beds, fires, wall pieces.
 const FURNITURE: Partial<Record<Kind, string>> = {
   stool: "room-stool", table: "room-table", lowtable: "room-lowtable", desk: "room-desk", counter: "room-counter",
@@ -57,7 +57,7 @@ const FURNITURE: Partial<Record<Kind, string>> = {
   plant: "room-plant", lamp: "room-lamp", basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
   bench: "room-bench",
 };
-const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab"];
+const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab", "pew", "prayer"];
 const FIRES: Kind[] = ["hearth", "firepit", "irori", "brazier", "stove", "range"];
 const WORK: Record<Trade, Kind[]> = {
   weaver: ["loom", "spinwheel", "basket"],
@@ -175,7 +175,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   };
   const seats = [
     ...of(SEATS).flatMap((q) =>
-      cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" ? "floor" : "seat" })),
+      cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : q.kind === "pew" || q.kind === "prayer" ? 0 : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" || q.kind === "prayer" ? "floor" : "seat" })),
     ),
     ...of(["table", "lowtable"]).flatMap(stands),
   ];

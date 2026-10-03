@@ -72,7 +72,7 @@ export function InteriorLab() {
     setOver({});
     const size = pr.rooms?.[0].size ?? pr.size;
     setC((o) => ({ ...o, profile: id, room: 0, colorway: 0, shape: undefined, trade: undefined, w: size[0], d: size[1] }));
-    if (pr.venues) setWhole(true);
+    if (pr.uses) setWhole(true);
   };
 
   useEffect(() => {
@@ -236,7 +236,7 @@ export function InteriorLab() {
           </section>
           <section>
             <h2>Dwelling</h2>
-            <select className="ilab-wide" value={profile.venues ? "" : c.profile} onChange={(e) => pickProfile(e.target.value)}>
+            <select className="ilab-wide" value={profile.uses ? "" : c.profile} onChange={(e) => pickProfile(e.target.value)}>
               <option value="" disabled>Choose a dwelling</option>
               {interiorGroups.map((g) => (
                 <optgroup key={g.label} label={g.label}>
@@ -245,7 +245,7 @@ export function InteriorLab() {
               ))}
             </select>
             <h2>Public building</h2>
-            <select className="ilab-wide" value={profile.venues ? c.profile : ""} onChange={(e) => pickProfile(e.target.value)}>
+            <select className="ilab-wide" value={profile.uses ? c.profile : ""} onChange={(e) => pickProfile(e.target.value)}>
               <option value="" disabled>Choose a building</option>
               {publicInteriorGroups.map((g) => (
                 <optgroup key={g.label} label={g.label}>
@@ -259,11 +259,11 @@ export function InteriorLab() {
                 <span className={`ilab-basis ilab-basis-${profile.basis}`}>{BASIS[profile.basis]}</span>
               </p>
               <p>{profile.note}</p>
-              {profile.venues && <p className="ilab-meta">Houses {profile.venues.map((id) => venues.find((v) => v.id === id)?.label ?? id).join(", ").toLowerCase()}</p>}
+              {profile.uses && <p className="ilab-meta">Houses {profile.uses.map((id) => venues.find((v) => v.id === id)?.label ?? id).join(", ").toLowerCase()}</p>}
             </div>
             {profile.rooms && (
               <div className="ilab-chips">
-                <button aria-pressed={whole} onClick={() => setWhole((v) => !v)}>{profile.venues ? "Whole building" : "Whole house"}</button>
+                <button aria-pressed={whole} onClick={() => setWhole((v) => !v)}>{profile.uses ? "Whole building" : "Whole house"}</button>
                 {profile.rooms.map((rm, i) => (
                   <button key={rm.id} aria-pressed={(c.room ?? 0) === i} onClick={() => { setOver({}); choose({ room: i, w: rm.size[0], d: rm.size[1], trade: undefined }); }}>
                     {rm.label}

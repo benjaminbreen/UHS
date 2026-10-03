@@ -10,8 +10,8 @@ export type InteriorSite = {
   camp?: boolean;
   /** Entered through the roof, as at Çatalhöyük. */
   roofHatch?: boolean;
-  /** The venue row a public building houses, as `venue.alehouse`. */
-  venue?: string;
+  /** What a public building is for, from its claim (`buildingUse`). */
+  use?: string;
 };
 
 type Rule = { lon: [number, number]; lat: [number, number]; from?: number; to?: number; pick: (s: InteriorSite) => string };
@@ -59,17 +59,38 @@ const PUBLIC: Rule[] = [
   { lon: [26, 45], lat: [36, 42], from: 1100, pick: () => "hammam" },
   { lon: [34, 62], lat: [12, 40], from: 660, pick: () => "hammam" },
   { lon: [-18, 34], lat: [20, 37.5], from: 680, pick: () => "hammam" },
+  // Churches by confession and age: Protestant north, Catholic south and New Spain, medieval everywhere before.
+  { lon: [-11, 32], lat: [36, 72], from: 900, to: 1150, pick: () => "romanesque-church" },
+  { lon: [-11, 32], lat: [50, 72], from: 1540, to: 1900, pick: () => "reformed-church" },
+  { lon: [-10, 18], lat: [36, 49], from: 1600, to: 1900, pick: () => "baroque-church" },
+  { lon: [-125, -34], lat: [-56, 38], from: 1520, to: 1900, pick: () => "baroque-church" },
+  { lon: [-11, 32], lat: [36, 72], from: 1150, to: 1900, pick: () => "gothic-church" },
+  { lon: [-18, 75], lat: [5, 46], from: 650, pick: () => "mosque" },
+  { lon: [128, 146], lat: [30, 46], from: 600, pick: () => "japanese-temple" },
+  { lon: [95, 128], lat: [8, 50], from: 500, pick: () => "chinese-temple" },
+  { lon: [92, 110], lat: [5, 25], from: 1250, pick: () => "wat" },
+  { lon: [60, 95], lat: [5, 36], from: 500, pick: () => "hindu-temple" },
+  { lon: [-10, 50], lat: [28, 48], from: -600, to: 400, pick: () => "classical-temple" },
+  { lon: [25, 60], lat: [28, 42], from: -3000, to: -500, pick: () => "mesopotamian-temple" },
+  { lon: [-106, -84], lat: [12, 24], from: 250, to: 1550, pick: () => "maya-temple" },
 ];
 
-/** The interior a venue's building has here and now, if one has been made. */
+/** A place's claim as the key its interior is chosen by: `venue-venue.x` is
+ * `venue.x`, `religious-x` and `civic-x` are `religious.x` and `civic.x`. */
+export function buildingUse(claim: string) {
+  if (claim.startsWith("venue-")) return claim.slice(6);
+  if (/^(religious|civic)-/.test(claim)) return claim.replace("-", ".");
+}
+
+/** The interior a public building has here and now, if one has been made. */
 export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefined {
-  if (!site.venue) return;
+  if (!site.use) return;
   for (const r of PUBLIC) {
     if (site.lon < r.lon[0] || site.lon > r.lon[1] || site.lat < r.lat[0] || site.lat > r.lat[1]) continue;
     if (r.from !== undefined && site.year < r.from) continue;
     if (r.to !== undefined && site.year > r.to) continue;
     const found = interiorProfile(r.pick(site));
-    if (found?.venues?.includes(site.venue)) return found;
+    if (found?.uses?.includes(site.use)) return found;
   }
 }
 

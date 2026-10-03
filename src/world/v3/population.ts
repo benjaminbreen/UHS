@@ -22,7 +22,7 @@ import { workplaceFor } from "../../content/characters/workplace";
 import { conditionOf, weatherStructure } from "../../core/time/structure";
 import { householdStory } from "./household-story";
 import { MEANS } from "./plan";
-import { keeperLivesIn } from "../../content/interiors/select";
+import { keeperLivesIn, buildingUse } from "../../content/interiors/select";
 import { marriagePracticeFor } from "../../content/households/practices";
 const seasons = ["spring", "summer", "autumn", "winter"];
 /** Households as the result of a life (household-story.ts), then the ties
@@ -285,12 +285,11 @@ export function populateHouseholds(
   // lodges with the nearest household that has a house to live in.
   const setting = pack.setting!;
   const venueOf = (h: Household) => {
-    const claim = plan.places.find((p) => p.id === h.residence)?.claim ?? "";
-    return claim.startsWith("venue-") ? claim.slice(6) : undefined;
+    return buildingUse(plan.places.find((p) => p.id === h.residence)?.claim ?? "");
   };
   for (const h of made) {
     const venue = venueOf(h);
-    if (!venue || keeperLivesIn({ lon: setting.lon, lat: setting.lat, year, venue })) continue;
+    if (!venue || keeperLivesIn({ lon: setting.lon, lat: setting.lat, year, use: venue })) continue;
     const host = made
       .filter((o) => o !== h && !venueOf(o))
       .sort((a, b) => Math.hypot(a.home.x - h.home.x, a.home.y - h.home.y) - Math.hypot(b.home.x - h.home.x, b.home.y - h.home.y))[0];

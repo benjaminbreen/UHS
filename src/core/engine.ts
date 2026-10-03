@@ -90,6 +90,7 @@ import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
 import { buildInterior, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
+import { buildingUse } from "../content/interiors/select";
 import { vehicleAt } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
@@ -1226,7 +1227,7 @@ export class Engine {
     const place = this.world.place(space);
     const s = this.world.pack.setting;
     const household = this.state.households?.find((h) => h.residence === space);
-    if (!place || (place.access !== "household" && !household && !place.claim.startsWith("venue-")) || !s) {
+    if (!place || (place.access !== "household" && !household && !buildingUse(place.claim)) || !s) {
       this.interiors.set(space, null);
       return undefined;
     }
@@ -1241,7 +1242,7 @@ export class Engine {
         settlement: s.settlement,
         camp: s.settlement === "camp" || (!!s.situation && s.situation.camp !== "none"),
         roofHatch: exit?.sprite === "ladder",
-        venue: place.claim.startsWith("venue-") ? place.claim.slice(6) : undefined,
+        use: buildingUse(place.claim),
       },
       { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24 },
     );

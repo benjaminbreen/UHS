@@ -20,7 +20,7 @@ export type Look = {
 /** What a room is for. Entries, halls, kitchens and workrooms face the
  * street in a front row; sleeping rooms and stores lie behind them, and a
  * sleeping room is private. A lobby belongs to a building, not a household. */
-export type RoomRole = "entry" | "hall" | "kitchen" | "work" | "sleep" | "store" | "lobby";
+export type RoomRole = "entry" | "hall" | "kitchen" | "work" | "sleep" | "store" | "lobby" | "sanctum";
 export type RoomTemplate = {
   id: string;
   label: string;
@@ -74,8 +74,9 @@ export type InteriorProfile = {
   program?: RoomParams["program"];
   /** Rooms of a larger building; a profile without them is a single room. */
   rooms?: RoomTemplate[];
-  /** The venue rows (`src/content/venues`) this public building houses; absent for a dwelling. */
-  venues?: string[];
+  /** The buildings this interior fills, as `venue.alehouse`, `religious.gothic-parish`,
+   * `civic.english-market-hall` (see `buildingUse`); absent for a dwelling. */
+  uses?: string[];
   /** When residents who are not being simulated still come in, and what
    * share of the seats they fill: the evening's drinkers, a service's
    * congregation. Hours may run past midnight, as [17, 1]. */

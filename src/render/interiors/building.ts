@@ -24,13 +24,13 @@ export type Building = { plan: RoomPlan; props: Prop[]; rooms: PlacedRoom[]; doo
  * between a room and the one behind it. A side wall is a single column. */
 const BEHIND = 4;
 const BESIDE = 1;
-const BACK: RoomRole[] = ["sleep", "store"];
+const BACK: RoomRole[] = ["sleep", "store", "sanctum"];
 
 /** Which of a profile's rooms a household has: the humble make do with the
  * first living room and somewhere to sleep, the comfortable add the rest. */
 function roomsFor(profile: InteriorProfile, status: RoomChoice["status"]) {
   const all = (profile.rooms ?? []).map((t, i) => ({ t, i, role: t.role ?? (i === 0 ? "entry" : "hall") })).filter((r) => r.role !== "lobby");
-  if (all.length < 2 || profile.venues) return all;
+  if (all.length < 2 || profile.uses) return all;
   // Nobody sleeps in the court.
   const sleeps = (r: (typeof all)[number]) => (r.t.sleep ?? profile.sleep) !== "none" && r.t.shapes?.[0] !== "courtyard";
   const keep = [all[0]];
@@ -47,7 +47,7 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
   const chosen = roomsFor(profile, c.status);
   if (chosen.length < 2) return single(profile, c, chosen[0]?.i);
   // A public room is sized for its trade, not its keeper's means.
-  const k = profile.venues ? 1 : [0.8, 0.9, 1][c.status];
+  const k = profile.uses ? 1 : [0.8, 0.9, 1][c.status];
   const boxes: Box[] = chosen.map(({ t, i, role }) => ({
     i,
     role,

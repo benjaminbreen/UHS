@@ -6,7 +6,7 @@ export type WallPattern =
 export type FloorPattern =
   | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum";
 export type Door = "door" | "flap" | "curtain" | "opening" | "none";
-export type WindowStyle = "shutter" | "lattice" | "shoji" | "none";
+export type WindowStyle = "shutter" | "lattice" | "shoji" | "stained" | "none";
 export type Fire = "hearth" | "firepit" | "irori" | "brazier" | "stove" | "none";
 /** 0 humble, 1 common, 2 elite: how finished the surfaces are. */
 export type Finish = 0 | 1 | 2;
@@ -52,8 +52,9 @@ export type RoomParams = {
   clutter: string[];
   trade: Trade;
   /** A public room's layout: `serve` sets a counter and seats about the
-   * floor, `gather` rings the seats round the fire. Absent in a dwelling. */
-  program?: "serve" | "gather";
+   * floor, `gather` rings the seats round the fire, `rows` faces them all to
+   * an altar on the back wall. Absent in a dwelling. */
+  program?: "serve" | "gather" | "rows";
   hour: number;
   wear: number;
   soot: number;
@@ -70,7 +71,8 @@ export type Kind =
   | "firepit" | "irori" | "brazier" | "stove" | "pole" | "ladder"
   | "quern" | "hides" | "coolamon" | "screen" | "fountain" | "pack"
   | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame"
-  | "bar" | "casks" | "bench" | "settle" | "tankards" | "tally" | "ledge" | "sipapu" | "pool" | "slab" | "basin";
+  | "bar" | "casks" | "bench" | "settle" | "tankards" | "tally" | "ledge" | "sipapu" | "pool" | "slab" | "basin"
+  | "altar" | "pew" | "prayer" | "font" | "pulpit";
 export type Prop = {
   id: number;
   kind: Kind;
@@ -398,6 +400,106 @@ function wallPattern(pat: WallPattern, p: RoomParams, P: Palette, u: number, v: 
   }
 }
 
+/** Hand-knotted carpets in natural dyes: madder, indigo, weld, walnut, undyed
+ * ivory. Each scheme follows a weaving tradition; the field design, border
+ * motif and abrash (the banding of wool dyed in batches) vary by seed. */
+const DYE = {
+  madder: 0x9c2a24, deep: 0x6a1a1e, rose: 0xc46e5c, indigo: 0x1e2c5c, blue: 0x3a5a8e, sky: 0x86a4c4,
+  ivory: 0xe4d8bc, camel: 0xb48e5a, weld: 0xcca23a, green: 0x3e6a4a, walnut: 0x4a3020, black: 0x221a1e,
+};
+type Scheme = { field: number; border: number; guard: number; medal: number; core: number; accent: number; line: number; designs: string[] };
+const SCHEMES: Scheme[] = [
+  { field: DYE.madder, border: DYE.indigo, guard: DYE.ivory, medal: DYE.indigo, core: DYE.ivory, accent: DYE.weld, line: DYE.walnut, designs: ["heriz", "herati", "medallion"] },
+  { field: DYE.indigo, border: DYE.madder, guard: DYE.ivory, medal: DYE.madder, core: DYE.ivory, accent: DYE.sky, line: DYE.black, designs: ["medallion", "herati", "boteh"] },
+  { field: DYE.ivory, border: DYE.deep, guard: DYE.indigo, medal: DYE.madder, core: DYE.indigo, accent: DYE.green, line: DYE.walnut, designs: ["medallion", "herati"] },
+  { field: DYE.rose, border: DYE.walnut, guard: DYE.ivory, medal: DYE.indigo, core: DYE.weld, accent: DYE.ivory, line: DYE.black, designs: ["boteh", "garden", "heriz"] },
+  { field: 0xd8b8a0, border: DYE.blue, guard: DYE.ivory, medal: DYE.rose, core: DYE.sky, accent: DYE.green, line: DYE.walnut, designs: ["medallion", "boteh"] },
+  { field: DYE.deep, border: DYE.madder, guard: DYE.ivory, medal: DYE.ivory, core: DYE.indigo, accent: DYE.black, line: DYE.black, designs: ["gul"] },
+  { field: DYE.deep, border: DYE.indigo, guard: DYE.weld, medal: DYE.ivory, core: DYE.madder, accent: DYE.green, line: DYE.black, designs: ["medallion", "garden"] },
+];
+const shade = (c: number, k: number) => (k > 0 ? mix(c, 0xffffff, k) : scale(c, 1 + k));
+
+/** The colour of a carpet `w` by `h` px at (u, v); `design` forces one, as "prayer". */
+export function carpetColor(u: number, v: number, w: number, h: number, seed: number, design?: string): number {
+  const S = SCHEMES[seed % SCHEMES.length];
+  const kind = design ?? S.designs[Math.floor(hash(seed, 7, 1) * S.designs.length)];
+  if (v === 0 || v === h - 1) return u % 2 ? DYE.ivory : shade(DYE.ivory, -0.25);
+  const e = Math.min(u, v - 1, w - 1 - u, h - 2 - v);
+  const bw = Math.max(2, Math.min(7, Math.round(Math.min(w, h) * 0.12)));
+  if (e === 0) return S.line;
+  if (e === 1) return (u + v) % 4 < 2 ? S.guard : shade(S.guard, -0.2);
+  if (e < 2 + bw) {
+    // The main border: a rosette and leaf repeat running along it.
+    const along = v - 1 === e || h - 2 - v === e ? u : v, across = e - 2, mid = (bw - 1) / 2;
+    const k = ((along % 8) + 8) % 8, d = Math.abs(k - 4) + Math.abs(across - mid);
+    if (d <= 0.6) return S.accent;
+    if (d <= 1.6) return S.guard;
+    if (Math.abs(across - mid) < 0.6 && (k === 0 || k === 7)) return S.medal;
+    return S.border;
+  }
+  if (e === 2 + bw) return S.line;
+  if (e === 3 + bw) return (u + v) % 3 ? S.guard : S.accent;
+  const inset = 4 + bw, fu = u - inset, fv = v - 1 - inset, fw = w - 2 * inset, fh = h - 2 - 2 * inset;
+  // Abrash: bands of the field a shade off where a fresh dye lot was used.
+  const band = hash(Math.floor(fv / 5), seed, 3);
+  const field = band < 0.25 ? shade(S.field, 0.07) : band > 0.85 ? shade(S.field, -0.1) : S.field;
+  const cx = (fw - 1) / 2, cy = (fh - 1) / 2, dx = Math.abs(fu - cx), dy = Math.abs(fv - cy);
+  switch (kind) {
+    case "prayer": {
+      const r = fw / 2, archY = r + 1;
+      if (fv < archY && Math.hypot(fu - cx, fv - archY) > r - 0.5) return (fu + fv) % 3 ? S.border : S.accent;
+      if (fv < archY && Math.hypot(fu - cx, fv - archY) > r - 1.5) return S.guard;
+      if (dx < 1 && fv > archY - 2 && fv < archY + 3) return fv === archY + 2 ? S.accent : S.line;
+      return fv > fh - 3 ? S.medal : field;
+    }
+    case "gul": {
+      const cw = 14, ch = 10, gx = ((fu % cw) + cw) % cw - (cw - 1) / 2, gy = ((fv % ch) + ch) % ch - (ch - 1) / 2;
+      const m = Math.max(Math.abs(gx) * 0.8 + Math.abs(gy) * 0.5, Math.abs(gx) * 0.55, Math.abs(gy) * 0.95);
+      if (m > 4.3 && m < 4.9) return S.line;
+      if (m < 4.3) return m < 1.3 ? S.accent : (gx > 0) !== (gy > 0) ? S.medal : S.core;
+      return Math.abs(gx) < 0.6 && Math.abs(gy) > 4 ? S.line : field;
+    }
+    case "garden": {
+      const cs = 10, gx = ((fu % cs) + cs) % cs, gy = ((fv % cs) + cs) % cs;
+      if (gx === 0 || gy === 0) return S.guard;
+      const panel = [S.field, S.medal, DYE.green, S.core][Math.floor(hash(Math.floor(fu / cs), Math.floor(fv / cs), seed) * 4)];
+      const tx = Math.abs(gx - 5), ty = gy - 2;
+      if (ty >= 0 && ty < 6 && tx <= ty * 0.5) return ty === 5 ? DYE.walnut : panel === DYE.green ? DYE.weld : DYE.green;
+      return panel;
+    }
+    case "boteh": {
+      const cw = 8, ch = 10, row = Math.floor(fv / ch), gx = ((fu + (row % 2) * 4) % cw + cw) % cw, gy = ((fv % ch) + ch) % ch;
+      const body = Math.hypot(gx - 3.5, gy - 6) < 2.4, tip = gy >= 2 && gy < 5 && Math.abs(gx - (5 - (gy - 2) * 0.7)) < 0.8;
+      if (body || tip) return Math.hypot(gx - 3.5, gy - 6) < 1 ? S.accent : row % 2 ? S.medal : S.core;
+      return field;
+    }
+    case "herati": {
+      const p = 8, a = ((fu + fv) % p + p) % p, b = ((fu - fv) % p + p) % p;
+      if (a === 0 || b === 0) return S.border;
+      const qx = ((fu % p) + p) % p, qy = ((fv % p) + p) % p;
+      if (Math.abs(qx - 4) + Math.abs(qy - 0) <= 1 || Math.abs(qx - 0) + Math.abs(qy - 4) <= 1) return S.accent;
+      return field;
+    }
+    default: {
+      // A central medallion with pendants, quartered corner pieces, small flowers scattered over the field.
+      const stepped = kind === "heriz" ? 2 : 1;
+      const sx = Math.floor(dx / stepped) * stepped, sy = Math.floor(dy / stepped) * stepped;
+      const m = sx / Math.max(3, fw * 0.3) + sy / Math.max(3, fh * 0.34);
+      const pend = Math.abs(fu - cx) / Math.max(2, fw * 0.08) + Math.abs(dy - fh * 0.42) / Math.max(2, fh * 0.07);
+      const corner = Math.min(fu, fw - 1 - fu) / Math.max(3, fw * 0.24) + Math.min(fv, fh - 1 - fv) / Math.max(3, fh * 0.24);
+      if (m < 0.16) return S.accent;
+      if (m < 0.48) return m > 0.42 ? S.line : S.core;
+      if (m < 0.56) return S.guard;
+      if (m < 1) return m > 0.94 ? S.line : (Math.floor(sx + sy) % 4 === 0 ? S.accent : S.medal);
+      if (pend < 1) return pend > 0.7 ? S.line : S.medal;
+      if (corner < 1) return corner > 0.88 ? S.line : corner < 0.4 ? S.accent : S.border;
+      if (fu % 6 === 3 && fv % 6 === 3) return S.accent;
+      if ((fu % 6 === 3 && (fv % 6 === 2 || fv % 6 === 4)) || (fv % 6 === 3 && (fu % 6 === 2 || fu % 6 === 4))) return S.guard;
+      return field;
+    }
+  }
+}
+
 /** Open-air floor is paved whatever the rooms around it are floored with. */
 export const courtParams = (p: RoomParams): RoomParams => ({ ...p, floorPattern: p.floorPattern === "tile" ? "tile" : "flag", wear: p.wear * 0.5 });
 
@@ -458,9 +560,7 @@ export function floorColor(p: RoomParams, P: Palette, u: number, v: number) {
         c = soft(0.4);
         break;
       }
-      const R = [P.acc, P.acc2, P.acc3][Math.floor(hash(cu, row, p.seed) * 3)];
-      const dm = Math.abs(lu - 30) / 28 + Math.abs(lv - 22) / 20;
-      c = e === 0 ? R[1] : e < 3 ? mix(R[3], P.linen[4], 0.35) : e === 3 ? R[1] : dm < 0.22 ? mix(R[3], P.linen[4], 0.3) : dm < 0.27 ? R[1] : R[2];
+      c = carpetColor(lu, lv, 60, 44, Math.floor(hash(cu, row, p.seed) * 9973));
       break;
     }
     case "paper":
@@ -700,7 +800,7 @@ export function planRoom(p: RoomParams): Prop[] {
     fire = place(p.fire, s, s, (x, y) => (byWall ? (inside(x, y - 1) ? -9 : 3) - Math.abs(x + 0.5 - w / 2) * 0.3 : near(x, y, s, s, centre) * 1.5), true);
     if (fire) for (let j = fire.y - 1; j <= fire.y + fire.d; j++) for (let i = fire.x - 1; i <= fire.x + fire.w; i++) if (inside(i, j) && occ[j][i] === 0) occ[j][i] = 2;
   }
-  if (p.pole) {
+  if (p.pole && p.program !== "rows") {
     const off = fire ? { x: fire.x + fire.w, y: fire.y - 1, w: 1, d: 1 } : centre;
     place("pole", 1, 1, (x, y) => near(x, y, 1, 1, off) * 2);
   }
@@ -736,7 +836,34 @@ export function planRoom(p: RoomParams): Prop[] {
     }
   }
 
-  if (p.program === "gather") {
+  if (p.program === "rows") {
+    // The altar at the head, the floor before it kept clear, an aisle from the door.
+    const aw = Math.min(3, w - 4);
+    const altar = p.styles.altar ? place("altar", aw, 1, (x, y) => (y === top[x] && top[x + aw - 1] === y ? 6 - Math.abs(x + aw / 2 - w / 2) : -9), false, true) : undefined;
+    const head = (altar?.y ?? 0) + 1;
+    for (let y = head; y < head + 2; y++) for (let x = 1; x < w - 1; x++) clear(x, y);
+    const aisle = p.entrance ?? p.ports?.find(([, y]) => y > head)?.[0] ?? Math.floor(w / 2);
+    for (let y = head; y < d; y++) clear(aisle, y);
+    if (has("pulpit")) place("pulpit", 1, 1, (x, y) => (y === head + 2 && (x === aisle - 3 || x === aisle + 3) ? 2 - walls(x, y, 1, 1) * 0.1 : -1), false, true);
+    if (has("font")) place("font", 1, 1, (x, y) => (y >= d - 3 && Math.abs(x - aisle) === 2 ? 1 + y * 0.01 : -1), false, true);
+    // Columns stand against the side walls, never in the way of the seats or the aisle.
+    if (p.pole)
+      for (let y = head + 2; y < d - 2; y += 3)
+        for (const x of [0, w - 1]) place("pole", 1, 1, (cx, cy) => (cx === x && cy === y ? 1 : -1), false, true);
+    const seat: Kind | undefined = p.seating === "chair" ? "pew" : has("prayer") ? "prayer" : has("cushions") ? "cushions" : undefined;
+    for (let y = head + 2; seat && y < d - 1; y += 2)
+      for (const [x0, x1] of [[1, aisle - 1], [aisle + 1, w - 1]] as const) {
+        if (seat !== "pew") {
+          for (let x = x0; x < x1; x++) place(seat, 1, 1, (cx, cy) => (cx === x && cy === y ? 1 : -1), false, true);
+          continue;
+        }
+        for (let x = x0; x < x1; ) {
+          const pw = Math.min(4, x1 - x);
+          if (pw >= 2 && place("pew", pw, 1, (cx, cy) => (cx === x && cy === y ? 1 : -1), false, true)) x += pw;
+          else x++;
+        }
+      }
+  } else if (p.program === "gather") {
     // A bath gathers round its water or its hot stone; anywhere else round the fire.
     const [pw, pd] = has("pool") ? [Math.max(2, Math.min(6, w - 6)), Math.max(2, Math.min(4, d - 5))] : [Math.min(3, w - 6), Math.min(3, d - 5)];
     const at = (x: number, y: number) => -Math.abs(x + pw / 2 - w / 2) - Math.abs(y + pd / 2 - d * 0.55);
@@ -840,7 +967,8 @@ export function planRoom(p: RoomParams): Prop[] {
     const rule = RULES[k]!;
     const score = (x: number, y: number) => {
       const wl = walls(x, y, rule.w, rule.d);
-      switch (rule.place) {
+      // A room in rows keeps its floor for the congregation.
+      switch (p.program === "rows" ? "wall" : rule.place) {
         case "wall": return wl * 1.5;
         case "corner": return wl * 1.2 + (wl > 1.2 ? 1 : 0);
         case "side": return wl * 1.2 - y * 0.05;
@@ -859,7 +987,7 @@ export function planRoom(p: RoomParams): Prop[] {
     const h = hearth;
     place("firewood", 1, 1, (x, y) => (y === h.y && (x === h.x - 1 || x === h.x + 2) ? 5 : y === h.y + 1 ? -Math.abs(x - h.x) : -9));
   }
-  if (doorX >= 0 && p.door === "door") place("broom", 1, 1, (x, y) => (y === top[doorX] && Math.abs(x - doorX) === 1 ? 5 : -9));
+  if (doorX >= 0 && p.door === "door" && !p.program) place("broom", 1, 1, (x, y) => (y === top[doorX] && Math.abs(x - doorX) === 1 ? 5 : -9));
   if (p.shape === "courtyard") {
     const court = { x: Math.floor(w / 2) - 1, y: Math.floor((3 + d - 2) / 2) - 1, w: 2, d: 2 };
     for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) if (inside(court.x + i, court.y + j)) occ[court.y + j][court.x + i] = 0;
@@ -896,9 +1024,9 @@ export function planRoom(p: RoomParams): Prop[] {
     return props.find((q) => (want[item] ?? []).includes(q.kind));
   };
   const taken = new Set<number>();
-  const items = p.clutter.length ? p.clutter : ["bowl", "cloth", "cup"];
+  const items = p.clutter.length || p.program ? p.clutter : ["bowl", "cloth", "cup"];
   const nClutter = [3, 2, 1][p.finish] + Math.floor((w * d) / 110);
-  for (let i = 0; i < nClutter; i++) {
+  for (let i = 0; items.length && i < nClutter; i++) {
     const item = items[Math.floor(r() * items.length)], a = near1(item);
     const ax = a ? a.x + a.w / 2 : r() * w, ay = a ? a.y + (a.wall ? 0.5 : a.d / 2) : r() * d;
     let best = -1, bs = -Infinity;

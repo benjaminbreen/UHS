@@ -13,7 +13,7 @@ import type { InteriorProfile } from "./types";
 export const taverns: InteriorProfile[] = [
   {
     id: "english-tavern",
-    venues: ["venue.tavern", "venue.alehouse"],
+    uses: ["venue.tavern", "venue.alehouse"],
     regulars: { hours: [17, 23], fill: 0.3 },
     rooms: [
       {
@@ -106,7 +106,7 @@ export const taverns: InteriorProfile[] = [
   },
   {
     id: "izakaya",
-    venues: ["venue.izakaya"],
+    uses: ["venue.izakaya"],
     regulars: { hours: [17, 24], fill: 0.35 },
     rooms: [
       {
@@ -185,7 +185,7 @@ export const taverns: InteriorProfile[] = [
   },
   {
     id: "kahvehane",
-    venues: ["venue.kahvehane", "venue.coffee-house"],
+    uses: ["venue.kahvehane", "venue.coffee-house"],
     regulars: { hours: [16, 23], fill: 0.35 },
     rooms: [
       {
@@ -257,7 +257,7 @@ export const taverns: InteriorProfile[] = [
 export const gatherings: InteriorProfile[] = [
   {
     id: "sweat-lodge",
-    venues: ["venue.sweat-lodge"],
+    uses: ["venue.sweat-lodge"],
     program: "gather",
     regulars: { hours: [17, 22], fill: 0.6 },
     styles: { firepit: "stones", cushions: "boughs" },
@@ -289,7 +289,7 @@ export const gatherings: InteriorProfile[] = [
   },
   {
     id: "kiva",
-    venues: ["venue.kiva"],
+    uses: ["venue.kiva"],
     program: "gather",
     regulars: { hours: [19, 23], fill: 0.5 },
     label: "Kiva",
@@ -320,7 +320,7 @@ export const gatherings: InteriorProfile[] = [
   },
   {
     id: "temazcal",
-    venues: ["venue.temazcal", "venue.sweat-lodge"],
+    uses: ["venue.temazcal", "venue.sweat-lodge"],
     program: "gather",
     regulars: { hours: [16, 20], fill: 0.6 },
     styles: { cushions: "petate", hearth: "firebox" },
@@ -358,7 +358,7 @@ export const gatherings: InteriorProfile[] = [
 export const baths: InteriorProfile[] = [
   {
     id: "roman-baths",
-    venues: ["venue.bath-house"],
+    uses: ["venue.bath-house"],
     regulars: { hours: [13, 18], fill: 0.45 },
     rooms: [
       { id: "apodyterium", label: "Apodyterium", role: "entry", program: "gather", size: [8, 8], seating: "chair", fire: "none", furnish: ["shelf", "shelf", "lamp"], clutter: ["shoes", "cloth"] },
@@ -396,7 +396,7 @@ export const baths: InteriorProfile[] = [
   },
   {
     id: "hammam",
-    venues: ["venue.hammam", "venue.bath-house"],
+    uses: ["venue.hammam", "venue.bath-house"],
     regulars: { hours: [7, 19], fill: 0.45 },
     rooms: [
       { id: "camekan", label: "Camekan", role: "entry", program: "gather", size: [10, 9], seating: "chair", fire: "none", furnish: ["pool", "lamp", "plates"], styles: { pool: "cold" }, clutter: ["shoes", "shoes", "cloth"] },
@@ -431,7 +431,7 @@ export const baths: InteriorProfile[] = [
   },
   {
     id: "sento",
-    venues: ["venue.sento", "venue.bath-house"],
+    uses: ["venue.sento", "venue.bath-house"],
     regulars: { hours: [15, 23], fill: 0.45 },
     rooms: [
       { id: "datsuiba", label: "Datsuiba", role: "entry", program: "gather", size: [8, 8], seating: "chair", fire: "none", furnish: ["shelf", "shelf", "basket", "lantern"], clutter: ["shoes", "cloth"] },
