@@ -45,9 +45,19 @@ const PUBLIC: Rule[] = [
   { lon: [-11, 25], lat: [47, 62], from: 1450, to: 1850, pick: () => "english-tavern" },
   { lon: [128, 146], lat: [30, 46], from: 1700, pick: () => "izakaya" },
   { lon: [128, 146], lat: [30, 46], from: 1590, pick: () => "sento" },
-  // Coffee houses from Cairo and Mecca in the 1510s, Istanbul in 1554, Persia by 1600.
-  { lon: [-18, 62], lat: [12, 45], from: 1510, pick: () => "kahvehane" },
+  // Coffee houses from Cairo and Mecca in the 1510s, Istanbul in 1554, Persia by 1600, in the lands
+  // under Ottoman, Safavid and Moroccan rule: not Christian Italy, Spain or Greece outside it.
+  { lon: [19, 30], lat: [39, 45], from: 1510, to: 1912, pick: () => "kahvehane" },
+  { lon: [26, 45], lat: [36, 42], from: 1510, pick: () => "kahvehane" },
+  { lon: [34, 62], lat: [12, 40], from: 1510, pick: () => "kahvehane" },
+  { lon: [-18, -1.5], lat: [20, 35.9], from: 1510, pick: () => "kahvehane" },
+  { lon: [-1.5, 12], lat: [20, 37.4], from: 1510, pick: () => "kahvehane" },
+  { lon: [12, 34], lat: [20, 33], from: 1510, pick: () => "kahvehane" },
   { lon: [-114, -104], lat: [31, 40], from: 700, pick: () => "kiva" },
+  { lon: [-10, 50], lat: [24, 56], from: -200, to: 500, pick: () => "roman-gaming-house" },
+  { lon: [-11, 45], lat: [34, 72], from: 1400, to: 1950, pick: () => "gaming-house" },
+  { lon: [128, 146], lat: [30, 46], from: 1600, to: 1900, pick: () => "bakuchi-den" },
+  { lon: [98, 128], lat: [18, 46], from: 1100, to: 1950, pick: () => "chinese-gaming-house" },
   { lon: [-106, -84], lat: [12, 24], from: 1550, pick: () => "pulqueria" },
   { lon: [-82, -62], lat: [-25, 2], from: 1400, pick: () => "chicheria" },
   { lon: [128, 146], lat: [30, 46], from: 1400, to: 1950, pick: () => "chaya" },
@@ -63,7 +73,9 @@ const PUBLIC: Rule[] = [
   { lon: [19, 30], lat: [39, 45], from: 1400, to: 1912, pick: () => "hammam" },
   { lon: [26, 45], lat: [36, 42], from: 1100, pick: () => "hammam" },
   { lon: [34, 62], lat: [12, 40], from: 660, pick: () => "hammam" },
-  { lon: [-18, 34], lat: [20, 37.5], from: 680, pick: () => "hammam" },
+  { lon: [-18, -1.5], lat: [20, 35.9], from: 680, pick: () => "hammam" },
+  { lon: [-1.5, 12], lat: [20, 37.4], from: 680, pick: () => "hammam" },
+  { lon: [12, 34], lat: [20, 33], from: 680, pick: () => "hammam" },
   // Churches by confession and age: the Orthodox east, Protestant north, Catholic south and New Spain, medieval everywhere before.
   { lon: [19.5, 30], lat: [34, 46], from: 500, to: 1453, pick: () => "orthodox-church" },
   { lon: [20, 30], lat: [34, 44], from: 500, pick: () => "orthodox-church" },

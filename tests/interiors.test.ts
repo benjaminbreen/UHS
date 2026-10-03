@@ -60,6 +60,11 @@ describe("interior profiles", () => {
     expect(venue(-4.8, 37.9, 1600, "venue.bath-house")).not.toBe("hammam");
     expect(venue(31.2, 30, 1530, "venue.coffee-house")).toBe("kahvehane");
     expect(venue(-0.1, 51.5, 1700, "venue.coffee-house")).not.toBe("kahvehane");
+    expect(venue(12.5, 41.9, 1700, "venue.coffee-house")).not.toBe("kahvehane");
+    expect(venue(14.3, 40.85, 1700, "venue.gaming-house")).toBe("gaming-house");
+    expect(venue(29, 41, 1700, "venue.gaming-house")).toBe("kahvehane");
+    expect(venue(10.2, 36.8, 1700, "venue.bath-house")).toBe("hammam");
+    expect(venue(3.05, 36.75, 1700, "venue.coffee-house")).toBe("kahvehane");
     expect(venue(-99, 19, 1450, "venue.sweat-lodge")).toBe("temazcal");
     expect(venue(4.9, 52.4, 1650, "venue.alehouse")).toBe("english-tavern");
   });
@@ -74,6 +79,10 @@ describe("interior profiles", () => {
       { id: "chinese-teahouse", lon: 120, lat: 30, year: 1200, use: "venue.teahouse-east", seat: "bench" },
       { id: "chaya", lon: 135.8, lat: 35, year: 1700, use: "venue.teahouse-east", seat: "cushions" },
       { id: "chaikhana", lon: 64.4, lat: 39.8, year: 1800, use: "venue.chaikhana", seat: "cushions" },
+      { id: "roman-gaming-house", lon: 14.5, lat: 40.75, year: 50, use: "venue.gaming-house", seat: "bench" },
+      { id: "gaming-house", lon: -0.1, lat: 51.5, year: 1700, use: "venue.gaming-house", seat: "bench" },
+      { id: "chinese-gaming-house", lon: 113.3, lat: 23.1, year: 1850, use: "venue.gaming-house", seat: "bench" },
+      { id: "bakuchi-den", lon: 135.8, lat: 35, year: 1750, use: "venue.gaming-house", seat: "cushions" },
     ];
     for (const { id, seat, ...site } of sites)
       for (const fortune of [0.1, 0.5, 0.9])

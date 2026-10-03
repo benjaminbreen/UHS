@@ -4,7 +4,7 @@ import { europe } from "./europe";
 import { mediterranean } from "./mediterranean";
 import { modern } from "./modern";
 import { northAfrica } from "./north-africa";
-import { baths, gatherings, moreTaverns, taverns } from "./public";
+import { baths, gaming, gatherings, moreTaverns, taverns } from "./public";
 import { worship } from "./worship";
 import { civic } from "./civic";
 import { factoryFor } from "./factories";
@@ -28,6 +28,7 @@ export const interiorGroups: { label: string; profiles: InteriorProfile[] }[] = 
 /** Buildings people go to rather than live in, by what they are for. */
 export const publicInteriorGroups: { label: string; profiles: InteriorProfile[] }[] = [
   { label: "Drink and talk", profiles: [...taverns, ...moreTaverns] },
+  { label: "Gaming", profiles: gaming },
   { label: "Gathering", profiles: gatherings },
   { label: "Baths", profiles: baths },
   { label: "Worship", profiles: worship },

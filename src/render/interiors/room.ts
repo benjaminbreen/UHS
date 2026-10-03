@@ -552,7 +552,7 @@ export function floorColor(p: RoomParams, P: Palette, u: number, v: number) {
       const bu = Math.floor(u / 32), bv = Math.floor(v / 32), across = (bu + bv) % 2 === 0;
       const lu = ((u % 32) + 32) % 32, lv = ((v % 32) + 32) % 32;
       const long = across ? lv % 16 : lu % 16, short = across ? lu : lv;
-      if (long < 2 || long > 13) c = long === 0 || long === 15 ? mix(P.acc[1], F[1], 0.3) : mix(P.acc[2], F[2], 0.35);
+      if (long < 2 || long > 13) c = long === 0 || long === 15 ? mix(P.acc[0], F[0], 0.6) : mix(P.acc[1], F[1], 0.65);
       else if (short === 0) c = mix(F[1], F[2], 0.6);
       else c = (across ? (lv & 1) : (lu & 1)) ? F[3] : mix(F[3], F[4], 0.4);
       break;
@@ -1002,7 +1002,7 @@ export function planRoom(p: RoomParams): Prop[] {
       for (const sx of [t.x - 1, t.x + 3]) place("stool", 1, 1, (x, y) => (x === sx && y === t.y ? 1 : -1), false, true);
       for (let y = t.y - 2; y <= t.y + 2; y++) for (let x = t.x - 1; x <= t.x + 3; x++) clear(x, y);
     }
-    place("settle", 2, 1, (x, y) => walls(x, y, 2, 1) + near(x, y, 2, 1, hearth ?? centre) * 0.6);
+    if (hearth) place("settle", 2, 1, (x, y) => walls(x, y, 2, 1) + near(x, y, 2, 1, hearth) * 0.6);
   } else if (p.trade === "hunter") {
     place("hides", 1, 1, (x, y) => walls(x, y, 1, 1));
     place("hides", 1, 1, (x, y) => walls(x, y, 1, 1));

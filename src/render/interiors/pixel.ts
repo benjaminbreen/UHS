@@ -746,6 +746,56 @@ export class PixelRoom {
       }
     }
   }
+  /** A game laid out on a board or cloth `w` px wide whose top is at `ty`. */
+  private game(style: string, x: number, ty: number, w: number, seed: number) {
+    const { P } = this;
+    const die = (dx: number, dy: number) => {
+      this.r(dx, dy, 2, 2, 0xf4f0e4);
+      this.s(dx + (seed & 1), dy + 1, 0x1a1414);
+    };
+    const coins = (cx: number, cy: number, n: number) => { for (let j = 0; j < n; j++) this.r(cx, cy - j, 3, 1, j % 2 ? P.brass[4] : P.brass[5]); };
+    switch (style) {
+      case "cards": {
+        this.r(x, ty + 1, w, 5, (i, j) => (j === 0 ? 0x3a7a4a : i === 0 ? 0x2a6a3a : 0x2a5a34));
+        for (let k = 0; k < 4; k++) {
+          const cx = x + 3 + k * Math.floor((w - 8) / 3);
+          this.r(cx, ty + 2 + (k & 1), 3, 4, (i, j) => (j === 0 ? 0xffffff : i === 1 && j === 2 ? (k % 2 ? 0xc02020 : 0x1a1414) : 0xece8dc));
+        }
+        coins(x + w - 5, ty + 5, 3);
+        break;
+      }
+      case "tabula": {
+        // A backgammon board: two rows of points, counters on them, dice between.
+        this.r(x, ty + 1, w, 5, (i, j) => (i === 0 || i === w - 1 || j === 0 || j === 4 || i === w >> 1 ? P.wood[1] : (Math.floor(i / 2) % 2 ? 0xd8c8a0 : 0x8a3a2a)));
+        for (let k = 0; k < 5; k++) this.s(x + 2 + k * 3, ty + 2 + (k & 1) * 2, k % 2 ? 0xf0ecdc : 0x1a1414);
+        die(x + (w >> 1) - 3, ty + 2);
+        die(x + (w >> 1) + 2, ty + 3);
+        break;
+      }
+      case "domino": {
+        for (let k = 0; k < Math.floor(w / 4); k++) {
+          const dx = x + 1 + k * 4;
+          this.r(dx, ty + 2, 3, 4, (i, j) => (j === 2 ? 0x2a2420 : (i === 1 && (j === 1 || j === 3) ? 0xc02020 : 0xf0ead8)));
+        }
+        coins(x + w - 4, ty + 5, 2);
+        break;
+      }
+      case "chohan": {
+        // Cho-han: a white cloth, the dealer's cup turned over the dice, stakes on either side.
+        this.r(x, ty + 1, w, 5, (_i, j) => (j === 0 ? 0xffffff : 0xece8dc));
+        this.vase(x + (w >> 1), ty + 5, 4, (t) => 2.2 - t * 0.6, [0x2a1a10, 0x4a2a18, 0x6a3e22, 0x8a5a32, 0xa87a4a, 0xc89a6a]);
+        coins(x + 2, ty + 5, 3);
+        coins(x + w - 5, ty + 5, 2);
+        break;
+      }
+      default: {
+        die(x + 3, ty + 3);
+        die(x + 7, ty + 2);
+        this.vase(x + 13, ty + 5, 4, (t) => 2 - t * 0.4, [0x2a1a10, 0x4a2a18, 0x6a3e22, 0x8a5a32, 0xa87a4a, 0xc89a6a]);
+        coins(x + w - 5, ty + 5, 3);
+      }
+    }
+  }
   /** A saint or worshipper in a panel or niche: halo, face, robe. */
   private saint(cx: number, top: number, h: number, robe: number[], halo = true) {
     const { P } = this;
@@ -1112,6 +1162,10 @@ export class PixelRoom {
   /** What stands on a low table where drink is served: flasks and cups, or a tray of coffee. */
   private lowBoard(x0: number, y0: number, seed: number) {
     const { P } = this;
+    if (this.p.styles.bar?.startsWith("game")) {
+      this.game(this.p.styles.bar.slice(5) || "chohan", x0 + 1, y0, 15, seed);
+      return;
+    }
     if ((this.p.styles.bar ?? "ale") === "chai" || (this.p.styles.bar ?? "ale") === "tea") {
       this.vase(x0 + 6, y0 + 4, 5, (t) => 2.6 - Math.abs(t - 0.4) * 2, this.p.styles.bar === "chai" ? [0x1a2a5a, 0x2a4a8a, 0x5a7ab8, 0xc8d4e4, 0xe8eef4, 0xffffff] : P.pale);
       for (const dx of [10, 13]) this.r(x0 + dx, y0 + 1, 2, 2, (_i, j) => (j === 0 ? 0xe8b070 : 0xb05a20));
@@ -1134,6 +1188,11 @@ export class PixelRoom {
   private tavernBoard(X: number, ty: number, PW: number, seed: number) {
     const { P } = this;
     const drink = this.p.styles.bar ?? "ale";
+    if (drink.startsWith("game")) {
+      this.game(drink.slice(5) || "dice", X + 4, ty, PW - 8, seed);
+      this.candle(X + PW - 6, ty + 5, seed);
+      return;
+    }
     if (drink !== "ale") {
       // Gourd cups and clay mugs, wooden keros, or a teapot and its cups.
       for (let k = 0; k < Math.floor((PW - 8) / 8); k++) {
@@ -2736,6 +2795,17 @@ export class PixelRoom {
         this.r(fx, top, 1, d + 2, W[1]);
         this.r(fx, fy, 1, fh - 1, W[0]);
         const ty = top + 2, drink = p.styles.bar ?? "ale";
+        if (drink.startsWith("game")) {
+          // The bank: stacks of coin, an iron-bound strongbox, the keeper's lamp.
+          for (let k = 0; k < 4; k++) {
+            const x = X + 5 + k * 5, h = 2 + ((q.seed + k) % 4);
+            for (let j = 0; j < h; j++) this.r(x, ty + 5 - j, 3, 1, k % 2 ? (j % 2 ? P.iron[4] : P.iron[5]) : (j % 2 ? P.brass[4] : P.brass[5]));
+          }
+          this.r(X + PW - 18, ty - 1, 12, 7, (i, j) => (j === 0 ? W[4] : i === 3 || i === 8 || j === 3 ? P.iron[2] : W[2]));
+          this.s(X + PW - 12, ty + 3, P.brass[5]);
+          this.candle(X + PW / 2, ty + 5, q.seed);
+          break;
+        }
         if (drink === "tea") {
           // A brick stove let into the counter, copper kettles steaming on it, teapots at the end.
           this.r(X + 4, top + 1, 26, d - 3, (i, j) => (j === 0 ? P.clay[1] : (i + j) % 4 === 0 ? P.clay[2] : P.clay[3]));
