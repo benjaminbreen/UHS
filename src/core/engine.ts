@@ -89,7 +89,7 @@ import { kinWord } from "./concerns";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
-import { buildInterior, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
+import { buildInterior, ROOM_ORIGIN, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
 import { vehicleAt } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
@@ -1329,6 +1329,16 @@ export class Engine {
       .map((k) => k.split(",").map(Number))
       .filter(([x, y]) => !taken.has(`${x},${y}`) && `${x},${y}` !== exit && !this.blocked(x, y, space) && !(x === room.entry.x && y === room.entry.y))
       .sort(([ax, ay], [bx, by]) => (sleeping ? Math.hypot(ax - warm.x, ay - warm.y) - Math.hypot(bx - warm.x, by - warm.y) : 0));
+    // A standing congregation fills the nave below the chancel, front rows first, facing the altar.
+    const altar = room.params.program === "rows" ? room.props.find((q) => q.kind === "altar") : undefined;
+    if (altar && !sleeping) {
+      const head = altar.y + ROOM_ORIGIN + 3, mid = altar.x + ROOM_ORIGIN + altar.w / 2;
+      const nave = floor.filter(([, y]) => y >= head).sort(([ax, ay], [bx, by]) => ay - by || Math.abs(ax + 0.5 - mid) - Math.abs(bx + 0.5 - mid));
+      if (nave.length) {
+        a.direction = 0;
+        return { x: nave[0][0], y: nave[0][1], space };
+      }
+    }
     const [x, y] = floor[sleeping ? index % Math.min(3, floor.length || 1) : 0] ?? exit.split(",").map(Number);
     if (sleeping) this.indoorUses.set(a.id, { x, y, facing: 2, kind: "mat", propId: -1, on: "bed", role: "bed", space });
     return { x, y, space };
@@ -7226,8 +7236,8 @@ export class Engine {
       .sort((a, b) => random(this.state.manifest.seed, "regular", a.id, day) - random(this.state.manifest.seed, "regular", b.id, day));
     const label = `At ${place.name.replace(/^The /, "the ")}`;
     // Where people stand, as in a medieval nave or a playhouse pit, the floor sets the count.
-    const room_ = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
-    this.regulars.seated = new Map(near.slice(0, Math.round(room_ * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));
+    const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
+    this.regulars.seated = new Map(near.slice(0, Math.round(places * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));
     return this.regulars.seated;
   }
   /** Seconds from now until the next morning, for a night's sleep. */
