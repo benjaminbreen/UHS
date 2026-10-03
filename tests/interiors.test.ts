@@ -174,6 +174,8 @@ describe("interior profiles", () => {
     const sites = [
       { id: "romanesque-church", lon: 2, lat: 47, year: 1100, use: "religious.romanesque-parish" },
       { id: "gothic-church", lon: 2, lat: 47, year: 1350, use: "religious.gothic-parish" },
+      { id: "orthodox-church", lon: 22.9, lat: 40.6, year: 1300, use: "religious.gothic-parish" },
+      { id: "orthodox-church", lon: 37.6, lat: 55.8, year: 1700, use: "venue.churchyard" },
       { id: "reformed-church", lon: -1, lat: 52, year: 1700, use: "religious.gothic-parish" },
       { id: "baroque-church", lon: -3.7, lat: 40.4, year: 1700, use: "religious.gothic-parish" },
       { id: "baroque-church", lon: -99, lat: 19, year: 1700, use: "religious.spanish-american-church" },

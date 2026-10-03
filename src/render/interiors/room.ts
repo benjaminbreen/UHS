@@ -2,7 +2,7 @@ export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" |
 export type Shape = "rect" | "L" | "round" | "oval" | "apse" | "courtyard";
 export type WallPattern =
   | "plaster" | "brick" | "timber" | "panel" | "stripe" | "zellige" | "mud" | "stone"
-  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper";
+  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco";
 export type FloorPattern =
   | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum" | "broadloom";
 export type Door = "door" | "flap" | "curtain" | "opening" | "none";
@@ -73,7 +73,7 @@ export type Kind =
   | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame"
   | "bar" | "casks" | "bench" | "settle" | "tankards" | "tally" | "ledge" | "sipapu" | "pool" | "slab" | "basin"
   | "altar" | "pew" | "prayer" | "font" | "pulpit" | "lectern"
-  | "stock" | "shopcounter" | "fixture" | "anvil" | "machine" | "furnace";
+  | "stock" | "shopcounter" | "fixture" | "anvil" | "machine" | "furnace" | "tapers";
 export type Prop = {
   id: number;
   kind: Kind;
@@ -118,7 +118,7 @@ export const interactive: Partial<Record<Kind, [string, string]>> = {
   throw: ["Turn the wheel", "Stop the wheel"],
 };
 /** Kinds that give light while on; the hammer can break the small ones. */
-export const lit: Kind[] = ["range", "hearth", "firepit", "irori", "brazier", "stove", "lamp", "lantern", "shrine", "desk"];
+export const lit: Kind[] = ["tapers", "range", "hearth", "firepit", "irori", "brazier", "stove", "lamp", "lantern", "shrine", "desk"];
 
 export function rng(seed: number) {
   let a = seed >>> 0 || 1;
@@ -392,6 +392,20 @@ function wallPattern(pat: WallPattern, p: RoomParams, P: Palette, u: number, v: 
       if (Math.abs(mu - 6) + Math.abs(mv - 4) <= 1) return mu === 6 && mv === 4 ? P.acc[5] : P.acc[3];
       return wash;
     }
+    case "fresco": {
+      // Painted saints in a row above painted marble, as in a Byzantine or Romanesque church.
+      if (v < 20) return v === 19 ? Tr[4] : vnoise(u, v, 6, p.seed) > 0.55 ? W[4] : mix(W[3], P.stone[4], 0.4);
+      if (v < 22 || v > 45) return v > 45 ? A[1] : Tr[2];
+      const k = ((u % 12) + 12) % 12 - 5.5, fv = v - 22, d = Math.hypot(k, fv - 16.5);
+      if (d < 1.8) return d < 1.2 ? 0xd0a07a : 0x8a5a3a;
+      if (d < 3.4) return d < 2.6 ? P.brass[4] : P.brass[2];
+      if (fv >= 2 && fv < 14 && Math.abs(k) <= (fv < 5 ? 2.5 : 2)) {
+        const R = Math.floor(u / 12) % 3 === 0 ? P.acc : Math.floor(u / 12) % 3 === 1 ? ramp("#2a4a9a") : ramp("#e8e0d0");
+        return Math.abs(k) < 0.6 ? R[1] : k < 0 ? R[4] : R[2];
+      }
+      if (fv < 2) return mix(P.leaf[1], W[1], 0.4);
+      return fv > 21 ? P.brass[3] : 0x24345e;
+    }
     case "reed": {
       if (v % 12 === 0) return P.straw[4];
       return u % 2 === 0 ? W[2] : W[3 + (hash(u, v >> 3, p.seed) < 0.3 ? 1 : 0)];
@@ -624,7 +638,7 @@ const RULES: Partial<Record<Kind, Rule>> = {
   range: { w: 2, d: 1, place: "wall" }, icebox: { w: 1, d: 1, place: "wall" }, counter: { w: 3, d: 1, place: "centre" },
   loom: { w: 3, d: 2, place: "wall" }, spinwheel: { w: 1, d: 1, place: "any" }, throw: { w: 1, d: 1, place: "any" },
   claybin: { w: 1, d: 1, place: "wall" }, desk: { w: 2, d: 1, place: "wall" }, table: { w: 2, d: 1, place: "centre" },
-  settle: { w: 2, d: 1, place: "side" }, casks: { w: 3, d: 1, place: "wall" }, basin: { w: 1, d: 1, place: "wall" },
+  settle: { w: 2, d: 1, place: "side" }, casks: { w: 3, d: 1, place: "wall" }, basin: { w: 1, d: 1, place: "wall" }, tapers: { w: 1, d: 1, place: "wall" },
 };
 const HUNG: Kind[] = ["tapestry", "pegs", "plates", "map", "shrine", "horns", "clock", "elevator", "frame", "tankards", "tally"];
 
@@ -754,7 +768,7 @@ export function planRoom(p: RoomParams): Prop[] {
   // An altar takes the head of the room before anything is hung or shelved there.
   let altar: Prop | undefined;
   if (p.program === "rows" && p.styles.altar) {
-    const aw = Math.min(p.styles.altar.startsWith("stage") ? 9 : 3, w - 4);
+    const aw = Math.min(/^(stage|screen)/.test(p.styles.altar) ? 9 : 3, w - 4);
     altar = place("altar", aw, 1, (x, y) => (y === top[x] && top[x + aw - 1] === y ? 6 - Math.abs(x + aw / 2 - w / 2) : -9), false, true);
     if (altar) for (let i = altar.x; i < altar.x + aw; i++) used[i] = true;
   }

@@ -2898,6 +2898,19 @@ export class PixelRoom {
         for (let k = 0; k < 3; k++) this.smoke.push({ x: cx - 2 + k * 2, y: base - 48 });
         break;
       }
+      case "tapers": {
+        // A brass stand of sand bristling with thin candles, as before an icon.
+        const cx = X + 8, base = Y + PD - 3;
+        this.r(cx - 1, base - 14, 3, 14, (i) => P.brass[i ? 2 : 4]);
+        this.r(cx - 6, base - 15, 13, 2, (_i, j) => (j === 0 ? P.brass[5] : P.brass[2]));
+        for (let k = 0; k < 7; k++) {
+          const tx = cx - 5 + k * 2 - (k & 1), h = 4 + ((q.seed + k) % 4);
+          this.r(tx, base - 15 - h, 1, h, 0xf0dca0);
+          if (q.on) this.flames.push({ x: tx, y: base - 17 - h });
+        }
+        if (q.on) this.lights.push({ x: cx, y: base - 22, c: 0xffc070, rad: 40, k: 1, phase: q.seed % 80 });
+        break;
+      }
       case "anvil": {
         const cx = X + 8, base = Y + PD - 3;
         this.r(cx - 4, base - 8, 9, 8, (i, j) => (j === 0 ? W[4] : i === 0 ? W[3] : i === 8 ? W[1] : (j % 3 === 1 ? W[1] : W[2])));

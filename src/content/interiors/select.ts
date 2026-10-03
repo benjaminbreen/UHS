@@ -59,7 +59,11 @@ const PUBLIC: Rule[] = [
   { lon: [26, 45], lat: [36, 42], from: 1100, pick: () => "hammam" },
   { lon: [34, 62], lat: [12, 40], from: 660, pick: () => "hammam" },
   { lon: [-18, 34], lat: [20, 37.5], from: 680, pick: () => "hammam" },
-  // Churches by confession and age: Protestant north, Catholic south and New Spain, medieval everywhere before.
+  // Churches by confession and age: the Orthodox east, Protestant north, Catholic south and New Spain, medieval everywhere before.
+  { lon: [19.5, 30], lat: [34, 46], from: 500, to: 1453, pick: () => "orthodox-church" },
+  { lon: [20, 30], lat: [34, 44], from: 500, pick: () => "orthodox-church" },
+  { lon: [22, 30], lat: [43.5, 48.5], from: 500, pick: () => "orthodox-church" },
+  { lon: [24, 60], lat: [44, 70], from: 988, pick: () => "orthodox-church" },
   { lon: [-11, 32], lat: [36, 72], from: 900, to: 1150, pick: () => "romanesque-church" },
   { lon: [-11, 32], lat: [50, 72], from: 1540, to: 1900, pick: () => "reformed-church" },
   { lon: [-10, 18], lat: [36, 49], from: 1600, to: 1900, pick: () => "baroque-church" },
