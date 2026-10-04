@@ -1644,6 +1644,118 @@ inca_sun()
 ai_apaec()
 etowah()
 
+# ---------------------------------------------------------------- baths
+def bath_statue():
+    cv = Canvas(48, 62)
+    for y in range(2, 46):          # an apse in marble, its half-dome a shell, painted blue within
+        for x in range(8, 40):
+            a = abs(x - 23.5)
+            r = math.hypot(a, (18 - y) * 1.0) if y < 18 else a
+            if r > 15.5: continue
+            if r > 13.5 or (y >= 18 and a > 13.5): cv.set(x, y, 'M' if x < 24 else 'm')
+            elif y < 18 and r > 6:
+                ang = math.atan2(18 - y, x - 23.5)
+                cv.set(x, y, 'w' if int(ang * 7) % 2 else 'W')
+            else: cv.set(x, y, 'B' if (x + y) % 9 else 'b')
+    for y in range(18, 46):         # columns either side, Corinthian
+        for x in (6, 7, 40, 41):
+            cv.set(x, y, 'G' if y in (18, 19) else ('M' if x in (6, 40) else 'm'))
+    venus = [
+        "...MMm...",
+        "..MMMmm..",
+        "..MSSsm..",
+        "...MSs...",
+        "..MMMMm..",
+        ".MMSMMmm.",
+        ".M.SSMm.m",
+        "...SSSs.m",
+        "..MSSSs..",
+        "..MSSSsm.",
+        "..MMMMmm.",
+        "..MMMMmm.",
+        "...MMMm..",
+        "...MMmm..",
+        "...MM.m..",
+        "...MM.m..",
+        "..MMm.mm.",
+    ]
+    cv.stamp(venus, 19, 17)
+    for y in range(34, 46):         # her pedestal
+        for x in range(17, 31): cv.set(x, y, 'M' if y in (34, 45) else ('m' if x > 26 else 'n'))
+    for y in range(46, 50):
+        for x in range(4, 44): cv.set(x, y, 'M' if y == 46 else 'm')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    SPRITES['bath-statue'] = {'rows': cv.rows(), 'ink': {**GOLD, 'M': 0xf2ece2, 'm': 0xc8c0b2, 'n': 0xe0d8cc, 'S': 0xf6f0e6, 's': 0xd8d0c4,
+        'W': 0xe8e0d4, 'w': 0xc0b8aa, 'B': 0x2a4a7a, 'b': 0x3a5a8a, 'T': ['floor', 4], 't': ['floor', 3], 'q': ['floor', 1]}}
+
+def cesme():
+    cv = Canvas(48, 62)
+    for y in range(0, 46):          # a marble çeşme: the ogee niche, its carved vase of tulips, the inscription
+        for x in range(6, 42):
+            cv.set(x, y, 'M' if x < 24 else 'm')
+    for x in range(8, 40):
+        for y in range(2, 9): cv.set(x, y, 'G' if y in (2, 8) or x in (8, 39) else ('g' if (x * 3 + y * 7) % 5 < 2 else 'V'))
+    for y in range(11, 42):
+        for x in range(11, 37):
+            a = abs(x - 23.5)
+            if y < 22:
+                t = (y - 11) / 11
+                lim = 12.5 * math.sin(t * math.pi / 2) ** 0.7
+                if a > lim: continue
+            elif a > 12.5: continue
+            cv.set(x, y, 'k' if (a > 11.5 or (y < 22 and a > lim - 1)) else 'n')
+    for y in range(26, 35):         # the vase
+        w = 4 - abs(y - 30) * 0.5
+        for x in range(int(23.5 - w), int(23.5 + w) + 1): cv.set(x, y, 'm' if x > 24 else 'M')
+    for k, (dx, h) in enumerate(((-6, 12), (-3, 15), (0, 17), (3, 15), (6, 12))):
+        x = 24 + dx
+        for y in range(26 - h, 26): cv.set(x, y, 'L' if k % 2 else 'l')
+        cv.set(x - 1, 25 - h, 'R'); cv.set(x, 25 - h, 'R'); cv.set(x + 1, 25 - h, 'r'); cv.set(x, 24 - h, 'r')
+    for (x, y) in ((23, 36), (24, 36), (24, 37), (24, 38)): cv.set(x, y, 'G')
+    for y in range(39, 42): cv.set(24, y, 'A')
+    for y in range(42, 50):         # the kurna, carved from one block
+        for x in range(13, 35):
+            if y > 46 and abs(x - 23.5) > 9 - (y - 46) * 2: continue
+            cv.set(x, y, 'A' if y == 42 and 15 < x < 33 else ('M' if y == 42 or x < 24 else 'm'))
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    SPRITES['cesme'] = {'rows': cv.rows(), 'ink': {**GOLD, 'M': 0xf0eae0, 'm': 0xc8c0b4, 'n': 0xdcd4c6, 'k': 0xa8a092, 'V': 0x1e5a4a,
+        'L': 0x6a8a6a, 'l': 0x8aa88a, 'R': 0xd8c8c0, 'r': 0xb0a49a, 'A': 0x8ac8d8, 'T': ['floor', 4], 't': ['floor', 3], 'q': ['floor', 1]}}
+
+def zakuroguchi():
+    cv = Canvas(48, 62)
+    # The zakuro-guchi: a cusped karahafu gable over a low opening, stooped through into the steam of the tub.
+    for y in range(4, 22):
+        for x in range(2, 46):
+            a = abs(x - 23.5)
+            crest = 4 + 10 * (a / 21.5) ** 1.6 - (2 if a < 3 else 0) + (0 if a < 18 else (a - 18) * -0.6)
+            if y < crest or a > 21.5: continue
+            if y < crest + 2: cv.set(x, y, 'K' if y < crest + 1 else 'G')
+            elif y < 18: cv.set(x, y, 'P' if (x + y) % 2 and a < 17 else ('E' if x < 24 else 'e'))
+            else: cv.set(x, y, 'K' if y == 18 else 'R')
+    for (x, y) in ((16, 11), (17, 10), (18, 10), (19, 11), (18, 12), (29, 11), (30, 10), (31, 10), (32, 11), (30, 12)): cv.set(x, y, 'g')
+    for k in range(5):              # waves painted on the gable board
+        for x in range(12 + k * 5, 15 + k * 5): cv.set(x, 15 - (x % 3 == 1), 'b')
+    for y in range(22, 50):
+        for x in range(4, 44):
+            if x in (4, 5, 42, 43): cv.set(x, y, 'K' if x in (4, 42) else 'R')
+            elif y < 34: cv.set(x, y, 'E' if x < 24 else 'e')
+            else: cv.set(x, y, 'D' if y < 48 else 'K')
+    for x in range(6, 42): cv.set(x, 33, 'K'); cv.set(x, 22, 'K')
+    for y in range(24, 32):         # the screen's lattice above the stoop
+        for x in range(8, 40):
+            if (x - 8) % 4 == 0 or (y - 24) % 4 == 0: cv.set(x, y, 'K')
+    for (x, y) in ((14, 38), (15, 37), (14, 36), (22, 40), (23, 39), (22, 38), (31, 37), (32, 36), (31, 35)): cv.set(x, y, 'S')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    SPRITES['zakuroguchi'] = {'rows': cv.rows(), 'ink': {**GOLD, 'K': 0x1a1414, 'R': 0x8a1e1a, 'P': 0xe8dcc0, 'E': ['wood', 4], 'e': ['wood', 3],
+        'b': 0x2a5a8a, 'D': 0x1e1a1a, 'S': 0x8a8a90, 'T': ['floor', 4], 't': ['floor', 3], 'q': ['floor', 1]}}
+
+bath_statue()
+cesme()
+zakuroguchi()
+
 import os
 with open(os.path.join(os.path.dirname(__file__), '../../src/render/interiors/altars.ts'), 'w') as out:
     out.write('// Generated by scripts/art/compose_altars.py; edit the art there and rerun it.\n')

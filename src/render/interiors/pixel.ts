@@ -2965,29 +2965,61 @@ export class PixelRoom {
         break;
       }
       case "pool": {
-        // A sunk basin: a lit marble kerb, the drop inside it, water lit from above.
-        const tub = p.styles.pool === "tub", R = tub ? W : P.stone;
-        const hot = p.styles.pool !== "cold";
-        const water = (i: number, j: number) => {
-          const deep = j / PD;
-          const c = mix(tub ? 0x6a8a7a : 0x3a8a9a, tub ? 0x2a4a44 : 0x1a4a62, Math.min(1, deep * 1.4));
-          return Math.sin(i * 0.45 + j * 0.9 + q.seed + this.t * 2) > 0.92 ? mix(c, 0xffffff, 0.35) : c;
-        };
+        // A sunk basin: a marble kerb (or a cedar rim), the far wall's drop, steps down
+        // one end, the floor seen through the water and the light netting over it.
+        const tub = p.styles.pool === "tub", hot = p.styles.pool !== "cold";
+        const shallow = tub ? 0x8ac0a8 : hot ? 0x7ad8d8 : 0x6ac8e8, deep = tub ? 0x3a6a5a : hot ? 0x2a8a9a : 0x2a6aa8;
+        const vein = (i: number, j: number) => Math.abs(Math.sin(i * 0.3 + j * 0.7 + Math.sin(j * 0.4 + q.seed) * 2)) < 0.12;
         this.r(X, Y, PW, PD, (i, j) => {
           const e = Math.min(i, j, PW - 1 - i, PD - 1 - j);
-          if (e < 2) return j < 2 ? R[5 - j] : i < 2 ? R[4] : R[2 + (e === 0 ? -1 : 0)];
-          if (e === 2 && j === 2) return R[1];
-          return water(i, j);
+          if (tub) {
+            if (e < 3) return j < 2 && e === j ? W[5 - j] : e === 0 ? W[1] : (i + (e === j ? 0 : j)) % 9 === 0 ? W[2] : W[e === 1 ? 4 : 3];
+          } else if (e < 3) {
+            const m = vein(i, j) ? 0xb4aca0 : e === 0 ? 0x8a8478 : j < 3 || i < 3 ? 0xf6f2ea : 0xe0dad0;
+            return e === 2 && j > 2 ? mix(m, 0x8a8478, 0.35) : m;
+          }
+          // The far wall of the basin, seen dropping to the water.
+          if (j < 6) return j < 5 ? (tub ? W[1 + (j > 2 ? 1 : 0)] : j < 4 ? 0xb8b0a4 : 0x8a8478) : mix(shallow, 0xffffff, 0.4);
+          // Steps down at the left end.
+          if (!tub && i < 9 && j < PD - 3) {
+            const st = Math.floor((i - 3) / 2);
+            if (st < 3) return mix(st % 2 ? 0xf0ece4 : 0xd0cac0, shallow, 0.2 + st * 0.2);
+          }
+          const d = Math.min(1, (j - 6) / Math.max(4, PD - 12));
+          let c = mix(shallow, deep, d * 0.8);
+          if (!tub && ((i >> 2) + (j >> 2)) % 2 === 0) c = mix(c, 0xffffff, 0.06);
+          if (!tub && Math.abs(i - PW / 2) < 4 && Math.abs(j - PD / 2) < 3 && (i + j) % 2) c = mix(c, 0x1a2a3a, 0.25);
+          const caustic = Math.abs(Math.sin(i * 0.5 + this.t * 1.3 + q.seed) + Math.sin(j * 0.7 - i * 0.2 + this.t * 1.7)) < 0.18;
+          if (caustic) c = mix(c, 0xffffff, 0.3);
+          if (Math.sin(i * 0.45 + j * 0.9 + q.seed + this.t * 2) > 0.96) c = mix(c, 0xffffff, 0.5);
+          return c;
         });
         if (hot) for (let k = 0; k < 3; k++) this.smoke.push({ x: X + 6 + k * Math.floor((PW - 12) / 2), y: Y + 6 });
         break;
       }
       case "slab": {
-        // The göbek taşı: a raised marble platform heated from beneath.
-        const h = 7, top = Y + 2;
-        this.r(X + 1, top - h, PW - 2, PD - 3, (i, j) => (j === 0 ? P.linen[5] : i === 0 ? P.linen[5] : hash(i >> 2, j >> 2, q.seed) < 0.2 ? P.stone[4] : P.linen[4]));
-        this.r(X + 1, top + PD - 3 - h, PW - 2, h, (_i, j) => (j === 0 ? P.stone[4] : j === h - 1 ? P.stone[1] : P.stone[3]));
-        this.smoke.push({ x: X + PW / 2, y: top - h });
+        // The göbek taşı: an octagon of marble heated from beneath, veined, a star of coloured marble let into it.
+        const h = 7, top = Y + 2 - h, w = PW - 2, d = PD - 3, cut = Math.min(4, Math.floor(Math.min(w, d) / 4));
+        const cx = (w - 1) / 2, cy = (d - 1) / 2;
+        for (let j = 0; j < d; j++)
+          for (let i = 0; i < w; i++) {
+            const c0 = Math.min(i, w - 1 - i) + Math.min(j, d - 1 - j);
+            if (c0 < cut) continue;
+            const dx = Math.abs(i - cx), dy = Math.abs(j - cy) * (w / d), r = Math.hypot(dx, dy);
+            const star = Math.max(dx, dy) < 5 && (Math.min(dx, dy) < 1.5 || Math.abs(dx - dy) < 1.2);
+            let c = c0 === cut || j === 0 ? P.linen[5] : Math.abs(Math.sin(i * 0.25 + j * 0.6 + Math.sin(i * 0.15 + q.seed) * 2.5)) < 0.1 ? P.stone[3] : P.linen[4];
+            if (r < 7 && r > 6) c = 0x3a5a4a;
+            if (star) c = r < 2 ? 0xa83a2a : 0x3a6a5a;
+            this.s(X + 1 + i, top + j, c);
+          }
+        for (let j = 0; j < h; j++)
+          for (let i = 0; i < w; i++) {
+            const inset = Math.max(0, cut - Math.min(i, w - 1 - i));
+            if (inset > 0 && j < 1) continue;
+            if (Math.min(i, w - 1 - i) < Math.max(0, cut - 1) && j < cut - Math.min(i, w - 1 - i)) continue;
+            this.s(X + 1 + i, top + d + j - 1, j === 0 ? P.stone[4] : j === h - 1 ? P.stone[1] : i % 10 === 0 ? P.stone[2] : P.stone[3]);
+          }
+        this.smoke.push({ x: X + PW / 2, y: top });
         break;
       }
       case "basin": {
@@ -3169,10 +3201,10 @@ export class PixelRoom {
               }
           break;
         }
-        // A plastered bench built against the wall, one tile of it.
-        const top = Y + PD - 12;
-        this.r(X, top, PW, 4, (i, j) => (j === 0 ? P.wall[5] : i === 0 ? P.wall[4] : P.wall[4 - (j >> 1)]));
-        this.r(X, top + 4, PW, 7, (_i, j) => (j === 0 ? P.wall[2] : j === 6 ? P.wall[0] : P.wall[2 - (j > 3 ? 1 : 0)]));
+        // A plastered bench built against the wall, one tile of it, or a marble one in a bath.
+        const top = Y + PD - 12, B = p.styles.ledge === "marble" ? [0x6a645a, 0x8a8478, 0xb4aca0, 0xd0cac0, 0xe4dfd6, 0xf6f2ea] : P.wall;
+        this.r(X, top, PW, 4, (i, j) => (j === 0 ? B[5] : i === 0 ? B[4] : B[4 - (j >> 1)]));
+        this.r(X, top + 4, PW, 7, (_i, j) => (j === 0 ? B[2] : j === 6 ? B[0] : B[2 - (j > 3 ? 1 : 0)]));
         break;
       }
       case "sipapu": {

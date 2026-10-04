@@ -617,11 +617,11 @@ export const baths: InteriorProfile[] = [
     regulars: { hours: [13, 18], fill: 0.45 },
     rooms: [
       { id: "apodyterium", label: "Apodyterium", role: "entry", program: "gather", size: [8, 8], seating: "chair", fire: "none", furnish: ["shelf", "shelf", "lamp"], clutter: ["shoes", "cloth"] },
-      { id: "frigidarium", label: "Frigidarium", role: "hall", program: "gather", size: [9, 9], seating: "chair", fire: "none", furnish: ["pool"], styles: { pool: "cold" }, clutter: ["cloth"] },
+      { id: "frigidarium", label: "Frigidarium", role: "hall", program: "gather", size: [9, 9], seating: "chair", fire: "none", furnish: ["pool"], styles: { pool: "cold", altar: "bath-statue" }, clutter: ["cloth"] },
       { id: "tepidarium", label: "Tepidarium", role: "hall", program: "gather", size: [8, 8], seating: "chair", fire: "brazier", furnish: ["lamp"], clutter: ["cloth"] },
       { id: "caldarium", label: "Caldarium", role: "hall", program: "gather", size: [10, 9], seating: "chair", fire: "none", furnish: ["pool", "basin"], clutter: ["cloth"] },
     ],
-    styles: { shelf: "niche" },
+    styles: { shelf: "niche", ledge: "marble" },
     label: "Roman baths",
     region: "Roman Empire",
     period: "200 BCE – 640 CE",
@@ -656,7 +656,7 @@ export const baths: InteriorProfile[] = [
     rooms: [
       { id: "camekan", label: "Camekan", role: "entry", program: "gather", size: [10, 9], seating: "chair", fire: "none", furnish: ["pool", "lamp", "plates"], styles: { pool: "cold" }, clutter: ["shoes", "shoes", "cloth"] },
       { id: "sogukluk", label: "Soğukluk", role: "hall", program: "gather", size: [6, 7], seating: "chair", fire: "none", furnish: ["basin"], clutter: ["cloth"] },
-      { id: "sicaklik", label: "Sıcaklık", role: "hall", program: "gather", size: [10, 10], shapes: ["round"], seating: "chair", fire: "none", furnish: ["slab", "basin"], clutter: ["cloth"] },
+      { id: "sicaklik", label: "Sıcaklık", role: "hall", program: "gather", size: [10, 10], shapes: ["round"], seating: "chair", fire: "none", furnish: ["slab", "basin"], styles: { altar: "cesme" }, clutter: ["cloth"] },
     ],
     label: "Hammam",
     region: "Islamic world, al-Andalus to Persia",
@@ -690,7 +690,7 @@ export const baths: InteriorProfile[] = [
     regulars: { hours: [15, 23], fill: 0.45 },
     rooms: [
       { id: "datsuiba", label: "Datsuiba", role: "entry", program: "gather", size: [8, 8], seating: "chair", fire: "none", furnish: ["shelf", "shelf", "basket", "lantern"], clutter: ["shoes", "cloth"] },
-      { id: "yuya", label: "Yuya", role: "hall", program: "gather", size: [9, 8], seating: "chair", fire: "none", furnish: ["pool", "basin", "lantern"], styles: { pool: "tub" }, clutter: ["cloth", "bowl"] },
+      { id: "yuya", label: "Yuya", role: "hall", program: "gather", size: [9, 8], seating: "chair", fire: "none", furnish: ["pool", "basin", "lantern"], styles: { pool: "tub", altar: "zakuroguchi" }, clutter: ["cloth", "bowl"] },
     ],
     styles: { shelf: "tansu" },
     label: "Sento",
