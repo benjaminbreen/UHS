@@ -865,7 +865,7 @@ export function planRoom(p: RoomParams): Prop[] {
   };
   // An altar takes the head of the room before anything is hung or shelved there.
   let altar: Prop | undefined;
-  if ((p.program === "rows" || p.program === "gather") && p.styles.altar) {
+  if ((p.program === "rows" || p.program === "gather" || p.program === "shop") && p.styles.altar) {
     const aw = Math.min(/^(stage|screen)/.test(p.styles.altar) ? 9 : 3, w - 4);
     altar = place("altar", aw, 1, (x, y) => (y === top[x] && top[x + aw - 1] === y ? 6 - Math.abs(x + aw / 2 - w / 2) : -9), false, true);
     if (altar) for (let i = altar.x; i < altar.x + aw; i++) used[i] = true;
@@ -981,7 +981,8 @@ export function planRoom(p: RoomParams): Prop[] {
     // Stock along the back wall, a counter two rows before it with the keeper's
     // walk between, open at one end; the trade's fixtures against the side walls.
     for (let x = 0; x + 2 <= w; x++) place("stock", 2, 1, (cx, cy) => (cx === x && cy === top[x] && top[x + 1] === cy ? 1 : -1), false, true);
-    const cw = Math.min(3, w - 4), sides = r() < 0.5 ? [1, w - 1 - cw] : [w - 1 - cw, 1];
+    // A bank's counter runs across the hall, a gate left at one end.
+    const cw = p.styles.shopcounter === "teller" ? w - 3 : Math.min(3, w - 4), sides = r() < 0.5 ? [1, w - 1 - cw] : [w - 1 - cw, 1];
     let row = 0;
     for (const side of sides) {
       const want = Math.min(d - 3, (top[side] ?? 0) + 2);

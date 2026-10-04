@@ -3309,6 +3309,12 @@ export function planSettlement(
     }
     const shopfront =
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
+    // A downtown is office blocks: most lots offices, some a bank or a department store.
+    const officeRoll = rand("office", i);
+    const office =
+      lot.use === "downtown" && !lot.venue && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
+        ? officeRoll < 0.45 ? "Offices" : officeRoll < 0.6 ? "Bank" : "Department store"
+        : undefined;
     // In a camp a house is called what it is: a felt tent, a shelter, a
     // longhouse, whoever's trade is practised in it.
     const dwelling = model.label.split(" · ")[0];
@@ -3348,6 +3354,8 @@ export function planSettlement(
       id,
       name: lot.venue
         ? lot.venue.label
+        : office
+          ? office
         : lot.use === "industrial"
           ? model.label.split(" · ")[0]
         : camp
@@ -3370,7 +3378,7 @@ export function planSettlement(
       h,
       sprite: frame,
       entrance: door,
-      access: lot.venue || shopfront ? "public" : "household",
+      access: lot.venue || shopfront || office ? "public" : "household",
       owner,
       claim: lot.venue ? `venue-${lot.venue.id}` : "landscape",
       entranceLabel,

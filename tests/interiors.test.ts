@@ -271,6 +271,22 @@ describe("interior profiles", () => {
       }
   });
 
+  it("opens a downtown block as offices by date, a banking hall or a department store", () => {
+    const blocks = [["Offices", 1880, "desk-high"], ["Offices", 1930, "typewriter"], ["Offices", 1995, "terminal"], ["Department store", 1910, "showcase"]] as const;
+    for (const [name, year, machine] of blocks) {
+      const room = buildInterior({ id: `t-office-${year}`, name, access: "public", claim: "landscape", landUse: "downtown" } as Place, { lon: -87.6, lat: 41.9, year, settlement: "city" }, {});
+      expect(room.params.styles.machine, name).toBe(machine);
+      expect(room.seats.some((s) => s.kind === "machine"), name).toBe(true);
+    }
+    const bank = buildInterior({ id: "t-bank", name: "Bank", access: "public", claim: "landscape", landUse: "downtown" } as Place, { lon: -87.6, lat: 41.9, year: 1900, settlement: "city" }, {});
+    expect(bank.params.program).toBe("shop");
+    expect(bank.props.some((q) => q.kind === "altar") && bank.props.some((q) => q.kind === "shopcounter")).toBe(true);
+    const e = createSettingSession({ ...panelSetting("city-chicago", 1910), settlement: "city", season: "summer" }, "down");
+    const offices = e.world.places.filter((p) => p.landUse === "downtown" && /^(Offices|Bank|Department store)$/.test(p.name));
+    expect(offices.length).toBeGreaterThan(10);
+    for (const p of offices) expect(e.state.households!.some((h) => h.residence === p.id), p.name).toBe(false);
+  });
+
   it("keeps a grown member of the household behind the bar and sits drinkers down late", () => {
     const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
     const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;

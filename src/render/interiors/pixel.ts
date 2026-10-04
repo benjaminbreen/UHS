@@ -512,6 +512,17 @@ export class PixelRoom {
   /** What stands against a shop's back wall: shelves of its wares, or the rack, rail or casks its trade keeps. */
   private stock(style: string, X: number, base: number, PW: number, seed: number) {
     const { P } = this, W = P.wood;
+    if (style === "ledgers") {
+      // Glazed cases of ledgers, their spines in calf and cloth.
+      this.r(X + 1, base - 40, PW - 2, 40, (i, j) => (i === 0 || i === PW - 3 || j === 0 || j === 39 ? W[1] : (j - 1) % 10 === 9 ? W[3] : 0x2a1e18));
+      for (let sh = 0; sh < 3; sh++)
+        for (let x = X + 2; x < X + PW - 3; x += 2) {
+          const h = 7 + ((x + sh + seed) % 3), c = [0x6a2a1e, 0x2a4a3a, 0x5a3a24, 0x2a2a4a, 0x8a6a3a][(x * 7 + sh + seed) % 5];
+          this.r(x, base - 30 + sh * 10 - h + 9, 2, h, (i, j) => (j === 1 ? P.brass[4] : i ? scale(c, 0.8) : c));
+        }
+      for (let j = 1; j < 30; j++) for (let i = 1; i < PW - 3; i++) if ((i + j * 2) % 23 === 0) this.s(X + 1 + i, base - 40 + j, 0xe8f0f4);
+      return;
+    }
     if (style === "drink") {
       for (let k = 0; k < PW / 16; k++) this.caskEnd(X + 8 + k * 16, base - 8, 7, seed + k, true);
       this.r(X + 1, base - 2, PW - 2, 2, W[2]);
@@ -601,6 +612,19 @@ export class PixelRoom {
         }
         break;
       }
+      case "teller": {
+        // A banking counter: a marble top on mahogany, a brass grille with its arched wicket, the scales for coin.
+        this.r(X, top, PW, d, (i, j) => (j === 0 ? 0xf4f0e8 : Math.abs(Math.sin(i * 0.3 + j)) < 0.1 ? 0xb0a898 : 0xe0dad0));
+        this.r(X, top + d, PW, 14, (i, j) => (j === 0 ? W[4] : j === 13 ? W[0] : i % 16 === 0 ? W[1] : (j > 3 && j < 10 && i % 16 > 3 && i % 16 < 13) ? W[3] : W[2]));
+        for (let x = X; x < X + PW; x++) {
+          const k = (x - X) % 24, wicket = k > 8 && k < 16;
+          const arch = wicket ? Math.round(Math.sqrt(Math.max(0, 12 - (k - 12) ** 2))) : 0;
+          for (let y = top - 18; y < top - (wicket ? 6 + arch : 0); y++) if ((x - X) % 3 === 0 || y === top - 18 || y === top - 10) this.s(x, y, (x - X) % 6 === 0 ? P.brass[5] : P.brass[3]);
+        }
+        this.r(X + 4, top + 1, 6, 2, (_i, j) => (j ? P.brass[2] : P.brass[4]));
+        for (let k = 0; k < 3; k++) this.r(X + PW - 10 + k * 3, top + 1 - (k % 2), 2, 2, P.brass[4]);
+        break;
+      }
       case "glazed": {
         // A glass case on a mahogany frame, wares inside, a till on top.
         this.r(X, top, PW, d, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
@@ -677,8 +701,75 @@ export class PixelRoom {
     for (let k = 0; k < 6; k++) this.s(X + 4 + hash(k, 2, seed) * (PW - 8), base - 1, style === "timber" ? P.straw[4] : W[4]);
   }
   /** A machine of the works, with the belt rising from its pulley to the line shaft overhead. */
+  /** Office furniture in rows, drawn in place of machines: a clerk's high desk,
+   * a typist's desk, a terminal, or a shop's glass showcase. False if `style` is none of these. */
+  private desk(style: string, X: number, base: number, PW: number, seed: number) {
+    const { P } = this, W = P.wood;
+    const chair = (cx: number, swivel: boolean) => {
+      if (swivel) {
+        this.r(cx - 3, base - 9, 7, 5, (i, j) => (j === 0 ? 0x4a4a4e : i === 0 ? 0x3a3a3e : 0x2a2a2e));
+        this.r(cx - 3, base - 4, 7, 2, 0x3a3a3e);
+        this.r(cx, base - 2, 1, 2, 0x1a1a1e);
+        this.r(cx - 3, base, 7, 1, 0x1a1a1e);
+        return;
+      }
+      this.r(cx - 3, base - 10, 7, 2, (i) => (i === 0 ? W[5] : W[4]));
+      for (const dx of [-3, 3]) this.r(cx + dx, base - 8, 1, 9, W[1]);
+      this.r(cx - 3, base - 4, 7, 2, (_i, j) => W[j ? 2 : 4]);
+    };
+    switch (style) {
+      case "desk-high": {
+        // A clerk's high desk: a sloped lid on long legs, the ledger open on it, a tall stool.
+        const top = base - 24;
+        this.r(X + 2, top, PW - 4, 6, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : j === 5 ? W[1] : W[3]));
+        this.r(X + 2, top + 6, PW - 4, 4, (i, j) => (j === 3 ? W[0] : i % 10 === 0 ? W[1] : W[2]));
+        for (const lx of [X + 3, X + PW - 5]) this.r(lx, top + 10, 2, 12, W[1]);
+        this.r(X + 8, top - 1, 14, 5, (i, j) => (i === 6 || i === 7 ? 0x8a2a24 : j === 0 ? 0xf8f4ea : j % 2 ? 0xd8d0c0 : 0xece6da));
+        this.s(X + PW - 7, top + 1, 0x1a1a24);
+        for (const dx of [6, 11]) this.r(X + dx + 4, base - 12, 1, 12, W[1]);
+        this.r(X + 9, base - 13, 8, 2, (_i, j) => W[j ? 2 : 4]);
+        return true;
+      }
+      case "typewriter": {
+        const top = base - 14;
+        this.r(X + 1, top, PW - 2, 4, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
+        this.r(X + 1, top + 4, PW - 2, 7, (i, j) => (j === 6 ? W[0] : i < 10 && (j === 2 || j === 5) ? W[1] : i === 10 ? W[1] : W[2]));
+        // The typewriter: black, its keys in rows, a sheet in the platen.
+        this.r(X + 9, top - 5, 12, 6, (i, j) => (j === 0 ? 0x4a4a52 : j > 2 && (i + j) % 2 ? 0xd8d8d0 : 0x1e1e24));
+        this.r(X + 11, top - 9, 8, 4, (i, j) => (j === 0 ? 0xffffff : i % 3 === 1 && j > 1 ? 0x8a8a90 : 0xf2f0e8));
+        this.r(X + 3, top - 2, 4, 3, (_i, j) => (j === 0 ? 0xf8f4ea : 0xd8d0c0));
+        chair(X + 15, false);
+        return true;
+      }
+      case "terminal": {
+        const top = base - 14;
+        this.r(X + 1, top, PW - 2, 4, (_i, j) => (j === 0 ? 0xe4e0d8 : 0xc8c4bc));
+        this.r(X + 1, top + 4, PW - 2, 1, 0x8a8680);
+        for (const lx of [X + 2, X + PW - 4]) this.r(lx, top + 5, 2, 7, 0x6a6a6e);
+        // A beige terminal, green characters on its screen, the keyboard before it.
+        this.r(X + 8, top - 11, 13, 11, (i, j) => (j === 0 || i === 0 ? 0xe8e0cc : i === 12 || j === 10 ? 0xa89e88 : 0xd4cab4));
+        this.r(X + 10, top - 9, 9, 6, (i, j) => (j % 2 === 1 && i < 3 + ((seed + j) % 6) ? 0x6ae08a : 0x14281a));
+        this.r(X + 9, top + 1, 11, 2, (i, j) => (j === 0 ? 0xe0d8c4 : i % 2 ? 0xb4aa96 : 0xc8bea8));
+        chair(X + 15, true);
+        return true;
+      }
+      case "showcase": {
+        // A glass showcase on a mahogany plinth, the stock laid out inside, brass at the corners.
+        const top = base - 16;
+        this.r(X + 1, top, PW - 2, 5, (i, j) => (j === 0 ? 0xf4fafc : (i - j * 2 + 40) % 11 === 0 ? 0xffffff : mix(0x9ab8c4, W[3], 0.25)));
+        this.r(X + 1, top + 5, PW - 2, 7, (i, j) => (i === 0 || i === PW - 3 ? P.brass[3] : j === 6 ? W[1] : (i - j + 40) % 13 === 0 ? 0xe8f4f8 : mix(0x6a8a98, W[1], j / 8)));
+        const goods = [P.acc[3], P.acc2[3], P.linen[5], P.brass[4], 0x2a2a2e, P.acc3[3]];
+        for (let k = 0; k < (PW - 6) / 5; k++) this.r(X + 3 + k * 5, top + 7 + (k % 2), 3, 2, goods[(k + seed) % goods.length]);
+        for (let k = 0; k < (PW - 6) / 7; k++) this.r(X + 4 + k * 7, top + 1, 4, 2, goods[(k + seed + 3) % goods.length]);
+        this.r(X + 1, top + 12, PW - 2, 4, (i, j) => (j === 3 ? W[0] : i % 8 === 0 ? W[1] : W[2]));
+        return true;
+      }
+    }
+    return false;
+  }
   private machine(style: string, X: number, base: number, PW: number, seed: number) {
     const { P } = this, W = P.wood, I = P.iron;
+    if (this.desk(style, X, base, PW, seed)) return;
     // The line shaft over the row, hung from the beams, a pulley over each machine.
     const sy = base - 46;
     this.r(X - 4, sy, PW + 8, 2, (_i, j) => I[j ? 1 : 3]);

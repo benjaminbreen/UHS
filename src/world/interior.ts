@@ -1,6 +1,7 @@
 import { buildingUse, interiorProfileFor, type InteriorSite } from "../content/interiors/select";
 import { shopFor, shopKind } from "../content/interiors/shops";
 import { factoryFor } from "../content/interiors/factories";
+import { officeFor } from "../content/interiors/offices";
 import { planBuilding, type PlacedRoom, type RoomPlan } from "../render/interiors/building";
 import type { Finish, Kind, Prop, RoomParams, Trade } from "../render/interiors/room";
 import type { Place, Point } from "../core/types";
@@ -96,7 +97,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const seed = seedOf(place.id);
   const home = interiorProfileFor(site);
   // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
-  const works = place.landUse === "industrial" && !buildingUse(place.claim) ? factoryFor(place.name, site.year, seed) : undefined;
+  const works = buildingUse(place.claim) ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined;
   const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
   const profile = works ?? (kind ? shopFor(home, kind, site) : home);
   const status: Finish = o.fortune === undefined ? 1 : o.fortune < 0.34 ? 0 : o.fortune < 0.72 ? 1 : 2;

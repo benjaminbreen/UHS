@@ -23,6 +23,7 @@ import { conditionOf, weatherStructure } from "../../core/time/structure";
 import { householdStory } from "./household-story";
 import { MEANS } from "./plan";
 import { keeperLivesIn, buildingUse } from "../../content/interiors/select";
+import { officeFor } from "../../content/interiors/offices";
 import { marriagePracticeFor } from "../../content/households/practices";
 const seasons = ["spring", "summer", "autumn", "winter"];
 /** Households as the result of a life (household-story.ts), then the ties
@@ -286,7 +287,7 @@ export function populateHouseholds(
   const setting = pack.setting!;
   const venueOf = (h: Household) => {
     const place = plan.places.find((p) => p.id === h.residence);
-    return place?.landUse === "industrial" ? "works" : buildingUse(place?.claim ?? "");
+    return place?.landUse === "industrial" || (place?.landUse === "downtown" && officeFor(place.name, year)) ? "works" : buildingUse(place?.claim ?? "");
   };
   for (const h of made) {
     const venue = venueOf(h);
@@ -297,8 +298,15 @@ export function populateHouseholds(
     if (!host) continue;
     h.residence = host.residence;
     h.home = { ...host.home };
-    const work = plan.work.get(h.members[0]);
-    if (work) plan.work.set(h.members[0], { ...work, home: { x: host.home.x, y: host.home.y } });
+    const head = h.members[0], work = plan.work.get(head);
+    if (work) {
+      // The head's day was planned from the old door; plan it again from the new one.
+      const site = { ...work, home: { x: host.home.x, y: host.home.y } };
+      const actor = world.initialActors.find((b) => b.id === head);
+      plan.work.set(head, site);
+      if (plan.stations.has(head))
+        plan.stations.set(head, withLoads(routineFor(plan, seed, pack, head, site, actor), carryKit(pack), undefined, goodsOf(livelihoodOf(pack, actor))[0]));
+    }
     for (const p of pending) if (p.household === h) p.site = { ...p.site, home: { x: host.home.x, y: host.home.y } };
   }
 
