@@ -2422,12 +2422,17 @@ export class PixelRoom {
         break;
       }
       case "divan": {
-        const x0 = X + 1, y0 = Y + 2, w = PW - 2;
-        this.box(x0, y0, w, PD - 5, 7, W, W);
-        this.r(x0, y0 - 7, w, PD - 6, (i, j) => (j === 0 ? P.acc[5] : (i >> 3) % 2 ? P.acc[3] : P.acc[2 + (j === 1 ? 1 : 0)]));
-        for (let k = 0; k < Math.floor(w / 12); k++) this.r(x0 + 2 + k * 12, y0 - 13, 10, 7, (i, j) => (j === 0 ? P.acc2[5] : i === 9 ? P.acc2[1] : P.acc2[3]));
-        this.disc(x0 + 2, y0 - 5, 3, P.acc3);
-        this.disc(x0 + w - 3, y0 - 5, 3, P.acc3);
+        // A sedir: a low platform faced with kilim, one long seat cushion, and back
+        // cushions whose faces are knotted like small carpets, as Ottoman yastıks were.
+        const x0 = X + 1, y0 = Y + 2, w = PW - 2, A = P.acc;
+        this.r(x0, y0 + PD - 12, w, 7, (i, j) => (j === 0 ? A[4] : j === 6 ? 0x1a1412 : carpetColor(i, j - 1, w, 5, q.seed + 3, "gul")));
+        this.r(x0, y0 - 7, w, PD - 6, (i, j) => (j === 0 ? A[5] : j === PD - 7 ? A[1] : i % 4 === 0 ? A[3] : A[2 + (j === 1 ? 1 : 0)]));
+        for (let k = 0; k < Math.floor(w / 12); k++)
+          this.r(x0 + 2 + k * 12, y0 - 13, 10, 7, (i, j) => (j === 6 ? 0x2a1a14 : i === 9 ? scale(carpetColor(i, j, 10, 7, q.seed + k), 0.7) : carpetColor(i, j, 10, 7, q.seed + k)));
+        for (const bx of [x0 + 2, x0 + w - 3]) {
+          this.disc(bx, y0 - 5, 3, A);
+          this.s(bx, y0 - 1, P.brass[4]);
+        }
         break;
       }
       case "lantern": {
