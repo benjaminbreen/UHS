@@ -6,7 +6,7 @@ import { modern } from "./modern";
 import { northAfrica } from "./north-africa";
 import { baths, gaming, gatherings, moreTaverns, taverns } from "./public";
 import { worship } from "./worship";
-import { civic } from "./civic";
+import { assemblies, civic } from "./civic";
 import { factoryFor } from "./factories";
 import { theatres } from "./theatres";
 import { prehistoric } from "./prehistoric";
@@ -33,6 +33,7 @@ export const publicInteriorGroups: { label: string; profiles: InteriorProfile[] 
   { label: "Baths", profiles: baths },
   { label: "Worship", profiles: worship },
   { label: "Civic and schools", profiles: civic },
+  { label: "Assembly houses", profiles: assemblies },
   { label: "Theatres", profiles: theatres },
   { label: "Works", profiles: ["Weaving shed", "Spinning room", "Machine shop", "Foundry", "Printing works"].map((name) => factoryFor(name, 1900, 0)) },
 ];

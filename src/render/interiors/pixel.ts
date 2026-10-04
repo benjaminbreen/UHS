@@ -1957,6 +1957,47 @@ export class PixelRoom {
         break;
       }
       case "pegs": {
+        const arms = p.styles.pegs;
+        if (arms === "wampum") {
+          // A wampum belt of white and purple shell beads; the Hiawatha belt's four squares and the tree between.
+          const by = oy - 34;
+          this.r(X + 1, by, PW - 2, 7, (i, j) => {
+            const k = Math.floor((i - 1) / 3.5);
+            const sq = (i % 4 < 3 && j >= 2 && j <= 4 && k % 1 === 0) && (i < 6 || i > 9);
+            const tree = (i === 7 || i === 8) && j >= 1 || (j === 3 && i >= 6 && i <= 9);
+            return j === 0 || j === 6 ? 0x3a2448 : sq || tree ? 0xf0ece0 : (i + j) & 1 ? 0x4a2a5a : 0x5a3468;
+          });
+          for (let i = 1; i < PW - 1; i += 3) this.s(X + i, by + 7 + (i & 1), 0x8a6a4a);
+          break;
+        }
+        if (arms === "maasai" || arms === "aztec") {
+          const cx = X + 8, top = oy - 42;
+          for (const [dx, lean] of [[-5, 1], [5, -1]] as const)
+            for (let j = 0; j < 30; j++) {
+              const x = cx + dx + Math.round((j - 15) * lean * -0.15);
+              this.s(x, top + j, j < 5 ? (arms === "aztec" ? 0x1a1a22 : P.iron[4]) : W[2 + (j & 1)]);
+            }
+          if (arms === "maasai") {
+            // An oval shield of buffalo hide, painted in the age-set's red, black and white.
+            for (let j = 0; j < 22; j++)
+              for (let i = -5; i <= 5; i++) {
+                const e = Math.hypot(i / 5.5, (j - 10.5) / 11);
+                if (e > 1) continue;
+                const band = Math.abs(i) < 1 ? 0x1a1412 : Math.abs(j - 10.5) < 2 ? 0xe8e0d0 : (j < 10) === (i < 0) ? 0xa82a1e : 0xe8e0d0;
+                this.s(cx + i, top + 5 + j, e > 0.86 ? 0x5a3a22 : band);
+              }
+          } else {
+            // A chimalli: a round shield of feathers on cane, a fringe hanging below; a macuahuitl edged with obsidian.
+            for (let j = -7; j <= 7; j++)
+              for (let i = -7; i <= 7; i++) {
+                const e = Math.hypot(i, j);
+                if (e > 7.4) continue;
+                this.s(cx + i, top + 14 + j, e > 6.4 ? 0xd8a838 : e > 4.5 ? (Math.atan2(j, i) * 3 + 10 | 0) % 2 ? 0x2a7aa8 : 0xe8e0d0 : e > 2 ? 0x2a7aa8 : 0xd8a838);
+              }
+            for (let i = -5; i <= 5; i += 2) for (let j = 0; j < 4; j++) this.s(cx + i, top + 22 + j, j < 2 ? 0x3a8a4a : 0xc83a2a);
+          }
+          break;
+        }
         this.r(X, oy - 38, PW, 2, (_i, j) => W[j === 0 ? 4 : 2]);
         const kinds = this.p.trade === "weaver" ? [P.acc, P.acc2, P.acc3] : [P.leaf, P.straw, P.pale];
         for (let k = 0; k < 3; k++) {
@@ -2356,6 +2397,14 @@ export class PixelRoom {
         if (p.styles.cushions === "petate") {
           // A palm mat to lie on.
           this.r(X + 1, Y + PD - 9, 14, 6, (i, j) => (i === 0 || j === 0 || i === 13 || j === 5 ? P.straw[1] : (i + j) % 2 ? P.straw[3] : P.straw[4]));
+          break;
+        }
+        if (p.styles.cushions === "hide") {
+          // A cowhide to sit on, the hair left on: white, patched black or red-brown.
+          const patch = q.seed % 2 ? 0x1a1412 : 0x7a3a1e;
+          for (let j = 0; j < 8; j++)
+            for (let i = j === 0 || j === 7 ? 1 : 0; i < (j === 0 || j === 7 ? 13 : 14); i++)
+              this.s(X + 1 + i, Y + PD - 11 + j, j === 7 ? 0x6a5a48 : hash(i >> 2, j >> 1, q.seed) < 0.4 ? patch : j === 0 ? 0xffffff : 0xe8e0d0);
           break;
         }
         if (p.styles.cushions === "boughs") {
@@ -2966,6 +3015,16 @@ export class PixelRoom {
           for (const lx of [X + 2, X + PW - 4]) this.r(lx, base - 2, 2, 2, W[1]);
           break;
         }
+        if (p.styles.pew === "chairs") {
+          // Bentwood chairs seen from behind, set out in rows for the meeting.
+          for (let x = X + 1; x < X + PW - 6; x += 8) {
+            this.r(x + 1, base - 6, 6, 2, (i, j) => (j === 0 ? W[4] : i === 0 ? W[3] : W[2]));
+            this.r(x + 1, base - 15, 6, 2, (i) => (i === 0 ? W[5] : W[4]));
+            for (const dx of [1, 6]) this.r(x + dx, base - 13, 1, 13, (_i, j) => (j < 7 ? W[3] : W[1]));
+            this.r(x + 3, base - 13, 2, 6, (i) => (i === 0 ? W[3] : W[2]));
+          }
+          break;
+        }
         if (p.styles.pew === "seat") {
           // Theatre seats seen from behind: plush backs in a row, a gilt or wooden rail along them.
           for (let x = X + 1; x < X + PW - 6; x += 8) {
@@ -3086,6 +3145,30 @@ export class PixelRoom {
         break;
       }
       case "ledge": {
+        if (p.styles.ledge === "mattress") {
+          // A mattress on the floor, the pillow to the wall, a blanket over it: a wharenui sleeps where it meets.
+          const blanket = q.seed % 3 === 0 ? P.acc : q.seed % 3 === 1 ? P.acc2 : P.linen;
+          this.r(X + 1, Y + 2, PW - 2, PD - 3, (i, j) => (j === PD - 4 ? 0x3a3028 : i === 0 || i === PW - 3 ? P.linen[2] : P.linen[4]));
+          this.r(X + 2, Y + 3, PW - 4, 3, (i, j) => (j === 0 ? 0xffffff : i === 0 ? P.linen[3] : P.linen[5]));
+          this.r(X + 1, Y + 7, PW - 2, PD - 9, (i, j) => (j === 0 ? blanket[4] : (i + j * 2) % 7 === 0 ? blanket[2] : i === 0 ? blanket[2] : blanket[3]));
+          break;
+        }
+        if (p.styles.ledge === "platform") {
+          // A raised sleeping platform of poles, bark laid over it, a fur thrown on top.
+          const top = Y + 1;
+          this.r(X, top, PW, PD - 7, (i, j) => (j === 0 ? P.wall[5] : (i + (q.seed & 3) * 3) % 6 === 0 ? P.wall[2] : P.wall[4 - (j > 6 ? 1 : 0)]));
+          this.r(X, top + PD - 7, PW, 2, (_i, j) => W[j ? 1 : 3]);
+          this.r(X, top + PD - 5, PW, 3, (i) => (i === 1 || i === PW - 2 ? W[2] : 0x1a1412));
+          // A bearskin or a deer hide thrown over it.
+          const fur = q.seed % 3 === 0 ? [0x1a1412, 0x2a2018, 0x3a2e24] : q.seed % 3 === 1 ? [0x5a3a20, 0x7a5432, 0x9a7048] : undefined;
+          if (fur)
+            for (let j = 0; j < 7; j++)
+              for (let i = 0; i < 12; i++) {
+                if (Math.hypot((i - 5.5) / 6.2, (j - 3) / 3.8) > 1) continue;
+                this.s(X + 2 + i, top + 2 + j, fur[j === 0 ? 2 : (i + j * 3 + (hash(i, j, q.seed) * 3 | 0)) % 4 === 0 ? 0 : 1]);
+              }
+          break;
+        }
         // A plastered bench built against the wall, one tile of it.
         const top = Y + PD - 12;
         this.r(X, top, PW, 4, (i, j) => (j === 0 ? P.wall[5] : i === 0 ? P.wall[4] : P.wall[4 - (j >> 1)]));

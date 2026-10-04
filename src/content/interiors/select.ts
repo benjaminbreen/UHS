@@ -101,6 +101,7 @@ const PUBLIC: Rule[] = [
   { lon: [128, 146], lat: [30, 46], from: 1600, to: 1880, pick: () => "terakoya" },
   { lon: [-18, 75], lat: [5, 46], from: 1000, pick: () => "madrasa" },
   { lon: [-18, 25], lat: [5, 22], from: 1100, pick: () => "quranic-school" },
+  ...["wharenui", "council-longhouse", "haus-tambaran", "age-set-house", "telpochcalli", "calmecac", "gurukula", "union-hall"].map((id) => ({ lon: [-180, 180] as [number, number], lat: [-90, 90] as [number, number], pick: () => id })),
   { lon: [-11, 2], lat: [49.5, 61], from: 1570, to: 1660, pick: () => "elizabethan-playhouse" },
   { lon: [-11, 45], lat: [34, 72], from: 1660, to: 1950, pick: () => "proscenium-playhouse" },
   { lon: [-11, 45], lat: [34, 72], from: 1680, to: 1950, pick: () => "opera-house" },

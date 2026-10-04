@@ -1283,6 +1283,210 @@ def screen_iconostasis():
 
 screen_iconostasis()
 
+# ---------------------------------------------------------------- assembly houses
+def union_banner():
+    cv = Canvas(48, 62)
+    for x in range(4, 44): cv.set(x, 2, 'E'); cv.set(x, 3, 'e')
+    for y in range(0, 50):          # the two carrying poles
+        cv.set(4, y, 'E'); cv.set(43, y, 'e')
+    for (x, y) in ((4, 0), (43, 0)): cv.set(x, y, 'G')
+    for y in range(4, 40):          # the silk, gold-bordered, its foot cut in scallops
+        for x in range(6, 42):
+            if y > 36 and ((x - 6) % 6 in (0, 5)) == (y == 37): continue
+            border = x in (6, 41) or y in (4, 36)
+            cv.set(x, y, 'G' if border else ('g' if x in (7, 40) or y in (5, 35) else ('A' if (x + y) % 11 else 'a')))
+    for y in range(6, 11):          # the scroll with the branch's name
+        for x in range(10, 38): cv.set(x, y, 'W' if y in (6, 10) or x in (10, 37) else ('D' if y == 8 and x % 3 and 12 < x < 35 else 'w'))
+    for y in range(12, 31):         # the painted roundel: clasped hands before a rising sun
+        for x in range(12, 36):
+            e = ((x - 23.5) / 11.5) ** 2 + ((y - 21) / 9.5) ** 2
+            if e > 1: continue
+            cv.set(x, y, 'G' if e > 0.82 else ('O' if y > 23 and (x * 3 + y) % 5 == 0 and abs(x - 23.5) < 9 else ('Y' if y > 22 else 'w')))
+    hands = [
+        "DDDD..............DDDD",
+        "DDDDW............WDDDD",
+        "DDDDWSSSSS..sSSSSWDDDD",
+        "DDDDWSSSSSSssSSSSWDDDD",
+        "DDDDWSSsSSSsSSSsSWDDDD",
+        "DDDD.SSSSSSSSSSSS.DDDD",
+        "DDDD...sSSssSSs...DDDD",
+    ]
+    cv.stamp(hands, 13, 18)
+    for y in range(31, 35):         # motto under the roundel
+        for x in range(13, 35): cv.set(x, y, 'W' if y in (31, 34) or x in (13, 34) else ('D' if y == 32 and x % 4 and 15 < x < 33 else 'w'))
+    for x in (8, 39):               # tassels on gold cords
+        for y in range(40, 45): cv.set(x, y, 'g')
+        for y in range(45, 48): cv.set(x - 1, y, 'G'); cv.set(x, y, 'G'); cv.set(x + 1, y, 'g')
+    for y in range(42, 50):         # the chairman's table: a cloth, the book, the jug
+        for x in range(12, 36):
+            cv.set(x, y, 'A' if y == 42 else ('a' if y < 48 else ('q' if x in (13, 34) else '.')))
+    for x in range(16, 22): cv.set(x, 41, 'W')
+    for x in range(16, 22): cv.set(x, 40, 'D' if x == 19 else 'W')
+    for (x, y, c) in ((29, 37, 'M'), (29, 38, 'M'), (30, 38, 'm'), (28, 39, 'M'), (29, 39, 'M'), (30, 39, 'm'), (28, 40, 'M'), (29, 40, 'M'), (30, 40, 'm'), (31, 39, 'm'), (28, 41, 'M'), (29, 41, 'm'), (30, 41, 'm')): cv.set(x, y, c)
+    dais(cv, 50)
+    cv.right(shade={'E': 'e', 'G': 'g'})
+    SPRITES['union-banner'] = {'rows': cv.rows(), 'ink': {**GOLD, **FLESH, 'A': ['acc', 3], 'a': ['acc', 2], 'W': 0xf4ecd8, 'w': 0xe8dcc0,
+        'D': 0x24202a, 'Y': 0xe8b040, 'O': 0xf0d080, 'M': 0xd8d4cc, 'm': 0xa8a49c, 'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1]}}
+
+def codex_seat():
+    cv = Canvas(48, 62)
+    for y in range(2, 30):          # a painted hanging: the sun disc of the calendar
+        for x in range(8, 40):
+            cv.set(x, y, 'R' if x in (8, 39) or y in (2, 29) else ('r' if (x + y) % 2 else 'R'))
+    ellipse(cv, 23.5, 15.5, 10, 10, lambda e, x, y: 'Y' if e > 0.8 else ('B' if e > 0.6 else ('y' if e > 0.35 else ('L' if (x + y) % 3 else 'Y'))))
+    for k in range(8):
+        ang = k * math.pi / 4
+        for t in (10.5, 11.5, 12.5):
+            cv.set(int(23.5 + math.cos(ang) * t), int(15.5 + math.sin(ang) * t * 0.95), 'Y')
+    for y in range(20, 42):         # the icpalli: a high-backed seat of woven reed
+        for x in range(17, 31):
+            if y < 22 and abs(x - 23.5) > 5 + (y - 20): continue
+            cv.set(x, y, 'N' if x in (17, 30) or y == 20 else ('n' if (x + y) % 3 == 0 else 'T'))
+    for y in range(28, 44):         # the jaguar pelt over it
+        for x in range(19, 29):
+            if y > 41 and abs(x - 23.5) > 3: continue
+            cv.set(x, y, 'K' if ((x * 5 + y * 3) % 7 == 0 or (x * 3 + y * 5) % 11 == 0) else ('J' if (x + y) % 5 else 'j'))
+    for k in range(7):              # the screenfold, open on a mat before it
+        x0 = 3 + k * 6
+        for y in range(45, 50):
+            for x in range(x0, x0 + 6):
+                cv.set(x, y, 'r' if y in (45, 49) or x == x0 else 'W')
+        glyphs = ('B', 'R', 'K', 'Y', 'L')
+        cv.set(x0 + 2, 47, glyphs[k % 5]); cv.set(x0 + 3, 47, glyphs[(k + 2) % 5]); cv.set(x0 + 2, 46, glyphs[(k + 3) % 5]); cv.set(x0 + 4, 48, 'K')
+    for x in (5, 42):               # long-handled censers of copal, smoking
+        for y in range(38, 44): cv.set(x, y, 'c' if y > 39 else 'C')
+        cv.set(x - 1, 38, 'C'); cv.set(x + 1, 38, 'c')
+        cv.set(x, 37, '*'); cv.set(x, 36, '%')
+        for (dx, dy) in ((0, 34), (1, 33), (0, 32), (-1, 31)): cv.set(x + dx, dy, 'S')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'P' if y == 50 else ('p' if y < 61 else 'q'))
+    SPRITES['codex-seat'] = {'rows': cv.rows(), 'ink': {'R': 0x9a2a1e, 'r': 0x86241a, 'Y': 0xe0b040, 'y': 0xc89030, 'B': 0x2a7a8a, 'L': 0x3a8a4a,
+        'N': 0x6a4a28, 'n': 0x8a6a3a, 'T': 0xb89858, 'J': 0xd8a040, 'j': 0xc08a30, 'K': 0x1e1814, 'W': 0xf0e6d0,
+        'C': 0xb0663a, 'c': 0x8a4a2a, 'S': 0xc8c4bc, 'P': 0xe4dccc, 'p': 0xd0c6b2, 'q': 0x8a7e6a}}
+
+def guru_seat():
+    cv = Canvas(48, 62)
+    for x in range(2, 46):          # a toran of mango leaves across the top
+        cv.set(x, 2, 'N')
+        if x % 4 == 2:
+            for (dx, dy) in ((0, 3), (-1, 4), (0, 4), (1, 4), (-1, 5), (0, 5), (1, 5), (0, 6), (0, 7)): cv.set(x + dx, dy, 'L' if dx <= 0 else 'l')
+        elif x % 4 == 0: cv.set(x, 3, 'O'); cv.set(x, 4, 'o')
+    for y in range(10, 34):         # a niche: the kalasha and its lamp
+        for x in range(16, 32):
+            a = abs(x - 23.5)
+            if y < 16 and math.hypot(a, (16 - y) * 1.3) > 8: continue
+            cv.set(x, y, 'X' if math.hypot(a, max(0, 16 - y) * 1.3) > 7 or x in (16, 31) else 'x')
+    ellipse(cv, 23.5, 26, 4.5, 4, lambda e, x, y: 'G' if x < 23 and e < 0.5 else ('g' if e < 0.85 else 'h'))
+    for x in range(21, 27): cv.set(x, 22, 'h')
+    for (dx, dy) in ((-3, 20), (-2, 19), (-1, 19), (0, 18), (1, 19), (2, 19), (3, 20), (-2, 21), (2, 21)): cv.set(int(23.5 + dx), dy, 'L')
+    ellipse(cv, 23.5, 19, 2, 1.8, lambda e, x, y: 'n' if e > 0.6 else 'N')
+    for y in range(36, 46):         # the teacher's low seat, a deerskin on it
+        for x in range(10, 38):
+            cv.set(x, y, 'E' if y == 36 else ('e' if y < 44 else 'q'))
+    for y in range(32, 37):
+        for x in range(14, 34):
+            if y == 32 and abs(x - 23.5) > 8: continue
+            cv.set(x, y, 'k' if (x * 7 + y * 5) % 9 == 0 else ('D' if (x + y) % 4 else 'd'))
+    for (x, y) in ((12, 33), (13, 34), (34, 34), (35, 33)): cv.set(x, y, 'D')
+    for y in range(41, 50):         # the pothi on its folding stand, a lamp, marigolds
+        for x in range(4, 13):
+            if y < 44: cv.set(x, y, 'P' if y < 43 else 'p')
+            elif abs((x - 8) - (y - 46)) < 1 or abs((x - 8) + (y - 46)) < 1: cv.set(x, y, 'e')
+    for x in range(5, 12): cv.set(x, 42, 'p' if x % 3 == 0 else 'P')
+    for (x, y, c) in ((40, 46, '*'), (40, 45, '%'), (38, 48, 'g'), (39, 48, 'G'), (40, 48, 'G'), (41, 48, 'g'), (42, 48, 'h'), (39, 47, 'g'), (40, 47, 'g'), (41, 47, 'h'), (40, 49, 'h')): cv.set(x, y, c)
+    for (x, y) in ((15, 48), (17, 49), (19, 48), (28, 48), (30, 49), (32, 48)):
+        cv.set(x, y, 'O'); cv.set(x + 1, y, 'o'); cv.set(x, y + 1, 'o')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    cv.right(shade={'E': 'e'})
+    SPRITES['guru-seat'] = {'rows': cv.rows(), 'ink': {**GOLD, 'N': 0x5a3a1e, 'n': 0x8a5a2a, 'L': 0x3a7a2a, 'l': 0x2a5a1e, 'O': 0xf0a020, 'o': 0xd07a10,
+        'X': 0x8a3a2a, 'x': 0x5a2a20, 'D': 0xb08050, 'd': 0x9a6a40, 'k': 0xf0e0c0, 'P': 0xd8b878, 'p': 0x9a7a48,
+        'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1], 'T': ['floor', 4], 't': ['floor', 3]}}
+
+union_banner()
+codex_seat()
+guru_seat()
+
+def orator_stool():
+    cv = Canvas(48, 62)
+    # The ancestor whose back is the stool's: a long-nosed face, cowrie eyes, the body carved to the seat.
+    for y in range(4, 44):
+        for x in range(14, 34):
+            a = abs(x - 23.5)
+            if y < 22:
+                e = math.hypot(a / 7.5, (y - 13) / 9.5)
+                if e > 1: continue
+                eye = math.hypot(a - 3.5, y - 11)
+                ch = 'W' if eye < 1.2 else ('K' if eye < 2.2 else ('O' if e > 0.82 else 'R'))
+                if a < 1 and 8 <= y <= 19: ch = 'W'
+                if 19 <= y <= 20 and a < 3: ch = 'W'
+                cv.set(x, y, ch)
+            elif y < 37:
+                if a > 4 + (2 if 26 <= y <= 28 else 0): continue
+                cv.set(x, y, 'O' if y in (26, 30, 34) else ('W' if y in (27, 31) and a < 2 else ('R' if a < 2 else ('D' if (x + y) % 3 else 'd'))))
+            elif a < 2 or 4 < a < 6: cv.set(x, y, 'D')
+    for y in range(33, 37):         # the seat, struck with a bundle of leaves as the orator speaks
+        for x in range(9, 39): cv.set(x, y, 'O' if y == 33 else ('D' if y < 36 else 'd'))
+    for (x, y) in ((12, 31), (13, 30), (14, 30), (15, 31), (13, 32), (14, 32), (11, 32)): cv.set(x, y, 'L')
+    for (x, y) in ((12, 30), (15, 30), (16, 31)): cv.set(x, y, 'l')
+    for x0, flip in ((1, False), (27, True)):   # slit gongs lying on the floor, crocodile heads at their ends
+        for y in range(40, 50):
+            for x in range(x0, x0 + 20):
+                e = abs(y - 45) / 5
+                if e > 1: continue
+                slit = y in (41, 42) and x0 + 4 <= x < x0 + 16
+                cv.set(x, y, 'K' if slit else ('O' if y == 40 or (x - x0) % 6 == 0 and y < 47 else ('V' if y < 44 else ('v' if y < 48 else 'd'))))
+        hx = x0 + 18 if not flip else x0 + 1
+        for (dx, dy) in ((0, 43), (1, 43), (0, 44), (1, 44), (2, 44), (0, 45), (1, 45)): cv.set(hx + (dx if not flip else -dx), dy, 'D')
+        cv.set(hx + (1 if not flip else -1), 43, 'W')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    cv.right(shade={'D': 'd'})
+    SPRITES['orator-stool'] = {'rows': cv.rows(), 'ink': {'R': 0xa8442a, 'O': 0xd8a040, 'W': 0xece4d0, 'K': 0x140e0c,
+        'D': 0x4a3020, 'd': 0x2e1e14, 'V': 0x8a6a4a, 'v': 0x6a4e34, 'L': 0x3a7a2a, 'l': 0x8a3a6a, 'T': ['floor', 4], 't': ['floor', 3], 'q': ['floor', 1]}}
+
+def huehuetl():
+    cv = Canvas(48, 62)
+    # Tezcatlipoca's smoking mirror: obsidian in a ring of quetzal and gold feathers, smoke curling off it.
+    for y in range(0, 26):
+        for x in range(10, 38):
+            r = math.hypot(x - 23.5, (y - 12) * 1.1)
+            ang = math.atan2(y - 12, x - 23.5)
+            if r < 6: cv.set(x, y, 'w' if r < 4.5 and (x - 21) ** 2 + (y - 9) ** 2 < 4 else ('K' if r < 5 else 'G'))
+            elif r < 8: cv.set(x, y, 'g' if r < 7 else 'h')
+            elif r < 12 and (int((ang + 3.2) * 4.5) % 2 == 0): cv.set(x, y, 'L' if r < 10.5 else 'l')
+    for (x, y) in ((22, 2), (23, 1), (24, 0), (27, 3), (28, 2)): cv.set(x, y, 'S')
+    # The huehuetl: a hide head seen from above, the body carved with a frieze, the legs cut in steps.
+    ellipse(cv, 23.5, 27.5, 8, 2.5, lambda e, x, y: 'J' if (x * 5 + y * 3) % 7 else 'K')
+    for y in range(28, 50):
+        for x in range(15, 33):
+            a = abs(x - 23.5)
+            if a > 8: continue
+            lit = 'E' if x < 21 else ('e' if x > 27 else 'F')
+            if y == 30 or y == 38: cv.set(x, y, 'O')
+            elif y < 38: cv.set(x, y, 'O' if ((x - y) % 4 == 0 and y < 37 and 31 < y) else lit)
+            elif y < 44: cv.set(x, y, lit)
+            elif not (1.5 < a < 5.5) and not (a < 1.5 and y > 46): cv.set(x, y, lit)
+    for y in range(40, 50):         # the teponaztli on its rope ring, rubber-tipped mallets
+        for x in range(1, 14):
+            e = abs(y - 44) / 3.2
+            if y < 47 and e <= 1: cv.set(x, y, 'K' if y == 41 and 3 <= x <= 11 and x != 7 else ('O' if y == 41 else ('E' if y < 45 else 'e')))
+            elif y >= 47 and 3 <= x <= 11: cv.set(x, y, 'T' if (x + y) % 2 else 'N')
+    for (x, y) in ((3, 38), (4, 39), (5, 40), (11, 38), (10, 39)): cv.set(x, y, 'e')
+    cv.set(2, 37, 'K'); cv.set(12, 37, 'K')
+    for y in range(32, 50):         # a shield and spear-thrower stood by the wall
+        for x in range(36, 46):
+            if math.hypot(x - 40.5, y - 38) <= 4.8: cv.set(x, y, 'O' if math.hypot(x - 40.5, y - 38) > 3.8 else ('B' if (x + y) % 3 else 'W'))
+        cv.set(44, y, 'e')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'P' if y == 50 else ('p' if y < 61 else 'q'))
+    SPRITES['huehuetl'] = {'rows': cv.rows(), 'ink': {**GOLD, 'K': 0x14100e, 'w': 0x6a6a7a, 'S': 0xb8b4ac, 'J': 0xd8a040, 'L': 0x2a8a5a, 'l': 0x1a6a4a,
+        'O': 0xc8902a, 'E': 0xa06a3a, 'F': 0x8a5a32, 'e': 0x5a3a20, 'B': 0x2a7aa8, 'W': 0xe8e0d0, 'T': 0xb89858, 'N': 0x7a5a30,
+        'P': 0xe4dccc, 'p': 0xd0c6b2, 'q': 0x8a7e6a}}
+
+orator_stool()
+huehuetl()
+
 import os
 with open(os.path.join(os.path.dirname(__file__), '../../src/render/interiors/altars.ts'), 'w') as out:
     out.write('// Generated by scripts/art/compose_altars.py; edit the art there and rerun it.\n')

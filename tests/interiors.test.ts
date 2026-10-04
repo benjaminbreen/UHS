@@ -161,6 +161,11 @@ describe("interior profiles", () => {
       { id: "sento", lon: 139.7, lat: 35.7, year: 1800, use: "venue.sento", seat: "ledge", also: ["pool"] },
       { id: "madrasa", lon: 51.7, lat: 32.7, year: 1650, use: "venue.madrasa", seat: "cushions", also: ["lectern"] },
       { id: "quranic-school", lon: -3, lat: 16.8, year: 1500, use: "venue.quranic-school", seat: "cushions", also: ["lectern"] },
+      { id: "wharenui", lon: 176, lat: -38, year: 1880, use: "venue.meeting-house", seat: "ledge", also: [] },
+      { id: "council-longhouse", lon: -76, lat: 43, year: 1600, use: "venue.longhouse-council", seat: "ledge", also: ["firepit", "pegs"] },
+      { id: "haus-tambaran", lon: 143, lat: -4, year: 1900, use: "venue.mens-house", seat: "ledge", also: ["firepit", "altar"] },
+      { id: "age-set-house", lon: 36.8, lat: -2, year: 1850, use: "venue.age-set-house", seat: "cushions", also: ["firepit", "pegs"] },
+      { id: "telpochcalli", lon: -99.1, lat: 19.4, year: 1500, use: "venue.telpochcalli", seat: "cushions", also: ["brazier", "altar"] },
     ];
     for (const { id, seat, also, ...site } of sites)
       for (const fortune of [0.1, 0.5, 0.9])
@@ -206,6 +211,9 @@ describe("interior profiles", () => {
       { id: "grammar-school", lon: -1.3, lat: 51, year: 1600, use: "venue.school" },
       { id: "board-school", lon: -0.1, lat: 51.5, year: 1900, use: "venue.school" },
       { id: "terakoya", lon: 139.7, lat: 35.7, year: 1800, use: "venue.terakoya" },
+      { id: "calmecac", lon: -99.1, lat: 19.4, year: 1500, use: "venue.calmecac" },
+      { id: "gurukula", lon: 80, lat: 25, year: 1200, use: "venue.gurukula" },
+      { id: "union-hall", lon: -2.2, lat: 53.5, year: 1900, use: "venue.union-hall" },
       { id: "elizabethan-playhouse", lon: -0.1, lat: 51.5, year: 1600, use: "venue.playhouse" },
       { id: "opera-house", lon: 16.4, lat: 48.2, year: 1800, use: "venue.opera-house" },
       { id: "noh-theatre", lon: 135.8, lat: 35, year: 1700, use: "venue.noh-stage" },

@@ -2,7 +2,7 @@ export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" |
 export type Shape = "rect" | "L" | "round" | "oval" | "apse" | "courtyard";
 export type WallPattern =
   | "plaster" | "brick" | "timber" | "panel" | "stripe" | "zellige" | "mud" | "stone"
-  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco";
+  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco" | "whakairo" | "spathe" | "band";
 export type FloorPattern =
   | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum" | "broadloom";
 export type Door = "door" | "flap" | "curtain" | "opening" | "none";
@@ -285,7 +285,7 @@ export function wallColor(p: RoomParams, P: Palette, u: number, v: number) {
   if (v < 5) return v === 4 ? Tr[5] : v === 3 ? Tr[4] : v === 0 ? Tr[1] : Tr[2];
   let c = wallPattern(p.wallPattern, p, P, u, v);
   if (p.finish >= 1 && p.dado && v < 17) c = v >= 15 ? Tr[v === 16 ? 5 : 3] : wallPattern(p.dado, p, P, u, v);
-  if (p.finish === 2 && v >= 40) {
+  if (p.finish === 2 && v >= 40 && p.wallPattern !== "whakairo" && p.wallPattern !== "spathe") {
     const band = v - 40;
     if (band === 0 || band === 7) c = Tr[4];
     else if (band === 1) c = Tr[1];
@@ -406,6 +406,73 @@ function wallPattern(pat: WallPattern, p: RoomParams, P: Palette, u: number, v: 
       if (fv < 2) return mix(P.leaf[1], W[1], 0.4);
       return fv > 21 ? P.brass[3] : 0x24345e;
     }
+    case "whakairo": {
+      // A wharenui: carved poupou ancestors in red ochre, paua eyes, between
+      // tukutuku lattice panels; kowhaiwhai scrolls painted on the rafters above.
+      if (v >= 42) {
+        const k = Math.abs(v - 45 - 2 * Math.sin(u * 0.39));
+        if (k < 0.8) return 0xf0e8d8;
+        if (Math.hypot((((u % 16) + 16) % 16) - 4, v - 45 + 1.5) < 1.6) return 0xf0e8d8;
+        return v === 42 || v === 48 ? 0x1a1412 : 0x8a2418;
+      }
+      const pu = ((u % 24) + 24) % 24, panel = Math.floor(u / 24);
+      if (pu === 10 || pu === 23) return Tr[1];
+      if (pu < 10) {
+        const x = pu, y = v - 5, red = 0x8a2a1e;
+        if (y < 0) return Tr[1];
+        const flute = (x + y) % 3 === 0 ? scale(red, 0.72) : x === 0 ? scale(red, 0.8) : x === 9 ? scale(red, 0.6) : red;
+        const eye = Math.min(Math.hypot(x - 2.5, y - 31), Math.hypot(x - 6.5, y - 31));
+        if (y >= 25) {
+          if (Math.hypot((x - 4.5) / 4.6, (y - 30.5) / 5.6) > 1) return 0x2a1810;
+          if (eye < 0.9) return 0x1a1412;
+          if (eye < 1.9) return eye < 1.4 ? 0x6ac0b0 : 0x2a7a7a;
+          if (y < 27 && x >= 4 && x <= 5) return 0xc04a2a;
+          return flute;
+        }
+        if (y >= 12) {
+          if (Math.abs(x - 4.5) > 3.6 + (y === 18 || y === 19 ? 1 : 0)) return 0x2a1810;
+          if (y === 18 || y === 19) return y === 18 ? mix(red, 0xffffff, 0.15) : scale(red, 0.7);
+          return flute;
+        }
+        if (x === 4 || x === 5 || x === 0 || x === 9) return 0x2a1810;
+        return flute;
+      }
+      const x = pu - 11, y = v - 5, i = x >> 1, j = y >> 1;
+      const reed = x % 2 ? P.straw[3] : P.straw[4];
+      if (y < 0 || x > 11) return reed;
+      const on = panel % 2
+        ? ((j + Math.abs(i - 2.5) * 2) % 6 < 1.5)
+        : ((j - (i >> 1) * 2) % 8 === 0 || ((i & 1) === 1 && (j - (i >> 1) * 2) % 8 === 1));
+      if (!on) return (y & 1) ? reed : mix(reed, P.straw[2], 0.3);
+      return (x + y) & 1 ? (panel % 4 < 2 ? 0xece4d0 : 0x1a1614) : (panel % 4 < 2 ? 0x1a1614 : 0xd8a040);
+    }
+    case "spathe": {
+      // A Sepik haus tambaran: sheets of sago spathe sewn edge to edge, each painted with an ancestor's face in ochres.
+      if (v >= 42) {
+        const t = (((u % 8) + 8) % 8);
+        return Math.abs(t - 4) < 48 - v - 1 ? (Math.floor(u / 8) % 2 ? 0xe8dcc4 : 0xa83a24) : 0x1e1612;
+      }
+      const pu = ((u % 16) + 16) % 16, x = pu, y = v - 5, panel = Math.floor(u / 16);
+      if (pu === 0) return (v & 1) ? 0x8a7a5a : 0x1e1612;
+      const ground = mix(0x2a1e16, W[1], 0.2);
+      if (y < 0) return ground;
+      const face = Math.hypot((x - 8) / 6.6, (y - 19) / 15.5);
+      const ochre = panel % 2 ? 0xa8442a : 0xc89a3a, other = panel % 2 ? 0xc89a3a : 0xa8442a;
+      if (face > 1.05) return (x + y) % 5 === 0 ? mix(ground, 0xe8dcc4, 0.25) : ground;
+      if (face > 0.9) return 0xe8dcc4;
+      const eye = Math.min(Math.hypot(x - 5, y - 24), Math.hypot(x - 11, y - 24));
+      if (eye < 1) return 0x1a1412;
+      if (eye < 2) return 0xe8dcc4;
+      if (eye < 3) return other;
+      if (eye < 3.8) return 0x1a1412;
+      if ((x === 8 || x === 7) && y > 9 && y < 22) return 0xe8dcc4;
+      if (y >= 8 && y <= 9 && Math.abs(x - 7.5) < 3) return 0xe8dcc4;
+      if (y > 28 && Math.abs((y - 28) - Math.abs(x - 7.5)) < 0.8) return 0x1a1412;
+      return (x + y) % 7 === 0 ? scale(ochre, 0.85) : ochre;
+    }
+    case "band":
+      // A lower wall painted one colour, as the red dadoes of Aztec and Pompeian rooms.
+      return v === 14 ? A[1] : mix(A[2], A[3], vnoise(u, v, 7, p.seed) * 0.6);
     case "reed": {
       if (v % 12 === 0) return P.straw[4];
       return u % 2 === 0 ? W[2] : W[3 + (hash(u, v >> 3, p.seed) < 0.3 ? 1 : 0)];
@@ -767,7 +834,7 @@ export function planRoom(p: RoomParams): Prop[] {
   };
   // An altar takes the head of the room before anything is hung or shelved there.
   let altar: Prop | undefined;
-  if (p.program === "rows" && p.styles.altar) {
+  if ((p.program === "rows" || p.program === "gather") && p.styles.altar) {
     const aw = Math.min(/^(stage|screen)/.test(p.styles.altar) ? 9 : 3, w - 4);
     altar = place("altar", aw, 1, (x, y) => (y === top[x] && top[x + aw - 1] === y ? 6 - Math.abs(x + aw / 2 - w / 2) : -9), false, true);
     if (altar) for (let i = altar.x; i < altar.x + aw; i++) used[i] = true;
