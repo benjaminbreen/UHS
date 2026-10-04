@@ -3219,8 +3219,14 @@ export class WorldScene extends Phaser.Scene {
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false) return undefined;
     const key = shadowFrame(this.shadowPhase, frame);
-    const texture =
-      this.texture(frame) === "nature"
+    // A temple's or a mosque's cast is on its own page, fetched the first time one is drawn.
+    const sacred =
+      this.texture(frame).startsWith("civic") && this.sheetFrames?.has(key)
+        ? this.texture(key)
+        : undefined;
+    if (sacred === "__DEFAULT") return undefined;
+    const texture = sacred ??
+      (this.texture(frame) === "nature"
         ? "nature-shadows"
         : this.texture(frame) === "props"
           ? "prop-shadows"
@@ -3228,7 +3234,7 @@ export class WorldScene extends Phaser.Scene {
             ? "vehicle-shadows"
             : this.texture(frame).startsWith("street-buildings@")
               ? "street-shadows"
-              : "lighting-shadows";
+              : "lighting-shadows");
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
       .image(x, transient ? y : y - this.lift(x, y), texture, key)

@@ -8,6 +8,8 @@ import { ALTARS } from "../src/render/interiors/altars";
 import { planBuilding } from "../src/render/interiors/building";
 import type { Place } from "../src/core/types";
 import { createSettingSession } from "../src/runtime/session";
+import { religiousProfile } from "../src/content/settlements/religious";
+import type { WorldSetting } from "../src/content/geography/types";
 import { panelSetting } from "../scripts/review/panel";
 
 const shapes: Shape[] = ["rect", "L", "round", "oval", "apse", "courtyard"];
@@ -190,6 +192,19 @@ describe("interior profiles", () => {
     expect(e.interiorOf(kiva.id)!.params.program).toBe("gather");
   });
 
+  it("builds the mosque of its region at the head of an Islamic town", () => {
+    const at = (lon: number, lat: number, year: number) =>
+      religiousProfile({ culture: "north-african-west-asian", lon, lat, year } as WorldSetting)?.id;
+    expect(at(29, 41, 1600)).toBe("ottoman-mosque");
+    expect(at(36.3, 33.5, 1300)).toBe("arab-mosque");
+    expect(at(37.15, 36.2, 1600)).toBe("arab-mosque");
+    expect(at(31.2, 30, 1400)).toBe("arab-mosque");
+    expect(at(-5, 34, 1400)).toBe("maghrebi-mosque");
+    expect(at(10.2, 36.8, 1700)).toBe("maghrebi-mosque");
+    expect(at(51.7, 32.7, 1650)).toBe("persian-mosque");
+    expect(at(44.4, 32.5, -2000)).toBe("mesopotamian-temple");
+  });
+
   it("faces every place of worship to its altar down an aisle no column stands in", () => {
     const sites = [
       { id: "romanesque-church", lon: 2, lat: 47, year: 1100, use: "religious.romanesque-parish" },
@@ -200,6 +215,8 @@ describe("interior profiles", () => {
       { id: "baroque-church", lon: -3.7, lat: 40.4, year: 1700, use: "religious.gothic-parish" },
       { id: "baroque-church", lon: -99, lat: 19, year: 1700, use: "religious.spanish-american-church" },
       { id: "mosque", lon: 36.3, lat: 33.5, year: 1200, use: "venue.mosque-court" },
+      { id: "mosque", lon: 29, lat: 41, year: 1600, use: "religious.ottoman-mosque" },
+      { id: "mosque", lon: -5, lat: 34, year: 1400, use: "religious.maghrebi-mosque" },
       { id: "chinese-temple", lon: 116, lat: 40, year: 1500, use: "venue.temple-court-east" },
       { id: "japanese-temple", lon: 135.8, lat: 35, year: 1700, use: "venue.temple-court-east" },
       { id: "wat", lon: 100.5, lat: 13.7, year: 1800, use: "venue.wat" },

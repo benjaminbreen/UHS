@@ -373,6 +373,17 @@ export function urbanNeighborhood(
     venuesFor(pack.setting, carries),
     site.profile.radius,
   );
+  // A mosque's court and hall are cut out of the fabric like a precinct's
+  // ground: in a town of lanes no side of the square has room for them.
+  const sanctuary = religiousProfile(pack.setting!);
+  const order = ["large", "medium", "small"] as const;
+  const mosqueScales = sanctuary?.recipe.endsWith("-mosque")
+    ? order.slice(order.indexOf(religiousScale(site.profile.radius))).filter((s) => buildingModels[`religious-${sanctuary.recipe}-${s}-0`])
+    : [];
+  const mosqueSize = (s: (typeof order)[number]) => {
+    const [w, h] = buildingModel(`religious-${sanctuary!.recipe}-${s}-0`).footprint;
+    return [w, h + 3] as [number, number];
+  };
   const layout = composeUrban(
     site.id,
     site.center,
@@ -388,7 +399,7 @@ export function urbanNeighborhood(
     density(),
     site.aspect,
     pack.year,
-    precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })),
+    [...precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })), ...(mosqueScales.length ? [{ sizes: mosqueScales.map(mosqueSize) }] : [])],
     !!zoning && site.profile.radius >= 40,
   );
   const used = new Set<string>();
@@ -462,7 +473,7 @@ export function urbanNeighborhood(
     }
     if (ground.apron) api.paintForecourt(ground.apron);
     // A church in a plotted town stands in its own walled yard.
-    if (lot.religious && plotted && api.churchyard) {
+    if (lot.religious && lot.religious.faith !== "Islam" && plotted && api.churchyard) {
       const r = lot.rect;
       // As much of a generous yard as the ground allows.
       const yard = [6, 4, 3]
@@ -702,11 +713,13 @@ export function urbanNeighborhood(
   }
   // The sanctuary takes a second side of the square, set back behind a
   // paved forecourt, so the door opens onto the square rather than into it.
-  const religious = religiousProfile(pack.setting!);
+  const religious = sanctuary;
   if (religious) {
-    const scale = religiousScale(site.profile.radius);
     const look = Math.floor(rand("religious-look") * 3);
-    const base = `religious-${religious.recipe}-${scale}-${look}`;
+    // A mosque that found no ground of its own tries its own size first, then
+    // smaller, and set back from the square; a church keeps the one it had.
+    const wide = mosqueScales.length > 0;
+    const scales = wide ? mosqueScales : [religiousScale(site.profile.radius)];
     const civicSide: [number, number] | undefined =
       civicRect &&
       (civicRect.y + civicRect.h <= front.y
@@ -737,15 +750,17 @@ export function urbanNeighborhood(
     ].filter(
       (s) => !civicSide || s[0] !== civicSide[0] || s[1] !== civicSide[1],
     );
-    const gap = religious.forecourt + 1;
-    const candidates = sides.flatMap(([nx, ny]) => {
+    // Set back from the square if its edge is taken, the forecourt run out to meet it.
+    const candidates = scales.flatMap((scale) => (wide ? [0, 3, 6] : [0]).flatMap((back) => sides.flatMap(([nx, ny]) => {
+      const gap = religious.forecourt + 1 + back;
+      const base = `religious-${religious.recipe}-${scale}-${look}`;
       const facing =
         nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
       const frame = facing === "south" ? base : `${base}-${facing}`;
       if (!buildingModels[frame]) return [];
       const model = buildingModel(frame),
         [w, h] = model.footprint;
-      return [0, 1, -1, 2, -2].map((step) => {
+      return (wide ? [0, 1, -1, 2, -2, 3, -3] : [0, 1, -1, 2, -2]).map((step) => {
         const shift = step * (form.tiers[0] + 3);
         const rect = {
           x: nx
@@ -775,10 +790,18 @@ export function urbanNeighborhood(
               w,
               h: gap,
             };
-        return { nx, ny, frame, model, rect, forecourt };
+        return { nx, ny, frame, model, rect, forecourt, scale };
       });
-    });
-    const chosen = candidates.find(
+    })));
+    const ground = mosqueScales.length ? layout.grounds[precincts.length] : undefined;
+    const groundScale = ground && mosqueScales.find((s) => mosqueSize(s)[0] === ground.w && mosqueSize(s)[1] === ground.h);
+    const onGround = ground && groundScale && (() => {
+      const frame = `religious-${religious.recipe}-${groundScale}-${look}`;
+      const model = buildingModel(frame),
+        [w, h] = model.footprint;
+      return { nx: 0, ny: -1, frame, model, rect: { x: ground.x, y: ground.y, w, h }, forecourt: { x: ground.x, y: ground.y + h, w, h: ground.h - h }, scale: groundScale };
+    })();
+    const chosen = onGround || candidates.find(
       (c) =>
         fits(c.rect) && free({ ...c.forecourt }) && api.dry(c.forecourt, false),
     );
@@ -796,7 +819,7 @@ export function urbanNeighborhood(
           rect: chosen.rect,
           yard: chosen.rect,
           workPoint: point,
-          religious: { ...religious, scale },
+          religious: { ...religious, scale: chosen.scale },
         },
         { forecourt: chosen.forecourt },
       );

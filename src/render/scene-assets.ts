@@ -35,6 +35,7 @@ const atlases = {
   precincts: "/packs/precincts",
   "lighting-shadows": "/packs/lighting-shadows",
   "street-shadows": "/packs/street-shadows",
+  "civic-shadows": "/packs/civic-shadows",
   topography: "/topography/atlas",
 } as const;
 /** Building sheets, in lookup order. Each decodes to up to 64 MB and most
@@ -50,6 +51,8 @@ export const lazySheets = [
   "street-weather",
   "civic",
   "precincts",
+  // The casts of temples and mosques: only in the towns that have one.
+  "civic-shadows",
   // Parked cars: nowhere before the motor age.
   "vehicles",
   // Rolling stock: only where a railway runs.

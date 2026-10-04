@@ -386,7 +386,7 @@ def build_buildings(root, sprites):
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,
                                       # Same silhouette whichever way it faces, so one set of cast masks.
-                                      **({'shadowFrame':name} if r.get('oblique') or r.get('obliqueModern') else {})}
+                                      **({'shadowFrame':r.get('shadowFrame',name)} if r.get('oblique') or r.get('obliqueModern') or r.get('sacredVoxel') else {})}
     for name,r in recipes.items():
         painter=(VoxelTemple if r.get('sacredVoxel') else
                  ObliqueModern if r.get('obliqueModern') else
@@ -420,7 +420,9 @@ def build_buildings(root, sprites):
             artist.glow.info['trim']=True
             sprites[name+'-glow']=artist.glow
             from art.voxel_kit import SHADOWS
-            for phase,shadow in artist.cast(phases).items():SHADOWS[f'{phase}:{name}']=shadow
+            # A turned copy or another look of the same silhouette borrows its shadow.
+            if not r.get('shadowFrame'):
+                for phase,shadow in artist.cast(phases).items():SHADOWS[f'{phase}:{name}']=shadow
             artist.lamp_glow.info['trim']=True
             sprites[name+'-lamps']=artist.lamp_glow
             sprites[name+'-snow'],sprites[name+'-wet']=artist.weather_frames()

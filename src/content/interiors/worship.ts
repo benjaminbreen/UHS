@@ -176,7 +176,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "mosque",
-    uses: ["venue.mosque-court"],
+    uses: ["venue.mosque-court", "religious.ottoman-mosque", "religious.arab-mosque", "religious.maghrebi-mosque", "religious.persian-mosque"],
     regulars: { hours: [12, 14], fill: 0.7 },
     rooms: [
       { id: "sahn", label: "Sahn", role: "entry", size: [11, 9], shapes: ["courtyard"], fire: "none", pole: false, furnish: ["plant", "plant"], clutter: ["shoes", "shoes", "shoes"], looks: [{ floor: "flag" }, { floor: "flag" }, { floor: "tile" }] },

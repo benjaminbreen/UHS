@@ -4,7 +4,7 @@ Sprites may span cells; collision footprints belong to world data, not opaque pi
 """
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
-import json, random, math
+import json, random, math, re
 ROOT=Path(__file__).resolve().parent.parent
 OUT=ROOT/'public/packs'; OUT.mkdir(exist_ok=True,parents=True)
 S={}
@@ -148,7 +148,11 @@ S.update(build_fields())
 from art.atlas import pack_atlas
 # Voxel buildings cast their own shadows, from their geometry, on a page of their own.
 from art.voxel_kit import SHADOWS
+# Temples and mosques are drawn from the civic page and are the largest casts
+# of all; their shadows take a page that only the towns that have them load.
+civic_shadows={k:SHADOWS.pop(k) for k in list(SHADOWS) if re.match(r'[a-z-]+:religious-[a-z]+-(temple|mosque)-',k)}
 pack_atlas(SHADOWS, OUT, 'street-shadows', 2048)
+pack_atlas(civic_shadows, OUT, 'civic-shadows', 2048)
 # Buildings pack separately. They are the largest sprites in the game and the
 # one family still growing; sharing a page with everything else is what put
 # the main atlas against its 4096px ceiling. The renderer already routes by
