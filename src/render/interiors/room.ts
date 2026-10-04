@@ -73,7 +73,7 @@ export type Kind =
   | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame"
   | "bar" | "casks" | "bench" | "settle" | "tankards" | "tally" | "ledge" | "sipapu" | "pool" | "slab" | "basin"
   | "altar" | "pew" | "prayer" | "font" | "pulpit" | "lectern"
-  | "stock" | "shopcounter" | "fixture" | "anvil" | "machine" | "furnace" | "tapers";
+  | "stock" | "shopcounter" | "fixture" | "anvil" | "machine" | "furnace" | "tapers" | "display";
 export type Prop = {
   id: number;
   kind: Kind;
@@ -797,14 +797,24 @@ export function planRoom(p: RoomParams): Prop[] {
   }
   for (let n = 1; n < ports.length; n++) {
     const [ax, ay] = ports[0], [bx, by] = ports[n];
-    const prev = new Int32Array(w * d).fill(-1), q = [ay * w + ax];
-    prev[q[0]] = q[0];
-    for (let h = 0; h < q.length; h++) {
-      const c = q[h], x = c % w, y = (c / w) | 0;
+    // The cheapest way, a step along the back wall costing several: an aisle
+    // leaves a doorway into the room rather than running along the wall it is in.
+    const prev = new Int32Array(w * d).fill(-1), cost = new Float64Array(w * d).fill(Infinity), done = new Uint8Array(w * d);
+    const first = ay * w + ax;
+    prev[first] = first;
+    cost[first] = 0;
+    for (;;) {
+      let c = -1;
+      for (let k = 0; k < w * d; k++) if (!done[k] && cost[k] < Infinity && (c < 0 || cost[k] < cost[c])) c = k;
+      if (c < 0) break;
+      done[c] = 1;
+      const x = c % w, y = (c / w) | 0;
       if (x === bx && y === by) break;
       for (const [dx, dy] of [[0, -1], [0, 1], [1, 0], [-1, 0]]) {
         const nx = x + dx, ny = y + dy, k = ny * w + nx;
-        if (inside(nx, ny) && prev[k] < 0 && occ[ny][nx] !== 1) (prev[k] = c), q.push(k);
+        if (!inside(nx, ny) || done[k] || occ[ny][nx] === 1) continue;
+        const step = 1 + (ny === top[nx] && !(nx === bx && ny === by) ? 4 : 0);
+        if (cost[c] + step < cost[k]) (cost[k] = cost[c] + step), (prev[k] = c);
       }
     }
     for (let k = by * w + bx; prev[k] >= 0 && prev[k] !== k; k = prev[k]) clear(k % w, (k / w) | 0);
@@ -994,6 +1004,16 @@ export function planRoom(p: RoomParams): Prop[] {
     }
     for (const k of ["fixture", "throw"] as Kind[])
       if (has(k)) place(k, k === "fixture" ? 2 : 1, 1, (x, y) => (y > row && (x === 0 || x + (k === "fixture" ? 2 : 1) === w) ? 2 - Math.abs(y - row - 2) * 0.2 : -1), k === "throw", true);
+    // The goods laid out on the floor before the counter, in rows with a way between.
+    const lane = p.entrance ?? Math.floor(w / 2), shown: Prop[] = [];
+    for (let n = 0; n < Math.max(2, Math.round((w * d) / 24)); n++) {
+      const t = place("display", 2, 1, (x, y) =>
+        y < row + 2 || y > d - 2 || Math.abs(x + 1 - lane) < 2 ? -1
+          : 2 + shown.reduce((s, o) => s + Math.min(4, Math.hypot(x - o.x, y - o.y)) * 0.5, 0) - walls(x, y, 2, 1), false, true);
+      if (!t) break;
+      shown.push(t);
+      for (let y = t.y - 1; y <= t.y + 1; y++) for (let x = t.x - 1; x <= t.x + 2; x++) clear(x, y);
+    }
     const forge = props.find((q) => q.kind === "fixture");
     if (has("anvil")) place("anvil", 1, 1, (x, y) => (forge && Math.abs(x - forge.x - 1) + Math.abs(y - forge.y) <= 2 && y > row ? 2 - Math.abs(x - forge.x - 1) * 0.3 : -1), false, true);
   } else if (p.program === "rows") {
