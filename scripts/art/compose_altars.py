@@ -1216,27 +1216,64 @@ stage_cinema()
 
 # ---------------------------------------------------------------- iconostasis (144 px)
 def icon(cv, x0, y0, w, h, robe, child=False, wings=False):
-    """An icon in its gilt frame: gold ground, a haloed figure in keyline."""
+    """An icon in its gilt frame: gold ground, a haloed figure in keyline.
+    Large ones get a face, a mantle over an undergarment with gold hatching,
+    and what the figure holds: the Pantokrator a book and a blessing hand, the
+    Theotokos her child and the stars of her maphorion, an angel wings and a staff."""
     for y in range(y0, y0 + h):
         for x in range(x0, x0 + w):
             edge = x in (x0, x0 + w - 1) or y in (y0, y0 + h - 1)
-            cv.set(x, y, 'k' if edge else ('G' if (x + y) % 5 == 0 else 'g'))
+            inner = w >= 12 and (x in (x0 + 1, x0 + w - 2) or y in (y0 + 1, y0 + h - 2))
+            cv.set(x, y, 'k' if edge else ('h' if inner else ('G' if (x + y) % 5 == 0 else 'g')))
     cx = x0 + w // 2
-    hy = y0 + max(3, h // 6)
-    r = max(2, w // 5)
-    ellipse(cv, cx, hy, r + 0.6, r + 0.6, lambda e, xx, yy: 'h' if e > 0.7 else None)
-    ellipse(cv, cx, hy, r - 0.4, r - 0.2, lambda e, xx, yy: 'S' if e < 0.85 else 'K')
-    for y in range(hy + r, y0 + h - 1):
-        half = min(w // 2 - 1, 1 + (y - hy - r) // 2)
-        for x in range(cx - half, cx + half + 1):
-            cv.set(x, y, robe[0] if x < cx else robe[1])
-        cv.set(cx - half, y, 'K'); cv.set(cx + half, y, 'K')
-    if wings:
-        for y in range(hy, hy + h // 2):
-            cv.set(cx - w // 2 + 1, y, 'W'); cv.set(cx + w // 2 - 1, y, 'W')
-    if child:
-        ellipse(cv, cx + 1, hy + r + 4, 1.6, 1.6, lambda e, xx, yy: 'S')
-        cv.set(cx + 1, hy + r + 6, 'W'); cv.set(cx + 2, hy + r + 6, 'W')
+    if w < 12:
+        hy, r = y0 + max(3, h // 6), max(2, w // 5)
+        ellipse(cv, cx, hy, r + 0.6, r + 0.6, lambda e, xx, yy: 'h' if e > 0.7 else None)
+        ellipse(cv, cx, hy, r - 0.4, r - 0.2, lambda e, xx, yy: 'S' if e < 0.85 else 'K')
+        for y in range(hy + r, y0 + h - 1):
+            half = min(w // 2 - 1, 1 + (y - hy - r) // 2)
+            for x in range(cx - half, cx + half + 1): cv.set(x, y, robe[0] if x < cx else robe[1])
+        return
+    M, m = robe
+    hy = y0 + 6
+    if wings:   # wings behind, the feathers in rows
+        for y in range(hy - 2, hy + 14):
+            for dx in range(2, w // 2):
+                if dx < 2 + (y - hy + 2) * 0.35 or dx > w // 2 - 1: continue
+                for sx in (-1, 1): cv.set(cx + sx * dx - (1 if sx > 0 else 0), y, 'W' if (y + dx) % 3 else 'w')
+    ellipse(cv, cx - 0.5, hy, 4.4, 4.2, lambda e, xx, yy: 'G' if e < 0.8 else 'k')       # halo
+    shoulders = hy + 5
+    for y in range(shoulders - 1, y0 + h - 3):      # the body: mantle over an undergarment
+        t = (y - shoulders) / (y0 + h - 3 - shoulders)
+        half = int(w / 2 - 2 - t * 1.5) if y >= shoulders else 2
+        for x in range(cx - half, cx + half):
+            core = abs(x - cx + 0.5) < 1.5 + t * 1.5 and y > shoulders + 2
+            if child and y < shoulders + 3: cv.set(x, y, M)
+            elif core and not child: cv.set(x, y, 'W' if wings else ('R' if M == 'B' else 'W'))
+            else: cv.set(x, y, (M if x < cx else m) if (x + y * 2) % 7 else 'g')
+        cv.set(cx - half - 1, y, 'K'); cv.set(cx + half, y, 'K')
+    if child:   # the maphorion drawn round the face, its stars
+        for y in range(hy - 4, shoulders + 1):
+            for x in range(cx - 4, cx + 4):
+                if math.hypot(x - cx + 0.5, (y - hy) * 0.9) < 4.3: cv.set(x, y, M if x < cx else m)
+        for (x, y) in ((cx - 1, hy - 3), (cx - 4, shoulders + 1), (cx + 3, shoulders + 1)): cv.set(x, y, 'G')
+    ellipse(cv, cx - 0.5, hy + 0.5, 2.2, 2.6, lambda e, xx, yy: 's' if xx >= cx else 'S')   # face
+    if not child:
+        for x in range(cx - 3, cx + 2): cv.set(x, hy - 3, 'N')
+        cv.set(cx - 3, hy - 2, 'N'); cv.set(cx + 1, hy - 2, 'N'); cv.set(cx - 3, hy - 1, 'N'); cv.set(cx + 1, hy - 1, 'N')
+    cv.set(cx - 2, hy, 'K'); cv.set(cx, hy, 'K'); cv.set(cx - 1, hy + 2, 's')
+    if M == 'B' and not wings and not child:      # the Pantokrator: a gospel book, a hand raised in blessing
+        for y in range(shoulders + 4, shoulders + 9):
+            for x in range(cx + 1, cx + 5): cv.set(x, y, 'k' if x in (cx + 1, cx + 4) or y in (shoulders + 4, shoulders + 8) else ('R' if (x + y) % 3 == 0 else 'G'))
+        cv.set(cx - 3, shoulders + 3, 'S'); cv.set(cx - 3, shoulders + 2, 'S'); cv.set(cx - 2, shoulders + 3, 'S')
+    if child:   # the child on her left arm
+        ellipse(cv, cx + 2.5, shoulders + 4, 2.6, 2.6, lambda e, xx, yy: 'G' if e > 0.6 else 'S')
+        for y in range(shoulders + 6, shoulders + 11):
+            for x in range(cx + 1, cx + 5): cv.set(x, y, 'O' if (x + y) % 4 else 'G')
+        for x in range(cx - 3, cx + 3): cv.set(x, shoulders + 10, 'S')
+    if wings:   # the messenger's staff
+        for y in range(hy - 4, y0 + h - 3): cv.set(cx + 4, y, 'G' if y > hy - 3 else 'W')
+    for x in (cx - 2, cx + 1): cv.set(x, y0 + h - 3, 'K')
 
 def screen_iconostasis():
     cv = Canvas(144, 64)
@@ -1279,7 +1316,7 @@ def screen_iconostasis():
     cv.right(shade={'G': 'g', 'M': 'm'})
     SPRITES['screen-iconostasis'] = {'rows': cv.rows(), 'ink': {**GOLD, 'S': 0xa8704a, 'K': 0x2a1810, 'W': 0xf0e8d8,
         'R': 0xa82a22, 'r': 0x6a1614, 'B': 0x2a4a9a, 'b': 0x1a2a5a, 'L': 0x3a7a4a, 'l': 0x22502e, 'N': 0x7a4a2a, 'n': 0x4a2a18,
-        'M': 0xece4d6, 'm': 0xc4baa8, 'C': 0xf0dca0}}
+        'M': 0xece4d6, 'm': 0xc4baa8, 'C': 0xf0dca0, 'O': 0xd89a3a, 's': 0x8a5a3a, 'w': 0xc8c0b0}}
 
 screen_iconostasis()
 
