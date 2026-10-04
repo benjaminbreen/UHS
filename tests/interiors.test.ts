@@ -165,6 +165,7 @@ describe("interior profiles", () => {
       { id: "council-longhouse", lon: -76, lat: 43, year: 1600, use: "venue.longhouse-council", seat: "ledge", also: ["firepit", "pegs"] },
       { id: "haus-tambaran", lon: 143, lat: -4, year: 1900, use: "venue.mens-house", seat: "ledge", also: ["firepit", "altar"] },
       { id: "age-set-house", lon: 36.8, lat: -2, year: 1850, use: "venue.age-set-house", seat: "cushions", also: ["firepit", "pegs"] },
+      { id: "mound-temple", lon: -84.8, lat: 34.1, year: 1200, use: "religious.mississippian-platform-mound", seat: "ledge", also: ["firepit", "altar"] },
       { id: "telpochcalli", lon: -99.1, lat: 19.4, year: 1500, use: "venue.telpochcalli", seat: "cushions", also: ["brazier", "altar"] },
     ];
     for (const { id, seat, also, ...site } of sites)
@@ -206,6 +207,9 @@ describe("interior profiles", () => {
       { id: "classical-temple", lon: 12.5, lat: 41.9, year: 100, use: "venue.temple-precinct" },
       { id: "mesopotamian-temple", lon: 44.4, lat: 32.5, year: -2000, use: "religious.mesopotamian-temple" },
       { id: "maya-temple", lon: -89.6, lat: 17.2, year: 700, use: "religious.maya-temple-pyramid" },
+      { id: "chavin-gallery", lon: -77.2, lat: -9.6, year: -600, use: "religious.andean-platform-temple" },
+      { id: "moche-huaca", lon: -79, lat: -8.1, year: 500, use: "religious.andean-platform-temple" },
+      { id: "inca-temple", lon: -72, lat: -13.5, year: 1500, use: "religious.andean-platform-temple" },
       { id: "council-chamber", lon: 4.4, lat: 51.2, year: 1550, use: "venue.town-hall" },
       { id: "roman-basilica", lon: 14.5, lat: 40.75, year: 70, use: "civic.republican-imperial-italy" },
       { id: "grammar-school", lon: -1.3, lat: 51, year: 1600, use: "venue.school" },

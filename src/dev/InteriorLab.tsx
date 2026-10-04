@@ -10,7 +10,7 @@ import { planBuilding } from "../render/interiors/building";
 import { VoxelRoom, type VoxelOptions } from "../render/interiors/voxel";
 import "./interior-lab.css";
 
-const WALLS: WallPattern[] = ["plaster", "brick", "timber", "panel", "stripe", "zellige", "mud", "stone", "bark", "hide", "felt", "canvas", "shoji", "reed", "fresco", "whakairo", "spathe"];
+const WALLS: WallPattern[] = ["plaster", "brick", "timber", "panel", "stripe", "zellige", "mud", "stone", "bark", "hide", "felt", "canvas", "shoji", "reed", "fresco", "whakairo", "spathe", "band", "ashlar", "frieze"];
 const FLOORS: FloorPattern[] = ["plank", "tile", "parquet", "earth", "mat", "rushes", "sand", "flag", "carpet", "paper", "broadloom"];
 const SHAPES: Shape[] = ["rect", "L", "round", "oval", "apse", "courtyard"];
 const SIZES: [string, number, number][] = [["Small", 8, 6], ["Medium", 12, 9], ["Medium-large", 14, 10], ["Large", 18, 13], ["Huge", 24, 16]];

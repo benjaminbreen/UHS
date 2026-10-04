@@ -1487,6 +1487,163 @@ def huehuetl():
 orator_stool()
 huehuetl()
 
+# ---------------------------------------------------------------- the Andes and the Mississippi
+def lanzon():
+    cv = Canvas(48, 62)
+    # The Lanzón at Chavín: a blade of white granite in the dark gallery, the fanged god carved on it looking up.
+    for y in range(0, 50):
+        hw = 2 + y * 5 / 12 if y < 12 else 7
+        for x in range(48):
+            d = x - 23.5
+            if abs(d) > hw: continue
+            cv.set(x, y, 'M' if d < -hw + 1.5 else ('m' if d > hw - 2 else ('M' if d < 0 else 'n')))
+    for y in range(13, 18):
+        for x in range(18, 30):
+            if (x + y) % 3 == 0: cv.set(x, y, 'L')
+    for ex in (20, 27):
+        for (dx, dy, c) in ((0, 21, 'L'), (1, 21, 'L'), (0, 22, 'W'), (1, 22, 'L'), (-1, 22, 'L'), (2, 22, 'L'), (0, 23, 'L'), (1, 23, 'L')): cv.set(ex + dx, dy, c)
+    for x in range(18, 30): cv.set(x, 28, 'L')
+    for (x, y) in ((19, 27), (19, 26), (28, 27), (28, 26), (21, 29), (26, 29), (21, 30), (26, 30)): cv.set(x, y, 'L')
+    for y in range(9, 34, 3):       # snakes for hair down both sides
+        cv.set(17, y, 'L'); cv.set(18, y + 1, 'L'); cv.set(30, y, 'L'); cv.set(29, y + 1, 'L')
+    for x in range(18, 30): cv.set(x, 34, 'L')
+    for y in range(35, 40): cv.set(18, y, 'L')
+    for y in range(29, 34): cv.set(29, y, 'L')
+    for x in range(18, 30): cv.set(x, 40, 'L' if x % 2 else 'n')
+    for x in (20, 21, 26, 27):
+        for y in (46, 47, 48): cv.set(x, y, 'L')
+    for (x, y, c) in ((8, 46, '*'), (8, 45, '%'), (6, 48, 'K'), (7, 47, 'S'), (8, 47, 'S'), (9, 47, 'S'), (10, 48, 'K'), (7, 48, 's'), (8, 48, 's'), (9, 48, 's')): cv.set(x, y, c)
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    SPRITES['lanzon'] = {'rows': cv.rows(), 'ink': {'M': 0xe0dcd0, 'm': 0x9a968c, 'n': 0xc8c4b8, 'L': 0x5a564e, 'W': 0xf4f0e8,
+        'K': 0x2a2018, 'S': 0xe8d8c0, 's': 0xb8a888, 'T': ['stone', 3], 't': ['stone', 2], 'q': ['stone', 1]}}
+
+def inca_sun():
+    cv = Canvas(48, 62)
+    for y in range(2, 42):          # a trapezoidal niche, double-jambed
+        inset = (42 - y) * 0.12
+        for x in range(48):
+            d = abs(x - 23.5)
+            if d < 13 - inset: cv.set(x, y, 'N' if d < 11 - inset and y > 3 else ('T' if x < 24 else 't'))
+    for k in range(16):             # the Punchao: a gold sun with a face, its rays
+        ang = k * math.pi / 8
+        for t in range(9, 13 if k % 2 else 11):
+            cv.set(int(round(23.5 + math.cos(ang) * t)), int(round(20 + math.sin(ang) * t)), 'g' if k % 2 else 'G')
+    ellipse(cv, 23.5, 20, 8, 8, lambda e, x, y: 'k' if e > 0.88 else ('G' if x < 23 and y < 19 else ('g' if e < 0.7 else 'h')))
+    for (x, y) in ((20, 18), (21, 18), (26, 18), (27, 18), (23, 20), (24, 20), (23, 21), (24, 21), (21, 24), (22, 24), (23, 24), (24, 24), (25, 24), (26, 24)): cv.set(x, y, 'k')
+    for y in range(42, 50):         # the stone bench and its offerings
+        for x in range(4, 44): cv.set(x, y, 'T' if y == 42 else ('t' if y < 49 else 'q'))
+    for x0 in (7, 37):              # gold keros of chicha
+        for y in range(36, 42):
+            w = 2 + (y - 36) // 3
+            for x in range(x0 - w + 2, x0 + w): cv.set(x, y, 'G' if x < x0 else 'g')
+        for x in range(x0 - 1, x0 + 3): cv.set(x, 36, 'h')
+    for x in range(14, 21, 3):      # maize
+        for y in range(37, 42): cv.set(x, y, 'Y' if (x + y) % 2 else 'y'); cv.set(x + 1, y, 'y')
+        cv.set(x, 36, 'L'); cv.set(x + 1, 35, 'L')
+    llama = ["...AA", "...AA", "AAAAA", "AAAAA", "A.A.A", "A.A.A"]
+    cv.stamp(llama, 28, 36)
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'P' if y == 50 else ('p' if y < 61 else 'q'))
+    SPRITES['inca-sun'] = {'rows': cv.rows(), 'ink': {**GOLD, 'N': 0x2a2420, 'T': ['stone', 4], 't': ['stone', 3], 'q': ['stone', 1],
+        'Y': 0xe8c040, 'y': 0xc89a2a, 'L': 0x6a8a3a, 'A': 0xd8dce4, 'P': ['floor', 4], 'p': ['floor', 3]}}
+
+def ai_apaec():
+    cv = Canvas(48, 62)
+    # The Moche fanged god in a stepped diamond, painted on the adobe as at the Huaca de la Luna.
+    for y in range(0, 42):
+        for x in range(48):
+            d = abs(x - 23.5) + abs(y - 20.5)
+            step = int(d) // 3
+            if d > 22: continue
+            cv.set(x, y, 'K' if int(d) % 3 == 0 and d > 13 else ('R' if step % 2 else 'Y') if d > 13 else 'W')
+    for y in range(9, 33):          # the face
+        for x in range(14, 34):
+            e = math.hypot((x - 23.5) / 9, (y - 21) / 11)
+            if e > 1: continue
+            cv.set(x, y, 'K' if e > 0.9 else 'Y')
+    for ex in (19, 28):
+        ellipse(cv, ex, 17, 2.5, 2, lambda e, x, y: 'K' if e < 0.35 else ('W' if e < 0.8 else 'K'))
+    for x in range(17, 31): cv.set(x, 25, 'K'); cv.set(x, 28, 'K')
+    for x in range(18, 30): cv.set(x, 26, 'R'); cv.set(x, 27, 'R')
+    for (x, y) in ((18, 24), (18, 23), (29, 24), (29, 23), (18, 29), (18, 30), (29, 29), (29, 30), (23, 26), (24, 26), (23, 27), (24, 27)): cv.set(x, y, 'W')
+    for x in range(22, 26): cv.set(x, 21, 'K')
+    for k in range(5):              # the rayed headdress
+        cv.set(15 + k * 4, 9, 'R'); cv.set(15 + k * 4, 8, 'R'); cv.set(16 + k * 4, 7, 'R')
+    for y in range(42, 50):         # adobe bench, stirrup-spout bottles on it
+        for x in range(3, 45): cv.set(x, y, 'A' if y == 42 else ('a' if y < 49 else 'q'))
+    for x0 in (9, 36):
+        ellipse(cv, x0, 39, 3.5, 2.8, lambda e, x, y: 'W' if x < x0 and y < 39 else ('C' if (x + y) % 5 else 'R'))
+        for y in range(32, 37): cv.set(x0 - 2, y, 'C'); cv.set(x0 + 2, y, 'C')
+        for x in range(x0 - 2, x0 + 3): cv.set(x, 32, 'C')
+        cv.set(x0, 31, 'C'); cv.set(x0, 30, 'C')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'P' if y == 50 else ('p' if y < 61 else 'q'))
+    SPRITES['ai-apaec'] = {'rows': cv.rows(), 'ink': {'K': 0x1a1412, 'R': 0xa83a24, 'Y': 0xe0b040, 'W': 0xece4d0, 'C': 0xe0d0b0,
+        'A': ['wall', 4], 'a': ['wall', 3], 'q': ['wall', 1], 'P': ['floor', 4], 'p': ['floor', 3]}}
+
+def etowah():
+    cv = Canvas(48, 62)
+    # A copper plate of the falcon dancer, hung above the ancestors.
+    for y in range(1, 22):
+        for x in range(15, 33):
+            if abs(x - 23.5) > 8 - max(0, y - 17) * 2: continue
+            cv.set(x, y, 'O' if x in (15, 32) or y == 1 else ('o' if (x + y) % 7 else 'V'))
+    for (x, y) in ((23, 4), (24, 4), (22, 5), (23, 5), (24, 5), (25, 5), (23, 6), (24, 6)): cv.set(x, y, 'K')
+    for y in range(7, 17): cv.set(23, y, 'K'); cv.set(24, y, 'k')
+    for k in range(6):
+        cv.set(22 - k, 9 + k // 2, 'K'); cv.set(25 + k, 9 + k // 2, 'K')
+        cv.set(21 - k, 11 + k // 2, 'k'); cv.set(26 + k, 11 + k // 2, 'k')
+    # The paired marble ancestors: a man seated cross-legged, a woman kneeling.
+    man = [
+        "...KKK...",
+        "..KMMMm..",
+        "..MMRMm..",
+        "..MMMMm..",
+        "...MMm...",
+        ".MMMMMmm.",
+        "MMMMMMmmm",
+        "MM.MMMm.m",
+        "MM.MMMm.m",
+        ".MMMMMmm.",
+        ".MMMMMmm.",
+        "MMMMMMmmm",
+        "MMMMMMmmmm",
+        "MMMMMMmmmm",
+        "mmmmmmmmmm",
+    ]
+    woman = [
+        "..KKKK..",
+        ".KMMMmK.",
+        ".KMRMmK.",
+        ".KMMMmK.",
+        "..MMMm..",
+        ".MMMMmm.",
+        "MMMMMmmm",
+        "MMMMMmmm",
+        "MMMMMmmm",
+        ".MMMMmm.",
+        "MMMMMmmm",
+        "MMMMMmmm",
+        "MMMMMmmm",
+        "mmmmmmmm",
+    ]
+    cv.stamp(man, 12, 30)
+    cv.stamp(woman, 28, 31)
+    for y in range(44, 50):         # a cane mat on a low bench
+        for x in range(6, 42): cv.set(x, y, 'E' if y == 44 else ('c' if (x + (y - 45) * 2) % 4 < 2 and y < 48 else ('C' if y < 48 else 'e')))
+    for (x, y) in ((4, 47), (5, 46), (6, 47), (42, 47), (43, 46), (44, 47)): cv.set(x, y, 'S')
+    for y in range(50, 62):
+        for x in range(48): cv.set(x, y, 'T' if y == 50 else ('t' if y < 61 else 'q'))
+    SPRITES['etowah'] = {'rows': cv.rows(), 'ink': {'O': 0xc87a3a, 'o': 0xa8622e, 'V': 0x4a8a6a, 'K': 0x1a1412, 'k': 0x6a3a1e,
+        'M': 0xe8e4dc, 'm': 0xb4aea4, 'R': 0xa83a2a, 'E': ['wood', 4], 'e': ['wood', 1], 'C': 0xc8a860, 'c': 0xa88a48, 'S': 0xf0e8dc,
+        'T': ['floor', 4], 't': ['floor', 3], 'q': ['floor', 1]}}
+
+lanzon()
+inca_sun()
+ai_apaec()
+etowah()
+
 import os
 with open(os.path.join(os.path.dirname(__file__), '../../src/render/interiors/altars.ts'), 'w') as out:
     out.write('// Generated by scripts/art/compose_altars.py; edit the art there and rerun it.\n')

@@ -2,7 +2,7 @@ export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" |
 export type Shape = "rect" | "L" | "round" | "oval" | "apse" | "courtyard";
 export type WallPattern =
   | "plaster" | "brick" | "timber" | "panel" | "stripe" | "zellige" | "mud" | "stone"
-  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco" | "whakairo" | "spathe" | "band";
+  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco" | "whakairo" | "spathe" | "band" | "ashlar" | "frieze";
 export type FloorPattern =
   | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum" | "broadloom";
 export type Door = "door" | "flap" | "curtain" | "opening" | "none";
@@ -285,7 +285,7 @@ export function wallColor(p: RoomParams, P: Palette, u: number, v: number) {
   if (v < 5) return v === 4 ? Tr[5] : v === 3 ? Tr[4] : v === 0 ? Tr[1] : Tr[2];
   let c = wallPattern(p.wallPattern, p, P, u, v);
   if (p.finish >= 1 && p.dado && v < 17) c = v >= 15 ? Tr[v === 16 ? 5 : 3] : wallPattern(p.dado, p, P, u, v);
-  if (p.finish === 2 && v >= 40 && p.wallPattern !== "whakairo" && p.wallPattern !== "spathe") {
+  if (p.finish === 2 && v >= 40 && !["whakairo", "spathe", "ashlar", "frieze"].includes(p.wallPattern)) {
     const band = v - 40;
     if (band === 0 || band === 7) c = Tr[4];
     else if (band === 1) c = Tr[1];
@@ -469,6 +469,37 @@ function wallPattern(pat: WallPattern, p: RoomParams, P: Palette, u: number, v: 
       if (y >= 8 && y <= 9 && Math.abs(x - 7.5) < 3) return 0xe8dcc4;
       if (y > 28 && Math.abs((y - 28) - Math.abs(x - 7.5)) < 0.8) return 0x1a1412;
       return (x + y) % 7 === 0 ? scale(ochre, 0.85) : ochre;
+    }
+    case "ashlar": {
+      // Inca masonry: coursed blocks fitted without mortar, each face pillowed;
+      // trapezoidal niches along it, and in a temple of the Sun a band of gold.
+      const nu = ((u % 32) + 32) % 32, inset = (v - 12) * 0.08;
+      if (v >= 12 && v < 36 && Math.abs(nu - 16) < 5.5 - inset) return Math.abs(nu - 16) > 4.5 - inset || v === 35 ? P.stone[1] : 0x2a2420;
+      if (p.finish === 2 && v >= 38 && v < 42) return v === 38 ? P.brass[5] : v === 41 ? P.brass[2] : P.brass[(u + v) % 5 === 0 ? 5 : 4];
+      const row = Math.floor(v / 7), off = Math.floor(hash(row, 3, p.seed) * 9), bw = 9 + Math.floor(hash(Math.floor((u + off) / 11), row, p.seed) * 4);
+      const bu = (((u + off) % bw) + bw) % bw, bv = v % 7;
+      if (bu === 0 || bv === 0) return scale(P.stone[1], 0.8);
+      const edge = Math.min(bu, bw - bu, bv, 7 - bv);
+      const base = mix(P.stone[2 + Math.floor(hash(Math.floor((u + off) / bw), row, p.seed + 3) * 2)], W[3], 0.3);
+      return edge === 1 ? (bu === 1 || bv === 1 ? mix(base, P.stone[5], 0.35) : scale(base, 0.85)) : base;
+    }
+    case "frieze": {
+      // Moche relief painted on adobe, as at the Huaca de la Luna: a register of
+      // diamonds each holding a face, a register of stepped waves, red bands between.
+      const red = 0xa83a24, yel = 0xe0b040, wht = 0xece4d0, blk = 0x1a1412;
+      if (v < 17 || v >= 45) return v === 16 || v === 45 ? blk : v < 17 ? mix(red, W[2], 0.2) : red;
+      if (v < 32) {
+        const k = ((u % 16) + 16) % 16, h = v - 17, d = Math.abs(k - 8) + Math.abs(h - 7.5);
+        if (d < 1.5) return blk;
+        if (d < 3) return (Math.abs(k - 8) < 1 && h > 7) ? red : yel;
+        if (d < 4) return blk;
+        if (d < 6.5) return Math.floor(u / 16) % 2 ? wht : red;
+        return d < 7.5 ? blk : yel;
+      }
+      if (v === 32 || v === 44) return blk;
+      const k = ((u % 12) + 12) % 12, h = v - 33;
+      const step = k < 6 ? Math.min(k, 3) * 3 : 9 - Math.min(k - 6, 3) * 3;
+      return h >= step && h < step + 2 ? blk : h < step ? yel : wht;
     }
     case "band":
       // A lower wall painted one colour, as the red dadoes of Aztec and Pompeian rooms.
