@@ -9,6 +9,7 @@ import type Phaser from "phaser";
 import type { TopographyCell } from "../core/topography";
 import { waterHash, waterStyle } from "./water-style";
 import { canvasStat } from "./canvas-stat";
+import { inRoom } from "./crops";
 import type { WaterEffect, WaterTileData } from "./water-raster";
 export type { WaterEffect } from "./water-raster";
 
@@ -113,11 +114,11 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
       for (const patch of m.patches) {
         const g = patch.container;
         const inView =
-          !view.width ||
+          !inRoom(scene) && (!view.width ||
           (g.x + patch.bounds.x < view.right + 16 &&
             g.x + patch.bounds.right > view.x - 16 &&
             g.y + patch.bounds.y < view.bottom + 48 &&
-            g.y + patch.bounds.bottom > view.y - 48);
+            g.y + patch.bounds.bottom > view.y - 48));
         g.setVisible(inView);
         if (!inView) continue;
         visible++;

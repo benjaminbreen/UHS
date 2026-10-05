@@ -2987,12 +2987,13 @@ export class WorldScene extends Phaser.Scene {
   }
   private tiltShift?: TiltShiftPipeline;
   private nightGrade?: NightGradePipeline;
-  /** Blue moonlight, on only while it is dark: an idle pass costs a frame copy. */
-  private applyNightGrade(amount: number) {
+  /** Blue moonlight after dark, grey under cloud; the pass is on only while
+   * either is, since an idle pass costs a frame copy. */
+  private applyNightGrade(amount: number, dull = 0) {
     const renderer = this.game.renderer;
     if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
     const camera = this.cameras.main;
-    if (amount <= 0) {
+    if (amount <= 0 && dull <= 0) {
       if (this.nightGrade) camera.removePostPipeline("NightGrade");
       this.nightGrade = undefined;
       return;
@@ -3004,6 +3005,7 @@ export class WorldScene extends Phaser.Scene {
       this.nightGrade = camera.getPostPipeline("NightGrade") as NightGradePipeline;
     }
     this.nightGrade.night = amount;
+    this.nightGrade.dull = dull;
   }
   private applyTiltShift() {
     const renderer = this.game.renderer;
@@ -3322,6 +3324,17 @@ export class WorldScene extends Phaser.Scene {
     if (!transient) this.layers.push(image);
     return image;
   }
+  private fadeFrom?: { world: WorldModel; space: string; clock: number };
+  /** Through a door, across the map or through the night: the view comes up
+   * out of black rather than cutting, and a longer gap takes a longer fade. */
+  private arrivalFade(world: WorldModel, space: string, clock: number) {
+    const was = this.fadeFrom;
+    this.fadeFrom = { world, space, clock };
+    if (!was || this.options.lab || this.options.freeze) return;
+    const ms =
+      world !== was.world ? 900 : clock - was.clock > 2 * 3600 ? 700 : space !== was.space ? 320 : 0;
+    if (ms) this.cameras.main.fadeIn(ms, 6, 8, 14);
+  }
   draw() {
     if (!this.ready || !this.cameras?.main) return;
     const rt = this.runtime,
@@ -3331,6 +3344,7 @@ export class WorldScene extends Phaser.Scene {
           ? { ...this.options.center, space: "outside" }
           : e.state.player.pos,
       w = e.world;
+    this.arrivalFade(w, p.space, e.state.clock);
     // Sprite ids repeat from world to world; their coats should not.
     if (w !== this.drawnWorld) this.faunaArt.clear();
     if (this.drawnWorld && w !== this.drawnWorld && this.testFauna.length) {
@@ -3431,7 +3445,7 @@ export class WorldScene extends Phaser.Scene {
     // Broken cloud needs sun behind it to cast anything.
     this.clouds?.set(
       outdoors && this.weather && this.options.colorGrade !== false && this.light.id !== "night"
-        ? (this.weather.condition === "light-clouds" ? 0.5 : this.weather.condition === "clear" ? 0.22 : 0) *
+        ? (this.weather.condition === "light-clouds" ? 0.26 : 0) *
             (this.light.id === "dusk" || this.light.id === "early-morning" ? 0.6 : 1)
         : 0,
     );
@@ -5051,9 +5065,12 @@ export class WorldScene extends Phaser.Scene {
       height = this.scale.height * 9;
     this.night!.clear().fillStyle(w.color, graded ? w.alpha : 0).fillRect(x, y, width, height);
     // Night proper only: dusk keeps its colour.
-    this.applyNightGrade(graded ? Phaser.Math.Clamp((w.alpha - 0.14) / 0.28, 0, 1) : 0);
+    this.applyNightGrade(
+      graded ? Phaser.Math.Clamp((w.alpha - 0.14) / 0.28, 0, 1) : 0,
+      graded ? Math.min(1, weather / 0.3) : 0,
+    );
     if (golden > 0) this.night!.fillStyle(0xff9a4a, golden).fillRect(x, y, width, height);
-    if (weather > 0) this.night!.fillStyle(0x4a5f80, weather).fillRect(x, y, width, height);
+    if (weather > 0) this.night!.fillStyle(0x666d78, weather * 0.6).fillRect(x, y, width, height);
     const hour = (((clock / 3600) % 24) + 24) % 24;
     for (const l of this.lamps) {
       const on = lamps > 0 && (l.lit?.(hour) ?? true);

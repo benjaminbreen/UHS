@@ -305,6 +305,8 @@ export function setCropsIndoors(scene: Phaser.Scene, inside: boolean) {
   if (inside) indoors.add(scene);
   else indoors.delete(scene);
 }
+/** Outdoor plants and water keep out of sight while the player is in a room. */
+export const inRoom = (scene: Phaser.Scene) => indoors.has(scene);
 /** Loose images, one per plant, depth-sorted by their base like every other
  * standing sprite; a per-chunk patch record culls and sways them together. */
 export function addCrops(

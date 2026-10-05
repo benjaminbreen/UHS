@@ -65,12 +65,41 @@ const earthMotifs = [
   ["00000000", "00000000", "00333000", "00022000", "00000000", "00000000"],
   ["00000000", "00000000", "00030000", "00321000", "00010000", "00000000"],
 ];
-// Short verge marks mix a blade, a small soil fleck and a quiet highlight.
+// Dry grass: bunched tussocks, seed stalks and stubble, never one tick
+// repeated. 1 shadow, 2 blade, 3 lit blade, 4 pale seed head.
 const swardMotifs = [
-  ["00000", "00100", "01200", "01100", "00100"],
-  ["00000", "01000", "01200", "01100", "00100"],
-  ["00000", "00100", "02200", "01130", "00100"],
-  ["00000", "01010", "01200", "01100", "00100"],
+  // Big tussock, arching blades and seed stalks out of a dark foot.
+  [
+    "040000040",
+    "030040030",
+    "023030320",
+    "012323210",
+    "102232201",
+    "120222021",
+    "012212210",
+    "001111100",
+  ],
+  [
+    "000400400",
+    "040300300",
+    "030232030",
+    "023223320",
+    "122232221",
+    "012222210",
+    "001111100",
+  ],
+  // Medium clump.
+  ["0040300", "0302030", "0232320", "1222221", "0122210", "0011100"],
+  ["0300400", "0230300", "0223220", "1222221", "0111110"],
+  // Small tufts.
+  ["03030", "02320", "12221", "01110"],
+  ["00300", "03230", "12221", "01110"],
+  // Seed stalks over a few leaves.
+  ["40004", "30040", "20030", "02020", "12120", "01210", "00100"],
+  ["0400", "0300", "0204", "2203", "1220", "0110"],
+  // Grazed stubble and a fallen wisp.
+  ["0303030", "1223221", "0111110"],
+  ["000040", "000300", "003200", "122100", "011000"],
 ];
 const SPROUT = 6;
 /** Sprouts on a finer lattice fill the gaps the clump lattice leaves, so the
@@ -113,7 +142,7 @@ export function groundMotif(
       : kind === "turf"
         ? TURF_STEP[0]
         : kind === "sward"
-          ? 14
+          ? 16
         : kind === "pebble"
           ? 15
           : 16;
@@ -123,7 +152,7 @@ export function groundMotif(
       : kind === "turf"
         ? TURF_STEP[1]
         : kind === "sward"
-          ? 12
+          ? 13
         : kind === "pebble"
           ? 14
           : 15;
@@ -184,6 +213,13 @@ export function groundMotif(
     );
     if (sized.length) glyphs = sized;
   }
+  if (kind === "sward") {
+    // Tussocks gather where the grass is thick; thin ground keeps to tufts,
+    // stalks and stubble.
+    const pick = hash(bx, by, 411),
+      big = colony > 0.55 && pick > 0.45;
+    glyphs = glyphs.filter((g) => (g[0].length >= 9) === big);
+  }
   const glyph = glyphs[Math.floor(hash(bx, by, 409) * glyphs.length)];
   const slackX = stepX - glyph[0].length + 1,
     slackY = stepY - glyph.length + 1;
@@ -196,8 +232,10 @@ export function groundMotif(
     kind === "turf"
       ? Math.floor(slackY / 2) + Math.floor(hash(bx, by, 407) * 7) - 3
       : Math.floor(hash(bx, by, 407) * slackY);
-  const x = wx - shift - bx * stepX - ox;
+  let x = wx - shift - bx * stepX - ox;
   const y = wy - by * stepY - oy;
+  // Mirrored half the time: a clump leans either way.
+  if (kind === "sward" && hash(bx, by, 421) < 0.5) x = glyph[0].length - 1 - x;
   return Number(glyph[y]?.[x] ?? 0);
 }
 

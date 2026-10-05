@@ -2,13 +2,13 @@ import Phaser from "phaser";
 import { windVector, wind } from "./wind";
 
 const KEY = "weather-cloud-shadows";
-const TILE = 384;
-/** Each texel is two world pixels: big enough to dither, small enough to sit in the art. */
-const SCALE = 2;
+const TILE = 512;
+/** Each texel is three world pixels: a cloud's shadow is soft and far bigger than a house. */
+const SCALE = 3;
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 
-/** A seamless field of cumulus shadows: lobed blobs with a dithered rim, drawn
- * once per wrap offset so the tile has no seam. */
+/** A seamless field of cumulus shadows: a few big lobed masses whose edge thins
+ * out through ordered dither, so it fades in pixels rather than a ruled line. */
 function ensureTexture(scene: Phaser.Scene) {
   if (scene.textures.exists(KEY)) return;
   let seed = 11;
@@ -17,12 +17,12 @@ function ensureTexture(scene: Phaser.Scene) {
     return seed / 2147483648;
   };
   const lobes: { x: number; y: number; r: number }[] = [];
-  for (let c = 0; c < 7; c++) {
-    const cx = rnd() * TILE,
-      cy = rnd() * TILE,
-      size = 22 + rnd() * 26;
-    for (let i = 0; i < 5 + Math.floor(rnd() * 5); i++)
-      lobes.push({ x: cx + (rnd() - 0.5) * size * 2.4, y: cy + (rnd() - 0.5) * size, r: size * (0.45 + rnd() * 0.5) });
+  for (let c = 0; c < 4; c++) {
+    const cx = (c % 2) * TILE * 0.5 + rnd() * TILE * 0.4,
+      cy = Math.floor(c / 2) * TILE * 0.5 + rnd() * TILE * 0.4,
+      size = 34 + rnd() * 30;
+    for (let i = 0; i < 6 + Math.floor(rnd() * 4); i++)
+      lobes.push({ x: cx + (rnd() - 0.5) * size * 2.6, y: cy + (rnd() - 0.5) * size * 1.1, r: size * (0.5 + rnd() * 0.45) });
   }
   const canvas = scene.textures.createCanvas(KEY, TILE, TILE)!;
   const ctx = canvas.getContext();
@@ -35,11 +35,12 @@ function ensureTexture(scene: Phaser.Scene) {
           dy = Math.abs(y - l.y) % TILE;
         v = Math.max(v, 1 - Math.hypot(Math.min(dx, TILE - dx), Math.min(dy, TILE - dy)) / l.r);
       }
-      // A solid core and one dithered band at the edge, never a gradient.
-      const rim = (v - 0.05) / 0.12;
+      // A solid core thinning out through ordered dither: a pixel gradient,
+      // never a blend.
+      const rim = (v - 0.02) / 0.3;
       if (rim <= 0 || (rim < 1 && BAYER[(y % 4) * 4 + (x % 4)] / 16 >= rim)) continue;
       const i = (y * TILE + x) * 4;
-      img.data.set([112, 132, 168, 255], i);
+      img.data.set([126, 142, 178, 255], i);
     }
   ctx.putImageData(img, 0, 0);
   canvas.refresh();

@@ -587,6 +587,7 @@ function rasterGroundTile(
     palette[5].map((v, k) => Math.round(v * 0.65 + palette[0][k] * 0.35)),
     palette[3].map((v, k) => Math.round(v * 0.82 + lightSward[k] * 0.18)),
     palette[0].map((v, k) => Math.round(v * 0.65 + palette[6][k] * 0.35)),
+    palette[6].map((v, k) => Math.round(v * 0.65 + palette[4][k] * 0.35)),
   ];
   // 18x18 apron: band per pixel, and 1 = bare earth band, 2 = trodden soil.
   const apron = new Uint8Array(18 * 18);
@@ -685,7 +686,8 @@ function rasterGroundTile(
         !h.site && h.season === "autumn" &&
         !["desert", "tropical-woodland"].includes(h.ecology)
       )
-        rgb = rgb.map((v, k) => Math.round(v * 0.88 + palette[1][k] * 0.12));
+        // Turning toward gold, not toward one flat tone: red up, blue down.
+        rgb = [Math.min(255, Math.round(rgb[0] * 1.08 + 6)), Math.round(rgb[1] * 0.99), Math.round(rgb[2] * 0.82)];
       if (frozen)
         rgb =
           band === 3 || tilled
@@ -766,9 +768,12 @@ function rasterGroundTile(
       // No blanket of independently varied pixels behind these marks.
       const sparse = h.vegetation === "alpine" || h.ecology === "boreal-woodland";
       const colony = hash(Math.floor(wx / 37), Math.floor(wy / 29), 941);
+      const dryGrass =
+        h.vegetation === "savanna" || h.vegetation === "steppe" ||
+        ["savanna", "dry-scrub"].includes(paletteKey(h.ecology, h.colorway));
       const ink =
         sparse && colony < 0.65 ? 0 :
-        (h.vegetation === "savanna" || h.vegetation === "steppe") && band < 3
+        dryGrass && band < 3
           ? (colony > 0.32 ? groundMotif("sward", wx, wy, art.motifs, motifTuning) : 0)
           : band === 1
           ? groundMotif("sward", wx, wy, undefined, motifTuning)
@@ -838,9 +843,16 @@ function rasterGroundTile(
           // drops a tone, so the shadow falls across grass and ground alike.
           const mix = (a: number[], b: number[], t: number) =>
             a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
-          const tones = shaded
-            ? [mix(palette[5], [0, 0, 0], 0.12), palette[2], mix(palette[0], palette[1], 0.5)]
-            : [palette[5], mix(palette[0], palette[1], 0.6), mix(palette[1], palette[6], 0.6)];
+          const seed = mix(palette[6], [244, 232, 184], 0.45);
+          // Dry grass reads as sunlit straw over a dark foot; it is bleached,
+          // so it stands off the ground more than green turf does.
+          const tones = dryGrass
+            ? shaded
+              ? [mix(palette[5], [0, 0, 0], 0.3), mix(palette[5], palette[1], 0.45), palette[1], mix(seed, palette[2], 0.25)]
+              : [mix(palette[5], [0, 0, 0], 0.18), palette[1], palette[6], seed]
+            : shaded
+              ? [mix(palette[5], [0, 0, 0], 0.12), palette[2], mix(palette[0], palette[1], 0.5), mix(seed, palette[2], 0.3)]
+              : [palette[5], mix(palette[0], palette[1], 0.6), mix(palette[1], palette[6], 0.6), seed];
           put(px, py, tones[ink - 1]);
           continue;
         }

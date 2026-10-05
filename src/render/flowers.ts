@@ -4,6 +4,7 @@ import { bloomSpecies, speciesById, type BloomHabit } from "../content/ecology/f
 import { bloomsAt, type BloomSpot } from "../content/ecology/blooms";
 import { gustAt } from "./wind";
 import { canvasStat } from "./canvas-stat";
+import { inRoom } from "./crops";
 
 export const FLOWER_ATLAS = "flowers-4";
 const W = 9,
@@ -178,11 +179,11 @@ export function addFlowers(scene: Phaser.Scene, spots: FlowerSpot[]) {
       for (const patch of m.patches) {
         const g = patch.container;
         const inView =
-          !view.width ||
+          !inRoom(scene) && (!view.width ||
           (g.x + patch.bounds.x < view.right + 16 &&
             g.x + patch.bounds.right > view.x - 16 &&
             g.y + patch.bounds.y < view.bottom + 48 &&
-            g.y + patch.bounds.bottom > view.y - 48);
+            g.y + patch.bounds.bottom > view.y - 48));
         g.setVisible(inView);
         if (!inView) continue;
         visible++;
