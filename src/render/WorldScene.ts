@@ -3325,15 +3325,38 @@ export class WorldScene extends Phaser.Scene {
     return image;
   }
   private fadeFrom?: { world: WorldModel; space: string; clock: number };
-  /** Through a door, across the map or through the night: the view comes up
-   * out of black rather than cutting, and a longer gap takes a longer fade. */
-  private arrivalFade(world: WorldModel, space: string, clock: number) {
+  private fadingOut = false;
+  /** Through a door or through the night the old view goes down to black
+   * before the new one is built, then comes up out of it. Across the map only
+   * the arrival fades: the world under the old view has already been swapped.
+   * True while the old frame is being held. */
+  private holdForFade(world: WorldModel, space: string, clock: number): boolean {
     const was = this.fadeFrom;
-    this.fadeFrom = { world, space, clock };
-    if (!was || this.options.lab || this.options.freeze) return;
-    const ms =
-      world !== was.world ? 900 : clock - was.clock > 2 * 3600 ? 700 : space !== was.space ? 320 : 0;
-    if (ms) this.cameras.main.fadeIn(ms, 6, 8, 14);
+    if (!was || this.options.lab || this.options.freeze) {
+      this.fadeFrom = { world, space, clock };
+      return false;
+    }
+    if (this.fadingOut) return true;
+    const camera = this.cameras.main;
+    if (world !== was.world) {
+      this.fadeFrom = { world, space, clock };
+      camera.fadeIn(900, 6, 8, 14);
+      return false;
+    }
+    const slept = clock - was.clock > 2 * 3600;
+    if (!slept && space === was.space) {
+      this.fadeFrom = { world, space, clock };
+      return false;
+    }
+    this.fadingOut = true;
+    camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.fadingOut = false;
+      this.fadeFrom = undefined;
+      this.draw();
+      camera.fadeIn(slept ? 600 : 260, 6, 8, 14);
+    });
+    camera.fadeOut(slept ? 420 : 180, 6, 8, 14);
+    return true;
   }
   draw() {
     if (!this.ready || !this.cameras?.main) return;
@@ -3344,7 +3367,7 @@ export class WorldScene extends Phaser.Scene {
           ? { ...this.options.center, space: "outside" }
           : e.state.player.pos,
       w = e.world;
-    this.arrivalFade(w, p.space, e.state.clock);
+    if (this.holdForFade(w, p.space, e.state.clock)) return;
     // Sprite ids repeat from world to world; their coats should not.
     if (w !== this.drawnWorld) this.faunaArt.clear();
     if (this.drawnWorld && w !== this.drawnWorld && this.testFauna.length) {
@@ -5422,7 +5445,8 @@ export class WorldScene extends Phaser.Scene {
       !!this.options.freeze,
     );
     updatePuddles(this, time);
-    this.syncRoom(delta);
+    // The old view holds while it fades out; the room is built after.
+    if (!this.fadingOut) this.syncRoom(delta);
     if (this.night && !this.roomView) this.paintWash();
     this.followTiltFocus();
     mark("weather");
