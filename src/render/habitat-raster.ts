@@ -1062,16 +1062,46 @@ function rasterGroundTile(
           (hash(Math.floor(wx / 2), Math.floor(wy / 2), 437) +
             hash(Math.floor(wx / 3), Math.floor(wy / 3), 439) -
             1) *
-            0.025 * (composition?.pathEdgeBreakup ?? 1) +
+            0.08 * (composition?.pathEdgeBreakup ?? 1) +
           (noise(wx, wy, 21, 463) - 0.5) *
             0.06 * (composition?.pathEdgeBreakup ?? 1);
         // Wear is not even along a road: whole stretches sit a band lighter or
         // darker than their neighbours.
         const worn = path + interlock + (noise(wx, wy, 96, 467) - 0.5) * 0.08;
         const shoulder = 0.68 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
-        // On turf the shoulder stays turf: the earth starts at one clean edge,
-        // and the tufts along it do the breaking up.
-        if (field && grassy && worn > 0.48 && worn < shoulder) continue;
+        // Dust and thinned turf beside the road: warm soil stippled into the
+        // grass, thickest at the edge and gone within a few pixels. Patchy
+        // along the road so it never reads as a second outline.
+        if (field && grassy && inside && worn > 0.2 && worn <= 0.48) {
+          const w = (worn - 0.2) / 0.28,
+            patch = 0.45 + noise(wx, wy, 17, 479) * 0.9;
+          if (hash(wx, wy, 481) < w * w * 0.7 * patch) {
+            const i = (py * 16 + px) * 4,
+              k0 = 0.22 + w * 0.3;
+            for (let k = 0; k < 3; k++)
+              pixels[i + k] = Math.round(
+                pixels[i + k] * (1 - k0) + soil[1][k] * k0,
+              );
+          }
+        }
+        // On turf the worn centre is narrower than the material boundary:
+        // the shoulder is a dither of soil into grass, not a filled band.
+        if (field && grassy && worn > 0.48 && worn < shoulder) {
+          if (!inside) continue;
+          const w = (worn - 0.48) / (shoulder - 0.48);
+          if (hash(wx, wy, 471) < w * 0.85) {
+            const wash = Math.round((noise(wx, wy, 44, 461) - 0.5) * 11);
+            put(px, py, soil[1], wash + [0, -5, 6][materialGrain(wx, wy)]);
+          } else {
+            const i = (py * 16 + px) * 4,
+              k0 = 0.2 + w * 0.3;
+            for (let k = 0; k < 3; k++)
+              pixels[i + k] = Math.round(
+                pixels[i + k] * (1 - k0) + soil[3][k] * k0,
+              );
+          }
+          continue;
+        }
         if (field && worn > 0.48) {
           if (!inside) continue;
           // One broken native pixel of contact shadow. A continuous dark rim,

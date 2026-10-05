@@ -130,9 +130,11 @@ export function defaultGroundStyle(): GroundStyle {
       wobble: 0.95,
       scale: 13,
       warp: 7,
-      smoothing: 1,
+      // A 5x5 vote: a 3x3 one left the wobble's one-pixel jogs, each of
+      // which drew its own column of south face down an east or west step.
+      smoothing: 2,
       sides: 2,
-      sideFace: 2,
+      sideFace: 3,
       hillshade: 1,
     },
     composition: {

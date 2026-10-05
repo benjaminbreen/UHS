@@ -5,10 +5,10 @@ const KEY = "weather-cloud-shadows";
 const TILE = 512;
 /** Each texel is three world pixels: a cloud's shadow is soft and far bigger than a house. */
 const SCALE = 3;
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 
-/** A seamless field of cumulus shadows: a few big lobed masses whose edge thins
- * out through ordered dither, so it fades in pixels rather than a ruled line. */
+/** A seamless field of cumulus shadows: a few big lobed masses with a long soft
+ * edge. Smooth, not dithered: a dither pattern this large drifting over the
+ * art read as a moving checkerboard. */
 function ensureTexture(scene: Phaser.Scene) {
   if (scene.textures.exists(KEY)) return;
   let seed = 11;
@@ -35,15 +35,15 @@ function ensureTexture(scene: Phaser.Scene) {
           dy = Math.abs(y - l.y) % TILE;
         v = Math.max(v, 1 - Math.hypot(Math.min(dx, TILE - dx), Math.min(dy, TILE - dy)) / l.r);
       }
-      // A solid core thinning out through ordered dither: a pixel gradient,
-      // never a blend.
-      const rim = (v - 0.02) / 0.3;
-      if (rim <= 0 || (rim < 1 && BAYER[(y % 4) * 4 + (x % 4)] / 16 >= rim)) continue;
+      const t = Math.min(1, Math.max(0, (v - 0.02) / 0.45));
+      if (!t) continue;
       const i = (y * TILE + x) * 4;
-      img.data.set([126, 142, 178, 255], i);
+      img.data.set([126, 142, 178, Math.round(255 * t * t * (3 - 2 * t))], i);
     }
   ctx.putImageData(img, 0, 0);
   canvas.refresh();
+  // Sampled smoothly, unlike the art: stretched nearest, its edge came out in steps.
+  canvas.setFilter(Phaser.Textures.FilterMode.LINEAR);
 }
 
 /** Shadows of passing cloud, fixed to the ground and carried downwind. */

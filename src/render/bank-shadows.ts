@@ -178,6 +178,7 @@ export function rasterBankShadows(
           if (inMap(lx, ly)) covered![at(lx, ly)] = 1;
         };
       },
+      (cx, cy) => cellAt(cx, cy)?.height,
     );
   }
   if (x1 < x0) return;

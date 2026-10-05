@@ -1487,7 +1487,8 @@ export class Engine {
     if (p.space !== "outside" || !this.world.topography) return false;
     const x = p.x + dx, y = p.y + dy;
     const field = (cx: number, cy: number) => this.world.topography!(cx, cy)?.field;
-    return [...boundaryGraph(field, x, y, x + 1, y + 1).values()].some(
+    const tier = (cx: number, cy: number) => this.world.topography!(cx, cy)?.height;
+    return [...boundaryGraph(field, x, y, x + 1, y + 1, tier).values()].some(
       (node) => node.cx === x && node.cy === y && node.links !== 0,
     );
   }

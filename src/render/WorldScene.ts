@@ -4142,6 +4142,8 @@ export class WorldScene extends Phaser.Scene {
               neglect: 1 - (b.condition ?? 0.7),
               smoke: model.smoke ?? [],
               forge: /smith|forge/i.test(b.name) ? model.door : undefined,
+              weeds: !["city", "port"].includes(w.pack.setting?.settlement ?? ""),
+              door: model.door,
             });
             if (wear)
               this.layers.push(

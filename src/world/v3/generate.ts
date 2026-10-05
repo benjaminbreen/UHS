@@ -226,6 +226,9 @@ export function createSettlementWorld(
         for (let dx = -1; dx <= 1; dx++)
           for (const s of sitesIn(c.x + dx, c.y + dy))
             if (
+              // Only a town is graded into blocks: a camp or a farmstead
+              // takes the ground as it lies.
+              !["encampment", "band", "farmstead"].includes(s.profile.pattern) &&
               Math.hypot(s.center.x - bx * 32 - 16, s.center.y - by * 32 - 16) <
               terraceReach(s) + 24
             )

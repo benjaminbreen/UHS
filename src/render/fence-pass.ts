@@ -63,6 +63,8 @@ export function boundaryGraph(
   y0: number,
   x1: number,
   y1: number,
+  /** Ground tier of a cell: a run stops at a step rather than climb it. */
+  tier?: (cx: number, cy: number) => number | undefined,
 ) {
   const nodes = new Map<number, Node>();
   const node = (x: number, y: number, kind: Boundary) => {
@@ -73,6 +75,11 @@ export function boundaryGraph(
   };
   const link = (ax: number, ay: number, bx: number, by: number, kind: Boundary) => {
     const bit = bx > ax ? 2 : bx < ax ? 8 : by > ay ? 4 : 1;
+    if (tier && tier(ax, ay) !== tier(bx, by)) {
+      node(ax, ay, kind);
+      node(bx, by, kind);
+      return;
+    }
     node(ax, ay, kind).links |= bit;
     node(bx, by, kind).links |= opposite(bit);
   };
@@ -224,7 +231,8 @@ export function paintFences(
   for (let dy = -R - 3; dy <= R + 3 && !any; dy++)
     for (let dx = -R - 3; dx <= R + 3 && !any; dx++) any = !!field(cx + dx, cy + dy)?.fence;
   if (!any) return;
-  const nodes = boundaryGraph(field, cx - R, cy - R, cx + R + 1, cy + R + 1);
+  const tier = (tx: number, ty: number) => sample(tx - ox, ty - oy)?.height;
+  const nodes = boundaryGraph(field, cx - R, cy - R, cx + R + 1, cy + R + 1, tier);
   const list = pieces(
     nodes,
     (n) => Math.abs(n.cx - cx) <= R && Math.abs(n.cy - cy) <= R,
@@ -234,11 +242,16 @@ export function paintFences(
     gy = cy * 16;
   const inTile = (wx: number, wy: number) =>
     wx >= gx && wy >= gy && wx < gx + 16 && wy < gy + 16;
-  for (const p of list)
+  // A piece is drawn only into ground at its own height: this tile is lifted
+  // to its tier, and a rail painted into a higher or lower one is sliced off
+  // its posts and shifted by the step.
+  const here = tier(cx, cy);
+  const own = list.filter((p) => tier(p.cx, p.cy) === here);
+  for (const p of own)
     if (p.kind === "post") footShadow(p.s, "post", p.x, p.y, 0, dark);
     else if (p.kind === "ew") footShadow(p.s, "ew", p.a, p.at, p.b, dark);
     else footShadow(p.s, "ns", p.at, p.a, p.b, dark);
-  drawPieces(list, (wx, wy, c) => {
+  drawPieces(own, (wx, wy, c) => {
     if (inTile(wx, wy)) put(wx - gx, wy - gy, c);
   });
   function dark(wx: number, wy: number, v: number) {
@@ -258,8 +271,9 @@ export function boundaryCasts(
   /** Undefined for a node that should not cast from this pass. */
   emit: (cx: number, cy: number) => Emit | undefined,
   cover: (cx: number, cy: number) => Put,
+  tier?: (cx: number, cy: number) => number | undefined,
 ) {
-  const nodes = boundaryGraph(field, x0, y0, x1, y1);
+  const nodes = boundaryGraph(field, x0, y0, x1, y1, tier);
   const list = pieces(
     nodes,
     (n) => n.cx >= x0 && n.cy >= y0 && n.cx < x1 && n.cy < y1,

@@ -1003,12 +1003,10 @@ function rasterWallContours(
           while (j < 48 && lvl(px, py + j) === L && lvl(px + side, py + j) < L)
             j++;
           // A run longer than the search is a straight wall: keep its sliver.
-          if (j < 48 && lvl(px, py + j) >= L) {
-            occlude(row, L, px + side, sy, 70);
-            occlude(row, L, px + side * 2, sy, 35);
-            continue;
-          }
-          for (let k = 1; k <= sideFace; k++) {
+          // One that faces away keeps a narrower, darker sliver, so a side
+          // step still reads as a bank and not as a ruled line.
+          const away = j < 48 && lvl(px, py + j) >= L;
+          for (let k = 1; k <= (away ? Math.max(1, sideFace - 1) : sideFace); k++) {
             const r = Math.round(((k - 1) / sideFace) * (R - 1));
             const c = facePixel(material, trim, r, R, sy + oy, px + ox);
             returns.push([
@@ -1016,7 +1014,7 @@ function rasterWallContours(
               L,
               px + side * k,
               sy,
-              [c[0] * tone, c[1] * tone, c[2] * tone],
+              [c[0] * tone * (away ? 0.82 : 1), c[1] * tone * (away ? 0.82 : 1), c[2] * tone * (away ? 0.82 : 1)],
             ]);
             // Higher ground further south stands in front of this wall and
             // hides its lower part. Unclipped, a north-east facing edge hung
