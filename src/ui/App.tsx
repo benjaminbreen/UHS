@@ -373,6 +373,27 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     return verb;
   };
   // Reads the live snapshot so the keyboard listener never sees a stale world.
+  const inspectNearest = () => {
+    const { observation: o, selection: chosen } = runtime.getSnapshot();
+    if (chosen) {
+      runtime.select(chosen.id);
+      return;
+    }
+    const at = o.player.pos;
+    const targets = [
+      ...o.places.map((place) => ({
+        id: place.id,
+        pos: { ...place.entrance, space: at.space },
+      })),
+      ...o.objects,
+    ];
+    const nearest = targets.sort((a, b) => distance(a.pos, at) - distance(b.pos, at))[0];
+    if (nearest) runtime.select(nearest.id);
+    else {
+      runtime.notice = "Select something in the world to examine it.";
+      runtime.emit();
+    }
+  };
   const talkToNearest = () => {
     const inReach = runtime.nearestSpeaker();
     if (inReach) {
@@ -647,6 +668,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         e.preventDefault();
         talkToNearest();
       }
+      if (e.key.toLowerCase() === "q" && !e.repeat) talkToNearest();
+      if (e.key.toLowerCase() === "r" && !e.repeat) inspectNearest();
       if (e.key.toLowerCase() === "t") setRestOpen((open) => !open);
       if (e.key.toLowerCase() === "m") setModal("map");
       if (e.key.toLowerCase() === "n") setModal("notebook");
@@ -1224,38 +1247,15 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 <span>Talk</span>
                 <kbd data-wide={speaker ? true : undefined}>{speaker ? "Enter" : "Q"}</kbd>
               </button>
-              <button
-                onClick={() => {
-                  if (selection) {
-                    runtime.select(selection.id);
-                    return;
-                  }
-                  const targets = [
-                    ...obs.places.map((place) => ({
-                      id: place.id,
-                      pos: { ...place.entrance, space: p.pos.space },
-                    })),
-                    ...obs.objects,
-                  ];
-                  const nearest = targets.sort(
-                    (a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos),
-                  )[0];
-                  if (nearest) runtime.select(nearest.id);
-                  else {
-                    runtime.notice =
-                      "Select something in the world to examine it.";
-                    runtime.emit();
-                  }
-                }}
-              >
+              <button onClick={inspectNearest}>
                 <Search size={19} />
                 <span>Inspect</span>
-                <kbd>E</kbd>
+                <kbd>R</kbd>
               </button>
               <button onClick={() => setModal("map")} aria-label="Travel">
                 <MapIcon size={17} />
                 <span>Travel</span>
-                <kbd>R</kbd>
+                <kbd>M</kbd>
               </button>
               <div className="rest-menu">
                 {restOpen && (

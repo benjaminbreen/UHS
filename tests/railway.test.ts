@@ -106,3 +106,27 @@ it("staffs the station: a stationmaster and porters working the platform", () =>
     expect(stations.slice(0, -1).some((s) => s.pos.x >= p.x && s.pos.x < p.x + p.w && s.pos.y >= p.y && s.pos.y < p.y + p.h)).toBe(true);
   }
 });
+
+it("lays the line clear of every building, not through one", () => {
+  for (const name of ["Manchester 1888", "London 1880"]) {
+    const r = resolveSetting(name);
+    if ("error" in r) throw Error(r.error);
+    const s = integratedSetting(r.setting);
+    for (const seed of ["a", "b", "c", "d"]) {
+      const plan = planSettlement(
+        { id: "town", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 }, profile: settlementProfile(s) },
+        packForSetting(s),
+        seed,
+        flat,
+        [],
+      );
+      const rail = plan.railway;
+      if (!rail) continue;
+      const across = (p: { x: number; y: number; w: number; h: number }) =>
+        rail.axis === "x"
+          ? p.y < rail.level + rail.span && p.y + p.h > rail.level && p.x <= rail.hi && p.x + p.w > rail.lo
+          : p.x < rail.level + rail.span && p.x + p.w > rail.level && p.y <= rail.hi && p.y + p.h > rail.lo;
+      expect(plan.places.filter(across).map((p) => `${name} ${seed} ${p.sprite}`)).toEqual([]);
+    }
+  }
+});

@@ -277,6 +277,7 @@ import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
 import { TiltShiftPipeline } from "./tilt-shift";
+import { NightGradePipeline } from "./night-grade";
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
@@ -2985,6 +2986,25 @@ export class WorldScene extends Phaser.Scene {
     this.applyTiltShift();
   }
   private tiltShift?: TiltShiftPipeline;
+  private nightGrade?: NightGradePipeline;
+  /** Blue moonlight, on only while it is dark: an idle pass costs a frame copy. */
+  private applyNightGrade(amount: number) {
+    const renderer = this.game.renderer;
+    if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
+    const camera = this.cameras.main;
+    if (amount <= 0) {
+      if (this.nightGrade) camera.removePostPipeline("NightGrade");
+      this.nightGrade = undefined;
+      return;
+    }
+    if (!this.nightGrade) {
+      if (!renderer.pipelines.postPipelineClasses.has("NightGrade"))
+        renderer.pipelines.addPostPipeline("NightGrade", NightGradePipeline);
+      camera.setPostPipeline("NightGrade");
+      this.nightGrade = camera.getPostPipeline("NightGrade") as NightGradePipeline;
+    }
+    this.nightGrade.night = amount;
+  }
   private applyTiltShift() {
     const renderer = this.game.renderer;
     if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
@@ -4184,13 +4204,22 @@ export class WorldScene extends Phaser.Scene {
         Number(this.game.canvas.dataset.sceneryDrawCount ?? 0) + 1,
       );
     }
+    // See-through only when the player stands behind a building and its own
+    // pixels cover them; the box test alone faded a tall roof's empty sky.
+    const feetX = p.x * 16 + 8,
+      feetY = p.y * 16 + 15;
     for (const [id, image] of this.buildings) {
       const b = w.place(id)!;
-      image.setAlpha(
-        !this.options.lab && buildingContains(b, p.x * 16 + 8, p.y * 16 + 8)
-          ? 0.45
-          : 1,
-      );
+      const hides =
+        !this.options.lab &&
+        p.y * 16 + 14 < image.depth &&
+        buildingContains(b, feetX, feetY - 12) &&
+        [[0, -4], [0, -12], [0, -22], [-4, -14], [4, -14]].filter(([dx, dy]) => {
+          const lx = Math.floor(feetX + dx - (image.x - image.displayOriginX)),
+            ly = Math.floor(feetY + dy - (image.y - image.displayOriginY));
+          return (this.textures.getPixelAlpha(lx, ly, image.texture.key, image.frame.name) ?? 0) > 0;
+        }).length >= 2;
+      image.setAlpha(hides ? 0.45 : 1);
     }
     const visible = (pos: Position) =>
       entityInView(pos, p, this.scale.width, this.scale.height, rt.zoom);
@@ -4935,6 +4964,8 @@ export class WorldScene extends Phaser.Scene {
           .setBlendMode([Phaser.BlendModes.MULTIPLY, Phaser.BlendModes.ADD, Phaser.BlendModes.NORMAL][i]),
       );
       v = this.roomView = { space, pixel, light, key, texture, image, litAt: -99, props, sheet, cutouts, stamp: "", wait: 0 };
+      // A room has its own light; the moon stays outside.
+      this.applyNightGrade(0);
     }
     // Furniture stands where the engine has it, and lies as the engine left it.
     const byId = new Map(e.state.objects.filter((o) => o.pos.space === space && o.prop).map((o) => [o.id, o]));
@@ -4997,6 +5028,7 @@ export class WorldScene extends Phaser.Scene {
     for (const im of [...v.cutouts.values(), ...v.light]) im.destroy();
     for (const k of [v.key, v.sheet.key, ...["light", "add", "glow"].map((k) => `${v.key}-${k}`)]) if (this.textures.exists(k)) this.textures.remove(k);
     this.roomView = undefined;
+    this.washKey = "";
   }
 
   private paintWash() {
@@ -5018,6 +5050,8 @@ export class WorldScene extends Phaser.Scene {
       width = this.scale.width * 9,
       height = this.scale.height * 9;
     this.night!.clear().fillStyle(w.color, graded ? w.alpha : 0).fillRect(x, y, width, height);
+    // Night proper only: dusk keeps its colour.
+    this.applyNightGrade(graded ? Phaser.Math.Clamp((w.alpha - 0.14) / 0.28, 0, 1) : 0);
     if (golden > 0) this.night!.fillStyle(0xff9a4a, golden).fillRect(x, y, width, height);
     if (weather > 0) this.night!.fillStyle(0x4a5f80, weather).fillRect(x, y, width, height);
     const hour = (((clock / 3600) % 24) + 24) % 24;
@@ -5882,7 +5916,8 @@ export class WorldScene extends Phaser.Scene {
         else if (/rest|sleep/i.test(human.activity)) pose = "sit";
         else if (/gathering|working/i.test(human.activity)) pose = "work";
         else if (/eating/i.test(human.activity)) pose = "give";
-        if (id === "player" && pose === "idle") pose = "breathe";
+        // Breathing has no blink frame: the player stays plain idle for idle's blink.
+        if (id === "player" && pose === "idle" && this.poseFrame(id, "idle", time) !== 3) pose = "breathe";
         if (moving && water > 0.025 && !active && !winding) pose = "wade";
         if (craft && craft !== "swimming") pose = "sit";
         if (id === "player") this.watercraft.update(im, craft, this.tint,

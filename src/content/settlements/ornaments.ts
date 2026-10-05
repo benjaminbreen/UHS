@@ -167,50 +167,52 @@ export function focusFor(
     label,
   });
   const { lon, lat } = pack.anchor;
-  // Variants of study-propb-monument; `pick` in [0, 1) varies squares of one kind.
-  const one = (...options: [number, string][]) => {
-    const [n, label] = options[Math.floor(pick * options.length) % options.length];
-    return { sprite: `study-propb-monument-${n}`, label };
-  };
+  const monument = (n: number, label: string) => ({
+    sprite: `study-propb-monument-${n}`,
+    label,
+  });
+  // `pick` in [0, 1) varies squares of one kind.
+  const one = (...options: { sprite: string; label: string }[]) =>
+    options[Math.floor(pick * options.length) % options.length];
   if (culture === "european") {
     // Documented: Roman fora, market crosses, baroque fountains and obelisks,
     // the 19th-century bronze, interwar memorials, Soviet-bloc heroic figures.
     if (year >= -200 && year < 450)
-      return one([13, "Honorific column"], [14, "Statue of a magistrate"], [15, "Gilt equestrian statue"]);
+      return one(monument(13, "Honorific column"), monument(14, "Statue of a magistrate"), monument(15, "Gilt equestrian statue"));
     // Carved standing crosses, ringed in Ireland and Britain, from about 700.
-    if (year >= 450 && year < 1150) return one([27, "High cross"]);
-    if (year < 1550) return one([16, "Market cross"], [17, "Market cross"]);
+    if (year >= 450 && year < 1150) return one(monument(27, "High cross"));
+    if (year < 1550) return one(monument(16, "Market cross"), monument(17, "Market cross"));
     if (year < 1780)
-      return one([7, "Public fountain"], [25, "Obelisk"], [4, "Marble statue"], [1, "Equestrian statue"]);
+      return one(monument(7, "Public fountain"), monument(25, "Obelisk"), monument(4, "Marble statue"), monument(1, "Equestrian statue"));
     if (year < 1914)
-      return one([0, "Equestrian statue"], [2, "Bronze statue"], [3, "Bronze statue"],
-        [5, "Statue fountain"], [6, "Statue fountain"], [7, "Public fountain"]);
+      return one(monument(0, "Equestrian statue"), monument(2, "Bronze statue"), monument(3, "Bronze statue"),
+        monument(5, "Statue fountain"), monument(6, "Statue fountain"), monument(7, "Public fountain"));
     const eastern = lon >= 19 && lat >= 41;
     if (eastern && year >= 1925 && year < 1992)
-      return one([8, "Heroic monument"], [26, "Heroic monument"], [9, "War memorial"]);
-    if (year < 1960) return one([10, "War memorial"], [9, "War memorial"], [2, "Bronze statue"]);
-    return one([11, "Sculpture"], [12, "Sculpture"], [10, "War memorial"], [5, "Statue fountain"]);
+      return one(monument(8, "Heroic monument"), monument(26, "Heroic monument"), monument(9, "War memorial"));
+    if (year < 1960) return one(monument(10, "War memorial"), monument(9, "War memorial"), monument(2, "Bronze statue"));
+    return one(monument(11, "Sculpture"), monument(12, "Sculpture"), monument(10, "War memorial"), monument(5, "Statue fountain"));
   }
   if (culture === "east-asian") {
     // Stone lanterns stand at shrines and temples, mostly in Japan; bixi steles
     // are Chinese from the Tang on and were copied in Korea and Vietnam.
-    if (lon >= 129) return one([19, "Stone lantern"], [0, "Memorial arch"]);
-    return year >= 600 ? one([0, "Memorial arch"], [20, "Stele on a tortoise"]) : piece(0, "Memorial arch");
+    if (lon >= 129) return one(monument(19, "Stone lantern"), piece(0, "Memorial arch"));
+    return year >= 600 ? one(piece(0, "Memorial arch"), monument(20, "Stele on a tortoise")) : piece(0, "Memorial arch");
   }
   if (culture === "southeast-asian") return piece(2, "Spirit house");
   if (culture === "south-asian") {
-    if (year >= -270 && year < 600) return one([22, "Lion pillar"], [1, "Inscribed stele"]);
+    if (year >= -270 && year < 600) return one(monument(22, "Lion pillar"), piece(1, "Inscribed stele"));
     // Chhatris are Rajput and Mughal, from about 1500.
-    return year >= 1500 ? one([21, "Chhatri"], [1, "Inscribed stele"]) : piece(1, "Inscribed stele");
+    return year >= 1500 ? one(monument(21, "Chhatri"), piece(1, "Inscribed stele")) : piece(1, "Inscribed stele");
   }
   // The canopied fountain is the civic gift of an Islamic city; before that
   // the classical vocabulary the fabric already has is the better answer.
   if (culture === "north-african-west-asian") {
     const egypt = lon >= 25 && lon <= 35 && lat >= 22 && lat <= 32;
-    if (egypt && year < -30) return one([24, "Obelisk"]);
-    if (year >= -200 && year < 640) return one([13, "Honorific column"], [14, "Statue of a magistrate"]);
+    if (egypt && year < -30) return one(monument(24, "Obelisk"));
+    if (year >= -200 && year < 640) return one(monument(13, "Honorific column"), monument(14, "Statue of a magistrate"));
     // The şadırvan courtyard fountain is Ottoman and Mamluk; the sabil older.
-    if (year >= 1350 && pick < 0.5) return one([18, "Ablution fountain"]);
+    if (year >= 1350 && pick < 0.5) return one(monument(18, "Ablution fountain"));
     return year >= 699 ? piece(3, "Public fountain") : undefined;
   }
   if (
@@ -220,7 +222,7 @@ export function focusFor(
     return piece(4, "Assembly tree");
   // Carved stelae stood in Maya plazas through the Classic period.
   if (culture === "mesoamerican")
-    return year >= -300 && year < 950 ? one([23, "Carved stela"]) : piece(5, "Stepped platform");
+    return year >= -300 && year < 950 ? one(monument(23, "Carved stela")) : piece(5, "Stepped platform");
   if (culture === "andean") return piece(6, "Stone dais");
   if (culture === "inner-eurasian") return piece(7, "Cairn");
   if (culture === "australian-pacific") return piece(10, "Carved post");

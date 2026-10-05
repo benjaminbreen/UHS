@@ -49,7 +49,7 @@ import {
 } from "../../content/settlements/vehicles";
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
-import { yardKit, type YardProp } from "../../content/settlements/yards";
+import { yardKit, type YardCompanion, type YardProp } from "../../content/settlements/yards";
 import { propDefs, propVisualCells } from "../../content/props/catalog";
 import { processFor } from "../../content/economy/processes";
 import {
@@ -2545,14 +2545,15 @@ export function planSettlement(
       setSurface(k, crop ? "field" : "grass", 3);
     });
   };
-  /** Stand one of the kit's props on a free cell. */
+  /** Stand one of the kit's props on a free cell, and its companions beside
+   * it where their cells are free too. */
   const yardProp = (
-    item: YardProp,
+    item: YardProp | YardCompanion,
     at: Point,
     id: string,
     i: number,
     n: number,
-  ) => {
+  ): boolean => {
     const cells = propVisualCells(item.prop, at).map((p) => cellKey(p.x, p.y));
     if (
       cells.some((k) => plan.solid.has(k) || roads.has(k) || propCells.has(k))
@@ -2564,10 +2565,14 @@ export function planSettlement(
       name: item.name,
       kind: "container",
       prop: item.prop,
-      sprite: `study-propb-${item.family}-${Math.floor(rand("yard-art", i, n) * 3)}`,
+      sprite: `study-propb-${item.family}-${Math.floor(rand("yard-art", i, n) * (propDefs[item.prop]?.variants ?? 3))}`,
       inventory: item.contents ?? {},
       pos: pos(at),
     });
+    const flip = rand("yard-flip", i, n) < 0.5 ? -1 : 1;
+    ("with" in item ? (item.with ?? []) : []).forEach((c, k) =>
+      yardProp(c, { x: at.x + c.dx * flip, y: at.y + c.dy }, id, i, n * 10 + 100 + k),
+    );
     return true;
   };
   const propCells = new Set<string>();
@@ -4499,11 +4504,16 @@ export function planSettlement(
     for (const owner of owners) {
       if (flocks >= Math.max(3, Math.round(owners.length / 8))) break;
       if (owner === "player") continue;
-      const yard = plan.slots.get(owner)?.yard[0];
-      if (!yard || plan.solid.has(cellKey(yard.x, yard.y))) continue;
-      if (random(seed, owner, "hens") > 0.6) continue;
+      // A household with a henhouse keeps hens, and they scratch about it.
+      const house = plan.places.find((b) => b.owner === owner);
+      const coop = house && plan.objects.find((o) => o.prop === "chickenCoop" && o.id.startsWith(`${house.id}-yard-`));
+      const hens = coop && yardStock.find((k) => k.id === "chicken");
+      const yard = hens ? coop.pos : plan.slots.get(owner)?.yard[0];
+      if (!yard || (!hens && plan.solid.has(cellKey(yard.x, yard.y)))) continue;
+      if (!hens && random(seed, owner, "hens") > 0.6) continue;
       let pick = random(seed, owner, "yard-species") * yardWeight;
       const species =
+        hens ??
         yardStock.find((k) => (pick -= k.keeping?.share ?? 1) < 0) ??
         yardStock[0];
       // Kept indoors: this house has them, you just do not see them.
@@ -4513,11 +4523,12 @@ export function planSettlement(
       }
       const most = species.groupSize[1];
       const members: FaunaMember[] = [];
-      for (let dy = -1; dy <= 1 && members.length < most; dy++)
+      for (let dy = -1; dy <= (hens ? 2 : 1) && members.length < most; dy++)
         for (let dx = -1; dx <= 1 && members.length < most; dx++) {
           const x = yard.x + dx,
             y = yard.y + dy;
           if (
+            (hens && propCells.has(cellKey(x, y))) ||
             plan.solid.has(cellKey(x, y)) ||
             plan.traffic.has(cellKey(x, y)) ||
             random(seed, owner, "hen", dx, dy) > 0.55

@@ -964,29 +964,39 @@ class ObliqueBuilding:
         d = ImageDraw.Draw(im)
         if self.roof == 'thatch':
             pal = self.thatch
-            for x in range(width):
-                strand = h2(x, 11) % 6
-                lag = h2(x // 3, 5) % 7
-                for y in range(rows):
-                    # Straw runs down the slope: tone by strand, with a soft
-                    # ragged shadow where each layer laps the one below.
-                    band = (y + lag) % 13
-                    step = 3 if y < rows * .5 else 2
-                    if strand == 0: step -= 1
-                    elif strand == 1: step += 1
-                    if band == 12: step -= 1
-                    if h2(x, y) % 19 == 0: step -= 1
-                    d.point((x, y), fill=pal[max(1, min(4, step))])
+            course_h = 7
+            for y in range(rows):
+                course, cy = divmod(y, course_h)
+                # The slope catches more of the light toward the ridge.
+                lit = 3 if y < rows * .4 else 2
+                bundle = 6 + h2(course, 3) % 3
+                offset = h2(course, 9) % bundle
+                for x in range(width):
+                    bx = (x + offset) % bundle
+                    # Each bundle hangs lowest at its middle: the course edge is a
+                    # row of rounded straw ends, not a ruled lap.
+                    u = (bx - (bundle - 1) / 2) / ((bundle - 1) / 2)
+                    end = course_h - 1 - round(2 * u * u)
+                    if cy > end: tone = lit - 2
+                    elif cy == end: tone = lit - 1
+                    # Straws run down the slope in short strokes.
+                    elif cy in (2, 3) and (x + h2(course, 5)) % 3 == 0 and h2(x, course) % 3: tone = lit - 1
+                    elif cy == 1 and 0 < bx < 3: tone = lit + 1
+                    else: tone = lit
+                    d.point((x, y), fill=pal[max(0, min(4, tone))])
             # The ridge roll, pegged down with crossed spars.
             d.rectangle((0, 0, width, 4), fill=pal[3])
             for x in range(0, width, 6):
                 d.line((x, 1, x + 3, 4), fill=pal[1]); d.line((x + 3, 1, x, 4), fill=pal[1])
             d.line((0, 0, width, 0), fill=pal[4]); d.line((0, 5, width, 5), fill=pal[1])
+            # A thick rounded eave: a lit roll, its shaded underside, and
+            # ragged straw ends; the corners turn under.
             for x in range(width):
-                hang = (1, 2, 3, 3, 2, 1)[x % 6] - 1
-                d.line((x, rows, x, rows + hang), fill=pal[2] if h2(x, 1) % 3 else pal[1])
-                d.point((x, rows + hang), fill=pal[0])
-                if hang: d.point((x, rows + hang - 1), fill=pal[1])
+                corner = min(x, width - 1 - x)
+                d.point((x, rows - 1), fill=pal[3])
+                d.point((x, rows), fill=pal[2])
+                if corner >= 1: d.point((x, rows + 1), fill=pal[1])
+                if corner >= 2 and h2(x, 1) % 3: d.point((x, rows + 2), fill=pal[0])
         elif self.roof_style in ('chinese', 'kawara', 'giwa'):
             d.rectangle((0, 0, width, rows), fill=pal[1])
             for x in range(-2, width + 2, 4):

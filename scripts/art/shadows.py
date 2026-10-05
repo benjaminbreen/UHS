@@ -3,10 +3,35 @@ This is a 2.5D silhouette approximation: source height maps to authored world he
 Building ground depth keeps a projected house from collapsing to a narrow stripe.
 """
 import json, math
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 from art.atlas import pack_atlas
 
-BUILDING_CAST_CAP=0.95
+BUILDING_CAST_CAP=0.55
+# Shadow leans cool, as palette.json's shadow hue does; flat grey reads as a hole.
+SHADE=(32,34,84)
+CONTACT=(30,28,62)
+
+
+def base_profile(opaque, bottom, reach):
+    """Each column's lowest solid pixel, where it stands within `reach` of the
+    ground line: the curve a footing actually meets the ground along."""
+    low={}
+    for x,y in opaque:
+        if y>low.get(x,-1):low[x]=y
+    return [(x,y) for x,y in sorted(low.items()) if y>=bottom-reach]
+
+
+def soften(mask, radius):
+    """Round a projected silhouette's corners and give it one dithered rim:
+    blurred and cut twice, solid inside the higher cut, checkered between."""
+    soft=mask.filter(ImageFilter.GaussianBlur(radius))
+    out=Image.new('L',mask.size)
+    sp,op=soft.load(),out.load()
+    for y in range(mask.size[1]):
+        for x in range(mask.size[0]):
+            v=sp[x,y]
+            if v>=118 or (v>=52 and (x+y)%2==0):op[x,y]=255
+    return out
 
 def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-shadows'):
     phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
@@ -49,26 +74,41 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
             upright=(bottom-top)>1.15*max(1,max(feet)-min(feet))
             ux,uy=(1,0) if model or not length or not upright else (vy/length*.75,-vx/length*.75)
             center=(min(feet)+max(feet))/2
+            # A building stands on its wall foot, which curves round a drum and
+            # runs back along a side wall: height is measured from that, column
+            # by column, or a round house casts from a ruled line.
+            ground=dict(base_profile(opaque,bottom,14)) if model else {}
             if alpha:
                 for x,y in opaque:
-                    elevation=(bottom-y)*height/max(1,bottom-top)
-                    points.append((round(center+(x-center)*ux+elevation*vx),round(bottom+(x-center)*uy+elevation*vy)))
+                    g=max(y,ground.get(x,bottom))
+                    elevation=(g-y)*height/max(1,bottom-top)
+                    points.append((round(center+(x-center)*ux+elevation*vx),round(g+(x-center)*uy+elevation*vy)))
             # Include a source-space ground pivot even for empty night projections.
             minx=min([0,left]+[x for x,y in points])-2
             maxx=max([w,right]+[x for x,y in points])+2
             miny=min([bottom-2-ground_depth]+[y-ground_depth for x,y in points])-1
             maxy=max([h,bottom+3]+[y+1 for x,y in points])+1
-            im=Image.new('RGBA',(maxx-minx+1,maxy-miny+1));d=ImageDraw.Draw(im)
-            for x,y in points:
-                d.rectangle((x-minx,y-miny-ground_depth,x-minx+1,y-miny+1),fill=(28,35,42,alpha))
-            # Never stretch or swing the contact area with the sun vector.
+            size=(maxx-minx+1,maxy-miny+1)
+            im=Image.new('RGBA',size);d=ImageDraw.Draw(im)
             if model:
-                d.rectangle((left-minx,bottom-miny-2,right-minx,bottom-miny+1),fill=(31,30,26,91))
+                cast=Image.new('L',size);cd=ImageDraw.Draw(cast)
+                for x,y in points:
+                    cd.rectangle((x-minx,y-miny-ground_depth,x-minx+1,y-miny+1),fill=255)
+                im.paste(SHADE+(alpha,),mask=soften(cast,2.2))
+                # The contact follows the wall foot, column by column, so a
+                # round house sits in a curve, not on a ruled bar. Never swung
+                # with the sun vector.
+                foot=Image.new('L',size);fd=ImageDraw.Draw(foot)
+                for x,y in base_profile(opaque,bottom,14):
+                    fd.line((x-minx,y-miny-1,x-minx,y-miny+1),fill=255)
+                contact=Image.new('RGBA',size,CONTACT+(91,))
+                im.alpha_composite(Image.composite(contact,Image.new('RGBA',size),soften(foot,1)))
             else:
+                for x,y in points:
+                    d.rectangle((x-minx,y-miny-ground_depth,x-minx+1,y-miny+1),fill=SHADE+(alpha,))
                 # Follow actual root, foot, or vessel-base pixels, not a generic oval.
-                for x,y in opaque:
-                    if y>=bottom-1:
-                        d.line((x-minx,bottom-miny,x-minx,bottom-miny+1),fill=(29,33,31,83))
+                for x,y in base_profile(opaque,bottom,3):
+                    d.line((x-minx,y-miny,x-minx,y-miny+1),fill=CONTACT+(83,))
             im.info['anchor']=[(model['anchor'][0] if model else w/2)-minx,h-miny]
             result[f"{phase['id']}:{name}"]=im
     atlas=pack_atlas(result,output or root/'public/packs',atlas_name,2048)

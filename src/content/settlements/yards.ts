@@ -13,6 +13,22 @@ export type YardProp = {
   /** Only for residents whose livelihood matches. */
   role?: RegExp;
   contents?: Record<string, number>;
+  /** Set down beside it, cells across and down from it (mirrored at random):
+   * a yard reads as worked in when things stand in the groups work leaves. */
+  with?: readonly YardCompanion[];
+};
+
+export type YardCompanion = Pick<YardProp, "prop" | "family" | "name" | "contents"> & {
+  dx: number;
+  dy: number;
+};
+
+const chopping: YardCompanion = {
+  prop: "choppingBlock",
+  family: "chopping-block",
+  name: "Chopping block",
+  dx: 1,
+  dy: 1,
 };
 
 export type YardKit = {
@@ -36,6 +52,7 @@ const stores: YardProp[] = [
     where: "wall",
     chance: 0.7,
     contents: { wood: 3 },
+    with: [chopping],
   },
 ];
 
@@ -63,6 +80,19 @@ const toft: YardKit = {
       name: "Beehive",
       where: "yard",
       chance: 0.2,
+      // Skeps stand in a row on the bee bench.
+      with: [{ prop: "beehive", family: "beehive", name: "Beehive", dx: 1, dy: 0 }],
+    },
+    {
+      prop: "washingLine",
+      family: "washing-line",
+      name: "Washing line",
+      where: "yard",
+      chance: 0.3,
+      with: [
+        { prop: "washTub", family: "wash-tub", name: "Wash tub", dx: 0, dy: 1 },
+        { prop: "basket", family: "open-basket", name: "Basket", dx: 1, dy: 1 },
+      ],
     },
     {
       prop: "flowerTub",
@@ -102,6 +132,7 @@ const toft: YardKit = {
       name: "Henhouse",
       where: "yard",
       chance: 0.35,
+      with: [{ prop: "bucket", family: "bucket", name: "Feed bucket", dx: 1, dy: 1 }],
     },
     {
       prop: "hayRick",
@@ -110,6 +141,7 @@ const toft: YardKit = {
       where: "yard",
       chance: 0.5,
       role: /farm|plough|husband|peasant|herd|shepherd|dairy|cow|drover/i,
+      with: [{ prop: "pitchfork", family: "pitchfork", name: "Pitchfork", dx: 1, dy: 0 }],
     },
     {
       prop: "dovecote",
@@ -167,6 +199,7 @@ const croft: YardKit = {
       name: "Drying rack",
       where: "yard",
       chance: 0.45,
+      with: [{ prop: "basket", family: "open-basket", name: "Basket", dx: 1, dy: 1 }],
     },
     {
       prop: "hayRick",
@@ -209,6 +242,7 @@ const compound: YardKit = {
       name: "Mortar and pestle",
       where: "door",
       chance: 0.75,
+      with: [{ prop: "calabash", family: "calabash", name: "Calabash", dx: 1, dy: 1 }],
     },
     {
       prop: "calabash",

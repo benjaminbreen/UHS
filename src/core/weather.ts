@@ -197,7 +197,8 @@ export function groundState(
   const open = Math.max(0, 1 - snow * 1.6);
   return {
     mud: Math.min(1, base + weather.wetness * 0.7) * open,
-    puddles: Math.min(1, base * 0.7 + weather.wetness) * open,
+    // Standing water needs rain; a muddy season only lets it spread further.
+    puddles: Math.min(1, weather.wetness * (1 + base)) * open,
     frozen: weather.tempC <= -1,
     snow,
   };

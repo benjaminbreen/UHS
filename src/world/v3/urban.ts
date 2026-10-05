@@ -414,6 +414,19 @@ export function urbanNeighborhood(
     return true;
   };
   const fits = (r: Rect) => api.dry(r) && free(r);
+  // The line runs straight through, so no footprint may stand on its bed or
+  // the cell either side; it is reserved before anything is placed.
+  const railBed = new Set<string>();
+  if (layout.rail) {
+    const r = layout.rail;
+    const bed =
+      r.axis === "x"
+        ? { x: r.lo, y: r.level - 1, w: r.hi - r.lo + 1, h: r.span + 2 }
+        : { x: r.level - 1, y: r.lo, w: r.span + 2, h: r.hi - r.lo + 1 };
+    reserve(bed);
+    for (let y = bed.y; y < bed.y + bed.h; y++)
+      for (let x = bed.x; x < bed.x + bed.w; x++) railBed.add(cellKey(x, y));
+  }
   // Where an oblique house's side wall and roof overhang its footprint, no
   // other house may stand, and it may not stand in another's.
   const bodies = new Set<string>(),
@@ -983,6 +996,8 @@ export function urbanNeighborhood(
     const door = { ...lot.point, w: 1, h: 1 },
       work = { ...lot.workPoint, w: 1, h: 1 };
     if (!fits(lot.rect)) return false;
+    // Nor may a roof or side wall draw over the rails.
+    if (overhang(lot).some((r) => cells(r).some((k) => railBed.has(k)))) return false;
     if (roofed) {
       // The hall, the church and the venues were placed by other hands.
       for (; noted < lots.length; noted++) note(lots[noted]);
