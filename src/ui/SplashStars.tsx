@@ -53,6 +53,7 @@ export function SplashStars() {
       const rect = canvas.getBoundingClientRect();
       w = Math.max(1, Math.floor(rect.width / scale));
       h = Math.max(1, Math.floor(rect.height / scale));
+      if (canvas.width === w && canvas.height === h) return;
       canvas.width = w;
       canvas.height = h;
       seed(performance.now());
@@ -155,14 +156,19 @@ export function SplashStars() {
     host.addEventListener("click", place);
     resize();
     nextShot = performance.now() + 6000 + Math.random() * 8000;
+    let resizeFrame = 0;
     const observer = new ResizeObserver(() => {
-      resize();
-      if (still) draw(performance.now());
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        resize();
+        if (still) draw(performance.now());
+      });
     });
     observer.observe(canvas);
     frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(resizeFrame);
       observer.disconnect();
       host.removeEventListener("click", place);
     };

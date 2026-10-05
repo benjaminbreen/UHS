@@ -36,8 +36,8 @@ export function BannerSmoke({
       const rect = image.getBoundingClientRect();
       w = Math.max(1, Math.floor(rect.width / cell));
       h = Math.max(1, Math.floor(rect.height / cell));
-      canvas.width = w;
-      canvas.height = h;
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
       const scale = rect.width / image.naturalWidth;
       const full = image.naturalHeight * scale;
       const crop = Math.max(0, full - rect.height);
@@ -82,11 +82,16 @@ export function BannerSmoke({
     // layout pick up the dimensions when they exist.
     layout();
     image.addEventListener("load", layout);
-    const observer = new ResizeObserver(layout);
+    let resizeFrame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(layout);
+    });
     observer.observe(image);
     frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(resizeFrame);
       image.removeEventListener("load", layout);
       observer.disconnect();
     };

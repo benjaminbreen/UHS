@@ -1,5 +1,7 @@
 import type { CultureId } from "../content/history/types";
 import type { Stem, Voice } from "./score";
+import { andeanThemes } from "./andean-themes";
+import { neolithicThemes } from "./neolithic-themes";
 
 /** One repeating line. Its length is its own; it need not divide the bar. */
 export interface Layer {
@@ -33,6 +35,7 @@ export interface LayeredTheme {
   evidence: string;
   bpm: number;
   meter: number;
+  beatUnit?: 4 | 8;
   bars: number;
   key: string;
   /** Cents offset per pitch class, 0 = C. */
@@ -43,10 +46,13 @@ export interface LayeredTheme {
   anywhere?: boolean;
   /** Reverb send and length in seconds; default a modest room. */
   reverb?: [number, number];
+  sections?: { bar: number; label: string }[];
   layers: Layer[];
 }
 
 export const layeredThemes: LayeredTheme[] = [
+  ...andeanThemes,
+  ...neolithicThemes,
   {
     id: "kumasi-horns",
     title: "Horns at Kumasi",

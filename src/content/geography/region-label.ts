@@ -1,4 +1,4 @@
-import { regionsByArea } from "../characters/resolve";
+import { inRegion, regionsByArea } from "../characters/resolve";
 import type { CultureId } from "../history/types";
 
 /**
@@ -11,13 +11,7 @@ export function regionAt(
   lon: number,
   lat: number,
 ): { id: string; label: string; culture: CultureId } | undefined {
-  return byArea.find(
-    (r) =>
-      lon >= r.bounds[0] &&
-      lon <= r.bounds[2] &&
-      lat >= r.bounds[1] &&
-      lat <= r.bounds[3],
-  );
+  return byArea.find((r) => inRegion(r, lon, lat));
 }
 
 /**
@@ -29,14 +23,7 @@ export function regionAt(
  * thing on the map, next to a place name that is one of the most specific.
  */
 export function describedRegionAt(lon: number, lat: number) {
-  return byArea.find(
-    (r) =>
-      !r.id.startsWith("backstop-") &&
-      lon >= r.bounds[0] &&
-      lon <= r.bounds[2] &&
-      lat >= r.bounds[1] &&
-      lat <= r.bounds[3],
-  );
+  return byArea.find((r) => !r.id.startsWith("backstop-") && inRegion(r, lon, lat));
 }
 
 /* A few naming-atlas labels are filing conventions rather than names for

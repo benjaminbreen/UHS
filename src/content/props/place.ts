@@ -86,6 +86,14 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     world.pack.setting?.settlement === "port";
   // How far out the middle of town reaches, from how far the buildings spread.
   let inner = 14;
+  // The player starts at their own door, so the middle of town is the
+  // settlement nearest that door, not the door itself.
+  const middle =
+    [...world.settlements].sort(
+      (a, b) =>
+        Math.hypot(a.x - world.spawn.x, a.y - world.spawn.y) -
+        Math.hypot(b.x - world.spawn.x, b.y - world.spawn.y),
+    )[0] ?? world.spawn;
   const coast =
     world.pack.setting?.settlement === "port" ||
     world.initialObjects.some((o) => o.prop === "shellMidden");
@@ -220,7 +228,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     const where = propDefs[key]?.where;
     if (!where) return true;
     const central =
-      Math.hypot(at.x - world.spawn.x, at.y - world.spawn.y) < inner;
+      Math.hypot(at.x - middle.x, at.y - middle.y) < inner;
     if (where === "backyard") return !central;
     return works || !urbanPack;
   };
@@ -249,7 +257,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       for (const b of world.places)
         far = Math.max(
           far,
-          Math.hypot(b.x - world.spawn.x, b.y - world.spawn.y),
+          Math.hypot(b.x - middle.x, b.y - middle.y),
         );
       inner = Math.max(14, far * 0.45);
     }

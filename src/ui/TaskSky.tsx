@@ -7,6 +7,7 @@ import { SkyRenderer, type SkyLook } from "./skill-sky";
 import { taskFigure } from "./task-figure";
 import { taskView, tasksOf, type Part, type TaskSource, type TaskView } from "./task-view";
 import { wikiSummary, type WikiSummary } from "./wiki";
+import { smallMemoryDevice } from "../runtime/device";
 import "./task-sky.css";
 
 const EVIDENCE = {
@@ -405,6 +406,8 @@ function useSkyline(runtime: Runtime) {
   const fallback = useMemo(() => shapes(runtime), [runtime]);
   const [cut, setCut] = useState<HTMLCanvasElement[]>(fallback);
   useEffect(() => {
+    // Decorative cut-outs must not decode another full building atlas on a phone.
+    if (smallMemoryDevice()) return;
     let live = true;
     const p = runtime.engine.state.player.pos;
     const here = p.space === "outside" ? p : (world.place(p.space)?.entrance ?? p);

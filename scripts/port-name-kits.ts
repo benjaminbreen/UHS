@@ -39,7 +39,7 @@ const geo = JSON.parse(
   readFileSync("scripts/data/name-regions.json", "utf8"),
 ) as {
   _skip: string[];
-  regions: Record<string, { bounds: number[]; culture: string }>;
+  regions: Record<string, { bounds: number[]; except?: number[]; culture: string }>;
 };
 const skip = new Set(geo._skip);
 
@@ -212,6 +212,7 @@ type Region = {
   id: string;
   label: string;
   bounds: number[];
+  except?: number[];
   culture: string;
   windows: Window[];
 };
@@ -241,6 +242,7 @@ for (const [zone, byRegion] of Object.entries(REGION_NAME_MAPPING) as [
       id,
       label: `${regionName}`,
       bounds: place.bounds,
+      ...(place.except && { except: place.except }),
       culture: place.culture,
       windows: [],
     };
@@ -488,7 +490,9 @@ writeFileSync(
       .map(
         (r) =>
           `  {\n    id: ${JSON.stringify(r.id)},\n    label: ${JSON.stringify(r.label)},\n` +
-          `    bounds: ${JSON.stringify(r.bounds)},\n    culture: ${JSON.stringify(r.culture)},\n` +
+          `    bounds: ${JSON.stringify(r.bounds)},\n` +
+          (r.except ? `    except: ${JSON.stringify(r.except)},\n` : "") +
+          `    culture: ${JSON.stringify(r.culture)},\n` +
           `    windows: [\n` +
           r.windows
             .map(

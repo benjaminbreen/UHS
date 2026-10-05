@@ -28,6 +28,7 @@ import {
   Hourglass,
   Map as MapIcon,
   MessageCircle,
+  CircleHelp,
   Minus,
   Plus,
   Settings,
@@ -66,6 +67,9 @@ import { pageTurn } from "../audio/handling";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
 );
+const FontPicker = import.meta.env.DEV
+  ? lazy(() => import("../dev/FontPicker").then((m) => ({ default: m.FontPicker })))
+  : null;
 const DialogueTester = import.meta.env.DEV
   ? lazy(() =>
       import("../dev/DialogueTester").then((m) => ({ default: m.DialogueTester })),
@@ -122,6 +126,17 @@ import type { SkillId } from "../core/skills";
 import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
 import { WikiFocus } from "./WikiFocus";
+import {
+  ACCENTS,
+  ACCENT_KEY,
+  BACKGROUNDS,
+  BACKGROUND_KEY,
+  accentHex,
+  applyTheme,
+  stored,
+  type AccentId,
+  type BackgroundId,
+} from "./theme";
 import {
   CHARACTER_SPRITES_KEY,
   defaultLiveGraphicsSettings,
@@ -207,6 +222,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     return () => director.dispose();
   }, [active]);
   const [restOpen, setRestOpen] = useState(false);
+  const [card, setCard] = useState<PlotCardData>();
   const [inspecting, setInspecting] = useState<string>();
   const [modal, setModal] = useState<
     | "time"
@@ -223,6 +239,23 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "evening"
     | null
   >(null);
+  const modalPanel = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const panel = modalPanel.current;
+    if (!panel) return;
+    const previous = document.activeElement as HTMLElement | null;
+    panel.querySelector<HTMLButtonElement>(".close-modal")?.focus({ preventScroll: true });
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const controls = [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]')]
+        .filter((el) => el.tabIndex >= 0 && el.getClientRects().length && !el.closest("[inert], [hidden]"));
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    panel.addEventListener("keydown", trap);
+    return () => { panel.removeEventListener("keydown", trap); previous?.focus({ preventScroll: true }); };
+  }, [modal]);
   const evening = runtime.engine.state.evening;
   const eveningSeen = useRef(evening?.day);
   useEffect(() => {
@@ -279,6 +312,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setNarratorError(turn.error ?? "");
   };
   const [settingsTab, setSettingsTab] = useState("Display");
+  const [accent, setAccent] = useState<AccentId>(() => stored(ACCENT_KEY, ACCENTS, "gold"));
+  const [background, setBackground] = useState<BackgroundId>(() => stored(BACKGROUND_KEY, BACKGROUNDS, "night"));
   const realLanguage = useRealLanguage();
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -286,6 +321,35 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [sidebar, setSidebar] = useState(true);
   const [sheetSnap, setSheetSnap] = useState<"peek" | "half" | "full">("peek");
   const sheetPointerStart = useRef<number | null>(null);
+  const sheetOpen = phone && sidebar && sheetSnap !== "peek";
+  const [hintsOn, setHintsOn] = useState(true);
+  const hintsShown =
+    hintsOn && !phone && !modal && !card && !narratorOpen && !restOpen && !audioOpen && !graphicsOpen;
+  // A minute on screen, counted afresh each time it comes back.
+  useEffect(() => {
+    if (!hintsShown) return;
+    const t = window.setTimeout(() => setHintsOn(false), 60_000);
+    return () => window.clearTimeout(t);
+  }, [hintsShown]);
+  const touchBlocked = !!modal || audioOpen || characterOpen || portraitOpen || !!card || !!inspecting || !!sky || !!task || (phone && (sheetOpen || narratorOpen || restOpen));
+  useEffect(() => { if (touchBlocked) runtime.stop(); }, [touchBlocked, runtime]);
+  useEffect(() => {
+    if (!modal && !audioOpen && !sky && !task) return;
+    setRestOpen(false);
+    setNarratorOpen(false);
+    if (phone) setSidebar(false);
+  }, [modal, audioOpen, sky, task, phone]);
+  useEffect(() => {
+    if (!sheetOpen) return;
+    setRestOpen(false);
+    setNarratorOpen(false);
+    runtime.stop();
+  }, [sheetOpen, runtime]);
+  useEffect(() => {
+    if (!phone || (!restOpen && !narratorOpen)) return;
+    setSidebar(false);
+    runtime.stop();
+  }, [phone, restOpen, narratorOpen, runtime]);
   const [mapRegion, setMapRegion] = useState(false);
   const [nearbyAll, setNearbyAll] = useState(false);
   const [sideTab, setSideTab] = useState<
@@ -368,7 +432,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, obs.clock, modal]);
-  const [card, setCard] = useState<PlotCardData>();
   const [storyLook, setStoryLook] = useState<StoryLook>(() => {
     try {
       return localStorage.getItem(STORY_LOOK_KEY) === "pixel" ? "pixel" : "framed";
@@ -495,11 +558,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     runtime.setZoom(2);
   };
   useEffect(() => {
-    if (selection && window.innerWidth <= 640) {
+    if (selection && phone) {
       setSidebar(true);
       setSheetSnap("half");
     }
-  }, [selection?.id]);
+  }, [selection?.id, phone]);
   const toggleCharacterPanel = () => {
     if (sidebar) setSidebar(false);
     else {
@@ -702,6 +765,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     () => audio?.setSetting(setting?.culture, setting?.year),
     [audio, setting?.culture, setting?.year],
   );
+  useEffect(() => applyTheme(accent, background, setting?.culture), [accent, background, setting?.culture]);
   useEffect(() => {
     if (modal === "notebook") void audio?.sound(pageTurn(), "page");
   }, [audio, modal]);
@@ -764,7 +828,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const evidence =
     pack.evidence.find((e) => e.id === selection?.claim) ?? pack.evidence[0];
   return (
-    <div className={`app ${!sidebar ? "sidebar-hidden" : ""}`}>
+    <div className={`app ${!sidebar ? "sidebar-hidden" : ""}`}
+      data-world-input-blocked={touchBlocked || undefined}
+      data-phone-overlay={phone && (sheetOpen ? "sheet" : restOpen ? "rest" : narratorOpen ? "narrator" : undefined)}>
+      {FontPicker && (
+        <Suspense fallback={null}>
+          <FontPicker />
+        </Suspense>
+      )}
       {characterOpen && (
         <Suspense fallback={<div data-modal="true">Loading characters…</div>}>
           <CharacterLab
@@ -781,7 +852,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           />
         </Suspense>
       )}
-      <header className="topbar">
+      <header className="topbar" inert={!!modal || audioOpen}>
         {phone ? (
           <button
             className="icon-button brand-menu"
@@ -880,8 +951,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           </a>
         </div>
       </header>
-      <main className="workspace">
+      <main className="workspace" inert={!!modal || audioOpen}>
         <section className="world-pane">
+          {phone && (sheetOpen || restOpen || narratorOpen) && (
+            <button className="phone-panel-dismiss" aria-label="Close open panel"
+              onClick={() => { setSidebar(false); setRestOpen(false); setNarratorOpen(false); }} />
+          )}
           <div
             className="game-container"
             ref={mount}
@@ -948,10 +1023,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             injury={p.injury}
             clock={obs.clock}
           />
-          <SkillToast
+          {!phone && <SkillToast
             gains={runtime.engine.skillGains}
             onOpen={() => setSky({})}
-          />
+          />}
           {sky && (
             <SkillSky
               skills={runtime.engine.skills()}
@@ -986,6 +1061,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             sprite={(item) => runtime.item(item)?.sprite}
           />
           <TouchControls
+            enabled={!touchBlocked}
             scene={() =>
               game.current?.scene.getScene("world") as WorldScene | undefined
             }
@@ -996,8 +1072,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onPrimaryUp={() => runtime.releaseCharge()}
             onAlternate={() => runVerb("alternate")}
           />
-          <WorkCard runtime={runtime} />
-          <Toasts events={obs.events} />
+          <div className="world-status">
+            <Toasts events={obs.events} omitText={view.notice} />
+            {(view.notice || view.running) && (
+              <div className="world-notice" data-walking={view.running || undefined} role="status">
+                {view.running ? <><Footprints size={13} /><span>Walking…</span><button onClick={() => runtime.stop()}><Pause size={11} /> Stop</button></> : view.notice}
+              </div>
+            )}
+            {borderHint && <div className="world-notice border-hint" role="status" aria-label="Map travel">{borderHint}</div>}
+            <WorkCard runtime={runtime} />
+          </div>
           <div className="prop-prompts" data-testid="prop-prompts">
             {obs.manifest.content === 1 && (
               <span>
@@ -1097,36 +1181,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               </button>
             </div>
           )}
-          {borderHint && (
-            <div
-              className="world-notice border-hint"
-              role="status"
-              aria-label="Map travel"
-            >
-              {borderHint}
-            </div>
-          )}
-          {(view.notice || view.running) && (
-            <div
-              // A new notice arrives; the same one repeated does not twitch.
-              key={view.running ? "walking" : view.notice}
-              className="world-notice"
-              data-walking={view.running || undefined}
-              role="status"
-            >
-              {view.running ? (
-                <>
-                  <Footprints size={13} />
-                  <span>Walking…</span>
-                  <button onClick={() => runtime.stop()}>
-                    <Pause size={11} /> Stop
-                  </button>
-                </>
-              ) : (
-                view.notice
-              )}
-            </div>
-          )}
           {phone && (
             <button
               className="world-minimap"
@@ -1149,7 +1203,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               data-unread={
                 runtime.engine.state.narration?.length ? true : undefined
               }
-              onClick={() => setNarratorOpen(true)}
+              onClick={() => { setRestOpen(false); setNarratorOpen(true); }}
             >
               <ScrollText size={20} />
             </button>
@@ -1223,7 +1277,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 <button
                   aria-label="Rest"
                   aria-expanded={restOpen}
-                  onClick={() => setRestOpen((open) => !open)}
+                  onClick={() => { setNarratorOpen(false); setRestOpen((open) => !open); }}
                 >
                   <Hourglass size={17} />
                   <span>Rest</span>
@@ -1244,7 +1298,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 value={command}
                 disabled={narratorBusy}
                 onChange={(e) => setCommand(e.target.value)}
-                onFocus={() => setNarratorOpen(true)}
+                onFocus={() => { setRestOpen(false); setNarratorOpen(true); }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") setNarratorOpen(false);
                 }}
@@ -1254,30 +1308,41 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 <ArrowRight size={19} />
               </button>
             </form>
-            <div className="keyboard-hint">
-              <span className="hint-event" />
+            <div className="keyboard-hint" data-shown={hintsShown || undefined} aria-hidden={!hintsShown}>
               <span>
                 <kbd>W</kbd>
                 <kbd>A</kbd>
                 <kbd>S</kbd>
-                <kbd>D</kbd> walk
+                <kbd>D</kbd> Walk
               </span>
               <span>
-                <kbd>SHIFT</kbd> run
+                <kbd>Shift</kbd> Run
               </span>
               <span title="Tap to jump; hold to charge. A running jump clears an extra tile.">
-                <kbd>SPACE</kbd> jump (hold: long)
+                <kbd>Space</kbd> Jump
               </span>
-              <span title="F does the action named on screen; E does the second one.">
-                <kbd>F</kbd> act <kbd>E</kbd> alt
+              <span title="F does the action named on screen.">
+                <kbd>F</kbd> Act
+              </span>
+              <span title="E does the second action named on screen.">
+                <kbd>E</kbd> Alt
               </span>
               <span>
-                <kbd>M</kbd> map
+                <kbd>M</kbd> Map
               </span>
             </div>
+            <button
+              className="hints-toggle"
+              aria-label="Show controls"
+              aria-pressed={hintsOn}
+              onClick={() => setHintsOn((on) => !on)}
+            >
+              <CircleHelp size={19} />
+            </button>
           </footer>
         </section>
         <aside className="sidebar" data-sheet-snap={sheetSnap}>
+          <div className="phone-sheet-header">
           <button
             className="mobile-sheet-grabber"
             aria-label={
@@ -1287,9 +1352,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             }
             onPointerDown={onSheetPointerDown}
             onPointerUp={onSheetPointerUp}
+            onPointerCancel={() => { sheetPointerStart.current = null; }}
           >
             <span />
           </button>
+          {phone && <button className="phone-sheet-close" aria-label="Close character panel" onClick={() => setSidebar(false)}><X size={20} /></button>}
+          </div>
           <button
             ref={sheetSummary}
             className="mobile-sheet-summary"
@@ -1742,6 +1810,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           }}
         >
           <section
+            ref={modalPanel}
             className={`modal modal-${modal}`}
             role="dialog"
             aria-modal="true"
@@ -1779,7 +1848,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 onClose={() => setModal(null)}
                 onAction={doAction}
                 onSelect={setCharacterId}
-                onTask={setTask}
+                onTask={(source) => { setModal(null); setTask(source); }}
               />
             )}
             {modal === "inventory" && (
@@ -2427,6 +2496,54 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       <option value="framed">Framed</option>
                       <option value="pixel">Pixel</option>
                     </select>
+                  </div>
+                  <div className="settings-row">
+                    <span>Accent</span>
+                    <div className="swatches" role="radiogroup" aria-label="Accent colour">
+                      {ACCENTS.map((a) => (
+                        <button
+                          key={a.id}
+                          role="radio"
+                          aria-checked={accent === a.id}
+                          aria-label={a.name}
+                          data-tip={a.name}
+                          data-culture={a.id === "culture" || undefined}
+                          style={{ background: accentHex(a.id, setting?.culture) }}
+                          onClick={() => {
+                            setAccent(a.id);
+                            try {
+                              localStorage.setItem(ACCENT_KEY, a.id);
+                            } catch {
+                              /* private mode */
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="settings-row">
+                    <span>Background</span>
+                    <div className="swatches" role="radiogroup" aria-label="Background">
+                      {BACKGROUNDS.map((b) => (
+                        <button
+                          key={b.id}
+                          role="radio"
+                          aria-checked={background === b.id}
+                          aria-label={b.name}
+                          data-tip={b.name}
+                          data-bg
+                          style={{ background: `linear-gradient(135deg, ${b.bg3} 50%, ${b.bg} 50%)` }}
+                          onClick={() => {
+                            setBackground(b.id);
+                            try {
+                              localStorage.setItem(BACKGROUND_KEY, b.id);
+                            } catch {
+                              /* private mode */
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
                   <h3>Narrator</h3>
                   <div className="settings-row">

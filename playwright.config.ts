@@ -11,13 +11,15 @@ export default defineConfig({
     // Another checkout's dev server may already hold 5173.
     baseURL: process.env.UHS_BASE_URL ?? "http://127.0.0.1:5173",
     viewport: { width: 1440, height: 1000 },
-    launchOptions: {
-      ...(process.env.CHROME_PATH
-        ? { executablePath: process.env.CHROME_PATH }
-        : { channel: "chrome" }),
-    },
     screenshot: "only-on-failure",
+    trace: "retain-on-failure",
+    video: "retain-on-failure",
   },
+  projects: [
+    { name: "chromium", use: { browserName: "chromium", launchOptions: process.env.CHROME_PATH
+      ? { executablePath: process.env.CHROME_PATH } : { channel: "chrome" } } },
+    { name: "mobile-webkit", testMatch: /mobile\.spec\.ts/, use: { browserName: "webkit" } },
+  ],
   // Measured on the 27-spec sample: 40 minutes serial, 5 at six workers, with
   // the same tests failing either way. Half the cores leaves room for the one
   // Vite process everything shares.

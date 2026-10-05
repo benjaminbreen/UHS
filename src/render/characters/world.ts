@@ -53,11 +53,14 @@ export class WorldCharacters {
     prop?: CarriedArt;
     used: number;
     ahead: boolean;
+    player: boolean;
   }>();
+  private playerFrames = new Set<string>();
   private propPixels = new WeakMap<CarriedArt, Uint8ClampedArray>();
   private pool: { worker: Worker; busy?: string }[] = [];
   private workersStarted = false;
-  private limit = smallMemoryDevice() ? 128 : 384;
+  private preloadPlayer = smallMemoryDevice();
+  private limit = this.preloadPlayer ? 128 : 384;
   private serial = 0;
   /** Interned appearance descriptions: the per-frame cache key must stay short. */
   private appearanceTokens = new Map<string, number>();
@@ -155,7 +158,7 @@ export class WorldCharacters {
           const pending = this.pending.get(signature);
           this.pending.delete(signature);
           slot.busy = undefined;
-          if (pending && this.scene.time.now - pending.used < 2000) {
+          if (pending && !this.cache.has(signature) && this.scene.time.now - pending.used < 2000) {
             timed("character install", () => {
               const canvas = document.createElement("canvas");
               canvas.width = canvas.height = 80;
@@ -200,7 +203,7 @@ export class WorldCharacters {
       let best = -1;
       for (const [signature, job] of this.pending) {
         if (busy.has(signature)) continue;
-        const priority = signature === player ? 3 : wanted.has(signature) ? 2 : job.ahead ? 1 : 0;
+        const priority = signature === player ? 3 : wanted.has(signature) ? 2 : job.player && this.playerFrames.has(signature) ? 1.5 : job.ahead ? 1 : 0;
         if (priority > best) [selected, best] = [signature, priority];
       }
       if (!selected) continue;
@@ -272,10 +275,12 @@ export class WorldCharacters {
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
       art = this.carried(prop);
-    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}:${turn}:${condition}:${this.renderer}`;
+    const signatureFor = (pose: CharacterPose, frame: number) => `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}:${turn}:${condition}:${this.renderer}`;
+    const signature = signatureFor(pose, frame);
     this.wanted.set(actor.id, signature);
     if (workerDrawn(this.renderer)) this.startWorkers();
-    if (this.pool.length && workerDrawn(this.renderer)) {
+    // A worker's frame arrives a beat late; the player's own turn must show at once.
+    if (this.pool.length && workerDrawn(this.renderer) && (actor.id !== "player" || this.cache.has(signature))) {
       const preset = lightingPreset(this.light);
       const request: CharacterFrameRequest = {
         signature, renderer: this.renderer, appearance: a,
@@ -287,18 +292,29 @@ export class WorldCharacters {
           cool: preset.ambientAlpha ? `#${preset.ambient}` : "#241c38",
         },
       };
-      for (const ahead of turn ? [false] : [false, true]) {
-        const next = ahead ? (frame + 1) % frameCount(pose) : frame;
-        const key = ahead
-          ? `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${next}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}:${turn}:${condition}:${this.renderer}`
-          : signature;
+      const frames: { pose: CharacterPose; frame: number }[] = [{ pose, frame }];
+      if (!turn) {
+        frames.push({ pose, frame: (frame + 1) % frameCount(pose) });
+        // Prepare the player's whole stride while idle; NPCs need only the next frame.
+        if (this.preloadPlayer && actor.id === "player" && ["breathe", "idle", "walk", "run", "wade"].includes(pose))
+          for (const gait of (pose === "wade" ? ["wade"] : ["walk", "run"]) as CharacterPose[])
+            for (let next = 0; next < frameCount(gait); next++) frames.push({ pose: gait, frame: next });
+      }
+      for (const next of frames) {
+        const key = signatureFor(next.pose, next.frame);
+        const ahead = key !== signature;
+        if (this.preloadPlayer && actor.id === "player" && !turn) {
+          this.playerFrames.delete(key);
+          this.playerFrames.add(key);
+          if (this.playerFrames.size > 48) this.playerFrames.delete(this.playerFrames.values().next().value!);
+        }
         if (this.cache.has(key)) continue;
         const pending = this.pending.get(key);
         if (pending) {
           pending.used = this.scene.time.now;
           if (!ahead) pending.ahead = false;
         } else if (this.pending.size < 128)
-          this.pending.set(key, { request: { ...request, signature: key, frame: next }, prop: art, used: this.scene.time.now, ahead });
+          this.pending.set(key, { request: { ...request, ...next, signature: key }, prop: art, used: this.scene.time.now, ahead, player: actor.id === "player" });
       }
       this.pump();
       let entry = this.cache.get(signature);
@@ -364,7 +380,7 @@ export class WorldCharacters {
         this.lastFrames.delete(id);
         this.wanted.delete(id);
       }
-    const pinned = new Set(this.lastFrames.values());
+    const pinned = new Set([...this.lastFrames.values(), ...this.playerFrames]);
     const entries = [...this.cache].sort((a, b) => a[1].used - b[1].used);
     for (const [signature, entry] of entries)
       if (!pinned.has(signature) &&
@@ -387,6 +403,7 @@ export class WorldCharacters {
     this.frameSignatures.clear();
     this.lastFrames.clear();
     this.wanted.clear();
+    this.playerFrames.clear();
     this.appearances.clear();
     this.appearanceTokens.clear();
   }

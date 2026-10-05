@@ -301,7 +301,7 @@ function bareHabitatTile(
       if (d < -VERGE) continue;
       // Verge: packed earth against the stones, breaking up into the turf.
       const grit = hash(gx + px, gy + py, 883),
-        keep = d > -1.2 ? 1 : d > -2.6 ? 0.8 : d > -3.6 ? 0.42 : 0.16;
+        keep = d > -1.6 ? 1 : 0;
       if (grit > keep) continue;
       const tone = d > -1.2 ? soil[1] : soil[grit < keep * 0.35 ? 3 : 2];
       pixels[i] = tone[0];
@@ -710,10 +710,7 @@ function rasterGroundTile(
       const mottling = composition?.mottle ?? 0.65;
       let shaded = false;
       if (!frozen && !tilled && mottling > 0) {
-        const m =
-          noise(wx, wy, 23, 601) * 0.62 +
-          noise(wx, wy, 8, 602) * 0.38 +
-          (hash(wx >> 1, wy >> 1, 603) - 0.5) * 0.05;
+        const m = noise(wx, wy, 23, 601) * 0.62 + noise(wx, wy, 8, 602) * 0.38;
         const step =
           m < 0.3 ? mottle.deep : m < 0.41 ? mottle.shade : m > 0.61 ? mottle.light : 0;
         // Turf shades toward its own dark green: the shared shadow law leans
@@ -731,8 +728,8 @@ function rasterGroundTile(
         // hatch reads as dither noise rather than as grass.
         const clump = noise(wx, wy, 12, 611) * 0.6 + noise(wx, wy, 5, 612) * 0.4;
         let mark = swardHatch(wx, wy);
-        if (mark === 1 && clump < 0.5 && hash(wx, wy, 613) > 0.1) mark = 0;
-        if (mark === 2 && clump < 0.56) mark = 0;
+        if (mark === 1 && clump < 0.6) mark = 0;
+        if (mark === 2 && clump < 0.66) mark = 0;
         if (mark === 1) {
           const w = band === 1 ? 0.34 : band === 2 ? 0.55 : 0.5;
           put(
@@ -751,11 +748,13 @@ function rasterGroundTile(
         // Fine grain alone leaves a field one flat value when the camera
         // pulls back. The broad terms are what give it shape at low zoom:
         // grazed ground pales off, hollows and shaded turf go deeper.
-        const wash = Math.round(
-          (noise(wx, wy, 14, 469) - 0.5) * 12 +
-            (noise(wx, wy, 340, 471) - 0.5) * 14 +
-            (noise(wx, wy, 88, 473) - 0.5) * 8,
-        );
+        // In steps of the ramp, not a continuous blend: a blend reads as noise.
+        const wash =
+          Math.round(
+            ((noise(wx, wy, 14, 469) - 0.5) * 12 +
+              (noise(wx, wy, 340, 471) - 0.5) * 14 +
+              (noise(wx, wy, 88, 473) - 0.5) * 8) / 6,
+          ) * 6;
         put(px, py, rgb, wash + (earthSpeckle(wx, wy) ? -10 : 0));
       } else {
         const grain = materialGrain(wx, wy);
@@ -1051,46 +1050,16 @@ function rasterGroundTile(
           (hash(Math.floor(wx / 2), Math.floor(wy / 2), 437) +
             hash(Math.floor(wx / 3), Math.floor(wy / 3), 439) -
             1) *
-            0.08 * (composition?.pathEdgeBreakup ?? 1) +
+            0.025 * (composition?.pathEdgeBreakup ?? 1) +
           (noise(wx, wy, 21, 463) - 0.5) *
             0.06 * (composition?.pathEdgeBreakup ?? 1);
         // Wear is not even along a road: whole stretches sit a band lighter or
         // darker than their neighbours.
         const worn = path + interlock + (noise(wx, wy, 96, 467) - 0.5) * 0.08;
         const shoulder = 0.68 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
-        // Dust and thinned turf beside the road: warm soil stippled into the
-        // grass, thickest at the edge and gone within a few pixels. Patchy
-        // along the road so it never reads as a second outline.
-        if (field && grassy && inside && worn > 0.2 && worn <= 0.48) {
-          const w = (worn - 0.2) / 0.28,
-            patch = 0.45 + noise(wx, wy, 17, 479) * 0.9;
-          if (hash(wx, wy, 481) < w * w * 0.7 * patch) {
-            const i = (py * 16 + px) * 4,
-              k0 = 0.22 + w * 0.3;
-            for (let k = 0; k < 3; k++)
-              pixels[i + k] = Math.round(
-                pixels[i + k] * (1 - k0) + soil[1][k] * k0,
-              );
-          }
-        }
-        // On turf the worn centre is narrower than the material boundary:
-        // the shoulder is a dither of soil into grass, not a filled band.
-        if (field && grassy && worn > 0.48 && worn < shoulder) {
-          if (!inside) continue;
-          const w = (worn - 0.48) / (shoulder - 0.48);
-          if (hash(wx, wy, 471) < w * 0.85) {
-            const wash = Math.round((noise(wx, wy, 44, 461) - 0.5) * 11);
-            put(px, py, soil[1], wash + [0, -5, 6][materialGrain(wx, wy)]);
-          } else {
-            const i = (py * 16 + px) * 4,
-              k0 = 0.2 + w * 0.3;
-            for (let k = 0; k < 3; k++)
-              pixels[i + k] = Math.round(
-                pixels[i + k] * (1 - k0) + soil[3][k] * k0,
-              );
-          }
-          continue;
-        }
+        // On turf the shoulder stays turf: the earth starts at one clean edge,
+        // and the tufts along it do the breaking up.
+        if (field && grassy && worn > 0.48 && worn < shoulder) continue;
         if (field && worn > 0.48) {
           if (!inside) continue;
           // One broken native pixel of contact shadow. A continuous dark rim,
@@ -1119,7 +1088,7 @@ function rasterGroundTile(
           );
           // A slow wash keeps the treadway from reading as one flat fill.
           let shade =
-            Math.round((noise(wx, wy, 44, 461) - 0.5) * 11) +
+            Math.round((noise(wx, wy, 44, 461) - 0.5) * 11 / 6) * 6 +
             (ink
               ? pebbled
                 ? [0, -34, -18, 8][ink]

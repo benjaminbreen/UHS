@@ -44,7 +44,7 @@ export function NarratorPanel({
         setStyle({
           left: 0,
           width: (pane as HTMLElement).clientWidth,
-          bottom: p.bottom - r.top,
+          bottom: p.bottom - a.closest(".bottom-bar")!.getBoundingClientRect().top,
         });
       else
         setStyle({
@@ -55,7 +55,13 @@ export function NarratorPanel({
     };
     place();
     window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
+    window.visualViewport?.addEventListener("resize", place);
+    window.visualViewport?.addEventListener("scroll", place);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("scroll", place);
+    };
   }, [anchor, open]);
   return (
     <section
@@ -63,6 +69,7 @@ export function NarratorPanel({
       style={style}
       aria-label="Narrator"
       aria-hidden={!open}
+      inert={!open}
     >
       <header>
         <span className="narrator-title">

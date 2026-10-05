@@ -98,6 +98,7 @@ export class TerrainStream {
   private center = { x: 0, y: 0 };
   private reach = { x: 0, y: 0 };
   private sun: SunPhase = NO_SUN;
+  private tint = 0xffffff;
   /** The reach WorldScene asked for, before any lab cap. */
   private asked = { x: 0, y: 0 };
   constructor(
@@ -421,6 +422,7 @@ export class TerrainStream {
     const objects = job.resources.objects;
     for (let i = job.shifted; i < objects.length; i++) {
       const o = objects[i] as Phaser.GameObjects.Image;
+      o.setTint?.(this.tint);
       o.x += job.region.x * 16;
       o.y += job.region.y * 16;
       // All ground pages share the lowest plane; logical row determines the
@@ -491,6 +493,7 @@ export class TerrainStream {
         .image(region.x * 16, region.y * 16 - preview.tier * TERRAIN_RISE, name)
         .setOrigin(0)
         .setDisplaySize(SIZE * 16, SIZE * 16)
+        .setTint(this.tint)
         .setDepth(PREVIEW_DEPTH),
     );
   }
@@ -543,6 +546,7 @@ export class TerrainStream {
             key,
           )
           .setOrigin(0)
+          .setTint(this.tint)
           .setDepth((chunk.region.y + layer.row) * 16 - 6.5),
       );
     }
@@ -555,6 +559,14 @@ export class TerrainStream {
     if (sun.id === this.sun.id) return;
     this.sun = sun;
     for (const [id, chunk] of this.chunks) this.shadeChunk(chunk, id);
+  }
+  /** The hour's light, as the sprites standing on this ground are tinted. */
+  setTint(tint: number) {
+    if (tint === this.tint) return;
+    this.tint = tint;
+    const all = [...this.chunks.values()].flatMap((c) => [...c.objects, ...c.shade]);
+    for (const o of [...all, ...this.previews.values()])
+      (o as Partial<Phaser.GameObjects.Image>).setTint?.(tint);
   }
   /** Snow fell or thawed: re-raster under the new cover. */
   setSnow(cover: number) {

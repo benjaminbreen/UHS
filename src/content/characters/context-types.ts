@@ -102,6 +102,8 @@ export type NameRegion = {
   id: string;
   label: string;
   bounds: readonly [number, number, number, number]; // west, south, east, north
+  /** A hole in bounds, for borders a box cannot follow. */
+  except?: readonly [number, number, number, number];
   culture: CultureId;
   windows: readonly {
     years: readonly [number, number];

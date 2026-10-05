@@ -229,6 +229,7 @@ import { buildingWear } from "./building-wear";
 import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
 import { Mist } from "./mist";
+import { CloudShadows } from "./cloud-shadows";
 import { AmbientLife, critterFor } from "./ambient-life";
 import { Flies, type FlySource } from "./flies";
 import { freshDung } from "../core/dung";
@@ -261,7 +262,9 @@ import {
   motionFrames,
   motionPeriod,
   animatedFrames,
+  ensureEmber,
   ensureFireLight,
+  lampLight,
   lightAlpha,
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
@@ -392,6 +395,13 @@ type FireEffect = {
   phase: number;
   glow: Phaser.GameObjects.Image;
   smoke: Phaser.GameObjects.Image[];
+  embers?: Phaser.GameObjects.Particles.ParticleEmitter;
+};
+type StreetLight = {
+  pool: Phaser.GameObjects.Image;
+  flame: Phaser.GameObjects.Image;
+  flickers: boolean;
+  phase: number;
 };
 const GLOW_RING = [1, 2].flatMap((r) =>
   [
@@ -535,6 +545,7 @@ export class WorldScene extends Phaser.Scene {
   private drawnCrowd = new Set<string>();
   private ambientDrawn = -Infinity;
   private modalOpen = false;
+  private playerContact?: Phaser.GameObjects.Ellipse;
   private poseOffsets = new Map<string, number>();
   /** Drawn animals, for the frame cycle in update(). */
   private faunaSprites = new Map<
@@ -649,6 +660,7 @@ export class WorldScene extends Phaser.Scene {
   }[] = [];
   private washKey = "";
   private fires = new Map<string, FireEffect>();
+  private streetLights = new Map<string, StreetLight>();
   private fireFrames = new Map<string, number>();
   private motionFrames = new Map<string, number>();
   /** Props that animate on their own, keyed by entity. */
@@ -694,6 +706,7 @@ export class WorldScene extends Phaser.Scene {
   private night?: Phaser.GameObjects.Graphics;
   private drift?: Drift;
   private mist?: Mist;
+  private clouds?: CloudShadows;
   private life?: AmbientLife;
   private weather?: Weather;
   private flies?: Flies;
@@ -788,15 +801,15 @@ export class WorldScene extends Phaser.Scene {
     );
     // Watched rather than queried: the input gate runs on every frame.
     const watchModals = new MutationObserver(() => {
-      this.modalOpen = !!document.querySelector('[data-modal="true"]');
+      this.modalOpen = !!document.querySelector('[data-modal="true"], [data-world-input-blocked="true"]');
     });
     watchModals.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["data-modal"],
+      attributeFilter: ["data-modal", "data-world-input-blocked"],
     });
-    this.modalOpen = !!document.querySelector('[data-modal="true"]');
+    this.modalOpen = !!document.querySelector('[data-modal="true"], [data-world-input-blocked="true"]');
     this.events.once("shutdown", () => watchModals.disconnect());
     this.events.once("destroy", () => watchModals.disconnect());
     this.cameras.main.setBackgroundColor("#819253");
@@ -819,6 +832,7 @@ export class WorldScene extends Phaser.Scene {
       .setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.drift = new Drift(this);
     this.mist = new Mist(this);
+    this.clouds = new CloudShadows(this);
     this.life = new AmbientLife(this);
     this.flies = new Flies(this);
     this.remainsLife = new RemainsLife(this);
@@ -839,7 +853,7 @@ export class WorldScene extends Phaser.Scene {
         active instanceof HTMLTextAreaElement ||
         active instanceof HTMLSelectElement ||
         (active instanceof HTMLElement && active.isContentEditable) ||
-        document.querySelector('[data-modal="true"]')
+        this.modalOpen
       )
         return;
       const key = event.key.toLowerCase();
@@ -897,6 +911,7 @@ export class WorldScene extends Phaser.Scene {
     });
     const clearInput = () => {
       this.heldDirections.clear();
+      this.touchStick = undefined;
       this.shiftHeld = this.spaceDown = false;
       this.jumpStarted = this.queuedJump = undefined;
       this.jumpRunning = false;
@@ -2652,19 +2667,61 @@ export class WorldScene extends Phaser.Scene {
           this.tint,
         );
     for (const puff of smoke) this.layers.push(puff);
-    this.fires.set(id, {
-      image,
-      base,
-      frames: this.fireFrames.get(base) ?? 4,
-      phase,
-      glow,
-      smoke,
+    const frames = this.fireFrames.get(base) ?? 4;
+    // Sparks off an open fire or a brazier; an oven keeps its fire inside.
+    const embers =
+      this.options.freeze || (frames < 8 && !base.includes("brazier"))
+        ? undefined
+        : this.add
+            .particles(Math.round(x), Math.round(y - image.height * 0.45), ensureEmber(this), {
+              speedY: { min: -30, max: -12 },
+              speedX: { min: -6, max: 6 },
+              accelerationX: { min: -8, max: 8 },
+              lifespan: { min: 600, max: 1400 },
+              frequency: 240,
+              alpha: { start: 1, end: 0 },
+              tint: [0xffe08a, 0xffa040, 0xff6a28],
+              blendMode: Phaser.BlendModes.ADD,
+            })
+            .setDepth(19002);
+    this.fires.set(id, { image, base, frames, phase, glow, smoke, embers });
+  }
+  /** A street lamp or a door lantern: a pool on the ground and the flame
+   * itself, both over the night wash. */
+  private lightLamp(
+    id: string,
+    image: Phaser.GameObjects.Image,
+    lamp: { radius: number; flame: boolean },
+    x: number,
+    y: number,
+  ) {
+    if (this.streetLights.has(id)) return;
+    const at = (dy: number, radius: number) =>
+      this.add
+        .image(Math.round(x), Math.round(y - dy), ensureFireLight(this, radius), "0")
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setAlpha(lightAlpha[this.light.id])
+        .setDepth(19001);
+    this.streetLights.set(id, {
+      pool: at(4, lamp.radius),
+      // The lamp head sits near the top of the post or the bracket.
+      flame: at(Math.round(image.height * 0.8), 8),
+      flickers: lamp.flame,
+      phase: Math.floor(this.poseOffset(id) % 8),
     });
+  }
+  private douseLamp(id: string) {
+    const lamp = this.streetLights.get(id);
+    if (!lamp) return;
+    lamp.pool.destroy();
+    lamp.flame.destroy();
+    this.streetLights.delete(id);
   }
   private quenchFire(id: string) {
     const fire = this.fires.get(id);
     if (!fire) return;
     fire.glow.destroy();
+    fire.embers?.destroy();
     for (const puff of fire.smoke) puff.destroy();
     this.fires.delete(id);
   }
@@ -3351,6 +3408,13 @@ export class WorldScene extends Phaser.Scene {
               : 0
         : 0,
     );
+    // Broken cloud needs sun behind it to cast anything.
+    this.clouds?.set(
+      outdoors && this.weather && this.options.colorGrade !== false && this.light.id !== "night"
+        ? (this.weather.condition === "light-clouds" ? 0.5 : this.weather.condition === "clear" ? 0.22 : 0) *
+            (this.light.id === "dusk" || this.light.id === "early-morning" ? 0.6 : 1)
+        : 0,
+    );
     const c = this.cameras.main;
     this.setCameraZoom(rt.zoom);
     const footprint =
@@ -3413,6 +3477,7 @@ export class WorldScene extends Phaser.Scene {
         Math.ceil(this.scale.width / rt.zoom / 32),
         Math.ceil(this.scale.height / rt.zoom / 32),
       );
+      this.terrainStream.setTint(this.tint);
       this.terrainStream.setSun({
         id: this.shadowPhase,
         cast: lightingPreset(this.shadowPhase).cast as [number, number],
@@ -4289,6 +4354,9 @@ export class WorldScene extends Phaser.Scene {
       const fire = frame === "fire" || this.fireFrames.has(frame);
       if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
       else if (this.fires.has(id)) this.quenchFire(id);
+      const lamp = fire ? undefined : lampLight(frame);
+      if (lamp) this.lightLamp(id, im, lamp, tx, ty);
+      else if (this.streetLights.has(id)) this.douseLamp(id);
       // A fire keeps its own colour at night.
       const tint = fire ? 0xffffff : this.tint;
       if (im.tintTopLeft !== tint) im.setTint(tint);
@@ -4786,6 +4854,7 @@ export class WorldScene extends Phaser.Scene {
         this.hangings.delete(id);
         this.motions.delete(id);
         this.quenchFire(id);
+        this.douseLamp(id);
         this.entities.delete(id);
         this.destinations.delete(id);
         this.actorFrames.delete(id);
@@ -5282,6 +5351,7 @@ export class WorldScene extends Phaser.Scene {
     open();
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
+    this.clouds?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
     this.remainsLife?.update(
       time,
@@ -5351,6 +5421,18 @@ export class WorldScene extends Phaser.Scene {
         const alpha = lightAlpha[this.light.id];
         if (fire.glow.alpha !== alpha) fire.glow.setAlpha(alpha);
         if (fire.glow.visible !== alpha > 0) fire.glow.setVisible(alpha > 0);
+        fire.embers?.setVisible(alpha > 0);
+      }
+    if (perf.fires)
+      for (const lamp of this.streetLights.values()) {
+        const alpha = lightAlpha[this.light.id];
+        const step = this.options.freeze ? 0 : Math.floor(time / FIRE_FRAME_MS + lamp.phase);
+        const size = lamp.flickers ? String(LIGHT_FLICKER[step % LIGHT_FLICKER.length]) : "0";
+        for (const glow of [lamp.pool, lamp.flame]) {
+          if (glow.frame.name !== size) glow.setFrame(size);
+          if (glow.alpha !== alpha) glow.setAlpha(alpha);
+          if (glow.visible !== alpha > 0) glow.setVisible(alpha > 0);
+        }
       }
     if (perf.fires)
       for (const motion of this.motions.values()) {
@@ -5491,6 +5573,7 @@ export class WorldScene extends Phaser.Scene {
       this.modalOpen;
     if (typing) {
       this.heldDirections.clear();
+      this.touchStick = undefined;
       this.shiftHeld = this.spaceDown = false;
       this.jumpStarted = this.queuedJump = undefined;
       this.pendingDirection = undefined;
@@ -5572,7 +5655,7 @@ export class WorldScene extends Phaser.Scene {
             this.lastRunDir = undefined;
           }
           this.motionDuration =
-            (this.shiftHeld ? RUN_RAMP[this.runSteps] : 140) *
+            (this.shiftHeld ? RUN_RAMP[this.runSteps] : this.touchStick ? 260 - 80 * (this.touchStick.strength ?? 1) : 140) *
             Math.hypot(dx, dy);
           const p = this.runtime.engine.state.player.pos,
             sample = this.runtime.engine.world.topography;
@@ -6070,6 +6153,13 @@ export class WorldScene extends Phaser.Scene {
         }
         if (id === "player") {
           const cell = this.destinations.get(id);
+          if (this.options.shadows === false) {
+            const contact = this.playerContact ??= this.add.ellipse(0, 0, 11, 4, 0x07100c, 0.28);
+            contact.setPosition(im.x, im.y + arcLift - 1).setDepth(im.depth - 1)
+              .setVisible(!craft && water <= 0.025 && !me.perch)
+              .setScale(1 - Math.min(0.5, arcLift / 40))
+              .setAlpha(0.28 * (1 - Math.min(0.7, arcLift / 40)));
+          }
           if (moving && cell && water <= 0.025 && !arcLift)
             this.feel.track(
               im,
@@ -6590,16 +6680,19 @@ export class WorldScene extends Phaser.Scene {
       ] as [number, number][]
     )[this.runtime.engine.state.player.direction];
   }
-  private touchStick?: { dx: number; dy: number; run: boolean };
-  /** The on-screen stick. It stands in for held arrow keys, and for Shift
-   * when pushed to its rim. Undefined lets go. */
-  setTouchStick(stick?: { dx: number; dy: number; run: boolean }) {
+  private touchStick?: { dx: number; dy: number; run: boolean; strength?: number };
+  /** The stick supplies direction and walking pace; the Run button supplies Shift. */
+  setTouchStick(stick?: { dx: number; dy: number; run: boolean; strength?: number }) {
     const was = this.touchStick;
     this.touchStick = stick;
     if (stick) {
       this.shiftHeld = stick.run;
       if (!was) this.pendingDirection = [stick.dx, stick.dy];
-    } else if (was) this.shiftHeld = false;
+    } else if (was) {
+      this.shiftHeld = false;
+      this.pendingDirection = undefined;
+      this.runSteps = 0;
+    }
   }
   /** The on-screen jump: down and up, as Space is. */
   touchJump(down: boolean) {

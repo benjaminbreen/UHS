@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { PHONE_QUERY } from "../runtime/device";
 
 export { PHONE_QUERY };
@@ -17,5 +17,25 @@ export function usePhoneLayout() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+  useLayoutEffect(() => {
+    if (!phone) return;
+    const viewport = window.visualViewport;
+    const sync = () => {
+      const root = document.documentElement;
+      root.style.setProperty("--viewport-height", `${viewport?.height ?? window.innerHeight}px`);
+      root.style.setProperty("--viewport-top", `${viewport?.offsetTop ?? 0}px`);
+    };
+    sync();
+    viewport?.addEventListener("resize", sync);
+    viewport?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    return () => {
+      viewport?.removeEventListener("resize", sync);
+      viewport?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      document.documentElement.style.removeProperty("--viewport-height");
+      document.documentElement.style.removeProperty("--viewport-top");
+    };
+  }, [phone]);
   return phone;
 }

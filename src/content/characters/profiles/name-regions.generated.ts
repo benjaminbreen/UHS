@@ -24,7 +24,8 @@ export const nameRegions: readonly NameRegion[] = [
   {
     id: "european-france",
     label: "France",
-    bounds: [-5,42,8.3,51.5],
+    bounds: [-5,42,8.3,51.1],
+    except: [-6,49.95,1.3,51.1],
     culture: "european",
     windows: [
       { years: [-1000000, -800], options: [{ tradition: "prehistoric-proto-indo-european", weight: 1 }] },

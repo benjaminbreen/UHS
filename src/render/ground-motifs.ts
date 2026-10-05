@@ -350,10 +350,9 @@ export function swardHatch(wx: number, wy: number) {
   return Number(hatchTiles[choice & 3][y][x]);
 }
 // Regular sparse dark speckle for bare earth.
+/** Sparse grit, off any lattice: a fixed 8px pattern read as a grid on wide earth. */
 export function earthSpeckle(wx: number, wy: number) {
-  const x = ((wx % 8) + 8) % 8,
-    y = ((wy % 8) + 8) % 8;
-  return (x === 2 && y === 1) || (x === 6 && y === 5) || (x === 4 && y === 7);
+  return hash(wx, wy, 357) < 0.025;
 }
 
 /** Small original blade clusters for path margins. Anchored at their bottom

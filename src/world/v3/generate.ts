@@ -2830,7 +2830,13 @@ export function createSettlementWorld(
   );
   if (!initial && !environment)
     throw Error("No usable settlement site near this location.");
-  world.spawn = { ...(initial?.spawn ?? { x: 0, y: 0 }), space: "outside" };
+  // A resident starts on their own doorstep: the empty middle of the common
+  // made a poor first frame.
+  const door = initial?.places.find((p) => p.owner === "player")?.entrance;
+  world.spawn = {
+    ...(door && !world.blocked(door.x, door.y, "outside") ? door : (initial?.spawn ?? { x: 0, y: 0 })),
+    space: "outside",
+  };
   if (
     environment &&
     !pack.setting?.situation &&

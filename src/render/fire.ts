@@ -47,6 +47,17 @@ export const lightAlpha: Record<LightingId, number> = {
   dusk: 0.55,
   night: 1,
 };
+/** Street lamps and door lanterns: how far the pool reaches, and whether a
+ * naked flame makes it flicker. The toran (door marker 6) is a garland. */
+export function lampLight(frame: string): { radius: number; flame: boolean } | undefined {
+  const m = /^study-propb-(torch-post|brazier-post|lantern-post|gas-lamp|electric-lamp|sodium-lamp|city-lamp|door-lantern)-(\d)$/.exec(frame);
+  if (!m || (m[1] === "door-lantern" && m[2] === "6")) return undefined;
+  const kind = m[1];
+  if (kind === "door-lantern") return { radius: 24, flame: Number(m[2]) < 3 };
+  if (kind === "electric-lamp" || kind === "sodium-lamp" || (kind === "city-lamp" && m[2] === "2"))
+    return { radius: 44, flame: false };
+  return { radius: 36, flame: kind !== "gas-lamp" && kind !== "city-lamp" };
+}
 /** Three sizes of the pool, swapped in step with the flame. */
 export const LIGHT_FLICKER = [0, 1, 0, 2, 1, 0, 2, 1];
 /** A pool of firelight in whole-pixel rings, dithered where one ring meets
@@ -84,6 +95,16 @@ export function ensureFireLight(scene: Phaser.Scene, radius: number) {
       }
     canvas.add(String(f), 0, f * w, 0, w, h);
   }
+  canvas.refresh();
+  return key;
+}
+/** One pixel of spark, tinted per particle. */
+export function ensureEmber(scene: Phaser.Scene) {
+  const key = "fire-ember";
+  if (scene.textures.exists(key)) return key;
+  const canvas = scene.textures.createCanvas(key, 1, 1)!;
+  canvas.context.fillStyle = "#fff";
+  canvas.context.fillRect(0, 0, 1, 1);
   canvas.refresh();
   return key;
 }

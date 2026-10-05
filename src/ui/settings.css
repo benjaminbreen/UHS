@@ -2,14 +2,14 @@
   width: min(760px, 100%);
   padding: 30px;
   background:
-    radial-gradient(ellipse at top left, #30386966, transparent 70%),
-    linear-gradient(130deg, #1c254d, #101830);
-  border: 2px solid #b3a4d7;
+    radial-gradient(ellipse at top left, color-mix(in srgb, var(--bg-3) 60%, transparent), transparent 70%),
+    linear-gradient(130deg, var(--bg-3), var(--bg-2));
+  border: 2px solid var(--line);
   border-radius: 7px;
   box-shadow:
-    inset 0 0 0 3px #080e26,
+    inset 0 0 0 3px var(--bg-0),
     0 22px 80px #0009;
-  color: #f2efee;
+  color: var(--text);
 }
 .modal.modal-dialogue-tester {
   width: min(760px, 100%);
@@ -17,7 +17,7 @@
   overflow-y: auto;
 }
 .dialogue-tester > .eyebrow {
-  color: #edcd89;
+  color: var(--gold);
   font-size: 11px;
   letter-spacing: 2px;
 }
@@ -25,7 +25,7 @@
   margin: 8px 0 12px;
 }
 .dialogue-tester > p {
-  color: #d4d3df;
+  color: var(--muted);
 }
 .dialogue-tester label {
   display: block;
@@ -36,11 +36,11 @@
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
-  border: 1px solid #777097;
+  border: 1px solid var(--line-soft);
   border-radius: 4px;
   padding: 10px;
-  background: #10182f;
-  color: #f2efee;
+  background: var(--bg);
+  color: var(--text);
   font: inherit;
 }
 .dialogue-tester-actions {
@@ -62,14 +62,14 @@
 }
 .dialogue-tester-results li {
   padding: 12px;
-  border: 1px solid #514f70;
+  border: 1px solid var(--line-soft);
   border-radius: 4px;
-  background: #111a37;
+  background: var(--bg);
 }
 .dialogue-tester-person small {
   display: block;
   margin-top: 4px;
-  color: #b8b5ce;
+  color: var(--muted);
 }
 .dialogue-tester-results p {
   margin: 10px 0 0;
@@ -78,7 +78,7 @@
 .dialogue-tester-footnote {
   display: block;
   margin-top: 18px;
-  color: #b8b5ce;
+  color: var(--muted);
 }
 .dialogue-tester-footnote code {
   display: block;
@@ -89,7 +89,7 @@
   margin-top: 14px;
 }
 .modal-settings > .eyebrow {
-  color: #edcd89;
+  color: var(--gold);
   font-size: 11px;
   letter-spacing: 2px;
 }
@@ -98,35 +98,33 @@
   margin: 10px 0 24px;
 }
 .modal-settings .close-modal {
-  border-color: #9990bd;
-  color: #f5d587;
-  background: #151d3b;
+  border-color: var(--line);
+  color: var(--gold);
+  background: var(--bg);
 }
 .settings-tabs {
   display: flex;
   gap: 6px;
   padding-bottom: 18px;
-  border-bottom: 1px solid #777097;
+  border-bottom: 1px solid var(--line-soft);
   margin-bottom: 22px;
 }
 .settings-tabs button {
   flex: 1;
   min-width: 0;
-  border: 1px solid #706a96;
+  border: 1px solid var(--line-soft);
   border-radius: 3px;
-  background: #111a37;
-  color: #c8c6e2;
+  background: var(--bg);
+  color: var(--muted);
   padding: 11px 8px;
-  font:
-    14px "DM Sans",
-    sans-serif;
+  font-size: 15px;
   cursor: pointer;
 }
 .settings-tabs [aria-selected="true"] {
-  background: linear-gradient(#3d4777, #29355e);
-  color: #ffe0a0;
-  border-color: #e7c785;
-  box-shadow: inset 0 -2px #e7c785;
+  background: linear-gradient(var(--bg-3), var(--bg-2));
+  color: var(--gold-hi);
+  border-color: var(--gold);
+  box-shadow: inset 0 -2px var(--gold);
 }
 .modal-settings [role="tabpanel"] {
   min-height: 240px;
@@ -135,24 +133,24 @@
   display: none;
 }
 .modal-settings [role="tabpanel"] > p {
-  color: #c4c3d8;
+  color: var(--muted);
   font-size: 16px;
   line-height: 1.6;
 }
 .modal-settings h3 {
-  color: #f4d894;
+  color: var(--gold);
   margin: 0 0 16px;
 }
 .modal-settings .action {
-  background: #192343;
-  color: #eee9f4;
-  border: 1px solid #706c98;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line-soft);
   font-size: 16px;
   min-height: 45px;
 }
 .modal-settings .action:hover {
-  background: #303c63;
-  border-color: #e7c785;
+  background: var(--bg-3);
+  border-color: var(--gold);
 }
 .modal-settings .settings-tools .action {
   display: flex;
@@ -165,27 +163,27 @@
   align-items: start;
   gap: 7px;
   padding: 16px;
-  border-color: #e7c785;
-  color: #f5d587;
+  border-color: var(--gold);
+  color: var(--gold);
 }
 .settings-featured small {
   font:
     12px "DM Sans",
     sans-serif;
-  color: #c9c4e0;
+  color: var(--muted);
 }
 .modal-settings .settings-row {
-  border-color: #706a96;
+  border-color: var(--line-soft);
   margin-top: 24px;
 }
 .modal-settings .settings-footnote {
-  border-color: #706a96;
+  border-color: var(--line-soft);
   padding-top: 16px;
   margin-top: 20px;
 }
 .modal-settings .settings-footnote strong {
   font-size: 14px;
-  color: #d4cee9;
+  color: var(--text);
 }
 .modal-settings .settings-footnote p {
   font-size: 13px;
@@ -194,10 +192,10 @@
 }
 .modal-settings .settings-footnote small {
   font-size: 11px;
-  color: #aaa5c9;
+  color: var(--muted);
 }
 .modal-settings :focus-visible {
-  outline: 2px solid #f5d587;
+  outline: 2px solid var(--gold);
   outline-offset: 3px;
 }
 @media (max-width: 600px) {

@@ -96,6 +96,7 @@ describe("original soundtrack scores", () => {
           period,
           themeId: theme.id,
         });
+        expect(score.theme.id).toBe(theme.id);
         expect(score.beats).toBe(theme.bars * theme.meter);
         expect(score.notes.length).toBeGreaterThan(50);
         for (const n of score.notes) {
@@ -108,6 +109,23 @@ describe("original soundtrack scores", () => {
     expect(culturalMusic("european", 1660).direct.map((t) => t.id)).toEqual([
       "herengracht-ground",
     ]);
+    for (const theme of layeredThemes.filter((t) => t.sections)) {
+      expect(theme.sections![0].bar).toBe(0);
+      for (const [i, section] of theme.sections!.entries()) {
+        expect(section.bar).toBeLessThan(theme.bars);
+        if (i) expect(section.bar).toBeGreaterThan(theme.sections![i - 1].bar);
+      }
+      for (const layer of theme.layers) {
+        expect(layer.enter ?? 0).toBeLessThan(layer.exit ?? theme.bars);
+        expect(layer.exit ?? theme.bars).toBeLessThanOrEqual(theme.bars);
+        expect(
+          layer.loop
+            .split(" ")
+            .reduce((sum, token) => sum + Number(token.split(":")[1]), 0),
+        ).toBeGreaterThan(0);
+      }
+      expect((theme.bars * theme.meter * 60) / theme.bpm).toBeGreaterThan(120);
+    }
   });
   it("plays a culture's pieces across its eras and puts direct hits first", () => {
     const java = culturalMusic("southeast-asian", 1450);
@@ -115,6 +133,18 @@ describe("original soundtrack scores", () => {
     const later = culturalMusic("southeast-asian", 1970);
     expect(later.direct).toEqual([]);
     expect(later.family.map((t) => t.id)).toContain("gongs-of-trowulan");
+    expect(culturalMusic("andean", 1680).direct.map((t) => t.id)).toEqual([
+      "cusco-apricot-dusk",
+    ]);
+    expect(culturalMusic("andean", 1500).direct.map((t) => t.id)).not.toContain(
+      "cusco-apricot-dusk",
+    );
+    expect(culturalMusic("european", -6200).direct.map((t) => t.id)).toEqual([
+      "lepenski-river-hearths",
+    ]);
+    expect(culturalMusic("south-asian", -4500).direct.map((t) => t.id)).toEqual(
+      ["mehrgarh-rain-jars"],
+    );
   });
   it("maps the provisional calendar at boundaries and wraps the year", () => {
     expect(worldMusicSlot(0)).toEqual({ season: "spring", period: "night" });

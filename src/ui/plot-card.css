@@ -2,15 +2,15 @@
 
 .plot-veil,
 .plot-floor {
-  --display: "Pixelify Sans", "Silkscreen", monospace;
-  --book: "Gentium Book Plus", Georgia, serif;
+  --display: var(--pixel);
+  --book: var(--serif);
   --hi: color-mix(in srgb, var(--edge), var(--light) 38%);
   --lo: color-mix(in srgb, var(--edge), var(--ink) 55%);
   --soft: color-mix(in srgb, var(--light), var(--fill) 30%);
   /* Names read on the slate in lighter versions of the world's marks. */
   --plot-text: #e8c46a;
   --kin-text: #ec8a72;
-  --rare-text: #8fd3c2;
+  --rare-text: #f0e6cf;
   position: fixed;
   inset: 0;
   z-index: 900;
@@ -209,7 +209,7 @@
   image-rendering: pixelated;
   filter: drop-shadow(0 1px 0 #0008);
 }
-.plot-head small { padding-bottom: 6px; font: italic 15.5px var(--book); color: var(--soft); }
+.plot-head small { padding-bottom: 2px; font: italic 15.5px var(--book); color: var(--soft); }
 [data-look="framed"] .plot-prose {
   display: flex;
   flex-direction: column;
@@ -228,7 +228,9 @@
   border-top: 1px dashed color-mix(in srgb, var(--light) 28%, transparent);
   animation: plot-resolve 0.4s 0.55s steps(4) both;
 }
-.plot-foot .plot-goal { flex: 1; margin: 0; font: 16.5px / 1.35 var(--book); }
+.plot-foot .plot-goal { flex: 1; min-width: 0; margin: 0; font: 16.5px / 1.35 var(--book); }
+/* Room for the pointing hand, which hangs off the button's left edge. */
+.plot-foot .plot-choices { flex: none; padding-left: 30px; }
 [data-look="framed"] .plot-choices { flex-wrap: nowrap; gap: 10px 18px; }
 /* A bevelled pixel button: the bevel lives on a stepped layer behind the
  * label, so the hand can point at it from outside. */
@@ -236,8 +238,7 @@
   isolation: isolate;
   height: 44px;
   padding: 0 22px;
-  font: 500 19px var(--display);
-  letter-spacing: 0.02em;
+  font: 16px var(--display);
   color: var(--soft);
 }
 [data-look="framed"] .plot-choice::before {

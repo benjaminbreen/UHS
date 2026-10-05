@@ -8,6 +8,7 @@
 import { nameTraditions } from "../src/content/characters/profiles/traditions.generated";
 import { readFileSync } from "node:fs";
 import { nameRegions } from "../src/content/characters/profiles/name-regions.generated";
+import { inRegion } from "../src/content/characters/resolve";
 
 const byId = new Map(nameTraditions.map((t) => [t.id, t]));
 const byArea = [...nameRegions].sort(
@@ -20,8 +21,7 @@ const byArea = [...nameRegions].sort(
 /** The runtime rule, minus the WorldSetting: smallest box, era-gated options. */
 export function optionsAt(lon: number, lat: number, year: number) {
   for (const region of byArea) {
-    const [w, s, e, n] = region.bounds;
-    if (lon < w || lon > e || lat < s || lat > n) continue;
+    if (!inRegion(region, lon, lat)) continue;
     for (const v of region.windows) {
       if (!(year >= v.years[0] && year < v.years[1])) continue;
       const options = v.options.flatMap((o) => {

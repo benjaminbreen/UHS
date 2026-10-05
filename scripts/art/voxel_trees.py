@@ -13,7 +13,6 @@ from art.voxel import hexrgb, h3
 
 K = 0.5
 SUN = np.array([-.4, -.5, .8]) / np.linalg.norm([-.4, -.5, .8])
-BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16 - .5
 
 # Lifted from the hand-drawn broadleaf, acacia and spruce they replace.
 BL_LEAF = ['#0f2e2a', '#1a4a34', '#276a36', '#3c8a33', '#62a937', '#95c646', '#c8df69']
@@ -56,9 +55,9 @@ class Tree:
 
     def spray(self, c, n, spread, r, flat, lift=0.0):
         """A cluster of leaf clumps around c; twigs in its place when bare."""
-        # many small clumps, not a few big ones, so no single ball shows
+        # A few big clumps: the crown reads as the masses a pixel artist draws.
         if not self.bare:
-            n, r, spread = n * 3, r * .6, spread * 1.1
+            n, r, spread = max(3, round(n * .7)), r * 1.15, spread * .95
         for _ in range(n):
             o = np.clip(self.rng.normal(0, 1, 3), -1.7, 1.7) * spread * np.array([1, 1, flat])
             rr = r * self.rng.uniform(.75, 1.2)
@@ -216,8 +215,7 @@ def _voxelize(caps, clumps, look, ang, seed, W, D, Hz):
         d = np.sqrt(dx * dx + dy * dy + dz * dz) / r
         # a ragged rim, keyed to the unrotated tree so the same leaves poke out at any angle
         ux, uy, _ = rot((X[sl], Y[sl], 0), -ang)
-        # tufts a few voxels across on top of single-leaf grain
-        rim = h3(np.round(ux / 3), np.round(uy / 3), Z[sl] // 3, seed + i) * .6 + h3(np.round(ux), np.round(uy), Z[sl], seed + i) * .4 - .5
+        rim = h3(np.round(ux / 4), np.round(uy / 4), Z[sl] // 4, seed + i) - .5
         m = (d < 1 + rim * look['ragged']) & (d < best[sl])
         g[sl][m] = 2
         best[sl][m] = d[m]
@@ -262,7 +260,7 @@ def _render(g, cn, look, W, H, base):
     bx, by, bz = np.gradient(_blur(solid, 4))
     big = -np.stack([bx[x[leaf], y[leaf], z[leaf]], by[x[leaf], y[leaf], z[leaf]], bz[x[leaf], y[leaf], z[leaf]]], 1)
     big /= np.linalg.norm(big, axis=1, keepdims=True) + 1e-6
-    mix = big * .6 + cn[x[leaf], y[leaf], z[leaf]] * .2 + nrm[leaf] * .2
+    mix = big * .55 + cn[x[leaf], y[leaf], z[leaf]] * .45
     nrm[leaf] = mix / (np.linalg.norm(mix, axis=1, keepdims=True) + 1e-6)
     lit = np.ones(len(idx), np.float32)
     pos = idx.astype(np.float32) + SUN * 2
@@ -277,13 +275,16 @@ def _render(g, cn, look, W, H, base):
     val[~leaf] += (h3(np.round(np.arctan2(y - D / 2, x - W / 2) * 5), 0, z // 4, 3)[~leaf] - .5) * .18
     sx = x
     sy = (base - z - (y - D / 2) * K).astype(int)
-    # leaf-scale flecks, so a lit face breaks into leaves rather than a smooth ball
-    val[leaf] += (h3(x[leaf] // 2, y[leaf] // 2, z[leaf] // 2, 11) - .5) * .3 + (h3(x[leaf], y[leaf], z[leaf], 12) - .5) * .12
-    val = val + BAYER[sy % 4, sx % 4] * .09  # dither only where two bands meet
     leafR = np.array([hexrgb(c) for c in look['leaf']], float)
     barkR = np.array([hexrgb(c) for c in look['bark']], float)
-    nl, nb = len(leafR), len(barkR)
-    kl = np.clip((np.clip(val * .78, 0, 1) ** 1.35 * nl).astype(int), 1, nl - 1)
+    nb = len(barkR)
+    # The crown's underside sits in its own shade, so the mass is grounded.
+    zl = z[leaf].astype(np.float32)
+    if len(zl):
+        lo, hi = np.percentile(zl, 5), np.percentile(zl, 95)
+        val[leaf] -= np.clip((lo + (hi - lo) * .55 - zl) / max(1.0, (hi - lo) * .55), 0, 1) * .32
+    # Flat bands, no flecks or dither: the clumps carry the form.
+    kl = 1 + np.clip((np.clip(val * .85, 0, 1) ** 1.25 * 5).astype(int), 0, 4)
     kb = np.clip((np.clip(val * .8, 0, 1) ** 1.2 * nb).astype(int), 0, nb - 1)
     col = np.where(leaf[:, None], leafR[kl], barkR[kb])
     img = np.zeros((H, W, 3))

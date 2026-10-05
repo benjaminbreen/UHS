@@ -10,6 +10,7 @@ import type {
   NameTradition,
   Livelihood,
   SocietyCapability,
+  NameRegion,
 } from "./context-types";
 import { communityProfiles, appearanceKits } from "./profiles/communities";
 import { labourRegimes, populations } from "./profiles/populations";
@@ -198,10 +199,13 @@ export const regionsByArea = [...nameRegions].sort(
       (b.bounds[2] - b.bounds[0]) * (b.bounds[3] - b.bounds[1]) ||
     a.id.localeCompare(b.id),
 );
+const inBox = (b: readonly number[], lon: number, lat: number) =>
+  lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3];
+export const inRegion = (r: NameRegion, lon: number, lat: number) =>
+  inBox(r.bounds, lon, lat) && !(r.except && inBox(r.except, lon, lat));
 export function nameTraditionsFor(s: WorldSetting) {
   for (const region of regionsByArea) {
-    const [w, so, e, n] = region.bounds;
-    if (s.lon < w || s.lon > e || s.lat < so || s.lat > n) continue;
+    if (!inRegion(region, s.lon, s.lat)) continue;
     // Region windows run wider than the traditions they offer, so a window is
     // not a date: drop options whose own attested era excludes this year, and
     // keep looking outward if that empties the window.

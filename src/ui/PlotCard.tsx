@@ -53,18 +53,31 @@ function Emblem({ look, marks, ending }: { look: PlotLook; marks: number; ending
   return <canvas ref={ref} className="plot-emblem" width={EMBLEM_W} height={EMBLEM_H} aria-hidden="true" />;
 }
 
-/** The card's title in the dress of the game's wordmark: condensed Western
- * capitals, cream over pale blue, a navy block under them, at native pixels. */
+/** The card's title in Silkscreen, cream over pale blue, a navy block under
+ * it, at native pixels. */
 function Wordmark({ text }: { text: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const [pick, setPick] = useState(0);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const bump = () => setPick((n) => n + 1);
+    window.addEventListener("fontpick", bump);
+    return () => window.removeEventListener("fontpick", bump);
+  }, []);
   useEffect(() => {
     let live = true;
-    const H = 22, squeeze = 0.7, font = (px: number) => `${px}px Rye, Georgia, serif`;
+    // The dev font picker can swap the face; Rye is drawn condensed, pixel faces are not.
+    const root = getComputedStyle(document.documentElement);
+    const face = root.getPropertyValue("--wordmark").trim() || "Silkscreen";
+    const squeeze = Number(root.getPropertyValue("--wordmark-squeeze")) || 1;
+    // Silkscreen sits on an 8px grid and its lower case is already small capitals.
+    const pixel = squeeze === 1, H = pixel ? 16 : 22;
+    const font = (px: number) => `${px}px ${face}`;
     void document.fonts.load(font(H)).catch(() => {}).then(() => {
       const c = ref.current;
       if (!live || !c) return;
       // Small capitals: each word's first letter full height, the rest smaller.
-      const parts = text.split(" ").flatMap((word, i) => [
+      const parts = pixel ? [{ t: text, px: H }] : text.split(" ").flatMap((word, i) => [
         ...(i ? [{ t: " ", px: Math.round(H * 0.8) }] : []),
         { t: word.charAt(0).toUpperCase(), px: H },
         { t: word.slice(1).toUpperCase(), px: Math.round(H * 0.8) },
@@ -101,7 +114,7 @@ function Wordmark({ text }: { text: string }) {
     return () => {
       live = false;
     };
-  }, [text]);
+  }, [text, pick]);
   return (
     <h1 className="plot-title">
       <canvas ref={ref} aria-hidden="true" />

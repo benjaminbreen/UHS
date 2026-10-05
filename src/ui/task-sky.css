@@ -8,7 +8,7 @@
   --muted: #a7b6cc;
   --accent: #e8c27e;
   --glass: #080b1ad9;
-  --glass-edge: #d9b47799;
+  --glass-edge: color-mix(in srgb, var(--gold) 60%, transparent);
   --halo: #04030c;
   --paper: #efe4c9;
   --ink: #2a2116;
@@ -61,7 +61,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted) !important;
-  border: 1px solid #d9b47755 !important;
+  border: 1px solid color-mix(in srgb, var(--gold) 33%, transparent) !important;
   border-radius: 2px;
 }
 .tasks-view:hover { color: var(--text) !important; border-color: var(--accent) !important; }
@@ -78,7 +78,7 @@
 }
 .tasks-head small { font: 9px var(--pixel); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
 .tasks-head h1 { margin: 6px 0 0; font: 400 34px/1.1 var(--serif); text-wrap: balance; }
-.tasks-head p { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.tasks-head p { margin: 10px 0 0; font-size: 14px; color: #c9d3e3; text-shadow: 0 1px 6px #0a0f24cc; }
 .tasks-head p span { margin: 0 6px; color: var(--accent); }
 .tasks-close {
   position: absolute;
@@ -116,15 +116,17 @@
 }
 .tasks-day {
   left: 32px;
-  background: var(--glass);
+  background: linear-gradient(180deg, #0a0f2499, #060918b3);
+  box-shadow: inset 0 0 0 1px var(--glass-edge);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
   clip-path: var(--steps);
-  filter: var(--edge);
 }
 .tasks-day h2 { color: var(--accent); }
 .tasks-day dl { display: grid; gap: 11px; margin: 0; }
 .tasks-day dl > div { animation: tasks-rise 0.6s calc(1.25s + var(--i) * 0.06s) both; }
 .tasks-day dt { font: 9px var(--pixel); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.tasks-day dd { margin: 3px 0 0; }
+.tasks-day dd { margin: 3px 0 0; font: 17px var(--serif); }
 .tasks-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .tasks-actions button {
   padding: 7px 12px;
@@ -217,7 +219,7 @@
   text-overflow: ellipsis;
   color: var(--muted) !important;
   background: #05040ecc !important;
-  border: 1px solid #d9b47744 !important;
+  border: 1px solid color-mix(in srgb, var(--gold) 27%, transparent) !important;
   border-radius: 2px;
 }
 .tasks-strip li button[data-on] { color: var(--text) !important; border-color: var(--accent) !important; }
@@ -238,15 +240,18 @@
 .tasks[data-settled] .tasks-day dl > div { animation-delay: 0.05s; animation-duration: 0.45s; }
 
 @media (max-width: 900px) {
-  .tasks { overflow-y: auto; }
-  .tasks-head { position: relative; top: 0; left: 0; right: 0; padding: 18px 64px 0 16px; }
+  .tasks { top: var(--viewport-top, 0px); bottom: auto; height: var(--viewport-height, 100dvh); overflow-y: auto; overscroll-behavior: contain; }
+  .tasks-head { position: relative; top: 0; left: 0; right: 0; padding: 64px 16px 0; }
   .tasks-head h1 { font-size: 26px; }
-  .tasks-close { top: 12px; right: 12px; }
-  .tasks-view { top: 16px; right: 72px; }
+  .tasks .tasks-close { position: sticky; top: 12px; float: right; margin: -44px 12px 0 0; min-width: 44px; min-height: 44px; z-index: 3; background: #080b1aee; }
+  .tasks-close kbd { display: none; }
+  .tasks-view { top: 12px; right: 68px; min-width: 44px; min-height: 44px; }
   .tasks-panel { position: relative; top: 0; left: 0; right: 0; width: auto; max-height: none; margin: 14px 16px 0; }
   .tasks-strip { position: relative; left: 0; bottom: 0; transform: none; margin: 14px 16px 38vh; max-width: none; }
   .tasks-canvas { position: fixed; }
   .tasks-keys { display: none; }
+  .tasks-strip button, .tasks-ask { min-height: 44px; }
+  .tasks-strip > button { min-width: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tasks, .tasks * { animation: none !important; }

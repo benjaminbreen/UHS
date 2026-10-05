@@ -23,6 +23,7 @@ import {
   seasons,
   slotThemes,
   stems,
+  themes,
   type Era,
   type Period,
   type Season,
@@ -34,6 +35,11 @@ import { catalog } from "../audio/sfx";
 import "./audio-lab.css";
 
 const periodSymbols = { dawn: "◔", day: "☀", dusk: "◑", night: "☾" };
+const candidates = [
+  "lepenski-river-hearths",
+  "mehrgarh-rain-jars",
+  "cusco-apricot-dusk",
+];
 const seasonNotes = {
   spring: "New leaves & open paths",
   summer: "Long light & distant hills",
@@ -120,9 +126,24 @@ export function AudioLab({
     }
   };
   const melody = score.notes.filter((n) => n.stem === "melody");
-  const phrase = Math.min(3, Math.floor((beat * 4) / score.beats));
-  const meter = score.beats / 32,
-    scale = 640 / score.beats;
+  const meter = "meter" in score.theme ? score.theme.meter : 4;
+  const bars = score.beats / meter;
+  const beatUnit =
+    ("beatUnit" in score.theme ? score.theme.beatUnit : undefined) ??
+    (meter === 6 || meter === 12 ? 8 : 4);
+  const sections = ("sections" in score.theme
+    ? score.theme.sections
+    : undefined) ?? [
+    { bar: 0, label: "A · arrival" },
+    { bar: bars / 4, label: "A′ · unfolding" },
+    { bar: bars / 2, label: "B · beyond the hill" },
+    { bar: (bars * 3) / 4, label: "A″ · homeward" },
+  ];
+  const phrase = sections.reduce(
+    (active, section, i) => (beat >= section.bar * meter ? i : active),
+    0,
+  );
+  const scale = 640 / score.beats;
   return (
     <div
       className="audio-backdrop"
@@ -164,7 +185,11 @@ export function AudioLab({
             aria-selected={tab === "music"}
             onClick={() => setTab("music")}
           >
-            Overworld music <span>05 themes</span>
+            Overworld music{" "}
+            <span>
+              {themes.length + culturalThemes.length + layeredThemes.length}{" "}
+              themes
+            </span>
           </button>
           <button
             role="tab"
@@ -259,27 +284,40 @@ export function AudioLab({
                     {culturalThemes.length + layeredThemes.length} sketches
                   </span>
                 </div>
-                {[...culturalThemes, ...layeredThemes].map((theme, i) => (
-                  <button
-                    className={`audio-track ${theme.id === arrangement.themeId ? "selected" : ""}`}
-                    key={theme.id}
-                    aria-pressed={theme.id === arrangement.themeId}
-                    title={theme.evidence}
-                    onClick={() => director.configure({ themeId: theme.id })}
-                  >
-                    <span className="audio-track-number">P{i + 1}</span>
-                    <div>
-                      <strong>{theme.title}</strong>
-                      <small>{theme.place}</small>
-                    </div>
-                    <span className="audio-track-dot">
-                      {theme.id === arrangement.themeId ? "●" : "○"}
-                    </span>
-                  </button>
-                ))}
+                {[...culturalThemes, ...layeredThemes]
+                  .sort(
+                    (a, b) =>
+                      (candidates.includes(a.id)
+                        ? candidates.indexOf(a.id)
+                        : candidates.length) -
+                      (candidates.includes(b.id)
+                        ? candidates.indexOf(b.id)
+                        : candidates.length),
+                  )
+                  .map((theme, i) => (
+                    <button
+                      className={`audio-track ${theme.id === arrangement.themeId ? "selected" : ""}`}
+                      key={theme.id}
+                      aria-pressed={theme.id === arrangement.themeId}
+                      title={theme.evidence}
+                      onClick={() => {
+                        director.setLevel("melody", 1);
+                        director.configure({ themeId: theme.id });
+                      }}
+                    >
+                      <span className="audio-track-number">P{i + 1}</span>
+                      <div>
+                        <strong>{theme.title}</strong>
+                        <small>{theme.place}</small>
+                      </div>
+                      <span className="audio-track-dot">
+                        {theme.id === arrangement.themeId ? "●" : "○"}
+                      </span>
+                    </button>
+                  ))}
                 <p className="audio-fine audio-library-foot">
-                  Five original compositions. Two arrangements in every season /
-                  time slot. Shared themes carry the world’s musical memory.
+                  Five seasonal and travel pieces, plus dated place themes.
+                  Shared themes carry the world’s musical memory.
                 </p>
               </aside>
               <section className="audio-player">
@@ -308,7 +346,9 @@ export function AudioLab({
                   </div>
                   <span className="audio-bpm">
                     {score.bpm}
-                    <small>BPM · {meter === 6 ? "6/8" : `${meter}/4`}</small>
+                    <small>
+                      BPM · {meter}/{beatUnit}
+                    </small>
                   </span>
                 </div>
                 <p className="audio-description">
@@ -322,7 +362,7 @@ export function AudioLab({
                 </p>
                 <div
                   className="audio-score"
-                  aria-label={`Melody score, bar ${Math.floor(beat / meter) + 1} of 32`}
+                  aria-label={`Melody score, bar ${Math.floor(beat / meter) + 1} of ${bars}`}
                 >
                   <svg
                     viewBox="0 0 640 74"
@@ -362,14 +402,15 @@ export function AudioLab({
                     />
                   </svg>
                   <div className="audio-phrases">
-                    {[
-                      "A · arrival",
-                      "A′ · unfolding",
-                      "B · beyond the hill",
-                      "A″ · homeward",
-                    ].map((name, i) => (
-                      <span key={name} className={phrase === i ? "active" : ""}>
-                        {name}
+                    {sections.map((section, i) => (
+                      <span
+                        key={section.bar}
+                        className={phrase === i ? "active" : ""}
+                        style={{
+                          flex: (sections[i + 1]?.bar ?? bars) - section.bar,
+                        }}
+                      >
+                        {section.label}
                       </span>
                     ))}
                   </div>
@@ -422,34 +463,36 @@ export function AudioLab({
                     {exporting ? "Rendering…" : "WAV"}
                   </button>
                 </div>
-                <div className="audio-orchestration">
-                  <div className="audio-label">
-                    03 / THROUGH THE ERAS <span>PREVIEW</span>
+                {!("place" in score.theme) && (
+                  <div className="audio-orchestration">
+                    <div className="audio-label">
+                      03 / THROUGH THE ERAS <span>PREVIEW</span>
+                    </div>
+                    <div className="audio-era-buttons">
+                      {(
+                        [
+                          ["pastoral", "I", "Pipe & earth"],
+                          ["chamber", "II", "Chamber"],
+                          ["electronic", "III", "After tomorrow"],
+                        ] as const
+                      ).map(([era, numeral, title]) => (
+                        <button
+                          key={era}
+                          aria-label={title}
+                          aria-pressed={arrangement.era === era}
+                          onClick={() => director.configure({ era })}
+                        >
+                          <span>{numeral}</span>
+                          {title}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="audio-fine">
+                      {eraNotes[arrangement.era]} Culture-specific tuning and
+                      historically grounded instrumentation come later.
+                    </p>
                   </div>
-                  <div className="audio-era-buttons">
-                    {(
-                      [
-                        ["pastoral", "I", "Pipe & earth"],
-                        ["chamber", "II", "Chamber"],
-                        ["electronic", "III", "After tomorrow"],
-                      ] as const
-                    ).map(([era, numeral, title]) => (
-                      <button
-                        key={era}
-                        aria-label={title}
-                        aria-pressed={arrangement.era === era}
-                        onClick={() => director.configure({ era })}
-                      >
-                        <span>{numeral}</span>
-                        {title}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="audio-fine">
-                    {eraNotes[arrangement.era]} Culture-specific tuning and
-                    historically grounded instrumentation come later.
-                  </p>
-                </div>
+                )}
                 <div className="audio-mixer-heading">
                   <div className="audio-label">04 / THE ENSEMBLE</div>
                   <button onClick={() => director.resetMix()}>Reset mix</button>

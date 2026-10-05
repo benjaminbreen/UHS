@@ -532,6 +532,20 @@
 .time-date > span {
   font-weight: 400;
 }
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .time-veil {
+    top: var(--viewport-top, 0px); bottom: auto;
+    height: var(--viewport-height, 100dvh);
+    place-items: start center; overscroll-behavior: contain;
+  }
+  .time-veil .time-dialog { min-height: 0; padding: 60px 20px 24px; }
+  .time-close {
+    position: sticky; top: 8px; float: right;
+    margin-top: -52px; margin-right: -12px;
+    width: 44px; height: 44px; z-index: 2;
+    background: #0d171de6;
+  }
+}
 @media (max-height: 760px) {
   .time-dialog {
     min-height: 0;

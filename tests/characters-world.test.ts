@@ -7,6 +7,12 @@ import { WorldCharacters } from "../src/render/characters/world";
 import { renderers } from "../src/render/characters/renderers";
 import type { CharacterFrameRequest, CharacterFrameResponse } from "../src/render/characters/worker";
 
+const device = vi.hoisted(() => ({ mobile: false }));
+vi.mock("../src/runtime/device", async (original) => ({
+  ...await original<typeof import("../src/runtime/device")>(),
+  smallMemoryDevice: () => device.mobile,
+}));
+
 vi.mock("phaser", () => ({ default: { Textures: { FilterMode: { NEAREST: 0 } } } }));
 vi.mock("../src/render/characters/props", () => ({
   loadCarriedArt: () => Promise.resolve(new Map()),
@@ -39,11 +45,12 @@ const scene = {
   sys: { settings: { key: "test" } },
   textures: { addCanvas: vi.fn(() => ({ setFilter: vi.fn() })), remove: vi.fn() },
 };
-const actor = { id: "player", sprite: "human-0-0", direction: 2, appearance: originalAppearance };
+const actor = { id: "walker", sprite: "human-0-0", direction: 2, appearance: originalAppearance };
 let characters: WorldCharacters;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  device.mobile = false;
   FakeWorker.instances = [];
   scene.time.now = 0;
   vi.stubGlobal("Worker", FakeWorker);
@@ -103,6 +110,38 @@ it("can display the first completed frame after the requested pose advances", ()
   characters.frame(actor, "walk", 3);
   FakeWorker.instances[0].finish();
   expect(characters.frame(actor, "walk", 3)).toMatch(/^character-test-/);
+});
+
+it("prepares mobile strides while idle without delaying a visible resident", () => {
+  device.mobile = true;
+  characters.destroy();
+  characters = new WorldCharacters(scene as unknown as Phaser.Scene);
+  const player = { ...actor, id: "player" };
+  // The first is drawn at once; the stride is queued from the next.
+  characters.frame(player, "idle", 0);
+  characters.frame(player, "idle", 0);
+  expect(FakeWorker.instances).toHaveLength(1);
+  const resident = { ...actor, id: "resident", direction: 1 };
+  characters.frame(resident, "idle", 0);
+  const worker = FakeWorker.instances[0];
+  worker.finish();
+  expect(worker.postMessage.mock.calls.at(-1)![0].direction).toBe(1);
+  for (let i = 0; i < 24; i++) worker.finish();
+  const calls = worker.postMessage.mock.calls.length;
+  for (const pose of ["walk", "run"] as const) {
+    const frames = Array.from({ length: 8 }, (_, frame) => characters.frame(player, pose, frame));
+    expect(frames.every((key) => typeof key === "string")).toBe(true);
+    expect(new Set(frames).size).toBe(8);
+  }
+  expect(worker.postMessage.mock.calls).toHaveLength(calls);
+});
+
+it("draws the player's uncached frame at once instead of waiting on a worker", () => {
+  const player = { ...actor, id: "player" };
+  const south = characters.frame(player, "walk", 0);
+  const east = characters.frame({ ...player, direction: 1 }, "walk", 0);
+  expect(east).toMatch(/^character-test-/);
+  expect(east).not.toBe(south);
 });
 
 it("does not show an old appearance while its replacement is pending", () => {
