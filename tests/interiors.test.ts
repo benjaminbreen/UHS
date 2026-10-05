@@ -203,6 +203,11 @@ describe("interior profiles", () => {
     expect(at(10.2, 36.8, 1700)).toBe("maghrebi-mosque");
     expect(at(51.7, 32.7, 1650)).toBe("persian-mosque");
     expect(at(44.4, 32.5, -2000)).toBe("mesopotamian-temple");
+    const east = (lon: number, lat: number, year: number) =>
+      religiousProfile({ culture: "east-asian", lon, lat, year } as WorldSetting)?.id;
+    expect(east(116.4, 39.9, 1600)).toBe("chinese-temple");
+    expect(east(126.98, 37.57, 1600)).toBe("korean-temple");
+    expect(east(135.77, 35.01, 1700)).toBe("japanese-temple");
   });
 
   it("faces every place of worship to its altar down an aisle no column stands in", () => {
@@ -219,6 +224,8 @@ describe("interior profiles", () => {
       { id: "mosque", lon: -5, lat: 34, year: 1400, use: "religious.maghrebi-mosque" },
       { id: "chinese-temple", lon: 116, lat: 40, year: 1500, use: "venue.temple-court-east" },
       { id: "japanese-temple", lon: 135.8, lat: 35, year: 1700, use: "venue.temple-court-east" },
+      { id: "chinese-temple", lon: 129, lat: 35.2, year: 1600, use: "religious.korean-temple" },
+      { id: "japanese-temple", lon: 135.8, lat: 35, year: 1700, use: "religious.japanese-temple" },
       { id: "wat", lon: 100.5, lat: 13.7, year: 1800, use: "venue.wat" },
       { id: "hindu-temple", lon: 78, lat: 11, year: 1100, use: "venue.temple-court-south" },
       { id: "classical-temple", lon: 12.5, lat: 41.9, year: 100, use: "venue.temple-precinct" },

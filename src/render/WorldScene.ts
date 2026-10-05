@@ -3221,7 +3221,7 @@ export class WorldScene extends Phaser.Scene {
     const key = shadowFrame(this.shadowPhase, frame);
     // A temple's or a mosque's cast is on its own page, fetched the first time one is drawn.
     const sacred =
-      this.texture(frame).startsWith("civic") && this.sheetFrames?.has(key)
+      /^(civic|sacred-buildings)/.test(this.texture(frame)) && this.sheetFrames?.has(key)
         ? this.texture(key)
         : undefined;
     if (sacred === "__DEFAULT") return undefined;

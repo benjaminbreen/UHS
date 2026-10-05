@@ -22,6 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from art.voxel_kit import VoxelBuilding, OAK, GRANITE  # noqa: E402
 from art.voxel import ramp_from  # noqa: E402
+from art.finish import finish_image  # noqa: E402
+from art.oblique_style import side_depth  # noqa: E402
 
 MUDBRICK = ['#35251f', '#56402f', '#795a40', '#9a7652', '#b69264', '#cead7a', '#e2c796']
 RED_MUDBRICK = ['#3a2220', '#5e3629', '#824a34', '#a2623f', '#bc7b4f', '#d29664', '#e4b27e']
@@ -57,6 +59,34 @@ LEAD = ['#181b22', '#262a34', '#363c48', '#4a525e', '#626c78', '#7e8892', '#a0a8
 GREEN_TILE = ['#061409', '#0b2412', '#12381c', '#1a5028', '#246a36', '#348648', '#4ea262']
 TURQUOISE = ['#05202a', '#08323f', '#0c4a58', '#126474', '#1c8294', '#30a2b0', '#56c0c8', '#92dcdc']
 COBALT = ['#080e26', '#0e1a48', '#16286c', '#20388e', '#3050ac', '#4c70c6', '#7896da']
+RED_BRICK = ['#22100e', '#3e1a16', '#5c261e', '#7a3426', '#964430', '#ae583c', '#c4704e']
+OCHRE = ['#3a1e14', '#5e3020', '#84442c', '#a85c3a', '#c47a50', '#d8986a', '#e8b88c']
+# How each style's walls are finished, one profile per look: (bond, ramp, second ramp).
+FINISHES = {
+    'ottoman': [('clean', ASHLAR, None), ('rendered', WHITEWASH, None), ('cloisonne', ASHLAR, RED_BRICK)],
+    'arab': [('ablaq', SANDSTONE, BASALT), ('clean', SANDSTONE, None), ('coursed', SANDSTONE, None)],
+    'maghrebi': [('rendered', WHITEWASH, None), ('rendered', OCHRE, None), ('coursed', SANDSTONE, None)],
+    'persian': [('brick', BUFF_BRICK, None), ('brick', BUFF_BRICK, None), ('brick', BUFF_BRICK, None)],
+}
+# East Asian Buddhist temples: a walled compound, a gate hall, a court with
+# its burner or lanterns, sometimes a pagoda, the main hall on a platform at
+# the back under a deep hip-and-gable roof.
+VERMILION = ['#24080a', '#46100e', '#701c16', '#982a1e', '#bc3e28', '#d65a3a']
+DARK_TIMBER = ['#120a08', '#20140e', '#342216', '#4a321e', '#624428', '#7c5834']
+GREY_TILE = ['#1e2228', '#2c323a', '#3c444e', '#4e5862', '#636e78', '#7c8892', '#9aa6ae']
+BRONZE = ['#1a120a', '#36260f', '#56401c', '#765a28', '#967436', '#b8944c']
+CN_WALL = ['#2a0c0a', '#4c1812', '#74261a', '#963624', '#b04a32', '#c86448', '#dc8466']
+BRACKET = ['#0a1e20', '#123a3a', '#1c5a54', '#2a7a6c', '#3c9a84']
+EAST = {
+    # Vermilion columns and red walls, painted brackets, grey barrel tile
+    # swept up hard at the corners, fish-tailed ridge ends: the temples of
+    # Ming and Qing China, and Korea's after them.
+    'chinese': dict(wall=CN_WALL, post=VERMILION, roof=GREY_TILE, bracket=BRACKET, upturn=7, sag=1.7, court='burner', pagoda='large'),
+    # Dark timber and white plaster, plain brackets, a deeper and quieter
+    # roof, stone lanterns in the court and a five-storeyed pagoda: Nara and
+    # Kyoto.
+    'japanese': dict(wall=WHITEWASH, post=DARK_TIMBER, roof=GREY_TILE, bracket=DARK_TIMBER, upturn=2, sag=1.5, court='lanterns', pagoda='medium'),
+}
 MOSQUES = {
     # Ashlar under lead: a great dome on its drum over a square hall, half-domes
     # and turrets round it, a domed portico, pencil minarets with balconies and
@@ -76,8 +106,8 @@ MOSQUES = {
 
 
 class MosqueParts:
-    """Round parts lit as round: a dome, a drum or a cone is filled sector by
-    sector, each sector with its own normal. Normals are shared by direction,
+    """Shaped parts lit by their own normals: a dome, a drum or a cone filled
+    sector by sector, a roof plane by plane. Normals are shared by direction,
     since the grid holds at most 255 of them."""
 
     def nid(self, v):
@@ -133,6 +163,168 @@ class MosqueParts:
                 return (dx * dx + dy * dy <= rad * rad) & (ang >= a0) & (ang < a1)
             self.fill(int(cx - r) - 1, int(cx + r) + 2, int(cy - r) - 1, int(cy + r) + 2, z0, z1, pred, mat, nid)
 
+    def roof(self, x0, x1, y0, y1, z0, rise, mat, kind='gable-x', over=4, sag=1.0, upturn=0, hip_to=0.55,
+             gable=None, shell=3):
+        """A pitched roof over the walls x0..x1 by y0..y1, eaves at z0: 'gable-x'
+        with its ridge across the front, 'gable-y' with its ridge running back,
+        'hip', or 'irimoya', hipped below and gabled above. `sag` above 1
+        hollows the slopes as East Asian roofs are; `upturn` lifts the corners.
+        Under the roof the walls' footprint is filled with `gable`, so gable
+        ends read as wall; beyond it the eaves are a shell `shell` thick."""
+        X0, X1, Y0, Y1 = x0 - over, x1 + over, y0 - over, y1 + over
+        hx, hy = (X1 - X0) / 2, (Y1 - Y0) / 2
+        cx, cy = (X0 + X1) / 2, (Y0 + Y1) / 2
+        half = min(hx, hy)
+        gin = (1 - hip_to) * half
+
+        def height(X, Y):
+            ex = hx - np.abs(X + 0.5 - cx)
+            ey = hy - np.abs(Y + 0.5 - cy)
+            if kind == 'gable-x':
+                t = ey / hy
+            elif kind == 'gable-y':
+                t = ex / hx
+            else:
+                t = np.minimum(ex, ey) / half
+                if kind == 'irimoya':
+                    upper = np.where(ex >= gin, (ey / hy), 0)
+                    t = np.maximum(np.minimum(t, hip_to), upper)
+            h = rise * np.clip(t, 0, 1) ** sag
+            if upturn:
+                h = h + upturn * np.clip(1 - np.hypot(ex, ey) / (half * 0.55), 0, 1) ** 2
+            return h, ex, ey
+
+        def plane(X, Y, ex, ey):
+            dx, dy = X + 0.5 - cx, Y + 0.5 - cy
+            if kind == 'gable-x':
+                return np.where(dy < 0, 0, 1)
+            if kind == 'gable-y':
+                return np.where(dx < 0, 2, 3)
+            side = np.where(dx < 0, 2, 3)
+            fb = np.where(dy < 0, 0, 1)
+            if kind == 'irimoya':
+                return np.where((ex >= gin) | (ey < ex), fb, side)
+            return np.where(ey <= ex, fb, side)
+        slope = rise / max(1, half)
+        normals = [self.nid([0, -slope, 1]), self.nid([0, slope, 1]), self.nid([-slope, 0, 1]), self.nid([slope, 0, 1])]
+        top = int(z0 + rise + upturn) + 2
+        if gable is not None:
+            self.fill(x0, x1, y0, y1, z0, top, lambda X, Y, Z: Z < z0 + height(X, Y)[0], gable)
+        for k, nid in enumerate(normals):
+            def pred(X, Y, Z, k=k):
+                h, ex, ey = height(X, Y)
+                return (Z < z0 + h) & (Z >= z0 + h - shell) & (plane(X, Y, ex, ey) == k)
+            self.fill(X0, X1, Y0, Y1, max(0, z0 - shell), top, pred, mat, nid)
+        return lambda x, y: z0 + float(height(np.array(x), np.array(y))[0])
+
+    def pagoda(self, cx, cy, levels, w0, storey, wall, post, roof, gilt, st):
+        """Storeys stepping in, each under its own swept roof, the spire of
+        rings on top."""
+        z = 6
+        self.box(int(cx - w0 / 2 - 3), int(cx + w0 / 2 + 3), int(cy - w0 / 2 - 3), int(cy + w0 / 2 + 3), 0, z, roof if False else wall)
+        for i in range(levels):
+            w = w0 - i * (w0 * 0.12)
+            x0, x1, y0, y1 = int(cx - w / 2), int(cx + w / 2), int(cy - w / 2), int(cy + w / 2)
+            self.box(x0, x1, y0, y1, z, z + storey, wall)
+            for x in (x0, x1 - 2):
+                self.box(x, x + 2, y0 - 1, y0, z, z + storey, post)
+            z += storey
+            self.roof(x0, x1, y0, y1, z, w * 0.3, roof, kind='hip', over=6, sag=st['sag'], upturn=st['upturn'] * 0.5, gable=wall)
+            z += int(w * 0.3 * 0.55)
+        self.drum(cx, cy, z, z + 22, 1.5, gilt)
+        for k in range(5):
+            self.drum(cx, cy, z + 4 + k * 3, z + 5 + k * 3, 3 - k * 0.3, gilt)
+
+    def east_temple(self, st):
+        g, W, D = self.g, self.W, self.D
+        look = self.r.get('look', 0)
+        scale = self.r.get('scale', 'medium')
+        wall = g.mat(st['wall'], bias=0.0)
+        post = g.mat(st['post'], bias=-0.2)
+        tile = g.mat(st['roof'], bias=0.2)
+        bracket = g.mat(st['bracket'], tex=lambda i: 1.4 * ((i['x'] // 3) % 2) - 0.7, bias=0.3)
+        stone = g.mat(ASHLAR, bias=0.0)
+        pave = g.mat(PAVING, bias=0.4)
+        bronze = g.mat(BRONZE, bias=0.3)
+        gilt = g.mat(GILT, bias=0.4)
+        dark = g.mat(['#0c0a10', '#16121a', '#201a22'])
+        lattice = g.mat(st['post'], tex=lambda i: -1.2 * (((i['x'] % 3) == 0) | ((i['z'] % 3) == 0)), bias=0.4)
+        self.fin = {wall: ('masonry', st['wall'], {'bond': 'rendered'}),
+                    stone: ('masonry', ASHLAR, {'bond': 'clean'}),
+                    pave: ('masonry', PAVING, {'bond': 'flags'}),
+                    tile: ('tiles', st['roof'], {'style': 'barrel'})}
+        cx = W // 2
+        t, H = 5, 16
+        self.box(0, W, 0, D, 0, 1, pave)
+        # The compound wall, its coping of tile.
+        for x0, x1, y0, y1 in ((0, W, 0, t), (0, t, 0, D), (W - t, W, 0, D)):
+            self.box(x0, x1, y0, y1, 0, H, wall)
+            self.box(x0 - 1, x1 + 1, y0 - 1, y1 + 1, H, H + 2, tile)
+        for x in range(8, W - 8, 10):
+            if st is EAST['japanese']:
+                self.box(x, x + 8, -1, 0, 4, 5, wall)
+        # The gate hall.
+        gw, gd = max(40, W // 3), 24
+        gx0, gx1 = cx - gw // 2, cx + gw // 2
+        self.box(gx0 - 2, gx1 + 2, -6, gd - 4, 0, 3, stone)
+        self.box(gx0, gx1, -4, gd - 6, 3, 24, wall)
+        for x in range(gx0, gx1 - 1, gw // 4):
+            self.box(x, x + 3, -5, -3, 3, 24, post)
+        self.box(gx1 - 3, gx1, -5, -3, 3, 24, post)
+        self.cut(cx - 7, cx + 7, -6, gd, 3, 20)
+        self.box(cx - 7, cx + 7, gd - 7, gd - 6, 3, 20, dark)
+        self.box(gx0, gx1, -5, -3, 21, 24, bracket)
+        self.roof(gx0, gx1, -4, gd - 6, 24, 16, tile, kind='irimoya', over=7, sag=st['sag'], upturn=st['upturn'] * 0.7, gable=wall)
+        # The court.
+        hy0 = int(D * 0.52)
+        if st['court'] == 'burner':
+            by = int(hy0 * 0.62)
+            self.drum(cx, by, 0, 3, 7, stone)
+            for s in (-1, 1):
+                self.box(cx + s * 4, cx + s * 4 + 2, by - 1, by + 1, 3, 7, bronze)
+            self.drum(cx, by, 7, 16, 6, bronze)
+            self.drum(cx, by, 16, 18, 7, bronze)
+            self.roof(cx - 5, cx + 5, by - 5, by + 5, 18, 5, bronze, kind='hip', over=2, sag=1.4, upturn=2)
+        else:
+            for s in (-1, 1):
+                lx, ly = cx + s * 18, int(hy0 * 0.62)
+                self.box(lx - 2, lx + 2, ly - 2, ly + 2, 0, 10, stone)
+                self.box(lx - 4, lx + 4, ly - 4, ly + 4, 10, 12, stone)
+                self.box(lx - 3, lx + 3, ly - 3, ly + 3, 12, 18, stone)
+                self.box(lx - 2, lx + 2, ly - 4, ly - 3, 13, 17, g.mat(['#3a2a10', '#c89a40', '#f0d080'], bias=1.0))
+                self.roof(lx - 4, lx + 4, ly - 4, ly + 4, 18, 4, stone, kind='hip', over=2, sag=1.2, upturn=1)
+        order = ['small', 'medium', 'large']
+        if order.index(scale) >= order.index(st['pagoda']):
+            px = int(W * 0.8) if st is EAST['japanese'] else int(W * 0.2)
+            self.pagoda(px, int(hy0 * 0.55), 5, min(24, W // 9), 9, wall, post, tile, gilt, st)
+        # The main hall on its platform.
+        hw = int(W * 0.66)
+        hx0, hx1 = cx - hw // 2, cx + hw // 2
+        self.box(hx0 - 6, hx1 + 6, hy0 - 6, D - 3, 0, 7, stone)
+        for k in range(4):
+            self.box(cx - 10, cx + 10, hy0 - 10 + k * 1, hy0 - 6, 0, 7 - k * 2, stone)
+        hz = 34
+        self.box(hx0, hx1, hy0, D - 5, 7, hz, wall)
+        bay = max(10, hw // 7)
+        for x in range(hx0, hx1 - 2, bay):
+            self.box(x, x + 3, hy0 - 2, hy0, 7, hz, post)
+            if x + bay < hx1 - 2:
+                self.box(x + 3, x + bay, hy0 - 1, hy0, 9, hz - 6, lattice)
+        self.box(hx1 - 3, hx1, hy0 - 2, hy0, 7, hz, post)
+        self.box(hx0, hx1, hy0 - 2, hy0, hz - 5, hz, bracket)
+        top = self.roof(hx0, hx1, hy0, D - 5, hz, 20 + W * 0.04, tile, kind='irimoya', over=9,
+                        sag=st['sag'], upturn=st['upturn'], gable=wall)
+        rz = int(top(cx, (hy0 + D - 5) // 2))
+        # Ridge ornaments: fish-tailed chiwei, or the plainer shibi.
+        for s in (-1, 1):
+            ex = cx + s * int(hw * 0.32)
+            self.box(ex - 2, ex + 2, (hy0 + D - 5) // 2 - 2, (hy0 + D - 5) // 2 + 2, rz, rz + 7, tile)
+            self.box(ex + s * 2 - 1, ex + s * 2 + 1, (hy0 + D - 5) // 2 - 1, (hy0 + D - 5) // 2 + 1, rz + 7, rz + 10, tile)
+        if st is EAST['chinese']:
+            self.box(cx - 2, cx + 2, (hy0 + D - 5) // 2 - 2, (hy0 + D - 5) // 2 + 2, rz, rz + 6, gilt)
+        self.door_x = self.sx0 + cx
+        self.front = -6
+
     def arch(self, x0, x1, y0, y1, z0, spring, rise):
         """Cut a pointed arch through a wall facing the viewer."""
         mid, half = (x0 + x1) / 2, (x1 - x0) / 2
@@ -143,13 +335,13 @@ class MosqueParts:
     def mosque(self, st):
         g, W, D = self.g, self.W, self.D
         look = self.r.get('look', 0)
-        course = self.tex['course']
-        ablaq = st is MOSQUES['arab'] and look != 1
-        wall = g.mat(st['wall'], tex=(lambda i: 2.0 * ((i['z'] // 4) % 2) - 1.4) if ablaq else (lambda i: course(i) * 0.5), bias=-0.1)
-        trim = g.mat(st['wall'], bias=0.6)
-        plain = g.mat(st['wall'], bias=0.2)
+        style = next(k for k, v in MOSQUES.items() if v is st)
+        bond, ramp, second = FINISHES[style][look % 3]
+        wall = g.mat(ramp, bias=-0.1)
+        trim = g.mat(ramp, bias=0.6)
+        plain = g.mat(ramp, bias=0.2)
         roof = g.mat(st['roof'], tex=lambda i: -0.7 * (i['x'] % 6 == 0), bias=0.1)
-        tiles = g.mat(st['roof'], tex=lambda i: 0.9 * (i['y'] % 4 == 0) - 0.5 * (i['x'] % 5 == 0), bias=0.0)
+        tiles = g.mat(st['roof'], tex=lambda i: 0.6 * (i['z'] % 3 == 0), bias=0.5)
         lead = g.mat(LEAD, bias=0.3)
         pave = g.mat(PAVING if st['wall'] is not WHITEWASH else ASHLAR, tex=lambda i: -0.9 * ((i['x'] % 9 == 0) | (i['y'] % 9 == 0)), bias=0.4)
         dark = g.mat(['#0c0a10', '#16121a', '#201a22'])
@@ -160,6 +352,12 @@ class MosqueParts:
         tile = g.mat(COBALT if look == 2 else TURQUOISE, tex=lambda i: 1.2 * (((i['x'] // 3) + (i['z'] // 3)) % 2) - 0.6, bias=0.0)
         dome_mat = g.mat(COBALT if (st['hall'] == 'iwan' and look == 2) else st['roof'] if st['hall'] in ('iwan', 'domed') else LEAD,
                          tex=(lambda i: 0.8 * (((i['x'] // 4) + (i['z'] // 3)) % 2) - 0.3) if st['hall'] == 'iwan' else None, bias=0.3)
+        self.fin = {wall: ('masonry', ramp, {'bond': bond, 'second': second}),
+                    plain: ('masonry', ramp, {'bond': 'brick' if bond == 'brick' else 'clean'}),
+                    pave: ('masonry', PAVING if st['wall'] is not WHITEWASH else ASHLAR, {'bond': 'flags'}),
+                    lead: ('lead', LEAD, {})}
+        if st['roof'] is LEAD:
+            self.fin[roof] = ('lead', LEAD, {})
         t, H = 6, 26
         cx = W // 2
         hy0 = int(D * 0.5)
@@ -211,6 +409,8 @@ class MosqueParts:
         # The hall's own roof: lead round the domes, a rolled earth terrace, or brick.
         terrace = g.mat({'domed': LEAD, 'hypostyle': MUDBRICK, 'gables': st['wall'], 'iwan': BUFF_BRICK}[st['hall']],
                         tex=lambda i: 0.7 * (((i['x'] // 9) + (i['y'] // 7)) % 3 == 0) - 0.6 * (i['y'] % 11 == 0), bias=-0.4)
+        if st['hall'] == 'domed':
+            self.fin[terrace] = ('lead', LEAD, {})
         self.box(hx0, hx1, hy0, D - 2, 0, hz, wall)
         self.box(hx0, hx1, hy0, D - 2, hz, hz + 2, terrace)
         self.box(hx0, hx1, hy0, hy0 + 2, hz, hz + 2, trim)
@@ -263,9 +463,15 @@ class MosqueParts:
             self.box(cx, cx + 1, dy, dy + 1, hz + 37, hz + 43, gilt)
         elif st['hall'] == 'gables':
             # Parallel aisles, each under its own ridge of green glazed tile.
+            # Each gable end is whitewashed wall; the tile shows on its raking
+            # edges and the slopes behind.
             for x in range(hx0, hx1, 22):
-                for k in range(11):
-                    self.box(x + k, x + 22 - k, hy0, D - 2, hz + 2 + k, hz + 3 + k, tiles)
+                for k in range(9):
+                    lo, hi = x + int(k * 1.2), x + 22 - int(k * 1.2)
+                    self.box(lo, hi, hy0, D - 2, hz + 2 + k, hz + 3 + k, plain)
+                    self.box(lo, hi, hy0 + 2, D - 2, hz + 2 + k, hz + 3 + k, tiles)
+                    for ex in (lo, hi - 2):
+                        self.box(ex, ex + 2, hy0 - 1, D - 2, hz + 2 + k, hz + 4 + k, tiles)
             self.box(cx - 10, cx + 10, hy0 - 4, hy0, 0, hz + 6, wall)
             for k in range(8):
                 self.box(cx - 12 + k, cx + 12 - k, hy0 - 8, hy0, hz + 6 + k, hz + 7 + k, tiles)
@@ -338,11 +544,18 @@ class VoxelTemple(VoxelBuilding, MosqueParts):
     """A walled precinct, its gate in the front wall; or a mosque."""
 
     def ztop(self):
+        if self.r.get('style') in EAST:
+            return 130
         return 90 + self.W // 6 if self.r.get('style') in MOSQUES else 66
+
+    def finish(self, img, buf):
+        return finish_image(img, buf, getattr(self, 'fin', {}), self.seed)
 
     def build(self):
         if self.r.get('style') in MOSQUES:
             return self.mosque(MOSQUES[self.r['style']])
+        if self.r.get('style') in EAST:
+            return self.east_temple(EAST[self.r['style']])
         st = STYLES[self.r.get('style', 'mesopotamian')]
         g, W, D = self.g, self.W, self.D
         rng = self.rng
@@ -518,6 +731,19 @@ def sacred_recipes():
                     **({'shadowFrame': f'religious-{style}-temple-{scale}-0'} if look else {}),
                     'religious': True, 'family': f'{style}-temple', 'recipe': f'{style}-temple',
                 }
+    for style in EAST:
+        for scale, fp in {'small': [12, 10], 'medium': [15, 12], 'large': [18, 14]}.items():
+            for look in range(3):
+                out[f'religious-{style}-temple-{scale}-{look}'] = {
+                    'label': {'small': 'Temple', 'medium': 'Temple', 'large': 'Great temple'}[scale], 'footprint': fp,
+                    'entrance': [fp[0] // 2, fp[1]], 'wall': 'white-plaster', 'roof': 'flat', 'roofMaterial': 'tar',
+                    'attachments': [], 'opening': 'door', 'height': 130,
+                    'description': 'A Buddhist temple: a gate hall into a walled court with its burner or lanterns, sometimes a pagoda, and the main hall on its platform at the back under a deep, swept roof.',
+                    'sacredVoxel': style, 'style': style, 'look': look, 'scale': scale, 'seed': 700 + look * 7 + len(out), 'stories': 1,
+                    'depthScale': 2 * side_depth(fp[1], True) / (fp[1] * 16),
+                    **({'shadowFrame': f'religious-{style}-temple-{scale}-0'} if look else {}),
+                    'religious': True, 'family': f'{style}-temple', 'recipe': f'{style}-temple',
+                }
     walls = {'ottoman': 'field-stone', 'arab': 'field-stone', 'maghrebi': 'white-plaster', 'persian': 'bengal-brick'}
     for style in MOSQUES:
         for scale, fp in {'small': [12, 10], 'medium': [15, 12], 'large': [18, 14]}.items():
@@ -528,6 +754,8 @@ def sacred_recipes():
                     'attachments': [], 'opening': 'door', 'height': 90 + fp[0] * 16 // 6,
                     'description': 'A mosque: a gate into a court with its fountain for ablution, arcades down its sides, the prayer hall across the back facing Mecca, and the minaret the call to prayer is given from.',
                     'sacredVoxel': style, 'style': style, 'look': look, 'seed': 600 + look * 7 + len(out), 'stories': 1,
+                    # The house style's depth, doubled so the court still shows.
+                    'depthScale': 2 * side_depth(fp[1], True) / (fp[1] * 16),
                     **({'shadowFrame': f'religious-{style}-mosque-{scale}-0'} if look else {}),
                     'religious': True, 'family': f'{style}-mosque', 'recipe': f'{style}-mosque',
                 }

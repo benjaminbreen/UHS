@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw
 from art.buildings import ROOFS, DOOR_W, DOOR_H
 from art.oblique import h2
 from art.oblique_style import K, DRIFT, drift, side_depth
+from art.stained import glaze
 
 IRON = '#1f2326'
 LEAD = ['#3c4347', '#5a6368', '#7b858a', '#a3acae']
@@ -106,9 +107,7 @@ class ObliqueChurch:
         if louvre:
             for yy in range(y + 3, y + h - 1, 3): d.line((x, yy, x + w - 1, yy), fill='#6b4a2c')
         else:
-            d.rectangle((x + 1, y + 4, x + w - 1, y + h - 1), fill='#2f4a58')
-            d.line((mid, y + 2, mid, y + h - 1), fill='#1c2a33') if w > 4 else None
-            d.point((x + 1, y + 5), fill='#8fb0b8')
+            glaze(d._image, (x, y, x + w - 1, y + h - 1), ['#1c2a33'], 'stained', self.r.get('seed', 0) + x)
         d.line((x - 2, y + h + 1, x + w + 1, y + h + 1), fill=hi)
         d.line((x - 2, y + h + 2, x + w + 1, y + h + 2), fill=dark)
         d.line((x + w, y + 4, x + w, y + h), fill=shade)

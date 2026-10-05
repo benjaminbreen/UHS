@@ -573,7 +573,8 @@
   "madrasa": {
    "label": "Madrasa",
    "family": "civic",
-   "form": "portal",
+   "form": "oblique",
+   "oblique": true,
    "description": "A great arched recess between two lower arcaded bays, banded with tilework, with minarets flanking the portal. Dimensions are illustrative.",
    "footprint": [
     12,
@@ -583,14 +584,31 @@
     6,
     9
    ],
-   "wall": "theatre-stucco",
-   "roofMaterial": "grey-tile",
-   "wallHeight": 78,
-   "portalWidth": 44,
-   "pointed": true,
-   "band": true,
-   "minarets": 2,
-   "minaretHeight": 40,
+   "wall": "field-stone",
+   "roofMaterial": "earth",
+   "wallHeight": 60,
+   "roofRise": 30,
+   "roofForm": "courtyard",
+   "roofPlan": "courtyard",
+   "courtyard": [
+    4,
+    3,
+    4,
+    3
+   ],
+   "parapetStyle": "stone-coping",
+   "windowStyle": "jali",
+   "stories": 2,
+   "chimneys": 0,
+   "frontispiece": "iwan",
+   "roofFeatures": [
+    "dome"
+   ],
+   "domeTile": true,
+   "detailSet": "levantine",
+   "motifStyle": "voussoir",
+   "accent": "#2a6a86",
+   "wealthTier": 2,
    "seed": 4511,
    "scales": {
     "small": {
@@ -603,10 +621,9 @@
       3,
       5
      ],
-     "wallHeight": 58,
-     "portalWidth": 30,
-     "minarets": 0,
-     "minaretHeight": 0
+     "roofForm": "flat",
+     "roofPlan": "terrace",
+     "courtyard": null
     },
     "medium": {
      "label": "Madrasa",
@@ -629,79 +646,38 @@
       7,
       11
      ],
-     "wallHeight": 92,
-     "portalWidth": 56,
-     "minaretHeight": 52
+     "courtyard": [
+      5,
+      3,
+      5,
+      4
+     ]
     }
    },
    "looks": [
     {
      "label": "Madrasa",
-     "pointed": true,
-     "band": true,
-     "minarets": 2
+     "wall": "field-stone",
+     "domeTile": true
     },
     {
      "label": "Lodge",
-     "pointed": true,
-     "band": false,
-     "minarets": 0,
-     "wall": "theatre-brick"
+     "wall": "bengal-brick",
+     "domeTile": false
     },
     {
-     "label": "Caravanserai gate",
-     "pointed": false,
-     "band": true,
-     "minarets": 0,
-     "wall": "theatre-stone"
+     "label": "Madrasa",
+     "wall": "mud-plaster",
+     "domeTile": true
     }
-   ],
-   "domes": 1,
-   "domeRadius": 16,
-   "domeLights": 0,
-   "ribbed": false,
-   "arcade": false,
-   "chimneyHeight": 0,
-   "roofRise": 24,
-   "overhang": 8,
-   "ridgeVent": false,
-   "curtain": false,
-   "arcadeHeight": 28,
-   "bays": 3,
-   "parapet": false,
-   "belfry": "none",
-   "belfryHeight": 30,
-   "clock": false,
-   "windowHead": "flat",
-   "wallFinish": "ashlar",
-   "arched": false,
-   "porch": false,
-   "gableFront": true,
-   "oculus": false,
-   "flagpole": false,
-   "skin": "hide",
-   "doorWidth": 7,
-   "flap": false,
-   "smoke": false,
-   "fire": false,
-   "drumRadius": 30,
-   "drumRise": 16,
-   "ventShaft": false,
-   "postHeight": 26,
-   "thatchDepth": 18,
-   "posts": 4,
-   "roofStuff": "thatch",
-   "carved": false,
-   "bench": false,
-   "stiltHeight": 0,
-   "painted": false,
-   "finialFigure": false
+   ]
   },
   "union-hall": {
    "label": "Union hall",
    "family": "civic",
-   "form": "long-hall",
-   "description": "A plain meeting hall with wide doors, a porch and a gable front: the room a trade or an order hires and then keeps. Dimensions are illustrative.",
+   "form": "oblique",
+   "oblique": true,
+   "description": "A meeting hall of two floors, tall sash windows and a pedimented centre over the door: the rooms a trade or an order hires and then keeps.",
    "footprint": [
     10,
     7
@@ -710,17 +686,14 @@
     5,
     7
    ],
-   "wall": "theatre-brick",
+   "wall": "red-brick",
    "roofMaterial": "slate",
-   "wallFinish": "ashlar",
-   "wallHeight": 56,
-   "roofRise": 26,
-   "windowHead": "flat",
-   "arched": false,
-   "porch": true,
-   "gableFront": true,
-   "oculus": true,
-   "flagpole": true,
+   "wallHeight": 60,
+   "roofRise": 30,
+   "windowStyle": "sash",
+   "stories": 2,
+   "chimneys": 1,
+   "frontispiece": "pediment",
    "seed": 4613,
    "scales": {
     "small": {
@@ -733,10 +706,8 @@
       3,
       4
      ],
-     "wallHeight": 44,
-     "roofRise": 20,
-     "porch": false,
-     "flagpole": false
+     "stories": 1,
+     "frontispiece": null
     },
     "medium": {
      "label": "Union hall",
@@ -758,71 +729,25 @@
      "entrance": [
       6,
       9
-     ],
-     "wallHeight": 68,
-     "roofRise": 32
+     ]
     }
    },
    "looks": [
     {
      "label": "Union hall",
-     "wall": "theatre-brick",
-     "gableFront": true
+     "wall": "red-brick"
     },
     {
      "label": "Assembly house",
-     "wall": "theatre-stone",
-     "gableFront": false,
-     "porch": true,
-     "arched": true,
-     "windowHead": "triangular"
+     "wall": "field-stone",
+     "portico": true
     },
     {
      "label": "Timber meeting house",
-     "wall": "theatre-stucco",
-     "wallFinish": "boards",
-     "gableFront": true,
-     "oculus": false,
-     "porch": false
+     "wall": "weatherboard",
+     "roofMaterial": "shingle"
     }
-   ],
-   "domes": 1,
-   "domeRadius": 16,
-   "domeLights": 0,
-   "ribbed": false,
-   "arcade": false,
-   "chimneyHeight": 0,
-   "overhang": 8,
-   "ridgeVent": false,
-   "curtain": false,
-   "arcadeHeight": 28,
-   "bays": 3,
-   "parapet": false,
-   "belfry": "none",
-   "belfryHeight": 30,
-   "clock": false,
-   "portalWidth": 36,
-   "pointed": false,
-   "band": false,
-   "minarets": 0,
-   "minaretHeight": 0,
-   "skin": "hide",
-   "doorWidth": 7,
-   "flap": false,
-   "smoke": false,
-   "fire": false,
-   "drumRadius": 30,
-   "drumRise": 16,
-   "ventShaft": false,
-   "postHeight": 26,
-   "thatchDepth": 18,
-   "posts": 4,
-   "roofStuff": "thatch",
-   "carved": false,
-   "bench": false,
-   "stiltHeight": 0,
-   "painted": false,
-   "finialFigure": false
+   ]
   },
   "sweat-lodge": {
    "label": "Sweat lodge",

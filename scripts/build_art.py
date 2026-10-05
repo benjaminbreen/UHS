@@ -166,6 +166,9 @@ def _landmark(name):
     return bool(m.get('religious') or m.get('theatre') or m.get('hall'))
 # Precinct pieces are the largest of all: a stand can be 46 cells long.
 precinct_frames={k:S.pop(k) for k in list(buildings) if k in S and k.startswith('precinct-')}
+# Churches, temples and mosques take a page of their own: with the halls and
+# theatres they had filled the civic page.
+sacred_frames={k:S.pop(k) for k in list(buildings) if k in S and (buildings.get(k) or {}).get('religious')}
 civic_frames={k:S.pop(k) for k in list(buildings) if k in S and _landmark(k)}
 # Tents, shelters and lodges take a page of their own: the regional page was
 # full with the courtyard compounds alone.
@@ -195,6 +198,7 @@ modern_atlas=pack_atlas(modern_frames,OUT,'modern-buildings')
 street_atlas=pack_atlas(street_frames,OUT,'street-buildings')
 pack_atlas(weather_frames,OUT,'street-weather')
 civic_atlas=pack_atlas(civic_frames,OUT,'civic')
+sacred_atlas=pack_atlas(sacred_frames,OUT,'sacred-buildings')
 precinct_atlas=pack_atlas(precinct_frames,OUT,'precincts')
 print(f'Buildings atlas {buildings_atlas.size} ({len(building_frames)} frames); '
       f'regional atlas {regional_atlas.size} ({len(regional_frames)} frames); '
@@ -202,6 +206,7 @@ print(f'Buildings atlas {buildings_atlas.size} ({len(building_frames)} frames); 
       f'modern atlas {modern_atlas.size} ({len(modern_frames)} frames); '
       f'street atlas {street_atlas.size} ({len(street_frames)} frames); '
       f'civic atlas {civic_atlas.size} ({len(civic_frames)} frames); '
+      f'sacred atlas {sacred_atlas.size} ({len(sacred_frames)} frames); '
       f'precinct atlas {precinct_atlas.size} ({len(precinct_frames)} frames).')
 # Reviewable original-asset proof at exactly 3x nearest-neighbor scaling.
 proof=Image.new('RGB',(1120,900),'#202127');d=ImageDraw.Draw(proof)
@@ -221,4 +226,4 @@ tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i fo
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','street-buildings.json','street-weather.json','civic.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','street-buildings.json','street-weather.json','civic.json','sacred-buildings.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())

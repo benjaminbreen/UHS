@@ -13,6 +13,7 @@ import random
 from PIL import Image, ImageDraw
 from art.buildings import ROOFS, DOOR_W, DOOR_H, recess
 from art.oblique_style import K, STOREY, OVER, VERGE, DRIFT, drift, side_depth, roof_rise
+from art.stained import glaze
 
 TIMBER = ('#2f2a22', '#453d30', '#8d7350')
 # Fresh straw; the shared ROOFS thatch is the weathered alternative.
@@ -148,7 +149,8 @@ class ObliqueBuilding:
         self.ox = 7 + 16 * self.lean
         roof_return = round(self.roof_depth * K)
         self.w = self.ox + self.fw + DRIFT + self.verge + 6
-        regional_headroom = (26 if self.regional_turret != 'none' or self.roof_feature == 'windcatcher'
+        regional_headroom = (60 if self.roof_feature == 'dome' or self.frontis == 'iwan'
+                             else 26 if self.regional_turret != 'none' or self.roof_feature == 'windcatcher'
                              else 24 if self.service_style == 'neighborhood-hall' else 0)
         self.h = self.wh + self.rise + max(self.sw // 2, roof_return) + max(regional_headroom, 34 if self.turret else 14 if self.has_chimney else 3) + 8
         self.bottom = self.h - 6
@@ -253,8 +255,8 @@ class ObliqueBuilding:
             d.rectangle((cx - 7, y, cx + 6, y + 9), fill=hi)
             for i in range(3):
                 d.rectangle((cx - 6 + i * 4, y + 1, cx - 4 + i * 4, y + 8), fill='#22313a')
-                d.rectangle((cx - 5 + i * 4, y + 2, cx - 4 + i * 4, y + 8), fill='#34505c')
-            d.point((cx - 5, y + 2), fill='#8fb0b8')
+            # Leaded quarries of pale glass, as every mullioned window had before the sash.
+            glaze(d._image, (cx - 6, y + 1, cx + 4, y + 8), ['#22313a'], 'quarry', self.r['seed'])
             d.line((cx - 8, y - 1, cx + 7, y - 1), fill=hi); d.line((cx - 8, y + 10, cx + 7, y + 10), fill=dark)
         elif self.lights == 'sash':
             # A tall sash under a flat arch, painted white.
@@ -730,6 +732,31 @@ class ObliqueBuilding:
             roof_y = self.roof_depth * (cy + ch / 2) / self.r['footprint'][1]
         x, y = self.proj(roof_x, roof_y, self.wh)
         dark, shade, base, light, hi = self.p['wall']
+        if feature == 'dome':
+            # A lecture hall's dome over the back range, on a drum with its
+            # windows, in flat bands lit from the upper left.
+            x, y = self.proj(self.fw / 2, self.roof_depth * .78, self.wh)
+            tiled = self.r.get('domeTile')
+            ramp = ('#0c3a46', '#14606e', '#228a96', '#46b0b6', '#8ad6d4') if tiled else (shade, base, light, hi, hi)
+            r = 16 if self.tiles >= 9 else 11
+            dh = 18 if self.frontis == 'iwan' else 8
+            d.rectangle((x - r, y - dh, x + r, y), fill=base, outline=dark)
+            for wx in range(x - r + 3, x + r - 2, 5):
+                d.rectangle((wx, y - dh + 3, wx + 1, y - dh + 7), fill='#22313a')
+            d.line((x - r, y - dh, x + r, y - dh), fill=hi)
+            d.line((x + r - 1, y - dh + 1, x + r - 1, y - 1), fill=shade)
+            for j in range(r + 1):
+                half = round((r * r - j * j) ** .5)
+                for i in range(-half, half + 1):
+                    t = (i + j * 0.7) / (r * 1.4)
+                    tone = ramp[3] if t < -0.35 else ramp[2] if t < 0.05 else ramp[1] if t < 0.45 else ramp[0]
+                    if tiled and (i + j) % 4 == 0 and tone != ramp[3]:
+                        tone = ramp[max(0, ramp.index(tone) - 1)]
+                    d.point((x + i, y - dh - 1 - j), fill=tone)
+            d.point((x - r // 3, y - dh - 1 - r * 2 // 3), fill=ramp[4])
+            d.line((x, y - dh - 2 - r, x, y - dh - 7 - r), fill='#c8a040')
+            d.point((x, y - dh - 8 - r), fill='#f0d080')
+            return
         if self.regional_turret in ('corner-stair', 'windcatcher') or feature == 'windcatcher':
             tall = 22 if self.regional_turret == 'windcatcher' or feature == 'windcatcher' else 13
             d.rectangle((x - 6, y - tall, x + 5, y), fill=base, outline=dark)
@@ -1262,6 +1289,42 @@ class ObliqueBuilding:
             d.line(((a[0] - 3 if a is l else a[0]), a[1] - (0 if a is l else 2), (b[0] + 3 if b is r else b[0]), b[1] - (2 if a is l else 0)), fill=tone, width=2)
         d.line((apex[0], apex[1] - 3, apex[0], apex[1] - 8), fill=TIMBER[0])
 
+    def iwan(self, d):
+        """A madrasa's portal: a pishtaq standing above the parapet, framed in
+        tile, its pointed recess hooded in stepped muqarnas, the door within."""
+        dark, shade, base, light, hi = self.p['wall']
+        ww = 40 if self.tiles >= 9 else 30
+        cx = self.slot * 16 + 8
+        x0, x1 = self.ox + cx - ww // 2, self.ox + cx + ww // 2
+        gy = self.bottom
+        top = gy - self.wh - 26
+        tile = ('#0e3a52', '#1e6a86', '#3e9ab0', '#86c8cc')
+        d.rectangle((x0, top, x1, gy - 1), fill=base)
+        d.rectangle((x1 + 1, top + 2, x1 + 3, gy - 1), fill=shade)
+        d.line((x0, top, x1, top), fill=hi); d.line((x0, top, x0, gy - 1), fill=light)
+        d.rectangle((x0 + 3, top + 3, x1 - 3, gy - 1), fill=tile[1])
+        for yy in range(top + 3, gy, 4):
+            for xx in range(x0 + 3 + (yy // 4) % 2 * 2, x1 - 2, 4):
+                d.point((xx, yy), fill=tile[3])
+        aw, ah = ww - 14, self.wh + 4
+        ax0, ax1, ay = x0 + 7, x1 - 7, gy - ah
+        d.rectangle((ax0, ay + aw // 2, ax1, gy - 1), fill=dark)
+        for j in range(aw // 2 + 4):
+            half = round((aw / 2) * (1 - (j / (aw / 2 + 4)) ** 1.6))
+            d.line((cx + self.ox - half, ay + aw // 2 - j, cx + self.ox + half, ay + aw // 2 - j), fill=dark)
+        for k in range(4):
+            y = ay + aw // 2 - 2 + k * 3
+            for xx in range(ax0 + 2 + k, ax1 - 1 - k, 3):
+                d.rectangle((xx, y, xx + 1, y + 1), fill=light if k % 2 == 0 else shade)
+        dx0 = cx + self.ox - 5
+        d.rectangle((dx0, gy - 20, dx0 + 10, gy - 1), fill='#5a3a22')
+        d.line((dx0 + 5, gy - 20, dx0 + 5, gy - 1), fill='#3a2414')
+        d.rectangle((dx0 - 1, gy - 22, dx0 + 11, gy - 21), fill=hi)
+        band = top + 6
+        d.rectangle((x0 + 6, band, x1 - 6, band + 4), fill=tile[0])
+        for xx in range(x0 + 8, x1 - 7, 3):
+            d.point((xx, band + 2), fill=tile[3])
+
     def frontispiece(self, pal):
         """A gabled centrepiece over the door: crow-stepped, or a classical
         pediment on pilasters."""
@@ -1367,6 +1430,7 @@ class ObliqueBuilding:
                 d.polygon([self.proj(fw, 0, wh), self.proj(fw, self.roof_depth, wh),
                            (gx + sw, gy - wh - sw)], fill=self.p['wall'][0])
             self.courtyard_top(d) if self.courtyard else self.flat_top(d)
+            if self.frontis == 'iwan': self.iwan(d)
             if self.has_chimney: self.chimney(fw * .7)
             else:
                 # The hearth vents through a hole in the roof deck.

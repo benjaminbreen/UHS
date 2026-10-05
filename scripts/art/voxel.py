@@ -159,10 +159,11 @@ def _occlusion(solid, r=2):
     return t / k ** 3
 
 
-def render(g, width, height, sx0, base, depth, ambient=0.52, sun=0.62, region=None):
+def render(g, width, height, sx0, base, depth, ambient=0.52, sun=0.62, region=None, k=K):
     """Cast the grid into a `width` x `height` RGBA image.
 
-    World (x, y, z) lands at screen (sx0 + x + y*DRIFT/depth, base - z - K*y).
+    World (x, y, z) lands at screen (sx0 + x + y*DRIFT/depth, base - z - k*y);
+    `k` below K compresses depth as the oblique house style does.
     Returns the image and per-pixel buffers the painter may use: material,
     voxel coords, the ray distance to the hit, and glass-ness. `region`
     (x0, y0, x1, y1) casts only the rays in that rect; the rest stay empty."""
@@ -191,7 +192,7 @@ def render(g, width, height, sx0, base, depth, ambient=0.52, sun=0.62, region=No
     Mf = M.reshape(-1)
     for yt in ys:
         x = cx[act] - r * yt
-        z = cz[act] - K * yt
+        z = cz[act] - k * yt
         xi = np.floor(x).astype(np.int64) - g.x0
         yi = int(np.floor(yt)) - g.y0
         zi = np.floor(z).astype(np.int64)
@@ -304,6 +305,8 @@ def _shade(g, hit, face, dist, ghit, gdist, width, height, ambient, sun):
     level[edge] = np.maximum(0, level[edge] - 1)
     lightbuf = np.zeros(N)
     lightbuf[sel] = light
+    litbuf = np.zeros(N, bool)
+    litbuf[sel] = lit
     for mid in np.unique(matbuf[level >= 0]):
         mat = g.mats[mid]
         k = (matbuf == mid) & (level >= 0)
@@ -357,5 +360,6 @@ def _shade(g, hit, face, dist, ghit, gdist, width, height, ambient, sun):
     img = rgb.reshape(height, width, 4)
     buf = {'mat': matbuf.reshape(height, width), 'coords': coords.reshape(height, width, 3),
            'dist': d2, 'glass': glass_px.reshape(height, width), 'level': level.reshape(height, width),
-           'gmat': gmat.reshape(height, width), 'nz': nz.reshape(height, width)}
+           'gmat': gmat.reshape(height, width), 'nz': nz.reshape(height, width), 'face': face.reshape(height, width),
+           'light': lightbuf.reshape(height, width), 'lit': litbuf.reshape(height, width)}
     return img, buf

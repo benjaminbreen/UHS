@@ -32,6 +32,7 @@ const atlases = {
   "street-buildings": "/packs/street-buildings",
   "street-weather": "/packs/street-weather",
   civic: "/packs/civic",
+  "sacred-buildings": "/packs/sacred-buildings",
   precincts: "/packs/precincts",
   "lighting-shadows": "/packs/lighting-shadows",
   "street-shadows": "/packs/street-shadows",
@@ -50,6 +51,7 @@ export const lazySheets = [
   // Snow and rain on the voxel street: only in that weather.
   "street-weather",
   "civic",
+  "sacred-buildings",
   "precincts",
   // The casts of temples and mosques: only in the towns that have one.
   "civic-shadows",
@@ -79,6 +81,7 @@ export const pagedSheets = [
   "street-buildings",
   "street-weather",
   "civic",
+  "sacred-buildings",
   "precincts",
 ] as const;
 const paged = (key: string) => (pagedSheets as readonly string[]).includes(key);

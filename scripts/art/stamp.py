@@ -12,7 +12,7 @@ from pathlib import Path
 ATLASES = ['public/packs/atlas.png', 'public/packs/buildings.png',
            'public/packs/regional-buildings.png', 'public/packs/precincts.png',
            'public/packs/modern-buildings.png', 'public/packs/street-buildings.png',
-           'public/packs/street-shadows.png', 'public/packs/civic-shadows.png', 'public/packs/street-weather.png',
+           'public/packs/street-shadows.png', 'public/packs/civic-shadows.png', 'public/packs/sacred-buildings.png', 'public/packs/street-weather.png',
            'public/packs/terrain.png', 'public/packs/lighting-shadows.png',
            'public/props/atlas.png', 'public/props/shadows.png',
            'public/props/vehicles.png', 'public/props/vehicle-shadows.png']

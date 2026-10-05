@@ -164,6 +164,9 @@ class VoxelBuilding:
         self.wall_ramp = LIMESTONE if not wall or recipe.get('limestone') else ramp_from(wall[2])
         self.sign_paint = ['#1c3b2c', '#551d27', '#202d52'][self.seed % 3]
         self.state = {}
+        # Screen px of rise per voxel of depth: K is the true projection; a
+        # landmark may compress it to the house style's side return.
+        self.k = recipe.get('depthScale', K)
 
     def pick(self, options, salt=0):
         return options[(self.seed * 7 + salt * 13) % len(options)]
@@ -262,12 +265,13 @@ class VoxelBuilding:
         self.weather = np.zeros((W, zt + 2))
         self.sx0 = 8
         width = W + 18 + DRIFT
-        height = int(zt + K * D) + 7
+        height = int(zt + self.k * D) + 7
         self.base = height - 2
         self.materials()
         self.build()
         self.streaks()
-        img, buf = render(self.g, width, height, self.sx0, self.base, D)
+        img, buf = render(self.g, width, height, self.sx0, self.base, D, k=self.k)
+        img = self.finish(img, buf)
         self.buf = buf
         self.raw = img
         im = self.outline(Image.fromarray(img))
@@ -276,9 +280,13 @@ class VoxelBuilding:
         self.anchor_x = self.sx0 + W // 2
         self.occlusion = [0, 0, width, self.bottom - 1]
         self.glow = self.night(buf)
-        self.smoke = [[self.sx0 + x + round(y * DRIFT / D), self.base - z - round(K * y), kind]
+        self.smoke = [[self.sx0 + x + round(y * DRIFT / D), self.base - z - round(self.k * y), kind]
                       for x, y, z, kind in self.pots]
         return im
+
+    def finish(self, img, buf):
+        """Repaint the cast image by hand where a painter wants to; as cast by default."""
+        return img
 
     # ------------------------------------------------------------ life
     def life(self):
@@ -335,10 +343,10 @@ class VoxelBuilding:
         xi, yi, zi = np.nonzero(changed)
         wx, wy = xi + self.g.x0, yi + self.g.y0
         sx = self.sx0 + wx + wy * DRIFT / D
-        sy = self.base - zi - K * wy
+        sy = self.base - zi - self.k * wy
         x0, x1 = int(sx.min()) - 3, int(sx.max()) + 20
         y0, y1 = int(sy.min()) - 4, int(sy.max()) + 24
-        img, _ = render(self.g, self.w, self.h, self.sx0, self.base, D, region=(x0, y0, x1, y1))
+        img, _ = render(self.g, self.w, self.h, self.sx0, self.base, D, region=(x0, y0, x1, y1), k=self.k)
         raw = base_raw.copy()
         y0, x0 = max(0, y0), max(0, x0)
         raw[y0:y1, x0:x1] = img[y0:y1, x0:x1]
@@ -428,7 +436,7 @@ class VoxelBuilding:
 
     def screen(self, x, y, z):
         """Sprite pixel of world voxel (x, y, z)'s front face."""
-        return self.sx0 + x + round(y * DRIFT / self.D), self.base - 1 - z - round(K * y)
+        return self.sx0 + x + round(y * DRIFT / self.D), self.base - 1 - z - round(self.k * y)
 
     def box(self, x0, x1, y0, y1, z0, z1, m, n=0):
         self.g.box(x0, x1, y0, y1, z0, z1, m, n)
@@ -645,7 +653,7 @@ class VoxelBuilding:
         rule = trim or self.GILT
         self.box(x0 + 1, x1 - 1, f - 3, f - 2, top + 1, top + 2, rule)
         self.box(x0 + 1, x1 - 1, f - 3, f - 2, bt - 2, bt - 1, rule)
-        band = [self.sx0 + x0 + 2, self.base - (bt - 3) - round(K * f), x1 - x0 - 4, 6]
+        band = [self.sx0 + x0 + 2, self.base - (bt - 3) - round(self.k * f), x1 - x0 - 4, 6]
         self.shops_x.append((x0, x1))
         shut = x0 in self.state.get('closed', ())
         if shut:

@@ -5,6 +5,7 @@ import random
 from PIL import Image, ImageDraw
 from art.buildings import ROOFS, DOOR_W, corner_door
 from art.roof_light import course_tone
+from art.stained import glaze
 
 OUTLINE = '#2f2a22'
 BELL = ['#5c4a2a', '#9a7a3c', '#d1ac58']
@@ -86,7 +87,7 @@ class ReligiousBuilding:
 
     def window(self, cx, top, h=11):
         self.arch(cx, top, 5, h, orders=1, dark_inside=False)
-        self.d.line((cx, top + 4, cx, top + h - 1), fill='#5b7078')
+        glaze(self.im, (cx - 2, top, cx + 2, top + h), ['#3a4a50'], 'stained', self.r.get('seed', 0) + cx)
 
     def square_window(self, cx, top, w=5, h=8):
         d = self.d

@@ -377,7 +377,7 @@ export function urbanNeighborhood(
   // ground: in a town of lanes no side of the square has room for them.
   const sanctuary = religiousProfile(pack.setting!);
   const order = ["large", "medium", "small"] as const;
-  const mosqueScales = sanctuary?.recipe.endsWith("-mosque")
+  const mosqueScales = sanctuary && /-mosque$|^(chinese|japanese)-temple$/.test(sanctuary.recipe)
     ? order.slice(order.indexOf(religiousScale(site.profile.radius))).filter((s) => buildingModels[`religious-${sanctuary.recipe}-${s}-0`])
     : [];
   const mosqueSize = (s: (typeof order)[number]) => {
@@ -473,7 +473,7 @@ export function urbanNeighborhood(
     }
     if (ground.apron) api.paintForecourt(ground.apron);
     // A church in a plotted town stands in its own walled yard.
-    if (lot.religious && lot.religious.faith !== "Islam" && plotted && api.churchyard) {
+    if (lot.religious && /Christian|Catholic/.test(lot.religious.faith) && plotted && api.churchyard) {
       const r = lot.rect;
       // As much of a generous yard as the ground allows.
       const yard = [6, 4, 3]

@@ -212,7 +212,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "chinese-temple",
-    uses: ["venue.temple-court-east"],
+    uses: ["venue.temple-court-east", "religious.chinese-temple", "religious.korean-temple"],
     program: "rows",
     regulars: { hours: [7, 17], fill: 0.3 },
     styles: { altar: "buddha", pole: "red" },
@@ -245,7 +245,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "japanese-temple",
-    uses: ["venue.temple-court-east"],
+    uses: ["venue.temple-court-east", "religious.japanese-temple"],
     program: "rows",
     regulars: { hours: [6, 17], fill: 0.3 },
     styles: { altar: "buddha-jp", pole: "timber" },
