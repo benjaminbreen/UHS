@@ -2217,6 +2217,8 @@ export class WorldScene extends Phaser.Scene {
         "door-leaf-1",
       )
       .setOrigin(0, 0)
+      // Front-on buildings publish doors larger than the shared leaf.
+      .setDisplaySize(rect[2], rect[3])
       .setTint(this.tint)
       .setDepth(placement.depth + 1)
       .setVisible(false);

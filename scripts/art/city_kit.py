@@ -1744,26 +1744,26 @@ AWN_GREEN = (GREEN[1:5], ('#b9ad92', '#e8dec6', '#f6efdc', '#fff8e8'))
 
 # name: (kind, footprint, storeys, seed, options)
 KIT = {
-    'modern-immeuble-0': ('immeuble', [7, 6], 3, 2, dict(shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
-    'modern-immeuble-1': ('immeuble', [6, 6], 3, 5, dict(stone=WARM_LIME, entrance=-1, shop=(NAVY, '~~', goods_bread, None))),
-    'modern-immeuble-2': ('immeuble', [8, 6], 3, 9, dict(entrance=2, boxes=0.6, shop=(OXBLOOD, '~~', goods_books, None, GREEN, '~', goods_pharma))),
-    'modern-immeuble-3': ('immeuble', [6, 6], 3, 13, dict(entrance=2, boxes=0.5)),
-    'modern-immeuble-4': ('immeuble', [9, 6], 4, 17, dict(stone=WARM_LIME, entrance=0, shop=(GREEN, 'HOTEL', goods_cafe, AWN_GREEN))),
+    'modern-immeuble-0': ('immeuble', [9, 6], 3, 2, dict(shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
+    'modern-immeuble-1': ('immeuble', [8, 6], 3, 5, dict(stone=WARM_LIME, entrance=-1, shop=(NAVY, '~~', goods_bread, None))),
+    'modern-immeuble-2': ('immeuble', [10, 6], 3, 9, dict(entrance=2, boxes=0.6, shop=(OXBLOOD, '~~', goods_books, None, GREEN, '~', goods_pharma))),
+    'modern-immeuble-3': ('immeuble', [8, 6], 3, 13, dict(entrance=2, boxes=0.5)),
+    'modern-immeuble-4': ('immeuble', [11, 6], 4, 17, dict(stone=WARM_LIME, entrance=0, shop=(GREEN, 'HOTEL', goods_cafe, AWN_GREEN))),
     'modern-brickshop-0': ('immeuble', [7, 6], 3, 21, dict(stone=BRICK, brick=True, shop=(NAVY, '~~', goods_bread, AWN_GREEN))),
     'modern-brickshop-1': ('immeuble', [6, 5], 3, 25, dict(stone=BRICK, brick=True, entrance=-1, shop=(OXBLOOD, '~~', goods_books, None))),
     'modern-brickshop-2': ('immeuble', [8, 6], 3, 29, dict(stone=BRICK, brick=True, entrance=2, shop=(GREEN, 'CAFE', goods_cafe, AWN_RED, NAVY, '~~', goods_pharma))),
     'modern-townhouse-0': ('townhouse', [5, 5], 3, 1, dict()),
     'modern-townhouse-1': ('townhouse', [6, 5], 3, 6, dict(door_col=NAVY)),
     'modern-townhouse-2': ('townhouse', [5, 5], 3, 11, dict(door_col=OXBLOOD)),
-    'modern-immeuble-5': ('immeuble', [4, 5], 3, 41, dict(entrance=1, boxes=0.6)),
-    'modern-immeuble-6': ('immeuble', [5, 5], 3, 43, dict(stone=WARM_LIME, shop=(OXBLOOD, '~', goods_bread, AWN_GREEN))),
-    'modern-immeuble-7': ('immeuble', [5, 4], 2, 45, dict(shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
+    'modern-immeuble-5': ('immeuble', [6, 5], 3, 41, dict(entrance=1, boxes=0.6)),
+    'modern-immeuble-6': ('immeuble', [7, 5], 3, 43, dict(stone=WARM_LIME, shop=(OXBLOOD, '~', goods_bread, AWN_GREEN))),
+    'modern-immeuble-7': ('immeuble', [7, 4], 2, 45, dict(shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
     'modern-brickshop-3': ('immeuble', [4, 5], 3, 47, dict(stone=BRICK, brick=True, shop=(NAVY, '~', goods_pharma, None))),
     'modern-brickshop-4': ('immeuble', [5, 4], 2, 49, dict(stone=BRICK, brick=True, shop=(GREEN, '~~', goods_books, AWN_RED))),
-    'modern-immeuble-corner-e-0': ('immeuble', [6, 6], 3, 51, dict(corner='e', shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
-    'modern-immeuble-corner-w-0': ('immeuble', [6, 6], 3, 53, dict(corner='w', stone=WARM_LIME, entrance=-1, shop=(NAVY, '~~', goods_bread, None))),
-    'modern-immeuble-corner-e-1': ('immeuble', [7, 6], 3, 55, dict(corner='e', stone=WARM_LIME, shop=(OXBLOOD, '~~', goods_books, None))),
-    'modern-immeuble-corner-w-1': ('immeuble', [7, 6], 3, 57, dict(corner='w', shop=(GREEN, 'HOTEL', goods_cafe, AWN_GREEN))),
+    'modern-immeuble-corner-e-0': ('immeuble', [8, 6], 3, 51, dict(corner='e', shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
+    'modern-immeuble-corner-w-0': ('immeuble', [8, 6], 3, 53, dict(corner='w', stone=WARM_LIME, entrance=-1, shop=(NAVY, '~~', goods_bread, None))),
+    'modern-immeuble-corner-e-1': ('immeuble', [9, 6], 3, 55, dict(corner='e', stone=WARM_LIME, shop=(OXBLOOD, '~~', goods_books, None))),
+    'modern-immeuble-corner-w-1': ('immeuble', [9, 6], 3, 57, dict(corner='w', shop=(GREEN, 'HOTEL', goods_cafe, AWN_GREEN))),
     'modern-brickshop-corner-e-0': ('immeuble', [6, 6], 3, 59, dict(corner='e', stone=BRICK, brick=True, shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
     'modern-brickshop-corner-w-0': ('immeuble', [6, 6], 3, 61, dict(corner='w', stone=BRICK, brick=True, shop=(NAVY, '~~', goods_bread, None))),
     'modern-atelier-0': ('atelier', [5, 4], 1, 31, dict()),
@@ -1837,6 +1837,7 @@ ABOUT = {
 
 
 def kit_recipes(side_depth):
+    from art.front_kit import IMMEUBLES, recipe as front_recipe
     out = {}
     for name, (kind, fp, storeys, seed, o) in KIT.items():
         station = kind in ('terminus', 'townstation', 'postwar')
@@ -1853,6 +1854,8 @@ def kit_recipes(side_depth):
             'description': ABOUT[kind], 'obliqueModern': 'kit', 'seed': seed,
             'stories': storeys, 'deep': deep,
         }
+        if name in IMMEUBLES:
+            out[name].update(front_recipe(name, seed))
     return out
 
 
@@ -1863,6 +1866,9 @@ def kit_building(r, side_depth):
     sd = side_depth(fp[1], deep=r['deep'])
     W = fp[0] * 16
     o = dict(o)
+    from art.front_kit import IMMEUBLES, Building
+    if name in IMMEUBLES:
+        return Building(name, seed)
     if kind == 'immeuble':
         if o.get('entrance') == -1:
             o['entrance'] = (W - 8) // 20 - 1

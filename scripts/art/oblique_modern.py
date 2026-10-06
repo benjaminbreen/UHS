@@ -782,6 +782,7 @@ class ObliqueModern:
             b = CurtainTower(fw, fh, seed=seed)
             im, em = b.build(storeys=storeys)
         self.sw, self.anchor_x, self.door_x = b.sw, b.anchor_x, b.door_x + DOOR_W // 2
+        self.door_size = getattr(b, 'door_size', None)
         self.smoke = getattr(b, 'smoke', None)
         self.overlays = getattr(b, 'overlays', None) or None
         self.clocks = [[round(v, 1) for v in k] for k in getattr(b, 'clocks', [])] or None
@@ -791,9 +792,9 @@ class ObliqueModern:
         self.image.alpha_composite(im)
         # A two-row plinth, as the houses stand on, under the doors' sills.
         d = ImageDraw.Draw(self.image)
-        W = b.W
-        d.rectangle((0, self.bottom - 1, W - 1, self.bottom), fill=STONE[1])
-        d.line((0, self.bottom - 1, W - 1, self.bottom - 1), fill=STONE[3])
+        W, x0 = b.W, getattr(b, 'x0', 0)
+        d.rectangle((x0, self.bottom - 1, x0 + W - 1, self.bottom), fill=STONE[1])
+        d.line((x0, self.bottom - 1, x0 + W - 1, self.bottom - 1), fill=STONE[3])
         for i in range(b.sw):
             x = W + drift(i + 1, b.sw) - 1
             d.line((x, self.bottom - 2 - i, x, self.bottom - 1 - i), fill=STONE[0])

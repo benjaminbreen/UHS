@@ -328,7 +328,8 @@ def door_rect(artist):
     ground = getattr(artist, 'door_ground', None) or getattr(artist, 'bottom', None)
     if ground is None: ground = artist.ground
     x = getattr(artist, 'door_x', artist.w // 2)
-    return [x - DOOR_W // 2, ground - DOOR_H - 1, DOOR_W, DOOR_H]
+    w, h = getattr(artist, 'door_size', None) or (DOOR_W, DOOR_H)
+    return [x - w // 2, ground - h - 1, w, h]
 
 
 def build_buildings(root, sprites):
