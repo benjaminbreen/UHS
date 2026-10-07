@@ -442,7 +442,7 @@ class GableHouse:
                         col = RAMPS['oak'][4]
                     c.p(x + k, y, col)
             return
-        rg = RIDGE if kind == 'cap' else ramp(258, 0.025, lift=-0.18)
+        rg = RIDGE if kind == 'cap' else ramp(258, 0.025, lift=-0.1)
         cols = [None, rg[3], rg[2], rg[1], rg[2], rg[3], rg[4], rg[4], None]
         for y in range(y0, y1):
             seg = (y - y0) % 11

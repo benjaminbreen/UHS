@@ -66,6 +66,8 @@ still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_weather.py` | Moss, soot, sill streaks, lichen: one `wear` dial |
 | `scripts/art/front_kit.py` | The immeuble from a spec; `outline`, `consolidate`; the game hook |
 | `scripts/art/front_house.py` | The gabled house: five roof coverings, verges, ridges |
+| `scripts/art/front_eave.py` | The eave-front house: roof band, hips, eaves, ridges, dormers, stacks, lean-to |
+| `scripts/art/front_houses.py` | Pre-industrial European house families as specs; family and street A/B sheets |
 | `scripts/art/front_audit.py` | The checkable rules; runs inside `oblique_audit.py` |
 | `scripts/art/front_review.py` | Review sheets beside the pinned gold masters |
 | `scripts/art/reference/front/` | Pinned gold masters |
@@ -108,3 +110,4 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-06 Paris immeuble pass 4 and the gabled bakery approved as gold masters.
 - 2026-10-06 Materials and openings library approved at component level.
 - 2026-10-06 Wall-hung fixtures wanted in place of freestanding signs.
+- 2026-10-06 Next family: pre-industrial European houses (eave-front form added); shown as A/B before wiring.

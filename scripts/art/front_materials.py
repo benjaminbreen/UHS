@@ -101,7 +101,7 @@ RAMPS = {
     'oak': ramp(52, 0.09, lift=-0.12),
     'pine': ramp(68, 0.08),
     'cedar': ramp(40, 0.07, lift=-0.08),
-    'slate': ramp(272, 0.05, warm=8, cool=12, lift=-0.1),
+    'slate': ramp(272, 0.05, warm=8, cool=12, lift=-0.06),
     'zinc': ramp(255, 0.025, warm=6, cool=10, lift=-0.06),
     'terracotta': ramp(42, 0.12),
     'clay-tile': ramp(34, 0.1, lift=-0.04),

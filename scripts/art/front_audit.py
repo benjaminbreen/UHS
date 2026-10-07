@@ -108,6 +108,15 @@ def subjects():
         f = Front(spec(n))
         im, _ = f.build()
         yield n, im, f, f.door[2] if f.door else None, f.windows
+    from art.front_houses import EUROPEAN
+    from art.front_eave import EaveHouse
+    for fam, (_, specs) in EUROPEAN.items():
+        for suffix, sp in specs:
+            if sp.get('form') == 'gable':
+                continue
+            e = EaveHouse(sp)
+            im = e.build()
+            yield f'{fam}-{suffix}', im, e, e.door_h, []
     for roof in ROOFS:
         for W in (120, 152):
             g = GableHouse(roof=roof, W=W, lean_to=W > 140)

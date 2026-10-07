@@ -402,6 +402,44 @@ def window(c, x, y, w, h, frame='stone', infill='casement', head='none', paint='
         HEADS[head](c, x, y, w, h)
 
 
+def mullion_window(c, x, y, lights, lw, h, transom=True, r=None, infill='leaded'):
+    """A stone-mullioned window: a moulded surround divided into `lights` by
+    stone mullions, a transom across, each light glazed in lead. Returns the
+    overall width."""
+    r = r or RAMPS['limestone']
+    mw = 3
+    w = lights * lw + (lights - 1) * mw
+    raised(c, x - 4, y - 4, w + 8, h + 5, r, 1)
+    c.rect(x - 2, y - 2, w + 4, 1, r[3])
+    c.rect(x - 2, y - 2, 1, h + 2, r[3])
+    ty = y + h // 3 if transom else None
+    for i in range(lights):
+        lx = x + i * (lw + mw)
+        if ty:
+            INFILLS[infill](c, lx, y, lw, ty - y, None)
+            INFILLS[infill](c, lx, ty + 3, lw, y + h - ty - 3, None)
+            reveal(c, lx, y, lw, ty - y, 1)
+            reveal(c, lx, ty + 3, lw, y + h - ty - 3, 2)
+        else:
+            INFILLS[infill](c, lx, y, lw, h, None)
+            reveal(c, lx, y, lw, h, 2)
+        if i:
+            raised(c, lx - mw, y, mw, h, r, 1)
+    if ty:
+        raised(c, x, ty, w, 3, r, 1)
+    # a label mould over the head, its ends turned down, and a sill
+    c.rect(x - 6, y - 7, w + 12, 2, r[0])
+    c.rect(x - 6, y - 5, w + 12, 1, r[3])
+    for ex in (x - 6, x + w + 4):
+        c.rect(ex, y - 5, 2, 5, r[1])
+        c.rect(ex, y - 1, 2, 1, r[3])
+    cast(c, x - 4, y - 4, w + 8, 1, 0.75)
+    c.rect(x - 5, y + h + 1, w + 10, 2, r[0])
+    c.rect(x - 5, y + h + 3, w + 10, 1, r[3])
+    cast(c, x - 4, y + h + 4, w + 8, 2)
+    return w
+
+
 # ------------------------------------------------------------------ accessories
 
 def open_shutters(c, x, y, w, h, paint='green', leaf=8):
