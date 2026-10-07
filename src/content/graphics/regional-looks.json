@@ -1,18 +1,22 @@
 {
-  "about": "Which numbered look of a church or hall family a settlement builds, by region. Regions are tried in order, the first whose bounds [west, south, east, north] hold the settlement (and whose dates hold its year) wins; a region a family has no look for falls back along `fallback`. The art build (scripts/art/front_civic.py) draws look i of a family in the style of looks[family][i]. A family not listed here, or a region it has no look for, keeps the old seeded roll.",
+  "about": "Which numbered look of a church or hall family a settlement builds, by region. Regions are tried in order (a region may take several boxes), the first whose bounds [west, south, east, north] hold the settlement (and whose dates hold its year) wins; a region a family has no look for falls back along `fallback`. The art build (scripts/art/front_civic.py) draws look i of a family in the style of looks[family][i]. A family not listed here, or a region it has no look for, keeps the old seeded roll.",
   "regions": [
     { "id": "east-anglia", "bounds": [0.1, 51.8, 1.8, 53.1] },
     { "id": "england", "bounds": [-6.5, 49.8, 1.8, 55.9] },
     { "id": "norway", "bounds": [4.0, 57.9, 12.4, 71.5] },
     { "id": "finland", "bounds": [20.5, 59.7, 31.6, 70.1] },
+    { "id": "baltic", "bounds": [21.0, 55.5, 28.5, 59.7] },
     { "id": "sweden", "bounds": [11.0, 55.3, 24.5, 69.1] },
     { "id": "denmark", "bounds": [8.0, 54.5, 15.2, 57.8] },
     { "id": "baroque", "bounds": [8.5, 46.3, 18.5, 50.5], "from": 1650 },
     { "id": "alps", "bounds": [5.9, 45.8, 10.5, 47.8] },
     { "id": "baltic", "bounds": [8.5, 53.0, 28.5, 57.6] },
+    { "id": "baltic", "bounds": [15.5, 49.8, 24.5, 53.0] },
+    { "id": "germany", "bounds": [6.0, 50.3, 7.8, 51.6] },
     { "id": "low-countries", "bounds": [2.5, 50.7, 7.2, 53.6] },
     { "id": "germany", "bounds": [5.8, 47.2, 19.0, 53.0] },
     { "id": "italy", "bounds": [6.6, 36.5, 18.6, 47.1] },
+    { "id": "france", "bounds": [-1.8, 42.9, 3.4, 44.5] },
     { "id": "iberia", "bounds": [-9.6, 35.9, 3.4, 43.9] },
     { "id": "france", "bounds": [-5.2, 42.3, 8.3, 51.2] }
   ],

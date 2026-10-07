@@ -151,6 +151,9 @@ it("a church or hall takes its region's look, and that look is drawn", async () 
   expect(gothic[regionalLook("religious-gothic", at(1.3, 52.6, 1400))!]).toBe("east-anglia"); // Norwich
   expect(gothic[regionalLook("religious-gothic", at(11.6, 48.1, 1700))!]).toBe("baroque"); // Munich
   expect(gothic[regionalLook("religious-gothic", at(11.6, 48.1, 1500))!]).toBe("germany");
+  expect(gothic[regionalLook("religious-gothic", at(6.96, 50.94, 1400))!]).toBe("germany"); // Cologne
+  expect(gothic[regionalLook("religious-gothic", at(24.1, 56.95, 1400))!]).toBe("baltic"); // Riga
+  expect(gothic[regionalLook("religious-gothic", at(1.44, 43.6, 1400))!]).toBe("france"); // Toulouse
   expect(looks["hall-moot-hall"][regionalLook("hall-moot-hall", at(18.1, 59.3, 1600))!]).toBe("sweden");
   expect(regionalLook("religious-gothic", at(-71, 42.3, 1700))).toBeUndefined(); // Boston keeps its roll
   for (const [family, list] of Object.entries(looks))
