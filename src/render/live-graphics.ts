@@ -21,6 +21,7 @@ export type FrameCap = 30 | 60;
 export type LiveGraphicsSettings = {
   frameCap: FrameCap;
   roundPixels: boolean;
+  occlusion: boolean;
   characterOutline: boolean;
   /** Which character renderer the world draws with. */
   characterSprites: "b" | "c" | "d" | "e";
@@ -65,7 +66,8 @@ export type LiveGraphicsSettings = {
 
 export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   frameCap: 60,
-  roundPixels: false,
+  roundPixels: true,
+  occlusion: false,
   characterOutline: true,
   characterSprites: "e",
   textureSampling: "nearest",
@@ -92,7 +94,7 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   treeScale: 0.72,
   litterPalette: "none",
   litterDensity: 1.5,
-  tiltShift: true,
+  tiltShift: false,
   tiltFollow: true,
   tiltFocus: 0.5,
   tiltBand: 0.39,
@@ -105,6 +107,21 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
 };
 
 export const CHARACTER_SPRITES_KEY = "uhs-character-sprites";
+export const DISPLAY_SETTINGS_KEY = "uhs-display-settings";
+
+export function storedDisplaySettings() {
+  const settings = {
+    occlusion: defaultLiveGraphicsSettings.occlusion,
+    tiltShift: defaultLiveGraphicsSettings.tiltShift,
+    roundPixels: defaultLiveGraphicsSettings.roundPixels,
+  };
+  try {
+    const stored = JSON.parse(localStorage.getItem(DISPLAY_SETTINGS_KEY) ?? "null");
+    for (const key of ["occlusion", "tiltShift", "roundPixels"] as const)
+      if (typeof stored?.[key] === "boolean") settings[key] = stored[key];
+  } catch {}
+  return settings;
+}
 /** The sprite choice outlives a reload so an A/B session survives one. */
 export function storedCharacterSprites(): LiveGraphicsSettings["characterSprites"] {
   try {

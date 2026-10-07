@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { formatHistoricalYear } from "../core/calendar";
 import { seasonAt } from "../core/livelihood";
@@ -245,9 +246,10 @@ function Ask({ runtime, asked }: { runtime: Runtime; asked: Asked }) {
   );
 }
 
-function Prose({ body, uncommon, onAsk }: {
+function Prose({ body, uncommon, selected, onAsk }: {
   body: IntroSpan[][];
   uncommon?: string;
+  selected?: IntroSpan;
   onAsk: (span: IntroSpan, at: HTMLElement) => void;
 }) {
   return (
@@ -256,7 +258,7 @@ function Prose({ body, uncommon, onAsk }: {
         <p key={i}>
           {p.map((span, j) =>
             span.ref || span.note ? (
-              <button key={j} type="button" className="plot-ref" data-mark={span.mark} onClick={(e) => onAsk(span, e.currentTarget)}>
+              <button key={j} type="button" className="plot-ref" data-mark={span.mark} aria-expanded={selected === span} onClick={(e) => onAsk(span, e.currentTarget)}>
                 {span.text}
               </button>
             ) : (
@@ -293,6 +295,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   const [asked, setAsked] = useState<Asked>();
   const begin = useRef<HTMLButtonElement>(null);
   const section = useRef<HTMLElement>(null);
+  const reader = useRef<HTMLDivElement>(null);
   const plot = runtime.engine.state.plot;
   const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
   const setting = runtime.engine.world.pack.setting;
@@ -322,29 +325,41 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   };
   const ask = (span: IntroSpan, at: HTMLElement) => {
     if (asked?.span === span) return setAsked(undefined);
-    const box = section.current!.getBoundingClientRect(), r = at.getBoundingClientRect();
-    setAsked({ span, x: Math.max(8, Math.min(r.left - box.left, box.width - 288)), y: r.bottom - box.top + 6 });
+    const area = reader.current ?? section.current!;
+    const box = area.getBoundingClientRect(), r = at.getBoundingClientRect();
+    setAsked({ span, x: Math.max(8, Math.min(r.left - box.left, box.width - 288)),
+      y: reader.current ? Math.max(area.scrollTop + 8, Math.min(r.bottom - box.top + area.scrollTop + 6, area.scrollTop + area.clientHeight - 208)) : r.bottom - box.top + 6 });
     if (span.ref) onLook(span.ref);
   };
   useEffect(() => {
-    begin.current?.focus();
+    const previous = document.activeElement as HTMLElement | null;
+    begin.current?.focus({ preventScroll: true });
     onLook(card.focus ?? card.speaker);
+    return () => previous?.focus({ preventScroll: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (e.key === "Tab" && section.current) {
+        const controls = [...section.current.querySelectorAll<HTMLButtonElement>("button")].filter((button) => button.getClientRects().length);
+        const first = controls[0], last = controls.at(-1);
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+        return;
+      }
       if (e.key === "Escape") asked ? setAsked(undefined) : close();
       else if (!done && (e.key === "Enter" || e.key === " ")) finish();
       else return;
       e.preventDefault();
+      e.stopPropagation();
     };
     const away = (e: MouseEvent) => {
       if (!(e.target as Element).closest?.(".plot-ask, .plot-ref")) setAsked(undefined);
     };
-    window.addEventListener("keydown", key);
+    window.addEventListener("keydown", key, true);
     window.addEventListener("mousedown", away);
     return () => {
-      window.removeEventListener("keydown", key);
+      window.removeEventListener("keydown", key, true);
       window.removeEventListener("mousedown", away);
     };
   });
@@ -400,12 +415,12 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
 
   const intro = card.intro;
   const text = intro
-    ? <Prose body={intro.body} uncommon={intro.uncommon} onAsk={ask} />
+    ? <Prose body={intro.body} uncommon={intro.uncommon} selected={asked?.span} onAsk={ask} />
     : <div className="plot-prose"><p>{card.text}</p></div>;
   const choices = (
     <Choices
       focus={begin}
-      items={[{ label: card.kind === "ending" ? "Go on living" : "Continue", pick: () => close(), primary: true }]}
+      items={[{ label: card.kind === "ending" ? "Go on living" : "Begin your day", pick: () => close(), primary: true }]}
     />
   );
   const emblem = (
@@ -414,25 +429,31 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
     </div>
   );
   const place = card.kind === "ending" ? `${where} · the end` : where;
-  return (
-    <div className="plot-veil" data-look={dress} style={colours} data-leaving={leaving || undefined}>
-      <section ref={section} className="plot-card" data-kind={card.kind} role="dialog" aria-label={card.title}>
+  return createPortal(
+    <div className="plot-veil" data-modal="true" data-look={dress} style={colours} data-leaving={leaving || undefined}>
+      <section ref={section} className="plot-card" data-kind={card.kind} role="dialog" aria-modal="true" aria-label={card.title}>
         {dress === "framed" ? (
           <Frame>
             <i className="plot-band" aria-hidden="true" />
-            {emblem}
-            <div className="plot-copy">
-              <header className="plot-head">
-                <Wordmark text={card.title} />
-                {place && <small>{place}</small>}
-              </header>
-              {text}
-              <footer className="plot-foot">
-                {card.aim && <Pixels rows={SUN} className="plot-sun" size={[26, 14]} />}
-                {card.aim ? <Goal aim={card.aim} due={plot?.words.due} /> : <span className="plot-goal" />}
-                {choices}
-              </footer>
+            <div ref={reader} className="plot-reader">
+              {emblem}
+              <div className="plot-copy">
+                <header className="plot-head">
+                  <h1 className="plot-heading">{card.title}</h1>
+                  {place && <small>{place}</small>}
+                </header>
+                {text}
+                {card.aim && <section className="plot-intent" aria-label="Your life aim">
+                  <div className="plot-intent-label"><Pixels rows={SUN} className="plot-sun" size={[26, 14]} /><small>Your life aim</small></div>
+                  <Goal aim={card.aim} due={plot?.words.due} />
+                </section>}
+              </div>
+              {asked && <Ask runtime={runtime} asked={asked} />}
             </div>
+            <footer className="plot-foot">
+              <small className="plot-key">Enter to {card.kind === "ending" ? "continue" : "begin"}</small>
+              {choices}
+            </footer>
             <i className="plot-band" aria-hidden="true" />
           </Frame>
         ) : (
@@ -445,8 +466,8 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
             <div className="plot-actions">{choices}</div>
           </div>
         )}
-        {asked && <Ask runtime={runtime} asked={asked} />}
+        {dress !== "framed" && asked && <Ask runtime={runtime} asked={asked} />}
       </section>
-    </div>
+    </div>, document.body,
   );
 }

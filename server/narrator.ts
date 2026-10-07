@@ -13,16 +13,32 @@ const json = (body: unknown, status = 200) =>
   });
 const requestSchema = z
   .object({
-    provider: z.enum(["openai", "gemini"]),
+    provider: z.enum(["haiku", "openai", "gemini"]),
     system: z.string().min(1).max(12000),
     user: z.string().min(1).max(8000),
   })
   .strict();
 const digest = (s: string) => createHash("sha256").update(s).digest();
-const MODEL_ID = /^[a-zA-Z0-9._-]+$/;
+const MODEL_ID = /^[a-zA-Z0-9._\/-]+$/;
+export const HAIKU_MODEL = "anthropic/claude-haiku-5.5";
+export const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
 let inFlight = 0;
+// Without an enforced schema Haiku sometimes invents an intent type; drop that
+// one rather than lose the whole turn to the client's validation.
+const keepValidIntents = (text: string) => {
+  try {
+    const reply = JSON.parse(text);
+    if (!Array.isArray(reply.intents)) return text;
+    const intent = narratorReplySchema.shape.intents.element;
+    reply.intents = reply.intents.filter((i: unknown) => intent.safeParse(i).success);
+    return JSON.stringify(reply);
+  } catch {
+    return text;
+  }
+};
 export function narratorStatus(env: Environment = process.env) {
   return {
+    haiku: !!env.OPENROUTER_API_KEY,
     openai: !!env.OPENAI_API_KEY,
     gemini: !!env.GEMINI_API_KEY,
     code: !!env.UHS_NARRATOR_ACCESS_CODE,
@@ -62,11 +78,17 @@ export async function narrator(
     return json({ error: "Malformed narrator request." }, 400);
   }
   const key =
-    input.provider === "openai" ? env.OPENAI_API_KEY : env.GEMINI_API_KEY;
+    input.provider === "haiku"
+      ? env.OPENROUTER_API_KEY
+      : input.provider === "openai"
+        ? env.OPENAI_API_KEY
+        : env.GEMINI_API_KEY;
   if (!key)
     return json({ error: `No ${input.provider} key on this server.` }, 503);
   const model =
-    input.provider === "openai"
+    input.provider === "haiku"
+      ? (env.UHS_HAIKU_MODEL ?? HAIKU_MODEL)
+      : input.provider === "openai"
       ? (env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna")
       : (env.UHS_NARRATOR_GEMINI_MODEL ?? "gemini-3.5-flash-lite");
   if (!MODEL_ID.test(model))
@@ -78,7 +100,29 @@ export async function narrator(
   inFlight++;
   try {
     const response =
-      input.provider === "openai"
+      input.provider === "haiku"
+        ? await provider(OPENROUTER, {
+            method: "POST",
+            signal,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${key}`,
+            },
+            body: JSON.stringify({
+              model,
+              // The reply schema has more optional fields than Anthropic's
+              // structured output accepts, so it goes in the prompt instead.
+              messages: [
+                {
+                  role: "system",
+                  content: `${input.system}\n\nReply with one JSON object only, no code fence, matching this schema:\n${JSON.stringify(schema)}`,
+                },
+                { role: "user", content: input.user },
+              ],
+              max_tokens: 900,
+            }),
+          })
+        : input.provider === "openai"
         ? await provider("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             signal,
@@ -133,13 +177,14 @@ export async function narrator(
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
     const text =
-      input.provider === "openai"
+      input.provider !== "gemini"
         ? (result.choices?.[0]?.message?.content ?? "")
+            .replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, "")
         : (result.candidates?.[0]?.content?.parts
             ?.map((p) => p.text ?? "")
             .join("") ?? "");
     if (!text) return json({ error: "The model returned nothing." }, 502);
-    return json({ text, model });
+    return json({ text: input.provider === "haiku" ? keepValidIntents(text) : text, model });
   } catch {
     return json({ error: "The narrator timed out." }, 502);
   } finally {

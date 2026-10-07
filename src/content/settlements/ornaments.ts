@@ -1,5 +1,6 @@
 import marketKits from "../graphics/market-kits.json" with { type: "json" };
 import type { Pack, WorldObject } from "../../core/types";
+import { mediterraneanProp } from "../graphics/mediterranean-buildings";
 
 /** What a public square held. Content names these per fabric; the planner only
  * places them, and the renderer only knows their sprites. A `monument` carries
@@ -23,6 +24,8 @@ export type Ornament = {
  * lamps from the 1890s, sodium and its successors from about 1960. Before any
  * of that a city lit a square, not a street, and lit it with fire. */
 export function lampFor(pack: Pack): { sprite: string; label: string } {
+  const native = mediterraneanProp(pack.setting, "oil-lamp");
+  if (native) return { sprite: native, label: "Oil lamp stand" };
   const year = pack.year;
   const culture = pack.setting?.culture;
   const western =
@@ -174,6 +177,8 @@ export function focusFor(
   // `pick` in [0, 1) varies squares of one kind.
   const one = (...options: { sprite: string; label: string }[]) =>
     options[Math.floor(pick * options.length) % options.length];
+  const native = mediterraneanProp(pack.setting, "fountain");
+  if (native && pick < 0.3) return { sprite: native, label: "Public fountain" };
   if (culture === "european") {
     // Documented: Roman fora, market crosses, baroque fountains and obelisks,
     // the 19th-century bronze, interwar memorials, Soviet-bloc heroic figures.

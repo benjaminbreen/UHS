@@ -21,6 +21,8 @@ export default defineConfig({
           "UHS_WORLD_WEAVER_ACCESS_CODE",
           "UHS_WORLD_WEAVER_MODEL",
           "OPENAI_API_KEY",
+          "OPENROUTER_API_KEY",
+          "UHS_HAIKU_MODEL",
           "DATABASE_URL",
           "UHS_EDU_CLASS_CODE",
           "UHS_EDU_TEACHER_TOKEN",

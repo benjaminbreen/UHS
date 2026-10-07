@@ -291,6 +291,16 @@ export function LiveGraphicsPanel({
             <label className="live-graphics-check">
               <input
                 type="checkbox"
+                checked={settings.occlusion}
+                onChange={(event) =>
+                  onChange({ occlusion: event.currentTarget.checked })
+                }
+              />
+              Fade buildings and trees hiding you
+            </label>
+            <label className="live-graphics-check">
+              <input
+                type="checkbox"
                 checked={settings.roundPixels}
                 onChange={(event) =>
                   onChange({ roundPixels: event.currentTarget.checked })

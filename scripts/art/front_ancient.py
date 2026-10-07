@@ -186,6 +186,8 @@ def adopt(recipes):
     frames they need that the game had no family for."""
     new_recipes(recipes)
     persian_civic(recipes)
+    from art.front_classical import game_recipes
+    game_recipes(recipes)
     n = 0
     for name, r in recipes.items():
         if r.get('frontAncient'):
@@ -251,8 +253,9 @@ class FrontAncientPainter:
         self.w, self.h = im.size
         self.anchor_x = info['x0'] + info['W'] // 2
         self.door_x = info['door_x']
-        self.door_size = (22, info['door_h'])
-        self.door_ground = info['base'] + 1
+        self.door_size = (info.get('door_width', 22), info['door_h'])
+        self.door_ground = info.get('door_base', info['base']) + 1
+        self.no_door = info.get('doorless', False)
         self.bottom = info['base'] + 1
         _PAINTED[key] = dict(self.__dict__)
 

@@ -71,6 +71,9 @@ type Facts = {
   rank?: string;
   craftPower?: string;
 };
+const servesAim = (o: Occasion, subject: string | undefined, p: Person) =>
+  !!p.aim && !!(o.serves?.includes(p.aim.id) || o.serves?.includes(p.aim.family ?? "")) &&
+  (!subject || !p.aim.subjects.length || p.aim.subjects.includes(subject));
 const facts = new WeakMap<Actor, Facts>();
 
 /** Work words to the domain words of a power who would care about it. */
@@ -322,7 +325,7 @@ export function agendaOf(
       score:
         b.o.weight *
         (named && b.o.fallback ? FALLBACK : 1) *
-        (person.aim && b.o.serves?.includes(person.aim.id) ? AIM_TILT : 1) *
+        (servesAim(b.o, b.subject, person) ? AIM_TILT : 1) *
         (0.5 + random(seed, "agenda", cal.day, person.actor.id, b.o.id)),
     }))
     .sort((a, b) => b.score - a.score || a.o.id.localeCompare(b.o.id));
@@ -351,7 +354,7 @@ export function agendaOf(
     note: o.note,
     sources: o.sources,
     subject,
-    why: person.aim && o.serves?.includes(person.aim.id) ? [...why, "It serves your life aim."] : why,
+    why: servesAim(o, subject, person) ? [...why, "It serves your life aim."] : why,
   }));
 }
 

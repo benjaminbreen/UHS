@@ -324,6 +324,8 @@ def door_rect(artist):
     Every facing has one: the world moves the walkable doorway to the wall the
     art drew it on, rather than leaving a building with a blank front.
     """
+    if getattr(artist, 'no_door', False):
+        return None
     # A door set back under a veranda or arcade stands higher on the sprite.
     ground = getattr(artist, 'door_ground', None) or getattr(artist, 'bottom', None)
     if ground is None: ground = artist.ground
@@ -387,6 +389,9 @@ def build_buildings(root, sprites):
     # Roman houses, shops, insulae and temples, and Persian houses, likewise.
     from art.front_ancient import adopt as adopt_ancient, FrontAncientPainter
     adopt_ancient(recipes)
+    from art.front_classical_props import PROPS as CLASSICAL_PROPS, sprite as classical_prop
+    for name in CLASSICAL_PROPS:
+        sprites[f'study-classical-{name}'] = classical_prop(name)
     for name,r in list(recipes.items()):
         # Tents and shelters draw their door on the front whatever the facing,
         # and camps pitch them all opening south, so turned copies would lie.
@@ -451,6 +456,7 @@ def build_buildings(root, sprites):
             **({'door':door_rect(artist)} if door_rect(artist) else {}),
             'occlusion':getattr(artist,'occlusion',[4,7,w-7,h-7]),'shadow':{'kind':'building','height':r['height'],'contactWidth':w-12},
             'wall':r['wall'],'roof':r['roof'],'roofMaterial':r['roofMaterial'],'attachments':r['attachments'],
+            **({'frontClassical':True} if r.get('frontClassical') else {}),
             'opening':r['opening'],'description':r['description'],
             **({'religious':True,'family':r['family'],'recipe':r['recipe']} if r.get('religious') else {}),
             **({'theatre':True,'family':r['family'],'form':r['form'],'recipe':r['recipe']} if r.get('theatre') else {}),

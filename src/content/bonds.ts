@@ -1,5 +1,7 @@
 import type { CharacterScope } from "./characters/context-types";
 import type { WorldSetting } from "./geography/types";
+import type { HouseholdEvent } from "../core/types";
+import { random } from "../core/random";
 
 const B = (year: number) => 1 - year;
 
@@ -41,4 +43,19 @@ export function whyLeft(as: string, setting: WorldSetting | undefined, roll: num
     "went off to make his own way",
   ];
   return ways[Math.floor(roll * ways.length)];
+}
+
+export type Departure = { as: string; name?: string; why: string; noWord: boolean; year: number };
+
+export function absentChildOf(seed: string, history: HouseholdEvent[], setting?: WorldSetting): Departure | undefined {
+  if (!setting) return;
+  const left = [...history].reverse().find((e) => e.kind === "left" &&
+    (e.as === "son" || e.as === "daughter") && e.year <= setting.year && e.year >= setting.year - 8);
+  if (!left) return;
+  const later = history.slice(history.indexOf(left) + 1);
+  if (later.some((e) => ["joined", "died"].includes(e.kind) &&
+    (left.name && e.name ? left.name === e.name : e.as === left.as))) return;
+  const why = whyLeft(left.as!, setting, random(seed, "left", String(left.year)));
+  return { as: left.as!, name: left.name, year: left.year, why,
+    noWord: /sea|soldier|America/.test(why) && random(seed, "left-word") < 0.5 };
 }

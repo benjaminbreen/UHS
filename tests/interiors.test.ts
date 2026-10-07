@@ -334,10 +334,11 @@ describe("interior profiles", () => {
     const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
     const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
     const room = e.interiorOf(ale.id)!;
+    const home = e.state.households!.find((h) => h.residence === ale.id)!;
     e.state.clock += ((19 - (e.state.clock / 3600) % 24 + 24) % 24) * 3600;
     e.state.player.pos = { ...room.entry, space: ale.id };
     e.advance(60);
-    const regulars = e.state.actors.filter((a) => a.pos.space === ale.id && e.world.dormant?.(a.id));
+    const regulars = e.state.actors.filter((a) => a.pos.space === ale.id && a.householdId !== home.id && e.world.dormant?.(a.id));
     expect(regulars.length).toBeGreaterThanOrEqual(8);
     expect(regulars.every((a) => room.seats.some((s) => s.x === a.pos.x && s.y === a.pos.y))).toBe(true);
     e.state.player.pos = { ...ale.entrance, space: "outside" };

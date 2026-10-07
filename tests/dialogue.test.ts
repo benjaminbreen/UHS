@@ -30,17 +30,17 @@ describe("dialogue endpoint", () => {
       headers: { "Content-Type": "application/json", "x-forwarded-for": "198.51.100.70" },
       body: JSON.stringify({ user: "Setting: prehistoric Britain.\nOn their mind: food.", realLanguage: true, explain: { dialogue: "Come eat.", original: "An invented reconstruction." } }),
     });
-    const response = await dialogue(request, { OPENAI_API_KEY: "test" }, async (_url, init) => {
+    const response = await dialogue(request, { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" }, async (_url, init) => {
       sent = JSON.parse(String((init as RequestInit).body));
       return reply({ explanation: "The invitation reflects their concern with food. The language is hypothetical, because no local text survives." });
     });
     expect(await response.json()).toEqual({ explanation: "The invitation reflects their concern with food. The language is hypothetical, because no local text survives." });
-    expect(sent?.model).toBe("gpt-6-luna");
+    expect(sent?.model).toBe("anthropic/claude-haiku-5.5");
     expect(sent?.response_format.json_schema.name).toBe("npc_explanation");
     expect(sent?.messages[1].content).toContain("Original-language line (language unnamed): An invented reconstruction.");
   });
   it("limits one caller without touching another", async () => {
-    const env = { OPENAI_API_KEY: "test" };
+    const env = { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" };
     const model = async () => reply({ dialogue: "Good day.", regard: 1 });
     const codes: number[] = [];
     for (let i = 0; i < 25; i++)
@@ -50,7 +50,7 @@ describe("dialogue endpoint", () => {
     expect((await dialogue(post("203.0.113.10"), env, model)).status).toBe(200);
   });
   it("passes the model's regard through and refuses an out-of-range one", async () => {
-    const env = { OPENAI_API_KEY: "test" };
+    const env = { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" };
     const warm = await dialogue(
       post("198.51.100.1"),
       env,
@@ -65,7 +65,7 @@ describe("dialogue endpoint", () => {
     expect(absurd.status).toBe(502);
   });
   it("passes the face the NPC wears through, and refuses one it cannot draw", async () => {
-    const env = { OPENAI_API_KEY: "test" };
+    const env = { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" };
     const cross = await dialogue(post("198.51.100.3"), env, async () =>
       reply({ dialogue: "Say that again.", regard: -1, mood: "angry" }),
     );
@@ -83,7 +83,7 @@ describe("dialogue endpoint", () => {
   it("asks for how the line is taken before the line itself", async () => {
     // Field order is generation order under strict mode, so the face and the
     // gauge arrive first. Streaming the text later depends on this holding.
-    const env = { OPENAI_API_KEY: "test" };
+    const env = { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" };
     let sent: Record<string, unknown> | undefined;
     await dialogue(post("198.51.100.6"), env, async (_url, init) => {
       sent = JSON.parse(String((init as RequestInit).body));
@@ -112,25 +112,27 @@ describe("dialogue endpoint", () => {
       headers: { "Content-Type": "application/json", "x-forwarded-for": "198.51.100.71" },
       body: JSON.stringify({ user: "Setting: Paris, 1200 CE.", realLanguage: true }),
     });
-    await dialogue(request, { OPENAI_API_KEY: "test" }, async (_url, init) => {
+    await dialogue(request, { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" }, async (_url, init) => {
       sent = JSON.parse(String((init as RequestInit).body));
       return reply({ dialogue: "Where are you going?", original: "Où vas-tu?", regard: 0 });
     });
     const properties = sent?.response_format.json_schema.schema.properties;
     expect(Object.keys(properties)).toEqual(["mood", "regard", "action", "dialogue", "language", "original", "leave", "receive"]);
     expect(sent?.messages[0].content).toContain("translate that exact line");
-    expect(sent?.reasoning_effort).toBe("low");
+    expect(sent?.reasoning).toEqual({ effort: "low" });
   });
   it("offers the mood as a nullable enum, which is what strict mode accepts", () => {
-    // Widening the type alone leaves null outside the permitted values and
-    // the provider rejects the whole schema.
+    // Anthropic rejects an enum typed ["string", "null"], so null travels
+    // as a separate branch.
     const schema = strictSchema(
       z.object({ mood: z.enum(["angry", "happy"]).optional() }),
     );
     const mood = (schema.properties as Record<string, Record<string, unknown>>)
       .mood;
-    expect(mood.type).toEqual(["string", "null"]);
-    expect(mood.enum).toEqual(["angry", "happy", null]);
+    expect(mood.anyOf).toEqual([
+      { type: "string", enum: ["angry", "happy"] },
+      { type: "null" },
+    ]);
   });
 });
 
@@ -142,7 +144,7 @@ describe("narrator endpoint", () => {
       body: JSON.stringify({ provider: "openai", system: "s", user: "u" }),
     });
   it("limits a caller, and keeps its budget separate from dialogue's", async () => {
-    const env = { OPENAI_API_KEY: "test" };
+    const env = { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" };
     const model = async () =>
       new Response(
         JSON.stringify({

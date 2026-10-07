@@ -144,3 +144,17 @@ it("gives every piece of lore its own id", async () => {
   const { taskLore } = await import("../src/content/task-lore");
   expect(new Set(taskLore.map((l) => l.id)).size).toBe(taskLore.length);
 });
+
+it("connects local aim variants to their family and the actual person concerned", () => {
+  const a = actor("aim-parent");
+  const wanted = actor("wanted", { age: 9 });
+  const other = actor("other-child", { age: 10 });
+  const p = person(a, {
+    kin: [{ actor: wanted, kind: "child" }, { actor: other, kind: "child" }],
+    aim: { id: "fayum-weaving-training", family: "child-future", text: "Arrange instruction.", subjects: [wanted.id], revision: 2 },
+  });
+  const days = Array.from({ length: 112 }, (_, d) => agendaOf("aim-family", rome, at(d), p)).flat();
+  const teaching = days.filter((i) => i.id === "day.teach-child");
+  expect(teaching.some((i) => i.subject === wanted.id && i.why.includes("It serves your life aim."))).toBe(true);
+  expect(teaching.filter((i) => i.subject !== wanted.id).every((i) => !i.why.includes("It serves your life aim."))).toBe(true);
+});

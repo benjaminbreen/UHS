@@ -37,11 +37,11 @@ def drift(a, b):
     return sum(1 for p, q in zip(pa, pb) if p != q) / (a.width * a.height)
 
 
-def sheet(items, out, zoom=3):
+def sheet(items, out, zoom=3, masters=True, columns=None):
     """items: (label, image) pairs, laid out after the gold masters."""
     from art.reference import current_adult
     adult = current_adult()
-    now = gold()
+    now = gold() if masters else {}
     cells = []
     for name, im in now.items():
         pinned = REF / f'{name}.png'
@@ -55,7 +55,7 @@ def sheet(items, out, zoom=3):
     pad, top = 10, 16
     rows, row, w = [], [], 0
     for label, im in cells:
-        if row and w + im.width + pad > 760:
+        if row and ((columns and len(row) == columns) or (not columns and w + im.width + pad > 760)):
             rows.append(row)
             row, w = [], 0
         row.append((label, im))

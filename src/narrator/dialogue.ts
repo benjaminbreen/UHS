@@ -13,6 +13,9 @@ import type { Expression } from "../render/portraits/constructed";
 import { faunaProfile } from "../content/fauna";
 import { languageBrief } from "../content/history/languages";
 import { random } from "../core/random";
+import { narratorProvider } from "./turn";
+// Dialogue has no Gemini path; it follows the setting otherwise.
+const dialogueProvider = () => (narratorProvider() === "openai" ? "openai" : "haiku");
 
 export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string; language?: string; action?: string; context?: string };
 export type DialogueGift = {
@@ -367,7 +370,7 @@ export async function dialogueTurn(
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user, realLanguage }),
+      body: JSON.stringify({ user, realLanguage, provider: dialogueProvider() }),
     });
     const data = (await response.json()) as {
       text?: string;
@@ -410,7 +413,7 @@ export async function explainDialogue(line: DialogueLine, signal?: AbortSignal) 
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user: line.context, realLanguage: !!line.original, explain: { dialogue: line.text, original: line.original, language: line.language } }),
+      body: JSON.stringify({ provider: dialogueProvider(), user: line.context, realLanguage: !!line.original, explain: { dialogue: line.text, original: line.original, language: line.language } }),
     });
     const data = (await response.json()) as { explanation?: string; error?: string };
     return response.ok && data.explanation ? { explanation: data.explanation.trim() } : { error: data.error ?? "The explanation is unavailable." };

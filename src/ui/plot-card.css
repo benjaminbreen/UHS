@@ -52,7 +52,8 @@
   text-underline-offset: 4px;
 }
 .plot-ref:hover,
-.plot-ref:focus-visible { text-decoration-style: solid; outline: none; }
+.plot-ref:focus-visible { text-decoration-style: solid; }
+.plot-ref:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .plot-ref[data-mark="note"] { font-weight: inherit; }
 .plot-veil [data-mark="plot"] { --mark-text: var(--plot-text); }
 .plot-veil [data-mark="kin"] { --mark-text: var(--kin-text); }
@@ -107,7 +108,7 @@
   text-shadow: 2px 2px 0 var(--ink);
 }
 .plot-choice[data-on] { color: var(--light); }
-.plot-choice:focus { outline: none; }
+.plot-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .plot-hand {
   position: absolute;
   right: 100%;
@@ -124,22 +125,41 @@
 
 /* ---- The framed look: a slate in a stepped wooden frame, inside the world. */
 
-.plot-veil[data-look="framed"],
 .plot-floor[data-look="framed"] {
   position: absolute;
   z-index: 70;
 }
 .plot-veil[data-look="framed"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   place-items: safe center;
-  padding: 16px;
-  overflow: auto;
-  background: color-mix(in srgb, #060a1a 48%, transparent);
+  padding: 24px;
+  background: color-mix(in srgb, #060a1a 65%, transparent);
 }
 [data-look="framed"] .plot-card {
-  width: min(600px, 100%);
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 48px);
   filter: drop-shadow(0 22px 34px rgb(0 0 0 / 0.5));
   animation: plot-rise 0.32s steps(5) both;
 }
+[data-look="framed"] .plot-card :is(.pf, .pf-lit, .pf-wood, .pf-dark, .pf-body) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.plot-reader {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--edge) var(--fill);
+  scrollbar-width: thin;
+}
+.plot-reader .plot-ask { max-height: 200px; overflow-y: auto; }
 [data-look="framed"] :is(.pf, .pf-lit, .pf-wood, .pf-dark, .pf-body) {
   clip-path: polygon(
     0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0,
@@ -184,7 +204,7 @@
   justify-content: center;
   background: var(--ink);
 }
-[data-look="framed"] .plot-emblem { width: min(480px, 100%); }
+[data-look="framed"] .plot-emblem { width: min(320px, 100%); }
 [data-look="framed"] .plot-scene::after {
   content: "";
   position: absolute;
@@ -192,16 +212,23 @@
   height: 36px;
   background: linear-gradient(transparent, color-mix(in srgb, var(--fill), var(--light) 3%));
 }
-.plot-copy { display: flex; flex-direction: column; padding: 8px 36px 0; }
+.plot-copy { display: flex; flex-direction: column; padding: 20px 36px 24px; }
 .plot-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: space-between;
   gap: 4px 16px;
   animation: plot-resolve 0.4s 0.25s steps(4) both;
 }
 .plot-title { margin: 0; line-height: 0; }
+.plot-heading {
+  min-width: 0;
+  margin: 0;
+  font: 24px / 1.35 var(--display);
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px var(--ink);
+}
 .plot-title canvas {
   display: block;
   max-width: 100%;
@@ -209,28 +236,33 @@
   image-rendering: pixelated;
   filter: drop-shadow(0 1px 0 #0008);
 }
-.plot-head small { padding-bottom: 2px; font: italic 15.5px var(--book); color: var(--soft); }
+.plot-head small { font: 15.5px / 1.5 var(--book); color: var(--soft); }
 [data-look="framed"] .plot-prose {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 12px;
-  font: 18px / 1.58 var(--book);
-  animation: plot-resolve 0.4s 0.4s steps(4) both;
+  gap: 16px;
+  padding-top: 20px;
+  font: 19px / 1.55 var(--book);
 }
 [data-look="framed"] .plot-prose p { margin: 0; text-wrap: pretty; }
 .plot-foot {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 18px;
-  padding: 14px 0 16px 0;
-  border-top: 1px dashed color-mix(in srgb, var(--light) 28%, transparent);
-  animation: plot-resolve 0.4s 0.55s steps(4) both;
+  justify-content: space-between;
+  flex: none;
+  gap: 16px;
+  padding: 16px 36px 20px;
+  background: color-mix(in srgb, var(--fill), var(--ink) 25%);
+  border-top: 1px solid color-mix(in srgb, var(--light) 18%, transparent);
 }
-.plot-foot .plot-goal { flex: 1; min-width: 0; margin: 0; font: 16.5px / 1.35 var(--book); }
-/* Room for the pointing hand, which hangs off the button's left edge. */
-.plot-foot .plot-choices { flex: none; padding-left: 30px; }
+.plot-intent { margin-top: 24px; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--light) 28%, transparent); }
+.plot-intent-label { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.plot-intent-label small { font: 10px / 1.5 var(--display); letter-spacing: 0.08em; color: var(--plot-text); }
+.plot-intent .plot-goal { margin: 0; font: 17px / 1.5 var(--book); }
+.plot-key { font: 12px / 1.5 var(--sans); color: var(--soft); }
+.plot-foot .plot-choices { flex: none; }
+[data-look="framed"] .plot-foot .plot-choice { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; height: auto; padding: 12px 20px; font-size: 13px; }
+.plot-foot .plot-hand { position: static; margin: 0; flex: none; animation: none; }
 [data-look="framed"] .plot-choices { flex-wrap: nowrap; gap: 10px 18px; }
 /* A bevelled pixel button: the bevel lives on a stepped layer behind the
  * label, so the hand can point at it from outside. */
@@ -425,10 +457,21 @@
 @keyframes plot-resolve { from { opacity: 0; transform: translateY(4px); } }
 
 @media (max-width: 630px) {
-  .plot-copy { padding: 6px 18px 0; }
-  [data-look="framed"] .plot-prose { font-size: 16.5px; }
-  .plot-foot { flex-wrap: wrap; }
-  .plot-foot .plot-choices { margin-left: auto; }
+  .plot-veil[data-look="framed"] {
+    top: var(--viewport-top, 0px);
+    bottom: auto;
+    height: var(--viewport-height, 100dvh);
+    padding: max(12px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+  [data-look="framed"] .plot-card { height: 100%; max-height: 100%; }
+  .plot-copy { padding: 20px 20px 24px; }
+  .plot-head { display: block; }
+  .plot-heading { margin-bottom: 8px; }
+  [data-look="framed"] .plot-prose { font-size: 18px; }
+  .plot-foot { padding: 14px 20px 16px; }
+  .plot-key { display: none; }
+  .plot-foot .plot-choices, .plot-foot .plot-choice { width: 100%; }
+  [data-look="framed"] .plot-foot .plot-choice { min-height: 50px; }
   .plot-old .plot-prose { font-size: 16px; padding: 0 12px; }
   .plot-aim { margin-inline: 8px; }
   .plot-choices { align-items: center; }

@@ -2,7 +2,6 @@ import { TimeModal } from "./time/TimeModal";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
-import { smallMemoryDevice } from "../runtime/device";
 import { CharacterPanel } from "./CharacterPanel";
 import "./settings.css";
 import {
@@ -139,8 +138,10 @@ import {
 } from "./theme";
 import {
   CHARACTER_SPRITES_KEY,
+  DISPLAY_SETTINGS_KEY,
   defaultLiveGraphicsSettings,
   storedCharacterSprites,
+  storedDisplaySettings,
   type LiveGraphicsSettings,
 } from "../render/live-graphics";
 import type { FaunaState } from "../core/fauna";
@@ -291,7 +292,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [liveGraphics, setLiveGraphics] = useState<LiveGraphicsSettings>(
     () => ({
       ...defaultLiveGraphicsSettings,
-      tiltShift: !smallMemoryDevice(),
+      ...storedDisplaySettings(),
       characterSprites: storedCharacterSprites(),
     }),
   );
@@ -568,12 +569,19 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     const scene = game.current?.scene.getScene("world") as
       | WorldScene
       | undefined;
-    scene?.applyLiveGraphics(next);
+    scene?.applyLiveGraphics(patch);
+    if (patch.occlusion !== undefined || patch.tiltShift !== undefined || patch.roundPixels !== undefined)
+      try {
+        localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify({
+          occlusion: next.occlusion,
+          tiltShift: next.tiltShift,
+          roundPixels: next.roundPixels,
+        }));
+      } catch {}
   };
   const resetLiveGraphics = () => {
     updateLiveGraphics({
       ...defaultLiveGraphicsSettings,
-      tiltShift: !smallMemoryDevice(),
       characterSprites: liveGraphicsRef.current.characterSprites,
     });
     runtime.setZoom(2);
@@ -875,7 +883,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           />
         </Suspense>
       )}
-      <header className="topbar" inert={!!modal || audioOpen}>
+      <header className="topbar" inert={!!modal || audioOpen || card?.kind === "title" || card?.kind === "ending"}>
         {phone ? (
           <button
             className="icon-button brand-menu"
@@ -974,7 +982,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           </a>
         </div>
       </header>
-      <main className="workspace" inert={!!modal || audioOpen}>
+      <main className="workspace" inert={!!modal || audioOpen || card?.kind === "title" || card?.kind === "ending"}>
         <section className="world-pane">
           {phone && (sheetOpen || restOpen || narratorOpen) && (
             <button className="phone-panel-dismiss" aria-label="Close open panel"
@@ -2456,6 +2464,20 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       </button>
                     </div>
                   </div>
+                  {([
+                    ["occlusion", "Fade buildings and trees hiding you"],
+                    ["tiltShift", "Tilt-shift blur"],
+                    ["roundPixels", "Pixel rounding"],
+                  ] as const).map(([key, label]) => (
+                    <label className="settings-row" key={key}>
+                      <span>{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={liveGraphics[key]}
+                        onChange={(event) => updateLiveGraphics({ [key]: event.currentTarget.checked })}
+                      />
+                    </label>
+                  ))}
                   <div className="settings-row">
                     <span>Character sprites</span>
                     <select
@@ -2545,7 +2567,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       ))}
                     </div>
                   </div>
-                  <h3>Narrator</h3>
+                  <h3>Narrator and dialogue</h3>
                   <div className="settings-row">
                     <span>Model</span>
                     <select
@@ -2560,6 +2582,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         }
                       }}
                     >
+                      <option value="haiku">Claude Haiku 5.5</option>
                       <option value="openai">OpenAI (GPT-6 luna)</option>
                       <option value="gemini">Gemini 3.5 Flash-Lite</option>
                     </select>

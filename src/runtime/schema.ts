@@ -634,7 +634,19 @@ const lifeAim = z
     id: z.string().max(80),
     text: z.string().max(240),
     subjects: z.array(z.string().max(100)).max(8),
-    revision: z.literal(1).optional(),
+    revision: z.union([z.literal(1), z.literal(2)]).optional(),
+    family: z.string().max(80).optional(),
+    basis: z.object({
+      reason: z.string().max(400),
+      means: z.string().max(400),
+      obstacle: z.string().max(400).optional(),
+      evidence: z.object({
+        status: z.enum(["documented", "inferred", "hypothesis", "fictional"]),
+        claim: z.string().max(600),
+        sources: z.array(z.string().max(500)).max(12),
+        limitation: z.string().max(600),
+      }).strict().optional(),
+    }).strict().optional(),
     step: z.discriminatedUnion("type", [
       z.object({ type: z.literal("talk"), actor: z.string().max(100), text: z.string().max(160), done: z.boolean().optional() }).strict(),
       z.object({ type: z.literal("give"), actor: z.string().max(100), items: z.array(item).max(12), text: z.string().max(160), done: z.boolean().optional() }).strict(),

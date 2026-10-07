@@ -1,5 +1,6 @@
 import { civicProfile } from "../../content/settlements/civic";
 import { regionalLook } from "../../content/graphics/regional-looks";
+import { mediterraneanShrineFrame, watchtowerFrame, retainedTowerStyle } from "../../content/graphics/mediterranean-buildings";
 import { venueBuilding, venuesFor } from "../../content/venues";
 import type { CivicProfile } from "../../content/settlements/civic/types";
 import {
@@ -378,11 +379,13 @@ export function urbanNeighborhood(
   // ground: in a town of lanes no side of the square has room for them.
   const sanctuary = religiousProfile(pack.setting!);
   const order = ["large", "medium", "small"] as const;
-  const mosqueScales = sanctuary && /-mosque$|^(chinese|japanese)-temple$/.test(sanctuary.recipe)
-    ? order.slice(order.indexOf(religiousScale(site.profile.radius))).filter((s) => buildingModels[`religious-${sanctuary.recipe}-${s}-0`])
+  const sanctuaryFrame = (s: (typeof order)[number]) =>
+    (sanctuary?.recipe === "mediterranean-shrine" && mediterraneanShrineFrame(pack.setting, s)) || `religious-${sanctuary!.recipe}-${s}-0`;
+  const mosqueScales = sanctuary && /-mosque$|^(chinese|japanese)-temple$|^mediterranean-shrine$/.test(sanctuary.recipe)
+    ? order.slice(order.indexOf(religiousScale(site.profile.radius))).filter((s) => buildingModels[sanctuaryFrame(s)])
     : [];
   const mosqueSize = (s: (typeof order)[number]) => {
-    const [w, h] = buildingModel(`religious-${sanctuary!.recipe}-${s}-0`).footprint;
+    const [w, h] = buildingModel(sanctuaryFrame(s)).footprint;
     return [w, h + 3] as [number, number];
   };
   const layout = composeUrban(
@@ -473,8 +476,9 @@ export function urbanNeighborhood(
   const claimLandmark = (
     lot: UrbanLot,
     ground: { forecourt?: Rect; apron?: Rect } = {},
+    into = lots,
   ) => {
-    lots.push(lot);
+    into.push(lot);
     note(lot);
     noted = lots.length;
     reserve(lot.rect);
@@ -597,6 +601,7 @@ export function urbanNeighborhood(
   if (api.bank) riverside();
 
   const lots: UrbanLot[] = [];
+  const watchtowers: UrbanLot[] = [];
   const precinctVenues = new Set<string>();
   for (const [n, precinct] of precincts.entries()) {
     const ground = layout.grounds[n];
@@ -770,7 +775,8 @@ export function urbanNeighborhood(
     const candidates = scales.flatMap((scale) => (wide ? [0, 3, 6] : [0]).flatMap((back) => sides.flatMap(([nx, ny]) => {
       const gap = religious.forecourt + 1 + back;
       // A size the region's look was not drawn at keeps the first look.
-      const base = buildingModels[`religious-${religious.recipe}-${scale}-${look}`]
+      const shrine = (scale === "small" || religious.recipe === "mediterranean-shrine") && mediterraneanShrineFrame(pack.setting, scale);
+      const base = shrine && buildingModels[shrine] ? shrine : buildingModels[`religious-${religious.recipe}-${scale}-${look}`]
         ? `religious-${religious.recipe}-${scale}-${look}`
         : `religious-${religious.recipe}-${scale}-0`;
       const facing =
@@ -815,7 +821,7 @@ export function urbanNeighborhood(
     const ground = mosqueScales.length ? layout.grounds[precincts.length] : undefined;
     const groundScale = ground && mosqueScales.find((s) => mosqueSize(s)[0] === ground.w && mosqueSize(s)[1] === ground.h);
     const onGround = ground && groundScale && (() => {
-      const frame = `religious-${religious.recipe}-${groundScale}-${look}`;
+      const frame = religious.recipe === "mediterranean-shrine" ? sanctuaryFrame(groundScale) : `religious-${religious.recipe}-${groundScale}-${look}`;
       const model = buildingModel(frame),
         [w, h] = model.footprint;
       return { nx: 0, ny: -1, frame, model, rect: { x: ground.x, y: ground.y, w, h }, forecourt: { x: ground.x, y: ground.y + h, w, h: ground.h - h }, scale: groundScale };
@@ -842,6 +848,44 @@ export function urbanNeighborhood(
         },
         { forecourt: chosen.forecourt },
       );
+    }
+  }
+  if (pack.setting && site.profile.radius >= 30) {
+    const retained = !!retainedTowerStyle(pack.setting);
+    for (const [i, gate] of layout.gates.slice(0, layout.wall && !retained ? 2 : 1).entries()) {
+      const storeys = retained ? 3 : i === 1 ? 1 : site.profile.radius < 60 ? 2 : 3;
+      const frame = watchtowerFrame(pack.setting, storeys);
+      if (!frame || !buildingModels[frame]) continue;
+      const model = buildingModel(frame), [w, h] = model.footprint;
+      const byGate = [-1, 1].flatMap((side) => [4, 8, 12, 16, 20].map((gap) => {
+        const tx = -gate.ny, ty = gate.nx;
+        const distance = Math.ceil(Math.max(w, h) / 2) + layout.tiers[0] + 2;
+        const x = Math.round(gate.point.x + tx * side * distance - gate.nx * (w / 2 + gap) - w / 2);
+        const y = Math.round(gate.point.y + ty * side * distance - gate.ny * (h / 2 + gap) - h / 2);
+        return { x, y, w, h };
+      }));
+      const core = layout.oldCore ?? layout.plaza;
+      const at = retained ? { x: core.x + core.w / 2, y: core.y + core.h / 2 } : gate.point;
+      const inBlocks = [...layout.blocks].sort((a, b) =>
+        Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y))
+        .filter((b) => b.w >= w && b.h >= h)
+        .flatMap((b) => [b.x, b.x + b.w - w].flatMap((x) =>
+          [b.y, b.y + b.h - h].map((y) => ({ x, y, w, h }))));
+      const candidates = layout.wall && !retained ? [...byGate, ...inBlocks] : inBlocks;
+      const rect = candidates.find((r) => within(r) && fits(r) &&
+        api.dry({ x: r.x - 1, y: r.y - 1, w: w + 2, h: h + 2 }, false) &&
+        free({ x: r.x - 1, y: r.y + h, w: w + 2, h: 2 }));
+      if (!rect) continue;
+      const point = { x: rect.x + model.entrance[0], y: rect.y + model.entrance[1] };
+      const apron = { x: rect.x - 1, y: rect.y + h, w: w + 2, h: 2 };
+      if (!free(apron) || !api.dry(apron, false)) continue;
+      claimLandmark({ point, nx: 0, ny: -1, frame, rect, yard: { ...rect }, workPoint: point,
+        piece: { name: retained ? "Historic tower" : storeys === 1 ? "Gate storehouse" : "Watchtower", about: retained
+          ? "An older tower retained as the city grew around it." : storeys === 1
+          ? "The town's gate watch keeps its supplies here." : "The town's gate watch keeps its lookout here." } }, { apron }, watchtowers);
+      const street = layout.streets.flatMap((s) => [s.a, s.b]).sort((a, b) =>
+        Math.hypot(a.x - point.x, a.y - point.y) - Math.hypot(b.x - point.x, b.y - point.y))[0];
+      api.lay(point, street ?? gate.point, `tower-${i}`, 1);
     }
   }
   // Venues with a building of their own are placed like the sanctuary, but a
@@ -1141,7 +1185,7 @@ export function urbanNeighborhood(
     api.furnish(piece);
   }
   api.paintCity((x, y) => layout.holds(x, y, 1));
-  return lots;
+  return [...lots, ...watchtowers];
 
   /** Houses standing apart in their own ground rather than in rows. */
   function detached(block: Block) {

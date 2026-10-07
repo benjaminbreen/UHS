@@ -10,7 +10,12 @@ import { findPath } from "../src/core/pathfinding";
 import { canonical } from "../src/core/random";
 import { householdStory } from "../src/world/v3/household-story";
 import { marriagePracticeFor } from "../src/content/households/practices";
-import { lifeAimOf, advanceLifeAim } from "../src/core/life-aim";
+import { lifeAimOf, lifeAimOptions, advanceLifeAim } from "../src/core/life-aim";
+import { LIFE_AIM_TEMPLATES } from "../src/content/goals/life-aims";
+import { absentChildOf } from "../src/content/bonds";
+import { generateCharacter } from "../src/content/characters/generate";
+import { livelihoodById } from "../src/content/characters/livelihoods";
+import { snapshotSchema } from "../src/runtime/schema";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
@@ -83,10 +88,10 @@ describe("shared deterministic foundation", () => {
       lifeAimOf(`aim-${i}`, roman, player, [child], [household]).id
     );
     expect(withPlan).toContain("marriage-hope");
-    expect(lifeAimOf("aim-0", roman, player, [child], [{ ...household, familyPlans: [] }]).id)
-      .toBe("child-future");
-    expect(lifeAimOf("aim-0", konya, player, [child], [household]).id)
-      .toBe("child-future");
+    expect(lifeAimOptions("aim-0", roman, player, [child], [{ ...household, familyPlans: [] }]).map((a) => a.id))
+      .not.toContain("marriage-hope");
+    expect(lifeAimOptions("aim-0", konya, player, [child], [household]).map((a) => a.id))
+      .not.toContain("marriage-hope");
   });
 
   it("grounds life-aim sentences in known kin, age, place, and hardship", () => {
@@ -104,19 +109,125 @@ describe("shared deterministic foundation", () => {
     const household: Household = {
       id: "home", members: [player.id, child.id], home: player.home, storeId: "store",
     };
-    expect(lifeAimOf("aim-wording", setting, player, [child], [household]).text)
-      .toBe("See Nawelkura, your 7-year-old daughter, safely into adulthood, with choices of their own.");
+    expect(lifeAimOptions("aim-wording", setting, player, [child], [household]).find((a) => a.id === "raise-kin")!.text)
+      .toContain("Nawelkura, your 7-year-old daughter");
 
     child.age = 19;
-    const grown = lifeAimOf("aim-wording", setting, player, [child], [household]);
+    const grown = lifeAimOptions("aim-wording", setting, player, [child], [household]).find((a) => a.id === "child-future")!;
     expect(grown.text).toContain("Nawelkura, your 19-year-old daughter");
     expect(grown.text).toContain(`in ${setting.location}`);
 
     player.relations = [];
     household.fortune = 0.2;
     household.history = [{ year: setting.year - 1, kind: "fire" }];
-    const hardship = lifeAimOf("aim-wording", setting, player, [child], [household]);
+    const hardship = lifeAimOptions("aim-wording", setting, player, [child], [household]).find((a) => a.id === "restore-household")!;
     expect(hardship.text).toContain(`in ${setting.location} after the fire`);
+  });
+
+  it("shares departure facts with the intro and drops a departure after a return or death", () => {
+    const setting = settingFor(places.find((p) => p.id === "rome")!, 100);
+    const e = createSession("roman", "aim-away");
+    const home: Household = { id: "home", members: [e.state.player.id], home: e.state.player.home, storeId: "store" };
+    e.state.households = [home];
+    home.history = [{ year: 99, kind: "left", as: "son", name: "Marcus" }];
+    const departure = absentChildOf(e.state.manifest.seed, home.history, setting)!;
+    const options = lifeAimOptions(e.state.manifest.seed, setting, e.state.player, e.state.actors, e.state.households);
+    const aim = options.find((a) => a.id === "absent-child")!;
+    expect(aim.text).toContain(departure.why);
+    expect(aim.text.includes("no news")).toBe(departure.noWord);
+    expect(introText(composeIntro(e.state, setting, "Rome"))).toContain(departure.why);
+    expect(aim.subjects).toEqual([]);
+    for (const kind of ["joined", "died"] as const) {
+      home.history.push({ year: 100, kind, as: "son", name: "Marcus" });
+      expect(absentChildOf(e.state.manifest.seed, home.history, setting)).toBeUndefined();
+      expect(lifeAimOptions("aim-away", setting, e.state.player, e.state.actors, e.state.households).some((a) => a.id === "absent-child")).toBe(false);
+      home.history.pop();
+    }
+  });
+
+  it("requires real living subjects for care, bonds, and debt", () => {
+    const setting = settingFor(places.find((p) => p.id === "rome")!, 100);
+    const e = createSession("roman", "aim-facts");
+    const player = { ...e.state.player, relations: [{ kind: "child" as const, other: "child" }] };
+    const child = { ...player, id: "child", name: "Aelia", age: 10, householdId: "home", relations: [] };
+    const other = { ...player, id: "other", name: "Lucius", age: 35, householdId: "supplier", relations: [] };
+    const households: Household[] = [
+      { id: "home", members: [player.id, child.id], home: player.home, storeId: "home-store", owes: "supplier" },
+      { id: "supplier", members: [other.id], home: other.home, storeId: "other-store" },
+    ];
+    const facts = { clock: 86400, ailments: [{ id: "fever", who: child.id, since: 0, days: 6, course: "die" as const }],
+      bonds: [{ kind: "beloved" as const, with: other.id, mutual: true, secret: true }] };
+    const aims = lifeAimOptions("facts", setting, player, [child, other], households, facts);
+    expect(aims.find((a) => a.id === "care-through-illness")?.subjects).toEqual([child.id]);
+    expect(aims.find((a) => a.id === "clear-obligation")?.subjects).toEqual([other.id]);
+    expect(aims.find((a) => a.id === "beloved-future")?.text).toContain("private");
+    const dead = lifeAimOptions("facts", setting, player, [{ ...child, dead: "fever" }, { ...other, dead: "fever" }], households, facts);
+    expect(dead.every((a) => a.subjects.length === 0)).toBe(true);
+    expect(dead.some((a) => ["care-through-illness", "clear-obligation", "beloved-future"].includes(a.id))).toBe(false);
+    expect(lifeAimOptions("facts", setting, player, [child, other], households, { ...facts, clock: 7 * 86400 }).some((a) => a.id === "care-through-illness")).toBe(false);
+  });
+
+  it("scopes local opportunities by date, place, work, and available people", () => {
+    const base = createSession("roman", "aim-scopes").state.player;
+    const parent: Actor = { ...base, age: 40, origin: { ...base.origin!, standing: "free", livelihood: "farmer", roleLabel: "Farmer" }, relations: [{ kind: "child", other: "child" }] };
+    const child: Actor = { ...base, id: "child", name: "Isidora", age: 12, householdId: "home", origin: { ...base.origin!, sex: "female" } };
+    const teacher: Actor = { ...base, id: "weaver", name: "Libouke", age: 40, householdId: "other", role: "Weaver", activity: "Weaving", origin: { ...base.origin!, standing: "free", roleLabel: "Weaver" } };
+    const home: Household = { id: "home", members: [parent.id, child.id], home: parent.home, storeId: "store" };
+    const fayum = { ...settingFor(places.find((p) => p.id === "nile")!, 271), lon: 30.8, lat: 29.5 };
+    const options = (year: number, people: Actor[], p = parent) => lifeAimOptions("scopes", { ...fayum, year }, p, people, [home]);
+    expect(options(271, [child, teacher]).find((a) => a.id === "fayum-weaving-training")?.subjects).toEqual([child.id, teacher.id]);
+    expect(options(271, [child]).some((a) => a.id === "fayum-weaving-training")).toBe(false);
+    expect(options(300, [child, teacher]).some((a) => a.id === "fayum-weaving-training")).toBe(false);
+    expect(options(271, [child, teacher], { ...parent, origin: { ...parent.origin!, standing: "unfree" } }).some((a) => a.id === "fayum-weaving-training")).toBe(false);
+    const apprentice: Actor = { ...parent, origin: { ...parent.origin!, livelihood: "apprentice", roleLabel: "Apprentice Weaver" }, relations: [] };
+    for (const [place, year, id] of [["city-florence", 1500, "florence-workshop-learning"], ["london", 1750, "london-apprentice-standing"]] as const) {
+      const setting = settingFor(places.find((p) => p.id === place)!, year);
+      expect(lifeAimOptions("scopes", setting, apprentice, [], []).map((a) => a.id)).toContain(id);
+      expect(lifeAimOptions("scopes", { ...setting, year: -6499 }, apprentice, [], []).map((a) => a.id)).not.toContain(id);
+      const unnamed = { ...apprentice, origin: { ...apprentice.origin!, roleLabel: "Apprentice" } };
+      expect(lifeAimOptions("scopes", setting, unnamed, [], []).every((a) => !a.text.includes("apprentice's work"))).toBe(true);
+    }
+  });
+
+  it("keeps family selection unchanged when a family gains equivalent variants", () => {
+    const setting = settingFor(places.find((p) => p.id === "konya")!, -6499);
+    const player = createSession("neolithic", "aim-families").state.player;
+    const seeds = Array.from({ length: 200 }, (_, i) => `family-${i}`);
+    const before = seeds.map((seed) => lifeAimOf(seed, setting, player, [], []).family);
+    const fallback = LIFE_AIM_TEMPLATES.find((a) => a.id === "make-a-life")!;
+    const count = LIFE_AIM_TEMPLATES.length;
+    try {
+      for (let i = 0; i < 20; i++) LIFE_AIM_TEMPLATES.push({ ...fallback, id: `extra-${i}`, family: "livelihood" });
+      expect(seeds.map((seed) => lifeAimOf(seed, setting, player, [], []).family)).toEqual(before);
+    } finally { LIFE_AIM_TEMPLATES.splice(count); }
+  });
+
+  it("generates varied, grounded and reproducible aims across six historical contexts", () => {
+    const base = createSession("roman", "aim-audit").state.player;
+    const contexts = [["rome", 100], ["konya", -6499], ["city-florence", 1500], ["london", 1750], ["kyoto", 1700], ["nile", 271]] as const;
+    for (const [place, year] of contexts) {
+      const setting = { ...settingFor(places.find((p) => p.id === place)!, year), characterRevision: 2 as const };
+      const families = new Set<string>();
+      for (let i = 0; i < 100; i++) {
+        const seed = `aim-audit-${place}-${i}`;
+        const generated = generateCharacter(setting, seed, "player", 38);
+        const player: Actor = { ...base, ...generated, age: 38, householdId: "home", activity: livelihoodById(generated.origin.livelihood)?.activity ?? "Working", relations: [{ kind: "child", other: "child" }] };
+        const child: Actor = { ...base, id: "child", name: "Child", age: i % 2 ? 8 : 19, householdId: "home", origin: { ...base.origin!, sex: "female" } };
+        const home: Household = { id: "home", members: [player.id, child.id], home: player.home, storeId: "store", fortune: i % 3 ? 0.6 : 0.2,
+          history: [{ kind: "built", year: year - 10 }, { kind: "fire", year: year - 1 }] };
+        const aim = lifeAimOf(seed, setting, player, [child], [home]);
+        expect(aim).toEqual(lifeAimOf(seed, setting, player, [child], [home]));
+        expect(snapshotSchema.shape.lifeAim.parse(aim)).toEqual(aim);
+        expect(aim.text).not.toMatch(/undefined|\{|choices of their own|apprentice's work/);
+        if (player.origin?.standing === "unfree") expect(aim.id).not.toBe("quiet-sufficiency");
+        expect(aim.subjects.every((id) => id === child.id)).toBe(true);
+        expect(aim.basis?.reason).toBeTruthy();
+        expect(aim.basis?.means).toBeTruthy();
+        if (aim.basis?.evidence) expect(aim.basis.evidence.sources.length).toBeGreaterThan(0);
+        families.add(aim.family!);
+      }
+      expect(families.size, place).toBeGreaterThanOrEqual(4);
+    }
   });
 
   it("advances only the named person's step through a real conversation", () => {
@@ -200,6 +311,8 @@ describe("shared deterministic foundation", () => {
     expect(titles).toHaveLength(1);
     expect(titles[0].text).toContain(`You are ${e.state.player.name}`);
     expect(titles[0].text).not.toMatch(/undefined|[{}]/);
+    expect(titles[0].aim).toBe(e.state.plot!.aim!.text);
+    expect(e.state.plot!.aim!.revision).toBe(2);
     expect(titles[0].intro!.body.flat().map((s) => s.ref)).toContain(e.state.plot!.cast.creditor);
     expect(composeIntro(e.state, setting, "London")).toEqual(composeIntro(structuredClone(e.state), setting, "London"));
   });

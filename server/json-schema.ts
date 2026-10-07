@@ -3,17 +3,15 @@ type Node = Record<string, unknown>;
 // OpenAI strict mode demands every property be listed in `required`, so an
 // optional field has to travel as a nullable one instead.
 const nullable = (node: Node): Node => {
-  // An enum lists its own permitted values, so widening the type is not
-  // enough: null has to be one of them or strict mode rejects the schema.
-  const values = Array.isArray(node.enum)
-    ? { enum: [...(node.enum as unknown[]), null] }
-    : {};
+  // Anthropic rejects an enum whose type is ["string", "null"]; anyOf suits
+  // both providers.
+  if (Array.isArray(node.enum)) return { anyOf: [node, { type: "null" }] };
   const type = node.type;
   if (typeof type === "string" && type !== "null")
-    return { ...node, ...values, type: [type, "null"] };
+    return { ...node, type: [type, "null"] };
   if (Array.isArray(type) && !type.includes("null"))
-    return { ...node, ...values, type: [...type, "null"] };
-  return { ...node, ...values };
+    return { ...node, type: [...type, "null"] };
+  return node;
 };
 const walk = (node: Node): Node => {
   if (node.type !== "object" || typeof node.properties !== "object")

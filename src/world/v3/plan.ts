@@ -1,5 +1,6 @@
 import { modernBuildingSince } from "../../content/settlements/modern-buildings";
 import { regionalLook } from "../../content/graphics/regional-looks";
+import { mediterraneanShrineFrame, mediterraneanProp } from "../../content/graphics/mediterranean-buildings";
 import { resolveJunctions } from "./junctions";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
@@ -385,6 +386,10 @@ export function planSettlement(
   // Meiji and Taisho Tokyo, before the earthquake and the war rebuilt it.
   const meiji = !!pack.setting && modernity(pack.setting).id === "japan" && pack.setting.year < 1945;
   const furniture = streetFurnitureFor(pack);
+  const nativeOrnament = (key: string) => {
+    const name = ({ well: "wellhead", fountain: "fountain", bench: "bench", planter: "olive-planter", altar: "votive-altar" } as Record<string, string>)[key];
+    return name && mediterraneanProp(pack.setting, name);
+  };
   const municipal = (key: string) =>
     key === "bench" ? furniture?.bench
     : key === "planter" ? furniture?.planter
@@ -867,7 +872,7 @@ export function planSettlement(
           : "Shared water source",
     kind: "well",
     pos: pos(water),
-    sprite: "well",
+    sprite: nativeOrnament("well") || "well",
     inventory: {},
   });
   plan.objects.push({
@@ -986,7 +991,7 @@ export function planSettlement(
           if (water) return;
           water = true;
           source.name = piece.label;
-          source.sprite = (focus && piece.focusSprite) || piece.sprite;
+          source.sprite = nativeOrnament(key) || (focus && piece.focusSprite) || piece.sprite;
           source.pos = pos(spot);
           waterStand.x = spot.x + 1;
           waterStand.y = spot.y;
@@ -1009,6 +1014,7 @@ export function planSettlement(
           sprite:
             local?.sprite ??
             (focus ? undefined : municipal(key)) ??
+            (nativeOrnament(key) || undefined) ??
             ((focus && piece.focusSprite) || piece.sprite),
           pos: pos(spot),
           inventory: {},
@@ -1406,7 +1412,7 @@ export function planSettlement(
           id: `${site.id}-park-bench-${index}`,
           name: bench.label,
           kind: bench.kind,
-          sprite: furniture?.bench ?? bench.sprite,
+          sprite: furniture?.bench ?? mediterraneanProp(pack.setting, "bench") ?? bench.sprite,
           pos: pos(benchAt),
           inventory: {},
         });
@@ -1442,7 +1448,7 @@ export function planSettlement(
           id: `${site.id}-square-${index + 2}-${piece.id}-${tag}`,
           name: piece.label,
           kind: piece.kind,
-          sprite: piece.sprite,
+          sprite: nativeOrnament(key) || piece.sprite,
           pos: pos(at),
           inventory: {},
         });
@@ -1562,7 +1568,7 @@ export function planSettlement(
         id: `${site.id}-${item.id}-${piece.x}-${piece.y}`,
         name: lamp?.label ?? item.label,
         kind: item.kind,
-        sprite: lamp?.sprite ?? furniture?.planter ?? (fabric.motor ? "study-propb-municipal-planter-0" : item.sprite),
+        sprite: lamp?.sprite ?? furniture?.planter ?? (nativeOrnament("planter") || undefined) ?? (fabric.motor ? "study-propb-municipal-planter-0" : item.sprite),
         pos: pos(piece),
         inventory: {},
       });
@@ -2444,7 +2450,8 @@ export function planSettlement(
     const look =
       regionalLook(`religious-${sacred.recipe}`, pack.setting) ??
       Math.floor(rand("religious-look") * 3);
-    const base = buildingModels[`religious-${sacred.recipe}-${scale}-${look}`]
+    const shrine = (scale === "small" || sacred.recipe === "mediterranean-shrine") && mediterraneanShrineFrame(pack.setting, scale);
+    const base = shrine && buildingModels[shrine] ? shrine : buildingModels[`religious-${sacred.recipe}-${scale}-${look}`]
       ? `religious-${sacred.recipe}-${scale}-${look}`
       : `religious-${sacred.recipe}-${scale}-0`;
     for (const lot of frontage) {
@@ -3480,7 +3487,7 @@ export function planSettlement(
             id: `${id}-planter-${dx < 0 ? "l" : "r"}`,
             name: ornaments.planter.label,
             kind: ornaments.planter.kind,
-            sprite: furniture?.planter ?? ornaments.planter.sprite,
+            sprite: furniture?.planter ?? (nativeOrnament("planter") || ornaments.planter.sprite),
             pos: pos(at),
             inventory: {},
           });
@@ -4497,7 +4504,7 @@ export function planSettlement(
         name: fabric.motor ? "Public water pump" : "Shared water source",
         kind: "well",
         pos: pos(out),
-        sprite: fabric.motor ? "study-propb-pump-0" : "well",
+        sprite: fabric.motor ? "study-propb-pump-0" : nativeOrnament("well") || "well",
         inventory: {},
       });
     }

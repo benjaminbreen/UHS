@@ -9,6 +9,8 @@ import { civicProfile } from "../src/content/settlements/civic";
 import { inside } from "../src/world/v3/types";
 import { roadCells } from "../src/world/v3/roads";
 import { modernBuildingSince } from "../src/content/settlements/modern-buildings";
+import { buildingModels } from "../src/content/graphics/models";
+import { mediterraneanStyle, watchtowerFrame, mediterraneanShrineFrame, mediterraneanInsulaFrames, retainedTowerStyle } from "../src/content/graphics/mediterranean-buildings";
 const resolved = resolveSetting("Rome 100 BCE");
 if ("error" in resolved) throw Error(resolved.error);
 const setting = integratedSetting(resolved.setting);
@@ -35,6 +37,39 @@ function city(seed: string, radius = 74) {
     [],
   );
 }
+it("places regional buildings and retains historic towers in later cities with reachable entrances", () => {
+  for (const [query, style, retained] of [
+    ["Rome 100 BCE", "roman", false], ["medieval London", "western", false], ["Alexandria 200", "egypt", false],
+    ["Istanbul 1900", "anatolia", true], ["Istanbul 1950", "anatolia", true],
+    ["London 1900", "western", true], ["London 2000", "western", true],
+    ["Fez 1950", "maghreb", true], ["Isfahan 1900", "iran", true],
+  ] as const) {
+    const r = resolveSetting(query);
+    if ("error" in r) throw Error(r.error);
+    const s = integratedSetting(r.setting);
+    expect(retained ? retainedTowerStyle(s) : mediterraneanStyle(s)).toBe(style);
+    for (const n of [1, 2, 3]) expect(buildingModels[watchtowerFrame(s, n)!]).toBeDefined();
+    const p = planSettlement({ id: "native", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+      profile: { ...settlementProfile(s), radius: 74 } }, packForSetting(s), "native-buildings", flat, []);
+    const towers = p.places.filter((b) => b.sprite.startsWith("house-watchtower-"));
+    expect(towers.length).toBeGreaterThan(0);
+    if (retained) {
+      expect(towers).toHaveLength(1);
+      expect(towers[0].name).toBe("Historic tower");
+      expect(mediterraneanInsulaFrames(s)).toEqual([]);
+      expect(p.places.some((b) => b.sprite.includes("classical-insula"))).toBe(false);
+    }
+    for (const b of towers) {
+      expect(b.owner).toBe("native-community");
+      expect(route(p.spawn, b.entrance, (q) => p.solid.has(`${q.x},${q.y}`) ? Infinity : 1).status).toBe("found");
+      for (const other of p.places.filter((a) => a.id !== b.id))
+        expect(b.x < other.x + other.w && b.x + b.w > other.x && b.y < other.y + other.h && b.y + b.h > other.y).toBe(false);
+    }
+    const shrine = mediterraneanShrineFrame(s, "small");
+    if (shrine) expect(p.places.some((b) => b.sprite.startsWith(shrine))).toBe(true);
+    else expect(p.places.some((b) => b.sprite.includes("mediterranean-shrine"))).toBe(false);
+  }
+}, 30000);
 it("encloses public squares and courts with varied, non-overlapping ranges and reachable entrances", () => {
   for (const [seed, radius] of [
     ["city-review", 74],

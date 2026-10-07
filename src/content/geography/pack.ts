@@ -15,6 +15,7 @@ import {
   westAsianRegionalHouses,
 } from "../graphics/regional-houses";
 import { formatHistoricalYear } from "../../core/calendar";
+import { mediterraneanInsulaFrames } from "../graphics/mediterranean-buildings";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "./types";
 import { historyRegistry, resolveHistory } from "../history";
@@ -298,6 +299,7 @@ export function packForSetting(setting: WorldSetting): Pack {
             "house-roman-ob-2",
             "house-roman-ob-3",
             ...romanRegional,
+            ...mediterraneanInsulaFrames(setting),
           ]
         : westAsianRegional.length
           ? westAsianRegional

@@ -2,6 +2,24 @@ import type { ReligiousRule } from "./types";
 
 export const nearEastReligious: ReligiousRule[] = [
   {
+    id: "hellenistic-egypt-shrine", faith: "Egyptian", recipe: "mediterranean-shrine",
+    labels: { small: "Shrine of Isis", medium: "Shrine of Isis", large: "Sanctuary of Isis" },
+    culture: "north-african-west-asian", from: -332, to: 392, bounds: [24, 20, 36, 33],
+    side: "north", forecourt: 2,
+    about: "A local shrine of Isis, with the goddess's image, lamps and offerings under a columned porch.",
+    evidence: { status: "inferred", sources: ["https://capitolini.info/scu00362/?lang=en"],
+      note: "An illustrative Greek-influenced urban cult shrine for Ptolemaic and Roman Egypt, not a reconstruction of an Egyptian temple complex. The textile colours are illustrative." },
+  },
+  {
+    id: "hellenistic-levant-shrine", faith: "Syrian", recipe: "mediterranean-shrine",
+    labels: { small: "Shrine of Hadad", medium: "Shrine of Hadad", large: "Sanctuary of Hadad" },
+    culture: "north-african-west-asian", from: -300, to: 300, bounds: [34, 29, 44, 37],
+    side: "north", forecourt: 2,
+    about: "A local shrine of the storm god Hadad, with his image and offering lamps beneath a porch.",
+    evidence: { status: "inferred", sources: ["https://oi.uchicago.edu/sites/default/files/uploads/shared/docs/oimp31.pdf"],
+      note: "A small shrine illustrates one cult among the diverse traditions of the Hellenistic and Roman Levant. It does not identify every town's patron deity; the porch and colours are an architectural interpretation." },
+  },
+  {
     id: "roman-temple-africa",
     faith: "Roman",
     recipe: "roman-temple",

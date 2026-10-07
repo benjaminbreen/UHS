@@ -6721,7 +6721,7 @@ export class Engine {
       title: s.plot?.title ?? place,
       text: introText(intro),
       intro,
-      aim: s.lifeAim?.text,
+      aim: s.plot && !s.plot.ended ? s.plot.aim?.text ?? s.lifeAim?.text : s.lifeAim?.text,
     });
   }
   private runPlot() {

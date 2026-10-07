@@ -130,7 +130,7 @@ import { ecologyProfiles } from "../content/ecology/profiles";
 import { colorwayLabels } from "../content/ecology/variants";
 import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
 import { fromAtlas, toAtlas } from "../world/geography/coordinates";
-import { ensureLifeAim } from "../core/life-aim";
+import { ensureLifeAim, lifeAimOf } from "../core/life-aim";
 import { startPlot } from "../core/plot";
 import { seedAilments } from "../core/health";
 import { bondsFor } from "../core/bonds";
@@ -244,10 +244,12 @@ export function createSession(
     goal.slot ??= GOAL_TEMPLATES.find((template) => template.id === goal.id)?.slot ??
       (["eat", "food-store", "sleep", "water", "firewood"].includes(goal.id) ? "need" : "social");
   }
-  ensureLifeAim(engine.state, pack.setting);
-  startPlot(engine.state, pack.setting);
+  const plot = startPlot(engine.state, pack.setting);
   engine.state.ailments ??= seedAilments(engine.state, pack.setting, new Set(Object.values(engine.state.plot?.cast ?? {})));
   engine.state.bonds ??= bondsFor(engine.state, pack.setting);
+  if (plot && !plot.ended && !plot.aim?.revision) {
+    plot.aim = lifeAimOf(seed, pack.setting, engine.state.player, engine.state.actors, engine.state.households, engine.state);
+  } else ensureLifeAim(engine.state, pack.setting);
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn

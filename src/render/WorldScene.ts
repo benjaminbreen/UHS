@@ -1455,7 +1455,7 @@ export class WorldScene extends Phaser.Scene {
     const ms = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1;
     if (!id) {
       c.pan(player.x, player.y, 650 * ms, "Sine.easeInOut", true, (_c, t) => {
-        if (t === 1) c.startFollow(player, false, this.liveGraphics.followLerp, this.liveGraphics.followLerp);
+        if (t === 1) c.startFollow(player, this.liveGraphics.roundPixels, this.liveGraphics.followLerp, this.liveGraphics.followLerp);
       });
       return;
     }
@@ -2987,6 +2987,8 @@ export class WorldScene extends Phaser.Scene {
     );
     Object.assign(this.game.canvas.dataset, {
       roundPixels: String(this.liveGraphics.roundPixels),
+      occlusion: String(this.liveGraphics.occlusion),
+      tiltShift: String(this.liveGraphics.tiltShift),
       textureSampling: this.liveGraphics.textureSampling,
       canvasSampling: this.liveGraphics.canvasSampling,
       zoomDuration: String(this.liveGraphics.zoomDuration),
@@ -3006,6 +3008,7 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.cameraZoom = String(this.zoomTarget);
     }
     this.applyTiltShift();
+    if (patch.occlusion !== undefined && this.ready && this.scene.isActive()) this.draw();
   }
   private tiltShift?: TiltShiftPipeline;
   private nightGrade?: NightGradePipeline;
@@ -4300,6 +4303,7 @@ export class WorldScene extends Phaser.Scene {
     for (const [id, image] of this.buildings) {
       const b = w.place(id)!;
       const hides =
+        this.liveGraphics.occlusion &&
         !this.options.lab &&
         p.y * 16 + 14 < image.depth &&
         buildingContains(b, feetX, feetY - 12) &&
@@ -4451,7 +4455,7 @@ export class WorldScene extends Phaser.Scene {
         if (id === "player" && !this.options.lab)
           c.startFollow(
             im,
-            false,
+            this.liveGraphics.roundPixels,
             this.liveGraphics.followLerp,
             this.liveGraphics.followLerp,
           );
@@ -4957,7 +4961,7 @@ export class WorldScene extends Phaser.Scene {
     }
     this.placeFauna(0);
     if (this.options.lab && !this.options.overview)
-      c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
+      c.startFollow(this.entities.get("player")!, this.liveGraphics.roundPixels, 0.4, 0.4);
     for (const [id, image] of this.entities)
       if (!keep.has(id)) {
         this.tweens.killTweensOf(image);
@@ -6392,6 +6396,10 @@ export class WorldScene extends Phaser.Scene {
     // and the player draws among the branches.
     const perchedOn = this.runtime.engine.state.player.perch?.on;
     for (const { image, cut, id: canopyId } of this.canopies) {
+      if (!this.liveGraphics.occlusion) {
+        if (image.alpha !== 1) image.setAlpha(1);
+        continue;
+      }
       // Distant trees at full alpha have nothing to do; only ones near the
       // player can hide it, and only a fading one still needs stepping.
       const near =

@@ -144,3 +144,4 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-06 Next family: pre-industrial European houses (eave-front form added); shown as A/B before wiring.
 - 2026-10-07 Churches and halls rebuilt as spec systems with regional styles; shadows painted in stepped bands, not smooth ramps.
 - 2026-10-06 Eave-front roofs deepened; roof colours chosen per spec from historical regional tones (`TONES` in front_eave.py); European houses wired in.
+- 2026-10-07 Native classical insulae, shrines and modular round/square towers approved on the regional variation sheet. Reuse the shared materials, roofs, openings and solid projection; later cities retain appropriate historic towers rather than dating them out with new construction.

@@ -1,0 +1,814 @@
+{
+  "figureHeight": 37,
+  "buildings": {
+    "insula-3": {
+      "builder": "classical-insula",
+      "spec": {
+        "storeys": 3,
+        "seed": 21
+      },
+      "size": [
+        131,
+        263
+      ],
+      "entrance": {
+        "x0": 17,
+        "W": 96,
+        "base": 254,
+        "door_x": 88,
+        "door_h": 44,
+        "roof_depth": 104
+      }
+    },
+    "tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "storeys": 3,
+        "seed": 8
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "shrine-athena": {
+      "builder": "classical-shrine",
+      "spec": {
+        "deity": "athena",
+        "sculpture": "marble"
+      },
+      "size": [
+        197,
+        228
+      ],
+      "entrance": {
+        "x0": 4,
+        "W": 188,
+        "base": 218,
+        "door_x": 98,
+        "door_h": 56,
+        "roof_depth": 100,
+        "doorless": true
+      }
+    },
+    "insula-2": {
+      "builder": "classical-insula",
+      "spec": {
+        "storeys": 2,
+        "seed": 21
+      },
+      "size": [
+        131,
+        213
+      ],
+      "entrance": {
+        "x0": 17,
+        "W": 96,
+        "base": 204,
+        "door_x": 88,
+        "door_h": 44,
+        "roof_depth": 104
+      }
+    },
+    "tower-2": {
+      "builder": "classical-tower",
+      "spec": {
+        "storeys": 2,
+        "seed": 8
+      },
+      "size": [
+        124,
+        219
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 210,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 206,
+        "door_width": 24
+      }
+    },
+    "shrine-isis": {
+      "builder": "classical-shrine",
+      "spec": {
+        "deity": "isis",
+        "sculpture": "granite"
+      },
+      "size": [
+        197,
+        228
+      ],
+      "entrance": {
+        "x0": 4,
+        "W": 188,
+        "base": 218,
+        "door_x": 98,
+        "door_h": 56,
+        "roof_depth": 100,
+        "doorless": true
+      }
+    },
+    "insula-1": {
+      "builder": "classical-insula",
+      "spec": {
+        "storeys": 1,
+        "seed": 21
+      },
+      "size": [
+        131,
+        163
+      ],
+      "entrance": {
+        "x0": 17,
+        "W": 96,
+        "base": 154,
+        "door_x": 88,
+        "door_h": 44,
+        "roof_depth": 104
+      }
+    },
+    "tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "storeys": 1,
+        "seed": 8
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "shrine-hadad": {
+      "builder": "classical-shrine",
+      "spec": {
+        "deity": "hadad",
+        "sculpture": "bronze"
+      },
+      "size": [
+        197,
+        228
+      ],
+      "entrance": {
+        "x0": 4,
+        "W": 188,
+        "base": 218,
+        "door_x": 98,
+        "door_h": 56,
+        "roof_depth": 100,
+        "doorless": true
+      }
+    },
+    "roman-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "render",
+        "wall_texture": "render",
+        "cover": "imbrex",
+        "roof": "tegula",
+        "door": "studded",
+        "window": "round",
+        "storeys": 3
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "roman-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "render",
+        "wall_texture": "render",
+        "cover": "imbrex",
+        "roof": "tegula",
+        "door": "studded",
+        "window": "round",
+        "storeys": 1
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "roman-shrine": {
+      "builder": "classical-shrine",
+      "spec": {
+        "deity": "athena",
+        "roof_form": "gable",
+        "cloth": "pompeian-red",
+        "stone": "travertine"
+      },
+      "size": [
+        197,
+        228
+      ],
+      "entrance": {
+        "x0": 4,
+        "W": 188,
+        "base": 218,
+        "door_x": 98,
+        "door_h": 56,
+        "roof_depth": 100,
+        "doorless": true
+      }
+    },
+    "greek-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "limestone",
+        "wall_texture": "ashlar",
+        "roof_form": "battlement",
+        "banner": false,
+        "door": "plank",
+        "window": "slit",
+        "storeys": 3
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "greek-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "limestone",
+        "wall_texture": "ashlar",
+        "roof_form": "battlement",
+        "banner": false,
+        "door": "plank",
+        "window": "slit",
+        "storeys": 1
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "greek-shrine": {
+      "builder": "classical-shrine",
+      "spec": {
+        "deity": "athena",
+        "order": "doric",
+        "roof_form": "gable",
+        "cloth": "blue",
+        "accent": "blue",
+        "stone": "limestone"
+      },
+      "size": [
+        197,
+        228
+      ],
+      "entrance": {
+        "x0": 4,
+        "W": 188,
+        "base": 218,
+        "door_x": 98,
+        "door_h": 56,
+        "roof_depth": 100,
+        "doorless": true
+      }
+    },
+    "egypt-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "whitewash",
+        "wall_texture": "whitewash",
+        "roof_form": "flat",
+        "banner": false,
+        "door": "plank",
+        "window": "slit",
+        "storeys": 3
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "egypt-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "whitewash",
+        "wall_texture": "whitewash",
+        "roof_form": "flat",
+        "banner": false,
+        "door": "plank",
+        "window": "slit",
+        "storeys": 1
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "egypt-shrine": {
+      "builder": "classical-shrine",
+      "spec": {
+        "deity": "isis",
+        "order": "ionic",
+        "roof_form": "flat",
+        "cloth": "blue",
+        "accent": "blue",
+        "trim": "white",
+        "stone": "sandstone",
+        "wall": "whitewash",
+        "wall_texture": "whitewash"
+      },
+      "size": [
+        197,
+        228
+      ],
+      "entrance": {
+        "x0": 4,
+        "W": 188,
+        "base": 218,
+        "door_x": 98,
+        "door_h": 56,
+        "roof_depth": 100,
+        "doorless": true
+      }
+    },
+    "levant-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "sandstone",
+        "wall_texture": "ashlar",
+        "roof_form": "battlement",
+        "banner": false,
+        "door": "studded",
+        "door_shape": "persian",
+        "window": "slit",
+        "storeys": 3
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "levant-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "sandstone",
+        "wall_texture": "ashlar",
+        "roof_form": "battlement",
+        "banner": false,
+        "door": "studded",
+        "door_shape": "persian",
+        "window": "slit",
+        "storeys": 1
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "levant-shrine": {
+      "builder": "classical-shrine",
+      "spec": {
+        "deity": "hadad",
+        "sculpture": "bronze",
+        "roof_form": "hip",
+        "cloth": "oxblood",
+        "accent": "oxblood",
+        "stone": "sandstone",
+        "wall": "sandstone",
+        "wall_texture": "ashlar"
+      },
+      "size": [
+        197,
+        228
+      ],
+      "entrance": {
+        "x0": 4,
+        "W": 188,
+        "base": 218,
+        "door_x": 98,
+        "door_h": 56,
+        "roof_depth": 100,
+        "doorless": true
+      }
+    },
+    "anatolia-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "grey-limestone",
+        "wall_texture": "ashlar",
+        "dress": "limestone",
+        "base_stone": "limestone",
+        "cover": "lead",
+        "roof": "lead",
+        "door": "plank",
+        "wood": "cedar",
+        "window": "roundhead",
+        "banner": false,
+        "storeys": 3
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "anatolia-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "grey-limestone",
+        "wall_texture": "ashlar",
+        "dress": "limestone",
+        "base_stone": "limestone",
+        "cover": "lead",
+        "roof": "lead",
+        "door": "plank",
+        "wood": "cedar",
+        "window": "roundhead",
+        "banner": false,
+        "storeys": 1
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "maghreb-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "shape": "square",
+        "wall": "adobe",
+        "wall_texture": "adobe",
+        "dress": "sandstone",
+        "base_stone": "sandstone",
+        "roof_form": "battlement",
+        "roof": "adobe",
+        "window": "slit",
+        "door": "studded",
+        "door_shape": "persian",
+        "wood": "cedar",
+        "banner": false,
+        "gallery": false,
+        "storeys": 3
+      },
+      "size": [
+        125,
+        257
+      ],
+      "entrance": {
+        "x0": 15,
+        "W": 94,
+        "base": 248,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 245,
+        "door_width": 24
+      }
+    },
+    "maghreb-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "shape": "square",
+        "wall": "adobe",
+        "wall_texture": "adobe",
+        "dress": "sandstone",
+        "base_stone": "sandstone",
+        "roof_form": "battlement",
+        "roof": "adobe",
+        "window": "slit",
+        "door": "studded",
+        "door_shape": "persian",
+        "wood": "cedar",
+        "banner": false,
+        "gallery": false,
+        "storeys": 1
+      },
+      "size": [
+        125,
+        157
+      ],
+      "entrance": {
+        "x0": 15,
+        "W": 94,
+        "base": 148,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 145,
+        "door_width": 24
+      }
+    },
+    "iran-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "kahgel",
+        "wall_texture": "kahgel",
+        "dress": "roman-brick",
+        "base_stone": "roman-brick",
+        "roof_form": "dome",
+        "roof": "roman-brick",
+        "door": "studded",
+        "wood": "cedar",
+        "door_shape": "pointed",
+        "window": "slit",
+        "banner": false,
+        "storeys": 3
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "iran-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "kahgel",
+        "wall_texture": "kahgel",
+        "dress": "roman-brick",
+        "base_stone": "roman-brick",
+        "roof_form": "dome",
+        "roof": "roman-brick",
+        "door": "studded",
+        "wood": "cedar",
+        "door_shape": "pointed",
+        "window": "slit",
+        "banner": false,
+        "storeys": 1
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "western-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "grey-limestone",
+        "wall_texture": "rubble",
+        "dress": "limestone",
+        "base_stone": "grey-limestone",
+        "cover": "slate",
+        "roof": "slate",
+        "door": "plank",
+        "window": "lancet",
+        "banner": false,
+        "turret": true,
+        "storeys": 3
+      },
+      "size": [
+        144,
+        269
+      ],
+      "entrance": {
+        "x0": 28,
+        "W": 88,
+        "base": 260,
+        "door_x": 72,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "western-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "grey-limestone",
+        "wall_texture": "rubble",
+        "dress": "limestone",
+        "base_stone": "grey-limestone",
+        "cover": "slate",
+        "roof": "slate",
+        "door": "plank",
+        "window": "lancet",
+        "banner": false,
+        "turret": true,
+        "storeys": 1
+      },
+      "size": [
+        144,
+        169
+      ],
+      "entrance": {
+        "x0": 28,
+        "W": 88,
+        "base": 160,
+        "door_x": 72,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    },
+    "timber-tower-3": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "oak",
+        "wall_texture": "boards",
+        "dress": "sandstone",
+        "base_stone": "sandstone",
+        "cover": "shingle",
+        "roof": "oak",
+        "door": "plank",
+        "window": "shuttered",
+        "banner": false,
+        "storeys": 3
+      },
+      "size": [
+        124,
+        269
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 260,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 256,
+        "door_width": 24
+      }
+    },
+    "timber-tower-1": {
+      "builder": "classical-tower",
+      "spec": {
+        "wall": "oak",
+        "wall_texture": "boards",
+        "dress": "sandstone",
+        "base_stone": "sandstone",
+        "cover": "shingle",
+        "roof": "oak",
+        "door": "plank",
+        "window": "shuttered",
+        "banner": false,
+        "storeys": 1
+      },
+      "size": [
+        124,
+        169
+      ],
+      "entrance": {
+        "x0": 18,
+        "W": 88,
+        "base": 160,
+        "door_x": 62,
+        "door_h": 44,
+        "roof_depth": 96,
+        "door_base": 156,
+        "door_width": 24
+      }
+    }
+  },
+  "props": [
+    "amphorae",
+    "dolium",
+    "fountain",
+    "wellhead",
+    "bench",
+    "votive-altar",
+    "oil-lamp",
+    "fig-basket",
+    "grain-mill",
+    "ionic-column",
+    "floor-mosaic",
+    "olive-planter"
+  ]
+}

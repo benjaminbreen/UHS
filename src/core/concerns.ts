@@ -1,4 +1,4 @@
-import { whyLeft } from "../content/bonds";
+import { absentChildOf } from "../content/bonds";
 import { MOMENTS, TEMPER } from "../content/intro";
 import { statKeys, statsOf } from "./stats";
 import { skySeed, weatherAt } from "./weather";
@@ -141,11 +141,10 @@ export function concernsOf(s: Snapshot, setting: WorldSetting | undefined, here:
   if (wed && partner && since(wed.year) <= 1) add("wed", 0.45, [{ text: "you are newly married" }]);
   if (history.some((e) => e.kind === "born" && since(e.year) <= 0) && (household?.infants ?? 0) > 0)
     add("baby", 0.45, [{ text: "there is a new baby in the house" }]);
-  const left = [...history].reverse().find((e) => e.kind === "left" && (e.as === "son" || e.as === "daughter") && since(e.year) <= 8);
+  const left = absentChildOf(seed, history, setting);
   if (left) {
-    const why = whyLeft(left.as!, setting, random(seed, "left", String(left.year)));
-    const far = /sea|soldier|America/.test(why);
-    add("away", far ? 0.44 : 0.3, [{ text: `your ${left.as} ${why} ${ago(since(left.year))}${far && random(seed, "left-word") < 0.5 ? ", and there has been no word since" : ""}` }]);
+    const far = /sea|soldier|America/.test(left.why);
+    add("away", far ? 0.44 : 0.3, [{ text: `your ${left.as} ${left.why} ${ago(since(left.year))}${left.noWord ? ", and there has been no word since" : ""}` }]);
   }
 
   const own = conditionsOf(seed, p, setting);

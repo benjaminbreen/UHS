@@ -47,13 +47,14 @@ def _interp(profile, z):
 
 
 def lathe(c, cx, by, profile, r, courses=0, ribs=0, hollow=None, fill=None, inside=None, z0=0.0, bias=0.0,
-          rim=True, mask=None):
+          rim=True, mask=None, surface=None):
     """A solid of revolution. `profile` is [(z, radius), ...] up from the foot.
     `courses` rings it every so many px of height and `ribs` divides it into
     so many gores, each a step darker at its joint. `hollow` = (radius at the
     top, floor z) cuts a cavity down from the top; `fill` = (z, ramp) fills
     it with water or grain to that level; `inside` colours the cavity walls.
-    `z0` lifts the whole solid off the ground."""
+    `z0` lifts the whole solid off the ground. `surface(x, y, z, tone)`
+    optionally supplies a texture colour in the same world coordinates."""
     zmin, H = profile[0][0], profile[-1][0]
     Rm = max(rr for _, rr in profile)
     step = 0.25
@@ -84,7 +85,7 @@ def lathe(c, cx, by, profile, r, courses=0, ribs=0, hollow=None, fill=None, insi
                         col = fill[1][q]
                     elif prev == 'above' or z >= H - step * K * 1.5:
                         q = tone((0, 0, 1), bias)
-                        col = r[q]
+                        col = surface(x, y, z, q) if surface else r[q]
                         if rim and hollow and rho > rin - 1.2:
                             col = r[max(0, q - 1)]
                     elif prev == 'cavity':
@@ -103,7 +104,7 @@ def lathe(c, cx, by, profile, r, courses=0, ribs=0, hollow=None, fill=None, insi
                             a = (math.atan2(y, x) / (2 * math.pi) * ribs) % 1
                             if a < 0.12:
                                 q = min(7, q + 1)
-                        col = r[q]
+                        col = surface(x, y, z, q) if surface else r[q]
                     c.p(sx, sy, col)
                     if mask is not None:
                         mask.add((sx, sy))

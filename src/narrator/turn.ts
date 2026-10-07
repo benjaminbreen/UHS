@@ -2,15 +2,14 @@ import type { Runtime } from "../runtime/session";
 import { narratorReplySchema, type NarratorReply } from "../runtime/schema";
 import { sceneDigest, worldCard } from "./prompt";
 import { planOf } from "../runtime/autopilot";
-export type Provider = "openai" | "gemini";
+export type Provider = "haiku" | "openai" | "gemini";
 export const PROVIDER_KEY = "uhs-narrator-provider";
 export function narratorProvider(): Provider {
   try {
-    return localStorage.getItem(PROVIDER_KEY) === "gemini"
-      ? "gemini"
-      : "openai";
+    const saved = localStorage.getItem(PROVIDER_KEY);
+    return saved === "openai" || saved === "gemini" ? saved : "haiku";
   } catch {
-    return "openai";
+    return "haiku";
   }
 }
 export type Turn = {

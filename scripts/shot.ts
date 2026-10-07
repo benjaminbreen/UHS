@@ -84,6 +84,7 @@ try {
     await page.evaluate((zoom) => (window as any).__uhs.setZoom(zoom), Number(process.env.UHS_ZOOM));
   // Let the first frames settle so the shot is not of a half-drawn world.
   await page.waitForTimeout(2500);
+  await page.getByRole("button", { name: "Begin your day", exact: true }).click({ timeout: 3000 }).catch(() => {});
   // UHS_AT="x,y" stands the player on that cell first (needs the dev server).
   if (process.env.UHS_AT) {
     const [x, y] = process.env.UHS_AT.split(",").map(Number);

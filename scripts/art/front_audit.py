@@ -138,6 +138,13 @@ def subjects():
             g = GableHouse(roof=roof, W=W, lean_to=W > 140)
             im = g.build()
             yield f'gable-{roof}-{W}', im, g, g.door_h, []
+    from types import SimpleNamespace
+    from art.front_classical import BUILDERS, studies, regional_studies
+    for name, _, kind, spec in (*studies(), *regional_studies()):
+        info = {}
+        im = BUILDERS[kind](spec, info)
+        b = SimpleNamespace(roof_span=(0, im.width), stacks=[])
+        yield f'classical-{name}', im, b, info['door_h'], []
 
 
 def audit():

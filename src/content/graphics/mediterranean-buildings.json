@@ -1,0 +1,34 @@
+{
+  "about": "Regional building palettes and forms. Broad inferred architectural families, not replicas of individual monuments. Textile colours are illustrative choices, not attested national flags. Ordered rules are shared by the art build and settlement selection.",
+  "styles": {
+    "roman": {"tower": {"wall": "render", "wall_texture": "render", "cover": "imbrex", "roof": "tegula", "door": "studded", "window": "round"}, "shrine": {"deity": "athena", "roof_form": "gable", "cloth": "pompeian-red", "stone": "travertine"}},
+    "greek": {"tower": {"wall": "limestone", "wall_texture": "ashlar", "roof_form": "battlement", "banner": false, "door": "plank", "window": "slit"}, "shrine": {"deity": "athena", "order": "doric", "roof_form": "gable", "cloth": "blue", "accent": "blue", "stone": "limestone"}},
+    "egypt": {"tower": {"wall": "whitewash", "wall_texture": "whitewash", "roof_form": "flat", "banner": false, "door": "plank", "window": "slit"}, "shrine": {"deity": "isis", "order": "ionic", "roof_form": "flat", "cloth": "blue", "accent": "blue", "trim": "white", "stone": "sandstone", "wall": "whitewash", "wall_texture": "whitewash"}},
+    "levant": {"tower": {"wall": "sandstone", "wall_texture": "ashlar", "roof_form": "battlement", "banner": false, "door": "studded", "door_shape": "persian", "window": "slit"}, "shrine": {"deity": "hadad", "sculpture": "bronze", "roof_form": "hip", "cloth": "oxblood", "accent": "oxblood", "stone": "sandstone", "wall": "sandstone", "wall_texture": "ashlar"}},
+    "anatolia": {"tower": {"wall": "grey-limestone", "wall_texture": "ashlar", "dress": "limestone", "base_stone": "limestone", "cover": "lead", "roof": "lead", "door": "plank", "wood": "cedar", "window": "roundhead", "banner": false}},
+    "maghreb": {"tower": {"shape": "square", "wall": "adobe", "wall_texture": "adobe", "dress": "sandstone", "base_stone": "sandstone", "roof_form": "battlement", "roof": "adobe", "window": "slit", "door": "studded", "door_shape": "persian", "wood": "cedar", "banner": false, "gallery": false}},
+    "iran": {"tower": {"wall": "kahgel", "wall_texture": "kahgel", "dress": "roman-brick", "base_stone": "roman-brick", "roof_form": "dome", "roof": "roman-brick", "door": "studded", "wood": "cedar", "door_shape": "pointed", "window": "slit", "banner": false}},
+    "western": {"tower": {"wall": "grey-limestone", "wall_texture": "rubble", "dress": "limestone", "base_stone": "grey-limestone", "cover": "slate", "roof": "slate", "door": "plank", "window": "lancet", "banner": false, "turret": true}},
+    "timber": {"tower": {"wall": "oak", "wall_texture": "boards", "dress": "sandstone", "base_stone": "sandstone", "cover": "shingle", "roof": "oak", "door": "plank", "window": "shuttered", "banner": false}}
+  },
+  "rules": [
+    {"style": "egypt", "culture": "north-african-west-asian", "bounds": [24, 20, 36, 33], "fromYear": -332, "toYear": 392},
+    {"style": "levant", "culture": "north-african-west-asian", "bounds": [34, 29, 44, 37], "fromYear": -300, "toYear": 300},
+    {"style": "greek", "culture": "european", "bounds": [19, 34, 30, 43], "fromYear": -700, "toYear": 392},
+    {"style": "greek", "culture": "north-african-west-asian", "bounds": [26, 35, 34, 42], "fromYear": -700, "toYear": 392},
+    {"style": "roman", "culture": "european", "bounds": [-10, 35, 20, 55], "fromYear": -200, "toYear": 450},
+    {"style": "roman", "culture": "north-african-west-asian", "bounds": [-10, 28, 25, 38], "fromYear": -146, "toYear": 392},
+    {"style": "anatolia", "culture": "north-african-west-asian", "bounds": [25, 35, 44, 43], "fromYear": 1100, "toYear": 1800},
+    {"style": "maghreb", "culture": "north-african-west-asian", "bounds": [-17, 20, 25, 38], "fromYear": 700, "toYear": 1850},
+    {"style": "iran", "culture": "north-african-west-asian", "bounds": [44, 24, 64, 40], "fromYear": 900, "toYear": 1800},
+    {"style": "western", "culture": "european", "bounds": [-11, 35, 20, 59], "fromYear": 1000, "toYear": 1650},
+    {"style": "timber", "culture": "european", "bounds": [10, 47, 40, 65], "fromYear": 900, "toYear": 1700}
+  ],
+  "retainedTowers": [
+    {"style": "anatolia", "culture": "north-african-west-asian", "bounds": [25, 35, 44, 43], "fromYear": 1800, "toYear": 2101},
+    {"style": "maghreb", "culture": "north-african-west-asian", "bounds": [-17, 20, 25, 38], "fromYear": 1850, "toYear": 2101},
+    {"style": "iran", "culture": "north-african-west-asian", "bounds": [44, 24, 64, 40], "fromYear": 1800, "toYear": 2101},
+    {"style": "western", "culture": "european", "bounds": [-11, 35, 20, 59], "fromYear": 1650, "toYear": 2101},
+    {"style": "greek", "culture": "european", "bounds": [19, 34, 30, 43], "fromYear": 1100, "toYear": 2101}
+  ]
+}

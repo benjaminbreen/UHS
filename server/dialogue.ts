@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { overLimit } from "./rate-limit";
 import { dropNulls, strictSchema } from "./json-schema";
+import { HAIKU_MODEL, OPENROUTER } from "./narrator";
 
 type Environment = Record<string, string | undefined>;
 const json = (body: unknown, status = 200) =>
@@ -10,6 +11,7 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 const requestSchema = z.object({
+  provider: z.enum(["haiku", "openai"]).optional(),
   user: z.string().min(1).max(7000),
   realLanguage: z.boolean().optional(),
   explain: z.object({ dialogue: z.string().min(1).max(500), original: z.string().max(700).optional(), language: z.string().max(120).optional() }).strict().optional(),
@@ -112,8 +114,11 @@ export async function dialogue(
   } catch {
     return json({ error: "Malformed conversation request." }, 400);
   }
-  const key = env.OPENAI_API_KEY;
-  if (!key) return json({ error: "No OpenAI key on this server." }, 503);
+  const haiku = (input.provider ?? "haiku") === "haiku";
+  const key = haiku ? env.OPENROUTER_API_KEY : env.OPENAI_API_KEY;
+  if (!key) return json({ error: `No ${haiku ? "OpenRouter" : "OpenAI"} key on this server.` }, 503);
+  const model = haiku ? (env.UHS_HAIKU_MODEL ?? HAIKU_MODEL) : "gpt-6-luna";
+  const thinks = input.realLanguage && !input.explain;
   const schema = strictSchema(input.explain ? explanationSchema : replySchema);
   inFlight++;
   // Timed so a slow reply can be blamed on the right thing. A ten-second
@@ -122,17 +127,17 @@ export async function dialogue(
   const began = Date.now();
   let upstream = 0;
   try {
-    const response = await provider("https://api.openai.com/v1/chat/completions", {
+    const response = await provider(haiku ? OPENROUTER : "https://api.openai.com/v1/chat/completions", {
       method: "POST",
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(input.realLanguage && !input.explain ? 30000 : 15000)]),
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: "gpt-6-luna",
+        model,
         messages: [{ role: "system", content: input.explain ? EXPLAIN : input.realLanguage ? SYSTEM + REAL_LANGUAGE : SYSTEM }, { role: "user", content: input.explain ? `${input.user}\n\nSelected NPC line: ${input.explain.dialogue}${input.explain.original ? `\nOriginal-language line (${input.explain.language ?? "language unnamed"}): ${input.explain.original}` : ""}` : input.user }],
         response_format: { type: "json_schema", json_schema: { name: input.explain ? "npc_explanation" : "npc_dialogue", schema, strict: true } },
-        max_completion_tokens: input.explain ? 300 : input.realLanguage ? 3000 : 300,
+        [haiku ? "max_tokens" : "max_completion_tokens"]: input.explain ? 300 : input.realLanguage ? 3000 : 300,
         // Choosing a language, reconstructing it and translating into it at once needs to think; ordinary talk does not.
-        reasoning_effort: input.realLanguage && !input.explain ? "low" : "none",
+        ...(haiku ? (thinks ? { reasoning: { effort: "low" } } : {}) : { reasoning_effort: thinks ? "low" : "none" }),
       }),
     });
     if (!response.ok) return json({ error: "The model provider refused the conversation." }, 502);
@@ -161,7 +166,7 @@ export async function dialogue(
       mood: parsed.data.mood,
       action: parsed.data.action,
       leave: parsed.data.leave,
-      model: "gpt-6-luna",
+      model,
       ms: { upstream, total: Date.now() - began },
       tokens: { out: result.usage?.completion_tokens ?? 0, reasoning },
     });

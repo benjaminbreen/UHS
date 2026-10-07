@@ -116,7 +116,7 @@ async function enterLife(page: Page) {
     "true",
     { timeout: 40000 },
   );
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Begin your day", exact: true }).click();
   await expect(page.locator(".plot-card")).toBeHidden();
   await page.evaluate(() => {
     const r = (window as any).__uhs;
@@ -132,6 +132,53 @@ async function reachable(locator: Locator) {
     return el === hit || el.contains(hit);
   })).toBe(true);
 }
+
+test("opening stories keep their action visible and their text readable", async ({ page }) => {
+  await enterLife(page);
+  await page.evaluate(() => {
+    const r = (window as any).__uhs;
+    r.engine.cards.push({ kind: "title", title: "A Long Road Home to Constantinople", text: "",
+      intro: { body: [[{ text: "You begin another day with your family, hoping for news from your son. ".repeat(12) }],
+        [{ text: "Your household", note: "The home you share with your family.", mark: "note" }, { text: " depends on the work you do today." }]], },
+      aim: "See Chloe of Corinth, your five-year-old daughter, safely into adulthood, with choices of her own." });
+    r.engine.state.clock++;
+    r.emit();
+  });
+  const card = page.locator(".plot-card"), reader = card.locator(".plot-reader");
+  const begin = card.getByRole("button", { name: "Begin your day", exact: true });
+  await expect(begin).toBeFocused();
+  for (const [width, height] of [[320, 568], [390, 664], [844, 390], [1440, 900]]) {
+    await page.setViewportSize({ width, height });
+    await reachable(begin);
+    await reader.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await expect(card.locator(".plot-intent")).toBeInViewport();
+    const bounds = await card.evaluate((el) => {
+      const reader = el.querySelector(".plot-reader")!, goal = el.querySelector(".plot-intent")!.getBoundingClientRect();
+      const prose = el.querySelector(".plot-prose")!.getBoundingClientRect(), action = el.querySelector(".plot-foot")!.getBoundingClientRect();
+      return { overflow: reader.scrollWidth > reader.clientWidth, goalWidth: goal.width, proseWidth: prose.width, overlap: goal.bottom > action.top };
+    });
+    expect(bounds.overflow).toBe(false);
+    expect(bounds.goalWidth).toBeGreaterThanOrEqual(bounds.proseWidth - 1);
+    expect(bounds.overlap).toBe(false);
+    expect(await page.locator(".topbar").evaluate((el) => (el as HTMLElement).inert)).toBe(true);
+  }
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.addStyleTag({ content: ".plot-prose { font-size: 34px !important; }" });
+  await reachable(begin);
+  await page.keyboard.press("Tab");
+  const name = card.getByRole("button", { name: "Your household", exact: true });
+  await expect(name).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(name).toHaveAttribute("aria-expanded", "true");
+  await expect(card.getByRole("note")).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await expect(card.getByRole("note")).toBeHidden();
+  await page.keyboard.press("Shift+Tab");
+  await expect(begin).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(card).toBeHidden();
+  await expect(page.locator(".topbar")).not.toHaveAttribute("inert");
+});
 
 test("pinch zooms the world and a tap still walks", async ({ page, browserName }) => {
   test.skip(browserName !== "chromium", "CDP injects the two real touch contacts; panel tests also run in WebKit.");

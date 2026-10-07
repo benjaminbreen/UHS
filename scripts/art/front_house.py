@@ -106,7 +106,7 @@ def rake_shingle(a, b, tw, th, r, shade, u=0, w=0):
     return col
 
 
-def roof_slope(c, xa, xe, rake, depth, shade, mat, roof=None, shaded=None):
+def roof_slope(c, xa, xe, rake, depth, shade, mat, roof=None, shaded=None, tones=None):
     """Fill one slope between the front rake and its back edge. Courses run
     parallel to the rake; `mat` says how one unit of the covering looks in
     course space (a down the slope toward the eave, b up the course)."""
@@ -120,7 +120,7 @@ def roof_slope(c, xa, xe, rake, depth, shade, mat, roof=None, shaded=None):
             course = w // th
             uu = u + (course % 2) * (tw // 2) + (course * 3) % tw if m['stagger'] else u
             k = h2(uu // tw, course, 311)
-            ramps = m['ramps']
+            ramps = tones or m['ramps']
             r = ramps[0] if k < 0.74 or len(ramps) == 1 else ramps[1 + int((k - 0.74) / 0.26 * (len(ramps) - 1))]
             col = m['px'](uu % tw, w % th, tw, th, r, shade, u, w)
             if u > 60:

@@ -66,7 +66,14 @@ export type PersonalAim = {
   id: string;
   text: string;
   subjects: string[];
-  revision?: 1;
+  revision?: 1 | 2;
+  family?: string;
+  basis?: {
+    reason: string;
+    means: string;
+    obstacle?: string;
+    evidence?: import("../history/types").Evidence;
+  };
   step?:
     | { type: "talk"; actor: string; text: string; done?: boolean }
     | { type: "give"; actor: string; items: ItemId[]; text: string; done?: boolean }

@@ -13,6 +13,7 @@ import { doorwayFor } from "../settlements/ornaments";
 import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
 import { buildingRoofCells } from "../graphics/models";
+import { mediterraneanProp } from "../graphics/mediterranean-buildings";
 
 import { signFor, emblemFor, signLabels } from "./signage";
 import { rareScale } from "./settlement-details";
@@ -150,7 +151,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       (key === "privyMidden" || key === "communalMidden") && local
         ? middenContents(local, coast)
         : variantOf(variants, random(seed, "prop-color", o.id));
-    o.sprite = `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variant}`;
+    const native = ({ vat: "dolium", amphoraStack: "amphorae", well: "wellhead", townWell: "wellhead" } as Record<string, string>)[key];
+    o.sprite = (native && mediterraneanProp(local, native)) || `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variant}`;
     o.kind = def.drink ? "well" : def.fire ? "fire" : "container";
     o.open = false;
     if (def.contents) o.inventory = { ...def.contents };

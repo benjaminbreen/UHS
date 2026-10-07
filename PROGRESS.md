@@ -1,3 +1,23 @@
+## Classical buildings and surviving towers — October 7, 2026
+
+The approved native kit is baked: 59 building variants (236 facing frames), with
+nine regional tower styles, one to three storeys, classical insula street forms,
+and Greek, Roman, Isis and Hadad shrine palettes. Regional date rules select
+these beside the existing buildings; shrines retain their religious date limits.
+Later European, Anatolian, Maghrebi and Iranian cities retain one historic tower
+near their old core or public square, including nineteenth- and twentieth-century
+settings. Walled towns can carry a lookout and a small gate storehouse.
+
+Native lamps, wells, fountains, benches, planters and storage vessels use the
+existing placement and prop behavior. Tower thresholds match the painted doors;
+open statue shrines have no animated wooden leaf over the statue. Prepared-world
+cache version is 14. Live captures: `artifacts/classical-native/rome-game.png`,
+`alexandria-200-game.png`, and `istanbul-1920-game.png`. Regional specs live in
+`src/content/graphics/mediterranean-buildings.json`. All 779 unit tests and the
+production build pass with the test pool limited to two workers; front/oblique
+audits and a byte comparison of all 59 baked base sprites against their painters
+are clean.
+
 ## Modern city reference — September 27, 2026
 
 Moscow 1975, seed `world-modern-square-review`, is the fixed in-game reference
