@@ -60,3 +60,22 @@ export function washAt(clock: number) {
     lamps: Math.min(1, Math.max(0, hour >= 12 ? (hour - 17.2) / 2.3 : (6.8 - hour) / 1.5)),
   };
 }
+
+/** The hour's colour grade, eased between presets as the wash is: shadows
+ * pushed cool, lights warmed, and an S-curve for depth. */
+export function gradeAt(clock: number) {
+  const hour = (((clock / 3600) % 24) + 24) % 24;
+  const n = lightingPresets.length;
+  let i = n - 1;
+  for (let k = 0; k < n; k++) if (hour >= lightingPresets[k].hour) i = k;
+  const a = lightingPresets[i],
+    b = lightingPresets[(i + 1) % n];
+  const span = (b.hour - a.hour + 24) % 24 || 24;
+  const t = ((hour - a.hour + 24) % 24) / span;
+  const mix = (x: number[], y: number[]) => x.map((v, k) => v + (y[k] - v) * t);
+  return {
+    shadow: mix(a.grade.shadow, b.grade.shadow),
+    light: mix(a.grade.light, b.grade.light),
+    curve: a.grade.curve + (b.grade.curve - a.grade.curve) * t,
+  };
+}

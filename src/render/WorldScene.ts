@@ -223,13 +223,14 @@ import {
   type Ambient,
   type StationActivity,
 } from "../core/itinerary";
-import { lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
+import { gradeAt, lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
 import { windowGlow } from "./window-light";
 import { buildingWear } from "./building-wear";
 import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
 import { Mist } from "./mist";
 import { CloudShadows } from "./cloud-shadows";
+import { Reflections } from "./reflections";
 import { AmbientLife, critterFor } from "./ambient-life";
 import { Flies, type FlySource } from "./flies";
 import { freshDung } from "../core/dung";
@@ -708,6 +709,8 @@ export class WorldScene extends Phaser.Scene {
   private drift?: Drift;
   private mist?: Mist;
   private clouds?: CloudShadows;
+  private reflections?: Reflections;
+  private reflectedWorld?: WorldModel;
   private life?: AmbientLife;
   private weather?: Weather;
   private flies?: Flies;
@@ -3006,13 +3009,13 @@ export class WorldScene extends Phaser.Scene {
   }
   private tiltShift?: TiltShiftPipeline;
   private nightGrade?: NightGradePipeline;
-  /** Blue moonlight after dark, grey under cloud; the pass is on only while
-   * either is, since an idle pass costs a frame copy. */
-  private applyNightGrade(amount: number, dull = 0) {
+  /** The hour's grade outdoors, blue moonlight after dark, grey under cloud.
+   * Off indoors, where a room has its own light. */
+  private applyGrade(amount: number, dull = 0, grade?: ReturnType<typeof gradeAt>) {
     const renderer = this.game.renderer;
     if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
     const camera = this.cameras.main;
-    if (amount <= 0 && dull <= 0) {
+    if (amount <= 0 && dull <= 0 && !grade) {
       if (this.nightGrade) camera.removePostPipeline("NightGrade");
       this.nightGrade = undefined;
       return;
@@ -3025,6 +3028,9 @@ export class WorldScene extends Phaser.Scene {
     }
     this.nightGrade.night = amount;
     this.nightGrade.dull = dull;
+    this.nightGrade.shadow = grade?.shadow ?? [1, 1, 1];
+    this.nightGrade.light = grade?.light ?? [1, 1, 1];
+    this.nightGrade.curve = grade?.curve ?? 0;
   }
   private applyTiltShift() {
     const renderer = this.game.renderer;
@@ -3342,6 +3348,31 @@ export class WorldScene extends Phaser.Scene {
     if (sun < 1) image.setAlpha(sun);
     if (!transient) this.layers.push(image);
     return image;
+  }
+  /** Trees, houses and people mirrored in the water beside them. */
+  private reflect(time: number) {
+    const e = this.runtime.engine,
+      w = e.world;
+    const outdoors = e.state.player.pos.space === "outside" && !!w.topography && !this.options.lab;
+    if (w !== this.reflectedWorld) {
+      this.reflections?.clear();
+      this.reflections = undefined;
+      this.reflectedWorld = w;
+    }
+    if (!outdoors) return void this.reflections?.clear();
+    this.reflections ??= new Reflections(this, (cx, cy) => w.topography!(cx, cy)?.surface === "water");
+    // Darker and bluer than what stands above it, in the hour's light.
+    const t = multiplyTint(this.tint, 0x8ea6b8);
+    this.reflections.update(
+      [
+        ...this.buildings.values(),
+        ...this.entities.values(),
+        ...this.canopies.map((c) => c.image),
+        ...[...this.plantImages.values()].flat(),
+      ],
+      t,
+      time,
+    );
   }
   private fadeFrom?: { world: WorldModel; space: string; clock: number };
   private fadingOut = false;
@@ -5023,7 +5054,7 @@ export class WorldScene extends Phaser.Scene {
       );
       v = this.roomView = { space, pixel, light, key, texture, image, litAt: -99, props, sheet, cutouts, stamp: "", wait: 0 };
       // A room has its own light; the moon stays outside.
-      this.applyNightGrade(0);
+      this.applyGrade(0);
     }
     // Furniture stands where the engine has it, and lies as the engine left it.
     const byId = new Map(e.state.objects.filter((o) => o.pos.space === space && o.prop).map((o) => [o.id, o]));
@@ -5109,9 +5140,10 @@ export class WorldScene extends Phaser.Scene {
       height = this.scale.height * 9;
     this.night!.clear().fillStyle(w.color, graded ? w.alpha : 0).fillRect(x, y, width, height);
     // Night proper only: dusk keeps its colour.
-    this.applyNightGrade(
+    this.applyGrade(
       graded ? Phaser.Math.Clamp((w.alpha - 0.14) / 0.28, 0, 1) : 0,
       graded ? Math.min(1, weather / 0.3) : 0,
+      graded ? gradeAt(clock) : undefined,
     );
     if (golden > 0) this.night!.fillStyle(0xff9a4a, golden).fillRect(x, y, width, height);
     if (weather > 0) this.night!.fillStyle(0x666d78, weather * 0.6).fillRect(x, y, width, height);
@@ -5468,6 +5500,7 @@ export class WorldScene extends Phaser.Scene {
     updatePuddles(this, time);
     // The old view holds while it fades out; the room is built after.
     if (!this.fadingOut) this.syncRoom(delta);
+    this.reflect(time);
     if (this.night && !this.roomView) this.paintWash();
     this.followTiltFocus();
     mark("weather");

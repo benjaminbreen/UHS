@@ -224,6 +224,20 @@ export function addLivingWater(
     scene.events.once("shutdown", () => shaders.delete(scene));
   }
   shader.setData("shoreObjects", mask.items);
+  // Open water only, not the bank the shader also paints: what a reflection
+  // may show on.
+  const open = document.createElement("canvas");
+  open.width = W;
+  open.height = H;
+  const oc = open.getContext("2d")!,
+    od = oc.createImageData(W, H);
+  for (let i = 0; i < W * H; i++)
+    if (mask.pixels[i * 4 + 1] > 0 && mask.pixels[i * 4] >= 128) od.data[i * 4 + 3] = 255;
+  oc.putImageData(od, 0, 0);
+  const openKey = `${key}-open`;
+  scene.textures.addCanvas(openKey, open);
+  resources.textures.push(openKey);
+  shader.setData("openWater", openKey);
   shader.setData("waterTiles", Math.ceil(mask.count / 256));
   set.add(shader);
   shader.once("destroy", () => set!.delete(shader));
@@ -267,4 +281,26 @@ export function updateLivingWater(
   canvasStat(canvas, "waterFrame", freeze ? 0 : Math.floor(time / 100));
   // One decimal: finer than that and the value changes every frame.
   canvasStat(canvas, "waterUpdateMs", (performance.now() - start).toFixed(1));
+}
+
+/** A mask of the open water under a world point, for clipping what is drawn
+ * on the water to the water. Built once per water chunk. */
+export function openWaterMask(scene: Phaser.Scene, x: number, y: number) {
+  for (const shader of shaders.get(scene) ?? []) {
+    const left = shader.x - shader.width / 2,
+      top = shader.y - shader.height / 2;
+    if (x < left || y < top || x >= left + shader.width || y >= top + shader.height) continue;
+    let mask = shader.getData("openMask") as Phaser.Display.Masks.BitmapMask | undefined;
+    if (!mask) {
+      const image = scene.make.image({ x: shader.x, y: shader.y, key: shader.getData("openWater") }, false);
+      mask = image.createBitmapMask();
+      shader.setData("openMask", mask);
+      shader.once("destroy", () => {
+        mask!.destroy();
+        image.destroy();
+      });
+    }
+    return mask;
+  }
+  return undefined;
 }
