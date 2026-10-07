@@ -16,6 +16,8 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
+from art.front_materials import RAMPS as MAT, ramp as mramp, ashlar, rustication  # noqa: E402
+from art import front_openings as op  # noqa: E402
 from art.front_style import (  # noqa: E402
     BAY, CARRIAGE, CORNICE, CORNICE_TOP, GROUND, HEADROOM, MANSARD, MARGIN,
     NOBLE, OUTLINE_K, ROOF_TOP, SLAB, UPPER,
@@ -67,10 +69,12 @@ class C:
 
 # ------------------------------------------------------------------ palettes
 
-STONE = {
-    'lime': ramp('fbf2de', 'ecdec2', 'd9c7a6', 'bca784', '8f7a62', '5e4c48'),
-    'warm': ramp('fdeed6', 'f0d9b6', 'dcc09a', 'c09f7c', '937660', '604a46'),
+STONE8 = {
+    'lime': MAT['limestone'],
+    'warm': mramp(72, 0.05),
 }
+# The kit's mouldings use six steps of the same ramps.
+STONE = {k: [r[i] for i in (0, 1, 2, 3, 4, 6)] for k, r in STONE8.items()}
 SHOP = {
     'green': ramp('6aa67a', '468a5c', '306a46', '214c34', '15301f'),
     'navy': ramp('7088bc', '4c6298', '364a7a', '26365c', '182440'),
@@ -170,7 +174,7 @@ class Front:
 
     def __init__(self, spec):
         self.s = spec
-        self.p = dict(COMMON, stone=STONE[spec.get('stone', 'lime')])
+        self.p = dict(COMMON, stone=STONE[spec.get('stone', 'lime')], stone8=STONE8[spec.get('stone', 'lime')])
         self.W = spec['width']
         n = spec['bays']
         self.bay = spec.get('bay', BAY)
@@ -192,21 +196,7 @@ class Front:
 
     def wall(self, y, h, rusticated=False):
         c, r = self.c, self.p['stone']
-        rh, bl = (8, 22) if rusticated else (7, 18)
-        tone = mid(r[1], r[2])
-        for yy in range(y, y + h):
-            row, ly = (yy - y) // rh, (yy - y) % rh
-            for xx in range(self.x0, self.x1):
-                off = (row % 2) * (bl // 2)
-                lx = (xx - self.x0 + off) % bl
-                col = tone if h2((xx - self.x0 + off) // bl, row + y) % 7 == 0 else r[1]
-                if rusticated:
-                    col = [r[0], r[1], r[1], r[1], r[1], r[2], r[3], r[4]][ly]
-                    if 0 < ly < rh - 2 and lx in (0, 1):
-                        col = r[3] if lx == 0 else r[0]
-                elif ly == rh - 1 or lx == 0:
-                    col = r[2]
-                c.p(xx, yy, col)
+        (rustication if rusticated else ashlar)(c, self.x0, y, self.W, h, self.p['stone8'])
         for xx, col in ((self.x0, r[0]), (self.x0 + 1, r[1]), (self.x1 - 2, r[2]), (self.x1 - 1, r[3])):
             c.rect(xx, y, 1, h, col)
 
@@ -230,45 +220,16 @@ class Front:
     # openings --------------------------------------------------------------
 
     def window(self, cx, y, w, h, hood, lit=False):
-        c, r, j, g = self.c, self.p['stone'], self.p['joinery'], self.p['glass']
+        c, r8 = self.c, self.p['stone8']
         x = cx - w // 2
-        raised(c, x - 4, y - 4, w + 8, h + 6, r)
-        c.rect(x - 2, y - 2, w + 4, 1, r[2])
-        c.rect(x - 2, y - 2, 1, h + 2, r[2])
-        # the opening is deep: its top and left sit in shadow
-        for yy in range(y, y + h):
-            for xx in range(x, x + w):
-                a, b = xx - x, yy - y
-                col = g[3] if b < h // 2 else g[2]
-                if b < 3:
-                    col = g[4]
-                elif a < 2:
-                    col = g[3] if b > h // 2 else g[4]
-                elif (a + b) % 19 in (7, 8):
-                    col = g[1]
-                c.p(xx, yy, col)
-        m = x + w // 2
-        for yy in range(y + 1, y + h):
-            c.p(x + 1, yy, j[1]); c.p(x + w - 2, yy, j[2])
-            c.p(m - 1, yy, j[0]); c.p(m, yy, j[2])
-        for ty in range(y + 2, y + h - 2, 8):
-            c.rect(x + 1, ty, m - x - 1, 1, j[0])
-            c.rect(m, ty, x + w - 1 - m, 1, j[1])
-        c.rect(x + 1, y + h - 2, w - 2, 1, j[2])
-        self.windows.append((x + 2, y + 3, w - 4, h - 5, lit))
+        op.frame_stone(c, x, y, w, h, None, r8)
+        op.casement(c, x, y, w, h)
+        op.reveal(c, x, y, w, h, 2)
+        self.windows.append((x + 1, y + 2, w - 2, h - 3, lit))
         if hood == 'pediment':
-            c.rect(x - 5, y - 12, w + 10, 2, r[0])
-            hband(c, x - 5, y - 10, w + 10, [r[1], r[1], r[2], r[3]])
-            for kx in (x - 5, x + w + 2):
-                raised(c, kx, y - 6, 3, 7, r)
-            cast(c, x - 4, y - 6, w + 8, 2, 0.74)
+            op.head_hood(c, x, y + 2, w, h, r8)
         elif hood == 'keystone':
-            raised(c, cx - 3, y - 8, 6, 9, r)
-            c.rect(cx - 2, y - 7, 4, 1, r[0])
-        c.rect(x - 5, y + h + 1, w + 10, 2, r[0])
-        c.rect(x - 5, y + h + 3, w + 10, 2, r[2])
-        c.rect(x - 5, y + h + 5, w + 10, 1, r[4])
-        cast(c, x - 4, y + h + 6, w + 8, 2, 0.72)
+            op.head_keystone(c, x, y, w, h, r8)
 
     def rail(self, x, y, w, h):
         c, i = self.c, self.p['iron']
@@ -453,41 +414,8 @@ class Front:
             cast(c, gx0, a0 + depth, gx1 - gx0, 6, 0.55)
 
     def carriage_door(self, cx, base):
-        c, r, s, i = self.c, self.p['stone'], SHOP[self.s.get('door_paint', 'green')], self.p['iron']
         w, h = CARRIAGE
-        x, y, R = cx - w // 2, base - h, w // 2
-        for yy in range(y - 5, base):
-            for xx in range(x - 5, x + w + 5):
-                dx, dy = xx - (cx - 0.5), (y + R) - yy
-                if dy > 0 and dx * dx + dy * dy > (R + 5) ** 2:
-                    continue
-                c.p(xx, yy, r[1])
-        for a in range(0, 181, 20):
-            t = math.radians(a)
-            for k in range(R, R + 5):
-                c.p(cx - 0.5 + math.cos(t) * k, y + R - math.sin(t) * k, r[3])
-        raised(c, cx - 3, y - 6, 6, 8, r)
-        for yy in range(y, base):
-            for xx in range(x, x + w):
-                dx, dy = xx - (cx - 0.5), (y + R) - yy
-                if dy > 0 and dx * dx + dy * dy > R * R:
-                    continue
-                a, b = xx - x, yy - y
-                if b < R:
-                    col = i[1] if (a + b) % 4 == 0 or abs(a - R + 0.5) < 1 else self.p['glass'][3]
-                else:
-                    pa = a % 12
-                    col = s[0] if pa == 0 else s[3] if pa == 11 else s[1]
-                    if pa in (2, 9) or (b - R) % 14 in (2, 12):
-                        col = s[0] if pa == 2 else s[2]
-                    if b < R + 3 or a < 2:
-                        col = darken(col, 0.72)
-                c.p(xx, yy, col)
-        c.rect(x, y + R, w, 1, s[3])
-        c.rect(cx - 1, y + R, 2, h - R, s[3])
-        for k in (-4, 2):
-            c.rect(cx + k, y + 32, 2, 2, self.p['gilt'][1])
-        c.rect(x - 3, base - 2, w + 6, 2, r[0])
+        op.door_carriage(self.c, cx - w // 2, base - h, w, h, self.s.get('door_paint', 'green'), self.p['stone8'])
         self.door = (cx, w, h)
 
     # assembly --------------------------------------------------------------

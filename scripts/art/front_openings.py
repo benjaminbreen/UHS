@@ -21,11 +21,12 @@ from art.front_materials import (  # noqa: E402
     C, RAMPS, ramp, mix, h2, ashlar, brick, render, adobe, half_timber, boards, whitewash,
 )
 
-GLASS = ramp(235, 0.07, warm=30, cool=20, lift=-0.05)
+GLASS = ramp(248, 0.095, warm=30, cool=20, lift=-0.02)
 LEAD = ramp(260, 0.02, lift=-0.25)
 PAINT = {
     'white': ramp(85, 0.012, lift=0.03),
-    'green': ramp(150, 0.08, lift=-0.12),
+    'green': ramp(150, 0.1, lift=-0.14),
+    'oak': RAMPS['oak'],
     'oxblood': ramp(25, 0.1, lift=-0.18),
     'blue': ramp(250, 0.07, lift=-0.1),
     'grey': ramp(240, 0.02, lift=-0.04),
@@ -78,7 +79,7 @@ def glass(c, x, y, w, h):
             if b > 2 and d in (8, 9):
                 col = g[3]
             if b > 3 and d == 9:
-                col = g[2]
+                col = g[1]
             if b > h * 0.55 and d - h // 2 in (6, 7):
                 col = g[3]
             c.p(xx, yy, col)
@@ -215,8 +216,8 @@ INFILLS = {'casement': casement, 'sash': sash, 'leaded': leaded,
 # Each takes the clear opening (x, y, w, h) and draws around it: surround,
 # sill, and the shadows they throw. The infill goes in afterwards.
 
-def frame_stone(c, x, y, w, h, wall):
-    r = RAMPS['limestone']
+def frame_stone(c, x, y, w, h, wall, r=None):
+    r = r or RAMPS['limestone']
     raised(c, x - 4, y - 4, w + 8, h + 5, r, 1)
     c.rect(x - 2, y - 2, w + 4, 1, r[3])
     c.rect(x - 2, y - 2, 1, h + 2, r[3])
@@ -323,8 +324,8 @@ FRAMES = {
 
 # ------------------------------------------------------------------ heads
 
-def head_keystone(c, x, y, w, h):
-    r = RAMPS['limestone']
+def head_keystone(c, x, y, w, h, r=None):
+    r = r or RAMPS['limestone']
     cx = x + w // 2
     for k in range(10):
         half = 5 - k // 4
@@ -333,13 +334,13 @@ def head_keystone(c, x, y, w, h):
     cast(c, cx - 4, y - 1, 9, 1, 0.75)
 
 
-def head_hood(c, x, y, w, h):
+def head_hood(c, x, y, w, h, r=None):
     """A hood cornice on two consoles: top face, front, drip, shadow."""
-    r = RAMPS['limestone']
-    c.rect(x - 7, y - 14, w + 14, 2, r[0])
+    r = r or RAMPS['limestone']
+    c.rect(x - 5, y - 14, w + 10, 2, r[0])
     for k, idx in enumerate((1, 1, 2, 3, 4)):
-        c.rect(x - 7, y - 12 + k, w + 14, 1, r[idx])
-    for kx in (x - 6, x + w + 3):
+        c.rect(x - 5, y - 12 + k, w + 10, 1, r[idx])
+    for kx in (x - 5, x + w + 2):
         raised(c, kx, y - 7, 3, 7, r, 1)
     cast(c, x - 4, y - 7, w + 8, 2, 0.72)
 
@@ -399,6 +400,71 @@ def window(c, x, y, w, h, frame='stone', infill='casement', head='none', paint='
     reveal(c, x, y, w, h, 2)
     if HEADS.get(head):
         HEADS[head](c, x, y, w, h)
+
+
+# ------------------------------------------------------------------ accessories
+
+def open_shutters(c, x, y, w, h, paint='green', leaf=8):
+    """Shutters folded back against the wall either side: boarded, with a
+    Z-brace, lit on the left leaf's face and shading the wall beside it."""
+    p = PAINT[paint]
+    for sx, left in ((x - leaf - 2, True), (x + w + 2, False)):
+        for yy in range(y - 1, y + h + 1):
+            for xx in range(sx, sx + leaf):
+                a = xx - sx
+                col = p[2] if a % 3 else p[3]
+                if yy == y - 1:
+                    col = p[1]
+                elif yy == y + h:
+                    col = p[4]
+                elif a == 0 and left:
+                    col = p[1]
+                elif a == leaf - 1:
+                    col = p[4]
+                c.p(xx, yy, col)
+        for by in (y + 3, y + h - 5):
+            c.rect(sx, by, leaf, 2, p[1])
+            c.rect(sx, by + 1, leaf, 1, p[3])
+        for i in range(leaf - 2):
+            t = i / (leaf - 3)
+            yy = round(y + h - 6 - t * (h - 12))
+            c.p(sx + 1 + i, yy, p[1]); c.p(sx + 1 + i, yy + 1, p[3])
+        hx = sx + leaf - 1 if left else sx
+        for hy in (y + 3, y + h - 5):
+            c.p(hx, hy, IRON[1])
+        if not left:
+            cast_right(c, sx + leaf, y, h)
+    cast_right(c, x - 2, y, h)
+
+
+def cast_right(c, x, y, h, n=2):
+    for i in range(n):
+        for yy in range(y, y + h + 1):
+            q = c.g(x + i, yy)
+            if q[3]:
+                k = 0.72 + 0.12 * i
+                c.p(x + i, yy, (int(q[0] * k), int(q[1] * k), int(min(255, q[2] * k * 1.05)), 255))
+
+
+def flower_box(c, x, y, w, seed=0, wood='oak'):
+    """A window box hung under a sill: its top seen from above full of
+    leaves and a few blooms, its front a boarded trough."""
+    o = RAMPS[wood]
+    leaf = ramp(135, 0.11, lift=-0.08)
+    blooms = [ramp(15, 0.17)[2], ramp(350, 0.15)[2], ramp(85, 0.14)[1], ramp(300, 0.1)[2]]
+    for k in range(w + 2):
+        hgt = 3 + int(h2(k, seed, 211) * 3)
+        for j in range(hgt):
+            c.p(x - 1 + k, y - j, leaf[3 if (k + j) % 3 else 2] if j < hgt - 1 else leaf[1])
+    for k in range(1, w, 4):
+        bx, by = x + k + int(h2(k, seed, 212) * 2), y - 3 - int(h2(k, seed, 213) * 3)
+        col = blooms[int(h2(k, seed, 214) * 4)]
+        for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1)):
+            c.p(bx + dx, by + dy, col)
+        c.p(bx, by, mix(col, (255, 250, 235, 255), 0.6))
+    raised(c, x - 2, y + 1, w + 4, 6, o, 3)
+    c.rect(x - 2, y + 1, w + 4, 1, o[2])
+    cast(c, x - 1, y + 7, w + 2, 2)
 
 
 # ------------------------------------------------------------------ doors
@@ -464,11 +530,11 @@ def door_panel(c, x, y, w, h, paint='blue'):
         c.rect(x - 6 - k, y + h + k, w + 12 + 2 * k, 1, s[k])
 
 
-def door_carriage(c, x, y, w, h, paint='green'):
+def door_carriage(c, x, y, w, h, paint='green', stone=None):
     """Arched carriage door: a radial-barred fanlight, two leaves of
     fielded panels, gilt knobs."""
     p = PAINT[paint]
-    s = RAMPS['limestone']
+    s = stone or RAMPS['limestone']
     R = w // 2
     cx = x + w / 2 - 0.5
     for yy in range(y - 5, y + h):
