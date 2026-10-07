@@ -1,10 +1,10 @@
 """The numbers every front-on painter shares. Change them here, nowhere else.
 
-The Haunted Chocolatier convention: walls square on, with no side wall, and
-everything that faces the sky seen from high above, stacking up the screen.
-A wall's depth comes from what projects: sills, balconies, hoods, cornices and
-awnings show their top faces and throw a shadow on the wall below. The roof
-is the largest lit surface, up to about half a pitched house's height.
+Stardew / Haunted Chocolatier adapted for dense towns: walls square on, with
+no side wall; roofs and other sky-facing surfaces seen from above at moderate
+depth, always a volume, never half the sprite. A wall's depth comes from what
+projects: sills, balconies, hoods, cornices and awnings show their top faces
+and throw a shadow on the wall below.
 
 Scale is set by the live adult, 37px tall: a door is taller than a person and
 a window about two thirds of one.

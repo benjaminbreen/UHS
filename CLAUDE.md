@@ -16,7 +16,7 @@ when the task is actually about its subject:
 | Characters, appearance, wardrobe | `CHARACTERS.md` |
 | Settlements, layout, roads | `SETTLEMENTS.md` |
 | Buildings and props (drawing rules) | `OBLIQUE_ART.md`, `BUILDING_ART.md`, `CITY_ART.md`, `PROP_ART.md`, `PROPS.md`, `PROP_PLAN.md` |
-| Buildings in the new Stardew / Haunted Chocolatier style (walls square on, roofs from above; materials, openings, signs, roofs) | the `building-art` skill, `.claude/skills/building-art/SKILL.md` |
+| Buildings in the new Stardew / Haunted Chocolatier style (walls square on, roofs from above at moderate depth; materials, openings, signs, roofs) | the `building-art` skill, `.claude/skills/building-art/SKILL.md` |
 | Terrain, water, vegetation, ecology | `GRAPHICS.md`, then `TERRAIN_ART`, `TOPOGRAPHY`, `WATER`, `VEGETATION`, `ECOLOGY`, `FAUNA` |
 | World generation, geography | `WORLDS.md` |
 | Travel, the region map, time travel | `TRAVEL.md`, `TIME.md` |
