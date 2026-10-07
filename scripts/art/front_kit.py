@@ -165,6 +165,27 @@ def outline(c):
         c.px[x, y] = col
 
 
+def consolidate(c, rare=2, common=6, reach=30):
+    """Palette discipline: a colour used by only a pixel or two (where a
+    shadow or outline landed on an odd base) snaps to the nearest colour the
+    sprite really uses."""
+    from collections import Counter
+    count = Counter(c.px[x, y] for y in range(c.h) for x in range(c.w) if c.px[x, y][3])
+    keep = [k for k, v in count.items() if v >= common]
+    swap = {}
+    for k, v in count.items():
+        if v > rare or not keep:
+            continue
+        best = min(keep, key=lambda q: (q[0] - k[0]) ** 2 + (q[1] - k[1]) ** 2 + (q[2] - k[2]) ** 2)
+        if sum((best[i] - k[i]) ** 2 for i in range(3)) <= reach * reach:
+            swap[k] = best
+    for y in range(c.h):
+        for x in range(c.w):
+            q = c.px[x, y]
+            if q in swap:
+                c.px[x, y] = swap[q]
+
+
 # ------------------------------------------------------------------ the building
 
 class Front:
@@ -433,8 +454,11 @@ class Front:
         r_top = m_top - ROOF_TOP
         inset = self.roof_top(r_top, m_top - 2)
         sw = 16
+        self.roof_span = (self.x0 + inset, self.x1 - inset)
+        self.stacks = []
         for cx in (self.x0 + inset + sw // 2 + 3, self.x1 - inset - sw // 2 - 3):
             self.stack(cx, m_top - 6, sw, 18)
+            self.stacks.append((cx - sw // 2 - 2, sw + 4))
         self.mansard(m_top, corn - 4)
         for i in range(s['bays']):
             self.dormer(self.bay_x(i), corn - 4, MANSARD - 8)
@@ -474,6 +498,7 @@ class Front:
                 self.window(self.bay_x(i), g_top + 18, 18, GROUND - 32, 'keystone')
             i = j + 1
         outline(c)
+        consolidate(c)
         self.glow()
         return c.im, self.em.im
 

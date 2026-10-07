@@ -115,4 +115,6 @@ if __name__ == '__main__':
     else:
         found = audit()
         print('\n'.join(found) if found else 'oblique audit: clean')
-        sys.exit(1 if found else 0)
+        from art.front_audit import audit as front_audit
+        front = front_audit()
+        sys.exit(1 if found or not front else 0)

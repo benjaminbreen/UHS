@@ -17,6 +17,7 @@
     "art:asian-houses": "python3 scripts/art/asian_house_sheet.py artifacts/east-south-asian-houses.png",
     "art:cultural-kits": "python3 scripts/art/cultural_polish_sheet.py artifacts/cultural-settlement-kits.png",
     "art:audit": "python3 scripts/art_audit.py",
+    "art:front": ".venv/bin/python scripts/art/front_audit.py && .venv/bin/python scripts/art/front_review.py artifacts/front-review.png",
     "build": "tsc -b && vite build && node scripts/build-api.mjs",
     "test": "vitest run",
     "test:full": "FULL=1 vitest run",

@@ -21,7 +21,9 @@ from art.front_materials import (  # noqa: E402
     C, RAMPS, ramp, mix, h2, render, rubble, brick, plain_tiles,
 )
 from art import front_openings as op  # noqa: E402
-from art.front_kit import outline  # noqa: E402
+from art.front_kit import outline, consolidate  # noqa: E402
+from art.front_fixtures import fixture  # noqa: E402
+from art.front_weather import weather  # noqa: E402
 
 OAK = RAMPS['oak']
 RENDER = RAMPS['render']
@@ -78,7 +80,7 @@ def recess(c, region, solid):
             c.p(x, y, mix(RENDER[1], RENDER[2], 0.6))
 
 
-def rake_shingle(a, b, tw, th, r, shade):
+def rake_shingle(a, b, tw, th, r, shade, u=0, w=0):
     """A shingle in course space: a runs ridge to eave along the rake, b runs
     up the course; the butt at the eave end is rounded."""
     if a == tw - 1 and (b < 2 or b > th - 2):
@@ -104,20 +106,110 @@ def rake_shingle(a, b, tw, th, r, shade):
     return col
 
 
-def roof_slope(c, xa, xe, rake, depth, shade, tw=12, th=7):
+def roof_slope(c, xa, xe, rake, depth, shade, mat, roof=None, shaded=None):
+    """Fill one slope between the front rake and its back edge. Courses run
+    parallel to the rake; `mat` says how one unit of the covering looks in
+    course space (a down the slope toward the eave, b up the course)."""
+    m = ROOFS[mat]
+    tw, th = m['tw'], m['th']
     for x in range(min(xa, xe), max(xa, xe) + 1):
         u = abs(x - xa)
         yr = rake(x)
         for y in range(yr - depth, yr + 1):
             w = yr - y
             course = w // th
-            uu = u + (course % 2) * (tw // 2) + (course * 3) % tw
+            uu = u + (course % 2) * (tw // 2) + (course * 3) % tw if m['stagger'] else u
             k = h2(uu // tw, course, 311)
-            r = SHINGLE[0 if k < 0.74 else 1 if k < 0.88 else 2 if k < 0.95 else 3]
-            col = rake_shingle(uu % tw, w % th, tw, th, r, shade)
+            ramps = m['ramps']
+            r = ramps[0] if k < 0.74 or len(ramps) == 1 else ramps[1 + int((k - 0.74) / 0.26 * (len(ramps) - 1))]
+            col = m['px'](uu % tw, w % th, tw, th, r, shade, u, w)
             if u > 60:
                 col = mix(col, r[5], 0.12)
             c.p(x, y, col)
+            if roof is not None:
+                roof.add((x, y))
+                if shade:
+                    shaded.add((x, y))
+
+
+def darker(r, col, shade):
+    return r[min(7, r.index(col) + 1)] if shade and col in r else col
+
+
+def rake_slate(a, b, tw, th, r, shade, u, w):
+    """Slates with straight butts: a dark joint at each butt and under each
+    course, the exposed face lit toward its top."""
+    if a == tw - 1 or b == 0:
+        col = r[6]
+    elif b == 1:
+        col = r[4]
+    elif b >= th - 1:
+        col = r[2]
+    else:
+        col = r[3] if a > 1 else r[4]
+    return darker(r, col, shade)
+
+
+def rake_plain(a, b, tw, th, r, shade, u, w):
+    """Small flat clay tiles, the butt corners just rounded."""
+    if a == tw - 1 and b in (0, th - 1) or b == 0:
+        col = r[6]
+    elif a == tw - 1:
+        col = r[5]
+    elif b == th - 1:
+        col = r[2]
+    else:
+        col = r[3] if a > 0 else r[4]
+    return darker(r, col, shade)
+
+
+def rake_pantile(a, b, tw, th, r, shade, u, w):
+    """Barrel tiles running down the slope: the barrel's profile across the
+    course, a lit lip and its shadow where one tile laps the next."""
+    prof = (6, 4, 2, 1, 1, 2, 4, 6)[b % 8]
+    if a == tw - 1:
+        col = r[7]
+    elif a == tw - 2:
+        col = r[min(7, max(0, prof - 1))]
+    else:
+        col = r[prof]
+    return darker(r, col, shade)
+
+
+def rake_thatch(a, b, tw, th, r, shade, u, w):
+    """Straw in courses along the rake: clumps of strands, each course's
+    lower edge combed ragged and lit, a shadow under it."""
+    course = w // th
+    clump = (u + course * 3) // 3
+    rag = int(h2(clump, course, 321) * 2.5)
+    ly = th - 1 - b
+    end = th - 3 + rag
+    if ly > end:
+        col = r[6] if ly == th - 1 else r[5]
+    elif ly == end:
+        col = r[1]
+    elif ly == end - 1:
+        col = r[2]
+    else:
+        k = h2(clump, course, 322)
+        col = r[3] if k < 0.55 else r[4] if k < 0.85 else r[2]
+        if (u + course * 3) % 3 == 2:
+            col = r[min(7, r.index(col) + 1)]
+        if ly <= 1:
+            col = r[5]
+    return darker(r, col, shade)
+
+ROOFS = {
+    'shingle': dict(px=rake_shingle, ramps=SHINGLE, tw=12, th=7, stagger=True, verge='barge', ridge='cap', rise=60),
+    'slate': dict(px=rake_slate, ramps=[RAMPS['slate'], ramp(262, 0.04, lift=-0.14)], tw=9, th=5,
+                  stagger=True, verge='barge', ridge='lead', rise=62),
+    'plain': dict(px=rake_plain, ramps=[RAMPS['clay-tile'], ramp(24, 0.1, lift=-0.1), ramp(40, 0.1, lift=-0.06)],
+                  tw=7, th=4, stagger=True, verge='barge', ridge='cap', rise=62),
+    'pantile': dict(px=rake_pantile, ramps=[RAMPS['terracotta'], ramp(36, 0.11, lift=-0.06)], tw=11, th=8,
+                    stagger=False, verge='tile', ridge='cap', rise=44),
+    'thatch': dict(px=rake_thatch, ramps=[RAMPS['thatch']], tw=12, th=10, stagger=False, verge='thatch',
+                   ridge='thatch', rise=70),
+}
 
 
 DIG = {"1": "010110010010111", "6": "011100111101111", "4": "101101111001001", "2": "110001010100111"}
@@ -131,43 +223,11 @@ def carve(c, x, y, s, col):
                     c.p(x + k * 4 + i, y + j, col)
 
 
-def lantern(c, x, y):
-    iron = op.IRON
-    c.rect(x + 3, y - 6, 1, 4, iron[3])
-    c.rect(x - 2, y - 6, 6, 1, iron[3])
-    c.rect(x - 1, y - 2, 9, 2, iron[2])
-    c.rect(x, y, 7, 10, iron[4])
-    c.rect(x + 1, y + 1, 5, 8, ramp(85, 0.06)[1])
-    c.rect(x + 1, y + 1, 2, 8, ramp(85, 0.04)[0])
-    c.rect(x + 3, y + 1, 1, 8, iron[4])
-    c.rect(x + 1, y + 10, 5, 2, iron[2])
-
-
-def sign(c, x, y):
-    """A baker's sign: a pretzel on a board hung from a wrought bracket."""
-    iron, pr = op.IRON, ramp(55, 0.13)
-    c.rect(x, y, 24, 2, iron[3]); c.rect(x, y, 24, 1, iron[2])
-    for i in range(9):
-        c.p(x + i, y + 9 - i, iron[3]); c.p(x + i, y + 8 - i, iron[2])
-    for hx in (x + 9, x + 20):
-        c.rect(hx, y + 2, 1, 4, iron[2])
-    op.raised(c, x + 6, y + 6, 18, 16, OAK, 3)
-    c.rect(x + 8, y + 8, 14, 12, RENDER[1])
-    c.rect(x + 8, y + 8, 14, 1, RENDER[3]); c.rect(x + 8, y + 8, 1, 12, RENDER[3])
-    cx, cy = x + 15, y + 14
-    for yy in range(-5, 6):
-        for xx in range(-7, 8):
-            for lx in (-3, 3):
-                d = math.hypot(xx - lx, yy * 1.2)
-                if 2.0 <= d <= 3.6:
-                    c.p(cx + xx, cy + yy, pr[2] if yy < 0 else pr[4])
-    c.p(cx - 4, cy - 3, pr[0]); c.p(cx + 2, cy - 3, pr[0])
-
-
 class GableHouse:
-    def __init__(self, W=152, wall=62, rise=60, depth=70, over=10, lean_to=True, seed=3,
-                 ground='render', paint='green'):
-        self.ground, self.paint = ground, paint
+    def __init__(self, W=152, wall=62, rise=None, depth=70, over=10, lean_to=True, seed=3,
+                 ground='render', paint='green', roof='shingle', sign=('painted', 3), lantern='iron', wear=0.5):
+        self.ground, self.paint, self.roof, self.sign, self.lantern, self.wear = ground, paint, roof, sign, lantern, wear
+        rise = rise or ROOFS[roof]['rise']
         self.W, self.wall, self.rise, self.depth, self.over = W, wall, rise, depth, over
         self.lean = lean_to
         self.seed = seed
@@ -217,7 +277,7 @@ class GableHouse:
             op.casement(c, gx, eave - 27, 12, 20, 'oak')
             op.reveal(c, gx, eave - 27, 12, 20, 2)
         oy = eave - rise + 25
-        for yy in range(-5, 6):
+        for yy in (range(-5, 6) if rise >= 56 else ()):
             for xx in range(-5, 6):
                 d = math.hypot(xx, yy)
                 if d <= 3:
@@ -250,24 +310,34 @@ class GableHouse:
             op.reveal(c, wx, y, ww, 24, 2)
             op.open_shutters(c, wx - 3, y - 4, ww + 6, 32, self.paint, leaf)
             op.flower_box(c, wx, y + 30, ww, seed=wx)
-        if off - ext - dw // 2 - 4 >= 10:
-            lantern(c, apx + dw // 2 + 5, eave + 20)
+        sills = [(wcx - ww // 2 - 6, eave + 18 + 24 + 6, ww + 12) for wcx in (apx - off, apx + off)]
+        if self.lantern and off - ext - dw // 2 - 4 >= 10:
+            fixture(c, apx + dw // 2 + 5, eave + 14, 1, 'lantern', self.lantern)
         for k in range(3):
             c.rect(dx - 8 - k, base + k, dw + 16 + 2 * k, 1, RAMPS['granite'][k + 1])
-        # roof: two slopes, bargeboards along the rake, ridge, chimney
-        roof_slope(c, apx, wx0 - over, rake, depth, 0)
-        roof_slope(c, apx, wx1 + over, rake, depth, 1)
-        self.roof_window(apx, rake, 22, 30, 16, 18)
-        for x in range(wx0 - over, wx1 + over + 1):
-            y = rake(x)
-            r = OAK if x < apx else [mix(q, OAK[7], 0.15) for q in OAK]
-            for k, idx in enumerate((2, 3, 3, 4, 5)):
-                c.p(x, y + 1 + k, r[idx])
-            op.cast(c, x, y + 6, 1, 3, 0.6)
-        self.chimney(wx1 - 44, rake(wx1 - 35) - 26, 18, 44, rake)
-        self.ridge(apx, rake(apx) - depth - 1, rake(apx) + 1)
-        sign(c, wx1 - 6, eave + 12)
+        # roof: two slopes, the verge along the rake, ridge, chimney
+        m = ROOFS[self.roof]
+        roof, shaded = set(), set()
+        roof_slope(c, apx, wx0 - over, rake, depth, 0, self.roof, roof, shaded)
+        roof_slope(c, apx, wx1 + over, rake, depth, 1, self.roof, roof, shaded)
+        if m['verge'] != 'thatch':
+            self.roof_window(apx, rake, 22, 30, 16, 18)
+        self.verge(m['verge'], wx0 - over, wx1 + over, apx, rake)
+        cx, cw = wx1 - 44, 18
+        self.roof_span = (wx0 - over, wx1 + over)
+        self.stacks = [(cx - 2, cw + 4)]
+        self.door_h = dh
+        ctop = rake(wx1 - 35) - 26 - 44
+        self.chimney(cx, rake(wx1 - 35) - 26, cw, 44, rake)
+        self.ridge(apx, rake(apx) - depth - 1, rake(apx) + 1, m['ridge'])
+        if self.sign:
+            fixture(c, wx1 - 4, eave + 12, 1, 'sign', self.sign[0], self.sign[1])
+        walls = {(x, y) for y in range(eave, base - 11) for x in range(wx0, wx1)}
+        stone = {(x, y) for y in range(base - 11, base) for x in range(wx0, wx1)}
+        weather(c, dict(roof=roof, roof_shade=shaded, eave_y=lambda x: rake(x), walls=walls, stone=stone,
+                        sills=sills, chimneys=[(cx - 2, ctop - 7, cw + 4)]), self.wear, self.seed)
         outline(c)
+        consolidate(c)
         return c.im
 
     def lean_to(self, wx0, base):
@@ -334,9 +404,46 @@ class GableHouse:
         g = RAMPS['zinc']
         c.rect(x - 1, foot - 2, w + 2, 2, g[3]); c.rect(x - 1, foot - 2, w + 2, 1, g[2])
 
-    def ridge(self, x, y0, y1):
+    def verge(self, kind, x0, x1, apx, rake):
         c = self.c
-        cols = [None, RIDGE[3], RIDGE[2], RIDGE[1], RIDGE[2], RIDGE[3], RIDGE[4], RIDGE[4], None]
+        th = RAMPS['thatch']
+        tc = RAMPS['terracotta']
+        for x in range(x0, x1 + 1):
+            y = rake(x)
+            left = x < apx
+            if kind == 'thatch':
+                # a thick rolled edge: the straw turned over the gable
+                for k, idx in enumerate((2, 2, 3, 3, 4, 5, 6)):
+                    c.p(x, y + k - 1, th[idx if left else min(7, idx + 1)])
+                op.cast(c, x, y + 6, 1, 3, 0.6)
+            elif kind == 'tile':
+                for k, idx in enumerate((2, 1, 3, 5)):
+                    c.p(x, y + 1 + k, tc[idx if left else min(7, idx + 1)])
+                if (x - x0) % 8 == 0:
+                    c.p(x, y + 2, tc[5])
+                op.cast(c, x, y + 5, 1, 3, 0.6)
+            else:
+                r = OAK if left else [mix(q, OAK[7], 0.15) for q in OAK]
+                for k, idx in enumerate((2, 3, 3, 4, 5)):
+                    c.p(x, y + 1 + k, r[idx])
+                op.cast(c, x, y + 6, 1, 3, 0.6)
+
+    def ridge(self, x, y0, y1, kind='cap'):
+        c = self.c
+        if kind == 'thatch':
+            # a block-cut ridge, its lower edge cut in points, liggers crossed on it
+            th = RAMPS['thatch']
+            for y in range(y0, y1 + 4):
+                for k in range(-7, 8):
+                    col = th[2] if k < -2 else th[3] if k < 3 else th[4]
+                    if abs(k) == 7 or (abs(k) == 6 and (y - y0) % 6 < 3):
+                        col = th[6]
+                    if (y - y0 + abs(k)) % 8 == 0 and abs(k) < 6:
+                        col = RAMPS['oak'][4]
+                    c.p(x + k, y, col)
+            return
+        rg = RIDGE if kind == 'cap' else ramp(258, 0.025, lift=-0.18)
+        cols = [None, rg[3], rg[2], rg[1], rg[2], rg[3], rg[4], rg[4], None]
         for y in range(y0, y1):
             seg = (y - y0) % 11
             for k in range(-4, 5):
@@ -344,16 +451,16 @@ class GableHouse:
                 if col is None:
                     continue
                 if seg == 10:
-                    col = RIDGE[5]
+                    col = rg[5]
                 elif seg == 0 and k < 1:
-                    col = RIDGE[1]
+                    col = rg[1]
                 c.p(x + k, y, col)
         for yy in range(-5, 6):
             for xx in range(-5, 6):
                 d = math.hypot(xx, yy)
                 if d <= 4.6:
                     l = (xx + yy) / 6.5
-                    c.p(x + xx, y1 + yy, RIDGE[1] if l < -0.7 and d < 3.6 else RIDGE[2] if l < -0.1 else RIDGE[3] if l < 0.5 else RIDGE[5])
+                    c.p(x + xx, y1 + yy, rg[1] if l < -0.7 and d < 3.6 else rg[2] if l < -0.1 else rg[3] if l < 0.5 else rg[5])
 
 
 def make(out, zoom=3):
