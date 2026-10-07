@@ -10,6 +10,7 @@ from pathlib import Path
 import json
 import re
 import sys
+import zlib
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -234,7 +235,7 @@ def spec_for(name, r):
         base = specs[min(int(rest), len(specs) - 1)] if rest.isdigit() else specs[0]
     fw, fh = r['footprint']
     nw = max(4, round(fw * SCALE))
-    spec = dict(base, W=nw * 16, seed=hash(name) % 997)
+    spec = dict(base, W=nw * 16, seed=zlib.crc32(name.encode()) % 997)
     if form:
         f = dict(FORMS.get(form, {}))
         n = f.pop('storeys', 2)
@@ -272,10 +273,22 @@ def adopt(recipes):
     return n
 
 
+_PAINTED = {}
+
+
 class FrontHousePainter:
-    """What scripts/art/buildings.py needs from a painter."""
+    """What scripts/art/buildings.py needs from a painter. A frame's turned
+    copies share its spec, so each spec is painted once."""
 
     def __init__(self, r, material=None):
+        key = json.dumps(r['frontHouse'], sort_keys=True, default=str)
+        if key in _PAINTED:
+            self.__dict__.update(_PAINTED[key])
+            return
+        self._paint(r)
+        _PAINTED[key] = dict(self.__dict__)
+
+    def _paint(self, r):
         spec = r['frontHouse']
         if spec.get('form') == 'gable':
             b = GableHouse(**{k: v for k, v in spec.items() if k != 'form'})

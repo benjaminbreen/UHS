@@ -66,6 +66,9 @@ still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_weather.py` | Moss, soot, sill streaks, lichen: one `wear` dial |
 | `scripts/art/front_kit.py` | The immeuble from a spec; `outline`, `consolidate`; the game hook |
 | `scripts/art/front_house.py` | The gabled house: five roof coverings, verges, ridges |
+| `scripts/art/front_parts.py` | Arches, windows of every period, walls, buttresses, mouldings, gables and copings, clocks, tower tops |
+| `scripts/art/front_church.py` | Churches from a spec, with regional `STYLES` (English and French Gothic, flint, Romanesque, Italian, Mediterranean, Danish, stave, Baltic brick, Baroque) |
+| `scripts/art/front_civic.py` | Civic halls on the eave-front house: arcades, posts, cross wings, stairs, frontispieces, turrets; regional `HALL_STYLES`; the game hook for churches and halls |
 | `scripts/art/front_eave.py` | The eave-front house: roof band, hips, eaves, ridges, dormers, stacks, lean-to |
 | `scripts/art/front_houses.py` | Pre-industrial European house families as specs; family and street A/B sheets |
 | `scripts/art/front_audit.py` | The checkable rules; runs inside `oblique_audit.py` |
@@ -113,4 +116,5 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-06 Materials and openings library approved at component level.
 - 2026-10-06 Wall-hung fixtures wanted in place of freestanding signs.
 - 2026-10-06 Next family: pre-industrial European houses (eave-front form added); shown as A/B before wiring.
+- 2026-10-07 Churches and halls rebuilt as spec systems with regional styles; shadows painted in stepped bands, not smooth ramps.
 - 2026-10-06 Eave-front roofs deepened; roof colours chosen per spec from historical regional tones (`TONES` in front_eave.py); European houses wired in.

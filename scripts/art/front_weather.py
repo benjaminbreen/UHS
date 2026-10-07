@@ -79,7 +79,7 @@ def lichen(c, stone, wear, seed):
     """Lichen on stone near the ground: small yellow-green and rust specks
     in clusters, never a wash."""
     pts = sorted(stone)
-    n = int(len(pts) / 70 * wear)
+    n = int(len(pts) / 150 * wear)
     for k in range(n):
         x, y = pts[int(h2(k, seed, 421) * len(pts))]
         col = LICHEN[int(h2(k, seed, 422) * 3)]

@@ -38,7 +38,7 @@ PAPER = ramp(88, 0.025, lift=0.02)
 def cast(c, x, y, w, n, k0=0.62):
     """Shadow thrown down onto the wall by anything projecting above it."""
     for i in range(n):
-        t = k0 + (1 - k0) * i / n
+        t = round((k0 + (1 - k0) * i / n) * 8) / 8
         for xx in range(x, x + w):
             q = c.g(xx, y + i)
             if q[3]:
@@ -301,6 +301,18 @@ def frame_adobe(c, x, y, w, h, wall):
         c.p(xx, y + h + 3, a[3])
 
 
+def frame_painted(c, x, y, w, h, wall):
+    """A painted board surround, as on the timber houses of the north:
+    white trim with a little drip cap over the head."""
+    p = PAINT['white']
+    raised(c, x - 3, y - 3, w + 6, h + 6, p, 1)
+    c.rect(x - 5, y - 6, w + 10, 3, p[0])
+    c.rect(x - 5, y - 4, w + 10, 1, p[3])
+    c.rect(x - 4, y + h + 2, w + 8, 2, p[1])
+    cast(c, x - 4, y - 3, w + 8, 1, 0.75)
+    cast(c, x - 3, y + h + 4, w + 6, 2)
+
+
 def frame_asian(c, x, y, w, h, wall):
     """Dark cedar frame; the head rail runs out past the posts with cut ends."""
     r = RAMPS['cedar']
@@ -319,6 +331,7 @@ FRAMES = {
     'brick': (frame_brick, lambda c, x, y, w, h: brick(c, x, y, w, h)),
     'adobe': (frame_adobe, lambda c, x, y, w, h: adobe(c, x, y, w, h)),
     'asian': (frame_asian, lambda c, x, y, w, h: boards(c, x, y, w, h, RAMPS['cedar'])),
+    'painted': (frame_painted, lambda c, x, y, w, h: boards(c, x, y, w, h)),
 }
 
 

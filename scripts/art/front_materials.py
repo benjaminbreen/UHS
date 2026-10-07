@@ -110,6 +110,8 @@ RAMPS = {
     'kawara': ramp(262, 0.025, warm=6, cool=10, lift=-0.12),
     'palm': ramp(95, 0.08),
     'plaster-ochre': ramp(75, 0.09),
+    'lead': ramp(250, 0.018, warm=6, cool=10, lift=-0.06),
+    'grey-limestone': ramp(80, 0.032, lift=-0.04),
 }
 
 
@@ -284,6 +286,28 @@ def whitewash(c, x0, y0, w, h, r=None, under=None):
         rx, ry = 3 + h2(k, 3, 41) * 3, 2 + h2(k, 4, 41) * 1.5
         blob(c, cx, cy, rx + 1, ry + 1, r[0], 42 + k)
         blob(c, cx, cy + 0.6, rx, ry, under[3], 43 + k, under[4])
+
+def flint(c, x0, y0, w, h, r=None, m=None):
+    """Knapped flint in lime: small dark nodules, each with a glassy glint
+    on its upper left, set in pale mortar. East Anglian churches and walls."""
+    r = r or ramp(255, 0.03, lift=-0.22)
+    m = m or RAMPS['mortar']
+
+    def f(x, y):
+        row = y // 4
+        off = (row % 2) * 2
+        lx, ly = (x + off) % 5, y % 4
+        if ly == 3 or lx == 4:
+            return m[2] if (x + y) % 3 else m[3]
+        k = h2((x + off) // 5, row, 171)
+        base = 3 if k < 0.45 else 4 if k < 0.85 else 2
+        if lx == 0 and ly == 0:
+            return r[1]
+        if lx == 3 or ly == 2:
+            return r[min(7, base + 1)]
+        return r[base]
+    fill(c, x0, y0, w, h, f)
+
 
 def adobe(c, x0, y0, w, h, r=None):
     """Mud plaster over mud brick: soft and warm, courses ghosting through,
@@ -607,6 +631,7 @@ WALLS = [
     ('board & batten', lambda c, x, y, w, h: boards(c, x, y, w, h)),
     ('logs', lambda c, x, y, w, h: logs(c, x, y, w, h)),
     ('sandstone', lambda c, x, y, w, h: ashlar(c, x, y, w, h, RAMPS['sandstone'], 8, 16)),
+    ('flint', lambda c, x, y, w, h: flint(c, x, y, w, h)),
 ]
 ROOFS = [
     ('slate', slate), ('zinc', zinc), ('shingles', shingles),

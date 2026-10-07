@@ -29,13 +29,12 @@ def gold():
 
 
 def drift(a, b):
+    """Share of pixels that differ. Compared in RGB: Pillow's bounding box
+    of an RGBA difference looks only at alpha and misses colour changes."""
     if a.size != b.size:
         return 1.0
-    diff = ImageChops.difference(a, b).getbbox()
-    if not diff:
-        return 0.0
-    d = ImageChops.difference(a, b).convert('L').point(lambda v: 255 if v else 0)
-    return sum(d.getdata()) / 255 / (a.width * a.height)
+    pa, pb = a.convert('RGBA').getdata(), b.convert('RGBA').getdata()
+    return sum(1 for p, q in zip(pa, pb) if p != q) / (a.width * a.height)
 
 
 def sheet(items, out, zoom=3):

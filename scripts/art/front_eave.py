@@ -35,7 +35,7 @@ COVER = {
     'plain': (fm.plain_tiles, RAMPS['clay-tile']),
     'slate': (fm.slate, RAMPS['slate']),
     'pantile': (fm.pantiles, RAMPS['terracotta']),
-    'shingle': (lambda c, x, y, w, h: fm.shingles(c, x, y, w, h, tw=8, th=6), RAMPS['shingle']),
+    'shingle': (lambda c, x, y, w, h, r=None: fm.shingles(c, x, y, w, h, r, tw=8, th=6, mix_=r is None or r is RAMPS['shingle']), RAMPS['shingle']),
 }
 # Historical roof colours, chosen per spec by `tone`. Clays, slates and
 # straws differ by region and age more than by anything a painter adds.
@@ -70,6 +70,8 @@ WALL = {
     'ashlar': lambda c, x, y, w, h: fm.ashlar(c, x, y, w, h, RAMPS['limestone']),
     'sandstone': lambda c, x, y, w, h: fm.ashlar(c, x, y, w, h, RAMPS['sandstone'], 8, 16),
     'boards': lambda c, x, y, w, h: fm.clapboard(c, x, y, w, h),
+    'falu': lambda c, x, y, w, h: fm.boards(c, x, y, w, h, fm.ramp(26, 0.13, lift=-0.1)),
+    'tar': lambda c, x, y, w, h: fm.boards(c, x, y, w, h, fm.ramp(32, 0.06, lift=-0.27)),
 }
 
 
@@ -119,6 +121,12 @@ class EaveHouse:
                 self.framing(x0 - jet, top, W + 2 * jet, h, i)
             if jet:
                 bevel(c, x0 - jet - 1, top + h - 5, W + 2 * jet + 2, 6, OAK, 3)
+                if s.get('studding') == 'close':
+                    # a carved bressumer: a running vine cut along the beam
+                    for k in range(x0 - jet + 2, x1 + jet - 2):
+                        c.p(k, top + h - 3 + round(math.sin(k * 0.6)), OAK[5])
+                        if k % 6 == 0:
+                            c.p(k, top + h - 4, OAK[2])
                 for k in range(x0 - jet + 3, x1 + jet - 4, 9):
                     bevel(c, k, top + h + 1, 5, 4, OAK, 3)
                 op.cast(c, x0, top + h + 1, W, 5, 0.68)
@@ -140,6 +148,13 @@ class EaveHouse:
         bevel(c, x + w - 5, y, 5, h, OAK, mask=solid)
         bevel(c, x, y, w, 5, OAK, mask=solid)
         bevel(c, x, y + h - 5, w, 5, OAK, mask=solid)
+        if self.s.get('studding') == 'close':
+            # close studding: posts shoulder to shoulder, the mark of money
+            for px in range(x + 9, x + w - 6, 9):
+                bevel(c, px, y, 4, h, OAK, mask=solid)
+            bevel(c, x, y + h // 2 - 2, w, 4, OAK, mask=solid)
+            recess(c, [(xx, yy) for yy in range(y, y + h) for xx in range(x, x + w)], solid)
+            return
         n = max(2, w // 26)
         pitch = (w - 5) / n
         for k in range(1, n):
@@ -171,9 +186,12 @@ class EaveHouse:
         dw, dh = (22, 44) if s['door'] != 'panel' else (22, 44)
         self.door_h = dh
         self.sills = []
+        skip = getattr(self, 'skip', None)
         for i, (top, h, jet) in enumerate(self.floors):
             for k, cx in enumerate(cols):
                 if i == 0 and k == door_col:
+                    continue
+                if skip and skip[0] <= cx <= skip[1]:
                     continue
                 if frame == 'mullion':
                     lights = 3 if W / n >= 44 else 2
@@ -187,7 +205,7 @@ class EaveHouse:
                 wh = h - 26 if i else h - 30
                 wy = top + (13 if i else 15)
                 op.FRAMES[frame][0](c, cx - ww // 2, wy, ww, wh, None)
-                op.INFILLS[infill](c, cx - ww // 2, wy, ww, wh, 'oak' if frame == 'timber' and infill == 'casement' else 'white')
+                op.INFILLS[infill](c, cx - ww // 2, wy, ww, wh, s.get('joinery') or ('oak' if frame == 'timber' and infill == 'casement' else 'white'))
                 op.reveal(c, cx - ww // 2, wy, ww, wh, 2)
                 if s['shutters']:
                     op.open_shutters(c, cx - ww // 2 - 3, wy - 4, ww + 6, wh + 8, s['shutters'], 6)
@@ -202,6 +220,9 @@ class EaveHouse:
             self.shop_counter(cols[k], top + 10, max(26, self.W // len(cols) - 12), h - 22)
         cx = cols[door_col]
         self.door_x = cx
+        self.cols, self.door_col = cols, door_col
+        if skip and skip[0] - 14 <= cx <= skip[1] + 14:
+            return
         dx, dy = cx - dw // 2, self.base - dh
         if s['door'] == 'panel':
             op.door_panel(c, dx, dy, dw, dh, s.get('door_paint', 'blue'))
@@ -209,7 +230,6 @@ class EaveHouse:
             op.door_plank(c, dx, dy, dw, dh)
         for k in range(3):
             c.rect(dx - 6 - k, self.base + k, dw + 12 + 2 * k, 1, RAMPS['granite'][k + 1])
-        self.cols, self.door_col = cols, door_col
 
     def shop_counter(self, cx, y, w, h):
         c = self.c

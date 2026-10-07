@@ -81,8 +81,11 @@ def image_faults(name, im):
     stray = sum(1 for v in use.values() if v <= 2)
     if stray > len(use) * MAX_STRAY:
         out.append(f'{name}: {stray} of {len(use)} colours are strays of one or two pixels')
-    if len(colours) > MAX_COLOURS:
-        out.append(f'{name}: {len(colours)} colours (cap {MAX_COLOURS}); a material has gone noisy')
+    # A great church carries more materials than a cottage; the cap grows a
+    # little with the sprite.
+    cap = MAX_COLOURS + max(0, opaque - 40000) // 500
+    if len(colours) > cap:
+        out.append(f'{name}: {len(colours)} colours (cap {cap}); a material has gone noisy')
     return out
 
 
@@ -117,6 +120,19 @@ def subjects():
             e = EaveHouse(sp)
             im = e.build()
             yield f'{fam}-{suffix}', im, e, e.door_h, []
+    from art.front_civic import CivicHall, HALL_STYLES
+    from art.front_church import Church, STYLES as CHURCH_STYLES
+    for fam, variants in HALL_STYLES.items():
+        for label, sp in variants:
+            h = CivicHall(dict(sp))
+            im = h.build()
+            yield f'hall-{fam}-{label}', im, h, h.door_h, []
+    for style in CHURCH_STYLES:
+        for size in ('small', 'medium', 'large'):
+            ch = Church(style, size)
+            im = ch.build()
+            ch.roof_span, ch.stacks = (0, ch.c.w), []
+            yield f'church-{style}-{size}', im, ch, 40, []
     for roof in ROOFS:
         for W in (120, 152):
             g = GableHouse(roof=roof, W=W, lean_to=W > 140)
