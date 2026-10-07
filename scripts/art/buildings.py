@@ -384,6 +384,9 @@ def build_buildings(root, sprites):
     adopt(recipes)
     from art.front_civic import adopt as adopt_civic, FrontCivicPainter
     adopt_civic(recipes)
+    # Roman houses, shops, insulae and temples, and Persian houses, likewise.
+    from art.front_ancient import adopt as adopt_ancient, FrontAncientPainter
+    adopt_ancient(recipes)
     for name,r in list(recipes.items()):
         # Tents and shelters draw their door on the front whatever the facing,
         # and camps pitch them all opening south, so turned copies would lie.
@@ -394,7 +397,8 @@ def build_buildings(root, sprites):
                                       # Same silhouette whichever way it faces, so one set of cast masks.
                                       **({'shadowFrame':r.get('shadowFrame',name)} if r.get('oblique') or r.get('obliqueModern') or r.get('sacredVoxel') else {})}
     for name,r in recipes.items():
-        painter=(FrontHousePainter if r.get('frontHouse') else
+        painter=(FrontAncientPainter if r.get('frontAncient') else
+                 FrontHousePainter if r.get('frontHouse') else
                  FrontCivicPainter if r.get('frontCivic') else
                  VoxelTemple if r.get('sacredVoxel') else
                  ObliqueModern if r.get('obliqueModern') else
