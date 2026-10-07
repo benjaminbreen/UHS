@@ -513,17 +513,39 @@ def make(out, zoom=2):
 # Churches and halls of pre-industrial European towns are drawn front-on at
 # the adult's scale; footprints widen by about a third.
 SCALE = 1.35
-# Churches by family: the frame variant number picks a style that belongs
-# where that family stands.
-CHURCH_VARIANTS = {
-    'parish-church': [dict(style='english-gothic'), dict(style='english-flint'), dict(style='french-gothic')],
-    'romanesque-church': [dict(style='romanesque'), dict(style='romanesque', walls='limestone', dress='limestone',
-                                                         cover='plain', tone='tile-orange'), dict(style='danish')],
-    'gothic': [dict(style='english-gothic', cover='lead'), dict(style='french-gothic'),
-               dict(style='french-gothic', walls='red-sandstone', dress='red-sandstone')],
-    'mission-church': [dict(style='mediterranean'), dict(style='mediterranean', walls='ochre', tone='pantile'),
-                       dict(style='mediterranean', layout='campanile', tower_top='campanile', walls='whitewash')],
+# Which style each regional look draws. The game picks the look by region
+# from src/content/graphics/regional-looks.json; look i of a family is drawn
+# in the style named there at position i.
+LOOKS = json.loads((ROOT / 'src/content/graphics/regional-looks.json').read_text())['looks']
+CHURCH_REGION = {
+    # The parish church rule covers 900 to 1150: the Romanesque centuries.
+    'parish-church': {
+        'france': dict(style='romanesque'),
+        'england': dict(style='romanesque', walls='limestone', dress='limestone', cover='plain', tone='tile-red'),
+        'italy': dict(style='italian-romanesque'),
+        'denmark': dict(style='danish', tower_top='pyramid'),
+        'norway': dict(style='stave'),
+        'germany': dict(style='romanesque', walls='red-sandstone', dress='red-sandstone'),
+        'iberia': dict(style='mediterranean', walls='sandstone', tone='pantile'),
+    },
+    'gothic': {
+        'france': dict(style='french-gothic'),
+        'england': dict(style='english-gothic'),
+        'germany': dict(style='french-gothic', walls='red-sandstone', dress='red-sandstone'),
+        'east-anglia': dict(style='english-flint'),
+        'baltic': dict(style='baltic-brick'),
+        'denmark': dict(style='danish'),
+        'norway': dict(style='stave'),
+        'sweden': dict(style='danish', cover='shingle', tone='shingle-tar', tower_top='belfry'),
+        'italy': dict(style='italian-romanesque', nave_win='tracery'),
+        'iberia': dict(style='mediterranean'),
+        'low-countries': dict(style='baltic-brick', cover='slate', tone='slate-blue'),
+        'baroque': dict(style='baroque'),
+    },
+    'mission-church': {},
 }
+MISSION = [dict(style='mediterranean'), dict(style='mediterranean', walls='ochre', tone='pantile'),
+           dict(style='mediterranean', layout='campanile', tower_top='campanile', walls='whitewash')]
 
 
 def civic_spec(name, r):
@@ -534,9 +556,17 @@ def civic_spec(name, r):
     kind, fam, size, v = m.group(1), m.group(2), m.group(3), int(m.group(4))
     fw, fh = r['footprint']
     nw = max(6, round(fw * SCALE))
-    if kind == 'religious' and fam in CHURCH_VARIANTS:
-        opts = CHURCH_VARIANTS[fam]
-        spec = dict(opts[v % len(opts)], size=size, W=nw * 16, seed=zlib.crc32(name.encode()) % 997)
+    if kind == 'religious' and fam in CHURCH_REGION:
+        looks = LOOKS.get(f'religious-{fam}')
+        if looks:
+            region = looks[v] if v < len(looks) and looks[v] else looks[0]
+            base = CHURCH_REGION[fam][region]
+        else:
+            base = MISSION[v % len(MISSION)]
+        spec = dict(base, size=size, W=nw * 16, seed=zlib.crc32(name.encode()) % 997)
+        if spec.get('tone') == 'shingle-tar':
+            from art.front_church import SHINGLE_TAR
+            spec['tone'] = SHINGLE_TAR
         return dict(church=spec), (nw, fh)
     if kind == 'hall' and fam in HALL_STYLES:
         variants = HALL_STYLES[fam]
@@ -545,7 +575,24 @@ def civic_spec(name, r):
     return None
 
 
+def regional_frames(recipes):
+    """Every regional look of a family at every size it is drawn at: a
+    look missing from the old catalogue copies that size's first frame."""
+    import re
+    added = 0
+    for family, looks in LOOKS.items():
+        firsts = {m.group(1): k for k in list(recipes) if (m := re.fullmatch(re.escape(family) + r'-(small|medium|large)-0', k))}
+        for size, first in firsts.items():
+            for i in range(len(looks)):
+                name = f'{family}-{size}-{i}'
+                if name not in recipes:
+                    recipes[name] = dict(recipes[first])
+                    added += 1
+    return added
+
+
 def adopt(recipes):
+    regional_frames(recipes)
     n = 0
     for name, r in recipes.items():
         got = civic_spec(name, r)
@@ -555,8 +602,14 @@ def adopt(recipes):
         r['frontCivic'] = spec
         r['front'] = True
         # City-kit churches arrive as modern gold masters with a lit-room
-        # layer; drawn front-on they have none.
+        # layer; drawn front-on they have none, and they belong on the sacred
+        # page with the other churches.
         r.pop('obliqueModern', None)
+        if 'church' in spec:
+            fam = name.split('-')[1] if name.startswith('religious-gothic') else r.get('family', 'parish')
+            r['religious'] = True
+            r.setdefault('family', fam)
+            r.setdefault('recipe', 'gothic' if name.startswith('religious-gothic') else r.get('recipe'))
         r['footprint'] = [fw, fh]
         r['entrance'] = [fw // 2, fh]
         n += 1

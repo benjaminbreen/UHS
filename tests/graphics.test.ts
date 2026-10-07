@@ -141,3 +141,20 @@ it("weights gold-master scale by settlement density, means and quarter", () => {
     "gold-large",
   );
 });
+
+it("a church or hall takes its region's look, and that look is drawn", async () => {
+  const { regionalLook } = await import("../src/content/graphics/regional-looks");
+  const looks = (await import("../src/content/graphics/regional-looks.json")).default.looks as Record<string, (string | null)[]>;
+  const at = (lon: number, lat: number, year: number) => ({ lon, lat, year });
+  const gothic = looks["religious-gothic"];
+  expect(gothic[regionalLook("religious-gothic", at(10.7, 53.9, 1400))!]).toBe("baltic"); // Lübeck
+  expect(gothic[regionalLook("religious-gothic", at(1.3, 52.6, 1400))!]).toBe("east-anglia"); // Norwich
+  expect(gothic[regionalLook("religious-gothic", at(11.6, 48.1, 1700))!]).toBe("baroque"); // Munich
+  expect(gothic[regionalLook("religious-gothic", at(11.6, 48.1, 1500))!]).toBe("germany");
+  expect(looks["hall-moot-hall"][regionalLook("hall-moot-hall", at(18.1, 59.3, 1600))!]).toBe("sweden");
+  expect(regionalLook("religious-gothic", at(-71, 42.3, 1700))).toBeUndefined(); // Boston keeps its roll
+  for (const [family, list] of Object.entries(looks))
+    list.forEach((region, i) => {
+      if (region) expect(buildingModels[`${family}-medium-${i}`] ?? buildingModels[`${family}-small-${i}`], `${family} ${region}`).toBeTruthy();
+    });
+});

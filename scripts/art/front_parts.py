@@ -655,4 +655,4 @@ def wooden_belfry(c, x, top, w, tone, roof_px=None):
         for yy in range(top - 18, top - 6):
             for xx in range(lx, lx + bw // 2 - 6):
                 c.p(xx, yy, VOID if (yy - top) % 3 else STONE['tar'][2])
-    spire(c, x + w // 2, top - 22, w, tone, 'needle', roof_px)
+    spire(c, x + w // 2, top - 22, w, 64, tone, 'needle', roof_px)

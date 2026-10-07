@@ -1,4 +1,5 @@
 import { civicProfile } from "../../content/settlements/civic";
+import { regionalLook } from "../../content/graphics/regional-looks";
 import { venueBuilding, venuesFor } from "../../content/venues";
 import type { CivicProfile } from "../../content/settlements/civic/types";
 import {
@@ -728,7 +729,9 @@ export function urbanNeighborhood(
   // paved forecourt, so the door opens onto the square rather than into it.
   const religious = sanctuary;
   if (religious) {
-    const look = Math.floor(rand("religious-look") * 3);
+    const look =
+      regionalLook(`religious-${religious.recipe}`, pack.setting) ??
+      Math.floor(rand("religious-look") * 3);
     // A mosque that found no ground of its own tries its own size first, then
     // smaller, and set back from the square; a church keeps the one it had.
     const wide = mosqueScales.length > 0;
@@ -766,7 +769,10 @@ export function urbanNeighborhood(
     // Set back from the square if its edge is taken, the forecourt run out to meet it.
     const candidates = scales.flatMap((scale) => (wide ? [0, 3, 6] : [0]).flatMap((back) => sides.flatMap(([nx, ny]) => {
       const gap = religious.forecourt + 1 + back;
-      const base = `religious-${religious.recipe}-${scale}-${look}`;
+      // A size the region's look was not drawn at keeps the first look.
+      const base = buildingModels[`religious-${religious.recipe}-${scale}-${look}`]
+        ? `religious-${religious.recipe}-${scale}-${look}`
+        : `religious-${religious.recipe}-${scale}-0`;
       const facing =
         nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
       const frame = facing === "south" ? base : `${base}-${facing}`;
@@ -862,7 +868,11 @@ export function urbanNeighborhood(
           ).flatMap(([nx, ny]) => {
             const facing =
               nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
-            const base = `${venueBuilding(venue, pack.setting!)}-${scale}-0`;
+            const family = venueBuilding(venue, pack.setting!);
+            const look = (family && regionalLook(family, pack.setting)) ?? 0;
+            const base = buildingModels[`${family}-${scale}-${look}`]
+              ? `${family}-${scale}-${look}`
+              : `${family}-${scale}-0`;
             const frame = facing === "south" ? base : `${base}-${facing}`;
             if (!buildingModels[frame]) return [];
             const model = buildingModel(frame);

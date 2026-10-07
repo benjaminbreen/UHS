@@ -1,4 +1,5 @@
 import { modernBuildingSince } from "../../content/settlements/modern-buildings";
+import { regionalLook } from "../../content/graphics/regional-looks";
 import { resolveJunctions } from "./junctions";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
@@ -2440,7 +2441,12 @@ export function planSettlement(
   const sacred = !urban && !camp && pack.setting ? religiousProfile(pack.setting) : undefined;
   if (sacred) {
     const scale = religiousScale(profile.radius);
-    const base = `religious-${sacred.recipe}-${scale}-${Math.floor(rand("religious-look") * 3)}`;
+    const look =
+      regionalLook(`religious-${sacred.recipe}`, pack.setting) ??
+      Math.floor(rand("religious-look") * 3);
+    const base = buildingModels[`religious-${sacred.recipe}-${scale}-${look}`]
+      ? `religious-${sacred.recipe}-${scale}-${look}`
+      : `religious-${sacred.recipe}-${scale}-0`;
     for (const lot of frontage) {
       if (lot.religious || lot.venue || lot.civic) continue;
       // The precinct's gate is drawn in its south wall, so it takes a lot
