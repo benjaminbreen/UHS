@@ -165,6 +165,52 @@ def outline(c):
         c.px[x, y] = col
 
 
+def finish(c, rim=True):
+    """Stardew's edge, in place of a uniform outline: inside the silhouette a
+    lit rim along top edges and a darker roll along bottom and right edges;
+    outside it a line in a deep shade of the colour it touches, lightest on
+    top and darkest underneath, leaning violet, never near black."""
+    W, H = c.w, c.h
+    src = c.im.copy().load()
+
+    def solid(x, y):
+        return 0 <= x < W and 0 <= y < H and src[x, y][3] > 0
+
+    warm, cool = (255, 238, 205), (52, 34, 70)
+    if rim:
+        for y in range(H):
+            for x in range(W):
+                q = src[x, y]
+                if not q[3]:
+                    continue
+                k = 0.0
+                if not solid(x, y - 1):
+                    k = 0.22
+                elif not solid(x - 1, y):
+                    k = 0.12
+                elif not solid(x, y + 1) or not solid(x + 1, y):
+                    k = -0.2
+                elif not solid(x, y + 2) or not solid(x + 2, y):
+                    k = -0.1
+                if k > 0:
+                    c.px[x, y] = tuple(round(q[i] + (warm[i] - q[i]) * k) for i in range(3)) + (255,)
+                elif k < 0:
+                    c.px[x, y] = tuple(round(q[i] + (cool[i] - q[i]) * -k) for i in range(3)) + (255,)
+    todo = []
+    for y in range(H):
+        for x in range(W):
+            if src[x, y][3]:
+                continue
+            for dx, dy, k in ((0, 1, 0.58), (1, 0, 0.5), (-1, 0, 0.4), (0, -1, 0.34)):
+                if solid(x + dx, y + dy):
+                    q = src[x + dx, y + dy]
+                    col = tuple(max(18, round(q[i] * k * 0.7 + cool[i] * 0.3)) for i in range(3)) + (255,)
+                    todo.append((x, y, col))
+                    break
+    for x, y, col in todo:
+        c.px[x, y] = col
+
+
 def consolidate(c, rare=2, common=6, reach=30):
     """Palette discipline: a colour used by only a pixel or two (where a
     shadow or outline landed on an odd base) snaps to the nearest colour the

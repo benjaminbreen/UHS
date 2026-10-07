@@ -199,6 +199,27 @@ def rake_thatch(a, b, tw, th, r, shade, u, w):
             col = r[5]
     return darker(r, col, shade)
 
+def rake_imbrex(a, b, tw, th, r, shade, u, w):
+    """Roman tiles laid along the rake, drawn as the eave band draws them: each
+    imbrex a lit barrel across its course with a dark tegula channel beside
+    it, its lower end a lit lip over the shadow it throws on the next."""
+    across = (4, 3, 2, 1, 1, 2, 3, 5)
+    if b >= len(across):
+        col = r[6] if b - len(across) < th - len(across) - 1 else r[7]
+    else:
+        q = across[len(across) - 1 - b]
+        if a == tw - 1:
+            q = 6
+        elif a == tw - 2:
+            q = max(0, q - 1)
+        elif a == 0:
+            q = min(7, q + 2)
+        elif a == 1:
+            q = min(7, q + 1)
+        col = r[q]
+    return darker(r, col, shade)
+
+
 ROOFS = {
     'shingle': dict(px=rake_shingle, ramps=SHINGLE, tw=12, th=7, stagger=True, verge='barge', ridge='cap', rise=60),
     'slate': dict(px=rake_slate, ramps=[RAMPS['slate'], ramp(262, 0.04, lift=-0.14)], tw=9, th=5,
@@ -209,6 +230,12 @@ ROOFS = {
                     stagger=False, verge='tile', ridge='cap', rise=44),
     'thatch': dict(px=rake_thatch, ramps=[RAMPS['thatch']], tw=12, th=10, stagger=False, verge='thatch',
                    ridge='thatch', rise=70),
+    'imbrex': dict(px=rake_imbrex, ramps=[RAMPS['tegula'], ramp(34, 0.11, lift=-0.06), ramp(50, 0.11, lift=0.0)],
+                   tw=10, th=11, stagger=False, verge='tile', ridge='cap', rise=40),
+    # the same tiles on a slope seen nearly end-on from above, where the
+    # imbrex runs, not the laps, carry the read
+    'imbrex-run': dict(px=rake_imbrex, ramps=[RAMPS['tegula'], ramp(34, 0.11, lift=-0.06), ramp(50, 0.11, lift=0.0)],
+                       tw=40, th=9, stagger=True, verge='tile', ridge='cap', rise=40),
 }
 
 

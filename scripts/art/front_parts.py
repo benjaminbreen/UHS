@@ -73,6 +73,19 @@ def pointed(x, y, x0, spring, w):
     return up <= reach
 
 
+def persian(x, y, x0, spring, w):
+    """The Persian two-centred arch: struck from a radius of 0.62 of the span,
+    lower and fuller than the Gothic equilateral, rising 0.6 of its span."""
+    if y >= spring:
+        return x0 <= x < x0 + w
+    lx = x - x0 + 0.5
+    if lx < 0 or lx > w:
+        return False
+    r = 0.62 * w
+    ox = x0 + r if lx <= w / 2 else x0 + w - r
+    return (x + 0.5 - ox) ** 2 + (spring - y) ** 2 <= r * r
+
+
 def rounded(x, y, x0, spring, w):
     if y >= spring:
         return x0 <= x < x0 + w
@@ -92,11 +105,12 @@ def square(x, y, x0, spring, w):
     return x0 <= x < x0 + w and y >= spring - 1
 
 
-SHAPES = {'pointed': pointed, 'round': rounded, 'segmental': segmental, 'square': square}
+SHAPES = {'pointed': pointed, 'persian': persian, 'round': rounded, 'segmental': segmental, 'square': square}
 
 
 def apex(shape, w):
-    return {'pointed': round(w * 0.87), 'round': w // 2, 'segmental': round(w * 0.18), 'square': 0}[shape]
+    return {'pointed': round(w * 0.87), 'persian': round(w * 0.61), 'round': w // 2, 'segmental': round(w * 0.18),
+            'square': 0}[shape]
 
 
 # ------------------------------------------------------------------ glazing
@@ -335,6 +349,54 @@ def lesene(c, x, top, base, r, w=5):
     """A pilaster strip, flat and only just proud of the wall."""
     raised(c, x, top, w, base - top, r, 1)
     cast_right(c, x + w, top, base, 2, 0.22)
+
+
+def column(c, cx, top, base, r, d=10, order='tuscan', fluted=None):
+    """A column square to us: base, shaft lit down its left third, and the
+    capital of its order. Tuscan and Doric are plain cushions under an
+    abacus; Ionic curls a volute each side; Corinthian rises in two rows of
+    acanthus to a hollow-sided abacus. Fluting is a dark groove every other
+    pixel across the lit part of the shaft."""
+    fluted = order in ('doric', 'ionic', 'corinthian') if fluted is None else fluted
+    x0 = cx - d // 2
+    prof = [1, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5]
+    cap = {'tuscan': 5, 'doric': 5, 'ionic': 7, 'corinthian': 11}[order]
+    foot = 0 if order == 'doric' else 4
+    for yy in range(top + cap, base - foot):
+        for i in range(d):
+            q = prof[int(i * len(prof) / d)]
+            if fluted and i % 2 == 1 and 0 < i < d - 1:
+                q = min(7, q + 1)
+            c.p(x0 + i, yy, r[q])
+    for k, (g, q) in enumerate(((1, 1), (2, 2), (1, 3), (2, 4))[:foot]):
+        for xx in range(x0 - g, x0 + d + g):
+            c.p(xx, base - foot + k, r[q] if xx < cx + d // 4 else r[min(7, q + 1)])
+    if order in ('tuscan', 'doric'):
+        for k, (g, q) in enumerate(((3, 0), (3, 3), (2, 1), (1, 3), (1, 4))):
+            for xx in range(x0 - g, x0 + d + g):
+                c.p(xx, top + k, r[q] if xx < cx + d // 4 else r[min(7, q + 1)])
+    elif order == 'ionic':
+        for k, (g, q) in enumerate(((3, 0), (3, 3), (4, 1), (4, 2), (3, 3), (1, 3), (1, 4))):
+            for xx in range(x0 - g, x0 + d + g):
+                c.p(xx, top + k, r[q] if xx < cx + d // 4 else r[min(7, q + 1)])
+        for vx in (x0 - 4, x0 + d + 1):
+            for (dx, dy, q) in ((0, 2, 1), (1, 2, 1), (2, 3, 2), (2, 4, 4), (1, 5, 5), (0, 4, 3), (1, 3, 6)):
+                c.p(vx + dx, top + dy, r[q])
+    else:
+        for k in range(cap):
+            if k < 2:
+                g, q = 3, (0, 3)[k]
+                for xx in range(x0 - g, x0 + d + g):
+                    edge = xx in (x0 - g, x0 + d + g - 1)
+                    c.p(xx, top + k, r[q + (1 if edge else 0)])
+                continue
+            g = 3 if k < 6 else 2 if k < 9 else 1
+            for xx in range(x0 - g, x0 + d + g):
+                j = xx - x0 + g + (k // 4)
+                leaf = j % 4
+                q = (1, 2, 3, 5)[leaf] if k not in (5, 9) else 5
+                c.p(xx, top + k, r[q] if xx < cx + 2 else r[min(7, q + 1)])
+    cast_right(c, x0 + d, top + cap, base - foot, 3, 0.3)
 
 
 def plinth(c, x, y, w, r):

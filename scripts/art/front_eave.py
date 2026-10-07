@@ -36,6 +36,7 @@ COVER = {
     'slate': (fm.slate, RAMPS['slate']),
     'pantile': (fm.pantiles, RAMPS['terracotta']),
     'shingle': (lambda c, x, y, w, h, r=None: fm.shingles(c, x, y, w, h, r, tw=8, th=6, mix_=r is None or r is RAMPS['shingle']), RAMPS['shingle']),
+    'imbrex': (fm.imbrex, RAMPS['tegula']),
 }
 # Historical roof colours, chosen per spec by `tone`. Clays, slates and
 # straws differ by region and age more than by anything a painter adds.
@@ -57,8 +58,11 @@ TONES = {
     'pantile-black': ramp(255, 0.02, lift=-0.18),               # glazed black pantile, Holland
     'shingle': RAMPS['shingle'],                                # new oak or larch shingle
     'shingle-silver': ramp(255, 0.015, lift=-0.02),             # weathered to silver: Alps, Scandinavia, eastern Europe
+    'tegula': RAMPS['tegula'],                                  # Roman fired tile, Campania and Latium
+    'tegula-pale': ramp(52, 0.09, lift=0.02),                   # a lighter, yellower clay, Ostia and the provinces
 }
-DEFAULT_TONE = {'thatch': 'straw', 'plain': 'tile-red', 'slate': 'slate-blue', 'pantile': 'pantile', 'shingle': 'shingle'}
+DEFAULT_TONE = {'thatch': 'straw', 'plain': 'tile-red', 'slate': 'slate-blue', 'pantile': 'pantile', 'shingle': 'shingle',
+                'imbrex': 'tegula'}
 
 WALL = {
     'render': lambda c, x, y, w, h: fm.render(c, x, y, w, h),
@@ -72,7 +76,24 @@ WALL = {
     'boards': lambda c, x, y, w, h: fm.clapboard(c, x, y, w, h),
     'falu': lambda c, x, y, w, h: fm.boards(c, x, y, w, h, fm.ramp(26, 0.13, lift=-0.1)),
     'tar': lambda c, x, y, w, h: fm.boards(c, x, y, w, h, fm.ramp(32, 0.06, lift=-0.27)),
+    'testaceum': lambda c, x, y, w, h: fm.testaceum(c, x, y, w, h),
+    'reticulatum': lambda c, x, y, w, h: fm.reticulatum(c, x, y, w, h),
+    'stucco': lambda c, x, y, w, h: fm.stucco(c, x, y, w, h),
+    'stucco-ochre': lambda c, x, y, w, h: fm.stucco(c, x, y, w, h, RAMPS['plaster-ochre']),
+    'kahgel': lambda c, x, y, w, h: fm.kahgel(c, x, y, w, h),
 }
+
+
+ANTEFIX = ('.ooo.', 'oLmLo', 'oLLLo', '.oDo.', '..o..')
+
+
+def antefix(c, x, foot, r):
+    """A terracotta palmette standing on the eave at the foot of each imbrex
+    row, as Greek and Roman roofs end."""
+    for j, row in enumerate(ANTEFIX):
+        for i, ch in enumerate(row):
+            if ch != '.':
+                c.p(x - 2 + i, foot - 5 + j, {'o': r[5], 'L': r[1], 'm': r[3], 'D': r[3]}[ch])
 
 
 def mix_ramp(r):
@@ -92,7 +113,7 @@ class EaveHouse:
         self.heights = s['heights'] or ([50] if n == 1 else [56] + [46] * (n - 1))
         # A roof's depth follows the frontage: a small house carries a small
         # roof, never one taller than its walls.
-        full = {'thatch': 74, 'pantile': 44, 'slate': 58, 'plain': 64, 'shingle': 60}[s['roof']]
+        full = {'thatch': 74, 'pantile': 44, 'slate': 58, 'plain': 64, 'shingle': 60, 'imbrex': 52}[s['roof']]
         self.rise = s['rise'] or min(full, round(full * (0.42 + 0.58 * min(1.0, s['W'] / 140))))
         self.tone = TONES[s['tone'] or DEFAULT_TONE[s['roof']]]
         self.lean = 40 if s['lean_to'] else 0
@@ -333,7 +354,7 @@ class EaveHouse:
     def cap_ramp(self, kind):
         if kind == 'slate':
             return ramp(258, 0.025, lift=-0.1)
-        if kind in ('plain', 'pantile', 'shingle'):
+        if kind in ('plain', 'pantile', 'shingle', 'imbrex'):
             return mix_ramp(self.tone)
         return self.tone
 
@@ -368,6 +389,9 @@ class EaveHouse:
                 for k, idx in enumerate((5, 3, 4, 6)):
                     c.p(x, eave + 2 + k, fascia[idx])
             op.cast(c, L + 5, eave + 6, R - L - 10, 5, 0.62)
+            if kind == 'imbrex' and self.s.get('antefixes', True):
+                for x in range(L + 1, R - 2, 9):
+                    antefix(c, x + 1, eave + 2, r)
 
     def ridge(self, L, R, y, kind, r, sag=lambda x: 0):
         c = self.c
@@ -518,6 +542,11 @@ class EaveHouse:
                              stone=stone, sills=self.sills, chimneys=self.stack_boxes), s['wear'], s['seed'])
         self.roof_span = (x0 - self.over, x1 + self.over)
         self.stacks = [(x, w) for x, _, w in self.stack_boxes]
-        outline(self.c)
-        consolidate(self.c)
+        if s.get('edge') == 'finish':
+            from art.front_kit import finish
+            finish(self.c)
+            consolidate(self.c, rare=4)
+        else:
+            outline(self.c)
+            consolidate(self.c)
         return self.c.im

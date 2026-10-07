@@ -208,8 +208,47 @@ def mashrabiya(c, x, y, w, h, paint=None):
     c.rect(x, y + h - 1, w, 1, r[5])
 
 
+def grille(c, x, y, w, h, paint=None):
+    """An unglazed light behind iron bars: the room dark beyond, each bar lit
+    on its left, the sill's top face catching the light."""
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            c.p(xx, yy, (44, 32, 40, 255) if yy - y > 2 else (34, 24, 34, 255))
+    for xx in range(x + 2, x + w - 1, 3):
+        for yy in range(y, y + h):
+            c.p(xx, yy, IRON[2]); c.p(xx + 1, yy, IRON[4])
+    for xx in range(x, x + w):
+        c.p(xx, y + h // 2, IRON[3])
+
+
+def boards(c, x, y, w, h, paint='oak'):
+    """Board shutters closed: two leaves of plain planks on ledges, the
+    meeting line dark."""
+    p = PAINT.get(paint, RAMPS['oak'])
+    m = x + w // 2
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            a = (xx - x) % 4
+            col = p[2] if a == 0 else p[3] if a < 3 else p[4]
+            if xx in (m - 1, m):
+                col = p[5]
+            c.p(xx, yy, col)
+    for ly in (y + 3, y + h - 4):
+        c.rect(x, ly, w, 1, p[4]); c.rect(x, ly - 1, w, 1, p[2])
+
+
 INFILLS = {'casement': casement, 'sash': sash, 'leaded': leaded,
-           'shutters': shutters, 'lattice': lattice, 'mashrabiya': mashrabiya}
+           'shutters': shutters, 'lattice': lattice, 'mashrabiya': mashrabiya,
+           'grille': grille, 'boards': boards, 'open': lambda c, x, y, w, h, paint=None: open_light(c, x, y, w, h)}
+
+
+def open_light(c, x, y, w, h):
+    """An unglazed window: the room dark beyond, a little light on the far
+    jamb and the floor."""
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            far = xx > x + w * 2 // 3 and yy > y + 2
+            c.p(xx, yy, (62, 46, 50, 255) if far else (38, 28, 36, 255))
 
 
 # ------------------------------------------------------------------ frames
@@ -241,10 +280,10 @@ def frame_timber(c, x, y, w, h, wall):
     cast(c, x - 5, y + h + 5, w + 10, 2)
 
 
-def frame_brick(c, x, y, w, h, wall):
+def frame_brick(c, x, y, w, h, wall, r=None, s=None):
     """A brick reveal under a gauged segmental arch, on a stone sill."""
-    r = RAMPS['brick']
-    s = RAMPS['limestone']
+    r = r or RAMPS['brick']
+    s = s or RAMPS['limestone']
     rise = 4
     cx = x + w / 2 - 0.5
     for yy in range(y - rise - 5, y + 1):
@@ -279,6 +318,21 @@ def self_arch(c, x, y, w, rise):
             t = (xx - cx) / (w / 2)
             if yy >= y - rise * math.sqrt(max(0, 1 - t * t)):
                 c.p(xx, yy, GLASS[6])
+
+
+def frame_roman(c, x, y, w, h, wall, s=None):
+    """A Roman window in a travertine surround: a lintel block whose top we
+    see, a sill standing out on the wall with its top lit and its shadow
+    under it."""
+    s = s or RAMPS['travertine']
+    raised(c, x - 3, y - 3, w + 6, h + 3, s, 2)
+    c.rect(x - 6, y - 10, w + 12, 2, s[0])
+    raised(c, x - 6, y - 8, w + 12, 5, s, 2)
+    cast(c, x - 3, y - 3, w + 6, 2, 0.7)
+    c.rect(x - 6, y + h, w + 12, 2, s[0])
+    c.rect(x - 6, y + h + 2, w + 12, 2, s[3])
+    c.rect(x - 6, y + h + 3, w + 12, 1, s[4])
+    cast(c, x - 5, y + h + 4, w + 10, 2, 0.72)
 
 
 def frame_adobe(c, x, y, w, h, wall):
@@ -332,6 +386,8 @@ FRAMES = {
     'adobe': (frame_adobe, lambda c, x, y, w, h: adobe(c, x, y, w, h)),
     'asian': (frame_asian, lambda c, x, y, w, h: boards(c, x, y, w, h, RAMPS['cedar'])),
     'painted': (frame_painted, lambda c, x, y, w, h: boards(c, x, y, w, h)),
+    'roman': (lambda c, x, y, w, h, wall: frame_roman(c, x, y, w, h, wall),
+              lambda c, x, y, w, h: brick(c, x, y, w, h, RAMPS['roman-brick'])),
 }
 
 
@@ -657,8 +713,63 @@ def door_sliding(c, x, y, w, h, paint=None):
     cast(c, x - 6, y - 5, w + 12, 2, 0.72)
 
 
+def door_studded(c, x, y, w, h, wood=None, studs=None):
+    """A Roman double door: two leaves of heavy boards in a stone frame, each
+    leaf in three fields, rows of bronze studs, a ring on each leaf."""
+    o = wood or RAMPS['oak']
+    b = studs or ramp(72, 0.09, lift=-0.16)
+    s = RAMPS['travertine']
+    raised(c, x - 4, y - 5, w + 8, h + 5, s, 2)
+    m = x + w // 2
+    fields = (y + 2, y + h * 2 // 5, y + h * 3 // 4, y + h - 2)
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            leaf = xx - (x if xx < m else m)
+            lw = (m - x) if xx < m else (x + w - m)
+            col = o[3]
+            if leaf < 2 or leaf >= lw - 1:
+                col = o[2] if leaf < 1 else o[4] if leaf < 2 else o[5]
+            elif any(abs(yy - f) <= 1 for f in fields):
+                col = o[2] if any(yy - f == -1 for f in fields) else o[4]
+            c.p(xx, yy, col)
+    for f in fields:
+        for xx in range(x + 3, x + w - 2, 3):
+            if abs(xx - m) > 1:
+                c.p(xx, f, b[1]); c.p(xx, f + 1, b[5])
+    for rx in (m - 4, m + 3):
+        for k, (dx, dy) in enumerate(((0, 0), (-1, 1), (1, 1), (-1, 2), (1, 2), (0, 3))):
+            c.p(rx + dx, y + h // 2 + dy, b[1] if k < 3 else b[4])
+    reveal(c, x, y, w, h, 3)
+    raised(c, x - 7, y - 9, w + 14, 5, s, 1)
+    cast(c, x - 6, y - 4, w + 12, 3, 0.66)
+
+
+def shopfront_open(c, x, y, w, h, wood=None, stone=None):
+    """A shop open to the street: a deep dark interior under a timber
+    lintel, the folding boards stacked against one jamb, a stone sill with
+    the groove they slide in. Goods are added by the caller."""
+    o = wood or RAMPS['oak']
+    s = stone or RAMPS['travertine']
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            t = (yy - y) / h
+            c.p(xx, yy, mix((40, 28, 36, 255), (74, 52, 50, 255), min(1.0, t * 1.4)))
+    raised(c, x - 4, y - 5, w + 8, 5, o, 3)
+    cast(c, x, y, w, 4, 0.55)
+    for i in range(4):
+        bx = x + w - 4 * (i + 1)
+        for yy in range(y + 2, y + h):
+            for k, q in enumerate((2, 3, 3, 5)):
+                c.p(bx + k, yy, o[q])
+        c.rect(bx + 1, y + 6, 2, 1, o[5]); c.rect(bx + 1, y + h - 6, 2, 1, o[5])
+    for xx in range(x - 3, x + w + 3):
+        c.p(xx, y + h, s[0]); c.p(xx, y + h + 1, s[2]); c.p(xx, y + h + 2, s[4])
+        if x <= xx < x + w and (xx - x) % 2 == 0:
+            c.p(xx, y + h + 1, s[5])
+
+
 DOORS = {'plank': (door_plank, 'timber'), 'panel': (door_panel, 'brick'), 'carriage': (door_carriage, 'stone'),
-         'shop': (door_shop, 'stone'), 'sliding': (door_sliding, 'asian')}
+         'shop': (door_shop, 'stone'), 'sliding': (door_sliding, 'asian'), 'studded': (door_studded, 'stone')}
 
 
 # ------------------------------------------------------------------ sheet

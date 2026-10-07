@@ -112,6 +112,13 @@ RAMPS = {
     'plaster-ochre': ramp(75, 0.09),
     'lead': ramp(250, 0.018, warm=6, cool=10, lift=-0.06),
     'grey-limestone': ramp(80, 0.032, lift=-0.04),
+    'roman-brick': ramp(44, 0.1),
+    'tufa': ramp(80, 0.055, lift=-0.03),
+    'travertine': ramp(88, 0.04, lift=0.02),
+    'marble': ramp(95, 0.01, lift=0.05),
+    'pompeian-red': ramp(26, 0.15, lift=-0.13),
+    'kahgel': ramp(66, 0.055, lift=0.04),
+    'tegula': ramp(40, 0.125, lift=-0.02),
 }
 
 
@@ -306,6 +313,129 @@ def flint(c, x0, y0, w, h, r=None, m=None):
         if lx == 3 or ly == 2:
             return r[min(7, base + 1)]
         return r[base]
+    fill(c, x0, y0, w, h, f)
+
+
+def testaceum(c, x0, y0, w, h, r=None, m=None):
+    """Opus testaceum, Roman brick facing: long bricks in wide pale joints,
+    each brick lit along its top and shaded along its foot and right end, a
+    bonding course of broad bipedales every so often."""
+    r = r or RAMPS['roman-brick']
+    m = m or RAMPS['mortar']
+    joint = mix(r[0], m[1], 0.55)
+    shadow = mix(r[4], m[3], 0.5)
+
+    def f(x, y):
+        band = (y - y0) % 50 >= 45
+        row, ly = y // 5, y % 5
+        off = (row % 2) * 8
+        L = 26 if band else 16
+        lx = (x + off) % L
+        if ly == 4:
+            return joint
+        if lx == L - 1:
+            return joint
+        k = h2((x + off) // L, row, 52)
+        base = 2 if band else 3 if k < 0.7 else 4 if k < 0.9 else 2
+        if ly == 0:
+            return r[base - 1]
+        if ly == 3 or lx == L - 2:
+            return r[min(7, base + 1)]
+        return r[base]
+    fill(c, x0, y0, w, h, f)
+    for yy in range(y0, y0 + h):
+        if (yy - y0) % 5 == 0 and yy > y0:
+            for xx in range(x0, x0 + w):
+                q = c.g(xx, yy - 1)
+                if q == joint:
+                    c.p(xx, yy - 1, joint)
+
+
+def reticulatum(c, x0, y0, w, h, r=None, m=None):
+    """Opus reticulatum: small square tufa blocks set on the diagonal in a
+    net of pale mortar, each lit on its upper edges."""
+    r = r or RAMPS['tufa']
+    m = m or RAMPS['mortar']
+
+    def f(x, y):
+        a, b = (x + y) % 9, (x - y) % 9
+        if a == 0 or b == 0:
+            return m[2]
+        if a == 1:
+            return r[1]
+        if b == 8:
+            return r[2]
+        if a == 8:
+            return r[5]
+        if b == 1:
+            return r[4]
+        k = h2((x + y) // 9, (x - y) // 9, 61)
+        return r[3] if k < 0.2 else r[2]
+    fill(c, x0, y0, w, h, f)
+
+
+def stucco(c, x0, y0, w, h, r=None, block=26, course=11):
+    """Stucco moulded as drafted blocks, the Pompeian First Style: each
+    block flat, a lit margin along its top and left, a shadowed joint."""
+    r = r or RAMPS['render']
+
+    def f(x, y):
+        row, ly = (y - y0) // course, (y - y0) % course
+        lx = (x - x0 + (row % 2) * (block // 2)) % block
+        if ly == course - 1 or lx == block - 1:
+            return r[3]
+        if ly == 0 or lx == 0:
+            return r[0]
+        return r[2] if h2((x - x0 + (row % 2) * (block // 2)) // block, row, 77) < 0.8 else mix(r[2], r[3], 0.4)
+    fill(c, x0, y0, w, h, f)
+
+
+def kahgel(c, x0, y0, w, h, r=None):
+    """Mud-and-straw plaster of the Iranian plateau: one soft flat face,
+    chopped straw catching the light here and there, darker at the foot."""
+    r = r or RAMPS['kahgel']
+
+    def f(x, y):
+        if y0 + h - y <= 4:
+            return r[3]
+        if h2(x // 3, y, 81) > 0.985:
+            return r[1]
+        return r[2]
+    fill(c, x0, y0, w, h, f)
+
+
+def imbrex(c, x0, y0, w, h, r=None, col=11, course=10):
+    """Roman roof tiles on a slope facing us, as a high camera sees them: the
+    rounded imbrices are the tiles we read, each a lit barrel with a dark
+    channel of tegula between it and the next, each course lapping the one
+    below with a lit lip and a shadow under it. Tiles vary in clay from one
+    to the next. World coordinates, so rows painted one at a time line up."""
+    r = r or RAMPS['tegula']
+    warm, dark = ramp(50, 0.13, lift=0.02), ramp(30, 0.12, lift=-0.08)
+    across = (5, 3, 2, 1, 1, 2, 3, 4)
+
+    def f(x, y):
+        lx, ly = x % col, y % course
+        rr = r
+        k = h2(x // col, y // course, 401)
+        rr = r if k < 0.6 else warm if k < 0.82 else dark
+        if lx >= len(across):
+            q = (6, 5, 6)[lx - len(across)] if lx - len(across) < 3 else 6
+            if ly >= course - 2:
+                q = 7
+            return rr[q]
+        q = across[lx]
+        if ly == 0:
+            q = min(7, q + 2)
+        elif ly == 1:
+            q = min(7, q + 1)
+        elif ly == course - 3:
+            q = max(0, q - 1)
+        elif ly == course - 2:
+            q = 5 if 1 <= lx <= 6 else 6
+        elif ly == course - 1:
+            q = 6
+        return rr[q]
     fill(c, x0, y0, w, h, f)
 
 
@@ -632,11 +762,15 @@ WALLS = [
     ('logs', lambda c, x, y, w, h: logs(c, x, y, w, h)),
     ('sandstone', lambda c, x, y, w, h: ashlar(c, x, y, w, h, RAMPS['sandstone'], 8, 16)),
     ('flint', lambda c, x, y, w, h: flint(c, x, y, w, h)),
+    ('opus testaceum', lambda c, x, y, w, h: testaceum(c, x, y, w, h)),
+    ('opus reticulatum', lambda c, x, y, w, h: reticulatum(c, x, y, w, h)),
+    ('stucco, First Style', lambda c, x, y, w, h: stucco(c, x, y, w, h)),
+    ('kahgel', lambda c, x, y, w, h: kahgel(c, x, y, w, h)),
 ]
 ROOFS = [
     ('slate', slate), ('zinc', zinc), ('shingles', shingles),
     ('pantiles', pantiles), ('plain tiles', plain_tiles), ('thatch', thatch),
-    ('kawara', kawara), ('palm thatch', palm),
+    ('kawara', kawara), ('palm thatch', palm), ('tegula & imbrex', imbrex),
 ]
 
 
