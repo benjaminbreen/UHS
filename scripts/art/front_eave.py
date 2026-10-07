@@ -37,6 +37,29 @@ COVER = {
     'pantile': (fm.pantiles, RAMPS['terracotta']),
     'shingle': (lambda c, x, y, w, h: fm.shingles(c, x, y, w, h, tw=8, th=6), RAMPS['shingle']),
 }
+# Historical roof colours, chosen per spec by `tone`. Clays, slates and
+# straws differ by region and age more than by anything a painter adds.
+TONES = {
+    'straw': RAMPS['thatch'],                                   # fresh wheat straw
+    'straw-old': ramp(68, 0.045, lift=-0.07),                   # straw greys and browns as it weathers
+    'reed': ramp(58, 0.065, lift=-0.05),                        # water reed: darker, browner, East Anglia, Low Countries
+    'tile-red': RAMPS['clay-tile'],                             # common red clay tile
+    'tile-orange': ramp(50, 0.12),                              # Kent, Sussex, northern France
+    'tile-brown': ramp(32, 0.07, lift=-0.12),                   # old peg tile, sooted and lichened
+    'tile-black': ramp(258, 0.02, lift=-0.2),                   # glazed black, Flanders and Holland, for the well off
+    'slate-blue': ramp(268, 0.035, warm=8, cool=12, lift=-0.08),  # Angers and the Ardennes
+    'slate-welsh': ramp(292, 0.045, warm=8, cool=12, lift=-0.06),  # Penrhyn purple-grey
+    'slate-green': ramp(165, 0.035, warm=8, cool=12, lift=-0.05),  # Westmorland green
+    'stone-slate': ramp(76, 0.04, lift=-0.03),                  # Cotswold and Pennine limestone and sandstone slates
+    'pantile': RAMPS['terracotta'],                             # Mediterranean terracotta
+    'pantile-pale': ramp(58, 0.08, lift=0.02),                  # sun-bleached southern tile
+    'pantile-red': ramp(30, 0.12, lift=-0.05),                  # Low Countries and East Anglian pantile
+    'pantile-black': ramp(255, 0.02, lift=-0.18),               # glazed black pantile, Holland
+    'shingle': RAMPS['shingle'],                                # new oak or larch shingle
+    'shingle-silver': ramp(255, 0.015, lift=-0.02),             # weathered to silver: Alps, Scandinavia, eastern Europe
+}
+DEFAULT_TONE = {'thatch': 'straw', 'plain': 'tile-red', 'slate': 'slate-blue', 'pantile': 'pantile', 'shingle': 'shingle'}
+
 WALL = {
     'render': lambda c, x, y, w, h: fm.render(c, x, y, w, h),
     'ochre': lambda c, x, y, w, h: fm.render(c, x, y, w, h, RAMPS['plaster-ochre']),
@@ -50,17 +73,26 @@ WALL = {
 }
 
 
+def mix_ramp(r):
+    """Ridge tiles are bedded in mortar and a shade richer than the field."""
+    return [mix(q, (120, 40, 30, 255), 0.12) for q in r]
+
+
 class EaveHouse:
     def __init__(self, spec):
         s = dict(W=140, storeys=['render'], heights=None, jetty=False, frame=False, roof='plain', hip=False,
                  rise=None, dormers=0, dormer='gable', stacks='ends', windows=('timber', 'leaded'),
                  shutters=None, boxes=False, door='plank', lean_to=False, plinth='rubble', quoins=False,
-                 wear=0.5, seed=0, sign=None, lantern=None, string=False)
+                 wear=0.5, seed=0, sign=None, lantern=None, string=False, tone=None, shop=False)
         s.update(spec)
         self.s = s
         n = len(s['storeys'])
         self.heights = s['heights'] or ([50] if n == 1 else [56] + [46] * (n - 1))
-        self.rise = s['rise'] or {'thatch': 62, 'pantile': 34, 'slate': 46, 'plain': 52, 'shingle': 48}[s['roof']]
+        # A roof's depth follows the frontage: a small house carries a small
+        # roof, never one taller than its walls.
+        full = {'thatch': 74, 'pantile': 44, 'slate': 58, 'plain': 64, 'shingle': 60}[s['roof']]
+        self.rise = s['rise'] or min(full, round(full * (0.42 + 0.58 * min(1.0, s['W'] / 140))))
+        self.tone = TONES[s['tone'] or DEFAULT_TONE[s['roof']]]
         self.lean = 40 if s['lean_to'] else 0
         self.x0 = 14 + self.lean
         self.W = s['W']
@@ -162,6 +194,12 @@ class EaveHouse:
                 if s['boxes'] and i == 0:
                     op.flower_box(c, cx - ww // 2, wy + wh + 6, ww, seed=cx)
                 self.sills.append((cx - ww // 2 - 6, wy + wh + 5, ww + 12))
+        if s['shop']:
+            # the bay beside the door opens as a shop: the lower shutter let
+            # down as a counter, the upper propped out as a hood
+            k = door_col + 1 if door_col + 1 < len(cols) else door_col - 1
+            top, h, _ = self.floors[0]
+            self.shop_counter(cols[k], top + 10, max(26, self.W // len(cols) - 12), h - 22)
         cx = cols[door_col]
         self.door_x = cx
         dx, dy = cx - dw // 2, self.base - dh
@@ -173,43 +211,126 @@ class EaveHouse:
             c.rect(dx - 6 - k, self.base + k, dw + 12 + 2 * k, 1, RAMPS['granite'][k + 1])
         self.cols, self.door_col = cols, door_col
 
+    def shop_counter(self, cx, y, w, h):
+        c = self.c
+        x = cx - w // 2
+        o = OAK
+        op.raised(c, x - 3, y - 3, w + 6, h + 6, o, 3)
+        for yy in range(y, y + h):
+            for xx in range(x, x + w):
+                c.p(xx, yy, (60, 42, 44, 255) if yy - y > 4 else (44, 30, 36, 255))
+        for xx in range(x + 3, x + w - 3, 5):
+            c.rect(xx, y + 5, 3, 1, (150, 110, 70, 255))
+        # propped hood: its underside dark, its front edge lit
+        c.rect(x - 4, y - 7, w + 8, 4, o[3])
+        c.rect(x - 4, y - 7, w + 8, 1, o[2])
+        c.rect(x - 4, y - 4, w + 8, 1, o[5])
+        op.cast(c, x - 2, y - 3, w + 4, 3, 0.62)
+        # counter: its top face, goods on it, its board front
+        cy = y + h - 7
+        c.rect(x - 4, cy, w + 8, 3, o[2])
+        c.rect(x - 4, cy, w + 8, 1, o[1])
+        goods = [ramp(65, 0.12)[2], ramp(40, 0.12)[3], ramp(150, 0.08)[3], ramp(85, 0.04)[1]]
+        for k, xx in enumerate(range(x, x + w - 2, 4)):
+            col = goods[int(h2(xx, y, 701) * 4)]
+            c.rect(xx, cy - 2, 3, 2, col)
+            c.p(xx, cy - 2, mix(col, (255, 250, 230, 255), 0.4))
+        op.raised(c, x - 4, cy + 3, w + 8, 8, o, 3)
+        for xx in range(x - 3, x + w + 3, 6):
+            c.rect(xx, cy + 4, 1, 6, o[4])
+
     # ---------------------------------------------------------------- roof
 
     def roof(self):
+        """The front slope as a band: courses across, a stepped light from a
+        brighter eave to a duller ridge, hips that turn away, an old ridge
+        that sags."""
         c, s = self.c, self.s
         x0, x1 = self.x0, self.x0 + self.W
         over, rise = (7 if s['roof'] == 'thatch' else 5), self.rise
         eave = self.eave
         top = eave - rise
-        paint, r = COVER[s['roof']]
+        paint, _ = COVER[s['roof']]
+        r = self.tone
         self.roof_px = set()
         hip = s['hip']
-        for y in range(top, eave + 3):
+        k_hip = 0.55
+        old = s['wear'] > 0.5 and s['roof'] in ('thatch', 'plain', 'shingle')
+        amp = 2 + (s['wear'] > 0.75)
+        span = x1 - x0 + 2 * over
+
+        def sag(x):
+            return round(amp * math.sin(math.pi * (x - x0 + over) / span)) if old else 0
+
+        for y in range(top - 1, eave + 3):
             k = y - top
-            inset = round((rise - k) * 0.55) if hip else 0
+            inset = round((rise - k) * k_hip) if hip else 0
             L, R = x0 - over + inset, x1 + over - inset
-            paint(c, L, y, R - L, 1)
+            if R <= L:
+                continue
+            paint_r = r
+            paint(c, L, y, R - L, 1) if paint_r is None else self.paint_row(paint, L, y, R - L, paint_r)
             for x in range(L, R):
+                if y < top + sag(x):
+                    c.px[x, y] = (0, 0, 0, 0)
+                    continue
                 self.roof_px.add((x, y))
+                t = (y - top - sag(x)) / rise
+                col = c.g(x, y)
+                if t < 0.3:
+                    c.p(x, y, mix(col, (40, 30, 70, 255), 0.14))
+                elif t > 0.72:
+                    c.p(x, y, mix(col, (255, 244, 220, 255), 0.06))
             if hip:
-                # hip faces turn away: the left catches light, the right falls into shade
-                hw = max(0, round((rise - k) * 0.55))
+                hw = inset
                 for x in range(L, min(R, L + hw // 2 + 1)):
-                    c.p(x, y, mix(c.g(x, y), (255, 244, 220, 255), 0.12))
+                    c.p(x, y, mix(c.g(x, y), (255, 244, 220, 255), 0.1))
                 for x in range(max(L, R - hw // 2 - 1), R):
                     c.p(x, y, mix(c.g(x, y), (40, 30, 70, 255), 0.25))
-        # gently darker toward the ridge: the slope tips away from the sky
-        for y in range(top, top + rise // 3):
-            for x in range(x0 - over, x1 + over):
-                if (x, y) in self.roof_px:
-                    c.p(x, y, mix(c.g(x, y), (40, 30, 70, 255), 0.12 * (1 - (y - top) / (rise / 3))))
         self.eave_edge(x0 - over, x1 + over, eave, s['roof'], r)
-        if not hip:
-            for x in (x0 - over, x1 + over - 1):
-                for y in range(top, eave + 3):
-                    c.p(x, y, r[5] if x > x0 else r[3])
-        self.ridge(x0 - over + (round(rise * 0.55) if hip else 0), x1 + over - (round(rise * 0.55) if hip else 0), top, s['roof'], r)
+        ins = round(rise * k_hip) if hip else 0
+        if hip:
+            # ridge tiles run down each hip to the eave corner
+            for y in range(top, eave + 2):
+                d = round((rise - (y - top)) * k_hip)
+                for xx, cols in ((x0 - over + d, (r[2], r[3])), (x1 + over - d - 2, (r[4], r[5]))):
+                    if s['roof'] == 'thatch':
+                        c.p(xx, y, r[4]); c.p(xx + 1, y, r[5])
+                    else:
+                        cap = self.cap_ramp(s['roof'])
+                        c.p(xx, y, cap[2]); c.p(xx + 1, y, cap[4])
+        else:
+            self.verges(x0 - over, x1 + over, top, eave, s['roof'], r, sag)
+        self.ridge(x0 - over + ins, x1 + over - ins, top, s['roof'], r, sag)
         self.top, self.over = top, over
+
+    def paint_row(self, paint, x, y, w, r):
+        try:
+            paint(self.c, x, y, w, 1, r)
+        except TypeError:
+            paint(self.c, x, y, w, 1)
+
+    def cap_ramp(self, kind):
+        if kind == 'slate':
+            return ramp(258, 0.025, lift=-0.1)
+        if kind in ('plain', 'pantile', 'shingle'):
+            return mix_ramp(self.tone)
+        return self.tone
+
+    def verges(self, L, R, top, eave, kind, r, sag):
+        """Gable ends seen edge-on: a barge board for tile and slate, the
+        straw rolled over for thatch, each casting a sliver of shadow."""
+        c = self.c
+        for y in range(top, eave + 3):
+            for x, left in ((L, True), (R - 1, False)):
+                if y < top + sag(x):
+                    continue
+                if kind == 'thatch':
+                    for k, idx in enumerate((3, 4, 5)):
+                        c.p(x + (k if left else -k), y, r[idx if left else min(7, idx + 1)])
+                else:
+                    for k, idx in enumerate((2, 3, 5)):
+                        c.p(x + (k if left else -k), y, OAK[idx if left else min(7, idx + 1)])
 
     def eave_edge(self, L, R, eave, kind, r):
         c = self.c
@@ -228,17 +349,18 @@ class EaveHouse:
                     c.p(x, eave + 2 + k, fascia[idx])
             op.cast(c, L + 5, eave + 6, R - L - 10, 5, 0.62)
 
-    def ridge(self, L, R, y, kind, r):
+    def ridge(self, L, R, y, kind, r, sag=lambda x: 0):
         c = self.c
         if kind == 'thatch':
             # a block-cut ridge with its lower edge cut in points, liggers crossed on it
             for x in range(L - 2, R + 2):
                 pt = 3 - abs((x - L) % 8 - 4) // 2 if L + 2 < x < R - 2 else 0
+                y0 = y + sag(x)
                 for k in range(-3, 6 + pt):
                     col = r[2] if k < 0 else r[3] if k < 3 else r[4] if k < 5 + pt else r[6]
                     if (x - L + k) % 7 == 0 and 0 <= k < 4:
                         col = OAK[4]
-                    c.p(x, y + k, col)
+                    c.p(x, y0 + k, col)
             return
         cap = ramp(258, 0.025, lift=-0.1) if kind == 'slate' else RAMPS['terracotta'] if kind == 'pantile' else ramp(38, 0.11, lift=-0.06)
         for x in range(L - 1, R + 1):
@@ -282,7 +404,7 @@ class EaveHouse:
         rise = 11
         for yy in range(y - rise - 2, y + 1):
             half = round((yy - (y - rise - 2)) * (w / 2 + 3) / (rise + 2))
-            paint(c, cx - half, yy, 2 * half, 1)
+            self.paint_row(paint, cx - half, yy, 2 * half, r)
         for i in range(-w // 2 - 3, w // 2 + 4):
             yy = y - rise - 2 + round(abs(i) * (rise + 2) / (w / 2 + 3))
             for k, idx in enumerate((2, 3, 5)):

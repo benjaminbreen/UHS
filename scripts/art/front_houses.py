@@ -8,6 +8,7 @@ with the live adult, for review before anything is wired into the game.
 """
 from pathlib import Path
 import json
+import re
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
@@ -21,42 +22,42 @@ from art.front_house import GableHouse  # noqa: E402
 # family: [(frame suffix, spec)]. Gabled specs carry form='gable'.
 EUROPEAN = {
     'house-cottage-thatch': ('Medieval thatched house', [
-        ('medium-0', dict(W=128, storeys=['whitewash'], frame=True, roof='thatch', dormers=1, dormer='eyebrow',
+        ('medium-0', dict(tone='straw-old', W=128, storeys=['whitewash'], frame=True, roof='thatch', dormers=1, dormer='eyebrow',
                           stacks='one', windows=('timber', 'leaded'), lean_to=True, wear=0.6, seed=1)),
-        ('medium-1', dict(W=120, storeys=['rubble'], roof='thatch', hip=True, stacks='center',
+        ('medium-1', dict(tone='reed', W=120, storeys=['rubble'], roof='thatch', hip=True, stacks='center',
                           windows=('timber', 'leaded'), shutters='oak', wear=0.7, seed=2)),
         ('large-0', dict(W=172, storeys=['render'], frame=True, roof='thatch', hip=True, dormers=2,
                          dormer='eyebrow', stacks='ends', windows=('timber', 'leaded'), lean_to=True, wear=0.5, seed=3)),
     ]),
     'house-cottage-timber': ('Medieval timber house', [
-        ('medium-0', dict(W=136, storeys=['rubble', 'render'], frame=True, jetty=True, roof='plain',
+        ('medium-0', dict(tone='tile-brown', W=136, storeys=['rubble', 'render'], frame=True, jetty=True, roof='plain',
                           stacks='one', windows=('timber', 'leaded'), wear=0.5, seed=4, sign=('oak', 0))),
-        ('medium-1', dict(W=128, storeys=['render', 'render'], frame=True, jetty=True, roof='shingle',
+        ('medium-1', dict(tone='shingle-silver', W=128, storeys=['render', 'render'], frame=True, jetty=True, roof='shingle',
                           stacks='center', windows=('timber', 'leaded'), wear=0.6, seed=5)),
-        ('large-0', dict(W=176, storeys=['rubble', 'render'], frame=True, jetty=True, roof='plain', dormers=2,
+        ('large-0', dict(tone='tile-orange', W=176, storeys=['rubble', 'render'], frame=True, jetty=True, roof='plain', dormers=2,
                          stacks='ends', windows=('timber', 'leaded'), wear=0.4, seed=6)),
     ]),
     'house-early-brick': ('Early-modern brick house', [
-        ('medium-0', dict(W=140, storeys=['brick', 'brick'], roof='plain', dormers=2, stacks='ends',
+        ('medium-0', dict(tone='tile-orange', W=140, storeys=['brick', 'brick'], roof='plain', dormers=2, stacks='ends',
                           windows=('mullion', 'leaded'), quoins=True, string=True, plinth='ashlar', wear=0.35, seed=7)),
-        ('medium-1', dict(W=132, storeys=['flemish', 'flemish'], roof='slate', stacks='ends',
+        ('medium-1', dict(tone='pantile-red', W=132, storeys=['flemish', 'flemish'], roof='pantile', stacks='ends',
                           windows=('mullion', 'leaded'), string=True, plinth='ashlar', wear=0.3, seed=8)),
-        ('large-0', dict(W=180, storeys=['flemish', 'flemish', 'flemish'], roof='slate', hip=True, dormers=3,
+        ('large-0', dict(tone='slate-welsh', W=180, storeys=['flemish', 'flemish', 'flemish'], roof='slate', hip=True, dormers=3,
                          stacks='ends', windows=('stone', 'sash'), quoins=True, string=True, door='panel',
                          plinth='ashlar', wear=0.25, seed=9)),
     ]),
     'house-early-stucco': ('Early-modern rendered house', [
-        ('medium-0', dict(W=136, storeys=['render', 'render'], roof='slate', hip=True, stacks='ends',
+        ('medium-0', dict(tone='slate-blue', W=136, storeys=['render', 'render'], roof='slate', hip=True, stacks='ends',
                           windows=('stone', 'sash'), quoins=True, string=True, door='panel', plinth='ashlar',
                           wear=0.3, seed=10)),
-        ('medium-1', dict(W=132, storeys=['ochre', 'ochre'], roof='plain', stacks='one', windows=('stone', 'casement'),
+        ('medium-1', dict(tone='tile-orange', W=132, storeys=['ochre', 'ochre'], roof='plain', stacks='one', windows=('stone', 'casement'),
                           shutters='green', door='panel', door_paint='green', plinth='ashlar', wear=0.4, seed=11)),
         ('large-0', dict(W=180, storeys=['render', 'render', 'render'], roof='slate', hip=True, dormers=3,
                          stacks='ends', windows=('stone', 'sash'), quoins=True, string=True, door='panel',
                          plinth='ashlar', wear=0.25, seed=12)),
     ]),
     'house-early-stone': ('Early-modern stone house', [
-        ('0', dict(W=140, storeys=['ashlar', 'ashlar'], roof='slate', stacks='ends', dormers=2,
+        ('0', dict(tone='stone-slate', W=140, storeys=['ashlar', 'ashlar'], roof='slate', stacks='ends', dormers=2,
                    windows=('mullion', 'leaded'), string=True, plinth='ashlar', wear=0.45, seed=13)),
     ]),
     'house-early-timber': ('Early-modern timber house', [
@@ -67,7 +68,7 @@ EUROPEAN = {
     'house-med': ('Mediterranean house', [
         ('0', dict(W=132, storeys=['ochre', 'ochre'], roof='pantile', stacks='one', windows=('stone', 'casement'),
                    shutters='green', plinth=None, wear=0.4, seed=14)),
-        ('1', dict(W=124, storeys=['whitewash', 'whitewash'], roof='pantile', hip=True, stacks='one',
+        ('1', dict(tone='pantile-pale', W=124, storeys=['whitewash', 'whitewash'], roof='pantile', hip=True, stacks='one',
                    windows=('adobe', 'casement'), shutters='blue', plinth=None, wear=0.5, seed=15)),
     ]),
 }
@@ -187,3 +188,113 @@ def street(out, zoom=3):
     d.text((10, (a.height + 18) * zoom), 'NEW  ·  front-on, character scale', font=f, fill=(240, 220, 170))
     s.convert('RGB').save(out)
     print(f'wrote {out} {s.size}')
+
+
+# ------------------------------------------------------------------ the game hook
+# Every frame of these families, urban forms included, is drawn from a spec.
+# Front-on houses are drawn at the adult's scale, so footprints widen.
+SCALE = 1.45
+FORMS = {
+    'row': dict(storeys=2, dormers=1, lean_to=False),
+    'shop': dict(storeys=1, shop=True, lean_to=False, dormers=0, sign=('oak', 3)),
+    'wide': dict(storeys=2, dormers=2, lean_to=False),
+    'tall': dict(storeys=3, dormers=0, lean_to=False),
+    'cottage': dict(storeys=1, dormers=0, stacks='one', lean_to=False),
+    'hut': dict(storeys=1, dormers=0, stacks=None, lean_to=False, plinth=None),
+    'stall': dict(storeys=1, shop=True, dormers=0, stacks=None, lean_to=False, plinth=None, heights=[40],
+                  sign=('oak', 3)),
+    'inn': dict(storeys=2, dormers=2, lean_to=False, sign=('painted', 0), lantern='iron'),
+    'hall': dict(storeys=2, dormers=3, lean_to=False, string=True, stacks='ends'),
+}
+
+
+def family_of(name):
+    for fam in EUROPEAN:
+        if name.startswith(fam + '-'):
+            return fam, name[len(fam) + 1:]
+    return None, None
+
+
+def spec_for(name, r):
+    """The spec that draws atlas frame `name`, or None if it is not ours."""
+    fam, rest = family_of(name)
+    if not fam:
+        return None
+    rest = re.sub(r'-(north|east|west)$', '', rest)
+    specs = [sp for _, sp in EUROPEAN[fam][1]]
+    keyed = {k: sp for k, sp in EUROPEAN[fam][1]}
+    form = None
+    if '-urban-' in rest:
+        idx, form = rest.split('-urban-')
+        base = specs[min(int(idx), len(specs) - 1)] if idx.isdigit() else specs[0]
+    elif rest.startswith('gold-'):
+        _, size, v = rest.split('-')[:3]
+        base = keyed.get(f'{size}-{v}') or (specs[-1] if size == 'large' else specs[0])
+    else:
+        base = specs[min(int(rest), len(specs) - 1)] if rest.isdigit() else specs[0]
+    fw, fh = r['footprint']
+    nw = max(4, round(fw * SCALE))
+    spec = dict(base, W=nw * 16, seed=hash(name) % 997)
+    if form:
+        f = dict(FORMS.get(form, {}))
+        n = f.pop('storeys', 2)
+        if spec.get('form') == 'gable':
+            if n <= 2 and form in ('row', 'shop', 'cottage', 'hut', 'stall'):
+                spec.update(lean_to=False, sign=f.get('sign', spec.get('sign')), lantern=None)
+                return spec, (nw, fh)
+            spec = dict(W=nw * 16, storeys=['rubble'] + ['render'] * (n - 1), frame=True, jetty=True,
+                        roof='plain', tone='tile-brown', windows=('timber', 'leaded'), seed=spec['seed'])
+        else:
+            walls = list(spec['storeys'])
+            spec['storeys'] = (walls + [walls[-1]] * n)[:n]
+            spec.pop('heights', None)
+        spec['sign'], spec['lantern'] = None, None
+        spec.update(f)
+        if form in ('hut', 'stall'):
+            spec['windows'] = ('timber', 'leaded')
+    return spec, (nw, fh)
+
+
+def adopt(recipes):
+    """Point every frame of these families at the front-on painters, with the
+    footprint the new sprite stands on."""
+    n = 0
+    for name, r in recipes.items():
+        got = spec_for(name, r)
+        if not got:
+            continue
+        spec, (fw, fh) = got
+        r['frontHouse'] = spec
+        r['front'] = True
+        r['footprint'] = [fw, fh]
+        r['entrance'] = [fw // 2, fh]
+        n += 1
+    return n
+
+
+class FrontHousePainter:
+    """What scripts/art/buildings.py needs from a painter."""
+
+    def __init__(self, r, material=None):
+        spec = r['frontHouse']
+        if spec.get('form') == 'gable':
+            b = GableHouse(**{k: v for k, v in spec.items() if k != 'form'})
+            im = b.build()
+            self.anchor_x = b.x0 + b.W // 2
+            self.door_x = b.x0 + b.W // 2
+            base = b.base
+            self.door_size = (24, 46)
+        else:
+            b = EaveHouse(spec)
+            im = b.build()
+            self.anchor_x = b.x0 + b.W // 2
+            self.door_x = b.door_x
+            base = b.base
+            self.door_size = (22, b.door_h)
+        self.image = im
+        self.w, self.h = im.size
+        self.door_ground = base + 1
+        self.bottom = base + 1
+
+    def render(self):
+        return self.image

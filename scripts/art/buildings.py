@@ -379,6 +379,9 @@ def build_buildings(root, sprites):
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source),
              **modern_recipes(), **sacred_recipes()}
+    # Pre-industrial European houses are drawn front-on, from specs.
+    from art.front_houses import adopt, FrontHousePainter
+    adopt(recipes)
     for name,r in list(recipes.items()):
         # Tents and shelters draw their door on the front whatever the facing,
         # and camps pitch them all opening south, so turned copies would lie.
@@ -389,7 +392,8 @@ def build_buildings(root, sprites):
                                       # Same silhouette whichever way it faces, so one set of cast masks.
                                       **({'shadowFrame':r.get('shadowFrame',name)} if r.get('oblique') or r.get('obliqueModern') or r.get('sacredVoxel') else {})}
     for name,r in recipes.items():
-        painter=(VoxelTemple if r.get('sacredVoxel') else
+        painter=(FrontHousePainter if r.get('frontHouse') else
+                 VoxelTemple if r.get('sacredVoxel') else
                  ObliqueModern if r.get('obliqueModern') else
                  CampBuilding if r.get('campStyle') else
                  PrecinctPiece if r.get('precinctPiece') else

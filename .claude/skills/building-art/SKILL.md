@@ -93,8 +93,10 @@ this file, and ask for specific defects.
 
 ## Open work
 
-- Only the immeuble family is in game (`city_kit.py` routes it to
-  `front_kit`). The gabled house is not yet wired to any family.
+- In game: the immeubles (`city_kit.py` routes them to `front_kit`) and the
+  seven pre-industrial European house families with all their urban forms
+  (`front_houses.adopt`, called from `scripts/art/buildings.py`). Churches,
+  halls and civic buildings in those towns are still oblique.
 - The walkable entrance is still the footprint's middle, not the door.
 - Fixtures are not yet placed by trade in game; signage.ts's freestanding
   signposts should give way to them on converted streets.
@@ -111,3 +113,4 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-06 Materials and openings library approved at component level.
 - 2026-10-06 Wall-hung fixtures wanted in place of freestanding signs.
 - 2026-10-06 Next family: pre-industrial European houses (eave-front form added); shown as A/B before wiring.
+- 2026-10-06 Eave-front roofs deepened; roof colours chosen per spec from historical regional tones (`TONES` in front_eave.py); European houses wired in.
