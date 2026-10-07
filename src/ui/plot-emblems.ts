@@ -32,6 +32,9 @@ export function drawEmblem(
 /** A life with no plot: first light over the hills, and a lit window. */
 function dawn(ctx: CanvasRenderingContext2D, pal: PlotLook["palette"], t: number) {
   const ink = rgb(pal.ink), fill = rgb(pal.fill), wood = rgb(pal.edge), light = rgb(pal.light), glow = rgb(pal.accent);
+  const groundEdge = mix(ink, wood, 0.32), groundFill = mix(ink, wood, 0.18), hill = mix(ink, fill, 0.55);
+  const skyBands = [mix(ink, fill, 0.2), mix(ink, fill, 0.6), mix(fill, glow, 0.18), mix(fill, glow, 0.38)];
+  const warmSky = mix(fill, glow, 0.55), sun = mix(light, glow, 0.25), sunEdge = mix(glow, fill, 0.2);
   const px = (x: number, y: number, c: string) => {
     ctx.fillStyle = c;
     ctx.fillRect(x, y, 1, 1);
@@ -44,20 +47,20 @@ function dawn(ctx: CanvasRenderingContext2D, pal: PlotLook["palette"], t: number
     for (let x = 0; x < EMBLEM_W; x++) {
       const b = BAYER[(y % 4) * 4 + (x % 4)];
       if (y >= ground(x)) {
-        px(x, y, mix(ink, wood, y === ground(x) ? 0.32 : 0.18));
+        px(x, y, y === ground(x) ? groundEdge : groundFill);
         continue;
       }
       if (y >= ridge(x)) {
-        px(x, y, mix(ink, fill, 0.55));
+        px(x, y, hill);
         continue;
       }
       // Sky in hard bands, dithered at each edge: dark above, warm at the hills.
       const h = y / 44 + (b - 0.5) * 0.18;
       const d = Math.hypot(x - sunX, (y - sunY) * 1.4);
       const warm = Math.max(0, 1 - d / 46) * rise;
-      const sky = h < 0.35 ? mix(ink, fill, 0.2) : h < 0.6 ? mix(ink, fill, 0.6) : h < 0.82 ? mix(fill, glow, 0.18) : mix(fill, glow, 0.38);
-      px(x, y, warm > 0.55 + b * 0.3 ? mix(fill, glow, 0.55) : sky);
-      if (d < 6.5 && y < ridge(x)) px(x, y, d < 5 ? mix(light, glow, 0.25) : mix(glow, fill, 0.2));
+      const sky = skyBands[h < 0.35 ? 0 : h < 0.6 ? 1 : h < 0.82 ? 2 : 3];
+      px(x, y, warm > 0.55 + b * 0.3 ? warmSky : sky);
+      if (d < 6.5 && y < ridge(x)) px(x, y, d < 5 ? sun : sunEdge);
     }
   // A few stars still out where the sky is dark.
   for (let i = 0; i < 14; i++) {
@@ -155,13 +158,14 @@ function slate(
   const half = marks < 5 ? Math.floor(marks / 2) : Math.min(marks - 1, Math.max(5, Math.round(marks / 10) * 5));
   const wiped = Math.round((ending === "paid" ? marks : ending === "seized" ? half : 0) * ease((t - 500) / 900));
   const faded = ending === "fled" ? 0.45 : 1;
+  const dust = mix(fill, chalk, 0.17);
   at.forEach((m, i) => {
     const grown = ease((t - strokeAt(i)) / 140);
     // Wiped: what a sleeve leaves, a few swirled streaks of dust.
     if (i < wiped) {
       for (let k = 0; k < 3; k++)
         for (let x = m.x - 2; x < m.x + (i % 5 === 4 ? 16 : 4); x++)
-          if ((x + k + i) % 4) px(x, m.y + 2 + k * 3 + Math.round(Math.sin((x + i * 3 + k) / 2.4)), mix(fill, chalk, 0.17));
+          if ((x + k + i) % 4) px(x, m.y + 2 + k * 3 + Math.round(Math.sin((x + i * 3 + k) / 2.4)), dust);
       return;
     }
     if (grown <= 0) return;
@@ -190,11 +194,12 @@ function slate(
   if (ending === "denounced") {
     const drop = ease((t - 450) / 380);
     const cx = 104, cy = Math.round(-10 + (Y + H - 12 + 10) * drop);
+    const rim = mix(seal, ink, 0.45), shine = mix(seal, chalk, 0.35), wax = mix(seal, ink, 0.05);
     for (let y = -6; y <= 6; y++)
       for (let x = -6; x <= 6; x++) {
         const r = Math.hypot(x, y);
         if (r > 6.2) continue;
-        px(cx + x, cy + y, r > 5 ? mix(seal, ink, 0.45) : r < 2.5 && x < 0 && y < 0 ? mix(seal, chalk, 0.35) : mix(seal, ink, 0.05));
+        px(cx + x, cy + y, r > 5 ? rim : r < 2.5 && x < 0 && y < 0 ? shine : wax);
       }
     rect(cx - 3, cy + 6, 2, 5, mix(seal, ink, 0.3));
     rect(cx + 1, cy + 6, 2, 4, mix(seal, ink, 0.3));

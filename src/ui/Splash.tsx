@@ -554,7 +554,11 @@ export function Splash({
                   initialSetting={selected?.setting}
                   initialPrompt={selected ? "" : prompt}
                   initialMode={mode}
-                  onPreparing={(setting, cancel) => setArrival({ setting, cancel })}
+                  onPreparing={(setting, cancel) => {
+                    randomizeCall.current++;
+                    cancelWarm();
+                    setArrival({ setting, cancel });
+                  }}
                   onCharacter={(setting, character) => setArrival((current) => current ? { ...current, setting, character } : current)}
                   onStart={(engine) => {
                     setArrival((current) => ({ ...current, setting: engine.state.manifest.setting!, engine }));

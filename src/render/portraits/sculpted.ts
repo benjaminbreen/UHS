@@ -702,16 +702,27 @@ export function drawSculptedPortrait(ctx: CanvasRenderingContext2D, appearance: 
 
 type Base = { m: Model; f: Frame; color: string[]; mat: Uint8Array; layer: Uint16Array; depth: Float32Array };
 const bases = new Map<string, Base>();
+const headPose = (turn = 1, pitch = 0): HeadPose => ({
+  turn: Math.round(clamp(turn, 0, 1) * 4) / 4,
+  pitch: Math.round(clamp(pitch, 0, 1) * 2) / 2,
+});
+export function sculptedPoseReady(appearance: CharacterAppearance, age: number, turn: number, pitch: number) {
+  const pose = headPose(turn, pitch);
+  return bases.has(JSON.stringify([appearance, age, pose.turn, pose.pitch]));
+}
 
 /** The lit bust is traced once per person and pose; blinks, mouths and breaths only repaint over a copy. */
 export function paintSculpted(appearance: CharacterAppearance, age = 30, options: SculptedOptions = {}): Raster {
-  const pose = { turn: Math.round(clamp(options.turn ?? 1, 0, 1) * 4) / 4, pitch: Math.round(clamp(options.pitch ?? 0, 0, 1) * 2) / 2 };
+  const pose = headPose(options.turn, options.pitch);
   const key = JSON.stringify([appearance, age, pose.turn, pose.pitch]);
   let base = bases.get(key);
   if (!base) {
     base = trace(appearance, age, pose);
     bases.set(key, base);
     if (bases.size > 96) bases.delete(bases.keys().next().value!);
+  } else {
+    bases.delete(key);
+    bases.set(key, base);
   }
   const r = new Raster(SCULPTED_WIDTH, SCULPTED_HEIGHT);
   r.color.splice(0, r.color.length, ...base.color);
@@ -736,7 +747,7 @@ let tracer: Worker | undefined;
 const tracing = new Map<string, [CharacterAppearance, number, HeadPose]>();
 /** Trace the turn's in-between angles off the main thread: each is a few hundred
  * ms of sphere marching, which stalled the game even from an idle callback. */
-export function warmSculpted(appearance: CharacterAppearance, age = 30) {
+export function warmSculpted(appearance: CharacterAppearance, age = 30, rest = 1, turns = true) {
   if (!tracer) {
     tracer = new Worker(new URL("./sculpted-worker.ts", import.meta.url), { type: "module" });
     tracer.onmessage = ({ data: { key, color, mat, layer, depth } }) => {
@@ -746,12 +757,18 @@ export function warmSculpted(appearance: CharacterAppearance, age = 30) {
       bases.set(key, { m: model(job[0], job[1]), f: frame(job[2]), color, mat, layer, depth });
       if (bases.size > 96) bases.delete(bases.keys().next().value!);
     };
+    tracer.onerror = () => {
+      tracer?.terminate();
+      tracer = undefined;
+      tracing.clear();
+    };
   }
-  for (const turn of [0.75, 0.5, 0.25, 0]) {
-    const key = JSON.stringify([appearance, age, turn, 0]);
+  const poses = [headPose(rest, 0.5), ...(turns ? [0.75, 0.5, 0.25, 0, 1].map((turn) => headPose(turn)) : [])];
+  for (const pose of poses) {
+    const key = JSON.stringify([appearance, age, pose.turn, pose.pitch]);
     if (bases.has(key) || tracing.has(key)) continue;
-    tracing.set(key, [appearance, age, { turn, pitch: 0 }]);
-    tracer.postMessage({ key, appearance, age, pose: { turn, pitch: 0 } });
+    tracing.set(key, [appearance, age, pose]);
+    tracer.postMessage({ key, appearance, age, pose });
   }
 }
 

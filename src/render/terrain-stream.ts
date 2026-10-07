@@ -117,13 +117,15 @@ export class TerrainStream {
         }),
     };
     this.listen(first);
-    if (!retained)
+    if (!retained) {
+      this.prepared = (world as WorldModel & { prepare?(): PreparedSettlement }).prepare?.();
       first.worker.postMessage({
         pack: world.pack,
         temporal: world.temporal,
-        ...(world.temporal ? { prepared: (world as WorldModel & { prepare?(): PreparedSettlement }).prepare?.() } : {}),
+        prepared: this.prepared,
         seed,
       } satisfies TerrainRequest);
+    }
     // A retained worker may still hold the previous scene's style.
     this.styling = {
       style: groundStyle() ?? null,

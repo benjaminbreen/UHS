@@ -8,7 +8,7 @@ import {
   type Expression,
   type Viseme,
 } from "../render/portraits/constructed";
-import { drawSculptedPortrait, warmSculpted } from "../render/portraits/sculpted";
+import { drawSculptedPortrait, sculptedPoseReady, warmSculpted } from "../render/portraits/sculpted";
 
 /** Head pose on top of the face: 1 is the resting three-quarter view, 0 faces the viewer. */
 export type Pose = { turn: number; pitch: number; gazeY: number };
@@ -342,7 +342,7 @@ export function CharacterSprite({
   useEffect(() => {
     if (!portrait) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    if (motion) warmSculpted(latest.current.appearance, latest.current.age);
+    warmSculpted(latest.current.appearance, latest.current.age, rest, !!motion);
     let timer = 0;
     let alive = true;
     const at = (ms: number, then: () => void) => {
@@ -350,8 +350,14 @@ export function CharacterSprite({
       timer = window.setTimeout(() => alive && then(), ms);
     };
     const set = (next: Partial<Pose>) => {
+      const { appearance, age } = latest.current;
+      if (!sculptedPoseReady(appearance, age, next.turn ?? pose.current.turn, next.pitch ?? pose.current.pitch)) {
+        warmSculpted(appearance, age, rest, !!motion);
+        return false;
+      }
       pose.current = { ...pose.current, ...next };
       repaint.current?.();
+      return true;
     };
     const turnTo = (target: number, then: () => void) => {
       const now = pose.current.turn;
@@ -360,7 +366,7 @@ export function CharacterSprite({
       at(65, () => turnTo(target, then));
     };
     const nod = (then: () => void) => {
-      set({ pitch: 0.5 });
+      if (!set({ pitch: 0.5 })) return then();
       at(160, () => {
         set({ pitch: 0 });
         at(200, () => {

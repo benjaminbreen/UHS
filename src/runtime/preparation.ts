@@ -8,6 +8,7 @@ import type { PreparedSettlement } from "../world/v3/prepared";
 import { retainTerrainWorker } from "./terrain-worker-owner";
 import { preparedKey } from "./prepared-store";
 import { markEvent } from "./vitals";
+import { smallMemoryDevice } from "./device";
 
 /** A phone killed for memory takes its worker with it without firing onerror,
  * which used to leave the splash waiting for a message that never came. Long
@@ -18,7 +19,7 @@ export type StartingCharacter = ReturnType<typeof generateCharacter> & { age: nu
 export type CharacterPrepared = (setting: WorldSetting, character: StartingCharacter) => void;
 
 /** The same generator runs synchronously in Node and prepares cloneable geometry
- * in the browser worker. The renderer takes over that already-warm worker. */
+ * in the browser worker. Phones retire its generation heap before rendering. */
 export async function prepareSettingSession(
   setting: WorldSetting,
   seed: string,
@@ -42,6 +43,8 @@ export async function prepareSettingSession(
   const worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
     type: "module",
   });
+  const retire = smallMemoryDevice();
+  let owned = true;
   try {
     const prepared = await new Promise<PreparedSettlement>(
       (resolve, reject) => {
@@ -79,11 +82,16 @@ export async function prepareSettingSession(
             pack: packForSetting(resolved),
             seed,
             key: cachePrepared ? preparedKey(resolved, seed) : undefined,
+            retire,
           },
         });
       },
     );
     signal?.throwIfAborted();
+    if (retire) {
+      worker.terminate();
+      owned = false;
+    }
     const engine = createSession(
       "atlas",
       seed,
@@ -93,10 +101,12 @@ export async function prepareSettingSession(
       3,
       prepared,
     );
-    retainTerrainWorker(engine.world, worker);
+    if (!retire) {
+      retainTerrainWorker(engine.world, worker);
+      owned = false;
+    }
     return engine;
-  } catch (error) {
-    worker.terminate();
-    throw error;
+  } finally {
+    if (owned) worker.terminate();
   }
 }

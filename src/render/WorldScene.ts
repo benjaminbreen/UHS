@@ -1462,18 +1462,35 @@ export class WorldScene extends Phaser.Scene {
     c.pan(im.x, im.y - 12, 900 * ms, "Sine.easeInOut", true);
   }
   private castMarks?: Phaser.GameObjects.Graphics;
+  private castState?: Runtime["engine"]["state"];
+  private castRevision = -1;
+  private castPeople = new Map<string, "plot" | "kin">();
+  private castMarkKey = "";
   /** A small diamond over the people who matter to this life. */
   private drawCastMarks(time: number) {
+    const s = this.runtime.engine.state;
+    if (s !== this.castState || s.revision !== this.castRevision) {
+      this.castState = s;
+      this.castRevision = s.revision;
+      this.castPeople.clear();
+      if (s.plot && !s.plot.ended)
+        for (const id of Object.values(s.plot.cast)) this.castPeople.set(id, "plot");
+      for (const k of kinOf(s))
+        if (!this.castPeople.has(k.actor.id)) this.castPeople.set(k.actor.id, "kin");
+    }
+    const bob = Math.round(Math.sin(time / 420));
+    let key = "";
+    for (const [id, mark] of this.castPeople) {
+      const im = this.entities.get(id);
+      if (im?.visible) key += `${id}:${mark}:${Math.round(im.x)},${Math.round(im.y) - 34 + bob}|`;
+    }
+    if (this.castMarks && key === this.castMarkKey) return;
+    this.castMarkKey = key;
     const g = (this.castMarks ??= this.add.graphics());
     g.clear().setDepth(1e7 - 1);
-    const s = this.runtime.engine.state;
-    const cast = new Set(s.plot && !s.plot.ended ? Object.values(s.plot.cast) : []);
-    const kin = new Set(kinOf(s).map((k) => k.actor.id));
-    const bob = Math.round(Math.sin(time / 420));
-    for (const id of new Set([...cast, ...kin])) {
-      const mark = cast.has(id) ? "plot" : "kin";
+    for (const [id, mark] of this.castPeople) {
       const im = this.entities.get(id);
-      if (!mark || !im?.visible) continue;
+      if (!im?.visible) continue;
       // The frame is taller than the body in it; a grown person stands about 28px.
       const x = Math.round(im.x), y = Math.round(im.y) - 34 + bob;
       g.fillStyle(0x1a1410, 0.9).fillPoints([{ x, y: y - 4 }, { x: x + 4, y }, { x, y: y + 4 }, { x: x - 4, y }], true);

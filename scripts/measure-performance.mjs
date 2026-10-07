@@ -3,13 +3,105 @@ import { mkdirSync, writeFileSync } from "node:fs";
 const base = process.env.PERF_URL ?? "http://127.0.0.1:4173";
 const label = process.argv[2] ?? "current";
 const frameCount = Number(process.env.PERF_FRAMES ?? 360);
+const mobile = process.env.PERF_MOBILE === "1";
+
+async function sampleMemory(page) {
+  const cdp = await page.context().newCDPSession(page);
+  const workers = new Map(), pending = new Map(), samples = [], peaks = new Map();
+  const errors = new Set();
+  let serial = 0, busy = false, phase = "shell";
+  const started = Date.now();
+  cdp.on("Target.attachedToTarget", ({ sessionId, targetInfo }) => {
+    workers.set(sessionId, targetInfo.url);
+  });
+  cdp.on("Target.detachedFromTarget", ({ sessionId }) => {
+    workers.delete(sessionId);
+    for (const [id, request] of pending)
+      if (request.sessionId === sessionId) {
+        pending.delete(id);
+        request.resolve(undefined);
+      }
+  });
+  cdp.on("Target.receivedMessageFromTarget", ({ message }) => {
+    const response = JSON.parse(message), request = pending.get(response.id);
+    if (!request) return;
+    pending.delete(response.id);
+    if (response.error) errors.add(response.error.message);
+    request.resolve(response.result);
+  });
+  await cdp.send("Target.setAutoAttach", {
+    autoAttach: true, waitForDebuggerOnStart: false, flatten: false,
+    filter: [{ type: "worker", exclude: false }, { exclude: true }],
+  });
+  const readWorker = async (sessionId) => {
+    const id = ++serial;
+    let resolve;
+    const response = new Promise((done) => { resolve = done; });
+    pending.set(id, { sessionId, resolve });
+    const timeout = setTimeout(() => {
+      pending.delete(id);
+      if (workers.has(sessionId)) errors.add("Worker heap sample timed out");
+      resolve(undefined);
+    }, 5000);
+    try {
+      await cdp.send("Target.sendMessageToTarget", {
+        sessionId, message: JSON.stringify({ id, method: "Runtime.getHeapUsage" }),
+      });
+      return await response;
+    } catch (error) {
+      if (workers.has(sessionId)) errors.add(error.message);
+    } finally {
+      clearTimeout(timeout);
+      pending.delete(id);
+    }
+  };
+  const sample = async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      const sessions = [...workers];
+      const [main, ...heaps] = await Promise.all([
+        cdp.send("Runtime.getHeapUsage"),
+        ...sessions.map(([id]) => readWorker(id)),
+      ]);
+      const active = sessions.flatMap(([id, url], i) => {
+        const heap = heaps[i];
+        if (!heap || !workers.has(id)) return [];
+        const previous = peaks.get(id);
+        peaks.set(id, { url, usedSize: Math.max(previous?.usedSize ?? 0, heap.usedSize) });
+        return [{ url, ...heap }];
+      });
+      samples.push({ ms: Date.now() - started, phase, main, workers: active,
+        sampledJSHeap: main.usedSize + active.reduce((n, h) => n + h.usedSize, 0) });
+    } catch (error) {
+      errors.add(error.message);
+    } finally { busy = false; }
+  };
+  const timer = setInterval(sample, 250);
+  page.once("close", () => clearInterval(timer));
+  await sample();
+  return {
+    phase(next) { phase = next; },
+    async stop() {
+      clearInterval(timer);
+      while (busy) await new Promise((resolve) => setTimeout(resolve, 10));
+      await sample();
+      await cdp.detach();
+      return { intervalMs: 250, mainPeak: Math.max(...samples.map((s) => s.main.usedSize)),
+        sampledJSHeapPeak: Math.max(...samples.map((s) => s.sampledJSHeap)),
+        workerPeaks: [...peaks.values()], errors: [...errors], samples };
+    },
+  };
+}
 const browser = await chromium.launch({ channel: "chrome" });
 const reports = [];
 try {
   for (const world of process.env.PERF_WORLD ? ["custom"] : ["anatolia", "alexandria"]) {
     const page = await browser.newPage({
-      viewport: { width: 1440, height: 1000 },
+      ...(mobile ? { viewport: { width: 375, height: 812 }, screen: { width: 375, height: 812 },
+        isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : { viewport: { width: 1440, height: 1000 } }),
     });
+    const memory = process.env.PERF_MEMORY === "1" ? await sampleMemory(page) : undefined;
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.addInitScript(({ renderer }) => {
@@ -46,7 +138,14 @@ try {
       window.longTasks = [];
     });
     const selection = Date.now();
+    memory?.phase("loading");
     await setup.getByRole("button", { name: "Begin", exact: true }).click();
+    if (memory) {
+      await page.getByRole("button", { name: /Enter life/ }).waitFor({ timeout: 120000 });
+      memory.phase("arrival");
+      await page.waitForTimeout(Number(process.env.PERF_CARD_MS ?? 5000));
+      memory.phase("loading");
+    }
     await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
     const canvas = page.locator(
       '.game-container canvas[data-terrain-ready="true"]',
@@ -57,6 +156,11 @@ try {
     await page
       .locator('.game-container canvas[data-terrain-pending="0"]')
       .waitFor({ timeout: 90000 });
+    if (memory) {
+      memory.phase("idle");
+      await page.waitForTimeout(Number(process.env.PERF_IDLE_MS ?? 30000));
+    }
+    memory?.phase("movement");
     const profiler = process.env.PERF_PROFILE
       ? await page.context().newCDPSession(page)
       : undefined;
@@ -174,6 +278,7 @@ try {
       metrics,
       minimaps,
       errors,
+      memory: await memory?.stop(),
     });
     if (errors.length) throw Error(errors.join("\n"));
     await page.close();
@@ -199,6 +304,7 @@ try {
   const result = {
     recordedAt: new Date().toISOString(),
     base,
+    mobile,
     cadence,
     reports,
   };
@@ -206,7 +312,8 @@ try {
     `artifacts/performance/${label}.json`,
     JSON.stringify(result, null, 2),
   );
-  console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify({ ...result, reports: reports.map((r) => ({ ...r,
+    memory: r.memory && { ...r.memory, samples: r.memory.samples.length } })) }, null, 2));
 } finally {
   await browser.close();
 }

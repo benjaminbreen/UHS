@@ -28,7 +28,7 @@ self.onmessage = (
     | ChunkRequest
     | TerrainRequest
     | {
-        prepare: { pack: Pack; seed: string; key?: string };
+        prepare: { pack: Pack; seed: string; key?: string; retire?: boolean };
       }
   >,
 ) => {
@@ -65,13 +65,15 @@ self.onmessage = (
 
 /** The cache is read and written here, not on the main thread: either way the
  * whole settlement is structured-cloned, and that took 800ms of the start. */
-async function prepare({ pack, seed, key: cacheKey }: { pack: Pack; seed: string; key?: string }) {
+async function prepare({ pack, seed, key: cacheKey, retire }: { pack: Pack; seed: string; key?: string; retire?: boolean }) {
   try {
     const cached = cacheKey ? await loadPrepared(cacheKey).catch(() => undefined) : undefined;
     const { world: settlement, prepared } = prepareSettlement(pack, seed, cached);
     useTerrainWorld(settlement);
+    // A phone terminates this worker on receipt; finish its cache transaction first.
+    if (retire && cacheKey && !cached) await savePrepared(cacheKey, prepared);
     self.postMessage({ prepared });
-    if (cacheKey && !cached) void savePrepared(cacheKey, prepared);
+    if (!retire && cacheKey && !cached) void savePrepared(cacheKey, prepared);
   } catch (error) {
     self.postMessage({ error: String(error) });
   }

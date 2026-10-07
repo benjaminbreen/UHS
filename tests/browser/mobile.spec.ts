@@ -6,6 +6,104 @@ test.use({
   isMobile: true,
 });
 
+test("a custom phone start releases the unused prewarmed world", async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as any, Native = window.Worker;
+    w.worldWorkers = [];
+    w.maxWorldWorkers = 0;
+    window.Worker = class extends Native {
+      private record?: { alive: boolean };
+      constructor(url: string | URL, options?: WorkerOptions) {
+        super(url, options);
+        if (!String(url).includes("/world/worker.ts")) return;
+        this.record = { alive: true };
+        w.worldWorkers.push(this.record);
+        w.maxWorldWorkers = Math.max(w.maxWorldWorkers, w.worldWorkers.filter((r: { alive: boolean }) => r.alive).length);
+      }
+      terminate() {
+        if (this.record) this.record.alive = false;
+        super.terminate();
+      }
+    };
+  });
+  await page.goto("/");
+  await expect.poll(() => page.evaluate(() => (window as any).worldWorkers.length), { timeout: 60000 }).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Choose starting details" }).click();
+  const setup = page.getByRole("dialog", { name: "Create a world" });
+  await setup.getByLabel("Describe your starting situation").fill("A Roman baker in Rome, 100 CE");
+  await setup.getByRole("button", { name: "Begin", exact: true }).click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
+  await expect(page.locator(".game-container canvas")).toHaveAttribute("data-terrain-ready", "true", { timeout: 60000 });
+  expect(await page.evaluate(() => (window as any).worldWorkers.length)).toBeGreaterThanOrEqual(3);
+  expect(await page.evaluate(() => (window as any).maxWorldWorkers)).toBe(1);
+  const clears = await page.evaluate(() => {
+    const scene = (window as any).uhsGame.scene.getScene("world");
+    const s = scene.runtime.engine.state, plot = s.plot;
+    s.plot = { ...plot, cast: { study: "player" }, ended: false };
+    s.revision++;
+    const g = scene.castMarks, clear = g.clear;
+    let calls = 0;
+    g.clear = function () { calls++; return clear.call(this); };
+    try {
+      scene.drawCastMarks(0);
+      scene.drawCastMarks(0);
+      scene.drawCastMarks(1000);
+      return calls;
+    } finally {
+      g.clear = clear;
+      s.plot = plot;
+      s.revision++;
+    }
+  });
+  expect(clears).toBe(2);
+});
+
+test("portrait nods wait for their worker pixels", async ({ page }) => {
+  await page.goto("/character-lab");
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+  await page.clock.pauseAt(new Date("2026-01-01T00:00:01Z"));
+  await page.evaluate(async () => {
+    const { createRoot } = (await import("/node_modules/.vite/deps/react-dom_client.js" as string)).default;
+    const { createElement } = (await import("/node_modules/.vite/deps/react.js" as string)).default;
+    const { CharacterSprite } = await import("/src/ui/CharacterSprite.tsx" as string);
+    const { generateAppearance } = await import("/src/core/character.ts" as string);
+    const sculpted = await import("/src/render/portraits/sculpted.ts" as string);
+    const w = window as any;
+    w.nodJobs = [];
+    const Native = window.Worker;
+    window.Worker = class extends Native {
+      postMessage(data: any, ...rest: any[]) {
+        if (data.pose && data.key) w.nodJobs.push({ worker: this, ...data });
+        else super.postMessage(data, rest[0]);
+      }
+    };
+    Math.random = () => 0.99;
+    const appearance = generateAppearance("late-nod", 3, 30);
+    const host = document.createElement("div");
+    host.id = "nod-test";
+    document.body.append(host);
+    createRoot(host).render(createElement(CharacterSprite, { appearance, age: 30, portrait: true, motion: "npc", facing: "front" }));
+    w.nodReady = () => sculpted.sculptedPoseReady(appearance, 30, 0, 0.5);
+    w.nodPixels = () => host.querySelector("canvas")!.toDataURL();
+    w.deliverNod = () => {
+      const job = w.nodJobs.find((j: any) => j.pose.turn === 0 && j.pose.pitch === 0.5);
+      const { color, mat, layer, depth } = sculpted.trace(appearance, 30, job.pose);
+      job.worker.onmessage({ data: { key: job.key, color, mat, layer, depth } });
+    };
+  });
+  await page.clock.runFor(1);
+  await expect(page.locator("#nod-test canvas")).toBeAttached();
+  await expect.poll(() => page.evaluate(() => (window as any).nodJobs.length)).toBeGreaterThan(0);
+  const before = await page.evaluate(() => (window as any).nodPixels());
+  await page.clock.runFor(7000);
+  expect(await page.evaluate(() => (window as any).nodReady())).toBe(false);
+  expect(await page.evaluate(() => (window as any).nodPixels())).toBe(before);
+  await page.evaluate(() => (window as any).deliverNod());
+  await page.clock.runFor(6960);
+  expect(await page.evaluate(() => (window as any).nodReady())).toBe(true);
+  expect(await page.evaluate(() => (window as any).nodPixels())).not.toBe(before);
+});
+
 test.setTimeout(180000);
 async function enterLife(page: Page) {
   await page.addInitScript(() => { crypto.randomUUID = () => "mobile-polish" as `${string}-${string}-${string}-${string}-${string}`; });

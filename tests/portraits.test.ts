@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   describeAdornment,
   earOrnaments,
@@ -37,6 +37,45 @@ const base = (over: Partial<CharacterAppearance> = {}): CharacterAppearance => {
 };
 const pixels = (a: CharacterAppearance, pose = restingFace) =>
   paintConstructed(a, 30, undefined, 0, false, pose).color.join("");
+
+it("warms the resting nod off-thread and reports ready only after its pixels arrive", async () => {
+  vi.resetModules();
+  const jobs: { key: string; appearance: CharacterAppearance; age: number; pose: { turn: number; pitch: number } }[] = [];
+  let worker: { onmessage?: (event: { data: object }) => void; onerror?: () => void };
+  const terminate = vi.fn();
+  vi.stubGlobal("Worker", class {
+    onmessage?: (event: { data: object }) => void;
+    onerror?: () => void;
+    constructor() { worker = this; }
+    terminate = terminate;
+    postMessage(job: typeof jobs[number]) { jobs.push(job); }
+  });
+  try {
+    const { warmSculpted, sculptedPoseReady, trace } = await import("../src/render/portraits/sculpted");
+    const a = base();
+    warmSculpted(a, 30, 0, false);
+    warmSculpted(a, 30, 0, false);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].pose).toEqual({ turn: 0, pitch: 0.5 });
+    expect(sculptedPoseReady(a, 30, 0, 0.5)).toBe(false);
+    const { color, mat, layer, depth } = trace(a, 30, jobs[0].pose);
+    worker!.onmessage?.({ data: { key: jobs[0].key, color, mat, layer, depth } });
+    expect(sculptedPoseReady(a, 30, 0, 0.5)).toBe(true);
+    expect(sculptedPoseReady(a, 31, 0, 0.5)).toBe(false);
+    warmSculpted(a, 30, 1);
+    expect(jobs.some((job) => job.pose.turn === 1 && job.pose.pitch === 0.5)).toBe(true);
+    expect(jobs.filter((job) => job.pose.pitch === 0).map((job) => job.pose.turn).sort())
+      .toEqual([0, 0.25, 0.5, 0.75, 1]);
+    worker!.onerror?.();
+    expect(terminate).toHaveBeenCalledTimes(1);
+    const before = jobs.length;
+    warmSculpted(a, 30, 1, false);
+    expect(jobs).toHaveLength(before + 1);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  }
+});
 
 describe("portrait expressions", () => {
   it("rests when nothing is asked of the face", () => {

@@ -26,7 +26,7 @@ Validation: production build; 48 distinct focused unit tests including prepared-
 
 ## Ownership and hot paths
 
-- `runtime/preparation.ts` prepares new worlds in a cancellable worker. `world/v3/prepared.ts` defines disposable structured-clone geometry; it is not a save format. The main-thread world reconstructs query functions around that geometry. `terrain-worker-owner.ts` hands the warmed worker to `TerrainStream`, or terminates it if the runtime is replaced/disposed first. Node/headless creation remains synchronous.
+- `runtime/preparation.ts` prepares new worlds in a cancellable worker. `world/v3/prepared.ts` defines disposable structured-clone geometry; it is not a save format. The main-thread world reconstructs query functions around that geometry. On phones the generation worker finishes its cache write and terminates before main-thread reconstruction; terrain gets a fresh worker with prepared geometry. On desktop `terrain-worker-owner.ts` hands the warmed worker to `TerrainStream`, or terminates it if the runtime is replaced/disposed first. Node/headless creation remains synchronous.
 - `main.tsx` selects lab routes before importing the game bootstrap. Audio Lab is lazy. The legacy tile worker starts on its first prefetch instead of in every runtime constructor.
 - `world/geography/` owns shared atlas, coordinate, noise and landscape code. The old `world/v2` import paths are thin compatibility reexports. Actual v1/v2 generator behavior remains supported; it is not dead code.
 - `scripts/prepare-atlas-index.mjs` generates compact land-mask and edge-bucket runs from the existing atlas. Run it directly after changing atlas data, or use `npm run prepare:atlas` for the full source-data pipeline. Runtime initialization decodes the prepared index rather than scanning polygons to build it.
@@ -47,6 +47,22 @@ Entity drawing now uses the viewport plus an offscreen margin, not the player's 
 Build with `npm run build`, start `npm run preview -- --port 4173`, then run `npm run measure:performance -- sample-name`. `PERF_URL` changes the server; `PERF_PROFILE=1` also writes Chrome CPU profiles. Do not run other browser/build tests concurrently with timing samples.
 
 The harness uses fresh contexts, installed headless Chrome, a 1440 × 1000 viewport, fixed worlds/seeds and no CPU/network throttling. It measures selection-to-visible-terrain readiness, records main-thread long tasks, waits for offscreen terrain completion, then records 360 frames with 40 accepted movement commands. It also records a blank-page cadence control. This is a local benchmark, not a guarantee for mobile hardware or deployed-network loading.
+
+For phone memory, use the production preview with:
+
+```sh
+PERF_MEMORY=1 PERF_MOBILE=1 PERF_WORLD="A Roman baker in Rome, 100 CE" npm run measure:performance -- mobile-rome
+PERF_MEMORY=1 PERF_MOBILE=1 PERF_WORLD="A baker in Paris, 1400 CE" npm run measure:performance -- mobile-paris
+```
+
+This uses a 375 × 812 touch viewport at DPR 3, holds the arrival screen for
+5 seconds and samples 30 seconds idle before movement. `PERF_CARD_MS` and
+`PERF_IDLE_MS` change those holds. Main and dedicated-worker heaps are sampled
+every 250 ms without forced GC, with the timeline in each report's `memory`.
+`sampledJSHeapPeak` is the largest sampled sum of live isolates' used JS heaps;
+individual worker peaks occur at different times and should not be added.
+GPU/native memory and peaks between samples are not included. Check `memory.errors`
+before comparing reports. Chrome emulation does not establish an iPhone's limit.
 
 ## Remaining limits
 

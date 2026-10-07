@@ -60,6 +60,10 @@ export async function savePrepared(key: string, prepared: PreparedSettlement) {
       if (++kept > KEEP) store.delete(row.primaryKey);
       row.continue();
     };
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => resolve();
+    });
   } catch {
     // Quota or a private window: the world still opens, just slower next time.
   }
