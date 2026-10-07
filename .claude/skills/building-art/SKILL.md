@@ -86,7 +86,9 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_props.py` | Shared props on that kit: trees, shrubs, hedges, planters, fountains, wells, pools, the pot family, benches |
 | `scripts/art/front_goods.py` | Shop interiors as bays: back wall, floor, fittings (oven, shelves, rack, counter) carrying goods; one oven makes a Roman or a medieval bakery |
 | `scripts/art/front_roman.py` | Casa, insula, shop row, domus (mitred hipped roof round the atrium), temple (4 to 8 columns) |
-| `scripts/art/front_persian.py` | Courtyard houses (roof slab round a sunk court), domed and vaulted houses |
+| `scripts/art/front_roman.py` (more) | Thermae, market stall, and temples by kind: Corinthian, Ionic, Tuscan, Greek Doric |
+| `scripts/art/front_persian.py` | `compound`, the courtyard form with hooks for its court face, roof and door; courtyard, domed and vaulted houses; mosque (Safavid, Seljuk, mud brick), madrasa, hammam; `materials()` builds it in another region's ramps |
+| `scripts/art/front_westasia.py` | Levantine, Arabian, Nile and Maghrebi courtyard and one-room houses, each with its own court |
 | `scripts/art/front_ancient.py` | Wires the Roman (`house-roman-ob-*`) and Iranian (`westasian-courtyard-iranian-*`) frames to those builders |
 | `scripts/art/front_audit.py` | The checkable rules; runs inside `oblique_audit.py` |
 | `scripts/art/front_review.py` | Review sheets beside the pinned gold masters |
@@ -133,6 +135,7 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-07 Big planes are never flat: roofs and slabs step through value bands; parapets and eaves cast shadow. Shade a plane by stepping its colours along their ramp, never by mixing (mixing smears tiles and breaks the palette cap).
 - 2026-10-07 Hipped roofs round a court are mitred frames; each plane's tiles run down its own slope (sideways on the side planes).
 - 2026-10-07 Persian courtyard house: one lit roof slab framing a sunk, shaded court; domes and a windcatcher on the slab. Rome and Persia wired into the game.
+- 2026-10-07 Shared frames stay shared: a region's own look is a new frame index routed by regional-looks.json (Iran's hammam and madrasa are look 3), or a new family routed by date (the Roman schola). Roman and Greek temples come from religion rules.
 - 2026-10-06 Scale set by the adult; 28px storey retired for converted families.
 - 2026-10-06 Deep overhead roof rejected; pass-1 roof height kept. Violet grade rejected. Fussy props rejected.
 - 2026-10-06 Paris immeuble pass 4 and the gabled bakery approved as gold masters.

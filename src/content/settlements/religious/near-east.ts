@@ -2,6 +2,44 @@ import type { ReligiousRule } from "./types";
 
 export const nearEastReligious: ReligiousRule[] = [
   {
+    id: "roman-temple-africa",
+    faith: "Roman",
+    recipe: "roman-temple",
+    labels: { small: "Temple", medium: "Temple", large: "Capitolium" },
+    culture: "north-african-west-asian",
+    from: -146,
+    to: 392,
+    bounds: [-10, 29, 25, 37.6],
+    side: "north",
+    about:
+      "The house of a god on its podium at the head of the forum, as at Dougga, Sabratha and Leptis: the cult statue inside, the altar before the steps.",
+    forecourt: 2,
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "Roman Africa's temples follow the Italian podium temple; the Punic sanctuaries before them are not yet drawn.",
+    },
+  },
+  {
+    id: "greek-temple-ionia",
+    faith: "Greek",
+    recipe: "greek-temple",
+    labels: { small: "Temple", medium: "Temple", large: "Great temple" },
+    culture: "north-african-west-asian",
+    from: -700,
+    to: 392,
+    bounds: [26, 35, 31, 41.5],
+    side: "north",
+    about:
+      "The house of the city's god in its sanctuary, as at Ephesus, Didyma and Priene: the image inside, the altar out in front.",
+    forecourt: 2,
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "Drawn with the Doric temple; the Ionic of Ionia's great temples is a look the Roman temple carries.",
+    },
+  },
+  {
     id: "mesopotamian-temple",
     faith: "Mesopotamian",
     recipe: "mesopotamian-temple",

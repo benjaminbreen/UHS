@@ -2,6 +2,44 @@ import type { ReligiousRule } from "./types";
 
 export const europeReligious: ReligiousRule[] = [
   {
+    id: "roman-temple",
+    faith: "Roman",
+    recipe: "roman-temple",
+    labels: { small: "Temple", medium: "Temple", large: "Capitolium" },
+    culture: "european",
+    from: -509,
+    to: 392,
+    bounds: [-10, 36, 19, 56],
+    side: "north",
+    about:
+      "The house of a god on its podium at the head of the forum: the cult statue inside, the altar before the steps where the sacrifices are made, and the town's magistrates officiating.",
+    forecourt: 2,
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "A frontal temple on a high podium with a stair, columns across the front only, follows Vitruvius and the surviving temples at Nîmes, Vienne, Rome and Pompeii. The look varies from the Tuscan temple of the Republic to the marble Corinthian of the Principate; which a town builds is a roll, not its date.",
+    },
+  },
+  {
+    id: "greek-temple",
+    faith: "Greek",
+    recipe: "greek-temple",
+    labels: { small: "Temple", medium: "Temple", large: "Great temple" },
+    culture: "european",
+    from: -700,
+    to: 392,
+    bounds: [19, 34, 30, 42],
+    side: "north",
+    about:
+      "The house of the city's god in its sanctuary: the image inside, the altar out in front in the open, and the city's festivals and sacrifices held between them.",
+    forecourt: 2,
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "A Doric temple on a three-stepped base with a triglyph frieze follows the excavated temples of Aegina, Olympia and Athens; the peristyle running down the sides is not seen from the front.",
+    },
+  },
+  {
     id: "romanesque-parish",
     faith: "Latin Christian",
     recipe: "parish-church",

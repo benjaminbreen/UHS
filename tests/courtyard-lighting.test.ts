@@ -45,7 +45,7 @@ it("publishes bounded, recessed courtyard surfaces without changing the exterior
 });
 
 it("uses the same reversing sun direction as ground shadows, with no solar cast at night", () => {
-  const model = buildingModels["roman-domus-roman-italian-medium-0"];
+  const model = buildingModels["southasian-courtyard-north-indian-medium-0"];
   const court = (model as unknown as { courtyardLight: CourtyardLight })
     .courtyardLight;
   const morning = courtyardSun(court, "morning");

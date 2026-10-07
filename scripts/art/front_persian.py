@@ -14,6 +14,7 @@ walls are a step darker; the court is shaded along its left and far edges.
 Without the windcatcher and tilework the same parts stand for an older
 plateau house.
 """
+from contextlib import contextmanager
 from pathlib import Path
 import math
 import sys
@@ -38,11 +39,27 @@ LAPIS = ramp(255, 0.11, lift=-0.2)
 WOOD = ramp(40, 0.06, lift=-0.16)
 PAVE = ramp(48, 0.06, lift=-0.06)
 BRASS = ramp(80, 0.11, lift=0.0)
+WALL_FN = None
+
+
+@contextmanager
+def materials(**ramps):
+    """Build in another region's materials: the courtyard parts read their
+    colours from this module's ramps, so a region swaps them for the build."""
+    g = globals()
+    old = {k: g[k] for k in ramps}
+    g.update(ramps)
+    try:
+        yield
+    finally:
+        g.update(old)
 
 
 def wall(c, x, y, w, h):
     """Mud-and-straw plaster, with here and there a patch fallen to show the
     mud brick under it."""
+    if WALL_FN:
+        return WALL_FN(c, x, y, w, h)
     fm.kahgel(c, x, y, w, h, WALL)
     for k in range(max(1, w * h // 6000)):
         cx = x + 14 + h2(k, w, 53) * (w - 28)
@@ -231,7 +248,7 @@ def court_face(c, L, R, top, h):
             pr.shrub(c, x, top + h - 7, 4)
 
 
-def court(c, L, R, top, face_h, front):
+def court(c, L, R, top, face_h, front, face=None, trees=True):
     """The court from above: brick paving, the pool with its jet, a tree in a
     bed either side, the shade of the ranges along its left and far edges."""
     floor = top + face_h + 4
@@ -240,7 +257,7 @@ def court(c, L, R, top, face_h, front):
             row = (yy - floor) // 4
             j = (xx + (row % 2) * 6) % 12
             c.p(xx, yy, PAVE[3] if j == 0 or (yy - floor) % 4 == 3 else PAVE[2])
-    court_face(c, L, R, top, face_h)
+    (face or court_face)(c, L, R, top, face_h)
     cx = (L + R) // 2
     pw, pd = (R - L) * 2 // 5, (front - floor) * 2 - 16
     pr.pool(c, cx - pw // 2, front - 6, pw, pd, kerb=FAIENCE, water=pr.WATER, depth=3)
@@ -253,9 +270,14 @@ def court(c, L, R, top, face_h, front):
             c.p(cx + side * (2 + k), jy - 13 + k * k // 3, pr.WATER[0])
     so.ellipse(c, cx, jy + 1, 6, 2, pr.WATER[2])
     bw = (R - L - pw) // 2 - 12
-    for bx, kind in ((L + 6, 'pomegranate'), (R - 6 - bw, 'orange')):
+    for bx, kind in ((L + 6, 'pomegranate'), (R - 6 - bw, 'orange')) if trees else ():
         pr.tree(c, bx + bw // 2, front - 16, kind, 1.0)
         pr.planter(c, bx, front - 3, bw, 10, ('shrub', 'shrub'), r=BRICK)
+    court_shade(c, L, R, top, floor, front)
+
+
+def court_shade(c, L, R, top, floor, front):
+    """The shade the left-hand range and the far range throw into a court."""
     for k in range(10):
         for yy in range(top, front):
             fp.shade(c, L + k, yy, 0.5 * (1 - k / 10))
@@ -333,10 +355,18 @@ def barrel_vaults(c, L, R, E, D, n=2):
 def persian(spec=None, info=None):
     """A courtyard house of any size: below about 220px it takes a plain door
     for the tiled portal, fewer domes and a smaller windcatcher."""
-    s = {**dict(W=300, wing=58, street=66, front=24, court=96, far=26, face=40, portal=0.5), **(spec or {})}
+    return compound({**dict(W=300, wing=58, street=66, front=24, court=96, far=26, face=40, portal=0.5),
+                     **(spec or {})}, info)
+
+
+def compound(s, info=None, face=None, roof=None, door=None, trees=True, head=None, court_fn=None):
+    """The courtyard form every Persian house, mosque and madrasa shares: a
+    street wall, a roof slab round a sunk court, the far range's face across
+    the court. `face` draws that face, `roof` what stands on the slab (by
+    default the house's domes and windcatcher), `door` the street door."""
     W, wing = s['W'], s['wing']
     small = W < 220
-    head = 52 if not small else 40
+    head = head or (52 if not small else 40)
     H = s['street'] + s['front'] + s['court'] + s['far'] + head + 8
     c = C(W + 24, H)
     L, R = 12, 12 + W
@@ -346,8 +376,10 @@ def persian(spec=None, info=None):
     court_top = court_front - s['court']
     B = court_top - s['far']
     CL, CR = L + wing, R - wing
+    g = dict(L=L, R=R, B=B, E=E, base=base, CL=CL, CR=CR, court_top=court_top, court_front=court_front,
+             face=s['face'], W=W, wing=wing, small=small)
     slab(c, L, B, W, E - B)
-    court(c, CL, CR, court_top, s['face'], court_front)
+    (court_fn or court)(c, CL, CR, court_top, s['face'], court_front, face, trees)
     frame(c, L, B, R, E)
     frame(c, CL, court_top, CR, court_front, inner=True)
     for k in range(5):
@@ -360,30 +392,37 @@ def persian(spec=None, info=None):
             fp.shade(c, CR + 3 + k, yy, a)
         for xx in range(CL - 3, CR + 3):
             fp.shade(c, xx, court_front + 3 + k, a)
-    R1, R2 = min(15, wing // 2 - 5), min(13, wing // 2 - 6)
-    domes = [(L + wing // 2, court_top + 30, R1), (R - wing // 2, court_front - 18, R2)]
-    if not small:
-        domes += [(L + wing // 2, court_front - 18, R2), (R - wing // 2, court_top + 30, R1),
-                  (L + wing // 2 + 4, B + 16, 17)]
-    for cx, cy, R_ in domes:
-        dome(c, cx, cy, R_)
-    windcatcher(c, R - wing // 2 - (10 if not small else 7), B + 14, 20 if not small else 14,
-                44 if not small else 30, 10)
+    (roof or house_roof)(c, g)
     street_wall(c, L, R, E, base)
     pcx = L + round(W * s['portal'])
     for wx in (L + 26, L + 64, R - 78, R - 40):
         if abs(wx + 7 - pcx) > (44 if not small else 24) and L < wx < R - 20:
             lattice_window(c, wx, base - 46, 14, 14)
     spouts(c, L, R, E, (pcx,))
-    if small:
+    if door:
+        door(c, pcx, base, g)
+    elif small:
         plain_door(c, pcx, base)
     else:
         portal(c, pcx, base, s['street'] + 18)
     if info is not None:
         info.update(x0=L, W=W, base=base, door_x=pcx, door_h=36)
     finish(c)
-    consolidate(c, rare=4)
+    consolidate(c, rare=5)
     return c.im
+
+
+def house_roof(c, g):
+    L, R, B, wing, small = g['L'], g['R'], g['B'], g['wing'], g['small']
+    R1, R2 = min(15, wing // 2 - 5), min(13, wing // 2 - 6)
+    domes = [(L + wing // 2, g['court_top'] + 30, R1), (R - wing // 2, g['court_front'] - 18, R2)]
+    if not small:
+        domes += [(L + wing // 2, g['court_front'] - 18, R2), (R - wing // 2, g['court_top'] + 30, R1),
+                  (L + wing // 2 + 4, B + 16, 17)]
+    for cx, cy, R_ in domes:
+        dome(c, cx, cy, R_)
+    windcatcher(c, R - wing // 2 - (10 if not small else 7), B + 14, 20 if not small else 14,
+                44 if not small else 30, 10)
 
 
 def house(spec=None, info=None):
@@ -406,7 +445,10 @@ def house(spec=None, info=None):
     plain_door(c, dx, base)
     lattice_window(c, L + W - 34, base - 44, 14, 14)
     spouts(c, L, R, E, (dx,))
-    ladder(c, L + W - 12, base, s['street'] + 8)
+    if s.get('extra'):
+        s['extra'](c, dict(L=L, R=R, B=B, E=E, base=base, W=W, door=dx))
+    else:
+        ladder(c, L + W - 12, base, s['street'] + 8)
     if info is not None:
         info.update(x0=L, W=W, base=base, door_x=dx, door_h=36)
     finish(c)
@@ -443,6 +485,189 @@ def vaulted(spec=None, info=None):
     return c.im
 
 
+# ------------------------------------------------------------------ mosque, madrasa, hammam
+
+LOOKS = {
+    # The Safavid congregational mosque: tiled dome and minarets, as at Isfahan.
+    'safavid': dict(dome=ramp(195, 0.1, lift=-0.04), trim=FAIENCE, minarets=2, brick=False),
+    # The Seljuk brick mosque: a dome and a single minaret of patterned brick.
+    'seljuk': dict(dome=ramp(52, 0.09, lift=-0.04), trim=BRICK, minarets=1, brick=True),
+    # The neighbourhood mosque of mud brick, as old as the plateau's towns.
+    'vernacular': dict(dome=DOME, trim=WALL, minarets=0, brick=False),
+}
+
+
+def arcade_face(c, L, R, top, h, storeys=1, trim=FAIENCE):
+    """A court face of pointed arches, one storey or two: each bay a deep
+    recess lit on its right, framed in tile, the upper storey's bays over
+    the lower's, a raised walk along the foot."""
+    wall(c, L, top, R - L, h)
+    bay = 26
+    n = max(2, (R - L - 8) // bay)
+    span = (R - L) / n
+    rows = [(top + h, h - 4)] if storeys == 1 else [(top + h // 2 + 2, h // 2 - 4), (top + h, h // 2 - 4)]
+    for foot, bh in rows:
+        for i in range(n):
+            cx = round(L + (i + 0.5) * span)
+            rw = round(span) - 8
+            spring = foot - bh + 2 + fp.apex('persian', rw)
+            vault(c, cx, spring, rw, foot)
+            tile_frame(c, cx, spring, rw, foot, 2) if trim is FAIENCE else None
+        for xx in range(L, R):
+            c.p(xx, foot - bh - 1, TOP[0]); c.p(xx, foot - bh, WALL[4])
+    so.box(c, L, top + h + 4, R - L, 3, 8, TOP)
+
+
+def minaret(c, cx, by, h, look):
+    """A minaret standing on the roof: a tapering shaft banded in tile or
+    patterned brick, a balcony on corbels near the top, a small cap."""
+    trim = LOOKS[look]['trim']
+    body = BRICK if LOOKS[look]['brick'] else TOP
+    so.lathe(c, cx, by, [(0, 6), (h * 0.8, 5)], body, courses=7 if LOOKS[look]['brick'] else 0)
+    for z in (h * 0.3, h * 0.55):
+        so.lathe(c, cx, by, [(z, 6.2), (z + 3, 6)], trim)
+    so.lathe(c, cx, by, [(h * 0.8, 5), (h * 0.8 + 2, 8), (h * 0.8 + 4, 8)], trim)
+    so.lathe(c, cx, by, [(h * 0.8 + 4, 4), (h * 0.95, 4), (h * 0.95 + 1, 5), (h + 4, 0.5)], LOOKS[look]['dome'])
+
+
+def great_dome(c, cx, by, R, look, z0=0):
+    """The prayer hall's dome on its drum, the drum pierced with windows, the
+    dome tiled, bricked or plastered by the look, a finial on the crown."""
+    lk = LOOKS[look]
+    drum = max(10, R // 2)
+    for yy in range(by - 2, by + round(R * so.K) + 6):
+        for xx in range(cx - R + 2, cx + R + 10):
+            if ((xx - cx - 6) / (R + 3)) ** 2 + ((yy - by - 2) / (R * so.K + 3)) ** 2 <= 1:
+                fp.shade(c, xx, yy, 0.32)
+    so.lathe(c, cx, by, [(0, R), (drum, R), (drum + 1, R + 1), (drum + 3, R + 1)],
+             BRICK if lk['brick'] else TOP, z0=z0, courses=5 if lk['brick'] else 0)
+    for i in range(-3, 4):
+        x = round(cx + i * R * 0.27)
+        top = by - z0 - drum + 2
+        if abs(x - cx) < R - 3:
+            c.rect(x - 1, top, 3, drum - 5, (40, 30, 44, 255))
+            c.p(x - 1, top, lk['trim'][1]); c.p(x + 1, top, lk['trim'][1])
+    so.dome(c, cx, by, R, lk['dome'], z0=z0 + drum + 3, kind='pointed', courses=4 if lk['brick'] else 0,
+            ribs=0 if look != 'safavid' else 16, lantern=(1.5, 5))
+
+
+def mosque(spec=None, info=None):
+    """A mosque round its court: the qibla iwan across the court under a
+    frame that stands over the roof, the prayer hall's dome behind it,
+    minarets by the look, an arcade round the court and the pool for
+    ablution in it, and a tiled street portal."""
+    s = {**dict(W=300, wing=46, street=60, front=20, court=100, far=30, face=46, portal=0.5, look='safavid'),
+         **(spec or {})}
+    look = s['look']
+    lk = LOOKS[look]
+    R = min(46, s['W'] // 6)
+    at = {}
+
+    def face(c, L, Rr, top, h):
+        arcade_face(c, L, Rr, top, h, 1, lk['trim'])
+        cx = (L + Rr) // 2
+        iw = min(96, (Rr - L) // 2)
+        foot = top + h
+        fy, ty = so.box(c, cx - iw // 2, foot + 3, iw, h + 34, 6, brick, TOP)
+        c.rect(cx - iw // 2, ty, iw, fy - ty, TOP[0])
+        tile_band(c, cx - iw // 2 + 5, fy + 5, iw - 10, 6)
+        rw = iw - 26
+        spring = foot - h + 12 + fp.apex('persian', rw)
+        vault(c, cx, spring, rw, foot)
+        tile_frame(c, cx, spring, rw, foot, 4)
+        op.door_studded(c, cx - 9, foot - 22, 18, 22, wood=WOOD, studs=BRASS)
+        at.update(cx=cx, iw=iw, fy=fy)
+
+    def roof(c, g):
+        cx = (g['L'] + g['R']) // 2
+        great_dome(c, cx, g['B'] + 4, R, look)
+        if lk['minarets'] == 2:
+            for side in (-1, 1):
+                minaret(c, at['cx'] + side * (at['iw'] // 2 - 5), at['fy'] + 2, 62, look)
+        if lk['minarets'] == 1:
+            minaret(c, g['R'] - g['wing'] // 2, g['B'] + 14, 70, look)
+        for x in (g['L'] + g['wing'] // 2, g['R'] - g['wing'] // 2):
+            dome(c, x, g['court_front'] - 18, min(13, g['wing'] // 2 - 6))
+
+    def door(c, pcx, base, g):
+        portal(c, pcx, base, s['street'] + 26, w=72, rw=44)
+
+    return compound(s, info, face, roof, door, trees=False, head=max(60, R + 30))
+
+
+def madrasa(spec=None, info=None):
+    """A madrasa: the students' cells in two storeys of arches round the court,
+    the teaching iwan across it, a tiled portal, a pool and trees in the court."""
+    s = {**dict(W=300, wing=46, street=60, front=20, court=104, far=26, face=60, portal=0.5, look='safavid'),
+         **(spec or {})}
+    lk = LOOKS[s['look']]
+
+    def face(c, L, Rr, top, h):
+        arcade_face(c, L, Rr, top, h, 2, lk['trim'])
+        cx = (L + Rr) // 2
+        iw = min(80, (Rr - L) // 3)
+        foot = top + h
+        fy, ty = so.box(c, cx - iw // 2, foot + 3, iw, h + 18, 6, brick, TOP)
+        c.rect(cx - iw // 2, ty, iw, fy - ty, TOP[0])
+        tile_band(c, cx - iw // 2 + 5, fy + 5, iw - 10, 5)
+        rw = iw - 22
+        spring = foot - h + 14 + fp.apex('persian', rw)
+        vault(c, cx, spring, rw, foot)
+        tile_frame(c, cx, spring, rw, foot, 3)
+
+    def roof(c, g):
+        for x in (g['L'] + g['wing'] // 2, g['R'] - g['wing'] // 2):
+            for y in (g['court_top'] + 26, g['court_front'] - 18):
+                dome(c, x, y, min(12, g['wing'] // 2 - 6))
+
+    def door(c, pcx, base, g):
+        portal(c, pcx, base, s['street'] + 22, w=68, rw=42)
+
+    return compound(s, info, face, roof, door, trees=True, head=50)
+
+
+def hammam(spec=None, info=None):
+    """A bath house of the plateau: half sunk for warmth, its rooms under
+    domes pierced with little glass lights, a tiled door at the end of the
+    passage, the furnace's chimney at the back."""
+    s = {**dict(W=220, street=46, depth=64, look='safavid'), **(spec or {})}
+    W = s['W']
+    H = s['street'] + round(s['depth']) + 70
+    c = C(W + 24, H)
+    L, R = 12, 12 + W
+    base = H - 4
+    E = base - s['street']
+    B = E - s['depth']
+    roof_slab(c, L, R, B, E)
+    big = min(40, W // 5)
+    cols = max(1, (W - 2 * big - 20) // 50)
+    domes = [((L + R) // 2, B + s['depth'] // 2 + 6, big)]
+    for i in range(cols):
+        for side in (-1, 1):
+            x = (L + R) // 2 + side * (big + 26 + i * 50)
+            if L + 20 < x < R - 20:
+                domes.append((x, B + s['depth'] // 2 + 10, 18))
+    domes.sort(key=lambda d: d[1])
+    for x, y, r in domes:
+        dome(c, x, y, r)
+        # the glass lights set in the dome, little cones each catching the sun
+        for a in range(0, 360, 60):
+            gx = x + round(math.cos(math.radians(a)) * r * 0.45)
+            gy = y - round(r * 0.55) + round(math.sin(math.radians(a)) * r * 0.2)
+            c.p(gx, gy, (226, 240, 236, 255)); c.p(gx, gy + 1, ramp(180, 0.05, lift=-0.1)[3])
+    so.lathe(c, R - 30, B + 8, [(0, 4), (22, 3.5), (24, 4.5)], BRICK)
+    street_wall(c, L, R, E, base)
+    pcx = L + W // 3
+    portal(c, pcx, base, s['street'] + 16, w=56, rw=34)
+    for wx in (L + W // 2 + 30, R - 40):
+        lattice_window(c, wx, base - 38, 12, 10)
+    if info is not None:
+        info.update(x0=L, W=W, base=base, door_x=pcx, door_h=34)
+    finish(c)
+    consolidate(c, rare=5)
+    return c.im
+
+
 def ladder(c, x, base, h):
     """A pole ladder leaning on the wall, its rungs lit on top."""
     for k in range(h):
@@ -457,7 +682,10 @@ def ladder(c, x, base, h):
 SHEET = [('courtyard house', persian), ('small courtyard house',
          lambda: persian(dict(W=180, wing=40, street=58, front=18, court=70, far=20, face=32, portal=0.36))),
          ('domed house', house), ('vaulted house', vaulted),
-         ('vaulted row', lambda: vaulted(dict(W=230)))]
+         ('vaulted row', lambda: vaulted(dict(W=230))),
+         ('mosque, Safavid', mosque), ('mosque, Seljuk', lambda: mosque(dict(W=240, look='seljuk'))),
+         ('mosque, mud brick', lambda: mosque(dict(W=200, look='vernacular'))),
+         ('madrasa', madrasa), ('hammam', hammam)]
 
 
 if __name__ == '__main__':

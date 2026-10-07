@@ -403,6 +403,7 @@ export const venues: readonly Venue[] = [
     sign: "board",
     building: "hall-union-hall",
     eras: [
+      { from: -800, to: 400, building: "hall-schola", cultures: ["european"] },
       {
         from: 400,
         to: 1500,
