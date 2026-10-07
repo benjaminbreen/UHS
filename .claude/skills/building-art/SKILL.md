@@ -1,9 +1,9 @@
 ---
 name: building-art
-description: How to draw, redraw or review buildings and their parts (walls, roofs, windows, doors, signs, lanterns, chimneys, weathering) in the front-on pixel style. Load before touching any building painter, building sprite, facade, roof or building review sheet, or when asked to make buildings look better.
+description: How to draw, redraw or review buildings and their parts (walls, roofs, windows, doors, signs, lanterns, chimneys, weathering) in the Stardew / Haunted Chocolatier top-down style. Load before touching any building painter, building sprite, facade, roof or building review sheet, or when asked to make buildings look better.
 ---
 
-# Building art, front-on style
+# Building art, Stardew / Haunted Chocolatier style
 
 The bar is Stardew Valley and Haunted Chocolatier: one authored style, charm,
 legibility, and here also historical specificity. The user judges by eye
@@ -11,20 +11,33 @@ and has said what works and what does not; those judgements are below with
 their reasons. Do not re-argue a settled rule. Propose changing one only with
 an A/B sheet that shows why.
 
-Families converted to this style are drawn front-on. Unconverted families
-still follow `OBLIQUE_ART.md`; a town must not mix the two.
+The convention is the top-down 3/4 of those games, the same view as our
+ground: **walls in true elevation, roofs seen from high above.** A wall is
+drawn square on, with no perspective and no side wall; everything that faces
+the sky (roof slopes, flat roofs, courtyards, wall tops, steps) is drawn as if
+from well overhead and stacks up the screen, because up the screen is back.
+A ridge running away from the viewer is a vertical line; a cross wing's roof
+is seen almost in plan. "Front-on" in the code (`front_*.py`) names the wall
+half of this, not a straight-on elevation of the whole building.
+
+Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 
 ## Rules, and why
 
-1. **Front-on, camera a little above.** No sheared side wall (it added work
-   and nothing the eye valued). Depth comes from what projects: sills,
-   balconies, cornices, hoods and awnings show a top face and cast a shadow
-   on the wall below. Balconies especially: a straight-on balcony reads flat.
-2. **Roofs read as volume, at moderate depth.** The user rejected a deep
-   overhead roof (a third of the building, flat-shaded): it looked flat and a
-   street of them hides the street behind. Mansard plus a 30px top is right.
-   Gable-front houses show both slopes rising up the screen, shingles laid
-   along the rake (upright stepped tiles were rejected as "bricks").
+1. **Walls square on, no side walls.** No sheared side wall (it added work
+   and nothing the eye valued). A wall's depth comes from what projects:
+   sills, balconies, cornices, hoods and awnings show a top face and cast a
+   shadow on the wall below.
+2. **The roof is the hero.** As in Haunted Chocolatier, roofs and other
+   sky-facing surfaces take a large share of the sprite, up to about half its
+   height on a pitched house, and are what the eye reads first. They earn
+   that area with two lit planes (one slope light, one shade), tiles laid in
+   courses along the slope with a lit edge on each, bright verge and ridge
+   caps, and a dark eave shadow on the wall below. An earlier deep roof was
+   rejected because it was flat-shaded, not because it was deep; a flat,
+   untextured plane is still wrong. Street legibility is the layout's job.
+   Courtyards, atria and flat roofs are drawn as seen from above, which is
+   how a domus or a Persian house shows what makes it one.
 3. **Chimneys stay inside the roof outline** and never clip over dormers,
    eaves or neighbours. The audit checks this.
 4. **Scale to the 37px adult.** Doors taller than the adult, windows about
@@ -110,6 +123,7 @@ this file, and ask for specific defects.
 Append a dated line when the user approves or rejects something.
 
 - 2026-10-06 Front-on chosen over isometric and over the oblique strip.
+- 2026-10-07 Clarified: the target is Haunted Chocolatier's convention, walls square on and roofs seen from high above, roofs up to half the sprite. "Moderate roof depth" retired; the earlier rejection was of a flat-shaded roof.
 - 2026-10-06 Scale set by the adult; 28px storey retired for converted families.
 - 2026-10-06 Deep overhead roof rejected; pass-1 roof height kept. Violet grade rejected. Fussy props rejected.
 - 2026-10-06 Paris immeuble pass 4 and the gabled bakery approved as gold masters.

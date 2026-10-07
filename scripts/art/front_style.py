@@ -1,10 +1,10 @@
 """The numbers every front-on painter shares. Change them here, nowhere else.
 
-A front-on building shows its facade square on, with no side wall. Depth
-comes from what projects: sills, balconies, hoods, cornices and awnings show
-their top faces, because the camera looks down a little, and each throws a
-shadow on the wall below. The roof shows enough of itself to read as a
-volume, never so much that a street of them hides the street behind.
+The Haunted Chocolatier convention: walls square on, with no side wall, and
+everything that faces the sky seen from high above, stacking up the screen.
+A wall's depth comes from what projects: sills, balconies, hoods, cornices and
+awnings show their top faces and throw a shadow on the wall below. The roof
+is the largest lit surface, up to about half a pitched house's height.
 
 Scale is set by the live adult, 37px tall: a door is taller than a person and
 a window about two thirds of one.
