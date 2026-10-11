@@ -89,6 +89,7 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_roman.py` (more) | Thermae, market stall, and temples by kind: Corinthian, Ionic, Tuscan, Greek Doric |
 | `scripts/art/front_persian.py` | `compound`, the courtyard form with hooks for its court face, roof and door; courtyard, domed and vaulted houses; mosque (Safavid, Seljuk, mud brick), madrasa, hammam; `materials()` builds it in another region's ramps |
 | `scripts/art/front_westasia.py` | Levantine, Arabian, Nile and Maghrebi courtyard and one-room houses, each with its own court |
+| `scripts/art/front_sinitic.py` | Chinese, Korean and Japanese houses, halls, courtyard compounds, shop rows, kura and gates: round-tile roofs, gable fronts with lit and shaded slopes, horse-head and stepped gables, timber bays and lattice |
 | `scripts/art/front_ancient.py` | Wires the Roman (`house-roman-ob-*`) and Iranian (`westasian-courtyard-iranian-*`) frames to those builders |
 | `scripts/art/front_audit.py` | The checkable rules; runs inside `oblique_audit.py` |
 | `scripts/art/front_review.py` | Review sheets beside the pinned gold masters |
@@ -147,3 +148,4 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-06 Eave-front roofs deepened; roof colours chosen per spec from historical regional tones (`TONES` in front_eave.py); European houses wired in.
 - 2026-10-07 Native classical insulae, shrines and modular round/square towers approved on the regional variation sheet. Reuse the shared materials, roofs, openings and solid projection; later cities retain appropriate historic towers rather than dating them out with new construction.
 - 2026-10-11 Fixtures sheet approved (24 marks on a 12px grid, guild marks, ale-stake, barber, fascia, noren, sugidama, wine flag, cast shadows) and wired in: each household hangs its own `wallsign-*` beside its door, chosen in signage.ts by place, period and trade; baked house specs carry no signs.
+- 2026-10-11 East Asian set (front_sinitic) approved and wired in. Roofs need form, as Stardew draws them: two slopes lit and shaded, tiles laid down each slope, turned-down verges, thick eaves, a ridge running back; flat single-plane bands were rejected. Machiya, kura and southern shops are gable-front (Stardew's reading); Chinese and Korean houses and halls stay eave-front with banded slopes, hips and thick eaves.

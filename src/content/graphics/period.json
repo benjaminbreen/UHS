@@ -1053,6 +1053,184 @@
       "seed": 835,
       "description": "A single-story Anglo-Indian bungalow: deep verandah on slender posts, shuttered windows and a broad low hipped roof.",
       "role": "grand"
+    },
+    "chinese-shophouse-b": {
+      "label": "Chinese shophouse, lattice front",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "chinese-shophouse",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "grey-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "window": "lattice",
+      "door": "shop-panels",
+      "cornice": "eave",
+      "extras": [
+        "lanterns",
+        "sign-board",
+        "counter"
+      ],
+      "variant": 5,
+      "seed": 841,
+      "description": "Grey brick and a grey tile roof with raised ridge ends; folding timber shutters open the whole ground floor to the street, lanterns at the eave.",
+      "role": "shop"
+    },
+    "chinese-shophouse-south": {
+      "label": "Southern shophouse",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "chinese-shophouse",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "grey-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "window": "lattice",
+      "door": "shop-panels",
+      "cornice": "eave",
+      "extras": [
+        "lanterns",
+        "sign-board",
+        "counter"
+      ],
+      "variant": 5,
+      "seed": 842,
+      "description": "A Jiangnan or Huizhou shophouse: a lime-washed gable stepped in horse-head walls over the street, a timber gallery, the shop open below.",
+      "role": "shop"
+    },
+    "chinese-shophouse-south-b": {
+      "label": "Southern shophouse",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "chinese-shophouse",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "grey-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "window": "lattice",
+      "door": "shop-panels",
+      "cornice": "eave",
+      "extras": [
+        "lanterns",
+        "sign-board",
+        "counter"
+      ],
+      "variant": 5,
+      "seed": 843,
+      "description": "A southern shophouse under its stepped gable: lattice upstairs, the shutters down on one bay and up on the next.",
+      "role": "shop"
+    },
+    "chinese-courtyard-gate-south": {
+      "label": "Southern house gate",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "siheyuan",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 1,
+      "bays": 4,
+      "roofDepth": 26,
+      "wall": "grey-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "window": "lattice",
+      "door": "red-gate",
+      "cornice": "eave",
+      "extras": [
+        "lanterns"
+      ],
+      "variant": 5,
+      "seed": 844,
+      "description": "The street wall of a southern house: lime-washed, its ends carried up in horse-head walls, a dark stone door frame under a little tiled hood.",
+      "role": "grand"
+    },
+    "machiya-b": {
+      "label": "Machiya townhouse",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "machiya",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "machiya-timber",
+      "roofMaterial": "kawara",
+      "roofStyle": "kawara",
+      "window": "slit",
+      "door": "koshi",
+      "cornice": "eave",
+      "extras": [],
+      "variant": 4,
+      "seed": 845,
+      "description": "A Kyoto-style merchant house: fine koshi lattice and an indigo noren at street level, plastered upper wall with a slit window, dark kawara tiles.",
+      "role": "house"
+    },
+    "hanok-b": {
+      "label": "Hanok house",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "hanok",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 1,
+      "bays": 4,
+      "roofDepth": 28,
+      "wall": "hanok-plaster",
+      "roofMaterial": "giwa",
+      "roofStyle": "giwa",
+      "window": "shoji",
+      "door": "sliding",
+      "cornice": "eave",
+      "extras": [
+        "maru"
+      ],
+      "variant": 2,
+      "seed": 846,
+      "description": "Dark posts framing white plaster panels and paper-screened windows, a raised wooden floor, and a heavy grey giwa roof whose eaves lift at the corners.",
+      "role": "house"
     }
   }
 }

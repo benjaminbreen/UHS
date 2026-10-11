@@ -147,10 +147,30 @@ def subjects():
         yield f'classical-{name}', im, b, info['door_h'], []
 
 
+def east_asian():
+    """Every East Asian frame the game bakes, from its recipe."""
+    import json
+    from types import SimpleNamespace
+    from art.regional_houses import regional_house_recipes
+    from art import front_ancient as fa
+    from art.period import period_recipes
+    source = json.loads((ROOT / 'src/content/graphics/buildings.json').read_text())
+    rec = {**regional_house_recipes(ROOT, source), **period_recipes(ROOT, source)}
+    for name, r in sorted(rec.items()):
+        got = name.startswith(('eastasian', 'period-')) and fa.spec_for(name, r)
+        if not got or not (name.startswith('eastasian') or got[0][0].startswith('sino')):
+            continue
+        (kind, spec), _ = got
+        info = {}
+        im = fa.BUILDERS[kind](spec, info)
+        yield name, im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), info['door_h'], []
+
+
 def audit():
     faults = ramp_faults()
     n = 0
-    for name, im, b, door_h, windows in subjects():
+    from itertools import chain
+    for name, im, b, door_h, windows in chain(subjects(), east_asian()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1

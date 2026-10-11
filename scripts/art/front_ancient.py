@@ -14,6 +14,9 @@ or Persian builders, with the footprint the new sprite stands on;
     westasian-courtyard-{levantine,arabian,nile,maghrebi}-*
                                       front_westasia: the same forms in each region's walls
     religious-persian-mosque-*        front_persian: Safavid, Seljuk and mud-brick mosques
+    eastasian-{house,courtyard,row,service}-*
+                                      front_sinitic: Chinese, Korean and Japanese houses, halls,
+                                      compounds, shop rows, storehouses and gates
     hall-hammam-*-3, hall-madrasa-*-3 front_persian: the Iranian look of the bath and the
                                       madrasa (new frames; regional-looks.json routes Iran to them)
 
@@ -32,6 +35,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from art import front_roman as rome  # noqa: E402
 from art import front_persian as persia  # noqa: E402
 from art import front_westasia as wa  # noqa: E402
+from art import front_sinitic as sino  # noqa: E402
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
 
 SCALE = 1.45
@@ -112,7 +116,11 @@ def spec_for(name, r):
             return ('wa-court', dict(region=region, W=W, wing=max(36, W // 5), street=58, front=18, court=70,
                                      far=20, face=34, portal=0.36 + 0.1 * (v % 2))), (nw, fh)
         return ('wa-court', dict(region=region, W=W, wing=round(W * 0.19), portal=0.42 + 0.06 * (v % 2))), (nw, fh)
-    return None
+    if base.startswith('eastasian-courtyard'):
+        # a compound is wide already; at the houses' scale it would fill a block
+        nw = max(3, round(fw * 1.2))
+    got = sino.spec_for(base, r, nw, fh)
+    return got and (got, (nw, fh))
 
 
 TEMPLE_LOOKS = {'roman-temple': ('corinthian', 'ionic', 'tuscan'), 'greek-temple': ('doric', 'doric', 'ionic')}
@@ -224,6 +232,7 @@ BUILDERS = {
     'wa-small': lambda s, i: wa.small(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'madrasa': lambda s, i: persia.madrasa(s, i),
     'hammam': lambda s, i: persia.hammam(s, i),
+    **sino.BUILDERS,
 }
 
 

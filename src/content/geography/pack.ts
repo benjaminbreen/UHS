@@ -82,11 +82,15 @@ export function periodBuildings(setting: WorldSetting): string[] {
     if (japan)
       return [
         "machiya",
+        "machiya-b",
         "machiya-shop",
         ...(year >= 1870 ? ["giyofu-house"] : []),
       ];
-    if (korea) return ["hanok", "chinese-shophouse"];
-    return ["chinese-shophouse", "chinese-courtyard-gate"];
+    if (korea) return ["hanok", "hanok-b", "chinese-shophouse"];
+    // South of the Yangtze's latitude the street gables step in horse-head walls.
+    if (lat < 31)
+      return ["chinese-shophouse-south", "chinese-shophouse-south-b", "chinese-courtyard-gate-south"];
+    return ["chinese-shophouse", "chinese-shophouse-b", "chinese-courtyard-gate"];
   }
   if (culture === "southeast-asian")
     return year >= 1820
