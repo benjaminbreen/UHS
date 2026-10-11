@@ -14,6 +14,7 @@ import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
 import type { Runtime } from "../runtime/session";
 import { loreFor, type LoreTopic, type TaskLore } from "../content/task-lore";
+import { plotLine } from "../core/plot";
 
 /** A scene the task screen can draw: a figure, what they hold, what is round them. */
 export const vignettes = [
@@ -26,6 +27,7 @@ export type Part = "morning" | "midday" | "evening" | "night";
 export type TaskSource =
   | { kind: "goal"; id: string }
   | { kind: "aim" }
+  | { kind: "plot" }
   | { kind: "plan"; actorId: string; label: string; activity: StationActivity; minute: number };
 export type Fact = { label: string; text: string };
 export type TaskView = {
@@ -275,6 +277,38 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
     if (goal.slot === "work") {
       const [vignette, skill, where] = WORKPLACE[kit ? (kit.workplace ?? workplaceFor(kit.activity)) : "workshop"] ?? WORKPLACE.workshop;
       const plan = engine.workPlan();
+      if (plan && plan.places.some(Boolean)) {
+        const now = Math.min(plan.done, plan.steps.length - 1);
+        const at = plan.done < plan.steps.length ? plan.places[now] : undefined;
+        const scene = plan.steps[now].scene as Vignette | undefined;
+        const trade = plan.skill ?? skill;
+        const facts: Fact[] = plan.steps.map((st, i) => ({
+          label: i < plan.done ? "Done" : i === plan.done ? "Now" : "Then",
+          text: `${st.task}${plan.places[i] ? `, at ${plan.places[i]!.label}` : ""}.`,
+        }));
+        facts.push({
+          label: "How",
+          text: plan.done >= plan.steps.length && !plan.waiting ? "Done for today."
+            : plan.waiting ? (plan.boss ? `The ${plan.boss} is waiting for your answer.` : "A choice is waiting for you.")
+            : at ? `At ${at.label}, hold F.` : "Hold F where the work is done.",
+        });
+        if (plan.lines.length) facts.push({ label: "So far", text: plan.lines.join(" ") });
+        facts.push({ label: "The day", text: ["Going badly.", "Slow going.", "Steady.", "Going well.", "Going very well."][plan.quality + 2] });
+        facts.push({ label: "Skill", text: `${SKILLS[trade].name}, level ${levelOf(engine.skills()[trade])}.` });
+        return {
+          ...extra,
+          kicker: "Work",
+          title: plan.title ?? goal.text,
+          who,
+          part: partAt(s.clock / 60),
+          vignette: scene && vignettes.includes(scene) ? scene : vignette,
+          where: at ? whereOf(`${at.label.charAt(0).toUpperCase()}${at.label.slice(1)}`, at.pos) : undefined,
+          facts,
+          record: { links: [], wiki: [...(plan.wiki ?? [])], books: [] },
+          lore: lore(`${plan.title ?? goal.text}, as ${kit?.label ?? actor.role}`),
+          asked: [{ goal: goal.id }, ANY_TRADE, { workplace: kit ? (kit.workplace ?? workplaceFor(kit.activity)) : "workshop" }, { scene: scene ?? vignette }],
+        };
+      }
       const station = plan?.station;
       const home = station && station.pos.space !== "outside" ? world.place(station.pos.space) : undefined;
       const facts: Fact[] = [
@@ -319,6 +353,40 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
       record: { links: [], wiki: [TOPIC[vignette]], books: [] },
       lore: lore(goal.text),
       asked: [{ goal: goal.id }, { scene: vignette }],
+    };
+  }
+
+  if (source.kind === "plot") {
+    const plot = s.plot;
+    if (!plot || plot.ended) return undefined;
+    const cast = Object.entries(plot.cast).flatMap(([role, id]) => {
+      const a = s.actors.find((x) => x.id === id);
+      return a ? [{ role, a }] : [];
+    });
+    const lead = cast[0]?.a;
+    const theirs = lead && s.households?.find((h) => h.members.includes(lead.id));
+    const place = theirs?.residence ? world.place(theirs.residence) : undefined;
+    const left = (plot.deadline - s.clock) / 3600;
+    const facts: Fact[] = [
+      { label: "What", text: plotLine(plot, "aim") },
+      { label: "How it began", text: plotLine(plot, "intro") },
+      ...cast.map(({ role, a }) => ({ label: role.charAt(0).toUpperCase() + role.slice(1), text: `${a.name}, ${a.role.toLowerCase()}.` })),
+      ...(plot.owed !== undefined && plot.total
+        ? [{ label: "Owed", text: plot.owed === plot.total ? `${plot.words.amount}, none of it paid.` : `${plot.owed} of the ${plot.words.amount} still to pay.` }]
+        : []),
+      { label: "Time", text: left <= 0 ? "The time has run out." : left < 1 ? "Less than an hour left." : `About ${Math.round(left)} hours left.` },
+    ];
+    return {
+      key: "plot",
+      kicker: "Plot",
+      title: plot.title,
+      who,
+      part: partAt(s.clock / 60),
+      vignette: "talk",
+      companion: lead ? companionOf(lead, "talk") : undefined,
+      where: place ? whereOf(`${lead!.name.split(" ")[0]}'s house`, place.entrance) : undefined,
+      facts: facts.filter((f) => f.text),
+      lore: lore(plotLine(plot, "aim")),
     };
   }
 
@@ -467,7 +535,8 @@ export function tasksOf(runtime: Runtime, actorId: string): { source: TaskSource
   if (actorId === s.player.id)
     return [
       ...(s.lifeAim ? [{ source: { kind: "aim" } as const, label: "Life aim" }] : []),
-      ...runtime.engine.dailyGoals().map((g) => ({ source: { kind: "goal", id: g.id } as const, label: g.text })),
+      ...runtime.dayGoals().map((g) => ({ source: { kind: "goal", id: g.id } as const, label: g.text })),
+      ...(s.plot && !s.plot.ended ? [{ source: { kind: "plot" } as const, label: s.plot.title }] : []),
     ];
   const it = runtime.engine.world.itinerary?.(actorId);
   return it

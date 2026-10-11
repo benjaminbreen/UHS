@@ -1,6 +1,6 @@
 import { sexOf, type BriefSpan, type PersonBrief, type Sex } from "./brief";
 import { conditionBand } from "./time/structure";
-import { goods } from "../content/economy/goods";
+import { goodName } from "../content/economy/products";
 import type { Actor, Household, Place, SocialRelation } from "./types";
 
 /** What a resident is to the householder, as a word. */
@@ -59,7 +59,7 @@ export function placeBrief(
   residents: Actor[],
   household?: Household,
   /** A household's householder, for naming who they buy from. */
-  headOf: (householdId: string) => Actor | undefined = () => undefined,
+  headOf: (householdId: string, sellerId?: string) => Actor | undefined = () => undefined,
   /** Needed goods it went short of this hour. */
   short: string[] = [],
 ): PersonBrief | undefined {
@@ -150,7 +150,7 @@ export function placeBrief(
     const fortune = household?.fortune ?? 0.5;
     const hard = latest("bad-year");
     const robbed = latest("robbed");
-    const without = short.map((g) => goods.find((x) => x.id === g)?.noun ?? g);
+    const without = short.map((g) => goodName(g, household?.buys?.find((b) => b.good === g)?.product ?? household?.products?.[g]));
     if (without.length) say(`${upper(house)} is going without ${list(without)}. `, "state");
     else if (robbed && year - robbed.year < 2) say("Someone has been stealing from them lately. ", "state");
     else if (fortune < 0.22) say("Times are hard. ", "state");
@@ -160,12 +160,12 @@ export function placeBrief(
     // so a street of cards does not all name the same good.
     const buys = household?.buys ?? [];
     const pick = [...(household?.id ?? "")].reduce((n, c) => n + c.charCodeAt(0), 0);
-    const buy = buys.find((b) => b.from === household!.owes) ?? buys[pick % (buys.length || 1)];
-    const seller = buy && headOf(buy.from);
+    const buy = household?.credit ?? buys.find((b) => b.from === household!.owes) ?? buys[pick % (buys.length || 1)];
+    const seller = buy && headOf(buy.from, buy.seller);
     if (buy && seller) {
-      const noun = goods.find((g) => g.id === buy.good)?.noun ?? buy.good;
+      const noun = goodName(buy.good, buy.product);
       say(`${upper(their2)} ${noun} comes from `), say(seller.name, "name");
-      say(household!.owes === buy.from ? `, still owing for it. ` : ". ");
+      say(household!.credit || household!.owes === buy.from ? `, still owing for it. ` : ". ");
     }
   }
   if (place.access === "public" && place.trade !== undefined) {

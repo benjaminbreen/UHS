@@ -280,6 +280,10 @@
   margin: calc(var(--splash-gap) * 3.1) 0 0;
   padding: 0;
 }
+.splash-random-mode + .splash-random-mode {
+  z-index: 19;
+  margin-top: calc(var(--splash-gap) * 1.2);
+}
 .splash-random-mode legend {
   position: absolute;
   width: 1px;

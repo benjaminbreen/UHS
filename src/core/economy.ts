@@ -1,4 +1,5 @@
 import { goods, standsIn } from "../content/economy/goods";
+import { productById } from "../content/economy/products";
 import type { Economy, Household, ItemId } from "./types";
 
 /**
@@ -12,13 +13,14 @@ const rates: Record<string, { make: number; need?: number }> = {
   grain: { make: 10 },
   meat: { make: 4 },
   fish: { make: 6 },
-  oil: { make: 6 },
+  oil: { make: 6, need: 0.05 },
   cloth: { make: 1, need: 0.02 },
   pots: { make: 3, need: 0.03 },
   ironwork: { make: 1, need: 0.01 },
   leather: { make: 1 },
   timber: { make: 2 },
   light: { make: 8, need: 0.1 },
+  milk: { make: 6, need: 0.5 },
 };
 /** A household stops making once it has three days' making in hand. */
 const cap = (good: string) => (rates[good]?.make ?? 1) * 3;
@@ -64,6 +66,11 @@ export function runEconomy(
     ...Object.values(inputs),
     ...Object.values(standsIn),
   ]);
+  const needsOf = (h: Household) => h.needs ?? needed;
+  const inputOf = (h: Household, good: string) => h.products?.[good]
+    ? h.products[good] === "fermented-drink" ? inputs[good] :
+      productById(h.products[good])?.input ?? (good === "drink" ? undefined : inputs[good])
+    : inputs[good];
   for (const h of households)
     for (const good of wanted) {
       let best: Household | undefined,
@@ -75,14 +82,14 @@ export function runEconomy(
       }
       if (best) nearest.set(h.id + good, best);
     }
-  const people = households.reduce((n, h) => n + h.members.length, 0);
   const hands = new Map(households.map((h) => [h.id, workers(h)]));
+  const demands = new Map([...new Set(households.flatMap(needsOf))].map((good) => [good,
+    (rates[good]?.need ?? 0) * households.reduce((n, h) => n + (needsOf(h).includes(good) ? h.members.length : 0), 0) * imports]));
 
   for (let t = start; t < hour; t++) {
     if (imports) {
       const pool = (economy.stock[IMPORT] ??= {});
-      for (const need of needed) {
-        const day = (rates[need]?.need ?? 0) * people * imports;
+      for (const [need, day] of demands) {
         pool[need] = Math.min(day, (pool[need] ?? 0) + day / 24);
       }
     }
@@ -102,15 +109,16 @@ export function runEconomy(
           (rates[good]?.make ?? 1) * share,
           cap(good) - (stock[good] ?? 0),
         );
-        const from = inputs[good] && nearest.get(h.id + inputs[good]);
+        const input = inputOf(h, good);
+        const from = input && nearest.get(h.id + input);
         if (from) {
-          n = Math.min(n, economy.stock[from.id]?.[inputs[good]] ?? 0);
-          if (n > 0) economy.stock[from.id][inputs[good]] -= n;
+          n = Math.min(n, economy.stock[from.id]?.[input!] ?? 0);
+          if (n > 0) economy.stock[from.id][input!] -= n;
         }
         if (n > 0) stock[good] = (stock[good] ?? 0) + n;
       }
       const short: string[] = [];
-      for (const need of needed) {
+      for (const need of needsOf(h)) {
         const buy = h.buys?.find(
           (b) => b.good === need || b.good === standsIn[need],
         );
@@ -131,12 +139,13 @@ export function runEconomy(
 }
 
 /** One adult's full day of work, added to a household's stock. */
-export function dayOfWork(economy: Economy, h: Household) {
+/** `scale` is how well the day went: a good day makes more. */
+export function dayOfWork(economy: Economy, h: Household, scale = 1) {
   const stock = (economy.stock[h.id] ??= {});
   const made: Record<string, number> = {};
   for (const good of h.makes ?? []) {
     const n = Math.min(
-      (rates[good]?.make ?? 1) / h.makes!.length,
+      ((rates[good]?.make ?? 1) * scale) / h.makes!.length,
       cap(good) - (stock[good] ?? 0),
     );
     if (n <= 0) continue;

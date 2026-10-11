@@ -194,6 +194,7 @@ export type Livelihood = {
   id: string;
   label: string;
   activity: string;
+  trade?: string;
   /**
    * Which kind of settlement this work belongs to; absent on the eight
    * hand-written kits. This is about settlement form, not date — when a trade

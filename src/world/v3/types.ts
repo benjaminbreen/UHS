@@ -8,16 +8,18 @@ import type {
 } from "../../core/types";
 import type { SettlementProfile } from "../../content/settlements/profiles";
 export type Rect = Point & { w: number; h: number };
-/** What a paved cell is for; the raster grades its stones by this. */
-/** How a street cell is used. `verge` marks a planted grass strip between a
- * roadway and its footway; the cell's surface is grass, not paving, and a kerb
- * is drawn where paving meets it. */
+/** Ground use, independent of its material; gardens and verges can be grass. */
 export type Pavement =
   | "square"
   | "dais"
   | "footway"
   | "lane"
   | "verge"
+  | "court"
+  | "yard"
+  | "garden"
+  | "park"
+  | "vacant"
   | "rail"
   | "platform";
 /** Where a cell sits across a railway: `at` counts from its west or north edge. */
@@ -92,6 +94,7 @@ export type SettlementPlan = {
   lanes?: Map<string, Lane>;
   junctions?: Junction[];
   streetGeometry?: Map<string, import("./street-geometry").StreetGeometry>;
+  groundLevels?: Map<string, number>;
   loadingBays?: Map<string, Rect>;
   tracks?: Map<string, Track>;
   railway?: import("./railway").Railway;

@@ -9,6 +9,8 @@ import {
   allowedHeights,
   generateAppearance,
   originalAppearance,
+  garments,
+  headwear,
 } from "../src/core/character";
 import { characterAppearanceSchema } from "../src/runtime/schema";
 import { portableProps } from "../src/render/characters/props";
@@ -20,8 +22,9 @@ import { Pixels, ramp } from "../src/render/characters/v2/pixels";
 import type { CharacterAppearance } from "../src/core/character";
 import type { RestingExpression } from "../src/core/persona";
 import type { CharacterPose } from "../src/render/characters/poses";
-import { workPoseFor } from "../src/render/characters/poses";
+import { poses, workPoseFor } from "../src/render/characters/poses";
 import { defaultRenderer, workerDrawn } from "../src/render/characters/renderers";
+import { drawCharacterF } from "../src/render/characters/doll/draw";
 
 it("selects physical work by the task instead of treating every station alike", () => {
   expect(workPoseFor("work", "Brewing")).toBe("work-stir");
@@ -315,4 +318,40 @@ it("keeps authored cuts, sleeve shapes and mantle when composing worn equipment"
   expect(changed.front).toBeUndefined();
   expect(changed.sleeves).toBe("long");
   expect(composeWearing(base, {}, (id) => wearableItems[id]).front).toBeUndefined();
+});
+
+it("draws the paper doll in every garment, headwear and facing, standing where E stands", () => {
+  const data = new Uint8ClampedArray(80 * 80 * 4);
+  const ctx = {
+    clearRect: () => data.fill(0),
+    getImageData: () => ({ data }),
+    putImageData: () => {},
+  } as unknown as CanvasRenderingContext2D;
+  const rows = () => {
+    const filled: number[] = [];
+    for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++) if (data[(y * 80 + x) * 4 + 3]) { filled.push(y); break; }
+    return filled;
+  };
+  for (const garment of garments)
+    for (const hat of headwear)
+      for (let facing = 0; facing < 8; facing++) {
+        const a = { ...originalAppearance, wearing: { ...originalAppearance.wearing, garment, headwear: hat } };
+        drawCharacterF(ctx, a, 2, facing % 2 ? "walk" : "idle", facing, undefined, facing);
+        // A stride or a turned body puts the near foot a row lower, never off the frame.
+        expect(rows().at(-1)).toBeLessThanOrEqual(facing === 4 || facing === 0 ? 78 : 79);
+        expect(rows().at(-1)).toBeGreaterThanOrEqual(77);
+      }
+  drawCharacterF(ctx, originalAppearance, 2, "idle", 0, undefined, 4);
+  const filled = rows();
+  expect(filled.at(-1)! - filled[0] + 1).toBe(37);
+  // Every pose, frame, facing and turn beat stays inside the frame.
+  for (const pose of poses)
+    for (let facing = 0; facing < 8; facing++)
+      for (let frame = 0; frame < 4; frame++)
+        for (const turn of [-3, -2, 0, 2, 3]) {
+          drawCharacterF(ctx, originalAppearance, 2, pose, frame, undefined, facing, "neutral", turn);
+          const r = rows();
+          expect(r.length).toBeGreaterThan(20);
+          expect(r[0]).toBeGreaterThan(0);
+        }
 });

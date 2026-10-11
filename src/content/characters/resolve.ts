@@ -1,4 +1,5 @@
 import { inventedNameNote } from "./invented-name";
+import { industrialized } from "../settlements/modernity";
 import { random } from "../../core/random";
 import { validateCharacterContent } from "./validate";
 import type { WorldSetting } from "../geography/types";
@@ -345,6 +346,9 @@ function inScope(l: Livelihood, s: WorldSetting) {
   // data drew camel herders in Italy and reindeer herders on the steppe.
   const ecology = s.environment?.ecology;
   if (l.ecologies && (!ecology || !l.ecologies.includes(ecology))) return false;
+  // The planner lays a railway and a factory quarter only in an industrialised
+  // town, so the work there exists only where it does.
+  if ((l.activity === "On the line" || l.activity === "At the machine") && !industrialized(s)) return false;
   // A trade that needs a certain number of customers. Settlement form is the
   // only size the setting carries, so it stands in for a head count.
   if (l.minPopulation) {

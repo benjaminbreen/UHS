@@ -1,6 +1,7 @@
 import { matchesCharacterScope } from "../characters/resolve";
 import type { WorldSetting } from "../geography/types";
 import { generalLore } from "./general";
+import { railwayLore } from "./railways";
 import { europeLore } from "./europe";
 import { africaLore } from "./africa";
 import { southAsiaLore } from "./south-asia";
@@ -21,6 +22,7 @@ import type { LoreTopic, TaskLore } from "./types";
 
 export const taskLore: readonly TaskLore[] = [
   ...generalLore,
+  ...railwayLore,
   ...europeLore,
   ...africaLore,
   ...southAsiaLore,

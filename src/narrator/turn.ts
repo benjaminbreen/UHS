@@ -7,9 +7,9 @@ export const PROVIDER_KEY = "uhs-narrator-provider";
 export function narratorProvider(): Provider {
   try {
     const saved = localStorage.getItem(PROVIDER_KEY);
-    return saved === "openai" || saved === "gemini" ? saved : "haiku";
+    return saved === "haiku" || saved === "gemini" ? saved : "openai";
   } catch {
-    return "haiku";
+    return "openai";
   }
 }
 export type Turn = {

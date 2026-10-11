@@ -48,9 +48,18 @@ function counterForm(lon: number, lat: number, year: number) {
 }
 
 const shops = new Map<string, InteriorProfile>();
-export function shopFor(home: InteriorProfile, kind: ShopKind, site: { lon: number; lat: number; year: number }): InteriorProfile {
+/** What a bakehouse bakes at, where it is not the domed bread oven: the
+ * household's tannur or metate, or in north China the steamer its wheat went
+ * into. */
+function breadFixture(site: { lon: number; lat: number }, bench?: string) {
+  if (bench === "tannur" || bench === "metate") return bench;
+  if (site.lon > 100 && site.lon < 146 && site.lat > 20 && site.lat < 50) return "steamer";
+  return undefined;
+}
+export function shopFor(home: InteriorProfile, kind: ShopKind, site: { lon: number; lat: number; year: number }, bench?: string): InteriorProfile {
   const form = counterForm(site.lon, site.lat, site.year);
-  const key = `${home.id}:${kind.id}:${form}`;
+  const fixture = kind.id === "bread" ? breadFixture(site, bench) : undefined;
+  const key = `${home.id}:${kind.id}:${form}:${fixture ?? ""}`;
   const known = shops.get(key);
   if (known) return known;
   const shop: RoomTemplate = {
@@ -63,7 +72,7 @@ export function shopFor(home: InteriorProfile, kind: ShopKind, site: { lon: numb
     fire: "none",
     sleep: "none",
     furnish: [...(kind.fixture ?? []), "lamp"],
-    styles: { stock: kind.id, shopcounter: form },
+    styles: { stock: kind.id, shopcounter: form, ...(fixture ? { fixture } : {}) },
     clutter: ["paper"],
   };
   const rooms = (home.rooms ?? [{ id: "home", label: home.label, role: "hall" as const, size: home.size, shapes: home.shapes }])

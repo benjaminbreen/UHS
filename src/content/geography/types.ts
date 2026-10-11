@@ -74,6 +74,7 @@ export const settingSchema = z
     // traditions and the capability-gated workforce.
     characterRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     lifeStoryRevision: z.literal(1).optional(),
+    economyRevision: z.literal(1).optional(),
     characterCommunity: z
       .enum([
         "local",

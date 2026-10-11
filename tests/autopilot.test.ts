@@ -16,7 +16,13 @@ const world = (place: string, year: number) => {
 };
 const drive = async (runtime: Runtime, text: string, ticks: number) => {
   await runtime.say(text);
-  for (let n = 0; n < ticks && runtime.autopilot; n++) runtime.tick();
+  for (let n = 0; n < ticks && runtime.autopilot; n++) {
+    // A player answers the work cards an errand stops for.
+    const card = runtime.engine.cards.find((c) => c.choose)?.choose;
+    if (card) runtime.command({ type: "choose", card: card.card, choice: card.choices.find((c) => !c.unavailable)!.index });
+    runtime.engine.cards.length = 0;
+    runtime.tick();
+  }
   return runtime.engine.state.narration!.at(-1)!.text;
 };
 

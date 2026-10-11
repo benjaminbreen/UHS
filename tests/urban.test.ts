@@ -37,6 +37,76 @@ function city(seed: string, radius = 74) {
     [],
   );
 }
+it("preserves ground purpose across settlement forms without turning parcel interiors into roads", () => {
+  const seen = new Set<string>();
+  for (const query of ["Rome 100 BCE", "London 1650", "Kyoto 1700", "Isfahan 1600", "Cairo 1200",
+    "Timbuktu 1400", "Delhi 1500", "Tenochtitlan 1500", "Richmond 2014", "Moscow 1975"])
+    for (const seed of ["ground-a", "ground-b"]) {
+      const r = resolveSetting(query);
+      if ("error" in r) throw Error(r.error);
+      const s = integratedSetting(r.setting);
+      const p = planSettlement({ id: "ground", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+        profile: { ...settlementProfile(s), radius: 74 } }, packForSetting(s), seed, flat, []);
+      for (const [k, role] of p.pavement ?? []) {
+        seen.add(role);
+        expect(p.surface.has(k), `${query}: ${role} ${k}`).toBe(true);
+        if (role === "footway") expect(["paving", "dirt"]).toContain(p.surface.get(k));
+        if (role === "park") expect(p.surface.get(k)).toBe("grass");
+        if (role === "vacant") expect(p.surface.get(k)).not.toBe("paving");
+        if (["yard", "court", "garden", "park", "vacant"].includes(role))
+          expect(p.lanes?.has(k) ?? false, `${query}: parcel became a carriageway`).toBe(false);
+      }
+      for (const b of p.places.filter((b) => b.owner === "player"))
+        expect(route(p.spawn, b.entrance, (q) => p.solid.has(`${q.x},${q.y}`) ? Infinity : 1).status).toBe("found");
+    }
+  for (const role of ["court", "yard", "garden", "park", "vacant", "footway"])
+    expect(seen.has(role), role).toBe(true);
+}, 60000);
+
+it("keeps market pitches in public courts, with clear aisles and bounded density", () => {
+  for (const query of ["Rome 100", "Kyoto 1700", "Isfahan 1600"]) {
+    const r = resolveSetting(query);
+    if ("error" in r) throw Error(r.error);
+    const s = integratedSetting(r.setting);
+    const p = planSettlement({ id: "market", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+      profile: { ...settlementProfile(s), radius: 74 } }, packForSetting(s), "market-aisles", flat, []);
+    const pitches = p.objects.filter((o) => o.prop === "marketCounter");
+    expect(pitches.length, query).toBeGreaterThan(0);
+    expect(pitches.length, query).toBeLessThanOrEqual(14);
+    expect(p.places.some((b) => b.sprite.includes("-urban-stall")), query).toBe(false);
+    for (const pitch of pitches) {
+      expect(["square", "court"]).toContain(p.pavement!.get(`${pitch.pos.x},${pitch.pos.y}`));
+      for (let dx = -1; dx <= 1; dx++) {
+        expect(p.solid.has(`${pitch.pos.x + dx},${pitch.pos.y}`)).toBe(true);
+        expect(p.solid.has(`${pitch.pos.x + dx},${pitch.pos.y + 1}`), query).toBe(false);
+      }
+      expect(route(p.spawn, { x: pitch.pos.x, y: pitch.pos.y + 1 },
+        (q) => p.solid.has(`${q.x},${q.y}`) ? Infinity : 1).status, query).toBe("found");
+      for (const other of pitches.filter((o) => o !== pitch))
+        expect(Math.abs(pitch.pos.x - other.pos.x) >= 4 || Math.abs(pitch.pos.y - other.pos.y) >= 3).toBe(true);
+    }
+  }
+}, 30000);
+
+it("grades modest urban foundations through one tier and keeps steeper terrain out", () => {
+  const sloped = (x: number) => ({ ...flat(), elevation: x >= 0 ? 14 : 0 });
+  const p = planSettlement({ id: "grade", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(setting), radius: 74 } }, packForSetting(setting), "graded-foundations", sloped, []);
+  const crossed = p.places.filter((b) => b.x < 0 && b.x + b.w > 0);
+  expect(crossed.length).toBeGreaterThan(0);
+  for (const b of crossed) {
+    const levels = new Set<number | undefined>();
+    for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++)
+      levels.add(p.groundLevels?.get(`${x},${y}`));
+    expect(levels.size).toBe(1);
+    expect(levels.has(undefined)).toBe(false);
+    expect(levels.has(p.groundLevels?.get(`${b.entrance.x},${b.entrance.y}`)), b.sprite).toBe(true);
+  }
+  const steep = planSettlement({ id: "grade", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(setting), radius: 74 } }, packForSetting(setting), "graded-foundations",
+    (x) => ({ ...flat(), elevation: x >= 0 ? 28 : 0 }), []);
+  expect(steep.places.some((b) => b.x < 0 && b.x + b.w > 0)).toBe(false);
+});
 it("places regional buildings and retains historic towers in later cities with reachable entrances", () => {
   for (const [query, style, retained] of [
     ["Rome 100 BCE", "roman", false], ["medieval London", "western", false], ["Alexandria 200", "egypt", false],

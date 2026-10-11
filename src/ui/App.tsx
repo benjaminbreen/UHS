@@ -49,10 +49,10 @@ import {
   Menu,
   Maximize2,
   Hammer,
-  Utensils,
   PartyPopper,
   MapPin,
-  Users,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
@@ -463,12 +463,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   });
   useEffect(() => {
     if (card || modal) return;
+    // Someone come to talk waits until the held work or passing hours are over.
+    if (runtime.engine.cards[0]?.kind === "speech" && (runtime.workHold !== undefined || runtime.passing)) return;
     const next = runtime.engine.cards.shift();
     if (!next) return;
     runtime.hold(true);
     setCard(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, obs.clock, modal, card]);
+  }, [runtime, obs.clock, modal, card, runtime.engine.cards.length, runtime.workHold, runtime.passing]);
   const lookAt = (id?: string) =>
     (game.current?.scene.getScene("world") as WorldScene | undefined)?.lookAt(id);
   // A guard who has come down to bar your way has something to say.
@@ -793,8 +795,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   ]);
   useEffect(() => audio?.setScene(ambience), [audio, ambience]);
   useEffect(
-    () => audio?.setSetting(setting?.culture, setting?.year),
-    [audio, setting?.culture, setting?.year],
+    () => audio?.setSetting(setting?.culture, setting?.year, setting),
+    [audio, setting?.culture, setting?.year, setting?.lon, setting?.lat],
   );
   useEffect(() => applyTheme(accent, background, setting?.culture), [accent, background, setting?.culture]);
   useEffect(() => {
@@ -1076,7 +1078,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               runtime={runtime}
               start={task}
               onClose={() => setTask(undefined)}
-              onGuide={(to) => runtime.setGuide({ ...to, space: "outside" })}
               onPin={(id) => setAimGoal((was) => (was === id ? undefined : id))}
               pinned={aimGoal}
             />
@@ -1104,14 +1105,27 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onAlternate={() => runVerb("alternate")}
           />
           <div className="world-status">
-            <Toasts events={obs.events} omitText={view.notice} />
+            <Toasts events={obs.events} omit={[view.notice, runtime.engine.lastChoice?.line]} />
             {(view.notice || view.running) && (
               <div className="world-notice" data-walking={view.running || undefined} role="status">
                 {view.running ? <><Footprints size={13} /><span>Walking…</span><button onClick={() => runtime.stop()}><Pause size={11} /> Stop</button></> : view.notice}
               </div>
             )}
             {borderHint && <div className="world-notice border-hint" role="status" aria-label="Map travel">{borderHint}</div>}
-            <WorkCard runtime={runtime} />
+            {runtime.passing && (
+              <div className="time-passing" aria-hidden="true">
+                {(runtime.displayClock() / 3600) % 24 >= 6 && (runtime.displayClock() / 3600) % 24 < 19 ? <Sun size={14} /> : <Moon size={14} />}
+                <span>{timeLabel(runtime.displayClock())}</span>
+              </div>
+            )}
+            <WorkCard
+              runtime={runtime}
+              carded={!!card}
+              onDetails={() => {
+                const work = runtime.engine.dailyGoals().find((g) => g.slot === "work");
+                if (work) setTask({ kind: "goal", id: work.id });
+              }}
+            />
           </div>
           <div className="prop-prompts" data-testid="prop-prompts">
             {obs.manifest.content === 1 && (
@@ -1733,9 +1747,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       </button>
                     )}
                     <ul className="today-goals">
-                      {runtime.engine.dailyGoals().length > 0 ? (
-                        [...runtime.engine.dailyGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g, i) => {
-                          const [Icon, kind] = g.slot === "work" ? [Hammer, "Work"] : g.slot === "need" ? [Utensils, "Need"] : g.slot === "own" ? (g.id.startsWith("fest.") ? [PartyPopper, "Holiday"] : [MapPin, "Errand"]) : [Users, "Social"];
+                      {runtime.dayGoals().length > 0 ? (
+                        [...runtime.dayGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g, i) => {
+                          const [Icon, kind] = g.slot === "work" ? [Hammer, "Work"] : g.id.startsWith("fest.") ? [PartyPopper, "Holiday"] : [MapPin, "Errand"];
                           return (
                             <li key={g.id} style={{ "--i": i } as React.CSSProperties}>
                               <button data-aim={g.id === aimGoal || undefined} data-done={g.done || undefined} onClick={() => setTask({ kind: "goal", id: g.id })}>
@@ -1751,6 +1765,17 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         })
                       ) : (
                         <li className="today-empty">{pack.concern}</li>
+                      )}
+                      {runtime.engine.state.plot && !runtime.engine.state.plot.ended && (
+                        <li>
+                          <button onClick={() => setTask({ kind: "plot" })}>
+                            <span className="today-icon"><ScrollText size={15} /></span>
+                            <span className="today-text">
+                              <small>Plot</small>
+                              {runtime.engine.state.plot.title}
+                            </span>
+                          </button>
+                        </li>
                       )}
                     </ul>
                     <h3 className="today-head">Lately</h3>
@@ -2498,6 +2523,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       <option value="c">C · modelled prototype</option>
                       <option value="d">D · unfinished</option>
                       <option value="e">E · default</option>
+                      <option value="f">F · paper doll</option>
                     </select>
                   </div>
                   <div className="settings-row">
@@ -2582,8 +2608,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         }
                       }}
                     >
-                      <option value="haiku">Claude Haiku 5.5</option>
                       <option value="openai">OpenAI (GPT-6 luna)</option>
+                      <option value="haiku">Claude Haiku 5.5</option>
                       <option value="gemini">Gemini 3.5 Flash-Lite</option>
                     </select>
                   </div>
@@ -2602,6 +2628,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   aria-labelledby="settings-tab-Journeys"
                   hidden={settingsTab !== "Journeys"}
                 >
+                  <label className="settings-row">
+                    <span>Quick day: fast walking to each place, one occasion</span>
+                    <input type="checkbox" checked={runtime.quick} onChange={(e) => runtime.setQuick(e.target.checked)} />
+                  </label>
                   <h3>Journeys & sources</h3>
                   <div className="settings-actions">
                     <button

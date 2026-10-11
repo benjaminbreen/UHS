@@ -443,6 +443,9 @@ export function generateCharacter(
     sex,
     standing,
   );
+  // Asking for work done by one sex asks for someone of it.
+  if (requestedRole && livelihood.sex && livelihood.sex !== sex)
+    return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, livelihood.sex, inheritedTradition);
   const recognized =
     !requestedRole ||
     livelihood.label.toLowerCase() === requestedRole.toLowerCase() ||

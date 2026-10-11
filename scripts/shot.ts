@@ -50,7 +50,11 @@ try {
     await page.addInitScript(`Object.defineProperty(crypto, "randomUUID", {
       value: () => ${JSON.stringify(process.env.UHS_SEED)}
     })`);
+  // UHS_SPRITES="f" picks the character renderer, as Settings → Display does.
+  if (process.env.UHS_SPRITES)
+    await page.addInitScript(`localStorage.setItem("uhs-character-sprites", ${JSON.stringify(process.env.UHS_SPRITES)})`);
   page.on("pageerror", (e) => console.error("pageerror", e.message));
+  page.on("console", (m) => { if (m.type() === "error") console.error("browser", m.text()); });
   await page.goto(base);
   await page.getByPlaceholder(/A hunter in Anatolia/).fill(prompt);
   await page.getByRole("button", { name: "Begin", exact: true }).click();
@@ -84,7 +88,7 @@ try {
     await page.evaluate((zoom) => (window as any).__uhs.setZoom(zoom), Number(process.env.UHS_ZOOM));
   // Let the first frames settle so the shot is not of a half-drawn world.
   await page.waitForTimeout(2500);
-  await page.getByRole("button", { name: "Begin your day", exact: true }).click({ timeout: 3000 }).catch(() => {});
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 3000 }).catch(() => {});
   // UHS_AT="x,y" stands the player on that cell first (needs the dev server).
   if (process.env.UHS_AT) {
     const [x, y] = process.env.UHS_AT.split(",").map(Number);
@@ -105,7 +109,12 @@ try {
     await page.waitForTimeout(Number(process.env.UHS_WAIT ?? 3000));
   }
   // UHS_KEYS="m" opens the region map, and so on for any key the game binds.
-  await page.waitForSelector('.game-container canvas[data-terrain-ready="true"]', { timeout: 120000 });
+  await page.waitForSelector('.game-container canvas[data-terrain-ready="true"]', { timeout: 120000 }).catch(async (error) => {
+    console.error("terrain", await page.locator(".game-container canvas").evaluate((c) => ({ ...(c as HTMLCanvasElement).dataset })));
+    mkdirSync(dirname(out), { recursive: true });
+    await page.screenshot({ path: out.replace(/\.png$/, "-failure.png") });
+    throw error;
+  });
   if (process.env.UHS_SEED)
     console.log(await page.evaluate(() => {
       const r = (window as any).__uhs;

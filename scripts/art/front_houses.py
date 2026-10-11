@@ -32,7 +32,7 @@ EUROPEAN = {
     ]),
     'house-cottage-timber': ('Medieval timber house', [
         ('medium-0', dict(tone='tile-brown', W=136, storeys=['rubble', 'render'], frame=True, jetty=True, roof='plain',
-                          stacks='one', windows=('timber', 'leaded'), wear=0.5, seed=4, sign=('oak', 0))),
+                          stacks='one', windows=('timber', 'leaded'), wear=0.5, seed=4)),
         ('medium-1', dict(tone='shingle-silver', W=128, storeys=['render', 'render'], frame=True, jetty=True, roof='shingle',
                           stacks='center', windows=('timber', 'leaded'), wear=0.6, seed=5)),
         ('large-0', dict(tone='tile-orange', W=176, storeys=['rubble', 'render'], frame=True, jetty=True, roof='plain', dormers=2,
@@ -62,7 +62,7 @@ EUROPEAN = {
                    windows=('mullion', 'leaded'), string=True, plinth='ashlar', wear=0.45, seed=13)),
     ]),
     'house-early-timber': ('Early-modern timber house', [
-        ('0', dict(form='gable', roof='plain', sign=('painted', 3), lean_to=False, W=144, wear=0.4)),
+        ('0', dict(form='gable', roof='plain', sign=None, lean_to=False, W=144, wear=0.4)),
         ('1', dict(form='gable', roof='shingle', sign=None, lantern=None, W=136, lean_to=True, wear=0.6,
                    paint='blue')),
     ]),
@@ -193,18 +193,18 @@ def street(out, zoom=3):
 
 # ------------------------------------------------------------------ the game hook
 # Every frame of these families, urban forms included, is drawn from a spec.
+# No trade signs: the game hangs each household's own (wallsign-* props).
 # Front-on houses are drawn at the adult's scale, so footprints widen.
 SCALE = 1.45
 FORMS = {
     'row': dict(storeys=2, dormers=1, lean_to=False),
-    'shop': dict(storeys=1, shop=True, lean_to=False, dormers=0, sign=('oak', 3)),
+    'shop': dict(storeys=1, shop=True, lean_to=False, dormers=0),
     'wide': dict(storeys=2, dormers=2, lean_to=False),
     'tall': dict(storeys=3, dormers=0, lean_to=False),
     'cottage': dict(storeys=1, dormers=0, stacks='one', lean_to=False),
     'hut': dict(storeys=1, dormers=0, stacks=None, lean_to=False, plinth=None),
-    'stall': dict(storeys=1, shop=True, dormers=0, stacks=None, lean_to=False, plinth=None, heights=[40],
-                  sign=('oak', 3)),
-    'inn': dict(storeys=2, dormers=2, lean_to=False, sign=('painted', 0), lantern='iron'),
+    'stall': dict(storeys=1, shop=True, dormers=0, stacks=None, lean_to=False, plinth=None, heights=[40]),
+    'inn': dict(storeys=2, dormers=2, lean_to=False, lantern='iron'),
     'hall': dict(storeys=2, dormers=3, lean_to=False, string=True, stacks='ends'),
 }
 

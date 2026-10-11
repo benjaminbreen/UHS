@@ -338,7 +338,7 @@ function doorFor(
       (p) =>
         p.access === "public" &&
         !p.claim.startsWith("civic-") &&
-        /shop|workshop/i.test(p.name),
+        p.trade !== undefined,
     )
     .sort((a, b) => Math.hypot(a.entrance.x - home.x, a.entrance.y - home.y) -
       Math.hypot(b.entrance.x - home.x, b.entrance.y - home.y))
@@ -551,13 +551,19 @@ function nearby(plan: SettlementPlan, seed: string, id: string, at: Point) {
       y: at.y + Math.round(Math.sin(angle) * reach),
     };
     const key = cellKey(p.x, p.y);
-    if (!plan.solid.has(key) && plan.surface.get(key) !== "water") return p;
+    if (Math.hypot(p.x - at.x, p.y - at.y) <= reach && !plan.solid.has(key) && plan.surface.get(key) !== "water") return p;
   }
   return at;
 }
-/** A pitch on the rim of the common. Half the trades work here rather than in
- * their own yard, so the square has traffic and the walk there is visible. */
+/** Traders use planned market pitches before falling back to the common. */
 function stall(plan: SettlementPlan, seed: string, id: string) {
+  const home = plan.work.get(id)?.home ?? plan.site.center;
+  const pitches = plan.objects.filter((o) => o.prop === "marketCounter")
+    .sort((a, b) => Math.hypot(a.pos.x - home.x, a.pos.y - home.y) - Math.hypot(b.pos.x - home.x, b.pos.y - home.y));
+  if (pitches.length) {
+    const pitch = pitches[Math.floor(random(seed, "routine", id, "stall-slot") * Math.min(3, pitches.length))];
+    return { x: pitch.pos.x, y: pitch.pos.y + 1 };
+  }
   const pub = plan.plots.find((p) => p.kind === "public");
   if (!pub || pub.w < 5 || pub.h < 5) return undefined;
   const rim = Math.floor(
@@ -744,7 +750,7 @@ export function planRoutines(
         routineFor(plan, seed, pack, id, site, actor),
         carryKit(pack),
         undefined,
-        goodsOf(livelihoodOf(pack, actor))[0],
+        goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision)[0],
       ),
     );
   }
@@ -768,7 +774,7 @@ export function livelihoodOf(pack: Pack, actor?: Actor) {
   const trade = kits.get(actor.origin.specialty ?? "") ??
     [...kits.values()].find((l) => l.label.toLowerCase() === specialty);
   return trade
-    ? { ...kit, label: actor.origin.roleLabel ?? kit.label, activity: trade.activity, workplace: trade.workplace }
+    ? { ...kit, trade: trade.id, label: actor.origin.roleLabel ?? kit.label, activity: trade.activity, workplace: trade.workplace }
     : kit;
 }
 
@@ -781,7 +787,7 @@ export function bindWorkStations(
   world: WorldModel,
 ) {
   const kit = livelihoodOf(world.pack, actor);
-  const process = kit && processFor(kit);
+  const process = kit && processFor(kit, world.pack.setting?.economyRevision);
   const home = plan.work.get(id)?.home;
   const objects = world.initialObjects.filter((o) => o.pos.space === "outside" && !o.carriedBy && !o.broken);
   const occupied = new Set(objects.filter((o) => o.prop && propDefs[o.prop]?.solid)
@@ -892,7 +898,7 @@ export function routineFor(
     pack.year,
     field,
     pasture,
-    !!kit && processFor(kit)?.indoors,
+    !!kit && processFor(kit, pack.setting?.economyRevision)?.indoors,
   );
   if (errands.length && errands[errands.length - 1].activity === "rest")
     return errands;

@@ -2,8 +2,8 @@ import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
 import { capabilitiesFor } from "../characters/resolve";
 import { moneyFor } from "../economy/money";
-import { goods } from "../economy/goods";
-import type { Actor } from "../../core/types";
+import { goodName, sellerOf } from "../economy/products";
+import type { Actor, HouseholdPurchase } from "../../core/types";
 import type { PlotContext, PlotTemplate } from "./types";
 
 const BRITAIN = [-8, 49.5, 2, 59] as const;
@@ -15,7 +15,28 @@ const CHINA = [100, 20, 125, 42] as const;
 /** Astronomical year for a BCE date. */
 const B = (year: number) => 1 - year;
 
+function purchaseOf(c: PlotContext): HouseholdPurchase | undefined {
+  const h = c.household;
+  if (!h) return;
+  const eligible = (b: HouseholdPurchase) => {
+    const supplier = c.households.find((s) => s.id === b.from);
+    return supplier && supplier.id !== h.id &&
+      (supplier.fortune ?? 0) > (h.fortune ?? 0) + 0.2 &&
+      sellerOf(b, c.households, c.actors);
+  };
+  if (h.credit) return h.credit.from !== h.id && sellerOf(h.credit, c.households, c.actors) ? h.credit : undefined;
+  if (!h.owes && (h.fortune ?? 1) >= 0.4) return;
+  return (h.buys ?? []).filter((b) => (!h.owes || b.from === h.owes) && eligible(b))
+    .sort((a, b) => (["bread", "grain", "milk", "oil"].includes(b.good) ? 3 : b.good === "drink" ? 0 : 1) -
+      (["bread", "grain", "milk", "oil"].includes(a.good) ? 3 : a.good === "drink" ? 0 : 1) ||
+      random(c.seed, h.id, "debt-purchase", a.good, a.from) - random(c.seed, h.id, "debt-purchase", b.good, b.from))[0];
+}
+
 function creditorOf(c: PlotContext): Actor | undefined {
+  if (c.setting?.economyRevision) {
+    const buy = purchaseOf(c);
+    return buy && sellerOf(buy, c.households, c.actors);
+  }
   const h = c.household;
   if (!h) return;
   const byId = new Map(c.households.map((o) => [o.id, o]));
@@ -28,7 +49,7 @@ function creditorOf(c: PlotContext): Actor | undefined {
           .sort((a, b) => (b!.fortune ?? 0) - (a!.fortune ?? 0))[0]
       : undefined;
   return from && c.actors
-    .filter((a) => a.kind === "human" && from.members.includes(a.id) && (a.age ?? 30) >= 18)
+    .filter((a) => a.kind === "human" && !a.dead && from.members.includes(a.id) && (a.age ?? 30) >= 18)
     .sort((a, b) => (b.age ?? 30) - (a.age ?? 30))[0];
 }
 
@@ -46,22 +67,32 @@ export const debt: PlotTemplate = {
   },
   begin: (c, cast) => {
     const creditor = cast.creditor!;
-    const owed = 4 + Math.floor(random(c.seed, "plot", "debt", "owed") * 5);
+    const purchase = c.setting?.economyRevision ? purchaseOf(c) : undefined;
+    const owed = c.household?.credit?.amount ?? 4 + Math.floor(random(c.seed, "plot", "debt", "owed") * 5);
     const hour = Math.floor(c.clock / 3600) % 24;
     const midnight = Math.floor(c.clock / 86400) * 86400;
     const deadline = hour < 11 ? midnight + 18 * 3600 : midnight + 36 * 3600;
-    const good = c.household?.buys?.find((b) => b.from === creditor.householdId)?.good;
+    const buy = purchase ?? c.household?.buys?.find((b) => b.from === creditor.householdId);
     const kinOf = (kind: string) => c.actors.filter((a) =>
       c.player.relations?.some((r) => r.kind === kind && r.other === a.id) && !a.dead);
     const child = kinOf("child").find((a) => (a.age ?? 0) >= 6 && (a.age ?? 0) < 16);
     const partner = kinOf("partner")[0];
-    const coined = !!c.setting && capabilitiesFor(c.setting).has("coinage");
+    const coined = c.household?.credit
+      ? c.household.credit.repayment === "money"
+      : !!c.setting && capabilitiesFor(c.setting).has("coinage");
     const sex = sexOf(creditor);
     const childKin = child && (sexOf(child) === "female" ? "daughter" : sexOf(child) === "male" ? "son" : "child");
     // Why the household is in debt at all: the latest hardship, if it is recent.
     const year = c.setting?.year;
-    const hard = year === undefined ? undefined : [...(c.household?.history ?? [])].reverse()
+    const hard = year === undefined || c.household?.credit?.reason === "household" ? undefined : [...(c.household?.history ?? [])].reverse()
       .find((e) => ["bad-year", "fire", "robbed"].includes(e.kind) && year - e.year <= 2);
+    if (purchase && c.household && !c.household.credit) {
+      c.household.credit = {
+        ...purchase, seller: creditor.id, debtor: c.player.id, amount: owed,
+        reason: hard ? "hardship" : "household", repayment: coined ? "money" : "produce",
+      };
+      c.household.owes = purchase.from;
+    }
     const since = !hard || year === undefined ? "For months"
       : hard.kind === "bad-year" ? `Since ${year - hard.year === 0 ? "this" : "last"} year's bad harvest`
       : hard.kind === "fire" ? "Since the fire" : "Since the robbery";
@@ -72,7 +103,7 @@ export const debt: PlotTemplate = {
         creditor: creditor.name,
         creditorRole: creditor.role.toLowerCase(),
         amount: coined && c.setting ? `${owed} ${moneyFor(c.setting).unit}` : "a good deal",
-        good: goods.find((g) => g.id === good)?.noun ?? "food",
+        good: buy ? goodName(buy.good, buy.product) : "food",
         due: hour < 11 ? "by sundown" : "by noon tomorrow",
         pledge: child ? `your ${childKin} ${child.name}` : "you",
         since,
@@ -144,7 +175,7 @@ export const debt: PlotTemplate = {
         remind: "The day is going. I have witnesses to the loan, and I have not forgotten it.",
         seize: "I have taken what I could find in your store toward the loan. The rest is still owed, and the tablet is still in my house.",
         paid: "The debt to {creditor} is paid, the tablet can be broken, and your household is its own again.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to the elders at the gate. By the law, {pledge} may be taken into that house to work off the debt, for as long as three years.",
         fled: "You have left {creditor} and the loan behind. The tablet with your name on it is still in that house.",
       },
@@ -165,7 +196,7 @@ export const debt: PlotTemplate = {
         remind: "The day is going. Do not make me go to the elders.",
         seize: "I have taken what I could find in your store toward the debt. The rest is still owed.",
         paid: "The debt to {creditor} is paid, and your household owes nobody.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to the elders at the gate. The custom allows {pledge} to be taken into that house to work off what is owed.",
         fled: "You have left {creditor} and the debt behind, and with them your place among your own people.",
       },
@@ -185,8 +216,8 @@ export const debt: PlotTemplate = {
         remind: "The day is going, and I have not forgotten you.",
         seize: "I have taken goods from your store against the debt. The rest is still owed.",
         paid: "The debt to {creditor} is paid, and nobody in the agora can say otherwise.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
-        denounced: "{creditor} has brought suit against you. The court will have the debt out of your house, and the whole town will hear of it.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
+        denounced: "{creditor} has brought suit against you. The court will take the debt from your house, and the whole town will hear of it.",
         fled: "You have left {creditor} and the debt behind. A citizen who runs from a debt does not easily come home.",
       },
     },
@@ -196,7 +227,7 @@ export const debt: PlotTemplate = {
       title: "The Debt",
       lines: {
         aim: "Pay {creditor} what you owe for the {good}, {due}.",
-        intro: "{since}, your household has had {good} on credit from {creditor} the {creditorRole}. {He} {wants} paying {due}.",
+        intro: "{since}, your household has had {good} on credit from {creditor} the {creditorRole}. {He} {wants} the money {due}.",
         threat: "If you cannot pay, {he} will take you before the praetor, and the law is on {his} side.",
         partner: "Your {partnerKin} {partner} does not yet know how much it has come to.",
         "kin-partner": "{creditor} was here asking for you. What do we owe?",
@@ -205,7 +236,7 @@ export const debt: PlotTemplate = {
         remind: "I said {due}. I have it written down.",
         seize: "I have taken what I could from your store toward the debt. The rest is still owed.",
         paid: "The debt to {creditor} is paid, and the account is closed.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to the praetor. The court can sell what you own to pay what you owe.",
         fled: "You have left {creditor} and the debt behind. The account is still in {his} book.",
       },
@@ -226,7 +257,7 @@ export const debt: PlotTemplate = {
         remind: "The day is going. I still have the contract.",
         seize: "I have taken goods from your store against the contract. The rest is still owed.",
         paid: "The debt to {creditor} is paid, and the contract can be burned.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to the magistrate with the contract. The yamen runners will come for what is owed.",
         fled: "You have left {creditor} and the contract behind. Your name is still written on it.",
       },
@@ -236,16 +267,16 @@ export const debt: PlotTemplate = {
       title: "The Debt",
       lines: {
         aim: "Settle what you owe {creditor} for the {good}, {due}.",
-        intro: "{since}, your household has had {good} on trust from {creditor} the {creditorRole}. {He} {wants} paying {due}.",
+        intro: "{since}, your household has had {good} on credit from {creditor} the {creditorRole}. {He} {wants} the money {due}.",
         threat: "If you cannot pay, {he} will plead the debt at the manor court.",
         partner: "Your {partnerKin} {partner} does not yet know how much it has come to.",
         "kin-partner": "{creditor} was asking after you in the lane. What do we owe for the {good}?",
-        "cast-creditor": "Let you have the {good} on trust, and will plead it at the manor court if need be.",
+        "cast-creditor": "Let you have the {good} on credit, and will take it at the manor court if need be.",
         dun: "You owe me {amount} for the {good}. I want it {due}, or I plead it at the manor court.",
         remind: "I have not forgotten you. I want it {due}, mind.",
         seize: "I have distrained goods from your store toward what you owe. Pay the rest, or we meet at the manor court.",
         paid: "The debt to {creditor} is paid. Nobody need hear of it at the court.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to plead the debt. At the next court you will be made to pay, and amerced besides.",
         fled: "You have left {creditor} and the debt behind, and with it your place in the manor.",
       },
@@ -264,7 +295,7 @@ export const debt: PlotTemplate = {
         remind: "Still nothing? I said {due}, and I meant it.",
         seize: "I've had goods out of your store against the debt. Pay the rest, or next time I come with a bailiff.",
         paid: "The debt to {creditor} is paid and the slate wiped. You can walk past the shop again.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone for a bailiff. A debtor taken on a writ can lie in the Fleet or the Marshalsea until the sum is paid.",
         fled: "You have left {creditor} and the slate behind. In a city this size a name can be lost, for a while.",
       },
@@ -273,16 +304,16 @@ export const debt: PlotTemplate = {
       title: "The Debt",
       lines: {
         aim: "Settle what you owe {creditor} for the {good}, {due}.",
-        intro: "{since}, your household has had {good} on credit from {creditor} the {creditorRole}. {He} {wants} paying {due}.",
+        intro: "{since}, your household has had {good} on credit from {creditor} the {creditorRole}. {He} {wants} the money {due}.",
         threat: "If you cannot pay, {he} will go to those who keep order here, and everyone will know.",
         partner: "Your {partnerKin} {partner} does not yet know how much it has come to.",
         "kin-partner": "{creditor} came asking for you. How much do we owe?",
-        "cast-creditor": "Let you have the {good} on trust, and wants paying.",
+        "cast-creditor": "Let you have the {good} on credit, and wants the money back.",
         dun: "You owe me {amount} for the {good}. I want it {due}.",
         remind: "I have not forgotten. I want it {due}.",
         seize: "I have taken what I could find in your store. Pay me the rest, or I go to those who keep order here.",
         paid: "The debt to {creditor} is paid. For now, the house is your own.",
-        seized: "{creditor} has had the debt out of your store. It is settled, and the household will go short.",
+        seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to complain of you to those who keep order here. The debt stands, and now everyone will know it.",
         fled: "You have left {creditor} and the debt behind. It will not follow you, but your name stays where it was owed.",
       },

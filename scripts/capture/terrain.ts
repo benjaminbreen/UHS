@@ -15,6 +15,7 @@ import {
   zoom,
   contactSheet,
   card,
+  base,
 } from "./lib";
 
 type Review = {
@@ -228,13 +229,93 @@ async function run(review: Review) {
   await contactSheet(review.dir, review.title, cards);
 }
 
+async function pavingReview() {
+  await withPage({ width: 1440, height: 1600 }, async (page) => {
+    await page.goto(`${base}/terrain-lab`);
+    await page.evaluate(async () => {
+      const { rasterStreetTile } = await import("/src/render/street-raster.ts" as string);
+      const materials = ["slab", "basalt", "cobble", "sett", "brick", "plank", "macadam", "concrete", "asphalt"];
+      const roles = [undefined, "footway", "court", "yard", "square"];
+      const canvas = document.createElement("canvas");
+      canvas.id = "paving-review";
+      canvas.width = 1248;
+      canvas.height = 1268;
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#20272a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = "16px monospace";
+      ctx.fillStyle = "#e2d5b0";
+      ctx.fillText("Native street renderer · 3× pixels", 16, 24);
+      roles.forEach((role, i) => ctx.fillText(role ?? "street", 120 + i * 224, 52));
+      materials.forEach((material, row) => {
+        ctx.fillStyle = "#e2d5b0";
+        ctx.fillText(material, 16, 94 + row * 132);
+        roles.forEach((role, col) => {
+          const patch = document.createElement("canvas");
+          patch.width = 64; patch.height = 32;
+          const p = patch.getContext("2d")!;
+          for (let y = 0; y < 2; y++) for (let x = 0; x < 4; x++) {
+            const pixels = rasterStreetTile(() => ({ height: 0, surface: "gravel", feature: "paving", streetMaterial: material, pavement: role }), x, y, 0, 0).pixels;
+            p.putImageData(new ImageData(pixels, 16, 16), x * 16, y * 16);
+          }
+          ctx.drawImage(patch, 120 + col * 224, 68 + row * 132, 192, 96);
+        });
+      });
+      canvas.style.cssText = "position:absolute;left:0;top:0;z-index:10000";
+      document.body.append(canvas);
+    });
+    await page.locator("#paving-review").screenshot({ path: "artifacts/paving-review/materials.png" });
+    await page.evaluate(async () => {
+      const { rasterHabitatTile } = await import("/src/render/habitat-raster.ts" as string);
+      const materials = ["slab", "basalt", "cobble", "sett", "brick", "plank", "macadam", "concrete", "asphalt"];
+      const canvas = document.querySelector<HTMLCanvasElement>("#paving-review")!;
+      canvas.width = 1080; canvas.height = 1136;
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#20272a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = "16px monospace"; ctx.fillStyle = "#e2d5b0";
+      ctx.fillText("Actual ground transitions · 3× pixels", 16, 24);
+      ctx.fillText("road / footway / verge", 120, 52);
+      ctx.fillText("court / planted strip / earth yard", 600, 52);
+      materials.forEach((material, row) => {
+        ctx.fillStyle = "#e2d5b0"; ctx.fillText(material, 16, 90 + row * 118);
+        for (const col of [0, 1]) {
+          const patch = document.createElement("canvas"); patch.width = 144; patch.height = 32;
+          const p = patch.getContext("2d")!;
+          for (let y = 0; y < 2; y++) for (let x = 0; x < 9; x++) {
+            const pixels = rasterHabitatTile((a: number) => {
+              const role = col === 0 ? a < 2 ? "verge" : a < 4 ? "footway" : undefined
+                : a < 3 ? "court" : a === 3 ? "garden" : a < 7 ? "court" : "yard";
+              const paving = col === 0 ? a >= 2 : a < 7 && a !== 3;
+              return { height: 0, surface: paving ? "gravel" : role === "yard" ? "soil" : "grass",
+                feature: paving ? "paving" : undefined, pavement: role,
+                streetMaterial: col === 0 && a < 4 ? "slab" : material,
+                habitat: { ecology: "grassland", kind: "meadow", wet: 0.3, cover: role === "yard" ? 0 : 0.25,
+                  exposed: role === "yard" ? 1 : 0, season: "summer" } };
+            }, x, y, 0, 0).pixels;
+            p.putImageData(new ImageData(pixels, 16, 16), x * 16, y * 16);
+          }
+          ctx.drawImage(patch, 120 + col * 480, 68 + row * 118, 432, 96);
+        }
+      });
+    });
+    await page.locator("#paving-review").screenshot({ path: "artifacts/paving-review/edges.png" });
+  });
+  console.log("wrote artifacts/paving-review/materials.png and edges.png");
+}
+
 const asked = process.argv.slice(2);
 const names = asked.length ? asked : Object.keys(reviews);
 for (const name of names) {
+  if (name === "paving") {
+    await pavingReview();
+    continue;
+  }
   const review = reviews[name];
   if (!review)
     throw Error(
-      `no terrain review "${name}". Try: ${Object.keys(reviews).join(", ")}`,
+      `no terrain review "${name}". Try: paving, ${Object.keys(reviews).join(", ")}`,
     );
   console.log(`--- ${name}`);
   await run(review);

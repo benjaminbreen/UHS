@@ -8,7 +8,7 @@ export interface CulturalTheme {
   subtitle: string;
   place: string;
   culture: CultureId;
-  /** Years in which the setting is a direct hit and the piece plays first. */
+  /** Inclusive soundtrack window; the named place is the composition's anchor. */
   years: [number, number];
   /** Documented / inferred / fictional basis, kept beside the notes it justifies. */
   evidence: string;
@@ -59,7 +59,7 @@ export const culturalThemes: CulturalTheme[] = [
     subtitle: "Tibia and lyre over warehouse stone; the harbour at noon.",
     place: "Roman Ostia, c. 100 CE",
     culture: "european",
-    years: [-800, 500],
+    years: [-1000, 600],
     evidence:
       "Documented instruments: tibia (double reed pipe), lyra/cithara, tympanum, scabellum. Drone pipe and mode are inference from Greek theory; the melody is fiction.",
     bpm: 104,
@@ -132,7 +132,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Night market in the Northern Song capital; a flute, a pipa, a clapper.",
     place: "Song dynasty Kaifeng, c. 1100",
     culture: "east-asian",
-    years: [960, 1279],
+    years: [600, 2026],
     evidence:
       "Documented: dizi, pipa, guqin, zheng, paiban clappers, pentatonic modes in Song theory. The zhi-mode tune is fiction in that idiom.",
     bpm: 96,
@@ -207,7 +207,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Kora and balafon under the court tree; a praise song without words.",
     place: "Mali Empire, c. 1350",
     culture: "west-central-african",
-    years: [1000, 1700],
+    years: [1000, 2026],
     evidence:
       "Documented: balafon and griot praise-singing at the Mali court (Ibn Battuta, 1352). The kora is attested later; the Lydian sauta tuning and 12/8 ostinato are inference from living Mande practice.",
     bpm: 200,
@@ -361,7 +361,7 @@ export const culturalThemes: CulturalTheme[] = [
     subtitle: "A lyre by the hearth and a bone flute; snow on the turf roof.",
     place: "Norse Scandinavia, c. 950",
     culture: "european",
-    years: [793, 1100],
+    years: [400, 1300],
     evidence:
       "Documented: lyres (Trossingen, Sutton Hoo type), bone flutes, cow horns. Drone, Dorian mode and 3/4 are inference; the tune is fiction.",
     bpm: 84,
@@ -433,7 +433,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Bronze keys and kettle gongs in the Majapahit capital; the big gong closes every phrase.",
     place: "Majapahit Java, c. 1350",
     culture: "southeast-asian",
-    years: [1293, 1527],
+    years: [1000, 2026],
     evidence:
       "Documented: bronze gong-chimes and metallophones on Javanese temple reliefs and in the Nagarakretagama (1365). Slendro's near-equal five steps are approximated; the colotomic lancaran form is inference from later court gamelan. The balungan is fiction.",
     bpm: 88,
@@ -489,7 +489,7 @@ export const culturalThemes: CulturalTheme[] = [
       "A koto and a court flute on the veranda; the sho breathes clusters behind them.",
     place: "Heian Kyoto, c. 1000",
     culture: "east-asian",
-    years: [794, 1185],
+    years: [700, 2026],
     evidence:
       "Documented: gagaku ensemble of ryuteki flute, sho mouth organ, gakuso koto, kakko, shoko and taiko; the Tale of Genji's moonlit concerts. The ritsu mode is documented; the tune is fiction.",
     bpm: 62,
@@ -563,7 +563,7 @@ export const culturalThemes: CulturalTheme[] = [
       "An arched vina and a bamboo flute over a plucked drone; seven beats to the cycle.",
     place: "Gupta Pataliputra, c. 370",
     culture: "south-asian",
-    years: [320, 550],
+    years: [-500, 1000],
     evidence:
       "Documented: Samudragupta's coins show him playing an arched harp (vina); flutes, mridanga and cymbals appear in Gupta art; the Natyashastra describes modal jatis and cyclic talas. Bhairav as a raga is later; the plucked drone and tune are inference and fiction.",
     bpm: 220,
@@ -623,7 +623,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Sixty-five bronze bells and a rack of stone chimes; a slow ritual in a river kingdom.",
     place: "Zeng, Warring States China, c. 433 BCE",
     culture: "east-asian",
-    years: [-770, -221],
+    years: [-1200, 300],
     evidence:
       "Documented: the tomb of Marquis Yi holds a 65-bell bianzhong, stone chimes, se zithers, sheng mouth organs and drums, with inscriptions naming a twelve-tone system. The gong mode with bian tones is inference; the tune is fiction.",
     bpm: 72,
@@ -694,7 +694,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Interlocking mbira over a round bass and gourd rattles; the melody hides inside the pattern.",
     place: "Great Zimbabwe, c. 1300",
     culture: "east-southern-african",
-    years: [1100, 1500],
+    years: [1000, 2026],
     evidence:
       "Documented: Shona mbira and hosho rattles from Portuguese accounts (dos Santos, 1609) and living practice; lamellophones in the Zambezi region are older. Their presence at Great Zimbabwe, the four-chord cycle and the tune are inference and fiction.",
     bpm: 210,
@@ -795,7 +795,7 @@ export const culturalThemes: CulturalTheme[] = [
       "A great drum in half time, seed rattles, and panpipe phrases that come and go.",
     place: "Inka Cusco, c. 1480",
     culture: "andean",
-    years: [1400, 1532],
+    years: [500, 1600],
     evidence:
       "Documented: wankar and tinya drums, pinkillu and quena flutes, antara panpipes and pututu conch trumpets (Guaman Poma, surviving instruments). The pentatonic mode is inference from surviving panpipes; the tune is fiction.",
     bpm: 76,
@@ -868,7 +868,7 @@ export const culturalThemes: CulturalTheme[] = [
       "A throat-sung drone, a galloping drum, and overtones whistling above them.",
     place: "Mongol steppe, c. 1250",
     culture: "inner-eurasian",
-    years: [1150, 1400],
+    years: [800, 2026],
     evidence:
       "Documented: music at the Mongol court (William of Rubruck, 1254), frame drums, and bowed and plucked lutes. Throat singing and the horsehead fiddle are attested only later; their use here is inference. The overtone melody follows the drone's harmonic series, so C sits on the flat seventh harmonic.",
     bpm: 180,
@@ -922,7 +922,7 @@ export const culturalThemes: CulturalTheme[] = [
       "A water drum's steady pulse, gourd rattles, and a cane flute heard only now and then.",
     place: "Cahokia, c. 1100",
     culture: "other-indigenous-american",
-    years: [1000, 1350],
+    years: [500, 1600],
     evidence:
       "Documented: Mississippian rattles and flutes in the archaeological record; water drums and gourd rattles in later Southeastern ceremonial practice. Their pairing at Cahokia, the mode and the tune are inference and fiction.",
     bpm: 92,
@@ -994,7 +994,7 @@ export const culturalThemes: CulturalTheme[] = [
       "A harp ostinato, sistra and ivory clappers; a reed flute answers from across the court.",
     place: "Amarna, New Kingdom Egypt, c. 1350 BCE",
     culture: "north-african-west-asian",
-    years: [-1550, -1070],
+    years: [-3000, -30],
     evidence:
       "Documented: Amarna-period reliefs and tomb paintings show harps, lutes, end-blown flutes, sistra, clappers and frame drums. Egyptian tunings are unknown; the pentatonic mode, ostinato and tune are fiction.",
     bpm: 96,
@@ -1053,14 +1053,66 @@ export const culturalThemes: CulturalTheme[] = [
 
 export const anywhereThemes = layeredThemes.filter((t) => t.anywhere);
 
-/** Pieces for a setting: direct hits match culture and date, the rest share the culture.
- * The anywhere pieces join every shuffle but are never a direct hit. */
-export function culturalMusic(culture: CultureId, year: number) {
-  const family = [...culturalThemes, ...layeredThemes].filter((t) =>
-    [t.culture].flat().includes(culture),
+export function culturalMusic(
+  culture: CultureId,
+  year: number,
+  location?: { lon: number; lat: number },
+) {
+  // These gazetteer labels miss Hawaiʻi and the Ethiopian highlands.
+  if (
+    location &&
+    location.lon >= -161 &&
+    location.lon <= -154 &&
+    location.lat >= 18 &&
+    location.lat <= 23
+  )
+    culture = "australian-pacific";
+  else if (
+    location &&
+    location.lon >= 33 &&
+    location.lon <= 43 &&
+    location.lat >= 3 &&
+    location.lat <= 15
+  )
+    culture = "east-southern-african";
+  const direct = [...culturalThemes, ...layeredThemes].filter(
+    (t) =>
+      [t.culture].flat().includes(culture) &&
+      year >= t.years[0] &&
+      year <= t.years[1],
   );
   return {
-    direct: family.filter((t) => year >= t.years[0] && year <= t.years[1]),
-    family: [...family, ...anywhereThemes],
+    direct,
+    family: [...direct, ...anywhereThemes],
   };
+}
+
+/** Alternate dated pieces and shared themes; exhaust each group before repeating. */
+export class MusicRotation {
+  private localRemaining: { id: string }[] = [];
+  private sharedRemaining: { id: string }[] = [];
+  private localNext = true;
+  constructor(
+    private local: readonly { id: string }[],
+    private shared: readonly { id: string }[],
+  ) {}
+  next(previous?: string): string {
+    const local = this.local.length > 0 && this.localNext;
+    this.localNext = !local;
+    const pool = local ? this.local : this.shared;
+    const bag = local ? this.localRemaining : this.sharedRemaining;
+    if (!bag.length) bag.push(...pool);
+    const choices = bag.filter((t) => t.id !== previous);
+    if (!choices.length) {
+      if (local) return this.next(previous);
+      bag.splice(0, bag.length, ...pool.filter((t) => t.id !== previous));
+      choices.push(...bag);
+    }
+    const chosen = choices[Math.floor(Math.random() * choices.length)];
+    bag.splice(
+      bag.findIndex((t) => t.id === chosen.id),
+      1,
+    );
+    return chosen.id;
+  }
 }

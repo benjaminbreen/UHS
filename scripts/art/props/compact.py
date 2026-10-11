@@ -124,21 +124,17 @@ def lamp(v):
  return a.finish()
 
 
-def modern(v,carton=False):
- a=art('fiber' if carton else 'brass',v)
+def modern(v):
+ a=art('fiber',v)
  a.rect((14,23,33,43),0);a.rect((15,24,32,42),2)
  a.rect((16,25,30,40),4);a.rect((17,25,18,39),6)
- if carton:
-  a.poly([(14,24),(18,20),(29,20),(33,24)],0)
-  a.poly([(16,23),(19,21),(28,21),(31,23)],6)
-  a.line((24,21,24,26),1);a.rect((22,32,26,34),1)
- else:
-  a.rect((20,19,28,24),0);a.rect((22,20,26,22),(0,0,0,0))
-  a.line((19,28,28,38),5);a.line((28,28,19,38),5)
+ a.poly([(14,24),(18,20),(29,20),(33,24)],0)
+ a.poly([(16,23),(19,21),(28,21),(31,23)],6)
+ a.line((24,21,24,26),1);a.rect((22,32,26,34),1)
  return a.finish()
 
 COMPACT={key:(lambda v,key=key:vessel(v,key)) for key in
  ['earthen-pot','storage-jar','water-jug','amphora','glazed-jar','metal-vessel','gourd']}
 COMPACT.update({'open-basket':basket,'lidded-basket':lambda v:basket(v,True),
  'sack':sack,'bucket':bucket,'plastic-bin':lambda v:bucket(v,True),
- 'grinder':grinder,'oil-lamp':lamp,'metal-tin':modern,'cardboard-box':lambda v:modern(v,True)})
+ 'grinder':grinder,'oil-lamp':lamp,'cardboard-box':modern})

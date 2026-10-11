@@ -4,41 +4,35 @@ import { waterHash as hash, waterNoise } from "./water-style";
 import { shade } from "./palette";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type Color = readonly [number, number, number];
-// The accepted v1 flagstone ramp: broad warm-gray faces with quiet value changes.
 const limestone: readonly Color[] = [
-  [186, 182, 160],
-  [180, 176, 155],
-  [170, 169, 149],
-  [191, 185, 162],
+  [181, 176, 151], [175, 172, 150], [187, 180, 155], [177, 173, 156],
 ];
 const basalt: readonly Color[] = [
-  [143, 150, 147],
-  [126, 137, 136],
-  [158, 162, 153],
-  [139, 146, 143],
+  [132, 141, 139], [138, 146, 140], [128, 136, 138], [143, 148, 140],
 ];
-
-/** Stone size and jointing by what the paving is for. A square is laid in
- * broad dressed slabs with pale mortar; a lane in small stones with dark
- * joints; a dais in the largest, palest slabs so it reads as one platform. */
-export type PavingGrade = "fine" | "street" | "broad" | "dais";
+const cobble: readonly Color[] = [
+  [161, 153, 132], [153, 150, 134], [166, 156, 136], [155, 149, 137],
+];
+const sett: readonly Color[] = [
+  [149, 149, 141], [143, 147, 146], [155, 151, 140], [145, 143, 141],
+];
+const brick: readonly Color[] = [
+  [162, 112, 78], [153, 105, 76], [165, 117, 84], [157, 109, 81],
+];
+export type PavingGrade = "fine" | "street" | "broad" | "dais" | "court" | "yard";
 export function pavingGrade(pavement?: Pavement): PavingGrade {
-  return pavement === "dais"
-    ? "dais"
-    : pavement === "square"
-      ? "broad"
-      : // One stone for streets, lanes and footways: the smaller "fine" grade
-        // read as a second material laid in patches.
-        "street";
+  return pavement === "dais" ? "dais"
+    : pavement === "square" ? "broad"
+    : pavement === "court" ? "court"
+    : pavement === "yard" ? "yard" : "street";
 }
-const grades: Record<
-  PavingGrade,
-  { w: number; h: number; lift: number; lightJoint: boolean }
-> = {
-  fine: { w: 10, h: 8, lift: -2, lightJoint: false },
-  street: { w: 18, h: 11, lift: 2, lightJoint: false },
-  broad: { w: 12, h: 10, lift: 4, lightJoint: true },
-  dais: { w: 14, h: 11, lift: 12, lightJoint: true },
+const grades: Record<PavingGrade, { w: number; h: number; lift: number }> = {
+  fine: { w: 18, h: 12, lift: 0 },
+  street: { w: 18, h: 12, lift: 0 },
+  broad: { w: 26, h: 16, lift: 3 },
+  court: { w: 22, h: 14, lift: 2 },
+  yard: { w: 18, h: 12, lift: -3 },
+  dais: { w: 26, h: 16, lift: 8 },
 };
 const tint = (c: Color, v: number): Color => {
   const s = shade(c, v);
@@ -181,154 +175,93 @@ export function sidewalkPixel(wx: number, wy: number): Color {
   return face;
 }
 
-/** Native-pixel broken flagstones, continuously addressed in world coordinates.
- * Short edge accents describe individual stones without outlining every face.
- * Row offsets vary independently, avoiding both tile seams and a regular brick grid.
- */
+/** Fitted volcanic stones have polygonal joints, rather than dressed courses. */
+function basaltPixel(wx: number, wy: number, lift: number): Color {
+  const w = 14, h = 11;
+  const col = Math.floor(wx / w), row = Math.floor(wy / h);
+  let first = Infinity, second = Infinity, ax = 0, ay = 0, bx = 0, by = 0, pick = 0;
+  for (let j = row - 1; j <= row + 1; j++)
+    for (let i = col - 1; i <= col + 1; i++) {
+      const sx = i * w + 3 + Math.floor(hash(i, j, 701) * 8),
+        sy = j * h + 2 + Math.floor(hash(i, j, 702) * 7);
+      const d = (wx - sx) ** 2 + (wy - sy) ** 2;
+      if (d < first) {
+        second = first; bx = ax; by = ay;
+        first = d; ax = sx; ay = sy; pick = Math.floor(hash(i, j, 703) * basalt.length);
+      } else if (d < second) {
+        second = d; bx = sx; by = sy;
+      }
+    }
+  const face = tint(basalt[pick], lift);
+  const edge = (second - first) / (2 * Math.hypot(bx - ax, by - ay));
+  if (edge < 0.45) return tint(face, -17);
+  if (edge < 1.25 && bx + by < ax + ay) return tint(face, 6);
+  if (edge < 1 && bx + by > ax + ay) return tint(face, -5);
+  return face;
+}
+
+/** World-addressed surfaces: narrow joints and short accents keep paving flat. */
 export function pavingStonePixel(
   wx: number,
   wy: number,
   material: StreetMaterial,
   grade: PavingGrade = "street",
-  /** Boards run north-south, across a street that runs east-west. */
   across = false,
 ): Color {
   const g = grades[grade];
-  if (material === "plank") {
-    const u = across ? wx : wy,
-      v = across ? wy : wx;
-    const board = Math.floor(u / 4),
-      i = mod(u, 4);
-    const tone = Math.floor(hash(board, 0, 731) * 25) - 12;
-    // Timbers are relaid piecemeal: each board breaks at its own place.
-    const cut = mod(v + Math.floor(hash(board, 0, 733) * 29), 29);
-    if (i === 0 || cut === 0) return [58, 45, 33];
-    const wood: Color = hash(board, Math.floor(v / 29), 735) < 0.2
-      ? [118, 110, 96]
-      : [128, 96, 64];
-    const grain = hash(Math.floor(v / 3), board * 4 + i, 737) > 0.8 ? -9 : 0;
-    const edge = i === 1 ? 10 : i === 3 ? -12 : 0;
-    // A peg where the board is fixed to the sleeper beneath.
-    if (i === 2 && (cut === 2 || cut === 27)) return [70, 56, 42];
-    return tint(wood, tone + grain + edge + g.lift);
-  }
   if (material === "asphalt") return asphaltPixel(wx, wy);
   if (material === "macadam") return macadamPixel(wx, wy);
-  if (material === "concrete" && grade === "broad") {
-    const row = Math.floor(wy / 16), col = Math.floor(wx / 24);
-    const x = mod(wx, 24), y = mod(wy, 16);
-    const tone = Math.round((hash(col, row, 766) - 0.5) * 8);
-    const face: Color = [171 + tone, 173 + tone, 164 + tone];
-    if (x === 0 || y === 0) return tint(face, -12);
-    if (x === 1 || y === 1) return tint(face, 3);
+  if (material === "basalt") return basaltPixel(wx, wy, g.lift);
+  if (material === "plank") {
+    const u = across ? wx : wy, v = across ? wy : wx;
+    const board = Math.floor(u / 5), i = mod(u, 5);
+    const cut = mod(v + Math.floor(hash(board, 0, 733) * 37), 37);
+    const tone = Math.floor(hash(board, Math.floor((v + Math.floor(hash(board, 0, 733) * 37)) / 37), 735) * 3) * 4 - 4;
+    const face: Color = [139 + tone, 111 + tone, 78 + tone];
+    if (i === 0 || cut === 0) return [101, 83, 65];
+    if (i === 2 && (cut === 2 || cut === 35)) return [111, 91, 68];
+    if (i === 1) return tint(face, 5);
+    if (i === 3 && mod(v, 13) > 4 && mod(v, 13) < 9) return tint(face, -4);
     return face;
   }
-  if (material === "concrete" && grade === "street") return sidewalkPixel(wx, wy);
-  // Rounded fieldstones and dressed granite blocks have different silhouettes,
-  // not merely different tints of the flagstone texture.
-  if (material === "cobble" || material === "sett") {
-    const rounded = material === "cobble";
-    // A square keeps the street's stone size: a second scale read as a seam.
-    const scale = grade === "fine" ? 0 : grade === "dais" ? 2 : 1;
-    const w = (rounded ? 6 : 8) + scale,
-      h = (rounded ? 5 : 5) + scale;
-    const row = Math.floor(wy / h),
-      offset = mod(row, 2) * Math.floor(w / 2) + Math.floor(hash(row, 0, 713) * 3);
-    const col = Math.floor((wx + offset) / w);
-    const x = mod(wx + offset, w),
-      y = mod(wy, h);
-    // Each block is dressed with its corners knocked off, so the joints open
-    // into small dark pits where four stones meet.
-    const corner = (x === 1 || x === w - 1) && (y === 1 || y === h - 1);
-    if (x === 0 || y === 0 || (corner && (rounded || hash(col, row, 714) < 0.6)))
-      return g.lightJoint
-        ? rounded ? [170, 166, 150] : [150, 154, 150]
-        : rounded ? [92, 88, 84] : [74, 78, 88];
-    const variation = Math.round((hash(col, row, 711) - 0.5) * 14);
-    const cast = hash(col, row, 712);
-    // Light from the upper left: a lit top course and left arris, the
-    // stone's own shadow on its lower and right edges.
-    const light = y === 1 ? 11 : y === h - 1 ? -12 : x === 1 ? 6 : x === w - 1 ? -7 : 0;
-    const base: Color = rounded ? [158, 152, 138] : [138, 136, 132];
-    const stone = tint(base, variation + light + g.lift);
-    // Granite runs warm and cool from stone to stone; worn tops shine.
-    const warm = cast < 0.2 ? 1 : cast > 0.82 ? -1 : 0;
-    const shine = y === 2 && x > 1 && x < w - 2 && hash(col, row, 715) > 0.8 ? 5 : 0;
-    return [stone[0] + warm * 7 + shine, stone[1] + warm * 2 + shine, stone[2] - warm * 7 + shine];
+  if (material === "concrete") {
+    if (grade === "street" || grade === "fine") return sidewalkPixel(wx, wy);
+    const row = Math.floor(wy / 18), col = Math.floor(wx / 26);
+    const x = mod(wx, 26), y = mod(wy, 18);
+    const tone = Math.floor(hash(col, row, 766) * 3) * 3 - 3;
+    const face: Color = [172 + tone, 174 + tone, 163 + tone];
+    if (x === 0 || y === 0) return tint(face, -15);
+    if (y === 1 && x > 2 && x < 16) return tint(face, 3);
+    return face;
   }
-  const height = g.h;
-  const row = Math.floor(wy / height);
+  if (material === "cobble" || material === "sett" || material === "brick") {
+    const rounded = material === "cobble", fired = material === "brick";
+    const w = rounded ? 8 : fired ? 10 : 9, h = rounded ? 7 : fired ? 6 : 8;
+    const row = Math.floor(wy / h);
+    const offset = mod(row, 2) * Math.floor(w / 2) + (rounded ? Math.floor(hash(row, 0, 713) * 3) : 0);
+    const col = Math.floor((wx + offset) / w), x = mod(wx + offset, w), y = mod(wy, h);
+    const id = hash(col, row, 711), palette = rounded ? cobble : fired ? brick : sett;
+    const face = tint(palette[Math.floor(id * palette.length)], g.lift);
+    const corner = (x === 1 || x === w - 1) && (y === 1 || y === h - 1);
+    const joint: Color = fired ? [134, 118, 94] : rounded ? [128, 125, 110] : [119, 123, 121];
+    if (x === 0 || y === 0 || (corner && (rounded || (!fired && id < 0.35)))) return tint(joint, g.lift);
+    if (y === 1 && x > 1 && x < w - 2) return tint(face, rounded ? 8 : 5);
+    if (rounded && y === 2 && x === 2 && id > 0.65) return tint(face, 6);
+    if ((y === h - 1 && x > 2) || (x === w - 1 && y > 2)) return tint(face, -5);
+    return face;
+  }
+  const row = Math.floor(wy / g.h);
   const width = g.w + Math.floor(hash(row, 0, 701) * 3);
   const offset = Math.floor(hash(row, 0, 702) * width);
-  const column = Math.floor((wx + offset) / width);
-  const x = mod(wx + offset, width),
-    y = mod(wy, height);
-  const id = hash(column, row, 703),
-    palette =
-      material === "basalt"
-        ? basalt
-        : material === "concrete"
-          ? ([
-              [160, 164, 158],
-              [173, 176, 168],
-              [184, 184, 173],
-              [151, 157, 153],
-            ] as readonly Color[])
-          : limestone;
-  // Dressed slabs are matched stone: half the quarry variation of a street.
-  const pick = palette[Math.floor(id * palette.length)];
-  const face: Color = g.lightJoint
-    ? tint(
-        [
-          Math.round((pick[0] + palette[0][0]) / 2),
-          Math.round((pick[1] + palette[0][1]) / 2),
-          Math.round((pick[2] + palette[0][2]) / 2),
-        ],
-        g.lift,
-      )
-    : tint(pick, g.lift);
-  const joint: Color = g.lightJoint
-    ? material === "basalt"
-      ? tint([176, 184, 176], g.lift)
-      : material === "concrete"
-        ? tint([198, 201, 193], g.lift)
-        : tint([214, 208, 188], g.lift)
-    : material === "basalt"
-      ? tint([88, 97, 97], g.lift)
-      : material === "concrete"
-        ? tint([142, 147, 142], g.lift)
-        : tint([138, 131, 110], g.lift);
-  // Dressed slabs: straight joints a shade darker than the face, a lit top and
-  // left bevel, a shaded bottom and right edge, so every stone has thickness.
-  if (g.lightJoint) {
-    const bevel = tint(face, 11),
-      shade = tint(face, -12);
-    if (x === 0 || y === 0) return tint(face, grade === "dais" ? -14 : -20);
-    if (y === 1 && x < width - 1) return bevel;
-    if (x === 1 && y < height - 1) return bevel;
-    if (y === height - 1 || x === width - 1) return shade;
-    if (
-      x === Math.floor(id * 7) + 3 &&
-      y === Math.floor(id * 5) + 3 &&
-      id > 0.55
-    )
-      return tint(face, -6);
-    return face;
-  }
-  // Street flagstones: dark joints, a lit top and left edge, a shaded bottom
-  // and right, and each stone a shade off its neighbours.
-  const tone = Math.floor(hash(column, row, 704) * 9) - 4;
-  const stone = tint(face, tone);
+  const col = Math.floor((wx + offset) / width), x = mod(wx + offset, width), y = mod(wy, g.h);
+  const id = hash(col, row, 703);
+  const face = tint(limestone[Math.floor(id * limestone.length)], g.lift);
+  const joint = tint(face, -20);
   if (x === 0 || y === 0) return joint;
-  // A nicked corner now and then keeps the grid from reading as brickwork.
-  if (x === 1 && y === 1 && id > 0.78) return joint;
-  if (y === 1 && x < width - 1) return tint(stone, 10);
-  if (x === 1 && y < height - 1) return tint(stone, 8);
-  if (y === height - 1 || x === width - 1) return tint(stone, -9);
-  if (x === Math.floor(id * 4) + 2 && y === height - 3 && id < 0.25)
-    return tint(
-      palette[(Math.floor(id * 4) + 1) % palette.length],
-      g.lift + tone,
-    );
-  return stone;
+  if (x === 1 && y === 1 && id > 0.75) return joint;
+  if (y === 1 && x > 2 && x < width - 5) return tint(face, 5);
+  if (x === 1 && y > 2 && y < g.h - 4 && id < 0.45) return tint(face, 3);
+  if (y === g.h - 1 && x > width / 2) return tint(face, -4);
+  if (id < 0.16 && y === g.h - 4 && x >= 4 && x <= 6) return tint(face, -5);
+  return face;
 }

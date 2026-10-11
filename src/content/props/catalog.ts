@@ -1,4 +1,4 @@
-import { signpostDefs } from "./signage";
+import { signpostDefs, wallSignDefs } from "./signage";
 import { detailProps } from "./settlement-details";
 import { urbanProps } from "./urban";
 import { furnitureProps } from "./furniture";
@@ -70,6 +70,7 @@ export function propVisualCells(key: string, at: Point): Point[] {
 }
 export const propDefs: Record<string, PropDef> = {
   ...signpostDefs,
+  ...wallSignDefs,
   ...detailProps,
   ...urbanProps,
   hideBag: {
@@ -1113,15 +1114,6 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Washing line",
     family: "washing-line",
-  },
-  tin: {
-    rarity: 0.5,
-    solid: true,
-    name: "Metal canister",
-    family: "metal-tin",
-    portable: true,
-    container: true,
-    breakable: "metal",
   },
   plastic: {
     rarity: 0.35,

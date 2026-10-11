@@ -10,7 +10,11 @@ import {
   type Stem,
 } from "./score";
 import type { CultureId } from "../content/history/types";
-import { anywhereThemes, culturalMusic } from "./cultural-themes";
+import {
+  anywhereThemes,
+  culturalMusic,
+  MusicRotation,
+} from "./cultural-themes";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, playSound, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
@@ -52,17 +56,11 @@ const GAP_MIN = 20000,
   GAP_SPREAD = 25000;
 const SLOW_FADE_IN = 8;
 const SLOW_FADE_OUT = 4;
-const pick = <T,>(list: readonly T[]) =>
+const pick = <T>(list: readonly T[]) =>
   list[Math.floor(Math.random() * list.length)];
-/** A random theme in a random season, period and era, never the same theme twice running.
- * Pieces of the setting's culture join the default themes. */
-function shuffled(
-  previous?: string,
-  extra: readonly { id: string }[] = [],
-): Arrangement {
-  const pool = [...themes, ...extra].filter((t) => t.id !== previous);
+function shuffled(themeId = pick(themes).id): Arrangement {
   return {
-    themeId: pick(pool).id,
+    themeId,
     season: pick(seasons),
     period: pick(periods),
     era: pick(eras),
@@ -91,7 +89,7 @@ export class AudioDirector {
   private disposed = false;
   private lastSfx = new Map<string, number>();
   private setting = "";
-  private family: readonly { id: string }[] = anywhereThemes;
+  private rotation = new MusicRotation([], [...themes, ...anywhereThemes]);
   private state: AudioState = {
     loading: false,
     playing: false,
@@ -250,7 +248,9 @@ export class AudioDirector {
       if (this.state.followWorld) {
         this.retire(false, SLOW_FADE_OUT);
         this.patch({ playing: false, beat: 0 });
-        const next = shuffled(this.state.arrangement.themeId, this.family);
+        const next = shuffled(
+          this.rotation.next(this.state.arrangement.themeId),
+        );
         this.later(GAP_MIN + Math.random() * GAP_SPREAD, () => {
           this.configure(next);
           void this.play(SLOW_FADE_IN);
@@ -328,22 +328,28 @@ export class AudioDirector {
     });
     if (restart) void this.play();
   }
-  /** A direct hit on culture and date plays first; the culture's other pieces join the shuffle. */
-  setSetting(culture: CultureId | undefined, year: number | undefined) {
-    const key = `${culture}:${year}`;
+  setSetting(
+    culture: CultureId | undefined,
+    year: number | undefined,
+    location?: { lon: number; lat: number },
+  ) {
+    const key = `${culture}:${year}:${location?.lon}:${location?.lat}`;
     if (key === this.setting) return;
     this.setting = key;
     if (!culture || year === undefined) {
-      this.family = anywhereThemes;
+      this.rotation = new MusicRotation([], [...themes, ...anywhereThemes]);
+      if (this.state.followWorld)
+        this.configure({ themeId: this.rotation.next() });
       return;
     }
-    const { direct, family } = culturalMusic(culture, year);
-    this.family = family;
-    if (direct.length && this.state.followWorld)
-      this.configure({ themeId: pick(direct).id });
+    const { direct } = culturalMusic(culture, year, location);
+    this.rotation = new MusicRotation(direct, [...themes, ...anywhereThemes]);
+    if (this.state.followWorld)
+      this.configure({ themeId: this.rotation.next() });
   }
   follow(enabled: boolean) {
     this.patch({ followWorld: enabled });
+    if (enabled) this.configure({ themeId: this.rotation.next() });
   }
   /** The world's ambient picture: weather, water, a town, a fire, a roof. */
   setScene(mix: AmbienceMix) {
@@ -407,7 +413,12 @@ export class AudioDirector {
     this.lastSfx.set(key, now);
     try {
       const ctx = await this.unlock();
-      playSound(ctx, this.sfx!, applyTuning(sound, tuned), ctx.currentTime + 0.01);
+      playSound(
+        ctx,
+        this.sfx!,
+        applyTuning(sound, tuned),
+        ctx.currentTime + 0.01,
+      );
       if (this.state.error) this.patch({ error: "" });
     } catch (error) {
       if (!this.disposed)

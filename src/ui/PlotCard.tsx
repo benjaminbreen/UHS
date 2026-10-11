@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Check, Coins, HeartCrack, Hourglass, TrendingDown, TrendingUp, UserRound, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { formatHistoricalYear } from "../core/calendar";
@@ -151,7 +152,7 @@ function Pixels({ rows, className, size }: { rows: string[]; className: string; 
 /** Choices as a menu of words with the hand beside the one in play, the way
  * the old console games asked. The first `primary` choice takes focus. */
 function Choices({ items, focus }: {
-  items: { label: string; pick: () => void; primary?: boolean }[];
+  items: { label: string; pick: () => void; primary?: boolean; note?: string; odds?: number; unavailable?: string }[];
   focus: React.RefObject<HTMLButtonElement | null>;
 }) {
   const first = Math.max(0, items.findIndex((i) => i.primary));
@@ -180,12 +181,96 @@ function Choices({ items, focus }: {
           data-on={i === on || undefined}
           onMouseEnter={() => setOn(i)}
           onFocus={() => setOn(i)}
-          onClick={item.pick}
+          onClick={item.unavailable ? undefined : item.pick}
+          aria-disabled={item.unavailable ? true : undefined}
+          data-unavailable={item.unavailable ? true : undefined}
+          title={item.odds === undefined ? undefined : `${Math.round(item.odds * 100)}%`}
         >
           {i === on && <Pixels rows={HAND} className="plot-hand" size={[28, 18]} />}
           {item.label}
+          {(item.unavailable ?? item.note) && <small className="plot-choice-note">{item.unavailable ?? item.note}</small>}
         </button>
       ))}
+    </div>
+  );
+}
+
+const hours = (minutes: number) => (minutes < 60 ? `${minutes}m` : `${Math.round((minutes / 60) * 2) / 2}h`.replace(".5", "½"));
+const signed = (n: number) => (n > 0 ? `+${n}` : `\u2212${-n}`);
+
+/** The chance of a roll as a small pie, the number beside it. */
+function Odds({ p }: { p: number }) {
+  const a = p * Math.PI * 2, x = 7 + 6 * Math.sin(a), y = 7 - 6 * Math.cos(a);
+  return (
+    <span className="work-odds" title={`${Math.round(p * 100)}% chance`}>
+      <svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true">
+        <circle cx="7" cy="7" r="6" className="work-odds-bg" />
+        {p >= 0.995 ? <circle cx="7" cy="7" r="6" /> : <path d={`M7 7 L7 1 A6 6 0 ${p > 0.5 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z`} />}
+      </svg>
+      {Math.round(p * 100)}%
+    </span>
+  );
+}
+
+type WorkChoice = NonNullable<Card["choose"]>["choices"][number];
+/** A work card's answers: numbered, nothing chosen until a key or a click,
+ * and not at all for a moment after the text has finished. */
+function WorkChoices({ choices, ready, onPick }: { choices: WorkChoice[]; ready: boolean; onPick: (index: number) => void }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!ready) return;
+    const t = window.setTimeout(() => setArmed(true), 450);
+    return () => window.clearTimeout(t);
+  }, [ready]);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      const c = choices[Number(e.key) - 1];
+      if (!armed || !c || c.unavailable) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onPick(c.index);
+    };
+    window.addEventListener("keydown", key, true);
+    return () => window.removeEventListener("keydown", key, true);
+  });
+  return (
+    <ol className="work-choices" data-armed={armed || undefined}>
+      {choices.map((c, i) => (
+        <li key={c.index}>
+          <button disabled={!armed || !!c.unavailable} data-unavailable={c.unavailable ? true : undefined} onClick={() => onPick(c.index)}>
+            <kbd>{i + 1}</kbd>
+            <span className="work-choice-text">
+              {c.label}
+              {(c.unavailable ?? c.note) && <small>{c.unavailable ?? c.note}</small>}
+            </span>
+            <span className="work-choice-meta">
+              {c.minutes ? <span><Hourglass size={11} />{hours(c.minutes)}</span> : null}
+              {c.coin ? <span><Coins size={11} />{signed(c.coin)}</span> : null}
+              {c.odds !== undefined && <Odds p={c.odds} />}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+type Outcome = NonNullable<Runtime["engine"]["lastChoice"]>;
+/** What an answer changed, as small marks. */
+function Changes({ changes }: { changes: Outcome["changes"] }) {
+  const money = changes.filter((c) => c.kind === "coin" || c.kind === "pay").reduce((n, c) => n + c.delta, 0);
+  const marks: { key: string; good: boolean; icon: ReactNode; text?: string; title: string }[] = [];
+  for (const c of changes) {
+    if (c.kind === "time") marks.push({ key: "time", good: c.delta < 0, icon: <Hourglass size={12} />, text: hours(Math.abs(c.delta)), title: "Time spent" });
+    if (c.kind === "day") marks.push({ key: "day", good: c.delta > 0, icon: c.delta > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />, title: c.delta > 0 ? "The work goes better" : "The work goes worse" });
+    if (c.kind === "regard") marks.push({ key: "regard", good: c.delta > 0, icon: <UserRound size={12} />, text: `${c.who ?? ""} ${c.delta > 0 ? "\u2191" : "\u2193"}`, title: c.delta > 0 ? "They think better of you" : "They think worse of you" });
+    if (c.kind === "hurt") marks.push({ key: "hurt", good: false, icon: <HeartCrack size={12} />, title: "Hurt" });
+  }
+  if (money) marks.push({ key: "money", good: money > 0, icon: <Coins size={12} />, text: signed(money), title: "Money" });
+  if (!marks.length) return null;
+  return (
+    <div className="work-changes">
+      {marks.map((m) => <span key={m.key} data-good={m.good || undefined} title={m.title}>{m.icon}{m.text}</span>)}
     </div>
   );
 }
@@ -293,9 +378,13 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
 }) {
   const [leaving, setLeaving] = useState(false);
   const [asked, setAsked] = useState<Asked>();
+  const [outcome, setOutcome] = useState<Outcome>();
   const begin = useRef<HTMLButtonElement>(null);
   const section = useRef<HTMLElement>(null);
   const reader = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (outcome) begin.current?.focus({ preventScroll: true });
+  }, [outcome]);
   const plot = runtime.engine.state.plot;
   const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
   const setting = runtime.engine.world.pack.setting;
@@ -379,15 +468,37 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
           </div>
         )}
         <div className="plot-speech-body">
-          <span className="plot-name">{speaker?.name ?? card.title}</span>
-          <p aria-live="polite">
-            {typed}
-            {!done && <span className="plot-rest" aria-hidden="true">{card.text.slice(typed.length)}</span>}
-          </p>
-          <div className="plot-speech-actions" data-ready={done || undefined}>
+          <span className="plot-name">{speaker?.name ?? card.title}{speaker && card.choose && <small>{card.title}</small>}</span>
+          {outcome ? (
+            <p className="work-outcome" aria-live="polite">
+              {outcome.won !== undefined && <span className="work-roll" data-won={outcome.won || undefined}>{outcome.won ? <Check size={13} /> : <X size={13} />}</span>}
+              {outcome.line}
+            </p>
+          ) : (
+            <p aria-live="polite">
+              {typed}
+              {!done && <span className="plot-rest" aria-hidden="true">{card.text.slice(typed.length)}</span>}
+            </p>
+          )}
+          {outcome && <Changes changes={outcome.changes} />}
+          {card.choose && !outcome ? (
+            <div className="plot-speech-actions" data-ready={done || undefined} data-choose>
+              <WorkChoices
+                choices={card.choose.choices}
+                ready={done}
+                onPick={(index) => {
+                  runtime.command({ type: "choose", card: card.choose!.card, choice: index });
+                  const last = runtime.engine.lastChoice;
+                  if (last?.card === card.choose!.card) setOutcome(last);
+                  else close();
+                }}
+              />
+            </div>
+          ) : (
+          <div className="plot-speech-actions" data-ready={done || outcome ? true : undefined}>
             <Choices
               focus={begin}
-              items={[
+              items={outcome ? [{ label: "Continue", pick: () => close(), primary: true }] : [
                 ...(speaker && runtime.engine.approacher?.id === speaker.id
                   ? [{ label: "Answer", pick: () => close(() => onAnswer(speaker.id)), primary: true }]
                   : []),
@@ -395,6 +506,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
               ]}
             />
           </div>
+          )}
         </div>
       </>
     );

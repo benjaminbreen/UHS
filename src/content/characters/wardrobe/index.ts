@@ -347,6 +347,13 @@ export function wardrobeFor(
     cloak: over === "cloak",
     mantle: over === "mantle",
     shoulderCloth: over === "shoulder-cloth",
+    apron: chosen.apron as CharacterAppearance["wearing"]["apron"],
+    bag: chosen.bag as CharacterAppearance["wearing"]["bag"],
+    wrist: chosen.wrist as CharacterAppearance["wearing"]["wrist"],
+    neckwear: chosen.neckwear as CharacterAppearance["wearing"]["neckwear"],
+    trimPattern: chosen.trimPattern as CharacterAppearance["wearing"]["trimPattern"],
+    hairOrnament: chosen.hairOrnament as CharacterAppearance["wearing"]["hairOrnament"],
+    hatTrim: chosen.hatTrim as CharacterAppearance["wearing"]["hatTrim"],
   };
 }
 

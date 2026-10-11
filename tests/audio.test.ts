@@ -9,7 +9,14 @@ import {
   themes,
   worldMusicSlot,
 } from "../src/audio/score";
-import { culturalMusic, culturalThemes } from "../src/audio/cultural-themes";
+import {
+  anywhereThemes,
+  culturalMusic,
+  culturalThemes,
+  MusicRotation,
+} from "../src/audio/cultural-themes";
+import { cultures } from "../src/content/history/types";
+import { eras } from "../src/content/history/dates";
 import { layeredThemes } from "../src/audio/layered-themes";
 import { catalog } from "../src/audio/sfx";
 import * as handling from "../src/audio/handling";
@@ -106,9 +113,9 @@ describe("original soundtrack scores", () => {
           expect(n.midi).toBeLessThanOrEqual(108);
         }
       }
-    expect(culturalMusic("european", 1660).direct.map((t) => t.id)).toEqual([
+    expect(culturalMusic("european", 1660).direct.map((t) => t.id)).toContain(
       "herengracht-ground",
-    ]);
+    );
     for (const theme of layeredThemes.filter((t) => t.sections)) {
       expect(theme.sections![0].bar).toBe(0);
       for (const [i, section] of theme.sections!.entries()) {
@@ -127,11 +134,46 @@ describe("original soundtrack scores", () => {
       expect((theme.bars * theme.meter * 60) / theme.bpm).toBeGreaterThan(120);
     }
   });
-  it("plays a culture's pieces across its eras and puts direct hits first", () => {
+  it("matches dated soundtracks and preserves the minimum candidate lengths", () => {
+    for (const themeId of [
+      "jeitun-clay-hearths",
+      "guila-naquitz-seed-gatherers",
+      "soro-mikaya-first-ridge",
+      "kona-open-strings",
+      "issyk-kul-three-strings",
+      "hoabinh-canopy-light",
+      "jenne-jeno-river-market",
+      "turkana-cattle-dusk",
+      "cairo-courtyard-lamps",
+    ]) {
+      for (const period of periods) {
+        const score = compose({ ...defaultArrangement, themeId, period });
+        expect((score.beats * 60) / score.bpm).toBeGreaterThanOrEqual(180);
+      }
+    }
+    for (const [culture, year, id] of [
+      ["inner-eurasian", -6000, "jeitun-clay-hearths"],
+      ["mesoamerican", -7500, "guila-naquitz-seed-gatherers"],
+      ["andean", -5500, "soro-mikaya-first-ridge"],
+      ["australian-pacific", 1975, "kona-open-strings"],
+      ["inner-eurasian", 1970, "issyk-kul-three-strings"],
+      ["southeast-asian", -6500, "hoabinh-canopy-light"],
+      ["west-central-african", 750, "jenne-jeno-river-market"],
+      ["east-southern-african", -2000, "turkana-cattle-dusk"],
+      ["north-african-west-asian", 1250, "cairo-courtyard-lamps"],
+      ["southeast-asian", -2000, "ban-chiang-rain-path"],
+      ["inner-eurasian", -2000, "sintashta-last-light"],
+      ["other-indigenous-american", 100, "hopewell-wide-circle"],
+    ] as const) {
+      expect(culturalMusic(culture, year).direct.map((t) => t.id)).toContain(
+        id,
+      );
+    }
     const java = culturalMusic("southeast-asian", 1450);
-    expect(java.direct.map((t) => t.id)).toEqual(["gongs-of-trowulan"]);
+    expect(java.direct.map((t) => t.id)).toContain("gongs-of-trowulan");
     const later = culturalMusic("southeast-asian", 1970);
-    expect(later.direct).toEqual([]);
+    expect(later.direct.map((t) => t.id)).toContain("bali-kotekan");
+    expect(later.family.map((t) => t.id)).not.toContain("ban-chiang-rain-path");
     expect(later.family.map((t) => t.id)).toContain("gongs-of-trowulan");
     expect(culturalMusic("andean", 1680).direct.map((t) => t.id)).toEqual([
       "cusco-apricot-dusk",
@@ -142,9 +184,84 @@ describe("original soundtrack scores", () => {
     expect(culturalMusic("european", -6200).direct.map((t) => t.id)).toEqual([
       "lepenski-river-hearths",
     ]);
-    expect(culturalMusic("south-asian", -4500).direct.map((t) => t.id)).toEqual(
-      ["mehrgarh-rain-jars"],
+    expect(
+      culturalMusic("south-asian", -4500).direct.map((t) => t.id),
+    ).toContain("mehrgarh-rain-jars");
+  });
+  it("makes every registered song reachable and respects both date boundaries", () => {
+    const placeThemes = [...culturalThemes, ...layeredThemes];
+    const all = [...themes, ...placeThemes];
+    expect(new Set(all.map((t) => t.id)).size).toBe(all.length);
+    for (const theme of placeThemes) {
+      if ("anywhere" in theme && theme.anywhere) {
+        expect(anywhereThemes).toContain(theme);
+        continue;
+      }
+      expect(theme.years[1] - theme.years[0]).toBeGreaterThanOrEqual(100);
+      for (const culture of [theme.culture].flat()) {
+        for (const year of theme.years)
+          expect(culturalMusic(culture, year).direct).toContain(theme);
+        for (const year of [theme.years[0] - 1, theme.years[1] + 1])
+          expect(culturalMusic(culture, year).family).not.toContain(theme);
+      }
+    }
+    for (const [culture] of cultures) {
+      expect(culturalMusic(culture, 2026).direct.length).toBeGreaterThanOrEqual(
+        2,
+      );
+      for (const era of eras) {
+        const { direct, family } = culturalMusic(culture, era.sample.year);
+        expect(new Set(family.map((t) => t.id)).size).toBe(family.length);
+        expect(family).toEqual([...direct, ...anywhereThemes]);
+      }
+    }
+    expect(culturalMusic("european", 1969).direct.map((t) => t.id)).toContain(
+      "houston-1969",
     );
+    expect(
+      culturalMusic("mesoamerican", 1975, {
+        lon: -157.86,
+        lat: 21.31,
+      }).direct.map((t) => t.id),
+    ).toContain("kona-open-strings");
+    expect(
+      culturalMusic("west-central-african", 1650, {
+        lon: 37.47,
+        lat: 12.6,
+      }).direct.map((t) => t.id),
+    ).toContain("gondar-rains");
+    expect(
+      culturalMusic("mesoamerican", 1975, {
+        lon: -99.13,
+        lat: 19.43,
+      }).direct.map((t) => t.id),
+    ).not.toContain("kona-open-strings");
+  });
+  it("rotates every eligible regional and shared song without repeats or starvation", () => {
+    const local = culturalMusic("east-asian", 2026).direct;
+    const shared = [...themes, ...anywhereThemes];
+    const rotation = new MusicRotation(local, shared);
+    const heardLocal: string[] = [],
+      heardShared: string[] = [];
+    let previous: string | undefined;
+    for (let i = 0; i < 2 * Math.max(local.length, shared.length); i++) {
+      const id = rotation.next(previous);
+      expect(id).not.toBe(previous);
+      (i % 2 === 0 ? heardLocal : heardShared).push(id);
+      previous = id;
+    }
+    expect(new Set(heardLocal.slice(0, local.length))).toEqual(
+      new Set(local.map((t) => t.id)),
+    );
+    expect(new Set(heardShared.slice(0, shared.length))).toEqual(
+      new Set(shared.map((t) => t.id)),
+    );
+    const fallback = new MusicRotation([], shared);
+    const heard = Array.from({ length: shared.length }, () => fallback.next());
+    expect(new Set(heard)).toEqual(new Set(shared.map((t) => t.id)));
+    const single = new MusicRotation([local[0]], shared);
+    expect(single.next(local[0].id)).not.toBe(local[0].id);
+    expect(single.next()).toBe(local[0].id);
   });
   it("maps the provisional calendar at boundaries and wraps the year", () => {
     expect(worldMusicSlot(0)).toEqual({ season: "spring", period: "night" });

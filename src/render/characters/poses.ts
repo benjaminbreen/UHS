@@ -180,3 +180,36 @@ export function poseTiming(pose: CharacterPose) {
       : 160;
 }
 export const poseContactMs = (pose: CharacterPose) => poseTiming(pose) * 2;
+
+/**
+ * How long each frame is held, as shares of the pose's even beat: an action
+ * reads by the pose it holds and the ones it snaps through. Shares sum to the
+ * frame count, and anything with a contact frame keeps frame 2 starting at
+ * two beats, so strike effects still land on it.
+ */
+const holds: Partial<Record<CharacterPose, readonly number[]>> = {
+  land: [1.8, 1.2, 0.5, 0.5],
+  startle: [0.5, 1.8, 1, 0.7],
+  hurt: [0.6, 1.6, 1, 0.8],
+  stumble: [0.8, 1.4, 1, 0.8],
+  skid: [0.8, 1.6, 1, 0.6],
+  roll: [0.6, 1.4, 1.2, 0.8],
+  kick: [0.8, 0.8, 1.4, 1],
+  // Wind up long, snap to the top, hit, recover.
+  ...Object.fromEntries(
+    ["swing", "chop", "axe-chop", "pick-strike", "stick-swing", "slash", "dig", "shovel-dig", "till", "reap", "sickle-cut",
+      "scythe-sweep", "rake-pull", "thrust", "spear-thrust", "spear-throw", "knife-thrust", "pitchfork-jab", "cast"]
+      .map((pose) => [pose, [1.4, 0.6, 1.2, 0.8]]),
+  ),
+  "adjust-hat": [0.7, 1.5, 1.1, 0.7],
+  "touch-face": [0.7, 1.6, 1, 0.7],
+  "inspect-held": [0.6, 1.6, 1.2, 0.6],
+};
+/** The frame showing `elapsed` ms into a pose played at `ms` a frame. */
+export function heldFrame(pose: CharacterPose, elapsed: number, ms = poseTiming(pose), last = frameCount(pose) - 1) {
+  const shares = holds[pose];
+  if (!shares) return Math.min(last, Math.floor(elapsed / ms));
+  let t = elapsed / ms;
+  for (let i = 0; i < shares.length; i++) if ((t -= shares[i]) < 0) return Math.min(i, last);
+  return last;
+}

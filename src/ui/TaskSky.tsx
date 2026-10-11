@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { Point } from "../core/types";
 import type { Runtime } from "../runtime/session";
 import { currentSheets, loadSheets, type SheetName } from "./sprite-atlas";
 import { TaskScene } from "./task-scene";
@@ -95,14 +94,12 @@ export function TaskSky({
   runtime,
   start,
   onClose,
-  onGuide,
   onPin,
   pinned,
 }: {
   runtime: Runtime;
   start: TaskSource;
   onClose: () => void;
-  onGuide: (to: Point, label: string) => void;
   onPin: (goalId: string) => void;
   pinned?: string;
 }) {
@@ -215,8 +212,8 @@ export function TaskSky({
         </dl>
         <div className="tasks-actions">
           {view.where?.pos && (
-            <button className="primary" onClick={() => { onGuide(view.where!.pos!, view.title); close(); }}>
-              Show me the way
+            <button className="primary" onClick={() => { runtime.setOff({ kind: "go", to: view.where!.pos!, label: view.where!.label }); close(); }}>
+              Go there
             </button>
           )}
           {view.goalId && view.who.self && !view.done && (
@@ -377,7 +374,7 @@ function Stamp({ evidence }: { evidence: keyof typeof EVIDENCE }) {
   );
 }
 
-const key = (s: TaskSource) => (s.kind === "goal" ? `g:${s.id}` : s.kind === "aim" ? "aim" : `p:${s.actorId}:${s.label}`);
+const key = (s: TaskSource) => (s.kind === "goal" ? `g:${s.id}` : s.kind === "plan" ? `p:${s.actorId}:${s.label}` : s.kind);
 function hash(s: string) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);

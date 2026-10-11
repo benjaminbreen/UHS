@@ -1,4 +1,8 @@
 import type { Livelihood } from "../characters/context-types";
+import type { SeasonId } from "../../core/season";
+import type { SkillId } from "../../core/skills";
+import { workplaceFor } from "../characters/workplace";
+import { recipeFor, type Recipe } from "./recipes";
 import { goodsOf } from "./goods";
 
 /**
@@ -105,35 +109,54 @@ const indoors = new Set([
   "Tending the sick", "Playing and telling",
 ]);
 
+/** Where a recipe's step is done, found on the map rather than at a prop. */
+/** `home` is inside the house at its work spot, `yard` the store out front, `door` the street door. */
+export type PlaceRole = "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well";
 /** One stage of a day: a short name for the strip, the thing to do, and
- * whether it happens at a client's house instead of at home. */
-export type Step = { name: string; task: string; client?: boolean };
+ * whether it happens at a client's house instead of at home. A recipe's step
+ * also names its place, the task screen's scene for it and its card. */
+export type Step = {
+  name: string;
+  task: string;
+  client?: boolean;
+  at?: PlaceRole;
+  scene?: string;
+  card?: string;
+  /** Its share of the day, where the steps are not equal. */
+  hours?: number;
+  /** What to call the place, where the role's own name is too plain. */
+  label?: string;
+  /** The task where people had no market and traded hand to hand. */
+  barter?: string;
+};
 
+// The work itself stays at the trade's prop; the steps round it go where the
+// work went: out for the materials, to the market, to whoever it was for.
 const familySteps: Record<ProcessFamily, Step[]> = {
   tend: [
-    { name: "prepare", task: "Get your tools ready" },
-    { name: "tend", task: "Tend the stock" },
-    { name: "take", task: "Take in what is ready" },
+    { name: "prepare", task: "Get your tools ready", at: "home", scene: "craft" },
+    { name: "tend", task: "Tend the stock", scene: "tend" },
+    { name: "take", task: "Take in what is ready", at: "yard", scene: "gather" },
   ],
   gather: [
-    { name: "find", task: "Look for a good patch" },
-    { name: "take", task: "Gather what you can" },
-    { name: "bring home", task: "Bring it home to the stores" },
+    { name: "find", task: "Look for a good patch", at: "wild", scene: "walk" },
+    { name: "take", task: "Gather what you can", at: "wild", scene: "gather" },
+    { name: "bring home", task: "Bring it home to the stores", at: "yard", scene: "haul" },
   ],
   transform: [
-    { name: "prepare", task: "Set out tools and materials" },
-    { name: "work", task: "Work steadily at it" },
-    { name: "finish", task: "Finish off and clear up" },
+    { name: "prepare", task: "Fetch your materials from the store", at: "yard", scene: "haul" },
+    { name: "work", task: "Work steadily at it", scene: "craft" },
+    { name: "sell", task: "Take the {good} to market", barter: "Trade the {good} with a neighbour", at: "market", scene: "market" },
   ],
   carry: [
-    { name: "load", task: "Load up at home" },
-    { name: "carry", task: "Carry it across town" },
-    { name: "deliver", task: "Hand it over" },
+    { name: "load", task: "Take up a load at the market", barter: "Take up a neighbour's load", at: "market", scene: "haul" },
+    { name: "carry", task: "Carry it across town", at: "client", client: true, scene: "haul" },
+    { name: "deliver", task: "Hand it over at the door", at: "client", client: true, scene: "talk" },
   ],
   serve: [
-    { name: "wait", task: "Be ready when you are wanted" },
-    { name: "attend", task: "See to what is needed" },
-    { name: "settle", task: "Settle up for the day" },
+    { name: "wait", task: "Be ready when you are wanted", scene: "rest" },
+    { name: "attend", task: "See to what is needed", at: "client", client: true, scene: "talk" },
+    { name: "settle", task: "Settle up for the day", at: "home", scene: "market" },
   ],
 };
 
@@ -169,15 +192,16 @@ const callOuts: [RegExp, Step[]][] = [
     { name: "clean", task: "Clean the house", client: true },
     { name: "get paid", task: "Take your pay", client: true },
   ]],
-  [/^(porter|errand-boy|postman|carter|water-carrier)$/, [
-    { name: "load", task: "Load up at home" },
-    { name: "carry", task: "Carry it across town" },
-    { name: "deliver", task: "Hand it over at the door", client: true },
-  ]],
 ];
 
 export type Process = {
   family: ProcessFamily;
+  title?: string;
+  skill?: SkillId;
+  wiki?: string[];
+  paid?: Recipe["paid"];
+  rises: number;
+  bench?: string[];
   steps: Step[];
   stages: readonly string[];
   hours: number;
@@ -186,14 +210,30 @@ export type Process = {
   indoors: boolean;
 };
 
-export function processFor(kit: Livelihood): Process | undefined {
+export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "spring"): Process | undefined {
   const entry = byActivity[kit.activity];
   if (!entry) return undefined;
   const [family, ...stations] = entry;
   if (["basket-maker", "basket-weaver"].includes(kit.id)) stations.splice(0, stations.length, "open-basket");
-  const steps = callOuts.find(([re]) => re.test(kit.id))?.[1] ?? familySteps[family];
+  const recipe = recipeFor(kit);
+  const day = recipe && ("title" in recipe.day ? recipe.day : recipe.day[season]);
+  // Work with no day of its own draws the general deck for its family at its
+  // second and third steps.
+  const workplace = workplaceFor(kit.activity);
+  const steps = day?.steps ?? (callOuts.find(([re]) => re.test(kit.id))?.[1] ?? familySteps[family])
+    .map((st, i) => ({
+      ...st,
+      ...(st.client && !st.at ? { at: "client" as const } : {}),
+      ...(st.at === "wild" && workplace === "water" ? { at: "shore" as const } : {}),
+      // Stone and ore are dug where the pick and the boulder are; water is
+      // drawn at the well.
+      ...(st.at === "wild" && workplace === "extraction" ? { at: undefined } : {}),
+      ...(st.name === "load" && kit.activity === "Carrying water" ? { at: undefined, task: "Fill the vessels at the well" } : {}),
+      ...(i ? { card: `${family}-${i + 1}` } : {}),
+    }));
   return {
-    family, ...processFamilies[family], steps, stages: steps.map((s) => s.name),
-    stations, makes: goodsOf(kit), indoors: indoors.has(kit.activity),
+    family, ...processFamilies[family], title: day?.title, skill: recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, rises: recipe?.rises ?? 6, bench: recipe?.bench,
+    steps, stages: steps.map((s) => s.name),
+    stations, makes: goodsOf(kit, revision), indoors: indoors.has(kit.activity),
   };
 }

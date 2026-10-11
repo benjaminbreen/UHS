@@ -6,6 +6,7 @@ import { drawCharacter as drawA } from "./draw";
 import { drawCharacter as drawB } from "./v2/draw";
 import { drawCharacter as drawC, drawCharacterD as drawD, drawCharacterE } from "./v3/draw";
 import { finishCharacter } from "./finish";
+import { drawCharacterF } from "./doll/draw";
 import { lightKey } from "./v2/pixels";
 export type CharacterRenderer = (
   ctx: CanvasRenderingContext2D,
@@ -22,7 +23,7 @@ export type CharacterRenderer = (
   /** Load weight 0–2, plus 3 while visibly tired. */
   condition?: number,
 ) => void;
-export const rendererIds = ["a", "b", "c", "d", "e"] as const;
+export const rendererIds = ["a", "b", "c", "d", "e", "f"] as const;
 export type RendererId = (typeof rendererIds)[number];
 export const renderers: Record<
   RendererId,
@@ -39,9 +40,10 @@ export const renderers: Record<
       finishCharacter(ctx);
     },
   },
+  f: { label: "F · paper doll", draw: drawCharacterF },
 };
 /** Renderers that ring the figure themselves. */
-export const outlined = (id: RendererId) => id === "e";
+export const outlined = (id: RendererId) => id === "e" || id === "f";
 /** The renderer the game draws with. The lab can select either; everything
  * else should import `drawCharacter` from here rather than a variant directly,
  * so switching back is one line. */

@@ -47,6 +47,12 @@ export type Stats = {
   agreeableness: number;
   neuroticism: number;
 };
+export type HouseholdPurchase = {
+  good: string;
+  from: string;
+  seller?: string;
+  product?: string;
+};
 export type Household = {
   id: string;
   members: string[];
@@ -63,9 +69,18 @@ export type Household = {
   familyPlans?: { kind: "seek-match"; subject: string }[];
   /** Goods from `goods.ts` it makes for others. */
   makes?: string[];
+  producers?: Record<string, string>;
+  products?: Record<string, string>;
+  needs?: string[];
   /** Where it gets what it does not make: a good and the household it buys from. */
-  buys?: { good: string; from: string }[];
+  buys?: HouseholdPurchase[];
   owes?: string;
+  credit?: HouseholdPurchase & {
+    debtor: string;
+    amount: number;
+    reason: "household" | "hardship";
+    repayment: "money" | "produce";
+  };
 };
 export type Economy = {
   /** Hour the ledger has been run up to. */
@@ -74,14 +89,19 @@ export type Economy = {
   stock: Record<string, Record<string, number>>;
   /** Needed goods each household's seller could not supply this hour. */
   short: Record<string, string[]>;
-  /** The player's place in today's work: stages done, on which day. */
-  work?: { day: number; stage: number };
+  /** The player's place in today's work: stages done, on which day; how it
+   * is going, what the wage has gained or lost, the lines kept from its
+   * cards, and the card still waiting for an answer. */
+  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number };
   /** The day the household plot was last seen to. */
   side?: number;
 };
 /** The account of a day, shown on waking. */
 export type Evening = {
   day: number;
+  /** What happened, in the order it did: the day's choices and the plot's turns. */
+  chain?: string[];
+  owing?: { title: string; line: string };
   season?: string;
   work?: {
     activity: string;
@@ -513,6 +533,8 @@ export type PlayerCommand =
   /** Sleep or long rest. Time passes in one step, the night can leave a mark,
    * and shelter decides how much good it does. */
   | { type: "sleep"; seconds: number }
+  /** An answer to the work card on screen. */
+  | { type: "choose"; card: string; choice: number }
   | { type: "narrate"; intents: Intent[] };
 export type CommandRequest = {
   actionId: string;
@@ -597,6 +619,10 @@ export type Snapshot = {
   };
   /** The account of the day just slept on. */
   evening?: Evening;
+  /** The day's work places and people, fixed at its first command. */
+  workday?: { day: number; places: Record<string, { pos: Position; label: string; patient?: string; crop?: string } | null> };
+  /** Every choice made at work over the life, for the account of it. */
+  record?: { day: number; clock: number; card: string; choice: number; line: string }[];
   /** What the player has done today that goals can't read off state. */
   goalFlags?: {
     traded: boolean;

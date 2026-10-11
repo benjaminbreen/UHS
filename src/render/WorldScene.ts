@@ -95,8 +95,9 @@ import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
 import { FaunaMotion } from "./fauna-motion";
 import { spriteShadow } from "./characters/shadow";
-import { frameCount, poseTiming, workPoseFor, type CharacterPose } from "./characters/poses";
-import type { Actor } from "../core/types";
+import { frameCount, heldFrame, poseTiming, workPoseFor, type CharacterPose } from "./characters/poses";
+import type { Actor, Stats } from "../core/types";
+import { statsOf } from "../core/stats";
 import { waterStyle } from "./water-style";
 import { TerrainStream, restyleTerrain } from "./terrain-stream";
 import { defaultGroundStyle } from "./ground-style";
@@ -3508,7 +3509,7 @@ export class WorldScene extends Phaser.Scene {
     this.mist?.set(
       outdoors && this.weather && this.options.colorGrade !== false
         ? this.weather.condition === "mist"
-          ? 0.55
+          ? 0.28
           : this.weather.condition === "rain"
             ? 0.16
             : this.weather.condition === "snow"
@@ -4715,6 +4716,13 @@ export class WorldScene extends Phaser.Scene {
                   : o.sprite,
         o.pos,
       );
+      // A sign off the wall drops its shadow on the wall behind it.
+      if (o.prop?.startsWith("wallsign-")) {
+        renderEntity(`${o.id}:wall`, o.sprite, o.pos, false, o.id, false, true);
+        const sign = this.entities.get(o.id), cast = this.entities.get(`${o.id}:wall`);
+        if (sign && cast)
+          cast.setPosition(sign.x + 2, sign.y + 3).setTintFill(0x342246).setAlpha(0.38).setDepth(sign.depth - 0.5);
+      }
       // Dung and remains are drawn at world size and lie too flat to cast a shadow.
       if (o.dung || o.remains) this.shadows.get(o.id)?.setVisible(false);
       // A pebble on the ground is a pebble, not the boulder its art was cut from.
@@ -5870,13 +5878,14 @@ export class WorldScene extends Phaser.Scene {
           }
         }
       }
+      const stride = this.runtime.quick && this.runtime.autopilot?.plan.kind === "go" ? 35 : 140;
       if (
         time >= this.nextInput &&
-        time - this.lastTick >= 140 &&
+        time - this.lastTick >= stride &&
         this.jumpStarted === undefined
       ) {
         this.lastTick = time;
-        this.motionDuration = 140;
+        this.motionDuration = stride;
         if (perf.worldTicks) this.runtime.tick();
         if (this.runtime.running) {
           const p = this.runtime.engine.state.player.pos,
@@ -5884,7 +5893,7 @@ export class WorldScene extends Phaser.Scene {
           if (sample && p.space === "outside")
             this.nextInput =
               time +
-              140 * wadingCost(waterDepthAt(sample, p.x + 0.5, p.y + 0.5));
+              stride * wadingCost(waterDepthAt(sample, p.x + 0.5, p.y + 0.5));
         }
       }
     }
@@ -6028,7 +6037,8 @@ export class WorldScene extends Phaser.Scene {
         if (cued) pose = cued.pose;
         const asleep = use?.role === "bed" && this.pillows.has(id);
         const npcGesture = id !== "player" && !moving && !cued && !asleep && pose === "idle" && !this.options.freeze
-          ? this.idleGesture(id, time, !!heldSprite, !!human.appearance?.wearing.headwear && human.appearance.wearing.headwear !== "none", loadWeight)
+          ? this.idleGesture(id, time, !!heldSprite, !!human.appearance?.wearing.headwear && human.appearance.wearing.headwear !== "none", loadWeight,
+            () => statsOf(this.runtime.engine.state.manifest.seed, human))
           : undefined;
         if (npcGesture) pose = npcGesture.pose;
         const me = this.runtime.engine.state.player;
@@ -6120,17 +6130,19 @@ export class WorldScene extends Phaser.Scene {
             ? Math.min(1, Math.floor(elapsed / poseTiming(pose)))
             : gaitFrame ??
               (stunt
-                ? Math.min(
-                    stunt.last,
-                    stunt.first + Math.floor((this.time.now - stunt.from) / stunt.ms),
-                  )
+                ? stunt.first === 0
+                  ? heldFrame(stunt.pose, this.time.now - stunt.from, stunt.ms, stunt.last)
+                  : Math.min(
+                      stunt.last,
+                      stunt.first + Math.floor((this.time.now - stunt.from) / stunt.ms),
+                    )
                 : active
                   ? arcMs
                     ? // Crouch, launch, a long apex, then the reach for the ground.
                       [0.12, 0.4, 0.8].filter((t) => elapsed / arcMs >= t).length
-                    : Math.min(3, Math.floor(elapsed / poseTiming(pose)))
+                    : heldFrame(pose, elapsed)
                   : landed
-                    ? Math.min(3, Math.floor(sinceLanding / poseTiming(after)))
+                    ? heldFrame(after, sinceLanding)
                     : recovering
                       ? Math.min(3, Math.floor(recoveryAge / 55))
                     : work && pose === work.pose
@@ -6740,17 +6752,24 @@ export class WorldScene extends Phaser.Scene {
     const beat = 2600 + (offset % 2400);
     return Math.floor((time + offset) / beat) % 3 ? "idle" : "talk";
   }
-  private idleGesture(id: string, time: number, held: boolean, hat: boolean, load: number) {
+  private idleGesture(id: string, time: number, held: boolean, hat: boolean, load: number, temperament?: () => Stats) {
     if (load >= 2) return undefined;
     const offset = this.poseOffset(id), cycle = 16000 + offset % 14000;
     const beat = (time + offset) % cycle;
     if (beat >= 640) return undefined;
-    const choice = offset % 5;
-    const pose: CharacterPose = held && !load && choice < 2 ? "inspect-held"
-      : hat && !held && choice < 3 ? "adjust-hat"
-      : choice === 3 ? "straighten"
-      : !held && choice === 4 ? "touch-face" : "sway";
-    return { pose, index: Math.min(3, Math.floor(beat / 160)) };
+    // The habits a temperament runs to, taken in turn from one pause to the next.
+    const habits: CharacterPose[] = ["sway"];
+    const stats = temperament?.();
+    if (held && !load) habits.push("inspect-held");
+    if (hat && !held) habits.push("adjust-hat");
+    if (stats) {
+      if (stats.neuroticism > 60 && !held) habits.push("touch-face", "touch-face");
+      if (stats.conscientiousness > 60) habits.push("straighten", "straighten");
+      if (stats.extraversion > 65) habits.push("shrug");
+      if (stats.agreeableness > 65) habits.push("nod");
+    } else habits.push("straighten");
+    const pose = habits[(Math.floor((time + offset) / cycle) + offset) % habits.length];
+    return { pose, index: heldFrame(pose, beat, 160) };
   }
   private bare = new WeakMap<object, Actor["appearance"]>();
   /** Hat and hood off for bed. */

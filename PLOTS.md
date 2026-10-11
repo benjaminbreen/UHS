@@ -1,6 +1,8 @@
 # Plots, cast and the event card
 
-Status: planned, September 2026. Bucket A of the narrative work; the
+Status: planned, September 2026. `DAY.md` (October 2026) changes this: one
+plot per life or none, developments shown as cards with choices, and a tail
+the chronicle resolves when years pass. Where they disagree, `DAY.md` wins. Bucket A of the narrative work; the
 source-scenario half is shelved in `SCENARIOS.md` and will reuse what this
 builds.
 

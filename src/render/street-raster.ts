@@ -5,7 +5,7 @@ import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
-import { streetDistance } from "../world/v3/street-geometry";
+import { streetDistance, streetUnionDistance } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type RGB = readonly number[];
 type Color = readonly [number, number, number];
@@ -13,8 +13,8 @@ const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
 /** A hue-shifted value step: light warms toward straw, shade cools toward
  * slate, so an edge reads as lit stone rather than a lighter grey. */
 const lit = (c: RGB, v: number): RGB => {
-  const k = v * 13;
-  return [clamp(c[0] + k + v * 3), clamp(c[1] + k + v), clamp(c[2] + k - v * 4)];
+  const k = v * 5;
+  return [clamp(c[0] + k + v), clamp(c[1] + k), clamp(c[2] + k - v)];
 };
 const mix = (a: RGB, b: RGB, t: number): RGB => a.map((v, i) => v + (b[i] - v) * t);
 const GRIT: RGB = [150, 136, 106];
@@ -65,7 +65,6 @@ function kerbTone(
   side: Side,
   d: number,
   along: number,
-  diagonal: number,
   stone: RGB,
   road: RGB,
   timber: boolean,
@@ -73,37 +72,25 @@ function kerbTone(
   const span = timber ? 31 : 13;
   const at = mod(along + Math.floor(courseOffset(side) * span), span);
   const joint = at === 0;
-  const pit = hash(along, d, 953);
   const texture = timber
     ? hash(Math.floor(along / 3), d, 955) > 0.75 ? -1 : 0
-    : pit > 0.9 ? -1 : pit < 0.06 ? 1 : 0;
+    : 0;
   const block = (v: number) =>
     joint ? lit(stone, Math.min(v, 0) - 2) : lit(stone, v + texture);
   // A timber sill is pegged to its posts where each length meets the next.
   const peg = timber && (at === 3 || at === span - 3);
   const profile: Record<Side, (RGB | undefined)[]> = {
-    n: [
-      lit(stone, -3),
-      block(2),
-      block(3),
-      joint ? lit(stone, -2) : lit(stone, 4),
-      block(-2),
-      block(-3),
-      lit(mix(stone, road, 0.4), -5),
-      lit(road, -4),
-      lit(road, -2),
-      diagonal % 2 ? lit(road, -1) : undefined,
-    ],
-    s: [lit(stone, -2), block(3), block(2), block(1), lit(stone, -4), diagonal % 2 ? lit(road, -1) : undefined],
-    w: [block(0), block(1), block(0), lit(stone, -3), lit(road, -2), diagonal % 2 ? lit(road, -1) : undefined],
-    e: [block(0), block(0), joint ? lit(stone, -1) : lit(stone, 2), lit(stone, -3)],
+    n: [block(2), block(0), lit(stone, -2), lit(road, -2)],
+    s: [block(1), block(2), lit(stone, -2)],
+    w: [block(1), lit(stone, -2), lit(road, -1)],
+    e: [block(0), lit(stone, -2)],
   };
   const tone = profile[side][d];
   return peg && tone && d === 1 ? lit(stone, -4) : tone;
 }
 /** Pixels of kerb and cast shadow `kerbTone` draws on the road, past which sand banks. */
-const KERB_REACH: Record<Side, number> = { n: 10, s: 6, w: 6, e: 4 };
-const SQUARE_LIP: Record<Side, number[]> = { n: [4, 2], s: [-5, -2, 3], w: [3, 1], e: [-4, -1] };
+const KERB_REACH: Record<Side, number> = { n: 4, s: 3, w: 3, e: 2 };
+const SQUARE_LIP: Record<Side, number[]> = { n: [1], s: [-2, 1], w: [1], e: [-1] };
 const PLATFORM_WALL: RGB = [166, 160, 146];
 const PLATFORM_FOOT: RGB = [62, 58, 52];
 const SAFETY_LINE: RGB = [222, 196, 92];
@@ -148,7 +135,7 @@ export function rasterStreetTile(
       ((n.pavement === "verge" && (!!c.lane || n.feature !== "paving")) ||
         // A carriageway is kerbed where it meets a square, as at a footway.
         (!!c.lane && !c.pavement && n.pavement === "square") ||
-        (c.pavement !== "footway" && !(c.pavement === "verge" && !c.lane) && kerbed(sample, x + dx, y + dy)))
+        ((!!c.lane || !c.pavement || c.pavement === "lane" || c.pavement === "square") && kerbed(sample, x + dx, y + dy)))
     );
   };
   const kerbN = kerbTo(0, -1),
@@ -279,21 +266,21 @@ export function rasterStreetTile(
       }
       if (c.streetGeometry && !track) {
         const { strokes, infill } = c.streetGeometry;
-        const distances = strokes.map((s) => streetDistance(s, (wx + 0.5) / 16, (wy + 0.5) / 16) * 16);
-        const d = Math.min(...distances);
+        const ax = (wx + 0.5) / 16, ay = (wy + 0.5) / 16;
+        const closest = strokes.reduce((a, b) => streetDistance(a, ax, ay) <= streetDistance(b, ax, ay) ? a : b);
+        const d = streetUnionDistance(strokes, ax, ay) * 16;
         if (d > 32 && !infill) continue;
-        let colour: RGB = d < 0 ? asphaltPixel(wx, wy) : pavingStonePixel(wx, wy, "concrete", "street");
-        if (d >= -4 && d < 0) colour = lit(COURSE.sett, -2);
-        if (d >= 0 && d < 3) colour = lit(COURSE.concrete, d < 1 ? 2 : -2);
-        if (d < -5) for (const [i, s] of strokes.entries()) {
-          if (distances.some((v, j) => j !== i && v < 12)) continue;
-          const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len = Math.hypot(dx, dy);
-          const px = wx + 0.5 - s.a[0] * 16, py = wy + 0.5 - s.a[1] * 16;
-          const side = (px * dy - py * dx) / len, along = (px * dx + py * dy) / len;
-          if (along > 32 && along < len * 16 - 32 && Math.abs(side) < 1 && mod(along, 48) < 22)
-            colour = [224, 222, 208];
+        const road = closest.material ?? material, walk = closest.footway ?? "concrete";
+        let colour: RGB = pavingStonePixel(wx, wy, d < 0 ? road : walk, "street");
+        if (d < 0 && c.lane)
+          colour = carriagewayPixel(colour, c.lane, c.lane.at * 16 + (c.lane.axis === "x" ? py : px),
+            c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx,
+            { low: false, high: false }, road === "asphalt" || road === "concrete");
+        if (road !== "cobble" && road !== "slab") {
+          if (d >= -2 && d < 0) colour = lit(kerbStone(road), -2);
+          if (d >= 0 && d < 2) colour = lit(kerbStone(road), d < 1 ? 2 : 0);
         }
-        if (dust) colour = sunAndSand(colour as Color, dust, wx, wy, d < -4);
+        if (dust) colour = sunAndSand(colour as Color, dust, wx, wy, road === "asphalt" && d < -2);
         pixels.set([...colour, 255], (py * 16 + px) * 4);
         continue;
       }
@@ -320,31 +307,9 @@ export function rasterStreetTile(
             : border === (west ? px : 99)
               ? worn(-1, 0)
               : worn(1, 0);
-      if (material === "brick") {
-        const w = 8,
-          h = 4,
-          row = Math.floor(wy / h);
-        const a = mod(wx + (row % 2) * Math.floor(w / 2), w),
-          b = mod(wy, h);
-        const v = hash(Math.floor((wx + ((row % 2) * w) / 2) / w), row, 391);
-        const base = [156, 98, 65];
-        const light =
-          a === 1 || b === 1
-            ? 7
-            : a === w - 1 || b === h - 1
-              ? -7
-              : Math.floor(v * 12) - 6;
-        tone =
-          a === 0 || b === 0 ? [132, 130, 112] : base.map((n) => n + light);
-      } else {
-        tone = pavingStonePixel(
-          wx,
-          wy,
-          material,
-          grade,
-          (north || south) && !(west || east),
-        );
-      }
+      tone = pavingStonePixel(
+        wx, wy, material, grade, (north || south) && !(west || east),
+      );
       if (lane) {
         const alongX = lane.axis === "x";
         tone = carriagewayPixel(
@@ -417,7 +382,6 @@ export function rasterStreetTile(
           kerbSide[1],
           kerbSide[2],
           kerbSide[3],
-          wx + wy,
           material === "plank" ? COURSE.plank : kerbStone(material),
           tone,
           material === "plank",

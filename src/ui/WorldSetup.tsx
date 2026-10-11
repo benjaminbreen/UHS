@@ -51,8 +51,9 @@ export function WorldSetup({
     [year, setYear] = useState(String(initialSetting?.year ?? first.year)),
     [seed, setSeed] = useState(initialSeed),
     [mode, setMode] = useState<"local" | "model">(initialMode);
+  // A prompt brought in from the splash names its own role, as a typed one does.
   const [role, setRole] = useState(
-      initialSetting ? initialSetting.role : first.role,
+      initialPrompt?.trim() ? "" : initialSetting ? initialSetting.role : first.role,
     ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),

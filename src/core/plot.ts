@@ -41,6 +41,8 @@ export type PlotCard = {
   speaker?: string;
   /** Which ending, so the emblem can show how it came out. */
   ending?: string;
+  /** A work card waiting for one of these; `odds` is shown on hover. */
+  choose?: { card: string; choices: { index: number; label: string; note?: string; odds?: number; minutes?: number; coin?: number; unavailable?: string }[] };
 };
 
 export const plotTemplate = (plot: PlotState) => PLOTS.find((t) => t.id === plot.id);
@@ -142,6 +144,13 @@ export function endPlot(snapshot: Snapshot) {
   const ending = template.endings.find((e) => holds(e.when, plot, snapshot));
   if (!ending) return;
   plot.ended = ending.id;
+  if (plot.id === "debt" && (plot.owed ?? 0) <= 0) {
+    const h = snapshot.households?.find((h) => h.members.includes(snapshot.player.id));
+    if (h?.credit?.seller === plot.cast.creditor) {
+      delete h.credit;
+      delete h.owes;
+    }
+  }
   snapshot.lifeAim = plot.aim;
   return ending;
 }

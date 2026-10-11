@@ -7,6 +7,15 @@ import { panelCity } from "../scripts/review/panel";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { processFor } from "../src/content/economy/processes";
 import type { SettlementPlan } from "../src/world/v3/types";
+import { goodsOf } from "../src/content/economy/goods";
+import { goodName, productFor, sellerOf } from "../src/content/economy/products";
+import { resolveSetting, settingFor } from "../src/content/geography/resolve";
+import { CARDS } from "../src/content/cards";
+import { cardText } from "../src/core/cards";
+import { places } from "../src/content/geography/places";
+import { createSettingSession } from "../src/runtime/session";
+import { kinOf, URGENT } from "../src/core/kin";
+import { sexOf } from "../src/core/brief";
 
 const village = (): Household[] => {
   const h = (id: string, x: number, makes: string[], buys: [string, string][]) => ({
@@ -29,6 +38,73 @@ it("keeps basket weaving and cordage away from cloth looms", () => {
   const kit = (id: string) => commonLivelihoods.find((l) => l.id === id)!;
   expect(processFor(kit("basket-maker"))?.stations).toEqual(["open-basket"]);
   expect(processFor(kit("rope-maker"))?.stations).toEqual([]);
+});
+
+it("classifies production without reading substrings of local role labels", () => {
+  const kit = (id: string) => commonLivelihoods.find((l) => l.id === id)!;
+  expect(goodsOf(kit("spinner"), 1)).toEqual(["cloth"]);
+  expect(goodsOf(kit("swineherd"), 1)).toEqual(["meat"]);
+  expect(goodsOf({ ...kit("religious-specialist"), label: "Forest sage and diviner" }, 1)).toEqual([]);
+  expect(goodsOf({ ...kit("spinner"), label: "Wine seller" }, 1)).toEqual(["cloth"]);
+  expect(goodsOf(kit("brewer"), 1)).toEqual(["drink"]);
+  expect(goodsOf(kit("milkmaid"), 1)).toEqual(["milk"]);
+  expect(goodsOf(kit("spinner"))).toContain("drink");
+});
+
+it("dates local drinks and distinguishes a wine seller from a grain brewer", () => {
+  const local = (id: string, year: number) => settingFor(places.find((p) => p.id === id)!, year);
+  const multan = local("city-multan", -620);
+  expect(goodName("drink", productFor("drink", multan, "brewer"))).toContain("surā");
+  expect(productFor("drink", { ...multan, year: -1999 }, "brewer")).toBe("fermented-drink");
+  expect(productFor("drink", { ...multan, year: 1600 }, "brewer")).toBe("fermented-drink");
+  expect(goodName("drink", productFor("drink", local("rome", 100), "innkeeper"))).toBe("wine");
+  expect(productFor("drink", local("rome", 100), "brewer")).toBe("fermented-drink");
+  expect(goodName("drink", productFor("drink", local("beijing", -1000), "brewer"))).toBe("grain wine");
+  expect(goodName("drink", productFor("drink", local("london", 1500), "alewife"))).toBe("ale");
+  expect(goodName("cloth", "vedic-sura")).toBe("cloth");
+});
+
+it("does not consume alcohol in households that do not want it", () => {
+  const v = village();
+  v.forEach((h) => h.needs = ["bread"]);
+  const e = ledger();
+  runEconomy(v, e, 24 * 21, (h) => h.id === "brewer" ? 0 : everyone(h));
+  expect(Object.values(e.short).flat()).not.toContain("drink");
+  expect(e.stock.brewer.drink).toBe(30);
+});
+
+it("keeps generated Multan purchases and debts consistent with the actual suppliers", () => {
+  const setting = settingFor(places.find((p) => p.id === "city-multan")!, -620);
+  const e = createSettingSession({ ...setting, role: "Cook", character: { age: 48, hunger: 0, fatigue: 0 } }, "multan-credit");
+  const households = e.state.households!;
+  const actors = [e.state.player, ...e.world.initialActors];
+  let purchases = 0, drinks = 0, credits = 0;
+  for (const h of households) {
+    for (const buy of h.buys ?? []) {
+      purchases++;
+      const supplier = households.find((s) => s.id === buy.from)!;
+      const actor = sellerOf(buy, households, actors);
+      expect(actor, `${h.id}: ${buy.good} from ${buy.from}`).toBeDefined();
+      expect(actor!.id).toBe(supplier.producers![buy.good]);
+      expect(buy.product).toBe(supplier.products![buy.good]);
+      if (buy.good === "drink") {
+        drinks++;
+        expect(h.needs).toContain("drink");
+        expect(actor!.origin?.livelihood).not.toBe("religious-specialist");
+        expect(goodName(buy.good, buy.product)).toContain("surā");
+      }
+    }
+    if (h.credit) {
+      credits++;
+      expect(h.buys).toContainEqual({ good: h.credit.good, from: h.credit.from,
+        seller: h.credit.seller, product: h.credit.product });
+      expect(h.owes).toBe(h.credit.from);
+    }
+  }
+  expect(purchases).toBeGreaterThan(0);
+  expect(drinks).toBeGreaterThan(0);
+  expect(credits).toBeGreaterThan(0);
+  expect(households.some((h) => !h.needs?.includes("drink"))).toBe(true);
 });
 
 it("routes work and children's errands to their actual destinations", () => {
@@ -164,4 +240,134 @@ it("sends people out with vessels and baskets and home with what they got", () =
   ]);
   expect(parseLoad("prop:jug@head")).toEqual({ prop: "jug", style: "head" });
   expect(parseLoad("bread")).toBeUndefined();
+});
+
+it("takes a railway labourer from the station to the line and back, through a card at each", () => {
+  const { engine } = panelCity("london", 1900);
+  engine.state.player.origin!.livelihood = "railway-labourer";
+  let n = 0;
+  const act = (command: Parameters<typeof engine.validate>[0]) =>
+    engine.act({ actionId: `rail-${n++}`, expectedRevision: engine.state.revision, command });
+  const plan = engine.workPlan()!;
+  expect(plan.title).toBe("A day on the line");
+  expect(plan.places.map((p) => p?.label)).toEqual(["the railway station", "the line", "the railway station"]);
+  expect(plan.steps[0].task).toBe("Report to the ganger");
+  const coin = engine.state.player.inventory.coin ?? 0;
+  for (let step = 0; step < 3; step++) {
+    engine.state.player.pos = { ...engine.workPlan()!.door! };
+    const here = engine.workHere()!;
+    expect(here.label).toBe(engine.workPlan()!.steps[step].task);
+    expect(act(here.command).status).toBe("completed");
+    const card = engine.cards.find((c) => c.choose)!.choose!;
+    expect(engine.workHere(), "no work while a card waits").toBeUndefined();
+    const choice = card.choices.find((c) => !c.unavailable)!.index;
+    expect(act({ type: "choose", card: card.card, choice }).status).toBe("completed");
+    expect(act({ type: "choose", card: card.card, choice }).status, "answered once").toBe("rejected");
+    engine.cards.length = 0;
+  }
+  expect(engine.workPlan()!.done).toBe(3);
+  expect(engine.workPlan()!.lines).toHaveLength(3);
+  expect((engine.state.player.inventory.coin ?? 0) - coin).toBeGreaterThan(0);
+  const lines = engine.workPlan()!.lines;
+  act({ type: "sleep", seconds: engine.untilMorning() });
+  expect(Math.floor(engine.state.clock / 3600) % 24, "a labourer wakes at six").toBe(6);
+  expect(engine.state.evening!.chain!.slice(0, 3), "the day's choices, then any turn of the plot").toEqual(lines);
+});
+
+it("gives a labourer's children his surname, and lets his family call only a few times a day", () => {
+  const start = resolveSetting("A railway labourer in London, 1900 CE", "a");
+  if ("error" in start) throw Error(start.error);
+  const engine = createSettingSession(start.setting, "a");
+  const s = engine.state;
+  const surname = (id: string) => s.actors.find((a) => a.id === id)!.name.split(" ").at(-1);
+  const byId = new Map(s.actors.map((a) => [a.id, a]));
+  const pairs = s.actors.flatMap((a) => (a.relations ?? []).flatMap((r) => {
+    const father = byId.get(r.other);
+    return r.kind === "parent" && father && father.householdId === a.householdId && sexOf(father) === "male" ? [[a.id, father.id]] : [];
+  }));
+  expect(pairs.length).toBeGreaterThan(10);
+  for (const [child, father] of pairs) expect(surname(child), byId.get(child)!.name).toBe(surname(father));
+  expect(kinOf(s).length).toBeGreaterThan(0);
+  for (let i = 0; i < 15 * 12; i++) {
+    engine.act({ actionId: `kin-${i}`, expectedRevision: s.revision, command: { type: "wait", seconds: 300 } });
+    engine.cards.length = 0;
+  }
+  const calls = Object.keys(s.kin?.said ?? {}).filter((key) => !URGENT.some((n) => key.endsWith(`:${n}`)));
+  expect(calls.length).toBeLessThanOrEqual(3);
+});
+
+it("puts a baker in a bakehouse at three in the morning, with the oven inside", () => {
+  const start = resolveSetting("A baker in Lyon, 1742 CE", "a");
+  if ("error" in start) throw Error(start.error);
+  const engine = createSettingSession(start.setting, "a");
+  const s = engine.state, h = s.households!.find((h) => h.members.includes("player"))!;
+  expect(Math.floor(s.clock / 3600) % 24).toBe(3);
+  expect(engine.world.place(h.residence!)?.name).toBe("The bakehouse");
+  const oven = engine.workPlan()!.places[0]!;
+  expect(oven.pos.space, "the dough is set at the oven, indoors").toBe(h.residence);
+  expect(s.objects.find((o) => o.id === `${h.residence}-work`)?.pos).toEqual(oven.pos);
+  expect(engine.workPlan()!.places[2]!.pos.space, "the bread is sold at the door").toBe("outside");
+  expect(s.objects.find((o) => o.id === `${h.residence}-frontage`)?.sprite, "a loaf hangs out front").toMatch(/wallsign-.*-3$/);
+});
+
+it("bakes at the oven its place and period had", () => {
+  for (const [prompt, bench] of [["A baker in Isfahan, 1600 CE", "tannur"], ["A baker in Tenochtitlan, 1450 CE", "metate"]]) {
+    const start = resolveSetting(prompt, "a");
+    if ("error" in start) throw Error(start.error);
+    const engine = createSettingSession(start.setting, "a");
+    const h = engine.state.households!.find((h) => h.members.includes("player"))!;
+    expect(engine.state.objects.find((o) => o.id === `${h.residence}-work`)?.prop, prompt).toBe(bench);
+    expect(engine.workPlan()!.places[0]!.label).toBe(`your ${bench}`);
+  }
+});
+
+it("gives every recipe step a card it can always draw, worded without gaps", () => {
+  const slots = new Set<string>();
+  for (const k of commonLivelihoods)
+    for (const season of ["spring", "summer", "autumn", "winter"] as const)
+      for (const step of processFor(k, 1, season)?.steps ?? []) if (step.card) slots.add(step.card);
+  expect(processFor(commonLivelihoods.find((l) => l.id === "rice-farmer")!, 1, "autumn")?.title).toBe("The rice harvest");
+  for (const slot of slots) expect(CARDS.some((c) => c.slot === slot && !c.scope && !c.when), slot).toBe(true);
+  for (const c of CARDS) {
+    if (!c.who) expect(JSON.stringify(c), `${c.id} names a person but says nobody`).not.toMatch(/\{name\}/i);
+    for (const text of [c.text, ...c.choices.flatMap((x) => [x.label, x.note ?? "", x.line, x.otherwiseLine ?? ""])])
+      expect(cardText(text, { boss: "foreman", name: "Ana", work: "weaving", good: "cloth", crop: "barley" }), c.id).not.toMatch(/[{}]/);
+  }
+});
+
+it("keeps a day's work that runs past midnight that day's, and lets yesterday's card lapse", () => {
+  const { engine } = panelCity("london", 1900);
+  const s = engine.state;
+  s.player.origin!.livelihood = "railway-labourer";
+  let n = 0;
+  const act = (command: Parameters<typeof engine.validate>[0]) =>
+    engine.act({ actionId: `night-${n++}`, expectedRevision: s.revision, command });
+  const answer = () => {
+    const card = engine.cards.find((c) => c.choose)?.choose;
+    engine.cards.length = 0;
+    return card && act({ type: "choose", card: card.card, choice: card.choices.find((c) => !c.unavailable)!.index });
+  };
+  s.clock = Math.floor(s.clock / 86400) * 86400 + 20 * 3600;
+  const coin = s.player.inventory.coin ?? 0;
+  for (let step = 0; step < 3; step++) {
+    s.player.pos = { ...engine.workPlan()!.door! };
+    expect(engine.workHere()?.label, `step ${step + 1}`).toBe(engine.workPlan()!.steps[step].task);
+    act(engine.workHere()!.command);
+    answer();
+  }
+  expect((s.clock / 3600) % 24, "the line runs past midnight").toBeLessThan(6);
+  expect(s.economy!.work!.done).toBe(true);
+  expect((s.player.inventory.coin ?? 0) - coin, "the wage is paid").toBeGreaterThan(0);
+  expect(s.record!.filter((r) => r.day === s.economy!.work!.day && !r.card.startsWith("plot:"))).toHaveLength(3);
+
+  // A card left waiting, then two days gone: it lapses rather than block the work.
+  s.clock = (Math.floor(s.clock / 86400) + 1) * 86400 + 9 * 3600;
+  s.player.pos = { ...engine.workPlan()!.door! };
+  act(engine.workHere()!.command);
+  const left = engine.cards.find((c) => c.choose)!.choose!;
+  engine.cards.length = 0;
+  s.clock += 2 * 86400;
+  s.player.pos = { ...engine.workPlan()!.door! };
+  expect(engine.workHere(), "today's work is open").toBeDefined();
+  expect(act({ type: "choose", card: left.card, choice: left.choices[0].index }).status).toBe("rejected");
 });

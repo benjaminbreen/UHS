@@ -9,7 +9,8 @@ import type { WorldSetting } from "../src/content/geography/types";
 import type { TopographySample } from "../src/core/topography";
 import { resolveJunctions } from "../src/world/v3/junctions";
 import { cellKey, type SettlementPlan } from "../src/world/v3/types";
-import { streetDistance } from "../src/world/v3/street-geometry";
+import { composeStreetGeometry, streetDistance, streetUnionDistance } from "../src/world/v3/street-geometry";
+import { enclosed, kerbed, roadwayMaterial } from "../src/render/paving-edge";
 
 it("keeps diagonal asphalt, curb and sidewalk continuous across tile boundaries", () => {
   const stroke = { a: [-10.5, -10.5] as [number, number], b: [20.5, 20.5] as [number, number], radius: 2.5 };
@@ -27,6 +28,40 @@ it("keeps diagonal asphalt, curb and sidewalk continuous across tile boundaries"
   const composed = rasterHabitatTile(lawnEdge, 7, 0, 0, 0).pixels;
   expect([...clipped].filter((_, i) => i % 4 === 3)).toContain(0);
   expect([...composed].filter((_, i) => i % 4 === 3).every((v) => v === 255)).toBe(true);
+});
+
+it("rounds intersecting streets without widening straight runs or bridging parallel streets", () => {
+  const horizontal = { a: [-12, 0] as [number, number], b: [12, 0] as [number, number], radius: 2.5 };
+  const vertical = { a: [0, -12] as [number, number], b: [0, 12] as [number, number], radius: 2.5 };
+  expect(streetUnionDistance([horizontal], 3, 3)).toBe(streetDistance(horizontal, 3, 3));
+  expect(streetUnionDistance([horizontal, vertical], 2.7, 2.7)).toBeLessThan(0);
+  expect(streetUnionDistance([horizontal, vertical], 4, 4)).toBeGreaterThan(0);
+  const parallel = { ...horizontal, a: [-12, 6] as [number, number], b: [12, 6] as [number, number] };
+  expect(streetUnionDistance([horizontal, parallel], 0, 3)).toBe(0.5);
+});
+
+it("joins historic streets in their selected stone while protecting planted and occupied parcels", () => {
+  const p = { roads: [
+    { id: "town-street-0-0", kind: "street", width: 2, span: 5, points: [{ x: -12, y: 0 }, { x: 12, y: 0 }] },
+    { id: "town-street-1-1", kind: "street", width: 2, span: 5, points: [{ x: 0, y: -12 }, { x: 0, y: 12 }] },
+  ], pavement: new Map([["3,3", "garden"], ["4,3", "court"], ["-12,3", "footway"]]),
+    surface: new Map([["-12,0", "paving"], ["0,-12", "paving"], ["3,3", "grass"], ["4,3", "dirt"]]),
+    streetSurfaces: new Map([["-12,0", "basalt"], ["0,-12", "basalt"], ["-12,3", "slab"]]),
+    solid: new Set(), reserved: new Set(), traffic: new Set(), lanes: new Map() } as SettlementPlan;
+  composeStreetGeometry(p, [{ x: -4, y: -4, w: 2, h: 2 }]);
+  expect(p.streetGeometry?.size).toBeGreaterThan(0);
+  expect(p.streetSurfaces!.get("0,0")).toBe("basalt");
+  expect(p.streetSurfaces!.get("9,3")).toBe("slab");
+  expect(p.pavement!.get("3,3")).toBe("garden");
+  expect(p.surface.get("3,3")).toBe("grass");
+  expect(p.surface.get("4,3")).toBe("dirt");
+  expect(p.streetGeometry!.has("-3,-3")).toBe(false);
+  expect([...p.streetSurfaces!.values()]).not.toContain("asphalt");
+  const earth = { ...p, streetGeometry: undefined,
+    streetSurfaces: new Map([["-12,0", "earth"], ["0,-12", "earth"]]) } as SettlementPlan;
+  composeStreetGeometry(earth);
+  expect(earth.streetGeometry).toBeUndefined();
+  expect(earth.streetSurfaces!.get("-12,0")).toBe("earth");
 });
 
 it("resolves a T-junction into complete crossings with two walkable landings", () => {
@@ -187,4 +222,30 @@ it("renders each material distinctly and preserves selected square materials", (
     );
   }
   expect(signatures.size).toBe(5);
+});
+
+it("keeps courts and yards out of roadway detection and leaves planted gaps intact", () => {
+  for (const role of ["court", "yard", "square"] as const) {
+    const sample: TopographySample = (x) => ({ height: 0, surface: "gravel", feature: "paving",
+      streetMaterial: "sett", pavement: x === 0 ? "footway" : role });
+    expect(roadwayMaterial(sample, 0, 0)).toBeUndefined();
+    expect(kerbed(sample, 0, 0)).toBe(false);
+  }
+  const street: TopographySample = (x) => ({ height: 0, surface: "gravel", feature: "paving",
+    streetMaterial: "sett", pavement: x === 0 ? "footway" : undefined });
+  expect(kerbed(street, 0, 0)).toBe(true);
+  for (const role of ["garden", "park", "vacant", "yard"] as const) {
+    const sample: TopographySample = (x) => x === 0
+      ? { height: 0, surface: "grass", pavement: role }
+      : { height: 0, surface: "gravel", feature: "paving", streetMaterial: "slab" };
+    expect(enclosed(sample, 0, 0)).toBe(false);
+  }
+});
+
+it("keeps all ground uses and materials seamless across negative chunk origins", () => {
+  for (const material of ["slab", "basalt", "cobble", "sett", "brick", "plank", "macadam", "concrete", "asphalt"] as const)
+    for (const pavement of [undefined, "footway", "court", "yard", "square"] as const) {
+      const sample: TopographySample = () => ({ height: 0, surface: "gravel", feature: "paving", streetMaterial: material, pavement });
+      expect(rasterStreetTile(sample, 0, 0, -17, -19).pixels).toEqual(rasterStreetTile(sample, -17, -19, 0, 0).pixels);
+    }
 });

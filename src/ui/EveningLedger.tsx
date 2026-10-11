@@ -4,7 +4,7 @@ import { formatHistoricalYear } from "../core/calendar";
 import { shownAs } from "../core/economy";
 import type { Evening } from "../core/types";
 import type { Weather } from "../core/weather";
-import { goods } from "../content/economy/goods";
+import { goodName } from "../content/economy/products";
 import type { Runtime } from "../runtime/session";
 import { CharacterSprite } from "./CharacterSprite";
 import { ItemIcon } from "./components";
@@ -15,7 +15,11 @@ import { bannerFor } from "./splash-banner";
 import { regionAt } from "../content/geography/region-label";
 
 const ROW_MS = 520;
-const noun = (good: string) => goods.find((g) => g.id === good)?.noun ?? good;
+const noun = (runtime: Runtime, good: string) => {
+  const s = runtime.engine.state;
+  const h = s.households?.find((h) => h.members.includes(s.player.id));
+  return goodName(good, h?.products?.[good] ?? h?.buys?.find((b) => b.good === good)?.product);
+};
 /** Days since a new moon, for a day number; any fixed start will do. */
 const moonAge = (day: number) => (day + 11) % 29.53;
 const upper = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -43,12 +47,12 @@ function Good({ runtime, good }: { runtime: Runtime; good: string }) {
   return (
     <span
       className="ledger-good"
-      title={runtime.engine.item(good)?.name ?? noun(good)}
+      title={runtime.engine.item(good)?.name ?? noun(runtime, good)}
     >
       {item ? (
         <ItemIcon id={item} sprite={sprite} scale={2} />
       ) : (
-        <span className="ledger-good-letter">{noun(good).charAt(0)}</span>
+        <span className="ledger-good-letter">{noun(runtime, good).charAt(0)}</span>
       )}
     </span>
   );
@@ -72,6 +76,22 @@ export function EveningLedger({
   const setting = engine.world.pack.setting;
   const rows: { label: string; body: (on: boolean) => ReactNode }[] = [];
   const { work } = evening;
+
+  if (evening.chain?.length)
+    rows.push({
+      label: "Your day",
+      body: () => (
+        <ol className="ledger-chain">
+          {evening.chain!.map((line, i) => <li key={i}>{line}</li>)}
+        </ol>
+      ),
+    });
+
+  if (evening.owing)
+    rows.push({
+      label: evening.owing.title,
+      body: () => <span className="ledger-detail">{evening.owing!.line}</span>,
+    });
 
   if (work)
     rows.push({
@@ -127,7 +147,7 @@ export function EveningLedger({
           {evening.stock.map(({ good, n, cap }) => (
             <span key={good} className="ledger-value">
               <Good runtime={runtime} good={good} />
-              <span className="ledger-bar" title={`${Math.round(n)} ${noun(good)}`}>
+              <span className="ledger-bar" title={`${Math.round(n)} ${noun(runtime, good)}`}>
                 <i style={{ width: on ? `${Math.min(100, (100 * n) / cap)}%` : 0 }} />
               </span>
             </span>
@@ -228,7 +248,7 @@ export function EveningLedger({
       if (!["Enter", " ", "Escape"].includes(e.key)) return;
       e.preventDefault();
       e.stopPropagation();
-      // A first press finishes the tally; a second goes to sleep.
+      // A first press finishes the tally; a second starts the day.
       if (shown < rows.length) setShown(rows.length);
       else onClose();
     };
@@ -275,7 +295,7 @@ export function EveningLedger({
           className={`evening-sleep ${shown >= rows.length ? "ready" : ""}`}
           onClick={() => (shown < rows.length ? setShown(rows.length) : onClose())}
         >
-          {shown < rows.length ? "Skip" : "Sleep"} <kbd>↵</kbd>
+          {shown < rows.length ? "Skip" : "Another day"} <kbd>↵</kbd>
         </button>
       </div>
     </div>

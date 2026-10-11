@@ -15,7 +15,7 @@ import type { Engine } from "../core/engine";
 import { placeLabel, regionAt } from "../content/geography/region-label";
 import { formatHistoricalYear } from "../core/calendar";
 import type { randomStart } from "../content/geography/random-start";
-import { readStartMode, startModes, writeStartMode } from "./start-mode";
+import { readQuick, readStartMode, startModes, writeQuick, writeStartMode } from "./start-mode";
 import { bannerFor, defaultBanner, smokeFor } from "./splash-banner";
 import { BannerSmoke } from "./BannerSmoke";
 import { SplashStars } from "./SplashStars";
@@ -61,6 +61,7 @@ export function Splash({
   const [moreOpen, setMoreOpen] = useState(false);
   const [prompt, setPrompt] = useState(() => new URLSearchParams(location.search).get("start") ?? "");
   const [mode, setMode] = useState<"local" | "model">("local");
+  const [quick, setQuick] = useState(readQuick);
   const [busy, setBusy] = useState("");
   const [arrival, setArrival] = useState<{ setting: WorldSetting; character?: StartingCharacter; engine?: Engine; cancel?: () => void }>();
   const [error, setError] = useState("");
@@ -360,6 +361,16 @@ export function Splash({
                   <span className="splash-tip" role="tooltip">
                     {m.hint}
                   </span>
+                </label>
+              ))}
+            </fieldset>
+            <fieldset className="splash-random-mode">
+              <legend>Pace</legend>
+              {([[true, "Quick day", "About 20 minutes. Go takes you to each place fast, and the day keeps to one occasion."], [false, "Full day", "40 to 50 minutes, walking."]] as const).map(([on, label, hint]) => (
+                <label key={label}>
+                  <input type="radio" name="pace" checked={quick === on} disabled={!!busy} onChange={() => { setQuick(on); writeQuick(on); }} />
+                  {label}
+                  <span className="splash-tip" role="tooltip">{hint}</span>
                 </label>
               ))}
             </fieldset>

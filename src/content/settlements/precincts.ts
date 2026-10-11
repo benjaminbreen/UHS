@@ -85,9 +85,12 @@ const NAMES: Record<string, string> = {
 /** Rows of pitches with aisles between, clear of whatever stands at the head. */
 function pitches(w: number, h: number, top: number): [number, number, number][] {
   const out: [number, number, number][] = [];
-  // Stalls in pairs down the aisles, not a grid over the whole ground.
-  for (let y = top + 2, row = 0; y < h - 2; y += 5, row++)
-    for (let x = 2 + (row % 2); x < w - 3; x += 4) if ((x >> 2) % 3 !== 2) out.push([x, y, row]);
+  const centre = Math.floor(w / 2), middle = Math.floor((top + h) / 2);
+  for (let y = top + 3, row = 0; y < h - 3 && out.length < 12; y += 6, row++) {
+    if (Math.abs(y - middle) < 2) continue;
+    for (let x = 3; x < w - 3 && out.length < 12; x += 5)
+      if (Math.abs(x - centre) >= 3) out.push([x, y, row]);
+  }
   return out;
 }
 
@@ -109,13 +112,7 @@ export function precinctPlans(
     const spec = data[kind];
     // Shops and covered halls took over from open pitches once industry came.
     const copies =
-      kind === "market" && !industrialized(s)
-        ? radius >= 70
-          ? 3
-          : radius >= 45
-            ? 2
-            : 1
-        : 1;
+      kind === "market" && !industrialized(s) && radius >= 110 ? 2 : 1;
     for (let n = 0; n < copies; n++) {
       // Later markets are a step smaller than the first.
       // An industrial city's open market is what the halls left: the

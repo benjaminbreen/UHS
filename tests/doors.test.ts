@@ -154,6 +154,15 @@ describe("knocking", () => {
     expect(e.state.events.at(-1)?.text).toMatch(/daylight/);
     expect(door.open).toBe(false);
   });
+
+  it("lets a shop's own household in after hours", () => {
+    const e = createSession();
+    const b = e.world.places.find((p) => p.access === "household")!;
+    b.access = "public";
+    e.state.clock = Math.floor(e.state.clock / 86400) * 86400 + 23 * 3600;
+    expect(e.doorVerdict(b, b.owner)).toBe("open");
+    expect(e.doorVerdict(b, "stranger")).toBe("barred");
+  });
 });
 
 describe("walking through", () => {
@@ -238,7 +247,7 @@ describe("breaking in", () => {
     e.state.objects.push({ id: "axe-in-hand", name: "Hafted axe", kind: "container", prop: "axe", carriedBy: "player", pos: { ...from, space: "outside" }, sprite: "study-prop-axe-0", inventory: {} });
     e.state.player.held = "axe-in-hand";
     e.state.player.pos = { ...from, space: "outside" };
-    e.state.player.direction = 0;
+    e.state.player.direction = d.y < from.y ? 0 : d.x > from.x ? 1 : d.y > from.y ? 2 : 3;
     for (let n = 0; n < 3 && !door.broken; n++) act(e, { type: "swing" });
     expect(door.broken).toBe(true);
     expect(door.open).toBe(true);

@@ -78,7 +78,7 @@ function conditionFor(
       ? "overcast"
       : roll < rain + 0.4
         ? "light-clouds"
-        : roll > 0.93 && hour < 9
+        : roll > 0.975 && hour < 8
           ? "mist"
           : "clear";
 }

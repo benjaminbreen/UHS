@@ -20,6 +20,7 @@ when the task is actually about its subject:
 | Terrain, water, vegetation, ecology | `GRAPHICS.md`, then `TERRAIN_ART`, `TOPOGRAPHY`, `WATER`, `VEGETATION`, `ECOLOGY`, `FAUNA` |
 | World generation, geography | `WORLDS.md` |
 | Travel, the region map, time travel | `TRAVEL.md`, `TIME.md` |
+| The day's cards, Today, the years, death, the life record | `DAY.md` |
 | Plots, kin, generations | `PLOTS.md`, `GENERATIONS.md` |
 | Health, conditions, bonds, the opening card's text | `LIVES.md` |
 | Starting scenarios | `SCENARIOS.md` |

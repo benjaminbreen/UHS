@@ -70,7 +70,7 @@ export const andeanThemes: LayeredTheme[] = [
       "A flute above garden walls; lilting harp and guitar, a brighter horizon, then the quiet walk home. A Stardew Valley / FF6-inspired candidate.",
     place: "Cusco, colonial Andes, c. 1680 · new candidate",
     culture: "andean",
-    years: [1600, 1749],
+    years: [1550, 2026],
     evidence:
       "Documented basis: colonial Peru adopted harp and guitar; seventeenth-century Cusco preserves a villancico tradition. The flute stands for a quena using the game's synth. This imagined secular ensemble, 6/8 with cadential hemiola, pentatonic-shaped tune and RPG harmony are fiction, not a reconstruction or a borrowed game melody. Sources: Library of Congress, Indigenous Peoples of the Andes; TCU, Five Christmas villancicos from Cusco (https://repository.tcu.edu/handle/116099117/10234).",
     bpm: 192,

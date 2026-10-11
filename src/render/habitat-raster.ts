@@ -1583,7 +1583,7 @@ function rasterGroundTile(
     pavedSide.some(Boolean) &&
     cell.surface !== "water" &&
     !frozen &&
-    cell.pavement !== "verge"
+    cell.pavement !== "verge" && cell.pavement !== "garden" && cell.pavement !== "park"
   ) {
     const dust = [176, 164, 132],
       stone = [181, 175, 152];

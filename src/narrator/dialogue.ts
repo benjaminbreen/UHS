@@ -1,5 +1,5 @@
 import type { Actor, Household, WalkOff } from "../core/types";
-import { goods } from "../content/economy/goods";
+import { goodName, sellerOf } from "../content/economy/products";
 import { describeStats, statsOf } from "../core/stats";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
@@ -15,7 +15,7 @@ import { languageBrief } from "../content/history/languages";
 import { random } from "../core/random";
 import { narratorProvider } from "./turn";
 // Dialogue has no Gemini path; it follows the setting otherwise.
-const dialogueProvider = () => (narratorProvider() === "openai" ? "openai" : "haiku");
+const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
 
 export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string; language?: string; action?: string; context?: string };
 export type DialogueGift = {
@@ -155,12 +155,12 @@ function goingWithout(runtime: Runtime, household?: Household) {
   const short = household && state.economy?.short[household.id];
   if (!short?.length) return "";
   const lines = short.map((good) => {
-    const noun = goods.find((g) => g.id === good)?.noun ?? good;
-    const from = household!.buys?.find((b) => b.good === good)?.from;
+    const buy = household!.buys?.find((b) => b.good === good);
+    const noun = goodName(good, buy?.product ?? household?.products?.[good]);
+    const from = buy?.from;
     if (from && from === state.player.householdId)
       return `${noun}, which you buy from the player's household and they have not supplied`;
-    const seller = state.households?.find((h) => h.id === from);
-    const head = seller && state.actors.find((a) => a.id === seller.members[0]);
+    const head = buy && sellerOf(buy, state.households ?? [], state.actors);
     return head ? `${noun}; ${head.name} the ${head.role.toLowerCase()} has none to spare` : noun;
   });
   return `Going short of: ${lines.join("; ")}. It is on your mind and may come up.`;

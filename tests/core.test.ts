@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { doorApproach } from "../src/core/doors";
 import { createSession, createSettingSession, restoreSession } from "../src/runtime/session";
-import { startPlot } from "../src/core/plot";
+import { endPlot, startPlot } from "../src/core/plot";
 import { composeIntro, introText } from "../src/core/intro";
 import { unusualOf } from "../src/core/unusual";
 import { createWorld } from "../src/world/generate";
@@ -16,6 +16,9 @@ import { absentChildOf } from "../src/content/bonds";
 import { generateCharacter } from "../src/content/characters/generate";
 import { livelihoodById } from "../src/content/characters/livelihoods";
 import { snapshotSchema } from "../src/runtime/schema";
+import { debt } from "../src/content/plots/debt";
+import { goodName, sellerOf } from "../src/content/economy/products";
+import type { PlotContext } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
@@ -301,6 +304,50 @@ describe("shared deterministic foundation", () => {
     e.state.player.inventory.coin = next.owed!;
     expect(act(e, { type: "interact", target: creditor.id, action: "pay" }).status).toBe("completed");
     expect(next.ended).toBe("paid");
+  });
+  it("binds the recorded debt to its real seller and product, never the eldest relative or first purchase", () => {
+    const setting = { ...settingFor(places.find((p) => p.id === "city-multan")!, -620), economyRevision: 1 as const };
+    const snapshot = createSession("roman", "credit-fixture").state;
+    const player = snapshot.player;
+    const sage = { ...player, id: "sage", name: "Aruni", role: "Forest sage", age: 75, householdId: "supplier" };
+    const spinner = { ...sage, id: "spinner", role: "Spinner", age: 45 };
+    const brewer = { ...sage, id: "brewer", name: "Mitra", role: "Brewer", age: 32 };
+    const supplier: Household = {
+      id: "supplier", members: [sage.id, spinner.id, brewer.id], home: player.home, storeId: "s",
+      fortune: 0.8, makes: ["cloth", "drink"], producers: { cloth: spinner.id, drink: brewer.id },
+      products: { cloth: "cloth", drink: "vedic-sura" },
+    };
+    const home: Household = {
+      id: "home", members: [player.id], home: player.home, storeId: "h", fortune: 0.2,
+      buys: [{ from: supplier.id, good: "cloth", seller: spinner.id, product: "cloth" },
+        { from: supplier.id, good: "drink", seller: brewer.id, product: "vedic-sura" }],
+      owes: supplier.id,
+      credit: { from: supplier.id, good: "drink", seller: brewer.id, product: "vedic-sura",
+        debtor: player.id, amount: 7, reason: "household", repayment: "produce" },
+    };
+    const c: PlotContext = { setting, seed: "credit", clock: 8 * 3600, player,
+      actors: [sage, spinner, brewer], household: home, households: [home, supplier] };
+    const cast = debt.cast(c)!;
+    expect(cast.creditor?.id).toBe(brewer.id);
+    const begun = debt.begin(c, cast);
+    expect(begun.words.good).toBe(goodName("drink", home.credit!.product));
+    expect(begun.owed).toBe(7);
+    expect(begun.refs?.creditor).toBe(brewer.id);
+    expect(sellerOf({ ...home.credit!, seller: sage.id }, c.households, c.actors)).toBeUndefined();
+    supplier.fortune = 0.1;
+    expect(debt.cast(c)?.creditor?.id).toBe(brewer.id);
+    brewer.dead = "fever";
+    expect(debt.cast(c)).toBeUndefined();
+    delete brewer.dead;
+    snapshot.households = c.households;
+    snapshot.actors = c.actors;
+    delete snapshot.plot;
+    const plot = startPlot(snapshot, setting)!;
+    expect(plot.cast.creditor).toBe(brewer.id);
+    plot.owed = 0;
+    expect(endPlot(snapshot)?.id).toBe("paid");
+    expect(home.credit).toBeUndefined();
+    expect(home.owes).toBeUndefined();
   });
   it("opens a life with one card naming the player, the place and the plot's people", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);

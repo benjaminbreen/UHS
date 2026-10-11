@@ -43,7 +43,7 @@ import {
   type Rail,
   type Verge,
 } from "./blocks";
-import { cellKey, type Rect, type Road, type Site } from "./types";
+import { cellKey, type Pavement, type Rect, type Road, type Site } from "./types";
 
 /** What a block is for. Decides which house forms stand on it, what its
  * residents do and how the planner names their doors. */
@@ -114,7 +114,7 @@ export type UrbanSurface = {
   /** Base ground of the built-up area: beaten earth or paving, with grass
    * left only where something plants it. */
   paintCity(holds: (x: number, y: number) => boolean): void;
-  paintBlock(rect: Rect, ground?: Terrain): void;
+  paintBlock(rect: Rect, ground?: Terrain, role?: Pavement): void;
   /** Hold ground against any street laid later in the same pass. */
   reserveGround(rect: Rect): void;
   /** Hold a visible roof or crown without making it movement collision. */
@@ -1107,10 +1107,7 @@ export function urbanNeighborhood(
   for (const rank of parkRanks) reserve(rank.block);
   for (const rank of ranks) {
     if (parkRanks.has(rank) || lots.length >= capacity) continue;
-    for (const lot of blockLots(rank.block)) {
-      if (lots.length >= capacity) break;
-      place(rank, lot);
-    }
+    blockLots(rank.block);
     if (uses.get(rank.block) === "industrial" && rank.built) reserve(rank.block);
   }
   if ((candidateBases.length || zoning) && !plotted)
@@ -1128,6 +1125,9 @@ export function urbanNeighborhood(
   for (const rank of ranks)
     if (!parkRanks.has(rank)) {
       const use = uses.get(rank.block);
+      const role = !rank.built ? "vacant"
+        : plotted || use === "suburb" || use === "estate" ? "garden"
+        : rank.block.court ? "court" : "yard";
       api.paintBlock(
         {
           x: rank.block.x - 1,
@@ -1137,6 +1137,7 @@ export function urbanNeighborhood(
         },
         use === "industrial" ? "dirt"
           : use && ["downtown", "commercial", "tenement", "rowhouse"].includes(use) ? "paving" : undefined,
+        role,
       );
     }
   for (const [i, rank] of [...parkRanks].entries()) {
@@ -1627,7 +1628,7 @@ export function urbanNeighborhood(
   function infillOpen() {
     const pool: CandidateRecipe[] = americanStrip
       ? candidateBases
-      : urbanFrames(pack, form.storeys, true).map((base) => ({
+      : urbanFrames(pack, form.storeys, true).filter((base) => !base.endsWith("-urban-stall")).map((base) => ({
           base,
           model: buildingModel(base),
           kind: "home",
@@ -2003,9 +2004,10 @@ export function urbanNeighborhood(
   }
 
   function blockLots(block: Block): UrbanLot[] {
+    const rank = ranks.find((r) => r.block === block)!;
     if (uses.get(block) === "industrial") {
       const works = industrialLots(block);
-      if (works.length) return works;
+      if (works.length) return works.filter((lot) => lots.length < capacity && place(rank, lot));
     }
     const out: UrbanLot[] = [];
     const use = uses.get(block);
@@ -2139,6 +2141,7 @@ export function urbanNeighborhood(
     to?: number,
   ): { lots: UrbanLot[]; depth: number } {
     const out: UrbanLot[] = [];
+    const rank = ranks.find((r) => r.block === block)!;
     const quarter = quarters.get(block) ?? "residential";
     const use = uses.get(block);
     const open = detached(block);
@@ -2168,11 +2171,22 @@ export function urbanNeighborhood(
           : 1;
     const start = from ?? (vertical ? block.y : block.x),
       end = to ?? (vertical ? block.y + block.h : block.x + block.w);
+    const gaps = Array.from({ length: end - start + 1 }, (_, i) => i);
+    const lengths = [...new Set(pool.map((f) => buildingModel(f).footprint[vertical ? 1 : 0] + spacing))];
+    for (let n = 1; n < gaps.length; n++)
+      for (const length of lengths)
+        if (length <= n) gaps[n] = Math.min(gaps[n], gaps[n - length]);
     let cursor = start,
       depth = 0;
-    while (cursor < end - 2) {
+    while (cursor < end - 2 && lots.length < capacity) {
       const density = Math.max(0, 1 - block.reach);
       const choices = [...pool].sort((a, b) => {
+        const remaining = end - cursor + spacing;
+        const aSpan = buildingModel(a).footprint[vertical ? 1 : 0] + spacing;
+        const bSpan = buildingModel(b).footprint[vertical ? 1 : 0] + spacing;
+        const aGap = aSpan <= remaining ? gaps[remaining - aSpan] ?? remaining : remaining;
+        const bGap = bSpan <= remaining ? gaps[remaining - bSpan] ?? remaining : remaining;
+        if (!open && aGap !== bGap) return aGap - bGap;
         const aKey =
           scaleKey(a, quarter, density, rand(block.x, edge, cursor, a)) /
           (a === dominant ? 1.8 : 1);
@@ -2195,7 +2209,7 @@ export function urbanNeighborhood(
       for (const base of choices) {
         // Bounded: only the few best frames are put to the ground. Testing
         // every frame at every position would scan the block many times over.
-        if (tried >= 5) break;
+        if (tried >= 12) break;
         // A detached house in its plot always shows its real door: the south
         // one, with the path walking round from whichever street it fronts.
         const round = open && !tight;
@@ -2250,7 +2264,7 @@ export function urbanNeighborhood(
                 last: false,
               }
             : undefined;
-        out.push({
+        const lot: UrbanLot = {
           point,
           quarter,
           nx: round ? 0 : nx,
@@ -2263,7 +2277,9 @@ export function urbanNeighborhood(
             : { x: point.x - nx, y: point.y - ny },
           garden,
           tight,
-        });
+        };
+        if (!place(rank, lot)) continue;
+        out.push(lot);
         span = along + clear - spacing;
         depth = Math.max(depth, deep + (garden ? room : 0));
         break;

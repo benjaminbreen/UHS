@@ -29,7 +29,7 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
     for (let x = cx - R; x <= cx + R; x++) {
       const k = `${x},${y}`,
         t = p.surface.get(k);
-      if (t) surface[k] = t === "paving" && !p.traffic.has(k) ? `kerb` : t;
+      if (t) surface[k] = t === "paving" && p.pavement?.get(k) === "footway" ? `kerb` : t;
     }
   const fields: Record<string, unknown> = {};
   for (const [k, f] of p.fields ?? []) {
@@ -48,6 +48,10 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
       cy,
       R,
       surface,
+      groundRoles: Object.fromEntries([...p.pavement ?? []].filter(([k]) => {
+        const [x, y] = k.split(",").map(Number);
+        return Math.abs(x - cx) <= R && Math.abs(y - cy) <= R;
+      })),
       fields,
       places: p.places
         .filter(near)

@@ -650,9 +650,82 @@ export class PixelRoom {
       }
     }
   }
-  /** The trade's own fixture: oven, forge, chopping block or workbench. */
-  private fixture(style: string, X: number, base: number, PW: number, seed: number) {
+  /** The trade's own fixture: oven, forge, chopping block or workbench.
+   * `variant` is a bakehouse's own: tannur, metate or steamer. */
+  private fixture(style: string, X: number, base: number, PW: number, seed: number, variant?: string) {
     const { P } = this, W = P.wood, cx = X + (PW >> 1);
+    if (style === "bread" && variant === "tannur") {
+      // A clay pot oven to the waist, the fire down inside it. Flatbread is
+      // slapped onto its hot inner wall and lifted off with the hook.
+      const C = P.clay, mx = cx - 3, top = base - 18;
+      for (let j = 0; j < 18; j++) {
+        const half = Math.round(9 - 3.2 * (j / 17) ** 2);
+        for (let i = -half; i <= half; i++) {
+          const k = (i + half) / (2 * half);
+          // Built up in coils of clay: a shaded seam every few rows.
+          this.s(mx + i, base - j, j % 5 === 3 ? C[k < 0.3 ? 3 : 2] : C[k < 0.22 ? 4 : k < 0.7 ? 3 : 2]);
+        }
+      }
+      for (let j = -2; j <= 2; j++)
+        for (let i = -6; i <= 6; i++) {
+          const e = (i * i) / 36 + (j * j) / 4;
+          if (e > 1) continue;
+          if (e > 0.5) this.s(mx + i, top + j, j < 0 ? C[1] : C[5]);
+          else this.g(mx + i, top + j, j > 0 ? 0xd84a1a : 0x7a2c10);
+        }
+      this.lights.push({ x: mx, y: top, c: 0xff8a3a, rad: 42, k: 1.1, phase: seed % 100 });
+      this.smoke.push({ x: mx, y: top - 3 });
+      const bx = cx + 10;
+      this.r(bx - 6, base - 2, 13, 2, P.linen[3]);
+      for (let k = 0; k < 4; k++)
+        for (let i = -5; i <= 5; i++) this.s(bx + i, base - 3 - k, k === 3 ? (Math.abs(i) < 3 ? 0xe8c47a : 0xcc9a52) : k & 1 ? 0xb8803e : 0xa06a32);
+      for (let j = 0; j < 22; j++) this.s(X + PW - 2 + (j >> 3), base - 2 - j, P.iron[2]);
+      this.s(X + PW - 3, base - 23, P.iron[2]);
+      return;
+    }
+    if (style === "bread" && variant === "metate") {
+      // Maize ground wet on the metate, a sloped stone on three legs with the
+      // mano across it; the tortillas cook on the clay comal over three stones.
+      const S = P.stone, C = P.clay, mx = cx - 9, kx = cx + 8;
+      for (const lx of [mx - 6, mx + 5]) this.r(lx, base - 4, 2, 4, S[1]);
+      for (let i = -7; i <= 7; i++) {
+        const t = base - 9 + Math.round((i + 7) * 0.22);
+        this.s(mx + i, t, S[5]);
+        this.r(mx + i, t + 1, 1, 2, i < -4 ? S[4] : S[3]);
+        this.s(mx + i, t + 3, S[1]);
+      }
+      this.r(mx - 4, base - 10, 7, 2, (_i, j) => (j ? S[2] : S[4]));
+      for (let i = -2; i <= 2; i++) this.s(mx + 5 + i, base - 8 - (Math.abs(i) < 2 ? 1 : 0), 0xe6d6a0);
+      for (const sx of [-7, 0, 7]) this.r(kx + sx - 1, base - 4, 3, 4, (_i, j) => (j === 0 ? S[4] : S[2]));
+      for (let i = -5; i <= 5; i++) this.g(kx + i, base - 1 - (Math.abs(i) < 2 ? 1 : 0), i & 1 ? 0xff9a3a : 0xd84a1a);
+      for (let j = -2; j <= 1; j++)
+        for (let i = -9; i <= 9; i++) if ((i * i) / 81 + (j * j) / 4 <= 1) this.s(kx + i, base - 6 + j, j < 0 ? C[4] : j === 0 ? C[3] : C[1]);
+      for (let i = -3; i <= 3; i++) this.s(kx - 2 + i, base - 7, 0xeed890);
+      this.s(kx + 4, base - 7, 0xd8b868);
+      this.lights.push({ x: kx, y: base - 2, c: 0xff8a3a, rad: 32, k: 0.9, phase: seed % 100 });
+      this.smoke.push({ x: kx, y: base - 10 });
+      return;
+    }
+    if (style === "bread" && variant === "steamer") {
+      // A brick stove, the bamboo steamers stacked on its pot: north China
+      // steamed its wheat into buns.
+      const C = P.clay, B = P.straw, sx = cx - 2;
+      this.r(X + 2, base - 12, PW - 6, 12, (i, j) => (j % 4 === 0 || (i + (j >> 2) * 3) % 6 === 0 ? C[1] : C[3]));
+      this.r(X + 2, base - 12, PW - 6, 1, C[4]);
+      for (let j = 0; j < 4; j++) for (let i = -3; i <= 3; i++) this.g(sx + i, base - 5 + j, j > 1 ? 0xff9a3a : 0x6a2a10);
+      for (let t = 0; t < 3; t++) {
+        const y = base - 16 - t * 4;
+        this.r(sx - 7, y, 15, 4, (i, j) => (j === 0 ? B[5] : j === 3 || i === 14 ? B[1] : i === 0 ? B[4] : B[3]));
+      }
+      for (let i = -6; i <= 6; i++) {
+        const h = Math.round(Math.sqrt(1 - (i / 7) ** 2) * 3);
+        this.r(sx + i, base - 25 - h, 1, h + 1, i < -2 ? B[4] : i < 3 ? B[3] : B[2]);
+      }
+      this.s(sx, base - 29, B[1]);
+      this.smoke.push({ x: sx, y: base - 30 });
+      this.lights.push({ x: sx, y: base - 4, c: 0xff8a3a, rad: 30, k: 0.9, phase: seed % 100 });
+      return;
+    }
     if (style === "bread") {
       // A domed bread oven of brick, the fire in its mouth, a peel leaning.
       for (let j = 0; j < 26; j++) {
@@ -2347,6 +2420,17 @@ export class PixelRoom {
       }
       case "throw": {
         const cx = X + 8, base = Y + PD - 4, a = this.turn.get(q.id) ?? 0;
+        if (p.styles.throw === "coil") {
+          // No wheel: a pot built up coil on coil on a board on the floor,
+          // its rim still unjoined, the next coil rolled out beside it.
+          this.r(X + 1, base - 2, 14, 2, (_i, j) => (j === 0 ? W[4] : W[2]));
+          this.vase(cx - 1, base - 3, 9, (t) => 4.6 - t * t * 1.6, P.clay, false);
+          for (const j of [2, 4, 6]) for (let i = -3; i <= 3; i++) this.s(cx - 1 + i, base - 3 - j, P.clay[i < -1 ? 3 : 2]);
+          for (let i = -3; i <= 3; i++) this.s(cx - 1 + i, base - 12, P.pale[i < 0 ? 4 : 3]);
+          for (let i = 0; i < 6; i++) this.s(cx + 6 + i, base - 3, P.pale[i & 1 ? 3 : 4]);
+          this.r(cx + 7, base - 7, 4, 2, (_i, j) => (j === 0 ? W[4] : W[2]));
+          break;
+        }
         this.box(X + 2, base - 4, 12, 4, 5, P.stone, P.stone);
         this.r(X + 3, base - 13, 10, 3, (i, j) => (j === 0 ? W[5] : W[(i + Math.floor(a * 3)) % 4 === 0 ? 4 : 2]));
         this.vase(cx, base - 13, 7, (t) => 2 + Math.sin(t * 3) * 1.4, P.pale);
@@ -3327,7 +3411,7 @@ export class PixelRoom {
         this.shopCounter(p.styles.shopcounter ?? "counter", X, Y, PW, PD, q.seed);
         break;
       case "fixture":
-        this.fixture(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        this.fixture(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed, p.styles.fixture);
         break;
       case "machine":
         this.machine(p.styles.machine ?? "loom", X, Y + PD - 2, PW, q.seed);

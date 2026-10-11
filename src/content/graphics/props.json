@@ -920,21 +920,6 @@
       ]
     },
     {
-      "id": "metal-tin",
-      "name": "Metal canister or tin",
-      "group": "Storage & carrying",
-      "size": [
-        9,
-        13
-      ],
-      "description": "A cylindrical or rectangular industrial container has folded seams, a distinct lid and restrained dents or rust.",
-      "variants": [
-        "Copper-toned",
-        "Iron-toned",
-        "Pale enamel"
-      ]
-    },
-    {
       "id": "dustbin",
       "name": "Galvanised bin",
       "group": "Storage & carrying",
@@ -2299,6 +2284,313 @@
         "Bath",
         "Stage",
         "Dice"
+      ]
+    },
+    {
+      "id": "wallsign-oak",
+      "name": "Wall sign / oak board",
+      "group": "Street furniture",
+      "size": [
+        22,
+        24
+      ],
+      "description": "An oak board on chains from a timber arm through the wall, the trade mark painted on bare wood. Medieval Europe.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice",
+        "Pretzel",
+        "Basin",
+        "Balls",
+        "Key",
+        "Glove",
+        "Candle",
+        "Ox",
+        "Saw"
+      ]
+    },
+    {
+      "id": "wallsign-painted",
+      "name": "Wall sign / painted board",
+      "group": "Street furniture",
+      "size": [
+        25,
+        28
+      ],
+      "description": "A painted board hung from a wrought-iron scroll bracket. Early-modern Europe, 1500 to the 1760s.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice",
+        "Pretzel",
+        "Basin",
+        "Balls",
+        "Key",
+        "Glove",
+        "Candle",
+        "Ox",
+        "Saw"
+      ]
+    },
+    {
+      "id": "wallsign-cutout",
+      "name": "Wall sign / gilt cut-out",
+      "group": "Street furniture",
+      "size": [
+        30,
+        26
+      ],
+      "description": "The trade mark itself, gilt and hung from a scroll bracket, as German and Low Country bakers and bootmakers hung them.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice",
+        "Pretzel",
+        "Basin",
+        "Balls",
+        "Key",
+        "Glove",
+        "Candle",
+        "Ox",
+        "Saw"
+      ]
+    },
+    {
+      "id": "wallsign-fascia",
+      "name": "Wall sign / fascia",
+      "group": "Street furniture",
+      "size": [
+        50,
+        18
+      ],
+      "description": "A flat board over the shop under a moulded cornice, after Paris and London took their hanging signs down in 1761-62.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice",
+        "Pretzel",
+        "Basin",
+        "Balls",
+        "Key",
+        "Glove",
+        "Candle",
+        "Ox",
+        "Saw"
+      ]
+    },
+    {
+      "id": "wallsign-pennant",
+      "name": "Wall sign / pennant",
+      "group": "Street furniture",
+      "size": [
+        25,
+        28
+      ],
+      "description": "A swallow-tailed cloth hung from a bamboo pole run out from the wall. South and Southeast Asia.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice",
+        "Pretzel",
+        "Basin",
+        "Balls",
+        "Key",
+        "Glove",
+        "Candle",
+        "Ox",
+        "Saw"
+      ]
+    },
+    {
+      "id": "wallsign-bazaar",
+      "name": "Wall sign / bazaar banner",
+      "group": "Street furniture",
+      "size": [
+        22,
+        28
+      ],
+      "description": "A fringed cloth banner on an iron rod, a woven border and the mark worked in. Ottoman and Persian bazaars.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice",
+        "Pretzel",
+        "Basin",
+        "Balls",
+        "Key",
+        "Glove",
+        "Candle",
+        "Ox",
+        "Saw"
+      ]
+    },
+    {
+      "id": "wallsign-bush",
+      "name": "Ale-stake",
+      "group": "Street furniture",
+      "size": [
+        34,
+        21
+      ],
+      "description": "A pole out from an English alehouse with a bush of greenery tied at its end.",
+      "variants": [
+        "One"
+      ]
+    },
+    {
+      "id": "wallsign-barber",
+      "name": "Barber pole and basin",
+      "group": "Street furniture",
+      "size": [
+        30,
+        20
+      ],
+      "description": "A pole banded red and white with the brass basin hung from its end: the barber-surgeon.",
+      "variants": [
+        "One"
+      ]
+    },
+    {
+      "id": "wallsign-lacquer",
+      "name": "Wall sign / lacquer board",
+      "group": "Street furniture",
+      "size": [
+        14,
+        41
+      ],
+      "description": "A tall lacquered board in a vermilion frame, gilt characters down it. China.",
+      "variants": [
+        "One"
+      ]
+    },
+    {
+      "id": "wallsign-split",
+      "name": "Wall sign / kanban",
+      "group": "Street furniture",
+      "size": [
+        18,
+        35
+      ],
+      "description": "A plain cedar board under a little roof, ink characters on bare wood. Japan.",
+      "variants": [
+        "One"
+      ]
+    },
+    {
+      "id": "wallsign-noren",
+      "name": "Noren",
+      "group": "Street furniture",
+      "size": [
+        28,
+        20
+      ],
+      "description": "A split curtain across the head of the doorway, dyed with the house crest. Edo Japan.",
+      "variants": [
+        "One"
+      ]
+    },
+    {
+      "id": "wallsign-sugidama",
+      "name": "Sugidama",
+      "group": "Street furniture",
+      "size": [
+        15,
+        23
+      ],
+      "description": "A ball of cedar sprigs hung at a sake brewer's door, green when the new brew is pressed.",
+      "variants": [
+        "One"
+      ]
+    },
+    {
+      "id": "wallsign-wineflag",
+      "name": "Wine flag",
+      "group": "Street furniture",
+      "size": [
+        41,
+        36
+      ],
+      "description": "A long white banner bordered blue on a pole up from the wall: the wine shop's flag of Song China.",
+      "variants": [
+        "One"
       ]
     },
     {

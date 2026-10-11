@@ -34,6 +34,7 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
   await expect
     .poll(() => canvas.getAttribute("data-doors"), { timeout: 20_000 })
     .toMatch(/\/[1-9]/);
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 3000 }).catch(() => {});
   // Shops and a minority of houses stand open from the start.
   const standing = await openCount(page);
 
@@ -112,6 +113,7 @@ test("knocking runs, and an open door is walked through", async ({ page }) => {
   });
 
   // Knocking has to survive the command schema, not just the engine.
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 3000 }).catch(() => {});
   const knocked = await page.evaluate((APPROACH) => {
     const r = (window as any).__uhs,
       e = r.engine;

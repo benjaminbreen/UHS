@@ -53,7 +53,9 @@ import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardCompanion, type YardProp } from "../../content/settlements/yards";
 import { propDefs, propVisualCells } from "../../content/props/catalog";
+import { propKit, techFor } from "../../content/props/selection";
 import { processFor } from "../../content/economy/processes";
+import { shopKind } from "../../content/interiors/shops";
 import {
   penBoundary as localPen,
   pickBoundary,
@@ -114,6 +116,7 @@ import {
   eachCell,
   inside,
   type Rect,
+  type Pavement,
   type Road,
   type SettlementPlan,
   type Site,
@@ -130,6 +133,9 @@ import {
   envelopeConflicts,
   treePlacementEnvelope,
 } from "./placement";
+
+// Shops whose name is the trade's own, whoever keeps them.
+const NAMED_SHOPS = new Set(["bread", "meat", "tools", "pots", "apothecary", "candles"]);
 /** The livelihood activity that keeps animals, as the character tables name it. */
 const HERDING = "Tending animals";
 // The longest water a town's line bridges, in 2 m cells.
@@ -345,9 +351,10 @@ export function planSettlement(
     plan.surface.set(k, t);
     return true;
   };
-  const paint = (rect: Rect, t: Terrain, reserve = true, rank = 3) =>
+  const paint = (rect: Rect, t: Terrain, reserve = true, rank = 3, role?: Pavement) =>
     eachCell(rect, (x, y) => {
-      setSurface(cellKey(x, y), t, rank);
+      if (setSurface(cellKey(x, y), t, rank) && role)
+        plan.pavement!.set(cellKey(x, y), role);
       if (reserve) plan.reserved.add(cellKey(x, y));
     });
   const palette = pack.setting ? streetPalette(pack.setting) : undefined;
@@ -770,18 +777,7 @@ export function planSettlement(
     if (!first && !label.startsWith("field-")) plan.diagnostics.routeFailures++;
     return first;
   };
-  /** Dry, unreserved ground. Level is required only inside `core` (the whole
-   * rect by default): a yard or pen margin may step down onto the next
-   * terrace, but the footprint itself may not. */
-  /** A stall's awning would stand in a street tree's crown. */
-  const clearTrees = (at: Point) => {
-    plan.objects = plan.objects.filter((o) => {
-      const near = o.kind === "tree" && o.id.includes("street-tree") &&
-        Math.abs(o.pos.x - at.x) <= 2 && Math.abs(o.pos.y - at.y) <= 2;
-      if (near) plan.solid.delete(cellKey(o.pos.x, o.pos.y));
-      return !near;
-    });
-  };
+  /** Rural foundations stay level; urban parcels can be graded through one tier. */
   const dry = (rect: Rect, occupied = true, core: Rect = rect) => {
     let lo = Infinity,
       hi = -Infinity,
@@ -804,7 +800,30 @@ export function planSettlement(
       )
         valid = false;
     });
-    return valid && (pack.setting?.terrainRevision ? hi === lo : hi - lo < 28);
+    return valid && (pack.setting?.terrainRevision ? hi - lo <= (urban ? 14 : 0) : hi - lo < 28);
+  };
+  const gradeGround = (rect: Rect, level?: number) => {
+    if (!urban || !pack.setting?.terrainRevision || !dry(rect, false)) return;
+    plan.groundLevels ??= new Map();
+    level ??= Math.round(sample(rect.x + (rect.w >> 1), rect.y + (rect.h >> 1)).elevation / 14);
+    eachCell(rect, (x, y) => plan.groundLevels!.set(cellKey(x, y), level!));
+  };
+  const marketPitch = (at: Point, id: string, index: number, trade?: number) => {
+    const body = { x: at.x - 1, y: at.y, w: 3, h: 1 };
+    if (!dry({ ...body, h: 2 }, false)) return;
+    let blocked = false;
+    eachCell(body, (x, y) => {
+      const k = cellKey(x, y), role = plan.pavement?.get(k);
+      if (plan.solid.has(k) || plan.lanes?.has(k) || (role && role !== "square" && role !== "court")) blocked = true;
+    });
+    if (blocked || plan.objects.some((o) => Math.abs(o.pos.x - at.x) < 4 && Math.abs(o.pos.y - at.y) < 3 &&
+      (o.prop === "marketCounter" || o.kind === "monument" || o.kind === "tree"))) return;
+    const stall = stallFor(pack, index, trade);
+    eachCell(body, (x, y) => { plan.solid.add(cellKey(x, y)); plan.reserved.add(cellKey(x, y)); });
+    gradeGround({ ...body, h: 2 }, plan.groundLevels?.get(cellKey(at.x, at.y)) ?? Math.round(sample(at.x, at.y).elevation / 14));
+    plan.objects.push({ id, name: stall.label, prop: "marketCounter", kind: "container", sprite: stall.sprite,
+      pos: pos(at), inventory: characterContext ? eligibleInventory({ grain: 6 }, characterContext) : { grain: 6 },
+      owner: `${site.id}-community` });
   };
   /** Nearest usable landing water. Sampled once; both the quay and the public
    * space that faces it ask the same question. */
@@ -968,7 +987,7 @@ export function planSettlement(
         eachCell(rect, (x, y) => {
           const k = cellKey(x, y);
           setSurface(k, "grass", 11);
-          plan.pavement!.delete(k);
+          plan.pavement!.set(k, "garden");
           plan.streetSurfaces!.delete(k);
         });
         const at = { x: rect.x + (rect.w >> 1), y: rect.y + (rect.h >> 1) };
@@ -1135,20 +1154,7 @@ export function planSettlement(
         court.x + inset,
         court.x + court.w - inset - 1,
       ].entries()) {
-        const stall = stallFor(pack, i + Math.floor(rand("stall") * 3));
-        clearTrees({ x, y: court.y + court.h - 2 });
-        plan.objects.push({
-          id: `${site.id}-market-${i}`,
-          name: stall.label,
-          prop: "marketCounter",
-          kind: "container",
-          sprite: stall.sprite,
-          pos: pos({ x, y: court.y + court.h - 2 }),
-          inventory: characterContext
-            ? eligibleInventory({ grain: 6 }, characterContext)
-            : { grain: 6 },
-          owner: `${site.id}-community`,
-        });
+        marketPitch({ x, y: court.y + court.h - 2 }, `${site.id}-market-${i}`, i + Math.floor(rand("stall") * 3));
       }
       // Costermongers' barrows work the square's upper edge; in Tokyo the
       // rickshaws wait there for fares.
@@ -1170,6 +1176,7 @@ export function planSettlement(
         }
     };
     const paintForecourt = (rect: Rect) => {
+      gradeGround(rect);
       const material = squareStone;
       eachCell(rect, (x, y) => {
         const key = cellKey(x, y);
@@ -1177,25 +1184,26 @@ export function planSettlement(
         plan.reserved.add(key);
         roads.add(key);
         if (!setSurface(key, profile.paved ? "paving" : "dirt", 8)) return;
-        if (!profile.paved) return;
-        plan.pavement!.set(key, "square");
-        if (material) plan.streetSurfaces!.set(key, material);
+        plan.pavement!.set(key, "court");
+        if (profile.paved && material) plan.streetSurfaces!.set(key, material);
       });
     };
     const paintCourt = (court: Rect, square?: string, civicRect?: Rect) => {
+      gradeGround(court);
       const material = squareStone;
       eachCell(court, (x, y) => {
         const key = cellKey(x, y);
         plan.reserved.add(key);
-        if (!square) setSurface(key, "dirt", 3);
+        if (!square) {
+          if (setSurface(key, "dirt", 3)) plan.pavement!.set(key, "court");
+        }
         else {
           roads.add(key);
           if (
-            setSurface(key, profile.paved ? "paving" : "dirt", 9) &&
-            profile.paved
+            setSurface(key, profile.paved ? "paving" : "dirt", 9)
           ) {
             plan.pavement!.set(key, "square");
-            if (material) plan.streetSurfaces!.set(key, material);
+            if (profile.paved && material) plan.streetSurfaces!.set(key, material);
           }
         }
       });
@@ -1226,7 +1234,7 @@ export function planSettlement(
         dry(garden, false) &&
         !roads.has(cellKey(garden.x + 1, garden.y + 1))
       ) {
-        paint(garden, "grass", true, 11);
+        paint(garden, "grass", true, 11, "garden");
         plan.objects.push({
           id: `${site.id}-court-tree-${plan.plots.length}`,
           name: "Courtyard tree",
@@ -1242,14 +1250,14 @@ export function planSettlement(
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
       (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
-    const paintBlock = (block: Rect, given: Terrain = blockGround) =>
+    const paintBlock = (block: Rect, given: Terrain = blockGround, role: Pavement = "yard") =>
       eachCell(block, (x, y) => {
         // Behind a Tokyo street front the yards and lanes were beaten earth.
-        const ground = meiji && given === "paving" ? "dirt" : given;
+        const ground = (meiji || role === "vacant") && given === "paving" ? "dirt" : given;
         const k = cellKey(x, y);
-        if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, ground, 2) && ground === "paving") {
-          plan.pavement!.set(k, "footway");
-          plan.streetSurfaces!.set(k, footwaySurface ?? "slab");
+        if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, ground, 2)) {
+          plan.pavement!.set(k, role);
+          if (ground === "paving") plan.streetSurfaces!.set(k, footwaySurface ?? "slab");
         }
       });
     const paintFootway = (rect: Rect) => {
@@ -1325,7 +1333,7 @@ export function planSettlement(
         )
           return;
         if (setSurface(k, "grass", 11)) {
-          plan.pavement!.delete(k);
+          plan.pavement!.set(k, "park");
           plan.streetSurfaces!.delete(k);
           plan.reserved.add(k);
           usable++;
@@ -1418,6 +1426,7 @@ export function planSettlement(
         });
     };
     const paintSquare = (court: Rect, index: number) => {
+      gradeGround(court);
       const material = squareStone;
       eachCell(court, (x, y) => {
         const k = cellKey(x, y);
@@ -1457,7 +1466,7 @@ export function planSettlement(
       if (spec.focus === "tree") {
         const k = cellKey(cx, cy);
         setSurface(k, "grass", 11);
-        plan.pavement!.delete(k);
+        plan.pavement!.set(k, "garden");
         plan.solid.add(k);
         plan.objects.push({
           id: `${site.id}-square-${index + 2}-tree`,
@@ -1504,7 +1513,8 @@ export function planSettlement(
         for (let x = c.x - reach; x <= c.x + reach; x++) {
           if (!holds(x, y) || !dry({ x, y, w: 1, h: 1 }, false)) continue;
           const k = cellKey(x, y);
-          setSurface(k, cityGround, 1);
+          if (setSurface(k, cityGround === "paving" ? "dirt" : cityGround, 1))
+            plan.pavement!.set(k, "vacant");
           const besideRoad =
             !roads.has(k) &&
             [
@@ -1619,7 +1629,7 @@ export function planSettlement(
               const k = cellKey(x, y);
               if (plan.solid.has(k) || plan.lanes?.has(k)) return;
               setSurface(k, "paving", 12);
-              plan.pavement!.set(k, "square");
+              plan.pavement!.set(k, "yard");
               plan.streetSurfaces!.set(k, x >= access - 2 && !built(x, y) ? "asphalt" : "concrete");
               plan.reserved.add(k);
             });
@@ -1690,6 +1700,7 @@ export function planSettlement(
           },
           furnish,
           paintGround: (rect, surface) => {
+            gradeGround(rect);
             eachCell(rect, (x, y) => {
               const k = cellKey(x, y);
               if (!dry({ x, y, w: 1, h: 1 }, false)) return;
@@ -1697,13 +1708,11 @@ export function planSettlement(
               roads.add(k);
               const paved = surface === "paving";
               if (
-                !setSurface(k, paved && !profile.paved ? "dirt" : surface, 9) ||
-                !paved ||
-                !profile.paved
+                !setSurface(k, paved && !profile.paved ? "dirt" : surface, 9)
               )
                 return;
-              plan.pavement!.set(k, "square");
-              if (squareStone) plan.streetSurfaces!.set(k, squareStone);
+              plan.pavement!.set(k, "court");
+              if (paved && profile.paved && squareStone) plan.streetSurfaces!.set(k, squareStone);
             });
             plan.plots.push({
               ...rect,
@@ -1716,20 +1725,7 @@ export function planSettlement(
             });
           },
           stall: (at, i, trade) => {
-            const stall = stallFor(pack, i, trade);
-            clearTrees(at);
-            plan.objects.push({
-              id: `${site.id}-pitch-${at.x}-${at.y}`,
-              name: stall.label,
-              prop: "marketCounter",
-              kind: "container",
-              sprite: stall.sprite,
-              pos: pos(at),
-              inventory: characterContext
-                ? eligibleInventory({ grain: 6 }, characterContext)
-                : { grain: 6 },
-              owner: `${site.id}-community`,
-            });
+            marketPitch(at, `${site.id}-pitch-${at.x}-${at.y}`, i, trade);
           },
           marker: (at, i) =>
             plan.objects.push({
@@ -2555,7 +2551,8 @@ export function planSettlement(
           owner,
         },
       ]);
-      setSurface(k, crop ? "field" : "grass", 3);
+      if (setSurface(k, crop ? "field" : "grass", 3) && urban)
+        plan.pavement!.set(k, "garden");
     });
   };
   /** Stand one of the kit's props on a free cell, and its companions beside
@@ -2589,15 +2586,22 @@ export function planSettlement(
     return true;
   };
   const propCells = new Set<string>();
+  const localProps = [...Object.values(propKit(pack).contexts).flat(), ...(techFor(pack).iron ? ["anvil"] : [])];
   /** An indoor trade's station, inside the house; the workbench stands in
    * for a family whose interior art is not drawn yet. */
   const indoorStation = (id: string, owner: string, kit: Parameters<typeof processFor>[0] | undefined) => {
     const process = kit && processFor(kit);
-    if (!kit || !process?.indoors) return [];
-    const prop = Object.keys(propDefs).find((k) => process.stations.includes(propDefs[k].family));
+    if (!kit || !(process?.indoors || process?.bench)) return [];
+    // From what this place and period had, not the catalogue's first match:
+    // a treadle loom in Tenochtitlan is the error.
+    const prop = (process.bench ?? process.stations)
+      .map((f) => localProps.find((k) => propDefs[k]?.family === f))
+      .find(Boolean);
+    if (process.bench && !prop) return [];
+    const family = prop && propDefs[prop].family;
     return [{
       id: `${id}-work`,
-      name: prop ? propDefs[prop].name : `Where the ${kit.activity.toLowerCase()} is done`,
+      name: process.bench ? family![0].toUpperCase() + family!.slice(1).replace(/-/g, " ") : prop ? propDefs[prop].name : `Where the ${kit.activity.toLowerCase()} is done`,
       kind: "container" as const,
       prop,
       pos: { x: 6, y: 5, space: id },
@@ -3055,6 +3059,11 @@ export function planSettlement(
       plan.diagnostics.rejectedBuildings++;
       continue;
     }
+    if (urban && lot.rect && pack.setting?.terrainRevision) {
+      const level = Math.round(sample(lot.workPoint?.x ?? door.x, lot.workPoint?.y ?? door.y).elevation / 14);
+      gradeGround(rect, level);
+      gradeGround({ x: door.x, y: door.y, w: 1, h: 1 }, level);
+    }
     if (lot.religious) {
       const id = `${site.id}-religious`;
       eachCell(rect, (x, y) => {
@@ -3073,12 +3082,11 @@ export function planSettlement(
           plan.reserved.add(k);
           roads.add(k);
           if (
-            !setSurface(k, profile.paved ? "paving" : "dirt", 5) ||
-            !profile.paved
+            !setSurface(k, profile.paved ? "paving" : "dirt", 5)
           )
             return;
-          plan.pavement!.set(k, "footway");
-          if (apronMaterial) plan.streetSurfaces!.set(k, apronMaterial);
+          plan.pavement!.set(k, "court");
+          if (profile.paved && apronMaterial) plan.streetSurfaces!.set(k, apronMaterial);
         },
       );
       plan.places.push({
@@ -3183,8 +3191,11 @@ export function planSettlement(
     }
     const id = `${site.id}-h${i}`,
       owner =
+        // The first house that is an ordinary house: not a venue's, not a townhouse.
         site.home &&
-        (urban ? owners.length === 0 : i === 0) &&
+        !lot.venue &&
+        lot.quarter !== "elite" &&
+        !owners.includes("player") &&
         (!pack.setting?.environment ||
           pack.setting.environment.start === "resident")
           ? "player"
@@ -3325,7 +3336,10 @@ export function planSettlement(
       eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
       continue;
     }
-    const shopfront =
+    // A player whose trade keeps a shop keeps it on the street, named for it.
+    const family = owner === "player" && livelihood ? processFor(livelihood)?.family : undefined;
+    const shop = family === "transform" || family === "serve" ? shopKind(role) : undefined;
+    const shopfront = owner === "player" ? !!shop :
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
     // A downtown is office blocks: most lots offices, some a bank or a department store.
     const officeRoll = rand("office", i);
@@ -3380,6 +3394,8 @@ export function planSettlement(
           ? shopfront
             ? `${role}'s ${dwelling.toLowerCase()}`
             : dwelling
+          : shop
+          ? NAMED_SHOPS.has(shop.id) ? `The ${shop.label.toLowerCase()}` : shop.id === "general" ? `${role}'s shop` : `${role}'s workshop`
           : lot.quarter === "market"
           ? `${role}'s shop`
           : lot.quarter === "elite"
@@ -3402,8 +3418,13 @@ export function planSettlement(
       entranceLabel,
     });
     if (urban) {
-      const pavedLot = fabric.motor && !!lot.use && ["downtown", "commercial", "tenement", "rowhouse"].includes(lot.use);
-      paint(yard, pavedLot ? "paving" : "dirt");
+      const pavedLot = profile.paved && !meiji && !!lot.use && ["downtown", "commercial", "tenement", "rowhouse"].includes(lot.use);
+      paint(yard, pavedLot ? "paving" : "dirt", true, 3, "yard");
+      if (pavedLot) eachCell(yard, (x, y) => {
+        const k = cellKey(x, y);
+        if (plan.pavement!.get(k) === "yard" && !plan.streetSurfaces!.has(k))
+          plan.streetSurfaces!.set(k, footwaySurface ?? "slab");
+      });
       // Grass is edging: a ring round the house, not a field between them.
       if (cityGround)
         eachCell(
@@ -3411,9 +3432,9 @@ export function planSettlement(
           (x, y) => {
             const k = cellKey(x, y);
             if (plan.solid.has(k) || roads.has(k)) return;
-            if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, pavedLot ? "paving" : "grass", 3) && pavedLot) {
-              plan.pavement!.set(k, "footway");
-              plan.streetSurfaces!.set(k, footwaySurface ?? "concrete");
+            if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, pavedLot ? "paving" : "grass", 3)) {
+              plan.pavement!.set(k, pavedLot ? "yard" : "garden");
+              if (pavedLot) plan.streetSurfaces!.set(k, footwaySurface ?? "concrete");
             }
           },
         );
@@ -3434,8 +3455,8 @@ export function planSettlement(
       if (cityGround !== "grass" && !pavedLot)
         eachCell(back, (x, y) => {
           const k = cellKey(x, y);
-          if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false))
-            setSurface(k, "dirt", 3);
+          if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, "dirt", 3))
+            plan.pavement!.set(k, "yard");
         });
       const footway = ny
         ? {
@@ -4351,7 +4372,7 @@ export function planSettlement(
       const k = cellKey(x, y);
       return (
         roads.has(k) ||
-        plan.pavement?.has(k) ||
+        ["footway", "lane", "square", "dais", "verge", "platform", "rail", "court"].includes(plan.pavement?.get(k) ?? "") ||
         plan.surface.get(k) === "paving"
       );
     };
@@ -4807,6 +4828,8 @@ export function planSettlement(
       // The entrance is where a visitor stands: the step in front of the door.
       if (!inOther && !plan.solid.has(cellKey(step.x, step.y))) (place.door = painted), (place.entrance = step);
     }
+    const level = plan.groundLevels?.get(cellKey(place.x, place.y));
+    if (level !== undefined) gradeGround({ ...place.entrance, w: 1, h: 1 }, level);
     const door = makeDoor(place);
     plan.solid.delete(cellKey(door.pos.x, door.pos.y));
     plan.objects.push(door);

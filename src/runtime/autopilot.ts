@@ -13,7 +13,7 @@ import { doorApproach, doorId } from "../core/doors";
  */
 export type Plan =
   | { kind: "forage"; item?: ItemId }
-  | { kind: "go"; to: Point; label: string }
+  | { kind: "go"; to: Point & { space?: string }; label: string }
   | { kind: "workday" }
   | { kind: "roam"; run: boolean }
   | { kind: "seek"; actor: string; label: string };
@@ -75,13 +75,24 @@ export class Autopilot {
     this.stuck++;
   }
 
-  private go(to: Point, label: string): Step {
+  private go(to: Point & { space?: string }, label: string): Step {
     const p = this.engine.state.player.pos;
+    // Somewhere indoors: out of wherever you are, through its door, across the room.
+    if (to.space && to.space !== "outside") {
+      if (p.space === to.space) {
+        if (Math.hypot(to.x - p.x, to.y - p.y) <= 1.5) return { done: `You reach ${label}.` };
+        const route = this.routeNear(to, 1);
+        return route.length ? { route } : { done: `There is no way through to ${label}.` };
+      }
+      if (p.space !== "outside") return this.leave();
+      const place = this.engine.world.places.find((pl) => pl.id === to.space);
+      return place ? this.door(place, label) : { done: `You cannot get to ${label}.` };
+    }
     if (p.space !== "outside") return this.leave();
     const left = Math.hypot(to.x - p.x, to.y - p.y);
     // Walked past it counts: a leg may end a few cells beyond.
     const past = (to.x - p.x) * (to.x - this.origin.x) + (to.y - p.y) * (to.y - this.origin.y) <= 0;
-    if (left <= 2 || past) return { done: `You reach ${label}.` };
+    if (left <= 2 || (past && left < 5)) return { done: `You reach ${label}.` };
     // Long walks go in legs, one search across a whole region being too slow.
     // A leg that ends in a river or a wall swings aside and tries again.
     const k = Math.min(1, LEG / left),
@@ -231,7 +242,21 @@ export class Autopilot {
   private work(): Step {
     const e = this.engine,
       p = e.state.player;
-    const station = e.workStation();
+    const here = e.workHere();
+    if (here) {
+      this.pause = 6;
+      return { command: here.command };
+    }
+    const plan = e.workPlan();
+    // Choices are the player's: the errand waits for the answer, then goes on.
+    if (plan?.waiting) return { wait: true };
+    const at = plan && plan.done < plan.steps.length ? plan.places[plan.done] : undefined;
+    if (at) {
+      if (p.pos.space !== "outside") return this.leave();
+      const route = this.routeNear(at.pos, 1);
+      return route.length ? { route } : { done: `You cannot get to ${at.label}.` };
+    }
+    const station = plan && plan.done >= plan.steps.length ? "done" : e.workStation();
     const side = e.sideJob();
     if (station === "done" && side && !side.done) {
       if (p.pos.space !== "outside") return this.leave();

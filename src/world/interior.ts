@@ -42,6 +42,8 @@ export type InteriorLayout = {
   store: Point;
   bedCell: Point;
   workCell: Point;
+  /** A shop's own fixture, its oven or forge, where the household's trade is worked. */
+  benchCell?: Point;
 };
 
 /** Floor tile (0, 0) is game cell (1, 1), so a room never sits on the edge. */
@@ -90,16 +92,31 @@ function seedOf(id: string) {
   return (h >>> 0) % 99991;
 }
 
+/** Whether pots were thrown on a wheel here or built up by hand in coils.
+ * Scoped guesses from the archaeology, not dates of invention: Mesopotamia
+ * c. 3500 BCE, India and China c. 2500, Europe north of the Alps with the
+ * La Tène c. 400 BCE, Japan with Sue ware c. 400 CE. The Americas until
+ * contact, Africa south of the Sahara and Oceania coiled. */
+function wheelThrown({ lon, lat, year }: InteriorSite) {
+  if (lon < -30) return year >= 1550;
+  if (lat < 12 && lon > -20 && lon < 52) return false;
+  if (lon > 110 && lat < -8) return false;
+  if (lon > 128 && lat > 30) return year >= 400;
+  if (lon > 60) return year >= -2500;
+  if (lon < 15 && lat > 44) return year >= -400;
+  return year >= -3500;
+}
+
 /** Builds the room a household lives in: its profile from place and date, its
  * finish from the household's fortune, its furniture from the trade. Rooms
  * are larger than the building outside; that is deliberate. */
-export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string }): InteriorLayout {
+export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string; bench?: string }): InteriorLayout {
   const seed = seedOf(place.id);
   const home = interiorProfileFor(site);
   // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
   const works = buildingUse(place.claim) ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined;
   const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
-  const profile = works ?? (kind ? shopFor(home, kind, site) : home);
+  const profile = works ?? (kind ? shopFor(home, kind, site, o.bench) : home);
   const status: Finish = o.fortune === undefined ? 1 : o.fortune < 0.34 ? 0 : o.fortune < 0.72 ? 1 : 2;
   const [tw, td] = profile.rooms?.[0].size ?? profile.size;
   const k = [0.85, 1, 1.2][status];
@@ -115,6 +132,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
     hour: o.hour ?? 12,
   });
   const { plan, props } = building;
+  if (!wheelThrown(site)) for (const r of plan.rooms) r.styles = { ...r.styles, throw: "coil" };
   // The house as a whole: its size, its way in, and the first room's look for what is not a room's own.
   const params: RoomParams = { ...plan.rooms[0], w: plan.w, d: plan.d, entrance: plan.entrance[0] >= 0 ? plan.entrance[0] : undefined };
   const mask = plan.mask;
@@ -174,6 +192,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const trade = params.trade;
   // The keeper works from behind the bar, facing the room.
   const work = of(WORK[trade]).flatMap((q) => (q.kind === "bar" || q.kind === "shopcounter" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
+  const fixtures = of(["fixture", "anvil"]).flatMap(stands);
   const fire = of(FIRES).flatMap(stands);
   // A stool is turned to the table or the fire it stands at; anything with a back faces the room.
   const boards = of(["table", "lowtable", "desk", "counter", ...FIRES]);
@@ -237,6 +256,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
     store: cellOf(storeSpots) ?? cell(seats[0]) ?? cell(fire[0]) ?? entry,
     bedCell: cellOf(beds) ?? cell(seats[0]) ?? cell(fire[0]) ?? entry,
     workCell: cellOf(work) ?? cell(fire[0]) ?? cell(seats[0]) ?? entry,
+    benchCell: cellOf(fixtures),
   };
 }
 

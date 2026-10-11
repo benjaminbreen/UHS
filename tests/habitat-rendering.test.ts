@@ -96,4 +96,11 @@ describe("local habitat composition", () => {
     });
     expect(new Set(sums).size).toBe(ecologies.length);
   });
+  it("preserves a narrow planted garden between paved cells", () => {
+    const h = habitatAt("grassland", "summer", "review", 0, 0, land);
+    const garden: TopographySample = () => ({ height: 0, surface: "grass", pavement: "garden", habitat: h });
+    const beside: TopographySample = (x, y) => x === 0 ? garden(x, y)
+      : { height: 0, surface: "gravel", feature: "paving", streetMaterial: "slab", pavement: "court", habitat: h };
+    expect(rasterHabitatTile(beside, 0, 0, 0, 0).pixels).toEqual(rasterHabitatTile(garden, 0, 0, 0, 0).pixels);
+  });
 });

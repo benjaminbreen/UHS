@@ -15,7 +15,7 @@ import bFamilies from "../../render/generated/props-b.json" with { type: "json" 
 import { buildingRoofCells } from "../graphics/models";
 import { mediterraneanProp } from "../graphics/mediterranean-buildings";
 
-import { signFor, emblemFor, signLabels } from "./signage";
+import { signFor, emblemFor, signLabels, wallSignFor } from "./signage";
 import { rareScale } from "./settlement-details";
 import { placeSettlementDetails } from "./settlement-details/place";
 import { middenContents, middenYears } from "./midden";
@@ -28,12 +28,10 @@ import { workplaceFor } from "../characters/workplace";
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
  * name, which is where the generator records the household's trade. */
-function tradeFitting(name: string, year: number, scale: boolean) {
+function tradeFitting(name: string, iron: boolean, loom: string | undefined, scale: boolean) {
   if (scale) return "beamScale";
-  if (/smith|forge|founder|farrier/i.test(name))
-    return year >= -1199 ? "anvil" : undefined;
-  if (/weav|loom|spin|cloth|draper|fuller/i.test(name))
-    return year >= -5999 ? "loom" : undefined;
+  if (/smith|forge|founder|farrier/i.test(name)) return iron ? "anvil" : undefined;
+  if (/weav|loom|spin|cloth|draper|fuller/i.test(name)) return loom;
   return undefined;
 }
 /** Work premises: a spade leans here, a chest does not. */
@@ -81,6 +79,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     scales: Position[] = [];
   const tech = techFor(world.pack);
   const sign = signFor(world.pack);
+  const loom = [...kit.contexts.work, ...kit.contexts.yard].find((k) => /loom/.test(propDefs[k]?.family ?? ""));
   const doorway = doorwayFor(world.pack);
   const urbanPack =
     world.pack.setting?.settlement === "city" ||
@@ -206,8 +205,15 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     return false;
   };
   const reserved = new Set<string>();
+  const publicGround = (p: Position, prop?: string) => p.space === "outside" && urbanPack &&
+    (prop ? propVisualCells(prop, p) : [p]).some((q) => {
+      const c = world.topography?.(q.x, q.y);
+      return !!c?.lane || (c?.feature === "paving" && !c.pavement) ||
+        ["footway", "lane", "verge", "square", "dais", "court", "platform", "rail"].includes(c?.pavement ?? "");
+    });
   const usable = (p: Position, ignore?: string, prop?: string) =>
     !world.blocked(p.x, p.y, p.space) &&
+    !publicGround(p, prop) &&
     !reserved.has(at(p)) &&
     !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
     !occupied(p, ignore, prop) &&
@@ -267,7 +273,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       if (done.has(o.id)) continue;
       done.add(o.id);
       unindex(o);
-      if (o.prop && world.generatorVersion === 3) {
+      const planned = world.generatorVersion === 3 &&
+        (!!o.prop || /^study-(prop|classical)/.test(o.sprite));
+      if (planned) {
         /* Explicit settlement furniture retains its function. */
       } else if (o.kind === "container")
         stamp(
@@ -289,10 +297,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       else if (o.kind === "fire" && o.sprite === "fire")
         stamp(o, pick(o.id, "fire", o.pos));
       index(o);
-      if (o.prop && !usable(o.pos, o.id, o.prop)) {
+      if (!planned && o.prop && !usable(o.pos, o.id, o.prop)) {
         const original = { ...o.pos };
         const choices: Position[] = [];
-        for (let r = 1; r <= 6; r++)
+        for (let r = 1; r <= (urbanPack ? 2 : 6); r++)
           for (let dy = -r; dy <= r; dy++)
             for (let dx = -r; dx <= r; dx++) {
               if (Math.max(Math.abs(dx), Math.abs(dy)) === r)
@@ -307,6 +315,20 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           unindex(o);
           o.pos = free;
           index(o);
+        } else if (urbanPack && world.generatorVersion === 3 && o.pos.space === "outside" && o.kind === "container") {
+          const household = world.households?.find((h) => h.storeId === o.id);
+          const inside = household?.residence && [[2, 3], [8, 5], [2, 5], [2, 7], [8, 7], [4, 7]]
+            .map(([x, y]) => ({ x, y, space: household.residence! }))
+            .find((p) => usable(p, o.id, o.prop) && propVisualCells(o.prop!, p)
+              .every((q) => !world.blocked(q.x, q.y, p.space)));
+          if (inside) {
+            unindex(o);
+            o.pos = inside;
+            index(o);
+          } else if (!household) {
+            unindex(o);
+            world.initialObjects.splice(world.initialObjects.indexOf(o), 1);
+          }
         }
       }
     }
@@ -369,7 +391,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               .filter((key) => propDefs[key]?.family === family))
         : [];
       const fitting = tradeFitting(
-        b.name, world.pack.year,
+        b.name, tech.iron, loom,
         tech.balance && rareScale(b.name, random(seed, "scale", b.id)) &&
           scales.every((p) => Math.hypot(p.x - b.x, p.y - b.y) >= 24),
       ) ?? fittingChoices[0];
@@ -403,7 +425,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       const seenCandidates = new Set<string>();
       const candidates: Position[] = [];
       for (const pocket of pockets)
-        for (let r = 0; r <= 4; r++)
+        for (let r = 0; r <= (urbanPack ? 1 : 4); r++)
           for (let dy = -r; dy <= r; dy++)
             for (let dx = -r; dx <= r; dx++) {
               if (r && Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
@@ -441,7 +463,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               slot === 1 ? "yard" : tools ? "tool" : "work",
               o.pos,
               // A back yard is a household's own ground away from the middle
-              // of town; crates and tins belong to a trade or the countryside.
+              // of town; packing cases belong to a trade or the countryside.
               (key) =>
                 belongs(key, o.pos, works) &&
                 (propDefs[key]?.where !== "backyard" || domestic),
@@ -467,32 +489,38 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       if (sign || venue || doorway !== undefined) {
         // Most household workshops stay unsigned; a named shop is signed only
         // when its trade has a mark of its own.
+        // The player's own shop is always signed: it is the one they look for.
+        const mine = b.owner === "player" && b.access === "public";
         const trades =
           emblem !== undefined &&
-          random(seed, "board", b.id) <
-            // Whole words: "workshop" is not a shop.
-            (/\b(shop|market|stall|apothecary|tea)\b/i.test(b.name)
-              ? 0.5
-              : 0.15);
-        const boardable = !!sign && emblem !== undefined;
+          (mine ||
+            random(seed, "board", b.id) <
+              // Whole words: "workshop" is not a shop.
+              (/\b(shop|market|stall|apothecary|tea)\b/i.test(b.name)
+                ? 0.5
+                : 0.15));
+        const hung = sign && emblem !== undefined ? wallSignFor(world.pack, sign, emblem, venue?.kind) : undefined;
+        const boardable = !!hung;
         // Signs keep apart, and the same mark further apart still: a row
         // of identical tea boards reads as wallpaper.
         const nearbySign = world.initialObjects.some((o) => {
-          if (!o.prop?.startsWith("signpost-")) return false;
+          if (!o.prop?.startsWith("wallsign-")) return false;
           const d = Math.hypot(o.pos.x - b.entrance.x, o.pos.y - b.entrance.y);
           return d < 4 || (d < 14 && o.sprite.endsWith(`-${emblem}`));
         });
         const wanted = venue?.marker
           ? "marker"
           : venue && !venue.open && boardable
-            ? sign!.key
+            ? hung!.key
             : venue?.sign === "lantern" && doorway !== undefined
               ? "doorLantern"
-              : !venue && trades && boardable && !nearbySign
-                ? sign!.key
+              : !venue && trades && boardable && (mine || !nearbySign)
+                ? hung!.key
                 : undefined;
+        // A wall sign hangs right of the door, off a wall of this house.
+        const walled = wanted?.startsWith("wallsign-");
         const beside = wanted
-          ? [
+          ? (walled ? [[1, 0], [2, 0]] : [
               [1, 0],
               [-1, 0],
               [1, 1],
@@ -500,7 +528,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               [0, 1],
               [2, 0],
               [-2, 0],
-            ]
+            ])
               .map(([dx, dy]) => ({
                 x: b.entrance.x + dx,
                 y: b.entrance.y + dy,
@@ -509,15 +537,11 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               .find(
                 (p) =>
                   freeAtDoor(p) &&
-                  (!wanted.startsWith("signpost-") ||
-                    (p.x !== b.entrance.x &&
+                  (!walled ||
+                    (p.x < b.x + b.w &&
                       !world.places.some(
-                        (place) =>
-                          place.entrance.x === p.x &&
-                          Math.abs(place.entrance.y - p.y) <= 1,
-                      ) &&
-                      !occupied(p, undefined, wanted) &&
-                      !world.blocked(p.x + 1, p.y, p.space))),
+                        (place) => place.entrance.x === p.x && Math.abs(place.entrance.y - p.y) <= 1,
+                      ))),
               )
           : undefined;
         if (wanted && beside) {
@@ -540,13 +564,13 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             if (venue)
               o.description = `Hung at the door of ${venue.label.replace(/^The /, "the ")}.`;
             o.sprite =
-              sign && wanted === sign.key
-                ? `study-propb-${propDefs[sign.key].family}-${emblem}`
+              hung && wanted === hung.key
+                ? `study-propb-${propDefs[hung.key].family}-${hung.variant}`
                 : `study-propb-door-lantern-${doorway}`;
           }
-          if (wanted.startsWith("signpost-")) {
+          if (walled) {
             o.name = `${signLabels[emblem!]} sign · ${b.name}`;
-            o.description = `A small freestanding sign beside the entrance to ${b.name}.`;
+            o.description = `A sign hung from the wall beside the door of ${b.name}.`;
           }
           world.initialObjects.push(o);
           index(o);

@@ -19,7 +19,8 @@ import {
 import { resolveSetting } from "../src/content/geography/resolve";
 import { buildingRoofCells } from "../src/content/graphics/models";
 import { packs } from "../src/content/packs";
-import type { PlayerCommand, WorldObject } from "../src/core/types";
+import { withProps } from "../src/content/props/place";
+import type { PlayerCommand, WorldModel, WorldObject } from "../src/core/types";
 import type { Engine } from "../src/core/engine";
 let serial = 0;
 const act = (e: Engine, command: PlayerCommand) =>
@@ -187,6 +188,8 @@ describe("interactive props", () => {
 });
 
 it("all twelve eras and culture families resolve a nonempty, known prop set", () => {
+  expect(propDefs.tin).toBeUndefined();
+  expect(Object.keys(propAtlas.frames).some((frame) => frame.includes("metal-tin"))).toBe(false);
   for (const era of eras)
     for (const [culture] of cultures) {
       const pack = {
@@ -197,6 +200,7 @@ it("all twelve eras and culture families resolve a nonempty, known prop set", ()
       const kit = propKit(pack);
       expect(kit.era).toBe(era.id);
       for (const ids of Object.values(kit.contexts)) {
+        expect(ids).not.toContain("tin");
         expect(ids.length).toBeGreaterThan(0);
         for (const id of ids) expect(propDefs[id]).toBeTruthy();
         if (pack.year < 1850)
@@ -205,6 +209,36 @@ it("all twelve eras and culture families resolve a nonempty, known prop set", ()
           ).toBe(false);
       }
     }
+});
+
+it("preserves planned market pitches and furniture while keeping optional stores off public pavement", () => {
+  const pitch: WorldObject = { id: "market-pitch", prop: "marketCounter", name: "Market pitch", kind: "container",
+    sprite: "study-propb-stall-awning-0", pos: { x: 4, y: 4, space: "outside" }, inventory: {} };
+  const bench: WorldObject = { id: "square-bench", name: "Bench", kind: "container",
+    sprite: "study-propb-street-bench-1", pos: { x: 8, y: 4, space: "outside" }, inventory: {} };
+  const store: WorldObject = { id: "house-store", name: "Store", kind: "container", sprite: "basket",
+    pos: { x: 12, y: 4, space: "outside" }, inventory: {} };
+  const yardStore: WorldObject = { ...store, id: "yard-store", pos: { x: 24, y: 24, space: "outside" } };
+  const workStore: WorldObject = { ...store, id: "work-store", pos: { x: 14, y: 4, space: "outside" }, inventory: { grain: 7 } };
+  const world = { generatorVersion: 3, pack: { ...packs.roman, year: 1888,
+    setting: { ...packs.roman.setting, settlement: "city" } },
+    settlements: [], places: [], initialActors: [], initialObjects: [pitch, bench, store, yardStore, workStore],
+    households: [{ storeId: workStore.id, residence: "home", members: ["smith"] }],
+    spawn: { x: 0, y: 0, space: "outside" },
+    terrain: () => "paving", decoration: () => undefined,
+    topography: (x: number, y: number) => ({ height: 0, surface: "grass", feature: "paving",
+      pavement: x >= 18 && y >= 18 ? "yard" : "footway" }),
+    blocked: (x: number, y: number) => x === 4 && y === 4,
+  } as unknown as WorldModel;
+  withProps(world, "public-ground");
+  expect(pitch.pos).toEqual({ x: 4, y: 4, space: "outside" });
+  expect(bench.sprite).toBe("study-propb-street-bench-1");
+  expect(world.initialObjects.map((o) => o.id)).toEqual([pitch.id, bench.id, yardStore.id, workStore.id]);
+  expect(yardStore.pos).toEqual({ x: 24, y: 24, space: "outside" });
+  expect(yardStore.prop).toBeDefined();
+  expect(workStore.pos.space).toBe("home");
+  expect(world.households![0].storeId).toBe(workStore.id);
+  expect(workStore.inventory.grain).toBe(7);
 });
 
 it("keeps European yard kit out of other regions", () => {

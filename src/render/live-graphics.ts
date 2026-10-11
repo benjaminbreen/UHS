@@ -24,7 +24,7 @@ export type LiveGraphicsSettings = {
   occlusion: boolean;
   characterOutline: boolean;
   /** Which character renderer the world draws with. */
-  characterSprites: "b" | "c" | "d" | "e";
+  characterSprites: "b" | "c" | "d" | "e" | "f";
   textureSampling: TextureSampling;
   canvasSampling: CanvasSampling;
   zoomDuration: number;
@@ -126,7 +126,7 @@ export function storedDisplaySettings() {
 export function storedCharacterSprites(): LiveGraphicsSettings["characterSprites"] {
   try {
     const id = localStorage.getItem(CHARACTER_SPRITES_KEY);
-    return id === "b" || id === "c" || id === "d" ? id : "e";
+    return id === "b" || id === "c" || id === "d" || id === "f" ? id : "e";
   } catch {
     return "e";
   }

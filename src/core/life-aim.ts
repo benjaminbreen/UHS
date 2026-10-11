@@ -58,7 +58,9 @@ export function lifeAimOptions(
   const trade = (player.origin?.roleLabel ?? player.role).replace(/^Apprentice /i, "").toLowerCase();
   const relation = (kind: string) => kin.find((r) => r.kind === kind)?.actor;
   const creditorHouse = households?.find((h) => h.id === household?.owes);
-  const creditor = people.find((a) => a.id !== player.id && creditorHouse?.members.includes(a.id));
+  const creditor = people.find((a) => a.id !== player.id && (household?.credit
+    ? a.id === household.credit.seller
+    : creditorHouse?.members.includes(a.id)));
   const bonds = (snapshot?.bonds ?? []).flatMap((bond) => {
     const actor = byId.get(bond.with);
     return actor && actor.id !== player.id ? [{ actor, bond }] : [];

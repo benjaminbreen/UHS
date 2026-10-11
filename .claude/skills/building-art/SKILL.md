@@ -120,8 +120,9 @@ this file, and ask for specific defects.
   (`front_houses.adopt`, called from `scripts/art/buildings.py`). Churches,
   halls and civic buildings in those towns are still oblique.
 - The walkable entrance is still the footprint's middle, not the door.
-- Fixtures are not yet placed by trade in game; signage.ts's freestanding
-  signposts should give way to them on converted streets.
+- Roman relief and dipinto fixtures exist in the library but are not hung in
+  game: Roman shopfronts bake their own. The fascia is hung blank; lettering it
+  in the street's language (sign-texture.ts) is not done.
 - Corner immeubles are plain fronts.
 
 ## Decisions log
@@ -145,3 +146,4 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-07 Churches and halls rebuilt as spec systems with regional styles; shadows painted in stepped bands, not smooth ramps.
 - 2026-10-06 Eave-front roofs deepened; roof colours chosen per spec from historical regional tones (`TONES` in front_eave.py); European houses wired in.
 - 2026-10-07 Native classical insulae, shrines and modular round/square towers approved on the regional variation sheet. Reuse the shared materials, roofs, openings and solid projection; later cities retain appropriate historic towers rather than dating them out with new construction.
+- 2026-10-11 Fixtures sheet approved (24 marks on a 12px grid, guild marks, ale-stake, barber, fascia, noren, sugidama, wine flag, cast shadows) and wired in: each household hangs its own `wallsign-*` beside its door, chosen in signage.ts by place, period and trade; baked house specs carry no signs.

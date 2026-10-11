@@ -135,6 +135,7 @@ import { startPlot } from "../core/plot";
 import { seedAilments } from "../core/health";
 import { bondsFor } from "../core/bonds";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
+import { readQuick, writeQuick } from "../ui/start-mode";
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
@@ -236,6 +237,11 @@ export function createSession(
         );
       }
     }
+    // The day starts at the trade's hour, known once the player has a trade.
+    if (resolved) {
+      engine.state.clock = engine.rises() * 3600;
+      for (const e of engine.state.events) e.time = engine.state.clock;
+    }
     if (resolved?.situation?.landform === "open-ocean") engine.state.player.inventory = { water: 2, bread: 2 };
     engine.state.player.stats = rollStats(seed, engine.state.player);
     engine.state.player.health = 100;
@@ -322,6 +328,20 @@ export class Runtime {
   /** Set while the player holds a ticket for the train at the platform: the
    * map then plans the journey by rail. */
   rail?: { departs: number; label: string };
+  /** Quick pace: errands walk four times as fast, worked hours pass quicker,
+   * and the day keeps to one occasion. */
+  quick = readQuick();
+  setQuick(on: boolean) {
+    this.quick = on;
+    writeQuick(on);
+    this.emit();
+  }
+  /** The day's goals as the player sees them, trimmed to one occasion at Quick pace. */
+  dayGoals() {
+    const goals = this.engine.dailyGoals();
+    const first = goals.find((g) => g.slot === "own");
+    return this.quick ? goals.filter((g) => g.slot !== "own" || g === first) : goals;
+  }
   /** Developer setting: the player is drawn as a horse. */
   devHorse = (() => {
     try {
@@ -1145,8 +1165,29 @@ export class Runtime {
     );
     this.notice = result.reason ?? "";
     if (result.status !== "rejected") this.onChange?.();
+    if (result.status === "completed" && command.type === "interact" && command.action === "work" && result.elapsedSeconds >= 1200)
+      this.passHours(this.engine.state.clock - result.elapsedSeconds, this.engine.state.clock);
     this.emit();
     return result;
+  }
+  /** Set while the hours a piece of work took run past on the sky. */
+  passing = false;
+  private passHours(from: number, to: number) {
+    if (typeof requestAnimationFrame === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const start = performance.now(), ms = Math.min(1800, 700 + ((to - from) / 3600) * 150) * (this.quick ? 0.5 : 1);
+    this.passing = true;
+    const frame = (now: number) => {
+      const k = Math.min(1, (now - start) / ms);
+      this.timeVisualClock = from + (to - from) * (k < 0.5 ? 2 * k * k : 1 - (2 - 2 * k) ** 2 / 2);
+      if (k < 1) requestAnimationFrame(frame);
+      else {
+        this.timeVisualClock = undefined;
+        this.passing = false;
+        this.syncAmbient();
+      }
+      this.emit(false);
+    };
+    requestAnimationFrame(frame);
   }
   /** Save this playthrough's record. The markdown is for reading, the JSONL
    * for analysis. */
@@ -1498,7 +1539,8 @@ export class Runtime {
           }
         : undefined;
     let primary: Verb | undefined;
-    const work = held || item ? undefined : this.engine.state.objects
+    const here = held || item ? undefined : this.engine.workHere();
+    const work = here ? { ...here, enabled: true } : held || item ? undefined : this.engine.state.objects
       .filter((o) => distance(o.pos, p.pos) < 1.6)
       .flatMap((o) => this.engine.inspect(o.id)?.affordances ?? [])
       .find((a) => a.command.type === "interact" && a.command.action === "work");
@@ -1527,6 +1569,8 @@ export class Runtime {
     else if (item?.id === "sling")
       primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
     else if (train) primary = { kind: "board", label: `Board the ${train.label} train` };
+    // At the day's place F does the day's work; whoever is there is still on Enter.
+    else if (here) primary = { kind: "work", label: here.label, command: here.command };
     else if (speaker)
       primary = {
         kind: "talk",
@@ -2084,7 +2128,7 @@ export class Runtime {
     }
   }
   tick() {
-    if (this.timeTravelLocked || this.engine.state.player.dead) return;
+    if (this.timeTravelLocked || this.passing || this.engine.state.player.dead) return;
     if (this.replay) {
       if (this.replay.playing) this.stepReplay();
       return;
@@ -2159,11 +2203,11 @@ export class Runtime {
         if (result?.status !== "completed") this.stop();
         return;
       }
-      if (this.engine.playerBlocked(upcoming.x, upcoming.y) || this.engine.actorAt({ ...upcoming, space: p.space }, "player")) {
+      if (this.engine.playerBlocked(upcoming.x, upcoming.y) || this.engine.inPlayerWay({ ...upcoming, space: p.space })) {
         const goal = this.route.at(-1)!;
         this.route = this.engine.findRoute(p, goal).path;
         if (!this.route.length) this.notice = "The route is now blocked.";
-        else if (this.engine.actorAt({ ...this.route[0], space: p.space }, "player")) {
+        else if (this.engine.inPlayerWay({ ...this.route[0], space: p.space })) {
           // An errand re-plans from here, and is done if it is already beside its person.
           if (this.autopilot) this.route = [];
           this.command({ type: "wait", seconds: 1 });

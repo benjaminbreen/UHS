@@ -134,6 +134,18 @@ const MOUTHS: Record<string, [w: number, u: number, l: number]> = {
 };
 const EXPRESSIONS: Expression[] = ["calm", "calm", "friendly", "friendly", "stern", "tired", "wary"];
 
+/** Eye colour, from skin lightness and a roll on the face. Shared with the
+ * map sprites so a person's eyes match in both. */
+export function irisOf(a: CharacterAppearance, face = portraitFace(a)) {
+  const lightness = [1, 3, 5].reduce((sum, i) => sum + parseInt(a.skin.slice(i, i + 2), 16), 0) / 3;
+  const irises =
+    lightness > 205 ? ["#3f5f7a", "#4a6a50", "#6a5030", "#3a2418", "#5a6a78"]
+    : lightness > 175 ? ["#3a2418", "#5a4020", "#3a2418", "#4a6a50"]
+    : ["#2a1810", "#2e1c14", "#3a2418"];
+  const seed = JSON.stringify([a.skin, a.hairColor, face, a.head, a.jaw, a.hair, a.beard]);
+  return irises[Math.floor(roll({ seed }, "iris") * irises.length)];
+}
+
 function model(a: CharacterAppearance, age: number): Model {
   const face = portraitFace(a, age);
   const female = a.physique?.sex === "female";
@@ -181,10 +193,7 @@ function model(a: CharacterAppearance, age: number): Model {
   const len = len0 + old * 0.7;
   const bridge = face.noseBridge ?? "average";
   const [mw, u, l] = MOUTHS[face.mouth] ?? MOUTHS.soft;
-  const irises =
-    lightness > 205 ? ["#3f5f7a", "#4a6a50", "#6a5030", "#3a2418", "#5a6a78"]
-    : lightness > 175 ? ["#3a2418", "#5a4020", "#3a2418", "#4a6a50"]
-    : ["#2a1810", "#2e1c14", "#3a2418"];
+
   const cloth = tones(a.wearing.color, "cloth");
   const upper = Math.max(0.9, u + 0.3 + (female ? 0.5 : 0) + spread(s, "upper", 0.3) - old * 0.5);
   // The lower lip is usually a little fuller than the upper, never twice it.
@@ -227,7 +236,7 @@ function model(a: CharacterAppearance, age: number): Model {
     hairline: 12.5 + ({ low: -1.5, average: 0, high: 1.8, "widows-peak": 0 }[face.hairline] ?? 0) + (age > 55 && !female ? 2.5 : 0),
     shoulder: 20 + (strength - 50) * 0.07 + full * 2.2 + (a.height ?? 0) * 0.8 - (female ? 3 : 0) - old * 1.5 - (child ? 6 : 0),
     expression: EXPRESSIONS[Math.floor(roll(s, "expression") * EXPRESSIONS.length)],
-    iris: irises[Math.floor(roll(s, "iris") * irises.length)],
+    iris: irisOf(a, face),
   };
 }
 

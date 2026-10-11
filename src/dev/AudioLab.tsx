@@ -36,6 +36,18 @@ import "./audio-lab.css";
 
 const periodSymbols = { dawn: "◔", day: "☀", dusk: "◑", night: "☾" };
 const candidates = [
+  "jeitun-clay-hearths",
+  "guila-naquitz-seed-gatherers",
+  "soro-mikaya-first-ridge",
+  "kona-open-strings",
+  "issyk-kul-three-strings",
+  "hoabinh-canopy-light",
+  "jenne-jeno-river-market",
+  "turkana-cattle-dusk",
+  "cairo-courtyard-lamps",
+  "ban-chiang-rain-path",
+  "sintashta-last-light",
+  "hopewell-wide-circle",
   "lepenski-river-hearths",
   "mehrgarh-rain-jars",
   "cusco-apricot-dusk",

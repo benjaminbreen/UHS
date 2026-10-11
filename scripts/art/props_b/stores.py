@@ -8,6 +8,7 @@ band, a hard core shadow and a dark keyline, and a smooth ramp reads as mud.
 """
 from math import sqrt, sin, asin, pi
 from .core import Canvas, RAMPS, soft_outline
+from art.front_materials import RAMPS as HOUSE_RAMPS
 
 INK = '#24140d'
 # dark, shade, mid, light, highlight
@@ -19,6 +20,9 @@ SACK = ['#5b4a2e', '#86724a', '#b09a6a', '#d2be8e', '#ece0b8']
 STRAW = ['#7a5a1e', '#a9832e', '#d2ab48', '#efd37a']
 LEAF = ['#1f4424', '#2f6a2e', '#4b8f38', '#77b64a', '#a6d868']
 BLOOMS = ['#f2cf3e', '#e2553f', '#f4efe0', '#d583c6']
+BOX_WOOD = [['#%02x%02x%02x' % HOUSE_RAMPS['oak'][i][:3] for i in (6, 5, 3, 2, 0)],
+            [RAMPS['walnut7'][i] for i in (1, 2, 3, 5, 6)],
+            [RAMPS['ash7'][i] for i in (1, 2, 3, 5, 6)]]
 
 
 def _band(u):
@@ -129,13 +133,16 @@ def barrel(v=0):
 
 def _box(c, x0, y0, wide, tall, w, brace='x'):
  """A framed packing case: lid seen from above, then a battened front."""
- lid = 3
+ lid = 5
  c.rect(x0, y0, x0 + wide - 1, y0 + lid - 1, w[4])
  c.hline(x0, x0 + wide - 1, y0 + lid - 1, w[3])
  for x in range(x0 + 4, x0 + wide - 2, 5): c.vline(x, y0, y0 + lid - 2, w[3])
  t, b, l, r = y0 + lid, y0 + tall - 1, x0, x0 + wide - 1
- c.rect(l, t, r, b, w[1])                          # the recessed panel
- for y in range(t + 2, b - 1, 3): c.hline(l + 2, r - 2, y, w[0])
+ c.rect(l, t, r, b, w[2])                          # the recessed panel
+ c.rect(r - 4, t, r, b, w[1])
+ for y in range(t + 3, b - 1, 4):
+  c.hline(l + 2, r - 2, y, w[1])
+  c.hline(l + 3, min(r - 3, l + 6), y + 1, w[3])
  if brace:
   n = b - t - 3
   for i in range(n + 1):
@@ -153,19 +160,23 @@ def _box(c, x0, y0, wide, tall, w, brace='x'):
 
 def crate(v=0):
  c = Canvas(22, 19)
- _box(c, 0, 0, 22, 19, WOOD[v])
- c.outline(INK)
+ c.PAD = 2
+ w = BOX_WOOD[v]
+ _box(c, 0, 0, 22, 19, w)
+ soft_outline(c, w[0], w[2])
  return c.image()
 
 
 def crate_stack(v=0):
  """Two cases and a smaller one on top, not squared up."""
  c = Canvas(37, 32)
- _box(c, 0, 14, 19, 18, WOOD[v])
- _box(c, 19, 17, 18, 15, WOOD[(v + 2) % 3], brace='/')
- _box(c, 8, 0, 18, 15, WOOD[(v + 1) % 3])
- c.hline(8, 25, 15, INK)                           # the shade the top one throws
- c.outline(INK)
+ c.PAD = 2
+ w = BOX_WOOD[v]
+ _box(c, 0, 14, 19, 18, w)
+ _box(c, 19, 17, 18, 15, w, brace='/')
+ _box(c, 8, 0, 18, 15, w)
+ c.hline(8, 25, 15, w[0])                         # the shade the top one throws
+ soft_outline(c, w[0], w[2])
  return c.image()
 
 

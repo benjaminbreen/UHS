@@ -28,6 +28,13 @@ import {
   footwear,
   motifs,
   eyewear,
+  aprons,
+  bags,
+  wristwear,
+  neckwear,
+  trimPatterns,
+  hairOrnaments,
+  hatTrims,
   neckStyles,
   headShapes,
   jawShapes,
@@ -190,6 +197,10 @@ const point = z.object({
   y: z.number().int().min(-1000000).max(1000000),
 });
 const pos = point.extend({ space: z.string().max(100) });
+const purchase = z.object({
+  good: z.string().max(100), from: z.string().max(100),
+  seller: z.string().max(100).optional(), product: z.string().max(100).optional(),
+});
 const pixelColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const characterAppearanceSchema = z.object({
   physique: z
@@ -271,6 +282,13 @@ export const characterAppearanceSchema = z.object({
     // Optional: saves written before cloth carried a material.
     material: z.enum(materials).optional(),
     quality: z.number().int().min(-1).max(3).optional(),
+    apron: z.enum(aprons).optional(),
+    bag: z.enum(bags).optional(),
+    wrist: z.enum(wristwear).optional(),
+    neckwear: z.enum(neckwear).optional(),
+    trimPattern: z.enum(trimPatterns).optional(),
+    hairOrnament: z.enum(hairOrnaments).optional(),
+    hatTrim: z.enum(hatTrims).optional(),
   }),
 });
 const actor = z.object({
@@ -514,6 +532,9 @@ export const commandSchema = z.discriminatedUnion("type", [
     })
     .strict(),
   z.object({ type: z.literal("use"), item }).strict(),
+  z
+    .object({ type: z.literal("choose"), card: z.string().max(64), choice: z.number().int().min(0).max(3) })
+    .strict(),
   z.object({ type: z.literal("wear"), item }).strict(),
   z.object({ type: z.literal("remove"), slot: z.enum(wearSlots) }).strict(),
   z
@@ -693,6 +714,8 @@ export const snapshotSchema = z.object({
     .object({
       day: z.number().int(),
       season: z.string().optional(),
+      chain: z.array(z.string().max(400)).max(100).optional(),
+      owing: z.object({ title: z.string().max(100), line: z.string().max(200) }).strict().optional(),
       work: z
         .object({
           activity: z.string(),
@@ -714,13 +737,36 @@ export const snapshotSchema = z.object({
     })
     .strict()
     .optional(),
+  workday: z
+    .object({
+      day: z.number().int(),
+      places: z.record(
+        z.string(),
+        z.object({ pos, label: z.string().max(100), patient: z.string().max(100).optional(), crop: z.string().max(60).optional() }).strict().nullable(),
+      ),
+    })
+    .strict()
+    .optional(),
+  record: z
+    .array(z.object({ day: z.number().int(), clock: z.number(), card: z.string().max(64), choice: z.number().int(), line: z.string().max(300) }).strict())
+    .max(5000)
+    .optional(),
   economy: z
     .object({
       hour: z.number().int(),
       stock: z.record(z.string(), z.record(z.string(), z.number())),
       short: z.record(z.string(), z.array(z.string())),
       work: z
-        .object({ day: z.number().int(), stage: z.number().int() })
+        .object({
+          day: z.number().int(),
+          stage: z.number().int(),
+          quality: z.number().int().optional(),
+          pay: z.number().int().optional(),
+          lines: z.array(z.string().max(300)).max(20).optional(),
+          card: z.string().max(64).optional(),
+          done: z.boolean().optional(),
+          drawn: z.number().int().optional(),
+        })
         .strict()
         .optional(),
     })
@@ -746,6 +792,16 @@ export const snapshotSchema = z.object({
         residence: z.string().optional(),
         home: pos,
         storeId: z.string(),
+        makes: z.array(z.string().max(100)).max(100).optional(),
+        producers: z.record(z.string().max(100), z.string().max(100)).optional(),
+        products: z.record(z.string().max(100), z.string().max(100)).optional(),
+        needs: z.array(z.string().max(100)).max(100).optional(),
+        buys: z.array(purchase).max(100).optional(),
+        owes: z.string().max(100).optional(),
+        credit: purchase.extend({
+          debtor: z.string().max(100), amount: z.number().nonnegative(),
+          reason: z.enum(["household", "hardship"]), repayment: z.enum(["money", "produce"]),
+        }).optional(),
         history: z.array(z.object({
           year: z.number().int(),
           kind: z.enum(["wed", "born", "died", "left", "joined", "built", "inherited", "moved", "fire", "good-year", "bad-year", "robbed"]),

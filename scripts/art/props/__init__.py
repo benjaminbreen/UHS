@@ -14,7 +14,7 @@ def draw_prop(key,variant,frame=0):
  if key in ['earthen-pot','storage-jar','water-jug','amphora','glazed-jar','metal-vessel']:return vessel(key,variant)
  if key in ['open-basket','lidded-basket']:return basket(key,variant)
  if key in ['plain-box','bound-chest','painted-chest','crate']:return box(key,variant)
- if key in ['metal-tin','plastic-bin','cardboard-box']:return modern(key,variant)
+ if key in ['plastic-bin','cardboard-box']:return modern(key,variant)
  if key in ['hoe','sickle','spade']:return tool(key,variant)
  if key in ['stool','bench','workbench']:return furniture(key,variant)
  if key in ['well','framed-well']:return well(variant,key=='framed-well')

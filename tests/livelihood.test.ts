@@ -1,7 +1,9 @@
 import { householdStory } from "../src/world/v3/household-story";
 import { it, expect } from "vitest";
 import { createSettingSession } from "../src/runtime/session";
-import { settingFor } from "../src/content/geography/resolve";
+import { resolveSetting, settingFor } from "../src/content/geography/resolve";
+import { waterDepthAt } from "../src/core/water-field";
+import type { Engine } from "../src/core/engine";
 import { places } from "../src/content/geography/places";
 import {
   harvestResource,
@@ -32,6 +34,22 @@ const setting = (
     ...over,
   },
 });
+/** The day's three steps, each where it is done (a place, or the trade's
+ * prop), answering any card with its first choice. */
+function workDay(e: Engine) {
+  for (let step = 0; step < 3; step++) {
+    const plan = e.workPlan()!;
+    e.state.player.pos = { ...(plan.places[step] ? plan.door! : plan.station!.pos) };
+    const command = e.workHere()?.command ?? { type: "interact" as const, target: plan.station!.id, action: "work" as const };
+    expect(e.act({ actionId: `day-${e.state.revision}`, expectedRevision: e.state.revision, command }).status).toBe("completed");
+    const card = e.cards.find((c) => c.choose)?.choose;
+    const choice = card?.choices.find((c) => !c.unavailable)?.index;
+    if (card && choice !== undefined)
+      e.act({ actionId: `card-${e.state.revision}`, expectedRevision: e.state.revision, command: { type: "choose", card: card.card, choice } });
+    e.cards.length = 0;
+  }
+}
+
 it("creates reciprocal family links and shared residences, with plausible parent age differences", () => {
   const e = createSettingSession(
       setting({ household: "extended" }),
@@ -114,6 +132,7 @@ it("harvesting conserves quantities and seasonal replenishment is bounded", () =
 });
 it("household work gathers real food, deposits it and sleeps at its residence", () => {
   const e = createSettingSession(setting(), "work-check");
+  e.state.clock = 9 * 3600;
   const a = e.state.actors.find((a) => a.householdId && a.age! >= 18)!;
   const h = e.state.households!.find((h) => h.id === a.householdId)!;
   const store = e.state.objects.find((o) => o.id === h.storeId)!;
@@ -247,22 +266,9 @@ it("works a trade in stages at home, stocks the house, and minds neglect", () =>
   s.player.pos = { ...store.pos, x: store.pos.x + 1 };
   e.runEconomy();
   e.dailyGoals();
-  const work = () =>
-    e
-      .inspect(store.id)!
-      .affordances.find(
-        (a) => a.command.type === "interact" && a.command.action === "work",
-      )!;
   const before = s.economy!.stock[home.id]?.pots ?? 0;
-  for (let i = 0; i < 3; i++)
-    expect(
-      e.act({
-        actionId: `work-${i}`,
-        expectedRevision: s.revision,
-        command: work().command,
-      }).status,
-    ).toBe("completed");
-  expect(work().enabled).toBe(false);
+  workDay(e);
+  expect(e.workPlan()!.done).toBe(3);
   expect(s.economy!.stock[home.id].pots).toBeGreaterThan(before);
   expect(s.goalFlags!.worked).toBe(true);
   s.clock += 22 * 3600 - (s.clock % 86400);
@@ -286,6 +292,8 @@ it("works a trade in stages at home, stocks the house, and minds neglect", () =>
 it("sends an indoor trade to a station inside the house", () => {
   const konya = places.find((p) => p.id === "konya")!;
   const e = createSettingSession({ ...settingFor(konya, -6499), role: "Potter" }, "probe");
+  // The materials come from the door; the work itself is at the bench.
+  e.state.economy = { hour: 0, stock: {}, short: {}, work: { day: Math.floor(e.state.clock / 86400), stage: 1 } };
   const station = e.workStation();
   expect(station).toMatchObject({ owner: "player" });
   expect((station as { pos: { space: string } }).pos.space).not.toBe("outside");
@@ -313,17 +321,17 @@ it("sends a call-out trade to a neighbour's house for the job itself", () => {
   expect(e.workPlan()!.steps[1].client).toBe(true);
   s.economy = { hour: Math.floor(s.clock / 3600), stock: {}, short: {}, work: { day: Math.floor(s.clock / 86400), stage: 1 } };
   const plan = e.workPlan()!;
-  const client = s.households!.find((h) => h.storeId === plan.station?.id)!;
+  const client = s.households!.find((h) => h.residence && e.world.place(h.residence)?.entrance.x === plan.door!.x && e.world.place(h.residence)?.entrance.y === plan.door!.y)!;
   expect(client).toBeDefined();
   expect(client).not.toBe(home);
   expect(plan.where).toMatch(/'s house$/);
 
   s.economy.work!.stage = 2;
-  const station = e.workPlan()!.station!;
-  s.player.pos = { ...station.pos, x: station.pos.x + 1 };
-  const pay = e.inspect(station.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "work")!;
+  s.player.pos = { ...e.workPlan()!.door! };
   const coins = s.player.inventory.coin ?? 0;
-  expect(e.act({ actionId: "paid", expectedRevision: s.revision, command: pay.command }).status).toBe("completed");
+  expect(e.act({ actionId: "paid", expectedRevision: s.revision, command: e.workHere()!.command }).status).toBe("completed");
+  const card = e.cards.find((c) => c.choose)?.choose;
+  if (card) e.act({ actionId: "answer", expectedRevision: s.revision, command: { type: "choose", card: card.card, choice: card.choices.find((c) => !c.unavailable)!.index } });
   expect(s.player.inventory.coin).toBeGreaterThan(coins);
 });
 
@@ -338,4 +346,65 @@ it("gives a craft household a turn in its own garden, once a day", () => {
   const tend = e.inspect(side.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "tend-plot")!;
   expect(e.act({ actionId: "garden", expectedRevision: s.revision, command: tend.command }).status).toBe("completed");
   expect(e.sideJob()!.done).toBe(true);
+});
+
+it.each([
+  ["A baker in Lyon, 1742 CE", "A day at the oven", 3],
+  ["A rice farmer in Hangzhou, 1600 CE", "Transplanting", 1],
+  ["A herbalist in Kyoto, 1200 CE", "A day with the sick", 2],
+  ["A farmer in Normandy, 1200 CE", "Ploughing and sowing", 2],
+  ["A shepherd in Normandy, 1200 CE", "Birthing season", 2],
+  ["A weaver in Florence, 1400 CE", "A day at the loom", 3],
+  ["A porter in London, 1800 CE", undefined, 2],
+])("walks %s through the day's places and cards", (prompt, title, cards) => {
+  const resolved = resolveSetting(prompt, "probe");
+  if ("error" in resolved) throw Error(resolved.error);
+  const engine = createSettingSession(resolved.setting, "probe");
+  const plan = engine.workPlan()!;
+  expect(plan.title).toBe(title);
+  expect(plan.places.filter(Boolean).length).toBeGreaterThanOrEqual(2);
+  workDay(engine);
+  expect(engine.workPlan()!.lines).toHaveLength(cards);
+  expect(engine.workPlan()!.done).toBe(3);
+  expect(Object.keys(engine.state.today?.made ?? {}).length).toBeGreaterThan(0);
+});
+
+it.each([
+  ["konya", -6499], ["mesopotamia", -1999], ["rome", 100], ["kyoto", 1200], ["mongolia", 1250], ["timbuktu", 1400],
+  ["mexico", 1450], ["delhi", 1500], ["arnhem-land", 1700], ["london", 1900], ["melbourne", 1950],
+] as const)("finds a place or a prop for every step of every trade in %s, %i, in every season", (id, year) => {
+  const e = createSettingSession(settingFor(places.find((p) => p.id === id)!, year), "coverage");
+  const s = e.state, topo = e.world.topography;
+  // A fisher on a map with no water anywhere falls back to their gear.
+  let water = !topo;
+  for (let y = -190; y <= 190 && !water; y += 4)
+    for (let x = -190; x <= 190 && !water; x += 4) water = waterDepthAt(topo!, x + 0.5, y + 0.5) > 0.2;
+  const gaps = new Set<string>();
+  for (const trade of new Set(e.world.initialActors.flatMap((a) => (a.origin?.livelihood ? [a.origin.livelihood] : [])))) {
+    s.player.origin!.livelihood = trade;
+    for (let season = 0; season < 4; season++, s.clock += 28 * 86400)
+      for (let stage = 0; stage < 3; stage++) {
+        s.economy = { hour: 0, stock: {}, short: {}, ...s.economy, work: { day: Math.floor(s.clock / 86400), stage } };
+        const plan = e.workPlan();
+        const step = plan?.steps[stage];
+        if (!plan || !step) continue;
+        const found = step.at ? !!plan.places[stage] || (step.at === "shore" && !water) : !!plan.places[stage] || !!plan.station;
+        if (!found) gaps.add(`${trade}: ${step.task} (${step.at ?? "prop"})`);
+      }
+  }
+  expect([...gaps]).toEqual([]);
+}, 120000);
+
+it("fixes the day's places at its first command, whether or not anything looked first", () => {
+  const resolved = resolveSetting("A herbalist in Kyoto, 1200 CE", "probe");
+  if ("error" in resolved) throw Error(resolved.error);
+  const watched = createSettingSession(resolved.setting, "probe"), replayed = createSettingSession(resolved.setting, "probe");
+  // The panel asks at once; a headless replay never asks at all.
+  watched.workPlan();
+  for (let i = 0; i < 6; i++)
+    for (const e of [watched, replayed])
+      e.act({ actionId: `hour-${i}`, expectedRevision: e.state.revision, command: { type: "wait", seconds: 3600 } });
+  expect(watched.state.workday).toBeDefined();
+  expect(JSON.stringify(replayed.state.workday)).toBe(JSON.stringify(watched.state.workday));
+  expect(replayed.workPlan()!.places).toEqual(watched.workPlan()!.places);
 });

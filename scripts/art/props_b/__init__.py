@@ -22,6 +22,7 @@ from .granary import GRANARY
 from .asia import ASIA
 from .signs import SIGNS
 from .signposts import SIGNPOSTS
+from .wallsigns import WALLSIGNS
 from .settlement_details import DETAILS
 from .civic import CIVIC
 from .market import MARKET
@@ -91,6 +92,7 @@ DRAW_B = {
  **ASIA,
  **SIGNS,
  **SIGNPOSTS,
+ **WALLSIGNS,
  **DETAILS,
  **CIVIC,
  **MARKET,

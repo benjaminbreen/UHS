@@ -58,7 +58,7 @@ function crop(image: HTMLImageElement, sprite: string): CarriedArt | undefined {
       ? "haft"
       : /-(spade|hoe|sickle|pick)-/.test(sprite)
         ? "tool"
-        : /sack|water-jug|metal-tin/.test(sprite)
+        : /sack|water-jug/.test(sprite)
           ? "side"
           : "both";
   return { sprite, kind, image: out, width: out.width, height: out.height };

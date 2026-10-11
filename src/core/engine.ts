@@ -18,7 +18,7 @@ import {
 import { skySeed, weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
 import { about } from "../content/props/about";
-import { atWork, briefText, personBrief } from "./brief";
+import { atWork, briefText, personBrief, sexOf } from "./brief";
 import { placeBrief } from "./place-brief";
 import { propAffordances, heldObject, lowProp } from "./props";
 import {
@@ -74,9 +74,14 @@ import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { dayOfWork, importShare, runEconomy, stockOf } from "./economy";
-import { goods, goodsOf } from "../content/economy/goods";
+import { goodsOf } from "../content/economy/goods";
+import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
-import { processFor, type ProcessFamily } from "../content/economy/processes";
+import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../content/economy/processes";
+import { recipeFor } from "../content/economy/recipes";
+import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
+import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
+import { findPlace, type StepPlace } from "./work-places";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
@@ -278,6 +283,14 @@ const covers = (o: WorldObject, x: number, y: number) => {
     ? Math.abs(o.pos.x - x) <= span[0] && Math.abs(o.pos.y - y) <= span[1]
     : o.pos.x === x && o.pos.y === y;
 };
+/** Where the work itself is done when the map gave the trade no tool of its own. */
+const PROPLESS: Record<ProcessFamily, string> = {
+  tend: "your yard",
+  gather: "your yard",
+  transform: "your workshop",
+  carry: "your yard",
+  serve: "your house",
+};
 const workSkill: Record<ProcessFamily, SkillId> = {
   tend: "farming",
   gather: "foraging",
@@ -478,19 +491,26 @@ export class Engine {
     const s = this.state;
     const household = s.households?.find((h) => h.members.includes("player"));
     const kit = livelihoodOf(this.world.pack, s.player);
-    const process = kit && processFor(kit);
+    const setting = this.world.pack.setting;
+    const w = s.economy?.work, now = Math.floor(s.clock / 86400);
+    // A day's work begun and not finished carries on through the night, until
+    // the next morning; its steps, places and wage stay that day's.
+    const morning = Math.min(6, (kit && recipeFor(kit)?.rises) ?? 6);
+    const day = w && w.day === now - 1 && !w.done && (w.stage > 0 || w.card) && s.clock < now * 86400 + morning * 3600 ? w.day : now;
+    const season = (setting ? seasonAt(setting.season, day * 86400 + 43200) : "spring") as SeasonId;
+    const process = kit && processFor(kit, setting?.economyRevision, season);
     if (!household || !kit || !process) return;
-    const day = Math.floor(s.clock / 86400);
-    const stage = s.economy?.work?.day === day ? s.economy.work.stage : 0;
+    const stage = w?.day === day ? w.stage : 0;
     return { household, kit, process, day, stage };
   }
   private workAt(o: WorldObject, close: boolean, t = this.trade()): Affordance[] {
     if (!t) return [];
     const { process, stage } = t;
+    if (this.placeStep(t)) return [];
     const clientStore = process.steps[stage]?.client ? this.client(t)?.storeId : undefined;
-    // Your own stores always serve; a tool or hearth, only if it is no one else's.
+    // The bench in your own house, or a tool or hearth that is no one else's.
+    // The store is not a forge: work with no tool here goes to the house.
     const station = clientStore ? o.id === clientStore :
-      o.id === t.household.storeId ||
       (o.owner === "player" && o.pos.space !== "outside" && o.id === `${o.pos.space}-work`) ||
       ((!o.owner || o.owner === "player") &&
         process.stations.includes(propDefs[o.prop ?? ""]?.family ?? ""));
@@ -539,6 +559,26 @@ export class Engine {
   workPlan() {
     const t = this.trade();
     if (!t) return undefined;
+    const work = this.state.economy?.work?.day === t.day ? this.state.economy.work : undefined;
+    const steps = t.process.steps.map((st) => ({ ...st, task: this.stepTask(st) }));
+    const today = {
+      title: t.process.title,
+      places: t.process.steps.map((st) => this.stepWhere(st, t) ?? undefined),
+      quality: work?.quality ?? 0,
+      pay: work?.pay ?? 0,
+      lines: work?.lines ?? [],
+      waiting: !!this.waitingCard(),
+      boss: t.process.paid === "wage" ? bossTitle(this.world.pack.setting) : undefined,
+      hours: t.process.steps.map((st) => st.hours ?? t.process.hours / t.process.stages.length),
+      deadline: this.state.plot && !this.state.plot.ended ? this.state.plot.deadline : undefined,
+      expect: t.process.paid === "wage" || t.process.paid === "takings"
+        ? Math.max(0, (t.process.paid === "wage" ? 3 : 2) + (work?.quality ?? 0) + (work?.pay ?? 0)) : undefined,
+      skill: t.process.skill,
+      wiki: t.process.wiki,
+    };
+    const ps = this.placeStep(t);
+    if (ps)
+      return { activity: t.kit.activity, stages: t.process.stages, steps, done: t.stage, station: undefined, where: ps.at.label, door: ps.at.pos, side: this.sideJob(), ...today };
     const station = this.workStation();
     const target = typeof station === "object" ? station : undefined;
     const step = t.process.steps[t.stage];
@@ -553,14 +593,246 @@ export class Engine {
     return {
       activity: t.kit.activity,
       stages: t.process.stages,
-      steps: t.process.steps,
+      steps,
       done: t.stage,
       station: target,
       where,
       // Where to walk to from outside: the door of a house, else the spot.
       door: place ? { ...place.entrance, space: "outside" } : target?.pos,
       side: this.sideJob(),
+      ...today,
     };
+  }
+  stepTask(step: Step) {
+    return cardText(step.barter && !this.markets() ? step.barter : step.task, this.cardWords());
+  }
+  /** Whether people here bought and sold in a market at all. */
+  private markets() {
+    const setting = this.world.pack.setting;
+    const can = setting ? capabilitiesFor(setting) : undefined;
+    return !can || can.has("market_exchange") || can.has("coinage") || can.has("urban_settlement");
+  }
+  /** The words a card or step is filled with, for today's work. */
+  private cardWords(name?: string) {
+    const t = this.trade();
+    const made = t?.process.makes[0];
+    return {
+      boss: bossTitle(this.world.pack.setting),
+      name: name ?? "they",
+      work: t?.kit.activity.toLowerCase(),
+      good: made ? (t.household.products?.[made] ? goodName(made, t.household.products[made]) : goodName(made)) : "work",
+      crop: (t && this.stepPlace({ name: "field", task: "", at: "field" }, t)?.crop) ?? "crop",
+    };
+  }
+  private previews = new Map<string, StepPlace | null>();
+  /** Where a recipe's step is done today, or null when this map has no such
+   * place and the work falls back to a prop. Read from the day's fixed places
+   * once the day has begun; before that, worked out from the world as it is. */
+  stepPlace(step: Step, t = this.trade()) {
+    if (!step.at || !t) return null;
+    const fixed = this.state.workday?.day === t.day ? this.state.workday.places[step.at] : undefined;
+    let found = fixed === undefined ? undefined : fixed && { ...fixed, pos: { ...fixed.pos } };
+    if (found === undefined) {
+      const key = `${t.day}:${step.at}:${this.state.revision}`;
+      found = this.previews.get(key);
+      if (found === undefined) {
+        if (this.previews.size > 64) this.previews.clear();
+        this.previews.set(key, (found = this.findPlace(step.at, t)));
+      }
+    }
+    const bench = this.object(`${t.household.residence}-work`)?.name.toLowerCase() ?? "hearth";
+    return found && step.label ? { ...found, label: step.label.replace("{bench}", bench) } : found;
+  }
+  private findPlace(role: PlaceRole, t: NonNullable<ReturnType<Engine["trade"]>>) {
+    return findPlace(role, {
+      state: this.state,
+      world: this.world,
+      household: t.household,
+      day: t.day,
+      client: () => this.client(t),
+      markets: this.markets(),
+      inside: () => {
+        const space = t.household.residence;
+        const room = space && this.world.place(space) ? this.interiorOf(space) : undefined;
+        if (!space || !room) return;
+        const bench = this.object(`${space}-work`);
+        const at = bench && bench.pos.space === space ? bench.pos : room.fire[0] ?? room.workCell;
+        return { x: at.x, y: at.y, space };
+      },
+    });
+  }
+  /** Fixes the day's places and people at its first command, so a replay that
+   * never drew the panel finds the same patient, field and client. */
+  private fixDay() {
+    const t = this.trade();
+    if (!t || this.state.workday?.day === t.day) return;
+    const places: Record<string, StepPlace | null> = {};
+    for (const role of new Set([...t.process.steps.flatMap((st) => (st.at ? [st.at] : [])), this.fallback(t)]))
+      places[role] = this.findPlace(role, t);
+    this.state.workday = { day: t.day, places };
+  }
+  /** Today's step, when it is done at a place rather than at a prop. */
+  private placeStep(t = this.trade()) {
+    const step = t?.process.steps[t.stage];
+    const at = step && this.stepWhere(step, t!);
+    return at ? { step: step!, at } : undefined;
+  }
+  /** Where a step is done: its place, or for work at a tool the trade has no
+   * tool for here, the house or yard. Null means at the trade's own prop. */
+  private stepWhere(step: Step, t: NonNullable<ReturnType<Engine["trade"]>>) {
+    return this.stepPlace(step, t) ??
+      (!step.at && !this.hasProp(t) ? this.stepPlace({ ...step, at: this.fallback(t), label: PROPLESS[t.process.family] }, t) : null);
+  }
+  /** Where work with no tool of its own goes: the yard for the land, the stock
+   * and the loads, the house for the rest. */
+  private fallback(t: NonNullable<ReturnType<Engine["trade"]>>): PlaceRole {
+    return t.process.family === "transform" || t.process.family === "serve" ? "home" : "yard";
+  }
+  /** Whether the trade has its own tool or bench here: a prop of its kind that
+   * is nobody's or the player's, or the bench in the player's own house. */
+  private hasProp(t: NonNullable<ReturnType<Engine["trade"]>>) {
+    return this.state.objects.some((o) =>
+      (o.owner === "player" && o.pos.space !== "outside" && o.id === `${o.pos.space}-work`) ||
+      ((!o.owner || o.owner === "player") && t.process.stations.includes(propDefs[o.prop ?? ""]?.family ?? "")));
+  }
+  /** The step the player can do where they stand, at a recipe's place. */
+  workHere() {
+    const ps = this.placeStep();
+    const p = this.state.player.pos;
+    if (!ps || this.waitingCard() || p.space !== ps.at.pos.space || distance(p, ps.at.pos) > 2.5) return;
+    return {
+      label: this.stepTask(ps.step),
+      command: { type: "interact" as const, target: Engine.tileTarget(ps.at.pos.x, ps.at.pos.y), action: "work" as const },
+    };
+  }
+  /** A grown man of another household, the same one every day for a seed and
+   * a purpose: whoever the player answers to at work, or an official. Picked
+   * from the generated people, so a replay finds the same man. */
+  private grownMan(salt: string) {
+    const mine = this.state.households?.find((h) => h.members.includes("player"));
+    const men = this.world.initialActors
+      .filter((a) => a.kind === "human" && a.householdId && !mine?.members.includes(a.id) &&
+        (a.age ?? 0) >= 30 && (a.age ?? 0) < 62 && sexOf(a) === "male")
+      .sort((a, b) => a.id.localeCompare(b.id));
+    const id = men.length ? men[Math.floor(random(this.state.manifest.seed, salt) * men.length)].id : undefined;
+    return this.state.actors.find((a) => a.id === id && !a.dead);
+  }
+  /** Who a card is said by or of: each official his own man, a neighbour
+   * one of the four nearest households, varying by card and day. */
+  private cardPerson(card: ChoiceCard, t = this.trade()) {
+    const s = this.state, who = card.who;
+    if (who === "boss") return this.grownMan("boss");
+    if (who === "official") return this.grownMan(`official:${card.as ?? card.id}`);
+    if (!t) return;
+    const adult = (h?: Household) => s.actors.find((a) => !a.dead && (a.age ?? 0) >= 16 && !!h?.members.includes(a.id));
+    if (who === "patient") {
+      const id = t.process.steps.map((st) => this.stepPlace(st, t)).find((p) => p?.patient)?.patient;
+      return s.actors.find((a) => a.id === id && !a.dead);
+    }
+    if (who === "client") return adult(this.client(t));
+    if (who === "neighbour") {
+      const near = (s.households ?? []).filter((o) => o !== t.household && o.residence)
+        .sort((a, b) => distance(a.home, t.household.home) - distance(b.home, t.household.home))
+        .filter((h) => adult(h)).slice(0, 4);
+      return adult(near[Math.floor(random(s.manifest.seed, "neighbour", card.id, t.day) * near.length)]);
+    }
+  }
+  /** Why a choice cannot be taken: something this world never had, or
+   * something the player has not got. */
+  private choiceProblem(c: CardChoice) {
+    for (const e of c.then)
+      if (e.type === "item") {
+        const def = this.item(e.item);
+        if (!def) return "Nobody here has such a thing.";
+        if (e.n < 0 && (this.state.player.inventory[e.item] ?? 0) < -e.n) return `You have no ${def.name.toLowerCase()}.`;
+      }
+  }
+  private absent(c: CardChoice) {
+    return c.then.some((e) => e.type === "item" && !this.item(e.item));
+  }
+  /** A card that can be shown here: its person exists, the society could do
+   * what it asks, and at least two of its choices make sense in this world. */
+  private usableCard(card: ChoiceCard, t = this.trade()) {
+    const setting = this.world.pack.setting;
+    return (!card.who || !!this.cardPerson(card, t)) &&
+      (!card.needs || (!!setting && card.needs.every((n) => capabilitiesFor(setting).has(n)))) &&
+      card.choices.filter((c) => !this.absent(c)).length >= 2;
+  }
+  /** The card waiting on the current day's work; one left from a day gone by
+   * lapses. */
+  private waitingCard() {
+    const t = this.trade(), work = this.state.economy?.work;
+    return t && work?.day === t.day ? work.card : undefined;
+  }
+  /** Puts the card waiting on today's work back on screen. */
+  reofferCard() {
+    const id = this.waitingCard();
+    const card = id && CARDS.find((c) => c.id === id);
+    if (card && !this.cards.some((c) => c.choose?.card === id)) this.offerCard(card);
+  }
+  private offerCard(card: ChoiceCard) {
+    const s = this.state, boss = bossTitle(this.world.pack.setting);
+    const stats = statsOf(s.manifest.seed, s.player);
+    const person = this.cardPerson(card);
+    const words = this.cardWords(person?.name.split(" ")[0]);
+    s.economy!.work!.card = card.id;
+    this.cards.unshift({
+      kind: "speech",
+      title: !person ? (this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      text: cardText(card.text, words),
+      speaker: person?.id,
+      choose: {
+        card: card.id,
+        choices: card.choices.flatMap((c, index) => {
+          if (this.absent(c)) return [];
+          const odds = c.check && oddsOf(c.check, stats, c.check.skill ? this.skillLevel(c.check.skill) : 0);
+          const note = c.note && cardText(c.note, words);
+          const minutes = c.then.reduce((n, e) => n + (e.type === "minutes" ? e.n : 0), 0);
+          const coin = c.then.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0);
+          return [{ index, label: cardText(c.label, words), note, odds, minutes: minutes || undefined, coin: coin || undefined, unavailable: this.choiceProblem(c) }];
+        }),
+      },
+    });
+  }
+  private choose(id: string, n: number) {
+    const s = this.state, p = s.player, work = s.economy!.work!;
+    const card = CARDS.find((c) => c.id === id)!, c = card.choices[n];
+    delete work.card;
+    const person = this.cardPerson(card);
+    const won = !c.check || this.rng(`card:${id}`) < oddsOf(c.check, statsOf(s.manifest.seed, p), c.check.skill ? this.skillLevel(c.check.skill) : 0);
+    const effects = won ? c.then : (c.otherwise ?? []);
+    const sum = (type: string) => effects.reduce((n, e) => n + (e.type === type ? ("delta" in e ? e.delta : "n" in e ? e.n : 0) : 0), 0);
+    const changes = [
+      { kind: "time", delta: sum("minutes") },
+      { kind: "coin", delta: effects.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0) },
+      { kind: "pay", delta: sum("pay") },
+      { kind: "day", delta: sum("day") },
+      { kind: "regard", delta: person ? sum("regard") : 0, who: person?.name.split(" ")[0] },
+      { kind: "hurt", delta: sum("hurt") },
+    ].filter((ch) => ch.delta);
+    for (const e of effects)
+      if (e.type === "day") work.quality = Math.max(-2, Math.min(2, (work.quality ?? 0) + e.delta));
+      else if (e.type === "pay") work.pay = (work.pay ?? 0) + e.delta;
+      else if (e.type === "minutes") this.advance(e.n * 60);
+      else if (e.type === "fatigue") p.fatigue = Math.max(0, Math.min(100, p.fatigue + e.n));
+      else if (e.type === "item") p.inventory[e.item] = Math.max(0, (p.inventory[e.item] ?? 0) + e.n);
+      else if (e.type === "hurt") this.hurt(e.n, e.cause, e.injury);
+      else if (e.type === "tend") {
+        const ail = person && s.ailments?.find((a) => a.who === person.id && !a.tended);
+        if (ail) {
+          ail.tended = true;
+          if (ail.course === "die" && this.rng(`tend:${ail.who}`) < e.odds) ail.course = "mend";
+        }
+      } else if (person) this.regard(person, e.delta);
+    const line = cardText(won ? c.line : (c.otherwiseLine ?? c.line), this.cardWords(person?.name.split(" ")[0]));
+    work.lines = [...(work.lines ?? []), line];
+    const record = (s.record ??= []);
+    record.push({ day: work.day, clock: s.clock, card: id, choice: n, line });
+    if (record.length > 5000) record.shift();
+    this.event(line);
+    this.lastChoice = { card: id, line, won: c.check ? won : undefined, changes };
+    const t = this.trade();
+    if (t && t.stage >= t.process.stages.length) this.finishWork(t);
   }
   private today() {
     const s = this.state;
@@ -583,8 +855,14 @@ export class Engine {
       setting?.season ?? "spring",
       s.clock + 3 * 3600,
     );
+    const plot = s.plot && !s.plot.ended && s.plot.owed && s.plot.total ? s.plot : undefined;
     s.evening = {
       day: closed,
+      chain: (s.record ?? []).filter((r) => r.day === closed).map((r) => r.line),
+      owing: plot && {
+        title: plot.title,
+        line: plot.owed === plot.total ? `Nothing paid yet of the ${plot.words.amount}.` : `${plot.owed} of the ${plot.words.amount} still to pay.`,
+      },
       season: setting ? seasonAt(setting.season, closed * 86400 + 43200) : undefined,
       work: t && {
         activity: t.kit.activity,
@@ -606,15 +884,61 @@ export class Engine {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length) return;
     const s = this.state;
-    const { process, kit, household } = t;
-    this.advance((process.hours * 3600) / process.stages.length);
+    const { process } = t;
+    this.working = true;
+    this.advance((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
+    this.working = false;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
-    s.economy.work = { day: t.day, stage: t.stage + 1 };
-    if (t.stage + 1 < process.stages.length) {
-      this.event(`${process.steps[t.stage].task}: done. Next, ${process.steps[t.stage + 1].task.toLowerCase()}.`);
-      return;
+    const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
+    s.economy.work = { ...was, day: t.day, stage: t.stage + 1 };
+    // Walked here, the card came on arrival; set down here, it comes now.
+    const card = this.drawCard(t, t.stage);
+    if (t.stage + 1 < process.stages.length) return;
+    // The wage waits for the last card's answer.
+    if (!card) this.finishWork({ ...t, stage: t.stage + 1 });
+  }
+  /** Draws the card for a step, once: on arriving where it is done, or else
+   * when it is done. */
+  private drawCard(t: NonNullable<ReturnType<Engine["trade"]>>, index: number) {
+    const s = this.state, step = t.process.steps[index], work = s.economy?.work;
+    if (!step?.card || !work || work.day !== t.day || work.drawn === index) return;
+    work.drawn = index;
+    const setting = this.world.pack.setting;
+    const card = pickCard(step.card, setting,
+      weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", s.clock), s.manifest.seed, t.day,
+      (c) => this.usableCard(c, t), new Set((s.record ?? []).map((r) => r.card)));
+    if (card) this.offerCard(card);
+    return card;
+  }
+  /** Arriving where the day's next step is done brings its card, so the
+   * trouble comes before the work rather than after it. */
+  private arrive() {
+    const t = this.trade();
+    if (!t || t.stage >= t.process.stages.length || this.waitingCard() || !t.process.steps[t.stage].card) return;
+    const ps = this.placeStep(t), p = this.state.player.pos;
+    const station = ps ? undefined : this.workStation();
+    const at = ps ? ps.at.pos : typeof station === "object" ? station.pos : undefined;
+    if (!at || at.space !== p.space || distance(p, at) > (ps ? 2.5 : 1.6)) return;
+    const s = this.state;
+    s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
+    if (s.economy.work?.day !== t.day) s.economy.work = { day: t.day, stage: t.stage };
+    this.drawCard(t, t.stage);
+  }
+  private finishWork(t: NonNullable<ReturnType<Engine["trade"]>>) {
+    const s = this.state;
+    const { process, kit, household } = t;
+    s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
+    const work = s.economy.work?.day === t.day ? s.economy.work : undefined;
+    if (work) work.done = true;
+    const made = process.paid === "wage" ? this.takings(3, (n, unit) => `The ${bossTitle(this.world.pack.setting)} pays you ${n} ${unit}.`)
+      : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
+      : process.steps.some((st) => st.client) ? this.pay(t)
+      : dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0));
+    if (process.paid === "takings") {
+      const coin = this.takings(2, (n, unit) => `You took ${n} ${unit} over the day.`);
+      for (const [g, n] of Object.entries(dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0)))) made[g] = n;
+      Object.assign(made, coin);
     }
-    const made = process.steps.at(-1)?.client ? this.pay(t) : dayOfWork(s.economy, household);
     // Work that makes nothing the town trades in, a forager's or a fisher's,
     // comes home in the hand instead.
     if (!Object.keys(made).length)
@@ -625,13 +949,13 @@ export class Engine {
         }
     const today = this.today().made;
     for (const [g, n] of Object.entries(made)) today[g] = (today[g] ?? 0) + n;
-    this.grantXp(workSkill[process.family], 20);
+    this.grantXp(process.skill ?? workSkill[process.family], 20);
     if (s.goalFlags) s.goalFlags.worked = true;
-    this.event(
-      Object.keys(made).length
-        ? `A full day's work done (${kit.activity.toLowerCase()}): ${Object.keys(made).map((g) => goods.find((x) => x.id === g)?.noun ?? this.item(g)?.name.toLowerCase() ?? g).join(" and ")}.`
-        : `A full day's work done (${kit.activity.toLowerCase()}).`,
-    );
+    // Money has its own line from whoever paid it; this one names what was made.
+    const goods = Object.keys(made).filter((g) => g !== "coin");
+    if (goods.length)
+      this.event(`You made ${goods.map((g) => household.products?.[g] ? goodName(g, household.products[g]) : this.item(g)?.name.toLowerCase() ?? goodName(g)).join(" and ")}.`);
+    else if (!made.coin) this.event("That is the day's work done.");
     if (advanceLifeAim(s, { type: "work" }))
       this.event("You have completed a step toward your life aim.");
   }
@@ -686,18 +1010,35 @@ export class Engine {
       this.event(`You weed and water the garden, and bring in ${this.lootName(item, 1)}.`);
     } else this.event("You weed and water the garden. It will repay the care.");
   }
+  /** A wage or a day's takings in coin, moved by how the day went. */
+  private takings(base: number, say: (n: number, unit: string) => string): Record<string, number> {
+    const s = this.state, setting = this.world.pack.setting;
+    const work = s.economy?.work;
+    if (!setting || !capabilitiesFor(setting).has("coinage") || !this.item("coin")) return {};
+    const n = Math.max(0, base + (work?.quality ?? 0) + (work?.pay ?? 0));
+    s.player.inventory.coin = (s.player.inventory.coin ?? 0) + n;
+    this.event(say(n, moneyFor(setting).unit));
+    return n ? { coin: n } : {};
+  }
+  /** The household of whoever the day's sick call was to. */
+  private patientHousehold(t: NonNullable<ReturnType<Engine["trade"]>>) {
+    const id = t.process.steps.map((st) => this.stepPlace(st, t)).find((p) => p?.patient)?.patient;
+    return id ? this.state.households?.find((h) => h.members.includes(id)) : undefined;
+  }
   /** A client settles for the day: coin where there is coinage, otherwise
    * something from their own stores. Returns what changed hands. */
-  private pay(t: NonNullable<ReturnType<Engine["trade"]>>): Record<string, number> {
+  private pay(t: NonNullable<ReturnType<Engine["trade"]>>, client = this.client(t)): Record<string, number> {
     const s = this.state;
-    const client = this.client(t);
+    const work = s.economy?.work?.day === t.day ? s.economy.work : undefined;
+    const bonus = (work?.quality ?? 0) + (work?.pay ?? 0);
     const host = client && s.actors.find((a) => client.members.includes(a.id));
     const name = host?.name ?? "The household";
     if (host) this.regard(host, 1);
     const setting = this.world.pack.setting;
     if (setting && capabilitiesFor(setting).has("coinage") && this.item("coin")) {
       // A labourer's day, a few small coins; a better-off client pays a little more.
-      const n = 2 + Math.floor(this.rng("wage") * 2) + Math.round((client?.fortune ?? 0.5) * 2);
+      const n = Math.max(0, 2 + Math.floor(this.rng("wage") * 2) + Math.round((client?.fortune ?? 0.5) * 2) + bonus);
+      if (!n) return {};
       s.player.inventory.coin = (s.player.inventory.coin ?? 0) + n;
       this.event(`${name} pays you ${n} ${moneyFor(setting).unit} for the work.`);
       return { coin: n };
@@ -710,7 +1051,8 @@ export class Engine {
       return {};
     }
     const [item, have] = kind;
-    const n = Math.min(have!, 2);
+    const n = Math.min(have!, Math.max(0, 2 + Math.sign(bonus)));
+    if (!n) return {};
     store.inventory![item] = have! - n;
     s.player.inventory[item] = (s.player.inventory[item] ?? 0) + n;
     this.event(`${name} pays you in ${this.item(item)!.name.toLowerCase()}.`);
@@ -767,16 +1109,19 @@ export class Engine {
             ? { type: "reach", x: feast.pos.x, y: feast.pos.y }
             : { type: "talk" },
         });
-      const good = goods.find((g) => g.id === goodsOf(kit)[0])?.noun;
+      const made = goodsOf(kit, pack.setting?.economyRevision)[0];
+      const product = s.households?.find((h) => h.members.includes(p.id))?.products?.[made];
+      const good = made && goodName(made, product);
       const job =
         kit && (kit.workplace === "workshop" || kit.workplace === "market")
           ? commissionFor(s.manifest.seed, today, p, s.actors, good)
           : undefined;
+      // The day is its work and its occasions; hunger and company look after themselves.
+      const title = this.trade()?.process.title;
       s.goals = [
         ...picked
-          .filter((g) => !(feast?.rest && g.slot === "work"))
-          .filter((g) => !(own.length && g.slot === "social"))
-          .map((g) => (g.id === "day-of-work" && job ? { ...g, text: job } : g)),
+          .filter((g) => g.slot === "work" && !feast?.rest)
+          .map((g) => (g.id === "day-of-work" && (title ?? job) ? { ...g, text: title ?? job! } : g)),
         ...own,
       ].slice(0, 8);
       for (const g of s.goals)
@@ -1006,6 +1351,14 @@ export class Engine {
   }
   /** Same-cell test standing in for `actors.some(o => distance(o.pos, p) < 1)`;
    * positions are integer cells, so the two agree. */
+  /** Someone in the player's path who will not step aside: anyone but the
+   * player's own household, who trade places with them. */
+  inPlayerWay(p: Position) {
+    const home = this.state.player.householdId;
+    return this.state.actors.some((o) =>
+      o.pos.space === p.space && o.pos.x === p.x && o.pos.y === p.y &&
+      !(home && o.householdId === home && o.id !== this.conversing));
+  }
   actorAt(p: Position, excludeId: string) {
     if (this.actorsAt)
       return (
@@ -1244,7 +1597,7 @@ export class Engine {
         roofHatch: exit?.sprite === "ladder",
         use: buildingUse(place.claim),
       },
-      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0] },
+      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family },
     );
     this.interiors.set(space, room);
     const move = (id: string, p: Point) => {
@@ -1254,7 +1607,7 @@ export class Engine {
     move(`${space}-exit`, room.exit);
     move(`${space}-bed`, room.bedCell);
     move(`${space}-chest`, room.store);
-    move(`${space}-work`, room.workCell);
+    move(`${space}-work`, room.benchCell ?? room.workCell);
     // A room met again, from a save or a second engine, keeps the furniture it has.
     if (!this.state.objects.some((o) => o.id.startsWith(`${space}-room-`)))
       for (const f of room.furniture)
@@ -2767,7 +3120,7 @@ export class Engine {
     const solid = (dir: number) =>
       this.swingCone(dir, 0, reach).some(
         (c) =>
-          !["air", "grass", "soil", "sand", "snow"].includes(
+          !!this.barrierAt(c, space) || !["air", "grass", "soil", "sand", "snow"].includes(
             this.hitClass(c.x, c.y, space).hit,
           ),
       );
@@ -3805,24 +4158,26 @@ export class Engine {
    * to them in time opens on it. */
   approacher?: { id: string; situation: string; until: number };
   private approaching?: { id: string; line: string; until: number };
+  private working = false;
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
+  /** What the last answer to a work card did, for the card to show. Never saved. */
+  lastChoice?: { card: string; line: string; won?: boolean; changes: { kind: string; delta: number; who?: string }[] };
   /** Whether a door opens for this caller right now. The rules are in
    * doors.ts; the engine only supplies who is inside and who is welcome. */
   doorVerdict(place: Place, actorId: string): DoorVerdict {
+    // A shop's own household still gets in after the shop shuts.
     const invited =
-      place.access === "public"
-        ? false
-        : place.owner === actorId ||
-          (actorId === "player" &&
-            this.state.manifest.simulation === 2 &&
-            place.owner === this.state.player.id) ||
-          !!this.state.households?.some(
-            (h) =>
-              h.members.includes(actorId) && h.members.includes(place.owner),
-          ) ||
-          (actorId === "player" &&
-            (this.state.permissions[place.owner] ?? 0) > this.state.clock);
+      place.owner === actorId ||
+      (actorId === "player" &&
+        this.state.manifest.simulation === 2 &&
+        place.owner === this.state.player.id) ||
+      !!this.state.households?.some(
+        (h) =>
+          h.members.includes(actorId) && h.members.includes(place.owner),
+      ) ||
+      (actorId === "player" &&
+        (this.state.permissions[place.owner] ?? 0) > this.state.clock);
     return doorAccess({
       access: place.access,
       invited,
@@ -3862,7 +4217,7 @@ export class Engine {
     // Inside advance the per-cell actor index answers this directly, so the
     // route callback never rebuilds a set over every actor.
     const cellOccupied = (p: Point) =>
-      this.actorAt({ ...p, space: start.space }, actorId);
+      actorId === "player" ? this.inPlayerWay({ ...p, space: start.space }) : this.actorAt({ ...p, space: start.space }, actorId);
     const occupied = this.actorsAt ? undefined : new Set<string>();
     if (occupied && actorId !== "player")
       for (const a of this.state.actors)
@@ -4360,9 +4715,11 @@ export class Engine {
         resident(place.owner),
         (home?.members ?? []).map(resident).filter((a): a is Actor => !!a),
         home,
-        (id) => {
-          const head = this.household(id)?.members[0];
-          return head ? resident(head) : undefined;
+        (id, sellerId) => {
+          const supplier = this.household(id);
+          const head = sellerId ?? supplier?.members[0];
+          const actor = head && supplier?.members.includes(head) ? resident(head) : undefined;
+          return actor && !actor.dead ? actor : undefined;
         },
         home && this.state.economy?.short[home.id],
       );
@@ -4592,7 +4949,9 @@ export class Engine {
           reason,
         };
       else {
+        this.fixDay();
         this.execute(request.command);
+        if (request.command.type === "move") this.arrive();
         const held = heldObject(this.state);
         if (held) held.pos = copy(this.state.player.pos);
         this.state.revision++;
@@ -4628,6 +4987,12 @@ export class Engine {
     if (c.type === "interact" && c.action === "enter" && this.burningPlace(c.target))
       return "It is on fire.";
     if (c.type === "interact" && c.action === "fill") return this.fillProblem(c.target);
+    if (c.type === "interact" && c.action === "work" && this.tileAt(c.target))
+      return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
+    if (c.type === "choose") {
+      const choice = this.waitingCard() === c.card ? CARDS.find((k) => k.id === c.card)?.choices[c.choice] : undefined;
+      return !choice ? "There is nothing to answer." : this.choiceProblem(choice);
+    }
     if (c.type === "interact" && c.action === "douse") return this.douseProblem(c.target);
     if (c.type === "interact" && c.action === "light")
       return this.lightProblem(c.target);
@@ -5927,7 +6292,8 @@ export class Engine {
           a.pos.x === p.pos.x + c.dx &&
           a.pos.y === p.pos.y + c.dy,
       );
-      if (occupant) {
+      if (occupant && !this.inPlayerWay(occupant.pos)) occupant.pos = { ...p.pos };
+      else if (occupant) {
         p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
         p.facing = facingFromStep(c.dx, c.dy, p.direction);
         this.collide(occupant, "player", !!c.run);
@@ -6155,6 +6521,10 @@ export class Engine {
       this.event(
         `You take off the ${(this.item(id)?.name ?? id).toLowerCase()}.`,
       );
+      return;
+    }
+    if (c.type === "choose") {
+      this.choose(c.card, c.choice);
       return;
     }
     if (c.type === "narrate") {
@@ -6730,8 +7100,12 @@ export class Engine {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
       if (e.type === "card")
         this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, e.line), focus: e.focus && plot.cast[e.focus] });
-      else if (e.type === "approach" && who)
+      else if (e.type === "approach" && who) {
+        // A seizure that cleared the debt is told by the ending, not by "the rest is still owed".
+        if (e.line === "seize" && (plot.owed ?? 0) <= 0) continue;
         this.approaching = { id: who.id, line: plotLine(plot, e.line), until: s.clock + 7200 };
+        if (s.kin) s.kin.last = s.clock;
+      }
       else if (e.type === "regard" && who) this.regard(who, e.delta);
       else if (e.type === "seize" && who) {
         const h = this.household(s.player.householdId);
@@ -6745,7 +7119,11 @@ export class Engine {
       else if (e.type === "extend") plot.deadline += e.hours * 3600;
     }
     const ending = endPlot(s);
-    if (ending) this.cards.push({ kind: "ending", title: plot.title, text: plotLine(plot, ending.id), ending: ending.id });
+    if (ending) {
+      const line = plotLine(plot, ending.id);
+      this.cards.push({ kind: "ending", title: plot.title, text: line, ending: ending.id });
+      (s.record ??= []).push({ day: Math.floor(s.clock / 86400), clock: s.clock, card: `plot:${ending.id}`, choice: -1, line });
+    }
   }
   /** The player's own people: whether one of them has reason to come over,
    * and what it costs to leave them unanswered. */
@@ -6764,11 +7142,16 @@ export class Engine {
       k.waiting = undefined;
     }
     const hour = Math.floor(clock / 3600) % 24;
-    // One call at a time, none at night, and never more than one an hour and a half.
-    if (this.approaching || p.dead || hour < 6 || hour >= 21 || clock - (k.last ?? -Infinity) < 5400) return;
+    const since = clock - (k.last ?? -Infinity);
+    if (this.approaching || p.dead || hour < 6 || hour >= 21 || since < 5400) return;
+    const morning = Math.floor((clock - 6 * 3600) / 86400) * 86400 + 6 * 3600;
+    const today = Object.entries(k.said).filter(([key, at]) => at >= morning && !key.endsWith(":plot")).length;
+    // Past three calls a day, three hours apart, or with work in hand, only
+    // hunger and the plot bring anyone over.
+    const urgent = today >= 3 || since < 3 * 3600 || this.working || !!this.waitingCard();
     const store = h && s.objects.find((o) => o.id === h.storeId);
     const food = Object.entries(store?.inventory ?? {}).reduce((n, [id, c]) => n + (this.item(id)?.edible ? c ?? 0 : 0), 0);
-    const call = kinCall(s, k, clock, food, (id) => !!this.laidUp(id));
+    const call = kinCall(s, k, clock, food, (id) => !!this.laidUp(id), urgent);
     if (!call) return;
     k.said[`${call.id}:${call.need}`] = clock;
     k.last = clock;
@@ -6779,7 +7162,8 @@ export class Engine {
    * coinage, food where there is not. */
   private payable() {
     const setting = this.world.pack.setting;
-    const coined = !!setting && capabilitiesFor(setting).has("coinage");
+    const credit = this.state.households?.find((h) => h.members.includes(this.state.player.id))?.credit;
+    const coined = credit ? credit.repayment === "money" : !!setting && capabilitiesFor(setting).has("coinage");
     return Object.keys(this.state.player.inventory).filter((id) =>
       (this.state.player.inventory[id] ?? 0) > 0 && (this.item(id)?.value ?? 0) > 0 &&
       (coined ? id === "coin" : !!this.item(id)?.edible));
@@ -6802,6 +7186,8 @@ export class Engine {
       }
       if (n) handed.push(`${n} ${this.item(id)!.name.toLowerCase()}`);
     }
+    const credit = this.state.households?.find((h) => h.members.includes(this.state.player.id))?.credit;
+    if (credit?.seller === to.id) credit.amount = Math.max(0, plot.owed ?? 0);
     return handed.join(", ") || "nothing";
   }
   /** The plot's messenger walks over and says their piece. */
@@ -7242,7 +7628,11 @@ export class Engine {
     return this.regulars.seated;
   }
   /** Seconds from now until the next morning, for a night's sleep. */
-  untilMorning(hour = 6) {
+  /** The hour the player's day starts: their trade's, or six. */
+  rises() {
+    return this.trade()?.process.rises ?? 6;
+  }
+  untilMorning(hour = this.rises()) {
     const now = this.state.clock;
     const target = Math.floor(now / 86400) * 86400 + hour * 3600;
     return Math.max(600, (target > now ? target : target + 86400) - now);
@@ -7356,7 +7746,7 @@ export class Engine {
     }
     // Any long sleep that wakes into a morning closes the day, whenever it began.
     const woke = Math.floor(this.state.clock / 3600) % 24;
-    if (hours >= 5 && woke >= 4 && woke < 12) this.evening(day);
+    if (hours >= 5 && woke >= 2 && woke < 12) this.evening(day);
   }
 
   advance(seconds: number, heldActor?: string) {

@@ -1,4 +1,11 @@
 import type {
+  aprons,
+  bags,
+  neckwear,
+  trimPatterns,
+  hairOrnaments,
+  hatTrims,
+  wristwear,
   eyewear,
   beltStyles,
   motifs,
@@ -74,6 +81,13 @@ export type GarmentKit = {
   /** A kit that says nothing leaves the base roll's necklace alone. */
   neck?: readonly Option<"none" | "beads" | "chain">[];
   accessory?: readonly Option<"none" | "walking-cane" | "fan">[];
+  apron?: readonly Option<(typeof aprons)[number]>[];
+  bag?: readonly Option<(typeof bags)[number]>[];
+  wrist?: readonly Option<(typeof wristwear)[number]>[];
+  neckwear?: readonly Option<(typeof neckwear)[number]>[];
+  trimPattern?: readonly Option<(typeof trimPatterns)[number]>[];
+  hairOrnament?: readonly Option<(typeof hairOrnaments)[number]>[];
+  hatTrim?: readonly Option<(typeof hatTrims)[number]>[];
 };
 export type Motif = (typeof motifs)[number];
 export type WardrobeSlot = Exclude<
@@ -96,6 +110,13 @@ export const wardrobeSlots = [
   "eyewear",
   "neck",
   "accessory",
+  "apron",
+  "bag",
+  "wrist",
+  "neckwear",
+  "trimPattern",
+  "hairOrnament",
+  "hatTrim",
 ] as const;
 
 /** The person a kit is dressing. Everything but `id` is optional: an actor

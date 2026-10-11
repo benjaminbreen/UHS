@@ -4,7 +4,7 @@ import type { GameEvent } from "../core/types";
 const LIFE_MS = 4200;
 
 /** New events surface briefly at the top of the world, newest first. */
-export function Toasts({ events, omitText }: { events: GameEvent[]; omitText?: string }) {
+export function Toasts({ events, omit }: { events: GameEvent[]; omit: (string | undefined)[] }) {
   const [shown, setShown] = useState<(GameEvent & { leaving?: boolean })[]>([]);
   // Events already in the log when the page opened are not news.
   const seen = useRef(events.at(-1)?.id ?? -1);
@@ -21,7 +21,7 @@ export function Toasts({ events, omitText }: { events: GameEvent[]; omitText?: s
   }, [last?.id]);
   return (
     <div className="toasts" role="status" aria-live="polite">
-      {shown.filter((t) => t.text !== omitText).map((t) => (
+      {shown.filter((t) => !omit.includes(t.text)).map((t) => (
         <div key={t.id} className="toast" data-kind={t.kind} data-leaving={t.leaving || undefined}>
           <i />
           <span>{t.text}</span>

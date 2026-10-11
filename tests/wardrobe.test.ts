@@ -583,3 +583,16 @@ it("scopes historical accessories to their wearers and keeps the bowler out of e
   expect(fans.filter((id) => id === "fan").length).toBeGreaterThan(20);
   expect(accessoryFor({ id: "elsewhere", roles: ["geisha"] }, { year: 1850, setting: paris }, "open-robe")).toBeUndefined();
 });
+
+it("puts aprons on the trades that wore them and ruffs only in their decades", () => {
+  const london = place("european", 1600, -0.1, 51.5);
+  const smiths = Array.from({ length: 40 }, (_, i) =>
+    wardrobeFor({ id: `smith-${i}`, livelihood: "blacksmith", sex: "male" }, { year: 1600, setting: london }, base).apron);
+  expect(smiths.filter((a) => a === "leather").length).toBeGreaterThan(20);
+  expect(smiths).not.toContain("cloth");
+  const gentry = (year: number) => Array.from({ length: 40 }, (_, i) =>
+    wardrobeFor({ id: `g-${i}`, means: "wealthy" }, { year, setting: place("european", year, -0.1, 51.5) }, base).neckwear);
+  expect(gentry(1600)).toContain("ruff");
+  expect(gentry(1700)).not.toContain("ruff");
+  expect(gentry(1450).every((n) => !n || n === "none")).toBe(true);
+});

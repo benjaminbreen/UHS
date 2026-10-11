@@ -57,6 +57,17 @@ export function techFor(pack: Pack) {
     dairy: kit,
     // Balance weights appear in Egypt and Mesopotamia in the third millennium.
     balance: kit && year >= -2500,
+    // Smithing iron at an anvil: Anatolia and the Levant c. 1200 BCE, north
+    // India c. 1000, Europe and Africa c. 800, China c. 600; the Americas and
+    // Oceania with contact.
+    iron:
+      kit &&
+      year >=
+        (culture === "north-african-west-asian" ? -1199
+          : culture === "south-asian" ? -1000
+          : culture === "east-asian" ? -600
+          : culture === "southeast-asian" ? -500
+          : -800),
   };
 }
 
@@ -436,7 +447,6 @@ export function propKit(pack: Pack): PropKit {
     contexts.fire = [...new Set(["fireBasket", ...contexts.fire])];
   if (year >= 1940) contexts.fire = ["drumFire", "fireBasket"];
   if (year >= 1850) {
-    contexts.yard.push("tin");
     contexts.household.push("carton");
   }
   // The factory age's own furniture: pressed steel, and a barrow that is
@@ -602,10 +612,10 @@ export function propKit(pack: Pack): PropKit {
     contexts.water = ["pump"];
   }
   if (year >= 1950 && !rural) {
-    // A city flat: tins, cartons and plastic. The pump stands in for the
+    // A city flat: cartons and plastic. The pump stands in for the
     // standpipe or fountain a square still has; there is no art for a tap.
-    contexts.household = ["carton", "plastic", "tin"];
-    contexts.yard = ["plastic", "tin", "crate", "dustbin", "washingLine"];
+    contexts.household = ["carton", "plastic"];
+    contexts.yard = ["plastic", "crate", "dustbin", "washingLine"];
     contexts.work = tech.wheels
       ? ["crate", "drum", "barrow", "stick"]
       : ["crate", "drum", "stick"];

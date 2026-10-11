@@ -1533,7 +1533,7 @@ export function createSettlementWorld(
       for (const pt of road.points) {
         const f = land.sample(pt.x, pt.y);
         if (f.water < 0 || townAt(pt.x, pt.y)?.id !== p.site.id) continue;
-        const tier = Math.round(f.elevation / 14);
+        const tier = p.groundLevels?.get(cellKey(pt.x, pt.y)) ?? Math.round(f.elevation / 14);
         roadCells({ ...road, points: [pt] }, (a, b) => {
           const key = cellKey(a, b);
           if (!levels!.has(key)) levels!.set(key, tier);
@@ -1543,7 +1543,8 @@ export function createSettlementWorld(
     // Footways beside the carriageway take its level.
     for (let pass = 0; pass < 2; pass++) {
       const next: [string, number][] = [];
-      for (const key of p.pavement?.keys() ?? []) {
+      for (const [key, role] of p.pavement ?? []) {
+        if (!["footway", "verge", "square", "dais", "platform"].includes(role)) continue;
         if (levels.has(key)) continue;
         const [a, b] = key.split(",").map(Number);
         for (const [dx, dy] of [
@@ -1589,7 +1590,7 @@ export function createSettlementWorld(
     let height = Math.round(f.elevation / 14) as HeightTier;
     if (terraces && f.water >= 0)
       for (const p of nearby(x, y)) {
-        const level = streetLevels(p).get(cellKey(x, y));
+        const level = p.groundLevels?.get(cellKey(x, y)) ?? streetLevels(p).get(cellKey(x, y));
         if (level === undefined) continue;
         height = level;
         break;
@@ -1813,14 +1814,7 @@ export function createSettlementWorld(
           } else cell.streetMaterial = material;
         }
         const pavement = p.pavement?.get(key);
-        // A verge is grass, not paving, but the kerb beside it needs to know.
-        if (
-          pavement &&
-          (!pack.setting?.streetRevision ||
-            cell.feature === "paving" ||
-            pavement === "verge")
-        )
-          cell.pavement = pavement;
+        if (pavement) cell.pavement = pavement;
         const lane = p.lanes?.get(key);
         if (lane && cell.feature === "paving") cell.lane = lane;
         const geometry = p.streetGeometry?.get(key);

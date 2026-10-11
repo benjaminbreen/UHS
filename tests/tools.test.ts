@@ -53,14 +53,16 @@ it("accepts chop, dig and reap as interact actions", () => {
 it("shows a potter's actual work motion at the work station", () => {
   const konya = places.find((p) => p.id === "konya")!;
   const engine = createSettingSession({ ...settingFor(konya, -6499), role: "Potter" }, "potter-motion");
-  const home = engine.state.households!.find((h) => h.members.includes("player"))!;
-  const store = engine.state.objects.find((o) => o.id === home.storeId)!;
-  engine.state.player.pos = { ...store.pos, x: store.pos.x + 1 };
-  const affordance = engine.inspect(store.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "work")!;
   const runtime = new Runtime(engine, { cacheTerrain: false });
+  // The materials are fetched at the door; the work itself is at the station.
+  engine.state.player.pos = { ...engine.workPlan()!.door! };
+  expect(runtime.command(engine.workHere()!.command)?.status).toBe("completed");
+  const station = engine.workPlan()!.station!;
+  engine.state.player.pos = { ...station.pos, x: station.pos.x + 1 };
+  const affordance = engine.inspect(station.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "work")!;
   expect(runtime.command(affordance.command)?.status).toBe("completed");
   expect(runtime.characterAction?.pose).toBe("work-knead");
-  expect(runtime.characterAction?.target).toBe(store.id);
+  expect(runtime.characterAction?.target).toBe(station.id);
   runtime.dispose();
 });
 

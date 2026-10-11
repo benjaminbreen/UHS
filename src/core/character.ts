@@ -164,6 +164,24 @@ export const footwear = [
   "sneakers",
 ] as const;
 export const eyewear = ["none", "glasses", "sunglasses"] as const;
+/** Worn over the garment at work: linen for the kitchen and the shop, leather
+ * where sparks and blades fly. */
+export const aprons = ["none", "cloth", "leather"] as const;
+/** Carried at the hip: a purse on the belt, a satchel on a strap. */
+export const bags = ["none", "purse", "satchel"] as const;
+export const wristwear = ["none", "bangles"] as const;
+/** Round the neck above the garment: a working neckerchief, a starched ruff,
+ * a gentleman's cravat. */
+export const neckwear = ["none", "neckerchief", "ruff", "cravat"] as const;
+/** Patterns worked into the trim: embroidered, woven in, or block-printed.
+ * The drawing is a small repeating tile; which tile a place used is in the
+ * wardrobe kits. */
+/** Worn in the hair: a comb, pins through a knot, a flower behind the ear,
+ * a net over the hair, a ribbon in a braid. */
+export const hairOrnaments = ["none", "comb", "pins", "flower", "net", "ribbon"] as const;
+/** On a hat: a feather, a cockade, a ribbon band. */
+export const hatTrims = ["none", "feather", "cockade", "ribbon"] as const;
+export const trimPatterns = ["none", "cross-stitch", "meander", "chevron", "diamond", "step", "dots", "strip", "cloud"] as const;
 export const neckStyles = ["beads", "chain"] as const;
 export const beltStyles = ["none", "cord", "sash", "leather", "wide"] as const;
 export const headShapes = [
@@ -700,6 +718,14 @@ export type CharacterAppearance = {
     neckStyle?: (typeof neckStyles)[number];
     eyewear?: (typeof eyewear)[number];
     earrings: boolean;
+    /** Optional, like eyewear: looks made before these slots existed have none. */
+    apron?: (typeof aprons)[number];
+    bag?: (typeof bags)[number];
+    wrist?: (typeof wristwear)[number];
+    neckwear?: (typeof neckwear)[number];
+    trimPattern?: (typeof trimPatterns)[number];
+    hairOrnament?: (typeof hairOrnaments)[number];
+    hatTrim?: (typeof hatTrims)[number];
     /** What the body garment is made of and how well, carried through from the
      * worn item's id so the drawn cloth and the item's name agree. Absent on
      * saves written before cloth had a material, and on authored looks. */

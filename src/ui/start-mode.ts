@@ -32,3 +32,19 @@ export function writeStartMode(mode: StartMode) {
     /* A remembered preference is not worth failing a click over. */
   }
 }
+
+/** Quick pace: errands walk fast and the day keeps to one occasion. */
+export function readQuick() {
+  try {
+    return localStorage.getItem("uhs.pace") === "quick";
+  } catch {
+    return false;
+  }
+}
+export function writeQuick(on: boolean) {
+  try {
+    localStorage.setItem("uhs.pace", on ? "quick" : "full");
+  } catch {
+    /* A private window keeps it for the session. */
+  }
+}

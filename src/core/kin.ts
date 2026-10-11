@@ -45,24 +45,31 @@ export function markOf(s: Snapshot, id: string): "kin" | "plot" | undefined {
   if (kinOf(s).some((k) => k.actor.id === id)) return "kin";
 }
 
+/** Needs that bring someone over however the day has gone. */
+export const URGENT: KinNeed[] = ["hungry", "plot", "store"];
+
 /** The one of the player's people with the most pressing reason to come over
- * now, and what they say. `food` is what is left in the household store. */
-export function kinCall(s: Snapshot, k: KinState, clock: number, food: number, abed?: (id: string) => boolean) {
+ * now, and what they say. `food` is what is left in the household store;
+ * `urgent` holds back everything but hunger, the plot and an empty store. */
+export function kinCall(s: Snapshot, k: KinState, clock: number, food: number, abed?: (id: string) => boolean, urgent?: boolean) {
   const away = clock - (k.home ?? k.since);
   const hour = Math.floor(clock / HOUR) % 24;
   const plot = s.plot;
   const plotLineFor = plot && !plot.ended && plotTemplate(plot)?.wording[plot.wording]?.lines["kin-partner"];
   const quiet = (id: string) => clock - (k.talked[id] ?? k.since);
+  // Missing the player and dropping by are the family's, not each person's:
+  // one child says it for all of them, once a day.
   const cooled = (id: string, need: KinNeed) => {
-    const at = k.said[`${id}:${need}`];
-    return at === undefined || (need !== "plot" && clock - at >= 6 * HOUR);
+    if (need === "plot") return k.said[`${id}:plot`] === undefined;
+    const wait = need === "missed" || need === "visit" ? 24 * HOUR : 6 * HOUR;
+    return !Object.entries(k.said).some(([key, at]) => key.endsWith(`:${need}`) && clock - at < wait);
   };
   // Earlier entries are more pressing.
   const needs: [KinKind, KinNeed, (a: Actor) => boolean][] = [
     ["child", "hungry", (a) => (a.age ?? 0) >= 3 && (a.age ?? 0) < 16 && (a.hunger >= 60 || food === 0)],
     ["partner", "plot", () => !!plotLineFor && clock - plot!.began >= HOUR / 2],
     ["partner", "store", () => food <= 1],
-    ["child", "missed", (a) => (a.age ?? 0) >= 3 && (a.age ?? 0) < 11 && away >= 4 * HOUR],
+    ["child", "missed", (a) => (a.age ?? 0) >= 3 && (a.age ?? 0) < 9 && away >= 6 * HOUR],
     ["partner", "late", () => hour >= 19 && away >= 3 * HOUR],
     ["parent", "visit", (a) => (a.age ?? 0) >= 55 && quiet(a.id) >= 5 * HOUR],
     ["sibling", "visit", (a) => quiet(a.id) >= 8 * HOUR],
@@ -70,7 +77,7 @@ export function kinCall(s: Snapshot, k: KinState, clock: number, food: number, a
   const kin = kinOf(s).sort((a, b) => (a.actor.id < b.actor.id ? -1 : 1));
   for (const [kind, need, holds] of needs)
     for (const { actor, kind: is } of kin) {
-      if (is !== kind || abed?.(actor.id) || !cooled(actor.id, need) || !holds(actor)) continue;
+      if (is !== kind || (urgent && !URGENT.includes(need)) || abed?.(actor.id) || !cooled(actor.id, need) || !holds(actor)) continue;
       if (need === "plot") return { id: actor.id, need, line: plotLine(plot!, "kin-partner") };
       const young = (actor.age ?? 0) < 9;
       const key = `${kind}:${need}${kind === "child" ? (young ? ":young" : ":old") : ""}`;

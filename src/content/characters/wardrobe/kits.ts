@@ -16,6 +16,9 @@ import { innerEurasia } from "./regions/inner-eurasia";
 import { southAsia } from "./regions/south-asia";
 import { southeastAsia } from "./regions/southeast-asia";
 import { westAsiaNorthAfrica } from "./regions/west-asia-north-africa";
+import { workDress } from "./regions/work-dress";
+import { embroidery } from "./regions/embroidery";
+import { headdress } from "./regions/headdress";
 
 /** Era floors. These are qualified visual defaults, not reconstructions: they
  * say only what the period could make, so a bowler never turns up in the
@@ -369,6 +372,9 @@ export const eraFloors: readonly GarmentKit[] = [
 /** Regional kits. Each names only the slots it changes; everything else falls
  * through to the era floor it sits inside. */
 export const regionalKits: readonly GarmentKit[] = [
+  ...workDress,
+  ...embroidery,
+  ...headdress,
   ...southAsia,
   ...southeastAsia,
   ...eastAsia,

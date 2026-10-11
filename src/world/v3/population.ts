@@ -25,6 +25,8 @@ import { MEANS } from "./plan";
 import { keeperLivesIn, buildingUse } from "../../content/interiors/select";
 import { officeFor } from "../../content/interiors/offices";
 import { marriagePracticeFor } from "../../content/households/practices";
+import { capabilitiesFor } from "../../content/characters/resolve";
+import { goodName, productFor, sellerOf } from "../../content/economy/products";
 const seasons = ["spring", "summer", "autumn", "winter"];
 /** Households as the result of a life (household-story.ts), then the ties
  * between them: who makes what, and whom everyone else buys it from. */
@@ -135,8 +137,18 @@ export function populateHouseholds(
       infants: story.infants,
       makes: goodsOf(
         kit ?? (parent && livelihoodOf(pack, { origin: parent } as Actor)),
+        pack.setting?.economyRevision,
       ),
     });
+    if (pack.setting?.economyRevision) {
+      household.producers = Object.fromEntries(household.makes!.map((g) => [g, owner]));
+      household.products = Object.fromEntries(household.makes!.map((g) => [g, productFor(g, pack.setting!, kit?.trade ?? kit?.id)]));
+      // A fictional taste draw, not a historical estimate of alcohol consumption.
+      household.needs = goods.filter((g) => g.need && (g.id !== "drink" ||
+        random(seed, id, "drink-preference") < 0.35)).map((g) => g.id);
+      if (random(seed, id, "milk-preference") < 0.4) household.needs.push("milk");
+      if (random(seed, id, "oil-preference") < 0.4) household.needs.push("oil");
+    }
     // What the household can spend decides how the house has worn, and a fire
     // started the roof and walls over.
     if (place.structure) {
@@ -181,9 +193,17 @@ export function populateHouseholds(
         // hand-written kits the context has no format at all, which left every
         // household on the ported traditions with unrelated surnames.
         const format = parent?.nameFormat;
+        // A hereditary family name comes down from the father: a child takes
+        // the householder's, or a mother's husband's where he lives here, and
+        // the householder's own father shares it. Partners and mothers keep
+        // the names they were born with.
+        const lineal = kin || (m.fromHead === "parent" && m.sex === "male");
+        const father = kin && holderSex === "female" && m.ofPartner && partner && sexOf(partner) === "male"
+          ? partner.origin?.nameFamilies
+          : parent?.nameFamilies;
         const inherited =
-          kin && format === "family-personal"
-            ? parent?.nameFamilies
+          lineal && (format === "family-personal" || format === "personal-family")
+            ? father
             : kin &&
                 format === "personal-two-families" &&
                 parent?.nameFamilies?.[0] &&
@@ -207,7 +227,7 @@ export function populateHouseholds(
             undefined,
             inherited,
             sex,
-            kin ? parent?.nameTradition : undefined,
+            lineal ? parent?.nameTradition : undefined,
           );
         // Where the name sets the body, redraw until it is the sex the story
         // needs, and until it is not a name already in the house: a kit of
@@ -305,7 +325,7 @@ export function populateHouseholds(
       const actor = world.initialActors.find((b) => b.id === head);
       plan.work.set(head, site);
       if (plan.stations.has(head))
-        plan.stations.set(head, withLoads(routineFor(plan, seed, pack, head, site, actor), carryKit(pack), undefined, goodsOf(livelihoodOf(pack, actor))[0]));
+        plan.stations.set(head, withLoads(routineFor(plan, seed, pack, head, site, actor), carryKit(pack), undefined, goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision)[0]));
     }
     for (const p of pending) if (p.household === h) p.site = { ...p.site, home: { x: host.home.x, y: host.home.y } };
   }
@@ -320,12 +340,14 @@ export function populateHouseholds(
     const home = h.home;
     const buys: Household["buys"] = [];
     for (const g of goods) {
-      if (!g.need || h.makes?.includes(g.id)) continue;
+      if (!(h.needs ? h.needs.includes(g.id) : g.need) || h.makes?.includes(g.id)) continue;
       const wanted = [g.id, standsIn[g.id]].filter(Boolean);
       let best: Household | undefined,
         score = Infinity;
       for (const s of made) {
         if (s === h || !s.makes?.some((m) => wanted.includes(m))) continue;
+        const good = s.makes.includes(g.id) ? g.id : standsIn[g.id];
+        if (pack.setting?.economyRevision && s.producers?.[good] !== "player" && !sellerOf({ good, from: s.id }, made, world.initialActors)) continue;
         const d =
           Math.hypot(s.home.x - home.x, s.home.y - home.y) -
           (residence(s)?.access === "public" ? 30 : 0) +
@@ -333,18 +355,28 @@ export function populateHouseholds(
         if (d < score) [best, score] = [s, d];
       }
       if (!best) continue;
-      buys.push({
-        good: best.makes!.includes(g.id) ? g.id : standsIn[g.id],
-        from: best.id,
-      });
+      const good = best.makes!.includes(g.id) ? g.id : standsIn[g.id];
+      buys.push({ good, from: best.id, ...(pack.setting?.economyRevision && {
+        seller: best.producers?.[good], product: best.products?.[good],
+      }) });
       customers.set(best.id, (customers.get(best.id) ?? 0) + 1);
     }
     h.buys = buys;
-    const creditor = buys.find(
-      (b) => (byId.get(b.from)?.fortune ?? 0) > (h.fortune ?? 0) + 0.2,
-    );
-    if (creditor && (h.fortune ?? 1) < 0.3 && random(seed, h.id, "owes") < 0.6)
+    const creditors = buys.filter((b) => (byId.get(b.from)?.fortune ?? 0) > (h.fortune ?? 0) + 0.2);
+    const creditor = pack.setting?.economyRevision
+      ? creditors.sort((a, b) =>
+          (a.good === "drink" ? 0.15 : ["bread", "grain", "milk", "oil"].includes(a.good) ? 3 : 1) * random(seed, h.id, "credit", a.good, a.from) -
+          (b.good === "drink" ? 0.15 : ["bread", "grain", "milk", "oil"].includes(b.good) ? 3 : 1) * random(seed, h.id, "credit", b.good, b.from)).at(-1)
+      : creditors[0];
+    if (creditor && (h.fortune ?? 1) < 0.3 && random(seed, h.id, "owes") < 0.6) {
       h.owes = creditor.from;
+      if (pack.setting?.economyRevision) h.credit = {
+        ...creditor, debtor: h.members[0],
+        amount: 4 + Math.floor(random(seed, h.id, "credit-amount") * 5),
+        reason: h.history?.some((e) => ["bad-year", "fire", "robbed"].includes(e.kind) && year - e.year <= 2) ? "hardship" : "household",
+        repayment: capabilitiesFor(pack.setting).has("coinage") ? "money" : "produce",
+      };
+    }
   }
   // A shop's trade is the custom it has, not the quarter it stands in.
   const busy = Math.max(3, made.length * 0.1);
@@ -376,7 +408,7 @@ export function populateHouseholds(
       ];
     const from = buy && byId.get(buy.from);
     const shop = from && residence(from);
-    const seller = from && world.initialActors.find((b) => b.id === from.members[0]);
+    const seller = buy && sellerOf(buy, made, world.initialActors);
     plan.work.set(id, memberSite);
     plan.stations.set(
       id,
@@ -393,13 +425,13 @@ export function populateHouseholds(
               shop && seller
                 ? {
                     pos: shop.entrance,
-                    label: `Buying ${goods.find((g) => g.id === buy!.good)!.noun} from ${seller.name}`,
+                    label: `Buying ${goodName(buy!.good, buy!.product)} from ${seller.name}`,
                   }
                 : undefined,
             ),
         carryKit(pack),
         buy?.good,
-        child ? undefined : goodsOf(kit)[0],
+        child ? undefined : goodsOf(kit, pack.setting?.economyRevision)[0],
       ),
     );
   }

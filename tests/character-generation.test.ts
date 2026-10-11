@@ -31,7 +31,17 @@ describe("contextual character generation", () => {
       expect(person.origin.specialty).toBe("brewer");
       expect(kit?.activity).toBe("Brewing");
       expect(goodsOf(kit)).toContain("drink");
+      expect(goodsOf(kit, 1)).toEqual(["drink"]);
     }
+  });
+
+  it("keeps an apprentice baker's production tied to the specialty", () => {
+    const setting = { ...settingFor(place("rome"), 100), role: "Apprentice Baker" };
+    const populated = populateCharacter(setting, "apprentice-baker");
+    const person = generateCharacter(populated, "apprentice-baker", "player", populated.character!.age!, populated.role);
+    const kit = livelihoodOf(packForSetting(populated), { origin: person.origin } as Actor);
+    expect(kit?.trade).toBe("baker");
+    expect(goodsOf(kit, 1)).toEqual(["bread"]);
   });
 
   it("resolves and populates every featured place through the integrated path", () => {
@@ -84,7 +94,9 @@ describe("contextual character generation", () => {
       ...travelerRest
     } = traveler.appearance;
     expect(travelerBody?.strength).toBe(farmerBody?.strength);
-    expect(travelerRest).toEqual(farmerRest);
+    // A trade's apron and bag are the trade's, as the hair is.
+    const tools = (r: typeof farmerRest) => ({ ...r, wearing: { ...r.wearing, apron: undefined, bag: undefined } });
+    expect(tools(travelerRest)).toEqual(tools(farmerRest));
     expect(traveler.role).not.toBe(farmer.role);
   });
 
