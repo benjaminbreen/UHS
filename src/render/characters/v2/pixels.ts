@@ -45,11 +45,10 @@ export function setSpriteLight(next: SpriteLight | undefined) {
 }
 /** Which side the key is on, for callers that place highlights by hand. */
 export const lightKey = () => light.key;
-/** Shadows point away from the sun, so the cast vector's x gives the side it
- * is on. Overhead (|x| under half a pixel of cast) keeps the noon convention. */
-export function spriteLightFor(cast: readonly number[], night: boolean) {
-  const key: -1 | 1 = Math.abs(cast[0]) < 0.5 ? -1 : cast[0] < 0 ? 1 : -1;
-  return { key, contrast: night ? 0.35 : 1 };
+/** The key stays upper left all day, as every baked building, tree and prop
+ * is lit; only the cast shadow follows the sun. */
+export function spriteLightFor(_cast: readonly number[], night: boolean) {
+  return { key: -1 as const, contrast: night ? 0.35 : 1 };
 }
 type Hsl = [number, number, number];
 function toHsl(hex: string): Hsl {

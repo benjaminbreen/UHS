@@ -2390,8 +2390,17 @@ export function planSettlement(
             : 0
           : Math.sign(vy);
       if (!dx && !dy) continue;
-      for (const sign of [-1, 1])
-        frontage.push({ point: p, nx: -dy * sign, ny: dx * sign });
+      for (const sign of [-1, 1]) {
+        if (!organic) {
+          frontage.push({ point: p, nx: -dy * sign, ny: dx * sign });
+          continue;
+        }
+        // Houses across the way do not face each other door to door, and the
+        // odd plot is left open so the row has gaps.
+        if (rand(road.id, "gap", j, sign) < 0.15) continue;
+        const k = sign > 0 ? Math.min(road.points.length - 1, j + 2 + Math.floor(rand(road.id, "stagger", j) * 4)) : j;
+        frontage.push({ point: road.points[k], nx: -dy * sign, ny: dx * sign });
+      }
     }
   // Composed parcels already arrive in the order their own fabric implies, one
   // round per block. Re-sorting them by distance would spend the whole capacity

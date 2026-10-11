@@ -41,7 +41,12 @@ it("generates broad zones with limited slopes and reachable households", () => {
 
 it("accepts outdoor diagonal commands on flat relief terrain", () => {
   const e = createSettingSession(setting, "anatolia-relief-1");
-  e.state.player.pos = { x: -10, y: -10, space: "outside" };
+  // The first open 3x3 near the old fixed spot, which settlement layout may fill.
+  const open = (x: number, y: number) =>
+    [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => !e.blocked(x + dx, y + dy, "outside")));
+  let at = { x: -10, y: -10 };
+  for (let d = 0; d < 20 && !open(at.x, at.y); d++) at = { x: -10 - d, y: -10 };
+  e.state.player.pos = { ...at, space: "outside" };
   for (const [dx, dy] of [
     [1, 1],
     [-1, -1],

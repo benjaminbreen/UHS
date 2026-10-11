@@ -12,10 +12,9 @@ export type BuildingScaleContext = {
 };
 
 export function buildingScale(frame: string): BuildingScale {
-  return (
-    (buildingModels[frame] as { goldScale?: BuildingScale } | undefined)
-      ?.goldScale ?? "small"
-  );
+  const scale = (buildingModels[frame] as { goldScale?: string } | undefined)?.goldScale;
+  // The East Asian house sets add tiny and grand frames at either end.
+  return scale === "tiny" ? "small" : scale === "grand" ? "large" : ((scale as BuildingScale) ?? "small");
 }
 
 /** A scale tier's share before normalisation. Wealth chooses the exceptional
