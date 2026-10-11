@@ -341,7 +341,7 @@ export function treeMix(s: WorldSetting): Mix {
       return temperate;
   }
 }
-function choose(mix: Mix, value: number): string | undefined {
+export function choose(mix: Mix, value: number): string | undefined {
   let target = value * mix.reduce((sum, [, weight]) => sum + weight, 0);
   for (const [sprite, weight] of mix) {
     target -= weight;

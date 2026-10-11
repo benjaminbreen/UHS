@@ -40,7 +40,9 @@ export type YardKit = {
   /** Shares of yards that wrap the house, fence only the bed, or go unfenced. */
   styles: { wrap: number; side: number; open: number };
   beds: readonly CropId[];
-  tree?: { sprites: readonly string[]; chance: number };
+  /** `sprites` is the kit's own planting; without it the yard takes from the
+   * local wild mix. */
+  tree?: { sprites?: readonly string[]; chance: number };
   props: readonly YardProp[];
 };
 
@@ -64,7 +66,7 @@ const toft: YardKit = {
   front: [2, 4],
   styles: { wrap: 0.55, side: 0.3, open: 0.15 },
   beds: ["vegetables", "vegetables", "beans", "flax"],
-  tree: { sprites: ["oak"], chance: 0.5 },
+  tree: { sprites: ["nature-oak"], chance: 0.5 },
   props: [
     ...stores,
     {
@@ -161,7 +163,7 @@ const court: YardKit = {
   front: [0, 0],
   styles: { wrap: 0, side: 0.75, open: 0.25 },
   beds: ["vine", "vegetables", "beans"],
-  tree: { sprites: ["olive"], chance: 0.6 },
+  tree: { sprites: ["nature-olive"], chance: 0.6 },
   props: [...stores],
 };
 
@@ -172,7 +174,17 @@ const plain: YardKit = {
   front: [2, 3],
   styles: { wrap: 0.35, side: 0.35, open: 0.3 },
   beds: ["vegetables"],
+  tree: { chance: 0.45 },
   props: [...stores],
+};
+
+/** China, Korea and Japan: a bamboo clump or a broadleaf behind the house.
+ * Sweetgum and camphor were the planted village trees of the south; the
+ * maple stands in for both. */
+const eastAsian: YardKit = {
+  ...plain,
+  id: "east-asian",
+  tree: { sprites: ["nature-bamboo-clump", "nature-bamboo-clump", "nature-maple"], chance: 0.5 },
 };
 
 /** Before iron: wattle hurdles round a plot of emmer or pulses, a trough, a
@@ -183,6 +195,7 @@ const croft: YardKit = {
   front: [1, 2],
   styles: { wrap: 0.15, side: 0.4, open: 0.45 },
   beds: ["wheat", "barley", "beans", "flax"],
+  tree: { chance: 0.5 },
   props: [
     ...stores,
     {
@@ -379,5 +392,6 @@ export function yardKit(setting: WorldSetting | undefined): YardKit {
   )
     return compound;
   if (culture === "south-asian" && year >= 1000 && year < 1950) return angan;
+  if (culture === "east-asian") return eastAsian;
   return plain;
 }

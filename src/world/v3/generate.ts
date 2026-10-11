@@ -1059,7 +1059,7 @@ export function createSettlementWorld(
       return (
         !near ||
         random(seed, "settlement-tree", x + land.origin.x, y + land.origin.y) <
-          0.35
+          0.6
       );
     }
     // Trees must not lean across a road immediately beside their trunk.
@@ -1466,7 +1466,7 @@ export function createSettlementWorld(
               y = Math.floor(cy) + dy,
               key = cellKey(x, y);
             if (built.has(key)) continue;
-            const w = 0.95 - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) * 0.55;
+            const w = 0.95 - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) * 0.75;
             if (w > (wear.get(key) ?? 0)) wear.set(key, w);
           }
       }
@@ -1651,11 +1651,13 @@ export function createSettlementWorld(
                     near = Math.abs(dx) + Math.abs(dy);
                 }
             }
+            // Yards and beds keep their grass; only the cell or two at the wall wears.
+            const yard = !!fieldAt(x, y);
             let trample =
-              near < 4
-                ? 1 - near / 4 + (noise(seed, ax, ay, 4, "trample") - 0.5) * 0.7
+              near < 3 && !yard
+                ? 0.75 - near / 4 + (noise(seed, ax, ay, 4, "trample") - 0.5) * 0.7
                 : 0;
-            if (!fieldAt(x, y))
+            if (!yard)
               for (const p of nearby(x, y))
                 trample = Math.max(
                   trample,

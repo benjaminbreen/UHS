@@ -52,6 +52,7 @@ import {
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardCompanion, type YardProp } from "../../content/settlements/yards";
+import { choose, treeMix } from "../../content/ecology/vegetation";
 import { propDefs, propVisualCells } from "../../content/props/catalog";
 import { propKit, techFor } from "../../content/props/selection";
 import { processFor } from "../../content/economy/processes";
@@ -1250,10 +1251,15 @@ export function planSettlement(
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
       (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
+    // Beaten earth in an old town's core; its outer blocks go back to grass.
+    const earthCore = (x: number, y: number, ground: Terrain): Terrain =>
+      ground === "dirt" && cityGround === "dirt" && Math.hypot(x - c.x, y - c.y) > r * 0.45
+        ? "grass"
+        : ground;
     const paintBlock = (block: Rect, given: Terrain = blockGround, role: Pavement = "yard") =>
       eachCell(block, (x, y) => {
         // Behind a Tokyo street front the yards and lanes were beaten earth.
-        const ground = (meiji || role === "vacant") && given === "paving" ? "dirt" : given;
+        const ground = earthCore(x, y, (meiji || role === "vacant") && given === "paving" ? "dirt" : given);
         const k = cellKey(x, y);
         if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, ground, 2)) {
           plan.pavement!.set(k, role);
@@ -1513,7 +1519,7 @@ export function planSettlement(
         for (let x = c.x - reach; x <= c.x + reach; x++) {
           if (!holds(x, y) || !dry({ x, y, w: 1, h: 1 }, false)) continue;
           const k = cellKey(x, y);
-          if (setSurface(k, cityGround === "paving" ? "dirt" : cityGround, 1))
+          if (setSurface(k, earthCore(x, y, cityGround === "paving" ? "dirt" : cityGround), 1))
             plan.pavement!.set(k, "vacant");
           const besideRoad =
             !roads.has(k) &&
@@ -2502,6 +2508,13 @@ export function planSettlement(
   const tBuildings = now();
   const yards = yardKit(pack.setting);
   const yardChoices = yardBoundaries(pack.setting);
+  const yardTree = (i: number) => {
+    const roll = rand("yard-tree-kind", i),
+      own = yards.tree?.sprites;
+    if (own?.length) return own[Math.floor(roll * own.length)];
+    const mix = pack.setting ? treeMix(pack.setting).filter(([t]) => pack.trees.includes(t)) : [];
+    return choose(mix, roll) ?? pack.trees[0];
+  };
   /** Each household fences its own way, from what its place and day offer. */
   const yardBoundary = (i: number): Boundary =>
     yards.boundary === "era"
@@ -2879,8 +2892,7 @@ export function planSettlement(
                 kind: "tree",
                 pos: pos(at),
                 sprite:
-                  yards.tree.sprites.find((t) => pack.trees.includes(t)) ??
-                  yards.tree.sprites[0],
+                  yardTree(i),
                 inventory: {},
               });
             }
@@ -2978,8 +2990,7 @@ export function planSettlement(
             kind: "tree",
             pos: pos(at),
             sprite:
-              yards.tree.sprites.find((t) => pack.trees.includes(t)) ??
-              yards.tree.sprites[0],
+              yardTree(i),
             inventory: {},
           });
         }
@@ -3458,6 +3469,29 @@ export function planSettlement(
           if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, "dirt", 3))
             plan.pavement!.set(k, "yard");
         });
+      if (!pavedLot && yards.tree && rand("lot-tree", i) < yards.tree.chance * 0.5) {
+        // Off the ends of the back strip first, so the crown clears the roof.
+        const along = ny ? back.w : back.h;
+        const at = [-1, along, 0, along - 1]
+          .map((t) => (ny ? { x: back.x + t, y: back.y } : { x: back.x, y: back.y + t }))
+          .find(
+            (p) =>
+              !plan.solid.has(cellKey(p.x, p.y)) &&
+              !roads.has(cellKey(p.x, p.y)) &&
+              dry({ ...p, w: 1, h: 1 }, false),
+          );
+        if (at) {
+          plan.solid.add(cellKey(at.x, at.y));
+          plan.objects.push({
+            id: `${id}-lot-tree`,
+            name: "Yard tree",
+            kind: "tree",
+            pos: pos(at),
+            sprite: yardTree(i),
+            inventory: {},
+          });
+        }
+      }
       const footway = ny
         ? {
             x: rect.x,

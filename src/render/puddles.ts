@@ -114,7 +114,7 @@ export function puddlesAt(
     y: top + (ty - y) * 16,
   });
 
-  if (road && road.radius > 0.95 && road.ruts !== false && hash(wx, wy, 715) < 0.3 + traffic * 0.25) {
+  if (road && road.radius > 0.95 && road.ruts !== false && hash(wx, wy, 715) < 0.15 + traffic * 0.15) {
     let ax = road.b[0] - road.a[0],
       ay = road.b[1] - road.a[1];
     const len = Math.hypot(ax, ay) || 1;
@@ -156,13 +156,15 @@ export function puddlesAt(
     }
   }
 
-  if (hash(wx, wy, 701) > 0.04 + traffic * 0.1) return [];
+  // Pools stand on roads and trodden ground, not across every bare yard.
+  if (!road && !scape) return [];
+  if (hash(wx, wy, 701) > 0.015 + traffic * 0.05) return [];
   const px = 3 + Math.floor(hash(wx, wy, 703) * 10),
     py = 4 + Math.floor(hash(wx, wy, 705) * 9);
   // Water stands in the worn treadway, never in the turf beside it.
   if (pathField(sample, x + px / 16, y + py / 16, ox, oy).coverage < 0.75)
     return [];
-  const r = 6 + hash(wx, wy, 723) * 6 + traffic * 8;
+  const r = 5 + hash(wx, wy, 723) * 4 + traffic * 4;
   const tilt = (hash(wx, wy, 725) - 0.5) * 0.6;
   return [
     {
