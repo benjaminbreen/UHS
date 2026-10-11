@@ -4,6 +4,7 @@ import json
 from PIL import Image, ImageDraw
 from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS
 from art.atlas import pack_atlas
+from art.quality.hue import tint_outline
 from art import fauna_d, fox, proboscidean, cervid, felid, grazer, ursid
 
 root = Path(__file__).resolve().parent.parent
@@ -11,7 +12,7 @@ out = root / "public/fauna-c"
 out.mkdir(exist_ok=True)
 # Set D is the working animals, drawn on a later rig and in several forms and
 # coats; it shares this atlas because it shares the four facings.
-sprites = {**fauna_c(), **fauna_d.fauna_d(), **fox.fauna_fox()}
+sprites = {name: tint_outline(im) for name, im in {**fauna_c(), **fauna_d.fauna_d(), **fox.fauna_fox()}.items()}
 looks = {**looks_c(), **fauna_d.looks(), **fox.looks()}
 PALETTES = {**PALETTES, **fauna_d.PALETTES, **fox.PALETTES}
 STATES = {**STATES, **fauna_d.STATES, **fox.STATES}
@@ -42,7 +43,7 @@ for rig_art, sprites_of, sheet in ((proboscidean, proboscidean.fauna_megafauna, 
                                    (felid, felid.fauna_felid, "fauna-f"),
                                    (grazer, grazer.fauna_grazer, "fauna-g"),
                                    (ursid, ursid.fauna_ursid, "fauna-u")):
-    mega = sprites_of()
+    mega = {name: tint_outline(im) for name, im in sprites_of().items()}
     for name, im in mega.items():
         assert set(im.getchannel("A").getdata()) <= {0, 255}, name
         assert len(im.getcolors(im.width * im.height)) <= 24, name

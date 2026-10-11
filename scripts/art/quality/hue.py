@@ -60,3 +60,48 @@ def shift_colour(colour, t, strength=STRENGTH):
 def shift_ramp(ramp, strength=STRENGTH):
     span = max(len(ramp) - 1, 1)
     return [shift_colour(c, i / span, strength) for i, c in enumerate(ramp)]
+
+
+def tint_outline(im, cap=24):
+    """Recolour a sprite's near-black silhouette edge with the darkest shade of
+    the colour it touches, taken from the sprite's own palette so the colour
+    count does not grow: an outline is a deep shade of its material, never
+    black. Interior blacks (eyes, nostrils, hooves inside the edge) stay."""
+    from collections import Counter
+    px = im.load()
+    w, h = im.size
+    solid = lambda x, y: 0 <= x < w and 0 <= y < h and px[x, y][3] > 0
+    black = lambda c: max(c[:3]) < 40
+    lum = lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+
+    def hsv(c):
+        return colorsys.rgb_to_hsv(*(v / 255 for v in c[:3]))
+
+    palette = {px[x, y] for y in range(h) for x in range(w) if px[x, y][3] and not black(px[x, y])}
+    shade = {}
+
+    def darkest(c):
+        if c not in shade:
+            hc, sc, _ = hsv(c)
+            near = [p for p in palette if lum(p) < lum(c) * 0.8 and (
+                (sc < 0.15 and hsv(p)[1] < 0.25) or
+                (sc >= 0.15 and abs((hsv(p)[0] - hc + 0.5) % 1 - 0.5) < 0.09))]
+            shade[c] = min(near, key=lum) if near else min(palette, key=lum)
+        return shade[c]
+
+    edits = {}
+    for y in range(h):
+        for x in range(w):
+            c = px[x, y]
+            if not c[3] or not black(c):
+                continue
+            if all(solid(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                continue
+            seen = Counter(px[x + dx, y + dy] for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+                           if solid(x + dx, y + dy) and not black(px[x + dx, y + dy]))
+            if seen:
+                edits[x, y] = darkest(seen.most_common(1)[0][0])
+    for (x, y), c in edits.items():
+        px[x, y] = c
+    assert len(im.getcolors(w * h)) <= max(cap, 1)
+    return im

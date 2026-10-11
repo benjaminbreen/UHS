@@ -4,11 +4,12 @@ import json
 from PIL import Image, ImageDraw
 from art.fauna_b import fauna_b, PALETTES, STATES, NATIVE_SIZES
 from art.atlas import pack_atlas
+from art.quality.hue import tint_outline
 
 root = Path(__file__).resolve().parent.parent
 out = root / "public/fauna-b"
 out.mkdir(exist_ok=True)
-sprites = fauna_b()
+sprites = {name: tint_outline(im) for name, im in fauna_b().items()}
 for name, im in sprites.items():
     assert set(im.getchannel("A").getdata()) <= {0, 255}, name
     assert len(im.getcolors(im.width * im.height)) <= 24, name
