@@ -85,6 +85,14 @@ export function coastDistance(
   return distance + amplitude * scallop * fade;
 }
 
+function waterOnTier(sample: TopographySample, x: number, y: number, tier: number) {
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const n = sample(x + dx, y + dy);
+      if (n?.surface === "water" && !n.bridge && n.height === tier) return true;
+    }
+  return false;
+}
 export function shoreDistance(
   sample: TopographySample,
   x: number,
@@ -92,9 +100,14 @@ export function shoreDistance(
   ox = 0,
   oy = 0,
 ) {
-  const c = sample(Math.floor(x), Math.floor(y));
+  const cx = Math.floor(x),
+    cy = Math.floor(y);
+  const c = sample(cx, cy);
   const d = waterDistance(sample, x, y);
-  if (c && c.height > 0 && c.surface !== "water") return Math.max(0.08, d);
+  // Ground above the water keeps its bank; water on the same terrace reaches
+  // into the cell, or the stream's edge is the cell grid.
+  if (c && c.height > 0 && c.surface !== "water" && !waterOnTier(sample, cx, cy, c.height))
+    return Math.max(0.08, d);
   return d + (waterNoise((x + ox) * 16, (y + oy) * 16, 7, 319) - 0.5) * 0.14;
 }
 export function waterContactDistance(
