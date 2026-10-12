@@ -1,6 +1,7 @@
 """Composable building compiler. All dimensions are source pixels, never screen pixels.
 Recipes own materials/forms; neither this compiler nor the runtime knows an era.
 """
+import re
 import json
 import random
 from PIL import Image, ImageDraw
@@ -432,6 +433,9 @@ def build_buildings(root, sprites):
         sprites[name]=im
         # Lit rooms after dark, drawn by the painter; turned copies share it.
         if r.get('obliqueModern') and 'facing' not in r: sprites[name+'-glow']=artist.glow
+        # Front-on painters that know their paper and open rooms ship them lit.
+        night=getattr(artist,'night',None)
+        if night is not None and 'facing' not in r: sprites[name+'-glow']=night
         voxel=getattr(artist,'voxel',False)
         if voxel:
             artist.glow.info['trim']=True
@@ -480,6 +484,7 @@ def build_buildings(root, sprites):
             **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
+            **({'glow':re.sub(r'-(north|east|west)$','',name)+'-glow'} if getattr(artist,'night',None) is not None else {}),
             **({'voxel':True,'glow':name+'-glow','lampFrame':name+'-lamps','lights':artist.lights,
                 'snowFrame':name+'-snow','wetFrame':name+'-wet','life':life} if voxel else {}),
             **({'clocks':artist.clocks} if getattr(artist,'clocks',None) else {}),

@@ -154,10 +154,15 @@ def east_asian():
     from art.regional_houses import regional_house_recipes
     from art import front_ancient as fa
     from art.period import period_recipes
+    from art.religious import religious_recipes
+    from art.theatres import theatre_recipes
+    from art.halls import hall_recipes
+    from art.sacred import sacred_recipes
     source = json.loads((ROOT / 'src/content/graphics/buildings.json').read_text())
-    rec = {**regional_house_recipes(ROOT, source), **period_recipes(ROOT, source)}
+    rec = {**regional_house_recipes(ROOT, source), **period_recipes(ROOT, source), **religious_recipes(ROOT, source),
+           **theatre_recipes(ROOT, source), **hall_recipes(ROOT, source), **sacred_recipes()}
     for name, r in sorted(rec.items()):
-        got = name.startswith(('eastasian', 'period-')) and fa.spec_for(name, r)
+        got = fa.spec_for(name, r)
         if not got or not (name.startswith('eastasian') or got[0][0].startswith('sino')):
             continue
         (kind, spec), _ = got

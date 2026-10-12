@@ -116,7 +116,10 @@ def spec_for(name, r):
             return ('wa-court', dict(region=region, W=W, wing=max(36, W // 5), street=58, front=18, court=70,
                                      far=20, face=34, portal=0.36 + 0.1 * (v % 2))), (nw, fh)
         return ('wa-court', dict(region=region, W=W, wing=round(W * 0.19), portal=0.42 + 0.06 * (v % 2))), (nw, fh)
-    if base.startswith('eastasian-courtyard'):
+    if re.match(r'(religious-(chinese|japanese)-temple|hall-sento|theatre-(kabuki-theatre|noh-stage))-', base):
+        # temples, baths and theatres were already drawn at size
+        nw = fw
+    elif base.startswith('eastasian-courtyard'):
         # a compound is wide already; at the houses' scale it would fill a block
         nw = max(3, round(fw * 1.2))
     got = sino.spec_for(base, r, nw, fh)
@@ -209,6 +212,9 @@ def adopt(recipes):
         # The court is painted with its own shade; the runtime court light is
         # for the old sprites, whose void this would misplace.
         r.pop('roofVoid', None)
+        # A voxel temple's shadows and lights belong to the old sprite.
+        r.pop('sacredVoxel', None)
+        r.pop('shadowFrame', None)
         r['footprint'] = [fw, fh]
         r['entrance'] = [fw // 2, fh]
         n += 1
@@ -265,6 +271,8 @@ class FrontAncientPainter:
         self.door_size = (info.get('door_width', 22), info['door_h'])
         self.door_ground = info.get('door_base', info['base']) + 1
         self.no_door = info.get('doorless', False)
+        night = info.get('night')
+        self.night = night if night is not None and night.getbbox() else None
         self.bottom = info['base'] + 1
         _PAINTED[key] = dict(self.__dict__)
 

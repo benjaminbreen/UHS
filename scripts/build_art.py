@@ -168,16 +168,22 @@ def _landmark(name):
 precinct_frames={k:S.pop(k) for k in list(buildings) if k in S and k.startswith('precinct-')}
 # Churches, temples and mosques take a page of their own: with the halls and
 # theatres they had filled the civic page.
-sacred_frames={k:S.pop(k) for k in list(buildings) if k in S and (buildings.get(k) or {}).get('religious')}
-civic_frames={k:S.pop(k) for k in list(buildings) if k in S and _landmark(k)}
+def _with_glow(sel):
+    """A building's lit-room frame travels on its building's sheet."""
+    for k in list(sel):
+        b=buildings.get(k) or {}
+        if k+'-glow' in S and not b.get('obliqueModern') and not b.get('voxel'): sel[k+'-glow']=S.pop(k+'-glow')
+    return sel
+sacred_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and (buildings.get(k) or {}).get('religious')})
+civic_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and _landmark(k)})
 # Tents, shelters and lodges take a page of their own: the regional page was
 # full with the courtyard compounds alone.
 CAMP_FAMILIES=('steppe-','forager-','northwest-house','amazon-maloca','enkang-house','iroquoian-longhouse','ainu-chise')
 camp_frames={k:S.pop(k) for k in list(buildings)
              if k in S and (buildings[k].get('campStyle') or
                             (buildings[k].get('regionalHouse') or '').startswith(CAMP_FAMILIES))}
-regional_frames={k:S.pop(k) for k in list(buildings)
-                 if k in S and buildings[k].get('regionalHouse')}
+regional_frames=_with_glow({k:S.pop(k) for k in list(buildings)
+                 if k in S and buildings[k].get('regionalHouse')})
 # The modern gold masters and their lit-room frames: towers too tall to
 # share the house page.
 modern_frames={k:S.pop(k) for k in list(S)
@@ -189,7 +195,7 @@ def _voxel(k):
     return (buildings.get(base) or {}).get('voxel')
 weather_frames={k:S.pop(k) for k in list(S) if _voxel(k) and k.endswith(('-snow','-wet'))}
 street_frames={k:S.pop(k) for k in list(S) if _voxel(k)}
-building_frames={k:S.pop(k) for k in list(buildings) if k in S}
+building_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S})
 atlas=pack_atlas(S,OUT,'atlas')
 buildings_atlas=pack_atlas(building_frames,OUT,'buildings')
 regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings')

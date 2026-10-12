@@ -74,7 +74,15 @@ def _floor(r):
                                    RED, BLACK, GREEN, BLUE, STRAW, RICE_STRAW))
 
 POSTS = {'red': RED, 'black': BLACK, 'timber': TIMBER, 'dark': DARK_TIMBER}
-TILES = {'tile': TILE, 'dark': TILE_DARK, 'han': TILE_HAN}
+# Temple roofs: glazed green for a Daoist hall, verdigris copper on a shrine.
+GLAZE_GREEN = _floor(ramp(150, 0.085, warm=8, cool=6, lift=-0.1))
+COPPER = _floor(ramp(172, 0.06, warm=6, cool=6, lift=-0.02))
+SHINGLE = _floor(ramp(42, 0.055, cool=6, lift=-0.1))
+RED_WALL = ramp(28, 0.13, lift=-0.25)                       # red ochre wash on temple walls
+OCHRE_WALL = ramp(76, 0.08, lift=0.02)                      # the south's yellow temple walls
+BRONZE = _floor(ramp(62, 0.07, cool=8, lift=-0.16))
+TILES = {'tile': TILE, 'dark': TILE_DARK, 'han': TILE_HAN, 'green': GLAZE_GREEN, 'copper': COPPER,
+         'shingle': SHINGLE}
 
 # ------------------------------------------------------------------ tiles
 
@@ -191,6 +199,8 @@ class Hall:
         self.roof_px = set()
         self.walls_px = set()
         self.sills = []
+        # what shows lamplight after dark: 1 paper, 2 the dark of a room
+        self.lit = {}
 
     # -------------------------------------------------------- geometry
 
@@ -250,6 +260,10 @@ class Hall:
                     c.p(xx, yy, EARTH[q])
         elif kind == 'plaster-grey':
             fm.render(c, x, y, w, h, ramp(90, 0.016, lift=-0.02))
+        elif kind == 'red':
+            fm.render(c, x, y, w, h, RED_WALL)
+        elif kind == 'ochre':
+            fm.render(c, x, y, w, h, OCHRE_WALL)
         for yy in range(y, y + h):
             for xx in range(x, x + w):
                 self.walls_px.add((xx, yy))
@@ -371,6 +385,8 @@ class Hall:
                     tilt = int(h2(i, j, 651) * 5)
                     slat = u == 0 or v == 0 or (u == (v + tilt) % 7 and h2(i, j, 652) < 0.6)
                 c.p(xx, yy, r[4] if slat else paper)
+                if not slat:
+                    self.lit[xx, yy] = 1
         # the frame
         for xx in range(x - 2, x + w + 2):
             c.p(xx, y - 2, r[1]); c.p(xx, y - 1, r[3])
@@ -440,6 +456,7 @@ class Hall:
         for yy in range(y, foot - 14):
             for xx in range(a, b):
                 c.p(xx, yy, VOID if yy > y + 2 else (30, 22, 32, 255))
+                self.lit[xx, yy] = 2
         shelves = [ramp(65, 0.12)[2], ramp(40, 0.12)[3], ramp(150, 0.08)[3], RED[2], GOLD[2]]
         for k, sy in enumerate(range(y + 8, foot - 18, 9)):
             c.rect(a + 2, sy, b - a - 4, 1, post[3])
@@ -787,7 +804,8 @@ class Hall:
         self.door_h = 44
         self.door_x = self.x0 + self.W // 2
         {'timber': self.timber_front, 'koshi': self.koshi_front, 'kura': self.kura_front,
-         'gate': self.gate_front, 'open': self.open_front}.get(s['front'], self.wall_front)(top0, h0)
+         'gate': self.gate_front, 'open': self.open_front, 'noh': self.noh_front, 'kabuki': self.kabuki_front,
+         'sento': self.sento_front, 'stage': self.stage_front}.get(s['front'], self.wall_front)(top0, h0)
         eave = top0
         if s['storeys'] > 1:
             uh = s['upper_h']
@@ -795,6 +813,10 @@ class Hall:
                 self.gallery(top0, uh)
             elif s['upper'] == 'mushiko':
                 self.mushiko(top0 - uh, uh)
+            elif s['upper'] == 'clerestory':
+                self.clerestory(top0 - uh, uh)
+            elif s['upper'] == 'billboards':
+                self.billboards(top0 - uh, uh)
             elif s['upper'] == 'kura':
                 self.kura_upper(top0 - uh, uh)
             else:
@@ -820,6 +842,9 @@ class Hall:
         self.stacks = []
         finish(c)
         consolidate(c, rare=4)
+        self.night = night_image(c.im, self.lit)
+        if info is not None:
+            info['night'] = self.night
         return c.im
 
     def koshi_front(self, top, h):
@@ -845,6 +870,8 @@ class Hall:
                 for xx in range(a, b):
                     j = (xx - a) % 3
                     col = post[2] if j == 0 else post[4] if j == 1 else VOID
+                    if col == VOID:
+                        self.lit[xx, yy] = 2
                     if (yy - y) in (0, (foot - 4 - y) // 2):
                         col = post[2]
                     c.p(xx, yy, col)
@@ -876,6 +903,8 @@ class Hall:
                     if round_:
                         continue
                     c.p(xx, yy, VOID if j in (2, 3) else WHITE[1] if j == 0 else WHITE[3])
+                    if j in (2, 3):
+                        self.lit[xx, yy] = 2
             for xx in range(a - 1, b + 1):
                 c.p(xx, y1, WHITE[4]); c.p(xx, y0 - 1, WHITE[0])
             self.sills.append((a, y1, b - a))
@@ -1023,6 +1052,167 @@ class Hall:
         for e in edges:
             self.post(e, top, foot, post)
         op.cast(c, edges[0], top + 5, edges[-1] - edges[0], 4, 0.6)
+
+    def clerestory(self, top, h):
+        """The short wall between a double eave's two roofs: posts, a beam, a
+        band of lattice lights."""
+        c, s = self.c, self.s
+        post = POSTS[s['posts']]
+        x0, x1 = self.x0 + 12, self.x0 + self.W - 12
+        self.wall_face(x0, top, x1 - x0, h, s['wall'] if s['wall'] in ('red', 'ochre', 'white') else 'white')
+        self.lattice(x0 + 6, top + 5, x1 - x0 - 12, h - 9, s['lattice'], post)
+        for x in range(x0, x1, max(20, (x1 - x0) // 6)):
+            for yy in range(top, top + h):
+                c.p(x, yy, post[2]); c.p(x + 1, yy, post[4])
+
+    def noh_front(self, top, h):
+        """A noh stage, open to the audience: the back panel of boards with
+        the painted pine, a corner post at each end, the polished cypress
+        floor seen from above, dark under it."""
+        c, s = self.c, self.s
+        post = POSTS[s['posts']]
+        x0, x1 = self.x0, self.x0 + self.W
+        foot = top + h
+        floor = 14
+        back = foot - floor
+        for yy in range(top, back):
+            for xx in range(x0, x1):
+                c.p(xx, yy, TIMBER[2] if (xx - x0) % 9 else TIMBER[3])
+        pine_panel(c, x0 + 6, top + 6, x1 - x0 - 12, back - top - 8)
+        # the floor: boards running back, a lit front edge
+        for yy in range(back, foot):
+            for xx in range(x0 - 2, x1 + 2):
+                q = 1 if (xx - x0) % 6 else 2
+                if yy == foot - 1:
+                    q = 3
+                c.p(xx, yy, TIMBER[q])
+        for xx in range(x0 - 2, x1 + 2):
+            c.p(xx, back, TIMBER[3])
+        for e in (x0 + 2, x1 - 3):
+            for yy in range(top, foot):
+                for i, q in enumerate((2, 1, 2, 3, 5)):
+                    c.p(e - 2 + i, yy, post[q])
+        for x in range(x0 - 2, x1 + 2):
+            for k in range(5):
+                c.p(x, top + k, post[(2, 1, 3, 4, 5)[k]])
+        self.door_x, self.door_h = (x0 + x1) // 2, h
+
+    def kabuki_front(self, top, h):
+        """A playhouse front: boarded, three entrances under split curtains,
+        the box office's lattice, a lantern row along the eave."""
+        c, s = self.c, self.s
+        post = POSTS[s['posts']]
+        x0, x1 = self.x0 + self.wt, self.x0 + self.W - self.wt
+        foot = top + h
+        for yy in range(top, foot):
+            for xx in range(x0, x1):
+                c.p(xx, yy, TIMBER[3] if (xx - x0) % 7 else TIMBER[4])
+        n = 3 if x1 - x0 > 100 else 1
+        xs = [x0 + round((x1 - x0) * (k + 0.5) / n) for k in range(n)]
+        for k, cx in enumerate(xs):
+            dw, dh = 24, 44
+            for yy in range(foot - dh, foot):
+                for xx in range(cx - dw // 2, cx + dw // 2):
+                    c.p(xx, yy, VOID)
+                    self.lit[xx, yy] = 2
+            noren(c, cx, foot - dh, dw + 2, 18, 'indigo' if k % 2 == 0 else 'red')
+            op.reveal(c, cx - dw // 2, foot - dh, dw, dh, 2)
+        self.door_x, self.door_h = xs[len(xs) // 2], 44
+        for x in range(x0 - 2, x1 + 2):
+            for k in range(5):
+                c.p(x, top + k, post[(2, 1, 3, 4, 5)[k]])
+        for e in (x0, x1 - 1):
+            self.post(e, top, foot, post)
+        # paper lanterns along the eave, each lit
+        for x in range(x0 + 10, x1 - 8, 16):
+            for dy in range(6):
+                for dx in range(-2, 3):
+                    if abs(dx) < 2 or 0 < dy < 5:
+                        c.p(x + dx, top + 7 + dy, PAPER[1] if dx < 0 else PAPER[2])
+                        self.lit[x + dx, top + 7 + dy] = 1
+            c.p(x, top + 6, BLACK[2]); c.p(x, top + 13, BLACK[2])
+
+    def billboards(self, top, h):
+        """The playbills over a theatre's front: painted boards of the day's
+        actors in bright robes, framed in black, under the eave."""
+        c = self.c
+        x0, x1 = self.x0 + self.wt, self.x0 + self.W - self.wt
+        self.wall_face(x0, top, x1 - x0, h, 'white')
+        robes = [ramp(26, 0.14, lift=-0.06), ramp(240, 0.1, lift=-0.08), ramp(150, 0.08, lift=-0.06), ramp(80, 0.12)]
+        n = max(2, (x1 - x0) // 22)
+        bw = (x1 - x0 - 6) // n
+        for k in range(n):
+            bx = x0 + 3 + k * bw
+            by, bh = top + 6, h - 12
+            for yy in range(by, by + bh):
+                for xx in range(bx + 1, bx + bw - 1):
+                    edge = yy in (by, by + bh - 1) or xx in (bx + 1, bx + bw - 2)
+                    c.p(xx, yy, BLACK[2] if edge else PAPER[1])
+            # a figure: a head and a robe of the board's colour
+            rr = robes[(k + self.s['seed']) % len(robes)]
+            cx = bx + bw // 2
+            for yy in range(by + 4, by + 7):
+                for xx in range(cx - 1, cx + 2):
+                    c.p(xx, yy, ramp(60, 0.05, lift=0.04)[1])
+            c.p(cx - 1, by + 3, BLACK[3]); c.p(cx, by + 3, BLACK[3]); c.p(cx + 1, by + 3, BLACK[3])
+            for yy in range(by + 7, by + bh - 2):
+                half = 2 + (yy - by - 7) // 3
+                for xx in range(cx - half, cx + half + 1):
+                    if bx + 2 < xx < bx + bw - 3:
+                        c.p(xx, yy, rr[2 if xx < cx else 3])
+            for yy in range(by + 3, by + bh - 3, 3):
+                c.p(bx + 3, yy, BLACK[2])
+
+    def sento_front(self, top, h):
+        """A bath house's front: boarded below, plaster above, the entrance
+        hung with the bath's curtain, a lattice light either side."""
+        c, s = self.c, self.s
+        post = POSTS[s['posts']]
+        x0, x1 = self.x0 + self.wt, self.x0 + self.W - self.wt
+        foot = top + h
+        self.wall_face(x0, top, x1 - x0, h, 'white')
+        for yy in range(foot - h // 3, foot):
+            for xx in range(x0, x1):
+                c.p(xx, yy, TIMBER[3] if (xx - x0) % 6 else TIMBER[4])
+        cx = (x0 + x1) // 2
+        dw, dh = 26, 46
+        for yy in range(foot - dh, foot):
+            for xx in range(cx - dw // 2, cx + dw // 2):
+                c.p(xx, yy, VOID)
+                self.lit[xx, yy] = 2
+        noren(c, cx, foot - dh, dw + 4, 22, 'indigo', mark='yu')
+        op.reveal(c, cx - dw // 2, foot - dh, dw, dh, 2)
+        for wx in (x0 + 8, x1 - 8 - 18):
+            if abs(wx + 9 - cx) > dw // 2 + 12:
+                self.lattice(wx, top + 10, 18, 18, 'grid', post)
+        self.door_x, self.door_h = cx, dh
+        for x in range(x0 - 2, x1 + 2):
+            for k in range(5):
+                c.p(x, top + k, post[(2, 1, 3, 4, 5)[k]])
+        for e in (x0, x1 - 1):
+            self.post(e, top, foot, post)
+
+    def stage_front(self, top, h):
+        """A fairground stage: a plank platform on trestles under a light roof,
+        the striped curtain drawn across, bamboo uprights."""
+        c = self.c
+        x0, x1 = self.x0 + 4, self.x0 + self.W - 4
+        foot = top + h
+        deck = foot - 16
+        joshiki(c, x0 + 4, top + 6, x1 - x0 - 8, deck - top - 6)
+        for yy in range(deck, foot):
+            for xx in range(x0, x1):
+                if yy < deck + 4:
+                    c.p(xx, yy, TIMBER[1] if yy == deck else TIMBER[2])
+                elif (xx - x0) % 18 in (0, 1, 2):
+                    c.p(xx, yy, TIMBER[4])
+        bam = ramp(95, 0.08, lift=-0.04)
+        for e in (x0 + 1, x1 - 3):
+            for yy in range(top, foot):
+                c.p(e, yy, bam[2]); c.p(e + 1, yy, bam[4])
+                if (yy - top) % 12 == 0:
+                    c.p(e, yy, bam[5]); c.p(e + 1, yy, bam[5])
+        self.door_x, self.door_h = (x0 + x1) // 2, h
 
     def upper_wall(self, top, h):
         c, s = self.c, self.s
@@ -1359,6 +1549,191 @@ def side_range(c, Lo, Li, ys, ye, r, outer_left=None):
         c.rect(xr - 3, rake(xr) - 3 + k, 7, 1, r[q])
 
 
+PINE = _floor(ramp(140, 0.09, lift=-0.14))
+
+
+def pine_panel(c, x, y, w, h):
+    """Kagami-ita: the back panel of a noh stage, its old pine painted on the
+    boards, the trunk leaning, the foliage in flat layered pads."""
+    cx = x + w // 2
+    for t in range(h):
+        tx = cx - 6 + round(t * 0.25 + 3 * math.sin(t / 7))
+        yy = y + h - 1 - t
+        for k in range(-2, 3):
+            c.p(tx + k, yy, ramp(40, 0.05, lift=-0.18)[2 if k < 0 else 4])
+    pads = [(0.5, 0.18, 0.42), (0.28, 0.38, 0.3), (0.72, 0.42, 0.3), (0.42, 0.62, 0.36), (0.66, 0.74, 0.24)]
+    for fx, fy, fw in pads:
+        px, py, pw = x + round(w * fx), y + round(h * fy), round(w * fw)
+        for dy in range(-3, 4):
+            half = round(pw / 2 * math.sqrt(max(0, 1 - (dy / 3.5) ** 2)))
+            for dx in range(-half, half + 1):
+                q = 2 if dy < -1 else 3 if dy < 2 else 4
+                if (dx + dy) % 5 == 0:
+                    q += 1
+                c.p(px + dx, py + dy, PINE[q])
+
+
+def noren(c, cx, y, w, h, colour='indigo', mark=None):
+    """A split curtain hung across a doorway's head, dyed, slit into panels,
+    a white mark on it."""
+    r = CLOTH.get(colour, CLOTH['indigo'])
+    x0 = cx - w // 2
+    for yy in range(y, y + h):
+        for xx in range(x0, x0 + w):
+            seam = (xx - x0) % (w // 3 + 1) == 0 and yy > y + 3
+            if seam:
+                continue
+            c.p(xx, yy, r[2] if yy == y else r[3] if (xx - x0) % 2 else r[4])
+    for xx in range(x0 - 1, x0 + w + 1):
+        c.p(xx, y - 1, TIMBER[2])
+    if mark == 'yu':
+        # the bath's sign, a white loop and stroke
+        mx, my = cx - 3, y + h // 2 - 3
+        for dx, dy in ((0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (2, 2), (2, 1), (2, 0), (1, 0), (4, -1),
+                       (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (3, 5)):
+            c.p(mx + dx, my + dy, WHITE[0])
+
+
+def joshiki(c, x, y, w, h):
+    """The kabuki curtain: black, persimmon and green in vertical stripes."""
+    cols = [ramp(280, 0.02, lift=-0.28), ramp(48, 0.12, lift=-0.04), ramp(158, 0.09, lift=-0.14)]
+    sw = max(4, w // 9)
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            r = cols[((xx - x) // sw) % 3]
+            fold = (xx - x) % sw
+            c.p(xx, yy, r[1 if fold == 0 else 3 if fold == sw - 1 else 2])
+    for xx in range(x - 1, x + w + 1):
+        c.p(xx, y - 1, TIMBER[2]); c.p(xx, y, TIMBER[3])
+
+
+def censer(c, cx, by):
+    """A bronze incense burner on its legs, smoke-dark inside the rim."""
+    so.lathe(c, cx, by - 3, [(0, 6), (5, 8), (9, 8.5), (10, 7.5)], BRONZE, hollow=(7, 6), courses=2)
+    for dx in (-5, 5):
+        for k in range(4):
+            c.p(cx + dx, by - k, BRONZE[3]); c.p(cx + dx + 1, by - k, BRONZE[5])
+
+
+def toro(c, cx, by):
+    """A stone lantern: base, post, the firebox with its light, the cap and
+    its jewel."""
+    so.lathe(c, cx, by, [(0, 5), (2, 5), (3, 2), (12, 2), (13, 5), (18, 5), (19, 7), (21, 6), (23, 2), (25, 1)],
+             STONE, courses=0)
+    for yy in range(by - 17, by - 14):
+        for xx in range(cx - 2, cx + 2):
+            c.p(xx, yy, (255, 214, 130, 255))
+
+
+def torii(c, cx, by, w=46, h=48):
+    """A torii in vermilion: two posts, the tie beam, the black-capped lintel
+    whose ends sweep up."""
+    for side in (-1, 1):
+        x = cx + side * (w // 2 - 6)
+        for yy in range(by - h, by):
+            for i, q in enumerate((2, 1, 2, 3, 4)):
+                c.p(x - 2 + i, yy, RED[q])
+        c.rect(x - 3, by - 3, 7, 3, BLACK[2])
+    for xx in range(cx - w // 2 + 2, cx + w // 2 - 2):
+        for k, q in enumerate((1, 2, 3)):
+            c.p(xx, by - h + 12 + k, RED[q])
+    for xx in range(cx - w // 2 - 4, cx + w // 2 + 4):
+        e = min(xx - (cx - w // 2 - 4), cx + w // 2 + 3 - xx)
+        up = 2 if e < 3 else 1 if e < 7 else 0
+        for k, q in enumerate((1, 2, 3, 4)):
+            c.p(xx, by - h + k - up, (BLACK if k < 2 else RED)[q])
+    op.cast(c, cx - w // 2, by - h + 4, w, 2, 0.7)
+
+
+def yagura(c, cx, by):
+    """The licensed drum tower over a theatre's door: a box hung with the
+    house's crested cloth, five spears standing on top."""
+    w, h = 26, 20
+    cloth = CLOTH['indigo']
+    for yy in range(by - h, by):
+        for xx in range(cx - w // 2, cx + w // 2):
+            q = 2 if xx < cx - w // 2 + 2 else 4 if xx > cx + w // 2 - 3 else 3
+            c.p(xx, yy, cloth[q])
+    for dy in range(-4, 5):
+        for dx in range(-4, 5):
+            d = dx * dx + dy * dy
+            if 9 <= d <= 16:
+                c.p(cx + dx, by - h // 2 + dy, WHITE[1])
+    for xx in range(cx - w // 2 - 2, cx + w // 2 + 2):
+        c.p(xx, by - h - 1, TIMBER[2]); c.p(xx, by - h, TIMBER[4])
+    for k in range(5):
+        x = cx - 10 + k * 5
+        for yy in range(by - h - 10, by - h):
+            c.p(x, yy, TIMBER[3])
+        c.p(x, by - h - 11, STONE[0])
+
+
+def nobori(c, x, by, h, colour):
+    """A tall banner on its pole, the actor's name down it in black."""
+    r = colour
+    for yy in range(by - h, by):
+        c.p(x, yy, TIMBER[3])
+    for yy in range(by - h + 2, by - 10):
+        for xx in range(x + 1, x + 6):
+            c.p(xx, yy, r[2] if xx == x + 1 else r[3])
+        if (yy - by) % 5 == 0:
+            c.p(x + 3, yy, BLACK[3]); c.p(x + 4, yy + 1, BLACK[3])
+    c.rect(x - 1, by - 2, 3, 2, STONE[3])
+
+
+def gravel(c, L, R, y0, y1):
+    """Raked white gravel, its furrows running across the court."""
+    for yy in range(y0, y1):
+        for xx in range(L, R):
+            q = 1 if (yy - y0) % 3 else 2
+            if h2(xx, yy, 731) < 0.04:
+                q = 3
+            c.p(xx, yy, STONE[q])
+
+
+def night_image(im, lit):
+    """The building's lamplit rooms as a frame of its own, the size of the
+    sprite: paper panes glowing between their dark slats, the dark of an open
+    shop or a mushiko slot warm and dimmer, brightest at the sill."""
+    from PIL import Image
+    g = Image.new('RGBA', im.size)
+    gp, p = g.load(), im.load()
+    for (x, y), lv in lit.items():
+        if not (0 <= x < im.width and 0 <= y < im.height) or not p[x, y][3]:
+            continue
+        q = p[x, y]
+        lum = (q[0] + q[1] + q[2]) / 3
+        if (lv == 1 and lum < 150) or (lv == 2 and lum > 90):
+            continue
+        low = lit.get((x, y + 1)) != lv
+        gp[x, y] = (255, 214, 130, 255) if low else (255, 190, 104, 245) if lv == 1 else (255, 160, 72, 215)
+    return g
+
+
+def carry_glow(final, parts):
+    """The lamplight of buildings composited into one sprite, kept only where
+    their own pixels are still the ones showing."""
+    from PIL import Image
+    g = Image.new('RGBA', final.size)
+    gp, fp_ = g.load(), final.load()
+    for im, glow, ox, oy in parts:
+        if glow is None:
+            continue
+        sp, lp = im.load(), glow.load()
+        for y in range(glow.height):
+            for x in range(glow.width):
+                q = lp[x, y]
+                if not q[3]:
+                    continue
+                X, Y = x + ox, y + oy
+                if not (0 <= X < final.width and 0 <= Y < final.height):
+                    continue
+                a, b = sp[x, y], fp_[X, Y]
+                if sum(abs(a[i] - b[i]) for i in range(3)) < 60:
+                    gp[X, Y] = q
+    return g
+
+
 def court_floor(c, L, R, y0, y1, kind, path=True):
     """A court from above: square bricks laid in a grid, or granite slabs in
     the south; a raised stone walk from the gate to the hall steps."""
@@ -1416,7 +1791,11 @@ def courtyard(spec=None, info=None):
     c.im.alpha_composite(bim, (bx, 0))
     c.px = c.im.load()
     L, R = F.x0 + wing, F.x0 + W - wing
-    court_floor(c, L, R, yB - 2, oy + F.top + 2, s['floor'])
+    if s['floor'] == 'gravel':
+        gravel(c, L, R, yB - 2, oy + F.top + 2)
+        court_floor(c, (L + R) // 2 - 9, (L + R) // 2 + 9, yB - 2, oy + F.top + 2, 'stone', path=False)
+    else:
+        court_floor(c, L, R, yB - 2, oy + F.top + 2, s['floor'])
     # the main hall's terrace and the shade the side ranges throw
     r = TILES.get(s['side_tone'] or s['main'].get('tone', 'tile'), TILE)
     ys, ye = yB - 22, oy + F.top
@@ -1436,15 +1815,27 @@ def courtyard(spec=None, info=None):
         for side in ((-1, 1) if s['trees'] > 1 else (-1,)):
             x = cx + side * gap
             so.lathe(c, x, yt + 4, [(0, 7), (5, 7)], STONE, rim=True)
-            pr.tree(c, x, yt, s.get('tree', 'pomegranate'), size=0.8)
-    if s['vats']:
-        vat(c, cx + (gap if s['trees'] < 2 else 0) + (0 if s['trees'] < 2 else 0) - (0), yt + 14 if s['trees'] > 1 else yt + 6, 8)
+            if s.get('tree') == 'cypress':
+                cypress(c, x, yt)
+            else:
+                pr.tree(c, x, yt, s.get('tree', 'pomegranate'), size=0.8)
+    if s.get('toro'):
+        for side in (-1, 1):
+            toro(c, cx + side * (gap // 2 + 6), yt + 18)
+    if s.get('centre') == 'censer':
+        censer(c, cx, yt + 16)
+    elif s.get('centre') == 'torii':
+        torii(c, cx, yt + court_d // 2 + 6, w=min(56, (R - L) // 2))
+    elif s['vats']:
+        vat(c, cx + (gap if s['trees'] < 2 else 0), yt + 14 if s['trees'] > 1 else yt + 6, 8)
     c.im.alpha_composite(fim, (0, oy))
     c.px = c.im.load()
     if info is not None:
         info.update(x0=F.x0, W=W, base=F.base - 1 + oy, door_x=F.door_x, door_h=F.door_h)
     finish(c)
     consolidate(c, rare=6)
+    if info is not None:
+        info['night'] = carry_glow(c.im, [(bim, B.night, bx, 0), (fim, F.night, 0, oy)])
     return c.im
 
 
@@ -1480,7 +1871,182 @@ def row(spec=None, info=None):
         dx, dh = doors[len(doors) // 2]
         info.update(x0=g0.x0, W=W, base=tall - 1, door_x=dx, door_h=dh)
     consolidate(c, rare=6)
+    if info is not None:
+        offs = [sum(widths[:k]) for k in range(n)]
+        info['night'] = carry_glow(c.im, [(im, g.night, offs[k], tall - g.base) for k, (g, im) in enumerate(built)])
     return c.im
+
+
+class Sento(GableFront):
+    """A bath house under a gable: a steam monitor astride the ridge, the
+    boiler's brick stack standing from the back of the right slope."""
+
+    def roof(self, eave):
+        super().roof(eave)
+        c, s = self.c, self.s
+        r = self.r
+        apx = self.x0 + self.W // 2
+        y_r = self.rake(apx)
+        if s.get('monitor', True):
+            # the monitor: a short roof over a louvred slot, along the ridge
+            y0, y1 = y_r - self.depth + 10, y_r - 18
+            for y in range(y0, y1):
+                for x in range(apx - 12, apx + 13):
+                    if abs(x - apx) < 9 and y > y0 + 4:
+                        c.p(x, y, VOID if (y - y0) % 3 else TIMBER[3])
+                    elif abs(x - apx) >= 9:
+                        c.p(x, y, kawara_rake(y, abs(x - apx) * 2, r, -1 if x < apx else 2))
+            for x in range(apx - 13, apx + 14):
+                c.p(x, y0, r[1]); c.p(x, y0 + 1, r[3])
+        # the stack, inside the roof's outline
+        sx, sw = apx + self.W // 4 - 5, 10
+        foot = self.rake(sx) - self.depth // 2
+        top = foot - 46
+        fm.brick(c, sx, top, sw, foot - top, ramp(28, 0.08, lift=-0.14))
+        c.rect(sx, top, 2, foot - top, ramp(28, 0.08, lift=-0.04)[2])
+        c.rect(sx - 1, top - 3, sw + 2, 3, STONE[2])
+        self.stacks = [(sx - 1, sw + 2)]
+
+
+def temple(spec=None, info=None):
+    """A temple: the gate hall on the street, the court with its burner,
+    lanterns or torii, and the main hall across the back under a double
+    eave. Built on the courtyard house."""
+    s = dict(W=240, look='buddhist', size='medium')
+    s.update(spec or {})
+    looks = {
+        # China: red ochre walls, grey tile, the dragon-fish on the ridge
+        'buddhist': dict(tone='tile', posts='red', wall='red', ridge='chiwen', curve=1, floor='stone', centre='censer',
+                         tree='cypress'),
+        # a Daoist temple's green-glazed roofs and swallowtail ridges
+        'daoist': dict(tone='green', posts='red', wall='red', ridge='swallow', curve=2, floor='stone', centre='censer',
+                       tree='cypress'),
+        # the south's temples: yellow walls, black tile
+        'southern': dict(tone='dark', posts='dark', wall='ochre', ridge='swallow', curve=2, floor='stone',
+                         centre='censer', tree=None),
+        # Japan: natural wood, white walls, grey kawara, raked gravel and lanterns
+        'japanese': dict(tone='tile', posts='timber', wall='white', ridge='oni', curve=1, floor='gravel',
+                         centre='censer', toro=True, tree=None),
+        'shrine': dict(tone='copper', posts='red', wall='white', ridge='plain', curve=1, floor='gravel',
+                       centre='torii', toro=True, tree=None),
+        'zen': dict(tone='dark', posts='dark', wall='white', ridge='oni', curve=1, floor='gravel', centre='censer',
+                    toro=True, tree='cypress'),
+    }
+    L = looks[s['look']]
+    W = s['W']
+    big = s['size'] == 'large'
+    common = dict(tone=L['tone'], posts=L['posts'], curve=L['curve'], lattice='fret' if L['wall'] != 'white' else 'grid')
+    front = dict(common, front='gate', wall=L['wall'], form='xieshan', ridge=L['ridge'], plinth=8,
+                 lanterns=L['wall'] != 'white')
+    main = dict(common, front='timber', wall=L['wall'], sill='brick' if L['wall'] != 'white' else 'board',
+                storeys=2 if s['size'] != 'small' else 1, upper='clerestory', upper_h=18, form='xieshan',
+                ridge=L['ridge'], brackets=True, beam='caihua' if L['posts'] == 'red' else 'red' if L['wall'] != 'white' else 'bare',
+                plinth=18 if big else 14, lanterns=L['wall'] != 'white', door='leaves', wall_h=58)
+    return courtyard(dict(W=W, court={'small': 44, 'medium': 56, 'large': 70}[s['size']], floor=L['floor'],
+                          trees=2 if L['tree'] else 0, tree=L['tree'] or 'cypress', centre=L['centre'],
+                          toro=L.get('toro', False), vats=0, side_tone=L['tone'], front=front, main=main), info)
+
+
+def kabuki(spec=None, info=None):
+    """An Edo playhouse: boarded front, three curtained doors, the playbills
+    above, the drum tower on the roof and banners standing in the street."""
+    s = dict(W=176, fair=False, banners=6, seed=0)
+    s.update(spec or {})
+    if s['fair']:
+        return Hall(dict(W=s['W'], front='stage', roof='thatch', form='gable', ridge='plain', curve=0, plinth=0,
+                         wall_h=56, posts='timber', seed=s['seed'])).build(info)
+    h = Hall(dict(W=s['W'], front='kabuki', storeys=2, upper='billboards', upper_h=36, wall_h=56, pent=True,
+                  form='xieshan', tone='tile', posts='dark', ridge='oni', curve=1, plinth=3, seed=s['seed']))
+    im = h.build(info)
+    c = h.c
+    yagura(c, h.x0 + h.W // 2, h.top - 2)
+    cols = [ramp(26, 0.14, lift=-0.06), ramp(240, 0.1, lift=-0.06), ramp(80, 0.12), ramp(150, 0.08, lift=-0.04)]
+    n = s['banners']
+    for k in range(n):
+        x = h.x0 + 4 + round((h.W - 12) * k / max(1, n - 1))
+        if abs(x - h.door_x) < 16:
+            continue
+        nobori(c, x, h.base - 1, 74, cols[(k + s['seed']) % len(cols)])
+    consolidate(c, rare=4)
+    if info is not None:
+        info['night'] = night_image(c.im, h.lit)
+    return c.im
+
+
+def noh(spec=None, info=None):
+    """A noh stage: the square stage under its own hip-and-gable roof, the
+    bridgeway running off to the left under a lower roof with a railing and
+    its three small pines, white gravel before it all."""
+    s = dict(W=144, roof='tile', posts='timber', bridge=True)
+    s.update(spec or {})
+    W = s['W']
+    Ws = max(64, round(W * 0.6)) if s['bridge'] else W
+    stage = Hall(dict(W=Ws, front='noh', form='xieshan' if s['roof'] != 'thatch' else 'gable', roof=s['roof'],
+                      tone='tile' if s['roof'] == 'tile' else 'dark', posts=s['posts'], ridge='oni' if s['roof'] == 'tile' else 'plain',
+                      curve=1 if s['roof'] == 'tile' else 0, plinth=10, wall_h=50))
+    sim = stage.build()
+    off = W - Ws
+    c = C(sim.width + off, sim.height + 12)
+    base = stage.base + 10
+    gravel(c, stage.x0 - 6, stage.x0 + W + 6, base - 12, base)
+    if s['bridge']:
+        # the bridgeway: a covered walk from the left, rails either side
+        x0, x1 = stage.x0 - 4, stage.x0 + off + 8
+        floor = base - 24
+        r = stage.r if s['roof'] == 'tile' else STRAW
+        for yy in range(floor - 34, floor - 22):
+            for xx in range(x0, x1):
+                c.p(xx, yy, tile(xx, yy, r) if s['roof'] == 'tile' else thatch_px(xx, yy, STRAW, floor - 34))
+        for xx in range(x0, x1):
+            c.p(xx, floor - 22, r[5]); c.p(xx, floor - 21, r[6])
+        op.cast(c, x0 + 2, floor - 20, x1 - x0 - 4, 4, 0.6)
+        for yy in range(floor - 20, floor):
+            for xx in range(x0, x1):
+                c.p(xx, yy, TIMBER[2] if (xx - x0) % 9 else TIMBER[3])
+        for yy in range(floor, floor + 5):
+            for xx in range(x0, x1):
+                c.p(xx, yy, TIMBER[1] if yy == floor else TIMBER[3])
+        for xx in range(x0, x1):
+            c.p(xx, floor - 7, TIMBER[1]); c.p(xx, floor - 6, TIMBER[4])
+            if (xx - x0) % 12 == 0:
+                for yy in range(floor - 20, floor + 5):
+                    c.p(xx, yy, POSTS[s['posts']][2]); c.p(xx + 1, yy, POSTS[s['posts']][4])
+        for k in range(3):
+            pine_tree(c, x0 + 10 + k * (x1 - x0 - 20) // 2, base - 2)
+    c.im.alpha_composite(sim, (off, 10))
+    c.px = c.im.load()
+    if info is not None:
+        info.update(x0=stage.x0, W=W, base=base - 1, door_x=off + stage.door_x, door_h=stage.door_h)
+    finish(c)
+    consolidate(c, rare=5)
+    return c.im
+
+
+def cypress(c, cx, by, s=0.8):
+    """A temple cypress: a tall dark flame of foliage on a short trunk."""
+    prof = [(6 * s, 0), (8 * s, 5 * s), (20 * s, 7 * s), (40 * s, 5 * s), (56 * s, 1.5 * s), (60 * s, 0)]
+    so.lathe(c, cx, by, [(0, 1.5 * s), (8 * s, 1.5 * s)], ramp(40, 0.05, lift=-0.18))
+    so.lathe(c, cx, by, prof, PINE, courses=5 * s, ribs=7)
+
+
+def pine_tree(c, cx, by):
+    """A small pine, planted before a bridgeway: a leaning trunk and three
+    flat pads of needles."""
+    bark = ramp(40, 0.05, lift=-0.18)
+    for t in range(14):
+        c.p(cx + t // 6, by - t, bark[2]); c.p(cx + t // 6 + 1, by - t, bark[4])
+    for dx, dy, w in ((0, -14, 7), (-3, -9, 5), (4, -6, 5)):
+        for k in range(-1, 2):
+            for i in range(-w, w + 1):
+                if abs(i) < w - abs(k):
+                    c.p(cx + dx + i, by + dy + k, PINE[2 if k < 0 else 3 if k == 0 else 4])
+
+
+def sento(spec=None, info=None):
+    s = dict(W=144, tone='tile', monitor=True)
+    s.update(spec or {})
+    return Sento(dict(W=s['W'], front='sento', tone=s['tone'], posts='dark', gable='plaster', ridge='oni', curve=0,
+                      plinth=4, wall_h=58, monitor=s['monitor'])).build(info)
 
 
 BUILD = {'courtyard': lambda s, i=None: courtyard(s, i), 'gable': lambda s, i=None: gable_front(s, i),
@@ -1660,11 +2226,38 @@ def period_spec(base, W):
     return None
 
 
+def civic_spec(base, W):
+    """Temples, the bath house and the two theatres, at their own sizes."""
+    import re
+    m = re.match(r'religious-(chinese|japanese)-temple-(small|medium|large)-(\d+)$', base)
+    if m:
+        looks = ('buddhist', 'daoist', 'southern') if m.group(1) == 'chinese' else ('japanese', 'shrine', 'zen')
+        return 'sino-temple', dict(W=W, look=looks[int(m.group(3)) % 3], size=m.group(2))
+    m = re.match(r'hall-sento-(small|medium|large)-(\d+)$', base)
+    if m:
+        v = int(m.group(2))
+        return 'sino-sento', dict(W=W, tone='shingle' if v == 1 else 'tile', monitor=v != 2)
+    m = re.match(r'theatre-kabuki-theatre-(small|medium|large)-(\d+)$', base)
+    if m:
+        size, v = m.group(1), int(m.group(2))
+        return 'sino-kabuki', dict(W=W, fair=v == 2, banners={'small': 2, 'medium': 4 if v == 1 else 6, 'large': 8}[size],
+                                   seed=v)
+    m = re.match(r'theatre-noh-stage-(small|medium|large)-(\d+)$', base)
+    if m:
+        size, v = m.group(1), int(m.group(2))
+        return 'sino-noh', dict(W=W, roof='thatch' if v == 2 else 'tile', posts='red' if v == 1 else 'timber',
+                                bridge=W >= 120)
+    return None
+
+
 def spec_for(base, r, nw, fh):
     """The builder and spec for one of the game's East Asian frames."""
     import re
     if base.startswith('period-'):
         return period_spec(base, nw * 16)
+    got = civic_spec(base, nw * 16)
+    if got:
+        return got
     m = re.match(r'eastasian-(house|courtyard|row|service)-([a-z-]+?)-(tiny|small|medium|large|grand)-(\d+)$', base)
     if not m:
         return None
@@ -1684,7 +2277,9 @@ def spec_for(base, r, nw, fh):
     return f'sino-{kind}', spec
 
 
-BUILDERS = {'sino-hall': lambda s, i: hall(dict(s), i), 'sino-gable': lambda s, i: gable_front(dict(s), i),
+BUILDERS = {'sino-temple': lambda s, i: temple(dict(s), i), 'sino-kabuki': lambda s, i: kabuki(dict(s), i),
+            'sino-noh': lambda s, i: noh(dict(s), i), 'sino-sento': lambda s, i: sento(dict(s), i),
+            'sino-hall': lambda s, i: hall(dict(s), i), 'sino-gable': lambda s, i: gable_front(dict(s), i),
             'sino-court': lambda s, i: courtyard(dict(s), i), 'sino-row': lambda s, i: row(dict(s), i)}
 
 
