@@ -176,14 +176,14 @@ export function groundMotif(
             ? 0.6
             : 0.3
           : kind === "sward"
-            ? colony > 0.42
+            ? colony > 0.55
               ? 0.45
-              : 0.25
-          : colony > 0.2
-            ? 0.85
-            : 0.5;
+              : 0.12
+          : colony > 0.55
+            ? 0.8
+            : 0.2;
   const clustering = tuning?.clustering ?? 1;
-  const meanDensity = kind === "stone" ? 0.41 : kind === "turf" ? 0.675 : 0.43;
+  const meanDensity = kind === "stone" ? 0.41 : kind === "turf" ? 0.47 : 0.43;
   const density = Math.max(
     0,
     Math.min(

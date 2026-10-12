@@ -7,7 +7,6 @@ import {
   groundMotif,
   leafGlyphs,
   materialGrain,
-  turfTick,
 } from "./ground-motifs";
 import {
   groundStyle,
@@ -763,9 +762,10 @@ function rasterGroundTile(
       const mottling = composition?.mottle ?? 0.65;
       let shaded = false;
       if (!frozen && !tilled && mottling > 0) {
-        const m = noise(wx, wy, 23, 601) * 0.62 + noise(wx, wy, 8, 602) * 0.38;
-        const step =
-          m < 0.3 ? mottle.deep : m < 0.41 ? mottle.shade : m > 0.61 ? mottle.light : 0;
+        // Broad terms only: an 8 px term broke the patches into blotches.
+        const m = noise(wx, wy, 23, 601) * 0.7 + noise(wx, wy, 48, 602) * 0.3;
+        // Two close tones, no deep step: at this patch size three read as camouflage.
+        const step = (m < 0.38 ? mottle.shade : m > 0.64 ? mottle.light : 0) * 0.6;
         // Turf shades toward its own dark green: the shared shadow law leans
         // blue, which turns a green field teal.
         shaded = step < 0;
@@ -781,8 +781,8 @@ function rasterGroundTile(
         // hatch reads as dither noise rather than as grass.
         const clump = noise(wx, wy, 12, 611) * 0.6 + noise(wx, wy, 5, 612) * 0.4;
         let mark = swardHatch(wx, wy);
-        if (mark === 1 && clump < 0.6) mark = 0;
-        if (mark === 2 && clump < 0.66) mark = 0;
+        if (mark === 1 && clump < 0.7) mark = 0;
+        if (mark === 2 && clump < 0.76) mark = 0;
         if (mark === 1) {
           const w = band === 1 ? 0.34 : band === 2 ? 0.55 : 0.5;
           put(
@@ -796,7 +796,7 @@ function rasterGroundTile(
             py,
             rgb.map((v, k) => Math.round(v * 0.45 + palette[6][k] * 0.55)),
           );
-        else put(px, py, rgb, turfTick(wx, wy, art.motifs) ? 7 : 0);
+        else put(px, py, rgb);
       } else if (grassy || tilled) {
         // Fine grain alone leaves a field one flat value when the camera
         // pulls back. The broad terms are what give it shape at low zoom:
@@ -812,7 +812,7 @@ function rasterGroundTile(
       } else {
         const grain = materialGrain(wx, wy);
         const grainShade =
-          band === 3 && !dune ? [0, -9, 7][grain] : [0, -7, 8][grain];
+          band === 3 && !dune ? [0, -5, 4][grain] : [0, -4, 4][grain];
         put(px, py, rgb, frozen ? grainShade * 0.3 : grainShade);
       }
       // Texture describes the material: little faceted stones or composed turf.

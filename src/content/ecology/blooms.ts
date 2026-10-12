@@ -70,8 +70,8 @@ export function bloomsAt(
   const colony = hash(Math.floor(wx / 5), Math.floor(wy / 5), 601);
   const dense = h.kind === "meadow" ? 1.6 : h.kind === "open" ? 1 : 0.5;
   // A colony is thick with its one flower; the odd stray grows anywhere.
-  const thick = colony > 0.72;
-  const chance = (thick ? 0.3 : 0.03) * season * dense;
+  const thick = colony > 0.8;
+  const chance = (thick ? 0.22 : 0.012) * season * dense;
   if (hash(wx, wy, 603) > chance) return [];
   const count = 1 + Math.floor(hash(wx, wy, 605) * (thick ? 3 : 1.6));
   const spots: BloomSpot[] = [];

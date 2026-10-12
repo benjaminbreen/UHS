@@ -1323,10 +1323,10 @@ export function createSettlementWorld(
         y + land.origin.y,
       ) >
         (h?.site
-          ? 0.65
+          ? 0.4
           : selected.includes("heath") || selected === "flowers"
-            ? 0.15
-            : 0.225)
+            ? 0.1
+            : 0.15)
     )
       selected = undefined;
     if (
@@ -1341,7 +1341,7 @@ export function createSettlementWorld(
         x + land.origin.x,
         y + land.origin.y,
       ) >=
-        (h?.site ? 1 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.48 : 0.8)
+        (h?.site ? 0.75 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.34 : 0.8)
     )
       selected = undefined;
     if (
