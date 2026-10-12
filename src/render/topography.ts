@@ -35,6 +35,13 @@ import { TERRAIN_RISE } from "./terrain-projection";
 const tones = new Map<string, string>();
 let toneSource: Phaser.Textures.Texture | undefined;
 let tonePixel: CanvasRenderingContext2D | undefined;
+function meanColour(pixels: Uint8ClampedArray) {
+  const sum = [0, 0, 0];
+  for (let i = 0; i < pixels.length; i += 4)
+    for (let k = 0; k < 3; k++) sum[k] += pixels[i + k];
+  const n = pixels.length / 4;
+  return `rgb(${sum.map((v) => Math.round(v / n)).join(",")})`;
+}
 function toneOf(scene: Phaser.Scene, frame: string) {
   const texture = scene.textures.get("topography");
   if (texture !== toneSource) {
@@ -408,15 +415,19 @@ export function* topographySteps(
       if (owned) {
         // The wall pass owns these cells, and its row strips are separate
         // images: a sub-pixel seam between two of them would otherwise show
-        // the camera background. Flat tone, so no tile edge reads through.
+        // the camera background. Flat tone, so no tile edge reads through;
+        // the cell's own mean, as the atlas grass drew a green bar on snow.
+        const ground = preparedGround.get(`${x},${y}`)?.pixels;
         fill(
           x * 16,
           top,
           16,
           16,
-          tone(
-            `${material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
-          ),
+          ground
+            ? meanColour(ground)
+            : tone(
+                `${material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
+              ),
         );
         continue;
       }

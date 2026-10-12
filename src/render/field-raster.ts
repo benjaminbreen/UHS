@@ -99,8 +99,9 @@ export function rasterFieldTile(
   ox: number,
   oy: number,
   art: GrassArt = defaultGrassArt,
+  // The edge pass hands in a borrowed copy; re-sampling found no field there.
+  cell: TopographyCell = sample(x, y)!,
 ): GroundTileData {
-  const cell = sample(x, y)!;
   const f = cell.field!;
   const h = cell.habitat;
   const ecology: Ecology = h?.ecology ?? "grassland";

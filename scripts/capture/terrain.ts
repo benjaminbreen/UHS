@@ -118,6 +118,19 @@ const reviews: Record<string, Review> = {
       ["wetland-summer", "ecology=wetland&season=summer&water=none&population=none"],
     ],
   },
+  relief: {
+    dir: "artifacts/relief-review",
+    title: "Altitude steps: rims, faces and ramps",
+    seed: "relief-review",
+    common: "start=resident&water=none&relief=0.9",
+    centre: "spawn",
+    studies: [
+      ["town-ridge", "ecology=grassland&season=summer&landform=ridge&population=settled&pattern=clustered&year=1300"],
+      ["village-rolling", "ecology=dry-scrub&season=summer&landform=rolling&population=sparse&pattern=clustered&year=1200"],
+      ["tundra-winter", "ecology=tundra&season=winter&landform=ridge&population=sparse&pattern=clustered&year=1021"],
+      ["open-ridge", "ecology=grassland&season=autumn&landform=ridge&population=none"],
+    ],
+  },
   arroyos: {
     dir: "artifacts/arroyo-review",
     title: "Arroyo beds and banks",

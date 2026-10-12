@@ -127,7 +127,9 @@ export function defaultGroundStyle(): GroundStyle {
     materials,
     tiers,
     contour: {
-      wobble: 0.95,
+      // Low: the warp gives the rim its lumps; noise this strong left
+      // one-pixel jogs that read as a jagged, noisy edge.
+      wobble: 0.4,
       scale: 13,
       warp: 7,
       // A 5x5 vote: a 3x3 one left the wobble's one-pixel jogs, each of
@@ -135,7 +137,7 @@ export function defaultGroundStyle(): GroundStyle {
       smoothing: 2,
       sides: 2,
       sideFace: 3,
-      hillshade: 1,
+      hillshade: 0,
     },
     composition: {
       motifDensity: 1,
@@ -149,10 +151,10 @@ export function defaultGroundStyle(): GroundStyle {
     },
     bank: {
       lip: 2,
-      strata: 0.95,
-      lobes: 1.1,
-      roots: 0.2,
-      stones: 0.035,
+      strata: 0.4,
+      lobes: 0.5,
+      roots: 0,
+      stones: 0.02,
       shadow: 8,
       fringe: 0.55,
       outline: true,
@@ -271,10 +273,10 @@ export function styledBankPixel(
   if (faceY < bank.lip) return { kind: "turf" };
   if (bank.outline && bank.lip && faceY === bank.lip) return { kind: "crease" };
   // Tongues of turf hanging past the lip, so the crease is never a ruled line.
+  // Clumped 3 px wide, or the lip reads as speckle.
   if (
     bank.fringe &&
-    faceY < bank.lip + 3 &&
-    noise(worldX, faceY, 71) < bank.fringe
+    faceY < bank.lip + Math.floor(noise(Math.floor(worldX / 3), 0, 71) * bank.fringe * 6)
   )
     return { kind: "turf" };
   const depth = (faceY - bank.lip) / Math.max(1, drop - bank.lip);

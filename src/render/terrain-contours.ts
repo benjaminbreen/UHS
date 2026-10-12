@@ -1,4 +1,4 @@
-import { snowPixel } from "./snow-cover";
+import { snowCover, snowPixel } from "./snow-cover";
 import {
   addPixelTexture,
   own,
@@ -816,6 +816,16 @@ function rasterWallContours(
               sides: turf[2],
               crease: earth[0],
             };
+      // Lying snow buries the turf lip; a green line round every snowy
+      // terrace read as an outline drawn on top of the ground.
+      const k = Math.min(1, snowCover() * 3);
+      if (k)
+        trim = {
+          ...trim,
+          lip: mix(trim.lip, colors[25], k),
+          edge: mix(trim.edge, colors[26], k),
+          sides: mix(trim.sides, colors[24], k),
+        };
     }
     trims.set(key, trim);
     return trim;
@@ -913,7 +923,11 @@ function rasterWallContours(
         if (rgba) {
           const spot = at(row, px, sy, true, L);
           if (spot) spot.layer.pixels.set(rgba, spot.i);
-        } else paint(row, L, px, sy, cap);
+        } else if (snowCover() && !snow)
+          // Snowed like the ground beside it, or a light fall leaves this
+          // strip as a green bar along the rim.
+          paintFlat(row, L, px, sy, snowPixel(toned[cap], px + ox, py + oy));
+        else paint(row, L, px, sy, cap);
         // A fixed contour cue stays on its own terrace, independent of sunlight.
         for (let k = 1; k <= 3; k++) {
           if (lvl(px, py - k) >= L) continue;
@@ -925,11 +939,12 @@ function rasterWallContours(
         // of the bank reads as a smudge.
         for (let k = 1; k <= bank.shadow; k++) {
           if (lvl(px, py - k) <= L) continue;
-          shade(row, px, sy, 0.32 * (1 - (k - 1) / Math.max(1, bank.shadow)));
+          // Two flat steps: a smooth ramp reads as blur at pixel scale.
+          shade(row, px, sy, k <= bank.shadow / 2 ? 0.26 : 0.13);
           break;
         }
         // Lighter toward a drop, darker under a rise, so a plateau reads
-        // before its edge does.
+        // before its edge does. Two bands, not a ramp, which reads as blur.
         if (hillshade)
           search: for (let d = 2; d <= 12; d += 2)
             for (const [ux, uy] of HILL_DIRS) {
@@ -939,7 +954,7 @@ function rasterWallContours(
                 row,
                 px,
                 sy,
-                (n < L ? -0.1 : 0.1) * hillshade * (1 - d / 14),
+                (n < L ? -0.1 : 0.1) * hillshade * (d <= 4 ? 0.8 : 0.35),
               );
               break search;
             }
@@ -984,9 +999,7 @@ function rasterWallContours(
       // Ground behind a north rim is hidden by the plateau standing in front
       // of it; a soft band along the silhouette says which is in front.
       if (north < L && L) {
-        occlude(row, L, px, sy - 1, 70);
-        occlude(row, L, px, sy - 2, 45);
-        occlude(row, L, px, sy - 3, 20);
+        occlude(row, L, px, sy - 1, 64);
       }
       // East and west drops show a sliver of the same face, so they read as
       // one object with the south wall rather than as a stray line.
@@ -1108,7 +1121,7 @@ function rasterWallContours(
         const row = Math.floor((py + k) / 16);
         const spot = at(row, px, sy + k, true, tier);
         if (spot && !spot.layer.pixels[spot.i + 3])
-          spot.layer.pixels[spot.i + 3] = 82 * (1 - k / bank.shadow);
+          spot.layer.pixels[spot.i + 3] = k < bank.shadow / 2 ? 72 : 36;
       }
     if (!(bank.foot ?? false)) continue;
     const row = Math.floor(py / 16);
@@ -1288,6 +1301,8 @@ function rasterWallContours(
                 : 15 - (px - cx * 16)) <
               (noise(Math.floor((runPos + phase) / 2), 1, 101) < 0.5 ? 1 : 2);
           let rgb: readonly number[];
+          // Ground borrowed from the tiles either side already has its snow.
+          let snowed = false;
           if (style === "graded") {
             // The street's own surface carried up the grade, a little darker.
             const c = cell.streetMaterial
@@ -1334,9 +1349,8 @@ function rasterWallContours(
                 t,
                 lvl,
               ) ?? turf[0];
-            const tone =
-              (0.84 + (1 - down) * 0.12) *
-              (rise % 4 === 0 && n < 0.35 ? 0.9 : 1);
+            const tone = 0.84 + (1 - down) * 0.12;
+            snowed = true;
             if (edge < shoulder - 1 || (edge < shoulder && n < 0.5))
               rgb = [ground[0] * 0.72, ground[1] * 0.72, ground[2] * 0.72];
             else if (
@@ -1344,8 +1358,10 @@ function rasterWallContours(
               noise(wx, wy, 107) > (off > half - 2 ? 0.55 : 0.2) &&
               noise(Math.floor(rise / 5), runKey, 109) > 0.2
             )
+            {
               rgb = n > 0.9 ? soil[3] : soil[2];
-            else rgb = [ground[0] * tone, ground[1] * tone, ground[2] * tone];
+              snowed = false;
+            } else rgb = [ground[0] * tone, ground[1] * tone, ground[2] * tone];
           } else if (style === "steps") {
             // Risers every three rows, treads between; a lit tread edge.
             const step = (rise + phase) % 3;
@@ -1374,8 +1390,13 @@ function rasterWallContours(
                   : n > 0.85
                     ? soil[3]
                     : soil[2];
-          if (style !== "steps" && style !== "timber")
-            rgb = snowPixel(rgb, wx, wy, style === "graded");
+          if (style !== "steps" && style !== "timber" && !snowed)
+            rgb = snowPixel(
+              rgb,
+              wx,
+              wy,
+              style === "graded" || !!cell.pathArt?.length,
+            );
           paintFlat(cy, t, px, sy, rgb);
         }
         // Scree: a few stones tumble off a cut or slope onto the ground at

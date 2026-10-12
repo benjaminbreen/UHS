@@ -228,7 +228,58 @@ export function rasterHabitatTile(
 ): GroundTileData {
   const tile = bareHabitatTile(sample, x, y, ox, oy, art, cell);
   if (snowCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
+  // Snow has its own whites; the ramps would pull it to packed grey.
+  if (cell.habitat && !cell.field && cell.surface !== "snow" && !snowCover())
+    snapToRamps(tile.pixels, habitatRamps(cell.habitat, art));
   return tile;
+}
+
+const SNOW_TONES = [
+  [238, 243, 248],
+  [210, 221, 236],
+  [200, 203, 206],
+  [148, 140, 128],
+];
+// Weighted squared RGB distance: about 28 per channel. Paving, water and
+// fence colours sit further than this from every ramp entry and are kept.
+const SNAP_REACH = 9 * 28 * 28;
+const snapping = new WeakMap<object, { colors: number[][]; seen: Map<number, number> }>();
+/** Pull ground pixels onto the ecology's own ramps. Mottle, swatches and
+ * blends leave in-between tones that read as mud next to a tight palette. */
+function snapToRamps(
+  pixels: Uint8ClampedArray,
+  ramps: { palette: number[][]; soilPalette: number[][] },
+) {
+  let s = snapping.get(ramps);
+  if (!s)
+    snapping.set(
+      ramps,
+      (s = { colors: [...ramps.palette, ...ramps.soilPalette, ...SNOW_TONES], seen: new Map() }),
+    );
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (!pixels[i + 3]) continue;
+    const r = pixels[i],
+      g = pixels[i + 1],
+      b = pixels[i + 2],
+      key = (r << 16) | (g << 8) | b;
+    let out = s.seen.get(key);
+    if (out === undefined) {
+      out = key;
+      let best = SNAP_REACH;
+      for (const c of s.colors) {
+        const d = 2 * (r - c[0]) ** 2 + 4 * (g - c[1]) ** 2 + 3 * (b - c[2]) ** 2;
+        if (d < best) {
+          best = d;
+          out = (c[0] << 16) | (c[1] << 8) | c[2];
+        }
+      }
+      if (s.seen.size < 65536) s.seen.set(key, out);
+    }
+    if (out === key) continue;
+    pixels[i] = out >> 16;
+    pixels[i + 1] = (out >> 8) & 255;
+    pixels[i + 2] = out & 255;
+  }
 }
 function bareHabitatTile(
   sample: TopographySample,
@@ -321,7 +372,7 @@ function rasterGroundTile(
 ): GroundTileData {
   // Yard grass is the same turf as outside the fence; only beds are tilled.
   if (cell.field && !(cell.field.yard && cell.field.crop === "pasture"))
-    return rasterFieldTile(sample, x, y, ox, oy, art);
+    return rasterFieldTile(sample, x, y, ox, oy, art, cell);
   const h = cell.habitat!;
   const { palette, soilPalette } = habitatRamps(h, art);
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
@@ -1058,10 +1109,9 @@ function rasterGroundTile(
         // so turf survives a few pixels inside the road, grit strays a few
         // pixels out of it, and the interior bands interlock as well. Single
         // thresholds gave one clean contour and three ruled stripes.
+        // Lumps of 4-8 px: block hashes at 2-3 px read as static on bare ground.
         const interlock =
-          (hash(Math.floor(wx / 2), Math.floor(wy / 2), 437) +
-            hash(Math.floor(wx / 3), Math.floor(wy / 3), 439) -
-            1) *
+          (noise(wx, wy, 8, 437) + noise(wx, wy, 4, 439) - 1) *
             0.08 * (composition?.pathEdgeBreakup ?? 1) +
           (noise(wx, wy, 21, 463) - 0.5) *
             0.06 * (composition?.pathEdgeBreakup ?? 1);
@@ -1109,7 +1159,7 @@ function rasterGroundTile(
           const contact =
             !grassy &&
             worn < 0.515 &&
-            hash(Math.floor(wx / 3), Math.floor(wy / 3), 441) > 0.5;
+            noise(wx, wy, 6, 441) > 0.5;
           const wide = field.radius > 0.62;
           const band = contact
             ? 0
@@ -1139,7 +1189,12 @@ function rasterGroundTile(
                 ? earthSpeckle(wx, wy)
                   ? -10
                   : 0
-                : [0, -5, 6][materialGrain(wx, wy)]);
+                : grassy
+                  ? [0, -5, 6][materialGrain(wx, wy)]
+                  : 0);
+          // Bare ground is close in value to its own soil ramp; packing it
+          // one step darker is what lets the tread read without grain.
+          if (!grassy) shade -= 9;
           // Cart ruts either side of the crown on wagon-width roads: a dark
           // groove with a lit lip on its outer side, broken so the pair never
           // reads as two ruled lines.

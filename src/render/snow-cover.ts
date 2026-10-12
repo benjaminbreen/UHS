@@ -1,5 +1,5 @@
 import type { TopographyCell, TopographySample } from "../core/topography";
-import { waterHash as hash, waterNoise as noise } from "../core/water-field";
+import { waterNoise as noise } from "../core/water-field";
 import { pathField } from "./material-edges";
 
 /** Lying snow, 0 to 1, shared by the main thread and the terrain worker. Set
@@ -42,7 +42,9 @@ export function snowOver(
         : routed
           ? pathField(sample, x + (px + 0.5) / 16, y + (py + 0.5) / 16, ox, oy).coverage
           : 0;
-      const out = snowPixel([pixels[i], pixels[i + 1], pixels[i + 2]], wx, wy, tread > 0.55);
+      // A wandering threshold, or the trodden strip is a ruled rectangle.
+      const trodden = tread > 0.55 + (noise(wx, wy, 5, 821) - 0.5) * 0.3;
+      const out = snowPixel([pixels[i], pixels[i + 1], pixels[i + 2]], wx, wy, trodden);
       for (let c = 0; c < 3; c++) pixels[i + c] = out[c];
     }
 }
@@ -57,18 +59,19 @@ export function snowPixel(
 ): readonly number[] {
   if (!cover) return rgb;
   const drift =
-    noise(wx, wy, 23, 811) * 0.6 + noise(wx, wy, 7, 813) * 0.3 + hash(wx, wy, 815) * 0.1;
+    noise(wx, wy, 23, 811) * 0.65 + noise(wx, wy, 7, 813) * 0.35;
   const depth = cover * 1.35 - drift * 0.55;
   if (depth <= 0) return rgb;
   let base: readonly number[], k: number;
   if (trodden) {
     // Feet and wheels pack it grey and churn slush through it; the thinner
     // the fall, the more of the street shows.
-    const churned = hash(Math.floor(wx / 2), Math.floor(wy / 2), 819) < 0.5 - cover * 0.35;
+    // Patches, not a per-block coin toss: a 2 px hash read as a checkerboard.
+    const churned = noise(wx, wy, 5, 819) < 0.5 - cover * 0.35;
     base = churned ? slush : packed;
     k = Math.min(0.85, depth * 1.4);
   } else {
-    base = hash(wx, wy, 817) > 0.93 || drift > 0.72 ? shade : white;
+    base = drift > 0.72 ? shade : white;
     // A thin fall lets the ground's own texture read through it.
     k = Math.min(1, depth * 3.5);
   }
