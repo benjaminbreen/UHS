@@ -875,6 +875,24 @@ function rasterWallContours(
     [0, 1, 2].map((k) => Math.min(255, g[k] * 1.12 + 14));
   const scale = (g: ArrayLike<number>, f: number) =>
     [0, 1, 2].map((k) => g[k] * f);
+  const toward = (g: ArrayLike<number>, to: number, t: number) =>
+    [0, 1, 2].map((k) => g[k] + (to - g[k]) * t);
+  const FALL_WATER = [92, 168, 214];
+  const foamOf = (g: ArrayLike<number>, bright: boolean) =>
+    toward(g, 248, bright ? 0.85 : 0.6);
+  /** One pixel of falling water, `r` rows below the lip of a `drop`-row fall.
+   * Streaks are two pixels wide and wander in width along the face. */
+  const fallPixel = (g: ArrayLike<number>, wx: number, r: number, drop: number) => {
+    if (r === 0) return toward(g, 250, 0.8);
+    if (r >= drop - 2) return foamOf(g, r === drop - 1);
+    const streak =
+      (Math.floor(wx / 2) + Math.floor(contourNoise(Math.floor(wx / 5), 0, 1, 107) * 3)) % 4;
+    return streak === 0
+      ? toward(g, 250, 0.55)
+      : streak === 2
+        ? scale(g, 0.82)
+        : toward(g, 250, 0.2);
+  };
   // Painted after the ground, which would otherwise overwrite them.
   const returns: [number, number, number, number, readonly number[]][] = [];
   const feet: [number, number, number, TopographyCell | undefined, Trim][] = [];
@@ -930,7 +948,15 @@ function rasterWallContours(
       const cap = snow ? 25 : dry ? 9 : 4;
       const trim = trimOf(material);
       const rgba = owner && surfaces.pixel(owner, px, py, L, lvl);
-      if (ownsAt(Math.floor(px / 16), row) && !clipped(row, px, sy)) {
+      // Living water has no baked tile, so its rims take a stock water tone.
+      const wet = material?.surface === "water";
+      const tone = rgba || (wet ? FALL_WATER : undefined);
+      // A north rim with water below it is the lip of a fall seen from behind.
+      const pour =
+        wet && north < L && sample(cx, Math.floor((py - 1) / 16))?.surface === "water";
+      // Water is the living-water layer's to draw; a baked copy here sat
+      // over it as a flat, contact-shaded rectangle beside every drop.
+      if (material?.surface !== "water" && ownsAt(Math.floor(px / 16), row) && !clipped(row, px, sy)) {
         if (rgba) {
           const spot = at(row, px, sy, true, L);
           if (spot) spot.layer.pixels.set(rgba, spot.i);
@@ -984,9 +1010,11 @@ function rasterWallContours(
             ? copingColor(material.edge, trim.earth[4])
             : stone
               ? [198, 194, 178]
-              : rgba
-                ? lit(rgba)
-                : trim.edge,
+              : pour
+                ? foamOf(tone!, true)
+                : tone
+                  ? lit(tone)
+                  : trim.edge,
         );
       else if (
         contour.sides &&
@@ -997,7 +1025,7 @@ function rasterWallContours(
           L,
           px,
           sy,
-          stone ? [122, 120, 110] : rgba ? scale(rgba, 0.78) : trim.sides,
+          stone ? [122, 120, 110] : tone ? scale(tone, 0.78) : trim.sides,
         );
       const below = rampInto(cx, row + 1, "n") ? L : lvl(px, py + 1);
       // Rim feet for the sun-cast shadow drawn on the main thread: screen
@@ -1017,7 +1045,13 @@ function rasterWallContours(
       }
       // Ground behind a north rim is hidden by the plateau standing in front
       // of it; a soft band along the silhouette says which is in front.
-      if (north < L && L) {
+      if (pour)
+        // Spray thrown up off the pool below, ragged and thinning upward.
+        for (let k = 1; k <= 3; k++) {
+          if (contourNoise(px + ox, k + (py + oy) * 3, 1, 119) < k / 4) continue;
+          paintRgb(row, L, px, sy - k, foamOf(tone!, k === 1));
+        }
+      else if (north < L && L) {
         occlude(row, L, px, sy - 1, 64);
       }
       // East and west drops show a sliver of the same face, so they read as
@@ -1038,15 +1072,23 @@ function rasterWallContours(
           // One that faces away keeps a narrower, darker sliver, so a side
           // step still reads as a bank and not as a ruled line.
           const away = j < 48 && lvl(px, py + j) >= L;
-          for (let k = 1; k <= (away ? Math.max(1, sideFace - 1) : sideFace); k++) {
+          // Water stepping down sideways pours over the edge: each sliver
+          // column is one streak of the fall, wider than an earth bank's.
+          const pours =
+            material?.surface === "water" &&
+            sample(Math.floor((px + side) / 16), row)?.surface === "water";
+          const width = pours ? sideFace + 3 : away ? Math.max(1, sideFace - 1) : sideFace;
+          for (let k = 1; k <= width; k++) {
             const r = Math.round(((k - 1) / sideFace) * (R - 1));
-            const c = facePixel(material, trim, r, R, sy + oy, px + ox);
+            const c = pours
+              ? fallPixel(rgba ?? FALL_WATER, px + side * k + ox, 1 + (k % 2), 6)
+              : facePixel(material, trim, r, R, sy + oy, px + ox);
             returns.push([
               row,
               L,
               px + side * k,
               sy,
-              [c[0] * tone * (away ? 0.82 : 1), c[1] * tone * (away ? 0.82 : 1), c[2] * tone * (away ? 0.82 : 1)],
+              pours ? c : [c[0] * tone * (away ? 0.82 : 1), c[1] * tone * (away ? 0.82 : 1), c[2] * tone * (away ? 0.82 : 1)],
             ]);
             // Higher ground further south stands in front of this wall and
             // hides its lower part. Unclipped, a north-east facing edge hung
@@ -1057,42 +1099,26 @@ function rasterWallContours(
               if (front > n) bottom = Math.min(bottom, py + j - front * R - 1);
             }
             returns.push([row, L, px + side * k, bottom, []]);
+            if (pours && contourNoise(px + side * k + ox, py + oy, 1, 121) > 0.3)
+              paintFlat(row, n, px + side * k, bottom + 1, foamOf(rgba ?? FALL_WATER, true));
           }
         }
       if (below >= L) continue;
       const drop = (L - below) * R;
-      // Water above water: the face is a fall, not a cut bank. Streaks run
-      // down it, the lip is dark, and foam spreads at the foot.
+      // Water above water: the face is a fall, not a cut bank. A pale pour
+      // line at the lip, streaks down it and foam at the foot, in the tones
+      // of the water above, so a bog pours brown and a glacier stream pale.
       const lower = sample(cx, row + 1);
       if (cell?.surface === "water" && lower?.surface === "water") {
-        const pale = [214, 240, 250],
-          light = [150, 205, 232],
-          mid = [96, 160, 208],
-          deep = [56, 112, 168];
-        const streak =
-          ((px + ox) * 7 +
-            Math.floor(
-              contourNoise(Math.floor((px + ox) / 2), row + oy, 1, 107) * 3,
-            )) %
-          4;
-        for (let r = 0; r < drop; r++) {
-          const n = contourNoise(px + ox, r + (py + oy) * 3, 1, 109);
-          const rgb =
-            r === 0
-              ? deep
-              : r >= drop - 2
-                ? n < 0.6
-                  ? pale
-                  : light
-                : streak === 0
-                  ? pale
-                  : streak === 2
-                    ? mid
-                    : n > 0.8
-                      ? pale
-                      : light;
-          paintRgb(row, L, px, sy + 1 + r, rgb);
-        }
+        // Living water has no baked tile to take its tone from.
+        const src = rgba ?? FALL_WATER;
+        for (let r = 0; r < drop; r++)
+          paintRgb(row, L, px, sy + 1 + r, fallPixel(src, px + ox, r, drop));
+        // Foam spreads a few ragged pixels onto the pool below.
+        const reach = 2 + Math.floor(contourNoise(Math.floor((px + ox) / 3), row + oy, 1, 115) * 3);
+        for (let r = 0; r < reach; r++)
+          if (contourNoise(px + ox, r + (py + oy) * 5, 1, 117) > r / reach)
+            paintFlat(row + 1, below, px, sy + 1 + drop + r, foamOf(src, r === 0));
         continue;
       }
       for (let r = 0; r < drop; r++)

@@ -137,6 +137,8 @@ export function planFarmland(input: {
   foreign: (x: number, y: number) => boolean;
   /** Most parcels to cut: a town gets a ring or two, a village a handful. */
   cap: number;
+  /** What an owner grows on whatever they hold, where their trade names it. */
+  grows?: Record<string, CropId>;
   /** Lays a straight earth track from `a` to `b`; returns the cells it took. */
   lane: (a: Point, b: Point, label: string) => Point[] | undefined;
   /** Routes from a track's inner end onto the town's streets. */
@@ -922,6 +924,11 @@ export function planFarmland(input: {
           break;
         }
     }
+  const sown = new Map<number, CropId>();
+  for (const p of parcels) {
+    const crop = p.owner && input.grows?.[p.owner];
+    if (crop && p.crop !== "pasture" && p.crop !== "fallow") sown.set(p.id, (p.crop = crop));
+  }
   for (const parcel of parcels) {
     parcel.stableId ??= `${site.id}-field-${parcel.id}`;
     parcel.baselineYear ??= setting.year;
@@ -934,6 +941,9 @@ export function planFarmland(input: {
     for (const cell of fields.values()) {
       const owner = held.get(cell.parcel);
       if (owner) cell.owner = owner;
+      const crop = sown.get(cell.parcel);
+      // Rice is sown into flooded basins whatever the land round about grows.
+      if (crop) Object.assign(cell, { crop, wet: crops[crop].wet === true });
     }
   return {
     system,

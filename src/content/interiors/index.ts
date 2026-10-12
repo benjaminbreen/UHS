@@ -13,6 +13,10 @@ import { theatres } from "./theatres";
 import { prehistoric } from "./prehistoric";
 import { southAsia } from "./south-asia";
 import { tents } from "./tents";
+import { forms } from "./forms";
+import { africa } from "./africa";
+import { americas } from "./americas";
+import { southeastAsia } from "./southeast-asia";
 import type { InteriorProfile } from "./types";
 
 export const interiorGroups: { label: string; profiles: InteriorProfile[] }[] = [
@@ -23,7 +27,11 @@ export const interiorGroups: { label: string; profiles: InteriorProfile[] }[] = 
   { label: "South Asia", profiles: southAsia },
   { label: "East Asia", profiles: eastAsia },
   { label: "Australia", profiles: australia },
+  { label: "Africa", profiles: africa },
+  { label: "The Americas", profiles: americas },
+  { label: "Southeast Asia", profiles: southeastAsia },
   { label: "Tents and portable dwellings", profiles: tents },
+  { label: "Huts and shelters, by their building", profiles: forms },
   { label: "Twentieth century", profiles: modern },
 ];
 /** Buildings people go to rather than live in, by what they are for. */

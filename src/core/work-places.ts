@@ -7,6 +7,7 @@ import { distance, type Household, type Point, type Position, type Snapshot } fr
 import { waterDepthAt } from "./water-field";
 import type { Railway } from "../world/v3/railway";
 import type { Parcel } from "../world/v3/farmland";
+import type { FaunaGroup } from "./fauna";
 
 /** Where a recipe step is done today; `patient` for a sick call, `crop` for a field. */
 export type StepPlace = { pos: Position; label: string; patient?: string; crop?: string };
@@ -23,8 +24,10 @@ type Ask = {
   /** Where work is done inside the house: its bench, else its fire. */
   inside: () => Position | undefined;
 };
+type SitePlan = { railway?: Railway; parcels?: Parcel[]; site?: { center: Point }; fauna?: FaunaGroup[] };
 type World = Ask["world"] & {
-  planAt?: (x: number, y: number) => { railway?: Railway; parcels?: Parcel[]; site?: { center: Point } } | undefined;
+  planAt?: (x: number, y: number) => SitePlan | undefined;
+  planOf?: (siteId: string) => SitePlan | undefined;
 };
 
 const outside = (p: Point): Position => ({ x: p.x, y: p.y, space: "outside" });
@@ -48,7 +51,11 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     const inside = ask.inside();
     return inside ? { pos: inside, label: "your house" } : { pos: doorOf(household), label: "your house" };
   }
+  const mine = (owner?: string) => !!owner && household.members.includes(owner);
   if (role === "yard") {
+    // A household with stock works at its pen.
+    const gate = s.objects.find((o) => o.kind === "gate" && mine(o.owner) && /-pen\d+-gate$/.test(o.id));
+    if (gate) return { pos: outside({ x: gate.pos.x, y: gate.pos.y + 1 }), label: "your pen" };
     const store = s.objects.find((o) => o.id === household.storeId && o.pos.space === "outside");
     return { pos: store ? { ...store.pos } : doorOf(household), label: "your yard" };
   }
@@ -68,8 +75,17 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     const name = s.actors.find((a) => a.id === patient)?.name.split(" ")[0];
     return { pos: doorOf(h), label: name ? `${name}'s house` : "a neighbour's house", patient };
   }
-  const plan = world.planAt?.(Math.round(home.x), Math.round(home.y));
+  // A farmstead's house can stand just over its site's district line, where
+  // the cell's own plan is another's; the house's own site knows its fields.
+  const plan = (household.residence && world.planOf?.(household.residence.replace(/-h\d+$/, ""))) ||
+    world.planAt?.(Math.round(home.x), Math.round(home.y));
   if (role === "pasture") {
+    const herd = plan?.fauna?.find((g) => mine(g.owner) && g.gateId);
+    if (herd?.pasture) return { pos: { ...herd.pasture }, label: "the pasture" };
+    // A pen with no paddock grazes the open grass outside its gate.
+    const gate = herd && s.objects.find((o) => o.id === herd.gateId);
+    const grass = gate && [4, 5, 6, 3].map((d) => ({ x: gate.pos.x, y: gate.pos.y + d })).find((c) => !world.blocked(c.x, c.y, "outside"));
+    if (grass) return { pos: outside(grass), label: "the grass by your pen" };
     // Pasture, else the fallow (stock grazed it in open-field farming), else
     // open ground out past the houses.
     const near = (crop: string) => (plan?.parcels ?? []).filter((p) => p.crop === crop && p.state !== "abandoned")

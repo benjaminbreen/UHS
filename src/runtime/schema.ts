@@ -533,8 +533,9 @@ export const commandSchema = z.discriminatedUnion("type", [
     .strict(),
   z.object({ type: z.literal("use"), item }).strict(),
   z
-    .object({ type: z.literal("choose"), card: z.string().max(64), choice: z.number().int().min(0).max(3) })
+    .object({ type: z.literal("choose"), card: z.string().max(64), choice: z.number().int().min(0).max(5) })
     .strict(),
+  z.object({ type: z.literal("become"), heir: z.string().max(100) }).strict(),
   z.object({ type: z.literal("wear"), item }).strict(),
   z.object({ type: z.literal("remove"), slot: z.enum(wearSlots) }).strict(),
   z
@@ -648,6 +649,7 @@ const faunaGroup = z
     owner: z.string().optional(),
     gateId: z.string().optional(),
     pasture: pos.optional(),
+    fold: z.boolean().optional(),
   })
   .strict();
 const lifeAim = z
@@ -751,6 +753,7 @@ export const snapshotSchema = z.object({
     .array(z.object({ day: z.number().int(), clock: z.number(), card: z.string().max(64), choice: z.number().int(), line: z.string().max(300) }).strict())
     .max(5000)
     .optional(),
+  care: z.object({ card: z.string().max(64), who: z.string().max(100), ailment: z.string().max(40), at: z.number() }).strict().optional(),
   economy: z
     .object({
       hour: z.number().int(),

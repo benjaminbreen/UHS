@@ -16,6 +16,7 @@ import { places } from "../src/content/geography/places";
 import { createSettingSession } from "../src/runtime/session";
 import { kinOf, URGENT } from "../src/core/kin";
 import { sexOf } from "../src/core/brief";
+import { herdWords } from "../src/content/fauna/herding";
 
 const village = (): Household[] => {
   const h = (id: string, x: number, makes: string[], buys: [string, string][]) => ({
@@ -331,7 +332,7 @@ it("gives every recipe step a card it can always draw, worded without gaps", () 
   for (const c of CARDS) {
     if (!c.who) expect(JSON.stringify(c), `${c.id} names a person but says nobody`).not.toMatch(/\{name\}/i);
     for (const text of [c.text, ...c.choices.flatMap((x) => [x.label, x.note ?? "", x.line, x.otherwiseLine ?? ""])])
-      expect(cardText(text, { boss: "foreman", name: "Ana", work: "weaving", good: "cloth", crop: "barley" }), c.id).not.toMatch(/[{}]/);
+      expect(cardText(text, { boss: "foreman", name: "Ana", work: "weaving", good: "cloth", crop: "barley", ailment: "the fever", healer: "healer", ...herdWords("camel") }), c.id).not.toMatch(/[{}]/);
   }
 });
 

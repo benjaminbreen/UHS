@@ -208,7 +208,8 @@ about ironwork.
 Place roles (`findPlace` in `work-places.ts`): `home` is inside the house,
 at its bench (a recipe's `bench`, the baker's oven or the smith's anvil, set
 on the shop's own fixture) or else its fire; `yard` the household store out
-front; `door` the street door, where the baker sells; `field`
+front, or the gate of the household's own pen where it keeps stock; `door`
+the street door, where the baker sells; `field`
 the household's own parcel from the plan (`plan.parcels`), however far out,
 else the nearest worked field; `water` the nearest bank within 24 cells of
 that field; `sick` the nearest house with someone ill in `state.ailments`,
@@ -219,7 +220,12 @@ cells; `market` the nearest market counter, else the town square; `client`
 the door of the day's client; `station` and `line` from the town's railway. A step may name its place (`label: "your oven"`). The
 player's house is the first ordinary lot, never a venue's or a townhouse, and
 a trade that keeps a shop (`shopKind`) makes it one on the street, named for
-it: *The bakehouse*, *The smithy*, *Weaver's workshop*. A role
+it: *The bakehouse*, *The smithy*, *Weaver's workshop*. A herding player
+keeps their own animals in the first pen, the species their trade names or
+the place and date's (`keptSpecies`), and the cards call them by it: ewes and
+lambs, mares and foals, she-camels. The pen stands open while the day is out
+at grass and while the herd is brought in, so the herd goes out and comes home
+with them. A role
 the map lacks falls back to the old prop work. The coverage test
 (`tests/livelihood.test.ts`, in the slow tier) builds eleven places from
 Konya in 6499 BCE to Melbourne in 1950, puts the player into every trade
@@ -466,8 +472,20 @@ each. One `npm run shot` per new screen.
    the trade's waking hour, speed setting,
    the ledger's chain and three buttons. Retire `GOAL_TEMPLATES` except where
    the agenda uses them.
-3. **Health and death.** `risk`, trade hazards, treatment cards, illness
-   lowering stats, the death card, `becomeKin`. `tests/core.test.ts`.
+3. **Health and death.** Done, October 12. The player falls ill as anyone
+   does and can die of it; illness wears health down and takes up to half
+   of strength, agility and endurance (`engine.stats()`). Care cards
+   (`cards/care.ts`) wait apart from the work in `state.care`: for the
+   player's own illness the healer, lying up, a household remedy, prayer,
+   or keeping on, with honest odds (a fee bought care, not a cure, before
+   germ theory); for kin, sitting with them or sending for the healer. A
+   `risk` effect starts an illness (ditch water, a coughing neighbour), and
+   hazard cards (`cards/hazards.ts`, filtered by `work`) carry drowning,
+   falls and rock falls as choices rather than silent rolls. The death card
+   (`DeathCard.tsx`) names the cause, age, place and year, then **Go on
+   as** one of the household aged twelve or more (`become` command,
+   `becomeKin`) or **Close this life**. Pregnancy and childbirth as state
+   wait for the years, where births are.
 4. **The years.** `mortality.ts`, `deaths.ts`, `chronicle.ts`, the scrolling
    placeholder, stopping on a year with the household carried. Tests in
    `tests/time.test.ts`: same seed same life; expectation at 20 within two

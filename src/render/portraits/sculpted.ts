@@ -155,8 +155,10 @@ function model(a: CharacterAppearance, age: number): Model {
   const grey = age > 50 ? Math.min(0.75, (age - 50) / 30) : 0;
   const lightness = [1, 3, 5].reduce((sum, i) => sum + parseInt(a.skin.slice(i, i + 2), 16), 0) / 3;
   const rec = a.record ?? {};
-  // Sun deepens and warms the skin; illness drains it toward grey.
-  const skinHex = mix(mix(a.skin, "#6a3a22", (rec.sun ?? 0) * 0.07), "#b4ae9e", rec.pale ? 0.2 : 0);
+  // Sun deepens and warms the skin; illness drains it toward grey, or a fever flushes it.
+  const sunned = mix(a.skin, "#6a3a22", (rec.sun ?? 0) * 0.07);
+  const skinHex = rec.sick === "fever" ? mix(sunned, "#cc4a3a", 0.22)
+    : mix(sunned, rec.sick === "pallor" ? "#a2ac96" : "#b4ae9e", rec.sick === "pallor" ? 0.3 : rec.pale ? 0.2 : 0);
   const skin = tones(skinHex, "skin");
   const hair = tones(mix(a.hairColor, "#c8c4c0", grey), "hair");
   const old = clamp((age - 45) / 35, 0, 1);
@@ -1054,12 +1056,31 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
   garmentDetail(r, m, fr.projectBody);
   bodyRecord(r, m, fr, put, onFace);
 
-  const ruddy = rec.pale ? 0.02 : (m.child ? 0.32 : m.female ? 0.26 : roll(m, "ruddy") > 0.5 || m.old > 0.4 ? 0.2 : 0.08) + mood.flush + (rec.sun ?? 0) * 0.05;
+  const ruddy = rec.sick === "fever" ? 0.8 : rec.pale || rec.sick === "pallor" ? 0.02 : (m.child ? 0.32 : m.female ? 0.26 : roll(m, "ruddy") > 0.5 || m.old > 0.4 ? 0.2 : 0.08) + mood.flush + (rec.sun ?? 0) * 0.05;
   const blush = mix(s.base, "#e0485e", ruddy);
   const cheek = visible([-m.eyeX - 1.5, -4.5, 9.8]);
   if (cheek) for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2], [2, 2]]) put(cheek[0] + dx, cheek[1] + dy, (dx + dy) % 3 === 0 ? mix(blush, s.base, 0.4) : blush, [MAT.skin]);
   const farCheek = visible([m.eyeX + 2, -4.5, 9.5]);
   if (farCheek) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1]]) put(farCheek[0] + dx, farCheek[1] + dy, mix(s.shade, "#c83850", ruddy * 0.8), [MAT.skin]);
+  if (rec.sick === "fever")
+    // Beads of sweat standing on the brow.
+    for (const [x, y] of [[-7, 8], [-3, 10], [1, 11], [5, 9], [8, 7], [-5, 5], [7, 4]]) {
+      const c = onFace([x, y, 11]);
+      if (c) put(c[0], c[1], mix(s.base, "#f4f8ff", 0.85), [MAT.skin]);
+    }
+  if (rec.sick === "pallor")
+    // Hollows under the eyes.
+    for (const side of [-1, 1])
+      for (const dx of [-1, 0, 1]) {
+        const c = onFace([side * m.eyeX + dx, -0.4, 11]);
+        if (c) put(c[0], c[1], mix(s.base, "#4a4458", 0.5), [MAT.skin]);
+      }
+  if (rec.sick === "rash")
+    // Spots over the face, thickest on the cheeks and brow.
+    for (let k = 0; k < 44; k++) {
+      const c = onFace([Math.sin(k * 2.39) * 10, Math.cos(k * 1.7) * 10 + 1, 10]);
+      if (c) put(c[0], c[1], mix(s.base, "#a81e2e", 0.8), [MAT.skin]);
+    }
   if (f.detail === "freckles" && cheek)
     for (const [dx, dy] of [[-1, -1], [2, -1], [4, 0], [1, 2], [6, -1], [8, 0]]) put(cheek[0] + dx, cheek[1] + dy, mix(s.base, s.edge, 0.3), [MAT.skin]);
   if (m.a.beard === "stubble")

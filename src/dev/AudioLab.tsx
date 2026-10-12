@@ -36,6 +36,8 @@ import "./audio-lab.css";
 
 const periodSymbols = { dawn: "◔", day: "☀", dusk: "◑", night: "☾" };
 const candidates = [
+  "where-the-horizon-leads",
+  "hopewell-mica-morning",
   "jeitun-clay-hearths",
   "guila-naquitz-seed-gatherers",
   "soro-mikaya-first-ridge",
@@ -47,7 +49,6 @@ const candidates = [
   "cairo-courtyard-lamps",
   "ban-chiang-rain-path",
   "sintashta-last-light",
-  "hopewell-wide-circle",
   "lepenski-river-hearths",
   "mehrgarh-rain-jars",
   "cusco-apricot-dusk",
@@ -262,8 +263,9 @@ export function AudioLab({
                   Shuffle
                 </label>
                 <p className="audio-fine">
-                  When shuffling, each piece is followed by a random theme,
-                  season, time of day and era.
+                  Shuffle alternates dated regional pieces and shared themes,
+                  playing each group before repeating. Season, time of day and
+                  orchestration vary between performances.
                 </p>
                 <div className="audio-library-heading">
                   <div className="audio-label">02 / THE PIECES</div>

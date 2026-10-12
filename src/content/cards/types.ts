@@ -15,7 +15,9 @@ export type CardEffect =
   | { type: "regard"; delta: number }
   | { type: "hurt"; n: number; cause: string; injury?: string }
   /** The card's sick person is cared for: one in `odds` who were dying mend. */
-  | { type: "tend"; odds: number };
+  | { type: "tend"; odds: number }
+  /** One in `odds` of catching an illness from it. */
+  | { type: "risk"; ailment: string; odds: number };
 
 export type CardChoice = {
   label: string;
@@ -43,6 +45,8 @@ export type ChoiceCard = {
   /** What they are to the player here, where their own trade would mislead. */
   as?: string;
   scope?: CharacterScope;
+  /** Only for this work: the activities whose days it belongs to. */
+  work?: readonly string[];
   /** What the society must have been able to do for this to happen at all. */
   needs?: readonly SocietyCapability[];
   /** Today's weather it needs: heat, rain or snow, or cold. */

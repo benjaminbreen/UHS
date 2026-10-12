@@ -73,10 +73,10 @@ export function ensureFireLight(scene: Phaser.Scene, radius: number) {
   const ctx = canvas.context;
   const bayer = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   const rings = [
-    "rgba(255,120,40,0.07)",
-    "rgba(255,130,50,0.13)",
-    "rgba(255,145,60,0.2)",
-    "rgba(255,165,80,0.28)",
+    "rgba(255,120,40,0.1)",
+    "rgba(255,130,50,0.19)",
+    "rgba(255,150,64,0.29)",
+    "rgba(255,175,90,0.4)",
   ];
   for (let f = 0; f < 3; f++) {
     const scale = 1 - f * 0.07;

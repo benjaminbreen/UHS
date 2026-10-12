@@ -318,7 +318,7 @@ export const FARM_CARDS: ChoiceCard[] = [
     who: "neighbour",
     as: "neighbour",
     evidence: "inferred",
-    text: "One of your animals has slipped away into {name}’s crop.",
+    text: "One of your {herd} has slipped away into {name}’s crop.",
     choices: [
       {
         label: "Run it back at once",
@@ -349,13 +349,13 @@ export const FARM_CARDS: ChoiceCard[] = [
       {
         label: "Stay out with them tonight",
         then: [{ type: "day", delta: 1 }, { type: "fatigue", n: 20 }],
-        line: "You stayed out with the herd through the night.",
+        line: "You stayed out with the {herd} through the night.",
       },
       {
         label: "Bring them home early",
         note: "less grazing",
         then: [{ type: "day", delta: -1 }],
-        line: "You brought the herd home early, hungry.",
+        line: "You brought the {herd} home early, hungry.",
       },
       {
         label: "Go after it",
@@ -371,7 +371,7 @@ export const FARM_CARDS: ChoiceCard[] = [
     id: "herd-sick-beast",
     slot: "herd-home",
     evidence: "inferred",
-    text: "One of the animals is off its feed and stands apart from the rest.",
+    text: "One of the {herd} is off its feed and stands apart from the rest.",
     choices: [
       {
         label: "Dose it with a remedy",
@@ -393,7 +393,7 @@ export const FARM_CARDS: ChoiceCard[] = [
         then: [],
         line: "You waited, and the animal mended on its own.",
         otherwise: [{ type: "day", delta: -2 }],
-        otherwiseLine: "You waited, and the sickness spread through the herd.",
+        otherwiseLine: "You waited, and the sickness spread through the {herd}.",
       },
     ],
   },
@@ -401,15 +401,15 @@ export const FARM_CARDS: ChoiceCard[] = [
     id: "herd-hard-birth",
     slot: "herd-birth",
     evidence: "inferred",
-    text: "One of the mothers is down and straining, and the young one will not come.",
+    text: "One of the {mothers} is down and straining, and the {young} will not come.",
     choices: [
       {
         label: "Reach in and turn it",
         check: { stat: "agility", skill: "animals", odds: 0.55 },
         then: [{ type: "day", delta: 1 }],
-        line: "You turned the young one, and both lived.",
+        line: "You turned the {young}, and both lived.",
         otherwise: [{ type: "day", delta: -1 }],
-        otherwiseLine: "You did what you could, and lost the young one.",
+        otherwiseLine: "You did what you could, and lost the {young}.",
       },
       {
         label: "Fetch someone who knows better",
@@ -420,7 +420,7 @@ export const FARM_CARDS: ChoiceCard[] = [
         label: "Leave her to it",
         check: { stat: "wit", odds: 0.4 },
         then: [],
-        line: "You left her to it, and by evening the young one was up and sucking.",
+        line: "You left her to it, and by evening the {young} was up and sucking.",
         otherwise: [{ type: "day", delta: -2 }],
         otherwiseLine: "You left her to it, and lost them both.",
       },
@@ -432,7 +432,7 @@ export const FARM_CARDS: ChoiceCard[] = [
     // Stock that could not be wintered was killed in late autumn, from Martinmas
     // in Europe to the autumn slaughter on the steppe.
     evidence: "documented",
-    text: "There will not be fodder for all of them through the winter.",
+    text: "There will not be fodder for all the {herd} through the winter.",
     choices: [
       {
         label: "Kill the weakest now",
@@ -443,7 +443,7 @@ export const FARM_CARDS: ChoiceCard[] = [
       {
         label: "Sell some on",
         then: [{ type: "item", item: "coin", n: 1 }],
-        line: "You sold the animals you could not winter.",
+        line: "You sold the {herd} you could not winter.",
       },
       {
         label: "Keep them all and hope",

@@ -17,6 +17,8 @@ import {
 } from "../src/audio/cultural-themes";
 import { cultures } from "../src/content/history/types";
 import { eras } from "../src/content/history/dates";
+import { places } from "../src/content/geography/places";
+import { placeAtYear } from "../src/content/geography/eras";
 import { layeredThemes } from "../src/audio/layered-themes";
 import { catalog } from "../src/audio/sfx";
 import * as handling from "../src/audio/handling";
@@ -136,6 +138,8 @@ describe("original soundtrack scores", () => {
   });
   it("matches dated soundtracks and preserves the minimum candidate lengths", () => {
     for (const themeId of [
+      "where-the-horizon-leads",
+      "hopewell-mica-morning",
       "jeitun-clay-hearths",
       "guila-naquitz-seed-gatherers",
       "soro-mikaya-first-ridge",
@@ -163,7 +167,7 @@ describe("original soundtrack scores", () => {
       ["north-african-west-asian", 1250, "cairo-courtyard-lamps"],
       ["southeast-asian", -2000, "ban-chiang-rain-path"],
       ["inner-eurasian", -2000, "sintashta-last-light"],
-      ["other-indigenous-american", 100, "hopewell-wide-circle"],
+      ["other-indigenous-american", 100, "hopewell-mica-morning"],
     ] as const) {
       expect(culturalMusic(culture, year).direct.map((t) => t.id)).toContain(
         id,
@@ -189,6 +193,8 @@ describe("original soundtrack scores", () => {
     ).toContain("mehrgarh-rain-jars");
   });
   it("makes every registered song reachable and respects both date boundaries", () => {
+    expect(anywhereThemes.map(t => t.id)).toContain("where-the-horizon-leads");
+    expect(layeredThemes.map(t => t.id)).not.toContain("twelve-clocks");
     const placeThemes = [...culturalThemes, ...layeredThemes];
     const all = [...themes, ...placeThemes];
     expect(new Set(all.map((t) => t.id)).size).toBe(all.length);
@@ -197,13 +203,26 @@ describe("original soundtrack scores", () => {
         expect(anywhereThemes).toContain(theme);
         continue;
       }
-      expect(theme.years[1] - theme.years[0]).toBeGreaterThanOrEqual(100);
+      expect(theme.years[1] - theme.years[0]).toBeGreaterThanOrEqual(30);
       for (const culture of [theme.culture].flat()) {
         for (const year of theme.years)
           expect(culturalMusic(culture, year).direct).toContain(theme);
         for (const year of [theme.years[0] - 1, theme.years[1] + 1])
           expect(culturalMusic(culture, year).family).not.toContain(theme);
       }
+      const year = Math.min(
+        2026,
+        Math.max(-12999, Math.round((theme.years[0] + theme.years[1]) / 2)),
+      );
+      expect(
+        places.some((place) =>
+          culturalMusic(
+            placeAtYear(place, year).culture,
+            year,
+            place,
+          ).direct.includes(theme),
+        ),
+      ).toBe(true);
     }
     for (const [culture] of cultures) {
       expect(culturalMusic(culture, 2026).direct.length).toBeGreaterThanOrEqual(

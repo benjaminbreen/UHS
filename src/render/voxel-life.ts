@@ -35,10 +35,11 @@ export function voxelLamps(
   model: VoxelModel,
   seed: string,
   id: string,
+  sheet: (frame: string) => string,
 ) {
   const at = (frame: string, depth: number) =>
     scene.add
-      .image(image.x, image.y, image.texture.key, frame)
+      .image(image.x, image.y, sheet(frame), frame)
       .setOrigin(image.originX, image.originY)
       .setDepth(depth)
       .setVisible(false);
@@ -47,12 +48,15 @@ export function voxelLamps(
     halo: Phaser.GameObjects.Image;
     lit?: (hour: number) => boolean;
   }[] = [];
-  (model.lights ?? []).forEach(([x, y, w, h, kind], i) => {
+  // A missing frame falls back to the page's first, which is a whole building.
+  const has = (frame?: string): frame is string =>
+    !!frame && scene.textures.exists(sheet(frame)) && scene.textures.get(sheet(frame)).has(frame);
+  if (has(model.glow)) (model.lights ?? []).forEach(([x, y, w, h, kind], i) => {
     const pane = at(model.glow!, image.depth + 0.5).setCrop(x, y, w, h);
     const halo = at(model.glow!, 19001).setCrop(x, y, w, h).setBlendMode(Phaser.BlendModes.ADD);
     lamps.push({ pane, halo, lit: (hour) => lightOn(kind, seed, id, i, hour) });
   });
-  if (model.lampFrame)
+  if (has(model.lampFrame))
     lamps.push({
       pane: at(model.lampFrame, image.depth + 0.5),
       halo: at(model.lampFrame, 19001).setBlendMode(Phaser.BlendModes.ADD),

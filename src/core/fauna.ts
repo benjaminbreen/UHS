@@ -114,6 +114,8 @@ export type FaunaGroup = {
   owner?: string;
   gateId?: string;
   pasture?: Position;
+  /** Being brought in: home through the open gate rather than out of it. */
+  fold?: boolean;
   /** Come down on a crop: the cell it went for, and how it has gone. */
   raid?: {
     x: number;

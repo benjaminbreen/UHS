@@ -35,13 +35,36 @@ export const renderers: Record<
   d: { label: "D · unfinished", draw: drawD },
   e: {
     label: "E · default",
-    draw: (ctx, ...rest) => {
-      drawCharacterE(ctx, ...rest);
+    draw: (ctx, a, ...rest) => {
+      const sick = a.record?.sick;
+      const look = sick === "fever" ? { ...a, skin: tint(a.skin, "#cc4a3a", 0.28) }
+        : sick === "pallor" ? { ...a, skin: tint(a.skin, "#a2ac96", 0.35) } : a;
+      drawCharacterE(ctx, look, ...rest);
       finishCharacter(ctx);
+      if (sick === "rash") spots(ctx, a.skin);
     },
   },
   f: { label: "F · paper doll", draw: drawCharacterF },
 };
+const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const tint = (a: string, b: string, t: number) =>
+  `#${rgb(a).map((v, i) => Math.round(v + (rgb(b)[i] - v) * t).toString(16).padStart(2, "0")).join("")}`;
+/** A rash on a finished frame: red spots on the face, the skin-coloured
+ * pixels in the figure's top rows, so a robe of the same brown is spared. */
+function spots(ctx: CanvasRenderingContext2D, skin: string) {
+  const { width: w, height: h } = ctx.canvas, img = ctx.getImageData(0, 0, w, h), d = img.data, [r, g, b] = rgb(skin);
+  let top = 0;
+  while (top < h && !d.subarray(top * w * 4, (top + 1) * w * 4).some((v, i) => i % 4 === 3 && v)) top++;
+  for (let y = top; y < Math.min(h, top + 11); y++)
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (!d[i + 3] || ((x * 73856093) ^ (y * 19349663)) % 3 || Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b) > 60) continue;
+      d[i] = Math.min(255, d[i] * 0.6 + 176 * 0.4);
+      d[i + 1] *= 0.55;
+      d[i + 2] *= 0.6;
+    }
+  ctx.putImageData(img, 0, 0);
+}
 /** Renderers that ring the figure themselves. */
 export const outlined = (id: RendererId) => id === "e" || id === "f";
 /** The renderer the game draws with. The lab can select either; everything

@@ -35,7 +35,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       });
       const base = rows[0][1][0];
       const records = [{}, { gaunt: 2 }, { tired: true }, { pale: true }, { sun: 2 }, { soot: true }, { injury: "burned skin" }, { injury: "torn arm" },
-        { injury: "injured leg" }, { scars: ["burned skin", "injured leg"] }, { scars: ["torn arm"], sun: 2 }];
+        { injury: "injured leg" }, { scars: ["burned skin", "injured leg"] }, { scars: ["torn arm"], sun: 2 },
+        { sick: "fever" }, { sick: "rash" }, { sick: "pallor" }];
       const cols = Math.max(6, records.length), W = 192, H = 240;
       const sheet = document.createElement("canvas");
       sheet.width = cols * (W + 6); sheet.height = (rows.length + 1) * (H + 6);
@@ -53,6 +54,37 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       return sheet.toDataURL();
     });
     await writeDataUrl(sheet, out("family"));
+  },
+  /** Three people well and in each of illness's three looks: portrait above, the world sprite below. */
+  async sick(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const people = [["london", 1750, 34, "female"], ["timbuktu", 1400, 40, "male"], ["kyoto", 1200, 9, "male"]].map(([id, year, age, sex], i) =>
+        [generateCharacter(settingFor(places.find((p: any) => p.id === id), year), "sick-review", `s${i}`, age as number, undefined, undefined, undefined, sex as string).appearance, age]);
+      const looks = [undefined, "fever", "rash", "pallor"], W = 160, H = 200, S = 160;
+      const sheet = document.createElement("canvas");
+      sheet.width = looks.length * people.length * (W + 6); sheet.height = H + S + 12;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      people.forEach(([a, age]: any, p: number) => looks.forEach((sick, l) => {
+        const x = (p * looks.length + l) * (W + 6), look = { ...a, record: sick ? { sick } : undefined };
+        const face = document.createElement("canvas"); face.width = 64; face.height = 80;
+        drawSculptedPortrait(face.getContext("2d")!, look, age);
+        ctx.fillStyle = "#2a3a78"; ctx.fillRect(x, 0, W, H); ctx.drawImage(face, x, 0, W, H);
+        const body = document.createElement("canvas"); body.width = body.height = 80;
+        drawCharacter(body.getContext("2d")!, look, 2, "idle", 0);
+        ctx.fillStyle = "#3a5a3a"; ctx.fillRect(x, H + 6, W, S); ctx.drawImage(body, 26, 44, 28, 36, x + 18, H + 6, S * 0.78, S);
+      }));
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("sick"));
   },
   /** E against F, the paper doll: generated people in five facings and a walk,
    * every garment and headwear, a crowd at play scale, and F's accessories and fibres. */

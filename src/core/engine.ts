@@ -27,7 +27,7 @@ import {
   type ShoveRefusal,
   type ShoveWorld,
 } from "./shove";
-import { statsOf } from "./stats";
+import { rollStats, statsOf } from "./stats";
 import {
   energyOf,
   rollPath,
@@ -85,11 +85,11 @@ import { findPlace, type StepPlace } from "./work-places";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
-import { advanceLifeAim } from "./life-aim";
+import { advanceLifeAim, ensureLifeAim } from "./life-aim";
 import { endPlot, plotLine, stepPlot, type PlotCard } from "./plot";
 import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
-import { ailmentDef, onsets, severity } from "./health";
+import { ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment } from "./health";
 import { kinWord } from "./concerns";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
@@ -143,7 +143,7 @@ import {
 } from "./skills";
 import { pendingPicks, technique, type TechniqueId } from "./techniques";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
-import { herdNoun } from "../content/fauna/herding";
+import { herdNoun, herdWords, keptSpecies } from "../content/fauna/herding";
 import { crops, pickable } from "../content/agriculture/crops";
 import { gardenPlant, vegetableId } from "../content/agriculture/gardens";
 
@@ -587,9 +587,9 @@ export class Engine {
     const host = client && this.state.actors.find((a) => client.members.includes(a.id));
     const where = !target ? undefined
       : client ? `${host?.name ?? "A neighbour"}'s house`
-      : place ? place.owner === "player" ? "Your house" : place.name
-      : target.id === t.household.storeId ? "Your yard"
-      : target.owner === "player" ? "Your yard" : target.name;
+      : place ? place.owner === "player" ? "your house" : place.name
+      : target.id === t.household.storeId ? "your yard"
+      : target.owner === "player" ? "your yard" : target.name;
     return {
       activity: t.kit.activity,
       stages: t.process.stages,
@@ -622,7 +622,16 @@ export class Engine {
       work: t?.kit.activity.toLowerCase(),
       good: made ? (t.household.products?.[made] ? goodName(made, t.household.products[made]) : goodName(made)) : "work",
       crop: (t && this.stepPlace({ name: "field", task: "", at: "field" }, t)?.crop) ?? "crop",
+      ...herdWords(t?.kit.activity === "Tending animals" ? this.herdSpecies(this.state.player.origin?.roleLabel ?? t.kit.label) : undefined),
     };
+  }
+  private herds = new Map<string, string | undefined>();
+  private herdSpecies(trade: string) {
+    const setting = this.world.pack.setting;
+    if (!setting) return;
+    if (!this.herds.has(trade))
+      this.herds.set(trade, this.state.fauna?.find((g) => g.owner === "player")?.speciesId ?? keptSpecies(setting, this.state.manifest.seed, trade));
+    return this.herds.get(trade);
   }
   private previews = new Map<string, StepPlace | null>();
   /** Where a recipe's step is done today, or null when this map has no such
@@ -754,7 +763,8 @@ export class Engine {
    * what it asks, and at least two of its choices make sense in this world. */
   private usableCard(card: ChoiceCard, t = this.trade()) {
     const setting = this.world.pack.setting;
-    return (!card.who || !!this.cardPerson(card, t)) &&
+    return (!card.work || card.work.includes(t?.kit.activity ?? "")) &&
+      (!card.who || !!this.cardPerson(card, t)) &&
       (!card.needs || (!!setting && card.needs.every((n) => capabilitiesFor(setting).has(n)))) &&
       card.choices.filter((c) => !this.absent(c)).length >= 2;
   }
@@ -770,22 +780,27 @@ export class Engine {
     const card = id && CARDS.find((c) => c.id === id);
     if (card && !this.cards.some((c) => c.choose?.card === id)) this.offerCard(card);
   }
-  private offerCard(card: ChoiceCard) {
+  /** Puts a card on screen. A card about an illness waits apart from the
+   * day's work, so it can come whenever someone falls ill. */
+  private offerCard(card: ChoiceCard, care?: { who: string; ailment: string }) {
     const s = this.state, boss = bossTitle(this.world.pack.setting);
-    const stats = statsOf(s.manifest.seed, s.player);
-    const person = this.cardPerson(card);
-    const words = this.cardWords(person?.name.split(" ")[0]);
-    s.economy!.work!.card = card.id;
+    const stats = this.stats();
+    const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
+    const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
+    if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.clock };
+    else s.economy!.work!.card = card.id;
     this.cards.unshift({
       kind: "speech",
-      title: !person ? (this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: care ? (person ? person.name : "Unwell") : !person ? (this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {
         card: card.id,
         choices: card.choices.flatMap((c, index) => {
           if (this.absent(c)) return [];
-          const odds = c.check && oddsOf(c.check, stats, c.check.skill ? this.skillLevel(c.check.skill) : 0);
+          // For the sick, the odds shown are of the care turning a dying illness.
+          const tend = c.then.find((e) => e.type === "tend");
+          const odds = c.check ? oddsOf(c.check, stats, c.check.skill ? this.skillLevel(c.check.skill) : 0) : tend?.type === "tend" ? tend.odds : undefined;
           const note = c.note && cardText(c.note, words);
           const minutes = c.then.reduce((n, e) => n + (e.type === "minutes" ? e.n : 0), 0);
           const coin = c.then.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0);
@@ -795,11 +810,14 @@ export class Engine {
     });
   }
   private choose(id: string, n: number) {
-    const s = this.state, p = s.player, work = s.economy!.work!;
+    const s = this.state, p = s.player;
+    const care = s.care?.card === id ? s.care : undefined;
+    const work = care ? undefined : s.economy!.work!;
     const card = CARDS.find((c) => c.id === id)!, c = card.choices[n];
-    delete work.card;
-    const person = this.cardPerson(card);
-    const won = !c.check || this.rng(`card:${id}`) < oddsOf(c.check, statsOf(s.manifest.seed, p), c.check.skill ? this.skillLevel(c.check.skill) : 0);
+    if (care) delete s.care;
+    else delete work!.card;
+    const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
+    const won = !c.check || this.rng(`card:${id}`) < oddsOf(c.check, this.stats(), c.check.skill ? this.skillLevel(c.check.skill) : 0);
     const effects = won ? c.then : (c.otherwise ?? []);
     const sum = (type: string) => effects.reduce((n, e) => n + (e.type === type ? ("delta" in e ? e.delta : "n" in e ? e.n : 0) : 0), 0);
     const changes = [
@@ -811,28 +829,65 @@ export class Engine {
       { kind: "hurt", delta: sum("hurt") },
     ].filter((ch) => ch.delta);
     for (const e of effects)
-      if (e.type === "day") work.quality = Math.max(-2, Math.min(2, (work.quality ?? 0) + e.delta));
-      else if (e.type === "pay") work.pay = (work.pay ?? 0) + e.delta;
+      if (e.type === "day") { if (work) work.quality = Math.max(-2, Math.min(2, (work.quality ?? 0) + e.delta)); }
+      else if (e.type === "pay") { if (work) work.pay = (work.pay ?? 0) + e.delta; }
+      else if (e.type === "risk") { if (this.rng(`risk:${id}`) < e.odds) this.fallIll(e.ailment); }
       else if (e.type === "minutes") this.advance(e.n * 60);
       else if (e.type === "fatigue") p.fatigue = Math.max(0, Math.min(100, p.fatigue + e.n));
       else if (e.type === "item") p.inventory[e.item] = Math.max(0, (p.inventory[e.item] ?? 0) + e.n);
       else if (e.type === "hurt") this.hurt(e.n, e.cause, e.injury);
       else if (e.type === "tend") {
-        const ail = person && s.ailments?.find((a) => a.who === person.id && !a.tended);
+        const who = care ? care.who : person?.id;
+        const ail = who && s.ailments?.find((a) => a.who === who && !a.tended);
         if (ail) {
           ail.tended = true;
           if (ail.course === "die" && this.rng(`tend:${ail.who}`) < e.odds) ail.course = "mend";
         }
       } else if (person) this.regard(person, e.delta);
-    const line = cardText(won ? c.line : (c.otherwiseLine ?? c.line), this.cardWords(person?.name.split(" ")[0]));
-    work.lines = [...(work.lines ?? []), line];
+    const line = cardText(won ? c.line : (c.otherwiseLine ?? c.line), care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]));
+    if (work) work.lines = [...(work.lines ?? []), line];
     const record = (s.record ??= []);
-    record.push({ day: work.day, clock: s.clock, card: id, choice: n, line });
+    record.push({ day: work?.day ?? Math.floor(s.clock / 86400), clock: s.clock, card: id, choice: n, line });
     if (record.length > 5000) record.shift();
     this.event(line);
     this.lastChoice = { card: id, line, won: c.check ? won : undefined, changes };
     const t = this.trade();
-    if (t && t.stage >= t.process.stages.length) this.finishWork(t);
+    if (work && t && t.stage >= t.process.stages.length) this.finishWork(t);
+  }
+  /** The player's stats as they are today: an illness at its worst takes
+   * half their strength, and an injury some more. */
+  stats() {
+    const s = this.state, p = s.player, base = statsOf(s.manifest.seed, p);
+    const sick = ailing(s, p.id, s.clock), hurt = p.injury && p.injury.until > s.clock ? 0.15 : 0;
+    const k = 1 - Math.min(0.6, sick * 0.5 + hurt);
+    return { ...base, strength: base.strength * k, agility: base.agility * k, endurance: base.endurance * k, wit: base.wit * (1 - sick * 0.3) };
+  }
+  private careWords(person: Actor | undefined, ailment: string) {
+    const setting = this.world.pack.setting;
+    return {
+      ...this.cardWords(person?.name.split(" ")[0]),
+      ailment: nameFor(ailmentDef(ailment), setting),
+      healer: (setting?.year ?? 0) < 1880 ? "healer" : "doctor",
+    };
+  }
+  /** Someone falls ill: the player, of something a card risked, or anyone
+   * the hour's onsets chose. The player and their own are asked what to do. */
+  private fallIll(ailment: string, who: Actor = this.state.player) {
+    const s = this.state, setting = this.world.pack.setting;
+    if ((s.ailments ?? []).some((a) => a.who === who.id)) return;
+    const ail = startAilment(s.manifest.seed, ailmentDef(ailment), who, healthPerson(who, setting), s.clock, false, true);
+    (s.ailments ??= []).push(ail);
+    this.offerCare(ail);
+  }
+  private offerCare(ail: { who: string; id: string }) {
+    const s = this.state, setting = this.world.pack.setting;
+    const own = ail.who === s.player.id;
+    // One at a time; one left unanswered a day lapses.
+    if ((s.care && s.clock - s.care.at < 86400) || s.player.dead || (!own && !kinOf(s).some((k) => k.actor.id === ail.who))) return;
+    const card = pickCard(own ? "care-self" : "care-kin", setting,
+      weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", s.clock), s.manifest.seed,
+      Math.floor(s.clock / 86400), (c) => c.choices.filter((x) => !this.absent(x)).length >= 2, new Set());
+    if (card) this.offerCard(card, { who: ail.who, ailment: ail.id });
   }
   private today() {
     const s = this.state;
@@ -885,12 +940,23 @@ export class Engine {
     if (!t || t.stage >= t.process.stages.length) return;
     const s = this.state;
     const { process } = t;
+    // The pen stands open while the work is out at grass and while the herd
+    // is brought back, so the herd goes out and comes home with you.
+    const gate = s.objects.find((o) => o.kind === "gate" && o.owner === "player" && /-pen\d+-gate$/.test(o.id));
+    const grazing = (i: number) => process.steps[i]?.at === "pasture" || process.steps[i - 1]?.at === "pasture";
+    const herd = gate && s.fauna?.find((g) => g.gateId === gate.id);
+    // A pen with no paddock of its own grazes wherever the day's grass is.
+    if (herd && !herd.pasture && process.steps[t.stage].at === "pasture") herd.pasture = this.placeStep(t)?.at.pos;
+    if (gate) gate.open = grazing(t.stage);
+    if (herd) herd.fold = gate!.open && process.steps[t.stage].at !== "pasture";
     this.working = true;
     this.advance((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
     this.working = false;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
     s.economy.work = { ...was, day: t.day, stage: t.stage + 1 };
+    if (gate) gate.open = grazing(t.stage + 1);
+    if (herd) herd.fold = gate!.open && process.steps[t.stage + 1]?.at !== "pasture";
     // Walked here, the card came on arrival; set down here, it comes now.
     const card = this.drawCard(t, t.stage);
     if (t.stage + 1 < process.stages.length) return;
@@ -1118,10 +1184,12 @@ export class Engine {
           : undefined;
       // The day is its work and its occasions; hunger and company look after themselves.
       const title = this.trade()?.process.title;
+      // A trade with a day of its own is that day, whichever work template was picked.
+      const work = picked.filter((g) => g.slot === "work" && !feast?.rest);
       s.goals = [
-        ...picked
-          .filter((g) => g.slot === "work" && !feast?.rest)
-          .map((g) => (g.id === "day-of-work" && (title ?? job) ? { ...g, text: title ?? job! } : g)),
+        ...(title && work.length
+          ? [{ id: "day-of-work", slot: "work" as const, text: title, check: { type: "work" as const } }]
+          : work.map((g) => (g.id === "day-of-work" && job ? { ...g, text: job } : g))),
         ...own,
       ].slice(0, 8);
       for (const g of s.goals)
@@ -1596,6 +1664,8 @@ export class Engine {
         camp: s.settlement === "camp" || (!!s.situation && s.situation.camp !== "none"),
         roofHatch: exit?.sprite === "ladder",
         use: buildingUse(place.claim),
+        frame: place.sprite,
+        climate: s.climate,
       },
       { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family },
     );
@@ -2555,11 +2625,7 @@ export class Engine {
     if (injury) p.injury = { name: injury, until: Math.max(p.injury?.until ?? 0, this.state.clock + 3 * 86400) };
     // A bad fall or a burn heals to a mark that stays.
     if (injury && (damage >= 35 || injury === "burned skin")) this.scar(injury);
-    if (p.health > 0) return;
-    p.dead = cause;
-    p.activity = "Dead";
-    this.pendingCollapse = undefined;
-    this.event(`You die from ${cause}.`);
+    if (p.health <= 0) this.die(cause);
   }
   private fall(from: Position, to: Position, extra = 0) {
     if (!this.state.manifest.hazards) return;
@@ -3907,7 +3973,7 @@ export class Engine {
         const place = (this.world.places ?? []).find(
           (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
         );
-        if (place) return { id: place.id, label: place.name, rise: 22, at: q };
+        if (place) return { id: place.id, label: "the roof", rise: 22, at: q };
         // A wall walk is a surface, not a perch: step onto it and the wall
         // top is ground until you climb down the far side.
         if (this.wallAt(q.x, q.y, "outside"))
@@ -4971,6 +5037,7 @@ export class Engine {
   }
   validate(c: PlayerCommand): string | undefined {
     const p = this.state.player;
+    if (c.type === "become") return p.dead && this.heirs().some((a) => a.id === c.heir) ? undefined : "There is no one to go on as.";
     if (p.dead) return `You are dead from ${p.dead}. Start a new world or load an earlier save.`;
     if (c.type === "interact" && c.action === "descend")
       return p.perch || this.onWall() ? undefined : "You are not up anything.";
@@ -4990,7 +5057,7 @@ export class Engine {
     if (c.type === "interact" && c.action === "work" && this.tileAt(c.target))
       return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
     if (c.type === "choose") {
-      const choice = this.waitingCard() === c.card ? CARDS.find((k) => k.id === c.card)?.choices[c.choice] : undefined;
+      const choice = this.waitingCard() === c.card || this.state.care?.card === c.card ? CARDS.find((k) => k.id === c.card)?.choices[c.choice] : undefined;
       return !choice ? "There is nothing to answer." : this.choiceProblem(choice);
     }
     if (c.type === "interact" && c.action === "douse") return this.douseProblem(c.target);
@@ -5806,6 +5873,10 @@ export class Engine {
   }
   execute(c: PlayerCommand) {
     const p = this.state.player;
+    if (c.type === "become") {
+      this.becomeKin(c.heir);
+      return;
+    }
     if (p.dead) return;
     this.lastImpact = undefined;
     if (c.type !== "move" && c.type !== "pass") this.lastStep.steps = 0;
@@ -7056,11 +7127,83 @@ export class Engine {
       }
       if (clock < ail.since + ail.days * 86400) continue;
       list.splice(list.indexOf(ail), 1);
+      if (ail.who === s.player.id) {
+        if (ail.course === "die") this.die(this.diedOf(ail.id));
+        continue;
+      }
       const a = s.actors.find((x) => x.id === ail.who);
-      if (a && ail.course === "die" && a.id !== s.player.id && !spare.has(a.id)) this.dies(a, ailmentDef(ail.id).died);
+      if (a && ail.course === "die" && !spare.has(a.id)) this.dies(a, this.diedOf(ail.id));
     }
-    list.push(...onsets(s, setting, spare));
+    // An illness wears the player down as it worsens.
+    const p = s.player, sick = ailing(s, p.id, clock);
+    if (sick) p.health = Math.min(p.health ?? 100, Math.round(100 - 70 * sick));
+    const fresh = onsets(s, setting, spare);
+    list.push(...fresh);
+    for (const ail of fresh) this.offerCare(ail);
     this.laid = undefined;
+  }
+  /** Those of the dead player's household who could go on as them: alive,
+   * twelve or older, eldest first. */
+  heirs() {
+    const s = this.state, h = this.household(s.player.householdId);
+    return s.actors.filter((a) => a.kind === "human" && !a.dead && (a.age ?? 0) >= 12 && !!h?.members.includes(a.id))
+      .sort((a, b) => (b.age ?? 0) - (a.age ?? 0));
+  }
+  /** Goes on as one of the dead player's household: their name, body, place
+   * and memories become the player's, and the household, plot, record and
+   * year carry on. The id stays "player"; every tie to the heir is moved
+   * onto it, and the dead go into the household's history. */
+  becomeKin(id: string) {
+    const s = this.state, dead = s.player, heir = this.heirs().find((a) => a.id === id);
+    const h = this.household(dead.householdId);
+    if (!dead.dead || !heir || !h) return false;
+    const year = this.world.pack.setting?.year;
+    if (year !== undefined) (h.history ??= []).push({ year, kind: "died", name: dead.name });
+    h.members = h.members.filter((m) => m !== id);
+    s.actors = s.actors.filter((a) => a.id !== id);
+    for (const a of s.actors)
+      a.relations = (a.relations ?? []).filter((r) => r.other !== "player").map((r) => (r.other === id ? { ...r, other: "player" } : r));
+    const { dead: _d, errand: _e, ...body } = heir;
+    s.player = {
+      ...body,
+      id: "player",
+      householdId: h.id,
+      relations: (heir.relations ?? []).filter((r) => r.other !== "player"),
+      stats: rollStats(s.manifest.seed, heir),
+      knownResources: dead.knownResources ?? [],
+      health: 100,
+      activity: "Exploring",
+    };
+    s.ailments = (s.ailments ?? []).filter((a) => a.who !== "player").map((a) => (a.who === id ? { ...a, who: "player" } : a));
+    s.bonds = s.bonds?.filter((b) => b.with !== id);
+    if (s.plot) for (const [role, who] of Object.entries(s.plot.cast)) if (who === id) delete s.plot.cast[role];
+    s.kin = undefined;
+    s.care = undefined;
+    s.workday = undefined;
+    if (s.economy) delete s.economy.work;
+    s.goalDay = undefined;
+    s.lifeAim = undefined;
+    ensureLifeAim(s, this.world.pack.setting);
+    this.routes.delete(id);
+    this.laid = undefined;
+    this.cards.length = 0;
+    this.event(`You go on as ${s.player.name}.`, "system");
+    return true;
+  }
+  /** "of the bloody flux": how an illness kills, in the place's words. */
+  private diedOf(ailment: string) {
+    const def = ailmentDef(ailment);
+    return def.died.replace("{name}", nameFor(def, this.world.pack.setting));
+  }
+  /** The player dies, of an illness, a fall, the water. */
+  private die(cause: string) {
+    const p = this.state.player;
+    if (p.dead) return;
+    p.health = 0;
+    p.dead = cause;
+    p.activity = "Dead";
+    this.pendingCollapse = undefined;
+    this.event(`You die ${/^(of|from|in) /.test(cause) ? cause : `from ${cause}`}.`);
   }
   /** Someone dies of an illness: gone from the world, written into their
    * household's history, and a card if they were the player's own. */

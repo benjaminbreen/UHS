@@ -446,14 +446,16 @@ function Equipment({
           >
             <button
               type="button"
-              disabled={!filled}
+              // Not `disabled`: a disabled button swallows the drag events an
+              // empty slot needs to take a drop.
+              aria-disabled={!filled || undefined}
               title={
                 filled ? `Take off ${filled.name.toLowerCase()}` : undefined
               }
               aria-label={
                 filled ? `Take off ${filled.name}` : `${label}: empty`
               }
-              onClick={() => onClear(slot)}
+              onClick={() => filled && onClear(slot)}
               style={
                 tier !== "common"
                   ? {

@@ -160,32 +160,32 @@ const recipes: Recipe[] = [
       spring: {
         title: "Birthing season",
         steps: [
-          { name: "pen", task: "Look over the mothers in the pen", at: "yard", scene: "herd", card: "herd-birth", hours: 2 },
-          { name: "out", task: "Drive them out to the new grass", at: "pasture", scene: "herd", hours: 4 },
-          { name: "home", task: "Bring them home and pen them", at: "yard", scene: "herd", card: "herd-home", hours: 2 },
+          { name: "pen", task: "Look over the {mothers}", at: "yard", scene: "herd", card: "herd-birth", hours: 2 },
+          { name: "out", task: "Drive the {herd} out to the new grass", at: "pasture", scene: "herd", hours: 4 },
+          { name: "home", task: "Bring the {herd} home", at: "yard", scene: "herd", card: "herd-home", hours: 2 },
         ],
       },
       summer: {
         title: "Summer grazing",
         steps: [
-          { name: "out", task: "Drive the animals out to graze", at: "pasture", scene: "herd", hours: 1 },
-          { name: "watch", task: "Watch the herd", at: "pasture", scene: "herd", card: "herd-watch", hours: 5 },
-          { name: "home", task: "Bring them home and pen them", at: "yard", scene: "herd", card: "herd-home", hours: 2 },
+          { name: "out", task: "Drive the {herd} out to graze", at: "pasture", scene: "herd", hours: 1 },
+          { name: "watch", task: "Watch the {herd}", at: "pasture", scene: "herd", card: "herd-watch", hours: 5 },
+          { name: "home", task: "Bring the {herd} home", at: "yard", scene: "herd", card: "herd-home", hours: 2 },
         ],
       },
       autumn: {
         title: "Before the winter",
         steps: [
-          { name: "out", task: "Graze them while the grass lasts", at: "pasture", scene: "herd", card: "herd-watch", hours: 4 },
-          { name: "cull", task: "Choose which animals to keep", at: "yard", scene: "herd", card: "herd-cull", hours: 2 },
+          { name: "out", task: "Graze the {herd} while the grass lasts", at: "pasture", scene: "herd", card: "herd-watch", hours: 4 },
+          { name: "cull", task: "Choose which {herd} to keep", at: "yard", scene: "herd", card: "herd-cull", hours: 2 },
           { name: "home", task: "Pen the ones you keep", at: "yard", scene: "herd", hours: 2 },
         ],
       },
       winter: {
         title: "Winter feeding",
         steps: [
-          { name: "feed", task: "Feed them from the winter store", at: "yard", scene: "herd", card: "herd-fodder", hours: 2 },
-          { name: "water", task: "Water the animals", at: "well", scene: "water", hours: 2 },
+          { name: "feed", task: "Feed the {herd} from the winter store", at: "yard", scene: "herd", card: "herd-fodder", hours: 2 },
+          { name: "water", task: "Water the {herd}", at: "well", scene: "water", hours: 2 },
           { name: "muck", task: "Muck out the pens", at: "yard", scene: "haul", hours: 3 },
         ],
       },

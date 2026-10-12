@@ -112,7 +112,9 @@ function wheelThrown({ lon, lat, year }: InteriorSite) {
  * are larger than the building outside; that is deliberate. */
 export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string; bench?: string }): InteriorLayout {
   const seed = seedOf(place.id);
-  const home = interiorProfileFor(site);
+  const found = interiorProfileFor(site);
+  // Çatalhöyük's plan behind a street door, where the house outside has one.
+  const home = found.door === "none" && !site.roofHatch && site.frame ? { ...found, door: "door" as const } : found;
   // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
   const works = buildingUse(place.claim) ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined;
   const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
@@ -192,7 +194,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const trade = params.trade;
   // The keeper works from behind the bar, facing the room.
   const work = of(WORK[trade]).flatMap((q) => (q.kind === "bar" || q.kind === "shopcounter" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
-  const fixtures = of(["fixture", "anvil"]).flatMap(stands);
+  const fixtures = of(["fixture", "anvil", "throw"]).flatMap(stands);
   const fire = of(FIRES).flatMap(stands);
   // A stool is turned to the table or the fire it stands at; anything with a back faces the room.
   const boards = of(["table", "lowtable", "desk", "counter", ...FIRES]);

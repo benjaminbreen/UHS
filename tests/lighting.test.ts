@@ -10,15 +10,15 @@ import {
 it("changes lighting only at six local-time boundaries, including midnight rollover", () => {
   for (const [hour, id] of [
     [0, "night"],
-    [4.999, "night"],
-    [5, "early-morning"],
+    [5.999, "night"],
+    [6, "early-morning"],
     [8, "morning"],
     [11, "midday"],
     [14, "afternoon"],
     [17, "dusk"],
     [20, "night"],
     [24, "night"],
-    [29, "early-morning"],
+    [30, "early-morning"],
   ] as const)
     expect(lightingAt(hour * 3600).id).toBe(id);
   expect(lightingAt(9 * 3600)).toBe(lightingAt(10 * 3600 + 59 * 60));

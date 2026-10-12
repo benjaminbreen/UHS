@@ -132,7 +132,7 @@ import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
 import { fromAtlas, toAtlas } from "../world/geography/coordinates";
 import { ensureLifeAim, lifeAimOf } from "../core/life-aim";
 import { startPlot } from "../core/plot";
-import { seedAilments } from "../core/health";
+import { ailmentDef, seedAilments, severity } from "../core/health";
 import { bondsFor } from "../core/bonds";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import { readQuick, writeQuick } from "../ui/start-mode";
@@ -404,7 +404,7 @@ export class Runtime {
   }
   /** What the actor's life has done to their body, in steps coarse enough to key a portrait. */
   private bodyRecord(
-    actor: Partial<Pick<Actor, "origin" | "age" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId">>,
+    actor: Partial<Pick<Actor, "id" | "origin" | "age" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId">>,
   ): BodyRecord | undefined {
     const r: BodyRecord = {};
     const fortune = actor.householdId
@@ -413,6 +413,12 @@ export class Runtime {
     if ((actor.hunger ?? 0) > 70) r.gaunt = fortune !== undefined && fortune < 0.25 ? 2 : 1;
     if ((actor.fatigue ?? 0) > 65) r.tired = true;
     if ((actor.health ?? 100) < 40) r.pale = true;
+    const clock = this.engine.state.clock;
+    const ill = actor.id === undefined ? undefined : (this.engine.state.ailments ?? [])
+      .filter((x) => x.who === actor.id && severity(x, clock) >= 0.3)
+      .sort((a, b) => severity(b, clock) - severity(a, clock))[0];
+    const look = ill && ailmentDef(ill.id).look;
+    if (look) r.sick = look;
     if (actor.injury && actor.injury.until > this.engine.state.clock) r.injury = actor.injury.name;
     if (actor.scars?.length) r.scars = actor.scars;
     const kit = livelihoodOf(this.engine.world.pack, actor as Actor);

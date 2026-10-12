@@ -60,7 +60,7 @@ export function forHowLong(ail: Ailment, clock: number, words: (n: number) => st
     : n < 11 ? "for a week" : n < 18 ? "for more than a week" : "for weeks";
 }
 
-function start(seed: string, def: AilmentDef, a: Actor, p: HealthPerson, clock: number, underway: boolean, mortal: boolean): Ailment {
+export function start(seed: string, def: AilmentDef, a: Actor, p: HealthPerson, clock: number, underway: boolean, mortal: boolean): Ailment {
   const r = (k: string) => random(seed, "ailment", k, a.id, def.id, Math.floor(clock / 3600));
   const days = def.days[0] + Math.floor(r("days") * (def.days[1] - def.days[0] + 1));
   const deadly = mortal ? def.deadly(p) : 0;
@@ -97,21 +97,26 @@ export function seedAilments(s: Snapshot, setting: WorldSetting | undefined, spa
   return out;
 }
 
-/** New cases this hour: a day's prevalence spread over the course's length. */
+/** New cases this hour: a day's prevalence spread over the course's length.
+ * The player falls ill as anyone does, and can die of it. */
 export function onsets(s: Snapshot, setting: WorldSetting | undefined, spare: ReadonlySet<string>): Ailment[] {
   const seed = s.manifest.seed, season = seasonOf(setting, s.clock), hour = Math.floor(s.clock / 3600);
   const ill = new Set((s.ailments ?? []).map((x) => x.who));
   const out: Ailment[] = [];
-  for (const a of s.actors) {
+  for (const a of [...s.actors, s.player]) {
     if (a.kind !== "human" || a.dead || ill.has(a.id) || spare.has(a.id)) continue;
     const p = { ...healthPerson(a, setting), season };
     for (const def of AILMENTS) {
       const perHour = def.rate(p) / ((def.days[0] + def.days[1]) / 2) / 24;
       if (perHour > 0 && random(seed, "onset", a.id, def.id, hour) < perHour) {
-        out.push(start(seed, def, a, p, s.clock, false, a.id !== s.player.id));
+        out.push(start(seed, def, a, p, s.clock, false, true));
         break;
       }
     }
   }
   return out;
 }
+
+/** How ill someone is now, 0 to 1: their worst illness under way. */
+export const ailing = (s: Snapshot, id: string, clock: number) =>
+  (s.ailments ?? []).reduce((worst, a) => (a.who === id ? Math.max(worst, severity(a, clock)) : worst), 0);

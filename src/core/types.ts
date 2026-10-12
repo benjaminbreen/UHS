@@ -535,6 +535,7 @@ export type PlayerCommand =
   | { type: "sleep"; seconds: number }
   /** An answer to the work card on screen. */
   | { type: "choose"; card: string; choice: number }
+  | { type: "become"; heir: string }
   | { type: "narrate"; intents: Intent[] };
 export type CommandRequest = {
   actionId: string;
@@ -623,6 +624,8 @@ export type Snapshot = {
   workday?: { day: number; places: Record<string, { pos: Position; label: string; patient?: string; crop?: string } | null> };
   /** Every choice made at work over the life, for the account of it. */
   record?: { day: number; clock: number; card: string; choice: number; line: string }[];
+  /** A card about someone's illness, the player's own or kin's, waiting on an answer. */
+  care?: { card: string; who: string; ailment: string; at: number };
   /** What the player has done today that goals can't read off state. */
   goalFlags?: {
     traded: boolean;

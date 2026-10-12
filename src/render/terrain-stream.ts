@@ -496,7 +496,8 @@ export class TerrainStream {
         .setOrigin(0)
         .setDisplaySize(SIZE * 16, SIZE * 16)
         .setTint(this.tint)
-        .setDepth(PREVIEW_DEPTH),
+        .setDepth(PREVIEW_DEPTH)
+        .setVisible(!this.hidden),
     );
   }
   private dropPreview(key: string) {
@@ -616,6 +617,10 @@ export class TerrainStream {
       for (const shade of chunk.shade) shade.setVisible(!hidden);
     }
     for (const preview of this.previews.values()) preview.setVisible(!hidden);
+    // The chunk part-way through installing is not in `chunks` yet, and its
+    // ground and tufts were showing round the room.
+    for (const object of this.job?.resources.objects ?? [])
+      (object as Partial<Phaser.GameObjects.Image>).setVisible?.(!hidden);
   }
   /** Chunks loaded, for tests and diagnostics. */
   get size() {

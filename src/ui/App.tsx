@@ -119,6 +119,7 @@ import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
 import { CombatTestPanel } from "../dev/CombatTestPanel";
 import { SkillTestPanel } from "../dev/SkillTestPanel";
 import { CollapseNotice, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
+import { DeathCard } from "./DeathCard";
 import { SkillSky } from "./SkillSky";
 import type { TaskSource } from "./task-view";
 import type { SkillId } from "../core/skills";
@@ -1083,7 +1084,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             />
             </Suspense>
           )}
-          {modal !== "world" && <CollapseNotice collapse={runtime.engine.lastCollapse} dead={p.dead} onNewWorld={openWorld} />}
+          {modal !== "world" && (p.dead ? <DeathCard runtime={runtime} onClose={openWorld} /> : <CollapseNotice collapse={runtime.engine.lastCollapse} />)}
           <BagFlights
             inventory={p.inventory}
             world={obs.manifest.seed}

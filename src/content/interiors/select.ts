@@ -12,10 +12,14 @@ export type InteriorSite = {
   roofHatch?: boolean;
   /** What a public building is for, from its claim (`buildingUse`). */
   use?: string;
+  /** The building's art frame outside, which says a round hut from a longhouse. */
+  frame?: string;
+  /** The setting's climate, for the fallback where no region has a house. */
+  climate?: string;
 };
 
 type Rule = { lon: [number, number]; lat: [number, number]; from?: number; to?: number; pick: (s: InteriorSite) => string };
-const urban = (s: InteriorSite) => s.settlement === "city" || s.settlement === "town";
+const urban = (s: InteriorSite) => s.settlement === "city" || s.settlement === "town" || s.settlement === "port";
 
 // First match wins, so narrower regions and dates come before broader ones.
 const RULES: Rule[] = [
@@ -25,16 +29,26 @@ const RULES: Rule[] = [
   { lon: [110, 156], lat: [-45, -10], to: 1900, pick: (s) => (s.lat > -22 ? "arnhem-bark-shelter" : "gunditjmara-stone-house") },
   { lon: [85, 125], lat: [40, 53], from: 1000, pick: () => "mongol-ger" },
   { lon: [-115, -93], lat: [30, 52], from: 1650, to: 1895, pick: () => "plains-tipi" },
-  { lon: [34, 60], lat: [14, 33], pick: (s) => (s.camp || !urban(s) ? "bedouin-tent" : "maghrebi-dar") },
+  { lon: [34, 60], lat: [14, 33], pick: (s) => (s.camp ? "bedouin-tent" : urban(s) ? "maghrebi-dar" : s.lat > 29 ? "fellah-house" : "bedouin-tent") },
   { lon: [-18, 12], lat: [20, 37.5], from: 700, pick: (s) => (urban(s) ? "maghrebi-dar" : "amazigh-house") },
+  // The Nile, the Levant, Mesopotamia and the Persian plateau: mudbrick
+  // villages, and the courtyard house in the towns of the Islamic centuries.
+  { lon: [24, 62], lat: [22, 40], from: -3000, pick: (s) => (urban(s) && s.year >= 650 ? "maghrebi-dar" : "fellah-house") },
+  { lon: [-18, 25], lat: [10, 20], from: 500, pick: () => "sahel-mud-house" },
+  { lon: [-110, -80], lat: [8, 25], from: -1500, to: 1700, pick: () => "mesoamerican-house" },
+  { lon: [-82, -62], lat: [-30, 5], from: 0, to: 1900, pick: () => "andean-house" },
   { lon: [5, 30], lat: [35, 46], from: -600, to: 500, pick: (s) => (s.camp ? "roman-army-tent" : "roman-domus") },
   { lon: [-12, 32], lat: [54, 72], from: 750, to: 1100, pick: () => "norse-longhouse" },
   { lon: [2, 8], lat: [49.5, 54], from: 1550, to: 1800, pick: (s) => (urban(s) ? "flemish-townhouse" : "medieval-cottage") },
+  { lon: [-11, 30], lat: [42, 60], from: 1650, to: 1850, pick: (s) => (urban(s) ? "european-townhouse" : "medieval-cottage") },
   { lon: [-11, 30], lat: [42, 60], from: 1000, to: 1700, pick: () => "medieval-cottage" },
-  { lon: [128, 147], lat: [30, 46], from: 1400, to: 1945, pick: () => "japanese-minka" },
-  { lon: [124, 131], lat: [33, 43.5], from: 1400, to: 1945, pick: () => "korean-ondol-room" },
-  { lon: [98, 123], lat: [18, 42], from: 1300, to: 1912, pick: () => "ming-study" },
-  { lon: [68, 76], lat: [22, 31], from: 1500, pick: (s) => (urban(s) ? "rajasthani-haveli" : "gangetic-village-house") },
+  // Earlier than the surviving minka and Ming houses: their plans and kit are
+  // the nearest documented, an inference for Heian Kyoto or Song Hangzhou.
+  { lon: [128, 147], lat: [30, 46], from: 700, to: 1945, pick: () => "japanese-minka" },
+  { lon: [124, 131], lat: [33, 43.5], from: 900, to: 1945, pick: () => "korean-ondol-room" },
+  { lon: [98, 123], lat: [18, 42], from: 900, to: 1912, pick: () => "ming-study" },
+  { lon: [92, 130], lat: [-11, 23], from: -2000, to: 1960, pick: () => "stilt-house" },
+  { lon: [68, 80], lat: [22, 31], from: 1500, pick: (s) => (urban(s) ? "rajasthani-haveli" : "gangetic-village-house") },
   { lon: [68, 92], lat: [8, 32], from: 1500, pick: () => "gangetic-village-house" },
   { lon: [-130, -60], lat: [25, 55], from: 1900, to: 1960, pick: (s) => (urban(s) ? "art-deco-apartments" : "farmhouse-1930s") },
   { lon: [-180, 180], lat: [-85, 85], from: 1920, to: 1960, pick: (s) => (urban(s) ? "art-deco-apartments" : "farmhouse-1930s") },
@@ -182,6 +196,8 @@ export function interiorProfileFor(site: InteriorSite): InteriorProfile {
   const venue = publicInteriorFor(site);
   if (venue) return venue;
   if (site.roofHatch) return interiorProfile("catalhoyuk-house")!;
+  const form = site.frame && formOf(site.frame, site.year);
+  if (form) return interiorProfile(form)!;
   if (site.camp && site.year >= 1970) return interiorProfile("modern-tent")!;
   for (const r of RULES) {
     if (site.lon < r.lon[0] || site.lon > r.lon[1] || site.lat < r.lat[0] || site.lat > r.lat[1]) continue;
@@ -191,7 +207,26 @@ export function interiorProfileFor(site: InteriorSite): InteriorProfile {
     if (found) return found;
   }
   if (site.camp) return interiorProfile(site.year < 1700 ? "plains-tipi" : "modern-tent")!;
+  if (site.year >= 1850) return interiorProfile("farmhouse-1930s")!;
+  // No region's house: Africa's round houses, the tropics' houses on posts,
+  // dry country's mudbrick, and a timber cottage only where it is temperate.
+  if (site.lon > -20 && site.lon < 52 && site.lat > -35 && site.lat < 15) return interiorProfile("round-hut")!;
+  if (site.climate === "tropical" || site.climate === "monsoon") return interiorProfile("stilt-house")!;
+  if (site.climate === "arid") return interiorProfile("fellah-house")!;
   if (site.year < -3000) return interiorProfile("lbk-longhouse")!;
-  if (site.year < 1850) return interiorProfile("medieval-cottage")!;
-  return interiorProfile("farmhouse-1930s")!;
+  return interiorProfile("medieval-cottage")!;
+}
+
+/** The room a building's own form makes, whatever the region: a round hut
+ * opens on a round room, a felt tent on a ger. */
+function formOf(frame: string, year: number) {
+  if (/^(steppe-tent|camp-felt)/.test(frame)) return "mongol-ger";
+  if (/^(camp-leather|shelter-hide)/.test(frame)) return "plains-tipi";
+  if (/^camp-canvas/.test(frame)) return year >= 1850 ? "modern-tent" : "roman-army-tent";
+  if (/^forager-shelter-aboriginal/.test(frame)) return "arnhem-bark-shelter";
+  if (/^(forager-shelter|camp-(dome|brush)|shelter-reed)/.test(frame)) return "forager-shelter";
+  if (/^house-pit/.test(frame)) return "pit-house";
+  if (/^(house-(round|rondavel|dome)|enkang-house)/.test(frame)) return "round-hut";
+  if (/^house-mud/.test(frame) && year < -5000) return "catalhoyuk-house";
+  if (/longhouse/.test(frame)) return year < 0 ? "lbk-longhouse" : "norse-longhouse";
 }

@@ -509,6 +509,38 @@ export class PixelRoom {
       }
     }
   }
+  /** A woven mat on the floor, `h` rows deep, its bottom at `base`. */
+  private mat(X: number, base: number, PW: number, h: number, seed: number) {
+    const S = this.P.straw;
+    this.r(X + 1, base - h, PW - 2, h, (i, j) => (j === 0 || j === h - 1 || i === 0 || i === PW - 3 ? S[1] : (i + j * 2 + seed) % 6 < 3 ? S[3] : S[2]));
+  }
+  /** Where trade is done off the floor: the stock in jars and baskets against
+   * the wall, heaped with the goods, rather than on shelves. */
+  private groundStock(style: string, X: number, base: number, PW: number, seed: number) {
+    const { P } = this;
+    const heap = { bread: [0xe0a860, 0x9a5a28], cloth: [P.dye[0][3], P.dye[1][3]], pots: [P.clay[4], P.clay[2]], tools: [P.iron[4], P.iron[2]] }[style] ?? [0xc8a040, 0x6a8a3a];
+    for (let k = 0; k < PW / 11; k++) {
+      const cx = X + 6 + k * 11;
+      if (hash(k, 5, seed) < 0.5) this.vase(cx, base, 12, (t) => 4.4 - Math.abs(t - 0.45) * 4, P.clay);
+      else {
+        this.r(cx - 4, base - 8, 9, 8, (i, j) => (j === 0 ? P.straw[5] : (i + j) % 2 ? P.straw[2] : P.straw[3]));
+        for (let i = -3; i <= 3; i++) this.s(cx + i, base - 9 - (Math.abs(i) < 2 ? 1 : 0), heap[(i + k) & 1]);
+      }
+    }
+  }
+  /** Goods laid out on a mat on the floor, by trade. */
+  private groundDisplay(style: string, X: number, base: number, PW: number, seed: number) {
+    const { P } = this;
+    this.mat(X, base, PW, 7, seed);
+    for (let k = 0; k < Math.floor((PW - 6) / 6); k++) {
+      const cx = X + 5 + k * 6, cy = base - 4 + (k % 2);
+      if (style === "bread") for (let j = -1; j <= 1; j++) for (let i = -2; i <= 2; i++) this.s(cx + i, cy + j, j < 0 ? 0xe0a860 : 0x9a5a28);
+      else if (style === "cloth" || style === "leather") this.r(cx - 2, cy - 2, 5, 3, (_i, j) => (j === 0 ? P.dye[k % 3][4] : P.dye[k % 3][2]));
+      else if (style === "pots") this.vase(cx, cy + 2, 5, (t) => 2.4 - Math.abs(t - 0.4) * 2, P.clay);
+      else if (style === "tools") this.r(cx - 2, cy - 1, 5, 2, (i) => (i === 0 ? P.iron[2] : P.iron[4]));
+      else for (let a = 0; a < 6; a++) this.s(cx - 1 + (a % 3), cy - 1 + (a >> 1) % 2, [0xc8a040, 0x8a3a2a, 0x6a8a3a][(a + k) % 3]);
+    }
+  }
   /** What stands against a shop's back wall: shelves of its wares, or the rack, rail or casks its trade keeps. */
   private stock(style: string, X: number, base: number, PW: number, seed: number) {
     const { P } = this, W = P.wood;
@@ -599,6 +631,15 @@ export class PixelRoom {
           for (let j = -2; j <= 2; j++) for (let i = -4; i <= 4; i++) if ((i * i) / 16 + (j * j) / 4 <= 1) this.s(cx + i, cy + j, (i * i) / 16 + (j * j) / 4 > 0.55 ? P.clay[4] : 0x1a100c);
         }
         this.r(X, top + d, PW, 14, (i, j) => (j === 0 ? 0x8a2a1a : j === 13 ? 0x3a1a10 : i % 16 > 2 && i % 16 < 13 && j > 2 && j < 11 ? (j === 3 || i % 16 === 3 ? 0xd8a840 : 0xb04030) : 0x9a3222));
+        break;
+      }
+      case "ground": {
+        // The keeper's own mat, a stool on it and a basket of small change.
+        this.mat(X, Y + PD - 4, PW, 6, seed);
+        this.r(X + 4, Y + PD - 9, 7, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[2]));
+        this.r(X + 5, Y + PD - 6, 1, 3, W[1]);
+        this.r(X + 9, Y + PD - 6, 1, 3, W[1]);
+        this.r(X + PW - 12, Y + PD - 8, 7, 4, (i, j) => (j === 0 ? P.straw[5] : i % 2 ? P.straw[2] : P.straw[3]));
         break;
       }
       case "platform": {
@@ -2080,6 +2121,21 @@ export class PixelRoom {
         break;
       }
       case "hearth": {
+        if (p.styles.hearth === "kamado") {
+          // The East Asian kitchen's clay stove: no flue, a pot set in each
+          // fire-hole, the fire fed from the front.
+          const C = P.clay, top = oy - 15, x0 = X + 2, w = PW - 4;
+          this.r(x0, top, w, 15, (i, j) => (j === 0 ? C[4] : i === 0 || i === w - 1 ? C[1] : j % 5 === 4 ? C[2] : C[3]));
+          for (const k of [0.3, 0.72]) {
+            const px = Math.round(x0 + w * k);
+            this.vase(px, top, 6, (t) => 3.2 - Math.abs(t - 0.5) * 2, P.iron);
+            for (let j = 0; j < 4; j++)
+              for (let i = -2; i <= 2; i++) this.s(px + i, oy - 6 + j, j > 1 ? (q.on ? 0xd8582a : 0x3a1a10) : 0x120a08);
+            if (q.on) this.smoke.push({ x: px, y: top - 8 });
+          }
+          if (q.on) this.lights.push({ x: x0 + w / 2, y: oy - 4, c: 0xff6a2a, rad: 46, k: 1.2, phase: q.seed % 100 });
+          break;
+        }
         if (p.styles.hearth === "firebox") {
           // A firebox fed from outside: a low arched mouth in a patch of blackened stone, embers within.
           const fx = X + 6, fy = oy - 14, fw = PW - 12, fh = 13;
@@ -3402,10 +3458,12 @@ export class PixelRoom {
         else this.pulpit(X, Y + PD - 3, q.seed);
         break;
       case "stock":
-        this.stock(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        if (p.styles.shopcounter === "ground") this.groundStock(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        else this.stock(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
         break;
       case "display":
-        this.display(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        if (p.styles.shopcounter === "ground") this.groundDisplay(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        else this.display(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
         break;
       case "shopcounter":
         this.shopCounter(p.styles.shopcounter ?? "counter", X, Y, PW, PD, q.seed);

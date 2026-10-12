@@ -262,8 +262,8 @@ function decide(
   const doze = p.art.rest ? "rest" : "idle";
   if (g.gateId) {
     // Kept herds: out through the gate by day when the herder has opened it,
-    // back to the pen for the night.
-    const out = world.hour >= 8 && world.hour < 17 && world.gateOpen(g.gateId);
+    // back to the pen for the night. The player's go out whenever they open it.
+    const out = !g.fold && (g.owner === "player" || (world.hour >= 8 && world.hour < 17)) && world.gateOpen(g.gateId);
     const goal = out && g.pasture ? g.pasture : g.home;
     if (hyp(g.pos, goal) > 2.5) {
       g.state = "wander";

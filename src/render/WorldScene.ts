@@ -2667,7 +2667,7 @@ export class WorldScene extends Phaser.Scene {
     if (existing) this.quenchFire(id);
     const phase = Math.floor(this.poseOffset(id) % 8);
     // The light reaches a little past the fire's own width either side.
-    const radius = Math.max(32, Math.round((image.width * 0.85) / 4) * 4);
+    const radius = Math.max(44, Math.round((image.width * 1.2) / 4) * 4);
     const glow = this.add
       .image(
         Math.round(x),
@@ -5175,7 +5175,7 @@ export class WorldScene extends Phaser.Scene {
   ) {
     // A voxel building lights a floor or a shop at a time, each on its hours.
     if ((placement.model as VoxelModel).lights) {
-      const rooms = voxelLamps(this, image, placement.model as VoxelModel, this.runtime.engine.state.manifest.seed, place.id);
+      const rooms = voxelLamps(this, image, placement.model as VoxelModel, this.runtime.engine.state.manifest.seed, place.id, (f) => this.texture(f));
       this.layers.push(...rooms.flatMap((r) => [r.pane, r.halo]));
       this.lamps.push(...rooms);
       this.washKey = "";

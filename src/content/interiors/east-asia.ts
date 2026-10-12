@@ -9,7 +9,7 @@ export const eastAsia: InteriorProfile[] = [
       { id: "zashiki", label: "Zashiki", role: "hall", size: [8, 8], fire: "none", furnish: ["shrine", "frame", "lowtable", "cushions", "screen", "lantern"], clutter: ["flowers", "book"], looks: [{ floor: "mat" }, { floor: "mat", wall: "shoji" }, { floor: "mat", wall: "shoji" }] },
       { id: "nando", label: "Nando", role: "sleep", size: [6, 6], fire: "none", sleep: "mat", windowStyle: "none", furnish: ["chest", "shelf", "lantern"], clutter: ["cloth"], looks: [{ floor: "plank" }, { floor: "mat" }, { floor: "mat" }] },
     ],
-    styles: { frame: "scroll", shelf: "tansu" },
+    styles: { frame: "scroll", shelf: "tansu", hearth: "kamado" },
     clutter: ["shoes", "cup", "book", "cloth", "flowers"],
     label: "Minka farmhouse",
     region: "Japan",

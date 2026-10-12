@@ -661,6 +661,8 @@ export type BodyRecord = {
   gaunt?: 1 | 2;
   tired?: boolean;
   pale?: boolean;
+  /** An illness at its worst, by how it shows. */
+  sick?: "fever" | "rash" | "pallor";
   /** The injury still healing, by the engine's name for it. */
   injury?: string;
   /** Injuries that healed and left a mark. */

@@ -40,6 +40,11 @@ export function shopKind(text: string, good?: string) {
  * or East Asian shop's raised platform, an industrial-age glazed case, or a
  * plain board. */
 function counterForm(lon: number, lat: number, year: number) {
+  // Goods laid out on mats and the seller sitting by them: Africa south of the
+  // Sahara, the Americas before the conquest, Southeast Asia and Oceania.
+  if (lon > -20 && lon < 52 && lat < 18 && lat > -36 && year < 1900) return "ground";
+  if (lon < -30 && year < 1550) return "ground";
+  if (lon > 92 && lon < 180 && lat < 18 && lat > -50 && year < 1850 && !(lon > 110 && lat < -10 && year >= 1788)) return "ground";
   if (lon >= -10 && lon <= 50 && lat >= 24 && lat <= 56 && year >= -300 && year <= 500) return "taberna";
   if (lon >= 95 && lon <= 146 && lat >= 8 && lat <= 50) return "platform";
   if (lon >= -18 && lon <= 75 && lat >= 5 && lat <= 46 && year >= 650 && year < 1920 && !(lat > 36 && lon < 20)) return "platform";

@@ -89,6 +89,8 @@ export const DISTRICT_SIZE = 384;
 const ROUTINE_BUDGET = 48;
 export type SettlementWorld = WorldModel & {
   planAt(x: number, y: number): SettlementPlan | undefined;
+  /** A site's plan by its id, once it has been built. */
+  planOf(siteId: string): SettlementPlan | undefined;
   entrances(): MapEntrance[];
   prepare(): PreparedSettlement;
 };
@@ -1588,6 +1590,15 @@ export function createSettlementWorld(
     // A deck's ends rest on the banks; only the span over water is timber.
     if (t === "bridge" && f.water >= 0) t = "dirt";
     let height = Math.round(f.elevation / 14) as HeightTier;
+    // A stream is level across its width: taking the lowest bed nearby puts
+    // each drop across the flow, not down the middle of the channel.
+    if (f.water < 0 && t !== "bridge")
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++) {
+          const g = land.sample(x + dx, y + dy);
+          if (g.water < 0)
+            height = Math.min(height, Math.round(g.elevation / 14)) as HeightTier;
+        }
     if (terraces && f.water >= 0)
       for (const p of nearby(x, y)) {
         const level = p.groundLevels?.get(cellKey(x, y)) ?? streetLevels(p).get(cellKey(x, y));
@@ -2595,6 +2606,7 @@ export function createSettlementWorld(
     initialObjects: [],
     enclosures: [],
     spawn: { x: 0, y: 0, space: "outside" },
+    planOf: (siteId: string) => plans.get(siteId),
     planAt: (x, y) => {
       const c = coord(x, y);
       // The site whose claim holds the cell, before the nearest centre: a

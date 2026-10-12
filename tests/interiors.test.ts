@@ -71,6 +71,25 @@ describe("interior profiles", () => {
     expect(venue(4.9, 52.4, 1650, "venue.alehouse")).toBe("english-tavern");
   });
 
+  it("opens a building on the room its form makes, and fills the regions that fell back to an English cottage", () => {
+    const pick = (lon: number, lat: number, year: number, more: object = {}) => interiorProfileFor({ lon, lat, year, settlement: "village", ...more }).id;
+    expect(pick(-2, 51, -2500, { frame: "house-round-3" }), "a round hut is a round room").toBe("round-hut");
+    expect(pick(139, 36, -3000, { frame: "house-pit-1" })).toBe("pit-house");
+    expect(pick(105, 47, 900, { camp: true, frame: "steppe-tent-xiongnu-1" })).toBe("mongol-ger");
+    expect(pick(22, -22, 1700, { camp: true, frame: "forager-shelter-san-1" })).toBe("forager-shelter");
+    expect(pick(135.7, 35, 1200, { settlement: "city" })).toBe("japanese-minka");
+    expect(pick(31.2, 30, 1300, { settlement: "city" })).toBe("maghrebi-dar");
+    expect(pick(32, 26, -1500)).toBe("fellah-house");
+    expect(pick(4.8, 45.7, 1742, { settlement: "city" })).toBe("european-townhouse");
+    expect(pick(-3, 16.8, 1400, { settlement: "city" })).toBe("sahel-mud-house");
+    expect(pick(-99.1, 19.4, 1450, { settlement: "city" })).toBe("mesoamerican-house");
+    expect(pick(-72, -13.5, 1500)).toBe("andean-house");
+    expect(pick(103.9, 13.4, 1200)).toBe("stilt-house");
+    expect(pick(30.9, -20.3, 1300)).toBe("round-hut");
+    const door = buildInterior({ id: "h", name: "House", claim: "landscape", access: "household" } as Place, { lon: 32.8, lat: 37.6, year: -6500, frame: "house-mudbrick-ob-1" }, {});
+    expect(door.plan.entrance[0], "a Çatalhöyük plan behind a street door has a door").toBeGreaterThanOrEqual(0);
+  });
+
   it("serves every drinking house from behind its counter, with seats and a bed for the household", () => {
     const sites = [
       { id: "english-tavern", lon: -0.1, lat: 51.5, year: 1700, use: "venue.alehouse", seat: "bench" },

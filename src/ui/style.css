@@ -4092,10 +4092,10 @@ button:disabled {
   border-color: var(--line);
   background: #ffffff08;
 }
-.equip-slot[data-filled] button:not(:disabled) {
+.equip-slot[data-filled] button:not([aria-disabled]) {
   cursor: pointer;
 }
-.equip-slot[data-filled] button:not(:disabled):hover {
+.equip-slot[data-filled] button:not([aria-disabled]):hover {
   border-color: var(--gold);
 }
 /* Lit while a dragged item is over a slot it is allowed to land in. */
@@ -6034,6 +6034,75 @@ button:disabled {
   color: var(--ink);
   background: var(--gold);
   border-radius: 5px;
+}
+.death-card > div {
+  max-width: 460px;
+}
+.death-portrait {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 10px auto 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  filter: grayscale(0.6);
+}
+.death-card small + .death-heirs {
+  margin-top: 8px;
+}
+.death-heirs {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.death-heirs button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 12px;
+  text-align: left;
+  color: var(--cream);
+  background: #ffffff08;
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+}
+.death-heirs button:hover,
+.death-heirs button:focus-visible {
+  border-color: var(--gold);
+  background: #ffffff12;
+}
+.death-heirs b {
+  display: block;
+  font-weight: 400;
+}
+.death-heirs em {
+  font-size: 13px;
+  font-style: normal;
+  color: var(--muted);
+}
+.death-heir-portrait {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--bg-0);
+}
+.death-portrait canvas,
+.death-heir-portrait canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+.collapse-notice .death-close {
+  color: var(--gold);
+  background: transparent;
+  border: 1px solid var(--line);
 }
 @keyframes collapse-in {
   from {

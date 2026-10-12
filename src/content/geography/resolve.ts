@@ -10,6 +10,7 @@ import { farms } from "./onsets";
 import { integratedSetting } from "./defaults";
 import { matchesCharacterScope, resolveCharacterContext } from "../characters/resolve";
 import { placeAtYear } from "./eras";
+import { workplaceFor } from "../characters/workplace";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
 export const normalize = (s: string) =>
   s
@@ -99,6 +100,13 @@ export function dateFromPrompt(
     )
   );
 }
+/** A start whose work is a field lives among its fields, not in the city. */
+export function tillersHome(s: WorldSetting, role: string): WorldSetting["settlement"] {
+  const work = resolveCharacterContext(s).livelihoods.find((l) => l.label === role);
+  const tills = work && (work.workplace ?? workplaceFor(work.activity)) === "field";
+  return tills && s.settlement !== "camp" && s.settlement !== "village" ? "farm" : s.settlement;
+}
+
 export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
   // The gazetteer row is timeless; read it at the date being played before
   // anything derives a culture, a fabric or a footprint from it.
@@ -257,6 +265,7 @@ export function resolveSetting(
     if (has(q, "free black")) s.community = "Free Black household";
     s.characterName = s.role;
     if (/\bfarm(?:er|stead)?\b/.test(q)) s.settlement = "farm";
+    else s.settlement = tillersHome(s, s.role);
     if (/\bcamp\b|\blegionary\b|\bshaman\b/.test(q)) s.settlement = "camp";
     for (const season of ["spring", "summer", "autumn", "winter"] as const)
       if (has(q, season)) s.season = season;

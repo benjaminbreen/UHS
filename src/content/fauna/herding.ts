@@ -1,6 +1,8 @@
 import type { CharacterScope } from "../characters/context-types";
 import { matchesCharacterScope } from "../characters/resolve";
 import type { WorldSetting } from "../geography/types";
+import { random } from "../../core/random";
+import { faunaAt } from "./index";
 
 /** Who is out with the animals. Shares are of the people sent, not of the
  * population: a herd boy is common almost everywhere, because minding stock
@@ -113,4 +115,47 @@ export function herdingCustom(
 
 /** "the sheep", "the cattle", "the camels". */
 export const herdNoun = (species: string) =>
-  /sheep|cattle/.test(species) ? species : `${species.replace(/-/g, " ")}s`;
+  /sheep|cattle|buffalo|reindeer/.test(species) ? species.replace(/-/g, " ") : `${species.replace(/-/g, " ")}s`;
+
+/** What the trade that minds each animal tends to be called. */
+export const HERD_TRADE: Record<string, RegExp> = {
+  sheep: /sheep|shep/,
+  goat: /goat|shep/,
+  cattle: /cattle|cow|drover|ox/,
+  camel: /camel/,
+  llama: /llama|alpaca/,
+  horse: /horse|ostler|groom|stable|coach|carter/,
+  donkey: /donkey|ass\b|drover/,
+  pig: /pig|swine|hog/,
+};
+/** What a household that keeps stock keeps: the animal its trade is named
+ * for, else a pen animal of the place and date, weighted as the planner
+ * weights them. */
+export function keptSpecies(setting: WorldSetting, seed: string, trade = "") {
+  const kept = faunaAt(setting);
+  const named = Object.keys(HERD_TRADE).find((id) => HERD_TRADE[id].test(trade.toLowerCase()) && kept.some((k) => k.id === id));
+  if (named) return named;
+  return kept
+    .filter((k) => k.keeping?.place === "pen" && setting.year >= (k.keeping.from ?? -Infinity))
+    .map((k) => [k.id, random(seed, "kept", k.id) / (k.keeping?.share ?? 1)] as const)
+    .sort((a, b) => a[1] - b[1])[0]?.[0];
+}
+/** The females that bear and their young, for the words of a birthing. */
+const BREEDING: Record<string, [string, string]> = {
+  sheep: ["ewes", "lamb"],
+  goat: ["nannies", "kid"],
+  cattle: ["cows", "calf"],
+  "water-buffalo": ["buffalo cows", "calf"],
+  camel: ["she-camels", "calf"],
+  llama: ["llama mothers", "cria"],
+  horse: ["mares", "foal"],
+  donkey: ["jennies", "foal"],
+  reindeer: ["does", "calf"],
+  pig: ["sows", "piglet"],
+};
+/** `{herd}`, `{mothers}` and `{young}` for a card about a household's stock. */
+export const herdWords = (species?: string) => ({
+  herd: species ? herdNoun(species) : "animals",
+  mothers: (species && BREEDING[species]?.[0]) ?? "mothers",
+  young: (species && BREEDING[species]?.[1]) ?? "young one",
+});

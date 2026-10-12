@@ -24,6 +24,8 @@ export type AilmentDef = {
   died: string;
   /** What a resident is doing while it keeps them in. */
   laid: string;
+  /** How it shows on the face: flushed and sweating, spotted, or drained grey. */
+  look?: "fever" | "rash" | "pallor";
 };
 
 const young = (p: HealthPerson, n: number) => (p.age < 5 ? n * 2 : p.age < 15 ? n * 1.4 : p.age >= 60 ? n * 1.5 : n);
@@ -56,6 +58,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you have had a fever {for}",
     died: "of the fever",
     laid: "Laid up with a fever",
+    look: "fever",
   },
   {
     id: "flux",
@@ -68,6 +71,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you have had {name} {for}",
     died: "of {name}",
     laid: "Laid up with the flux",
+    look: "pallor",
   },
   {
     id: "cough",
@@ -80,6 +84,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you have had a cough on the chest {for}",
     died: "of a cough that went to the chest",
     laid: "In bed with a cough",
+    look: "pallor",
   },
   {
     id: "childbed",
@@ -93,6 +98,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you are still lying in after the birth",
     died: "of a fever after the birth",
     laid: "Lying in after the birth",
+    look: "fever",
   },
   {
     id: "smallpox",
@@ -105,6 +111,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you have had the smallpox {for}",
     died: "of the smallpox",
     laid: "Laid up with the smallpox",
+    look: "rash",
   },
   {
     id: "measles",
@@ -117,6 +124,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you have had the measles {for}",
     died: "of the measles",
     laid: "Laid up with the measles",
+    look: "rash",
   },
   {
     id: "plague",
@@ -129,6 +137,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you have been sick with {name} {for}",
     died: "of {name}",
     laid: "Sick with the pestilence",
+    look: "fever",
   },
   {
     id: "break",
@@ -141,5 +150,6 @@ export const AILMENTS: readonly AilmentDef[] = [
     you: "you are nursing a broken arm",
     died: "of a broken arm that festered",
     laid: "Resting a broken arm",
+    look: "pallor",
   },
 ];

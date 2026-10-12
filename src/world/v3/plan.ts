@@ -57,6 +57,7 @@ import { propDefs, propVisualCells } from "../../content/props/catalog";
 import { propKit, techFor } from "../../content/props/selection";
 import { processFor } from "../../content/economy/processes";
 import { shopKind } from "../../content/interiors/shops";
+import { keptSpecies } from "../../content/fauna/herding";
 import {
   penBoundary as localPen,
   pickBoundary,
@@ -2414,6 +2415,16 @@ export function planSettlement(
         a.point.y - b.point.y,
     );
   const owners: string[] = [];
+  let playerTrade = pack.role;
+  const playerKit = pack.setting?.characterRevision
+    ? characterLivelihood(pack.setting, seed, "player", pack.role, undefined, characterSex(seed, "player"))
+    : undefined;
+  const playerFamily = playerKit && processFor(playerKit)?.family;
+  // "Rice Farmer", "Barley Farmer": the crop the player's trade is named for.
+  const playerCrop = playerKit && (Object.keys(crops) as CropId[]).find((id) =>
+    id !== "pasture" && id !== "fallow" && new RegExp(`\\b${crops[id].label.split(" ").at(-1)}\\b`, "i").test(playerKit.label));
+  // A trade that keeps a shop keeps it on the street, named for it.
+  const playerShop = playerKit && (playerFamily === "transform" || playerFamily === "serve") ? shopKind(playerKit.label) : undefined;
   const tStreets = tPlan;
   /** Households whose work is keeping animals, so a pen has someone to tend it. */
   const herders = new Set<string>();
@@ -3211,10 +3222,13 @@ export function planSettlement(
     }
     const id = `${site.id}-h${i}`,
       owner =
-        // The first house that is an ordinary house: not a venue's, not a townhouse.
+        // The first ordinary house: not a venue, a townhouse or an office, and
+        // on the shopping street only for someone with a shop to keep.
         site.home &&
         !lot.venue &&
         lot.quarter !== "elite" &&
+        lot.use !== "downtown" && lot.use !== "industrial" &&
+        (!!playerShop || (lot.quarter !== "market" && lot.use !== "commercial")) &&
         !owners.includes("player") &&
         (!pack.setting?.environment ||
           pack.setting.environment.start === "resident")
@@ -3356,9 +3370,8 @@ export function planSettlement(
       eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
       continue;
     }
-    // A player whose trade keeps a shop keeps it on the street, named for it.
-    const family = owner === "player" && livelihood ? processFor(livelihood)?.family : undefined;
-    const shop = family === "transform" || family === "serve" ? shopKind(role) : undefined;
+    if (owner === "player") playerTrade = role;
+    const shop = owner === "player" ? playerShop : undefined;
     const shopfront = owner === "player" ? !!shop :
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
     // A downtown is office blocks: most lots offices, some a bank or a department store.
@@ -3761,6 +3774,7 @@ export function planSettlement(
       roadCells(road, (x, y) => throughRoads.add(cellKey(x, y)));
     let centerlines: Set<string> | undefined;
     const farmland = planFarmland({
+      grows: playerCrop ? { player: playerCrop } : undefined,
       site,
       pack,
       seed,
@@ -3969,9 +3983,11 @@ export function planSettlement(
       work.work = access;
       work.label = "Tending the field";
     }
-  const herdOwners = owners
-    .filter((id) => id !== "player" && herders.has(id))
-    .slice(-2);
+  // A herding player keeps their own animals, in the first pen.
+  const herdOwners = [
+    ...(herders.has("player") && owners.includes("player") ? ["player"] : []),
+    ...owners.filter((id) => id !== "player" && herders.has(id)).slice(-2),
+  ].slice(0, 2);
   const kept = pack.setting ? faunaAt(pack.setting) : [];
   /** The species a settlement of this date keeps in a given place. Order is
    * the seed's, not the catalogue's, so two towns of the same period do not
@@ -4018,7 +4034,7 @@ export function planSettlement(
     boundary: penBoundary,
     wet: false,
   });
-  if ((profile.livestock || stockyard) && herdOwners.length)
+  if ((profile.livestock || stockyard || herdOwners[0] === "player") && herdOwners.length)
     for (let i = 0; i < Math.min(2, herdOwners.length); i++) {
       // Terraced ground rarely offers a full-size level plot; a smaller pen
       // beats no herder at all.
@@ -4119,14 +4135,17 @@ export function planSettlement(
         });
       }
       plan.plots.push({ ...pen, id, kind: "pasture", owner, access: outside });
-      const herder = plan.actors.find((a) => a.id === owner)!;
-      herder.role = "Herder";
-      herder.work = pos(outside);
+      const herder = plan.actors.find((a) => a.id === owner);
+      if (herder) {
+        herder.role = "Herder";
+        herder.work = pos(outside);
+      }
       const hw = plan.work.get(owner)!;
       hw.work = outside;
       hw.gateId = gateId;
       hw.label = "Tending livestock";
-      const penSpecies = penStock[i % Math.max(1, penStock.length)];
+      const mine = owner === "player" && pack.setting ? keptSpecies(pack.setting, seed, playerTrade) : undefined;
+      const penSpecies = (mine && faunaProfile(mine)) || penStock[i % Math.max(1, penStock.length)];
       if (penSpecies) {
         // One group for the pen: the engine moves it as a herd.
         const interior: Point[] = [];

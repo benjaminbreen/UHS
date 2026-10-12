@@ -1,6 +1,6 @@
 import { places } from "./places";
 import population from "./population.generated.json" with { type: "json" };
-import { settingFor } from "./resolve";
+import { settingFor, tillersHome } from "./resolve";
 import { populateCharacter } from "./character";
 import { resolveCharacterContext } from "../characters/resolve";
 
@@ -169,7 +169,7 @@ export function randomStartFromDraws(
   // dyer and a Manchester one a match worker.
   const work = resolveCharacterContext(base).livelihoods;
   const role = work[draws[1] % work.length].label;
-  const setting = populateCharacter({ ...base, role }, seed);
+  const setting = populateCharacter({ ...base, role, settlement: tillersHome(base, role) }, seed);
   return { seed, setting };
 }
 

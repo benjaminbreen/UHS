@@ -30,18 +30,33 @@ export function parseLighting(id: string | null): LightingId {
 export const shadowFrame = (phase: LightingId, frame: string) =>
   `${phase}:${frame.startsWith("vehicle-") ? frame.replace(/-\d+-([ewsn])$/, "-0-$1") : frame}`;
 const channels = (hex: string) => [16, 8, 0].map((s) => (parseInt(hex, 16) >> s) & 255);
-/** The screen wash for an hour, eased between the presets' own hours so dusk
+/** The wash and grade keyframes: the presets plus two of their own, so the
+ * dark holds through the small hours and dawn comes up blue before it warms. */
+const washKeys = [
+  ...lightingPresets,
+  { ...lightingPresets[5], hour: 3 },
+  {
+    hour: 5,
+    ambient: "2c3a5c",
+    ambientAlpha: 0.34,
+    grade: { shadow: [0.92, 0.95, 1.1], light: [1.0, 1.0, 1.04], curve: 0.1 },
+  },
+].sort((a, b) => a.hour - b.hour);
+function washSpan(clock: number) {
+  const hour = (((clock / 3600) % 24) + 24) % 24;
+  const n = washKeys.length;
+  let i = n - 1;
+  for (let k = 0; k < n; k++) if (hour >= washKeys[k].hour) i = k;
+  const a = washKeys[i],
+    b = washKeys[(i + 1) % n];
+  const span = (b.hour - a.hour + 24) % 24 || 24;
+  return { hour, a, b, t: ((hour - a.hour + 24) % 24) / span };
+}
+/** The screen wash for an hour, eased between keyframes so dusk
  * comes on over the evening rather than at a stroke, with low sun warming
  * the scene either side of sunrise and sunset. */
 export function washAt(clock: number) {
-  const hour = (((clock / 3600) % 24) + 24) % 24;
-  const n = lightingPresets.length;
-  let i = n - 1;
-  for (let k = 0; k < n; k++) if (hour >= lightingPresets[k].hour) i = k;
-  const a = lightingPresets[i],
-    b = lightingPresets[(i + 1) % n];
-  const span = (b.hour - a.hour + 24) % 24 || 24;
-  const t = ((hour - a.hour + 24) % 24) / span;
+  const { hour, a, b, t } = washSpan(clock);
   // Black ambient means none: ease its alpha, not its colour, toward it.
   const ca = a.ambientAlpha ? channels(a.ambient) : channels(b.ambient),
     cb = b.ambientAlpha ? channels(b.ambient) : ca;
@@ -64,14 +79,7 @@ export function washAt(clock: number) {
 /** The hour's colour grade, eased between presets as the wash is: shadows
  * pushed cool, lights warmed, and an S-curve for depth. */
 export function gradeAt(clock: number) {
-  const hour = (((clock / 3600) % 24) + 24) % 24;
-  const n = lightingPresets.length;
-  let i = n - 1;
-  for (let k = 0; k < n; k++) if (hour >= lightingPresets[k].hour) i = k;
-  const a = lightingPresets[i],
-    b = lightingPresets[(i + 1) % n];
-  const span = (b.hour - a.hour + 24) % 24 || 24;
-  const t = ((hour - a.hour + 24) % 24) / span;
+  const { a, b, t } = washSpan(clock);
   const mix = (x: number[], y: number[]) => x.map((v, k) => v + (y[k] - v) * t);
   return {
     shadow: mix(a.grade.shadow, b.grade.shadow),

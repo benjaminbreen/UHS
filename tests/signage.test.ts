@@ -3,7 +3,6 @@ import {
   emblemFor,
   signFor,
   signStyles,
-  signLabels,
   wallSignFor,
   wallStyles,
 } from "../src/content/props/signage";

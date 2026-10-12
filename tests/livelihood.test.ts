@@ -13,6 +13,10 @@ import {
   grazeActivity,
 } from "../src/core/livelihood";
 import { items } from "../src/content/packs";
+import { processFor } from "../src/content/economy/processes";
+import { propDefs } from "../src/content/props/catalog";
+import { herdWords } from "../src/content/fauna/herding";
+import { livelihoodOf } from "../src/world/v3/routines";
 import type { WorldSetting } from "../src/content/geography/types";
 const setting = (
   over: Partial<NonNullable<WorldSetting["environment"]>> = {},
@@ -393,6 +397,42 @@ it.each([
       }
   }
   expect([...gaps]).toEqual([]);
+}, 120000);
+
+it.each([
+  "A baker in Lyon, 1742 CE", "A smith in Normandy, 1200 CE", "A weaver in Florence, 1400 CE", "A scribe in Cairo, 1300 CE",
+  "A herbalist in Kyoto, 1200 CE", "A farmer in Normandy, 1200 CE", "A shepherd in Normandy, 1200 CE",
+  "An ostler in Riyadh, 1080 CE", "A market trader in Timbuktu, 1400 CE", "A railway labourer in London, 1900 CE",
+  "A rice farmer in Kyoto, 1200 CE",
+])("builds what %s works with: the house, the bench, the animals, the patient", (prompt) => {
+  const resolved = resolveSetting(prompt, "probe");
+  if ("error" in resolved) throw Error(resolved.error);
+  const e = createSettingSession(resolved.setting, "probe");
+  const s = e.state, h = s.households!.find((h) => h.members.includes("player"))!;
+  const house = e.world.place(h.residence!)!;
+  expect(house.claim, "a house, not a venue").toBe("landscape");
+  expect(["Townhouse", "Offices", "Bank", "Department store"]).not.toContain(house.name);
+  const plan = e.workPlan()!;
+  const process = processFor(livelihoodOf(e.world.pack, s.player)!)!;
+  const bench = s.objects.find((o) => o.id === `${h.residence}-work`);
+  if (process.bench) expect(process.bench, "the trade's bench").toContain(propDefs[bench?.prop ?? ""]?.family);
+  const herd = (e.world as unknown as { planAt(x: number, y: number): { fauna?: { owner?: string; speciesId: string }[] } })
+    .planAt(Math.round(s.player.home.x), Math.round(s.player.home.y))?.fauna?.find((g) => g.owner === "player");
+  plan.steps.forEach((step, i) => {
+    const place = plan.places[i];
+    if (!process.steps[i].at) return expect(place ?? plan.station ?? bench, `${step.task}: a bench or prop`).toBeTruthy();
+    expect(place, step.task).toBeTruthy();
+    if (process.steps[i].at === "home") expect(place!.pos.space, `${step.task}: inside the house`).toBe(h.residence);
+    if (process.steps[i].at === "sick") expect(place!.patient, `${step.task}: someone to see`).toBeTruthy();
+    if (process.steps[i].at === "field") {
+      expect(place!.label, `${step.task}: the household's own field`).toMatch(/^your (field|paddy)$/);
+      if (/rice/i.test(s.player.origin?.roleLabel ?? "")) expect(place!.crop).toBe("rice");
+    }
+    if (process.steps[i].at === "pasture" || /\{(herd|mothers)\}/.test(process.steps[i].task)) {
+      expect(herd, `${step.task}: the household's own animals`).toBeDefined();
+      expect(step.task).toContain(herdWords(herd!.speciesId)[/\{mothers\}/.test(process.steps[i].task) ? "mothers" : "herd"]);
+    }
+  });
 }, 120000);
 
 it("fixes the day's places at its first command, whether or not anything looked first", () => {

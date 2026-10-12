@@ -1,5 +1,22 @@
 # World soundtrack
 
+## In-game selection
+
+All score modules feed the in-game player and Audio studio. A setting selects
+pieces by culture and inclusive soundtrack years. These are playback windows
+for compatible musical textures, not the lifespan of the named polity or a
+claim that the anchor ensemble existed everywhere in that family. Living
+traditions remain eligible through the game's present (2026); contemporary
+sounds do not enter ancient settings. Hawaiʻi and the Ethiopian highlands use
+their regional music family even where the gazetteer label differs.
+
+Automatic playback starts with a dated regional piece when available, then
+alternates regional music with the five seasonal/travel compositions and three
+deliberately shared themes. “Where the horizon leads” is a five-minute original
+orchestral roaming theme, eligible in every culture and era. Each group exhausts
+its songs before repeating, with no immediate repeat. Settings without a regional match use the
+shared rotation. Manual selections remain available in the studio.
+
 Open **Audio studio** with **Command+1** (Mac), **Ctrl+1**, the music-note button in the header, or Settings. Click **Listen** to enable browser audio. Closing the studio keeps music playing on the map. Escape closes it. Opening the studio stops walking, and its controls cannot advance simulation time.
 
 ## The original pieces

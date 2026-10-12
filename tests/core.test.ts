@@ -388,6 +388,39 @@ describe("shared deterministic foundation", () => {
     expect(e.state.households!.find((h) => h.id === child.householdId)!.history!.at(-1)).toMatchObject({ kind: "died", name: child.name });
     expect(e.cards.find((c) => c.kind === "turn")?.text).toContain(`${child.name}, your`);
   });
+  it("asks what to do when the player falls ill, weakens them, can kill them, and goes on as their household", () => {
+    const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
+    const e = createSettingSession(setting, "b");
+    delete e.state.plot;
+    const p = e.state.player, strong = e.stats().strength;
+    (e as unknown as { fallIll(id: string): void }).fallIll("fever");
+    const care = e.cards.find((c) => c.choose)!.choose!;
+    expect(care.card).toMatch(/^care-self/);
+    expect(care.choices.map((c) => c.label)).toContain("Lie up and let it run");
+    expect(act(e, { type: "choose", card: care.card, choice: care.choices.find((c) => !c.unavailable)!.index }).status).toBe("completed");
+    expect(e.state.care).toBeUndefined();
+    const fever = e.state.ailments!.find((a) => a.who === p.id)!;
+    Object.assign(fever, { course: "die", since: e.state.clock - 3 * 86400, days: 6, tended: true });
+    expect(e.stats().strength).toBeLessThan(strong);
+    fever.since = e.state.clock - 6 * 86400 + 60;
+    act(e, { type: "wait", seconds: 3600 });
+    expect(e.state.player.dead).toBe("of the fever");
+    const home = e.state.households!.find((h) => h.members.includes("player"))!;
+    let heir = e.heirs()[0];
+    if (!heir) {
+      heir = e.state.actors.find((a) => a.kind === "human" && (a.age ?? 0) >= 16 && !a.mount && !a.tends && !a.guard)!;
+      heir.householdId = home.id;
+      home.members.push(heir.id);
+    }
+    const dead = p.name, name = heir.name;
+    expect(act(e, { type: "become", heir: heir.id }).status).toBe("completed");
+    expect(e.state.player.name).toBe(name);
+    expect(e.state.player.dead).toBeUndefined();
+    expect(e.state.actors.some((a) => a.id === heir.id)).toBe(false);
+    expect(home.members).toContain("player");
+    expect(home.history!.at(-1)).toMatchObject({ kind: "died", name: dead });
+    expect(act(e, { type: "wait", seconds: 60 }).status).toBe("completed");
+  });
   it("sends a hungry child to the player, minds being ignored, and eats what it is given", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     delete e.state.plot;

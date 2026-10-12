@@ -13,6 +13,7 @@ import { livingFragment } from "./shader";
 import type { LightingId } from "../lighting";
 import { lightingPreset } from "../lighting";
 import { canvasStat } from "../canvas-stat";
+import { inRoom } from "../crops";
 const LUT = "living-water-colors-3";
 const shaders = new WeakMap<Phaser.Scene, Set<Phaser.GameObjects.Shader>>();
 let sequence = 0;
@@ -258,10 +259,13 @@ export function updateLivingWater(
     z: parseInt(color.slice(4, 6), 16) / 255,
   };
   const view = scene.cameras.main.worldView;
+  // Rooms are drawn near the world origin, over whatever water is there.
+  const indoors = inRoom(scene);
   let visible = 0,
     tiles = 0;
   for (const shader of set) {
     const inView =
+      !indoors &&
       shader.x + shader.width / 2 > view.x &&
       shader.x - shader.width / 2 < view.right &&
       shader.y + shader.height / 2 > view.y &&

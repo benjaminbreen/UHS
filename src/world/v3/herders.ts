@@ -1,5 +1,5 @@
 import { faunaAt } from "../../content/fauna";
-import { herdNoun, herdingCustom } from "../../content/fauna/herding";
+import { HERD_TRADE as TRADE, herdNoun, herdingCustom } from "../../content/fauna/herding";
 import {
   characterLivelihood,
   generateCharacter,
@@ -14,16 +14,6 @@ import type { FaunaGroup } from "../../core/fauna";
 import { random } from "../../core/random";
 import type { Actor, WorldModel } from "../../core/types";
 
-/** What the trade that minds each animal tends to be called. */
-const TRADE: Record<string, RegExp> = {
-  sheep: /sheep|shep/,
-  goat: /goat|shep/,
-  cattle: /cattle|cow|drover|ox/,
-  camel: /camel/,
-  llama: /llama|alpaca/,
-  horse: /horse/,
-  donkey: /donkey|ass\b|drover/,
-};
 /** What to call someone when the tables' word is for a different animal. */
 const PLAIN: Record<string, string> = {
   sheep: "Shepherd",
