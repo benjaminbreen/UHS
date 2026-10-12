@@ -849,6 +849,8 @@ function rasterWallContours(
     drop: number,
     wx: number,
     wy: number,
+    /** The ground at the top of the face: its lip is that ground, not turf. */
+    ground?: ArrayLike<number> | false,
   ): readonly number[] => {
     if (upper?.edge) return wallPixel(upper.edge, r, drop, wx, trim.earth[4]);
     if (drop >= R * 2 && upper?.surface !== "sand" && upper?.surface !== "snow")
@@ -860,10 +862,19 @@ function rasterWallContours(
         ? trim.crease
         : pixel.kind === "stone"
           ? trim.earth[4]
-          : r === 0
-            ? trim.edge
-            : trim.lip;
+          : ground
+            ? r === 0
+              ? lit(ground)
+              : scale(ground, 0.92)
+            : r === 0
+              ? trim.edge
+              : trim.lip;
   };
+  /** The sunlit pixel along a rim, from whatever ground is there. */
+  const lit = (g: ArrayLike<number>) =>
+    [0, 1, 2].map((k) => Math.min(255, g[k] * 1.12 + 14));
+  const scale = (g: ArrayLike<number>, f: number) =>
+    [0, 1, 2].map((k) => g[k] * f);
   // Painted after the ground, which would otherwise overwrite them.
   const returns: [number, number, number, number, readonly number[]][] = [];
   const feet: [number, number, number, TopographyCell | undefined, Trim][] = [];
@@ -918,8 +929,8 @@ function rasterWallContours(
       if (cell?.ramp) continue;
       const cap = snow ? 25 : dry ? 9 : 4;
       const trim = trimOf(material);
+      const rgba = owner && surfaces.pixel(owner, px, py, L, lvl);
       if (ownsAt(Math.floor(px / 16), row) && !clipped(row, px, sy)) {
-        const rgba = owner && surfaces.pixel(owner, px, py, L, lvl);
         if (rgba) {
           const spot = at(row, px, sy, true, L);
           if (spot) spot.layer.pixels.set(rgba, spot.i);
@@ -973,13 +984,21 @@ function rasterWallContours(
             ? copingColor(material.edge, trim.earth[4])
             : stone
               ? [198, 194, 178]
-              : trim.edge,
+              : rgba
+                ? lit(rgba)
+                : trim.edge,
         );
       else if (
         contour.sides &&
         (lvl(px - contour.sides, py) < L || lvl(px + contour.sides, py) < L)
       )
-        paintRgb(row, L, px, sy, stone ? [122, 120, 110] : trim.sides);
+        paintRgb(
+          row,
+          L,
+          px,
+          sy,
+          stone ? [122, 120, 110] : rgba ? scale(rgba, 0.78) : trim.sides,
+        );
       const below = rampInto(cx, row + 1, "n") ? L : lvl(px, py + 1);
       // Rim feet for the sun-cast shadow drawn on the main thread: screen
       // point on the lower ground, wall height, lower tier, which way it faces.
@@ -1082,7 +1101,7 @@ function rasterWallContours(
           L,
           px,
           sy + 1 + r,
-          facePixel(material, trim, r, drop, px + ox, py + oy),
+          facePixel(material, trim, r, drop, px + ox, py + oy, rgba),
         );
       if (material?.edge && hasParapet(material.edge) && drop >= R) {
         const cap = copingColor(material.edge, trim.earth[4]);
