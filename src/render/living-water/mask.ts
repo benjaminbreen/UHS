@@ -86,6 +86,15 @@ export function rasterLivingWater(
         (!receivers && cell.height > 0 && cell.surface !== "water")
       )
         continue;
+      const rowOf = (c: NonNullable<ReturnType<typeof sample>>) => {
+        const v = c.waterVisual!, p = livingProfile(c);
+        return (
+          ecologyOrder.indexOf(v.ecology) +
+          (p.kind === "coast" ? 8 : p.kind === "lake" ? 16 : p.kind === "pond" ? 24 : p.kind === "creek" ? 32 : 0) +
+          (v.frozenMargin ? 40 : 0) +
+          (c.habitat?.colorway === "red-earth" ? 80 : 0)
+        );
+      };
       const row =
         ecologyOrder.indexOf(visual.ecology) +
         (profile.kind === "coast"
@@ -159,7 +168,18 @@ export function rasterLivingWater(
                   1,
                   127 - Math.round((d / Math.max(0.01, localBeach)) * 126),
                 );
-          pixels.data[i + 1] = row + 1;
+          // The palette row follows a jittered neighbour, so two ecologies'
+          // waters meet on a wandering edge rather than on the cell grid.
+          const wx0 = (region?.x ?? 0) * 16 + sx,
+            wy0 = (region?.y ?? 0) * 16 + sy;
+          const from = sample(
+            Math.floor(tx + (px + 0.5 + (waterNoise(wx0, wy0, 9, 775) - 0.5) * 12) / 16),
+            Math.floor(ty + (py + 0.5 + (waterNoise(wx0, wy0, 9, 777) - 0.5) * 12) / 16),
+          );
+          pixels.data[i + 1] =
+            (from && from !== cell && from.waterVisual && from.waterVisual.kind !== "canal" && !from.bridge
+              ? rowOf(from)
+              : row) + 1;
           // Sea pixels ignore flow angle, so blue carries the depth fraction
           // below one byte step; without it wave crests snap between contours.
           if (sea) {

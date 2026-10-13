@@ -227,59 +227,9 @@ export function rasterHabitatTile(
 ): GroundTileData {
   const tile = bareHabitatTile(sample, x, y, ox, oy, art, cell);
   if (snowCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
-  // Snow has its own whites; the ramps would pull it to packed grey.
-  if (cell.habitat && !cell.field && cell.surface !== "snow" && !snowCover())
-    snapToRamps(tile.pixels, habitatRamps(cell.habitat, art));
   return tile;
 }
 
-const SNOW_TONES = [
-  [238, 243, 248],
-  [210, 221, 236],
-  [200, 203, 206],
-  [148, 140, 128],
-];
-// Weighted squared RGB distance: about 28 per channel. Paving, water and
-// fence colours sit further than this from every ramp entry and are kept.
-const SNAP_REACH = 9 * 28 * 28;
-const snapping = new WeakMap<object, { colors: number[][]; seen: Map<number, number> }>();
-/** Pull ground pixels onto the ecology's own ramps. Mottle, swatches and
- * blends leave in-between tones that read as mud next to a tight palette. */
-function snapToRamps(
-  pixels: Uint8ClampedArray,
-  ramps: { palette: number[][]; soilPalette: number[][] },
-) {
-  let s = snapping.get(ramps);
-  if (!s)
-    snapping.set(
-      ramps,
-      (s = { colors: [...ramps.palette, ...ramps.soilPalette, ...SNOW_TONES], seen: new Map() }),
-    );
-  for (let i = 0; i < pixels.length; i += 4) {
-    if (!pixels[i + 3]) continue;
-    const r = pixels[i],
-      g = pixels[i + 1],
-      b = pixels[i + 2],
-      key = (r << 16) | (g << 8) | b;
-    let out = s.seen.get(key);
-    if (out === undefined) {
-      out = key;
-      let best = SNAP_REACH;
-      for (const c of s.colors) {
-        const d = 2 * (r - c[0]) ** 2 + 4 * (g - c[1]) ** 2 + 3 * (b - c[2]) ** 2;
-        if (d < best) {
-          best = d;
-          out = (c[0] << 16) | (c[1] << 8) | c[2];
-        }
-      }
-      if (s.seen.size < 65536) s.seen.set(key, out);
-    }
-    if (out === key) continue;
-    pixels[i] = out >> 16;
-    pixels[i + 1] = (out >> 8) & 255;
-    pixels[i + 2] = out & 255;
-  }
-}
 function bareHabitatTile(
   sample: TopographySample,
   x: number,

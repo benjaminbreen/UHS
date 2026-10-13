@@ -415,9 +415,16 @@ export function* topographySteps(
       if (owned) {
         // The wall pass owns these cells, and its row strips are separate
         // images: a sub-pixel seam between two of them would otherwise show
-        // the camera background. Flat tone, so no tile edge reads through;
-        // the cell's own mean, as the atlas grass drew a green bar on snow.
-        const ground = preparedGround.get(`${x},${y}`)?.pixels;
+        // the camera background. Flat tone, so no tile edge reads through.
+        // What shows through is the foot of a step, so the lowest neighbour's
+        // ground, not this cell's turf, which drew a green bar on snow.
+        let low = c.height,
+          ground = preparedGround.get(`${x},${y}`)?.pixels;
+        for (const [dx, dy] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) {
+          const n = sample(x + dx, y + dy),
+            tile = preparedGround.get(`${x + dx},${y + dy}`)?.pixels;
+          if (n && tile && n.height < low) [low, ground] = [n.height, tile];
+        }
         fill(
           x * 16,
           top,
