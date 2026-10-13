@@ -134,7 +134,7 @@ def clumps_for(rng, segs, tips, R, base_y, top_y, skirt=True):
     return out
 
 
-def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0.0, needle=False):
+def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0.0, needle=False, squash=None):
     W, H = size
     field = {}
     for idx, (cx, cy, r, zb, (p1, p2, a1, a2)) in enumerate(clumps):
@@ -149,7 +149,7 @@ def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0
                 re *= 1.12 if abs(math.cos(th)) > 0.7 else 1.0
                 if dy > 0:
                     re *= 0.86
-                d = math.hypot(dx, dy * (1.9 if needle else 1.0))
+                d = math.hypot(dx, dy * (squash or (1.9 if needle else 1.0)))
                 if d > re:
                     continue
                 zc = math.sqrt(max(0.0, 1 - (d / re) ** 2))
@@ -509,10 +509,45 @@ def douglas_fir(seed):
 
 
 def cedar(seed):
-    """Cedar of Lebanon: wide level plates of needle on long horizontal limbs,
-    the top flattened with age."""
-    return conifer((128, 120), seed, 8, umbrella=False, bare_trunk=0.3, leaf=CEDAR_LEAF, wood=OAK_WOOD,
-                   whorls=4, trunk_w=12, pad=1.3)
+    """Cedar of Lebanon: a massive bole that forks low into a few ascending
+    limbs, each carrying broad level shelves of needles, the top flat with age."""
+    W, H = 128, 116
+    rng = random.Random(seed)
+    base = (W // 2 + rng.randint(-2, 2), H - 4)
+    fork = (base[0] + rng.uniform(-2, 2), H * 0.58)
+    segs = [(*base, *fork, 13, 8, 0)]
+    for side in (-1, 1):
+        segs.append((base[0] + side * 4, base[1] + 1, base[0] + side * 10, base[1] - 3, 5, 2, 0))
+    # Shelves: (x, y, half-width), low and wide, rising to a flat table.
+    shelves = []
+    for k, (y, half, spread) in enumerate([(0.68, 25, 30), (0.5, 25, 26), (0.33, 23, 20), (0.17, 30, 0)]):
+        sy = H * y + rng.uniform(-2, 2)
+        for side in ((-1, 1) if spread else (0,)):
+            sx = fork[0] + side * (spread + rng.uniform(-3, 3))
+            shelves.append((sx, sy, half * rng.uniform(0.85, 1.05)))
+            # The limb climbs from the fork and turns level under its shelf.
+            mx = fork[0] + side * spread * 0.45
+            segs.append((fork[0], fork[1], mx, sy + 6, 6 - k, 4 - k * 0.6, 1))
+            segs.append((mx, sy + 6, sx + side * half * 0.6, sy + 3, 4 - k * 0.6, 1.4, 2))
+    im = Image.new('RGBA', (W, H))
+    for p, t in paint_wood((W, H), segs, random.Random(seed + 2)).items():
+        if 1 <= p[0] < W - 1 and 1 <= p[1] < H - 1:
+            im.putpixel(p, rgb(OAK_WOOD[t]))
+    lrng = random.Random(seed + 3)
+    clumps = []
+    for sx, sy, half in shelves:
+        n = max(3, int(half / 5))
+        for i in range(n + 1):
+            x = sx - half + 2 * half * i / n
+            edge = abs(x - sx) / half
+            for dy, r, zb in ((-4, 7.0, 0.0), (0, 7.5, 1.5), (3, 7.0, 3.0)):
+                clumps.append((x + lrng.uniform(-1.5, 1.5), sy + dy + edge * 2 + lrng.uniform(-1, 1),
+                               r * (1 - 0.3 * edge) * lrng.uniform(0.9, 1.1),
+                               (sy / H) * 20 + zb + lrng.uniform(0, 2),
+                               (lrng.uniform(0, 6.3), lrng.uniform(0, 6.3), lrng.uniform(0.1, 0.18), lrng.uniform(0.06, 0.12))))
+    for p, t in paint_leaves((W, H), clumps, lrng, 7, tuft=0.5, gaps=0.04, shade=0.25, squash=1.35).items():
+        im.putpixel(p, rgb(CEDAR_LEAF[t]))
+    return im
 
 
 def oak(seed, autumn=False, bare=False):
