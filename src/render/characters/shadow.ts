@@ -1,4 +1,5 @@
 import { lightingPreset, type LightingId } from "../lighting";
+import { SHADOW } from "../shadow-style";
 /** The cast anchors at the feet and runs one way. Its length is the body's
  * height times the preset's vector; this trims that to the reach the presets
  * were tuned against, when the silhouette also straddled the feet. */
@@ -19,9 +20,9 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
     y = Math.round(y);
     if (x < 0 || x >= 160 || y < 0 || y >= 96) return;
     const i = (y * 160 + x) * 4;
-    data.data[i] = 39;
-    data.data[i + 1] = 42;
-    data.data[i + 2] = 33;
+    data.data[i] = SHADOW[0];
+    data.data[i + 1] = SHADOW[1];
+    data.data[i + 2] = SHADOW[2];
     data.data[i + 3] = Math.max(data.data[i + 3], alpha);
   };
   for (let y = 0; y < 80; y++)
@@ -36,10 +37,11 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
       }
       if (y >= 78)
         for (let dx = -2; dx <= 2; dx++) {
-          mark(80 + x - 40 + dx, 31, 60);
-          mark(80 + x - 40 + dx, 32, 150);
-          mark(80 + x - 40 + dx, 33, 110);
-          mark(80 + x - 40 + dx, 34, 60);
+          // Contact as dark as a baked prop's (alpha 83-91), not a blot.
+          mark(80 + x - 40 + dx, 31, 40);
+          mark(80 + x - 40 + dx, 32, 92);
+          mark(80 + x - 40 + dx, 33, 72);
+          mark(80 + x - 40 + dx, 34, 40);
         }
     }
   ctx.putImageData(data, 0, 0);
@@ -73,9 +75,9 @@ export function spriteShadow(
     y = Math.round(y);
     if (x < 0 || x >= W || y < 0 || y >= H) return;
     const i = (y * W + x) * 4;
-    data[i] = 39;
-    data[i + 1] = 42;
-    data[i + 2] = 33;
+    data[i] = SHADOW[0];
+    data[i + 1] = SHADOW[1];
+    data[i + 2] = SHADOW[2];
     data[i + 3] = Math.max(data[i + 3], alpha);
     if (x < x0) x0 = x;
     if (x > x1) x1 = x;
@@ -94,9 +96,9 @@ export function spriteShadow(
       }
       if (contact && y >= feet - 1)
         for (let dx = -1; dx <= 1; dx++) {
-          mark(R + x - w / 2 + dx, V - 1, 60);
-          mark(R + x - w / 2 + dx, V, 150);
-          mark(R + x - w / 2 + dx, V + 1, 90);
+          mark(R + x - w / 2 + dx, V - 1, 40);
+          mark(R + x - w / 2 + dx, V, 92);
+          mark(R + x - w / 2 + dx, V + 1, 60);
         }
     }
   const canvas = document.createElement("canvas");

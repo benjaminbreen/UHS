@@ -2,12 +2,13 @@ import type { TerrainReceivers } from "./terrain-contours";
 import type { TopographyCell } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
 import { boundaryCasts } from "./fence-pass";
+import { SHADOW } from "./shadow-style";
 import {
   TERRAIN_CHUNK_SIZE as SIZE,
   TERRAIN_CHUNK_PAD as PAD,
 } from "./terrain-region";
 
-const MIN_CAST = 0.45;
+const MIN_CAST = 0.3;
 export type ShadowLayer = {
   row: number;
   x: number;
@@ -210,9 +211,9 @@ export function rasterBankShadows(
         const v = alpha[at(sx, sy)];
         if (!v || covered?.[at(sx, sy)] || rowOf(sx, sy) !== row) continue;
         const o = (y * width + x) * 4;
-        pixels[o] = 28;
-        pixels[o + 1] = 35;
-        pixels[o + 2] = 42;
+        pixels[o] = SHADOW[0];
+        pixels[o + 1] = SHADOW[1];
+        pixels[o + 2] = SHADOW[2];
         pixels[o + 3] = v;
       }
     layers.push({ row, x: bx0, y: by0, width, height, pixels });
