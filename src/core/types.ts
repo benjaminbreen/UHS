@@ -230,6 +230,8 @@ export type Actor = {
   fatigue: number;
   hunger: number;
   trust: number;
+  /** When the player last cost them trust. */
+  wronged?: number;
   owner?: string;
   follows?: string;
   consentUntil?: number;

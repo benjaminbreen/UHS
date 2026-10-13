@@ -102,6 +102,21 @@ function intrusionReaction(seed: string, actor: Actor, stats: ReturnType<typeof 
   return middling[Math.floor(random(seed, "intrusion", actor.id) * middling.length)];
 }
 
+/** How hard a grudge shows, worse while it is fresh. */
+function anger(actor: Actor, clock: number) {
+  const fresh = actor.wronged !== undefined && clock - actor.wronged < 3600;
+  let level = actor.trust < -10 ? 3 : actor.trust < -4 ? 2 : actor.trust < 0 ? 1 : 0;
+  if (fresh) level = Math.min(3, level + 1);
+  if (!level) return "";
+  const how = [
+    "",
+    "You are ANNOYED with the player. Curt and cold: short sentences, no pleasantries, no help offered.",
+    "You are ANGRY with the player. Raise your voice, accuse them to their face, demand they make it right or get out. Shout the words that matter in CAPITALS with exclamation marks. No small talk.",
+    "You are FURIOUS with the player. Shout, mostly in CAPITALS with exclamation marks: insults and curses of your time and place, threats, calls to kin or neighbours. You may refuse to talk and walk off (leave).",
+  ][level];
+  return `${how}${fresh ? " It happened within the hour and is still hot." : ""} People here did not soften their anger to be polite; do not make yourself reasonable or measured about a real wrong.`;
+}
+
 function openness(actor: Actor, met: boolean) {
   if ((actor.age ?? 30) < 13 && actor.trust >= 0)
     return "A child. Children are curious about strangers, say what they think, ask questions back, and wander off the subject; shyness is possible, stiff adult caution is not.";
@@ -168,6 +183,7 @@ function goingWithout(runtime: Runtime, household?: Household) {
 
 /** Still shaking from a break-in. */
 const terrified = (runtime: Runtime, actor: Actor) => !!actor.terror && runtime.engine.state.clock <= actor.terror.until;
+const shouting = (runtime: Runtime, actor: Actor) => terrified(runtime, actor) || runtime.engine.confronting === actor.id;
 /** How a terrified person says anything: in capitals, every stop an exclamation. */
 export function shout(text: string) {
   const loud = text.toUpperCase().replace(/[.?]+(?=\s|$)/g, "!!").replace(/,\s/g, "! ");
@@ -249,7 +265,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .filter((memory) => !/^(spoke|regard):/.test(memory))
     .slice(-4)
     .map(named);
-  const feeling = actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
+  const feeling = actor.trust < -4 ? "angry with you" : actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
   // This prompt is built for one person, so it can afford the whole outlook
   // and what each position actually holds, which is what stops the model
   // writing a label it has only half-heard of.
@@ -263,8 +279,8 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
     terrified(runtime, actor)
-      ? `YOU ARE TERRIFIED. The player has just smashed down the door of your home with a heavy tool and is inside, or right there. ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
-      : "",
+      ? `YOU ARE TERRIFIED. The player has broken into your home with a heavy tool and is inside, or right there, smashing things. ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
+      : anger(actor, state.clock),
     intruding
       ? homePlace?.access === "public"
         ? `The player has walked into ${homePlace.name}, which is your household's home as well as where you work. Whether that is normal depends on your trade: a trader, shopkeeper, innkeeper or craftsman selling goods expects buyers to walk in by day and may treat them as a customer; a herder, farmer, labourer or anyone else does not, and for them a stranger walking in is an intrusion. It is also an intrusion if the player looks odd, armed or dangerous (see "In front of you"). If it is an intrusion: ${intrusionReaction(state.manifest.seed, actor, stats)}`
@@ -396,7 +412,7 @@ export async function dialogueTurn(
       );
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
     // Whatever the model makes of it, a terrified person shouts.
-    if (terrified(runtime, actor)) data.text = shout(data.text);
+    if (shouting(runtime, actor)) data.text = shout(data.text);
     return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.

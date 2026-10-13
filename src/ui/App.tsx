@@ -439,6 +439,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setModal("dialogue");
   };
   useEffect(() => {
+    const id = runtime.engine.confronter;
+    if (!id || modal === "dialogue") return;
+    runtime.engine.confronter = undefined;
+    openDialogue(id);
+  }, [view]);
+  useEffect(() => {
     runtime.engine.conversing = modal === "dialogue" ? (dialogueActorId ?? undefined) : undefined;
   }, [runtime, modal, dialogueActorId]);
   // Standing in someone's way long enough and they will say something about it.

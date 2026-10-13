@@ -1239,11 +1239,16 @@ export class Engine {
   private propOwnership(o: import("./types").WorldObject, action: string) {
     const p = this.state.player;
     if (!o.owner || o.owner === "player") return;
+    // Smashing things inside an occupied home is a break-in however the door was opened.
+    const home = action === "break" && p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
+    if (home && this.state.households?.some((h) => h.residence === home.id && h.id !== p.householdId))
+      this.breakIn(home, `Saw player smash things in ${home.name.toLowerCase()} with an axe`);
     const memory = `property:${o.id}`;
     if (p.memories.includes(memory)) return;
     p.memories.push(memory);
     this.offend({
-      cost: () => 3,
+      owner: o.owner,
+      cost: (theirs) => (theirs ? 8 : 4),
       memory: () => `Saw player ${action} ${o.id}`,
       text: (w) => `${w.name} saw you ${action} household property.`,
     });
@@ -1265,6 +1270,7 @@ export class Engine {
   regard(a: Actor, delta: number, cue?: CueKind) {
     if (!delta) return;
     a.trust += delta;
+    if (delta < 0) a.wronged = this.state.clock;
     const t = this.today().trust;
     t[a.id] = (t[a.id] ?? 0) + delta;
     this.cue(a.id, cue ?? regardCue(delta, a.trust), this.state.player.pos);
@@ -1479,7 +1485,7 @@ export class Engine {
     // saw it, not whoever has wandered past twenty seconds later.
     this.offend({
       owner: field.owner,
-      cost: (theirs) => (theirs ? 4 : 2),
+      cost: (theirs) => (theirs ? 6 : 3),
       memory: (theirs) =>
         theirs
           ? `Saw player take my crop at ${x},${y}`
@@ -1541,7 +1547,7 @@ export class Engine {
       const at = cut;
       this.offend({
         owner: at.owner,
-        cost: (theirs) => (theirs ? 5 : 2),
+        cost: (theirs) => (theirs ? 8 : 3),
         memory: (theirs) =>
           theirs
             ? `Saw player cut down my ${name} at ${at.x},${at.y}`
@@ -2547,18 +2553,56 @@ export class Engine {
   }
   /** Everyone at home when the door comes in: the able-bodied grown come at
    * the intruder, children and the old cower and run. Nobody forgets it. */
-  private breakIn(place: Place) {
+  private breakIn(place: Place, memory = `Saw player break down the door of ${place.name.toLowerCase()} with an axe`) {
     const household = this.state.households?.find((h) => h.residence === place.id);
     const home = (a: Actor) => a.pos.space === place.id || (household?.members.includes(a.id) && a.pos.space === "outside" && distance(a.pos, this.state.player.pos) < 12);
     for (const a of this.state.actors) {
-      if (a.kind !== "human" || !home(a)) continue;
+      if (a.kind !== "human" || !home(a) || a.terror) continue;
       const age = a.age ?? 30;
       a.terror = { until: this.state.clock + 2 * 3600, place: place.id, fight: age >= 15 && age < 65 && !a.injury };
       a.offRoutine = true;
-      a.memories.push(`Saw player break down the door of ${place.name.toLowerCase()} with an axe`);
+      a.memories.push(memory);
       this.regard(a, -4, "fury");
       this.cue(a.id, "alarm", this.state.player.pos);
     }
+  }
+  /** Walk into a house uninvited and whoever heads it, the owner or the eldest
+   * at home, comes at you a few seconds later to order you out. */
+  private confront(clock: number) {
+    const p = this.state.player;
+    const place = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
+    const h = place && this.state.households?.find((x) => x.residence === place.id && x.id !== p.householdId);
+    const invited = place && (this.state.permissions[place.owner] ?? 0) > clock;
+    if (!place || !h || place.access === "public" || invited || p.dead) {
+      const by = this.intrusion?.by && this.actorsById?.get(this.intrusion.by);
+      if (by && !by.terror) by.offRoutine = false;
+      this.intrusion = this.confronting = undefined;
+      return;
+    }
+    if (this.intrusion?.place !== place.id) this.intrusion = { place: place.id, since: clock };
+    const i = this.intrusion;
+    if (i.done || this.conversing || clock - i.since < 12) return;
+    const home = this.state.actors.filter((a) => a.kind === "human" && !a.dead && a.pos.space === place.id && h.members.includes(a.id) && (a.age ?? 30) >= 15);
+    // A break-in is already a fight; nobody stops to talk.
+    if (!home.length || home.some((a) => a.terror)) return;
+    const a = home.find((x) => x.id === place.owner) ?? home.sort((x, y) => (y.age ?? 30) - (x.age ?? 30))[0];
+    i.by = a.id;
+    a.offRoutine = true;
+    a.direction = this.directionTo(a.pos, p.pos);
+    if (Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y)) > 1) {
+      const step = findPath(a.pos, p.pos, (x, y) => this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id), 400)[0];
+      if (step && !(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
+      return;
+    }
+    i.done = true;
+    this.regard(a, -2, "anger");
+    a.memories.push(`Found player in ${place.name.toLowerCase()} uninvited`);
+    this.confronter = this.confronting = a.id;
+    this.approacher = {
+      id: a.id,
+      situation: "THE PLAYER IS INSIDE YOUR HOME UNINVITED and you have marched straight up to them. Yell at them to GET OUT, in CAPITALS with exclamation marks. Demand who they are. Do not ask politely.",
+      until: clock + 300,
+    };
   }
   private stagger(a: Actor, push: readonly number[]) {
     const to = { ...a.pos, x: a.pos.x + push[0], y: a.pos.y + push[1] };
@@ -2680,7 +2724,7 @@ export class Engine {
     this.offend({
       owner: g.owner,
       radius: 12,
-      cost: (theirs) => (theirs ? 8 : 3) * (killed ? 2 : 1),
+      cost: (theirs) => (theirs ? 10 : 4) * (killed ? 2 : 1),
       memory: (theirs) =>
         `Saw player ${did} ${theirs ? "my" : "a neighbour's"} ${label}`,
       text: (w, theirs) =>
@@ -6994,7 +7038,7 @@ export class Engine {
             this.offend({
               owner: o.owner,
               lost: { what: `${o.name.toLowerCase()} emptied`, pos: o.pos },
-              cost: () => 3,
+              cost: (theirs) => (theirs ? 8 : 4),
               memory: () => `Saw player take ${o.id}`,
               text: (w) =>
                 `${w.name} saw you take property belonging to the household.`,
@@ -7069,6 +7113,11 @@ export class Engine {
   blockComplaint?: { id: string; at: number; bumped?: boolean };
   /** Whoever the player is in conversation with stands still, facing them. */
   conversing?: string;
+  /** The householder who has come to throw the player out; the UI opens the talk. */
+  confronter?: string;
+  /** Who is ordering the player out of their house right now; they shout. */
+  confronting?: string;
+  private intrusion?: { place: string; since: number; by?: string; done?: boolean };
   /** Clock second each actor last took offence at a collision or a swing,
    * so leaning on them or swinging again does not keep costing trust. */
   private affronts = new Map<string, number>();
@@ -7968,6 +8017,7 @@ export class Engine {
       if (this.approaching) this.approach(next);
       this.burnStep();
       this.brawl();
+      this.confront(next);
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
       if (next % 3600 === 0) {
         this.world.rotateRoutines?.(next);

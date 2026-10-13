@@ -344,6 +344,7 @@ const actor = z.object({
   fatigue: z.number().min(0).max(100),
   hunger: z.number().min(0).max(100),
   trust: z.number(),
+  wronged: z.number().optional(),
   owner: z.string().optional(),
   follows: z.string().optional(),
   consentUntil: z.number().optional(),
