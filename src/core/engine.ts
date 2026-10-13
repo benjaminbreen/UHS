@@ -87,7 +87,7 @@ import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
-import { endPlot, plotLine, stepPlot, type PlotCard } from "./plot";
+import { endPlot, plotLine, plotTemplate, stepPlot, type PlotCard } from "./plot";
 import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
 import { ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment } from "./health";
@@ -1397,6 +1397,13 @@ export class Engine {
     }
     return this.wallCells.has(`${x},${y}`);
   }
+  /** Past the edge of the playable map: map travel's business, not a wall to climb. */
+  offMap(x: number, y: number) {
+    const size = this.world.pack.setting?.playableMap?.size;
+    if (size === undefined || this.state.player.pos.space !== "outside") return false;
+    const half = size / 2;
+    return x < -half || x >= half || y < -half || y >= half;
+  }
   /** Standing on top of a wall, rather than beside it. */
   onWall() {
     const p = this.state.player.pos;
@@ -2521,13 +2528,37 @@ export class Engine {
   }
   private lastStep = { clock: -99, run: false, dx: 0, dy: 0, steps: 0 };
   lastImpact?: "collision";
+  /** At a run, a lone tree, rock or post ahead is dodged a pace to one side
+   * rather than slammed into, if the way beyond it is open on that side. */
+  private sidestep(c: Extract<PlayerCommand, { type: "move" }>) {
+    const p = this.state.player;
+    if (!c.run || c.jump || c.traverse || p.perch || p.afloat || (c.dx && c.dy)) return undefined;
+    const x = p.pos.x + c.dx, y = p.pos.y + c.dy;
+    if (!this.playerBlocked(x, y) || this.offMap(x, y) || this.toppleTarget(c.dx, c.dy, true)) return undefined;
+    if (this.onWall() && this.wallAt(x, y, p.pos.space)) return undefined;
+    const push = this.shovePlan(c.dx, c.dy);
+    if (push && !("refused" in push)) return undefined;
+    const sides = [{ x: c.dy, y: c.dx }, { x: -c.dy, y: -c.dx }];
+    if ((x + y) & 1) sides.reverse();
+    const sx = (side: Point) => p.pos.x + side.x, sy = (side: Point) => p.pos.y + side.y;
+    return sides.find(
+      (side) =>
+        !this.playerBlocked(sx(side), sy(side)) &&
+        !this.playerBlocked(sx(side) + c.dx, sy(side) + c.dy) &&
+        !this.state.actors.some((a) => a.pos.space === p.pos.space && a.pos.x === sx(side) && a.pos.y === sy(side)) &&
+        (!this.world.canCross || this.playerCanCross(p.pos, { x: sx(side), y: sy(side) })) &&
+        !(p.pos.space === "outside" && this.world.topography &&
+          waterDepthAt(this.world.topography, sx(side) + 0.5, sy(side) + 0.5) > MAX_WADING_DEPTH),
+    );
+  }
   private runningCollision(c: Extract<PlayerCommand, { type: "move" }>) {
+    if (this.sidestep(c)) return false;
     const p = this.state.player;
     if (!this.state.manifest.hazards || !c.run || c.jump || c.traverse || p.perch ||
         p.afloat || this.lastStep.steps < 2 || this.state.clock - this.lastStep.clock > 4 ||
         c.dx !== this.lastStep.dx || c.dy !== this.lastStep.dy) return false;
     const x = p.pos.x + c.dx, y = p.pos.y + c.dy;
-    if (!this.playerBlocked(x, y) || this.lowPropAhead(c.dx, c.dy) ||
+    if (!this.playerBlocked(x, y) || this.offMap(x, y) || this.lowPropAhead(c.dx, c.dy) ||
         this.toppleTarget(c.dx, c.dy, true) || this.onWall() && this.wallAt(x, y, p.pos.space)) return false;
     const push = this.shovePlan(c.dx, c.dy);
     if (push && !("refused" in push)) return false;
@@ -2564,6 +2595,7 @@ export class Engine {
       a.terror = { until: this.state.clock + 2 * 3600, place: place.id, fight: age >= 15 && age < 65 && !a.injury };
       a.offRoutine = true;
       a.memories.push(memory);
+      hear(a, { what: retold(memory), tone: -10, at: this.state.clock, hops: 0 });
       this.regard(a, -4, "fury");
       this.cue(a.id, "alarm", this.state.player.pos);
     }
@@ -2595,11 +2627,11 @@ export class Engine {
       const step = findPath(a.pos, p.pos, (x, y) => this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id), 400)[0];
       if (step && !(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
       return;
-      hear(a, { what: retold(memory), tone: -10, at: this.state.clock, hops: 0 });
     }
     i.done = true;
     this.regard(a, -2, "anger");
     a.memories.push(`Found player in ${place.name.toLowerCase()} uninvited`);
+    hear(a, { what: `walked into ${place.name.toLowerCase()} uninvited`, tone: -3, at: clock, hops: 0 });
     this.confronter = this.confronting = a.id;
     this.approacher = {
       id: a.id,
@@ -2631,7 +2663,6 @@ export class Engine {
         // A blow every twelve seconds, and none just after being driven back.
         if (this.state.clock % 12 !== 0 || this.state.clock - (t.staggered ?? -99) < 12) continue;
         this.struckBy(a);
-    hear(a, { what: `walked into ${place.name.toLowerCase()} uninvited`, tone: -3, at: clock, hops: 0 });
         continue;
       }
       if (t.fight) {
@@ -4017,7 +4048,7 @@ export class Engine {
       // a town wall. Either is a scramble to the top rather than a way through.
       for (const q of ring) {
         if (!this.world.blocked(q.x, q.y, "outside")) continue;
-        if (this.world.decoration(q.x, q.y)?.solid) continue;
+        if (this.world.decoration(q.x, q.y)?.solid || this.offMap(q.x, q.y)) continue;
         const place = (this.world.places ?? []).find(
           (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
         );
@@ -4094,7 +4125,7 @@ export class Engine {
       return plant.sprite === "rock"
         ? undefined
         : { label: treeName(plant.sprite) };
-    if (!this.world.blocked(q.x, q.y, "outside")) return undefined;
+    if (!this.world.blocked(q.x, q.y, "outside") || this.offMap(q.x, q.y)) return undefined;
     const place = (this.world.places ?? []).find(
       (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
     );
@@ -4752,7 +4783,7 @@ export class Engine {
       if (actor.kind === "human") {
         interact("talk", "Talk");
         const plot = this.state.plot;
-        if (plot && !plot.ended && plot.cast.creditor === id && (plot.owed ?? 0) > 0)
+        if (plot && !plot.ended && plot.cast[plotTemplate(plot)?.payee ?? "creditor"] === id && (plot.owed ?? 0) > 0)
           interact("pay", "Pay what you owe", close && this.payable().length > 0,
             close ? "You have nothing they will take" : undefined);
         interact(
@@ -5182,7 +5213,7 @@ export class Engine {
         ) > MAX_WADING_DEPTH
       )
         return "Too deep to wade — find a shallower crossing or a bridge.";
-      if (this.runningCollision(c)) return;
+      if (this.runningCollision(c) || this.sidestep(c)) return;
       const push = this.shovePlan(c.dx, c.dy);
       const toppling = this.toppleTarget(c.dx, c.dy, c.run);
       if (!toppling && push && "refused" in push) return push.reason;
@@ -6363,6 +6394,13 @@ export class Engine {
     }
     if (c.type === "move") {
       delete this.lastShove;
+      const dodge = this.sidestep(c);
+      if (dodge) {
+        this.execute({ ...c, dx: dodge.x, dy: dodge.y });
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        return;
+      }
       if (this.runningCollision(c)) {
         this.lastImpact = "collision";
         delete this.lastLeap;
@@ -6630,6 +6668,8 @@ export class Engine {
       if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
       this.regard(a, 1);
       a.memories.push(`You gave them ${def.name.toLowerCase()}.`);
+      const ask = this.state.asks?.find((x) => x.by === a.id && (x.kind === "food" ? !!def.edible : x.item === c.item));
+      if (ask) this.grant(ask, a);
       this.advance(20, a.id);
       this.event(
         `You hand ${def.name.toLowerCase()} to ${a.name}. They take it.`,
@@ -6668,8 +6708,6 @@ export class Engine {
         this.state.objects = this.state.objects.filter((o) => o !== loose);
         this.advance(2);
         this.event(`You pick up ${loose.name.toLowerCase()}.`);
-      const ask = this.state.asks?.find((x) => x.by === a.id && (x.kind === "food" ? !!def.edible : x.item === c.item));
-      if (ask) this.grant(ask, a);
         return;
       }
     }
@@ -6789,6 +6827,18 @@ export class Engine {
       case "talk":
         if (a) {
           if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
+          const message = this.state.asks?.find((x) => x.kind === "message" && x.to === a.id);
+          const sender = message && this.actorsById?.get(message.by);
+          if (message && sender) {
+            a.memories.push(`The player brought word from ${sender.name}`);
+            this.grant(message, sender);
+          }
+          const plot = this.state.plot;
+          const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === a.id);
+          if (role && !plot.fired.includes(`talked:${role}`)) {
+            plot.fired.push(`talked:${role}`);
+            this.runPlot();
+          }
           if (this.state.goalFlags) {
             this.state.goalFlags.talked = true;
             (this.state.goalFlags.talkedTo ??= []).push(a.id);
@@ -6827,18 +6877,6 @@ export class Engine {
             );
           if (a.trust >= 0 && advanceLifeAim(this.state, { type: "talk", actor: a.id }))
             this.event("You have completed a step toward your life aim.");
-          const message = this.state.asks?.find((x) => x.kind === "message" && x.to === a.id);
-          const sender = message && this.actorsById?.get(message.by);
-          if (message && sender) {
-            a.memories.push(`The player brought word from ${sender.name}`);
-            this.grant(message, sender);
-          }
-          const plot = this.state.plot;
-          const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === a.id);
-          if (role && !plot.fired.includes(`talked:${role}`)) {
-            plot.fired.push(`talked:${role}`);
-            this.runPlot();
-          }
         }
         break;
       case "pay":
@@ -7449,44 +7487,6 @@ export class Engine {
       }
     a.errand = { to: copy(to), label: "Coming to find you", until: clock + 60 };
   }
-  /** Someone who has had enough of the player goes elsewhere for an hour. */
-  walkOff(a: Actor, where: WalkOff) {
-    const clock = this.state.clock;
-    if (a.trust < -10) a.shuns = clock + 3600;
-    const inside = a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
-    if (inside) this.moveActor(a, { ...doorApproach(inside), space: "outside" });
-    let to: Position | undefined;
-    let label = "";
-    if (where === "friend") {
-      const kin = (a.relations ?? [])
-        .map((r) => this.state.actors.find((o) => o.id === r.other))
-        .find((o) => o?.pos.space === "outside" && o.householdId !== a.householdId);
-      const friend =
-        kin ??
-        this.state.actors
-          .filter((o) => o.kind === "human" && o.id !== a.id && o.pos.space === "outside" && o.householdId !== a.householdId && (o.age ?? 30) >= 13)
-          .sort((x, y) => distance(x.pos, a.pos) - distance(y.pos, a.pos))[0];
-      if (friend) {
-        to = copy(friend.pos);
-        label = `Off to talk it over with ${friend.name}`;
-      }
-    } else if (where === "authority") {
-      const hall = this.world.places.find((p) => AUTHORITY.test(p.name));
-      if (hall) {
-        to = { ...doorApproach(hall), space: "outside" };
-        label = `Going to complain at the ${hall.name.replace(/^the /i, "").toLowerCase()}`;
-      }
-    } else if (where === "away") {
-      const p = this.state.player.pos;
-      const d = Math.hypot(a.pos.x - p.x, a.pos.y - p.y) || 1;
-      to = {
-        x: Math.round(a.pos.x + ((a.pos.x - p.x) / d) * 40),
-        y: Math.round(a.pos.y + ((a.pos.y - p.y) / d) * 40),
-        space: "outside",
-      };
-      label = "Walking it off";
-    }
-    if (!to) {
   /** Stories about the player move about an hour per hop of company, and a
    * household pools what it heard each evening. Each retelling is half as
    * strong, and so is what it does to the listener's opinion. */
@@ -7577,6 +7577,45 @@ export class Engine {
     this.approaching = { id: a.id, line: askLines[ask.kind](ask.kind === "message" ? this.actorsById?.get(ask.to!)?.name ?? "my kin" : ask.what), until: clock + 1800, title: a.name };
   }
   private lastAsk?: number;
+  /** Someone who has had enough of the player goes elsewhere for an hour. */
+  walkOff(a: Actor, where: WalkOff) {
+    const clock = this.state.clock;
+    if (a.trust < -10) a.shuns = clock + 3600;
+    const inside = a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
+    if (inside) this.moveActor(a, { ...doorApproach(inside), space: "outside" });
+    let to: Position | undefined;
+    let label = "";
+    if (where === "friend") {
+      const kin = (a.relations ?? [])
+        .map((r) => this.state.actors.find((o) => o.id === r.other))
+        .find((o) => o?.pos.space === "outside" && o.householdId !== a.householdId);
+      const friend =
+        kin ??
+        this.state.actors
+          .filter((o) => o.kind === "human" && o.id !== a.id && o.pos.space === "outside" && o.householdId !== a.householdId && (o.age ?? 30) >= 13)
+          .sort((x, y) => distance(x.pos, a.pos) - distance(y.pos, a.pos))[0];
+      if (friend) {
+        to = copy(friend.pos);
+        label = `Off to talk it over with ${friend.name}`;
+        this.pass(a, friend, clock, true);
+      }
+    } else if (where === "authority") {
+      const hall = this.world.places.find((p) => AUTHORITY.test(p.name));
+      if (hall) {
+        to = { ...doorApproach(hall), space: "outside" };
+        label = `Going to complain at the ${hall.name.replace(/^the /i, "").toLowerCase()}`;
+      }
+    } else if (where === "away") {
+      const p = this.state.player.pos;
+      const d = Math.hypot(a.pos.x - p.x, a.pos.y - p.y) || 1;
+      to = {
+        x: Math.round(a.pos.x + ((a.pos.x - p.x) / d) * 40),
+        y: Math.round(a.pos.y + ((a.pos.y - p.y) / d) * 40),
+        space: "outside",
+      };
+      label = "Walking it off";
+    }
+    if (!to) {
       to = copy(a.home);
       label = "Gone home in a temper";
     }
@@ -7597,7 +7636,6 @@ export class Engine {
     const at = this.state.player.pos;
     return at.space === p.space && at.x === p.x && at.y === p.y;
   }
-        this.pass(a, friend, clock, true);
   /** Returns true once an actor has been stuck behind the player for a second. */
   private blockedByPlayer(a: Actor, step: { x: number; y: number }) {
     const p = this.state.player;

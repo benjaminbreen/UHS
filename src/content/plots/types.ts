@@ -2,7 +2,7 @@ import type { Actor, Household, WalkOff } from "../../core/types";
 import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
 
-export type PlotRole = "creditor";
+export type PlotRole = "creditor" | "landlord" | "official" | "accuser" | "witness" | "rival" | "suspect" | "host";
 
 export type PlotContext = {
   seed: string;
@@ -17,6 +17,8 @@ export type PlotContext = {
 /** Plain data, so a scenario written from sources can produce the same thing. */
 export type Condition =
   | { type: "since"; hours: number }
+  /** The player has spoken with this member of the cast since the plot began. */
+  | { type: "talked"; role: PlotRole }
   /** The deadline has passed by `hours`, or is that close when negative. */
   | { type: "due"; hours?: number }
   | { type: "settled" }
@@ -45,7 +47,7 @@ export type PlotWording = {
 /** How the plot's cards look: a drawn emblem and the five colours its frame,
  * text and emblem share. */
 export type PlotLook = {
-  emblem: "slate" | "dawn";
+  emblem: "slate" | "dawn" | "rent" | "levy" | "accused" | "rival" | "robbery" | "feast";
   palette: { ink: string; fill: string; edge: string; light: string; accent: string };
 };
 
@@ -62,6 +64,8 @@ export type PlotTemplate = {
     /** The words that name someone, by word: `creditor` to the creditor's id. */
     refs?: Record<string, string>;
   };
+  /** Who takes payment toward `owed`; the creditor when unset. */
+  payee?: PlotRole;
   opening: Effect[];
   developments: { id: string; when: Condition; then: Effect[] }[];
   /** First match ends the plot; its line is the closing text. */

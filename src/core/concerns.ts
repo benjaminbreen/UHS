@@ -111,8 +111,12 @@ export function concernsOf(s: Snapshot, setting: WorldSetting | undefined, here:
     add("grief", n <= 0 ? 0.76 : n === 1 ? 0.62 : 0.46, [{ text: `you buried ${whose} ${buried.as} ${ago(n)}` }]);
   }
   const lostChildren = history.filter((e) => e.kind === "died" && (e.as === "son" || e.as === "daughter") && e !== buried);
+  // Old losses were common enough to be the background of most lives, not the headline.
+  const n = inWords(lostChildren.length);
   if (lostChildren.length >= 2)
-    add("grief", 0.42, [{ text: pick([`you have buried ${inWords(lostChildren.length)} of your children`, `${inWords(lostChildren.length)} of your children are in the ground`], "buried") }]);
+    add("grief", 0.18, [{ text: pick([`you have buried ${n} of your children`, `you still say the names of the ${n} children you lost`,
+      `you have outlived ${n} of your children`, `there are ${n} small graves you visit when nobody is watching`,
+      `you have had more children than you have now`], "buried") }]);
   else if (lostChildren.length === 1) {
     const as = lostChildren[0].as!;
     add("grief", 0.3, [{ text: pick([`you lost a ${as} when ${as === "son" ? "he" : "she"} was small`, `a ${as} of yours died young`], "lost") }]);

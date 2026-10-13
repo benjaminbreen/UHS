@@ -11,10 +11,23 @@ import buildings from "../src/render/generated/buildings.json" with { type: "jso
 import regionalBuildings from "../src/render/generated/regional-buildings.json" with { type: "json" };
 import campBuildings from "../src/render/generated/camp-buildings.json" with { type: "json" };
 import civic from "../src/render/generated/civic.json" with { type: "json" };
+import modernBuildings from "../src/render/generated/modern-buildings.json" with { type: "json" };
+import streetBuildings from "../src/render/generated/street-buildings.json" with { type: "json" };
+import minimapTones from "../src/render/generated/minimap-tones.json" with { type: "json" };
 import {
   buildingScaleWeight,
   chooseBuildingFrame,
 } from "../src/content/graphics/building-scale";
+
+it("provides minimap colours for compiled buildings without loading their sheets", () => {
+  const colors: Record<string, { roof: string; wall: string }> = minimapTones;
+  for (const sheet of [buildings, regionalBuildings, campBuildings, modernBuildings, streetBuildings])
+    for (const sprite of Object.keys(sheet.frames)) {
+      if (!(sprite in buildingModels)) continue;
+      expect(colors[sprite]?.roof, sprite).toMatch(/^#[0-9a-f]{6}$/);
+      expect(colors[sprite]?.wall, sprite).toMatch(/^#[0-9a-f]{6}$/);
+    }
+});
 
 it("every construction family has usable entrance geometry and matching compiled art", () => {
   for (const study of Object.keys(studies))

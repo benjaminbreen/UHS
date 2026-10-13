@@ -240,7 +240,22 @@ it("leans away from a western push and leaves rooted and built-in objects fixed"
   expect(engine.state.objects[0].lean).toBe(-1);
   for (const prop of ["well", "hitchingPost"]) {
     const fixed = field(prop);
-    expect(fixed.runtime.move(1, 0, false, true)?.status).toBe("rejected");
+    const at = { ...fixed.engine.state.objects[0].pos };
+    fixed.runtime.move(1, 0, false, true);
     expect(fixed.engine.state.objects[0].lean).toBeUndefined();
+    expect(fixed.engine.state.objects[0].pos).toEqual(at);
   }
+});
+
+it("dodges a lone post at a run and shoulders a jar aside at a walk", () => {
+  const post = field("hitchingPost");
+  const from = { ...post.engine.state.player.pos };
+  post.runtime.move(1, 0, false, true);
+  const p = post.engine.state.player;
+  expect(p.pos.x).toBe(from.x);
+  expect(Math.abs(p.pos.y - from.y)).toBe(1);
+  expect(p.direction).toBe(1);
+  const jar = field("jar");
+  jar.runtime.move(1, 0);
+  expect(jar.engine.state.objects[0].pos.x).toBeGreaterThan(1);
 });

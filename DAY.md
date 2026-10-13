@@ -277,8 +277,8 @@ headless worlds draw no rivers, so a fisher there falls back to their gear.
 - **The hours pass on the sky.** When a step completes, the world's clock
   runs from its start to its end over a second or so, with a small time pill
   at the top, and the player waits.
-- **Plain modern English** in everything the interface says. Characters may
-  speak in their own voice; the interface does not.
+- **Plain modern English** in everything the game says, characters' speech
+  included. Period terms where needed, with a gloss; no archaic phrasing.
 
 ### Playing a step
 

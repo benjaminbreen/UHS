@@ -388,9 +388,6 @@ it("solid props block their base tile; pickup and break clear it, while drops bl
   ].find(([x, y]) => !e.world.blocked(p.x + x, p.y + y, p.space))!;
   pot.pos = { ...p, x: p.x + delta[0], y: p.y + delta[1] };
   expect(e.blocked(pot.pos.x, pot.pos.y)).toBe(true);
-  expect(act(e, { type: "move", dx: delta[0], dy: delta[1] }).status).toBe(
-    "rejected",
-  );
   expect(interaction(e, pot, "pickup").status).toBe("completed");
   expect(e.blocked(p.x + delta[0], p.y + delta[1])).toBe(false);
   expect(interaction(e, pot, "drop").status).toBe("completed");

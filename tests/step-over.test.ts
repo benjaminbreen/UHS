@@ -21,8 +21,17 @@ function fixture(prop: string) {
   return { e, rt, p: { ...p } };
 }
 
-it("stops at a pot once, then steps over it", () => {
+it("shoves a pot a pace ahead of you", () => {
   const { e, rt, p } = fixture("pot");
+  rt.move(1, 0);
+  expect(e.state.player.pos.x).toBe(p.x + 1);
+  expect(e.state.objects.at(-1)!.pos.x).toBe(p.x + 2);
+});
+
+it("stops at a pot too full to shift once, then steps over it", () => {
+  const { e, rt, p } = fixture("pot");
+  e.state.objects.at(-1)!.inventory = { grain: 20 };
+  e.state.player.stats = { ...(e.state.player.stats ?? ({} as never)), strength: 0 } as never;
   rt.move(1, 0);
   expect(e.state.player.pos.x).toBe(p.x);
   expect(rt.notice).toMatch(/step again/i);

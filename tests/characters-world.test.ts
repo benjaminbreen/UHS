@@ -112,28 +112,29 @@ it("can display the first completed frame after the requested pose advances", ()
   expect(characters.frame(actor, "walk", 3)).toMatch(/^character-test-/);
 });
 
-it("prepares mobile strides while idle without delaying a visible resident", () => {
-  device.mobile = true;
+it.each([false, true])("prepares strides and transitions without delaying a visible resident (mobile=%s)", (mobile) => {
+  device.mobile = mobile;
   characters.destroy();
   characters = new WorldCharacters(scene as unknown as Phaser.Scene);
   const player = { ...actor, id: "player" };
-  // The first is drawn at once; the stride is queued from the next.
   characters.frame(player, "idle", 0);
-  characters.frame(player, "idle", 0);
-  expect(FakeWorker.instances).toHaveLength(1);
+  expect(renderers.d.draw).toHaveBeenCalledOnce();
+  expect(FakeWorker.instances).toHaveLength(mobile ? 1 : 2);
   const resident = { ...actor, id: "resident", direction: 1 };
   characters.frame(resident, "idle", 0);
   const worker = FakeWorker.instances[0];
   worker.finish();
   expect(worker.postMessage.mock.calls.at(-1)![0].direction).toBe(1);
-  for (let i = 0; i < 24; i++) worker.finish();
-  const calls = worker.postMessage.mock.calls.length;
-  for (const pose of ["walk", "run"] as const) {
-    const frames = Array.from({ length: 8 }, (_, frame) => characters.frame(player, pose, frame));
+  for (let i = 0; i < 36; i++) for (const w of FakeWorker.instances) w.finish();
+  const calls = FakeWorker.instances.flatMap((w) => w.postMessage.mock.calls).length;
+  for (const pose of ["breathe", "idle", "walk", "run", "setoff", "halt"] as const) {
+    const count = pose === "walk" || pose === "run" ? 8 : 4;
+    const frames = Array.from({ length: count }, (_, frame) => characters.frame(player, pose, frame));
     expect(frames.every((key) => typeof key === "string")).toBe(true);
-    expect(new Set(frames).size).toBe(8);
+    expect(new Set(frames).size).toBe(count);
   }
-  expect(worker.postMessage.mock.calls).toHaveLength(calls);
+  expect(renderers.d.draw).toHaveBeenCalledOnce();
+  expect(FakeWorker.instances.flatMap((w) => w.postMessage.mock.calls)).toHaveLength(calls);
 });
 
 it("draws the player's uncached frame at once instead of waiting on a worker", () => {

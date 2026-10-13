@@ -41,7 +41,7 @@ only rewrites card text when enabled, and never adds facts.
 ## Engine gaps, built in the phase that first needs them
 
 1. **NPC death outside combat**, recorded as a `died` household event and
-   leaving remains or a burial. Needed by: Dying Elder, Hungry Season, Grief,
+   leaving remains or a burial. Needed by: Dying Parent, Hungry Year, Grief,
    Stranger.
 2. **A newcomer spawned at the map edge** with a generated appearance and
    household-less status. Needed by: Stranger, Levy (the official), Accused.
@@ -70,8 +70,8 @@ Effects still to come: `injure`/`kill`, `spawn`, `set-flag`.
 Many players will see only a few hours of game time (an hour of game time is
 three real minutes). So a plot must open within minutes and develop within
 hours. Most deadlines are hours away: "by sundown", "by noon tomorrow",
-"before the levy marches at dawn". The longest, such as the Hungry Season's
-harvest or the Dying Elder's last days, is 30 days at most, and even those
+"before the levy marches at dawn". The longest, such as the Hungry Year's
+harvest or the Dying Parent's last days, is 30 days at most, and even those
 need a development in the first game hour.
 
 Card and approach text comes from wording tables keyed by scope, like life
@@ -85,17 +85,17 @@ culture.
 | # | Plot | Eligible | Cast | Developments | Endings |
 |---|---|---|---|---|---|
 | 1 | The Debt | `owes`, or fortune < 0.4 | creditor, authority | deadline passes → creditor at the door, regard falls; second miss → goods seized or creditor walks to authority; fortune rises → more time | paid · fled · goods seized · child taken as pledge · imprisoned · creditor dies † |
-| 2 | The Mending | latest hardship bad-year, fire, robbed | healer, partner | start injured, store low; working while injured → health falls; store empty → child urge; healer visits → cost or remedy | restored by deadline · relapse † · partner breaks |
-| 3 | The Grind | low standing, age < 35 | master, tempter, patron | savings threshold → a chance (ship, caravan, rail, workshop); tempter offers theft or enlisting; master learns → dismissal | set up alone · left with savings · caught stealing · worn down · † |
+| 2 | Recovering | latest hardship bad-year, fire, robbed | healer, partner | start injured, store low; working while injured → health falls; store empty → child urge; healer visits → cost or remedy | restored by deadline · relapse † · partner breaks |
+| 3 | Getting Ahead | low standing, age < 35 | master, tempter, patron | savings threshold → a chance (ship, caravan, rail, workshop); tempter offers theft or enlisting; master learns → dismissal | set up alone · left with savings · caught stealing · worn down · † |
 | 4 | Love and Trouble | unpartnered adult, marriage practice | beloved, obstacle, rival suitor | regard over threshold → obstacle forbids; rival household offers; beloved proposes flight; seen together → standing falls | wed · eloped · beloved married off · exiled · killing † |
-| 5 | A Stranger Comes | settled world | stranger, authority | stranger arrives day 2; asks shelter; something stolen → town suspects; authority questions you | stranger leaves · joins · driven out · harmed † · brings sickness † |
-| 6 | The Journey Out | age 14 to 25, younger child, or after Grind | parent, companion, contact | parting at the map exit; contact gone or dead on arrival; money runs out; danger on the road | settled · returned · died on the road † |
-| 7 | The Dying Elder | elderly parent | parent, sibling, authority | parent's health falls daily; sibling's urge rises; death → rite → division by inheritance practice | fair share · disinherited · reconciled · feud |
-| 8 | The Rival | same-livelihood household | rival, authority | rival's sales rise; undercutting; talk lowers others' regard; fire with suspicion; match offered between households | outsold · allied or married in · one ruined · violence † |
-| 9 | The Hungry Season | farming, bad-year roll | landlord, tempter, child | stock below threshold → child urge; rent due; hoarder; crowd at the granary | reached harvest · emigrated · child dies † · player dies † |
-| 10 | The Wrong Done | robbed in history | suspect, authority, witness | asking round, gated by regard; authority won't act; confrontation | restitution · revenge · forgiveness · wrong man punished |
-| 11 | The Accused | low regard with authority, or a theft unsolved | accuser, authority, patron | summons with a day; patron speaks if regard high; flight | cleared · fined · flogged · exiled · hanged † |
-| 12 | The Levy | adult man, or a household owing labour | official, partner, child | the day named; family urges peak; bribe or substitute if fortune allows; hiding → search | served (leave the map) · evaded · substitute paid · deserted · killed † |
+| 5 | A Stranger in Town | settled world | stranger, authority | stranger arrives day 2; asks shelter; something stolen → town suspects; authority questions you | stranger leaves · joins · driven out · harmed † · brings sickness † |
+| 6 | Leaving Home | age 14 to 25, younger child, or after Grind | parent, companion, contact | parting at the map exit; contact gone or dead on arrival; money runs out; danger on the road | settled · returned · died on the road † |
+| 7 | A Dying Parent | elderly parent | parent, sibling, authority | parent's health falls daily; sibling's urge rises; death → rite → division by inheritance practice | fair share · disinherited · reconciled · feud |
+| 8 | A Rival in Trade | same-livelihood household | rival, authority | rival's sales rise; undercutting; talk lowers others' regard; fire with suspicion; match offered between households | outsold · allied or married in · one ruined · violence † |
+| 9 | A Hungry Year | farming, bad-year roll | landlord, tempter, child | stock below threshold → child urge; rent due; hoarder; crowd at the granary | reached harvest · emigrated · child dies † · player dies † |
+| 10 | After the Robbery | robbed in history | suspect, authority, witness | asking round, gated by regard; authority won't act; confrontation | restitution · revenge · forgiveness · wrong man punished |
+| 11 | Accused of Theft | low regard with authority, or a theft unsolved | accuser, authority, patron | summons with a day; patron speaks if regard high; flight | cleared · fined · flogged · exiled · hanged † |
+| 12 | Called Up | adult man, or a household owing labour | official, partner, child | the day named; family urges peak; bribe or substitute if fortune allows; hiding → search | served (leave the map) · evaded · substitute paid · deserted · killed † |
 | 13 | Grief | widowed or remember-dead | the dead (absent), kin | anniversary rite by the `dead-remain` stance; pressure to remarry; child asks | remarried · kept the house alone · the dead honoured · following them † |
 
 Era and culture permutations to write into each plot's wording and
@@ -113,12 +113,12 @@ parameter tables, as starting points:
   recruiting sergeant, surveyor.
 - Journey: a Neolithic youth leaving their band; Compostela; a Tang exam
   candidate; the 1890 railway to Chicago.
-- Dying Elder: partible versus primogeniture from `households/practices`;
+- Dying Parent: partible versus primogeniture from `households/practices`;
   a Roman will; succession by adoption in a Japanese *ie*.
 - Rival: Lyon bakers and the bread assize; Athenian potters; Edo rice
   merchants; two Iron Age smiths.
-- Hungry Season: 1315, Ireland 1847, Bengal 1770, Maya drought.
-- Wrong Done: wergild; private prosecution at the Old Bailey; a headman's court.
+- Hungry Year: 1315, Ireland 1847, Bengal 1770, Maya drought.
+- After the Robbery: wergild; private prosecution at the Old Bailey; a headman's court.
 - Accused: ordeal by water; a Salem examination; the Inquisition; an
   Athenian court.
 - Levy: Egyptian corvée; a legion levy; the press gang; Qin wall labour; 1914.
@@ -268,14 +268,20 @@ arrival screen's gold panel:
 
 ### Phase 4: plots that need no new engine work
 
-Mending, Grind, Rival, Hungry Season, Wrong Done, Accused, Levy, Grief. Each
+Mending, Grind, Rival, Hungry Year, After the Robbery, Accused, Levy, Grief. Each
 with wording for at least three eras, its hazard, and a test that one
 resolution fires.
+
+Done: Rival, After the Robbery, Accused, Levy, and Hungry Year as The Rent, plus
+The Feast (a neighbour's wedding or funeral, your household's share owed).
+A template's `payee` takes payment in place of the creditor, and talking to a
+member of the cast fires the `talked` condition. Still to do: Mending, Grind,
+Grief.
 
 ### Phase 5: the engine gaps and the plots that need them
 
 NPC death, newcomer spawn, travelling companion, destination contact. Then
-Dying Elder, Stranger, Love, Journey.
+Dying Parent, Stranger, Love, Journey.
 
 ### Phase 6: coverage and model text
 

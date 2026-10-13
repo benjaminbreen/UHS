@@ -59,8 +59,7 @@ export class WorldCharacters {
   private propPixels = new WeakMap<CarriedArt, Uint8ClampedArray>();
   private pool: { worker: Worker; busy?: string }[] = [];
   private workersStarted = false;
-  private preloadPlayer = smallMemoryDevice();
-  private limit = this.preloadPlayer ? 128 : 384;
+  private limit = smallMemoryDevice() ? 128 : 384;
   private serial = 0;
   /** Interned appearance descriptions: the per-frame cache key must stay short. */
   private appearanceTokens = new Map<string, number>();
@@ -279,8 +278,7 @@ export class WorldCharacters {
     const signature = signatureFor(pose, frame);
     this.wanted.set(actor.id, signature);
     if (workerDrawn(this.renderer)) this.startWorkers();
-    // A worker's frame arrives a beat late; the player's own turn must show at once.
-    if (this.pool.length && workerDrawn(this.renderer) && (actor.id !== "player" || this.cache.has(signature))) {
+    if (this.pool.length && workerDrawn(this.renderer)) {
       const preset = lightingPreset(this.light);
       const request: CharacterFrameRequest = {
         signature, renderer: this.renderer, appearance: a,
@@ -296,19 +294,20 @@ export class WorldCharacters {
       if (!turn) {
         frames.push({ pose, frame: (frame + 1) % frameCount(pose) });
         // Prepare the player's whole stride while idle; NPCs need only the next frame.
-        if (this.preloadPlayer && actor.id === "player" && ["breathe", "idle", "walk", "run", "wade"].includes(pose))
-          for (const gait of (pose === "wade" ? ["wade"] : ["walk", "run"]) as CharacterPose[])
+        if (actor.id === "player" && ["breathe", "idle", "walk", "run", "setoff", "halt", "wade"].includes(pose))
+          for (const gait of (pose === "wade" ? ["wade"] : ["breathe", "idle", "walk", "run", "setoff", "halt"]) as CharacterPose[])
             for (let next = 0; next < frameCount(gait); next++) frames.push({ pose: gait, frame: next });
       }
       for (const next of frames) {
         const key = signatureFor(next.pose, next.frame);
         const ahead = key !== signature;
-        if (this.preloadPlayer && actor.id === "player" && !turn) {
+        if (actor.id === "player" && !turn) {
           this.playerFrames.delete(key);
           this.playerFrames.add(key);
           if (this.playerFrames.size > 48) this.playerFrames.delete(this.playerFrames.values().next().value!);
         }
         if (this.cache.has(key)) continue;
+        if (actor.id === "player" && !ahead) continue;
         const pending = this.pending.get(key);
         if (pending) {
           pending.used = this.scene.time.now;
@@ -324,9 +323,12 @@ export class WorldCharacters {
         if (previous?.startsWith(`${resolved.signature}:`) && previous.endsWith(`:${this.renderer}`))
           entry = this.cache.get(previous);
       }
-      if (entry) entry.used = this.scene.time.now;
-      return entry?.key;
+      if (actor.id !== "player" || this.cache.has(signature)) {
+        if (entry) entry.used = this.scene.time.now;
+        return entry?.key;
+      }
     }
+    // An uncached player pose must show immediately while its next frames warm.
     let entry = this.cache.get(signature);
     if (!entry) {
       const c = document.createElement("canvas");

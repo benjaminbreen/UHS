@@ -6,8 +6,7 @@ import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef, useState } from "react";
 import { timed } from "../render/perf-switches";
 import { faunaProfile } from "../content/fauna";
-import { currentSheets, loadSheets, sheetImage } from "./sprite-atlas";
-import { smallMemoryDevice } from "../runtime/device";
+import minimapTones from "../render/generated/minimap-tones.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
 import {
   atlasRivers,
@@ -21,21 +20,6 @@ import { boxBlur } from "./ArrivalMap";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
-type BuildingSheet = "buildings" | "regionalBuildings" | "campBuildings" | "modernBuildings" | "streetBuildings";
-const atlasImages: Partial<Record<BuildingSheet, HTMLImageElement>> = {};
-const sheetLoaded = new Set<() => void>();
-/** Fetched on first use: each sheet decodes to 60 MB, and a camp needs one. */
-function sprites(name: BuildingSheet = "buildings") {
-  if (!atlasImages[name]) {
-    atlasImages[name] = new Image();
-    atlasImages[name]!.onload = () => {
-      for (const l of sheetLoaded) l();
-    };
-    atlasImages[name]!.src = sheetImage(name);
-    void loadSheets().catch(() => {});
-  }
-  return atlasImages[name]!;
-}
 function hash(x: number, y: number) {
   let h = (x * 374761393 + y * 668265263) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -63,59 +47,9 @@ const shade: Record<string, string> = {
   field: "#8c7840",
   sand: "#c4b47c",
 };
-const roofCache = new Map<string, { roof: string; wall: string }>();
-let toneCanvas: HTMLCanvasElement | undefined;
-/** Roof and wall tone read from the building's own sprite, so each region's houses keep their colours. */
+const buildingColors: Record<string, { roof: string; wall: string }> = minimapTones;
 function buildingTones(sprite: string) {
-  const cached = roofCache.get(sprite);
-  if (cached) return cached;
-  const fallback = { roof: "#4a5560", wall: "#d8cfb0" };
-  // Keep the minimap from retaining another full-size building image on phones.
-  if (smallMemoryDevice()) return fallback;
-  const sheets = currentSheets();
-  const sheet: BuildingSheet = sheets?.regionalBuildings.frames[sprite]
-    ? "regionalBuildings"
-    : sheets?.campBuildings.frames[sprite]
-      ? "campBuildings"
-      : sheets?.modernBuildings.frames[sprite]
-        ? "modernBuildings"
-      : sheets?.streetBuildings.frames[sprite]
-        ? "streetBuildings"
-      : "buildings";
-  const frames = sheets?.[sheet].frames;
-  const image = sprites(sheet);
-  if (!frames || !image.complete || !image.naturalWidth) return fallback;
-  const f = frames[sprite]?.frame;
-  if (!f) return fallback;
-  toneCanvas ??= document.createElement("canvas");
-  toneCanvas.width = f.w;
-  toneCanvas.height = f.h;
-  // A GPU-backed canvas made each first sighting of a sprite a readback stall.
-  const ctx = toneCanvas.getContext("2d", { willReadFrequently: true })!;
-  ctx.drawImage(image, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
-  const pixels = ctx.getImageData(0, 0, f.w, f.h).data;
-  const avg = (y0: number, y1: number) => {
-    const d = pixels.subarray(y0 * f.w * 4, Math.max(y0 + 1, y1) * f.w * 4);
-    let r = 0,
-      g = 0,
-      b = 0,
-      n = 0;
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i + 3] < 200) continue;
-      r += d[i];
-      g += d[i + 1];
-      b += d[i + 2];
-      n++;
-    }
-    if (!n) return undefined;
-    return `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
-  };
-  const tones = {
-    roof: avg(Math.round(f.h * 0.08), Math.round(f.h * 0.4)) ?? fallback.roof,
-    wall: avg(Math.round(f.h * 0.55), Math.round(f.h * 0.85)) ?? fallback.wall,
-  };
-  roofCache.set(sprite, tones);
-  return tones;
+  return buildingColors[sprite] ?? { roof: "#4a5560", wall: "#d8cfb0" };
 }
 /** Ground far outside the region, read from the Earth atlas: one coastline
  *  lookup instead of generating terrain the region never sited. */
@@ -809,17 +743,8 @@ export function Minimap({
         });
       }
     };
-    // A sheet arriving late repaints the roofs that fell back to plain tones.
-    const repaint = () => {
-      if (backing.current) backing.current.places = 0;
-      draw();
-    };
     redraw.current = draw;
     draw();
-    sheetLoaded.add(repaint);
-    return () => {
-      sheetLoaded.delete(repaint);
-    };
   }, [
     world,
     p.x,

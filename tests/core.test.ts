@@ -17,6 +17,8 @@ import { generateCharacter } from "../src/content/characters/generate";
 import { livelihoodById } from "../src/content/characters/livelihoods";
 import { snapshotSchema } from "../src/runtime/schema";
 import { debt } from "../src/content/plots/debt";
+import { PLOTS } from "../src/content/plots";
+import { accused } from "../src/content/plots/accused";
 import { goodName, sellerOf } from "../src/content/economy/products";
 import type { PlotContext } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
@@ -298,12 +300,21 @@ describe("shared deterministic foundation", () => {
     expect(plot.ended).toBe("seized");
     expect(e.state.lifeAim?.id).toBe(plot.aim?.id);
 
-    delete e.state.plot;
-    const next = startPlot(e.state, setting)!;
+    // Reopened by hand: with the credit cleared, a fresh draw may pick another plot.
+    const next = e.state.plot = { ...plot, ended: undefined, fired: ["opening"], owed: plot.total, seized: undefined };
     creditor.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     e.state.player.inventory.coin = next.owed!;
     expect(act(e, { type: "interact", target: creditor.id, action: "pay" }).status).toBe("completed");
     expect(next.ended).toBe("paid");
+
+    delete e.state.plot;
+    const all = PLOTS.splice(0, PLOTS.length, accused);
+    const charge = startPlot(e.state, setting)!;
+    PLOTS.splice(0, 1, ...all);
+    const witness = e.state.actors.find((a) => a.id === charge.cast.witness)!;
+    witness.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    act(e, { type: "interact", target: witness.id, action: "talk" });
+    expect(charge.ended).toBe("cleared");
   });
   it("binds the recorded debt to its real seller and product, never the eldest relative or first purchase", () => {
     const setting = { ...settingFor(places.find((p) => p.id === "city-multan")!, -620), economyRevision: 1 as const };
@@ -449,17 +460,6 @@ describe("shared deterministic foundation", () => {
     expect(act(e, { type: "give", target: child.id, item: "bread" }).status).toBe("completed");
     expect(child.hunger).toBeLessThan(hunger);
   });
-  it("replays identical commands, including uncertainty, to the same physical hash", () => {
-    const a = createSession("roman", "repeat"),
-      b = createSession("roman", "repeat");
-    for (let i = 0; i < 100; i++) {
-      const c: PlayerCommand = { type: "wait", seconds: 30 };
-      const req = {
-        actionId: `same-${i}`,
-        expectedRevision: a.state.revision,
-        command: c,
-      };
-      expect(a.act(req)).toEqual(b.act(req));
   it("passes stories about the player on, weaker each telling", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const [a, b] = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
@@ -490,6 +490,17 @@ describe("shared deterministic foundation", () => {
     expect(a.trust).toBe(trust + 4);
     expect(a.word?.[0]).toMatchObject({ tone: 4, hops: 0 });
   });
+  it("replays identical commands, including uncertainty, to the same physical hash", () => {
+    const a = createSession("roman", "repeat"),
+      b = createSession("roman", "repeat");
+    for (let i = 0; i < 100; i++) {
+      const c: PlayerCommand = { type: "wait", seconds: 30 };
+      const req = {
+        actionId: `same-${i}`,
+        expectedRevision: a.state.revision,
+        command: c,
+      };
+      expect(a.act(req)).toEqual(b.act(req));
     }
     expect(a.hash()).toBe(b.hash());
   });

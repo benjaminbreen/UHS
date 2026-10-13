@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Engine } from "../core/engine";
 import { App } from "../ui/App";
 import { Runtime } from "./session";
@@ -18,7 +18,15 @@ export function Game({ engine, active, onReady, edu }: {
     return runtime;
   });
   useEffect(() => { edu?.attach(runtime); }, [runtime, edu]);
-  useEffect(() => () => runtime.dispose(), [runtime]);
+  // Fast Refresh runs this cleanup and then the effect again on the same
+  // runtime; disposing at once would drop map travel and leave every border a wall.
+  const disposal = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    clearTimeout(disposal.current);
+    return () => {
+      disposal.current = setTimeout(() => runtime.dispose());
+    };
+  }, [runtime]);
   useLayoutEffect(() => {
     runtime.timeTravelLocked = !active;
     if (!active) return;

@@ -77,7 +77,19 @@ export const UNCOMMON_STAT: Partial<Record<`${keyof Stats}:${"high" | "low"}`, s
   "neuroticism:low": "Nothing seems to frighten you, and people have noticed.",
 };
 
-export const UNCOMMON_TRADE = "You are the only {role} in {here}.";
+/** The one person in a place who does this work, said a different way each life. */
+export const UNCOMMON_TRADE: readonly string[] = [
+  "You are the only {role} in {here}.",
+  "Nobody else in {here} knows your trade, and you have taken no apprentice.",
+  "When {here} needs your kind of work done, there is only you to send for.",
+  "You learned your work from a stranger, and nobody in {here} has learned it from you.",
+  "People in {here} come to you for what nobody else can do, and pay you in grudging respect.",
+  "If you fell ill tomorrow, there would be no {role} in {here} at all.",
+  "Children in {here} follow you about to watch you work, since there is nothing like it anywhere else.",
+  "There was another {role} in {here} once, but the old one died, and the work came to you.",
+  "Your trade sets you a little apart in {here}, and you have grown used to it.",
+  "People walk a long way to find you, since there is no other {role} for a day in any direction.",
+];
 
 /** A marked but not extraordinary temperament, after "and ". The extremes
  * are `UNCOMMON_STAT`'s. */

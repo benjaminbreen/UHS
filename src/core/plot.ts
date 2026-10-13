@@ -69,7 +69,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
     household: households.find((h) => h.members.includes(snapshot.player.id)),
   };
   const chosen = PLOTS
-    .map((t) => ({ t, score: t.weight(context) * (0.5 + random(seed, "plot", t.id)) }))
+    .map((t) => ({ t, score: t.weight(context) * (0.5 + random(seed, "plot", t.id, snapshot.player.id)) }))
     .filter((c) => c.score > 0)
     .sort((a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id))[0]?.t;
   const cast = chosen?.cast(context);
@@ -110,6 +110,7 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot): boolean {
     case "seized": return (plot.seized ?? 0) > 0;
     case "gone": return !snapshot.actors.some((a) => a.id === plot.cast[c.role] && !a.dead);
     case "fired": return plot.fired.includes(c.id);
+    case "talked": return plot.fired.includes(`talked:${c.role}`);
     case "not": return !holds(c.of, plot, snapshot);
     case "all": return c.of.every((x) => holds(x, plot, snapshot));
   }

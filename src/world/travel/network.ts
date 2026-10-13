@@ -258,9 +258,10 @@ function nameOf(tile: Tile, year: number, water: boolean) {
     };
   // Five-kilometre steps keep neighbouring squares apart.
   const km = Math.max(5, Math.round(kilometers(near, centre) / 5) * 5);
-  const where = `${km} km ${compass[bearingTo(near, centre)]} of ${locationName(near, year)}`;
+  const nearName = locationName(near, year);
+  const where = `${km} km ${compass[bearingTo(near, centre)]} of ${nearName}`;
   return {
-    name: base
+    name: base && base !== nearName
       ? `${base}, ${where}`
       : `${atlasSample(a.x, a.y).coast < TILE ? "Coast" : "Country"} ${where}`,
   };

@@ -142,7 +142,8 @@ function hardship(s: Snapshot, setting: WorldSetting | undefined): IntroSpan[] {
 
 function uncommon(s: Snapshot, setting: WorldSetting | undefined, here: string) {
   for (const u of unusualOf(s.manifest.seed, s.player, setting, s.actors)) {
-    const line = u.kind === "stat" ? UNCOMMON_STAT[`${u.stat}:${u.high ? "high" : "low"}`] : UNCOMMON_TRADE;
+    const line = u.kind === "stat" ? UNCOMMON_STAT[`${u.stat}:${u.high ? "high" : "low"}`]
+      : UNCOMMON_TRADE[Math.floor(random(s.manifest.seed, "intro", "trade", s.player.id) * UNCOMMON_TRADE.length)];
     if (line) return line.replace("{here}", here).replace("{role}", s.player.role.toLowerCase());
   }
 }

@@ -152,6 +152,11 @@ for (const d of [2, 1, 0, 3]) drawCharacter(ctx, appearance, d, "walk", 0);
   line or stop to verify unless asked.
 - Preserve the distinction between documented evidence, inference, hypothesis
   and fiction.
+- Player-facing text (cards, plot lines, dialogue, titles) is plain modern
+  English, spoken lines included. The history goes in the facts (who is owed,
+  which court, what the law allows), not in the voice: no "the day is going",
+  "I'll not be put off", "amerced", "Nobody need hear of it". Period terms are
+  fine where a modern word would be wrong, and get a gloss.
 - Changes affecting existing generated worlds, saves or replays need deliberate
   version handling. `src/content/legacy-packs.ts` preserves generator-v1 inputs.
 - Saves are not a priority during early development. Terrain graphics,

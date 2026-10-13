@@ -74,6 +74,7 @@ export const propDefs: Record<string, PropDef> = {
   ...detailProps,
   ...urbanProps,
   hideBag: {
+    shove: { as: "free", mass: 0.5 },
     solid: true,
     name: "Hide bag",
     family: "sack",
@@ -81,6 +82,7 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
   },
   pot: {
+    shove: { as: "free", mass: 0.5, rolls: true },
     rarity: 0.3,
     solid: true,
     name: "Earthen pot",
@@ -90,6 +92,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "clay",
   },
   jar: {
+    shove: { as: "free", mass: 0.5, rolls: true },
     rarity: 0.4,
     solid: true,
     name: "Storage jar",
@@ -99,6 +102,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "clay",
   },
   jug: {
+    shove: { as: "free", mass: 0.4, rolls: true },
     rarity: 0.4,
     solid: true,
     name: "Water jug",
@@ -109,6 +113,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { water: 2 },
   },
   amphora: {
+    shove: { as: "free", mass: 0.6, rolls: true },
     rarity: 0.6,
     solid: true,
     name: "Transport amphora",
@@ -127,6 +132,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { grain: 4 },
   },
   flask: {
+    shove: { as: "free", mass: 0.3 },
     rarity: 0.5,
     solid: true,
     name: "Stoppered flask",
@@ -137,6 +143,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { water: 1 },
   },
   bowl: {
+    shove: { as: "free", mass: 0.3 },
     rarity: 0.5,
     solid: true,
     name: "Open bowl",
@@ -146,6 +153,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "clay",
   },
   glazed: {
+    shove: { as: "free", mass: 0.5 },
     solid: true,
     name: "Glazed jar",
     family: "glazed-jar",
@@ -154,6 +162,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "glaze",
   },
   basket: {
+    shove: { as: "free", mass: 0.4 },
     rarity: 0.6,
     solid: true,
     name: "Woven basket",
@@ -164,6 +173,7 @@ export const propDefs: Record<string, PropDef> = {
     tips: true,
   },
   liddedBasket: {
+    shove: { as: "free", mass: 0.5 },
     solid: true,
     name: "Lidded basket",
     family: "lidded-basket",
@@ -173,6 +183,7 @@ export const propDefs: Record<string, PropDef> = {
     tips: true,
   },
   sack: {
+    shove: { as: "free", mass: 0.6 },
     solid: true,
     name: "Cloth sack",
     family: "sack",
@@ -234,6 +245,7 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
   },
   grainSacks: {
+    shove: { as: "free", mass: 1.4 },
     solid: true,
     name: "Grain sacks",
     family: "grain-sacks",
@@ -241,6 +253,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { grain: 2 },
   },
   flowerTub: {
+    shove: { as: "free", mass: 1 },
     rarity: 0.8,
     solid: true,
     name: "Planted tub",
@@ -256,6 +269,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   cookingPot: {
+    shove: { as: "free", mass: 0.7 },
     solid: true,
     name: "Cooking pot",
     family: "cooking-pot",
@@ -319,6 +333,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   bucket: {
+    shove: { as: "free", mass: 0.5, rolls: true },
     rarity: 0.6,
     solid: true,
     name: "Wooden pail",
@@ -362,6 +377,7 @@ export const propDefs: Record<string, PropDef> = {
     drink: true,
   },
   sickle: {
+    shove: { as: "free", mass: 0.3 },
     solid: true,
     name: "Sickle",
     family: "sickle",
@@ -371,6 +387,7 @@ export const propDefs: Record<string, PropDef> = {
     tool: "scythe",
   },
   axe: {
+    shove: { as: "free", mass: 0.4 },
     solid: true,
     name: "Hafted axe",
     family: "hoe",
@@ -379,6 +396,7 @@ export const propDefs: Record<string, PropDef> = {
     tool: "axe",
   },
   pick: {
+    shove: { as: "free", mass: 0.4 },
     solid: true,
     name: "Pickaxe",
     family: "pick",
@@ -401,6 +419,7 @@ export const propDefs: Record<string, PropDef> = {
     drink: true,
   },
   spade: {
+    shove: { as: "free", mass: 0.4 },
     solid: true,
     name: "Spade",
     family: "spade",
@@ -409,6 +428,7 @@ export const propDefs: Record<string, PropDef> = {
     tool: "spade",
   },
   shovel: {
+    shove: { as: "free", mass: 0.4 },
     solid: true,
     name: "Long shovel",
     family: "shovel",
@@ -420,6 +440,7 @@ export const propDefs: Record<string, PropDef> = {
     where: "worksite",
   },
   scythe: {
+    shove: { as: "free", mass: 0.4 },
     solid: true,
     name: "Scythe",
     family: "scythe",
@@ -604,6 +625,7 @@ export const propDefs: Record<string, PropDef> = {
     where: "backyard",
   },
   rake: {
+    shove: { as: "free", mass: 0.3 },
     solid: true,
     name: "Rake",
     family: "rake",
@@ -613,6 +635,7 @@ export const propDefs: Record<string, PropDef> = {
     where: "backyard",
   },
   pitchfork: {
+    shove: { as: "free", mass: 0.3 },
     solid: true,
     name: "Pitchfork",
     family: "pitchfork",
@@ -686,6 +709,7 @@ export const propDefs: Record<string, PropDef> = {
     where: "worksite",
   },
   calabash: {
+    shove: { as: "free", mass: 0.3, rolls: true },
     rarity: 0.5,
     solid: true,
     name: "Calabash",
@@ -846,6 +870,7 @@ export const propDefs: Record<string, PropDef> = {
     variants: 2,
   },
   saddleStand: {
+    shove: { as: "free", mass: 0.8 },
     solid: true,
     where: "backyard",
     name: "Saddle on a stand",
@@ -868,6 +893,7 @@ export const propDefs: Record<string, PropDef> = {
     visualClearance: [2, 2, 3, 1],
   },
   milkChurn: {
+    shove: { as: "free", mass: 1.2, rolls: true },
     solid: true,
     name: "Milk churn",
     family: "milk-churn",
@@ -1054,6 +1080,7 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
   },
   stencilCrate: {
+    shove: { as: "free", mass: 0.8 },
     solid: true,
     name: "Shipping case",
     family: "stencil-crate",
@@ -1061,12 +1088,14 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   coalSacks: {
+    shove: { as: "free", mass: 1.4 },
     solid: true,
     name: "Coal sacks",
     family: "coal-sacks",
     container: true,
   },
   newspapers: {
+    shove: { as: "free", mass: 0.4 },
     rarity: 0.5,
     solid: true,
     name: "Bundled newspapers",
@@ -1074,12 +1103,14 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "paper",
   },
   bicycle: {
+    shove: { as: "free", mass: 0.6 },
     rarity: 0.7,
     solid: true,
     name: "Bicycle",
     family: "bicycle",
   },
   jerrycans: {
+    shove: { as: "free", mass: 0.7 },
     rarity: 0.6,
     solid: true,
     name: "Jerrycans",
@@ -1088,6 +1119,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { water: 4 },
   },
   pallets: {
+    shove: { as: "free", mass: 0.8 },
     where: "worksite",
     solid: true,
     name: "Stacked pallets",
@@ -1100,6 +1132,7 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
   },
   hurdle: {
+    shove: { as: "free", mass: 0.6 },
     solid: true,
     name: "Wattle hurdle",
     family: "hurdle",
@@ -1116,6 +1149,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "washing-line",
   },
   plastic: {
+    shove: { as: "free", mass: 0.3 },
     rarity: 0.35,
     solid: true,
     name: "Plastic bucket",
@@ -1125,6 +1159,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "plastic",
   },
   carton: {
+    shove: { as: "free", mass: 0.3 },
     solid: true,
     name: "Cardboard carton",
     family: "cardboard-box",

@@ -16,6 +16,30 @@ SHEETS = ['buildings', 'regional-buildings', 'camp-buildings', 'modern-buildings
 SIZE = 1024
 
 
+def write_tones():
+    tones = {}
+    models = json.loads((ROOT / 'src/content/graphics/models.generated.json').read_text())
+    for name in ['regional-buildings', 'camp-buildings', 'modern-buildings', 'street-buildings', 'buildings']:
+        with Image.open(PACKS / f'{name}.png') as image:
+            sheet = image.convert('RGBA')
+        frames = json.loads((PACKS / f'{name}.json').read_text())['frames']
+        rects = {}
+        for key, frame in frames.items():
+            if key not in models: continue
+            r = frame['frame']
+            rect = (r['x'], r['y'], r['w'], r['h'])
+            if rect not in rects:
+                x, y, w, h = rect
+                colors = {}
+                for part, start, end, fallback in [('roof', .08, .4, '#4a5560'), ('wall', .55, .85, '#d8cfb0')]:
+                    y0, y1 = int(h * start + .5), int(h * end + .5)
+                    pixels = [p for p in sheet.crop((x, y + y0, x + w, y + max(y0 + 1, y1))).getdata() if p[3] >= 200]
+                    colors[part] = '#' + ''.join(f'{int(sum(p[c] for p in pixels) / len(pixels) + .5):02x}' for c in range(3)) if pixels else fallback
+                rects[rect] = colors
+            tones.setdefault(key, rects[rect])
+    (ROOT / 'src/render/generated/minimap-tones.json').write_text(json.dumps(tones, sort_keys=True, separators=(',', ':')))
+
+
 def page(name):
     sheet = Image.open(PACKS / f'{name}.png')
     frames = json.loads((PACKS / f'{name}.json').read_text())['frames']
@@ -49,4 +73,6 @@ def page(name):
 
 
 if __name__ == '__main__':
-    for name in sys.argv[1:] or SHEETS: print(name, page(name), 'pages')
+    if sys.argv[1:] != ['--tones']:
+        for name in sys.argv[1:] or SHEETS: print(name, page(name), 'pages')
+    write_tones()
