@@ -1312,6 +1312,17 @@ export function createSettlementWorld(
         0.3
     )
       selected = undefined;
+    // Ridges and brows are windswept and drained; hollows hold water and
+    // shelter. Height against the ground five cells round, in tiers, scales
+    // how much of the vegetation below survives, so relief reads in it.
+    let shelter = 1;
+    if (selected && selected !== "rock" && selected !== "reeds") {
+      let around = 0;
+      for (const [dx, dy] of [[5, 0], [-5, 0], [0, 5], [0, -5], [4, 4], [-4, 4], [4, -4], [-4, -4]])
+        around += land.sample(x + dx, y + dy).elevation;
+      const rise = (f.elevation - around / 8) / 14;
+      shelter = Math.max(0.25, Math.min(2, 1 - rise * 0.8));
+    }
     // Thin all low scenery, including open ground outside woodland patches.
     if (
       (pack.setting?.vegetationRevision ?? 0) >= 3 &&
@@ -1328,7 +1339,8 @@ export function createSettlementWorld(
           ? 0.4
           : selected.includes("heath") || selected === "flowers"
             ? 0.1
-            : 0.15)
+            : 0.15) *
+          shelter
     )
       selected = undefined;
     if (
@@ -1343,7 +1355,8 @@ export function createSettlementWorld(
         x + land.origin.x,
         y + land.origin.y,
       ) >=
-        (h?.site ? 0.75 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.34 : 0.8)
+        (h?.site ? 0.75 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.34 : 0.8) *
+          shelter
     )
       selected = undefined;
     if (
