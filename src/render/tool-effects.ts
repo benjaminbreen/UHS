@@ -1,11 +1,12 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
-import { projectileImpact, projectileRelease, scrape, strike, work } from "../audio/sfx";
+import { projectileImpact, projectileRelease, scrape, strike, work, type Sound } from "../audio/sfx";
 import type { Hit, HitClass, ToolClass } from "../core/reactions";
 import type { CreatureHit } from "../core/combat";
 import type { Point } from "../core/types";
 import { spritePalette } from "./sprite-palette";
 import { LootEffects } from "./loot-effects";
+import { flushBirds } from "./ambient-life";
 import type { CharacterPose } from "./characters/poses";
 
 /** The freeze on a blow that lands on scenery. */
@@ -106,6 +107,14 @@ type Shake = {
   ox: number;
   wind: boolean;
 };
+/** A plant pushed by a passing body: a damped spring on the canopy's lean. */
+type Spring = {
+  image: Phaser.GameObjects.Image;
+  ox: number;
+  wind: boolean;
+  x: number;
+  v: number;
+};
 const LEAF = [0x8fb45c, 0xa8c46c, 0x6f8f46, 0xc8d98a];
 const CHIP = [0xdcc292, 0xb08a5c, 0xf0e0b8];
 const SOIL = [0x8d6e47, 0xb08a5c, 0x61472c];
@@ -154,6 +163,12 @@ export function projectileArrowTexture(scene: Phaser.Scene) {
  * layer, so a rebuild in the same frame does not sweep them away mid-fall. */
 export class ToolEffects {
   private shakes: Shake[] = [];
+  private springs = new Map<Phaser.GameObjects.Image, Spring>();
+  private springTime = 0;
+  /** Trees that have already given up their birds this visit. */
+  private flushed = new WeakSet<Phaser.GameObjects.Image>();
+  private chain = 0;
+  private chainAt = -Infinity;
   /** Cells whose scenery is held out of sight while a tree falls over them. */
   private hidden: { x: number; y: number; until: number }[] = [];
   private live = new Set<Phaser.GameObjects.GameObject>();
@@ -233,7 +248,9 @@ export class ToolEffects {
       facing;
     if (loudest)
       void gameAudio()?.sound(
-        strike(effect.tool, loudest.hit, loudest.kind, loudest.damaged),
+        loudest.damaged
+          ? this.rise(strike(effect.tool, loudest.hit, loudest.kind, true))
+          : strike(effect.tool, loudest.hit, loudest.kind, loudest.damaged),
         "strike",
       );
     const landed = effect.hits.filter(
@@ -593,7 +610,7 @@ export class ToolEffects {
     void gameAudio()?.sound(
       effect.kind === "miss"
         ? strike("haft", "air", "whoosh")
-        : work(effect.kind),
+        : this.rise(work(effect.kind)),
       "work",
     );
     const target = this.point(effect.at);
@@ -832,13 +849,53 @@ export class ToolEffects {
   /** The blow rocks whatever is standing there. */
   private shake(cell: { x: number; y: number }) {
     const now = this.scene.time.now;
-    for (const image of this.view.plantAt(cell.x, cell.y))
+    for (const image of this.view.plantAt(cell.x, cell.y)) {
+      this.startle(image, 0);
       this.shakes.push({
         image,
         until: now + 260,
         ox: image.x,
         wind: !!image.getData("wind"),
       });
+    }
+  }
+  /** Blows that land in quick succession climb in pitch, up to a fifth. */
+  private rise(sound: Sound): Sound {
+    const now = this.scene.time.now;
+    this.chain = now - this.chainAt < 900 ? Math.min(7, this.chain + 1) : 0;
+    this.chainAt = now;
+    const k = 2 ** (this.chain / 12);
+    return sound.map((l) => ({ ...l, freq: l.freq * k, to: l.to && l.to * k }));
+  }
+  private startle(image: Phaser.GameObjects.Image, dx: number) {
+    if (!image.getData("wind") || image.displayHeight < 28 || this.flushed.has(image)) return;
+    this.flushed.add(image);
+    if (Math.random() < 0.45)
+      flushBirds(this.scene, image.x, image.y - image.displayHeight * 0.7, dx || (Math.random() < 0.5 ? -1 : 1));
+  }
+  /** Walked or run into: every plant in the cell gets a shove the way the
+   * body was going, heavier plants less, and springs back past upright. */
+  brush(cell: { x: number; y: number }, dx: number, dy: number, force: number) {
+    const images = this.view.plantAt(cell.x, cell.y);
+    for (const image of images) {
+      let s = this.springs.get(image);
+      if (!s) {
+        s = { image, ox: image.x, wind: !!image.getData("wind"), x: 0, v: 0 };
+        this.springs.set(image, s);
+      }
+      // Pushed head-on from above or below, a plant still falls to one side.
+      const side = dx || (((cell.x + cell.y) & 1) * 2 - 1) * Math.abs(dy) * 0.6;
+      if (force >= 1) this.startle(image, dx);
+      s.v = Math.max(-60, Math.min(60, s.v + (side * force * 24) / Math.max(1, image.displayHeight / 20)));
+    }
+    if (images.length && force >= 0.8)
+      this.burst(
+        { x: images[0].x, y: images[0].y - Math.min(18, images[0].displayHeight * 0.6) },
+        LEAF,
+        Math.round(force * 3),
+        0.5 + force * 0.4,
+      );
+    return images.length > 0;
   }
   /** The tree goes over as a copy of itself: the scenery behind it has
    * already been rebuilt into a felled cell. */
@@ -892,6 +949,26 @@ export class ToolEffects {
         for (const image of this.view.plantAt(h.x, h.y)) image.setVisible(done);
         return !done;
       });
+    const dt = Math.min(0.05, (time - this.springTime) / 1000);
+    this.springTime = time;
+    for (const s of this.springs.values()) {
+      if (!s.image.active) {
+        this.springs.delete(s.image);
+        continue;
+      }
+      // Stiff enough to rebound twice, damped enough to settle in under a second.
+      s.v += (-170 * s.x - 7 * s.v) * dt;
+      s.x += s.v * dt;
+      const base = s.wind ? s.image.x : s.ox;
+      if (Math.abs(s.x) < 0.05 && Math.abs(s.v) < 0.5) {
+        if (!s.wind) s.image.setX(s.ox);
+        s.image.setRotation(0);
+        this.springs.delete(s.image);
+        continue;
+      }
+      s.image.setX(base + Math.round(s.x * 0.3));
+      s.image.setRotation(s.x / Math.max(20, s.image.displayHeight * 1.4));
+    }
     if (!this.shakes.length) return;
     this.shakes = this.shakes.filter((s) => {
       if (!s.image.active) return false;
@@ -917,5 +994,6 @@ export class ToolEffects {
     this.loot?.clear();
     this.scene.tweens.timeScale = 1;
     this.shakes = [];
+    this.springs.clear();
   }
 }

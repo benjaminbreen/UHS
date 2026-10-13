@@ -141,6 +141,32 @@ export class PlayerFeel {
     if (puff) this.puff(im.x, im.y, puff, 2, 0.5);
   }
 
+  /** Blades either side of the foot bow outward and whip back upright. */
+  part(x: number, y: number, depth: number) {
+    const greens = SURFACES.grass!.puff!;
+    for (let i = 0; i < 4; i++) {
+      const side = i % 2 ? 1 : -1;
+      const blade = this.scene.add
+        .rectangle(x + side * (3 + (i >> 1) * 2), y + (i >> 1), 1, 4 - (i >> 1), greens[i % 2])
+        .setOrigin(0.5, 1)
+        .setDepth(depth + 1)
+        .setRotation(side * 0.9);
+      this.scene.tweens.add({
+        targets: blade,
+        rotation: 0,
+        duration: 420,
+        ease: "Elastic.easeOut",
+      });
+      this.scene.tweens.add({
+        targets: blade,
+        alpha: 0,
+        delay: 300,
+        duration: 220,
+        onComplete: () => blade.destroy(),
+      });
+    }
+  }
+
   puff(x: number, y: number, palette: number[], count: number, spread = 1) {
     for (let i = 0; i < count; i++) {
       const size = i % 3 ? 2 : 3;

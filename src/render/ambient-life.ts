@@ -304,3 +304,34 @@ export class AmbientLife {
     };
   }
 }
+
+/** A few birds burst out of a disturbed canopy and make off away from the
+ * blow, flapping, climbing and thinning out. */
+export function flushBirds(scene: Phaser.Scene, x: number, y: number, dx: number) {
+  const key = ensureAtlas(scene, "bird");
+  const count = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    const row = i % specs.bird.colors.length;
+    const bird = scene.add
+      .image(x + (Math.random() - 0.5) * 14, y + (Math.random() - 0.5) * 8, key, `${row}-0`)
+      .setDepth(specs.bird.depth);
+    const flap = scene.time.addEvent({
+      delay: 70 + Math.random() * 40,
+      loop: true,
+      callback: () => bird.setFrame(`${row}-${bird.frame.name.endsWith("0") ? 1 : 0}`),
+    });
+    scene.tweens.add({
+      targets: bird,
+      x: bird.x + dx * (70 + Math.random() * 60) + (Math.random() - 0.5) * 40,
+      y: bird.y - 50 - Math.random() * 40,
+      alpha: 0,
+      delay: i * 60,
+      duration: 1300 + Math.random() * 500,
+      ease: "Quad.easeIn",
+      onComplete: () => {
+        flap.remove();
+        bird.destroy();
+      },
+    });
+  }
+}

@@ -5846,7 +5846,13 @@ export class WorldScene extends Phaser.Scene {
               this.runtime.engine.state.player.pos.y === beforeMove.y &&
               this.runtime.engine.state.objects.some(o => o.id === shoulderTarget && (o.lean || o.tipped));
             const collided = moved?.status === "completed" && this.runtime.engine.lastImpact === "collision";
+            const p0 = this.runtime.engine.state.player.pos;
             if (moved?.status === "rejected" || shouldered || collided) {
+              if (
+                this.pushingAt === undefined &&
+                this.toolEffects?.brush({ x: p0.x + dx, y: p0.y + dy }, dx, dy, this.shiftHeld ? 1.6 : 1)
+              )
+                gameAudio()?.sound(scramble("brush", true), "bump");
               this.runtime.face(dx, dy);
               this.blockedFacing = facingFromStep(
                 dx,
@@ -5862,6 +5868,7 @@ export class WorldScene extends Phaser.Scene {
               // A walked drop can land as badly as a jumped one.
               this.nextInput += this.afterHold();
               const at = this.runtime.engine.state.player.pos;
+              this.toolEffects?.brush(at, dx, dy, this.shiftHeld ? 0.8 : 0.45);
               if (
                 at.space === "outside" &&
                 puddleUnder(this, at.x * 16 + 8, at.y * 16 + 12, 4) === "ice" &&
@@ -6293,6 +6300,8 @@ export class WorldScene extends Phaser.Scene {
             const kind = fungus && this.runtime.engine.plantSpecies("nature-understory-fungi", cell.x, cell.y);
             if (fungus && kind) this.stirFungus(im.x, im.y, fungus, kind.id);
           }
+          if (heel && id === "player" && cell && !arcLift && water <= 0.025 && this.underfoot(cell, puddle) === "grass")
+            this.feel.part(im.x, im.y, im.depth);
           if (afoot && id === "player" && cell)
             this.feel.step(im, this.underfoot(cell, puddle));
           else if (afoot) this.kickDust(im.x, im.y, 2, 0.5);
