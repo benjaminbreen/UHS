@@ -46,6 +46,7 @@ import { asDoing } from "../core/agenda";
 import type { TaskSource } from "./task-view";
 import { dispositionOf, standingOf } from "../core/persona";
 import { statsOf, statKeys } from "../core/stats";
+import { reputation } from "../core/word";
 import { abilitiesOf } from "../content/characters/abilities";
 import { livelihoodById } from "../content/characters/livelihoods";
 import {
@@ -951,6 +952,23 @@ export function CharacterPanel({
                 <dd>{standingOf(seed, actor, household)}</dd>
               </div>
             </dl>
+            {isPlayer && (
+              <div className="panel-card">
+                <h3>People say</h3>
+                {reputation(state).length ? (
+                  <ul className="reputation">
+                    {reputation(state).slice(0, 5).map((r) => (
+                      <li key={r.what} data-tone={r.tone < 0 ? "ill" : "good"}>
+                        You {r.what.replace(/\b[a-z][\w-]*\d[\w-]*/gi, (id) => runtime.engine.state.objects.find((o) => o.id === id)?.name.toLowerCase() ?? "something")}
+                        <small> · {r.people} {r.people === 1 ? "person has" : "people have"} heard</small>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="character-about">Nobody here is talking about you yet.</p>
+                )}
+              </div>
+            )}
           </div>
           <aside className="character-side">
             <h3>Household</h3>

@@ -53,6 +53,7 @@ import {
   MapPin,
   Sun,
   Moon,
+  Handshake,
 } from "lucide-react";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
@@ -1800,6 +1801,20 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           </button>
                         </li>
                       )}
+                      {(runtime.engine.state.asks ?? []).map((ask) => {
+                        const by = runtime.engine.state.actors.find((a) => a.id === ask.by);
+                        return (
+                          <li key={ask.id}>
+                            <button onClick={() => by && runtime.select(by.id)}>
+                              <span className="today-icon"><Handshake size={15} /></span>
+                              <span className="today-text">
+                                <small>Favour{ask.accepted ? " · promised" : ""} · by {timeLabel(ask.until)}</small>
+                                {by?.name ?? "Someone"} wants {ask.what}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
                     </ul>
                     <h3 className="today-head">Lately</h3>
                     <ol className="today-log">

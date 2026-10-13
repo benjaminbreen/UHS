@@ -67,6 +67,7 @@ import {
   type WorldObject,
 } from "./types";
 import { canonical, random, stateHash } from "./random";
+import { askLines, hear, retold } from "./word";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
@@ -228,7 +229,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Place, Point, WalkOff } from "./types";
+import type { Ask, Place, Point, WalkOff } from "./types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -1292,6 +1293,7 @@ export class Engine {
       seen ||= theirs;
       this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
       w.memories.push(o.memory(theirs));
+      hear(w, { what: retold(o.memory(false)), tone: -o.cost(theirs), at: this.state.clock, hops: 0 });
       this.event(o.text(w, theirs), "social");
     }
     if (seen || !o.owner || !o.lost) return;
@@ -2593,6 +2595,7 @@ export class Engine {
       const step = findPath(a.pos, p.pos, (x, y) => this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id), 400)[0];
       if (step && !(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
       return;
+      hear(a, { what: retold(memory), tone: -10, at: this.state.clock, hops: 0 });
     }
     i.done = true;
     this.regard(a, -2, "anger");
@@ -2628,6 +2631,7 @@ export class Engine {
         // A blow every twelve seconds, and none just after being driven back.
         if (this.state.clock % 12 !== 0 || this.state.clock - (t.staggered ?? -99) < 12) continue;
         this.struckBy(a);
+    hear(a, { what: `walked into ${place.name.toLowerCase()} uninvited`, tone: -3, at: clock, hops: 0 });
         continue;
       }
       if (t.fight) {
@@ -4267,7 +4271,7 @@ export class Engine {
   /** Someone the plot sent to the player, and what they came to say. Talking
    * to them in time opens on it. */
   approacher?: { id: string; situation: string; until: number };
-  private approaching?: { id: string; line: string; until: number };
+  private approaching?: { id: string; line: string; until: number; title?: string };
   private working = false;
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
@@ -6664,6 +6668,8 @@ export class Engine {
         this.state.objects = this.state.objects.filter((o) => o !== loose);
         this.advance(2);
         this.event(`You pick up ${loose.name.toLowerCase()}.`);
+      const ask = this.state.asks?.find((x) => x.by === a.id && (x.kind === "food" ? !!def.edible : x.item === c.item));
+      if (ask) this.grant(ask, a);
         return;
       }
     }
@@ -6821,6 +6827,18 @@ export class Engine {
             );
           if (a.trust >= 0 && advanceLifeAim(this.state, { type: "talk", actor: a.id }))
             this.event("You have completed a step toward your life aim.");
+          const message = this.state.asks?.find((x) => x.kind === "message" && x.to === a.id);
+          const sender = message && this.actorsById?.get(message.by);
+          if (message && sender) {
+            a.memories.push(`The player brought word from ${sender.name}`);
+            this.grant(message, sender);
+          }
+          const plot = this.state.plot;
+          const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === a.id);
+          if (role && !plot.fired.includes(`talked:${role}`)) {
+            plot.fired.push(`talked:${role}`);
+            this.runPlot();
+          }
         }
         break;
       case "pay":
@@ -7404,7 +7422,7 @@ export class Engine {
       a.direction = this.directionTo(a.pos, p.pos);
       delete a.facing;
       this.cue(a.id, "beckon", p.pos);
-      this.cards.push({ kind: "speech", title: this.state.plot?.title ?? "", text: ap.line, speaker: a.id });
+      this.cards.push({ kind: "speech", title: ap.title ?? this.state.plot?.title ?? "", text: ap.line, speaker: a.id });
       this.approacher = {
         id: a.id,
         situation: `You have just walked up to the player and said: “${ap.line}” You want an answer.`,
@@ -7469,6 +7487,96 @@ export class Engine {
       label = "Walking it off";
     }
     if (!to) {
+  /** Stories about the player move about an hour per hop of company, and a
+   * household pools what it heard each evening. Each retelling is half as
+   * strong, and so is what it does to the listener's opinion. */
+  private spreadWord(clock: number) {
+    const s = this.state, seed = s.manifest.seed;
+    for (const a of s.actors) {
+      if (a.kind !== "human" || a.dead || !a.word?.length || (a.age ?? 30) < 8 || this.world.dormant?.(a.id)) continue;
+      const chance = (0.5 + statsOf(seed, a).extraversion / 100) / 6;
+      for (const b of s.actors)
+        if (b !== a && b.kind === "human" && !b.dead && b.pos.space === a.pos.space && distance(a.pos, b.pos) <= 3 && random(seed, "word", a.id, b.id, clock) < chance)
+          this.pass(a, b, clock);
+    }
+    if (clock % 86400 !== 20 * 3600) return;
+    for (const h of s.households ?? []) {
+      const home = h.members.map((id) => this.actorsById?.get(id)).filter((a): a is Actor => !!a && !a.dead);
+      for (const a of home) for (const b of home) if (a !== b) this.pass(a, b, clock, true);
+    }
+  }
+  private pass(a: Actor, b: Actor, clock: number, all = false) {
+    const told = all ? a.word ?? [] : [a.word![Math.floor(random(this.state.manifest.seed, "tell", a.id, clock) * a.word!.length)]];
+    for (const w of [...told]) {
+      const tone = w.tone / 2;
+      if (Math.abs(tone) < 0.5 || w.from === b.id) continue;
+      if (hear(b, { what: w.what, tone, at: clock, hops: w.hops + 1, from: a.id })) b.trust += tone / 2;
+    }
+  }
+  /** A favour this person could fairly ask of the player, if any. */
+  askFor(a: Actor): Omit<Ask, "id" | "at" | "until"> | undefined {
+    const s = this.state;
+    if (a.kind !== "human" || a.dead || (a.age ?? 30) < 12 || a.householdId === s.player.householdId) return;
+    if (a.hunger > 60) return { by: a.id, kind: "food", what: "something to eat" };
+    const good = s.economy?.short[a.householdId ?? ""]?.find((g) => this.item(g));
+    if (good) return { by: a.id, kind: "fetch", item: good, what: this.item(good)!.name.toLowerCase() };
+    const kin = (a.relations ?? [])
+      .map((r) => this.actorsById?.get(r.other))
+      .find((o) => o && !o.dead && o.kind === "human" && o.householdId !== a.householdId);
+    if (kin && random(s.manifest.seed, "message", a.id, Math.floor(s.clock / 86400)) < 0.4)
+      return { by: a.id, kind: "message", to: kin.id, what: `word to ${kin.name}` };
+  }
+  /** What the player said to a favour, as the conversation settled it. */
+  answerAsk(a: Actor, how: "made" | "accepted" | "declined") {
+    const asks = (this.state.asks ??= []), clock = this.state.clock;
+    let ask = asks.find((x) => x.by === a.id);
+    if (!ask && how !== "declined") {
+      const want = this.askFor(a);
+      if (!want || asks.length >= 3) return;
+      ask = { ...want, id: `ask-${a.id}-${clock}`, at: clock, until: clock + 86400 };
+      asks.push(ask);
+    }
+    if (!ask) return;
+    if (how === "accepted") ask.accepted = true;
+    if (how === "declined") {
+      asks.splice(asks.indexOf(ask), 1);
+      this.regard(a, -1, "refuse");
+    }
+  }
+  private grant(ask: Ask, a: Actor) {
+    this.state.asks!.splice(this.state.asks!.indexOf(ask), 1);
+    this.regard(a, 3, "warm");
+    a.memories.push(`The player brought ${ask.what} when we needed it`);
+    hear(a, { what: `brought ${a.name} ${ask.what} when asked`, tone: 4, at: this.state.clock, hops: 0 });
+    this.event(`${a.name} is grateful.`, "social");
+  }
+  /** Promises run out, and now and then someone nearby who likes the player
+   * comes over to ask a favour. */
+  private askStep(clock: number) {
+    const s = this.state, p = s.player;
+    for (const ask of [...(s.asks ?? [])]) {
+      if (clock <= ask.until) continue;
+      s.asks!.splice(s.asks!.indexOf(ask), 1);
+      const a = this.actorsById?.get(ask.by);
+      if (!ask.accepted || !a) continue;
+      this.regard(a, -2, "anger");
+      a.memories.push(`The player said they would bring ${ask.what} and never came`);
+      hear(a, { what: `promised ${a.name} ${ask.what} and never came`, tone: -3, at: clock, hops: 0 });
+    }
+    const hour = Math.floor(clock / 3600) % 24;
+    const morning = Math.floor(clock / 86400) * 86400;
+    const today = (s.asks ?? []).filter((x) => x.at >= morning).length;
+    if (this.approaching || this.conversing || p.dead || hour < 8 || hour >= 19 || today >= 2 || (s.asks?.length ?? 0) >= 3) return;
+    if (clock - (this.lastAsk ?? -Infinity) < 3 * 3600 || random(s.manifest.seed, "ask", clock) > 0.25) return;
+    const a = s.actors.find((x) => x.trust >= 1 && x.pos.space === p.pos.space && distance(x.pos, p.pos) < 30 && !this.world.dormant?.(x.id) && !x.terror && !s.asks?.some((k) => k.by === x.id) && this.askFor(x));
+    if (!a) return;
+    this.answerAsk(a, "made");
+    const ask = s.asks?.find((x) => x.by === a.id);
+    if (!ask) return;
+    this.lastAsk = clock;
+    this.approaching = { id: a.id, line: askLines[ask.kind](ask.kind === "message" ? this.actorsById?.get(ask.to!)?.name ?? "my kin" : ask.what), until: clock + 1800, title: a.name };
+  }
+  private lastAsk?: number;
       to = copy(a.home);
       label = "Gone home in a temper";
     }
@@ -7489,6 +7597,7 @@ export class Engine {
     const at = this.state.player.pos;
     return at.space === p.space && at.x === p.x && at.y === p.y;
   }
+        this.pass(a, friend, clock, true);
   /** Returns true once an actor has been stuck behind the player for a second. */
   private blockedByPlayer(a: Actor, step: { x: number; y: number }) {
     const p = this.state.player;
@@ -8021,7 +8130,11 @@ export class Engine {
       if (!this.state.introduced) this.introduce();
       if (next % 3600 === 0) this.healthStep(next);
       if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
-      if (next % 600 === 0) this.kinStep(next);
+      if (next % 600 === 0) {
+        this.kinStep(next);
+        this.spreadWord(next);
+        this.askStep(next);
+      }
       if (this.approaching) this.approach(next);
       this.burnStep();
       this.brawl();

@@ -4898,6 +4898,16 @@ button:disabled {
   font-size: 14px;
   line-height: 1.55;
 }
+.reputation {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #cfd4e4;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.reputation li[data-tone="ill"]::marker { color: #e07a6a; }
+.reputation li[data-tone="good"]::marker { color: #9fd38a; }
+.reputation small { color: #8a90a6; }
 .portrait-frame {
   --corner: 16px;
   padding: 5px;

@@ -166,6 +166,7 @@ const intent = z.discriminatedUnion("type", [
       said: z.string().max(120),
       delta: z.number().min(-2).max(2),
       leave: z.enum(["home", "friend", "authority", "away"]).optional(),
+      ask: z.enum(["made", "accepted", "declined"]).optional(),
     })
     .strict(),
   z
@@ -346,6 +347,7 @@ const actor = z.object({
   trust: z.number(),
   wronged: z.number().optional(),
   shuns: z.number().optional(),
+  word: z.array(z.object({ what: z.string().max(200), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional() }).strict()).max(6).optional(),
   owner: z.string().optional(),
   follows: z.string().optional(),
   consentUntil: z.number().optional(),
@@ -984,6 +986,22 @@ export const snapshotSchema = z.object({
         mutual: z.boolean().optional(),
         secret: z.boolean().optional(),
         opposed: z.boolean().optional(),
+      }).strict(),
+    )
+    .max(20)
+    .optional(),
+  asks: z
+    .array(
+      z.object({
+        id: z.string().max(100),
+        by: z.string().max(100),
+        kind: z.enum(["fetch", "food", "message"]),
+        item: z.string().max(100).optional(),
+        to: z.string().max(100).optional(),
+        what: z.string().max(120),
+        at: z.number(),
+        until: z.number(),
+        accepted: z.boolean().optional(),
       }).strict(),
     )
     .max(20)

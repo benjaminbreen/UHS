@@ -234,6 +234,8 @@ export type Actor = {
   wronged?: number;
   /** Until when they refuse to speak to the player at all. */
   shuns?: number;
+  /** Stories about the player this person would pass on; hops 0 is what they saw. */
+  word?: Word[];
   owner?: string;
   follows?: string;
   consentUntil?: number;
@@ -557,6 +559,9 @@ export type CommandResult = {
 export type Receipt = { payload: string; result: CommandResult };
 /** Something taken from a household that nobody of theirs saw go. They find
  * out when one of them next comes by. */
+export type Word = { what: string; tone: number; at: number; hops: number; from?: string };
+/** A favour someone has asked of the player. `what` reads after "wants". */
+export type Ask = { id: string; by: string; kind: "fetch" | "food" | "message"; item?: string; to?: string; what: string; at: number; until: number; accepted?: boolean };
 export type Loss = {
   owner: string;
   pos: Position;
@@ -568,6 +573,7 @@ export type Loss = {
 export type Snapshot = {
   households?: Household[];
   losses?: Loss[];
+  asks?: Ask[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */
@@ -680,7 +686,7 @@ export type Intent =
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
   | { type: "fact"; text: string }
-  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff }
+  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff; ask?: "made" | "accepted" | "declined" }
   | {
       type: "receive";
       from: string;

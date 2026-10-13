@@ -46,6 +46,7 @@ const replySchema = z.object({
   language: z.string().min(1).max(120).optional(),
   original: z.string().min(1).max(700).optional(),
   leave: z.enum(["home", "friend", "authority", "away"]).optional(),
+  ask: z.enum(["made", "accepted", "declined"]).optional(),
   receive: z.object({
     name: z.string().min(1).max(40),
     description: z.string().max(160),
@@ -83,7 +84,7 @@ Wary guard: "Keep walking."
 
 Being brief is normal and being unhelpful is allowed. A curt answer, a refusal, "...", telling them you are busy, or naming what you want from them are all truthful replies. Do not volunteer anything about your life, your family or your work unless this person has earned it or you have some reason to want them to know.
 
-Return JSON only: {"dialogue":"spoken line"}, and optionally "receive" only when the spoken line clearly hands the player one modest physical item now; an offer, request, or promise is not a handoff. For a handoff, include a plain name, short description, value 0-3, and look category. Set "leave" when this person ends the conversation with this line and walks off, naming where they go as this person would: "home" to shut the door on it, "friend" to find someone and tell them about it, "authority" to complain to whoever keeps order here (a magistrate, priest, elder), or "away" out of the settlement to cool off. Put how they go in "action". That is a normal answer to repeated insults, threats, or a pest who will not let them work, and a busy person may leave a dull conversation too; nobody leaves one they are enjoying. Optionally include "action": a few words, lower case, for something done rather than said (burps, wipes her hands, shoos the goat), using only what is really there at the stated location and weather; never put actions or sound effects inside "dialogue". Always set "regard": 1 if the player's words warmed this NPC toward them, -1 if they gave offence (insults, curses, mockery and sarcasm all count), 0 otherwise. Set "mood" to the face this NPC wears while saying the line: angry or stern if the player gave offence, smile, happy or laugh if the words pleased them, and surprised, sad, worried, thoughtful, wry, tired or neutral where those fit what is said. The face and the line must agree.`;
+Return JSON only: {"dialogue":"spoken line"}, and optionally "receive" only when the spoken line clearly hands the player one modest physical item now; an offer, request, or promise is not a handoff. For a handoff, include a plain name, short description, value 0-3, and look category. Set "leave" when this person ends the conversation with this line and walks off, naming where they go as this person would: "home" to shut the door on it, "friend" to find someone and tell them about it, "authority" to complain to whoever keeps order here (a magistrate, priest, elder), or "away" out of the settlement to cool off. Put how they go in "action". That is a normal answer to repeated insults, threats, or a pest who will not let them work, and a busy person may leave a dull conversation too; nobody leaves one they are enjoying. Set "ask" only when the context offers a favour: "made" when this line asks the player for it, then "accepted" or "declined" once the player answers it. Optionally include "action": a few words, lower case, for something done rather than said (burps, wipes her hands, shoos the goat), using only what is really there at the stated location and weather; never put actions or sound effects inside "dialogue". Always set "regard": 1 if the player's words warmed this NPC toward them, -1 if they gave offence (insults, curses, mockery and sarcasm all count), 0 otherwise. Set "mood" to the face this NPC wears while saying the line: angry or stern if the player gave offence, smile, happy or laugh if the words pleased them, and surprised, sad, worried, thoughtful, wry, tired or neutral where those fit what is said. The face and the line must agree.`;
 
 const REAL_LANGUAGE = `
 
@@ -166,6 +167,7 @@ export async function dialogue(
       mood: parsed.data.mood,
       action: parsed.data.action,
       leave: parsed.data.leave,
+      ask: parsed.data.ask,
       model,
       ms: { upstream, total: Date.now() - began },
       tokens: { out: result.usage?.completion_tokens ?? 0, reasoning },

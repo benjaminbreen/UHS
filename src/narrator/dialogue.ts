@@ -269,6 +269,19 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .filter((memory) => !/^(spoke|regard):/.test(memory))
     .slice(-4)
     .map(named);
+  const hearsay = (actor.word ?? [])
+    .filter((w) => w.hops > 0)
+    .map((w) => {
+      const teller = w.hops === 1 && w.from ? state.actors.find((a) => a.id === w.from)?.name : undefined;
+      return `${teller ? `${teller} told you` : "people say"} the player ${named(w.what)}`;
+    });
+  const open = state.asks?.find((x) => x.by === actor.id);
+  const want = !open && actor.trust >= 0 && !intruding && (state.asks?.length ?? 0) < 3 ? engine.askFor(actor) : undefined;
+  const favour = open
+    ? `You have asked the player for ${open.what}${open.accepted ? " and they promised it" : ""}. If they answer now, set "ask" to "accepted" or "declined".`
+    : want
+      ? `A favour you could ask of the player, if it comes up naturally and they seem decent: ${want.what}${want.kind === "fetch" ? ", which your household has gone short of" : want.kind === "food" ? ", since you are hungry" : ", whom you have not seen in a while"}. If you ask, set "ask" to "made".`
+      : "";
   const feeling = actor.trust < -4 ? "angry with you" : actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
   // This prompt is built for one person, so it can afford the whole outlook
   // and what each position actually holds, which is what stops the model
@@ -305,6 +318,10 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     grievances.length
       ? `Seen with your own eyes, oldest first, the last of them just now: ${grievances.join("; ")}. This happened; it is not hearsay, and you have not forgotten it.`
       : "",
+    hearsay.length
+      ? `Heard about the player, second-hand and maybe wrong or exaggerated: ${hearsay.join("; ")}. It colours how you take them; you may bring it up, ask if it is true, or keep your distance.`
+      : "",
+    favour,
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : "Has not spoken with the player before.",
     `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}.`,
   ]
@@ -402,6 +419,7 @@ export async function dialogueTurn(
       mood?: Expression;
       action?: string;
       leave?: WalkOff;
+      ask?: "made" | "accepted" | "declined";
       ms?: { upstream: number; total: number };
       tokens?: { out: number; reasoning: number };
     };
@@ -419,7 +437,7 @@ export async function dialogueTurn(
     if (shouting(runtime, actor)) data.text = shout(data.text);
     // The furious have their say and go; a householder throwing you out stays put.
     else if (angerLevel(actor, runtime.engine.state.clock) === 3) data.leave ??= "away";
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, ask: data.ask, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")

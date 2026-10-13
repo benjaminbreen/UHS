@@ -14,6 +14,7 @@ import { voice, type Sound } from "../audio/sfx";
 import { voiceOf } from "../audio/voices";
 import type { CueKind } from "../core/combat";
 import type { WalkOff } from "../core/types";
+type AskAnswer = "made" | "accepted" | "declined";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
 
 function Action({ text }: { text: string }) {
@@ -128,8 +129,8 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
   };
 
   /** The exchange itself, recorded on the person spoken to. */
-  const commitExchange = (said: string, regard?: number, leave?: WalkOff) => {
-    if (!said.trim() && !leave) return;
+  const commitExchange = (said: string, regard?: number, leave?: WalkOff, ask?: AskAnswer) => {
+    if (!said.trim() && !leave && !ask) return;
     // Looked up either side rather than diffed on one reference, and read
     // off the actor rather than off the model's number: the intent clamps the
     // delta and can refuse it outright, and what shows should be what
@@ -138,7 +139,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
       runtime.engine.state.actors.find((a) => a.id === actorId)?.trust ?? 0;
     const before = trustNow();
     runtime.narrate([
-      { type: "converse", with: actorId, said: said.slice(0, 120), delta: regard ?? 0, leave },
+      { type: "converse", with: actorId, said: said.slice(0, 120), delta: regard ?? 0, leave, ask },
     ]);
     const after = trustNow();
     if (after !== before) show(regardCue(after - before, after));
@@ -174,10 +175,8 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
       else {
         setMood(result.mood);
         commitGift(result.receive);
-        if (result.leave) {
-          setLeft(true);
-          commitExchange("", 0, result.leave);
-        }
+        if (result.leave) setLeft(true);
+        if (result.leave || result.ask) commitExchange("", 0, result.leave, result.ask);
         say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
       }
     });
@@ -238,7 +237,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
     if (result.error) setError(result.error);
     else {
       setMood(result.mood);
-      commitExchange(text, result.regard, result.leave);
+      commitExchange(text, result.regard, result.leave, result.ask);
       commitGift(result.receive);
       if (result.leave) {
         setLeft(true);

@@ -460,6 +460,36 @@ describe("shared deterministic foundation", () => {
         command: c,
       };
       expect(a.act(req)).toEqual(b.act(req));
+  it("passes stories about the player on, weaker each telling", () => {
+    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const [a, b] = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
+    a.word = [{ what: "smashed a cooking pot", tone: -8, at: 0, hops: 0 }];
+    const trust = b.trust;
+    for (let i = 1; i <= 60 && !b.word?.length; i++) {
+      b.pos = { ...a.pos, x: a.pos.x + 1 };
+      (e as unknown as { spreadWord(c: number): void }).spreadWord(i * 600 + 1);
+    }
+    const heard = b.word![0];
+    expect(heard.what).toBe("smashed a cooking pot");
+    expect(heard.hops).toBeGreaterThan(0);
+    expect(heard.tone).toBe(-8 / 2 ** heard.hops);
+    expect(b.trust).toBeLessThan(trust);
+  });
+  it("lets someone ask a favour and thanks the player for keeping it", () => {
+    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const a = e.state.actors.find((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId)!;
+    a.hunger = 80;
+    e.answerAsk(a, "accepted");
+    expect(e.state.asks).toMatchObject([{ by: a.id, kind: "food", accepted: true }]);
+    a.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    e.state.player.inventory.bread = 1;
+    act(e, { type: "hold", item: "bread" });
+    const trust = a.trust;
+    expect(act(e, { type: "give", target: a.id, item: "bread" }).status).toBe("completed");
+    expect(e.state.asks).toEqual([]);
+    expect(a.trust).toBe(trust + 4);
+    expect(a.word?.[0]).toMatchObject({ tone: 4, hops: 0 });
+  });
     }
     expect(a.hash()).toBe(b.hash());
   });
