@@ -232,6 +232,8 @@ export type Actor = {
   trust: number;
   /** When the player last cost them trust. */
   wronged?: number;
+  /** Until when they refuse to speak to the player at all. */
+  shuns?: number;
   owner?: string;
   follows?: string;
   consentUntil?: number;

@@ -433,7 +433,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       target: id,
       action: "talk",
     });
-    if (result?.status !== "completed") return;
+    if (result?.status !== "completed") {
+      if (result?.reason) {
+        runtime.notice = result.reason;
+        runtime.emit();
+      }
+      return;
+    }
     setSituation(opening);
     setDialogueActorId(id);
     setModal("dialogue");

@@ -103,18 +103,22 @@ function intrusionReaction(seed: string, actor: Actor, stats: ReturnType<typeof 
 }
 
 /** How hard a grudge shows, worse while it is fresh. */
+function angerLevel(actor: Actor, clock: number) {
+  const level = actor.trust < -10 ? 3 : actor.trust < -4 ? 2 : actor.trust < 0 ? 1 : 0;
+  return fresh(actor, clock) ? Math.min(3, level + 1) : level;
+}
+const fresh = (actor: Actor, clock: number) => actor.wronged !== undefined && clock - actor.wronged < 3600;
+
 function anger(actor: Actor, clock: number) {
-  const fresh = actor.wronged !== undefined && clock - actor.wronged < 3600;
-  let level = actor.trust < -10 ? 3 : actor.trust < -4 ? 2 : actor.trust < 0 ? 1 : 0;
-  if (fresh) level = Math.min(3, level + 1);
+  const level = angerLevel(actor, clock);
   if (!level) return "";
   const how = [
     "",
     "You are ANNOYED with the player. Curt and cold: short sentences, no pleasantries, no help offered.",
     "You are ANGRY with the player. Raise your voice, accuse them to their face, demand they make it right or get out. Shout the words that matter in CAPITALS with exclamation marks. No small talk.",
-    "You are FURIOUS with the player. Shout, mostly in CAPITALS with exclamation marks: insults and curses of your time and place, threats, calls to kin or neighbours. You may refuse to talk and walk off (leave).",
+    "You are FURIOUS with the player. Shout, mostly in CAPITALS with exclamation marks: insults and curses of your time and place, threats, calls to kin or neighbours. Say your piece in one or two lines and walk off (leave): you will not discuss it.",
   ][level];
-  return `${how}${fresh ? " It happened within the hour and is still hot." : ""} People here did not soften their anger to be polite; do not make yourself reasonable or measured about a real wrong.`;
+  return `${how}${fresh(actor, clock) ? " It happened within the hour and is still hot." : ""} People here did not soften their anger to be polite; do not make yourself reasonable or measured about a real wrong.`;
 }
 
 function openness(actor: Actor, met: boolean) {
@@ -413,6 +417,8 @@ export async function dialogueTurn(
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
     // Whatever the model makes of it, a terrified person shouts.
     if (shouting(runtime, actor)) data.text = shout(data.text);
+    // The furious have their say and go; a householder throwing you out stays put.
+    else if (angerLevel(actor, runtime.engine.state.clock) === 3) data.leave ??= "away";
     return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.

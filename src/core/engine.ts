@@ -5097,6 +5097,13 @@ export class Engine {
       return this.heaveProblem(c.target);
     if (c.type === "interact" && c.action === "enter" && this.burningPlace(c.target))
       return "It is on fire.";
+    if (c.type === "interact" && c.action === "talk") {
+      const a = this.actorsById?.get(c.target);
+      if (a && (a.shuns ?? 0) > this.state.clock) {
+        this.cue(a.id, "refuse", this.state.player.pos);
+        return `${a.name} turns their back on you and will not say a word.`;
+      }
+    }
     if (c.type === "interact" && c.action === "fill") return this.fillProblem(c.target);
     if (c.type === "interact" && c.action === "work" && this.tileAt(c.target))
       return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
@@ -7427,6 +7434,7 @@ export class Engine {
   /** Someone who has had enough of the player goes elsewhere for an hour. */
   walkOff(a: Actor, where: WalkOff) {
     const clock = this.state.clock;
+    if (a.trust < -10) a.shuns = clock + 3600;
     const inside = a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
     if (inside) this.moveActor(a, { ...doorApproach(inside), space: "outside" });
     let to: Position | undefined;

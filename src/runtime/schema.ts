@@ -345,6 +345,7 @@ const actor = z.object({
   hunger: z.number().min(0).max(100),
   trust: z.number(),
   wronged: z.number().optional(),
+  shuns: z.number().optional(),
   owner: z.string().optional(),
   follows: z.string().optional(),
   consentUntil: z.number().optional(),
