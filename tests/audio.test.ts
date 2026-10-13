@@ -21,6 +21,7 @@ import { places } from "../src/content/geography/places";
 import { placeAtYear } from "../src/content/geography/eras";
 import { layeredThemes } from "../src/audio/layered-themes";
 import { catalog } from "../src/audio/sfx";
+import { bellFor, townKindFor } from "../src/audio/ambience";
 import * as handling from "../src/audio/handling";
 
 describe("original soundtrack scores", () => {
@@ -354,5 +355,20 @@ describe("original soundtrack scores", () => {
         expect(layer.freq).toBeGreaterThan(20);
       }
     }
+  });
+});
+
+describe("town ambience", () => {
+  it("hears each period's street and hours", () => {
+    expect(townKindFor(-4000, 90)).toBe("village");
+    expect(townKindFor(100, 40)).toBe("village");
+    expect(townKindFor(100, 90)).toBe("town");
+    expect(townKindFor(1880, 90)).toBe("industrial");
+    expect(townKindFor(1990, 90)).toBe("modern");
+    expect(bellFor("Islam", 1200)).toBe("adhan");
+    expect(bellFor("Latin Christian", 400)).toBeUndefined();
+    expect(bellFor("Latin Christian", 1300)).toBe("church");
+    expect(bellFor("Roman", 100)).toBeUndefined();
+    expect(bellFor(undefined, 1900)).toBe("whistle");
   });
 });

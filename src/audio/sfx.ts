@@ -21,7 +21,7 @@ export type Sound = Layer[];
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 /** A value wobbled by a few percent, so repeats do not sound stamped out. */
 const vary = (x: number, spread = 0.07) => x * rand(1 - spread, 1 + spread);
-const noise = (
+export const noise = (
   at: number,
   dur: number,
   gain: number,
@@ -37,7 +37,7 @@ const noise = (
   q: 1,
   ...rest,
 });
-const tone = (
+export const tone = (
   at: number,
   dur: number,
   gain: number,
@@ -48,7 +48,7 @@ const shift = (sound: Sound, by: number, gain = 1): Sound =>
   sound.map((l) => ({ ...l, at: l.at + by, gain: l.gain * gain }));
 
 /** Struck-object partials: inharmonic, so it rings rather than sings. */
-function ring(at: number, base: number, dur: number, gain: number): Sound {
+export function ring(at: number, base: number, dur: number, gain: number): Sound {
   const f = vary(base, 0.05);
   return [1, 2.76, 5.4, 8.93].map((ratio, i) =>
     tone(at, dur / (1 + i * 0.7), gain / (1 + i * 1.3), f * ratio),

@@ -62,6 +62,8 @@ import { WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
 import { ambienceFor } from "../audio/ambience";
+import { religiousProfile } from "../content/settlements/religious";
+import { ROOM_ORIGIN } from "../world/interior";
 import { pageTurn } from "../audio/handling";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
@@ -749,9 +751,17 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       (best, s) => (near(s) < best.d ? { d: near(s), size: s.size } : best),
       { d: Infinity, size: 0 },
     );
+    const layout = p.pos.space === "outside" ? undefined : runtime.engine.interiorOf(p.pos.space);
+    const room = layout?.rooms.find(
+      (r) => tileX - ROOM_ORIGIN >= r.x && tileX - ROOM_ORIGIN < r.x + r.w &&
+        tileY - ROOM_ORIGIN >= r.y && tileY - ROOM_ORIGIN < r.y + r.d,
+    ) ?? layout?.params;
     return ambienceFor({
       weather,
       indoors: p.pos.space !== "outside",
+      room: room && layout ? { area: room.w * room.d, finish: layout.params.finish } : undefined,
+      year: setting?.year,
+      faith: setting ? religiousProfile(setting)?.faith : undefined,
       fireDistance: Math.min(
         ...obs.objects
           .filter(
@@ -791,7 +801,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     weather.tempC,
     lighting,
     season.id,
-    setting?.climate,
+    setting,
     hour,
   ]);
   useEffect(() => audio?.setScene(ambience), [audio, ambience]);

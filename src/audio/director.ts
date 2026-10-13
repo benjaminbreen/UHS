@@ -18,7 +18,7 @@ import {
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, playSound, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
-import { Ambience, silence, type AmbienceMix } from "./ambience";
+import { Ambience, Room, silence, type AmbienceMix } from "./ambience";
 
 export interface AudioState {
   loading: boolean;
@@ -81,6 +81,7 @@ export class AudioDirector {
   private timer?: ReturnType<typeof setInterval>;
   private pending?: ReturnType<typeof setTimeout>;
   private ambience?: Ambience;
+  private room?: Room;
   private duck?: GainNode;
   private scene: AmbienceMix = { ...silence };
   private listeners = new Set<() => void>();
@@ -179,6 +180,8 @@ export class AudioDirector {
       this.sfx.connect(this.master);
       this.ambience = new Ambience(this.ctx, this.sfx);
       this.ambience.set(this.scene);
+      this.room = new Room(this.ctx, this.sfx);
+      this.room.set(this.scene);
     }
     if (this.ctx.state === "suspended") await this.ctx.resume();
     if (this.disposed) throw Error("Audio session has closed.");
@@ -355,6 +358,7 @@ export class AudioDirector {
   setScene(mix: AmbienceMix) {
     this.scene = mix;
     this.ambience?.set(mix);
+    this.room?.set(mix);
     if (this.ctx)
       this.duck?.gain.setTargetAtTime(mix.music, this.ctx.currentTime, 1.5);
   }
@@ -404,8 +408,9 @@ export class AudioDirector {
     }
   }
   /** Plays a built sound. Sounds sharing a `key` are throttled together, so
-   * a burst of the same cue does not stack into a buzz. */
-  async sound(sound: Sound | undefined, key = "") {
+   * a burst of the same cue does not stack into a buzz. `pan` runs from -1
+   * (left) to 1 (right). */
+  async sound(sound: Sound | undefined, key = "", pan = 0) {
     if (!sound?.length) return;
     const tuned = tuning(key);
     const now = performance.now();
@@ -415,7 +420,7 @@ export class AudioDirector {
       const ctx = await this.unlock();
       playSound(
         ctx,
-        this.sfx!,
+        this.room!.input(pan),
         applyTuning(sound, tuned),
         ctx.currentTime + 0.01,
       );

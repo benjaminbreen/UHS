@@ -52,7 +52,7 @@ The three previews are pastoral pipe/plucked strings/drum, a bowed chamber-ensem
 
 ## Sound and export
 
-The studio has separate music/SFX volume, global mute, and melody/harmony/bass/percussion levels. Volume and mute preferences persist locally; transport does not autoplay after reload. Stem settings and current musical context are transient. Six audition cues cover footstep, water, selection, gathering, a wooden door and passing time. **These SFX are not yet connected to world actions.**
+The studio has separate music/SFX volume, global mute, and melody/harmony/bass/percussion levels. Volume and mute preferences persist locally; transport does not autoplay after reload. Stem settings and current musical context are transient. The studio's SFX tab auditions the whole `sfx.ts` catalog.
 
 **WAV** renders the selected score and stem mix as stereo 44.1 kHz / 16-bit PCM, independent of listening volume and mute. It includes a four-second release/reverb tail; it is a complete listening export, not a pre-trimmed loop asset. Rendering is offline and may take several seconds. Loud renders are attenuated to retain headroom. Live playback uses a master compressor and short fades.
 
@@ -70,6 +70,25 @@ npm run build
 ```
 
 Score tests validate all 96 combinations, phrase durations, pitch/event bounds, calendar boundaries and melodic identity across eras. Browser checks cover transport, gain controls, SFX, WAV download, both keyboard shortcuts, modal input isolation and narrow layouts. The preview renderer checks each actual waveform for non-silence and clipping and records peak/RMS in its manifest. Final musical taste and historically specific performance remain listening/authoring decisions.
+
+## World sound
+
+Sound effects are built in code (`src/audio/sfx.ts`, `handling.ts`, `time.ts`) and played from the world through `gameAudio()?.sound(sound, key, pan)`: footsteps by ground, strikes and tool work by material, climbing and landing, projectiles, eating, paying, writing, doors, bumps, fire and trains. `key` throttles repeats; `pan` (-1 left to 1 right) places a source off to one side, and fire and trains use it.
+
+Every effect then passes through `Room` in `src/audio/ambience.ts`. Indoors it adds an echo sized by the room the player stands in and coloured by the house's finish: a hide or thatch hut swallows a step, a plastered hall hands it back. Outdoors it is dry.
+
+`ambienceFor` turns the scene into the ambient mix. Beds: rain, wind, birds, crickets, water or sea swell, a town murmur and a hearth. Indoors the outdoor beds are muffled, and rain is also heard on the roof: thuds on thatch, ticks on tile.
+
+Over the town murmur come occasional street sounds, chosen by period and size (`townKindFor`):
+
+| Street | When | Sounds |
+| --- | --- | --- |
+| village | before 2500 BCE, or any small settlement | dogs, hens, calls, a quern, chopping |
+| town | to 1830 | dogs, hens, calls, an anvil, hooves, cart wheels |
+| industrial | to 1920 | calls, an anvil, hooves, wheels, a distant steam whistle |
+| modern | after | dogs, calls, car horns, engines |
+
+The hours are marked by what the local religious building implies (`bellFor`, from `religiousProfile`): church bells counting the hour in Latin Christian towns from 600 CE, a temple bell at dawn and dusk where Buddhist, the call to prayer at five fixed hours where Muslim, and a factory whistle from 1850 where no faith sounds. They carry about 90 tiles from town, and ring only when the clock walks through the hour, not when it is slept or travelled past. These pairings are inference, not documented soundscapes; prayer hours are fixed rather than solar.
 
 ## Accepted cultural-content direction
 

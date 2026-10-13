@@ -79,7 +79,7 @@ export class Burning {
         const made = this.start(image, !!f.place);
         if (!made) continue;
         this.live.set(key, (live = made));
-        if (this.heard(made, ear) > 0) void gameAudio()?.sound(fireSound.catch(), "fire-catch");
+        if (this.heard(made, ear) > 0) void gameAudio()?.sound(fireSound.catch(), "fire-catch", this.side(made, ear));
       }
       // A chunk rebuild makes a fresh image, and nothing else may repaint it
       // while it burns.
@@ -105,15 +105,19 @@ export class Burning {
       const loud = this.heard(live, ear);
       if (loud > 0 && time >= live.crackleAt) {
         live.crackleAt = time + 90 + Math.random() * 260;
-        void gameAudio()?.sound(fireSound.crackle(loud * (live.building ? 1 : 0.7)), `fire-crackle-${key}`);
+        void gameAudio()?.sound(fireSound.crackle(loud * (live.building ? 1 : 0.7)), `fire-crackle-${key}`, this.side(live, ear));
       }
       if (live.building && !live.fallen && (progress ?? 0) > 0.97) {
         live.fallen = true;
-        if (loud > 0) void gameAudio()?.sound(fireSound.collapse(), "fire-collapse");
+        if (loud > 0) void gameAudio()?.sound(fireSound.collapse(), "fire-collapse", this.side(live, ear));
       }
     }
   }
 
+  /** Left or right of the listener, -1 to 1. */
+  private side(live: Live, ear: { x: number; y: number }) {
+    return Math.max(-1, Math.min(1, (live.x + live.pixels.width / 2 - ear.x) / (EARSHOT / 2)));
+  }
   private heard(live: Live, ear: { x: number; y: number }) {
     const d = Math.hypot(live.x + live.pixels.width / 2 - ear.x, live.y + live.pixels.height - ear.y);
     return Math.max(0, 1 - d / EARSHOT);

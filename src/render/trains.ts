@@ -186,13 +186,14 @@ export class TrainLayer {
       const [x, y] = line.axis === "x" ? [at, line.level] : [line.level, at];
       const near = Math.max(0, 1 - Math.hypot(x - this.ear.x, y - this.ear.y) / 60);
       if (!near) continue;
+      const pan = Math.max(-1, Math.min(1, (x - this.ear.x) / 30));
       const cues: [number, () => void][] = run.dwell
         ? [
-            [run.at - 75, () => void gameAudio()?.sound(steam ? railSounds.whistle(near * 0.6) : railSounds.horn(near * 0.6), "train-whistle")],
-            [run.at + run.dwell - 7, () => void gameAudio()?.sound(railSounds.guard(near), "train-guard")],
-            [run.at + run.dwell - 1, () => void gameAudio()?.sound(steam ? railSounds.whistle(near) : railSounds.horn(near), "train-whistle")],
+            [run.at - 75, () => void gameAudio()?.sound(steam ? railSounds.whistle(near * 0.6) : railSounds.horn(near * 0.6), "train-whistle", pan)],
+            [run.at + run.dwell - 7, () => void gameAudio()?.sound(railSounds.guard(near), "train-guard", pan)],
+            [run.at + run.dwell - 1, () => void gameAudio()?.sound(steam ? railSounds.whistle(near) : railSounds.horn(near), "train-whistle", pan)],
           ]
-        : [[run.at - 25, () => void gameAudio()?.sound(steam ? railSounds.whistle(near, true) : railSounds.horn(near), "train-whistle")]];
+        : [[run.at - 25, () => void gameAudio()?.sound(steam ? railSounds.whistle(near, true) : railSounds.horn(near), "train-whistle", pan)]];
       for (const [t, play] of cues)
         for (const d of [day - 1, day]) {
           const when = d * DAY + t;
@@ -228,7 +229,8 @@ export class TrainLayer {
     const image = this.scene.add.image(x, y, key, "0").setDepth(depth).setTint(tint);
     if (steam && speed > 0.03) {
       const near = Math.max(0, 1 - Math.hypot(x / 16 - this.ear.x, y / 16 - this.ear.y) / 40);
-      if (near > 0) void gameAudio()?.sound(railSounds.chuff(near, Math.min(1, 1.2 - speed)), "train-chuff");
+      const pan = Math.max(-1, Math.min(1, (x / 16 - this.ear.x) / 20));
+      if (near > 0) void gameAudio()?.sound(railSounds.chuff(near, Math.min(1, 1.2 - speed)), "train-chuff", pan);
     }
     this.puffs.push({ image, born: now, x, y, drift: (Math.random() - 0.5) * 6, life: steam ? 2600 : 1600 });
   }
