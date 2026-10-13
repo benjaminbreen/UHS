@@ -8,6 +8,7 @@ band, a hard core shadow and a dark keyline, and a smooth ramp reads as mud.
 """
 from math import sqrt, sin, asin, pi
 from .core import Canvas, RAMPS, soft_outline
+from .workshop import streak
 from art.front_materials import RAMPS as HOUSE_RAMPS
 
 INK = '#24140d'
@@ -156,6 +157,55 @@ def _box(c, x0, y0, wide, tall, w, brace='x'):
  c.rect(r - 1, t, r, b, w[2]); c.vline(r, t, b, w[0])
  for x, y in ((l + 1, t + 1), (r - 1, t + 1), (l + 1, b - 1), (r - 1, b - 1)):
   c.set(x, y, IRON[0])
+
+
+def plain_box(v=0):
+ """A low board box with a lift-off lid: the lid seen from above and
+ overhanging by a pixel, broad boards and dovetails at the corners."""
+ c = Canvas(19, 14)
+ c.PAD = 2
+ w = BOX_WOOD[v]
+ c.rect(0, 0, 18, 3, w[4])
+ c.hline(0, 18, 0, w[4]); c.hline(1, 17, 1, w[3] if v == 1 else w[4])
+ streak(c, 1, 17, 2, w, 3)
+ c.hline(0, 18, 3, w[3]); c.hline(0, 18, 4, w[1])
+ for y in range(5, 13):
+  c.hline(1, 17, y, w[2] if y < 9 else w[1] if y == 12 else w[2])
+ c.hline(1, 17, 8, w[1]); c.hline(1, 17, 5, w[3])
+ streak(c, 2, 15, 6, w, 2); streak(c, 2, 15, 10, w, 2)
+ for x in (1, 17):
+  for y in range(5, 13, 2): c.set(x, y, w[3] if x == 1 else w[1])
+ c.hline(1, 17, 13, w[0])
+ soft_outline(c, w[0], w[3])
+ return c.image()
+
+
+KRAFT = [['#4a3420', '#6e4f2e', '#93703f', '#b38f55', '#cfae74', '#e3caa0'],
+         ['#3f2219', '#623527', '#844a36', '#a3634a', '#bf8265', '#d6a68a'],
+         ['#1e2c38', '#2f4558', '#43617a', '#5d7f97', '#7f9fb3', '#a9c2cf']]
+
+
+def cardboard_box(v=0):
+ """A folded carton: flaps meeting at a taped seam on top, a crease where
+ the top turns down, a stencilled mark on the face."""
+ c = Canvas(13, 13)
+ c.PAD = 2
+ k = KRAFT[v]
+ tape = ['#8f8468', '#c9bd98', '#e6dcbc']
+ c.rect(0, 0, 12, 3, k[4])
+ c.hline(0, 5, 0, k[5]); c.hline(7, 12, 0, k[4])
+ c.vline(6, 0, 3, k[2])
+ c.set(5, 1, k[5]); c.set(1, 2, k[5])
+ c.hline(0, 12, 4, k[1])
+ c.rect(0, 5, 12, 12, k[3])
+ c.rect(9, 5, 12, 12, k[2])
+ c.vline(0, 5, 12, k[4])
+ c.rect(5, 0, 7, 3, tape[2]); c.vline(7, 0, 3, tape[1])
+ c.rect(5, 5, 7, 7, tape[1]); c.vline(7, 5, 7, tape[0])
+ c.rect(2, 9, 4, 10, k[1]); c.set(3, 9, k[2])
+ c.hline(0, 12, 12, k[1])
+ soft_outline(c, k[0], k[3])
+ return c.image()
 
 
 def crate(v=0):
@@ -309,6 +359,8 @@ def scarecrow(v=0):
 STORES = {
  'barrel': barrel,
  'crate': crate,
+ 'plain-box': plain_box,
+ 'cardboard-box': cardboard_box,
  'crate-stack': crate_stack,
  'woodpile': woodpile,
  'grain-sacks': grain_sacks,

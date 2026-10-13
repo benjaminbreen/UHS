@@ -13,6 +13,7 @@ JUNIPER = ['#172a25', '#25443a', '#37604b', '#4f7d5a', '#729a6b', '#a4bd8d']
 MAPLE = ['#25352a', '#3e5c34', '#5f8a3b', '#82ad44', '#a9c85a', '#d0dd82']
 MANGROVE = ['#14302b', '#1f4a3c', '#2f6a4a', '#468a55', '#6ca866', '#9fc487']
 PALE_BARK = ['#3a3a34', '#7c7568', '#a8a08e', '#cbc2ad', '#e2dac6', '#f1ebd9']
+CUT = ['#5a3e26', '#8a6a44', '#b8956a', '#d4b788', '#ead3a6']
 
 
 def pale_limb(d, pts, w):
@@ -157,15 +158,26 @@ def waterfall():
 
 
 def stump():
-    im, d = canvas((20, 18))
-    d.ellipse((2, 9, 17, 16), fill=BARK[0])
-    d.rectangle((4, 5, 15, 12), fill=BARK[2])
-    d.line((4, 5, 4, 12), fill=BARK[1]); d.line((15, 5, 15, 12), fill=BARK[1])
-    d.ellipse((3, 2, 16, 8), fill=BARK[0])
-    d.ellipse((4, 3, 15, 7), fill=BARK[4])
-    d.ellipse((7, 4, 12, 6), fill=BARK[3])
-    d.point((9, 5), fill=BARK[2])
-    d.line((5, 12, 8, 15), fill=BARK[1]); d.line((12, 12, 15, 15), fill=BARK[1])
+    """A felled tree's stump: flared roots gripping the ground, furrowed bark,
+    and a sawn top with rings, a dark heart and a drying crack."""
+    im, d = canvas((22, 20))
+    for x0, x1 in ((2, 6), (15, 20)):
+        d.polygon([(x0, 17), (x1, 17), ((x0 + x1) // 2 + (2 if x0 < 10 else -2), 11)], fill=BARK[1])
+        d.line((x0 + 1, 16, (x0 + x1) // 2 + (2 if x0 < 10 else -2), 12), fill=BARK[2])
+    d.rectangle((5, 6, 16, 16), fill=BARK[2])
+    d.ellipse((4, 13, 17, 18), fill=BARK[1])
+    d.line((5, 6, 5, 15), fill=BARK[3]); d.line((6, 6, 6, 15), fill=BARK[3])
+    d.line((16, 6, 16, 16), fill=BARK[0]); d.line((15, 7, 15, 16), fill=BARK[1])
+    for x in (8, 11, 13):
+        d.line((x, 8, x, 14 - x % 3), fill=BARK[1])
+        d.point((x - 1, 9), fill=BARK[3])
+    d.ellipse((4, 3, 17, 9), fill=BARK[1])
+    d.ellipse((5, 4, 16, 8), fill=CUT[3])
+    d.ellipse((7, 5, 14, 7), fill=CUT[2])
+    d.ellipse((9, 5, 12, 7), fill=CUT[3])
+    d.point((10, 6), fill=CUT[0])
+    d.line((11, 6, 14, 8), fill=CUT[1])
+    d.line((6, 4, 9, 4), fill=CUT[4])
     return im
 
 

@@ -228,3 +228,62 @@ def loom(v=0):
   c.rect(16, 25, 26, 27, w[3]); c.set(15, 26, w[1]); c.set(27, 26, w[1])
   c.hline(17, 25, 25, w[5]); c.hline(18, 24, 26, web[5])
  return c.image()
+
+
+PAINT = [['#3a1812', '#5e281d', '#86392a', '#a8503a', '#c87256'],
+         ['#18263a', '#263c58', '#375679', '#4d7499', '#7598b6'],
+         ['#4a4230', '#776a4c', '#a8996e', '#cdbf92', '#e8dcb6']]
+
+
+def painted_chest(v=0):
+ """A chest on four short feet, front panels painted inside a plain wooden
+ frame, a stencilled flower in each and a brass lock between them."""
+ c = Canvas(19, 15)
+ c.PAD = 2
+ w = RAMPS['walnut7' if v == 2 else 'oak7']
+ p = PAINT[v]
+ br = RAMPS['brass7']
+ c.hline(1, 17, 0, w[6]); c.rect(0, 1, 18, 2, w[5]); c.hline(0, 18, 3, w[3])
+ streak(c, 1, 17, 1, w, 5)
+ c.hline(0, 18, 4, w[1])
+ c.rect(0, 5, 18, 11, w[4]); c.vline(18, 5, 11, w[2]); c.vline(0, 5, 11, w[5])
+ for x0 in (2, 10):
+  c.rect(x0, 6, x0 + 6, 10, p[2])
+  c.hline(x0, x0 + 6, 6, p[3]); c.vline(x0, 6, 10, p[3]); c.hline(x0, x0 + 6, 10, p[1])
+  fx = x0 + 3
+  c.set(fx, 7, p[4]); c.set(fx - 1, 8, p[4]); c.set(fx + 1, 8, p[4]); c.set(fx, 9, p[4])
+  c.set(fx, 8, br[5])
+ c.rect(8, 5, 10, 7, br[3]); c.set(8, 5, br[6]); c.set(9, 7, br[0])
+ c.hline(0, 18, 11, w[2]); c.hline(0, 18, 12, w[1])
+ for x in (1, 15):
+  c.rect(x, 13, x + 2, 14, w[3]); c.set(x, 13, w[5]); c.set(x + 2, 14, w[1])
+ c.rim(w)
+ return c.image()
+
+
+def workbench(v=0):
+ """A heavy board table: the top seen from above with its overhang, four
+ square legs on a low stretcher, a mallet and shavings left on it."""
+ c = Canvas(32, 20)
+ c.PAD = 2
+ w = RAMPS[WOOD7[v]]
+ for lx in (2, 27):
+  for y in range(8, 19):
+   c.set(lx, y, w[5]); c.set(lx + 1, y, w[4]); c.set(lx + 2, y, w[2])
+  c.hline(lx, lx + 2, 19, w[1])
+ for lx in (5, 24):
+  c.vline(lx, 8, 16, w[2]); c.vline(lx + 1, 8, 16, w[1])
+ c.hline(4, 27, 15, w[3]); c.hline(4, 27, 16, w[1])
+ for y in range(0, 5):
+  tone = 6 if y < 1 else 5
+  c.hline(0, 31, y, w[tone]); streak(c, 0, 31, y, w, tone)
+ c.hline(0, 31, 2, w[4])
+ c.hline(0, 31, 5, w[4]); c.hline(0, 31, 6, w[3]); c.hline(0, 31, 7, w[1])
+ iron = RAMPS['iron7']
+ c.rect(6, 1, 11, 2, w[2]); c.hline(6, 11, 1, w[3])
+ c.hline(11, 17, 2, w[1]); c.hline(11, 17, 1, w[4])
+ for x, y in ((21, 1), (23, 3), (25, 2), (22, 2)):
+  c.set(x, y, RAMPS['ash7'][6])
+ c.set(28, 1, iron[5]); c.set(29, 1, iron[3])
+ c.rim(w)
+ return c.image()

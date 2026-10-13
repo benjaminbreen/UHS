@@ -1,6 +1,9 @@
 """Ground the player has worked: a spade furrow and scythed stubble. Both lie
 flat, so neither casts a shadow."""
+import random
 from PIL import Image, ImageDraw
+from art.shrubs import ramp
+from art.fungi import _log
 
 SOIL = ['#3a2a1c', '#4d3823', '#61472c', '#775a39', '#8d6e47']
 STRAW = ['#4a4a2b', '#6d6b36', '#8e8a48', '#b0a862', '#cbc086']
@@ -47,8 +50,6 @@ def stubble():
     return im
 
 
-BARKWOOD = ['#33241a', '#57402c', '#75583a', '#977049', '#b89261']
-GRAIN = ['#8a6743', '#c2a072', '#ddc396']
 STONE = ['#33383c', '#4c545a', '#697179', '#8a9199', '#adb3ba']
 CUT = ['#2d3a25', '#41552f', '#5c7740', '#86a057', '#c9c98c']
 DRY = ['#3b3526', '#5a5136', '#7d7049', '#a1935f', '#cfc393']
@@ -56,19 +57,11 @@ DRY = ['#3b3526', '#5a5136', '#7d7049', '#a1935f', '#cfc393']
 
 def logs():
     """What a felled tree leaves: two bucked lengths with the ends showing."""
-    im = Image.new('RGBA', (26, 16))
-    d = ImageDraw.Draw(im)
-    for x0, y0, length in ((3, 9, 20), (6, 4, 16)):
-        d.rectangle((x0, y0 + 1, x0 + length, y0 + 4), fill=BARKWOOD[2])
-        d.line((x0, y0 + 1, x0 + length, y0 + 1), fill=BARKWOOD[4])
-        d.line((x0, y0 + 2, x0 + length, y0 + 2), fill=BARKWOOD[3])
-        d.line((x0, y0 + 5, x0 + length, y0 + 5), fill=BARKWOOD[0])
-        for bx in range(x0 + 4, x0 + length - 2, 6):
-            d.line((bx, y0 + 3, bx + 2, y0 + 4), fill=BARKWOOD[1])
-        # Sawn end: pale heartwood with a ring.
-        d.ellipse((x0 - 2, y0, x0 + 2, y0 + 5), fill=GRAIN[0])
-        d.ellipse((x0 - 1, y0 + 1, x0 + 1, y0 + 4), fill=GRAIN[1])
-        d.point((x0, y0 + 2), fill=GRAIN[2])
+    im = Image.new('RGBA', (30, 20))
+    rng = random.Random('logs')
+    bark = ramp('#7a5a3c')
+    _log(im, bark, 7, 22, 8, 3.5, rng)
+    _log(im, bark, 3, 24, 14, 4, rng)
     return im
 
 

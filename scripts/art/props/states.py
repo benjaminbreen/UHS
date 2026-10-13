@@ -2,10 +2,19 @@
 from .proofs import art
 
 def runtime_sprites():
- a=art('wood',0)
- a.line((20,43,27,29),0,3);a.line((20,42,27,29),3,2);a.line((20,41,26,30),5)
- a.line((24,35,27,34),0,2);a.line((24,34,26,34),4)
- result={'study-prop-stick-0':a.finish()}
+ from PIL import Image
+ im=Image.new('RGBA',(48,48));bark=['#3b2a1c','#5c4129','#7d5b39','#9c784c','#bd9a68']
+ # A forked branch lying on the ground, lit along its upper edge.
+ for (x0,y0),(x1,y1),w in [((14,42),(33,33),2),((26,37),(31,30),1),((33,33),(36,33),1)]:
+  n=max(abs(x1-x0),abs(y1-y0))
+  for i in range(n+1):
+   x=round(x0+(x1-x0)*i/n);y=round(y0+(y1-y0)*i/n)
+   im.putpixel((x,y-1),Image.new('RGBA',(1,1),bark[4]).getpixel((0,0)))
+   for k in range(w):im.putpixel((x,y+k),Image.new('RGBA',(1,1),bark[2]).getpixel((0,0)))
+   im.putpixel((x,y+w),Image.new('RGBA',(1,1),bark[0]).getpixel((0,0)))
+ for x,y in ((20,39),(27,35)):im.putpixel((x,y),Image.new('RGBA',(1,1),bark[1]).getpixel((0,0)))
+ im.putpixel((13,42),Image.new('RGBA',(1,1),'#d8bf8c').getpixel((0,0)))
+ result={'study-prop-stick-0':im}
  for kind,material in [('clay','clay'),('wood','wood'),('fiber','fiber')]:
   a=art(material,0)
   for points in [[(10,40),(15,34),(19,40),(16,43)],[(21,42),(24,35),(30,39),(27,44)],[(31,42),(36,36),(39,42)]]:

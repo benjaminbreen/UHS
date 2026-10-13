@@ -6,8 +6,8 @@ show both. Nothing here replaces a production sprite.
 from .wells import low_well, framed_well, trough, pump
 from .harvest import sheaf, spade
 from .town import town_well, grinder, sickle, axe, pick, drying_rack
-from .workshop import chest, bench, park_bench, anvil, loom
-from .household import sack, cooking_pot, stool, catch
+from .workshop import chest, bench, park_bench, anvil, loom, painted_chest, workbench
+from .household import sack, cooking_pot, stool, catch, bedroll, plastic_bin, gourd
 from .industrial import dustbin, litter_bin, municipal_planter, works_fence, steel_drum, wheelbarrow, washing_line
 from . import fallen as _fallen
 from .lamps import LAMPS
@@ -58,6 +58,11 @@ DRAW_B = {
  'rickshaw': rickshaw,
  'anvil': anvil,
  'loom': loom,
+ 'painted-chest': painted_chest,
+ 'workbench': workbench,
+ 'bedroll': bedroll,
+ 'plastic-bin': plastic_bin,
+ 'gourd': gourd,
  'sack': sack,
  'stool': stool,
  'cooking-pot': cooking_pot,

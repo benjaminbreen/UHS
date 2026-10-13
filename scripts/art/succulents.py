@@ -238,43 +238,29 @@ def cholla(id_):
     """Teddy-bear cholla: a dark, dead-jointed trunk under a dense head of
     short joints whose spines glow straw-gold against the light."""
     rng = _rng(id_)
-    pal = ramp('#a4a86a')
+    pal = ramp('#b8b070')
     dead = ramp('#4a3a2e')
     im = _new(30, 40)
-    _stem(im, dead, (15, 37), (15, 20), 3)
-    for y in range(24, 36, 2):
-        _put(im, 13 + y % 3, y, dead[3])
-    joints = []
-    for _ in range(26):
-        x, y = rng.gauss(15, 4.2), rng.gauss(14, 4.5)
-        if not (3 < x < 27 and 3 < y < 26):
-            continue
-        a = rng.uniform(-0.9, 0.9) + (x - 15) * 0.05
-        joints.append(((x, y + 2), (x + math.sin(a) * 4, y + 2 - math.cos(a) * 4)))
-    for a, b in sorted(joints, key=lambda j: j[0][1]):
-        _stem(im, pal, a, b, 2.6)
-    # Repaint the head as one fuzzy mass: the spines, not the joints, are what
-    # the eye sees, with a dark notch where joints overlap.
-    head = {(x, y) for y in range(28) for x in range(im.width) if _opaque(im, x, y)}
-    for x, y in head:
-        edge = any((x + dx, y + dy) not in head for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-        lit = (15 - x) * 0.08 + (14 - y) * 0.09 + rng.uniform(-0.5, 0.5)
-        if edge:
-            t = 4 if lit > 0.2 else 1 if lit > -0.4 else 0
-        else:
-            t = 5 if lit > 0.5 else 4 if lit > -0.1 else 3 if lit > -0.7 else 2
-            if lit > 0 and rng.random() < 0.18:
-                t = 6
-        if not edge and im.getpixel((x, y))[:3] == rgb(pal[0]) and rng.random() < 0.5:
-            t = 1
-        _put(im, x, y, pal[t])
-    for x, y in head:
-        if (x + 1, y) not in head and rng.random() < 0.5:
-            _put(im, x + 1, y, pal[3])
-        if (x, y - 1) not in head and rng.random() < 0.5:
-            _put(im, x, y - 1, pal[5])
-    for x in (5, 24, 26):
-        _blob(im, pal, x, 36, 1.8, 1.3)
+    _stem(im, dead, (15, 37), (15, 22), 2.6)
+    for y in range(24, 36, 3):
+        _put(im, 14, y, dead[4]); _put(im, 16, y + 1, dead[1])
+    # Joints back to front, so the near ones overlap and each keeps a dark rim.
+    joints = [(15, 7, 0), (10, 10, -0.5), (20, 10, 0.5), (7, 15, -0.9), (23, 15, 0.9),
+              (13, 13, -0.2), (17, 13, 0.2), (11, 19, -0.4), (19, 19, 0.4), (15, 18, 0),
+              (6, 21, -1.0), (24, 21, 1.0), (15, 24, 0)]
+    for x, y, a in sorted(joints, key=lambda j: j[1]):
+        dx, dy = math.sin(a) * 2, -math.cos(a) * 2
+        _stem(im, pal, (x - dx, y - dy), (x + dx, y + dy), 2.8)
+    for x in range(2, 28):
+        for y in range(2, 28):
+            if _opaque(im, x, y) and not _opaque(im, x, y - 1) and rng.random() < 0.6:
+                _put(im, x, y - 1, pal[6])
+            if _opaque(im, x, y) and not _opaque(im, x - 1, y) and rng.random() < 0.4:
+                _put(im, x - 1, y, pal[5])
+    for x, y, a in joints:
+        _put(im, x - 1, y - 1, pal[6])
+    for x in (6, 24):
+        _blob(im, pal, x, 36, 2, 1.4)
     return im
 
 
@@ -371,18 +357,32 @@ def aloe(id_, leaf='#6a9a78', flower='#e8602a', stalks=2, trunk=0, n=13):
 
 
 def desert_rose(id_):
+    """Adenium: a swollen bottle-shaped caudex, a few short fat limbs, and
+    dense tufts of leaves with pink trumpets at the tips."""
     rng = _rng(id_)
-    bark = ramp('#a89478')
+    bark = ramp('#b09a7c')
     leaf = ramp('#4f8a3a')
     fl = ramp('#e0507a')
-    im = _new(38, 34)
-    _blob(im, bark, 19, 25, 9, 6.5)
-    for a, b in (((13, 22), (6, 10)), ((19, 20), (18, 6)), ((25, 22), (31, 11)), ((22, 21), (26, 8))):
-        _stem(im, bark, a, b, 2.6, taper=0.35)
-    for x, y in ((6, 10), (18, 6), (31, 11), (26, 8)):
-        for dx, dy in ((-3, -1), (3, -1), (-2, -3), (2, -3), (0, -4)):
-            _leaf(im, leaf, (x, y), (x + dx, y + dy), 1.2)
-        _flower(im, x + rng.choice((-1, 1)), y - 2, fl, '#f6e0e8', big=True)
+    im = _new(46, 38)
+    tips = []
+    for a, b, fork in (((19, 25), (14, 18), ((9, 14), (15, 12))), ((23, 23), (24, 15), ((20, 10), (28, 11))),
+                       ((27, 25), (32, 19), ((37, 15),))):
+        _stem(im, bark, a, b, 3.2, taper=0.3)
+        for t in fork:
+            _stem(im, bark, b, t, 2.2, taper=0.35)
+            tips.append(t)
+    _blob(im, bark, 23, 30, 9, 6)
+    _blob(im, bark, 23, 25, 5.5, 4.5)
+    for x, y in tips:
+        for k in range(11):
+            ang = -math.pi * (0.02 + 0.96 * k / 10)
+            ln = 5 + (k % 3)
+            _leaf(im, leaf, (x, y), (x + math.cos(ang) * ln, y + math.sin(ang) * ln * 0.75), 1.9)
+    for x, y in tips:
+        if rng.random() < 0.75:
+            fx, fy = x + rng.choice((-2, 2)), y - 2
+            _flower(im, fx, fy, fl, '#f6e0e8', big=True)
+            _put(im, fx, fy + 2, fl[2])
     return im
 
 
@@ -487,27 +487,38 @@ def woolly_cushion(id_):
 
 
 def candelabra():
+    """Euphorbia candelabrum: a short corky trunk, arms that leave it level and
+    turn straight up, segmented, their tips making a rounded crown."""
     rng = random.Random(41)
     pal = ramp('#4f7a4a')
-    bark = ramp('#6e6a5a')
+    back = ramp('#3e6440')
+    bark = ramp('#7a705a')
     im = _new(72, 84)
-    _stem(im, bark, (36, 81), (36, 50), 4.6)
-    arms = []
-    for k in range(9):
-        a = -1.1 + 2.2 * k / 8
-        x0 = 36 + math.sin(a) * 4
-        el = (36 + math.sin(a) * (12 + abs(a) * 12), 52 - math.cos(a) * 10 + abs(a) * 6)
-        top = 6 + a * a * 16 + rng.uniform(-2, 3)
-        arms.append(((x0, 50), el, top))
-    for (x0, y0), (ex, ey), top in sorted(arms, key=lambda s: abs(s[1][0] - 36)):
-        _stem(im, bark, (x0, y0), (ex, ey), 2.8)
-        # Segments pinch where a season's growth began.
+    _stem(im, bark, (36, 81), (36, 46), 5, taper=0.25)
+    for y in range(50, 80, 4):
+        _put(im, 34, y, bark[1]); _put(im, 35, y + 1, bark[2]); _put(im, 37, y + 2, bark[1])
+    def arm(dx, base, ramp_, r):
+        top = 5 + (dx / 26) ** 2 * 30 + rng.uniform(-2, 2)
+        bend = 6 + abs(dx) * 0.45
+        sx, sy = 36 + (2 if dx > 0 else -2 if dx < 0 else 0), base
+        pts = [(sx, sy)]
+        for i in range(1, 6):
+            ang = i / 5 * math.pi / 2
+            pts.append((sx + dx * math.sin(ang), sy - bend * (1 - math.cos(ang))))
+        ex, ey = pts[-1]
+        for a, b in zip(pts, pts[1:]):
+            _stem(im, ramp_, a, b, r * 0.8)
         y = ey
         while y > top:
-            ny = max(top, y - rng.uniform(8, 11))
-            _stem(im, pal, (ex, y), (ex, ny), 3, ribs=2, spine='#2a3a24', rng=rng, density=0.25)
+            ny = max(top, y - rng.uniform(7, 10))
+            _stem(im, ramp_, (ex, y), (ex, ny), r, ribs=2, spine='#2a3a24', rng=rng, density=0.2)
+            _put(im, ex - r + 1, ny, ramp_[0]); _put(im, ex + r - 1, ny, ramp_[0])
             y = ny
-        _put(im, ex, top - 1, '#c8b040')
+        _put(im, ex, top - 1, '#d8c050'); _put(im, ex - 1, top, '#c8b040')
+    for dx, base in ((-26, 54), (-11, 46), (11, 46), (26, 54), (0, 44)):
+        arm(dx, base, back, 2.8)
+    for dx, base in ((-19, 58), (-5, 50), (6, 52), (19, 58)):
+        arm(dx, base, pal, 3.2)
     return im
 
 

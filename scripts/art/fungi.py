@@ -45,20 +45,58 @@ def _litter(im, rng, y, x0, x1):
             _put(im, x, y + rng.choice((0, 0, 1)), rng.choice(LITTER))
 
 
+def _log_tone(v):
+    return 5 if v < -0.55 else 4 if v < -0.1 else 3 if v < 0.35 else 2 if v < 0.75 else 1
+
+
 def _log(im, pal, x0, x1, y, r, rng, moss=None):
-    _stem(im, pal, (x0, y), (x1, y), r)
-    end = ramp('#b89868')
-    for yy in range(int(y - r + 1), int(y + r)):
-        for xx in range(int(x1 - 1), int(x1 + 2)):
-            if ((xx - x1) / 1.6) ** 2 + ((yy - y) / (r - 0.5)) ** 2 < 1:
-                _put(im, xx, yy, end[4] if (yy - y) % 3 else end[2])
-    for x in range(int(x0), int(x1 - 2), 3):
-        _put(im, x + rng.randrange(0, 2), y + rng.randrange(-1, 2), pal[1])
+    """A felled length lying across the view: bark furrows run along it, the
+    sawn end shows a bark ring, pale sapwood, growth rings and a split."""
+    x0, x1 = round(x0), round(x1)
+    top, bot = round(y - r), round(y + r)
+    ex = max(2, round(r * 0.6))
+    for yy in range(top, bot + 1):
+        v = (yy - y) / r
+        inset = round(ex * 0.8 * (1 - math.sqrt(max(0.0, 1 - v * v))))
+        for x in range(x0 + inset, x1 + 1):
+            tone = 0 if yy == bot else 1 if yy == top or x == x0 + inset else _log_tone(v)
+            _put(im, x, yy, pal[tone])
+    for yy in range(top + 2, bot - 1, 2):
+        base = _log_tone((yy - y) / r)
+        x = x0 + rng.randrange(2, 5)
+        while x < x1 - ex - 2:
+            n = rng.randrange(3, 7)
+            for k in range(min(n, x1 - ex - 1 - x)):
+                _put(im, x + k, yy, pal[max(1, base - 2)])
+            _put(im, x + 1, yy - 1, pal[min(6, base + 1)])
+            x += n + rng.randrange(2, 6)
     if moss:
         m = ramp(moss)
-        for x in range(int(x0), int(x1)):
-            if rng.random() < 0.45:
-                _put(im, x, y - r + 1, m[4]); _put(im, x, y - r + 2, m[2])
+        x = x0 + rng.randrange(2, 5)
+        while x < x1 - ex - 3:
+            n = rng.randrange(4, 9)
+            for k in range(min(n, x1 - ex - 2 - x)):
+                _put(im, x + k, top, m[1])
+                _put(im, x + k, top + 1, m[4])
+                if 0 < k < n - 1:
+                    _put(im, x + k, top - 1, m[4])
+            x += n + rng.randrange(5, 10)
+    end = ramp('#c9a56e')
+    for yy in range(top, bot + 1):
+        for xx in range(x1 - ex, x1 + ex + 1):
+            u, v = (xx - x1) / (ex + 0.4), (yy - y) / (r + 0.4)
+            e = u * u + v * v
+            if e > 1:
+                continue
+            if e > 0.62:
+                t = pal[0] if u + v > 0.3 else pal[2]
+            elif e < 0.04 or 0.18 < e < 0.3:
+                t = end[2]
+            else:
+                t = end[5] if u + v < -0.35 else end[4]
+            _put(im, xx, yy, t)
+    for k in range(1, round(r * 0.7)):
+        _put(im, x1 + (k + 1) // 2, round(y) + k, end[2])
 
 
 def _bracket(im, pal, cx, cy, w, h, bands=None):
@@ -249,17 +287,25 @@ def stinkhorn():
     im = _new(20, 30)
     _litter(im, rng, 27, 3, 17)
     lace = ramp('#f0ead8')
-    for y in range(10, 27):
-        _put(im, 9, y, lace[5]); _put(im, 10, y, lace[3])
-    for y in range(12, 25):
-        t = (y - 12) / 13
-        w = 2 + t * 5
-        for x in range(int(9.5 - w), int(9.5 + w) + 1):
-            if (x + y) % 2 == 0 and abs(x - 9.5) > 1:
-                _put(im, x, y, lace[4 if x < 9 else 2])
-    for y in range(6, 11):
-        for x in (8, 9, 10, 11):
-            _put(im, x, y, '#3a3a24' if (x + y) % 3 else '#6a6a40')
+    for y in range(11, 26):
+        t = (y - 11) / 14
+        half = 1.5 + t * 5.5
+        for x in range(round(9.5 - half), round(9.5 + half) + 1):
+            u = (x - 9.5) / half
+            hole = y % 3 == 1 and (x + (y // 3) * 2) % 4 == 0 and abs(u) < 0.85
+            tone = 1 if u > 0.75 else 2 if hole else 5 if u < -0.35 else 4 if u < 0.3 else 3
+            _put(im, x, y, lace[tone])
+    for x in range(3, 17):
+        if x % 2:
+            _put(im, x, 26, lace[3 if x < 10 else 2])
+    for y in range(9, 27):
+        _put(im, 9, y, lace[6]); _put(im, 10, y, lace[4])
+    gleba = ramp('#5a5432')
+    for y in range(4, 11):
+        half = 1 + (y - 4) * 0.35
+        for x in range(round(9.5 - half), round(9.5 + half) + 1):
+            _put(im, x, y, gleba[4 if x < 9 else 3 if x == 9 else 1] if (x + y) % 3 else gleba[2])
+    _put(im, 9, 3, lace[5]); _put(im, 10, 3, lace[3])
     return im
 
 

@@ -126,3 +126,69 @@ def catch(v=0):
   c.set(x - 1, top + length, f[2]); c.set(x + 1, top + length, f[2])
  soft_outline(c, f[0], f[2])
  return c.image()
+
+
+MAT = [('linen7', 'rustred7'), ('rustred7', 'linen7'), ('paintblue7', 'linen7')]
+
+
+def bedroll(v=0):
+ """A sleeping mat laid out flat, stripes running its length, the head end
+ rolled into a bolster and the foot fraying where the weave ends."""
+ c = Canvas(27, 13)
+ c.PAD = 2
+ m, s = RAMPS[MAT[v][0]], RAMPS[MAT[v][1]]
+ for y in range(3, 12):
+  for x in range(5, 26):
+   tone = 5 if y < 5 else 4 if y < 10 else 3
+   if y in (5, 9): c.set(x, y, s[4 if y == 5 else 3])
+   else: c.set(x, y, m[tone])
+ c.hline(5, 25, 3, m[6]); c.hline(5, 25, 11, m[2])
+ for y in range(3, 12, 2): c.set(26, y, m[3])
+ for x in range(9, 25, 5): c.set(x, 7, m[3])
+ blob(c, [(4.5, 7.0, 4.2, 5.6)], m, hard=True)
+ for y in range(2, 13, 3):
+  c.set(4, y, s[3]); c.set(5, y, s[3])
+ soft_outline(c, m[1], m[3])
+ return c.image()
+
+
+BIN = [['#1d2a22', '#2e4436', '#45624d', '#5f8166', '#7d9e82', '#a2bea5', '#c9dccb'],
+       ['#14212e', '#213549', '#305068', '#436c88', '#5f8aa6', '#87abc1', '#b4cddb'],
+       ['#2e1612', '#4b221b', '#6c3427', '#8e4836', '#ad6249', '#c88468', '#dfac93']]
+
+
+def plastic_bin(v=0):
+ """A moulded bucket: a thick rolled lip, a straight taper, flat clean
+ colour with one hard highlight, a wire handle up over the mouth."""
+ c = Canvas(9, 11)
+ c.PAD = 2
+ p = BIN[v]
+ for y in range(3, 11):
+  half = 4.2 - (y - 3) * 0.12
+  for x in range(9):
+   u = (x + .5 - 4.5) / half
+   if abs(u) > 1: continue
+   tone = 5 if -0.7 < u < -0.4 else 4 if u < 0.2 else 3 if u < 0.75 else 2
+   c.set(x, y, p[tone])
+ c.hline(1, 7, 10, p[1])
+ for x in range(9):
+  c.set(x, 2, p[6] if x < 4 else p[5]); c.set(x, 3, p[3])
+ c.hline(1, 7, 1, p[2])
+ for x, y in ((1, 1), (1, 0), (2, 0), (6, 0), (7, 0), (7, 1), (3, 0), (4, 0), (5, 0)):
+  c.set(x, y, RAMPS['iron7'][4])
+ c.hline(2, 6, 7, p[3])
+ soft_outline(c, p[0], p[3])
+ return c.image()
+
+
+def gourd(v=0):
+ """A dried bottle gourd: two lobes, a narrow waist, a stub of stalk and
+ the mottling of a skin left to cure."""
+ c = Canvas(8, 12)
+ p = RAMPS[['wicker7', 'buffclay7', 'terracotta7'][v]]
+ blob(c, [(4, 8.5, 3.8, 3.4), (4, 3.8, 2.3, 2.3)], p, hard=True)
+ for x, y in ((3, 8), (5, 10), (5, 3)):
+  if (x, y) in c.px: c.set(x, y, p[2])
+ c.vline(4, 0, 1, RAMPS['oak7'][3])
+ soft_outline(c, p[0], p[3])
+ return c.image()

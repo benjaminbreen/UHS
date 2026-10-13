@@ -39,6 +39,27 @@ for v in range(4):
 im,d=new(16,16);d.rectangle((0,0,15,15),fill=P['wood']);
 for x in [0,5,10,15]: d.line((x,0,x,15),fill=P['woodL'])
 d.line((0,3,15,3),fill='#665640');d.line((0,12,15,12),fill='#665640');add('bridge',im)
+from art.shrubs import ramp as tone_ramp
+from art.fungi import _log
+from art.succulents import _put
+# The first recipes below drew these as flat boxes, and nothing later in the
+# build (art_world.paint_world) replaces them.
+def redrawn(name,im):
+ if name=='log':_log(im,tone_ramp('#7a5a3c'),2,12,17,3.5,random.Random(name))
+ else:
+  w=tone_ramp('#9a7a50')
+  for x in (2,13):
+   for y in range(5,22):_put(im,x,y,w[4]);_put(im,x+1,y,w[2])
+   _put(im,x,5,w[6]);_put(im,x+1,22,w[0])
+  if name=='gate':
+   for y in (8,13,18):
+    for x in range(4,13):_put(im,x,y,w[5]);_put(im,x,y+1,w[2])
+   for k in range(9):_put(im,4+k,18-k*10//9,w[3])
+  else:
+   for y in (8,13,18):
+    for x in range(4,7):_put(im,x,y-(x-4),w[5]);_put(im,x,y+1-(x-4),w[2])
+   for y in range(5,20):_put(im,7,y,w[3])
+ return im
 for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amphora','jug','well','fire','bench','gate','gate-open','fence','ladder','door','door-open','mat','bed','oven','crate','fish','tool','bread','grain','coin','obsidian','wool']:
  w,h=(32,32) if name in ['well','oven'] else (16,24)
  im,d=new(w,h);d.ellipse((2,h-7,w-2,h-2),fill=(39,44,32,65))
@@ -72,7 +93,7 @@ for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amph
   for x in [7,15,23]:d.line((x,20,x,25),fill='#777968')
  elif name=='fire':
   d.ellipse((1,16,15,23),fill='#777b68');d.ellipse((3,17,13,21),fill='#514d3e');d.polygon([(4,19),(3,15),(7,10),(8,5),(11,12),(12,17),(10,21)],fill='#c57740');d.polygon([(6,19),(7,13),(9,10),(10,18),(8,20)],fill='#ebc565')
- elif name in ['mat','bed','bench','log']:
+ elif name in ['mat','bed','bench']:
   d.rectangle((1,12,14,20),fill='#766040');d.rectangle((2,12,13,17),fill='#ae9162')
   if name in ['bed','mat']:d.rectangle((3,12,12,19),fill='#b89469');d.rectangle((3,12,6,18),fill='#d2c397')
  elif name=='tool':
@@ -90,6 +111,8 @@ for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amph
   d.polygon([(2,18),(6,8),(11,5),(13,17),(9,21)],fill='#3e4649');d.polygon([(6,10),(11,6),(8,17),(3,18)],fill='#71817b');d.line((11,7,10,15),fill='#9daa96')
  elif name=='wool':
   for x,y in [(5,14),(10,13),(9,18),(4,18)]:d.ellipse((x-3,y-3,x+3,y+3),fill='#dbd4b2');d.arc((4,12,11,19),30,300,fill='#aaa888')
+ if name in ('log','gate','gate-open'):
+  im,d=new(w,h);d.ellipse((2,h-7,w-2,h-2),fill=(39,44,32,65));redrawn(name,im)
  add(name,im)
 for name in ['sheep','goat','lizard','chicken']:
  for frame in range(2):

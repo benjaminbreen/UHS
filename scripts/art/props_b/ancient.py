@@ -12,22 +12,30 @@ BUFF = RAMPS['buffclay7']
 
 
 def _log_x(c, x0, x1, cy, half, b=BARK, cut=CUT):
- """A log lying across the view, lit along its top, a cut face at each end
- seen slightly from the side."""
- for x in range(x0, x1 + 1):
-  for y in range(int(cy - half), int(cy + half) + 1):
-   t = (y + .5 - cy) / half
-   if abs(t) > 1: continue
-   tone = 5 if t < -0.6 else 4 if t < -0.1 else 3 if t < 0.45 else 2 if t < 0.8 else 1
-   if jitter(x // 3, y) % 6 == 0: tone -= 1
-   c.set(x, y, b[max(tone, 1)])
- for ex in (x0, x1):
-  for y in range(int(cy - half), int(cy + half) + 1):
-   for dx in (0, 1) if ex == x1 else (-1, 0):
-    t = (y + .5 - cy) / half
-    if abs(t) <= 1:
-     c.set(ex + dx, y, cut[3] if t < -0.3 else cut[2] if t < 0.4 else cut[1])
-  c.set(ex, int(cy), cut[0])                          # the heart of the wood
+ """A log lying across the view, lit along its top, bark furrows running
+ along it, the near end sawn and showing its rings."""
+ ex = max(2, round(half * 0.6))
+ for y in range(int(cy - half), int(cy + half) + 1):
+  t = (y + .5 - cy) / half
+  if abs(t) > 1: continue
+  inset = round(ex * 0.8 * (1 - (1 - t * t) ** .5))
+  tone = 5 if t < -0.6 else 4 if t < -0.1 else 3 if t < 0.45 else 2 if t < 0.8 else 1
+  for x in range(x0 + inset, x1 + 1):
+   c.set(x, y, b[tone])
+  if int(y - cy) % 2 == 0 and -0.6 < t < 0.8:
+   x = x0 + 2 + jitter(y) % 3
+   while x < x1 - ex - 2:
+    n = 3 + jitter(x, y) % 4
+    for k in range(min(n, x1 - ex - 1 - x)): c.set(x + k, y, b[max(tone - 2, 0)])
+    c.set(x + 1, y - 1, b[min(tone + 1, 5)])
+    x += n + 2 + jitter(y, x) % 4
+ for y in range(int(cy - half), int(cy + half) + 1):
+  for x in range(x1 - ex, x1 + ex + 1):
+   u, t = (x + .5 - x1) / (ex + .4), (y + .5 - cy) / (half + .4)
+   e = u * u + t * t
+   if e > 1: continue
+   col = (b[1] if u + t > 0.3 else b[3]) if e > 0.62 else cut[0] if e < 0.05 else cut[1] if 0.2 < e < 0.32 else cut[3] if u + t < -0.35 else cut[2]
+   c.set(x, y, col)
 
 
 def seat_log(v=0):
