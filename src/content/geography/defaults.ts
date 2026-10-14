@@ -19,6 +19,7 @@ export function environmentFor(
 
 /** Called only for new worlds. Workers and replay consume the pinned input as-is. */
 export function integratedSetting(s: WorldSetting): WorldSetting {
+  s = { ...s, namingRevision: s.namingRevision ?? 1 };
   if (s.terrainRevision === 1)
     return { ...s, characterRevision: s.characterRevision ?? 1 };
   if (s.geographyRevision)

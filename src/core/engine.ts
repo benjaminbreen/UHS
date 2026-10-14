@@ -67,7 +67,7 @@ import {
   type WorldObject,
 } from "./types";
 import { canonical, random, stateHash } from "./random";
-import { askLines, hear, retold, tidings } from "./word";
+import { askLines, hear, telling, tidings } from "./word";
 import { orderKeeper } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
@@ -237,7 +237,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Ask, Favour, Place, Point, WalkOff } from "./types";
+import type { Ask, Favour, Place, Point, WalkOff, Word } from "./types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -1251,7 +1251,7 @@ export class Engine {
     // Smashing things inside an occupied home is a break-in however the door was opened.
     const home = action === "break" && p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
     if (home && this.state.households?.some((h) => h.residence === home.id && h.id !== p.householdId))
-      this.breakIn(home, `Saw player smash things in ${home.name.toLowerCase()} with an axe`);
+      this.breakIn(home, `Saw player smash things in ${home.name.toLowerCase()} with an axe`, "smashed things in");
     const memory = `property:${o.id}`;
     if (p.memories.includes(memory)) return;
     p.memories.push(memory);
@@ -1259,6 +1259,7 @@ export class Engine {
       owner: o.owner,
       cost: (theirs) => (theirs ? 8 : 4),
       memory: () => `Saw player ${action} ${o.id}`,
+      story: { act: ({ break: "smashed", topple: "knocked over", "pick up": "made off with" } as Record<string, string>)[action] ?? action, object: o.name.toLowerCase() },
       text: (w) => `${w.name} saw you ${action} household property.`,
     });
   }
@@ -1291,6 +1292,8 @@ export class Engine {
     radius?: number;
     cost: (theirs: boolean) => number;
     memory: (theirs: boolean) => string;
+    /** What was done, for retelling: "smashed" and "cooking pot", the owner being whose. */
+    story: { act: string; object?: string };
     text: (witness: Actor, theirs: boolean) => string;
     /** Named when the owner should find out later if none of theirs saw. */
     lost?: { what: string; pos: Position };
@@ -1301,7 +1304,9 @@ export class Engine {
       seen ||= theirs;
       this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
       w.memories.push(o.memory(theirs));
-      hear(w, { what: retold(o.memory(false)), tone: -o.cost(theirs), at: this.state.clock, hops: 0 });
+      hear(w, { ...o.story, victim: o.owner, tone: -o.cost(theirs), at: this.state.clock, hops: 0 });
+      if (theirs && o.cost(true) >= 8 && random(this.state.manifest.seed, "complain", w.id, this.state.clock) < 0.5)
+        this.complain(w, { ...o.story, victim: o.owner, tone: -o.cost(true), at: this.state.clock, hops: 0 });
       this.event(o.text(w, theirs), "social");
     }
     if (seen || !o.owner || !o.lost) return;
@@ -1341,6 +1346,7 @@ export class Engine {
       }
       a.memories.push(`Found ${l.what} gone; the player was seen about`);
       this.regard(a, -3, "anger");
+      this.complain(a, { act: "stole from", object: "household", victim: a.id, tone: -6, at: this.state.clock, hops: 0 });
       this.event(
         `${a.name} has found ${l.what} gone, and has heard you were about.`,
         "social",
@@ -1503,6 +1509,7 @@ export class Engine {
     this.offend({
       owner: field.owner,
       cost: (theirs) => (theirs ? 6 : 3),
+      story: { act: "stole from", object: "field" },
       memory: (theirs) =>
         theirs
           ? `Saw player take my crop at ${x},${y}`
@@ -1565,6 +1572,7 @@ export class Engine {
       this.offend({
         owner: at.owner,
         cost: (theirs) => (theirs ? 8 : 3),
+        story: { act: "cut down", object: name },
         memory: (theirs) =>
           theirs
             ? `Saw player cut down my ${name} at ${at.x},${at.y}`
@@ -2595,7 +2603,7 @@ export class Engine {
   }
   /** Everyone at home when the door comes in: the able-bodied grown come at
    * the intruder, children and the old cower and run. Nobody forgets it. */
-  private breakIn(place: Place, memory = `Saw player break down the door of ${place.name.toLowerCase()} with an axe`) {
+  private breakIn(place: Place, memory = `Saw player break down the door of ${place.name.toLowerCase()} with an axe`, act = "broke down the door of") {
     const household = this.state.households?.find((h) => h.residence === place.id);
     const home = (a: Actor) => a.pos.space === place.id || (household?.members.includes(a.id) && a.pos.space === "outside" && distance(a.pos, this.state.player.pos) < 12);
     for (const a of this.state.actors) {
@@ -2604,10 +2612,12 @@ export class Engine {
       a.terror = { until: this.state.clock + 2 * 3600, place: place.id, fight: age >= 15 && age < 65 && !a.injury };
       a.offRoutine = true;
       a.memories.push(memory);
-      hear(a, { what: retold(memory), tone: -10, at: this.state.clock, hops: 0 });
+      hear(a, { act, object: "home", victim: place.owner, tone: -10, at: this.state.clock, hops: 0 });
       this.regard(a, -4, "fury");
       this.cue(a.id, "alarm", this.state.player.pos);
     }
+    const owner = this.state.actors.find((a) => a.id === place.owner);
+    if (owner) this.complain(owner, { act, object: "home", victim: owner.id, tone: -10, at: this.state.clock, hops: 0 });
   }
   /** Walk into a house uninvited and whoever heads it, the owner or the eldest
    * at home, comes at you a few seconds later to order you out. */
@@ -2640,7 +2650,7 @@ export class Engine {
     i.done = true;
     this.regard(a, -2, "anger");
     a.memories.push(`Found player in ${place.name.toLowerCase()} uninvited`);
-    hear(a, { what: `walked into ${place.name.toLowerCase()} uninvited`, tone: -3, at: clock, hops: 0 });
+    hear(a, { act: "walked uninvited into", object: "home", victim: a.id, tone: -3, at: clock, hops: 0 });
     this.confronter = this.confronting = a.id;
     this.approacher = {
       id: a.id,
@@ -2769,6 +2779,7 @@ export class Engine {
       owner: g.owner,
       radius: 12,
       cost: (theirs) => (theirs ? 10 : 4) * (killed ? 2 : 1),
+      story: { act: killed ? "killed" : "struck", object: label },
       memory: (theirs) =>
         `Saw player ${did} ${theirs ? "my" : "a neighbour's"} ${label}`,
       text: (w, theirs) =>
@@ -4344,7 +4355,7 @@ export class Engine {
   /** Someone the plot sent to the player, and what they came to say. Talking
    * to them in time opens on it. */
   approacher?: { id: string; situation: string; until: number };
-  private approaching?: { id: string; line: string; until: number; title?: string };
+  private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; onArrive?: () => void };
   private working = false;
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
@@ -5160,6 +5171,8 @@ export class Engine {
     const p = this.state.player;
     if (c.type === "become") return p.dead && this.heirs().some((a) => a.id === c.heir) ? undefined : "There is no one to go on as.";
     if (p.dead) return `You are dead from ${p.dead}. Start a new world or load an earlier save.`;
+    if ((p.stocked ?? 0) > this.state.clock && c.type !== "wait" && c.type !== "sleep" && !(c.type === "interact" && c.action === "talk"))
+      return "You are held fast in the stocks.";
     if (c.type === "interact" && c.action === "descend")
       return p.perch || this.onWall() ? undefined : "You are not up anything.";
     if (
@@ -7157,6 +7170,7 @@ export class Engine {
               owner: o.owner,
               lost: { what: `${o.name.toLowerCase()} emptied`, pos: o.pos },
               cost: (theirs) => (theirs ? 8 : 4),
+              story: { act: "emptied", object: o.name.toLowerCase() },
               memory: () => `Saw player take ${o.id}`,
               text: (w) =>
                 `${w.name} saw you take property belonging to the household.`,
@@ -7518,9 +7532,10 @@ export class Engine {
       this.cards.push({ kind: "speech", title: ap.title ?? this.state.plot?.title ?? "", text: ap.line, speaker: a.id });
       this.approacher = {
         id: a.id,
-        situation: `You have just walked up to the player and said: “${ap.line}” You want an answer.`,
+        situation: ap.situation ?? `You have just walked up to the player and said: “${ap.line}” You want an answer.`,
         until: clock + 300,
       };
+      ap.onArrive?.();
       return;
     }
     const inside = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
@@ -7572,7 +7587,7 @@ export class Engine {
       const near = s.actors.filter((o) => o.kind === "human" && !o.dead && (o.age ?? 30) >= 13 && o.householdId && o.householdId !== h.id && distance(o.home, h.home) < 25);
       const tell = (what: string, tone: number, key: string) => {
         const o = near[Math.floor(random(seed, "tiding", h.id, key) * near.length)];
-        if (o) hear(o, { what, tone, at: clock, hops: 1, about: head.id });
+        if (o) hear(o, { act: what, tone, at: clock, hops: 1, about: head.id });
       };
       for (const e of (h.history ?? []).filter((e) => year - e.year <= 1).slice(-2)) {
         const t = tidings[e.kind];
@@ -7590,7 +7605,7 @@ export class Engine {
       if (Math.abs(tone) < 0.5 || w.from === b.id) continue;
       // Nobody tells a family its own scandal.
       if (w.about && (w.about === b.id || this.state.actors.find((x) => x.id === w.about)?.householdId === b.householdId)) continue;
-      if (hear(b, { what: w.what, tone, at: clock, hops: w.hops + 1, from: a.id, about: w.about }) && !w.about) b.trust += tone / 2;
+      if (hear(b, { ...w, tone, at: clock, hops: w.hops + 1, from: a.id }) && !w.about) b.trust += tone / 2;
     }
   }
   /** A favour this person could fairly ask of the player when the model does
@@ -7667,7 +7682,7 @@ export class Engine {
     this.state.asks!.splice(this.state.asks!.indexOf(ask), 1);
     this.regard(a, 3, "warm");
     a.memories.push(`The player did what I asked: ${ask.what}`);
-    hear(a, { what: `did ${a.name} a favour they asked (${ask.what})`, tone: 4, at: this.state.clock, hops: 0 });
+    hear(a, { act: "did a favour for", victim: a.id, tone: 4, at: this.state.clock, hops: 0 });
     this.event(`${a.name} is grateful.`, "social");
   }
   /** Promises run out, and now and then someone nearby who likes the player
@@ -7681,7 +7696,7 @@ export class Engine {
       if (!ask.accepted || !a) continue;
       this.regard(a, -2, "anger");
       a.memories.push(`The player promised to ${ask.what} and never did`);
-      hear(a, { what: `promised ${a.name} a favour and never did it`, tone: -3, at: clock, hops: 0 });
+      hear(a, { act: "broke a promise to", victim: a.id, tone: -3, at: clock, hops: 0 });
     }
     const hour = Math.floor(clock / 3600) % 24;
     const morning = Math.floor(clock / 86400) * 86400;
@@ -7697,6 +7712,75 @@ export class Engine {
     this.approaching = { id: a.id, line: askLines[ask.kind](ask.what), until: clock + 1800, title: a.name };
   }
   private lastAsk?: number;
+  /** Whoever keeps order here: someone whose role says so, or else the
+   * eldest head of a household in their prime. */
+  keeper(): Actor | undefined {
+    const s = this.state;
+    if (this.keeperId) {
+      const known = s.actors.find((a) => a.id === this.keeperId);
+      if (known && !known.dead) return known;
+    }
+    const able = s.actors.filter((a) => a.kind === "human" && !a.dead && (a.age ?? 30) >= 25 && (a.age ?? 30) < 72 && a.householdId !== s.player.householdId);
+    const heads = new Set((s.households ?? []).map((h) => h.members[0]));
+    const k = able.find((a) => /headman|chief|elder|sheriff|constable|reeve|magistrat|official|alcalde|curaca|steward|bailiff|watchman|police|judge|qadi|kadi|podest|archon|headwoman/i.test(a.role)) ??
+      able.filter((a) => heads.has(a.id)).sort((x, y) => (y.age ?? 30) - (x.age ?? 30) || x.id.localeCompare(y.id))[0];
+    this.keeperId = k?.id;
+    return k;
+  }
+  private keeperId?: string;
+  /** Someone takes a grievance against the player to whoever keeps order. */
+  complain(a: Actor, story: Word) {
+    const list = (this.state.complaints ??= []);
+    if (list.some((c) => c.by === a.id) || list.length >= 4) return;
+    list.push({ by: a.id, story: { ...story, hops: 0 }, at: this.state.clock });
+  }
+  /** An hour or so after a complaint, the keeper of order finds the player
+   * and gives judgement: a warning, a fine paid to whoever was wronged, or
+   * the rest of the day in the stocks. */
+  private keeperStep(clock: number) {
+    const s = this.state, p = s.player, c = s.complaints?.[0];
+    if (!c || clock - c.at < 3600 || this.approaching || this.conversing || p.dead || (p.stocked ?? 0) > clock) return;
+    const hour = Math.floor(clock / 3600) % 24;
+    if (hour < 7 || hour >= 20) return;
+    s.complaints!.shift();
+    const keeper = this.keeper(), by = s.actors.find((a) => a.id === c.by);
+    if (!keeper || !by || by.dead || keeper.id === by.id) return;
+    const office = orderKeeper(this.world.pack.setting).who;
+    const charge = telling({ ...c.story, hops: 1 }, (id) => s.actors.find((a) => a.id === id)?.name);
+    const severity = Math.abs(c.story.tone) - Math.max(0, keeper.trust);
+    const money = this.item("coin")?.name.toLowerCase() ?? "coin";
+    const fine = Math.max(1, Math.round(severity / 2));
+    // No money to pay with, and the fine becomes the stocks.
+    const verdict = severity < 4 ? "warn" : severity < 8 && (p.inventory.coin ?? 0) >= fine ? "fine" : "stocks";
+    const sentence = {
+      warn: "I'll not hear of it again.",
+      fine: `You'll pay ${by.name} ${fine} ${money}, here and now.`,
+      stocks: "You'll sit the rest of the day in the stocks, where everyone can see you.",
+    }[verdict];
+    const line = `${by.name} came to me. They say you ${charge}. ${sentence}`;
+    this.approaching = {
+      id: keeper.id,
+      line,
+      title: `${keeper.name}, ${office}`,
+      until: clock + 3600,
+      situation: `You keep order here, as ${office}. ${by.name} complained to you that the player ${charge}. You have found the player and given your judgement: “${line}” Hold to it; you may hear them out, but you do not take it back.`,
+      onArrive: () => {
+        by.memories.push(`Took my complaint to ${keeper.name}, who dealt with the player`);
+        this.regard(by, verdict === "warn" ? 1 : 2);
+        if (verdict === "fine") {
+          p.inventory.coin = (p.inventory.coin ?? 0) - fine;
+          by.inventory.coin = (by.inventory.coin ?? 0) + fine;
+          this.event(`You pay ${by.name} ${fine} ${money}.`);
+        }
+        if (verdict === "stocks") {
+          p.stocked = Math.max(clock + 3 * 3600, Math.floor(clock / 86400) * 86400 + 19 * 3600);
+          p.activity = "In the stocks";
+          for (const w of this.witnesses(12)) hear(w, { act: "was put in the stocks", tone: -4, at: clock, hops: 0 });
+          this.event("You are put in the stocks. People stop to look.");
+        }
+      },
+    };
+  }
   /** Someone who has had enough of the player goes elsewhere for an hour. */
   walkOff(a: Actor, where: WalkOff) {
     const clock = this.state.clock;
@@ -7720,12 +7804,13 @@ export class Engine {
         this.pass(a, friend, clock, true);
       }
     } else if (where === "authority") {
-      const keeper = orderKeeper(this.world.pack.setting);
-      const hall = this.world.places.find((p) => keeper.hall?.test(p.name)) ?? this.world.places.find((p) => AUTHORITY.test(p.name));
-      if (hall) {
-        to = { ...doorApproach(hall), space: "outside" };
-        label = `Going to complain to ${keeper.who}`;
-      }
+      const office = orderKeeper(this.world.pack.setting), keeper = this.keeper();
+      const hall = this.world.places.find((p) => office.hall?.test(p.name)) ?? this.world.places.find((p) => AUTHORITY.test(p.name));
+      if (keeper?.pos.space === "outside") to = copy(keeper.pos);
+      else if (hall) to = { ...doorApproach(hall), space: "outside" };
+      if (to) label = `Going to complain to ${keeper ? `${keeper.name}, ` : ""}${office.who}`;
+      const grudge = a.word?.find((w) => !w.about && w.tone < 0 && !w.hops) ?? a.word?.find((w) => !w.about && w.tone < 0);
+      if (grudge) this.complain(a, grudge);
     } else if (where === "away") {
       const p = this.state.player.pos;
       const d = Math.hypot(a.pos.x - p.x, a.pos.y - p.y) || 1;
@@ -8293,6 +8378,7 @@ export class Engine {
         this.kinStep(next);
         this.spreadWord(next);
         this.askStep(next);
+        this.keeperStep(next);
       }
       if (this.approaching) this.approach(next);
       this.burnStep();

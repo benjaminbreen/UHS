@@ -116,3 +116,52 @@ export const nameKits: NameKit[] = [
     ...attestedNames("DMNES documents European given names in sources written through 1600, including French forms. Applying the continuing forms to 1600–1750 is an explicitly inferred continuity sample for regional play.", [dmnes]),
   },
 ];
+
+const englishFamilies = ["Smith", "Baker", "Miller", "Taylor", "Cooper", "Fletcher", "Wright", "Clark", "Brown", "White", "Green", "Hill", "Wood", "Ward", "Turner", "Carter", "Hall", "King", "Parker", "Walker", "Warren", "Webb", "Cook", "Sutton"];
+const englishByNames = ["the baker", "the miller", "the smith", "the cooper", "atte Wood", "atte Hill", "the elder", "the younger", "Long", "Short", "White", "Brown"];
+const italianFamilies = ["Rossi", "Bianchi", "Russo", "Ferrari", "Esposito", "Ricci", "Marino", "Greco", "Bruno", "Gallo", "Conti", "Costa", "Mancini", "Lombardi", "Moretti", "Barbieri", "Fontana", "Rinaldi", "Martini", "Serra"];
+const frenchFamilies = ["Martin", "Bernard", "Thomas", "Petit", "Robert", "Richard", "Durand", "Moreau", "Simon", "Laurent", "Lefèvre", "Michel", "Roux", "Fournier", "Girard", "André", "Mercier", "Dupont", "Legrand", "Garnier"];
+const richer: Record<string, Partial<NameKit>> = {
+  "names-roman-italy-100bce-476ce": {
+    format: "family-personal",
+    masculine: ["Felix", "Severus", "Rufus", "Vitalis", "Fortunatus", "Priscus", "Secundus", "Primus", "Maximus", "Celer", "Marcellus", "Sabinus", "Victor", "Paulinus", "Clemens", "Faustus"],
+    feminine: ["Felicia", "Severa", "Rufina", "Vitalis", "Fortunata", "Prisca", "Secunda", "Prima", "Maxima", "Celerina", "Marcellina", "Sabina", "Victoria", "Paulina", "Clementina", "Fausta"],
+    familyNames: ["Aurelius", "Cornelius", "Julius", "Claudius", "Antonius", "Flavius", "Valerius", "Aemilius", "Livius", "Octavius", "Tullius", "Caecilius", "Pompeius", "Licinius", "Fabius", "Manilius"],
+    feminineFamilyNames: { Aurelius: "Aurelia", Cornelius: "Cornelia", Julius: "Julia", Claudius: "Claudia", Antonius: "Antonia", Flavius: "Flavia", Valerius: "Valeria", Aemilius: "Aemilia", Livius: "Livia", Octavius: "Octavia", Tullius: "Tullia", Caecilius: "Caecilia", Pompeius: "Pompeia", Licinius: "Licinia", Fabius: "Fabia", Manilius: "Manilia" },
+    sources: [romanEpigraphy, "https://romaninscriptionsofbritain.org/epindex/cognomina", "https://latininscriptions.ashmus.ox.ac.uk/resources/resources/AshLI-RomanNames2-TeachersNotes.pdf"],
+    note: "A simplified nomen-plus-cognomen display, with feminine forms of the inherited nomen. The components are inscription-based samples; combinations and frequencies are fictional. Praenomina, status changes and the changing full Roman naming system are not modelled; applying this display across the whole date range is an inference.",
+  },
+  "names-medieval-england-1100-1600": {
+    format: "personal-family", familyNames: englishFamilies, familyNamesFrom: 1250, byNames: englishByNames,
+    note: "Modernized English personal names with occupational or descriptive bynames before 1250 and a bounded surname sample thereafter. The cutoff simplifies gradual, uneven inheritance; combinations and frequencies are fictional, not recovered individuals or a population register.",
+  },
+  "names-early-modern-england-1600-1750": {
+    format: "personal-family", familyNames: englishFamilies,
+    note: "Modernized English given and family names drawn as fictional combinations. DMNES and London Lives supply naming context; regional continuity and the selected frequencies are inferred rather than measured.",
+  },
+  "names-english-virginia-1607-1750": {
+    format: "personal-family",
+    familyNames: ["Archer", "Bruster", "Brookes", "Browne", "Clarke", "Cooper", "Crofts", "Dixon", "Dowman", "Edward", "Fenton", "Gosnold", "Johnson", "Kendall", "Martin", "Morris", "Robinson", "Smith", "Snarsbrough", "Stevens", "White", "Wingfield"],
+    note: "English given and family-name components sampled from the 1607 Jamestown roster, with female given names extended from DMNES. Combinations are fictional and continuity through 1750 is inferred; an NPC is not identified with a historical settler.",
+  },
+  "names-medieval-italy-1200-1500": {
+    format: "personal-family", familyNames: italianFamilies, familyNamesFrom: 1300,
+    byNames: ["da Siena", "da Lucca", "da Pisa", "da Parma", "da Arezzo", "da Perugia"],
+    note: "Modernized personal names with a schematic place byname before 1300 and an Italian family-name sample thereafter. The cutoff and national pool simplify uneven regional adoption; combinations, spellings and frequencies are inferred gameplay displays.",
+  },
+  "names-early-modern-italy-1500-1750": {
+    format: "personal-family", familyNames: italianFamilies,
+    note: "Italian given and family-name components combined for fictional people. Regional use, modernized spelling and continuity beyond DMNES's 1600 endpoint are inferred; the pool is not a historical frequency table.",
+  },
+  "names-medieval-france-1100-1500": {
+    format: "personal-family", familyNames: frenchFamilies, familyNamesFrom: 1300,
+    byNames: ["de Paris", "de Rouen", "de Tours", "de Lyon", "de Dijon", "de Reims"],
+    note: "Modernized French given names with place bynames before 1300 and a bounded family-name sample thereafter. Adoption varied by region and household; the cutoff, combinations and frequencies are inferred gameplay choices.",
+  },
+  "names-early-modern-france-1500-1750": {
+    format: "personal-family", familyNames: frenchFamilies,
+    note: "French given and family-name components combined for fictional people. Modernized spelling and continuity beyond DMNES's 1600 endpoint are inferred; no national frequency or complete naming register is claimed.",
+  },
+};
+
+export const richerNameKits: NameKit[] = nameKits.map((kit) => ({ ...kit, ...richer[kit.id] }));

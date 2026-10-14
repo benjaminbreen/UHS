@@ -26,6 +26,22 @@ import { pickHair } from "../../core/character";
 import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
+export type FamilyNaming = {
+  community?: string;
+  personal?: string;
+  parentPersonal?: string;
+  avoid?: ReadonlySet<string>;
+};
+type GeneratedName = {
+  display: string;
+  personal: string;
+  families: string[];
+  format: string;
+  tradition?: string;
+  region?: string;
+  note?: string;
+  parentPersonal?: string;
+};
 export const characterSex = (seed: string, id: string): Sex =>
   random(seed, "character-v1", id, "sex") < 0.5 ? "female" : "male";
 
@@ -74,10 +90,13 @@ export function characterNameParts(
   inheritedFamilies?: readonly string[],
   sex: Sex = characterSex(seed, id),
   inheritedTradition?: string,
-) {
+  naming?: FamilyNaming,
+): GeneratedName {
   const drawn = context.traditions;
   if (!drawn) {
-    const personal = inventedName(seed, id);
+    let personal = inventedName(seed, id);
+    for (let retry = 1; naming?.avoid?.has(personal) && retry < 12; retry++)
+      personal = inventedName(seed, `${id}~name-${retry}`);
     return {
       display: personal,
       personal,
@@ -103,72 +122,66 @@ export function characterNameParts(
     ...(sex === "female" ? tradition.feminine : tradition.masculine),
     ...(tradition.unisex ?? []),
   ];
-  const personal = pick(
-    gendered.length
-      ? gendered
-      : [...tradition.masculine, ...tradition.feminine],
-    seed,
-    id,
-    "name",
-  );
-  const provenance = {
-    tradition: tradition.id,
-    region: drawn.region,
-    note: tradition.note,
-  };
+  const pool = naming?.personal ? [naming.personal] : gendered.length
+    ? gendered : [...tradition.masculine, ...tradition.feminine];
+  const start = Math.floor(random(seed, "character-v1", id, "name") * pool.length);
+  const families: string[] = [];
+  let format: string = "personal";
+  let ending: string | undefined;
+  let parentPersonal: string | undefined;
+  let note = tradition.note;
   if (tradition.format === "personal-patronymic" && tradition.patronymic) {
-    // Named for a parent, so the element is that parent's name plus a
-    // suffix for this person's sex, and is never inherited further.
-    const parent = pick(
+    const forms = tradition.patronymic.forms;
+    parentPersonal = naming?.parentPersonal;
+    if (!parentPersonal && s.namingRevision && forms)
+      parentPersonal = pick(tradition.masculine, seed, id, "parent-name");
+    const parent = parentPersonal
+      ? forms?.[parentPersonal] ?? parentPersonal
+      : pick(
       tradition.patronymic.parents ?? tradition.masculine,
       seed,
       id,
       "parent-name",
     );
     const suffix = tradition.patronymic[sex === "female" ? "female" : "male"];
-    return {
-      display: `${personal} ${parent}${suffix}`,
-      personal,
-      families: [] as string[],
-      format: "personal-patronymic",
-      ...provenance,
-    };
+    ending = `${parent}${suffix}`;
+    format = "personal-patronymic";
+    if (parentPersonal && !forms?.[parentPersonal])
+      note = [note, "This parent-derived display uses an uninflected name and suffix; the local grammatical form is not authored."].filter(Boolean).join(" ");
+  } else {
+    const surnamed = tradition.familyNamesFrom === undefined || s.year >= tradition.familyNamesFrom;
+    const family = (s.namingRevision && !surnamed ? undefined : inheritedFamilies?.[0]) ??
+      (surnamed && tradition.familyNames.length &&
+      random(seed, "character-v1", id, "has-family-name") >= tradition.noFamilyName
+        ? pick(tradition.familyNames, seed, id, "family-name") : undefined);
+    if (family) {
+      families.push(family);
+      format = tradition.format;
+      if (tradition.format === "personal-two-families")
+        families.push(inheritedFamilies?.[1] ?? pick(
+          tradition.secondFamilyNames ?? tradition.familyNames, seed, id, "second-family-name",
+        ));
+    } else if (tradition.byNames?.length) {
+      ending = pick(tradition.byNames, seed, id, "byname");
+      format = "personal-byname";
+    }
   }
-  const inherited = inheritedFamilies?.[0];
-  // A hereditary family name is an invention with a date, and most of these
-  // pools carry one for a period long before their people did.
-  const surnamed =
-    tradition.familyNamesFrom === undefined ||
-    s.year >= tradition.familyNamesFrom;
-  const family =
-    inherited ??
-    (surnamed &&
-    tradition.familyNames.length &&
-    random(seed, "character-v1", id, "has-family-name") >=
-      tradition.noFamilyName
-      ? pick(tradition.familyNames, seed, id, "family-name")
-      : undefined);
-  const families = family ? [family] : [];
-  if (family && tradition.format === "personal-two-families")
-    families.push(
-      inheritedFamilies?.[1] ??
-        pick(
-          tradition.secondFamilyNames ?? tradition.familyNames,
-          seed,
-          id,
-          "second-family-name",
-        ),
-    );
-  return {
+  const displayedFamilies = families.map((family) =>
+    sex === "female" ? tradition.feminineFamilyNames?.[family] ?? family : family,
+  );
+  const assemble = (personal: string): GeneratedName => ({
     display: (tradition.format === "family-personal"
-      ? [...families, personal]
-      : [personal, ...families]
-    ).join(" "),
-    personal,
-    families,
-    format: family ? tradition.format : "personal",
-    ...provenance,
-  };
+      ? [...displayedFamilies, personal, ending]
+      : [personal, ...displayedFamilies, ending]).filter(Boolean).join(" "),
+    personal, families, format, parentPersonal,
+    tradition: tradition.id, region: drawn.region, note,
+  });
+  const first = assemble(pool[start]);
+  for (let offset = 0; offset < pool.length; offset++) {
+    const candidate = assemble(pool[(start + offset) % pool.length]);
+    if (!naming?.avoid?.has(candidate.display)) return candidate;
+  }
+  return first;
 }
 export function characterName(
   s: WorldSetting,
@@ -419,10 +432,11 @@ export function generateCharacter(
   inheritedFamilies?: readonly string[],
   sex: Sex = characterSex(seed, id),
   inheritedTradition?: string,
+  familyNaming?: FamilyNaming,
 ) {
   // Where a plural population is authored, each person draws their own
   // community, so the appearance palette and the naming kit stay in step.
-  const community = characterCommunity(s, seed, id);
+  const community = familyNaming?.community ?? characterCommunity(s, seed, id);
   const context = resolveCharacterContext(s, community);
   const standing = characterStanding(s, seed, id, community);
   const naming = characterNameParts(
@@ -433,6 +447,7 @@ export function generateCharacter(
     inheritedFamilies,
     sex,
     inheritedTradition,
+    familyNaming,
   );
   const livelihood = characterLivelihood(
     s,
@@ -445,7 +460,7 @@ export function generateCharacter(
   );
   // Asking for work done by one sex asks for someone of it.
   if (requestedRole && livelihood.sex && livelihood.sex !== sex)
-    return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, livelihood.sex, inheritedTradition);
+    return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, livelihood.sex, inheritedTradition, familyNaming);
   const recognized =
     !requestedRole ||
     livelihood.label.toLowerCase() === requestedRole.toLowerCase() ||
@@ -534,6 +549,8 @@ export function generateCharacter(
           : naming.format,
       nameFamilies:
         explicitName && explicitName !== naming.display ? [] : naming.families,
+      namePersonal: explicitName && explicitName !== naming.display ? undefined : naming.personal,
+      nameParentPersonal: explicitName && explicitName !== naming.display ? undefined : naming.parentPersonal,
       livelihood: livelihood.id,
       roleLabel: livelihood.label,
       specialty: livelihood.id === "apprentice" && livelihood.label.startsWith("Apprentice ")

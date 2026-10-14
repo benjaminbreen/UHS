@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateCharacter } from "../src/content/characters/generate";
+import { characterNameParts, generateCharacter } from "../src/content/characters/generate";
 import { resolveCharacterContext } from "../src/content/characters/resolve";
 import { integratedSetting } from "../src/content/geography/defaults";
 import { populateCharacter } from "../src/content/geography/character";
@@ -9,6 +9,7 @@ import { goodsOf } from "../src/content/economy/goods";
 import { settingFor } from "../src/content/geography/resolve";
 import { featuredPlaces, places } from "../src/content/geography/places";
 import type { Actor, Inventory } from "../src/core/types";
+import { createSettingSession } from "../src/runtime/session";
 
 const place = (id: string) => {
   const found = places.find((p) => p.id === id);
@@ -408,4 +409,110 @@ it("applies regional wardrobes to ordinary generated residents as well as scenar
   const gentleman = generateCharacter(settingFor(place("paris"), 1888), "ordinary-wardrobe", "gentleman", 34, "Gentleman", "Jacques Laurent", undefined, "male");
   expect(gentleman.appearance.wearing.garment).toBe("coat");
   expect(["bowler", "top-hat"]).toContain(gentleman.appearance.wearing.headwear);
+});
+
+it("gives new local populations varied component names while preserving unpinned naming", () => {
+  const london = { ...settingFor(place("london"), 1550), namingRevision: undefined };
+  const older = Array.from({ length: 100 }, (_, i) => characterNameParts(london, "name-review", `npc-${i}`));
+  expect(new Set(older.map((n) => n.display)).size).toBe(25);
+  expect(older.every((n) => n.families.length === 0)).toBe(true);
+  const richer = Array.from({ length: 100 }, (_, i) => characterNameParts({ ...london, namingRevision: 1 }, "name-review", `npc-${i}`));
+  expect(new Set(richer.map((n) => n.display)).size).toBeGreaterThan(85);
+  expect(richer.every((n) => n.format === "personal-family" && n.families.length === 1)).toBe(true);
+  for (const [id, year] of [["paris", 1450], ["rome", 1450], ["virginia", 1650]] as const) {
+    const local = { ...settingFor(place(id), year), namingRevision: 1 as const };
+    const names = Array.from({ length: 30 }, (_, i) => characterNameParts(local, "local-components", `npc-${i}`));
+    expect(names.every((n) => n.families.length === 1), id).toBe(true);
+  }
+  expect(populateCharacter(london, "new-world").namingRevision).toBe(1);
+});
+
+it("keeps early bynames separate from hereditary surnames", () => {
+  const early = { ...settingFor(place("london"), 1200), namingRevision: 1 as const };
+  const parent = characterNameParts(early, "byname", "parent");
+  const child = characterNameParts(early, "byname", "child", undefined, ["Smith"]);
+  expect(parent.format).toBe("personal-byname");
+  expect(parent.display).not.toBe(parent.personal);
+  expect(parent.families).toEqual([]);
+  expect(child.families).toEqual([]);
+  const later = characterNameParts({ ...early, year: 1550 }, "byname", "child", undefined, ["Smith"]);
+  expect(later.families).toEqual(["Smith"]);
+});
+
+it("inherits a Roman family component while displaying its feminine form", () => {
+  const rome = { ...settingFor(place("rome"), 100), namingRevision: 1 as const };
+  const tradition = resolveCharacterContext(rome).names!.id;
+  const father = generateCharacter(rome, "roman-family", "father", 40, undefined, undefined, ["Cornelius"], "male", tradition);
+  const daughter = generateCharacter(rome, "roman-family", "daughter", 12, "Child", undefined, father.origin.nameFamilies, "female", tradition);
+  expect(father.name).toMatch(/^Cornelius /);
+  expect(daughter.name).toMatch(/^Cornelia /);
+  expect(daughter.origin.nameFamilies).toEqual(father.origin.nameFamilies);
+  expect(daughter.origin.namePersonal).toBeDefined();
+});
+
+it("builds patronymics from an actual parent's personal name across generations", () => {
+  const iceland = { ...settingFor(place("london"), 1850), namingRevision: 1 as const, placeId: "iceland-test", lon: -19, lat: 64.8 };
+  const tradition = resolveCharacterContext(iceland).names!.id;
+  const father = generateCharacter(iceland, "real-parent", "father", 40, undefined, undefined, undefined, "male", tradition, { personal: "Jón" });
+  const daughter = generateCharacter(iceland, "real-parent", "daughter", 12, "Child", undefined, undefined, "female", tradition, { parentPersonal: father.origin.namePersonal });
+  expect(daughter.name).toMatch(/ Jónsdóttir$/);
+  expect(daughter.origin.nameParentPersonal).toBe("Jón");
+  expect(daughter.origin.nameFamilies).toEqual([]);
+  const son = generateCharacter(iceland, "real-parent", "son", 12, "Child", undefined, undefined, "male", tradition, { personal: "Einar", parentPersonal: "Jón" });
+  const grandson = generateCharacter(iceland, "real-parent", "grandson", 6, "Child", undefined, undefined, "male", tradition, { parentPersonal: son.origin.namePersonal });
+  expect(son.name).toBe("Einar Jónsson");
+  expect(grandson.name).toMatch(/ Einarsson$/);
+  const maternal = characterNameParts(iceland, "real-parent", "maternal", undefined, undefined, "female", tradition, { parentPersonal: "Helga" });
+  expect(maternal.display).toMatch(/ Helgudóttir$/);
+});
+
+it("retries only a name, retaining the person's family, community and generated traits", () => {
+  const london = { ...settingFor(place("london"), 1550), namingRevision: 1 as const };
+  const original = generateCharacter(london, "name-only-retry", "person", 34, "Farmer");
+  const retried = generateCharacter(london, "name-only-retry", "person", 34, "Farmer", undefined, undefined, undefined, undefined, { avoid: new Set([original.name]) });
+  expect(retried.name).not.toBe(original.name);
+  const { name: _oldName, origin: oldOrigin, ...oldTraits } = original;
+  const { name: _newName, origin: newOrigin, ...newTraits } = retried;
+  expect(newTraits).toEqual(oldTraits);
+  expect(newOrigin).toEqual({ ...oldOrigin, namePersonal: newOrigin.namePersonal });
+  expect(retried).toEqual(generateCharacter(london, "name-only-retry", "person", 34, "Farmer", undefined, undefined, undefined, undefined, { avoid: new Set([original.name]) }));
+  const custom = generateCharacter(london, "name-only-retry", "custom", 34, undefined, "My chosen name", undefined, undefined, undefined, { avoid: new Set(["My chosen name"]) });
+  expect(custom.name).toBe("My chosen name");
+  expect(custom.origin.namePersonal).toBeUndefined();
+});
+
+it("reports atlas naming traditions without falsely claiming invented syllables", () => {
+  const london = { ...settingFor(place("london"), 1850), characterRevision: 2 as const, namingRevision: 1 as const };
+  expect(resolveCharacterContext(london).names).toBeUndefined();
+  expect(resolveCharacterContext(london).traditions).toBeDefined();
+  expect(packForSetting(london).evidence.some((e) => e.id === "character-names-unresearched")).toBe(false);
+  const unsupported = { ...london, placeId: "uncovered", lon: -65, lat: -69 };
+  expect(packForSetting(unsupported).evidence.some((e) => e.id === "character-names-unresearched")).toBe(true);
+  const roman = { ...london, ...settingFor(place("rome"), 100) };
+  const evidence = packForSetting(roman).evidence;
+  expect(evidence.some((e) => e.id === "character-names-roman-italy-100bce-476ce" && !!e.url)).toBe(true);
+});
+
+it("uses actual household parents for patronymics and preserves family traditions", () => {
+  const s = { ...settingFor(place("london"), 1850), placeId: "iceland-family", lon: -19, lat: 64.8,
+    settlement: "village" as const, geographyMode: "configured" as const, water: "none" as const,
+    environment: { ecology: "temperate-woodland" as const, landform: "plain" as const,
+      population: "sparse" as const, start: "resident" as const, household: "extended" as const },
+    character: { appearanceSeed: "iceland-family", age: 42, hunger: 8, fatigue: 0 },
+  };
+  const engine = createSettingSession(s, "iceland-family");
+  const people = [engine.state.player, ...engine.state.actors];
+  let checked = 0;
+  for (const child of people) {
+    if (child.origin?.nameFormat !== "personal-patronymic") continue;
+    const parents = child.relations?.filter((r) => r.kind === "parent")
+      .map((r) => people.find((a) => a.id === r.other)).filter((a): a is Actor => !!a);
+    const parent = parents?.find((a) => a.origin?.sex === "male") ?? parents?.[0];
+    if (!parent?.origin?.namePersonal) continue;
+    expect(child.origin.nameParentPersonal, child.name).toBe(parent.origin.namePersonal);
+    expect(child.origin.nameTradition).toBe(parent.origin.nameTradition);
+    expect(child.origin.community).toBe(parent.origin.community);
+    checked++;
+  }
+  expect(checked).toBeGreaterThan(0);
 });

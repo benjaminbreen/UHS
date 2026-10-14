@@ -1,10 +1,12 @@
 import type { Actor, Ask, HouseholdEvent, Snapshot, Word } from "./types";
 
-/** What a person carries about the player and would pass on. Strongest and
- * newest kept; the same story is not held twice. */
+const same = (x: Word, y: Word) => x.act === y.act && x.object === y.object && x.victim === y.victim && x.about === y.about;
+
+/** What a person carries and would pass on. Strongest and newest kept; the
+ * same story is not held twice. */
 export function hear(a: Actor, w: Word) {
   const list = (a.word ??= []);
-  const had = list.find((x) => x.what === w.what);
+  const had = list.find((x) => same(x, w));
   if (had) {
     if (w.hops < had.hops) Object.assign(had, w);
     return false;
@@ -15,26 +17,32 @@ export function hear(a: Actor, w: Word) {
   return list.includes(w);
 }
 
-/** A "Saw player smash pot-3 at 4,5" memory as something that can be retold. */
-const PAST: Record<string, string> = { break: "broke", smash: "smashed", take: "took", strike: "struck", kill: "killed", topple: "toppled", pick: "picked", cut: "cut" };
-export const retold = (memory: string) =>
-  memory
-    .replace(/^Saw player /, "")
-    .replace(/ at -?\d+,-?\d+$/, "")
-    .replace(/^\w+/, (verb) => PAST[verb] ?? verb);
+/** A story as this teller would put it, the player its unspoken subject.
+ * Told on, it loses first whose it was, then what was done at all. */
+export function telling(w: Word, name: (id: string) => string | undefined) {
+  if (w.about || (!w.object && !w.victim)) return w.act;
+  const whose = w.victim ? name(w.victim) : undefined;
+  if (w.hops >= 3) return w.tone < 0 ? "made trouble for people" : "did people good turns";
+  if (!w.object) return `${w.act} ${w.hops >= 2 || !whose ? "someone" : whose}`;
+  return w.hops >= 2 || !whose ? `${w.act} a ${w.object}` : `${w.act} ${whose}'s ${w.object}`;
+}
 
-/** Second-hand stories about the player across everyone who carries them. */
+/** Second-hand stories about the player across everyone who carries them,
+ * each as the best-informed teller has it. */
 export function reputation(s: Snapshot) {
-  const told = new Map<string, { what: string; tone: number; people: number }>();
+  const told: { w: Word; people: number }[] = [];
   for (const a of s.actors)
     for (const w of a.word ?? []) {
       if (!w.hops || w.about) continue;
-      const t = told.get(w.what) ?? { what: w.what, tone: 0, people: 0 };
-      t.people++;
-      t.tone = Math.sign(w.tone) || t.tone;
-      told.set(w.what, t);
+      const t = told.find((x) => same(x.w, w));
+      if (!t) told.push({ w, people: 1 });
+      else {
+        t.people++;
+        if (w.hops < t.w.hops) t.w = w;
+      }
     }
-  return [...told.values()].sort((x, y) => y.people - x.people);
+  const name = (id: string) => s.actors.find((a) => a.id === id)?.name;
+  return told.sort((x, y) => y.people - x.people).map(({ w, people }) => ({ what: telling(w, name), tone: w.tone, people }));
 }
 
 export const askLines: Record<Ask["kind"], (what: string) => string> = {

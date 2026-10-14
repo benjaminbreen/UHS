@@ -2,7 +2,8 @@ import { ageObject } from "../src/core/time/objects";
 import { propDefs } from "../src/content/props/catalog";
 import { describe, expect, it } from "vitest";
 import { timeBounds, settingAt } from "../src/core/time/setting";
-import { createLineage, personAt, lineBetween, relationship } from "../src/core/time/lineage";
+import { createLineage, relative, personAt, lineBetween, relationship } from "../src/core/time/lineage";
+import { generateCharacter } from "../src/content/characters/generate";
 import { ageStructure, damageStructure, structureBlocks } from "../src/core/time/structure";
 import { buildingAt, temporalWorld } from "../src/core/time/world";
 import { resolveSetting } from "../src/content/geography/resolve";
@@ -40,6 +41,19 @@ describe("historical time", () => {
     }
     expect(personAt(a, 100).name).toBe("Marcus");
     expect(relationship(members[0], members[1])).toContain("child");
+  });
+  it("retains surnames across local-kit date boundaries and derives a lineage's patronymics", () => {
+    const london = { ...setting, year: 1580, lon: -0.12, lat: 51.5, placeId: "london", location: "London", namingRevision: 1 as const };
+    const parent = generateCharacter(london, "line-names", "player", 34, undefined, undefined, ["Smith"], "male");
+    const line = createLineage("line-names", london, { ...parent, age: 34 } as Actor);
+    for (let i = 1; i < 5; i++) expect(relative(line, i).character.origin.nameFamilies).toEqual(["Smith"]);
+    const iceland = { ...london, year: 1850, lon: -19, lat: 64.8, placeId: "iceland" };
+    const jon = generateCharacter(iceland, "line-names", "player", 34, undefined, undefined, undefined, "male", undefined, { personal: "Jón" });
+    const family = createLineage("line-names", iceland, { ...jon, age: 34 } as Actor);
+    expect(relative(family, 1).name).toMatch(/ Jóns(?:son|dóttir)$/);
+    expect(relative(family, 2).character.origin.nameParentPersonal).toBe(relative(family, 1).character.origin.namePersonal);
+    expect(relative(family, -1).character.origin.namePersonal).toBe(jon.origin.nameParentPersonal);
+    expect(settingAt({ ...london, namingRevision: undefined }, 1600).namingRevision).toBeUndefined();
   });
   it("evaluates building history independently of jump size and keeps birth material", () => {
     const direct = buildingAt(place, "seed", setting, 900);

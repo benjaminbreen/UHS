@@ -959,7 +959,7 @@ export function CharacterPanel({
                   <ul className="reputation">
                     {reputation(state).slice(0, 5).map((r) => (
                       <li key={r.what} data-tone={r.tone < 0 ? "ill" : "good"}>
-                        You {r.what.replace(/\b[a-z][\w-]*\d[\w-]*/gi, (id) => runtime.engine.state.objects.find((o) => o.id === id)?.name.toLowerCase() ?? "something")}
+                        You {r.what}
                         <small> · {r.people} {r.people === 1 ? "person has" : "people have"} heard</small>
                       </li>
                     ))}

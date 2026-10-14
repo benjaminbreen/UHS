@@ -488,7 +488,6 @@ export function packForSetting(setting: WorldSetting): Pack {
     if (ids("occupation").length) pack.roles = ids("occupation");
   }
   if (setting.characterRevision) {
-    const context = resolveCharacterContext(setting);
     const character = generateCharacter(
       setting,
       setting.character?.appearanceSeed ?? "earth-2",
@@ -497,6 +496,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       setting.role,
       setting.characterName,
     );
+    const context = resolveCharacterContext(setting, setting.namingRevision ? character.origin.community : undefined);
     pack.names = Array.from({ length: 24 }, (_, i) =>
       characterName(
         setting,
@@ -515,7 +515,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       ...[
         context.profile,
         context.appearance,
-        ...(context.names ? [context.names] : []),
+        ...(context.traditions?.options.map((o) => o.tradition) ?? []),
       ]
         .filter((entry) => entry.note || entry.sources.length)
         .map((entry) => ({
@@ -525,7 +525,7 @@ export function packForSetting(setting: WorldSetting): Pack {
           url: entry.sources[0] ?? "",
         })),
     );
-    if (!context.names)
+    if (!context.names && !context.traditions)
       pack.evidence.push({
         id: "character-names-unresearched",
         title: "Invented personal name",

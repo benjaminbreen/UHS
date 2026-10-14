@@ -1,4 +1,4 @@
-import { nameKits } from "./name-kits";
+import { nameKits, richerNameKits } from "./name-kits";
 import { barredNameEntries } from "./name-entries";
 import { appearanceKits, communityProfiles } from "./profiles/communities";
 import { populations } from "./profiles/populations";
@@ -25,14 +25,14 @@ export function validateCharacterContent() {
     if (s.bounds && (s.bounds[0] > s.bounds[2] || s.bounds[1] > s.bounds[3]))
       throw Error("Invalid character bounds");
   };
-  for (const entries of [nameKits, appearanceKits, communityProfiles]) {
+  for (const entries of [nameKits, richerNameKits, appearanceKits, communityProfiles]) {
     unique(entries);
     entries.forEach(qualified);
   }
   unique(livelihoods);
   unique(nameTraditions);
   unique(nameRegions);
-  for (const kit of nameKits) {
+  for (const kit of [...nameKits, ...richerNameKits]) {
     const barred = barredNameEntries([
       ...kit.masculine,
       ...kit.feminine,
@@ -76,8 +76,10 @@ export function validateCharacterContent() {
           throw Error(`Unknown tradition ${o.tradition} in ${region.id}`);
     }
   }
-  for (const kit of nameKits) {
+  for (const kit of [...nameKits, ...richerNameKits]) {
     scope(kit.scope);
+    if (kit.feminineFamilyNames && Object.keys(kit.feminineFamilyNames).some((name) => !kit.familyNames?.includes(name)))
+      throw Error(`Unknown family-name form: ${kit.id}`);
     if (
       kit.format &&
       kit.format !== "personal" &&

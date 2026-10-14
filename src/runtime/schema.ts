@@ -315,6 +315,8 @@ const actor = z.object({
       specialty: z.string().max(80).optional(),
       nameFormat: z.string().optional(),
       nameFamilies: z.array(z.string()).optional(),
+      namePersonal: z.string().optional(),
+      nameParentPersonal: z.string().optional(),
       livelihood: z.string(),
       notes: z.array(z.string()),
     })
@@ -348,7 +350,8 @@ const actor = z.object({
   trust: z.number(),
   wronged: z.number().optional(),
   shuns: z.number().optional(),
-  word: z.array(z.object({ what: z.string().max(200), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict()).max(8).optional(),
+  stocked: z.number().optional(),
+  word: z.array(z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict()).max(8).optional(),
   owner: z.string().optional(),
   follows: z.string().optional(),
   consentUntil: z.number().optional(),
@@ -991,6 +994,7 @@ export const snapshotSchema = z.object({
     )
     .max(20)
     .optional(),
+  complaints: z.array(z.object({ by: z.string().max(100), story: z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict(), at: z.number() }).strict()).max(4).optional(),
   asks: z
     .array(
       z.object({

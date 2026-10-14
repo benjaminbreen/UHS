@@ -39,9 +39,12 @@ export type NameKit = QualifiedContent & {
   unisex?: readonly string[];
   format?: NameTradition["format"];
   familyNames?: readonly string[];
+  feminineFamilyNames?: Readonly<Record<string, string>>;
+  familyNamesFrom?: number;
+  byNames?: readonly string[];
   secondFamilyNames?: readonly string[];
   /** A parent's name plus a suffix chosen by the child's sex. */
-  patronymic?: { parents: readonly string[]; male: string; female: string };
+  patronymic?: { parents: readonly string[]; male: string; female: string; forms?: Readonly<Record<string, string>> };
   /** Ported traditions drawn beside the kit, which itself weighs 1. */
   alongside?: readonly { tradition: string; weight: number }[];
 };
@@ -57,6 +60,8 @@ export type NameTradition = {
   unisex?: readonly string[];
   /** Empty where the tradition carries no family element at all. */
   familyNames: readonly string[];
+  feminineFamilyNames?: Readonly<Record<string, string>>;
+  byNames?: readonly string[];
   /** One surname from each parent; falls back to `familyNames`. */
   secondFamilyNames?: readonly string[];
   /** Share of people in this tradition who carry no family name, 0-1. */
@@ -78,6 +83,7 @@ export type NameTradition = {
     parents?: readonly string[];
     male: string;
     female: string;
+    forms?: Readonly<Record<string, string>>;
   };
   /**
    * When this naming tradition is attested, clamped. A region window may be

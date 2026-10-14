@@ -1,6 +1,7 @@
 import type { Actor } from "../types";
 import type { WorldSetting } from "../../content/geography/types";
 import { generateCharacter } from "../../content/characters/generate";
+import { resolveCharacterContext } from "../../content/characters/resolve";
 import { random } from "../random";
 import { settingAt } from "./setting";
 export type Relative = {
@@ -81,7 +82,24 @@ export function relative(line: Lineage, generation: number): Relative {
     line.setting,
     Math.max(-1000000, Math.min(10000, born + 30)),
   );
-  const character = generateCharacter(s, line.seed, `line:${generation}`, 30);
+  const origin = neighbor.character.origin;
+  const tradition = s.namingRevision
+    ? resolveCharacterContext(s, origin.community).traditions?.options.find((o) =>
+        o.tradition.id === origin.nameTradition ||
+        (!!origin.nameFamilies?.length && o.tradition.format === origin.nameFormat &&
+          origin.nameFamilies.every((name) => o.tradition.familyNames.includes(name))),
+      )?.tradition
+    : undefined;
+  const character = generateCharacter(s, line.seed, `line:${generation}`, 30,
+    undefined, undefined,
+    tradition ? origin.nameFamilies?.slice(0, 1) : undefined,
+    undefined, tradition?.id,
+    tradition ? {
+      community: origin.community,
+      parentPersonal: generation > 0 ? origin.namePersonal : undefined,
+      personal: generation < 0 ? origin.nameParentPersonal : undefined,
+    } : undefined,
+  );
   const member = {
     id: `line:${generation}`,
     generation,

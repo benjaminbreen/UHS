@@ -16,9 +16,10 @@ import type {
 import { communityProfiles, appearanceKits } from "./profiles/communities";
 import { labourRegimes, populations } from "./profiles/populations";
 import { subsistenceMixes } from "./profiles/subsistence";
-import { nameKits } from "./name-kits";
+import { nameKits, richerNameKits } from "./name-kits";
 import { nameTraditions } from "./profiles/traditions.generated";
 import { nameRegions } from "./profiles/name-regions.generated";
+import { parentNameForms } from "./profiles/anchor-names";
 import { livelihoods } from "./livelihoods";
 import { commonLivelihoods } from "./livelihoods.generated";
 import { workplaceFor, type Workplace } from "./workplace";
@@ -398,7 +399,7 @@ export function resolveCharacterContext(
   const appearance =
     appearanceKits.find((p) => p.id === profile.appearance) ??
     fallbackAppearance;
-  const scopedNames = nameKits.filter((p) =>
+  const scopedNames = (s.namingRevision ? richerNameKits : nameKits).filter((p) =>
     matchesCharacterScope(p.scope, s, community),
   );
   // Narrower local / community kits supersede broad regional kits. Equal rank fails visibly.
@@ -415,7 +416,7 @@ export function resolveCharacterContext(
   // A hand-written kit is the most specific answer; a community's own
   // traditions beat the region's; the region table is the fallback.
   const profileTraditions = inEra(profile.nameTraditions ?? [], s.year);
-  const traditions = names
+  const selectedTraditions = names
     ? {
         region: names.id,
         options: [
@@ -426,6 +427,17 @@ export function resolveCharacterContext(
     : profileTraditions.length
       ? { region: profile.id, options: profileTraditions }
       : nameTraditionsFor(s);
+  const traditions = s.namingRevision && selectedTraditions
+    ? {
+        ...selectedTraditions,
+        options: selectedTraditions.options.map((o) => {
+          const forms = parentNameForms[o.tradition.id === "names-icelandic-patronymic" ? "icelandic" : o.tradition.id];
+          return forms && o.tradition.patronymic
+            ? { ...o, tradition: { ...o.tradition, patronymic: { ...o.tradition.patronymic, forms } } }
+            : o;
+        }),
+      }
+    : selectedTraditions;
   const capabilities = capabilitiesFor(s);
   const needsMet = (needs: Livelihood["needs"]) =>
     (needs ?? []).every((need) =>

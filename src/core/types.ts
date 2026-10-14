@@ -171,6 +171,8 @@ export type CharacterOrigin = {
   standing?: "free" | "unfree";
   nameFormat?: string;
   nameFamilies?: string[];
+  namePersonal?: string;
+  nameParentPersonal?: string;
   livelihood: string;
   /** The title as drawn; a belief-driven office resolves per person. */
   roleLabel?: string;
@@ -236,6 +238,8 @@ export type Actor = {
   shuns?: number;
   /** Stories about the player this person would pass on; hops 0 is what they saw. */
   word?: Word[];
+  /** Held in the stocks until then. */
+  stocked?: number;
   owner?: string;
   follows?: string;
   consentUntil?: number;
@@ -561,7 +565,7 @@ export type Receipt = { payload: string; result: CommandResult };
  * out when one of them next comes by. */
 /** A story someone would pass on: about the player, or about `about` when set.
  * `tone` is how good or bad it is; it halves with each telling. */
-export type Word = { what: string; tone: number; at: number; hops: number; from?: string; about?: string };
+export type Word = { act: string; object?: string; victim?: string; tone: number; at: number; hops: number; from?: string; about?: string };
 /** A favour someone has asked of the player, in a form the engine can see
  * done: an item handed over, a person spoken to, a place gone into. `what`
  * is the asker's own words for it, read after "asks you to". */
@@ -579,6 +583,8 @@ export type Snapshot = {
   households?: Household[];
   losses?: Loss[];
   asks?: Ask[];
+  /** Taken to whoever keeps order, waiting to be dealt with. */
+  complaints?: { by: string; story: Word; at: number }[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */

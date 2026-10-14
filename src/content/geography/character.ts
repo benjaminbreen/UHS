@@ -67,6 +67,7 @@ export function populateCharacter(
   setting = {
     ...setting,
     characterRevision: setting.characterRevision ?? 1,
+    namingRevision: setting.namingRevision ?? 1,
     lifeStoryRevision: 1,
   };
   const roll = random(seed, "starting-character", setting.placeId, setting.year, "age");

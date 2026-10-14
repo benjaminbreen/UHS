@@ -1,5 +1,16 @@
 import type { NameKit } from "../context-types";
 
+export const parentNameForms: Record<string, Readonly<Record<string, string>>> = {
+  icelandic: {
+    Jón: "Jóns", Þórður: "Þórðar", Ólafur: "Ólafs", Magnús: "Magnúsar", Einar: "Einars", Snorri: "Snorra", Sigurður: "Sigurðar", Guðmundur: "Guðmunds", Björn: "Bjarnar", Gunnar: "Gunnars", Kristján: "Kristjáns", Eiríkur: "Eiríks", Ragnar: "Ragnars", Þorvaldur: "Þorvalds", Haraldur: "Haralds", Leifur: "Leifs", Njáll: "Njáls", Úlfur: "Úlfs", Egill: "Egils", Hjalti: "Hjalta", Ketill: "Ketils", Ormur: "Orms", Skúli: "Skúla", Vigfús: "Vigfúsar", Ari: "Ara", Grímur: "Gríms", Hálfdan: "Hálfdanar", Kjartan: "Kjartans", Oddur: "Odds", Refur: "Refs", Steinn: "Steins", Þorsteinn: "Þorsteins",
+    Guðrún: "Guðrúnar", Sigríður: "Sigríðar", Katrín: "Katrínar", Helga: "Helgu", Ragnheiður: "Ragnheiðar", Ingibjörg: "Ingibjargar", Ástríður: "Ástríðar", Bergþóra: "Bergþóru", Hallgerður: "Hallgerðar", Ingríður: "Ingríðar", Jórunn: "Jórunnar", Kristín: "Kristínar", Ragnhildur: "Ragnhildar", Þóra: "Þóru", Unnur: "Unnar", Vigdís: "Vigdísar", Auður: "Auðar", Brynhildur: "Brynhildar", Dalla: "Döllu", Eir: "Eirar", Freydís: "Freydísar", Gró: "Gróar", Hildur: "Hildar", Inga: "Ingu", Jóra: "Jóru", Katla: "Kötlu", Líf: "Lífar", Nanna: "Nönnu", Oddný: "Oddnýjar", Randi: "Randa", Sif: "Sifjar", Þórdís: "Þórdísar", Þuríður: "Þuríðar",
+  },
+  "old-norse": {
+    Bjorn: "Bjarnar", Thorstein: "Thorsteins", Ketil: "Ketils", Gunnar: "Gunnars", Halfdan: "Halfdanar", Sigurd: "Sigurdar", Eirik: "Eiriks", Ulf: "Ulfs", Hrafn: "Hrafns", Steinar: "Steinars", Ozur: "Ozurar", Thorolf: "Thorolfs", Grim: "Grims", Ingimund: "Ingimundar", Arnbjorn: "Arnbjarnar", Svein: "Sveins", Hallvard: "Hallvardar", Onund: "Onundar", Skeggi: "Skeggja", Vestein: "Vesteins", Thorgils: "Thorgils", Bard: "Bardar", Eyvind: "Eyvindar", Kolbein: "Kolbeins",
+    Gudrun: "Gudrunar", Thorgerd: "Thorgerdar", Aud: "Audar", Hallgerd: "Hallgerdar", Ingibjorg: "Ingibjargar", Asgerd: "Asgerdar", Thorbjorg: "Thorbjargar", Jorunn: "Jorunnar", Helga: "Helgu", Bergthora: "Bergthoru", Ragnhild: "Ragnhildar", Vigdis: "Vigdisar", Thorunn: "Thorunnar", Gunnhild: "Gunnhildar", Yngvild: "Yngvildar", Asdis: "Asdisar", Groa: "Grou", Salbjorg: "Salbjargar", Thordis: "Thordisar", Herdis: "Herdisar", Steinunn: "Steinunnar", Oddny: "Oddnyjar",
+  },
+};
+
 /*
  * Place-led additions belong here rather than in a culture-wide fallback.
  * A generated name is always fictional.  In the sparsely attested cases the

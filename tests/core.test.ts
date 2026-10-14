@@ -18,6 +18,7 @@ import { livelihoodById } from "../src/content/characters/livelihoods";
 import { snapshotSchema } from "../src/runtime/schema";
 import { debt } from "../src/content/plots/debt";
 import { PLOTS } from "../src/content/plots";
+import { telling } from "../src/core/word";
 import { accused } from "../src/content/plots/accused";
 import { goodName, sellerOf } from "../src/content/economy/products";
 import type { PlotContext } from "../src/content/plots/types";
@@ -463,17 +464,22 @@ describe("shared deterministic foundation", () => {
   it("passes stories about the player on, weaker each telling", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const [a, b] = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
-    a.word = [{ what: "smashed a cooking pot", tone: -8, at: 0, hops: 0 }];
+    a.word = [{ act: "smashed", object: "cooking pot", victim: a.id, tone: -8, at: 0, hops: 0 }];
     const trust = b.trust;
     for (let i = 1; i <= 60 && !b.word?.length; i++) {
       b.pos = { ...a.pos, x: a.pos.x + 1 };
       (e as unknown as { spreadWord(c: number): void }).spreadWord(i * 600 + 1);
     }
     const heard = b.word![0];
-    expect(heard.what).toBe("smashed a cooking pot");
+    expect(heard).toMatchObject({ act: "smashed", object: "cooking pot", victim: a.id });
     expect(heard.hops).toBeGreaterThan(0);
     expect(heard.tone).toBe(-8 / 2 ** heard.hops);
     expect(b.trust).toBeLessThan(trust);
+    const name = () => "Ligray";
+    const story = { act: "smashed", object: "cooking pot", victim: "x", tone: -8, at: 0 };
+    expect(telling({ ...story, hops: 1 }, name)).toBe("smashed Ligray's cooking pot");
+    expect(telling({ ...story, hops: 2 }, name)).toBe("smashed a cooking pot");
+    expect(telling({ ...story, hops: 3 }, name)).toBe("made trouble for people");
   });
   it("lets someone ask a favour and thanks the player for keeping it", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
@@ -509,7 +515,7 @@ describe("shared deterministic foundation", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const [a, b] = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
     const kin = e.state.actors.find((x) => x !== b && x.householdId === b.householdId)!;
-    a.word = [{ what: `${b.name}'s household was robbed`, tone: -8, at: 0, hops: 1, about: b.id }];
+    a.word = [{ act: `${b.name}'s household was robbed`, tone: -8, at: 0, hops: 1, about: b.id }];
     const trust = kin.trust;
     for (let i = 1; i <= 30; i++) {
       b.pos = kin.pos = { ...a.pos, x: a.pos.x + 1 };
@@ -518,6 +524,19 @@ describe("shared deterministic foundation", () => {
     expect(b.word?.some((w) => w.about) ?? false).toBe(false);
     expect(kin.word?.some((w) => w.about) ?? false).toBe(false);
     expect(kin.trust).toBe(trust);
+  });
+  it("sends whoever keeps order to judge a complaint", () => {
+    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    delete e.state.plot;
+    const keeper = e.keeper()!;
+    const by = e.state.actors.find((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.id !== keeper.id && x.householdId !== e.state.player.householdId)!;
+    e.state.clock = Math.ceil(e.state.clock / 86400) * 86400 + 9 * 3600;
+    e.complain(by, { act: "broke down the door of", object: "home", victim: by.id, tone: -10, at: e.state.clock, hops: 0 });
+    for (let i = 0; i < 200 && e.approacher?.id !== keeper.id; i++) act(e, { type: "wait", seconds: 60 });
+    expect(e.approacher?.id).toBe(keeper.id);
+    expect(e.cards.find((c) => c.kind === "speech" && c.speaker === keeper.id)?.text).toContain(`broke down the door of ${by.name}'s home`);
+    expect(e.state.player.stocked).toBeGreaterThan(e.state.clock);
+    expect(act(e, { type: "move", dx: 1, dy: 0 }).reason).toBe("You are held fast in the stocks.");
   });
   it("replays identical commands, including uncertainty, to the same physical hash", () => {
     const a = createSession("roman", "repeat"),

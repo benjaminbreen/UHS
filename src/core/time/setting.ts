@@ -36,6 +36,7 @@ export function settingAt(base: WorldSetting, year: number): WorldSetting {
   });
   return {
     ...resolved,
+    namingRevision: base.namingRevision,
     location: local?.name ?? resolved.location,
     community: local?.community ?? resolved.community,
     architecture: local && year < 500 ? "classical" : resolved.architecture,

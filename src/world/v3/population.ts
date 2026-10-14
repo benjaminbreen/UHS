@@ -189,10 +189,13 @@ export function populateHouseholds(
       if (pack.setting?.characterRevision) {
         const partner = world.initialActors.find((b) => b.id === partnerId);
         const kin = m.fromHead === "child";
+        const revised = !!pack.setting.namingRevision;
+        const lineage = revised && kin && holderSex === "female" && m.ofPartner && partner && sexOf(partner) === "male"
+          ? partner.origin : parent;
         // The parent's own recorded format, not the context's: outside the
         // hand-written kits the context has no format at all, which left every
         // household on the ported traditions with unrelated surnames.
-        const format = parent?.nameFormat;
+        const format = lineage?.nameFormat;
         // A hereditary family name comes down from the father: a child takes
         // the householder's, or a mother's husband's where he lives here, and
         // the householder's own father shares it. Partners and mothers keep
@@ -200,17 +203,24 @@ export function populateHouseholds(
         const lineal = kin || (m.fromHead === "parent" && m.sex === "male");
         const father = kin && holderSex === "female" && m.ofPartner && partner && sexOf(partner) === "male"
           ? partner.origin?.nameFamilies
-          : parent?.nameFamilies;
+          : lineage?.nameFamilies;
+        const twoParents = revised && year < 2000 && holderSex === "female"
+          ? [partner?.origin, parent] : [parent, partner?.origin];
         const inherited =
           lineal && (format === "family-personal" || format === "personal-family")
             ? father
             : kin &&
                 format === "personal-two-families" &&
-                parent?.nameFamilies?.[0] &&
-                partner?.origin?.nameFamilies?.[0]
-              ? [parent.nameFamilies[0], partner.origin.nameFamilies[0]]
+                twoParents[0]?.nameFamilies?.[0] &&
+                twoParents[1]?.nameFamilies?.[0]
+              ? [twoParents[0].nameFamilies[0], twoParents[1].nameFamilies[0]]
               : undefined;
         const sex = m.sex ?? characterSex(seed, memberId);
+        const taken = new Set(
+          household.members.map((id) => id === owner
+            ? adult?.name ?? ownerCharacter?.name
+            : world.initialActors.find((b) => b.id === id)?.name).filter((name): name is string => !!name),
+        );
         const draw = (salt: number) =>
           generateCharacter(
             pack.setting!,
@@ -227,18 +237,16 @@ export function populateHouseholds(
             undefined,
             inherited,
             sex,
-            lineal ? parent?.nameTradition : undefined,
+            lineal ? lineage?.nameTradition : undefined,
+            revised ? {
+              community: lineal ? lineage?.community : undefined,
+              parentPersonal: kin ? lineage?.namePersonal : undefined,
+              personal: m.fromHead === "parent" && m.sex === "male" ? parent?.nameParentPersonal : undefined,
+              avoid: taken,
+            } : undefined,
           );
-        // Where the name sets the body, redraw until it is the sex the story
-        // needs, and until it is not a name already in the house: a kit of
-        // sixteen names otherwise gives a husband his wife's.
-        const taken = new Set(
-          household.members.map((id) =>
-            world.initialActors.find((b) => b.id === id)?.name ?? adult?.name,
-          ),
-        );
         let drawn = draw(0);
-        for (let salt = 1; salt < 12; salt++) {
+        for (let salt = 1; !revised && salt < 12; salt++) {
           if (
             (!m.sex || sexOf({ ...a, ...drawn }) === m.sex) &&
             !taken.has(drawn.name)

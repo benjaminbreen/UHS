@@ -1,5 +1,6 @@
 import type { Actor, Favour, Household, WalkOff } from "../core/types";
 import { orderKeeper } from "../content/history/order";
+import { telling } from "../core/word";
 import { goodName, sellerOf } from "../content/economy/products";
 import { describeStats, statsOf } from "../core/stats";
 import { skySeed, weatherAt } from "../core/weather";
@@ -300,13 +301,14 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .slice(-4)
     .map(named);
   const known = acquaintance(runtime, actor);
+  const nameOf = (id: string) => state.actors.find((a) => a.id === id)?.name;
   const hearsay = (actor.word ?? [])
     .filter((w) => w.hops > 0 && !w.about)
     .map((w) => {
-      const teller = w.hops === 1 && w.from ? state.actors.find((a) => a.id === w.from)?.name : undefined;
-      return `${teller ? `${teller} told you` : "people say"} the player ${named(w.what)}`;
+      const teller = w.hops === 1 && w.from ? nameOf(w.from) : undefined;
+      return `${teller ? `${teller} told you` : "people say"} the player ${telling(w, nameOf)}`;
     });
-  const gossip = (actor.word ?? []).filter((w) => w.about).slice(0, 3).map((w) => w.what);
+  const gossip = (actor.word ?? []).filter((w) => w.about).slice(0, 3).map((w) => w.act);
   const open = state.asks?.find((x) => x.by === actor.id);
   const free = !open && actor.trust >= 0 && !intruding && (state.asks?.length ?? 0) < 3 && (actor.age ?? 30) >= 12 && actor.householdId !== state.player.householdId;
   const want = free ? engine.askFor(actor) : undefined;
@@ -364,7 +366,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     gossip.length ? `Talk going round about other people, yours to pass on if the chance comes: ${gossip.join("; ")}.` : "",
     known,
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known ? "" : "Has not met the player before.",
-    `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}. Keeps order here: ${orderKeeper(setting).who}.`,
+    `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}. Keeps order here: ${engine.keeper()?.id === actor.id ? `you yourself, as ${orderKeeper(setting).who}; people bring you their complaints` : `${orderKeeper(setting).who}${engine.keeper() ? `, ${engine.keeper()!.name}` : ""}`}.`,
   ]
     .filter(Boolean)
     .join("\n");
