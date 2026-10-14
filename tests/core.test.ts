@@ -490,6 +490,35 @@ describe("shared deterministic foundation", () => {
     expect(a.trust).toBe(trust + 4);
     expect(a.word?.[0]).toMatchObject({ tone: 4, hops: 0 });
   });
+  it("takes a favour the model names only when the engine can see it done", () => {
+    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const humans = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId);
+    const [a, cooper] = [humans[0], humans.find((x) => x.householdId !== humans[0].householdId)!];
+    e.answerAsk(a, "made", { kind: "talk-to", target: "Nobody Atall", what: "speak to the moon" });
+    expect(e.state.asks ?? []).toEqual([]);
+    e.answerAsk(a, "made", { kind: "talk-to", target: cooper.name, what: "put in a word for my son" });
+    expect(e.state.asks).toMatchObject([{ by: a.id, kind: "talk-to", to: cooper.id, what: "put in a word for my son" }]);
+    cooper.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    const trust = a.trust;
+    act(e, { type: "interact", target: cooper.id, action: "talk" });
+    expect(e.state.asks).toEqual([]);
+    expect(a.trust).toBeGreaterThan(trust);
+    expect(cooper.memories.at(-1)).toContain("on behalf of");
+  });
+  it("gossips about other households, but not to their faces", () => {
+    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const [a, b] = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
+    const kin = e.state.actors.find((x) => x !== b && x.householdId === b.householdId)!;
+    a.word = [{ what: `${b.name}'s household was robbed`, tone: -8, at: 0, hops: 1, about: b.id }];
+    const trust = kin.trust;
+    for (let i = 1; i <= 30; i++) {
+      b.pos = kin.pos = { ...a.pos, x: a.pos.x + 1 };
+      (e as unknown as { spreadWord(c: number): void }).spreadWord(i * 600 + 1);
+    }
+    expect(b.word?.some((w) => w.about) ?? false).toBe(false);
+    expect(kin.word?.some((w) => w.about) ?? false).toBe(false);
+    expect(kin.trust).toBe(trust);
+  });
   it("replays identical commands, including uncertainty, to the same physical hash", () => {
     const a = createSession("roman", "repeat"),
       b = createSession("roman", "repeat");

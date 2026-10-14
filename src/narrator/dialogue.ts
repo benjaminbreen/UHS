@@ -1,4 +1,4 @@
-import type { Actor, Household, WalkOff } from "../core/types";
+import type { Actor, Favour, Household, WalkOff } from "../core/types";
 import { orderKeeper } from "../content/history/order";
 import { goodName, sellerOf } from "../content/economy/products";
 import { describeStats, statsOf } from "../core/stats";
@@ -301,17 +301,25 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .map(named);
   const known = acquaintance(runtime, actor);
   const hearsay = (actor.word ?? [])
-    .filter((w) => w.hops > 0)
+    .filter((w) => w.hops > 0 && !w.about)
     .map((w) => {
       const teller = w.hops === 1 && w.from ? state.actors.find((a) => a.id === w.from)?.name : undefined;
       return `${teller ? `${teller} told you` : "people say"} the player ${named(w.what)}`;
     });
+  const gossip = (actor.word ?? []).filter((w) => w.about).slice(0, 3).map((w) => w.what);
   const open = state.asks?.find((x) => x.by === actor.id);
-  const want = !open && actor.trust >= 0 && !intruding && (state.asks?.length ?? 0) < 3 ? engine.askFor(actor) : undefined;
+  const free = !open && actor.trust >= 0 && !intruding && (state.asks?.length ?? 0) < 3 && (actor.age ?? 30) >= 12 && actor.householdId !== state.player.householdId;
+  const want = free ? engine.askFor(actor) : undefined;
+  const targets = free ? engine.favourTargets(actor) : undefined;
   const favour = open
-    ? `You have asked the player for ${open.what}${open.accepted ? " and they promised it" : ""}. If they answer now, set "ask" to "accepted" or "declined".`
-    : want
-      ? `A favour you could ask of the player, if it comes up naturally and they seem decent: ${want.what}${want.kind === "fetch" ? ", which your household has gone short of" : want.kind === "food" ? ", since you are hungry" : ", whom you have not seen in a while"}. If you ask, set "ask" to "made".`
+    ? `You have asked the player to ${open.what}${open.accepted ? ", and they promised" : ""}. If they answer now, set "ask" to "accepted" or "declined".`
+    : targets
+      ? [
+          "If it comes up naturally and the player seems decent, you may ask them a favour that grows out of your own life and worries. It must be one of: \"bring\" a thing, \"talk-to\" a person (to plead, warn, apologise, carry word), or \"go-to\" a place.",
+          `People: ${targets.people.join(", ") || "none"}. Places: ${targets.places.join(", ") || "none"}. Things: ${targets.goods.join(", ") || "none"}.`,
+          want ? `One thing that is really pressing: ${want.what}.` : "",
+          'If you ask, set "ask" to "made" and "favour" to {kind, target (a name from those lists), what (what you want done, in a few words, as "put in a word for my son with the cooper")}.',
+        ].filter(Boolean).join(" ")
       : "";
   const feeling = actor.trust < -4 ? "angry with you" : actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
   // This prompt is built for one person, so it can afford the whole outlook
@@ -353,6 +361,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       ? `Heard about the player, second-hand and maybe wrong or exaggerated: ${hearsay.join("; ")}. It colours how you take them; you may bring it up, ask if it is true, or keep your distance.`
       : "",
     favour,
+    gossip.length ? `Talk going round about other people, yours to pass on if the chance comes: ${gossip.join("; ")}.` : "",
     known,
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known ? "" : "Has not met the player before.",
     `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}. Keeps order here: ${orderKeeper(setting).who}.`,
@@ -452,6 +461,7 @@ export async function dialogueTurn(
       action?: string;
       leave?: WalkOff;
       ask?: "made" | "accepted" | "declined";
+      favour?: Favour;
       ms?: { upstream: number; total: number };
       tokens?: { out: number; reasoning: number };
     };
@@ -469,7 +479,7 @@ export async function dialogueTurn(
     if (shouting(runtime, actor)) data.text = shout(data.text);
     // The furious have their say and go; a householder throwing you out stays put.
     else if (angerLevel(actor, runtime.engine.state.clock) === 3) data.leave ??= "away";
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, ask: data.ask, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, ask: data.ask, favour: data.favour, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")

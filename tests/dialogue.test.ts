@@ -103,6 +103,7 @@ describe("dialogue endpoint", () => {
       "original",
       "leave",
       "ask",
+      "favour",
       "receive",
     ]);
   });
@@ -118,7 +119,7 @@ describe("dialogue endpoint", () => {
       return reply({ dialogue: "Where are you going?", original: "Où vas-tu?", regard: 0 });
     });
     const properties = sent?.response_format.json_schema.schema.properties;
-    expect(Object.keys(properties)).toEqual(["mood", "regard", "action", "dialogue", "language", "original", "leave", "ask", "receive"]);
+    expect(Object.keys(properties)).toEqual(["mood", "regard", "action", "dialogue", "language", "original", "leave", "ask", "favour", "receive"]);
     expect(sent?.messages[0].content).toContain("translate that exact line");
     expect(sent?.reasoning).toEqual({ effort: "low" });
   });

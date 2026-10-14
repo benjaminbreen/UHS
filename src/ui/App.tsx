@@ -1809,7 +1809,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                               <span className="today-icon"><Handshake size={15} /></span>
                               <span className="today-text">
                                 <small>Favour{ask.accepted ? " · promised" : ""} · by {timeLabel(ask.until)}</small>
-                                {by?.name ?? "Someone"} wants {ask.what}
+                                {by?.name ?? "Someone"} asks you to {ask.what}
                               </span>
                             </button>
                           </li>

@@ -1,4 +1,4 @@
-import type { Actor, Ask, Snapshot, Word } from "./types";
+import type { Actor, Ask, HouseholdEvent, Snapshot, Word } from "./types";
 
 /** What a person carries about the player and would pass on. Strongest and
  * newest kept; the same story is not held twice. */
@@ -11,7 +11,7 @@ export function hear(a: Actor, w: Word) {
   }
   list.push(w);
   list.sort((x, y) => Math.abs(y.tone) - Math.abs(x.tone) || y.at - x.at);
-  list.length = Math.min(list.length, 6);
+  list.length = Math.min(list.length, 8);
   return list.includes(w);
 }
 
@@ -28,7 +28,7 @@ export function reputation(s: Snapshot) {
   const told = new Map<string, { what: string; tone: number; people: number }>();
   for (const a of s.actors)
     for (const w of a.word ?? []) {
-      if (!w.hops) continue;
+      if (!w.hops || w.about) continue;
       const t = told.get(w.what) ?? { what: w.what, tone: 0, people: 0 };
       t.people++;
       t.tone = Math.sign(w.tone) || t.tone;
@@ -38,7 +38,22 @@ export function reputation(s: Snapshot) {
 }
 
 export const askLines: Record<Ask["kind"], (what: string) => string> = {
-  fetch: (what) => `We have gone short of ${what}. If you could bring some, I would not forget it.`,
+  bring: (what) => `Could you ${what}? I would not forget it.`,
   food: () => "I have not eaten since yesterday. Have you anything to spare?",
-  message: (what) => `Will you carry word to ${what} for me? Tell them I asked after them.`,
+  "talk-to": (what) => `Will you ${what} for me?`,
+  "go-to": (what) => `Would you ${what}? I can't get away.`,
+};
+
+/** What a household's recent years give its neighbours to talk about, and
+ * how good or bad the news is. */
+export const tidings: Partial<Record<HouseholdEvent["kind"], [(name: string, e: HouseholdEvent) => string, number]>> = {
+  died: [(n, e) => `${n} buried ${e.as ? `their ${e.as}` : e.name ?? "one of their own"}`, -3],
+  fire: [(n) => `${n}'s household lost their house to fire`, -4],
+  "bad-year": [(n) => `${n}'s household had a hard year and are going without`, -3],
+  "good-year": [(n) => `${n}'s household did well this year and are putting on airs`, 2],
+  robbed: [(n) => `${n}'s household was robbed`, -3],
+  wed: [(n, e) => `there was a wedding at ${n}'s${e.name ? `: ${e.name}` : ""}`, 3],
+  born: [(n) => `${n}'s household has a new baby`, 3],
+  left: [(n, e) => `${e.name ?? "someone"} walked out of ${n}'s household`, -3],
+  joined: [(n, e) => `${e.name ?? "someone new"} has come to live at ${n}'s`, 2],
 };

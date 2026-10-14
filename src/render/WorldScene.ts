@@ -116,6 +116,7 @@ import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
 import { slingWhirl } from "../audio/sfx";
+import { TreeFinds } from "./tree-finds";
 import {
   bumpAnimal,
   bumpPerson,
@@ -529,6 +530,9 @@ export class WorldScene extends Phaser.Scene {
   private strain?: { at: number; until: number };
   private heaveSerial = 0;
   private windSprites: WindSprite[] = [];
+  private treeFinds?: TreeFinds;
+  private findsDirty = true;
+  private treeFindSerial = 0;
   /** Hanging layers drawn over a prop's rigid frame, swayed by the same wind.
    * Kept per entity rather than in windSprites, which only clears on a full
    * rebuild and would hold sprites of objects that have gone. */
@@ -791,6 +795,8 @@ export class WorldScene extends Phaser.Scene {
     this.events.once("shutdown", () => this.wading?.destroy());
     this.events.once("shutdown", () => {
       this.toolEffects?.dispose();
+      this.treeFinds?.dispose();
+      this.findsDirty = true;
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
       this.feelFx?.dispose();
@@ -3565,6 +3571,8 @@ export class WorldScene extends Phaser.Scene {
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
     if (w !== this.drawnWorld) {
       this.toolEffects?.dispose();
+      this.treeFinds?.dispose();
+      this.findsDirty = true;
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
       this.terrainStream?.dispose();
@@ -3574,6 +3582,8 @@ export class WorldScene extends Phaser.Scene {
       // Indoors the street is only out of sight. Rasterising it again on the
       // way back out is what made a settlement fill in a quadrant at a time.
       this.toolEffects?.dispose();
+      this.treeFinds?.dispose();
+      this.findsDirty = true;
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
       this.terrainStream?.setHidden(true);
@@ -3660,6 +3670,7 @@ export class WorldScene extends Phaser.Scene {
       this.canopies = [];
       this.plantHeights.clear();
       this.plantImages.clear();
+      this.findsDirty = true;
       this.windSprites = [];
       this.ripples = [];
       this.buildings.clear();
@@ -5652,6 +5663,22 @@ export class WorldScene extends Phaser.Scene {
       this.heaveUp(heave);
     }
     this.toolEffects.update(time);
+    this.treeFinds ??= new TreeFinds(this, {
+      treeFind: (x, y) => this.runtime.engine.treeFind(x, y),
+      player: () => this.entities.get("player"),
+      brush: (cell, dx, dy, force) => this.toolEffects?.brush(cell, dx, dy, force),
+      spill: (at, loot) => this.toolEffects?.spill(at, loot),
+    });
+    if (this.findsDirty) {
+      this.findsDirty = false;
+      this.treeFinds.sync(this.plantImages);
+    }
+    const find = this.runtime.treeFindEffect;
+    if (find && find.serial !== this.treeFindSerial) {
+      this.treeFindSerial = find.serial;
+      this.treeFinds.drop(find);
+    }
+    this.treeFinds.update(time);
     const fires = this.runtime.engine.state.fires ?? [];
     if (fires.length || this.burning)
       (this.burning ??= new Burning(this)).update(

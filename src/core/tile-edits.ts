@@ -22,6 +22,8 @@ export type TileEdit = {
   nibbled?: number;
   /** A fungus here has been stepped on and lies squashed. */
   trodden?: boolean;
+  /** What this tree kept in its crown has been knocked out of it. */
+  shaken?: boolean;
   /** Fire went through: what stands here is charred. */
   burnt?: boolean;
 };

@@ -491,6 +491,8 @@ export class Runtime {
   throwEffect?: ThrowEffect;
   /** The last shove, or the last one that came to nothing. */
   shoveEffect?: ShoveEffect;
+  /** A tree's hidden find knocked loose, read once by serial. */
+  treeFindEffect?: { serial: number } & NonNullable<Engine["lastTreeFind"]>;
   /** An animal the player has just walked into. */
   jostleEffect?: {
     serial: number;
@@ -607,6 +609,8 @@ export class Runtime {
       return;
     }
     this.recordToolEffect(command, previousPlant);
+    const find = this.engine.lastTreeFind;
+    if (find) this.treeFindEffect = { serial: ++this.characterSerial, ...find };
     if (command.type === "move") {
       const shove = this.engine.lastShove;
       if (shove)

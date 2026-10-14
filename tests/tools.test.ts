@@ -562,3 +562,24 @@ it("burns a player perched over a burning tree and does not hurt them after it i
   engine.advance(6);
   expect(engine.state.player.health).toBe(95);
 });
+
+it("shakes a tree's hidden find loose once, into the player's hands", () => {
+  const engine = createSession("roman", "tree-find");
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  ground(engine);
+  let x = 1;
+  for (; x < 4000; x++) {
+    plant(engine, { id: "tree", x, y: 0, sprite: "nature-silver-birch", solid: true });
+    if (engine.treeFind(x, 0)) break;
+  }
+  const kind = engine.treeFind(x, 0)!;
+  expect(kind).toBeDefined();
+  engine.state.player.pos = { x: x - 1, y: 0, space: "outside" };
+  const before = { ...engine.state.player.inventory };
+  expect(runtime.move(1, 0)?.status).toBe("completed");
+  expect(engine.state.player.pos.x).toBe(x - 1);
+  expect(runtime.treeFindEffect?.kind).toBe(kind);
+  const got = runtime.treeFindEffect!.loot[0];
+  expect(engine.state.player.inventory[got.item]).toBe((before[got.item] ?? 0) + got.n);
+  expect(engine.treeFind(x, 0)).toBeUndefined();
+});

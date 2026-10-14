@@ -37,5 +37,7 @@ export const ecologicalItems: Record<string, ItemDef> = {
   },
   hide: { id: "hide", name: "Raw hide", description: "A skin fresh off the carcass, heavy and greasy. Scraped and tanned, it becomes leather.", sprite: "hide", value: 6 },
   feathers: { id: "feathers", name: "Feathers", description: "Plucked or picked up where birds have been; they fletch arrows, stuff bedding and trim hats.", sprite: "feathers", value: 1 },
+  eggs: { id: "eggs", name: "Wild eggs", description: "Small speckled eggs from a nest shaken out of a tree; a mouthful each, raw or roasted in the ashes.", sprite: "eggs", value: 2, edible: 10 },
+  honeycomb: { id: "honeycomb", name: "Wild honeycomb", description: "A slab of comb from a hive in a hollow bough, dripping, with a few bees still on it: the sweetest thing there was.", sprite: "honeycomb", value: 5, edible: 22, health: 2 },
   fodder: { id: "fodder", name: "Forage", description: "Cut grass and leaves bundled for animals; what keeps a beast alive through the lean months.", sprite: "ecology-grazing", value: 1 },
 };

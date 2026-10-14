@@ -67,7 +67,7 @@ import {
   type WorldObject,
 } from "./types";
 import { canonical, random, stateHash } from "./random";
-import { askLines, hear, retold } from "./word";
+import { askLines, hear, retold, tidings } from "./word";
 import { orderKeeper } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
@@ -202,6 +202,13 @@ const SWIM_WARNINGS: [number, string][] = [
 ];
 /** Clock seconds: leaning on someone this soon after is the same collision. */
 const BUMP_GAP = 2;
+export type TreeFind = "nest" | "hive" | "fruit" | "cones";
+const TREE_FINDS: Record<TreeFind, { loot: { item: string; n: number }[]; told: string }> = {
+  nest: { loot: [{ item: "eggs", n: 3 }, { item: "feathers", n: 1 }], told: "A nest tumbles out of the branches. Three speckled eggs, unbroken!" },
+  hive: { loot: [{ item: "honeycomb", n: 2 }], told: "A wild hive drops from a hollow bough, and the bees boil out of it. Honeycomb!" },
+  fruit: { loot: [{ item: "fruit", n: 4 }], told: "Ripe fruit comes pattering down out of the crown." },
+  cones: { loot: [{ item: "pinecone", n: 3 }, { item: "resin", n: 1 }], told: "Cones rattle down through the needles, sticky with resin." },
+};
 const AUTHORITY = /basilica|meeting hall|guild hall|council|palace|temple|chapel|church|shrine|mosque|synagogue/i;
 /** Clock seconds: offence taken again this soon costs no more trust. */
 const AFFRONT_GAP = 30;
@@ -230,7 +237,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Ask, Place, Point, WalkOff } from "./types";
+import type { Ask, Favour, Place, Point, WalkOff } from "./types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -2536,6 +2543,7 @@ export class Engine {
     if (!c.run || c.jump || c.traverse || p.perch || p.afloat || (c.dx && c.dy)) return undefined;
     const x = p.pos.x + c.dx, y = p.pos.y + c.dy;
     if (!this.playerBlocked(x, y) || this.offMap(x, y) || this.toppleTarget(c.dx, c.dy, true)) return undefined;
+    if (p.pos.space === "outside" && this.treeFind(x, y)) return undefined;
     if (this.onWall() && this.wallAt(x, y, p.pos.space)) return undefined;
     const push = this.shovePlan(c.dx, c.dy);
     if (push && !("refused" in push)) return undefined;
@@ -2943,6 +2951,38 @@ export class Engine {
     arrow?: boolean;
     sling?: boolean;
   };
+  /** A tree that has just given up what it kept in its crown. */
+  lastTreeFind?: { x: number; y: number; kind: TreeFind; loot: { item: string; n: number }[] };
+  /** One standing tree in forty keeps something in its crown: a nest in
+   * spring, fruit or cones later in the year, a wild hive in any season. */
+  treeFind(x: number, y: number): TreeFind | undefined {
+    const plant = this.world.decoration(x, y);
+    const size = plantClass(plant?.sprite);
+    if (size !== "small" && size !== "medium" && size !== "large") return undefined;
+    const edit = this.state.tiles?.[tileKey(x, y)];
+    if (edit?.stage || edit?.shaken) return undefined;
+    const seed = this.state.manifest.seed;
+    if (random(seed, "tree-find", x, y) >= 1 / 40) return undefined;
+    const season = seasonAt(this.world.pack.setting?.season ?? "spring", this.state.clock) ?? "spring";
+    const conifer = /pine|spruce|fir|cedar|larch|conifer|cypress|juniper/.test(plant!.sprite);
+    const roll = random(seed, "tree-find-kind", x, y);
+    if (roll < 0.3) return "hive";
+    if (season === "winter") return undefined;
+    if (season === "spring" || (season === "summer" && roll < 0.55)) return "nest";
+    return conifer ? "cones" : "fruit";
+  }
+  /** Knocks a tree's find loose into the player's hands. */
+  private shakeTree(x: number, y: number) {
+    const kind = this.treeFind(x, y);
+    if (!kind) return false;
+    this.editAt(x, y).shaken = true;
+    const loot = TREE_FINDS[kind].loot;
+    const p = this.state.player;
+    for (const { item, n } of loot) p.inventory[item] = (p.inventory[item] ?? 0) + n;
+    this.lastTreeFind = { x, y, kind, loot };
+    this.event(TREE_FINDS[kind].told);
+    return true;
+  }
   /** The last animal walked into, for the hop it makes out of the way.
    * `yielded` is false when it stood its ground. */
   lastJostle?: {
@@ -3550,6 +3590,7 @@ export class Engine {
     }
     if (work === "split") return this.splitRock(plant, edit);
     const needed = fellingSwings(plant?.sprite);
+    this.shakeTree(at.x, at.y);
     edit.chops = (edit.chops ?? 0) + 1 + this.deft("woodcraft");
     this.advance(30);
     this.grantXp("woodcraft", 4);
@@ -5215,6 +5256,7 @@ export class Engine {
       )
         return "Too deep to wade — find a shallower crossing or a bridge.";
       if (this.runningCollision(c) || this.sidestep(c)) return;
+      if (!(c.dx && c.dy) && p.pos.space === "outside" && this.treeFind(p.pos.x + c.dx, p.pos.y + c.dy)) return;
       const push = this.shovePlan(c.dx, c.dy);
       const toppling = this.toppleTarget(c.dx, c.dy, c.run);
       if (!toppling && push && "refused" in push) return push.reason;
@@ -5966,6 +6008,7 @@ export class Engine {
     }
     if (p.dead) return;
     this.lastImpact = undefined;
+    delete this.lastTreeFind;
     if (c.type !== "move" && c.type !== "pass") this.lastStep.steps = 0;
     if (c.type === "learn") {
       (p.techniques ??= []).push(c.technique);
@@ -6093,6 +6136,7 @@ export class Engine {
                   : undefined;
         }
         hits.push(h);
+        if (p.pos.space === "outside" && !this.lastTreeFind) this.shakeTree(at.x, at.y);
       }
       if (p.heldItem === "torch" && p.pos.space === "outside") {
         const lit = this.ignite(cone[0].x, cone[0].y);
@@ -6395,6 +6439,13 @@ export class Engine {
     }
     if (c.type === "move") {
       delete this.lastShove;
+      if (!c.jump && !c.traverse && !(c.dx && c.dy) && p.pos.space === "outside" &&
+          this.shakeTree(p.pos.x + c.dx, p.pos.y + c.dy)) {
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        this.advance(2);
+        return;
+      }
       const dodge = this.sidestep(c);
       if (dodge) {
         this.execute({ ...c, dx: dodge.x, dy: dodge.y });
@@ -6828,11 +6879,11 @@ export class Engine {
       case "talk":
         if (a) {
           if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
-          const message = this.state.asks?.find((x) => x.kind === "message" && x.to === a.id);
-          const sender = message && this.actorsById?.get(message.by);
-          if (message && sender) {
-            a.memories.push(`The player brought word from ${sender.name}`);
-            this.grant(message, sender);
+          const errand = this.state.asks?.find((x) => x.kind === "talk-to" && x.to === a.id);
+          const sender = errand && this.state.actors.find((x) => x.id === errand.by);
+          if (errand && sender) {
+            a.memories.push(`The player came on behalf of ${sender.name}, who asked them to ${errand.what}`);
+            this.grant(errand, sender);
           }
           const plot = this.state.plot;
           const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === a.id);
@@ -6907,6 +6958,9 @@ export class Engine {
         break;
       case "enter":
         if (b) {
+          const errand = this.state.asks?.find((x) => x.kind === "go-to" && x.place === b.id);
+          const sender = errand && this.state.actors.find((x) => x.id === errand.by);
+          if (errand && sender) this.grant(errand, sender);
           this.advance(10);
           const room = this.interiorOf(b.id);
           p.pos = room ? { ...room.entry, space: b.id } : { x: 6, y: 8, space: b.id };
@@ -7488,11 +7542,12 @@ export class Engine {
       }
     a.errand = { to: copy(to), label: "Coming to find you", until: clock + 60 };
   }
-  /** Stories about the player move about an hour per hop of company, and a
-   * household pools what it heard each evening. Each retelling is half as
-   * strong, and so is what it does to the listener's opinion. */
+  /** Stories move about an hour per hop of company, and a household pools
+   * what it heard each evening. Each retelling is half as strong; one about
+   * the player shifts the listener's opinion by half that again. */
   private spreadWord(clock: number) {
     const s = this.state, seed = s.manifest.seed;
+    if (clock % 86400 === 7 * 3600) this.seedTidings(clock);
     for (const a of s.actors) {
       if (a.kind !== "human" || a.dead || !a.word?.length || (a.age ?? 30) < 8 || this.world.dormant?.(a.id)) continue;
       const chance = (0.5 + statsOf(seed, a).extraversion / 100) / 6;
@@ -7506,33 +7561,97 @@ export class Engine {
       for (const a of home) for (const b of home) if (a !== b) this.pass(a, b, clock, true);
     }
   }
+  /** Each morning, a neighbour of every household with news from the last
+   * year or so has heard it, and so has someone near a household in debt. */
+  private seedTidings(clock: number) {
+    const s = this.state, seed = s.manifest.seed, year = this.world.pack.setting?.year;
+    if (year === undefined) return;
+    for (const h of s.households ?? []) {
+      const head = h.members.map((id) => s.actors.find((a) => a.id === id)).find((a) => a && !a.dead && a.kind === "human");
+      if (!head || h.members.includes(s.player.id)) continue;
+      const near = s.actors.filter((o) => o.kind === "human" && !o.dead && (o.age ?? 30) >= 13 && o.householdId && o.householdId !== h.id && distance(o.home, h.home) < 25);
+      const tell = (what: string, tone: number, key: string) => {
+        const o = near[Math.floor(random(seed, "tiding", h.id, key) * near.length)];
+        if (o) hear(o, { what, tone, at: clock, hops: 1, about: head.id });
+      };
+      for (const e of (h.history ?? []).filter((e) => year - e.year <= 1).slice(-2)) {
+        const t = tidings[e.kind];
+        if (t) tell(t[0](head.name, e), t[1], `${e.kind}${e.year}`);
+      }
+      const lender = h.credit && s.households?.find((x) => x.id === h.credit!.from);
+      const creditor = lender && s.actors.find((a) => a.id === lender.members[0]);
+      if (creditor) tell(`${head.name}'s household owes ${creditor.name} and cannot pay`, -3, "debt");
+    }
+  }
   private pass(a: Actor, b: Actor, clock: number, all = false) {
     const told = all ? a.word ?? [] : [a.word![Math.floor(random(this.state.manifest.seed, "tell", a.id, clock) * a.word!.length)]];
     for (const w of [...told]) {
       const tone = w.tone / 2;
       if (Math.abs(tone) < 0.5 || w.from === b.id) continue;
-      if (hear(b, { what: w.what, tone, at: clock, hops: w.hops + 1, from: a.id })) b.trust += tone / 2;
+      // Nobody tells a family its own scandal.
+      if (w.about && (w.about === b.id || this.state.actors.find((x) => x.id === w.about)?.householdId === b.householdId)) continue;
+      if (hear(b, { what: w.what, tone, at: clock, hops: w.hops + 1, from: a.id, about: w.about }) && !w.about) b.trust += tone / 2;
     }
   }
-  /** A favour this person could fairly ask of the player, if any. */
+  /** A favour this person could fairly ask of the player when the model does
+   * not offer one of its own. */
   askFor(a: Actor): Omit<Ask, "id" | "at" | "until"> | undefined {
     const s = this.state;
     if (a.kind !== "human" || a.dead || (a.age ?? 30) < 12 || a.householdId === s.player.householdId) return;
-    if (a.hunger > 60) return { by: a.id, kind: "food", what: "something to eat" };
+    if (a.hunger > 60) return { by: a.id, kind: "food", what: "bring something to eat" };
     const good = s.economy?.short[a.householdId ?? ""]?.find((g) => this.item(g));
-    if (good) return { by: a.id, kind: "fetch", item: good, what: this.item(good)!.name.toLowerCase() };
+    if (good) return { by: a.id, kind: "bring", item: good, what: `bring some ${this.item(good)!.name.toLowerCase()}` };
     const kin = (a.relations ?? [])
       .map((r) => this.actorsById?.get(r.other))
       .find((o) => o && !o.dead && o.kind === "human" && o.householdId !== a.householdId);
     if (kin && random(s.manifest.seed, "message", a.id, Math.floor(s.clock / 86400)) < 0.4)
-      return { by: a.id, kind: "message", to: kin.id, what: `word to ${kin.name}` };
+      return { by: a.id, kind: "talk-to", to: kin.id, what: `carry word to ${kin.name}` };
+  }
+  /** Who and what a favour could name, for the model to choose among. */
+  favourTargets(a: Actor) {
+    const s = this.state;
+    const people = [
+      ...(a.relations ?? []).map((r) => this.actorsById?.get(r.other)),
+      ...s.actors.filter((o) => o.kind === "human" && o.householdId !== a.householdId && distance(o.home, a.home) < 30),
+    ].filter((o): o is Actor => !!o && !o.dead && o.kind === "human" && o.id !== a.id && o.householdId !== s.player.householdId);
+    const goods = new Set<string>();
+    for (const g of s.economy?.short[a.householdId ?? ""] ?? []) if (this.item(g)) goods.add(this.item(g)!.name.toLowerCase());
+    for (const o of s.objects) for (const id of Object.keys(o.inventory ?? {})) if (goods.size < 12 && this.item(id)) goods.add(this.item(id)!.name.toLowerCase());
+    return {
+      people: [...new Map(people.map((o) => [o.id, `${o.name} (${o.role.toLowerCase()})`])).values()].slice(0, 8),
+      // "Household" and "Household stores" name nowhere in particular.
+      places: [...new Set(this.world.places.filter((p) => p.owner !== s.player.id && !/^(household|remains)\b/i.test(p.name)).map((p) => p.name))].slice(0, 10),
+      goods: [...goods],
+    };
+  }
+  /** The model's favour, if it names someone, somewhere or something real. */
+  private resolveFavour(a: Actor, f: Favour): Omit<Ask, "id" | "at" | "until"> | undefined {
+    const name = f.target.trim().toLowerCase().replace(/\s*\(.*\)$/, "").replace(/^the /, "");
+    const what = f.what.trim().replace(/^(to|please|could you|would you)\s+/i, "").replace(/[.?!]+$/, "");
+    if (!name || !what) return;
+    if (f.kind === "talk-to") {
+      const people = this.state.actors.filter((o) => o.kind === "human" && !o.dead && o.id !== a.id);
+      const to = people.find((o) => o.name.toLowerCase() === name) ??
+        people.find((o) => o.name.toLowerCase().split(" ")[0] === name.split(" ")[0] && (a.relations?.some((r) => r.other === o.id) || distance(o.home, a.home) < 30));
+      return to && { by: a.id, kind: "talk-to", to: to.id, what };
+    }
+    if (f.kind === "go-to") {
+      const place = this.world.places.find((p) => p.name.toLowerCase().replace(/^the /, "") === name) ??
+        this.world.places.find((p) => p.name.toLowerCase().includes(name));
+      return place && { by: a.id, kind: "go-to", place: place.id, what };
+    }
+    const defs = [...Object.values(this.items), ...Object.values(this.state.catalog ?? {})];
+    const item = defs.find((d) => d.name.toLowerCase() === name) ??
+      defs.filter((d) => name.includes(d.name.toLowerCase())).sort((x, y) => y.name.length - x.name.length)[0];
+    return item && { by: a.id, kind: "bring", item: item.id, what };
   }
   /** What the player said to a favour, as the conversation settled it. */
-  answerAsk(a: Actor, how: "made" | "accepted" | "declined") {
+  answerAsk(a: Actor, how: "made" | "accepted" | "declined", favour?: Favour) {
     const asks = (this.state.asks ??= []), clock = this.state.clock;
     let ask = asks.find((x) => x.by === a.id);
     if (!ask && how !== "declined") {
-      const want = this.askFor(a);
+      // A favour the engine could not see done is only talk.
+      const want = favour ? this.resolveFavour(a, favour) : this.askFor(a);
       if (!want || asks.length >= 3) return;
       ask = { ...want, id: `ask-${a.id}-${clock}`, at: clock, until: clock + 86400 };
       asks.push(ask);
@@ -7547,8 +7666,8 @@ export class Engine {
   private grant(ask: Ask, a: Actor) {
     this.state.asks!.splice(this.state.asks!.indexOf(ask), 1);
     this.regard(a, 3, "warm");
-    a.memories.push(`The player brought ${ask.what} when we needed it`);
-    hear(a, { what: `brought ${a.name} ${ask.what} when asked`, tone: 4, at: this.state.clock, hops: 0 });
+    a.memories.push(`The player did what I asked: ${ask.what}`);
+    hear(a, { what: `did ${a.name} a favour they asked (${ask.what})`, tone: 4, at: this.state.clock, hops: 0 });
     this.event(`${a.name} is grateful.`, "social");
   }
   /** Promises run out, and now and then someone nearby who likes the player
@@ -7561,8 +7680,8 @@ export class Engine {
       const a = this.actorsById?.get(ask.by);
       if (!ask.accepted || !a) continue;
       this.regard(a, -2, "anger");
-      a.memories.push(`The player said they would bring ${ask.what} and never came`);
-      hear(a, { what: `promised ${a.name} ${ask.what} and never came`, tone: -3, at: clock, hops: 0 });
+      a.memories.push(`The player promised to ${ask.what} and never did`);
+      hear(a, { what: `promised ${a.name} a favour and never did it`, tone: -3, at: clock, hops: 0 });
     }
     const hour = Math.floor(clock / 3600) % 24;
     const morning = Math.floor(clock / 86400) * 86400;
@@ -7575,7 +7694,7 @@ export class Engine {
     const ask = s.asks?.find((x) => x.by === a.id);
     if (!ask) return;
     this.lastAsk = clock;
-    this.approaching = { id: a.id, line: askLines[ask.kind](ask.kind === "message" ? this.actorsById?.get(ask.to!)?.name ?? "my kin" : ask.what), until: clock + 1800, title: a.name };
+    this.approaching = { id: a.id, line: askLines[ask.kind](ask.what), until: clock + 1800, title: a.name };
   }
   private lastAsk?: number;
   /** Someone who has had enough of the player goes elsewhere for an hour. */

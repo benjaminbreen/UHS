@@ -559,9 +559,14 @@ export type CommandResult = {
 export type Receipt = { payload: string; result: CommandResult };
 /** Something taken from a household that nobody of theirs saw go. They find
  * out when one of them next comes by. */
-export type Word = { what: string; tone: number; at: number; hops: number; from?: string };
-/** A favour someone has asked of the player. `what` reads after "wants". */
-export type Ask = { id: string; by: string; kind: "fetch" | "food" | "message"; item?: string; to?: string; what: string; at: number; until: number; accepted?: boolean };
+/** A story someone would pass on: about the player, or about `about` when set.
+ * `tone` is how good or bad it is; it halves with each telling. */
+export type Word = { what: string; tone: number; at: number; hops: number; from?: string; about?: string };
+/** A favour someone has asked of the player, in a form the engine can see
+ * done: an item handed over, a person spoken to, a place gone into. `what`
+ * is the asker's own words for it, read after "asks you to". */
+export type Ask = { id: string; by: string; kind: "bring" | "food" | "talk-to" | "go-to"; item?: string; to?: string; place?: string; what: string; at: number; until: number; accepted?: boolean };
+export type Favour = { kind: "bring" | "talk-to" | "go-to"; target: string; what: string };
 export type Loss = {
   owner: string;
   pos: Position;
@@ -686,7 +691,7 @@ export type Intent =
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
   | { type: "fact"; text: string }
-  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff; ask?: "made" | "accepted" | "declined" }
+  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour }
   | {
       type: "receive";
       from: string;
