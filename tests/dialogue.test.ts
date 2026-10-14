@@ -181,7 +181,9 @@ describe("a conversation leaves a trace", () => {
     // Stand next to them; the intent is refused at a distance like any other.
     state.player.pos = { ...actor.pos };
     const trust = actor.trust;
-    expect(dialogueContext(runtime, actor)).toContain("Has not spoken");
+    expect(dialogueContext(runtime, actor)).not.toContain("remembers you saying");
+    // How they know the player comes from where both live, not from talk alone.
+    expect(dialogueContext(runtime, actor)).toMatch(/family|Neighbours|friend|trade|knows everyone|around the quarter|Has not met/);
 
     runtime.narrate([
       { type: "converse", with: actor.id, said: "I asked about the ford", delta: 1 },

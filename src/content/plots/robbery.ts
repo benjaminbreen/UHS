@@ -89,7 +89,7 @@ export const robbery: PlotTemplate = {
       lines: {
         aim: "Confront {suspect} about the robbery, {due}.",
         intro: "Nobody was ever blamed for robbing your household. Now you have seen {suspect} the {suspectRole} {sign}.",
-        threat: "Those who keep order here will not act unless someone names the thief.",
+        threat: "{Authority} will not act unless someone names the thief.",
         partner: "Your {partnerKin} {partner} says to be very sure first.",
         "kin-partner": "You keep watching {suspect}. Are you sure?",
         "cast-suspect": "You think {he} robbed your household.",

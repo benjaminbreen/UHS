@@ -1,6 +1,7 @@
 import { PLOTS } from "../content/plots";
 import { matchesCharacterScope } from "../content/characters/resolve";
 import { random } from "./random";
+import { orderKeeper } from "../content/history/order";
 import type { Condition, Effect, PlotContext } from "../content/plots/types";
 import type { Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
@@ -82,7 +83,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
     id: chosen.id,
     title: chosen.wording[wording].title,
     wording,
-    words: begun.words,
+    words: { ...begun.words, authority: orderKeeper(setting).who, Authority: orderKeeper(setting).who.replace(/^./, (c) => c.toUpperCase()) },
     refs: begun.refs,
     cast: Object.fromEntries(Object.entries(cast).map(([role, a]) => [role, a!.id])),
     began: snapshot.clock,

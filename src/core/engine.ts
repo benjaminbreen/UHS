@@ -68,6 +68,7 @@ import {
 } from "./types";
 import { canonical, random, stateHash } from "./random";
 import { askLines, hear, retold } from "./word";
+import { orderKeeper } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
@@ -7600,10 +7601,11 @@ export class Engine {
         this.pass(a, friend, clock, true);
       }
     } else if (where === "authority") {
-      const hall = this.world.places.find((p) => AUTHORITY.test(p.name));
+      const keeper = orderKeeper(this.world.pack.setting);
+      const hall = this.world.places.find((p) => keeper.hall?.test(p.name)) ?? this.world.places.find((p) => AUTHORITY.test(p.name));
       if (hall) {
         to = { ...doorApproach(hall), space: "outside" };
-        label = `Going to complain at the ${hall.name.replace(/^the /i, "").toLowerCase()}`;
+        label = `Going to complain to ${keeper.who}`;
       }
     } else if (where === "away") {
       const p = this.state.player.pos;

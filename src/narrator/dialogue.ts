@@ -1,4 +1,5 @@
 import type { Actor, Household, WalkOff } from "../core/types";
+import { orderKeeper } from "../content/history/order";
 import { goodName, sellerOf } from "../content/economy/products";
 import { describeStats, statsOf } from "../core/stats";
 import { skySeed, weatherAt } from "../core/weather";
@@ -13,6 +14,7 @@ import type { Expression } from "../render/portraits/constructed";
 import { faunaProfile } from "../content/fauna";
 import { languageBrief } from "../content/history/languages";
 import { random } from "../core/random";
+import { distance } from "../core/types";
 import { narratorProvider } from "./turn";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
@@ -119,6 +121,34 @@ function anger(actor: Actor, clock: number) {
     "You are FURIOUS with the player. Shout, mostly in CAPITALS with exclamation marks: insults and curses of your time and place, threats, calls to kin or neighbours. Say your piece in one or two lines and walk off (leave): you will not discuss it.",
   ][level];
   return `${how}${fresh(actor, clock) ? " It happened within the hour and is still hot." : ""} People here did not soften their anger to be polite; do not make yourself reasonable or measured about a real wrong.`;
+}
+
+/** How this person would plausibly know the player, from where they both
+ * live and who their households deal with. Empty for a stranger. */
+function acquaintance(runtime: Runtime, actor: Actor) {
+  const state = runtime.engine.state, p = state.player, setting = runtime.engine.world.pack.setting;
+  const travel = runtime.timeTravel;
+  if (travel && travel.currentYear !== travel.origin.world.pack.setting?.year) return "";
+  const kin = actor.relations?.find((r) => r.other === p.id);
+  if (kin || actor.householdId === p.householdId)
+    return `The player is family${kin ? `: your ${kin.kind}` : ", of your own household"}. You know them as well as anyone.`;
+  const households = state.households ?? [];
+  const mine = households.find((h) => h.members.includes(p.id));
+  const theirs = households.find((h) => h.id === actor.householdId);
+  if (!mine || !theirs) return "";
+  const near = distance(mine.home, theirs.home) < 25;
+  const age = actor.age ?? 30, theirAge = p.age ?? 30;
+  const peer = Math.abs(age - theirAge) <= (age < 13 ? 3 : 12) && (age < 13 || sexLabel(actor) === sexLabel(p));
+  if (near && peer && random(state.manifest.seed, "player-friend", actor.id) < 0.25)
+    return "The player is a friend of yours, from the same street, for years. Talk to them as a friend would.";
+  if (near) return "Neighbours: you have lived near the player's household for years and know them and their family by name.";
+  if (mine.buys?.some((b) => b.from === theirs.id) || theirs.buys?.some((b) => b.from === mine.id))
+    return "Your households trade with each other, so you know the player by name and through their household's work.";
+  if (setting && ["village", "farm", "camp"].includes(setting.settlement))
+    return "Everyone knows everyone in a place this size: you know the player by sight and name, and their family.";
+  if (actor.origin?.community && actor.origin.community === p.origin?.community)
+    return "You know the player's face and family from around the quarter, though not well.";
+  return "";
 }
 
 function openness(actor: Actor, met: boolean) {
@@ -269,6 +299,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .filter((memory) => !/^(spoke|regard):/.test(memory))
     .slice(-4)
     .map(named);
+  const known = acquaintance(runtime, actor);
   const hearsay = (actor.word ?? [])
     .filter((w) => w.hops > 0)
     .map((w) => {
@@ -302,7 +333,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       ? homePlace?.access === "public"
         ? `The player has walked into ${homePlace.name}, which is your household's home as well as where you work. Whether that is normal depends on your trade: a trader, shopkeeper, innkeeper or craftsman selling goods expects buyers to walk in by day and may treat them as a customer; a herder, farmer, labourer or anyone else does not, and for them a stranger walking in is an intrusion. It is also an intrusion if the player looks odd, armed or dangerous (see "In front of you"). If it is an intrusion: ${intrusionReaction(state.manifest.seed, actor, stats)}`
         : `THE PLAYER HAS COME INTO YOUR HOME UNINVITED and is standing inside ${homePlace?.name ?? "your house"} right now.${familyPresent.length ? ` Your family ${familyPresent.join(", ")} are here too.` : ""} This is what the conversation is about until they leave or explain themselves. ${intrusionReaction(state.manifest.seed, actor, stats)} Never greet them as a customer or ask what they need.`
-      : `Openness: ${openness(actor, met.length > 0)}`,
+      : `Openness: ${openness(actor, met.length > 0 || !!known)}`,
     `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
     `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
@@ -322,8 +353,9 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       ? `Heard about the player, second-hand and maybe wrong or exaggerated: ${hearsay.join("; ")}. It colours how you take them; you may bring it up, ask if it is true, or keep your distance.`
       : "",
     favour,
-    met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : "Has not spoken with the player before.",
-    `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}.`,
+    known,
+    met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known ? "" : "Has not met the player before.",
+    `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}. Keeps order here: ${orderKeeper(setting).who}.`,
   ]
     .filter(Boolean)
     .join("\n");

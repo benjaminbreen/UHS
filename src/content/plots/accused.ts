@@ -105,7 +105,7 @@ export const accused: PlotTemplate = {
       lines: {
         aim: "Get {witness} to speak for you, or pay {accuser} to let it go, {due}.",
         intro: "{accuser} the {accuserRole} says you took {thing}, and is saying it to everyone.",
-        threat: "If nobody speaks for you, {he} will go to those who keep order here.",
+        threat: "If nobody speaks for you, {he} will go to {authority}.",
         partner: "Your {partnerKin} {partner} has heard it already.",
         "kin-partner": "People are saying you stole from {accuser}. Go and see {witness}; they listen to {witness}.",
         "cast-accuser": "Says you stole {thing}.",
@@ -114,7 +114,7 @@ export const accused: PlotTemplate = {
         talk: "The story has gone round. People stop talking when you come near.",
         cleared: "{witness} tells people you're honest, and they believe it. {accuser} lets it go.",
         compensated: "You pay {accuser} for {thing}. It's over, but some people will take the payment as a confession.",
-        denounced: "{accuser} has gone to those who keep order here. You will have to answer for {thing}.",
+        denounced: "{accuser} has gone to {authority}. You will have to answer for {thing}.",
         dropped: "With {accuser} gone, people soon forget the story.",
       },
     },
