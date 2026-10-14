@@ -101,8 +101,9 @@ type Flight = {
   delay: number;
 };
 
-/** Whatever has just come into the bag flies from the player to the bag
- * button, which takes it with a bounce and says how many. */
+/** Whatever has just come into the bag opens the inventory, then flies from
+ * the player into its own row, which takes it with a pop and says how many.
+ * The row waits dimmed until it lands. */
 export function BagFlights({
   inventory,
   world,
@@ -110,6 +111,8 @@ export function BagFlights({
   bag: button,
   fallback,
   sprite,
+  onGain,
+  slot,
 }: {
   inventory: Inventory;
   /** Changes when the world does, so a fresh bag is not read as a haul. */
@@ -119,59 +122,77 @@ export function BagFlights({
   /** Where things land when the bag button is folded away, as on a phone. */
   fallback?: RefObject<HTMLElement | null>;
   sprite: (item: string) => string | undefined;
+  onGain?: () => void;
+  /** The inventory row an item belongs in, when it is on screen. */
+  slot?: (item: string) => HTMLElement | null;
 }) {
   const shown = (ref?: RefObject<HTMLElement | null>) =>
     ref?.current?.getBoundingClientRect().width ? ref : undefined;
   const bag = shown(button) ?? shown(fallback) ?? button;
   const before = useRef<{ world: string; bag: Inventory }>(undefined);
   const serial = useRef(0);
+  const timers = useRef(new Set<number>());
   const [flights, setFlights] = useState<Flight[]>([]);
-  const [gained, setGained] = useState<{ id: number; n: number }>();
+  const [gained, setGained] = useState<{ id: number; n: number; x: number; y: number }[]>([]);
+  const later = (ms: number, fn: () => void) => {
+    const t = window.setTimeout(() => {
+      timers.current.delete(t);
+      fn();
+    }, ms);
+    timers.current.add(t);
+  };
+  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
   useEffect(() => {
     const last = before.current;
     before.current = { world, bag: { ...inventory } };
-    if (!last || last.world !== world || calm()) return;
+    if (!last || last.world !== world) return;
     const gains = Object.entries(inventory)
       .map(([item, n]) => ({ item, count: (n ?? 0) - (last.bag[item] ?? 0) }))
       .filter((g) => g.count > 0)
       .slice(0, 4);
-    const a = from.current?.getBoundingClientRect(),
-      b = bag.current?.getBoundingClientRect();
-    if (!gains.length || !a || !b) return;
-    const x = a.left + a.width / 2,
-      y = a.top + a.height / 2 - 20;
-    const made = gains.map((g, i) => ({
-      ...g,
-      id: ++serial.current,
-      x,
-      y,
-      dx: b.left + b.width / 2 - x,
-      dy: b.top + b.height / 2 - y,
-      delay: i * 90,
-    }));
-    setFlights((f) => [...f, ...made]);
-    const total = gains.reduce((n, g) => n + g.count, 0);
-    const land = window.setTimeout(
-      () => {
-        setGained({ id: serial.current, n: total });
-        bag.current?.classList.remove("bag-bounce");
-        // Reflow, so a second haul in quick succession bounces again.
-        void bag.current?.offsetWidth;
-        bag.current?.classList.add("bag-bounce");
-        setFlights((f) => f.filter((x) => !made.includes(x)));
-      },
-      520 + (made.length - 1) * 90,
-    );
-    return () => window.clearTimeout(land);
+    if (!gains.length) return;
+    onGain?.();
+    if (calm()) return;
+    // The tab opens at once; the rows it shows wait for their goods.
+    requestAnimationFrame(() => gains.forEach((g) => slot?.(g.item)?.classList.add("slot-arriving")));
+    // Long enough for the pickup in the world to finish flying to the player.
+    later(WORLD_SHOW_MS, () => {
+      const a = from.current?.getBoundingClientRect();
+      if (!a) return;
+      const x = a.left + a.width / 2,
+        y = a.top + a.height / 2 - 20;
+      gains.forEach((g, i) => {
+        const row = slot?.(g.item);
+        const target = row?.querySelector(".inventory-well") ?? bag.current;
+        const b = target?.getBoundingClientRect();
+        if (!b) return row?.classList.remove("slot-arriving");
+        const flight = {
+          ...g,
+          id: ++serial.current,
+          x,
+          y,
+          dx: b.left + b.width / 2 - x,
+          dy: b.top + b.height / 2 - y,
+          delay: i * 110,
+        };
+        setFlights((f) => [...f, flight]);
+        later(FLIGHT_MS + flight.delay, () => {
+          setFlights((f) => f.filter((o) => o.id !== flight.id));
+          const hit = row ?? bag.current;
+          row?.classList.remove("slot-arriving");
+          hit?.classList.remove(row ? "slot-pop" : "bag-bounce");
+          // Reflow, so a second haul in quick succession pops again.
+          void hit?.offsetWidth;
+          hit?.classList.add(row ? "slot-pop" : "bag-bounce");
+          const id = ++serial.current;
+          setGained((all) => [...all, { id, n: g.count, x: b.right - 4, y: b.top - 4 }]);
+          later(1100, () => setGained((all) => all.filter((o) => o.id !== id)));
+        });
+      });
+    });
     // Keyed on the bag's contents, not the object, which is new every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(inventory), world]);
-  useEffect(() => {
-    if (!gained) return;
-    const t = window.setTimeout(() => setGained(undefined), 1100);
-    return () => window.clearTimeout(t);
-  }, [gained]);
-  const at = bag.current?.getBoundingClientRect();
   return (
     <>
       {flights.map((f) => (
@@ -188,21 +209,19 @@ export function BagFlights({
             } as object
           }
         >
-          <ItemIcon id={f.item} sprite={sprite(f.item)} scale={1} />
+          <ItemIcon id={f.item} sprite={sprite(f.item)} scale={2} />
         </span>
       ))}
-      {gained && at && (
-        <span
-          key={gained.id}
-          className="bag-gain"
-          style={{ left: at.left + at.width - 18, top: at.top - 6 }}
-        >
-          +{gained.n}
+      {gained.map((g) => (
+        <span key={g.id} className="bag-gain" style={{ left: g.x, top: g.y }}>
+          +{g.n}
         </span>
-      )}
+      ))}
     </>
   );
 }
+const WORLD_SHOW_MS = 900;
+const FLIGHT_MS = 620;
 
 /** An on-screen key prompt. It slides in when what it offers changes, and
  * goes down with the key it stands for. */

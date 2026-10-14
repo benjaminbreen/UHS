@@ -535,8 +535,9 @@ describe("shared deterministic foundation", () => {
     for (let i = 0; i < 200 && e.approacher?.id !== keeper.id; i++) act(e, { type: "wait", seconds: 60 });
     expect(e.approacher?.id).toBe(keeper.id);
     expect(e.cards.find((c) => c.kind === "speech" && c.speaker === keeper.id)?.text).toContain(`broke down the door of ${by.name}'s home`);
-    expect(e.state.player.stocked).toBeGreaterThan(e.state.clock);
-    expect(act(e, { type: "move", dx: 1, dy: 0 }).reason).toBe("You are held fast in the stocks.");
+    // Georgian England's heaviest penalty for a petty wrong is the whip.
+    expect(e.cards.at(-1)?.text).toContain("whipping");
+    expect(e.state.player.health).toBeLessThan(100);
   });
   it("replays identical commands, including uncertainty, to the same physical hash", () => {
     const a = createSession("roman", "repeat"),

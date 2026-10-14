@@ -1,6 +1,6 @@
 # Contextual character generation
 
-New procedural worlds pin `characterRevision: 1` in their setting. Players, settlement adults and household members use the same deterministic content pipeline. Existing unpinned inputs retain the earlier path; the unrestricted character art lab and explicit customized appearances remain separate.
+New procedural worlds pin their character and naming revisions in the setting. Players, settlement adults and household members use the same deterministic content pipeline. Existing unpinned inputs retain the earlier path; the unrestricted character art lab and explicit customized appearances remain separate.
 
 ## Ownership and flow
 
@@ -42,10 +42,14 @@ Do not add a narrow historical label to a broad gameplay proxy without recording
 
 ## Naming conventions (added during review)
 
+New worlds pin `namingRevision: 1`; inputs without it keep the earlier naming kits and household retry behavior. The revised English, French and Italian kits combine personal names with dated surnames or nonhereditary bynames. Roman names use a simplified nomen-plus-cognomen display, with feminine forms of the inherited nomen; Naples uses a schematic Latin parent-derived display. These are qualified fictional combinations, not recovered biographies or complete historical naming systems.
+
+Origins retain the intact personal component and, for parent-derived names, the parent's personal component. Household children use an actual parent's naming tradition and community, hereditary family components where applicable, and authored parent-name inflections for patronymics. A generated father can take the personal component already named by the householder's patronymic. Time-travel lineages and regenerated NPC families use the same components. Custom display names remain intact and are not split to invent family information. Duplicate-name retries change only the personal-name selection, retain all other character draws, and permit repetition when the available personal pool is exhausted. Evidence cards include the resolved naming traditions; only uncovered contexts receive the invented-syllable explanation.
+
 A personal name is not assumed to be a single word, and a family name is not assumed to exist. Name kits declare `personal`, `family-personal`, `personal-family`, `personal-two-families`, or `personal-patronymic` format. Components retain their internal spaces. A patronymic is rendered as a parent-derived display element and is never inherited as a family name. `name-kits.ts` only assembles regional modules. Origins retain the selected format and generated family components where that convention actually uses families; custom names are preserved without attempting to parse a surname from their last word.
 
 Burmese interior 1350 now has an explicitly hypothetical continuity reconstruction using complete personal names, with no hereditary surname or extracted honorific. Later Burmese coverage is inferred from modern naming scholarship. Central/eastern Chinese coverage uses family-first order with modern Pinyin as a display convention and openly reconstructed earlier components; it does not implement generation poems or naming taboos. Central Spanish modern scenarios use two family components with qualified source/date coverage. These are bounded samples, not exhaustive national naming systems.
 
-For children, supported family-first profiles inherit a parent's family component, and two-family profiles inherit one component from each generated parent. Partners retain independently generated names. Parent ordering is the household prototype's ordering, not a claim of paternal/maternal lineage. Gender-specific names and full historical kinship/naming rules remain further authoring work.
+For children, supported one-family profiles use the represented father's family component where available, otherwise the householder's; two-family profiles use one component from each represented parent, father first before 2000 and prototype ordering thereafter. Partners retain independently generated names. Full historical kinship and naming rules remain further authoring work.
 
 The sidebar portrait and nearby-person icons now use the world character painter and actual appearance recipe. They no longer display legacy atlas complexions. The old automatic “0 obsidian flakes” wealth display is omitted for contextual characters without a currency. Evidence cards distinguish fictional choices, hypotheses, inference and documented claims.

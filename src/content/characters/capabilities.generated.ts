@@ -322,4 +322,36 @@ export const capabilityOverrides: readonly CapabilityOverride[] = [
       settled_agriculture: 900,
     },
   },
+  {
+    id: "burma",
+    label: "Burma: silver and lead by weight until Mindon's coinage",
+    bounds: [92.5,15.5,98.5,28],
+    capabilities: {
+      coinage: 1852,
+    },
+  },
+  {
+    id: "angkor",
+    label: "Cambodia: rice, cloth and silver in kind until Ang Duong's coins",
+    bounds: [102,10,108,15.5],
+    capabilities: {
+      coinage: 1847,
+    },
+  },
+  {
+    id: "siam",
+    label: "Siam and Laos: cowries and bullet silver from Sukhothai",
+    bounds: [97.5,5.5,106,21],
+    capabilities: {
+      coinage: 1300,
+    },
+  },
+  {
+    id: "dai-viet",
+    label: "Dai Viet: first coins struck by Dinh Bo Linh",
+    bounds: [102,17,108.5,23.5],
+    capabilities: {
+      coinage: 970,
+    },
+  },
 ];

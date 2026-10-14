@@ -583,3 +583,15 @@ it("shakes a tree's hidden find loose once, into the player's hands", () => {
   expect(engine.state.player.inventory[got.item]).toBe((before[got.item] ?? 0) + got.n);
   expect(engine.treeFind(x, 0)).toBeUndefined();
 });
+
+it("gathers a fallen log from the woodland floor into firewood", () => {
+  const engine = createSession("roman", "gather-log");
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  ground(engine);
+  plant(engine, { id: "log", x: 1, y: 0, sprite: "log", solid: false });
+  const verb = runtime.verbs().alternate;
+  expect(verb?.command?.action).toBe("gather");
+  expect(runtime.command(verb!.command!)?.status).toBe("completed");
+  expect(engine.state.player.inventory.wood).toBeGreaterThanOrEqual(2);
+  expect(engine.world.decoration(1, 0)).toBeUndefined();
+});

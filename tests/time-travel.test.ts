@@ -53,6 +53,7 @@ describe("historical time", () => {
     expect(relative(family, 1).name).toMatch(/ Jóns(?:son|dóttir)$/);
     expect(relative(family, 2).character.origin.nameParentPersonal).toBe(relative(family, 1).character.origin.namePersonal);
     expect(relative(family, -1).character.origin.namePersonal).toBe(jon.origin.nameParentPersonal);
+    expect(relative(family, -1).character.origin.sex).toBe("male");
     expect(settingAt({ ...london, namingRevision: undefined }, 1600).namingRevision).toBeUndefined();
   });
   it("evaluates building history independently of jump size and keeps birth material", () => {
@@ -61,6 +62,19 @@ describe("historical time", () => {
     expect(buildingAt(place, "seed", setting, 900)).toEqual(direct);
     expect(buildingAt(place, "seed", setting, 100).sprite).toBe(place.sprite);
     expect(buildingAt(place, "seed", setting, 100).place.structure?.roof).toBe(1);
+  });
+  it("keeps regenerated household names tied to their parents after a time jump", () => {
+    const iceland = { ...setting, year: 1850, lon: -19, lat: 64.8, placeId: "iceland", namingRevision: 1 as const };
+    const adult = { ...generateCharacter(iceland, "temporal-family", "father", 40), id: "father", age: 40,
+      kind: "human", householdId: "family", home: { space: "outside" }, relations: [] } as unknown as Actor;
+    const kid = { ...adult, id: "child", age: 10, relations: [{ kind: "parent" as const, other: adult.id }] };
+    const base = { places: [], initialActors: [kid, adult], initialObjects: [], pack: { setting: iceland },
+      blocked: () => false, terrain: () => "grass" } as unknown as WorldModel;
+    const later = temporalWorld(base, "temporal-family", iceland, 1880).world.initialActors;
+    expect(later[0].origin!.nameParentPersonal).toBe(later[1].origin!.namePersonal);
+    expect(later[0].origin!.nameTradition).toBe(later[1].origin!.nameTradition);
+    expect(later).toEqual(temporalWorld(base, "temporal-family", iceland, 1880).world.initialActors);
+    expect(base.initialActors[0].origin!.nameParentPersonal).toBe(kid.origin!.nameParentPersonal);
   });
   it("impact opens a specific wall and fire respects material", () => {
     const state = ageStructure("seed", "a", "masonry", 0, 100, 100, 0.6);

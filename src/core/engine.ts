@@ -68,7 +68,7 @@ import {
 } from "./types";
 import { canonical, random, stateHash } from "./random";
 import { askLines, hear, telling, tidings } from "./word";
-import { orderKeeper } from "../content/history/order";
+import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
@@ -129,7 +129,7 @@ import { faunaAt, faunaCombat, faunaProfile } from "../content/fauna";
 import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../content/agriculture/pests";
 import { livelihoodById } from "../content/characters/livelihoods";
 import { capabilitiesFor } from "../content/characters/resolve";
-import { moneyFor } from "../content/economy/money";
+import { amountIn, moneyFor } from "../content/economy/money";
 import { climbable, useOf } from "../content/props/uses";
 import { workplaceFor } from "../content/characters/workplace";
 import { propSprite } from "../content/props/place";
@@ -436,7 +436,7 @@ export class Engine {
     const known = this.items[id] ?? this.state.catalog?.[id];
     const setting = this.world.pack.setting;
     if (id === "coin" && known && setting)
-      return (this.money ??= { ...known, name: moneyFor(setting).name });
+      return (this.money ??= { ...known, name: moneyFor(setting).name, description: moneyFor(setting).about });
     if (known) return known;
     // A garment carries its cloth in its id. Everything a worn item does —
     // the look it adds, the slot it fills — comes from the base definition;
@@ -925,7 +925,7 @@ export class Engine {
       chain: (s.record ?? []).filter((r) => r.day === closed).map((r) => r.line),
       owing: plot && {
         title: plot.title,
-        line: plot.owed === plot.total ? `Nothing paid yet of the ${plot.words.amount}.` : `${plot.owed} of the ${plot.words.amount} still to pay.`,
+        line: plot.owed === plot.total || !setting ? `Nothing paid yet of the ${plot.words.amount}.` : `Still to pay: ${amountIn(setting, plot.owed ?? 0, this.coined())}.`,
       },
       season: setting ? seasonAt(setting.season, closed * 86400 + 43200) : undefined,
       work: t && {
@@ -1005,12 +1005,12 @@ export class Engine {
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const work = s.economy.work?.day === t.day ? s.economy.work : undefined;
     if (work) work.done = true;
-    const made = process.paid === "wage" ? this.takings(3, (n, unit) => `The ${bossTitle(this.world.pack.setting)} pays you ${n} ${unit}.`)
+    const made = process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0));
     if (process.paid === "takings") {
-      const coin = this.takings(2, (n, unit) => `You took ${n} ${unit} over the day.`);
+      const coin = this.takings(2, (amount) => `You took ${amount} over the day.`);
       for (const [g, n] of Object.entries(dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0)))) made[g] = n;
       Object.assign(made, coin);
     }
@@ -1086,13 +1086,13 @@ export class Engine {
     } else this.event("You weed and water the garden. It will repay the care.");
   }
   /** A wage or a day's takings in coin, moved by how the day went. */
-  private takings(base: number, say: (n: number, unit: string) => string): Record<string, number> {
+  private takings(base: number, say: (amount: string) => string): Record<string, number> {
     const s = this.state, setting = this.world.pack.setting;
     const work = s.economy?.work;
     if (!setting || !capabilitiesFor(setting).has("coinage") || !this.item("coin")) return {};
     const n = Math.max(0, base + (work?.quality ?? 0) + (work?.pay ?? 0));
     s.player.inventory.coin = (s.player.inventory.coin ?? 0) + n;
-    this.event(say(n, moneyFor(setting).unit));
+    this.event(say(amountIn(setting, n, true)));
     return n ? { coin: n } : {};
   }
   /** The household of whoever the day's sick call was to. */
@@ -1115,7 +1115,7 @@ export class Engine {
       const n = Math.max(0, 2 + Math.floor(this.rng("wage") * 2) + Math.round((client?.fortune ?? 0.5) * 2) + bonus);
       if (!n) return {};
       s.player.inventory.coin = (s.player.inventory.coin ?? 0) + n;
-      this.event(`${name} pays you ${n} ${moneyFor(setting).unit} for the work.`);
+      this.event(`${name} pays you ${amountIn(setting, n, true)} for the work.`);
       return { coin: n };
     }
     const store = client && s.objects.find((o) => o.id === client.storeId);
@@ -3329,6 +3329,10 @@ export class Engine {
     return direction;
   }
   /** `tile:x,y`. Tool work has no object to address, only ground. */
+  /** A dead log lying on the woodland floor: firewood for the taking. */
+  gatherable(x: number, y: number) {
+    return this.state.player.pos.space === "outside" && this.world.decoration(x, y)?.sprite === "log";
+  }
   static tileTarget(x: number, y: number) {
     return `tile:${x},${y}`;
   }
@@ -5172,7 +5176,7 @@ export class Engine {
     if (c.type === "become") return p.dead && this.heirs().some((a) => a.id === c.heir) ? undefined : "There is no one to go on as.";
     if (p.dead) return `You are dead from ${p.dead}. Start a new world or load an earlier save.`;
     if ((p.stocked ?? 0) > this.state.clock && c.type !== "wait" && c.type !== "sleep" && !(c.type === "interact" && c.action === "talk"))
-      return "You are held fast in the stocks.";
+      return "You are serving your sentence.";
     if (c.type === "interact" && c.action === "descend")
       return p.perch || this.onWall() ? undefined : "You are not up anything.";
     if (
@@ -5208,6 +5212,11 @@ export class Engine {
       return this.burnProblem(c.target);
     if (c.type === "interact" && c.action === "use-prop")
       return this.usable()?.id === c.target ? undefined : "There is nothing here to use.";
+    if (c.type === "interact" && c.action === "gather") {
+      const at = this.tileAt(c.target);
+      if (!at || !this.gatherable(at.x, at.y)) return "There is nothing here to gather.";
+      return distance(p.pos, { ...at, space: p.pos.space }) <= 1.5 ? undefined : "Walk closer to reach it.";
+    }
     if (c.type === "interact" && c.action === "climb") {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
@@ -6780,6 +6789,17 @@ export class Engine {
       this.tendGarden();
       return;
     }
+    if (c.type === "interact" && c.action === "gather") {
+      const at = this.tileAt(c.target)!;
+      this.editAt(at.x, at.y).stage = "clear";
+      p.inventory.wood = (p.inventory.wood ?? 0) + 2;
+      p.inventory.bark = (p.inventory.bark ?? 0) + 1;
+      this.tilesChanged();
+      this.advance(40);
+      this.grantXp("woodcraft", 2);
+      this.event("You drag the fallen log free of the moss and break it into firewood, peeling a strip of bark as you go.");
+      return;
+    }
     if (c.type === "interact" && c.action === "harvest") {
       const at = /^crop-(-?\d+)-(-?\d+)$/.exec(c.target);
       if (at) {
@@ -7484,10 +7504,13 @@ export class Engine {
   }
   /** What the player can hand over toward a debt: money where there is
    * coinage, food where there is not. */
-  private payable() {
+  private coined() {
     const setting = this.world.pack.setting;
     const credit = this.state.households?.find((h) => h.members.includes(this.state.player.id))?.credit;
-    const coined = credit ? credit.repayment === "money" : !!setting && capabilitiesFor(setting).has("coinage");
+    return credit ? credit.repayment === "money" : !!setting && capabilitiesFor(setting).has("coinage");
+  }
+  private payable() {
+    const coined = this.coined();
     return Object.keys(this.state.player.inventory).filter((id) =>
       (this.state.player.inventory[id] ?? 0) > 0 && (this.item(id)?.value ?? 0) > 0 &&
       (coined ? id === "coin" : !!this.item(id)?.edible));
@@ -7745,19 +7768,34 @@ export class Engine {
     s.complaints!.shift();
     const keeper = this.keeper(), by = s.actors.find((a) => a.id === c.by);
     if (!keeper || !by || by.dead || keeper.id === by.id) return;
-    const office = orderKeeper(this.world.pack.setting).who;
+    const law = orderKeeper(this.world.pack.setting), office = law.who;
     const charge = telling({ ...c.story, hops: 1 }, (id) => s.actors.find((a) => a.id === id)?.name);
     const severity = Math.abs(c.story.tone) - Math.max(0, keeper.trust);
+    const amount = Math.max(1, Math.round(severity / 2));
+    const worth = Object.entries(p.inventory).reduce((n, [id, k]) => n + (this.item(id)?.value ?? 0) * (k ?? 0), 0);
+    const pays = (k: Penalty) => k === "compensation" || k === "fine";
+    // Light wrongs get the lightest penalty, heavy ones the heaviest; what
+    // the player cannot pay becomes the next thing they can be made to suffer.
+    let penalty: Penalty | undefined = severity < 4 ? undefined : severity < 8 ? law.penalties[0] : law.penalties.at(-1);
+    if (penalty && pays(penalty) && worth < amount) penalty = law.penalties.find((k) => !pays(k)) ?? "exile";
+    const days = severity >= 10 ? 3 : 1;
     const money = this.item("coin")?.name.toLowerCase() ?? "coin";
-    const fine = Math.max(1, Math.round(severity / 2));
-    // No money to pay with, and the fine becomes the stocks.
-    const verdict = severity < 4 ? "warn" : severity < 8 && (p.inventory.coin ?? 0) >= fine ? "fine" : "stocks";
-    const sentence = {
-      warn: "I'll not hear of it again.",
-      fine: `You'll pay ${by.name} ${fine} ${money}, here and now.`,
-      stocks: "You'll sit the rest of the day in the stocks, where everyone can see you.",
-    }[verdict];
+    const shame = law.shaming ?? "the stocks", blows = law.beating ?? "a beating";
+    const sentence = !penalty ? "I'll not hear of it again." : {
+      compensation: `You'll make it good to ${by.name}, ${amount} ${money}'s worth, here and now.`,
+      fine: `You'll pay a fine of ${amount} ${money}'s worth.`,
+      shaming: `You'll be put in ${shame} till evening, where everyone can see you.`,
+      beating: `You'll take ${blows}, here and now.`,
+      labour: "You'll work off the wrong for a day, at whatever you're set to.",
+      confinement: "You'll be locked up until tomorrow.",
+      exile: `You're not wanted here. Nobody will speak to you or deal with you for ${days === 1 ? "a day" : `${days} days`}.`,
+    }[penalty];
     const line = `${by.name} came to me. They say you ${charge}. ${sentence}`;
+    const told = (act: string) => { for (const w of this.witnesses(12)) hear(w, { act, tone: -4, at: clock, hops: 0 }); };
+    const hold = (until: number, activity: string) => {
+      p.stocked = until;
+      p.activity = activity;
+    };
     this.approaching = {
       id: keeper.id,
       line,
@@ -7766,20 +7804,52 @@ export class Engine {
       situation: `You keep order here, as ${office}. ${by.name} complained to you that the player ${charge}. You have found the player and given your judgement: “${line}” Hold to it; you may hear them out, but you do not take it back.`,
       onArrive: () => {
         by.memories.push(`Took my complaint to ${keeper.name}, who dealt with the player`);
-        this.regard(by, verdict === "warn" ? 1 : 2);
-        if (verdict === "fine") {
-          p.inventory.coin = (p.inventory.coin ?? 0) - fine;
-          by.inventory.coin = (by.inventory.coin ?? 0) + fine;
-          this.event(`You pay ${by.name} ${fine} ${money}.`);
-        }
-        if (verdict === "stocks") {
-          p.stocked = Math.max(clock + 3 * 3600, Math.floor(clock / 86400) * 86400 + 19 * 3600);
-          p.activity = "In the stocks";
-          for (const w of this.witnesses(12)) hear(w, { act: "was put in the stocks", tone: -4, at: clock, hops: 0 });
-          this.event("You are put in the stocks. People stop to look.");
+        this.regard(by, penalty ? 2 : 1);
+        if (penalty === "compensation" || penalty === "fine") {
+          const handed = this.handOver(penalty === "fine" ? keeper : by, amount);
+          this.event(`You hand over ${handed}.`);
+        } else if (penalty === "shaming") {
+          hold(Math.max(clock + 3 * 3600, Math.floor(clock / 86400) * 86400 + 19 * 3600), `In ${shame}`);
+          told(`was put in ${shame}`);
+          this.event(`You are put in ${shame}. People stop to look.`);
+        } else if (penalty === "beating") {
+          this.hurt(Math.min(30, (p.health ?? 100) - 10), "beating", "welts from a beating");
+          told(`was given ${blows}`);
+          this.event(`You are given ${blows}.`);
+        } else if (penalty === "labour") {
+          hold(clock + 10 * 3600, "Working off a sentence");
+          p.fatigue = Math.min(100, p.fatigue + 40);
+          told("was put to forced labour");
+          this.event("You are set to work under watch until evening.");
+        } else if (penalty === "confinement") {
+          hold(clock + 20 * 3600, "Locked up");
+          told("was locked up");
+          this.event("You are locked up.");
+        } else if (penalty === "exile") {
+          for (const a of s.actors) if (a.kind === "human" && a.householdId !== p.householdId) a.shuns = clock + days * 86400;
+          told("was cast out");
+          this.event("People turn their backs on you. You are cast out.");
         }
       },
     };
+  }
+  /** Goods worth `amount` from the player to `to`, money first. */
+  private handOver(to: Actor, amount: number) {
+    const p = this.state.player, given: string[] = [];
+    const order = Object.keys(p.inventory)
+      .filter((id) => (this.item(id)?.value ?? 0) > 0)
+      .sort((a, b) => Number(b === "coin") - Number(a === "coin") || (this.item(b)?.value ?? 0) - (this.item(a)?.value ?? 0));
+    for (const id of order) {
+      let n = 0;
+      while (amount > 0 && (p.inventory[id] ?? 0) > 0) {
+        p.inventory[id]!--;
+        to.inventory[id] = (to.inventory[id] ?? 0) + 1;
+        amount -= this.item(id)!.value;
+        n++;
+      }
+      if (n) given.push(`${n} ${this.item(id)!.name.toLowerCase()}`);
+    }
+    return given.join(", ") || "nothing";
   }
   /** Someone who has had enough of the player goes elsewhere for an hour. */
   walkOff(a: Actor, where: WalkOff) {

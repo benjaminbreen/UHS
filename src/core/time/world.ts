@@ -188,6 +188,30 @@ export function temporalWorld(
             memories: [],
           },
     );
+  if (setting.namingRevision) {
+    const people = new Map(actors.filter((a) => a.kind === "human").map((a) => [a.id, a]));
+    const named = new Set<string>();
+    const nameFamily = (a: Actor) => {
+      if (named.has(a.id)) return;
+      named.add(a.id);
+      const parents = a.relations?.filter((r) => r.kind === "parent")
+        .map((r) => people.get(r.other)).filter((p): p is Actor => !!p && (p.age ?? 34) > (a.age ?? 34)) ?? [];
+      parents.forEach(nameFamily);
+      const parent = parents.find((p) => p.origin?.sex === "male") ?? parents[0];
+      if (!parent?.origin) return;
+      const other = parents.find((p) => p !== parent);
+      const families = parent.origin.nameFormat === "personal-two-families"
+        ? [parent.origin.nameFamilies?.[0], other?.origin?.nameFamilies?.[0]].filter((n): n is string => !!n)
+        : parent.origin.nameFamilies;
+      Object.assign(a, generateCharacter(setting, seed, `${a.id}@${Math.floor(year / 28)}`, a.age ?? 34,
+        undefined, undefined, families,
+        a.origin?.sex === "female" ? "female" : "male", parent.origin.nameTradition,
+        { community: parent.origin.community, parentPersonal: parent.origin.namePersonal,
+          avoid: new Set(actors.filter((p) => p.id !== a.id && !!a.householdId && p.householdId === a.householdId).map((p) => p.name)) },
+      ));
+    };
+    people.forEach(nameFamily);
+  }
   const world: WorldModel = {
     ...base,
     temporal: { origin, year },

@@ -1362,6 +1362,13 @@ export class Runtime {
           action: held ? ("strike" as const) : ("pickup" as const),
         }
       : undefined;
+    const p = s.player.pos;
+    const log = !held && !primary
+      ? [this.engine.facingCell(), { x: p.x, y: p.y }].find((at) => this.engine.gatherable(at.x, at.y))
+      : undefined;
+    const gather = log
+      ? { type: "interact" as const, target: Engine.tileTarget(log.x, log.y), action: "gather" as const }
+      : undefined;
     const secondary = context
       ? {
           type: "interact" as const,
@@ -1375,7 +1382,7 @@ export class Runtime {
       : undefined;
     return {
       held,
-      primary: toolCommand ?? primary,
+      primary: toolCommand ?? primary ?? gather,
       secondary,
       // A tool with nothing in front of it still leaves the ordinary prop
       // actions; only when there is nothing else to do does the label explain
@@ -1384,6 +1391,8 @@ export class Runtime {
         ? toolLabel!
         : primary
           ? `${held ? "Strike" : "Pick up"} ${target!.name.toLowerCase()}`
+          : gather
+            ? "Gather the fallen log"
           : toolAction
             ? (toolProblem ?? "")
             : held
@@ -1630,7 +1639,7 @@ export class Runtime {
     else primary = { kind: "strike", label: "Take a swing" };
     const ahead = this.engine.facingCell();
     const pickup: Verb | undefined =
-      !held && !item && c.primary?.action === "pickup"
+      !held && !item && (c.primary?.action === "pickup" || c.primary?.action === "gather")
         ? { kind: "pickup", label: c.primaryLabel, command: c.primary }
         : !held &&
             !item &&

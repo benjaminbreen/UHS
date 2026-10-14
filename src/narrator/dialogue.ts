@@ -152,6 +152,12 @@ function acquaintance(runtime: Runtime, actor: Actor) {
   return "";
 }
 
+/** Whether the player character would know who this is: kin, neighbour,
+ * trading partner, or someone they have already spoken with. */
+export function knowsPlayer(runtime: Runtime, actor: Actor) {
+  return !!acquaintance(runtime, actor) || (actor.memories ?? []).some((m) => m.startsWith("spoke:"));
+}
+
 function openness(actor: Actor, met: boolean) {
   if ((actor.age ?? 30) < 13 && actor.trust >= 0)
     return "A child. Children are curious about strangers, say what they think, ask questions back, and wander off the subject; shyness is possible, stiff adult caution is not.";

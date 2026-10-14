@@ -238,7 +238,7 @@ export type Actor = {
   shuns?: number;
   /** Stories about the player this person would pass on; hops 0 is what they saw. */
   word?: Word[];
-  /** Held in the stocks until then. */
+  /** Serving a sentence (stocks, labour, a cell) until then. */
   stocked?: number;
   owner?: string;
   follows?: string;
@@ -486,6 +486,7 @@ export type PlayerCommand =
         | "store"
         | "work"
         | "harvest"
+        | "gather"
         | "tend-plot"
         | "use-prop"
         | "capture"

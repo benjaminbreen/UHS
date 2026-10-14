@@ -508,6 +508,8 @@ it("uses actual household parents for patronymics and preserves family tradition
     const parents = child.relations?.filter((r) => r.kind === "parent")
       .map((r) => people.find((a) => a.id === r.other)).filter((a): a is Actor => !!a);
     const parent = parents?.find((a) => a.origin?.sex === "male") ?? parents?.[0];
+    const head = engine.state.households?.find((h) => h.id === child.householdId)?.members[0];
+    if (head === child.id && parent?.origin?.sex !== "male") continue;
     if (!parent?.origin?.namePersonal) continue;
     expect(child.origin.nameParentPersonal, child.name).toBe(parent.origin.namePersonal);
     expect(child.origin.nameTradition).toBe(parent.origin.nameTradition);

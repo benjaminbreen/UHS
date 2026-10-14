@@ -1,3 +1,4 @@
+import { amountIn } from "../content/economy/money";
 import { TimeModal } from "./time/TimeModal";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
@@ -419,7 +420,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     }
   };
   const [situation, setSituation] = useState<string | undefined>(undefined);
-  const openDialogue = (id: string, opening?: string) => {
+  const [said, setSaid] = useState<string | undefined>(undefined);
+  const openDialogue = (id: string, opening?: string, line?: string) => {
     const sent = runtime.engine.approacher;
     if (!opening && sent?.id === id && runtime.engine.state.clock < sent.until) {
       opening = sent.situation;
@@ -442,6 +444,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       return;
     }
     setSituation(opening);
+    setSaid(line);
     setDialogueActorId(id);
     setModal("dialogue");
   };
@@ -1008,7 +1011,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           </a>
         </div>
       </header>
-      <main className="workspace" inert={!!modal || audioOpen || card?.kind === "title" || card?.kind === "ending"}>
+      <main className="workspace" inert={(!!modal && modal !== "dialogue") || audioOpen || card?.kind === "title" || card?.kind === "ending"}>
         <section className="world-pane">
           {phone && (sheetOpen || restOpen || narratorOpen) && (
             <button className="phone-panel-dismiss" aria-label="Close open panel"
@@ -1026,10 +1029,23 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               card={card}
               look={storyLook}
               onLook={lookAt}
-              onAnswer={(id) => openDialogue(id)}
+              onAnswer={(id, line) => openDialogue(id, undefined, line)}
               onClose={() => {
                 runtime.hold(false);
                 setCard(undefined);
+              }}
+            />
+          )}
+          {modal === "dialogue" && dialogueActorId && (
+            <DialogueModal
+              runtime={runtime}
+              actorId={dialogueActorId}
+              situation={situation}
+              said={said}
+              look={storyLook}
+              onClose={() => {
+                setModal(null);
+                setDialogueActorId(null);
               }}
             />
           )}
@@ -1115,6 +1131,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             bag={bagButton}
             fallback={sheetSummary}
             sprite={(item) => runtime.item(item)?.sprite}
+            onGain={() => setSideTab("inventory")}
+            slot={(item) => document.querySelector<HTMLElement>(`.inventory-list [data-item="${CSS.escape(item)}"]`)}
           />
           <TouchControls
             enabled={!touchBlocked}
@@ -1495,7 +1513,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     />
                     <span>
                       {pack.currency || (p.inventory.coin ?? 0) > 0
-                        ? `${p.inventory.coin ?? 0} bronze coins`
+                        ? pack.setting ? amountIn(pack.setting, p.inventory.coin ?? 0, true) : `${p.inventory.coin ?? 0} coins`
                         : `${p.inventory.obsidian ?? 0} obsidian flakes`}
                     </span>
                   </div>
@@ -1724,7 +1742,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     {Object.entries(p.inventory)
                       .filter(([, n]) => n! > 0)
                       .map(([id, n]) => (
-                        <button key={id} onClick={() => setInspecting(id)}>
+                        <button key={id} data-item={id} onClick={() => setInspecting(id)}>
                           <span className="inventory-well">
                             <ItemIcon
                               id={id}
@@ -2779,19 +2797,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         </div>
       )}
       {showVitals && <VitalsOverlay />}
-      {modal === "dialogue" && dialogueActorId && (
-        <div className="modal-backdrop dialogue-backdrop">
-          <DialogueModal
-            runtime={runtime}
-            actorId={dialogueActorId}
-            situation={situation}
-            onClose={() => {
-              setModal(null);
-              setDialogueActorId(null);
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }

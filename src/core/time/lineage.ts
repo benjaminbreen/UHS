@@ -93,7 +93,11 @@ export function relative(line: Lineage, generation: number): Relative {
   const character = generateCharacter(s, line.seed, `line:${generation}`, 30,
     undefined, undefined,
     tradition ? origin.nameFamilies?.slice(0, 1) : undefined,
-    undefined, tradition?.id,
+    generation < 0 && origin.nameParentPersonal
+      ? tradition?.masculine.includes(origin.nameParentPersonal) ? "male"
+        : tradition?.feminine.includes(origin.nameParentPersonal) ? "female" : undefined
+      : undefined,
+    tradition?.id,
     tradition ? {
       community: origin.community,
       parentPersonal: generation > 0 ? origin.namePersonal : undefined,

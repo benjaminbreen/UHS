@@ -497,6 +497,7 @@ export const commandSchema = z.discriminatedUnion("type", [
         "store",
         "work",
         "harvest",
+        "gather",
         "tend-plot",
         "use-prop",
         "capture",

@@ -1,7 +1,7 @@
 import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
 import { capabilitiesFor } from "../characters/resolve";
-import { moneyFor } from "../economy/money";
+import { amountIn } from "../economy/money";
 import { goodName, sellerOf } from "../economy/products";
 import type { Actor, HouseholdPurchase } from "../../core/types";
 import type { PlotContext, PlotTemplate } from "./types";
@@ -102,7 +102,7 @@ export const debt: PlotTemplate = {
       words: {
         creditor: creditor.name,
         creditorRole: creditor.role.toLowerCase(),
-        amount: coined && c.setting ? `${owed} ${moneyFor(c.setting).unit}` : "a good deal",
+        amount: c.setting ? amountIn(c.setting, owed, coined) : "a good deal",
         good: buy ? goodName(buy.good, buy.product) : "food",
         due: hour < 11 ? "by sundown" : "by noon tomorrow",
         pledge: child ? `your ${childKin} ${child.name}` : "you",

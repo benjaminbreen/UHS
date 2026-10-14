@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { CircleHelp, Languages, Send, X } from "lucide-react";
+import { CircleHelp, History, Languages, Send, X } from "lucide-react";
 import { setRealLanguage, useRealLanguage } from "./real-language";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
-import { dialogueTurn, explainDialogue, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
+import { dialogueTurn, explainDialogue, knowsPlayer, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import type { Expression } from "../render/portraits/constructed";
 import { calm, useTypewriter } from "./motion";
@@ -15,6 +15,7 @@ import { voiceOf } from "../audio/voices";
 import type { CueKind } from "../core/combat";
 import type { Favour, WalkOff } from "../core/types";
 type AskAnswer = "made" | "accepted" | "declined";
+import { Frame, plotColours, type StoryLook } from "./PlotCard";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
 
 function Action({ text }: { text: string }) {
@@ -74,12 +75,15 @@ const genderLabel = (actor: { name: string; origin?: { sex?: string }; appearanc
   return sex === "female" ? "Female" : sex === "male" ? "Male" : "Person";
 };
 
-export function DialogueModal({ runtime, actorId, situation, onClose }: { runtime: Runtime; actorId: string; /** What the conversation opens on, when the player did not start it. */ situation?: string; onClose: () => void }) {
+export function DialogueModal({ runtime, actorId, situation, said, look, onClose }: { runtime: Runtime; actorId: string; /** What the conversation opens on, when the player did not start it. */ situation?: string; /** A line they already spoke in the world, which the conversation picks up from. */ said?: string; look: StoryLook; onClose: () => void }) {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
-  const [history, setHistory] = useState<DialogueLine[]>([]);
+  const [history, setHistory] = useState<DialogueLine[]>(() => said ? [{ speaker: "npc", text: said }] : []);
   const [input, setInput] = useState("");
-  const [responding, setResponding] = useState(false);
-  const [busy, setBusy] = useState(true);
+  const [responding, setResponding] = useState(!!said);
+  const [full, setFull] = useState(false);
+  const [busy, setBusy] = useState(!said);
+  // Read once: meeting them in this conversation should not change the header mid-talk.
+  const [known] = useState(() => !!actor && knowsPlayer(runtime, actor));
   const [error, setError] = useState("");
   const [explanation, setExplanation] = useState("");
   const [explainOpen, setExplainOpen] = useState(false);
@@ -165,6 +169,10 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
   };
 
   useEffect(() => {
+    if (said) {
+      heard.add(said);
+      return () => { abort.current?.abort(); explainAbort.current?.abort(); };
+    }
     const controller = new AbortController();
     abort.current = controller;
     void dialogueTurn(runtime, actorId, "", [], controller.signal, realRef.current, situationRef.current).then((result) => {
@@ -186,8 +194,8 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
   }, [actorId, runtime]);
 
   useEffect(() => {
-    if (responding) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [history, responding]);
+    if (full) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [history, full]);
 
   // Cleared on a clock rather than on the animation ending, because with
   // reduced motion there is no animation to end.
@@ -230,7 +238,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
     setExplaining(false);
     const controller = new AbortController();
     abort.current = controller;
-    const result = await dialogueTurn(runtime, actorId, text, next, controller.signal, realRef.current);
+    const result = await dialogueTurn(runtime, actorId, text, next, controller.signal, realRef.current, situationRef.current);
     runtime.onRecord?.("dialogue", { actorId, input: text, response: result.text, error: result.error, aborted: result.aborted });
     if (controller.signal.aborted) return;
     setBusy(false);
@@ -265,70 +273,86 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
     setExplaining(false);
     setExplanation(result.explanation ?? result.error ?? "The explanation is unavailable.");
   };
-  return (
-    <section className={`modal modal-dialogue${responding ? " is-responding" : ""}`} role="dialog" aria-modal="true" aria-label={`Conversation with ${actor.name}`}>
-      <button className="close-modal icon-button" aria-label="Close conversation" onClick={close}><X size={20} /></button>
-      <button className="dialogue-explain icon-button" aria-label="Explain this line" title="Why did they say this?" aria-expanded={explainOpen} disabled={busy || latest?.speaker !== "npc"} onClick={() => void explain()}><CircleHelp size={18} /></button>
+  const inner = (<>
+    <div className="dialogue-tools">
+      {history.length > 1 && <button className="icon-button" aria-label="Show the whole conversation" title="Earlier in this conversation" aria-pressed={full} onClick={() => setFull(!full)}><History size={16} /></button>}
+      <button className="icon-button" aria-label="Explain this line" title="Why did they say this?" aria-expanded={explainOpen} disabled={busy || latest?.speaker !== "npc" || !latest.context} onClick={() => void explain()}><CircleHelp size={16} /></button>
       <button
-        className="dialogue-language icon-button"
+        className="icon-button"
         aria-pressed={realLanguage}
         aria-label="Real language mode"
         title={realLanguage ? "Real language: on (click a line for English)" : "Real language: off"}
         onClick={() => setRealLanguage(!realLanguage)}
       >
-        <Languages size={18} />
+        <Languages size={16} />
       </button>
-      <div className="dialogue-heading">
-        <div className="dialogue-face">
-          <div className="dialogue-portrait" data-took={took && !calm() ? took.cue : undefined}><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} expression={expression} viseme={viseme} motion="npc" facing={npcFacing(actor.id)} /></div>
-          {took && (
-            <span key={took.serial} className="dialogue-took" role="status">
-              <CueMark cue={took.cue} />
-              <b className="visually-hidden">
-                {took.cue === "anger"
-                  ? `${actor.name} takes offence.`
-                  : took.cue === "warm"
-                    ? `${actor.name} warms to you.`
-                    : `${actor.name} takes it well.`}
-              </b>
+      <button className="icon-button" aria-label="Close conversation" onClick={close}><X size={16} /></button>
+    </div>
+    <div className="plot-speech-row">
+      <div className="dialogue-face">
+        <div className="plot-portrait dialogue-portrait" data-took={took && !calm() ? took.cue : undefined}><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} expression={expression} viseme={viseme} motion="npc" facing={npcFacing(actor.id)} /></div>
+        {took && (
+          <span key={took.serial} className="dialogue-took" role="status">
+            <CueMark cue={took.cue} />
+            <b className="visually-hidden">
+              {took.cue === "anger"
+                ? `${actor.name} takes offence.`
+                : took.cue === "warm"
+                  ? `${actor.name} warms to you.`
+                  : `${actor.name} takes it well.`}
+            </b>
+          </span>
+        )}
+      </div>
+      <div className="plot-speech-body">
+        <div className="dialogue-title">
+        <span className="plot-name">{actor.name}</span>
+        {known && (
+          <p className="dialogue-meta">
+            {genderLabel(actor)} · {actor.age ?? "adult"} · {actor.role}
+            {/* Where you stand with them. The mark that pops over the portrait
+                has to move something, or it is only a flourish. */}
+            <span className="dialogue-regard" data-moved={took ? took.cue : undefined}>
+              <span className="regard-notches" aria-hidden="true">
+                {Array.from({ length: REGARD_NOTCHES }, (_, i) => (
+                  <i key={i} className={i < regardNotches(actor.trust) ? "on" : ""} />
+                ))}
+              </span>
+              {regardLabel(actor.trust)}
             </span>
-          )}
-        </div>
-        <div>
-          <h2>{actor.name}</h2>
-          <p>{genderLabel(actor)} · {actor.age ?? "adult"} · {actor.role}</p>
-          {/* Where you stand with them. The mark that pops over the portrait
-              has to move something, or it is only a flourish. */}
-          <p className="dialogue-regard" data-moved={took ? took.cue : undefined}>
-            <span className="regard-notches" aria-hidden="true">
-              {Array.from({ length: REGARD_NOTCHES }, (_, i) => (
-                <i key={i} className={i < regardNotches(actor.trust) ? "on" : ""} />
-              ))}
-            </span>
-            {regardLabel(actor.trust)}
           </p>
+        )}
+        </div>
+        {giftNotice && <div className="dialogue-gift" role="status">{giftNotice}</div>}
+        {explainOpen && <aside className="dialogue-explanation" role="status"><strong>Why this line?</strong> {explaining ? "Thinking…" : explanation}</aside>}
+        <div className={`dialogue-history${full ? " is-full" : ""}`} ref={scrollRef} aria-live="polite">
+          {full
+            ? history.map((line, index) =>
+                line.speaker === "npc" && index === history.length - 1 ? (
+                  <SpokenLine key={`${index}-${line.text}`} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />
+                ) : (
+                  <p className={`dialogue-line ${line.speaker}${index < history.length - 2 ? " past" : ""}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
+                ),
+              )
+            : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />}
+          {busy && <p className="dialogue-thinking"><span /><span /><span /></p>}
+          {error && <p className="dialogue-error">{error}</p>}
+        </div>
+        <div className="dialogue-foot">
+          {responding && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
+          <div className="dialogue-actions">
+            {!responding && !left && <button className="dialogue-respond" onClick={() => setResponding(true)}>Respond</button>}
+            <button className="dialogue-continue" onClick={close}>{left ? `${actor.name.split(" ")[0]} has gone` : responding ? "Leave" : "Continue"} <span>▸</span></button>
+        </div>
         </div>
       </div>
-      {giftNotice && <div className="dialogue-gift" role="status">{giftNotice}</div>}
-      {explainOpen && <aside className="dialogue-explanation" role="status"><strong>Why this line?</strong> {explaining ? "Thinking…" : explanation}</aside>}
-      <div className="dialogue-history" ref={scrollRef} aria-live="polite">
-        {responding
-          ? history.map((line, index) =>
-              line.speaker === "npc" && index === history.length - 1 ? (
-                <SpokenLine key={`${index}-${line.text}`} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />
-              ) : (
-                <p className={`dialogue-line ${line.speaker}${index < history.length - 2 ? " past" : ""}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
-              ),
-            )
-          : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />}
-        {busy && <p className="dialogue-thinking"><span /><span /><span /></p>}
-        {error && <p className="dialogue-error">{error}</p>}
-      </div>
-      <div className="dialogue-actions">
-        {!responding && !left && <button className="dialogue-respond" onClick={() => setResponding(true)}>Respond</button>}
-        <button className="dialogue-continue" onClick={close}>{left ? `${actor.name.split(" ")[0]} has gone` : "Continue"} <span>▸</span></button>
-      </div>
-      {responding && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
-    </section>
+    </div>
+  </>);
+  return (
+    <div className="plot-floor dialogue-floor" data-look={look} style={plotColours(runtime)}>
+      <section className={`plot-speech dialogue-speech${responding ? " is-responding" : ""}`} role="dialog" aria-label={`Conversation with ${actor.name}`}>
+        {look === "framed" ? <Frame>{inner}</Frame> : <div className="plot-frame">{inner}</div>}
+      </section>
+    </div>
   );
 }

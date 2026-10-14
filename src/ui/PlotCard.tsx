@@ -290,7 +290,7 @@ function useTyped(text: string) {
 }
 
 /** The wooden frame of the framed look: four stepped rims, outermost first. */
-function Frame({ children }: { children: ReactNode }) {
+export function Frame({ children }: { children: ReactNode }) {
   return (
     <div className="pf">
       <div className="pf-lit">
@@ -366,6 +366,20 @@ function Goal({ aim, due }: { aim: string; due?: string }) {
   );
 }
 
+/** The plot's palette as the CSS variables the frames are drawn in. */
+export function plotColours(runtime: Runtime) {
+  const plot = runtime.engine.state.plot;
+  const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
+  return {
+    "--ink": look.palette.ink,
+    "--fill": look.palette.fill,
+    "--edge": look.palette.edge,
+    "--light": look.palette.light,
+    "--accent": look.palette.accent,
+    "--culture-pattern": patternFor(runtime.engine.world.pack.setting?.culture),
+  } as CSSProperties;
+}
+
 export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose }: {
   runtime: Runtime;
   card: Card;
@@ -373,7 +387,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   /** Points the camera at someone, or back at the player with none. */
   onLook: (id?: string) => void;
   /** Opens the conversation with whoever just spoke. */
-  onAnswer: (id: string) => void;
+  onAnswer: (id: string, line: string) => void;
   onClose: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
@@ -388,14 +402,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   const plot = runtime.engine.state.plot;
   const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
   const setting = runtime.engine.world.pack.setting;
-  const colours = {
-    "--ink": look.palette.ink,
-    "--fill": look.palette.fill,
-    "--edge": look.palette.edge,
-    "--light": look.palette.light,
-    "--accent": look.palette.accent,
-    "--culture-pattern": patternFor(setting?.culture),
-  } as CSSProperties;
+  const colours = plotColours(runtime);
   const season = setting && seasonAt(setting.season, runtime.engine.state.clock);
   const name = settlementName(runtime.engine.world.pack.name);
   const when = setting ? `${season ? `${season}, ` : ""}${formatHistoricalYear(setting.year)}` : "";
@@ -500,7 +507,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
               focus={begin}
               items={outcome ? [{ label: "Continue", pick: () => close(), primary: true }] : [
                 ...(speaker && runtime.engine.approacher?.id === speaker.id
-                  ? [{ label: "Answer", pick: () => close(() => onAnswer(speaker.id)), primary: true }]
+                  ? [{ label: "Answer", pick: () => close(() => onAnswer(speaker.id, card.text)), primary: true }]
                   : []),
                 { label: speaker ? "Later" : "Continue", pick: () => (done ? close() : finish()) },
               ]}

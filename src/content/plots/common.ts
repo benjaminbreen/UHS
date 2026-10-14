@@ -1,7 +1,7 @@
 import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
 import { capabilitiesFor } from "../characters/resolve";
-import { moneyFor } from "../economy/money";
+import { amountIn } from "../economy/money";
 import type { Actor } from "../../core/types";
 import type { PlotContext } from "./types";
 
@@ -58,7 +58,7 @@ export function pronounWords(a: Actor) {
 /** A sum in this place's money, or in food where there is none. */
 export function amountOf(c: PlotContext, owed: number) {
   const coined = !!c.setting && capabilitiesFor(c.setting).has("coinage");
-  return coined && c.setting ? `${owed} ${moneyFor(c.setting).unit}` : `${owed} measures of food`;
+  return c.setting ? amountIn(c.setting, owed, coined) : `${owed} measures of food`;
 }
 
 export function partnerWords(c: PlotContext) {

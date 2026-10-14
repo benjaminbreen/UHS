@@ -1462,33 +1462,6 @@ kbd {
   scrollbar-width: thin;
   scrollbar-color: #63704b transparent;
 }
-.modal-dialogue {
-  width: min(760px, 100%);
-  padding: 25px 30px 24px;
-  border-radius: 16px;
-  background: linear-gradient(120deg, var(--bg-3), var(--bg-2) 64%, var(--bg-3));
-  border-color: var(--gold);
-  box-shadow:
-    inset 0 0 0 1px var(--bg-0),
-    inset 0 0 0 5px color-mix(in srgb, var(--line) 13%, transparent),
-    0 30px 100px #10171080;
-  transition:
-    width 180ms ease,
-    min-height 180ms ease;
-}
-.modal-dialogue.is-responding {
-  width: min(820px, 100%);
-  min-height: min(560px, 86dvh);
-  display: flex;
-  flex-direction: column;
-}
-.dialogue-heading {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--line-soft);
-}
 /* Holds the portrait and the mark that pops beside it; the portrait clips
    its own canvas, so the mark cannot live inside it. */
 .dialogue-face {
@@ -1569,33 +1542,10 @@ kbd {
     transform: translateY(3px);
   }
 }
-.dialogue-portrait {
-  width: 132px;
-  height: 154px;
-  flex: 0 0 auto;
-  overflow: hidden;
-  border: 2px solid var(--gold);
-  border-radius: 13px;
-  background: #304762;
-  display: grid;
-  place-items: end center;
-}
 .dialogue-portrait canvas {
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
-}
-.dialogue-heading h2 {
-  margin: 0;
-  color: var(--cream);
-  font-size: 28px;
-}
-.dialogue-heading p {
-  margin: 6px 0 0;
-  color: var(--gold);
-  font: 11px var(--pixel);
-  letter-spacing: 0.4px;
-  text-transform: none;
 }
 .dialogue-regard {
   display: flex;
@@ -1768,25 +1718,6 @@ kbd {
   color: var(--ink);
 }
 @media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
-  .modal-dialogue,
-  .modal-dialogue.is-responding {
-    min-height: min(540px, 88dvh);
-    padding: 22px 18px 18px;
-  }
-  .dialogue-portrait {
-    width: 96px;
-    height: 112px;
-  }
-  .dialogue-heading {
-    gap: 12px;
-  }
-  .dialogue-heading h2 {
-    font-size: 23px;
-  }
-  .dialogue-heading p {
-    font-size: 9px;
-    line-height: 1.55;
-  }
   .dialogue-line {
     font-size: 19px;
   }
@@ -6141,15 +6072,18 @@ button:disabled {
 .bag-flight {
   position: fixed;
   z-index: 60;
-  width: 24px;
-  height: 24px;
-  margin: -12px 0 0 -12px;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 0 6px rgba(255, 220, 120, 0.75));
   pointer-events: none;
   opacity: 0;
-  animation: bag-flight 0.52s cubic-bezier(0.5, -0.1, 0.7, 0.6) forwards;
+  animation: bag-flight 0.62s cubic-bezier(0.5, -0.1, 0.7, 0.6) forwards;
 }
 .bag-flight > * {
-  animation: bag-flight-lift 0.52s ease-out forwards;
+  animation: bag-flight-lift 0.62s ease-out forwards;
 }
 @keyframes bag-flight {
   0% {
@@ -6160,9 +6094,13 @@ button:disabled {
     opacity: 1;
     transform: translate(0, 0) scale(1.25);
   }
-  100% {
+  85% {
     opacity: 1;
-    transform: translate(var(--dx), var(--dy)) scale(0.7);
+    transform: translate(var(--dx), var(--dy)) scale(1.1);
+  }
+  100% {
+    opacity: 0.6;
+    transform: translate(var(--dx), var(--dy)) scale(0.8);
   }
 }
 /* The rise that makes the path an arc and not a line. */
@@ -6173,6 +6111,43 @@ button:disabled {
   }
   40% {
     transform: translateY(-46px);
+  }
+}
+.inventory-list .slot-arriving {
+  opacity: 0.35;
+}
+.inventory-list .slot-pop {
+  animation: slot-pop 0.6s ease-out;
+}
+.inventory-list .slot-pop .inventory-well {
+  position: relative;
+  animation: bag-bounce 0.42s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.inventory-list .slot-pop .inventory-well::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid var(--gold);
+  pointer-events: none;
+  animation: slot-ring 0.5s ease-out forwards;
+}
+@keyframes slot-pop {
+  0% {
+    background: color-mix(in srgb, var(--gold) 28%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+@keyframes slot-ring {
+  0% {
+    opacity: 1;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
   }
 }
 .bag-bounce {
@@ -6711,24 +6686,6 @@ button:disabled {
 }
 
 /* Real language mode */
-.dialogue-language {
-  position: absolute;
-  top: 16px;
-  right: 60px;
-  opacity: 0.55;
-}
-.dialogue-language[aria-pressed="true"] {
-  opacity: 1;
-  color: var(--gold, #d8b77a);
-  border-color: currentColor;
-}
-.dialogue-explain {
-  position: absolute;
-  top: 16px;
-  right: 104px;
-}
-.dialogue-explain:disabled { opacity: 0.45; cursor: default; }
-.dialogue-explain[aria-expanded="true"] { border-color: var(--gold); }
 .dialogue-explanation {
   margin-top: 14px;
   padding: 11px 14px;
@@ -9374,7 +9331,6 @@ button:disabled {
     padding: 56px 16px 20px; border-radius: 12px; overscroll-behavior: contain;
   }
   .modal.modal-settings { padding: 56px 16px 20px; }
-  .modal.modal-dialogue { min-height: 0; padding: 56px 16px 20px; }
   .settings-tabs { overflow-x: auto; scroll-padding-inline: 4px; }
   .settings-tabs button { flex: 0 0 auto; min-height: 44px; padding-inline: 10px; }
   .map-zoom button { width: 44px; height: 44px; }
