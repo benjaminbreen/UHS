@@ -354,4 +354,12 @@ export const capabilityOverrides: readonly CapabilityOverride[] = [
       coinage: 970,
     },
   },
+  {
+    id: "southern-africa-interior",
+    label: "Southern African interior: cattle, cloth and beads until the Transvaal pound",
+    bounds: [10,-35,36,-15],
+    capabilities: {
+      coinage: 1874,
+    },
+  },
 ];

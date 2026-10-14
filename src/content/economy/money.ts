@@ -33,6 +33,8 @@ const INDONESIA = [95, -11, 141, 6] as const;
 const YUNNAN = [97.5, 21.5, 105, 28.5] as const;
 const DAI_VIET = [102, 17, 108.5, 23.5] as const;
 const SIAM = [97.5, 5.5, 106, 21] as const;
+const SWAHILI = [38, -11, 42, -1] as const;
+const KATANGA = [22, -14, 30, -8] as const;
 
 const table: Money[] = [
   { box: BRITAIN, from: 700, to: 1500, name: "Silver pennies", one: "silver penny", many: "silver pennies", about: "Small, thin silver coins, the only coin most people ever handled." },
@@ -60,6 +62,8 @@ const table: Money[] = [
   { box: DAI_VIET, from: 970, to: 1900, name: "Copper cash", one: "string of cash", many: "strings of cash", about: "Copper coins with a square hole, threaded on cords." },
   // Siam's small change, beside the silver bullet coins too valuable for a day's pay.
   { box: SIAM, from: 1300, to: 1860, name: "Cowrie shells", one: "string of cowries", many: "strings of cowries", about: "Sea shells used as small change; larger sums were paid in silver." },
+  { box: SWAHILI, from: 1000, to: 1500, name: "Copper coins", one: "copper coin", many: "copper coins", about: "Small copper coins struck by the sultans of Kilwa and the other coast towns." },
+  { box: KATANGA, from: 900, to: 1900, name: "Copper crosses", one: "small copper cross", many: "small copper crosses", about: "Copper cast in an X shape, used as money across the Copperbelt." },
   { cultures: ["european"], from: 2002, to: 10001, name: "Euro notes", one: "twenty-euro note", many: "twenty-euro notes", about: "Euro banknotes." },
   { cultures: ["european", "north-african-west-asian"], from: -600, to: 300, name: "Bronze coins", one: "bronze coin", many: "bronze coins", about: "Small bronze coins, the everyday change." },
   { cultures: ["north-african-west-asian"], from: 690, to: 1900, name: "Silver dirhams", one: "dirham", many: "dirhams", about: "Thin silver coins, struck across the Islamic world." },
@@ -88,11 +92,18 @@ export function moneyFor(s: { year: number; culture: CultureId; lon: number; lat
 }
 
 /** Where nobody uses coin, what a debt or a gift is counted in. */
-const STAPLES: { cultures: readonly CultureId[]; one: string; many: string }[] = [
+const STAPLES: { cultures?: readonly CultureId[]; box?: readonly [number, number, number, number]; from?: number; to?: number; one: string; many: string }[] = [
+  // Strung shell beads served as money between colonists and Native nations in the Northeast.
+  { box: [-80, 38, -66, 47], from: 1620, to: 1720, one: "string of wampum", many: "strings of wampum" },
+  // The Hudson's Bay Company kept its accounts in "made beaver", one prime pelt.
+  { box: [-140, 45, -55, 65], from: 1670, to: 1870, one: "beaver pelt", many: "beaver pelts" },
+  { box: [112, -44, 154, -10], one: "net bag of food", many: "net bags of food" },
+  { cultures: ["mesoamerican"], one: "hundred cacao beans", many: "hundred cacao beans" },
+  { cultures: ["inner-eurasian"], one: "sheep", many: "sheep" },
   { cultures: ["east-asian", "southeast-asian"], one: "basket of rice", many: "baskets of rice" },
   { cultures: ["south-asian"], one: "measure of rice", many: "measures of rice" },
   { cultures: ["north-african-west-asian"], one: "jar of barley", many: "jars of barley" },
-  { cultures: ["mesoamerican", "other-indigenous-american", "andean"], one: "basket of maize", many: "baskets of maize" },
+  { cultures: ["other-indigenous-american", "andean"], one: "basket of maize", many: "baskets of maize" },
   { cultures: ["west-central-african", "east-southern-african"], one: "basket of millet", many: "baskets of millet" },
   { cultures: ["australian-pacific"], one: "basket of taro", many: "baskets of taro" },
 ];
@@ -106,6 +117,9 @@ export function amountIn(s: { year: number; culture: CultureId; lon: number; lat
     const m = moneyFor(s);
     return count(n, m.one, m.many);
   }
-  const staple = STAPLES.find((x) => x.cultures.includes(s.culture));
+  const staple = STAPLES.find((x) =>
+    (!x.cultures || x.cultures.includes(s.culture)) &&
+    (!x.box || (s.lon >= x.box[0] && s.lon <= x.box[2] && s.lat >= x.box[1] && s.lat <= x.box[3])) &&
+    s.year >= (x.from ?? -Infinity) && s.year < (x.to ?? Infinity));
   return count(n, staple?.one ?? "sack of grain", staple?.many ?? "sacks of grain");
 }

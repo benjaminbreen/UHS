@@ -49,6 +49,8 @@
     { "id": "siam", "label": "Siam and Laos: cowries and bullet silver from Sukhothai", "bounds": [97.5, 5.5, 106, 21],
       "capabilities": { "coinage": 1300 } },
     { "id": "dai-viet", "label": "Dai Viet: first coins struck by Dinh Bo Linh", "bounds": [102, 17, 108.5, 23.5],
-      "capabilities": { "coinage": 970 } }
+      "capabilities": { "coinage": 970 } },
+    { "id": "southern-africa-interior", "label": "Southern African interior: cattle, cloth and beads until the Transvaal pound", "bounds": [10, -35, 36, -15],
+      "capabilities": { "coinage": 1874 } }
   ]
 }
