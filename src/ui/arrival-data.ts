@@ -28,6 +28,9 @@ export function arrivalBackdrop(setting: WorldSetting) {
     ["polynesia-medieval", -180, -130, -25, 25, 1000, 1800],
     ["east-asia-transition-port", 124, 146, 30, 45, 1870, 1910],
     ["south-asia-midcentury-town", 60, 93, 5, 34, 1945, 1980],
+    ["tibetan-highlands-later", 75, 103, 28, 37.5, 1201, 1899],
+    ["central-asian-frontier", 46, 100, 45, 57, 1700, 1899],
+    ["latin-america-early-twentieth-town", -118, -34, -55, 27, 1900, 1969],
     ["botswana-500", 20, 30.5, -26, -16, 300, 900],
     ["mozambique-700", 31, 42, -27, -10, 300, 900],
     ["bengal-delta-100bce", 87, 94, 20, 27, -500, 500],
@@ -157,6 +160,8 @@ export function arrivalBackdrop(setting: WorldSetting) {
     ["south-china-early-modern", 99, 123, 18, 34, 1500, 1899],
     ["southeast-asia-early-modern", 95, 140, -11, 19, 1500, 1899],
     ["central-asian-oasis-later", 52, 88, 34, 48, 1100, 1899],
+    ["eurasian-steppe-pastoral", 46, 120, 40, 55, bce(1000).year, 1899],
+    ["eastern-europe-timber-settlements", 28, 60, 45, 65, 1000, 1899],
     ["northern-eurasia-forest-communities", 40, 180, 50, 75, bce(13000).year, 1899],
     ["west-asia-inland-towns", 26, 66, 20, 44, 750, 1899],
     ["europe-bronze-iron-villages", -12, 40, 40, 60, bce(3000).year, bce(100).year],
@@ -165,6 +170,11 @@ export function arrivalBackdrop(setting: WorldSetting) {
     ["west-africa-forest-courtyards", -18, 18, 4, 12, 500, 1899],
     ["andes-early-farming", -81, -65, -26, 8, bce(3000).year, 1200],
     ["latin-america-colonial-towns", -118, -34, -40, 27, 1550, 1899],
+    ["south-asia-foraging-communities", 60, 94, 5, 35, bce(13000).year, bce(3500).year],
+    ["southeast-asia-early-farming", 95, 130, -11, 22, bce(3500).year, 500],
+    ["north-china-late-imperial", 98, 133, 34, 50, 1401, 1899],
+    ["east-africa-highlands-later", 34, 43, -5, 15, 1201, 1899],
+    ["northwest-south-asia-later-towns", 60, 88, 22, 35, 1501, 1899],
   ];
   const named = [
     [/new england|acadian|maine|new brunswick|nova scotia/, "northeast-woodlands-1200"],
@@ -182,6 +192,16 @@ export function arrivalBackdrop(setting: WorldSetting) {
   for (const [id, west, east, south, north, first, last] of special) {
     if (lon >= west && lon <= east && lat >= south && lat <= north && year >= first && year <= last) {
       if (id === "africa-deep-prehistory" && lon < 28 && lat > -12) continue;
+      if (id === "central-asian-frontier" && (setting.settlement === "camp" || setting.climate === "tundra" || setting.relief >= 0.65)) continue;
+      if (id === "latin-america-early-twentieth-town" && (!urban || lat > 23.5 && lon > -86)) continue;
+      if (id === "eurasian-steppe-pastoral" && (urban || setting.culture === "european" || lon > 100 && lat > 50 || setting.relief >= 0.65 || (setting.climate !== "arid" && setting.climate !== "temperate") || (setting.climate === "arid" && lat < 44))) continue;
+      if (id === "eastern-europe-timber-settlements" && (setting.culture !== "european" || setting.settlement === "camp")) continue;
+      if (id === "tibetan-highlands-later" && ((lon < 82 && lat < 32) || (lon < 87 && lat < 30) || setting.settlement === "camp")) continue;
+      if (id === "south-asia-foraging-communities" && setting.settlement !== "camp" && year >= bce(7000).year && setting.relief < 0.65) continue;
+      if (id === "southeast-asia-early-farming" && (setting.settlement === "camp" || setting.climate === "arid")) continue;
+      if (id === "north-china-late-imperial" && (setting.settlement === "camp" || setting.culture !== "east-asian" || lat > 43 && lon < 119)) continue;
+      if (id === "east-africa-highlands-later" && (setting.settlement === "camp" || setting.climate !== "temperate" || lat < 5 && setting.relief < 0.5)) continue;
+      if (id === "northwest-south-asia-later-towns" && (!urban || setting.relief >= 0.65)) continue;
       if (id === "levant-foragers" && /cyprus/.test(name)) continue;
       if (id === "east-asia-neolithic" && (setting.climate === "arid" || setting.settlement === "camp")) continue;
       if ((id === "aegean-bronze" || id === "mediterranean-roman-port" || id === "eastern-mediterranean-medieval" || id === "east-asia-transition-port") && !coastal) continue;

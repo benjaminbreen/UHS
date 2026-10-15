@@ -74,6 +74,8 @@ export const about: Record<string, string> = {
   townWell: "The town's public well. Everyone comes here for water.",
   sickle: "A curved blade for cutting grain at harvest.",
   axe: "An axe for felling trees and splitting wood.",
+  hoe: "A hoe for breaking soil and chopping weeds out of the rows.",
+  "digging-stick": "A pointed, fire-hardened stick for opening the ground to plant.",
   pick: "A pick for breaking hard ground and stone.",
   dryingRack: "A rack for drying fish, meat, herbs or washing in the sun and wind.",
   pump: "A hand pump that brings water up from a well below.",

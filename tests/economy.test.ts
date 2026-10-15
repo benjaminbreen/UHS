@@ -1,7 +1,7 @@
 import { it, expect } from "vitest";
 import { runEconomy } from "../src/core/economy";
 import { harvestResource } from "../src/core/livelihood";
-import { parseLoad, withLoads } from "../src/content/economy/carrying";
+import { carryKit, parseLoad, withLoads } from "../src/content/economy/carrying";
 import type { Economy, Household } from "../src/core/types";
 import { panelCity } from "../scripts/review/panel";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
@@ -220,7 +220,7 @@ it("keeps a city fed from outside when its own bakers stop", () => {
 
 it("sends people out with vessels and baskets and home with what they got", () => {
   const at = { x: 0, y: 0 };
-  const kit = { vessel: "prop:jug@head", basket: "prop:basket@back", bundle: "prop:sack@hand" };
+  const kit = { vessel: "prop:jug@head", basket: "prop:basket@back", bundle: "prop:sack@hand", tool: "prop:hoe@hand" };
   const stations = withLoads(
     [
       { pos: at, activity: "draw-water", label: "Fetching water", minutes: 20 },
@@ -228,6 +228,7 @@ it("sends people out with vessels and baskets and home with what they got", () =
       { pos: at, activity: "gather", label: "Gathering", minutes: 20 },
       { pos: at, activity: "visit", label: "Buying bread from Ada", minutes: 20 },
       { pos: at, activity: "rest", label: "At home", minutes: 20 },
+      { pos: at, activity: "tend", label: "Weeding the rows", minutes: 20, carry: "tool" },
     ],
     kit,
     "bread",
@@ -238,8 +239,10 @@ it("sends people out with vessels and baskets and home with what they got", () =
     "prop:basket@back",
     "prop:basket@back",
     "bread",
+    "prop:hoe@hand",
   ]);
-  expect(parseLoad("prop:jug@head")).toEqual({ prop: "jug", style: "head" });
+  expect(parseLoad("prop:jug@head")).toEqual({ prop: "jug", variant: 0, style: "head" });
+  expect(parseLoad("prop:hoe#1@hand")).toEqual({ prop: "hoe", variant: 1, style: "hand" });
   expect(parseLoad("bread")).toBeUndefined();
 });
 
@@ -371,4 +374,16 @@ it("keeps a day's work that runs past midnight that day's, and lets yesterday's 
   s.player.pos = { ...engine.workPlan()!.door! };
   expect(engine.workHere(), "today's work is open").toBeDefined();
   expect(act({ type: "choose", card: left.card, choice: left.choices[0].index }).status).toBe("rejected");
+});
+
+it("sends farmers to the field with the tool the place worked it with", () => {
+  const tool = (id: string, year: number) =>
+    carryKit({ year, setting: settingFor(places.find((p) => p.id === id)!, year) } as never).tool;
+  expect(tool("umbria", 1400)).toBe("prop:hoe@hand");
+  expect(tool("congo", 1400)).toBe("prop:hoe@hand");
+  // No smelting yet: a wooden blade.
+  expect(tool("umbria", -4000)).toBe("prop:hoe#1@hand");
+  expect(tool("iroquoia", 1400)).toBe("prop:hoe#1@hand");
+  expect(tool("cusco", 1400)).toBe("prop:digging-stick@hand");
+  expect(tool("cusco", 1700)).toBe("prop:hoe@hand");
 });

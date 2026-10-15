@@ -4860,7 +4860,7 @@ export class WorldScene extends Phaser.Scene {
       if (a.heldItem) {
         const load = parseLoad(a.heldItem);
         const sprite =
-          load && portableProps.find((p) => p.id === load.prop)?.sprite;
+          load && portableProps.find((p) => p.id === load.prop)?.sprite.replace(/-0$/, `-${load.variant}`);
         this.heldSprites.set(
           a.id,
           sprite ? `${sprite}@${load!.style}` : `icon:${a.heldItem}`,
@@ -6717,15 +6717,18 @@ export class WorldScene extends Phaser.Scene {
     return Math.hypot(site.x - at.x, site.y - at.y) < 3.5 ? site : undefined;
   }
   private workMotion(id: string, at: Ambient, time: number) {
-    const pose = workPoseFor(at.activity, at.label, this.workSite(at)?.family);
+    let pose = workPoseFor(at.activity, at.label, this.workSite(at)?.family);
     if (!pose) return undefined;
+    const site = this.workSite(at, pose);
+    // A hoe in hand chops at the rows rather than miming.
+    if (pose === "work-tend" && /weed|hoe|till|dig|plant/i.test(at.label) && this.heldSprites.get(id)?.includes("-hoe-"))
+      pose = "pick-strike";
     const offset = this.poseOffset(id);
     const cycle = 3500 + offset % 650;
     const age = (time + offset) % cycle;
     const round = Math.floor((time + offset) / cycle);
     const stroke = poseTiming(pose) * 4;
     const second = stroke + 190;
-    const site = this.workSite(at, pose);
     if (age < stroke) return { pose, index: Math.floor(age / poseTiming(pose)), beat: `${pose}:${round}:0`, site };
     if (age < second) return { pose, index: 3, site };
     if (age < second + stroke) return { pose, index: Math.floor((age - second) / poseTiming(pose)), beat: `${pose}:${round}:1`, site };

@@ -1167,6 +1167,22 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
     breakable: "paper",
   },
+  /** Carried out to the rows and home again, never left lying in a yard. */
+  hoe: {
+    solid: false,
+    name: "Hoe",
+    family: "hoe",
+    portable: true,
+    strike: true,
+  },
+  "digging-stick": {
+    solid: false,
+    name: "Digging stick",
+    family: "stick",
+    portable: true,
+    strike: true,
+    variants: 1,
+  },
   stick: {
     solid: false,
     name: "Stout stick",

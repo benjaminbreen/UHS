@@ -3,6 +3,7 @@ import type { Pack } from "../../core/types";
 import { propDefs } from "../props/catalog";
 import { propKit, techFor } from "../props/selection";
 import { shownAs } from "../../core/economy";
+import { capabilitiesFor } from "../characters/resolve";
 
 /** How a load is borne: in the hand, balanced on the head, or on the back. */
 export type CarryStyle = "hand" | "head" | "back";
@@ -45,17 +46,24 @@ export function carryKit(pack: Pack) {
   const style = (load: Load): CarryStyle =>
     year >= 1950 ? "hand" : (styles[culture]?.[load] ?? "hand");
   const as = (prop: string, load: Load) => `prop:${prop}@${style(load)}`;
+  // Before contact the milpa, the Andean terrace and the Pacific garden were
+  // worked with a digging stick: the coa, the chakitaqlla, the ʻōʻō. Elsewhere
+  // a hoe, wooden-bladed (art variant 1) where nobody smelted.
+  const contact = ["mesoamerican", "andean"].includes(culture) ? year >= 1550
+    : culture === "australian-pacific" ? year >= 1800 : true;
+  const metal = !pack.setting || capabilitiesFor(pack.setting).has("metallurgy");
   return {
     vessel: as(vessel, "vessel"),
     basket: as("basket", "basket"),
     bundle: as(bundle, "bundle"),
+    tool: contact ? `prop:hoe${metal ? "" : "#1"}@hand` : "prop:digging-stick@hand",
   };
 }
 
 /** A carried prop's key and style, when a held thing is a load. */
 export function parseLoad(held: string) {
-  const m = /^prop:([^@]+)@(hand|head|back)$/.exec(held);
-  return m ? { prop: m[1], style: m[2] as CarryStyle } : undefined;
+  const m = /^prop:([^@#]+)(?:#(\d))?@(hand|head|back)$/.exec(held);
+  return m ? { prop: m[1], variant: Number(m[2] ?? 0), style: m[3] as CarryStyle } : undefined;
 }
 export function loadName(held: string) {
   const load = parseLoad(held);
@@ -83,6 +91,8 @@ export function withLoads(
     if (!next.carry && next.activity !== "play") next.carry = load;
   };
   out.forEach((s, i) => {
+    // The field's generic tool becomes this place's.
+    if (s.carry === "tool" && (s.activity === "tend" || s.label === "At the field")) s.carry = kit.tool;
     if (s.activity === "visit" && bought && s.label.startsWith("Buying"))
       bear(i + 1, shownAs[bought] ?? kit.basket);
     if (s.carry) return;

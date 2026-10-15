@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { resolveSetting } from "../src/content/geography/resolve";
+import { resolveSetting, settingFor } from "../src/content/geography/resolve";
+import { places } from "../src/content/geography/places";
+import { arrivalBackdrop } from "../src/ui/arrival-data";
 const resolve = (prompt: string, seed = "routing") => {
   const result = resolveSetting(prompt, seed);
   if ("error" in result) throw Error(result.error);
@@ -43,5 +45,42 @@ describe("local-first setting interpretation", () => {
     const brewer = resolve("A Roman apprentice brewer in Ostia, 100 CE");
     expect(brewer.needsInterpretation).toBe(false);
     expect(brewer.setting.role).toBe("Apprentice Brewer");
+  });
+});
+
+
+describe("arrival scenery for resolved settings", () => {
+  it("shows the Central Asian frontier across places and dates, including Oskemen 1847", () => {
+    for (const id of ["city-oskemen", "city-omsk", "city-nur-sultan"]) {
+      const place = places.find((p) => p.id === id)!;
+      expect(place, id).toBeDefined();
+      for (const year of [1700, 1847, 1899]) {
+        expect(arrivalBackdrop(settingFor(place, year)), `${id} ${year}`).toBe(
+          "/opening/central-asian-frontier.webp",
+        );
+      }
+      expect(arrivalBackdrop(settingFor(place, 1900))).toBe(
+        "/opening/central-asia-1930.webp",
+      );
+    }
+  });
+
+  it("keeps highland and European settings out of South Asian and ancient West Asian fallbacks", () => {
+    for (const [id, image] of [
+      ["city-xigaze", "tibetan-highlands-later"],
+      ["city-leh", "tibetan-highlands-later"],
+      ["city-gondar", "east-africa-highlands-later"],
+      ["city-moscow", "eastern-europe-timber-settlements"],
+    ]) {
+      const place = places.find((p) => p.id === id)!;
+      for (const year of [1300, 1650, 1847]) {
+        expect(arrivalBackdrop(settingFor(place, year)), `${id} ${year}`).toBe(
+          `/opening/${image}.webp`,
+        );
+      }
+    }
+    expect(arrivalBackdrop(resolve("Seoul farmer 1800").setting)).toBe(
+      "/opening/korea-medieval-early-modern.webp",
+    );
   });
 });
