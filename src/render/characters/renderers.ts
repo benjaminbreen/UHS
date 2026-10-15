@@ -6,7 +6,7 @@ import { drawCharacter as drawA } from "./draw";
 import { drawCharacter as drawB } from "./v2/draw";
 import { drawCharacter as drawC, drawCharacterD as drawD, drawCharacterE } from "./v3/draw";
 import { finishCharacter } from "./finish";
-import { drawCharacterF } from "./doll/draw";
+import { drawCharacterF, drawCharacterG } from "./doll/draw";
 import { lightKey } from "./v2/pixels";
 export type CharacterRenderer = (
   ctx: CanvasRenderingContext2D,
@@ -23,7 +23,7 @@ export type CharacterRenderer = (
   /** Load weight 0–2, plus 3 while visibly tired. */
   condition?: number,
 ) => void;
-export const rendererIds = ["a", "b", "c", "d", "e", "f"] as const;
+export const rendererIds = ["a", "b", "c", "d", "e", "f", "g"] as const;
 export type RendererId = (typeof rendererIds)[number];
 export const renderers: Record<
   RendererId,
@@ -45,6 +45,7 @@ export const renderers: Record<
     },
   },
   f: { label: "F · paper doll", draw: drawCharacterF },
+  g: { label: "G · paper doll, longer legs", draw: drawCharacterG },
 };
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const tint = (a: string, b: string, t: number) =>
@@ -66,7 +67,7 @@ function spots(ctx: CanvasRenderingContext2D, skin: string) {
   ctx.putImageData(img, 0, 0);
 }
 /** Renderers that ring the figure themselves. */
-export const outlined = (id: RendererId) => id === "e" || id === "f";
+export const outlined = (id: RendererId) => id === "e" || id === "f" || id === "g";
 /** The renderer the game draws with. The lab can select either; everything
  * else should import `drawCharacter` from here rather than a variant directly,
  * so switching back is one line. */

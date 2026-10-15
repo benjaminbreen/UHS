@@ -13,9 +13,9 @@ import { gameAudio } from "../audio/director";
 import { voice, type Sound } from "../audio/sfx";
 import { voiceOf } from "../audio/voices";
 import type { CueKind } from "../core/combat";
-import type { Favour, WalkOff } from "../core/types";
+import type { CallIn, Favour, WalkOff } from "../core/types";
 type AskAnswer = "made" | "accepted" | "declined";
-import { Frame, plotColours, type StoryLook } from "./PlotCard";
+import { Choices, Frame, plotColours, type StoryLook } from "./PlotCard";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
 
 function Action({ text }: { text: string }) {
@@ -81,9 +81,14 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const [input, setInput] = useState("");
   const [responding, setResponding] = useState(!!said);
   const [full, setFull] = useState(false);
+  const [calling, setCalling] = useState(false);
+  const firstChoice = useRef<HTMLButtonElement>(null);
   const [busy, setBusy] = useState(!said);
   // Read once: meeting them in this conversation should not change the header mid-talk.
   const [known] = useState(() => !!actor && knowsPlayer(runtime, actor));
+  const [lastTime] = useState(() =>
+    actor?.memories.filter((m) => /^spoke:[^:]*:\s*\S/.test(m)).at(-1)?.split(":").slice(2).join(":").trim(),
+  );
   const [error, setError] = useState("");
   const [explanation, setExplanation] = useState("");
   const [explainOpen, setExplainOpen] = useState(false);
@@ -246,6 +251,8 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     else {
       setMood(result.mood);
       commitExchange(text, result.regard, result.leave, result.ask, result.favour);
+      if (result.ask === "accepted" && result.favour?.kind === "help" && runtime.engine.state.asks?.some((x) => x.by === actorId && x.kind === "help"))
+        setGiftNotice(`${actor?.name.split(" ")[0]} takes you up on it. Follow them when you're done talking.`);
       commitGift(result.receive);
       if (result.leave) {
         setLeft(true);
@@ -273,6 +280,22 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     setExplaining(false);
     setExplanation(result.explanation ?? result.error ?? "The explanation is unavailable.");
   };
+  const callIn = (kind: CallIn) => {
+    runtime.narrate([{ type: "converse", with: actorId, said: "", delta: 0, callIn: kind }]);
+    setGiftNotice(runtime.engine.state.events.at(-1)?.text ?? null);
+    setCalling(false);
+    setMood("smile");
+  };
+  const first = actor?.name.split(" ")[0];
+  const owed = actor ? ([["work", "Work beside me today"], ["lend", "Lend me something"], ["speak", "Speak for me"]] as const)
+    .filter(([kind]) => !runtime.engine.callInProblem(actor, kind)) : [];
+  const choices = calling ? [
+    ...owed.map(([kind, label]) => ({ label, pick: () => callIn(kind) })),
+    { label: "Never mind", pick: () => setCalling(false) },
+  ] : undefined;
+  // They have asked for a hand with their work; the answer is a choice, not something to type.
+  const helpAsked = !busy && !left && latest?.speaker === "npc" &&
+    runtime.engine.state.asks?.some((x) => x.by === actorId && x.kind === "help" && !x.accepted);
   const inner = (<>
     <div className="dialogue-tools">
       {history.length > 1 && <button className="icon-button" aria-label="Show the whole conversation" title="Earlier in this conversation" aria-pressed={full} onClick={() => setFull(!full)}><History size={16} /></button>}
@@ -320,11 +343,13 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
               </span>
               {regardLabel(actor.trust)}
             </span>
+            {actor.owes && <span>Owes you</span>}
           </p>
         )}
         </div>
         {giftNotice && <div className="dialogue-gift" role="status">{giftNotice}</div>}
         {explainOpen && <aside className="dialogue-explanation" role="status"><strong>Why this line?</strong> {explaining ? "Thinking…" : explanation}</aside>}
+        {lastTime && !full && history.length <= 1 && <p className="dialogue-last">Last time you said “{lastTime}”</p>}
         <div className={`dialogue-history${full ? " is-full" : ""}`} ref={scrollRef} aria-live="polite">
           {full
             ? history.map((line, index) =>
@@ -339,18 +364,27 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
           {error && <p className="dialogue-error">{error}</p>}
         </div>
         <div className="dialogue-foot">
-          {responding && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
-          <div className="dialogue-actions">
-            {!responding && !left && <button className="dialogue-respond" onClick={() => setResponding(true)}>Respond</button>}
-            <button className="dialogue-continue" onClick={close}>{left ? `${actor.name.split(" ")[0]} has gone` : responding ? "Leave" : "Continue"} <span>▸</span></button>
-        </div>
+          {responding && !helpAsked && !calling && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
+          <div className="plot-speech-actions" data-ready>
+            <Choices
+              focus={firstChoice}
+              items={choices ?? (helpAsked ? [
+                { label: "Offer to help", pick: () => { commitExchange("I'll help you.", 0, undefined, "accepted"); close(); }, primary: true },
+                { label: "Not now", pick: () => { commitExchange("Not now.", 0, undefined, "declined"); setResponding(true); } },
+              ] : [
+                ...(!responding && !left ? [{ label: "Respond", pick: () => setResponding(true), primary: true }] : []),
+                ...(owed.length && !busy && !left ? [{ label: `Call in ${first}'s debt`, pick: () => setCalling(true) }] : []),
+                { label: left ? `${first} has gone` : responding ? "Leave" : "Continue", pick: close },
+              ])}
+            />
+          </div>
         </div>
       </div>
     </div>
   </>);
   return (
-    <div className="plot-floor dialogue-floor" data-look={look} style={plotColours(runtime)}>
-      <section className={`plot-speech dialogue-speech${responding ? " is-responding" : ""}`} role="dialog" aria-label={`Conversation with ${actor.name}`}>
+    <div className="plot-floor dialogue-floor" data-look={look} data-picked-up={said ? true : undefined} style={plotColours(runtime)}>
+      <section className="plot-speech dialogue-speech" role="dialog" aria-label={`Conversation with ${actor.name}`}>
         {look === "framed" ? <Frame>{inner}</Frame> : <div className="plot-frame">{inner}</div>}
       </section>
     </div>

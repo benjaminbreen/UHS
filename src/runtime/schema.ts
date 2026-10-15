@@ -35,6 +35,10 @@ import {
   trimPatterns,
   hairOrnaments,
   hatTrims,
+  waistcoats,
+  shawls,
+  hoods,
+  sidearms,
   neckStyles,
   headShapes,
   jawShapes,
@@ -164,10 +168,11 @@ const intent = z.discriminatedUnion("type", [
       type: z.literal("converse"),
       with: z.string().max(100),
       said: z.string().max(120),
-      delta: z.number().min(-2).max(2),
+      delta: z.number().min(-3).max(2),
       leave: z.enum(["home", "friend", "authority", "away"]).optional(),
       ask: z.enum(["made", "accepted", "declined"]).optional(),
-      favour: z.object({ kind: z.enum(["bring", "talk-to", "go-to"]), target: z.string().max(60), what: z.string().max(100) }).strict().optional(),
+      favour: z.object({ kind: z.enum(["bring", "talk-to", "go-to", "help"]), target: z.string().max(60), what: z.string().max(100) }).strict().optional(),
+      callIn: z.enum(["work", "lend", "speak"]).optional(),
     })
     .strict(),
   z
@@ -291,6 +296,10 @@ export const characterAppearanceSchema = z.object({
     trimPattern: z.enum(trimPatterns).optional(),
     hairOrnament: z.enum(hairOrnaments).optional(),
     hatTrim: z.enum(hatTrims).optional(),
+    waistcoat: z.enum(waistcoats).optional(),
+    shawl: z.enum(shawls).optional(),
+    hood: z.enum(hoods).optional(),
+    sidearm: z.enum(sidearms).optional(),
   }),
 });
 const actor = z.object({
@@ -299,6 +308,8 @@ const actor = z.object({
   dead: z.string().optional(),
   skills: z.partialRecord(z.enum(skillIds), z.number()).optional(),
   techniques: z.array(z.enum(techniqueIds)).optional(),
+  helped: z.partialRecord(z.enum(skillIds), z.number()).optional(),
+  taught: z.array(z.enum(skillIds)).optional(),
   injury: z.object({ name: z.string(), until: z.number() }).optional(),
   origin: z
     .object({
@@ -350,6 +361,7 @@ const actor = z.object({
   trust: z.number(),
   wronged: z.number().optional(),
   shuns: z.number().optional(),
+  owes: z.boolean().optional(),
   stocked: z.number().optional(),
   word: z.array(z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict()).max(8).optional(),
   owner: z.string().optional(),
@@ -369,6 +381,7 @@ const actor = z.object({
   lastUpdated: z.number().int().optional(),
   goal: pos.optional(),
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
+  wayfarer: z.object({ until: z.number() }).optional(),
 });
 const object = z.object({
   resource: z
@@ -995,13 +1008,13 @@ export const snapshotSchema = z.object({
     )
     .max(20)
     .optional(),
-  complaints: z.array(z.object({ by: z.string().max(100), story: z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict(), at: z.number() }).strict()).max(4).optional(),
+  complaints: z.array(z.object({ by: z.string().max(100), story: z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict(), at: z.number(), spokenFor: z.string().max(100).optional() }).strict()).max(4).optional(),
   asks: z
     .array(
       z.object({
         id: z.string().max(100),
         by: z.string().max(100),
-        kind: z.enum(["bring", "food", "talk-to", "go-to"]),
+        kind: z.enum(["bring", "food", "talk-to", "go-to", "help"]),
         item: z.string().max(100).optional(),
         to: z.string().max(100).optional(),
         place: z.string().max(100).optional(),
@@ -1009,6 +1022,9 @@ export const snapshotSchema = z.object({
         at: z.number(),
         until: z.number(),
         accepted: z.boolean().optional(),
+        meet: z.object({ x: z.number(), y: z.number(), space: z.string().max(100) }).strict().optional(),
+        task: z.string().max(120).optional(),
+        offered: z.boolean().optional(),
       }).strict(),
     )
     .max(20)

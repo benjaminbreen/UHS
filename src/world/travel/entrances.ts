@@ -5,6 +5,9 @@ export type EntranceSpec = {
   to: string;
   bearing: string;
   mode: string;
+  /** The map past this border, and whether anyone lives there. */
+  name?: string;
+  settlement?: string;
 };
 export type MapEntrance = EntranceSpec & {
   point?: { x: number; y: number };

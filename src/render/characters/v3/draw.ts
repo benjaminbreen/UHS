@@ -4,6 +4,7 @@ import type { CharacterPose } from "../poses";
 import type { CarriedArt } from "../props";
 import type { RestingExpression } from "../../../core/persona";
 import { drawHead } from "../v2/head";
+import { clothColours } from "../cloth";
 import { lightKey, mix, Pixels, ramp, type Ramp } from "../v2/pixels";
 
 // A figure modelled as signed distance fields and ray-cast onto the native
@@ -1376,12 +1377,13 @@ function materials(a: CharacterAppearance) {
   const g = a.wearing.garment;
   const skin = ramp(a.skin, "skin"),
     hair = ramp(a.hairColor, "hair"),
-    cloth = ramp(a.wearing.color),
-    lower = ramp(a.wearing.lowerColor),
-    trim = ramp(a.wearing.trim),
-    cloak = ramp(a.wearing.cloakColor),
-    felt = ramp(a.wearing.headColor ?? a.wearing.lowerColor),
-    inner = ramp(a.wearing.innerColor ?? a.wearing.trim),
+    c = clothColours(a.wearing),
+    cloth = ramp(c.top),
+    lower = ramp(c.lower),
+    trim = ramp(c.trim),
+    cloak = ramp(c.cloak),
+    hat = ramp(c.hat),
+    inner = ramp(c.inner),
     leather = ramp("#4a3428"),
     boot = ramp("#3b2c26"),
     sole = ramp("#dcd8cf");
@@ -1499,11 +1501,7 @@ function materials(a: CharacterAppearance) {
       case "hair":
         return { ramp: hair, soft: true };
       case "hat":
-        return {
-          ramp: a.wearing.headColor ? felt : a.wearing.headwear === "headscarf" || a.wearing.headwear === "veil" || a.wearing.headwear === "hood" || a.wearing.headwear === "turban" || a.wearing.headwear === "wrap" || a.wearing.headwear === "band"
-            ? trim
-            : felt,
-        };
+        return { ramp: hat };
       case "cloak":
         return { ramp: cloak };
       case "shoe": {
@@ -1754,7 +1752,8 @@ function finishHead(
     });
   learn(ramp(a.skin, "skin"), "skin");
   learn(ramp(a.hairColor, "hair"), "hair");
-  for (const c of [a.wearing.color, a.wearing.cloakColor, a.wearing.trim, a.wearing.lowerColor, a.wearing.headColor ?? a.wearing.color])
+  const cc = clothColours(a.wearing);
+  for (const c of [cc.top, cc.cloak, cc.trim, cc.lower, cc.hat])
     learn(ramp(c), "other");
   const at = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < W && y < H && head[(y * W + x) * 4 + 3] > 0;

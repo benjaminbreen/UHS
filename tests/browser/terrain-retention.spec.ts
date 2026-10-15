@@ -102,7 +102,7 @@ test("character workers preserve the synchronous sprite pixels", async ({ page }
 
 test("rasterised terrain survives a trip indoors", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "More info", exact: true }).click();
+  await page.getByRole("button", { name: "More starts", exact: true }).click();
   await page.getByRole("button", { name: /Korean farmer/ }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   const canvas = page.locator(".game-container canvas");

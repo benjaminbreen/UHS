@@ -95,8 +95,8 @@ describe("contextual character generation", () => {
       ...travelerRest
     } = traveler.appearance;
     expect(travelerBody?.strength).toBe(farmerBody?.strength);
-    // A trade's apron and bag are the trade's, as the hair is.
-    const tools = (r: typeof farmerRest) => ({ ...r, wearing: { ...r.wearing, apron: undefined, bag: undefined } });
+    // Dress reads rank through means, and ornament metal follows the cloth.
+    const tools = (r: typeof farmerRest) => ({ ...r, wearing: undefined, adornment: { ...r.adornment, metal: undefined } });
     expect(tools(travelerRest)).toEqual(tools(farmerRest));
     expect(traveler.role).not.toBe(farmer.role);
   });

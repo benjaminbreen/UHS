@@ -5,11 +5,12 @@ import type { CarriedArt } from "../props";
 import { flush, luma, mix, ramp, type Ramp } from "../v2/pixels";
 import { drawHead, hairBehind, headSpans, type Head, type View } from "./head";
 import { irisOf } from "../../portraits/sculpted";
-import { apron, bag, bangles, neckwear, shoulderCloth, type Figure } from "./extras";
+import { clothColours } from "../cloth";
+import { apron, bag, bangles, hoodDown, neckwear, shawl, shoulderCloth, type Figure } from "./extras";
 import type { Material } from "../../../content/characters/wardrobe/cloth";
 import {
   ACCENT, APRON, BLUSH, DECO, MARK, ORN, PLUME, SMEAR, BOOT, CLOAK, CX, EYE, GLASS, H, HAIR, HAT, INNER, IRIS, KERCHIEF, LEATHER, LEG, LIP, LOWER, PATCH,
-  MATS, METAL, Mask, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, W, WHITE, flat, rnd,
+  MATS, METAL, Mask, SHAWL, SHEATH, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
 } from "./paint";
 
 // Renderer F, the paper doll. A figure is a few joints in body space, turned
@@ -52,7 +53,7 @@ type Rig = {
   near: number;
 };
 
-export type Face = "o" | "squint" | "grit";
+export type Face = "o" | "squint" | "grit" | "talk";
 /** Hand targets out from the shoulder, up from it, and forward; foot targets
  * out from the hip, up from the ground, and forward. One entry serves both sides. */
 type Rel = readonly [number, number, number];
@@ -246,6 +247,8 @@ type Dims = {
   child: boolean;
   female: boolean;
   leg: number;
+  /** The leg garments are cut to: G's extra length shows below the hem. */
+  cut: number;
   torso: number;
   hip: number;
   shoulder: number;
@@ -258,12 +261,16 @@ type Dims = {
   fore: number;
 };
 
+/** Renderer G, F's A/B candidate: legs that show below the hem, a waist, arms
+ * that reach the hip and a fuller stride. Set only while `drawCharacterG` runs. */
+let g = false;
+
 function dims(a: CharacterAppearance): Dims {
   const child = a.height === -2;
   const female = a.physique?.sex === "female" && !child;
   // Short, medium, tall and tallest; children share one size.
   const step = Math.max(0, a.height + 1);
-  const leg = child ? 5 : (female ? [6, 7, 8, 9] : [7, 8, 9, 9])[step];
+  const leg = (child ? 5 : (female ? [6, 7, 8, 9] : [7, 8, 9, 9])[step]) + (g ? (child ? 1 : 3) : 0);
   const torso = child ? 7 : (female ? [9, 9, 10, 10] : [9, 10, 10, 11])[step];
   const build = child ? 0 : [0, 0.5, 1, 1.5][a.build + 1];
   const shape = a.bodyShape ?? "straight";
@@ -273,16 +280,17 @@ function dims(a: CharacterAppearance): Dims {
     child,
     female,
     leg,
+    cut: leg - (g ? (child ? 1 : 3) : 0),
     torso,
     hip,
     shoulder: hip + torso,
     shoulderW,
-    waistW: (child ? 4 : female ? 4.5 : 5.5) + build + (shape === "rounded" ? 1 : shape === "tapered" ? -0.5 : 0),
+    waistW: (child ? 4 : female ? 4.5 : 5.5) + build + (shape === "rounded" ? 1 : shape === "tapered" ? -0.5 : 0) - (g && !child ? 0.75 : 0),
     hipW: (child ? 4 : female ? 5.5 : 5) + build,
     chestD: 3.5 + build / 2,
     bellyD: 3 + build / 2 + (shape === "rounded" ? 1 : 0),
-    upper: child ? 2.6 : 3.4,
-    fore: child ? 2.6 : 3.4,
+    upper: child ? 2.6 : g ? 4 : 3.4,
+    fore: child ? 2.6 : g ? 4 : 3.4,
   };
 }
 
@@ -347,6 +355,8 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
   const near = sx > 0 ? 1 : 0,
     ns = near ? -1 : 1;
   const tired = condition >= 3;
+  // G carries age in the body: lined and weathered faces are 55 and over.
+  const elder = g && !d.child && (a.face?.detail === "lines" || a.face?.detail === "weathered");
   const load = Math.min(2, condition % 3);
   const posture = a.posture ?? "upright";
   const step = (stride: number, lift: number, swing: number, run: boolean) => {
@@ -359,7 +369,7 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
       const s = -swing * Math.sin(ph);
       hands[i] = run
         ? [side * (d.shoulderW + 0.3), sh - d.upper - 0.5 + Math.max(0, s) * 0.4, s]
-        : hang(side, s, Math.abs(s) * 0.2);
+        : hang(side, s, Math.abs(s) * (g ? 0.35 : 0.2));
     }
     const contact = frame % 4 === 2;
     rise = run ? (frame % 4 === 0 ? 1 : contact ? -1 : 0) : contact ? -1 : 0;
@@ -400,23 +410,45 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     const f = pose === "walk" || pose === "carry" ? frame : pose === "setoff" ? [1, 2, 3, 3][frame & 3] : [2, 1, 0, 0][frame & 3];
     frame = f;
     const slow = 1 - load * 0.15 - (tired ? 0.15 : 0);
-    step((pose === "wade" ? 2 : 4) * slow, 1.6, 3.2 * slow, false);
-    if (tired) nod = 1;
+    const old = elder ? 0.75 : 1;
+    step((pose === "wade" ? 2 : g ? 5 : 4) * slow * old, g ? 2.4 * old : 1.6, (g ? 4.4 : 3.2) * slow * old * old, false);
+    if (tired || elder) nod = 1;
+    if (elder) lean = 0.5;
     // Setting off leans into the push; halting braces back against it.
     if (pose === "setoff") lean = 0.9;
     if (pose === "halt") lean = -0.7;
   } else if (pose === "run") {
-    step(5.4, 3.4, 3.4, true);
-    lean = 2;
+    step(g ? 6.2 : 5.4, g ? 4 : 3.4, g ? 4.6 : 3.4, true);
+    lean = g ? 2.8 : 2;
+    // G pumps bent arms higher and drives the head forward.
+    if (g) {
+      for (const h of hands) h[1] += 1.5;
+      nod = 1;
+    }
   } else if (pose === "idle" || pose === "breathe" || pose === "straighten" || pose === "recover") {
     blink = frame === 3;
     if (pose === "breathe" && (frame === 1 || frame === 2)) rise = 1;
+    // G's idle: a breath in, then weight settled on one leg (the scene holds each).
+    if (g && pose === "idle" && frame === 1) rise = 1;
+    if (elder) (lean = Math.max(lean, 0.5)), (nod = 1);
+    // G: a sword at the hip gets a hand resting on its hilt.
+    const blade = a.wearing.sidearm;
+    if (g && !prop && posture === "upright" && (blade === "sword" || blade === "sabre" || blade === "katana")) hands[0] = [d.hipW + 1, d.hip + 3.2, 3];
+    if (g && pose === "idle" && frame === 2) {
+      tilt = 0.6;
+      feet[1] = { at: [-hipX, 2.6, 0.8], knee: 1.6 };
+    }
     if (posture === "hands-together") hands[0] = hands[1] = [0, sh - d.upper - 2, 1.8];
     if (posture === "hand-on-hip") hands[near] = [ns * (d.waistW + 1.2), d.hip + 1.5, 0];
     if (posture === "stooped") (lean = 1), (nod = 1);
   } else if (pose === "talk" || pose === "give" || pose === "point" || pose === "beckon" || pose === "inspect-held") {
     const up = frame === 1 || frame === 2;
     if (pose === "talk") hands[near] = up ? [ns * (1.5 + d.shoulderW * 0.5), sh - 3, 2.5] : hands[near];
+    // G's talker moves the mouth on alternate frames and nods on the stress.
+    if (g && pose === "talk") {
+      if (frame & 1) face = "talk";
+      if (frame === 2) nod = 1;
+    }
     else if (pose === "point" || pose === "give") hands[near] = [ns * d.shoulderW * 0.6, sh - (up ? 1 : 2.5), up ? 6 : 4];
     else if (pose === "beckon") hands[near] = [ns * d.shoulderW * 0.7, sh - (frame & 1 ? 1 : 2.5), 4];
     else hands[near] = [ns * 1.5, sh - 3, 3];
@@ -556,15 +588,16 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
   const bare = g === "none" || g === "loincloth";
   const leggings = w.leggings ?? "none";
   const sleeves = bare || g === "poncho" ? "none" : (w.sleeves ?? (g === "shirt" || g === "coat" || g === "robe" || g === "suit" ? "long" : "short"));
-  const knee = 2 + Math.round(d.leg * 0.45);
+  const leg = d.cut;
+  const knee = 2 + Math.round(leg * 0.45);
   const hems: Partial<Record<typeof g, [number, number]>> = {
-    tunic: [2 + Math.round(d.leg * 0.55), 1],
-    "long-tunic": [2 + Math.round(d.leg * 0.32), 1.5],
+    tunic: [2 + Math.round(leg * 0.55), 1],
+    "long-tunic": [2 + Math.round(leg * 0.32), 1.5],
     skirt: [3, 2],
     robe: [3, 1],
     dress: [3, 2.5],
     coat: [knee, 1.5],
-    wrap: [2 + Math.round(d.leg * 0.3), 1.5],
+    wrap: [2 + Math.round(leg * 0.3), 1.5],
     "open-robe": [3, 1.5],
     gown: [0, 5],
   };
@@ -593,31 +626,31 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
   };
 }
 
-/** How each fibre takes dye and light: silk glows, linen is crisp, wool and
- * felt drink the light, hemp and jute stay dull. */
-const fabric: Record<Material, { vivid: number; light: number }> = {
-  hide: { vivid: 0.95, light: 0.06 },
-  fur: { vivid: 1, light: 0.1 },
-  barkcloth: { vivid: 1, light: 0.1 },
-  felt: { vivid: 1.05, light: 0.04 },
-  wool: { vivid: 1.12, light: 0.08 },
-  linen: { vivid: 1.15, light: 0.2 },
-  hemp: { vivid: 0.9, light: 0.1 },
-  jute: { vivid: 0.85, light: 0.08 },
-  cotton: { vivid: 1.22, light: 0.14 },
-  ramie: { vivid: 1.15, light: 0.2 },
-  silk: { vivid: 1.4, light: 0.28 },
-  synthetic: { vivid: 1.35, light: 0.24 },
+/** How each fibre takes the light: silk and linen are crisp, wool and felt
+ * drink it. How it takes dye is in `clothColours`. */
+const fabricLight: Record<Material, number> = {
+  hide: 0.06,
+  fur: 0.1,
+  barkcloth: 0.1,
+  felt: 0.04,
+  wool: 0.08,
+  linen: 0.2,
+  hemp: 0.1,
+  jute: 0.08,
+  cotton: 0.14,
+  ramie: 0.2,
+  silk: 0.28,
+  synthetic: 0.24,
 };
 
 function palette(a: CharacterAppearance): Ramp[] {
   const w = a.wearing;
   const hat = w.headwear;
-  const cloth = ["headscarf", "veil", "hood", "turban", "wrap", "band"].includes(hat);
+  const c = clothColours(w);
   const hatColor =
     hat === "helmet" ? "#8e9497" : hat === "wig" ? "#e4e0d8" : hat === "visor" ? "#c8d8e0"
       : hat === "conical" ? (w.headColor ?? "#c9a45c")
-        : (w.headColor ?? (cloth ? w.trim : w.lowerColor));
+        : c.hat;
   // Dyes a fifth richer than the record's swatch: at this size a muted cloth
   // reads as mud, and the ramp keeps the shadows honest.
   const vivid = (hex: string, k: number) => {
@@ -627,17 +660,16 @@ function palette(a: CharacterAppearance): Ramp[] {
     return `#${rgb.map((c) => Math.round(Math.max(0, Math.min(255, l + (c - l) * k))).toString(16).padStart(2, "0")).join("")}`;
   };
   const dye = (hex: string, k = 1.22) => ramp(vivid(hex, k));
-  const fab = fabric[w.material ?? "cotton"];
   const p: Ramp[] = new Array(MATS);
   p[SKIN] = ramp(a.skin, "skin");
   p[HAIR] = ramp(a.hairColor, "hair");
-  p[TOP] = dye(w.color, fab.vivid + ((w.quality ?? 0) >= 2 ? 0.1 : (w.quality ?? 0) < 0 ? -0.18 : 0));
+  p[TOP] = dye(c.top);
   p[LOWER] = dye(w.lowerColor);
   // Trim that sits too close to the cloth in value vanishes at this size:
   // push it lighter or darker until the band reads.
   const gap = luma(w.trim) - luma(w.color);
   p[TRIM] = dye(Math.abs(gap) >= 0.14 ? w.trim : mix(w.trim, gap >= 0 || luma(w.color) < 0.3 ? "#f4ecd8" : "#1e1a24", 0.45));
-  p[INNER] = dye(w.innerColor ?? w.trim);
+  p[INNER] = dye(c.inner);
   p[HAT] = dye(hatColor);
   p[CLOAK] = dye(w.cloakColor);
   p[LEATHER] = ramp("#5c3f2c");
@@ -680,6 +712,11 @@ function palette(a: CharacterAppearance): Ramp[] {
   // Stitches that stand out from the band they are worked on; gold on fine cloth.
   p[ACCENT] = ramp((w.quality ?? 0) >= 2 ? "#e0bc5e" : luma(w.trim) > 0.45 ? "#2c2a44" : "#efe6d0");
   p[APRON] = w.apron === "leather" ? ramp("#7a5236") : ramp(["#e8e1cf", "#d9cdb0", "#ece7da"][n % 3]);
+  // Figured waistcoats in the silks of the day; plain ones a shade off the breeches.
+  p[VEST] = w.waistcoat === "figured" ? dye(pick(["#8e2234", "#c09a3a", "#2c6448", "#e2d6bc", "#34407e"], 5)) : dye(mix(w.lowerColor, "#2a2228", 0.25));
+  p[SHAWL] = dye(pick(["#6a2e4a", "#2e4a5e", "#8a3a28", "#4a5a34", "#d8c8a8", "#3a3040"], 6));
+  // Black lacquer for a Japanese scabbard, pale wood for a kris, leather for the rest.
+  p[SHEATH] = ramp(w.sidearm === "katana" ? "#2a2430" : w.sidearm === "kris" ? "#9a6a38" : "#4a3020");
   return p;
 }
 
@@ -710,6 +747,8 @@ export function drawCharacterF(
   // The frame before, for what trails the body: head, hair and hem.
   const n = frameCount(pose);
   const prev = posed(d, a, pose, (frame + n - 1) % n, t.sx, prop, condition);
+  // G: loose sleeves belly out on a run.
+  const flare = g && pose === "run" && k.sleeves === "loose" ? 1 : 0;
   const s = new Sheet();
   const P = (p: J) => project(t, p);
   const backView = t.view === "back" || t.view === "bq";
@@ -742,6 +781,7 @@ export function drawCharacterF(
     lag: prev.rise - r.rise + r.lift,
     drift: 0,
     face: r.face,
+    refined: g,
   };
   // The head sinks with the body and rises a frame late, so a step lands.
   const headRise = Math.min(r.rise, prev.rise);
@@ -772,7 +812,10 @@ export function drawCharacterF(
 
   // Arms go by depth in every view: facing away, a hand held forward is
   // behind the body, and the far arm of a diagonal is half hidden by it.
-  for (const { arm, z } of armParts) if (behind(z)) drawArm(s, t, arm, k, deep ? 1 : 0);
+  // G: a sidearm's scabbard behind the body, where it hangs on the far side or out behind.
+  const arms = g ? sidearmAt(d, a.wearing.sidearm, r, prev, pose === "run") : [];
+  arms.forEach((h, i) => drawSidearm(s, t, a.wearing.sidearm!, h, i > 0, "back"));
+  for (const { arm, z } of armParts) if (behind(z)) drawArm(s, t, arm, k, deep ? 1 : 0, false, flare);
   legParts.forEach(({ leg }, n) => drawLeg(s, t, leg, k, deep && n === 0 ? 1 : 0));
 
   // ---- the garment: torso and anything hanging below it, as one silhouette
@@ -834,33 +877,44 @@ export function drawCharacterF(
     }
   }
   const { zone, tone } = garment(k, d, t, yOf, centre, hem, bare, s.key);
-  const fab = fabric[k.material ?? "cotton"];
-  s.put(body, TOP, { zone, tone, shade: 0.34, light: fab.light, top: true, bottom: hem !== undefined });
+  s.put(body, TOP, { zone, tone, shade: 0.34, light: fabricLight[k.material ?? "cotton"], top: true, bottom: hem !== undefined });
   if (hem !== undefined) hemDetail(s, a, t, yOf(hem), centre(hip));
   belt(s, k, t, d, yOf, centre, width, drift);
+  const vest = a.wearing.waistcoat;
+  const vested = g && vest && vest !== "none" && !bare && !(k.g === "coat" && a.wearing.front === "closed") && k.g !== "poncho";
+  if (vested) waistcoat(s, k, t, d, yOf, centre, width, vest);
   if (k.g === "loincloth" || (bare && k.legs === SKIN)) loincloth(s, k, t, d, yOf, centre);
   if (a.wearing.necklace) necklace(s, t, d, yOf, centre);
-  const fig: Figure = { s, cos: t.cos, sin: t.sin, sx: t.sx, yOf, centre, hip: d.hip, shoulder: d.shoulder, leg: d.leg,
-    shoulderW: d.shoulderW, waistW: d.waistW, bellyD: d.bellyD, chestD: d.chestD, drift };
+  const fig: Figure = { s, cos: t.cos, sin: t.sin, sx: t.sx, yOf, centre, hip: d.hip, shoulder: d.shoulder, leg: d.cut,
+    shoulderW: d.shoulderW, waistW: d.waistW, bellyD: d.bellyD, chestD: d.chestD, drift, refined: g };
   const w = a.wearing;
   if (w.apron && w.apron !== "none" && !bare) apron(fig, w.apron);
   if (w.bag && w.bag !== "none") bag(fig, w.bag);
+  // G: a watch chain looped from the middle button to the waistcoat pocket.
+  if (g && (k.g === "suit" || vested) && t.cos > 0.3) {
+    const y = yOf(hip + 3), c = centre(hip + 3), side = s.key;
+    [[1, 0], [2, 1], [3, 1], [4, 0]].forEach(([dx, dy], i) => s.px(rnd(c + side * dx * t.cos), y + dy, METAL, i === 0 || i === 3 ? 3 : 4));
+  }
+
+  arms.forEach((h, i) => drawSidearm(s, t, a.wearing.sidearm!, h, i > 0, "front"));
 
   // ---- near arms, then what goes over them
   for (const { arm, z, shoulder } of armParts)
-    if (!behind(z) && arm.end[1] <= d.shoulder + 1) drawArm(s, t, arm, k, 0);
+    if (!behind(z) && arm.end[1] <= d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
     // Hands held in front of a body seen from behind: the upper arm still shows.
     else if (behind(z) && !behind(shoulder)) drawArm(s, t, arm, k, 0, true);
   if (k.g === "poncho") poncho(s, t, d, yOf, centre, a);
   if (a.wearing.mantle) mantle(s, t, d, yOf, centre);
   else if (k.pattern === "cloud") cloudCollar(s, t, d, yOf, centre);
-  if (w.shoulderCloth && !a.wearing.cloak) shoulderCloth(fig);
+  if (g && w.shawl && w.shawl !== "none") shawl(fig, w.shawl, ["step", "strip", "chevron"].includes(w.trimPattern ?? ""));
+  else if (w.shoulderCloth && !a.wearing.cloak) shoulderCloth(fig);
+  if (g && w.hood === "down" && w.headwear !== "hood") hoodDown(fig, k.g === "shirt");
   if (cloakMask && backView) s.put(cloakMask, CLOAK, { shade: 0.4, light: 0.2, bottom: true });
 
   // ---- the head, then anything raised above it
   drawHead(headArgs);
   if (w.neckwear && w.neckwear !== "none" && !["hood", "headscarf", "veil"].includes(w.headwear)) neckwear(fig, w.neckwear);
-  for (const { arm, z } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0);
+  for (const { arm, z } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
   if (w.wrist === "bangles") bangles(fig, r.arms.map((arm) => project(t, arm.end)).map(([x, y]) => [x, y] as const));
 
   const image = ctx.getImageData(0, 0, W, H);
@@ -868,6 +922,143 @@ export function drawCharacterF(
   ctx.putImageData(image, 0, 0);
   // A thrown spear has left the hand.
   if (prop && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
+}
+
+export function drawCharacterG(...args: Parameters<typeof drawCharacterF>) {
+  g = true;
+  try {
+    drawCharacterF(...args);
+  } finally {
+    g = false;
+  }
+}
+
+type Sidearm = NonNullable<CharacterAppearance["wearing"]["sidearm"]>;
+/** A scabbard in body space: its mouth at the belt, the hilt standing out of
+ * it, the tip, and how far its middle sags (−) or arches (+). */
+type Hang = { mouth: J; hilt: J; tip: J; bend: number };
+
+/** Where a sidearm hangs. The scabbard swings a beat behind the stride and
+ * kicks as a step lands; at a run it streams out level behind. */
+function sidearmAt(d: Dims, kind: CharacterAppearance["wearing"]["sidearm"], r: Rig, prev: Rig, run: boolean): Hang[] {
+  if (!kind || kind === "none") return [];
+  const swing = -prev.sway * 1.4,
+    bounce = prev.rise - r.rise;
+  const lx = d.hipW + 0.9;
+  // `drop` is the scabbard's angle below level, back from the mouth; `out`
+  // how far the tip stands off the leg, so it reads beside the body head-on.
+  const hang = (mouth: J, grip: J, length: number, drop: number, bend: number, out: number): Hang => {
+    const a = run ? drop * 0.45 : drop;
+    return {
+      mouth,
+      hilt: [mouth[0] + grip[0], mouth[1] + grip[1], mouth[2] + grip[2]],
+      tip: [mouth[0] + out, mouth[1] - length * Math.sin(a) + bounce, mouth[2] - length * Math.cos(a) + swing],
+      bend,
+    };
+  };
+  switch (kind) {
+    case "sword":
+      return [hang([lx, d.hip + 1, 1.5], [0, 2, 2], 13, 0.85, 0, 2)];
+    case "sabre":
+      return [hang([lx, d.hip + 1, 1.5], [0, 2, 2], 12, 0.8, -1.3, 2)];
+    // Thrust through the sash edge up, nearly level: the long sword and the short.
+    case "katana":
+      return [hang([lx - 0.4, d.hip + 2, 1.2], [0, 1.4, 3.2], 12, 0.55, 0.9, 3), hang([lx - 0.9, d.hip + 1.4, 0.8], [0, 1, 2.4], 8, 0.65, 0.6, 2)];
+    case "dagger":
+      return [hang([-(d.hipW + 0.6), d.hip + 1, 1.2], [0, 2.2, 0.6], 4.5, 1.25, 0, -0.6)];
+    case "kris": {
+      // In the back of the sash, slanting down to the left, hilt to the right.
+      const mouth: J = [-1, d.hip + 2, -(d.bellyD + 0.6)];
+      return [{ mouth, hilt: [mouth[0] - 1.5, mouth[1] + 1.8, mouth[2]], tip: [mouth[0] + 3.5 + swing * 0.3, mouth[1] - 6 + bounce, mouth[2]], bend: 0 }];
+    }
+  }
+}
+
+/** One layer of a sidearm: the parts behind the body, or those in front of it. */
+function drawSidearm(s: Sheet, t: Turn, kind: Sidearm, h: Hang, short: boolean, layer: "back" | "front") {
+  const P = (p: J) => project(t, p);
+  const mid: J = [(h.mouth[0] + h.tip[0]) / 2, (h.mouth[1] + h.tip[1]) / 2 + h.bend, (h.mouth[2] + h.tip[2]) / 2];
+  const back = (p: J) => P(p)[2] < -1.2;
+  const [mx, my] = P(h.mouth),
+    [cx, cy] = P(mid),
+    [tx, ty] = P(h.tip),
+    [hx, hy] = P(h.hilt);
+  // The scabbard hangs outside the clothes: it goes behind only on the body's far side.
+  if (back(h.mouth) === (layer === "back")) {
+    const w = short || kind === "dagger" || kind === "kris" ? 1 : 2;
+    const sheath = new Mask().line(mx, my, cx, cy, w).line(cx, cy, tx, ty, w);
+    // Lacquer takes a hard glint down its length; leather stays soft.
+    s.put(sheath, SHEATH, { shade: 0.45, light: kind === "katana" ? 0.45 : 0.3, top: true });
+    if (kind !== "kris") s.px(rnd(tx), Math.round(ty), METAL, 3);
+    if (kind === "kris") {
+      // The wrangka: the boat-shaped head of the sheath, wider than the blade.
+      const [ax, ay] = P([h.mouth[0] - 1.5, h.mouth[1] - 0.5, h.mouth[2]]),
+        [bx, by] = P([h.mouth[0] + 2.5, h.mouth[1] + 0.6, h.mouth[2]]);
+      s.put(new Mask().line(ax, ay, bx, by, 2), SHEATH, { shade: 0.3, light: 0.5, top: true });
+    }
+  }
+  if (back(h.hilt) !== (layer === "back")) return;
+  const gx = hx - mx,
+    gy = hy - my,
+    gl = Math.hypot(gx, gy) || 1;
+  const nx = -gy / gl,
+    ny = gx / gl;
+  const grip = new Mask().line(mx, my, hx, hy, kind === "katana" && !short ? 2 : 1);
+  // A katana's grip is dark silk crossed over white ray-skin; a sword's is wire-bound.
+  s.put(grip, kind === "katana" ? SHEATH : LEATHER, {
+    shade: 0.3,
+    zone: (x, y) => (kind === "katana" && (x + y) % 2 === 0 ? WHITE : kind === "katana" ? SHEATH : LEATHER),
+    tone: (x, y, tn) => (kind !== "katana" && (x + y) % 2 === 0 ? Math.min(4, tn + 1) : tn),
+  });
+  const guard = new Mask();
+  if (kind === "sword") guard.line(mx - nx * 1.6, my - ny * 1.6, mx + nx * 1.6, my + ny * 1.6, 1);
+  if (kind === "dagger") guard.line(mx - nx, my - ny, mx + nx, my + ny, 1);
+  // A sabre's knuckle-bow sweeps from the guard round the hand to the pommel.
+  if (kind === "sabre") guard.line(mx - nx, my - ny, mx + nx * 1.4, my + ny * 1.4, 1).line(mx + nx * 1.4, my + ny * 1.4, hx + nx * 1.1, hy + ny * 1.1, 1);
+  if (kind === "katana") guard.rect(rnd(mx - 0.5), Math.round(my - 0.5), rnd(mx - 0.5) + 1, Math.round(my - 0.5) + 1);
+  if (!guard.empty()) s.put(guard, METAL, { ring: "line", shade: 0.3, light: 0.4, tone: (_x, _y, tn) => (kind === "katana" ? Math.min(tn, 2) : tn) });
+  // The pommel, or the kris's carved hilt bent over like a bird's head.
+  if (kind === "kris") s.px(rnd(hx - 1), Math.round(hy), LEATHER, 2);
+  else s.px(rnd(hx), Math.round(hy), METAL, kind === "katana" ? 2 : 4);
+}
+
+/** A waistcoat over the shirt: two fronts open in a V at the neck, buttoned
+ * below it, with welted pockets and two points at the waist. The back is the
+ * cheaper lining, drawn in with a buckled strap. Under an open coat only the
+ * opening shows it. */
+function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number, width: (y: number) => number, kind: "plain" | "figured") {
+  const m = new Mask();
+  const front = t.cos > 0.2,
+    back = t.cos < -0.2,
+    coat = k.g === "coat";
+  const fc = (y: number) => centre(y) + d.chestD * 0.9 * t.sx * t.sin;
+  const vee = d.shoulder - 4;
+  for (let y = d.hip - 1; y <= d.shoulder - 1; y++) {
+    const c = centre(y),
+      w = width(y);
+    for (let x = rnd(c - w + 0.5); x <= rnd(c + w - 0.5); x++) {
+      const off = Math.abs(x + 0.5 - fc(y) - 0.5);
+      if (front && y > vee && off < (y - vee) * 0.75) continue;
+      if (coat && front && off > 1.5 * t.cos + 0.8) continue;
+      m.set(x, yOf(y));
+    }
+  }
+  if (front && !coat) for (const side of [-1, 1]) m.set(rnd(fc(d.hip) + side * 1.4 * t.cos), yOf(d.hip - 2));
+  s.put(m, VEST, {
+    shade: 0.38,
+    light: kind === "figured" ? 0.3 : 0.2,
+    top: true,
+    bottom: true,
+    zone: (x, y) => (back ? INNER : kind === "figured" && y % 2 === 0 && (x + 2 * y) % 4 === 0 ? ACCENT : VEST),
+  });
+  if (front) {
+    for (let y = d.hip; y <= vee; y += 2) s.px(rnd(fc(y)), yOf(y), METAL, 4);
+    if (!coat) for (const side of [-1, 1]) for (const dx of [2, 3]) s.px(rnd(fc(d.hip + 1) + side * dx * t.cos), yOf(d.hip + 1), VEST, 1);
+  } else if (back) {
+    const c = centre(d.hip + 1);
+    for (const dx of [-2, -1, 1, 2]) s.px(rnd(c + dx), yOf(d.hip + 1), INNER, 1);
+    s.px(rnd(c), yOf(d.hip + 1), METAL, 4);
+  }
 }
 
 function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
@@ -916,19 +1107,20 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
   });
 }
 
-function drawArm(s: Sheet, t: Turn, arm: Limb, k: Kit, dark: number, upperOnly = false) {
+function drawArm(s: Sheet, t: Turn, arm: Limb, k: Kit, dark: number, upperOnly = false, flare = 0) {
   const [sx, sy] = project(t, arm.root);
   const [ex, ey] = project(t, arm.mid);
   const [hx, hy] = project(t, arm.end);
   const upper = new Mask().line(sx, sy, ex, ey, 2);
-  const fore = new Mask().line(ex, ey, hx, hy, k.sleeves === "loose" ? 3 : 2);
+  const fore = new Mask().line(ex, ey, hx, hy, (k.sleeves === "loose" ? 3 : 2) + flare);
   const hand = new Mask().line(hx, hy, hx, hy + 0.6, 2);
   const all = upperOnly ? upper : new Mask().add(upper).add(fore).add(hand);
   // Sleeves end in a cuff, or a band at the elbow when short.
   const cuffed = k.sleeves === "loose" || (k.sleeves === "long" && k.g !== "shirt" && k.g !== "suit");
   s.put(all, SKIN, {
     shade: 0.5,
-    light: 0.4,
+    // G's bare arms take no highlight: pale skin lit went nearly white.
+    light: g ? 0 : 0.4,
     dark,
     cast: !dark,
     zone: (x, y) => {
@@ -1117,21 +1309,33 @@ function poncho(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: 
     const w = Math.hypot((d.shoulderW + 1.5 - (y === d.shoulder ? 1.5 : 0)) * t.cos, (d.chestD + 1) * t.sin);
     m.span(yOf(y), rnd(centre(y) - w + 0.5), rnd(centre(y) + w - 0.5));
   }
-  const stripes = (a.wearing.motif ?? "auto") !== "plain";
+  const motif = a.wearing.motif ?? "auto";
   const pattern = a.wearing.trimPattern;
   const tile = pattern && pattern !== "none" && pattern !== "cloud" ? tiles[pattern] : undefined;
   // A fringe of loose warp along the hem.
   const last = yOf(d.hip - 1);
   for (let x = 0; x < W; x += 2) if (m.has(x, last)) m.set(x, last + 1);
+  const top = yOf(d.shoulder);
+  const front = t.cos > 0.2 || t.cos < -0.2;
   s.put(m, TOP, {
     shade: 0.36,
     light: 0.2,
     top: true,
     bottom: true,
+    // Matched to the portrait: a trim collar round the head-hole, then by
+    // motif a yoke, one band, or two-row stripes alternating trim and inner
+    // with the poncho's own colour between.
     zone: (x, y) => {
-      const band = (y - yOf(d.shoulder)) % 4;
-      if (tile && band >= 2) return tile[band - 2][(((x - Math.round(centre(d.hip))) % tile[0].length) + tile[0].length) % tile[0].length] === "x" ? ACCENT : TRIM;
-      return stripes && band === 3 ? TRIM : TOP;
+      const r = y - top;
+      if (r === 0 && front && Math.abs(x + 0.5 - centre(d.shoulder)) < 2.5) return TRIM;
+      if (motif === "plain" || r < 2) return TOP;
+      if (motif === "yoke") return r < 4 ? TRIM : TOP;
+      if (motif === "band") return r === 5 || r === 6 ? TRIM : TOP;
+      const band = (r - 2) % 4;
+      if (band < 2) return TOP;
+      if (Math.floor((r - 2) / 4) % 2) return INNER;
+      if (tile) return tile[band - 2][(((x - Math.round(centre(d.hip))) % tile[0].length) + tile[0].length) % tile[0].length] === "x" ? ACCENT : TRIM;
+      return TRIM;
     },
   });
 }

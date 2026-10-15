@@ -1,5 +1,6 @@
 import { assignGender } from "../../content/characters/gender";
 import { herdersFor } from "./herders";
+import { isWayfarer, wayfarerDay, type Way, type Passing } from "./wayfarers";
 import { agendaOf, festivalOf, type Person } from "../../core/agenda";
 import { lifeAimOf } from "../../core/life-aim";
 import { carryKit } from "../../content/economy/carrying";
@@ -2506,6 +2507,32 @@ export function createSettlementWorld(
         )
       : []);
   const keptFauna: FaunaGroup[] = [];
+  const passing = new Map<number, Passing[]>();
+  const journeys = new Map<string, Itinerary>();
+  /** The day's passers-by, made once and kept with yesterday's, who may
+   * still be on the road. */
+  function passersBy(day: number) {
+    let list = passing.get(day);
+    if (list) return list;
+    const ways = environment && !pack.setting?.situation
+      ? entrances().filter((e): e is Way => e.walkable && !!e.point && e.path.length > 1)
+      : [];
+    list = wayfarerDay(world, seed, pack, ways, day);
+    for (const [key, old] of passing)
+      if (key < day - 1) {
+        for (const p of old) {
+          journeys.delete(p.actor.id);
+          p.animals?.forEach((_, k) => journeys.delete(`${p.actor.id}-train-${k}`));
+        }
+        passing.delete(key);
+      }
+    passing.set(day, list);
+    for (const p of list) {
+      journeys.set(p.actor.id, p.itinerary);
+      p.animals?.forEach((it, k) => journeys.set(`${p.actor.id}-train-${k}`, it));
+    }
+    return list;
+  }
   const world: SettlementWorld = {
     entrances,
     prepare: () => ({
@@ -2714,7 +2741,17 @@ export function createSettlementWorld(
         )?.work.get(id);
       return planForEntity(id)?.work.get(id);
     },
-    itinerary: (id) => routineFor(id),
+    itinerary: (id) =>
+      isWayfarer(id)
+        ? (journeys.get(id) ?? (passersBy(Number(id.split("-")[1])), journeys.get(id)))
+        : routineFor(id),
+    wayfarers: (clock) => {
+      const day = Math.floor(clock / 86400),
+        now = clock / 60;
+      return [...passersBy(day - 1), ...passersBy(day)]
+        .filter((p) => p.itinerary.start <= now + 60 && p.actor.wayfarer!.until > clock)
+        .map((p) => p.actor);
+    },
     vehicle: (id) => planForEntity(id)?.vehicles?.find((v) => v.id === id),
     ward: (id) => planForEntity(id)?.wards?.find((w) => w.id === id),
     refreshRoutines: () => {
@@ -2739,7 +2776,7 @@ export function createSettlementWorld(
         items: day.items.map((item) => ({ ...item, pos: where(item.place, item.subjectAt) })),
       };
     },
-    routinePending: (id) => !routines.has(id),
+    routinePending: (id) => !isWayfarer(id) && !routines.has(id),
     dormant: (id) => dormant.has(id),
     rotateRoutines,
     propSlots: (id) => {

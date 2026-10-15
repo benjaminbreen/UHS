@@ -24,7 +24,7 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
   // A fixed opening: a random start can land somewhere with no buildings.
-  await page.getByRole("button", { name: "More info", exact: true }).click();
+  await page.getByRole("button", { name: "More starts", exact: true }).click();
   await page.getByRole("button", { name: /Korean farmer/ }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   const canvas = page.locator(".game-container canvas");
@@ -104,7 +104,7 @@ test("knocking runs, and an open door is walked through", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "More info", exact: true }).click();
+  await page.getByRole("button", { name: "More starts", exact: true }).click();
   await page.getByRole("button", { name: /Korean farmer/ }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   const canvas = page.locator(".game-container canvas");

@@ -31,6 +31,8 @@ export function useTypewriter(
       return;
     }
     setShown(0);
+    // A short line with a shout in it comes out fast.
+    const urgent = text.length < 90 && text.includes("!");
     let at = 0,
       timer = 0;
     const next = () => {
@@ -47,7 +49,7 @@ export function useTypewriter(
           : gameAudio()?.event("blip"));
       timer = window.setTimeout(
         next,
-        /[.!?…]/.test(ch) ? 260 : /[,;:—]/.test(ch) ? 120 : 24,
+        /[—…]/.test(ch) ? 420 : /[.!?]/.test(ch) ? (urgent ? 150 : 260) : /[,;:]/.test(ch) ? 120 : urgent ? 14 : 24,
       );
     };
     timer = window.setTimeout(next, 120);

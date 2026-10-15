@@ -294,7 +294,7 @@
 }
 
 /* Someone speaking, framed: the same board along the foot of the world. */
-.plot-floor[data-look="framed"] { padding: 16px; }
+.plot-floor[data-look="framed"] { padding: 16px 16px calc(var(--bar-height, 0px) + 10px); }
 [data-look="framed"] .plot-speech {
   width: min(720px, 100%);
   pointer-events: auto;
@@ -451,56 +451,61 @@
 .plot-choice[data-unavailable] { opacity: 0.45; cursor: not-allowed; }
 .plot-choice-note { flex: none; font: 13px / 1.3 var(--book); color: var(--soft); text-shadow: none; }
 
-/* A conversation: the same board as a line spoken in the world, growing
-   upward as the talk goes on. No veil; the world stays in view. */
+/* A conversation: the same board as a line spoken in the world, so
+   answering one changes nothing but what is on it. No veil. */
 .plot-floor.dialogue-floor { z-index: 75; }
-.dialogue-speech { width: min(780px, 100%) !important; }
+/* Picked up from a line already on screen: it is already there. */
+.dialogue-floor[data-picked-up] .plot-speech { animation: none; }
 .dialogue-speech .plot-speech-body { display: flex; flex-direction: column; }
-.dialogue-speech .plot-speech-body p { min-height: 0; margin: 0; }
-.dialogue-tools { position: absolute; top: 8px; right: 10px; z-index: 2; display: flex; gap: 4px; }
+.dialogue-tools { position: absolute; top: 10px; right: 12px; z-index: 2; display: flex; gap: 2px; animation: plot-fade 0.3s steps(4) both; }
 .dialogue-tools .icon-button {
-  width: 28px; height: 28px; min-width: 0; padding: 0;
+  width: 26px; height: 26px; min-width: 0; padding: 0;
   display: grid; place-items: center;
-  color: var(--soft); background: transparent; border: 1px solid transparent; border-radius: 4px;
+  color: var(--soft); background: transparent; border: 0; opacity: 0.7;
 }
 .dialogue-tools .icon-button:hover:not(:disabled),
 .dialogue-tools .icon-button[aria-pressed="true"],
-.dialogue-tools .icon-button[aria-expanded="true"] { color: var(--plot-text); border-color: color-mix(in srgb, var(--plot-text) 50%, transparent); }
-.dialogue-tools .icon-button:disabled { opacity: 0.35; cursor: default; }
-.dialogue-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-right: 120px; }
-.dialogue-speech .dialogue-meta {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px;
-  font: 9px var(--pixel); letter-spacing: 0.4px; text-transform: uppercase; color: var(--soft);
+.dialogue-tools .icon-button[aria-expanded="true"] { color: var(--plot-text); opacity: 1; }
+.dialogue-tools .icon-button:disabled { opacity: 0.3; cursor: default; }
+.dialogue-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-right: 96px; }
+.dialogue-speech p.dialogue-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px;
+  margin: 0; min-height: 0;
+  font: 9px / 1.4 var(--pixel); letter-spacing: 0.5px; text-transform: uppercase; color: var(--soft);
 }
-.dialogue-speech .dialogue-regard { margin: 0; gap: 6px; font: inherit; color: inherit; }
-.dialogue-speech .dialogue-history {
-  min-height: 0;
-  padding: 8px 6px 0 0;
-  scrollbar-color: var(--edge) transparent;
-}
-.dialogue-speech .dialogue-history.is-full { height: min(46dvh, 420px); overflow-y: auto; }
-.dialogue-speech .dialogue-line { margin: 0 0 8px; font: 18px / 1.45 var(--book); color: var(--light); }
-.dialogue-speech .dialogue-line.past { font-size: 15px; opacity: 0.5; }
-/* The player's own words: quieter than the reply they drew. */
-.dialogue-speech .dialogue-line.player { padding: 0; border: 0; font-size: 15px; color: var(--plot-text); }
+.dialogue-speech .dialogue-regard { display: inline-flex; margin: 0; gap: 6px; font: inherit; color: inherit; }
+.dialogue-speech p.dialogue-last { margin: 4px 0 0; min-height: 0; font: italic 13px / 1.3 var(--book); color: var(--soft); opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dialogue-speech .dialogue-history { min-height: 0; max-height: none; padding: 0; overflow: visible; }
+.dialogue-speech .dialogue-history.is-full { height: min(46dvh, 420px); margin-top: 6px; padding-right: 6px; overflow-y: auto; scrollbar-color: var(--edge) transparent; }
+/* The current line sits exactly where the banner's did. */
+.dialogue-speech p.dialogue-line { max-width: none; margin: 6px 0 0; min-height: 3em; font-size: 18px; line-height: 1.5; color: var(--light); }
+.dialogue-speech .is-full p.dialogue-line { min-height: 0; margin: 0 0 8px; }
+.dialogue-speech .is-full p.dialogue-line.past { font-size: 15px; opacity: 0.5; }
+.dialogue-speech .is-full p.dialogue-line.player { padding: 0; border: 0; font-size: 15px; color: var(--plot-text); }
 .dialogue-speech .dialogue-explanation,
 .dialogue-speech .dialogue-gift { margin: 8px 0 0; color: var(--light); background: color-mix(in srgb, var(--ink) 40%, transparent); border-color: var(--edge); font-size: 14px; }
+.dialogue-speech .plot-choices { flex-wrap: wrap; justify-content: flex-end; }
 .dialogue-speech .dialogue-explanation strong { color: var(--plot-text); }
-.dialogue-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 6px; }
-.dialogue-speech .dialogue-input { position: relative; flex: 1; margin: 0; }
+/* Reply field and the way out share the row the banner's answers used. */
+.dialogue-foot { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.dialogue-foot .plot-speech-actions { flex: none; margin: 0 0 0 auto; }
+.dialogue-speech .dialogue-input { position: relative; flex: 1; min-width: 0; margin: 0; }
 .dialogue-speech .dialogue-input input {
-  padding: 8px 40px 8px 12px; font-size: 15px;
-  background: color-mix(in srgb, var(--ink) 55%, transparent); border-color: color-mix(in srgb, var(--edge) 70%, transparent); color: var(--light);
+  padding: 8px 40px 8px 12px; font: 16px var(--book);
+  background: color-mix(in srgb, var(--ink) 55%, transparent); border: 1px solid color-mix(in srgb, var(--edge) 70%, transparent); border-radius: 0; color: var(--light);
 }
+.dialogue-speech .dialogue-input input:focus { outline: 1px solid var(--plot-text); outline-offset: 0; }
 .dialogue-speech .dialogue-input button {
   position: absolute; right: 4px; top: 50%; translate: 0 -50%;
   padding: 6px; border: 0; background: none; color: var(--plot-text);
 }
 .dialogue-speech .dialogue-input button:disabled { opacity: 0.3; }
-.dialogue-speech .dialogue-actions { gap: 8px; }
-.dialogue-speech .dialogue-actions button { padding: 8px 12px; background: transparent !important; border-color: color-mix(in srgb, var(--edge) 70%, transparent); color: var(--light); }
-.dialogue-speech .dialogue-actions button:hover { border-color: var(--plot-text); }
-.dialogue-speech .dialogue-continue span { color: var(--plot-text); }
+
+/* What is written about the work being helped with: a title to open. */
+.plot-lore { margin-top: 6px; }
+.plot-lore summary { cursor: pointer; width: fit-content; font: 9px var(--pixel); letter-spacing: 0.5px; text-transform: uppercase; color: var(--plot-text); }
+.plot-lore summary::marker { color: var(--soft); }
+.plot-floor .plot-speech .plot-lore p { min-height: 0; margin: 6px 0 0; max-height: 26dvh; overflow-y: auto; font: 15px / 1.5 var(--book); color: var(--soft); }
 
 /* Marked people anywhere: gold for whoever the plot has drawn in, red for your own. */
 [data-mark="plot"] { --mark: #e2b65c; }
@@ -537,7 +542,7 @@
   .plot-speech-row { padding: 16px 14px 14px; gap: 12px; }
   .plot-portrait { width: 72px; height: 86px; }
   .dialogue-speech .dialogue-history.is-full { height: 40dvh; }
-  .dialogue-speech .dialogue-line { font-size: 17px; }
+  .dialogue-speech p.dialogue-line { font-size: 17px; }
   .plot-floor:not([data-look="framed"]) .plot-speech p { font-size: 17px; }
 }
 @media (prefers-reduced-motion: reduce) {

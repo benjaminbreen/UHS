@@ -20,11 +20,13 @@ import { communityLabels } from "../content/ecology/communities";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { resolveCharacterContext } from "../content/characters/resolve";
+import { livelihoodById } from "../content/characters/livelihoods";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import { startChronicle, type Chronicle } from "../chronicle/chronicle";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import {
   clothFor,
+  fibresFor,
   rolesFrom,
   wardrobeFor,
   type Sex,
@@ -199,41 +201,22 @@ export function createSession(
           0,
           engine.state.player.age ?? 34,
         );
-        appearance.wearing = wardrobeFor(
-          {
-            id: resolved.character.appearanceSeed,
-            age: engine.state.player.age,
-            sex: wearerSex(
-              engine.state.player.origin?.sex,
-              appearance.physique?.sex,
-            ),
-            standing: engine.state.player.origin?.standing,
-            livelihood: engine.state.player.origin?.livelihood,
-            roles: rolesFrom(
-              engine.state.player.role,
-              engine.state.player.origin?.roleLabel,
-            ),
-          },
-          pack,
-          appearance.wearing,
-        );
+        const origin = engine.state.player.origin;
+        const wearer = {
+          id: resolved.character.appearanceSeed,
+          age: engine.state.player.age,
+          sex: wearerSex(origin?.sex, appearance.physique?.sex),
+          standing: origin?.standing,
+          livelihood: origin?.livelihood,
+          rank: origin && livelihoodById(origin.livelihood)?.rank,
+          roles: rolesFrom(engine.state.player.role, origin?.roleLabel),
+        };
+        appearance.wearing = wardrobeFor(wearer, pack, appearance.wearing);
         engine.state.player.appearance = appearance;
         engine.state.player.worn = wornFromWearing(
           appearance.wearing,
-          clothFor(
-            {
-              id: resolved.character.appearanceSeed,
-              age: engine.state.player.age,
-              sex: wearerSex(
-                engine.state.player.origin?.sex,
-                appearance.physique?.sex,
-              ),
-              roles: rolesFrom(engine.state.player.role),
-            },
-            pack,
-            undefined,
-            appearance.wearing.color,
-          ),
+          clothFor(wearer, pack, undefined, appearance.wearing.color),
+          fibresFor(wearer, pack),
         );
       }
     }
@@ -311,11 +294,8 @@ export const JUMP_CHARGE_MS = 240;
 /** Airtime scales with the tiles cleared: 260, 300, 340, 380. */
 // Long enough in the air to strike from it, as in Zelda.
 export const jumpMs = (distance: number) => 300 + 50 * distance;
-export const ZOOM_STEPS = [
-  0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6,
-];
-const ZOOM_MIN = ZOOM_STEPS[0];
-const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
+// Whole steps only: at 1.5x some art pixels draw 1 screen pixel wide and others 2.
+export const ZOOM_STEPS = [1, 2, 3, 4, 6];
 export class Runtime {
   timeTravel?: TimeTravel;
   timeTravelLocked = false;
@@ -441,21 +421,20 @@ export class Runtime {
     const cached = this.appearanceDefaults.get(actor.id);
     if (cached?.signature === signature) return cached.value;
     const base = actorAppearance(actor, this.palette());
-    const value = {
-      ...base,
-      wearing: wardrobeFor(
-        {
-          id: actor.id,
-          age: actor.age,
-          sex: wearerSex(actor.origin?.sex, base.physique?.sex),
-          standing: actor.origin?.standing,
-          livelihood: actor.origin?.livelihood,
-          roles: rolesFrom(actor.role, actor.origin?.roleLabel),
-        },
-        pack,
-        base.wearing,
-      ),
+    const wearer = {
+      id: actor.id,
+      age: actor.age,
+      sex: wearerSex(actor.origin?.sex, base.physique?.sex),
+      standing: actor.origin?.standing,
+      livelihood: actor.origin?.livelihood,
+      rank: actor.origin && livelihoodById(actor.origin.livelihood)?.rank,
+      roles: rolesFrom(actor.role, actor.origin?.roleLabel),
     };
+    const wearing = wardrobeFor(wearer, pack, base.wearing);
+    // Without a cloth roll a background figure has no fibre, and every
+    // renderer guessed a different one.
+    const { material, quality } = clothFor(wearer, pack, undefined, wearing.color);
+    const value = { ...base, wearing: { ...wearing, material, quality } };
     this.appearanceDefaults.set(actor.id, { signature, value });
     return value;
   }
@@ -941,7 +920,8 @@ export class Runtime {
     this.emit(false);
   }
   setZoom(z: number) {
-    this.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+    const near = (v: number) => Math.abs(Math.log(v / z));
+    this.zoom = ZOOM_STEPS.reduce((a, b) => (near(b) < near(a) ? b : a));
     this.emit(false);
   }
   /** Move `steps` notches along ZOOM_STEPS from wherever we currently sit. */

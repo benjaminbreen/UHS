@@ -9,6 +9,7 @@ import {
   lazy,
   Suspense,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -421,6 +422,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   };
   const [situation, setSituation] = useState<string | undefined>(undefined);
   const [said, setSaid] = useState<string | undefined>(undefined);
+  // Speech and conversation boards sit just above the bottom bar, whatever height it wraps to.
+  const measureBar = useCallback((bar: HTMLElement | null) => {
+    if (!bar) return;
+    new ResizeObserver(() => bar.parentElement?.style.setProperty("--bar-height", `${bar.offsetHeight}px`)).observe(bar);
+  }, []);
   const openDialogue = (id: string, opening?: string, line?: string) => {
     const sent = runtime.engine.approacher;
     if (!opening && sent?.id === id && runtime.engine.state.clock < sent.until) {
@@ -456,6 +462,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   }, [view]);
   useEffect(() => {
     runtime.engine.conversing = modal === "dialogue" ? (dialogueActorId ?? undefined) : undefined;
+    if (modal !== "dialogue" || !dialogueActorId) return;
+    (game.current?.scene.getScene("world") as WorldScene | undefined)?.frameConversation(dialogueActorId);
+    return () => lookAt();
   }, [runtime, modal, dialogueActorId]);
   // Standing in someone's way long enough and they will say something about it.
   useEffect(() => {
@@ -1304,7 +1313,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onClose={() => setNarratorOpen(false)}
             onLog={() => setModal("narration")}
           />
-          <footer className="bottom-bar">
+          <footer
+            className="bottom-bar"
+            ref={measureBar}
+          >
             <div className="quick-actions">
               <button onClick={talkToNearest} aria-label="Talk">
                 <MessageCircle size={17} />
@@ -1826,8 +1838,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                             <button onClick={() => by && runtime.select(by.id)}>
                               <span className="today-icon"><Handshake size={15} /></span>
                               <span className="today-text">
-                                <small>Favour{ask.accepted ? " · promised" : ""} · by {timeLabel(ask.until)}</small>
-                                {by?.name ?? "Someone"} asks you to {ask.what}
+                                <small>{ask.kind === "help" ? `Help${ask.accepted ? " · follow them" : ""}` : `Favour${ask.accepted ? " · promised" : ""}`} · by {timeLabel(ask.until)}</small>
+                                {ask.kind === "help" ? `${by?.name ?? "Someone"}: ${ask.task ?? ask.what}` : `${by?.name ?? "Someone"} asks you to ${ask.what}`}
                               </span>
                             </button>
                           </li>
@@ -2580,6 +2592,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       <option value="d">D · unfinished</option>
                       <option value="e">E · default</option>
                       <option value="f">F · paper doll</option>
+                      <option value="g">G · paper doll, longer legs</option>
                     </select>
                   </div>
                   <div className="settings-row">

@@ -143,7 +143,7 @@ import {
   type SkillGain,
   type SkillId,
 } from "./skills";
-import { pendingPicks, technique, type TechniqueId } from "./techniques";
+import { optionsAt, pendingPicks, technique, TIERS as TECHNIQUE_TIERS, type TechniqueId } from "./techniques";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 import { herdNoun, herdWords, keptSpecies } from "../content/fauna/herding";
 import { crops, pickable } from "../content/agriculture/crops";
@@ -237,7 +237,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Ask, Favour, Place, Point, WalkOff, Word } from "./types";
+import type { Ask, CallIn, Favour, Place, Point, WalkOff, Word } from "./types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -300,6 +300,16 @@ const PROPLESS: Record<ProcessFamily, string> = {
   carry: "your yard",
   serve: "your house",
 };
+/** How the player can pitch in on someone else's work. */
+const HELP: { label: string; stat: keyof import("./types").Stats; odds?: number; minutes: number; fatigue: number; xp: number; bonus?: number; line: string; lost?: string }[] = [
+  { label: "Keep pace with {name}", stat: "endurance", odds: 0.45, minutes: 150, fatigue: 18, xp: 6, bonus: 1,
+    line: "You keep pace with {name} the whole way through. {name} says nothing, which is praise.",
+    lost: "You tire long before {name} does, but between you the work gets done." },
+  { label: "Do what you're shown", stat: "wit", minutes: 120, fatigue: 10, xp: 4,
+    line: "You do as {name} shows you, and the work goes quicker for two." },
+  { label: "Ask {name} to teach you", stat: "wit", minutes: 150, fatigue: 8, xp: 9,
+    line: "{name} talks you through it as you go. You'll know how next time." },
+];
 const workSkill: Record<ProcessFamily, SkillId> = {
   tend: "farming",
   gather: "foraging",
@@ -819,6 +829,7 @@ export class Engine {
     });
   }
   private choose(id: string, n: number) {
+    if (id.startsWith("help:")) return this.helpChoose(id, n);
     const s = this.state, p = s.player;
     const care = s.care?.card === id ? s.care : undefined;
     const work = care ? undefined : s.economy!.work!;
@@ -2479,7 +2490,20 @@ export class Engine {
   }
   /** Milestones reached with a technique still to choose. */
   pendingPicks() {
-    return pendingPicks(this.skills(), this.state.player.techniques ?? []);
+    const known = this.state.player.techniques ?? [];
+    const picks = pendingPicks(this.skills(), known);
+    // What someone taught by working alongside: the first choice in that skill not yet made.
+    for (const skill of this.state.player.taught ?? []) {
+      if (picks.some((x) => x.skill === skill)) continue;
+      for (const tier of TECHNIQUE_TIERS) {
+        const all = optionsAt(skill, tier);
+        if (all.some((id) => known.includes(id))) continue;
+        const options = all.filter((id) => technique(id).ready !== false);
+        if (options.length >= 2) picks.push({ skill, tier, options });
+        break;
+      }
+    }
+    return picks;
   }
   /** Experience for work done. The attribute behind a skill makes it come a
    * little easier or harder: 0.8 to 1.2 across the range. */
@@ -5201,6 +5225,8 @@ export class Engine {
     if (c.type === "interact" && c.action === "fill") return this.fillProblem(c.target);
     if (c.type === "interact" && c.action === "work" && this.tileAt(c.target))
       return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
+    if (c.type === "choose" && c.card.startsWith("help:"))
+      return this.state.asks?.some((x) => `help:${x.id}` === c.card && x.offered) && HELP[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose") {
       const choice = this.waitingCard() === c.card || this.state.care?.card === c.card ? CARDS.find((k) => k.id === c.card)?.choices[c.choice] : undefined;
       return !choice ? "There is nothing to answer." : this.choiceProblem(choice);
@@ -5472,6 +5498,7 @@ export class Engine {
         Math.abs(g.pos.y - p.y) <= FAUNA_KEEP
       )
         return true;
+      if (g.train) return true;
       if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));
       return !!g.gateId;
     });
@@ -5493,6 +5520,57 @@ export class Engine {
           ...copy(actor),
           lastUpdated: this.state.clock,
         });
+    this.syncWayfarers(this.state.clock);
+  }
+  /** Lets in whoever is coming down the road and drops whoever has gone on. */
+  private syncWayfarers(clock: number) {
+    if (!this.world.wayfarers) return;
+    this.state.actors = this.state.actors.filter((a) => !a.wayfarer || a.wayfarer.until > clock);
+    this.state.fauna = this.state.fauna?.filter((g) => !g.train || g.members.length);
+    const here = new Set(this.state.actors.map((a) => a.id));
+    for (const actor of this.world.wayfarers(clock))
+      if (!here.has(actor.id)) {
+        this.state.actors.push({ ...copy(actor), lastUpdated: clock });
+        const train = actor.wayfarer!.train;
+        if (!train) continue;
+        const g: FaunaGroup = {
+          id: `${actor.id}-train`,
+          speciesId: train.species,
+          members: Array.from({ length: train.count }, (_, n) => ({ x: actor.pos.x, y: actor.pos.y, direction: 1, n })),
+          pos: { ...actor.pos },
+          home: { ...actor.pos },
+          homeRadius: 4,
+          state: "wander",
+          nextDecisionAt: 0,
+          stride: 0,
+          since: clock,
+          train: true,
+        };
+        this.enrol(g);
+        this.walkTrain(g, clock);
+        (this.state.fauna ??= []).push(g);
+      }
+  }
+  /** Pack animals keep to their own day on the road, and are gone at the
+   * border with the people driving them. */
+  private walkTrain(g: FaunaGroup, clock: number) {
+    const side = !faunaProfile(g.speciesId)?.directions;
+    let moving = false;
+    g.members = g.members.filter((m) => {
+      const day = this.world.itinerary?.(`${g.id}-${m.n}`);
+      if (!day) return false;
+      if (clock / 60 < day.start) return true;
+      const at = itineraryAt(day, clock);
+      if (at.activity === "rest") return false;
+      m.x = Math.round(at.x);
+      m.y = Math.round(at.y);
+      moving ||= at.moving;
+      // Side-view art has no north or south: it keeps the last way it faced.
+      if (at.moving && !(side && at.direction % 2 === 0)) m.direction = at.direction as FaunaMember["direction"];
+      return true;
+    });
+    if (g.members[0]) g.pos = { x: g.members[0].x, y: g.members[0].y, space: "outside" };
+    g.state = moving ? "wander" : "graze";
   }
   /** A herder's day is the herd's: keep to a place beside it, move when it
    * moves, and sit up with it at night. They eat what they carry. */
@@ -5637,8 +5715,10 @@ export class Engine {
             ...(this.world.place(player.pos.space)?.entrance ?? player.pos),
             space: "outside",
           };
+    for (const g of groups) if (g.train) this.walkTrain(g, clock);
     const near = groups.filter(
       (g) =>
+        !g.train &&
         Math.abs(g.pos.x - focus.x) <= 80 && Math.abs(g.pos.y - focus.y) <= 80,
     );
     if (!near.length) return;
@@ -7673,6 +7753,7 @@ export class Engine {
         people.find((o) => o.name.toLowerCase().split(" ")[0] === name.split(" ")[0] && (a.relations?.some((r) => r.other === o.id) || distance(o.home, a.home) < 30));
       return to && { by: a.id, kind: "talk-to", to: to.id, what };
     }
+    if (f.kind === "help") return this.helpWith(a, what);
     if (f.kind === "go-to") {
       const place = this.world.places.find((p) => p.name.toLowerCase().replace(/^the /, "") === name) ??
         this.world.places.find((p) => p.name.toLowerCase().includes(name));
@@ -7682,6 +7763,87 @@ export class Engine {
     const item = defs.find((d) => d.name.toLowerCase() === name) ??
       defs.filter((d) => name.includes(d.name.toLowerCase())).sort((x, y) => y.name.length - x.name.length)[0];
     return item && { by: a.id, kind: "bring", item: item.id, what };
+  }
+  /** Help with this person's own day's work: the step of it the model named,
+   * or its main step, done where they work. Nothing if they have no trade. */
+  private helpWith(a: Actor, what: string): Omit<Ask, "id" | "at" | "until"> | undefined {
+    const setting = this.world.pack.setting, kit = livelihoodOf(this.world.pack, a);
+    const season = (setting ? seasonAt(setting.season, this.state.clock) : "spring") as SeasonId;
+    const process = kit && processFor(kit, setting?.economyRevision, season);
+    const steps = process?.steps.filter((st) => !st.client);
+    if (!steps?.length) return;
+    const words = what.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+    const step = steps.find((st) => words.some((w) => st.task.toLowerCase().includes(w))) ?? steps[Math.min(1, steps.length - 1)];
+    return { by: a.id, kind: "help", what, meet: { ...a.work }, task: step.task };
+  }
+  /** Someone the player has promised to help sets off for their work, and
+   * waits there. */
+  private leadTo(a: Actor, ask: Ask) {
+    if (!ask.meet || distance(a.pos, ask.meet) < 2 || a.errand) return;
+    a.errand = { to: { ...ask.meet }, label: `Going to ${ask.task?.toLowerCase() ?? "work"}`, until: this.state.clock + 7200 };
+  }
+  /** Once the player has followed them there, the work itself, in their words. */
+  private offerHelp(ask: Ask, a: Actor) {
+    ask.offered = true;
+    const first = this.state.player.name.split(" ")[0], skill = this.helpSkill(a);
+    const stats = this.stats(), level = this.skillLevel(skill);
+    this.cards.unshift({
+      kind: "speech",
+      title: a.role.toLowerCase(),
+      text: `Here we are. ${ask.task}: watch how I do it, ${first}, then take the other end.`,
+      speaker: a.id,
+      choose: {
+        card: `help:${ask.id}`,
+        choices: HELP.map((c, index) => ({
+          index,
+          label: c.label.replace("{name}", a.name.split(" ")[0]),
+          odds: c.odds ? oddsOf({ stat: c.stat, skill, odds: c.odds }, stats, level) : undefined,
+          minutes: c.minutes,
+        })),
+      },
+    });
+    this.event(`You reach ${a.name}'s work.`, "social");
+  }
+  private helpSkill(a: Actor): SkillId {
+    const kit = livelihoodOf(this.world.pack, a), process = kit && processFor(kit, this.world.pack.setting?.economyRevision);
+    return process?.skill ?? (process ? workSkill[process.family] : "farming");
+  }
+  private helpChoose(id: string, n: number) {
+    const s = this.state, p = s.player, ask = s.asks?.find((x) => `help:${x.id}` === id);
+    const a = ask && s.actors.find((x) => x.id === ask.by);
+    const c = HELP[n];
+    if (!ask || !a || !c) return;
+    const skill = this.helpSkill(a), first = a.name.split(" ")[0];
+    const won = !c.odds || this.rng(id) < oddsOf({ stat: c.stat, skill, odds: c.odds }, this.stats(), this.skillLevel(skill));
+    this.advance(c.minutes * 60);
+    p.fatigue = Math.min(100, p.fatigue + c.fatigue);
+    this.grantXp(skill, c.xp);
+    this.grant(ask, a);
+    a.owes = true;
+    const helped = (p.helped ??= {});
+    helped[skill] = (helped[skill] ?? 0) + 1;
+    let taught = helped[skill] === 3 && !p.taught?.includes(skill);
+    if (taught) {
+      const before = this.pendingPicks().some((x) => x.skill === skill);
+      (p.taught ??= []).push(skill);
+      taught = !before && this.pendingPicks().some((x) => x.skill === skill);
+    }
+    if (won && c.bonus) this.regard(a, c.bonus, "warm");
+    // A share of what the work makes, where it makes something you can carry.
+    const kit = livelihoodOf(this.world.pack, a);
+    const share = kit && processFor(kit, this.world.pack.setting?.economyRevision)?.makes.find((m) => this.item(m));
+    if (share) p.inventory[share] = (p.inventory[share] ?? 0) + 1;
+    const line = (won ? c.line : c.lost!).replaceAll("{name}", first) +
+      (share ? ` ${first} sends you off with some ${this.item(share)!.name.toLowerCase()}.` : "");
+    this.event(line);
+    if (taught) this.event(`You have worked beside people at this enough to choose a ${skill} technique of your own.`);
+    this.lastChoice = {
+      card: id, line, won: c.odds ? won : undefined,
+      changes: [
+        { kind: "time", delta: c.minutes },
+        { kind: "regard", delta: 3 + (won ? c.bonus ?? 0 : 0), who: first },
+      ],
+    };
   }
   /** What the player said to a favour, as the conversation settled it. */
   answerAsk(a: Actor, how: "made" | "accepted" | "declined", favour?: Favour) {
@@ -7695,7 +7857,13 @@ export class Engine {
       asks.push(ask);
     }
     if (!ask) return;
-    if (how === "accepted") ask.accepted = true;
+    if (how === "accepted") {
+      ask.accepted = true;
+      if (ask.kind === "help") {
+        this.leadTo(a, ask);
+        this.event(`${a.name} sets off. Follow them to help.`, "social");
+      }
+    }
     if (how === "declined") {
       asks.splice(asks.indexOf(ask), 1);
       this.regard(a, -1, "refuse");
@@ -7707,6 +7875,70 @@ export class Engine {
     a.memories.push(`The player did what I asked: ${ask.what}`);
     hear(a, { act: "did a favour for", victim: a.id, tone: 4, at: this.state.clock, hops: 0 });
     this.event(`${a.name} is grateful.`, "social");
+  }
+  /** What a person who owes the player could do for them now, and why not where they can't. */
+  callInProblem(a: Actor, kind: CallIn) {
+    if (!a.owes) return `${a.name} owes you nothing.`;
+    if (kind === "work") {
+      const t = this.trade();
+      return !t || t.stage >= t.process.stages.length ? "You have no work today for anyone to help with." : undefined;
+    }
+    if (kind === "lend") return this.lendable(a) ? undefined : `${a.name}'s household has nothing to spare.`;
+    return this.state.complaints?.some((c) => c.by !== a.id && !c.spokenFor) ? undefined : "Nobody has complained about you.";
+  }
+  private lendable(a: Actor) {
+    const h = this.state.households?.find((x) => x.id === a.householdId);
+    const store = h && this.state.objects.find((o) => o.id === h.storeId);
+    const id = store && Object.entries(store.inventory ?? {}).find(([id, n]) => (n ?? 0) > 0 && id !== "coin" && this.item(id))?.[0];
+    return id && store ? { store, id } : undefined;
+  }
+  /** The player calls in the day's help they gave. */
+  callIn(a: Actor, kind: CallIn) {
+    const problem = this.callInProblem(a, kind);
+    if (problem) return problem;
+    const s = this.state, first = a.name.split(" ")[0];
+    if (a.trust < 0) {
+      delete a.owes;
+      this.regard(a, -1, "refuse");
+      const near = s.actors.filter((o) => o.kind === "human" && !o.dead && o.householdId !== a.householdId && o.pos.space === a.pos.space && distance(o.pos, a.pos) < 12);
+      for (const o of near.slice(0, 3)) hear(o, { act: `${a.name} would not pay back help they were given`, tone: -3, at: s.clock, hops: 1, about: a.id });
+      const line = `${first} won't hear of it. Whatever they owed you, they mean to forget it.`;
+      this.event(line, "social");
+      return line;
+    }
+    let line: string;
+    if (kind === "work") {
+      const w = s.economy!.work!;
+      w.quality = Math.min(2, (w.quality ?? 0) + 1);
+      a.errand = { to: { ...s.player.pos }, label: "Helping with your work", until: s.clock + 3600 };
+      line = `${first} comes to work beside you. Today's work will go better for it.`;
+    } else if (kind === "lend") {
+      const { store, id } = this.lendable(a)!;
+      const n = Math.min(2, store.inventory![id] ?? 0);
+      store.inventory![id]! -= n;
+      s.player.inventory[id] = (s.player.inventory[id] ?? 0) + n;
+      line = `${first} gives you ${n === 1 ? "some" : n} ${this.item(id)!.name.toLowerCase()} from their stores.`;
+    } else {
+      const c = s.complaints!.find((x) => x.by !== a.id && !x.spokenFor)!;
+      c.spokenFor = a.id;
+      line = `${first} will speak for you when the complaint is heard.`;
+    }
+    delete a.owes;
+    this.regard(a, 1);
+    a.memories.push("I paid back the help the player gave me");
+    hear(a, { act: "was owed help and asked for it fairly", tone: 1, at: s.clock, hops: 0 });
+    this.event(line, "social");
+    return line;
+  }
+  /** Someone the player promised to help waits at their work until the player turns up. */
+  private helpStep() {
+    const s = this.state, p = s.player;
+    for (const ask of s.asks ?? []) {
+      const a = ask.kind === "help" && ask.accepted && !ask.offered ? s.actors.find((x) => x.id === ask.by) : undefined;
+      if (!a || !ask.meet) continue;
+      this.leadTo(a, ask);
+      if (!this.conversing && a.pos.space === p.pos.space && distance(a.pos, ask.meet) < 3 && distance(a.pos, p.pos) < 4) this.offerHelp(ask, a);
+    }
   }
   /** Promises run out, and now and then someone nearby who likes the player
    * comes over to ask a favour. */
@@ -7770,7 +8002,8 @@ export class Engine {
     if (!keeper || !by || by.dead || keeper.id === by.id) return;
     const law = orderKeeper(this.world.pack.setting), office = law.who;
     const charge = telling({ ...c.story, hops: 1 }, (id) => s.actors.find((a) => a.id === id)?.name);
-    const severity = Math.abs(c.story.tone) - Math.max(0, keeper.trust);
+    const voucher = c.spokenFor ? s.actors.find((a) => a.id === c.spokenFor && !a.dead) : undefined;
+    const severity = Math.abs(c.story.tone) - Math.max(0, keeper.trust) - (voucher ? 4 : 0);
     const amount = Math.max(1, Math.round(severity / 2));
     const worth = Object.entries(p.inventory).reduce((n, [id, k]) => n + (this.item(id)?.value ?? 0) * (k ?? 0), 0);
     const pays = (k: Penalty) => k === "compensation" || k === "fine";
@@ -7790,7 +8023,7 @@ export class Engine {
       confinement: "You'll be locked up until tomorrow.",
       exile: `You're not wanted here. Nobody will speak to you or deal with you for ${days === 1 ? "a day" : `${days} days`}.`,
     }[penalty];
-    const line = `${by.name} came to me. They say you ${charge}. ${sentence}`;
+    const line = `${by.name} came to me. They say you ${charge}.${voucher ? ` ${voucher.name} spoke for you, and I've weighed that.` : ""} ${sentence}`;
     const told = (act: string) => { for (const w of this.witnesses(12)) hear(w, { act, tone: -4, at: clock, hops: 0 }); };
     const hold = (until: number, activity: string) => {
       p.stocked = until;
@@ -8444,6 +8677,7 @@ export class Engine {
       if (!this.state.introduced) this.introduce();
       if (next % 3600 === 0) this.healthStep(next);
       if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
+      if (this.state.asks?.length) this.helpStep();
       if (next % 600 === 0) {
         this.kinStep(next);
         this.spreadWord(next);
@@ -8451,6 +8685,7 @@ export class Engine {
         this.keeperStep(next);
       }
       if (this.approaching) this.approach(next);
+      if (next % 300 === 0) this.syncWayfarers(next);
       this.burnStep();
       this.brawl();
       this.confront(next);
@@ -8463,6 +8698,8 @@ export class Engine {
         const season = seasonAt(this.world.pack.setting.season, next);
         for (const o of this.resourceObjects) refreshResource(o, next, season);
       }
+      const partner = this.conversing ? actors.find((a) => a.id === this.conversing) : undefined;
+      if (partner && partner.pos.space === player.pos.space) player.direction = this.directionTo(player.pos, partner.pos);
       for (const a of actors) {
         if (a.id === heldActor) continue;
         if (a.id === this.conversing && a.pos.space === player.pos.space) {

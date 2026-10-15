@@ -1,17 +1,24 @@
 import grid from "./climate.generated.json" with { type: "json" };
 import type { WorldSetting } from "./types";
 
+const [T, M, Tr, Mo, A, B, Tu] = ["temperate", "mediterranean", "tropical", "monsoon", "arid", "boreal", "tundra"] as const;
+// Beck et al.'s legend codes, 1 Af .. 30 EF, collapsed to the game's broad
+// vocabulary. Dfa/Dfb and their s and w kin are deciduous-forest country
+// (Chicago, Kyiv, Seoul) and read as temperate; only Dfc/Dfd and kin are
+// taiga. Cold steppe (BSk) is dry grassland, so temperate with a dry tier;
+// the game's "arid" means desert.
 const climates: (WorldSetting["climate"] | undefined)[] = [
   undefined,
-  "temperate",
-  "mediterranean",
-  "tropical",
-  "monsoon",
-  "arid",
-  "boreal",
-  "tundra",
+  Tr, Mo, Tr, A, A, A, T,
+  M, M, M, T, T, T, T, T, T,
+  T, T, B, B, T, T, B, B, T, T, B, B, Tu, Tu,
 ];
-const moisture = [0, 0.16, 0.32, 0.38, 0.55, 0.6, 0.72, 0.85];
+const moisture = [
+  0,
+  0.85, 0.72, 0.6, 0.16, 0.16, 0.32, 0.32,
+  0.38, 0.38, 0.38, 0.55, 0.55, 0.55, 0.6, 0.6, 0.6,
+  0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.38, 0.38,
+];
 // Looked up in the run-length form: expanding it would hold 9 MB of cells
 // for the life of the page.
 const count = grid.runs.length / 2;
@@ -39,10 +46,13 @@ function climateCell(lon: number, lat: number) {
 }
 
 export function climateAt(lon: number, lat: number) {
-  return climates[climateCell(lon, lat) >> 3];
+  return climates[climateCell(lon, lat)];
 }
+
+/** The raw Köppen–Geiger legend code, 1 (Af) to 30 (EF); 0 at sea. */
+export const koppenAt = climateCell;
 
 export function climateMoistureAt(lon: number, lat: number) {
   const code = climateCell(lon, lat);
-  return code ? moisture[code & 7] : undefined;
+  return code ? moisture[code] : undefined;
 }

@@ -5,6 +5,10 @@ import type {
   trimPatterns,
   hairOrnaments,
   hatTrims,
+  waistcoats,
+  shawls,
+  hoods,
+  sidearms,
   wristwear,
   eyewear,
   beltStyles,
@@ -15,7 +19,7 @@ import type {
   leggings,
   sleeveStyles,
 } from "../../../core/character";
-import type { CharacterScope } from "../context-types";
+import type { CharacterScope, Rank } from "../context-types";
 import type { DyeId, Material } from "./cloth";
 
 export type Garment = (typeof garments)[number];
@@ -88,6 +92,10 @@ export type GarmentKit = {
   trimPattern?: readonly Option<(typeof trimPatterns)[number]>[];
   hairOrnament?: readonly Option<(typeof hairOrnaments)[number]>[];
   hatTrim?: readonly Option<(typeof hatTrims)[number]>[];
+  waistcoat?: readonly Option<(typeof waistcoats)[number]>[];
+  shawl?: readonly Option<(typeof shawls)[number]>[];
+  hood?: readonly Option<(typeof hoods)[number]>[];
+  sidearm?: readonly Option<(typeof sidearms)[number]>[];
 };
 export type Motif = (typeof motifs)[number];
 export type WardrobeSlot = Exclude<
@@ -117,6 +125,10 @@ export const wardrobeSlots = [
   "trimPattern",
   "hairOrnament",
   "hatTrim",
+  "waistcoat",
+  "shawl",
+  "hood",
+  "sidearm",
 ] as const;
 
 /** The person a kit is dressing. Everything but `id` is optional: an actor
@@ -127,6 +139,8 @@ export type Wearer = {
   age?: number;
   standing?: "free" | "unfree";
   livelihood?: string;
+  /** Where the work places them; narrows the wealth roll when `means` is absent. */
+  rank?: Rank;
   means?: Means;
   roles?: readonly string[];
 };

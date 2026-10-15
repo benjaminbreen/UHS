@@ -71,6 +71,11 @@ export function meansOf(w: Wearer): Means {
   if ((w.roles ?? []).includes("aristocrat")) return "elite";
   if ((w.roles ?? []).includes("gentleman")) return "wealthy";
   const r = random(w.id, "wardrobe-means");
+  // Rank is not wealth, but a day labourer in kermes silk is the wrong person.
+  if (w.rank === "destitute") return "poor";
+  if (w.rank === "labouring") return r < 0.4 ? "poor" : "common";
+  if (w.rank === "middling") return r < 0.7 ? "common" : "wealthy";
+  if (w.rank === "gentry" || w.rank === "elite") return "wealthy";
   // One in five hundred. A world of a thousand people holds a couple of them,
   // which is about right for the people who got painted.
   if (r > 0.998) return "elite";
@@ -176,6 +181,8 @@ export function clothFor(
    * resolved separately, and two independent dye rolls put a yellow tunic in
    * the item list on a man drawn in brown. */
   drawn?: string,
+  /** Rolls the fibre afresh for another piece of the same outfit. */
+  part?: string,
 ): Cloth {
   const kits = kitsFor(place.setting, place.year, pool);
   const band = ageBandOf(wearer.age);
@@ -226,7 +233,7 @@ export function clothFor(
     weighted(
       quality >= 2 && fineFibres.length ? fineFibres : fibreOptions,
       w.id,
-      "material",
+      part ? `material:${part}` : "material",
     ) ?? "wool";
   let dye =
     weighted(
@@ -244,6 +251,20 @@ export function clothFor(
     dye = plain[Math.floor(random(w.id, "hide-tone") * plain.length)];
   }
   return { material, dye, quality };
+}
+/** What the hat, the legs and the over-garment are made of. Not one bolt:
+ * a cotton wrap goes over a bark-cloth sarong. Skins are left out, because a
+ * worn item takes the drawn colour and a hide is never dyed. */
+export function fibresFor(
+  wearer: Wearer,
+  place: { year: number; setting?: WorldSetting },
+): Partial<Record<"head" | "legs" | "over", Material>> {
+  const out: Partial<Record<"head" | "legs" | "over", Material>> = {};
+  for (const part of ["head", "legs", "over"] as const) {
+    const m = clothFor(wearer, place, garmentKits, undefined, part).material;
+    if (m !== "hide" && m !== "fur") out[part] = m;
+  }
+  return out;
 }
 /**
  * Dress one person. Resolution is per slot, not per kit: the narrowest kit
@@ -277,7 +298,15 @@ export function wardrobeFor(
     base.garment;
   const dye = chosen.dye as DyeId | undefined;
   const palette = slotOptions<DyeId>(kits, "dye", (o) => fits(o, w, band) && (!o.garments || o.garments.includes(garment)) && o.value !== dye);
-  const separateLower = ["shirt", "skirt", "coat", "none", "loincloth", "poncho"].includes(garment);
+  const leggings = skirted(
+    garment,
+    (chosen.leggings as CharacterAppearance["wearing"]["leggings"]) ?? "none",
+    w.id,
+  );
+  // Trousers or a sarong under a wrap are their own cloth. A robe or dress
+  // stays one colour to the hem, so what shows below it does too.
+  const long = ["robe", "open-robe", "dress", "long-tunic", "gown"].includes(garment);
+  const separateLower = (leggings !== "none" && !long) || ["shirt", "skirt", "coat", "none", "loincloth", "poncho"].includes(garment);
   const lower = separateLower ? weighted(palette, w.id, "dye-lower") : dye;
   // Trim on the lower cloth's colour would vanish against it.
   const trim = weighted(palette.filter((o) => o.value !== lower), w.id, "dye-trim");
@@ -285,10 +314,12 @@ export function wardrobeFor(
   const headwear = (chosen.headwear as typeof base.headwear) ?? base.headwear;
   const straw = headwear === "conical" || (headwear === "brimmed" &&
     (place.year < 1500 || ["farmer", "herder", "fisher"].includes(w.livelihood ?? "")));
+  const head = weighted(palette, w.id, "dye-head") ?? lower;
   const headColor = headwear === "fez" ? dyes.madder.hex
     : headwear === "flat-cap" ? dyes[(["ash", "walnut", "soot"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 3)]].hex
     : headwear === "bowler" || headwear === "top-hat" ? dyes.soot.hex
-    : straw ? dyes.undyed.hex : lower ? dyes[lower].hex : base.lowerColor;
+    : straw ? dyes.undyed.hex
+    : head ? dyes[head].hex : base.lowerColor;
   const neck = chosen.neck as "none" | "beads" | "chain" | undefined;
   const over = chosen.over as
     | "none"
@@ -329,11 +360,7 @@ export function wardrobeFor(
     // A flared skirt over a pair of trousers is nobody's dress, anywhere in
     // this atlas. The slots are resolved independently, so the pairing has to
     // be enforced here.
-    leggings: skirted(
-      garment,
-      (chosen.leggings as CharacterAppearance["wearing"]["leggings"]) ?? "none",
-      w.id,
-    ),
+    leggings,
     footwear:
       (chosen.footwear as CharacterAppearance["wearing"]["footwear"]) ?? "none",
     belt: (chosen.belt as CharacterAppearance["wearing"]["belt"]) ?? base.belt,
@@ -354,6 +381,11 @@ export function wardrobeFor(
     trimPattern: chosen.trimPattern as CharacterAppearance["wearing"]["trimPattern"],
     hairOrnament: chosen.hairOrnament as CharacterAppearance["wearing"]["hairOrnament"],
     hatTrim: chosen.hatTrim as CharacterAppearance["wearing"]["hatTrim"],
+    waistcoat: chosen.waistcoat as CharacterAppearance["wearing"]["waistcoat"],
+    shawl: chosen.shawl as CharacterAppearance["wearing"]["shawl"],
+    // Worn up, a hood is headwear; it cannot also lie on the shoulders.
+    hood: headwear === "hood" ? undefined : (chosen.hood as CharacterAppearance["wearing"]["hood"]),
+    sidearm: chosen.sidearm as CharacterAppearance["wearing"]["sidearm"],
   };
 }
 

@@ -82,13 +82,16 @@ export function resolveIntents(engine: Engine, intents: Intent[]): string[] {
 function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
   const actor = engine.state.actors.find((a) => a.id === i.with);
   if (!actor) return "That person is no longer here.";
-  const delta = clamp(Math.round(i.delta), -2, 2);
-  engine.regard(actor, delta);
+  const delta = clamp(Math.round(i.delta), -3, 2);
+  // A grave insult wipes out goodwill rather than denting it: a friend
+  // cursed to their face ends up no warmer than a stranger would.
+  engine.regard(actor, delta <= -2 ? Math.min(delta, delta - actor.trust) : delta);
   actor.memories.push(
     `spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`,
   );
   if (actor.memories.length > 40) actor.memories.shift();
   if (i.ask) engine.answerAsk(actor, i.ask, i.favour);
+  if (i.callIn) return engine.callIn(actor, i.callIn);
   if (i.leave) engine.walkOff(actor, i.leave);
   engine.advance(60, actor.id);
   return `Spoke with ${actor.name}, regard ${delta > 0 ? "+" : ""}${delta}.`;

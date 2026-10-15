@@ -21,6 +21,7 @@ export function Arrival({ setting, engine, character, ready = !!engine, onEnter,
 }) {
   const [requested, setRequested] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [opening] = useState(() => !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(() => {
     if (!requested || !ready) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) onEnter();
@@ -37,7 +38,7 @@ export function Arrival({ setting, engine, character, ready = !!engine, onEnter,
   const birth = birthPercentile(setting.year);
   const work = engine?.dailyGoals().find((g) => g.slot === "work")?.text;
   const aim = engine?.state.lifeAim?.text;
-  return <div className={`arrival${leaving ? " is-leaving" : ""}`} data-modal="true" inert={leaving} role="dialog" aria-modal="true" aria-label={`Begin ${setting.characterName}'s life`} onAnimationEnd={(event) => {
+  return <div className={`arrival${leaving ? " is-leaving" : ""}${opening ? " is-opening" : ""}`} data-modal="true" inert={leaving} role="dialog" aria-modal="true" aria-label={`Begin ${setting.characterName}'s life`} onAnimationEnd={(event) => {
     if (event.target === event.currentTarget && event.animationName === "arrival-depart") onEnter();
   }}>
     <div className="arrival-scene" style={{ backgroundImage: `url(${arrivalBackdrop(setting)})` }} />

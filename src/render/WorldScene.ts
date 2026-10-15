@@ -1471,6 +1471,16 @@ export class WorldScene extends Phaser.Scene {
     c.stopFollow();
     c.pan(im.x, im.y - 12, 900 * ms, "Sine.easeInOut", true);
   }
+  /** Both speakers in view, held above the conversation board along the foot of the screen. */
+  frameConversation(id: string): void {
+    const c = this.cameras?.main;
+    const player = this.entities.get("player");
+    const im = this.entities.get(id);
+    if (!c || !player || !im?.visible) return;
+    const ms = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1;
+    c.stopFollow();
+    c.pan((player.x + im.x) / 2, (player.y + im.y) / 2 + (c.height * 0.16) / c.zoom, 700 * ms, "Sine.easeInOut", true);
+  }
   private castMarks?: Phaser.GameObjects.Graphics;
   private castState?: Runtime["engine"]["state"];
   private castRevision = -1;
@@ -3752,13 +3762,32 @@ export class WorldScene extends Phaser.Scene {
           tileWidth: 16,
           tileHeight: 16,
         });
+        // Tiles sit edge to edge in terrain.png; at sub-pixel scroll the GPU
+        // samples the neighbour and draws 1px seams. Extrude each tile by 1px.
+        if (!this.textures.exists("terrain-extruded")) {
+          const src = this.textures.get("terrain").getSourceImage() as HTMLImageElement;
+          const n = Math.floor(src.width / 16);
+          const out = this.textures.createCanvas("terrain-extruded", n * 18, 18)!;
+          const ctx = out.getContext();
+          ctx.imageSmoothingEnabled = false;
+          for (let i = 0; i < n; i++) {
+            const sx = i * 16, dx = i * 18 + 1;
+            ctx.drawImage(src, sx, 0, 16, 16, dx, 1, 16, 16);
+            ctx.drawImage(src, sx, 0, 16, 1, dx, 0, 16, 1);
+            ctx.drawImage(src, sx, 15, 16, 1, dx, 17, 16, 1);
+            ctx.drawImage(out.canvas, dx, 0, 1, 18, dx - 1, 0, 1, 18);
+            ctx.drawImage(out.canvas, dx + 15, 0, 1, 18, dx + 16, 0, 1, 18);
+          }
+          out.refresh();
+          out.setFilter(this.textureFilter());
+        }
         const ts = this.tilemap.addTilesetImage(
           "terrain",
-          "terrain",
+          "terrain-extruded",
           16,
           16,
-          0,
-          0,
+          1,
+          2,
         )!;
         this.ground = this.tilemap
           .createLayer(0, ts, startX * 16, startY * 16)!
@@ -6843,7 +6872,11 @@ export class WorldScene extends Phaser.Scene {
     const offset = this.poseOffset(id);
     if (pose === "idle") {
       const cycle = 3400 + (offset % 3800);
-      return (time + offset) % cycle < 130 ? 3 : 0;
+      if ((time + offset) % cycle < 130) return 3;
+      // Only G draws idle's middle frames as a breath and a shift of weight.
+      if (this.characters?.renderer !== "g") return 0;
+      if ((time + offset * 7) % (9000 + (offset % 6000)) < 2600) return 2;
+      return (time + offset) % 3600 < 1500 ? 1 : 0;
     }
     if (pose === "sit") return 0;
     return Math.floor((time + offset) / poseTiming(pose)) % frameCount(pose);

@@ -1,5 +1,6 @@
 import type { CharacterAppearance, CharacterFace } from "../../core/character";
 import { mix } from "../characters/pixels";
+import { clothColours } from "../characters/cloth";
 import { portraitFace } from "./layered";
 import type { Expression as Face } from "./constructed";
 import { MAT, Raster, tones, type Mat, type Tones } from "./raster";
@@ -196,7 +197,8 @@ function model(a: CharacterAppearance, age: number): Model {
   const bridge = face.noseBridge ?? "average";
   const [mw, u, l] = MOUTHS[face.mouth] ?? MOUTHS.soft;
 
-  const cloth = tones(a.wearing.color, "cloth");
+  const c = clothColours(a.wearing);
+  const cloth = tones(c.top, "cloth");
   const upper = Math.max(0.9, u + 0.3 + (female ? 0.5 : 0) + spread(s, "upper", 0.3) - old * 0.5);
   // The lower lip is usually a little fuller than the upper, never twice it.
   const lower = clamp(l + 0.3 + (female ? 0.2 : 0) + spread(s, "lower", 0.3) - old * 0.3, 1, upper * 1.3 + 0.2);
@@ -206,13 +208,13 @@ function model(a: CharacterAppearance, age: number): Model {
       [MAT.skin]: skin,
       [MAT.hair]: hair,
       [MAT.cloth]: cloth,
-      [MAT.trim]: tones(a.wearing.trim, "cloth"),
+      [MAT.trim]: tones(c.trim, "cloth"),
       [MAT.metal]: tones({ gold: "#d9a441", silver: "#c8ccd4", copper: "#c07040", bone: "#e8dcc0", shell: "#f0e0d0", jet: "#34303c" }[a.adornment?.metal ?? "gold"] ?? "#d9a441", "cloth"),
-      [HAT]: tones(a.wearing.headColor ?? a.wearing.trim, "cloth"),
+      [HAT]: tones(c.hat, "cloth"),
       [SHIRT]: tones("#e8e4da", "cloth"),
-      [INNER]: tones(a.wearing.innerColor ?? a.wearing.lowerColor, "cloth"),
+      [INNER]: tones(c.inner, "cloth"),
       [LIP]: tones(lipBase, "skin"),
-      [CLOAK]: tones(a.wearing.cloakColor ?? a.wearing.color, "cloth"),
+      [CLOAK]: tones(c.cloak, "cloth"),
     },
     headW, headH, jawW, chinY, chinR,
     // Most cheekbones are quiet; a few people have them high and sculpted.
@@ -402,7 +404,8 @@ function build(m: Model): Scene {
       case "open-robe": return Math.min(round(p), Math.max(Math.abs(p[0]) - 4.5, -2 - p[2]));
       case "dress": return ellipsoid(p, 0, -28, 7, 10, 5.5, 7);
       case "gown": return Math.max(Math.abs(p[0]) - 11, -(p[1] + 31.5), -2 - p[2]);
-      case "poncho": return ellipsoid(p, 0, -27.5, 5, 6, 3, 7);
+      // A head-hole, not a scoop: the poncho's own colour must fill the bust.
+      case "poncho": return ellipsoid(p, 0, -27.5, 3, 4, 3, 4);
       case "suit": return ellipsoid(p, 0, -25, 2, 6.2, 2.4, 9);
       default:
         return a.wearing.motif === "placket" ? Math.min(round(p), Math.max(Math.abs(p[0]) - 0.9, -(p[1] + 36), -2 - p[2])) : round(p);
@@ -591,10 +594,11 @@ function build(m: Model): Scene {
 
   function garmentMat(p: V): number {
     const motif = a.wearing.motif ?? "auto";
-    const edge = -cut(p);
+    // Distance out from the neck opening: cloth lies where the cut is positive.
+    const edge = cut(p);
     if (garment === "wrap") return Math.abs(p[1] + 24 + (p[0] + 6) * 0.85) < 1.4 ? MAT.trim : MAT.cloth;
     const trimmed = !["shirt", "coat", "suit"].includes(garment);
-    const band = garment === "robe" || garment === "open-robe" ? 2.4 : 1.3;
+    const band = garment === "robe" || garment === "open-robe" ? 2.4 : garment === "poncho" ? 0.9 : 1.3;
     if (trimmed && edge < band) return motif === "stitch" && Math.sin(p[0] * 3 + p[1] * 3) > 0.3 ? MAT.cloth : MAT.trim;
     if (garment === "open-robe" && Math.abs(p[0]) < 7.5 && p[1] < -28) return MAT.trim;
     if (motif === "jersey" && (edge < 1.3 || (Math.abs(Math.abs(p[0]) - m.shoulder) < 1.2 && p[1] < -33))) return MAT.trim;
@@ -603,6 +607,11 @@ function build(m: Model): Scene {
       case "yoke": if (p[1] > -34 + Math.sin(p[0] * 0.9) * 0.8) return MAT.trim; break;
       case "stripes": {
         const k = (p[1] + 30 + Math.abs(Math.sin(p[0] * 0.6)) * 1.2) / 3.2;
+        // A poncho as the sprite draws it: stripes alternating trim and inner, its own colour between.
+        if (garment === "poncho") {
+          if (p[1] < -31 && k - Math.floor(k) < 0.5) return ((Math.floor(k) % 2) + 2) % 2 ? INNER : MAT.trim;
+          break;
+        }
         const row = ((Math.floor(k) % 3) + 3) % 3;
         if (p[1] < -31 && k - Math.floor(k) < 0.55) return row === 0 ? MAT.trim : row === 1 ? INNER : MAT.cloth;
         break;

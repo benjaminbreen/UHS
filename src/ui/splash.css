@@ -85,7 +85,7 @@
 }
 /* The form is a stacking context, so the start-mode tooltip inside it cannot
    rise above a sibling on the same layer however high its own z-index goes.
-   Lifting the form is what puts the tooltip over "More info" below it. */
+   Lifting the form is what puts the tooltip over "More starts" below it. */
 .splash form {
   z-index: 2;
 }
@@ -151,6 +151,7 @@
   margin: 0 0 10px;
 }
 .splash-input {
+  position: relative;
   display: flex;
   align-items: center;
   border: 2px solid var(--splash-gold);
@@ -782,5 +783,49 @@
   .splash-footer nav {
     gap: 6px;
     flex-wrap: wrap;
+  }
+}
+.splash-person {
+  flex: none;
+  align-self: stretch;
+  width: 62px;
+  margin: 9px 18px 9px -21px;
+  border-right: 1px solid #d9b47770;
+  background: #172332;
+  overflow: hidden;
+}
+.splash-person .arrival-portrait {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: none;
+}
+.splash-input-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+}
+.splash-input-text input {
+  padding: 2px 0;
+}
+.splash-person-line {
+  color: #9aa6ba;
+  font: 10px var(--splash-pixel);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.splash.is-departing .splash-content {
+  transition: opacity 0.35s ease-in, transform 0.35s ease-in;
+  opacity: 0;
+  transform: translateY(-8px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash.is-departing * {
+    transition: none !important;
   }
 }

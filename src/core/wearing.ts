@@ -10,6 +10,7 @@ import {
   dyes,
   parseCloth,
   type Cloth,
+  type Material,
 } from "../content/characters/wardrobe/cloth";
 
 type Wearing = CharacterAppearance["wearing"];
@@ -81,7 +82,11 @@ export function composeWearing(
 
 /** Worn slots equivalent to an authored `wearing` record: saves made before
  * items were wearable, fresh characters, and the customizer. */
-export function wornFromWearing(w: Wearing, cloth?: Cloth): Worn {
+export function wornFromWearing(
+  w: Wearing,
+  cloth?: Cloth,
+  fibres?: Partial<Record<WearSlot, Material>>,
+): Worn {
   // Cloth rides in the item id, so the inventory stays a plain count of ids
   // and nothing in the save format has to change to carry it.
   //
@@ -89,22 +94,23 @@ export function wornFromWearing(w: Wearing, cloth?: Cloth): Worn {
   // already says so: the garment, the lower half and the trim each have their
   // own colour. Each worn item takes the dye of the part it covers, so the
   // item list and the figure agree.
-  const of = (id: string, hex?: string) => {
+  const of = (id: string, hex?: string, slot?: WearSlot) => {
     if (!cloth) return id;
     const dye = dyeAt(hex);
-    return clothId(id, dye ? { ...cloth, dye } : cloth);
+    const material = (slot && fibres?.[slot]) || cloth.material;
+    return clothId(id, { ...cloth, material, ...(dye && { dye }) });
   };
   const worn: Worn = {};
   if (w.garment !== "none") worn.body = of(`garment-${w.garment}`, w.color);
-  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`, w.headColor ?? w.lowerColor);
-  if (w.cloak) worn.over = of("cloak", w.cloakColor);
-  else if (w.mantle) worn.over = of("mantle", w.cloakColor);
-  else if (w.shoulderCloth) worn.over = of("shoulder-cloth", w.cloakColor);
+  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`, w.headColor ?? w.lowerColor, "head");
+  if (w.cloak) worn.over = of("cloak", w.cloakColor, "over");
+  else if (w.mantle) worn.over = of("mantle", w.cloakColor, "over");
+  else if (w.shoulderCloth) worn.over = of("shoulder-cloth", w.cloakColor, "over");
   if (w.belt && w.belt !== "none") worn.belt = of(`belt-${w.belt}`, w.trim);
   if (w.necklace) worn.neck = w.neckStyle === "chain" ? "chain" : "necklace";
   if (w.eyewear && w.eyewear !== "none") worn.eyes = w.eyewear;
   if (w.earrings) worn.ears = "earrings";
-  if (w.leggings && w.leggings !== "none") worn.legs = of(`leggings-${w.leggings}`, w.lowerColor);
+  if (w.leggings && w.leggings !== "none") worn.legs = of(`leggings-${w.leggings}`, w.lowerColor, "legs");
   if (w.footwear && w.footwear !== "none")
     worn.feet = of(`footwear-${w.footwear}`, w.lowerColor);
   return worn;

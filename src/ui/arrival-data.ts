@@ -1,9 +1,33 @@
 import type { WorldSetting } from "../content/geography/types";
+import { bce } from "../content/history/dates";
 
 export function arrivalBackdrop(setting: WorldSetting) {
   const { lon, lat, year } = setting;
   const name = `${setting.location} ${setting.placeId}`.toLowerCase();
+  const urban = setting.settlement === "city" || setting.settlement === "port";
+  const coastal = setting.water.startsWith("coast") || setting.water === "island" || setting.water === "ocean";
   const special: [string, number, number, number, number, number, number][] = [
+    ["europe-glacial", -12, 45, 40, 57, bce(30000).year, bce(10000).year],
+    ["africa-deep-prehistory", 20, 43, -30, 15, bce(80000).year, bce(10000).year],
+    ["sahara-green", -10, 35, 16, 28, bce(6000).year, bce(3500).year],
+    ["levant-foragers", 34, 40, 29, 37, bce(13000).year, bce(9500).year],
+    ["east-asia-neolithic", 103, 123, 30, 43, bce(6000).year, bce(3000).year],
+    ["aegean-bronze", 14, 36, 32, 44, bce(2200).year, bce(1200).year],
+    ["mediterranean-roman-port", -10, 37, 29, 46, bce(100).year, 400],
+    ["eastern-mediterranean-medieval", 18, 37, 33, 45, 700, 1400],
+    ["europe-early-medieval", -12, 40, 44, 59, 600, 1000],
+    ["west-asia-medieval", 36, 64, 24, 40, 750, 1500],
+    ["maghreb-medieval", -13, 12, 28, 37, 800, 1600],
+    ["sahel-medieval", -16, 15, 10, 18, 1000, 1700],
+    ["west-asia-early-modern", 18, 45, 34, 45, 1500, 1850],
+    ["korea-medieval-early-modern", 124, 132, 33, 43, 1000, 1850],
+    ["japan-early-modern-town", 129, 146, 30, 45, 1600, 1850],
+    ["andes-coastal-medieval", -82, -70, -18, 0, 900, 1500],
+    ["caribbean-precontact", -85, -59, 10, 25, 700, 1500],
+    ["polynesia-medieval", 175, 180, -25, 25, 1000, 1800],
+    ["polynesia-medieval", -180, -130, -25, 25, 1000, 1800],
+    ["east-asia-transition-port", 124, 146, 30, 45, 1870, 1910],
+    ["south-asia-midcentury-town", 60, 93, 5, 34, 1945, 1980],
     ["botswana-500", 20, 30.5, -26, -16, 300, 900],
     ["mozambique-700", 31, 42, -27, -10, 300, 900],
     ["bengal-delta-100bce", 87, 94, 20, 27, -500, 500],
@@ -121,6 +145,26 @@ export function arrivalBackdrop(setting: WorldSetting) {
     ["eastern-woodlands-400", -100, -62, 25, 62, -3000, 1599],
     ["north-atlantic-1730", -100, -50, 25, 62, 1600, 1899],
     ["western-north-america-1850", -125, -95, 25, 62, 1800, 1899],
+    ["south-asia-early-farming", 60, 94, 5, 34, bce(7000).year, bce(3500).year],
+    ["south-asia-bronze-villages", 60, 94, 5, 34, bce(3500).year, bce(1000).year],
+    ["northwest-south-asia-antiquity", 60, 88, 20, 35, bce(1000).year, 500],
+    ["southern-south-asia-antiquity", 68, 90, 5, 22, bce(1000).year, 500],
+    ["northwest-south-asia-medieval", 60, 88, 22, 35, 500, 1500],
+    ["peninsular-south-asia-early-modern", 68, 87, 5, 23, 1500, 1899],
+    ["south-china-early-rice", 99, 123, 18, 33, bce(7000).year, bce(500).year],
+    ["china-bronze-villages", 103, 123, 28, 43, bce(3000).year, bce(1000).year],
+    ["south-china-medieval", 99, 123, 18, 34, 500, 1500],
+    ["south-china-early-modern", 99, 123, 18, 34, 1500, 1899],
+    ["southeast-asia-early-modern", 95, 140, -11, 19, 1500, 1899],
+    ["central-asian-oasis-later", 52, 88, 34, 48, 1100, 1899],
+    ["northern-eurasia-forest-communities", 40, 180, 50, 75, bce(13000).year, 1899],
+    ["west-asia-inland-towns", 26, 66, 20, 44, 750, 1899],
+    ["europe-bronze-iron-villages", -12, 40, 40, 60, bce(3000).year, bce(100).year],
+    ["mediterranean-europe-early-modern", -13, 26, 34, 48, 1450, 1850],
+    ["west-africa-early-villages", -18, 18, 4, 15, bce(2000).year, 500],
+    ["west-africa-forest-courtyards", -18, 18, 4, 12, 500, 1899],
+    ["andes-early-farming", -81, -65, -26, 8, bce(3000).year, 1200],
+    ["latin-america-colonial-towns", -118, -34, -40, 27, 1550, 1899],
   ];
   const named = [
     [/new england|acadian|maine|new brunswick|nova scotia/, "northeast-woodlands-1200"],
@@ -137,6 +181,22 @@ export function arrivalBackdrop(setting: WorldSetting) {
   }
   for (const [id, west, east, south, north, first, last] of special) {
     if (lon >= west && lon <= east && lat >= south && lat <= north && year >= first && year <= last) {
+      if (id === "africa-deep-prehistory" && lon < 28 && lat > -12) continue;
+      if (id === "levant-foragers" && /cyprus/.test(name)) continue;
+      if (id === "east-asia-neolithic" && (setting.climate === "arid" || setting.settlement === "camp")) continue;
+      if ((id === "aegean-bronze" || id === "mediterranean-roman-port" || id === "eastern-mediterranean-medieval" || id === "east-asia-transition-port") && !coastal) continue;
+      if ((id === "mediterranean-roman-port" || id === "east-asia-transition-port") && !urban) continue;
+      if (id === "europe-early-medieval" && urban) continue;
+      if (id === "europe-early-medieval" && setting.climate !== "temperate") continue;
+      if (id === "west-asia-medieval" && (!urban || !setting.water.startsWith("river") || setting.relief >= 0.5)) continue;
+      if (id === "maghreb-medieval" && (setting.settlement === "camp" || (setting.climate === "arid" && setting.relief < 0.5))) continue;
+      if (id === "sahel-medieval" && (setting.settlement === "camp" || setting.water === "none")) continue;
+      if (id === "west-asia-early-modern" && (!coastal || !urban)) continue;
+      if (id === "japan-early-modern-town" && !urban) continue;
+      if (id === "andes-coastal-medieval" && (setting.relief >= 0.5 || setting.climate !== "arid")) continue;
+      if (id === "caribbean-precontact" && !coastal) continue;
+      if (id === "polynesia-medieval" && (!coastal || setting.climate !== "tropical")) continue;
+      if (id === "south-asia-midcentury-town" && !urban && setting.settlement !== "village") continue;
       if (id === "mozambique-coast-2000" && !setting.water.startsWith("coast") && !/maputo|beira|quelimane|pemba/.test(name)) continue;
       if (id === "andes-town-2000" && setting.relief < 0.5) continue;
       if (id === "south-asia-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
@@ -151,6 +211,21 @@ export function arrivalBackdrop(setting: WorldSetting) {
       if (id === "sierra-madre-1000" && setting.relief < 0.5) continue;
       if (id === "sepik-1000" && setting.relief >= 0.5) continue;
       if (id === "australian-interior-500bce" && setting.water.startsWith("coast")) continue;
+      if ((id === "south-asia-early-farming" || id === "south-asia-bronze-villages" || id === "china-bronze-villages" || id === "south-china-early-rice" || id === "west-africa-early-villages" || id === "andes-early-farming") && setting.settlement === "camp") continue;
+      if ((id === "south-asia-early-farming" || id === "south-asia-bronze-villages" || id === "northwest-south-asia-antiquity" || id === "southern-south-asia-antiquity" || id === "northwest-south-asia-medieval" || id === "peninsular-south-asia-early-modern") && setting.relief >= 0.65) continue;
+      if ((id === "south-china-medieval" || id === "south-china-early-modern") && (setting.settlement === "camp" || (lon >= 120 && lat <= 26))) continue;
+      if (id === "south-china-early-rice" && (setting.climate === "arid" || setting.relief >= 0.65)) continue;
+      if (id === "china-bronze-villages" && setting.climate === "arid") continue;
+      if (id === "southeast-asia-early-modern" && setting.settlement === "camp") continue;
+      if (id === "central-asian-oasis-later" && (!urban || setting.relief >= 0.65)) continue;
+      if (id === "northern-eurasia-forest-communities" && (urban || (setting.climate !== "boreal" && setting.climate !== "temperate"))) continue;
+      if (id === "west-asia-inland-towns" && (!urban || (year < 1453 && /istanbul|constantinople/.test(name)))) continue;
+      if (id === "europe-bronze-iron-villages" && (urban || setting.climate !== "temperate")) continue;
+      if (id === "mediterranean-europe-early-modern" && (setting.settlement === "camp" || setting.relief >= 0.65)) continue;
+      if (id === "west-africa-early-villages" && setting.climate === "arid") continue;
+      if (id === "west-africa-forest-courtyards" && (setting.settlement === "camp" || setting.climate !== "tropical")) continue;
+      if (id === "andes-early-farming" && setting.relief < 0.3) continue;
+      if (id === "latin-america-colonial-towns" && (!urban || setting.climate === "boreal" || setting.climate === "tundra")) continue;
       return `/opening/${id}.webp`;
     }
   }

@@ -50,6 +50,7 @@ export const askLines: Record<Ask["kind"], (what: string) => string> = {
   food: () => "I have not eaten since yesterday. Have you anything to spare?",
   "talk-to": (what) => `Will you ${what} for me?`,
   "go-to": (what) => `Would you ${what}? I can't get away.`,
+  help: (what) => `Could you lend a hand? I need to ${what}.`,
 };
 
 /** What a household's recent years give its neighbours to talk about, and

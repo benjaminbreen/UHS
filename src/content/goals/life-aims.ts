@@ -40,6 +40,8 @@ export type LifeAimContext = {
   friend?: Actor;
   creditor?: Actor;
   sickKin?: Actor;
+  /** "son", "wife": what the sick kin is to the player. */
+  sickKinWord?: string;
   beloved?: { actor: Actor; bond: Bond };
   rival?: Actor;
   estranged?: Actor;
@@ -121,7 +123,7 @@ export const LIFE_AIM_TEMPLATES: LifeAimTemplate[] = [
   {
     id: "care-through-illness", family: "elder-kin", weight: 2.8, fit: warm, eligible: (c) => !!c.sickKin,
     bind: (c) => ({
-      text: `Keep ${c.sickKin!.name} cared for through illness, and keep the household working while they cannot.`, subjects: [c.sickKin!.id],
+      text: `Keep ${c.sickKinWord ? `your ${c.sickKinWord} ` : ""}${c.sickKin!.name} cared for through illness, and keep the household working while they cannot.`, subjects: [c.sickKin!.id],
       basis: { reason: `${c.sickKin!.name} is a living relative with an illness under way.`, means: "Bring sustenance and make time to sit with them.", obstacle: "The illness also takes time and labour from the household." }, step: foodStep(c.sickKin!),
     }),
   },

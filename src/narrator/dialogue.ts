@@ -323,10 +323,11 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     ? `You have asked the player to ${open.what}${open.accepted ? ", and they promised" : ""}. If they answer now, set "ask" to "accepted" or "declined".`
     : targets
       ? [
-          "If it comes up naturally and the player seems decent, you may ask them a favour that grows out of your own life and worries. It must be one of: \"bring\" a thing, \"talk-to\" a person (to plead, warn, apologise, carry word), or \"go-to\" a place.",
+          "If it comes up naturally and the player seems decent, you may ask them a favour that grows out of your own life and worries. It must be one of: \"bring\" a thing, \"talk-to\" a person (to plead, warn, apologise, carry word), \"go-to\" a place, or \"help\" with your own work today (the player comes with you and works beside you; target is your own name).",
           `People: ${targets.people.join(", ") || "none"}. Places: ${targets.places.join(", ") || "none"}. Things: ${targets.goods.join(", ") || "none"}.`,
           want ? `One thing that is really pressing: ${want.what}.` : "",
           'If you ask, set "ask" to "made" and "favour" to {kind, target (a name from those lists), what (what you want done, in a few words, as "put in a word for my son with the cooper")}.',
+          'If the player offers to help with your work and you would take the help, set "ask" to "accepted" and "favour" to {kind: "help", target: your own name, what: the job, in a few words}. Turn the offer down if you do not trust them or it is not work a stranger could do.',
         ].filter(Boolean).join(" ")
       : "";
   const feeling = actor.trust < -4 ? "angry with you" : actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
@@ -369,6 +370,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       ? `Heard about the player, second-hand and maybe wrong or exaggerated: ${hearsay.join("; ")}. It colours how you take them; you may bring it up, ask if it is true, or keep your distance.`
       : "",
     favour,
+    actor.owes ? "The player gave you a day's help with your work, and you owe them one in return. If they call it in, honour it." : "",
     gossip.length ? `Talk going round about other people, yours to pass on if the chance comes: ${gossip.join("; ")}.` : "",
     known,
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known ? "" : "Has not met the player before.",

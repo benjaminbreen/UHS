@@ -9,7 +9,8 @@ import {
   MoveUpRight,
 } from "lucide-react";
 import { openings } from "../content/geography/openings";
-import { StartPreview } from "./StartPreview";
+import { ArrivalPortrait } from "./ArrivalPortrait";
+import { appearanceForAge } from "../core/character";
 import type { WorldSetting } from "../content/geography/types";
 import type { Engine } from "../core/engine";
 import { placeLabel, regionAt } from "../content/geography/region-label";
@@ -60,7 +61,6 @@ export function Splash({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [prompt, setPrompt] = useState(() => new URLSearchParams(location.search).get("start") ?? "");
-  const [mode, setMode] = useState<"local" | "model">("local");
   const [quick, setQuick] = useState(readQuick);
   const [busy, setBusy] = useState("");
   const [arrival, setArrival] = useState<{ setting: WorldSetting; character?: StartingCharacter; engine?: Engine; cancel?: () => void }>();
@@ -119,9 +119,11 @@ export function Splash({
     onCharacter?: CharacterPrepared;
   };
   const warm = useRef<WarmStart>(undefined);
+  const [person, setPerson] = useState<StartingCharacter>();
   const cancelWarm = () => {
     const ready = warm.current;
     warm.current = undefined;
+    setPerson(undefined);
     if (!ready) return;
     ready.abort.abort();
     void ready.engine.then((engine) => releaseTerrainWorker(engine.world)).catch(() => {});
@@ -133,6 +135,7 @@ export function Splash({
     const prepared: WarmStart = { ...next, abort, engine: import("../runtime/map-travel").then((m) =>
       m.prepareConnectedStart(next.setting, next.seed, abort.signal, (setting, character) => {
         prepared.preview = { setting, character };
+        if (warm.current === prepared) setPerson(character);
         prepared.onCharacter?.(setting, character);
       }),
     ) };
@@ -246,7 +249,7 @@ export function Splash({
     }
   };
   return (
-    <main className="splash">
+    <main className={arrival ? "splash is-departing" : "splash"}>
       {arrival && <Arrival setting={arrival.setting} character={arrival.character} engine={arrival.engine} ready={ready} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); if (arrival.engine) releaseTerrainWorker(arrival.engine.world); onCancel?.(); controller.current = null; setArrival(undefined); setBusy(""); }} />}
       <div className="splash-frame">
         <SplashStars />
@@ -274,25 +277,31 @@ export function Splash({
                 setPanel("world");
                 return;
               }
-              if (mode === "model" && !selected) setPanel("world");
-              else void launch(prompt.trim());
+              void launch(prompt.trim());
             }}
           >
             <label className="splash-eyebrow" htmlFor="opening-prompt">
               Your start
             </label>
             <div className="splash-input">
-              <svg
-                className="splash-cursor"
-                viewBox="0 0 12 12"
-                shapeRendering="crispEdges"
-                aria-hidden="true"
-              >
-                <path
-                  fill="#e9c785"
-                  d="M1 0h1v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1H6v1h1v1h1v1H7v-1H6v-1H5v-1H4v1H3v1H2v1H1z"
-                />
-              </svg>
+              {selected || person ? (
+                <div className="splash-person" title={person?.name}>
+                  {person && <ArrivalPortrait appearance={appearanceForAge(person.appearance, person.age)} age={person.age} />}
+                </div>
+              ) : (
+                <svg
+                  className="splash-cursor"
+                  viewBox="0 0 12 12"
+                  shapeRendering="crispEdges"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="#e9c785"
+                    d="M1 0h1v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1H6v1h1v1h1v1H7v-1H6v-1H5v-1H4v1H3v1H2v1H1z"
+                  />
+                </svg>
+              )}
+              <div className="splash-input-text">
               <input
                 id="opening-prompt"
                 value={prompt}
@@ -318,6 +327,12 @@ export function Splash({
                 }}
                 placeholder="A hunter in Anatolia, 7000 BCE"
               />
+                {(selected || person) && (
+                  <span className="splash-person-line" aria-live="polite">
+                    {person ? `${person.name}, ${person.age}` : "Meeting someone…"}
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
                 aria-label="Choose starting details"
@@ -334,7 +349,7 @@ export function Splash({
                 disabled={!!busy}
                 onClick={() => void randomize()}
               >
-                Random start
+                Someone else
               </button>
               <button className="splash-begin" disabled={!!busy}>
                 Begin
@@ -366,7 +381,7 @@ export function Splash({
             </fieldset>
             <fieldset className="splash-random-mode">
               <legend>Pace</legend>
-              {([[true, "Quick day", "About 20 minutes. Go takes you to each place fast, and the day keeps to one occasion."], [false, "Full day", "40 to 50 minutes, walking."]] as const).map(([on, label, hint]) => (
+              {([[true, "Quick day · 20 min", "About 20 minutes. Go takes you to each place fast, and the day keeps to one occasion."], [false, "Full day · 45 min", "40 to 50 minutes, walking."]] as const).map(([on, label, hint]) => (
                 <label key={label}>
                   <input type="radio" name="pace" checked={quick === on} disabled={!!busy} onChange={() => { setQuick(on); writeQuick(on); }} />
                   {label}
@@ -382,7 +397,7 @@ export function Splash({
             aria-controls="splash-more"
             onClick={() => setMoreOpen((open) => !open)}
           >
-            More info
+            More starts
             <ChevronDown
               className={moreOpen ? "about-chevron is-open" : "about-chevron"}
               size={14}
@@ -394,32 +409,6 @@ export function Splash({
             hidden={!moreOpen}
           >
             <div className="splash-more-inner">
-              {selected && <StartPreview setting={selected.setting} />}
-              <div
-                className="splash-modes"
-                role="group"
-                aria-label="World creation mode"
-              >
-                <button
-                  type="button"
-                  aria-pressed={mode === "local"}
-                  disabled={!!busy}
-                  onClick={() => setMode("local")}
-                >
-                  Standard
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={mode === "model"}
-                  disabled={!!busy}
-                  onClick={() => setMode("model")}
-                >
-                  Use AI
-                </button>
-              </div>
-              <div className="splash-divider">
-                <span>✦</span>
-              </div>
               <section
                 className="splash-openings"
                 aria-label="Opening scenarios"
@@ -513,7 +502,7 @@ export function Splash({
               </button>
               <span>·</span>
               <button disabled={!!busy} onClick={() => setPanel("world")}>
-                Settings
+                Atlas & World Weaver
               </button>
             </nav>
             <div id="splash-about" className="splash-about" hidden={!aboutOpen}>
@@ -564,7 +553,7 @@ export function Splash({
                   initialSeed={selected?.seed ?? seed}
                   initialSetting={selected?.setting}
                   initialPrompt={selected ? "" : prompt}
-                  initialMode={mode}
+                  initialMode="local"
                   onPreparing={(setting, cancel) => {
                     randomizeCall.current++;
                     cancelWarm();
@@ -581,14 +570,14 @@ export function Splash({
               <>
                 <h2>One life in a generated world</h2>
                 <p>
-                  Choose a scenario, describe a place and date, or pick Random
-                  start. Walk through the landscape, meet people, and interact
+                  Take the person on the opening page, ask for someone else,
+                  or type a role, a place and a year. Walk through the landscape, meet people, and interact
                   with the world.
                 </p>
                 <p>
-                  Grounded uses local procedural rules. World Weaver can
-                  interpret requests through an optional AI service; it does not
-                  add autonomous AI characters.
+                  Starts are built from local procedural rules. World Weaver,
+                  under Atlas & World Weaver, can interpret a free description
+                  through an optional AI service.
                 </p>
                 <p>
                   Reloading returns here. You can export a world to a file from

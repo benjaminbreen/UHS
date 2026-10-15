@@ -11,6 +11,154 @@ import { withPage, characterLab, shootCanvas, writeDataUrl, base } from "./lib";
 
 const out = (name: string) => `artifacts/characters/${name}.png`;
 
+/** Two renderers side by side, A on the paler ground: people, walks, kits, a crowd and accessories. */
+async function dollSheets(page: Page, pair: [string, string], prefix: string) {
+  await characterLab(page);
+  await page.evaluate("window.__name = (fn) => fn");
+  const sheets = await page.evaluate(async (pair) => {
+    const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+    const { places } = await import("/src/content/geography/places.ts" as string);
+    const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+    const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+    const { headwear, garments } = await import("/src/core/character.ts" as string);
+    const { composeWearing } = await import("/src/core/wearing.ts" as string);
+    const { wearableItems } = await import("/src/content/characters/wearables.ts" as string);
+    const { parseCloth } = await import("/src/content/characters/wardrobe/cloth.ts" as string);
+    // Dressed as the world dresses them: worn items carry the cloth's material and quality.
+    const dressed = (c: any, patch = {}) => ({ ...c.appearance, wearing: { ...composeWearing(c.appearance.wearing, c.worn,
+      (x: string) => (wearableItems as any)[x] ?? (wearableItems as any)[parseCloth(x)?.base]), ...patch } });
+    const where = [["rome", 100], ["london", 1200], ["kyoto", 1850], ["timbuktu", 1400], ["delhi", 1600], ["cusco", 1400],
+      ["paris", 1888], ["beijing", 1400], ["konya", 1400], ["mongolia", 1200], ["java", 950], ["paris", 2009]];
+    const people = where.flatMap(([id, year], i) => {
+      const setting = settingFor(places.find((p: any) => p.id === id), year);
+      return [0, 1].map((k) => dressed(generateCharacter(setting, "doll-review", `p-${i}-${k}`, [24, 38, 62, 30, 9][(i + k) % 5])));
+    });
+    // Each accessory and fibre once, on someone who would have worn it.
+    const showcase = ([
+      ["london", 1600, "blacksmith", { apron: "leather" }], ["london", 1600, "baker", { apron: "cloth" }],
+      ["london", 1600, "merchant", { neckwear: "ruff", headwear: "none" }], ["london", 1780, "clerk", { neckwear: "cravat", bag: "satchel", headwear: "none" }],
+      ["london", 1800, "sailor", { neckwear: "neckerchief" }], ["paris", 1400, "trader", { bag: "purse", quality: -1 }],
+      ["delhi", 1600, "weaver", { wrist: "bangles", shoulderCloth: true }], ["beijing", 1400, "merchant", { material: "silk", quality: 3 }],
+      ["polynesia", 1500, "fisher", { material: "barkcloth" }], ["mongolia", 1200, "herder", { material: "fur" }],
+      ["kyoto", 1800, "shopkeeper", { bag: "purse", apron: "cloth" }], ["mexico", 1450, "farmer", { material: "hide" }],
+      ["london", 1400, "farmer", { trimPattern: "cross-stitch", garment: "tunic", apron: "none" }], ["cusco", 1450, "farmer", { trimPattern: "step", garment: "poncho" }],
+      ["beijing", 1600, "merchant", { trimPattern: "cloud", garment: "robe", mantle: false }], ["timbuktu", 1500, "trader", { trimPattern: "strip", garment: "long-tunic" }],
+      ["kyoto", 1800, "weaver", { hairOrnament: "pins", headwear: "none" }, null, "female"], ["delhi", 1600, "weaver", { hairOrnament: "flower", headwear: "none" }, { nose: "ring", ears: "drop" }, "female"],
+      ["london", 1620, "merchant", { headwear: "brimmed", hatTrim: "feather", headColor: "#2a2630" }, null, "male"], ["mexico", 1450, "farmer", { headwear: "none" }, { marks: "chin-lines", markStyle: "ink", ears: "spool" }, "female"],
+      ["london", 1770, "merchant", { garment: "coat", front: "open", waistcoat: "figured", sidearm: "sword", headwear: "none" }, null, "male"],
+      ["london", 1840, "clerk", { garment: "shirt", waistcoat: "plain", headwear: "none" }, null, "male"],
+      ["konya", 1700, "weaver", { garment: "long-tunic", waistcoat: "figured", headwear: "none" }, null, "female"],
+      ["london", 1850, "laundress", { shawl: "fringed", apron: "none" }, null, "female"],
+      ["london", 1830, "merchant", { shawl: "patterned", garment: "gown", headwear: "none" }, null, "female"],
+      ["cusco", 1450, "weaver", { shawl: "patterned", trimPattern: "step" }, null, "female"],
+      ["mexico", 1800, "market-seller", { shawl: "fringed", headwear: "none" }, null, "female"],
+      ["london", 1350, "farmer", { hood: "down", headwear: "none", cloakColor: "#7a2a2a" }, null, "male"],
+      ["paris", 2009, "student", { garment: "shirt", hood: "down", headwear: "none" }, null, "male"],
+      ["london", 1640, "soldier", { sidearm: "sword" }, null, "male"],
+      ["konya", 1600, "soldier", { sidearm: "sabre" }, null, "male"],
+      ["kyoto", 1700, "retainer", { sidearm: "katana" }, null, "male"],
+      ["java", 1600, "trader", { sidearm: "kris" }, null, "male"],
+      ["london", 1450, "carpenter", { sidearm: "dagger" }, null, "male"],
+    ] as const).map(([id, year, role, patch, adorn, sex], i) => {
+      const c = generateCharacter(settingFor(places.find((p: any) => p.id === id), year), "doll-review", `show-${i}`, 34, role, undefined, undefined, sex);
+      const a = dressed(c, patch);
+      return adorn ? { ...a, adornment: { ...(a.adornment ?? {}), ...adorn } } : a;
+    });
+    const frame = document.createElement("canvas");
+    frame.width = frame.height = 80;
+    const fc = frame.getContext("2d")!;
+    const [A, B] = pair;
+    const sprite = (id: string, a: any, facing: number, pose = "idle", f = 0) => {
+      renderers[id].draw(fc, a, [0, 1, 1, 2, 2, 2, 3, 3][facing], pose, f, undefined, facing, "neutral");
+      return frame;
+    };
+    const facings = [4, 3, 2, 1, 0];
+    const S = 3, cw = 46 * S, ch = 52 * S;
+    const paint = (cols: number, rows: number, bg = "#9aa58c") => {
+      const c = document.createElement("canvas");
+      c.width = cols * cw; c.height = rows * ch;
+      const ctx = c.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height);
+      return [c, ctx] as const;
+    };
+    const cell = (ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, col: number, row: number, tint?: string) => {
+      if (tint) { ctx.fillStyle = tint; ctx.fillRect(col * cw, row * ch, cw, ch); }
+      ctx.drawImage(src, 17, 27, 46, 52, col * cw, row * ch, cw, ch);
+    };
+    // People: E's five facings, then F's.
+    const [ab, abx] = paint(10, people.length);
+    people.forEach((a: any, row: number) => facings.forEach((f, i) => {
+      cell(abx, sprite(A, a, f), i, row, "#a7ae98");
+      cell(abx, sprite(B, a, f), 5 + i, row);
+    }));
+    // Walks and a run: E above F, three facings.
+    // The third walker wears something short, so the legs show.
+    const short = people.find((a: any) => ["shirt", "suit", "tunic", "none", "loincloth"].includes(a.wearing.garment)) ?? people[1];
+    // Walkers dressed to show what swings: feather, fez tassel, hat ribbon, drop earrings, neckerchief, watch chain.
+    const base = people.find((a: any) => a.wearing.garment === "shirt" || a.wearing.garment === "suit") ?? people[1];
+    // Then what hangs and swings: sword, sabre run, katana, shawl from behind, the hood's liripipe, a hoodie.
+    const trims = ([
+      [{ headwear: "brimmed", hatTrim: "feather", headColor: "#2a2630" }, 3], [{ headwear: "fez", headColor: "#a82a2a" }, 3],
+      [{ headwear: "brimmed", hatTrim: "ribbon", headColor: "#d8c48a" }, 2], [{ headwear: "none", neckwear: "neckerchief" }, 3], [{ garment: "suit", headwear: "bowler" }, 3],
+      [{ garment: "coat", front: "open", waistcoat: "figured", sidearm: "sword", headwear: "none" }, 3], [{ sidearm: "sabre", headwear: "none" }, 2, "run"],
+      [{ sidearm: "katana", headwear: "none" }, 3], [{ shawl: "fringed", headwear: "none" }, 0], [{ hood: "down", headwear: "none", garment: "tunic" }, 1],
+      [{ garment: "shirt", hood: "down", headwear: "none" }, 4],
+    ] as [any, number, string?][]).map(([patch, f, pose], i) =>
+      [{ ...base, wearing: { ...base.wearing, ...patch }, adornment: i === 3 ? { ...(base.adornment ?? {}), ears: "drop" } : base.adornment }, f, pose ?? "walk"] as const);
+    const [walk, wx] = paint(8, 22 + trims.length * 2);
+    trims.forEach(([a, f, pose], p) => {
+      for (let k = 0; k < 8; k++) {
+        cell(wx, sprite(A, a, f, pose, k), k, 22 + p * 2, "#a7ae98");
+        cell(wx, sprite(B, a, f, pose, k), k, 23 + p * 2);
+      }
+    });
+    [people[0], people[5], short].forEach((a: any, p: number) => [4, 3, 2].forEach((f, i) => {
+      for (let k = 0; k < 8; k++) {
+        const pose = i === 2 && p === 1 ? "run" : "walk";
+        cell(wx, sprite(A, a, f, A === "e" ? "walk" : pose, k), k, p * 6 + i * 2, "#a7ae98");
+        cell(wx, sprite(B, a, f, pose, k), k, p * 6 + i * 2 + 1);
+      }
+    }));
+    // Idle's four frames, then talk's, front and three-quarter.
+    for (const [row, pose] of [[18, "idle"], [20, "talk"]] as const)
+      for (const [i, f] of [4, 3].entries()) for (let k = 0; k < 4; k++) {
+        cell(wx, sprite(A, short, f, pose, k), i * 4 + k, row, "#a7ae98");
+        cell(wx, sprite(B, short, f, pose, k), i * 4 + k, row + 1);
+      }
+    // Every garment, then every headwear, F only, front and three-quarter.
+    const kits = [
+      ...garments.map((g: string, i: number) => ({ ...people[(i * 3) % people.length], wearing: { ...people[(i * 3) % people.length].wearing, garment: g, headwear: "none", cloak: false, mantle: false } })),
+      ...headwear.map((h: string, i: number) => ({ ...people[(i * 5 + 1) % people.length], wearing: { ...people[(i * 5 + 1) % people.length].wearing, headwear: h, headColor: undefined } })),
+    ];
+    const [kitSheet, kx] = paint(16, Math.ceil(kits.length / 8));
+    kits.forEach((a: any, i: number) => {
+      cell(kx, sprite(A === "e" ? B : A, a, 4), (i % 8) * 2, Math.floor(i / 8), A === "e" ? undefined : "#a7ae98");
+      cell(kx, sprite(B, a, A === "e" ? 3 : 4), (i % 8) * 2 + 1, Math.floor(i / 8));
+    });
+    const [dress, dx] = paint(16, Math.ceil(showcase.length / 4));
+    // Front and three-quarter: B alone against E, A then B otherwise.
+    showcase.forEach((a: any, i: number) => (A === "e" ? [[B, 4], [B, 3], [B, 2], [B, 0]] : [[A, 4], [B, 4], [A, 3], [B, 3]]).forEach(([id, f]: any, j) =>
+      cell(dx, sprite(id, a, f), (i % 4) * 4 + j, Math.floor(i / 4), id === A ? "#a7ae98" : undefined)));
+    // A crowd on paving at twice native size, E then F.
+    const crowd = document.createElement("canvas");
+    crowd.width = 1440; crowd.height = 400;
+    const cx = crowd.getContext("2d")!;
+    cx.imageSmoothingEnabled = false;
+    for (let y = 0; y < 200; y += 8) for (let x = 0; x < 720; x += 8) {
+      cx.fillStyle = ((x + y) / 8) % 2 ? "#b9a888" : "#b3a281"; cx.fillRect(x * 2, y * 2, 16, 16);
+    }
+    for (const [id, ox] of [[A, 0], [B, 720]] as const)
+      people.slice(0, 18).forEach((a: any, i: number) => {
+        const f = [4, 3, 5, 2, 6, 4, 0, 1, 4, 7, 3, 4, 2, 5, 4, 6, 3, 4][i];
+        sprite(id, a, f, i % 3 ? "idle" : "walk", i);
+        cx.drawImage(frame, ox + (i % 6) * 116 + (Math.floor(i / 6) % 2) * 50 - 40, Math.floor(i / 6) * 120 - 80, 160, 160);
+      });
+    return [ab.toDataURL(), walk.toDataURL(), kitSheet.toDataURL(), crowd.toDataURL(), dress.toDataURL()];
+  }, pair);
+  for (const [i, name] of ["", "-walk", "-kits", "-crowd", "-dress"].entries()) await writeDataUrl(sheets[i], out(prefix + name));
+}
+
 const presets: Record<string, (page: Page) => Promise<void>> = {
   /** Families (head, partner, then three children) and one face under each body record. */
   async family(page) {
@@ -88,113 +236,10 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   },
   /** E against F, the paper doll: generated people in five facings and a walk,
    * every garment and headwear, a crowd at play scale, and F's accessories and fibres. */
-  async doll(page) {
-    await characterLab(page);
-    await page.evaluate("window.__name = (fn) => fn");
-    const sheets = await page.evaluate(async () => {
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
-      const { places } = await import("/src/content/geography/places.ts" as string);
-      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
-      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
-      const { headwear, garments } = await import("/src/core/character.ts" as string);
-      const { composeWearing } = await import("/src/core/wearing.ts" as string);
-      const { wearableItems } = await import("/src/content/characters/wearables.ts" as string);
-      const { parseCloth } = await import("/src/content/characters/wardrobe/cloth.ts" as string);
-      // Dressed as the world dresses them: worn items carry the cloth's material and quality.
-      const dressed = (c: any, patch = {}) => ({ ...c.appearance, wearing: { ...composeWearing(c.appearance.wearing, c.worn,
-        (x: string) => (wearableItems as any)[x] ?? (wearableItems as any)[parseCloth(x)?.base]), ...patch } });
-      const where = [["rome", 100], ["london", 1200], ["kyoto", 1850], ["timbuktu", 1400], ["delhi", 1600], ["cusco", 1400],
-        ["paris", 1888], ["beijing", 1400], ["konya", 1400], ["mongolia", 1200], ["java", 950], ["paris", 2009]];
-      const people = where.flatMap(([id, year], i) => {
-        const setting = settingFor(places.find((p: any) => p.id === id), year);
-        return [0, 1].map((k) => dressed(generateCharacter(setting, "doll-review", `p-${i}-${k}`, [24, 38, 62, 30, 9][(i + k) % 5])));
-      });
-      // Each accessory and fibre once, on someone who would have worn it.
-      const showcase = ([
-        ["london", 1600, "blacksmith", { apron: "leather" }], ["london", 1600, "baker", { apron: "cloth" }],
-        ["london", 1600, "merchant", { neckwear: "ruff", headwear: "none" }], ["london", 1780, "clerk", { neckwear: "cravat", bag: "satchel", headwear: "none" }],
-        ["london", 1800, "sailor", { neckwear: "neckerchief" }], ["paris", 1400, "trader", { bag: "purse", quality: -1 }],
-        ["delhi", 1600, "weaver", { wrist: "bangles", shoulderCloth: true }], ["beijing", 1400, "merchant", { material: "silk", quality: 3 }],
-        ["polynesia", 1500, "fisher", { material: "barkcloth" }], ["mongolia", 1200, "herder", { material: "fur" }],
-        ["kyoto", 1800, "shopkeeper", { bag: "purse", apron: "cloth" }], ["mexico", 1450, "farmer", { material: "hide" }],
-        ["london", 1400, "farmer", { trimPattern: "cross-stitch", garment: "tunic", apron: "none" }], ["cusco", 1450, "farmer", { trimPattern: "step", garment: "poncho" }],
-        ["beijing", 1600, "merchant", { trimPattern: "cloud", garment: "robe", mantle: false }], ["timbuktu", 1500, "trader", { trimPattern: "strip", garment: "long-tunic" }],
-        ["kyoto", 1800, "weaver", { hairOrnament: "pins", headwear: "none" }, null, "female"], ["delhi", 1600, "weaver", { hairOrnament: "flower", headwear: "none" }, { nose: "ring", ears: "drop" }, "female"],
-        ["london", 1620, "merchant", { headwear: "brimmed", hatTrim: "feather", headColor: "#2a2630" }, null, "male"], ["mexico", 1450, "farmer", { headwear: "none" }, { marks: "chin-lines", markStyle: "ink", ears: "spool" }, "female"],
-      ] as const).map(([id, year, role, patch, adorn, sex], i) => {
-        const c = generateCharacter(settingFor(places.find((p: any) => p.id === id), year), "doll-review", `show-${i}`, 34, role, undefined, undefined, sex);
-        const a = dressed(c, patch);
-        return adorn ? { ...a, adornment: { ...(a.adornment ?? {}), ...adorn } } : a;
-      });
-      const frame = document.createElement("canvas");
-      frame.width = frame.height = 80;
-      const fc = frame.getContext("2d")!;
-      const sprite = (id: string, a: any, facing: number, pose = "idle", f = 0) => {
-        renderers[id].draw(fc, a, [0, 1, 1, 2, 2, 2, 3, 3][facing], pose, f, undefined, facing, "neutral");
-        return frame;
-      };
-      const facings = [4, 3, 2, 1, 0];
-      const S = 3, cw = 46 * S, ch = 48 * S;
-      const paint = (cols: number, rows: number, bg = "#9aa58c") => {
-        const c = document.createElement("canvas");
-        c.width = cols * cw; c.height = rows * ch;
-        const ctx = c.getContext("2d")!;
-        ctx.imageSmoothingEnabled = false;
-        ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height);
-        return [c, ctx] as const;
-      };
-      const cell = (ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, col: number, row: number, tint?: string) => {
-        if (tint) { ctx.fillStyle = tint; ctx.fillRect(col * cw, row * ch, cw, ch); }
-        ctx.drawImage(src, 17, 31, 46, 48, col * cw, row * ch, cw, ch);
-      };
-      // People: E's five facings, then F's.
-      const [ab, abx] = paint(10, people.length);
-      people.forEach((a: any, row: number) => facings.forEach((f, i) => {
-        cell(abx, sprite("e", a, f), i, row, "#a7ae98");
-        cell(abx, sprite("f", a, f), 5 + i, row);
-      }));
-      // Walks and a run: E above F, three facings.
-      const [walk, wx] = paint(8, 12);
-      [people[0], people[5]].forEach((a: any, p: number) => [4, 3, 2].forEach((f, i) => {
-        for (let k = 0; k < 8; k++) {
-          cell(wx, sprite("e", a, f, "walk", k), k, p * 6 + i * 2, "#a7ae98");
-          cell(wx, sprite("f", a, f, i === 2 && p === 1 ? "run" : "walk", k), k, p * 6 + i * 2 + 1);
-        }
-      }));
-      // Every garment, then every headwear, F only, front and three-quarter.
-      const kits = [
-        ...garments.map((g: string, i: number) => ({ ...people[(i * 3) % people.length], wearing: { ...people[(i * 3) % people.length].wearing, garment: g, headwear: "none", cloak: false, mantle: false } })),
-        ...headwear.map((h: string, i: number) => ({ ...people[(i * 5 + 1) % people.length], wearing: { ...people[(i * 5 + 1) % people.length].wearing, headwear: h, headColor: undefined } })),
-      ];
-      const [kitSheet, kx] = paint(16, Math.ceil(kits.length / 8));
-      kits.forEach((a: any, i: number) => {
-        cell(kx, sprite("f", a, 4), (i % 8) * 2, Math.floor(i / 8));
-        cell(kx, sprite("f", a, 3), (i % 8) * 2 + 1, Math.floor(i / 8));
-      });
-      const [dress, dx] = paint(16, Math.ceil(showcase.length / 4));
-      showcase.forEach((a: any, i: number) => [4, 3, 2, 0].forEach((f, j) => cell(dx, sprite("f", a, f), (i % 4) * 4 + j, Math.floor(i / 4))));
-      // A crowd on paving at twice native size, E then F.
-      const crowd = document.createElement("canvas");
-      crowd.width = 1440; crowd.height = 400;
-      const cx = crowd.getContext("2d")!;
-      cx.imageSmoothingEnabled = false;
-      for (let y = 0; y < 200; y += 8) for (let x = 0; x < 720; x += 8) {
-        cx.fillStyle = ((x + y) / 8) % 2 ? "#b9a888" : "#b3a281"; cx.fillRect(x * 2, y * 2, 16, 16);
-      }
-      for (const [id, ox] of [["e", 0], ["f", 720]] as const)
-        people.slice(0, 18).forEach((a: any, i: number) => {
-          const f = [4, 3, 5, 2, 6, 4, 0, 1, 4, 7, 3, 4, 2, 5, 4, 6, 3, 4][i];
-          sprite(id, a, f, i % 3 ? "idle" : "walk", i);
-          cx.drawImage(frame, ox + (i % 6) * 116 + (Math.floor(i / 6) % 2) * 50 - 40, Math.floor(i / 6) * 120 - 80, 160, 160);
-        });
-      return [ab.toDataURL(), walk.toDataURL(), kitSheet.toDataURL(), crowd.toDataURL(), dress.toDataURL()];
-    });
-    await writeDataUrl(sheets[0], out("doll"));
-    await writeDataUrl(sheets[1], out("doll-walk"));
-    await writeDataUrl(sheets[2], out("doll-kits"));
-    await writeDataUrl(sheets[3], out("doll-crowd"));
-    await writeDataUrl(sheets[4], out("doll-dress"));
-  },
+  doll: (page) => dollSheets(page, ["e", "f"], "doll"),
+  /** F against G, the same sheets: every kit and accessory shown in both. */
+  "doll-g": (page) => dollSheets(page, ["f", "g"], "doll-g"),
+
   /** Generated people from sixteen places, then every headwear and garment, and a strip of head poses and expressions. */
   async ab(page) {
     await characterLab(page);

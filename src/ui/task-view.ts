@@ -189,6 +189,14 @@ export function taskView(runtime: Runtime, source: TaskSource): TaskView | undef
 }
 const ANY_TRADE: LoreTopic = { trade: /./ };
 
+/** The written lore for someone's own trade, here and now. */
+export function workLore(runtime: Runtime, actor: Actor): TaskLore | undefined {
+  const kit = livelihoodOf(runtime.engine.world.pack, actor);
+  if (!kit) return;
+  const asked: LoreTopic[] = [ANY_TRADE, { workplace: kit.workplace ?? workplaceFor(kit.activity) }];
+  return loreFor(runtime.engine.world.pack.setting, actor.origin?.community, asked, `${kit.label} ${kit.activity} ${actor.role}`, 1)[0];
+}
+
 function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
   const engine = runtime.engine;
   const s = engine.state, world = engine.world, pack = world.pack;

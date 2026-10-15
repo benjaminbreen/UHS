@@ -48,6 +48,7 @@ export function travelSetting(
         : sharedCrossings(b, a).map((p) => ({ ...p, flow: -p.flow }));
       return {
         id, to, bearing, mode, seam, waterways,
+        name: destination.name, settlement: destination.settlement,
         peer: peer ? { side: peer.side, start: peer.start, end: peer.end } : undefined,
         neighbor: {
           lon: next.lon, lat: next.lat, relief: next.relief,

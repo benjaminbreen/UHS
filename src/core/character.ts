@@ -181,6 +181,15 @@ export const neckwear = ["none", "neckerchief", "ruff", "cravat"] as const;
 export const hairOrnaments = ["none", "comb", "pins", "flower", "net", "ribbon"] as const;
 /** On a hat: a feather, a cockade, a ribbon band. */
 export const hatTrims = ["none", "feather", "cockade", "ribbon"] as const;
+/** A sleeveless layer over the shirt: plain cloth, or figured silk and brocade. */
+export const waistcoats = ["none", "plain", "figured"] as const;
+/** A square of cloth worn over the shoulders and crossed or knotted at the front. */
+export const shawls = ["none", "plain", "fringed", "patterned"] as const;
+/** A hood lying back on the shoulders; worn up, it is the `hood` headwear. */
+export const hoods = ["none", "down"] as const;
+/** Worn at the hip or in the sash: a straight sword, a curved sabre, a
+ * Japanese pair, a dagger, a kris. */
+export const sidearms = ["none", "dagger", "sword", "sabre", "katana", "kris"] as const;
 export const trimPatterns = ["none", "cross-stitch", "meander", "chevron", "diamond", "step", "dots", "strip", "cloud"] as const;
 export const neckStyles = ["beads", "chain"] as const;
 export const beltStyles = ["none", "cord", "sash", "leather", "wide"] as const;
@@ -728,6 +737,10 @@ export type CharacterAppearance = {
     trimPattern?: (typeof trimPatterns)[number];
     hairOrnament?: (typeof hairOrnaments)[number];
     hatTrim?: (typeof hatTrims)[number];
+    waistcoat?: (typeof waistcoats)[number];
+    shawl?: (typeof shawls)[number];
+    hood?: (typeof hoods)[number];
+    sidearm?: (typeof sidearms)[number];
     /** What the body garment is made of and how well, carried through from the
      * worn item's id so the drawn cloth and the item's name agree. Absent on
      * saves written before cloth had a material, and on authored looks. */

@@ -8,6 +8,10 @@ The visual references are the supplied mockups (including `reference/mockup targ
 
 Style constraints: north-up orthogonal ground; visible front facades; consistent upper-left highlights; small explicit color ramps (up to six tones for foliage); restrained outlines; nearest-neighbor scaling; 16-pixel ground cells, 20 × 32 world-character canvases, and larger building/tree sprites. Broad foliage clusters and repeatable wall/roof motifs carry detail. Footprints and ground anchors are independent of frame bounds.
 
+## Arrival backdrop art
+
+The forty arrival backdrops listed in `scripts/art/opening-prompts.json` were generated with OpenAI's built-in image generation tool on October 14, 2026 and saved as WebP assets in `public/opening/`. They are illustrative reconstructions for broad date and geographic ranges, not depictions of excavated plans or evidence for individual historical details. No downloaded reference pixels were used. Follow-up edits removed a domestic dog from African deep prehistory, chickens and banana plants from the pre-contact Caribbean, and poultry from early Indian, Chinese and European farming scenes; European Bronze/Iron Age spinning uses a hand-held spindle. The second batch fills frequent fallback matches found in 5,000 actual random starts per mode; existing regional rules retain priority.
+
 ## Supplied reference downloads
 
 - `mystic_woods_free_2/read_me.txt` identifies the free version as noncommercial and disallows redistribution/resale even if modified. Marked premium-preview areas are not treated as usable sprites.

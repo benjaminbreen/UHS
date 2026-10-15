@@ -36,7 +36,10 @@ export const SKIN = 0,
   PLUME = 27,
   /** Motion lines: drawn first, so the body covers them, and half see-through. */
   SMEAR = 28,
-  MATS = 29;
+  VEST = 29,
+  SHAWL = 30,
+  SHEATH = 31,
+  MATS = 32;
 
 /** Ties round toward the centre line, so a shape and its mirror land on mirrored columns. */
 export const rnd = (x: number) =>

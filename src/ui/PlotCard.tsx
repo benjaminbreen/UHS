@@ -8,7 +8,9 @@ import { sexOf } from "../core/brief";
 import { kinOf } from "../core/kin";
 import { plotLine, plotTemplate, type PlotCard as Card } from "../core/plot";
 import { settlementName, type IntroSpan } from "../core/intro";
+import type { Actor } from "../core/types";
 import type { PlotLook } from "../content/plots/types";
+import type { TaskLore } from "../content/task-lore/types";
 import { gameAudio } from "../audio/director";
 import { drawEmblem, EMBLEM_H, EMBLEM_W } from "./plot-emblems";
 import { patternFor } from "./culture-theme";
@@ -151,7 +153,7 @@ function Pixels({ rows, className, size }: { rows: string[]; className: string; 
 
 /** Choices as a menu of words with the hand beside the one in play, the way
  * the old console games asked. The first `primary` choice takes focus. */
-function Choices({ items, focus }: {
+export function Choices({ items, focus }: {
   items: { label: string; pick: () => void; primary?: boolean; note?: string; odds?: number; unavailable?: string }[];
   focus: React.RefObject<HTMLButtonElement | null>;
 }) {
@@ -357,11 +359,25 @@ function Prose({ body, uncommon, selected, onAsk }: {
 }
 
 /** The goal, with its deadline picked out. */
-function Goal({ aim, due }: { aim: string; due?: string }) {
+function Goal({ aim, due, people = [], selected, onAsk }: {
+  aim: string;
+  due?: string;
+  people?: Actor[];
+  selected?: IntroSpan;
+  onAsk?: (span: IntroSpan, at: HTMLElement) => void;
+}) {
   const at = due ? aim.lastIndexOf(due) : -1;
+  const named = people.filter((a) => a.name && aim.includes(a.name));
+  const linked = (text: string) => !onAsk || !named.length ? text
+    : text.split(new RegExp(`(${named.map((a) => a.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`)).map((part, i) => {
+      const who = named.find((a) => a.name === part);
+      if (!who) return part;
+      const span = selected?.ref === who.id ? selected : { text: part, ref: who.id, mark: "person" as const };
+      return <button key={i} type="button" className="plot-ref" data-mark={span.mark} aria-expanded={selected === span} onClick={(e) => onAsk(span, e.currentTarget)}>{part}</button>;
+    });
   return (
     <p className="plot-goal">
-      {at < 0 ? aim : <>{aim.slice(0, at)}<em>{due}</em>{aim.slice(at + due!.length)}</>}
+      {at < 0 ? linked(aim) : <>{linked(aim.slice(0, at))}<em>{due}</em>{linked(aim.slice(at + due!.length))}</>}
     </p>
   );
 }
@@ -409,6 +425,14 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   // A card titled with the place need not name it twice.
   const where = setting ? (card.title === name ? when.charAt(0).toUpperCase() + when.slice(1) : `${name} · ${when}`) : "";
   const speaker = card.speaker ? runtime.engine.state.actors.find((a) => a.id === card.speaker) : undefined;
+  // Helping someone at their work: what was written about that work, here and then.
+  const [lore, setLore] = useState<TaskLore>();
+  useEffect(() => {
+    if (!speaker || !card.choose?.card.startsWith("help:")) return;
+    let live = true;
+    void import("./task-view").then((m) => live && setLore(m.workLore(runtime, speaker)));
+    return () => { live = false; };
+  }, [runtime, speaker, card]);
   const [typed, done, finish] = useTyped(card.kind === "speech" || card.kind === "turn" ? card.text : "");
   const close = (then?: () => void) => {
     if (leaving) return;
@@ -488,6 +512,12 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
             </p>
           )}
           {outcome && <Changes changes={outcome.changes} />}
+          {lore && done && (
+            <details className="plot-lore" onClick={(e) => e.stopPropagation()}>
+              <summary>{lore.title}</summary>
+              <p>{lore.text}</p>
+            </details>
+          )}
           {card.choose && !outcome ? (
             <div className="plot-speech-actions" data-ready={done || undefined} data-choose>
               <WorkChoices
@@ -507,7 +537,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
               focus={begin}
               items={outcome ? [{ label: "Continue", pick: () => close(), primary: true }] : [
                 ...(speaker && runtime.engine.approacher?.id === speaker.id
-                  ? [{ label: "Answer", pick: () => close(() => onAnswer(speaker.id, card.text)), primary: true }]
+                  ? [{ label: "Answer", pick: () => { onLook(); onClose(); onAnswer(speaker.id, card.text); }, primary: true }]
                   : []),
                 { label: speaker ? "Later" : "Continue", pick: () => (done ? close() : finish()) },
               ]}
@@ -532,6 +562,8 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
     );
   }
 
+  const aimSubjects = new Set((plot?.aim ?? runtime.engine.state.lifeAim)?.subjects);
+  const aimPeople = runtime.engine.state.actors.filter((a) => aimSubjects.has(a.id));
   const intro = card.intro;
   const text = intro
     ? <Prose body={intro.body} uncommon={intro.uncommon} selected={asked?.span} onAsk={ask} />
@@ -564,7 +596,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
                 {text}
                 {card.aim && <section className="plot-intent" aria-label="Your life aim">
                   <div className="plot-intent-label"><Pixels rows={SUN} className="plot-sun" size={[26, 14]} /><small>Your life aim</small></div>
-                  <Goal aim={card.aim} due={plot?.words.due} />
+                  <Goal aim={card.aim} due={plot?.words.due} people={aimPeople} selected={asked?.span} onAsk={ask} />
                 </section>}
               </div>
               {asked && <Ask runtime={runtime} asked={asked} />}

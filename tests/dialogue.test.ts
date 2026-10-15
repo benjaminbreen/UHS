@@ -221,10 +221,12 @@ describe("a conversation leaves a trace", () => {
     const actor = state.actors.find((a) => a.kind === "human" && a.pos.space === "outside");
     if (!actor) throw Error("No one to speak with.");
     state.player.pos = { ...actor.pos, x: actor.pos.x - 1 };
+    actor.trust = 3;
     runtime.narrate([
-      { type: "converse", with: actor.id, said: "fuck your hoop", delta: -1, leave: "away" },
+      { type: "converse", with: actor.id, said: "fuck your hoop", delta: -3, leave: "away" },
     ]);
     expect(actor.errand?.label).toBe("Walking it off");
+    expect(actor.trust).toBe(-3);
     // The conversation holds them; they go once it is over.
     runtime.engine.advance(60);
     expect(actor.activity).toBe("Walking it off");

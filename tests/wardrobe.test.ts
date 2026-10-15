@@ -82,6 +82,11 @@ it("is stable for one person and spread across a crowd", () => {
   expect(crowd.size).toBeGreaterThan(2);
   // Unfree standing reads as poor without a wealth field in the world model.
   expect(meansOf({ id: "x", standing: "unfree" })).toBe("poor");
+  // Rank narrows the roll: no labourer is rich, no gentleman poor.
+  const ranked = (rank: "labouring" | "gentry") =>
+    new Set(Array.from({ length: 60 }, (_, i) => meansOf({ id: `r-${i}`, rank })));
+  expect(ranked("labouring").has("wealthy")).toBe(false);
+  expect([...ranked("gentry")]).toEqual(["wealthy"]);
 });
 
 it("lets a narrow kit override one slot and inherit the rest", () => {
@@ -595,4 +600,29 @@ it("puts aprons on the trades that wore them and ruffs only in their decades", (
   expect(gentry(1600)).toContain("ruff");
   expect(gentry(1700)).not.toContain("ruff");
   expect(gentry(1450).every((n) => !n || n === "none")).toBe(true);
+});
+
+it("arms soldiers by place and period, never children, and dresses the new layers where they were worn", () => {
+  const arms = (culture: Parameters<typeof place>[0], year: number, lon: number, lat: number, who: object) =>
+    Array.from({ length: 30 }, (_, i) => wardrobeFor({ id: `a-${i}`, age: 30, sex: "male", ...who }, { year, setting: place(culture, year, lon, lat) }, base).sidearm);
+  expect(arms("east-asian", 1700, 135.8, 35, { livelihood: "soldier" })).toContain("katana");
+  expect(arms("north-african-west-asian", 1600, 32.5, 37.9, { livelihood: "soldier" })).toContain("sabre");
+  expect(arms("european", 1700, -0.1, 51.5, { livelihood: "soldier", age: 9 }).every((s) => !s || s === "none")).toBe(true);
+  expect(arms("european", 1950, -0.1, 51.5, { livelihood: "soldier" }).every((s) => !s || s === "none")).toBe(true);
+  const london = place("european", 1800, -0.1, 51.5);
+  const vests = Array.from({ length: 30 }, (_, i) =>
+    wardrobeFor({ id: `v-${i}`, sex: "male", age: 40, means: "wealthy" }, { year: 1800, setting: london }, { ...base, garment: "coat" }).waistcoat);
+  expect(vests).toContain("figured");
+  const shawls = Array.from({ length: 30 }, (_, i) => wardrobeFor({ id: `s-${i}`, sex: "female", age: 40, means: "common" }, { year: 1850, setting: london }, base).shawl);
+  expect(shawls.some((s) => s && s !== "none")).toBe(true);
+});
+
+it("does not cut the hat, the top and the legs from one bolt", () => {
+  // Harare, 612: a wrap over a sarong under a head wrap came out one dye.
+  const people = crowd("east-southern-african", 612, {}, 200, [31, -18]);
+  const layered = people.filter((w) => w.leggings && w.leggings !== "none" && !["robe", "open-robe", "dress", "long-tunic", "gown"].includes(w.garment));
+  expect(layered.length).toBeGreaterThan(10);
+  for (const w of layered) expect(w.lowerColor).not.toBe(w.color);
+  const hatted = people.filter((w) => ["wrap", "headscarf", "turban", "band"].includes(w.headwear));
+  expect(hatted.filter((w) => w.headColor === w.color && w.color === w.lowerColor)).toEqual([]);
 });

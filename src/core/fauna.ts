@@ -110,6 +110,9 @@ export type FaunaGroup = {
   attack?: FaunaAttack;
   /** Packs: how far round the ring they have worked, in eighths of a turn. */
   ring?: number;
+  /** A wayfarer's pack animals: each walks its own day, `${id}-${n}`, behind
+   * the party, rather than deciding anything. */
+  train?: boolean;
   /** Kept animals: who tends them, which gate they pass, where they graze. */
   owner?: string;
   gateId?: string;

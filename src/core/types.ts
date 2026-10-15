@@ -201,6 +201,10 @@ export type Actor = {
   skills?: import("./skills").Skills;
   /** Techniques chosen at skill milestones. */
   techniques?: import("./techniques").TechniqueId[];
+  /** Days spent helping others at their work, by the skill it used. */
+  helped?: Partial<Record<import("./skills").SkillId, number>>;
+  /** Skills someone has taught the player enough of to choose a technique in, whatever their level. */
+  taught?: import("./skills").SkillId[];
   /** A hurt that outlasts the fight: weaker blows and quicker tiring until
    * the clock passes `until`. */
   injury?: { name: string; until: number };
@@ -236,6 +240,8 @@ export type Actor = {
   wronged?: number;
   /** Until when they refuse to speak to the player at all. */
   shuns?: number;
+  /** A day's help the player gave them and can call in. */
+  owes?: boolean;
   /** Stories about the player this person would pass on; hops 0 is what they saw. */
   word?: Word[];
   /** Serving a sentence (stocks, labour, a cell) until then. */
@@ -262,6 +268,9 @@ export type Actor = {
   goal?: Position;
   /** Out with a herd at grass: stays by it, at a place of their own. */
   tends?: { herd: string; seat: number };
+  /** Passing through: off the map, and out of the snapshot, after `until`. */
+  /** `train`: the pack animals the lead walker drives, as fauna. */
+  wayfarer?: { until: number; train?: { species: string; count: number } };
   /** In a vehicle, in one of its crew places; the vehicle moves them. */
   mount?: { vehicle: string; place: number };
   /** Stepped down from a vehicle for a while, to go back to it after. */
@@ -570,8 +579,14 @@ export type Word = { act: string; object?: string; victim?: string; tone: number
 /** A favour someone has asked of the player, in a form the engine can see
  * done: an item handed over, a person spoken to, a place gone into. `what`
  * is the asker's own words for it, read after "asks you to". */
-export type Ask = { id: string; by: string; kind: "bring" | "food" | "talk-to" | "go-to"; item?: string; to?: string; place?: string; what: string; at: number; until: number; accepted?: boolean };
-export type Favour = { kind: "bring" | "talk-to" | "go-to"; target: string; what: string };
+export type Ask = {
+  id: string; by: string; kind: "bring" | "food" | "talk-to" | "go-to" | "help"; item?: string; to?: string; place?: string; what: string; at: number; until: number; accepted?: boolean;
+  /** Help with their work: where it is done, and the step of their day it is. */
+  meet?: Position; task?: string; offered?: boolean;
+};
+/** What the player can ask in return for help given. */
+export type CallIn = "work" | "lend" | "speak";
+export type Favour = { kind: "bring" | "talk-to" | "go-to" | "help"; target: string; what: string };
 export type Loss = {
   owner: string;
   pos: Position;
@@ -585,7 +600,7 @@ export type Snapshot = {
   losses?: Loss[];
   asks?: Ask[];
   /** Taken to whoever keeps order, waiting to be dealt with. */
-  complaints?: { by: string; story: Word; at: number }[];
+  complaints?: { by: string; story: Word; at: number; spokenFor?: string }[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */
@@ -698,7 +713,7 @@ export type Intent =
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
   | { type: "fact"; text: string }
-  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour }
+  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour; callIn?: CallIn }
   | {
       type: "receive";
       from: string;
@@ -830,6 +845,8 @@ export interface WorldModel {
   /** Let a 64-cell block spawn its wild groups again after the engine has
    * dropped them for being far away. */
   forgetFauna?(block: string): void;
+  /** People passing through who are on the map at this clock or soon will be. */
+  wayfarers?(clock: number): Actor[];
   restoreDistricts?(entityIds: string[]): void;
   regionExtent?: number;
   overview?(x: number, y: number): Terrain;

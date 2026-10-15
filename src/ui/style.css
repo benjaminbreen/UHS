@@ -1612,11 +1612,6 @@ kbd {
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }
-.is-responding .dialogue-history {
-  flex: 1;
-  min-height: 0;
-  max-height: none;
-}
 .dialogue-line {
   max-width: 680px;
   margin: 0 0 18px;
@@ -1668,32 +1663,6 @@ kbd {
 .dialogue-error {
   color: var(--rose);
   font-size: 14px;
-}
-.dialogue-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 9px;
-}
-.dialogue-actions button,
-.dialogue-input button {
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: #172741;
-  color: var(--cream);
-  padding: 10px 15px;
-  font: 11px var(--pixel);
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-.dialogue-actions button:hover,
-.dialogue-input button:hover:not(:disabled) {
-  border-color: var(--cream);
-}
-.dialogue-respond {
-  background: #263b62 !important;
-}
-.dialogue-continue span {
-  color: var(--gold);
 }
 .dialogue-input {
   display: flex;

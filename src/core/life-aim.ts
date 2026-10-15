@@ -7,6 +7,7 @@ import { workplaceFor } from "../content/characters/workplace";
 import { statsOf } from "./stats";
 import { standingOf } from "./standing";
 import { severity } from "./health";
+import { kinWord } from "./concerns";
 import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { outlookOf } from "./outlook";
 import { random } from "./random";
@@ -68,7 +69,7 @@ export function lifeAimOptions(
   const sickKin = (snapshot?.ailments ?? [])
     .filter((a) => severity(a, snapshot?.clock ?? 0) >= 0.35 && household?.members.includes(a.who) && kin.some((k) => k.actor.id === a.who))
     .sort((a, b) => severity(b, snapshot?.clock ?? 0) - severity(a, snapshot?.clock ?? 0))
-    .map((a) => byId.get(a.who))[0];
+    .map((a) => kin.find((k) => k.actor.id === a.who)!)[0];
   const context: LifeAimContext = {
     setting,
     player,
@@ -78,7 +79,8 @@ export function lifeAimOptions(
     apprentice: relation("apprentice"),
     friend: relation("friend"),
     creditor,
-    sickKin,
+    sickKin: sickKin?.actor,
+    sickKinWord: sickKin && kinWord(sickKin.kind, sickKin.actor),
     beloved: bonds.find((b) => b.bond.kind === "beloved"),
     rival: bonds.find((b) => b.bond.kind === "rival")?.actor,
     estranged: bonds.find((b) => b.bond.kind === "estranged")?.actor,
