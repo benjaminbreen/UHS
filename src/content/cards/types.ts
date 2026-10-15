@@ -16,7 +16,7 @@ export type CardEffect =
   | { type: "hurt"; n: number; cause: string; injury?: string }
   /** The card's sick person is cared for: one in `odds` who were dying mend. */
   | { type: "tend"; odds: number }
-  /** One in `odds` of catching an illness from it. */
+  /** The chance, 0 to 1, of catching an illness from it. */
   | { type: "risk"; ailment: string; odds: number };
 
 export type CardChoice = {

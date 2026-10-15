@@ -408,7 +408,7 @@ describe("shared deterministic foundation", () => {
     (e as unknown as { fallIll(id: string): void }).fallIll("fever");
     const care = e.cards.find((c) => c.choose)!.choose!;
     expect(care.card).toMatch(/^care-self/);
-    expect(care.choices.map((c) => c.label)).toContain("Lie up and let it run");
+    expect(care.choices.map((c) => c.label)).toContain("Go to bed and rest");
     expect(act(e, { type: "choose", card: care.card, choice: care.choices.find((c) => !c.unavailable)!.index }).status).toBe("completed");
     expect(e.state.care).toBeUndefined();
     const fever = e.state.ailments!.find((a) => a.who === p.id)!;

@@ -228,7 +228,7 @@ export const RICE_CARDS: ChoiceCard[] = [
       {
         label: "Carry it out to the paddy",
         note: "a better crop · heavy, filthy work",
-        then: [{ type: "day", delta: 1 }, { type: "fatigue", n: 15 }, { type: "risk", ailment: "dysentery", odds: 40 }],
+        then: [{ type: "day", delta: 1 }, { type: "fatigue", n: 15 }, { type: "risk", ailment: "flux", odds: 0.025 }],
         line: "You carried the jars out to the paddy.",
       },
       {
