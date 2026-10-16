@@ -743,6 +743,7 @@ export class Runtime {
         mine: this.toolPose("mine"),
         talk: "talk",
         trade: "give",
+        deal: "give",
         work: workPose ?? "work",
         "use-prop": usePose ?? "give",
         cook: "work-stir",
@@ -760,6 +761,7 @@ export class Runtime {
         harvest: "harvest",
         drink: "drink",
         trade: "trade",
+        deal: "trade",
         use: "use",
         rest: "rest",
         talk: "talk",
@@ -1251,6 +1253,14 @@ export class Runtime {
     const target = this.engine.climbable();
     if (target)
       this.command({ type: "interact", target: target.id, action: "climb" });
+  }
+  /** The closest person with goods out for sale, near enough to trade. */
+  nearestTrader() {
+    const p = this.engine.state.player;
+    return this.engine.state.actors
+      .filter((a) => a.kind === "human" && a.pos.space === p.pos.space && distance(a.pos, p.pos) <= 3 &&
+        a.trust >= 0 && this.engine.visible(a.pos) && this.engine.shopOf(a.id))
+      .sort((a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos))[0];
   }
   nearestSpeaker() {
     const s = this.engine.state,
@@ -2377,6 +2387,18 @@ export class Runtime {
       const food = this.engine.item(command.item);
       if (food?.edible)
         return void audio.sound(eat(biteOf(food.id), (food.health ?? 0) < 0), "eat");
+    }
+    if (command.type === "deal") {
+      const coin = (inv: Record<string, number | undefined>) => Object.keys(inv).find((id) => (inv[id] ?? 0) > 0 && moneyOf(id));
+      const paid = coin(command.give) ?? coin(command.take);
+      const first = (inv: Record<string, number | undefined>) => Object.keys(inv).find((id) => (inv[id] ?? 0) > 0) ?? "coin";
+      const a = first(command.give), b = first(command.take);
+      return void audio.sound(
+        paid
+          ? pay(moneyOf(paid)!, (command.give[paid] ?? 0) + (command.take[paid] ?? 0))
+          : barter(materialOf(a, this.engine.item(a)), materialOf(b, this.engine.item(b))),
+        "trade",
+      );
     }
     if (command.type === "trade") {
       const give = moneyOf(command.give),

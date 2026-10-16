@@ -77,6 +77,7 @@ import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { dayOfWork, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
+import { keepsShop, stockFor } from "./shop";
 import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
 import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../content/economy/processes";
@@ -1615,7 +1616,7 @@ export class Engine {
     );
   }
   /** Whose a thing is, said as a person would: by the household's name. */
-  private belongsTo(owner: string | undefined) {
+  belongsTo(owner: string | undefined) {
     if (!owner) return "";
     if (owner.endsWith("-community")) return "It is shared by the whole settlement.";
     if (this.minds(this.state.player, owner) || owner === "player")
@@ -4873,20 +4874,6 @@ export class Engine {
           close && actor.trust >= 0,
           actor.trust < 0 ? "They decline your company" : "Walk closer",
         );
-        const t = this.world.pack.trade;
-        add(
-          `Trade ${t.cost} ${this.items[t.give].name.toLowerCase()} for ${this.items[t.take].name.toLowerCase()}`,
-          {
-            type: "trade",
-            target: id,
-            give: t.give,
-            giveQuantity: t.cost,
-            take: t.take,
-            takeQuantity: 1,
-          },
-          close && (this.state.player.inventory[t.give] ?? 0) >= t.cost,
-          close ? "You do not have the offered goods" : undefined,
-        );
       } else if (actor.kind === "lizard")
         interact("capture", "Attempt capture");
       else interact("herd", "Guide toward the enclosure");
@@ -5159,7 +5146,7 @@ export class Engine {
         lastEvent = this.state.events.at(-1)?.id ?? 0;
       const reason = this.validate(request.command);
       // An offer actually made and turned down shows on whoever turned it down.
-      if (reason && request.command.type === "trade")
+      if (reason && (request.command.type === "trade" || request.command.type === "deal"))
         this.cue(
           request.command.target,
           /unresolved/.test(reason) ? "anger" : "refuse",
@@ -5399,6 +5386,22 @@ export class Engine {
       // A gift is not a way around a grievance.
       if (a.trust < 0) return "They will not take anything from you yet.";
       return undefined;
+    }
+    if (c.type === "deal") {
+      const shop = this.shopOf(c.target, true);
+      if (!shop) return "You cannot trade with this target.";
+      const a = shop.actor;
+      if (a.trust < 0) return "They will not trade while the loss remains unresolved.";
+      if (a.pos.space !== p.pos.space || distance(a.pos, p.pos) > 3) return "Walk closer to trade.";
+      const lines = [...Object.entries(c.give), ...Object.entries(c.take)];
+      if (!lines.some(([, n]) => (n ?? 0) > 0) || lines.some(([id, n]) => !Number.isSafeInteger(n) || (n ?? 0) < 0 || !this.item(id)))
+        return "Invalid quantities or items.";
+      if (Object.entries(c.give).some(([id, n]) => (p.inventory[id] ?? 0) < (n ?? 0)))
+        return "You do not have the offered goods.";
+      if (Object.entries(c.take).some(([id, n]) => (id === "coin" ? shop.purse : (shop.stock[id] ?? 0)) < (n ?? 0)))
+        return "They do not have that to give.";
+      if (this.worth(c.give, "sell") < this.worth(c.take, "buy")) return "They decline those terms.";
+      return;
     }
     if (c.type === "trade") {
       const a = this.state.actors.find((a) => a.id === c.target);
@@ -6968,6 +6971,35 @@ export class Engine {
     const a = this.state.actors.find((a) => a.id === c.target),
       o = this.state.objects.find((o) => o.id === c.target),
       b = this.world.place(c.target);
+    if (c.type === "deal" && a) {
+      const shop = this.shopOf(a.id, true)!;
+      const stock = { ...shop.stock };
+      let purse = shop.purse;
+      for (const [id, n = 0] of Object.entries(c.give)) {
+        p.inventory[id] = (p.inventory[id] ?? 0) - n;
+        if (id === "coin") purse += n;
+        else stock[id] = (stock[id] ?? 0) + n;
+      }
+      for (const [id, n = 0] of Object.entries(c.take)) {
+        p.inventory[id] = (p.inventory[id] ?? 0) + n;
+        if (id === "coin") purse -= n;
+        else stock[id] = (stock[id] ?? 0) - n;
+      }
+      a.shop = { day: shop.day, stock, purse };
+      if (this.state.goalFlags) this.state.goalFlags.traded = true;
+      this.advance(60, a.id);
+      this.regard(a, this.knows("fair-dealer") ? 2 : 1);
+      this.grantXp("trade", Math.min(40, 5 + this.worth(c.take, "buy")));
+      const list = (inv: Inventory) =>
+        Object.entries(inv).filter(([, n]) => (n ?? 0) > 0)
+          .map(([id, n]) => id === "coin" && this.world.pack.setting
+            ? amountIn(this.world.pack.setting, n!, true)
+            : `${n} ${this.items[id]?.name.toLowerCase() ?? this.item(id)?.name.toLowerCase() ?? id}`)
+          .join(", ");
+      const gave = list(c.give), got = list(c.take);
+      this.event(gave && got ? `${a.name} takes ${gave} for ${got}.` : got ? `${a.name} gives you ${got}.` : `${a.name} takes ${gave}.`, "social");
+      return;
+    }
     if (c.type === "trade" && a) {
       if (this.state.goalFlags) this.state.goalFlags.traded = true;
       // Reserve both participants for this short exchange; commit both transfers together.
@@ -7584,6 +7616,36 @@ export class Engine {
   }
   /** What the player can hand over toward a debt: money where there is
    * coinage, food where there is not. */
+  /** Someone's goods for sale today: a shopkeeper's, a craftsperson's at
+   * their work, a merchant's on the road, or, with `anyone`, whatever a
+   * person agreed in conversation to sell. */
+  shopOf(id: string, anyone = false) {
+    const a = this.state.actors.find((a) => a.id === id && a.kind === "human" && !a.dead);
+    if (!a || (!anyone && !keepsShop(this.world.pack, a))) return undefined;
+    const day = Math.floor(this.state.clock / (DAY_MINUTES * 60));
+    const coined = this.coined();
+    const shop = a.shop?.day === day ? a.shop
+      : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i));
+    return { actor: a, coined, ...shop };
+  }
+  private terms() {
+    return 1 + this.skillLevel("trade") * PER_LEVEL.tradeTerms + (this.knows("haggler") ? 0.15 : 0);
+  }
+  /** What one costs from a seller, in coin or, where nobody uses coin, in worth. */
+  buyPrice(id: ItemId) {
+    const v = this.item(id)?.value ?? 0;
+    return id === "coin" ? 1 : v <= 0 ? 0 : Math.max(1, Math.ceil(v / this.terms()));
+  }
+  /** What a seller pays for one. A shop pays half; bartered goods go at their worth. */
+  sellPrice(id: ItemId) {
+    const v = this.item(id)?.value ?? 0;
+    if (id === "coin") return 1;
+    if (v <= 0) return 0;
+    return this.coined() ? Math.max(1, Math.min(this.buyPrice(id), Math.floor((v * this.terms()) / 2))) : v;
+  }
+  worth(inv: Inventory, side: "buy" | "sell") {
+    return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id) : this.sellPrice(id)), 0);
+  }
   private coined() {
     const setting = this.world.pack.setting;
     const credit = this.state.households?.find((h) => h.members.includes(this.state.player.id))?.credit;

@@ -959,7 +959,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "medieval-japan-pure-land",
     label: "Medieval Japan Pure Land Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Pure_Land_Buddhism",
-    scope: { years: [1200, 1620], bounds: [128, 28, 148, 50] },
+    scope: { years: [1200, 1600], bounds: [128, 28, 148, 50] },
     powers: [
       {
         name: "Amida Buddha",
@@ -1029,7 +1029,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "tokugawa-household-buddhism",
     label: "Tokugawa household Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Danka_system",
-    scope: { years: [1620, 1950], bounds: [128, 28, 148, 50] },
+    scope: { years: [1600, 1950], bounds: [128, 28, 148, 50] },
     powers: [
       {
         name: "Buddha",
@@ -1100,7 +1100,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "joseon-korea-confucianism",
     label: "Joseon Korea Confucian and shamanic tradition",
     wiki: "https://en.wikipedia.org/wiki/Korean_Confucianism",
-    scope: { years: [1450, 1910], bounds: [120, 30, 140, 50] },
+    scope: { years: [1450, 1910], bounds: [124, 33, 131, 43.5] },
     powers: [
       {
         name: "Confucian virtue",

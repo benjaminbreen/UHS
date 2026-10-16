@@ -1,6 +1,7 @@
 /** Original compositions. Notes and harmony remain independent of instrumentation. */
 import { culturalThemes, type CulturalTheme } from "./cultural-themes";
 import { layeredThemes, type LayeredTheme } from "./layered-themes";
+import { interiorThemes } from "./interior-themes";
 export const seasons = ["spring", "summer", "autumn", "winter"] as const;
 export const periods = ["dawn", "day", "dusk", "night"] as const;
 export type Season = (typeof seasons)[number];
@@ -415,7 +416,9 @@ export function worldMusicSlot(clock: number): {
 export function compose(arrangement: Arrangement): Score {
   const cultural = culturalThemes.find((t) => t.id === arrangement.themeId);
   if (cultural) return composeCultural(cultural, arrangement);
-  const layered = layeredThemes.find((t) => t.id === arrangement.themeId);
+  const layered =
+    layeredThemes.find((t) => t.id === arrangement.themeId) ??
+    Object.values(interiorThemes).find((t) => t.id === arrangement.themeId);
   if (layered) return composeLayered(layered, arrangement);
   const theme = themes.find((t) => t.id === arrangement.themeId) ?? themes[0];
   const { period, era, season } = arrangement;

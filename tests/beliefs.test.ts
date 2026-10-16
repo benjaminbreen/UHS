@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { resolveSetting } from "../src/content/geography/resolve";
 import {
   beliefOf,
   beliefSystems,
@@ -275,4 +276,19 @@ it("keeps relations pointing at real powers, once each, never at themselves", ()
   }
   // Coarse coverage alarm only; the checks above enforce relationship quality.
   expect(total).toBeGreaterThan(500);
+});
+
+it.each([
+  ["Delhi 1650", "mughal-delhi"],
+  ["Kyoto 1600", "tokugawa-household-buddhism"],
+  ["Kano 1850", "hausa-islamic"],
+  ["New York 1900", "us-urban-congregations"],
+  ["Alexandria 300", "late-roman-egypt"],
+  ["Manchester 1840", "european-industrial"],
+  ["Seoul 1700", "joseon-korea-confucianism"],
+  ["Lagos 1880", "yoruba-nineteenth-century-christian"],
+])("gives %s its own tradition", (place, id) => {
+  const r = resolveSetting(place);
+  if (!("setting" in r)) throw new Error(r.error);
+  expect(beliefsFor(r.setting).id).toBe(id);
 });

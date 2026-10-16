@@ -117,4 +117,76 @@ export const egypt: readonly BeliefSystem[] = [
         "One schematic summary standing in for centuries of change and for practice that varied by town, trade and household.",
     },
   },
+  {
+    id: "late-roman-egypt",
+    label: "Late Roman Egypt",
+    wiki: "https://en.wikipedia.org/wiki/Christianity_in_Egypt",
+    scope: {
+      years: [200, 642],
+      bounds: [24, 22, 36, 32],
+      cultures: ["north-african-west-asian", "european"],
+    },
+    powers: [
+      {
+        name: "Serapis",
+        wiki: "https://en.wikipedia.org/wiki/Serapis",
+        domain: "Alexandria's god, healing and the grain fleet",
+        rank: "major",
+      },
+      {
+        name: "Isis",
+        wiki: "https://en.wikipedia.org/wiki/Isis",
+        domain: "mother, protector of sailors and the dead",
+        rank: "major",
+      },
+      {
+        name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
+        domain: "saviour of a growing, often persecuted church",
+        rank: "major",
+      },
+      {
+        name: "The emperor",
+        domain: "the state cult, sacrifice demanded in 250 and 303",
+        rank: "paramount",
+      },
+      {
+        name: "The martyrs",
+        domain: "intercession, at their tombs and feast days",
+        rank: "local",
+      },
+      {
+        name: "The Nile",
+        domain: "the flood that fixes the year's harvest",
+        rank: "local",
+      },
+      {
+        name: "The household gods",
+        domain: "the home, its luck and its dead",
+        rank: "local",
+      },
+    ],
+    practice: [
+      "Temples still sacrifice, but churches and their bishops grow each decade.",
+      "The flood is watched at the Nilometer and celebrated when it rises.",
+      "Christians meet in house churches and keep the martyrs' feast days.",
+      "Hermits and monks settle in the desert from the late third century.",
+    ],
+    specialist:
+      "The temple priest, the Christian bishop, and the desert monk.",
+    afterlife:
+      "Osiris's judgement and the gods' care for older believers; resurrection for Christians.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Papyri, church histories and imperial edicts document temple cults and a growing Christian church side by side in Roman Egypt before and after Constantine.",
+      sources: [
+        "Bagnall, Egypt in Late Antiquity",
+        "Frankfurter, Religion in Roman Egypt",
+        "Haas, Alexandria in Late Antiquity",
+      ],
+      limitation:
+        "The balance shifted fast: pagan majority around 300, Christian majority by 400. One entry spans both.",
+    },
+  },
 ];

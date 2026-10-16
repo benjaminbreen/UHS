@@ -364,6 +364,7 @@ const actor = z.object({
   shuns: z.number().optional(),
   owes: z.boolean().optional(),
   stocked: z.number().optional(),
+  shop: z.object({ day: z.number().int(), stock: z.record(item, z.number().int().nonnegative()), purse: z.number().int().nonnegative() }).strict().optional(),
   word: z.array(z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict()).max(8).optional(),
   owner: z.string().optional(),
   follows: z.string().optional(),
@@ -552,6 +553,14 @@ export const commandSchema = z.discriminatedUnion("type", [
       giveQuantity: z.number().int().positive(),
       take: item,
       takeQuantity: z.number().int().positive(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("deal"),
+      target: z.string(),
+      give: z.record(item, z.number().int().nonnegative().max(999)),
+      take: z.record(item, z.number().int().nonnegative().max(999)),
     })
     .strict(),
   z.object({ type: z.literal("use"), item }).strict(),

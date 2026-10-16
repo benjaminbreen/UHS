@@ -17,6 +17,7 @@ import { languageBrief } from "../content/history/languages";
 import { random } from "../core/random";
 import { distance } from "../core/types";
 import { narratorProvider } from "./turn";
+import { plotLine } from "../core/plot";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
 
@@ -71,7 +72,7 @@ function playerPresence(runtime: Runtime) {
   const held = carried?.name ?? item?.name;
   const hands = !held
     ? "Hands empty."
-    : `Carrying ${held} in hand${item?.hand?.strike ? ", held as a weapon" : ""}.`;
+    : `Carrying ${held} in hand${item?.hand?.strike ? ", held as a weapon" : ""}.${carried?.owner ? ` ${engine.belongsTo(carried.owner).replace("your household's", "the player's own")}` : ""}`;
   const sex =
     p.appearance?.physique?.sex ?? p.origin?.sex ?? "unspecified";
   const who = sex === "female" ? "A woman" : sex === "male" ? "A man" : "A person";
@@ -85,6 +86,20 @@ function playerPresence(runtime: Runtime) {
  */
 /** How this person takes finding the player inside their home uninvited. The
  * model ignored raw trait scores here and answered like a shopkeeper. */
+/** The plot's facts, for anyone cast in it, so the conversation after a confrontation is about it. */
+function plotBrief(runtime: Runtime, actor: Actor) {
+  const plot = runtime.engine.state.plot;
+  const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === actor.id);
+  if (!plot || !role) return "";
+  const line = (key: string) => plotLine(plot, key);
+  return [
+    `What is going on between you and the player ("${plot.title}"; you are the ${role}, and these facts are fixed): ${line("intro")} ${line("threat")}`,
+    line(`cast-${role}`) && `About you: ${line(`cast-${role}`)}`,
+    `The player's way out: ${line("aim")}`,
+    (plot.owed ?? 0) > 0 ? `It is not settled yet. Hold to your demand; you cannot take payment by talking, the player has to hand it over. If they offer to pay, tell them to pay you.` : "It has been paid.",
+  ].filter(Boolean).join(" ");
+}
+
 function intrusionReaction(seed: string, actor: Actor, stats: ReturnType<typeof statsOf>) {
   if (actor.trust >= 3)
     return "They know and like you, so they are startled and puzzled more than afraid, but it is still strange and they say so.";
@@ -231,6 +246,13 @@ export function shout(text: string) {
   return /!\s*$/.test(loud) ? loud : `${loud}!!!`;
 }
 
+function forSale(runtime: Runtime, actor: Actor) {
+  const shop = runtime.engine.shopOf(actor.id);
+  const goods = shop && Object.entries(shop.stock).filter(([, n]) => (n ?? 0) > 0)
+    .map(([id]) => runtime.engine.item(id)?.name.toLowerCase()).filter(Boolean).slice(0, 8);
+  return goods?.length ? `You have goods out for sale here: ${goods.join(", ")}. If the player wants to buy or sell, agree and set "trade".` : "";
+}
+
 export function dialogueContext(runtime: Runtime, actor: Actor) {
   const engine = runtime.engine;
   const state = engine.state;
@@ -343,6 +365,8 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
+    plotBrief(runtime, actor),
+    forSale(runtime, actor),
     terrified(runtime, actor)
       ? `YOU ARE TERRIFIED. The player has broken into your home with a heavy tool and is inside, or right there, smashing things. ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
       : anger(actor, state.clock),
@@ -472,6 +496,7 @@ export async function dialogueTurn(
       leave?: WalkOff;
       ask?: "made" | "accepted" | "declined";
       favour?: Favour;
+      trade?: boolean;
       ms?: { upstream: number; total: number };
       tokens?: { out: number; reasoning: number };
     };
@@ -489,7 +514,7 @@ export async function dialogueTurn(
     if (shouting(runtime, actor)) data.text = shout(data.text);
     // The furious have their say and go; a householder throwing you out stays put.
     else if (angerLevel(actor, runtime.engine.state.clock) === 3) data.leave ??= "away";
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, ask: data.ask, favour: data.favour, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, ask: data.ask, favour: data.favour, trade: data.trade, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")

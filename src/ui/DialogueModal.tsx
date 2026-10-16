@@ -16,6 +16,7 @@ import type { CueKind } from "../core/combat";
 import type { CallIn, Favour, WalkOff } from "../core/types";
 type AskAnswer = "made" | "accepted" | "declined";
 import { Choices, Frame, plotColours, type StoryLook } from "./PlotCard";
+import { plotTemplate } from "../core/plot";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
 
 function Action({ text }: { text: string }) {
@@ -75,7 +76,7 @@ const genderLabel = (actor: { name: string; origin?: { sex?: string }; appearanc
   return sex === "female" ? "Female" : sex === "male" ? "Male" : "Person";
 };
 
-export function DialogueModal({ runtime, actorId, situation, said, look, onClose }: { runtime: Runtime; actorId: string; /** What the conversation opens on, when the player did not start it. */ situation?: string; /** A line they already spoke in the world, which the conversation picks up from. */ said?: string; look: StoryLook; onClose: () => void }) {
+export function DialogueModal({ runtime, actorId, situation, said, look, onClose, onTrade }: { runtime: Runtime; actorId: string; /** What the conversation opens on, when the player did not start it. */ situation?: string; /** A line they already spoke in the world, which the conversation picks up from. */ said?: string; look: StoryLook; onClose: () => void; /** The person agreed to show their goods or look at yours. */ onTrade?: () => void }) {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   const [history, setHistory] = useState<DialogueLine[]>(() => said ? [{ speaker: "npc", text: said }] : []);
   const [input, setInput] = useState("");
@@ -95,6 +96,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const [explaining, setExplaining] = useState(false);
   const explainAbort = useRef<AbortController>(null);
   const [left, setLeft] = useState(false);
+  const [trading, setTrading] = useState(false);
   const [giftNotice, setGiftNotice] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   // The face the NPC wears. The model names it with the line; failing that,
@@ -106,7 +108,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const [took, setTook] = useState<{ cue: CueKind; serial: number } | null>(
     null,
   );
-  const heard = useRef(new Set<string>()).current;
+  const heard = useRef(new Set<string>(said ? [said] : [])).current;
   // Cancels a line waiting on its beat, so closing mid-reply says nothing.
   const beat = useRef<(() => void) | null>(null);
   // Which mouth shape the portrait holds, written per letter as the line
@@ -188,6 +190,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
       else {
         setMood(result.mood);
         commitGift(result.receive);
+        if (result.trade) setTrading(true);
         if (result.leave) setLeft(true);
         if (result.leave || result.ask) commitExchange("", 0, result.leave, result.ask, result.favour);
         say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
@@ -229,8 +232,8 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   // The voice follows the face: a cross line is spoken in a cross voice.
   const cross = ["angry", "stern", "disgust", "scowl"].includes(expression);
   const speaks = () => voice(voiceOf(actor), cross);
-  const submit = async () => {
-    const text = input.trim();
+  const submit = async (said = input) => {
+    const text = said.trim();
     if (!text || busy) return;
     const next = [...history, { speaker: "player" as const, text }];
     setHistory(next);
@@ -254,6 +257,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
       if (result.ask === "accepted" && result.favour?.kind === "help" && runtime.engine.state.asks?.some((x) => x.by === actorId && x.kind === "help"))
         setGiftNotice(`${actor?.name.split(" ")[0]} takes you up on it. Follow them when you're done talking.`);
       commitGift(result.receive);
+      if (result.trade) setTrading(true);
       if (result.leave) {
         setLeft(true);
         setResponding(false);
@@ -293,6 +297,17 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     ...owed.map(([kind, label]) => ({ label, pick: () => callIn(kind) })),
     { label: "Never mind", pick: () => setCalling(false) },
   ] : undefined;
+  const plot = runtime.engine.state.plot;
+  const owing = !!plot && !plot.ended && (plot.owed ?? 0) > 0 && plot.cast[plotTemplate(plot)?.payee ?? "creditor"] === actorId;
+  const pay = () => {
+    const result = runtime.command({ type: "interact", target: actorId, action: "pay" });
+    setGiftNotice(result?.status === "completed" ? runtime.engine.state.events.at(-1)?.text ?? null : result?.reason ?? "You have nothing they will take.");
+  };
+  const plotChoices = owing && !busy && !left && latest?.speaker === "npc" ? [
+    { label: "Pay what you owe", pick: pay, primary: true },
+    { label: "Ask for time", pick: () => void submit("I need more time.") },
+    { label: "Refuse", pick: () => void submit("No. I won't pay you.") },
+  ] : [];
   // They have asked for a hand with their work; the answer is a choice, not something to type.
   const helpAsked = !busy && !left && latest?.speaker === "npc" &&
     runtime.engine.state.asks?.some((x) => x.by === actorId && x.kind === "help" && !x.accepted);
@@ -372,7 +387,9 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
                 { label: "Offer to help", pick: () => { commitExchange("I'll help you.", 0, undefined, "accepted"); close(); }, primary: true },
                 { label: "Not now", pick: () => { commitExchange("Not now.", 0, undefined, "declined"); setResponding(true); } },
               ] : [
-                ...(!responding && !left ? [{ label: "Respond", pick: () => setResponding(true), primary: true }] : []),
+                ...plotChoices,
+                ...(!responding && !left ? [{ label: "Respond", pick: () => setResponding(true), primary: !plotChoices.length }] : []),
+                ...(trading && onTrade && !busy && !left ? [{ label: "See what they have", pick: () => { abort.current?.abort(); onTrade(); }, primary: true }] : []),
                 ...(owed.length && !busy && !left ? [{ label: `Call in ${first}'s debt`, pick: () => setCalling(true) }] : []),
                 { label: left ? `${first} has gone` : responding ? "Leave" : "Continue", pick: close },
               ])}

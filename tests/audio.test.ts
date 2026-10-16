@@ -20,6 +20,7 @@ import { eras } from "../src/content/history/dates";
 import { places } from "../src/content/geography/places";
 import { placeAtYear } from "../src/content/geography/eras";
 import { layeredThemes } from "../src/audio/layered-themes";
+import { interiorThemes } from "../src/audio/interior-themes";
 import { catalog } from "../src/audio/sfx";
 import { bellFor, townKindFor } from "../src/audio/ambience";
 import * as handling from "../src/audio/handling";
@@ -99,7 +100,7 @@ describe("original soundtrack scores", () => {
     }
   });
   it("loops every layer of the layered pieces within the piece", () => {
-    for (const theme of layeredThemes)
+    for (const theme of [...layeredThemes, ...Object.values(interiorThemes)])
       for (const period of periods) {
         const score = compose({
           ...defaultArrangement,

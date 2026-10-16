@@ -1338,7 +1338,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "european-enlightenment",
     label: "European Enlightenment-era practice",
     wiki: "https://en.wikipedia.org/wiki/Age_of_Enlightenment",
-    scope: { years: [1700, 1850], bounds: [-26, 30, 50, 72] },
+    scope: { years: [1700, 1800], bounds: [-26, 30, 50, 72] },
     powers: [
       {
         name: "God",
@@ -1398,7 +1398,8 @@ const europeanBase: readonly BeliefSystem[] = [
       "Christenings and burials follow church law and folk custom.",
       "Saints' days are marked both as holy and as seasonal festivals.",
     ],
-    specialist: "The parish clergyman, less absolute; the educated household head.",
+    specialist:
+      "The parish clergyman, less absolute; the educated household head.",
     afterlife:
       "Heaven, hell or annihilation; intellectuals dispute the question.",
     evidence: {
@@ -1418,7 +1419,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "european-industrial",
     label: "Industrial-era European practice",
     wiki: "https://en.wikipedia.org/wiki/Secularization",
-    scope: { years: [1850, 2000], bounds: [-26, 30, 50, 72] },
+    scope: { years: [1800, 2000], bounds: [-26, 30, 50, 72] },
     powers: [
       {
         name: "Progress",
@@ -1486,6 +1487,75 @@ const europeanBase: readonly BeliefSystem[] = [
       ],
       limitation:
         "Enormous regional and sectarian variation; secularization was uneven.",
+    },
+  },
+  {
+    id: "us-urban-congregations",
+    label: "American city congregations",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_the_United_States",
+    scope: { years: [1820, 1960], bounds: [-125, 24, -66, 50] },
+    powers: [
+      {
+        name: "God",
+        domain: "creator and judge, addressed in many churches",
+        rank: "paramount",
+      },
+      {
+        name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
+        domain: "saviour, at the centre of Protestant revival",
+        rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
+      },
+      {
+        name: "The Virgin Mary",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
+        domain: "intercession for Irish, Italian and Polish Catholics",
+        rank: "major",
+      },
+      {
+        name: "The saints",
+        domain: "patrons of parishes, trades and home villages",
+        rank: "local",
+      },
+      {
+        name: "The Torah",
+        wiki: "https://en.wikipedia.org/wiki/Torah",
+        domain: "law and teaching for Jewish immigrants",
+        rank: "major",
+      },
+      {
+        name: "The congregation",
+        domain: "mutual aid, burial, charity, belonging",
+        rank: "local",
+      },
+      {
+        name: "The dead",
+        domain: "memorials, cemeteries, anniversaries",
+        rank: "local",
+      },
+    ],
+    practice: [
+      "Sunday services; each immigrant group keeps its own parish or synagogue.",
+      "Revival meetings, temperance societies and Sunday schools among Protestants.",
+      "Catholic parish schools, feast-day processions and confession.",
+      "Burial societies and fraternal lodges cover funerals and hard times.",
+    ],
+    specialist:
+      "The Protestant minister, the Catholic parish priest, and the rabbi.",
+    afterlife:
+      "Heaven or hell for most Christians; Jewish teaching on the world to come.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Church and synagogue records, the federal religious census of 1890 and 1906, and immigrant newspapers document a mix of Protestant denominations, Catholic national parishes and Jewish congregations in American cities.",
+      sources: [
+        "Orsi, The Madonna of 115th Street",
+        "Butler, Wacker and Balmer, Religion in American Life",
+        "Sarna, American Judaism",
+      ],
+      limitation:
+        "Rural and Southern religion, Black churches and Native practice differ; this entry describes the northern immigrant city.",
     },
   },
   {

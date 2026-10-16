@@ -757,7 +757,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     id: "sikh-gurus",
     label: "Sikh Gurus",
     wiki: "https://en.wikipedia.org/wiki/Sikhism",
-    scope: { years: [1400, 1800], bounds: [70, 28, 82, 35] },
+    scope: { years: [1400, 1800], bounds: [72, 29.5, 77, 33] },
     powers: [
       {
         name: "Akal Purakh",
@@ -1084,6 +1084,89 @@ const southAsiaBase: readonly BeliefSystem[] = [
       ],
       limitation:
         "Newar practice is complex and regionally variable; this is a generalized portrait. Bhairava's standing as Taleju's consort is a scholarly reading of royal ritual, not a single canonical statement.",
+    },
+  },
+  {
+    id: "mughal-delhi",
+    label: "Mughal Delhi and Agra",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_the_Mughal_Empire",
+    scope: { years: [1526, 1858], bounds: [76, 26.5, 79, 29.5] },
+    powers: [
+      {
+        name: "Allah",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
+        domain: "God, sovereign over the emperor and the city",
+        rank: "paramount",
+      },
+      {
+        name: "The Prophet Muhammad",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
+        domain: "the messenger, the model for law and conduct",
+        rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
+      },
+      {
+        name: "Nizamuddin Auliya",
+        wiki: "https://en.wikipedia.org/wiki/Nizamuddin_Auliya",
+        domain: "Chishti saint of Delhi, intercession for rich and poor",
+        rank: "major",
+        relations: [{ kind: "serves", of: "The Prophet Muhammad" }],
+      },
+      {
+        name: "Krishna",
+        wiki: "https://en.wikipedia.org/wiki/Krishna",
+        domain: "love and devotion, worshipped at Mathura and Vrindavan",
+        rank: "major",
+      },
+      {
+        name: "Rama",
+        wiki: "https://en.wikipedia.org/wiki/Rama",
+        domain: "the righteous king, the household's protector",
+        rank: "major",
+      },
+      {
+        name: "Shiva",
+        wiki: "https://en.wikipedia.org/wiki/Shiva",
+        domain: "ascetic power, the river ghats and temples",
+        rank: "major",
+      },
+      {
+        name: "The saint's tomb",
+        domain: "vows, healing, Thursday gatherings",
+        rank: "local",
+      },
+      {
+        name: "The neighbourhood goddess",
+        domain: "smallpox, fever, the lane's safety",
+        rank: "local",
+      },
+      {
+        name: "The household ancestors",
+        domain: "the family's dead, fed at shraddha",
+        rank: "local",
+      },
+    ],
+    practice: [
+      "Friday prayer at the Jama Masjid; the emperor's name read in the sermon.",
+      "Hindu and Muslim neighbours alike bring vows to the Sufi tombs.",
+      "Holi, Diwali, Eid and Muharram all mark the city's year, and the court keeps several.",
+      "Hindu households worship at home shrines and travel to Mathura on pilgrimage.",
+    ],
+    specialist:
+      "The imam of the mosque, the qazi who judges by Islamic law, the Sufi pir at his shrine, and the Brahmin priest who serves Hindu households.",
+    afterlife:
+      "Paradise and judgement for Muslims; rebirth by karma, or release, for Hindus.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Mughal chronicles, Persian court histories, European travellers' accounts and temple and shrine records document a Sunni court and qazi courts alongside a Hindu majority and a shared shrine culture in Delhi and Agra.",
+      sources: [
+        "Blake, Shahjahanabad: The Sovereign City in Mughal India",
+        "Eaton, India in the Persianate Age",
+        "Truschke, Culture of Encounters",
+      ],
+      limitation:
+        "Court policy swung between Akbar's openness and Aurangzeb's stricter rule; one entry stands in for three centuries.",
     },
   },
   {

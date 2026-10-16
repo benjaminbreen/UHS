@@ -1570,6 +1570,33 @@ export class WorldScene extends Phaser.Scene {
       [dx, dy] = tip(5, -2.4);
     mark.fillStyle(gold, 1).fillTriangle(ax, ay, bx, by, dx, dy);
   }
+  private traderMark?: Phaser.GameObjects.Graphics;
+  private traders: string[] = [];
+  private tradersChecked = 0;
+  /** A small coin over everyone nearby with goods out for sale. */
+  private drawTraders(time: number) {
+    const engine = this.runtime.engine;
+    if (time - this.tradersChecked > 600) {
+      this.tradersChecked = time;
+      const p = engine.state.player.pos;
+      this.traders = engine.state.actors
+        .filter((a) => a.kind === "human" && a.pos.space === p.space &&
+          Math.abs(a.pos.x - p.x) + Math.abs(a.pos.y - p.y) < 24 && engine.shopOf(a.id))
+        .map((a) => a.id);
+    }
+    const mark = (this.traderMark ??= this.add.graphics());
+    mark.clear().setDepth(1e7 - 1);
+    for (const id of this.traders) {
+      const image = this.entities.get(id);
+      if (!image?.visible) continue;
+      const x = image.x,
+        y = image.y - image.displayHeight * image.originY - 7 - Math.abs(Math.sin(time / 420 + x)) * 2;
+      mark.fillStyle(0x1a1410, 1).fillCircle(x, y, 5);
+      mark.fillStyle(0xf2cf6b, 1).fillCircle(x, y, 4);
+      mark.fillStyle(0xb8892f, 1).fillRect(x - 1, y - 2, 2, 4);
+      mark.fillStyle(0xfff4d0, 1).fillRect(x - 3, y - 3, 1, 1);
+    }
+  }
   /** Squat, tremble, sweat, heave: a rock going up over the head. */
   private heaveUp(heave: NonNullable<Runtime["heaveEffect"]>) {
     const now = this.time.now;
@@ -2770,6 +2797,7 @@ export class WorldScene extends Phaser.Scene {
   private sheetFrames?: Map<string, string>;
   private sheetImages = new Map<string, [string, object]>();
   private sheetLoading = new Set<string>();
+  private sheetRetried = new Set<string>();
   /** Fetches a building sheet the preload did not, then redraws the scenery
    * that stood in for it. */
   private loadSheet(key: string) {
@@ -2781,6 +2809,16 @@ export class WorldScene extends Phaser.Scene {
     this.load.once(`filecomplete-atlasjson-${key}`, () => {
       this.staticKey = "";
       if (this.scene?.isActive()) this.draw();
+    });
+    // Phaser drops a file added while it winds up a batch (loadComplete clears
+    // the list), which left that sheet's houses invisible but solid for good.
+    this.load.once("complete", () => {
+      if (this.textures.exists(key) || !this.scene?.isActive()) return;
+      this.sheetLoading.delete(key);
+      if (!this.sheetRetried.has(key)) {
+        this.sheetRetried.add(key);
+        this.loadSheet(key);
+      }
     });
     if (!this.load.isLoading()) this.load.start();
   }
@@ -5737,6 +5775,7 @@ export class WorldScene extends Phaser.Scene {
       );
     this.drawTarget(time);
     this.drawGuide(time);
+    this.drawTraders(time);
     this.drawCastMarks(time);
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
@@ -6346,7 +6385,6 @@ export class WorldScene extends Phaser.Scene {
           if (puddle === "water" && heel)
             splashPuddle(this, im.x, im.y - 1, human.direction, pose === "run", im.depth, time);
           const cell = this.destinations.get(id);
-          // Only ground that gives underfoot is heard.
           if (heel && id === "player" && cell && !arcLift) {
             void gameAudio()?.sound(
               this.footstepAt(cell, puddle, water, pose === "run"),

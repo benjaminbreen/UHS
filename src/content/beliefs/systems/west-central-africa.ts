@@ -1180,7 +1180,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     id: "yoruba-nineteenth-century-christian",
     label: "Yoruba Christian mission encounter",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Nigeria",
-    scope: { years: [1850, 1920], bounds: [-2, 2, 10, 14] },
+    scope: { years: [1850, 1920], bounds: [-2, 2, 10, 10] },
     powers: [
       {
         name: "God",

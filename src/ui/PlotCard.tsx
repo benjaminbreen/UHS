@@ -15,6 +15,7 @@ import { gameAudio } from "../audio/director";
 import { drawEmblem, EMBLEM_H, EMBLEM_W } from "./plot-emblems";
 import { patternFor } from "./culture-theme";
 import type { Runtime } from "../runtime/session";
+import { dialogueTurn } from "../narrator/dialogue";
 import "./plot-card.css";
 
 /** Which dress the story cards wear: the framed slate, or the first pixel card. */
@@ -433,7 +434,28 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
     void import("./task-view").then((m) => live && setLore(m.workLore(runtime, speaker)));
     return () => { live = false; };
   }, [runtime, speaker, card]);
-  const [typed, done, finish] = useTyped(card.kind === "speech" || card.kind === "turn" ? card.text : "");
+  // Someone walking up with a demand says it in their own words, about what is in front of them;
+  // the written line is the fallback and holds the facts.
+  const tailor = card.kind === "speech" && !!speaker && runtime.engine.approacher?.id === speaker.id;
+  const [line, setLine] = useState(tailor ? "" : card.text);
+  useEffect(() => {
+    if (!tailor) return;
+    const controller = new AbortController();
+    const late = window.setTimeout(() => { controller.abort(); setLine(card.text); }, 5000);
+    const situation = `You have walked up to the player to say this, in substance: “${card.text}” Say it now in your own words, one or two sentences, keeping every fact: names, amounts, the deadline. If something in front of you is striking (what they are carrying and whose it is, where you are, how they look), react to that first, then make your demand.`;
+    void dialogueTurn(runtime, speaker!.id, "", [], controller.signal, false, situation).then((result) => {
+      if (controller.signal.aborted) return;
+      window.clearTimeout(late);
+      const said = !result.error && result.text?.trim() ? result.text.trim() : card.text;
+      const ap = runtime.engine.approacher;
+      if (ap?.id === speaker!.id) ap.situation = `You have just walked up to the player and said: “${said}” You want an answer.`;
+      setLine(said);
+    });
+    return () => { window.clearTimeout(late); controller.abort(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [typed, typedAll, finish] = useTyped(card.kind === "speech" || card.kind === "turn" ? line : "");
+  const done = typedAll && (!tailor || !!line);
   const close = (then?: () => void) => {
     if (leaving) return;
     setLeaving(true);
@@ -507,8 +529,8 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
             </p>
           ) : (
             <p aria-live="polite">
-              {typed}
-              {!done && <span className="plot-rest" aria-hidden="true">{card.text.slice(typed.length)}</span>}
+              {line ? typed : "…"}
+              {!done && <span className="plot-rest" aria-hidden="true">{line.slice(typed.length)}</span>}
             </p>
           )}
           {outcome && <Changes changes={outcome.changes} />}
@@ -537,7 +559,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
               focus={begin}
               items={outcome ? [{ label: "Continue", pick: () => close(), primary: true }] : [
                 ...(speaker && runtime.engine.approacher?.id === speaker.id
-                  ? [{ label: "Answer", pick: () => { onLook(); onClose(); onAnswer(speaker.id, card.text); }, primary: true }]
+                  ? [{ label: "Answer", pick: () => { onLook(); onClose(); onAnswer(speaker.id, line || card.text); }, primary: true }]
                   : []),
                 { label: speaker ? "Later" : "Continue", pick: () => (done ? close() : finish()) },
               ]}

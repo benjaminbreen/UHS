@@ -6,6 +6,9 @@ import { ancientThemes } from "./ancient-themes";
 import { africanThemes } from "./african-themes";
 import { modernThemes } from "./modern-themes";
 import { overworldTheme } from "./overworld-theme";
+import { southAsianThemes } from "./south-asian-themes";
+import { europeanThemes } from "./european-themes";
+import { lastWinterTrain } from "./winter-train-theme";
 
 /** One repeating line. Its length is its own; it need not divide the bar. */
 export interface Layer {
@@ -47,6 +50,8 @@ export interface LayeredTheme {
   tuning?: Record<number, number>;
   /** Delay every off-beat of this subdivision (0.5 = eighths) by `amount` beats. */
   swing?: [unit: number, amount: number];
+  /** Only where the setting's longitude falls inside, when it is known. */
+  lon?: [number, number];
   /** Plays in every shuffle, never as a direct hit. */
   anywhere?: boolean;
   /** Reverb send and length in seconds; default a modest room. */
@@ -61,6 +66,9 @@ export const layeredThemes: LayeredTheme[] = [
   ...ancientThemes,
   ...andeanThemes,
   ...neolithicThemes,
+  ...southAsianThemes,
+  ...europeanThemes,
+  lastWinterTrain,
   {
     id: "kumasi-horns",
     title: "Horns at Kumasi",
@@ -1167,78 +1175,6 @@ export const layeredThemes: LayeredTheme[] = [
         enter: 16,
         transpose: 12,
         pan: 0.1,
-      },
-    ],
-  },
-  {
-    id: "sikri-naubat",
-    title: "Naubat at Fatehpur Sikri",
-    subtitle:
-      "Kettledrums in interlocking pairs, long trumpets, cymbals and a shehnai in raga Kafi from the gate-house.",
-    place: "Mughal Fatehpur Sikri, c. 1580",
-    culture: "south-asian",
-    years: [1500, 2026],
-    evidence:
-      "Documented: the Ain-i-Akbari describes Akbar's naqqarkhana of kettledrum pairs, karna trumpets, surna and cymbals, playing at set hours; shehnai and naqqara naubat continue at shrines today. Raga Kafi and the drum parts are inference; the melody is fiction.",
-    bpm: 360,
-    meter: 16,
-    bars: 24,
-    key: "C Kafi",
-    layers: [
-      {
-        voice: "frame",
-        stem: "bass",
-        loop: "D2:4 -:2 D2:2 -:4 D2:2 D2:2",
-        velocity: 0.32,
-      },
-      {
-        voice: "horn",
-        stem: "harmony",
-        loop: "C3:8 -:24 G3:8 -:24",
-        velocity: 0.2,
-        exit: 24,
-        day: true,
-      },
-      {
-        voice: "frame",
-        stem: "percussion",
-        loop: "-:2 A2:1 A2:1 -:2 A2:2 -:1 A2:1 A2:1 -:1 A2:2 A2:2",
-        velocity: 0.18,
-        enter: 2,
-        pan: -0.25,
-      },
-      {
-        voice: "bronze",
-        stem: "percussion",
-        loop: "F#6:8",
-        velocity: 0.05,
-        enter: 4,
-        pan: 0.35,
-      },
-      {
-        voice: "drone",
-        stem: "harmony",
-        loop: "C4:16",
-        velocity: 0.06,
-        enter: 4,
-      },
-      {
-        voice: "frame",
-        stem: "percussion",
-        loop: "E3:3",
-        velocity: 0.1,
-        enter: 6,
-        exit: 18,
-        pan: 0.25,
-      },
-      {
-        voice: "reed",
-        stem: "melody",
-        loop: "G4:4 A4:2 Bb4:2 A4:4 G4:4 F4:2 G4:2 Eb4:4 D4:4 C4:4 D4:2 Eb4:2 F4:2 G4:2 A4:4 Bb4:2 A4:2 G4:8 -:8",
-        velocity: 0.28,
-        enter: 8,
-        exit: 22,
-        pan: -0.1,
       },
     ],
   },
@@ -2427,63 +2363,7 @@ export const layeredThemes: LayeredTheme[] = [
       },
     ],
   },
-  {
-    id: "bruges-carillon",
-    title: "Carillon over Bruges",
-    subtitle:
-      "The belfry plays across the whole town: a quick prelude run, the tune, the hour bell. Every bell carries a minor third inside it, so even a major tune comes out wistful.",
-    place: "Bruges, c. 1550",
-    culture: "european",
-    years: [1450, 2026],
-    evidence:
-      "Documented: Low Countries belfries sounded tunes on tuned bells from the 15th century, first from a pinned drum that played the voorslag before the hour, then from a baton keyboard (Oudenaarde, 1510). A bell's minor-third 'tierce' partial is acoustics. The tune is original.",
-    bpm: 96,
-    meter: 3,
-    bars: 32,
-    key: "G major",
-    reverb: [0.35, 4],
-    layers: [
-      {
-        voice: "carillon",
-        stem: "percussion",
-        loop: "G5:.25 A5:.25 B5:.25 C6:.25 D6:1 -:22",
-        velocity: 0.14,
-        pan: 0.2,
-      },
-      {
-        voice: "carillon",
-        stem: "bass",
-        loop: "G2:24",
-        velocity: 0.24,
-      },
-      {
-        voice: "carillon",
-        stem: "bass",
-        loop: "G3:3 D3:3 E3:3 C3:3 G3:3 C3:3 D3:3 G3:3",
-        velocity: 0.14,
-        enter: 2,
-        pan: -0.2,
-      },
-      {
-        voice: "carillon",
-        stem: "melody",
-        loop: "D5:1 G5:1 B5:1 A5:2 F#5:1 G5:1 E5:1 B4:1 C5:2 E5:1 D5:1 G5:1 B5:1 C6:1.5 B5:.5 A5:1 B5:1 A5:1 F#5:1 G5:3",
-        velocity: 0.26,
-        enter: 4,
-        exit: 30,
-      },
-      {
-        voice: "carillon",
-        stem: "harmony",
-        loop: "B4:1 D5:1 B4:1 F#4:1 A4:1 F#4:1 G4:1 B4:1 G4:1 E4:1 G4:1 E4:1 B4:1 D5:1 B4:1 E4:1 G4:1 E4:1 F#4:1 A4:1 F#4:1 B4:1 D5:1 G4:1",
-        velocity: 0.1,
-        enter: 12,
-        exit: 28,
-        pan: 0.25,
-        day: true,
-      },
-    ],
-  },
+
   {
     id: "notre-dame-organum",
     title: "Organum at Notre Dame",
@@ -2697,6 +2577,8 @@ export const layeredThemes: LayeredTheme[] = [
     place: "An Atlantic whaler, c. 1840",
     culture: ["european", "other-indigenous-american"],
     years: [1800, 1950],
+    // Atlantic and North Sea ports and the Americas, not inland Europe.
+    lon: [-180, 10],
     evidence:
       "Documented: capstan and halyard shanties with solo and chorus (Richard Henry Dana, 1840; later collections by Terry and Hugill), fiddles and concertinas at sea, and the pawls that click as a capstan turns. The shanty is original.",
     bpm: 240,

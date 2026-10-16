@@ -1079,7 +1079,9 @@ export function culturalMusic(
     (t) =>
       [t.culture].flat().includes(culture) &&
       year >= t.years[0] &&
-      year <= t.years[1],
+      year <= t.years[1] &&
+      !(location && "lon" in t && t.lon &&
+        (location.lon < t.lon[0] || location.lon > t.lon[1])),
   );
   return {
     direct,

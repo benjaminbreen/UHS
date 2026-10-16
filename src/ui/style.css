@@ -9395,3 +9395,40 @@ button:disabled {
 .time-passing svg {
   color: var(--gold);
 }
+
+.shop { display: flex; flex-direction: column; gap: 12px; }
+.shop h2 { margin: 2px 0 0; }
+.shop-lede, .shop-purse { margin: 0; color: var(--muted); font-size: 14px; }
+.shop-tabs { display: flex; gap: 6px; }
+.shop-tabs button, .shop-foot button, .shop-step button {
+  background: var(--bg-3); color: var(--text); border: 1px solid var(--line-soft);
+  border-radius: 4px; padding: 5px 14px; font: inherit; cursor: pointer;
+}
+.shop-tabs button[aria-selected="true"] { border-color: var(--gold); color: var(--gold-hi); }
+.shop-list {
+  list-style: none; margin: 0; padding: 4px; max-height: 46dvh; overflow: auto;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--bg-0);
+}
+.shop-list li {
+  display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px;
+  padding: 4px 8px; border-radius: 4px; cursor: pointer; border: 1px solid transparent;
+}
+.shop-list li:hover { background: var(--bg-3); }
+.shop-list li[data-on] { border-color: var(--gold); background: var(--bg-3); }
+.shop-list li[data-dear] .shop-price { color: var(--rose); }
+.shop-list small, .shop-owned { color: var(--muted); font-size: 13px; }
+.shop-price { color: var(--gold-hi); font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; }
+.shop-empty { color: var(--muted); cursor: default; }
+.shop-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 36px; }
+.shop-foot .primary { background: var(--gold); color: var(--ink); border-color: var(--gold); margin-left: auto; }
+.shop-foot .primary:disabled { opacity: 0.4; cursor: default; }
+.shop-step { display: inline-flex; align-items: center; gap: 6px; }
+.shop-step button { padding: 3px 6px; display: inline-flex; }
+.shop-step b { min-width: 2ch; text-align: center; }
+.shop-note { color: var(--rose); font-size: 14px; }
+.shop-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.shop-column h3 { margin: 0 0 6px; font-size: 15px; color: var(--gold); }
+.shop[data-barter] .shop-list li { grid-template-columns: auto 1fr auto; cursor: default; }
+.shop[data-barter] .shop-price { grid-column: 2; text-align: left; font-size: 13px; }
+.shop[data-barter] .shop-step { grid-column: 3; grid-row: 1 / span 2; }
+@media (max-width: 640px) { .shop-columns { grid-template-columns: 1fr; } }

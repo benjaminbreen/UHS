@@ -29,6 +29,7 @@ const KHMER: Box = [99, 9, 108, 16];
 const ISLANDS: Box = [95, -11, 141, 6];
 const CENTRAL_MEXICO: Box = [-100.5, 18, -97, 20.5];
 const SWAHILI: Box = [38, -12, 45, 0];
+const ATLANTIC_COLONIES: Box = [-82, 29, -66, 45.5];
 
 export const spoken: LanguageWindow[] = [
   // Europe
@@ -135,6 +136,18 @@ export const spoken: LanguageWindow[] = [
       { label: "Early Modern English, spoken (attested)", probability: 1, confidence: "attested",
         note: "Thou and you still distinct by intimacy and rank, -th giving way to -s, oaths everywhere. Not the stately prose of the King James Bible.",
         draw: "Court depositions, Shakespeare's and Dekker's low characters, Machyn's diary." },
+    ],
+  },
+  {
+    id: "atlantic-colonial-english",
+    years: [1607, 1700],
+    box: [ATLANTIC_COLONIES],
+    hypotheses: [
+      { label: "Early Modern English, spoken (attested)", probability: 0.75, confidence: "attested",
+        note: "The colonial towns and farms. A Native speaker in a Native village speaks their own language instead.",
+        draw: "Court depositions, Shakespeare's and Dekker's low characters, Machyn's diary." },
+      { label: "Dutch (attested)", probability: 0.1, confidence: "attested", note: "New Netherland, and New York after 1664." },
+      { label: "Algonquian (reconstructed)", probability: 0.15, confidence: "reconstructed" },
     ],
   },
   {

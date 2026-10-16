@@ -701,6 +701,22 @@ describe("shared deterministic foundation", () => {
     ).toBe("rejected");
     expect(e.hash()).toBe(hash);
   });
+  it("deals from a person's stock at fixed prices, and keeps the sale", () => {
+    const e = createSession();
+    const a = e.state.actors[0];
+    a.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    e.state.player.inventory.coin = 50;
+    const shop = e.shopOf(a.id, true)!;
+    const [id] = Object.keys(shop.stock);
+    const price = e.buyPrice(id);
+    const have = e.state.player.inventory[id] ?? 0;
+    expect(act(e, { type: "deal", target: a.id, give: { coin: price - 1 }, take: { [id]: 1 } }).status).toBe("rejected");
+    expect(act(e, { type: "deal", target: a.id, give: { coin: price }, take: { [id]: 1 } }).status).toBe("completed");
+    expect(e.state.player.inventory[id]).toBe(have + 1);
+    expect(e.shopOf(a.id, true)!.stock[id]).toBe(shop.stock[id]! - 1);
+    expect(e.shopOf(a.id, true)!.purse).toBe(shop.purse + price);
+    expect(e.sellPrice(id)).toBeLessThanOrEqual(price);
+  });
   it("uses barter in the Neolithic pack and preserves item exclusions", () => {
     const e = createSession("neolithic");
     expect(e.state.player.inventory.coin).toBeUndefined();

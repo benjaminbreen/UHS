@@ -287,6 +287,10 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
   ],
+  "late-roman-egypt": [
+    { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Desert monk", serves: "major", weight: 5 },
+  ],
   "europe-foragers": [
     { tier: "local", label: "Elder or shaman know the song", serves: "local", weight: 14 },
   ],
@@ -354,6 +358,11 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "temple", label: "Priest", serves: "major", weight: 5 },
     { tier: "local", label: "Teacher", serves: "local", weight: 14 },
     { tier: "local", label: "Doctor", serves: "local", weight: 14 },
+  ],
+  "us-urban-congregations": [
+    { tier: "temple", label: "Protestant minister", serves: "major", weight: 5 },
+    { tier: "temple", label: "Catholic parish priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Rabbi", serves: "major", weight: 5 },
   ],
   "byzantine-orthodox": [
     { tier: "temple", label: "Parish priest", serves: "major", weight: 5 },
@@ -629,6 +638,10 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   "himalayan-newar": [
     { tier: "temple", label: "Brahmin priest", serves: "major", weight: 5 },
     { tier: "local", label: "Local shaman or juju", serves: "local", weight: 14 },
+  ],
+  "mughal-delhi": [
+    { tier: "temple", label: "Imam of the mosque", serves: "major", weight: 5 },
+    { tier: "temple", label: "Brahmin priest", serves: "major", weight: 5 },
   ],
   "indo-islamic-sufi": [
     { tier: "temple", label: "Pir", serves: "major", weight: 5 },

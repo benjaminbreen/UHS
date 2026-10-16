@@ -242,6 +242,8 @@ export type Actor = {
   shuns?: number;
   /** A day's help the player gave them and can call in. */
   owes?: boolean;
+  /** What they have to sell today, once the player has bought or sold. */
+  shop?: import("./shop").Shop;
   /** Stories about the player this person would pass on; hops 0 is what they saw. */
   word?: Word[];
   /** Serving a sentence (stocks, labour, a cell) until then. */
@@ -536,6 +538,8 @@ export type PlayerCommand =
       take: ItemId;
       takeQuantity: number;
     }
+  /** Goods both ways at once: a purchase, a sale, or a barter. */
+  | { type: "deal"; target: string; give: Inventory; take: Inventory }
   | { type: "use"; item: ItemId }
   /** Put a wearable from the inventory on; whatever held the slot comes off. */
   | { type: "wear"; item: ItemId }

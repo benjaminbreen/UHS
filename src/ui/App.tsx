@@ -65,6 +65,8 @@ import { WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
 import { ambienceFor } from "../audio/ambience";
+import { interiorMusic } from "../audio/interior-themes";
+import { buildingUse } from "../content/interiors/select";
 import { religiousProfile } from "../content/settlements/religious";
 import { ROOM_ORIGIN } from "../world/interior";
 import { pageTurn } from "../audio/handling";
@@ -105,6 +107,7 @@ const fitOutlook = (words: string[]) => fit(words, 2, 25, " · ");
 const RESIZE_SETTLE_MS = 250;
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
+import { ShopModal } from "./ShopModal";
 import { DialogueModal } from "./DialogueModal";
 import { WorkCard } from "./WorkCard";
 import { Toasts } from "./Toasts";
@@ -244,8 +247,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "dialogue"
     | "character"
     | "evening"
+    | "shop"
     | null
   >(null);
+  const [shopWith, setShopWith] = useState<string>();
+  const trader = runtime.nearestTrader();
   const modalPanel = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const panel = modalPanel.current;
@@ -708,7 +714,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       }
       if (e.key.toLowerCase() === "q" && !e.repeat) talkToNearest();
       if (e.key.toLowerCase() === "r" && !e.repeat) inspectNearest();
-      if (e.key.toLowerCase() === "t") setRestOpen((open) => !open);
+      if (e.key.toLowerCase() === "t" && !e.repeat) {
+        const near = runtime.nearestTrader();
+        if (near) {
+          setShopWith(near.id);
+          setModal("shop");
+        }
+      }
       if (e.key.toLowerCase() === "m") setModal("map");
       if (e.key.toLowerCase() === "n") setModal("notebook");
     };
@@ -830,6 +842,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     hour,
   ]);
   useEffect(() => audio?.setScene(ambience), [audio, ambience]);
+  useEffect(() => {
+    if (p.pos.space === "outside") return audio?.setInterior(undefined);
+    const place = runtime.engine.world.place(p.pos.space);
+    const faith = setting ? religiousProfile(setting)?.faith : undefined;
+    audio?.setInterior(
+      place ? interiorMusic(buildingUse(place.claim) && `${buildingUse(place.claim)} ${place.name.toLowerCase()}`, faith, place.access === "household") ?? null : "home",
+    );
+  }, [audio, runtime, p.pos.space, setting]);
   useEffect(
     () => audio?.setSetting(setting?.culture, setting?.year, setting),
     [audio, setting?.culture, setting?.year, setting?.lon, setting?.lat],
@@ -1056,6 +1076,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 setModal(null);
                 setDialogueActorId(null);
               }}
+              onTrade={() => {
+                setShopWith(dialogueActorId);
+                setDialogueActorId(null);
+                setModal("shop");
+              }}
             />
           )}
           {graphicsOpen && (
@@ -1202,6 +1227,19 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               : p.heldItem === "sling"
               ? <span>Right mouse · Whirl and let fly · {runtime.engine.ammo() ? "stones ready" : "no stones"}</span>
               : (p.held || p.heldItem) && <span className="prompt-note"><kbd>X</kbd> Throw, hold to aim</span>}
+            {trader && (
+              <KeyPrompt
+                key={`trade-${trader.id}`}
+                code="KeyT"
+                letter="T"
+                label={`Trade with ${trader.name.split(" ")[0]}`}
+                kind="trade"
+                onClick={() => {
+                  setShopWith(trader.id);
+                  setModal("shop");
+                }}
+              />
+            )}
             {verbs.alternate && (
               <KeyPrompt
                 key={verbs.alternate.label}
@@ -1357,7 +1395,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 >
                   <Hourglass size={17} />
                   <span>Rest</span>
-                  <kbd>T</kbd>
                 </button>
               </div>
             </div>
@@ -1643,6 +1680,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   </p>
                 )}
                 <div className="context-actions">
+                  {runtime.engine.shopOf(selection.id) && (
+                    <button className="action" onClick={() => { setShopWith(selection.id); setModal("shop"); }}>
+                      <ShoppingBag size={16} />
+                      <span>Trade</span>
+                      <ArrowRight size={13} />
+                    </button>
+                  )}
                   {selection.affordances.map((a, i) => (
                     <button
                       key={i}
@@ -1942,6 +1986,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   <DialogueTester onClose={() => setModal(null)} />
                 </Suspense>
               )}
+            {modal === "shop" && shopWith && (
+              <ShopModal runtime={runtime} actorId={shopWith} onClose={() => setModal(null)} />
+            )}
             {modal === "character" && (
               <CharacterPanel
                 runtime={runtime}

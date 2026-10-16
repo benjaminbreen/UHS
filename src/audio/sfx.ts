@@ -521,8 +521,7 @@ function brushing(through: Through, g: number): Sound {
       return [];
   }
 }
-/** A walking footfall, with whatever it pushes through. Firm, bare ground is
- * silent. "paddy" is ankle-deep water over mud; "furrow" is tilled soil;
+/** A walking footfall, with whatever it pushes through. "paddy" is ankle-deep water over mud; "furrow" is tilled soil;
  * "sodden" is any other soft ground in heavy rain. */
 export function footstep(
   ground: HitClass | "paddy" | "furrow" | "sodden",
@@ -566,6 +565,26 @@ function footfall(ground: HitClass | "paddy" | "furrow" | "sodden", g: number): 
         noise(0, 0.13, 0.15 * g, 560, { filter: "lowpass", attack: 0.012 }),
         bubble(rand(0.04, 0.09), rand(180, 280), 0.1 * g),
       ];
+    case "grass":
+      return [noise(0, 0.08, 0.025 * g, vary(900, 0.15), { filter: "lowpass", attack: 0.012 })];
+    case "soil":
+      return [
+        noise(0, 0.07, 0.04 * g, vary(700, 0.15), { filter: "lowpass", attack: 0.008 }),
+        noise(0.01, 0.04, 0.012 * g, vary(2400, 0.2), { q: 1.2, attack: 0.01 }),
+      ];
+    case "stone":
+    case "rock":
+      return [
+        noise(0, 0.035, 0.05 * g, vary(1600, 0.15), { q: 1.4, attack: 0.002 }),
+        noise(0.015, 0.05, 0.018 * g, vary(3800, 0.2), { q: 1, attack: 0.01 }),
+      ];
+    case "timber":
+      return [
+        noise(0, 0.05, 0.05 * g, vary(520, 0.12), { q: 1.6, attack: 0.003 }),
+        tone(0, 0.06, 0.03 * g, vary(180, 0.08), { to: 140, attack: 0.003 }),
+      ];
+    case "fiber":
+      return [noise(0, 0.07, 0.03 * g, vary(1800, 0.2), { q: 0.8, attack: 0.01 })];
     case "sand":
       return [
         noise(0, 0.09, 0.035 * g, vary(2600, 0.15), { q: 0.6, attack: 0.02 }),

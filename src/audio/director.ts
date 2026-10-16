@@ -19,6 +19,7 @@ import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, playSound, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, silence, type AmbienceMix } from "./ambience";
+import { interiorThemes, type InteriorMusic } from "./interior-themes";
 
 export interface AudioState {
   loading: boolean;
@@ -90,6 +91,8 @@ export class AudioDirector {
   private disposed = false;
   private lastSfx = new Map<string, number>();
   private setting = "";
+  /** The building's piece; null for a room kept quiet, undefined outdoors. */
+  private inside?: InteriorMusic | null;
   private rotation = new MusicRotation([], [...themes, ...anywhereThemes]);
   private state: AudioState = {
     loading: false,
@@ -248,7 +251,7 @@ export class AudioDirector {
       (ctx.currentTime - run.start) / secondsPerBeat + run.offset,
     );
     if (beat >= run.score.beats) {
-      if (this.state.followWorld) {
+      if (this.state.followWorld && this.inside === undefined) {
         this.retire(false, SLOW_FADE_OUT);
         this.patch({ playing: false, beat: 0 });
         const next = shuffled(
@@ -347,8 +350,24 @@ export class AudioDirector {
     }
     const { direct } = culturalMusic(culture, year, location);
     this.rotation = new MusicRotation(direct, [...themes, ...anywhereThemes]);
-    if (this.state.followWorld)
+    if (this.state.followWorld && this.inside === undefined)
       this.configure({ themeId: this.rotation.next() });
+  }
+  /** Crossing a threshold swaps the score at once, as an RPG does at an inn door. */
+  setInterior(music: InteriorMusic | null | undefined) {
+    if (music === this.inside) return;
+    this.inside = music;
+    if (!this.state.followWorld) return;
+    this.generation++;
+    clearTimeout(this.pending);
+    this.retire(false, 1.5);
+    this.patch({ playing: false, loading: false, beat: 0 });
+    if (music === null) return;
+    const themeId = music
+      ? interiorThemes[music].id
+      : this.rotation.next(this.state.arrangement.themeId);
+    this.patch({ arrangement: { ...this.state.arrangement, themeId } });
+    if (this.ctx) void this.play(1.5);
   }
   follow(enabled: boolean) {
     this.patch({ followWorld: enabled });
