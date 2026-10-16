@@ -222,8 +222,8 @@ export const CONDITIONS: readonly ConditionDef[] = [
     gloss: "Tuberculosis, the commonest killer of adults in early modern cities.",
     rate: (p) => (p.age < 15 || p.age > 65 ? 0 : year(p) >= 1950 ? 0.002 : urban(p) && year(p) >= 1600 ? 0.04 : 0.015),
     salience: 0.8,
-    you: () => ["you have had a cough since the winter that will not go away", "you have been coughing blood since the spring, and have told nobody"],
-    of: () => ["has had a cough since the winter that will not go"],
+    you: () => ["you have had a cough for months that will not go away", "you have been coughing blood for weeks, and have told nobody"],
+    of: () => ["has had a cough for months that will not go away"],
     note: "Perhaps a fifth of deaths in eighteenth- and nineteenth-century European cities.",
   },
   {
@@ -245,8 +245,8 @@ export const CONDITIONS: readonly ConditionDef[] = [
     gloss: "Depression. Humoral medicine from Hippocrates to the eighteenth century blamed an excess of black bile.",
     rate: (p) => (p.age >= 16 ? 0.04 : 0),
     salience: 0.55,
-    you: () => ["since the spring a heaviness has settled on you that will not lift", "there are weeks when the weight on you keeps you in your bed"],
-    of: () => ["has had a heaviness on {her} since the spring"],
+    you: () => ["for months a heaviness has sat on you that will not lift", "there are weeks when the weight on you keeps you in your bed"],
+    of: () => ["has had a heaviness on {her} for months"],
     note: "Major depression affects a few percent of adults at any time.",
   },
   {

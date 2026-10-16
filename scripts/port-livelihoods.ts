@@ -268,7 +268,7 @@ writeFileSync(
     `import type { Ecology } from "../ecology/profiles";\n\n` +
     `/** What a piece of work is called in a given place and century. */\n` +
     `export const localLabels: Readonly<\n` +
-    `  Record<string, readonly { scope: CharacterScope; ecologies?: readonly Ecology[]; label: string; weight?: number }[]>\n` +
+    `  Record<string, readonly { scope: CharacterScope; ecologies?: readonly Ecology[]; requires?: readonly string[]; label: string; weight?: number }[]>\n` +
     `> = {\n` +
     Object.entries(LABELS)
       .filter(([id]) => !id.startsWith("_"))
@@ -280,6 +280,7 @@ writeFileSync(
               (v) =>
                 `    { scope: ${JSON.stringify(v.scope)}` +
                 (v.ecologies ? `, ecologies: ${JSON.stringify(v.ecologies)}` : "") +
+                (v.requires ? `, requires: ${JSON.stringify(v.requires)}` : "") +
                 `, label: ${JSON.stringify(v.label)}` +
                 (v.weight ? `, weight: ${v.weight}` : "") +
                 ` },`,
@@ -311,6 +312,7 @@ writeFileSync(
         ) +
         (sc?.ecologies ? `    ecologies: ${JSON.stringify(sc.ecologies)},\n` : "") +
         (sc?.minPopulation ? `    minPopulation: ${sc.minPopulation},\n` : "") +
+        (sc?.requires ? `    requires: ${JSON.stringify(sc.requires)},\n` : "") +
         (sc?.weight ? `    weight: ${sc.weight},\n` : "") +
         (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : "") +
         (sc?.fromBeliefs ? `    fromBeliefs: true,\n` : "") +
@@ -324,6 +326,7 @@ writeFileSync(
                   (v) =>
                     `      { scope: ${JSON.stringify(v.scope)}` +
                 (v.ecologies ? `, ecologies: ${JSON.stringify(v.ecologies)}` : "") +
+                (v.requires ? `, requires: ${JSON.stringify(v.requires)}` : "") +
                 `, label: ${JSON.stringify(v.label)}` +
                     (v.weight ? `, weight: ${v.weight}` : "") +
                     ` },`,

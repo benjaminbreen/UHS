@@ -14,9 +14,9 @@ export const neighbours = (c: PlotContext) => c.actors
   .sort((a, b) => (b.age ?? 30) - (a.age ?? 30));
 
 /** The head of the richest other household: the one others answer to. */
-export function notable(c: PlotContext): Actor | undefined {
+export function notable(c: PlotContext, fits: (a: Actor) => boolean = () => true): Actor | undefined {
   const rich = c.households.filter((h) => h.id !== c.player.householdId).sort((a, b) => (b.fortune ?? 0) - (a.fortune ?? 0))[0];
-  return rich && neighbours(c).find((a) => rich.members.includes(a.id));
+  return rich && neighbours(c).find((a) => rich.members.includes(a.id) && fits(a));
 }
 
 export const pickOf = <T,>(c: PlotContext, xs: readonly T[], key: string) =>

@@ -34,7 +34,7 @@ export const renderers: Record<
   c: { label: "C · modelled prototype", draw: drawC },
   d: { label: "D · unfinished", draw: drawD },
   e: {
-    label: "E · default",
+    label: "E · modelled",
     draw: (ctx, a, ...rest) => {
       const sick = a.record?.sick;
       const look = sick === "fever" ? { ...a, skin: tint(a.skin, "#cc4a3a", 0.28) }
@@ -45,7 +45,7 @@ export const renderers: Record<
     },
   },
   f: { label: "F · paper doll", draw: drawCharacterF },
-  g: { label: "G · paper doll, longer legs", draw: drawCharacterG },
+  g: { label: "G · default", draw: drawCharacterG },
 };
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const tint = (a: string, b: string, t: number) =>
@@ -71,7 +71,7 @@ export const outlined = (id: RendererId) => id === "e" || id === "f" || id === "
 /** The renderer the game draws with. The lab can select either; everything
  * else should import `drawCharacter` from here rather than a variant directly,
  * so switching back is one line. */
-export const defaultRenderer: RendererId = "e";
+export const defaultRenderer: RendererId = "g";
 /** Renderers the game draws in a worker. A and B touch the DOM; anything drawn
  * on the main thread here costs a frame per new pose, so the default must be one. */
 export const workerDrawn = (id: RendererId) => id !== "a" && id !== "b";

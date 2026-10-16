@@ -52,7 +52,8 @@ import {
 import { materials } from "../content/characters/wardrobe/cloth";
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
-const item = z.string().regex(/^[a-z][a-z0-9-]{0,39}$/);
+// A garment's cloth rides after `~` (see clothId): `garment-dress~wool.bleached.0`.
+const item = z.string().regex(/^[a-z][a-z0-9-]{0,39}(~[a-z0-9.-]{1,30})?$/);
 const inventory = z.record(item, z.number().int().min(0).max(1000000));
 const itemDef = z
   .object({

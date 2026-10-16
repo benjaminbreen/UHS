@@ -5,6 +5,8 @@ import type { WorldSetting } from "../geography/types";
 import { random } from "../../core/random";
 import { matchesCharacterScope } from "./resolve";
 import { localLabels } from "./livelihood-labels.generated";
+import { citySignatures } from "./signatures";
+import { requirementMet } from "./requirements";
 import type { Livelihood } from "./context-types";
 
 /*
@@ -97,11 +99,16 @@ export function localLabel(
   id: string,
 ): string {
   const ecology = s.environment?.ecology;
-  const fits = [...(l.labels ?? []), ...(localLabels[l.id] ?? [])].filter(
+  const fits: { label: string; weight?: number }[] = [...(l.labels ?? []), ...(localLabels[l.id] ?? [])].filter(
     (v) =>
       matchesCharacterScope(v.scope, s, "*") &&
-      (!v.ecologies || (ecology && v.ecologies.includes(ecology))),
+      (!v.ecologies || (ecology && v.ecologies.includes(ecology))) &&
+      !v.requires?.some((r) => !requirementMet(r, s)),
   );
+  const signature = citySignatures
+    .filter((g) => matchesCharacterScope(g.scope, s, "*"))
+    .flatMap((g) => g.labels?.[l.id] ?? []);
+  if (signature.length) fits.push(...(fits.length ? [] : [{ label: l.label }]), ...signature);
   if (!fits.length) return l.label;
   const total = fits.reduce((n, v) => n + (v.weight ?? 1), 0);
   let roll = random(seed, "character-v1", id, "role-label") * total;

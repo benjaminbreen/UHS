@@ -26,20 +26,20 @@
       ],
       "why": "Gated only on urban settlement, so available in Uruk around 3500 BCE, some three and a half thousand years before window glass.",
       "sex": "male",
-      "sexUntil": 1970
+      "sexUntil": 1970,
+      "requires": [
+        "glass"
+      ]
     },
     "cooper": {
       "years": [
         -100,
         10001
       ],
-      "bounds": [
-        -25,
-        25,
-        60,
-        72
-      ],
-      "why": "Stave barrels are Iron Age Celtic and spread from there. Ungated it appeared in Bronze Age Mesopotamia and in Mesoamerica and the Andes, which had neither barrels nor the cooperage tradition."
+      "why": "Stave barrels are Iron Age Celtic and spread from there. Ungated it appeared in Bronze Age Mesopotamia and in Mesoamerica and the Andes, which had neither barrels nor the cooperage tradition.",
+      "requires": [
+        "cask"
+      ]
     },
     "saddler": {
       "years": [
@@ -48,7 +48,10 @@
       ],
       "why": "Gated only on draft animals, so from 3500 BCE; saddles are later. Follows the working horse.",
       "sex": "male",
-      "sexUntil": 1970
+      "sexUntil": 1970,
+      "requires": [
+        "horse"
+      ]
     },
     "miller": {
       "years": [
@@ -57,7 +60,10 @@
       ],
       "why": "A miller presupposes a mill. Grinding by quern is household work, not a trade.",
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "requires": [
+        "mills"
+      ]
     },
     "charcoal-burner": {
       "years": [
@@ -109,7 +115,10 @@
         -1000,
         1950
       ],
-      "why": "Ends with the tractor."
+      "why": "Ends with the tractor. The Andean foot-plough and the Mesoamerican digging stick had no team to drive.",
+      "requires": [
+        "draught"
+      ]
     },
     "cottager": {
       "weight": 8,
@@ -128,13 +137,19 @@
         -8000,
         1960
       ],
-      "why": "Shepherding survives in hill country but stops being an ordinary village job."
+      "why": "Shepherding survives in hill country but stops being an ordinary village job.",
+      "requires": [
+        "sheep"
+      ]
     },
     "herder": {
       "weight": 14
     },
     "cattle-herder": {
-      "weight": 14
+      "weight": 14,
+      "requires": [
+        "cattle"
+      ]
     },
     "goatherd": {
       "weight": 12,
@@ -142,7 +157,10 @@
         -8000,
         1950
       ],
-      "why": "Goat keeping continues; the standing village office does not."
+      "why": "Goat keeping continues; the standing village office does not.",
+      "requires": [
+        "goat"
+      ]
     },
     "swineherd": {
       "weight": 8,
@@ -150,7 +168,10 @@
         -3000,
         1900
       ],
-      "why": "Pig keeping continues; the word and the job as a separate village office do not."
+      "why": "Pig keeping continues; the word and the job as a separate village office do not.",
+      "requires": [
+        "pig"
+      ]
     },
     "dairymaid": {
       "weight": 6,
@@ -158,7 +179,10 @@
         1200,
         1950
       ],
-      "why": "Hand milking as a named household office."
+      "why": "Hand milking as a named household office.",
+      "requires": [
+        "milk"
+      ]
     },
     "milkmaid": {
       "weight": 6,
@@ -166,13 +190,22 @@
         1200,
         1950
       ],
-      "why": "As dairymaid."
+      "why": "As dairymaid.",
+      "requires": [
+        "milk"
+      ]
     },
     "pig-keeper": {
-      "weight": 8
+      "weight": 8,
+      "requires": [
+        "pig"
+      ]
     },
     "llama-herder": {
-      "weight": 14
+      "weight": 14,
+      "requires": [
+        "llama"
+      ]
     },
     "fisher": {
       "weight": 12
@@ -187,7 +220,12 @@
       "weight": 10
     },
     "rice-farmer": {
-      "weight": 26
+      "weight": 26,
+      "cultures": [
+        "east-asian",
+        "southeast-asian"
+      ],
+      "why": "Not the steppe: Mongolia drew rice farmers. Southeast Asia, which grew more rice than anywhere, had none."
     },
     "maize-cultivator": {
       "weight": 26,
@@ -220,7 +258,13 @@
         -3000,
         10001
       ],
-      "why": "Date palms are cultivated in Mesopotamia and the Gulf from the Bronze Age."
+      "why": "Date palms are cultivated in Mesopotamia and the Gulf from the Bronze Age. The date palm does not fruit north of about 35°; Istanbul had date growers.",
+      "bounds": [
+        -17,
+        15,
+        63,
+        35
+      ]
     },
     "fellah": {
       "weight": 22,
@@ -228,7 +272,13 @@
         700,
         1960
       ],
-      "why": "An Arabic term for a peasant cultivator; it belongs to the Islamic-era countryside, not the Neolithic. An Ottoman and colonial-era term for the Egyptian peasantry."
+      "why": "An Arabic term for a peasant cultivator; it belongs to the Islamic-era countryside, not the Neolithic. An Ottoman and colonial-era term for the Egyptian peasantry.",
+      "bounds": [
+        -17,
+        12,
+        63,
+        37
+      ]
     },
     "market-gardener": {
       "weight": 8,
@@ -244,7 +294,13 @@
         -800,
         1900
       ],
-      "why": "Viticulture spreads with the Mediterranean world. Viticulture continues under other names and arrangements."
+      "why": "Viticulture spreads with the Mediterranean world. Viticulture continues under other names and arrangements.",
+      "bounds": [
+        -10,
+        28,
+        50,
+        51
+      ]
     },
     "canoe-builder": {
       "weight": 4
@@ -264,7 +320,10 @@
         1700,
         10001
       ],
-      "why": "Dairying as a farm's main business rather than a household task."
+      "why": "Dairying as a farm's main business rather than a household task.",
+      "requires": [
+        "cattle"
+      ]
     },
     "homesteader": {
       "weight": 10,
@@ -280,7 +339,10 @@
         1700,
         10001
       ],
-      "why": "Ranching follows the introduction of cattle and horses to the Americas."
+      "why": "Ranching follows the introduction of cattle and horses to the Americas.",
+      "requires": [
+        "cattle"
+      ]
     },
     "cattle-hand": {
       "weight": 8,
@@ -288,7 +350,10 @@
         1700,
         10001
       ],
-      "why": "As ranch hand."
+      "why": "As ranch hand.",
+      "requires": [
+        "cattle"
+      ]
     },
     "sharecropper": {
       "weight": 12,
@@ -328,7 +393,10 @@
         800,
         10001
       ],
-      "why": "Tea cultivation in China is Tang-era and later."
+      "why": "Tea cultivation in China is Tang-era and later.",
+      "cultures": [
+        "east-asian"
+      ]
     },
     "jute-grower": {
       "years": [
@@ -363,7 +431,10 @@
         -2000,
         10001
       ],
-      "why": "Sericulture is Neolithic in China."
+      "why": "Sericulture is Neolithic in China.",
+      "cultures": [
+        "east-asian"
+      ]
     },
     "beekeeper": {
       "years": [
@@ -377,21 +448,30 @@
         -200,
         10001
       ],
-      "why": "Tallow and wax candles as a trade are Roman and later."
+      "why": "Tallow and wax candles as a trade are Roman and later. Tenochtitlan lit with pine torches; there was no tallow before cattle and sheep.",
+      "requires": [
+        "tallow"
+      ]
     },
     "soap-boiler": {
       "years": [
         -100,
         10001
       ],
-      "why": "Soap boiling as a trade is Roman and later."
+      "why": "Soap boiling as a trade is Roman and later.",
+      "requires": [
+        "soap"
+      ]
     },
     "oil-presser": {
       "years": [
         -3000,
         10001
       ],
-      "why": "Olive and sesame pressing follows the orchard crops, not the first cereals."
+      "why": "Olive and sesame pressing follows the orchard crops, not the first cereals.",
+      "requires": [
+        "oil-press"
+      ]
     },
     "salt-worker": {
       "years": [
@@ -461,7 +541,10 @@
         -3000,
         10001
       ],
-      "why": "There was no seafaring livelihood at all before 1780, which left every ancient port without sailors."
+      "why": "There was no seafaring livelihood at all before 1780, which left every ancient port without sailors.",
+      "requires": [
+        "coast"
+      ]
     },
     "night-watchman": {
       "years": [
@@ -501,7 +584,10 @@
         1750,
         1950
       ],
-      "why": "Canal and railway earthwork labour."
+      "why": "Canal and railway earthwork labour.",
+      "requires": [
+        "factories"
+      ]
     },
     "night-soil-collector": {
       "years": [
@@ -515,21 +601,31 @@
         -1000,
         1940
       ],
-      "why": "Stabling for travellers' horses ends with the motor car."
+      "why": "Stabling for travellers' horses ends with the motor car.",
+      "requires": [
+        "horse"
+      ]
     },
     "cabman": {
       "years": [
         1650,
         1940
       ],
-      "why": "The horse cab gives way to the taxi."
+      "why": "The horse cab gives way to the taxi.",
+      "requires": [
+        "horse"
+      ]
     },
     "muleteer": {
       "years": [
         -1000,
         1950
       ],
-      "why": "Pack transport gives way to the lorry."
+      "why": "Pack transport gives way to the lorry. A mule needs both parents.",
+      "requires": [
+        "donkey",
+        "horse"
+      ]
     },
     "wool-comber": {
       "years": [
@@ -538,16 +634,22 @@
       ],
       "why": "Combing is mechanised early in the textile factories.",
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "requires": [
+        "wool"
+      ]
     },
     "fuller": {
       "years": [
         -500,
         1800
       ],
-      "why": "Fulling by foot and by stock gives way to the fulling mill and then the factory.",
+      "why": "Fulling by foot and by stock gives way to the fulling mill and then the factory. Fulling felts woollen cloth.",
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "requires": [
+        "wool"
+      ]
     },
     "scullion": {
       "years": [
@@ -568,7 +670,10 @@
         1830,
         1940
       ],
-      "why": "A trade that existed only while matches were dipped by hand."
+      "why": "A trade that existed only while matches were dipped by hand.",
+      "requires": [
+        "factories"
+      ]
     },
     "lime-burner": {
       "years": [
@@ -596,23 +701,32 @@
         -1000,
         1950
       ],
-      "why": "Wooden wheels for carts and carriages.",
+      "why": "Wooden wheels for carts and carriages. The pre-contact Americas had the wheel only on toys.",
       "sex": "male",
-      "sexUntil": 1970
+      "sexUntil": 1970,
+      "requires": [
+        "wheel"
+      ]
     },
     "chimney-sweep": {
       "years": [
         1500,
         1960
       ],
-      "why": "Follows the open coal fire."
+      "why": "Follows the open coal fire.",
+      "requires": [
+        "chimneys"
+      ]
     },
     "errand-boy": {
       "years": [
         1750,
         1960
       ],
-      "why": "Child errand work ends with schooling laws."
+      "why": "Child errand work ends with schooling laws.",
+      "requires": [
+        "modern-town"
+      ]
     },
     "washerwoman": {
       "years": [
@@ -633,14 +747,21 @@
         -3000,
         1900
       ],
-      "why": "Driving stock overland on the hoof ends with the railway."
+      "why": "Driving stock overland on the hoof ends with the railway.",
+      "requires": [
+        "cattle"
+      ]
     },
     "carter": {
       "years": [
         -2000,
         1950
       ],
-      "why": "Horse haulage gives way to the lorry."
+      "why": "Horse haulage gives way to the lorry.",
+      "requires": [
+        "wheel",
+        "draught"
+      ]
     },
     "spinner": {
       "years": [
@@ -679,7 +800,10 @@
       ],
       "why": "Ends with electric street lighting.",
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "requires": [
+        "street-lighting"
+      ]
     },
     "thatcher": {
       "years": [
@@ -698,11 +822,18 @@
     },
     "blacksmith": {
       "sex": "male",
-      "sexUntil": 1970
+      "sexUntil": 1970,
+      "requires": [
+        "iron"
+      ],
+      "why": "Mesoamerica and the Andes worked copper, bronze and gold, never iron."
     },
     "armourer": {
       "sex": "male",
-      "sexUntil": 1970
+      "sexUntil": 1970,
+      "requires": [
+        "iron"
+      ]
     },
     "fletcher": {
       "sex": "male",
@@ -714,7 +845,10 @@
     },
     "cabinetmaker": {
       "sex": "male",
-      "sexUntil": 1970
+      "sexUntil": 1970,
+      "requires": [
+        "cabinetry"
+      ]
     },
     "tanner": {
       "sex": "male",
@@ -726,7 +860,10 @@
     },
     "watchmaker": {
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "requires": [
+        "clocks"
+      ]
     },
     "money-changer": {
       "sex": "male",
@@ -746,23 +883,39 @@
     },
     "printer": {
       "sex": "male",
-      "sexUntil": 1850
+      "sexUntil": 1850,
+      "requires": [
+        "print"
+      ],
+      "why": "Tenochtitlan in 1500 had a printer; Mexico City got its press in 1539."
     },
     "policeman": {
       "sex": "male",
-      "sexUntil": 1915
+      "sexUntil": 1915,
+      "requires": [
+        "police"
+      ]
     },
     "postman": {
       "sex": "male",
-      "sexUntil": 1915
+      "sexUntil": 1915,
+      "requires": [
+        "post"
+      ]
     },
     "bank-clerk": {
       "sex": "male",
-      "sexUntil": 1915
+      "sexUntil": 1915,
+      "requires": [
+        "modern-town"
+      ]
     },
     "stationmaster": {
       "sex": "male",
-      "sexUntil": 1915
+      "sexUntil": 1915,
+      "requires": [
+        "railways"
+      ]
     },
     "bus-driver": {
       "sex": "male",
@@ -774,6 +927,157 @@
     "carpenter": {
       "sex": "male",
       "sexUntil": 1970
+    },
+    "horse-herder": {
+      "requires": [
+        "horse"
+      ],
+      "why": "Horses reach the Americas only with the Spanish; Cusco in 1450 drew horse herders. Horses were the prestige stock; most of a steppe herd was sheep and goats.",
+      "weight": 4
+    },
+    "ironworker": {
+      "requires": [
+        "iron",
+        "factories"
+      ]
+    },
+    "boilermaker": {
+      "requires": [
+        "iron",
+        "factories"
+      ]
+    },
+    "shopkeeper": {
+      "requires": [
+        "shops"
+      ],
+      "why": "Shops are Roman and earlier; the 1500 floor took them out of Ostia and put them into Tenochtitlan.",
+      "weight": 2
+    },
+    "grocer": {
+      "requires": [
+        "shops"
+      ],
+      "weight": 1
+    },
+    "shop-assistant": {
+      "requires": [
+        "shops",
+        "modern-town"
+      ]
+    },
+    "confectioner": {
+      "requires": [
+        "shops"
+      ]
+    },
+    "pharmacist": {
+      "requires": [
+        "apothecary"
+      ],
+      "weight": 1
+    },
+    "schoolteacher": {
+      "requires": [
+        "schools"
+      ],
+      "weight": 1,
+      "why": "Teachers were well under one in a hundred of a town."
+    },
+    "clerk": {
+      "requires": [
+        "office"
+      ],
+      "why": "Benin City in 1600 was an eighth clerks and schoolteachers.",
+      "weight": 2
+    },
+    "journeyman": {
+      "requires": [
+        "journeymen"
+      ],
+      "why": "The master-journeyman-apprentice ladder is the European guild form, and the Ottoman and East Asian ones like it; it filled Abbasid Baghdad, Timbuktu, Benin and Mughal Delhi with journeyman glaziers.",
+      "weight": 1
+    },
+    "guild-master": {
+      "requires": [
+        "journeymen"
+      ]
+    },
+    "sea-fisher": {
+      "requires": [
+        "coast"
+      ],
+      "why": "Fishing the sea needs a coast, not merely water: Timbuktu and Tenochtitlan had sea fishers."
+    },
+    "camel-herder": {
+      "requires": [
+        "camel-country"
+      ]
+    },
+    "net-maker": {
+      "workplace": "workshop",
+      "weight": 1,
+      "why": "A net is made ashore; counted as fishing it took a fishing village's whole share, and was an eighth of Athens.",
+      "needs": [
+        "water"
+      ]
+    },
+    "religious-specialist": {
+      "weight": 3,
+      "why": "Full-time clergy were one or two in a hundred even in a temple city; at 12 every tenth person in Tenochtitlan was a priest."
+    },
+    "apprentice": {
+      "weight": 1
+    },
+    "village-elder": {
+      "requires": [
+        "countryside"
+      ]
+    },
+    "dressmaker": {
+      "requires": [
+        "shops"
+      ]
+    },
+    "milliner": {
+      "requires": [
+        "shops"
+      ]
+    },
+    "factory-hand": {
+      "requires": [
+        "factories"
+      ]
+    },
+    "mill-worker": {
+      "requires": [
+        "factories"
+      ]
+    },
+    "power-loom-weaver": {
+      "requires": [
+        "factories"
+      ]
+    },
+    "railway-labourer": {
+      "requires": [
+        "railways"
+      ]
+    },
+    "coal-miner": {
+      "requires": [
+        "factories"
+      ]
+    },
+    "nurse": {
+      "requires": [
+        "modern-town"
+      ]
+    },
+    "charwoman": {
+      "requires": [
+        "modern-town"
+      ]
     }
   },
   "extraRoles": {
@@ -791,13 +1095,7 @@
         "desert",
         "dry-scrub"
       ],
-      "why": "Dromedary pastoralism across the Saharan and Arabian deserts; camels are domesticated in Arabia in the second millennium BCE. Bounded to the Saharan, Arabian and central Asian deserts: ecology alone let it into Mediterranean scrub.",
-      "bounds": [
-        -17,
-        12,
-        78,
-        40
-      ]
+      "why": "Dromedary pastoralism across the Saharan and Arabian deserts; camels are domesticated in Arabia in the second millennium BCE. Bounded to the Saharan, Arabian and central Asian deserts: ecology alone let it into Mediterranean scrub."
     },
     "reindeer-herder": {
       "label": "Reindeer Herder",
@@ -1199,10 +1497,6 @@
       "keyword": "trade",
       "tier": "town",
       "weight": 4,
-      "years": [
-        1500,
-        10001
-      ],
       "why": "A fixed shop rather than a stall, which is what a high street is made of and what the table had none of."
     },
     "grocer": {
@@ -1296,10 +1590,6 @@
       "weight": 3,
       "capabilities": [
         "writing"
-      ],
-      "years": [
-        1600,
-        10001
       ]
     },
     "postman": {
@@ -1368,11 +1658,7 @@
       "label": "Pharmacist",
       "keyword": "medicine",
       "tier": "town",
-      "weight": 2,
-      "years": [
-        1600,
-        10001
-      ]
+      "weight": 2
     }
   }
 }

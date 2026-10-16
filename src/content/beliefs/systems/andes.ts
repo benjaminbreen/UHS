@@ -138,7 +138,7 @@ export const andes: readonly BeliefSystem[] = [
       "Textiles woven with sacred figures as offerings.",
       "Boundary markers maintained and respected.",
     ],
-    specialist: "Temple priests and curaca; family and ayllu heads.",
+    specialist: "Temple priests and huaca keepers; family and ayllu heads.",
     evidence: {
       status: "inferred",
       claim:
@@ -606,7 +606,7 @@ export const andes: readonly BeliefSystem[] = [
       "The local huaca is kept clean and fed; travelers leave coca and a stone at its base.",
       "Supay is not worshipped but placated, so he leaves the sick and the harvest alone.",
     ],
-    specialist: "The curaca and elders; household heads.",
+    specialist: "Huaca keepers and elders; household heads.",
     afterlife:
       "The body is mummified and kept in the ayllu's collective house; the mallqui speaks through the curaca.",
     evidence: {

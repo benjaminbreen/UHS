@@ -1398,7 +1398,7 @@ const europeanBase: readonly BeliefSystem[] = [
       "Christenings and burials follow church law and folk custom.",
       "Saints' days are marked both as holy and as seasonal festivals.",
     ],
-    specialist: "The priest, less absolute; the educated household head.",
+    specialist: "The parish clergyman, less absolute; the educated household head.",
     afterlife:
       "Heaven, hell or annihilation; intellectuals dispute the question.",
     evidence: {

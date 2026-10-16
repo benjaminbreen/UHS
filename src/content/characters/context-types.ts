@@ -223,6 +223,8 @@ export type Livelihood = {
   ecologies?: readonly Ecology[];
   /** A settlement smaller than this cannot support the trade. */
   minPopulation?: number;
+  /** Animals, materials or institutions the work cannot exist without; see requirements.ts. */
+  requires?: readonly string[];
   /**
    * Relative share of the workforce. Everything used to be drawn uniformly, so
    * twelve adults held ten different trades and nobody grew any food.
@@ -240,6 +242,8 @@ export type Livelihood = {
     scope: CharacterScope;
     /** What the country supports: a rabbit hunter wants somewhere rabbits are. */
     ecologies?: readonly Ecology[];
+    /** As on the livelihood: an Ama diver needs a coast. */
+    requires?: readonly string[];
     label: string;
     weight?: number;
   }[];

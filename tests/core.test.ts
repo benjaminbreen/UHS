@@ -15,7 +15,7 @@ import { LIFE_AIM_TEMPLATES } from "../src/content/goals/life-aims";
 import { absentChildOf } from "../src/content/bonds";
 import { generateCharacter } from "../src/content/characters/generate";
 import { livelihoodById } from "../src/content/characters/livelihoods";
-import { snapshotSchema } from "../src/runtime/schema";
+import { commandSchema, snapshotSchema } from "../src/runtime/schema";
 import { debt } from "../src/content/plots/debt";
 import { PLOTS } from "../src/content/plots";
 import { telling } from "../src/core/word";
@@ -23,6 +23,7 @@ import { accused } from "../src/content/plots/accused";
 import { goodName, sellerOf } from "../src/content/economy/products";
 import type { PlotContext } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
+import { ruled } from "../src/content/history/order";
 import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
 import type { Actor, Household, PlayerCommand, Position } from "../src/core/types";
@@ -316,6 +317,13 @@ describe("shared deterministic foundation", () => {
     witness.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     act(e, { type: "interact", target: witness.id, action: "talk" });
     expect(charge.ended).toBe("cleared");
+  });
+  it("calls up a levy or asks for rent only where a ruler could count households", () => {
+    const at = (id: string, year: number) => ruled(settingFor(places.find((p) => p.id === id)!, year));
+    expect(at("city-colider", 250)).toBe(false);
+    expect(at("london", -200)).toBe(false);
+    expect(at("cusco-city", 1450)).toBe(true);
+    expect(at("rome", 100)).toBe(true);
   });
   it("binds the recorded debt to its real seller and product, never the eldest relative or first purchase", () => {
     const setting = { ...settingFor(places.find((p) => p.id === "city-multan")!, -620), economyRevision: 1 as const };
@@ -813,6 +821,8 @@ describe("shared deterministic foundation", () => {
     expect(act(e, { type: "remove", slot: "body" }).status).toBe("completed");
     expect(p.worn?.body).toBeUndefined();
     expect(p.inventory["garment-robe"]).toBe(1);
+    // Garments carry their cloth in the id; the runtime must let them through.
+    expect(commandSchema.safeParse({ type: "wear", item: "garment-dress~wool.bleached.0" }).success).toBe(true);
     expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
   });
   it("supports a full procedural day in each pack, with persistent activity and no API", () => {

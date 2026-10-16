@@ -161,7 +161,7 @@
      "bounds": [
       -11,
       36,
-      30,
+      28,
       60
      ]
     },
@@ -490,10 +490,10 @@
       1800
      ],
      "bounds": [
-      -18,
-      -1,
-      50,
-      20
+      8,
+      -12,
+      36,
+      5
      ]
     },
     "label": "Bark-cloth Maker"
@@ -511,7 +511,7 @@
       20
      ]
     },
-    "label": "Ironsmith of the Forge",
+    "label": "Ironsmith",
     "weight": 1
    },
    {
@@ -558,6 +558,591 @@
      ]
     },
     "label": "Music-box Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      794,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Paper Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Copyist and Stationer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1950
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Coppersmith"
+   },
+   {
+    "scope": {
+     "years": [
+      600,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Silk Weaver"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1950
+     ],
+     "bounds": [
+      44,
+      25,
+      63,
+      42
+     ]
+    },
+    "label": "Carpet Knotter"
+   },
+   {
+    "scope": {
+     "years": [
+      700,
+      1500
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Glassmaker"
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Inlayer"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Seal Cutter"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1950
+     ],
+     "bounds": [
+      -17,
+      10,
+      16,
+      20
+     ]
+    },
+    "label": "Indigo Dyer"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1950
+     ],
+     "bounds": [
+      -17,
+      10,
+      16,
+      20
+     ]
+    },
+    "label": "Goldsmith"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1950
+     ],
+     "bounds": [
+      -17,
+      10,
+      16,
+      20
+     ]
+    },
+    "label": "Bead Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      1500,
+      1900
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Brocade Weaver"
+   },
+   {
+    "scope": {
+     "years": [
+      1500,
+      1900
+     ],
+     "bounds": [
+      72,
+      30,
+      78,
+      37
+     ]
+    },
+    "label": "Shawl Weaver"
+   },
+   {
+    "scope": {
+     "years": [
+      1550,
+      1900
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Enameller"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1900
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Calico Printer"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1950
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Goldsmith"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1950
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Goldsmith"
+   },
+   {
+    "scope": {
+     "years": [
+      1300,
+      1850
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Pewterer"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1850
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Pewterer"
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1950
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Cutler"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1950
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Cutler"
+   },
+   {
+    "scope": {
+     "years": [
+      1100,
+      1900
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Turner"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1900
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Turner"
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1900
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Glover"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1900
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Glover"
+   },
+   {
+    "scope": {
+     "years": [
+      1400,
+      1950
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Hatter"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1950
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Hatter"
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1950
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Locksmith"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1950
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Locksmith"
+   },
+   {
+    "scope": {
+     "years": [
+      1450,
+      1950
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Bookbinder"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1950
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Bookbinder"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1800
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Embroiderer"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1800
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Embroiderer"
+   },
+   {
+    "scope": {
+     "years": [
+      1500,
+      1880
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Pin Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1880
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Pin Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      1300,
+      1950
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Joiner"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1950
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Joiner"
+   },
+   {
+    "scope": {
+     "years": [
+      1600,
+      1950
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Clock Repairer"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1950
+     ],
+     "bounds": [
+      -125,
+      25,
+      -60,
+      50
+     ]
+    },
+    "label": "Clock Repairer"
    }
   ],
   "gatherer": [
@@ -724,7 +1309,11 @@
       20
      ]
     },
-    "label": "Baobab Gatherer"
+    "label": "Baobab Gatherer",
+    "ecologies": [
+     "savanna",
+     "dry-scrub"
+    ]
    },
    {
     "scope": {
@@ -901,7 +1490,10 @@
     "ecologies": [
      "wetland"
     ],
-    "label": "Shellfish Gatherer"
+    "label": "Shellfish Gatherer",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -936,7 +1528,10 @@
       84
      ]
     },
-    "label": "Seal Hunter"
+    "label": "Seal Hunter",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1116,7 +1711,10 @@
       84
      ]
     },
-    "label": "Walrus Hunter"
+    "label": "Walrus Hunter",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1717,7 +2315,10 @@
       25
      ]
     },
-    "label": "Sea-turtle Hunter"
+    "label": "Sea-turtle Hunter",
+    "requires": [
+     "coast"
+    ]
    }
   ],
   "fisher": [
@@ -1749,7 +2350,10 @@
       25
      ]
     },
-    "label": "Reef Fisher"
+    "label": "Reef Fisher",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1764,7 +2368,10 @@
       30
      ]
     },
-    "label": "Pearl Diver"
+    "label": "Pearl Diver",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1779,7 +2386,10 @@
       46
      ]
     },
-    "label": "Ama Diver"
+    "label": "Ama Diver",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1854,7 +2464,10 @@
       62
      ]
     },
-    "label": "Whaler"
+    "label": "Whaler",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1869,7 +2482,10 @@
       68
      ]
     },
-    "label": "Cod Fisher"
+    "label": "Cod Fisher",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1884,7 +2500,10 @@
       62
      ]
     },
-    "label": "Herring Fisher"
+    "label": "Herring Fisher",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -1914,7 +2533,10 @@
       45
      ]
     },
-    "label": "Tuna Netter"
+    "label": "Tuna Netter",
+    "requires": [
+     "coast"
+    ]
    },
    {
     "scope": {
@@ -3271,7 +3893,10 @@
       55
      ]
     },
-    "label": "Horse Herd"
+    "label": "Horse Herd",
+    "requires": [
+     "horse"
+    ]
    },
    {
     "scope": {
@@ -3280,9 +3905,9 @@
       10001
      ],
      "bounds": [
-      72,
-      26,
-      103,
+      78,
+      27.5,
+      104,
       40
      ]
     },
@@ -3308,19 +3933,32 @@
      "years": [
       -1000,
       10001
-     ],
-     "bounds": [
-      -17,
-      12,
-      78,
-      40
      ]
     },
     "ecologies": [
      "desert",
      "dry-scrub"
     ],
-    "label": "Camel Herd"
+    "label": "Camel Herd",
+    "requires": [
+     "camel-country"
+    ]
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      10001
+     ],
+     "bounds": [
+      45,
+      38,
+      120,
+      55
+     ]
+    },
+    "label": "Sheep and Goat Herder",
+    "weight": 3
    }
   ],
   "apprentice": [
@@ -3813,6 +4451,340 @@
      ]
     },
     "label": "Master Painter"
+   }
+  ],
+  "pharmacist": [
+   {
+    "scope": {
+     "years": [
+      1250,
+      1850
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Apothecary"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Druggist"
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1900
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Druggist"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1950
+     ],
+     "bounds": [
+      98,
+      18,
+      146,
+      54
+     ]
+    },
+    "label": "Medicine Seller"
+   },
+   {
+    "scope": {
+     "years": [
+      1850,
+      10001
+     ],
+     "bounds": [
+      -11,
+      49,
+      2,
+      61
+     ]
+    },
+    "label": "Chemist"
+   }
+  ],
+  "schoolteacher": [
+   {
+    "scope": {
+     "years": [
+      700,
+      1950
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Qur'an Teacher"
+   },
+   {
+    "scope": {
+     "years": [
+      1100,
+      1950
+     ],
+     "bounds": [
+      -17,
+      10,
+      16,
+      20
+     ]
+    },
+    "label": "Qur'an Teacher"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1900
+     ],
+     "bounds": [
+      -25,
+      36,
+      28,
+      72
+     ]
+    },
+    "label": "Schoolmaster"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1950
+     ],
+     "bounds": [
+      98,
+      18,
+      146,
+      54
+     ]
+    },
+    "label": "Village Tutor"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1900
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Pandit",
+    "weight": 1
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1900
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Maktab Teacher",
+    "weight": 1
+   }
+  ],
+  "clerk": [
+   {
+    "scope": {
+     "years": [
+      1550,
+      1860
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Persian Secretary"
+   },
+   {
+    "scope": {
+     "years": [
+      -200,
+      1912
+     ],
+     "bounds": [
+      98,
+      18,
+      125,
+      45
+     ]
+    },
+    "label": "Yamen Clerk"
+   },
+   {
+    "scope": {
+     "years": [
+      700,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Secretary"
+   }
+  ],
+  "headman": [
+   {
+    "scope": {
+     "years": [
+      1000,
+      1800
+     ],
+     "bounds": [
+      -82,
+      -25,
+      -63,
+      2
+     ]
+    },
+    "label": "Curaca",
+    "weight": 3
+   }
+  ],
+  "baker": [
+   {
+    "scope": {
+     "years": [
+      -500,
+      10001
+     ],
+     "bounds": [
+      -106,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Tortilla Maker"
+   }
+  ],
+  "brewer": [
+   {
+    "scope": {
+     "years": [
+      -200,
+      10001
+     ],
+     "bounds": [
+      -106,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Pulque Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      10001
+     ],
+     "bounds": [
+      -82,
+      -25,
+      -63,
+      2
+     ]
+    },
+    "label": "Chicha Brewer"
+   }
+  ],
+  "cobbler": [
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1600
+     ],
+     "bounds": [
+      -106,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Sandal Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1600
+     ],
+     "bounds": [
+      -82,
+      -25,
+      -63,
+      2
+     ]
+    },
+    "label": "Sandal Maker"
+   }
+  ],
+  "innkeeper": [
+   {
+    "scope": {
+     "years": [
+      600,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      75,
+      45
+     ]
+    },
+    "label": "Caravanserai Keeper"
    }
   ]
  }

@@ -16,6 +16,11 @@ import { livelihoods } from "../src/content/characters/livelihoods";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { processFor } from "../src/content/economy/processes";
 import { propDefs } from "../src/content/props/catalog";
+import { requirementMet } from "../src/content/characters/requirements";
+import { citySignatures } from "../src/content/characters/signatures";
+import { localLabels } from "../src/content/characters/livelihood-labels.generated";
+import { officiantsBySystem } from "../src/content/beliefs/officiants.generated";
+import { characterStanding } from "../src/content/characters/resolve";
 
 const settingFor = (q: string) => {
   const r = resolveSetting(q);
@@ -166,4 +171,96 @@ it("gives every curated start the work its title names, not a random draw", () =
       characterLivelihood(s, sex, "player", c.role, context, sex).id);
     expect(a, c.role).toBe(b);
   }
+});
+
+describe("work that needs what the place had", () => {
+  const drawn = (q: string, n = 300) => {
+    const s = settingFor(q);
+    const ctx = resolveCharacterContext(s);
+    return Array.from({ length: n }, (_, i) =>
+      characterLivelihood(s, "need", `p${i}`, undefined, ctx, characterSex("need", `p${i}`), characterStanding(s, "need", `p${i}`)),
+    );
+  };
+  const ids = (q: string) => new Set(drawn(q).map((l) => l.id));
+
+  it("names only requirements it knows", () => {
+    const s = settingFor("medieval Normandy");
+    const used = [
+      ...[...livelihoods, ...commonLivelihoods].flatMap((l) => [
+        ...(l.requires ?? []),
+        ...(l.labels ?? []).flatMap((v) => v.requires ?? []),
+      ]),
+      ...Object.values(localLabels).flatMap((vs) => vs.flatMap((v) => v.requires ?? [])),
+    ];
+    for (const r of new Set(used)) expect(() => requirementMet(r, s), r).not.toThrow();
+  });
+
+  it("keeps Old World animals, iron and print out of the pre-contact Americas", () => {
+    // Cusco in 1450 drew horse herders; Tenochtitlan in 1500 had blacksmiths,
+    // wool combers and a printer.
+    for (const q of ["Cusco 1450", "Tenochtitlan 1500"]) {
+      const here = ids(q);
+      for (const id of ["horse-herder", "blacksmith", "printer", "wheelwright", "candle-maker", "shepherd", "ploughman", "oil-presser", "miller"])
+        expect(here.has(id), `${id} in ${q}`).toBe(false);
+    }
+    expect(ids("Tenochtitlan 1500").has("wool-comber"), "wool in Tenochtitlan").toBe(false);
+    expect(ids("Lima 1650").has("blacksmith"), "Lima after the conquest").toBe(true);
+  });
+
+  it("does not send early-modern European offices round the world", () => {
+    // Benin City in 1600 was an eighth clerks and schoolteachers; Abbasid
+    // Baghdad and Mughal Delhi were full of journeyman glaziers.
+    const benin = ids("Benin City 1600");
+    for (const id of ["clerk", "schoolteacher", "pharmacist", "shopkeeper", "printer", "glazier", "cabinetmaker", "journeyman"])
+      expect(benin.has(id), `${id} in Benin`).toBe(false);
+    for (const q of ["Baghdad 900", "Delhi 1650", "Timbuktu 1350"])
+      expect(ids(q).has("journeyman"), `journeyman in ${q}`).toBe(false);
+    const kano = ids("Kano 1850");
+    for (const id of ["policeman", "postman", "milliner", "mill-worker", "nurse"])
+      expect(kano.has(id), `${id} in Kano 1850`).toBe(false);
+    expect(ids("London 1600").has("journeyman")).toBe(true);
+  });
+
+  it("keeps sea work on the sea and desert herds in the desert", () => {
+    expect(ids("Timbuktu 1350").has("sea-fisher")).toBe(false);
+    expect(ids("Athens 430 BCE").has("camel-herder")).toBe(false);
+    expect(ids("12th century Mongolia").has("rice-farmer")).toBe(false);
+    const kyoto = settingFor("Kyoto 1600");
+    const fisher = livelihoods.find((l) => l.id === "fisher")!;
+    const names = new Set(Array.from({ length: 40 }, (_, i) => localLabel(fisher, kyoto, "x", `p${i}`)));
+    expect(names.has("Ama Diver"), "Ama divers inland").toBe(false);
+  });
+
+  it("gives a city the work it was known for", () => {
+    const share = (q: string, of: RegExp) => {
+      const all = drawn(q, 400);
+      return all.filter((l) => of.test(l.id)).length / all.length;
+    };
+    // Manchester in 1840 drew more clerks than mill hands.
+    expect(share("Manchester 1840", /^(mill-worker|power-loom-weaver|factory-hand)$/)).toBeGreaterThan(
+      2 * share("Manchester 1840", /^clerk$/),
+    );
+    expect(share("Saint-Domingue 1780", /slave/)).toBeGreaterThan(0.4);
+    const tenochtitlan = new Set(drawn("Tenochtitlan 1500").map((l) => l.label));
+    expect(tenochtitlan.has("Canoe Paddler")).toBe(true);
+  });
+
+  it("points every signature at work and places that exist", () => {
+    const known = new Set([...livelihoods, ...commonLivelihoods].map((l) => l.id));
+    const placeIds = new Set(places.map((p) => p.id));
+    for (const g of citySignatures) {
+      for (const id of [...Object.keys(g.boost), ...Object.keys(g.labels ?? {})])
+        expect(known.has(id), `${g.id}: ${id}`).toBe(true);
+      for (const p of g.scope.places ?? []) expect(placeIds.has(p), `${g.id}: ${p}`).toBe(true);
+    }
+  });
+
+  it("keeps clergy a small share and lords out of the priesthood", () => {
+    expect(Object.values(officiantsBySystem).flat().some((o) => /curaca/i.test(o.label))).toBe(false);
+    for (const q of ["Tenochtitlan 1500", "Baghdad 900", "Cusco 1450"]) {
+      const all = drawn(q, 400);
+      const clergy = all.filter((l) => l.fromBeliefs).length / all.length;
+      expect(clergy, q).toBeLessThan(0.05);
+    }
+  });
 });

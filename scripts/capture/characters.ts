@@ -203,6 +203,42 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     await writeDataUrl(sheet, out("family"));
   },
+  /** The sculpted bust before and after the refined model, pair by pair, with the G sprite beside each. */
+  async "portrait-ab"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait, setSculptedRefined } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const where = [["rome", 100], ["kyoto", 1850], ["timbuktu", 1400], ["london", 1850], ["delhi", 1600], ["cusco", 1400], ["mongolia", 1200], ["paris", 2009]];
+      const people = where.flatMap(([id, year], i) => [["female", 24], ["male", 38], ["female", 62], ["male", 9]].map(([sex, age], k) =>
+        [generateCharacter(settingFor(places.find((p: any) => p.id === id), year), "portrait-ab", `p${i}-${k}`, age, undefined, undefined, undefined, sex).appearance, age]));
+      const W = 128, H = 160, cols = 4, cell = W * 2 + 64 + 12;
+      const out = document.createElement("canvas");
+      out.width = cols * cell; out.height = Math.ceil(people.length / cols) * (H + 6);
+      const ctx = out.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, out.width, out.height);
+      const f = document.createElement("canvas"); f.width = f.height = 80;
+      people.forEach(([a, age]: any, i: number) => {
+        const x = (i % cols) * cell, y = Math.floor(i / cols) * (H + 6);
+        renderers.g.draw(f.getContext("2d")!, a, 2, "idle", 0, undefined, 3, "neutral");
+        ctx.fillStyle = "#3a5a3a"; ctx.fillRect(x, y, 64, H); ctx.drawImage(f, 22, 27, 36, 52, x, y + 20, 64, 92);
+        [false, true].forEach((on, j) => {
+          setSculptedRefined(on);
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, a, age);
+          ctx.fillStyle = "#2a3a78"; ctx.fillRect(x + 64 + j * W, y, W, H); ctx.drawImage(c, x + 64 + j * W, y, W, H);
+        });
+      });
+      setSculptedRefined(true);
+      return out.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-ab"));
+  },
   /** Three people well and in each of illness's three looks: portrait above, the world sprite below. */
   async sick(page) {
     await characterLab(page);

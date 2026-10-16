@@ -810,7 +810,7 @@ export class Engine {
     else s.economy!.work!.card = card.id;
     this.cards.unshift({
       kind: "speech",
-      title: care ? (person ? person.name : "Unwell") : !person ? (this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: care ? (person ? person.name : "Unwell") : !person ? (this.trade()?.process.steps[s.economy?.work?.drawn ?? -1]?.task ?? this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {

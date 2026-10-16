@@ -10,7 +10,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "andean-regional-states": [
     { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
-    { tier: "local", label: "Curaca", serves: "local", weight: 14 },
+    { tier: "local", label: "Huaca keeper", serves: "local", weight: 14 },
     { tier: "local", label: "Ayllu head", serves: "local", weight: 14 },
   ],
   "chavin-horizon": [
@@ -23,32 +23,32 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "household", label: "Family elder", serves: "local", weight: 40 },
   ],
   "nazca-coast": [
-    { tier: "local", label: "Curaca", serves: "local", weight: 14 },
+    { tier: "local", label: "Huaca keeper", serves: "local", weight: 14 },
   ],
   "tiwanaku-altiplano": [
     { tier: "paramount", label: "State priest", serves: "paramount", weight: 1 },
-    { tier: "local", label: "Curaca", serves: "local", weight: 14 },
+    { tier: "local", label: "Huaca keeper", serves: "local", weight: 14 },
     { tier: "household", label: "Family head", serves: "local", weight: 40 },
   ],
   "inca-state": [
     { tier: "paramount", label: "State priest", serves: "paramount", weight: 1 },
     { tier: "temple", label: "Temple attendant", serves: "major", weight: 5 },
-    { tier: "local", label: "Curaca", serves: "local", weight: 14 },
+    { tier: "local", label: "Huaca keeper", serves: "local", weight: 14 },
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
   ],
   "inca-village": [
-    { tier: "local", label: "Curaca", serves: "local", weight: 14 },
+    { tier: "local", label: "Huaca keeper", serves: "local", weight: 14 },
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
   ],
   "colonial-syncretism": [
     { tier: "temple", label: "Catholic priest", serves: "major", weight: 5 },
-    { tier: "local", label: "Curaca", serves: "local", weight: 14 },
+    { tier: "local", label: "Huaca keeper", serves: "local", weight: 14 },
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
   ],
   "andean-village-modern": [
     { tier: "temple", label: "Catholic priest", serves: "major", weight: 5 },
-    { tier: "local", label: "Curaca", serves: "local", weight: 14 },
+    { tier: "local", label: "Huaca keeper", serves: "local", weight: 14 },
     { tier: "local", label: "Elder woman", serves: "local", weight: 14 },
     { tier: "household", label: "Family head", serves: "local", weight: 40 },
   ],
@@ -114,6 +114,9 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Tohunga", serves: "local", weight: 14 },
     { tier: "local", label: "Community elder", serves: "local", weight: 14 },
     { tier: "local", label: "Specialist", serves: "local", weight: 14 },
+  ],
+  "east-asia-pottery-foragers": [
+    { tier: "local", label: "Elder", serves: "local", weight: 14 },
   ],
   "neolithic-east-asia-foragers": [
     { tier: "local", label: "Ancestor speaker", serves: "local", weight: 14 },
@@ -344,7 +347,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "temple", label: "Priest", serves: "major", weight: 5 },
   ],
   "european-enlightenment": [
-    { tier: "temple", label: "Priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Parish clergyman", serves: "major", weight: 5 },
     { tier: "household", label: "Educated household head", serves: "local", weight: 40 },
   ],
   "european-industrial": [
@@ -503,8 +506,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Shaman", serves: "local", weight: 14 },
   ],
   "siberian-russian-hybrid": [
-    { tier: "temple", label: "Orthodox priest", serves: "major", weight: 5 },
-    { tier: "local", label: "Elder or shaman continue", serves: "local", weight: 14 },
+    { tier: "temple", label: "Orthodox parish priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Monk", serves: "major", weight: 5 },
   ],
   "tarim-basin-peoples": [
     { tier: "temple", label: "Monk", serves: "major", weight: 5 },
@@ -717,6 +720,9 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "temple", label: "Priest", serves: "major", weight: 5 },
     { tier: "temple", label: "Monk", serves: "major", weight: 5 },
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
+  ],
+  "natufian": [
+    { tier: "local", label: "Healer", serves: "local", weight: 14 },
   ],
   "west-asia-foragers": [
     { tier: "local", label: "Elder", serves: "local", weight: 14 },

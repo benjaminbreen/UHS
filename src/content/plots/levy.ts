@@ -1,7 +1,11 @@
 import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
+import { ruled } from "../history/order";
 import { amountOf, B, CHINA, EGYPT, notable, partnerWords, pronounWords } from "./common";
-import type { PlotTemplate } from "./types";
+import type { PlotContext, PlotTemplate } from "./types";
+
+/** A man of the leading household, who answers to the ruler for the count. */
+const headman = (c: PlotContext) => notable(c, (a) => sexOf(a) === "male");
 
 /** Labour or arms owed to whoever rules, called up for tomorrow; silver can
  * buy a substitute. */
@@ -15,10 +19,10 @@ export const levy: PlotTemplate = {
   weight: (c) => {
     const age = c.player.age ?? 30;
     const year = c.setting?.year ?? 0;
-    return year > -3200 && year < 1920 && age >= 17 && age <= 45 && sexOf(c.player) !== "female" && c.setting?.settlement !== "camp" && notable(c) ? 0.9 : 0;
+    return year > -3200 && year < 1920 && age >= 17 && age <= 45 && sexOf(c.player) !== "female" && ruled(c.setting) && headman(c) ? 0.9 : 0;
   },
   cast: (c) => {
-    const official = notable(c);
+    const official = headman(c);
     return official && { official };
   },
   begin: (c, cast) => {
@@ -33,7 +37,6 @@ export const levy: PlotTemplate = {
       owed,
       words: {
         official: official.name,
-        officialRole: official.role.toLowerCase(),
         amount: amountOf(c, owed),
         due: "at first light",
         ...pronounWords(official),
@@ -62,7 +65,7 @@ export const levy: PlotTemplate = {
       title: "Called Up for Labour",
       lines: {
         aim: "Find someone to send in your place, or be ready for the corvée at first light.",
-        intro: "The scribes have counted your household for the corvée. {official} the {officialRole} has your name on the list for the canal works, and the gang leaves at first light.",
+        intro: "The scribes have counted your household for the corvée. {official} the scribe has your name on the list for the canal works, and the gang leaves at first light.",
         threat: "A man who runs from the corvée is written down as a fugitive, and his family is held until he is found.",
         partner: "Your {partnerKin} {partner} has already begun packing bread for you, as if it were settled.",
         "kin-partner": "They say the gang goes out to the canals tomorrow. Is there no one you can send?",
@@ -80,7 +83,7 @@ export const levy: PlotTemplate = {
       title: "Called Up",
       lines: {
         aim: "Pay for a substitute, or be ready to march when the levy leaves.",
-        intro: "{official} the {officialRole} says it's your turn for a month of labour, and the men leave for the works tomorrow.",
+        intro: "{official} the village head says it's your turn for a month of labour, and the men leave for the works tomorrow.",
         threat: "Under the law, men who are late to the muster can be put to death.",
         partner: "Your {partnerKin} {partner} hasn't said a word about it.",
         "kin-partner": "I heard the levy goes tomorrow. Can't we pay for someone to go?",
@@ -96,7 +99,7 @@ export const levy: PlotTemplate = {
       title: "Called Up",
       lines: {
         aim: "Pay for someone to go in your place, or be ready to leave with the levy {due}.",
-        intro: "{official} the {officialRole} has come round counting men. Your household owes one for the levy, and it is you.",
+        intro: "{official} the headman has come round counting men. Your household owes one for the levy, and it is you.",
         threat: "Men who hide from the levy are found, and their families are punished.",
         partner: "Your {partnerKin} {partner} keeps asking what you're going to do.",
         "kin-partner": "Is it true they are taking you with the levy? Is there nothing we can do?",

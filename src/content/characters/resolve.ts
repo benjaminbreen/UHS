@@ -21,6 +21,8 @@ import { nameTraditions } from "./profiles/traditions.generated";
 import { nameRegions } from "./profiles/name-regions.generated";
 import { parentNameForms } from "./profiles/anchor-names";
 import { livelihoods } from "./livelihoods";
+import { requirementMet } from "./requirements";
+import { citySignatures } from "./signatures";
 import { commonLivelihoods } from "./livelihoods.generated";
 import { workplaceFor, type Workplace } from "./workplace";
 import type { CharacterPhysique } from "../../core/character";
@@ -323,11 +325,13 @@ function weighted(
   const mass = new Map<string, number>();
   for (const l of pool)
     mass.set(classOf(l), (mass.get(classOf(l)) ?? 0) + (l.weight ?? 1) * era(l));
+  const signatures = citySignatures.filter((g) => matchesCharacterScope(g.scope, s, "*"));
   return pool.map((l) => {
     const c = classOf(l);
     const total = mass.get(c) || 1;
+    const boost = signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
     // Share of the settlement for this class, split by weight within it.
-    return { ...l, weight: (shares[c] * (l.weight ?? 1) * era(l) * 100) / total };
+    return { ...l, weight: (shares[c] * (l.weight ?? 1) * era(l) * boost * 100) / total };
   });
 }
 /** Everything about a livelihood that depends on where and when it is. */
@@ -352,6 +356,7 @@ function inScope(l: Livelihood, s: WorldSetting) {
   if ((l.activity === "On the line" || l.activity === "At the machine") && !industrialized(s)) return false;
   // A trade that needs a certain number of customers. Settlement form is the
   // only size the setting carries, so it stands in for a head count.
+  if (l.requires?.some((r) => !requirementMet(r, s))) return false;
   if (l.minPopulation) {
     const size =
       s.settlement === "city" || s.settlement === "port"

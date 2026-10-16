@@ -3,7 +3,7 @@ import { Check, Coins, HeartCrack, Hourglass, TrendingDown, TrendingUp, UserRoun
 import { createPortal } from "react-dom";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { formatHistoricalYear } from "../core/calendar";
-import { seasonAt } from "../core/livelihood";
+import { seasonFor } from "../core/season";
 import { sexOf } from "../core/brief";
 import { kinOf } from "../core/kin";
 import { plotLine, plotTemplate, type PlotCard as Card } from "../core/plot";
@@ -419,7 +419,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
   const setting = runtime.engine.world.pack.setting;
   const colours = plotColours(runtime);
-  const season = setting && seasonAt(setting.season, runtime.engine.state.clock);
+  const season = setting && seasonFor(setting.climate, setting.season, runtime.engine.state.clock).label.toLowerCase();
   const name = settlementName(runtime.engine.world.pack.name);
   const when = setting ? `${season ? `${season}, ` : ""}${formatHistoricalYear(setting.year)}` : "";
   // A card titled with the place need not name it twice.

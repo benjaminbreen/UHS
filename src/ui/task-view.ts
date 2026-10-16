@@ -441,7 +441,7 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
     const dead = aim.id === "remember-dead" || aim.id === "widowed-household";
     return {
       key: "aim",
-      kicker: "Life aim",
+      kicker: aimLabel(aim),
       title: aim.text,
       who,
       part: "evening",
@@ -537,12 +537,15 @@ function wikiTitle(url: string) {
   return m ? [decodeURIComponent(m[1]).replace(/_/g, " ")] : [];
 }
 
+/** A plot stands in for the life aim until it ends; it should not wear the name. */
+export const aimLabel = (aim: { id: string }) => (aim.id.startsWith("plot:") ? "Most pressing" : "Life aim");
+
 /** The tasks the strip along the bottom offers, in the order of the day. */
 export function tasksOf(runtime: Runtime, actorId: string): { source: TaskSource; label: string }[] {
   const s = runtime.engine.state;
   if (actorId === s.player.id)
     return [
-      ...(s.lifeAim ? [{ source: { kind: "aim" } as const, label: "Life aim" }] : []),
+      ...(s.lifeAim ? [{ source: { kind: "aim" } as const, label: aimLabel(s.lifeAim) }] : []),
       ...runtime.dayGoals().map((g) => ({ source: { kind: "goal", id: g.id } as const, label: g.text })),
       ...(s.plot && !s.plot.ended ? [{ source: { kind: "plot" } as const, label: s.plot.title }] : []),
     ];

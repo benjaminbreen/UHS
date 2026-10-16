@@ -1,4 +1,5 @@
 import { random } from "../../core/random";
+import { ruled } from "../history/order";
 import { amountOf, BRITAIN, CHINA, dueOf, MESOPOTAMIA, notable, partnerWords, pronounWords, working } from "./common";
 import type { PlotTemplate } from "./types";
 
@@ -15,7 +16,7 @@ export const rent: PlotTemplate = {
     const farming = working(c);
     const poor = (c.household?.fortune ?? 0.5) < 0.55;
     const bad = c.household?.history?.some((e) => e.kind === "bad-year" && year - e.year <= 2);
-    return farming && year > -3000 && poor && notable(c) ? (bad ? 2 : 1) : 0;
+    return farming && year > -3000 && poor && ruled(c.setting) && notable(c) ? (bad ? 2 : 1) : 0;
   },
   cast: (c) => {
     const landlord = notable(c);
@@ -31,7 +32,6 @@ export const rent: PlotTemplate = {
       owed,
       words: {
         landlord: landlord.name,
-        landlordRole: landlord.role.toLowerCase(),
         amount: amountOf(c, owed),
         due,
         ...pronounWords(landlord),
@@ -76,7 +76,7 @@ export const rent: PlotTemplate = {
       title: "Rent to the Temple",
       lines: {
         aim: "Bring {landlord} the temple's share of the barley, {due}.",
-        intro: "Your household works a field that belongs to the temple, and the temple's share is owed. {landlord} the {landlordRole} keeps the tablets and {wants} it {due}.",
+        intro: "Your household works a field that belongs to the temple, and the temple's share is owed. {landlord} the temple steward keeps the tablets and {wants} it {due}.",
         threat: "A household that cannot give the share loses the field to one that can.",
         partner: "Your {partnerKin} {partner} has counted the jars twice and come up short both times.",
         "kin-partner": "Will there be enough for the temple's share? I counted the jars again.",
@@ -96,7 +96,7 @@ export const rent: PlotTemplate = {
       title: "Rent to the Lord",
       lines: {
         aim: "Pay the reeve what you owe the lord, {due}.",
-        intro: "Quarter day has come, and your rent to the lord is owing. {landlord} the {landlordRole} is gathering it {due}.",
+        intro: "Quarter day has come, and your rent to the lord is owing. {landlord} the reeve is gathering it {due}.",
         threat: "A tenant who does not pay is presented at the manor court, and can lose the holding.",
         partner: "Your {partnerKin} {partner} doesn't know how little you've saved.",
         "kin-partner": "The reeve was asking for you. Do we have enough for the rent?",
@@ -116,7 +116,7 @@ export const rent: PlotTemplate = {
       title: "Rent Day",
       lines: {
         aim: "Pay {landlord} the rent on your field, {due}.",
-        intro: "You rent your field from the {landlordRole} {landlord}, for half of what it grows. The rent is due {due}, and this year's half is thin.",
+        intro: "You rent your field from {landlord}, for half of what it grows. The rent is due {due}, and this year's half is thin.",
         threat: "If you can't pay, {he} will let the field to another family, and you will have no land to work.",
         partner: "Your {partnerKin} {partner} has been to the store to measure what is left.",
         "kin-partner": "The landlord's man was here. Is there enough for the rent?",
@@ -134,7 +134,7 @@ export const rent: PlotTemplate = {
       title: "Rent Day",
       lines: {
         aim: "Pay {landlord} what your household owes for the land, {due}.",
-        intro: "Your household doesn't own the land it works, and the rent is due. {landlord} the {landlordRole} {wants} it {due}.",
+        intro: "Your household doesn't own the land it works, and the rent is due. {landlord}, who owns it, {wants} it {due}.",
         threat: "If you can't pay, {he} will give the land to someone who can.",
         partner: "Your {partnerKin} {partner} doesn't know how little you've saved.",
         "kin-partner": "{landlord} was here about the land. Do we have enough?",

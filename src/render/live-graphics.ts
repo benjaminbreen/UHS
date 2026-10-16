@@ -69,7 +69,7 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   roundPixels: true,
   occlusion: false,
   characterOutline: true,
-  characterSprites: "e",
+  characterSprites: "g",
   textureSampling: "nearest",
   canvasSampling: "pixelated",
   zoomDuration: 130,
@@ -126,8 +126,8 @@ export function storedDisplaySettings() {
 export function storedCharacterSprites(): LiveGraphicsSettings["characterSprites"] {
   try {
     const id = localStorage.getItem(CHARACTER_SPRITES_KEY);
-    return id === "b" || id === "c" || id === "d" || id === "f" || id === "g" ? id : "e";
+    return id === "b" || id === "c" || id === "d" || id === "e" || id === "f" ? id : "g";
   } catch {
-    return "e";
+    return "g";
   }
 }

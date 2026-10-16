@@ -191,7 +191,7 @@ export function concernsOf(s: Snapshot, setting: WorldSetting | undefined, here:
         ...(lover && lover.id !== a.id ? [{ text: ", though it is " }, ...who(lover.id), { text: " you think about" }] : []),
       ], a.id);
     } else if (b.kind === "rival")
-      add("rival", 0.4, [{ text: "you and " }, ...them, { text: `, the other ${p.role.toLowerCase()} in ${here}, have not spoken since last winter` }], a.id);
+      add("rival", 0.4, [{ text: "you and " }, ...them, { text: `, the other ${p.role.toLowerCase()} in ${here}, have not spoken in a year` }], a.id);
     else if (b.kind === "estranged")
       add("estranged", 0.35, [{ text: "you have not spoken to " }, ...them, { text: ` in ${inWords(2 + Math.floor(random(seed, "estranged") * 7))} years` }], a.id);
   }

@@ -674,6 +674,8 @@ function hatTrim(h: Head) {
     }
     return;
   }
+  // A ribbon needs a band to go round; without one it was drawn as a feather.
+  if (trim === "ribbon") return;
   // Pinned on the side the wearer turns toward, and seen from behind on the other.
   const [pc, pr] = at.pin;
   const c = back ? 13 - pc : pc;
@@ -883,7 +885,8 @@ function headwear(h: Head, lo: number) {
     cast: true,
     bottom: hat !== "hood" && hat !== "headscarf" && hat !== "veil",
     tone:
-      hat === "turban"
+      // Wound cloth: bands crossing on a slant, as the portrait winds them.
+      hat === "turban" || (h.refined && hat === "wrap")
         ? (x, y, t) => (t >= 3 && (x - y + 40) % 4 === 0 ? 2 : t)
         : straw && hat === "brimmed"
           // Plaited straw: a woven tick along the brim and round the crown.

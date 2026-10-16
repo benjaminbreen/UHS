@@ -73,6 +73,7 @@ export const livelihoods: readonly Livelihood[] = [
     label: "Herder",
     activity: "Tending animals",
     needs: ["settled"],
+    requires: ["herd-animal"],
     inventory: { water: 2, wool: 2 },
   },
   {

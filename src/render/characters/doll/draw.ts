@@ -647,10 +647,7 @@ function palette(a: CharacterAppearance): Ramp[] {
   const w = a.wearing;
   const hat = w.headwear;
   const c = clothColours(w);
-  const hatColor =
-    hat === "helmet" ? "#8e9497" : hat === "wig" ? "#e4e0d8" : hat === "visor" ? "#c8d8e0"
-      : hat === "conical" ? (w.headColor ?? "#c9a45c")
-        : c.hat;
+  const hatColor = c.hat;
   // Dyes a fifth richer than the record's swatch: at this size a muted cloth
   // reads as mud, and the ramp keeps the shadows honest.
   const vivid = (hex: string, k: number) => {
@@ -708,13 +705,12 @@ function palette(a: CharacterAppearance): Ramp[] {
       : "#d9a441",
   );
   // Plumes are white, black or dyed; a cockade is a pale rosette; a ribbon band is dark.
-  p[PLUME] = ramp(w.hatTrim === "ribbon" ? (luma(hatColor) < 0.3 ? "#6a2a34" : "#2a2630") : w.hatTrim === "cockade" ? "#ece6d6" : pick(["#f2eee4", "#2a2630", "#b8342e", "#3a5aa0"], 3));
+  p[PLUME] = ramp(c.plume);
   // Stitches that stand out from the band they are worked on; gold on fine cloth.
   p[ACCENT] = ramp((w.quality ?? 0) >= 2 ? "#e0bc5e" : luma(w.trim) > 0.45 ? "#2c2a44" : "#efe6d0");
   p[APRON] = w.apron === "leather" ? ramp("#7a5236") : ramp(["#e8e1cf", "#d9cdb0", "#ece7da"][n % 3]);
-  // Figured waistcoats in the silks of the day; plain ones a shade off the breeches.
-  p[VEST] = w.waistcoat === "figured" ? dye(pick(["#8e2234", "#c09a3a", "#2c6448", "#e2d6bc", "#34407e"], 5)) : dye(mix(w.lowerColor, "#2a2228", 0.25));
-  p[SHAWL] = dye(pick(["#6a2e4a", "#2e4a5e", "#8a3a28", "#4a5a34", "#d8c8a8", "#3a3040"], 6));
+  p[VEST] = dye(c.vest);
+  p[SHAWL] = dye(c.shawl);
   // Black lacquer for a Japanese scabbard, pale wood for a kris, leather for the rest.
   p[SHEATH] = ramp(w.sidearm === "katana" ? "#2a2430" : w.sidearm === "kris" ? "#9a6a38" : "#4a3020");
   return p;

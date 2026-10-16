@@ -89,7 +89,8 @@ function parse(sentence: string): Officiant[] {
           : TEMPLE.test(phrase)
             ? "temple"
             : "local";
-      const label = title(singular(phrase));
+      // A curaca was the lord of an ayllu, not its priest; the shrine had its own keeper.
+      const label = /^curaca$/i.test(singular(phrase)) ? "Huaca keeper" : title(singular(phrase));
       if (seen.has(label.toLowerCase())) continue;
       seen.add(label.toLowerCase());
       out.push({ tier, label, serves: SERVES[tier], weight: WEIGHT[tier] });

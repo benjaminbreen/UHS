@@ -8,6 +8,7 @@ import type { StartingCharacter } from "../runtime/preparation";
 import { formatHistoricalYear } from "../core/calendar";
 import { ArrivalPortrait } from "./ArrivalPortrait";
 import { ArrivalMap } from "./ArrivalMap";
+import { aimLabel } from "./task-view";
 import { arrivalBackdrop, birthPercentile } from "./arrival-data";
 import "./arrival.css";
 
@@ -37,7 +38,7 @@ export function Arrival({ setting, engine, character, ready = !!engine, onEnter,
     ? player.origin.sex : appearance?.physique?.sex ?? sexFromName(setting.characterName);
   const birth = birthPercentile(setting.year);
   const work = engine?.dailyGoals().find((g) => g.slot === "work")?.text;
-  const aim = engine?.state.lifeAim?.text;
+  const aim = engine?.state.lifeAim;
   return <div className={`arrival${leaving ? " is-leaving" : ""}${opening ? " is-opening" : ""}`} data-modal="true" inert={leaving} role="dialog" aria-modal="true" aria-label={`Begin ${setting.characterName}'s life`} onAnimationEnd={(event) => {
     if (event.target === event.currentTarget && event.animationName === "arrival-depart") onEnter();
   }}>
@@ -52,7 +53,7 @@ export function Arrival({ setting, engine, character, ready = !!engine, onEnter,
             <p>{age} · {sex === "female" ? "Woman" : sex === "male" ? "Man" : "Person"} · {player.role}</p>
             {!engine && <p className="arrival-loading arrival-goal" role="status">Preparing your world…</p>}
             {work && <p className="arrival-goal"><small>Today's work</small>{work}</p>}
-            {aim && <p className="arrival-aim"><small>Life aim</small>{aim}</p>}
+            {aim && <p className="arrival-aim"><small>{aimLabel(aim)}</small>{aim.text}</p>}
           </div> : <div className="arrival-details">
             <p className="arrival-loading" role="status">Preparing life…</p>
             <div className="arrival-text-stars" aria-hidden="true">{Array.from({ length: 9 }, (_, i) => <i key={i} style={{ left: `${8 + (i * 37) % 85}%`, top: `${15 + (i * 23) % 80}px`, animationDelay: `${i * -.7}s` }} />)}</div>

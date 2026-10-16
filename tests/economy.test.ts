@@ -113,7 +113,8 @@ it("routes work and children's errands to their actual destinations", () => {
   // Any worker at a station: which trades have one depends on who the draw makes a householder.
   const turn = world.initialActors
     .flatMap((a) => world.itinerary?.(a.id)?.segments ?? [])
-    .find((s) => s.target?.family && s.target.family !== "market-counter");
+    // Shore water is a place, not a station, and has no object id.
+    .find((s) => s.target?.family && s.target.family !== "market-counter" && s.target.family !== "shallow-water");
   expect(turn?.target?.id).toBeTruthy();
   expect(Math.abs(turn!.pos.x - turn!.target!.x) + Math.abs(turn!.pos.y - turn!.target!.y)).toBe(1);
   expect(world.initialObjects.some((o) => o.id === turn!.target!.id)).toBe(true);

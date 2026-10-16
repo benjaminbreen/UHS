@@ -126,7 +126,7 @@ import { SkillTestPanel } from "../dev/SkillTestPanel";
 import { CollapseNotice, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
 import { DeathCard } from "./DeathCard";
 import { SkillSky } from "./SkillSky";
-import type { TaskSource } from "./task-view";
+import { aimLabel, type TaskSource } from "./task-view";
 import type { SkillId } from "../core/skills";
 import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
@@ -1786,7 +1786,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   <div className="today">
                     {aim && (
                       <button className="today-aim" onClick={() => setTask({ kind: "aim" })}>
-                        <small>Life aim</small>
+                        <small>{aimLabel(aim)}</small>
                         <b>{aim.text}</b>
                         {aim.step && (
                           <span>
@@ -2590,9 +2590,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       <option value="b">B · drawn</option>
                       <option value="c">C · modelled prototype</option>
                       <option value="d">D · unfinished</option>
-                      <option value="e">E · default</option>
+                      <option value="e">E · modelled</option>
                       <option value="f">F · paper doll</option>
-                      <option value="g">G · paper doll, longer legs</option>
+                      <option value="g">G · default</option>
                     </select>
                   </div>
                   <div className="settings-row">

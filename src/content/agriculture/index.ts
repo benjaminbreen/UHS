@@ -64,3 +64,11 @@ export function cropsFor(
   const total = list.reduce((sum, c) => sum + c.share, 0) || 1;
   return list.map((c) => ({ id: c.id, share: c.share / total }));
 }
+
+/** What a household here mostly eats: "rice", "cassava", "wheat". */
+export function stapleOf(s: Where) {
+  const top = cropsFor(farmSystem(s), s.climate)
+    .filter((c) => crops[c.id].kind === "grain" || crops[c.id].kind === "root")
+    .sort((a, b) => b.share - a.share)[0];
+  return top && crops[top.id].label.toLowerCase().replace(/^(wet|upland) /, "");
+}

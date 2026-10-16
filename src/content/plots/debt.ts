@@ -1,5 +1,6 @@
 import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
+import { stapleOf } from "../agriculture";
 import { capabilitiesFor } from "../characters/resolve";
 import { amountIn } from "../economy/money";
 import { goodName, sellerOf } from "../economy/products";
@@ -103,7 +104,8 @@ export const debt: PlotTemplate = {
         creditor: creditor.name,
         creditorRole: creditor.role.toLowerCase(),
         amount: c.setting ? amountIn(c.setting, owed, coined) : "a good deal",
-        good: buy ? goodName(buy.good, buy.product) : "food",
+        // "Grain" is the economy's word for whatever the fields grow; say which.
+        good: buy ? (buy.good === "grain" && !buy.product && c.setting && stapleOf(c.setting)) || goodName(buy.good, buy.product) : "food",
         due: hour < 11 ? "by sundown" : "by noon tomorrow",
         pledge: child ? `your ${childKin} ${child.name}` : "you",
         since,
@@ -306,16 +308,16 @@ export const debt: PlotTemplate = {
       lines: {
         aim: "Settle what you owe {creditor} for the {good}, {due}.",
         intro: "{since}, your household has had {good} on credit from {creditor} the {creditorRole}. {He} {wants} {owing} {due}.",
-        threat: "If you can't pay, {he} will report you, and everyone will know.",
+        threat: "If you can't pay, {he} will take it to {authority}, and everyone will know.",
         partner: "Your {partnerKin} {partner} doesn't know yet how much it has come to.",
         "kin-partner": "{creditor} came asking for you. How much do we owe?",
         "cast-creditor": "Let you have the {good} on credit, and wants {owing}.",
         dun: "You owe me {amount} for the {good}. I want it {due}.",
         remind: "I haven't forgotten. I want it {due}.",
-        seize: "I have taken what I could find in your store. Pay me the rest, or I'll report you.",
+        seize: "I have taken what I could find in your store. Pay me the rest, or I'll go to {authority}.",
         paid: "The debt to {creditor} is paid. Your household owes nothing now.",
         seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
-        denounced: "{creditor} has gone to report you. You still owe the debt, and now everyone knows.",
+        denounced: "{creditor} has gone to {authority} about the debt. You still owe it, and now everyone knows.",
         fled: "You've left {creditor} behind, but the debt and your bad name stay there.",
       },
     },

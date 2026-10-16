@@ -1,4 +1,4 @@
-import { matchesCharacterScope } from "../characters/resolve";
+import { capabilitiesFor, matchesCharacterScope } from "../characters/resolve";
 import type { CharacterScope } from "../characters/context-types";
 import type { WorldSetting } from "../geography/types";
 
@@ -150,4 +150,33 @@ export function orderKeeper(setting?: WorldSetting): OrderKeeper {
   if (setting?.settlement === "camp" || year < -3000) return { who: "the elders", ...ELDERS };
   if (setting?.settlement === "city" || setting?.settlement === "port") return { who: "the city's officers", ...NEAR_EAST };
   return { who: "the headman", ...CUSTOMARY };
+}
+
+// Writing or coin usually means a ruler who could count households and take
+// labour or rent from them. These are the places where it does not.
+const STATELESS: CharacterScope[] = [
+  { years: [-700, -50], bounds: box(-11, 45, 40, 72) },
+  { years: [-50, 43], bounds: BRITAIN },
+  { years: [-50, 900], bounds: box(6.5, 47.5, 40, 72) },
+  { years: [-10000, 1565], bounds: box(116, 4, 127, 21) },
+  { years: [-10000, 1884], bounds: box(130, -11, 151, -2) },
+  { years: [-10000, 1885], bounds: box(12, -5, 30, 5) },
+];
+// States that kept their counts without writing or coin.
+const UNWRITTEN_STATES: CharacterScope[] = [
+  { years: [300, 900], bounds: box(-12, 12, 0, 18) },
+  { years: [1600, 1900], bounds: box(-161, 18, -154, 23) },
+];
+
+/** Whether this place answers to a ruler who can call up its men or take a
+ * share of its harvest. */
+export function ruled(setting?: WorldSetting) {
+  if (!setting || setting.settlement === "camp") return false;
+  const here = (scope: CharacterScope) => matchesCharacterScope(scope, setting, "*");
+  if (STATELESS.some(here)) return false;
+  if (UNWRITTEN_STATES.some(here)) return true;
+  // The Andean states held the highlands and the coast, not the forest below them.
+  if (here({ years: [100, 1533], bounds: box(-81, -20, -66, 2) }) && setting.climate !== "tropical" && setting.climate !== "monsoon") return true;
+  const can = capabilitiesFor(setting);
+  return can.has("writing") || can.has("coinage");
 }

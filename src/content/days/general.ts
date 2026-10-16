@@ -247,7 +247,7 @@ export const generalOccasions: Occasion[] = [
     place: "gathering",
     activity: "visit",
     minutes: 45,
-    text: "Put off the afternoon's work and sit in the sun.",
+    text: "Put off the afternoon's work and sit with whoever is about.",
     sources: [],
     fallback: true,
   },
