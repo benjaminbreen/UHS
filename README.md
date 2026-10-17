@@ -67,7 +67,7 @@ that play are still to be developed.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/sprites.png" alt="Current character sprites from eight places and dates"></td>
+    <td width="50%"><img src="docs/images/sprites.png" alt="Current character sprites from twelve places and dates"></td>
     <td width="50%"><img src="docs/images/portraits.png" alt="Sidebar portraits of generated characters from five places and dates"></td>
   </tr>
   <tr>
