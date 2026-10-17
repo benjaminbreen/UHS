@@ -1469,6 +1469,291 @@ for _kind, _keys in ASSIGN.items():
         ITEMS.setdefault(_k, (_k.replace('-', ' ').capitalize(), _F[_kind](_k)))
 
 
+# ---- wares: finished goods sold in shops (src/content/economy/wares.ts) -----
+
+def sword(metal='#9aa3a8', grip='#6b3f24'):
+    M = Model()
+    t = (M.X + M.Z - 12) / 1.414; s = (M.Z - M.X - 12) / 1.414
+    M.put((t > -2) & (t < 17) & (np.abs(s) < 1.2 - np.clip(t - 14, 0, 3) * 0.4) & (np.abs(M.Y) < 0.5), M.mat(metal, 0.9))
+    M.put((np.abs(t + 2.6) < 0.7) & (np.abs(s) < 4) & (np.abs(M.Y) < 0.9), M.mat('#d9b35a', 0.8))
+    M.put((t > -8) & (t < -3) & (np.abs(s) < 0.9) & (np.abs(M.Y) < 0.9), M.mat(grip))
+    M.put(M.ell((-8.6 / 1.414 * 1 + 0, 0, 0), (0.1, 0.1, 0.1)) | ((np.abs(t + 8.8) < 1) & (np.abs(s) < 1.3) & (np.abs(M.Y) < 1.2)), M.mat('#d9b35a', 0.8))
+    return M
+
+def mail_shirt(metal='#8d949c'):
+    M = Model((15, 18))
+    body = lambda X, Z: ((np.abs(X) < 6.5) & (Z > 2) & (Z < 19)) | ((np.abs(X) < 11) & (Z > 13) & (Z < 19) & (np.abs(X) - 6 < (Z - 13) * 1.2))
+    s = M.put(M.panel(lambda X, Z: body(X, Z) & ~((np.abs(X) < 2.2) & (Z > 17)), 1.4, 1.0), M.mat(metal, 0.8))
+    M.put(s & (((np.floor(M.X * 1.2) + np.floor(M.Z * 1.2)) % 2) == 0), M.mat('#5f656c', 0.6))
+    return M
+
+def horseshoe(metal='#6a6e74'):
+    M = Model((180, 60))
+    R = np.hypot(M.X, M.Y - 2)
+    s = M.put((R > 5) & (R < 8.5) & (M.Y > -2.5) & (M.Z > 1) & (M.Z < 3.2), M.mat(metal, 0.6))
+    for a in (-2.0, -1.0, 1.0, 2.0):
+        M.put(s & (np.hypot(M.X - 6.8 * math.sin(a), M.Y - 2 - 6.8 * math.cos(a)) < 0.8), M.mat('#2a2a30'))
+    return M
+
+def nails(metal='#6a6e74'):
+    M = Model((20, 50))
+    m = M.mat(metal, 0.7)
+    for x, y, a in ((-7, -6, 0.05), (-6, 0, -0.05), (-8, 6, 0.08)):
+        tip = (x + 14 * math.cos(a), y + 14 * math.sin(a), 1)
+        M.put(M.seg((x, y, 1), tip, 1.0, 0.2), m)
+        M.put(M.ell((x, y, 1), (0.8, 1.9, 1.9)), m)
+    return M
+
+def sickle(metal='#9aa3a8', wood='#7a5236'):
+    M = Model()
+    R = np.hypot(M.X - 1, M.Z - 13)
+    M.put((np.abs(R - 7) < 1.1 - np.clip(M.X - 3, 0, 9) * 0.08) & (np.abs(M.Y) < 0.5) & ~((M.X < 1) & (M.Z < 13)), M.mat(metal, 0.9))
+    M.put(M.seg((-6, 0, 12), (-9, 0, 1), 1.1), M.mat(wood))
+    return M
+
+def pot(body='#a8603a', band='#e0c49a'):
+    M = Model((20, 30))
+    s = M.put(M.lathe([0.5, 2, 6, 10, 13, 14, 15.5], [4, 7, 9, 8.5, 6, 5, 5.6], wall=1.4), M.mat(body, 0.2))
+    M.put(s & (np.abs(M.Z - 9.5) < 0.7), M.mat(band))
+    M.put(s & (M.Z < 4), M.mat('#3a2a24'))
+    return M
+
+def amphora(body='#b8703f'):
+    M = Model((20, 18))
+    c = M.mat(body, 0.2)
+    s = M.put(M.lathe([0, 2, 6, 12, 15, 18, 22, 23.5], [0.8, 2.5, 5.8, 6.4, 5, 2.2, 2, 2.6], wall=1.2), c)
+    M.put(s & (np.abs(M.Z - 13) < 0.6), M.mat('#5a3420'))
+    for sx in (-1, 1):
+        R = np.hypot(M.X - sx * 3.6, M.Z - 18.5)
+        M.put((np.abs(R - 2.4) < 0.7) & (np.abs(M.Y) < 0.7) & (M.X * sx > 3.8), c)
+    return M
+
+def porcelain(body='#eef0ec', paint='#3a5a9a'):
+    M = Model((20, 38))
+    s = M.put(M.lathe([0.5, 1.5, 2, 5, 8, 8.8], [3, 3, 4.5, 8, 10.5, 10.8], wall=0.9), M.mat(body, 0.9))
+    ang = np.arctan2(M.Y, M.X)
+    M.put(s & (((np.abs(M.Z - 6.2) < 0.6)) | ((np.abs(M.Z - 3.6) < 1.4) & (np.sin(ang * 6) > 0.4))), M.mat(paint, 0.9))
+    return M
+
+def wooden_bowl(wood='#8a6038'):
+    M = Model((20, 38))
+    s = M.put(M.lathe([0.5, 2, 5, 7.5, 8], [3.5, 5.5, 8.5, 10, 10], wall=1.2), M.mat(wood, 0.2))
+    R = np.hypot(M.X, M.Y)
+    M.put(s & (np.abs((R * 2.2) % 3 - 1.5) < 0.25) & (M.Z < 2.5), M.mat(item_ramp(wood)[3]))
+    return M
+
+def candles(wax='#ece2c4'):
+    M = Model((20, 22))
+    for x, h in ((-3, 15), (3, 12)):
+        M.put(M.lathe([0.5, h], [1.8, 1.8], cx=x), M.mat(wax, 0.4))
+        M.put(M.seg((x, 0, h), (x, 0, h + 1.2), 0.3), M.mat('#2a2a30'))
+        M.put(M.ell((x, 0, h + 3), (0.9, 0.9, 1.8)), M.mat('#f8d25a', glow=True))
+    return M
+
+def oil_lamp(clay='#b8703f'):
+    M = Model((20, 30))
+    c = M.mat(clay, 0.2)
+    M.put(M.ell((0, 0, 3), (6, 5, 2.6)) & (M.Z > 0.5), c)
+    M.put(M.seg((4, 0, 3.4), (10, 0, 3.8), 1.6, 1.2), c)
+    M.put(M.seg((-5, 0, 3.6), (-8, 0, 5.4), 0.7) | M.seg((-8, 0, 5.4), (-7, 0, 2), 0.7), c)
+    M.put(M.lathe([5, 5.6], [1.6, 1.6]), M.mat('#3a2a24'))
+    M.put(M.ell((10.5, 0, 6.2), (1, 1, 2)), M.mat('#f8d25a', glow=True))
+    return M
+
+def tankard(wood='#8a6038', froth='#e8d8b0'):
+    M = Model((20, 24))
+    w = M.mat(wood, 0.2)
+    s = M.put(M.lathe([0.5, 14], [5, 4.6], wall=1.2), w)
+    M.put(s & ((np.abs(M.Z - 3) < 0.7) | (np.abs(M.Z - 11) < 0.7)), M.mat('#5a5f66', 0.7))
+    R = np.hypot(M.X - 6, M.Z - 7.5)
+    M.put((np.abs(R - 3.2) < 0.8) & (np.abs(M.Y) < 0.8) & (M.X > 4.5), w)
+    M.put(M.lathe([12.5, 15.5], [4.4, 4.0]) | M.ell((1, 1, 15.2), (3, 3, 1.4)), M.mat(froth))
+    return M
+
+def bottle(glass='#3a5a3a', label='#7a2040', cork='#b89a6a'):
+    M = Model((20, 20))
+    M.put(M.lathe([0.5, 11, 13.5, 20], [3.6, 3.6, 1.3, 1.2]), M.mat(glass, 0.9))
+    M.put(M.lathe([4, 8.5], [3.7, 3.7]), M.mat(label))
+    M.put(M.lathe([20, 22], [1.0, 1.0]), M.mat(cork))
+    return M
+
+def waterskin(leather='#9a6a3c'):
+    M = Model((20, 24))
+    M.put(M.ell((0, 0, 7), (7.5, 4, 6.5)) | M.ell((-3, 0, 12), (4, 3, 3)), M.mat(leather, 0.3))
+    M.put(M.seg((-4, 0, 13), (-5.5, 0, 18), 1.2), M.mat(item_ramp(leather)[3]))
+    M.put(M.lathe([16, 17.2], [1.5, 1.5], cx=-5.3), M.mat('#5c3f24'))
+    return M
+
+def bolt(cloth='#b8a888', stripe='#8a3a3a'):
+    M = Model((25, 26))
+    R = np.hypot(M.Y, M.Z - 5)
+    s = M.put((R < 5) & (np.abs(M.X) < 9), M.mat(cloth, 0.2))
+    M.put(s & (np.abs(np.abs(M.X) - 5) < 0.6), M.mat(stripe))
+    M.put(s & (M.X > 8.4) & (np.abs((R * 1.6) % 2 - 1) < 0.3), M.mat(item_ramp(cloth)[2]))
+    M.put((M.Z < 0.9) & (M.Y < -4) & (M.Y > -9) & (np.abs(M.X) < 9), M.mat(cloth, 0.2))
+    return M
+
+def basket(cane='#c8a868'):
+    M = Model((20, 30))
+    w = M.mat(cane, 0.2)
+    s = M.put(M.lathe([0.5, 2, 9], [6, 8, 9.5], wall=1.1), w)
+    ang = np.arctan2(M.Y, M.X)
+    M.put(s & ((np.floor(M.Z) + np.floor(ang * 6)) % 2 == 0), M.mat(item_ramp(cane)[3]))
+    R = np.hypot(M.X, M.Z - 9)
+    M.put((np.abs(R - 8.5) < 0.8) & (np.abs(M.Y) < 0.8) & (M.Z > 9), w)
+    return M
+
+def barrel(wood='#9a6a3c', hoop='#5a5f66'):
+    M = Model((20, 24))
+    s = M.put(M.lathe([0.5, 4, 9, 14, 17.5], [5.5, 6.8, 7.3, 6.8, 5.5]), M.mat(wood, 0.2))
+    ang = np.arctan2(M.Y, M.X)
+    M.put(s & (np.abs(np.sin(ang * 8)) < 0.12), M.mat(item_ramp(wood)[3]))
+    M.put(s & ((np.abs(M.Z - 3) < 0.7) | (np.abs(M.Z - 15) < 0.7)), M.mat(hoop, 0.7))
+    return M
+
+def glazed_jar(glaze='#4a7a6a', trim='#c8a050'):
+    M = Model((20, 26))
+    s = M.put(M.lathe([0.5, 3, 8, 12, 14, 15.5], [3.5, 6.5, 8, 6, 3.4, 3.8], wall=1.2), M.mat(glaze, 0.9))
+    ang = np.arctan2(M.Y, M.X)
+    M.put(s & (np.abs(M.Z - 10.5 - np.sin(ang * 5)) < 0.5), M.mat(trim, 0.6))
+    M.put(s & (M.Z < 1.8), M.mat('#b8a888'))
+    return M
+
+def cauldron(iron='#4a4c50'):
+    M = Model((20, 30))
+    i = M.mat(iron, 0.5)
+    M.put(M.lathe([3, 5, 9, 12, 13], [5, 8, 9, 8, 8.4], wall=1.2) | M.ell((0, 0, 8), (9, 9, 6)) & (M.Z > 3) & (M.Z < 12), i)
+    for a in (0, 2.1, 4.2):
+        M.put(M.seg((6 * math.cos(a), 6 * math.sin(a), 4), (7 * math.cos(a), 7 * math.sin(a), 0.5), 0.9), i)
+    R = np.hypot(M.X, M.Z - 12)
+    M.put((np.abs(R - 8.4) < 0.4) & (np.abs(M.Y) < 0.4) & (M.Z > 13), M.mat('#8d949c', 0.8))
+    return M
+
+def hoe(metal='#8d949c', wood='#7a5636'):
+    M = Model()
+    M.put(M.seg((7, 0, 1), (-5, 0, 19), 0.9), M.mat(wood))
+    M.put(M.seg((-5, 0, 19), (-9, 0, 16.5), 0.9) | ((np.abs(M.X + 10) < 1.3) & (np.abs(M.Y) < 3.5) & (M.Z > 8) & (M.Z < 17)), M.mat(metal, 0.8))
+    return M
+
+def shears(metal='#8d949c'):
+    M = Model((20, 20))
+    m = M.mat(metal, 0.9)
+    for sx in (-1, 1):
+        M.put(M.seg((sx * 1, 0, 9), (sx * 3.2, 0, 22), 1.2, 0.3), m)
+    R = np.hypot(M.X, M.Z - 5)
+    M.put((np.abs(R - 4) < 0.8) & (np.abs(M.Y) < 0.8) & (M.Z < 9.5), m)
+    return M
+
+def saddle(leather='#8a4a2a'):
+    M = Model((25, 26))
+    l = M.mat(leather, 0.4)
+    seat = (M.ell((0, 0, 8), (9, 6, 4)) & (M.Z > 6) & (M.Z < 8 + 1.2 * (np.abs(M.X) / 9) ** 2 * 4))
+    M.put(seat | M.ell((-8, 0, 11), (1.6, 3, 2.4)) | M.ell((8, 0, 10.5), (1.6, 3.5, 2.6)), l)
+    M.put((np.abs(M.X) < 6) & (np.abs(M.Y) > 5.4) & (np.abs(M.Y) < 6.6) & (M.Z > 1) & (M.Z < 8), l)
+    for sy in (-1, 1):
+        M.put((np.abs(M.Y - sy * 6.8) < 0.6) & (np.abs(M.X) < 0.5) & (M.Z > -1) & (M.Z < 6), M.mat('#5c3f24'))
+        R = np.hypot(M.X, M.Z - 0.5)
+        M.put((np.abs(R - 1.6) < 0.5) & (np.abs(M.Y - sy * 6.8) < 0.8) & (M.Z < 1.2) & (M.Z >= 0), M.mat('#c8a050', 0.8))
+    return M
+
+def satchel(leather='#8a5a34'):
+    M = Model((20, 20))
+    l = M.mat(leather, 0.3)
+    M.put(M.box(-7, 7, -2.5, 2.5, 0.5, 11), l)
+    M.put(M.box(-7.3, 7.3, -2.9, 2.7, 6, 11.3), M.mat(item_ramp(leather)[3]))
+    M.put(M.box(-0.8, 0.8, -3.2, -2.6, 6.5, 8), M.mat('#c8a050', 0.8))
+    R = np.hypot(M.X, M.Z - 11)
+    M.put((np.abs(R - 7) < 0.6) & (np.abs(M.Y) < 0.6) & (M.Z > 11), l)
+    return M
+
+def flask(body='#e0d8c0', band='#3a5a9a'):
+    M = Model((20, 22))
+    s = M.put(M.lathe([0.5, 3, 7, 10, 12, 16, 17], [3, 5.5, 5.8, 3.5, 1.4, 1.4, 1.9]), M.mat(body, 0.8))
+    M.put(s & (np.abs(M.Z - 6) < 1.3), M.mat(band, 0.8))
+    M.put(M.lathe([17, 18.5], [1.4, 1.4]), M.mat('#c8302a'))
+    return M
+
+def gourd_bowl(shell='#c8a868', drink='#f4f0e0'):
+    M = Model((20, 38))
+    M.put(M.lathe([0.5, 2, 5, 7.5, 8], [3, 6.5, 9, 10, 10], wall=1.0), M.mat(shell, 0.3))
+    M.put(M.lathe([6.4, 7.0], [9.2, 9.2]), M.mat(drink, 0.4))
+    return M
+
+def chicha(jar='#b8703f', band='#e8c060'):
+    M = Model((20, 26))
+    s = M.put(M.lathe([0.5, 3, 8, 12, 14, 15.5], [3, 7, 9.5, 8, 5, 5.6], wall=1.2), M.mat(jar, 0.2))
+    ang = np.arctan2(M.Y, M.X)
+    M.put(s & (np.abs(M.Z - 9) < 1) & (np.sin(ang * 8) > 0), M.mat(band))
+    M.put(s & (np.abs(M.Z - 10.6) < 0.5), M.mat('#5a3420'))
+    return M
+
+def flatbread(crust='#d8a860'):
+    M = Model((20, 45))
+    s = M.put(M.ell((0, 0, 1.4), (10, 9, 1.4)), M.mat(crust, 0.1))
+    M.put(s & (M.noise(1.2, 5) < 0.12) & (M.Z > 1.4), M.mat('#9a6030'))
+    return M
+
+def tortillas(maize='#e8d090'):
+    M = Model((20, 40))
+    for k in range(4):
+        z = 0.8 + k * 1.4
+        s = M.put(M.lathe([z - 0.6, z + 0.6], [9 - k * 0.15, 9 - k * 0.15], cx=(k % 2) * 0.6 - 0.3, cy=(k % 3) * 0.4), M.mat(maize, 0.1))
+    M.put(s & (M.noise(1.2, 9) < 0.1) & (M.Z > 5), M.mat('#a87a3a'))
+    return M
+
+def matches(box='#c8a050'):
+    M = Model((25, 32))
+    M.put(M.box(-7, 7, -4, 4, 0.5, 4.5), M.mat(box, 0.2))
+    M.put(M.box(-7.2, 7.2, -4.2, 4.2, 1.8, 3.2), M.mat('#7a3a2a'))
+    for x in (-2, 0, 2):
+        M.put(M.seg((x, 0, 4.5), (x + 1.5, 0, 9), 0.4), M.mat('#e8d8b0'))
+        M.put(M.ell((x + 1.6, 0, 9.4), (0.7, 0.7, 0.9)), M.mat('#c8302a'))
+    return M
+
+def kerosene_lamp(tin='#5a7a5a', glass='#f0e8c8'):
+    M = Model((20, 20))
+    M.put(M.lathe([0.5, 1.5, 4, 6, 7], [5.5, 6.2, 6, 3.5, 2.5]), M.mat(tin, 0.6))
+    M.put(M.lathe([7, 9, 12, 14, 18], [2.6, 4.4, 4.4, 2.2, 1.8], wall=0.6), M.mat(glass, 0.9))
+    M.put(M.ell((0, 0, 10.5), (1, 1, 1.6)), M.mat('#f8d25a', glow=True))
+    R = np.hypot(M.X, M.Z - 18)
+    M.put((np.abs(R - 4) < 0.4) & (np.abs(M.Y) < 0.4) & (M.Z > 18), M.mat('#5a5f66', 0.7))
+    return M
+
+ITEMS.update({
+    'sword': ('Sword', sword),
+    'mail-shirt': ('Mail shirt', mail_shirt),
+    'horseshoe': ('Horseshoe', horseshoe),
+    'nails': ('Nails', nails),
+    'sickle': ('Sickle', sickle),
+    'clay-pot': ('Clay pot', pot),
+    'amphora': ('Amphora', amphora),
+    'porcelain-bowl': ('Porcelain bowl', porcelain),
+    'wooden-bowl': ('Wooden bowl', wooden_bowl),
+    'candles': ('Tallow candles', candles),
+    'oil-lamp': ('Oil lamp', oil_lamp),
+    'ale': ('Ale', tankard),
+    'wine': ('Wine', bottle),
+    'waterskin': ('Waterskin', waterskin),
+    'cloth-bolt': ('Bolt of cloth', bolt),
+    'basket': ('Basket', basket),
+    'barrel': ('Barrel', barrel),
+    'glazed-jar': ('Glazed jar', glazed_jar),
+    'cauldron': ('Cauldron', cauldron),
+    'hoe': ('Hoe', hoe),
+    'shears': ('Shears', shears),
+    'saddle': ('Saddle', saddle),
+    'satchel': ('Satchel', satchel),
+    'silk': ('Bolt of silk', lambda: bolt('#d8486a', '#f0d070')),
+    'rice-wine': ('Rice wine', flask),
+    'palm-wine': ('Palm wine', gourd_bowl),
+    'chicha': ('Chicha', chicha),
+    'flatbread': ('Flatbread', flatbread),
+    'tortillas': ('Tortillas', tortillas),
+    'matches': ('Matches', matches),
+    'kerosene-lamp': ('Kerosene lamp', kerosene_lamp),
+})
+
+
 def icon(M, size=48, fill=0.9, yaw=None, pitch=None, index=False):
     """The model rendered and fitted to the icon, centred on what is drawn."""
     yaw = M.view[0] if yaw is None else yaw

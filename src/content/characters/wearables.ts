@@ -234,7 +234,8 @@ export const wearableItems: Record<ItemId, ItemDef> = Object.fromEntries(([
         id: `headwear-${h}`,
         name: headLabel[h],
         sprite: "flax",
-        value: 1,
+        // A smith's helmet is metalwork, not a hat.
+        value: h === "helmet" ? 12 : 1,
         wear: { slot: "head", look: { headwear: h } },
       },
     ]),

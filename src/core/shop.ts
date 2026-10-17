@@ -1,4 +1,6 @@
 import { goodsOf } from "../content/economy/goods";
+import { wares } from "../content/economy/wares";
+import { matchesCharacterScope } from "../content/characters/resolve";
 import { livelihoodOf } from "../world/v3/routines";
 import { isWayfarer } from "../world/v3/wayfarers";
 import { random } from "./random";
@@ -12,11 +14,11 @@ const SHELF: Record<string, ItemId[]> = {
   fish: ["fish"],
   milk: ["eggs"],
   cloth: ["wool", "flax", "cotton"],
-  pots: ["reeds", "rushes"],
+  pots: [],
   ironwork: ["tool"],
   leather: ["hide", "footwear-shoes", "footwear-boots", "belt-leather"],
   timber: ["wood", "walking-cane"],
-  light: ["resin"],
+  light: [],
   drink: ["bread", "cooked-meat", "water"],
   oil: ["herbs"],
 };
@@ -55,6 +57,8 @@ export function stockFor(
   const roll = (...k: (string | number)[]) => random(seed, "shop", actor.id, day, ...k);
   const goods = goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision);
   const ids = new Set<ItemId>(goods.flatMap((g) => SHELF[g] ?? []));
+  const setting = pack.setting;
+  for (const w of wares) if (goods.includes(w.good) && setting && matchesCharacterScope(w.scope, setting)) ids.add(w.id);
   const worn = Object.values(actor.worn ?? {}).filter((id): id is ItemId => !!id);
   for (const g of goods) for (const id of worn) if (DRESSED[g]?.test(id)) ids.add(id);
   // Helmets and arrowheads from the smith, until guns made them obsolete.
