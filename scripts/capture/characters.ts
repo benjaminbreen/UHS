@@ -215,6 +215,40 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     for (const [i, name] of ["sprites", "portraits"].entries())
       await writeDataUrl(sheets[i], `docs/images/${name}.png`);
   },
+  /** The README's sprite sheet: game-renderer people from eight places and dates. */
+  async readme(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const where = [["rome", 100], ["london", 1200], ["kyoto", 1850], ["timbuktu", 1400], ["cusco", 1400], ["london", 1750], ["kyoto", 1200], ["rome", 1500]];
+      const who: [number, string][] = [[34, "male"], [30, "female"], [62, "male"], [58, "female"], [10, "male"], [8, "female"]];
+      const W = 28 * 3, H = 36 * 3, LABEL = 22;
+      const sheet = document.createElement("canvas");
+      sheet.width = who.length * W + 16; sheet.height = where.length * (H + LABEL) + 8;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#8a9a6a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      where.forEach(([id, year], r) => {
+        const place = places.find((p: any) => p.id === id);
+        const setting = settingFor(place, year);
+        const y = r * (H + LABEL) + 4;
+        ctx.fillStyle = "#2a2a1e"; ctx.font = "13px monospace";
+        ctx.fillText(`${place.name ?? id}, ${year}`, 8, y + 15);
+        who.forEach(([age, sex], c) => {
+          const look = generateCharacter(setting, "readme", `${id}-${year}-${c}`, age, undefined, undefined, undefined, sex).appearance;
+          const body = document.createElement("canvas"); body.width = body.height = 80;
+          drawCharacter(body.getContext("2d")!, look, 2, "idle", 0);
+          ctx.drawImage(body, 26, 44, 28, 36, 8 + c * W, y + LABEL, W, H);
+        });
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("readme"));
+  },
   /** Families (head, partner, then three children) and one face under each body record. */
   async family(page) {
     await characterLab(page);

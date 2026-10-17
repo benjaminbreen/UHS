@@ -8,7 +8,8 @@ Universal History Simulator is a free, experimental game and educational
 resource that I’m developing as a history professor interested in AI-assisted
 historical simulations. You begin with a person, place and date — “a baker in
 Ostia, 100 CE,” for example — and explore a generated world through the
-activities and obligations of an ordinary life.
+activities and obligations of an ordinary life. GPT-6 Luna powers the NPC
+dialogue and the narrator.
 
 The project is intended for both human and AI players. A student or someone
 interested in history can play through the browser; an AI agent can observe
@@ -66,12 +67,12 @@ that play are still to be developed.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/sprites.png" alt="Current default character sprites in front and walking views, across six historical settings"></td>
-    <td width="50%"><img src="docs/images/portraits.png" alt="Sidebar pixel-art portraits of the same twelve generated characters"></td>
+    <td width="50%"><img src="docs/images/sprites.png" alt="Current character sprites from eight places and dates"></td>
+    <td width="50%"><img src="docs/images/portraits.png" alt="Sidebar portraits of generated characters from five places and dates"></td>
   </tr>
   <tr>
     <td align="center"><sub>Generated characters with dress selected by place, date, age and wealth</sub></td>
-    <td align="center"><sub>The same characters rendered as the portraits used in the sidebar</sub></td>
+    <td align="center"><sub>Generated portraits as shown in the sidebar</sub></td>
   </tr>
 </table>
 
