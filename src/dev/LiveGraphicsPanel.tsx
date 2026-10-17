@@ -268,7 +268,7 @@ export function LiveGraphicsPanel({
               " / 100 tiles",
             )}
             <p>
-              Uses trees.png and the transparent growth strips in trees pngs/.
+              Uses trees.png and the transparent growth strips in src/assets/trees/.
               This is a visual study layer and does not add blockers.
             </p>
           </details>

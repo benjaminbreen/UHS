@@ -4,31 +4,31 @@ A pixel-art historical simulation. Vite + TypeScript, Vitest, Playwright.
 
 ## Read only what the task needs
 
-There are about 35 docs at the root. **Do not read them to
+There are about 35 docs in `docs/`. **Do not read them to
 orient yourself.** This file is the orientation. Open one of the others only
 when the task is actually about its subject:
 
 | Task is about | Read |
 |---|---|
-| Architecture, design intent | `UHS_DESIGN.md` |
-| What shipped recently, current priorities | `PROGRESS.md` (older entries in `PROGRESS_ARCHIVE.md`; do not open it unprompted) |
-| Eras, dates, historical content | `HISTORY.md` |
-| Characters, appearance, wardrobe | `CHARACTERS.md` |
-| Settlements, layout, roads | `SETTLEMENTS.md` |
-| Buildings and props (drawing rules) | `OBLIQUE_ART.md`, `BUILDING_ART.md`, `CITY_ART.md`, `PROP_ART.md`, `PROPS.md`, `PROP_PLAN.md` |
+| Architecture, design intent | `docs/UHS_DESIGN.md` |
+| What shipped recently, current priorities | `docs/PROGRESS.md` (older entries in `docs/PROGRESS_ARCHIVE.md`; do not open it unprompted) |
+| Eras, dates, historical content | `docs/HISTORY.md` |
+| Characters, appearance, wardrobe | `docs/CHARACTERS.md` |
+| Settlements, layout, roads | `docs/SETTLEMENTS.md` |
+| Buildings and props (drawing rules) | `docs/OBLIQUE_ART.md`, `docs/BUILDING_ART.md`, `docs/CITY_ART.md`, `docs/PROP_ART.md`, `docs/PROPS.md`, `docs/PROP_PLAN.md` |
 | Buildings in the new Stardew / Haunted Chocolatier style (walls square on, roofs from above at moderate depth; materials, openings, signs, roofs) | the `building-art` skill, `.claude/skills/building-art/SKILL.md` |
-| Terrain, water, vegetation, ecology | `GRAPHICS.md`, then `TERRAIN_ART`, `TOPOGRAPHY`, `WATER`, `VEGETATION`, `ECOLOGY`, `FAUNA` |
-| World generation, geography | `WORLDS.md` |
-| Travel, the region map, time travel | `TRAVEL.md`, `TIME.md` |
-| The day's cards, Today, the years, death, the life record | `DAY.md` |
-| Plots, kin, generations | `PLOTS.md`, `GENERATIONS.md` |
-| Health, conditions, bonds, the opening card's text | `LIVES.md` |
-| Starting scenarios | `SCENARIOS.md` |
-| Classroom / edu mode | `CLASSROOM.md` |
-| Character generation pipeline | `CHARACTER_GENERATION.md` |
-| Performance | `PERFORMANCE.md` (`PERFORMANCE_REVIEW.md` is a past audit) |
-| Licences of third-party art | `ASSET_PROVENANCE.md` |
-| Audio | `AUDIO.md` |
+| Terrain, water, vegetation, ecology | `docs/GRAPHICS.md`, then `TERRAIN_ART`, `TOPOGRAPHY` (all in `docs/`), `WATER`, `VEGETATION`, `ECOLOGY`, `FAUNA` |
+| World generation, geography | `docs/WORLDS.md` |
+| Travel, the region map, time travel | `docs/TRAVEL.md`, `docs/TIME.md` |
+| The day's cards, Today, the years, death, the life record | `docs/DAY.md` |
+| Plots, kin, generations | `docs/PLOTS.md`, `docs/GENERATIONS.md` |
+| Health, conditions, bonds, the opening card's text | `docs/LIVES.md` |
+| Starting scenarios | `docs/SCENARIOS.md` |
+| Classroom / edu mode | `docs/CLASSROOM.md` |
+| Character generation pipeline | `docs/CHARACTER_GENERATION.md` |
+| Performance | `docs/PERFORMANCE.md` (`docs/PERFORMANCE_REVIEW.md` is a past audit) |
+| Licences of third-party art | `docs/ASSET_PROVENANCE.md` |
+| Audio | `docs/AUDIO.md` |
 
 ## Verifying
 
@@ -100,7 +100,7 @@ anything:
 - **Tests**: add cases to the existing file that covers the area. A new test
   file needs a reason beyond "my change deserves one."
 - **Docs**: do not write a summary, report, or plan file for work you just did.
-  Say it in your reply. Note it in `PROGRESS.md` only for a milestone.
+  Say it in your reply. Note it in `docs/PROGRESS.md` only for a milestone.
 
 ## Keep it small and quiet
 

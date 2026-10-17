@@ -72,7 +72,7 @@ RESOLVE ecoregion's biome number and is read by `src/content/ecology/variants.ts
 to choose ecological envelopes and colourways for Earth coordinates. Source and
 licence are unchanged (RESOLVE Ecoregions 2017, Dinerstein et al., CC BY 4.0).
 
-The Pixel Crawler free pack (Anokolisa), `trees.png` and the `trees pngs/`
+The Pixel Crawler free pack (Anokolisa), `src/assets/trees.png` and the `src/assets/trees/`
 growth strips in the workspace were used only as style references for the
 blade hatch, ramp saturation and the seven new regional tree recipes in
 `scripts/art/regional_trees.py`. Their pixels are not included in any shipped

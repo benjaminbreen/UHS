@@ -116,12 +116,12 @@ export function sceneAssets(shadows = true) {
       { key: "terrain", url: `/packs/terrain.png?v=${artStamp}` },
       {
         key: "tree-study-source",
-        url: new URL("../../trees.png", import.meta.url).href,
+        url: new URL("../assets/trees.png", import.meta.url).href,
       },
     ],
     sheets: Object.entries(alternateTrees).map(([id, [file]]) => ({
       key: `study-tree-${id}`,
-      url: new URL(`../../trees pngs/${file}`, import.meta.url).href,
+      url: new URL(`../assets/trees/${file}`, import.meta.url).href,
     })),
   };
 }

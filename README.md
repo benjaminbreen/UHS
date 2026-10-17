@@ -1,6 +1,6 @@
 # Universal History Simulator
 
-A playable procedural history prototype with Earth-based landscapes, local place/period/role parsing, and optional model-assisted World Weaver creation. Both modes use the same deterministic TypeScript simulation and original pixel atlas. The original Roman and Neolithic settings remain available for earlier recordings. See [WORLDS.md](WORLDS.md) for world generation and World Weaver setup.
+A playable procedural history prototype with Earth-based landscapes, local place/period/role parsing, and optional model-assisted World Weaver creation. Both modes use the same deterministic TypeScript simulation and original pixel atlas. The original Roman and Neolithic settings remain available for earlier recordings. See [docs/WORLDS.md](docs/WORLDS.md) for world generation and World Weaver setup.
 
 ## Run
 
@@ -15,7 +15,7 @@ Open the local URL printed by Vite. `npm run build` produces `dist/`; `npm run p
 
 ## Procedural explorer
 
-Open `/terrain-lab` to generate local maps from eight ecologies, four landforms, water, population and settlement-pattern controls. Try the six quick studies, change the seed, inspect elevation/moisture and household relationships, then **Play this world** to enter that exact preview. It supports uninhabited regions, wandering/shepherd starts, seasonal resource stocks and household gathering/home routines. See [ECOLOGY.md](ECOLOGY.md) for scope and extension points. The existing fixed art studies remain available through its Art fixtures link.
+Open `/terrain-lab` to generate local maps from eight ecologies, four landforms, water, population and settlement-pattern controls. Try the six quick studies, change the seed, inspect elevation/moisture and household relationships, then **Play this world** to enter that exact preview. It supports uninhabited regions, wandering/shepherd starts, seasonal resource stocks and household gathering/home routines. See [docs/ECOLOGY.md](docs/ECOLOGY.md) for scope and extension points. The existing fixed art studies remain available through its Art fixtures link.
 
 ## Play
 
@@ -97,7 +97,7 @@ python3 -m venv .venv
 
 The art script composes the base recipes with `scripts/art_world.py` and the modules under `scripts/art/`, producing the sprite atlas, ground tiles, building contracts, six-band lighting-shadow atlas and `artifacts/art-proof.png`. It emits source-importable manifests under `src/render/generated/` alongside the public assets; the geography script similarly emits `src/content/generated/`. Regenerate these outputs together rather than editing the generated copies. The map exporter renders four actual generated chunks, including negative coordinates. It is a geography/composition diagnostic; its simple offline rendering omits the browser's transition overlays and selection effects.
 
-In the original v1 compatibility worlds, the Roman river uses a pinned, public-domain Natural Earth centerline, projected offline to UTM 33N. It is coarse modern geography. River widths, banks, roads, settlements, people, and ancient channel positions are inferred. Those v1 worlds have no elevation model. V2 adds procedural relief and shared waterways, as described in [WORLDS.md](WORLDS.md). The Neolithic landscape has a real regional anchor but an inferred local channel and settlement layout. See `ASSET_PROVENANCE.md` and the in-game evidence panel.
+In the original v1 compatibility worlds, the Roman river uses a pinned, public-domain Natural Earth centerline, projected offline to UTM 33N. It is coarse modern geography. River widths, banks, roads, settlements, people, and ancient channel positions are inferred. Those v1 worlds have no elevation model. V2 adds procedural relief and shared waterways, as described in [docs/WORLDS.md](docs/WORLDS.md). The Neolithic landscape has a real regional anchor but an inferred local channel and settlement layout. See `docs/ASSET_PROVENANCE.md` and the in-game evidence panel.
 
 ## Verify
 
@@ -105,7 +105,7 @@ See the Verifying section of [CLAUDE.md](CLAUDE.md); `npm run check` is the gate
 
 ## Current boundary
 
-World generation now supports bundled named locations and eras, plus optional model interpretation. Existing art, professions, and economies remain early-build content shared across settings. See [WORLDS.md](WORLDS.md#current-scope) for current geographic and content limits.
+World generation now supports bundled named locations and eras, plus optional model interpretation. Existing art, professions, and economies remain early-build content shared across settings. See [docs/WORLDS.md](docs/WORLDS.md#current-scope) for current geographic and content limits.
 
 ### Visual polish
 
@@ -117,24 +117,24 @@ The target-3 rendering pass adds exposed earth banks with corner-aware transitio
 
 **Settings → Graphics lab** opens an isolated review mode at `/graphics-lab`. Compare classical and mudbrick recipes, construction studies for later settings, landscape materials, lighting, integer pixel scales and viewport formats. Fixture URLs include camera/settings; frozen previews and PNG export make comparisons repeatable. The lab uses the production `WorldScene` and cannot overwrite the playable save.
 
-See [GRAPHICS.md](GRAPHICS.md) for module ownership, recipe authoring, current limits, verification and the pre-refactor Git restore point.
+See [docs/GRAPHICS.md](docs/GRAPHICS.md) for module ownership, recipe authoring, current limits, verification and the pre-refactor Git restore point.
 
 ## Music and sound development
 
-**Command+1 / Ctrl+1** or the header’s music-note button opens the Audio studio. Click **Listen** for original seasonal overworld music; close the panel to keep listening on the map. Five themes support two track choices in each season/time slot, with pastoral, chamber and electronic arrangement previews, stem mixing, SFX auditions and WAV export. [AUDIO.md](AUDIO.md) documents the compositions, provisional season calendar, cultural/era extension points, seven rendered listening copies and verification.
+**Command+1 / Ctrl+1** or the header’s music-note button opens the Audio studio. Click **Listen** for original seasonal overworld music; close the panel to keep listening on the map. Five themes support two track choices in each season/time slot, with pastoral, chamber and electronic arrangement previews, stem mixing, SFX auditions and WAV export. [docs/AUDIO.md](docs/AUDIO.md) documents the compositions, provisional season calendar, cultural/era extension points, seven rendered listening copies and verification.
 
 ## Cultural content and next work
 
-[Design section 20](UHS_DESIGN.md#20-cultural-content-families-and-dated-local-profiles) records the twelve reusable content families and required place/date/community profiles. These are production groupings, not twelve interchangeable cultural identities. Technology, institutions, ecology and seasons remain separate dimensions. The resolver and twelve fixed eras are implemented; only the Roman and Neolithic packs are playable.
+[Design section 20](docs/UHS_DESIGN.md#20-cultural-content-families-and-dated-local-profiles) records the twelve reusable content families and required place/date/community profiles. These are production groupings, not twelve interchangeable cultural identities. Technology, institutions, ecology and seasons remain separate dimensions. The resolver and twelve fixed eras are implemented; only the Roman and Neolithic packs are playable.
 
-The two worlds now pass through validated profiles. World creation now uses the shared v2 setting pipeline; prop gameplay remains a separate approval and implementation slice. Java and Melbourne remain later stress-test candidates. See the top of [PROGRESS.md](PROGRESS.md) for current priorities.
+The two worlds now pass through validated profiles. World creation now uses the shared v2 setting pipeline; prop gameplay remains a separate approval and implementation slice. Java and Melbourne remain later stress-test candidates. See the top of [docs/PROGRESS.md](docs/PROGRESS.md) for current priorities.
 
 ### History and content inspection
 
 Open `/history-lab` from Settings or Graphics lab. Choose a culture family, local profile, fixed era and exact date; inspect selected/excluded definitions, existing art, sources, alternative hypotheses and coverage. It does not load or modify your saved journey. Copy its URL or export JSON for review.
 
-The twelve eras are settled in [HISTORY.md](HISTORY.md); this is a central content-selection framework, not new world-generation coverage. Current research records include the two compatibility profiles and diagnostic prehistoric-language/Moscow-transition studies. See [PROP_PLAN.md](PROP_PLAN.md) for the next proposed art/interaction phase, which is awaiting user review. Space still waits; pickup/equipment are not implemented yet.
+The twelve eras are settled in [docs/HISTORY.md](docs/HISTORY.md); this is a central content-selection framework, not new world-generation coverage. Current research records include the two compatibility profiles and diagnostic prehistoric-language/Moscow-transition studies. See [docs/PROP_PLAN.md](docs/PROP_PLAN.md) for the next proposed art/interaction phase, which is awaiting user review. Space still waits; pickup/equipment are not implemented yet.
 
 ### Prop art review
 
-See [GRAPHICS.md](GRAPHICS.md#prop-art-review) for `/prop-lab`.
+See [docs/GRAPHICS.md](docs/GRAPHICS.md#prop-art-review) for `/prop-lab`.

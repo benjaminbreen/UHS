@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from PIL import Image, ImageDraw
 from items import ITEMS, COLOR
 N = 24
@@ -23,4 +24,4 @@ for i,name in enumerate(names):
         for c,ch in enumerate(row):
             if ch==' ': continue
             d.rectangle([gx+c*S,gy+14+r*S,gx+c*S+S-1,gy+14+r*S+S-1],fill=p.get(ch,p['o']))
-img.save('itemsheet.png'); print(len(names))
+img.save(Path(__file__).with_name('itemsheet.png')); print(len(names))
