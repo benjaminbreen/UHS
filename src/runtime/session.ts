@@ -801,6 +801,7 @@ export class Runtime {
   private subscribers = new Set<() => void>();
   private disposed = false;
   private cached: ReturnType<Runtime["view"]>;
+  modelFetch: typeof fetch = (...args) => globalThis.fetch(...args);
   onChange?: () => void;
   onRecord?: (kind: "world" | "command" | "text" | "note" | "selection" | "dialogue", data: Record<string, unknown>) => void;
   private observation?: Observation;

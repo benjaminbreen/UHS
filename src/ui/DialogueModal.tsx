@@ -3,7 +3,7 @@ import { CircleHelp, History, Languages, Send, X } from "lucide-react";
 import { setRealLanguage, useRealLanguage } from "./real-language";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
-import { dialogueTurn, explainDialogue, knowsPlayer, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
+import { dialogueTurn, commitDialogue, explainDialogue, knowsPlayer, type DialogueReply, type DialogueLine } from "../narrator/dialogue";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import type { Expression } from "../render/portraits/constructed";
 import { calm, useTypewriter } from "./motion";
@@ -13,8 +13,7 @@ import { gameAudio } from "../audio/director";
 import { voice, type Sound } from "../audio/sfx";
 import { voiceOf } from "../audio/voices";
 import type { CueKind } from "../core/combat";
-import type { CallIn, Favour, WalkOff } from "../core/types";
-type AskAnswer = "made" | "accepted" | "declined";
+import type { CallIn } from "../core/types";
 import { Choices, Frame, plotColours, type StoryLook } from "./PlotCard";
 import { plotTemplate } from "../core/plot";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
@@ -124,36 +123,14 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   realRef.current = realLanguage;
   const situationRef = useRef(situation);
 
-  const commitGift = (gift?: DialogueGift) => {
-    if (!gift) return;
-    const result = runtime.narrate([{ type: "receive", from: actorId, item: gift }]);
-    if (result.result?.status === "completed") {
-      setGiftNotice(`${actor?.name ?? "NPC"} gave you ${gift.name}!`);
-      // Handing something over is a warm act; the giver's face should say so
-      // whatever the line was. The item's flight to the bag is already
-      // handled, off the player's inventory changing.
+  const commit = (said: string, reply: DialogueReply) => {
+    const { before, after, received } = commitDialogue(runtime, actorId, said, reply);
+    if (before !== undefined && after !== undefined && before !== after) show(regardCue(after - before, after));
+    if (received?.result?.status === "completed" && reply.receive) {
+      setGiftNotice(`${actor?.name ?? "NPC"} gave you ${reply.receive.name}!`);
       setMood("smile");
       void gameAudio()?.event("gather");
-    } else if (result.result?.reason) {
-      setError(result.result.reason);
-    }
-  };
-
-  /** The exchange itself, recorded on the person spoken to. */
-  const commitExchange = (said: string, regard?: number, leave?: WalkOff, ask?: AskAnswer, favour?: Favour) => {
-    if (!said.trim() && !leave && !ask) return;
-    // Looked up either side rather than diffed on one reference, and read
-    // off the actor rather than off the model's number: the intent clamps the
-    // delta and can refuse it outright, and what shows should be what
-    // actually happened to them.
-    const trustNow = () =>
-      runtime.engine.state.actors.find((a) => a.id === actorId)?.trust ?? 0;
-    const before = trustNow();
-    runtime.narrate([
-      { type: "converse", with: actorId, said: said.slice(0, 120), delta: regard ?? 0, leave, ask, favour },
-    ]);
-    const after = trustNow();
-    if (after !== before) show(regardCue(after - before, after));
+    } else if (received?.result?.reason) setError(received.result.reason);
   };
   /**
    * A beat between the face changing and the words starting. People react
@@ -189,10 +166,9 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
       if (result.error) setError(result.error);
       else {
         setMood(result.mood);
-        commitGift(result.receive);
+        commit("", result);
         if (result.trade) setTrading(true);
-        if (result.leave) setLeft(true);
-        if (result.leave || result.ask) commitExchange("", 0, result.leave, result.ask, result.favour);
+        if (result.leave || result.ended) setLeft(true);
         say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
       }
     });
@@ -234,7 +210,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const speaks = () => voice(voiceOf(actor), cross);
   const submit = async (said = input) => {
     const text = said.trim();
-    if (!text || busy) return;
+    if (!text || busy || left) return;
     const next = [...history, { speaker: "player" as const, text }];
     setHistory(next);
     setInput("");
@@ -253,12 +229,11 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     if (result.error) setError(result.error);
     else {
       setMood(result.mood);
-      commitExchange(text, result.regard, result.leave, result.ask, result.favour);
-      if (result.ask === "accepted" && result.favour?.kind === "help" && runtime.engine.state.asks?.some((x) => x.by === actorId && x.kind === "help"))
+      commit(text, result);
+      if (!result.receive && result.ask === "accepted" && result.favour?.kind === "help" && runtime.engine.state.asks?.some((x) => x.by === actorId && x.kind === "help"))
         setGiftNotice(`${actor?.name.split(" ")[0]} takes you up on it. Follow them when you're done talking.`);
-      commitGift(result.receive);
       if (result.trade) setTrading(true);
-      if (result.leave) {
+      if (result.leave || result.ended) {
         setLeft(true);
         setResponding(false);
       }
@@ -379,19 +354,19 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
           {error && <p className="dialogue-error">{error}</p>}
         </div>
         <div className="dialogue-foot">
-          {responding && !helpAsked && !calling && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
+          {responding && !left && !helpAsked && !calling && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
           <div className="plot-speech-actions" data-ready>
             <Choices
               focus={firstChoice}
               items={choices ?? (helpAsked ? [
-                { label: "Offer to help", pick: () => { commitExchange("I'll help you.", 0, undefined, "accepted"); close(); }, primary: true },
-                { label: "Not now", pick: () => { commitExchange("Not now.", 0, undefined, "declined"); setResponding(true); } },
+                { label: "Offer to help", pick: () => { commit("I'll help you.", { text: "", ask: "accepted" }); close(); }, primary: true },
+                { label: "Not now", pick: () => { commit("Not now.", { text: "", ask: "declined" }); setResponding(true); } },
               ] : [
                 ...plotChoices,
                 ...(!responding && !left ? [{ label: "Respond", pick: () => setResponding(true), primary: !plotChoices.length }] : []),
                 ...(trading && onTrade && !busy && !left ? [{ label: "See what they have", pick: () => { abort.current?.abort(); onTrade(); }, primary: true }] : []),
                 ...(owed.length && !busy && !left ? [{ label: `Call in ${first}'s debt`, pick: () => setCalling(true) }] : []),
-                { label: left ? `${first} has gone` : responding ? "Leave" : "Continue", pick: close },
+                { label: left && !actor.terror?.fight ? `${first} has gone` : responding || left ? "Leave" : "Continue", pick: close },
               ])}
             />
           </div>

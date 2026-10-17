@@ -165,3 +165,53 @@ test("running impacts hurt and fatal fire offers a new world", async ({ page }) 
   await expect(page.getByRole("dialog")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("refusing to leave during dialogue ends talk and produces a real threat", async ({ page }) => {
+  await page.route("**/api/dialogue", async (route) => {
+    const { user } = route.request().postDataJSON();
+    const refused = user.includes("Player says: No, I'm staying.");
+    await route.fulfill({ json: { text: refused ? "Get out of my house." : "Leave my house.", regard: refused ? -1 : 0, trespass: refused ? "refused" : "warned" } });
+  });
+  await page.goto("/");
+  await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
+  await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
+  await page.getByRole("button", { name: /Begin your day/ }).click();
+  await page.evaluate(() => {
+    const r = (window as any).__uhs, e = r.engine;
+    r.stop();
+    r.ambientRate = 0;
+    const h = e.state.households.find((h: any) => h.residence && h.id !== e.state.player.householdId && h.members.some((id: string) => e.state.actors.some((a: any) => a.id === id)));
+    const actor = e.state.actors.find((a: any) => a.id === h.members[0]);
+    const house = e.world.place(h.residence), room = e.interiorOf(house.id);
+    const cells = [...room.walk] as string[];
+    const pair = cells.find((cell) => { const [x, y] = cell.split(",").map(Number); return room.walk.has(`${x + 1},${y}`); })!;
+    const [x, y] = pair.split(",").map(Number);
+    house.owner = actor.id;
+    house.access = "household";
+    e.state.permissions[house.owner] = 0;
+    actor.age = 34;
+    actor.health = 100;
+    delete actor.injury;
+    actor.stats = { strength: 60, agility: 60, endurance: 60, wit: 50, openness: 50, conscientiousness: 50, extraversion: 100, agreeableness: 0, neuroticism: 0 };
+    actor.pos = { x, y, space: house.id };
+    e.state.player.pos = { x: x + 1, y, space: house.id };
+    e.confronter = actor.id;
+    e.state.plot = undefined;
+    r.emit();
+  });
+  const conversation = page.getByRole("dialog", { name: /Conversation with/ });
+  await expect(conversation.getByText(/^(Leave my house\.|LEAVE MY HOUSE!!)$/)).toBeVisible();
+  const respond = conversation.getByRole("button", { name: "Respond", exact: true });
+  if (await respond.count()) await respond.click();
+  await conversation.getByRole("textbox", { name: "Your response" }).fill("No, I'm staying.");
+  await conversation.getByRole("button", { name: "Send response" }).click();
+  await expect(conversation.getByText("GET OUT OF MY HOUSE!!", { exact: true })).toBeVisible();
+  await expect(conversation.getByRole("textbox", { name: "Your response" })).toHaveCount(0);
+  await expect(conversation.getByRole("button", { name: "Leave", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => {
+    const e = (window as any).__uhs.engine;
+    return e.state.actors.some((a: any) => a.terror?.fight && a.terror.cause === "anger");
+  })).toBe(true);
+});

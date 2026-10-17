@@ -282,7 +282,7 @@ export type Actor = {
   guard?: { ward: string; since?: number; warned?: number };
   /** Terrified by someone breaking into their home: until when, which home,
    * whether they fight or cower, and when a blow last set them back. */
-  terror?: { until: number; place: string; fight: boolean; staggered?: number };
+  terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" };
 };
 export type Place = {
   id: string;
@@ -717,7 +717,7 @@ export type Intent =
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
   | { type: "fact"; text: string }
-  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour; callIn?: CallIn }
+  | { type: "converse"; with: string; said: string; delta: number; trespass?: "warned" | "refused" | "leaving"; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour; callIn?: CallIn }
   | {
       type: "receive";
       from: string;

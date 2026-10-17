@@ -90,10 +90,12 @@ function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
     `spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`,
   );
   if (actor.memories.length > 40) actor.memories.shift();
+  if (i.trespass) engine.trespassReply(actor, i.trespass);
+  if (!i.leave && (delta <= -3 || (delta <= -2 && actor.trust <= -4))) engine.provoke(actor, "insulted me or my family");
   if (i.ask) engine.answerAsk(actor, i.ask, i.favour);
   if (i.callIn) return engine.callIn(actor, i.callIn);
-  if (i.leave) engine.walkOff(actor, i.leave);
-  engine.advance(60, actor.id);
+  if (i.leave && i.trespass !== "refused") engine.walkOff(actor, i.leave);
+  engine.advance(i.trespass ? 6 : 60, actor.id);
   return `Spoke with ${actor.name}, regard ${delta > 0 ? "+" : ""}${delta}.`;
 }
 function receive(engine: Engine, i: Extract<Intent, { type: "receive" }>) {

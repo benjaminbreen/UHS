@@ -1,3 +1,4 @@
+import { smallSession } from "./fixtures";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { dialogue } from "../server/dialogue";
@@ -5,8 +6,9 @@ import { strictSchema } from "../server/json-schema";
 import { narrator } from "../server/narrator";
 import { Runtime, createSettingSession } from "../src/runtime/session";
 import { resolveSetting } from "../src/content/geography/resolve";
-import { dialogueContext } from "../src/narrator/dialogue";
+import { commitDialogue, dialogueTurn, type DialogueLine, dialogueContext } from "../src/narrator/dialogue";
 import { languageBrief, languageWindow } from "../src/content/history/languages";
+import { statsOf } from "../src/core/stats";
 
 const reply = (body: unknown) =>
   new Response(
@@ -97,6 +99,7 @@ describe("dialogue endpoint", () => {
     expect(Object.keys(schema)).toEqual([
       "mood",
       "regard",
+      "trespass",
       "action",
       "dialogue",
       "language",
@@ -120,7 +123,7 @@ describe("dialogue endpoint", () => {
       return reply({ dialogue: "Where are you going?", original: "Où vas-tu?", regard: 0 });
     });
     const properties = sent?.response_format.json_schema.schema.properties;
-    expect(Object.keys(properties)).toEqual(["mood", "regard", "action", "dialogue", "language", "original", "leave", "ask", "trade", "favour", "receive"]);
+    expect(Object.keys(properties)).toEqual(["mood", "regard", "trespass", "action", "dialogue", "language", "original", "leave", "ask", "trade", "favour", "receive"]);
     expect(sent?.messages[0].content).toContain("translate that exact line");
     expect(sent?.reasoning).toEqual({ effort: "low" });
   });
@@ -259,5 +262,240 @@ describe("a conversation leaves a trace", () => {
     // One box for the subcontinent once gave Kerala Old Indo-Aryan.
     expect(languageWindow(76.3, 10, -1000)?.id).toBe("sa-peninsula-early");
     expect(languageWindow(72.4, 34.8, -1500)?.id).toBe("sa-proto-indo-aryan");
+  });
+});
+
+
+function funeralConversation(trust: number) {
+  const start = resolveSetting("Central India 813 BCE", "funeral-dialogue");
+  if ("error" in start) throw Error(start.error);
+  const runtime = new Runtime(smallSession(start.setting, "funeral-dialogue"), { cacheTerrain: false });
+  const state = runtime.engine.state;
+  const actor = state.actors.find((a) => a.householdId !== state.player.householdId)!;
+  actor.name = "Shatrughna";
+  if (actor.origin) actor.origin.sex = "male";
+  if (actor.appearance?.physique) actor.appearance.physique.sex = "male";
+  actor.trust = trust;
+  actor.memories = ["spoke:0:We met here before."];
+  state.player.pos = { ...actor.pos };
+  actor.relations = (actor.relations ?? []).filter((r) => r.other !== state.player.id);
+  if (trust > 0) actor.relations = [{ other: state.player.id, kind: "friend" }];
+  state.plot = {
+    id: "feast", title: "A Neighbour's Feast", wording: 2,
+    words: { host: actor.name, hostRole: actor.role, why: "has buried a parent", occasion: "funeral feast", amount: "four measures of rice", due: "by sundown" },
+    cast: { host: actor.id }, began: state.clock, deadline: state.clock + 14400,
+    owed: 4, total: 4, fired: [],
+  };
+  return { runtime, actor };
+}
+
+describe("plot conversation", () => {
+  it.each([5, 0, -5])("keeps obligations separate from relationship and acknowledgment (trust %s)", async (trust) => {
+    const { runtime, actor } = funeralConversation(trust);
+    let context = "";
+    runtime.modelFetch = async (_url, init) => {
+      context = JSON.parse(String(init?.body)).user;
+      return new Response(JSON.stringify({ text: "Thank you.", regard: 0 }));
+    };
+    try {
+      const history: DialogueLine[] = [
+        { speaker: "npc", text: "Bring four measures of rice by sundown." },
+        { speaker: "player", text: "Of course, I'll bring it." },
+        { speaker: "npc", text: "Thank you.", action: "takes your hand" },
+        ...Array.from({ length: 8 }, (): DialogueLine => ({ speaker: "player", text: "I'm here." })),
+      ];
+      await dialogueTurn(runtime, actor.id, "I'm sorry about your parents.", history);
+      expect(context).toContain("After agreement, let the subject rest");
+      expect(context).toContain("Of course, I'll bring it.");
+      expect(context).toContain("[takes your hand]");
+      expect(context).not.toContain("Hold to your demand");
+      expect(context).toContain("answer that alone");
+      expect(context).not.toContain("On their mind: is ");
+      expect(context).not.toContain("audible fart");
+      if (trust > 0) {
+        expect(context).toContain("The player is a friend of yours.");
+        expect(context).not.toContain("family: your friend");
+      }
+      if (trust < 0) {
+        expect(context).toContain("hostile toward");
+        expect(context).not.toContain("Talk to them as a friend");
+      }
+      runtime.engine.state.plot!.deadline = runtime.engine.state.clock + 1800;
+      expect(dialogueContext(runtime, actor)).toContain("within an hour");
+      await dialogueTurn(runtime, actor.id, "I'm staying.", Array.from({ length: 24 }, (): DialogueLine => ({ speaker: "player", text: "x".repeat(400) })));
+      expect(context.length).toBeLessThanOrEqual(7000);
+      expect(context).toContain("Player says: I'm staying.");
+      runtime.engine.state.plot!.owed = 0;
+      expect(dialogueContext(runtime, actor)).toContain("It has been paid");
+    } finally { runtime.dispose(); }
+  });
+
+  it.skipIf(!process.env.DIALOGUE_LIVE)("compares live friend, neutral and enemy funeral conversations", async () => {
+    const { loadEnv } = await import("vite");
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const env = { ...loadEnv("development", process.cwd(), ""), ...process.env };
+    const results = [];
+    for (const [relationship, trust] of [["friend", 5], ["neutral", 0], ["enemy", -5]] as const) {
+      const { runtime, actor } = funeralConversation(trust);
+      const history: DialogueLine[] = [];
+      runtime.modelFetch = async (_url, init) => dialogue(new Request("http://localhost/api/dialogue", {
+        ...init, headers: { "Content-Type": "application/json", "x-forwarded-for": `live-${relationship}` },
+      }), env);
+      try {
+        for (const input of ["", "Of course, I'll bring the rice by sundown.", "I love you, man.", "I'm sorry about your mom and dad.", "Would you like me to stay with you for a while?", "Actually, I can't bring the rice."]) {
+          const response = await dialogueTurn(runtime, actor.id, input, history);
+          expect(response.error).toBeUndefined();
+          if (input) history.push({ speaker: "player", text: input });
+          history.push({ speaker: "npc", text: response.text, action: response.action });
+          if (response.leave) break;
+        }
+        results.push({ relationship, trust, history });
+      } finally { runtime.dispose(); }
+    }
+    await mkdir("artifacts/dialogue", { recursive: true });
+    await writeFile(`artifacts/dialogue/funeral-comparison${process.env.DIALOGUE_RUN ? `-${process.env.DIALOGUE_RUN}` : ""}.json`, JSON.stringify(results, null, 2));
+    console.log(JSON.stringify(results, null, 2));
+  }, 180000);
+});
+
+
+function houseConversation(profile: "friend" | "timid" | "aggressive") {
+  const start = resolveSetting("London 1600", "trespass-dialogue");
+  if ("error" in start) throw Error(start.error);
+  const runtime = new Runtime(smallSession(start.setting, "trespass-dialogue"), { cacheTerrain: false });
+  const e = runtime.engine, s = e.state;
+  const actor = s.actors.find((a) => a.householdId !== s.player.householdId)!;
+  const house = e.world.place(s.households!.find((h) => h.id === actor.householdId)!.residence!)!;
+  house.owner = actor.id;
+  house.access = "household";
+  s.actors = [actor];
+  actor.age = 34;
+  actor.health = 100;
+  actor.trust = profile === "friend" ? 5 : 0;
+  actor.stats = { ...statsOf(s.manifest.seed, actor),
+    extraversion: profile === "timid" ? 10 : 90,
+    agreeableness: profile === "timid" ? 90 : 10,
+    neuroticism: profile === "timid" ? 90 : 10,
+  };
+  actor.pos = { x: 3, y: 3, space: house.id };
+  s.player.pos = { x: 4, y: 3, space: house.id };
+  s.player.health = 100;
+  s.permissions = {};
+  s.plot = undefined;
+  e.world.blocked = () => false;
+  e.world.canCross = undefined;
+  e.world.topography = undefined;
+  e.conversing = actor.id;
+  return { runtime, e, actor, house };
+}
+
+describe("provoked householders", () => {
+  it.each(["friend", "timid", "aggressive"] as const)("escalates a %s householder's warning and explicit refusal during dialogue", async (profile) => {
+    const { runtime, e, actor } = houseConversation(profile);
+    try {
+      runtime.modelFetch = async () => new Response(JSON.stringify({ text: "Leave my house.", regard: 0, trespass: "warned" }));
+      const warning = await dialogueTurn(runtime, actor.id, "", []);
+      commitDialogue(runtime, actor.id, "", warning);
+      expect(e.trespassContext(actor)).toContain("ALREADY told");
+      expect(actor.terror).toBeUndefined();
+      runtime.modelFetch = async () => new Response(JSON.stringify({ text: "Get out of my house.", regard: -1, trespass: "refused" }));
+      const response = await dialogueTurn(runtime, actor.id, "No, I'm staying.", []);
+      expect(response.text).toBe("GET OUT OF MY HOUSE!!");
+      expect(response.mood).toBe("angry");
+      commitDialogue(runtime, actor.id, "No, I'm staying.", response);
+      expect(actor.memories).toContain("The player stayed in my home after being told to leave");
+      expect(response.ended).toBe(true);
+      if (profile === "timid") {
+        expect(actor.pos.space).toBe("outside");
+        expect(actor.errand).toBeDefined();
+        expect(e.state.complaints?.some((c) => c.by === actor.id)).toBe(true);
+      } else {
+        expect(actor.terror?.fight).toBe(true);
+        expect(actor.activity).toMatch(/Threatening|Attacking/);
+        expect(response.action).toBe("raises a hand, ready to strike");
+        const before = e.state.player.health!;
+        e.advance(120);
+        expect(e.state.player.health).toBeLessThan(before);
+      }
+    } finally { runtime.dispose(); }
+  });
+
+  it("confronts and escalates lingering even while a conversation is open", () => {
+    const { runtime, e, actor } = houseConversation("aggressive");
+    try {
+      e.advance(18);
+      expect(e.confronting).toBe(actor.id);
+      expect(e.trespassContext(actor)).toContain("ALREADY told");
+      e.advance(96);
+      expect(actor.terror?.fight).toBe(true);
+    } finally { runtime.dispose(); }
+  });
+
+  it.each(["invited", "own", "public", "outside"])("does not escalate a %s visit", (kind) => {
+    const { runtime, e, actor, house } = houseConversation("aggressive");
+    try {
+      if (kind === "invited") e.state.permissions[house.owner] = e.state.clock + 3600;
+      if (kind === "own") e.state.player.householdId = actor.householdId;
+      if (kind === "public") house.access = "public";
+      if (kind === "outside") e.state.player.pos.space = actor.pos.space = "outside";
+      e.trespassReply(actor, "refused");
+      e.advance(120);
+      expect(actor.terror).toBeUndefined();
+      expect(actor.errand).toBeUndefined();
+    } finally { runtime.dispose(); }
+  });
+
+  it("lets someone agree to go and actually leave without punishment", () => {
+    const { runtime, e, actor } = houseConversation("aggressive");
+    try {
+      commitDialogue(runtime, actor.id, "", { text: "Get out!", trespass: "warned" });
+      commitDialogue(runtime, actor.id, "All right, I'm going.", { text: "Go, then.", trespass: "leaving", regard: 0 });
+      expect(actor.terror).toBeUndefined();
+      e.state.player.pos.space = "outside";
+      e.advance(120);
+      expect(actor.terror).toBeUndefined();
+      expect(e.confronting).toBeUndefined();
+    } finally { runtime.dispose(); }
+  });
+
+  it.each(["friend", "timid", "aggressive"] as const)("makes a %s act on serious insults, including insults to family", async (profile) => {
+    for (const said of ["Fuck you.", "Your mother is a worthless fool."]) {
+      const { runtime, e, actor } = houseConversation(profile);
+      try {
+        e.state.player.pos.space = actor.pos.space = "outside";
+        runtime.modelFetch = async () => new Response(JSON.stringify({ text: "Don't speak to me like that.", regard: -3 }));
+        const response = await dialogueTurn(runtime, actor.id, said, []);
+        expect(response.text).toBe("DON'T SPEAK TO ME LIKE THAT!!");
+        commitDialogue(runtime, actor.id, said, response);
+        expect(actor.trust).toBeLessThanOrEqual(-3);
+        if (profile === "timid") expect(e.state.complaints?.some((c) => c.by === actor.id)).toBe(true);
+        else expect(actor.terror?.fight).toBe(true);
+      } finally { runtime.dispose(); }
+    }
+  });
+
+  it.each(["friend", "timid", "aggressive"] as const)("makes a %s act on breaking a witnessed object", (profile) => {
+    const { runtime, e, actor } = houseConversation(profile);
+    try {
+      e.state.player.pos.space = actor.pos.space = "outside";
+      e.state.objects = [{ id: "test-pot", name: "Cooking pot", kind: "container", prop: "pot", sprite: "study-prop-earthen-pot-0", pos: { ...e.state.player.pos, y: 4 }, inventory: { grain: 2 }, owner: actor.id }];
+      const result = e.execute({ type: "interact", target: "test-pot", action: "strike" });
+      expect(e.state.objects[0].broken, String(result)).toBe(true);
+      expect(actor.memories.some((m) => m.includes("test-pot"))).toBe(true);
+      if (profile === "timid") expect(e.state.complaints?.some((c) => c.by === actor.id)).toBe(true);
+      else expect(actor.terror?.fight).toBe(true);
+    } finally { runtime.dispose(); }
+  });
+
+  it.each(["friend", "timid", "aggressive"] as const)("makes a %s act on witnessed theft", (profile) => {
+    const { runtime, e, actor } = houseConversation(profile);
+    try {
+      e.state.player.pos.space = actor.pos.space = "outside";
+      e.state.objects = [{ id: "test-store", name: "Household store", kind: "container", sprite: "chest", pos: { ...e.state.player.pos, y: 4 }, inventory: { bread: 2 }, owner: actor.id }];
+      e.execute({ type: "interact", target: "test-store", action: "take" });
+      expect(actor.memories.some((m) => m.includes("take test-store"))).toBe(true);
+      if (profile === "timid") expect(e.state.complaints?.some((c) => c.by === actor.id)).toBe(true);
+      else expect(actor.terror?.fight).toBe(true);
+    } finally { runtime.dispose(); }
   });
 });

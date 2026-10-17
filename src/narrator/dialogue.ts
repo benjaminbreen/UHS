@@ -93,10 +93,14 @@ function plotBrief(runtime: Runtime, actor: Actor) {
   if (!plot || !role) return "";
   const line = (key: string) => plotLine(plot, key);
   return [
-    `What is going on between you and the player ("${plot.title}"; you are the ${role}, and these facts are fixed): ${line("intro")} ${line("threat")}`,
+    `Events affecting you ("${plot.title}"; your part: ${role}): ${line("intro")}`,
+    `Possible consequence if the obligation is not met: ${line("threat")} This has not happened merely because delivery is outstanding.`,
+    `Your stake and feelings come from these events and your relationship with the player, not from being cast as ${role}. A friend, acquaintance and enemy need not make the same request in the same way.`,
     line(`cast-${role}`) && `About you: ${line(`cast-${role}`)}`,
-    `The player's way out: ${line("aim")}`,
-    (plot.owed ?? 0) > 0 ? `It is not settled yet. Hold to your demand; you cannot take payment by talking, the player has to hand it over. If they offer to pay, tell them to pay you.` : "It has been paid.",
+    `Outstanding obligation: ${line("aim")}${plot.words.amount ? ` Amount: ${plot.words.amount}.` : ""}`,
+    (plot.owed ?? 0) > 0 && plot.deadline - runtime.engine.state.clock <= 3600 ? "The deadline is within an hour or has passed; the outstanding obligation may now be urgent." : "The deadline is not imminent.",
+    "Conversation priority: if the player is offering comfort, affection or company, answer that alone. Do not attach an obligation reminder. Mention the obligation again only for a practical question about it, a refusal or retraction, or an imminent deadline. Acknowledging agreement needs no repeated amount or deadline.",
+    (plot.owed ?? 0) > 0 ? `Delivery is still outstanding; a spoken promise does not transfer goods or settle it. Use the conversation and remembered words to distinguish an unanswered request from an agreement already made. After agreement, let the subject rest unless the player retracts it, asks about it, or the deadline becomes urgent. If they ask to pay now, direct them to hand it over.` : "It has been paid.",
   ].filter(Boolean).join(" ");
 }
 
@@ -133,7 +137,9 @@ function anger(actor: Actor, clock: number) {
   const how = [
     "",
     "You are ANNOYED with the player. Curt and cold: short sentences, no pleasantries, no help offered.",
-    "You are ANGRY with the player. Raise your voice, accuse them to their face, demand they make it right or get out. Shout the words that matter in CAPITALS with exclamation marks. No small talk.",
+    fresh(actor, clock)
+      ? "You are ANGRY with the player about a fresh wrong. Raise your voice, demand they make it right or get out. No small talk."
+      : "You resent the player. You may be cold, suspicious or cutting without shouting. Let the present remark and your history with the player shape how the resentment shows.",
     "You are FURIOUS with the player. Shout, mostly in CAPITALS with exclamation marks: insults and curses of your time and place, threats, calls to kin or neighbours. Say your piece in one or two lines and walk off (leave): you will not discuss it.",
   ][level];
   return `${how}${fresh(actor, clock) ? " It happened within the hour and is still hot." : ""} People here did not soften their anger to be polite; do not make yourself reasonable or measured about a real wrong.`;
@@ -146,6 +152,10 @@ function acquaintance(runtime: Runtime, actor: Actor) {
   const travel = runtime.timeTravel;
   if (travel && travel.currentYear !== travel.origin.world.pack.setting?.year) return "";
   const kin = actor.relations?.find((r) => r.other === p.id);
+  if (actor.trust < 0)
+    return `${kin ? `The player is your ${kin.kind}, but you` : "You know the player but"} ${actor.trust < -4 ? "are hostile toward" : "distrust"} them. Past familiarity does not erase this ill feeling.`;
+  if (kin?.kind === "friend")
+    return "The player is a friend of yours. Talk to them as a friend would.";
   if (kin || actor.householdId === p.householdId)
     return `The player is family${kin ? `: your ${kin.kind}` : ", of your own household"}. You know them as well as anyone.`;
   const households = state.households ?? [];
@@ -239,7 +249,8 @@ function goingWithout(runtime: Runtime, household?: Household) {
 
 /** Still shaking from a break-in. */
 const terrified = (runtime: Runtime, actor: Actor) => !!actor.terror && runtime.engine.state.clock <= actor.terror.until;
-const shouting = (runtime: Runtime, actor: Actor) => terrified(runtime, actor) || runtime.engine.confronting === actor.id;
+const shouting = (runtime: Runtime, actor: Actor) => terrified(runtime, actor) || runtime.engine.confronting === actor.id ||
+  (actor.trust <= -2 && fresh(actor, runtime.engine.state.clock) && runtime.engine.state.clock - actor.wronged! < 300);
 /** How a terrified person says anything: in capitals, every stop an exclamation. */
 export function shout(text: string) {
   const loud = text.toUpperCase().replace(/[.?]+(?=\s|$)/g, "!!").replace(/,\s/g, "! ");
@@ -258,6 +269,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
   const state = engine.state;
   const place = actor.pos.space !== "outside" ? engine.world.place(actor.pos.space) : undefined;
   const setting = engine.world.pack.setting;
+  const plotContext = plotBrief(runtime, actor);
   const household = actor.householdId
     ? state.households?.find((h) => h.id === actor.householdId)
     : undefined;
@@ -365,10 +377,14 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
-    plotBrief(runtime, actor),
+    plotContext,
+    engine.trespassContext(actor),
+    engine.standsGround(actor)
+      ? "If the player refuses to leave your private home or gives a grave insult, you will stand your ground and threaten to strike; the engine carries out this response. Do not claim to leave or seek help instead."
+      : "If the player refuses to leave your private home or gives a grave insult, you will shout for help and leave to report them; the engine carries out this response. Do not claim to attack them.",
     forSale(runtime, actor),
     terrified(runtime, actor)
-      ? `YOU ARE TERRIFIED. The player has broken into your home with a heavy tool and is inside, or right there, smashing things. ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
+      ? `${actor.terror!.cause === "assault" ? "THE PLAYER HAS STRUCK YOU." : actor.terror!.cause === "anger" ? "YOU HAVE LOST YOUR TEMPER AND ARE THREATENING THE PLAYER." : "YOU ARE TERRIFIED. The player has broken into your home with a heavy tool and is inside, or right there, smashing things."} ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
       : anger(actor, state.clock),
     intruding
       ? homePlace?.access === "public"
@@ -377,7 +393,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       : `Openness: ${openness(actor, met.length > 0 || !!known)}`,
     `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
-    `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
+    plotContext ? "On their mind: the events above and what they personally mean to you; let this concern develop across the conversation rather than repeating the obligation." : `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
     goingWithout(runtime, household),
     family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
     temperament.length ? `Temperament: ${temperament.join(", ")}.` : "",
@@ -460,25 +476,31 @@ export async function dialogueTurn(
   realLanguage = false,
   /** What has just happened between the two of them, if anything has. */
   situation = "",
-) {
+): Promise<DialogueReply> {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   if (!actor) return { text: "", error: "That person is no longer here." };
   const transcript = history
-    .slice(-8)
-    .map((line) => `${line.speaker === "npc" ? actor.name : "Player"}: ${line.text}`)
-    .join("\n");
+    .slice(-24)
+    .map((line) => `${line.speaker === "npc" ? actor.name : "Player"}: ${line.action ? `[${line.action}] ` : ""}${line.text}`);
   const setting = runtime.engine.world.pack.setting;
-  const user = [
+  const context = [
     dialogueContext(runtime, actor),
     realLanguage && setting ? languageBrief(setting.lon, setting.lat, setting.year) : "",
-    transcript ? `Conversation so far:\n${transcript}` : "Conversation so far: none.",
+  ].filter(Boolean).join("\n\n");
+  const latest = [
     situation ? `Just now: ${situation}` : "",
-    dialogueInterruption(runtime, actor, history.length),
+    plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length),
     input.trim() ? `Player says: ${input.trim().slice(0, 400)}` : "Begin with one brief spoken line to the player.",
   ].filter(Boolean).join("\n\n");
+  const compose = () => [context, `Conversation so far:\n${transcript.join("\n") || "none."}`, latest].join("\n\n");
+  let user = compose();
+  while (user.length > 7000 && transcript.length) {
+    transcript.shift();
+    user = compose();
+  }
   const began = Date.now();
   try {
-    const response = await fetch("/api/dialogue", {
+    const response = await runtime.modelFetch("/api/dialogue", {
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },
@@ -491,6 +513,7 @@ export async function dialogueTurn(
       error?: string;
       receive?: DialogueGift;
       regard?: number;
+      trespass?: "warned" | "refused" | "leaving";
       mood?: Expression;
       action?: string;
       leave?: WalkOff;
@@ -503,7 +526,7 @@ export async function dialogueTurn(
     // Where the wait went, in dev. `round` is the whole round trip including
     // our own server; `upstream` is the model alone. A large gap between them
     // is ours to fix; a small one is not.
-    if (import.meta.env.DEV && data.ms)
+    if (import.meta.env.DEV && typeof window !== "undefined" && data.ms)
       console.debug(
         `[dialogue] ${input.trim() ? "reply" : "opening"} to ${actorId} · ` +
           `round ${Date.now() - began}ms · upstream ${data.ms.upstream}ms · ` +
@@ -511,16 +534,61 @@ export async function dialogueTurn(
       );
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
     // Whatever the model makes of it, a terrified person shouts.
-    if (shouting(runtime, actor)) data.text = shout(data.text);
+    const refusing = data.trespass === "refused" && runtime.engine.trespassing(actor);
+    const offended = (data.regard ?? 0) <= -2;
+    if (refusing || (data.regard ?? 0) <= -3) {
+      data.leave = undefined;
+      data.receive = undefined;
+      data.trade = undefined;
+      data.ask = undefined;
+      data.favour = undefined;
+    }
+    if (shouting(runtime, actor) || refusing || offended) {
+      data.text = shout(data.text);
+      if (data.original) data.original = shout(data.original);
+      data.mood = "angry";
+    }
     // The furious have their say and go; a householder throwing you out stays put.
-    else if (angerLevel(actor, runtime.engine.state.clock) === 3) data.leave ??= "away";
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, ask: data.ask, favour: data.favour, trade: data.trade, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    else if (angerLevel(actor, runtime.engine.state.clock) === 3 && !runtime.engine.trespassing(actor)) data.leave ??= "away";
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, trespass: data.trespass, leave: data.leave, ask: data.ask, favour: data.favour, trade: data.trade, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")
       return { text: "", error: undefined, aborted: true };
     return { text: "", error: "The conversation is unavailable." };
   }
+}
+
+export type DialogueReply = Omit<DialogueLine, "speaker"> & {
+  leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour;
+  trade?: boolean; receive?: DialogueGift; regard?: number; mood?: Expression;
+  trespass?: "warned" | "refused" | "leaving"; ended?: boolean;
+  error?: string; aborted?: boolean;
+};
+
+export function commitDialogue(runtime: Runtime, actorId: string, said: string, reply: DialogueReply) {
+  if (reply.error || reply.aborted) return {};
+  const trust = () => runtime.engine.state.actors.find((a) => a.id === actorId)?.trust ?? 0;
+  const before = trust();
+  const priorErrand = runtime.engine.state.actors.find((a) => a.id === actorId)?.errand;
+  const exchange = () => {
+    if (said.trim() || reply.leave || reply.ask || reply.trespass)
+      runtime.narrate([{ type: "converse", with: actorId, said: said.slice(0, 120), delta: said.trim() ? reply.regard ?? 0 : 0, trespass: reply.trespass, leave: reply.leave, ask: reply.ask, favour: reply.favour }]);
+  };
+  const gift = () => reply.receive ? runtime.narrate([{ type: "receive", from: actorId, item: reply.receive }]) : undefined;
+  // Opening gifts precede a possible departure, as in the conversation modal.
+  let received;
+  if (!said.trim()) { received = gift(); exchange(); }
+  else { exchange(); received = gift(); }
+  const actor = runtime.engine.state.actors.find((a) => a.id === actorId);
+  if (actor?.terror?.fight) {
+    reply.ended = true;
+    reply.action = "raises a hand, ready to strike";
+  } else if (actor?.errand && (actor.errand !== priorErrand || distance(actor.pos, runtime.engine.state.player.pos) > 2.5)) {
+    reply.ended = true;
+    reply.action = actor.activity.toLowerCase();
+  }
+  return { before, after: trust(), received };
 }
 
 export async function explainDialogue(line: DialogueLine, signal?: AbortSignal) {

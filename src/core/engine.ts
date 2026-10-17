@@ -1315,6 +1315,7 @@ export class Engine {
       const theirs = this.minds(w, o.owner);
       seen ||= theirs;
       this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
+      if (o.cost(theirs) >= 3) this.provoke(w, `${o.story.act} ${o.story.object ?? "property"}`);
       w.memories.push(o.memory(theirs));
       hear(w, { ...o.story, victim: o.owner, tone: -o.cost(theirs), at: this.state.clock, hops: 0 });
       if (theirs && o.cost(true) >= 8 && random(this.state.manifest.seed, "complain", w.id, this.state.clock) < 0.5)
@@ -2646,6 +2647,56 @@ export class Engine {
   }
   /** Walk into a house uninvited and whoever heads it, the owner or the eldest
    * at home, comes at you a few seconds later to order you out. */
+  trespassing(a: Actor) {
+    const p = this.state.player, place = this.world.place(p.pos.space);
+    return !!place && p.pos.space !== "outside" && a.pos.space === p.pos.space &&
+      place.access !== "public" && a.householdId !== p.householdId &&
+      !!this.state.households?.some((h) => h.id === a.householdId && h.residence === place.id) &&
+      (this.state.permissions[place.owner] ?? 0) <= this.state.clock;
+  }
+  trespassContext(a: Actor) {
+    if (!this.trespassing(a)) return "";
+    const warned = this.intrusion?.place === a.pos.space && this.intrusion.done;
+    return warned
+      ? "You have ALREADY told the player to leave your private home. They are still inside. A refusal or deliberate evasion now escalates this encounter; do not restart with a greeting."
+      : "The player is inside your private home without permission. Tell them to leave; set trespass to warned when you do.";
+  }
+  trespassReply(a: Actor, response: "warned" | "refused" | "leaving") {
+    if (!this.trespassing(a) || response === "leaving") return;
+    const clock = this.state.clock, place = a.pos.space;
+    if (this.intrusion?.place !== place) this.intrusion = { place, since: clock };
+    const i = this.intrusion;
+    i.by = a.id;
+    i.done = true;
+    i.warnedAt ??= clock;
+    a.offRoutine = true;
+    this.confronting = a.id;
+    if (response === "refused") this.escalateIntrusion(a);
+  }
+  private escalateIntrusion(a: Actor) {
+    if (!this.intrusion || this.intrusion.escalated) return;
+    this.intrusion.escalated = true;
+    a.memories.push("The player stayed in my home after being told to leave");
+    this.regard(a, -3, "fury");
+    this.provoke(a, "refused to leave my home");
+  }
+  standsGround(a: Actor) {
+    const stats = statsOf(this.state.manifest.seed, a);
+    return (a.age ?? 30) >= 16 && (a.age ?? 30) < 65 && (a.health ?? 100) > 25 &&
+      !(a.injury && a.injury.until > this.state.clock) && !this.laidUp(a.id) &&
+      stats.neuroticism < 65 && stats.extraversion + 100 - stats.agreeableness >= 110;
+  }
+  provoke(a: Actor, reason: string) {
+    if (a.dead || a.kind !== "human") return;
+    const story = { act: reason, victim: a.id, tone: -4, at: this.state.clock, hops: 0 };
+    hear(a, story);
+    this.retaliate(a, false, true);
+    if (!a.terror?.fight) {
+      this.complain(a, story);
+      this.walkOff(a, "authority");
+      this.event(`${a.name} calls for help and goes to report you.`, "social");
+    }
+  }
   private confront(clock: number) {
     const p = this.state.player;
     const place = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
@@ -2659,7 +2710,12 @@ export class Engine {
     }
     if (this.intrusion?.place !== place.id) this.intrusion = { place: place.id, since: clock };
     const i = this.intrusion;
-    if (i.done || this.conversing || clock - i.since < 12) return;
+    if (i.done) {
+      const by = this.state.actors.find((a) => a.id === i.by);
+      if (by && this.trespassing(by) && clock - (i.warnedAt ?? i.since) >= 90) this.escalateIntrusion(by);
+      return;
+    }
+    if (clock - i.since < 12) return;
     const home = this.state.actors.filter((a) => a.kind === "human" && !a.dead && a.pos.space === place.id && h.members.includes(a.id) && (a.age ?? 30) >= 15);
     // A break-in is already a fight; nobody stops to talk.
     if (!home.length || home.some((a) => a.terror)) return;
@@ -2673,16 +2729,33 @@ export class Engine {
       return;
     }
     i.done = true;
+    i.warnedAt = clock;
     this.regard(a, -2, "anger");
     a.memories.push(`Found player in ${place.name.toLowerCase()} uninvited`);
     hear(a, { act: "walked uninvited into", object: "home", victim: a.id, tone: -3, at: clock, hops: 0 });
-    this.confronter = this.confronting = a.id;
+    this.confronting = a.id;
+    if (!this.conversing) this.confronter = a.id;
     this.approacher = {
       id: a.id,
       situation: "THE PLAYER IS INSIDE YOUR HOME UNINVITED and you have marched straight up to them. Yell at them to GET OUT, in CAPITALS with exclamation marks. Demand who they are. Do not ask politely.",
       until: clock + 300,
     };
   }
+  private retaliate(a: Actor, assault = false, provoked = false) {
+    if (a.terror || a.kind !== "human" || a.dead) return;
+    const clock = this.state.clock, stats = statsOf(this.state.manifest.seed, a);
+    const able = (a.age ?? 30) >= 16 && (a.age ?? 30) < 65 && (a.health ?? 100) > 25 && !(a.injury && a.injury.until > clock);
+    const fight = able && !this.laidUp(a.id) && (assault || (stats.neuroticism < 65 && (provoked
+      ? this.standsGround(a)
+      : random(this.state.manifest.seed, "retaliation", a.id, clock) < Math.max(0.1, 0.35 + (50 - stats.agreeableness) / 150 + (stats.extraversion - 50) / 250))));
+    if (!assault && !fight) return;
+    a.terror = { until: clock + 300, place: a.pos.space, fight, strikeAfter: clock + (assault ? 12 : 90), cause: assault ? "assault" : "anger" };
+    a.offRoutine = true;
+    a.activity = fight ? "Threatening you" : "Backing away from you";
+    this.event(`${a.name} ${fight ? "raises a hand against you. Move away before they strike." : "backs away, calling for help."}`, "social");
+    if (fight) this.combatUntil = Math.max(this.combatUntil, clock + 300);
+  }
+
   private stagger(a: Actor, push: readonly number[]) {
     const to = { ...a.pos, x: a.pos.x + push[0], y: a.pos.y + push[1] };
     if (!this.blocked(to.x, to.y, to.space) && !this.actorAt(to, a.id)) this.moveActor(a, to);
@@ -2703,7 +2776,9 @@ export class Engine {
       }
       if (a.pos.space !== p.pos.space || p.dead || distance(a.pos, p.pos) > 10) continue;
       const near = Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y));
+      a.activity = t.fight ? (this.state.clock >= (t.strikeAfter ?? 0) ? "Attacking you" : "Threatening you") : "Backing away";
       if (t.fight && near <= 1) {
+        if (this.state.clock < (t.strikeAfter ?? 0)) continue;
         // A blow every twelve seconds, and none just after being driven back.
         if (this.state.clock % 12 !== 0 || this.state.clock - (t.staggered ?? -99) < 12) continue;
         this.struckBy(a);
@@ -7381,7 +7456,7 @@ export class Engine {
   confronter?: string;
   /** Who is ordering the player out of their house right now; they shout. */
   confronting?: string;
-  private intrusion?: { place: string; since: number; by?: string; done?: boolean };
+  private intrusion?: { place: string; since: number; by?: string; done?: boolean; warnedAt?: number; escalated?: boolean };
   /** Clock second each actor last took offence at a collision or a swing,
    * so leaning on them or swinging again does not keep costing trust. */
   private affronts = new Map<string, number>();
@@ -8148,6 +8223,7 @@ export class Engine {
   }
   /** Someone who has had enough of the player goes elsewhere for an hour. */
   walkOff(a: Actor, where: WalkOff) {
+    if (a.terror?.cause) { delete a.terror; a.offRoutine = false; }
     const clock = this.state.clock;
     if (a.trust < -10) a.shuns = clock + 3600;
     const inside = a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
