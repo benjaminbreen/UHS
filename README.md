@@ -4,37 +4,74 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)
 ![Node 22.12+](https://img.shields.io/badge/node-22.12%2B-339933.svg)
 
-**An experiment in teachably imperfect historical simulations.** Describe a
-person, a place and a date — *"A Roman baker in Ostia, 100 CE"* — and the game
-builds that world in pixel art and drops you into an ordinary day of that life.
+Universal History Simulator is a free, experimental game and educational
+resource that I’m developing as a history professor interested in AI-assisted
+historical simulations. You begin with a person, place and date — “a baker in
+Ostia, 100 CE,” for example — and explore a generated world through the
+activities and obligations of an ordinary life.
 
-**Play it:** [historysimulator.vercel.app](https://historysimulator.vercel.app)
+The project is intended for both human and AI players. A student or someone
+interested in history can play through the browser; an AI agent can observe
+and act within the same simulation through a programmatic interface. Alongside
+the game’s educational possibilities, I’m interested in using it to explore
+how agents make decisions within historical circumstances. That remains an
+open-ended experiment, and the simulation’s historical coverage and level of
+detail are uneven.
+
+[Play the current version](https://historysimulator.vercel.app)
 
 ![A baker in Rome, 100 CE: a neighbour's request, the day's tasks and the local map](docs/images/gameplay.png)
 
-## What it does
+## Game structure
 
-- **Any place, any period.** A local parser (or an optional model-assisted
-  interpreter) resolves the description into a setting across twelve eras, from
-  deep prehistory to the present day. Terrain, rivers and climate come from real
-  geography; towns, roads and buildings are generated to fit the region and date.
-- **A life, not a tour.** You play one person with a household, a trade, health
-  and neighbours. Each day brings work, errands and a plot with consequences —
-  debts, rivals, feasts, illness — written in plain English.
-- **People who keep their own lives.** Residents follow work and home routines,
-  trade real quantities of goods, gossip, remember favours and notice theft.
-- **Evidence kept separate from guesswork.** Historical content distinguishes
-  documented evidence, inference, hypothesis and fiction, and the game shows
-  which is which.
+A starting description establishes a character, household and local setting.
+A local parser, or an optional model-assisted interpreter, resolves the place
+and date. Geographic data helps establish the landscape, while historical
+profiles and procedural generation supply settlements, buildings, occupations,
+clothing and daily situations.
+
+You move through a pixel-art world, talk with residents, work, trade, manage
+possessions and respond to household and community obligations. Residents
+follow work and home routines, exchange finite quantities of goods, gossip,
+remember favours and react to theft. Actions consume time and affect the
+simulation, while a region map supports travel beyond the starting settlement.
+
+Historical content distinguishes documented evidence, inference, hypothesis
+and fiction, with those distinctions shown in the game. This is a way to make
+the simulation’s assumptions more visible; it does not mean that every
+generated detail is accurate or that the historical evidence is complete.
+
+## What currently works
+
+- Browser play with generated settings across twelve broad eras, from
+  prehistory to the present.
+- Characters, households, occupations, resident routines, dialogue, daily
+  tasks, trading and travel.
+- Browser saves, exports and command recordings.
+- Headless and MCP interfaces through which agents can observe and play.
+- An optional classroom mode with activity records and teacher review.
+
+## What is still developing
+
+Current work focuses on terrain and building graphics, the composition of
+generated environments, and performance. Historical content also needs
+continued correction and expansion: supporting a setting does not mean every
+aspect of its daily life is represented equally well.
+
+The larger ambition is to develop the shared human-and-agent environment into
+an exploratory platform: comparing playthroughs, examining the assumptions
+behind decisions, and finding useful ways to incorporate those records into
+teaching and research. The interfaces exist; the methods for making sense of
+that play are still to be developed.
 
 <table>
   <tr>
-    <td><img src="docs/images/sprites.png" alt="Walking sprites by place and date: Rome 100, Europe 1200, Paris 1888, Mongolia 1200, West Asia 1400"></td>
-    <td><img src="docs/images/portraits.png" alt="Generated portraits"></td>
+    <td width="50%"><img src="docs/images/sprites.png" alt="Current default character sprites in front and walking views, across six historical settings"></td>
+    <td width="50%"><img src="docs/images/portraits.png" alt="Sidebar pixel-art portraits of the same twelve generated characters"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Dress follows place, date, age and wealth</sub></td>
-    <td align="center"><sub>Every character gets a generated portrait</sub></td>
+    <td align="center"><sub>Generated characters with dress selected by place, date, age and wealth</sub></td>
+    <td align="center"><sub>The same characters rendered as the portraits used in the sidebar</sub></td>
   </tr>
 </table>
 

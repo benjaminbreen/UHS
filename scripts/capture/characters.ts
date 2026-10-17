@@ -160,6 +160,61 @@ async function dollSheets(page: Page, pair: [string, string], prefix: string) {
 }
 
 const presets: Record<string, (page: Page) => Promise<void>> = {
+  async readme(page) {
+    await characterLab(page, { paused: true });
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheets = await page.evaluate(async () => {
+      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const { composeWearing } = await import("/src/core/wearing.ts" as string);
+      const { wearableItems } = await import("/src/content/characters/wearables.ts" as string);
+      const { parseCloth } = await import("/src/content/characters/wardrobe/cloth.ts" as string);
+      const where = [["rome", 100, "Rome"], ["london", 1200, "London"], ["kyoto", 1850, "Kyoto"],
+        ["timbuktu", 1400, "Timbuktu"], ["delhi", 1600, "Delhi"], ["cusco", 1400, "Cusco"]] as const;
+      const people = where.flatMap(([id, year, label], i) => {
+        const setting = settingFor(places.find((p: any) => p.id === id), year);
+        return ["female", "male"].map((sex, k) => {
+          const age = [24, 38, 62, 30][(i + k) % 4];
+          const c = generateCharacter(setting, "readme", `person-${i}-${k}`, age, undefined, undefined, undefined, sex);
+          const appearance = { ...c.appearance, wearing: composeWearing(c.appearance.wearing, c.worn,
+            (x: string) => (wearableItems as any)[x] ?? (wearableItems as any)[parseCloth(x)?.base]) };
+          return { appearance, age, label: `${label} · ${year} CE` };
+        });
+      });
+      const W = 216, H = 192, cols = 3;
+      const sheets = ["sprites", "portraits"].map((kind) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = cols * W; canvas.height = Math.ceil(people.length / cols) * H;
+        const ctx = canvas.getContext("2d")!;
+        ctx.imageSmoothingEnabled = false;
+        people.forEach(({ appearance, age, label }, i) => {
+          const x = (i % cols) * W, y = Math.floor(i / cols) * H;
+          ctx.fillStyle = "#1c2233"; ctx.fillRect(x, y, W, H);
+          if (kind === "sprites") {
+            const frame = document.createElement("canvas"); frame.width = frame.height = 80;
+            const fc = frame.getContext("2d")!;
+            [4, 3].forEach((facing, j) => {
+              drawCharacter(fc, appearance, 2, j ? "walk" : "idle", j ? 2 : 0, undefined, facing, "neutral");
+              ctx.drawImage(frame, 18, 25, 44, 55, x + 20 + j * 88, y + 40, 88, 110);
+            });
+          } else {
+            const portrait = document.createElement("canvas"); portrait.width = 64; portrait.height = 80;
+            drawSculptedPortrait(portrait.getContext("2d")!, appearance, age);
+            ctx.drawImage(portrait, x + 44, y + 6, 128, 160);
+          }
+          ctx.fillStyle = "#ddd7c7"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText(label, x + W / 2, y + 181);
+        });
+        return canvas.toDataURL();
+      });
+      return sheets;
+    });
+    for (const [i, name] of ["sprites", "portraits"].entries())
+      await writeDataUrl(sheets[i], `docs/images/${name}.png`);
+  },
   /** Families (head, partner, then three children) and one face under each body record. */
   async family(page) {
     await characterLab(page);
