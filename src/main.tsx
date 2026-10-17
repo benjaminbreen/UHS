@@ -4,6 +4,7 @@ import type { Engine } from "./core/engine";
 import "./ui/style.css";
 import { PropLabHost } from "./dev/PropLabHost";
 import { installVitals } from "./runtime/vitals";
+import { Analytics } from "@vercel/analytics/react";
 const Game = lazy(() => import("./runtime/bootstrap").then((m) => ({ default: m.Game })));
 async function start() {
   installVitals();
@@ -127,6 +128,7 @@ async function start() {
         onPrepared={(engine) => { setReady(false); setEngine(engine); }}
         onStart={() => setEntered(true)}
         onCancel={() => { setEngine(undefined); setReady(false); }} />}
+      <Analytics />
     </>;
   }
   root.render(<Session />);
