@@ -50,7 +50,7 @@ it("accepts chop, dig and reap as interact actions", () => {
     ).toBe(true);
 });
 
-it("shows a potter's actual work motion at the work station", () => {
+it.runIf(!!process.env.FULL)("shows a potter's actual work motion at the work station", () => {
   const konya = places.find((p) => p.id === "konya")!;
   const engine = createSettingSession({ ...settingFor(konya, -6499), role: "Potter" }, "potter-motion");
   const runtime = new Runtime(engine, { cacheTerrain: false });

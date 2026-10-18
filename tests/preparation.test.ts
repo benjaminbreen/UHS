@@ -78,13 +78,9 @@ it.each(["konya", "alexandria"])(
     const engine = createSession(
       "atlas",
       seed,
-      undefined,
-      setting,
-      2,
-      3,
-      prepared,
+      { setting, prepared },
     );
-    const reference = createSession("atlas", seed, undefined, setting);
+    const reference = createSession("atlas", seed, { setting });
     expect(engine.state).toEqual(reference.state);
     for (const [x, y] of [
       [0, 0],

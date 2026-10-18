@@ -104,11 +104,10 @@ test("portrait nods wait for their worker pixels", async ({ page }) => {
   expect(await page.evaluate(() => (window as any).nodPixels())).not.toBe(before);
 });
 
-test.setTimeout(180000);
 async function enterLife(page: Page) {
   await page.addInitScript(() => { crypto.randomUUID = () => "mobile-polish" as `${string}-${string}-${string}-${string}-${string}`; });
   await page.goto("/?start=Farmer%20in%20Seoul%201750");
-  await page.getByPlaceholder(/A hunter in Anatolia/).fill("Farmer in Seoul 1750");
+  await page.locator("#opening-prompt").fill("Farmer in Seoul 1750");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute(

@@ -1,7 +1,7 @@
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { contourNoise } from "./ground-style";
-import { paintedGround } from "./material-edges";
+import { paintedGround, shoreOnTier } from "./material-edges";
 import type { WaterTileData } from "./water-raster";
 
 type Surface = { x: number; y: number; cell: TopographyCell };
@@ -84,8 +84,7 @@ export function contourSurfaces(
         height: tier,
         surface: surface.cell.surface,
         // Shore distance belongs to this location, never to the donor tile.
-        waterVisual: surface.cell.surface === "sand" || here?.height === surface.cell.height
-          ? here?.waterVisual : undefined,
+        waterVisual: shoreOnTier(sample, x, y, tier) ? here?.waterVisual : undefined,
       } : surface.cell;
       pixels = rasterHabitatTile(sample, x, y, ox, oy, undefined, cell).pixels;
       tiles.set(key, pixels);

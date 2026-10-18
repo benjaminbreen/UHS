@@ -25,6 +25,8 @@ const atlases = {
   conveyances: "/fauna-v/vehicles",
   "vehicle-shadows": "/props/vehicle-shadows",
   atlas: "/packs/atlas",
+  worksites: "/packs/worksites",
+  boats: "/packs/boats",
   buildings: "/packs/buildings",
   "regional-buildings": "/packs/regional-buildings",
   "camp-buildings": "/packs/camp-buildings",
@@ -43,6 +45,8 @@ const atlases = {
  * worlds use one, so the scene loads their frame lists and fetches a sheet
  * only once something in the world is drawn from it. */
 export const lazySheets = [
+  "boats",
+  "worksites",
   "buildings",
   "regional-buildings",
   "camp-buildings",
@@ -74,6 +78,7 @@ export const lazySheets = [
 /** Building sheets the game reads as 1024px pages (scripts/art/page_sheets.py),
  * so a town decodes the few pages its houses sit on, not whole 4096px sheets. */
 export const pagedSheets = [
+  "worksites",
   "buildings",
   "regional-buildings",
   "camp-buildings",

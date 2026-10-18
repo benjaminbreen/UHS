@@ -24,13 +24,25 @@ type Review = {
   seed: string;
   common: string;
   /** Where to point the camera before the first shot. */
-  centre: "spawn" | "none" | "paths" | "arroyo";
+  centre: "spawn" | "none" | "paths" | "arroyo" | "cliff";
   /** Print paving counts, which is what the street studies are looking at. */
   paving?: boolean;
   studies: [name: string, query: string][];
 };
 
 const reviews: Record<string, Review> = {
+  cliffs: {
+    dir: "artifacts/cliff-review",
+    title: "Continuous beach and terrace contours",
+    seed: "cliff-shore-review",
+    common: "population=none&start=wanderer&season=summer",
+    centre: "cliff",
+    studies: [
+      ["coast", "ecology=boreal-woodland&water=coast-n&landform=ridge&relief=0.9&year=1700&waterContext&coastBeachWidth=12"],
+      ["inland", "ecology=grassland&water=river-ew&landform=rolling&relief=0.7"],
+      ["flat-coast", "ecology=boreal-woodland&water=coast-n&landform=plain&relief=0"],
+    ],
+  },
   streets: {
     dir: "artifacts/street-review",
     title: "Continuous footpaths and historical paving",
@@ -224,11 +236,36 @@ async function run(review: Review) {
     for (const [name, query] of review.studies) {
       const url = await terrainLab(page, `${query}&${review.common}`, {
         seed: review.seed,
+        pauseWater: !query.includes("waterContext"),
       });
       if (review.centre === "spawn") await centreOnSpawn(page);
       if (review.centre === "paths" && name.startsWith("grassland"))
         await centreOnPaths(page);
       if (review.centre === "arroyo") await centreOnArroyo(page);
+      if (review.centre === "cliff") {
+        await page.addStyleTag({ content: ".gsp{display:none!important}" });
+        const at = await page.evaluate(() => {
+          const lab = (window as any).terrainLab, world = lab.runtime.engine.world;
+          const spawn = lab.scene.options.center ?? world.spawn;
+          let best = spawn, distance = Infinity;
+          for (let y = spawn.y - 60; y <= spawn.y + 60; y++)
+            for (let x = spawn.x - 60; x <= spawn.x + 60; x++) {
+              const c = world.topography(x, y);
+              if (c.surface === "water" || c.ramp) continue;
+              if (!c.waterVisual || c.waterVisual.distance > 24) continue;
+              if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => world.topography(x + dx, y + dy).height > c.height)) continue;
+              const d = (x - spawn.x) ** 2 + (y - spawn.y) ** 2;
+              if (d < distance) { best = { x, y }; distance = d; }
+            }
+          lab.scene.options.center = best;
+          lab.scene.draw();
+          lab.scene.cameras.main.centerOn(best.x * 16 + 8, best.y * 16 + 8);
+          return { ...best, cliff: distance < Infinity };
+        });
+        console.log("  cliff camera", at);
+        await settled(page);
+        await zoom(page, 1);
+      }
       await page.locator("canvas").screenshot({ path: `${review.dir}/${name}.png` });
       await zoom(page, 2);
       await page

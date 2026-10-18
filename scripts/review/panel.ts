@@ -38,7 +38,10 @@ export function panelCity(place: string, year: number, seed = "city-review") {
   const world = engine.world as typeof engine.world & {
     planAt(x: number, y: number): any;
   };
-  const plan = world.planAt(world.spawn.x, world.spawn.y);
+  // A character's home may be in a neighbouring settlement rather than this city.
+  const site = world.settlements?.find((s) => s.id.endsWith(`~${place}`));
+  if (!site) throw Error(`No generated settlement for ${place}`);
+  const plan = world.planAt(site.x, site.y);
   const genMs = Math.round(performance.now() - t0);
   const r: number = plan.site.profile.radius;
   const c = plan.site.center as { x: number; y: number };

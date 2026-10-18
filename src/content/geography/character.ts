@@ -67,6 +67,10 @@ export function populateCharacter(
   setting = {
     ...setting,
     characterRevision: setting.characterRevision ?? 1,
+    worksiteRevision: setting.worksiteRevision ?? 6,
+    friendshipRevision: setting.friendshipRevision ?? 1,
+    employmentRevision: setting.employmentRevision ?? 1,
+    beliefRevision: setting.beliefRevision ?? 1,
     namingRevision: setting.namingRevision ?? 1,
     lifeStoryRevision: 1,
   };

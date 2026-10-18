@@ -1,3 +1,5 @@
+import { aerialStates } from "../core/fauna";
+import { faunaProfile, faunaCombat } from "../content/fauna";
 import type { Engine } from "../core/engine";
 import { forageTable, TIRED } from "../core/intents";
 import { forageByCover, forageByTerrain } from "../content/ecology/forage";
@@ -242,6 +244,8 @@ export class Autopilot {
   private work(): Step {
     const e = this.engine,
       p = e.state.player;
+    const work = e.workPlan();
+    if (work?.steps[work.done]?.scene === "hunt") return this.hunt();
     const here = e.workHere();
     if (here) {
       this.pause = 6;
@@ -252,7 +256,12 @@ export class Autopilot {
     if (plan?.waiting) return { wait: true };
     const at = plan && plan.done < plan.steps.length ? plan.places[plan.done] : undefined;
     if (at) {
-      if (p.pos.space !== "outside") return this.leave();
+      if (at.pos.space && at.pos.space !== p.pos.space) {
+        if (p.pos.space !== "outside") return this.leave();
+        const place = e.world.places.find((pl) => pl.id === at.pos.space);
+        return place ? this.door(place, at.label) : { done: `You cannot get to ${at.label}.` };
+      }
+      if (distance(at.pos, p.pos) <= 1.5) return { done: `You are at ${at.label}, but there is no work to do here.` };
       const route = this.routeNear(at.pos, 1);
       return route.length ? { route } : { done: `You cannot get to ${at.label}.` };
     }
@@ -283,6 +292,33 @@ export class Autopilot {
     }
     this.pause = 6;
     return { command: { type: "interact", target: station.id, action: "work" } };
+  }
+
+  private hunt(): Step {
+    const e = this.engine, p = e.state.player;
+    if (p.pos.space !== "outside") return this.leave();
+    const weapon = p.inventory.bow && p.inventory.arrow ? "bow" : p.inventory.spear ? "spear" : undefined;
+    if (!weapon) return { done: "You need a hunting weapon and ammunition before setting out." };
+    if (p.heldItem !== weapon) return { command: { type: "hold", item: weapon } };
+    const quarry = (e.state.fauna ?? []).filter((g) => {
+      const profile = faunaProfile(g.speciesId);
+      return !g.owner && !aerialStates.has(g.state) && profile?.category === "wild" && faunaCombat(profile).yields.meat;
+    }).flatMap((g) => g.members.map((m) => ({ x: m.x, y: m.y, space: "outside" })))
+      .sort((a, b) => distance(p.pos, a) - distance(p.pos, b));
+    if (!quarry.length) return { done: "There is no wild game to hunt nearby. Try another area." };
+    for (const target of quarry) {
+      const reach = weapon === "bow" ? e.bowRange() : 2;
+      const path = e.projectilePath(target, reach);
+      const end = path.at(-1);
+      if (distance(p.pos, target) <= reach && end?.x === target.x && end.y === target.y) {
+        this.pause = 6;
+        return { command: weapon === "bow" ? { type: "shoot", target: { x: target.x, y: target.y }, power: 1 } : { type: "swing", direction: Math.abs(target.x - p.pos.x) > Math.abs(target.y - p.pos.y)
+          ? target.x > p.pos.x ? 1 : 3 : target.y > p.pos.y ? 2 : 0 } };
+      }
+      const route = this.routeNear(target, 2);
+      if (route.length) return { route: route.slice(0, 3) };
+    }
+    return { done: "You cannot reach the wild game here." };
   }
 
   private leave(): Step {

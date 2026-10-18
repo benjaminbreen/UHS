@@ -1,0 +1,278 @@
+{
+  "cave-lion": {
+    "palette": [
+      "#2a2118",
+      "#7a6a55",
+      "#a8977c",
+      "#c4b59b",
+      "#dbcfb8",
+      "#ebe4d6",
+      "#17120e",
+      "#c8963a",
+      "#8f8069",
+      "#efe6d0",
+      "#8a4a45",
+      "#3a3026"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      68,
+      54
+    ],
+    "standing": [
+      68,
+      33
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2a2118",
+        "d": "#7a6a55",
+        "m": "#a8977c",
+        "l": "#c4b59b",
+        "h": "#dbcfb8",
+        "b": "#ebe4d6",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#8f8069",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#3a3026"
+      },
+      "forms": [
+        {
+          "id": "cave-lion",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "pale": 3,
+            "grey": 1
+          }
+        }
+      ],
+      "coats": {
+        "pale": {
+          "o": "#2a2118",
+          "d": "#7a6a55",
+          "m": "#a8977c",
+          "l": "#c4b59b",
+          "h": "#dbcfb8",
+          "b": "#ebe4d6",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#8f8069",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#3a3026"
+        },
+        "grey": {
+          "o": "#24211c",
+          "d": "#6c655b",
+          "m": "#948c80",
+          "l": "#b3aca0",
+          "h": "#cdc7bc",
+          "b": "#e6e2da",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#7d766b",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#34302a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "american-lion": {
+    "palette": [
+      "#2b1d10",
+      "#8a6436",
+      "#b58a52",
+      "#cea56d",
+      "#e2c28b",
+      "#efe2c8",
+      "#17120e",
+      "#c8963a",
+      "#9a7040",
+      "#efe6d0",
+      "#8a4a45",
+      "#3a2616"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      73,
+      58
+    ],
+    "standing": [
+      73,
+      36
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2b1d10",
+        "d": "#8a6436",
+        "m": "#b58a52",
+        "l": "#cea56d",
+        "h": "#e2c28b",
+        "b": "#efe2c8",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#9a7040",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#3a2616"
+      },
+      "forms": [
+        {
+          "id": "american-lion",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "tawny": 1
+          }
+        }
+      ],
+      "coats": {
+        "tawny": {
+          "o": "#2b1d10",
+          "d": "#8a6436",
+          "m": "#b58a52",
+          "l": "#cea56d",
+          "h": "#e2c28b",
+          "b": "#efe2c8",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#9a7040",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#3a2616"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "smilodon": {
+    "palette": [
+      "#28190d",
+      "#7d5a33",
+      "#a9804c",
+      "#c49c67",
+      "#dab785",
+      "#ecdcc0",
+      "#17120e",
+      "#c8963a",
+      "#6e4c28",
+      "#efe6d0",
+      "#8a4a45",
+      "#3a2616"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      63,
+      50
+    ],
+    "standing": [
+      63,
+      30
+    ],
+    "looks": {
+      "roles": {
+        "o": "#28190d",
+        "d": "#7d5a33",
+        "m": "#a9804c",
+        "l": "#c49c67",
+        "h": "#dab785",
+        "b": "#ecdcc0",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#6e4c28",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#3a2616"
+      },
+      "forms": [
+        {
+          "id": "smilodon",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "tawny": 3,
+            "dark": 1
+          }
+        }
+      ],
+      "coats": {
+        "tawny": {
+          "o": "#28190d",
+          "d": "#7d5a33",
+          "m": "#a9804c",
+          "l": "#c49c67",
+          "h": "#dab785",
+          "b": "#ecdcc0",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#6e4c28",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#3a2616"
+        },
+        "dark": {
+          "o": "#1f150c",
+          "d": "#634628",
+          "m": "#86633b",
+          "l": "#a47d51",
+          "h": "#bd9a6d",
+          "b": "#ddcbab",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#533920",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#2c1d10"
+        }
+      },
+      "coatFrom": {}
+    }
+  }
+}

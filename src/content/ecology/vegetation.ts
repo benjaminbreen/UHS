@@ -2,7 +2,7 @@ import type { WorldSetting } from "../geography/types";
 import type { Colorway } from "./profiles";
 import type { Habitat, VegetationPattern } from "../../world/v3/habitats";
 import type { LandSample } from "../../world/geography/landscape";
-import natureAtlas from "../../../public/nature/atlas.json" with { type: "json" };
+import natureAtlas from "../../render/generated/nature-atlas.json" with { type: "json" };
 
 export function vegetationPattern(
   s: WorldSetting,
@@ -514,12 +514,15 @@ export function vegetationUnderstory(
 
 /** Size variety changes the silhouette, never the native pixel scale. */
 export function understorySize(sprite: string, roll: number): string {
-  if (sprite === scrub)
-    return roll < 0.6
+  if (sprite === scrub) {
+    const base = roll < 0.6
       ? "nature-dry-scrub-small"
-      : roll < 0.9
-        ? "nature-dry-scrub-medium"
-        : sprite;
+      : roll < 0.9 ? "nature-dry-scrub-medium" : sprite;
+    const alternate = roll < 0.6
+      ? roll >= 0.3
+      : roll < 0.9 ? roll >= 0.75 : roll >= 0.95;
+    return alternate ? `${base}-b` : base;
+  }
   if (sprite === heath)
     return roll < 0.8 ? "nature-understory-low-heath" : sprite;
   if (sprite === fern || sprite === "bush")

@@ -58,3 +58,33 @@ describe("landscape features", () => {
     expect(woods.arroyo ?? 0).toBe(0);
   });
 });
+
+it("derives entrance wear without changing planted ground or the settlement layout", async () => {
+  const { resolveSetting } = await import("../src/content/geography/resolve");
+  const { packForSetting } = await import("../src/content/geography/pack");
+  const { createSettlementWorld } = await import("../src/world/v3/generate");
+  const resolved = resolveSetting("medieval Normandy");
+  if ("error" in resolved) throw Error(resolved.error);
+  const { geographyRevision: _geography, ...local } = resolved.setting;
+  const s: WorldSetting = { ...local, terrainRevision: 2,
+    environment: { ...local.environment!, ecology: "grassland", landform: "plain",
+      population: "sparse", start: "resident", household: "mixed" } };
+  const world = createSettlementWorld(packForSetting(s), "ground-use-review", undefined, false);
+  const plan = world.planAt(0, 0)!;
+  expect(plan.places.length).toBeGreaterThan(0);
+  const before = JSON.stringify({ roads: plan.roads, surface: [...plan.surface],
+    solid: [...plan.solid], places: plan.places });
+  let wornEntrances = 0;
+  for (const place of plan.places) {
+    const { x, y } = place.entrance;
+    if ((world.topography!(x, y).groundWear ?? 0) > 0.8) wornEntrances++;
+  }
+  expect(wornEntrances).toBeGreaterThan(0);
+  for (const [key, field] of plan.fields ?? []) {
+    if (field.yard && field.crop === "pasture" && !field.garden) continue;
+    const [x, y] = key.split(",").map(Number);
+    expect(world.topography!(x, y).groundWear ?? 0).toBe(0);
+  }
+  expect(JSON.stringify({ roads: plan.roads, surface: [...plan.surface],
+    solid: [...plan.solid], places: plan.places })).toBe(before);
+}, 30000);

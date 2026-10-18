@@ -1,3 +1,4 @@
+import { waterborneFrames } from "../content/graphics/models";
 import type Phaser from "phaser";
 import { TERRAIN_CHUNK_SIZE } from "./terrain-region";
 import { openWaterMask } from "./living-water/game";
@@ -40,7 +41,7 @@ export class Reflections {
     const view = this.scene.cameras.main.worldView;
     const seen = new Set<Phaser.GameObjects.Image>();
     for (const im of sources) {
-      if (!im.active || !im.visible || im.alpha < 0.5 || seen.has(im)) continue;
+      if (!im.active || !im.visible || im.alpha < 0.5 || seen.has(im) || waterborneFrames.has(im.frame.name) || im.getData?.("aboard")) continue;
       const w = im.displayWidth,
         h = im.displayHeight,
         left = im.x - im.originX * w,

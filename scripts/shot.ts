@@ -7,10 +7,11 @@
  * the way out; an already-running server is left alone. This is the supported
  * way to look at the game. Prefer it to writing another capture script.
  */
-import { assertGameServer, base, launchBrowser } from "./capture/lib";
+import { assertGameServer, base, captureErrors, launchBrowser } from "./capture/lib";
+import { expect, type Page } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 
 const [out = "artifacts/shot.png", prompt = "A Roman baker in Ostia, 100 CE", review] =
   process.argv.slice(2);
@@ -24,71 +25,65 @@ const up = async () => {
 };
 
 let server: ReturnType<typeof spawn> | undefined;
-if (!(await up())) {
-  console.log(`no server at ${base}; starting one`);
-  server = spawn(
-    "npx",
-    ["vite", "--host", "127.0.0.1", "--port", new URL(base).port, "--strictPort"],
-    { stdio: "ignore" },
-  );
-  // Vite is usually listening in well under a second, but a cold optimize
-  // pass can take longer on a fresh checkout.
-  const deadline = Date.now() + 60000;
-  while (!(await up())) {
-    if (Date.now() > deadline) throw Error("dev server never came up");
-    await new Promise((r) => setTimeout(r, 500));
-  }
-}
-await assertGameServer();
-
-const browser = await launchBrowser();
+let browser: Awaited<ReturnType<typeof launchBrowser>> | undefined;
+let page: Page | undefined;
 try {
+  if (!(await up())) {
+    console.log(`no server at ${base}; starting one`);
+    // Own the Vite process directly so cleanup cannot leave an npx child running.
+    server = spawn(
+      process.execPath,
+      [resolve("node_modules/vite/bin/vite.js"), "--host", "127.0.0.1", "--port", new URL(base).port, "--strictPort"],
+      { stdio: "inherit" },
+    );
+    let startupError: Error | undefined;
+    server.on("error", (error) => { startupError = error; });
+    const deadline = Date.now() + 60000;
+    while (!(await up())) {
+      if (startupError) throw startupError;
+      if (server.exitCode !== null || server.signalCode !== null)
+        throw Error(`Dev server exited before startup (${server.signalCode ?? server.exitCode}). See Vite output above.`);
+      if (Date.now() > deadline) throw Error(`Dev server never came up at ${base}. See Vite output above.`);
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  await assertGameServer();
+  browser = await launchBrowser();
   // UHS_VIEWPORT="390x844" for a phone.
   const [width, height] = (process.env.UHS_VIEWPORT ?? "1440x1100").split("x").map(Number);
-  const page = await browser.newPage({ viewport: { width, height }, hasTouch: width < 700, isMobile: width < 700 });
-  if (process.env.UHS_SEED)
-    await page.addInitScript(`Object.defineProperty(crypto, "randomUUID", {
-      value: () => ${JSON.stringify(process.env.UHS_SEED)}
-    })`);
+  page = await browser.newPage({ viewport: { width, height }, hasTouch: width < 700, isMobile: width < 700 });
+  const assertHealthy = captureErrors(page);
   // UHS_SPRITES="f" picks the character renderer, as Settings → Display does.
   if (process.env.UHS_SPRITES)
     await page.addInitScript(`localStorage.setItem("uhs-character-sprites", ${JSON.stringify(process.env.UHS_SPRITES)})`);
-  page.on("pageerror", (e) => console.error("pageerror", e.message));
   page.on("console", (m) => { if (m.type() === "error") console.error("browser", m.text()); });
-  await page.goto(base);
-  await page.getByPlaceholder(/A hunter in Anatolia/).fill(prompt);
+  const url = new URL(base);
+  url.searchParams.set("start", prompt);
+  if (process.env.UHS_SEED) url.searchParams.set("seed", process.env.UHS_SEED);
+  await page.goto(url.href);
+  await page.locator("#opening-prompt").fill(prompt);
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   // A prompt that only partly matches opens the details dialog, whose own
   // Begin starts play; one that matches outright starts at once.
   const confirm = page
     .getByRole("dialog")
     .getByRole("button", { name: "Begin", exact: true });
-  await Promise.race([
-    confirm.click({ timeout: 15000 }).catch(() => {}),
-    page.waitForFunction(() => !!(window as any).historySim, null, {
-      timeout: 15000,
-    }),
-  ]).catch(() => {});
+  await confirm.or(page.locator(".arrival")).waitFor({ state: "visible", timeout: 30000 });
+  if (await confirm.isVisible()) await confirm.click();
   // The arrival card holds play until "Enter life" is pressed.
   await page
     .getByRole("button", { name: /Enter life/ })
-    .click({ timeout: 120000 }).catch(async (error) => {
-      mkdirSync(dirname(out), { recursive: true });
-      await page.screenshot({ path: out.replace(/\.png$/, "-failure.png") });
-      console.error(await page.locator("body").innerText());
-      throw error;
-    });
+    .click({ timeout: 120000 });
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 120000 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.waitForFunction(() => !!(window as any).historySim, null, {
-    timeout: 30000,
+    timeout: 120000,
   });
-  await page.waitForSelector(".game-container canvas", { timeout: 30000 });
-  if (process.env.UHS_SEED)
-    await page.evaluate(() => (window as any).__uhs.stop());
+  await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 120000 });
   if (process.env.UHS_ZOOM)
     await page.evaluate((zoom) => (window as any).__uhs.setZoom(zoom), Number(process.env.UHS_ZOOM));
-  // Let the first frames settle so the shot is not of a half-drawn world.
-  await page.waitForTimeout(2500);
-  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 3000 }).catch(() => {});
+  if (process.env.UHS_SEED)
+    await page.evaluate(() => (window as any).__uhs.stop());
   // UHS_AT="x,y" stands the player on that cell first (needs the dev server).
   if (process.env.UHS_AT) {
     const [x, y] = process.env.UHS_AT.split(",").map(Number);
@@ -109,17 +104,7 @@ try {
     await page.waitForTimeout(Number(process.env.UHS_WAIT ?? 3000));
   }
   // UHS_KEYS="m" opens the region map, and so on for any key the game binds.
-  await page.waitForSelector('.game-container canvas[data-terrain-ready="true"]', { timeout: 120000 }).catch(async (error) => {
-    console.error("terrain", await page.locator(".game-container canvas").evaluate((c) => ({ ...(c as HTMLCanvasElement).dataset })));
-    mkdirSync(dirname(out), { recursive: true });
-    await page.screenshot({ path: out.replace(/\.png$/, "-failure.png") });
-    throw error;
-  });
-  if (process.env.UHS_SEED)
-    console.log(await page.evaluate(() => {
-      const r = (window as any).__uhs;
-      return { seed: r.engine.state.manifest.seed, camera: r.engine.state.player.pos, zoom: r.zoom };
-    }));
+  await expect(page.locator(".game-container canvas")).toHaveAttribute("data-terrain-ready", "true", { timeout: 120000 });
   for (const key of process.env.UHS_KEYS ?? "") {
     await page.keyboard.press(key);
     await page.waitForTimeout(4000);
@@ -152,9 +137,27 @@ try {
       await page.screenshot({ path: out.replace(/\.png$/, `-${state}.png`) });
     }
   }
+  const actual = await page.evaluate(() => {
+    const r = (window as any).__uhs, s = r.engine.state;
+    return { seed: s.manifest.seed, setting: { location: s.manifest.setting?.location, year: s.manifest.setting?.year, role: s.player.role }, camera: s.player.pos, zoom: r.zoom };
+  });
+  if (process.env.UHS_SEED && actual.seed !== process.env.UHS_SEED)
+    throw Error(`Expected seed ${process.env.UHS_SEED}, got ${actual.seed}`);
+  assertHealthy();
   await page.screenshot({ path: out });
-  console.log(`wrote ${out}`);
+  assertHealthy();
+  console.log(JSON.stringify({ path: resolve(out), ...actual }));
+} catch (error) {
+  if (page) {
+    mkdirSync(dirname(out), { recursive: true });
+    await page.screenshot({ path: out.replace(/\.png$/i, "") + "-failure.png" }).catch(() => {});
+    console.error(await page.locator("body").innerText({ timeout: 2000 }).catch(() => ""));
+  }
+  throw error;
 } finally {
-  await browser.close();
-  server?.kill();
+  try {
+    await browser?.close();
+  } finally {
+    server?.kill();
+  }
 }

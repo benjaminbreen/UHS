@@ -1,5 +1,6 @@
 import { edgeCrossings, sharedCrossings } from "../world/travel/waterways";
 import { Engine } from "../core/engine";
+import { seedAilments } from "../core/health";
 import { skySeed } from "../core/weather";
 import { findTravelPath } from "../world/travel/routing";
 import {
@@ -268,6 +269,7 @@ export class MapTravel {
     return true;
   }
   async cross(entrance: MapEntrance) {
+    if (this.runtime.engine.state.encounter) { this.runtime.notice = "Answer the encounter before leaving."; this.runtime.emit(); return; }
     if (this.busy || this.closed || !entrance.point || !entrance.walkable)
       return;
     const exit = this.exits.find((e) => e.id === entrance.id);
@@ -327,6 +329,18 @@ export class MapTravel {
   ) {
     const source = this.runtime.engine.snapshot();
     const player = structuredClone(source.player);
+    player.identity ??= {
+      seed: source.manifest.seed,
+      setting: source.manifest.setting,
+      concern: this.runtime.engine.world.pack.concern,
+    };
+    const household = source.households?.find((h) =>
+      h.members.includes(player.id) && (!player.householdId || h.id === player.householdId));
+    if (household) player.identity.household = {
+      size: household.members.length,
+      people: source.actors.filter((a) => player.relations?.some((r) => r.other === a.id))
+        .map(({ id, name, age }) => ({ id, name, age })),
+    };
     const carried = source.objects.filter(
       (o) => o.carriedBy === "player" || o.id === player.held,
     );
@@ -342,7 +356,8 @@ export class MapTravel {
     player.pos = { ...point, space: "outside" };
     player.home = next.player.home;
     player.work = next.player.work;
-    player.householdId = next.player.householdId;
+    for (const h of next.households ?? [])
+      if (h.id !== player.householdId) h.members = h.members.filter((id) => id !== player.id);
     player.goal = undefined;
     for (const object of carried) object.pos = { ...player.pos };
     next.player = player;
@@ -352,6 +367,23 @@ export class MapTravel {
     next.clock = source.clock + seconds;
     next.manifest.sky = skySeed(source.manifest);
     next.manifest.hazards = source.manifest.hazards;
+    next.manifest.survival = source.manifest.survival;
+    const generatedDisease = next.manifest.disease;
+    next.manifest.disease = source.manifest.disease;
+    if (!source.manifest.disease && generatedDisease) {
+      next.ailments = seedAilments(next, destination.engine.world.pack.setting, new Set(Object.values(next.plot?.cast ?? {})));
+      delete next.disease;
+      for (const a of next.actors) delete a.medicalStock;
+    }
+    next.ailments = [...(next.ailments ?? []).filter((a) => a.who !== "player"), ...(source.ailments ?? []).filter((a) => a.who === "player").map((a) => ({ ...a }))];
+    if (source.disease) next.disease = {
+      serial: source.disease.serial,
+      events: structuredClone(source.disease.events),
+      sources: next.disease?.sources ?? [],
+      exposures: [...(next.disease?.exposures ?? []).filter((e) => e.who !== "player"), ...source.disease.exposures.filter((e) => e.who === "player").map((e) => ({ ...e }))],
+    };
+    next.care = source.care?.who === "player" ? { ...source.care } : undefined;
+    if (seconds > 0 && source.manifest.disease) destination.engine.healthStep(next.clock, false);
     destination.engine.runEconomy();
     next.notes = source.notes;
     next.catalog = { ...next.catalog, ...source.catalog };
@@ -368,6 +400,7 @@ export class MapTravel {
   /** A long journey the player does not walk: the map at the far end is
    * prepared and the days on the road pass at once. */
   async voyage(to: Coordinate, rail?: { departs: number; label: string }) {
+    if (this.runtime.engine.state.encounter) { this.runtime.notice = "Answer the encounter before leaving."; this.runtime.emit(); return; }
     if (this.busy || this.closed) return;
     const id = mapForCoordinate(to);
     if (id === this.id) return;
@@ -479,6 +512,7 @@ export function journeyPlan(from: Coordinate, to: Coordinate) {
   };
 }
 
+/** Fresh playable start for browser and agents, with map bounds and exits. */
 export async function prepareConnectedStart(
   setting: import("../content/geography/types").WorldSetting,
   seed: string,

@@ -11,6 +11,7 @@ const sheets = {
   nature: "/nature/atlas",
   ecology: "/ecology/atlas",
   props: "/props/atlas",
+  worksites: "/packs/worksites",
   buildings: "/packs/buildings",
   regionalBuildings: "/packs/regional-buildings",
   campBuildings: "/packs/camp-buildings",

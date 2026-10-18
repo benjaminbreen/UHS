@@ -1,10 +1,16 @@
 import { it, expect } from "vitest";
 import { createSession } from "../src/runtime/session";
-import { PlayerAdapter } from "../src/agents/player";
+import { startChronicle, type Rationale } from "../src/chronicle/chronicle";
+import type { CommandRequest } from "../src/core/types";
 
 const play = () => {
   const engine = createSession("roman", "chronicle-check");
-  return { engine, adapter: new PlayerAdapter(engine) };
+  const chronicle = startChronicle(engine, "agent");
+  const act = ({ rationale, ...request }: CommandRequest & { rationale?: Rationale }) => {
+    chronicle.explain(rationale);
+    return engine.act(request);
+  };
+  return { engine, adapter: { chronicle, act } };
 };
 
 it("records a turn from either a human or an agent, without touching replay", () => {
@@ -73,12 +79,4 @@ it("treats the idle clock as elapsed time, not as decisions", () => {
   expect(md).toContain("Stood still for 1 minute.");
   expect(md).toContain("Walked 4 steps east");
   expect(md).not.toContain('{"type"');
-});
-
-it("hands the agent a prose digest naming the actions in reach", () => {
-  const { adapter } = play();
-  const digest = adapter.digest();
-  expect(digest).toContain("SCENE");
-  expect(digest).not.toContain("PLAYER SAYS");
-  expect(digest.length).toBeLessThan(JSON.stringify(adapter.observe()).length);
 });

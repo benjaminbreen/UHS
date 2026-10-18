@@ -4,6 +4,8 @@ import type { WorldSetting } from "../content/geography/types";
 import { resolveCharacterContext } from "../content/characters/resolve";
 import { sexFromName } from "../content/characters/name-sex";
 import { actorAppearance, appearanceForAge } from "../core/character";
+import { restingPortraitPoseOf } from "../core/persona";
+import { statsOf } from "../core/stats";
 import type { StartingCharacter } from "../runtime/preparation";
 import { formatHistoricalYear } from "../core/calendar";
 import { ArrivalPortrait } from "./ArrivalPortrait";
@@ -31,7 +33,7 @@ export function Arrival({ setting, engine, character, ready = !!engine, onEnter,
   const player = engine?.state.player ?? character;
   const age = player?.age;
   const appearance = useMemo(() => engine
-    ? actorAppearance(engine.state.player, resolveCharacterContext(setting).appearance)
+    ? { ...actorAppearance(engine.state.player, resolveCharacterContext(setting).appearance), restingPose: restingPortraitPoseOf(statsOf(engine.state.manifest.seed, engine.state.player)) }
     : character ? appearanceForAge(character.appearance, character.age) : undefined,
   [engine, character, setting]);
   const sex = player?.origin?.sex && player.origin.sex !== "unspecified"

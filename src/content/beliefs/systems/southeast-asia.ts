@@ -152,6 +152,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-early-hindu-buddhism",
+    features: ["sacred-texts"],
     label: "Early Hindu-Buddhist kingdoms and villages",
     scope: { years: [-500, 1000], bounds: [92, -10, 145, 24] },
     wiki: "https://en.wikipedia.org/wiki/Greater_India",
@@ -223,6 +224,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-funan-hindu-buddhism",
+    features: ["sacred-texts"],
     label: "Funan and early Champa Hindu-Buddhist courts",
     scope: { years: [1, 650], bounds: [99, 8, 108, 16] },
     wiki: "https://en.wikipedia.org/wiki/Funan",
@@ -381,6 +383,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-theravada-burma",
+    features: ["sacred-texts"],
     label: "Theravada Burma with nat worship",
     scope: { years: [1050, 1885], bounds: [92, 9, 102, 29] },
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Myanmar",
@@ -462,6 +465,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-theravada-siam",
+    features: ["sacred-texts"],
     label: "Theravada Siam and Lao practice",
     scope: { years: [1238, 1885], bounds: [99, 13, 108, 21] },
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Thailand",
@@ -631,6 +635,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-islamic-java-malay",
+    features: ["sacred-texts"],
     label: "Islamic Java and Malay sultanates",
     scope: { years: [1200, 1900], bounds: [92, -10, 130, 10] },
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Southeast_Asia",
@@ -972,6 +977,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-sulawesi-moluccas-islam",
+    features: ["sacred-texts"],
     label: "Islamic sultanates in Sulawesi and the Moluccas",
     scope: { years: [1200, 1900], bounds: [110, -11, 145, 5] },
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Indonesia",

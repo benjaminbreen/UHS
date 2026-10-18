@@ -1,14 +1,47 @@
 import type Phaser from "phaser";
+import boats from "../content/graphics/boats.generated.json" with { type: "json" };
+
+export type Boat = keyof typeof boats;
+export function boatFrame(craft:Boat,facing:number,variation=0) {
+  const finishes=boats[craft].finishes;
+  const finish=finishes[Math.max(0,Math.min(finishes.length-1,Math.floor(variation*finishes.length)))];
+  return `boat-${craft}${finish}-${facing}`;
+}
+export function mooredBoatFrame(frame:string,variation=0) {
+  for(const craft of Object.keys(boats) as Boat[]){
+    const facing=(boats[craft].moorings as Record<string,number>)[frame];
+    if(facing!==undefined)return boatFrame(craft,facing,variation);
+  }
+  return frame;
+}
 
 export class Watercraft {
   private image?: Phaser.GameObjects.Image;
-  constructor(private scene: Phaser.Scene) {}
+  private hull: Phaser.GameObjects.Image[] = [];
+  constructor(private scene: Phaser.Scene, private texture:(frame:string)=>string) {}
   update(
     person: Phaser.GameObjects.Image,
     mode: "raft" | "boat" | "swimming" | undefined,
     tint: number,
     inflatable: boolean,
+    facing = 4,
+    craft?: Boat,
+    variation = 0,
   ) {
+    person.setData("aboard",!!mode && mode!=="swimming");
+    this.hull.forEach(im=>im.setVisible(false));
+    if (mode === "boat" && craft) {
+      this.image?.setVisible(false);
+      const spec=boats[craft], slot=spec.seat[String(facing) as keyof typeof spec.seat];
+      for (const [i,layer] of ["back","front"].entries()) {
+        const frame=`${boatFrame(craft,facing,variation)}-${layer}`, texture=this.texture(frame);
+        if (!this.scene.textures.get(texture).has(frame)) continue;
+        const im=this.hull[i] ??= this.scene.add.image(0,0,texture,frame);
+        im.setTexture(texture,frame).setOriginFromFrame().setVisible(true).setTint(tint)
+          .setPosition(person.x-slot[0],person.y-slot[1]).setDepth(person.depth+(i ? .5 : -.5));
+      }
+      return;
+    }
     if (!mode || mode === "swimming") {
       this.image?.setVisible(false);
       return;
@@ -68,6 +101,8 @@ export class Watercraft {
       .setDepth(person.depth - 0.1);
   }
   dispose() {
+    this.hull.forEach(im=>im.destroy());
+    this.hull=[];
     this.image?.destroy();
     this.image = undefined;
   }

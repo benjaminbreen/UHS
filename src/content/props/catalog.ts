@@ -2,12 +2,14 @@ import { signpostDefs, wallSignDefs } from "./signage";
 import { detailProps } from "./settlement-details";
 import { urbanProps } from "./urban";
 import { furnitureProps } from "./furniture";
+import { containerProps } from "./containers";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
 
 export type PropDef = {
   name: string;
   family: string;
+  sprite?: string;
   portable?: boolean;
   /** Occupies its ground tile while intact and on the ground. */
   solid?: boolean;
@@ -73,6 +75,7 @@ export const propDefs: Record<string, PropDef> = {
   ...wallSignDefs,
   ...detailProps,
   ...urbanProps,
+  ...containerProps,
   hideBag: {
     shove: { as: "free", mass: 0.5 },
     solid: true,
@@ -303,6 +306,11 @@ export const propDefs: Record<string, PropDef> = {
     name: "Boulder",
     family: "boulder",
     shove: { as: "free", mass: 2.6, rolls: true },
+  },
+  outcrop: {
+    solid: true,
+    name: "Rock outcrop",
+    family: "boulder",
   },
   /** A field rock lifted off the ground, which it was drawn as. */
   fieldStone: {

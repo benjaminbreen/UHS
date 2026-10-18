@@ -548,6 +548,115 @@ def quiver_tree():
     return im
 
 
+def succulent_candidate(form,size,voxel=False):
+    import numpy as np
+    from art.voxel import Grid, render
+    W,H=size;im=Image.new('RGBA',size)
+    from PIL import ImageDraw
+    d=ImageDraw.Draw(im)
+    green={
+        'ephedra':['#263e31','#456143','#6b8455','#98a36d','#c3c18b'],
+        'yucca':['#243e35','#45664b','#6e895b','#9eaa73','#c3c591'],
+        'maguey':['#243e3e','#3b6260','#608a7e','#91afa0','#c1cbb3'],
+        'aloe-vera':['#244b39','#3c7351','#649763','#96b47b','#c4cc96'],
+    }[form]
+    bark=['#3c3028','#6a5039','#98774b','#c1a576']
+    flower=['#80522d','#b67b31','#deaa43','#f2ce71'] if form=='aloe-vera' else ['#797b54','#b2b08a','#dfd9b3','#f5e8c8']
+    g=Grid(0,W,-13,14,H+10)
+    materials=[g.mat(green,gain=.83,bias=-.35),g.mat(bark),g.mat(flower,gain=.95)]
+    norm={}
+    def nid(v):
+        v=np.array(v,float);v/=np.linalg.norm(v)+1e-6;key=tuple(np.round(v*2).astype(int))
+        if key not in norm:norm[key]=g.normal(key) if any(key) else 0
+        return norm[key]
+    base=H-4
+    def screen(p):return (round(W/2+p[0]),round(base-p[2]-p[1]*.5))
+    def dot(p,material=0,radius=.7):
+        x,y,z=p
+        for xx in range(math.floor(x-radius),math.ceil(x+radius)+1):
+            for yy in range(math.floor(y-radius),math.ceil(y+radius)+1):
+                for zz in range(max(0,math.floor(z-radius)),min(H+9,math.ceil(z+radius)+1)):
+                    delta=np.array([xx-x,yy-y,zz-z])
+                    if delta@delta<radius*radius+.3:
+                        g.box(round(W/2)+xx,round(W/2)+xx+1,yy,yy+1,zz,zz+1,materials[material],nid(delta))
+    def shoot(points,material=0,width=1):
+        if not voxel:
+            pts=[screen(p) for p in points]
+            d.line(pts,fill=[green,bark,flower][material][0],width=width+1,joint='curve')
+            d.line([(x-1,y) for x,y in pts],fill=[green,bark,flower][material][3 if material==0 else 2],width=width)
+        else:
+            for a,b in zip(points,points[1:]):
+                a,b=np.array(a),np.array(b)
+                for t in np.linspace(0,1,max(3,round(np.linalg.norm(b-a)*3))):dot(a*(1-t)+b*t,material,max(.85,width*.65))
+    def bud(p,material=2):
+        if voxel:dot(p,material,1.05)
+        else:
+            x,y=screen(p);pal=[green,bark,flower][material]
+            d.rectangle((x-1,y,x+1,y+1),fill=pal[0]);d.line((x-1,y,x,y),fill=pal[-1])
+    if form=='ephedra':
+        paths=[ [(-6,-1,0),(-8,1,8),(-14,2,15),(-15,3,22)],
+                [(-4,2,0),(-2,3,11),(-7,3,19),(-5,3,25)],
+                [(1,1,0),(4,4,12),(2,4,21),(5,4,26)],
+                [(5,-2,0),(8,-1,9),(14,-2,15),(15,-2,19)],
+                [(-2,-3,0),(-3,-4,9),(-10,-4,15),(-13,-4,17)],
+                [(3,-3,0),(6,-4,8),(8,-4,17),(12,-3,21)],
+                [(-2,2,0),(-1,1,9),(1,1,17),(-2,1,21)] ]
+        for i,path in enumerate(paths):
+            path=[(x*.68,y,z*.78) for x,y,z in path]
+            shoot(path)
+            for j,p in enumerate(path[1:-1]):
+                x,y,z=p;side=-1 if (i+j)%2 else 1
+                shoot([p,(x+side*3,y-1,z+2),(x+side*4,y-1,z+5)])
+                if not voxel:
+                    xx,yy=screen(p);d.line((xx-1,yy,xx+1,yy),fill=green[0])
+            if i in (1,3,5):bud(path[-2],1)
+    else:
+        if form=='yucca':
+            specs=[(-2.9,16,9,5,1.15),(-2.2,16,19,3,1.3),(-1.5,12,25,2,1.1),(-.8,17,19,4,1.3),
+                   (-.15,18,10,6,1.3),(.55,16,6,7,1.3),(1.2,14,4,7,1.4),(1.9,16,5,7,1.2),(2.6,17,5,6,1.2),
+                   (3.4,17,3,6,1.3),(4.2,11,15,3,1.2)]
+        elif form=='maguey':
+            specs=[(-2.8,17,5,10,3.3),(-2.0,14,18,6,3.3),(-1.1,10,24,3,2.6),(-.3,17,13,8,3.5),
+                   (.45,18,3,10,3.5),(1.2,13,1,8,3.5),(2.0,16,2,8,3.5),(2.8,18,2,9,3.4)]
+        else:
+            specs=[(-2.9,14,4,7,2.5),(-2.0,11,14,4,2.8),(-1.1,8,18,3,2.4),(-.25,14,8,6,2.8),
+                   (.55,14,2,6,2.7),(1.4,11,1,5,2.7),(2.3,13,2,6,2.7),(3.0,15,2,7,2.5)]
+        for i,(yaw,length,rise,arch,width) in enumerate(specs):
+            def center(t):return np.array([math.cos(yaw)*length*t,math.sin(yaw)*length*.45*t,1+rise*t+arch*math.sin(math.pi*t)])
+            side=np.array([-math.sin(yaw),math.cos(yaw),0])
+            if not voxel:
+                left=[];right=[];middle=[]
+                for t in np.linspace(0,1,10):
+                    c=center(t);w=width*math.sin(math.pi*t)**.8
+                    left.append(screen(c+side*w));right.append(screen(c-side*w));middle.append(screen(c+np.array([0,0,.8])))
+                d.polygon(left+right[::-1],fill=green[0])
+                d.polygon(left+middle[::-1],fill=green[3 if math.cos(yaw)<.2 else 2])
+                d.polygon(middle+right[::-1],fill=green[1 if math.cos(yaw)>.2 else 2])
+                d.line(right,fill=green[0])
+                d.line(left,fill=green[1])
+                d.line(middle,fill=green[4 if i%3==0 else 2])
+                if form in ('maguey','aloe-vera'):
+                    for point in left[2:8:2]:d.point(point,fill=green[4])
+            else:
+                for t in np.linspace(0,1,round(length*3)):
+                    c=center(t);width_t=max(.2,width*math.sin(math.pi*t)**.8)
+                    for u in np.linspace(-1,1,max(3,round(width_t*5))):
+                        point=c+side*(width_t*u);point[2]+=(1-abs(u))*(1.5 if form!='yucca' else .6)
+                        x,y,z=np.round(point).astype(int)
+                        g.box(round(W/2)+x,round(W/2)+x+1,y,y+1,max(0,z-1),z+1,materials[0],nid(side*u*.75+[0,-.3,1]))
+        if form=='yucca':
+            shoot([(0,2,9),(1,2,19),(0,2,29)],1)
+            for i in range(5):
+                p=(1 if i%2 else -1,1,19+i*2)
+                shoot([(0,2,p[2]),p],1);bud(p)
+        if form=='aloe-vera':
+            shoot([(1,2,7),(3,2,21),(2,2,34)],1)
+            for i in range(8):bud((2+(-1 if i%2 else 1),1,26+i))
+    if voxel:
+        im=Image.fromarray(render(g,W,H,0,base,1000000,ambient=.43,sun=.65)[0],'RGBA')
+    return im
+
+
 def succulent_shrubs():
     return {
         'nature-shrub-prickly-pear': prickly_pear('prickly-pear', flower='#f0d040'),

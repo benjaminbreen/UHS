@@ -162,6 +162,7 @@ export const tempers: readonly Stance[] = [
   },
   {
     id: "temper.literalist",
+    requiresBelief: ["sacred-texts"],
     label: "Literalist",
     icon: "tablet",
     clause: "takes the sacred text exactly as written",
@@ -175,6 +176,7 @@ export const tempers: readonly Stance[] = [
   },
   {
     id: "temper.allegorist",
+    requiresBelief: ["sacred-texts"],
     label: "Allegorist",
     icon: "veil",
     clause: "reads the awkward passages as figures",

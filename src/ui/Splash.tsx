@@ -24,6 +24,18 @@ import { Arrival } from "./Arrival";
 import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
 import type { CharacterPrepared, StartingCharacter } from "../runtime/preparation";
 import "./splash.css";
+const HINTS = [
+  "A potter in Jenne-jeno, 800 CE",
+  "Rice farmer near Hangzhou, 1150",
+  "A nurse in Manchester, 1918",
+  "Inca herder above Cusco, 1490",
+  "Fisher on Tonga, 1200",
+  "Merchant in Samarkand, 1400",
+  "A weaver in Oaxaca, 1650",
+  "Hunter in the Dordogne, 15000 BCE",
+  "Clerk in Lagos, 1925",
+  "A scribe in Ur, 2100 BCE",
+];
 type Starter = typeof import("../content/geography/random-start");
 let starter: Starter | null = null;
 let starterLoad: Promise<Starter> | null = null;
@@ -61,6 +73,7 @@ export function Splash({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [prompt, setPrompt] = useState(() => new URLSearchParams(location.search).get("start") ?? "");
+  const [hint] = useState(() => HINTS[Math.floor(Math.random() * HINTS.length)]);
   const [quick, setQuick] = useState(readQuick);
   const [busy, setBusy] = useState("");
   const [arrival, setArrival] = useState<{ setting: WorldSetting; character?: StartingCharacter; engine?: Engine; cancel?: () => void }>();
@@ -325,7 +338,7 @@ export function Splash({
                   setSelected(undefined);
                   setPrompt(e.target.value);
                 }}
-                placeholder="A hunter in Anatolia, 7000 BCE"
+                placeholder={hint}
               />
                 {(selected || person) && (
                   <span className="splash-person-line" aria-live="polite">

@@ -1,7 +1,9 @@
+import { smallSession } from "./fixtures";
 import { describe, expect, it } from "vitest";
 import { createSettingSession, Runtime } from "../src/runtime/session";
 import { panelSetting } from "../scripts/review/panel";
-import { parsePlan, personNamed, planOf } from "../src/runtime/autopilot";
+import { Autopilot, parsePlan, personNamed, planOf } from "../src/runtime/autopilot";
+import { resolveSetting } from "../src/content/geography/resolve";
 import { planFrom, routeQuestion } from "../src/runtime/router";
 import { jevRoute } from "../server/jev";
 import type { Evaluation } from "../src/chronicle/jev";
@@ -27,7 +29,7 @@ const drive = async (runtime: Runtime, text: string, ticks: number) => {
 };
 
 describe("typed errands", () => {
-  const engine = world("london", 1400);
+  const engine = smallSession(panelSetting("london", 1400), "autopilot");
 
   it("reads a line as a plan, or leaves it to the narrator", () => {
     expect(parsePlan("wander around looking for berries", engine)).toEqual({
@@ -45,7 +47,8 @@ describe("typed errands", () => {
     expect(parsePlan("ask the priest about the harvest", engine)).toBeUndefined();
   });
 
-  it("roams out of town and comes back with berries", async () => {
+  it.runIf(!!process.env.FULL)("roams out of town and comes back with berries", async () => {
+    const engine = world("london", 1400);
     const runtime = new Runtime(engine, { cacheTerrain: false });
     const before = engine.state.player.inventory.berries ?? 0;
     const start = { ...engine.state.player.pos };
@@ -57,20 +60,30 @@ describe("typed errands", () => {
     expect(Math.hypot(p.x - start.x, p.y - start.y)).toBeGreaterThan(5);
   });
 
-  it("puts in a day's work and stops when it is done", async () => {
+  it.runIf(!!process.env.FULL)("puts in a day's work and stops when it is done", async () => {
     const runtime = new Runtime(world("kyoto", 1000), { cacheTerrain: false });
     expect(await drive(runtime, "work for the day", 400)).toBe("Today's work is done.");
   });
 
+  it.runIf(!!process.env.FULL)("goes indoors for work done at home instead of pacing outside", async () => {
+    const resolved = resolveSetting("Weaver in Oaxaca 1650", "autopilot");
+    if (!("setting" in resolved)) throw Error("Fixture setting");
+    const engine = createSettingSession({ ...resolved.setting, season: "summer" }, "autopilot");
+    engine.state.clock = Math.floor(engine.state.clock / 86400) * 86400 + 8 * 3600;
+    expect(engine.workPlan()!.places[0]!.pos.space).not.toBe("outside");
+    const runtime = new Runtime(engine, { cacheTerrain: false });
+    expect(await drive(runtime, "work for the day", 400)).toBe("Today's work is done.");
+  });
+
   it("runs about for a while and stops", async () => {
-    const runtime = new Runtime(world("kyoto", 1000), { cacheTerrain: false });
+    const runtime = new Runtime(smallSession(panelSetting("kyoto", 1000), "autopilot"), { cacheTerrain: false });
     const start = { ...runtime.engine.state.player.pos };
     expect(await drive(runtime, "run around", 200)).toBe("You pull up, out of breath.");
     const p = runtime.engine.state.player.pos;
     expect(p.x !== start.x || p.y !== start.y).toBe(true);
   });
 
-  it("finds kin by relation, through the door of the house they are in", async () => {
+  it.runIf(!!process.env.FULL)("finds kin by relation, through the door of the house they are in", async () => {
     const runtime = new Runtime(world("kyoto", 1000), { cacheTerrain: false });
     const s = runtime.engine.state;
     const home = s.households!.find((h) => h.members.includes("player"))!.residence!;
@@ -86,7 +99,7 @@ describe("typed errands", () => {
   });
 
   it("guesses kin from age and sex when the household records only co-residents", () => {
-    const e = world("kyoto", 1000);
+    const e = smallSession(panelSetting("kyoto", 1000), "autopilot");
     const [a, b] = e.state.actors.filter((x) => x.kind === "human" && x.id !== "player");
     e.state.player.age = 50;
     e.state.player.relations = [
@@ -109,7 +122,7 @@ describe("typed errands", () => {
   });
 
   it("stops the moment the player takes a step", async () => {
-    const runtime = new Runtime(world("kyoto", 1000), { cacheTerrain: false });
+    const runtime = new Runtime(smallSession(panelSetting("kyoto", 1000), "autopilot"), { cacheTerrain: false });
     await runtime.say("head north");
     runtime.tick();
     runtime.move(1, 0);
@@ -118,7 +131,7 @@ describe("typed errands", () => {
 });
 
 describe("the Jev router", () => {
-  const engine = world("london", 1400);
+  const engine = smallSession(panelSetting("london", 1400), "autopilot");
   const answer = (choices: Record<string, [string, number]>): Evaluation => ({
     model: "jev-test",
     usage: { input_tokens: 0, output_tokens: 0 },
@@ -169,4 +182,49 @@ describe("the Jev router", () => {
     expect(res.status).toBe(200);
     expect(new Headers(sent!.headers).get("Authorization")).toBe("Bearer test-key");
   });
+});
+
+
+it("hunts wild game with the equipped bow and stops without ammunition", () => {
+  const e = smallSession({ ...panelSetting("london", 1400), role: "Hunter" }, "hunt");
+  const p = e.state.player;
+  p.pos = { x: 60, y: 60, space: "outside" };
+  p.inventory = { bow: 1, arrow: 12 };
+  p.heldItem = "bow";
+  e.state.economy = { hour: 0, stock: {}, short: {}, work: { day: Math.floor(e.state.clock / 86400), stage: 1 } };
+  e.state.fauna = [{ id: "quarry", speciesId: "rabbit", members: [{ x: 62, y: 60, direction: 1 }],
+    pos: { x: 62, y: 60, space: "outside" }, home: { x: 62, y: 60, space: "outside" },
+    homeRadius: 10, state: "idle", nextDecisionAt: Infinity, stride: 0, since: 0 }];
+  e.projectilePath = (target) => [target];
+  const plan = new Autopilot({ kind: "workday" }, e);
+  expect(e.workPlan()?.steps[1].scene).toBe("hunt");
+  expect(e.workHere()).toBeUndefined();
+  expect(plan.next()).toMatchObject({ command: { type: "shoot", target: { x: 62, y: 60 } } });
+  delete p.inventory.arrow;
+  expect(new Autopilot({ kind: "workday" }, e).next()).toMatchObject({ done: expect.stringContaining("weapon and ammunition") });
+  p.inventory.arrow = 12;
+  e.state.fauna[0].members[0].hp = 1;
+  e.state.fauna[0].members[0].tier = "ordinary";
+  e.advance = () => {};
+  const result = e.act({ actionId: "hunt-shot", expectedRevision: e.state.revision,
+    command: { type: "shoot", target: { x: 62, y: 60 }, power: 1 } });
+  expect(result.status).toBe("completed");
+  expect(e.workPlan()?.done).toBe(2);
+  expect(p.inventory.meat).toBeGreaterThan(0);
+  e.state.economy!.work!.stage = 1;
+  e.state.fauna = [{ id: "kept", speciesId: "rabbit", owner: "neighbour", members: [{ x: 62, y: 60, direction: 1 }],
+    pos: { x: 62, y: 60, space: "outside" }, home: { x: 62, y: 60, space: "outside" },
+    homeRadius: 10, state: "idle", nextDecisionAt: Infinity, stride: 0, since: 0 }];
+  expect(new Autopilot({ kind: "workday" }, e).next()).toMatchObject({ done: expect.stringContaining("no wild game") });
+  delete e.state.fauna[0].owner;
+  e.state.fauna[0].members[0].hp = 1;
+  e.state.fauna[0].members[0].tier = "ordinary";
+  p.inventory = { spear: 1 };
+  p.heldItem = "spear";
+  p.direction = 3;
+  const spear = new Autopilot({ kind: "workday" }, e).next();
+  expect(spear).toEqual({ command: { type: "swing", direction: 1 } });
+  if ("command" in spear) e.act({ actionId: "hunt-spear", expectedRevision: e.state.revision, command: spear.command });
+  expect(e.workPlan()?.done).toBe(2);
+
 });

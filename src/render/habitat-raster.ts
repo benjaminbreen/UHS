@@ -328,9 +328,12 @@ function rasterGroundTile(
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
   const composition = groundStyle()?.composition;
+  const upkeep = cell.pavement === "yard" ? 0.55
+    : ["court", "square", "footway", "platform"].includes(cell.pavement ?? "") ? 0.25
+    : cell.pavement === "vacant" ? 0.85 : 1;
   const motifTuning = composition
     ? {
-        density: composition.motifDensity,
+        density: composition.motifDensity * upkeep,
         spacing: composition.motifSpacing,
         clustering: composition.motifClustering,
       }
@@ -731,8 +734,10 @@ function rasterGroundTile(
         // hatch reads as dither noise rather than as grass.
         const clump = noise(wx, wy, 12, 611) * 0.6 + noise(wx, wy, 5, 612) * 0.4;
         let mark = swardHatch(wx, wy);
-        if (mark === 1 && clump < 0.7) mark = 0;
-        if (mark === 2 && clump < 0.76) mark = 0;
+        const detail = Math.min(1, (composition?.motifDensity ?? 1) * upkeep);
+        const colony = hash(Math.floor(wx / 16), Math.floor(wy / 16), 613);
+        if (colony > detail || clump < 0.74) mark = 0;
+        if (mark === 2 && clump < 0.8) mark = 0;
         if (mark === 1) {
           const w = band === 1 ? 0.34 : band === 2 ? 0.55 : 0.5;
           put(
@@ -758,9 +763,12 @@ function rasterGroundTile(
               (noise(wx, wy, 340, 471) - 0.5) * 14 +
               (noise(wx, wy, 88, 473) - 0.5) * 8) / 6,
           ) * 6;
-        put(px, py, rgb, wash + (earthSpeckle(wx, wy) ? -10 : 0));
+        const grit = hash(Math.floor(wx / 16), Math.floor(wy / 16), 613) <
+          (composition?.motifDensity ?? 1) * upkeep;
+        put(px, py, rgb, wash + (grit && earthSpeckle(wx, wy) ? -6 : 0));
       } else {
-        const grain = materialGrain(wx, wy);
+        const grain = hash(Math.floor(wx / 16), Math.floor(wy / 16), 613) <
+          (composition?.motifDensity ?? 1) * upkeep ? materialGrain(wx, wy) : 0;
         const grainShade =
           band === 3 && !dune ? [0, -5, 4][grain] : [0, -4, 4][grain];
         put(px, py, rgb, frozen ? grainShade * 0.3 : grainShade);
@@ -997,13 +1005,16 @@ function rasterGroundTile(
   // borrow the path field and get the same shoulder and margin treatment.
   const wearOf = (xx: number, yy: number) => {
     const c = sample(xx, yy);
+    if (!c || c.height !== cell.height || c.bridge || c.ramp || c.feature === "paving" ||
+      c.field?.garden || (c.field && !(c.field.yard && c.field.crop === "pasture")) ||
+      ["garden", "park", "verge"].includes(c.pavement ?? "")) return 0;
     // A canal only softens the turf at its foot: the berm in the canal tile
     // carries the transition. Full wear here bled a dirt path down both banks.
     if (c?.surface === "water" && c.waterVisual?.kind === "canal") return 0.25;
     const l = c?.landscape;
-    return l && (l.kind === "trample" || l.kind === "trail")
+    return Math.max(c.groundWear ?? 0, l && (l.kind === "trample" || l.kind === "trail")
       ? l.strength * (l.kind === "trail" ? 0.82 : 0.95)
-      : 0;
+      : 0);
   };
   const hasWear = Array.from({ length: 9 }, (_, i) =>
     wearOf(x + (i % 3) - 1, y + Math.floor(i / 3) - 1),
@@ -1030,8 +1041,9 @@ function rasterGroundTile(
   const nearShore =
     !!cell.waterVisual &&
     cell.waterVisual.distance < cell.waterVisual.shoreWidth + 1.5 &&
-    (!groundStyle() || shoreOnTier(sample, x, y));
-  if (paintedGround(cell) && (hasPath || hasWear || nearShore)) {
+    (!groundStyle() || shoreOnTier(sample, x, y, cell.height));
+  const planted = ["garden", "park", "verge"].includes(cell.pavement ?? "");
+  if (!frozen && !planted && paintedGround(cell) && (hasPath || hasWear || nearShore)) {
     const soil = soilPalette;
     // The apron rows exist only to mark trodden ground for the edge pass.
     for (let py = -1; py <= 16; py++)
@@ -1045,7 +1057,7 @@ function rasterGroundTile(
         const wear = hasWear ? wearAt(xx, yy) : 0;
         const field =
           wear > (routed?.coverage ?? 0)
-            ? { coverage: wear, radius: 0.7, cross: 0.5 }
+            ? { coverage: wear, radius: 0.7, cross: 0.5, ruts: false as const, dung: false as const }
             : routed;
         if (routed?.paved && field === routed && inside) {
           const tone = blacktopPixel(routed, wx, wy, dustOf(cell.biome));
@@ -1127,6 +1139,7 @@ function rasterGroundTile(
             wx,
             wy,
             art.motifs,
+            motifTuning,
           );
           // A slow wash keeps the treadway from reading as one flat fill.
           let shade =
@@ -1137,10 +1150,10 @@ function rasterGroundTile(
                 : [0, -9, 4, 13][ink]
               : pebbled
                 ? earthSpeckle(wx, wy)
-                  ? -10
+                  ? -6
                   : 0
                 : grassy
-                  ? [0, -5, 6][materialGrain(wx, wy)]
+                  ? [0, -3, 4][materialGrain(wx, wy)]
                   : 0);
           // Bare ground is close in value to its own soil ramp; packing it
           // one step darker is what lets the tread read without grain.

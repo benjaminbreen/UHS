@@ -54,7 +54,7 @@ export type RoomParams = {
   /** A public room's layout: `serve` sets a counter and seats about the
    * floor, `gather` rings the seats round the fire, `rows` faces them all to
    * an altar on the back wall. Absent in a dwelling. */
-  program?: "serve" | "gather" | "rows" | "shop" | "works";
+  program?: "serve" | "gather" | "rows" | "shop" | "works" | "ward";
   hour: number;
   wear: number;
   soot: number;
@@ -87,6 +87,8 @@ export type Prop = {
   broken?: boolean;
   /** Smashed to pieces, knocked flat, or rocked to one side. */
   wrecked?: boolean;
+  /** Drawn from an entity's atlas frame rather than the room painter. */
+  external?: boolean;
   tipped?: boolean;
   lean?: -1 | 1;
   /** How many are asleep in it. */
@@ -977,7 +979,14 @@ export function planRoom(p: RoomParams): Prop[] {
     }
   }
 
-  if (p.program === "works") {
+  if (p.program === "ward") {
+    const kind = p.sleep === "mat" ? "mat" : "bed";
+    for (let y = 2; y < d - 2; y += 3)
+      for (const x of [1, w - 3]) {
+        const bed = place(kind, 2, 1, (cx, cy) => cx === x && cy === y ? 1 : -1, false, true);
+        if (bed) clear(bed.x, bed.y + 1);
+      }
+  } else if (p.program === "works") {
     // Machines in rows across the floor, a gangway down the middle and at the
     // walls, the furnace at the head of a foundry.
     const mw = p.styles.machine === "frame" ? 3 : 2;
@@ -1128,7 +1137,7 @@ export function planRoom(p: RoomParams): Prop[] {
   }
 
   const sleepKind = p.sleep as Kind;
-  const bed = d >= 4 && p.sleep !== "none" ? place(sleepKind, 2, 1, (x, y) => walls(x, y, 2, 1) * 1.5 + y * 0.3 - near(x, y, 2, 1, fire) * 0.1) : undefined;
+  const bed = d >= 4 && p.sleep !== "none" && p.program !== "ward" ? place(sleepKind, 2, 1, (x, y) => walls(x, y, 2, 1) * 1.5 + y * 0.3 - near(x, y, 2, 1, fire) * 0.1) : undefined;
   // Room to climb in: the chest and lamp go beside the bed, not across it.
   if (bed) clear(bed.x, bed.y + 1);
   if (bed && p.finish >= 1 && has("chest")) place("chest", 1, 1, (x, y) => near(x, y, 1, 1, bed) * 0.8 + walls(x, y, 1, 1) * 0.3);

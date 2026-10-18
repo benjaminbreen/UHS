@@ -3,6 +3,7 @@ import { random } from "../../core/random";
 import {
   bodyFromPhysique,
   generateAppearance,
+  generateBrowConnection,
   type CharacterAppearance,
 } from "../../core/character";
 import type { Inventory } from "../../core/types";
@@ -354,12 +355,14 @@ export function characterAppearance(
     );
   }
   const kit = context.appearance;
+  a.browConnection = generateBrowConnection(`${seed}:character-v1:${id}`, 0, sex, kit.joinedBrowRate);
   a.skin = pick(kit.skin, seed, id, "skin");
-  // The face follows the kit for the same reason skin and hair do: these are
-  // population frequencies, never rules. Every form still occurs everywhere.
+  // Kit weights are art direction, not measured population frequencies.
   if (a.face)
     a.face = {
       ...a.face,
+      eyeShape: kit.eyeShapes ? pick(kit.eyeShapes, seed, id, "eye-shape") : a.face.eyeShape,
+      nose: kit.noses ? pick(kit.noses, seed, id, "nose") : a.face.nose,
       eyelid: kit.eyelids
         ? pick(kit.eyelids, seed, id, "eyelid")
         : a.face.eyelid,
@@ -433,11 +436,12 @@ export function generateCharacter(
   sex: Sex = characterSex(seed, id),
   inheritedTradition?: string,
   familyNaming?: FamilyNaming,
+  localContext?: CharacterContext,
 ) {
   // Where a plural population is authored, each person draws their own
   // community, so the appearance palette and the naming kit stay in step.
-  const community = familyNaming?.community ?? characterCommunity(s, seed, id);
-  const context = resolveCharacterContext(s, community);
+  const community = localContext?.community ?? familyNaming?.community ?? characterCommunity(s, seed, id);
+  const context = localContext ?? resolveCharacterContext(s, community);
   const standing = characterStanding(s, seed, id, community);
   const naming = characterNameParts(
     s,
@@ -460,7 +464,7 @@ export function generateCharacter(
   );
   // Asking for work done by one sex asks for someone of it.
   if (requestedRole && livelihood.sex && livelihood.sex !== sex)
-    return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, livelihood.sex, inheritedTradition, familyNaming);
+    return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, livelihood.sex, inheritedTradition, familyNaming, localContext);
   const recognized =
     !requestedRole ||
     livelihood.label.toLowerCase() === requestedRole.toLowerCase() ||
@@ -519,7 +523,12 @@ export function generateCharacter(
   const accessory = accessoryFor(wearer,
     { year: s.year, setting: s }, appearance.wearing.garment);
   const inventory: Inventory = eligibleInventory(livelihood.inventory, context);
-  if (/hunter|archer|bowman/i.test(livelihood.label)) Object.assign(inventory, { bow: 1, arrow: 12 });
+  // The old mining kit used obsidian as a stand-in for every mineral.
+  if (s.worksiteRevision && livelihood.activity === "Working underground") delete inventory.obsidian;
+  if (livelihood.activity === "Looking for game" && (s.year < -12000 ||
+    (["mesoamerican", "andean", "other-indigenous-american"].includes(s.culture) && s.year < -1000) ||
+    (s.culture === "australian-pacific" && s.year < 1500))) Object.assign(inventory, { spear: 1 });
+  else if (/hunter|archer|bowman/i.test(livelihood.label)) Object.assign(inventory, { bow: 1, arrow: 12 });
   else if (/shepherd|herd|slinger/i.test(livelihood.label)) Object.assign(inventory, { sling: 1, pebble: 8 });
   if (accessory) inventory[accessory] = 1;
   return {

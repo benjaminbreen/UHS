@@ -1,6 +1,13 @@
 import { z } from "zod";
-import { requestSchema } from "./player";
+import { playerCommandSchema } from "../runtime/schema";
 import type { Runtime } from "../runtime/session";
+const requestSchema = z
+  .object({
+    actionId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/),
+    expectedRevision: z.number().int().nonnegative(),
+    command: playerCommandSchema,
+  })
+  .strict();
 /** Optional browser standard. It exposes only the same public player commands. */
 export function registerWebMCP(runtime: Runtime) {
   const context = (

@@ -1,3 +1,4 @@
+import { beliefOf, beliefsFor } from "../content/beliefs";
 import { random } from "./random";
 import { statsOf } from "./stats";
 import { standingOf } from "./standing";
@@ -39,10 +40,22 @@ function leaned(stance: Stance, stats: Stats) {
  * traditions of the same kind. Without it the generals, whose weights are set
  * for a thin record, drown the content written for a thick one. */
 const FALLBACK = 1 / 4;
-function pick(pool: Stance[], stats: Stats, roll: number) {
+function pick(
+  pool: Stance[],
+  stats: Stats,
+  roll: number,
+  observance?: "devout" | "regular" | "occasional" | "indifferent",
+) {
   const named = pool.some((s) => !s.fallback);
   const weights = pool.map(
-    (s) => leaned(s, stats) * (named && s.fallback ? FALLBACK : 1),
+    (s) =>
+      leaned(s, stats) *
+      (named && s.fallback ? FALLBACK : 1) *
+      (observance && s.kind === "temper" && s.tags.includes("devout")
+        ? { devout: 2, regular: 1, occasional: 0.5, indifferent: 0.2 }[
+            observance
+          ]
+        : 1),
   );
   let n = roll * weights.reduce((a, b) => a + b, 0);
   return pool[weights.findIndex((weight) => (n -= weight) < 0)] ?? pool[0];
@@ -58,15 +71,31 @@ function pick(pool: Stance[], stats: Stats, roll: number) {
  */
 export function outlookOf(
   seed: string,
-  actor: Pick<Actor, "id" | "origin" | "age" | "appearance" | "stats">,
+  actor: Pick<
+    Actor,
+    "id" | "origin" | "age" | "appearance" | "stats" | "identity"
+  >,
   setting: WorldSetting,
 ): Outlook {
+  if (actor.identity) {
+    seed = actor.identity.seed;
+    if (!actor.identity.setting) return { stances: [], tags: new Set() };
+    setting = actor.identity.setting;
+  }
   const stats = statsOf(seed, actor);
   const rank = standingOf(seed, actor)?.rank;
   const community = actor.origin?.community;
+  const belief = setting.beliefRevision
+    ? beliefsFor(setting, community)
+    : undefined;
+  const observance = belief
+    ? beliefOf(seed, actor, belief).observance
+    : undefined;
   const eligible = stances.filter(
     (s) =>
       matchesCharacterScope(s.scope, setting, community ?? "*") &&
+      (!belief ||
+        (s.requiresBelief ?? []).every((r) => belief.features?.includes(r))) &&
       (!s.ranks || (rank !== undefined && s.ranks.includes(rank))),
   );
   const held: Stance[] = [];
@@ -78,7 +107,9 @@ export function outlookOf(
       random(seed, "outlook", actor.id, `${kind}-carried`) >= CARRIED
     )
       continue;
-    held.push(pick(pool, stats, random(seed, "outlook", actor.id, kind)));
+    held.push(
+      pick(pool, stats, random(seed, "outlook", actor.id, kind), observance),
+    );
   }
   // Rarest first: what marks this person out from the street is the thing a
   // one-line summary should spend itself on.
@@ -149,7 +180,5 @@ export function outlookSentence(
       : parts.length === 2
         ? `${parts[0]}${lead(1)} ${joint(1)} ${parts[1]}`
         : `${parts[0]}, ${parts[1]}, ${joint(2)} ${parts[2]}`;
-  return subject
-    ? `${subject} ${body}.`
-    : `${capitalize(body)}.`;
+  return subject ? `${subject} ${body}.` : `${capitalize(body)}.`;
 }

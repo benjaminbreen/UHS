@@ -5,14 +5,7 @@ import { resolveSetting, settingFor } from "../src/content/geography/resolve";
 import { waterDepthAt } from "../src/core/water-field";
 import type { Engine } from "../src/core/engine";
 import { places } from "../src/content/geography/places";
-import {
-  harvestResource,
-  refreshResource,
-  householdActivity,
-  depositSupplies,
-  grazeActivity,
-} from "../src/core/livelihood";
-import { items } from "../src/content/packs";
+import { livelihoodById } from "../src/content/characters/livelihoods";
 import { processFor } from "../src/content/economy/processes";
 import { propDefs } from "../src/content/props/catalog";
 import { herdWords } from "../src/content/fauna/herding";
@@ -61,6 +54,7 @@ it("creates reciprocal family links and shared residences, with plausible parent
     ),
     people = [e.state.player, ...e.state.actors];
   expect(e.state.households!.length).toBeGreaterThan(0);
+  let reciprocal = 0;
   for (const h of e.state.households!) {
     expect(h.members.length).toBeGreaterThan(1);
     expect(e.world.place(h.residence!)).toBeDefined();
@@ -71,12 +65,17 @@ it("creates reciprocal family links and shared residences, with plausible parent
       for (const rel of a.relations ?? []) {
         const other = people.find((p) => p.id === rel.other)!;
         expect(other).toBeDefined();
+        if (rel.reciprocal) {
+          expect(other.relations).toContainEqual(expect.objectContaining({ other: a.id, kind: rel.reciprocal }));
+          reciprocal++;
+        }
         if (rel.kind === "child")
           expect(a.age! - other.age!).toBeGreaterThanOrEqual(18);
         expect(other.relations?.some((r) => r.other === id)).toBe(true);
       }
     }
   }
+  expect(reciprocal).toBeGreaterThan(0);
 });
 it("builds households from a life, so they differ and their ages agree", () => {
   const sizes = new Set<number>();
@@ -115,96 +114,6 @@ it("builds households from a life, so they differ and their ages agree", () => {
   expect(widowed).toBeGreaterThan(10);
   expect(help).toBeGreaterThan(10);
 });
-it("harvesting conserves quantities and seasonal replenishment is bounded", () => {
-  const e = createSettingSession(
-    setting({ population: "none", start: "wanderer" }),
-    "resource-check",
-  );
-  const o = e.state.objects.find((o) => o.resource?.item === "fruit")!;
-  expect(o).toBeDefined();
-  e.state.player.pos = { ...o.pos };
-  const before = e.state.player.inventory.fruit ?? 0;
-  expect(harvestResource(e.state.player, o, e.state.clock)).toBe(true);
-  expect(e.state.player.inventory.fruit).toBe(before + 6);
-  expect(harvestResource(e.state.player, o, e.state.clock)).toBe(false);
-  refreshResource(o, e.state.clock + 1, "summer");
-  expect(o.depleted).toBe(true);
-  refreshResource(o, e.state.clock + 10 * 86400, "winter");
-  expect(o.depleted).toBe(true);
-  refreshResource(o, e.state.clock + 10 * 86400, "summer");
-  expect(o.inventory.fruit).toBe(6);
-});
-it("household work gathers real food, deposits it and sleeps at its residence", () => {
-  const e = createSettingSession(setting(), "work-check");
-  e.state.clock = 9 * 3600;
-  const a = e.state.actors.find((a) => a.householdId && a.age! >= 18)!;
-  const h = e.state.households!.find((h) => h.id === a.householdId)!;
-  const store = e.state.objects.find((o) => o.id === h.storeId)!;
-  const fruit = e.state.objects.find((o) => o.resource?.item === "fruit")!;
-  store.inventory = {};
-  a.inventory = {};
-  a.knownResources = [fruit.id];
-  a.pos = { ...fruit.pos };
-  const work = () =>
-    householdActivity(a, e.state, items, (p) => {
-      a.pos = { ...p };
-    });
-  work();
-  e.state.clock += 180;
-  work();
-  expect(a.inventory.fruit).toBe(6);
-  work();
-  work();
-  expect(store.inventory.fruit).toBe(6);
-  expect(a.inventory.fruit).toBe(0);
-  e.state.clock = 19 * 3600;
-  a.pos = { ...h.home };
-  work();
-  expect(a.pos.space).toBe(h.residence);
-  expect(a.activity).toBe("Sleeping at home");
-});
-
-it("player contributions share the household store and preserve tools and valuables", () => {
-  const e = createSettingSession(setting(), "contribute-check");
-  const h = e.state.households!.find((h) => h.members.includes("player"))!;
-  const store = e.state.objects.find((o) => o.id === h.storeId)!;
-  e.state.actors = [];
-  e.state.player.pos = { ...store.pos, x: store.pos.x + 1 };
-  e.state.player.inventory = { fruit: 3, tool: 1, obsidian: 2 };
-  const before = store.inventory.fruit ?? 0;
-  expect(
-    e.act({
-      actionId: "contribute",
-      expectedRevision: e.state.revision,
-      command: { type: "interact", target: store.id, action: "store" },
-    }).status,
-  ).toBe("completed");
-  expect(store.inventory.fruit).toBe(before + 3);
-  expect(e.state.player.inventory.tool).toBe(1);
-  expect(e.state.player.inventory.obsidian).toBe(2);
-});
-it("grazing consumes finite forage rather than manufacturing food", () => {
-  const e = createSettingSession(
-    setting({ ecology: "grassland", population: "none", start: "shepherd" }),
-    "grazing-check",
-  );
-  const patch = e.state.objects.find((o) => o.resource?.item === "fodder")!;
-  // The player's own flock is a fauna group, not an actor; kept livestock is.
-  const sheep = {
-    ...e.state.actors[0],
-    id: "test-sheep",
-    kind: "sheep" as const,
-    pos: { ...patch.pos },
-  };
-  e.state.actors.push(sheep);
-  sheep.hunger = 20;
-  e.state.player.pos = { ...patch.pos, x: patch.pos.x + 8 };
-  e.state.clock = 36000;
-  const before = patch.inventory.fodder!;
-  expect(grazeActivity(sheep, e.state, () => {})).toBe(true);
-  expect(patch.inventory.fodder).toBe(before - 1);
-  expect(sheep.hunger).toBe(15);
-});
 it("the same seed and environment reproduce terrain while landform and water controls change it", () => {
   const build = (landform: "plain" | "ridge", water: WorldSetting["water"]) =>
     createSettingSession(
@@ -238,7 +147,6 @@ it("advances a populated household scene through ordinary simulation commands", 
     },
     "ecology-01",
   );
-  const start = performance.now();
   const result = e.act({
     actionId: "daily-life",
     expectedRevision: 0,
@@ -252,10 +160,7 @@ it("advances a populated household scene through ordinary simulation commands", 
         /Gathering|supplies|household|home|field|water/i.test(a.activity),
     ),
   ).toBe(true);
-  console.log(
-    "Household 30-minute simulation ms",
-    Math.round(performance.now() - start),
-  );
+
 });
 
 it("works a trade in stages at home, stocks the house, and minds neglect", () => {
@@ -303,20 +208,6 @@ it("sends an indoor trade to a station inside the house", () => {
   expect((station as { pos: { space: string } }).pos.space).not.toBe("outside");
 });
 
-it("keeps personal accessories through household routines and supply deposits", () => {
-  const a = { inventory: { "walking-cane": 1, fruit: 3 }, heldItem: "load:basket", pos: { x: 0, y: 0, space: "outside" } } as any;
-  const s = { households: [], objects: [], clock: 9 * 3600 } as any;
-  expect(householdActivity(a, s, items, () => {})).toBe(false);
-  expect(a.heldItem).toBe("walking-cane");
-  const store = { pos: a.pos, inventory: {} } as any;
-  expect(depositSupplies(a, store)).toBe(3);
-  expect(a.inventory["walking-cane"]).toBe(1);
-  expect(store.inventory["walking-cane"]).toBeUndefined();
-  a.inventory["walking-cane"] = 0;
-  householdActivity(a, s, items, () => {});
-  expect(a.heldItem).toBeUndefined();
-});
-
 it("sends a call-out trade to a neighbour's house for the job itself", () => {
   const london = places.find((p) => p.id === "london")!;
   const e = createSettingSession({ ...settingFor(london, 1986), role: "Painter and Decorator" }, "probe");
@@ -339,18 +230,33 @@ it("sends a call-out trade to a neighbour's house for the job itself", () => {
   expect(s.player.inventory.coin).toBeGreaterThan(coins);
 });
 
-it("gives a craft household a turn in its own garden, once a day", () => {
-  const normandy = places.find((p) => p.id === "normandy")!;
-  const e = createSettingSession({ ...settingFor(normandy, 1100), role: "Stonemason" }, "probe");
-  const s = e.state;
-  expect(e.item("coin")!.name).toBe("Silver deniers");
-  const side = e.sideJob()!;
-  expect(side.done).toBe(false);
-  s.player.pos = { ...side.pos, x: side.pos.x + 1 };
-  const tend = e.inspect(side.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "tend-plot")!;
-  expect(e.act({ actionId: "garden", expectedRevision: s.revision, command: tend.command }).status).toBe("completed");
-  expect(e.sideJob()!.done).toBe(true);
-});
+function expectTradePlaces(e: Engine) {
+  const s = e.state, h = s.households!.find((h) => h.members.includes("player"))!;
+  const house = e.world.place(h.residence!)!;
+  expect(house.claim, "a house, not a venue").toBe("landscape");
+  expect(["Townhouse", "Offices", "Bank", "Department store"]).not.toContain(house.name);
+  const plan = e.workPlan()!;
+  const process = processFor(livelihoodOf(e.world.pack, s.player)!)!;
+  const bench = s.objects.find((o) => o.id === `${h.residence}-work`);
+  if (process.bench) expect(process.bench, "the trade's bench").toContain(propDefs[bench?.prop ?? ""]?.family);
+  const herd = (e.world as unknown as { planAt(x: number, y: number): { fauna?: { owner?: string; speciesId: string }[] } })
+    .planAt(Math.round(s.player.home.x), Math.round(s.player.home.y))?.fauna?.find((g) => g.owner === "player");
+  plan.steps.forEach((step, i) => {
+    const place = plan.places[i];
+    if (!process.steps[i].at) return expect(place ?? plan.station ?? bench, `${step.task}: a bench or prop`).toBeTruthy();
+    expect(place, step.task).toBeTruthy();
+    if (process.steps[i].at === "home") expect(place!.pos.space, `${step.task}: inside the house`).toBe(h.residence);
+    if (process.steps[i].at === "sick") expect(place!.patient, `${step.task}: someone to see`).toBeTruthy();
+    if (process.steps[i].at === "field") {
+      expect(place!.label, `${step.task}: the household's own field`).toMatch(/^your (field|paddy)$/);
+      if (/rice/i.test(s.player.origin?.roleLabel ?? "")) expect(place!.crop).toBe("rice");
+    }
+    if (process.steps[i].at === "pasture" || /\{(herd|mothers)\}/.test(process.steps[i].task)) {
+      expect(herd, `${step.task}: the household's own animals`).toBeDefined();
+      expect(step.task).toContain(herdWords(herd!.speciesId)[/\{mothers\}/.test(process.steps[i].task) ? "mothers" : "herd"]);
+    }
+  });
+}
 
 it.each([
   ["A baker in Lyon, 1742 CE", "A day at the oven", 3],
@@ -364,6 +270,7 @@ it.each([
   const resolved = resolveSetting(prompt, "probe");
   if ("error" in resolved) throw Error(resolved.error);
   const engine = createSettingSession(resolved.setting, "probe");
+  expectTradePlaces(engine);
   const plan = engine.workPlan()!;
   expect(plan.title).toBe(title);
   expect(plan.places.filter(Boolean).length).toBeGreaterThanOrEqual(2);
@@ -400,39 +307,14 @@ it.each([
 }, 120000);
 
 it.each([
-  "A baker in Lyon, 1742 CE", "A smith in Normandy, 1200 CE", "A weaver in Florence, 1400 CE", "A scribe in Cairo, 1300 CE",
-  "A herbalist in Kyoto, 1200 CE", "A farmer in Normandy, 1200 CE", "A shepherd in Normandy, 1200 CE",
+  "A smith in Normandy, 1200 CE", "A scribe in Cairo, 1300 CE",
   "An ostler in Riyadh, 1080 CE", "A market trader in Timbuktu, 1400 CE", "A railway labourer in London, 1900 CE",
   "A rice farmer in Kyoto, 1200 CE",
 ])("builds what %s works with: the house, the bench, the animals, the patient", (prompt) => {
   const resolved = resolveSetting(prompt, "probe");
   if ("error" in resolved) throw Error(resolved.error);
   const e = createSettingSession(resolved.setting, "probe");
-  const s = e.state, h = s.households!.find((h) => h.members.includes("player"))!;
-  const house = e.world.place(h.residence!)!;
-  expect(house.claim, "a house, not a venue").toBe("landscape");
-  expect(["Townhouse", "Offices", "Bank", "Department store"]).not.toContain(house.name);
-  const plan = e.workPlan()!;
-  const process = processFor(livelihoodOf(e.world.pack, s.player)!)!;
-  const bench = s.objects.find((o) => o.id === `${h.residence}-work`);
-  if (process.bench) expect(process.bench, "the trade's bench").toContain(propDefs[bench?.prop ?? ""]?.family);
-  const herd = (e.world as unknown as { planAt(x: number, y: number): { fauna?: { owner?: string; speciesId: string }[] } })
-    .planAt(Math.round(s.player.home.x), Math.round(s.player.home.y))?.fauna?.find((g) => g.owner === "player");
-  plan.steps.forEach((step, i) => {
-    const place = plan.places[i];
-    if (!process.steps[i].at) return expect(place ?? plan.station ?? bench, `${step.task}: a bench or prop`).toBeTruthy();
-    expect(place, step.task).toBeTruthy();
-    if (process.steps[i].at === "home") expect(place!.pos.space, `${step.task}: inside the house`).toBe(h.residence);
-    if (process.steps[i].at === "sick") expect(place!.patient, `${step.task}: someone to see`).toBeTruthy();
-    if (process.steps[i].at === "field") {
-      expect(place!.label, `${step.task}: the household's own field`).toMatch(/^your (field|paddy)$/);
-      if (/rice/i.test(s.player.origin?.roleLabel ?? "")) expect(place!.crop).toBe("rice");
-    }
-    if (process.steps[i].at === "pasture" || /\{(herd|mothers)\}/.test(process.steps[i].task)) {
-      expect(herd, `${step.task}: the household's own animals`).toBeDefined();
-      expect(step.task).toContain(herdWords(herd!.speciesId)[/\{mothers\}/.test(process.steps[i].task) ? "mothers" : "herd"]);
-    }
-  });
+  expectTradePlaces(e);
 }, 120000);
 
 it("fixes the day's places at its first command, whether or not anything looked first", () => {
@@ -447,4 +329,19 @@ it("fixes the day's places at its first command, whether or not anything looked 
   expect(watched.state.workday).toBeDefined();
   expect(JSON.stringify(replayed.state.workday)).toBe(JSON.stringify(watched.state.workday));
   expect(replayed.workPlan()!.places).toEqual(watched.workPlan()!.places);
+});
+
+it("tax collectors keep accounts at their workplace instead of following a freelance scribe route", () => {
+  const process = processFor(livelihoodById("tax-collector")!)!;
+  expect(process.title).toBe("A day collecting taxes");
+  expect(process.steps.map((step) => step.at)).toEqual(["workplace", "workplace", "workplace"]);
+  expect(process.paid).toBe("wage");
+});
+
+
+it("gives hunters a real hunting stage instead of gathering plants", () => {
+  const hunt = processFor(livelihoodById("hunter")!)!;
+  expect(hunt.steps.map((s) => s.scene)).toEqual(["craft", "hunt", "haul"]);
+  expect(hunt.steps[1].hours).toBe(0);
+  expect(hunt.steps.every((s) => !s.card)).toBe(true);
 });

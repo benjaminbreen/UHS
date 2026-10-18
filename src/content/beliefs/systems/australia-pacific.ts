@@ -678,6 +678,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "pacific-mission-christianity",
+    features: ["sacred-texts"],
     label: "Pacific mission Christianity",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Oceania",
     scope: { years: [1800, 1950], bounds: [110, -50, 180, 25] },

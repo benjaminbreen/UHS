@@ -154,6 +154,7 @@ export function herdersFor(
     actors.length && dogs && roll("dog") < custom.dog
       ? {
           id: `${herd.id}-dog`,
+          owner: actors[0].id,
           speciesId: "dog",
           members: [
             {

@@ -9,6 +9,8 @@ import { buildingAt, temporalWorld } from "../src/core/time/world";
 import { resolveSetting } from "../src/content/geography/resolve";
 import type { Actor, Place, WorldModel } from "../src/core/types";
 import { timeArrival } from "../server/time-arrival";
+import { TimeTravel } from "../src/core/time/travel";
+import { createSettingSession } from "../src/runtime/session";
 const resolved = resolveSetting("Rome 100 CE");
 if (!("setting" in resolved)) throw Error("Fixture setting");
 const setting = { ...resolved.setting, lon: 14.268, lat: 40.852, placeId: "naples", location: "Neapolis" };
@@ -128,5 +130,16 @@ describe("historical time", () => {
     expect((await timeArrival(new Request("http://test", {method: "GET"}), {})).status).toBe(200);
     expect((await timeArrival(new Request("http://test", {method: "POST"}), {})).status).toBe(503);
     expect((await timeArrival(new Request("http://test", {method: "POST", body: "{}"}), {OPENAI_API_KEY: "test"})).status).toBe(400);
+  });
+  it("travels between years without a browser", () => {
+    const start = resolveSetting("Kyoto 1200 CE");
+    if (!("setting" in start)) throw Error("Fixture setting");
+    const engine = createSettingSession(start.setting, "travel");
+    const travel = new TimeTravel(engine);
+    const prepared = travel.prepare(1350, engine);
+    travel.commit(prepared);
+    expect(travel.currentYear).toBe(1350);
+    expect(prepared.engine.world.pack.setting?.year).toBe(1350);
+    expect(prepared.engine.state.player.age).toBe(1350 - prepared.arrival.person.born);
   });
 });

@@ -401,6 +401,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "ethiopian-orthodox-christian",
+    features: ["sacred-texts"],
     label: "Ethiopian Orthodox Christian practice",
     scope: { years: [350, 1920], bounds: [30, 0, 52, 18] },
     wiki: "https://en.wikipedia.org/wiki/Ethiopian_Orthodox_Tewahedo_Church",

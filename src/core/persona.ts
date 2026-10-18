@@ -1,6 +1,20 @@
 import { random } from "./random";
 import { statsOf } from "./stats";
-import type { Actor, Household, Stats } from "./types";
+import type { CharacterAppearance } from "./character";
+import type { Actor, Household, Snapshot, Stats } from "./types";
+
+export function householdLine(state: Snapshot, actor = state.player): string {
+  const household = state.households?.find((h) =>
+    h.members.includes(actor.id) && (!actor.householdId || h.id === actor.householdId));
+  const home = household ? undefined : actor.identity?.household;
+  const size = household?.members.length ?? home?.size;
+  if (size === undefined) return "Lives alone.";
+  const kin = (actor.relations ?? []).flatMap((r) => {
+    const person = home?.people.find((a) => a.id === r.other) ?? state.actors.find((a) => a.id === r.other);
+    return person ? [`${person.name} (${r.kind}${person.age ? `, ${person.age}` : ""})`] : [];
+  });
+  return `Household of ${size}${kin.length ? `: ${kin.join(", ")}` : ""}.`;
+}
 
 /** A pair beats a single trait: two traits together read as a character,
  * one on its own reads as a stat line. */
@@ -39,6 +53,14 @@ const HIGH = 62;
 const LOW = 38;
 
 export type RestingExpression = "neutral" | "smile" | "soft" | "serious" | "concerned";
+
+export function restingPortraitPoseOf(stats: Stats): NonNullable<CharacterAppearance["restingPose"]> {
+  const o = stats.openness - 50, c = stats.conscientiousness - 50;
+  const e = stats.extraversion - 50, a = stats.agreeableness - 50, n = stats.neuroticism - 50;
+  const pixel = (v: number) => Math.max(-1, Math.min(1, Math.round(v / 40))) || 0;
+  const warmth = pixel(a * 0.65 + e * 0.35);
+  return { inner: pixel(c * 0.25 - n * 0.75), outer: pixel(o * 0.65 + e * 0.35 - c * 0.25), corners: [warmth, warmth] };
+}
 
 export function restingExpressionOf(stats: Stats): RestingExpression {
   // The triangular 10–90 roll puts about a tenth of people at 72 or above.

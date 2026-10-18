@@ -134,6 +134,9 @@ def paint_world(S):
         d.line((x,32,x,y),fill='#315d39',width=2);d.line((x-1,30,x-2,y+8),fill='#6e913f');d.line((x+1,31,x+3,y+7),fill='#466f37')
         d.rectangle((x,y,x+2,y+7),fill='#98632c');d.line((x,y,x,y+5),fill='#d4a24e')
     S['reeds']=im
+    from art.habitat_plants import plant_candidate
+    S['flowers']=plant_candidate('flowers',(24,26),True)
+    S['reeds']=plant_candidate('reeds',(24,36))
     im,d=canvas(24,28)
     for x,y in [(4,11),(10,6),(17,10),(21,15)]:
         d.line((x,25,x,y),fill='#916a30');d.line((x+1,24,x+1,y+2),fill='#d1a449')

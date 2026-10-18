@@ -128,6 +128,10 @@ export type AppearanceKit = QualifiedContent & {
    */
   eyelids?: readonly CharacterFace["eyelid"][];
   epicanthicFold?: number;
+  eyeShapes?: readonly CharacterFace["eyeShape"][];
+  noses?: readonly CharacterFace["nose"][];
+  /** Full connection rate for men; women double it, partial connections double it again. */
+  joinedBrowRate?: number;
   /** Hair textures to draw from. Picked worldwide-uniform before this, which
    * put straight hair on the Congo and coiled hair on Kyoto. */
   hairTextures?: readonly CharacterFace["hairTexture"][];
@@ -232,6 +236,7 @@ export type Livelihood = {
   weight?: number;
   /** Where the day happens. Falls back to reading it off `activity`. */
   workplace?: Workplace;
+  institution?: import("./workplace").Institution;
   /**
    * What this work is called here and now. The id, the workplace and the day
    * stay the same; only the name changes. A gatherer in Neolithic Europe is a

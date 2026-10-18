@@ -6,6 +6,28 @@ import {
 import { shorePolishDefaults } from "../src/render/living-water/polish";
 import { rasterLivingWater } from "../src/render/living-water/mask";
 import type { TopographySample } from "../src/core/topography";
+it("narrows a beach continuously beside a rise instead of cutting it at a tile boundary", () => {
+  const sample: TopographySample = (x) => ({
+    height: x >= 4 ? 1 : 0,
+    surface: "grass",
+    waterVisual: {
+      distance: 4, kind: "sea", ecology: "grassland", shoreWidth: 3,
+      flow: [0, 1], frozenMargin: false,
+    },
+  });
+  const mask = rasterLivingWater(sample, 4, 4, undefined, {
+    ...shorePolishDefaults, enabled: false, blend: 0, coastBeachWidth: 12,
+    coastScallop: 0, beachVariation: 0,
+  });
+  for (let y = 0; y < 64; y++) {
+    const left = ((y + 96) * mask.width + 31) * 4;
+    const right = left + 4;
+    expect(mask.pixels[left + 3]).toBe(255);
+    expect(mask.pixels[right + 3]).toBe(255);
+    expect(Math.abs(mask.pixels[left] - mask.pixels[right])).toBeLessThanOrEqual(2);
+  }
+});
+
 it("coastal relief is bounded, tunable and absent offshore", () => {
   const s = shorePolishDefaults;
   const edge = Array.from({ length: 200 }, (_, x) => coastDistance(0, x, 0, s));

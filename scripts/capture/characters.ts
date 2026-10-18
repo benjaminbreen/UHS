@@ -160,7 +160,7 @@ async function dollSheets(page: Page, pair: [string, string], prefix: string) {
 }
 
 const presets: Record<string, (page: Page) => Promise<void>> = {
-  async readme(page) {
+  async "readme-pair"(page) {
     await characterLab(page, { paused: true });
     await page.evaluate("window.__name = (fn) => fn");
     const sheets = await page.evaluate(async () => {
@@ -293,6 +293,345 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       return sheet.toDataURL();
     });
     await writeDataUrl(sheet, out("family"));
+  },
+  async "portrait-jaw"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { characterAppearance } = await import("/src/content/characters/generate.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const rows = [["london", "female"], ["konya", "male"], ["beijing", "female"], ["timbuktu", "male"]] as const;
+      const sheet = document.createElement("canvas"); sheet.width = 1024; sheet.height = 1376;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([id, sex], row) => {
+        const s = settingFor(places.find((p: any) => p.id === id), 2026);
+        const a = characterAppearance(s, "portrait-age-review", `person-${row}`, 20, undefined, sex);
+        a.hair = sex === "female" ? "bob" : "cropped"; a.beard = "none";
+        a.face = { ...a.face, hairTexture: "straight" };
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        [[30, 1], [30, 0], [70, 1], [70, 0]].forEach(([age, turn], col) => {
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, a, age, { turn });
+          ctx.drawImage(c, col * 256, row * 344, 256, 320);
+          ctx.fillStyle = "#c8bc9c"; ctx.font = "14px sans-serif"; ctx.fillText(`Age ${age} · ${turn ? "three-quarter" : "front"}`, col * 256 + 12, row * 344 + 338);
+        });
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-jaw"));
+  },
+  async "portrait-hair"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { characterAppearance } = await import("/src/content/characters/generate.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const rows = [["london", "female"], ["konya", "male"], ["beijing", "female"], ["timbuktu", "male"]] as const;
+      const sheet = document.createElement("canvas"); sheet.width = 1344; sheet.height = 1056;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([id, sex], row) => {
+        const s = settingFor(places.find((p: any) => p.id === id), 2026);
+        const a = characterAppearance(s, "portrait-age-review", `person-${row}`, 20, undefined, sex);
+        a.beard = "none";
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        const short = sex === "female" ? "bob" : "cropped";
+        const treatments = [[short, "straight"], [short, "wavy"], [short, "curly"], [short, "coiled"], ["long", "straight"], ["braid", "wavy"], ["curls", "coiled"]];
+        treatments.forEach(([hair, hairTexture], col) => {
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, { ...a, hair, face: { ...a.face, hairTexture } }, 30, { turn: row < 2 ? 1 : 0 });
+          ctx.drawImage(c, col * 192, row * 264, 192, 240);
+          ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif";
+          ctx.fillText(`${hairTexture} · ${hair}`, col * 192 + 8, row * 264 + 256);
+        });
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-hair"));
+  },
+  async "portrait-age"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { characterAppearance } = await import("/src/content/characters/generate.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const rows = [["london", "female"], ["konya", "male"], ["beijing", "female"], ["timbuktu", "male"]] as const;
+      const sheet = document.createElement("canvas"); sheet.width = 1024; sheet.height = 1376;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([id, sex], row) => {
+        const s = settingFor(places.find((p: any) => p.id === id), 2026);
+        const a = characterAppearance(s, "portrait-age-review", `person-${row}`, 20, undefined, sex);
+        a.hair = row === 0 ? "bob" : "cropped"; a.beard = "none";
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        [20, 40, 60, 80].forEach((age, col) => {
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, a, age, { turn: row < 2 ? 1 : 0 });
+          ctx.drawImage(c, col * 256, row * 344, 256, 320);
+          ctx.fillStyle = "#c8bc9c"; ctx.font = "14px sans-serif"; ctx.fillText(`Age ${age}`, col * 256 + 12, row * 344 + 338);
+        });
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-age"));
+  },
+  async "portrait-brow-connections"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { characterAppearance } = await import("/src/content/characters/generate.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const sheet = document.createElement("canvas"); sheet.width = 768; sheet.height = 1056;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      for (let row = 0; row < 4; row++) {
+        const s = settingFor(places.find((p: any) => p.id === (row < 2 ? "konya" : "delhi")), 2026);
+        const a = characterAppearance(s, "brow-connection-review", `person-${row}`, 30, undefined, row % 2 ? "male" : "female");
+        a.hair = "cropped"; a.beard = "none"; a.injuryScar = { kind: "none", side: -1 };
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        (["none", "partial", "joined"] as const).forEach((browConnection, col) => {
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, { ...a, browConnection }, 30, { turn: row < 2 ? 1 : 0 });
+          ctx.drawImage(c, col * 256 + 32, row * 264, 192, 240);
+          ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif";
+          ctx.fillText(`${row < 2 ? "West" : "South"} Asian ${row % 2 ? "man" : "woman"} · ${browConnection}`, col * 256 + 12, row * 264 + 256);
+        });
+      }
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-brow-connections"));
+  },
+  async "portrait-backgrounds"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { characterAppearance } = await import("/src/content/characters/generate.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const cases = [["london", "European"], ["beijing", "East Asian"], ["konya", "West Asian"], ["delhi", "South Asian"], ["timbuktu", "West African"], ["cusco", "Andean"]];
+      const sheet = document.createElement("canvas"); sheet.width = 1152; sheet.height = 1056;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      for (let row = 0; row < 4; row++) cases.forEach(([id, label], col) => {
+        const s = settingFor(places.find((p: any) => p.id === id), 2026);
+        const a = characterAppearance(s, "portrait-background-review", `person-${row}`, 30, undefined, row % 2 ? "male" : "female");
+        a.beard = "none"; a.injuryScar = { kind: "none", side: -1 };
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+        drawSculptedPortrait(c.getContext("2d")!, a, 30, { turn: row < 2 ? 1 : 0 });
+        ctx.drawImage(c, col * 192, row * 264, 192, 240);
+        ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif"; ctx.fillText(label, col * 192 + 10, row * 264 + 256);
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-backgrounds"));
+  },
+  async "portrait-eye-detail"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { generateAppearance } = await import("/src/core/character.ts" as string);
+      const cases = [
+        ["Default", "default", "default", false], ["Larger iris", "large", "default", false],
+        ["Larger pupil", "default", "large", false], ["Lower lashes", "default", "default", true],
+        ["Combined", "large", "large", true],
+      ] as const;
+      const sheet = document.createElement("canvas"); sheet.width = 960; sheet.height = 792;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      for (let row = 0; row < 3; row++) {
+        const a = generateAppearance("jewelry-scar-review", row === 1 ? 7 : 4, 36, { sex: row === 1 ? "male" : "female" });
+        a.hair = "cropped"; a.beard = "none"; a.injuryScar = { kind: "none", side: -1 }; a.eyeAlignment = "aligned";
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        cases.forEach(([label, irisSize, pupilSize, lowerLashes], col) => {
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, { ...a, eyeDetail: { irisSize, pupilSize, lowerLashes } }, 36, { turn: row === 2 ? 0 : 1 });
+          ctx.drawImage(c, col * 192, row * 264, 192, 240);
+          ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif"; ctx.fillText(label, col * 192 + 10, row * 264 + 256);
+        });
+      }
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-eye-detail"));
+  },
+  async "portrait-eye-alignment"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { generateAppearance } = await import("/src/core/character.ts" as string);
+      const sheet = document.createElement("canvas"); sheet.width = 768; sheet.height = 1032;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      for (let row = 0; row < 3; row++) {
+        const a = generateAppearance("jewelry-scar-review", row === 1 ? 7 : 4, 36, { sex: row === 1 ? "male" : "female" });
+        a.hair = "cropped"; a.beard = "none"; a.injuryScar = { kind: "none", side: -1 };
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        (["inward", "aligned", "outward"] as const).forEach((eyeAlignment, col) => {
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, { ...a, eyeAlignment, eyeDetail: { irisSize: "default", pupilSize: "default", lowerLashes: false } }, 36, { turn: row === 2 ? 0 : 1 });
+          ctx.drawImage(c, col * 256, row * 344, 256, 320);
+          ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif";
+          ctx.fillText(["Slightly inward · 10%", "Normal · 89%", "Slightly outward · 1%"][col], col * 256 + 12, row * 344 + 336);
+        });
+      }
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-eye-alignment"));
+  },
+  async "portrait-jewelry-scars"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { generateAppearance } = await import("/src/core/character.ts" as string);
+      const cases = [
+        ["Hoops", {}, { ears: "hoop" }], ["Drops", {}, { ears: "drop", metal: "silver" }],
+        ["Chain + pendant", { necklace: true, neckStyle: "chain" }, {}],
+        ["Bead necklace", { necklace: true, neckStyle: "beads" }, {}],
+        ["Nose ring", {}, { nose: "ring" }],
+        ["Brow cut", {}, {}, "brow"], ["Cheek seam", {}, {}, "cheek"],
+        ["Temple cut", {}, {}, "temple"], ["Split lip", {}, {}, "lip"], ["Healed burn", {}, {}, "burn"],
+      ] as const;
+      const sheet = document.createElement("canvas"); sheet.width = 960; sheet.height = 528;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      cases.forEach(([label, wearing, adornment, scar], i) => {
+        const a = generateAppearance("jewelry-scar-review", i < 5 ? 4 : 7, 36, { sex: i < 5 ? "female" : "male" });
+        a.hair = "cropped"; a.beard = "none";
+        a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false, ...wearing };
+        a.adornment = { ears: "none", nose: "none", marks: "none", metal: "gold", ...adornment };
+        a.injuryScar = { kind: scar ?? "none", side: -1 };
+        const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+        drawSculptedPortrait(c.getContext("2d")!, a, 36);
+        const x = (i % 5) * 192, y = Math.floor(i / 5) * 264;
+        ctx.drawImage(c, x, y, 192, 240);
+        ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif"; ctx.fillText(label, x + 10, y + 256);
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-jewelry-scars"));
+  },
+  async "portrait-adornment"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { generateAppearance } = await import("/src/core/character.ts" as string);
+      const a = generateAppearance("portrait-adornment", 4, 32, { sex: "female" });
+      a.hair = "cropped"; a.beard = "none";
+      a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78", earrings: false, necklace: false, eyewear: "none", cloak: false, mantle: false };
+      a.adornment = { ears: "none", nose: "none", marks: "none", metal: "gold" };
+      const cases = [
+        ["Plain", {}, {}], ["Worn earrings", { earrings: true }, {}],
+        ["Hoop + nose ring", {}, { ears: "hoop", nose: "ring" }],
+        ["Chain over coat", { necklace: true, neckStyle: "chain", garment: "coat" }, {}],
+        ["Beads over shirt", { necklace: true, neckStyle: "beads", garment: "shirt" }, {}],
+        ["Painted cheek lines", {}, { marks: "cheek-lines", markStyle: "paint" }],
+        ["Inked chin lines", {}, { marks: "chin-lines", markStyle: "ink" }],
+        ["Raised cheek marks", {}, { marks: "cheek-block", markStyle: "scar" }],
+      ] as const;
+      const sheet = document.createElement("canvas"); sheet.width = 1024; sheet.height = 576;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      cases.forEach(([label, wearing, adornment], i) => {
+        const look = { ...a, wearing: { ...a.wearing, ...wearing }, adornment: { ...a.adornment, ...adornment } };
+        const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+        drawSculptedPortrait(c.getContext("2d")!, look, 32);
+        const f = document.createElement("canvas"); f.width = f.height = 80;
+        renderers.g.draw(f.getContext("2d")!, look, 2, "idle", 0, undefined, 3, "neutral");
+        const x = (i % 4) * 256, y = Math.floor(i / 4) * 288;
+        ctx.drawImage(c, x + 64, y + 8, 192, 240);
+        ctx.drawImage(f, 22, 27, 36, 52, x, y + 104, 64, 92);
+        ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif"; ctx.fillText(label, x + 8, y + 270);
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-adornment"));
+  },
+  async "portrait-personality"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { generateAppearance } = await import("/src/core/character.ts" as string);
+      const { restingPortraitPoseOf } = await import("/src/core/persona.ts" as string);
+      const profiles = [
+        ["Balanced", {}], ["Warm / sociable", { agreeableness: 80, extraversion: 80 }],
+        ["Curious", { openness: 85 }], ["Anxious", { neuroticism: 85 }],
+        ["Diligent / reserved", { conscientiousness: 85, openness: 20, extraversion: 20 }],
+      ] as const;
+      const sheet = document.createElement("canvas"); sheet.width = 960; sheet.height = 536;
+      const ctx = sheet.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      (["female", "male"] as const).forEach((sex, row) => {
+        const a = generateAppearance("portrait-personality", 4, 32, { sex });
+        a.hair = "cropped"; a.beard = "none"; a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78" };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        a.face = { ...a.face!, brows: "straight" };
+        profiles.forEach(([label, patch], col) => {
+          const stats = { strength: 50, agility: 50, endurance: 50, wit: 50, openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50, ...patch };
+          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+          drawSculptedPortrait(c.getContext("2d")!, { ...a, restingPose: restingPortraitPoseOf(stats) }, 32);
+          ctx.drawImage(c, col * 192, row * 268, 192, 240);
+          ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif";
+          ctx.fillText(label, col * 192 + 10, row * 268 + 256);
+        });
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-personality"));
+  },
+  async "portrait-eyes-nose"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { generateAppearance } = await import("/src/core/character.ts" as string);
+      const sheet = document.createElement("canvas");
+      sheet.width = 768; sheet.height = 672;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      const noses = ["straight", "aquiline", "broad", "snub", "flat", "hooked"] as const;
+      const skins = ["#d6a46e", "#bc8a62", "#704631", "#e0b58a", "#9e7250", "#c39770"];
+      for (let i = 0; i < 6; i++) {
+        const age = [30, 45, 28, 9, 38, 68][i];
+        const a = generateAppearance("portrait-polish", i, age);
+        a.physique = { ...a.physique!, sex: i % 2 === 0 ? "female" : "male" };
+        a.skin = skins[i]; a.hair = (["cropped", "original", "curls", "cropped", "long", "topknot"] as const)[i]; a.beard = "none";
+        a.wearing = { ...a.wearing, headwear: i === 0 ? "turban" : "none", headColor: "#a66d49", earrings: false, eyewear: "none" };
+        a.adornment = { ears: "none", nose: "none", marks: "none" };
+        a.face = { ...a.face!, nose: noses[i] };
+        const c = document.createElement("canvas"); c.width = 64; c.height = 80;
+        drawSculptedPortrait(c.getContext("2d")!, a, age, { turn: i === 4 ? 0 : 1 });
+        const x = (i % 3) * 256, y = Math.floor(i / 3) * 336;
+        ctx.drawImage(c, x, y, 256, 320);
+        ctx.fillStyle = "#c8bc9c"; ctx.font = "12px sans-serif";
+        ctx.fillText(`${a.physique.sex} · ${noses[i]} · age ${age}`, x + 12, y + 330);
+      }
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("portrait-eyes-nose"));
   },
   /** The sculpted bust before and after the refined model, pair by pair, with the G sprite beside each. */
   async "portrait-ab"(page) {

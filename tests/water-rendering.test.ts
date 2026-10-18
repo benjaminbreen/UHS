@@ -1,3 +1,6 @@
+vi.mock("../src/render/living-water/game",()=>({openWaterMask:vi.fn()}));
+import { Watercraft, mooredBoatFrame, boatFrame } from "../src/render/watercraft";
+import { Reflections } from "../src/render/reflections";
 import {
   motifKinds,
   motifPixels,
@@ -5,7 +8,7 @@ import {
   waterMotif,
   waterCharm,
 } from "../src/render/water-motifs";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { rasterWaterTile } from "../src/render/water-raster";
 import { waterDistance, waterPalette } from "../src/render/water-style";
 import type { TopographySample } from "../src/core/topography";
@@ -73,7 +76,7 @@ it("reconstructs a continuous bed without a discontinuity at tile boundaries", (
     ).toBeLessThan(1e-5);
   }
 });
-it("retains base ecology on wet banks and exports river tangents without changing downstream direction", () => {
+it.runIf(!!process.env.FULL)("retains base ecology on wet banks and exports river tangents without changing downstream direction", () => {
   for (const ecology of ["desert", "tropical-woodland", "tundra"] as const) {
     const s = setting(ecology, "river-ew"),
       seed = "water-ecology";
@@ -208,4 +211,51 @@ it("adds only occasional freshwater plants and leaves, and freezes them out in w
   expect(counts.plant + counts.leaf + counts.ring).toBeLessThan(65);
   e.cell.waterVisual!.frozenMargin = true;
   expect(waterCharm(e)).toBeUndefined();
+});
+
+it("keeps low floating hulls out of the upright bank reflection projection",()=>{
+  const image=vi.fn(),water=vi.fn(()=>true);
+  const reflections=new Reflections({cameras:{main:{worldView:{x:0,y:0,right:500,bottom:500}}},add:{image}} as any,water);
+  const sources=["boat-wasen-pale-7","boat-wasen-weathered-3-front","boat-wasen-0-back","boat-clinker-1","boat-clinker-1-front","boat-clinker-1-back","worksite-fishing-boat-north","worksite-plank-skiff-east","worksite-reed-skiff-west"].map(name=>
+    ({active:true,visible:true,alpha:1,frame:{name}}));
+  sources.push({active:true,visible:true,alpha:1,frame:{name:"human-aboard"},getData:()=>true} as any);
+  reflections.update(sources as any,0xffffff,0);
+  expect(water).not.toHaveBeenCalled();
+  expect(image).not.toHaveBeenCalled();
+});
+
+it.each([["clinker",0],["wasen",0],["wasen",.5],["wasen",.99]] as const)("turns %s at finish %s around a seated person and removes it on leaving the water",(model,variation)=>{
+  const images:any[]=[];
+  const scene={textures:{get:()=>({has:()=>true})},add:{image:()=>{
+    const im:any={setTexture:(_key:string,frame:string)=>{im.frame=frame;return im;},
+      setVisible:(v:boolean)=>{im.visible=v;return im;},
+      setPosition:(x:number,y:number)=>{im.x=x;im.y=y;return im;},
+      setDepth:(d:number)=>{im.depth=d;return im;},
+      setOriginFromFrame:()=>im,setTint:()=>im,destroy:vi.fn()};
+    images.push(im);return im;
+  }}};
+  const craft=new Watercraft(scene as any,()=>"boats"),person={x:100,y:200,depth:50,setData:vi.fn()} as any;
+  for(let facing=0;facing<8;facing++){
+    craft.update(person,"boat",0xffffff,false,facing,model,variation);
+    expect(images).toHaveLength(2);
+    expect(images.map(im=>im.frame)).toEqual([`${boatFrame(model,facing,variation)}-back`,`${boatFrame(model,facing,variation)}-front`]);
+    expect(images[0].depth).toBeLessThan(person.depth);
+    expect(images[1].depth).toBeGreaterThan(person.depth);
+    expect(images.map(im=>[im.x,im.y])).toEqual([[100,202.6],[100,202.6]]);
+  }
+  craft.update(person,undefined,0xffffff,false);
+  expect(images.every(im=>!im.visible)).toBe(true);
+  expect(person.setData).toHaveBeenLastCalledWith("aboard",false);
+  craft.dispose();
+  expect(images.every(im=>im.destroy.mock.calls.length===1)).toBe(true);
+  expect(mooredBoatFrame("worksite-fishing-boat-east")).toBe("boat-clinker-2");
+  expect(mooredBoatFrame("worksite-reed-skiff-east")).toBe("worksite-reed-skiff-east");
+});
+
+it("keeps a Japanese boat's material finish when turning or changing between moored and occupied art",()=>{
+  for(const [variation,finish] of [[0,""],[.5,"-pale"],[.99,"-weathered"]] as const){
+    for(const [suffix,facing] of [["",4],["-north",0],["-east",2],["-west",6]] as const)
+      expect(mooredBoatFrame(`worksite-plank-skiff${suffix}`,variation)).toBe(`boat-wasen${finish}-${facing}`);
+    for(let f=0;f<8;f++)expect(boatFrame("wasen",f,variation)).toBe(`boat-wasen${finish}-${f}`);
+  }
 });

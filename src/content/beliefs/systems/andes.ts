@@ -454,6 +454,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "inca-state",
+    priority: 1,
     label: "Inca state religion",
     wiki: "https://en.wikipedia.org/wiki/Inca_religion",
     scope: { years: [1450, 1532], bounds: [-77, -16, -69, -8] },
@@ -623,6 +624,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "colonial-syncretism",
+    features: ["sacred-texts"],
     label: "Early colonial syncretic practice",
     wiki: "https://en.wikipedia.org/wiki/Extirpation_of_idolatry",
     scope: { years: [1532, 1700], bounds: [-82, -40, -60, 13] },
@@ -691,7 +693,11 @@ export const andes: readonly BeliefSystem[] = [
       "The saint's day is celebrated publicly; the apu and Pachamama are addressed in private.",
       "Mummies kept hidden from priests but brought out for family rites.",
       "Water from the blessed spring used for healing.",
-      "Miners entering the shaft leave coca and alcohol for El Tío, who rules underground where the church has no authority.",
+      {
+        text: "Miners entering the shaft leave coca and alcohol for El Tío, who rules underground where the church has no authority.",
+        livelihoods: ["miner"],
+        weight: 2,
+      },
     ],
     specialist:
       "The Catholic priest for the church; curaca and elders for hidden practices; miners tend El Tío's shrine themselves.",

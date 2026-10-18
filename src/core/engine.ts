@@ -1,3 +1,5 @@
+import { updateRelationships } from "./bonds";
+import { dangerAt, npcDanger } from "./danger";
 import { afloatAt } from "./watercraft";
 import { wornFromWearing } from "./wearing";
 import {
@@ -17,6 +19,7 @@ import {
 } from "./livelihood";
 import { skySeed, weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
+import { regionalContainer } from "../content/props/containers";
 import { about } from "../content/props/about";
 import { atWork, briefText, personBrief, sexOf } from "./brief";
 import { placeBrief } from "./place-brief";
@@ -63,6 +66,7 @@ import {
   type PlayerCommand,
   type Position,
   type Snapshot,
+  type SocialRelation,
   type WorldModel,
   type WorldObject,
 } from "./types";
@@ -92,7 +96,8 @@ import { advanceLifeAim, ensureLifeAim } from "./life-aim";
 import { endPlot, plotLine, plotTemplate, stepPlot, type PlotCard } from "./plot";
 import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
-import { ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment } from "./health";
+import { bodilyLimits, ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress } from "./health";
+import { treatments, type Treatment } from "../content/health/infections";
 import { kinWord } from "./concerns";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
@@ -271,6 +276,19 @@ const ROUTINE_BUILDS_PER_ADVANCE = 32;
 /** The generated decoration function of each world, before any engine wrapped
  * it in its own tile edits. */
 const grownDecoration = new WeakMap<WorldModel, WorldModel["decoration"]>();
+function reverseRelation(actor: Actor, relation: SocialRelation): SocialRelation["kind"] {
+  if (relation.reciprocal) return relation.reciprocal;
+  switch (relation.kind) {
+    case "parent": return "child";
+    case "child": return "parent";
+    case "servant":
+    case "apprentice": return "master";
+    // Older generators did not retain the reverse link.
+    case "master": return actor.origin?.livelihood === "apprentice" || /^apprentice\b/i.test(actor.role)
+      ? "apprentice" : "servant";
+    default: return relation.kind;
+  }
+}
 const treeName = (sprite: string) =>
   sprite
     .replace(/^(nature-understory|nature|ecology)-/, "")
@@ -337,6 +355,8 @@ export class Engine {
             schema: world.pack.setting ? 2 : 1,
             simulation: world.generatorVersion === 3 ? 2 : 1,
             hazards: 1,
+            survival: 1,
+            disease: 1,
             generator: world.generatorVersion ?? (world.pack.setting ? 2 : 1),
             content: 1,
             atlas: world.pack.setting ? 2 : 1,
@@ -379,6 +399,19 @@ export class Engine {
           log: [],
           permissions: {},
         };
+    // Old snapshots copied the NPC's "master" link back onto the player.
+    if (snapshot) {
+      for (const relation of this.state.player.relations ?? []) {
+        if (relation.kind !== "master") continue;
+        const actor = this.state.actors.find((a) => a.id === relation.other);
+        const back = actor?.relations?.find((r) => r.other === "player" && r.kind === "master");
+        if (!actor || !back) continue;
+        const original = world.initialActors.find((a) => a.id === actor.id)
+          ?.relations?.find((r) => r.other === "player" && r.kind === "master");
+        relation.kind = original?.reciprocal ?? reverseRelation(actor, back);
+        relation.reciprocal = "master";
+      }
+    }
     const edited = (x: number, y: number, base: Decoration | undefined) =>
       editedDecoration(base, this.state.tiles?.[tileKey(x, y)], x, y);
     // The generator hook is what lets collision and pathing see a felled tree;
@@ -423,12 +456,8 @@ export class Engine {
             .filter((r) => r.other === "player")
             .map((r) => ({
               other: a.id,
-              kind:
-                r.kind === "parent"
-                  ? "child"
-                  : r.kind === "child"
-                    ? "parent"
-                    : r.kind,
+              reciprocal: r.kind,
+              kind: reverseRelation(a, r),
             })),
         ),
       });
@@ -728,7 +757,7 @@ export class Engine {
   workHere() {
     const ps = this.placeStep();
     const p = this.state.player.pos;
-    if (!ps || this.waitingCard() || p.space !== ps.at.pos.space || distance(p, ps.at.pos) > 2.5) return;
+    if (!ps || ps.step.scene === "hunt" || this.waitingCard() || p.space !== ps.at.pos.space || distance(p, ps.at.pos) > 2.5) return;
     return {
       label: this.stepTask(ps.step),
       command: { type: "interact" as const, target: Engine.tileTarget(ps.at.pos.x, ps.at.pos.y), action: "work" as const },
@@ -768,7 +797,16 @@ export class Engine {
   }
   /** Why a choice cannot be taken: something this world never had, or
    * something the player has not got. */
+  private forfeitItem() {
+    const p = this.state.player;
+    return [...Object.keys(p.inventory).filter((id) => (p.inventory[id] ?? 0) > 0), ...(p.heldItem ? [p.heldItem] : [])]
+      .filter((id) => id !== "water")
+      .sort((a, b) => (this.item(b)?.value ?? 0) - (this.item(a)?.value ?? 0) || a.localeCompare(b))[0];
+  }
   private choiceProblem(c: CardChoice) {
+    const care = c.then.find((e) => e.type === "care");
+    if (care?.type === "care") return this.careOptions(this.state.care?.who ?? "player").find((o) => o.treatment === care.treatment)?.unavailable;
+    if (c.then.some((e) => e.type === "forfeit") && !this.forfeitItem()) return "You have no item to hand over.";
     for (const e of c.then)
       if (e.type === "item") {
         const def = this.item(e.item);
@@ -796,34 +834,37 @@ export class Engine {
   }
   /** Puts the card waiting on today's work back on screen. */
   reofferCard() {
-    const id = this.waitingCard();
-    const card = id && CARDS.find((c) => c.id === id);
-    if (card && !this.cards.some((c) => c.choose?.card === id)) this.offerCard(card);
+    const id = this.state.encounter?.card ?? this.state.care?.card ?? this.waitingCard();
+    const card = id && this.choiceCard(id);
+    if (card && !this.cards.some((c) => c.choose?.card === id)) this.offerCard(card, this.state.care?.card === id ? this.state.care : undefined);
   }
   /** Puts a card on screen. A card about an illness waits apart from the
    * day's work, so it can come whenever someone falls ill. */
   private offerCard(card: ChoiceCard, care?: { who: string; ailment: string }) {
     const s = this.state, boss = bossTitle(this.world.pack.setting);
+    const encounter = s.encounter?.card === card.id;
     const stats = this.stats();
     const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
     const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
-    if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.clock };
-    else s.economy!.work!.card = card.id;
+    if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.care?.card === card.id && s.care.who === care.who ? s.care.at : s.clock };
+    else if (!encounter) s.economy!.work!.card = card.id;
     this.cards.unshift({
       kind: "speech",
-      title: care ? (person ? person.name : "Unwell") : !person ? (this.trade()?.process.steps[s.economy?.work?.drawn ?? -1]?.task ?? this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: encounter ? "On the road" : care ? (person ? person.name : "Unwell") : !person ? (this.trade()?.process.steps[s.economy?.work?.drawn ?? -1]?.task ?? this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {
         card: card.id,
         choices: card.choices.flatMap((c, index) => {
           if (this.absent(c)) return [];
+          const careEffect = c.then.find((e) => e.type === "care");
+          const careOption = careEffect?.type === "care" ? this.careOptions(care?.who).find((o) => o.treatment === careEffect.treatment) : undefined;
           // For the sick, the odds shown are of the care turning a dying illness.
           const tend = c.then.find((e) => e.type === "tend");
-          const odds = c.check ? oddsOf(c.check, stats, c.check.skill ? this.skillLevel(c.check.skill) : 0) : tend?.type === "tend" ? tend.odds : undefined;
+          const odds = c.check ? oddsOf(c.check, stats, c.check.skill ? this.skillLevel(c.check.skill) : 0) : !s.manifest.disease && tend?.type === "tend" ? tend.odds : undefined;
           const note = c.note && cardText(c.note, words);
-          const minutes = c.then.reduce((n, e) => n + (e.type === "minutes" ? e.n : 0), 0);
-          const coin = c.then.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0);
+          const minutes = careOption?.minutes ?? c.then.reduce((n, e) => n + (e.type === "minutes" || e.type === "sleep" ? e.n : 0), 0);
+          const coin = careOption ? -careOption.coin : c.then.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0);
           return [{ index, label: cardText(c.label, words), note, odds, minutes: minutes || undefined, coin: coin || undefined, unavailable: this.choiceProblem(c) }];
         }),
       },
@@ -833,17 +874,22 @@ export class Engine {
     if (id.startsWith("help:")) return this.helpChoose(id, n);
     const s = this.state, p = s.player;
     const care = s.care?.card === id ? s.care : undefined;
-    const work = care ? undefined : s.economy!.work!;
-    const card = CARDS.find((c) => c.id === id)!, c = card.choices[n];
+    const encounter = s.encounter?.card === id;
+    const work = care || encounter ? undefined : s.economy!.work!;
+    const card = this.choiceCard(id)!, c = card.choices[n];
+    if (encounter) p.encounterAfter = s.clock + 86400;
     if (care) delete s.care;
+    else if (encounter) delete s.encounter;
     else delete work!.card;
     const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
     const won = !c.check || this.rng(`card:${id}`) < oddsOf(c.check, this.stats(), c.check.skill ? this.skillLevel(c.check.skill) : 0);
     const effects = won ? c.then : (c.otherwise ?? []);
+    const careEffect = effects.find((e) => e.type === "care");
+    const careOption = careEffect?.type === "care" ? this.careOptions(care?.who).find((o) => o.treatment === careEffect.treatment) : undefined;
     const sum = (type: string) => effects.reduce((n, e) => n + (e.type === type ? ("delta" in e ? e.delta : "n" in e ? e.n : 0) : 0), 0);
     const changes = [
-      { kind: "time", delta: sum("minutes") },
-      { kind: "coin", delta: effects.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0) },
+      { kind: "time", delta: careOption?.minutes ?? sum("minutes") + sum("sleep") },
+      { kind: "coin", delta: careOption ? -careOption.coin : effects.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0) },
       { kind: "pay", delta: sum("pay") },
       { kind: "day", delta: sum("day") },
       { kind: "regard", delta: person ? sum("regard") : 0, who: person?.name.split(" ")[0] },
@@ -852,11 +898,24 @@ export class Engine {
     for (const e of effects)
       if (e.type === "day") { if (work) work.quality = Math.max(-2, Math.min(2, (work.quality ?? 0) + e.delta)); }
       else if (e.type === "pay") { if (work) work.pay = (work.pay ?? 0) + e.delta; }
-      else if (e.type === "risk") { if (this.rng(`risk:${id}`) < e.odds) this.fallIll(e.ailment); }
+      else if (e.type === "risk") {
+        if (s.manifest.disease) exposure(s, p, e.ailment, `activity:${id}:${s.clock}`, "activity", -Math.log1p(-Math.min(0.999, e.odds)), s.clock);
+        else if (this.rng(`risk:${id}`) < e.odds) this.fallIll(e.ailment);
+      }
       else if (e.type === "minutes") this.advance(e.n * 60);
+      else if (e.type === "sleep") { if (s.manifest.survival) this.sleep(e.n * 60); else this.advance(e.n * 60); }
       else if (e.type === "fatigue") p.fatigue = Math.max(0, Math.min(100, p.fatigue + e.n));
       else if (e.type === "item") p.inventory[e.item] = Math.max(0, (p.inventory[e.item] ?? 0) + e.n);
+      else if (e.type === "forfeit") {
+        const item = this.forfeitItem();
+        if (item) {
+          if (p.heldItem === item) delete p.heldItem;
+          else p.inventory[item]!--;
+          this.event(`They took your ${this.item(item)?.name.toLowerCase() ?? item}.`);
+        }
+      }
       else if (e.type === "hurt") this.hurt(e.n, e.cause, e.injury);
+      else if (e.type === "care") this.giveCare(care?.who ?? "player", e.treatment);
       else if (e.type === "tend") {
         const who = care ? care.who : person?.id;
         const ail = who && s.ailments?.find((a) => a.who === who && !a.tended);
@@ -879,15 +938,14 @@ export class Engine {
    * half their strength, and an injury some more. */
   stats() {
     const s = this.state, p = s.player, base = statsOf(s.manifest.seed, p);
-    const sick = ailing(s, p.id, s.clock), hurt = p.injury && p.injury.until > s.clock ? 0.15 : 0;
-    const k = 1 - Math.min(0.6, sick * 0.5 + hurt);
-    return { ...base, strength: base.strength * k, agility: base.agility * k, endurance: base.endurance * k, wit: base.wit * (1 - sick * 0.3) };
+    const k = bodilyLimits(s);
+    return { ...base, strength: base.strength * k.physical, agility: base.agility * k.physical, endurance: base.endurance * k.physical, wit: base.wit * k.mental };
   }
   private careWords(person: Actor | undefined, ailment: string) {
     const setting = this.world.pack.setting;
     return {
       ...this.cardWords(person?.name.split(" ")[0]),
-      ailment: nameFor(ailmentDef(ailment), setting),
+      ailment: this.state.manifest.disease ? symptomsOf({ id: ailment }).join(", ") : nameFor(ailmentDef(ailment), setting),
       healer: (setting?.year ?? 0) < 1880 ? "healer" : "doctor",
     };
   }
@@ -896,19 +954,102 @@ export class Engine {
   private fallIll(ailment: string, who: Actor = this.state.player) {
     const s = this.state, setting = this.world.pack.setting;
     if ((s.ailments ?? []).some((a) => a.who === who.id)) return;
-    const ail = startAilment(s.manifest.seed, ailmentDef(ailment), who, healthPerson(who, setting), s.clock, false, true);
+    const ail = s.manifest.disease ? infect(s, ailment, who, setting, s.clock, "scripted event", "outside") : startAilment(s.manifest.seed, ailmentDef(ailment), who, healthPerson(who, setting), s.clock, false, true);
     (s.ailments ??= []).push(ail);
-    this.offerCare(ail);
+    if (ail.since <= s.clock) this.offerCare(ail);
   }
   private offerCare(ail: { who: string; id: string }) {
     const s = this.state, setting = this.world.pack.setting;
     const own = ail.who === s.player.id;
     // One at a time; one left unanswered a day lapses.
     if ((s.care && s.clock - s.care.at < 86400) || s.player.dead || (!own && !kinOf(s).some((k) => k.actor.id === ail.who))) return;
+    if (s.manifest.disease) {
+      s.care = { card: "care-symptoms", who: ail.who, ailment: ail.id, at: s.clock };
+      this.offerCard(this.choiceCard("care-symptoms")!, s.care);
+      return;
+    }
     const card = pickCard(own ? "care-self" : "care-kin", setting,
       weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", s.clock), s.manifest.seed,
       Math.floor(s.clock / 86400), (c) => c.choices.filter((x) => !this.absent(x)).length >= 2, new Set());
     if (card) this.offerCard(card, { who: ail.who, ailment: ail.id });
+  }
+
+  private choiceCard(id: string): ChoiceCard | undefined {
+    if (id !== "care-symptoms") return CARDS.find((c) => c.id === id);
+    const who = this.state.care?.who;
+    if (!who) return;
+    return {
+      id, slot: "care-self", evidence: "inferred", text: "Symptoms: {ailment}. Decide what care you can arrange; you can also seek help later through the body panel or by inspecting the patient.",
+      choices: [...this.careOptions(who).map((o) => ({ label: o.label, note: `${o.note} · ${o.minutes} minutes${o.coin ? ` · ${o.coin} coins` : ""}`, then: [{ type: "care" as const, treatment: o.treatment }], line: o.label })),
+        { label: "Decide later", note: "Care remains available", then: [], line: "You put off arranging care." }],
+    };
+  }
+
+  careOptions(target = "player") {
+    if (!this.state.manifest.disease) return [];
+    const s = this.state, p = s.player, a = target === p.id ? p : s.actors.find((a) => a.id === target);
+    const own = a === p, clock = s.clock, ill = s.ailments?.find((ail) => ail.who === target && severity(ail, clock) > 0);
+    const providers = s.actors.filter(practitioner).sort((a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos) || a.id.localeCompare(b.id));
+    const provider = providers.find((a) => distance(a.pos, p.pos) <= 2.5);
+    const antibiotic = providers.find((a) => distance(a.pos, p.pos) <= 2.5 && (a.medicalStock?.antibiotic ?? 0) > 0);
+    const fluids = providers.find((a) => distance(a.pos, p.pos) <= 2.5 && (a.medicalStock?.rehydration ?? 0) > 0);
+    const home = s.households?.find((h) => h.members.includes(p.id));
+    const atHome = !!home && (p.pos.space === home.residence || distance(p.pos, home.home) <= 3);
+    const hearth = s.objects.some((o) => o.kind === "fire" && !o.broken && !o.depleted && distance(o.pos, p.pos) <= 3);
+    const common = !a || a.dead || a.kind !== "human" ? "There is no living patient here." : !own && distance(a.pos, p.pos) > 2.5 ? "Walk within reach of the patient." : undefined;
+    const options: Record<Treatment, { label: string; note: string; minutes: number; coin: number; problem?: string }> = {
+      rest: { label: "Go to bed and rest", note: "Six hours of rest supports recovery; shelter matters", minutes: 360, coin: 0, problem: !own ? "You can rest yourself; nurse another patient." : undefined },
+      nurse: { label: "Arrange nursing care", note: "An hour of close care; support lasts a day, and contact can expose you", minutes: 60, coin: 0, problem: own ? "Choose rest for yourself." : !ill ? "No symptoms need nursing." : undefined },
+      "clean-wound": { label: "Clean and dress the wound", note: "Reduces further wound exposure for a day; does not cure an established infection", minutes: 20, coin: 0, problem: !a?.injury?.open || a.injury.until <= clock ? "There is no open wound to dress." : undefined },
+      consult: { label: "Consult a local practitioner", note: provider ? `${provider.name}: an assessment and a day of supportive care` : "An assessment and supportive care", minutes: 60, coin: 2, problem: !ill ? "No symptoms to assess." : !provider ? providers[0] ? `Seek ${providers[0].name} (${providers[0].role}) first.` : "No practitioner is present on this map." : undefined },
+      medicine: { label: "Seek antibiotic treatment for the wound", note: antibiotic ? `${antibiotic.name} has a course in stock; helps an infected wound, not every illness` : "Requires a practitioner with appropriate medicine in stock", minutes: 60, coin: 3, problem: ill?.id !== "wound" ? "This treatment is for an infected wound." : !antibiotic ? "No nearby practitioner has this medicine." : (ill.infection?.medicineUntil ?? 0) > clock ? "A treatment course is already under way." : undefined },
+      rehydration: { label: "Arrange oral rehydration treatment", note: fluids ? `${fluids.name} has supplies; a day of prepared treatment for diarrhea` : "Requires a practitioner with prepared supplies", minutes: 30, coin: 1, problem: ill?.id !== "flux" ? "This treatment is for diarrhea." : !fluids ? "No nearby practitioner has these supplies." : (ill.infection?.fluidsUntil ?? 0) > clock ? "Treatment is already arranged for today." : undefined },
+      "prepare-food": { label: "Arrange careful food and water preparation", note: "A day of safer household provisions; no drinking upkeep", minutes: 30, coin: 0, problem: !own ? "Arrange this for your own household." : !atHome && !hearth ? "Return home or find a cooking fire." : (p.preparedFoodUntil ?? 0) > clock ? "Preparation is already arranged for today." : undefined },
+    };
+    const year = this.world.pack.setting?.year ?? 1500;
+    return treatments.filter((t) => (t !== "medicine" || year >= 1945) && (t !== "rehydration" || year >= 1970)).map((treatment) => {
+      const o = options[treatment];
+      return { treatment, label: o.label, note: o.note, minutes: o.minutes, coin: o.coin, practitioner: ["consult", "medicine", "rehydration"].includes(treatment) && providers[0] ? { id: providers[0].id, name: providers[0].name, pos: { ...providers[0].pos } } : undefined, unavailable: common ?? o.problem ?? ((p.inventory.coin ?? 0) < o.coin ? `You need ${o.coin} coins.` : undefined), command: { type: "care" as const, target, treatment } };
+    });
+  }
+
+  private giveCare(target: string, treatment: Treatment) {
+    const s = this.state, p = s.player, clock = s.clock;
+    const a = target === p.id ? p : s.actors.find((a) => a.id === target)!;
+    const option = this.careOptions(target).find((o) => o.treatment === treatment)!;
+    const ail = s.ailments?.find((ail) => ail.who === target && severity(ail, clock) > 0), i = ail?.infection;
+    if (s.care?.who === target) delete s.care;
+    p.inventory.coin = Math.max(0, (p.inventory.coin ?? 0) - option.coin);
+    if (treatment === "clean-wound" && a.injury) a.injury.cleanUntil = clock + 86400;
+    if (treatment === "prepare-food") {
+      p.preparedFoodUntil = clock + 86400;
+      for (const member of s.actors) if (p.householdId && member.householdId === p.householdId) member.preparedFoodUntil = clock + 86400;
+    }
+    if (i) {
+      if (treatment === "nurse" && ail.id === "flux")
+        exposure(s, p, "flux", `${s.manifest.seed}:${a.id}:${i.exposed}`, "care", 0.06, clock);
+      if (treatment === "nurse" || treatment === "consult") i.careUntil = clock + 86400;
+      if (treatment === "consult") {
+        const provider = s.actors.find((x) => practitioner(x) && distance(x.pos, p.pos) <= 2.5)!;
+        i.assessment = { by: provider.name, at: clock, text: `The symptoms suggest ${ail.id === "wound" ? "a wound that is infected" : ail.id === "flux" ? "an illness of the bowels" : ail.id === "cough" ? "an illness of the chest" : "an illness requiring observation"}; the cause is uncertain.` };
+      }
+      if (treatment === "medicine" || treatment === "rehydration") {
+        const key = treatment === "medicine" ? "antibiotic" : "rehydration";
+        const provider = s.actors.find((x) => practitioner(x) && distance(x.pos, p.pos) <= 2.5 && (x.medicalStock?.[key] ?? 0) > 0)!;
+        provider.medicalStock![key]--;
+        if (treatment === "medicine") i.medicineUntil = clock + 7 * 86400;
+        else i.fluidsUntil = clock + 86400;
+      }
+    }
+    diseaseEvent(s, { clock, kind: "treatment", who: target, disease: ail?.id ?? "prevention", treatment });
+    if (treatment === "rest") this.sleep(option.minutes * 60);
+    else {
+      const before = p.activity;
+      p.activity = treatment === "nurse" ? "Caring for the sick" : "Arranging care";
+      this.advance(option.minutes * 60, target === p.id ? undefined : target);
+      if (!p.dead) p.activity = before;
+    }
+    this.event(`${option.label}${a === p ? "." : `: ${a.name}.`}`);
   }
   private today() {
     const s = this.state;
@@ -956,11 +1097,12 @@ export class Engine {
       tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
     };
   }
-  private doWork() {
+  private doWork(hunted = false) {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length) return;
     const s = this.state;
     const { process } = t;
+    if (process.steps[t.stage].scene === "hunt" && !hunted) return;
     // The pen stands open while the work is out at grass and while the herd
     // is brought back, so the herd goes out and comes home with you.
     const gate = s.objects.find((o) => o.kind === "gate" && o.owner === "player" && /-pen\d+-gate$/.test(o.id));
@@ -1017,7 +1159,7 @@ export class Engine {
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const work = s.economy.work?.day === t.day ? s.economy.work : undefined;
     if (work) work.done = true;
-    const made = process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
+    const made: Record<string, number> = kit.activity === "Looking for game" ? {} : process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0));
@@ -1028,7 +1170,7 @@ export class Engine {
     }
     // Work that makes nothing the town trades in, a forager's or a fisher's,
     // comes home in the hand instead.
-    if (!Object.keys(made).length)
+    if (kit.activity !== "Looking for game" && !Object.keys(made).length)
       for (const [item, n] of Object.entries(kit.inventory ?? {}))
         if (n && item !== "tool" && item !== "water" && this.item(item)) {
           s.player.inventory[item] = (s.player.inventory[item] ?? 0) + n;
@@ -1259,7 +1401,7 @@ export class Engine {
   }
   private propOwnership(o: import("./types").WorldObject, action: string) {
     const p = this.state.player;
-    if (!o.owner || o.owner === "player") return;
+    if (o.owner === "player" || o.owner === p.id || (!o.owner && action !== "strike")) return;
     // Smashing things inside an occupied home is a break-in however the door was opened.
     const home = action === "break" && p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
     if (home && this.state.households?.some((h) => h.residence === home.id && h.id !== p.householdId))
@@ -1269,21 +1411,21 @@ export class Engine {
     p.memories.push(memory);
     this.offend({
       owner: o.owner,
-      cost: (theirs) => (theirs ? 8 : 4),
+      at: o.pos,
+      cost: (theirs) => o.owner ? (theirs ? 8 : 4) : 1,
       memory: () => `Saw player ${action} ${o.id}`,
       story: { act: ({ break: "smashed", topple: "knocked over", "pick up": "made off with" } as Record<string, string>)[action] ?? action, object: o.name.toLowerCase() },
-      text: (w) => `${w.name} saw you ${action} household property.`,
+      text: (w) => `${w.name} saw you ${action} ${o.name.toLowerCase()}.`,
     });
   }
   /** People near enough, and with a clear enough view, to have seen what the
    * player just did. */
-  witnesses(radius = 7) {
-    const p = this.state.player;
+  witnesses(radius = 7, at = this.state.player.pos) {
     return this.state.actors.filter(
       (a) =>
-        a.kind === "human" &&
-        distance(a.pos, p.pos) < radius &&
-        this.visibleFrom(a.pos, p.pos),
+        a.kind === "human" && !a.dead &&
+        distance(a.pos, at) <= radius &&
+        this.visibleFrom(a.pos, at),
     );
   }
   /** The one place a person's trust in the player changes. How they take it
@@ -1291,8 +1433,11 @@ export class Engine {
    * friendly exchange is a nod. */
   regard(a: Actor, delta: number, cue?: CueKind) {
     if (!delta) return;
+    updateRelationships(this.state, a);
     a.trust += delta;
+    updateRelationships(this.state, a);
     if (delta < 0) a.wronged = this.state.clock;
+    if (this.state.manifest.survival && delta < 0 && a.trust <= -4 && (delta <= -3 || a.trust <= -6)) this.retaliate(a);
     const t = this.today().trust;
     t[a.id] = (t[a.id] ?? 0) + delta;
     this.cue(a.id, cue ?? regardCue(delta, a.trust), this.state.player.pos);
@@ -1302,6 +1447,7 @@ export class Engine {
   private offend(o: {
     owner?: string;
     radius?: number;
+    at?: Position;
     cost: (theirs: boolean) => number;
     memory: (theirs: boolean) => string;
     /** What was done, for retelling: "smashed" and "cooking pot", the owner being whose. */
@@ -1311,9 +1457,11 @@ export class Engine {
     lost?: { what: string; pos: Position };
   }) {
     let seen = false;
-    for (const w of this.witnesses(o.radius)) {
+    for (const w of this.witnesses(o.radius ?? 15, o.at)) {
       const theirs = this.minds(w, o.owner);
       seen ||= theirs;
+      if (o.cost(theirs) <= 0) continue;
+      this.witnessReaction(w, o.memory(theirs), o.cost(theirs));
       this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
       if (o.cost(theirs) >= 3) this.provoke(w, `${o.story.act} ${o.story.object ?? "property"}`);
       w.memories.push(o.memory(theirs));
@@ -1335,6 +1483,15 @@ export class Engine {
       clock: this.state.clock,
       suspect,
     });
+  }
+  witnessedOffense?: { id: string; at: number; situation: string; severity: number };
+  private witnessReaction(w: Actor, what: string, severity: number) {
+    const pending = this.witnessedOffense;
+    if (pending && this.state.clock - pending.at < 10 && pending.severity > severity) return;
+    this.witnessedOffense = {
+      id: w.id, at: this.state.clock, severity,
+      situation: `Just now: ${what}. You witnessed this yourself. React immediately to the player, in character. Let fear, anger, concern for the victim, ownership and your temperament shape your response. Demand they stop, protect what matters, call for help or back away as appropriate. Ordinary work and lawful hunting need not cause outrage. Do not greet them or continue casual small talk. Describe only your own reaction; do not invent injuries, punishment or actions by other people.`,
+    };
   }
   /** A household member who comes near a loss finds it, and holds it against
    * the player if anyone had seen them about. */
@@ -1690,7 +1847,8 @@ export class Engine {
     const known = this.interiors.get(space);
     if (known !== undefined) return known ?? undefined;
     const place = this.world.place(space);
-    const s = this.world.pack.setting;
+    const entrance = place?.entrance;
+    const s = (entrance && this.world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? this.world.pack.setting;
     const household = this.state.households?.find((h) => h.residence === space);
     if (!place || (place.access !== "household" && !household && !buildingUse(place.claim)) || !s) {
       this.interiors.set(space, null);
@@ -1724,18 +1882,21 @@ export class Engine {
     move(`${space}-work`, room.benchCell ?? room.workCell);
     // A room met again, from a save or a second engine, keeps the furniture it has.
     if (!this.state.objects.some((o) => o.id.startsWith(`${space}-room-`)))
-      for (const f of room.furniture)
+      for (const f of room.furniture) {
+        const key = regionalContainer(s,f.def,random(this.state.manifest.seed,"room-container",space,f.propId)) ?? f.def;
+        const def = propDefs[key];
         this.state.objects.push({
           id: `${space}-room-${f.propId}`,
-          name: propDefs[f.def].name,
-          kind: "monument",
-          prop: f.def,
+          name: def.name,
+          kind: def.container ? "container" : "monument",
+          prop: key,
           pos: { ...f.pos, space },
-          sprite: "",
+          sprite: def.sprite ?? "",
           inventory: {},
           owner: place.owner,
           ...(f.size[0] * f.size[1] > 1 ? { size: f.size } : {}),
         });
+      }
     for (const k of [...this.terrainCollision.keys()]) if (k.startsWith(`${space}:`)) this.terrainCollision.delete(k);
     return room;
   }
@@ -2222,7 +2383,7 @@ export class Engine {
    * through it instead of letting an idle player freeze the animals. */
   combatUntil = 0;
   private rangeBonus() {
-    const strength = statsOf(this.state.manifest.seed, this.state.player).strength;
+    const strength = (this.state.manifest.survival ? this.stats() : statsOf(this.state.manifest.seed, this.state.player)).strength;
     return (
       (strength >= 70 ? 2 : strength >= 45 ? 1 : 0) +
       marksmanReach(this.skillLevel("marksmanship")) +
@@ -2335,7 +2496,7 @@ export class Engine {
     const seed = this.state.manifest.seed;
     ensureVitals(seed, g);
     const combat = faunaCombat(profile);
-    const strength = statsOf(seed, this.state.player).strength;
+    const strength = (this.state.manifest.survival ? this.stats() : statsOf(this.state.manifest.seed, this.state.player)).strength;
     const crit = this.rng("combat-crit") < (this.knows("clean-kill") ? 0.2 : 0.1);
     let damage = Math.max(
       1,
@@ -2423,7 +2584,7 @@ export class Engine {
       g.attack = { n: m.n!, phase: "recover", until: clock + 12 };
       m.pose = undefined;
     }
-    this.strikeOwned(g, killed);
+    this.strikeOwned(g, killed, { ...from, space: "outside" });
     // Practice is the blow that lands; the lesson is the animal brought down.
     if (!g.owner)
       this.grantXp(
@@ -2450,6 +2611,8 @@ export class Engine {
       this.event(
         `You kill ${m.name ?? `the ${faunaName(g, m)}`}.${took ? ` You take ${took}.` : ""}`,
       );
+      const trade = this.trade();
+      if (!g.owner && profile?.category === "wild" && combat.yields.meat && trade?.process.steps[trade.stage]?.scene === "hunt") this.doWork(true);
       const legend = this.state.legends?.[legendKey(g.id, m.n!)];
       if (legend) legend.slain = clock;
     }
@@ -2514,7 +2677,7 @@ export class Engine {
     const skills = this.skills();
     const aptitude =
       0.8 +
-      statsOf(this.state.manifest.seed, this.state.player)[SKILLS[skill].stat] *
+      (this.state.manifest.survival ? this.stats() : statsOf(this.state.manifest.seed, this.state.player))[SKILLS[skill].stat] *
         0.004;
     const before = skills[skill] ?? 0;
     const xp = before + amount * aptitude;
@@ -2741,6 +2904,34 @@ export class Engine {
       until: clock + 300,
     };
   }
+  private witnessAssault(person: Actor) {
+    person.memories.push("The player struck me");
+    this.witnessReaction(person, "The player struck you", 12);
+    for (const w of this.witnesses(15, person.pos)) {
+      if (w.id === person.id) continue;
+      const memory = `Saw player strike ${person.name}`;
+      w.memories.push(memory);
+      this.witnessReaction(w, memory, 6);
+      this.regard(w, -4, "alarm");
+      hear(w, { act: "struck", object: person.name, victim: person.id, tone: -4, at: this.state.clock, hops: 0 });
+    }
+  }
+
+  private strikePerson(person: Actor, force: number, push: readonly number[]) {
+    const damage = Math.max(3, Math.round(force * (0.7 + this.stats().strength / 100) * 4));
+    person.health = Math.max(0, (person.health ?? 100) - damage);
+    if (this.state.manifest.disease && this.item(this.state.player.heldItem ?? "")?.hand?.edge)
+      person.injury = { name: "a cut", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
+    this.witnessAssault(person);
+    this.regard(person, -6, "fury");
+    if (person.terror?.cause === "anger") delete person.terror;
+    this.retaliate(person, true);
+    this.stagger(person, push);
+    this.complain(person, { act: "struck", object: person.name, victim: person.id, tone: -6, at: this.state.clock, hops: 0 });
+    this.event(`You hit ${person.name}.`);
+    if (person.health <= 0) this.dies(person, "of injuries after an assault");
+  }
+
   private retaliate(a: Actor, assault = false, provoked = false) {
     if (a.terror || a.kind !== "human" || a.dead) return;
     const clock = this.state.clock, stats = statsOf(this.state.manifest.seed, a);
@@ -2812,15 +3003,22 @@ export class Engine {
     if (!this.blocked(next.x, next.y, next.space) && !this.actorAt(next, "player")) p.pos = next;
     p.health = Math.max(0, (p.health ?? 100) - damage);
     this.cue(a.id, "strike", p.pos);
+    if (this.state.manifest.disease && this.item(a.heldItem ?? "")?.hand?.edge)
+      p.injury = { name: "a cut", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
     this.cue("player", "struck", a.pos);
     this.event(`${a.name.toUpperCase()} HITS YOU${armed ? ` WITH THE ${this.item(a.heldItem!)?.name.toUpperCase() ?? "WEAPON"}` : ""}! (-${damage})`);
     if (p.health <= 0) this.pendingCollapse = { by: a.name, part: "cracked ribs" };
+  }
+  private heal(amount: number) {
+    const p = this.state.player, current = p.health ?? 100;
+    const ceiling = this.state.manifest.survival ? Math.max(current, Math.round(100 - 70 * ailing(this.state, p.id, this.state.clock))) : 100;
+    p.health = Math.min(ceiling, current + amount);
   }
   private hurt(damage: number, cause: string, injury?: string) {
     const p = this.state.player;
     if (p.dead || damage <= 0) return;
     p.health = Math.max(0, (p.health ?? 100) - damage);
-    if (injury) p.injury = { name: injury, until: Math.max(p.injury?.until ?? 0, this.state.clock + 3 * 86400) };
+    if (injury) p.injury = { name: injury, until: Math.max(p.injury?.until ?? 0, this.state.clock + 3 * 86400), ...(this.state.manifest.disease ? { since: this.state.clock, open: /cut|bite|bitten|scratch|gash|burn|claw|pierc|bleed/i.test(injury) } : {}) };
     // A bad fall or a burn heals to a mark that stays.
     if (injury && (damage >= 35 || injury === "burned skin")) this.scar(injury);
     if (p.health <= 0) this.die(cause);
@@ -2867,17 +3065,28 @@ export class Engine {
   private lastJump = -99;
   /** Striking a kept animal is striking its keeper's property. Anyone who
    * sees it thinks less of you; the keeper most of all, and they say so. */
-  private strikeOwned(g: FaunaGroup, killed: boolean) {
-    if (!g.owner) return;
+  private strikeOwned(g: FaunaGroup, killed: boolean, at: Position) {
+    if (!g.owner && g.speciesId === "dog" && g.id.endsWith("-dog"))
+      g.owner = this.state.actors.find((a) => a.id === `${g.id.slice(0, -4)}-herder-0`)?.id;
+    if (g.owner === "player") return;
     const p = this.state.player;
     const memory = `${killed ? "killed" : "struck"}:${g.id}`;
     if (p.memories.includes(memory)) return;
     p.memories.push(memory);
     const label = faunaProfile(g.speciesId)?.label.toLowerCase() ?? "animal";
     const did = killed ? "kill" : "strike";
+    if (!g.owner) {
+      for (const w of this.witnesses(15, at)) {
+        const memory = `Saw player ${did} a wild ${label}`;
+        w.memories.push(memory);
+        this.witnessReaction(w, memory, 1);
+      }
+      return;
+    }
     this.offend({
       owner: g.owner,
-      radius: 12,
+      radius: 15,
+      at,
       cost: (theirs) => (theirs ? 10 : 4) * (killed ? 2 : 1),
       story: { act: killed ? "killed" : "struck", object: label },
       memory: (theirs) =>
@@ -2925,6 +3134,8 @@ export class Engine {
       (1 - this.skillLevel("animals") * 0.02) *
       (this.knows("steady-nerve") ? 0.75 : 1);
     p.health = Math.max(0, (p.health ?? 100) - damage);
+    if (this.state.manifest.disease && damage >= 8 && random(this.state.manifest.seed, "animal-wound", g.id, m.n ?? 0, this.state.clock) < 0.6)
+      p.injury = { name: "an animal wound", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
     this.signal({
       kind: "mauled",
       group: g.id,
@@ -2975,11 +3186,16 @@ export class Engine {
     if (rescuer) p.pos = copy(p.home);
     p.perch = undefined;
     p.activity = "Resting";
+    if (this.state.manifest.survival) {
+      p.health = rescuer ? 35 : 20;
+      for (const actor of this.state.actors) if (actor.terror) { delete actor.terror; actor.offRoutine = false; }
+    }
     this.advance((rescuer ? 10 : 5) * 3600);
+    if (this.state.manifest.survival && p.dead) return;
     p.activity = "Exploring";
-    p.health = rescuer ? 35 : 20;
+    if (!this.state.manifest.survival) p.health = rescuer ? 35 : 20;
     p.hunger = Math.min(100, p.hunger + 15);
-    p.injury = { name: part, until: this.state.clock + 3 * 86400 };
+    p.injury = { name: part, until: this.state.clock + 3 * 86400, ...(this.state.manifest.disease ? { since: this.state.clock, open: /torn|gored|cut/i.test(part) } : {}) };
     this.scar(part);
     const text = [
       `${by} put you on the ground.`,
@@ -3033,6 +3249,7 @@ export class Engine {
     delete p.swum;
     p.activity = "Resting";
     this.advance(6 * 3600);
+    if (this.state.manifest.survival && p.dead) return;
     p.activity = "Exploring";
     p.health = Math.min(p.health ?? 100, 30);
     p.hunger = Math.min(100, p.hunger + 15);
@@ -3222,8 +3439,7 @@ export class Engine {
         !o.broken &&
         !o.submerged &&
         o.pos.space === space &&
-        o.pos.x === x &&
-        o.pos.y === y,
+        covers(o, x, y),
     );
   }
   private shoveWorld(): ShoveWorld {
@@ -3271,7 +3487,7 @@ export class Engine {
       this.shoveWorld(),
       target,
       { dx, dy },
-      statsOf(this.state.manifest.seed, p).strength,
+      (this.state.manifest.survival ? this.stats() : statsOf(this.state.manifest.seed, p)).strength,
     );
   }
   private settleWorld(): SettleWorld {
@@ -4909,7 +5125,7 @@ export class Engine {
       actor?.pos ??
       object?.pos ??
       (place ? { ...place.entrance, space: "outside" } : undefined);
-    if (!pos || !this.visible(pos)) return;
+    if (!pos || (!place && !this.visible(pos))) return;
     const close = distance(this.state.player.pos, pos) <= 2.5;
     const affordances: Affordance[] = [];
     const add = (
@@ -4939,9 +5155,12 @@ export class Engine {
     if (actor) {
       if (actor.kind === "human") {
         interact("talk", "Talk");
+        for (const o of this.careOptions(actor.id).filter((o) => ["nurse", "clean-wound", "consult", "medicine", "rehydration"].includes(o.treatment)))
+          add(o.label, o.command, !o.unavailable, o.unavailable);
+        if (this.state.manifest.survival) interact("strike", "Strike (may provoke a fight)", distance(this.state.player.pos, pos) <= 1.5, "Move within arm’s reach");
         const plot = this.state.plot;
         if (plot && !plot.ended && plot.cast[plotTemplate(plot)?.payee ?? "creditor"] === id && (plot.owed ?? 0) > 0)
-          interact("pay", "Pay what you owe", close && this.payable().length > 0,
+          interact("pay", "Pay", close && this.payable().length > 0,
             close ? "You have nothing they will take" : undefined);
         interact(
           "follow",
@@ -4971,7 +5190,7 @@ export class Engine {
         name: actor.name,
         brief,
         description: brief
-          ? briefText(brief)
+          ? `${briefText(brief)}${observedIllnesses(this.state, actor.id, this.world.pack.setting).map((a) => ` Symptoms: ${a.name}; ${a.trend ?? "ongoing"}.`).join("")}${npcDanger(actor, this.state.clock) !== "none" ? ` Danger: ${npcDanger(actor, this.state.clock)}.` : ""}`
           : `${actor.activity}. ${actor.owner ? "Part of a household’s flock." : "Moving through the landscape."}`,
         kind: actor.kind,
         pos,
@@ -5263,6 +5482,12 @@ export class Engine {
     if (p.dead) return `You are dead from ${p.dead}. Start a new world or load an earlier save.`;
     if ((p.stocked ?? 0) > this.state.clock && c.type !== "wait" && c.type !== "sleep" && !(c.type === "interact" && c.action === "talk"))
       return "You are serving your sentence.";
+    if (this.state.encounter && !(c.type === "choose" && c.card === this.state.encounter.card)) return "Answer the encounter before doing anything else.";
+    if (c.type === "care") {
+      const option = this.careOptions(c.target).find((o) => o.treatment === c.treatment);
+      return option ? option.unavailable : "That care option is unavailable in this world.";
+    }
+    if (this.state.manifest.survival && c.type === "move" && c.run && p.fatigue >= 95) return "You are too exhausted to run; walk or rest.";
     if (c.type === "interact" && c.action === "descend")
       return p.perch || this.onWall() ? undefined : "You are not up anything.";
     if (
@@ -5290,7 +5515,7 @@ export class Engine {
     if (c.type === "choose" && c.card.startsWith("help:"))
       return this.state.asks?.some((x) => `help:${x.id}` === c.card && x.offered) && HELP[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose") {
-      const choice = this.waitingCard() === c.card || this.state.care?.card === c.card ? CARDS.find((k) => k.id === c.card)?.choices[c.choice] : undefined;
+      const choice = this.waitingCard() === c.card || this.state.care?.card === c.card || this.state.encounter?.card === c.card ? this.choiceCard(c.card)?.choices[c.choice] : undefined;
       return !choice ? "There is nothing to answer." : this.choiceProblem(choice);
     }
     if (c.type === "interact" && c.action === "douse") return this.douseProblem(c.target);
@@ -6187,6 +6412,7 @@ export class Engine {
       return;
     }
     if (p.dead) return;
+    if (c.type === "care") { this.giveCare(c.target, c.treatment); return; }
     this.lastImpact = undefined;
     delete this.lastTreeFind;
     if (c.type !== "move" && c.type !== "pass") this.lastStep.steps = 0;
@@ -6204,7 +6430,7 @@ export class Engine {
         ? toolClass(def.tool, def.strike)
         : toolClass(undefined, inHand?.strike, inHand?.edge);
       const weapon = weaponOf(held?.prop, held ? undefined : inHand);
-      p.direction = this.aimAt(p.direction, weapon.reach);
+      p.direction = c.direction ?? this.aimAt(p.direction, weapon.reach);
       const swung = held?.name ?? (p.heldItem ? this.item(p.heldItem)?.name : undefined) ?? "fists";
       for (const w of this.witnesses(3))
         if (Math.max(Math.abs(w.pos.x - p.pos.x), Math.abs(w.pos.y - p.pos.y)) <= 2) {
@@ -6233,10 +6459,16 @@ export class Engine {
             continue;
           }
         }
-        const fighter = this.state.actors.find((a) => a.terror?.fight && a.pos.space === p.pos.space && a.pos.x === at.x && a.pos.y === at.y);
-        if (fighter && tool !== "bare") {
-          this.stagger(fighter, push);
-          told = `You drive ${fighter.name} back!`;
+        const person = this.state.actors.find((a) => a.kind === "human" && !a.dead && a.pos.space === p.pos.space && a.pos.x === at.x && a.pos.y === at.y);
+        if (person && this.state.manifest.survival) {
+          this.strikePerson(person, weapon.damage * force, push);
+          told = `You strike ${person.name}.`;
+          continue;
+        }
+        if (person) this.witnessAssault(person);
+        if (person?.terror?.fight && tool !== "bare") {
+          this.stagger(person, push);
+          told = `You drive ${person.name} back!`;
         }
         const animal =
           p.pos.space === "outside" ? this.faunaAt(at.x, at.y) : undefined;
@@ -6270,6 +6502,7 @@ export class Engine {
             this.grantXp("arms", 4);
           }
         }
+        if (found.prop) this.propOwnership(found.prop, "strike");
         const kind = reactionFor(found.hit, tool);
         const h: Hit = {
           at,
@@ -6799,7 +7032,7 @@ export class Engine {
                   (this.knows("swimmer") ? 0.67 : 1)),
         ) +
           (slope > 1 ? 1 : 0) +
-          effort,
+          effort + (this.state.manifest.survival ? Math.floor((1 - bodilyLimits(this.state).physical) * 3) : 0),
       );
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
@@ -6828,8 +7061,10 @@ export class Engine {
       const def = this.item(c.item)!;
       p.inventory[c.item] = (p.inventory[c.item] ?? 0) - 1;
       p.hunger = Math.max(0, p.hunger - (def.edible ?? 0));
-      if (def.health)
-        p.health = Math.min(100, Math.max(0, (p.health ?? 100) + def.health));
+      if (def.health && def.health > 0) this.heal(def.health);
+      else if (def.health && this.state.manifest.survival) this.hurt(-def.health, "something you ate");
+      else if (def.health) p.health = Math.max(0, (p.health ?? 100) + def.health);
+      mealExposure(this.state, p, this.state.clock);
       this.advance(60);
       this.event(
         `You eat some ${def.name.toLowerCase()}.${def.health && def.health < 0 ? " It does not sit well." : ""}`,
@@ -7095,6 +7330,14 @@ export class Engine {
       return;
     }
     if (c.type !== "interact") return;
+    if (c.action === "strike" && a?.kind === "human" && this.state.manifest.survival) {
+      const held = heldObject(this.state);
+      const weapon = weaponOf(held?.prop, p.heldItem ? this.item(p.heldItem)?.hand : undefined);
+      p.direction = this.directionTo(p.pos, a.pos);
+      this.strikePerson(a, weapon.damage, [Math.sign(a.pos.x - p.pos.x), Math.sign(a.pos.y - p.pos.y)]);
+      this.advance(4);
+      return;
+    }
     switch (c.action) {
       case "talk":
         if (a) {
@@ -7267,7 +7510,7 @@ export class Engine {
         break;
       case "drink":
         p.inventory.water = Math.max(p.inventory.water ?? 0, 2);
-        p.fatigue = Math.max(0, p.fatigue - 2);
+        if (!this.state.manifest.survival) p.fatigue = Math.max(0, p.fatigue - 2);
         this.advance(30);
         this.event("You drink cool water and refill your vessel.");
         break;
@@ -7277,7 +7520,7 @@ export class Engine {
       case "rest":
         p.activity = "Resting";
         this.advance(1200);
-        p.fatigue = Math.max(0, p.fatigue - 35);
+        p.fatigue = Math.max(0, p.fatigue - (this.state.manifest.survival ? 4 : 35));
         const depth =
           p.pos.space === "outside" && this.world.topography
             ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
@@ -7371,10 +7614,11 @@ export class Engine {
           o.depleted = !o.prop;
           this.advance(6);
           this.event(`You take the contents of ${o.name.toLowerCase()}.`);
-          if (o.owner) {
+          if (o.owner && o.owner !== "player" && o.owner !== p.id) {
             p.memories.push(`theft:${o.id}:${JSON.stringify(taken)}`);
             this.offend({
               owner: o.owner,
+              at: o.pos,
               lost: { what: `${o.name.toLowerCase()} emptied`, pos: o.pos },
               cost: (theirs) => (theirs ? 8 : 4),
               story: { act: "emptied", object: o.name.toLowerCase() },
@@ -7499,22 +7743,29 @@ export class Engine {
     const clock = this.state.clock;
     this.laid ??= new Map((this.state.ailments ?? [])
       .filter((x) => severity(x, clock) >= 0.35)
-      .map((x) => [x.who, ailmentDef(x.id).laid]));
+      .map((x) => [x.who, x.infection ? `Resting with ${symptomsOf(x).join(", ")}` : ailmentDef(x.id).laid]));
     return this.laid.get(id);
   }
-  /** Each game hour: courses run out, the sick who were sat with may turn,
-   * the dying die, and new cases begin. Nobody the plot needs falls ill. */
-  private healthStep(clock: number) {
+  /** Hourly symptoms, outcomes and new cases; travel settles courses alone. */
+  healthStep(clock: number, newCases = true) {
     const s = this.state, setting = this.world.pack.setting;
-    const spare = new Set(s.plot && !s.plot.ended ? Object.values(s.plot.cast) : []);
+    const spare = new Set(!s.manifest.disease && s.plot && !s.plot.ended ? Object.values(s.plot.cast) : []);
     const list = (s.ailments ??= []);
     for (const ail of [...list]) {
-      if (ail.course === "die" && !ail.tended && severity(ail, clock) > 0.6 && (s.kin?.talked[ail.who] ?? -Infinity) >= ail.since) {
+      updateCourse(ail, clock);
+      if (ail.infection && !ail.infection.announced && clock >= ail.since) {
+        ail.infection.announced = true;
+        diseaseEvent(s, { clock, kind: "symptoms", who: ail.who, disease: ail.id });
+        this.offerCare(ail);
+      }
+      if (!s.manifest.disease && ail.course === "die" && !ail.tended && severity(ail, clock) > 0.6 && (s.kin?.talked[ail.who] ?? -Infinity) >= ail.since) {
         ail.tended = true;
         if (random(s.manifest.seed, "tended", ail.who, ail.id) < 0.4) ail.course = "mend";
       }
-      if (clock < ail.since + ail.days * 86400) continue;
+      if (illnessProgress(ail, clock) < ail.days * 86400) continue;
       list.splice(list.indexOf(ail), 1);
+      resolvedInfection(s, ail, ail.who === s.player.id ? s.player : s.actors.find((a) => a.id === ail.who), clock);
+      if (s.care?.who === ail.who) delete s.care;
       if (ail.who === s.player.id) {
         if (ail.course === "die") this.die(this.diedOf(ail.id));
         continue;
@@ -7525,11 +7776,43 @@ export class Engine {
     // An illness wears the player down as it worsens.
     const p = s.player, sick = ailing(s, p.id, clock);
     if (sick) p.health = Math.min(p.health ?? 100, Math.round(100 - 70 * sick));
-    const fresh = onsets(s, setting, spare);
+    if (s.manifest.survival) {
+      this.injured();
+      if ((p.hungerDebt ?? 0) >= 2 * 86400) {
+        this.hurt(0.25, "prolonged hunger");
+        if (p.hungerDebt! < 2 * 86400 + 3600) this.event("Days without enough food are damaging your health.");
+      }
+      if (p.dead) return;
+    }
+    const fresh = newCases ? onsets(s, setting, spare) : [];
     list.push(...fresh);
-    for (const ail of fresh) this.offerCare(ail);
+    for (const ail of fresh) if (ail.since <= clock) this.offerCare(ail);
     this.laid = undefined;
   }
+  danger(pos: Position = this.state.player.pos) {
+    const s = this.state;
+    const actors = s.actors.filter((a) => a.kind === "human" && distance(a.pos, pos) <= 12 && this.visibleFrom(a.pos, s.player.pos));
+    return dangerAt(this.world, { ...s, actors }, pos);
+  }
+
+  nearbyDanger() {
+    const p = this.state.player.pos;
+    return p.space !== "outside" ? [] : ([["north", 0, -16], ["east", 16, 0], ["south", 0, 16], ["west", -16, 0]] as const)
+      .map(([bearing, dx, dy]) => ({ bearing, pos: { ...p, x: p.x + dx, y: p.y + dy }, ...this.danger({ ...p, x: p.x + dx, y: p.y + dy }) }));
+  }
+
+  private roadEncounter() {
+    const s = this.state, p = s.player;
+    if (!s.manifest.survival || p.dead || p.pos.space !== "outside" || p.activity === "Sleeping" || p.activity === "Resting" ||
+      this.conversing || p.activity !== "Exploring" || s.encounter || s.care || this.waitingCard() || (p.encounterAfter ?? 0) > s.clock) return;
+    const risk = this.danger();
+    if (risk.threats.length || !risk.hourlyRisk || random(s.manifest.seed, "roadside", risk.area, Math.floor(s.clock / 300)) >= risk.hourlyRisk / 12) return;
+    p.encounterAfter = s.clock + 86400;
+    s.encounter = { card: "roadside-robbery", at: copy(p.pos), clock: s.clock };
+    this.event("People step into your path and demand your valuables.", "world");
+    this.offerCard(CARDS.find((c) => c.id === "roadside-robbery")!);
+  }
+
   /** Those of the dead player's household who could go on as them: alive,
    * twelve or older, eldest first. */
   heirs() {
@@ -7565,6 +7848,7 @@ export class Engine {
     s.ailments = (s.ailments ?? []).filter((a) => a.who !== "player").map((a) => (a.who === id ? { ...a, who: "player" } : a));
     s.bonds = s.bonds?.filter((b) => b.with !== id);
     if (s.plot) for (const [role, who] of Object.entries(s.plot.cast)) if (who === id) delete s.plot.cast[role];
+    s.relationships = undefined;
     s.kin = undefined;
     s.care = undefined;
     s.workday = undefined;
@@ -7845,7 +8129,11 @@ export class Engine {
       if (Math.abs(tone) < 0.5 || w.from === b.id) continue;
       // Nobody tells a family its own scandal.
       if (w.about && (w.about === b.id || this.state.actors.find((x) => x.id === w.about)?.householdId === b.householdId)) continue;
-      if (hear(b, { ...w, tone, at: clock, hops: w.hops + 1, from: a.id }) && !w.about) b.trust += tone / 2;
+      if (hear(b, { ...w, tone, at: clock, hops: w.hops + 1, from: a.id }) && !w.about) {
+        updateRelationships(this.state, b);
+        b.trust += tone / 2;
+        updateRelationships(this.state, b);
+      }
     }
   }
   /** A favour this person could fairly ask of the player when the model does
@@ -8706,19 +8994,24 @@ export class Engine {
 
     // A proper night is the one thing that mends you; nothing else restores
     // health but food.
-    if (covered && hours >= 5)
-      p.health = Math.min(100, (p.health ?? 100) + (own ? 6 : 4));
+    const canMend = !this.state.manifest.survival || p.hunger < 75;
+    if (covered && hours >= 5 && canMend)
+      this.heal(own ? 6 : 4);
+    else if (covered && hours >= 5 && !canMend) this.event("You rest, but need a meal before your body can mend.");
 
     if (rough && (cold || wet)) {
       const harm = Math.round(4 + (cold ? 4 : 0) + (wet ? 3 : 0));
-      p.health = Math.max(0, Math.min(100, (p.health ?? 100) - harm));
+      if (this.state.manifest.survival) this.hurt(harm, "exposure");
+      else p.health = Math.max(0, Math.min(100, (p.health ?? 100) - harm));
+      if (p.dead) return;
       this.event(
         `You wake stiff and ${cold ? "cold" : "soaked"} from ${
           overnight ? "a night in the open" : "lying out unsheltered"
         }.`,
       );
-      if (roll("illness") < 0.18) {
-        p.health = Math.max(0, (p.health ?? 100) - 12);
+      if (!this.state.manifest.disease && roll("illness") < 0.18) {
+        if (this.state.manifest.survival) this.fallIll("cough");
+        else p.health = Math.max(0, (p.health ?? 100) - 12);
         this.event("Something has settled in your chest.");
       }
     }
@@ -8785,6 +9078,7 @@ export class Engine {
     const actors = [...this.state.actors].sort((a, b) =>
       a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
     );
+    updateRelationships(this.state);
     const end = this.state.clock + seconds;
     const player = this.state.player;
     // Building a routine costs a path search per station, and a city has a
@@ -8796,16 +9090,19 @@ export class Engine {
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
+      diseaseTime(this.state, elapsed, next - elapsed);
       this.fireExposure(elapsed, next - elapsed);
       if (player.dead) break;
       player.hunger = Math.min(100, player.hunger + elapsed / 1800);
+      if (this.state.manifest.survival)
+        player.hungerDebt = Math.max(0, (player.hungerDebt ?? 0) + elapsed * (player.hunger >= 100 ? 1 : -3));
       player.fatigue = Math.min(
         100,
         player.fatigue +
-          elapsed /
+          (this.state.manifest.survival && (player.activity === "Resting" || player.activity === "Sleeping") ? 0 : elapsed) /
             (player.activity === "Resting" || player.activity === "Sleeping"
               ? 100000
-              : (2400 / (player.injury ? 1.5 : 1)) *
+              : ((this.state.manifest.survival ? 1200 : 2400) / (player.injury && (!this.state.manifest.survival || player.injury.until > next) ? 1.5 : 1)) *
                 (1 +
                   levelOf(player.skills?.wayfaring) *
                     PER_LEVEL.wayfaringStamina) *
@@ -8814,6 +9111,7 @@ export class Engine {
       if (next % 6 !== 0) continue;
       if (!this.state.introduced) this.introduce();
       if (next % 3600 === 0) this.healthStep(next);
+      if (player.dead) break;
       if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
       if (this.state.asks?.length) this.helpStep();
       if (next % 600 === 0) {
@@ -8827,6 +9125,8 @@ export class Engine {
       this.burnStep();
       this.brawl();
       this.confront(next);
+      if (next % 300 === 0) this.roadEncounter();
+      if (this.state.encounter) break;
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
       if (next % 3600 === 0) {
         this.world.rotateRoutines?.(next);
@@ -8884,6 +9184,7 @@ export class Engine {
           )
             this.moveActor(a, copy(target));
         }
+        if (this.state.manifest.survival && a.terror && a.terror.until >= next) continue;
         if (a.kind === "human" && next % 60 === 0) this.discover(a);
         if (a.kind === "human" && a.guard) this.keepWatch(a, next);
         if (a.kind === "human" && a.mount) {
@@ -9105,6 +9406,7 @@ export class Engine {
       const routine = this.world.itinerary?.(a.id);
       if (routine) this.followRoutine(a, routine, this.state.clock);
     }
+    updateRelationships(this.state);
     this.tickObstacles = undefined;
     this.barriersAt = undefined;
     this.actorsAt = undefined;

@@ -65,6 +65,7 @@ export type StanceTag = (typeof stanceTags)[number];
  * called themselves a Marxist-Leninist in 1890 and the point is to be legible.
  */
 export type Stance = QualifiedContent & {
+  requiresBelief?: readonly import("../beliefs/types").BeliefFeature[];
   /**
    * One or two words for a line that has no room for a sentence. Required
    * where the label is longer than two words; a label like "Stoic" is already

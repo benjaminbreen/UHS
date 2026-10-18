@@ -3,7 +3,8 @@ import { matchesCharacterScope } from "../characters/resolve";
 import type { WorldSetting } from "../geography/types";
 import type { Actor } from "../../core/types";
 import type { CultureId } from "../history/types";
-import type { BeliefSystem, Power } from "./types";
+import { practiceText, type BeliefSystem, type Power } from "./types";
+export { practiceText } from "./types";
 import { andes } from "./systems/andes";
 import { australiaPacific } from "./systems/australia-pacific";
 import { eastAsia } from "./systems/east-asia";
@@ -98,7 +99,15 @@ export function beliefsFor(
   setting: WorldSetting,
   community?: string,
 ): BeliefSystem {
-  const here = beliefSystems.filter((b) =>
+  return selectBeliefs(beliefSystems, setting, community);
+}
+
+export function selectBeliefs(
+  systems: readonly BeliefSystem[],
+  setting: WorldSetting,
+  community?: string,
+): BeliefSystem {
+  const here = systems.filter((b) =>
     matchesCharacterScope(
       { ...b.scope, cultures: undefined },
       setting,
@@ -110,7 +119,57 @@ export function beliefsFor(
   const own = here.filter((b) => b.scope.cultures?.includes(setting.culture));
   const pool = own.length ? own : here;
   if (!pool.length) return unscopedBeliefs;
-  return pool.sort((a, b) => specificity(a) - specificity(b))[0];
+  if (!setting.beliefRevision)
+    return pool.sort((a, b) => specificity(a) - specificity(b))[0];
+  const ordered = pool.sort(compareBeliefs);
+  if (ordered[1] && compareBeliefs(ordered[0], ordered[1]) === 0)
+    throw Error(
+      `Ambiguous belief profiles: ${ordered[0].id}, ${ordered[1].id}`,
+    );
+  return contextualBeliefs(ordered[0], setting, community);
+}
+
+/** Local/community refinements precede boxes; spatial breadth precedes duration. */
+function compareBeliefs(a: BeliefSystem, b: BeliefSystem) {
+  const rank = (b: BeliefSystem) =>
+    (b.scope.communities ? 2 : 0) + (b.scope.places ? 1 : 0);
+  const area = (b: BeliefSystem) =>
+    b.scope.bounds
+      ? (b.scope.bounds[2] - b.scope.bounds[0]) *
+        (b.scope.bounds[3] - b.scope.bounds[1])
+      : 360 * 180;
+  return (
+    (b.priority ?? 0) - (a.priority ?? 0) ||
+    rank(b) - rank(a) ||
+    area(a) - area(b) ||
+    a.scope.years[1] - a.scope.years[0] - (b.scope.years[1] - b.scope.years[0])
+  );
+}
+
+export function contextualBeliefs(
+  system: BeliefSystem,
+  setting: WorldSetting,
+  community?: string,
+): BeliefSystem {
+  const matches = (scope?: BeliefSystem["scope"]) =>
+    !scope || matchesCharacterScope(scope, setting, community);
+  const powers = system.powers.filter((p) => matches(p.scope));
+  const names = new Set(powers.map((p) => p.name));
+  return {
+    ...system,
+    contextual: true,
+    powers: powers.map((p) => ({
+      ...p,
+      relations: p.relations?.filter((r) => names.has(r.of)),
+    })),
+    patronOptions: system.patronOptions?.filter((name) => names.has(name)),
+    practice: system.practice.filter(
+      (p) =>
+        typeof p === "string" ||
+        (matches(p.scope) &&
+          (p.requires ?? []).every((r) => system.features?.includes(r))),
+    ),
+  };
 }
 
 /** The power's own article, or the tradition's. */
@@ -131,9 +190,18 @@ export type PersonalBelief = {
 /** Derived like abilities: a household's worth of belief costs nothing. */
 export function beliefOf(
   seed: string,
-  actor: Pick<Actor, "id" | "age" | "appearance" | "stats" | "origin">,
+  actor: Pick<
+    Actor,
+    "id" | "age" | "appearance" | "stats" | "origin" | "identity"
+  >,
   system: BeliefSystem,
 ): PersonalBelief {
+  if (actor.identity) {
+    seed = actor.identity.seed;
+    system = actor.identity.setting
+      ? beliefsFor(actor.identity.setting, actor.origin?.community)
+      : unscopedBeliefs;
+  }
   const patrons = (system.patronOptions ?? []).flatMap((name) => {
     const power = system.powers.find((candidate) => candidate.name === name);
     return power ? [power] : [];
@@ -154,12 +222,28 @@ export function beliefOf(
           : score >= 10
             ? "occasional"
             : "indifferent",
-    keeps: system.practice.length
-      ? system.practice[
-          Math.floor(
-            random(seed, "belief-practice", actor.id) * system.practice.length,
-          )
-        ]
-      : undefined,
+    keeps: choosePractice(seed, actor, system),
   };
+}
+
+function choosePractice(
+  seed: string,
+  actor: Pick<Actor, "id" | "origin">,
+  system: BeliefSystem,
+) {
+  const practice = system.practice.filter(
+    (p) =>
+      !system.contextual ||
+      typeof p === "string" ||
+      !p.livelihoods ||
+      p.livelihoods.includes(actor.origin?.livelihood ?? ""),
+  );
+  const weights = practice.map((p) =>
+    !system.contextual || typeof p === "string" ? 1 : (p.weight ?? 1),
+  );
+  const total = weights.reduce((a, b) => a + b, 0);
+  if (total <= 0) return undefined;
+  let roll = random(seed, "belief-practice", actor.id) * total;
+  const index = weights.findIndex((w) => (roll -= w) < 0);
+  return practiceText(practice[index < 0 ? weights.length - 1 : index]);
 }

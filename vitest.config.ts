@@ -1,25 +1,28 @@
 import { defineConfig } from "vitest/config";
+import { parseCLI } from "vitest/node";
 
-// World-building suites take minutes each; `npm test` skips them and
-// `npm run test:full` runs everything.
+const { filter, options } = parseCLI(["vitest", ...process.argv.slice(2)]);
+// Explicit targets must exercise their integration cases too.
+const full = !!process.env.FULL || filter.length > 0 || !!options.testNamePattern;
+
+// Long scenarios stay opt-in; mixed files gate their expensive cases with FULL.
 export const slow = [
+  "agent",
   "livelihood",
-  "regional-composition",
   "city-panel",
   "preparation",
-  "vegetation-composition",
-  "vegetation",
   "settlements",
   "map-seams",
-  "water-rendering",
-  "topography",
   "farmland",
 ].map((name) => `tests/${name}.test.ts`);
 
 export default defineConfig({
   test: {
     include: ["tests/*.test.ts"],
-    exclude: process.env.FULL ? [] : slow,
+    exclude: full ? [] : slow,
+    env: { FULL: full ? "1" : "" },
+    // Each worker loads the world/content graph; bound memory on shared machines.
+    maxWorkers: 2,
     testTimeout: 60000,
     hookTimeout: 60000,
   },

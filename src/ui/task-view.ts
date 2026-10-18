@@ -298,6 +298,7 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
           label: "How",
           text: plan.done >= plan.steps.length && !plan.waiting ? "Done for today."
             : plan.waiting ? (plan.boss ? `The ${plan.boss} is waiting for your answer.` : "A choice is waiting for you.")
+            : plan.activity === "Looking for game" ? "Click Hunt in the upper-left work card to equip your weapon and pursue wild game."
             : at ? `At ${at.label}, hold F.` : "Hold F where the work is done.",
         });
         if (plan.lines.length) facts.push({ label: "So far", text: plan.lines.join(" ") });

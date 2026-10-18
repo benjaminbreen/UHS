@@ -456,6 +456,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "six-dynasties-buddhism",
+    features: ["sacred-texts"],
     label: "Six Dynasties Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Chinese_Buddhism",
     scope: { years: [300, 650], bounds: [100, 20, 140, 50] },
@@ -520,6 +521,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tang-syncretism",
+    features: ["sacred-texts"],
     label: "Tang dynasty syncretism",
     wiki: "https://en.wikipedia.org/wiki/Sanjiao",
     scope: { years: [618, 960], bounds: [95, 18, 140, 52] },
@@ -596,6 +598,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "song-ming-pantheon",
+    features: ["sacred-texts"],
     label: "Song and Ming household pantheon",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [960, 1700], bounds: [95, 15, 140, 52] },
@@ -813,6 +816,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "koryo-buddhism",
+    features: ["sacred-texts"],
     label: "Koryo kingdom Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Korea",
     scope: { years: [800, 1450], bounds: [120, 30, 140, 50] },
@@ -881,6 +885,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "heian-shinto-buddhism",
+    features: ["sacred-texts"],
     label: "Heian period Shinto-Buddhist synthesis",
     wiki: "https://en.wikipedia.org/wiki/Shinbutsu-sh%C5%ABg%C5%8D",
     scope: { years: [794, 1200], bounds: [128, 30, 148, 48] },
@@ -957,6 +962,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "medieval-japan-pure-land",
+    features: ["sacred-texts"],
     label: "Medieval Japan Pure Land Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Pure_Land_Buddhism",
     scope: { years: [1200, 1600], bounds: [128, 28, 148, 50] },
@@ -1027,6 +1033,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tokugawa-household-buddhism",
+    features: ["sacred-texts"],
     label: "Tokugawa household Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Danka_system",
     scope: { years: [1600, 1950], bounds: [128, 28, 148, 50] },
@@ -1098,6 +1105,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "joseon-korea-confucianism",
+    features: ["sacred-texts"],
     label: "Joseon Korea Confucian and shamanic tradition",
     wiki: "https://en.wikipedia.org/wiki/Korean_Confucianism",
     scope: { years: [1450, 1910], bounds: [124, 33, 131, 43.5] },
@@ -1293,6 +1301,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tibetan-plateau-practice",
+    features: ["sacred-texts"],
     label: "Tibetan Plateau and Qaidam Basin pastoralist tradition",
     wiki: "https://en.wikipedia.org/wiki/Bon",
     scope: { years: [800, 1950], bounds: [88, 30, 110, 45] },

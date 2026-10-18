@@ -59,9 +59,13 @@ export function treeVariant(
   roll: number,
   has: (frame: string) => boolean,
 ) {
+  if (sprite === "nature-shrub-broom" && has(`${sprite}-2`))
+    return roll < 0.5 ? sprite : `${sprite}-2`;
   const n = 1 + Math.floor(roll * 3);
   return n > 1 && has(`${sprite}-${n}`) ? `${sprite}-${n}` : sprite;
 }
+
+export const crateFrame = (roll: number) => roll < 0.5 ? "nature-crate-b" : "nature-crate-c";
 /** The frame drawn for the season, where one exists: leafless in winter,
  * turned in autumn. Returns the frame and whether it is already dressed, in
  * which case no tint should be laid over it. */

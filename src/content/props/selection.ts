@@ -3,6 +3,7 @@ import type { CultureId } from "../history/types";
 import { eraAt } from "../history/dates";
 import { historyRegistry, resolveHistory } from "../history";
 import { lifeway } from "../settlements/lifeways";
+import { regionalContainers } from "./containers";
 export type PropContext =
   | "household"
   | "yard"
@@ -690,6 +691,11 @@ export function propKit(pack: Pack): PropKit {
   }
   // Authored historical exclusions/context/capability rules outrank broad
   // prototype kits. Unresearched entries remain explicitly provisional.
+  const containers = regionalContainers(pack.setting && { ...pack.setting, year })
+    .filter(k => !way?.mode.includes("foraging") || ["waterskin","barkBox","coolamon"].includes(k));
+  contexts.household.push(...containers);
+  contexts.yard.push(...containers);
+  contexts.work.push(...containers.filter(k => ["merchantBale","riceBale","tradeJar","taru"].includes(k)));
   for (const context of Object.keys(contexts) as PropContext[]) {
     const resolved = resolveHistory(historyRegistry, {
       culture,

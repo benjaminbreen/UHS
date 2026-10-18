@@ -1,7 +1,14 @@
+import boats from "./boats.generated.json" with { type: "json" };
+import worksites from "./worksites.json" with { type: "json" };
 import models from "./models.generated.json" with { type: "json" };
 /** Compiled from content recipes by npm run art; shared by generator, game and lab. */
 export type BuildingModel = (typeof models)[keyof typeof models];
 export const buildingModels: Record<string, BuildingModel> = models;
+export const waterborneFrames = new Set(Object.entries(worksites)
+  .filter(([,s])=>"waterborne" in s && s.waterborne)
+  .flatMap(([name])=>[name,...["north","east","west"].map(f=>`${name}-${f}`)])
+  .concat(Object.entries(boats).flatMap(([name,spec])=>spec.finishes.flatMap(finish=>
+    Array.from({length:8},(_,f)=>["","-back","-front"].map(layer=>`boat-${name}${finish}-${f}${layer}`)).flat()))));
 export function buildingModel(frame: string): BuildingModel {
   const model = buildingModels[frame];
   if (!model) throw new Error(`Missing building model: ${frame}`);

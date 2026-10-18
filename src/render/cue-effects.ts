@@ -1,9 +1,10 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
+import type { Actor } from "../core/types";
 import type { CueKind, Signal } from "../core/combat";
 import { facingFromStep } from "../core/facing";
 import type { CharacterPose } from "./characters/poses";
-import { CUE_BUBBLE, CUE_GLYPHS as GLYPHS } from "./cue-marks";
+import { CUE_BUBBLE, CUE_MARKS, CUE_GLYPHS as GLYPHS } from "./cue-marks";
 
 type Sprite = Phaser.GameObjects.Image;
 
@@ -36,12 +37,11 @@ const ACTS: Record<
   },
   anger: {
     pose: "point",
-    ms: 1000,
-    mark: { glyph: "vein", color: 0xc23a2e },
+    ms: 1800,
+    mark: CUE_MARKS.anger,
     move: "shake",
   },
-  // Stamps twice and steams, under a throbbing vein: the Stardew fit.
-  fury: { pose: "point", ms: 1700, move: "stomp", sound: "alarm" },
+  fury: { pose: "point", ms: 2200, mark: CUE_MARKS.fury, move: "stomp", sound: "alarm" },
   warm: { pose: "wave", ms: 650, mark: { glyph: "heart", color: 0xd9527a } },
   nod: { pose: "nod", ms: 390 },
   wave: { pose: "wave", ms: 650 },
@@ -89,6 +89,7 @@ export class CueEffects {
   private playing = new Map<string, Playing>();
   private last = new Map<string, number>();
   private zs?: Phaser.GameObjects.Graphics;
+  private angerMarks = new Map<string, Phaser.GameObjects.Graphics>();
   private recoils = new Map<
     string,
     { from: number; dx: number; dy: number; ox: number; oy: number }
@@ -266,27 +267,10 @@ export class CueEffects {
     }
   }
 
-  /** The vein throbs over the head and steam jets from the ears; each stamp
-   * of the foot kicks up dust. */
+  /** Steam jets from the ears; each stamp of the foot kicks up dust. */
   private fury(p: Playing, image: Sprite, time: number) {
-    const age = time - p.from,
-      left = p.until - time;
-    const g = (p.mark ??= this.scene.add.graphics());
-    const pulse = 1 + 0.3 * Math.max(0, Math.sin(age / 55));
-    const pop = Math.min(1, age / 120);
-    g.clear()
-      .setPosition(Math.round(image.x + 8), Math.round(image.y - HEAD - 3))
-      .setScale((pop < 1 ? pop * 1.6 : 1.15) * pulse)
-      .setAlpha(Math.min(1, left / 200))
-      .setDepth(image.y + 4700);
-    // Four bent corners around an empty middle, outlined so it reads on grass.
-    const arms: [number, number][] = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
-    for (const [ink, grow] of [[0x3a0c08, 1], [0xe0352b, 0]] as const)
-      for (const [sx, sy] of arms) {
-        g.fillStyle(ink, 1);
-        g.fillRect(sx * 2 - (sx < 0 ? 2 : 0) - grow, sy * 4 - (sy < 0 ? 1 : 0) - grow, 2 + grow * 2, 1 + grow * 2);
-        g.fillRect(sx * 4 - (sx < 0 ? 1 : 0) - grow, sy * 2 - (sy < 0 ? 2 : 0) - grow, 1 + grow * 2, 2 + grow * 2);
-      }
+    const age = time - p.from;
+    if (p.mark) p.mark.setScale(p.mark.scaleX * (1 + 0.15 * Math.max(0, Math.sin(age / 80))));
     // A jet every 110ms, alternating ears, while the fit lasts.
     const beat = Math.floor(age / 110);
     if (beat !== p.beat && age < 1300) {
@@ -356,6 +340,26 @@ export class CueEffects {
     });
   }
 
+  angry(actors: readonly Pick<Actor, "id" | "trust" | "wronged" | "dead">[]) {
+    const visible = new Set<string>();
+    for (const actor of actors) {
+      if (actor.dead || actor.wronged === undefined || actor.trust >= 0) continue;
+      const image = this.view.entityAt(actor.id);
+      if (!image?.active || !image.visible) continue;
+      visible.add(actor.id);
+      let g = this.angerMarks.get(actor.id);
+      if (!g) this.angerMarks.set(actor.id, g = this.scene.add.graphics());
+      const mark = actor.trust <= -4 ? CUE_MARKS.fury! : CUE_MARKS.anger!;
+      this.mark(g, image, mark, 1000, Infinity);
+      g.setVisible(!this.playing.get(actor.id)?.mark);
+    }
+    for (const [id, g] of this.angerMarks) {
+      if (visible.has(id)) continue;
+      g.destroy();
+      this.angerMarks.delete(id);
+    }
+  }
+
   /** Anyone asleep in view breathes out a drifting z. */
   sleeping(ids: readonly string[], time: number) {
     if (!ids.length) {
@@ -381,6 +385,8 @@ export class CueEffects {
   dispose() {
     for (const who of [...this.playing.keys()]) this.stop(who);
     this.recoils.clear();
+    for (const g of this.angerMarks.values()) g.destroy();
+    this.angerMarks.clear();
     this.zs?.destroy();
     this.zs = undefined;
   }

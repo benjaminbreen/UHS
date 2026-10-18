@@ -1,11 +1,85 @@
 import { expect, test } from "@playwright/test";
 
+test("interiors stay centered when they fit and follow within the building at higher zoom", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#opening-prompt").fill("A potter in Central India, 304 BCE");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await Promise.race([
+    page.getByRole("dialog").getByRole("button", { name: "Begin", exact: true }).click({ timeout: 15000 }).catch(() => {}),
+    page.getByRole("button", { name: /Enter life/ }).waitFor({ timeout: 15000 }),
+  ]);
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
+  await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
+  await page.getByRole("button", { name: /Begin your day/ }).click();
+  await page.evaluate(() => {
+    const r = (window as any).__uhs, e = r.engine;
+    r.stop();
+    r.ambientRate = 0;
+    const house = e.state.households.find((h: any) => h.members.includes("player"));
+    const place = e.world.place(house.residence);
+    e.state.player.pos = { ...place.entrance, space: "outside" };
+    const result = r.command({ type: "interact", target: place.id, action: "enter" });
+    if (result.status !== "completed") throw Error(JSON.stringify(result));
+  });
+  await page.waitForFunction(() => !!(window as any).uhsGame.scene.getScene("world").roomView);
+  for (const viewport of [{ width: 2048, height: 1108 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await expect.poll(() => page.evaluate(() => {
+      const scene = (window as any).uhsGame.scene.getScene("world");
+      return scene.cameras.main.width === scene.scale.width && scene.cameras.main.height === scene.scale.height;
+    })).toBe(true);
+    for (const zoom of [1, 2, 4]) {
+      await page.evaluate((zoom) => (window as any).__uhs.setZoom(zoom), zoom);
+      await expect.poll(() => page.evaluate((zoom) => {
+        const camera = (window as any).uhsGame.scene.getScene("world").cameras.main;
+        return Math.abs(camera.zoom - zoom) < 0.001;
+      }, zoom)).toBe(true);
+      for (const side of ["left", "right"]) {
+        await page.evaluate((side) => {
+          const r = (window as any).__uhs, e = r.engine;
+          const cells = [...e.interiorOf(e.state.player.pos.space).walk] as string[];
+          cells.sort((a, b) => Number(a.split(",")[0]) - Number(b.split(",")[0]));
+          const [x, y] = cells[side === "left" ? 0 : cells.length - 1].split(",").map(Number);
+          e.state.player.pos = { ...e.state.player.pos, x, y };
+          r.emit();
+        }, side);
+        await expect.poll(() => page.evaluate(() => {
+          const scene = (window as any).uhsGame.scene.getScene("world");
+          const c = scene.cameras.main, room = scene.roomView;
+          if (!room) return false;
+          const framed = (start: number, size: number, viewStart: number, viewSize: number) =>
+            size + 32 <= viewSize
+              ? Math.abs(start + size / 2 - viewStart - viewSize / 2) * c.zoom <= 2
+              : start - viewStart <= 17 && start + size - viewStart >= viewSize - 17;
+          const p = scene.entities.get("player");
+          return framed(room.image.x, room.pixel.W, c.worldView.x, c.worldView.width) &&
+            framed(room.image.y, room.pixel.H, c.worldView.y, c.worldView.height) &&
+            c.worldView.contains(p.x, p.y);
+        })).toBe(true);
+      }
+      if (zoom === 2)
+        await page.screenshot({ path: `artifacts/interior-framing-${viewport.width}.png` });
+    }
+  }
+  await page.evaluate(() => {
+    const r = (window as any).__uhs, e = r.engine;
+    const room = e.interiorOf(e.state.player.pos.space);
+    e.state.player.pos = { ...room.exit, space: e.state.player.pos.space };
+    const exit = e.state.objects.find((o: any) => o.kind === "exit" && o.pos.space === e.state.player.pos.space);
+    const result = r.command({ type: "interact", target: exit.id, action: "exit" });
+    if (result.status !== "completed") throw Error(JSON.stringify(result));
+  });
+  await expect.poll(() => page.evaluate(() => {
+    const scene = (window as any).uhsGame.scene.getScene("world"), p = scene.entities.get("player");
+    return !scene.roomView && scene.runtime.engine.state.player.pos.space === "outside" && scene.cameras.main.worldView.contains(p.x, p.y);
+  })).toBe(true);
+});
+
 test("task views browse the day without moving the player or opening game shortcuts", async ({ page }) => {
-  test.setTimeout(180000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByPlaceholder(/A hunter in Anatolia/).fill("A Roman baker in Ostia, 100 CE");
+  await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
@@ -44,7 +118,6 @@ for (const [id, prompt, landform, camp] of [
   ["roman", "Roman military camp", "local", "military"],
 ])
   test(`${id} starts through World Weaver`, async ({ page }) => {
-    test.setTimeout(180000);
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("/");
@@ -105,11 +178,10 @@ for (const [id, prompt, landform, camp] of [
 
 
 test("running impacts hurt and fatal fire offers a new world", async ({ page }) => {
-  test.setTimeout(180000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByPlaceholder(/A hunter in Anatolia/).fill("A Roman baker in Ostia, 100 CE");
+  await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });

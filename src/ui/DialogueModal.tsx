@@ -201,7 +201,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   useEffect(() => () => beat.current?.(), []);
 
   if (!actor) return null;
-  const appearance = actor.appearance ?? runtime.appearanceFor(actor);
+  const appearance = runtime.appearanceFor(actor);
   const resting: Expression =
     actor.trust < 0 ? "stern" : actor.trust > 2 ? "smile" : "neutral";
   const expression = busy ? "thoughtful" : (mood ?? resting);
@@ -279,9 +279,9 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     setGiftNotice(result?.status === "completed" ? runtime.engine.state.events.at(-1)?.text ?? null : result?.reason ?? "You have nothing they will take.");
   };
   const plotChoices = owing && !busy && !left && latest?.speaker === "npc" ? [
-    { label: "Pay what you owe", pick: pay, primary: true },
-    { label: "Ask for time", pick: () => void submit("I need more time.") },
-    { label: "Refuse", pick: () => void submit("No. I won't pay you.") },
+    { label: "Pay", pick: pay, primary: true },
+    { label: "Soon", pick: () => void submit("I need more time.") },
+    { label: "No", pick: () => void submit("No. I won't pay you.") },
   ] : [];
   // They have asked for a hand with their work; the answer is a choice, not something to type.
   const helpAsked = !busy && !left && latest?.speaker === "npc" &&

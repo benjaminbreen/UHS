@@ -1,8 +1,15 @@
 """Shared shelf packer for source art and lighting masks. Native Phaser pivots."""
 from PIL import Image
+from pathlib import Path
 import json
 
-def pack_atlas(sprites, output, name, width=1024):
+def write_metadata(path, text):
+    path.write_text(text)
+    # Imported metadata lives under src; public keeps the runtime asset copy.
+    generated=Path(__file__).resolve().parents[2]/'src/render/generated'
+    (generated/f'{path.parent.name}-{path.name}').write_text(text)
+
+def pack_atlas(sprites, output, name, width=1024, *, module=False):
     frames={};placements=[];x=y=rowh=0
     # Tallest first: shelves stay full instead of leaving air under short sprites.
     seen={}
@@ -32,10 +39,13 @@ def pack_atlas(sprites, output, name, width=1024):
     # Keep each texture within a conservative GPU limit as modular kits grow.
     # Repack wider before allocating; never silently emit an unusable tall atlas.
     if y+rowh+2>4096:
-        if width<4096:return pack_atlas(sprites,output,name,width*2)
+        if width<4096:return pack_atlas(sprites,output,name,width*2,module=module)
         raise ValueError(f'{name} needs multiple pages: exceeds 4096 pixels')
     atlas=Image.new('RGBA',(width,y+rowh+2))
     for im,x,y in placements:atlas.paste(im,(x,y))
     atlas.save(output/f'{name}.png')
-    (output/f'{name}.json').write_text(json.dumps({'frames':frames,'meta':{'image':f'{name}.png','scale':'1','size':{'w':atlas.width,'h':atlas.height}}}))
+    metadata=json.dumps({'frames':frames,'meta':{'image':f'{name}.png','scale':'1','size':{'w':atlas.width,'h':atlas.height}}})
+    path=output/f'{name}.json'
+    if module:write_metadata(path,metadata)
+    else:path.write_text(metadata)
     return atlas

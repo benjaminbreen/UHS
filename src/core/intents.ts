@@ -120,10 +120,10 @@ function receive(engine: Engine, i: Extract<Intent, { type: "receive" }>) {
 }
 function attempt(engine: Engine, i: Extract<Intent, { type: "attempt" }>) {
   const p = engine.state.player,
-    stat = statsOf(engine.state.manifest.seed, p)[i.check],
+    stat = (engine.state.manifest.survival ? engine.stats() : statsOf(engine.state.manifest.seed, p))[i.check],
     difficulty = clamp(Math.round(i.difficulty), 1, 5);
   const chance = clamp(
-    0.5 + (stat - 50) / 100 - p.fatigue / 250 - (difficulty - 3) * 0.15,
+    0.5 + (stat - 50) / 100 - (engine.state.manifest.survival ? 0 : p.fatigue / 250) - (difficulty - 3) * 0.15,
     0.05,
     0.95,
   );

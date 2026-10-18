@@ -202,6 +202,7 @@ export function drawHead(h: Head) {
   const face = view === "front" || view === "q" || view === "side";
   if (face) drawFace(h, lo);
   if (face) marks(h, lo);
+  if (face) injuryScar(h, lo);
   if (view === "q" || view === "side") {
     const ec = view === "q" ? 2 : 5;
     s.px(X(ec), Y(7), SKIN, 2);
@@ -549,6 +550,25 @@ const markPixels: Record<string, { at: [number, number][]; pair: boolean }> = {
 };
 
 /** Ink, paint or raised scar, only where the face shows. */
+function injuryScar(h: Head, lo: number) {
+  const { s, a, view } = h;
+  const scar = a.injuryScar;
+  if (!scar || scar.kind === "none") return;
+  const { X, Y } = local(h);
+  const points: Record<Exclude<typeof scar.kind, "none">, [number, number][]> = {
+    brow: [[4, 4], [4, 5]], cheek: [[2, 8], [3, 9], [4, 10]],
+    temple: [[1, 4], [1, 5]], lip: [[5, 10], [5, 11]], burn: [[2, 9], [3, 9], [2, 10], [3, 11]],
+  };
+  for (const [px, py] of points[scar.kind]) {
+    const c = scar.side < 0 ? px : 13 - px;
+    const col = view === "front" ? c : view === "q" ? Math.round(4 + (c / 13) * 9) : c > 7 ? -1 : Math.round(7 + c * 0.8);
+    if (col < 0) continue;
+    const row = py >= 8 ? py + lo : py;
+    const mat = s.at(X(col), Y(row))?.mat;
+    if (mat === SKIN || (scar.kind === "lip" && mat === LIP)) s.px(X(col), Y(row), SKIN, 4);
+  }
+}
+
 function marks(h: Head, lo: number) {
   const { s, a, view } = h;
   const mark = a.adornment?.marks;

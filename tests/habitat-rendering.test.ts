@@ -104,3 +104,32 @@ describe("local habitat composition", () => {
     expect(rasterHabitatTile(beside, 0, 0, 0, 0).pixels).toEqual(rasterHabitatTile(garden, 0, 0, 0, 0).pixels);
   });
 });
+
+it("keeps activity wear out of planted ground and across height boundaries", () => {
+  const habitat = { ecology: "grassland" as const, kind: "open" as const,
+    cover: 0.3, wet: 0.2, exposed: 0.1, season: "summer" };
+  for (const pavement of ["garden", "park", "verge"] as const) {
+    const untouched: TopographySample = () => ({ height: 1, surface: "grass", pavement, habitat });
+    const worn: TopographySample = (x, y) => ({ ...untouched(x, y)!, groundWear: 1,
+      landscape: { kind: "trample", strength: 1 } });
+    expect(rasterHabitatTile(worn, 0, 0, 0, 0).pixels)
+      .toEqual(rasterHabitatTile(untouched, 0, 0, 0, 0).pixels);
+  }
+  const terrace: TopographySample = (x) => ({ height: x < 0 ? 2 : 1, surface: "grass", habitat });
+  const wornTerrace: TopographySample = (x, y) => ({ ...terrace(x, y)!, groundWear: x < 0 ? 1 : 0 });
+  expect(rasterHabitatTile(wornTerrace, 0, 0, 0, 0).pixels)
+    .toEqual(rasterHabitatTile(terrace, 0, 0, 0, 0).pixels);
+});
+
+it("renders localized activity wear consistently across signed chunk origins", () => {
+  const habitat = { ecology: "grassland" as const, kind: "open" as const,
+    cover: 0.3, wet: 0.2, exposed: 0.1, season: "summer" };
+  const world: TopographySample = (x, y) => ({ height: 1, surface: "grass", habitat,
+    groundWear: Math.max(0, 1 - Math.hypot(x + 16, y - 16) / 2) });
+  const local: TopographySample = (x, y) => world(x - 16, y + 16);
+  expect(rasterHabitatTile(local, 0, 0, -16, 16).pixels)
+    .toEqual(rasterHabitatTile(world, -16, 16, 0, 0).pixels);
+  const unworn: TopographySample = (x, y) => ({ ...world(x, y)!, groundWear: 0 });
+  expect(rasterHabitatTile(world, -16, 16, 0, 0).pixels)
+    .not.toEqual(rasterHabitatTile(unworn, -16, 16, 0, 0).pixels);
+});

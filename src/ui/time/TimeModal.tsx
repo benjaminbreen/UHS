@@ -3,7 +3,8 @@ import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import type { Runtime } from "../../runtime/session";
 import { Engine } from "../../core/engine";
 import { temporalWorld } from "../../core/time/world";
-import { TimeTravel, type Arrival } from "../../runtime/time-travel";
+import { TimeTravel, type Arrival } from "../../core/time/travel";
+import { releaseTerrainWorker } from "../../runtime/terrain-worker-owner";
 import { timeBounds } from "../../core/time/setting";
 import { formatHistoricalYear } from "../../core/calendar";
 import { lineBetween, relative, type Relative } from "../../core/time/lineage";
@@ -15,17 +16,21 @@ import "./time.css";
 type Stage = "choose" | "prepare" | "travel" | "arrive" | "family";
 export function TimeModal({
   runtime,
+  aim,
   onClose,
   onNewWorld,
 }: {
   runtime: Runtime;
+  /** A year to start the dial on, from the header's century arrows. */
+  aim?: number;
   onClose(): void;
   onNewWorld(): void;
 }) {
   const [travel] = useState(
-    () => runtime.timeTravel ?? (runtime.timeTravel = new TimeTravel(runtime)),
+    () => runtime.timeTravel ?? (runtime.timeTravel = new TimeTravel(runtime.engine)),
   );
-  const [year, setYear] = useState(travel.currentYear);
+  const { min, max } = timeBounds(travel.currentYear);
+  const [year, setYear] = useState(aim === undefined ? travel.currentYear : Math.max(min, Math.min(max, aim)));
   const [stage, setStage] = useState<Stage>("choose");
   const [arrival, setArrival] = useState<Arrival | undefined>(travel.arrival);
   const [focus, setFocus] = useState<Relative>();
@@ -37,7 +42,6 @@ export function TimeModal({
   const frame = useRef(0);
   const source = useRef(runtime.engine);
   const committed = useRef(false);
-  const { min, max } = timeBounds(travel.currentYear);
   const busy = stage === "prepare" || stage === "travel";
   useEffect(() => {
     if (stage !== "choose") panel.current?.focus();
@@ -70,7 +74,7 @@ export function TimeModal({
     await new Promise((resolve) => setTimeout(resolve, 40));
     if (!active.current) return;
     try {
-      const prepared = travel.prepare(year);
+      const prepared = travel.prepare(year, source.current);
       const reduced = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
@@ -125,6 +129,10 @@ export function TimeModal({
         else {
           runtime.timeVisualClock = undefined;
           travel.commit(prepared);
+          releaseTerrainWorker(prepared.source.world);
+          runtime.replace(prepared.engine, false, true);
+          runtime.notice = `${prepared.engine.world.pack.name}, ${formatHistoricalYear(year)}.`;
+          runtime.emit(false);
           committed.current = true;
           source.current = runtime.engine;
           setArrival(prepared.arrival);

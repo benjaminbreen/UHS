@@ -3,6 +3,7 @@ Authored silhouettes and leaf placement, opaque palette, no sampled image pixels
 """
 from PIL import Image, ImageDraw
 import math
+from art.shrubs import shrub_candidate
 
 FERN = ['#0e2a23', '#1d5034', '#367e3a', '#5ea13d', '#9dc75e']
 HEATH=['#303d34','#4e6040','#71804b','#a0a66b']
@@ -95,5 +96,5 @@ def tropical_ginger():
 def understory():
     return {'nature-understory-woodland-fern':fern(),
             'nature-understory-flowering-heath':flowering_heath(),
-            'nature-understory-sagebrush':sagebrush(),
+            'nature-understory-sagebrush':shrub_candidate('sagebrush',(48,40)),
             'nature-understory-tropical-ginger':tropical_ginger()}

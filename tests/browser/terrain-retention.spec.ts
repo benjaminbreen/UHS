@@ -1,10 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-test.setTimeout(180000);
 
 test("props keep their atlas ground anchors across animation and redraws", async ({ page }) => {
   await page.goto("/");
-  await page.getByPlaceholder(/A hunter in Anatolia/).fill("A Roman baker in Ostia, 100 CE");
+  await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 120000 });

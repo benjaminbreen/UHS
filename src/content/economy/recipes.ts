@@ -21,9 +21,80 @@ export type Recipe = {
   /** The prop families the trade works at inside its house, best first; the
    * house gets the first its place and period has, else works at its fire. */
   bench?: string[];
+  stations?: string[];
   day: Day | Record<SeasonId, Day>;
 };
 const recipes: Recipe[] = [
+  {
+    ids:["boatwright"],skill:"crafting",wiki:["Boat building"],stations:["bench","woodpile"],
+    day:{title:"A day building and repairing boats",steps:[
+      {name:"timber",task:"Select timber and shape replacement pieces",at:"workplace",scene:"craft",hours:2},
+      {name:"fit",task:"Fit planks and frames to the boat",at:"workplace",scene:"craft",hours:4},
+      {name:"inspect",task:"Check joints and keep the launching way clear",at:"workplace",scene:"craft",hours:2},
+    ]},
+  },
+  {
+    ids:["potter"],skill:"crafting",wiki:["Pottery"],stations:["earthen-pot","bench"],
+    day:{title:"A day at the pottery",steps:[
+      {name:"shape",task:"Prepare clay and shape the next batch",at:"workplace",scene:"craft",hours:3},
+      {name:"fire",task:"Tend the kiln and its fuel",at:"workplace",scene:"warm",hours:3},
+      {name:"sort",task:"Sort cooled ware and check the drying pots",at:"workplace",scene:"craft",hours:2},
+    ]},
+  },
+  {
+    ids:["brickmaker"],skill:"crafting",wiki:["Brick"],stations:["bench","crate"],
+    day:{title:"A day in the brickyard",steps:[
+      {name:"mould",task:"Mould green bricks and lay them out",at:"workplace",scene:"craft",hours:3},
+      {name:"dry",task:"Turn drying bricks and protect them from weather",at:"workplace",scene:"craft",hours:2},
+      {name:"fire",task:"Tend the clamp and sort cooled bricks",at:"workplace",scene:"warm",hours:3},
+    ]},
+  },
+  {
+    ids:["lime-burner"],skill:"crafting",wiki:["Lime kiln"],stations:["woodpile","boulder"],
+    day:{title:"A day at the lime kiln",steps:[
+      {name:"charge",task:"Prepare limestone and fuel for the kiln",at:"workplace",scene:"haul",hours:3},
+      {name:"tend",task:"Tend the firing or draw cooled lime",at:"workplace",scene:"warm",hours:4},
+      {name:"store",task:"Keep the finished lime dry and clear the yard",at:"workplace",scene:"craft",hours:1},
+    ]},
+  },
+  {
+    ids:["dyer"],skill:"crafting",wiki:["Dyeing"],stations:["wash-tub","drying-rack"],
+    day:{title:"A day at the dyehouse",steps:[
+      {name:"prepare",task:"Prepare the dye bath and sort the cloth",at:"workplace",scene:"craft",hours:2},
+      {name:"dye",task:"Work cloth through dye and rinsing vats",at:"workplace",scene:"water",hours:4},
+      {name:"dry",task:"Hang batches to dry and clean the vats",at:"workplace",scene:"craft",hours:2},
+    ]},
+  },
+  {
+    ids:["fuller"],skill:"crafting",wiki:["Fulling"],stations:["wash-tub","drying-rack"],
+    day:{title:"A day at the fullery",steps:[
+      {name:"wash",task:"Sort and wet the cloth",at:"workplace",scene:"water",hours:1},
+      {name:"full",task:"Full and rinse batches of cloth",at:"workplace",scene:"craft",hours:5},
+      {name:"finish",task:"Stretch, inspect and dry the finished pieces",at:"workplace",scene:"craft",hours:2},
+    ]},
+  },
+  {
+    ids:["tanner"],skill:"crafting",wiki:["Tanning (leather)"],stations:["tanning-pits","hide-frame","bench"],
+    day:{title:"A day in the tannery",steps:[
+      {name:"scrape",task:"Scrape and sort the hides",at:"workplace",scene:"craft",hours:3},
+      {name:"pits",task:"Check soaking and tanning pits",at:"workplace",scene:"water",hours:3},
+      {name:"finish",task:"Hang prepared hides and clean the working area",at:"workplace",scene:"craft",hours:2},
+    ]},
+  },
+  {
+    ids: ["tax-collector"],
+    skill: "speech",
+    wiki: ["Tax collector"],
+    paid: "wage",
+    day: {
+      title: "A day collecting taxes",
+      steps: [
+        { name: "prepare", task: "Check the tax records", at: "workplace", scene: "craft", hours: 1 },
+        { name: "collect", task: "Collect payments and record what is owed", at: "workplace", scene: "talk", hours: 5 },
+        { name: "account", task: "Balance the accounts and hand over the receipts", at: "workplace", scene: "craft", hours: 1 },
+      ],
+    },
+  },
   {
     activities: ["On the line"],
     skill: "stonework",

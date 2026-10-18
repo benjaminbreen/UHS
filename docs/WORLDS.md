@@ -77,7 +77,7 @@ The bundled catalog combines featured settings, Natural Earth place coordinates,
 
 ```sh
 npm run prepare:atlas
-npm run headless -- --prompt "Elizabethan London"
+npm run agent:serve -- --setting "Elizabethan London"
 npx vitest run tests/world-v2.test.ts
 ```
 

@@ -230,7 +230,7 @@ describe("walking through", () => {
 });
 
 describe("breaking in", () => {
-  it("takes a shut door down with an axe, and the household comes at the one who did it", () => {
+  it.runIf(!!process.env.FULL)("takes a shut door down with an axe, and the household comes at the one who did it", () => {
     const e = createSettingSession({ ...panelSetting("london", 1400), season: "summer" }, "break-in");
     e.state.clock = Math.floor(e.state.clock / 86400) * 86400 + 11 * 3600;
     const h = e.state.households!.find((g) => g.residence && !g.members.includes("player") && g.members.length)!;

@@ -218,9 +218,13 @@ def _voxel(k):
     return (buildings.get(base) or {}).get('voxel')
 weather_frames={k:S.pop(k) for k in list(S) if _voxel(k) and k.endswith(('-snow','-wet'))}
 street_frames={k:S.pop(k) for k in list(S) if _voxel(k)}
+worksite_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and k.startswith('worksite-')})
 building_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S})
 atlas=pack_atlas(S,OUT,'atlas')
 buildings_atlas=pack_atlas(building_frames,OUT,'buildings')
+pack_atlas(worksite_frames,OUT,'worksites')
+from art.boats import build as build_boats
+build_boats()
 regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings')
 camp_atlas=pack_atlas(camp_frames,OUT,'camp-buildings')
 modern_atlas=pack_atlas(modern_frames,OUT,'modern-buildings')
@@ -256,4 +260,4 @@ tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i fo
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','street-buildings.json','street-weather.json','civic.json','sacred-buildings.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','worksites.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','street-buildings.json','street-weather.json','civic.json','sacred-buildings.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())

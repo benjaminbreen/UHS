@@ -1,8 +1,8 @@
-import faunaAtlas from "../../public/fauna/atlas.json" with { type: "json" };
-import faunaAtlasB from "../../public/fauna-b/atlas.json" with { type: "json" };
-import studiesB from "../../public/fauna-b/studies.json" with { type: "json" };
-import faunaAtlasC from "../../public/fauna-c/atlas.json" with { type: "json" };
-import studiesC from "../../public/fauna-c/studies.json" with { type: "json" };
+import faunaAtlas from "../render/generated/fauna-atlas.json" with { type: "json" };
+import faunaAtlasB from "../render/generated/fauna-b-atlas.json" with { type: "json" };
+import studiesB from "../render/generated/fauna-b-studies.json" with { type: "json" };
+import faunaAtlasC from "../render/generated/fauna-c-atlas.json" with { type: "json" };
+import studiesC from "../render/generated/fauna-c-studies.json" with { type: "json" };
 import { useEffect, useMemo, useState } from "react";
 import type { FaunaState } from "../core/fauna";
 import type { FaunaFacing, FaunaProfile } from "../content/fauna";

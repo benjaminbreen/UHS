@@ -25,6 +25,7 @@ when the task is actually about its subject:
 | Health, conditions, bonds, the opening card's text | `docs/LIVES.md` |
 | Starting scenarios | `docs/SCENARIOS.md` |
 | Classroom / edu mode | `docs/CLASSROOM.md` |
+| Agents playing the game, experiments, run records | `docs/AGENTS.md` |
 | Character generation pipeline | `docs/CHARACTER_GENERATION.md` |
 | Performance | `docs/PERFORMANCE.md` (`docs/PERFORMANCE_REVIEW.md` is a past audit) |
 | Licences of third-party art | `docs/ASSET_PROVENANCE.md` |
@@ -33,26 +34,31 @@ when the task is actually about its subject:
 ## Verifying
 
 - `npm run check` — **the gate before you call work done.** Typecheck, unit
-  tests and a production build, 2.8 min, green on main. It is the only thing
-  you need to pass; nothing below is a gate.
-- `npm test` — about 40s, ~750 tests, **green on main**. If it is red, you broke it.
+  tests and a production build. It is the only thing you need to pass;
+  nothing below is a gate.
+- `npm test` — the fast default: mechanics, terrain/rendering contracts, and
+  representative integration checks. Keep repeated world builds, regional
+  matrices and exhaustive rendering combinations in `test:full`.
 - `npx vitest run tests/<name>.test.ts` — after an edit, run just what covers it.
-- `npm run shot -- artifacts/x.png "A Roman baker in Ostia, 100 CE"` — one
+  Explicit files or `-t` names include their opt-in cases automatically.
+- `npm run shot -- artifacts/x.png "A dyer in Kyoto, 1350"` — one
   screenshot of the running game. Starts the dev server itself if needed.
 - `npm run town:sheet` — a generated settlement without a browser. Use before
   and after changing layout, yards or building art.
 - `npm run capture:characters -- <preset>` and `npm run capture:terrain -- <review>`
   — the review sheets. No argument runs them all; a wrong name prints the
   valid ones.
-- `npm run test:full` — 10 min, and has known failures. Only before a merge or
-  when asked, and in the background.
-- `npm run test:browser` — 9 tests, 30s, green. Five specs that drive the real
-  game and assert something. It starts the dev server itself and reuses one
+- `npm run test:full` — optional regional/historical matrices, long simulation
+  scenarios, exhaustive rendering and MCP integration. Use when those systems
+  change or when asked; prefer a targeted file when it covers the change.
+- `npm run test:browser` — Chromium specs plus mobile checks in WebKit that
+  drive the real game. It starts the dev server itself and reuses one
   already up. Worth running when you touch movement, doors, situations, time
   travel or the mobile layout.
 - Docs sometimes cite a browser spec that no longer exists. Those 54 review
   specs were deleted; `git show bef96b22^:tests/browser/<name>` reads one.
 
+All npm Python commands and the dev server's art rebuild use `.venv/bin/python`.
 The Python art pipeline (`npm run art*`, the `scripts/art/` sheets) needs PIL,
 numpy, shapely, pyproj and pyshp in a `.venv`, which a fresh checkout does not
 have. `python3 scripts/art/oblique_audit.py` needs none of them and works
@@ -76,6 +82,10 @@ suite, one spec over all of them, one screenshot over a full review sheet.
 
 ## Code that looks dead but is live
 
+Fresh playable worlds use `prepareConnectedStart` in `src/runtime/map-travel.ts`.
+`createSettingSession` builds a synchronous local scene for tests/reviews;
+`createSession(pack, seed, options)` handles authored packs and pinned versions.
+
 `src/world/v2/` is the atlas (region) world and `src/world/v3/` the local
 scene; both run. `v3/urban-v1.ts` and `src/content/legacy-packs.ts` are also
 imported. Do not delete or ignore them for their names.
@@ -85,8 +95,10 @@ Do not grep or read these whole; they are generated or bulk content:
 `src/core/engine.ts` and `src/render/WorldScene.ts` are each over 250k: search
 for the symbol and read a range.
 
-`npm run headless` and `npm run mcp` drive the game without a browser; see
-`README.md` ("Saves, recordings, and agents").
+To play or playtest the game yourself, use the agent tools, not screenshots
+and scripts: `npm run agent:serve` is an MCP server that puts you in a world
+(look, goto, act, errand, travel). `npm run agent:run` lets a model play on its
+own. See `docs/AGENTS.md`.
 
 ## Do not add scaffolding
 

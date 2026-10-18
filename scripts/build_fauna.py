@@ -17,7 +17,7 @@ for name, im in sprites.items():
     bbox = im.getbbox()
     assert bbox and bbox[0] > 0 and bbox[1] > 0 and bbox[2] < im.width and bbox[3] < im.height, name
     im.save(out / f"{name}.png")
-pack_atlas(sprites, out, "atlas", 512)
+pack_atlas(sprites, out, "atlas", 512, module=True)
 (out / "studies.json").write_text(json.dumps({species: {"palette": PALETTES[species], "states": states} for species, states in STATES.items()}, indent=2) + "\n")
 
 selected = [

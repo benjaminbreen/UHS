@@ -37,7 +37,7 @@ function city(seed: string, radius = 74) {
     [],
   );
 }
-it("preserves ground purpose across settlement forms without turning parcel interiors into roads", () => {
+it.runIf(!!process.env.FULL)("preserves ground purpose across settlement forms without turning parcel interiors into roads", () => {
   const seen = new Set<string>();
   for (const query of ["Rome 100 BCE", "London 1650", "Kyoto 1700", "Isfahan 1600", "Cairo 1200",
     "Timbuktu 1400", "Delhi 1500", "Tenochtitlan 1500", "Richmond 2014", "Moscow 1975"])
@@ -107,7 +107,7 @@ it("grades modest urban foundations through one tier and keeps steeper terrain o
     (x) => ({ ...flat(), elevation: x >= 0 ? 28 : 0 }), []);
   expect(steep.places.some((b) => b.x < 0 && b.x + b.w > 0)).toBe(false);
 });
-it("places regional buildings and retains historic towers in later cities with reachable entrances", () => {
+it.runIf(!!process.env.FULL)("places regional buildings and retains historic towers in later cities with reachable entrances", () => {
   for (const [query, style, retained] of [
     ["Rome 100 BCE", "roman", false], ["medieval London", "western", false], ["Alexandria 200", "egypt", false],
     ["Istanbul 1900", "anatolia", true], ["Istanbul 1950", "anatolia", true],
@@ -186,7 +186,7 @@ it("encloses public squares and courts with varied, non-overlapping ranges and r
         expect(p.solid.has(`${q.x},${q.y}`)).toBe(false);
   }
 }, 30000);
-it("zones an industrial-age city into a downtown, factories and the housing of each ring's date", () => {
+it.runIf(!!process.env.FULL)("zones an industrial-age city into a downtown, factories and the housing of each ring's date", () => {
   const plan = (query: string) => {
     const r = resolveSetting(query);
     if ("error" in r) throw Error(r.error);

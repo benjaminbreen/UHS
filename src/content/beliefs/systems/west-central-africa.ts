@@ -227,6 +227,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "islamic-trade-era",
+    features: ["sacred-texts"],
     label: "Islamic trade and adaptation",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Africa",
     scope: { years: [1200, 1600], bounds: [-18, 11, 32, 20] },
@@ -703,6 +704,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "hausa-islamic",
+    features: ["sacred-texts"],
     label: "Hausa Islam with older layered practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Nigeria",
     scope: { years: [1500, 1900], bounds: [-4, 10, 18, 18] },
@@ -1178,6 +1180,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "yoruba-nineteenth-century-christian",
+    features: ["sacred-texts"],
     label: "Yoruba Christian mission encounter",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Nigeria",
     scope: { years: [1850, 1920], bounds: [-2, 2, 10, 10] },

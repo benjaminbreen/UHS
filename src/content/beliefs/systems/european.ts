@@ -968,6 +968,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "frankish-christian-early",
+    features: ["sacred-texts"],
     label: "Early medieval Frankish Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Franks",
     scope: { years: [500, 850], bounds: [-15, 30, 45, 72] },
@@ -1048,6 +1049,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "catholic-high-medieval",
+    features: ["sacred-texts"],
     label: "High medieval Catholic practice",
     wiki: "https://en.wikipedia.org/wiki/Catholic_Church_in_the_Middle_Ages",
     scope: { years: [1000, 1300], bounds: [-15, 35, 40, 65] },
@@ -1145,6 +1147,8 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "reformation-protestant",
+    priority: 1,
+    features: ["sacred-texts"],
     label: "Reformation Protestant practice",
     wiki: "https://en.wikipedia.org/wiki/Reformation",
     scope: { years: [1500, 1800], bounds: [-26, 30, 50, 72] },
@@ -1221,6 +1225,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "orthodox-russia",
+    features: ["sacred-texts"],
     label: "Russian Orthodox Christianity",
     wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
     scope: { years: [1000, 1700], bounds: [15, 40, 50, 72] },
@@ -1250,6 +1255,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "catholic-early-modern",
+    features: ["sacred-texts"],
     label: "Early modern Catholic practice",
     wiki: "https://en.wikipedia.org/wiki/Counter-Reformation",
     scope: { years: [1500, 1800], bounds: [-26, 30, 50, 72] },
@@ -1560,6 +1566,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "byzantine-orthodox",
+    features: ["sacred-texts"],
     label: "Byzantine Orthodox practice",
     wiki: "https://en.wikipedia.org/wiki/Byzantine_Empire",
     scope: { years: [330, 1460], bounds: [12, 33, 48, 49] },
@@ -1647,6 +1654,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "post-roman-christian-mediterranean",
+    features: ["sacred-texts"],
     label: "Post-Roman Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Roman_Empire",
     scope: { years: [380, 1000], bounds: [-12, 34, 25, 58] },
@@ -1734,6 +1742,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "latin-christendom-late-medieval",
+    features: ["sacred-texts"],
     label: "Late medieval Latin Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Late_Middle_Ages",
     scope: { years: [1300, 1520], bounds: [-10, 35, 30, 62] },

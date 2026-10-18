@@ -1,3 +1,6 @@
+import { waterfrontProfiles } from "../../content/settlements/waterfronts";
+import { livelihoodById } from "../../content/characters/livelihoods";
+import { prepareLocalWork } from "./employment";
 import { carryKit, withLoads } from "../../content/economy/carrying";
 import { goodsOf } from "../../content/economy/goods";
 import type { Station } from "../../core/itinerary";
@@ -738,11 +741,12 @@ export function planRoutines(
   plan.gatherings = gatherings(plan, seed);
   plan.outdoors = outdoorSites(plan, seed, sample);
   attachOpenVenues(plan, pack);
+  prepareLocalWork(plan, pack, seed);
   for (const [id, site] of plan.work) {
     const actor = plan.actors.find((a) => a.id === id);
     if (site.gateId && actor?.kind !== "human") continue;
     const kit = livelihoodOf(pack, actor);
-    if (kit && workplaceFor(kit.activity) === "water")
+    if (kit && workplaceFor(kit.activity) === "water" && site.employment?.kind!=="fishery")
       attachRack(plan, seed, pack, id, site);
     plan.stations.set(
       id,
@@ -767,7 +771,8 @@ export function livelihoodOf(pack: Pack, actor?: Actor) {
     );
     kitsFor.set(pack, kits);
   }
-  const kit = kits.get(actor.origin.livelihood);
+  const kit = kits.get(actor.origin.livelihood) ??
+    (pack.setting.employmentRevision ? livelihoodById(actor.origin.livelihood) : undefined);
   if (!kit || !["apprentice", "journeyman", "guild-master"].includes(kit.id))
     return kit;
   const specialty = actor.origin.roleLabel?.replace(/^(Apprentice|Journeyman|Master) /, "").toLowerCase();
@@ -872,7 +877,37 @@ export function routineFor(
   const home = site.home;
   const kit = livelihoodOf(pack, actor);
   const label = kit?.activity ?? site.label;
-  const field = plan.plots.find((p) => p.kind === "field" && p.owner === id);
+  if(site.employment?.kind==="fishery") {
+    const member=plan.waterfront?.members.find(m=>m.boatId===site.employment!.id);
+    if(member?.handling) {
+      const h=member.handling,basket=carryKit(pack).basket;
+      const practice=waterfrontProfiles.find(p=>p.id===plan.waterfront!.profile)?.practice;
+      const catchName=practice?.catch.toLowerCase() ?? "catch-sorting table";
+      return [
+        inside(plan,h.gear,"Taking out fishing gear",20,member.gearId),
+        {pos:member.nets,activity:"work",label:practice?.prepare ?? "Checking lines and mending nets",minutes:40,toward:practice?.nets.toLowerCase() ?? "the net frame"},
+        {pos:member.landing,activity:practice?.landingActivity ?? "work",label:practice?.receive ?? "Receiving the fresh catch",minutes:90,toward:"the fishing landing"},
+        {pos:member.sorting,activity:"haul",label:practice ? `Carrying baskets of fish to the ${catchName}` : "Carrying baskets of fish to the sorting table",minutes:12,carry:basket,toward:`the ${catchName}`},
+        {pos:member.sorting,activity:"work",label:practice?.sort ?? "Sorting the fresh catch",minutes:40,toward:`the ${catchName}`},
+        {pos:h.sale,activity:"visit",label:practice?.share ?? "Selling fresh fish at the landing",minutes:40,carry:basket,toward:practice ? `the ${catchName}` : "the fish-selling table"},
+        inside(plan,h.gear,"Putting away fishing gear",20,member.gearId),
+        socialStop(plan,seed,id,home,actor,pack.setting),{...night(home),share:.65},
+      ];
+    }
+    if(member)return [
+      {pos:member.nets,activity:"work",label:"Checking lines and mending nets",minutes:50},
+      {pos:member.landing,activity:"work",label:"Working the fishing landing",minutes:220},
+      {pos:member.sorting,activity:"work",label:"Sorting and carrying the catch",minutes:50},
+      {pos:member.nets,activity:"work",label:"Cleaning and stowing fishing gear",minutes:35},
+      socialStop(plan,seed,id,home,actor,pack.setting),night(home),
+    ];
+  }
+  if (site.employment && !["field", "pasture", "shore"].includes(site.employment.kind)) {
+    return [inside(plan, site.work, label, 300, site.employment.id),
+      socialStop(plan, seed, id, home, actor, pack.setting), ...fireside(plan, seed, id, home, pack.year), night(home)];
+  }
+  const field = plan.plots.find((p) => p.kind === "field" &&
+    (site.employment?.kind === "field" ? p.id === site.employment.id : p.owner === id));
   const gate = plan.objects.find((o) => o.id === site.gateId);
   const pasture = plan.plots.find(
     (p) => p.kind === "pasture" && p.owner === id && p.id.endsWith("-pasture"),

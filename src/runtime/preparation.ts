@@ -38,7 +38,7 @@ export async function prepareSettingSession(
     age: resolved.character!.age!,
   });
   if (typeof Worker === "undefined")
-    return createSession("atlas", seed, undefined, resolved);
+    return createSession("atlas", seed, { setting: resolved });
   signal?.throwIfAborted();
   const worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
     type: "module",
@@ -95,11 +95,7 @@ export async function prepareSettingSession(
     const engine = createSession(
       "atlas",
       seed,
-      undefined,
-      resolved,
-      2,
-      3,
-      prepared,
+      { setting: resolved, prepared },
     );
     if (!retire) {
       retainTerrainWorker(engine.world, worker);

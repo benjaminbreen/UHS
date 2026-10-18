@@ -208,4 +208,51 @@ it("the keeper minds when you hit their sheep", () => {
   const trust = owner.trust;
   swing(engine);
   expect(owner.trust).toBeLessThan(trust);
+  expect(engine.witnessedOffense?.id).toBe(owner.id);
+  expect(engine.witnessedOffense?.situation).toContain("my sheep");
+});
+
+it("witnesses animal attacks up to fifteen squares from the target, with a clear view", () => {
+  const engine = field("combat-witness-range");
+  engine.devArm("stick");
+  const actors = createSession("roman", "combat-witnesses").state.actors.filter((a) => a.kind === "human").slice(0, 3);
+  actors[0].pos = { x: 16, y: 0, space: "outside" };
+  actors[1].pos = { x: 17, y: 0, space: "outside" };
+  actors[2].pos = { x: 1, y: 0, space: "indoors" };
+  engine.state.actors = actors;
+  quarry(engine, "sheep");
+  swing(engine);
+  expect(actors[0].memories.some((m) => m.includes("wild sheep"))).toBe(true);
+  expect(actors[1].memories.some((m) => m.includes("wild sheep"))).toBe(false);
+  expect(actors[2].memories.some((m) => m.includes("wild sheep"))).toBe(false);
+  expect(engine.witnessedOffense?.id).toBe(actors[0].id);
+});
+
+it("records an assault for the victim and nearby witnesses outside survival mode", () => {
+  const engine = field("combat-assault-witnesses");
+  const actors = createSession("roman", "combat-assault-people").state.actors.filter((a) => a.kind === "human").slice(0, 2);
+  actors[0].pos = { x: 1, y: 0, space: "outside" };
+  actors[1].pos = { x: 12, y: 0, space: "outside" };
+  engine.state.actors = actors;
+  delete engine.state.manifest.survival;
+  swing(engine);
+  expect(actors[0].memories).toContain("The player struck me");
+  expect(actors[1].memories).toContain(`Saw player strike ${actors[0].name}`);
+  expect(engine.witnessedOffense?.id).toBe(actors[0].id);
+});
+
+it("recognises a keeper's dog in a world created before dogs had owners", () => {
+  const engine = field("combat-existing-sheepdog");
+  engine.devArm("stick");
+  const keeper = createSession("roman", "combat-dog-keeper").state.actors.find((a) => a.kind === "human")!;
+  keeper.id = "flock-herder-0";
+  keeper.pos = { x: 0, y: 2, space: "outside" };
+  engine.state.actors = [keeper];
+  const dog = quarry(engine, "dog");
+  dog.id = "flock-dog";
+  delete dog.owner;
+  swing(engine);
+  expect(dog.owner).toBe(keeper.id);
+  expect(engine.witnessedOffense?.id).toBe(keeper.id);
+  expect(engine.witnessedOffense?.situation).toContain("my dog");
 });

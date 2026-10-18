@@ -38,7 +38,7 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
     props=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy','fountain','statue','stele','market-cross','kiosk','altar-platform','monument-cross','monument-statue','monument-obelisk','monument-fountain','planter','post','lamp-post','lamp-post-lit']
     result={}
     for name,source in sprites.items():
-        if not (name.startswith(('human-','house-','study-','prop-broken-','urban-stall-','nature-')) or name in props or (buildings.get(name) or {}).get('frontClassical')):continue
+        if not (name.startswith(('human-','house-','worksite-','study-','prop-broken-','urban-stall-','nature-')) or name in props or (buildings.get(name) or {}).get('frontClassical')):continue
         w,h=source.size
         opaque=[(x,y) for y in range(h) for x in range(w) if source.getpixel((x,y))[3]>200]
         if not opaque:continue
@@ -109,7 +109,8 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
                 # Follow actual root, foot, or vessel-base pixels, not a generic oval.
                 for x,y in base_profile(opaque,bottom,3):
                     d.line((x-minx,y-miny,x-minx,y-miny+1),fill=CONTACT+(83,))
-            im.info['anchor']=[(model['anchor'][0] if model else w/2)-minx,h-miny]
+            anchor=model['anchor'] if model else source.info.get('shadowAnchor',[w/2,h])
+            im.info['anchor']=[anchor[0]-minx,anchor[1]-miny]
             result[f"{phase['id']}:{name}"]=im
     atlas=pack_atlas(result,output or root/'public/packs',atlas_name,2048)
     print(f'Built {len(result)} lighting masks; shadow atlas {atlas.size}.')

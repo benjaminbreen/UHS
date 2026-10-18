@@ -26,7 +26,7 @@ export type ItemDef = {
   wear?: { slot: WearSlot; look: Partial<CharacterAppearance["wearing"]> };
   /** Can be taken in hand. `strike` means it swings; `edge` means it cuts
    * rather than thumps. */
-  hand?: { strike?: boolean; edge?: boolean };
+  hand?: { strike?: boolean; edge?: boolean; weapon?: "spear" };
   /** Hunger relieved when eaten. */
   edible?: number;
   /** Health change when eaten. */
@@ -139,6 +139,8 @@ export type HouseholdEvent = {
 export type WalkOff = "home" | "friend" | "authority" | "away";
 export type SocialRelation = {
   other: string;
+  /** The reverse link, needed because a master may have servants or apprentices. */
+  reciprocal?: SocialRelation["kind"];
   /** What `other` is to this person. */
   kind:
     | "partner"
@@ -207,7 +209,17 @@ export type Actor = {
   taught?: import("./skills").SkillId[];
   /** A hurt that outlasts the fight: weaker blows and quicker tiring until
    * the clock passes `until`. */
-  injury?: { name: string; until: number };
+  injury?: { name: string; until: number; open?: boolean; since?: number; cleanUntil?: number };
+  immune?: Record<string, number>;
+  preparedFoodUntil?: number;
+  medicalStock?: { antibiotic: number; rehydration: number };
+  /** Personal context carried between maps; local scenery keeps its own seed. */
+  identity?: {
+    seed: string;
+    setting?: WorldSetting;
+    concern: string;
+    household?: { size: number; people: { id: string; name: string; age?: number }[] };
+  };
   origin?: CharacterOrigin;
   appearance?: CharacterAppearance;
   /** Injuries that left a mark, oldest first. */
@@ -235,6 +247,8 @@ export type Actor = {
   activity: string;
   fatigue: number;
   hunger: number;
+  hungerDebt?: number;
+  encounterAfter?: number;
   trust: number;
   /** When the player last cost them trust. */
   wronged?: number;
@@ -285,6 +299,9 @@ export type Actor = {
   terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" };
 };
 export type Place = {
+  institution?: import("../content/characters/workplace").Institution;
+  workCapacity?: number;
+  workRoles?: readonly string[];
   id: string;
   name: string;
   description: string;
@@ -440,6 +457,8 @@ export type WorldManifest = {
   simulation: 1 | 2;
   /** Absent in older saves and replays, which retain harmless impacts. */
   hazards?: 1;
+  survival?: 1;
+  disease?: 1;
   generator: 1 | 2 | 3;
   content: 1 | 2;
   atlas: 1 | 2;
@@ -477,9 +496,10 @@ export type PlayerCommand =
   | { type: "shoot"; target: Point; power?: number }
   /** A swing of whatever is in hand, at whatever the arc finds. Takes no
    * target: the cone in front of the player is the target. */
-  | { type: "swing"; power?: 1 | 2; plunge?: boolean }
+  | { type: "swing"; power?: 1 | 2; plunge?: boolean; direction?: number }
   | { type: "learn"; technique: import("./techniques").TechniqueId }
   | { type: "wait"; seconds: number }
+  | { type: "care"; target: string; treatment: import("../content/health/infections").Treatment }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */
   | { type: "pass"; seconds: number }
@@ -647,8 +667,10 @@ export type Snapshot = {
   introduced?: boolean;
   /** Illnesses and hurts under way, anyone's. */
   ailments?: import("./health").Ailment[];
+  disease?: import("./health").DiseaseState;
   /** Who the player loves, is matched with, is at odds with. */
   bonds?: import("./bonds").Bond[];
+  relationships?: Record<string, import("./bonds").Relationship>;
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
   /** What the player's day has held so far, for the evening's account. */
@@ -667,6 +689,7 @@ export type Snapshot = {
   record?: { day: number; clock: number; card: string; choice: number; line: string }[];
   /** A card about someone's illness, the player's own or kin's, waiting on an answer. */
   care?: { card: string; who: string; ailment: string; at: number };
+  encounter?: { card: string; at: Position; clock: number };
   /** What the player has done today that goals can't read off state. */
   goalFlags?: {
     traded: boolean;
@@ -830,6 +853,8 @@ export interface WorldModel {
   rotateRoutines?(clock: number): void;
   activitySites?(actorId: string):
     | {
+        employment?: { id: string; kind: import("../content/characters/workplace").Institution; label: string };
+        role?: string;
         home: Point;
         work: Point;
         water: Point;

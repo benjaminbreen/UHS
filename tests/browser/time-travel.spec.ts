@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 
 test("arrival reveals the real character early and prepares a paused first frame", async ({ page }) => {
-  test.setTimeout(180000);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   let release!: () => void;
@@ -57,7 +56,7 @@ test("a historical journey preserves the original date and connects the family",
   await page.route("**/api/time-arrival", route => route.fulfill({ json: { available: false } }));
   await page.goto("/");
   await page.waitForFunction(() => !!(document.querySelector("#opening-prompt") as HTMLInputElement)?.value);
-  await page.getByPlaceholder("A hunter in Anatolia, 7000 BCE").fill("Naples 100 CE");
+  await page.locator("#opening-prompt").fill("Naples 100 CE");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await page.locator(".game-container canvas").waitFor({ timeout: 120000 });

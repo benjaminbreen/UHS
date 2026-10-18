@@ -9,13 +9,16 @@ export type CardEffect =
   /** Added to or taken off the wage when it is paid. */
   | { type: "pay"; delta: number }
   | { type: "minutes"; n: number }
+  | { type: "sleep"; n: number }
   | { type: "fatigue"; n: number }
   | { type: "item"; item: string; n: number }
+  | { type: "forfeit" }
   /** With the card's person. */
   | { type: "regard"; delta: number }
   | { type: "hurt"; n: number; cause: string; injury?: string }
   /** The card's sick person is cared for: one in `odds` who were dying mend. */
   | { type: "tend"; odds: number }
+  | { type: "care"; treatment: import("../health/infections").Treatment }
   /** The chance, 0 to 1, of catching an illness from it. */
   | { type: "risk"; ailment: string; odds: number };
 

@@ -1,5 +1,6 @@
 """Small native-grid shrub silhouettes; no resampling of larger assets."""
 from PIL import Image, ImageDraw
+from art.shrubs import shrub_candidate
 
 
 def twig_scrub(medium=False):
@@ -50,6 +51,8 @@ def small_shrubs():
     return {
         'nature-dry-scrub-small': twig_scrub(),
         'nature-dry-scrub-medium': twig_scrub(True),
-        'nature-understory-low-leafy-shrub': leafy_shrub(),
+        'nature-dry-scrub-small-b': shrub_candidate('scrub',(24,20)),
+        'nature-dry-scrub-medium-b': shrub_candidate('scrub',(32,24)),
+        'nature-understory-low-leafy-shrub': shrub_candidate('leafy',(24,20),True),
         'nature-understory-low-heath': low_heath(),
     }

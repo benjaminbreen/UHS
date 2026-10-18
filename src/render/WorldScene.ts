@@ -1,9 +1,12 @@
+import { waterborneFrames } from "../content/graphics/models";
+import { socialLabels } from "../core/bonds";
 import { shownStock } from "../core/economy";
 import { parseLoad } from "../content/economy/carrying";
 import { propDefs } from "../content/props/catalog";
 import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
-import { Watercraft } from "./watercraft";
+import { Watercraft, mooredBoatFrame } from "./watercraft";
+import { waterfrontFor } from "../content/settlements/waterfronts";
 import { TrainLayer } from "./trains";
 import { CabLayer } from "./cabs";
 import { VehicleLayer, crewPlace, vehiclePose } from "./vehicles";
@@ -27,7 +30,7 @@ import { perf, open, mark, span, timed } from "./perf-switches";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
-import { propVariety } from "./prop-variety";
+import { propVariety, reviewedPropFrame } from "./prop-variety";
 import { ensureSignTexture, inkFor, signWidth } from "./sign-texture";
 import { signLanguage, signOptions } from "../content/settlements/signs";
 /** Trades for a shopfront the kit did not name. */
@@ -112,7 +115,7 @@ import { terrainVariant, type RenderOptions } from "./appearance";
 import { phoneLayout, smallMemoryDevice } from "../runtime/device";
 import Phaser from "phaser";
 import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
-import type { Position, WorldModel } from "../core/types";
+import type { Position, WorldModel, WorldObject } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
 import { slingWhirl } from "../audio/sfx";
@@ -138,6 +141,7 @@ import {
 import { ToolEffects, ROLL_MS, projectileArrowTexture } from "./tool-effects";
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
+import { sexOf } from "../core/brief";
 import { kinOf } from "../core/kin";
 import { CueEffects } from "./cue-effects";
 import { TIERS, type CueKind } from "../core/combat";
@@ -256,6 +260,7 @@ import {
   trodden,
   seasonFrame,
   treeVariant,
+  crateFrame,
 } from "./season-art";
 import { seasonAt } from "../core/livelihood";
 import {
@@ -632,7 +637,7 @@ export class WorldScene extends Phaser.Scene {
   private terrainStream?: TerrainStream;
   private terrainAnchor?: { x: number; y: number };
   private drawnWorld?: WorldModel;
-  private watercraft = new Watercraft(this);
+  private watercraft = new Watercraft(this, frame=>this.texture(frame));
   private trains = new TrainLayer(this, (frame) => this.texture(frame));
   private cabs = new CabLayer(this, (frame) => this.texture(frame));
   private vehicleLayer = new VehicleLayer(this, (frame) => this.texture(frame));
@@ -969,7 +974,9 @@ export class WorldScene extends Phaser.Scene {
       const object = obs.objects.find(
         (o) => Math.abs(o.pos.x - x) <= 0.8 && Math.abs(o.pos.y - y) <= 0.8,
       );
-      const place = obs.places.find((b) => buildingContains(b, p.x, p.y));
+      const place = obs.player.pos.space === "outside"
+        ? this.runtime.engine.world.places.find((b) => buildingContains(b, p.x, p.y))
+        : undefined;
       if (actor || object || place)
         this.runtime.select((actor || object || place)!.id);
       else {
@@ -1486,6 +1493,9 @@ export class WorldScene extends Phaser.Scene {
   private castRevision = -1;
   private castPeople = new Map<string, "plot" | "kin">();
   private castMarkKey = "";
+  private familyPeople: ReturnType<typeof kinOf> = [];
+  private relationshipLabels = new Map<string, string>();
+  private familyLabels = new Map<string, Phaser.GameObjects.Text>();
   /** A small diamond over the people who matter to this life. */
   private drawCastMarks(time: number) {
     const s = this.runtime.engine.state;
@@ -1495,8 +1505,32 @@ export class WorldScene extends Phaser.Scene {
       this.castPeople.clear();
       if (s.plot && !s.plot.ended)
         for (const id of Object.values(s.plot.cast)) this.castPeople.set(id, "plot");
-      for (const k of kinOf(s))
+      this.familyPeople = kinOf(s);
+      this.relationshipLabels = socialLabels(s);
+      for (const k of this.familyPeople)
         if (!this.castPeople.has(k.actor.id)) this.castPeople.set(k.actor.id, "kin");
+    }
+    for (const label of this.familyLabels.values()) label.setVisible(false);
+    const words = new Map(this.relationshipLabels);
+    for (const { actor, kind } of this.familyPeople) {
+      const im = this.entities.get(actor.id);
+      if (!im?.visible) continue;
+      const sex = sexOf(actor);
+      const word = kind === "partner" ? sex === "female" ? "WIFE" : sex === "male" ? "HUSBAND" : "PARTNER"
+        : kind === "parent" ? sex === "female" ? "MOTHER" : sex === "male" ? "FATHER" : "PARENT"
+        : kind === "child" ? sex === "female" ? "DAUGHTER" : sex === "male" ? "SON" : "CHILD"
+        : sex === "female" ? "SISTER" : sex === "male" ? "BROTHER" : "SIBLING";
+      words.set(actor.id, word);
+    }
+    for (const [id, word] of words) {
+      const im = this.entities.get(id);
+      if (!im?.visible) continue;
+      let label = this.familyLabels.get(id);
+      if (!label || !label.scene) {
+        label = this.add.text(0, 0, "", { fontFamily: 'Silkscreen, monospace', fontSize: "8px", color: "#ffe0bd", stroke: "#1a1410", strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(1e7);
+        this.familyLabels.set(id, label);
+      }
+      label.setText(`YOUR ${word}`).setPosition(Math.round(im.x), Math.round(im.y) - 42).setVisible(true);
     }
     const bob = Math.round(Math.sin(time / 420));
     let key = "";
@@ -3379,7 +3413,7 @@ export class WorldScene extends Phaser.Scene {
     return g.setDepth(Math.max(y, to.y) * 16 + 13);
   }
   private shadow(frame: string, x: number, y: number, transient = false) {
-    if (this.options.shadows === false) return undefined;
+    if (this.options.shadows === false || waterborneFrames.has(frame)) return undefined;
     const key = shadowFrame(this.shadowPhase, frame);
     // A temple's or a mosque's cast is on its own page, fetched the first time one is drawn.
     const sacred =
@@ -3594,7 +3628,7 @@ export class WorldScene extends Phaser.Scene {
         footprint * 16 + margin * 2,
         footprint * 16 + margin * 2,
       );
-    else c.removeBounds();
+    else if (p.space === "outside" || !e.interiorOf?.(p.space)) c.removeBounds();
     const viewCenter = (value: number, pixels: number) => {
       if (!footprint) return value;
       const reach = Math.max(
@@ -4494,6 +4528,7 @@ export class WorldScene extends Phaser.Scene {
       own = false,
     ) => {
       keep.add(id);
+      frame = reviewedPropFrame(frame, random(e.state.manifest.seed, "reviewed-prop", id));
       let im = this.entities.get(id);
       const on = this.perchCell(id) ?? pos;
       let tx = on.x * 16 + 8,
@@ -4782,7 +4817,7 @@ export class WorldScene extends Phaser.Scene {
         o.resource && o.depleted && o.sprite === "ecology-fruit-tree"
           ? "oak"
           : o.resource && o.depleted && o.sprite === "ecology-berry-bush"
-            ? "bush"
+            ? "ecology-berry-bush-picked"
             : o.kind === "gate"
               ? o.open
                 ? "gate-open"
@@ -4791,8 +4826,12 @@ export class WorldScene extends Phaser.Scene {
                 ? this.layerOf(o.sprite, "fallen") ?? o.sprite
                 : o.lean
                   ? this.layerOf(o.sprite, o.lean < 0 ? "lean-left" : "lean-right") ?? o.sprite
-                  : o.sprite,
-        o.pos,
+                  : o.sprite === "crate"
+                    ? crateFrame(random(e.state.manifest.seed, "crate-art", o.id))
+                    : mooredBoatFrame(o.sprite,random(e.state.manifest.seed,"boat-finish",o.owner??o.id)),
+        o.prop === "outcrop" && o.size
+          ? { ...o.pos, x: o.pos.x + (o.size[0] - 1) / 2, y: o.pos.y + o.size[1] - 1 }
+          : o.pos,
       );
       // A sign off the wall drops its shadow on the wall behind it.
       if (o.prop?.startsWith("wallsign-")) {
@@ -5146,8 +5185,23 @@ export class WorldScene extends Phaser.Scene {
       // A room has its own light; the moon stays outside.
       this.applyGrade(0);
     }
+    const camera = this.cameras.main;
+    const width = Math.max(v.pixel.W + 32, camera.displayWidth);
+    const height = Math.max(v.pixel.H + 32, camera.displayHeight);
+    camera.setBounds(
+      v.image.x + (v.pixel.W - width) / 2,
+      v.image.y + (v.pixel.H - height) / 2,
+      width,
+      height,
+    );
     // Furniture stands where the engine has it, and lies as the engine left it.
-    const byId = new Map(e.state.objects.filter((o) => o.pos.space === space && o.prop).map((o) => [o.id, o]));
+    const byId = new Map(e.state.objects.filter((o) => o.prop).map((o) => [o.id, o]));
+    const external = new Map<number, WorldObject>();
+    const atlasPiece = (id: number, o: WorldObject | undefined) => {
+      const q = v!.props[id];
+      q.external = !!o && !!propDefs[o.prop ?? ""]?.sprite && !o.broken;
+      if (q.external && o) external.set(id,o);
+    };
     let stamp = "";
     for (const f of room.furniture) {
       const o = byId.get(`${space}-room-${f.propId}`), q = v.props[f.propId];
@@ -5158,7 +5212,22 @@ export class WorldScene extends Phaser.Scene {
       if (q.kind === "lamp" && (!o || o.broken)) (q.broken = true), (q.on = false);
       q.tipped = !!o?.tipped;
       q.lean = o?.lean;
-      stamp += `${q.x},${q.y},${q.wrecked ? 1 : 0}${q.broken ? 1 : 0}${q.tipped ? 1 : 0};`;
+      atlasPiece(f.propId,o);
+      if (q.external && (o?.carriedBy || o?.pos.space !== space)) q.wrecked=true;
+      stamp += `${q.x},${q.y},${q.wrecked ? 1 : 0}${q.broken ? 1 : 0}${q.tipped ? 1 : 0}${q.external ? 1 : 0};`;
+    }
+    const store = byId.get(`${space}-chest`);
+    const storePiece = room.props.find(q => ["chest","jars","crate","sacks"].includes(q.kind) &&
+      room.store.x-ROOM_ORIGIN >= q.x && room.store.x-ROOM_ORIGIN < q.x+q.w &&
+      room.store.y-ROOM_ORIGIN >= q.y && room.store.y-ROOM_ORIGIN < q.y+Math.max(1,q.d));
+    if (storePiece) {
+      atlasPiece(storePiece.id,store);
+      const q = v.props[storePiece.id];
+      if (q.external && store) {
+        q.x=store.pos.x-ROOM_ORIGIN; q.y=store.pos.y-ROOM_ORIGIN;
+        q.wrecked=!!store.carriedBy || store.pos.space !== space;
+      }
+      stamp += `store:${q.x},${q.y},${q.external ? 1 : 0},${q.wrecked ? 1 : 0};`;
     }
     // Sleepers: the room draws them under the covers, and each head goes on its pillow.
     for (const q of v.props) q.sleepers = undefined;
@@ -5184,6 +5253,21 @@ export class WorldScene extends Phaser.Scene {
     v.stamp = stamp;
     for (const c of v.pixel.cutouts) {
       const at = v.pixel.cutoutAt(c), q = v.props[c.id];
+      const o = external.get(c.id), image = v.cutouts.get(c.id)!;
+      if (o) {
+        image.setTexture(this.texture(o.sprite),o.sprite);
+        if (image.getData("room-target") !== o.id) {
+          this.makeSelectable(image,o.id);
+          image.setData("room-target",o.id);
+        }
+        if (image.frame.customPivot) image.setOriginFromFrame();
+        else image.setOrigin(.5,1);
+        image.setPosition(v.image.x+at.x+8+q.w*8,v.image.y+at.y+c.h-2)
+          .setDepth((ROOM_ORIGIN+q.y+Math.max(1,q.d)-1)*16+8)
+          .setVisible(!o.carriedBy && !q.wrecked);
+        continue;
+      }
+      image.setTexture(v.sheet.key,String(c.id)).setOrigin(0,0);
       // In front of anyone a row back; behind anyone level with it, who is sat on it or beside it.
       v.cutouts.get(c.id)!
         .setPosition(v.image.x + at.x, v.image.y + at.y)
@@ -5782,6 +5866,7 @@ export class WorldScene extends Phaser.Scene {
     this.combat().consumeEvents(this.runtime.engine.signals);
     this.cues.consume(this.runtime.engine.signals);
     this.cues.update();
+    this.cues.angry(this.runtime.engine.state.actors);
     this.cues.sleeping(
       [...this.humanActors]
         .filter(([, a]) => /sleep/i.test(a.activity))
@@ -6105,7 +6190,7 @@ export class WorldScene extends Phaser.Scene {
           water <= 0.025 && !arcLift && wetPos?.space === "outside"
             ? puddleUnder(this, im.x, im.y - 1)
             : undefined;
-        if (wetPos?.space === "outside" && !arcLift && water <= 0.025)
+        if (wetPos?.space === "outside" && !arcLift && water <= 0.025 && !(craft && craft !== "swimming"))
           reflectIn(this, id, im);
         const heldSprite = this.heldSprites.get(id);
         const loadWeight = this.loadWeights.get(id) ?? 0;
@@ -6130,8 +6215,6 @@ export class WorldScene extends Phaser.Scene {
         if (id === "player" && pose === "idle" && this.poseFrame(id, "idle", time) !== 3) pose = "breathe";
         if (moving && water > 0.025 && !active && !winding) pose = "wade";
         if (craft && craft !== "swimming") pose = "sit";
-        if (id === "player") this.watercraft.update(im, craft, this.tint,
-          (this.runtime.engine.state.manifest.setting?.year ?? 0) >= 1930);
         if (id !== "player") this.notice(id, im, pose, time);
         // Someone reacting stops what they were doing to do it.
         const cued =
@@ -6301,6 +6384,12 @@ export class WorldScene extends Phaser.Scene {
           workFacing ??
           human.facing ??
           facingFromDirection(human.direction);
+        if (id === "player") {
+          const setting=this.runtime.engine.state.manifest.setting;
+          this.watercraft.update(im,craft,this.tint,(setting?.year??0)>=1930,ahead,
+            setting ? waterfrontFor(setting)?.craft : undefined,
+            random(this.runtime.engine.state.manifest.seed,"boat-finish","player"));
+        }
         // A glance aside and back, in the second and third quarters of it.
         const glance = fidget?.look
           ? (time - fidget.from) / (fidget.until - fidget.from)

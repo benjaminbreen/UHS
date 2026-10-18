@@ -22,18 +22,19 @@ import {
   ArrowRight,
   BookOpen,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Compass,
   Download,
   Footprints,
   Hourglass,
+  History as TimeHistory,
   Map as MapIcon,
   MessageCircle,
   CircleHelp,
   Minus,
   Plus,
   Settings,
-  Pencil,
   Search,
   ShoppingBag,
   Upload,
@@ -61,7 +62,7 @@ import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
 import { lightingAt } from "../render/lighting";
 import { describedRegionAt } from "../content/geography/region-label";
-import { WeatherPanel } from "./WeatherPanel";
+import { SkyScene, WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
 import { ambienceFor } from "../audio/ambience";
@@ -313,6 +314,19 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [narratorError, setNarratorError] = useState("");
   const [dialogueActorId, setDialogueActorId] = useState<string | null>(null);
   const commandForm = useRef<HTMLFormElement>(null);
+  const promptsBox = useRef<HTMLDivElement>(null);
+  const [promptsAside, setPromptsAside] = useState(false);
+  // With the narrator open, the prompts step left of it when the column
+  // beside the command field is wide enough, and otherwise ride above it.
+  useLayoutEffect(() => {
+    const box = promptsBox.current,
+      field = commandForm.current,
+      pane = box?.closest(".world-pane");
+    if (!narratorOpen || phone || !box || !field || !pane) return setPromptsAside(false);
+    const room = field.getBoundingClientRect().left - pane.getBoundingClientRect().left - 32;
+    const widest = Math.max(0, ...[...box.children].map((c) => (c as HTMLElement).offsetWidth));
+    setPromptsAside(widest > 0 && widest <= room);
+  }, [narratorOpen, phone, verbs.primary?.label, verbs.alternate?.label, verbs.held?.name, trader?.id]);
   const say = async () => {
     const text = command.trim();
     if (!text || narratorBusy) return;
@@ -336,6 +350,20 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const sheetPointerStart = useRef<number | null>(null);
   const sheetOpen = phone && sidebar && sheetSnap !== "peek";
   const [hintsOn, setHintsOn] = useState(true);
+  // A hotkey presses its button on screen too, so the shortcut teaches itself.
+  useEffect(() => {
+    const flash = (e: KeyboardEvent) => {
+      if (e.repeat || (e.target as HTMLElement).closest?.("input, textarea")) return;
+      const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+      const button = [...document.querySelectorAll<HTMLElement>(".desktop-bottom-bar .quick-actions kbd")]
+        .find((k) => k.textContent === key)?.closest("button");
+      if (!button) return;
+      button.dataset.down = "";
+      window.setTimeout(() => delete button.dataset.down, 160);
+    };
+    window.addEventListener("keydown", flash);
+    return () => window.removeEventListener("keydown", flash);
+  }, []);
   const hintsShown =
     hintsOn && !phone && !modal && !card && !narratorOpen && !restOpen && !audioOpen && !graphicsOpen;
   // A minute on screen, counted afresh each time it comes back.
@@ -434,20 +462,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     new ResizeObserver(() => bar.parentElement?.style.setProperty("--bar-height", `${bar.offsetHeight}px`)).observe(bar);
   }, []);
   const openDialogue = (id: string, opening?: string, line?: string) => {
-    const sent = runtime.engine.approacher;
-    if (!opening && sent?.id === id && runtime.engine.state.clock < sent.until) {
-      opening = sent.situation;
-      runtime.engine.approacher = undefined;
-    }
-    const actor = runtime.engine.state.actors.find(
-      (candidate) => candidate.id === id,
-    );
-    if (!actor || actor.kind !== "human") return;
-    const result = runtime.command({
-      type: "interact",
-      target: id,
-      action: "talk",
-    });
+    const { result, situation } = runtime.beginDialogue(id, opening);
     if (result?.status !== "completed") {
       if (result?.reason) {
         runtime.notice = result.reason;
@@ -455,11 +470,21 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       }
       return;
     }
-    setSituation(opening);
+    setSituation(situation);
     setSaid(line);
     setDialogueActorId(id);
     setModal("dialogue");
   };
+  useEffect(() => {
+    const reaction = runtime.engine.witnessedOffense;
+    if (!reaction || (modal && modal !== "dialogue")) return;
+    runtime.engine.witnessedOffense = undefined;
+    if (obs.clock - reaction.at > 30) return;
+    setSaid(undefined);
+    setDialogueActorId(reaction.id);
+    setSituation(reaction.situation);
+    setModal("dialogue");
+  }, [view, modal, obs.clock, runtime]);
   useEffect(() => {
     const id = runtime.engine.confronter;
     if (!id || modal === "dialogue") return;
@@ -910,6 +935,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       runtime.startFollow(c.target);
     else runtime.command(c);
   };
+  const [timeAim, setTimeAim] = useState<number>();
+  const openTime = (step: number) => {
+    const setting = runtime.engine.world.pack.setting;
+    setTimeAim(setting && step ? setting.year + step : undefined);
+    setModal(setting ? "time" : "world");
+    setError("");
+  };
   const openWorld = () => {
     setModal("world");
     setError("");
@@ -941,7 +973,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           />
         </Suspense>
       )}
-      <header className="topbar" inert={!!modal || audioOpen || card?.kind === "title" || card?.kind === "ending"}>
+      <header className={`topbar${phone ? "" : " desktop-topbar"}`} inert={!!modal || audioOpen || card?.kind === "title" || card?.kind === "ending"}>
         {phone ? (
           <button
             className="icon-button brand-menu"
@@ -964,25 +996,45 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             />
           </div>
         )}
-        <button
+        {!phone && <SkyScene className="topbar-sky" weather={weather} lighting={lighting} />}
+        {!phone && (
+          <div className="time-control">
+            {pack.setting && (
+              <button className="time-step" aria-label="A century earlier" data-tip="A century earlier" onClick={() => openTime(-100)}>
+                <ChevronLeft size={16} />
+              </button>
+            )}
+            <button className="time-pill" onClick={() => openTime(0)} data-tip={pack.setting ? "Change place or time" : "Change your world"}>
+              <TimeHistory size={15} />
+              <strong>{pack.name}</strong>
+              <i className="time-sep" aria-hidden="true" />
+              <span className="time-year">{pack.date}</span>
+              <span className="time-ruler" aria-hidden="true" />
+            </button>
+            {pack.setting && (
+              <button className="time-step" aria-label="A century later" data-tip="A century later" onClick={() => openTime(100)}>
+                <ChevronRight size={16} />
+              </button>
+            )}
+          </div>
+        )}
+        {phone && <button
           className="world-selector"
           onClick={() => { setModal(runtime.engine.world.pack.setting ? "time" : "world"); setError(""); }}
-          title="Change your world"
+          title={runtime.engine.world.pack.setting ? "Travel through time — forward or backward" : "Change your world"}
         >
-          <i className="selector-flourish" aria-hidden="true" />
           <span>
             <strong>{pack.name}</strong>
             <small>
-              {pack.date}
+              <b className="time-year">{pack.date}</b>
               <em>
                 {" "}
                 <i aria-hidden="true">·</i> {period}
               </em>
             </small>
           </span>
-          <i className="selector-flourish" aria-hidden="true" />
-          <Pencil size={15} />
-        </button>
+          <TimeHistory size={15} />
+        </button>}
         <div className="header-actions">
           {phone && (
             <button
@@ -1011,9 +1063,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           >
             <Music2 size={19} />
           </button>
-          <button className="quiet-button new-world" onClick={openWorld}>
-            <BookOpen size={16} /> New world
-          </button>
           <button
             aria-label="Notebook"
             data-tip="Notebook · N"
@@ -1029,6 +1078,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onClick={() => setModal("settings")}
           >
             <Settings size={19} />
+          </button>
+          <i className="header-divider" aria-hidden="true" />
+          <button className="quiet-button new-world" onClick={openWorld}>
+            <BookOpen size={16} /> New world
           </button>
           <a
             className="quiet-button donate"
@@ -1067,6 +1120,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           )}
           {modal === "dialogue" && dialogueActorId && (
             <DialogueModal
+              key={`${dialogueActorId}:${situation ?? ""}`}
               runtime={runtime}
               actorId={dialogueActorId}
               situation={situation}
@@ -1125,11 +1179,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               onClose={() => setSkillTestOpen(false)}
             />
           )}
-          <Vitals
+          {phone && <Vitals
+            engine={runtime.engine}
+            onCare={(command) => runtime.command(command)}
             health={p.health ?? 100}
             injury={p.injury}
             clock={obs.clock}
-          />
+          />}
           {!phone && <SkillToast
             gains={runtime.engine.skillGains}
             onOpen={() => setSky({})}
@@ -1181,7 +1237,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onAlternate={() => runVerb("alternate")}
           />
           <div className="world-status">
-            <Toasts events={obs.events} omit={[view.notice, runtime.engine.lastChoice?.line]} />
+            <div className="hud-top">
+            <Toasts space={p.pos.space} home={runtime.engine.state.households?.find((h) => h.members.includes(p.id))?.residence} events={obs.events} omit={[view.notice, runtime.engine.lastChoice?.line]} />
             {(view.notice || view.running) && (
               <div className="world-notice" data-walking={view.running || undefined} role="status">
                 {view.running ? <><Footprints size={13} /><span>Walking…</span><button onClick={() => runtime.stop()}><Pause size={11} /> Stop</button></> : view.notice}
@@ -1194,6 +1251,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 <span>{timeLabel(runtime.displayClock())}</span>
               </div>
             )}
+            </div>
             <WorkCard
               runtime={runtime}
               carded={!!card}
@@ -1203,7 +1261,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               }}
             />
           </div>
-          <div className="prop-prompts" data-testid="prop-prompts">
+          <div className="prop-prompts" data-testid="prop-prompts" ref={promptsBox} data-aside={promptsAside || undefined}>
             {obs.manifest.content === 1 && (
               <span>
                 This saved world retains legacy props. Start a new world for
@@ -1352,7 +1410,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onLog={() => setModal("narration")}
           />
           <footer
-            className="bottom-bar"
+            className={`bottom-bar${phone ? "" : " desktop-bottom-bar"}`}
             ref={measureBar}
           >
             <div className="quick-actions">
@@ -1489,18 +1547,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           <section className="sky-card frame">
             <div className="place-heading">
               <h2>{regionLabel}</h2>
-              <p title={`Day ${day} · ${timeLabel(obs.clock)}`}>
-                {pack.date} <span>·</span>{" "}
+              <p title={`${pack.date} · Day ${day} · ${timeLabel(obs.clock)}`}>
                 <em
                   className={`season season-${season.id}`}
                   style={{ ["--season" as string]: season.color }}
                 >
                   {season.label}
                 </em>
+                <small>{landscape}</small>
               </p>
-              <small>{landscape}</small>
             </div>
             <WeatherPanel
+              bare={!phone}
               weather={weather}
               lighting={lighting}
               period={period}
@@ -1569,6 +1627,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 )}
               </div>
             </button>
+            {!phone && <Vitals
+              engine={runtime.engine}
+              onCare={(command) => runtime.command(command)}
+              health={p.health ?? 100}
+              injury={p.injury}
+              clock={obs.clock}
+            />}
           </section>
           <section className="region-section frame">
             <div className="section-heading">
@@ -1789,7 +1854,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       );
                     })}
                     {nearby.length === 0 && (
-                      <p>{nearbyAll ? pack.concern : "No one within earshot."}</p>
+                      <p>{nearbyAll ? (p.identity?.concern ?? pack.concern) : "No one within earshot."}</p>
                     )}
                   </div>
                 )}
@@ -1862,7 +1927,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           );
                         })
                       ) : (
-                        <li className="today-empty">{pack.concern}</li>
+                        <li className="today-empty">{p.identity?.concern ?? pack.concern}</li>
                       )}
                       {runtime.engine.state.plot && !runtime.engine.state.plot.ended && (
                         <li>
@@ -1924,7 +1989,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
         </Suspense>
       )}
-      {modal === "time" && <TimeModal runtime={runtime} onClose={() => setModal(null)} onNewWorld={openWorld} />}
+      {modal === "time" && <TimeModal runtime={runtime} aim={timeAim} onClose={() => setModal(null)} onNewWorld={openWorld} />}
       {modal === "evening" && evening && (
         <EveningLedger
           runtime={runtime}

@@ -10,11 +10,9 @@ const { geographyRevision: _pinned, ...integrated } = settingFor(
   -6499,
 );
 const setting = { ...integrated, terrainRevision: 1 as const };
-it("generates broad zones with limited slopes and reachable households", () => {
-  const start = performance.now(),
-    e = createSettingSession(setting, "anatolia-relief-1"),
+it("generates broad relief with reachable households and accepts diagonal movement", () => {
+  const e = createSettingSession(setting, "anatolia-relief-1"),
     w = e.world;
-  console.log("Anatolia generation ms", Math.round(performance.now() - start));
   let slopes = 0;
   const tiers = new Set(),
     depths = new Set(),
@@ -27,7 +25,6 @@ it("generates broad zones with limited slopes and reachable households", () => {
       if (c.waterDepth) depths.add(c.waterDepth);
       if (c.ramp) slopes++;
     }
-  console.log("slopes", slopes, "houses", w.places.length);
   expect([...tiers].sort()).toEqual([0, 1, 2]);
   expect(depths.size).toBe(2);
   expect(biomes.size).toBe(3);
@@ -37,10 +34,6 @@ it("generates broad zones with limited slopes and reachable households", () => {
     expect(e.findRoute(e.state.player.pos, p.entrance).status, p.id).toBe(
       "found",
     );
-}, 30000);
-
-it("accepts outdoor diagonal commands on flat relief terrain", () => {
-  const e = createSettingSession(setting, "anatolia-relief-1");
   // The first open 3x3 near the old fixed spot, which settlement layout may fill.
   const open = (x: number, y: number) =>
     [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => !e.blocked(x + dx, y + dy, "outside")));
@@ -66,4 +59,4 @@ it("accepts outdoor diagonal commands on flat relief terrain", () => {
       y: before.y + dy,
     });
   }
-});
+}, 30000);

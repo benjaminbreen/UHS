@@ -219,7 +219,29 @@ export const eyeShapes = ["round", "almond", "narrow"] as const;
 export const eyelidFolds = ["crease", "low-crease", "monolid"] as const;
 export type EyelidFold = (typeof eyelidFolds)[number];
 export const eyeSpacings = ["close", "average", "wide"] as const;
+export const eyeAlignments = ["inward", "aligned", "outward"] as const;
+export function generateEyeAlignment(seed: string, index: number | string = 0): (typeof eyeAlignments)[number] {
+  const r = random(seed, "eye-alignment-v1", index);
+  return r < 0.1 ? "inward" : r < 0.99 ? "aligned" : "outward";
+}
+export type EyeDetail = { irisSize: "default" | "large"; pupilSize: "default" | "large"; lowerLashes: boolean };
+export function generateEyeDetail(seed: string, index: number | string, sex: CharacterPhysique["sex"]): EyeDetail {
+  const combined = random(seed, "eye-detail-v1", index, "combined") < (sex === "female" ? 0.6 : 0.4);
+  // The seven other combinations keep the combined share at the chosen rate.
+  const variant = combined ? 7 : Math.floor(random(seed, "eye-detail-v1", index, "variation") * 7);
+  return {
+    irisSize: variant & 1 ? "large" : "default",
+    pupilSize: variant & 2 ? "large" : "default",
+    lowerLashes: !!(variant & 4),
+  };
+}
 export const browShapes = ["straight", "arched", "heavy"] as const;
+export const browConnections = ["none", "partial", "joined"] as const;
+export function generateBrowConnection(seed: string, index: number | string, sex: CharacterPhysique["sex"], joinedRate = 0.0075): (typeof browConnections)[number] {
+  const rate = joinedRate * (sex === "female" ? 2 : 1);
+  const r = random(seed, "brow-connection-v1", index);
+  return r < rate ? "joined" : r < rate * 3 ? "partial" : "none";
+}
 /**
  * Profile shapes. `short`, `straight`, `broad` and `aquiline` are the original
  * four; the rest were added because four nose types over a whole world meant
@@ -304,6 +326,19 @@ export type FaceAdornment = {
   markColor?: string;
   metal?: OrnamentMetal;
 };
+export const injuryScarKinds = ["none", "brow", "cheek", "temple", "lip", "burn"] as const;
+export type InjuryScar = { kind: (typeof injuryScarKinds)[number]; side: -1 | 1 };
+
+export function generateInjuryScar(seed: string, index: number | string, age: number, sex: CharacterPhysique["sex"]): InjuryScar {
+  // Art-direction probabilities, not historical prevalence estimates; independent of ornament and disease streams.
+  const chance = age < 18 ? 0 : sex === "male" ? 0.2 : sex === "female" ? 0.05 : 0;
+  if (random(seed, "injury-scar-v1", index, "present") >= chance) return { kind: "none", side: -1 };
+  const shapes = ["brow", "brow", "brow", "cheek", "cheek", "cheek", "temple", "temple", "lip", "burn"] as const;
+  return {
+    kind: shapes[Math.floor(random(seed, "injury-scar-v1", index, "kind") * shapes.length)],
+    side: random(seed, "injury-scar-v1", index, "side") < 0.5 ? -1 : 1,
+  };
+}
 export const hairlines = ["low", "average", "high", "widows-peak"] as const;
 export const faceDetails = ["clear", "freckles", "lines", "weathered"] as const;
 export const bodyShapes = ["straight", "tapered", "rounded"] as const;
@@ -686,6 +721,12 @@ export type CharacterAppearance = {
   /** Shared by a family line, so kin share the small proportions that no face field names. */
   lineage?: string;
   record?: BodyRecord;
+  injuryScar?: InjuryScar;
+  eyeAlignment?: (typeof eyeAlignments)[number];
+  eyeDetail?: EyeDetail;
+  browConnection?: (typeof browConnections)[number];
+  /** Derived for display from the actor's stats; never part of their generated anatomy. */
+  restingPose?: { inner: number; outer: number; corners: [number, number] };
   /** Absent on saves written before ornaments and marks existed. */
   adornment?: FaceAdornment;
   head?: (typeof headShapes)[number];
@@ -881,6 +922,10 @@ export function generateAppearance(
     physique,
     face: generateFace(seed, index, age),
     adornment: generateAdornment(seed, index, age, sex),
+    injuryScar: generateInjuryScar(seed, index, age, sex),
+    eyeAlignment: generateEyeAlignment(seed, index),
+    eyeDetail: generateEyeDetail(seed, index, sex),
+    browConnection: generateBrowConnection(seed, index, sex),
     ...faceFromTraits(seed, index, age, physique),
     posture:
       age >= 65 && n("elder-posture", 3) === 0
@@ -959,7 +1004,12 @@ export function actorAppearance(
   palette?: AppearancePalette,
 ): CharacterAppearance {
   const age = actor.age ?? 30;
-  if (actor.appearance) return appearanceForAge(actor.appearance, age);
+  if (actor.appearance) {
+    const a = appearanceForAge(actor.appearance, age);
+    if (a.injuryScar) return a;
+    const injuryScar = generateInjuryScar(`${actor.id}:${actor.sprite}`, 0, age, a.physique?.sex ?? "unspecified");
+    return injuryScar.kind === "none" ? a : { ...a, injuryScar };
+  }
   const [, skin = "0", cloth = "0"] = actor.sprite.split("-");
   const seed = `${actor.id}:${actor.sprite}`;
   const a = generateAppearance(seed, 0, age);

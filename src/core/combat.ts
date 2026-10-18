@@ -212,8 +212,9 @@ const weapons: Record<string, Weapon> = {
   spear: { damage: 6, knock: 1, reach: 2, brace: 2.5, thrown: 1.6 },
 };
 /** What is in the hand as a weapon. An edged item cuts more and shoves less. */
-export function weaponOf(prop?: string, item?: { edge?: boolean }): Weapon {
+export function weaponOf(prop?: string, item?: { edge?: boolean; weapon?: "spear" }): Weapon {
   if (prop) return weapons[prop] ?? BLUNT;
+  if (item?.weapon) return weapons[item.weapon];
   if (item) return item.edge ? { damage: 3, knock: 0 } : BLUNT;
   return BARE;
 }

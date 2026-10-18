@@ -5,6 +5,7 @@ import { planOf } from "../runtime/autopilot";
 export type Provider = "haiku" | "openai" | "gemini";
 export const PROVIDER_KEY = "uhs-narrator-provider";
 export function narratorProvider(): Provider {
+  if (typeof window === "undefined") return "openai";
   try {
     const saved = localStorage.getItem(PROVIDER_KEY);
     return saved === "haiku" || saved === "gemini" ? saved : "openai";
@@ -35,7 +36,7 @@ export async function narratorTurn(
   };
   let reply: NarratorReply;
   try {
-    const res = await fetch("/api/narrator", {
+    const res = await runtime.modelFetch("/api/narrator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

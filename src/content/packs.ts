@@ -54,6 +54,7 @@ export const items: Record<
   ...wareItems,
   "walking-cane": { id: "walking-cane", name: "Walking cane", description: "A stout stick with a curved or knobbed head, for steadying a walk or for show.", sprite: "walking-cane", value: 4, hand: {} },
   fan: { id: "fan", name: "Folding fan", description: "Pleated paper or silk on slender ribs, snapped open to stir the air or hide a smile.", sprite: "fan", value: 3, hand: {} },
+  spear: { id: "spear", name: "Hunting spear", description: "A wooden shaft tipped with a sharp point for hunting game.", sprite: "spear", value: 4, hand: { strike: true, edge: true, weapon: "spear" } },
   bow: { id: "bow", name: "Bow", description: "A stave of wood, horn or both, strung taut to send an arrow farther than any throw.", sprite: "bow", value: 8, hand: {} },
   arrow: { id: "arrow", name: "Arrow", description: "A straight shaft fletched with feathers and tipped with stone, bone or metal.", sprite: "arrow", value: 1 },
   sling: { id: "sling", name: "Sling", description: "Two cords and a pouch; whirled overhead, it hurls a stone hard enough to kill.", sprite: "sling", value: 3, hand: {} },

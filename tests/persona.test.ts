@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { dispositionOf, restingExpressionOf, standingOf, standings } from "../src/core/persona";
+import { dispositionOf, restingExpressionOf, restingPortraitPoseOf, standingOf, standings } from "../src/core/persona";
 import { rollStats, statsOf, describeStats } from "../src/core/stats";
 import { abilitiesOf } from "../src/content/characters/abilities";
 import { snapshotSchema } from "../src/runtime/schema";
@@ -20,6 +20,20 @@ const flat = (over: Partial<Stats> = {}): Stats => ({
   agreeableness: 50,
   neuroticism: 50,
   ...over,
+});
+
+it("keeps resting portrait cues small and tied to personality rather than physique", () => {
+  expect(restingPortraitPoseOf(flat())).toEqual({ inner: 0, outer: 0, corners: [0, 0] });
+  expect(restingPortraitPoseOf(flat({ agreeableness: 90, extraversion: 90 })).corners).toEqual([1, 1]);
+  expect(restingPortraitPoseOf(flat({ agreeableness: 10, extraversion: 10 })).corners).toEqual([-1, -1]);
+  expect(restingPortraitPoseOf(flat({ neuroticism: 90 })).inner).toBe(-1);
+  expect(restingPortraitPoseOf(flat({ openness: 90 })).outer).toBe(1);
+  expect(restingPortraitPoseOf(flat({ openness: 90, conscientiousness: 90 })).outer).toBe(0);
+  expect(restingPortraitPoseOf(flat({ strength: 90, wit: 10 }))).toEqual(restingPortraitPoseOf(flat()));
+  for (let i = 0; i < 100; i++) {
+    const pose = restingPortraitPoseOf(statsOf("resting-portraits", actor({ id: `npc-${i}` })));
+    for (const value of [pose.inner, pose.outer, ...pose.corners]) expect([-1, 0, 1]).toContain(value);
+  }
 });
 
 it("keeps reserved people neutral and gives strong traits distinct resting expressions", () => {

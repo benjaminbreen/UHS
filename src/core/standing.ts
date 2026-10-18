@@ -37,8 +37,9 @@ function within(seed: string, id: string, [low, high]: [number, number]) {
  */
 export function standingOf(
   seed: string,
-  actor: Pick<Actor, "id" | "origin">,
+  actor: Pick<Actor, "id" | "origin" | "identity">,
 ): Standing | undefined {
+  seed = actor.identity?.seed ?? seed;
   const origin = actor.origin;
   if (!origin) return undefined;
   const work = livelihoodById(origin.livelihood);

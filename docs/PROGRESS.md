@@ -1,3 +1,169 @@
+## Late Edo and Middle Kingdom fishing waterfronts — October 17, 2026
+
+Worksite revision 6 adds two bounded regional reconstructions: late Edo Japanese
+inshore fishing (1750–1867) and Middle Kingdom Nile fishing (2100–1651 BCE).
+Sixteen new forms share the architectural materials, solid hull projection and
+adult scale: timber/thatch shore buildings, mudbrick and reed-mat buildings,
+plank-built transom skiffs and lashed reed skiffs in four bearings, net rails,
+low seine pegs, shallow sorting trays and a reed sorting mat. Gear interiors
+follow the building: timber/planks or reed/earth with an open entrance. Watercraft
+are explicitly marked in the graphics catalog, excluding low floating hulls from
+upright building shadows and bank reflections.
+
+Profiles now supply equipment names, descriptions and shore work, including seine
+hauling and catch distribution for the Nile set. Nile reed craft require river
+or lake water. The same planner handles all three traditions; no culture branches
+were added to the renderer. Player ownership recognises the underlying fishing
+occupation after regional naming, instead of relying only on the word "Fisher".
+Catch-basket placement tries several clear pockets in revision 6. Earlier pinned
+revisions retain their content; prepared-world cache version is 27.
+
+The profiles distinguish documented practices and boat evidence from reconstructed
+ordinary shore buildings. Boats remain moored objects and catch stock uses the
+existing household economy; offshore voyages and individual net deployments are
+not simulated.
+
+The art audit is clean (324 front buildings, 30 ramps), and the atlas was rebuilt.
+The full project gate passes: 970 tests, typechecking and production build.
+Eighteen targeted checks pass: all four shore bearings for all three sets,
+regional/date/revision exclusions, rejection of a sea berth for the Nile craft,
+and playable agent starts in Bergen 1500/1700, London 1650, Edo 1800 and the Nile
+valley 2000 BCE. These check ownership, production, real walking routes and basket
+carrying, retained equipment and appropriate gear interiors. The constrained Edo
+shore fits one household; the Nile case fits two. Actual game captures:
+`artifacts/waterfront-edo-1800.png`, `artifacts/waterfront-nile-2000-bce.png`.
+
+## Regional storage and carrying vessels — October 17, 2026
+
+The twelve approved B container drawings now ship at native scale with six
+shadow phases each. Household, yard and work kits select regional forms;
+furnished rooms and carried props use the same sprites. Existing goods and
+ownership survive storage substitutions. Shared waterskins include inferred
+Neolithic Old World coverage, while specific vessels use narrower date/place
+windows and appropriate traditional containers persist alongside modern goods.
+Prepared-world cache version is 30. Review captures:
+`artifacts/scenery-review/containers-installed-outside.png` and
+`artifacts/scenery-review/containers-installed-inside.png`.
+
+## Fresh-catch landings and shared waterfronts — October 17, 2026
+
+Worksite revision 5 moves fresh-fish sorting beside the landing and connects
+homes, gear stores and net repair through a shared working frontage. Fishers
+collect gear, receive catches, visibly carry baskets to the table, sort and sell
+fresh fish, then put gear away. Household catch stock still uses the existing
+economy; individual boat voyages and preservation industries are not simulated.
+Existing shoreline tiers determine beach approaches or timber steps.
+
+Placement searches for room for neighbouring fishing households before accepting
+an isolated plot. Component reservations leave shared frontage accessible; scaled
+settlement fringe claims prevent overlap with neighbouring industrial launchways.
+The active coastal scene includes outlying homes and work areas. Revision 4 keeps
+its original layout and routines; prepared-world cache version is 26.
+
+The full project gate passes (929 tests, typechecking and production build).
+Twenty-five targeted checks cover four shore bearings, agent travel, actual carried
+baskets, household stock and workplaces across historical contexts. Identical seeds
+reduce landing-to-table routes from 36 to 12 paces in Bergen 1500, 42 to 12 in
+Bergen 1700, and 53 to 10 in London 1650. Actual game captures:
+`artifacts/working-landing-bergen-1700.png` and
+`artifacts/working-landing-london-1650.png`.
+
+## Fishing waterfront households — October 17, 2026
+
+Worksite revision 4 adds a reconstructed northern European fishing waterfront,
+1400–1849. The shared shore planner groups up to three households near a repair
+yard, tries compact setbacks first, and accepts fewer where the coast is
+constrained. Homes and dry gear stores stay on land; owned clinker rowing boats
+receive clear water berths. Landing routes, net repair and catch handling belong
+to the same households, with two fishing jobs per boat and fish production through
+the existing economy. Drinking water comes from the settlement, not the landing.
+Ordinary shore fishing remains available outside these boat-owning households.
+
+Eight new forms use the shared architectural materials and solid hull projection:
+a cottage, gear store, net frame, sorting table and four boat bearings. Authored
+worksite containers survive the generic furnishing pass. Local workplace context
+now also reaches player-household generation, keeping its production consistent
+with the assigned job. Prepared-world cache version is 25; older worksite
+revisions retain their behavior.
+
+Checks cover all shore bearings, dry buildings, wet berths, ownership, reachable
+work stations, household fish production and actual retained equipment in Bergen
+1500/1700 and London 1650. Art audit: clean, 308 buildings. Main gate passes 921 tests, typechecking and
+the production build. Review captures:
+`artifacts/fishing-bergen-1700-district.png`, `artifacts/fishing-bergen-1700-close.png`,
+`artifacts/fishing-london-1650-close.png`. Boats are moored objects; offshore
+voyages and regional preservation industries remain future work.
+
+## Shoreline placement and the first boatyard — October 17, 2026
+
+Worksite revision 3 adds shoreline compounds with a continuous dry working
+approach, clear launching lane and open-water clearance. Placement considers
+all four bearings, keeps buildings on dry ground and rejects narrow channels,
+obstructions, cliff banks and falls. Existing shoreline heights are preserved;
+small steps across a launching lane receive timber ramps. Working paths connect
+the stocks to the settlement, with cleared aprons rather than a bare rectangular
+compound. Prepared-world cache version is 24; revisions 1 and 2 keep their profiles.
+
+The first authored profile is a reconstructed northern European small boatyard,
+1400–1849: an open timber workshop, covered plank rack, separate store, clinker
+hull on braced stocks and timber launching runners. The hull's outer planking,
+inner frames, keel and supports share a depth buffer. The one form is scoped by
+date and region; shoreline logic does not depend on those choices. Placed
+capacity supplies boatwright jobs and a boat-specific workday. In revision 3,
+actual waterside workplaces can satisfy water-dependent occupations even where
+the broad setting lacks a water label.
+
+Verification covers all four bearings and sea/river/lake shores, rejected sites,
+staffing, reachable workplaces and every terrain step beyond the stocks toward
+the water in London 1450/1650 and Bergen 1500/1800. Actual game captures:
+`artifacts/boatyard-london-1450.png`, `artifacts/boatyard-bergen-1500.png`.
+The front audit is clean (300 buildings); all seven new art parts match their
+baked pixels and pivots. The main gate passes 909 tests, typechecking and the
+production build, plus 12 focused placement, employment and workday checks.
+Further regional forms await visual review.
+
+## Processing workplaces — October 17, 2026
+
+Potters, brickmakers, lime burners, dyers, fullers and tanners now use placed
+work compounds, with 11 dated regional profiles and 10 new sprite forms.
+Kilns and clamps stand beyond the dense core; wet-processing yards need fresh
+river water. A small seeded selection supplies actual job capacity. Domestic
+weaving and leatherworking remain independent. Regions without authored processing
+profiles retain their existing domestic crafts rather than losing those professions. Processing facilities require worksite revision 2;
+prepared-world cache version is 20.
+
+The six trades have their own workday steps and stations instead of borrowing
+household weaving. Resident starts keep a housing lot when venues compete for
+scarce frontage; unavailable requested specialist jobs fall back to local work.
+The art shares the existing projection, materials, roofs and fittings, including
+curved kiln masonry, recessed pits, stave-built vats and regional pottery sheds.
+Verified captures: `artifacts/processing-rome.png`, `processing-oaxaca.png`,
+`processing-kyoto.png`, `processing-dyehouse.png`, `processing-tannery.png`,
+`processing-fullery.png`, `processing-brickyard.png`, `processing-limeworks.png`.
+
+Verification: 903 main tests, typechecking and production build pass, plus 17
+workplace/access checks across historical starts and controlled river sites.
+The front audit is clean (293 buildings); all 32 packed worksite sprites match
+their painters byte for byte.
+
+## Historical work compounds — October 17, 2026
+
+Mills, mines and hospitals now have 18 dated regional profiles and 22 building
+sprites, with service outbuildings, reserved yards and reachable workplaces.
+Siting distinguishes urban institutions, peripheral compounds and water-powered
+mills requiring a real river. Mines require a supported mining district; actual
+placed capacity and accepted roles govern employment. Hospitals have dated
+regional finishes, beds or mats, and monastic patient cells. Profiles record
+sources and distinguish reconstructed buildings from documented evidence.
+
+Worksite art uses its own paged atlas and cast shadows. New-world worksite
+revision is 1; prepared-world cache version is 18. Verification includes 11 agent
+starts, six positive workplace/access cases, controlled river placement and urban
+non-overlap checks. The main gate passes 893 tests, typechecking and the production
+build; the front art audit is clean (283 buildings). Review assets: `artifacts/worksites-art.png`,
+`artifacts/interiors/worksites.png`, and
+`artifacts/occupations/worksite-readouts.txt`.
+
 ## Classical buildings and surviving towers — October 7, 2026
 
 The approved native kit is baked: 59 building variants (236 facing frames), with

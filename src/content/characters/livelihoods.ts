@@ -11,6 +11,7 @@ import { commonLivelihoods } from "./livelihoods.generated";
  * Phase 2 replaces them with real cultivators weighted per subsistence base.
  */
 export const livelihoods: readonly Livelihood[] = [
+  { id: "hospital-attendant", label: "Hospital Attendant", activity: "Tending the sick", institution: "hospital", needs: ["settled"], rank: "labouring", weight: 4, inventory: { water: 2 } },
   {
     id: "gatherer",
     rank: "labouring",

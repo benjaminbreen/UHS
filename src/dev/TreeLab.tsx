@@ -1,5 +1,5 @@
-import nature from "../../public/nature/atlas.json" with { type: "json" };
-import ecology from "../../public/ecology/atlas.json" with { type: "json" };
+import nature from "../render/generated/nature-atlas.json" with { type: "json" };
+import ecology from "../render/generated/ecology-atlas.json" with { type: "json" };
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import { useEffect, useMemo, useRef, useState } from "react";
 import { treeArtRecipeSchema } from "./tree-art-schema";

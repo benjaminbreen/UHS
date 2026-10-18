@@ -17,7 +17,21 @@ export type RelationKind =
   /** Taught by, or founded the line that teaches. */
   | "taught-by";
 export type Relation = { kind: RelationKind; of: string };
+export type BeliefFeature = "sacred-texts";
+export type Practice =
+  | string
+  | {
+      text: string;
+      scope?: CharacterScope;
+      requires?: readonly BeliefFeature[];
+      weight?: number;
+      livelihoods?: readonly string[];
+    };
+export const practiceText = (practice: Practice): string =>
+  typeof practice === "string" ? practice : practice.text;
+
 export type Power = {
+  scope?: CharacterScope;
   name: string;
   /** English Wikipedia article for this power, where one exists. The panel
    * falls back to the system's own article. */
@@ -56,7 +70,12 @@ export type BeliefSystem = {
    * implicitly: many traditions have no concept resembling a patron. */
   patronOptions?: readonly string[];
   /** Short lines: what people give, when they gather, what they avoid. */
-  practice: readonly string[];
+  practice: readonly Practice[];
+  features?: readonly BeliefFeature[];
+  /** Explicit refinements win before geographic and chronological breadth. */
+  priority?: number;
+  /** Set by the resolver for revision-pinned contextual sampling. */
+  contextual?: true;
   /** Who officiates, if anyone does. */
   specialist?: string;
   afterlife?: string;

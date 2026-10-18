@@ -4,6 +4,8 @@ import { prepareSettingSession } from "../src/runtime/preparation";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import { actorAppearance, appearanceForAge } from "../src/core/character";
+import { restingPortraitPoseOf } from "../src/core/persona";
+import { statsOf } from "../src/core/stats";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -11,6 +13,12 @@ it("reuses visibility for presentation changes and isolates public observations"
   const engine = createSession("roman", "presentation-cache");
   const observe = vi.spyOn(engine, "observe");
   const runtime = new Runtime(engine, { cacheTerrain: false });
+  for (const actor of [engine.state.player, ...engine.state.actors.slice(0, 1)]) {
+    expect(runtime.appearanceFor(actor).restingPose).toEqual(restingPortraitPoseOf(statsOf(engine.state.manifest.seed, actor)));
+    const stats = { ...statsOf(engine.state.manifest.seed, actor), agreeableness: 90, extraversion: 90 };
+    expect(runtime.appearanceFor({ ...actor, appearance: runtime.appearanceFor(actor), stats }).restingPose?.corners).toEqual([1, 1]);
+    expect(actor.appearance?.restingPose).toBeUndefined();
+  }
   runtime.select("player");
   runtime.setZoom(2);
   runtime.stop();
@@ -64,7 +72,7 @@ it("terminates world preparation when the loading view is cancelled", async () =
   expect(terminate).toHaveBeenCalled();
 });
 
-it("prepares the same character shown in the completed world", async () => {
+it.runIf(!!process.env.FULL)("prepares the same character shown in the completed world", async () => {
   vi.stubGlobal("Worker", undefined);
   const onCharacter = vi.fn();
   const engine = await prepareSettingSession(

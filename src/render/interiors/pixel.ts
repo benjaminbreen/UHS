@@ -110,7 +110,7 @@ export class PixelRoom {
     const { W, H, ids } = this, src = this.img!.data, out = this.sheet.img, dst = out.data;
     dst.fill(0);
     for (const c of this.cutouts) {
-      if (this.props[c.id].wrecked) continue;
+      if (this.props[c.id].wrecked || this.props[c.id].external) continue;
       const at = this.cutoutAt(c);
       for (let j = 0; j < c.h; j++) {
         const y = at.y + j;
@@ -1739,6 +1739,7 @@ export class PixelRoom {
       .filter((q) => q.kind !== "rug" && q.kind !== "clutter")
       .sort((a, b) => (a.wall === b.wall ? a.y + a.d - (b.y + b.d) || (a.kind === "cat" ? 1 : 0) - (b.kind === "cat" ? 1 : 0) : a.wall ? -1 : 1));
     for (const q of order) {
+      if (q.external) continue;
       this.cur = q.id;
       this.inRoom(q.room);
       if (q.wrecked) this.wreck(q);
@@ -2549,7 +2550,7 @@ export class PixelRoom {
           break;
         }
         // Humble: one plain wool blanket; elite: brass on the headboard.
-        const plain: Record<string, string> = fin === 0 ? { f: "v", d: "x", g: "b", s: "z" } : {};
+        const plain: Record<string, string> = p.styles.bed === "linen" ? { s:"l",d:"k",f:"j",g:"J",z:"l",x:"k",c:"j",v:"j",b:"k",n:"l" } : fin === 0 ? { f: "v", d: "x", g: "b", s: "z" } : {};
         this.sprite("bed", X, Y + PD - 26, {}, plain);
         if (fin === 2) {
           this.s(X + 1, Y + PD - 24, P.brass[5]);

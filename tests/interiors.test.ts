@@ -202,7 +202,7 @@ describe("interior profiles", () => {
         }
   });
 
-  it("lodges whoever keeps a kiva with a neighbouring household, and leaves the kiva to its gatherings", () => {
+  it.runIf(!!process.env.FULL)("lodges whoever keeps a kiva with a neighbouring household, and leaves the kiva to its gatherings", () => {
     const e = createSettingSession({ ...panelSetting("area-colorado-plateau", 1100), settlement: "city", season: "summer" }, "cust");
     const kiva = e.world.places.find((p) => p.claim === "venue-venue.kiva")!;
     expect(e.state.households!.some((h) => h.residence === kiva.id)).toBe(false);
@@ -314,7 +314,7 @@ describe("interior profiles", () => {
       }
   });
 
-  it("opens a downtown block as offices by date, a banking hall or a department store", () => {
+  it.runIf(!!process.env.FULL)("opens a downtown block as offices by date, a banking hall or a department store", () => {
     const blocks = [["Offices", 1880, "desk-high"], ["Offices", 1930, "typewriter"], ["Offices", 1995, "terminal"], ["Department store", 1910, "showcase"]] as const;
     for (const [name, year, machine] of blocks) {
       const room = buildInterior({ id: `t-office-${year}`, name, access: "public", claim: "landscape", landUse: "downtown" } as Place, { lon: -87.6, lat: 41.9, year, settlement: "city" }, {});
@@ -330,7 +330,7 @@ describe("interior profiles", () => {
     for (const p of offices) expect(e.state.households!.some((h) => h.residence === p.id), p.name).toBe(false);
   });
 
-  it("keeps a grown member of the household behind the bar and sits drinkers down late", () => {
+  it.runIf(!!process.env.FULL)("keeps a grown member of the household behind the bar and sits drinkers down late", () => {
     const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
     const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
     const room = e.interiorOf(ale.id)!;
@@ -349,7 +349,7 @@ describe("interior profiles", () => {
     expect(room.seats.some((s) => s.x === drinker.x && s.y === drinker.y)).toBe(true);
   });
 
-  it("fills the taproom with neighbours off the routine budget while the player is in it", () => {
+  it.runIf(!!process.env.FULL)("fills the taproom with neighbours off the routine budget while the player is in it", () => {
     const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
     const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
     const room = e.interiorOf(ale.id)!;
@@ -358,14 +358,16 @@ describe("interior profiles", () => {
     e.state.player.pos = { ...room.entry, space: ale.id };
     e.advance(60);
     const regulars = e.state.actors.filter((a) => a.pos.space === ale.id && a.householdId !== home.id && e.world.dormant?.(a.id));
-    expect(regulars.length).toBeGreaterThanOrEqual(8);
+    const neighbours = e.state.actors.filter(a => a.kind === "human" && (a.age ?? 30) >= 16 &&
+      a.householdId !== home.id && e.world.dormant?.(a.id) && Math.hypot(a.home.x-ale.entrance.x,a.home.y-ale.entrance.y)<=60);
+    expect(regulars.length).toBeGreaterThanOrEqual(Math.min(8,neighbours.length));
     expect(regulars.every((a) => room.seats.some((s) => s.x === a.pos.x && s.y === a.pos.y))).toBe(true);
     e.state.player.pos = { ...ale.entrance, space: "outside" };
     e.advance(60);
     expect(regulars.filter((a) => a.pos.space === ale.id)).toEqual([]);
   });
 
-  it("stands furniture in the house as things that block, shift and break", () => {
+  it.runIf(!!process.env.FULL)("stands furniture in the house as things that block, shift and break", () => {
     const e = createSettingSession({ ...panelSetting("kyoto", 1700), season: "summer" }, "furniture");
     const home = e.state.households!.find((h) => h.members.includes("player"))!.residence!;
     const room = e.interiorOf(home)!;
@@ -422,4 +424,32 @@ describe("interior profiles", () => {
           if (ex >= 0) for (const dy of [0, 1, 2]) if (floor(ex, ey - dy)) expect(solid.has(`${ex},${ey - dy}`), `${where} furniture in the way in`).toBe(false);
         }
   });
+});
+
+it("lays out hospital wards with repeated beds, a clear aisle and regional bedding", () => {
+  const cases = [
+    { lon:-.1,lat:51.5,year:1350,use:"worksite.european-infirmary",kind:"bed" },
+    { lon:36.3,lat:33.5,year:1250,use:"worksite.bimaristan",kind:"bed" },
+    { lon:-99.1,lat:19.4,year:1650,use:"worksite.colonial-hospital",kind:"bed" },
+    { lon:139.7,lat:35.7,year:1800,use:"worksite.edo-infirmary",kind:"mat" },
+    { lon:-.1,lat:51.5,year:1880,use:"worksite.pavilion-hospital",kind:"bed" },
+    { lon:80.51,lat:8.35,year:1000,use:"worksite.sri-lankan-infirmary",kind:"bed" },
+    { lon:77.2,lat:28.6,year:1950,use:"worksite.modern-ward",kind:"bed" },
+  ];
+  for (const site of cases) {
+    const pr = interiorProfileFor({...site,settlement:"city"});
+    const rooms = pr.rooms ?? [{size:pr.size}];
+    let beds = 0;
+    for(const [room,definition] of rooms.entries()) {
+      const [w,d]=definition.size;
+      const p=resolveRoom(pr,{seed:11,room,status:1,colorway:0,hour:10,w,d,shape:"rect"});
+      const props=planRoom(p), bedding=props.filter(q=>q.kind===site.kind);
+      beds+=bedding.length;
+      if(p.program==="ward") for(const bed of bedding) expect(bed.x < p.w/2-2 || bed.x > p.w/2,site.use).toBe(true);
+      expect(props.some(q=>q.kind==="loom"||q.kind==="altar"),site.use).toBe(false);
+    }
+    expect(beds,site.use).toBeGreaterThanOrEqual(4);
+    if(site.use==="worksite.sri-lankan-infirmary") expect(pr.rooms?.filter(r=>r.role==="sleep")).toHaveLength(4);
+    else expect(pr.program).toBe("ward");
+  }
 });

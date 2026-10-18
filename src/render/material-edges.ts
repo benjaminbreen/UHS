@@ -15,18 +15,18 @@ export function paintedGround(c: TopographyCell) {
     c.surface !== "water"
   );
 }
-export function shoreOnTier(sample: TopographySample, x: number, y: number) {
+export function shoreOnTier(sample: TopographySample, x: number, y: number, height = sample(x, y)?.height) {
   const cell = sample(x, y);
   if (!cell) return false;
   const shore = (c: TopographyCell) =>
     c.surface === "sand" || c.surface === "gravel" || c.surface === "water";
-  if (cell.height === 0 || shore(cell)) return true;
+  if (height === 0 || (cell.height === height && shore(cell))) return true;
   for (let dy = -1; dy <= 1; dy++)
     for (let dx = -1; dx <= 1; dx++) {
       const n = sample(x + dx, y + dy);
       if (
         n &&
-        n.height === cell.height &&
+        n.height === height &&
         !n.bridge &&
         !n.ramp &&
         n.feature !== "paving" &&
@@ -61,7 +61,7 @@ export function materialCoverage(
   x: number,
   y: number,
   height: number,
-  predicate: (c: TopographyCell) => boolean,
+  predicate: (c: TopographyCell) => boolean | number,
 ) {
   const ix = Math.floor(x - 0.5),
     iy = Math.floor(y - 0.5),
@@ -69,15 +69,9 @@ export function materialCoverage(
     v = y - 0.5 - iy;
   const value = (a: number, b: number) => {
     const c = sample(a, b);
-    return c &&
-      c.height === height &&
-      !c.bridge &&
-      !c.ramp &&
-      c.feature !== "paving" &&
-      (c.field ? !raisedFieldEdge(c) : c.feature !== "field") &&
-      predicate(c)
-      ? 1
-      : 0;
+    if (!c || c.height !== height || c.bridge || c.ramp || c.feature === "paving" ||
+      (c.field ? raisedFieldEdge(c) : c.feature === "field")) return 0;
+    return Number(predicate(c));
   };
   return (
     (value(ix, iy) * (1 - u) + value(ix + 1, iy) * u) * (1 - v) +
@@ -143,6 +137,20 @@ export function pathField(
   const ix = Math.floor(x),
     iy = Math.floor(y),
     cell = sample(ix, iy)!;
+  if (["garden", "park", "verge"].includes(cell.pavement ?? ""))
+    return { coverage: 0, cross: 1.5, radius: 0 };
+  // An earth court is an area, not a network reconstructed from soil cell centers.
+  const areaGround = (c: TopographyCell) => c.surface === "soil" &&
+    ["court", "yard", "square", "vacant"].includes(c.pavement ?? "");
+  const area = materialCoverage(sample, x, y, cell.height, (c) => {
+    if (!areaGround(c)) return 0;
+    const patch = waterNoise((x + ox) * 16, (y + oy) * 16, 58, 619);
+    return c.pavement === "vacant" ? 0.12 + patch * 0.75
+      : c.pavement === "yard" ? 0.65 + patch * 0.35 : 1;
+  });
+  const areaField: PathField = { coverage: clamp01((area - 0.2) * 1.25), cross: 0.5,
+    radius: 1.2, ruts: false, dung: false };
+  if (area === 1) return areaField;
   if (cell.pathArt?.length && !cell.feature && !cell.ramp && !cell.bridge) {
     let best: PathField = { coverage: 0, cross: 1.5, radius: 0 };
     const tuning = groundStyle()?.composition;
@@ -191,13 +199,14 @@ export function pathField(
           }),
         };
     }
-    return best;
+    return areaField.coverage > best.coverage ? areaField : best;
   }
 
   const eligible = (a: number, b: number) => {
     const n = sample(a, b);
     return (
       n?.surface === "soil" &&
+      !areaGround(n) &&
       !n.pathArt?.length &&
       n.height === cell.height &&
       !n.bridge &&
@@ -260,14 +269,16 @@ export function pathField(
       ny = ay + t * dy;
     }
   }
-  if (!Number.isFinite(distance)) return { coverage: 0, cross: 1.5, radius: 0 };
+  if (!Number.isFinite(distance)) return areaField;
   // Half breathing on the legacy reconstruction: it has no authored center
   // line, so a full-amplitude wave would swell isolated cells into blobs.
   const radius =
     (0.51 + margin(x, y, ox, oy) * 0.55) *
     (1 + (breathe(nx, ny, ox, oy) - 1) * 0.3);
+  const coverage = clamp01(0.48 + (radius - distance) / 0.65);
+  if (areaField.coverage > coverage) return areaField;
   return {
-    coverage: clamp01(0.48 + (radius - distance) / 0.65),
+    coverage,
     cross: distance / (radius || 1),
     radius,
   };

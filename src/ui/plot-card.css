@@ -487,9 +487,9 @@
 .dialogue-speech .plot-choices { flex-wrap: wrap; justify-content: flex-end; }
 .dialogue-speech .dialogue-explanation strong { color: var(--plot-text); }
 /* Reply field and the way out share the row the banner's answers used. */
-.dialogue-foot { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
-.dialogue-foot .plot-speech-actions { flex: none; margin: 0 0 0 auto; }
-.dialogue-speech .dialogue-input { position: relative; flex: 1; min-width: 0; margin: 0; }
+.dialogue-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 10px; }
+.dialogue-foot .plot-speech-actions { flex: none; max-width: 100%; margin: 0 0 0 auto; }
+.dialogue-speech .dialogue-input { position: relative; flex: 1 1 180px; min-width: 0; margin: 0; }
 .dialogue-speech .dialogue-input input {
   padding: 8px 40px 8px 12px; font: 16px var(--book);
   background: color-mix(in srgb, var(--ink) 55%, transparent); border: 1px solid color-mix(in srgb, var(--edge) 70%, transparent); border-radius: 0; color: var(--light);

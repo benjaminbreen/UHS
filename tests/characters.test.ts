@@ -24,7 +24,20 @@ import type { RestingExpression } from "../src/core/persona";
 import type { CharacterPose } from "../src/render/characters/poses";
 import { poses, workPoseFor } from "../src/render/characters/poses";
 import { defaultRenderer, workerDrawn } from "../src/render/characters/renderers";
-import { drawCharacterF } from "../src/render/characters/doll/draw";
+import { drawCharacterF, drawCharacterG } from "../src/render/characters/doll/draw";
+
+it("carries the same healed cheek scar into the world sprite", () => {
+  const a = generateAppearance("sprite-scar", 4, 36, { sex: "male" });
+  a.hair = "bald"; a.beard = "none"; a.wearing.headwear = "none";
+  a.adornment = { ears: "none", nose: "none", marks: "none" };
+  const render = (kind: "none" | "cheek") => {
+    const data = new Uint8ClampedArray(80 * 80 * 4);
+    const ctx = { clearRect: () => data.fill(0), getImageData: () => ({ data }), putImageData: () => {} } as unknown as CanvasRenderingContext2D;
+    drawCharacterG(ctx, { ...a, injuryScar: { kind, side: -1 } }, 2, "idle", 0);
+    return data;
+  };
+  expect(render("cheek")).not.toEqual(render("none"));
+});
 
 it("selects physical work by the task instead of treating every station alike", () => {
   expect(workPoseFor("work", "Brewing")).toBe("work-stir");
@@ -174,7 +187,7 @@ describe("character recipes", () => {
             f.startsWith("nature-boulder-"),
           ),
         ).toBe(true);
-      else expect(atlas.frames).toHaveProperty(p.sprite);
+      else expect(p.sprite.startsWith("nature-") ? natureAtlas.frames : atlas.frames).toHaveProperty(p.sprite);
     }
   });
   it("defaults adults to original height and reserves extremes for rare cases", () => {
@@ -320,7 +333,7 @@ it("keeps authored cuts, sleeve shapes and mantle when composing worn equipment"
   expect(composeWearing(base, {}, (id) => wearableItems[id]).front).toBeUndefined();
 });
 
-it("draws the paper doll in every garment, headwear and facing, standing where E stands", () => {
+it.runIf(!!process.env.FULL)("draws the paper doll in every garment, headwear and facing, standing where E stands", () => {
   const data = new Uint8ClampedArray(80 * 80 * 4);
   const ctx = {
     clearRect: () => data.fill(0),

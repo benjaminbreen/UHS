@@ -297,7 +297,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
       {
         transfer: [
           rims.buffer,
-          ...(receivers ? [receivers.tiers.buffer, receivers.rows.buffer] : []),
+          ...(receivers ? [receivers.tiers.buffer, receivers.rows.buffer, receivers.surfaceTiers.buffer] : []),
           ...(living ? [living.pixels.buffer, living.bends.buffer] : []),
           ...layers.map((l) => l.pixels.buffer),
           ...remainingGround.map((t) => t.pixels.buffer),

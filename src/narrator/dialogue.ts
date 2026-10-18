@@ -1,4 +1,5 @@
 import type { Actor, Favour, Household, WalkOff } from "../core/types";
+import { healthReport, observedIllnesses, practitioner } from "../core/health";
 import { orderKeeper } from "../content/history/order";
 import { telling } from "../core/word";
 import { goodName, sellerOf } from "../content/economy/products";
@@ -375,6 +376,9 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     : [];
   return [
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
+    state.manifest.disease ? `Health facts you can report: ${healthReport(state, actor, setting)} Explain symptoms and your own beliefs in terms plausible here and now. Do not invent cases, exposure sources, certain diagnoses, cures or treatment supplies. Talking does not administer care; use the patient's care actions for that.` : "",
+    state.manifest.disease ? `Visible symptoms in the player: ${observedIllnesses(state, state.player.id, setting).map((ill) => ill.name).join("; ") || "none"}.` : "",
+    state.manifest.disease && practitioner(actor) ? `Your available treatment supplies: ${[actor.medicalStock?.antibiotic ? `${actor.medicalStock.antibiotic} antibiotic courses` : "", actor.medicalStock?.rehydration ? `${actor.medicalStock.rehydration} oral rehydration supplies` : ""].filter(Boolean).join("; ") || "no specific medicines in stock"}. An assessment or discussion cannot transfer or administer them; the player must use a care action.` : "",
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
     plotContext,
@@ -404,7 +408,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       ? `Just now, ${Math.max(1, Math.round((state.clock - rude.at) / 60))} minute(s) ago, the player ${rude.what}. Remark on it first, in your own way: annoyed, startled, sarcastic, amused or wary. A bump is small; a weapon swung near you is not.`
       : "",
     grievances.length
-      ? `Seen with your own eyes, oldest first, the last of them just now: ${grievances.join("; ")}. This happened; it is not hearsay, and you have not forgotten it.`
+      ? `Your memories, oldest first (these may be older events): ${grievances.join("; ")}. This happened; it is not hearsay, and you have not forgotten it.`
       : "",
     hearsay.length
       ? `Heard about the player, second-hand and maybe wrong or exaggerated: ${hearsay.join("; ")}. It colours how you take them; you may bring it up, ask if it is true, or keep your distance.`

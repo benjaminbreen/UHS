@@ -55,6 +55,8 @@ export type TerrainReceivers = {
   height: number;
   tiers: Int8Array;
   rows: Int16Array;
+  /** Smoothed heights before projection, indexed in world pixels. */
+  surfaceTiers: Int8Array;
 };
 type Cover = { x: number; y: number; width: number; height: number };
 /** Rasterize the UNION of elevated ground, swept down to the lower surface.
@@ -565,6 +567,7 @@ function rasterWallContours(
     const height = FH + maxTier * R;
     const tiers = new Int8Array(FW * height).fill(-1);
     const rows = new Int16Array(FW * height).fill(-32768);
+    const surfaceTiers = new Int8Array(FW * height);
     for (let py = -PY; py < FH - PY; py++)
       for (let px = -PX; px < FW - PX; px++) {
         const L = lvl(px, py);
@@ -572,6 +575,7 @@ function rasterWallContours(
         const cell = sample(Math.floor(px / 16), row);
         const sy = py - L * R;
         const i = (sy - top) * FW + px + PX;
+        surfaceTiers[(py - top) * FW + px + PX] = L;
         const covered =
           cell?.ramp ||
           cell?.bridge ||
@@ -599,6 +603,7 @@ function rasterWallContours(
       height,
       tiers,
       rows,
+      surfaceTiers,
     });
   }
 

@@ -28,51 +28,6 @@ import { random } from "../core/random";
 import { TERRAIN_RISE } from "./terrain-projection";
 /** Painter order is logical map Y. Tops are lifted; front walls bridge the
  * actual height difference. Low-side actors can pass behind raised terrain. */
-/** Average tone of a material tile, for the underlay beneath wall strips.
- * Cached across chunks: a one-pixel read off a GPU-backed canvas flushes the
- * pipeline, and rebuilding the table per chunk was most of an install. The
- * texture object identity stands in for a restyle, which replaces it. */
-const tones = new Map<string, string>();
-let toneSource: Phaser.Textures.Texture | undefined;
-let tonePixel: CanvasRenderingContext2D | undefined;
-function meanColour(pixels: Uint8ClampedArray) {
-  const sum = [0, 0, 0];
-  for (let i = 0; i < pixels.length; i += 4)
-    for (let k = 0; k < 3; k++) sum[k] += pixels[i + k];
-  const n = pixels.length / 4;
-  return `rgb(${sum.map((v) => Math.round(v / n)).join(",")})`;
-}
-function toneOf(scene: Phaser.Scene, frame: string) {
-  const texture = scene.textures.get("topography");
-  if (texture !== toneSource) {
-    tones.clear();
-    toneSource = texture;
-  }
-  const cached = tones.get(frame);
-  if (cached) return cached;
-  const f = scene.textures.getFrame("topography", frame);
-  if (!tonePixel) {
-    const one = document.createElement("canvas");
-    one.width = one.height = 1;
-    tonePixel = one.getContext("2d", { willReadFrequently: true })!;
-    tonePixel.imageSmoothingEnabled = true;
-  }
-  tonePixel.drawImage(
-    f.source.image as CanvasImageSource,
-    f.cutX,
-    f.cutY,
-    f.cutWidth,
-    f.cutHeight,
-    0,
-    0,
-    1,
-    1,
-  );
-  const [r, g, b] = tonePixel.getImageData(0, 0, 1, 1).data;
-  const css = `rgb(${r},${g},${b})`;
-  tones.set(frame, css);
-  return css;
-}
 /** Composes a chunk in resumable slices. Installing a 16x16 chunk is over a
  * frame's budget in one go, so the caller spends it a few milliseconds at a
  * time; the ground fills in row by row instead of stalling the walk. */
@@ -129,23 +84,6 @@ export function* topographySteps(
     }
     return page;
   };
-  const fill = (x: number, y: number, w: number, h: number, css: string) => {
-    for (
-      let cy = Math.floor(y / pageSize);
-      cy <= Math.floor((y + h - 1) / pageSize);
-      cy++
-    )
-      for (
-        let cx = Math.floor(x / pageSize);
-        cx <= Math.floor((x + w - 1) / pageSize);
-        cx++
-      ) {
-        const context = pageFor(cx, cy).getContext();
-        context.fillStyle = css;
-        context.fillRect(x - cx * pageSize, y - cy * pageSize, w, h);
-      }
-  };
-  const tone = (frame: string) => toneOf(scene, frame);
   const image = (
     x: number,
     y: number,
@@ -412,32 +350,7 @@ export function* topographySteps(
             : 0xffffff,
           painted,
         );
-      if (owned) {
-        // The wall pass owns these cells, and its row strips are separate
-        // images: a sub-pixel seam between two of them would otherwise show
-        // the camera background. Flat tone, so no tile edge reads through.
-        // What shows through is the foot of a step, so the lowest neighbour's
-        // ground, not this cell's turf, which drew a green bar on snow.
-        let low = c.height,
-          ground = preparedGround.get(`${x},${y}`)?.pixels;
-        for (const [dx, dy] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) {
-          const n = sample(x + dx, y + dy),
-            tile = preparedGround.get(`${x + dx},${y + dy}`)?.pixels;
-          if (n && tile && n.height < low) [low, ground] = [n.height, tile];
-        }
-        fill(
-          x * 16,
-          top,
-          16,
-          16,
-          ground
-            ? meanColour(ground)
-            : tone(
-                `${material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
-              ),
-        );
-        continue;
-      }
+      if (owned) continue;
       if (c.surface === "gravel" && !shoreline && !paintedGround(c)) {
         const connections =
           contourMask(sample, x, y, (n) => n.surface === "gravel") & 15;

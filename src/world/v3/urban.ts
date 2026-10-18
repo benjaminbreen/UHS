@@ -1088,6 +1088,26 @@ export function urbanNeighborhood(
     else lot.garden = undefined;
     return true;
   };
+  if (pack.setting?.employmentRevision && zoning) {
+    const frames = modernBuildings(pack.setting, "industrial").filter(f => buildingModels[f]);
+    const fitsWorks = (block: Block) => frames.some(f => {
+      const [w, h] = buildingModel(f).footprint;
+      return block.w >= w + 6 && block.h >= h + 6;
+    });
+    const industrial = ranks.filter(r => uses.get(r.block) === "industrial");
+    if (industrial.length && !industrial.some(r => fitsWorks(r.block))) {
+      const target = industrial[0].block;
+      const alternative = ranks.filter(r => rel(r.block) > 0.25 && fitsWorks(r.block) &&
+        ["commercial", "rowhouse", "tenement"].includes(uses.get(r.block) ?? ""))
+        .sort((a, b) => Math.hypot(a.block.x - target.x, a.block.y - target.y) -
+          Math.hypot(b.block.x - target.x, b.block.y - target.y))[0]?.block;
+      if (alternative) {
+        uses.set(alternative, "industrial");
+        quarters.set(alternative, "craft");
+        for (const k of cells(alternative)) useAt.set(k, "industrial");
+      }
+    }
+  }
   // Greens are chosen before anything is built, so a park is a decision and
   // not a leftover: the fabric's share of blocks, away from the square.
   const parkTarget = Math.round(layout.blocks.length * (form.greenSpaces ?? 0));
@@ -1105,8 +1125,16 @@ export function urbanNeighborhood(
       .slice(0, parkTarget),
   );
   for (const rank of parkRanks) reserve(rank.block);
+  let seededIndustry: (typeof ranks)[number] | undefined;
+  if (pack.setting?.employmentRevision && zoning) {
+    for (const rank of ranks) {
+      if (parkRanks.has(rank) || uses.get(rank.block) !== "industrial") continue;
+      blockLots(rank.block);
+      if (rank.built) { seededIndustry = rank; reserve(rank.block); break; }
+    }
+  }
   for (const rank of ranks) {
-    if (parkRanks.has(rank) || lots.length >= capacity) continue;
+    if (rank === seededIndustry || parkRanks.has(rank) || lots.length >= capacity) continue;
     blockLots(rank.block);
     if (uses.get(rank.block) === "industrial" && rank.built) reserve(rank.block);
   }

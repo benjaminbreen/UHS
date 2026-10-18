@@ -335,7 +335,8 @@ function weighted(
   });
 }
 /** Everything about a livelihood that depends on where and when it is. */
-function inScope(l: Livelihood, s: WorldSetting) {
+function inScope(l: Livelihood, s: WorldSetting, localRequirements?: ReadonlySet<string>) {
+  if (l.institution && !localRequirements?.has(l.institution)) return false;
   if (l.years && !(s.year >= l.years[0] && s.year < l.years[1])) return false;
   if (l.cultures && !l.cultures.includes(s.culture)) return false;
   if (
@@ -356,7 +357,7 @@ function inScope(l: Livelihood, s: WorldSetting) {
   if ((l.activity === "On the line" || l.activity === "At the machine") && !industrialized(s)) return false;
   // A trade that needs a certain number of customers. Settlement form is the
   // only size the setting carries, so it stands in for a head count.
-  if (l.requires?.some((r) => !requirementMet(r, s))) return false;
+  if (l.requires?.some((r) => !localRequirements?.has(r) && !requirementMet(r, s))) return false;
   if (l.minPopulation) {
     const size =
       s.settlement === "city" || s.settlement === "port"
@@ -389,6 +390,7 @@ export function workAt(
 export function resolveCharacterContext(
   s: WorldSetting,
   community = communityFor(s),
+  localRequirements?: ReadonlySet<string>,
 ): CharacterContext {
   const candidates = communityProfiles
     .filter((p) => matchesCharacterScope(p.scope, s, community))
@@ -447,7 +449,7 @@ export function resolveCharacterContext(
   const needsMet = (needs: Livelihood["needs"]) =>
     (needs ?? []).every((need) =>
       need === "water"
-        ? s.water !== "none"
+        ? s.water !== "none" || !!localRequirements?.has("water")
         : need === "settled"
           ? s.settlement !== "camp"
           : s.settlement !== "camp" && profile.allowedItems.includes("grain"),
@@ -456,7 +458,7 @@ export function resolveCharacterContext(
   // entry of the same id: a fisher still wants water.
   const authoredNeeds = new Map(livelihoods.map((l) => [l.id, l.needs]));
   const eligible = livelihoods.filter(
-    (l) => profile.livelihoods.includes(l.id) && needsMet(l.needs),
+    (l) => (profile.livelihoods.includes(l.id) || !!l.institution && !!localRequirements?.has(l.institution)) && needsMet(l.needs),
   );
   const supported = (l: Livelihood) =>
     !l.capabilities?.some((c) => !capabilities.has(c)) &&
@@ -467,14 +469,14 @@ export function resolveCharacterContext(
   // holds both to the same capability gate.
   const revised = s.characterRevision === 2;
   const playable = revised
-    ? eligible.filter((l) => supported(l) && inScope(l, s))
+    ? eligible.filter((l) => supported(l) && inScope(l, s, localRequirements))
     : eligible;
   const tiered = revised
     ? commonLivelihoods.filter(
         (l) =>
           tierApplies(l.tier!, s, capabilities) &&
           supported(l) &&
-          inScope(l, s) &&
+          inScope(l, s, localRequirements) &&
           needsMet(l.needs ?? authoredNeeds.get(l.id)),
       )
     : [];

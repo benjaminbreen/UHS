@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { panelCity } from "../scripts/review/panel";
 
-/** Guards on the review panel: a city must fill its core, keep its count,
- * reach its water and build within a time budget. The full panel with
- * screenshots is scripts/review/city-panel.ts; this is the subset cheap
- * enough to run every time. */
+/** Terrain-constrained panel cities; flat-ground fabric capacity is covered in urban.test.ts. */
 describe("city panel", () => {
   const cases = [
-    // Core share is building footprint over the central third of the extent;
-    // streets, the square and (for New York) the river take the rest.
-    { place: "city-miami", year: 2001, buildings: 400, core: 0.18, water: true },
-    // A plotted town: each house keeps its own ground, so fewer of them.
-    { place: "london", year: 1400, buildings: 120, core: 0.12, water: true },
+    // Revision 2 leaves refused terrain parcels open, including riverside cores.
+    { place: "city-miami", year: 2001, buildings: 400, core: 0.14, water: true },
+    { place: "london", year: 1400, buildings: 60, core: 0.035, water: true },
     { place: "alexandria", year: -244, buildings: 60, core: 0.1, water: true },
   ];
   for (const { place, year, buildings, core, water } of cases)

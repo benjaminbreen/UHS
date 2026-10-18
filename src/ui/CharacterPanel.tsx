@@ -44,12 +44,13 @@ import { ItemInspect } from "./ItemInspect";
 import { dayPlan } from "../core/itinerary";
 import { asDoing } from "../core/agenda";
 import type { TaskSource } from "./task-view";
-import { dispositionOf, standingOf } from "../core/persona";
+import { dispositionOf, standingOf, householdLine } from "../core/persona";
 import { statsOf, statKeys } from "../core/stats";
 import { reputation } from "../core/word";
 import { abilitiesOf } from "../content/characters/abilities";
 import { livelihoodById } from "../content/characters/livelihoods";
 import {
+  practiceText,
   beliefOf,
   beliefsFor,
   unscopedBeliefs,
@@ -516,7 +517,7 @@ export function CharacterPanel({
   const culture = pack.setting?.culture;
   const stats = statsOf(seed, actor),
     held = abilitiesOf(seed, actor),
-    household = state.households?.find((h) => h.members.includes(actor.id));
+    household = state.households?.find((h) => h.members.includes(actor.id) && (!actor.householdId || h.id === actor.householdId));
   const livelihood = actor.origin
     ? livelihoodById(actor.origin.livelihood)
     : undefined;
@@ -571,7 +572,8 @@ export function CharacterPanel({
       relation: relationLabels[r.kind] ?? r.kind,
       // Blood and partnership read as closer than sharing a roof.
       closeness: r.kind === "friend" ? 1 : r.kind === "co-resident" ? 2 : 3,
-      person: everyone.find((a) => a.id === r.other),
+      person: !household && actor.identity?.household?.people.some((a) => a.id === r.other)
+        ? undefined : everyone.find((a) => a.id === r.other),
     }))
     .filter((m) => m.person && m.person.kind === "human");
   const belief = beliefOf(
@@ -1002,7 +1004,7 @@ export function CharacterPanel({
                 ))}
               </ul>
             ) : (
-              <p>No household recorded here.</p>
+              <p>{actor.identity?.household ? householdLine(state, actor) : "No household recorded here."}</p>
             )}
             <h3>Equipped</h3>
             <Equipment
@@ -1226,7 +1228,7 @@ export function CharacterPanel({
               </div>
             </>
           ) : (
-            <p>No household is recorded for {actor.name}.</p>
+            <p>{actor.identity?.household ? householdLine(state, actor) : `No household is recorded for ${actor.name}.`}</p>
           )}
         </div>
       )}
@@ -1269,7 +1271,7 @@ export function CharacterPanel({
               <div>
                 <h3>Belief and devotion</h3>
                 <h1>{belief.system.label}</h1>
-                <p>{belief.keeps ?? belief.system.practice[0]}</p>
+                <p>{belief.keeps ?? (belief.system.practice[0] && practiceText(belief.system.practice[0]))}</p>
                 <dl className="belief-measures">
                   <div>
                     <dt>Observance</dt>
@@ -1366,7 +1368,7 @@ export function CharacterPanel({
                 <h3>Practices</h3>
                 <ul>
                   {belief.system.practice.slice(0, 3).map((practice) => (
-                    <li key={practice}>{practice}</li>
+                    <li key={practiceText(practice)}>{practiceText(practice)}</li>
                   ))}
                 </ul>
                 {wikiFor(belief.system, selectedPower) && (

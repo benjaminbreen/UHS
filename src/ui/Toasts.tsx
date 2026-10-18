@@ -4,11 +4,22 @@ import type { GameEvent } from "../core/types";
 const LIFE_MS = 4200;
 
 /** New events surface briefly at the top of the world, newest first. */
-export function Toasts({ events, omit }: { events: GameEvent[]; omit: (string | undefined)[] }) {
+export function Toasts({ events, omit, space, home }: { events: GameEvent[]; omit: (string | undefined)[]; space?: string; home?: string }) {
   const [shown, setShown] = useState<(GameEvent & { leaving?: boolean })[]>([]);
   // Events already in the log when the page opened are not news.
   const seen = useRef(events.at(-1)?.id ?? -1);
   const last = events.at(-1);
+  const previousSpace = useRef(space);
+  const [homeShown, setHomeShown] = useState(false);
+  useEffect(() => {
+    const entered = previousSpace.current !== space && space === home;
+    previousSpace.current = space;
+    setHomeShown(entered);
+    if (entered) {
+      const timer = setTimeout(() => setHomeShown(false), LIFE_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [space, home]);
   useEffect(() => {
     const fresh = events.filter((e) => e.id > seen.current);
     if (!fresh.length) return;
@@ -21,6 +32,7 @@ export function Toasts({ events, omit }: { events: GameEvent[]; omit: (string | 
   }, [last?.id]);
   return (
     <div className="toasts" role="status" aria-live="polite">
+      {homeShown && <div className="toast"><i /><span>Your House</span></div>}
       {shown.filter((t) => !omit.includes(t.text)).map((t) => (
         <div key={t.id} className="toast" data-kind={t.kind} data-leaving={t.leaving || undefined}>
           <i />

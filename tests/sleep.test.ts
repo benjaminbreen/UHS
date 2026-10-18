@@ -3,7 +3,7 @@ import { createSession } from "../src/runtime/session";
 
 const evening = (seed = "tiber-100") => {
   const engine = createSession("roman", seed);
-  engine.advance(11 * 3600);
+  engine.state.clock = 20 * 3600;
   engine.state.player.fatigue = 80;
   engine.state.player.health = 100;
   return engine;

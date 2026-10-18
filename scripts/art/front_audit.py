@@ -171,11 +171,20 @@ def east_asian():
         yield name, im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), info['door_h'], []
 
 
+def worksites():
+    from types import SimpleNamespace
+    from art.front_worksites import worksite_recipes, FrontWorksitePainter
+    for name, recipe in worksite_recipes(ROOT, {}).items():
+        p = FrontWorksitePainter(recipe)
+        im = p.render()
+        yield name, im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), p.door_size[1], []
+
+
 def audit():
     faults = ramp_faults()
     n = 0
     from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian()):
+    for name, im, b, door_h, windows in chain(subjects(), east_asian(), worksites()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1

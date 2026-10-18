@@ -823,6 +823,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "central-asian-islam",
+    features: ["sacred-texts"],
     label: "Central Asian Islamic practice with Sufi and shrine elements",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Central_Asia",
     scope: { years: [900, 1900], bounds: [45, 32, 85, 50] },

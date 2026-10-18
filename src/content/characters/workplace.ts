@@ -70,3 +70,56 @@ const byActivity: Record<string, Workplace> = {
 export function workplaceFor(activity: string): Workplace {
   return byActivity[activity] ?? "workshop";
 }
+
+export type Institution =
+  | "fishery"
+  | "boatyard"
+  | "pottery" | "brickworks" | "limeworks" | "dyehouse" | "fullery" | "tannery"
+  | "school"
+  | "administration"
+  | "bank"
+  | "factory"
+  | "railway"
+  | "printing"
+  | "mill"
+  | "mine"
+  | "hospital"
+  | "worship"
+  | "field"
+  | "pasture"
+  | "shore";
+
+/** Domestic crafts and independent services need no separate employer. */
+export function institutionFor(
+  l: import("./context-types").Livelihood,
+  processing = false,
+): Institution | undefined {
+  if (l.institution) return l.institution;
+  if (processing && processingInstitution[l.id]) return processingInstitution[l.id];
+  if (l.id === "schoolteacher") return "school";
+  if (l.id === "bank-clerk") return "bank";
+  if (l.id === "stationmaster") return "railway";
+  if (l.id === "printer") return "printing";
+  if (l.id === "miller") return "mill";
+  if (l.id === "sexton") return "worship";
+  if (l.activity === "Working underground") return "mine";
+  if (l.requires?.includes("factories")) return "factory";
+  if (l.id === "clerk" || l.id === "tax-collector") return "administration";
+  if (l.id === "nurse") return "hospital";
+  const place = l.workplace ?? workplaceFor(l.activity);
+  if (place === "field") return "field";
+  if (place === "pasture") return "pasture";
+  if (
+    ["Working near water", "Working the water", "Working the wharf"].includes(
+      l.activity,
+    )
+  )
+    return "shore";
+  return undefined;
+}
+
+export const processingInstitution: Readonly<Record<string, Institution>> = {
+  potter: "pottery", brickmaker: "brickworks", "lime-burner": "limeworks",
+  dyer: "dyehouse", fuller: "fullery", tanner: "tannery",
+  boatwright: "boatyard",
+};

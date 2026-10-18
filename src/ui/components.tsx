@@ -28,6 +28,8 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
             ? sheets.ecology
             : name.startsWith("study-prop") || name.startsWith("prop-broken-")
               ? sheets.props
+              : name in sheets.worksites.frames
+                ? sheets.worksites
               : name in sheets.buildings.frames
                 ? sheets.buildings
                 : name in sheets.regionalBuildings.frames

@@ -59,6 +59,7 @@ it("makes one to three herders, the same every time, beside their herd", () => {
     if (first.dog) {
       dogs++;
       expect(first.dog.speciesId).toBe("dog");
+      expect(first.dog.owner).toBe(first.actors[0].id);
     }
   }
   expect(ages.some((age) => age > 0 && age < 17)).toBe(true);

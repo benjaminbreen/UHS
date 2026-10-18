@@ -28,6 +28,14 @@ await withPage({}, async (page) => {
       const groups = (publicInteriorGroups as { label: string; profiles: any[] }[])
         .map((g) => ({ name: slug(g.label), profiles: g.profiles.filter((p) => !ids.length || ids.includes(slug(g.label)) || ids.includes(p.id)) }))
         .filter((g) => g.profiles.length);
+      if (ids.includes("worksites")) {
+        const { worksiteProfiles } = await import("/src/content/settlements/worksites/index.ts" as string);
+        const { interiorProfileFor } = await import("/src/content/interiors/select.ts" as string);
+        groups.push({name:"worksites",profiles:worksiteProfiles.map((p:any)=>{
+          const b=p.scope.bounds ?? [-1,50,1,52];
+          return interiorProfileFor({lon:(b[0]+b[2])/2,lat:(b[1]+b[3])/2,year:p.scope.years[0],settlement:"city",use:`worksite.${p.id}`});
+        })});
+      }
       if (ids.includes("shops")) {
         const { shopFor, shopKinds } = await import("/src/content/interiors/shops.ts" as string);
         const { interiorProfile } = await import("/src/content/interiors/index.ts" as string);

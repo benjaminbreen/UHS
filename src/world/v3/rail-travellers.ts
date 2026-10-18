@@ -18,6 +18,7 @@ export const isVisitor = (id: string) => id.includes("-traveller-");
  * good share of a town's working men by 1900, more after. */
 export function commutes(plan: SettlementPlan, seed: string, year: number, actor: Actor | undefined) {
   if (!plan.railway?.station || !actor || actor.kind !== "human" || year < 1850) return false;
+  if (plan.work.get(actor.id)?.employment) return false;
   const age = actor.age ?? 34;
   if (age < 18 || age > 64) return false;
   const share = year < 1890 ? 0.05 : year < 1940 ? 0.1 : 0.14;
@@ -110,6 +111,8 @@ export function railStaff(plan: SettlementPlan, seed: string, pack: Pack) {
     ...Array.from({ length: plan.site.profile.radius >= 60 ? 2 : 1 }, () => ["porter", "Porter", 30] as const),
   ] as const;
   staff.forEach(([wanted, role, age], i) => {
+    if (setting.employmentRevision && wanted === "stationmaster" &&
+      [...plan.work.values()].some(s => s.employment?.kind === "railway")) return;
     const id = `${plan.site.id}-railstaff-${i}`;
     const roll = (k: string) => random(seed, id, k);
     const pos = { ...station.door, space: "outside" as const };
@@ -140,6 +143,10 @@ export function railStaff(plan: SettlementPlan, seed: string, pack: Pack) {
       work: at(0.5, edge),
       water: station.door,
       social: station.door,
+      ...(setting.employmentRevision && role === "Stationmaster" ? {
+        employment: { id: `${plan.site.id}-station`, kind: "railway" as const, label: "the railway station" },
+        role,
+      } : {}),
       label: role === "Porter" ? "Carrying luggage" : "Keeping the station",
       offset: Math.floor(roll("offset") * 120),
     });

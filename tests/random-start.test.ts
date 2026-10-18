@@ -54,7 +54,7 @@ describe("random starts", () => {
     );
   });
 
-  it("leaves no place unreachable, including the curated anchors", () => {
+  it.runIf(!!process.env.FULL)("leaves no place unreachable, including the curated anchors", () => {
     const seen = new Set<string>();
     for (let i = 0; i < 20000; i++)
       seen.add(

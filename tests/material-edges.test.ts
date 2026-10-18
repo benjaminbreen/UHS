@@ -138,3 +138,22 @@ it("keeps four wear bands across a broad path and a worn crown on a narrow one",
   );
   expect(Math.max(...crown)).toBeGreaterThan(0.95);
 });
+
+it("paints earth courts as continuous areas without cart marks, preserving access paths at their edges", () => {
+  for (const pavement of ["court", "yard", "square", "vacant"] as const) {
+    const court: TopographySample = () => ({ ...cell, surface: "soil", pavement });
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        const field = pathField(court, (x + 0.5) / 16, (y + 0.5) / 16, 0, 0);
+        if (pavement === "court" || pavement === "square") expect(field.coverage).toBe(1);
+        else expect(field.coverage).toBeLessThan(1);
+        expect(field.ruts).toBe(false);
+        expect(field.dung).toBe(false);
+      }
+  }
+  const access: TopographySample = (x) => ({ ...cell,
+    surface: x < 0 ? "soil" : "grass", pavement: x < 0 ? "court" : undefined,
+    pathArt: [{ a: [-2, 0.5], b: [2, 0.5], radius: 0.7, ruts: false, dung: false }],
+  });
+  expect(pathField(access, 0.05, 0.5, 0, 0).coverage).toBeGreaterThan(0.8);
+});

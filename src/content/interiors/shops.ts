@@ -15,7 +15,7 @@ export const shopKinds: ShopKind[] = [
   { id: "tools", label: "Smithy", match: /smith|iron|forge|farrier|cutler|nail|armou?r/, fixture: ["fixture", "anvil"] },
   { id: "timber", label: "Workshop", match: /carpent|joiner|cooper|wheelwright|cabinet|turner|timber|wood/, fixture: ["fixture"] },
   { id: "pots", label: "Pottery", match: /pot|ceram|porcelain|kiln|tile/, fixture: ["throw"] },
-  { id: "cloth", label: "Draper's shop", match: /weav|cloth|draper|mercer|tailor|silk|dye|linen|wool|textile|sew/ },
+  { id: "cloth", label: "Draper's shop", match: /weav|fuller|cloth|draper|mercer|tailor|silk|dye|linen|wool|textile|sew/ },
   { id: "leather", label: "Leather shop", match: /leather|tann|cobbl|shoe|saddl|glov|cord/, fixture: ["fixture"] },
   { id: "candles", label: "Chandlery", match: /candle|chandl|soap|tallow|wax/ },
   { id: "apothecary", label: "Apothecary", match: /apothec|drug|herb|physic|spice|perfum/ },

@@ -1,3 +1,5 @@
+import { planWorksites } from "./worksites";
+import { planWaterfront } from "./waterfront";
 import { modernBuildingSince } from "../../content/settlements/modern-buildings";
 import { regionalLook } from "../../content/graphics/regional-looks";
 import { mediterraneanShrineFrame, mediterraneanProp } from "../../content/graphics/mediterranean-buildings";
@@ -123,7 +125,7 @@ import {
   type SettlementPlan,
   type Site,
 } from "./types";
-import { makeDoor, paintedDoor } from "../../core/doors";
+import { clearDoorsteps, makeDoor, paintedDoor } from "../../core/doors";
 import {
   genericBand,
   genericCamp,
@@ -479,6 +481,7 @@ export function planSettlement(
     label: string,
     width = 1,
     area?: Rect,
+    preview = false,
   ) => {
     const access = /^(door|yard-access|field-access|pen-access)/.test(label);
     // A doorstep path searches the town, not the fields round it.
@@ -521,8 +524,9 @@ export function planSettlement(
             area,
             width,
             width ? 2 : 1,
-            organic ? seed : undefined,
+            organic && !label.startsWith("worksite-") ? seed : undefined,
           );
+    if(preview)return road;
     // A composed town's footway already serves the door; an access path
     // painted over it only cut dirt notches into the street.
     if (
@@ -780,7 +784,7 @@ export function planSettlement(
     return first;
   };
   /** Rural foundations stay level; urban parcels can be graded through one tier. */
-  const dry = (rect: Rect, occupied = true, core: Rect = rect) => {
+  const dry = (rect: Rect, occupied = true, core: Rect = rect, hinterland = false) => {
     let lo = Infinity,
       hi = -Infinity,
       valid = true;
@@ -797,15 +801,15 @@ export function planSettlement(
       }
       if (
         f.water < 4 ||
-        (site.accepts && !site.accepts(x, y)) ||
+        (site.accepts && !site.accepts(x, y) && (!hinterland || foreign(x, y))) ||
         (occupied && plan.reserved.has(cellKey(x, y)))
       )
         valid = false;
     });
-    return valid && (pack.setting?.terrainRevision ? hi - lo <= (urban ? 14 : 0) : hi - lo < 28);
+    return valid && (pack.setting?.terrainRevision ? hi - lo <= (urban || hinterland ? 14 : 0) : hi - lo < 28);
   };
-  const gradeGround = (rect: Rect, level?: number) => {
-    if (!urban || !pack.setting?.terrainRevision || !dry(rect, false)) return;
+  const gradeGround = (rect: Rect, level?: number, worksite = false) => {
+    if ((!urban && !worksite) || !pack.setting?.terrainRevision || !dry(rect, false, rect, worksite)) return;
     plan.groundLevels ??= new Map();
     level ??= Math.round(sample(rect.x + (rect.w >> 1), rect.y + (rect.h >> 1)).elevation / 14);
     eachCell(rect, (x, y) => plan.groundLevels!.set(cellKey(x, y), level!));
@@ -904,6 +908,10 @@ export function planSettlement(
     sprite: "fire",
     inventory: {},
   });
+  planWorksites(plan, pack, seed, sample, dry, paint, (rect) => gradeGround(rect, undefined, true), connect, (rect) =>
+    eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))));
+  planWaterfront(plan, pack, seed, sample, dry, paint, (rect)=>gradeGround(rect,undefined,true),connect,(rect)=>
+    eachCell(rect,(x,y)=>{if((pack.setting?.worksiteRevision??1)<5 || !plan.traffic.has(cellKey(x,y)))noRoad.add(cellKey(x,y));}));
   let urbanLots: UrbanLot[] = [];
   const groundVenues: {
     venue: import("../../content/venues").Venue;
@@ -1590,10 +1598,13 @@ export function planSettlement(
         inventory: {},
       });
     };
+    const campuses = plan.plots.filter(p => p.id.includes("-worksite-") || p.id.includes("-waterfront-"));
+    const urbanDry = (rect: Rect, occupied = true) => dry(rect, occupied) &&
+      !campuses.some(p => rect.x < p.x+p.w && rect.x+rect.w > p.x && rect.y < p.y+p.h && rect.y+rect.h > p.y);
     urbanLots = composed
       ? urbanNeighborhood(site, pack, seed, {
           lay,
-          dry,
+          dry: urbanDry,
           shore: urbanShore(),
           bank: (x, y) => {
             const f = sample(x, y);
@@ -1852,7 +1863,7 @@ export function planSettlement(
           pack,
           seed,
           connect,
-          dry,
+          urbanDry,
           paintCourt,
           paintBlock,
         );
@@ -2414,7 +2425,7 @@ export function planSettlement(
         a.point.x - b.point.x ||
         a.point.y - b.point.y,
     );
-  const owners: string[] = [];
+  const owners: string[] = [...plan.work.keys()];
   let playerTrade = pack.role;
   const playerKit = pack.setting?.characterRevision
     ? characterLivelihood(pack.setting, seed, "player", pack.role, undefined, characterSex(seed, "player"))
@@ -2510,6 +2521,10 @@ export function planSettlement(
         Math.hypot(a.point.x - site.cx, a.point.y - site.cy) -
         Math.hypot(b.point.x - site.cx, b.point.y - site.cy),
     );
+  const residence = (pack.setting?.worksiteRevision ?? 1) >= 2 && site.home &&
+    pack.setting?.environment?.start === "resident" ? central.find(lot =>
+      lot.quarter !== "elite" && lot.use !== "downtown" && lot.use !== "industrial" &&
+      (!!playerShop || lot.quarter !== "market" && lot.use !== "commercial")) : undefined;
   const taken = new Set<(typeof central)[number]>();
   // A venue with a building of its own needs ground that will hold it. Those
   // go first and take the nearest lot big enough; the rest, which are houses
@@ -2520,7 +2535,7 @@ export function planSettlement(
   for (const venue of housed) {
     // Its own building where the ground allows; otherwise the nearest lot and
     // the mark at the door, which is better than the venue not existing.
-    const lot = central.find((candidate) => !taken.has(candidate));
+    const lot = central.find((candidate) => candidate !== residence && !taken.has(candidate));
     if (!lot) continue;
     taken.add(lot);
     lot.venue = venue;
@@ -3233,7 +3248,7 @@ export function planSettlement(
         (!pack.setting?.environment ||
           pack.setting.environment.start === "resident")
           ? "player"
-          : profile.pattern === "farmstead" && i % 3 !== 0
+          : profile.pattern === "farmstead" && i % 3 !== 0 && owners.length > 0
             ? owners.at(-1)!
             : `${id}-person`;
     // Some lots have been given up: one in twenty at the crossroads, one in
@@ -3448,6 +3463,8 @@ export function planSettlement(
       access: lot.venue || shopfront || office ? "public" : "household",
       owner,
       claim: lot.venue ? `venue-${lot.venue.id}` : "landscape",
+      ...(pack.setting?.employmentRevision && !lot.venue && shopfront && livelihood?.id === "printer"
+        ? { institution: "printing" as const } : {}),
       entranceLabel,
     });
     if (urban) {
@@ -4888,7 +4905,10 @@ export function planSettlement(
       const step = { x: painted.x, y: painted.y + 1 };
       const inOther = plan.places.some((o) => o !== place && step.x >= o.x && step.x < o.x + o.w && step.y >= o.y && step.y < o.y + o.h);
       // The entrance is where a visitor stands: the step in front of the door.
-      if (!inOther && !plan.solid.has(cellKey(step.x, step.y))) (place.door = painted), (place.entrance = step);
+      if (!inOther && !plan.solid.has(cellKey(step.x, step.y)) &&
+        route(place.entrance, step, (p) => plan.solid.has(cellKey(p.x, p.y)) ? Infinity : 1,
+          { maxNodes: 1024, bounds: { x: place.x - 12, y: place.y - 12, w: place.w + 24, h: place.h + 24 } }).status === "found")
+        (place.door = painted), (place.entrance = step);
     }
     const level = plan.groundLevels?.get(cellKey(place.x, place.y));
     if (level !== undefined) gradeGround({ ...place.entrance, w: 1, h: 1 }, level);
@@ -4896,6 +4916,8 @@ export function planSettlement(
     plan.solid.delete(cellKey(door.pos.x, door.pos.y));
     plan.objects.push(door);
   }
+  const access = new Set(plan.plots.map((p) => cellKey(p.access.x, p.access.y)));
+  clearDoorsteps(plan.objects, plan.places, (x, y) => access.has(cellKey(x, y)) || plan.solid.has(cellKey(x, y)) || sample(x, y).water < 4);
   for (const plot of plan.plots) {
     plot.baselineYear ??= pack.setting?.year ?? 0;
     plot.state ??= "used";

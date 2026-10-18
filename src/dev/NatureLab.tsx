@@ -1,7 +1,7 @@
-import nature from "../../public/nature/atlas.json" with { type: "json" };
+import nature from "../render/generated/nature-atlas.json" with { type: "json" };
 import { useEffect, useState } from "react";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
-import ecology from "../../public/ecology/atlas.json" with { type: "json" };
+import ecology from "../render/generated/ecology-atlas.json" with { type: "json" };
 import { Sprite } from "../ui/components";
 import "./nature-lab.css";
 

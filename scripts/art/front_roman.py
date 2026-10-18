@@ -362,7 +362,7 @@ class DomusFront(EaveHouse):
         for wx in ((xs[1] + 6, xs[2] + tw - 18) if len(xs) == 4 else (xs[0] + tw + 6,)):
             op.FRAMES['stone'][0](c, wx, top + 9, 10, 10, None)
             op.grille(c, wx, top + 9, 10, 10)
-        if len(xs) == 4:
+        if len(xs) == 4 and s['notice']:
             dipinto(c, xs[0] + 2, top + 4, s['notice'])
 
 
@@ -415,16 +415,16 @@ class AtriumRange(EaveHouse):
             op.reveal(c, ax, base - 38, 16, 38, 2)
 
 
-def domus(spec=None, info=None):
+def domus(spec=None, info=None, front=DomusFront, rear=AtriumRange):
     """An atrium house under one hipped roof that frames the atrium like a
     mitred picture frame; through the opening, the far range's face with the
     tablinum, and the atrium floor with the impluvium."""
-    s = dict(floor=40, back=26, **(spec or {}))
+    s = {"floor": 40, "back": 26, **(spec or {})}
     s.setdefault('wing', round(s.get('W', 304) * 0.19))
-    F = DomusFront(s)
+    F = front(s)
     fim = F.build()
     wing = s['wing']
-    B = AtriumRange(dict(W=F.W - 2 * wing))
+    B = rear(dict(W=F.W - 2 * wing))
     bim = B.build()
     face = B.base - B.eave
     hole = face + s['floor']
@@ -444,8 +444,8 @@ def domus(spec=None, info=None):
     crop = bim.crop((B.x0, B.eave, B.x0 + B.W, B.base))
     c.im.alpha_composite(crop, (ox0, oy0))
     c.px = c.im.load()
-    atrium_floor(c, ox0, ox1, oy0 + face, oy1)
-    hipped_frame(c, x0, x1, y0, y1, ox0, ox1, oy0, oy1, F.tone)
+    s.get("court_fn", atrium_floor)(c, ox0, ox1, oy0 + face, oy1)
+    hipped_frame(c, x0, x1, y0, y1, ox0, ox1, oy0, oy1, F.tone, matte=s.get("matte",False))
     if info is not None:
         info.update(x0=F.x0, W=F.W, base=F.base + off, door_x=F.door_x, door_h=F.door_h)
     finish(c)
@@ -454,7 +454,7 @@ def domus(spec=None, info=None):
     return c.im
 
 
-def _tile(x, y, r, col=11, course=10, shift=0, across=(5, 3, 2, 1, 1, 2, 3, 4)):
+def _tile(x, y, r, col=11, course=10, shift=0, across=(5, 3, 2, 1, 1, 2, 3, 4), matte=False):
     """One pixel of Roman tile in a plane whose courses run across x and lap
     down y: each imbrex a lit barrel, the tegula channel dark, the lip of
     each course lit over its shadow, the clay varying tile to tile."""
@@ -476,13 +476,13 @@ def _tile(x, y, r, col=11, course=10, shift=0, across=(5, 3, 2, 1, 1, 2, 3, 4)):
         q = 5 if 1 <= lx <= 6 else 6
     elif ly == course - 1:
         q = 6
-    return rr[min(7, q)]
+    return rr[max(2 if matte else 0,min(7,q))]
 
 
 SIDEWAYS = (3, 1, 1, 2, 3, 4, 5)
 
 
-def hipped_frame(c, x0, x1, y0, y1, ox0, ox1, oy0, oy1, r):
+def hipped_frame(c, x0, x1, y0, y1, ox0, ox1, oy0, oy1, r, matte=False):
     """A hipped roof round an open court, mitred like a picture frame: four
     planes meeting along hips that run from each outer corner to the court's
     corner. Each plane's tiles run down its own slope: toward us on the
@@ -502,15 +502,15 @@ def hipped_frame(c, x0, x1, y0, y1, ox0, ox1, oy0, oy1, r):
             plane = order[0]
             shift = {'B': 0, 'T': 1, 'L': -1, 'R': 2}[plane]
             if plane == 'B':
-                col = _tile(x, y, r, shift=shift)
+                col = _tile(x, y, r, shift=shift,matte=matte)
             elif plane == 'T':
-                col = _tile(x, -y, r, shift=shift)
+                col = _tile(x, -y, r, shift=shift,matte=matte)
             elif plane == 'L':
                 # tiles run sideways down to the left eave, each barrel lit
                 # along its upper edge
-                col = _tile(y, -x, r, col=10, course=16, shift=shift, across=SIDEWAYS)
+                col = _tile(y, -x, r, col=10, course=16, shift=shift, across=SIDEWAYS,matte=matte)
             else:
-                col = _tile(y, x, r, col=10, course=16, shift=shift, across=SIDEWAYS)
+                col = _tile(y, x, r, col=10, course=16, shift=shift, across=SIDEWAYS,matte=matte)
             if d[order[1]] - d[plane] < 0.045 and d[plane] < 0.97:
                 col = cap[1] if plane in 'LB' else cap[4]
             c.p(x, y, col)

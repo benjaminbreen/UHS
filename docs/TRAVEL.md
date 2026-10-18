@@ -123,4 +123,11 @@ The permanent network above is superseded. A playable map is now one 384-tile sq
 
 Squares are about 21 km across, so walking a region takes many maps. Long distances are covered by journeys instead: choosing a point on the Earth map prices the route with the H3 router (`journeyPlan`, 25 km a day overland, 100 km a day by sea) and the days pass at once. The router's H3 cells now serve only that pricing.
 
+Crossing keeps the traveller's personal seed, cultural context, concern and home
+household. Local residents and scenery use the destination's context; the
+traveller's outlook, religious practice and family descriptions keep their own.
+The optional identity record is captured on the first crossing; existing world
+generation inputs stay unchanged. Older recordings of crossings may diverge
+when checked against this corrected travel behaviour.
+
 A square is named for a town standing in it that year (or within 10 km of its centre), else from a prebuilt table (`npm run prepare:tile-names`, output in `generated/tile-names/`, one file per 32-row band loaded near the traveller). The table takes the most specific physical feature in the square: a river's mouth, confluence or headwaters, a lake shore, a peak's slopes, then ranges, bays, capes, marshes and streams. Natural Earth supplies large features and river geometry; GeoNames supplies small ones, reading only physical feature classes, so no populated place, country or province can name a map. Adjacent squares are kept apart by taking the next-best feature, and a square with nothing of its own is named from a strong feature beside it ("Hills south of Lake Taal"). The older fallbacks (atlas river, region with a position, distance from a town) remain for any square the table misses. Names are modern; dated historical names are a later layer.

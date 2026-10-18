@@ -1,4 +1,6 @@
 import { expect, it } from "vitest";
+import { treeVariant, crateFrame } from "../src/render/season-art";
+import nature from "../src/render/generated/nature-atlas.json" with { type: "json" };
 import {
   vegetationPattern,
   vegetationTree,
@@ -10,6 +12,20 @@ import type { WorldSetting } from "../src/content/geography/types";
 import type { Ecology } from "../src/content/ecology/profiles";
 import type { Habitat } from "../src/world/v3/habitats";
 const base = settingFor(places.find((p) => p.id === "konya")!);
+it("draws both approved crate forms from the nature atlas", () => {
+  for (const roll of [0.1,0.9]) expect(nature.frames).toHaveProperty(crateFrame(roll));
+  expect(crateFrame(0.1)).not.toBe(crateFrame(0.9));
+});
+it("uses both flowering broom drawings evenly", () => {
+  const counts = new Map<string, number>();
+  for (let i = 0; i < 100; i++) {
+    const frame = treeVariant("nature-shrub-broom", i / 100, f => f in nature.frames);
+    expect(nature.frames).toHaveProperty(frame);
+    counts.set(frame, (counts.get(frame) ?? 0) + 1);
+  }
+  expect(counts.get("nature-shrub-broom")).toBe(50);
+  expect(counts.get("nature-shrub-broom-2")).toBe(50);
+});
 const setting = (ecology: Ecology, lon = 30, lat = 40): WorldSetting => ({
   ...base,
   // Otherwise the atlas environment at Konya wins over the ecology under test.

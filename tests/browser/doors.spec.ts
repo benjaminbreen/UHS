@@ -1,12 +1,15 @@
 import { test, expect } from "@playwright/test";
+import { captureErrors } from "../../scripts/capture/lib";
 
-test.setTimeout(180000);
-
-const openCount = (page: import("@playwright/test").Page) =>
-  page
-    .locator(".game-container canvas")
-    .getAttribute("data-doors")
-    .then((v) => Number((v ?? "0/0").split("/")[0]));
+test("review captures fail on uncaught browser errors", async ({ page }) => {
+  const assertHealthy = captureErrors(page);
+  assertHealthy();
+  await Promise.all([
+    page.waitForEvent("pageerror"),
+    page.evaluate(() => { setTimeout(() => { throw Error("capture regression"); }, 0); }),
+  ]);
+  expect(assertHealthy).toThrow("capture regression");
+});
 
 /** The approach cell for a door, the way src/core/doors.ts computes it. */
 const APPROACH = `(place, d) => {
@@ -22,10 +25,8 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
-  // A fixed opening: a random start can land somewhere with no buildings.
-  await page.getByRole("button", { name: "More starts", exact: true }).click();
-  await page.getByRole("button", { name: /Korean farmer/ }).click();
+  await page.goto("/?start=Farmer%20in%20Seoul%201750&seed=doors-regression");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   const canvas = page.locator(".game-container canvas");
   await expect(canvas).toHaveAttribute("data-ready", "true", {
@@ -34,10 +35,8 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
   await expect
     .poll(() => canvas.getAttribute("data-doors"), { timeout: 20_000 })
     .toMatch(/\/[1-9]/);
-  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 3000 }).catch(() => {});
-  // Shops and a minority of houses stand open from the start.
-  const standing = await openCount(page);
-
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 30000 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   // The player's own household: its door must answer them.
   const door = await page.evaluate(() => {
     const r = (window as any).__uhs,
@@ -80,19 +79,18 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
   expect(
     await page.evaluate(() => (window as any).__uhs.verbs().primary.label),
   ).toMatch(/Open the door/);
-  await page.screenshot({ path: "artifacts/doors/shut.png" });
-
   await page.locator(".game-container").focus();
   await page.keyboard.press("KeyF");
-  await expect.poll(() => openCount(page)).toBeGreaterThan(standing);
+  await expect.poll(() => page.evaluate((place) => {
+    const view = (window as any).uhsGame.scene.getScene("world").doors.get(place);
+    return { open: (window as any).__uhs.engine.doorOf(place)?.open, openness: view?.openness };
+  }, door.place)).toEqual({ open: true, openness: 1 });
   expect(
     await page.evaluate(
       (d) => (window as any).__uhs.engine.blocked(d.x, d.y, "outside"),
       door,
     ),
   ).toBe(false);
-  await page.screenshot({ path: "artifacts/doors/open.png" });
-
   // And the open door is now the way in.
   expect(
     await page.evaluate(() => (window as any).__uhs.verbs().primary.label),
@@ -103,9 +101,8 @@ test("a door is solid until it is opened, and the leaf follows it", async ({
 test("knocking runs, and an open door is walked through", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
-  await page.getByRole("button", { name: "More starts", exact: true }).click();
-  await page.getByRole("button", { name: /Korean farmer/ }).click();
+  await page.goto("/?start=Farmer%20in%20Seoul%201750&seed=doors-regression");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   const canvas = page.locator(".game-container canvas");
   await expect(canvas).toHaveAttribute("data-ready", "true", {
@@ -113,7 +110,8 @@ test("knocking runs, and an open door is walked through", async ({ page }) => {
   });
 
   // Knocking has to survive the command schema, not just the engine.
-  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 3000 }).catch(() => {});
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 30000 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   const knocked = await page.evaluate((APPROACH) => {
     const r = (window as any).__uhs,
       e = r.engine;
@@ -153,16 +151,39 @@ test("knocking runs, and an open door is walked through", async ({ page }) => {
     e.state.player.pos = { ...at, space: "outside" };
     r.command({ type: "move", dx: d.pos.x - at.x, dy: d.pos.y - at.y });
     const space = e.state.player.pos.space;
-    // And back out through the exit every interior is built with.
-    const exit = e.state.objects.find(
-      (o: any) => o.kind === "exit" && o.pos.space === space,
-    );
-    const p = e.state.player.pos;
-    if (exit)
-      r.command({ type: "move", dx: exit.pos.x - p.x, dy: exit.pos.y - p.y });
-    return { space, place: place.id, back: e.state.player.pos.space };
+    return { space, place: place.id };
   }, APPROACH);
   expect(inside.space).toBe(inside.place);
-  expect(inside.back).toBe("outside");
+  await expect.poll(() => page.evaluate(() => {
+    const scene = (window as any).uhsGame.scene.getScene("world");
+    return scene.roomView?.space === (window as any).__uhs.engine.state.player.pos.space && !scene.fadingOut;
+  })).toBe(true);
+  const back = await page.evaluate(() => {
+    const r = (window as any).__uhs, e = r.engine;
+    const scene = (window as any).uhsGame.scene.getScene("world");
+    const camera = scene.cameras.main;
+    const bounds = camera.getBounds();
+    // Movement redraws must keep the room's centered bounds between frames.
+    const p = e.state.player.pos;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, -1], [0, 1]]) {
+      if (e.blocked(p.x + dx, p.y + dy, p.space)) continue;
+      r.command({ type: "move", dx, dy });
+      scene.draw();
+      const current = camera.getBounds();
+      if (!camera.useBounds || current.x !== bounds.x || current.y !== bounds.y || current.width !== bounds.width || current.height !== bounds.height)
+        throw Error("Interior movement reset the centered camera bounds");
+      r.command({ type: "move", dx: -dx, dy: -dy });
+      break;
+    }
+    // And back out through the exit every interior is built with.
+    const exit = e.state.objects.find(
+      (o: any) => o.kind === "exit" && o.pos.space === e.state.player.pos.space,
+    );
+    const at = e.state.player.pos;
+    if (exit)
+      r.command({ type: "move", dx: exit.pos.x - at.x, dy: exit.pos.y - at.y });
+    return e.state.player.pos.space;
+  });
+  expect(back).toBe("outside");
   expect(errors).toEqual([]);
 });

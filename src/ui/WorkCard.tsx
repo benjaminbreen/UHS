@@ -57,7 +57,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
   const target = garden ? garden.pos : station && station.pos.space !== "outside" ? station.pos : plan.door;
   const place = garden ? "your garden" : plan.where;
   const task = finished ? "Done for today" : garden ? garden.task : plan.steps[now].task;
-  const hours = finished || garden ? undefined : plan.hours[now];
+  const hours = finished || garden || plan.steps[now].scene === "hunt" ? undefined : plan.hours[now];
   const late = hours !== undefined && plan.deadline !== undefined && engine.state.clock < plan.deadline &&
     engine.state.clock + hours * 3600 > plan.deadline;
   const coarse = matchMedia("(pointer: coarse)").matches;
@@ -71,7 +71,12 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
     see("go");
     runtime.setOff({ kind: "go", to: target, label: place ?? task });
   };
-  const quick = finished || (plan.waiting && carded) ? undefined
+  const hunting = plan.activity === "Looking for game" && !finished;
+  const quick = hunting && !plan.waiting ? (
+    <button className="primary" onClick={() => runtime.autopilot ? runtime.stop() : runtime.setOff({ kind: "workday" })}>
+      {runtime.autopilot ? "Stop" : "Hunt"}
+    </button>
+  ) : finished || (plan.waiting && carded) ? undefined
     : plan.waiting ? (
       <button className="primary" onClick={() => { engine.reofferCard(); runtime.emit(false); }} aria-label="Answer" title="Answer">
         <MessageCircle size={14} />

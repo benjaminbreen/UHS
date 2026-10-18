@@ -1,4 +1,7 @@
-import type { Complete, Message } from "./brain";
+import { z } from "zod";
+import { decisionSchema, type Complete, type Message } from "./loop";
+
+const decisionJson = z.toJSONSchema(decisionSchema);
 
 /**
  * Two shapes cover what this needs: Anthropic's Messages API, and anything
@@ -8,6 +11,8 @@ export function anthropic(options: {
   apiKey: string;
   model?: string;
   maxTokens?: number;
+  temperature?: number;
+  topP?: number;
   fetch?: typeof globalThis.fetch;
 }): Complete {
   const send = options.fetch ?? globalThis.fetch;
@@ -20,8 +25,10 @@ export function anthropic(options: {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: options.model ?? "claude-sonnet-5",
+        model: options.model ?? "claude-sonnet-5-5",
         max_tokens: options.maxTokens ?? 1024,
+        ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+        ...(options.topP !== undefined ? { top_p: options.topP } : {}),
         // The world and the rules never change; let the provider cache them.
         system: [
           { type: "text", text: system, cache_control: { type: "ephemeral" } },
@@ -50,6 +57,10 @@ export function openaiCompatible(options: {
   apiKey?: string;
   model: string;
   maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+  seed?: number;
+  structured?: boolean;
   fetch?: typeof globalThis.fetch;
 }): Complete {
   const send = options.fetch ?? globalThis.fetch;
@@ -67,6 +78,13 @@ export function openaiCompatible(options: {
         body: JSON.stringify({
           model: options.model,
           max_tokens: options.maxTokens ?? 1024,
+          ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+          ...(options.topP !== undefined ? { top_p: options.topP } : {}),
+          ...(options.seed !== undefined ? { seed: options.seed } : {}),
+          ...(options.structured ? { response_format: { type: "json_schema", json_schema: {
+            name: "agent_reply", strict: false,
+            schema: { anyOf: [decisionJson, { type: "object", properties: { diary: { type: "string" } }, required: ["diary"], additionalProperties: false }] },
+          } } } : {}),
           messages: [{ role: "system", content: system }, ...messages],
         }),
       },

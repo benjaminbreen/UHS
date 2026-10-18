@@ -1,0 +1,800 @@
+{
+  "worksite-roman-mill": {
+    "style": "roman-mill",
+    "label": "Roman grain mill and bakery",
+    "footprint": [
+      12,
+      7
+    ],
+    "description": "Roman grain mill and bakery. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "ochre-plaster",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-roman-store": {
+    "style": "roman-store",
+    "label": "Roman grain store",
+    "footprint": [
+      8,
+      5
+    ],
+    "description": "Roman grain store. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-european-mill": {
+    "style": "european-mill",
+    "label": "Watermill \u00b7 timber and stone",
+    "footprint": [
+      14,
+      7
+    ],
+    "description": "Watermill \u00b7 timber and stone. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "half-timber",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-timber-store": {
+    "style": "timber-store",
+    "label": "Timber grain and tool store",
+    "footprint": [
+      7,
+      4
+    ],
+    "description": "Timber grain and tool store. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-eastasian-mill": {
+    "style": "east-asian-mill",
+    "label": "Watermill \u00b7 timber and tile",
+    "footprint": [
+      14,
+      7
+    ],
+    "description": "Watermill \u00b7 timber and tile. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-eastasian-store": {
+    "style": "east-asian-store",
+    "label": "Tiled grain and medicine store",
+    "footprint": [
+      8,
+      5
+    ],
+    "description": "Tiled grain and medicine store. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-west-asian-mill": {
+    "style": "west-asian-mill",
+    "label": "Watermill \u00b7 masonry",
+    "footprint": [
+      14,
+      6
+    ],
+    "description": "Watermill \u00b7 masonry. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-masonry-store": {
+    "style": "masonry-store",
+    "label": "Masonry service house",
+    "footprint": [
+      8,
+      5
+    ],
+    "description": "Masonry service house. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-stone-adit": {
+    "style": "stone-adit",
+    "label": "Mine adit \u00b7 stone and timber",
+    "footprint": [
+      11,
+      6
+    ],
+    "description": "Mine adit \u00b7 stone and timber. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-andean-adit": {
+    "style": "andean-adit",
+    "label": "Mine adit \u00b7 adobe",
+    "footprint": [
+      11,
+      6
+    ],
+    "description": "Mine adit \u00b7 adobe. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-adobe-store": {
+    "style": "adobe-store",
+    "label": "Adobe service house",
+    "footprint": [
+      8,
+      5
+    ],
+    "description": "Adobe service house. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "ochre-plaster",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-engine-mine": {
+    "style": "engine-mine",
+    "label": "Cornish mine engine house",
+    "footprint": [
+      7,
+      6
+    ],
+    "description": "Cornish mine engine house. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "slate"
+  },
+  "worksite-boiler-house": {
+    "style": "boiler-house",
+    "label": "Boiler house",
+    "footprint": [
+      9,
+      5
+    ],
+    "description": "Boiler house. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "slate"
+  },
+  "worksite-infirmary": {
+    "style": "infirmary",
+    "label": "Charitable infirmary",
+    "footprint": [
+      16,
+      7
+    ],
+    "description": "Charitable infirmary. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-bimaristan": {
+    "style": "bimaristan",
+    "label": "Courtyard bimaristan",
+    "footprint": [
+      16,
+      13
+    ],
+    "description": "Courtyard bimaristan. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "lime-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-colonial-hospital": {
+    "style": "colonial-hospital",
+    "label": "Colonial patio hospital",
+    "footprint": [
+      16,
+      13
+    ],
+    "description": "Colonial patio hospital. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-japanese-infirmary": {
+    "style": "japanese-infirmary",
+    "label": "Edo infirmary compound",
+    "footprint": [
+      16,
+      13
+    ],
+    "description": "Edo infirmary compound. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-pavilion-hospital": {
+    "style": "pavilion-hospital",
+    "label": "Ventilated ward pavilion",
+    "footprint": [
+      18,
+      8
+    ],
+    "description": "Ventilated ward pavilion. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "grey-brick",
+    "roof": "gable",
+    "roofMaterial": "slate"
+  },
+  "worksite-brick-store": {
+    "style": "brick-store",
+    "label": "Hospital service house",
+    "footprint": [
+      9,
+      5
+    ],
+    "description": "Hospital service house. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "grey-brick",
+    "roof": "gable",
+    "roofMaterial": "slate"
+  },
+  "worksite-windmill": {
+    "style": "windmill",
+    "label": "Post mill with cloth sails",
+    "footprint": [
+      9,
+      7
+    ],
+    "description": "Post mill with cloth sails. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-sri-lankan-infirmary": {
+    "style": "sri-lankan-infirmary",
+    "label": "Stone courtyard infirmary",
+    "footprint": [
+      16,
+      13
+    ],
+    "description": "Stone courtyard infirmary. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-modern-ward": {
+    "style": "modern-ward",
+    "label": "Modern ward block",
+    "footprint": [
+      18,
+      7
+    ],
+    "description": "Modern ward block. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "concrete-frame",
+    "roof": "flat",
+    "roofMaterial": "tar"
+  },
+  "worksite-pottery-kiln": {
+    "style": "pottery-kiln",
+    "label": "Pottery workshop and chamber kiln",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Pottery workshop and chamber kiln. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "stone-slate"
+  },
+  "worksite-brick-clamp": {
+    "style": "brick-clamp",
+    "label": "Brick moulding shed and clamp",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Brick moulding shed and clamp. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-lime-kiln": {
+    "style": "lime-kiln",
+    "label": "Lime-burning kiln and work shed",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Lime-burning kiln and work shed. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "stone-slate"
+  },
+  "worksite-dyehouse": {
+    "style": "dyehouse",
+    "label": "Dyehouse and rinsing vats",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Dyehouse and rinsing vats. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "half-timber",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-japanese-dyehouse": {
+    "style": "japanese-dyehouse",
+    "label": "Timber dyehouse and vats",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Timber dyehouse and vats. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-roman-fullery": {
+    "style": "roman-fullery",
+    "label": "Roman fullery and treading basins",
+    "footprint": [
+      20,
+      18
+    ],
+    "description": "Roman fullery and treading basins. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-fullery": {
+    "style": "fullery",
+    "label": "Fulling shed and treading vats",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Fulling shed and treading vats. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "half-timber",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-tannery": {
+    "style": "tannery",
+    "label": "Tanning shed and soaking pits",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Tanning shed and soaking pits. Reconstructed working compound; historical eligibility is defined by its worksite profile.",
+    "wall": "half-timber",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-japanese-pottery": {
+    "style": "japanese-pottery",
+    "label": "Japanese pottery and chamber kiln",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Japanese pottery and chamber kiln. Inferred small working compound.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-colonial-pottery": {
+    "style": "colonial-pottery",
+    "label": "Colonial pottery and chamber kiln",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Colonial pottery and chamber kiln. Inferred small working compound.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-clinker-boatyard": {
+    "style": "clinker-boatyard",
+    "label": "Boatwright workshop and timber rack",
+    "footprint": [
+      16,
+      8
+    ],
+    "description": "A small timber boatbuilding workshop with an open working bay and covered plank rack.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-clinker-hull-north": {
+    "style": "clinker-hull-north",
+    "label": "Clinker-built boat on timber stocks",
+    "footprint": [
+      5,
+      7
+    ],
+    "description": "Overlapping planks, exposed internal frames and a keel resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 36
+  },
+  "worksite-clinker-hull-east": {
+    "style": "clinker-hull-east",
+    "label": "Clinker-built boat on timber stocks",
+    "footprint": [
+      12,
+      4
+    ],
+    "description": "Overlapping planks, exposed internal frames and a keel resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 36
+  },
+  "worksite-clinker-hull-south": {
+    "style": "clinker-hull-south",
+    "label": "Clinker-built boat on timber stocks",
+    "footprint": [
+      5,
+      7
+    ],
+    "description": "Overlapping planks, exposed internal frames and a keel resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 36
+  },
+  "worksite-clinker-hull-west": {
+    "style": "clinker-hull-west",
+    "label": "Clinker-built boat on timber stocks",
+    "footprint": [
+      12,
+      4
+    ],
+    "description": "Overlapping planks, exposed internal frames and a keel resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 36
+  },
+  "worksite-timber-way-north": {
+    "style": "launching-way-north",
+    "label": "Timber launching way",
+    "footprint": [
+      4,
+      3
+    ],
+    "description": "Timber launching runners and transverse sleepers.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 4
+  },
+  "worksite-timber-way-east": {
+    "style": "launching-way-east",
+    "label": "Timber launching way",
+    "footprint": [
+      4,
+      3
+    ],
+    "description": "Timber launching runners and transverse sleepers.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 4
+  },
+  "worksite-fishing-cottage": {
+    "style": "fishing-cottage",
+    "label": "Fishing household cottage",
+    "footprint": [
+      8,
+      6
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle",
+    "height": 105
+  },
+  "worksite-fishing-gear": {
+    "style": "fishing-gear",
+    "label": "Fishing gear hut",
+    "footprint": [
+      6,
+      5
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle",
+    "height": 105
+  },
+  "worksite-net-frame": {
+    "style": "net-frame",
+    "label": "Net-mending frame",
+    "footprint": [
+      8,
+      4
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 35
+  },
+  "worksite-fish-table": {
+    "style": "fish-table",
+    "label": "Catch-sorting table",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 35
+  },
+  "worksite-fishing-boat-north": {
+    "style": "fishing-boat-north",
+    "label": "Household clinker fishing boat",
+    "footprint": [
+      5,
+      6
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-fishing-boat-east": {
+    "style": "fishing-boat-east",
+    "label": "Household clinker fishing boat",
+    "footprint": [
+      9,
+      3
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-fishing-boat-south": {
+    "style": "fishing-boat-south",
+    "label": "Household clinker fishing boat",
+    "footprint": [
+      5,
+      6
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-fishing-boat-west": {
+    "style": "fishing-boat-west",
+    "label": "Household clinker fishing boat",
+    "footprint": [
+      9,
+      3
+    ],
+    "description": "Reconstructed northern European fishing waterfront component.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "shingle",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-plank-fishing-house": {
+    "style": "plank-fishing-house",
+    "label": "Late Edo timber fishing household",
+    "footprint": [
+      10,
+      6
+    ],
+    "description": "Late Edo timber fishing household. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "weatherboard",
+    "roof": "hipped",
+    "roofMaterial": "thatch",
+    "height": 110
+  },
+  "worksite-plank-fishing-store": {
+    "style": "plank-fishing-store",
+    "label": "Late Edo fishing gear store",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Late Edo fishing gear store. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 110
+  },
+  "worksite-earth-fishing-house": {
+    "style": "earth-fishing-house",
+    "label": "Middle Kingdom mudbrick shore house",
+    "footprint": [
+      9,
+      6
+    ],
+    "description": "Middle Kingdom mudbrick shore house. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "mud-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth",
+    "height": 110
+  },
+  "worksite-reed-gear-shelter": {
+    "style": "reed-gear-shelter",
+    "label": "Reed-mat fishing gear shelter",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Reed-mat fishing gear shelter. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "reed",
+    "height": 110
+  },
+  "worksite-net-rail": {
+    "style": "net-rail",
+    "label": "Net-mending rail and float lines",
+    "footprint": [
+      8,
+      4
+    ],
+    "description": "Net-mending rail and float lines. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 35
+  },
+  "worksite-seine-pegs": {
+    "style": "seine-pegs",
+    "label": "Seine net on low pegs",
+    "footprint": [
+      8,
+      4
+    ],
+    "description": "Seine net on low pegs. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "reed",
+    "height": 35
+  },
+  "worksite-fish-trays": {
+    "style": "fish-trays",
+    "label": "Shallow fish-sorting trays",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Shallow fish-sorting trays. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 35
+  },
+  "worksite-fish-mat": {
+    "style": "fish-mat",
+    "label": "Reed fish-sorting mat",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Reed fish-sorting mat. Reconstructed waterfront component; dated eligibility and evidence belong to the waterfront profile.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "reed",
+    "height": 35
+  },
+  "worksite-plank-skiff-north": {
+    "style": "plank-skiff-north",
+    "label": "Open plank-built fishing boat",
+    "footprint": [
+      5,
+      6
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-plank-skiff-east": {
+    "style": "plank-skiff-east",
+    "label": "Open plank-built fishing boat",
+    "footprint": [
+      9,
+      3
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-plank-skiff-south": {
+    "style": "plank-skiff-south",
+    "label": "Open plank-built fishing boat",
+    "footprint": [
+      5,
+      6
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-plank-skiff-west": {
+    "style": "plank-skiff-west",
+    "label": "Open plank-built fishing boat",
+    "footprint": [
+      9,
+      3
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-reed-skiff-north": {
+    "style": "reed-skiff-north",
+    "label": "Lashed reed skiff",
+    "footprint": [
+      5,
+      6
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "reed",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-reed-skiff-east": {
+    "style": "reed-skiff-east",
+    "label": "Lashed reed skiff",
+    "footprint": [
+      9,
+      3
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "reed",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-reed-skiff-south": {
+    "style": "reed-skiff-south",
+    "label": "Lashed reed skiff",
+    "footprint": [
+      5,
+      6
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "reed",
+    "height": 35,
+    "waterborne": true
+  },
+  "worksite-reed-skiff-west": {
+    "style": "reed-skiff-west",
+    "label": "Lashed reed skiff",
+    "footprint": [
+      9,
+      3
+    ],
+    "description": "Reconstructed shallow-water fishing craft.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "reed",
+    "height": 35,
+    "waterborne": true
+  }
+}

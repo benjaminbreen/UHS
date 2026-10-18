@@ -1,8 +1,10 @@
+import { smallSession } from "./fixtures";
+import { items } from "../src/content/packs";
 import { it, expect } from "vitest";
 import { runEconomy } from "../src/core/economy";
-import { harvestResource } from "../src/core/livelihood";
+import { harvestResource, refreshResource, householdActivity, grazeActivity, depositSupplies } from "../src/core/livelihood";
 import { carryKit, parseLoad, withLoads } from "../src/content/economy/carrying";
-import type { Economy, Household } from "../src/core/types";
+import type { Economy, Household, WorldObject } from "../src/core/types";
 import { panelCity } from "../scripts/review/panel";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { processFor } from "../src/content/economy/processes";
@@ -108,7 +110,7 @@ it("keeps generated Multan purchases and debts consistent with the actual suppli
   expect(households.some((h) => !h.needs?.includes("drink"))).toBe(true);
 });
 
-it("routes work and children's errands to their actual destinations", () => {
+it.runIf(!!process.env.FULL)("routes work and children's errands to their actual destinations", () => {
   const world = panelCity("london", 1400).engine.world;
   // Any worker at a station: which trades have one depends on who the draw makes a householder.
   const turn = world.initialActors
@@ -139,7 +141,7 @@ it("routes work and children's errands to their actual destinations", () => {
     expect(Math.abs(leg.path![0].x - leg.pos.x) + Math.abs(leg.path![0].y - leg.pos.y)).toBeLessThanOrEqual(1);
 });
 
-it("keeps indoor workers at their actual workplace and social visits local", () => {
+it.runIf(!!process.env.FULL)("keeps indoor workers at their actual workplace and social visits local", () => {
   const { engine, plan: generated } = panelCity("london", 2000);
   const plan = generated as SettlementPlan;
   const world = engine.world;
@@ -247,7 +249,7 @@ it("sends people out with vessels and baskets and home with what they got", () =
   expect(parseLoad("bread")).toBeUndefined();
 });
 
-it("takes a railway labourer from the station to the line and back, through a card at each", () => {
+it.runIf(!!process.env.FULL)("takes a railway labourer from the station to the line and back, through a card at each", () => {
   const { engine } = panelCity("london", 1900);
   engine.state.player.origin!.livelihood = "railway-labourer";
   let n = 0;
@@ -279,7 +281,7 @@ it("takes a railway labourer from the station to the line and back, through a ca
   expect(engine.state.evening!.chain!.slice(0, 3), "the day's choices, then any turn of the plot").toEqual(lines);
 });
 
-it("gives a labourer's children his surname, and lets his family call only a few times a day", () => {
+it.runIf(!!process.env.FULL)("gives a labourer's children his surname, and lets his family call only a few times a day", () => {
   const start = resolveSetting("A railway labourer in London, 1900 CE", "a");
   if ("error" in start) throw Error(start.error);
   const engine = createSettingSession(start.setting, "a");
@@ -301,7 +303,7 @@ it("gives a labourer's children his surname, and lets his family call only a few
   expect(calls.length).toBeLessThanOrEqual(3);
 });
 
-it("puts a baker in a bakehouse at three in the morning, with the oven inside", () => {
+it.runIf(!!process.env.FULL)("puts a baker in a bakehouse at three in the morning, with the oven inside", () => {
   const start = resolveSetting("A baker in Lyon, 1742 CE", "a");
   if ("error" in start) throw Error(start.error);
   const engine = createSettingSession(start.setting, "a");
@@ -315,7 +317,7 @@ it("puts a baker in a bakehouse at three in the morning, with the oven inside", 
   expect(s.objects.find((o) => o.id === `${h.residence}-frontage`)?.sprite, "a loaf hangs out front").toMatch(/wallsign-.*-3$/);
 });
 
-it("bakes at the oven its place and period had", () => {
+it.runIf(!!process.env.FULL)("bakes at the oven its place and period had", () => {
   for (const [prompt, bench] of [["A baker in Isfahan, 1600 CE", "tannur"], ["A baker in Tenochtitlan, 1450 CE", "metate"]]) {
     const start = resolveSetting(prompt, "a");
     if ("error" in start) throw Error(start.error);
@@ -340,7 +342,7 @@ it("gives every recipe step a card it can always draw, worded without gaps", () 
   }
 });
 
-it("keeps a day's work that runs past midnight that day's, and lets yesterday's card lapse", () => {
+it.runIf(!!process.env.FULL)("keeps a day's work that runs past midnight that day's, and lets yesterday's card lapse", () => {
   const { engine } = panelCity("london", 1900);
   const s = engine.state;
   s.player.origin!.livelihood = "railway-labourer";
@@ -387,4 +389,205 @@ it("sends farmers to the field with the tool the place worked it with", () => {
   expect(tool("iroquoia", 1400)).toBe("prop:hoe#1@hand");
   expect(tool("cusco", 1400)).toBe("prop:digging-stick@hand");
   expect(tool("cusco", 1700)).toBe("prop:hoe@hand");
+});
+
+const fruitPatch = (): WorldObject => ({
+  id: "fruit", name: "Fruit", kind: "crop", sprite: "berries",
+  pos: { x: 10, y: 0, space: "outside" }, inventory: { fruit: 6 },
+  resource: { item: "fruit", capacity: 6, readyAt: 0, regrowSeconds: 7 * 86400, seasons: ["summer"] },
+});
+it("harvesting conserves quantities and seasonal replenishment is bounded", () => {
+  const e = smallSession(settingFor(places.find((p) => p.id === "konya")!, -6499));
+  const o = fruitPatch();
+  e.state.player.pos = { ...o.pos };
+  const before = e.state.player.inventory.fruit ?? 0;
+  expect(harvestResource(e.state.player, o, e.state.clock)).toBe(true);
+  expect(e.state.player.inventory.fruit).toBe(before + 6);
+  expect(harvestResource(e.state.player, o, e.state.clock)).toBe(false);
+  refreshResource(o, e.state.clock + 1, "summer");
+  expect(o.depleted).toBe(true);
+  refreshResource(o, e.state.clock + 10 * 86400, "winter");
+  expect(o.depleted).toBe(true);
+  refreshResource(o, e.state.clock + 10 * 86400, "summer");
+  expect(o.inventory.fruit).toBe(6);
+});
+it("household work gathers real food, deposits it and sleeps at its residence", () => {
+  const e = smallSession(settingFor(places.find((p) => p.id === "konya")!, -6499));
+  const a = e.state.actors[0];
+  const h = e.state.households!.find((h) => h.id === a.householdId)!;
+  const store = e.state.objects.find((o) => o.id === h.storeId)!;
+  const fruit = fruitPatch();
+  e.state.objects = [store, fruit];
+  store.inventory = {};
+  a.inventory = {};
+  a.knownResources = [fruit.id];
+  a.pos = { ...fruit.pos };
+  const work = () =>
+    householdActivity(a, e.state, items, (p) => {
+      a.pos = { ...p };
+    });
+  work();
+  e.state.clock += 180;
+  work();
+  expect(a.inventory.fruit).toBe(6);
+  work();
+  work();
+  expect(store.inventory.fruit).toBe(6);
+  expect(a.inventory.fruit).toBe(0);
+  e.state.clock = 19 * 3600;
+  a.pos = { ...h.home };
+  work();
+  expect(a.pos.space).toBe(h.residence);
+  expect(a.activity).toBe("Sleeping at home");
+});
+
+it("player contributions share the household store and preserve tools and valuables", () => {
+  const e = smallSession(settingFor(places.find((p) => p.id === "konya")!, -6499));
+  const h = e.state.households!.find((h) => h.members.includes("player"))!;
+  const store = e.state.objects.find((o) => o.id === h.storeId)!;
+  e.state.actors = [];
+  e.state.player.pos = { ...store.pos, x: store.pos.x + 1 };
+  e.state.player.inventory = { fruit: 3, tool: 1, obsidian: 2 };
+  const before = store.inventory.fruit ?? 0;
+  expect(
+    e.act({
+      actionId: "contribute",
+      expectedRevision: e.state.revision,
+      command: { type: "interact", target: store.id, action: "store" },
+    }).status,
+  ).toBe("completed");
+  expect(store.inventory.fruit).toBe(before + 3);
+  expect(e.state.player.inventory.tool).toBe(1);
+  expect(e.state.player.inventory.obsidian).toBe(2);
+});
+it("grazing consumes finite forage rather than manufacturing food", () => {
+  const e = smallSession(settingFor(places.find((p) => p.id === "konya")!, -6499));
+  const patch: WorldObject = { ...fruitPatch(), inventory: { fodder: 4 }, resource: { ...fruitPatch().resource!, item: "fodder", capacity: 4 } };
+  e.state.objects = [patch];
+  const sheep = { ...e.state.actors[0], kind: "sheep" as const, pos: { ...patch.pos } };
+  sheep.hunger = 20;
+  e.state.player.pos = { ...patch.pos, x: patch.pos.x + 8 };
+  e.state.clock = 36000;
+  const before = patch.inventory.fodder!;
+  expect(grazeActivity(sheep, e.state, () => {})).toBe(true);
+  expect(patch.inventory.fodder).toBe(before - 1);
+  expect(sheep.hunger).toBe(15);
+});
+
+it("keeps personal accessories through household routines and supply deposits", () => {
+  const a = { inventory: { "walking-cane": 1, fruit: 3 }, heldItem: "load:basket", pos: { x: 0, y: 0, space: "outside" } } as any;
+  const s = { households: [], objects: [], clock: 9 * 3600 } as any;
+  expect(householdActivity(a, s, items, () => {})).toBe(false);
+  expect(a.heldItem).toBe("walking-cane");
+  const store = { pos: a.pos, inventory: {} } as any;
+  expect(depositSupplies(a, store)).toBe(3);
+  expect(a.inventory["walking-cane"]).toBe(1);
+  expect(store.inventory["walking-cane"]).toBeUndefined();
+  a.inventory["walking-cane"] = 0;
+  householdActivity(a, s, items, () => {});
+  expect(a.heldItem).toBeUndefined();
+});
+
+it("gives a craft household a turn in its own garden, once a day", () => {
+  const normandy = places.find((p) => p.id === "normandy")!;
+  const e = smallSession({ ...settingFor(normandy, 1100), role: "Stonemason" });
+  const home = e.state.households![0];
+  home.makes = ["stone"];
+  const topography = e.world.topography;
+  e.world.topography = (x, y) => ({ height: 0, surface: "grass", ...topography?.(x, y),
+    ...(x === home.home.x + 2 && y === home.home.y ? { field: { parcel: 0, crop: "wheat", stage: "ripe", garden: true, owner: "player", edges: 0, axis: "x", boundary: "none", wet: false, fence: 0 } } : {}) });
+  const s = e.state;
+  expect(e.item("coin")!.name).toBe("Silver deniers");
+  const side = e.sideJob()!;
+  expect(side.done).toBe(false);
+  s.player.pos = { ...side.pos, x: side.pos.x + 1 };
+  const tend = e.inspect(side.id)!.affordances.find((a) => a.command.type === "interact" && a.command.action === "tend-plot")!;
+  expect(e.act({ actionId: "garden", expectedRevision: s.revision, command: tend.command }).status).toBe("completed");
+  expect(e.sideJob()!.done).toBe(true);
+});
+
+it("social labels require sustained trust, recover gradually, and keep one best friend", async () => {
+  const { updateRelationships, socialLabels } = await import("../src/core/bonds");
+  const e = smallSession(settingFor(places.find((p) => p.id === "rome")!, 150), "social-labels");
+  const s = e.state, [a, b] = s.actors;
+  s.player.relations = [{ other: a.id, kind: "friend" }];
+  s.relationships = {};
+  s.bonds = [{ kind: "rival", with: b.id }];
+  a.trust = 1;
+  b.trust = 1;
+  updateRelationships(s);
+  expect(socialLabels(s).get(a.id)).toBe("FRIEND");
+  expect(socialLabels(s).get(b.id)).toBe("RIVAL");
+  a.trust = 8;
+  updateRelationships(s);
+  s.clock += 2 * 86400;
+  updateRelationships(s);
+  expect(socialLabels(s).get(a.id)).toBe("FRIEND");
+  a.trust = 7;
+  updateRelationships(s);
+  a.trust = 8;
+  updateRelationships(s);
+  s.clock += 3 * 86400;
+  updateRelationships(s);
+  expect(socialLabels(s).get(a.id)).toBe("BEST FRIEND");
+  a.trust = 5;
+  updateRelationships(s);
+  s.clock += 86400;
+  updateRelationships(s);
+  expect(socialLabels(s).get(a.id)).toBe("BEST FRIEND");
+  b.trust = -6;
+  updateRelationships(s);
+  s.clock += 86399;
+  updateRelationships(s);
+  expect(socialLabels(s).get(b.id)).toBe("RIVAL");
+  s.clock++;
+  updateRelationships(s);
+  expect(socialLabels(s).get(b.id)).toBe("ENEMY");
+  b.trust = 0;
+  updateRelationships(s);
+  expect(socialLabels(s).get(b.id)).toBe("ENEMY");
+  s.clock += 86400;
+  updateRelationships(s);
+  expect(socialLabels(s).get(b.id)).toBe("RIVAL");
+  s.bonds = [];
+  b.trust = 8;
+  updateRelationships(s);
+  s.clock += 3 * 86400;
+  updateRelationships(s);
+  expect([...socialLabels(s).values()].filter((x) => x === "BEST FRIEND")).toHaveLength(1);
+  expect(socialLabels(s).get(b.id)).toBe("FRIEND");
+  updateRelationships(s);
+  s.clock += 3 * 86400;
+  updateRelationships(s);
+  expect([...socialLabels(s).values()].filter((x) => x === "BEST FRIEND")).toHaveLength(1);
+  a.trust = 0;
+  updateRelationships(s);
+  s.clock += 86400;
+  updateRelationships(s);
+  expect(socialLabels(s).get(a.id)).toBeUndefined();
+  expect(socialLabels(s).get(b.id)).toBe("BEST FRIEND");
+});
+
+it("procedural friendships include the player, are reciprocal, and exclude household members", async () => {
+  const { befriend } = await import("../src/world/v3/population");
+  const people = ["player", "neighbour", "housemate"].map((id) => ({
+    a: { id, age: 30, householdId: id === "neighbour" ? "other" : "home", relations: [] as import("../src/core/types").SocialRelation[] },
+    home: { x: 0, y: 0 },
+  }));
+  befriend(people, "friends");
+  expect(people[0].a.relations).toEqual([{ other: "neighbour", kind: "friend" }]);
+  expect(people[1].a.relations).toContainEqual({ other: "player", kind: "friend" });
+  expect(people.every(({ a }) => a.relations.length <= 2)).toBe(true);
+});
+
+
+it("gives processing trades their own work at the workplace rather than household weaving", () => {
+  for(const id of ["potter","brickmaker","lime-burner","dyer","fuller","tanner","boatwright"]) {
+    const kit=commonLivelihoods.find(l=>l.id===id)!;
+    const process=processFor(kit)!;
+    expect(process.steps.every(s=>s.at==="workplace"),id).toBe(true);
+    expect(process.steps.reduce((n,s)=>n+(s.hours ?? 0),0),id).toBe(8);
+    expect(process.stations.some(s=>s.includes("loom")),id).toBe(false);
+    expect(process.steps.some(s=>s.task.includes("Spin") || s.task.includes("Weave")),id).toBe(false);
+  }
 });

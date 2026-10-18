@@ -10,7 +10,7 @@ import { packForSetting } from "../src/content/geography/pack";
 const createSettingSession = (
   setting: import("../src/content/geography/types").WorldSetting,
   seed = "earth-2",
-) => createSession("atlas", seed, undefined, setting, 2, 2);
+) => createSession("atlas", seed, { setting, generator: 2 });
 const get = (text: string) => {
   const r = resolveSetting(text);
   if ("error" in r) throw Error(r.error);

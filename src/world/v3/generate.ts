@@ -1,3 +1,4 @@
+import { waterfrontFor } from "../../content/settlements/waterfronts";
 import { assignGender } from "../../content/characters/gender";
 import { herdersFor } from "./herders";
 import { isWayfarer, wayfarerDay, type Way, type Passing } from "./wayfarers";
@@ -509,13 +510,21 @@ export function createSettlementWorld(
     const others = [-1, 0, 1]
       .flatMap((dy) => [-1, 0, 1].flatMap((dx) => sitesIn(cx + dx, cy + dy)))
       .filter((o) => o.id !== s.id && o.accepts);
+    const coastal=(pack.setting?.worksiteRevision??1)>=5 && !!waterfrontFor(pack.setting!);
+    // Scale fringe claims so a small neighbouring quarter cannot consume a city's waterfront.
+    const foreign=(x:number,y:number)=>{
+      const own=((x-s.center.x)**2+(y-s.center.y)**2)/s.profile.radius**2;
+      return others.some(o=>o.accepts!(x,y) || coastal &&
+        (((x-o.center.x)**2+(y-o.center.y)**2)/o.profile.radius**2<own ||
+          ((x-o.center.x)**2+(y-o.center.y)**2)/o.profile.radius**2===own && o.id<s.id));
+    };
     const plan = planSettlement(
       s,
       s.pack ?? pack,
       seed,
       land.sample,
       connections,
-      (x, y) => others.some((o) => o.accepts!(x, y)),
+      foreign,
     );
     plans.set(s.id, plan);
     // Cells near this plan were decorated while it was still being drawn.
@@ -568,15 +577,12 @@ export function createSettlementWorld(
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         for (const s of sitesIn(c.x + dx, c.y + dy)) {
-          // A plan's ground reaches 40 cells past its claim (fields, lanes
-          // to the gates); anything further is another town's business, and
-          // building it here is what made a city open its whole hinterland.
-          const reach =
-            s.profile.radius +
-            8 +
-            (s.profile.fields !== "none" || s.profile.outfields
-              ? Math.max(64, territoryReach(s.profile.radius, s.pack ?? pack))
-              : 64);
+          // Coastal homes and work areas can stand beyond the town's fields.
+          const reach = Math.max(
+            s.profile.radius + 8 + (s.profile.fields !== "none" || s.profile.outfields
+              ? Math.max(64, territoryReach(s.profile.radius, s.pack ?? pack)) : 64),
+            (pack.setting?.worksiteRevision??1)>=5 && !!waterfrontFor((s.pack??pack).setting!) ? s.profile.radius+180 : 0,
+          );
           if (
             Math.abs(s.center.x - (bx * 64 + 32)) > reach ||
             Math.abs(s.center.y - (by * 64 + 32)) > reach
@@ -1449,43 +1455,59 @@ export function createSettlementWorld(
   >();
   const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
   const desirePaths = new WeakMap<SettlementPlan, Map<string, number>>();
-  /** Worn strips across the grass from each door to the nearest road, walked
-   * straight because nobody goes round by the street. Values are wear, 1 on
-   * the centre line and fading over about a cell either side. */
+  /** Presentation-only wear follows entrances and outdoor activity, not every wall. */
   function desireLines(p: SettlementPlan) {
     const wear = new Map<string, number>();
     desirePaths.set(p, wear);
-    const road: [number, number][] = [];
-    for (const r of p.roads) roadCells(r, (x, y) => road.push([x, y]));
-    const built = p.built ?? p.solid;
-    for (const place of p.places) {
-      const e = place.entrance;
-      if (!e) continue;
-      let best: [number, number] | undefined,
-        bestD = 100;
-      for (const c of road) {
-        const d = (c[0] - e.x) ** 2 + (c[1] - e.y) ** 2;
-        if (d < bestD) (best = c), (bestD = d);
+    const road = new Map<string, Point>();
+    for (const r of p.roads) roadCells(r, (x, y) => road.set(cellKey(x, y), { x, y }));
+    const planted = (key: string) => {
+      const field = p.fields?.get(key);
+      return (field && !(field.yard && field.crop === "pasture" && !field.garden)) ||
+        ["garden", "park", "verge"].includes(p.pavement?.get(key) ?? "");
+    };
+    const open = (at: Point) => !p.solid.has(cellKey(at.x, at.y)) &&
+      !planted(cellKey(at.x, at.y)) && land.sample(at.x, at.y).water >= 0;
+    const stamp = (at: Point, radius: number, strength: number) => {
+      for (let dy = -Math.ceil(radius); dy <= Math.ceil(radius); dy++)
+        for (let dx = -Math.ceil(radius); dx <= Math.ceil(radius); dx++) {
+          const to = { x: at.x + dx, y: at.y + dy }, key = cellKey(to.x, to.y);
+          if (!open(to)) continue;
+          const value = strength * Math.max(0, 1 - Math.hypot(dx, dy) / radius);
+          if (value > (wear.get(key) ?? 0)) wear.set(key, value);
+        }
+    };
+    const anchors = new Map<string, { at: Point; radius: number; strength: number }>();
+    const anchor = (at: Point, radius: number, strength: number) => {
+      const key = cellKey(at.x, at.y), old = anchors.get(key);
+      if (!old || strength > old.strength) anchors.set(key, { at, radius, strength });
+    };
+    for (const place of p.places) anchor(place.entrance, 2, 1);
+    for (const work of p.work.values()) {
+      anchor(work.work, 2.4, 0.85);
+      anchor(work.water, 2, 0.95);
+      anchor(work.social, 2.4, 0.7);
+    }
+    for (const { at, radius, strength } of anchors.values()) {
+      if (!open(at)) continue;
+      stamp(at, radius, strength);
+      let best: Point | undefined, bestD = 100;
+      for (const point of road.values()) {
+        const d = (point.x - at.x) ** 2 + (point.y - at.y) ** 2;
+        if (d < bestD) { best = point; bestD = d; }
       }
-      if (!best || bestD < 4) continue;
-      const len = Math.sqrt(bestD),
-        steps = Math.ceil(len * 4),
-        bend = (noise(seed, e.x, e.y, 1, "desire") - 0.5) * len * 0.3;
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps,
-          arc = Math.sin(Math.PI * t) * bend;
-        const cx = e.x + 0.5 + (best[0] - e.x) * t - ((best[1] - e.y) / len) * arc,
-          cy = e.y + 0.5 + (best[1] - e.y) * t + ((best[0] - e.x) / len) * arc;
-        for (let dy = -1; dy <= 1; dy++)
-          for (let dx = -1; dx <= 1; dx++) {
-            const x = Math.floor(cx) + dx,
-              y = Math.floor(cy) + dy,
-              key = cellKey(x, y);
-            if (built.has(key)) continue;
-            const w = 0.95 - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) * 0.75;
-            if (w > (wear.get(key) ?? 0)) wear.set(key, w);
-          }
-      }
+      if (!best || bestD < 1) continue;
+      const tier = (point: Point) => p.groundLevels?.get(cellKey(point.x, point.y)) ??
+        Math.round(land.sample(point.x, point.y).elevation / 14);
+      const found = route(at, best, (to, from) =>
+        open(to) && tier(to) === tier(from) ? 1 : Infinity, {
+        maxNodes: 128,
+        diagonal: false,
+        isGoal: (point) => road.has(cellKey(point.x, point.y)),
+        bounds: { x: at.x - 10, y: at.y - 10, w: 21, h: 21 },
+      });
+      if (found.status === "found")
+        for (const point of found.path) stamp(point, 1.4, 0.85);
     }
     return wear;
   }
@@ -1662,35 +1684,6 @@ export function createSettlementWorld(
           if (pond) scape = { kind: "oasis", strength: pond };
           else if (pan) scape = { kind: "pan", strength: pan };
           else if (rocky) scape = { kind: "outcrop", strength: rocky };
-          else {
-            // Trodden ground at the feet of buildings: distance to the nearest
-            // built cell, roughened so the wear is a blotch rather than a frame.
-            let near = 9;
-            for (const p of nearby(x, y)) {
-              const built = p.built ?? p.solid;
-              if (!built.size) continue;
-              for (let dy = -3; dy <= 3 && near > 1; dy++)
-                for (let dx = -3; dx <= 3; dx++) {
-                  if (Math.abs(dx) + Math.abs(dy) >= near) continue;
-                  if (built.has(cellKey(x + dx, y + dy)))
-                    near = Math.abs(dx) + Math.abs(dy);
-                }
-            }
-            // Yards and beds keep their grass; only the cell or two at the wall wears.
-            const yard = !!fieldAt(x, y);
-            let trample =
-              near < 3 && !yard
-                ? 0.75 - near / 4 + (noise(seed, ax, ay, 4, "trample") - 0.5) * 0.7
-                : 0;
-            if (!yard)
-              for (const p of nearby(x, y))
-                trample = Math.max(
-                  trample,
-                  (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0,
-                );
-            if (trample > 0.25)
-              scape = { kind: "trample", strength: Math.min(1, trample) };
-          }
         }
         if (scape) cell.landscape = scape;
       }
@@ -1906,6 +1899,13 @@ export function createSettlementWorld(
         );
       }
     }
+    if (environment && (!cell.field || (cell.field.yard && cell.field.crop === "pasture" && !cell.field.garden)) && cell.surface !== "water" &&
+      !["garden", "park", "verge"].includes(cell.pavement ?? "")) {
+      let wear = 0;
+      for (const p of nearby(x, y))
+        wear = Math.max(wear, (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0);
+      if (wear) cell.groundWear = wear;
+    }
     return cell;
   }
   const slopePlans = new Map<string, Map<string, "n" | "s" | "e" | "w">>();
@@ -1971,6 +1971,17 @@ export function createSettlementWorld(
         }
         chosen.push(p);
         break;
+      }
+    }
+    for(const launch of plan.launches ?? []) {
+      const {x:dx,y:dy,id}=launch.direction;
+      const forward={north:"n",east:"e",south:"s",west:"w"} as const;
+      const backward={north:"s",east:"w",south:"n",west:"e"} as const;
+      for(const p of launch.dry) {
+        const here=rawCell(p.x,p.y),next=rawCell(p.x+dx,p.y+dy);
+        if(here.surface==="water" || next.surface==="water")continue;
+        if(next.height===here.height+1) result.set(cellKey(p.x,p.y),forward[id]);
+        if(next.height===here.height-1) result.set(cellKey(p.x+dx,p.y+dy),backward[id]);
       }
     }
     return result;
@@ -2137,7 +2148,7 @@ export function createSettlementWorld(
         const result = {
           ...c,
           ramp: slope,
-          rampStyle: rampStyleFor(
+          rampStyle: plan.launches?.some(l=>x>=l.lane.x && x<l.lane.x+l.lane.w && y>=l.lane.y && y<l.lane.y+l.lane.h) ? "timber" : rampStyleFor(
             c,
             plan.site.profile.paved ? "paved" : "town",
             x,

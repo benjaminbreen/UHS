@@ -1,0 +1,130 @@
+{
+  "clinker": {
+    "size": [
+      176,
+      136
+    ],
+    "anchor": [
+      88,
+      78
+    ],
+    "seat": {
+      "0": [
+        0,
+        -2.6,
+        0
+      ],
+      "1": [
+        0,
+        -2.6,
+        0
+      ],
+      "2": [
+        0,
+        -2.6,
+        0
+      ],
+      "3": [
+        0,
+        -2.6,
+        0
+      ],
+      "4": [
+        0,
+        -2.6,
+        0
+      ],
+      "5": [
+        0,
+        -2.6,
+        0
+      ],
+      "6": [
+        0,
+        -2.6,
+        0
+      ],
+      "7": [
+        0,
+        -2.6,
+        0
+      ]
+    },
+    "length": 6,
+    "beam": 2,
+    "finishes": [
+      ""
+    ],
+    "moorings": {
+      "worksite-fishing-boat": 4,
+      "worksite-fishing-boat-north": 0,
+      "worksite-fishing-boat-east": 2,
+      "worksite-fishing-boat-west": 6
+    }
+  },
+  "wasen": {
+    "size": [
+      176,
+      136
+    ],
+    "anchor": [
+      88,
+      78
+    ],
+    "seat": {
+      "0": [
+        0,
+        -2.6,
+        0
+      ],
+      "1": [
+        0,
+        -2.6,
+        0
+      ],
+      "2": [
+        0,
+        -2.6,
+        0
+      ],
+      "3": [
+        0,
+        -2.6,
+        0
+      ],
+      "4": [
+        0,
+        -2.6,
+        0
+      ],
+      "5": [
+        0,
+        -2.6,
+        0
+      ],
+      "6": [
+        0,
+        -2.6,
+        0
+      ],
+      "7": [
+        0,
+        -2.6,
+        0
+      ]
+    },
+    "length": 6,
+    "beam": 2,
+    "finishes": [
+      "",
+      "-pale",
+      "-weathered"
+    ],
+    "moorings": {
+      "worksite-plank-skiff": 4,
+      "worksite-plank-skiff-north": 0,
+      "worksite-plank-skiff-east": 2,
+      "worksite-plank-skiff-west": 6
+    }
+  }
+}

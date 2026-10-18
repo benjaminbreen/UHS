@@ -9282,14 +9282,14 @@ button:disabled {
     max-height: calc(100% - var(--bottom-bar-h) - 130px); overflow-y: auto;
     overscroll-behavior: contain; pointer-events: none;
   }
-  .world-status > .toasts, .world-status > .world-notice, .world-status > .work-card {
+  .world-status .toasts, .world-status .world-notice, .world-status > .work-card {
     position: static; transform: none; margin: 0; max-width: 100%; width: auto;
   }
-  .world-status > .toasts { width: 100%; justify-items: start; }
+  .world-status .toasts { width: 100%; justify-items: start; }
   .toasts:empty { display: none; }
   .toasts .toast:not(:first-child) { display: none; }
   .toast { border-radius: 12px; padding: 9px 12px; font-size: 13px; }
-  .world-status > .world-notice { pointer-events: auto; font-size: 13px; padding: 8px 12px; animation: none; }
+  .world-status .world-notice { pointer-events: auto; font-size: 13px; padding: 8px 12px; animation: none; }
   .world-notice button { min-height: 32px; }
   .world-status > .work-card { pointer-events: auto; flex-shrink: 0; }
   .work-card-head { min-height: 44px; }
@@ -9432,3 +9432,685 @@ button:disabled {
 .shop[data-barter] .shop-price { grid-column: 2; text-align: left; font-size: 13px; }
 .shop[data-barter] .shop-step { grid-column: 3; grid-row: 1 / span 2; }
 @media (max-width: 640px) { .shop-columns { grid-template-columns: 1fr; } }
+
+.survival-toggle { color: var(--cream); background: none; border: 0; padding: 0 3px; cursor: pointer; font: inherit; font-size: 12px; }
+.survival-details { position: absolute; top: calc(100% + 8px); left: 0; width: min(340px, calc(100vw - 40px)); max-height: 60vh; overflow: auto; padding: 12px; border: 1px solid var(--line-soft); border-radius: 6px; background: var(--bg); color: var(--cream); font-size: 13px; line-height: 1.5; box-shadow: 0 6px 18px #0008; }
+.survival-details p { margin: 0 0 8px; }
+.survival-details p:last-child { margin-bottom: 0; }
+@media (max-width: 600px) { .vitals { gap: 2px; padding: 6px 8px; } .survival-toggle { font-size: 10px; } }
+
+.vitals:has(.survival-details) { z-index: 6; }
+
+.care-option { margin: 8px 0; }
+.care-option button { width: 100%; text-align: left; white-space: normal; }
+.care-option small { display: block; opacity: .75; }
+
+/* Header, vitals and prompts: one motion vocabulary. Fast for hover, medium
+   for state, an overshoot only for things that arrive. */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-back: cubic-bezier(0.34, 1.5, 0.64, 1);
+  --t-fast: 120ms;
+  --t-med: 220ms;
+  --t-slow: 380ms;
+  --warn: #e6b45e;
+  --alarm: #e8665a;
+}
+
+.desktop-topbar { height: 44px; gap: 0; }
+.desktop-topbar > .brand,
+.desktop-topbar > .header-actions { border: 0; background: none; box-shadow: none; }
+.desktop-topbar > .brand { padding-inline: 12px; }
+.desktop-topbar .brand > img { height: clamp(16px, 1.35vw, 21px); opacity: 0.9; transition: opacity var(--t-med); }
+.desktop-topbar .brand:hover > img { opacity: 1; }
+
+.desktop-topbar > .world-selector {
+  height: 34px;
+  min-width: 0;
+  max-width: calc((100% - var(--sidebar-w)) * 0.5);
+  padding: 0 12px 0 16px;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  font-size: 17px;
+  transition: background-color var(--t-fast), border-color var(--t-med), transform var(--t-fast) var(--ease-out);
+}
+.desktop-topbar > .world-selector:hover {
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  border-color: var(--line-soft);
+}
+.desktop-topbar > .world-selector:active { transform: translate(-50%, -50%) scale(0.98); }
+.desktop-topbar .selector-flourish { display: none; }
+.desktop-topbar .world-selector small { color: var(--gold); }
+.desktop-topbar .world-selector small::before { content: "·"; margin: 0 9px; color: var(--line); }
+.desktop-topbar .world-selector svg {
+  position: static;
+  opacity: 0.45;
+  transition: opacity var(--t-fast), transform var(--t-med) var(--ease-back);
+}
+.desktop-topbar .world-selector:hover svg { opacity: 1; transform: rotate(-12deg); }
+
+.desktop-topbar .header-actions { justify-content: flex-end; padding-inline: 2px; gap: 2px; }
+.desktop-topbar .header-actions > :is(button, a) {
+  height: 34px;
+  min-height: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  box-shadow: none;
+  transition: background-color var(--t-fast), color var(--t-fast), transform var(--t-fast) var(--ease-out);
+}
+.desktop-topbar .header-actions > :is(button, a):hover { background: #ffffff0d; }
+.desktop-topbar .header-actions > :is(button, a):active { transform: scale(0.94); }
+.desktop-topbar .header-actions > .icon-button { width: 34px; }
+.desktop-topbar .header-actions svg { transition: transform var(--t-med) var(--ease-back), color var(--t-fast); }
+.desktop-topbar .header-actions > .icon-button:hover svg { transform: translateY(-1px); color: var(--gold-hi); }
+.header-divider { width: 1px; height: 18px; margin: 0 6px; background: var(--line-soft); }
+.desktop-topbar .new-world { padding: 0 10px; font-size: 15px; color: color-mix(in srgb, var(--cream) 80%, transparent); }
+.desktop-topbar .new-world:hover { color: var(--cream); }
+.desktop-topbar .new-world svg { display: none; }
+.desktop-topbar .donate { margin-left: 0; padding: 0 12px 0 10px; font-size: 15px; color: color-mix(in srgb, var(--cream) 80%, transparent); }
+.desktop-topbar .donate:hover { color: var(--cream); background: color-mix(in srgb, var(--rose) 10%, transparent); }
+.desktop-topbar .donate:hover svg { animation: heart-thump 0.6s var(--ease-out); }
+@keyframes heart-thump {
+  15% { transform: scale(1.25); }
+  30% { transform: scale(0.95); }
+  45% { transform: scale(1.12); }
+}
+
+/* Health and the body's state live with the character they belong to. */
+.sky-card .vitals {
+  position: relative;
+  inset: auto;
+  z-index: 1;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin: 0 16px 12px;
+  padding: 9px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  animation: none;
+}
+.sky-card .vitals[data-flash="hurt"] { animation: vitals-hurt 0.45s steps(6); }
+.sky-card .vitals[data-low] { box-shadow: none; }
+.sky-card .hearts { display: flex; gap: 3px; }
+.sky-card .heart { width: 16px; height: 14px; }
+.sky-card .hearts[data-tip]::after { left: 0; transform: translateY(-3px); }
+.sky-card .hearts[data-tip]:hover::after { transform: none; }
+.sky-card .vitals-injury { font-size: 9px; }
+.sky-card .survival-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -4px -6px -4px auto;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--muted);
+  font: 13px var(--serif);
+  transition: background-color var(--t-fast);
+}
+.pip { display: inline-flex; align-items: center; gap: 4px; transition: color var(--t-med); }
+.pip svg { color: currentColor; opacity: 0.75; }
+.pip[data-warn] { color: var(--warn); }
+.pip[data-alarm] { color: var(--alarm); }
+.pip:is([data-warn], [data-alarm]) svg { opacity: 1; animation: pip-alert 0.7s var(--ease-back); }
+@keyframes pip-alert {
+  0% { transform: scale(0.6); }
+  50% { transform: scale(1.3); }
+}
+.survival-chevron { color: var(--muted) !important; transition: transform var(--t-med) var(--ease-out); }
+.survival-toggle[aria-expanded="true"] .survival-chevron { transform: rotate(180deg); }
+.sky-card .survival-details {
+  position: static;
+  flex-basis: 100%;
+  width: auto;
+  max-height: 260px;
+  margin-top: 9px;
+  padding: 10px 12px;
+  border-color: var(--line-soft);
+  background: color-mix(in srgb, var(--bg-0) 60%, transparent);
+  box-shadow: none;
+  animation: details-in var(--t-med) var(--ease-out);
+}
+@keyframes details-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Prompts sit where the eye already is, just above the command bar, and the
+   static key legend gives way to them. */
+.prop-prompts {
+  left: 50%;
+  bottom: calc(var(--bar-height, 64px) + 14px);
+  transform: translateX(-50%);
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.prop-prompts > button,
+.prop-prompts > span { animation: hud-in var(--t-slow) var(--ease-back) both; }
+.prop-prompts .key-prompt:hover { transform: translateY(-2px); }
+.prop-prompts .key-prompt[data-kind="talk"],
+.prop-prompts .key-prompt[data-kind="work"],
+.prop-prompts .talk-prompt {
+  animation:
+    hud-in var(--t-slow) var(--ease-back) both,
+    prompt-glow 2.4s 0.5s ease-in-out infinite;
+}
+@keyframes hud-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+}
+.world-pane:has(.prop-prompts > *) .keyboard-hint[data-shown] {
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition-duration: var(--t-med);
+}
+.keyboard-hint { transition-timing-function: var(--ease-out); }
+
+@media (max-width: 1100px) {
+  .desktop-topbar .new-world,
+  .desktop-topbar .header-divider { display: none; }
+  .sky-card .pip > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .desktop-topbar *,
+  .sky-card .vitals *,
+  .prop-prompts > * { animation: none !important; transition: none !important; }
+}
+.sky-card .place-heading p { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.sky-card .place-heading p small { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The card clips its overflow, so the hearts' tip opens upward into it. */
+.sky-card .hearts[data-tip]::after { top: auto; bottom: calc(100% + 7px); transform: translateY(3px); }
+.sky-card .hearts[data-tip]:hover::after { transform: none; }
+
+/* Sidebar controls: segmented tracks instead of a row of separate boxes. */
+.side-tabs,
+.map-switcher {
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-0) 70%, transparent);
+  box-shadow: inset 0 1px 2px #0006;
+}
+.side-tabs button,
+.map-switcher button {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  transition: background-color var(--t-med) var(--ease-out), color var(--t-fast), border-color var(--t-med), box-shadow var(--t-med);
+}
+.map-switcher button { padding: 3px 11px; font-size: 14px; }
+.side-tabs button:hover,
+.map-switcher button:hover:not([aria-pressed="true"]) { background: #ffffff08; color: var(--cream); border-color: transparent; }
+.side-tabs button[aria-selected="true"],
+.map-switcher button[aria-pressed="true"] {
+  color: var(--cream);
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 16%, var(--bg-3)), var(--bg-2));
+  box-shadow: inset 0 1px 0 #ffffff12, 0 1px 3px #0007;
+}
+.side-tabs button:active,
+.map-switcher button:active { transform: scale(0.97); }
+.side-tabs + * { animation: details-in var(--t-med) var(--ease-out); }
+.section-heading .explore {
+  padding: 3px 4px 3px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  box-shadow: none;
+}
+.section-heading .explore:hover { background: #ffffff08; }
+.section-heading .explore svg { transition: transform var(--t-med) var(--ease-back); }
+.section-heading .explore:hover svg { transform: translateX(3px); }
+
+/* Focus-panel actions: the sidebar's serif, a quiet row that wakes on hover. */
+.action {
+  font: 15px var(--serif);
+  border-color: var(--line-soft);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg-0) 45%, transparent);
+  transition: border-color var(--t-fast), background-color var(--t-fast), transform var(--t-fast) var(--ease-out);
+}
+.action:hover:not(:disabled) { border-color: var(--line); background: color-mix(in srgb, var(--gold) 7%, var(--bg)); }
+.action:active:not(:disabled) { transform: scale(0.985); }
+.action > svg:last-child { opacity: 0.6; transition: transform var(--t-med) var(--ease-back), opacity var(--t-fast); }
+.action:hover:not(:disabled) > svg:last-child { opacity: 1; transform: translateX(3px); }
+
+/* Frames: a quieter edge and fainter corner marks, so panels recede behind content. */
+.frame,
+.world-pane { border-color: color-mix(in srgb, var(--line) 55%, transparent); }
+.frame::before,
+.world-pane::before { opacity: 0.35; }
+
+/* The time control: the frame's one inset dial, centred on the window. */
+.time-control {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 44vw;
+}
+.time-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 18px 0 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-0) 75%, transparent);
+  box-shadow: inset 0 2px 4px #0008, inset 0 -1px 0 #ffffff0d, 0 1px 0 #ffffff08;
+  color: var(--cream);
+  font-size: 17px;
+  white-space: nowrap;
+  transition: background-color var(--t-fast), border-color var(--t-med), box-shadow var(--t-fast), transform var(--t-fast) var(--ease-out);
+}
+.time-pill strong { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.time-sep { width: 1px; height: 16px; background: var(--line-soft); }
+.time-year { color: var(--gold); font-variant-numeric: tabular-nums lining-nums; }
+.time-pill > svg { opacity: 0.7; transition: transform var(--t-slow) var(--ease-back), opacity var(--t-fast); }
+.time-pill:hover {
+  background: color-mix(in srgb, var(--bg-0) 55%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--line) 70%, transparent);
+}
+.time-pill:hover > svg { opacity: 1; transform: rotate(-40deg); }
+.time-pill:active { transform: translateY(1px); box-shadow: inset 0 3px 7px #000a, inset 0 -1px 0 #ffffff08; }
+/* A ruler under the dial on hover: this is a place on a line you can move along. */
+.time-ruler {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: -7px;
+  height: 4px;
+  background:
+    linear-gradient(var(--gold), var(--gold)) 50% 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--gold) 45%, transparent) 0 1px, transparent 1px 8px) 50% 100% / 100% 2px no-repeat;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition: opacity var(--t-med), transform var(--t-slow) var(--ease-out), background-position var(--t-slow) var(--ease-out);
+  pointer-events: none;
+}
+.time-pill:hover .time-ruler { opacity: 1; transform: none; }
+.time-control:has(.time-step:first-child:hover) .time-ruler { opacity: 1; transform: none; background-position: 50% 0, calc(50% + 8px) 100%; }
+.time-control:has(.time-step:last-child:hover) .time-ruler { opacity: 1; transform: none; background-position: 50% 0, calc(50% - 8px) 100%; }
+.time-step {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  opacity: 0.55;
+  transition: opacity var(--t-fast), background-color var(--t-fast), transform var(--t-fast) var(--ease-out);
+}
+.time-step:hover { opacity: 1; background: #ffffff0d; }
+.time-step:first-child:hover svg { transform: translateX(-2px); }
+.time-step:last-child:hover svg { transform: translateX(2px); }
+.time-step svg { transition: transform var(--t-med) var(--ease-back); }
+.time-step:active { transform: scale(0.9); }
+.time-dialog { transform-origin: 50% 0; animation: time-open 0.5s var(--ease-out) both; }
+@keyframes time-open {
+  from { opacity: 0; transform: translateY(-18px) scale(0.97); }
+}
+
+/* Bottom bar: flat like the header. Ghost verbs, and the command field as
+   the second inset well. */
+.desktop-bottom-bar {
+  grid-template-rows: 40px;
+  padding: 7px 10px;
+  gap: 10px;
+  border-top-color: color-mix(in srgb, var(--line) 22%, transparent);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+}
+.desktop-bottom-bar .quick-actions { gap: 2px; }
+.desktop-bottom-bar .quick-actions button {
+  min-width: 0;
+  height: 40px;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  box-shadow: none;
+  font-size: 16px;
+  transition: background-color var(--t-fast), transform var(--t-fast) var(--ease-out);
+}
+.desktop-bottom-bar .quick-actions button:has(kbd[data-wide]) { padding-right: 12px; }
+.desktop-bottom-bar .quick-actions button:hover { transform: none; background: #ffffff0d; box-shadow: none; }
+.desktop-bottom-bar .quick-actions button:is(:active, [data-down], [aria-expanded="true"]) {
+  transform: scale(0.95);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  box-shadow: none;
+}
+.desktop-bottom-bar .quick-actions button svg { width: 18px; height: 18px; transition: transform var(--t-med) var(--ease-back); }
+.desktop-bottom-bar .quick-actions button:hover svg { transform: translateY(-1px); }
+.desktop-bottom-bar .quick-actions kbd {
+  position: static;
+  transform: none;
+  margin-left: 2px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+  box-shadow: none;
+  transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
+}
+.desktop-bottom-bar .quick-actions button:hover kbd { color: var(--cream); border-color: color-mix(in srgb, var(--cream) 50%, transparent); }
+.desktop-bottom-bar .quick-actions button:is(:active, [data-down]) kbd { color: var(--ink); background: var(--gold); border-color: var(--gold); translate: 0 1px; }
+.desktop-bottom-bar .command-input {
+  height: 40px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--line) 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-0) 75%, transparent);
+  box-shadow: inset 0 2px 4px #0008, inset 0 -1px 0 #ffffff0d;
+  transition: border-color var(--t-med), box-shadow var(--t-med);
+}
+.desktop-bottom-bar .command-input:hover { border-color: color-mix(in srgb, var(--line) 60%, transparent); }
+.desktop-bottom-bar .command-input:focus-within {
+  border-color: var(--gold);
+  box-shadow: inset 0 2px 4px #0008, 0 0 0 3px color-mix(in srgb, var(--gold) 15%, transparent);
+}
+.desktop-bottom-bar .command-input input { font-size: 17px; padding: 0 12px; }
+.desktop-bottom-bar .command-input input:focus-visible { outline: none; }
+.desktop-bottom-bar .command-input button {
+  width: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  transition: background-color var(--t-med), transform var(--t-fast) var(--ease-out);
+}
+.desktop-bottom-bar .command-input button svg { color: var(--muted); transition: color var(--t-med), transform var(--t-med) var(--ease-back); }
+.desktop-bottom-bar .command-input:has(input:not(:placeholder-shown)) button { background: var(--gold); }
+.desktop-bottom-bar .command-input:has(input:not(:placeholder-shown)) button svg { color: var(--ink); }
+.desktop-bottom-bar .command-input:has(input:not(:placeholder-shown)) button:hover { background: var(--gold-hi); }
+.desktop-bottom-bar .command-input:has(input:not(:placeholder-shown)) button:hover svg { transform: translateX(2px); }
+.desktop-bottom-bar .command-input button:active { transform: scale(0.92); }
+.desktop-bottom-bar .hints-toggle {
+  width: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  transition: background-color var(--t-fast), opacity var(--t-med);
+}
+.desktop-bottom-bar .hints-toggle:hover { background: #ffffff0d; }
+@media (max-width: 1100px) {
+  .time-pill { font-size: 15px; padding-inline: 12px 14px; }
+  .desktop-bottom-bar .quick-actions kbd { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .time-control *,
+  .time-dialog,
+  .desktop-bottom-bar * { animation: none !important; transition: none !important; }
+}
+
+/* The sidebar's sky, faintly carried into the header above it. */
+.topbar-sky {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--sidebar-w) * 1.9);
+  border-radius: 8px;
+  overflow: hidden;
+  opacity: 0.6;
+  pointer-events: none;
+  transition: background 1.5s ease;
+  mask-image:
+    linear-gradient(to left, #000 0%, #000c 30%, transparent 100%),
+    linear-gradient(#0008, #000);
+  mask-composite: intersect;
+  -webkit-mask-image: linear-gradient(to left, #000 0%, #000c 30%, transparent 100%);
+}
+.desktop-topbar > .brand,
+.desktop-topbar > .header-actions { position: relative; z-index: 1; }
+.desktop-topbar .header-actions { text-shadow: 0 1px 3px #0009; }
+@media (prefers-reduced-motion: reduce) { .topbar-sky { transition: none; } }
+
+/* The header is the window's top edge, not a floating panel. */
+.desktop-topbar {
+  height: 50px;
+  margin: -9px -9px 0;
+  padding: 0 9px;
+  background: color-mix(in srgb, var(--bg-0) 85%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 22%, transparent);
+}
+.desktop-topbar .topbar-sky {
+  right: 0;
+  width: calc(var(--sidebar-w) * 2.1);
+  border-radius: 0;
+}
+
+/* Narrator: floats just above the command field, over everything in the
+   pane, and the prompts rise to ride above it rather than vanish. */
+.narrator-panel:has(~ .desktop-bottom-bar) {
+  z-index: 6;
+  margin-bottom: 8px;
+  padding: 14px 18px 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow: inset 0 1px 0 #ffffff0d, 0 18px 40px -12px #000c;
+  transform: translateY(10px);
+  clip-path: inset(100% 0 0 0 round 12px);
+  transition:
+    transform var(--t-slow) var(--ease-out),
+    clip-path var(--t-slow) var(--ease-out),
+    opacity var(--t-med),
+    visibility 0s linear var(--t-slow);
+}
+.narrator-panel.open:has(~ .desktop-bottom-bar) {
+  transform: none;
+  clip-path: inset(-40px -40px -40px -40px round 12px);
+  transition:
+    transform var(--t-slow) var(--ease-out),
+    clip-path var(--t-slow) var(--ease-out),
+    opacity var(--t-med),
+    visibility 0s;
+}
+.narrator-panel:has(~ .desktop-bottom-bar) header { margin-bottom: 8px; }
+.narrator-panel:has(~ .desktop-bottom-bar) .narrator-title { font-size: 10px; color: color-mix(in srgb, var(--gold) 80%, transparent); }
+.narrator-panel:has(~ .desktop-bottom-bar) .narrator-tools button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 7px;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.narrator-panel:has(~ .desktop-bottom-bar) .narrator-tools button:hover { background: #ffffff0d; }
+.narrator-panel:has(~ .desktop-bottom-bar) .narrator-tools svg { color: currentColor; }
+.narrator-panel.open .narrator-body > * { animation: details-in var(--t-med) var(--ease-out) both; }
+.narrator-panel.open .narrator-body > :nth-child(2) { animation-delay: 60ms; }
+.world-pane:has(.narrator-panel.open ~ .desktop-bottom-bar) .prop-prompts {
+  bottom: calc(var(--bar-height, 54px) + var(--narrator-h, 160px) + 18px);
+}
+.prop-prompts { transition: bottom var(--t-slow) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .narrator-panel,
+  .narrator-panel *,
+  .prop-prompts { transition: none !important; animation: none !important; }
+}
+.world-pane:has(.narrator-panel.open ~ .desktop-bottom-bar) .prop-prompts[data-aside] {
+  left: 16px;
+  bottom: calc(var(--bar-height, 54px) + 14px);
+  transform: none;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.prop-prompts[data-aside] > * { animation: slide-aside var(--t-slow) var(--ease-out) both; }
+.prop-prompts[data-aside] > :nth-child(2) { animation-delay: 40ms; }
+.prop-prompts[data-aside] > :nth-child(3) { animation-delay: 80ms; }
+@keyframes slide-aside {
+  from { opacity: 0; transform: translateX(56px); }
+}
+
+/* Where each kind of message lives on a desktop, so none lands on another:
+   the work card top left, news and notices stacked in the top middle clear
+   of it and of the zoom strip, skill gains top right under the zoom, and the
+   bottom kept for the action prompts and the narrator. */
+.hud-top { display: contents; }
+.app:has(.desktop-topbar) .hud-top {
+  position: absolute;
+  top: 14px;
+  left: calc(min(360px, 34%) + 28px);
+  right: 150px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.app:has(.desktop-topbar) .hud-top > * {
+  position: static;
+  transform: none;
+  margin: 0;
+}
+.app:has(.desktop-topbar) .hud-top > .toasts { width: min(440px, 100%); }
+.app:has(.desktop-topbar) .hud-top > .world-notice { max-width: 100%; pointer-events: auto; animation: toast-in var(--t-med) var(--ease-out); }
+.app:has(.desktop-topbar) .hud-top > .time-passing { animation: toast-in var(--t-med) var(--ease-out); }
+.app:has(.desktop-topbar) .work-card { top: 14px; }
+.app:has(.desktop-topbar) .skill-toast {
+  left: auto;
+  right: 12px;
+  top: 58px;
+  bottom: auto;
+  transform: none;
+  animation: skill-toast-side var(--t-slow) var(--ease-back) both;
+}
+@keyframes skill-toast-side {
+  from { opacity: 0; transform: translateX(16px); }
+}
+.app:has(.desktop-topbar) .skill-toast[data-level-up] { animation: skill-level-side 0.5s var(--ease-back) both; }
+@keyframes skill-level-side {
+  from { opacity: 0; transform: translateX(16px) scale(0.92); }
+}
+.app:has(.desktop-topbar) .hud-top > .world-notice {
+  padding: 7px 16px;
+  color: #efe2c0;
+  background: #141a19d9;
+  border: 1px solid #ffffff21;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px -6px #000c;
+  font: 14px var(--serif);
+}
+
+/* One sky across the header and the character card: the header's layer runs
+   down behind the card, and the card opens to the header and window edge. */
+.desktop-topbar { border-bottom: 0; }
+.desktop-topbar .topbar-sky {
+  bottom: auto;
+  height: 250px;
+  opacity: 1;
+  mask-image:
+    linear-gradient(to left, #000 calc(var(--sidebar-w) + 9px), #0009 calc(var(--sidebar-w) + 80px), transparent 100%),
+    linear-gradient(#000 45%, transparent);
+  -webkit-mask-image:
+    linear-gradient(to left, #000 calc(var(--sidebar-w) + 9px), #0009 calc(var(--sidebar-w) + 80px), transparent 100%),
+    linear-gradient(#000 45%, transparent);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+.app:has(.desktop-topbar) .sidebar {
+  width: calc(var(--sidebar-w) + 6px);
+  margin-top: -9px;
+  margin-right: -9px;
+  padding-top: 0;
+  padding-right: 9px;
+}
+.app:has(.desktop-topbar) .sky-card {
+  margin-right: -9px;
+  border-top: 0;
+  border-right: 0;
+  border-radius: 0 0 0 8px;
+  background: linear-gradient(transparent 0, transparent 90px, var(--panel) 230px);
+  box-shadow: none;
+}
+.app:has(.desktop-topbar) .sky-card::before { display: none; }
+.app:has(.desktop-topbar) .sky-card .place-heading { padding-top: 16px; }
+.app:has(.desktop-topbar) .sky-card .sky { mask-image: none; -webkit-mask-image: none; }
+.app:has(.desktop-topbar) .sky-card .place-heading { text-shadow: 0 1px 2px var(--bg), 0 0 14px var(--bg); }
+.app:has(.desktop-topbar) .sky-card .season { background: color-mix(in srgb, var(--bg) 55%, transparent); }
+.desktop-topbar .header-actions svg { filter: drop-shadow(0 1px 2px #000a); }
+
+/* Phone: the desktop treatment at touch size. A recessed pill for place and
+   year, icon-only body chips, a flat bottom bar with a recessed command well. */
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .topbar:not(.desktop-topbar) > .world-selector {
+    height: 42px;
+    padding: 0 12px 0 16px;
+    gap: 8px;
+    border: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-0) 75%, transparent);
+    box-shadow: inset 0 2px 4px #0008, inset 0 -1px 0 #ffffff0d, 0 1px 0 #ffffff08;
+    transition: background-color var(--t-fast), border-color var(--t-med), box-shadow var(--t-fast), transform var(--t-fast) var(--ease-out);
+  }
+  .topbar:not(.desktop-topbar) > .world-selector:active {
+    transform: translateY(1px);
+    background: color-mix(in srgb, var(--bg-0) 55%, var(--bg-3));
+    box-shadow: inset 0 3px 7px #000a, inset 0 -1px 0 #ffffff08;
+  }
+  .topbar:not(.desktop-topbar) .world-selector span { text-align: left; }
+  .topbar:not(.desktop-topbar) .world-selector small { color: var(--muted); }
+  .topbar:not(.desktop-topbar) .world-selector .time-year { font-weight: 400; }
+  .topbar:not(.desktop-topbar) .world-selector svg {
+    display: block;
+    position: static;
+    flex: none;
+    opacity: 0.7;
+    color: var(--gold);
+    transition: transform var(--t-slow) var(--ease-back);
+  }
+  .topbar:not(.desktop-topbar) .world-selector:active svg { transform: rotate(-40deg); }
+  .topbar:not(.desktop-topbar) > .header-actions { border: 0; background: none; box-shadow: none; }
+  .topbar:not(.desktop-topbar) :is(.icon-button, .topbar-avatar) { border-color: transparent; background: none; }
+  .topbar:not(.desktop-topbar) .icon-button:active { background: color-mix(in srgb, var(--gold) 12%, transparent); }
+
+  .vitals { gap: 6px; border-radius: 999px; padding: 4px 6px 4px 10px; }
+  .vitals .survival-toggle { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 6px; border-radius: 999px; color: var(--muted); }
+  .vitals .survival-toggle[aria-expanded="true"] { background: color-mix(in srgb, var(--gold) 12%, transparent); }
+  .vitals .pip > span { display: none; }
+  .vitals .survival-details {
+    width: min(340px, calc(100vw - 32px));
+    max-height: calc(var(--viewport-height, 100dvh) - var(--phone-top-h) - var(--bottom-bar-h) - 90px);
+    border-radius: 10px;
+    overscroll-behavior: contain;
+    animation: details-in var(--t-med) var(--ease-out);
+  }
+
+  .bottom-bar { border-top-color: color-mix(in srgb, var(--line) 22%, transparent); }
+  .quick-actions button { border: 0; border-radius: 8px; background: none; box-shadow: none; transition: background-color var(--t-fast), transform var(--t-fast) var(--ease-out); }
+  .quick-actions button:is(:active, [data-down], [aria-expanded="true"]) { transform: scale(0.95); background: color-mix(in srgb, var(--gold) 12%, transparent); }
+  .command-input {
+    padding: 3px;
+    border: 1px solid color-mix(in srgb, var(--line) 35%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg-0) 75%, transparent);
+    box-shadow: inset 0 2px 4px #0008, inset 0 -1px 0 #ffffff0d;
+  }
+  .command-input:focus-within { border-color: var(--gold); box-shadow: inset 0 2px 4px #0008, 0 0 0 3px color-mix(in srgb, var(--gold) 15%, transparent); }
+  .command-input input:focus-visible { outline: none; }
+  .command-input button { width: 40px; border: 0; border-radius: 9px; background: none; transition: background-color var(--t-med); }
+  .command-input button svg { color: var(--muted); }
+  .command-input:has(input:not(:placeholder-shown)) button { background: var(--gold); }
+  .command-input:has(input:not(:placeholder-shown)) button svg { color: var(--ink); }
+}

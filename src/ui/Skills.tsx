@@ -1,17 +1,26 @@
+import type { Engine } from "../core/engine";
+import type { PlayerCommand } from "../core/types";
+import { bodySummary } from "../core/health";
+import { dangerSummary } from "../core/danger";
 import { useEffect, useRef, useState } from "react";
 import {
   Axe,
   Bandage,
   Crosshair,
+  ChevronDown,
   Footprints,
   Hammer,
   Leaf,
   MessageCircle,
+  Moon,
   PawPrint,
   Pickaxe,
   Scale,
+  Shield,
+  ShieldAlert,
   Swords,
   Target,
+  Utensils,
   Wheat,
   type LucideIcon,
 } from "lucide-react";
@@ -68,17 +77,22 @@ function Pips({ xp }: { xp: number }) {
   );
 }
 
-/** Health, always in the corner of the world; the hurt beside it when there
- * is one. */
 export function Vitals({
   health,
   injury,
   clock,
+  engine,
+  onCare,
 }: {
   health: number;
   injury?: { name: string; until: number };
   clock: number;
+  engine?: Engine;
+  onCare?: (command: PlayerCommand) => void;
 }) {
+  const [details, setDetails] = useState(false);
+  const danger = engine?.danger();
+  const player = engine?.state.player;
   const days = injury ? Math.ceil((injury.until - clock) / 86400) : 0;
   const was = useRef(health);
   const [flash, setFlash] = useState<{ kind: "hurt" | "heal"; n: number }>();
@@ -89,28 +103,49 @@ export function Vitals({
       setFlash((f) => ({ kind: delta < 0 ? "hurt" : "heal", n: (f?.n ?? 0) + 1 }));
   }, [health]);
   const hp = Math.round(health);
+  const tip = `Health ${hp} / 100${injury && days > 0 ? ` · ${injury.name}` : ""}`;
   return (
     <div
       key={flash?.n}
       className="vitals"
       data-low={health < 35 || undefined}
       data-flash={flash?.kind}
-      data-tip={`Health ${hp} / 100${injury && days > 0 ? ` · ${injury.name}` : ""}`}
+      data-open={details || undefined}
       role="status"
       aria-label={`Health ${hp} of 100`}
     >
-      {HEARTS.map((i) => (
-        <HeartContainer key={i} fill={Math.max(0, Math.min(1, (health - i * 20) / 20))} />
-      ))}
+      <span className="hearts" data-tip={details ? undefined : tip}>
+        {HEARTS.map((i) => (
+          <HeartContainer key={i} fill={Math.max(0, Math.min(1, (health - i * 20) / 20))} />
+        ))}
+      </span>
       {injury && days > 0 && (
         <span className="vitals-injury">
           <Bandage size={12} /> {days}d
         </span>
       )}
+      {engine && player && danger && <>
+        <button className="survival-toggle" aria-expanded={details} aria-label="Body and danger" onClick={() => setDetails(!details)}>
+          <span className="pip" data-warn={player.hunger >= 70 || undefined}><Utensils size={13} /><span>{player.hunger >= 70 ? "Hungry" : "Fed"}</span></span>
+          <span className="pip" data-warn={player.fatigue >= 70 || undefined}><Moon size={13} /><span>{player.fatigue >= 70 ? "Tired" : "Rested"}</span></span>
+          <span className="pip" data-warn={danger.level === "raised" || undefined} data-alarm={danger.level === "high" || danger.level === "immediate" || undefined}>
+            {danger.score > 0 ? <ShieldAlert size={13} /> : <Shield size={13} />}
+            <span>{DANGER_LABEL[danger.level] ?? danger.level}</span>
+          </span>
+          <ChevronDown className="survival-chevron" size={13} />
+        </button>
+        {details && <div className="survival-details" role="region" aria-label="Body and danger details">
+          <p>{bodySummary(engine.state, engine.world.pack.setting)}</p>
+          {onCare && engine.careOptions().map((o) => <div className="care-option" key={o.treatment}><button disabled={!!o.unavailable} onClick={() => onCare(o.command)}>{o.label} · {o.minutes}m{o.coin ? ` · ${o.coin} coins` : ""}</button><small>{o.unavailable ?? o.note}</small></div>)}
+          <p>{dangerSummary(danger)}</p>
+          {engine.nearbyDanger().map((d) => <p key={d.bearing}>{d.bearing}, 16 paces ({d.pos.x}, {d.pos.y}): {d.level}. {d.reasons.join("; ")}</p>)}
+        </div>}
+      </>}
     </div>
   );
 }
 
+const DANGER_LABEL: Record<string, string> = { low: "Safe", raised: "Uneasy", high: "Danger", immediate: "In danger" };
 const HEARTS = [0, 1, 2, 3, 4];
 // 7x6 pixel heart; each container holds 20 health, filled in quarters.
 const HEART_PATH = "M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z";

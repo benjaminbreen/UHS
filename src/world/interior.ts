@@ -60,6 +60,7 @@ const FURNITURE: Partial<Record<Kind, string>> = {
   loom: "room-loom", spinwheel: "room-spinwheel", throw: "room-throw", radio: "room-radio", icebox: "room-icebox",
   potrack: "room-potrack", firewood: "room-firewood", quern: "room-quern", jars: "room-jars", claybin: "room-claybin",
   plant: "room-plant", lamp: "room-lamp", basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
+  coolamon: "coolamon",
   bench: "room-bench",
 };
 const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab", "pew", "prayer"];

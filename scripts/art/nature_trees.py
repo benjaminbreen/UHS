@@ -6,6 +6,8 @@ from PIL import Image, ImageDraw
 import math
 import random
 from art import canopy
+from art.voxel_trees import deciduous_tree
+from art.shrubs import shrub_candidate
 
 BARK = ['#302d2a', '#574033', '#805339', '#a67343', '#c79a59', '#e3be77']
 PINE = ['#0f2223', '#1a3d31', '#29603d', '#417b38', '#729a41', '#a4b85e']
@@ -243,9 +245,9 @@ def trees():
         'nature-redwood':canopy.redwood(1),'nature-redwood-2':canopy.redwood(2),'nature-redwood-3':canopy.redwood(5),
         'nature-douglas-fir':canopy.douglas_fir(1),'nature-douglas-fir-2':canopy.douglas_fir(3),'nature-douglas-fir-3':canopy.douglas_fir(4),
         'nature-cedar':canopy.cedar(1),'nature-cedar-2':canopy.cedar(2),
-        'nature-oak':canopy.oak(1),'nature-oak-2':canopy.oak(2),'nature-oak-3':canopy.oak(3),
-        'nature-oak-autumn':canopy.oak(1,autumn=True),'nature-oak-2-autumn':canopy.oak(2,autumn=True),'nature-oak-3-autumn':canopy.oak(3,autumn=True),
-        'nature-oak-bare':canopy.oak(1,bare=True),'nature-oak-2-bare':canopy.oak(2,bare=True),'nature-oak-3-bare':canopy.oak(3,bare=True),
+        'nature-oak':deciduous_tree('oak',1),'nature-oak-2':deciduous_tree('oak',2),'nature-oak-3':deciduous_tree('oak',3),
+        'nature-oak-autumn':deciduous_tree('oak',1,autumn=True),'nature-oak-2-autumn':deciduous_tree('oak',2,autumn=True),'nature-oak-3-autumn':deciduous_tree('oak',3,autumn=True),
+        'nature-oak-bare':deciduous_tree('oak',1,bare=True),'nature-oak-2-bare':deciduous_tree('oak',2,bare=True),'nature-oak-3-bare':deciduous_tree('oak',3,bare=True),
         'nature-olive':canopy.olive(1),'nature-olive-2':canopy.olive(2),'nature-olive-3':canopy.olive(3),
         'nature-spreading-pine-2':canopy.conifer((112,120),2,9),
         'nature-spreading-pine-3':canopy.conifer((112,120),4,9),
@@ -254,4 +256,5 @@ def trees():
         'nature-tropical-broadleaf':canopy.tropical_broadleaf(),
         'nature-riverside-willow':riverside_willow(),
         'nature-dry-thorn-scrub':dry_thorn_scrub(),
+        'nature-dry-thorn-scrub-b':shrub_candidate('scrub',(56,40)),
     }

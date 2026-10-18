@@ -443,7 +443,7 @@ function build(p: RoomParams, props: Prop[], holes: Set<number>) {
         box(bx, by + 1, 1, bx + 1, ey - 1, 8, (_x, _y, z) => W[z === 8 ? 4 : 3]);
         box(bx + 2, by + 1, 4, ex, ey - 1, 4, P.linen[4]);
         box(bx + 2, by + 2, 5, bx + 4, ey - 2, 6, P.linen[5]);
-        box(bx + 6 + (q.on ? 2 : 0), by + 1, 5, ex, ey - 1, 5, (x, y) => (((x >> 1) + (y >> 1)) & 1 ? P.acc[3] : P.trim[4]));
+        box(bx + 6 + (q.on ? 2 : 0), by + 1, 5, ex, ey - 1, 5, (x, y) => p.styles.bed === "linen" ? P.linen[4] : (((x >> 1) + (y >> 1)) & 1 ? P.acc[3] : P.trim[4]));
         if (q.on) for (let x = bx + 8; x <= ex; x += 3) box(x, by + 2, 6, x, ey - 2, 6, P.acc[4]);
         break;
       }

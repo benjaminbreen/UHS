@@ -23,7 +23,7 @@ test("classroom entry requires consent and uploads human game actions", async ({
   await page.getByLabel("Class code").fill("class-secret");
   await page.getByLabel(/I agree to share/).check();
   await page.getByRole("button", { name: "Start recorded session" }).click();
-  await page.getByPlaceholder(/A hunter in Anatolia/).fill("A Roman baker in Ostia, 100 CE");
+  await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 60000 });

@@ -1,4 +1,5 @@
 import { faunaStates } from "../core/fauna";
+import { treatments } from "../content/health/infections";
 import { faunaTiers } from "../core/combat";
 import { skillIds } from "../core/skills";
 import { techniqueIds } from "../core/techniques";
@@ -8,7 +9,9 @@ import {
   eyeShapes,
   eyelidFolds,
   eyeSpacings,
+  eyeAlignments,
   browShapes,
+  browConnections,
   noseShapes,
   mouthShapes,
   chinShapes,
@@ -19,6 +22,7 @@ import {
   earOrnaments,
   noseOrnaments,
   faceMarks,
+  injuryScarKinds,
   markStyles,
   ornamentMetals,
   beardStyles,
@@ -237,6 +241,10 @@ export const characterAppearanceSchema = z.object({
       detail: z.enum(faceDetails),
     })
     .optional(),
+  injuryScar: z.object({ kind: z.enum(injuryScarKinds), side: z.union([z.literal(-1), z.literal(1)]) }).optional(),
+  eyeAlignment: z.enum(eyeAlignments).optional(),
+  browConnection: z.enum(browConnections).optional(),
+  eyeDetail: z.object({ irisSize: z.enum(["default", "large"]), pupilSize: z.enum(["default", "large"]), lowerLashes: z.boolean() }).optional(),
   adornment: z
     .object({
       ears: z.enum(earOrnaments).optional(),
@@ -312,7 +320,19 @@ const actor = z.object({
   techniques: z.array(z.enum(techniqueIds)).optional(),
   helped: z.partialRecord(z.enum(skillIds), z.number()).optional(),
   taught: z.array(z.enum(skillIds)).optional(),
-  injury: z.object({ name: z.string(), until: z.number() }).optional(),
+  injury: z.object({ name: z.string(), until: z.number(), open: z.boolean().optional(), since: z.number().optional(), cleanUntil: z.number().optional() }).optional(),
+  immune: z.record(z.string().max(40), z.number()).optional(),
+  preparedFoodUntil: z.number().optional(),
+  medicalStock: z.object({ antibiotic: z.number().int().nonnegative(), rehydration: z.number().int().nonnegative() }).optional(),
+  identity: z.object({
+    seed: z.string(),
+    setting: settingSchema.optional(),
+    concern: z.string(),
+    household: z.object({
+      size: z.number().int().nonnegative(),
+      people: z.array(z.object({ id: z.string(), name: z.string(), age: z.number().optional() })),
+    }).optional(),
+  }).optional(),
   origin: z
     .object({
       revision: z.literal(1),
@@ -343,6 +363,7 @@ const actor = z.object({
       z.object({
         other: z.string(),
         kind: z.enum(["partner", "parent", "child", "co-resident", "servant", "apprentice", "master", "friend"]),
+        reciprocal: z.enum(["partner", "parent", "child", "co-resident", "servant", "apprentice", "master", "friend"]).optional(),
       }),
     )
     .optional(),
@@ -358,6 +379,8 @@ const actor = z.object({
   sprite: z.string(),
   inventory,
   activity: z.string(),
+  hungerDebt: z.number().nonnegative().optional(),
+  encounterAfter: z.number().optional(),
   fatigue: z.number().min(0).max(100),
   hunger: z.number().min(0).max(100),
   trust: z.number(),
@@ -440,7 +463,7 @@ const event = z.object({
   kind: z.enum(["action", "social", "world", "system"]),
   pos: pos.optional(),
 });
-export const commandSchema = z.discriminatedUnion("type", [
+export const playerCommandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("move"),
@@ -469,11 +492,13 @@ export const commandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("swing"),
+      direction: z.number().int().min(0).max(3).optional(),
       power: z.union([z.literal(1), z.literal(2)]).optional(),
       plunge: z.boolean().optional(),
     })
     .strict(),
   z.object({ type: z.literal("stow") }).strict(),
+  z.object({ type: z.literal("care"), target: z.string().max(100), treatment: z.enum(treatments) }).strict(),
   z.object({ type: z.literal("drop") }).strict(),
   z
     .object({ type: z.literal("give"), target: z.string().max(100), item })
@@ -581,9 +606,10 @@ export const commandSchema = z.discriminatedUnion("type", [
         .max(24 * 3600),
     })
     .strict(),
-  z
-    .object({ type: z.literal("narrate"), intents: z.array(intent).max(6) })
-    .strict(),
+]);
+export const commandSchema = z.discriminatedUnion("type", [
+  ...playerCommandSchema.options,
+  z.object({ type: z.literal("narrate"), intents: z.array(intent).max(6) }).strict(),
 ]);
 /** What the narrator model may return. Its command is one of the ordinary
  * player commands; intents go through the same narrate path as the UI. */
@@ -591,9 +617,7 @@ export const narratorReplySchema = z
   .object({
     narration: z.string().min(1).max(1200),
     intents: z.array(intent).max(6),
-    command: z
-      .discriminatedUnion("type", commandSchema.options.slice(0, -1) as never)
-      .optional(),
+    command: playerCommandSchema.optional(),
     errand: z
       .object({
         kind: z.enum(["roam", "forage", "workday", "go", "seek"]),
@@ -786,6 +810,7 @@ export const snapshotSchema = z.object({
     .array(z.object({ day: z.number().int(), clock: z.number(), card: z.string().max(64), choice: z.number().int(), line: z.string().max(300) }).strict())
     .max(5000)
     .optional(),
+  encounter: z.object({ card: z.string().max(64), at: pos, clock: z.number() }).strict().optional(),
   care: z.object({ card: z.string().max(64), who: z.string().max(100), ailment: z.string().max(40), at: z.number() }).strict().optional(),
   economy: z
     .object({
@@ -861,6 +886,8 @@ export const snapshotSchema = z.object({
         schema: z.literal(1),
         simulation: z.literal(1),
         hazards: z.literal(1).optional(),
+        survival: z.literal(1).optional(),
+        disease: z.literal(1).optional(),
         generator: z.literal(1),
         content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(1),
@@ -873,6 +900,8 @@ export const snapshotSchema = z.object({
         schema: z.literal(2),
         simulation: z.literal(1),
         hazards: z.literal(1).optional(),
+        survival: z.literal(1).optional(),
+        disease: z.literal(1).optional(),
         generator: z.literal(2),
         content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(2),
@@ -886,6 +915,8 @@ export const snapshotSchema = z.object({
         schema: z.literal(2),
         simulation: z.literal(2),
         hazards: z.literal(1).optional(),
+        survival: z.literal(1).optional(),
+        disease: z.literal(1).optional(),
         generator: z.literal(3),
         content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(2),
@@ -1003,10 +1034,29 @@ export const snapshotSchema = z.object({
         days: z.number(),
         course: z.enum(["mend", "linger", "die"]),
         tended: z.boolean().optional(),
+        infection: z.object({
+          exposed: z.number(), source: z.string(), route: z.string(),
+          progress: z.number().nonnegative(), rest: z.number().nonnegative(), support: z.number().nonnegative(), strain: z.number().nonnegative(),
+          roll: z.number().min(0).max(1), mortality: z.number().min(0).max(1),
+          careUntil: z.number().optional(), medicineUntil: z.number().optional(), fluidsUntil: z.number().optional(), announced: z.boolean().optional(),
+          assessment: z.object({ by: z.string(), at: z.number(), text: z.string() }).strict().optional(),
+        }).strict().optional(),
       }).strict(),
     )
     .max(2000)
     .optional(),
+  disease: z.object({
+    serial: z.number().int().nonnegative(),
+    exposures: z.array(z.object({ who: z.string(), disease: z.string(), source: z.string(), route: z.string(), hour: z.number().int(), dose: z.number().nonnegative() }).strict()).max(20000),
+    sources: z.array(z.object({ id: z.string(), household: z.string(), until: z.number() }).strict()).max(2000),
+    events: z.array(z.object({ n: z.number().int(), clock: z.number(), map: z.string(), kind: z.string(), who: z.string(), disease: z.string(), source: z.string().optional(), dose: z.number().optional(), treatment: z.enum(treatments).optional(), detail: z.string().optional() }).strict()).max(2000),
+  }).strict().optional(),
+  relationships: z.record(z.string(), z.object({
+    status: z.enum(["neutral", "friend", "best friend", "enemy"]),
+    since: z.number(),
+    pending: z.enum(["neutral", "friend", "best friend", "enemy"]).optional(),
+    began: z.number().optional(),
+  }).strict()).optional(),
   bonds: z
     .array(
       z.object({

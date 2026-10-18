@@ -1,3 +1,5 @@
+import { waterfrontProfiles } from "../settlements/waterfronts";
+import { worksiteInterior } from "./worksites";
 import { interiorProfile, type InteriorProfile } from "./index";
 
 export type InteriorSite = {
@@ -133,6 +135,8 @@ const PUBLIC: Rule[] = [
  * `venue.x`, `religious-x` and `civic-x` are `religious.x` and `civic.x`. */
 export function buildingUse(claim: string) {
   if (claim.startsWith("venue-")) return claim.slice(6);
+  if (claim.startsWith("worksite-")) return claim.replace("-", ".");
+  if (claim==="waterfront-gear")return "waterfront.gear";
   if (/^(religious|civic)-/.test(claim)) return claim.replace("-", ".");
 }
 
@@ -172,6 +176,14 @@ function meetingHall(site: InteriorSite): InteriorProfile {
 /** The interior a public building has here and now, if one has been made. */
 export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefined {
   if (!site.use) return;
+  if(site.use==="waterfront.gear") {
+    const home=interiorProfileFor({...site,use:undefined}),gear=waterfrontProfiles.find(p=>p.gear===site.frame)?.gearInterior;
+    return {...home,door:gear?.door ?? home.door,windowStyle:gear?.windows ?? home.windowStyle,id:`fishing-gear-${home.id}`,label:"Fishing gear store",uses:[site.use],size:[10,9],rooms:undefined,
+      program:undefined,sleep:"none",fire:"none",smokehole:false,pole:false,trades:["household"],kits:{household:[]},clutter:[],regulars:undefined,
+      furnish:["shelf","basket","crate","table","lamp"],styles:{shelf:"open"},
+      looks:home.looks.map(l=>({...l,...(gear ? {wall:gear.wall,floor:gear.floor,windows:gear.windows==="none" ? 0 : 2} : {}),furnish:[]})) as unknown as InteriorProfile["looks"]};
+  }
+  if (site.use.startsWith("worksite.")) return worksiteInterior(site.use, interiorProfileFor({ ...site, use: undefined }));
   if (site.use === "civic.illustrative-public-hall") return meetingHall(site);
   for (const r of PUBLIC) {
     if (site.lon < r.lon[0] || site.lon > r.lon[1] || site.lat < r.lat[0] || site.lat > r.lat[1]) continue;

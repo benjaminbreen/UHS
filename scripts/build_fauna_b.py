@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 from PIL import Image, ImageDraw
 from art.fauna_b import fauna_b, PALETTES, STATES, NATIVE_SIZES
-from art.atlas import pack_atlas
+from art.atlas import pack_atlas, write_metadata
 from art.quality.hue import tint_outline
 
 root = Path(__file__).resolve().parent.parent
@@ -15,8 +15,8 @@ for name, im in sprites.items():
     assert len(im.getcolors(im.width * im.height)) <= 24, name
     bbox = im.getbbox()
     assert bbox and bbox[0] >= 0 and bbox[1] >= 0 and bbox[2] <= im.width and bbox[3] <= im.height, name
-pack_atlas(sprites, out, "atlas", 512)
-(out / "studies.json").write_text(json.dumps({species: {"palette": list(PALETTES[species].values()), "states": states, "size": NATIVE_SIZES[species]} for species, states in STATES.items()}, indent=2) + "\n")
+pack_atlas(sprites, out, "atlas", 512, module=True)
+write_metadata(out / "studies.json", json.dumps({species: {"palette": list(PALETTES[species].values()), "states": states, "size": NATIVE_SIZES[species]} for species, states in STATES.items()}, indent=2) + "\n")
 
 artifacts = root / "artifacts/fauna-lab"
 artifacts.mkdir(exist_ok=True, parents=True)

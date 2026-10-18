@@ -1,3 +1,4 @@
+import { assignLocalWork, localWorkContext } from "./employment";
 import { inheritLikeness } from "../../core/character";
 import { motorized } from "../../content/settlements/modernity";
 import { carryKit, withLoads } from "../../content/economy/carrying";
@@ -39,6 +40,7 @@ export function populateHouseholds(
   const form = pack.setting!.environment!.household;
   const year = pack.setting?.year ?? pack.year;
   const made: Household[] = [];
+  let playerFriend: { a: Pick<Actor, "id" | "age" | "householdId" | "origin" | "relations">; home: Point } | undefined;
   const pending: {
     id: string;
     a: Actor;
@@ -82,13 +84,18 @@ export function populateHouseholds(
     if (adult && pack.setting?.characterRevision)
       Object.assign(
         adult,
-        generateCharacter(pack.setting, seed, adult.id, age, adult.role),
+        generateCharacter(pack.setting, seed, adult.id, age, adult.role, undefined, undefined, adult.origin?.sex, undefined, undefined,
+          pack.setting.employmentRevision ? localWorkContext(plan, pack, adult.id, adult.origin?.community) : undefined),
       );
+    if(adult && sites.employment?.kind==="fishery")assignLocalWork(plan,pack,seed,adult,sites);
     const ownerCharacter = owner === "player" && pack.setting?.characterRevision
       ? generateCharacter(pack.setting,
           pack.setting.lifeStoryRevision ? pack.setting.character?.appearanceSeed ?? seed : seed,
-          owner, age, pack.role, pack.characterName)
+          owner, age, sites.role ?? pack.role, pack.characterName,undefined,undefined,undefined,undefined,
+          pack.setting.employmentRevision ? localWorkContext(plan,pack,owner) : undefined)
       : undefined;
+    if (owner === "player" && pack.setting?.friendshipRevision)
+      playerFriend = { a: { id: owner, age, householdId: id, origin: ownerCharacter?.origin, relations: [] }, home: household.home };
     const parent = adult?.origin ?? ownerCharacter?.origin;
     const kit = livelihoodOf(pack, adult ?? (pack.setting?.lifeStoryRevision && parent
       ? { origin: parent } as Actor
@@ -183,7 +190,7 @@ export function populateHouseholds(
         direction: 2,
         age: m.age,
         householdId: id,
-        relations: [{ other: owner, kind: m.toHead }],
+        relations: [{ other: owner, kind: m.toHead, reciprocal: m.fromHead }],
         knownResources: [],
       };
       if (pack.setting?.characterRevision) {
@@ -244,6 +251,7 @@ export function populateHouseholds(
               personal: m.fromHead === "parent" && m.sex === "male" ? parent?.nameParentPersonal : undefined,
               avoid: taken,
             } : undefined,
+            pack.setting!.employmentRevision ? localWorkContext(plan, pack, memberId, lineal ? lineage?.community : undefined) : undefined,
           );
         let drawn = draw(0);
         for (let salt = 1; !revised && salt < 12; salt++) {
@@ -294,6 +302,12 @@ export function populateHouseholds(
       }
       household.members.push(memberId);
       world.initialActors.push(a);
+      if (pack.setting?.employmentRevision && !child) {
+        const memberSite = { ...sites, work: { ...(sites.domesticWork ?? sites.work) }, employment: undefined, role: undefined,
+          gateId: undefined, rackId: undefined, pasture: undefined };
+        plan.work.set(memberId, memberSite);
+        assignLocalWork(plan, pack, seed, a, memberSite);
+      }
       if (practice && means >= practice.minimumMeans &&
           parent?.standing !== "unfree" && a.origin?.standing !== "unfree" &&
           m.fromHead === "child" && m.age >= 17 && m.age <= 23 &&
@@ -305,7 +319,7 @@ export function populateHouseholds(
         a.relations!.push({ other: partnerId, kind: "parent" });
         partner.relations!.push({ other: a.id, kind: "child" });
       }
-      adult?.relations?.push({ other: memberId, kind: m.fromHead });
+      adult?.relations?.push({ other: memberId, kind: m.fromHead, reciprocal: m.toHead });
       pending.push({ id: memberId, a, child, site: sites, household });
     });
   }
@@ -397,7 +411,7 @@ export function populateHouseholds(
   }
 
   befriend(
-    made.flatMap((h) => h.members.map((m) => ({ a: world.initialActors.find((b) => b.id === m)!, home: h.home }))).filter((p) => p.a),
+    [...made.flatMap((h) => h.members.map((m) => ({ a: world.initialActors.find((b) => b.id === m)!, home: h.home }))).filter((p) => p.a), ...(playerFriend ? [playerFriend] : [])],
     seed,
   );
   for (const { id, a, child, site, household } of pending) {
@@ -407,6 +421,10 @@ export function populateHouseholds(
     const i = household.members.indexOf(id);
     const memberSite = {
       ...site,
+      ...(pack.setting?.employmentRevision ? { work: { ...(site.domesticWork ?? site.work) } } : {}),
+      employment: undefined,
+      role: undefined,
+      ...(pack.setting?.employmentRevision ? { gateId: undefined, rackId: undefined, pasture: undefined } : {}),
       label: child ? "Errands" : (kit?.activity ?? "Keeping house"),
       offset: (site.offset + 37 * i) % 1440,
     };
@@ -418,6 +436,7 @@ export function populateHouseholds(
     const shop = from && residence(from);
     const seller = buy && sellerOf(buy, made, world.initialActors);
     plan.work.set(id, memberSite);
+    if (!child) assignLocalWork(plan, pack, seed, a, memberSite);
     plan.stations.set(
       id,
       withLoads(
@@ -553,13 +572,13 @@ export function addWildResources(
 /** Up to two friends each, outside the household: near in age, living close,
  * and of the same sex past childhood, which is the rule in most places and
  * times the simulator covers. */
-function befriend(people: { a: Actor; home: Point }[], seed: string) {
-  const pairs: { a: Actor; b: Actor; score: number }[] = [];
+export function befriend(people: { a: Pick<Actor, "id" | "age" | "householdId" | "origin" | "relations">; home: Point }[], seed: string) {
+  const pairs: { a: typeof people[number]["a"]; b: typeof people[number]["a"]; score: number }[] = [];
   for (const [i, x] of people.entries())
     for (const y of people.slice(i + 1)) {
       const a = x.a,
         b = y.a;
-      if (a.householdId === b.householdId || a.id === "player" || b.id === "player") continue;
+      if (a.householdId === b.householdId) continue;
       const ageA = a.age ?? 30,
         ageB = b.age ?? 30;
       const child = ageA < 13 || ageB < 13;

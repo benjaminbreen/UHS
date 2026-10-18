@@ -880,6 +880,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "colonial-mesoamerica-syncretic",
+    features: ["sacred-texts"],
     label: "Colonial Mesoamerica syncretism",
     wiki: "https://en.wikipedia.org/wiki/Colonial_Mexico",
     scope: { years: [1500, 1850], bounds: [-107, 10, -78, 25] },
@@ -905,6 +906,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "Maximón",
+        scope: { years: [1500, 2025], bounds: [-92.5, 13.5, -89, 16.5] },
         wiki: "https://en.wikipedia.org/wiki/Maxim%C3%B3n",
         domain: "the crossroads, vice and its cure, dangerous protection",
         rank: "major",
@@ -922,6 +924,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "The aluxob",
+        scope: { years: [1500, 1850], bounds: [-91.5, 17, -86, 22] },
         wiki: "https://en.wikipedia.org/wiki/Alux",
         domain: "small guardians of the field, mischief and protection",
         rank: "local",
@@ -936,8 +939,14 @@ export const mesoamerica: readonly BeliefSystem[] = [
     practice: [
       "Mass at the Christian church marks the yearly round alongside saint festivals.",
       "Candles and copal burn at the household altar before images of saints and crucifixes.",
-      "Maximón is fed cigars and liquor by cofradía members who keep his effigy through the year.",
-      "Aluxob are fed at field shrines so they guard rather than spoil the milpa; chaneques are placated before clearing new ground.",
+      {
+        text: "Maximón is fed cigars and liquor by cofradía members who keep his effigy through the year.",
+        scope: { years: [1500, 1850], bounds: [-92.5, 13.5, -89, 16.5] },
+      },
+      {
+        text: "Aluxob are fed at field shrines so they guard rather than spoil the milpa; chaneques are placated before clearing new ground.",
+        scope: { years: [1500, 1850], bounds: [-91.5, 17, -86, 22] },
+      },
     ],
     specialist:
       "The Spanish priest oversees the church. Ah kin, shamans, and Maximón's cofradía continue to serve secretly or in the hills.",
@@ -959,6 +968,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "modern-mesoamerica",
+    features: ["sacred-texts"],
     label: "Modern Mesoamerican traditions",
     wiki: "https://en.wikipedia.org/wiki/Folk_Catholicism",
     scope: { years: [1750, 2025], bounds: [-107, 10, -78, 25] },
@@ -984,6 +994,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "Maximón (San Simón)",
+        scope: { years: [1500, 2025], bounds: [-92.5, 13.5, -89, 16.5] },
         wiki: "https://en.wikipedia.org/wiki/Maxim%C3%B3n",
         domain: "the town, community, dangerous favors",
         rank: "major",
@@ -1016,7 +1027,10 @@ export const mesoamerica: readonly BeliefSystem[] = [
     practice: [
       "Church attendance marks baptism, marriage, death, and the calendar of saints.",
       "Household altars with saints and candles remain central to family ritual.",
-      "The dead are welcomed home on the Day of the Dead with food, marigolds, and photographs.",
+      {
+        text: "The dead are welcomed home on the Day of the Dead with food, marigolds, and photographs.",
+        scope: { years: [1850, 2025] },
+      },
       "Local mountains and water sources receive offerings for rain and fertility; chaneques are placated before working new ground.",
     ],
     specialist:

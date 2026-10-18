@@ -560,3 +560,85 @@ def olive(seed):
     """Olea: a gnarled pale trunk that leans, a loose silver-grey crown."""
     return tree((72, 72), seed, 3, 8, 6, lean=random.Random(seed).uniform(-0.25, 0.25), spread=1.0,
                 leaf=OLIVE_LEAF, wood=OLIVE_WOOD, trunk=0.3, tuft=0.4, gaps=0.18, shade=0.12)
+
+
+def pixel_candidate(species):
+    """Review-only native-pixel oak/maple: authored boughs and flat paint shapes."""
+    from PIL import ImageDraw
+    oak_tree = species == 'oak'
+    size = (112, 104) if oak_tree else (96, 112)
+    leaf, wood = (OAK_LEAF, OAK_WOOD) if oak_tree else (MAPLE_LEAF, MAPLE_WOOD)
+    im = Image.new('RGBA', size)
+    W, H = size
+    cx, foot = W // 2, H - 4
+    segs = [
+        (cx, foot-3, cx-2, foot-21, 13 if oak_tree else 10, 9 if oak_tree else 7, 0),
+        (cx-2, foot-21, cx+1, foot-44, 9 if oak_tree else 7, 4, 1),
+        (cx-1, foot-24, cx-15, foot-41, 4, 2.5, 1),
+        (cx-15, foot-41, cx-27, foot-47, 2.5, 1, 2),
+        (cx, foot-31, cx+16, foot-45, 3.5, 2, 1),
+        (cx+16, foot-45, cx+25, foot-56, 2, 1, 2),
+        (cx, foot-3, cx-12, foot, 4, 1.2, 0),
+        (cx+1, foot-5, cx+11, foot-1, 4, 1.2, 0),
+    ]
+    for p, tone in paint_wood(size, segs, random.Random(113)).items():
+        if 1 <= p[0] < W-1 and 1 <= p[1] < H-1:
+            im.putpixel(p, rgb(wood[tone]))
+    boughs = (
+        [(75, 28, 21, 17), (39, 23, 23, 17), (58, 16, 19, 13),
+         (24, 39, 18, 18), (89, 42, 18, 17), (51, 39, 26, 21),
+         (30, 53, 17, 14), (72, 55, 23, 16), (48, 56, 22, 16)]
+        if oak_tree else
+        [(46, 29, 17, 14), (29, 40, 18, 18), (65, 39, 19, 17),
+         (20, 55, 14, 14), (77, 56, 14, 16), (47, 47, 24, 20),
+         (39, 65, 20, 15), (62, 65, 20, 16)]
+    )
+    for i, (x, y, rx, ry) in enumerate(boughs):
+        rng = random.Random(201+i)
+        phase = rng.uniform(0,math.tau)
+        mask = Image.new('1', size)
+        md = ImageDraw.Draw(mask)
+        points = []
+        for j in range(40):
+            angle = j*math.tau/40
+            radius = 1 + .1*math.sin(3*angle+phase) + .06*math.sin(7*angle+phase)
+            points.append((round(x+math.cos(angle)*rx*radius),round(y+math.sin(angle)*ry*radius)))
+        md.polygon(points, fill=1)
+        layer = Image.new('RGBA', size)
+        for py in range(max(1,y-ry-4), min(H-1,y+ry+4)):
+            for px in range(max(1,x-rx-4), min(W-1,x+rx+4)):
+                if not mask.getpixel((px,py)):
+                    continue
+                nx,ny = (px-x)/rx,(py-y)/ry
+                light = -.42*nx-.65*ny+.35*math.sqrt(max(0,1-nx*nx-ny*ny))
+                tone = 4 if light>.55 else 3 if light>.16 else 2 if light>-.35 else 1
+                layer.putpixel((px,py),rgb(leaf[tone]))
+        d = ImageDraw.Draw(layer)
+        marks = []
+        for _ in range(65):
+            px,py = x+rng.randrange(-rx+3,rx-2),y+rng.randrange(-ry+3,ry-2)
+            if py > y+ry*.45 or not mask.getpixel((px,py)):
+                continue
+            if any(math.hypot(px-a,py-b)<4.5 for a,b in marks):
+                continue
+            if not all(mask.getpixel((px+dx,py+dy)) for dx,dy in [(-3,0),(3,0),(0,-2),(0,2)]):
+                continue
+            marks.append((px,py))
+            base = next((k for k,c in enumerate(leaf) if rgb(c)==layer.getpixel((px,py))),3)
+            tone = max(2,min(5,base+(1 if rng.random()<.6 else -1)))
+            d.polygon([(px-3,py),(px-1,py-2),(px+1,py-2),(px+3,py),
+                       (px+1,py+1),(px-2,py+1)],fill=leaf[tone])
+            if tone>=4:
+                d.line((px-1,py-2,px+1,py-2),fill=leaf[min(5,tone+1)])
+        for py in range(max(1,y-ry-4), min(H-1,y+ry+4)):
+            for px in range(max(1,x-rx-4), min(W-1,x+rx+4)):
+                if not mask.getpixel((px,py)):
+                    continue
+                shaded = not mask.getpixel((px+1,py)) or not mask.getpixel((px,py+1))
+                lit = not mask.getpixel((px-1,py)) or not mask.getpixel((px,py-1))
+                if shaded:
+                    layer.putpixel((px,py),rgb(leaf[0] if py>y+ry*.25 else leaf[1]))
+                elif lit:
+                    layer.putpixel((px,py),rgb(leaf[2]))
+        im.paste(layer,(0,0),mask)
+    return im

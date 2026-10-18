@@ -1,12 +1,12 @@
 import type { FaunaState } from "../../core/fauna";
 import type { CharacterScope } from "../characters/context-types";
-import studies from "../../../public/fauna-b/studies.json" with { type: "json" };
-import studiesC from "../../../public/fauna-c/studies.json" with { type: "json" };
-import studiesM from "../../../public/fauna-m/studies.json" with { type: "json" };
-import studiesR from "../../../public/fauna-r/studies.json" with { type: "json" };
-import studiesF from "../../../public/fauna-f/studies.json" with { type: "json" };
-import studiesG from "../../../public/fauna-g/studies.json" with { type: "json" };
-import studiesU from "../../../public/fauna-u/studies.json" with { type: "json" };
+import studies from "../../render/generated/fauna-b-studies.json" with { type: "json" };
+import studiesC from "../../render/generated/fauna-c-studies.json" with { type: "json" };
+import studiesM from "../../render/generated/fauna-m-studies.json" with { type: "json" };
+import studiesR from "../../render/generated/fauna-r-studies.json" with { type: "json" };
+import studiesF from "../../render/generated/fauna-f-studies.json" with { type: "json" };
+import studiesG from "../../render/generated/fauna-g-studies.json" with { type: "json" };
+import studiesU from "../../render/generated/fauna-u-studies.json" with { type: "json" };
 
 export const habitatTags = [
   "settlement",

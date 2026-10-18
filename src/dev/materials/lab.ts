@@ -1,5 +1,5 @@
 import artVersion from "../../render/generated/art-version.json" with { type: "json" };
-import nature from "../../../public/nature/atlas.json" with { type: "json" };
+import nature from "../../render/generated/nature-atlas.json" with { type: "json" };
 import { generateAppearance } from "../../core/character";
 import { drawCharacter } from "../../render/characters/draw";
 import type { CharacterPose } from "../../render/characters/poses";

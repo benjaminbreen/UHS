@@ -103,3 +103,14 @@ export const HAZARD_CARDS: ChoiceCard[] = [
     },
   ]),
 ];
+
+export const ROADSIDE_CARDS: ChoiceCard[] = [{
+  id: "roadside-robbery", slot: "roadside", evidence: "inferred",
+  text: "Two people step into your path and demand your valuables. One keeps a hand on a weapon. There is still room to run, but they are watching you.",
+  choices: [
+    { label: "Give them two coins", note: "lose two coins · avoid a fight", then: [{ type: "item", item: "coin", n: -2 }, { type: "minutes", n: 5 }], line: "You handed over two coins, and they let you pass." },
+    { label: "Give them your most valuable possession", note: "lose one carried item · avoid a fight", then: [{ type: "forfeit" }, { type: "minutes", n: 5 }], line: "You gave up a possession and were allowed to go." },
+    { label: "Run for it", note: "easier when fed and rested · a beating if caught", check: { stat: "agility", skill: "wayfaring", odds: 0.6 }, then: [{ type: "minutes", n: 10 }, { type: "fatigue", n: 12 }], line: "You got away from the robbers.", otherwise: [{ type: "forfeit" }, { type: "hurt", n: 18, cause: "a roadside assault", injury: "bruised ribs" }, { type: "minutes", n: 20 }], otherwiseLine: "They caught you, beat you, and took something before leaving." },
+    { label: "Fight back", note: "dangerous · your strength and injuries matter", check: { stat: "strength", skill: "arms", odds: 0.35 }, then: [{ type: "minutes", n: 10 }, { type: "fatigue", n: 15 }], line: "You fought hard enough to drive them off.", otherwise: [{ type: "forfeit" }, { type: "hurt", n: 30, cause: "a roadside assault", injury: "injured shoulder" }, { type: "minutes", n: 30 }], otherwiseLine: "They overwhelmed you and left you hurt beside the route." },
+  ],
+}];

@@ -254,11 +254,10 @@ export class AudioDirector {
       if (this.state.followWorld && this.inside === undefined) {
         this.retire(false, SLOW_FADE_OUT);
         this.patch({ playing: false, beat: 0 });
-        const next = shuffled(
-          this.rotation.next(this.state.arrangement.themeId),
-        );
         this.later(GAP_MIN + Math.random() * GAP_SPREAD, () => {
-          this.configure(next);
+          this.configure(shuffled(
+            this.rotation.next(this.state.arrangement.themeId),
+          ));
           void this.play(SLOW_FADE_IN);
         });
         return;
@@ -341,16 +340,15 @@ export class AudioDirector {
   ) {
     const key = `${culture}:${year}:${location?.lon}:${location?.lat}`;
     if (key === this.setting) return;
+    const firstSetting = !this.setting;
     this.setting = key;
-    if (!culture || year === undefined) {
-      this.rotation = new MusicRotation([], [...themes, ...anywhereThemes]);
-      if (this.state.followWorld)
-        this.configure({ themeId: this.rotation.next() });
-      return;
-    }
-    const { direct } = culturalMusic(culture, year, location);
+    const direct = culture && year !== undefined
+      ? culturalMusic(culture, year, location).direct
+      : [];
     this.rotation = new MusicRotation(direct, [...themes, ...anywhereThemes]);
-    if (this.state.followWorld && this.inside === undefined)
+    // Setting refreshes affect the next piece, not the one already underway.
+    if (firstSetting && this.state.followWorld && this.inside === undefined &&
+      !this.state.playing && !this.state.loading)
       this.configure({ themeId: this.rotation.next() });
   }
   /** Crossing a threshold swaps the score at once, as an RPG does at an inn door. */

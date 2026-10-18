@@ -111,7 +111,7 @@ const indoors = new Set([
 
 /** Where a recipe's step is done, found on the map rather than at a prop. */
 /** `home` is inside the house at its work spot, `yard` the store out front, `door` the street door. */
-export type PlaceRole = "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well";
+export type PlaceRole = "workplace" | "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well";
 /** One stage of a day: a short name for the strip, the thing to do, and
  * whether it happens at a client's house instead of at home. A recipe's step
  * also names its place, the task screen's scene for it and its card. */
@@ -220,7 +220,12 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
   // Work with no day of its own draws the general deck for its family at its
   // second and third steps.
   const workplace = workplaceFor(kit.activity);
-  const steps = day?.steps ?? (callOuts.find(([re]) => re.test(kit.id))?.[1] ?? familySteps[family])
+  const hunting: Step[] | undefined = kit.activity === "Looking for game" ? [
+    { name: "prepare", task: "Get your hunting weapon ready", at: "home", scene: "craft", hours: 0.5 },
+    { name: "hunt", task: "Track and hunt wild game", at: "wild", scene: "hunt", hours: 0 },
+    { name: "bring home", task: "Bring the meat and hides home", at: "yard", scene: "haul", hours: 0.5 },
+  ] : undefined;
+  const steps = (hunting ?? day?.steps ?? (callOuts.find(([re]) => re.test(kit.id))?.[1] ?? familySteps[family]))
     .map((st, i) => ({
       ...st,
       ...(st.client && !st.at ? { at: "client" as const } : {}),
@@ -229,11 +234,11 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
       // drawn at the well.
       ...(st.at === "wild" && workplace === "extraction" ? { at: undefined } : {}),
       ...(st.name === "load" && kit.activity === "Carrying water" ? { at: undefined, task: "Fill the vessels at the well" } : {}),
-      ...(i ? { card: `${family}-${i + 1}` } : {}),
+      ...(i && !hunting ? { card: `${family}-${i + 1}` } : {}),
     }));
   return {
-    family, ...processFamilies[family], title: day?.title, skill: recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, rises: recipe?.rises ?? 6, bench: recipe?.bench,
+    family, ...processFamilies[family], title: day?.title, skill: hunting ? "hunting" : recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, rises: recipe?.rises ?? 6, bench: recipe?.bench,
     steps, stages: steps.map((s) => s.name),
-    stations, makes: goodsOf(kit, revision), indoors: indoors.has(kit.activity),
+    stations:recipe?.stations ?? stations, makes: goodsOf(kit, revision), indoors: indoors.has(kit.activity),
   };
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   compose,
   defaultArrangement,
@@ -21,6 +21,7 @@ import { places } from "../src/content/geography/places";
 import { placeAtYear } from "../src/content/geography/eras";
 import { layeredThemes } from "../src/audio/layered-themes";
 import { interiorThemes } from "../src/audio/interior-themes";
+import { AudioDirector } from "../src/audio/director";
 import { catalog } from "../src/audio/sfx";
 import { bellFor, townKindFor } from "../src/audio/ambience";
 import * as handling from "../src/audio/handling";
@@ -371,5 +372,33 @@ describe("town ambience", () => {
     expect(bellFor("Latin Christian", 1300)).toBe("church");
     expect(bellFor("Roman", 100)).toBeUndefined();
     expect(bellFor(undefined, 1900)).toBe("whistle");
+  });
+});
+
+
+describe("soundtrack setting updates", () => {
+  it.each(["playing", "loading"] as const)("keeps an outdoor piece while %s when the setting changes", (transport) => {
+    vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
+    vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
+    const director = new AudioDirector();
+    const configure = vi.spyOn(director, "configure");
+    try {
+      director.setSetting("european", 1500, { lon: 10, lat: 45 });
+      expect(configure).toHaveBeenCalledTimes(1);
+      Object.assign(director.getSnapshot(), { [transport]: true, beat: 48 });
+      const before = director.getSnapshot();
+      director.setSetting("european", 1501, { lon: 10, lat: 45 });
+      director.setSetting("east-asian", 1501, { lon: 135, lat: 35 });
+      director.setSetting(undefined, undefined);
+      expect(director.getSnapshot()).toBe(before);
+      expect(configure).toHaveBeenCalledTimes(1);
+      director.setInterior("home");
+      expect(director.getSnapshot().arrangement.themeId).toBe(interiorThemes.home.id);
+      expect(director.getSnapshot().beat).toBe(0);
+    } finally {
+      director.dispose();
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
   });
 });

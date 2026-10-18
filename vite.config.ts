@@ -72,7 +72,7 @@ export default defineConfig({
               JSON.parse(content);
               await writeFile(target, content);
               execFile(
-                "python3",
+                ".venv/bin/python",
                 ["scripts/build_art.py"],
                 { maxBuffer: 1 << 24 },
                 (err, stdout, stderr) =>

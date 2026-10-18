@@ -11,7 +11,7 @@ import json, sys
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKS = ROOT / 'public/packs'
-SHEETS = ['buildings', 'regional-buildings', 'camp-buildings', 'modern-buildings',
+SHEETS = ['worksites', 'buildings', 'regional-buildings', 'camp-buildings', 'modern-buildings',
           'street-buildings', 'street-weather', 'civic', 'sacred-buildings', 'precincts']
 SIZE = 1024
 
@@ -19,7 +19,7 @@ SIZE = 1024
 def write_tones():
     tones = {}
     models = json.loads((ROOT / 'src/content/graphics/models.generated.json').read_text())
-    for name in ['regional-buildings', 'camp-buildings', 'modern-buildings', 'street-buildings', 'buildings']:
+    for name in ['worksites', 'regional-buildings', 'camp-buildings', 'modern-buildings', 'street-buildings', 'buildings']:
         with Image.open(PACKS / f'{name}.png') as image:
             sheet = image.convert('RGBA')
         frames = json.loads((PACKS / f'{name}.json').read_text())['frames']

@@ -1,8 +1,13 @@
+import { bodySummary, observedIllnesses } from "../core/health";
+import { dangerSummary, npcDanger } from "../core/danger";
 import { SKILLS, levelOf, rankOf, skillIds } from "../core/skills";
 import type { Engine } from "../core/engine";
 import { describeStats, statsOf } from "../core/stats";
 import { describeStanding, standingOf } from "../core/standing";
-import { describeOutlook, outlookOf } from "../core/outlook";
+import { outlookSentence, outlookOf } from "../core/outlook";
+import { householdLine } from "../core/persona";
+import { beliefOf, beliefsFor } from "../content/beliefs";
+import type { WorldSetting } from "../content/geography/types";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
 import { distance, type Actor, type Position } from "../core/types";
@@ -10,7 +15,7 @@ const RULES = `You narrate one turn of a historical simulation. The player types
 
 Write like a good historical novelist, not a summary. Every turn should carry at least one concrete, period-specific particular the player could see, hear, smell or handle: the material of a wall or garment, a tool of their trade, what a named neighbour is doing, the feel of the weather at this hour. Draw these from the WORLD grounding, the culture and the SCENE; plausible everyday detail of the time and place is wanted, but invented named people, buildings or goods are not. Prefer the specific word to the generic one (not "food" but what the food is, not "the Household" but the kind of house it is). Stay plain and unsentimental; no purple prose, no stacked adjectives. When the player asks who they are, where they are or what to do, answer as a short vivid portrait of their life and circumstances today, not a restatement of facts.
 
-Truth comes from the WORLD and SCENE sections. Never contradict them and never invent named people, buildings or goods that are not listed; unnamed passers-by are fine. Refuse the anachronistic or impossible inside the story, briefly, without breaking character. People here have their own work and standing; they can be busy, wary, or unimpressed.
+Truth comes from the WORLD and SCENE sections. Never contradict them and never invent named people, buildings or goods that are not listed; unnamed passers-by are fine. Outlook describes attitudes, not a religious affiliation: never turn an outlook into the name of a faith. Use the supplied Religious practice for beliefs and observance. Refuse the anachronistic or impossible inside the story, briefly, without breaking character. People here have their own work and standing; they can be busy, wary, or unimpressed.
 
 You do not change the world yourself. You propose intents and the engine resolves them; your narration must not assume an outcome the engine has not yet decided:
 - attempt: physical or mental risk (climb, swim, lift, sneak, persuade, recall). Give check (strength|agility|wit), difficulty 1-5, and two short outcome sentences: success and failure. Your narration is only the lead-in.
@@ -54,6 +59,14 @@ export const hourWord = (clock: number) => {
     m = Math.floor(clock / 60) % 60;
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
 };
+function employmentLine(engine: Engine, actor: Actor): string {
+  const employment = engine.world.activitySites?.(actor.id)?.employment;
+  return employment ? `Workplace: ${employment.label}.` : "";
+}
+function religiousPractice(seed: string, actor: Actor, setting: WorldSetting): string {
+  const belief = beliefOf(seed, actor, beliefsFor(setting, actor.origin?.community));
+  return `Religious practice: ${belief.system.label}; ${belief.observance} observance${belief.patron ? `; addresses ${belief.patron.name}` : ""}${belief.keeps ? `; ${belief.keeps}` : ""}`;
+}
 /** The world and the character as facts, with no instructions attached: the
  * narrator prefixes its own rules, a chronicle or an agent takes it plain. */
 export function worldFacts(engine: Engine): string {
@@ -61,17 +74,9 @@ export function worldFacts(engine: Engine): string {
     s = engine.state,
     p = s.player,
     setting = pack.setting,
+    personalSetting = p.identity ? p.identity.setting : setting,
     standing = standingOf(s.manifest.seed, p),
-    outlook = setting ? outlookOf(s.manifest.seed, p, setting) : undefined;
-  const household = s.households?.find((h) => h.members.includes("player"));
-  const kin = (p.relations ?? [])
-    .map((r) => {
-      const a = s.actors.find((a) => a.id === r.other);
-      return a
-        ? `${a.name} (${r.kind}${a.age ? `, ${a.age}` : ""})`
-        : undefined;
-    })
-    .filter(Boolean);
+    outlook = personalSetting ? outlookOf(s.manifest.seed, p, personalSetting) : undefined;
   const evidence = pack.evidence
     .filter((e) => e.status !== "fictional")
     .slice(0, 8)
@@ -87,11 +92,11 @@ export function worldFacts(engine: Engine): string {
     evidence.length ? `Grounding:\n${evidence.join("\n")}` : "",
     "",
     "PLAYER",
-    `${p.name}, ${p.age ?? "adult"}, ${p.role}${p.origin ? ` (${p.origin.livelihood}, ${p.origin.community})` : ""}. ${standing ? `Standing: ${describeStanding(standing)}. ` : ""}${p.stats ? `Traits: ${describeStats(p.stats).join(", ") || "unremarkable"}.` : ""}${outlook?.stances.length ? ` Holds: ${describeOutlook(outlook)}.` : ""}`,
-    `Concern: ${pack.concern}`,
-    household
-      ? `Household of ${household.members.length}${kin.length ? `: ${kin.join(", ")}` : ""}.`
-      : "Lives alone.",
+    `${p.name}, ${p.age ?? "adult"}, ${p.role}${p.origin ? ` (${p.origin.livelihood}, ${p.origin.community})` : ""}. ${standing ? `Standing: ${describeStanding(standing)}. ` : ""}${p.stats ? `Traits: ${describeStats(p.stats).join(", ") || "unremarkable"}.` : ""}${outlook?.stances.length ? ` Outlook: ${outlookSentence(outlook, undefined, 2)}` : ""}`,
+    personalSetting ? religiousPractice(s.manifest.seed, p, personalSetting) : "",
+    employmentLine(engine, p),
+    `Concern: ${p.identity?.concern ?? pack.concern}`,
+    householdLine(s),
     "",
     `Item catalog ids: ${catalog}.`,
   ]
@@ -137,8 +142,8 @@ export function sceneDigest(engine: Engine, input: string): string {
     const outlook =
       a.kind === "human" && setting ? outlookOf(seed, a, setting) : undefined;
     const rel = (p.relations ?? []).find((r) => r.other === a.id)?.kind;
-    const mood = a.trust < 0 ? "wary of you" : a.trust > 2 ? "friendly" : "";
-    return `- ${a.id} "${a.name}", ${a.role}${a.age ? `, ${a.age}` : ""}${rel ? `, your ${rel}` : ""}, ${compass(p.pos, a.pos)}: ${a.activity.toLowerCase()}${a.held ? `, holding ${a.held}` : ""}${standing ? `; ${describeStanding(standing)}` : ""}${traits.length ? `; ${traits.join(", ")}` : ""}${outlook?.stances.length ? `; ${describeOutlook(outlook, 1)}` : ""}${mood ? `; ${mood}` : ""}${affordances(a.id) ? ` [${affordances(a.id)}]` : ""}`;
+    const mood = [a.trust < 0 ? "wary of you" : a.trust > 2 ? "friendly" : "", ...observedIllnesses(s, a.id, setting).map((ill) => `symptoms: ${ill.name}; ${ill.trend ?? "ongoing"}`)].filter(Boolean).join("; ");
+    return `- ${a.id} "${a.name}", ${a.role}${a.age ? `, ${a.age}` : ""}${rel ? `, your ${rel}` : ""}, ${compass(p.pos, a.pos)}: ${a.activity.toLowerCase()}${a.held ? `, holding ${a.held}` : ""}${employmentLine(engine, a) ? `; ${employmentLine(engine, a)}` : ""}${standing ? `; ${describeStanding(standing)}` : ""}${traits.length ? `; ${traits.join(", ")}` : ""}${outlook?.stances.length ? `; Outlook: ${outlookSentence(outlook, undefined, 1)}` : ""}${a.kind === "human" && setting ? `; ${religiousPractice(seed, a, setting)}` : ""}${mood ? `; ${mood}` : ""}${npcDanger(a, s.clock) !== "none" ? `; danger: ${npcDanger(a, s.clock)}` : ""}${affordances(a.id) ? ` [${affordances(a.id)}]` : ""}`;
   });
   const things = near(
     s.objects.filter((o) => !o.carriedBy && o.kind !== "exit"),
@@ -162,11 +167,12 @@ export function sceneDigest(engine: Engine, input: string): string {
     );
   const inventory = Object.entries(p.inventory)
     .filter(([, n]) => n)
-    .map(([id, n]) => `${engine.item(id)?.name ?? id} x${n}`)
+    .map(([id, n]) => `${engine.item(id)?.name ?? id} [${id}] x${n}`)
     .join(", ");
   const held = p.held
     ? s.objects.find((o) => o.id === p.held)?.name
     : undefined;
+  const nearbyDanger = engine.nearbyDanger();
   const condition = [
     p.hunger > 70 ? "hungry" : p.hunger > 45 ? "peckish" : "fed",
     p.fatigue > 65 ? "tired" : p.fatigue > 35 ? "a little worn" : "rested",
@@ -202,6 +208,10 @@ export function sceneDigest(engine: Engine, input: string): string {
     `Day ${Math.floor(s.clock / 86400) + 1}, ${hourWord(s.clock)}, ${season}. ${weather.label}, ${Math.round(weather.tempC)}°C${weather.night ? ", dark" : ""}.`,
     `You are ${inside ? `inside ${inside.name}` : `outdoors on ${terrain}`}${held ? `, carrying ${held.toLowerCase()}` : ""}. You feel ${condition}.`,
     `Inventory: ${inventory || "nothing"}.`,
+    bodySummary(s, engine.world.pack.setting),
+    s.manifest.disease ? `Care actions (act {type:'care', target:'player', treatment:ID}): ${engine.careOptions().map((o) => `${o.treatment}: ${o.label}, ${o.minutes} minutes${o.coin ? `, ${o.coin} coins` : ""}; ${o.unavailable ?? o.note}${o.practitioner ? `; practitioner ${o.practitioner.id} at ${o.practitioner.pos.space} (${o.practitioner.pos.x},${o.practitioner.pos.y})` : ""}`).join(" | ")}. Symptoms do not establish a diagnosis. Narration cannot infect, cure, diagnose with certainty, or supply treatment; use the listed actions.` : "",
+    dangerSummary(engine.danger()),
+    nearbyDanger.length ? `Nearby ground (16 paces): ${nearbyDanger.map((d) => `${d.bearing} (${d.pos.x},${d.pos.y}): ${d.level}${d.reasons.length ? ` (${d.reasons.join(", ")})` : ""}`).join("; ")}.` : "",
     able.length ? `You are known to be good at: ${able.join(", ")}.` : "",
     p.injury ? `You are nursing a ${p.injury.name}.` : "",
     people.length ? `People nearby:\n${people.join("\n")}` : "Nobody in sight.",

@@ -64,6 +64,9 @@ export type Plot = Rect & {
   state?: "used" | "fallow" | "abandoned";
 };
 export type WorkSite = {
+  domesticWork?: Point;
+  employment?: { id: string; kind: import("../../content/characters/workplace").Institution; label: string };
+  role?: string;
   home: Point;
   work: Point;
   water: Point;
@@ -76,6 +79,13 @@ export type WorkSite = {
   offset: number;
 };
 export type SettlementPlan = {
+  waterfront?: {
+    id:string; profile:string; repairYardId?:string; landingId:string;
+    members:{owner:string; homeId:string; gearId:string; boatId:string; netsId:string; catchId:string;
+      landing:Point; launch:import("./shoreline").Launch; nets:Point; sorting:Point;
+      handling?:{kind:"beach"|"timber-steps"; yard:Rect; sale:Point; basketId?:string; gear:Point}}[];
+  };
+  launches?: import("./shoreline").Launch[];
   site: Site;
   roads: Road[];
   plots: Plot[];
@@ -108,6 +118,7 @@ export type SettlementPlan = {
   /** Building footprints only: what wears the ground round it. */
   built?: Set<string>;
   work: Map<string, WorkSite>;
+  employment?: import("./employment").WorkplaceOffer[];
   /** Places people stop to talk, spread through the settlement. */
   gatherings?: Point[];
   /** Somewhere to go when the work is done. Open venues have no building and

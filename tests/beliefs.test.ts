@@ -292,3 +292,208 @@ it.each([
   if (!("setting" in r)) throw new Error(r.error);
   expect(beliefsFor(r.setting).id).toBe(id);
 });
+
+// Compare the same actors and seed, changing only the contextual revision.
+import {
+  contextualBeliefs,
+  practiceText,
+  selectBeliefs,
+} from "../src/content/beliefs";
+import type { BeliefSystem } from "../src/content/beliefs/types";
+import type { WorldSetting } from "../src/content/geography/types";
+import { outlookOf } from "../src/core/outlook";
+
+const context = (
+  year: number,
+  lon: number,
+  lat: number,
+  culture: WorldSetting["culture"],
+): WorldSetting =>
+  ({
+    year,
+    lon,
+    lat,
+    culture,
+    community: "",
+    beliefRevision: 1,
+  }) as WorldSetting;
+
+it("uses explicit refinements, then geography, without trading area for years", () => {
+  const broad = {
+    ...unscopedBeliefs,
+    id: "brief-region",
+    scope: { years: [1649, 1651], bounds: [-110, 10, -80, 30] },
+  } as BeliefSystem;
+  const local = {
+    ...unscopedBeliefs,
+    id: "long-local",
+    scope: { years: [1500, 1900], bounds: [-98, 16, -96, 18] },
+  } as BeliefSystem;
+  const s = context(1650, -97, 17, "mesoamerican");
+  expect(
+    selectBeliefs([broad, local], { ...s, beliefRevision: undefined }).id,
+  ).toBe(broad.id);
+  expect(selectBeliefs([broad, local], s).id).toBe(local.id);
+  expect(selectBeliefs([broad, { ...local, priority: -1 }], s).id).toBe(
+    broad.id,
+  );
+  expect(() => selectBeliefs([local, { ...local, id: "conflict" }], s)).toThrow(
+    "Ambiguous",
+  );
+  expect(selectBeliefs([local, broad], s)).toEqual(
+    selectBeliefs([broad, local], s),
+  );
+});
+
+it("scopes powers, their relationships, patrons and weighted practices independently", () => {
+  const scope = { years: [1600, 1700], communities: ["local"] } as const;
+  const system: BeliefSystem = {
+    ...unscopedBeliefs,
+    features: ["sacred-texts"],
+    powers: [
+      { name: "Local", domain: "home", rank: "local", scope },
+      {
+        name: "Shared",
+        domain: "home",
+        rank: "major",
+        relations: [{ kind: "serves", of: "Local" }],
+      },
+    ],
+    patronOptions: ["Local"],
+    practice: [
+      "Ordinary",
+      { text: "Local rite", scope, weight: 9 },
+      { text: "Unavailable", requires: ["sacred-texts"], weight: 0 },
+    ],
+  };
+  const s = context(1650, 0, 0, "european");
+  const inside = contextualBeliefs(system, s, "local");
+  const outside = contextualBeliefs(system, s, "visitor");
+  expect(outside.powers.map((p) => p.name)).toEqual(["Shared"]);
+  expect(outside.powers[0].relations).toEqual([]);
+  expect(outside.patronOptions).toEqual([]);
+  expect(outside.practice.map(practiceText)).not.toContain("Local rite");
+  const draws = Array.from(
+    { length: 300 },
+    (_, i) => beliefOf("comparison", actor(String(i)), inside).keeps,
+  );
+  expect(draws.filter((p) => p === "Local rite").length).toBeGreaterThan(240);
+  expect(draws).not.toContain("Unavailable");
+  expect(
+    contextualBeliefs(system, { ...s, year: 1700 }, "local").practice.map(
+      practiceText,
+    ),
+  ).not.toContain("Local rite");
+});
+
+it("removes misplaced regional practices while retaining local specificity", () => {
+  const cases = [
+    { name: "Oaxaca", lon: -96.73, lat: 17.06, allowed: /Mass|Candles/ },
+    { name: "Yucatan", lon: -89.6, lat: 20.97, allowed: /Aluxob/ },
+    { name: "Atitlan", lon: -91.23, lat: 14.64, allowed: /Maximón/ },
+  ];
+  for (const c of cases) {
+    const s = context(1650, c.lon, c.lat, "mesoamerican");
+    const before = beliefsFor({ ...s, beliefRevision: undefined });
+    const after = beliefsFor(s);
+    const draws = (system: BeliefSystem) =>
+      Array.from(
+        { length: 300 },
+        (_, i) => beliefOf("comparison", actor(String(i)), system).keeps!,
+      );
+    expect(draws(before).some((p) => /Maximón/.test(p))).toBe(true);
+    expect(draws(before).some((p) => /Aluxob/.test(p))).toBe(true);
+    expect(
+      draws(after).some((p) => c.allowed.test(p)),
+      c.name,
+    ).toBe(true);
+    if (c.name !== "Atitlan")
+      expect(
+        draws(after).some((p) => /Maximón/.test(p)),
+        c.name,
+      ).toBe(false);
+    if (c.name !== "Yucatan")
+      expect(
+        draws(after).some((p) => /Aluxob/.test(p)),
+        c.name,
+      ).toBe(false);
+  }
+});
+
+it("does not assign occupational rites to unrelated workers", () => {
+  const s = context(1650, -68, -17, "andean");
+  const system = beliefsFor(s);
+  expect(
+    system.practice.map(practiceText).some((p) => p.includes("Miners")),
+  ).toBe(true);
+  const draws = Array.from(
+    { length: 300 },
+    (_, i) => beliefOf("comparison", actor(String(i)), system).keeps!,
+  );
+  expect(draws.some((p) => p.includes("Miners"))).toBe(false);
+  const miner = { ...actor(), origin: { livelihood: "miner" } } as ReturnType<
+    typeof actor
+  >;
+  expect(
+    Array.from(
+      { length: 100 },
+      (_, i) => beliefOf(String(i), miner, system).keeps!,
+    ).some((p) => p.includes("Miners")),
+  ).toBe(true);
+});
+
+it("grounds textual outlooks in the selected tradition across regions", () => {
+  for (const s of [
+    context(-1200, -90, 17, "mesoamerican"),
+    context(-1000, 10, 60, "european"),
+    context(1650, 30, 40, "north-african-west-asian"),
+    context(1650, 135, 35, "east-asian"),
+  ]) {
+    const textual = beliefsFor(s).features?.includes("sacred-texts") ?? false;
+    let before = 0,
+      after = 0;
+    for (let i = 0; i < 500; i++) {
+      const a = actor(String(i));
+      before += Number(
+        outlookOf("comparison", a, {
+          ...s,
+          beliefRevision: undefined,
+        }).stances.some((p) => p.requiresBelief?.length),
+      );
+      after += Number(
+        outlookOf("comparison", a, s).stances.some(
+          (p) => p.requiresBelief?.length,
+        ),
+      );
+    }
+    expect(before).toBeGreaterThan(0);
+    if (textual) expect(after).toBeGreaterThan(0);
+    else expect(after).toBe(0);
+  }
+});
+
+it("resolves authored profile centers without ambiguous precedence", () => {
+  const conflicts = new Set<string>();
+  for (const b of beliefSystems) {
+    if (!b.scope.bounds) continue;
+    const [w, south, e, n] = b.scope.bounds;
+    for (const year of [
+      b.scope.years[0],
+      Math.floor((b.scope.years[0] + b.scope.years[1]) / 2),
+      b.scope.years[1] - 1,
+    ]) {
+      const s = context(
+        year,
+        (w + e) / 2,
+        (south + n) / 2,
+        b.scope.cultures![0],
+      );
+      try {
+        beliefsFor(s, b.scope.communities?.[0]);
+      } catch (error) {
+        conflicts.add(String(error));
+      }
+    }
+  }
+  expect([...conflicts]).toEqual([]);
+});

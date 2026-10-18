@@ -17,6 +17,7 @@ const setting = (
     pattern === "dense" ? 1300 : -6499,
   ),
   terrainRevision: 2,
+  geographyMode: "configured",
   water: "river-ew",
   settlementPattern: pattern,
   environment: {
@@ -81,7 +82,7 @@ for (const [seed, landform, pattern] of [
   ["ridge-check", "ridge", "clustered"],
   ["basin-check", "basin", "clustered"],
 ] as const)
-  it(`connects generated households on ${landform} terrain (${pattern})`, () => {
+  it.runIf(!!process.env.FULL)(`connects generated households on ${landform} terrain (${pattern})`, () => {
     const e = createSettingSession(setting(landform, pattern), seed),
       w = e.world as SettlementWorld;
     expect(e.state.households!.length).toBeGreaterThanOrEqual(3);

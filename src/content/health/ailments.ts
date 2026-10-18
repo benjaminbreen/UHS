@@ -152,4 +152,17 @@ export const AILMENTS: readonly AilmentDef[] = [
     laid: "Resting a broken arm",
     look: "pallor",
   },
+  {
+    id: "wound",
+    names: [{ name: "an infected wound" }],
+    gloss: "An infection following an open injury.",
+    rate: () => 0,
+    days: [5, 12],
+    deadly: (p) => p.age < 5 || p.age >= 60 ? 0.08 : 0.025,
+    of: "{who} has a painful, inflamed wound {for}",
+    you: "you have a painful, inflamed wound {for}",
+    died: "of an infected wound",
+    laid: "Resting with a painful wound",
+    look: "fever",
+  },
 ];

@@ -6,7 +6,7 @@ import { outlookOf } from "./outlook";
 import { kinOf } from "./kin";
 import { sexOf } from "./brief";
 import { random } from "./random";
-import { ailmentDef, conditionsOf, forHowLong, healthPerson, nameFor, severity } from "./health";
+import { symptomsOf, ailmentDef, conditionsOf, forHowLong, healthPerson, nameFor, severity } from "./health";
 import type { Actor, Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
 
@@ -85,6 +85,12 @@ export function concernsOf(s: Snapshot, setting: WorldSetting | undefined, here:
     const sev = severity(ail, clock);
     if (sev <= 0) continue;
     const def = ailmentDef(ail.id), name = nameFor(def, setting);
+    if (ail.infection) {
+      const symptoms = symptomsOf(ail).join(", ");
+      if (ail.who === p.id) add("ill", 0.85, [{ text: `you have ${symptoms}` }], p.id);
+      else if (people.has(ail.who)) add("ill", 0.83, [...who(ail.who), { text: ` has ${symptoms}` }], ail.who);
+      continue;
+    }
     const slots = (key: string) => (key === "for" ? forHowLong(ail, clock, inWords) : key === "name" ? { text: name, mark: "note" as const, note: def.gloss } : undefined);
     if (ail.who === p.id) add("ill", 0.85, fill(def.you, slots), p.id);
     else if (people.has(ail.who)) {

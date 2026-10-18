@@ -643,6 +643,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "second-temple-judaism",
+    features: ["sacred-texts"],
     label: "Second Temple Jewish practice",
     wiki: "https://en.wikipedia.org/wiki/Second_Temple_Judaism",
     scope: { years: [-500, 200], bounds: [34, 30, 37, 34] },
@@ -1130,6 +1131,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-islamic",
+    features: ["sacred-texts"],
     label: "Early Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Early_Islam",
     scope: { years: [600, 850], bounds: [33, 12, 60, 34] },
@@ -1235,6 +1237,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "medieval-sunni-islam",
+    features: ["sacred-texts"],
     label: "Medieval Sunni Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Sunni_Islam",
     scope: { years: [700, 1600], bounds: [-18, 10, 63, 42] },
@@ -1341,6 +1344,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "coptic-orthodox",
+    features: ["sacred-texts"],
     label: "Coptic Orthodox Christianity",
     wiki: "https://en.wikipedia.org/wiki/Coptic_Orthodox_Church_of_Alexandria",
     scope: { years: [1000, 1700], bounds: [23, 20, 38, 34] },
@@ -1438,6 +1442,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "ottoman-sufi",
+    features: ["sacred-texts"],
     label: "Ottoman Sufi-inflected Islam",
     wiki: "https://en.wikipedia.org/wiki/Sufism",
     scope: { years: [1350, 1850], bounds: [18, 22, 52, 45] },
@@ -1530,6 +1535,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "post-1069-egypt",
+    features: ["sacred-texts"],
     label: "Post-Fatimid Egyptian Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Egypt",
     scope: { years: [1069, 1450], bounds: [24, 22, 36, 32] },
@@ -1613,6 +1619,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "nubian-nile-islam",
+    features: ["sacred-texts"],
     label: "Nubian Nile and Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Sudan",
     scope: { years: [700, 1600], bounds: [32, 14, 38, 26] },
@@ -1703,6 +1710,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "maghreb-berber-islam",
+    features: ["sacred-texts"],
     label: "Maghrebi Berber Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Maraboutism",
     scope: { years: [600, 1800], bounds: [-20, 12, 15, 40] },
@@ -1787,6 +1795,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "arabian-peninsula-broader",
+    features: ["sacred-texts"],
     label: "Islamic practice across the Arabian Peninsula",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Saudi_Arabia",
     scope: { years: [600, 1800], bounds: [30, 10, 62, 35] },
@@ -1892,6 +1901,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "persian-sufi-islam",
+    features: ["sacred-texts"],
     label: "Persian Sufi Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Sufism",
     scope: { years: [900, 1600], bounds: [48, 25, 62, 38] },
@@ -1980,6 +1990,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "anatolian-ottoman-islam",
+    features: ["sacred-texts"],
     label: "Anatolian Ottoman Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Turkey",
     scope: { years: [1300, 1700], bounds: [26, 35, 46, 42] },
@@ -2064,6 +2075,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "caucasus-caspian-islam",
+    features: ["sacred-texts"],
     label: "Caucasus and Caspian Islamic and traditional practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Russia",
     scope: { years: [-2000, 2000], bounds: [44, 38, 64, 45] },
@@ -2146,6 +2158,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "modern-west-asia-islam",
+    features: ["sacred-texts"],
     label: "Modern Islamic practice in West Asia and North Africa",
     wiki: "https://en.wikipedia.org/wiki/Islam_by_country",
     scope: { years: [1750, 2100], bounds: [-18, 12, 62, 42] },

@@ -4,10 +4,14 @@ import { z } from "zod";
 import { dialogue } from "../server/dialogue";
 import { strictSchema } from "../server/json-schema";
 import { narrator } from "../server/narrator";
-import { Runtime, createSettingSession } from "../src/runtime/session";
+import { Runtime } from "../src/runtime/session";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { commitDialogue, dialogueTurn, type DialogueLine, dialogueContext } from "../src/narrator/dialogue";
 import { languageBrief, languageWindow } from "../src/content/history/languages";
+import { sceneDigest, worldCard } from "../src/narrator/prompt";
+import { outlookOf } from "../src/core/outlook";
+import { beliefOf, beliefsFor } from "../src/content/beliefs";
+import { infect } from "../src/core/health";
 import { statsOf } from "../src/core/stats";
 
 const reply = (body: unknown) =>
@@ -25,6 +29,25 @@ const post = (ip: string) =>
   });
 
 describe("dialogue endpoint", () => {
+  it("grounds a practitioner's response in visible symptoms and actual supplies without revealing exposure", () => {
+    const resolved = resolveSetting("Doctor in London 1980", "health-dialogue");
+    if ("error" in resolved) throw Error(resolved.error);
+    const e = smallSession(resolved.setting, "health-dialogue");
+    const actor = e.state.actors[0];
+    actor.role = "Doctor";
+    actor.medicalStock = { antibiotic: 2, rehydration: 0 };
+    const ail = infect(e.state, "cough", e.state.player, resolved.setting, e.state.clock, "secret-exposure", "air");
+    e.state.ailments = [ail];
+    const runtime = new Runtime(e, { cacheTerrain: false });
+    try {
+      expect(dialogueContext(runtime, actor)).toContain("Visible symptoms in the player: none");
+      ail.since = e.state.clock - 86400;
+      const context = dialogueContext(runtime, actor);
+      expect(context).toContain("Visible symptoms in the player: cough, feverishness, tiredness");
+      expect(context).toContain("2 antibiotic courses");
+      expect(context).not.toMatch(/secret-exposure|mortality|disease-outcome/);
+    } finally { runtime.dispose(); }
+  });
   it("explains the selected line and its language without creating a new dialogue turn", async () => {
     let sent: Record<string, any> | undefined;
     const request = new Request("http://localhost/api/dialogue", {
@@ -143,6 +166,31 @@ describe("dialogue endpoint", () => {
 });
 
 describe("narrator endpoint", () => {
+  it("grounds a syncretist's outlook separately from their religious practice", () => {
+    const start = resolveSetting("knoxville 1790");
+    if ("error" in start) throw Error(start.error);
+    const e = smallSession(start.setting, "narrator-belief");
+    const actor = structuredClone(e.state.player);
+    for (let i = 0; i < 1000; i++) {
+      actor.id = `syncretist-${i}`;
+      if (outlookOf(e.state.manifest.seed, actor, start.setting).stances[0]?.id === "temper.syncretist") break;
+    }
+    expect(outlookOf(e.state.manifest.seed, actor, start.setting).stances[0]?.id).toBe("temper.syncretist");
+    actor.name = "Rukmini";
+    actor.role = "Servant";
+    actor.pos = { ...e.state.player.pos };
+    e.state.actors = [actor];
+    e.state.player.relations = [{ other: actor.id, kind: "servant" }];
+    const scene = sceneDigest(e, "who is Rukmini");
+    const belief = beliefOf(e.state.manifest.seed, actor, beliefsFor(start.setting, actor.origin?.community));
+    expect(scene).toContain("your servant");
+    expect(scene).not.toContain("your master");
+    expect(scene).toContain("Outlook: Honours whatever power seems to answer.");
+    expect(scene).toContain(`Religious practice: ${belief.system.label}; ${belief.observance} observance`);
+    if (belief.keeps) expect(scene).toContain(belief.keeps);
+    expect(worldCard(e)).toContain("Outlook describes attitudes, not a religious affiliation");
+    expect(worldCard(e)).toContain("Religious practice:");
+  });
   const turn = (ip: string) =>
     new Request("http://localhost/api/narrator", {
       method: "POST",
@@ -177,7 +225,7 @@ describe("a conversation leaves a trace", () => {
     const start = resolveSetting("knoxville 1790");
     if ("error" in start) throw Error(start.error);
     const runtime = new Runtime(
-      createSettingSession(start.setting, "dialogue-test"),
+      smallSession(start.setting, "dialogue-test"),
       { cacheTerrain: false },
     );
     const state = runtime.engine.state;
@@ -201,7 +249,7 @@ describe("a conversation leaves a trace", () => {
     const start = resolveSetting("knoxville 1790");
     if ("error" in start) throw Error(start.error);
     const runtime = new Runtime(
-      createSettingSession(start.setting, "dialogue-test"),
+      smallSession(start.setting, "dialogue-test"),
       { cacheTerrain: false },
     );
     const state = runtime.engine.state;
@@ -218,7 +266,7 @@ describe("a conversation leaves a trace", () => {
     const start = resolveSetting("knoxville 1790");
     if ("error" in start) throw Error(start.error);
     const runtime = new Runtime(
-      createSettingSession(start.setting, "dialogue-test"),
+      smallSession(start.setting, "dialogue-test"),
       { cacheTerrain: false },
     );
     const state = runtime.engine.state;
@@ -240,11 +288,11 @@ describe("a conversation leaves a trace", () => {
     const start = resolveSetting("knoxville 1790");
     if ("error" in start) throw Error(start.error);
     const runtime = new Runtime(
-      createSettingSession(start.setting, "dialogue-test"),
+      smallSession(start.setting, "dialogue-test"),
       { cacheTerrain: false },
     );
     const state = runtime.engine.state;
-    const actor = state.actors.find((a) => a.kind === "human");
+    const actor = state.actors.find((a) => a.kind === "human" && a.householdId !== state.player.householdId);
     if (!actor) throw Error("No one to speak with.");
     state.player.pos = { ...actor.pos, x: actor.pos.x - 1 };
     runtime.command({ type: "move", dx: 1, dy: 0 });

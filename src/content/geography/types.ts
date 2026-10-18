@@ -73,6 +73,10 @@ export const settingSchema = z
     // 1 is the scoped hand-written kits; 2 adds the ported naming
     // traditions and the capability-gated workforce.
     characterRevision: z.union([z.literal(1), z.literal(2)]).optional(),
+    worksiteRevision: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]).optional(),
+    friendshipRevision: z.literal(1).optional(),
+    employmentRevision: z.literal(1).optional(),
+    beliefRevision: z.literal(1).optional(),
     namingRevision: z.literal(1).optional(),
     lifeStoryRevision: z.literal(1).optional(),
     economyRevision: z.literal(1).optional(),
@@ -82,6 +86,9 @@ export const settingSchema = z
         "english-colonial",
         "indigenous-local",
         "african-diaspora",
+        "us-anglo",
+        "us-latino",
+        "us-chinese",
       ])
       .optional(),
     // Pins the integrated geography rules without changing old generation inputs.

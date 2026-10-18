@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { characterNameParts, generateCharacter } from "../src/content/characters/generate";
+import { characterAppearance, characterNameParts, generateCharacter } from "../src/content/characters/generate";
 import { resolveCharacterContext } from "../src/content/characters/resolve";
 import { integratedSetting } from "../src/content/geography/defaults";
 import { populateCharacter } from "../src/content/geography/character";
@@ -7,6 +7,8 @@ import { packForSetting } from "../src/content/geography/pack";
 import { livelihoodOf } from "../src/world/v3/routines";
 import { goodsOf } from "../src/content/economy/goods";
 import { settingFor } from "../src/content/geography/resolve";
+import { settingSchema } from "../src/content/geography/types";
+import { generateBrowConnection } from "../src/core/character";
 import { featuredPlaces, places } from "../src/content/geography/places";
 import type { Actor, Inventory } from "../src/core/types";
 import { createSettingSession } from "../src/runtime/session";
@@ -18,6 +20,75 @@ const place = (id: string) => {
 };
 
 describe("contextual character generation", () => {
+  it("keeps regional hair textures and style weights in newly generated people", () => {
+    for (const sex of ["male", "female"] as const) {
+      const samples = ["london", "timbuktu", "beijing"].map(id => {
+        const s = settingFor(place(id), 1400);
+        const context = resolveCharacterContext(s);
+        return Array.from({ length: 240 }, (_, i) => characterAppearance(s, "regional-hair", `person-${i}`, 25, context, sex));
+      });
+      const [european, african, eastAsian] = samples;
+      expect(african.filter(a => a.hair === "curls").length).toBeGreaterThan(european.filter(a => a.hair === "curls").length + 15);
+      expect(african.filter(a => a.face?.hairTexture === "coiled").length).toBeGreaterThan(150);
+      expect(eastAsian.every(a => ["straight", "wavy"].includes(a.face!.hairTexture))).toBe(true);
+      for (const hair of ["cropped", "curls", "long", "braid"])
+        expect(african.some(a => a.hair === hair)).toBe(true);
+    }
+    const congo = resolveCharacterContext(settingFor(place("congo"), 1400));
+    expect(congo.profile.id).toBe("community.congo-basin");
+    expect(congo.appearance.hairScale).not.toEqual(resolveCharacterContext(settingFor(place("timbuktu"), 1400)).appearance.hairScale);
+  });
+
+  it("applies regional brow connection rates to both sexes", () => {
+    for (const id of ["london", "konya", "delhi"]) {
+      const s = settingFor(place(id), 2026);
+      const context = resolveCharacterContext(s);
+      expect(context.appearance.joinedBrowRate ?? 0.0075).toBe(id === "london" ? 0.0075 : 0.02);
+      for (const sex of ["male", "female"] as const) for (let i = 0; i < 25; i++) {
+        const person = `brow-${i}`;
+        expect(characterAppearance(s, "brows", person, 30, context, sex).browConnection)
+          .toBe(generateBrowConnection(`brows:character-v1:${person}`, 0, sex, context.appearance.joinedBrowRate));
+      }
+    }
+  });
+
+  it("keeps explicitly chosen US backgrounds on their own appearance kits through 2026", () => {
+    const base = settingFor(place("london"), 2026);
+    for (const [community, lon, lat, kit] of [
+      ["us-anglo", -69.78, 44.31, "europe"],
+      ["african-diaspora", -69.78, 44.31, "africa"],
+      ["us-chinese", -122.4, 37.8, "east-asia"],
+      ["us-latino", -118.2, 34, "americas"],
+      ["indigenous-local", -69.78, 44.31, "americas"],
+    ] as const) {
+      const s = settingSchema.parse({ ...base, lon, lat, characterCommunity: community });
+      for (const year of [2000, 2026]) {
+        const context = resolveCharacterContext({ ...s, year });
+        expect(context.profile.id).not.toContain("regional");
+        expect(context.appearance.id).toBe(`appearance.${kit}-broad`);
+      }
+    }
+  });
+
+  it("weights anatomy by background while retaining overlapping individual features", () => {
+    const european = settingFor(place("london"), 2026);
+    const eastAsian = settingFor(place("beijing"), 2026);
+    const samples = [european, eastAsian].map(s => {
+      const context = resolveCharacterContext(s);
+      return Array.from({ length: 300 }, (_, i) => characterAppearance(s, "background-anatomy", `person-${i}`, 30, context));
+    });
+    const count = (k: number, pred: (a: typeof samples[number][number]) => boolean) => samples[k].filter(pred).length;
+    expect(count(0, a => a.face?.eyelid === "crease")).toBeGreaterThan(count(1, a => a.face?.eyelid === "crease") + 100);
+    expect(count(1, a => !!a.face?.epicanthus)).toBeGreaterThan(count(0, a => !!a.face?.epicanthus) + 150);
+    expect(count(1, a => a.face?.nose === "short")).toBeGreaterThan(count(0, a => a.face?.nose === "short") + 20);
+    for (const people of samples) {
+      expect(new Set(people.map(a => a.face!.nose)).size).toBe(9);
+      expect(new Set(people.map(a => a.face!.eyeShape)).size).toBe(3);
+      expect(new Set(people.map(a => a.face!.epicanthus)).size).toBe(2);
+    }
+    expect(characterAppearance(european, "background-anatomy", "person-0", 30)).toEqual(samples[0][0]);
+  });
+
   it("resolves a requested apprentice specialty to its work and a suitable starting age", () => {
     const setting = { ...settingFor(place("rome"), 100), role: "Apprentice Brewer" };
     for (let i = 0; i < 8; i++) {
@@ -517,4 +588,12 @@ it("uses actual household parents for patronymics and preserves family tradition
     checked++;
   }
   expect(checked).toBeGreaterThan(0);
+});
+
+
+it("equips an early American hunter with a spear instead of a bow", () => {
+  const hunter = generateCharacter(settingFor(place("mexico"), -8099), "early-hunter", "player", 34, "Hunter");
+  expect(hunter.inventory.spear).toBe(1);
+  expect(hunter.inventory.bow).toBeUndefined();
+  expect(hunter.inventory.arrow).toBeUndefined();
 });

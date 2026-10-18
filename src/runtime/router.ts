@@ -129,19 +129,19 @@ export function planFrom(engine: Engine, e: Evaluation): Plan | undefined {
   return place && { kind: "go", to: doorApproach(place), label: place.name.toLowerCase().startsWith("the ") ? place.name : `the ${place.name.toLowerCase()}` };
 }
 
-let offline = false;
+const offline = new WeakSet<Engine>();
 /** Asks the server's Jev for a plan. Undefined on any failure, so the
  * narrator answers as it did before; a server without a key is not asked
  * again this session. */
-export async function routePlan(engine: Engine, input: string): Promise<Plan | undefined> {
-  if (offline) return undefined;
+export async function routePlan(engine: Engine, input: string, send: typeof fetch = fetch): Promise<Plan | undefined> {
+  if (offline.has(engine)) return undefined;
   try {
-    const res = await fetch("/api/jev", {
+    const res = await send("/api/jev", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(routeQuestion(engine, input)),
     });
-    if (res.status === 503 || res.status === 404) offline = true;
+    if (res.status === 503 || res.status === 404) offline.add(engine);
     if (!res.ok) return undefined;
     return planFrom(engine, (await res.json()) as Evaluation);
   } catch {

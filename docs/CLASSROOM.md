@@ -62,7 +62,7 @@ and did something different, and the instructor can replay any of them.
    mode later adds "which pinned beats did this student witness".
 7. **Exports.** The JSONL and CSV the teacher page has, plus one file per run
    in the replay format, so a researcher can re-run all of them headlessly
-   with `scripts/headless.ts`.
+   with `npm run replay`.
 
 Rough size: items 1 to 5 are a few days; 6 is the real work and can grow as
 teaching needs it.

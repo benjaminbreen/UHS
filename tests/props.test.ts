@@ -2,6 +2,13 @@ import { cultures } from "../src/content/history/types";
 import { europeanDetails } from "../src/content/props/settlement-details/europe";
 import { asianDetails } from "../src/content/props/settlement-details/asia";
 import propAtlas from "../src/render/generated/props.json";
+import natureAtlas from "../src/render/generated/nature-atlas.json";
+import { reviewedPropFrame } from "../src/render/prop-variety";
+import { historicalWell } from "../src/content/props/wells";
+import { containerProps, regionalContainers, regionalContainer } from "../src/content/props/containers";
+import { propSprite } from "../src/content/props/place";
+import { propVariety } from "../src/render/prop-variety";
+import type { WorldSetting } from "../src/content/geography/types";
 import { eras } from "../src/content/history/dates";
 import { describe, it, expect } from "vitest";
 import { about } from "../src/content/props/about";
@@ -56,6 +63,129 @@ function fixture() {
   return { e, pot, stick };
 }
 describe("interactive props", () => {
+  it("ships the twelve approved containers in indoor and outdoor regional kits", () => {
+    const cases = [
+      ["waterskin","north-african-west-asian",-6500,37.6,32.8],
+      ["merchantBale","european",100,42,12],
+      ["waterJar","south-asian",1600,26,75],
+      ["milkBag","inner-eurasian",1200,47,100],
+      ["onggiJar","east-asian",1700,37.5,127],
+      ["taru","east-asian",1700,35,135],
+      ["riceBale","east-asian",1700,35,135],
+      ["tradeJar","southeast-asian",1600,14,121],
+      ["milkVessel","east-southern-african",1500,8,46],
+      ["urpu","andean",1500,-13.5,-72],
+      ["barkBox","other-indigenous-american",1600,46,-80],
+      ["coolamon","australian-pacific",1500,-25,133],
+    ] as const;
+    for (const [key,culture,year,lat,lon] of cases) {
+      const setting = { culture,year,lat,lon,settlement:"village",climate:"temperate",placeId:"container-test" } as WorldSetting;
+      const kit=propKit({...packs.roman,year,setting});
+      for (const context of ["household","yard"] as const) expect(kit.contexts[context],key).toContain(key);
+      const sprite=propSprite(key)!;
+      expect(sprite).toBe(containerProps[key].sprite);
+      expect(natureAtlas.frames).toHaveProperty(sprite);
+      expect(propVariety("test",sprite,1,2)).toEqual({flip:false,tint:0xffffff});
+    }
+  });
+  it("shares simple storage technologies while limiting specific traditions", () => {
+    const s={culture:"european",year:-5000,lat:50,lon:10,settlement:"village"} as WorldSetting;
+    expect(regionalContainers(s)).toContain("waterskin");
+    expect(regionalContainers({...s,year:-20000})).not.toContain("waterskin");
+    expect(regionalContainers({...s,culture:"mesoamerican",year:1400,lat:19,lon:-99})).not.toContain("waterskin");
+    expect(regionalContainers({...s,culture:"east-asian",year:1700,lat:37,lon:127})).not.toContain("taru");
+    expect(regionalContainers({...s,culture:"east-asian",year:1700,lat:35,lon:135})).not.toContain("onggiJar");
+    expect(regionalContainers({...s,culture:"andean",year:1000,lat:-13,lon:-72})).not.toContain("urpu");
+    expect(regionalContainers({...s,culture:"australian-pacific",year:1500,lat:-20,lon:175})).not.toContain("coolamon");
+    expect(regionalContainers({...s,culture:"east-asian",year:2020,lat:37,lon:127})).toContain("onggiJar");
+    expect(regionalContainers({...s,culture:"south-asian",year:2020,lat:26,lon:75})).toContain("waterJar");
+    const port={...s,culture:"east-southern-african" as const,year:1600,lat:-6,lon:39,settlement:"port" as const};
+    expect(regionalContainers(port)).toContain("tradeJar");
+    expect(regionalContainers({...port,settlement:"village"})).not.toContain("tradeJar");
+    for (const key of ["well","marketCounter","room-plant","room-claybin","room-chest"])
+      expect(regionalContainer(port,key,0)).toBeUndefined();
+  });
+  it("dresses planned storage without replacing its goods or ownership", () => {
+    const setting={culture:"east-asian",year:1700,lat:35,lon:135,settlement:"village",climate:"temperate",placeId:"test"} as WorldSetting;
+    const outside: WorldObject={id:"outdoor-rice",name:"Grain sacks",kind:"container",prop:"grainSacks",sprite:"study-propb-grain-sacks-0",inventory:{grain:17},owner:"owner",pos:{x:15,y:15,space:"outside"}};
+    const indoor={...outside,id:"indoor-rice",pos:{...outside.pos,space:"home"},inventory:{grain:9}};
+    const world={generatorVersion:3,pack:{...packs.roman,year:1700,setting},settlements:[],places:[],initialActors:[],initialObjects:[outside,indoor],spawn:{x:0,y:0,space:"outside"},terrain:()=>"grass",decoration:()=>undefined,blocked:()=>false,place:()=>({entrance:{x:15,y:15}})} as unknown as WorldModel;
+    // Find an ordinary placement seed that exercises both eligible replacements.
+    for (let i=0;i<20 && [outside,indoor].some(o => !o.sprite.startsWith("nature-container-"));i++) withProps(world,`storage-${i}`);
+    expect(outside.sprite).toMatch(/^nature-container-(ricebale|bale|taru)$/);
+    expect(indoor.sprite).toMatch(/^nature-container-(ricebale|bale|taru)$/);
+    expect(outside.inventory).toEqual({grain:17});
+    expect(indoor.inventory).toEqual({grain:9});
+    expect(outside.owner).toBe("owner");
+    expect(outside.pos.space).toBe("outside");
+    expect(indoor.pos.space).toBe("home");
+  });
+  it("creates regional containers in furnished interiors and keeps them on reload", () => {
+    const resolved=resolveSetting("Kyoto 1700") as {setting: WorldSetting};
+    const e=createSettingSession(resolved.setting,"storage-interiors");
+    const homes=e.state.households!.map(h=>h.residence).filter((s): s is string => !!s);
+    for (const home of homes.slice(0,12)) e.interiorOf(home);
+    const native=e.state.objects.filter(o=>o.id.includes("-room-") && o.sprite.startsWith("nature-container-"));
+    expect(native.length).toBeGreaterThan(0);
+    for (const o of native) {
+      expect(o.pos.space).not.toBe("outside");
+      expect(o.sprite).toBe(propDefs[o.prop!].sprite);
+      expect(natureAtlas.frames).toHaveProperty(o.sprite);
+    }
+    const restored=restoreSession(e.snapshot());
+    expect(restored.state.objects.filter(o=>native.some(n=>n.id===o.id))).toEqual(native);
+  });
+  it("selects all twelve approved wells in their dated regional contexts", () => {
+    const cases = [
+      ["timber", "european", -5100, 51, 13, "well", "village"],
+      ["indus", "south-asian", -2300, 27, 68, "well", "city"],
+      ["roman", "european", 100, 42, 12, "well", "city"],
+      ["han", "east-asian", 100, 34, 109, "well", "city"],
+      ["windlass", "european", 1450, 54, -1, "well", "village"],
+      ["japan", "east-asian", 1750, 35, 139, "well", "city"],
+      ["venice", "european", 1600, 45.44, 12.33, "townWell", "port"],
+      ["westasia", "north-african-west-asian", 1500, 32, 54, "well", "city"],
+      ["rahat", "south-asian", 1600, 26, 75, "well", "farm"],
+      ["arid", "north-african-west-asian", 1400, 31, -8, "well", "village"],
+      ["maya", "mesoamerican", 800, 20.2, -89.6, "well", "village"],
+      ["pump", "european", 1900, 54, -1, "pump", "city"],
+    ] as const;
+    for (const [kind,culture,year,lat,lon,key,settlement] of cases) {
+      const setting = { culture,year,lat,lon,settlement,climate:"arid" } as WorldSetting;
+      const art = historicalWell(setting,key,.1,kind==="rahat");
+      expect(art?.sprite).toBe(`nature-well-${kind}`);
+      expect(natureAtlas.frames).toHaveProperty(art!.sprite);
+    }
+  });
+  it("limits specialized wells by date, region and use", () => {
+    const setting = { culture:"east-asian",year:1750,lat:37.5,lon:127,settlement:"city",climate:"temperate" } as WorldSetting;
+    expect(historicalWell(setting,"well",.1)).toBeUndefined();
+    expect(historicalWell({...setting,year:100,lat:35,lon:139},"well",.1)).toBeUndefined();
+    expect(historicalWell({...setting,culture:"mesoamerican",year:800,lat:19,lon:-99},"well",.1)).toBeUndefined();
+    expect(historicalWell({...setting,culture:"mesoamerican",year:800,lat:20.97,lon:-89.62},"well",.1)).toBeUndefined();
+    expect(historicalWell({...setting,culture:"mesoamerican",year:1500,lat:20,lon:-89.6},"well",.1)).toBeUndefined();
+    const venice = {...setting,culture:"european" as const,year:1600,lat:45.44,lon:12.33,settlement:"port" as const};
+    expect(historicalWell(venice,"well",.1)?.sprite).not.toContain("venice");
+    expect(historicalWell(venice,"townWell",.8)?.sprite).not.toContain("venice");
+    const india = {...setting,culture:"south-asian" as const,year:1600,lat:26,lon:75,settlement:"farm" as const};
+    expect(historicalWell(india,"well",.1,false)).toBeUndefined();
+    expect(historicalWell({...india,settlement:"city"},"well",.1,false)).toBeUndefined();
+    expect(historicalWell({...setting,year:1800},"pump",.1)).toBeUndefined();
+    for (const key of ["spring","trough","fountain"])
+      expect(historicalWell({...setting,year:100,lat:34,lon:109},key,.1)).toBeUndefined();
+  });
+  it("mixes approved storage baskets and uses the approved default well", () => {
+    for (const v of [0,1,2]) {
+      const original = `study-propb-open-basket-${v}`;
+      const frames = Array.from({length:1000},(_,i) => reviewedPropFrame(original,(i+.5)/1000));
+      expect(frames.filter(f=>f===original)).toHaveLength(500);
+      for (const f of new Set(frames)) expect(f.startsWith("nature-") ? natureAtlas.frames : propAtlas.frames).toHaveProperty(f);
+      expect(natureAtlas.frames).toHaveProperty(reviewedPropFrame(`study-propb-well-${v}`,0));
+    }
+    expect(reviewedPropFrame("well",0)).toBe("nature-prop-well-b-0");
+    for (const f of ["study-propb-open-basket-3","study-propb-open-basket-0-fallen","study-propb-framed-well-0","study-propb-town-well-0"])
+      expect(reviewedPropFrame(f,.9)).toBe(f);
+  });
   it("gives every toppling prop leaning and fallen art for every variant", () => {
     const frames = propAtlas.frames as Record<string, unknown>;
     for (const def of Object.values(propDefs).filter(d => d.topples))
@@ -154,7 +284,7 @@ describe("interactive props", () => {
     e.state.log.forEach(() => rt.stepReplay());
     expect(rt.engine.hash()).toBe(e.hash());
     rt.dispose();
-    const old = createSession("roman", "legacy", undefined, undefined, 1);
+    const old = createSession("roman", "legacy", { content: 1 });
     expect(old.state.objects.some((o) => o.prop)).toBe(false);
     expect(restoreSession(old.snapshot()).hash()).toBe(old.hash());
   });

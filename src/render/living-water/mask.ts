@@ -6,7 +6,7 @@ import { waterHash, waterNoise } from "../water-style";
 import type { WaterObject } from "./scenery";
 import type { TopographySample } from "../../core/topography";
 import type { TerrainRegion } from "../terrain-region";
-import { shoreDistance } from "../material-edges";
+import { shoreDistance, shoreOnTier } from "../material-edges";
 import { ecologyOrder, livingBeachWidth, livingProfile } from "./profile";
 import { TERRAIN_RISE } from "../terrain-projection";
 export type LivingMask = {
@@ -33,15 +33,19 @@ export function rasterLivingWater(
   const pixels = { data: new Uint8ClampedArray(W * H * 4) };
   let count = 0;
   const murkGrid = new Float32Array((width + 2) * (height + 2));
+  const beachGrid = new Float32Array(murkGrid.length);
   for (let ty = -1; ty <= height; ty++)
     for (let tx = -1; tx <= width; tx++) {
-      const h = sample(tx, ty)?.habitat;
-      murkGrid[(ty + 1) * (width + 2) + tx + 1] =
+      const cell = sample(tx, ty), h = cell?.habitat;
+      const i = (ty + 1) * (width + 2) + tx + 1;
+      murkGrid[i] =
         h?.murk ?? (h?.colorway === "swamp" ? 1 : 0);
+      if (cell)
+        beachGrid[i] = livingBeachWidth(sample, tx, ty, region?.x ?? 0, region?.y ?? 0, polish) +
+          (refined ? 0.5 * polish!.blend : 0);
     }
-  // Bilinear between tile centres: a tile-wide step would put the palette
-  // boundary on the grid, which is what made the old swamp edges rectangular.
-  const murkAt = (fx: number, fy: number) => {
+  // Width and murk vary between tile centres so neither reveals the grid.
+  const fieldAt = (grid: Float32Array, fx: number, fy: number) => {
     const gx = Math.max(-0.5, Math.min(width - 0.5, fx - 0.5)),
       gy = Math.max(-0.5, Math.min(height - 0.5, fy - 0.5));
     const ix = Math.floor(gx),
@@ -49,7 +53,7 @@ export function rasterLivingWater(
       sx = gx - ix,
       sy = gy - iy;
     const at = (x: number, y: number) =>
-      murkGrid[(y + 1) * (width + 2) + x + 1] ?? 0;
+      grid[(y + 1) * (width + 2) + x + 1] ?? 0;
     return (
       (at(ix, iy) * (1 - sx) + at(ix + 1, iy) * sx) * (1 - sy) +
       (at(ix, iy + 1) * (1 - sx) + at(ix + 1, iy + 1) * sx) * sy
@@ -68,16 +72,11 @@ export function rasterLivingWater(
       )
         continue;
       const visual = cell.waterVisual,
-        profile = livingProfile(cell),
-        beach =
-          livingBeachWidth(
-            sample,
-            tx,
-            ty,
-            region?.x ?? 0,
-            region?.y ?? 0,
-            polish,
-          ) + (refined ? 0.5 * polish!.blend : 0);
+        profile = livingProfile(cell);
+      let beach = 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          beach = Math.max(beach, beachGrid[(ty + dy + 1) * (width + 2) + tx + dx + 1]);
       if (
         visual.distance >
           beach * 1.5 +
@@ -117,6 +116,7 @@ export function rasterLivingWater(
                 (sample(tx - 1, ty)?.waterVisual?.distance ?? visual.distance),
             )
           : (profile.direction * Math.PI) / 180;
+      const shoreTiers = new Map<number, boolean>();
       for (let py = 0; py < 16; py++)
         for (let px = 0; px < 16; px++) {
           const d = waterContactDistance(
@@ -127,29 +127,36 @@ export function rasterLivingWater(
             region?.y ?? 0,
             polish,
           );
+          const localWidth = fieldAt(beachGrid, tx + (px + 0.5) / 16, ty + (py + 0.5) / 16);
           const localBeach =
             visual.kind === "sea"
               ? coastBeachWidth(
-                  beach,
+                  localWidth,
                   (region?.x ?? 0) + tx + (px + 0.5) / 16,
                   (region?.y ?? 0) + ty + (py + 0.5) / 16,
                   polish,
                 )
-              : beach;
+              : localWidth;
           const sx = tx * 16 + px, sy = ty * 16 + py;
+          const tier = receivers
+            ? receivers.surfaceTiers[(sy - receivers.y) * receivers.width + sx - receivers.x]
+            : cell.height;
+          if (tier > 0) {
+            if (!shoreTiers.has(tier)) shoreTiers.set(tier, shoreOnTier(sample, tx, ty, tier));
+            if (!shoreTiers.get(tier)) continue;
+          }
           const receiver = receivers && receivers.tiers[
             (sy - receivers.y) * receivers.width + sx - receivers.x];
           // Water on a terrace (a creek above the valley floor) is drawn at
           // its lifted screen position; its receiver there is the water flag.
-          // Every cell draws at its own lifted position: a creek on a terrace
-          // and the bank pixels its edge reaches into are on that terrace.
-          const lift: number = cell.height * TERRAIN_RISE;
+          // The curved cliff can move a pixel onto another cell's tier.
+          const lift: number = tier * TERRAIN_RISE;
           const liftedReceiver: number | undefined =
             receivers && lift
               ? receivers.tiers[(sy - lift - receivers.y) * receivers.width + sx - receivers.x]
               : receiver;
           const lowGround = receivers
-            ? liftedReceiver === cell.height ||
+            ? liftedReceiver === tier ||
               (liftedReceiver === -1 && cell.surface === "water")
             : true;
           if (d > localBeach || !lowGround) continue;
@@ -196,7 +203,7 @@ export function rasterLivingWater(
             const jitter =
               waterNoise(wx, wy, 5, 771) * 0.6 +
               waterNoise(wx, wy, 2, 772) * 0.4;
-            const murk = murkAt(tx + (px + 0.5) / 16, ty + (py + 0.5) / 16);
+            const murk = fieldAt(murkGrid, tx + (px + 0.5) / 16, ty + (py + 0.5) / 16);
             const murkLevel = Math.max(
               0,
               Math.min(3, Math.floor(murk * 3 + jitter)),

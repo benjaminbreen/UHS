@@ -206,6 +206,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "vedic-early",
+    features: ["sacred-texts"],
     label: "Early Vedic practice",
     wiki: "https://en.wikipedia.org/wiki/Historical_Vedic_religion",
     scope: { years: [-1500, -1000], bounds: [60, 20, 97, 37] },
@@ -279,6 +280,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "vedic-late-upanishadic",
+    features: ["sacred-texts"],
     label: "Later Vedic and Upanishadic thought",
     wiki: "https://en.wikipedia.org/wiki/Upanishads",
     scope: { years: [-1000, -200], bounds: [60, 8, 97, 37] },
@@ -347,6 +349,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-buddhism",
+    features: ["sacred-texts"],
     label: "Early Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Pre-sectarian_Buddhism",
     scope: { years: [-500, 200], bounds: [60, 8, 97, 37] },
@@ -431,6 +434,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "jainism",
+    features: ["sacred-texts"],
     label: "Jain practice",
     wiki: "https://en.wikipedia.org/wiki/Jainism",
     scope: { years: [-500, 800], bounds: [70, 19, 78, 27] },
@@ -511,6 +515,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "gupta-puranic",
+    features: ["sacred-texts"],
     label: "Gupta-era Puranic Hinduism",
     wiki: "https://en.wikipedia.org/wiki/Puranas",
     scope: { years: [100, 1000], bounds: [60, 8, 97, 37] },
@@ -610,6 +615,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tamil-shaivism",
+    features: ["sacred-texts"],
     label: "Tamil Shaivism",
     wiki: "https://en.wikipedia.org/wiki/Shaiva_Siddhanta",
     scope: { years: [100, 1000], bounds: [75, 7, 85, 20] },
@@ -684,6 +690,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "krishna-vaishnavism",
+    features: ["sacred-texts"],
     label: "Medieval Krishna Vaishnavism",
     wiki: "https://en.wikipedia.org/wiki/Krishnaism",
     scope: { years: [600, 1800], bounds: [60, 8, 92, 35] },
@@ -755,6 +762,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "sikh-gurus",
+    features: ["sacred-texts"],
     label: "Sikh Gurus",
     wiki: "https://en.wikipedia.org/wiki/Sikhism",
     scope: { years: [1400, 1800], bounds: [72, 29.5, 77, 33] },
@@ -917,6 +925,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "theravada-sri-lanka",
+    features: ["sacred-texts"],
     label: "Theravada Buddhism in Sri Lanka",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Sri_Lanka",
     scope: { years: [200, 1950], bounds: [79, 5, 83, 11] },
@@ -1012,6 +1021,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "himalayan-newar",
+    features: ["sacred-texts"],
     label: "Himalayan and Newar syncretic practice",
     wiki: "https://en.wikipedia.org/wiki/Newar_Buddhism",
     scope: { years: [400, 1800], bounds: [78, 26, 92, 37] },
@@ -1088,6 +1098,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "mughal-delhi",
+    features: ["sacred-texts"],
     label: "Mughal Delhi and Agra",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_the_Mughal_Empire",
     scope: { years: [1526, 1858], bounds: [76, 26.5, 79, 29.5] },
@@ -1171,6 +1182,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "indo-islamic-sufi",
+    features: ["sacred-texts"],
     label: "Indo-Islamic Sufi practice",
     wiki: "https://en.wikipedia.org/wiki/Sufism_in_India",
     scope: { years: [1000, 1950], bounds: [60, 5, 97, 37] },
@@ -1254,6 +1266,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "hindu-reform",
+    features: ["sacred-texts"],
     label: "Colonial-era Hindu reform",
     wiki: "https://en.wikipedia.org/wiki/Brahmo_Samaj",
     scope: { years: [1750, 1950], bounds: [60, 8, 97, 35] },

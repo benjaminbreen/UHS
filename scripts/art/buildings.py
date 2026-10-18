@@ -374,6 +374,7 @@ def build_buildings(root, sprites):
     from art.camps import CampBuilding, camp_recipes
     from art.oblique_modern import ObliqueModern, modern_recipes
     from art.sacred import VoxelTemple, sacred_recipes
+    from art.front_worksites import worksite_recipes, FrontWorksitePainter
     build_banner(sprites)
     recipes={**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
@@ -381,7 +382,7 @@ def build_buildings(root, sprites):
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source),
-             **modern_recipes(), **sacred_recipes()}
+             **modern_recipes(), **sacred_recipes(), **worksite_recipes(root, source)}
     # Pre-industrial European houses are drawn front-on, from specs.
     from art.front_houses import adopt, FrontHousePainter
     adopt(recipes)
@@ -403,7 +404,8 @@ def build_buildings(root, sprites):
                                       # Same silhouette whichever way it faces, so one set of cast masks.
                                       **({'shadowFrame':r.get('shadowFrame',name)} if r.get('oblique') or r.get('obliqueModern') or r.get('sacredVoxel') else {})}
     for name,r in recipes.items():
-        painter=(FrontAncientPainter if r.get('frontAncient') else
+        painter=(FrontWorksitePainter if r.get('frontWorksite') else
+                 FrontAncientPainter if r.get('frontAncient') else
                  FrontHousePainter if r.get('frontHouse') else
                  FrontCivicPainter if r.get('frontCivic') else
                  VoxelTemple if r.get('sacredVoxel') else

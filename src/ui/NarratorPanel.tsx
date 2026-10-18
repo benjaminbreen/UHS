@@ -1,5 +1,7 @@
 import {
+  useEffect,
   useLayoutEffect,
+  useRef,
   useState,
   type CSSProperties,
   type RefObject,
@@ -63,8 +65,19 @@ export function NarratorPanel({
       window.visualViewport?.removeEventListener("scroll", place);
     };
   }, [anchor, open]);
+  const self = useRef<HTMLElement>(null);
+  // The prompts above the bar rise to clear the panel, so they need its height.
+  useEffect(() => {
+    const el = self.current,
+      pane = el?.closest<HTMLElement>(".world-pane");
+    if (!el || !pane) return;
+    const ro = new ResizeObserver(() => pane.style.setProperty("--narrator-h", `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
     <section
+      ref={self}
       className={`narrator-panel${open ? " open" : ""}`}
       style={style}
       aria-label="Narrator"

@@ -1,4 +1,5 @@
-import atlas from "../../../public/props/atlas.json" with { type: "json" };
+import atlas from "../generated/props.json" with { type: "json" };
+import natureAtlas from "../generated/nature-atlas.json" with { type: "json" };
 import { propDefs } from "../../content/props/catalog";
 import propsB from "../generated/props-b.json" with { type: "json" };
 import { artStamp } from "../scene-assets";
@@ -14,19 +15,21 @@ let pending: Promise<Map<string, CarriedArt>> | undefined;
 /** Crops a frame the first time it is asked for: cropping all 1,500 up front
  * cost 700ms of pixel readback at every world start. */
 class CroppedArt extends Map<string, CarriedArt> {
-  constructor(private image: HTMLImageElement) {
+  constructor(private image: HTMLImageElement, private nature: HTMLImageElement) {
     super();
   }
   get(sprite: string) {
     const known = super.get(sprite);
-    if (known || !(sprite in atlas.frames)) return known;
-    const art = crop(this.image, sprite);
+    if (known) return known;
+    const native = sprite in natureAtlas.frames;
+    const frame = (native ? natureAtlas.frames : atlas.frames) as Record<string,{frame:{x:number;y:number;w:number;h:number}}>;
+    if (!frame[sprite]) return undefined;
+    const art = crop(native ? this.nature : this.image, sprite,frame[sprite].frame);
     if (art) this.set(sprite, art);
     return art;
   }
 }
-function crop(image: HTMLImageElement, sprite: string): CarriedArt | undefined {
-  const { x, y, w, h } = atlas.frames[sprite as keyof typeof atlas.frames].frame;
+function crop(image: HTMLImageElement, sprite: string, {x,y,w,h}: {x:number;y:number;w:number;h:number}): CarriedArt | undefined {
   const c = document.createElement("canvas");
   c.width = w;
   c.height = h;
@@ -65,18 +68,20 @@ function crop(image: HTMLImageElement, sprite: string): CarriedArt | undefined {
 }
 /** Crop only transparent storage padding; occupied pixels retain native scale. */
 export function loadCarriedArt() {
-  return (pending ??= new Promise<Map<string, CarriedArt>>(
+  const load = (url: string) => new Promise<HTMLImageElement>(
     (resolve, reject) => {
       const image = new Image();
       image.onerror = () => {
         pending = undefined;
         reject(Error("Unable to load prop artwork"));
       };
-      image.onload = () => resolve(new CroppedArt(image));
+      image.onload = () => resolve(image);
       // Same URL as the scene, so it is one download.
-      image.src = `/props/atlas.png?v=${artStamp}`;
+      image.src = `${url}?v=${artStamp}`;
     },
-  ));
+  );
+  return (pending ??= Promise.all([load('/props/atlas.png'),load('/nature/atlas.png')])
+    .then(([image,nature]) => new CroppedArt(image,nature)));
 }
 /** A redrawn family has no A study left in the atlas, so the carried sprite
  *  takes the B one, the same way the world does in content/props/place.ts. */
@@ -85,7 +90,7 @@ export const portableProps = Object.entries(propDefs)
   .map(([id, d]) => ({
     id,
     name: d.name,
-    sprite: `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
+    sprite: d.sprite ?? `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
   }));
 
 /** An inventory item in the hand, drawn from the icon art rather than the
@@ -136,7 +141,7 @@ export function iconCarriedArt(
   );
   return {
     sprite: id,
-    kind: id === "icon:walking-cane" ? "cane" : id === "icon:fan" ? "fan" : id === "icon:bow" ? "bow" : id === "icon:sling" ? "sling" : id === "icon:tool" ? "blade" : id === "icon:torch" ? "brand" : "both",
+    kind: id === "icon:spear" ? "haft" : id === "icon:walking-cane" ? "cane" : id === "icon:fan" ? "fan" : id === "icon:bow" ? "bow" : id === "icon:sling" ? "sling" : id === "icon:tool" ? "blade" : id === "icon:torch" ? "brand" : "both",
     image: crop,
     width: crop.width,
     height: crop.height,

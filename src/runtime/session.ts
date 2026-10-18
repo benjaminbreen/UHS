@@ -1,4 +1,4 @@
-import type { TimeTravel } from "./time-travel";
+import type { TimeTravel } from "../core/time/travel";
 import type { FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
 import type { EventId } from "../audio/sfx";
@@ -32,6 +32,8 @@ import {
   type Sex,
 } from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
+import { restingPortraitPoseOf } from "../core/persona";
+import { statsOf } from "../core/stats";
 import {
   actorAppearance,
   generateAppearance,
@@ -138,14 +140,19 @@ import { ailmentDef, seedAilments, severity } from "../core/health";
 import { bondsFor } from "../core/bonds";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import { readQuick, writeQuick } from "../ui/start-mode";
+export type SessionOptions = {
+  snapshot?: Snapshot;
+  setting?: WorldSetting;
+  content?: 1 | 2;
+  generator?: 1 | 2 | 3;
+  prepared?: PreparedSettlement;
+};
+
+/** Authored packs and pinned versions; fresh playable worlds use prepareConnectedStart. */
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
-  snapshot?: Snapshot,
-  setting?: WorldSetting,
-  content: 1 | 2 = 2,
-  generator: 1 | 2 | 3 = 3,
-  prepared?: PreparedSettlement,
+  { snapshot, setting, content = 2, generator = 3, prepared }: SessionOptions = {},
 ) {
   const resolved = setting ?? snapshot?.manifest.setting;
   const pack = resolved
@@ -186,10 +193,15 @@ export function createSession(
           resolved.character?.appearanceSeed ?? seed,
           "player",
           resolved.character?.age ?? engine.state.player.age ?? 34,
-          resolved.role,
+          world.activitySites?.("player")?.role ?? resolved.role,
           resolved.characterName,
         ),
       );
+    }
+    const localWork=world.activitySites?.("player");
+    if(localWork?.employment?.kind==="fishery" && localWork.role) {
+      engine.state.player.role=localWork.role;
+      if(engine.state.player.origin)engine.state.player.origin.roleLabel=localWork.role;
     }
     if (resolved?.character) {
       engine.state.player.age ??= resolved.character.age;
@@ -246,17 +258,17 @@ export function createSession(
 function wearerSex(origin?: Sex, body?: Sex): Sex | undefined {
   return origin && origin !== "unspecified" ? origin : body;
 }
+/** Synchronous local scene for tests/reviews; connected map bounds are not added. */
 export function createSettingSession(setting: WorldSetting, seed = "earth-2") {
   return createSession(
     "atlas",
     seed,
-    undefined,
-    populateCharacter(integratedSetting(setting), seed),
+    { setting: populateCharacter(integratedSetting(setting), seed) },
   );
 }
 export function restoreSession(value: unknown) {
   const save = snapshotSchema.parse(value);
-  const engine = createSession(save.manifest.pack, save.manifest.seed, save);
+  const engine = createSession(save.manifest.pack, save.manifest.seed, { snapshot: save });
   const ids = new Set<string>();
   for (const e of [save.player, ...save.actors, ...save.objects]) {
     if (ids.has(e.id)) throw Error("Duplicate entity identity in save.");
@@ -367,13 +379,13 @@ export class Runtime {
   }
   appearanceFor(
     actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn"> &
-      Partial<Pick<Actor, "role" | "origin" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId">>,
+      Partial<Pick<Actor, "role" | "origin" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId" | "stats">>,
   ): CharacterAppearance {
     const drawn = actor.appearance
       ? actorAppearance(actor)
       : this.defaultAppearance(actor);
     const record = this.bodyRecord(actor);
-    const base = record ? { ...drawn, record } : drawn;
+    const base = { ...drawn, ...(record ? { record } : {}), restingPose: restingPortraitPoseOf(statsOf(this.engine.state.manifest.seed, actor)) };
     if (!actor.worn) return base;
     return {
       ...base,
@@ -999,6 +1011,16 @@ export class Runtime {
   item(id: ItemId) {
     return this.engine.item(id);
   }
+  beginDialogue(id: string, opening?: string) {
+    const sent = this.engine.approacher;
+    const approached = !opening && sent?.id === id && this.engine.state.clock < sent.until;
+    const situation = opening || (approached ? sent.situation : undefined);
+    if (approached) this.engine.approacher = undefined;
+    const actor = this.engine.state.actors.find((a) => a.id === id && a.kind === "human");
+    if (!actor) return { situation, result: undefined };
+    const result = this.command({ type: "interact", target: id, action: "talk" });
+    return { situation, result };
+  }
   /** One narrator turn from free text. "Find the goats" and its kin are
    * answered here instead, from the loaded world: no model call, the same
    * answer every time, and the player walks off at once. */
@@ -1012,7 +1034,7 @@ export class Runtime {
       found = findNearest(this.engine.state, terms);
     }
     const animal = terms && namedAnimal(terms);
-    const routed = plan || found || animal ? undefined : await routePlan(this.engine, input);
+    const routed = plan || found || animal ? undefined : await routePlan(this.engine, input, this.modelFetch);
     if (plan ?? routed) turn = this.startPlan(input, (plan ?? routed)!);
     else if (found) turn = this.walkToFound(input, found);
     else if (animal) turn = this.noneFound(input, animal);
@@ -2231,11 +2253,13 @@ export class Runtime {
       return;
     }
     const plan = this.autopilot?.plan;
+    const work = plan?.kind === "workday" ? this.engine.workPlan() : undefined;
     const result = this.command({
       type: "move",
       dx: step.x - p.x,
       dy: step.y - p.y,
-      ...(plan?.kind === "roam" && plan.run ? { run: true } : {}),
+      ...((plan?.kind === "roam" && plan.run) ||
+        (plan?.kind === "workday" && work?.steps[work.done]?.scene === "hunt" && this.engine.state.player.heldItem === "spear") ? { run: true } : {}),
     });
     if (result?.status === "rejected") {
       if (this.autopilot) {
@@ -2296,10 +2320,11 @@ export class Runtime {
     this.engine = createSession(
       envelope.manifest.pack,
       envelope.manifest.seed,
-      undefined,
-      envelope.manifest.generator !== 1 ? envelope.manifest.setting : undefined,
-      envelope.manifest.content,
-      envelope.manifest.generator,
+      {
+        setting: envelope.manifest.generator !== 1 ? envelope.manifest.setting : undefined,
+        content: envelope.manifest.content,
+        generator: envelope.manifest.generator,
+      },
     );
     this.engine.state.manifest = structuredClone(envelope.manifest);
     this.selected = undefined;
@@ -2354,10 +2379,11 @@ export class Runtime {
     this.engine = createSession(
       replay.manifest.pack,
       replay.manifest.seed,
-      undefined,
-      replay.manifest.setting,
-      replay.manifest.content,
-      replay.manifest.generator,
+      {
+        setting: replay.manifest.setting,
+        content: replay.manifest.content,
+        generator: replay.manifest.generator,
+      },
     );
     this.engine.state.manifest = structuredClone(replay.manifest);
     replay.index = 0;

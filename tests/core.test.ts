@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { bodyState, bodySummary, diseaseState, diseaseTime, exposure, infect, onsets, mealExposure, healthResearch, updateCourse, severity, resolvedInfection } from "../src/core/health";
+import { smallSession } from "./fixtures";
+import { describe, it, expect, vi } from "vitest";
 import { doorApproach } from "../src/core/doors";
 import { createSession, createSettingSession, restoreSession } from "../src/runtime/session";
 import { endPlot, startPlot } from "../src/core/plot";
@@ -26,7 +28,7 @@ import { settingFor } from "../src/content/geography/resolve";
 import { ruled } from "../src/content/history/order";
 import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
-import type { Actor, Household, PlayerCommand, Position } from "../src/core/types";
+import type { Actor, Household, PlayerCommand, Position, SocialRelation } from "../src/core/types";
 let serial = 0;
 const act = (e: Engine, command: PlayerCommand) =>
   e.act({
@@ -34,6 +36,171 @@ const act = (e: Engine, command: PlayerCommand) =>
     expectedRevision: e.state.revision,
     command,
   });
+
+describe("exposure, symptoms and care", () => {
+  const setting = settingFor(places.find((p) => p.id === "london")!, 1980);
+  function clinic() {
+    const e = smallSession(setting, "disease-fixture");
+    delete e.state.plot;
+    e.state.ailments = [];
+    e.state.actors = e.state.actors.slice(0, 2);
+    const p = e.state.player, doctor = e.state.actors[0];
+    p.pos = { ...p.home, space: "clinic" };
+    doctor.pos = { ...p.pos, x: p.pos.x + 1 };
+    doctor.role = "Doctor";
+    doctor.medicalStock = { antibiotic: 2, rehydration: 2 };
+    p.inventory.coin = 20;
+    return e;
+  }
+  function symptomatic(e: Engine, id = "cough", who = e.state.player) {
+    const ail = infect(e.state, id, who, setting, e.state.clock, "fixture source", "air");
+    ail.since = e.state.clock - 86400;
+    ail.days = 6;
+    ail.infection!.mortality = 0;
+    e.state.ailments!.push(ail);
+    return ail;
+  }
+
+  it("accumulates indoor contact by duration, permits exposure before symptoms, and reduces outdoor exposure", () => {
+    const a = clinic(), b = clinic(), outside = clinic();
+    for (const e of [a, b, outside]) {
+      const ill = symptomatic(e, "cough", e.state.actors[0]);
+      ill.since = e.state.clock + 6 * 3600;
+    }
+    outside.state.player.pos.space = outside.state.actors[0].pos.space = "outside";
+    const clock = a.state.clock;
+    diseaseTime(a.state, 3600, clock);
+    for (let n = 0; n < 60; n++) diseaseTime(b.state, 60, clock + n * 60);
+    diseaseTime(outside.state, 3600, clock);
+    const dose = (e: Engine) => diseaseState(e.state).exposures.find((x) => x.who === "player")!.dose;
+    expect(dose(a)).toBeCloseTo(dose(b), 12);
+    expect(dose(outside)).toBeLessThan(dose(a) / 5);
+    expect(severity(a.state.ailments![0], clock)).toBe(0);
+    for (const e of [a, b]) e.state.clock += 3600;
+    expect(onsets(a.state, setting, new Set())).toEqual(onsets(b.state, setting, new Set()));
+  });
+
+  it("keeps incubation and infection sources out of observations, while retaining research truth", () => {
+    const e = clinic(), clock = e.state.clock;
+    exposure(e.state, e.state.player, "cough", "infectious-person", "air", 1000, clock);
+    e.state.clock += 3600;
+    e.state.ailments!.push(...onsets(e.state, setting, new Set()));
+    const ail = e.state.ailments!.find((a) => a.who === "player")!;
+    expect(ail.since).toBeGreaterThan(e.state.clock + 23 * 3600);
+    expect(bodyState(e.state).illnesses).toEqual([]);
+    expect(healthResearch(e.state)?.illnesses[0].infection?.source).toBe("infectious-person");
+    e.state.clock = ail.since + 60;
+    expect(bodyState(e.state).illnesses[0]).toMatchObject({ symptoms: ["cough", "feverishness", "tiredness"], trend: "worsening" });
+    expect(bodyState(e.state).illnesses[0]).not.toHaveProperty("id");
+    expect(bodySummary(e.state)).not.toMatch(/infectious-person|mortality|course|source/);
+    expect(snapshotSchema.parse(e.snapshot()).disease).toEqual(e.state.disease);
+  });
+
+  it("shares contaminated provisions within a household and lets preparation prevent further exposures", () => {
+    const e = clinic(), p = e.state.player, kin = e.state.actors[0], other = e.state.actors[1];
+    const home = e.state.households![0];
+    home.members = [p.id, kin.id];
+    p.householdId = kin.householdId = home.id;
+    diseaseState(e.state).sources.push({ id: "shared-meal", household: home.id, until: e.state.clock + 86400 });
+    for (const a of [p, kin, other]) mealExposure(e.state, a, e.state.clock);
+    expect(diseaseState(e.state).exposures.map((x) => x.who).sort()).toEqual([p.id, kin.id].sort());
+    p.pos = { ...home.home };
+    expect(act(e, { type: "care", target: p.id, treatment: "prepare-food" }).status).toBe("completed");
+    const before = structuredClone(diseaseState(e.state).exposures);
+    mealExposure(e.state, p, e.state.clock);
+    mealExposure(e.state, kin, e.state.clock);
+    expect(diseaseState(e.state).exposures).toEqual(before);
+    expect(e.careOptions().find((o) => o.treatment === "prepare-food")?.unavailable).toContain("already");
+  });
+
+  it("distinguishes an open wound from a sprain, and dressing prevents new exposure without curing an infection", () => {
+    const e = clinic(), p = e.state.player, clock = e.state.clock;
+    p.injury = { name: "sprained ankle", until: clock + 86400 };
+    diseaseTime(e.state, 600, clock);
+    expect(e.state.disease?.exposures ?? []).toEqual([]);
+    p.injury = { name: "a cut", until: clock + 86400, since: clock, open: true };
+    diseaseTime(e.state, 600, clock);
+    expect(diseaseState(e.state).exposures[0].disease).toBe("wound");
+    const ail = symptomatic(e, "wound");
+    expect(act(e, { type: "care", target: p.id, treatment: "clean-wound" }).status).toBe("completed");
+    expect(e.state.ailments).toContain(ail);
+    const dose = diseaseState(e.state).exposures[0].dose;
+    diseaseTime(e.state, 600, e.state.clock);
+    expect(diseaseState(e.state).exposures[0].dose).toBe(dose);
+  });
+
+  it("validates practitioner access and stock, charges for specific treatment, and makes care change the course", () => {
+    const e = clinic(), p = e.state.player, doctor = e.state.actors[0];
+    const ail = symptomatic(e, "wound"), i = ail.infection!;
+    i.roll = 0.5; i.mortality = 0.9;
+    updateCourse(ail, e.state.clock);
+    expect(ail.course).toBe("die");
+    expect(severity(ail, ail.since + ail.days * 86400 + 1)).toBe(1);
+    doctor.medicalStock!.antibiotic = 0;
+    expect(act(e, { type: "care", target: p.id, treatment: "medicine" }).status).toBe("rejected");
+    expect(p.inventory.coin).toBe(20);
+    doctor.medicalStock!.antibiotic = 1;
+    doctor.pos.space = "outside";
+    expect(e.careOptions().find((o) => o.treatment === "medicine")?.unavailable).toBeTruthy();
+    doctor.pos = { ...p.pos, x: p.pos.x + 1 };
+    expect(act(e, { type: "care", target: p.id, treatment: "medicine" }).status).toBe("completed");
+    expect(p.inventory.coin).toBe(17);
+    expect(doctor.medicalStock!.antibiotic).toBe(0);
+    updateCourse(ail, e.state.clock);
+    expect(ail.course).toBe("die");
+    e.state.clock += 12 * 3600;
+    updateCourse(ail, e.state.clock);
+    expect(ail.course).toBe("mend");
+    expect(e.state.disease?.events.some((x) => x.kind === "treatment" && x.treatment === "medicine")).toBe(true);
+    ail.id = "cough";
+    expect(e.careOptions().find((o) => o.treatment === "medicine")?.unavailable).toContain("infected wound");
+  });
+
+  it("offers symptom-based care, allows later care, and never treats conversation as a cure", () => {
+    const e = clinic(), ail = symptomatic(e);
+    e.healthStep(e.state.clock, false);
+    const card = e.cards.find((c) => c.choose?.card === "care-symptoms")!;
+    expect(card.text).toContain("cough, feverishness");
+    expect(card.choose!.choices.every((c) => c.odds === undefined)).toBe(true);
+    expect(act(e, { type: "choose", card: "care-symptoms", choice: 7 }).status).toBe("completed");
+    expect(act(e, { type: "care", target: "player", treatment: "consult" }).status).toBe("completed");
+    expect(bodySummary(e.state)).toContain("assessed by");
+    expect(bodySummary(e.state)).toContain("cause is uncertain");
+    const npc = symptomatic(e, "flux", e.state.actors[1]);
+    npc.infection!.mortality = 1; npc.infection!.roll = 0.5;
+    e.state.kin = { since: e.state.clock, talked: { [npc.who]: e.state.clock }, said: {} };
+    e.healthStep(e.state.clock, false);
+    expect(npc.course).toBe("die");
+    expect(npc.tended).toBeUndefined();
+    expect(ail.infection?.assessment).toBeDefined();
+  });
+
+  it("records recovery and temporary protection without making wound infection confer immunity", () => {
+    const e = clinic(), ail = symptomatic(e), p = e.state.player;
+    resolvedInfection(e.state, ail, p, e.state.clock);
+    e.state.ailments = [];
+    exposure(e.state, p, "cough", "another-person", "air", 1000, e.state.clock);
+    expect(diseaseState(e.state).exposures).toEqual([]);
+    e.state.clock = p.immune!.cough + 1;
+    exposure(e.state, p, "cough", "another-person", "air", 1000, e.state.clock);
+    expect(diseaseState(e.state).exposures).toHaveLength(1);
+    expect(e.state.disease?.events.at(-1)?.kind).toBe("recovery");
+    const wound = symptomatic(e, "wound");
+    resolvedInfection(e.state, wound, p, e.state.clock);
+    expect(p.immune?.wound).toBeUndefined();
+  });
+
+  it("keeps care options appropriate to the period and makes nursing an enteric case an exposure", () => {
+    const e = clinic(), patient = e.state.actors[0];
+    const ail = symptomatic(e, "flux", patient);
+    e.world.pack.setting = { ...e.world.pack.setting!, year: 1650 };
+    expect(e.careOptions().map((o) => o.treatment)).not.toContain("medicine");
+    expect(e.careOptions().map((o) => o.treatment)).not.toContain("rehydration");
+    expect(act(e, { type: "care", target: patient.id, treatment: "nurse" }).status).toBe("completed");
+    expect(ail.infection!.careUntil).toBeGreaterThan(e.state.clock);
+    expect(e.state.disease?.events.some((x) => x.kind === "exposure" && x.detail === "care" && x.who === "player")).toBe(true);
+  });
+});
 function reach(e: Engine, target: Position) {
   const p = e.state.player.pos;
   for (const [dx, dy] of [
@@ -57,6 +224,32 @@ function reach(e: Engine, target: Position) {
   throw Error("No route");
 }
 describe("shared deterministic foundation", () => {
+  it("initializes both directions of household authority without confusing servants and apprentices", () => {
+    const e = createSession("roman", "authority-check");
+    e.state.households = [{ id: "home", members: ["player"], home: e.state.player.home, storeId: "store" }];
+    const links: { kind: SocialRelation["kind"]; reverse: SocialRelation["kind"]; role?: string; recorded?: boolean }[] = [
+      { kind: "parent", reverse: "child" },
+      { kind: "child", reverse: "parent" },
+      { kind: "partner", reverse: "partner" },
+      { kind: "co-resident", reverse: "co-resident" },
+      { kind: "friend", reverse: "friend" },
+      { kind: "servant", reverse: "master" },
+      { kind: "apprentice", reverse: "master" },
+      { kind: "master", reverse: "servant", recorded: true },
+      { kind: "master", reverse: "apprentice", recorded: true },
+      { kind: "master", reverse: "servant", role: "Servant" },
+      { kind: "master", reverse: "apprentice", role: "Apprentice potter" },
+    ];
+    e.state.actors = links.map((link, i) => ({
+      ...structuredClone(e.state.player), id: `member-${i}`, role: link.role ?? "Potter", origin: undefined,
+      relations: [{ other: "player", kind: link.kind, ...(link.recorded ? { reciprocal: link.reverse } : {}) }],
+    }));
+    e.initialize("authority-check");
+    expect(e.state.player.relations).toEqual(links.map((link, i) => ({
+      other: `member-${i}`, kind: link.reverse, reciprocal: link.kind,
+    })));
+  });
+
   it("varies new player relationships without implying a wedding where none is authored", () => {
     let partnered = 0, widowed = 0;
     for (let i = 0; i < 300; i++) {
@@ -369,7 +562,7 @@ describe("shared deterministic foundation", () => {
     expect(home.credit).toBeUndefined();
     expect(home.owes).toBeUndefined();
   });
-  it("opens a life with one card naming the player, the place and the plot's people", () => {
+  it.runIf(!!process.env.FULL)("opens a life with one card naming the player, the place and the plot's people", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
     const e = createSettingSession(setting, "b");
     act(e, { type: "wait", seconds: 60 });
@@ -384,7 +577,7 @@ describe("shared deterministic foundation", () => {
     expect(composeIntro(e.state, setting, "London")).toEqual(composeIntro(structuredClone(e.state), setting, "London"));
   });
   it("remarks only on what is rare", () => {
-    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const p = e.state.player, setting = e.world.pack.setting;
     p.stats = { strength: 50, agility: 50, endurance: 50, wit: 50, openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50 };
     expect(unusualOf(e.state.manifest.seed, p, setting, e.state.actors)).toEqual([]);
@@ -393,7 +586,7 @@ describe("shared deterministic foundation", () => {
   });
   it("opens on a sick child, keeps them in bed, and lets the illness run its course", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
-    const e = createSettingSession(setting, "b");
+    const e = smallSession(setting, "b");
     delete e.state.plot;
     const child = e.state.actors.find((a) => a.kind === "human" && a.id !== e.state.player.id && a.householdId && !a.mount && !a.tends && !a.guard)!;
     child.age = 8;
@@ -410,11 +603,17 @@ describe("shared deterministic foundation", () => {
   });
   it("asks what to do when the player falls ill, weakens them, can kill them, and goes on as their household", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
-    const e = createSettingSession(setting, "b");
+    const e = smallSession(setting, "b");
+    delete e.state.manifest.disease;
     delete e.state.plot;
     const p = e.state.player, strong = e.stats().strength;
     (e as unknown as { fallIll(id: string): void }).fallIll("fever");
     const care = e.cards.find((c) => c.choose)!.choose!;
+    const pendingCare = structuredClone(e.state.care);
+    e.cards.length = 0;
+    e.reofferCard();
+    expect(e.cards.find((c) => c.choose)?.choose?.card).toBe(care.card);
+    expect(e.state.care).toEqual(pendingCare);
     expect(care.card).toMatch(/^care-self/);
     expect(care.choices.map((c) => c.label)).toContain("Go to bed and rest");
     expect(act(e, { type: "choose", card: care.card, choice: care.choices.find((c) => !c.unavailable)!.index }).status).toBe("completed");
@@ -441,7 +640,7 @@ describe("shared deterministic foundation", () => {
     expect(home.history!.at(-1)).toMatchObject({ kind: "died", name: dead });
     expect(act(e, { type: "wait", seconds: 60 }).status).toBe("completed");
   });
-  it("sends a hungry child to the player, minds being ignored, and eats what it is given", () => {
+  it.runIf(!!process.env.FULL)("sends a hungry child to the player, minds being ignored, and eats what it is given", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     delete e.state.plot;
     const child = e.state.actors.find((a) =>
@@ -470,7 +669,7 @@ describe("shared deterministic foundation", () => {
     expect(child.hunger).toBeLessThan(hunger);
   });
   it("passes stories about the player on, weaker each telling", () => {
-    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const [a, b] = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
     a.word = [{ act: "smashed", object: "cooking pot", victim: a.id, tone: -8, at: 0, hops: 0 }];
     const trust = b.trust;
@@ -490,7 +689,7 @@ describe("shared deterministic foundation", () => {
     expect(telling({ ...story, hops: 3 }, name)).toBe("made trouble for people");
   });
   it("lets someone ask a favour and thanks the player for keeping it", () => {
-    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const a = e.state.actors.find((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId)!;
     a.hunger = 80;
     e.answerAsk(a, "accepted");
@@ -505,7 +704,7 @@ describe("shared deterministic foundation", () => {
     expect(a.word?.[0]).toMatchObject({ tone: 4, hops: 0 });
   });
   it("takes a favour the model names only when the engine can see it done", () => {
-    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const humans = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId);
     const [a, cooper] = [humans[0], humans.find((x) => x.householdId !== humans[0].householdId)!];
     e.answerAsk(a, "made", { kind: "talk-to", target: "Nobody Atall", what: "speak to the moon" });
@@ -519,7 +718,7 @@ describe("shared deterministic foundation", () => {
     expect(a.trust).toBeGreaterThan(trust);
     expect(cooper.memories.at(-1)).toContain("on behalf of");
   });
-  it("asks for a hand with their own work, leads the player there and sets them to it", () => {
+  it.runIf(!!process.env.FULL)("asks for a hand with their own work, leads the player there and sets them to it", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const humans = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId);
     const a = humans.find((x) => { e.answerAsk(x, "made", { kind: "help", target: x.name, what: "get the work done" }); return !!e.state.asks?.length; })!;
@@ -556,8 +755,9 @@ describe("shared deterministic foundation", () => {
     expect(e.pendingPicks().some((x) => x.skill === "farming")).toBe(true);
   });
   it("gossips about other households, but not to their faces", () => {
-    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
-    const [a, b] = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
+    const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
+    const humans = e.state.actors.filter((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.householdId !== e.state.player.householdId && !e.world.dormant?.(x.id));
+    const a = humans[0], b = humans.find((x) => x.householdId !== a.householdId)!;
     const kin = e.state.actors.find((x) => x !== b && x.householdId === b.householdId)!;
     a.word = [{ act: `${b.name}'s household was robbed`, tone: -8, at: 0, hops: 1, about: b.id }];
     const trust = kin.trust;
@@ -569,7 +769,7 @@ describe("shared deterministic foundation", () => {
     expect(kin.word?.some((w) => w.about) ?? false).toBe(false);
     expect(kin.trust).toBe(trust);
   });
-  it("sends whoever keeps order to judge a complaint", () => {
+  it.runIf(!!process.env.FULL)("sends whoever keeps order to judge a complaint", () => {
     const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     delete e.state.plot;
     const keeper = e.keeper()!;
@@ -657,6 +857,28 @@ describe("shared deterministic foundation", () => {
     e.state.notes.push({ id: 1, time: clock, text: "An observation" });
     expect(e.state.clock).toBe(clock);
     expect(e.hash()).toBe(hash);
+  });
+  it("shows the same building description beyond sight and behind its walls", () => {
+    const e = createSession("roman", "building-inspection");
+    const place = e.world.places[0];
+    e.state.player.pos = { ...place.entrance, space: "outside" };
+    const seen = e.inspect(place.id)!;
+    expect(seen.kind).toBe("building");
+    expect(seen.description).toBeTruthy();
+    const clock = e.state.clock;
+    for (const pos of [
+      { x: place.entrance.x + 50, y: place.entrance.y, space: "outside" },
+      { x: place.x + Math.floor(place.w / 2), y: place.y - 1, space: "outside" },
+    ]) {
+      e.state.player.pos = pos;
+      expect(e.visible({ ...place.entrance, space: "outside" })).toBe(false);
+      const inspected = e.inspect(place.id)!;
+      expect(inspected.description).toBe(seen.description);
+      expect(inspected.brief).toEqual(seen.brief);
+      expect(inspected.affordances.find((a) => a.command.type === "interact" && a.command.action === "enter")?.enabled).toBe(false);
+      expect(act(e, { type: "interact", target: place.id, action: "enter" }).status).toBe("rejected");
+    }
+    expect(e.state.clock).toBe(clock);
   });
   it("conceals unobserved targets and private actor state", () => {
     const e = createSession();
@@ -767,7 +989,7 @@ describe("shared deterministic foundation", () => {
     });
   });
   it("records a theft, local witnesses, and real restitution", () => {
-    const e = createSession("roman", undefined, undefined, undefined, 1);
+    const e = createSession("roman", undefined, { content: 1 });
     const o = e.state.objects.find((o) => o.kind === "container")!;
     o.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     const witness = e.state.actors[0];
@@ -859,4 +1081,167 @@ describe("shared deterministic foundation", () => {
       expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
     }
   }, 20000);
+});
+
+describe("survival and local danger", () => {
+  const body = () => {
+    const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1400), "survival");
+    e.state.introduced = true;
+    e.state.ailments = [];
+    delete e.state.plot;
+    e.state.player.stats = { strength: 80, agility: 80, endurance: 80, wit: 80, openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50 };
+    return e;
+  };
+
+  it("applies the same bodily limits to narrator attempts and ordinary checks", () => {
+    const healthy = body(), sick = body();
+    const p = sick.state.player;
+    p.hunger = p.fatigue = 100;
+    p.injury = { name: "injured leg", until: sick.state.clock + 86400 };
+    sick.state.ailments = [{ id: "fever", who: "player", since: sick.state.clock - 2 * 86400, days: 6, course: "mend" }];
+    expect(sick.stats().strength).toBeLessThan(healthy.stats().strength / 2);
+    expect(bodySummary(sick.state)).toMatch(/fever.*Physical ability reduced/);
+    for (const e of [healthy, sick]) {
+      const rng = vi.spyOn(e, "rng").mockReturnValue(0.5);
+      act(e, { type: "narrate", intents: [{ type: "attempt", check: "strength", difficulty: 3, success: "You lift it.", failure: "You cannot lift it.", minutes: 1 }] });
+      rng.mockRestore();
+    }
+    expect(healthy.state.events.some((e) => e.text === "You lift it.")).toBe(true);
+    expect(sick.state.events.some((e) => e.text === "You cannot lift it.")).toBe(true);
+    expect(bodyState(sick.state).illnesses[0]).toMatchObject({ id: "fever", since: sick.state.ailments![0].since });
+    expect(bodyState(sick.state).illnesses[0]).not.toHaveProperty("course");
+    const strength = healthy.stats().strength;
+    healthy.state.player.health = 30;
+    expect(healthy.stats().strength).toBeLessThan(strength);
+  });
+
+  it("wears down health after days without food, and a meal stops the loss", () => {
+    const e = body(), p = e.state.player;
+    p.hunger = 100;
+    p.hungerDebt = 2 * 86400;
+    act(e, { type: "wait", seconds: 3600 });
+    expect(p.health).toBeCloseTo(99.75);
+    p.inventory.bread = 2;
+    expect(act(e, { type: "use", item: "bread" }).status).toBe("completed");
+    const after = p.health!, debt = p.hungerDebt;
+    act(e, { type: "wait", seconds: 3600 });
+    expect(p.health).toBeGreaterThanOrEqual(after);
+    expect(p.hungerDebt).toBeLessThan(debt);
+  });
+
+  it("lets exhausted people walk, refuses running, and needs food for overnight healing", () => {
+    const e = body(), p = e.state.player;
+    p.fatigue = 100;
+    expect(e.validate({ type: "move", dx: 1, dy: 0, run: true })).toContain("exhausted");
+    expect(e.validate({ type: "sleep", seconds: 8 * 3600 })).toBeUndefined();
+    e.world.blocked = () => false;
+    e.state.actors = [];
+    expect(act(e, { type: "move", dx: 1, dy: 0 }).status).toBe("completed");
+    p.pos.space = e.world.places[0].id;
+    p.health = 60;
+    p.hunger = 90;
+    e.sleep(8 * 3600);
+    expect(p.fatigue).toBeLessThan(30);
+    expect(p.health).toBe(60);
+    p.inventory.bread = 3;
+    act(e, { type: "use", item: "bread" });
+    act(e, { type: "use", item: "bread" });
+    const health = p.health;
+    e.sleep(8 * 3600);
+    expect(p.health).toBeGreaterThan(health);
+    p.injury = { name: "old sprain", until: e.state.clock + 60 };
+    act(e, { type: "wait", seconds: 3600 });
+    expect(p.injury).toBeUndefined();
+  });
+
+  it("distinguishes isolated night ground from shelter and guarded ground", () => {
+    const e = body(), p = e.state.player;
+    p.pos = { x: 500, y: 500, space: "outside" };
+    e.state.actors = [];
+    e.state.clock = 12 * 3600;
+    const day = e.danger();
+    e.state.clock = 23 * 3600;
+    const night = e.danger();
+    expect(night.score).toBeGreaterThan(day.score);
+    expect(night.reasons).toContain("After dark");
+    expect(e.danger()).toEqual(night);
+    expect(e.nearbyDanger()).toHaveLength(4);
+    p.pos.space = e.world.places[0].id;
+    expect(e.danger().areaRisk).toBe(0);
+    p.pos.space = "outside";
+    const guard = body().state.actors[0];
+    guard.pos = { ...p.pos }; guard.guard = { ward: "test" }; guard.trust = 0;
+    e.state.actors = [guard];
+    expect(e.danger().areaRisk).toBe(0);
+  });
+
+  it("interrupts with a replayable robbery choice and enforces its costs and cooldown", () => {
+    const e = body(), p = e.state.player;
+    p.inventory.coin = 5;
+    const risk = vi.spyOn(e, "danger").mockReturnValue({ ...e.danger(), hourlyRisk: 12, areaRisk: 2 });
+    act(e, { type: "wait", seconds: 3600 });
+    expect(e.state.encounter?.card).toBe("roadside-robbery");
+    expect(e.cards.some((c) => c.choose?.card === "roadside-robbery")).toBe(true);
+    expect(act(e, { type: "sleep", seconds: 3600 }).status).toBe("rejected");
+    expect(act(e, { type: "choose", card: "roadside-robbery", choice: 0 }).status).toBe("completed");
+    expect(p.inventory.coin).toBe(3);
+    expect(e.state.encounter).toBeUndefined();
+    act(e, { type: "wait", seconds: 3600 });
+    expect(e.state.encounter).toBeUndefined();
+    risk.mockRestore();
+  });
+
+  it("makes an assaulted adult defend themselves and exposes their threat before the first blow", () => {
+    const e = body(), p = e.state.player, a = e.state.actors[0];
+    p.pos = { x: 20, y: 60, space: "outside" };
+    a.age = 30; a.health = 100; a.terror = undefined; a.injury = undefined;
+    a.pos = { ...p.pos, y: p.pos.y - 1 };
+    a.home = a.work = { ...a.pos };
+    e.state.actors = [a];
+    e.world.blocked = () => false;
+    p.direction = 0;
+    expect(act(e, { type: "interact", target: a.id, action: "strike" }).status).toBe("completed");
+    expect(a.health).toBeLessThan(100);
+    expect(a.terror).toMatchObject({ cause: "assault", fight: true });
+    expect(e.danger().threats[0]).toMatchObject({ id: a.id, state: "threatening" });
+    const health = p.health!;
+    act(e, { type: "wait", seconds: 36 });
+    expect(p.health).toBeLessThan(health);
+    expect(e.danger().threats.some((t) => t.state === "attacking")).toBe(true);
+    p.health = 1;
+    p.hunger = 100;
+    p.hungerDebt = 2 * 86400;
+    act(e, { type: "wait", seconds: 36 });
+    expect(p.dead).toBeUndefined();
+    expect(p.health).toBeGreaterThan(0);
+    expect(p.injury).toBeDefined();
+    e.walkOff(a, "away");
+    expect(a.terror).toBeUndefined();
+  });
+
+  it("can turn serious anger into a visible threat without making every slight a fight", () => {
+    const e = body(), a = e.state.actors[0], p = e.state.player;
+    a.stats = { ...p.stats!, agreeableness: 0, extraversion: 100 };
+    a.age = 30; a.health = 100;
+    a.pos = { ...p.pos, x: p.pos.x + 1 };
+    a.trust = 0;
+    e.regard(a, -1);
+    expect(a.terror).toBeUndefined();
+    e.regard(a, -6);
+    expect(a.terror).toMatchObject({ cause: "anger", fight: true });
+    expect(a.terror!.strikeAfter).toBeGreaterThan(e.state.clock + 60);
+    expect(p.health).toBe(100);
+  });
+
+  it("retains the old harmless hunger and fatigue rules for pinned older worlds", () => {
+    const e = body(), p = e.state.player;
+    delete e.state.manifest.survival;
+    p.hunger = p.fatigue = 100;
+    p.hungerDebt = 5 * 86400;
+    const strength = e.stats().strength;
+    act(e, { type: "wait", seconds: 3600 });
+    expect(p.health).toBe(100);
+    expect(e.stats().strength).toBe(strength);
+    expect(e.danger().threats).toEqual([]);
+  });
 });

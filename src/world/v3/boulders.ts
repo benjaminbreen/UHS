@@ -21,20 +21,18 @@ export function addBoulders(
       const k = `${cx},${cy}`;
       if (done.has(k)) continue;
       done.add(k);
-      // One candidate per 32 cells: a boulder every other block of rocky
-      // ground, and none at all on soft ground.
-      for (let iy = 0; iy < 2; iy++)
-        for (let ix = 0; ix < 2; ix++) {
+      for (let iy = 0; iy < 4; iy++)
+        for (let ix = 0; ix < 4; ix++) {
           const px =
               cx * 64 +
-              ix * 32 +
-              6 +
-              Math.floor(random(seed, k, ix, iy, "bx") * 20),
+              ix * 16 +
+              4 +
+              Math.floor(random(seed, k, ix, iy, "bx") * 8),
             py =
               cy * 64 +
-              iy * 32 +
-              6 +
-              Math.floor(random(seed, k, ix, iy, "by") * 20);
+              iy * 16 +
+              4 +
+              Math.floor(random(seed, k, ix, iy, "by") * 8);
           // The roll comes first and the ground second: sampling topography
           // for every candidate forced terrain generation across the whole
           // district, which cost more than everything else here put together.
@@ -50,23 +48,52 @@ export function addBoulders(
             )
           )
             continue;
-          // Only a cell that has earned a boulder is worth a topography read,
-          // and that read is only for which stone it should be.
+          // Reject non-rock candidates before sampling their footprint.
           const sample = world.topography?.(px, py);
           if (sample?.waterDepth) continue;
+          const exposed = sample?.habitat?.exposed ?? 0;
+          const outcrop = sample?.landscape?.kind === "outcrop" ? sample.landscape.strength : 0;
+          const strong = exposed > 0.45 || outcrop > 0.2;
+          const sizeRoll = random(seed, k, ix, iy, "rock-size");
+          const size = strong
+            ? sizeRoll < 0.18 ? "large" : sizeRoll < 0.72 ? "medium" : undefined
+            : sizeRoll < 0.18 ? "medium" : undefined;
+          const [width, depth] = size === "large" ? [5, 2] : size === "medium" ? [3, 1] : [1, 1];
+          const left = px - (width - 1) / 2, top = py - depth + 1;
+          let clear = true;
+          for (let dy = 0; dy < depth && clear; dy++)
+            for (let dx = 0; dx < width; dx++) {
+              const x = left + dx, y = top + dy;
+              if (world.terrain(x, y, "outside") !== "rock" ||
+                world.blocked(x, y, "outside") || world.protectedCell?.(x, y) ||
+                Math.hypot(x - world.spawn.x, y - world.spawn.y) < 6 ||
+                world.topography?.(x, y)?.height !== sample?.height ||
+                world.topography?.(x, y)?.waterDepth ||
+                world.places.some((p) => Math.hypot(x - p.entrance.x, y - p.entrance.y) < 10) ||
+                world.initialObjects.some((o) => o.pos.space === "outside" &&
+                  x >= o.pos.x - 1 && x < o.pos.x + (o.size?.[0] ?? 1) + 1 &&
+                  y >= o.pos.y - 1 && y < o.pos.y + (o.size?.[1] ?? 1) + 1) ||
+                world.initialActors.some((a) => a.pos.space === "outside" && Math.hypot(x-a.pos.x,y-a.pos.y)<2)) {
+                clear = false;
+                break;
+              }
+            }
+          if (!clear) continue;
           const id = `boulder-${px}-${py}`;
           if (world.initialObjects.some((o) => o.id === id)) continue;
           const object: WorldObject = {
             id,
-            name: "Boulder",
+            name: size === "large" ? "Large boulder" : size === "medium" ? "Rock outcrop" : "Boulder",
             kind: "monument",
-            prop: "boulder",
+            prop: size ? "outcrop" : "boulder",
             sprite: boulderFrame(
               sample?.habitat,
               random(seed, k, ix, iy, "stone"),
+              size,
             ),
             inventory: {},
-            pos: { x: px, y: py, space: "outside" },
+            pos: { x: left, y: top, space: "outside" },
+            ...(size ? { size: [width, depth] as [number, number] } : {}),
           };
           world.initialObjects.push(object);
         }

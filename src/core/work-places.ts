@@ -24,7 +24,8 @@ type Ask = {
   /** Where work is done inside the house: its bench, else its fire. */
   inside: () => Position | undefined;
 };
-type SitePlan = { railway?: Railway; parcels?: Parcel[]; site?: { center: Point }; fauna?: FaunaGroup[] };
+type SitePlan = { railway?: Railway; parcels?: Parcel[]; site?: { center: Point }; fauna?: FaunaGroup[];
+  waterfront?:import("../world/v3/types").SettlementPlan["waterfront"] };
 type World = Ask["world"] & {
   planAt?: (x: number, y: number) => SitePlan | undefined;
   planOf?: (siteId: string) => SitePlan | undefined;
@@ -37,6 +38,11 @@ const outside = (p: Point): Position => ({ x: p.x, y: p.y, space: "outside" });
 export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
   const { state: s, household } = ask, world = ask.world as World;
   const home = household.home, seed = s.manifest.seed;
+  const district=household.residence?.includes("-waterfront-")
+    ? world.planOf?.(household.residence.split("-waterfront-")[0]) : world.planAt?.(home.x,home.y);
+  const fishing=district?.waterfront?.members.find(m=>household.members.includes(m.owner));
+  if(fishing && role==="shore")return {pos:outside(fishing.landing),label:"your household's fishing landing"};
+  if(fishing && role==="yard")return {pos:outside(fishing.sorting),label:"your catch-sorting table"};
   const doorOf = (h: Household) => {
     const place = h.residence ? world.place(h.residence) : undefined;
     return outside(place ? place.entrance : h.home);
@@ -46,6 +52,11 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     const host = h && s.actors.find((a) => h.members.includes(a.id) && !a.dead && (a.age ?? 0) >= 16);
     return h ? { pos: doorOf(h), label: host ? `${host.name.split(" ")[0]}'s house` : "a neighbour's house" } : null;
   };
+  if (role === "workplace") {
+    const pos = s.player.work;
+    const place = pos.space !== "outside" ? world.place(pos.space) : world.places.find((p) => p.access === "public" && Math.hypot(p.entrance.x - pos.x, p.entrance.y - pos.y) < 2);
+    return { pos: { ...pos }, label: place?.name ?? "your workplace" };
+  }
   if (role === "door") return { pos: doorOf(household), label: "your door" };
   if (role === "home") {
     const inside = ask.inside();

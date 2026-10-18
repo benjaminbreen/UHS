@@ -114,9 +114,17 @@ same seed and commands always produce the same world.
 | `scripts/` | Art pipeline, geography preparation, capture and headless tools. |
 
 Worlds are saved in the browser and can be exported, along with a full command
-recording that replays exactly. The same engine runs headless
-(`npm run headless`) and as an MCP server (`npm run mcp`) so agents can observe
-and act in a world.
+recording that replays exactly (`npm run replay`).
+
+## Agents
+
+A model can live in any setting the game supports, through the same rules a
+player has. `npm run agent:serve` is an MCP server for an agent such as Claude
+Code to wander as long as it likes; `npm run agent:run` lets the game drive a
+model itself (Anthropic, or any OpenAI-compatible endpoint, local models
+included), once or many times, with an optional briefing. Each run leaves a
+folder with its manifest, every call and reply, and a readable chronicle. See
+[docs/AGENTS.md](docs/AGENTS.md).
 
 ## Classroom mode
 
@@ -136,8 +144,10 @@ Design notes live in [`docs/`](docs). Start with
 ## Development
 
 ```bash
-npm run check   # typecheck, unit tests and production build
-npm test        # unit tests only
+npm run check         # typecheck, default tests and production build
+npm test              # fast routine suite
+npm run test:full     # optional world/scenario matrices and exhaustive checks
+npm run test:browser  # browser interactions, including mobile WebKit
 ```
 
 ## License

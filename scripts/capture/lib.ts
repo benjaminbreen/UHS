@@ -16,6 +16,17 @@ export function launchBrowser() {
   return chromium.launch(path ? { executablePath: path } : { channel: "chrome" });
 }
 
+export function captureErrors(page: Page) {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => {
+    console.error("pageerror", e.message);
+    errors.push(e.message);
+  });
+  return () => {
+    if (errors.length) throw Error(`Capture failed with browser errors:\n${errors.join("\n")}`);
+  };
+}
+
 /** Other projects' dev servers also default to 5173; loading one looks like the game hanging. */
 export async function assertGameServer() {
   const html = await fetch(base, { signal: AbortSignal.timeout(5000) })
@@ -36,8 +47,9 @@ export async function withPage(
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage({ viewport: { width, height } });
-    page.on("pageerror", (e) => console.error("pageerror", e.message));
+    const assertHealthy = captureErrors(page);
     await run(page);
+    assertHealthy();
   } finally {
     await browser.close();
   }

@@ -1,4 +1,5 @@
 import { furnitureAbout } from "./furniture";
+import { containerAbout } from "./containers";
 
 /**
  * What each prop is, said plainly, for the focus card. One or two sentences
@@ -63,6 +64,7 @@ export const about: Record<string, string> = {
   strappedChest: "A chest bound with straps to keep it shut and strong, for travel or valuables.",
   paintedChest: "A painted chest, often part of a bride's goods, for clothes and linen.",
   boulder: "A big boulder, too heavy to move.",
+  outcrop: "A mass of weathered stone, too large to lift or push.",
   fieldStone: "A rock turned up from the field and left at its edge.",
   crate: "A wooden crate for moving goods.",
   barrel: "A wooden barrel for ale, water, salt fish or anything that has to travel.",
@@ -186,4 +188,5 @@ export const about: Record<string, string> = {
   spear: "A spear for hunting or fighting.",
   branch: "A fallen branch.",
   ...furnitureAbout,
+  ...containerAbout,
 };

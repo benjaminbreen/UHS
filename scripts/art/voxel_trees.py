@@ -317,7 +317,7 @@ def bake(grow, seed, size, angle=0.0, bare=False):
     W, H = size
     tree, look = grow(seed, bare)
     ang = math.radians(angle)
-    pts = [p for c in tree.caps for p in c[:2]] + [c for c, *_ in tree.clumps]
+    pts = [p for c in tree.caps for p in c[:2]] + [c for c, *_ in tree.clumps] + look.get('bounds', [])
     xr = max(math.hypot(p[0], p[1]) for p in pts) + 6
     zt = max(p[2] for p in pts) + 6
     s = min((W / 2 - 3) / xr, (H - 6) / (zt + xr * K))
@@ -332,6 +332,77 @@ def bake(grow, seed, size, angle=0.0, bare=False):
         if bb and bb[0] > 0 and bb[1] > 0 and bb[2] < W and bb[3] < H:
             return im
         s *= .94
+
+
+def oak_model(seed, bare=False):
+    """Oak with a low fork and a broad, connected crown."""
+    from art.canopy import OAK_LEAF, OAK_WOOD
+    t = Tree(seed, bare)
+    roots(t, 5.5)
+    fork, _ = t.limb((0,0,0), (.04,0,1), 22, 6, 4.8, wobble=.035)
+    masses = [(-18,3,43,13,.83), (17,6,46,13,.84), (-5,13,51,14,.82),
+              (-1,1,54,12,.72), (-24,-3,34,11,.75), (23,-3,36,12,.75),
+              (-10,-12,39,14,.78), (12,-11,41,14,.8)]
+    for i, (x,y,z,r,flat) in enumerate(masses):
+        middle = np.array([x*.55,y*.55,z-12])
+        end = np.array([x,y,z-4])
+        t.caps += [(tuple(fork),tuple(middle),3.4,2.3), (tuple(middle),tuple(end),2.3,1)]
+        if not bare:
+            t.clumps.append(((x,y,z),r,flat))
+            # Attached lobes break the silhouette without fragmenting the bough.
+            for angle in (i*1.7, i*1.7+2.3):
+                t.clumps.append(((x+math.cos(angle)*r*.72,y+math.sin(angle)*r*.6,z+1),r*.55,flat))
+    bounds = [c for c, *_ in t.clumps]
+    if bare:
+        bounds = [(x,y,z) for x,y,z,_,_ in masses]
+        for x,y,z,r,_ in masses:
+            t.spray(np.array([x,y,z-4]),10,r*.35,r*.45,.7,lift=r*.3)
+    return t, dict(leaf=OAK_LEAF, bark=OAK_WOOD, ragged=.3, bounds=bounds)
+
+
+def maple_model(seed, bare=False):
+    """Maple: ascending limbs and a taller, tapered crown."""
+    from art.canopy import MAPLE_LEAF, MAPLE_WOOD
+    t = Tree(seed, bare)
+    roots(t, 4)
+    fork, _ = t.limb((0,0,0), (-.03,0,1), 26, 4.7, 3.5, wobble=.035)
+    masses = [(-14,5,48,12,.92), (14,7,51,12,.9), (-5,12,60,11,.98),
+              (1,3,64,10,.88), (-18,-5,39,10,.85), (18,-3,42,10,.88),
+              (-8,-10,48,13,.9), (9,-9,52,13,.94)]
+    for i, (x,y,z,r,flat) in enumerate(masses):
+        middle = np.array([x*.55,y*.55,z-13])
+        end = np.array([x,y,z-4])
+        t.caps += [(tuple(fork),tuple(middle),2.5,1.8), (tuple(middle),tuple(end),1.8,.8)]
+        if not bare:
+            t.clumps.append(((x,y,z),r,flat))
+            for angle in (i*1.5, i*1.5+2.5):
+                t.clumps.append(((x+math.cos(angle)*r*.65,y+math.sin(angle)*r*.6,z+2),r*.48,flat))
+    bounds = [c for c, *_ in t.clumps]
+    if bare:
+        bounds = [(x,y,z) for x,y,z,_,_ in masses]
+        for x,y,z,r,_ in masses:
+            t.spray(np.array([x,y,z-4]),10,r*.35,r*.45,.7,lift=r*.3)
+    return t, dict(leaf=MAPLE_LEAF, bark=MAPLE_WOOD, ragged=.3, bounds=bounds)
+
+
+def deciduous_tree(species, variant=1, autumn=None, bare=False):
+    from art.canopy import OAK_AUTUMN, MAPLE_AUTUMN
+    is_oak = species == 'oak'
+    model = oak_model if is_oak else maple_model
+
+    def grow(seed, bare):
+        t, look = model(seed, bare)
+        if autumn is not None:
+            look['leaf'] = OAK_AUTUMN if is_oak else MAPLE_AUTUMN[int(autumn)]
+        return t, look
+
+    size = (112,104) if is_oak else (96,96)
+    im = bake(grow, 30+variant, size, [0,125,245][variant-1], bare=bare)
+    if not is_oak:
+        padded = Image.new('RGBA',(96,112))
+        padded.paste(im,(0,16),im)
+        im = padded
+    return im
 
 
 # canvas, generator, (seed, angle) per variant; seeds chosen by eye

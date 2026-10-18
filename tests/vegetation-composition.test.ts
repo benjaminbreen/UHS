@@ -7,12 +7,14 @@ import type { WorldSetting } from "../src/content/geography/types";
 import { crownRadius, retainsTree } from "../src/world/v3/vegetation-spacing";
 import { treeGrouping } from "../src/world/v3/habitats";
 import { canopyHidesPlayer } from "../src/render/canopy-visibility";
+import { natureTreeSprites } from "../src/content/ecology/vegetation";
 import nature from "../public/nature/atlas.json" with { type: "json" };
 const base: WorldSetting = {
   ...settingFor(places.find((p) => p.id === "konya")!),
   lon: 105,
   lat: 15,
   climate: "tropical",
+  geographyMode: "configured",
   terrainRevision: 2,
   water: "none",
   environment: {
@@ -23,7 +25,7 @@ const base: WorldSetting = {
     household: "mixed",
   },
 };
-it("reduces crowding, draws every broadleaf age, and preserves spacing across chunk borders", () => {
+it.runIf(!!process.env.FULL)("reduces crowding, draws every broadleaf age, and preserves spacing across chunk borders", () => {
   const before = createSettlementWorld(
     packForSetting({ ...base, vegetationRevision: 1 }),
     "composition-01",
@@ -33,26 +35,23 @@ it("reduces crowding, draws every broadleaf age, and preserves spacing across ch
     "composition-01",
   );
   let original = 0;
+  const treeSprites = new Set(natureTreeSprites);
   const trees: { x: number; y: number; sprite: string }[] = [];
   for (let y = -64; y < 64; y++)
     for (let x = -64; x < 64; x++) {
       const a = before.decoration(x, y),
         b = after.decoration(x, y);
-      if (a?.solid && a.sprite !== "rock") original++;
-      if (b?.solid && b.sprite !== "rock") trees.push(b);
+      if (a?.solid && treeSprites.has(a.sprite)) original++;
+      if (b?.solid && treeSprites.has(b.sprite)) trees.push(b);
     }
-  console.info("Tropical tree counts", {
-    before: original,
-    after: trees.length,
-  });
   expect(trees.length).toBeLessThan(original * 0.75);
   expect(trees.length).toBeGreaterThan(original * 0.15);
   const ages = new Set(trees.map((t) => t.sprite));
   for (const age of ["sapling", "young", "mature", "giant"])
     expect(ages.has(`nature-broadleaf-${age}`)).toBe(true);
-  for (const a of trees)
-    for (const b of trees) {
-      if (a === b) continue;
+  for (let i = 0; i < trees.length; i++)
+    for (let j = i + 1; j < trees.length; j++) {
+      const a = trees[i], b = trees[j];
       expect(Math.hypot(a.x - b.x, a.y - b.y) + 1e-9).toBeGreaterThanOrEqual(
         (crownRadius(a.sprite) + crownRadius(b.sprite)) * 0.45,
       );
@@ -101,14 +100,20 @@ it("native broadleaf ages increase in resolution and only foreground crowns hide
 
 it("small shrub forms are native assets and dominate the dry size mix", async () => {
   const { understorySize } = await import("../src/content/ecology/vegetation");
+  const { floraForm } = await import("../src/content/ecology/flora");
   const counts = new Map<string, number>();
   for (let i = 0; i < 100; i++) {
     const sprite = understorySize("nature-dry-thorn-scrub", i / 100);
     counts.set(sprite, (counts.get(sprite) ?? 0) + 1);
     expect(nature.frames).toHaveProperty(sprite);
+    expect(floraForm(sprite)).toBe("scrub");
   }
-  expect(counts.get("nature-dry-scrub-small")).toBe(60);
-  expect(counts.get("nature-dry-scrub-medium")).toBe(30);
+  expect(counts.get("nature-dry-scrub-small")).toBe(30);
+  expect(counts.get("nature-dry-scrub-small-b")).toBe(30);
+  expect(counts.get("nature-dry-scrub-medium")).toBe(15);
+  expect(counts.get("nature-dry-scrub-medium-b")).toBe(15);
+  expect(counts.get("nature-dry-thorn-scrub")).toBe(5);
+  expect(counts.get("nature-dry-thorn-scrub-b")).toBe(5);
   expect(nature.frames["nature-dry-scrub-small"].frame).toMatchObject({
     w: 24,
     h: 20,

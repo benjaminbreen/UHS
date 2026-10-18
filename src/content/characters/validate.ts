@@ -121,7 +121,7 @@ export function validateCharacterContent() {
   // which is how "herder" sat in the table while no settlement could staff a pen.
   const offered = new Set(communityProfiles.flatMap((p) => p.livelihoods));
   for (const l of livelihoods)
-    if (!l.tier && !offered.has(l.id))
+    if (!l.tier && !l.institution && !offered.has(l.id))
       throw Error(`Unreachable livelihood: ${l.id}`);
   unique(populations);
   for (const p of populations) {

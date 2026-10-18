@@ -9,6 +9,8 @@ import {
   type PropContext,
 } from "./catalog";
 import { techFor } from "./selection";
+import { historicalWell } from "./wells";
+import { regionalContainer } from "./containers";
 import { doorwayFor } from "../settlements/ornaments";
 import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
@@ -66,7 +68,7 @@ export function propSprite(key: string) {
   const def = propDefs[key];
   return (
     def &&
-    `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(1, 0)}`
+    (def.sprite ?? `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(1, 0)}`)
   );
 }
 export function withProps(world: WorldModel, seed: string): WorldModel {
@@ -138,23 +140,34 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       return allow ? undefined : context === "water" ? "spring" : "stick";
     return weighted(list, random(seed, "props-1", id, context));
   };
+  const dressWell = (o: WorldObject, key: string | undefined) => {
+    key ??= o.sprite === "study-classical-wellhead" || o.sprite === "farm-well-shadoof" ? "well"
+      : /^study-propb-pump-\d$/.test(o.sprite) ? "pump" : undefined;
+    if (!key || !["well", "roofedWell", "townWell", "pump"].includes(key)) return;
+    const local = world.geography?.packAt(o.pos.x, o.pos.y)?.setting ?? world.pack.setting;
+    const irrigation = o.sprite === "farm-well-shadoof" || local?.settlement === "farm" || (local?.settlement === "village" &&
+      [[-4,0],[4,0],[0,-4],[0,4]].some(([dx,dy]) => world.terrain(o.pos.x+dx,o.pos.y+dy,"outside")==="field"));
+    const art = historicalWell(local, key, random(seed, "historical-well", o.id), irrigation);
+    if (art) { o.sprite = art.sprite; o.name = art.name; }
+  };
   const stamp = (o: WorldObject, key: string | undefined) => {
+    const entrance = o.pos.space === "outside" ? o.pos : world.place(o.pos.space)?.entrance;
+    const local = (entrance && world.geography?.packAt(entrance.x, entrance.y)?.setting) ?? world.pack.setting;
     const def = key ? propDefs[key] : undefined;
     if (!key || !def) return;
     o.prop = key;
     o.name = def.name;
     const variants = def.family === "stick" ? 1 : (def.variants ?? 3);
-    const local =
-      world.geography?.packAt(o.pos.x, o.pos.y)?.setting ?? world.pack.setting;
     const variant =
       (key === "privyMidden" || key === "communalMidden") && local
         ? middenContents(local, coast)
         : variantOf(variants, random(seed, "prop-color", o.id));
     const native = ({ vat: "dolium", amphoraStack: "amphorae", well: "wellhead", townWell: "wellhead" } as Record<string, string>)[key];
-    o.sprite = (native && mediterraneanProp(local, native)) || `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variant}`;
+    o.sprite = def.sprite ?? ((native && mediterraneanProp(local, native)) || `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variant}`);
     o.kind = def.drink ? "well" : def.fire ? "fire" : "container";
     o.open = false;
-    if (def.contents) o.inventory = { ...def.contents };
+    if (def.contents && !Object.values(o.inventory).some(Boolean)) o.inventory = { ...def.contents };
+    dressWell(o, key);
   };
   // Indexed by cell: a city has a thousand objects and asks about each one.
   const at = (p: Position) => `${p.space}:${p.x},${p.y}`;
@@ -274,9 +287,17 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       done.add(o.id);
       unindex(o);
       const planned = world.generatorVersion === 3 &&
-        (!!o.prop || /^study-(prop|classical)/.test(o.sprite));
+        (!!o.prop || /^study-(prop|classical)/.test(o.sprite) || o.sprite.startsWith("worksite-"));
       if (planned) {
         /* Explicit settlement furniture retains its function. */
+        if (o.prop) {
+          const entrance = o.pos.space === "outside" ? o.pos : world.place(o.pos.space)?.entrance;
+          const local = (entrance && world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? world.pack.setting;
+          const key = regionalContainer(local,o.prop,random(seed,"regional-container",o.id));
+          if (key && (o.pos.space !== "outside" || usable(o.pos,o.id,key))) {
+            o.prop=key; o.sprite=propDefs[key].sprite!; o.name=propDefs[key].name;
+          }
+        }
       } else if (o.kind === "container")
         stamp(
           o,
@@ -296,6 +317,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       // The shared fire takes its period form the same way.
       else if (o.kind === "fire" && o.sprite === "fire")
         stamp(o, pick(o.id, "fire", o.pos));
+      if (o.kind === "well") dressWell(o, o.prop);
       index(o);
       if (!planned && o.prop && !usable(o.pos, o.id, o.prop)) {
         const original = { ...o.pos };
@@ -380,7 +402,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     }
     const bare = urbanPack ? 0.75 : 0.2;
     for (const b of world.places) {
-      if (places.has(b.id) || isRuin(b)) continue;
+      if (places.has(b.id) || isRuin(b) || (b.claim.startsWith("worksite-") || b.claim.startsWith("waterfront-"))) continue;
       places.add(b.id);
       const worker = actorById.get(b.owner);
       const livelihood = worker && livelihoodOf(world.pack, worker);
@@ -646,7 +668,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       const towns = world.settlements.length
         ? world.settlements
         : [{ id: "local", ...world.spawn }];
-      const houses = world.places.filter((b) => !isRuin(b) && b.w >= 2);
+      const houses = world.places.filter((b) => !isRuin(b) && b.w >= 2 && !b.claim.startsWith("worksite-"));
       const drink = waters();
       for (const town of towns) {
         const id = `${town.id}-midden`;

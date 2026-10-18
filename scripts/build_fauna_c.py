@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 from PIL import Image, ImageDraw
 from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS
-from art.atlas import pack_atlas
+from art.atlas import pack_atlas, write_metadata
 from art.quality.hue import tint_outline
 from art import fauna_d, fox, proboscidean, cervid, felid, grazer, ursid
 
@@ -22,8 +22,8 @@ for name, im in sprites.items():
     assert set(im.getchannel("A").getdata()) <= {0, 255}, name
     assert len(im.getcolors(im.width * im.height)) <= 24, name
     assert im.getbbox(), name
-pack_atlas(sprites, out, "atlas", 1024)
-(out / "studies.json").write_text(json.dumps({
+pack_atlas(sprites, out, "atlas", 1024, module=True)
+write_metadata(out / "studies.json", json.dumps({
     species: {
         "palette": list(PALETTES[species].values()),
         "states": states,
@@ -50,7 +50,7 @@ for rig_art, sprites_of, sheet in ((proboscidean, proboscidean.fauna_megafauna, 
     mega_out = root / "public" / sheet
     mega_out.mkdir(exist_ok=True)
     pack_atlas(mega, mega_out, "atlas", 1024)
-    (mega_out / "studies.json").write_text(json.dumps({
+    write_metadata(mega_out / "studies.json", json.dumps({
         species: {
             "palette": list(rig_art.PALETTES[species].values()),
             "states": states,

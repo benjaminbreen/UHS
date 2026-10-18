@@ -19,7 +19,7 @@ const self = (id: string, years: [number, number], healer: number, fee: number):
     {
       label: "Go to bed and rest",
       note: "lose the day's work · you get your strength back",
-      then: [{ type: "minutes", n: 600 }, { type: "fatigue", n: -40 }, { type: "tend", odds: 0.15 }],
+      then: [{ type: "sleep", n: 600 }, { type: "fatigue", n: -40 }, { type: "tend", odds: 0.15 }],
       line: "You stayed in bed and let the household carry on without you.",
     },
     {
