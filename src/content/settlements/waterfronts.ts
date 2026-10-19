@@ -65,7 +65,7 @@ const shelters:Record<WorldSetting["architecture"],[string,string]>={
  * the general fishing rules, with stand-in buildings until it has its own. */
 export function fishingWaterfront(s:WorldSetting):WaterfrontProfile|undefined {
   const authored=waterfrontFor(s);
-  if(authored || (s.worksiteRevision??1)<7 || s.settlement==="camp" || !waterOf(s) || !Object.keys(hullWeights(s)).length)return authored;
+  if(authored || (s.worksiteRevision??1)<7 || s.settlement==="camp" || s.settlement==="farm" || !waterOf(s) || !Object.keys(hullWeights(s)).length)return authored;
   // A people that builds its own village form keeps it: a ring or a row of
   // its own houses, not stand-in shore houses outside it.
   const way=lifeway(s);
