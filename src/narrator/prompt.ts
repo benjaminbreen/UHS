@@ -37,7 +37,7 @@ When the player sets off on foot, give an errand and the game walks them there; 
 Also, when the player plainly asks for a listed action on a listed target, put it in command with the target id, exactly as the SCENE offers it. Use at most one command per turn and only the affordances listed. Leave intents empty when nothing changes.
 
 Reply with JSON only: {"narration": string, "intents": [...], "command"?: {...}, "errand"?: {...}}.`;
-const compass = (from: Position, to: Position) => {
+export const compass = (from: Position, to: Position) => {
   const dx = to.x - from.x,
     dy = to.y - from.y,
     d = Math.round(Math.hypot(dx, dy));

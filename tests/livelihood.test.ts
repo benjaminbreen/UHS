@@ -529,7 +529,7 @@ it.each(["Bergen 1500","Bergen 1700","London 1650","Tokyo 1800","Nile valley 200
     const member=plan.waterfront!.members.find(m=>m.owner==="player")!;
     expect(await a.call("goto",{...member.landing})).toMatch(/^ARRIVED/);
     expect(await a.call("goto",{target:member.catchId})).toMatch(/^ARRIVED/);
-    expect(await a.call("inspect",{target:member.catchId})).toMatch(/fish/i);
+    expect(await a.call("inspect",{target:member.catchId})).toContain(`"${e.inspect(member.catchId)!.name}"`);
     if(profile.revision===6) {
       process.stdout.write(`${query}: ${plan.waterfront!.members.length} fishing households; ${profile.id}; agent reached and inspected ${profile.practice!.catch.toLowerCase()}\n`);
       return;

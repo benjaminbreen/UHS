@@ -31,7 +31,7 @@ if (record.mode === "serve" || record.mode === "run") {
     const response = trace.response as { body: string; status: number };
     return new Response(response.body, { status: response.status });
   };
-  const replay = await startAgent({ setting, seed: manifest.setting.seed, timeTravel: manifest.timeTravel, modelFetch }, new RunRecord({ mode: "run" }));
+  const replay = await startAgent({ setting, seed: manifest.setting.seed, timeTravel: manifest.timeTravel, offline: !!manifest.offline, modelFetch }, new RunRecord({ mode: "run" }));
   try {
     let calls = 0;
     for (const entry of entries) {

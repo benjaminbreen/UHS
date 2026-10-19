@@ -1,7 +1,7 @@
 import { bodyState, healthResearch } from "../core/health";
 import { z } from "zod";
 import type { Engine } from "../core/engine";
-import type { CommandResult } from "../core/types";
+import type { CommandResult, Inspection } from "../core/types";
 import { TimeTravel } from "../core/time/travel";
 import { playerCommandSchema, commandSchema } from "../runtime/schema";
 import { Runtime } from "../runtime/session";
@@ -12,13 +12,13 @@ import { resolveSetting } from "../content/geography/resolve";
 import type { WorldSetting } from "../content/geography/types";
 import { randomStart, randomStartFromDraws } from "../content/geography/random-start";
 import { hash } from "../core/random";
-import { worldFacts, sceneDigest } from "../narrator/prompt";
+import { worldFacts, sceneDigest, compass } from "../narrator/prompt";
 import { dialogueTurn, commitDialogue, type DialogueLine } from "../narrator/dialogue";
 import { trimScene } from "../chronicle/chronicle";
 import { RunRecord, type Rationale } from "./record";
 
 /** Bumped when a tool's name, input or meaning changes. */
-export const PROTOCOL = 5;
+export const PROTOCOL = 6;
 
 const rationale = z
   .object({
@@ -39,7 +39,7 @@ export const tools = {
   },
   inspect: {
     description: "Look closely at one person, thing or building from the scene. Takes no time.",
-    input: { target: z.string().describe("An id from the scene."), rationale },
+    input: { target: z.string().describe("An id or name from the scene."), rationale },
   },
   goto: {
     description:
@@ -92,6 +92,8 @@ export type StartOptions = {
   setting?: string | WorldSetting;
   seed?: string;
   timeTravel?: boolean;
+  /** No narrator or dialogue model: people speak only the engine's own lines. */
+  offline?: boolean;
   modelFetch?: typeof fetch;
 };
 
@@ -105,13 +107,16 @@ export class Agent {
   private open = new Map<string, string>();
   private news: string[] = [];
   private lastLook = "";
+  /** Scene ids run to forty characters; the agent sees and types short ones. */
+  private short = new Map<string, { alias: string; name?: string }>();
+  private long = new Map<string, string>();
   private conversation?: { engine: Engine; actorId: string; history: DialogueLine[]; situation: string; left: boolean };
   readonly names: ToolName[];
 
   constructor(
     readonly runtime: Runtime,
     readonly record: RunRecord,
-    options: { timeTravel?: boolean } = {},
+    private options: { timeTravel?: boolean; offline?: boolean } = {},
   ) {
     // Model thinking time must not become unrecorded simulation time.
     runtime.ambientRate = 0;
@@ -121,7 +126,7 @@ export class Agent {
       record.trace({ kind: `engine-${kind}`, response: { ...data, clock: runtime.engine.state.clock, state: this.state() } });
     };
     this.names = (Object.keys(tools) as ToolName[]).filter(
-      (n) => n !== "time_travel" || options.timeTravel,
+      (n) => (n !== "time_travel" || options.timeTravel) && (n !== "say" || !options.offline),
     );
   }
 
@@ -140,7 +145,7 @@ export class Agent {
     const clock = this.engine.state.clock, beforeState = this.state();
     this.record.trace({ kind: "action", request: { tool: name, input } });
     const tool = this.names.includes(name as ToolName) ? tools[name as ToolName] : undefined;
-    const parsed = tool ? z.object(tool.input).strict().safeParse(input ?? {}) : undefined;
+    const parsed = tool ? z.object(tool.input).strict().safeParse(this.resolve(input ?? {})) : undefined;
     const args = parsed?.success ? parsed.data as Record<string, unknown> & { rationale?: Rationale } : undefined;
     let out;
     if (!tool) out = { status: "invalid", text: `There is no tool called ${name}.` };
@@ -151,6 +156,7 @@ export class Agent {
       if (name !== "talk" && name !== "look" && name !== "inspect") this.conversation = undefined;
       out = await this.run(name as ToolName, args!);
     }
+    out.text = this.abbreviate(out.text);
     this.record.entry({
       tool: name,
       input: args ? Object.fromEntries(Object.entries(args).filter(([k]) => k !== "rationale")) : input,
@@ -174,7 +180,7 @@ export class Agent {
   }
 
   context() {
-    return worldFacts(this.engine)
+    return this.abbreviate(worldFacts(this.engine))
       .replace(/\nGrounding:\n(?:- .*\n?)*/, "\n")
       .replace(/\n*Item catalog ids: .*$/, "");
   }
@@ -186,13 +192,13 @@ export class Agent {
       case "inspect": {
         const seen = this.engine.inspect(a.target);
         return seen
-          ? { status: "seen", text: JSON.stringify(seen, null, 1) }
+          ? { status: "seen", text: this.describe(seen) }
           : { status: "unknown", text: "You cannot see that from here." };
       }
       case "goto":
         return this.goto(a.target, a.x, a.y);
       case "act":
-        return a.command.type === "interact" && a.command.action === "talk" ? this.talk(a.command.target, "") : this.act(a.command);
+        return a.command.type === "interact" && a.command.action === "talk" && !this.options.offline ? this.talk(a.command.target, "") : this.act(a.command);
       case "say": {
         const turn = await this.runtime.say(a.text);
         const events = this.runtime.running ? await this.drive() : undefined;
@@ -200,7 +206,7 @@ export class Agent {
         return this.outcome(turn.error ? "unavailable" : events?.interrupted ? "interrupted" : "completed", [turn.text, ...turn.outcomes, turn.error ?? "", ...(events?.lines ?? [])]);
       }
       case "talk":
-        return this.talk(a.target, a.text ?? "");
+        return this.options.offline ? this.act({ type: "interact", target: a.target, action: "talk" }) : this.talk(a.target, a.text ?? "");
       case "errand":
         return this.errand(a as { kind: string });
       case "travel":
@@ -239,6 +245,71 @@ export class Agent {
     const same = text === this.lastLook;
     this.lastLook = text;
     return same ? `Nothing has changed since you last looked.\n\n${text}` : text;
+  }
+
+  /** Replaces every long id in the text with its short alias, learning the
+   * names the scene gives them along the way. */
+  private abbreviate(text: string) {
+    // Way-out ids hold commas, so they are swapped whole before the general pattern.
+    for (const e of this.runtime.journey?.entrances ?? [])
+      if (text.includes(e.id)) text = text.split(e.id).join(this.alias(e.id, "w", text));
+    return text.replace(/[\w:.-]*~[\w:.~-]*\w/g, (id) => {
+      const s = this.engine.state;
+      return this.alias(id, s.actors.some((a) => a.id === id) ? "p" : this.engine.world.places.some((p) => p.id === id) ? "b" : "t", text);
+    });
+  }
+
+  private alias(id: string, kind: string, text: string) {
+    let known = this.short.get(id);
+    if (!known) {
+      let n = 1;
+      while (this.long.has(`${kind}${n}`)) n++;
+      known = { alias: `${kind}${n}` };
+      this.short.set(id, known);
+      this.long.set(known.alias, id);
+    }
+    const named = new RegExp(`${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} "([^"]+)"`).exec(text);
+    if (named) known.name = named[1];
+    return known.alias;
+  }
+
+  /** Aliases back to ids, and a plain name ("the well") to the one thing that
+   * goes by it. Spoken text is left alone. */
+  private resolve(value: unknown, key = ""): unknown {
+    if (typeof value === "string") {
+      if (key === "text") return value;
+      const id = this.long.get(value);
+      if (id) return id;
+      if (!["target", "heir"].includes(key) || this.engine.inspect(value)) return value;
+      const plain = (t: string) => t.toLowerCase().replace(/^(the|my|a|an) /, "").trim();
+      const wanted = plain(value);
+      const matches = [...this.short].filter(([, k]) => k.name && plain(k.name) === wanted);
+      return matches.length === 1 ? matches[0][0] : value;
+    }
+    if (Array.isArray(value)) return value.map((v) => this.resolve(v, key));
+    if (value && typeof value === "object")
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, this.resolve(v, k)]));
+    return value;
+  }
+
+  private describe(seen: Inspection) {
+    const p = this.engine.state.player.pos;
+    const where = seen.pos.space === p.space ? compass(p, seen.pos) : "not where you are";
+    const brief = seen.brief && [seen.brief.identity, seen.brief.moment].map((line) => line.map((b) => b.text).join("")).join("\n");
+    const goods = Object.entries(seen.inventory ?? {}).filter(([, n]) => n).map(([id, n]) => `${this.engine.item(id)?.name ?? id} [${id}] x${n}`);
+    const acts = seen.affordances.map((a) => {
+      const c = a.command as { type: string; action?: string };
+      const how = c.type === "interact" ? `[${c.action}]` : `act ${JSON.stringify(a.command)}`;
+      return `- ${a.label} ${how}${a.enabled ? "" : ` (not now: ${a.reason ?? "unavailable"})`}`;
+    });
+    return [
+      `${seen.id} "${seen.name}"${seen.latin ? ` (${seen.latin})` : ""}, ${seen.kind}, ${where}.`,
+      brief,
+      seen.description,
+      seen.claim ? `Claim: ${seen.claim}.` : "",
+      goods.length ? `Has: ${goods.join(", ")}.` : "",
+      acts.length ? `You can:\n${acts.join("\n")}` : "Nothing to do with it.",
+    ].filter(Boolean).join("\n");
   }
 
   private waiting() {
@@ -440,7 +511,9 @@ export async function startAgent(options: StartOptions, record: RunRecord) {
   }
   const engine = await prepareConnectedStart(setting, seed);
   const runtime = new Runtime(engine, { cacheTerrain: false });
-  runtime.modelFetch = record.fetch("environment", options.modelFetch ?? runtime.modelFetch);
+  runtime.modelFetch = options.offline
+    ? async () => new Response(JSON.stringify({ error: "Offline." }), { status: 503 })
+    : record.fetch("environment", options.modelFetch ?? runtime.modelFetch);
   // Map travel loads on demand; wait for it so the first look lists the ways out.
   if (engine.state.manifest.setting?.playableMap)
     for (let i = 0; i < 400 && !runtime.journey; i++) await new Promise((r) => setTimeout(r, 5));
@@ -450,6 +523,7 @@ export async function startAgent(options: StartOptions, record: RunRecord) {
     setting: { asked: typeof options.setting === "string" ? options.setting : undefined, place: s.location, year: s.year, role: engine.state.player.role, seed },
     initialSetting: structuredClone(engine.state.manifest.setting),
     timeTravel: !!options.timeTravel,
+    offline: !!options.offline,
   });
   return new Agent(runtime, record, options);
 }

@@ -85,6 +85,20 @@ it("acts through the runtime and records each call with its reasons", async () =
   expect(a.record.chronicle()).toContain("Catch my breath");
 });
 
+it("gives long ids short aliases and takes aliases or names back", async () => {
+  const a = await agent();
+  try {
+    const seen = await a.call("look");
+    expect(seen).not.toContain("~");
+    const [, alias, name] = /- (b\d+) "([^"]+)"/.exec(seen)!;
+    const described = await a.call("inspect", { target: alias });
+    expect(described.startsWith(`${alias} "${name}"`)).toBe(true);
+    expect(described).not.toContain("{\n");
+    expect(await a.call("inspect", { target: `the ${name.toLowerCase()}` })).toBe(described);
+    expect(a.record.entries.at(-1)!.input).not.toEqual({ target: alias });
+  } finally { a.runtime.dispose(); }
+}, 60000);
+
 it("tells a dead player who can go on in their place, and goes on as them", async () => {
   const a = await agent();
   try {
@@ -173,13 +187,28 @@ it("serves MCP tools and replays a run from its recorded setting, rejecting chan
   }
 }, 60000);
 
-function localAgent(seed = "shared-dialogue") {
+function localAgent(seed = "shared-dialogue", options: { offline?: boolean } = {}) {
   const resolved = resolveSetting(setting, seed);
   if ("error" in resolved) throw Error(resolved.error);
   const runtime = new Runtime(smallSession(resolved.setting, seed), { cacheTerrain: false });
   const record = new RunRecord({ mode: "run" });
-  return new Agent(runtime, record);
+  return new Agent(runtime, record, options);
 }
+
+it("offline, people answer with the engine's own words and nothing is sent to a model", async () => {
+  const a = localAgent("shared-dialogue", { offline: true });
+  try {
+    a.runtime.modelFetch = async () => { throw Error("No model may be called offline."); };
+    expect(a.names).not.toContain("say");
+    const actor = a.engine.state.actors.find((x) => x.kind === "human")!;
+    const p = a.engine.state.player;
+    actor.pos = { ...p.pos, x: p.pos.x + 1 };
+    actor.home = actor.work = { ...actor.pos };
+    const clock = a.engine.state.clock;
+    expect(await a.call("talk", { target: actor.id, text: "Good morning" })).toMatch(/^COMPLETED/);
+    expect(a.engine.state.clock).toBeGreaterThan(clock);
+  } finally { a.runtime.dispose(); }
+});
 
 it("uses the human conversation prompts and effects, retaining the exchange until another action", async () => {
   const a = localAgent(), human = localAgent();

@@ -77,7 +77,7 @@ function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">) {
   };
   const onExit = () => dir && render(record, true);
   process.on("exit", onExit);
-  const record = new RunRecord({ environment: { narrator: env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna", dialogue: "gpt-6-luna" }, ...base, game }, (entry, r) => {
+  const record = new RunRecord({ environment: start.offline ? null : { narrator: env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna", dialogue: "gpt-6-luna" }, ...base, game }, (entry, r) => {
     open(r);
     appendFileSync(`${dir}/trajectory.jsonl`, JSON.stringify(entry) + "\n");
     render(r);
@@ -106,7 +106,7 @@ function environment(record: RunRecord): typeof fetch {
   };
 }
 
-const start = { setting: flag("--setting"), seed: flag("--seed"), timeTravel: has("--time-travel") };
+const start = { setting: flag("--setting"), seed: flag("--seed"), timeTravel: has("--time-travel"), offline: has("--offline") };
 
 if (mode === "serve") {
   const { record } = fileRecord({ mode: "serve" });

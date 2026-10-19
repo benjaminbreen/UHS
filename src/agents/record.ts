@@ -39,6 +39,7 @@ export type Manifest = {
   setting?: { asked?: string; place: string; year: number; role: string; seed: string };
   initialSetting?: WorldSetting;
   timeTravel?: boolean;
+  offline?: boolean;
   [key: string]: unknown;
 };
 

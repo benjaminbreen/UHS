@@ -26,7 +26,7 @@ Vite's `import.meta.glob`.
 | Tool | Does | Time |
 |---|---|---|
 | `look` | World facts (first time and after a change of world), the scene with ids and what each allows, news since the last look, cards waiting for an answer, ways out | none |
-| `inspect` | One person, thing or building in detail | none |
+| `inspect` | One person, thing or building in detail, as a few readable lines | none |
 | `goto` | Walk to an id or to x, y; one call is the whole walk | walking |
 | `act` | One engine command: `interact`, `trade`, `give`, `use`, `wear`, `wait`, `sleep`, `choose` (answer a card), `become` (an heir) and the other player commands | varies |
 | `say` | Ask the narrator a question or describe an attempt, through the same `Runtime.say` as the narration panel | depends on the answer |
@@ -34,6 +34,11 @@ Vite's `import.meta.glob`.
 | `errand` | `workday`, `forage`, `seek`, `go`, `roam`, carried on until done, stuck, or a card needs an answer | varies |
 | `travel` | A way out from `look` (walks into the neighbouring map) or a place name (the whole journey, days pass) | travel |
 | `time_travel` | Another year in this place, as a relative of the line. Off unless `--time-travel` | none |
+
+Long scene ids are shown as short aliases (`p3` a person, `b2` a building,
+`t5` a thing, `w1` a way out), stable for the run; any id field also takes the
+plain name of something seen ("the well") when only one thing goes by it. The
+trajectory records the real ids.
 
 Every tool takes an optional `rationale`
 (`intent`, `reasoning`, `expectation`). It is recorded and never read by the
@@ -81,6 +86,7 @@ ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --d
 | `--setting "<who, where, when>"` | yes | Plain words, as on the start screen. Omitted: a random start, drawn as the start screen draws one |
 | `--seed` | yes | Fixes the world and the person |
 | `--time-travel` | yes | Adds the `time_travel` tool |
+| `--offline` | yes | No narrator or dialogue model: `talk` uses the engine's own spoken lines, `say` is withdrawn, and no game service is called. Cheap and repeatable |
 | `--out <dir>` | yes | Where run folders go; default `runs/` (ignored by git) |
 | `--model` | run | Default `claude-sonnet-5-5`, or the local model's name |
 | `--base-url` | run | Any OpenAI-compatible endpoint; key from `OPENAI_API_KEY` |
@@ -140,7 +146,9 @@ reply, game clock and state hash. Narrator, dialogue and router responses are
 reused and their requests must match exactly. Protocol 5 adds symptom observations,
 validated `act {command:{type:"care",target:"player",treatment:"rest"}}` actions,
 and separate research health state to protocol 4's bodily constraints and danger.
-Earlier protocols are rejected explicitly.
+Protocol 6 adds short aliases, name targets, readable `inspect`, waiting cards
+shown in the reply that raised them, and heirs after death. Earlier protocols
+are rejected explicitly.
 
 ## Coverage
 
