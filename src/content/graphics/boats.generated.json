@@ -52,6 +52,7 @@
     },
     "length": 6,
     "beam": 2,
+    "posture": "sit",
     "finishes": [
       ""
     ],
@@ -115,6 +116,7 @@
     },
     "length": 6,
     "beam": 2,
+    "posture": "sit",
     "finishes": [
       "",
       "-pale",
@@ -125,6 +127,72 @@
       "worksite-plank-skiff-north": 0,
       "worksite-plank-skiff-east": 2,
       "worksite-plank-skiff-west": 6
+    }
+  },
+  "papyrus": {
+    "size": [
+      176,
+      136
+    ],
+    "anchor": [
+      88,
+      78
+    ],
+    "seat": {
+      "0": [
+        0,
+        -10.53,
+        0
+      ],
+      "1": [
+        0,
+        -10.53,
+        0
+      ],
+      "2": [
+        0,
+        -10.53,
+        0
+      ],
+      "3": [
+        0,
+        -10.53,
+        0
+      ],
+      "4": [
+        0,
+        -10.53,
+        0
+      ],
+      "5": [
+        0,
+        -10.53,
+        0
+      ],
+      "6": [
+        0,
+        -10.53,
+        0
+      ],
+      "7": [
+        0,
+        -10.53,
+        0
+      ]
+    },
+    "length": 6,
+    "beam": 2,
+    "posture": "kneel",
+    "finishes": [
+      "",
+      "-dry",
+      "-rebound"
+    ],
+    "moorings": {
+      "worksite-reed-skiff": 4,
+      "worksite-reed-skiff-north": 0,
+      "worksite-reed-skiff-east": 2,
+      "worksite-reed-skiff-west": 6
     }
   }
 }

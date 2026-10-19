@@ -52,6 +52,9 @@ export type ChoiceCard = {
   work?: readonly string[];
   /** What the society must have been able to do for this to happen at all. */
   needs?: readonly SocietyCapability[];
+  /** Only for a fishing day, and how the household fishes: in its own boat,
+   * owing a share of the catch, or selling it (false: sharing it among kin). */
+  fishing?: { boat?: boolean; owed?: boolean; sold?: boolean };
   /** Today's weather it needs: heat, rain or snow, or cold. */
   when?: "hot" | "wet" | "cold";
   text: string;

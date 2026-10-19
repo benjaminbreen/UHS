@@ -1,3 +1,53 @@
+## Fishing as a general system — October 18, 2026
+
+`src/content/economy/fishing.ts` works out how a household fishes from the
+place and date instead of from a regional profile: craft from climate and tools
+(rafts and bundles before dugouts, reed where shores lack timber, bark and skin
+in the north, plank boats after metal tools), method from the water and era
+(nets from the Mesolithic, seines in rivers, lines at sea), drawn per household
+so one landing mixes methods. Worksite revision 7 gives any watered settlement a
+`fishing-landing` waterfront; the three researched profiles still win where they
+apply, and peoples with their own village form (ring villages, plank-house rows)
+keep it. Buildings and boats use the existing art as stand-ins.
+
+Household heads take the boat out: their routine has a water leg to one of the
+household's fishing grounds, they are drawn kneeling or seated in the hull, and
+the moored boat leaves its berth meanwhile. The player's fishing day is gear,
+grounds and landing: "Take the boat out" at the water's edge, paddle to the
+grounds, fish, row back. The catch scales with season, hour and the day's luck,
+and says why. Cities only route a budgeted share of residents, so some boats
+stay moored there.
+
+## Directional Nile reed skiff — October 18, 2026
+
+The Middle Kingdom Nile fishing profile now uses an eight-direction reed skiff
+through the same watercraft catalog as the Japanese and northern wooden boats.
+Five compressed bundles, doubled transverse lashings, bound tips, visible knots,
+a small reed working mat and two stowed wooden paddles distinguish its construction.
+The northeast view has authored cord and knot finishing on the projected guide.
+Olive-gold, sun-dried and weathered/rebound variants retain their finish as the
+boat turns or switches between moored and occupied art. The rebound variant
+adds a binding and retied cord; these material and repair treatments are
+reconstructions, informed by the profile's Middle Kingdom model and relief sources.
+
+The catalog supplies a kneeling posture and deck height for the reed craft.
+Crew height moves the person above a stable waterline instead of shifting the
+boat beneath them, and survives scene redraws and restores on leaving.
+Japanese and clinker sprite pixels are unchanged. Existing Nile date, region,
+revision and freshwater restrictions remain in the settlement planner.
+
+Twenty-four Nile views and 72 packed full/front/back frames were checked for
+repeatability, exact reconstruction, consistent pivots, clipping and overlapping
+crew layers. All pass the shared palette, tinted-outline and no-dithering checks.
+Seventeen water-rendering tests and five targeted Nile/profile checks pass.
+The project gate passes: 979 tests, typechecking and production build.
+A real game capture verifies all eight loaded headings, kneeling frames and three
+completed movement commands. Captures: `artifacts/boats/nile-eight-directions.png`,
+`artifacts/boats/nile-skiff-afloat-ne.png`,
+`artifacts/boats/nile-skiff-waterfront-wide.png`.
+Occupied captures exercise the existing afloat mode; boarding and animated
+paddle strokes are not added by this art integration.
+
 ## Late Edo and Middle Kingdom fishing waterfronts — October 17, 2026
 
 Worksite revision 6 adds two bounded regional reconstructions: late Edo Japanese

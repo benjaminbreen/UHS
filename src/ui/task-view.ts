@@ -78,7 +78,8 @@ function vignetteFor(activity: StationActivity, place?: PlaceWant | Festival["pl
     case "work": return "craft";
     case "tend": return "tend";
     case "haul": return "haul";
-    case "draw-water": return "water";
+    case "draw-water":
+    case "fish": return "water";
     case "gather": return "gather";
     case "graze": return "herd";
     case "play": return "play";

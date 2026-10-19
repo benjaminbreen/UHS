@@ -425,6 +425,7 @@ const object = z.object({
   carriedBy: z.literal("player").optional(),
   broken: z.boolean().optional(),
   submerged: z.boolean().optional(),
+  away: z.boolean().optional(),
   damage: z.number().int().min(0).max(3).optional(),
   id: z.string(),
   name: z.string(),
@@ -554,6 +555,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "look",
         "climb",
         "descend",
+        "launch",
         "chop",
         "dig",
         "reap",
@@ -802,7 +804,7 @@ export const snapshotSchema = z.object({
       day: z.number().int(),
       places: z.record(
         z.string(),
-        z.object({ pos, label: z.string().max(100), patient: z.string().max(100).optional(), crop: z.string().max(60).optional() }).strict().nullable(),
+        z.object({ pos, label: z.string().max(100), patient: z.string().max(100).optional(), crop: z.string().max(60).optional(), board: z.string().max(200).optional() }).strict().nullable(),
       ),
     })
     .strict()
@@ -828,6 +830,7 @@ export const snapshotSchema = z.object({
           card: z.string().max(64).optional(),
           done: z.boolean().optional(),
           drawn: z.number().int().optional(),
+          catch: z.number().optional(),
         })
         .strict()
         .optional(),

@@ -9,6 +9,8 @@ import { livelihoodById } from "../src/content/characters/livelihoods";
 import { institutionFor } from "../src/content/characters/workplace";
 import { isVisitor } from "../src/world/v3/rail-travellers";
 import { waterfrontFor } from "../src/content/settlements/waterfronts";
+import { catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeights, preserveOf } from "../src/content/economy/fishing";
+import { CARDS } from "../src/content/cards";
 import { findPlace } from "../src/core/work-places";
 import { route } from "../src/core/routing";
 import { startAgent } from "../src/agents/agent";
@@ -306,7 +308,7 @@ it.each([
         const plan = e.workPlan();
         const step = plan?.steps[stage];
         if (!plan || !step) continue;
-        const found = step.at ? !!plan.places[stage] || (step.at === "shore" && !water) : !!plan.places[stage] || !!plan.station;
+        const found = step.at ? !!plan.places[stage] || ((step.at === "shore" || step.at === "grounds") && !water) : !!plan.places[stage] || !!plan.station;
         if (!found) gaps.add(`${trade}: ${step.task} (${step.at ?? "prop"})`);
       }
   }
@@ -552,3 +554,119 @@ it.each(["Bergen 1500","Bergen 1700","London 1650","Tokyo 1800","Nile valley 200
     } finally {previous.runtime.dispose();}
   } finally {a.runtime.dispose();}
 },60000);
+
+it("draws fishing practice from climate, date and tools rather than region",()=>{
+  const base=resolveSetting("Fisher in Lagos 1700","fishing-practice");
+  if("error" in base)throw Error(base.error);
+  const s=base.setting;
+  expect(hullWeights({...s,year:-60000})).toEqual({});
+  expect(Object.keys(hullWeights({...s,year:-20000}))).not.toContain("plank");
+  expect(hullWeights({...s,climate:"arid",year:-2000}).reed).toBeGreaterThan(0);
+  expect(hullWeights({...s,climate:"tundra",year:1000}).hide).toBeGreaterThan(0);
+  expect(methodWeights({...s,year:-20000},"river",false).seine).toBeUndefined();
+  const methods=new Set(Array.from({length:40},(_,i)=>fishingPractice(s,"sea",`h${i}`).method));
+  expect(methods.size).toBeGreaterThan(2);
+  const dawn=catchOf(s,{water:"sea",method:"net",hull:"plank",crew:2},"spring",6,0.5);
+  const noon=catchOf(s,{water:"sea",method:"net",hull:"plank",crew:2},"spring",13,0.5);
+  expect(dawn.factor).toBeGreaterThan(noon.factor);
+  expect(catchOf({...s,climate:"boreal"},{water:"lake",method:"line",crew:1},"winter",6,0.5).line).toMatch(/cold/);
+});
+
+it("takes the household boat out to fish, for NPCs and the player, where no region was written",async()=>{
+  const a=await startAgent({setting:"Fisher in Lagos 1700",seed:"fishing-explore"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine,w=e.world as import("../src/world/v3/generate").SettlementWorld;
+    expect(waterfrontFor(e.world.pack.setting!)).toBeUndefined();
+    const home=e.world.places.find(p=>p.owner==="player" && p.claim==="waterfront-home")!;
+    const plan=w.planOf(home.id.split("-waterfront-")[0])!;
+    expect(plan.waterfront!.profile).toBe("fishing-landing");
+    const wet=(p:{x:number;y:number})=>waterDepthAt(e.world.topography!,p.x+.5,p.y+.5)>.2;
+    for(const m of plan.waterfront!.members) {
+      expect(m.practice?.hull).toBeDefined();
+      expect(m.grounds!.length).toBeGreaterThan(0);
+      expect(m.grounds!.every(wet)).toBe(true);
+    }
+    const sailing=plan.waterfront!.members.find(m=>m.owner!=="player" && e.world.itinerary?.(m.owner));
+    if(sailing) {
+      const it=e.world.itinerary!(sailing.owner)!,out=it.segments.find(g=>g.boat && g.activity==="fish" && !g.path)!;
+      expect(wet(out.pos)).toBe(true);
+      const worker=e.state.actors.find(x=>x.id===sailing.owner)!;
+      (e as any).followRoutine(worker,it,(it.start+(out.from+out.to)/2)*60);
+      expect(worker.afloat).toBe("boat");
+      expect(e.state.objects.find(o=>o.id===sailing.boatId)?.away).toBe(true);
+    }
+    let today=e.workPlan()!;
+    expect(today.steps.map(s=>s.at)).toEqual(["gear","grounds","yard"]);
+    expect(today.steps.every(s=>!s.task.includes("{"))).toBe(true);
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    await a.call("act",{command:e.workHere()!.command});
+    today=e.workPlan()!;
+    expect(today.where).toBe("your boat");
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    const boat=e.state.objects.find(o=>o.owner==="player" && o.id.endsWith("-boat"))!;
+    expect(await a.call("act",{command:{type:"interact",target:boat.id,action:"launch"}})).toMatch(/climb in/);
+    expect(e.state.player.afloat).toBe("boat");
+    today=e.workPlan()!;
+    expect(today.where).toBe("the fishing grounds");
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    const card=(e as any).waitingCard();
+    if(card)await a.call("act",{command:{type:"choose",card,choice:1}});
+    expect(await a.call("act",{command:e.workHere()!.command})).toMatch(/catch/);
+    expect(e.state.economy!.work!.catch).toBeGreaterThan(0);
+    today=e.workPlan()!;
+    expect(today.steps[2].task).toBe("Land the catch and set aside the landlord's share");
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    expect(e.state.player.afloat).toBeUndefined();
+    expect(boat.away).toBeUndefined();
+    const landing=(e as any).waitingCard();
+    if(landing)await a.call("act",{command:{type:"choose",card:landing,choice:0}});
+    const settled=await a.call("act",{command:e.workHere()!.command});
+    expect(settled).toMatch(/A tenth of the catch goes to the landlord/);
+    expect(settled).toMatch(/fish buyer pays you/i);
+  } finally {a.runtime.dispose();}
+},120000);
+
+it("sends the catch to buyers, dues or kin, and keeps it by the climate, from capabilities and date",()=>{
+  const base=resolveSetting("Fisher in Lagos 1700","fishing-fate");
+  if("error" in base)throw Error(base.error);
+  const s=base.setting;
+  expect(catchFate(s)).toMatchObject({sold:true,buyer:"the fish buyer",owed:{to:"the landlord"}});
+  expect(catchFate({...s,year:-8000})).toEqual({sold:false,buyer:"your kin"});
+  expect(catchFate({...s,year:1900}).owed).toBeUndefined();
+  expect(preserveOf({...s,year:1900},"sea","a")).toBe("fresh");
+  const kept=(o:Partial<WorldSetting>,water:"sea"|"river")=>Array.from({length:40},(_,i)=>preserveOf({...s,...o},water,`town-${i}`));
+  const nile=kept({climate:"arid",year:-2000},"river");
+  expect(nile.filter(p=>p==="sun-dry").length).toBeGreaterThan(30);
+  expect(kept({climate:"tundra",year:-8000},"sea").every(p=>["wind-dry","smoke","fresh"].includes(p))).toBe(true);
+  const seine={water:"river" as const,method:"seine" as const,hull:"reed" as const,crew:4},fate=catchFate(s);
+  expect(crewRole(seine,fate,0,40,true,0.1)).toBe("boat");
+  expect(crewRole(seine,fate,2,9,false,0.9)).toBe("child");
+  const rolls=Array.from({length:100},(_,i)=>i/100);
+  const women=rolls.map(r=>crewRole(seine,fate,1,30,true,r)),men=rolls.map(r=>crewRole(seine,fate,1,30,false,r));
+  expect(women.filter(r=>r==="gut" || r==="sell").length).toBeGreaterThan(70);
+  expect(men.filter(r=>r==="haul").length).toBeGreaterThan(70);
+  expect(crewRole(seine,{sold:false,buyer:"your kin"},1,30,true,0.1)).toBe("gut");
+});
+
+it("puts a fishing household's members to shore work and dries the catch on a rack",async()=>{
+  const a=await startAgent({setting:"Fisher in Nile valley 2000 BCE",seed:"fishing-explore"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine,w=e.world as import("../src/world/v3/generate").SettlementWorld;
+    const home=e.world.places.find(p=>p.owner==="player" && p.claim==="waterfront-home")!;
+    const plan=w.planOf(home.id.split("-waterfront-")[0])!;
+    expect(plan.waterfront!.preserve).toBe("sun-dry");
+    const racks=plan.waterfront!.members.flatMap(m=>m.process ? [e.state.objects.find(o=>o.id===m.process!.id)!] : []);
+    expect(racks.length).toBeGreaterThan(0);
+    expect(racks.every(o=>o.prop==="dryingRack" && o.sprite.startsWith("study-propb-drying-rack-"))).toBe(true);
+    const labels=[...plan.stations.values()].flat().map(st=>st.label);
+    for(const shore of ["Hauling the seine ropes from the bank","Gutting and sorting the catch","Carrying bait and baskets at the landing",
+      "Keeping the birds off the drying fish","Splitting fish and laying them out to dry","Counting out the share owed to the landlord"])
+      expect(labels,shore).toContain(shore);
+    const usable=CARDS.filter(c=>c.fishing && (e as any).usableCard(c)).map(c=>c.id);
+    expect(usable).toContain("fishing-short-share");
+    expect(usable).toContain("fishing-rival-crew");
+    expect(usable).not.toContain("fishing-hungry-kin");
+    const fits=CARDS.filter(c=>c.slot==="gather-3" && (e as any).usableCard(c));
+    expect(fits.some(c=>c.fishing)).toBe(true);
+  } finally {a.runtime.dispose();}
+},120000);

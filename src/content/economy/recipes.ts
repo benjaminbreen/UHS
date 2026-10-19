@@ -358,6 +358,15 @@ const recipes: Recipe[] = [
       ],
     },
   },
+  {
+    // The words come from the household's own way of fishing; see fishing.ts.
+    ids: ["fisher", "fisherman", "sea-fisher", "reef-fisher"], skill: "foraging", wiki: ["Fishing"], rises: 5,
+    day: { title: "A day's fishing", steps: [
+      { name: "ready", task: "{Ready}", at: "gear", scene: "craft", hours: 1 },
+      { name: "fish", task: "{Fishing}", at: "grounds", scene: "gather", hours: 4 },
+      { name: "land", task: "{Land}", at: "yard", scene: "haul", hours: 1 },
+    ] },
+  },
 ];
 export const recipeFor = (kit: Livelihood) =>
   recipes.find((r) => r.ids?.includes(kit.id)) ??

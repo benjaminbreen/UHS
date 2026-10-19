@@ -5,8 +5,8 @@ import { parseLoad } from "../content/economy/carrying";
 import { propDefs } from "../content/props/catalog";
 import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
-import { Watercraft, mooredBoatFrame } from "./watercraft";
-import { waterfrontFor } from "../content/settlements/waterfronts";
+import { Watercraft, mooredBoatFrame, boatPosture, boatCraft } from "./watercraft";
+import { fishingWaterfront } from "../content/settlements/waterfronts";
 import { TrainLayer } from "./trains";
 import { CabLayer } from "./cabs";
 import { VehicleLayer, crewPlace, vehiclePose } from "./vehicles";
@@ -315,6 +315,7 @@ const ambientPoses: Record<StationActivity, CharacterPose> = {
   cook: "stoop",
   warm: "sit",
   "haul-catch": "carry",
+  fish: "work",
 };
 /** Rows of a character frame shown above the covers: the head and a little of the shoulders. */
 const HEAD_ROWS = 13;
@@ -640,6 +641,14 @@ export class WorldScene extends Phaser.Scene {
   private terrainAnchor?: { x: number; y: number };
   private drawnWorld?: WorldModel;
   private watercraft = new Watercraft(this, frame=>this.texture(frame));
+  /** Hulls under residents out fishing, by resident. */
+  private crafts = new Map<string, Watercraft>();
+  private craftOf(id: string) {
+    if (id === "player") return this.watercraft;
+    let craft = this.crafts.get(id);
+    if (!craft) this.crafts.set(id, (craft = new Watercraft(this, (frame) => this.texture(frame))));
+    return craft;
+  }
   private trains = new TrainLayer(this, (frame) => this.texture(frame));
   private cabs = new CabLayer(this, (frame) => this.texture(frame));
   private vehicleLayer = new VehicleLayer(this, (frame) => this.texture(frame));
@@ -1068,6 +1077,8 @@ export class WorldScene extends Phaser.Scene {
       this.unsubscribe?.();
       this.courtyardLighting.dispose();
       this.watercraft.dispose();
+      this.crafts.forEach((c) => c.dispose());
+      this.crafts.clear();
       this.trains.dispose();
       this.cabs.dispose();
       this.vehicleLayer.dispose();
@@ -4595,6 +4606,7 @@ export class WorldScene extends Phaser.Scene {
         im.setTexture(texture, drawn);
       if (im.frame.customPivot) im.setOriginFromFrame();
       else im.setOrigin(0.5, 1);
+      if(id==="player" || this.crafts.has(id))this.craftOf(id).placeCrew(im);
       const fire = frame === "fire" || this.fireFrames.has(frame);
       if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
       else if (this.fires.has(id)) this.quenchFire(id);
@@ -4798,6 +4810,7 @@ export class WorldScene extends Phaser.Scene {
       )
         continue;
       if (o.seasons && !o.seasons.includes(this.season)) continue;
+      if (o.away) continue;
       if (o.kind === "crop") {
         // Visual clumps share one authoritative harvest target, including depletion.
         for (const row of [-2, 0, 2]) {
@@ -5110,6 +5123,8 @@ export class WorldScene extends Phaser.Scene {
         this.motions.delete(id);
         this.quenchFire(id);
         this.douseLamp(id);
+        this.crafts.get(id)?.dispose();
+        this.crafts.delete(id);
         this.entities.delete(id);
         this.destinations.delete(id);
         this.actorFrames.delete(id);
@@ -6184,7 +6199,15 @@ export class WorldScene extends Phaser.Scene {
         }
         const sample = this.runtime.engine.world.topography;
         const wetPos = this.destinations.get(id);
-        const craft = id === "player" && wetPos?.space === "outside" ? this.runtime.engine.state.player.afloat : undefined;
+        const outFishing = id !== "player" && at?.boat && sample && wetPos?.space === "outside" &&
+          waterDepthAt(sample, at.x + 0.5, at.y + 0.5) > 0.2;
+        const craft = outFishing ? "boat" as const
+          : id === "player" && wetPos?.space === "outside" ? this.runtime.engine.state.player.afloat : undefined;
+        const boatSetting=this.runtime.engine.state.manifest.setting;
+        const boatId = outFishing ? at!.boat : id === "player" ? this.runtime.engine.state.player.boat : undefined;
+        const boatObject = craft === "boat" && boatId ? this.runtime.engine.state.objects.find((o) => o.id === boatId) : undefined;
+        const boatType=craft==="boat" ? boatCraft(boatObject?.sprite) ??
+          (boatSetting ? fishingWaterfront(boatSetting)?.craft : undefined) : undefined;
         const water =
           !(craft && craft !== "swimming") && sample && wetPos?.space === "outside" && !arcLift
             ? waterDepthAt(
@@ -6222,7 +6245,7 @@ export class WorldScene extends Phaser.Scene {
         // Breathing has no blink frame: the player stays plain idle for idle's blink.
         if (id === "player" && pose === "idle" && this.poseFrame(id, "idle", time) !== 3) pose = "breathe";
         if (moving && water > 0.025 && !active && !winding) pose = "wade";
-        if (craft && craft !== "swimming") pose = "sit";
+        if (craft && craft !== "swimming") pose = boatPosture(boatType);
         if (id !== "player") this.notice(id, im, pose, time);
         // Someone reacting stops what they were doing to do it.
         const cued =
@@ -6392,11 +6415,12 @@ export class WorldScene extends Phaser.Scene {
           workFacing ??
           human.facing ??
           facingFromDirection(human.direction);
-        if (id === "player") {
+        if (id === "player" || craft || this.crafts.has(id)) {
           const setting=this.runtime.engine.state.manifest.setting;
-          this.watercraft.update(im,craft,this.tint,(setting?.year??0)>=1930,ahead,
-            setting ? waterfrontFor(setting)?.craft : undefined,
-            random(this.runtime.engine.state.manifest.seed,"boat-finish","player"));
+          const owner = boatObject?.owner;
+          this.craftOf(id).update(im,craft,this.tint,(setting?.year??0)>=1930,ahead,
+            boatType,
+            random(this.runtime.engine.state.manifest.seed,"boat-finish",id === "player" && !boatId ? "player" : owner ?? id));
         }
         // A glance aside and back, in the second and third quarters of it.
         const glance = fidget?.look
@@ -6470,6 +6494,7 @@ export class WorldScene extends Phaser.Scene {
             im.setTexture(texture);
             im.setOrigin(0.5, 1);
           }
+          if(id==="player" || this.crafts.has(id))this.craftOf(id).placeCrew(im);
         }
         // Dust off a run's contact frames. Walking raises none, or a quiet
         // street would be permanently hazy; jumps are covered by `launch`.

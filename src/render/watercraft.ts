@@ -2,10 +2,17 @@ import type Phaser from "phaser";
 import boats from "../content/graphics/boats.generated.json" with { type: "json" };
 
 export type Boat = keyof typeof boats;
+export function boatPosture(craft?:Boat):"kneel"|"sit" {
+  return craft && boats[craft].posture==="kneel" ? "kneel" : "sit";
+}
 export function boatFrame(craft:Boat,facing:number,variation=0) {
   const finishes=boats[craft].finishes;
   const finish=finishes[Math.max(0,Math.min(finishes.length-1,Math.floor(variation*finishes.length)))];
   return `boat-${craft}${finish}-${facing}`;
+}
+/** The hull a moored boat's sprite stands for. */
+export function boatCraft(sprite?:string):Boat|undefined {
+  return sprite ? (Object.keys(boats) as Boat[]).find(craft=>Object.keys(boats[craft].moorings).some(k=>sprite.startsWith(k))) : undefined;
 }
 export function mooredBoatFrame(frame:string,variation=0) {
   for(const craft of Object.keys(boats) as Boat[]){
@@ -17,6 +24,8 @@ export function mooredBoatFrame(frame:string,variation=0) {
 
 export class Watercraft {
   private image?: Phaser.GameObjects.Image;
+  private crewSeat?: readonly number[];
+  private wasCrew=false;
   private hull: Phaser.GameObjects.Image[] = [];
   constructor(private scene: Phaser.Scene, private texture:(frame:string)=>string) {}
   update(
@@ -28,17 +37,19 @@ export class Watercraft {
     craft?: Boat,
     variation = 0,
   ) {
+    this.crewSeat=undefined;
     person.setData("aboard",!!mode && mode!=="swimming");
     this.hull.forEach(im=>im.setVisible(false));
     if (mode === "boat" && craft) {
       this.image?.setVisible(false);
-      const spec=boats[craft], slot=spec.seat[String(facing) as keyof typeof spec.seat];
+      const spec=boats[craft];
+      this.crewSeat=spec.seat[String(facing) as keyof typeof spec.seat];
       for (const [i,layer] of ["back","front"].entries()) {
         const frame=`${boatFrame(craft,facing,variation)}-${layer}`, texture=this.texture(frame);
         if (!this.scene.textures.get(texture).has(frame)) continue;
         const im=this.hull[i] ??= this.scene.add.image(0,0,texture,frame);
         im.setTexture(texture,frame).setOriginFromFrame().setVisible(true).setTint(tint)
-          .setPosition(person.x-slot[0],person.y-slot[1]).setDepth(person.depth+(i ? .5 : -.5));
+          .setPosition(person.x,person.y).setDepth(person.depth+(i ? .5 : -.5));
       }
       return;
     }
@@ -99,6 +110,15 @@ export class Watercraft {
       .setTint(tint)
       .setPosition(person.x, person.y + 2)
       .setDepth(person.depth - 0.1);
+  }
+  placeCrew(person:Phaser.GameObjects.Image) {
+    if(this.crewSeat){
+      person.setOrigin(.5-this.crewSeat[0]/person.width,1-this.crewSeat[1]/person.height);
+      this.wasCrew=true;
+    }else if(this.wasCrew){
+      person.setOrigin(.5,1);
+      this.wasCrew=false;
+    }
   }
   dispose() {
     this.hull.forEach(im=>im.destroy());

@@ -1,0 +1,223 @@
+import type { ChoiceCard } from "./types";
+
+const work = ["Working near water"] as const;
+
+// A fishing day's trouble comes from the water, the gear, the other crews, and
+// whoever has a claim on the catch: the holder of the fishing rights, the
+// buyer, the family. Which of those applies is the household's, not the region's.
+export const FISHING_CARDS: ChoiceCard[] = [
+  {
+    id: "fishing-rival-crew",
+    slot: "gather-2",
+    work,
+    fishing: { boat: true },
+    who: "neighbour",
+    as: "another fisher",
+    evidence: "inferred",
+    text: "Another crew got to your fishing spot first and has its nets out across it. {Name} waves you off.",
+    choices: [
+      {
+        label: "Move on to other water",
+        note: "safe · a smaller catch",
+        then: [{ type: "day", delta: -1 }, { type: "minutes", n: 40 }],
+        line: "You left the spot to the other crew and fished poorer water.",
+      },
+      {
+        label: "Set {gear} right beside theirs",
+        note: "a full catch if they back down · a feud if not",
+        check: { stat: "strength", skill: "foraging", odds: 0.5 },
+        then: [{ type: "day", delta: 1 }, { type: "regard", delta: -1 }],
+        line: "You set your gear beside theirs and they let it go, sourly.",
+        otherwise: [{ type: "day", delta: -1 }, { type: "regard", delta: -3 }],
+        otherwiseLine: "They cut your lines loose and shouted you off the water.",
+      },
+      {
+        label: "Offer to work it together and split the catch",
+        note: "half each · they'll remember it",
+        then: [{ type: "regard", delta: 2 }],
+        line: "You worked the spot together and split what came up.",
+      },
+    ],
+  },
+  {
+    id: "fishing-leaking-boat",
+    slot: "gather-2",
+    work,
+    fishing: { boat: true },
+    evidence: "inferred",
+    text: "The boat is taking on water. A seam has opened along the bottom and it is coming in faster than you'd like.",
+    choices: [
+      {
+        label: "Bail as you go and keep fishing",
+        note: "tiring · it may get worse",
+        check: { stat: "endurance", odds: 0.65 },
+        then: [{ type: "fatigue", n: 10 }],
+        line: "You bailed between hauls and finished the day's fishing.",
+        otherwise: [{ type: "fatigue", n: 15 }, { type: "day", delta: -1 }],
+        otherwiseLine: "The leak got worse and you came in early, half the catch lost.",
+      },
+      {
+        label: "Go in and fix the seam now",
+        note: "a lost morning · the boat will be sound",
+        then: [{ type: "minutes", n: 90 }, { type: "day", delta: -1 }],
+        line: "You pulled the boat up, stopped the seam, and went back out late.",
+      },
+    ],
+  },
+  {
+    id: "fishing-torn-net",
+    slot: "gather-2",
+    work,
+    fishing: {},
+    who: "neighbour",
+    as: "a neighbour on the shore",
+    evidence: "inferred",
+    text: "{Gear} caught on a snag and tore. {Name} has spare gear drying on the shore and says you can borrow it.",
+    choices: [
+      {
+        label: "Borrow it and promise them some of the catch",
+        note: "fish today · you owe them",
+        then: [{ type: "regard", delta: 1 }, { type: "pay", delta: -1 }],
+        line: "You fished with borrowed gear and took them their share after.",
+      },
+      {
+        label: "Mend your own on the spot",
+        note: "an hour lost · owe nobody",
+        then: [{ type: "minutes", n: 60 }, { type: "day", delta: -1 }],
+        line: "You mended the tear yourself and lost the best of the morning.",
+      },
+    ],
+  },
+  {
+    id: "fishing-shoal",
+    slot: "gather-2",
+    work,
+    fishing: { boat: true },
+    evidence: "inferred",
+    text: "Birds are diving further out. There is a shoal out there, past where you usually go.",
+    choices: [
+      {
+        label: "Go after it",
+        note: "a big catch, or a long pull for nothing",
+        check: { stat: "wit", skill: "foraging", odds: 0.5 },
+        then: [{ type: "day", delta: 2 }, { type: "fatigue", n: 10 }],
+        line: "You reached the shoal before it moved and filled the boat.",
+        otherwise: [{ type: "fatigue", n: 15 }, { type: "minutes", n: 60 }],
+        otherwiseLine: "The shoal had gone by the time you got there.",
+      },
+      {
+        label: "Stay where you know the fish are",
+        note: "an ordinary day",
+        then: [],
+        line: "You stayed on your own water and had an ordinary day.",
+      },
+    ],
+  },
+  {
+    id: "fishing-short-share",
+    slot: "gather-3",
+    work,
+    fishing: { owed: true },
+    who: "official",
+    as: "steward",
+    evidence: "inferred",
+    text: "{Name} is waiting at the landing with his tally. The share you owe {owed} has been short for a week, and he wants it made up today.",
+    choices: [
+      {
+        label: "Hand over enough of today's catch to cover it",
+        note: "the debt is cleared · less for your house",
+        then: [{ type: "day", delta: -2 }, { type: "regard", delta: 1 }],
+        line: "You made up the shortfall out of today's catch.",
+      },
+      {
+        label: "Ask for time until the next good catch",
+        note: "he may agree · or add to what you owe",
+        check: { stat: "agreeableness", odds: 0.55 },
+        then: [],
+        line: "He marked it down and gave you until the next good catch.",
+        otherwise: [{ type: "day", delta: -2 }, { type: "pay", delta: -1 }, { type: "regard", delta: -2 }],
+        otherwiseLine: "He refused, took what he was owed and fined you for the delay.",
+      },
+    ],
+  },
+  {
+    id: "fishing-buyer-price",
+    slot: "gather-3",
+    work,
+    fishing: { sold: true },
+    who: "neighbour",
+    as: "fish buyer",
+    evidence: "inferred",
+    text: "{Name} looks over your catch and offers less than yesterday. Every boat had a good day, and the landing is full of fish.",
+    choices: [
+      {
+        label: "Take the price",
+        note: "less money · done with it",
+        then: [{ type: "pay", delta: -1 }],
+        line: "You took the low price and were done by midday.",
+      },
+      {
+        label: "Hold out for a better price",
+        note: "more money, or fish going soft",
+        check: { stat: "extraversion", skill: "trade", odds: 0.45 },
+        then: [{ type: "pay", delta: 1 }],
+        line: "You held out, and the buyer came back with a better offer.",
+        otherwise: [{ type: "pay", delta: -2 }],
+        otherwiseLine: "You held out too long and had to sell soft fish cheaply.",
+      },
+      {
+        label: "Keep the fish and put them by to sell later",
+        note: "nothing today · more work",
+        then: [{ type: "pay", delta: -1 }, { type: "minutes", n: 60 }, { type: "day", delta: 1 }],
+        line: "You kept the catch back to dry and sell later.",
+      },
+    ],
+  },
+  {
+    id: "fishing-hungry-kin",
+    slot: "gather-3",
+    work,
+    fishing: { sold: false },
+    who: "neighbour",
+    as: "your relative",
+    evidence: "inferred",
+    text: "{Name} has caught nothing for days, and the children in that house are hungry. Everyone at the landing is watching how you share out today's catch.",
+    choices: [
+      {
+        label: "Give them a good share",
+        note: "less for your house · they'll return it",
+        then: [{ type: "day", delta: -1 }, { type: "regard", delta: 3 }],
+        line: "You gave them a good share, and people noticed.",
+      },
+      {
+        label: "Give the usual share and no more",
+        note: "fair · nothing more",
+        then: [{ type: "regard", delta: 1 }],
+        line: "You shared the catch out the usual way.",
+      },
+    ],
+  },
+  {
+    id: "fishing-spoiling",
+    slot: "gather-3",
+    work,
+    fishing: {},
+    when: "hot",
+    evidence: "inferred",
+    text: "The sun is fierce, and the catch will start to turn by the afternoon unless it is dealt with now.",
+    choices: [
+      {
+        label: "Work straight through to gut and put it by",
+        note: "tiring · nothing lost",
+        then: [{ type: "fatigue", n: 12 }],
+        line: "You worked through the heat and got the whole catch put by.",
+      },
+      {
+        label: "Get rid of what you can at once, for whatever it fetches",
+        note: "easier · less for it",
+        then: [{ type: "pay", delta: -1 }, { type: "day", delta: -1 }],
+        line: "You let the catch go cheap before it spoiled.",
+      },
+    ],
+  },
+];

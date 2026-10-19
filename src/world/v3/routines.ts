@@ -1,4 +1,6 @@
 import { waterfrontProfiles } from "../../content/settlements/waterfronts";
+import { catchFate, crewRole, fishingWords, preserveWords, type CrewRole } from "../../content/economy/fishing";
+import { sexOf } from "../../core/brief";
 import { livelihoodById } from "../../content/characters/livelihoods";
 import { prepareLocalWork } from "./employment";
 import { carryKit, withLoads } from "../../content/economy/carrying";
@@ -862,6 +864,51 @@ export function bindWorkStations(
     return s;
   });
 }
+type Member = NonNullable<SettlementPlan["waterfront"]>["members"][number];
+/** Putting the catch by: on the rack, in the salt, in the jar. */
+function keepingStation(plan: SettlementPlan, seed: string, id: string, member: Member): Station[] {
+  const preserve = plan.waterfront?.preserve, words = preserve && preserveWords[preserve];
+  return member.process && words
+    ? [{ pos: nearby(plan, seed, `${id}-keeping`, member.process.pos), activity: "haul-catch", label: words.doing, minutes: 20, toward: words.name.toLowerCase() }]
+    : [];
+}
+/** What a fishing household's member does, by their place in it. `slot` 0 is the head. */
+export function fishingRole(plan: SettlementPlan, pack: Pack, seed: string, id: string, slot: number, actor: Actor): CrewRole | undefined {
+  const member = plan.waterfront?.members.find((m) => id === m.owner || id.startsWith(`${m.owner}-member-`));
+  if (!member?.practice || !pack.setting) return;
+  return crewRole(member.practice, catchFate(pack.setting), slot, actor.age ?? 30, sexOf(actor) === "female", random(seed, id, "crew-role"));
+}
+/** A day on a fishing waterfront that is not spent in the boat. */
+export function shoreRoutine(plan: SettlementPlan, seed: string, pack: Pack, id: string, member: Member, role: CrewRole | undefined, actor: Actor): Station[] {
+  const basket = carryKit(pack).basket, h = member.handling;
+  const fate = pack.setting && catchFate(pack.setting), gear = member.practice && fishingWords[member.practice.method].gear;
+  const home = plan.work.get(id)?.home ?? member.landing;
+  const sort: Station = { pos: nearby(plan, seed, `${id}-sort`, member.sorting), activity: "work", label: "Gutting and sorting the catch", minutes: 40, toward: "the catch" };
+  const mend: Station = { pos: nearby(plan, seed, `${id}-mend`, member.nets), activity: "work", label: `Mending ${gear ?? "the nets"}`, minutes: 40, toward: "the nets" };
+  const keep = keepingStation(plan, seed, id, member);
+  if (role === "child") {
+    const rack = keep[0] && plan.objects.find((o) => o.id === member.process?.id)?.prop === "dryingRack";
+    return [
+      { pos: nearby(plan, seed, `${id}-bait`, member.landing), activity: "haul", label: "Carrying bait and baskets at the landing", minutes: 15, carry: basket, toward: "the landing" },
+      rack ? { ...keep[0], activity: "tend", label: "Keeping the birds off the drying fish" } : { ...sort, label: "Helping sort the catch" },
+      { pos: nearby(plan, seed, `${id}-play`, home), activity: "play", label: "Playing near home", toward: "home", minutes: 20 },
+      { ...night(home), share: 0.3, pace: 0.18 },
+    ];
+  }
+  const market = plan.plots.find((p) => p.kind === "public" && !p.id.includes("-waterfront-"));
+  const day: Station[] =
+    role === "haul" ? [
+      { pos: nearby(plan, seed, `${id}-haul`, member.landing), activity: "haul", label: "Hauling the seine ropes from the bank", minutes: 60, toward: "the landing" },
+      { pos: member.sorting, activity: "haul", label: "Carrying baskets of fish up from the landing", minutes: 12, carry: basket, toward: "the catch" },
+      mend,
+    ] : role === "sell" && fate?.sold ? [
+      sort,
+      market
+        ? { pos: { x: market.x + Math.floor(market.w / 2), y: market.y + market.h - 1 }, activity: "visit", label: "Selling fish at the market", minutes: 60, carry: basket, toward: "the market" }
+        : { pos: h?.sale ?? member.sorting, activity: "visit", label: "Selling fish at the landing", minutes: 60, carry: basket, toward: "the landing" },
+    ] : [sort, ...keep, mend];
+  return [...day, socialStop(plan, seed, id, home, actor, pack.setting), { ...night(home), share: 0.5 }];
+}
 /** One resident's day, from what the plan gave them and what their
  * livelihood does. Used for owners at planning time and for household
  * members added afterwards. */
@@ -879,17 +926,34 @@ export function routineFor(
   const label = kit?.activity ?? site.label;
   if(site.employment?.kind==="fishery") {
     const member=plan.waterfront?.members.find(m=>m.boatId===site.employment!.id);
+    if(member?.handling && id!==member.owner && actor)
+      return shoreRoutine(plan,seed,pack,id,member,fishingRole(plan,pack,seed,id,1,actor),actor);
     if(member?.handling) {
       const h=member.handling,basket=carryKit(pack).basket;
       const practice=waterfrontProfiles.find(p=>p.id===plan.waterfront!.profile)?.practice;
       const catchName=practice?.catch.toLowerCase() ?? "catch-sorting table";
+      const words=member.practice && fishingWords[member.practice.method];
+      const fate=pack.setting && catchFate(pack.setting);
+      const keeping=(m:typeof member)=>keepingStation(plan,seed,id,m);
+      // The household head takes the boat out; the rest work the shore, and
+      // for a seine they are the shore end of it.
+      const ground=id===member.owner && member.grounds?.length
+        ? member.grounds[Math.floor(random(seed,id,"ground")*member.grounds.length)] : undefined;
+      const trip:Station[]=ground ? [
+        {pos:member.landing,activity:"work",label:"Launching the boat",minutes:8,toward:"the boat"},
+        {pos:ground,activity:"fish",label:words?.fish ?? "Fishing from the boat",minutes:90,toward:"the fishing grounds",boat:member.boatId},
+      ] : [];
       return [
         inside(plan,h.gear,"Taking out fishing gear",20,member.gearId),
-        {pos:member.nets,activity:"work",label:practice?.prepare ?? "Checking lines and mending nets",minutes:40,toward:practice?.nets.toLowerCase() ?? "the net frame"},
-        {pos:member.landing,activity:practice?.landingActivity ?? "work",label:practice?.receive ?? "Receiving the fresh catch",minutes:90,toward:"the fishing landing"},
+        {pos:member.nets,activity:"work",label:practice?.prepare ?? words?.ready ?? "Checking lines and mending nets",minutes:40,toward:practice?.nets.toLowerCase() ?? "the net frame"},
+        ...trip,
+        {pos:member.landing,activity:practice?.landingActivity ?? (member.practice?.method==="seine" ? "haul" : "work"),
+          label:practice?.receive ?? (ground ? "Bringing the catch ashore" : member.practice?.method==="seine" ? "Hauling the seine ropes from the bank" : "Receiving the fresh catch"),minutes:ground ? 30 : 90,toward:"the fishing landing"},
         {pos:member.sorting,activity:"haul",label:practice ? `Carrying baskets of fish to the ${catchName}` : "Carrying baskets of fish to the sorting table",minutes:12,carry:basket,toward:`the ${catchName}`},
         {pos:member.sorting,activity:"work",label:practice?.sort ?? "Sorting the fresh catch",minutes:40,toward:`the ${catchName}`},
-        {pos:h.sale,activity:"visit",label:practice?.share ?? "Selling fresh fish at the landing",minutes:40,carry:basket,toward:practice ? `the ${catchName}` : "the fish-selling table"},
+        ...(fate?.owed ? [{pos:member.sorting,activity:"work" as const,label:`Counting out the share owed to ${fate.owed.to}`,minutes:15,toward:`the ${catchName}`}] : []),
+        ...keeping(member),
+        {pos:h.sale,activity:"visit",label:practice?.share ?? (!fate?.sold ? "Sharing out the catch with family" : plan.waterfront?.preserve==="fresh" ? "Selling fresh fish at the landing" : "Selling fish at the landing"),minutes:40,carry:basket,toward:practice ? `the ${catchName}` : "the fish-selling table"},
         inside(plan,h.gear,"Putting away fishing gear",20,member.gearId),
         socialStop(plan,seed,id,home,actor,pack.setting),{...night(home),share:.65},
       ];

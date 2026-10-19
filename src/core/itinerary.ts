@@ -17,6 +17,8 @@ export const stationActivities = [
   "warm",
   /** Carrying the day's catch to the drying rack, and holding it there. */
   "haul-catch",
+  /** Out on the water in the household's boat. */
+  "fish",
 ] as const;
 export type StationActivity = (typeof stationActivities)[number];
 /** Where a walk toward each errand is heading, when the station does not name
@@ -27,6 +29,7 @@ export const destination: Record<StationActivity, string> = {
   tend: "the fields",
   haul: "the store",
   "haul-catch": "the drying rack",
+  fish: "the fishing grounds",
   "draw-water": "the well",
   gather: "the edge of the settlement",
   visit: "a neighbour's house",
@@ -55,6 +58,9 @@ export type Station = {
   carry?: ItemId;
   /** Walked once, from home and back, rather than on every round. */
   part?: "morning" | "midday" | "evening";
+  /** The boat this station is reached and worked from. The legs to and from
+   * it are afloat wherever they cross water. */
+  boat?: string;
 };
 type Segment = {
   from: number;
@@ -67,6 +73,7 @@ type Segment = {
   target?: Station["target"];
   placeId?: string;
   carry?: ItemId;
+  boat?: string;
 };
 export type Itinerary = {
   segments: Segment[];
@@ -85,6 +92,7 @@ export type Ambient = {
   moving: boolean;
   direction: number;
   carry?: ItemId;
+  boat?: string;
 };
 export const DAY_MINUTES = 1440;
 /** Minutes to cross one tile on foot. Matches the 18-second step the simulated
@@ -109,6 +117,7 @@ const dwellCap: Record<StationActivity, number> = {
   cook: 24,
   warm: 40,
   "haul-catch": 12,
+  fish: 90,
 };
 const MIN_NIGHT = 300;
 /** A one-off errand is not repeated, so it may run longer than a round's. */
@@ -193,6 +202,7 @@ export function buildItinerary(
       ...(s.target ? { target: s.target } : {}),
       ...(s.placeId ? { placeId: s.placeId } : {}),
       ...(s.carry ? { carry: s.carry } : {}),
+      ...(s.boat ? { boat: s.boat } : {}),
     });
     at += minutes;
   };
@@ -212,6 +222,7 @@ export function buildItinerary(
       // A load is in hand on the way to where it is wanted, not on the way
       // back from where it was left.
       ...(to.carry ? { carry: to.carry } : {}),
+      ...(from.boat ?? to.boat ? { boat: from.boat ?? to.boat } : {}),
     });
     at += leg.length * pace;
   };
@@ -278,6 +289,7 @@ export function itineraryAt(itinerary: Itinerary, clock: number): Ambient {
       moving: false,
       direction: 2,
       carry: seg.carry,
+      boat: seg.boat,
     };
   }
   const span = Math.max(1e-6, seg.to - seg.from);
@@ -295,6 +307,7 @@ export function itineraryAt(itinerary: Itinerary, clock: number): Ambient {
     label: seg.label,
     moving: true,
     carry: seg.carry,
+    boat: seg.boat,
     direction: Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0,
   };
 }

@@ -3,7 +3,8 @@ import { paintedDoor } from "../../core/doors";
 import { buildingModel, buildingRoofCells } from "../../content/graphics/models";
 import { characterLivelihood, generateCharacter } from "../../content/characters/generate";
 import { resolveCharacterContext } from "../../content/characters/resolve";
-import { waterfrontFor } from "../../content/settlements/waterfronts";
+import { fishingWaterfront } from "../../content/settlements/waterfronts";
+import { boatArt, fishingPractice, fishingWords, hullNames, preserveOf, preserveWords, waterOf, type FishingWater, type Hull } from "../../content/economy/fishing";
 import { propVisualCells } from "../../content/props/catalog";
 import { random } from "../../core/random";
 import type { Sample } from "./roads";
@@ -22,14 +23,16 @@ export function planWaterfront(
   paint:(r:Rect,t:Terrain,reserve?:boolean)=>void,grade:(r:Rect)=>void,
   connect:(a:Point,b:Point,label:string,width?:number,area?:Rect,preview?:boolean)=>unknown,reserve:(r:Rect)=>void,
 ) {
-  const s=pack.setting,profile=s && waterfrontFor(s);
+  const s=pack.setting,profile=s && fishingWaterfront(s);
   if(!s || !profile)return;
-  const revised=(s.worksiteRevision??1)>=5,practice=profile.practice;
+  const revised=(s.worksiteRevision??1)>=5,practice=profile.practice,general=profile.id==="fishing-landing";
+  const authoredHull:Hull|undefined=profile.craft==="papyrus" ? "reed" : profile.craft ? "plank" : undefined;
   const c=plan.site.center,radius=plan.site.profile.radius;
   const repair=plan.places.find(p=>p.institution==="boatyard");
   const anchor=repair && plan.launches?.[0];
   const id=`${plan.site.id}-waterfront-${profile.id}`;
-  const district:NonNullable<SettlementPlan["waterfront"]>={id,profile:profile.id,repairYardId:repair?.id,landingId:`${id}-landing`,members:[]};
+  const preserve=preserveOf(s,waterOf(s) ?? "river",`${seed}:${plan.site.id}`),keeping=preserveWords[preserve];
+  const district:NonNullable<SettlementPlan["waterfront"]>={id,profile:profile.id,repairYardId:repair?.id,landingId:`${id}-landing`,preserve,members:[]};
   const well=plan.objects.find(o=>o.kind==="well" && o.pos.space==="outside");
   const drinkingWater=well ? {x:well.pos.x-1,y:well.pos.y+1} : c;
   const context=resolveCharacterContext(s,undefined,new Set(["water"]));
@@ -45,6 +48,28 @@ export function planWaterfront(
   }
   const singleFallbackAt=bases.length;
   if(revised)bases.push(...bases);
+  const half=s.playableMap && s.playableMap.size/2;
+  // Deeper water a little way out, reachable afloat from the boat: the spots
+  // the household's days rotate through.
+  const groundsFrom=(from:Point):Point[]=>{
+    const seen=new Set([key(from.x,from.y)]),queue=[{...from,d:0}],found:{p:Point;d:number;depth:number}[]=[];
+    for(let i=0;i<queue.length && i<8000;i++) {
+      const q=queue[i];
+      if(q.d>=8)found.push({p:{x:q.x,y:q.y},d:q.d,depth:-sample(q.x,q.y).water});
+      if(q.d>=36)continue;
+      for(const [ax,ay] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const x=q.x+ax,y=q.y+ay,k=key(x,y);
+        if(seen.has(k))continue;
+        seen.add(k);
+        if(sample(x,y).water>=0 || half && (Math.abs(x)>half-6 || Math.abs(y)>half-6))continue;
+        queue.push({x,y,d:q.d+1});
+      }
+    }
+    found.sort((a,b)=>b.depth-a.depth || a.d-b.d);
+    const out:Point[]=[];
+    for(const f of found)if(out.length<3 && out.every(o=>Math.hypot(o.x-f.p.x,o.y-f.p.y)>=8))out.push(f.p);
+    return out;
+  };
   const claim=(r:Rect)=>{cells(r,(x,y)=>plan.reserved.add(key(x,y)));reserve(r);};
   for(let bi=0;bi<bases.length;bi++) {
     const candidate=bases[bi],first=district.members[0]?.launch;
@@ -77,15 +102,18 @@ export function planWaterfront(
         return {x:p.x-2,y:p.y-top,w:p.w+4,h:p.h+top+3};
       };
       const yards=[envelope(home),envelope(gear)];
-      const boatFrame=`${profile.boat}-${direction.id}`;
+      const salt=`${seed}:${id}-${n}`;
+      const drawn=fishingPractice(s,"river",salt,1);
+      const hull=authoredHull ?? drawn.hull;
+      const boatFrame=`${general ? boatArt(hull,s) : profile.boat}-${direction.id}`;
       const [bw,bh]=buildingModel(boatFrame).footprint;
       const mooring=revised ? Math.floor((dx ? bw : bh)/2) : 5;
       const boat={x:launch.water.x+dx*mooring,y:launch.water.y+dy*mooring};
-      if(profile.waters && !profile.waters.some(k=>k===sample(boat.x,boat.y).kind))continue;
+      const water=sample(boat.x,boat.y).kind as FishingWater;
+      if(profile.waters && !profile.waters.some(k=>k===water))continue;
       const berth={x:boat.x-Math.floor(bw/2),y:boat.y-Math.floor(bh/2),w:bw,h:bh};
       let afloat=true;
       cells(berth,(x,y)=>{if(sample(x,y).water>=0 || plan.reserved.has(key(x,y)))afloat=false;});
-      const half=s.playableMap && s.playableMap.size/2;
       if(!afloat || overlaps(yards[0],yards[1]) || yards.some(y=>overlaps(y,launch.lane) ||
         !dry(y,true,y,true)) || half && [...yards,launch.lane,berth].some(p=>p.x< -half+4 || p.y< -half+4 || p.x+p.w>half-4 || p.y+p.h>half-4))continue;
       if(revised && n===0 && bi<singleFallbackAt) {
@@ -170,11 +198,14 @@ export function planWaterfront(
       for(const p of launch.dry)paint({...p,w:1,h:1},"dirt");
       for(const patch of [netSite.patch,sortSite.patch])claim(patch);
       const boatId=`${id}-${n}-boat`,netsId=`${id}-${n}-nets`,catchId=`${id}-${n}-catch`;
+      const fishing={...fishingPractice(s,water,salt,1),...(hull ? {hull} : {}),...(profile.method ? {method:profile.method} : {})};
+      const craft=general && hull ? hullNames[hull] : undefined;
       plan.objects.push(
-        {id:boatId,name:practice?.boat ?? "Household fishing boat",kind:"monument",sprite:boatFrame,pos:{...boat,space:"outside"},inventory:{},owner,
-          description:practice?.boatDescription ?? "An open clinker-built rowing boat with thwarts and stored oars, moored at its household's landing."},
-        {id:catchId,name:practice?.catch ?? "Catch-sorting table",kind:"container",sprite:profile.sorting,pos:{...sortingAt,space:"outside"},inventory:{fish:4,water:2},owner},
-        {id:netsId,name:practice?.nets ?? "Lines and nets being repaired",kind:"container",sprite:profile.nets,pos:{...netsAt,space:"outside"},inventory:{tool:1},owner},
+        {id:boatId,name:craft?.name ?? practice?.boat ?? "Household fishing boat",kind:"monument",sprite:boatFrame,pos:{...boat,space:"outside"},inventory:{},owner,
+          description:craft?.description ?? practice?.boatDescription ?? "An open clinker-built rowing boat with thwarts and stored oars, moored at its household's landing."},
+        {id:catchId,name:practice?.catch ?? (general ? "Catch-sorting place" : "Catch-sorting table"),kind:"container",sprite:profile.sorting,pos:{...sortingAt,space:"outside"},inventory:{fish:4,water:2},owner},
+        {id:netsId,name:practice?.nets ?? (general ? `${fishingWords[fishing.method].gear.replace(/^the /,"").replace(/^./,c=>c.toUpperCase())}, being mended` : "Lines and nets being repaired"),kind:"container",
+          sprite:general && fishing.method==="seine" ? "worksite-seine-pegs" : profile.nets,pos:{...netsAt,space:"outside"},inventory:{tool:1},owner},
         {id:`${gear.id}-stock`,name:"Stored fishing gear",kind:"container",sprite:"crate",pos:{x:6,y:5,space:gear.id},inventory:{tool:1,wood:2},owner},
       );
       for(const body of bodies)cells(body,(x,y)=>plan.solid.add(key(x,y)));
@@ -197,6 +228,7 @@ export function planWaterfront(
         plan.actors.push(a);
       }
       let handling:NonNullable<SettlementPlan["waterfront"]>["members"][number]["handling"];
+      let process:{id:string; pos:Point}|undefined;
       if(revised) {
         const basketId=`${id}-${n}-landing-baskets`;
         const pockets=(s.worksiteRevision??1)>=6 ? [[3,2],[-3,2],[3,-1],[-3,-1]] : [[3,2]];
@@ -208,12 +240,28 @@ export function planWaterfront(
             sprite:"study-propb-open-basket-0",pos:{...basket,space:"outside"},owner,inventory:{}});
           for(const p of propVisualCells("basket",basket))claim({...p,w:1,h:1});
         }
+        // Where the catch is kept: a rack to dry or smoke it, a barrel or jar to salt it.
+        // Coopered barrels were Celtic and Roman Europe's, and everyone's by 1500; jars before and elsewhere.
+        const barrels=(s.culture==="european" || s.culture==="inner-eurasian") && s.year>=-300 || s.year>=1500;
+        const prop=keeping.prop==="barrel" && !barrels ? "jar" : keeping.prop;
+        const keepAt=prop && [[6,0],[-6,0],[6,3],[-6,3],[0,5],[5,-4],[-5,-4]].map(([x,y])=>({x:sortingAt.x+x,y:sortingAt.y+y})).find(at=>
+          propVisualCells(prop,at).every(p=>sample(p.x,p.y).water>=4 && !plan.solid.has(key(p.x,p.y)) && !plan.traffic.has(key(p.x,p.y)) && !plan.reserved.has(key(p.x,p.y))));
+        if(prop && keepAt) {
+          const kind=prop==="dryingRack" ? "drying-rack" : prop==="barrel" ? "barrel" : "storage-jar";
+          process={id:`${id}-${n}-keeping`,pos:keepAt};
+          plan.objects.push({id:process.id,name:keeping.name,kind:"container",prop,open:true,
+            sprite:`study-propb-${kind}-${Math.floor(random(seed,id,n,"keeping")*3)}`,pos:{...keepAt,space:"outside"},owner,inventory:{fish:2}});
+          for(const p of propVisualCells(prop,keepAt))claim({...p,w:1,h:1});
+          plan.solid.add(key(keepAt.x,keepAt.y));
+          if(prop==="dryingRack")plan.work.get(owner)!.rackId=process.id;
+        }
         claim(sortSite.patch);paint(sortSite.patch,"dirt");
         let lo=Infinity,hi=-Infinity;
         for(const p of launch.dry){const h=Math.round(sample(p.x,p.y).elevation/14);lo=Math.min(lo,h);hi=Math.max(hi,h);}
         handling={kind:hi>lo ? "timber-steps" : "beach",yard:sortSite.patch,sale,basketId:basket ? basketId : undefined,gear:gear.entrance};
       }
-      district.members.push({owner,homeId:home.id,gearId:gear.id,boatId,netsId,catchId,landing,launch,nets,sorting,...(handling ? {handling} : {})});
+      district.members.push({owner,homeId:home.id,gearId:gear.id,boatId,netsId,catchId,landing,launch,nets,sorting,
+        practice:fishing,grounds:groundsFrom(boat),...(process ? {process} : {}),...(handling ? {handling} : {})});
       if(n===0) {
         const across=revised ? (dx ? [44,-44,48,-48,56,-56,64,-64,72,-72] : [32,-32,36,-36,44,-44,52,-52,64,-64]) : [36,-36,44,-44,52,-52];
         const along=revised ? [0,8,-8,16,-16,24,-24] : [0,8,-8];

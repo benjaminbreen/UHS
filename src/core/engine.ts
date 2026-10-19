@@ -88,7 +88,8 @@ import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../co
 import { recipeFor } from "../content/economy/recipes";
 import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
-import { findPlace, type StepPlace } from "./work-places";
+import { findPlace, waterfrontMember, type StepPlace } from "./work-places";
+import { catchFate, catchOf, fishingPractice, fishingWords, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
@@ -567,7 +568,7 @@ export class Engine {
     const done = stage >= process.stages.length;
     return [
       {
-        label: done ? "Today's work is done" : process.steps[stage].task,
+        label: done ? "Today's work is done" : this.stepTask(process.steps[stage]),
         command: { type: "interact", target: o.id, action: "work" },
         enabled: close && !done,
         reason: done ? "Come back tomorrow" : close ? undefined : "Walk closer",
@@ -626,8 +627,13 @@ export class Engine {
       wiki: t.process.wiki,
     };
     const ps = this.placeStep(t);
+    // Out on the water is reached by the boat, from the water's edge.
+    const launch = ps?.at.board && !this.state.player.afloat ? waterfrontMember(this.world, t.household)?.launch : undefined;
     if (ps)
-      return { activity: t.kit.activity, stages: t.process.stages, steps, done: t.stage, station: undefined, where: ps.at.label, door: ps.at.pos, side: this.sideJob(), ...today };
+      return { activity: t.kit.activity, stages: t.process.stages, steps, done: t.stage, station: undefined,
+        where: launch ? "your boat" : ps.at.label,
+        door: launch ? { x: launch.water.x - launch.direction.x, y: launch.water.y - launch.direction.y, space: "outside" } : ps.at.pos,
+        side: this.sideJob(), ...today };
     const station = this.workStation();
     const target = typeof station === "object" ? station : undefined;
     const step = t.process.steps[t.stage];
@@ -671,7 +677,22 @@ export class Engine {
       work: t?.kit.activity.toLowerCase(),
       good: made ? (t.household.products?.[made] ? goodName(made, t.household.products[made]) : goodName(made)) : "work",
       crop: (t && this.stepPlace({ name: "field", task: "", at: "field" }, t)?.crop) ?? "crop",
+      ...this.fishingWords(t),
       ...herdWords(t?.kit.activity === "Tending animals" ? this.herdSpecies(this.state.player.origin?.roleLabel ?? t.kit.label) : undefined),
+    };
+  }
+  private fishingWords(t: ReturnType<Engine["trade"]>) {
+    return t ? this.fishingWordsFor(t.household, t.process.steps) : {};
+  }
+  private fishingWordsFor(household: Household | undefined, steps: Step[]): Record<string, string> {
+    const practice = household && steps.some((st) => st.at === "grounds") ? this.fishing(household) : undefined;
+    if (!practice) return {};
+    const words = fishingWords[practice.method];
+    const fate = catchFate(this.world.pack.setting!);
+    return {
+      ready: words.ready, fishing: practice.hull && waterfrontMember(this.world, household!) ? words.fish : words.shore, gear: words.gear,
+      land: fate.owed ? `Land the catch and set aside ${fate.owed.to}'s share` : fate.sold ? `Land the catch and sell it to ${fate.buyer}` : "Land the catch and share it out",
+      owed: fate.owed?.to ?? "", buyer: fate.buyer,
     };
   }
   private herds = new Map<string, string | undefined>();
@@ -824,6 +845,7 @@ export class Engine {
     return (!card.work || card.work.includes(t?.kit.activity ?? "")) &&
       (!card.who || !!this.cardPerson(card, t)) &&
       (!card.needs || (!!setting && card.needs.every((n) => capabilitiesFor(setting).has(n)))) &&
+      (!card.fishing || this.fishingFits(card.fishing, t)) &&
       card.choices.filter((c) => !this.absent(c)).length >= 2;
   }
   /** The card waiting on the current day's work; one left from a day gone by
@@ -848,9 +870,10 @@ export class Engine {
     const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
     if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.care?.card === card.id && s.care.who === care.who ? s.care.at : s.clock };
     else if (!encounter) s.economy!.work!.card = card.id;
+    const drawnStep = this.trade()?.process.steps[s.economy?.work?.drawn ?? -1];
     this.cards.unshift({
       kind: "speech",
-      title: encounter ? "On the road" : care ? (person ? person.name : "Unwell") : !person ? (this.trade()?.process.steps[s.economy?.work?.drawn ?? -1]?.task ?? this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: encounter ? "On the road" : care ? (person ? person.name : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {
@@ -1112,12 +1135,18 @@ export class Engine {
     if (herd && !herd.pasture && process.steps[t.stage].at === "pasture") herd.pasture = this.placeStep(t)?.at.pos;
     if (gate) gate.open = grazing(t.stage);
     if (herd) herd.fold = gate!.open && process.steps[t.stage].at !== "pasture";
+    // The fish feed at dawn and dusk and run by the season: the hour the
+    // boat goes out decides the catch as much as the work does.
+    const setting = this.world.pack.setting, practice = process.steps[t.stage].at === "grounds" ? this.fishing(t.household) : undefined;
+    const caught = practice && setting && catchOf(setting, practice, (seasonAt(setting.season, s.clock) ?? "spring") as SeasonId,
+      (s.clock / 3600) % 24, random(s.manifest.seed, "catch", t.household.id, t.day));
     this.working = true;
     this.advance((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
     this.working = false;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
-    s.economy.work = { ...was, day: t.day, stage: t.stage + 1 };
+    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, ...(caught ? { catch: caught.factor } : {}) };
+    if (caught) this.event(caught.line);
     if (gate) gate.open = grazing(t.stage + 1);
     if (herd) herd.fold = gate!.open && process.steps[t.stage + 1]?.at !== "pasture";
     // Walked here, the card came on arrival; set down here, it comes now.
@@ -1162,7 +1191,8 @@ export class Engine {
     const made: Record<string, number> = kit.activity === "Looking for game" ? {} : process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
-      : dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0));
+      : dayOfWork(s.economy, household, (1 + 0.25 * (work?.quality ?? 0)) * (work?.catch ?? 1) * (1 - this.catchOwed()));
+    if (work?.catch !== undefined) Object.assign(made, this.settleCatch(t));
     if (process.paid === "takings") {
       const coin = this.takings(2, (amount) => `You took ${amount} over the day.`);
       for (const [g, n] of Object.entries(dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0)))) made[g] = n;
@@ -5329,6 +5359,12 @@ export class Engine {
       // answers is the knock's business, not the prompt's.
       else interact("knock", "Knock and wait");
     }
+    const boat = this.ownBoat(object);
+    if (boat) {
+      const p = this.state.player;
+      interact("launch", "Take the boat out", this.atBoat(object) && !object.away && !p.afloat,
+        object.away ? "It is out on the water" : p.afloat ? "You are already afloat" : "Walk down to the water's edge");
+    }
     if (object.kind === "well") interact("drink", "Drink and refill water");
     if (object.kind === "fire")
       interact("rest", "Warm yourself for 20 minutes");
@@ -5678,7 +5714,9 @@ export class Engine {
       return "There is no clear adjacent place to put it down.";
     const target = this.inspect(c.target);
     if (!target) return "That target is not visible.";
-    if (distance(p.pos, target.pos) > 2.5) return "Move closer first.";
+    // A boat is boarded from the water's edge, not from beside its hull.
+    const launch = c.type === "interact" && c.action === "launch" ? this.object(c.target) : undefined;
+    if (launch ? !this.atBoat(launch) : distance(p.pos, target.pos) > 2.5) return "Move closer first.";
     if (c.type === "give") {
       const a = this.state.actors.find((a) => a.id === c.target);
       if (!a || a.kind !== "human") return "There is nobody there to take it.";
@@ -6988,6 +7026,10 @@ export class Engine {
         p.pos.space === "outside" && this.world.topography
           ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
           : 0;
+      if (p.boat && p.pos.space === "outside" && !this.wet(p.pos.x, p.pos.y)) {
+        this.aboard(p, undefined, p.pos.x, p.pos.y);
+        this.event("You run the boat back to its mooring and step ashore.");
+      }
       if (p.pos.space === "outside") this.swimStep(depth);
       p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
       const steps = c.run && this.lastStep.run && this.state.clock - this.lastStep.clock <= 4 &&
@@ -7530,6 +7572,15 @@ export class Engine {
         break;
       case "work":
         this.doWork();
+        break;
+      case "launch":
+        if (o && this.atBoat(o) && !o.away && !p.afloat) {
+          p.pos = { x: o.pos.x, y: o.pos.y, space: "outside" };
+          this.aboard(p, o.id, o.pos.x, o.pos.y);
+          p.activity = "Paddling";
+          this.advance(60);
+          this.event(`You push the ${o.name.toLowerCase()} off and climb in.`);
+        }
         break;
       case "store":
         if (o) {
@@ -8199,7 +8250,7 @@ export class Engine {
     if (!steps?.length) return;
     const words = what.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
     const step = steps.find((st) => words.some((w) => st.task.toLowerCase().includes(w))) ?? steps[Math.min(1, steps.length - 1)];
-    return { by: a.id, kind: "help", what, meet: { ...a.work }, task: step.task };
+    return { by: a.id, kind: "help", what, meet: { ...a.work }, task: cardText(step.task, this.fishingWordsFor(this.household(a.householdId), steps)) };
   }
   /** Someone the player has promised to help sets off for their work, and
    * waits there. */
@@ -8725,6 +8776,7 @@ export class Engine {
    * the house, so nobody stands at the door overnight. */
   private followRoutine(a: Actor, routine: Itinerary, clock: number) {
     const at = itineraryAt(routine, clock);
+    this.aboard(a, at.boat, Math.round(at.x), Math.round(at.y));
     const household = this.household(a.householdId);
     a.offRoutine = false;
     if (at.carry) a.heldItem = at.carry;
@@ -8772,6 +8824,81 @@ export class Engine {
     });
     a.direction = at.direction;
     a.activity = at.label;
+  }
+  /** The player's household's place on the waterfront, if this is its boat. */
+  private ownBoat(o: WorldObject) {
+    const h = this.state.households?.find((x) => x.members.includes("player"));
+    const m = h && waterfrontMember(this.world, h);
+    return m && m.boatId === o.id ? m : undefined;
+  }
+  private atBoat(o: WorldObject) {
+    const boat = this.ownBoat(o), p = this.state.player.pos;
+    return !!boat && Math.min(distance(p, o.pos), distance(p, { ...boat.launch.water, space: "outside" })) <= 2.5;
+  }
+  private fishingFits(want: NonNullable<ChoiceCard["fishing"]>, t = this.trade()) {
+    const setting = this.world.pack.setting;
+    if (!t || !setting || !t.process.steps.some((st) => st.at === "grounds")) return false;
+    const fate = catchFate(setting), member = waterfrontMember(this.world, t.household);
+    return (want.boat === undefined || want.boat === !!member?.practice?.hull) &&
+      (want.owed === undefined || want.owed === !!fate.owed) &&
+      (want.sold === undefined || want.sold === fate.sold);
+  }
+  /** The share of a catch that goes to whoever holds the water, as a fraction. */
+  private catchOwed() {
+    const setting = this.world.pack.setting;
+    return this.state.economy?.work?.catch !== undefined && setting ? catchFate(setting).owed?.share ?? 0 : 0;
+  }
+  /** The catch handed over, sold or shared out at the end of a day's fishing. */
+  private settleCatch(t: NonNullable<ReturnType<Engine["trade"]>>): Record<string, number> {
+    const setting = this.world.pack.setting;
+    if (!setting) return {};
+    const fate = catchFate(setting), preserve = waterfrontMember(this.world, t.household) && this.preserve(t.household);
+    if (fate.owed) this.event(`${fate.owed.share >= 0.25 ? "A quarter" : "A tenth"} of the catch goes to ${fate.owed.to}.`);
+    if (preserve && preserve !== "fresh") this.event(`The rest is put by: ${preserveWords[preserve].doing.toLowerCase()}.`);
+    if (fate.sold) {
+      const coin = this.takings(2, (amount) => `${fate.buyer.replace(/^./, (c) => c.toUpperCase())} pays you ${amount} for the fish.`);
+      if (!coin.coin) this.event("You trade the fish at the market for what the house needs.");
+      return coin;
+    }
+    const kin = this.state.player.relations
+      ?.map((r) => this.state.actors.find((a) => a.id === r.other && !a.dead && !t.household.members.includes(a.id)))
+      .find((a) => a && a.kind === "human");
+    if (kin) this.regard(kin, 1, "warm");
+    this.event(kin ? `You share out the catch. ${kin.name.split(" ")[0]}'s family gets a good part of it.` : "You share out the catch with the neighbours.");
+    return {};
+  }
+  private preserve(household: Household) {
+    const h = household.residence?.includes("-waterfront-") ? household.residence.split("-waterfront-")[0] : undefined;
+    const plan = h ? (this.world as { planOf?: (id: string) => { waterfront?: { preserve?: Preserve } } | undefined }).planOf?.(h) : undefined;
+    return plan?.waterfront?.preserve;
+  }
+  /** How the player's household fishes: its waterfront practice, else from the bank. */
+  private fishing(household: Household) {
+    const setting = this.world.pack.setting;
+    const water = setting && waterOf(setting);
+    return waterfrontMember(this.world, household)?.practice ??
+      (setting ? fishingPractice(setting, water ?? "river", `${this.state.manifest.seed}:${household.id}`, 0) : undefined);
+  }
+  /** In the boat while over water with it, and the boat gone from its
+   * mooring meanwhile; back at the mooring once ashore. */
+  private aboard(a: Actor, boat: string | undefined, x: number, y: number) {
+    const on = !!boat && this.wet(x, y);
+    if (a.boat && (!on || a.boat !== boat)) {
+      const moored = this.object(a.boat);
+      if (moored) delete moored.away;
+      delete a.boat;
+      if (a.afloat === "boat") delete a.afloat;
+    }
+    if (!on) return;
+    a.boat = boat;
+    a.afloat = "boat";
+    const out = this.object(boat!);
+    if (out) out.away = true;
+  }
+  private wet(x: number, y: number) {
+    return this.world.topography
+      ? waterDepthAt(this.world.topography, x + 0.5, y + 0.5) > 0.2
+      : this.world.terrain(x, y) === "water";
   }
   /** A guard's watch over warded ground. A stranger coming close to it, or
    * going in, brings them down off their vehicle -- all but the driver, who

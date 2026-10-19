@@ -92,7 +92,7 @@ export type Economy = {
   /** The player's place in today's work: stages done, on which day; how it
    * is going, what the wage has gained or lost, the lines kept from its
    * cards, and the card still waiting for an answer. */
-  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number };
+  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number };
   /** The day the household plot was last seen to. */
   side?: number;
 };
@@ -192,6 +192,8 @@ export type Actor = {
   /** Clock when the torch in hand burns out. */
   torchOut?: number;
   afloat?: "raft" | "boat" | "swimming";
+  /** The moored boat they have out on the water. */
+  boat?: string;
   /** Overrides the name-derived roll in Engine.canSwim. */
   canSwim?: boolean;
   /** Tiles swum since last rested on land; drowning comes at SWIM_RANGE. */
@@ -336,6 +338,8 @@ export type WorldObject = {
   broken?: boolean;
   /** Went into water over its head. Still drawn, on the bed, but out of play. */
   submerged?: boolean;
+  /** A moored boat out on the water with someone in it. */
+  away?: boolean;
   damage?: number;
   id: string;
   name: string;
@@ -534,6 +538,7 @@ export type PlayerCommand =
         | "strike"
         | "climb"
         | "descend"
+        | "launch"
         | "chop"
         | "dig"
         | "reap"
@@ -684,7 +689,7 @@ export type Snapshot = {
   /** The account of the day just slept on. */
   evening?: Evening;
   /** The day's work places and people, fixed at its first command. */
-  workday?: { day: number; places: Record<string, { pos: Position; label: string; patient?: string; crop?: string } | null> };
+  workday?: { day: number; places: Record<string, { pos: Position; label: string; patient?: string; crop?: string; board?: string } | null> };
   /** Every choice made at work over the life, for the account of it. */
   record?: { day: number; clock: number; card: string; choice: number; line: string }[];
   /** A card about someone's illness, the player's own or kin's, waiting on an answer. */

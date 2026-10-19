@@ -111,7 +111,7 @@ const indoors = new Set([
 
 /** Where a recipe's step is done, found on the map rather than at a prop. */
 /** `home` is inside the house at its work spot, `yard` the store out front, `door` the street door. */
-export type PlaceRole = "workplace" | "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well";
+export type PlaceRole = "workplace" | "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well" | "gear" | "grounds";
 /** One stage of a day: a short name for the strip, the thing to do, and
  * whether it happens at a client's house instead of at home. A recipe's step
  * also names its place, the task screen's scene for it and its card. */

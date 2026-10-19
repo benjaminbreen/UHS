@@ -7,7 +7,7 @@ import { worksitesFor } from "../../content/settlements/worksites";
 import type { Rect, SettlementPlan } from "./types";
 import type { Sample } from "./roads";
 import { launchAt, shoreDirections, type Launch } from "./shoreline";
-import { waterfrontFor } from "../../content/settlements/waterfronts";
+import { fishingWaterfront } from "../../content/settlements/waterfronts";
 
 const key = (x: number, y: number) => `${x},${y}`;
 const cells = (r: Rect, f: (x: number, y: number) => void) => {
@@ -28,7 +28,7 @@ export function planWorksites(
   const placed = new Set<string>();
   let processingCount = 0;
   const role = s.role?.toLowerCase().replace(/ /g,"-");
-  const priority=(p:ReturnType<typeof worksitesFor>[number])=>p.roles?.includes(role??"") || p.kind==="boatyard" && !!waterfrontFor(s);
+  const priority=(p:ReturnType<typeof worksitesFor>[number])=>p.roles?.includes(role??"") || p.kind==="boatyard" && !!fishingWaterfront(s);
   const profiles = worksitesFor(s).sort((a,b) =>
     Number(!!a.revision)-Number(!!b.revision) ||
     (a.revision && b.revision ? Number(!priority(a))-Number(!priority(b)) ||

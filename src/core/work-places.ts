@@ -10,7 +10,9 @@ import type { Parcel } from "../world/v3/farmland";
 import type { FaunaGroup } from "./fauna";
 
 /** Where a recipe step is done today; `patient` for a sick call, `crop` for a field. */
-export type StepPlace = { pos: Position; label: string; patient?: string; crop?: string };
+export type StepPlace = { pos: Position; label: string; patient?: string; crop?: string;
+  /** Out on the water: the boat to take out to get there. */
+  board?: string };
 
 type Ask = {
   state: Snapshot;
@@ -33,16 +35,31 @@ type World = Ask["world"] & {
 
 const outside = (p: Point): Position => ({ x: p.x, y: p.y, space: "outside" });
 
+/** The household's place on a fishing waterfront, if it has one. */
+export function waterfrontMember(world: Engine["world"], household: Household) {
+  const w = world as World, home = household.home;
+  const district=household.residence?.includes("-waterfront-")
+    ? w.planOf?.(household.residence.split("-waterfront-")[0]) : w.planAt?.(home.x,home.y);
+  return district?.waterfront?.members.find(m=>household.members.includes(m.owner));
+}
+
 /** Where a step with this role is done, from what the map has, or null when
  * the map has nothing for it and the work falls back to a prop. */
 export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
   const { state: s, household } = ask, world = ask.world as World;
   const home = household.home, seed = s.manifest.seed;
-  const district=household.residence?.includes("-waterfront-")
-    ? world.planOf?.(household.residence.split("-waterfront-")[0]) : world.planAt?.(home.x,home.y);
-  const fishing=district?.waterfront?.members.find(m=>household.members.includes(m.owner));
+  const fishing=waterfrontMember(world,household);
   if(fishing && role==="shore")return {pos:outside(fishing.landing),label:"your household's fishing landing"};
   if(fishing && role==="yard")return {pos:outside(fishing.sorting),label:"your catch-sorting table"};
+  if(fishing && role==="gear")return {pos:outside(fishing.nets),label:"your nets"};
+  if(fishing?.grounds?.length && role==="grounds")
+    return {pos:outside(fishing.grounds[ask.day%fishing.grounds.length]),label:"the fishing grounds",board:fishing.boatId};
+  if(role==="gear")return findPlace("yard",ask);
+  if(role==="grounds") {
+    // A fisher walks to the water however far off the house stands from it.
+    const bank = bankNear(ask, home, 260);
+    return bank ? { pos: bank, label: "the water" } : null;
+  }
   const doorOf = (h: Household) => {
     const place = h.residence ? world.place(h.residence) : undefined;
     return outside(place ? place.entrance : h.home);

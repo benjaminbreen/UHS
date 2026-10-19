@@ -18,6 +18,8 @@ export function pickCard(slot: string, setting: WorldSetting | undefined, weathe
   // A card written for this place or this weather outranks one for any day anywhere.
   if (fits.some((c) => c.scope)) fits = fits.filter((c) => c.scope);
   if (fits.some((c) => c.when)) fits = fits.filter((c) => c.when);
+  // On the water the general day's cards give way to the fishing ones and the trade's own dangers.
+  if (fits.some((c) => c.fishing)) fits = fits.filter((c) => c.fishing || c.work);
   if (fits.some((c) => !seen.has(c.id))) fits = fits.filter((c) => !seen.has(c.id));
   return fits.length ? fits[Math.floor(random(seed, "card", slot, day) * fits.length)] : undefined;
 }

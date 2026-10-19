@@ -1,4 +1,4 @@
-import { waterfrontFor } from "../../content/settlements/waterfronts";
+import { fishingWaterfront } from "../../content/settlements/waterfronts";
 import { assignGender } from "../../content/characters/gender";
 import { herdersFor } from "./herders";
 import { isWayfarer, wayfarerDay, type Way, type Passing } from "./wayfarers";
@@ -510,7 +510,7 @@ export function createSettlementWorld(
     const others = [-1, 0, 1]
       .flatMap((dy) => [-1, 0, 1].flatMap((dx) => sitesIn(cx + dx, cy + dy)))
       .filter((o) => o.id !== s.id && o.accepts);
-    const coastal=(pack.setting?.worksiteRevision??1)>=5 && !!waterfrontFor(pack.setting!);
+    const coastal=(pack.setting?.worksiteRevision??1)>=5 && !!fishingWaterfront(pack.setting!);
     // Scale fringe claims so a small neighbouring quarter cannot consume a city's waterfront.
     const foreign=(x:number,y:number)=>{
       const own=((x-s.center.x)**2+(y-s.center.y)**2)/s.profile.radius**2;
@@ -581,7 +581,7 @@ export function createSettlementWorld(
           const reach = Math.max(
             s.profile.radius + 8 + (s.profile.fields !== "none" || s.profile.outfields
               ? Math.max(64, territoryReach(s.profile.radius, s.pack ?? pack)) : 64),
-            (pack.setting?.worksiteRevision??1)>=5 && !!waterfrontFor((s.pack??pack).setting!) ? s.profile.radius+180 : 0,
+            (pack.setting?.worksiteRevision??1)>=5 && !!fishingWaterfront((s.pack??pack).setting!) ? s.profile.radius+180 : 0,
           );
           if (
             Math.abs(s.center.x - (bx * 64 + 32)) > reach ||
@@ -2350,7 +2350,26 @@ export function createSettlementWorld(
         exhausted = result.status === "budget";
         return result.status === "found" ? result.path : undefined;
       };
-      const reach = (from: Point, station: Station, returnHome = false) => {
+      const wet = (x: number, y: number) => world.topography
+        ? waterDepthAt(world.topography, x + 0.5, y + 0.5) > 0.2
+        : world.terrain(x, y, "outside") === "water";
+      // Out across the water from a landing and back to it: a few dry steps
+      // at the ends, the rest afloat.
+      const boatLeg = (from: Point, to: Point) => {
+        const result = route(from, to,
+          (p) => wet(p.x, p.y) ? 1 : world.blocked(p.x, p.y, "outside") ? Infinity : 4,
+          { maxNodes: 12000, minCost: 1, bounds: {
+            x: Math.min(from.x, to.x) - 30, y: Math.min(from.y, to.y) - 30,
+            w: Math.abs(from.x - to.x) + 60, h: Math.abs(from.y - to.y) + 60 } });
+        return result.status === "found" ? result.path : undefined;
+      };
+      const reach = (from: Point, station: Station, returnHome = false, afloat = false) => {
+        if (afloat || station.boat) {
+          const there = boatLeg(from, station.pos);
+          if (there) return { station, there, back: [] as Point[] };
+          plan!.diagnostics.routineDrops = (plan!.diagnostics.routineDrops ?? 0) + 1;
+          return undefined;
+        }
         const at = station.pos;
         const offsets = station.placeId ? [] : [
           [0, 1], [1, 0], [0, -1], [-1, 0],
@@ -2438,11 +2457,13 @@ export function createSettlementWorld(
       const reachable: typeof stations = [];
       const legs: Point[][] = [];
       let at = bed;
+      let afloat = false;
       for (const station of meet && parting ? [meet, parting, ...stations] : stations) {
         const found = station === parting
           ? { station, there: route0.slice(0, split + 1) }
-          : reach(at, station);
+          : reach(at, station, false, afloat);
         if (!found) continue;
+        afloat = !!station.boat;
         reachable.push(found.station);
         legs.push(found.there);
         at = found.station.pos;

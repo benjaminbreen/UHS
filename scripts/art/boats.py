@@ -18,8 +18,8 @@ W, H, BASE, SCALE = 176, 136, 78, 1.3
 FACINGS = {f: (90-f*45) % 360 for f in range(8)}
 
 
-def seat_screen(heading):
-    return [0, -2*SCALE, 0]
+def seat_screen(heading,form='clinker'):
+    return [0, round(-(8.1 if form=='papyrus' else 2)*SCALE,2), 0]
 
 
 FINISHES = {
@@ -27,8 +27,9 @@ FINISHES = {
                 ('Weathered', {'oak':ramp(65,.035,lift=-.12),'cedar':ramp(60,.04,lift=-.08)})],
     'wasen': [('Warm timber', {}), ('Pale timber', {'oak':RAMPS['pine'],'cedar':RAMPS['pine']}),
               ('Weathered timber', {'oak':ramp(67,.025,lift=-.1),'cedar':ramp(65,.035,lift=-.04)})],
-    'papyrus': [('Olive-gold reeds', {'thatch':ramp(94,.065,lift=-.02)}),
-                ('Dry straw reeds', {}), ('Weathered reeds', {'thatch':ramp(78,.035,lift=-.04)})],
+    'papyrus': [('Olive-gold reeds', {'thatch':ramp(94,.07,lift=-.04)}),
+                ('Sun-dried reeds', {'thatch':ramp(78,.08,lift=-.02)}),
+                ('Weathered and rebound', {'thatch':ramp(80,.035,lift=-.08)})],
 }
 
 
@@ -110,7 +111,7 @@ def wasen_ne_master(palette, depth):
 def layers(facing, form='clinker', finish=0):
     c = C(W, H)
     depth = np.full((H, W), np.inf)
-    palette = {**RAMPS, **FINISHES[form][finish][1]}
+    palette = {**RAMPS, 'rope':ramp(67,.06,lift=-.2), **FINISHES[form][finish][1]}
     th = math.radians(FACINGS[facing])
     co, si = math.cos(th), math.sin(th)
 
@@ -149,6 +150,19 @@ def layers(facing, form='clinker', finish=0):
         quad((x,y+d,z),(x,y,z),(x,y,z+h),(x,y+d,z+h),material)
         quad((x+w,y,z),(x+w,y+d,z),(x+w,y+d,z+h),(x+w,y,z+h),material)
 
+    def stroke(points,material,ink,width=1):
+        ps=[world(p) for p in points]
+        for a,b in zip(ps,ps[1:]):
+            ax,ay=W/2+a[0],BASE-a[2]-.5*a[1]
+            bx,by=W/2+b[0],BASE-b[2]-.5*b[1]
+            steps=max(1,math.ceil(max(abs(ax-bx),abs(ay-by))))
+            for i in range(steps+1):
+                t=i/steps;x=round(ax+(bx-ax)*t);y=round(ay+(by-ay)*t)
+                z=a[1]+(b[1]-a[1])*t
+                for dy in range(width):
+                    if 0<=x<W and 0<=y+dy<H and z<=depth[y+dy,x]+1.2 and np.isfinite(depth[y+dy,x]):
+                        c.p(x,y+dy,palette[material][ink])
+
     def section(t,a,inside=False):
         b = max(0,math.sin(math.pi*t))**.7*15.5
         rocker = 11*abs(2*t-1)**4
@@ -161,18 +175,6 @@ def layers(facing, form='clinker', finish=0):
             return ((t-.5)*91-3*(1-t)**6,side*b*(k/.55*.7 if k<.55 else .7+.3*(k-.55)/.45),
                     -5+10*t**5+15*max(0,(k-.55)/.45)+(2 if inside else 0))
 
-        def stroke(points,material,ink,width=1):
-            ps=[world(p) for p in points]
-            for a,b in zip(ps,ps[1:]):
-                ax,ay=W/2+a[0],BASE-a[2]-.5*a[1]
-                bx,by=W/2+b[0],BASE-b[2]-.5*b[1]
-                steps=max(1,math.ceil(max(abs(ax-bx),abs(ay-by))))
-                for i in range(steps+1):
-                    t=i/steps;x=round(ax+(bx-ax)*t);y=round(ay+(by-ay)*t)
-                    z=a[1]+(b[1]-a[1])*t
-                    for dy in range(width):
-                        if 0<=x<W and 0<=y+dy<H and z<=depth[y+dy,x]+1.2 and np.isfinite(depth[y+dy,x]):
-                            c.p(x,y+dy,palette[material][ink])
 
         def beam(x,y,z,w,d,h):
             quad((x,y,z+h),(x+w,y,z+h),(x+w,y+d,z+h),(x,y+d,z+h),'cedar',ink=2)
@@ -232,25 +234,63 @@ def layers(facing, form='clinker', finish=0):
         stroke([(-61,-10.5,10.3),(-31,-6,9.7)],'cedar',2)
     elif form=='papyrus':
         def bundle(t,a,j,extra=0):
-            taper=max(0,math.sin(math.pi*t))**.6
-            width=3.1*taper+extra
-            return ((t-.5)*92,j*5.4*taper+width*math.cos(a),
-                    5+21*abs(2*t-1)**4+(3.1*taper+extra)*math.sin(a))
+            taper=max(0,math.sin(math.pi*t))**.55
+            radius=3.5*taper+extra
+            rise=(26 if t>.5 else 18)*abs(2*t-1)**4
+            return ((t-.5)*94,j*5.5*taper+radius*math.cos(a),
+                    4.5+rise+(radius)*math.sin(a))
+
         for j in range(-2,3):
-            for k in range(32):
+            for k in range(40):
                 for m in range(8):
                     a=m*math.tau/8;b=(m+1)*math.tau/8
-                    quad(bundle(k/32,a,j),bundle((k+1)/32,a,j),
-                         bundle((k+1)/32,b,j),bundle(k/32,b,j),'thatch')
-            for t in (.12,.29,.49,.7,.87):
-                for m in range(12):
-                    a=m*math.tau/12;b=(m+1)*math.tau/12
-                    quad(bundle(t-.006,a,j,.35),bundle(t+.006,a,j,.35),
-                         bundle(t+.006,b,j,.35),bundle(t-.006,b,j,.35),'cedar')
-        # A paddle and a shallow-water pole, rather than rowlocks and benches.
-        box(-30,6,9,62,.8,.8)
-        quad((25,4.5,10),(35,3.5,10),(35,8,10),(25,7,10),'cedar')
-        box(-34,-8,9,66,.7,.7)
+                    ink=2 if m in (1,2) else 3 if m in (0,3) else 4 if m in (4,7) else 5
+                    quad(bundle(k/40,a,j),bundle((k+1)/40,a,j),
+                         bundle((k+1)/40,b,j),bundle(k/40,b,j),'thatch',ink=ink)
+
+        def wrap(t,a,extra=.3):
+            taper=max(0,math.sin(math.pi*t))**.55
+            rise=(26 if t>.5 else 18)*abs(2*t-1)**4
+            ca,sa=math.cos(a),math.sin(a)
+            return ((t-.5)*94,math.copysign(abs(ca)**.45,ca)*(14.5*taper+extra),
+                    4.5+rise+math.copysign(abs(sa)**1.7,sa)*(3.7*taper+extra))
+
+        for n,t in enumerate((.1,.25,.48,.73,.9)):
+            for offset in (-.009,.009):
+                for m in range(20):
+                    a=m*math.tau/20;b=(m+1)*math.tau/20
+                    quad(wrap(t+offset-.005,a),wrap(t+offset+.005,a),
+                         wrap(t+offset+.005,b),wrap(t+offset-.005,b),'rope',ink=3 if m<10 else 5)
+            taper=math.sin(math.pi*t)**.55
+            rise=(26 if t>.5 else 18)*abs(2*t-1)**4
+            box((t-.5)*94-1,-11*taper,8.4+rise,2.5,2,1.1,'rope')
+            if finish==2 and n==1:
+                for m in range(20):
+                    a=m*math.tau/20;b=(m+1)*math.tau/20
+                    quad(wrap(t-.026,a,.6),wrap(t-.017,a,.6),wrap(t-.017,b,.6),wrap(t-.026,b,.6),'rope',ink=2)
+        for t in (.035,.965,.982):
+            for m in range(20):
+                a=m*math.tau/20;b=(m+1)*math.tau/20
+                quad(wrap(t-.004,a,.4),wrap(t+.004,a,.4),wrap(t+.004,b,.4),wrap(t-.004,b,.4),'rope',ink=4)
+        # The working mat follows the low deck; there are no wooden thwarts or rowlocks.
+        quad((-12,-6.5,8.1),(12,-6.5,8.1),(12,6.5,8.1),(-12,6.5,8.1),'thatch',ink=3)
+        for x in range(-11,13,4):
+            quad((x,-6,8.3),(x+1,-6,8.3),(x+1,6,8.3),(x,6,8.3),'thatch',ink=4)
+        box(-12,-6.5,8.3,24,.7,.5,'rope');box(-12,6,8.3,24,.7,.5,'rope')
+        for j in range(-2,3):
+            for a in (.7,1.9):
+                for t0,t1 in ((.13,.21),(.29,.42),(.54,.67),(.78,.85)):
+                    stroke([bundle(t0+(t1-t0)*k/12,a,j,.12) for k in range(13)],'thatch',3 if a<1 else 1)
+        for t in (.1,.25,.48,.73,.9):
+            for offset in (-.009,.009):
+                stroke([wrap(t+offset,k*math.pi/24,.6) for k in range(25)],'rope',4)
+        # Two plain paddles stowed along the bundles, with broad leaf-shaped blades.
+        for side in (-1,1):
+            y=side*8
+            quad((-31,y-.6,9.2),(20,y-.6,9.2),(20,y+.6,9.2),(-31,y+.6,9.2),'oak',ink=3)
+            quad((19,y-.5,9.3),(24,y-2.4,9.3),(33,y-1.5,9.3),(35,y,9.3),'oak',ink=2)
+            quad((19,y+.5,9.3),(24,y+2.4,9.3),(33,y+1.5,9.3),(35,y,9.3),'oak',ink=3)
+            stroke([(-30,y,9.5),(17,y,9.5)],'oak',2)
     else:
         for side in (-1,1):
             for plank in range(6):
@@ -294,9 +334,22 @@ def layers(facing, form='clinker', finish=0):
         for y in (-7,7):
             box(-31,y-.4,11,55,.8,.8)
             box(24,y-1.4,11,10,2.8,.7,'cedar')
+    if form=='papyrus' and facing==1:
+        d=ImageDraw.Draw(c.im)
+        for x,y in ((59,77),(75,81),(96,73),(117,60),(128,39)):
+            d.line([(x-1,y-1),(x+1,y),(x,y+2),(x-2,y+1),(x-1,y-1)],fill=palette['rope'][4])
+            d.point((x-1,y),fill=palette['rope'][2])
+            d.line([(x,y+1),(x+2,y+3)],fill=palette['rope'][4])
+        if finish==2:
+            d.line([(72,79),(74,81),(73,83),(71,82)],fill=palette['rope'][3])
+        # Keep the hand-placed cord ends on the same crew layer as their knots.
+        solid=np.isfinite(depth);ys,xs=np.where(solid)
+        for y,x in zip(*np.where(np.array(c.im)[:,:,3]>0)):
+            if not solid[y,x]:
+                j=np.argmin((xs-x)**2+(ys-y)**2);depth[y,x]=depth[ys[j],xs[j]]
     if form=='wasen' and facing==1:
         c.im,depth=wasen_ne_master(palette,depth);c.px=c.im.load()
-    if form=='wasen' and facing!=1:
+    if (form=='wasen' and facing!=1) or form=='papyrus':
         # Outline pixels inherit the depth of the solid edge they extend.
         alpha=np.array(c.im)[:,:,3]>0
         for y in range(1,H-1):
@@ -304,7 +357,7 @@ def layers(facing, form='clinker', finish=0):
                 if alpha[y,x]:continue
                 for dx,dy in ((0,1),(1,0),(-1,0),(0,-1)):
                     if alpha[y+dy,x+dx]:
-                        c.p(x,y,palette['oak'][6]);depth[y,x]=depth[y+dy,x+dx]
+                        c.p(x,y,palette['thatch' if form=='papyrus' else 'oak'][6]);depth[y,x]=depth[y+dy,x+dx]
                         break
     consolidate(c,rare=5)
     a=np.array(c.im)
@@ -323,7 +376,9 @@ def build():
         ('clinker',[''],{'worksite-fishing-boat':4,'worksite-fishing-boat-north':0,
                          'worksite-fishing-boat-east':2,'worksite-fishing-boat-west':6}),
         ('wasen',['','-pale','-weathered'],{'worksite-plank-skiff':4,'worksite-plank-skiff-north':0,
-                                         'worksite-plank-skiff-east':2,'worksite-plank-skiff-west':6})]:
+                                         'worksite-plank-skiff-east':2,'worksite-plank-skiff-west':6}),
+        ('papyrus',['','-dry','-rebound'],{'worksite-reed-skiff':4,'worksite-reed-skiff-north':0,
+                                        'worksite-reed-skiff-east':2,'worksite-reed-skiff-west':6})]:
         for finish,name in enumerate(finishes):
             for f in range(8):
                 for suffix,im in zip(('', '-back','-front'),layers(f,form,finish)):
@@ -331,22 +386,25 @@ def build():
                     im.info['trim']=True
                     sprites[f'boat-{form}{name}-{f}{suffix}']=im
         catalog[form]={'size':[W,H],'anchor':[W//2,BASE],
-            'seat':{str(f):seat_screen(h) for f,h in FACINGS.items()},'length':6,'beam':2,
+            'seat':{str(f):seat_screen(h,form) for f,h in FACINGS.items()},'length':6,'beam':2,
+            'posture':'kneel' if form=='papyrus' else 'sit',
             'finishes':finishes,'moorings':moorings}
     pack_atlas(sprites,ROOT/'public/packs','boats',1024)
     (ROOT/'src/content/graphics/boats.generated.json').write_text(json.dumps(catalog,indent=2)+'\n')
     write_stamp(ROOT)
 
 
-def painted_review(out):
+def painted_review(out,form='wasen'):
+    title='Nile reed skiff' if form=='papyrus' else 'Japanese fishing boat'
     items=[]
     for f in range(8):
-        im,_,_=layers(f,'wasen')
-        items.append((f'{("N","NE","E","SE","S","SW","W","NW")[f]} / Japanese fishing boat',im))
-    for finish,(label,_) in enumerate(FINISHES['wasen']):
-        im,_,_=layers(1,'wasen',finish)
+        im,_,_=layers(f,form)
+        items.append((f'{("N","NE","E","SE","S","SW","W","NW")[f]} / {title}',im))
+    for finish,(label,_) in enumerate(FINISHES[form]):
+        im,_,_=layers(1,form,finish)
         items.append((label,im))
-    sheet(items,out,columns=4)
+    if form=='papyrus':items.append(('Approved Japanese NE',layers(1,'wasen')[0]))
+    sheet(items,out,columns=4,masters=form!='papyrus')
 
 
 def proposals(out):
@@ -369,6 +427,7 @@ def review(out):
 
 if __name__=='__main__':
     if sys.argv[1:2]==['build']:build()
+    elif sys.argv[1:2]==['nile']:painted_review(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/nile-eight-directions.png','papyrus')
     elif sys.argv[1:2]==['painted']:painted_review(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/wasen-painted.png')
     elif sys.argv[1:2]==['proposals']:proposals(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/next-two.png')
     else:review(sys.argv[1] if len(sys.argv)>1 else 'artifacts/boats/clinker.png')

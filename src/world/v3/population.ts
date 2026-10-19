@@ -16,7 +16,7 @@ import type {
 import type { SettlementPlan } from "./types";
 import { random } from "../../core/random";
 import { sexOf, type Sex } from "../../core/brief";
-import { livelihoodOf, memberRoutine, routineFor } from "./routines";
+import { fishingRole, livelihoodOf, memberRoutine, routineFor, shoreRoutine } from "./routines";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { goods, goodsOf, standsIn } from "../../content/economy/goods";
 import { workplaceFor } from "../../content/characters/workplace";
@@ -437,10 +437,20 @@ export function populateHouseholds(
     const seller = buy && sellerOf(buy, made, world.initialActors);
     plan.work.set(id, memberSite);
     if (!child) assignLocalWork(plan, pack, seed, a, memberSite);
+    // A fishing household's shore work falls to those not in the boat:
+    // gutting, drying and selling, and the children's bait and baskets.
+    const landing = plan.waterfront?.members.find((m) => m.homeId === household.residence && m.handling);
+    // Fishers without a boat place, and those whose work was the household's own
+    // getting and keeping, work the catch; anyone with a trade keeps it.
+    const ashore = !kit || /house|near water|gathering/i.test(kit.activity);
+    const shore = landing && (child ? (a.age ?? 0) >= 6 : ashore && (plan.work.get(id)?.employment?.kind ?? "shore") === "shore")
+      ? fishingRole(plan, pack, seed, id, Math.max(1, i), a) : undefined;
     plan.stations.set(
       id,
       withLoads(
-        kit && !child
+        shore
+          ? shoreRoutine(plan, seed, pack, id, landing!, shore, a)
+          : kit && !child
           ? routineFor(plan, seed, pack, id, memberSite, a)
           : memberRoutine(
               plan,

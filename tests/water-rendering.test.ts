@@ -1,5 +1,5 @@
 vi.mock("../src/render/living-water/game",()=>({openWaterMask:vi.fn()}));
-import { Watercraft, mooredBoatFrame, boatFrame } from "../src/render/watercraft";
+import { Watercraft, mooredBoatFrame, boatFrame, boatPosture } from "../src/render/watercraft";
 import { Reflections } from "../src/render/reflections";
 import {
   motifKinds,
@@ -216,7 +216,7 @@ it("adds only occasional freshwater plants and leaves, and freezes them out in w
 it("keeps low floating hulls out of the upright bank reflection projection",()=>{
   const image=vi.fn(),water=vi.fn(()=>true);
   const reflections=new Reflections({cameras:{main:{worldView:{x:0,y:0,right:500,bottom:500}}},add:{image}} as any,water);
-  const sources=["boat-wasen-pale-7","boat-wasen-weathered-3-front","boat-wasen-0-back","boat-clinker-1","boat-clinker-1-front","boat-clinker-1-back","worksite-fishing-boat-north","worksite-plank-skiff-east","worksite-reed-skiff-west"].map(name=>
+  const sources=["boat-papyrus-dry-4","boat-papyrus-rebound-2-front","boat-papyrus-6-back","boat-wasen-pale-7","boat-wasen-weathered-3-front","boat-wasen-0-back","boat-clinker-1","boat-clinker-1-front","boat-clinker-1-back","worksite-fishing-boat-north","worksite-plank-skiff-east","worksite-reed-skiff-west"].map(name=>
     ({active:true,visible:true,alpha:1,frame:{name}}));
   sources.push({active:true,visible:true,alpha:1,frame:{name:"human-aboard"},getData:()=>true} as any);
   reflections.update(sources as any,0xffffff,0);
@@ -224,7 +224,7 @@ it("keeps low floating hulls out of the upright bank reflection projection",()=>
   expect(image).not.toHaveBeenCalled();
 });
 
-it.each([["clinker",0],["wasen",0],["wasen",.5],["wasen",.99]] as const)("turns %s at finish %s around a seated person and removes it on leaving the water",(model,variation)=>{
+it.each([["clinker",0],["wasen",0],["wasen",.5],["wasen",.99],["papyrus",0],["papyrus",.5],["papyrus",.99]] as const)("turns %s at finish %s around a seated person and removes it on leaving the water",(model,variation)=>{
   const images:any[]=[];
   const scene={textures:{get:()=>({has:()=>true})},add:{image:()=>{
     const im:any={setTexture:(_key:string,frame:string)=>{im.frame=frame;return im;},
@@ -234,22 +234,27 @@ it.each([["clinker",0],["wasen",0],["wasen",.5],["wasen",.99]] as const)("turns 
       setOriginFromFrame:()=>im,setTint:()=>im,destroy:vi.fn()};
     images.push(im);return im;
   }}};
-  const craft=new Watercraft(scene as any,()=>"boats"),person={x:100,y:200,depth:50,setData:vi.fn()} as any;
+  const craft=new Watercraft(scene as any,()=>"boats"),person={x:100,y:200,depth:50,width:80,height:80,setData:vi.fn(),setOrigin:vi.fn()} as any;
   for(let facing=0;facing<8;facing++){
     craft.update(person,"boat",0xffffff,false,facing,model,variation);
     expect(images).toHaveLength(2);
     expect(images.map(im=>im.frame)).toEqual([`${boatFrame(model,facing,variation)}-back`,`${boatFrame(model,facing,variation)}-front`]);
     expect(images[0].depth).toBeLessThan(person.depth);
     expect(images[1].depth).toBeGreaterThan(person.depth);
-    expect(images.map(im=>[im.x,im.y])).toEqual([[100,202.6],[100,202.6]]);
+    expect(images.map(im=>[im.x,im.y])).toEqual([[100,200],[100,200]]);
+    craft.placeCrew(person);
+    expect(person.setOrigin.mock.lastCall[0]).toBe(.5);
+    expect(person.setOrigin.mock.lastCall[1]).toBeCloseTo(1+(model==="papyrus"?10.53:2.6)/80);
   }
   craft.update(person,undefined,0xffffff,false);
+  craft.placeCrew(person);
+  expect(person.setOrigin).toHaveBeenLastCalledWith(.5,1);
   expect(images.every(im=>!im.visible)).toBe(true);
   expect(person.setData).toHaveBeenLastCalledWith("aboard",false);
   craft.dispose();
   expect(images.every(im=>im.destroy.mock.calls.length===1)).toBe(true);
   expect(mooredBoatFrame("worksite-fishing-boat-east")).toBe("boat-clinker-2");
-  expect(mooredBoatFrame("worksite-reed-skiff-east")).toBe("worksite-reed-skiff-east");
+  expect(mooredBoatFrame("worksite-reed-skiff-east")).toBe("boat-papyrus-2");
 });
 
 it("keeps a Japanese boat's material finish when turning or changing between moored and occupied art",()=>{
@@ -258,4 +263,13 @@ it("keeps a Japanese boat's material finish when turning or changing between moo
       expect(mooredBoatFrame(`worksite-plank-skiff${suffix}`,variation)).toBe(`boat-wasen${finish}-${facing}`);
     for(let f=0;f<8;f++)expect(boatFrame("wasen",f,variation)).toBe(`boat-wasen${finish}-${f}`);
   }
+});
+
+it("uses low kneeling crew places and natural reed finishes for the Nile skiff",()=>{
+  expect(boatPosture("papyrus")).toBe("kneel");
+  expect(boatPosture("wasen")).toBe("sit");
+  expect(boatPosture()).toBe("sit");
+  for(const [variation,finish] of [[0,""],[.5,"-dry"],[.99,"-rebound"]] as const)
+    for(const [suffix,facing] of [["",4],["-north",0],["-east",2],["-west",6]] as const)
+      expect(mooredBoatFrame(`worksite-reed-skiff${suffix}`,variation)).toBe(`boat-papyrus${finish}-${facing}`);
 });

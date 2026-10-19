@@ -338,7 +338,7 @@ it("gives every recipe step a card it can always draw, worded without gaps", () 
   for (const c of CARDS) {
     if (!c.who) expect(JSON.stringify(c), `${c.id} names a person but says nobody`).not.toMatch(/\{name\}/i);
     for (const text of [c.text, ...c.choices.flatMap((x) => [x.label, x.note ?? "", x.line, x.otherwiseLine ?? ""])])
-      expect(cardText(text, { boss: "foreman", name: "Ana", work: "weaving", good: "cloth", crop: "barley", ailment: "the fever", healer: "healer", ...herdWords("camel") }), c.id).not.toMatch(/[{}]/);
+      expect(cardText(text, { boss: "foreman", name: "Ana", work: "weaving", good: "cloth", crop: "barley", ailment: "the fever", healer: "healer", gear: "the nets", owed: "the landlord", buyer: "the fish buyer", ...herdWords("camel") }), c.id).not.toMatch(/[{}]/);
   }
 });
 

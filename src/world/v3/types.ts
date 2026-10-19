@@ -81,8 +81,11 @@ export type WorkSite = {
 export type SettlementPlan = {
   waterfront?: {
     id:string; profile:string; repairYardId?:string; landingId:string;
+    preserve?:import("../../content/economy/fishing").Preserve;
     members:{owner:string; homeId:string; gearId:string; boatId:string; netsId:string; catchId:string;
       landing:Point; launch:import("./shoreline").Launch; nets:Point; sorting:Point;
+      practice?:import("../../content/economy/fishing").FishingPractice; grounds?:Point[];
+      process?:{id:string; pos:Point};
       handling?:{kind:"beach"|"timber-steps"; yard:Rect; sale:Point; basketId?:string; gear:Point}}[];
   };
   launches?: import("./shoreline").Launch[];

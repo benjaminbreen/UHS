@@ -97,7 +97,7 @@ it("keeps regional waterfronts within their dates, communities and generator rev
   const edo=setting("Fisher in Tokyo 1800"),nile=setting("Fisher in Nile valley 2000 BCE");
   expect(waterfrontFor(edo)?.id).toBe("edo-inshore-fishing");
   expect(waterfrontFor(edo)?.craft).toBe("wasen");
-  expect(waterfrontFor(nile)?.craft).toBeUndefined();
+  expect(waterfrontFor(nile)?.craft).toBe("papyrus");
   expect(waterfrontFor(nile)?.id).toBe("middle-kingdom-nile-fishing");
   for(const s of [edo,nile]) {
     expect(waterfrontFor({...s,worksiteRevision:5})).toBeUndefined();
