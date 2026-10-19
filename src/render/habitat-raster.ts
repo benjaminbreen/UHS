@@ -1163,11 +1163,10 @@ function rasterGroundTile(
           // reads as two ruled lines.
           if (field.radius > 0.95 && field.ruts !== false) {
             const rut = field.cross - 0.34 - (noise(wx, wy, 19, 445) - 0.5) * 0.06;
-            if (hash(Math.floor(wx / 8), Math.floor(wy / 8), 443) > 0.2) {
-              if (rut > -0.05 && rut < 0.05) {
-                tone = soil[1];
-                shade -= 10;
-              } else if (rut >= 0.05 && rut < 0.09) shade += 7;
+            // A faint dip on the tread colour: the shoulder tone read as ruled lines.
+            if (hash(Math.floor(wx / 8), Math.floor(wy / 8), 443) > 0.45) {
+              if (rut > -0.035 && rut < 0.035) shade -= 6;
+              else if (rut >= 0.035 && rut < 0.065) shade += 3;
             }
           }
           // Dung pats toward the crown, straw strands toward the edges; both
