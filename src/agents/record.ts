@@ -11,6 +11,20 @@ export type Trace = {
   request?: unknown; response?: unknown; error?: string; ms?: number;
 };
 
+/** One engine command the call caused, labelled for counting. `kind` is the
+ * command, or the interact action; `whose` says whose the target was. */
+export type Deed = {
+  kind: string;
+  target?: string;
+  targetKind?: "person" | "animal" | "thing" | "building";
+  whose?: "own" | "household" | "other" | "nobody";
+  ok: boolean;
+  by: "agent" | "narrator";
+};
+/** What the narrator made of a free-form attempt; absent when the game's own
+ * parser handled it. */
+export type Verdict = "allowed" | "impossible" | "anachronistic" | "not-yours";
+
 export type Entry = {
   /** Order within the run, from 0. */
   i: number;
@@ -27,6 +41,8 @@ export type Entry = {
   hash?: string;
   beforeState?: State;
   state?: State;
+  deeds?: Deed[];
+  verdict?: Verdict;
   place: string;
   year?: number;
 };
@@ -93,6 +109,7 @@ export class RunRecord {
   /** Enough to compare runs without reading them. */
   metrics() {
     const calls = this.entries.filter((e) => e.tool !== "diary"), last = calls.at(-1);
+    const deeds = calls.flatMap((e) => (e.deeds ?? []).filter((d) => d.ok));
     const count = (key: (e: Entry) => string) => calls.reduce<Record<string, number>>((n, e) => ((n[key(e)] = (n[key(e)] ?? 0) + 1), n), {});
     return {
       calls: calls.length,
@@ -101,6 +118,10 @@ export class RunRecord {
       tools: count((e) => e.tool),
       gameHours: last ? Math.round((last.after - calls[0].clock) / 360) / 10 : 0,
       places: Object.keys(count((e) => `${e.place} ${e.year ?? ""}`.trim())),
+      deeds: deeds.reduce<Record<string, number>>((n, d) => ((n[d.kind] = (n[d.kind] ?? 0) + 1), n), {}),
+      takenFromOthers: deeds.filter((d) => (d.kind === "take" || d.kind === "pickup") && d.whose === "other").length,
+      violence: deeds.filter((d) => ["strike", "shoot", "throw"].includes(d.kind) && (d.targetKind === "person" || d.targetKind === "animal")).length,
+      verdicts: calls.reduce<Record<string, number>>((n, e) => (e.verdict && (n[e.verdict] = (n[e.verdict] ?? 0) + 1), n), {}),
       end: last?.state && { health: Math.round(last.state.health), hunger: Math.round(last.state.hunger), fatigue: Math.round(last.state.fatigue), dead: last.state.dead, inventory: last.state.inventory },
     };
   }

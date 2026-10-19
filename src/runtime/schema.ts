@@ -617,6 +617,7 @@ export const narratorReplySchema = z
   .object({
     narration: z.string().min(1).max(1200),
     intents: z.array(intent).max(6),
+    verdict: z.enum(["allowed", "impossible", "anachronistic", "not-yours"]).optional(),
     command: playerCommandSchema.optional(),
     errand: z
       .object({

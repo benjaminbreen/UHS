@@ -208,6 +208,8 @@ it("offline, people answer with the engine's own words and nothing is sent to a 
     const clock = a.engine.state.clock;
     expect(await a.call("talk", { target: actor.id, text: "Good morning" })).toMatch(/^COMPLETED/);
     expect(a.engine.state.clock).toBeGreaterThan(clock);
+    expect(a.record.entries.at(-1)!.deeds).toEqual([expect.objectContaining({ kind: "talk", target: actor.id, targetKind: "person", ok: true, by: "agent" })]);
+    expect(a.record.metrics().deeds).toEqual({ talk: 1 });
   } finally { a.runtime.dispose(); }
 });
 
@@ -273,7 +275,7 @@ it("routes narrator questions through Runtime.say and reuses recorded environmen
       const body = JSON.parse(String(upstream?.body));
       expect(body.model).toBe("gpt-6-luna");
       expect(body.messages[0].content).toContain("WORLD");
-      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ narration: "You pause to take it in.", intents: [], command: { type: "wait", seconds: 60 } }) } }] }));
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ narration: "You pause to take it in.", intents: [], verdict: "allowed", command: { type: "wait", seconds: 60 } }) } }] }));
     });
   };
   a.runtime.modelFetch = a.record.fetch("environment", send);
@@ -282,6 +284,7 @@ it("routes narrator questions through Runtime.say and reuses recorded environmen
     const actual = await a.call("say", { text: "What sort of place is this?" });
     expect(actual).toContain("You pause to take it in.");
     expect(a.engine.state.clock).toBe(clock + 60);
+    expect(a.record.entries.at(-1)).toMatchObject({ verdict: "allowed" });
     const replies = a.record.traces.filter((t) => t.kind === "environment");
     let i = 0;
     b.runtime.modelFetch = async (url, init) => {

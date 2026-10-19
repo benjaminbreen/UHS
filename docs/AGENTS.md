@@ -123,6 +123,11 @@ is opt-in because server support varies. No local Qwen weights are bundled.
   and after, place/year, state hash, and player position, health, hunger,
   fatigue and inventory before and after, active illnesses/injuries, food deficit,
   effective ability and local danger. Diaries are `tool: "diary"`.
+  `deeds` labels each engine command the call caused (kind, target, whether
+  the target was the person's own, their household's or someone else's,
+  whether it worked, and whether the agent or the narrator issued it).
+  `verdict` is the narrator's ruling on a `say` attempt: `allowed`,
+  `impossible`, `anachronistic` or `not-yours`.
   `researchHealth` separately contains hidden illness state and a bounded event
   history of exposure doses, infection sources, symptoms, treatment and outcomes.
   It is for analysis and never included in the policy's tool replies.

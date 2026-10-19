@@ -15,7 +15,7 @@ import { hash } from "../core/random";
 import { worldFacts, sceneDigest, compass } from "../narrator/prompt";
 import { dialogueTurn, commitDialogue, type DialogueLine } from "../narrator/dialogue";
 import { trimScene } from "../chronicle/chronicle";
-import { RunRecord, type Rationale } from "./record";
+import { RunRecord, type Deed, type Rationale, type Verdict } from "./record";
 
 /** Bumped when a tool's name, input or meaning changes. */
 export const PROTOCOL = 6;
@@ -107,6 +107,8 @@ export class Agent {
   private open = new Map<string, string>();
   private news: string[] = [];
   private lastLook = "";
+  private deeds: Deed[] = [];
+  private narrating = false;
   /** Scene ids run to forty characters; the agent sees and types short ones. */
   private short = new Map<string, { alias: string; name?: string }>();
   private long = new Map<string, string>();
@@ -124,6 +126,7 @@ export class Agent {
     runtime.onRecord = (kind, data) => {
       onRecord?.(kind, data);
       record.trace({ kind: `engine-${kind}`, response: { ...data, clock: runtime.engine.state.clock, state: this.state() } });
+      if (kind === "command") this.label(data.request as { command: z.infer<typeof commandSchema> }, data.result as CommandResult);
     };
     this.names = (Object.keys(tools) as ToolName[]).filter(
       (n) => (n !== "time_travel" || options.timeTravel) && (n !== "say" || !options.offline),
@@ -143,11 +146,12 @@ export class Agent {
 
   private async execute(name: string, input: unknown): Promise<string> {
     const clock = this.engine.state.clock, beforeState = this.state();
+    this.deeds = [];
     this.record.trace({ kind: "action", request: { tool: name, input } });
     const tool = this.names.includes(name as ToolName) ? tools[name as ToolName] : undefined;
     const parsed = tool ? z.object(tool.input).strict().safeParse(this.resolve(input ?? {})) : undefined;
     const args = parsed?.success ? parsed.data as Record<string, unknown> & { rationale?: Rationale } : undefined;
-    let out;
+    let out: { status: string; text: string; verdict?: Verdict };
     if (!tool) out = { status: "invalid", text: `There is no tool called ${name}.` };
     else if (!parsed?.success) out = { status: "invalid", text: `That input is not usable: ${parsed?.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}.` };
     else if (this.engine.state.encounter && name !== "look" && name !== "inspect" && name !== "say" && !(name === "act" && (args?.command as { type?: string; card?: string })?.type === "choose"))
@@ -158,6 +162,8 @@ export class Agent {
     }
     out.text = this.abbreviate(out.text);
     this.record.entry({
+      ...(this.deeds.length ? { deeds: this.deeds } : {}),
+      ...(out.verdict ? { verdict: out.verdict } : {}),
       tool: name,
       input: args ? Object.fromEntries(Object.entries(args).filter(([k]) => k !== "rationale")) : input,
       rationale: args?.rationale,
@@ -185,7 +191,7 @@ export class Agent {
       .replace(/\n*Item catalog ids: .*$/, "");
   }
 
-  private async run(name: ToolName, a: Record<string, any>): Promise<{ status: string; text: string }> {
+  private async run(name: ToolName, a: Record<string, any>): Promise<{ status: string; text: string; verdict?: Verdict }> {
     switch (name) {
       case "look":
         return { status: "seen", text: this.look() };
@@ -200,10 +206,15 @@ export class Agent {
       case "act":
         return a.command.type === "interact" && a.command.action === "talk" && !this.options.offline ? this.talk(a.command.target, "") : this.act(a.command);
       case "say": {
-        const turn = await this.runtime.say(a.text);
-        const events = this.runtime.running ? await this.drive() : undefined;
-        await this.settle();
-        return this.outcome(turn.error ? "unavailable" : events?.interrupted ? "interrupted" : "completed", [turn.text, ...turn.outcomes, turn.error ?? "", ...(events?.lines ?? [])]);
+        this.narrating = true;
+        try {
+          const turn = await this.runtime.say(a.text);
+          const events = this.runtime.running ? await this.drive() : undefined;
+          await this.settle();
+          return { ...this.outcome(turn.error ? "unavailable" : events?.interrupted ? "interrupted" : "completed", [turn.text, ...turn.outcomes, turn.error ?? "", ...(events?.lines ?? [])]), verdict: turn.reply?.verdict };
+        } finally {
+          this.narrating = false;
+        }
       }
       case "talk":
         return this.options.offline ? this.act({ type: "interact", target: a.target, action: "talk" }) : this.talk(a.target, a.text ?? "");
@@ -245,6 +256,28 @@ export class Agent {
     const same = text === this.lastLook;
     this.lastLook = text;
     return same ? `Nothing has changed since you last looked.\n\n${text}` : text;
+  }
+
+  private label(request: { command: z.infer<typeof commandSchema> }, result: CommandResult) {
+    const c = request.command as { type: string; action?: string; target?: string };
+    const kind = c.type === "interact" ? c.action! : c.type;
+    if (["move", "wait", "enter", "exit", "open", "close", "look", "climb", "descend"].includes(kind)) return;
+    const s = this.engine.state, t = c.target;
+    const actor = t ? s.actors.find((a) => a.id === t) : undefined;
+    const place = t && !actor ? this.engine.world.places.find((p) => p.id === t) : undefined;
+    const thing = t && !actor && !place ? s.objects.find((o) => o.id === t) : undefined;
+    const owner = actor ? actor.id : (place ?? thing)?.owner;
+    const household = this.engine.world.households?.find((h) => h.id === s.player.householdId)?.members ?? [];
+    this.deeds.push({
+      kind,
+      ...(t ? { target: t } : {}),
+      ...(actor || place || thing ? {
+        targetKind: actor ? (actor.kind === "human" ? "person" : "animal") : place ? "building" : "thing",
+        whose: !owner ? "nobody" : owner === "player" ? "own" : household.includes(owner) ? "household" : "other",
+      } as const : {}),
+      ok: result.status === "completed",
+      by: this.narrating ? "narrator" : "agent",
+    });
   }
 
   /** Replaces every long id in the text with its short alias, learning the
