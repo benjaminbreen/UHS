@@ -75,7 +75,13 @@ function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">) {
     reviewed = Date.now();
     writeFileSync(`${dir}/review.html`, runViewer(r));
   };
-  const onExit = () => dir && render(record, true);
+  const close = () => {
+    record.start({ metrics: record.metrics() });
+    open(record);
+    writeFileSync(`${dir}/manifest.json`, JSON.stringify(record.manifest, null, 2) + "\n");
+    render(record, true);
+  };
+  const onExit = () => dir && close();
   process.on("exit", onExit);
   const record = new RunRecord({ environment: start.offline ? null : { narrator: env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna", dialogue: "gpt-6-luna" }, ...base, game }, (entry, r) => {
     open(r);
@@ -87,9 +93,7 @@ function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">) {
   });
   return { record, dir: () => dir, finish: (extra: Partial<Manifest>) => {
     record.start(extra);
-    open(record);
-    writeFileSync(`${dir}/manifest.json`, JSON.stringify(record.manifest, null, 2) + "\n");
-    render(record, true);
+    close();
     process.off("exit", onExit);
   } };
 }

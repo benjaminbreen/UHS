@@ -90,6 +90,21 @@ export class RunRecord {
     };
   }
 
+  /** Enough to compare runs without reading them. */
+  metrics() {
+    const calls = this.entries.filter((e) => e.tool !== "diary"), last = calls.at(-1);
+    const count = (key: (e: Entry) => string) => calls.reduce<Record<string, number>>((n, e) => ((n[key(e)] = (n[key(e)] ?? 0) + 1), n), {});
+    return {
+      calls: calls.length,
+      freeCalls: calls.filter((e) => e.after === e.clock).length,
+      refused: calls.filter((e) => ["invalid", "rejected", "unknown", "unreachable", "unavailable"].includes(e.status)).length,
+      tools: count((e) => e.tool),
+      gameHours: last ? Math.round((last.after - calls[0].clock) / 360) / 10 : 0,
+      places: Object.keys(count((e) => `${e.place} ${e.year ?? ""}`.trim())),
+      end: last?.state && { health: Math.round(last.state.health), hunger: Math.round(last.state.hunger), fatigue: Math.round(last.state.fatigue), dead: last.state.dead, inventory: last.state.inventory },
+    };
+  }
+
   /** A readable account: one line per thing done, looks left out. */
   chronicle(): string {
     const s = this.manifest.setting;

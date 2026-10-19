@@ -21,6 +21,7 @@ import { z } from "zod";
 import { infect } from "../src/core/health";
 
 const setting = "Weaver in Oaxaca 1650";
+// Connected worlds take seconds each; tests that use one run under FULL.
 const agent = () => startAgent({ setting, seed: "agent-check" }, new RunRecord({ mode: "run" }));
 
 it("shows symptoms and actionable care while keeping infection truth in research records", async () => {
@@ -50,7 +51,7 @@ it("shows symptoms and actionable care while keeping infection truth in research
   } finally { runtime.dispose(); }
 });
 
-it("shows the world once and keeps thinking time out of the game clock", async () => {
+it.runIf(!!process.env.FULL)("shows the world once and keeps thinking time out of the game clock", async () => {
   const a = await agent();
   const first = await a.call("look");
   expect(first).toContain("WORLD");
@@ -70,7 +71,7 @@ it("shows the world once and keeps thinking time out of the game clock", async (
   }
 });
 
-it("acts through the runtime and records each call with its reasons", async () => {
+it.runIf(!!process.env.FULL)("acts through the runtime and records each call with its reasons", async () => {
   const a = await agent();
   const clock = a.engine.state.clock;
   const text = await a.call("act", { command: { type: "wait", seconds: 120 }, rationale: { intent: "Catch my breath" } });
@@ -85,7 +86,7 @@ it("acts through the runtime and records each call with its reasons", async () =
   expect(a.record.chronicle()).toContain("Catch my breath");
 });
 
-it("gives long ids short aliases and takes aliases or names back", async () => {
+it.runIf(!!process.env.FULL)("gives long ids short aliases and takes aliases or names back", async () => {
   const a = await agent();
   try {
     const seen = await a.call("look");
@@ -99,7 +100,7 @@ it("gives long ids short aliases and takes aliases or names back", async () => {
   } finally { a.runtime.dispose(); }
 }, 60000);
 
-it("tells a dead player who can go on in their place, and goes on as them", async () => {
+it.runIf(!!process.env.FULL)("tells a dead player who can go on in their place, and goes on as them", async () => {
   const a = await agent();
   try {
     const heir = a.engine.heirs()[0];
@@ -113,7 +114,7 @@ it("tells a dead player who can go on in their place, and goes on as them", asyn
   } finally { a.runtime.dispose(); }
 }, 60000);
 
-it("draws the same random start from the same seed", async () => {
+it.runIf(!!process.env.FULL)("draws the same random start from the same seed", async () => {
   const start = async () => {
     const a = await startAgent({ seed: "random-start-check" }, new RunRecord({ mode: "run" }));
     a.runtime.dispose();
@@ -122,7 +123,7 @@ it("draws the same random start from the same seed", async () => {
   expect(await start()).toEqual(await start());
 }, 120000);
 
-it("crosses into the next map by a way out", async () => {
+it.runIf(!!process.env.FULL)("crosses into the next map by a way out", async () => {
   const a = await agent();
   const before = a.engine;
   const playerFacts = (text: string) => text.split("\nPLAYER\n")[1]?.split("\n\nSCENE\n")[0];
@@ -134,7 +135,7 @@ it("crosses into the next map by a way out", async () => {
   a.runtime.dispose();
 }, 60000);
 
-it("lets a model live through its turns and keep a diary", async () => {
+it.runIf(!!process.env.FULL)("lets a model live through its turns and keep a diary", async () => {
   const a = await agent();
   const model: Complete = async (_system, messages) =>
     messages.at(-1)!.content.includes("Write a short diary entry")
@@ -146,7 +147,7 @@ it("lets a model live through its turns and keep a diary", async () => {
   expect(a.record.entries.filter((e) => e.tool === "act")).toHaveLength(3);
 });
 
-it("serves MCP tools and replays a run from its recorded setting, rejecting changed state", async () => {
+it.runIf(!!process.env.FULL)("serves MCP tools and replays a run from its recorded setting, rejecting changed state", async () => {
   const out = mkdtempSync(join(tmpdir(), "uhs-agent-"));
   const transport = new StdioClientTransport({
     command: "npx",
@@ -379,6 +380,8 @@ it("shows a waiting card in the reply that raised it", async () => {
     const reply = await a.call("act", { command: { type: "wait", seconds: 60 } });
     expect(reply).toContain("WAITING FOR YOUR ANSWER");
     expect(reply).toContain("1. Help");
+    await a.call("look");
+    expect(a.record.metrics()).toMatchObject({ calls: 2, freeCalls: 1, refused: 0, tools: { act: 1, look: 1 } });
   } finally { a.runtime.dispose(); }
 });
 

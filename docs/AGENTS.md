@@ -115,7 +115,9 @@ is opt-in because server support varies. No local Qwen weights are bundled.
 
 - `manifest.json`: protocol, game commit and source fingerprint, resolved
   starting setting and seed, time travel flag, model settings, briefing,
-  memory/rationale condition, and how the run ended.
+  memory/rationale condition, how the run ended, and `metrics`: calls, calls
+  that spent no game time, refused calls, tools used, game hours, places, and
+  the person's health, hunger, fatigue and inventory at the end.
 - `trajectory.jsonl`: one line per tool call, including rejected inputs:
   order, wall time, input, rationale, status, exact reply, game clock before
   and after, place/year, state hash, and player position, health, hunger,

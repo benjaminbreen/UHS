@@ -7,7 +7,6 @@ const full = !!process.env.FULL || filter.length > 0 || !!options.testNamePatter
 
 // Long scenarios stay opt-in; mixed files gate their expensive cases with FULL.
 export const slow = [
-  "agent",
   "livelihood",
   "city-panel",
   "preparation",
