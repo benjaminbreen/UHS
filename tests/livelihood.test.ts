@@ -6,6 +6,13 @@ import { waterDepthAt } from "../src/core/water-field";
 import type { Engine } from "../src/core/engine";
 import { places } from "../src/content/geography/places";
 import { livelihoodById } from "../src/content/characters/livelihoods";
+import { institutionFor } from "../src/content/characters/workplace";
+import { isVisitor } from "../src/world/v3/rail-travellers";
+import { waterfrontFor } from "../src/content/settlements/waterfronts";
+import { findPlace } from "../src/core/work-places";
+import { route } from "../src/core/routing";
+import { startAgent } from "../src/agents/agent";
+import { RunRecord } from "../src/agents/record";
 import { processFor } from "../src/content/economy/processes";
 import { propDefs } from "../src/content/props/catalog";
 import { herdWords } from "../src/content/fauna/herding";
@@ -345,3 +352,203 @@ it("gives hunters a real hunting stage instead of gathering plants", () => {
   expect(hunt.steps[1].hours).toBe(0);
   expect(hunt.steps.every((s) => !s.card)).toBe(true);
 });
+
+it.each(["Oaxaca 1650", "Kyoto 1700", "Manchester 1840", "Timbuktu 1550", "Rome 150"])(
+  "grounds resident occupations in actual workplaces: %s", async query => {
+    const a = await startAgent({ setting: query, seed: "local-work-review" }, new RunRecord({ mode: "run" }));
+    try {
+      const text = await a.call("look");
+      expect(text).toContain("PLAYER");
+      const e = a.engine;
+      const schoolStaff = new Map<string, number>();
+      let supported = 0;
+      for (const person of [e.state.player, ...e.state.actors]) {
+        if (person.kind !== "human" || person.role === "Child" || person.wayfarer || isVisitor(person.id)) continue;
+        const site = e.world.activitySites?.(person.id);
+        if (!site) continue; // Passers-by have their livelihood elsewhere.
+        const kit = livelihoodById(person.origin?.specialty ?? person.origin?.livelihood ?? "");
+        const kind = kit && institutionFor(kit);
+        if (!kind) continue;
+        expect(site.employment?.kind, `${query}: ${person.id} ${person.role}`).toBe(kind);
+        expect(person.work, `${person.id} workplace`).toEqual({ ...site.work, space: "outside" });
+        if (!["field", "pasture", "shore", "railway"].includes(kind))
+          expect(e.world.places.some(p => p.id === site.employment!.id), site.employment!.label).toBe(true);
+        if (kind === "school") schoolStaff.set(site.employment!.id, (schoolStaff.get(site.employment!.id) ?? 0) + 1);
+        supported++;
+      }
+      expect(supported).toBeGreaterThan(0);
+      for (const count of schoolStaff.values()) expect(count).toBeLessThanOrEqual(2);
+      if (query === "Manchester 1840") {
+        expect(e.world.places.some(p => p.landUse === "industrial")).toBe(true);
+        expect(e.state.actors.some(p => e.world.activitySites?.(p.id)?.employment?.kind === "factory")).toBe(true);
+      }
+    } finally { a.runtime.dispose(); }
+  }, 60000,
+);
+
+it.each([
+  ["Miller in Rome 150",undefined,undefined,"mill",undefined],
+  ["Miller in medieval Normandy 1350",undefined,undefined,"mill",undefined],
+  ["London 1850",-5.23,50.23,"mine",undefined],
+  ["Cusco 1650",-65.75,-19.58,"mine",undefined],
+  ["Damascus 1250",undefined,undefined,"hospital",undefined],
+  ["Tokyo 1800",undefined,undefined,"hospital",undefined],
+  ["Rome 150",undefined,undefined,"fullery","Fuller"],
+  ["Oaxaca 1650",undefined,undefined,"pottery","Potter"],
+  ["Kyoto 1700",undefined,undefined,"pottery","Potter"],
+  ["London 1650",undefined,undefined,"brickworks","Brickmaker"],
+  ["London 1750",-1.8,53.2,"limeworks","Lime Burner"],
+  ["London 1650",undefined,undefined,"dyehouse","Dyer"],
+  ["London 1650",undefined,undefined,"tannery","Tanner"],
+  ["London 1650",undefined,undefined,"fullery","Fuller"],
+  ["London 1650",undefined,undefined,"boatyard","Boatwright"],
+  ["London 1450",undefined,undefined,"boatyard","Boatwright"],
+  ["Bergen 1500",undefined,undefined,"boatyard","Boatwright"],
+  ["Bergen 1800",undefined,undefined,"boatyard","Boatwright"],
+] as const)("builds reachable, staffed work compounds in %s (%s, %s), %s", async (query,lon,lat,kind,role) => {
+  const resolved = resolveSetting(query,"local-work-review");
+  if("error" in resolved) throw Error(resolved.error);
+  const setting = lon === undefined ? {...resolved.setting,...(role ? {role,characterName:role} : {})} : {...resolved.setting,lon,lat:lat!,
+    placeId:kind==="mine" && lon< -30 ? "review-potosi" : "review-redruth",
+    location:kind==="limeworks" ? "Peak District" : lon< -30 ? "Potosí" : "Redruth",role:role ?? "Miner",characterName:role ?? "Miner"};
+  const a = await startAgent({setting,seed:"local-work-review"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine, workplace=e.world.activitySites?.("player")?.employment;
+    const facilities=e.world.places.filter(p=>p.institution===kind && p.claim.startsWith("worksite-") && (!role || p.id===workplace?.id));
+    expect(facilities.length).toBeGreaterThan(0);
+    if(role) {
+      expect(e.world.activitySites?.("player")?.employment?.kind).toBe(kind);
+      expect(e.state.player.role).toBe(role);
+    }
+    for(const main of facilities) {
+      if(kind==="boatyard") {
+        const plan=(e.world as import("../src/world/v3/generate").SettlementWorld).planOf(main.id.split("-worksite-")[0])!;
+        const launch=plan.launches![0],{origin,direction,water}=launch;
+        const length=Math.abs(water.x-origin.x)+Math.abs(water.y-origin.y);
+        for(let d=1;d<length;d++) {
+          const from={x:origin.x+direction.x*(d-1),y:origin.y+direction.y*(d-1)};
+          const to={x:origin.x+direction.x*d,y:origin.y+direction.y*d};
+          expect(e.world.canCross?.(from,to),`launch step ${d}`).toBe(true);
+          if(d>=launch.workingLength) expect(e.world.blocked(to.x,to.y,"outside"),`launch obstruction ${d}`).toBe(false);
+        }
+      }
+      expect(e.world.places.some(p=>p.id===`${main.id}-store`)).toBe(true);
+      expect(e.world.households?.some(h=>h.residence===main.id)).toBe(false);
+      const staff=[e.state.player,...e.state.actors].filter(p=>e.world.activitySites?.(p.id)?.employment?.id===main.id);
+      expect(staff.length).toBeGreaterThan(0);
+      expect(staff.length).toBeLessThanOrEqual(main.workCapacity!);
+      for(const worker of staff) {
+        expect(worker.work).toEqual({...main.entrance,space:"outside"});
+        const day=e.world.itinerary?.(worker.id);
+        if(day) expect(day.segments.some(s=>s.placeId===main.id),worker.id).toBe(true);
+      }
+      const path=route(e.state.player.pos,main.entrance,(to,from)=>
+        e.world.blocked(to.x,to.y,"outside") || !e.playerCanCross(from,to) ? Infinity : 1,
+        {maxNodes:30000});
+      expect(path.status,main.name).toBe("found");
+      const room=e.interiorOf(main.id)!;
+      expect(room).toBeDefined();
+      if(kind==="hospital") expect(room.props.filter(p=>p.kind==="bed" || p.kind==="mat").length).toBeGreaterThanOrEqual(4);
+    }
+  } finally {a.runtime.dispose();}
+},60000);
+
+
+it("does not keep a requested processing profession when fresh water prevents its workplace", async () => {
+  const a=await startAgent({setting:"Dyer in Kyoto 1700",seed:"local-work-review"},new RunRecord({mode:"run"}));
+  try {
+    expect(a.engine.world.places.some(p=>p.institution==="dyehouse")).toBe(false);
+    expect(a.engine.state.player.role).not.toBe("Dyer");
+    expect(a.engine.state.player.origin?.livelihood).not.toBe("dyer");
+  } finally {a.runtime.dispose();}
+},60000);
+
+it.each(["Bergen 1500","Bergen 1700","London 1650","Tokyo 1800","Nile valley 2000 BCE"])("creates reachable fishing households in %s",async query=>{
+  const a=await startAgent({setting:`Fisher in ${query}`,seed:"fishing-waterfront-review"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine,home=e.world.places.find(p=>p.owner==="player" && p.claim==="waterfront-home");
+    expect(home).toBeDefined();
+    const plan=(e.world as import("../src/world/v3/generate").SettlementWorld).planOf(home!.id.split("-waterfront-")[0])!;
+    expect(plan.waterfront!.members.length).toBeGreaterThanOrEqual(["Bergen 1500","Tokyo 1800"].includes(query) ? 1 : 2);
+    expect(e.state.player.origin?.livelihood).toBe("fisher");
+    const profile=waterfrontFor(e.world.pack.setting!)!;
+    expect(plan.waterfront!.profile).toBe(profile.id);
+    for(const member of plan.waterfront!.members) {
+      expect(e.state.objects.find(o=>o.id===member.netsId)?.sprite).toBe(profile.nets);
+      expect(e.state.objects.find(o=>o.id===member.catchId)?.sprite).toBe(profile.sorting);
+      const household=e.world.households!.find(h=>h.members.includes(member.owner))!;
+      expect(household.residence).toBe(member.homeId);
+      expect(household.makes).toContain("fish");
+      expect(household.storeId).toBe(member.catchId);
+      const handling=member.handling!;
+      expect(handling).toBeDefined();
+      const neighbouringPlans=[...new Set(e.world.places.filter(p=>p.claim.startsWith("worksite-")).map(p=>p.id.split("-worksite-")[0]))]
+        .filter(id=>id!==plan.site.id).map(id=>(e.world as import("../src/world/v3/generate").SettlementWorld).planOf(id)!);
+      for(const other of neighbouringPlans)for(const launch of other?.launches??[]) {
+        const a=handling.yard,b=launch.lane;
+        expect(a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y,`${member.catchId} crosses ${other.site.id}'s launch`).toBe(false);
+      }
+      expect(e.state.objects.find(o=>o.id===handling.basketId)?.prop).toBe("basket");
+      expect(Math.hypot(member.sorting.x-member.landing.x,member.sorting.y-member.landing.y)).toBeLessThan(22);
+      const stations=plan.stations.get(member.owner)!;
+      expect(stations.some(s=>s.placeId===member.gearId)).toBe(true);
+      if(profile.practice) {
+        expect(stations.some(s=>s.label===profile.practice!.prepare)).toBe(true);
+        expect(stations.some(s=>s.label===profile.practice!.receive && s.activity===profile.practice!.landingActivity)).toBe(true);
+        expect(stations.some(s=>s.label===profile.practice!.share)).toBe(true);
+      }
+      expect(stations.some(s=>s.activity==="haul" && s.carry?.startsWith("prop:basket@"))).toBe(true);
+      if(member.owner!=="player") {
+        const itinerary=e.world.itinerary?.(member.owner)!;
+        const leg=itinerary.segments.find(s=>s.label===`Walking to the ${profile.practice?.catch.toLowerCase() ?? "catch-sorting table"}` && s.path?.length && s.carry?.startsWith("prop:basket@"));
+        expect(leg).toBeDefined();
+        const worker=e.state.actors.find(a=>a.id===member.owner)!;
+        (e as any).followRoutine(worker,itinerary,(itinerary.start+(leg!.from+leg!.to)/2)*60);
+        expect(worker.heldItem).toMatch(/^prop:basket@/);
+        expect(worker.pos.space).toBe("outside");
+      }
+      const ask={state:e.state,world:e.world,household,day:1,client:()=>undefined,markets:true,inside:()=>undefined};
+      expect(findPlace("shore",ask)?.pos).toEqual({...member.landing,space:"outside"});
+      expect(findPlace("yard",ask)?.pos).toEqual({...member.sorting,space:"outside"});
+      expect(e.world.activitySites?.(member.owner)?.employment?.id).toBe(member.boatId);
+      expect(e.world.activitySites?.(member.owner)?.employment?.kind).toBe("fishery");
+      const gear=e.world.places.find(p=>p.id===member.gearId)!;
+      const residence=e.world.places.find(p=>p.id===member.homeId)!;
+      for(const destination of [gear.entrance,member.landing,member.nets,member.sorting,handling.sale]) {
+        expect(e.world.blocked(destination.x,destination.y,"outside"),JSON.stringify(destination)).toBe(false);
+        expect(route(residence.entrance,destination,(to,from)=>e.world.blocked(to.x,to.y,"outside") || !e.playerCanCross(from,to) ? Infinity : 1,{maxNodes:30000}).status,JSON.stringify(destination)).toBe("found");
+      }
+      const room=e.interiorOf(gear.id)!;
+      expect(room.props.some(p=>p.kind==="bed" || p.kind==="mat")).toBe(false);
+      if(profile.gearInterior) {
+        expect(room.params.wallPattern).toBe(profile.gearInterior.wall);
+        expect(room.params.floorPattern).toBe(profile.gearInterior.floor);
+        expect(room.params.door).toBe(profile.gearInterior.door);
+      }
+    }
+    const member=plan.waterfront!.members.find(m=>m.owner==="player")!;
+    expect(await a.call("goto",{...member.landing})).toMatch(/^ARRIVED/);
+    expect(await a.call("goto",{target:member.catchId})).toMatch(/^ARRIVED/);
+    expect(await a.call("inspect",{target:member.catchId})).toMatch(/fish/i);
+    if(profile.revision===6) {
+      process.stdout.write(`${query}: ${plan.waterfront!.members.length} fishing households; ${profile.id}; agent reached and inspected ${profile.practice!.catch.toLowerCase()}\n`);
+      return;
+    }
+    const resolved=resolveSetting(`Fisher in ${query}`,"fishing-waterfront-review");
+    if("error" in resolved)throw Error(resolved.error);
+    const previous=await startAgent({setting:{...resolved.setting,worksiteRevision:4},seed:"fishing-waterfront-review"},new RunRecord({mode:"run"}));
+    try {
+      const oldHome=previous.engine.world.places.find(p=>p.owner==="player" && p.claim==="waterfront-home")!;
+      const oldPlan=(previous.engine.world as import("../src/world/v3/generate").SettlementWorld).planOf(oldHome.id.split("-waterfront-")[0])!;
+      const old=oldPlan.waterfront!.members.find(m=>m.owner==="player")!;
+      expect(old.handling).toBeUndefined();
+      const walk=(engine:typeof e,from:typeof member.landing,to:typeof member.sorting)=>
+        route(from,to,(q,p)=>engine.world.blocked(q.x,q.y,"outside") || !engine.playerCanCross(p,q) ? Infinity : 1,{maxNodes:30000});
+      const before=walk(previous.engine,old.landing,old.sorting),after=walk(e,member.landing,member.sorting);
+      expect(before.status).toBe("found");
+      expect(after.status).toBe("found");
+      expect(after.path.length).toBeLessThan(before.path.length);
+      process.stdout.write(`${query}: catch-carrying route ${before.path.length} → ${after.path.length} paces\n`);
+    } finally {previous.runtime.dispose();}
+  } finally {a.runtime.dispose();}
+},60000);

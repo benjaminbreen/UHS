@@ -3,6 +3,23 @@ import { decisionSchema, type Complete, type Message } from "./loop";
 
 const decisionJson = z.toJSONSchema(decisionSchema);
 
+/** Rate limits, overload and dropped connections pass; a long run should not
+ * end on one. Waits 2, 4, 8, 16, 32 s, or what retry-after asks. */
+async function patient(send: typeof fetch, url: string, init: RequestInit) {
+  for (let attempt = 0; ; attempt++) {
+    const last = attempt === 5;
+    let response;
+    try {
+      response = await send(url, init);
+    } catch (error) {
+      if (last) throw error;
+    }
+    if (response && (last || !(response.status === 408 || response.status === 429 || response.status >= 500))) return response;
+    const after = Number(response?.headers.get("retry-after"));
+    await new Promise((r) => setTimeout(r, after > 0 ? Math.min(after, 60) * 1000 : 2000 * 2 ** attempt));
+  }
+}
+
 /**
  * Two shapes cover what this needs: Anthropic's Messages API, and anything
  * OpenAI-compatible, which is how a local model on this machine is served.
@@ -17,7 +34,7 @@ export function anthropic(options: {
 }): Complete {
   const send = options.fetch ?? globalThis.fetch;
   return async (system, messages) => {
-    const response = await send("https://api.anthropic.com/v1/messages", {
+    const response = await patient(send, "https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": options.apiKey,
@@ -65,7 +82,8 @@ export function openaiCompatible(options: {
 }): Complete {
   const send = options.fetch ?? globalThis.fetch;
   return async (system, messages: Message[]) => {
-    const response = await send(
+    const response = await patient(
+      send,
       `${options.baseUrl.replace(/\/$/, "")}/chat/completions`,
       {
         method: "POST",
@@ -77,7 +95,8 @@ export function openaiCompatible(options: {
         },
         body: JSON.stringify({
           model: options.model,
-          max_tokens: options.maxTokens ?? 1024,
+          // OpenAI's own current models refuse max_tokens; local servers expect it.
+          [/^https:\/\/api\.openai\.com\//.test(options.baseUrl) ? "max_completion_tokens" : "max_tokens"]: options.maxTokens ?? 1024,
           ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
           ...(options.topP !== undefined ? { top_p: options.topP } : {}),
           ...(options.seed !== undefined ? { seed: options.seed } : {}),

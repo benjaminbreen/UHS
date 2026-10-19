@@ -115,7 +115,7 @@ export async function live(agent: Agent, model: Complete, options: LoopOptions =
 
   let seen = await agent.call("look");
   while (turns < maxTurns && day() - firstDay < days) {
-    if (agent.engine.state.player.dead && !seen.includes("WAITING FOR YOUR ANSWER")) {
+    if (agent.engine.state.player.dead && !agent.engine.heirs().length && !seen.includes("WAITING FOR YOUR ANSWER")) {
       stopped = "the person died";
       break;
     }

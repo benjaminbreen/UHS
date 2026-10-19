@@ -157,13 +157,13 @@ function populationWeightedPlace(draw: number, year: number) {
 export function randomStartFromDraws(
   draws: Uint32Array,
   mode: StartMode = "any",
+  seed = `world-${crypto.randomUUID()}`,
 ) {
   const year = randomPopulationWeightedYear(draws[2] ?? 0);
   const place =
     mode === "realistic"
       ? populationWeightedPlace(draws[0], year)
       : places[draws[0] % places.length];
-  const seed = `world-${crypto.randomUUID()}`;
   const base = settingFor(place, year);
   // The work available here, rather than a fixed five; a Kyoto start can be a
   // dyer and a Manchester one a match worker.

@@ -73,7 +73,7 @@ To give it to Claude Code: `claude mcp add uhs -- npm run --silent agent:serve`
 by default, because it would start a world in every session.
 
 ```bash
-ANTHROPIC_API_KEY=... npm run agent:run -- --setting "A potter in Jenne-jeno, 800 CE" --days 2
+ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --days 2
 ```
 
 | Option | Both | Meaning |

@@ -100,6 +100,7 @@ export class RunRecord {
       if (d !== day) lines.push("", `## Day ${(day = d)}`, "");
       const time = `${String(Math.floor((e.clock % 86400) / 3600)).padStart(2, "0")}:${String(Math.floor((e.clock % 3600) / 60)).padStart(2, "0")}`;
       const what = e.rationale?.intent ?? `${e.tool} ${JSON.stringify(e.input)}`;
+      if (e.tool === "diary") { lines.push(`- ${time} Diary: ${e.text}`); continue; }
       const result = e.text.split("\n\n")[0].split("\n").slice(1).join(" ").slice(0, 300);
       lines.push(`- ${time} ${what} — ${e.status.toLowerCase()}${result ? `: ${result}` : ""}`);
       if (e.rationale?.reasoning) lines.push(`  > ${e.rationale.reasoning}`);

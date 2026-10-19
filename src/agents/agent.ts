@@ -10,7 +10,8 @@ import { prepareConnectedStart } from "../runtime/map-travel";
 import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
 import { resolveSetting } from "../content/geography/resolve";
 import type { WorldSetting } from "../content/geography/types";
-import { randomStart } from "../content/geography/random-start";
+import { randomStart, randomStartFromDraws } from "../content/geography/random-start";
+import { hash } from "../core/random";
 import { worldFacts, sceneDigest } from "../narrator/prompt";
 import { dialogueTurn, commitDialogue, type DialogueLine } from "../narrator/dialogue";
 import { trimScene } from "../chronicle/chronicle";
@@ -52,7 +53,7 @@ export const tools = {
   },
   act: {
     description:
-      "Do one thing. Most often {type:'interact', target, action} with an action listed in [brackets] beside that id; also trade, give, {type:'use', item:foodId} to eat, wear, wait, {type:'sleep', seconds:28800} to sleep eight hours, {type:'care', target:'player' or patientId, treatment:ID} using a listed care option, and {type:'choose', card, choice} to answer something waiting for you.",
+      "Do one thing. Most often {type:'interact', target, action} with an action listed in [brackets] beside that id; also trade, give, {type:'use', item:foodId} to eat, wear, wait, {type:'sleep', seconds:28800} to sleep eight hours, {type:'care', target:'player' or patientId, treatment:ID} using a listed care option, {type:'choose', card, choice} to answer something waiting for you, and {type:'become', heir} to go on as one of your household after death.",
     input: { command: playerCommandSchema, rationale },
   },
   say: {
@@ -103,6 +104,7 @@ export class Agent {
   /** Cards still waiting for an answer, by card id. */
   private open = new Map<string, string>();
   private news: string[] = [];
+  private lastLook = "";
   private conversation?: { engine: Engine; actorId: string; history: DialogueLine[]; situation: string; left: boolean };
   readonly names: ToolName[];
 
@@ -218,10 +220,10 @@ export class Agent {
       this.seenWorld = key;
       parts.push(world);
     }
-    if (s.player.dead) parts.push(`You have died: ${s.player.dead}`);
+    if (s.player.dead) parts.push(this.death());
     parts.push(this.scene());
     if (this.news.length) parts.push(`SINCE YOU LAST LOOKED\n${this.news.splice(0).join("\n")}`);
-    if (this.open.size) parts.push(`WAITING FOR YOUR ANSWER\n${[...this.open.values()].join("\n")}`);
+    if (this.open.size) parts.push(this.waiting());
     const exits = this.runtime.journey?.entrances.filter((e) => e.walkable && e.point) ?? [];
     if (exits.length)
       parts.push(
@@ -232,7 +234,22 @@ export class Agent {
           })
           .join("\n")}`,
       );
-    return parts.join("\n\n");
+    const text = parts.join("\n\n");
+    // Looking is free, so a model can look again and again at an unchanged scene.
+    const same = text === this.lastLook;
+    this.lastLook = text;
+    return same ? `Nothing has changed since you last looked.\n\n${text}` : text;
+  }
+
+  private waiting() {
+    return `WAITING FOR YOUR ANSWER\n${[...this.open.values()].join("\n")}`;
+  }
+
+  private death() {
+    const heirs = this.engine.heirs();
+    return `You have died: ${this.engine.state.player.dead}\n${heirs.length
+      ? `You may go on as one of your household, with act {type:'become', heir:ID}:\n${heirs.map((a) => `- ${a.id}: ${a.name}, ${a.age}, ${a.role}`).join("\n")}`
+      : "No one of your household can go on in your place."}`;
   }
 
   private scene() {
@@ -399,8 +416,9 @@ export class Agent {
   private outcome(status: string, lines: string[]) {
     this.collectCards();
     const said = [...new Set(lines.filter(Boolean))].slice(-12).join("\n");
-    const waiting = this.open.size ? "\n\nSomething is waiting for your answer; look to see it." : "";
-    return { status, text: `${status.toUpperCase()}${said ? `\n${said}` : ""}${waiting}\n\n${this.scene()}` };
+    const waiting = this.open.size ? `\n\n${this.waiting()}` : "";
+    const death = this.engine.state.player.dead ? `\n\n${this.death()}` : "";
+    return { status, text: `${status.toUpperCase()}${said ? `\n${said}` : ""}${waiting}${death}\n\n${this.scene()}` };
   }
 }
 
@@ -415,9 +433,10 @@ export async function startAgent(options: StartOptions, record: RunRecord) {
     if ("error" in resolved) throw Error(resolved.error);
     setting = resolved.setting;
   } else {
-    const start = randomStart();
-    seed = options.seed ?? start.seed;
-    setting = start.setting;
+    const start = options.seed
+      ? randomStartFromDraws(Uint32Array.from([0, 1, 2], (k) => hash(`${options.seed}:start:${k}`)), "any", options.seed)
+      : randomStart();
+    ({ seed, setting } = start);
   }
   const engine = await prepareConnectedStart(setting, seed);
   const runtime = new Runtime(engine, { cacheTerrain: false });

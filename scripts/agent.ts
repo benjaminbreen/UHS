@@ -34,6 +34,8 @@ if (mode !== "serve" && mode !== "run") {
 }
 
 const out = flag("--out") ?? "runs";
+// Let a killed server or interrupted run reach the exit handlers below.
+for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => process.exit(130));
 const env = { ...loadEnv("development", process.cwd(), ""), ...process.env };
 const source = { patch: "", files: {} as Record<string, string> };
 
@@ -64,10 +66,17 @@ function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">) {
     writeFileSync(`${dir}/source.patch`, source.patch);
     writeFileSync(`${dir}/source-files.json`, JSON.stringify(source.files));
   };
-  const render = (r: RunRecord) => {
+  // review.html embeds every prompt and reply so far; writing it on every call
+  // grows with the square of the run. Once a minute, and when the run ends.
+  let reviewed = 0;
+  const render = (r: RunRecord, final = false) => {
     writeFileSync(`${dir}/chronicle.md`, r.chronicle());
+    if (!final && Date.now() - reviewed < 60000) return;
+    reviewed = Date.now();
     writeFileSync(`${dir}/review.html`, runViewer(r));
   };
+  const onExit = () => dir && render(record, true);
+  process.on("exit", onExit);
   const record = new RunRecord({ environment: { narrator: env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna", dialogue: "gpt-6-luna" }, ...base, game }, (entry, r) => {
     open(r);
     appendFileSync(`${dir}/trajectory.jsonl`, JSON.stringify(entry) + "\n");
@@ -80,7 +89,8 @@ function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">) {
     record.start(extra);
     open(record);
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(record.manifest, null, 2) + "\n");
-    render(record);
+    render(record, true);
+    process.off("exit", onExit);
   } };
 }
 
@@ -158,6 +168,8 @@ if (mode === "serve") {
       console.log(`${file.dir()} — ${result.turns} turns, stopped: ${result.stopped}`);
     } catch (error) {
       file.finish({ result: { error: String(error) }, endedAt: new Date().toISOString() });
+      // vite-node exits 0 on an uncaught error; a batch script needs to see it.
+      process.exitCode = 1;
       throw error;
     } finally {
       agent.runtime.dispose();
