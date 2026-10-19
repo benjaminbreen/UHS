@@ -72,6 +72,8 @@ const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
 /** The sling hand overhead, from the player sprite's origin; tuned by eye. */
 const WHIRL_HAND = { x: 7, y: -33 };
 const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
+/** Sun strength below which shadows are cloud-soft: overcast, mist, rain, snow. */
+const CLOUDED = 0.5;
 /** States whose art already shows the animal travelling. */
 const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk", "carry"]);
 /** The nearest pose an animal has for one it was not drawn in. */
@@ -3414,7 +3416,7 @@ export class WorldScene extends Phaser.Scene {
   }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false || waterborneFrames.has(frame)) return undefined;
-    const key = shadowFrame(this.shadowPhase, frame);
+    let key = shadowFrame(this.shadowPhase, frame);
     // A temple's or a mosque's cast is on its own page, fetched the first time one is drawn.
     const sacred =
       /^(civic|sacred-buildings)/.test(this.texture(frame)) && this.sheetFrames?.has(key)
@@ -3431,13 +3433,16 @@ export class WorldScene extends Phaser.Scene {
             : this.texture(frame).startsWith("street-buildings@")
               ? "street-shadows"
               : "lighting-shadows");
+    // A house turned to face its street is the south frame's art, cast once under that name.
+    if (!this.textures.get(texture).has(key)) key = key.replace(/-(north|east|west)$/, "");
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
       .image(x, transient ? y : y - this.lift(x, y), texture, key)
       .setOriginFromFrame()
       .setDepth(this.runtime.engine.world.topography ? -1000 : -60000);
     const sun = this.sunStrength();
-    if (sun < 1) image.setAlpha(sun);
+    // Under cloud the cast is the short midday one (see draw), kept dark enough to ground.
+    if (sun < 1) image.setAlpha(sun < CLOUDED ? 0.6 : sun);
     if (!transient) this.layers.push(image);
     return image;
   }
@@ -3544,6 +3549,9 @@ export class WorldScene extends Phaser.Scene {
           e.state.clock,
         )
       : undefined;
+    // No sun behind the cloud to throw a long shadow; only the soft one under each thing.
+    if (p.space === "outside" && this.shadowPhase !== "night" && this.sunStrength() < CLOUDED)
+      this.shadowPhase = "midday";
     // One wind for the scene: grass, canopies and anything airborne read it.
     if (this.weather) setWind(this.weather.wind);
     this.snow =
