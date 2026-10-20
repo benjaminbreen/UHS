@@ -96,9 +96,10 @@ export const hullNames: Record<Hull, { name: string; description: string }> = {
   plank: { name: "Plank fishing boat", description: "An open boat of planks fastened to one another and to frames, rowed or sculled." },
 };
 
-/** The stand-in art for a craft until it has its own. */
+/** The moored art for a craft; plank boats still share two hull drawings. */
 export function boatArt(hull: Hull | undefined, s: WorldSetting) {
   if (hull === "reed") return "worksite-reed-skiff";
+  if (hull && hull !== "plank") return `boat-moored-${hull}`;
   // Overlapping planks were the northern European way of building a boat.
   if (hull === "plank" && s.culture === "european" && s.lat > 45) return "worksite-fishing-boat";
   return "worksite-plank-skiff";

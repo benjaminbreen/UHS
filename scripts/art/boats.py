@@ -1,4 +1,5 @@
-"""A shared clinker hull baked at eight headings into depth-layered pixel sprites."""
+"""Boat hulls baked at eight headings into depth-layered pixel sprites: clinker,
+Japanese plank skiff, reed bundle, dugout, bark canoe, skin boat and log raft."""
 from pathlib import Path
 import json
 import math
@@ -18,8 +19,13 @@ W, H, BASE, SCALE = 176, 136, 78, 1.3
 FACINGS = {f: (90-f*45) % 360 for f in range(8)}
 
 
+SEATS = {'papyrus':8.1, 'raft':4.5, 'bark':1, 'hide':1}
+NEW_FORMS = ('dugout','bark','hide','raft')
+OUTLINE = {'papyrus':'thatch','wasen':'oak','dugout':'oak','bark':'bark','hide':'hide','raft':'oak'}
+
+
 def seat_screen(heading,form='clinker'):
-    return [0, round(-(8.1 if form=='papyrus' else 2)*SCALE,2), 0]
+    return [0, round(-SEATS.get(form,2)*SCALE,2), 0]
 
 
 FINISHES = {
@@ -30,6 +36,14 @@ FINISHES = {
     'papyrus': [('Olive-gold reeds', {'thatch':ramp(94,.07,lift=-.04)}),
                 ('Sun-dried reeds', {'thatch':ramp(78,.08,lift=-.02)}),
                 ('Weathered and rebound', {'thatch':ramp(80,.035,lift=-.08)})],
+    'dugout': [('Dark hardwood', {}), ('Fresh-hewn', {'oak':ramp(62,.08,lift=-.02)}),
+               ('Weathered', {'oak':ramp(60,.03,lift=-.1)})],
+    'bark': [('Birch bark', {'bark':ramp(85,.028,lift=.05)}), ('Spruce bark', {'bark':ramp(45,.06,lift=-.1)}),
+             ('Elm bark', {'bark':ramp(60,.05,lift=-.03)})],
+    'hide': [('Oiled hide', {'hide':ramp(70,.07,lift=.02)}), ('Dark hide', {'hide':ramp(52,.07,lift=-.1)}),
+             ('Pale hide', {'hide':ramp(82,.04,lift=.06)})],
+    'raft': [('Logs', {}), ('Light wood', {'oak':ramp(75,.06,lift=.04)}),
+             ('Weathered', {'oak':ramp(60,.03,lift=-.1)})],
 }
 
 
@@ -291,6 +305,106 @@ def layers(facing, form='clinker', finish=0):
             quad((19,y-.5,9.3),(24,y-2.4,9.3),(33,y-1.5,9.3),(35,y,9.3),'oak',ink=2)
             quad((19,y+.5,9.3),(24,y+2.4,9.3),(33,y+1.5,9.3),(35,y,9.3),'oak',ink=3)
             stroke([(-30,y,9.5),(17,y,9.5)],'oak',2)
+    elif form in ('dugout','bark','hide'):
+        # Dugout: one log, thick walls, a flat cut rim, blunt ends. Bark canoe:
+        # long and narrow with high recurved ends. Skin boat: a flat floor and
+        # flared straight sides over a frame. All sit with their floor above
+        # the waterline so the inside reads as a floor, not as water.
+        skin = 'oak' if form=='dugout' else form
+        length, beam, rim = {'dugout':(86,10.5,8.5),'bark':(100,12,10),'hide':(92,15,10)}[form]
+        wall = {'dugout':2.2,'bark':.9,'hide':1}[form]
+
+        def section(t,a,side=1,inside=False):
+            s_ = max(0,math.sin(math.pi*t))
+            rise = (5*abs(2*t-1)**6 if form=='dugout' else 22*abs(2*t-1)**5 if form=='bark' else 6*abs(2*t-1)**4)
+            b = max(0, (s_**.3 if form=='dugout' else s_**.7 if form=='bark' else s_**.45)*beam-(wall if inside else 0))
+            floor = 1.5 if form=='dugout' else .6
+            low = floor if inside else -2.5
+            u = a/(math.pi/2)
+            if form=='hide':
+                y, z = b*(.6+.4*u), low+(rim-low)*u
+            else:
+                y, z = b*math.sin(a), low+(rim-low)*(1-math.cos(a))
+            return ((t-.5)*length, side*y, z+rise)
+
+        for side in (-1,1):
+            for j in range(6):
+                a0=j*math.pi/12; a1=(j+1)*math.pi/12
+                for k in range(36):
+                    t0=k/36; t1=(k+1)/36
+                    outer=[section(t0,a0,side),section(t1,a0,side),section(t1,a1,side),section(t0,a1,side)]
+                    inner=[section(t0,a0,side,True),section(t0,a1,side,True),section(t1,a1,side,True),section(t1,a0,side,True)]
+                    if side>0: outer.reverse(); inner.reverse()
+                    quad(*outer,skin)
+                    quad(*inner,skin,bias=1 if form!='dugout' else 2)
+            for k in range(36):
+                t0=k/36; t1=(k+1)/36
+                top=[section(t0,math.pi/2,side),section(t1,math.pi/2,side),section(t1,math.pi/2,side,True),section(t0,math.pi/2,side,True)]
+                if side>0: top.reverse()
+                quad(*top,'cedar' if form!='dugout' else 'oak',ink=2)
+        for k in range(36):
+            t0=k/36; t1=(k+1)/36
+            quad(section(t0,0,-1,True),section(t1,0,-1,True),section(t1,0,1,True),section(t0,0,1,True),
+                 'cedar' if form=='hide' else skin,ink=4 if form!='dugout' else 5)
+        if form=='dugout':
+            # Adze marks along the hollow, and two paddles laid inside.
+            for side in (-1,1):
+                for t0,t1 in ((.18,.4),(.55,.8)):
+                    stroke([section(t0+(t1-t0)*k/12,.9,side,True) for k in range(13)],'oak',6)
+            for y in (-3,3):
+                quad((-30,y-.5,2.2),(14,y-.5,2.2),(14,y+.5,2.2),(-30,y+.5,2.2),'cedar',ink=3)
+                quad((14,y-.5,2.3),(19,y-2,2.3),(27,y-1.2,2.3),(29,y,2.3),'cedar',ink=2)
+                quad((14,y+.5,2.3),(19,y+2,2.3),(27,y+1.2,2.3),(29,y,2.3),'cedar',ink=3)
+        if form=='bark':
+            # Gum-sealed seams cross the bark; three thwarts hold the gunwales apart.
+            for side in (-1,1):
+                for t in (.1,.22,.36,.5,.64,.78,.9):
+                    stroke([section(t,m*math.pi/24,side) for m in range(13)],'oak',6)
+                stroke([section(.03+k*.94/40,math.pi/2*.93,side) for k in range(41)],'cedar',3)
+            for t in (.3,.5,.7):
+                b=section(t,math.pi/2,1,True)[1]; z=section(t,math.pi/2)[2]
+                box((t-.5)*length-1,-b,z-1.6,2,b*2,1,'cedar')
+            for t in (.12,.88):
+                for m in range(10):
+                    ps=[section(t+d,m*math.pi/20,1) for d in (-.01,.01)]
+                    stroke([(x,0,z) for x,y,z in ps],'oak',5)
+        if form=='hide':
+            # The frame shows through the oiled skin as darker ribs, lashed at the gunwale.
+            for side in (-1,1):
+                for t in [.08+i*.84/9 for i in range(10)]:
+                    stroke([section(t,m*math.pi/24,side) for m in range(13)],'hide',5)
+                    stroke([section(t,m*math.pi/24,side,True) for m in range(13)],'cedar',4)
+            for t in (.3,.52,.74):
+                b=section(t,math.pi/2,1,True)[1]; z=section(t,math.pi/2)[2]
+                box((t-.5)*length-1.2,-b,z-1.8,2.4,b*2,1.2,'cedar')
+            for y in (-5,5):
+                quad((-26,y-.5,1.4),(16,y-.5,1.4),(16,y+.5,1.4),(-26,y+.5,1.4),'cedar',ink=3)
+                quad((16,y-.5,1.5),(20,y-2,1.5),(28,y-1.5,1.5),(30,y,1.5),'cedar',ink=2)
+                quad((16,y+.5,1.5),(20,y+2,1.5),(28,y+1.5,1.5),(30,y,1.5),'cedar',ink=3)
+    elif form=='raft':
+        # Seven logs lashed side by side under two cross poles; the ends are left as they fell.
+        def log(t,a,y,length,r=2.2):
+            return ((t-.5)*length, y+r*math.cos(a), 1.2+r*math.sin(a))
+        lengths=(76,84,88,90,87,82,74)
+        for n,y in enumerate(range(-12,13,4)):
+            L=lengths[n]
+            for k in range(24):
+                for m in range(8):
+                    a=m*math.tau/8; b=(m+1)*math.tau/8
+                    ink=2 if m in (1,2) else 3 if m in (0,3) else 4 if m in (4,7) else 5
+                    quad(log(k/24,a,y,L),log((k+1)/24,a,y,L),log((k+1)/24,b,y,L),log(k/24,b,y,L),'oak',ink=ink)
+            for end in (0,1):
+                for m in range(8):
+                    a=m*math.tau/8; b=(m+1)*math.tau/8
+                    tri((log(end,0,y,L,0),log(end,a,y,L),log(end,b,y,L)),'cedar',ink=2 if end else 3)
+            stroke([log(.15+k*.7/20,1.2,y,L,2.3) for k in range(21)],'oak',5)
+        for x in (-26,24):
+            box(x-1.5,-15,3.4,3,30,1.8,'cedar')
+            for y in range(-12,13,4):
+                box(x-2,y-.6,3,4,1.2,2.6,'rope')
+        quad((-6,-7,3.6),(8,-7,3.6),(8,7,3.6),(-6,7,3.6),'thatch',ink=3)
+        quad((-30,9,5.4),(18,9,5.4),(18,10,5.4),(-30,10,5.4),'cedar',ink=3)
+        quad((18,8.5,5.5),(23,7,5.5),(31,8,5.5),(33,9.5,5.5),'cedar',ink=2)
     else:
         for side in (-1,1):
             for plank in range(6):
@@ -349,7 +463,7 @@ def layers(facing, form='clinker', finish=0):
                 j=np.argmin((xs-x)**2+(ys-y)**2);depth[y,x]=depth[ys[j],xs[j]]
     if form=='wasen' and facing==1:
         c.im,depth=wasen_ne_master(palette,depth);c.px=c.im.load()
-    if (form=='wasen' and facing!=1) or form=='papyrus':
+    if (form=='wasen' and facing!=1) or form=='papyrus' or form in NEW_FORMS:
         # Outline pixels inherit the depth of the solid edge they extend.
         alpha=np.array(c.im)[:,:,3]>0
         for y in range(1,H-1):
@@ -357,7 +471,7 @@ def layers(facing, form='clinker', finish=0):
                 if alpha[y,x]:continue
                 for dx,dy in ((0,1),(1,0),(-1,0),(0,-1)):
                     if alpha[y+dy,x+dx]:
-                        c.p(x,y,palette['thatch' if form=='papyrus' else 'oak'][6]);depth[y,x]=depth[y+dy,x+dx]
+                        c.p(x,y,palette[OUTLINE[form]][6]);depth[y,x]=depth[y+dy,x+dx]
                         break
     consolidate(c,rare=5)
     a=np.array(c.im)
@@ -378,7 +492,10 @@ def build():
         ('wasen',['','-pale','-weathered'],{'worksite-plank-skiff':4,'worksite-plank-skiff-north':0,
                                          'worksite-plank-skiff-east':2,'worksite-plank-skiff-west':6}),
         ('papyrus',['','-dry','-rebound'],{'worksite-reed-skiff':4,'worksite-reed-skiff-north':0,
-                                        'worksite-reed-skiff-east':2,'worksite-reed-skiff-west':6})]:
+                                        'worksite-reed-skiff-east':2,'worksite-reed-skiff-west':6}),
+        # Moored on the plank skiff's footprint, under names of their own.
+        *[(form,['','-b','-c'],{f'boat-moored-{form}-{d}':f for d,f in (('north',0),('east',2),('south',4),('west',6))})
+          for form in NEW_FORMS]]:
         for finish,name in enumerate(finishes):
             for f in range(8):
                 for suffix,im in zip(('', '-back','-front'),layers(f,form,finish)):
@@ -387,7 +504,7 @@ def build():
                     sprites[f'boat-{form}{name}-{f}{suffix}']=im
         catalog[form]={'size':[W,H],'anchor':[W//2,BASE],
             'seat':{str(f):seat_screen(h,form) for f,h in FACINGS.items()},'length':6,'beam':2,
-            'posture':'kneel' if form=='papyrus' else 'sit',
+            'posture':'kneel' if form in ('papyrus','bark') else 'sit',
             'finishes':finishes,'moorings':moorings}
     pack_atlas(sprites,ROOT/'public/packs','boats',1024)
     (ROOT/'src/content/graphics/boats.generated.json').write_text(json.dumps(catalog,indent=2)+'\n')
@@ -417,6 +534,15 @@ def proposals(out):
     sheet(items,out,columns=3)
 
 
+def hulls(out):
+    items=[]
+    for form,title in (('dugout','Dugout'),('bark','Bark canoe'),('hide','Skin boat'),('raft','Log raft')):
+        for f in (1,2,4):
+            items.append((f'{title} / {("N","NE","E","SE","S","SW","W","NW")[f]}',layers(f,form)[0]))
+        items.append((f'{title} / {FINISHES[form][1][0]}',layers(1,form,1)[0]))
+    sheet(items,out,columns=4,masters=False)
+
+
 def review(out):
     items=[]
     for f in range(8):
@@ -429,5 +555,6 @@ if __name__=='__main__':
     if sys.argv[1:2]==['build']:build()
     elif sys.argv[1:2]==['nile']:painted_review(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/nile-eight-directions.png','papyrus')
     elif sys.argv[1:2]==['painted']:painted_review(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/wasen-painted.png')
+    elif sys.argv[1:2]==['hulls']:hulls(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/hulls.png')
     elif sys.argv[1:2]==['proposals']:proposals(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/next-two.png')
     else:review(sys.argv[1] if len(sys.argv)>1 else 'artifacts/boats/clinker.png')

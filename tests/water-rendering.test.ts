@@ -1,5 +1,7 @@
 vi.mock("../src/render/living-water/game",()=>({openWaterMask:vi.fn()}));
-import { Watercraft, mooredBoatFrame, boatFrame, boatPosture } from "../src/render/watercraft";
+import { Watercraft, mooredBoatFrame, boatFrame, boatPosture, boatCraft } from "../src/render/watercraft";
+import { boatArt } from "../src/content/economy/fishing";
+import atlas from "../public/packs/boats.json" with { type: "json" };
 import { Reflections } from "../src/render/reflections";
 import {
   motifKinds,
@@ -255,6 +257,21 @@ it.each([["clinker",0],["wasen",0],["wasen",.5],["wasen",.99],["papyrus",0],["pa
   expect(images.every(im=>im.destroy.mock.calls.length===1)).toBe(true);
   expect(mooredBoatFrame("worksite-fishing-boat-east")).toBe("boat-clinker-2");
   expect(mooredBoatFrame("worksite-reed-skiff-east")).toBe("boat-papyrus-2");
+});
+
+it.each([["dugout","sit"],["bark","kneel"],["hide","sit"],["raft","sit"]] as const)("moors and crews a %s hull from its own atlas art",(hull,posture)=>{
+  const setting={culture:"other-indigenous-american",lat:48} as WorldSetting;
+  const frames=(atlas as {frames:Record<string,unknown>}).frames;
+  for(const [dir,facing] of [["north",0],["east",2],["south",4],["west",6]] as const) {
+    const moored=`${boatArt(hull,setting)}-${dir}`;
+    expect(boatCraft(moored)).toBe(hull);
+    for(const variation of [0,.5,.99]) {
+      const frame=mooredBoatFrame(moored,variation);
+      expect(frame).toBe(boatFrame(hull,facing,variation));
+      for(const layer of ["","-back","-front"])expect(frames[`${frame}${layer}`],`${frame}${layer}`).toBeDefined();
+    }
+  }
+  expect(boatPosture(hull)).toBe(posture);
 });
 
 it("keeps a Japanese boat's material finish when turning or changing between moored and occupied art",()=>{

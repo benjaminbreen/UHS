@@ -194,5 +194,269 @@
       "worksite-reed-skiff-east": 2,
       "worksite-reed-skiff-west": 6
     }
+  },
+  "dugout": {
+    "size": [
+      176,
+      136
+    ],
+    "anchor": [
+      88,
+      78
+    ],
+    "seat": {
+      "0": [
+        0,
+        -2.6,
+        0
+      ],
+      "1": [
+        0,
+        -2.6,
+        0
+      ],
+      "2": [
+        0,
+        -2.6,
+        0
+      ],
+      "3": [
+        0,
+        -2.6,
+        0
+      ],
+      "4": [
+        0,
+        -2.6,
+        0
+      ],
+      "5": [
+        0,
+        -2.6,
+        0
+      ],
+      "6": [
+        0,
+        -2.6,
+        0
+      ],
+      "7": [
+        0,
+        -2.6,
+        0
+      ]
+    },
+    "length": 6,
+    "beam": 2,
+    "posture": "sit",
+    "finishes": [
+      "",
+      "-b",
+      "-c"
+    ],
+    "moorings": {
+      "boat-moored-dugout-north": 0,
+      "boat-moored-dugout-east": 2,
+      "boat-moored-dugout-south": 4,
+      "boat-moored-dugout-west": 6
+    }
+  },
+  "bark": {
+    "size": [
+      176,
+      136
+    ],
+    "anchor": [
+      88,
+      78
+    ],
+    "seat": {
+      "0": [
+        0,
+        -1.3,
+        0
+      ],
+      "1": [
+        0,
+        -1.3,
+        0
+      ],
+      "2": [
+        0,
+        -1.3,
+        0
+      ],
+      "3": [
+        0,
+        -1.3,
+        0
+      ],
+      "4": [
+        0,
+        -1.3,
+        0
+      ],
+      "5": [
+        0,
+        -1.3,
+        0
+      ],
+      "6": [
+        0,
+        -1.3,
+        0
+      ],
+      "7": [
+        0,
+        -1.3,
+        0
+      ]
+    },
+    "length": 6,
+    "beam": 2,
+    "posture": "kneel",
+    "finishes": [
+      "",
+      "-b",
+      "-c"
+    ],
+    "moorings": {
+      "boat-moored-bark-north": 0,
+      "boat-moored-bark-east": 2,
+      "boat-moored-bark-south": 4,
+      "boat-moored-bark-west": 6
+    }
+  },
+  "hide": {
+    "size": [
+      176,
+      136
+    ],
+    "anchor": [
+      88,
+      78
+    ],
+    "seat": {
+      "0": [
+        0,
+        -1.3,
+        0
+      ],
+      "1": [
+        0,
+        -1.3,
+        0
+      ],
+      "2": [
+        0,
+        -1.3,
+        0
+      ],
+      "3": [
+        0,
+        -1.3,
+        0
+      ],
+      "4": [
+        0,
+        -1.3,
+        0
+      ],
+      "5": [
+        0,
+        -1.3,
+        0
+      ],
+      "6": [
+        0,
+        -1.3,
+        0
+      ],
+      "7": [
+        0,
+        -1.3,
+        0
+      ]
+    },
+    "length": 6,
+    "beam": 2,
+    "posture": "sit",
+    "finishes": [
+      "",
+      "-b",
+      "-c"
+    ],
+    "moorings": {
+      "boat-moored-hide-north": 0,
+      "boat-moored-hide-east": 2,
+      "boat-moored-hide-south": 4,
+      "boat-moored-hide-west": 6
+    }
+  },
+  "raft": {
+    "size": [
+      176,
+      136
+    ],
+    "anchor": [
+      88,
+      78
+    ],
+    "seat": {
+      "0": [
+        0,
+        -5.85,
+        0
+      ],
+      "1": [
+        0,
+        -5.85,
+        0
+      ],
+      "2": [
+        0,
+        -5.85,
+        0
+      ],
+      "3": [
+        0,
+        -5.85,
+        0
+      ],
+      "4": [
+        0,
+        -5.85,
+        0
+      ],
+      "5": [
+        0,
+        -5.85,
+        0
+      ],
+      "6": [
+        0,
+        -5.85,
+        0
+      ],
+      "7": [
+        0,
+        -5.85,
+        0
+      ]
+    },
+    "length": 6,
+    "beam": 2,
+    "posture": "sit",
+    "finishes": [
+      "",
+      "-b",
+      "-c"
+    ],
+    "moorings": {
+      "boat-moored-raft-north": 0,
+      "boat-moored-raft-east": 2,
+      "boat-moored-raft-south": 4,
+      "boat-moored-raft-west": 6
+    }
   }
 }

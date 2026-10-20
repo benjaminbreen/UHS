@@ -106,7 +106,8 @@ export function planWaterfront(
       const drawn=fishingPractice(s,"river",salt,1);
       const hull=authoredHull ?? drawn.hull;
       const boatFrame=`${general ? boatArt(hull,s) : profile.boat}-${direction.id}`;
-      const [bw,bh]=buildingModel(boatFrame).footprint;
+      // Hulls drawn only from the boat atlas moor on the plank skiff's footprint.
+      const [bw,bh]=buildingModel(boatFrame.startsWith("boat-moored-") ? `worksite-plank-skiff-${direction.id}` : boatFrame).footprint;
       const mooring=revised ? Math.floor((dx ? bw : bh)/2) : 5;
       const boat={x:launch.water.x+dx*mooring,y:launch.water.y+dy*mooring};
       const water=sample(boat.x,boat.y).kind as FishingWater;
