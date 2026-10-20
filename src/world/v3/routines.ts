@@ -1,5 +1,6 @@
 import { waterfrontProfiles } from "../../content/settlements/waterfronts";
 import { catchFate, crewRole, fishingWords, preserveWords, type CrewRole } from "../../content/economy/fishing";
+import { huntFate } from "../../content/economy/hunting";
 import { sexOf } from "../../core/brief";
 import { livelihoodById } from "../../content/characters/livelihoods";
 import { prepareLocalWork } from "./employment";
@@ -909,6 +910,32 @@ export function shoreRoutine(plan: SettlementPlan, seed: string, pack: Pack, id:
     ] : [sort, ...keep, mend];
   return [...day, socialStop(plan, seed, id, home, actor, pack.setting), { ...night(home), share: 0.5 }];
 }
+/** A hunter's day: out to the far country, back with the kill, and the meat
+ * cut up and sold, handed over or shared round. */
+function huntRoutine(plan: SettlementPlan, seed: string, pack: Pack, id: string, home: Point, wild: Point[], actor?: Actor): Station[] {
+  const depot = store(plan, id) ?? home;
+  // Game keeps away from houses: most of the way out toward the farthest
+  // spots. Any one of them may be past a route's reach, so there are several.
+  const out = [...wild].sort((a, b) => Math.hypot(b.x - home.x, b.y - home.y) - Math.hypot(a.x - home.x, a.y - home.y)).slice(0, 3)
+    .map((p) => ({ x: Math.round(home.x + (p.x - home.x) * 0.8), y: Math.round(home.y + (p.y - home.y) * 0.8) }));
+  const weapon = actor?.inventory?.bow ? "bow" : actor?.inventory?.spear ? "spear" : undefined;
+  const fate = pack.setting && huntFate(pack.setting);
+  const market = plan.plots.find((p) => p.kind === "public" && !p.id.includes("-waterfront-"));
+  const kin = [...plan.work.entries()].filter(([k, w]) => !k.startsWith(id) && (w.home.x !== home.x || w.home.y !== home.y))
+    .map(([, w]) => w.home).sort((a, b) => Math.hypot(a.x - home.x, a.y - home.y) - Math.hypot(b.x - home.x, b.y - home.y))[0];
+  const armed = weapon ? { carry: weapon } : {};
+  return [
+    ...out.map((at, i): Station => ({ pos: nearby(plan, seed, `${id}-hunt${i}`, at), activity: "hunt", label: i ? "Waiting by a game trail" : "Stalking game",
+      minutes: i ? 60 : 120, toward: i ? "a game trail" : "the hunting grounds", ...armed })),
+    { pos: nearby(plan, seed, `${id}-kill`, depot), activity: "haul", label: "Carrying the kill home", minutes: 12, carry: "meat", toward: "home" },
+    { pos: nearby(plan, seed, `${id}-butcher`, depot), activity: "work", label: "Skinning and cutting up the kill", minutes: 40, toward: "the kill" },
+    ...(fate?.owed ? [{ pos: nearby(plan, seed, `${id}-owed`, depot), activity: "work" as const, label: `Setting aside ${fate.owed.to}'s share of the meat`, minutes: 15, toward: "the kill" }] : []),
+    fate?.sold && market
+      ? { pos: { x: market.x + Math.floor(market.w / 2), y: market.y + market.h - 1 }, activity: "visit", label: "Selling meat at the market", minutes: 40, carry: "meat", toward: "the market" }
+      : { pos: nearby(plan, seed, `${id}-share`, kin ?? home), activity: "visit", label: "Sharing out the meat with kin", minutes: 30, carry: "meat", toward: "a neighbour's house" },
+    socialStop(plan, seed, id, home, actor, pack.setting), { ...night(home), share: 0.6 },
+  ];
+}
 /** One resident's day, from what the plan gave them and what their
  * livelihood does. Used for owners at planning time and for household
  * members added afterwards. */
@@ -985,6 +1012,8 @@ export function routineFor(
       : kit
         ? workplaceFor(kit.activity)
         : "workshop";
+  if (place === "wild" && kit?.activity === "Looking for game" && outdoors.wild.length)
+    return huntRoutine(plan, seed, pack, id, home, outdoors.wild, actor);
   const errands = workdayFor(
     place,
     plan,

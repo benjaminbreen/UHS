@@ -84,6 +84,7 @@ const dayIcons: Record<StationActivity, LucideIcon> = {
   haul: Package,
   "haul-catch": Package,
   fish: Waves,
+  hunt: Crosshair,
   "draw-water": Waves,
   gather: Leaf,
   visit: Users,

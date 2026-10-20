@@ -52,6 +52,7 @@ export const goods: Good[] = [
     match: /carpent|wheelwright|joiner|thatch|sawyer|wood/,
   },
   { id: "light", noun: "candles", match: /candle|chandler|soap|tallow/ },
+  { id: "hide", noun: "hides", match: /^$/ },
   { id: "milk", noun: "milk", match: /^$/ },
 ];
 /** Bread can be bought as grain where no one bakes. */
@@ -77,6 +78,7 @@ const byActivity: Record<string, string[]> = {
   "Working hides": ["leather"], "Working leather": ["leather"], "Making shoes": ["leather"],
   "Working wood": ["timber"], "Working timber": ["timber"], "Cutting timber": ["timber"],
   "Turning pots": ["pots"], "Working metal": ["ironwork"], "Making candles": ["light"],
+  "Looking for game": ["meat", "hide"],
 };
 
 export function goodsOf(kit: Livelihood | undefined, revision = 0) {

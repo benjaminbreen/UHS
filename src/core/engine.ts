@@ -90,6 +90,7 @@ import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { findPlace, waterfrontMember, type StepPlace } from "./work-places";
 import { catchFate, catchOf, fishingPractice, fishingWords, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
+import { dangerOf, gameOf, GIVE_UP_HOURS, huntFate, huntWeapon, huntWords, keepsTraps } from "../content/economy/hunting";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
@@ -524,7 +525,7 @@ export class Engine {
       // Only the crew fishes, however many grown hands the house has.
       (h, good, at) => good === "fish"
         ? this.catchYield(h, at) * Math.min(1, (this.practices.get(h.id)?.crew ?? 1) / Math.max(1, h.members.filter((m) => adults.has(m)).length))
-        : 1,
+        : h.makes?.includes("hide") ? this.gameYield(h, at) : 1,
     );
     if (Math.floor(hour / 24) === yesterday) return;
     // At dawn, whoever buys from the player's house and went short holds it
@@ -682,6 +683,7 @@ export class Engine {
       good: made ? (t.household.products?.[made] ? goodName(made, t.household.products[made]) : goodName(made)) : "work",
       crop: (t && this.stepPlace({ name: "field", task: "", at: "field" }, t)?.crop) ?? "crop",
       ...this.fishingWords(t),
+      ...(t?.process.steps.some((st) => st.scene === "hunt") ? this.huntingWords(t.household, this.state.player) : {}),
       ...herdWords(t?.kit.activity === "Tending animals" ? this.herdSpecies(this.state.player.origin?.roleLabel ?? t.kit.label) : undefined),
     };
   }
@@ -782,7 +784,12 @@ export class Engine {
   workHere() {
     const ps = this.placeStep();
     const p = this.state.player.pos;
-    if (!ps || ps.step.scene === "hunt" || this.waitingCard() || p.space !== ps.at.pos.space || distance(p, ps.at.pos) > 2.5) return;
+    // A hunt ends on a kill, or once it has gone on long enough, wherever the hunter is.
+    if (ps?.step.scene === "hunt")
+      return this.huntOver() && !this.waitingCard() && p.space === "outside"
+        ? { label: "Give up and head home", command: { type: "interact" as const, target: Engine.tileTarget(p.x, p.y), action: "work" as const } }
+        : undefined;
+    if (!ps || this.waitingCard() || p.space !== ps.at.pos.space || distance(p, ps.at.pos) > 2.5) return;
     return {
       label: this.stepTask(ps.step),
       command: { type: "interact" as const, target: Engine.tileTarget(ps.at.pos.x, ps.at.pos.y), action: "work" as const },
@@ -850,6 +857,7 @@ export class Engine {
       (!card.who || !!this.cardPerson(card, t)) &&
       (!card.needs || (!!setting && card.needs.every((n) => capabilitiesFor(setting).has(n)))) &&
       (!card.fishing || this.fishingFits(card.fishing, t)) &&
+      (!card.hunting || this.huntingFits(card.hunting, t)) &&
       card.choices.filter((c) => !this.absent(c)).length >= 2;
   }
   /** The card waiting on the current day's work; one left from a day gone by
@@ -1129,7 +1137,9 @@ export class Engine {
     if (!t || t.stage >= t.process.stages.length) return;
     const s = this.state;
     const { process } = t;
-    if (process.steps[t.stage].scene === "hunt" && !hunted) return;
+    const empty = process.steps[t.stage].scene === "hunt" && !hunted;
+    if (empty && !this.huntOver()) return;
+    if (empty) this.emptyHanded(t);
     // The pen stands open while the work is out at grass and while the herd
     // is brought back, so the herd goes out and comes home with you.
     const gate = s.objects.find((o) => o.kind === "gate" && o.owner === "player" && /-pen\d+-gate$/.test(o.id));
@@ -1149,7 +1159,8 @@ export class Engine {
     this.working = false;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
-    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, ...(caught ? { catch: caught.factor } : {}) };
+    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, ...(caught ? { catch: caught.factor } : {}),
+      ...(process.steps[t.stage + 1]?.scene === "hunt" ? { since: s.clock } : {}) };
     if (caught) this.event(caught.line);
     if (gate) gate.open = grazing(t.stage + 1);
     if (herd) herd.fold = gate!.open && process.steps[t.stage + 1]?.at !== "pasture";
@@ -1192,7 +1203,7 @@ export class Engine {
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const work = s.economy.work?.day === t.day ? s.economy.work : undefined;
     if (work) work.done = true;
-    const made: Record<string, number> = kit.activity === "Looking for game" ? {} : process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
+    const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : dayOfWork(s.economy, household, (1 + 0.25 * (work?.quality ?? 0)) * (work?.catch ?? 1) * (1 - this.catchOwed()));
@@ -8254,7 +8265,9 @@ export class Engine {
     if (!steps?.length) return;
     const words = what.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
     const step = steps.find((st) => words.some((w) => st.task.toLowerCase().includes(w))) ?? steps[Math.min(1, steps.length - 1)];
-    return { by: a.id, kind: "help", what, meet: { ...a.work }, task: cardText(step.task, this.fishingWordsFor(this.household(a.householdId), steps)) };
+    const household = this.household(a.householdId);
+    return { by: a.id, kind: "help", what, meet: { ...a.work }, task: cardText(step.task, { ...this.fishingWordsFor(household, steps),
+      ...(steps.some((st) => st.scene === "hunt") ? this.huntingWords(household, a) : {}) }) };
   }
   /** Someone the player has promised to help sets off for their work, and
    * waits there. */
@@ -8888,6 +8901,79 @@ export class Engine {
     const day = Math.floor(hour / 24);
     return catchOf(setting, practice, (seasonAt(setting.season, hour * 3600) ?? "spring") as SeasonId,
       hour % 24, random(this.state.manifest.seed, "catch", h.id, day)).factor;
+  }
+  /** A hunting household's game this hour against an ordinary one, by season, hour and daily luck. */
+  gameYield(h: Household, hour: number) {
+    const setting = this.world.pack.setting;
+    return setting ? gameOf(setting, (seasonAt(setting.season, hour * 3600) ?? "spring") as SeasonId, hour % 24,
+      random(this.state.manifest.seed, "game", h.id, Math.floor(hour / 24))).factor : 1;
+  }
+  /** The words for a hunter's day: their weapon, their snares, and where the kill goes. */
+  private huntingWords(household: Household | undefined, a: Actor): Record<string, string> {
+    const setting = this.world.pack.setting;
+    if (!setting) return {};
+    const seed = this.state.manifest.seed, salt = household?.id ?? a.id;
+    const weapon = huntWeapon(setting, random(seed, "weapon", salt), a.inventory.bow ? "bow" : a.inventory.spear ? "spear" : undefined);
+    const fate = huntFate(setting);
+    return {
+      ready: huntWords[weapon].ready, weapon: huntWords[weapon].weapon, danger: dangerOf(setting), lord: fate.owed?.to ?? "the lord",
+      hunt: keepsTraps(setting, random(seed, "traps", salt), a.origin?.roleLabel ?? a.role) ? "Check the snares, then track game" : "Track and hunt wild game",
+      home: fate.owed ? `Bring the kill home and set aside ${fate.owed.to}'s share` : fate.sold ? `Bring the kill home and sell the meat to ${fate.buyer}` : "Bring the kill home and share it out",
+    };
+  }
+  private huntingFits(want: NonNullable<ChoiceCard["hunting"]>, t = this.trade()) {
+    const setting = this.world.pack.setting;
+    if (!t || !setting || !t.process.steps.some((st) => st.scene === "hunt")) return false;
+    const fate = huntFate(setting);
+    return (want.owed === undefined || want.owed === !!fate.owed) &&
+      (want.sold === undefined || want.sold === fate.sold) &&
+      // A kill worth a card is a big one, not a snared hare.
+      (want.kill === undefined || want.kill === (this.state.player.inventory.meat ?? 0) >= 3);
+  }
+  /** Whether today's hunt has gone on long enough to give up. */
+  huntOver() {
+    const t = this.trade(), work = this.state.economy?.work;
+    return !!t && t.process.steps[t.stage]?.scene === "hunt" && work?.day === t.day && work.since !== undefined &&
+      this.state.clock - work.since >= GIVE_UP_HOURS * 3600;
+  }
+  /** A hunt given up: why the game was not there, and whatever the snares held. */
+  private emptyHanded(t: NonNullable<ReturnType<Engine["trade"]>>) {
+    const s = this.state, p = s.player, setting = this.world.pack.setting;
+    if (!setting) return;
+    const game = gameOf(setting, (seasonAt(setting.season, s.clock) ?? "spring") as SeasonId, (s.clock / 3600) % 24,
+      random(s.manifest.seed, "game", t.household.id, t.day));
+    const snared = keepsTraps(setting, random(s.manifest.seed, "traps", t.household.id), p.origin?.roleLabel ?? p.role) &&
+      random(s.manifest.seed, "snare", t.household.id, t.day) < game.factor / 2;
+    if (snared) {
+      p.inventory.meat = (p.inventory.meat ?? 0) + 1;
+      p.inventory.hide = (p.inventory.hide ?? 0) + 1;
+    }
+    this.event(`${snared ? "You give up on bigger game, but the snares held something small." : "You give up and head home empty-handed."} ${game.lean ? game.why : "The tracks you found were old ones."}`);
+  }
+  /** The day's meat and hides, out of the bag and into the house's store:
+   * a share to whoever held the game, then sold or shared round the kin. */
+  private settleHunt(t: NonNullable<ReturnType<Engine["trade"]>>): Record<string, number> {
+    const s = this.state, p = s.player, setting = this.world.pack.setting;
+    const meat = p.inventory.meat ?? 0, hide = p.inventory.hide ?? 0;
+    if (!setting || (!meat && !hide)) return {};
+    delete p.inventory.meat;
+    delete p.inventory.hide;
+    const fate = huntFate(setting);
+    const made = { meat: Math.round(meat * (1 - (fate.owed?.share ?? 0))), hide };
+    if (fate.owed && meat) this.event(`A quarter of the meat goes to ${fate.owed.to}.`);
+    const stock = (s.economy!.stock[t.household.id] ??= {});
+    for (const [g, n] of Object.entries(made)) if (n) stock[g] = (stock[g] ?? 0) + n;
+    if (fate.sold) {
+      const coin = this.takings(Math.max(1, Math.round(made.meat / 3)), (amount) => `${fate.buyer.replace(/^./, (c) => c.toUpperCase())} pays you ${amount} for the meat.`);
+      if (!coin.coin) this.event("You trade the meat at the market for what the house needs.");
+      return { ...made, ...coin };
+    }
+    const kin = p.relations
+      ?.map((r) => s.actors.find((a) => a.id === r.other && !a.dead && !t.household.members.includes(a.id)))
+      .find((a) => a && a.kind === "human");
+    if (kin) this.regard(kin, 1, "warm");
+    this.event(kin ? `You share out the meat. ${kin.name.split(" ")[0]}'s family gets a good part of it.` : "You share out the meat with the neighbours.");
+    return made;
   }
   /** How the player's household fishes: its waterfront practice, else from the bank. */
   private fishing(household: Household) {

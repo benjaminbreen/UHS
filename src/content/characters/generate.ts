@@ -1,5 +1,6 @@
 import { inventedName } from "./invented-name";
 import { random } from "../../core/random";
+import { huntWeapon, weaponHand } from "../economy/hunting";
 import {
   bodyFromPhysique,
   generateAppearance,
@@ -525,9 +526,8 @@ export function generateCharacter(
   const inventory: Inventory = eligibleInventory(livelihood.inventory, context);
   // The old mining kit used obsidian as a stand-in for every mineral.
   if (s.worksiteRevision && livelihood.activity === "Working underground") delete inventory.obsidian;
-  if (livelihood.activity === "Looking for game" && (s.year < -12000 ||
-    (["mesoamerican", "andean", "other-indigenous-american"].includes(s.culture) && s.year < -1000) ||
-    (s.culture === "australian-pacific" && s.year < 1500))) Object.assign(inventory, { spear: 1 });
+  if (livelihood.activity === "Looking for game")
+    Object.assign(inventory, weaponHand[huntWeapon(s, random(seed, id, "weapon"))] === "spear" ? { spear: 1 } : { bow: 1, arrow: 12 });
   else if (/hunter|archer|bowman/i.test(livelihood.label)) Object.assign(inventory, { bow: 1, arrow: 12 });
   else if (/shepherd|herd|slinger/i.test(livelihood.label)) Object.assign(inventory, { sling: 1, pebble: 8 });
   if (accessory) inventory[accessory] = 1;

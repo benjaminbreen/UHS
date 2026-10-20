@@ -19,6 +19,8 @@ export const stationActivities = [
   "haul-catch",
   /** Out on the water in the household's boat. */
   "fish",
+  /** Out after game, well beyond the settlement. */
+  "hunt",
 ] as const;
 export type StationActivity = (typeof stationActivities)[number];
 /** Where a walk toward each errand is heading, when the station does not name
@@ -30,6 +32,7 @@ export const destination: Record<StationActivity, string> = {
   haul: "the store",
   "haul-catch": "the drying rack",
   fish: "the fishing grounds",
+  hunt: "the hunting grounds",
   "draw-water": "the well",
   gather: "the edge of the settlement",
   visit: "a neighbour's house",
@@ -118,6 +121,7 @@ const dwellCap: Record<StationActivity, number> = {
   warm: 40,
   "haul-catch": 12,
   fish: 90,
+  hunt: 120,
 };
 const MIN_NIGHT = 300;
 /** A one-off errand is not repeated, so it may run longer than a round's. */

@@ -10,6 +10,7 @@ import { institutionFor } from "../src/content/characters/workplace";
 import { isVisitor } from "../src/world/v3/rail-travellers";
 import { waterfrontFor } from "../src/content/settlements/waterfronts";
 import { catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeights, preserveOf } from "../src/content/economy/fishing";
+import { gameOf, huntFate, huntWeapon, weaponHand, weaponWeights } from "../src/content/economy/hunting";
 import { CARDS } from "../src/content/cards";
 import { seasonAt } from "../src/core/livelihood";
 import { findPlace } from "../src/core/work-places";
@@ -353,8 +354,78 @@ it("gives hunters a real hunting stage instead of gathering plants", () => {
   const hunt = processFor(livelihoodById("hunter")!)!;
   expect(hunt.steps.map((s) => s.scene)).toEqual(["craft", "hunt", "haul"]);
   expect(hunt.steps[1].hours).toBe(0);
-  expect(hunt.steps.every((s) => !s.card)).toBe(true);
+  expect(hunt.steps.map((s) => s.card)).toEqual([undefined, "hunt-2", "hunt-3"]);
 });
+
+it("arms hunters by date and contact, and reads the season and the hour", () => {
+  const base = resolveSetting("Hunter in Lagos 1700", "hunting-weapons");
+  if ("error" in base) throw Error(base.error);
+  const s = base.setting;
+  const top = (o: Partial<WorldSetting>) => Object.entries(weaponWeights({ ...s, ...o })).sort((a, b) => b[1]! - a[1]!)[0][0];
+  expect(Object.keys(weaponWeights({ ...s, culture: "european", year: -30000 }))).toEqual(["spear"]);
+  expect(top({ culture: "european", year: -14000 })).toBe("atlatl");
+  expect(top({ culture: "european", year: -5000 })).toBe("bow");
+  expect(top({ culture: "other-indigenous-american", year: 200 })).toBe("atlatl");
+  expect(top({ culture: "other-indigenous-american", year: 1200 })).toBe("bow");
+  expect(weaponWeights({ ...s, culture: "australian-pacific", year: 1800 }).bow).toBeUndefined();
+  expect(weaponWeights({ ...s, culture: "european", year: 1300 }).crossbow).toBeGreaterThan(0);
+  expect(weaponWeights({ ...s, culture: "european", year: 1400 }).firearm).toBeUndefined();
+  const kyoto = resolveSetting("Hunter in Kyoto 1520", "hunting-guns");
+  if ("error" in kyoto) throw Error(kyoto.error);
+  expect(weaponWeights(kyoto.setting).firearm).toBeUndefined();
+  expect(weaponWeights({ ...kyoto.setting, year: 1600 }).firearm).toBeGreaterThan(0);
+  expect(weaponWeights(s).firearm).toBeGreaterThan(0);
+  expect(top({ culture: "east-asian", year: 1900 })).toBe("firearm");
+  expect(weaponHand[huntWeapon({ ...s, year: 1900 }, 0.5, "spear")]).toBe("spear");
+  const t = { ...s, climate: "temperate" as const };
+  expect(gameOf(t, "autumn", 6, 0.5).factor).toBeGreaterThan(gameOf(t, "summer", 6, 0.5).factor);
+  expect(gameOf(t, "autumn", 6, 0.5).factor).toBeGreaterThan(gameOf(t, "autumn", 13, 0.5).factor);
+  expect(gameOf(t, "summer", 13, 0.5)).toMatchObject({ lean: true, why: expect.stringMatching(/cover/) });
+  expect(huntFate({ ...s, year: -8000 })).toEqual({ sold: false, buyer: "your kin" });
+  expect(huntFate({ ...s, year: 1900 }).owed).toBeUndefined();
+  const norman = resolveSetting("Hunter in medieval Normandy 1350", "hunting-fate");
+  if ("error" in norman) throw Error(norman.error);
+  expect(huntFate(norman.setting)).toMatchObject({ sold: true, buyer: "the butcher", owed: { to: "the lord" } });
+  for (const slot of ["hunt-2", "hunt-3"]) expect(CARDS.filter((c) => c.slot === slot && c.hunting).length).toBeGreaterThanOrEqual(2);
+});
+
+it("hunts a day to its end with or without a kill, and brings the meat home to the store", () => {
+  const e = createSettingSession({ ...setting(), year: 1350, role: "Hunter" }, "hunt-day");
+  const s = e.state;
+  const home = s.households!.find((h) => h.members.includes("player"))!;
+  expect(home.makes).toEqual(["meat", "hide"]);
+  e.runEconomy();
+  e.dailyGoals();
+  const plan = e.workPlan()!;
+  expect(plan.steps.every((st) => !st.task.includes("{"))).toBe(true);
+  const act = (command: Parameters<Engine["act"]>[0]["command"]) => {
+    expect(e.act({ actionId: `hunt-${s.revision}`, expectedRevision: s.revision, command }).status).toBe("completed");
+    const card = e.cards.find((c) => c.choose)?.choose;
+    const choice = card?.choices.find((c) => !c.unavailable)?.index;
+    if (card && choice !== undefined) e.act({ actionId: `card-${s.revision}`, expectedRevision: s.revision, command: { type: "choose", card: card.card, choice } });
+  };
+  s.player.pos = { ...plan.door! };
+  act(e.workHere()!.command);
+  s.player.pos = { ...e.workPlan()!.door! };
+  expect(e.workHere()).toBeUndefined();
+  s.clock += 4 * 3600;
+  expect(e.workHere()?.label).toBe("Give up and head home");
+  act(e.workHere()!.command);
+  expect(s.events.some((ev) => /give up/i.test(ev.text))).toBe(true);
+  const before = s.economy!.stock[home.id]?.meat ?? 0;
+  s.player.inventory.meat = 8;
+  s.player.inventory.hide = 1;
+  s.player.pos = { ...e.workPlan()!.door! };
+  act(e.workHere()!.command);
+  expect(e.workPlan()!.done).toBe(3);
+  expect(s.player.inventory.meat).toBeUndefined();
+  expect(s.economy!.stock[home.id].meat).toBeGreaterThan(before);
+  expect(s.economy!.stock[home.id].hide).toBeGreaterThanOrEqual(1);
+  const autumn = Array.from({ length: 360 }, (_, d) => d * 24 + 7).filter((h) => seasonAt(e.world.pack.setting!.season, h * 3600) === "autumn");
+  const summer = Array.from({ length: 360 }, (_, d) => d * 24 + 7).filter((h) => seasonAt(e.world.pack.setting!.season, h * 3600) === "summer");
+  const mean = (hours: number[]) => hours.reduce((n, h) => n + e.gameYield(home, h), 0) / hours.length;
+  expect(mean(autumn)).toBeGreaterThan(mean(summer));
+}, 30000);
 
 it.each(["Oaxaca 1650", "Kyoto 1700", "Manchester 1840", "Timbuktu 1550", "Rome 150"])(
   "grounds resident occupations in actual workplaces: %s", async query => {
@@ -669,6 +740,19 @@ it("puts a fishing household's members to shore work and dries the catch on a ra
     expect(usable).not.toContain("fishing-hungry-kin");
     const fits=CARDS.filter(c=>c.slot==="gather-3" && (e as any).usableCard(c));
     expect(fits.some(c=>c.fishing)).toBe(true);
+  } finally {a.runtime.dispose();}
+},120000);
+
+it("sends NPC hunters out to the far country and home with the kill",async()=>{
+  const a=await startAgent({setting:"Hunter in Normandy 9000 BCE",seed:"hunt-probe"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine;
+    const hunters=e.state.actors.filter(x=>livelihoodOf(e.world.pack,x)?.activity==="Looking for game" && x.id!=="player");
+    expect(hunters.length).toBeGreaterThan(0);
+    const segs=hunters.flatMap(h=>e.world.itinerary?.(h.id)?.segments ?? []);
+    expect(segs.some(s=>s.activity==="hunt" && !s.path)).toBe(true);
+    expect(segs.some(s=>s.label==="Carrying the kill home" && s.carry==="meat")).toBe(true);
+    expect(e.state.households!.some(h=>h.makes?.includes("hide") && !h.members.includes("player"))).toBe(true);
   } finally {a.runtime.dispose();}
 },120000);
 

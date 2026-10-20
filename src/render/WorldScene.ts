@@ -316,6 +316,7 @@ const ambientPoses: Record<StationActivity, CharacterPose> = {
   warm: "sit",
   "haul-catch": "carry",
   fish: "work",
+  hunt: "stoop",
 };
 /** Rows of a character frame shown above the covers: the head and a little of the shoulders. */
 const HEAD_ROWS = 13;

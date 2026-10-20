@@ -55,6 +55,9 @@ export type ChoiceCard = {
   /** Only for a fishing day, and how the household fishes: in its own boat,
    * owing a share of the catch, or selling it (false: sharing it among kin). */
   fishing?: { boat?: boolean; owed?: boolean; sold?: boolean };
+  /** Only for a hunting day: where game is owed to a lord or chief, where
+   * meat is sold (false: shared among kin), and whether a big kill is in hand. */
+  hunting?: { owed?: boolean; sold?: boolean; kill?: boolean };
   /** Today's weather it needs: heat, rain or snow, or cold. */
   when?: "hot" | "wet" | "cold";
   text: string;

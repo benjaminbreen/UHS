@@ -221,9 +221,10 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
   // second and third steps.
   const workplace = workplaceFor(kit.activity);
   const hunting: Step[] | undefined = kit.activity === "Looking for game" ? [
-    { name: "prepare", task: "Get your hunting weapon ready", at: "home", scene: "craft", hours: 0.5 },
-    { name: "hunt", task: "Track and hunt wild game", at: "wild", scene: "hunt", hours: 0 },
-    { name: "bring home", task: "Bring the meat and hides home", at: "yard", scene: "haul", hours: 0.5 },
+    // The words come from the hunter's weapon and the kill's fate; see hunting.ts.
+    { name: "prepare", task: "{Ready}", at: "home", scene: "craft", hours: 0.5 },
+    { name: "hunt", task: "{Hunt}", at: "wild", scene: "hunt", hours: 0 },
+    { name: "bring home", task: "{Home}", at: "yard", scene: "haul", hours: 0.5 },
   ] : undefined;
   const steps = (hunting ?? day?.steps ?? (callOuts.find(([re]) => re.test(kit.id))?.[1] ?? familySteps[family]))
     .map((st, i) => ({
@@ -234,7 +235,7 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
       // drawn at the well.
       ...(st.at === "wild" && workplace === "extraction" ? { at: undefined } : {}),
       ...(st.name === "load" && kit.activity === "Carrying water" ? { at: undefined, task: "Fill the vessels at the well" } : {}),
-      ...(i && !hunting ? { card: `${family}-${i + 1}` } : {}),
+      ...(i ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
     }));
   return {
     family, ...processFamilies[family], title: day?.title, skill: hunting ? "hunting" : recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, rises: recipe?.rises ?? 6, bench: recipe?.bench,
