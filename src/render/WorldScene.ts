@@ -3428,9 +3428,13 @@ export class WorldScene extends Phaser.Scene {
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false || waterborneFrames.has(frame)) return undefined;
     let key = shadowFrame(this.shadowPhase, frame);
+    const civic = /^(civic|sacred-buildings)/.test(this.texture(frame));
+    // A building turned to face its street is the south frame's art, cast once under that name.
+    const south = key.replace(/-(north|east|west)$/, "");
+    if (civic && !this.sheetFrames?.has(key) && this.sheetFrames?.has(south)) key = south;
     // A temple's or a mosque's cast is on its own page, fetched the first time one is drawn.
     const sacred =
-      /^(civic|sacred-buildings)/.test(this.texture(frame)) && this.sheetFrames?.has(key)
+      civic && this.sheetFrames?.has(key)
         ? this.texture(key)
         : undefined;
     if (sacred === "__DEFAULT") return undefined;
@@ -3444,8 +3448,7 @@ export class WorldScene extends Phaser.Scene {
             : this.texture(frame).startsWith("street-buildings@")
               ? "street-shadows"
               : "lighting-shadows");
-    // A house turned to face its street is the south frame's art, cast once under that name.
-    if (!this.textures.get(texture).has(key)) key = key.replace(/-(north|east|west)$/, "");
+    if (!this.textures.get(texture).has(key)) key = south;
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
       .image(x, transient ? y : y - this.lift(x, y), texture, key)
