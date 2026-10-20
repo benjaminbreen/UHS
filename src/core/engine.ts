@@ -521,6 +521,10 @@ export class Engine {
       hour,
       (h) => h.members.filter((m) => adults.has(m)).length,
       importShare[this.world.pack.setting?.settlement ?? ""],
+      // Only the crew fishes, however many grown hands the house has.
+      (h, good, at) => good === "fish"
+        ? this.catchYield(h, at) * Math.min(1, (this.practices.get(h.id)?.crew ?? 1) / Math.max(1, h.members.filter((m) => adults.has(m)).length))
+        : 1,
     );
     if (Math.floor(hour / 24) === yesterday) return;
     // At dawn, whoever buys from the player's house and went short holds it
@@ -8871,6 +8875,19 @@ export class Engine {
     const h = household.residence?.includes("-waterfront-") ? household.residence.split("-waterfront-")[0] : undefined;
     const plan = h ? (this.world as { planOf?: (id: string) => { waterfront?: { preserve?: Preserve } } | undefined }).planOf?.(h) : undefined;
     return plan?.waterfront?.preserve;
+  }
+  private practices = new Map<string, ReturnType<Engine["fishing"]>>();
+  /** A fishing household's catch this hour against an ordinary one, by the
+   * same season, hour and daily luck as the player's own day on the water. */
+  catchYield(h: Household, hour: number) {
+    const setting = this.world.pack.setting;
+    if (!setting) return 1;
+    if (!this.practices.has(h.id)) this.practices.set(h.id, this.fishing(h));
+    const practice = this.practices.get(h.id);
+    if (!practice) return 1;
+    const day = Math.floor(hour / 24);
+    return catchOf(setting, practice, (seasonAt(setting.season, hour * 3600) ?? "spring") as SeasonId,
+      hour % 24, random(this.state.manifest.seed, "catch", h.id, day)).factor;
   }
   /** How the player's household fishes: its waterfront practice, else from the bank. */
   private fishing(household: Household) {

@@ -190,6 +190,16 @@ it("feeds a household grain from the farm when the baker stops", () => {
   expect(e.stock.baker.bread).toBe(0);
 });
 
+it("leaves a fishing household short when its catch fails, and fed when it does not", () => {
+  const fishers = (): Household[] => [{ id: "fishers", members: ["f1", "f2", "f3", "f4", "f5"], home: { x: 0, y: 0, space: "outside" },
+    storeId: "fishers", makes: ["fish"], needs: [] }];
+  const good = ledger(), poor = ledger();
+  runEconomy(fishers(), good, 24 * 14, () => 2, 0, () => 1);
+  runEconomy(fishers(), poor, 24 * 14, () => 2, 0, () => 0.2);
+  expect(good.short).toEqual({});
+  expect(poor.short.fishers).toEqual(["fish"]);
+});
+
 it("catches up an absence exactly as if it had been watched", () => {
   const v = village(), watched = ledger(), away = ledger();
   for (let t = 1; t <= 72; t++) runEconomy(v, watched, t, everyone);

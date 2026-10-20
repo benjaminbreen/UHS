@@ -11,6 +11,7 @@ import { isVisitor } from "../src/world/v3/rail-travellers";
 import { waterfrontFor } from "../src/content/settlements/waterfronts";
 import { catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeights, preserveOf } from "../src/content/economy/fishing";
 import { CARDS } from "../src/content/cards";
+import { seasonAt } from "../src/core/livelihood";
 import { findPlace } from "../src/core/work-places";
 import { route } from "../src/core/routing";
 import { startAgent } from "../src/agents/agent";
@@ -668,5 +669,30 @@ it("puts a fishing household's members to shore work and dries the catch on a ra
     expect(usable).not.toContain("fishing-hungry-kin");
     const fits=CARDS.filter(c=>c.slot==="gather-3" && (e as any).usableCard(c));
     expect(fits.some(c=>c.fishing)).toBe(true);
+  } finally {a.runtime.dispose();}
+},120000);
+
+it("runs a northern fishing household short of its own catch in winter and not otherwise",async()=>{
+  const a=await startAgent({setting:"Fisher in Bergen 1500",seed:"fishing-explore"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine as any,s=e.state;
+    const fishers=s.households.filter((h:any)=>h.makes?.includes("fish"));
+    expect(fishers.length).toBeGreaterThan(0);
+    const h=fishers[0];
+    const yields=(season:string)=>Array.from({length:360},(_,d)=>Math.floor(s.clock/3600)+d*24+7)
+      .filter(hour=>seasonAt(e.world.pack.setting.season,hour*3600)===season).map(hour=>e.catchYield(h,hour));
+    const mean=(xs:number[])=>xs.reduce((n,x)=>n+x,0)/xs.length;
+    expect(mean(yields("winter"))).toBeLessThan(mean(yields("spring"))*0.6);
+    const short:Record<string,number>={},start=Math.floor(s.clock/3600);
+    for(let d=1;d<=360;d++) {
+      s.clock=(start+d*24)*3600;
+      e.runEconomy();
+      for(const f of fishers)if(s.economy.short[f.id]?.includes("fish")) {
+        const season=seasonAt(e.world.pack.setting.season,s.clock);
+        short[season]=(short[season]??0)+1;
+      }
+    }
+    expect(short.winter).toBeGreaterThan(0);
+    expect(Object.keys(short)).toEqual(["winter"]);
   } finally {a.runtime.dispose();}
 },120000);

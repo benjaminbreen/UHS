@@ -12,7 +12,8 @@ const rates: Record<string, { make: number; need?: number }> = {
   drink: { make: 30, need: 0.5 },
   grain: { make: 10 },
   meat: { make: 4 },
-  fish: { make: 6 },
+  // A fishing household lives largely on its own catch; nobody else needs fish.
+  fish: { make: 6, need: 0.8 },
   oil: { make: 6, need: 0.05 },
   cloth: { make: 1, need: 0.02 },
   pots: { make: 3, need: 0.03 },
@@ -49,6 +50,8 @@ export function runEconomy(
   hour: number,
   workers: (h: Household) => number,
   imports = 0,
+  /** How this hour's making goes against an ordinary hour's: a catch's season and luck. */
+  yieldOf?: (h: Household, good: string, hour: number) => number,
 ) {
   const start = Math.max(economy.hour, hour - CATCH_UP_HOURS);
   economy.hour = Math.max(economy.hour, hour);
@@ -66,7 +69,7 @@ export function runEconomy(
     ...Object.values(inputs),
     ...Object.values(standsIn),
   ]);
-  const needsOf = (h: Household) => h.needs ?? needed;
+  const needsOf = (h: Household) => h.makes?.includes("fish") ? [...(h.needs ?? needed), "fish"] : h.needs ?? needed;
   const inputOf = (h: Household, good: string) => h.products?.[good]
     ? h.products[good] === "fermented-drink" ? inputs[good] :
       productById(h.products[good])?.input ?? (good === "drink" ? undefined : inputs[good])
@@ -83,7 +86,7 @@ export function runEconomy(
       if (best) nearest.set(h.id + good, best);
     }
   const hands = new Map(households.map((h) => [h.id, workers(h)]));
-  const demands = new Map([...new Set(households.flatMap(needsOf))].map((good) => [good,
+  const demands = new Map([...new Set(households.flatMap(needsOf))].filter((good) => good !== "fish").map((good) => [good,
     (rates[good]?.need ?? 0) * households.reduce((n, h) => n + (needsOf(h).includes(good) ? h.members.length : 0), 0) * imports]));
 
   for (let t = start; t < hour; t++) {
@@ -106,7 +109,7 @@ export function runEconomy(
       const share = (hands.get(h.id) ?? 0) / 24 / (h.makes?.length || 1);
       for (const good of h.makes ?? []) {
         let n = Math.min(
-          (rates[good]?.make ?? 1) * share,
+          (rates[good]?.make ?? 1) * share * (yieldOf?.(h, good, t) ?? 1),
           cap(good) - (stock[good] ?? 0),
         );
         const input = inputOf(h, good);
@@ -130,7 +133,8 @@ export function runEconomy(
         // Short of bread, a household buys grain from its nearest farm.
         const plain = standsIn[good] && nearest.get(h.id + standsIn[good]);
         if (plain && take(plain, standsIn[good], want)) continue;
-        if (!imports || !take(market, need, want)) short.push(need);
+        // A fishing house's own catch is not something the grain ships bring.
+        if (!imports || need === "fish" || !take(market, need, want)) short.push(need);
       }
       if (short.length) economy.short[h.id] = short;
       else delete economy.short[h.id];
