@@ -30,6 +30,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "agent:serve": "vite-node scripts/agent.ts -- serve",
     "agent:run": "vite-node scripts/agent.ts -- run",
+    "agent:batch": "vite-node scripts/agent.ts -- batch",
     "prepare:tile-names": ".venv/bin/python scripts/prepare-tile-names.py",
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",
     "check": "npm test && npm run build",

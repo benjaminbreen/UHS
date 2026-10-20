@@ -116,6 +116,36 @@ An OpenAI-compatible local server (including a served Qwen model) can drive
 `--base-url http://localhost:8000/v1 --model <served-model>`. `--structured`
 is opt-in because server support varies. No local Qwen weights are bundled.
 
+## Experiments
+
+`npm run agent:batch -- experiment.json` runs every agent × setting × seed
+into `runs/<name>/`, one folder per run named `<agent>__<setting>__<seed>`.
+The same seed gives every agent the same world and person.
+
+```json
+{
+  "name": "pilot",
+  "agents": [
+    { "name": "luna", "model": "gpt-6-luna", "baseUrl": "https://api.openai.com/v1" },
+    { "name": "sonnet", "model": "claude-sonnet-5-5" }
+  ],
+  "settings": ["Weaver in Oaxaca 1650", "Weaver in Manchester 1840"],
+  "seeds": ["a", "b", "c"],
+  "days": 3,
+  "budget": { "tokens": 20000000 }
+}
+```
+
+Also `maxTurns`, `briefing` (a file beside the experiment file), `rationale`,
+`offline`, `concern` and `timeTravel`, as for `agent:run`. Runs go one at a
+time. Running the command again skips finished runs; an interrupted or failed
+run is renamed `.failed-<time>` and run again. The budget counts policy and
+environment tokens and is checked before each run starts. `summary.csv` and
+`summary.json` hold one row per run with its metrics and flags: `not-run`,
+`unfinished`, `error`, `unusable-replies` (invalid), and `provider-errors`,
+`stuck`, `died` (worth a look). MCP runs are started by hand; they write the
+same folders.
+
 ## The run folder
 
 `runs/<id>/`

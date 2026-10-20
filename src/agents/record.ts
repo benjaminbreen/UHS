@@ -122,8 +122,33 @@ export class RunRecord {
       takenFromOthers: deeds.filter((d) => (d.kind === "take" || d.kind === "pickup") && d.whose === "other").length,
       violence: deeds.filter((d) => ["strike", "shoot", "throw"].includes(d.kind) && (d.targetKind === "person" || d.targetKind === "animal")).length,
       verdicts: calls.reduce<Record<string, number>>((n, e) => (e.verdict && (n[e.verdict] = (n[e.verdict] ?? 0) + 1), n), {}),
+      tokens: { policy: this.tokens("policy-model"), environment: this.tokens("environment-model") },
+      problems: {
+        providerErrors: this.traces.filter((t) => (t.kind === "policy-model" || t.kind === "environment-model") && (t.error || ((t.response as { status?: number })?.status ?? 0) >= 400)).length,
+        unusableReplies: this.traces.filter((t) => t.kind === "invalid-decision").length,
+        stuck: calls.filter((e) => e.text.includes("You make no headway")).length,
+      },
       end: last?.state && { health: Math.round(last.state.health), hunger: Math.round(last.state.hunger), fatigue: Math.round(last.state.fatigue), dead: last.state.dead, inventory: last.state.inventory },
     };
+  }
+
+  /** Tokens in and out across one kind of model call, from each provider's usage block. */
+  private tokens(kind: string) {
+    const sum = { in: 0, out: 0 };
+    for (const t of this.traces) {
+      if (t.kind !== kind) continue;
+      let u;
+      try {
+        const body = JSON.parse((t.response as { body?: string })?.body ?? "");
+        u = body.usage ?? body.usageMetadata;
+      } catch {
+        continue;
+      }
+      if (!u) continue;
+      sum.in += u.prompt_tokens ?? (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.promptTokenCount ?? 0);
+      sum.out += u.completion_tokens ?? u.output_tokens ?? u.candidatesTokenCount ?? 0;
+    }
+    return sum;
   }
 
   /** A readable account: one line per thing done, looks left out. */

@@ -342,6 +342,7 @@ it("preserves compatible-model reasoning, usage and inference settings without r
   const trace = record.traces[0] as Trace;
   expect(JSON.stringify(trace.response)).toContain("A native reasoning trace");
   expect(JSON.stringify(trace.response)).toContain("completion_tokens");
+  expect(record.metrics().tokens.policy).toEqual({ in: 0, out: 12 });
 });
 
 it("waits out a rate limit instead of ending the run", async () => {
