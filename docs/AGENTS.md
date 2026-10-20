@@ -86,6 +86,7 @@ ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --d
 | `--setting "<who, where, when>"` | yes | Plain words, as on the start screen. Omitted: a random start, drawn as the start screen draws one |
 | `--seed` | yes | Fixes the world and the person |
 | `--time-travel` | yes | Adds the `time_travel` tool |
+| `--concern` | yes | Show the start's stated concern ("A weaver's day in Oaxaca"), which an agent reads as a goal. Hidden by default |
 | `--offline` | yes | No narrator or dialogue model: `talk` uses the engine's own spoken lines, `say` is withdrawn, and no game service is called. Cheap and repeatable |
 | `--out <dir>` | yes | Where run folders go; default `runs/` (ignored by git) |
 | `--model` | run | Default `claude-sonnet-5-5`, or the local model's name |
@@ -98,6 +99,12 @@ ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --d
 | `--structured` | run | Request JSON-schema output from an OpenAI-compatible server that supports it |
 | `--no-rationale` | run | Omit the request for a declared reason and expectation; native model reasoning may still occur |
 | `--repeat N` | run | N runs with the same options, each its own folder |
+
+Both modes open with the same framing (`FRAMING` and `ASK_REASON` in
+`src/agents/agent.ts`): MCP sends it as the server's instructions, run mode
+puts it before its reply format. The manifest records the instructions given,
+and in MCP mode the connecting host's name and version, since the host's own
+prompt and scaffolding are part of the agent.
 
 The built-in instructions say only how to reply and what each tool does.
 Anything about how the person should behave belongs in a briefing, so it can be
@@ -154,7 +161,8 @@ reused and their requests must match exactly. Protocol 5 adds symptom observatio
 validated `act {command:{type:"care",target:"player",treatment:"rest"}}` actions,
 and separate research health state to protocol 4's bodily constraints and danger.
 Protocol 6 adds short aliases, name targets, readable `inspect`, waiting cards
-shown in the reply that raised them, and heirs after death. Earlier protocols
+shown in the reply that raised them, and heirs after death. Protocol 7 hides
+the concern and the narrator's own instructions from the agent's view. Earlier protocols
 are rejected explicitly.
 
 ## Coverage

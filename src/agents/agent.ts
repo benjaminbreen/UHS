@@ -18,7 +18,11 @@ import { trimScene } from "../chronicle/chronicle";
 import { RunRecord, type Deed, type Rationale, type Verdict } from "./record";
 
 /** Bumped when a tool's name, input or meaning changes. */
-export const PROTOCOL = 6;
+export const PROTOCOL = 7;
+
+/** What every agent is told, in either mode; only the reply format differs. */
+export const FRAMING = "You are the person described in what you see. Each turn, decide what you do next.";
+export const ASK_REASON = "Before acting, give a brief reason and expected result in your own words.";
 
 const rationale = z
   .object({
@@ -94,6 +98,8 @@ export type StartOptions = {
   timeTravel?: boolean;
   /** No narrator or dialogue model: people speak only the engine's own lines. */
   offline?: boolean;
+  /** Show the start's stated concern, which reads to an agent as a goal. */
+  concern?: boolean;
   modelFetch?: typeof fetch;
 };
 
@@ -118,7 +124,7 @@ export class Agent {
   constructor(
     readonly runtime: Runtime,
     readonly record: RunRecord,
-    private options: { timeTravel?: boolean; offline?: boolean } = {},
+    private options: { timeTravel?: boolean; offline?: boolean; concern?: boolean } = {},
   ) {
     // Model thinking time must not become unrecorded simulation time.
     runtime.ambientRate = 0;
@@ -186,9 +192,10 @@ export class Agent {
   }
 
   context() {
-    return this.abbreviate(worldFacts(this.engine))
+    const facts = this.abbreviate(worldFacts(this.engine))
       .replace(/\nGrounding:\n(?:- .*\n?)*/, "\n")
       .replace(/\n*Item catalog ids: .*$/, "");
+    return this.options.concern ? facts : facts.replace(/\nConcern: .*/, "");
   }
 
   private async run(name: ToolName, a: Record<string, any>): Promise<{ status: string; text: string; verdict?: Verdict }> {
@@ -356,8 +363,11 @@ export class Agent {
       : "No one of your household can go on in your place."}`;
   }
 
+  /** The narrator's scene, less what it says to the narrator about itself. */
   private scene() {
-    return trimScene(sceneDigest(this.engine, ""), true);
+    return trimScene(sceneDigest(this.engine, ""), true)
+      .replace(/Care actions \(act \{[^}]*\}\): /, "Care you could arrange: ")
+      .replace(/ Symptoms do not establish a diagnosis\. Narration cannot [^\n]*/, "");
   }
 
   /** The browser shows each card once and takes it off the queue; so does this. */
@@ -557,6 +567,7 @@ export async function startAgent(options: StartOptions, record: RunRecord) {
     initialSetting: structuredClone(engine.state.manifest.setting),
     timeTravel: !!options.timeTravel,
     offline: !!options.offline,
+    concern: !!options.concern,
   });
   return new Agent(runtime, record, options);
 }

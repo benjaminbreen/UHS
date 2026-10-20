@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tools, type Agent } from "./agent";
+import { tools, FRAMING, ASK_REASON, type Agent } from "./agent";
 
 export type Message = { role: "user" | "assistant"; content: string };
 export type Complete = (system: string, messages: Message[]) => Promise<string>;
@@ -21,9 +21,9 @@ export function instructions(agent: Agent, briefing?: string, rationale = true) 
     .map((n) => `- ${n}: ${tools[n].description}\n${JSON.stringify(z.toJSONSchema(z.object(tools[n].input).strict().omit({ rationale: true })))}`)
     .join("\n");
   return [
-    "You are the person described in what you see. Each turn, decide what you do next.",
+    FRAMING,
     rationale
-      ? 'Before acting, give a brief reason and expected result in your own words. Reply with one JSON object: {"intent":"a short phrase","reasoning":"brief reason","expectation":"expected result","tool":"<name>","input":{...}}'
+      ? `${ASK_REASON} Reply with one JSON object: {"intent":"a short phrase","reasoning":"brief reason","expectation":"expected result","tool":"<name>","input":{...}}`
       : 'Reply with one JSON object: {"intent":"a short phrase","tool":"<name>","input":{...}}. Do not include reasoning or expectation.',
     'When asked to write a diary, reply only with {"diary":"..."} instead.',
     `Tools:\n${list}`,
@@ -75,6 +75,7 @@ export type LoopOptions = {
  */
 export async function live(agent: Agent, model: Complete, options: LoopOptions = {}) {
   const system = instructions(agent, options.briefing, options.rationale);
+  agent.record.start({ instructions: system });
   const days = options.days ?? 1,
     maxTurns = options.maxTurns ?? days * 80,
     keep = options.recent ?? 8;

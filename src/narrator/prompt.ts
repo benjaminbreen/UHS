@@ -86,10 +86,10 @@ export function worldFacts(engine: Engine): string {
   const catalog = Object.keys(engine.items).join(", ");
   return [
     "WORLD",
-    `${pack.name}. ${pack.region}, ${pack.date}. ${pack.subtitle}.`,
+    `${pack.name}. ${pack.region}, ${pack.date}.${pack.subtitle && pack.subtitle !== pack.name ? ` ${pack.subtitle}.` : ""}`,
     pack.description,
     setting
-      ? `Place: ${setting.location}. Culture: ${setting.culture}. Climate: ${setting.climate}, ${setting.water}, ${setting.settlement} settlement, ${setting.architecture} building. Community: ${setting.community}.`
+      ? `Place: ${setting.location}. Culture: ${setting.culture}. Climate: ${[setting.climate, setting.water !== "none" && setting.water, `${setting.settlement} settlement`, `${setting.architecture} building`].filter(Boolean).join(", ")}.${setting.community ? ` Community: ${setting.community}.` : ""}`
       : "",
     evidence.length ? `Grounding:\n${evidence.join("\n")}` : "",
     "",

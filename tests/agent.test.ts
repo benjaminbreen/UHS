@@ -5,7 +5,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "n
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent, startAgent, tools } from "../src/agents/agent";
+import { Agent, startAgent, tools, FRAMING } from "../src/agents/agent";
 import { RunRecord, type Trace } from "../src/agents/record";
 import { live, extractJson, instructions, type Complete } from "../src/agents/loop";
 import { Runtime, createSession } from "../src/runtime/session";
@@ -42,7 +42,8 @@ it("shows symptoms and actionable care while keeping infection truth in research
     ail.infection!.mortality = 0;
     const seen = await a.call("look");
     expect(seen).toContain("cough, feverishness");
-    expect(seen).toContain("treatment:ID");
+    expect(seen).toContain("Care you could arrange: rest:");
+    expect(seen).not.toMatch(/narrat|engine|simulat|treatment:ID/i);
     expect(seen).not.toMatch(/secret-contact-source|disease-outcome|mortality/);
     const result = await a.call("act", { command: { type: "care", target: "player", treatment: "rest" } });
     expect(result).toMatch(/^COMPLETED/);
@@ -57,7 +58,7 @@ it.runIf(!!process.env.FULL)("shows the world once and keeps thinking time out o
   expect(first).toContain("WORLD");
   expect(first).toContain("SCENE");
   expect(first).toContain("WAYS OUT");
-  expect(first).not.toMatch(/Grounding|Item catalog|simulat/i);
+  expect(first).not.toMatch(/Grounding|Item catalog|Concern:|simulat|narrat|engine|Community: \.|, none,/i);
   expect(await a.call("look")).not.toContain("WORLD");
   expect(await a.call("look")).toMatch(/^Nothing has changed since you last looked/);
   const clock = a.engine.state.clock, pos = a.engine.state.player.pos;
@@ -166,6 +167,8 @@ it.runIf(!!process.env.FULL)("serves MCP tools and replays a run from its record
     const dir = join(out, run), manifestPath = join(dir, "manifest.json"), trajectoryPath = join(dir, "trajectory.jsonl");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
     expect(manifest.setting.place).toBe("Oaxaca");
+    expect(client.getInstructions()).toContain(FRAMING);
+    expect(manifest).toMatchObject({ instructions: client.getInstructions(), host: { name: "uhs-test", version: "1.0" } });
     expect(manifest.initialSetting).toBeDefined();
     delete manifest.setting.asked;
     writeFileSync(manifestPath, JSON.stringify(manifest));

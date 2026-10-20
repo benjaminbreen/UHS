@@ -12,7 +12,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
-import { startAgent, tools, type Agent } from "../src/agents/agent";
+import { startAgent, tools, FRAMING, ASK_REASON, type Agent } from "../src/agents/agent";
 import { RunRecord, type Manifest } from "../src/agents/record";
 import { live } from "../src/agents/loop";
 import { anthropic, openaiCompatible } from "../src/agents/providers";
@@ -110,12 +110,16 @@ function environment(record: RunRecord): typeof fetch {
   };
 }
 
-const start = { setting: flag("--setting"), seed: flag("--seed"), timeTravel: has("--time-travel"), offline: has("--offline") };
+const start = { setting: flag("--setting"), seed: flag("--seed"), timeTravel: has("--time-travel"), offline: has("--offline"), concern: has("--concern") };
 
 if (mode === "serve") {
   const { record } = fileRecord({ mode: "serve" });
   const agent: Agent = await startAgent({ ...start, modelFetch: environment(record) }, record);
-  const server = new McpServer({ name: "world", version: String(game.version) });
+  const instructions = `${FRAMING}\n\n${ASK_REASON} Give them in each call's rationale.`;
+  record.start({ instructions });
+  const server = new McpServer({ name: "world", version: String(game.version) }, { instructions });
+  // The host's own prompt and scaffolding are part of the agent being run.
+  server.server.oninitialized = () => record.start({ host: server.server.getClientVersion() });
   for (const name of agent.names)
     server.registerTool(
       name,
