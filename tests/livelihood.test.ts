@@ -13,6 +13,8 @@ import { catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeigh
 import { gameOf, huntFate, huntWeapon, weaponHand, weaponWeights } from "../src/content/economy/hunting";
 import { CARDS } from "../src/content/cards";
 import { seasonAt } from "../src/core/livelihood";
+import { fieldParcel } from "../src/core/work-places";
+import { cropStage } from "../src/content/agriculture";
 import { findPlace } from "../src/core/work-places";
 import { route } from "../src/core/routing";
 import { startAgent } from "../src/agents/agent";
@@ -778,5 +780,48 @@ it("runs a northern fishing household short of its own catch in winter and not o
     }
     expect(short.winter).toBeGreaterThan(0);
     expect(Object.keys(short)).toEqual(["winter"]);
+  } finally {a.runtime.dispose();}
+},120000);
+
+it("follows the household's own crop through the year: sowing, weeding, harvest, and fields to match",async()=>{
+  const a=await startAgent({setting:"Farmer in Nile valley 1500 BCE",seed:"farm-explore"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine as any,s=e.state,set=e.world.pack.setting;
+    const mine=s.households.find((h:any)=>h.members.includes("player"));
+    const parcel=fieldParcel(e.world,mine)!;
+    const cell=(()=>{for(let y=parcel.rect.y;y<parcel.rect.y+parcel.rect.h;y++)for(let x=parcel.rect.x;x<parcel.rect.x+parcel.rect.w;x++)
+      if(e.world.topography(x,y)?.field?.parcel===parcel.id)return {x,y};})()!;
+    const titles:Record<string,string>={sown:"Ploughing and sowing",green:"Weeding and watching",ripe:"The harvest"};
+    const start=Math.floor(s.clock/86400)*86400+12*3600;
+    let reaped=false;
+    for(let k=0;k<4;k++) {
+      s.clock=start+k*28*86400;
+      e.syncSeason();
+      const stage=cropStage(parcel.crop,seasonAt(set.season,s.clock) as never,set.lat);
+      expect(e.world.topography(cell.x,cell.y).field.stage).toBe(stage);
+      expect(e.workPlan().title).toBe(titles[stage] ?? "The slack season");
+      if(stage!=="ripe")continue;
+      const grain=s.economy?.stock?.[mine.id]?.grain ?? 0;
+      for(let step=0;step<3;step++) {
+        const plan=e.workPlan();
+        await a.call("goto",{x:plan.door.x,y:plan.door.y});
+        const card=e.waitingCard();
+        if(card)await a.call("act",{command:{type:"choose",card,choice:0}});
+        const here=e.workHere();
+        expect(here,plan.steps[step].task).toBeDefined();
+        await a.call("act",{command:here.command});
+        const after=e.waitingCard();
+        if(after)await a.call("act",{command:{type:"choose",card:after,choice:0}});
+      }
+      expect(s.events.map((x:any)=>x.text ?? x).join(" ")).toMatch(/You bring in \d+ rows of barley/);
+      expect(s.economy.stock[mine.id].grain).toBeGreaterThan(grain);
+      expect(e.pickedNow(s.tiles[`${cell.x},${cell.y}`])).toBe(true);
+      expect(e.harvestYield(mine,Math.floor(s.clock/3600))).toBeGreaterThan(0);
+      s.clock+=28*86400;
+      expect(e.pickedNow(s.tiles[`${cell.x},${cell.y}`]),"the field stands again next season").toBe(false);
+      expect(e.harvestYield(mine,Math.floor(s.clock/3600))).toBe(0);
+      reaped=true;
+    }
+    expect(reaped).toBe(true);
   } finally {a.runtime.dispose();}
 },120000);

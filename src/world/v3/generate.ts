@@ -889,6 +889,9 @@ export function createSettlementWorld(
                 ? "dry"
                 : "grass";
   }
+  /** The season on the clock, set by the engine as the year turns: fields
+   * are drawn and worked at the stage this season gives their crop. */
+  let liveSeason = (pack.setting?.season ?? "summer") as import("../../content/agriculture/types").Season;
   /** The crop on a cell, with its stage for this world's season, or the
    * ditch beside a lane. */
   function fieldAt(
@@ -906,12 +909,7 @@ export function createSettlementWorld(
       if (cell)
         return {
           ...cell,
-          stage: cropStage(
-            cell.crop,
-            (pack.setting?.season ??
-              "summer") as import("../../content/agriculture/types").Season,
-            pack.setting?.lat ?? 0,
-          ),
+          stage: cropStage(cell.crop, liveSeason, pack.setting?.lat ?? 0),
         };
     }
   }
@@ -2101,7 +2099,13 @@ export function createSettlementWorld(
       return "timber";
     return "cut";
   }
+  // Cells are cached for good; a field's stage is read fresh from the season.
   function topography(x: number, y: number): TopographyCell {
+    const c = topographyCell(x, y);
+    if (c.field) c.field.stage = cropStage(c.field.crop, liveSeason, pack.setting?.lat ?? 0);
+    return c;
+  }
+  function topographyCell(x: number, y: number): TopographyCell {
     if (
       half !== undefined &&
       (Math.abs(x) > half + 32 || Math.abs(y) > half + 32)
@@ -2658,6 +2662,7 @@ export function createSettlementWorld(
       : {}),
     ...(environment ? { households: [] } : {}),
     generatorVersion: 3,
+    setSeason: (season: string) => { liveSeason = season as typeof liveSeason; },
     ...(relief
       ? {
           topography,

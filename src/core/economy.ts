@@ -24,8 +24,10 @@ const rates: Record<string, { make: number; need?: number }> = {
   light: { make: 8, need: 0.1 },
   milk: { make: 6, need: 0.5 },
 };
-/** A household stops making once it has three days' making in hand. */
-const cap = (good: string) => (rates[good]?.make ?? 1) * 3;
+/** A household stops making once it has three days' making in hand. Grain
+ * comes in at harvest and is kept in the granary the year round. */
+const GRANARY_DAYS = 250;
+const cap = (good: string) => (rates[good]?.make ?? 1) * (good === "grain" ? GRANARY_DAYS : 3);
 /** Share of a city's needs that arrives from outside it: grain ships, wine
  * carts, the hinterland's market days. A village feeds itself or goes short. */
 export const importShare: Partial<Record<string, number>> = {
@@ -104,8 +106,10 @@ export function runEconomy(
         households[
           (i + (t % households.length) + households.length) % households.length
         ];
+      // A granary starts the game holding half a year's grain, so a world
+      // begun before the harvest is not a famine.
       const stock = (economy.stock[h.id] ??= Object.fromEntries(
-        (h.makes ?? []).map((g) => [g, rates[g]?.make ?? 1]),
+        (h.makes ?? []).map((g) => [g, g === "grain" ? Math.min(cap(g), (rates[g]?.make ?? 1) * (hands.get(h.id) ?? 0) * 56) : rates[g]?.make ?? 1]),
       ));
       const share = (hands.get(h.id) ?? 0) / 24 / (h.makes?.length || 1);
       for (const good of h.makes ?? []) {
@@ -158,6 +162,14 @@ export function dayOfWork(economy: Economy, h: Household, scale = 1) {
     made[good] = n;
   }
   return made;
+}
+
+/** Puts goods in a household's store up to what it keeps; returns what went in. */
+export function addStock(economy: Economy, h: Household, good: string, n: number) {
+  const stock = (economy.stock[h.id] ??= {});
+  const put = Math.max(0, Math.min(n, cap(good) - (stock[good] ?? 0)));
+  stock[good] = (stock[good] ?? 0) + put;
+  return put;
 }
 
 /** The item that stands for each good when a store's stock is shown. */

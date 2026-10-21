@@ -831,9 +831,11 @@ export const snapshotSchema = z.object({
           done: z.boolean().optional(),
           drawn: z.number().int().optional(),
           catch: z.number().optional(),
+          harvest: z.number().int().optional(),
         })
         .strict()
         .optional(),
+      farm: z.object({ sown: z.number().int().optional(), weeded: z.number().int().optional() }).strict().optional(),
     })
     .strict()
     .optional(),

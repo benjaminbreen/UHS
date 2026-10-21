@@ -35,6 +35,8 @@ export type TerrainRequest =
       living?: boolean;
       polish?: ShorePolish;
       snow?: number;
+      /** The season on the clock: fields are rastered at its stage. */
+      season?: string;
     }
   | { id: string; region: TerrainRegion }
   | { previews: { id: string; region: TerrainRegion }[] };
@@ -66,6 +68,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
       if ("polish" in data) polish = data.polish;
       if (data.living !== undefined) livingEnabled = data.living;
       if (data.snow !== undefined) setSnowCover(data.snow);
+      if (data.season) world?.setSeason?.(data.season);
       return;
     }
     if ("pack" in data) {

@@ -172,8 +172,9 @@ it("keeps household stocks bounded and fed while every trade works", () => {
   const e = ledger();
   runEconomy(village(), e, 24 * 7, everyone);
   expect(e.short).toEqual({});
+  // Three days' making, but a granary holds the year's harvest.
   for (const stock of Object.values(e.stock))
-    for (const n of Object.values(stock)) expect(n).toBeLessThanOrEqual(90);
+    for (const [good, n] of Object.entries(stock)) expect(n).toBeLessThanOrEqual(good === "grain" ? 2500 : 90);
 });
 
 it("runs bread and ale short downstream when the farm stops", () => {

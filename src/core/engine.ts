@@ -15,6 +15,7 @@ import {
   householdActivity,
   refreshResource,
   seasonAt,
+  seasonIndex,
   grazeActivity,
 } from "./livelihood";
 import { skySeed, weatherAt } from "./weather";
@@ -79,7 +80,7 @@ import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structur
 import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
-import { dayOfWork, importShare, runEconomy, stockOf } from "./economy";
+import { addStock, dayOfWork, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, stockFor } from "./shop";
 import { goodName } from "../content/economy/products";
@@ -88,7 +89,7 @@ import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../co
 import { recipeFor } from "../content/economy/recipes";
 import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
-import { findPlace, waterfrontMember, type StepPlace } from "./work-places";
+import { fieldParcel, findPlace, waterfrontMember, type StepPlace } from "./work-places";
 import { catchFate, catchOf, fishingPractice, fishingWords, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
 import { dangerOf, gameOf, GIVE_UP_HOURS, huntFate, huntWeapon, huntWords, keepsTraps } from "../content/economy/hunting";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
@@ -155,6 +156,8 @@ import { optionsAt, pendingPicks, technique, TIERS as TECHNIQUE_TIERS, type Tech
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 import { herdNoun, herdWords, keptSpecies } from "../content/fauna/herding";
 import { crops, pickable } from "../content/agriculture/crops";
+import { cropStage } from "../content/agriculture";
+import type { CropId, Season } from "../content/agriculture/types";
 import { gardenPlant, vegetableId } from "../content/agriculture/gardens";
 
 /** How a crop's stage reads in a prompt that is telling you to come back. */
@@ -168,6 +171,9 @@ const STAGE_WORD: Record<string, string> = {
 
 /** Cells either side of the player whose animal groups stay in the save. */
 const FAUNA_KEEP = 160;
+/** Grain from one reaped field cell, and the parcel size an ordinary farm works. */
+const GRAIN_PER_CELL = 6;
+const PARCEL_CELLS = 45;
 /** Clock seconds between looks for a new raid, and the odds each time. A game
  * minute is about three real seconds. */
 const RAID_CHECK = 60;
@@ -432,6 +438,16 @@ export class Engine {
       if (place) this.setStructure(place, structure);
     }
     clearDoorsteps(this.state.objects, world.places, (x, y) => world.blocked(x, y, "outside"));
+    this.syncSeason();
+  }
+  /** Tells the world which season the clock is in, so its fields stand at that season's stage. */
+  private syncSeason() {
+    const setting = this.world.pack.setting;
+    if (setting) this.world.setSeason?.(seasonAt(setting.season, this.state.clock));
+  }
+  /** A cell picked this season; the crop stands again the next. */
+  private pickedNow(edit?: TileEdit) {
+    return edit?.picked !== undefined && seasonIndex(edit.picked) === seasonIndex(this.state.clock);
   }
   initialize(seed: string) {
     this.state.manifest.seed = seed;
@@ -523,7 +539,7 @@ export class Engine {
       (h) => h.members.filter((m) => adults.has(m)).length,
       importShare[this.world.pack.setting?.settlement ?? ""],
       // Only the crew fishes, however many grown hands the house has.
-      (h, good, at) => good === "fish"
+      (h, good, at) => good === "grain" ? this.harvestYield(h, at) : good === "fish"
         ? this.catchYield(h, at) * Math.min(1, (this.practices.get(h.id)?.crew ?? 1) / Math.max(1, h.members.filter((m) => adults.has(m)).length))
         : h.makes?.includes("hide") ? this.gameYield(h, at) : 1,
     );
@@ -553,7 +569,10 @@ export class Engine {
     const morning = Math.min(6, (kit && recipeFor(kit)?.rises) ?? 6);
     const day = w && w.day === now - 1 && !w.done && (w.stage > 0 || w.card) && s.clock < now * 86400 + morning * 3600 ? w.day : now;
     const season = (setting ? seasonAt(setting.season, day * 86400 + 43200) : "spring") as SeasonId;
-    const process = kit && processFor(kit, setting?.economyRevision, season);
+    const recipe = kit && recipeFor(kit);
+    // A farm's day goes by its own crop's calendar, not by the name of the season.
+    const process = kit && processFor(kit, setting?.economyRevision,
+      household && recipe && !("title" in recipe.day) && recipe.skill === "farming" ? this.cropSeason(household, season) : season);
     if (!household || !kit || !process) return;
     const stage = w?.day === day ? w.stage : 0;
     return { household, kit, process, day, stage };
@@ -1157,9 +1176,11 @@ export class Engine {
     this.working = true;
     this.advance((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
     this.working = false;
+    const reaped = this.farming(t) ? this.tendFarm(t, process.steps[t.stage].name) : undefined;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
     s.economy.work = { ...was, day: t.day, stage: t.stage + 1, ...(caught ? { catch: caught.factor } : {}),
+      ...(reaped !== undefined ? { harvest: reaped } : {}),
       ...(process.steps[t.stage + 1]?.scene === "hunt" ? { since: s.clock } : {}) };
     if (caught) this.event(caught.line);
     if (gate) gate.open = grazing(t.stage + 1);
@@ -1206,6 +1227,7 @@ export class Engine {
     const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
+      : this.farming(t) ? this.settleHarvest(t)
       : dayOfWork(s.economy, household, (1 + 0.25 * (work?.quality ?? 0)) * (work?.catch ?? 1) * (1 - this.catchOwed()));
     if (work?.catch !== undefined) Object.assign(made, this.settleCatch(t));
     if (process.paid === "takings") {
@@ -1215,7 +1237,7 @@ export class Engine {
     }
     // Work that makes nothing the town trades in, a forager's or a fisher's,
     // comes home in the hand instead.
-    if (kit.activity !== "Looking for game" && !Object.keys(made).length)
+    if (kit.activity !== "Looking for game" && !this.farming(t) && !Object.keys(made).length)
       for (const [item, n] of Object.entries(kit.inventory ?? {}))
         if (n && item !== "tool" && item !== "water" && this.item(item)) {
           s.player.inventory[item] = (s.player.inventory[item] ?? 0) + n;
@@ -1766,7 +1788,7 @@ export class Engine {
       const crop = field && crops[field.crop];
       if (!field || !pickable(crop) || (field.stage !== "green" && field.stage !== "ripe")) continue;
       const edit = this.editAt(x, y);
-      if (edit.picked) continue;
+      if (this.pickedNow(edit)) continue;
       edit.picked = this.state.clock;
       h.damaged = true;
       const plant = this.cropPlant(crop, y);
@@ -5090,7 +5112,7 @@ export class Engine {
       const side = this.sideJob();
       if (!sown || (!pickable(sown) && side?.id !== id)) return;
       const mine = this.worksFor(field.owner);
-      const picked = !!this.state.tiles?.[tileKey(pos.x, pos.y)]?.picked;
+      const picked = this.pickedNow(this.state.tiles?.[tileKey(pos.x, pos.y)]);
       const near = distance(this.state.player.pos, pos) <= 1.5;
       const plant = this.cropPlant(sown, pos.y);
       const what = plant.name.toLowerCase();
@@ -6200,7 +6222,7 @@ export class Engine {
       if (Math.hypot(x - p.x, y - p.y) < 7) continue;
       const field = sample(x, y)?.field;
       const crop = field && crops[field.crop];
-      if (!field || !pickable(crop) || this.state.tiles?.[tileKey(x, y)]?.picked) continue;
+      if (!field || !pickable(crop) || this.pickedNow(this.state.tiles?.[tileKey(x, y)])) continue;
       const pests = pestsFor(crop, field.stage, hour, present);
       if (!pests.length) continue;
       let roll = this.rng("raid-pest") * pests.reduce((n, q) => n + q.weight, 0);
@@ -6274,7 +6296,7 @@ export class Engine {
       const crop = field && crops[field.crop];
       if (!field || !pickable(crop) || (field.stage !== "green" && field.stage !== "ripe")) continue;
       const edit = this.editAt(m.x, m.y);
-      if (edit.picked || this.rng("raid-bite") > 0.35) continue;
+      if (this.pickedNow(edit) || this.rng("raid-bite") > 0.35) continue;
       edit.nibbled = (edit.nibbled ?? 0) + 1;
       if (edit.nibbled < pest.bites) continue;
       edit.picked = clock;
@@ -6284,7 +6306,7 @@ export class Engine {
     }
     if (changed) this.tilesChanged();
     // Keep to what is left of the crop, not the patch already stripped.
-    if (this.state.tiles?.[tileKey(g.home.x, g.home.y)]?.picked) {
+    if (this.pickedNow(this.state.tiles?.[tileKey(g.home.x, g.home.y)])) {
       const next = this.uneatenNear(g.home, 4);
       if (next) g.home = { ...next, space: "outside" };
     }
@@ -6301,7 +6323,7 @@ export class Engine {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
           const x = at.x + dx, y = at.y + dy;
           const field = sample?.(x, y)?.field;
-          if (field && pickable(crops[field.crop]) && !this.state.tiles?.[tileKey(x, y)]?.picked)
+          if (field && pickable(crops[field.crop]) && !this.pickedNow(this.state.tiles?.[tileKey(x, y)]))
             return { x, y };
         }
     return undefined;
@@ -8860,6 +8882,84 @@ export class Engine {
       (want.owed === undefined || want.owed === !!fate.owed) &&
       (want.sold === undefined || want.sold === fate.sold);
   }
+  /** A day on the household's own field: its grain comes from the harvest, not the day. */
+  private farming(t: NonNullable<ReturnType<Engine["trade"]>>) {
+    return t.process.skill === "farming" && t.process.steps.some((st) => st.at === "field");
+  }
+  /** Notes the sowing and weeding the harvest will repay; on the reaping step,
+   * cuts the parcel's standing ripe crop and returns how many cells it was. */
+  private tendFarm(t: NonNullable<ReturnType<Engine["trade"]>>, step: string) {
+    const s = this.state, now = seasonIndex(s.clock);
+    const farm = ((s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} }).farm ??= {});
+    if (step === "sow" || step === "plant") farm.sown = now;
+    if (step === "weed") farm.weeded = now;
+    if (step !== "reap" && step !== "cut") return;
+    const parcel = fieldParcel(this.world, t.household);
+    if (!parcel) return 0;
+    let cells = 0;
+    for (let y = parcel.rect.y; y < parcel.rect.y + parcel.rect.h; y++)
+      for (let x = parcel.rect.x; x < parcel.rect.x + parcel.rect.w; x++) {
+        const f = this.world.topography?.(x, y)?.field;
+        if (!f || f.parcel !== parcel.id || f.stage !== "ripe") continue;
+        const edit = this.editAt(x, y);
+        if (this.pickedNow(edit)) continue;
+        edit.picked = s.clock;
+        cells++;
+      }
+    if (cells) this.tilesChanged();
+    return cells;
+  }
+  /** The harvest into the granary: what was standing to reap, how well it
+   * was sown and weeded, the year's weather, less the landlord's share. */
+  private settleHarvest(t: NonNullable<ReturnType<Engine["trade"]>>): Record<string, number> {
+    const s = this.state, setting = this.world.pack.setting, work = s.economy?.work;
+    const cells = work?.harvest;
+    if (cells === undefined || !s.economy) return {};
+    if (!cells) {
+      this.event("There was nothing left standing to reap.");
+      return {};
+    }
+    const now = seasonIndex(s.clock), farm = s.economy.farm ?? {};
+    const sown = farm.sown !== undefined && now - farm.sown <= 3, weeded = farm.weeded !== undefined && now - farm.weeded <= 2;
+    const tended = 0.6 + (sown ? 0.25 : 0) + (weeded ? 0.15 : 0);
+    const luck = this.harvestLuck(now);
+    const owed = setting ? catchFate(setting).owed : undefined;
+    const grain = cells * GRAIN_PER_CELL * tended * luck * (1 + 0.25 * (work.quality ?? 0)) * (1 - (owed?.share ?? 0));
+    const kept = addStock(s.economy, t.household, "grain", grain);
+    const weeks = Math.round(kept / Math.max(1, t.household.members.length) / 7);
+    const crop = crops[fieldParcel(this.world, t.household)?.crop as CropId]?.label.toLowerCase() ?? "grain";
+    this.event(`${luck < 0.85 ? "A poor year." : luck > 1.2 ? "A good year." : "An ordinary year."} You bring in ${cells} rows of ${crop}: enough to feed the house for about ${weeks} weeks.`);
+    if (owed) this.event(`${owed.share >= 0.25 ? "A quarter" : "A tenth"} of it went to ${owed.to}.`);
+    if (!sown) this.event("The field was never properly sown this year, and it shows.");
+    else if (!weeded) this.event("The weeds took their share.");
+    return kept ? { grain: kept } : {};
+  }
+  private parcels = new Map<string, ReturnType<typeof fieldParcel>>();
+  /** A farm's making this hour against an ordinary hour's: the grain comes in
+   * when its crop is ripe, by the size of its field and the year it was. */
+  harvestYield(h: Household, hour: number) {
+    const setting = this.world.pack.setting;
+    if (!setting) return 1;
+    if (!this.parcels.has(h.id)) this.parcels.set(h.id, fieldParcel(this.world, h));
+    const parcel = this.parcels.get(h.id), crop = parcel && crops[parcel.crop as CropId];
+    const ripe = crop ? Object.values(crop.calendar).filter((st) => st === "ripe").length : 0;
+    if (!parcel || !ripe) return 1;
+    const clock = hour * 3600;
+    if (cropStage(parcel.crop as CropId, seasonAt(setting.season, clock) as Season, setting.lat) !== "ripe") return 0;
+    return (4 / ripe) * this.harvestLuck(seasonIndex(clock)) * Math.min(1.5, Math.max(0.5, parcel.cells / PARCEL_CELLS));
+  }
+  /** One year's harvest weather for the whole country, from poor to good. */
+  private harvestLuck(season: number) {
+    return 0.6 + 0.8 * random(this.state.manifest.seed, "harvest-year", Math.floor(season / 4));
+  }
+  /** The farm day a crop's stage this season calls for: sowing, weeding,
+   * harvest, or the slack season when the field is bare. */
+  private cropSeason(household: Household, season: SeasonId): SeasonId {
+    const crop = fieldParcel(this.world, household)?.crop;
+    if (!crop || !crops[crop]) return season;
+    const stage = cropStage(crop as CropId, season, this.world.pack.setting?.lat ?? 0);
+    return stage === "sown" ? "spring" : stage === "green" ? "summer" : stage === "ripe" ? "autumn" : "winter";
+  }
   /** The share of a catch that goes to whoever holds the water, as a fraction. */
   private catchOwed() {
     const setting = this.world.pack.setting;
@@ -9268,6 +9368,7 @@ export class Engine {
 
   advance(seconds: number, heldActor?: string) {
     if (this.state.player.dead) return;
+    this.syncSeason();
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
     this.tickObstacles = new Map();

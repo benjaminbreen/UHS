@@ -92,9 +92,11 @@ export type Economy = {
   /** The player's place in today's work: stages done, on which day; how it
    * is going, what the wage has gained or lost, the lines kept from its
    * cards, and the card still waiting for an answer. */
-  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; since?: number };
+  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; harvest?: number; since?: number };
   /** The day the household plot was last seen to. */
   side?: number;
+  /** The seasons the household's field was last sown and weeded, which the harvest pays back. */
+  farm?: { sown?: number; weeded?: number };
 };
 /** The account of a day, shown on waking. */
 export type Evening = {
@@ -825,6 +827,8 @@ export interface WorldModel {
   households?: Household[];
   generatorVersion?: 3;
   topography?(x: number, y: number): import("./topography").TopographyCell;
+  /** The season on the clock, so fields stand at this season's stage. */
+  setSeason?(season: string): void;
   canCross?(from: Point, to: Point): boolean;
   navigationCost?(x: number, y: number, actorId?: string): number;
   protectedCell?(x: number, y: number): boolean;

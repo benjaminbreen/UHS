@@ -15,8 +15,8 @@ export type TileEdit = {
   dug?: boolean;
   /** Dug by an animal, not a person: the clock it was, since it grows over. */
   scraped?: number;
-  /** The standing crop on this cell has been picked. Cleared by nothing: a
-   * cell is picked for the rest of the season it was picked in. */
+  /** The clock the standing crop here was picked: picked for the rest of
+   * that season, standing again the next. */
   picked?: number;
   /** Mouthfuls taken by pests from the crop here, short of eating it. */
   nibbled?: number;

@@ -159,14 +159,8 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     return shop ? { pos: outside(shop.entrance), label: `the ${shop.name.toLowerCase()}` } : null;
   }
   if (role === "field" || role === "water") {
-    // A household's own parcel first, however far out, and grain before
-    // garden stuff; the nearest field else.
+    const parcel = fieldParcel(world, household);
     const mine = (p: Parcel) => !!p.owner && household.members.includes(p.owner);
-    const grain = (p: Parcel) => crops[p.crop]?.kind === "grain";
-    const parcel = (plan?.parcels ?? [])
-      .filter((p) => p.state !== "abandoned" && p.crop !== "pasture")
-      .sort((a, b) => Number(mine(b)) - Number(mine(a)) || Number(grain(b)) - Number(grain(a)) ||
-        distance(outside(a.access), home) - distance(outside(b.access), home))[0];
     if (!parcel) {
       // Land the planner laid no parcels on: a plot on the open ground.
       const open = openGround(ask, "plot");
@@ -209,6 +203,20 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     if (!world.blocked(x, y, "outside")) return { pos: outside({ x, y }), label: role === "line" ? "the line" : "the railway" };
   }
   return null;
+}
+
+/** The parcel a household works: its own first, however far out, and grain
+ * before garden stuff; the nearest field else. */
+export function fieldParcel(world: Engine["world"], household: Household): Parcel | undefined {
+  const w = world as World, home = household.home;
+  const plan = (household.residence && w.planOf?.(household.residence.replace(/-h\d+$/, ""))) ||
+    w.planAt?.(Math.round(home.x), Math.round(home.y));
+  const mine = (p: Parcel) => !!p.owner && household.members.includes(p.owner);
+  const grain = (p: Parcel) => crops[p.crop]?.kind === "grain";
+  return (plan?.parcels ?? [])
+    .filter((p) => p.state !== "abandoned" && p.crop !== "pasture")
+    .sort((a, b) => Number(mine(b)) - Number(mine(a)) || Number(grain(b)) - Number(grain(a)) ||
+      distance(outside(a.access), home) - distance(outside(b.access), home))[0];
 }
 
 /** Open ground 25 to 60 cells from the house: no building, no field, no water. */

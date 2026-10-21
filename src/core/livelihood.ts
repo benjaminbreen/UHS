@@ -8,13 +8,11 @@ import {
   type Snapshot,
   type WorldObject,
 } from "./types";
+/** Seasons since the clock began, at 28 days each. */
+export const seasonIndex = (clock: number) => Math.floor(Math.max(0, clock - 32400) / (28 * 86400));
 export function seasonAt(initial: string, clock: number) {
   const seasons = ["spring", "summer", "autumn", "winter"];
-  return seasons[
-    (Math.max(0, seasons.indexOf(initial)) +
-      Math.floor(Math.max(0, clock - 32400) / (28 * 86400))) %
-      4
-  ];
+  return seasons[(Math.max(0, seasons.indexOf(initial)) + seasonIndex(clock)) % 4];
 }
 export function refreshResource(o: WorldObject, clock: number, season: string) {
   if (!o.resource) return;

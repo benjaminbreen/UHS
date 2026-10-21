@@ -577,6 +577,15 @@ export class TerrainStream {
     this.styling = { ...this.styling, snow: cover };
     this.restyle(this.styling.style);
   }
+  /** The season moved the fields on: draw every chunk again at the new stage.
+   * The first call only tells the workers, before anything is drawn wrong. */
+  setSeason(season: string) {
+    if (season === this.styling.season) return;
+    const first = this.styling.season === undefined;
+    this.styling = { ...this.styling, season };
+    if (!first) return this.restyle(this.styling.style);
+    for (const r of this.pool) r.worker.postMessage(this.styling);
+  }
   /** Drop every rasterised chunk and ask for them again under a new style.
    * Cheaper and far less disruptive than tearing down the whole scene. */
   restyle(style: GroundStyle | null) {

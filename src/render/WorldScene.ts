@@ -265,7 +265,7 @@ import {
   treeVariant,
   crateFrame,
 } from "./season-art";
-import { seasonAt } from "../core/livelihood";
+import { seasonAt, seasonIndex } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
   LIGHT_FLICKER,
@@ -643,6 +643,7 @@ export class WorldScene extends Phaser.Scene {
   private terrainAnchor?: { x: number; y: number };
   private drawnWorld?: WorldModel;
   private watercraft = new Watercraft(this, frame=>this.texture(frame));
+  private fieldSeason?: string;
   /** Hulls under residents out fishing, by resident. */
   private crafts = new Map<string, Watercraft>();
   private fishingGear = new FishingGear(this);
@@ -3559,6 +3560,13 @@ export class WorldScene extends Phaser.Scene {
     // A moulting coat is chosen for the season, so the choices go with it.
     if (season !== this.season) this.faunaArt.clear();
     this.season = season;
+    // The year has turned: fields stand at the new season's stage, so the
+    // ground under them is drawn again.
+    if (setting && this.fieldSeason !== season) {
+      w.setSeason?.(season);
+      this.terrainStream?.setSeason(season);
+      this.fieldSeason = season;
+    }
     this.weather = setting
       ? weatherAt(
           skySeed(e.state.manifest),
@@ -3698,7 +3706,10 @@ export class WorldScene extends Phaser.Scene {
       this.terrainAnchor = undefined;
     }
     if (w.topography && p.space === "outside") {
-      this.terrainStream ??= new TerrainStream(this, w, e.state.manifest.seed);
+      if (!this.terrainStream) {
+        this.terrainStream = new TerrainStream(this, w, e.state.manifest.seed);
+        if (this.fieldSeason) this.terrainStream.setSeason(this.fieldSeason);
+      }
       this.terrainStream.setHidden(false);
       this.terrainStream.setView(
         viewX,
@@ -3751,7 +3762,12 @@ export class WorldScene extends Phaser.Scene {
         return !!(t && (t.cut || t.dug || t.stage));
       },
     );
-    setCropCut((x, y) => !!tiles?.[`${x},${y}`]?.picked);
+    const thisSeason = seasonIndex(e.state.clock);
+    const pickedNow = (x: number | string, y: number | string) => {
+      const at = tiles?.[`${x},${y}`]?.picked;
+      return at !== undefined && seasonIndex(at) === thisSeason;
+    };
+    setCropCut(pickedNow);
     // Chunks already on screen keep their sprites; a picked plant has to go
     // now rather than when its chunk next streams.
     const picks = e.state.tilesRevision ?? 0;
@@ -3759,7 +3775,7 @@ export class WorldScene extends Phaser.Scene {
       this.pickedRevision = picks;
       for (const [id, image] of this.cropImages) {
         const at = /^crop-(-?\d+)-(-?\d+)$/.exec(id);
-        if (at && tiles?.[`${at[1]},${at[2]}`]?.picked) image.destroy();
+        if (at && pickedNow(at[1], at[2])) image.destroy();
       }
     }
     if (key !== this.staticKey || w !== this.drawnWorld) {
