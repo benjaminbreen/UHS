@@ -82,7 +82,7 @@ export type CharacterPose = (typeof poses)[number];
 /** A small set of physical verbs shared by trades in every era. */
 export function workPoseFor(activity: string, label: string, family = ""): CharacterPose | undefined {
   const task = label.toLowerCase();
-  if (activity === "draw-water") return "tug";
+  if (activity === "draw-water" || (activity === "haul" && family === "seine-rope")) return "tug";
   if (activity === "haul-catch" && family === "drying-rack") return "work-hang";
   if (activity === "cook") return "work-stir";
   if ((activity === "gather" && /plant|crop|herb|fruit|berry/.test(task)) ||

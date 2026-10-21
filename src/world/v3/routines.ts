@@ -899,7 +899,9 @@ export function shoreRoutine(plan: SettlementPlan, seed: string, pack: Pack, id:
   const market = plan.plots.find((p) => p.kind === "public" && !p.id.includes("-waterfront-"));
   const day: Station[] =
     role === "haul" ? [
-      { pos: nearby(plan, seed, `${id}-haul`, member.landing), activity: "haul", label: "Hauling the seine ropes from the bank", minutes: 60, toward: "the landing" },
+      // At the water's edge, the rope running out past the launch.
+      { pos: { x: member.launch.water.x - member.launch.direction.x, y: member.launch.water.y - member.launch.direction.y }, activity: "haul", label: "Hauling the seine ropes from the bank", minutes: 60, toward: "the landing",
+        target: { x: member.launch.water.x + member.launch.direction.x, y: member.launch.water.y + member.launch.direction.y, family: "seine-rope" } },
       { pos: member.sorting, activity: "haul", label: "Carrying baskets of fish up from the landing", minutes: 12, carry: basket, toward: "the catch" },
       mend,
     ] : role === "sell" && fate?.sold ? [
@@ -968,7 +970,8 @@ export function routineFor(
         ? member.grounds[Math.floor(random(seed,id,"ground")*member.grounds.length)] : undefined;
       const trip:Station[]=ground ? [
         {pos:member.landing,activity:"work",label:"Launching the boat",minutes:8,toward:"the boat"},
-        {pos:ground,activity:"fish",label:words?.fish ?? "Fishing from the boat",minutes:90,toward:"the fishing grounds",boat:member.boatId},
+        {pos:ground,activity:"fish",label:words?.fish ?? "Fishing from the boat",minutes:90,toward:"the fishing grounds",boat:member.boatId,
+          ...(member.practice ? {target:{x:member.landing.x,y:member.landing.y,family:`fishing-${member.practice.method}`}} : {})},
       ] : [];
       return [
         inside(plan,h.gear,"Taking out fishing gear",20,member.gearId),

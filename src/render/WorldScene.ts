@@ -6,6 +6,7 @@ import { propDefs } from "../content/props/catalog";
 import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
 import { Watercraft, mooredBoatFrame, boatPosture, boatCraft } from "./watercraft";
+import { FishingGear, type Gear } from "./fishing-gear";
 import { fishingWaterfront } from "../content/settlements/waterfronts";
 import { TrainLayer } from "./trains";
 import { CabLayer } from "./cabs";
@@ -337,7 +338,7 @@ const workAlternates: Partial<
   tug: ["stoop", "sway"],
 };
 const workTargets: Partial<Record<CharacterPose, readonly string[]>> = {
-  tug: ["well", "framed-well", "town-well", "trough"],
+  tug: ["well", "framed-well", "town-well", "trough", "seine-rope"],
   "work-stir": ["cooking-pot", "hearth", "camp-hearth", "communal-hearth", "three-stone-hearth", "firepit", "stove", "barrel", "storage-jar", "dye-vats"],
   "work-knead": ["oven", "earth-oven", "tannur", "bench", "mud-bricks", "earthen-pot"],
   "work-pound": ["anvil", "knapping-floor", "pounding-mortar", "grinder", "metate", "quern", "grindstone", "woodpile", "chopping-block"],
@@ -644,6 +645,7 @@ export class WorldScene extends Phaser.Scene {
   private watercraft = new Watercraft(this, frame=>this.texture(frame));
   /** Hulls under residents out fishing, by resident. */
   private crafts = new Map<string, Watercraft>();
+  private fishingGear = new FishingGear(this);
   private craftOf(id: string) {
     if (id === "player") return this.watercraft;
     let craft = this.crafts.get(id);
@@ -1079,6 +1081,7 @@ export class WorldScene extends Phaser.Scene {
       this.courtyardLighting.dispose();
       this.watercraft.dispose();
       this.crafts.forEach((c) => c.dispose());
+      this.fishingGear.dispose();
       this.crafts.clear();
       this.trains.dispose();
       this.cabs.dispose();
@@ -5128,6 +5131,7 @@ export class WorldScene extends Phaser.Scene {
         this.quenchFire(id);
         this.douseLamp(id);
         this.crafts.get(id)?.dispose();
+        this.fishingGear.remove(id);
         this.crafts.delete(id);
         this.entities.delete(id);
         this.destinations.delete(id);
@@ -6426,6 +6430,10 @@ export class WorldScene extends Phaser.Scene {
             boatType,
             random(this.runtime.engine.state.manifest.seed,"boat-finish",id === "player" && !boatId ? "player" : owner ?? id));
         }
+        const family = at && !at.moving ? at.target?.family : undefined;
+        const gear = outFishing && family?.startsWith("fishing-") ? family.slice(8) as Gear : family === "seine-rope" ? "rope" : undefined;
+        if (gear) this.fishingGear.draw(id, gear, im.x, im.y, { x: at!.target!.x * 16 + 8, y: at!.target!.y * 16 + 8 }, im.depth, time, this.poseOffset(id));
+        else this.fishingGear.hide(id);
         // A glance aside and back, in the second and third quarters of it.
         const glance = fidget?.look
           ? (time - fidget.from) / (fidget.until - fidget.from)
