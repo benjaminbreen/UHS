@@ -75,7 +75,11 @@ function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">, fixed?: st
     writeFileSync(`${dir}/chronicle.md`, r.chronicle());
     if (!final && Date.now() - reviewed < 60000) return;
     reviewed = Date.now();
-    writeFileSync(`${dir}/review.html`, runViewer(r));
+    try {
+      writeFileSync(`${dir}/review.html`, runViewer(r));
+    } catch (error) {
+      writeFileSync(`${dir}/review.html`, `<!doctype html><p>This run is too large to review here (${error}); its JSONL files are complete.</p>`);
+    }
   };
   const close = () => {
     record.start({ metrics: record.metrics() });

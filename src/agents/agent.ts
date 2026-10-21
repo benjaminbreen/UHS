@@ -131,7 +131,9 @@ export class Agent {
     const onRecord = runtime.onRecord;
     runtime.onRecord = (kind, data) => {
       onRecord?.(kind, data);
-      record.trace({ kind: `engine-${kind}`, response: { ...data, clock: runtime.engine.state.clock, state: this.state() } });
+      // The player's full state is already on each trajectory entry; repeating it
+      // for every errand step made a three-day run's record half a gigabyte.
+      record.trace({ kind: `engine-${kind}`, response: { ...data, clock: runtime.engine.state.clock } });
       if (kind === "command") this.label(data.request as { command: z.infer<typeof commandSchema> }, data.result as CommandResult);
     };
     this.names = (Object.keys(tools) as ToolName[]).filter(

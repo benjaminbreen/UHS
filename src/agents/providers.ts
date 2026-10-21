@@ -4,15 +4,20 @@ import { decisionSchema, type Complete, type Message } from "./loop";
 const decisionJson = z.toJSONSchema(decisionSchema);
 
 /** Rate limits, overload and dropped connections pass; a long run should not
- * end on one. Waits 2, 4, 8, 16, 32 s, or what retry-after asks. */
+ * end on one. A refusal is retried five times, waiting 2, 4, 8, 16, 32 s or
+ * what retry-after asks; a lost connection (a laptop asleep, a dropped
+ * network) for about ten minutes. */
 async function patient(send: typeof fetch, url: string, init: RequestInit) {
-  for (let attempt = 0; ; attempt++) {
+  for (let attempt = 0, offline = 0; ; attempt++) {
     const last = attempt === 5;
     let response;
     try {
       response = await send(url, init);
     } catch (error) {
-      if (last) throw error;
+      if (++offline > 22) throw error;
+      await new Promise((r) => setTimeout(r, Math.min(2000 * 2 ** offline, 30000)));
+      attempt--;
+      continue;
     }
     if (response && (last || !(response.status === 408 || response.status === 429 || response.status >= 500))) return response;
     const after = Number(response?.headers.get("retry-after"));
