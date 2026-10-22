@@ -23,8 +23,9 @@ def historical_wells():
  result={}
  for kind,*_ in HISTORICAL_WELLS:
   im=historical_well(kind)
-  im=im.crop((0,0,im.width,im.getbbox()[3]))
-  im.info['anchor']=[im.width/2,im.height]
+  # One clear row under the foot: the nature bake asserts a margin on every side.
+  im=im.crop((0,0,im.width,im.getbbox()[3]+1))
+  im.info['anchor']=im.info['shadowAnchor']=[im.width/2,im.height-1]
   result[f'nature-well-{kind}']=im
  return result
 

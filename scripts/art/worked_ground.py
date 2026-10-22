@@ -124,8 +124,9 @@ def reviewed_containers():
                 for x in range(im.width):
                     p=pixels[x,y]
                     if p[3] and p[:3] in colors:pixels[x,y]=colors[p[:3]]+(255,)
-            im=im.crop((0,0,im.width,im.getbbox()[3]))
-            im.info['anchor']=[im.width/2,im.height]
+            # One clear row under the foot: the nature bake asserts a margin on every side.
+            im=im.crop((0,0,im.width,im.getbbox()[3]+1))
+            im.info['anchor']=im.info['shadowAnchor']=[im.width/2,im.height-1]
             name='well' if form=='well' else 'basket'
             result[f'nature-prop-{name}-b-{variant}']=im
     return result

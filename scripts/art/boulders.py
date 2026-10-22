@@ -133,7 +133,7 @@ def sized_rocks():
     for kind in ['grey',*KINDS]:
         for size in ['medium','large']:
             im=size_candidate(kind,size=='large')
-            result[f'nature-rock-{kind}-{size}']=im.crop((0,0,im.width,im.getbbox()[3]))
+            result[f'nature-rock-{kind}-{size}']=im.crop((0,0,im.width,im.getbbox()[3]+1))
     return result
 
 
