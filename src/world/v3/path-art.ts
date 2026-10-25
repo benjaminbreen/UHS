@@ -78,8 +78,8 @@ export function pathArt(
             : road.width
               ? road.width * 0.72 + 0.44
               : shared
-                ? 0.5
-                : 0.66,
+                ? 0.6
+                : 0.8,
           ...(ruts === false && { ruts }),
           ...(dung === false && { dung }),
           ...(blacktop && { paved }),

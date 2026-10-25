@@ -1,10 +1,12 @@
 import { expect, it } from "vitest";
 import { treeVariant, crateFrame } from "../src/render/season-art";
+import { propVariety } from "../src/render/prop-variety";
 import nature from "../src/render/generated/nature-atlas.json" with { type: "json" };
 import {
   vegetationPattern,
   vegetationTree,
   vegetationUnderstory,
+  natureTreeSprites,
 } from "../src/content/ecology/vegetation";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
@@ -12,6 +14,18 @@ import type { WorldSetting } from "../src/content/geography/types";
 import type { Ecology } from "../src/content/ecology/profiles";
 import type { Habitat } from "../src/world/v3/habitats";
 const base = settingFor(places.find((p) => p.id === "konya")!);
+it("keeps authored tree lighting through seasonal variants while retaining tone variety", () => {
+  const tones = new Set<number>();
+  for (const sprite of natureTreeSprites)
+    for (const suffix of ["", "-2", "-3-autumn", "-bare"])
+      for (let x = -8; x < 8; x++) {
+        const variety = propVariety("tree-light", `${sprite}${suffix}`, x, 3);
+        expect(variety.flip, `${sprite}${suffix}`).toBe(false);
+        tones.add(variety.tint);
+      }
+  expect(tones.size).toBeGreaterThan(1);
+  expect(new Set(Array.from({ length: 32 }, (_, x) => propVariety("tree-light", "rock-grey-0", x, 3).flip)).size).toBe(2);
+});
 it("draws both approved crate forms from the nature atlas", () => {
   for (const roll of [0.1,0.9]) expect(nature.frames).toHaveProperty(crateFrame(roll));
   expect(crateFrame(0.1)).not.toBe(crateFrame(0.9));

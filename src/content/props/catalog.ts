@@ -3,6 +3,7 @@ import { detailProps } from "./settlement-details";
 import { urbanProps } from "./urban";
 import { furnitureProps } from "./furniture";
 import { containerProps } from "./containers";
+import { equipmentProps } from "./equipment";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
 
@@ -76,6 +77,7 @@ export const propDefs: Record<string, PropDef> = {
   ...detailProps,
   ...urbanProps,
   ...containerProps,
+  ...equipmentProps,
   hideBag: {
     shove: { as: "free", mass: 0.5 },
     solid: true,
@@ -234,12 +236,6 @@ export const propDefs: Record<string, PropDef> = {
     name: "Dovecote",
     family: "dovecote",
   },
-  chickenCoop: {
-    solid: true,
-    name: "Henhouse",
-    family: "chicken-coop",
-    container: true,
-  },
   crateStack: {
     rarity: 0.6,
     solid: true,
@@ -367,6 +363,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Spring-water basin",
     family: "trough",
+    visualClearance: [3, 3, 2, 0],
     drink: true,
   },
   trough: {
@@ -374,7 +371,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Animal trough",
     family: "trough",
-    visualClearance: [2, 2, 2, 0],
+    visualClearance: [3, 3, 2, 0],
     container: true,
     contents: { water: 4 },
   },
@@ -818,6 +815,7 @@ export const propDefs: Record<string, PropDef> = {
     name: "Pottery kiln",
     family: "kiln",
     variants: 2,
+    visualClearance: [2, 2, 5, 0],
   },
   mudBricks: {
     where: "worksite",
@@ -847,6 +845,7 @@ export const propDefs: Record<string, PropDef> = {
     name: "Beam press",
     family: "lever-press",
     variants: 2,
+    visualClearance: [3, 4, 4, 1],
   },
   tanningPits: {
     solid: true,
@@ -876,6 +875,7 @@ export const propDefs: Record<string, PropDef> = {
     name: "Bloomery furnace",
     family: "bloomery",
     variants: 2,
+    visualClearance: [2, 4, 5, 1],
   },
   saddleStand: {
     shove: { as: "free", mass: 0.8 },
@@ -892,13 +892,6 @@ export const propDefs: Record<string, PropDef> = {
     family: "charpoy",
     where: "backyard",
     visualClearance: [2, 2, 2, 0],
-  },
-  stockPen: {
-    solid: true,
-    name: "Stock pen",
-    family: "stock-pen",
-    where: "worksite",
-    visualClearance: [2, 2, 3, 1],
   },
   milkChurn: {
     shove: { as: "free", mass: 1.2, rolls: true },
@@ -923,6 +916,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "hearth",
     fire: true,
     variants: 1,
+    visualClearance: [2, 2, 2, 1],
   },
   campHearth: {
     solid: true,
@@ -966,6 +960,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "three-stone-hearth",
     fire: true,
     variants: 1,
+    visualClearance: [2, 2, 3, 1],
   },
   longFire: {
     solid: true,
@@ -993,30 +988,12 @@ export const propDefs: Record<string, PropDef> = {
     name: "Woven mat",
     family: "seat-mat",
   },
-  tannur: {
-    solid: true,
-    name: "Sunken clay oven",
-    family: "tannur",
-    fire: true,
-  },
-  brazier: {
-    solid: true,
-    name: "Standing brazier",
-    family: "brazier",
-    fire: true,
-    variants: 2,
-  },
   bakeOven: {
     solid: true,
     name: "Communal bake oven",
     family: "oven",
     fire: true,
-  },
-  teaStove: {
-    solid: true,
-    name: "Stove and kettle",
-    family: "stove",
-    fire: true,
+    visualClearance: [2, 2, 4, 0],
   },
   fireBasket: {
     solid: true,

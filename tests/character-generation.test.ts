@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { outlookOf } from "../src/core/outlook";
+import { livelihoodById } from "../src/content/characters/livelihoods";
 import { characterAppearance, characterNameParts, generateCharacter } from "../src/content/characters/generate";
 import { resolveCharacterContext } from "../src/content/characters/resolve";
 import { integratedSetting } from "../src/content/geography/defaults";
@@ -596,4 +598,23 @@ it("equips an early American hunter with a spear instead of a bow", () => {
   expect(hunter.inventory.spear).toBe(1);
   expect(hunter.inventory.bow).toBeUndefined();
   expect(hunter.inventory.arrow).toBeUndefined();
+});
+
+it("draws a plausible street in 1899 Denver", () => {
+  const s = settingFor(place("city-denver"), 1899);
+  const people = Array.from({ length: 400 }, (_, i) =>
+    generateCharacter(s, "denver-1899", `p${i}`, 20 + (i % 40), undefined, undefined, undefined, i % 2 ? "male" : "female"),
+  );
+  const share = (n: number) => n / people.length;
+  const community = (c: string) => people.filter((p) => p.origin.community === c).length;
+  expect(share(community("us-anglo"))).toBeGreaterThan(0.85);
+  expect(share(community("us-latino"))).toBeLessThan(0.06);
+  const held = people.map((p, i) => outlookOf("denver-1899", { ...p, id: `p${i}`, age: 30 } as never, s).stances.map((x) => x.id));
+  expect(share(held.filter((h) => h.includes("stance.marxist")).length)).toBeLessThan(0.05);
+  expect(share(held.filter((h) => h.includes("temper.secular") || h.includes("temper.atheist")).length)).toBeLessThan(0.1);
+  const publican = generateCharacter(s, "denver-1899", "pub", 40, "Publican");
+  for (let i = 0; i < 40; i++)
+    expect(outlookOf(`pub-${i}`, { ...publican, id: "pub", age: 40 } as never, s).stances.map((x) => x.id)).not.toContain("stance.us-temperance");
+  const topHats = people.filter((p) => p.appearance.wearing.headwear === "top-hat");
+  for (const p of topHats) expect(livelihoodById(p.origin.livelihood)?.rank).toBe("gentry");
 });

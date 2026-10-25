@@ -1,5 +1,6 @@
 import { furnitureAbout } from "./furniture";
 import { containerAbout } from "./containers";
+import { equipmentAbout } from "./equipment";
 
 /**
  * What each prop is, said plainly, for the focus card. One or two sentences
@@ -136,15 +137,15 @@ export const about: Record<string, string> = {
   backstrapLoom: "A loom tied to a post at one end and to the weaver by a strap round the back.",
   dungStack: "Dried dung cakes stacked for fuel, where firewood is scarce.",
   dugout: "A canoe hollowed out of a single log.",
-  kiln: "A clay kiln for firing pots, stoked through the opening at its foot.",
+  kiln: "A kiln for firing pottery, stoked through the firebox at its foot.",
   mudBricks: "Bricks of mud and straw drying in the sun before they go into a wall.",
   fishingNets: "A fishing net hung up to dry and mend, with fish traps beside it.",
   threshingFloor: "A hard, round floor where grain is beaten and trodden out of its husks.",
-  leverPress: "A long beam and a heavy stone for pressing oil from olives or juice from grapes.",
+  leverPress: "A press for squeezing oil from olives or juice from grapes into a collecting vessel.",
   tanningPits: "Pits of lime and bark liquor where hides are soaked into leather. They smell.",
   dyeVats: "Pots of indigo dye sunk in the ground, and cloth drying blue on the line.",
   riceRack: "A bamboo rack hung with cut rice to dry.",
-  bloomery: "A clay furnace for smelting iron from ore with charcoal.",
+  bloomery: "A shaft furnace for smelting iron from ore with charcoal, fed with air through a clay pipe.",
   saddleStand: "A saddle and blanket resting on a rail, the bridle hung beside them.",
   charpoy: "A rope bed on a wooden frame, dragged outside to sit or sleep on in the heat.",
   stockPen: "A fenced pen for keeping animals in.",
@@ -189,4 +190,5 @@ export const about: Record<string, string> = {
   branch: "A fallen branch.",
   ...furnitureAbout,
   ...containerAbout,
+  ...equipmentAbout,
 };

@@ -3,7 +3,7 @@ import {
   classifyCommunity,
   supportsHabitatResource,
 } from "../src/content/ecology/communities";
-import { habitatAppearance } from "../src/render/habitat-appearance";
+import { habitatAppearance, habitatBand } from "../src/render/habitat-appearance";
 import { rasterHabitatTile } from "../src/render/habitat-raster";
 import { habitatAt } from "../src/world/v3/habitats";
 import type { LandSample } from "../src/world/geography/landscape";
@@ -82,4 +82,16 @@ it("keeps established river coloring separate from local flooded-margin habitat"
   expect(river.colorway).toBe("monsoon");
   const marsh = classifyCommunity({ecology:"wetland"}, land(.9), .15, .05);
   expect(supportsHabitatResource({...marsh,landUse:"cultivated"},"reeds")).toBe(false);
+});
+it("lightens woodland clearings without turning wet habitats into grass", () => {
+  const h = habitatAt("tropical-woodland", "summer", "groves", 0, 0, land(0.1, 80));
+  h.site = classifyCommunity({ ecology: "tropical-woodland" }, land(0.1, 80), 0.9, 0.1);
+  const clearing = { ...h, grove: 0 }, interior = { ...h, grove: 1 };
+  expect(h.site.primary).toBe("woodland");
+  expect(habitatBand(clearing)).toBe(0);
+  expect(habitatBand(interior)).toBe(4);
+  const brightness = (h: typeof clearing) => habitatAppearance(h).ground.reduce((a, b) => a + b, 0);
+  expect(brightness(clearing)).toBeGreaterThan(brightness(interior));
+  const swamp = { ...clearing, site: classifyCommunity({ ecology: "tropical-woodland" }, land(0.85), 0.8, 0.1) };
+  expect(habitatBand(swamp)).toBe(4);
 });

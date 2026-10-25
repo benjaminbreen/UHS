@@ -1,4 +1,5 @@
 import { random } from "../core/random";
+import { natureTreeSprites } from "../content/ecology/vegetation";
 
 export function reviewedPropFrame(sprite: string, roll: number): string {
   if (sprite === "well") return "nature-prop-well-b-0";
@@ -8,10 +9,6 @@ export function reviewedPropFrame(sprite: string, roll: number): string {
   return basket && roll >= 0.5 ? `nature-prop-basket-b-${basket[1]}` : sprite;
 }
 
-// Mirrored art only helps where the sprite is not lit from one side. Nature
-// art is drawn lit from directly above, so a mirrored rock or bush still
-// agrees with the sun; built props carry handles, doors and openings that
-// would read backwards, so they are left alone.
 function mirrorable(sprite: string) {
   if (sprite.startsWith("nature-container-")) return false;
   return (
@@ -44,8 +41,10 @@ export function propVariety(
   const level = Math.round(255 * (0.88 + Math.floor(shade * 4) * 0.04));
   // Sand and stone warm slightly as they darken, rather than going grey.
   const warm = Math.min(255, Math.round(level * 1.03));
+  // Trees carry side-lit highlights and have authored silhouette variants.
+  const tree = natureTreeSprites.some(t => sprite === t || sprite.startsWith(`${t}-`));
   return {
-    flip: roll < 0.5,
+    flip: !tree && roll < 0.5,
     tint: (warm << 16) | (level << 8) | Math.round(level * 0.98),
   };
 }

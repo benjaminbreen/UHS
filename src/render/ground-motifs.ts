@@ -1,4 +1,10 @@
-import { waterHash as hash } from "./water-style";
+import { waterHash as hash, waterNoise as noise } from "./water-style";
+
+/** Where grass grows thick: drifts a few cells across with bare runs between.
+ * The tufts and the blade hatch share it, so they gather in the same places. */
+export function tuftColony(wx: number, wy: number) {
+  return noise(wx, wy, 112, 403) * 0.7 + noise(wx, wy, 41, 404) * 0.3;
+}
 
 /** Original native-pixel material marks. Each stone has a lit face, side and
  * contact shadow; turf is a small blade cluster rather than independent dots. */
@@ -163,7 +169,10 @@ export function groundMotif(
   // Turf sits on a staggered lattice: odd rows shift half a step.
   const shift = kind === "turf" && by & 1 ? stepX / 2 : 0;
   const bx = Math.floor((wx - shift) / stepX);
-  const colony = hash(Math.floor(bx / 4), Math.floor(by / 3), 403);
+  const grass = kind === "turf" || kind === "sward";
+  const colony = grass
+    ? tuftColony(bx * stepX + shift + stepX / 2, by * stepY + stepY / 2)
+    : hash(Math.floor(bx / 4), Math.floor(by / 3), 403);
   const clusteredDensity =
     kind === "stone"
       ? colony > 0.5
@@ -177,11 +186,11 @@ export function groundMotif(
             : 0.3
           : kind === "sward"
             ? colony > 0.55
-              ? 0.45
-              : 0.12
+              ? 0.6
+              : 0.06
           : colony > 0.55
-            ? 0.8
-            : 0.2;
+            ? 0.9
+            : 0.12;
   const clustering = tuning?.clustering ?? 1;
   const meanDensity = kind === "stone" ? 0.41 : kind === "turf" ? 0.47 : 0.43;
   const density = Math.max(
@@ -193,7 +202,8 @@ export function groundMotif(
     ),
   );
   if (hash(bx, by, 401) > density)
-    return kind === "turf" ? sprout(wx, wy, density, overrides) : 0;
+    // Sprouts fringe a colony; between colonies the turf stays bare.
+    return kind === "turf" && colony > 0.5 ? sprout(wx, wy, density, overrides) : 0;
   let glyphs =
     kind === "stone"
       ? stoneMotifs

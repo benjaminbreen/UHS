@@ -1,6 +1,7 @@
 import type { Point } from "../../core/types";
+import { buildingModel } from "../../content/graphics/models";
 import { crownRadius } from "./vegetation-spacing";
-import { cellKey, type Rect } from "./types";
+import { cellKey, type Rect, type SettlementPlan } from "./types";
 
 export type PlacementEnvelope = {
   /** Cells that physically stop movement or construction. */
@@ -30,6 +31,22 @@ export function rectCells(rect: Rect): Point[] {
   for (let y = rect.y; y < rect.y + rect.h; y++)
     for (let x = rect.x; x < rect.x + rect.w; x++) out.push({ x, y });
   return out;
+}
+
+export function cultivatedAt(plan: Pick<SettlementPlan, "fields" | "surface">, x: number, y: number) {
+  const key = cellKey(x, y), field = plan.fields?.get(key);
+  return field ? field.crop !== "pasture" || !!field.garden : plan.surface.get(key) === "field";
+}
+
+export function buildingPlacementEnvelope(sprite: string, rect: Rect, access: Point[]): PlacementEnvelope {
+  const model = buildingModel(sprite);
+  const left = rect.x + rect.w / 2 - model.anchor[0] / 16,
+    top = rect.y + rect.h - model.anchor[1] / 16;
+  const clearance = rectCells({ x: Math.floor(left), y: Math.floor(top),
+    w: Math.ceil(left + model.bounds[2] / 16) - Math.floor(left),
+    h: Math.ceil(top + model.bounds[3] / 16) - Math.floor(top) })
+    .filter(p => p.x < rect.x || p.x >= rect.x + rect.w || p.y < rect.y || p.y >= rect.y + rect.h);
+  return { occupied: rectCells(rect), access, clearance };
 }
 
 /** A tree is anchored at its trunk; most of its visible mass is behind it. */

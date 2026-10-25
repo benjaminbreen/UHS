@@ -139,6 +139,10 @@ def _oblique(fn):
 for _key in OBLIQUE:
  DRAW_B[_key] = _oblique(DRAW_B[_key])
 
+# These reviewed fronts already contain their top depth; do not extrude them.
+from .equipment_studies import EQUIPMENT_B
+DRAW_B.update(EQUIPMENT_B)
+
 # Families drawn in separable layers. The renderer places the frame and sways
 # the hangings against it; the unsuffixed sprite stays whole for the lab, the
 # UI and the shadow mask.
@@ -165,6 +169,7 @@ ANIMATED = {
  'backstrap-loom': 4,
  'dye-vats': 4,
  'bloomery': 4,
+ 'kiln': 4,
  'traffic-signal': 16,
  # Cloth stirs on a covered pitch.
  **{key: 4 for key in PITCHES},

@@ -101,7 +101,21 @@ export const populations: readonly Population[] = [
   {
     id: "population.united-states",
     label: "United States",
-    scope: { years: [1800, 2000], bounds: [-125, 25, -67, 49] },
+    scope: { years: [1800, 1940], bounds: [-125, 25, -67, 49] },
+    priority: 3,
+    groups: [
+      { community: "us-anglo", share: 87 },
+      { community: "african-diaspora", share: 11 },
+      { community: "us-latino", share: 1.5 },
+      { community: "us-chinese", share: 0.5 },
+    ],
+    sources: ["https://www.census.gov/library/publications/1975/compendia/hist_stats_colonial-1970.html"],
+    note: "Census shares around 1900: about 88% white, 12% black, and Mexican-born and Chinese residents each well under one percent nationally. European immigrants are inside the Anglo share, which draws German, Irish and Scandinavian names.",
+  },
+  {
+    id: "population.united-states-late",
+    label: "United States",
+    scope: { years: [1940, 2000], bounds: [-125, 25, -67, 49] },
     priority: 3,
     groups: [
       { community: "us-anglo", share: 76 },
@@ -111,6 +125,20 @@ export const populations: readonly Population[] = [
     ],
     sources: ["https://doi.org/10.1017/CHOL9780521382892"],
     note: "A national average across two centuries, which no actual place matched: the African-American share was a third in the antebellum South and near nothing in New England, and the Latino and Chinese shares are concentrated in the southwest and on the Pacific coast.",
+  },
+  {
+    id: "population.us-mountain-west",
+    label: "Mountain West",
+    scope: { years: [1858, 1940], bounds: [-117, 39, -102, 49] },
+    priority: 5,
+    groups: [
+      { community: "us-anglo", share: 94 },
+      { community: "african-diaspora", share: 3 },
+      { community: "us-latino", share: 2 },
+      { community: "us-chinese", share: 1 },
+    ],
+    sources: ["https://www.census.gov/library/publications/1901/dec/vol-01-population.html"],
+    note: "Denver in 1900 was about 97% white, a quarter of them foreign-born, with a black population near 3% and a few hundred Chinese residents. Hispano villages were in the San Luis Valley to the south, not on the Front Range.",
   },
   {
     id: "population.us-antebellum-south",

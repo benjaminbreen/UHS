@@ -2,7 +2,8 @@ import type { Actor, Household, WalkOff } from "../../core/types";
 import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
 
-export type PlotRole = "creditor" | "landlord" | "official" | "accuser" | "witness" | "rival" | "suspect" | "host";
+export type PlotRole = "creditor" | "landlord" | "official" | "accuser" | "witness" | "rival" | "suspect" | "host"
+  | "giver" | "inlaw" | "claimant" | "elder" | "customer";
 
 export type PlotContext = {
   seed: string;

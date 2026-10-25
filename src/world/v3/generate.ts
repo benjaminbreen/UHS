@@ -40,7 +40,7 @@ import {
 } from "../../content/settlements/streets/reach";
 import { crossingStyle, edgeStyle } from "../../content/settlements/terraces";
 import { gravelBar, oasis, outcrop, saltPan, shrubColony } from "./features";
-import { habitatAt, habitatTree } from "./habitats";
+import { groveAt, groveEdge, habitatAt, habitatTree } from "./habitats";
 import { createRegionalContext } from "../regional/context";
 import { regionalSettlements, shorePreference } from "../regional/settlements";
 import { regionalTransport } from "../regional/transport";
@@ -83,7 +83,7 @@ import { territoryReach, type FieldCell } from "./farmland";
 import { cropStage } from "../../content/agriculture";
 import { propDefs } from "../../content/props/catalog";
 import { landPotential } from "./land-potential";
-import { treePlacementEnvelope } from "./placement";
+import { cultivatedAt, treePlacementEnvelope } from "./placement";
 export const DISTRICT_SIZE = 384;
 /** Residents per settlement given a full daily routine. Past this the rest keep
  * the simpler needs-driven behaviour; routing every resident of a large town
@@ -529,6 +529,7 @@ export function createSettlementWorld(
     plans.set(s.id, plan);
     // Cells near this plan were decorated while it was still being drawn.
     decorations.clear();
+    eligibleTrees.clear();
     neighborCache.clear();
     if (plans.size > 48)
       for (const id of plans.keys())
@@ -758,6 +759,7 @@ export function createSettlementWorld(
       ? pack.setting
       : (regional?.settingAt(x, y) ?? pack.setting!);
   const habitatCache = new Map<string, ReturnType<typeof habitatAt>>();
+  const composedVegetation = (pack.setting?.vegetationRevision ?? 0) >= 8;
   /** A settlement stands in a clearing: without this a woodland village is
    * drawn on forest-floor litter and never shows its grass. Reads sites, not
    * plans, because planning itself samples habitat. */
@@ -780,6 +782,7 @@ export function createSettlementWorld(
     let value = habitatCache.get(key);
     if (!value) {
       const setting = settingAt(x, y);
+      const cleared = wild ? 0 : clearing(x, y);
       value = habitatAt(
         setting.environment!.ecology,
         setting.season,
@@ -788,7 +791,7 @@ export function createSettlementWorld(
         y + land.origin.y,
         land.sample(x, y),
         setting.environment!.colorway,
-        wild ? 0 : clearing(x, y),
+        cleared,
       );
       if (pack.setting?.ecologyRevision === 1 && regional)
         value.blend = regional.ecologyAt(x, y).parts;
@@ -803,6 +806,9 @@ export function createSettlementWorld(
         value.exposed = Math.min(1, value.exposed + 0.2);
         value.cover *= 0.45;
       }
+      if (composedVegetation && !value.vegetation &&
+        (value.ecology.includes("woodland") || value.colorway === "swamp"))
+        value.grove = groveAt(seed, x + land.origin.x, y + land.origin.y) * (1 - cleared * 0.95);
       trimCache(habitatCache, 65536);
       habitatCache.set(key, value);
     }
@@ -948,6 +954,7 @@ export function createSettlementWorld(
     return selected ?? regionalRoads(x, y).get(k) ?? ground(x, y);
   }
   const treeCandidates = new Map<string, TreeCandidate | null>();
+  const eligibleTrees = new Map<string, TreeCandidate | null>();
   function candidate(x: number, y: number): TreeCandidate | undefined {
     const key = cellKey(x, y);
     if (treeCandidates.has(key)) return treeCandidates.get(key) ?? undefined;
@@ -1057,7 +1064,8 @@ export function createSettlementWorld(
             return (
               (claims?.occupied ?? plan.solid).has(k) ||
               (claims?.access ?? plan.traffic).has(k) ||
-              claims?.clearance.has(k)
+              claims?.clearance.has(k) ||
+              pack.setting?.placementRevision === 1 && cultivatedAt(plan, p.x, p.y)
             );
           })
         )
@@ -1092,6 +1100,40 @@ export function createSettlementWorld(
         0.35
     );
   }
+  function shelterAt(x: number, y: number) {
+    const f = land.sample(x, y);
+    let around = 0;
+    for (const [dx, dy] of [[5, 0], [-5, 0], [0, 5], [0, -5], [4, 4], [-4, 4], [4, -4], [-4, -4]])
+      around += land.sample(x + dx, y + dy).elevation;
+    const rise = (f.elevation - around / 8) / 14;
+    return Math.max(0.25, Math.min(2, 1 - rise * 0.8));
+  }
+  function eligibleTree(x: number, y: number): TreeCandidate | undefined {
+    const key = cellKey(x, y);
+    if (eligibleTrees.has(key)) return eligibleTrees.get(key) ?? undefined;
+    const tree = candidate(x, y);
+    let value: TreeCandidate | undefined;
+    if (tree) {
+      const f = land.sample(x, y), h = habitat(x, y),
+        ax = x + land.origin.x, ay = y + land.origin.y,
+        n = random(seed, "v3-decoration", ax, ay);
+      const situation = pack.setting?.situation;
+      const blocked = situation?.landform === "islet" || situation?.landform === "open-ocean" ||
+        situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25 ||
+        environment && f.travelRoad || blacktop && poleAt(x, y) ||
+        saltPan(seed, ax, ay, h.colorway, f.elevation === 0, h.wet, f.water) > 0.3 ||
+        oasis(seed, ax, ay, h.ecology, f.elevation === 0) > 0.3;
+      const stand = h.grove === undefined ? 1 : Math.max(0, Math.min(1, (h.grove - 0.3) / 0.4));
+      const opening = h.grove !== undefined || h.site || noise(seed, ax, ay, 22, "vegetation-openings") >= 0.4;
+      if (!blocked && sceneryAllowed(x, y, key, f) && ground(x, y) !== "rock" && opening &&
+        !(relief && (f.water < 3 && n < 0.05 || f.water < 8 && f.moisture > 0.68 && n < 0.12)) &&
+        random(seed, "tree-density-thinning", ax, ay) < (h.site ? 0.75 : 0.34) * shelterAt(x, y) * stand &&
+        settledTree(x, y, tree)) value = tree;
+    }
+    trimCache(eligibleTrees, 65536);
+    eligibleTrees.set(key, value ?? null);
+    return value;
+  }
   const decorations = new Map<string, ReturnType<typeof decorate> | null>();
   /** Per cell, once: the renderer, the collision test and every route search
    * ask the same cell many times, and the answer only depends on plans that
@@ -1117,6 +1159,15 @@ export function createSettlementWorld(
     decorations.set(k, value ?? null);
     return value;
   }
+  function sceneryAllowed(x: number, y: number, k: string, f: ReturnType<typeof land.sample>) {
+    if (f.landscape?.kind === "arroyo" && f.landscape.strength > 0.35) return false;
+    return !(f.water < (relief ? 0 : 4) || nearby(x, y).some(p =>
+      p.reserved.has(k) || p.solid.has(k) ||
+      pack.setting?.placementRevision === 1 && cultivatedAt(p, x, y) ||
+      p.enclosures.some(pen => Math.hypot(x - pen.gate.x, y - pen.gate.y) < 4) ||
+      p.site.profile.paved && Math.hypot(x - p.site.center.x, y - p.site.center.y) < p.site.profile.radius * 0.65
+    ) || regionalRoads(x, y).has(k));
+  }
   function decorate(x: number, y: number, k: string) {
     const situation = pack.setting?.situation;
     if (situation?.landform === "islet") {
@@ -1132,23 +1183,7 @@ export function createSettlementWorld(
     if (situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25) return;
     const f = land.sample(x, y);
     const scape = f.landscape;
-    if (scape && scape.kind === "arroyo" && scape.strength > 0.35) return;
-    if (
-      f.water < (relief ? 0 : 4) ||
-      nearby(x, y).some(
-        (p) =>
-          p.reserved.has(k) ||
-          p.solid.has(k) ||
-          p.enclosures.some(
-            (pen) => Math.hypot(x - pen.gate.x, y - pen.gate.y) < 4,
-          ) ||
-          (p.site.profile.paved &&
-            Math.hypot(x - p.site.center.x, y - p.site.center.y) <
-              p.site.profile.radius * 0.65),
-      ) ||
-      regionalRoads(x, y).has(k)
-    )
-      return;
+    if (!sceneryAllowed(x, y, k, f)) return;
     const pole = blacktop && poleAt(x, y);
     if (pole) return pole;
     const h = environment ? habitat(x, y) : undefined;
@@ -1179,17 +1214,16 @@ export function createSettlementWorld(
       cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
     const spaced =
       (pack.setting?.vegetationRevision ?? 0) >= 2 && !!environment;
-    const proposed = spaced ? candidate(x, y) : undefined;
+    const proposed = spaced ? (composedVegetation ? eligibleTree(x, y) : candidate(x, y)) : undefined;
     const tree = spaced
       ? !!proposed &&
-        ground(x, y) !== "rock" &&
-        settledTree(x, y, proposed) &&
+        (composedVegetation || ground(x, y) !== "rock" && settledTree(x, y, proposed)) &&
         retainsTree(
           x,
           y,
           proposed,
-          candidate,
-          (pack.setting?.vegetationRevision ?? 0) >= 3
+          composedVegetation ? eligibleTree : candidate,
+          composedVegetation ? 0.72 : (pack.setting?.vegetationRevision ?? 0) >= 3
             ? (pack.setting?.vegetationRevision ?? 0) >= 4
               ? 0.92
               : 0.54
@@ -1206,6 +1240,9 @@ export function createSettlementWorld(
               ecologyProfiles[h!.ecology].trees,
             )
           : x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38);
+    const colony = h?.grove === undefined
+      ? shrubColony(seed, x + land.origin.x, y + land.origin.y)
+      : 0.12 + groveEdge(h.grove) * 2.8;
     const sprite =
       relief && f.water < 3 && n < 0.05
         ? "rock"
@@ -1253,11 +1290,7 @@ export function createSettlementWorld(
                           Math.max(0, h!.cover - 0.35) *
                             0.16 *
                             (h!.ecology === "desert" ? 0.2 : 1)) *
-                        shrubColony(
-                          seed,
-                          x + land.origin.x,
-                          y + land.origin.y,
-                        ) *
+                        colony *
                         (scape?.kind === "arroyo" ? 3 : 1)
                       : 0.015)
                   ? "bush"
@@ -1294,7 +1327,7 @@ export function createSettlementWorld(
               ? 0.012
               : 0.018) +
             h!.cover * 0.035) *
-          shrubColony(seed, x + land.origin.x, y + land.origin.y) *
+          colony *
           (scape?.kind === "arroyo" ? 3 : scape?.kind === "trail" ? 0.2 : 1);
         if (
           random(
@@ -1309,6 +1342,7 @@ export function createSettlementWorld(
     }
     if (
       spaced &&
+      h?.grove === undefined &&
       !tree &&
       selected &&
       selected !== "rock" &&
@@ -1320,14 +1354,7 @@ export function createSettlementWorld(
     // Ridges and brows are windswept and drained; hollows hold water and
     // shelter. Height against the ground five cells round, in tiers, scales
     // how much of the vegetation below survives, so relief reads in it.
-    let shelter = 1;
-    if (selected && selected !== "rock" && selected !== "reeds") {
-      let around = 0;
-      for (const [dx, dy] of [[5, 0], [-5, 0], [0, 5], [0, -5], [4, 4], [-4, 4], [4, -4], [-4, -4]])
-        around += land.sample(x + dx, y + dy).elevation;
-      const rise = (f.elevation - around / 8) / 14;
-      shelter = Math.max(0.25, Math.min(2, 1 - rise * 0.8));
-    }
+    const shelter = selected && selected !== "rock" && selected !== "reeds" ? shelterAt(x, y) : 1;
     // Thin all low scenery, including open ground outside woodland patches.
     if (
       (pack.setting?.vegetationRevision ?? 0) >= 3 &&
@@ -1340,7 +1367,7 @@ export function createSettlementWorld(
         x + land.origin.x,
         y + land.origin.y,
       ) >
-        (h?.site
+        (h?.grove !== undefined ? 0.18 : h?.site
           ? 0.4
           : selected.includes("heath") || selected === "flowers"
             ? 0.1
@@ -1350,6 +1377,7 @@ export function createSettlementWorld(
       selected = undefined;
     if (
       (pack.setting?.vegetationRevision ?? 0) >= 3 &&
+      !composedVegetation &&
       tree &&
       selected &&
       selected !== "rock" &&
@@ -1377,6 +1405,7 @@ export function createSettlementWorld(
     // Shared low-frequency gaps keep clear ground between vegetation groups.
     if (
       (pack.setting?.vegetationRevision ?? 0) >= 4 &&
+      h?.grove === undefined && !(composedVegetation && tree) &&
       selected &&
       selected !== "rock"
     ) {
@@ -1407,8 +1436,9 @@ export function createSettlementWorld(
       if (
         h?.kind === "woodland" &&
         h.cover > 0.6 &&
+        (h.grove === undefined || h.grove > 0.65) &&
         random(seed, "woodland-floor", x + land.origin.x, y + land.origin.y) <
-          0.012 * shrubColony(seed, x + land.origin.x + 37, y + land.origin.y)
+          0.012 * (h.grove === undefined ? shrubColony(seed, x + land.origin.x + 37, y + land.origin.y) : h.grove * 0.3)
       )
         selected =
           random(
@@ -1471,7 +1501,9 @@ export function createSettlementWorld(
         for (let dx = -Math.ceil(radius); dx <= Math.ceil(radius); dx++) {
           const to = { x: at.x + dx, y: at.y + dy }, key = cellKey(to.x, to.y);
           if (!open(to)) continue;
-          const value = strength * Math.max(0, 1 - Math.hypot(dx, dy) / radius);
+          // Lobed, not a disc: trodden ground spreads where feet actually go.
+          const reach = radius * (0.75 + noise(seed, to.x + land.origin.x, to.y + land.origin.y, 3, "dooryard") * 0.5);
+          const value = strength * Math.max(0, 1 - Math.hypot(dx, dy) / reach);
           if (value > (wear.get(key) ?? 0)) wear.set(key, value);
         }
     };
@@ -1480,11 +1512,11 @@ export function createSettlementWorld(
       const key = cellKey(at.x, at.y), old = anchors.get(key);
       if (!old || strength > old.strength) anchors.set(key, { at, radius, strength });
     };
-    for (const place of p.places) anchor(place.entrance, 2, 1);
+    for (const place of p.places) anchor(place.entrance, 3.2, 1);
     for (const work of p.work.values()) {
-      anchor(work.work, 2.4, 0.85);
-      anchor(work.water, 2, 0.95);
-      anchor(work.social, 2.4, 0.7);
+      anchor(work.work, 3.2, 0.85);
+      anchor(work.water, 2.8, 0.95);
+      anchor(work.social, 3.2, 0.7);
     }
     for (const { at, radius, strength } of anchors.values()) {
       if (!open(at)) continue;
@@ -1505,7 +1537,7 @@ export function createSettlementWorld(
         bounds: { x: at.x - 10, y: at.y - 10, w: 21, h: 21 },
       });
       if (found.status === "found")
-        for (const point of found.path) stamp(point, 1.4, 0.85);
+        for (const point of found.path) stamp(point, 1.9, 0.85);
     }
     return wear;
   }
@@ -2823,6 +2855,8 @@ export function createSettlementWorld(
       (!!regional && regionalRoads(x, y).has(cellKey(x, y))) ||
       nearby(x, y).some(
         (p) =>
+          (pack.setting?.placementRevision === 1 &&
+            (cultivatedAt(p, x, y) || p.reserved.has(cellKey(x, y)) || p.placement.clearance.has(cellKey(x, y)))) ||
           p.traffic.has(cellKey(x, y)) &&
           !p.objects.some(
             (o) => o.pos.space === "outside" && o.pos.x === x && o.pos.y === y,

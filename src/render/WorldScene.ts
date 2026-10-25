@@ -232,7 +232,7 @@ import {
   type Ambient,
   type StationActivity,
 } from "../core/itinerary";
-import { gradeAt, lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
+import { cloudWash, gradeAt, lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
 import { windowGlow } from "./window-light";
 import { buildingWear } from "./building-wear";
 import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
@@ -956,7 +956,7 @@ export class WorldScene extends Phaser.Scene {
       this.game.events.off("blur", clearInput),
     );
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.options.lab) return;
+      if (this.options.lab || this.modalOpen || pointer.event?.target !== this.game.canvas) return;
       if (pointer.rightButtonDown()) {
         this.mouseTarget = this.pointerCell(pointer);
         const player = this.runtime.engine.state.player;
@@ -1577,13 +1577,14 @@ export class WorldScene extends Phaser.Scene {
   private drawGuide(time: number) {
     if (time - this.guideChecked > 200) {
       this.guideChecked = time;
-      const g = this.runtime.guideTarget();
+      const g = this.preview && (!this.preview.id || !this.selectedImage()?.visible) ? this.preview : this.runtime.guideTarget();
       this.guideAt = g && g.pos.space === this.runtime.engine.state.player.pos.space ? g.pos : undefined;
     }
     const mark = (this.guideMark ??= this.add.graphics());
     mark.clear();
     const at = this.guideAt;
     if (!at) return;
+    const still = (this.reducedMotion ??= matchMedia("(prefers-reduced-motion: reduce)")).matches;
     const view = this.cameras.main.worldView;
     const tx = at.x * 16 + 8,
       ty = at.y * 16 + 8 - this.lift(at.x * 16 + 8, at.y * 16 + 16);
@@ -1593,11 +1594,11 @@ export class WorldScene extends Phaser.Scene {
       ink = 0x1a1410;
     mark.setDepth(1e7);
     if (inView) {
-      const pulse = (time % 1400) / 1400;
+      const pulse = still ? 0.35 : (time % 1400) / 1400;
       mark.lineStyle(1.5, gold, 0.9 * (1 - pulse));
       mark.strokeEllipse(tx, ty + 5, 10 + pulse * 14, 5 + pulse * 7);
       // A little hop with a hang at the top, like a quest marker.
-      const bob = Math.abs(Math.sin(time / 260)) * 5;
+      const bob = still ? 0 : Math.abs(Math.sin(time / 260)) * 5;
       const y = ty - 22 - bob;
       mark.fillStyle(ink, 1).fillTriangle(tx - 7, y - 6, tx + 7, y - 6, tx, y + 4);
       mark.fillStyle(gold, 1).fillTriangle(tx - 5, y - 5, tx + 5, y - 5, tx, y + 2);
@@ -1611,7 +1612,7 @@ export class WorldScene extends Phaser.Scene {
       (view.width / 2 - pad) / Math.abs(Math.cos(a) || 1e-6),
       (view.height / 2 - pad) / Math.abs(Math.sin(a) || 1e-6),
     );
-    const nudge = Math.sin(time / 220) * 2;
+    const nudge = still ? 0 : Math.sin(time / 220) * 2;
     const ex = cx + Math.cos(a) * (k + nudge),
       ey = cy + Math.sin(a) * (k + nudge);
     const tip = (d: number, r: number) => [ex + Math.cos(a + r) * d, ey + Math.sin(a + r) * d] as const;
@@ -2149,7 +2150,7 @@ export class WorldScene extends Phaser.Scene {
         _y: number,
         event: Phaser.Types.Input.EventData,
       ) => {
-        if (pointer.rightButtonDown()) return;
+        if (this.modalOpen || pointer.event?.target !== this.game.canvas || pointer.rightButtonDown()) return;
         // Let the tap through to the scene, which walks.
         if (phoneLayout()) return;
         event.stopPropagation();
@@ -2212,8 +2213,10 @@ export class WorldScene extends Phaser.Scene {
     this.hoverId = undefined;
     this.hoverTip?.classList.remove("is-shown");
   }
+  preview?: { id?: string; pos: Position };
+  private reducedMotion?: MediaQueryList;
   private selectedImage() {
-    const id = this.runtime.selected;
+    const id = this.preview?.id ?? this.runtime.selected;
     if (!id) return undefined;
     const decor = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     const image = decor
@@ -2227,10 +2230,11 @@ export class WorldScene extends Phaser.Scene {
    * own silhouette is the outline, and additive blending makes it glow. */
   private drawSelectionGlow(time: number) {
     const selected = this.selectedImage();
-    this.drawGlow(this.glowSprites, selected, 0xffd9a0, 0.78 + 0.22 * Math.sin(time / 420));
+    const still = (this.reducedMotion ??= matchMedia("(prefers-reduced-motion: reduce)")).matches;
+    this.drawGlow(this.glowSprites, selected, 0xffd9a0, still ? 1 : 0.78 + 0.22 * Math.sin(time / 420));
     // The thing F or E would act on, fainter than a selection and never both.
     const aimed = this.targetShown && this.targetImage !== selected ? this.targetImage : undefined;
-    this.drawGlow(this.targetGlow, aimed, 0xfff4d0, 0.4 + 0.1 * Math.sin(time / 300));
+    this.drawGlow(this.targetGlow, aimed, 0xfff4d0, still ? 0.5 : 0.4 + 0.1 * Math.sin(time / 300));
   }
   private targetGlow: Phaser.GameObjects.Image[] = [];
   private drawGlow(
@@ -2761,8 +2765,8 @@ export class WorldScene extends Phaser.Scene {
     if (existing && existing.base === base) return;
     if (existing) this.quenchFire(id);
     const phase = Math.floor(this.poseOffset(id) % 8);
-    // The light reaches a little past the fire's own width either side.
-    const radius = Math.max(44, Math.round((image.width * 1.2) / 4) * 4);
+    // The light reaches well past the fire's own width either side.
+    const radius = Math.max(56, Math.round((image.width * 1.6) / 4) * 4);
     const glow = this.add
       .image(
         Math.round(x),
@@ -5276,6 +5280,19 @@ export class WorldScene extends Phaser.Scene {
       }
       stamp += `store:${q.x},${q.y},${q.external ? 1 : 0},${q.wrecked ? 1 : 0};`;
     }
+    const work = byId.get(`${space}-work`), workCell = room.benchCell ?? room.workCell;
+    const workPiece = room.props.find(q => ["fixture","anvil","throw"].includes(q.kind) &&
+      workCell.x-ROOM_ORIGIN >= q.x-1 && workCell.x-ROOM_ORIGIN <= q.x+q.w &&
+      workCell.y-ROOM_ORIGIN >= q.y-1 && workCell.y-ROOM_ORIGIN <= q.y+Math.max(1,q.d));
+    if (workPiece) {
+      atlasPiece(workPiece.id,work);
+      const q = v.props[workPiece.id];
+      if (q.external && work) {
+        q.x=work.pos.x-workCell.x+workPiece.x; q.y=work.pos.y-workCell.y+workPiece.y;
+        q.wrecked=!!work.carriedBy || work.pos.space !== space;
+      }
+      stamp += `work:${q.x},${q.y},${q.external ? 1 : 0},${q.wrecked ? 1 : 0};`;
+    }
     // Sleepers: the room draws them under the covers, and each head goes on its pillow.
     for (const q of v.props) q.sleepers = undefined;
     v.pixel.floorSleepers = [];
@@ -5372,7 +5389,7 @@ export class WorldScene extends Phaser.Scene {
     for (const l of this.lamps) {
       const on = lamps > 0 && (l.lit?.(hour) ?? true);
       l.pane.setAlpha(lamps).setVisible(on);
-      l.halo.setAlpha(lamps * 0.45).setVisible(on);
+      l.halo.setAlpha(lamps * 0.6).setVisible(on);
     }
   }
   /** Lamps behind the glass of an occupied house after dark: most of them
@@ -5416,16 +5433,7 @@ export class WorldScene extends Phaser.Scene {
    * player can see is soaked long after the shower has passed. */
   private weatherWash() {
     const w = this.weather;
-    if (!w || this.options.colorGrade === false) return 0;
-    const cloud =
-      w.condition === "rain" || w.condition === "snow"
-        ? 1
-        : w.condition === "overcast"
-          ? 0.45
-          : w.condition === "mist"
-            ? 0.2
-            : 0;
-    return Math.min(0.3, cloud * 0.16 + w.wetness * 0.12);
+    return w && this.options.colorGrade !== false ? cloudWash(w) : 0;
   }
   /** Frame of an animal's eight-step cycle at scene time; states share the
    * lab's timings so a walk in the world matches the walk in the lab. */

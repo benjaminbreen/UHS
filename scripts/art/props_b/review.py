@@ -64,4 +64,50 @@ def sheet(keys=None, variants=1, out=None, states=False):
 
 
 if __name__ == '__main__':
-    print(sheet([s for s in sys.argv[1:] if s != '--states'] or None, states='--states' in sys.argv))
+    if '--equipment-abc' in sys.argv:
+        import json
+        from PIL import ImageFont
+        from .equipment_studies import STUDIES, SECOND_STUDIES, draw as equipment
+        batch=2 if '--batch2' in sys.argv else 1
+        prefix='equipment-batch2-proportion-v2' if batch==2 else 'equipment-batch1'
+        font_path='/System/Library/Fonts/Supplemental/Arial.ttf'
+        font=ImageFont.truetype(font_path,17)
+        title=ImageFont.truetype(font_path,24)
+        atlas=Image.open(ROOT/'public/props/atlas.png').convert('RGBA')
+        frames=json.loads((ROOT/'public/props/atlas.json').read_text())['frames']
+        dest=ROOT/'artifacts/scenery-review';dest.mkdir(parents=True,exist_ok=True)
+        only=[s for s in sys.argv[1:] if not s.startswith('--')]
+        rows=[s for s in (SECOND_STUDIES if batch==2 else STUDIES) if not only or s[0] in only]
+        for start in range(0,len(rows),3):
+            group=rows[start:start+3]; cw,ch=462,384
+            out=Image.new('RGB',(cw*3+32,ch*len(group)+104),'#1d272b')
+            d=ImageDraw.Draw(out)
+            d.text((18,13),f'WORK & COOKING EQUIPMENT  /  BATCH {batch}',font=title,fill='#eee3c5')
+            d.text((18,48),'A  shipped     B  refined     C  alternate    |    4x display / same 38px adult (~1.7m)' if batch==2 else 'A  shipped     B  refined construction     C  alternate construction',font=font,fill='#c5c7b0')
+            for row,(key,name,bname,cname) in enumerate(group):
+                # The source atlas, including its shipped pivot, is the only A.
+                frame='study-propb-'+key.replace('_','-')+'-0'
+                if frame not in frames:frame='study-prop-'+key+'-0'
+                f=frames[frame]; r=f['frame']
+                a=atlas.crop((r['x'],r['y'],r['x']+r['w'],r['y']+r['h']))
+                a.info['anchor']=[a.width*f.get('pivot',{}).get('x',.5),a.height*f.get('pivot',{}).get('y',1)]
+                sprites=[a,equipment(key,'b'),equipment(key,'c')]
+                for col,(im,label) in enumerate(zip(sprites,['Shipped sprite',bname,cname])):
+                    x=16+col*cw;y=89+row*ch
+                    d.text((x+4,y),name if col==0 else 'BC'[col-1]+'  '+label,font=font,fill='#efdfbc')
+                    native=Image.new('RGBA',(112,78) if batch==2 else (150,104),'#7d8969')
+                    ax,ay=im.info['anchor'];floor=62 if batch==2 else 86
+                    native.alpha_composite(im,(round((36 if batch==2 else 54)-ax),round(floor-ay)))
+                    if batch==2:
+                        from art.reference import current_adult_d
+                        fig=current_adult_d()[0]
+                    else:fig=person()
+                    native.alpha_composite(fig,((96 if batch==2 else 134)-fig.width//2,floor-fig.height))
+                    tile=native.resize((448 if batch==2 else 450,312),Image.Resampling.NEAREST)
+                    out.paste(tile.convert('RGB'),(x,y+30))
+                    d.text((x+5,y+349),f'{"ABC"[col]}  {im.width} x {im.height} native px',font=font,fill='#bfc8bb')
+                    if col:
+                        im.save(dest/f'{prefix}-{key}-{"bc"[col-1]}.png')
+            path=dest/f'{prefix}-abc-{start//3+1}.png';out.save(path);print(path)
+    else:
+        print(sheet([s for s in sys.argv[1:] if s != '--states'] or None, states='--states' in sys.argv))

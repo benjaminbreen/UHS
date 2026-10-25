@@ -28,13 +28,20 @@ const LEAN = 0.6;
  * Openness pushes toward the heterodox, conscientiousness toward the
  * orthodox. Read off the two traits only: a strong person is not a radical.
  */
-function leaned(stance: Stance, stats: Stats) {
-  if (!stance.lean) return stance.weight;
+function spreadBy(stance: Stance, year: number) {
+  if (!stance.spread || year >= stance.spread) return stance.weight;
+  const start = stance.scope.years[0];
+  const t = Math.max(0, (year - start) / (stance.spread - start));
+  return stance.weight * (0.1 + 0.9 * t);
+}
+function leaned(stance: Stance, stats: Stats, year: number) {
+  const weight = spreadBy(stance, year);
+  if (!stance.lean) return weight;
   const pull =
     stance.lean === "heterodox"
       ? (stats.openness - stats.conscientiousness) / 100
       : (stats.conscientiousness - stats.openness) / 100;
-  return stance.weight * (1 + LEAN * pull);
+  return weight * (1 + LEAN * pull);
 }
 /** How far an unnamed stand-in is discounted where the scope has named
  * traditions of the same kind. Without it the generals, whose weights are set
@@ -43,13 +50,14 @@ const FALLBACK = 1 / 4;
 function pick(
   pool: Stance[],
   stats: Stats,
+  year: number,
   roll: number,
   observance?: "devout" | "regular" | "occasional" | "indifferent",
 ) {
   const named = pool.some((s) => !s.fallback);
   const weights = pool.map(
     (s) =>
-      leaned(s, stats) *
+      leaned(s, stats, year) *
       (named && s.fallback ? FALLBACK : 1) *
       (observance && s.kind === "temper" && s.tags.includes("devout")
         ? { devout: 2, regular: 1, occasional: 0.5, indifferent: 0.2 }[
@@ -96,7 +104,8 @@ export function outlookOf(
       matchesCharacterScope(s.scope, setting, community ?? "*") &&
       (!belief ||
         (s.requiresBelief ?? []).every((r) => belief.features?.includes(r))) &&
-      (!s.ranks || (rank !== undefined && s.ranks.includes(rank))),
+      (!s.ranks || (rank !== undefined && s.ranks.includes(rank))) &&
+      !s.notFor?.includes(actor.origin?.livelihood ?? ""),
   );
   const held: Stance[] = [];
   for (const kind of stanceKinds) {
@@ -108,7 +117,7 @@ export function outlookOf(
     )
       continue;
     held.push(
-      pick(pool, stats, random(seed, "outlook", actor.id, kind), observance),
+      pick(pool, stats, setting.year, random(seed, "outlook", actor.id, kind), observance),
     );
   }
   // Rarest first: what marks this person out from the street is the thing a

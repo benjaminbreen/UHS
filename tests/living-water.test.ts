@@ -6,6 +6,7 @@ import {
   livingProfile,
 } from "../src/render/living-water/profile";
 import { rasterLivingWater } from "../src/render/living-water/mask";
+import { shorePolishDefaults } from "../src/render/living-water/polish";
 import defaults from "../src/render/living-water/defaults.json" with { type: "json" };
 const cell = (distance = -2): TopographyCell => ({
   height: 0,
@@ -99,22 +100,48 @@ describe("living water map presentation", () => {
   });
   it("keeps masks and rock deflection continuous across chunk boundaries", () => {
     const sample: TopographySample = (x) => cell(Math.abs(x - 16) - 10);
-    const all = rasterLivingWater(sample, 32, 8);
-    for (const offset of [0, 16]) {
-      const chunk = rasterLivingWater((x, y) => sample(x + offset, y), 16, 8, {
-        x: offset,
-        y: 0,
-        prefix: "test",
-      });
-      for (let y = 0; y < chunk.height; y++) {
-        const start = (y * all.width + offset * 16) * 4;
-        expect(
-          chunk.pixels.slice(y * chunk.width * 4, (y + 1) * chunk.width * 4),
-        ).toEqual(all.pixels.slice(start, start + chunk.width * 4));
-        expect(
-          chunk.bends.slice(y * chunk.width * 4, (y + 1) * chunk.width * 4),
-        ).toEqual(all.bends.slice(start, start + chunk.width * 4));
+    for (const polish of [undefined, shorePolishDefaults])
+      for (const origin of [-32, 0]) {
+        const all = rasterLivingWater(sample, 32, 8, { x: origin, y: -16, prefix: "test" }, polish);
+        for (const offset of [0, 16]) {
+          const chunk = rasterLivingWater((x, y) => sample(x + offset, y), 16, 8, {
+            x: origin + offset,
+            y: -16,
+            prefix: "test",
+          }, polish);
+          for (let y = 0; y < chunk.height; y++) {
+            const start = (y * all.width + offset * 16) * 4;
+            expect(
+              chunk.pixels.slice(y * chunk.width * 4, (y + 1) * chunk.width * 4),
+            ).toEqual(all.pixels.slice(start, start + chunk.width * 4));
+            expect(
+              chunk.bends.slice(y * chunk.width * 4, (y + 1) * chunk.width * 4),
+            ).toEqual(all.bends.slice(start, start + chunk.width * 4));
+          }
+        }
       }
+  });
+  it("groups shoreline stones with open stretches and varied companions", () => {
+    const result = rasterLivingWater(x => cell(x - 8), 16, 64, undefined, shorePolishDefaults);
+    const rocks = result.items.filter(o => o.kind === "rock" && o.y >= 96 && o.y < 1120);
+    expect(rocks.length).toBeGreaterThan(5);
+    const bins = Array.from({ length: 16 }, (_, i) => rocks.filter(o => Math.floor((o.y - 96) / 64) === i).length);
+    expect(bins.some(n => n === 0)).toBe(true);
+    expect(bins.some(n => n >= 4)).toBe(true);
+    expect(new Set(rocks.filter(o => o.size < 6).map(o => o.size)).size).toBeGreaterThan(2);
+  });
+  it("keeps shoreline groups off bridges, ramps, paving and trodden soil", () => {
+    const sample: TopographySample = (x, y) => ({ ...cell(x - 8),
+      ...(y >= 16 && y < 20 ? { bridge: true } :
+        y >= 24 && y < 28 ? { ramp: "n" as const } :
+        y >= 32 && y < 36 ? { feature: "paving" as const } :
+        y >= 40 && y < 44 ? { surface: "soil" as const } : {}),
+    });
+    const result = rasterLivingWater(sample, 16, 64, undefined, shorePolishDefaults);
+    expect(result.items.some(o => o.kind === "rock" && o.size < 6)).toBe(true);
+    for (const object of result.items) {
+      const c = sample(Math.floor(object.x / 16), Math.floor((object.y - 96) / 16))!;
+      expect(c.bridge || c.ramp || c.feature === "paving" || c.surface === "soil").toBeFalsy();
     }
   });
   it("leaves bridges, ramps and irrigation canals to their existing renderer", () => {

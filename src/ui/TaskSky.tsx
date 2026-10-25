@@ -137,6 +137,16 @@ export function TaskSky({
     if (view) scene.current?.show(view, skyline);
   }, [view?.key, view?.part, skyline]);
 
+  const mark = () => {
+    if (!view?.where?.pos) return;
+    const goal = source.kind === "goal" && runtime.engine.dailyGoals().find((g) => g.id === source.id);
+    const at = view.where.pos as { x: number; y: number; space?: string };
+    const pos = at.space && at.space !== "outside" ? runtime.engine.world.place(at.space)?.entrance : at;
+    if (goal && goal.slot === "work") runtime.setGuide("work");
+    else if (pos) runtime.setGuide({ ...pos, space: "outside" });
+  };
+  useEffect(() => { if (view?.who.self && !view.done) mark(); }, [view?.key, runtime]);
+
   const close = () => {
     if (leaving) return;
     setLeaving(true);
@@ -216,6 +226,7 @@ export function TaskSky({
               Go there
             </button>
           )}
+          {view.where?.pos && <button onClick={() => { mark(); close(); }}>Show on map</button>}
           {view.goalId && view.who.self && !view.done && (
             <button onClick={() => onPin(view.goalId!)} data-on={pinned === view.goalId || undefined}>
               {pinned === view.goalId ? "Today's aim ✓" : "Make this today's aim"}

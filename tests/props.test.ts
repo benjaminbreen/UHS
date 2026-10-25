@@ -5,6 +5,10 @@ import propAtlas from "../src/render/generated/props.json";
 import natureAtlas from "../src/render/generated/nature-atlas.json";
 import { reviewedPropFrame } from "../src/render/prop-variety";
 import { historicalWell } from "../src/content/props/wells";
+import { equipmentVariant, equipmentProps, regionalEquipment, equipmentChoices } from "../src/content/props/equipment";
+import { useOf } from "../src/content/props/uses";
+import propShadows from "../src/render/generated/prop-shadows.json";
+import lighting from "../src/content/graphics/lighting.json";
 import { containerProps, regionalContainers, regionalContainer } from "../src/content/props/containers";
 import { propSprite } from "../src/content/props/place";
 import { propVariety } from "../src/render/prop-variety";
@@ -63,7 +67,85 @@ function fixture() {
   return { e, pot, stick };
 }
 describe("interactive props", () => {
-  it("ships the twelve approved containers in indoor and outdoor regional kits", () => {
+  it("ships twelve distinct equipment objects with shared uses and individual art", () => {
+    expect(Object.keys(equipmentProps)).toHaveLength(12);
+    expect(new Set(Object.values(equipmentProps).map(d=>d.name)).size).toBe(12);
+    expect(new Set(Object.values(equipmentProps).map(d=>d.sprite)).size).toBe(12);
+    const frames=propAtlas.frames as Record<string,any>;
+    const cases: [string,string,number][]=[
+      ["tannur","north-african-west-asian",1600],["bankedTannur","north-african-west-asian",1600],
+      ["teaStove","east-asian",1700],["charcoalStove","east-asian",1700],
+      ["brazier","european",1700],["ironPanBrazier","european",1700],
+      ["chickenCoop","european",1700],["wovenHenShelter","south-asian",1700],
+      ["stockPen","european",1700],["wattlePen","west-central-african",1600],
+      ["joinerBench","european",1700],["lowPlaningBench","east-asian",1700],
+    ];
+    for (const [key,culture,year] of cases) {
+      const setting={culture,year,lat:35,lon:40,settlement:"village",climate:"temperate",placeId:"test"} as WorldSetting;
+      const kit=propKit({...packs.roman,year,setting});
+      expect(Object.values(kit.contexts).flat(),key).toContain(key);
+      const d=propDefs[key];expect(d.name).toBe(equipmentProps[key].name);
+      expect(propSprite(key)).toBe(d.sprite);
+      expect(frames[d.sprite!],key).toBeDefined();
+      expect(about[key],key).toBeTruthy();expect(useOf(d.family),key).toBeDefined();
+      for (const phase of lighting)expect((propShadows.frames as Record<string,unknown>)[`${phase.id}:${d.sprite}`],key).toBeDefined();
+      if(d.fire)for(let f=1;f<4;f++)expect(frames[`${d.sprite}-f${f}`],key).toBeDefined();
+    }
+    expect(propDefs.brazier.breakable).toBe("metal");
+    expect(propDefs.ironPanBrazier.breakable).toBe("metal");
+    expect(useOf(propDefs.brazier.family)?.use).toBe(useOf(propDefs.ironPanBrazier.family)?.use);
+    expect(useOf(propDefs.joinerBench.family)?.use).toBe("craft");
+  });
+  it("bounds named equipment by date and preserves both eligible constructions", () => {
+    const s={culture:"european",year:100,settlement:"village"} as WorldSetting;
+    for(const key of ["joinerBench","teaStove","ironPanBrazier"])expect(regionalEquipment(s)).not.toContain(key);
+    expect(equipmentChoices({...s,year:1700},"brazier")).toEqual(["brazier","ironPanBrazier"]);
+    expect(equipmentChoices({...s,culture:"north-african-west-asian",year:1600},"tannur")).toEqual(["tannur","bankedTannur"]);
+    expect(regionalEquipment({...s,settlement:"camp",year:1700})).toEqual([]);
+    expect(regionalEquipment({...s,culture:"mesoamerican",year:1400})).not.toContain("chickenCoop");
+    expect(equipmentChoices(undefined,"brazier")).toEqual(["brazier"]);
+  });
+  it("binds a regional woodworking bench to an indoor workshop fixture", () => {
+    const resolved=resolveSetting("A carpenter in Kyoto, 1700 CE") as {setting: WorldSetting};
+    const e=createSettingSession(resolved.setting,"distinct-equipment-0");
+    const bench=e.state.objects.find(o=>o.prop==="lowPlaningBench" && o.pos.space!=="outside");
+    expect(bench).toBeDefined();
+    const room=e.interiorOf(bench!.pos.space)!;
+    expect(room.benchCell).toBeDefined();
+    expect(room.props.some(q=>q.kind==="fixture")).toBe(true);
+    expect(bench!.pos).toMatchObject(room.benchCell!);
+    expect(bench!.sprite).toBe(propDefs.lowPlaningBench.sprite);
+  });
+  it("replaces the medieval shared oven through the normal placement path", () => {
+    const setting={culture:"european",year:1350,lat:44.8,lon:20.5,settlement:"village",climate:"temperate",placeId:"test"} as WorldSetting;
+    const fire: WorldObject={id:"shared-fire",name:"Fire",kind:"fire",sprite:"fire",inventory:{wood:3},owner:"village",pos:{x:0,y:0,space:"outside"}};
+    const world={generatorVersion:3,pack:{...packs.roman,year:1350,setting},settlements:[],places:[],initialActors:[],initialObjects:[fire],spawn:{x:0,y:0,space:"outside"},terrain:()=>"grass",decoration:()=>undefined,blocked:()=>false,place:()=>undefined} as unknown as WorldModel;
+    withProps(world,"belgrade-oven");
+    expect(fire.prop).toBe("bakeOven");
+    expect(fire.sprite).toMatch(/^study-prop-oven-[01]$/);
+    expect(fire.inventory).toEqual({wood:3});
+    expect(fire.owner).toBe("village");
+    const frames=propAtlas.frames as Record<string,any>;
+    const shadows=propShadows.frames as Record<string,unknown>;
+    for (const base of ["study-prop-oven-0","study-prop-oven-1","study-prop-oven-2","study-prop-hearth-0","study-prop-three-stone-hearth-0","study-propb-kiln-0","study-propb-kiln-1","study-propb-bloomery-0","study-propb-bloomery-1","study-propb-lever-press-0","study-propb-lever-press-1","study-propb-trough-0","study-propb-trough-1"]) {
+      expect(frames[base]?.frame.w,base).toBeGreaterThanOrEqual(50);
+      expect(frames[base]?.pivot,base).toBeDefined();
+      for (const phase of lighting) expect(shadows[`${phase.id}:${base}`],base).toBeDefined();
+    }
+    for (let i=1;i<4;i++)expect(frames[`study-prop-oven-0-f${i}`]).toBeDefined();
+    for (let i=1;i<8;i++)expect(frames[`study-prop-hearth-0-f${i}`]).toBeDefined();
+    expect(propSprite("spring")).toBe("study-propb-trough-1");
+  });
+  it("limits alternate equipment constructions without changing unrelated variations", () => {
+    const s={culture:"european",year:-1000,settlement:"village"} as WorldSetting;
+    for (const key of ["bakeOven","kiln","bloomery","leverPress"])expect(equipmentVariant(s,key,1),key).toBe(0);
+    expect(equipmentVariant({...s,year:1350},"bakeOven",1)).toBe(1);
+    expect(equipmentVariant({...s,year:1350},"leverPress",1)).toBe(0);
+    expect(equipmentVariant({...s,year:1700},"leverPress",1)).toBe(1);
+    expect(equipmentVariant({...s,culture:"east-asian",year:1000},"bloomery",1)).toBe(0);
+    expect(equipmentVariant(undefined,"basket",2)).toBe(2);
+  });
+  it("ships both approved container batches in indoor and outdoor regional kits", () => {
     const cases = [
       ["waterskin","north-african-west-asian",-6500,37.6,32.8],
       ["merchantBale","european",100,42,12],
@@ -77,6 +159,18 @@ describe("interactive props", () => {
       ["urpu","andean",1500,-13.5,-72],
       ["barkBox","other-indigenous-american",1600,46,-80],
       ["coolamon","australian-pacific",1500,-25,133],
+      ["egyptJar","north-african-west-asian",-1800,26,32],
+      ["canaanJar","north-african-west-asian",-1400,32,35],
+      ["paintedChineseJar","east-asian",-2500,35.5,103.5],
+      ["grainHamper","west-central-african",1600,8,-12],
+      ["olla","mesoamerican",1400,19.4,-99],
+      ["andeanSack","andean",1000,-13.5,-72],
+      ["parfleche","other-indigenous-american",1850,45,-105],
+      ["pacificBasket","australian-pacific",1800,-21,-175],
+      ["grainBin","south-asian",1600,26,75],
+      ["stonewareCrock","european",1800,51,7],
+      ["demijohn","european",1800,43,5],
+      ["keroseneTin","european",1900,51,0],
     ] as const;
     for (const [key,culture,year,lat,lon] of cases) {
       const setting = { culture,year,lat,lon,settlement:"village",climate:"temperate",placeId:"container-test" } as WorldSetting;
@@ -86,7 +180,35 @@ describe("interactive props", () => {
       expect(sprite).toBe(containerProps[key].sprite);
       expect(natureAtlas.frames).toHaveProperty(sprite);
       expect(propVariety("test",sprite,1,2)).toEqual({flip:false,tint:0xffffff});
+      const furniture = ["room-jars","room-sacks","room-basket","room-pack","room-crate"];
+      const indoorChoices = furniture.flatMap(f => Array.from({length:100},(_,i) => regionalContainer(setting,f,i/100)));
+      expect(indoorChoices,key).toContain(key);
     }
+  });
+  it("keeps the second batch inside its regional, chronological and trade scopes", () => {
+    const s={culture:"north-african-west-asian",year:-1400,lat:32,lon:35,settlement:"village"} as WorldSetting;
+    expect(regionalContainers(s)).not.toContain("egyptJar");
+    expect(regionalContainers({...s,year:100})).not.toContain("canaanJar");
+    const crete={...s,culture:"european" as const,lat:35,lon:25,settlement:"port" as const};
+    expect(regionalContainers(crete)).toContain("canaanJar");
+    expect(regionalContainers({...crete,settlement:"village"})).not.toContain("canaanJar");
+    expect(regionalContainers({...crete,lon:33,lat:35})).toContain("canaanJar");
+    expect(regionalContainers({...s,lon:31,lat:27,settlement:"city"})).toContain("canaanJar");
+    const gansu={...s,culture:"east-asian" as const,year:-2500,lat:35.5,lon:103.5};
+    expect(regionalContainers({...gansu,lon:116})).not.toContain("paintedChineseJar");
+    expect(regionalContainers({...gansu,year:100})).not.toContain("paintedChineseJar");
+    expect(regionalContainers({...s,culture:"mesoamerican",year:1400,lat:20,lon:-89})).not.toContain("olla");
+    expect(regionalContainers({...s,culture:"other-indigenous-american",year:1400,lat:45,lon:-105})).not.toContain("parfleche");
+    expect(regionalContainers({...s,culture:"other-indigenous-american",year:1850,lat:45,lon:-75})).not.toContain("parfleche");
+    expect(regionalContainers({...s,culture:"australian-pacific",year:1800,lat:-20,lon:133})).not.toContain("pacificBasket");
+    expect(regionalContainers({...s,culture:"australian-pacific",year:1800,lat:-42,lon:173})).not.toContain("pacificBasket");
+    expect(regionalContainers({...s,culture:"south-asian",year:1600,lat:26,lon:75,settlement:"camp"})).not.toContain("grainBin");
+    const europe={...s,culture:"european" as const,lat:51,lon:7};
+    for (const key of ["stonewareCrock","demijohn","keroseneTin"])
+      expect(regionalContainers({...europe,year:1400}),key).not.toContain(key);
+    expect(regionalContainers({...europe,year:1850})).not.toContain("keroseneTin");
+    expect(regionalContainers({...s,culture:"mesoamerican",year:2020,lat:19,lon:-99})).toContain("olla");
+    expect(regionalContainers({...s,culture:"australian-pacific",year:2020,lat:-21,lon:-175})).toContain("pacificBasket");
   });
   it("shares simple storage technologies while limiting specific traditions", () => {
     const s={culture:"european",year:-5000,lat:50,lon:10,settlement:"village"} as WorldSetting;

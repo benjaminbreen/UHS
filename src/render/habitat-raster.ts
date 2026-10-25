@@ -51,7 +51,7 @@ import type { TopographyCell, TopographySample } from "../core/topography";
 import type { Habitat } from "../world/v3/habitats";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
-import { swardHatch } from "./ground-motifs";
+import { swardHatch, tuftColony } from "./ground-motifs";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 
 export type GroundTileData = {
@@ -64,7 +64,8 @@ export type GroundTileData = {
 // reads as bare ground rather than as a line drawn over the ground.
 export { soils } from "./habitat-soils";
 import { soils } from "./habitat-soils";
-import { habitatAppearance, communityBand } from "./habitat-appearance";
+import { habitatAppearance, habitatBand } from "./habitat-appearance";
+import { groveEdge } from "../world/v3/habitats";
 // Prevailing wind for sand seas, as a fixed heading the ripples run across.
 /** Cover below this leaves the ground alone: a few trees on a meadow do not
  * shade it. */
@@ -331,9 +332,11 @@ function rasterGroundTile(
   const upkeep = cell.pavement === "yard" ? 0.55
     : ["court", "square", "footway", "platform"].includes(cell.pavement ?? "") ? 0.25
     : cell.pavement === "vacant" ? 0.85 : 1;
+  // Detail fades under the stand, not in the open: a cleared village is turf.
+  const groveDetail = h.grove === undefined ? 1 : Math.max(h.grove < 0.45 ? 1 : 0, 0.18 + groveEdge(h.grove) * 0.95);
   const motifTuning = composition
     ? {
-        density: composition.motifDensity * upkeep,
+        density: composition.motifDensity * upkeep * groveDetail,
         spacing: composition.motifSpacing,
         clustering: composition.motifClustering,
       }
@@ -347,7 +350,7 @@ function rasterGroundTile(
   );
   const turfTuning = {
     ...motifTuning,
-    density: (motifTuning?.density ?? 1) * (0.45 + lush * 0.75),
+    density: (motifTuning?.density ?? groveDetail) * (0.45 + lush * 0.75),
   };
   // Grassy ecologies expose brown earth; dry and cold ones expose stone.
   const mineralGround = h.site ? ["rocky", "barren", "shore"].includes(h.site.primary) : h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
@@ -374,7 +377,7 @@ function rasterGroundTile(
   ) =>
     c?.feature === "field"
       ? 5
-      : a.site ? communityBand[a.site.primary] : a.exposed > 0.65
+      : a.site ? habitatBand(a) : a.exposed > 0.65
         ? 3
         : a.exposed > 0.4 &&
             !["desert", "tundra"].includes(a.ecology) &&
@@ -383,6 +386,7 @@ function rasterGroundTile(
           : a.wet > 0.61
             ? 2
             : !a.vegetation && a.ecology.includes("woodland") &&
+                (a.grove === undefined || a.grove >= 0.6) &&
                 a.cover > (a.layeredForest ? 0.34 : 0.5)
               ? 4
               : 0;
@@ -482,7 +486,7 @@ function rasterGroundTile(
       ringFarmed.push(c?.feature === "field" || !!c?.field);
       if (h.site) {
         ringGround.push(habitatAppearance(near, art).ground);
-        ringBand.push(near.site ? communityBand[near.site.primary] : 0);
+        ringBand.push(habitatBand(near));
       }
     }
   const ringAt = (cx: number, cy: number) => (cy + 1) * 3 + cx + 1;
@@ -563,6 +567,8 @@ function rasterGroundTile(
     const e = mix("exposed") + n,
       wet = mix("wet") - n * 0.6,
       cover = mix("cover");
+    const grove = h.grove === undefined ? undefined :
+      (h0.grove ?? 0) * w0 + (h1.grove ?? 0) * w1 + (h2.grove ?? 0) * w2 + (h3.grove ?? 0) * w3;
     const i = (tx > 0.5 ? 1 : 0) + (ty > 0.5 ? 2 : 0);
     const near = i === 0 ? h0 : i === 1 ? h1 : i === 2 ? h2 : h3;
     canopy[at(px, py)] = Math.round(cover * 255);
@@ -574,6 +580,7 @@ function rasterGroundTile(
           ? 2
           : !near.vegetation &&
               near.ecology.includes("woodland") &&
+              (grove === undefined || grove >= 0.6) &&
               cover > (near.layeredForest ? 0.5 : 0.56)
             ? 4
             : 0;
@@ -714,6 +721,15 @@ function rasterGroundTile(
       // one value, and a fill with marks on it reads as a fill.
       const mottling = composition?.mottle ?? 0.65;
       let shaded = false;
+      if (!frozen && grassy && band <= 2 && mottling > 0) {
+        // Whole stretches of turf lean sunlit or deep, a scale above the mottle.
+        const broad = noise(wx, wy, 160, 607) * 0.75 + noise(wx, wy, 61, 608) * 0.25;
+        const lean = broad < 0.4 ? palette[2] : broad > 0.6 ? palette[1] : undefined;
+        if (lean) {
+          const t = 0.34 * mottling;
+          rgb = rgb.map((v, k) => Math.round(v * (1 - t) + lean[k] * t));
+        }
+      }
       if (!frozen && !tilled && mottling > 0) {
         // Broad terms only: an 8 px term broke the patches into blotches.
         const m = noise(wx, wy, 23, 601) * 0.7 + noise(wx, wy, 48, 602) * 0.3;
@@ -724,7 +740,7 @@ function rasterGroundTile(
         shaded = step < 0;
         if (step && grassy && band <= 2) {
           const to = step < 0 ? palette[2] : palette[1],
-            t = (Math.abs(step) / 34) * mottling;
+            t = (Math.abs(step) / 22) * mottling;
           rgb = rgb.map((v, k) => Math.round(v * (1 - t) + to[k] * t));
         } else if (step) rgb = shade(rgb, step * mottling * (band >= 3 ? 0.6 : 1));
       }
@@ -734,9 +750,8 @@ function rasterGroundTile(
         // hatch reads as dither noise rather than as grass.
         const clump = noise(wx, wy, 12, 611) * 0.6 + noise(wx, wy, 5, 612) * 0.4;
         let mark = swardHatch(wx, wy);
-        const detail = Math.min(1, (composition?.motifDensity ?? 1) * upkeep);
-        const colony = hash(Math.floor(wx / 16), Math.floor(wy / 16), 613);
-        if (colony > detail || clump < 0.74) mark = 0;
+        const detail = Math.min(1, (composition?.motifDensity ?? 1) * upkeep * groveDetail);
+        if (tuftColony(wx, wy) < 1 - detail * 0.75 || clump < 0.74) mark = 0;
         if (mark === 2 && clump < 0.8) mark = 0;
         if (mark === 1) {
           const w = band === 1 ? 0.34 : band === 2 ? 0.55 : 0.5;
@@ -776,14 +791,14 @@ function rasterGroundTile(
       // Texture describes the material: little faceted stones or composed turf.
       // No blanket of independently varied pixels behind these marks.
       const sparse = h.vegetation === "alpine" || h.ecology === "boreal-woodland";
-      const colony = hash(Math.floor(wx / 37), Math.floor(wy / 29), 941);
+      const colony = tuftColony(wx, wy);
       const dryGrass =
         h.vegetation === "savanna" || h.vegetation === "steppe" ||
         ["savanna", "dry-scrub"].includes(paletteKey(h.ecology, h.colorway));
       const ink =
-        sparse && colony < 0.65 ? 0 :
+        sparse && colony < 0.56 ? 0 :
         dryGrass && band < 3
-          ? (colony > 0.32 ? groundMotif("sward", wx, wy, art.motifs, motifTuning) : 0)
+          ? (colony > 0.47 ? groundMotif("sward", wx, wy, art.motifs, motifTuning) : 0)
           : band === 1
           ? groundMotif("sward", wx, wy, undefined, motifTuning)
           : groundMotif(
@@ -809,7 +824,7 @@ function rasterGroundTile(
           (noise(wx, wy, 32, 921) - 0.5) * 14 + (noise(wx, wy, 9, 923) - 0.5) * 6;
         const base = (h.site ? rgb : litterTone).map((v) => Math.round(v + dapple * (h.site ? .35 : 1)));
         put(px, py, base);
-        const colony = hash(Math.floor(wx / 26), Math.floor(wy / 22), 925);
+        const colony = h.grove === undefined ? hash(Math.floor(wx / 26), Math.floor(wy / 22), 925) : groveEdge(h.grove);
         // Light gaps: the mottle lifts and ordinary turf shows through.
         if (!h.site && colony > 0.86 && noise(wx, wy, 7, 927) > 0.55) {
           put(px, py, palette[0].map((v, k) => Math.round(v * 0.6 + base[k] * 0.4)));

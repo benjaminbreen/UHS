@@ -87,9 +87,14 @@ export type Stance = QualifiedContent & {
   scope: CharacterScope;
   /** Who held it. Absent means it crossed the ranks. */
   ranks?: readonly Rank[];
+  /** Livelihoods it would contradict: a publican for temperance. */
+  notFor?: readonly string[];
   /** Relative share of those who hold any stance of this kind here. A
    * dissenting position belongs at 1 against 20, not left out. */
   weight: number;
+  /** The year it reached `weight`. Before that it climbs from a tenth of it
+   * at the scope's start: Marxism existed in 1870 but had few readers. */
+  spread?: number;
   /** Which way the personality draw leans toward this. Absent is neutral. */
   lean?: "orthodox" | "heterodox";
   /** Required, unlike the religious systems': every stance here is a thing

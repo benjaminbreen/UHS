@@ -19,6 +19,11 @@ export function notable(c: PlotContext, fits: (a: Actor) => boolean = () => true
   return rich && neighbours(c).find((a) => rich.members.includes(a.id) && fits(a));
 }
 
+/** The oldest neighbour outside `apart`'s household, who can speak to
+ * what the community remembers. */
+export const elderOf = (c: PlotContext, apart?: Actor) =>
+  neighbours(c).find((a) => (a.age ?? 30) >= 40 && a.householdId !== apart?.householdId);
+
 export const pickOf = <T,>(c: PlotContext, xs: readonly T[], key: string) =>
   xs[Math.floor(random(c.seed, "plot", key) * xs.length)];
 
@@ -41,6 +46,10 @@ export function dueOf(clock: number) {
     ? { deadline: midnight + 18 * 3600, due: "by sundown" }
     : { deadline: midnight + 36 * 3600, due: "by noon tomorrow" };
 }
+
+/** Fills a picked phrase now; plot lines are filled once and do not nest. */
+export const fillIn = (line: string, words: Record<string, string>) =>
+  line.replace(/\{(\w+)\}/g, (m, w) => words[w] ?? m);
 
 /** Pronouns for the plot's central figure. */
 export function pronounWords(a: Actor) {

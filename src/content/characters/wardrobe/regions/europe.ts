@@ -31,7 +31,7 @@ export const europe: readonly GarmentKit[] = [
     label: "Europe · tailored town dress",
     scope: { years: [1850, 1920], cultures: ["european"] },
     garment: [{ value: "coat", weight: 7, sex: ["male"], means: ["wealthy"] }],
-    headwear: [{ value: "top-hat", weight: 4, sex: ["male"], means: ["wealthy"], ages: ["adult", "elder"] },
+    headwear: [{ value: "top-hat", weight: 4, sex: ["male"], means: ["wealthy"], ranks: ["gentry", "elite"], ages: ["adult", "elder"] },
       { value: "bowler", weight: 4, sex: ["male"], means: ["wealthy"] },
       { value: "brimmed", weight: 2, sex: ["female"], means: ["wealthy"] }],
     leggings: [{ value: "trousers", sex: ["male"] }],

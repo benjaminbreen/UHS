@@ -335,7 +335,7 @@ it.runIf(!!process.env.FULL)("bakes at the oven its place and period had", () =>
     const engine = createSettingSession(start.setting, "a");
     const h = engine.state.households!.find((h) => h.members.includes("player"))!;
     expect(engine.state.objects.find((o) => o.id === `${h.residence}-work`)?.prop, prompt).toBe(bench);
-    expect(engine.workPlan()!.places[0]!.label).toBe(`your ${bench}`);
+    expect(engine.workPlan()!.places[0]!.label).toBe(`your ${bench === "tannur" ? "clay tannur" : bench}`);
   }
 });
 

@@ -26,24 +26,26 @@ root=Path(__file__).resolve().parent.parent
 if '--container-history-sheet' in sys.argv:
     from PIL import ImageFont
     from art.props_b.vessels import CONTAINER_STUDIES
-    from art.props_b.container_studies import container_study
+    from art.props_b.container_studies import container_study, SECOND_CONTAINER_STUDIES
     from art.reference import current_adult_d
     review=root/'artifacts/scenery-review';review.mkdir(parents=True,exist_ok=True)
     font='/System/Library/Fonts/Supplemental/Arial.ttf'
     title=ImageFont.truetype(font,30);label=ImageFont.truetype(font,22)
     small=ImageFont.truetype(font,16);tiny=ImageFont.truetype(font,14)
     adult,_=current_adult_d()
-    for style in ['b','c']:
+    second='--batch2' in sys.argv
+    studies=SECOND_CONTAINER_STUDIES if second else CONTAINER_STUDIES
+    for style in (['b'] if second else ['b','c']):
         sheet=Image.new('RGB',(1440,1650),'#202839');d=ImageDraw.Draw(sheet)
-        name='B / rebuilt pixel-art surfaces' if style=='b' else 'C / voxel-built objects'
+        name='Batch 2 / B pixel art' if second else 'B / rebuilt pixel-art surfaces' if style=='b' else 'C / voxel-built objects'
         d.text((24,18),f'Storage & carrying traditions — {name}',font=title,fill='#f4e8ca')
-        d.text((24,60),'Same twelve objects / shared 4x scale / native-size insets / square-on projection / one-pixel contours',font=small,fill='#cbd2c6')
+        d.text((24,60),('Twelve new objects' if second else 'Same twelve objects')+' / shared 4x scale / native-size insets / square-on projection / one-pixel contours',font=small,fill='#cbd2c6')
         d.text((24,86),'Review only. Figures show the current adult; regional traditions need narrower date and locality profiles before placement.',font=small,fill='#cbd2c6')
-        for i,(kind,name,context,detail) in enumerate(CONTAINER_STUDIES):
+        for i,(kind,name,context,detail) in enumerate(studies):
             im=container_study(kind,voxel=style=='c')
             assert set(im.getchannel('A').getdata()) <= {0,255}
             assert im.getbbox()[0]>0 and im.getbbox()[1]>0
-            im.save(review/f'container-{style}-v2-{i+1:02d}-{kind}.png')
+            im.save(review/(f'container-batch2-{style}-v2-{i+1:02d}-{kind}.png' if second else f'container-{style}-v2-{i+1:02d}-{kind}.png'))
             x=12+i%3*476;y=124+i//3*375
             d.rounded_rectangle((x,y,x+463,y+362),radius=6,fill='#333d46')
             d.text((x+14,y+12),f'{i+1:02d}  {name}',font=label,fill='#f4e8ca')
@@ -61,8 +63,8 @@ if '--container-history-sheet' in sys.argv:
             d.text((x+399,y+80),'1x',font=tiny,fill='#edf0d8')
             d.text((x+14,y+337),detail,font=tiny,fill='#dce0cc')
             print(f'{style.upper()} {i+1:02d} {kind}: {im.width}x{im.height}',flush=True)
-        d.text((24,1629),'One native pixel is four display pixels on both sheets. The models share dimensions, depth projection and upper-left lighting.',font=tiny,fill='#cbd2c6')
-        out=review/f'historical-containers-{style}-v2.png';sheet.save(out)
+        d.text((24,1629),'One native pixel is four display pixels. Shared depth projection and upper-left lighting; enlargements use nearest-neighbour only.',font=tiny,fill='#cbd2c6')
+        out=review/(f'historical-containers-batch2-{style}-v2.png' if second else f'historical-containers-{style}-v2.png');sheet.save(out)
         print(f'Wrote {out}',flush=True)
     raise SystemExit(0)
 if '--well-history' in sys.argv:

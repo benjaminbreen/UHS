@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ecologies } from "../src/content/ecology/profiles";
-import { habitatAt, habitatTree } from "../src/world/v3/habitats";
+import { groveAt, habitatAt, habitatTree } from "../src/world/v3/habitats";
 import { naturalGround, rasterHabitatTile } from "../src/render/habitat-raster";
 import type { TopographySample } from "../src/core/topography";
 import type { LandSample } from "../src/world/v2/landscape";
+import { bloomsAt } from "../src/content/ecology/blooms";
 const land: LandSample = {
   water: 80,
   shoreWidth: 3,
@@ -12,6 +13,24 @@ const land: LandSample = {
   kind: "river",
   snow: false,
 };
+it("thins flowering colonies toward worn ground while preserving untouched turf", () => {
+  const habitat = { ecology: "temperate-woodland" as const, kind: "open" as const,
+    cover: 0.2, wet: 0.2, exposed: 0.1, season: "spring" };
+  const blooms = (wear?: number) => {
+    const sample: TopographySample = () => ({ height: 0, surface: "grass", habitat, groundWear: wear });
+    const spots = [];
+    for (let y = 0; y < 40; y++)
+      for (let x = 0; x < 40; x++)
+        spots.push(...bloomsAt(sample, x, y, 0, 0, y * 16, "europe"));
+    return spots;
+  };
+  const untouched = blooms();
+  expect(untouched.length).toBeGreaterThan(0);
+  expect(blooms(0)).toEqual(untouched);
+  expect(blooms(0.5).length).toBeGreaterThan(0);
+  expect(blooms(0.5).length).toBeLessThan(untouched.length * 0.4);
+  expect(blooms(1)).toEqual([]);
+});
 describe("local habitat composition", () => {
   it("retains every climatic envelope while producing multiple connected habitat types", () => {
     for (const ecology of ecologies) {
@@ -69,6 +88,16 @@ describe("local habitat composition", () => {
           rasterHabitatTile(world, x + ox, y + oy, 0, 0).pixels,
         );
       }
+    }
+  });
+  it("rasterizes shared grove edges consistently across chunk origins", () => {
+    const world: TopographySample = (x, y) => ({ height: 1, surface: "grass",
+      habitat: { ...habitatAt("temperate-woodland", "spring", "groves", x, y, land), grove: groveAt("groves", x, y) } });
+    for (const [ox, oy] of [[16, -32], [-32, 16]]) {
+      const local: TopographySample = (x, y) => world(x + ox, y + oy);
+      for (const [x, y] of [[0, 0], [15, 15], [0, 15]])
+        expect(rasterHabitatTile(local, x, y, ox, oy).pixels)
+          .toEqual(rasterHabitatTile(world, x + ox, y + oy, 0, 0).pixels);
     }
   });
   it("preserves constructed surfaces and gives all ecologies distinct ground colors", () => {

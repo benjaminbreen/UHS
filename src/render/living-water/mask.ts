@@ -219,62 +219,72 @@ export function rasterLivingWater(
   const ox = (region?.x ?? 0) * 16,
     oy = (region?.y ?? 0) * 16;
   const spacing = refined ? 24 : 64;
+  // Include off-screen groups and their rock deflection at chunk boundaries.
+  const halo = refined ? 96 : 48;
+  const depthAt = (x: number, y: number) => {
+    const depth = -shoreDistance(sample, x / 16, y / 16, ox / 16, oy / 16);
+    return sample(Math.floor(x / 16), Math.floor(y / 16))?.waterVisual?.kind === "sea"
+      ? -coastDistance(-depth, (x + ox) / 16, (y + oy) / 16, polish)
+      : depth;
+  };
+  const shoreAt = (x: number, y: number) => {
+    const cell = sample(Math.floor(x / 16), Math.floor(y / 16));
+    if (
+      !cell?.waterVisual || cell.bridge || cell.ramp ||
+      (!refined && cell.surface !== "water") ||
+      (refined && (cell.height > 0 || cell.feature === "paving" || cell.surface === "soil")) ||
+      cell.waterVisual.kind === "canal"
+    ) return;
+    const depth = depthAt(x, y);
+    const beach = livingBeachWidth(sample, Math.floor(x / 16), Math.floor(y / 16), ox / 16, oy / 16, polish);
+    if (depth < (refined ? -beach * 0.94 : 0.65) || depth > (refined ? 2.5 : 4.5)) return;
+    return { cell, depth };
+  };
   for (
-    let gy = Math.floor((oy - 48) / spacing);
-    gy <= Math.floor((oy + height * 16 + 48) / spacing);
+    let gy = Math.floor((oy - halo) / spacing);
+    gy <= Math.floor((oy + height * 16 + halo) / spacing);
     gy++
   )
     for (
-      let gx = Math.floor((ox - 48) / spacing);
-      gx <= Math.floor((ox + W + 48) / spacing);
+      let gx = Math.floor((ox - halo) / spacing);
+      gx <= Math.floor((ox + W + halo) / spacing);
       gx++
     ) {
       const seed = Math.floor(waterHash(gx, gy, 351) * 100000);
-      const x =
+      const x = Math.round(
           gx * spacing +
           (refined ? 5 : 16) +
           waterHash(gx, gy, 352) * (refined ? spacing - 10 : 32) -
-          ox,
-        y =
+          ox),
+        y = Math.round(
           gy * spacing +
           (refined ? 5 : 16) +
           waterHash(gx, gy, 353) * (refined ? spacing - 10 : 32) -
-          oy;
-      const cell = sample(Math.floor(x / 16), Math.floor(y / 16));
-      if (
-        !cell?.waterVisual ||
-        cell.bridge ||
-        cell.ramp ||
-        (!refined && cell.surface !== "water") ||
-        (refined &&
-          (cell.height > 0 ||
-            cell.feature === "paving" ||
-            cell.surface === "soil")) ||
-        cell.waterVisual.kind === "canal"
-      )
-        continue;
-      let depth = -shoreDistance(sample, x / 16, y / 16, ox / 16, oy / 16);
-      if (cell.waterVisual.kind === "sea")
-        depth = -coastDistance(-depth, (x + ox) / 16, (y + oy) / 16, polish);
-      const beach = livingBeachWidth(
-        sample,
-        Math.floor(x / 16),
-        Math.floor(y / 16),
-        ox / 16,
-        oy / 16,
-        polish,
+          oy);
+      const site = shoreAt(x, y);
+      if (!site) continue;
+      const { cell, depth } = site;
+      const dx = refined ? depthAt(x + 4, y) - depthAt(x - 4, y) : 0,
+        dy = refined ? depthAt(x, y + 4) - depthAt(x, y - 4) : 0,
+        length = Math.hypot(dx, dy),
+        nx = length ? dx / length : 0,
+        ny = length ? dy / length : 1;
+      // Sample along the waterline so a wide beach keeps the same bare stretches.
+      const sx = x + ox - depth * 16 * nx,
+        sy = y + oy - depth * 16 * ny;
+      const bx = Math.floor(gx / 2), by = Math.floor(gy / 2);
+      const rocky = !refined || (
+        gx === bx * 2 + Math.floor(waterHash(bx, by, 375) * 2) &&
+        gy === by * 2 + Math.floor(waterHash(bx, by, 377) * 2) &&
+        waterNoise(sx, sy, 192, 361) * 0.8 + waterNoise(sx, sy, 64, 363) * 0.2 > 0.58
       );
-      if (
-        depth < (refined ? -beach * 0.94 : 0.65) ||
-        depth > (refined ? 2.5 : 4.5)
-      )
-        continue;
       const profile = livingProfile(cell),
-        rock = cell.habitat?.colorway !== "swamp" && waterHash(gx, gy, 354) < (refined ? 0.35 * polish!.rocks : 0.35);
+        rock = cell.habitat?.colorway !== "swamp" && rocky && waterHash(gx, gy, 354) < (refined ? 0.75 * polish!.rocks : 0.35);
       if (
         refined &&
         !rock &&
         (profile.bankClimate === "tundra" ||
+          waterNoise(sx, sy, 144, 365) < 0.5 ||
           waterHash(gx, gy, 357) >
             polish!.plants *
               (profile.bankClimate === "tropical-woodland" ? 1 : 0.65))
@@ -307,19 +317,24 @@ export function rasterLivingWater(
                 ? "reeds"
                 : "lilies",
       });
-      if (refined && depth < 0 && !rock) {
-        const o = items.at(-1)!;
-        items.push({ ...o, x: o.x + 5, y: o.y + 2, seed: seed + 11 });
-      }
       if (refined && rock) {
         const o = items.at(-1)!;
-        items.push({
-          ...o,
-          x: o.x + Math.round(o.size) + 3,
-          y: o.y + 3,
-          size: 2,
-          seed: seed + 7,
-        });
+        const companions = Math.floor(waterHash(gx, gy, 367) * 4);
+        for (let i = 0; i < companions; i++) {
+          const along = (i % 2 ? -1 : 1) * (o.size + 5 + i * 4 + waterHash(seed, i, 369) * 8),
+            across = (waterHash(seed, i, 371) - 0.5) * 10,
+            px = Math.round(x - ny * along + nx * across),
+            py = Math.round(y + nx * along + ny * across),
+            companion = shoreAt(px, py);
+          if (!companion || companion.cell.habitat?.colorway === "swamp") continue;
+          items.push({
+            ...o,
+            x: px,
+            y: py - companion.cell.height * TERRAIN_RISE + shift,
+            size: 2 + waterHash(seed, i, 373) * 2.5,
+            seed: seed + 7 + i * 17,
+          });
+        }
       }
     }
   if (refined)

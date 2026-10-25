@@ -13,6 +13,7 @@ import { modern } from "./stances/modern";
 import { southAsia } from "./stances/south-asia";
 import { southeastAsia } from "./stances/southeast-asia";
 import { tempers } from "./stances/tempers";
+import { unitedStates } from "./stances/united-states";
 import { westAsia } from "./stances/west-asia";
 import { westCentralAfrica } from "./stances/west-central-africa";
 
@@ -31,6 +32,7 @@ export const stances: readonly Stance[] = [
   ...tempers,
   ...generals.map((s) => ({ ...s, fallback: true })),
   ...modern,
+  ...unitedStates,
   ...from(andes, "andean"),
   ...from(australiaPacific, "australian-pacific"),
   ...from(eastAsia, "east-asian"),

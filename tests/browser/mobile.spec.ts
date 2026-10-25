@@ -243,7 +243,9 @@ test("pinch zooms the world and a tap still walks", async ({ page, browserName }
       return `${p.x},${p.y}`;
     });
   const start = await pos();
-  await send("touchStart", [{ x: 120, y: 250, id: 1 }]);
+  // The work card occupies y=250; tap the uncovered world below it.
+  expect(await page.evaluate(() => document.elementFromPoint(120, 500)?.tagName)).toBe("CANVAS");
+  await send("touchStart", [{ x: 120, y: 500, id: 1 }]);
   await send("touchEnd", []);
   await expect.poll(pos, { timeout: 15000 }).not.toBe(start);
 });

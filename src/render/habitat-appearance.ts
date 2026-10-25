@@ -17,6 +17,11 @@ export const communityBand: Record<Community, number> = {
   swamp: 4,
   bog: 2,
 };
+export function habitatBand(h: Habitat) {
+  const band = h.site ? communityBand[h.site.primary] : 0;
+  return h.grove !== undefined && h.grove < 0.6 &&
+    (h.site?.primary === "woodland" || h.site?.primary === "riparian-woodland") ? 0 : band;
+}
 /** Colour depends on these alone, and neighbouring cells almost always agree;
  * each cell holds its own Habitat object, so identity cannot be the key. */
 function toneKey(h: Habitat) {
@@ -31,7 +36,7 @@ function toneKey(h: Habitat) {
         .map(([id, w]) => `${id}=${w}`)
         .join(",")
     : "";
-  return `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}|${blend}|${site}`;
+  return `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}|${blend}|${site}|${h.grove === undefined ? "" : Math.round(h.grove * 8)}`;
 }
 const toneCache = new WeakMap<GrassArt, Map<string, Appearance>>();
 type Appearance = ReturnType<typeof computeAppearance>;
@@ -90,6 +95,11 @@ function computeAppearance(h: Habitat, art: GrassArt) {
     swamp: mix(palette[7], soil[0], 0.28),
     bog: mix(palette[7], soil[4], 0.45),
   };
+  if (h.grove !== undefined) {
+    const shade = 0.2 + Math.round(h.grove * 8) / 8 * 0.8;
+    tones.woodland = mix(palette[0], tones.woodland, shade);
+    tones["riparian-woodland"] = mix(palette[0], tones["riparian-woodland"], shade);
+  }
   let ground = h.site
     ? [0, 1, 2].map((c) =>
         Object.entries(h.site!.weights).reduce(

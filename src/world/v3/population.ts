@@ -23,6 +23,7 @@ import { workplaceFor } from "../../content/characters/workplace";
 import { conditionOf, weatherStructure } from "../../core/time/structure";
 import { householdStory } from "./household-story";
 import { MEANS } from "./plan";
+import { treePlacementEnvelope } from "./placement";
 import { keeperLivesIn, buildingUse } from "../../content/interiors/select";
 import { officeFor } from "../../content/interiors/offices";
 import { marriagePracticeFor } from "../../content/households/practices";
@@ -549,6 +550,9 @@ export function addWildResources(
                   : type === "reeds"
                     ? "reeds"
                     : "ecology-grazing";
+          if (localPack.setting?.placementRevision === 1 && type === "fruit" &&
+            treePlacementEnvelope(sprite, { x: px, y: py }).clearance.some(p => world.protectedCell?.(p.x, p.y)))
+            continue;
           const o: WorldObject = {
             id: `resource-${px}-${py}`,
             name:

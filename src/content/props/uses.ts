@@ -8,9 +8,10 @@ export const climbable = new Set([
   "amphora-stack", "barrel", "threshing-floor", "midden", "shell-midden",
 ]);
 
-export type Use = "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "pray" | "tend" | "weave" | "scrub";
+export type Use = "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "pray" | "tend" | "weave" | "scrub" | "craft";
 
 const USE: Record<Use, { verb: string; pose: CharacterPose; minutes: number; families: string[] }> = {
+  craft: { verb: "Work at", pose: "work-tend", minutes: 20, families: ["workbench"] },
   pound: { verb: "Pound", pose: "work-pound", minutes: 15, families: ["pounding-mortar", "anvil", "knapping-floor", "chopping-block", "trip-hammer", "grindstone"] },
   grind: { verb: "Grind at", pose: "work-grind", minutes: 20, families: ["quern", "metate", "grinder"] },
   draw: { verb: "Draw water at", pose: "tug", minutes: 5, families: ["well", "framed-well", "town-well", "pump", "shaduf", "water-butt", "zir"] },

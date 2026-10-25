@@ -9,6 +9,33 @@ import { treeGrouping } from "../src/world/v3/habitats";
 import { canopyHidesPlayer } from "../src/render/canopy-visibility";
 import { natureTreeSprites } from "../src/content/ecology/vegetation";
 import nature from "../public/nature/atlas.json" with { type: "json" };
+import { resolveSetting } from "../src/content/geography/resolve";
+import type { SettlementWorld } from "../src/world/v3/generate";
+
+it.runIf(!!process.env.FULL)("keeps wild scenery out of cultivated plots in placement revision 1", () => {
+  const resolved = resolveSetting("medieval Normandy");
+  if ("error" in resolved) throw Error(resolved.error);
+  const counts: number[] = [];
+  for (const placementRevision of [0, 1] as const) {
+    const s: WorldSetting = { ...resolved.setting, placementRevision, geographyMode: "configured", terrainRevision: 2,
+      vegetationRevision: 8, relief: 0, water: "none", environment: { ecology: "temperate-woodland", landform: "plain",
+        population: "sparse", start: "resident", household: "mixed" } };
+    const world = createSettlementWorld(packForSetting(s), "placement-composition") as SettlementWorld;
+    const plan = world.planAt(world.spawn.x, world.spawn.y)!;
+    let cropped = 0, scenery = 0;
+    for (const [key, f] of plan.fields ?? []) {
+      if (f.crop === "pasture") continue;
+      const [x, y] = key.split(",").map(Number);
+      cropped++;
+      if (world.decoration(x, y)) scenery++;
+      if (placementRevision) expect(world.protectedCell!(x, y)).toBe(true);
+    }
+    expect(cropped).toBeGreaterThan(100);
+    counts.push(scenery);
+  }
+  expect(counts[0]).toBeGreaterThan(0);
+  expect(counts[1]).toBe(0);
+}, 60000);
 const base: WorldSetting = {
   ...settingFor(places.find((p) => p.id === "konya")!),
   lon: 105,
@@ -67,6 +94,43 @@ it("priority thinning is symmetric and uses larger crowns' growing space", () =>
   expect(retainsTree(0, 0, a, sample)).toBe(true);
   expect(retainsTree(3, 0, b, sample)).toBe(false);
 });
+it("shares groves between trees and understory without depending on query order", () => {
+  const setting: WorldSetting = { ...base, relief: 0, vegetationRevision: 8 };
+  const world = () => createSettlementWorld(packForSetting(setting), "scenery-composition");
+  const forward = world(), reverse = world();
+  const cells: { x: number; y: number }[] = [];
+  const trees: { x: number; y: number; sprite: string }[] = [];
+  const treeSprites = new Set(natureTreeSprites);
+  const bands = [{ cells: 0, low: 0 }, { cells: 0, low: 0 }, { cells: 0, low: 0 }];
+  for (let y = -32; y < 32; y++)
+    for (let x = -32; x < 32; x++) {
+      cells.push({ x, y });
+      const grove = forward.topography!(x, y).habitat!.grove!;
+      expect(grove).toBeGreaterThanOrEqual(0);
+      expect(grove).toBeLessThanOrEqual(1);
+      const d = forward.decoration(x, y), band = bands[grove < 0.25 ? 0 : grove < 0.65 ? 1 : 2];
+      band.cells++;
+      if (d && treeSprites.has(d.sprite)) {
+        expect(grove).toBeGreaterThan(0.3);
+        trees.push(d);
+      } else if (d && !d.solid) band.low++;
+    }
+  expect(trees.length).toBeGreaterThan(20);
+  for (const band of bands) expect(band.cells).toBeGreaterThan(100);
+  expect(bands[1].low / bands[1].cells).toBeGreaterThan(bands[0].low / bands[0].cells * 2);
+  expect(bands[1].low / bands[1].cells).toBeGreaterThan(bands[2].low / bands[2].cells * 2);
+  for (let i = 0; i < trees.length; i++)
+    for (let j = i + 1; j < trees.length; j++) {
+      const a = trees[i], b = trees[j];
+      expect(Math.hypot(a.x - b.x, a.y - b.y) + 1e-9).toBeGreaterThanOrEqual(
+        (crownRadius(a.sprite) + crownRadius(b.sprite)) * 0.72,
+      );
+    }
+  for (const { x, y } of cells.reverse())
+    expect(reverse.decoration(x, y)).toEqual(forward.decoration(x, y));
+  const pinned = createSettlementWorld(packForSetting({ ...setting, vegetationRevision: 7 }), "scenery-composition");
+  expect(pinned.topography!(0, 0).habitat!.grove).toBeUndefined();
+}, 30000);
 it("revision 5 makes wet ground more favorable and exposed ground only sparsely favorable", () => {
   const open = {
     ecology: "grassland" as const,

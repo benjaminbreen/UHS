@@ -149,3 +149,5 @@ FIRES={'three-stone-hearth':threestone,'hearth':firepit,'long-fire':longfire,'ta
 # The open fires are redrawn at their own sizes with eight flame frames.
 from art.props_b.fire import FIRES_B
 FIRES.update(FIRES_B)
+from art.props_b.equipment_studies import EQUIPMENT_FIRES
+FIRES.update(EQUIPMENT_FIRES)

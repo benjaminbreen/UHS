@@ -1,6 +1,7 @@
 import type { TopographyCell, TopographySample } from "../../core/topography";
 import { waterHash as hash } from "../../core/water-field";
 import { pickSpecies, type FloraRegion, type Species } from "./flora";
+import { groveEdge } from "../../world/v3/habitats";
 
 export type BloomSpot = {
   x: number;
@@ -55,6 +56,8 @@ export function bloomsAt(
   const c = sample(x, y);
   const h = c?.habitat;
   if (!c || !h || !turf(c)) return [];
+  const growth = Math.max(0, 1 - (c.groundWear ?? 0));
+  if (!growth) return [];
   const season = seasonal[h.season] ?? 0.5;
   if (!season) return [];
   for (let dy = -1; dy <= 1; dy++)
@@ -71,7 +74,8 @@ export function bloomsAt(
   const dense = h.kind === "meadow" ? 1.6 : h.kind === "open" ? 1 : 0.5;
   // A colony is thick with its one flower; the odd stray grows anywhere.
   const thick = colony > 0.8;
-  const chance = (thick ? 0.22 : 0.012) * season * dense;
+  const edge = h.grove === undefined ? 1 : 0.15 + groveEdge(h.grove) * 0.85;
+  const chance = (thick ? 0.22 : 0.012) * season * dense * growth * growth * edge;
   if (hash(wx, wy, 603) > chance) return [];
   const count = 1 + Math.floor(hash(wx, wy, 605) * (thick ? 3 : 1.6));
   const spots: BloomSpot[] = [];
@@ -112,7 +116,7 @@ function turf(c: TopographyCell) {
     ["grass", "damp", "dry"].includes(c.surface) &&
     h.exposed < 0.4 &&
     h.wet < 0.61 &&
-    (h.kind !== "woodland" || h.cover < 0.5) &&
+    (h.grove === undefined ? h.kind !== "woodland" || h.cover < 0.5 : h.grove < 0.6) &&
     h.kind !== "exposed" &&
     (!c.waterVisual || c.waterVisual.distance > c.waterVisual.shoreWidth + 1)
   );

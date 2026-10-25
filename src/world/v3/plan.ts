@@ -132,8 +132,10 @@ import {
   lifeway,
 } from "../../content/settlements/lifeways";
 import {
+  buildingPlacementEnvelope,
   claimEnvelope,
   createPlacementClaims,
+  cultivatedAt,
   envelopeConflicts,
   treePlacementEnvelope,
 } from "./placement";
@@ -167,6 +169,7 @@ export function planSettlement(
   const c = site.center,
     profile = site.profile,
     r = profile.radius;
+  const placed = pack.setting?.placementRevision === 1;
   const characterContext = pack.setting?.characterRevision
     ? resolveCharacterContext(pack.setting)
     : undefined;
@@ -2368,6 +2371,7 @@ export function planSettlement(
     point: Point;
     nx: number;
     ny: number;
+    road?: string;
   } & Partial<UrbanLot>)[] = [...urbanLots, ...campLots];
   for (const road of urban || camp
     ? []
@@ -2404,14 +2408,14 @@ export function planSettlement(
       if (!dx && !dy) continue;
       for (const sign of [-1, 1]) {
         if (!organic) {
-          frontage.push({ point: p, nx: -dy * sign, ny: dx * sign });
+        frontage.push({ point: p, nx: -dy * sign, ny: dx * sign, road: road.id });
           continue;
         }
         // Houses across the way do not face each other door to door, and the
         // odd plot is left open so the row has gaps.
         if (rand(road.id, "gap", j, sign) < 0.15) continue;
         const k = sign > 0 ? Math.min(road.points.length - 1, j + 2 + Math.floor(rand(road.id, "stagger", j) * 4)) : j;
-        frontage.push({ point: road.points[k], nx: -dy * sign, ny: dx * sign });
+        frontage.push({ point: road.points[k], nx: -dy * sign, ny: dx * sign, road: road.id });
       }
     }
   // Composed parcels already arrive in the order their own fabric implies, one
@@ -2570,7 +2574,7 @@ export function planSettlement(
   ) => {
     const drawn = boundary !== "none";
     eachCell(area, (x, y) => {
-      if (skip(x, y)) return;
+      if (skip(x, y) || placed && plan.placement.clearance.has(cellKey(x, y))) return;
       const k = cellKey(x, y);
       if (drawn && fenced(x, y)) {
         plan.solid.add(k);
@@ -2623,7 +2627,7 @@ export function planSettlement(
       name: item.name,
       kind: "container",
       prop: item.prop,
-      sprite: `study-propb-${item.family}-${Math.floor(rand("yard-art", i, n) * (propDefs[item.prop]?.variants ?? 3))}`,
+      sprite: propDefs[item.prop]?.sprite ?? `study-propb-${item.family}-${Math.floor(rand("yard-art", i, n) * (propDefs[item.prop]?.variants ?? 3))}`,
       inventory: item.contents ?? {},
       pos: pos(at),
     });
@@ -2634,12 +2638,26 @@ export function planSettlement(
     return true;
   };
   const propCells = new Set<string>();
+  const buildingClearance = new Set<string>();
+  const reserveBuilding = (sprite: string, rect: Rect, entrance: Point, work?: Point) => {
+    if (!placed) return;
+    const envelope = buildingPlacementEnvelope(sprite, rect, work ? [entrance, work] : [entrance]);
+    claimEnvelope(plan.placement, envelope);
+    for (const p of [...envelope.occupied, ...envelope.access, ...envelope.clearance])
+      plan.reserved.add(cellKey(p.x, p.y));
+    for (const p of envelope.clearance) {
+      const key = cellKey(p.x, p.y);
+      buildingClearance.add(key);
+      propCells.add(key);
+    }
+  };
   const localProps = [...Object.values(propKit(pack).contexts).flat(), ...(techFor(pack).iron ? ["anvil"] : [])];
   /** An indoor trade's station, inside the house; the workbench stands in
    * for a family whose interior art is not drawn yet. */
   const indoorStation = (id: string, owner: string, kit: Parameters<typeof processFor>[0] | undefined) => {
     const process = kit && processFor(kit);
-    if (!kit || !(process?.indoors || process?.bench)) return [];
+    if (!kit || !(process?.indoors || process?.bench ||
+      (process?.skill === "woodcraft" && localProps.some(k=>propDefs[k]?.family === "workbench")))) return [];
     // From what this place and period had, not the catalogue's first match:
     // a treadle loom in Tenochtitlan is the error.
     const prop = (process.bench ?? process.stations)
@@ -2649,11 +2667,11 @@ export function planSettlement(
     const family = prop && propDefs[prop].family;
     return [{
       id: `${id}-work`,
-      name: process.bench ? family![0].toUpperCase() + family!.slice(1).replace(/-/g, " ") : prop ? propDefs[prop].name : `Where the ${kit.activity.toLowerCase()} is done`,
+      name: process.bench && prop && !propDefs[prop].sprite ? family![0].toUpperCase()+family!.slice(1).replace(/-/g," ") : prop ? propDefs[prop].name : `Where the ${kit.activity.toLowerCase()} is done`,
       kind: "container" as const,
       prop,
       pos: { x: 6, y: 5, space: id },
-      sprite: prop ? `study-propb-${propDefs[prop].family}-0` : "study-prop-workbench-0",
+      sprite: prop ? propDefs[prop].sprite ?? `study-propb-${propDefs[prop].family}-0` : "study-prop-workbench-0",
       inventory: {},
       owner,
     }];
@@ -3036,9 +3054,14 @@ export function planSettlement(
   const toftFields: [string, FieldCell][] = [];
   const toftQueue: (() => void)[] = [];
   const yardPlans: (() => void)[] = [];
+  if (placed) {
+    for (const place of plan.places) reserveBuilding(place.sprite, place, place.entrance);
+    for (const object of plan.objects)
+      if (object.kind === "tree") claimEnvelope(plan.placement, treePlacementEnvelope(object.sprite, object.pos));
+  }
   for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
     const lot = frontage[j];
-    const { point, nx, ny } = lot,
+    const { point: frontagePoint, nx, ny } = lot,
       i = plan.places.length;
     const base = chooseBuildingFrame(
       pack.buildings,
@@ -3068,43 +3091,70 @@ export function planSettlement(
     // which fits the ground to the model. Swapping a landmark onto a lot
     // sized for a house here put its body across the path to its own door,
     // so a lot-assigned venue is the house with a mark at the door.
-    const frame =
+    const preferred =
         lot.frame ??
-        (buildingModels[`${base}-${facing}`] ? `${base}-${facing}` : base),
-      model = buildingModel(frame),
-      [w, h] = model.footprint;
+        (buildingModels[`${base}-${facing}`] ? `${base}-${facing}` : base);
     // Old assets are only used south-facing until their oriented recipes are available.
-    if (frame === base && facing !== "south") continue;
-    const setback = organic
+    if (preferred === base && facing !== "south") continue;
+    const alternatives = placed && organic && !urban && !camp && !lot.rect && buildingModel(preferred).opening !== "roof-hatch";
+    const setback = alternatives
+      ? 3 + Math.floor(rand("lane-setback", lot.road ?? "local") * 2) + Math.floor(rand("setback", j) * 3) - 1
+      : organic
       ? 2 + Math.floor(rand("setback", j) * 5)
       : profile.paved
         ? 3
         : 4;
-    const door = lot.rect
-      ? point
-      : { x: point.x + nx * setback, y: point.y + ny * setback };
-    // A venue on a composed lot keeps that lot's ground: recomputing the
-    // rect from the door shifts the building off the lot it was fitted to,
-    // and the street then runs behind it rather than to its door.
-    const rect = lot.rect ?? {
-      x: door.x - model.entrance[0],
-      y: door.y - model.entrance[1],
-      w,
-      h,
+    const fit = (frame: string, back = setback, shift = 0) => {
+      const model = buildingModel(frame), [w, h] = model.footprint;
+      const point = { x: frontagePoint.x + ny * shift, y: frontagePoint.y - nx * shift };
+      const door = lot.rect ? point : { x: point.x + nx * back, y: point.y + ny * back };
+      const rect = lot.rect ?? { x: door.x - model.entrance[0], y: door.y - model.entrance[1], w, h };
+      const yard = lot.yard ?? { x: rect.x - 1 + (nx < 0 ? -4 : 0), y: rect.y - 1 + (ny < 0 ? -4 : 0),
+        w: w + 2 + (nx ? 4 : 0), h: h + 2 + (ny ? 4 : 0) };
+      const workPoint = lot.workPoint ?? { x: rect.x + (nx > 0 ? w + 2 : nx < 0 ? -2 : Math.floor(w / 2)),
+        y: rect.y + (ny > 0 ? h + 2 : ny < 0 ? -2 : Math.floor(h / 2)) };
+      return { frame, model, point, door, rect, yard, workPoint };
     };
-    const yard = lot.yard ?? {
-      x: rect.x - 1 + (nx < 0 ? -4 : 0),
-      y: rect.y - 1 + (ny < 0 ? -4 : 0),
-      w: w + 2 + (nx ? 4 : 0),
-      h: h + 2 + (ny ? 4 : 0),
+    const fits = (f: ReturnType<typeof fit>) => {
+      if (!dry(f.yard, !lot.rect, f.rect)) return false;
+      if (!placed || lot.rect) return true;
+      const envelope = buildingPlacementEnvelope(f.frame, f.rect, [f.door, f.workPoint]);
+      if (envelope.occupied.some(p => plan.placement.clearance.has(cellKey(p.x, p.y))) ||
+        envelopeConflicts(plan.placement, envelope, true)) return false;
+      if (!alternatives) return true;
+      for (const p of envelope.occupied) plan.solid.add(cellKey(p.x, p.y));
+      try {
+        return !!connect(f.door, f.point, `door${i}`, 0, undefined, true) &&
+          !!connect(f.workPoint, f.door, `yard-access${i}`, 0, undefined, true);
+      } finally {
+        for (const p of envelope.occupied) plan.solid.delete(cellKey(p.x, p.y));
+      }
     };
-    // A composed lot was fitted against streets, walls and other lots when
-    // it was laid out; the block painter has since reserved its ground, so
-    // only wetness and slope are checked again here.
-    if (!dry(yard, !lot.rect, rect)) {
+    let chosen = fit(preferred);
+    let accepted = fits(chosen);
+    if (!accepted && alternatives) {
+      const [pw, ph] = chosen.model.footprint;
+      const smaller = pack.buildings.map(frame => facing === "south" ? frame : `${frame}-${facing}`)
+        .filter(frame => {
+          const m = buildingModels[frame];
+          return m && m.footprint[0] * m.footprint[1] < pw * ph && m.footprint[ny ? 0 : 1] <= (ny ? pw : ph);
+        }).sort((a, b) => {
+          const am = buildingModel(a), bm = buildingModel(b);
+          return Number(bm.wall === chosen.model.wall) - Number(am.wall === chosen.model.wall) ||
+            bm.footprint[0] * bm.footprint[1] - am.footprint[0] * am.footprint[1] || a.localeCompare(b);
+        })[0];
+      const candidates = [preferred, ...(smaller ? [smaller] : [])].flatMap((frame, n) =>
+        [[setback, 0, n * 2], [setback + 1, 0, n * 2 + 1], [setback, -2, n * 2 + 1.5], [setback, 2, n * 2 + 1.5]]
+          .map(([back, shift, score]) => ({ ...fit(frame, back, shift), score })))
+        .sort((a, b) => a.score - b.score);
+      const fallback = candidates.find(fits);
+      if (fallback) { chosen = fallback; accepted = true; }
+    }
+    if (!accepted) {
       plan.diagnostics.rejectedBuildings++;
       continue;
     }
+    const { frame, model, point, door, rect, yard, workPoint } = chosen, [w, h] = model.footprint;
     if (urban && lot.rect && pack.setting?.terrainRevision) {
       const level = Math.round(sample(lot.workPoint?.x ?? door.x, lot.workPoint?.y ?? door.y).elevation / 14);
       gradeGround(rect, level);
@@ -3116,6 +3166,7 @@ export function planSettlement(
         plan.solid.add(cellKey(x, y));
         plan.built!.add(cellKey(x, y));
       });
+      reserveBuilding(frame, rect, door);
       paint(rect, "dirt");
       // An apron rings the sanctuary, so its precinct reads on the ground and
       // a way round it always exists.
@@ -3177,6 +3228,7 @@ export function planSettlement(
         plan.solid.add(cellKey(x, y));
         plan.built!.add(cellKey(x, y));
       });
+      reserveBuilding(frame, rect, door);
       plan.places.push({
         id,
         name: lot.piece.name,
@@ -3205,6 +3257,7 @@ export function planSettlement(
         plan.solid.add(cellKey(x, y));
         plan.built!.add(cellKey(x, y));
       });
+      reserveBuilding(frame, rect, door);
       paint(rect, "dirt");
       plan.places.push({
         id,
@@ -3302,6 +3355,7 @@ export function planSettlement(
       };
       place.condition = conditionOf(place.structure);
       plan.places.push(place);
+      reserveBuilding(frame, rect, door);
       eachCell(rect, (x, y) => {
         plan.built!.add(cellKey(x, y));
         plan.solid.add(cellKey(x, y));
@@ -3309,11 +3363,11 @@ export function planSettlement(
       eachCell(yard, (x, y) => plan.reserved.add(cellKey(x, y)));
       continue;
     }
-    const workPoint = lot.workPoint ?? {
-      x: rect.x + (nx > 0 ? w + 2 : nx < 0 ? -2 : Math.floor(w / 2)),
-      y: rect.y + (ny > 0 ? h + 2 : ny < 0 ? -2 : Math.floor(h / 2)),
-    };
-    if (!connect(door, point, `door${i}`, 0)) continue;
+    if (placed) eachCell(rect, (x, y) => plan.solid.add(cellKey(x, y)));
+    if (!connect(door, point, `door${i}`, 0)) {
+      if (placed) eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
+      continue;
+    }
     const entranceLabel =
       model.opening === "roof-hatch" ? "Climb inside" : "Enter";
     // A settlement that keeps animals asks for someone to keep them. Drawing
@@ -3382,9 +3436,13 @@ export function planSettlement(
       plan.built!.add(cellKey(x, y));
     });
     if (!connect(workPoint, door, `yard-access${i}`, 0)) {
-      eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
+      eachCell(rect, (x, y) => {
+        plan.solid.delete(cellKey(x, y));
+        if (placed) plan.built!.delete(cellKey(x, y));
+      });
       continue;
     }
+    reserveBuilding(frame, rect, door, workPoint);
     if (owner === "player") playerTrade = role;
     const shop = owner === "player" ? playerShop : undefined;
     const shopfront = owner === "player" ? !!shop :
@@ -3803,6 +3861,7 @@ export function planSettlement(
         return (
           plan.reserved.has(k) ||
           plan.solid.has(k) ||
+          placed && plan.placement.clearance.has(k) ||
           roads.has(k) ||
           throughRoads.has(k)
         );
@@ -4619,7 +4678,7 @@ export function planSettlement(
       if (owner === "player") continue;
       // A household with a henhouse keeps hens, and they scratch about it.
       const house = plan.places.find((b) => b.owner === owner);
-      const coop = house && plan.objects.find((o) => o.prop === "chickenCoop" && o.id.startsWith(`${house.id}-yard-`));
+      const coop = house && plan.objects.find((o) => propDefs[o.prop ?? ""]?.family === "chicken-coop" && o.id.startsWith(`${house.id}-yard-`));
       const hens = coop && yardStock.find((k) => k.id === "chicken");
       const yard = hens ? coop.pos : plan.slots.get(owner)?.yard[0];
       if (!yard || (!hens && plan.solid.has(cellKey(yard.x, yard.y)))) continue;
@@ -4893,6 +4952,17 @@ export function planSettlement(
   }
   // Every place gets a door, last, so nothing placed earlier lands on the cell
   // and the hole it punches in the wall survives the rest of the build.
+  if (placed) {
+    for (const place of plan.places) reserveBuilding(place.sprite, place, place.entrance);
+    plan.objects = plan.objects.filter(object => {
+      if (object.kind !== "tree" || object.pos.space !== "outside") return true;
+      const envelope = treePlacementEnvelope(object.sprite, object.pos);
+      if (![...envelope.occupied, ...envelope.clearance].some(p =>
+        buildingClearance.has(cellKey(p.x, p.y)) || cultivatedAt(plan, p.x, p.y))) return true;
+      plan.solid.delete(cellKey(object.pos.x, object.pos.y));
+      return false;
+    });
+  }
   for (const place of plan.places) {
     place.baselineYear ??= pack.setting?.year ?? 0;
     place.condition ??= 1;

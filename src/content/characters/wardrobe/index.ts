@@ -49,6 +49,7 @@ function fits(o: WearerScope, w: Wearer, band: ReturnType<typeof ageBandOf>) {
     (!o.means ||
       o.means.includes(w.means ?? "common") ||
       (w.means === "elite" && o.means.includes("wealthy"))) &&
+    (!o.ranks || (!!w.rank && o.ranks.includes(w.rank))) &&
     (!o.standing || (!!w.standing && o.standing.includes(w.standing))) &&
     (!o.livelihoods ||
       (!!w.livelihood && o.livelihoods.includes(w.livelihood))) &&

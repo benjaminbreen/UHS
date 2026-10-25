@@ -1,13 +1,14 @@
 """Compile the independent review library. Does not touch the playable atlas."""
 from pathlib import Path
 from PIL import Image, ImageDraw
-import json, re, textwrap
+import json, re, textwrap, sys, tempfile
 from art.atlas import pack_atlas
 from art.shadows import build_shadows
 from art.props import draw_prop
 from art.props_b import DRAW_B, LAYERED, FALLEN, ANIMATED, TOPPLING
 from art.props_b.fallen import leaning
 from art.prop_audit import audit
+from art.props_b.equipment_studies import second_equipment_sprites
 
 ROOT=Path(__file__).resolve().parent.parent
 OUT=ROOT/'public/props'; OUT.mkdir(parents=True,exist_ok=True)
@@ -22,8 +23,41 @@ def trim(image):
     cut=image.crop(box)
     ax,ay=image.info.get('anchor',[image.width//2,image.height])
     cut.info['anchor']=[ax-box[0],ay-box[1]]
+    if 'shadowAnchor' in image.info:
+        sx,sy=image.info['shadowAnchor'];cut.info['shadowAnchor']=[sx-box[0],sy-box[1]]
     if 'shadowMinY' in image.info:cut.info['shadowMinY']=image.info['shadowMinY']-box[1]
     return cut
+
+if '--equipment-only' in sys.argv:
+    def unpack(name):
+        atlas=Image.open(OUT/f'{name}.png').convert('RGBA')
+        frames=json.loads((OUT/f'{name}.json').read_text())['frames'];images={}
+        for key,f in frames.items():
+            r=f['frame'];im=atlas.crop((r['x'],r['y'],r['x']+r['w'],r['y']+r['h']))
+            p=f.get('pivot',{'x':.5,'y':1});im.info['anchor']=[p['x']*im.width,p['y']*im.height]
+            images[key]=im
+        return images
+    sprites=unpack('atlas');shadows=unpack('shadows');updates={}
+    for family in catalog['families']:
+        key=family['id']
+        if key not in ('hearth','three-stone-hearth','oven','kiln','bloomery','lever-press','trough'):continue
+        for v in range(len(family['variants'])):
+            base=f'study-prop{"b" if key in DRAW_B else ""}-{key}-{v}'
+            frames=ANIMATED.get(key,1) if key in DRAW_B else family.get('frames',1)
+            for f in range(frames):
+                im=(DRAW_B[key](v,f) if frames>1 else DRAW_B[key](v)) if key in DRAW_B else draw_prop(key,v,f)
+                updates[base+(f'-m{f}' if key in DRAW_B else f'-f{f}') if f else base]=trim(im)
+    updates.update({k:trim(v) for k,v in second_equipment_sprites().items()})
+    sprites.update(updates)
+    pack_atlas(sprites,OUT,'atlas',512)
+    with tempfile.TemporaryDirectory() as temp:
+        shadows.update(build_shadows(ROOT,updates,{},output=Path(temp),atlas_name='shadows'))
+    pack_atlas(shadows,OUT,'shadows',2048)
+    for source,target in [('atlas','props'),('shadows','prop-shadows')]:
+        (ROOT/f'src/render/generated/{target}.json').write_bytes((OUT/f'{source}.json').read_bytes())
+    from art.stamp import write_stamp
+    print(f'Updated {len(updates)} equipment frames; art stamp {write_stamp(ROOT)}')
+    sys.exit(0)
 
 sprites={};over=[]
 # A redrawn family has no A study built: the B set is what the world, the
@@ -78,6 +112,7 @@ for material,draw in REMAINS.items():
     if material in ('clay','wood','fiber'):
         im=draw(0);im.info['anchor']=[im.width//2,im.height]
         sprites[f'prop-broken-{material}']=trim(im)
+sprites.update({k:trim(v) for k,v in second_equipment_sprites().items()})
 pack_atlas(sprites,OUT,'atlas',512)
 # Animation frames share the base frame's shadow.
 # The hangings cast no shadow of their own; the frame is a state the renderer

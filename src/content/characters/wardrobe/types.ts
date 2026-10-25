@@ -45,6 +45,9 @@ export type WearerScope = {
   sex?: readonly Sex[];
   ages?: readonly AgeBand[];
   means?: readonly Means[];
+  /** For dress that marked station rather than purse: a rich grocer still
+   * wore a bowler. */
+  ranks?: readonly Rank[];
   standing?: readonly ("free" | "unfree")[];
   livelihoods?: readonly string[];
   /** Tags read off the person's stated role: soldier, sailor, astronaut,

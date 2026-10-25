@@ -88,7 +88,7 @@ import { restoreSession, ZOOM_STEPS } from "../runtime/session";
 const formatZoom = (z: number) =>
   Number.isInteger(z) ? `${z}` : z.toFixed(2).replace(/0$/, "");
 import { download } from "../runtime/storage";
-import { distance, type PlayerCommand } from "../core/types";
+import { distance, type PlayerCommand, type Position } from "../core/types";
 import { describeStats, statKeys } from "../core/stats";
 import { describeStanding, standingOf } from "../core/standing";
 import { outlookOf, shortLabel } from "../core/outlook";
@@ -130,6 +130,7 @@ import { SkillTestPanel } from "../dev/SkillTestPanel";
 import { CollapseNotice, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
 import { DeathCard } from "./DeathCard";
 import { SkillSky } from "./SkillSky";
+import type { DailyGoal } from "../content/goals/types";
 import { aimLabel, type TaskSource } from "./task-view";
 import type { SkillId } from "../core/skills";
 import { BagFlights, KeyPrompt } from "./motion";
@@ -167,20 +168,11 @@ const PortraitLab = lazy(() =>
  * spans that matter: a pause, an afternoon, and the night. */
 const REST_OPTIONS: {
   label: string;
-  command: (runtime: Runtime) => PlayerCommand;
+  seconds: (runtime: Runtime) => number;
 }[] = [
-  { label: "Rest an hour", command: () => ({ type: "sleep", seconds: 3600 }) },
-  {
-    label: "Rest five hours",
-    command: () => ({ type: "sleep", seconds: 5 * 3600 }),
-  },
-  {
-    label: "Sleep until morning",
-    command: (runtime) => ({
-      type: "sleep",
-      seconds: runtime.engine.untilMorning(),
-    }),
-  },
+  { label: "Rest an hour", seconds: () => 3600 },
+  { label: "Rest five hours", seconds: () => 5 * 3600 },
+  { label: "Sleep until morning", seconds: (runtime) => runtime.engine.untilMorning() },
 ];
 
 export function App({ runtime, onReady, active = true }: { runtime: Runtime; writer: boolean; onReady?: () => void; active?: boolean }) {
@@ -279,6 +271,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   }, [evening]);
   const [showVitals] = useState(vitalsEnabled);
   const phone = usePhoneLayout();
+  const headerActions = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const actions = headerActions.current, header = actions?.parentElement;
+    if (phone || !actions || !header) return;
+    const fit = () => header.style.setProperty("--time-control-width",
+      `${Math.max(120, 2 * (window.innerWidth / 2 - actions.getBoundingClientRect().right - 12))}px`);
+    const observer = new ResizeObserver(fit);
+    observer.observe(actions);
+    window.addEventListener("resize", fit);
+    fit();
+    return () => { observer.disconnect(); window.removeEventListener("resize", fit); };
+  }, [phone]);
   useEffect(() => {
     markEvent(`modal ${modal ?? "closed"}`);
   }, [modal]);
@@ -314,19 +318,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [narratorError, setNarratorError] = useState("");
   const [dialogueActorId, setDialogueActorId] = useState<string | null>(null);
   const commandForm = useRef<HTMLFormElement>(null);
-  const promptsBox = useRef<HTMLDivElement>(null);
-  const [promptsAside, setPromptsAside] = useState(false);
-  // With the narrator open, the prompts step left of it when the column
-  // beside the command field is wide enough, and otherwise ride above it.
-  useLayoutEffect(() => {
-    const box = promptsBox.current,
-      field = commandForm.current,
-      pane = box?.closest(".world-pane");
-    if (!narratorOpen || phone || !box || !field || !pane) return setPromptsAside(false);
-    const room = field.getBoundingClientRect().left - pane.getBoundingClientRect().left - 32;
-    const widest = Math.max(0, ...[...box.children].map((c) => (c as HTMLElement).offsetWidth));
-    setPromptsAside(widest > 0 && widest <= room);
-  }, [narratorOpen, phone, verbs.primary?.label, verbs.alternate?.label, verbs.held?.name, trader?.id]);
   const say = async () => {
     const text = command.trim();
     if (!text || narratorBusy) return;
@@ -386,6 +377,20 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setNarratorOpen(false);
     runtime.stop();
   }, [sheetOpen, runtime]);
+  const restMenu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!restOpen || phone) return;
+    const outside = (e: PointerEvent) => {
+      if (!restMenu.current?.contains(e.target as Node)) setRestOpen(false);
+    };
+    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setRestOpen(false); };
+    window.addEventListener("pointerdown", outside);
+    window.addEventListener("keydown", escape);
+    return () => {
+      window.removeEventListener("pointerdown", outside);
+      window.removeEventListener("keydown", escape);
+    };
+  }, [restOpen, phone]);
   useEffect(() => {
     if (!phone || (!restOpen && !narratorOpen)) return;
     setSidebar(false);
@@ -543,12 +548,37 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, obs.clock, modal]);
+  const [preview, setPreview] = useState<{ id?: string; pos: Position; label: string }>();
+  const previewThing = (id?: string) => {
+    const target = id ? runtime.engine.inspect(id) : undefined;
+    setPreview(target ? { id: target.id, pos: target.pos, label: target.name } : undefined);
+  };
+  const endPreview = (event: { currentTarget: HTMLElement }) => {
+    if (!event.currentTarget.matches(":hover") && !event.currentTarget.contains(document.activeElement)) setPreview(undefined);
+  };
+  const previewGoal = (goal: DailyGoal) => {
+    if (goal.done) return setPreview(undefined);
+    if (goal.check.type === "talk-to") return previewThing(goal.check.actor);
+    const plan = goal.slot === "work" ? runtime.engine.workPlan() : undefined;
+    const pos = plan?.station?.pos ?? (plan?.door ? { ...plan.door, space: "outside" } : undefined) ??
+      (goal.check.type === "reach" ? { x: goal.check.x, y: goal.check.y, space: "outside" } : undefined);
+    const entrance = pos && pos.space !== p.pos.space && pos.space !== "outside" ? runtime.engine.world.place(pos.space)?.entrance : undefined;
+    const target = entrance ? { ...entrance, space: "outside" } : pos;
+    setPreview(target ? { pos: target, label: plan?.where ?? goal.text } : undefined);
+  };
   const mount = useRef<HTMLDivElement>(null);
   const bagButton = useRef<HTMLButtonElement>(null);
+  const nearbyTab = useRef<HTMLButtonElement>(null);
   const sheetSummary = useRef<HTMLButtonElement>(null);
   const upload = useRef<HTMLInputElement>(null);
   const replayUpload = useRef<HTMLInputElement>(null);
   const game = useRef<Phaser.Game | undefined>(undefined);
+  useEffect(() => {
+    const scene = game.current?.scene.getScene("world") as WorldScene | undefined;
+    if (scene) scene.preview = preview;
+    return () => { if (scene) scene.preview = undefined; };
+  }, [preview, runtime]);
+  useEffect(() => setPreview(undefined), [sideTab, modal, selection?.id, p.pos.space, sidebar, task, runtime]);
   useLayoutEffect(() => {
     if (active && game.current?.canvas.dataset.ready === "false")
       game.current.canvas.dataset.ready = "true";
@@ -948,10 +978,53 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   };
   const evidence =
     pack.evidence.find((e) => e.id === selection?.claim) ?? pack.evidence[0];
+  // On a phone the card stacks under the notices; on a desktop it is the
+  // Today tab's work row until the day's work is done.
+  const workPlan = runtime.engine.workPlan();
+  const workLive = !phone && !!workPlan &&
+    !(workPlan.done >= workPlan.stages.length && !workPlan.waiting && !(workPlan.side && !workPlan.side.done));
+  const workCard = (
+    <WorkCard
+      runtime={runtime}
+      carded={!!card}
+      onDetails={() => {
+        const work = runtime.engine.dailyGoals().find((g) => g.slot === "work");
+        if (work) setTask({ kind: "goal", id: work.id });
+      }}
+    />
+  );
+  const countryPlace = pack.name.match(/^Country (north|northeast|east|southeast|south|southwest|west|northwest) of (.+)$/);
+  const placeTitle = countryPlace ? `${countryPlace[2]} countryside` : pack.name;
+  const placeDirection = countryPlace && `${countryPlace[1][0].toUpperCase()}${countryPlace[1].slice(1)} of ${countryPlace[2].startsWith("Lake ") ? "the lake" : countryPlace[2]}`;
+  const locationWeather = (
+    <>
+      <div className="place-heading">
+        <h2 title={pack.name}>{phone ? regionLabel : placeTitle}</h2>
+        {!phone && placeDirection && <span className="place-direction">{placeDirection}</span>}
+        <p title={`${pack.date} · Day ${day} · ${timeLabel(obs.clock)}`}>
+          {!phone && <span className="place-region">{regionLabel}</span>}
+          <em
+            className={`season season-${season.id}`}
+            style={{ ["--season" as string]: season.color }}
+          >
+            {season.label}
+          </em>
+          <small>{landscape}</small>
+        </p>
+      </div>
+      <WeatherPanel
+        bare={!phone}
+        weather={weather}
+        lighting={lighting}
+        period={period}
+      />
+    </>
+  );
   return (
     <div className={`app ${!sidebar ? "sidebar-hidden" : ""}`}
       data-world-input-blocked={touchBlocked || undefined}
       data-phone-overlay={phone && (sheetOpen ? "sheet" : restOpen ? "rest" : narratorOpen ? "narrator" : undefined)}>
+      {!phone && <SkyScene className="topbar-sky" weather={weather} lighting={lighting} />}
       {FontPicker && (
         <Suspense fallback={null}>
           <FontPicker />
@@ -996,7 +1069,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             />
           </div>
         )}
-        {!phone && <SkyScene className="topbar-sky" weather={weather} lighting={lighting} />}
         {!phone && (
           <div className="time-control">
             {pack.setting && (
@@ -1006,7 +1078,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             )}
             <button className="time-pill" onClick={() => openTime(0)} data-tip={pack.setting ? "Change place or time" : "Change your world"}>
               <TimeHistory size={15} />
-              <strong>{pack.name}</strong>
+              <strong title={pack.name}>{countryPlace?.[2] ?? pack.name}</strong>
               <i className="time-sep" aria-hidden="true" />
               <span className="time-year">{pack.date}</span>
               <span className="time-ruler" aria-hidden="true" />
@@ -1035,7 +1107,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           </span>
           <TimeHistory size={15} />
         </button>}
-        <div className="header-actions">
+        <div className="header-actions" ref={headerActions}>
           {phone && (
             <button
               className="topbar-avatar"
@@ -1080,16 +1152,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             <Settings size={19} />
           </button>
           <i className="header-divider" aria-hidden="true" />
-          <button className="quiet-button new-world" onClick={openWorld}>
-            <BookOpen size={16} /> New world
+          <button className="quiet-button new-world" aria-label="New world" data-tip="New world" onClick={openWorld}>
+            <BookOpen size={16} /> <span>New</span>
           </button>
           <a
             className="quiet-button donate"
+            aria-label="Donate"
+            data-tip="Donate"
             href="https://buy.stripe.com/5kQaEXfJLgRGbqrf1L4F201"
             target="_blank"
             rel="noreferrer"
           >
-            <Heart size={15} /> Donate
+            <Heart size={15} /> {phone && "Donate"}
           </a>
         </div>
       </header>
@@ -1238,7 +1312,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           />
           <div className="world-status">
             <div className="hud-top">
-            <Toasts space={p.pos.space} home={runtime.engine.state.households?.find((h) => h.members.includes(p.id))?.residence} events={obs.events} omit={[view.notice, runtime.engine.lastChoice?.line]} />
+            <Toasts onHistory={() => {
+              runtime.select();
+              setSideTab("today"); setSidebar(true);
+              if (phone) setSheetSnap("half");
+              requestAnimationFrame(() => {
+                const heading = document.querySelector<HTMLElement>(".today-head");
+                heading?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+                heading?.focus({ preventScroll: true });
+              });
+            }} space={p.pos.space} home={runtime.engine.state.households?.find((h) => h.members.includes(p.id))?.residence} events={obs.events} omit={[view.notice, runtime.engine.lastChoice?.line]} />
             {(view.notice || view.running) && (
               <div className="world-notice" data-walking={view.running || undefined} role="status">
                 {view.running ? <><Footprints size={13} /><span>Walking…</span><button onClick={() => runtime.stop()}><Pause size={11} /> Stop</button></> : view.notice}
@@ -1252,62 +1335,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               </div>
             )}
             </div>
-            <WorkCard
-              runtime={runtime}
-              carded={!!card}
-              onDetails={() => {
-                const work = runtime.engine.dailyGoals().find((g) => g.slot === "work");
-                if (work) setTask({ kind: "goal", id: work.id });
-              }}
-            />
-          </div>
-          <div className="prop-prompts" data-testid="prop-prompts" ref={promptsBox} data-aside={promptsAside || undefined}>
-            {obs.manifest.content === 1 && (
-              <span>
-                This saved world retains legacy props. Start a new world for
-                interactive props.
-              </span>
-            )}
-            {verbs.held && <span className="prompt-note">Holding <b>{verbs.held.name}</b></span>}
-            {verbs.primary && (
-              <KeyPrompt
-                key={verbs.primary.label}
-                code="KeyF"
-                letter="F"
-                label={verbs.primary.label}
-                kind={verbs.primary.kind}
-                hold={verbs.primary.kind === "work" ? runtime.workHold : undefined}
-                onClick={() => runVerb("primary")}
-              />
-            )}
-            {p.heldItem === "bow"
-              ? <span>Right mouse · Aim and shoot · {p.inventory.arrow ?? 0} arrows</span>
-              : p.heldItem === "sling"
-              ? <span>Right mouse · Whirl and let fly · {runtime.engine.ammo() ? "stones ready" : "no stones"}</span>
-              : (p.held || p.heldItem) && <span className="prompt-note"><kbd>X</kbd> Throw, hold to aim</span>}
-            {trader && (
-              <KeyPrompt
-                key={`trade-${trader.id}`}
-                code="KeyT"
-                letter="T"
-                label={`Trade with ${trader.name.split(" ")[0]}`}
-                kind="trade"
-                onClick={() => {
-                  setShopWith(trader.id);
-                  setModal("shop");
-                }}
-              />
-            )}
-            {verbs.alternate && (
-              <KeyPrompt
-                key={verbs.alternate.label}
-                code="KeyE"
-                letter="E"
-                label={verbs.alternate.label}
-                kind={verbs.alternate.kind}
-                onClick={() => runVerb("alternate")}
-              />
-            )}
+            {phone && workCard}
           </div>
           <div className="map-controls">
             <button
@@ -1379,7 +1407,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} />
+              <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />
               <span className="minimap-expand" aria-hidden="true">
                 <Maximize2 size={13} />
               </span>
@@ -1413,41 +1441,97 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             className={`bottom-bar${phone ? "" : " desktop-bottom-bar"}`}
             ref={measureBar}
           >
+            {!phone && (
+              <div className="prop-prompts" data-testid="prop-prompts">
+                {obs.manifest.content === 1 && (
+                  <span>
+                    This saved world retains legacy props. Start a new world for
+                    interactive props.
+                  </span>
+                )}
+                {verbs.held && <span className="prompt-note">Holding <b>{verbs.held.name}</b></span>}
+                {verbs.primary && (
+                  <KeyPrompt
+                    key={verbs.primary.label}
+                    code="KeyF"
+                    letter="F"
+                    label={verbs.primary.label}
+                    kind={verbs.primary.kind}
+                    hold={verbs.primary.kind === "work" ? runtime.workHold : undefined}
+                    onClick={() => runVerb("primary")}
+                  />
+                )}
+                {p.heldItem === "bow"
+                  ? <span>Right mouse · Aim and shoot · {p.inventory.arrow ?? 0} arrows</span>
+                  : p.heldItem === "sling"
+                  ? <span>Right mouse · Whirl and let fly · {runtime.engine.ammo() ? "stones ready" : "no stones"}</span>
+                  : (p.held || p.heldItem) && <span className="prompt-note"><kbd>X</kbd> Throw, hold to aim</span>}
+                {trader && (
+                  <KeyPrompt
+                    key={`trade-${trader.id}`}
+                    code="KeyT"
+                    letter="T"
+                    label={`Trade with ${trader.name.split(" ")[0]}`}
+                    kind="trade"
+                    onClick={() => {
+                      setShopWith(trader.id);
+                      setModal("shop");
+                    }}
+                  />
+                )}
+                {verbs.alternate && (
+                  <KeyPrompt
+                    key={verbs.alternate.label}
+                    code="KeyE"
+                    letter="E"
+                    label={verbs.alternate.label}
+                    kind={verbs.alternate.kind}
+                    onClick={() => runVerb("alternate")}
+                  />
+                )}
+              </div>
+            )}
             <div className="quick-actions">
-              <button onClick={talkToNearest} aria-label="Talk">
+              <button onClick={talkToNearest} aria-label="Talk" data-tip={`Talk · ${speaker ? "Enter" : "Q"}`}>
                 <MessageCircle size={17} />
                 <span>Talk</span>
                 <kbd data-wide={speaker ? true : undefined}>{speaker ? "Enter" : "Q"}</kbd>
               </button>
-              <button onClick={inspectNearest}>
+              <button onClick={inspectNearest} aria-label="Inspect" data-tip="Inspect · R">
                 <Search size={19} />
                 <span>Inspect</span>
                 <kbd>R</kbd>
               </button>
-              <button onClick={() => setModal("map")} aria-label="Travel">
+              <button onClick={() => setModal("map")} aria-label="Travel" data-tip="Travel · M">
                 <MapIcon size={17} />
                 <span>Travel</span>
                 <kbd>M</kbd>
               </button>
-              <div className="rest-menu">
+              <div className="rest-menu" ref={restMenu}>
                 {restOpen && (
                   <div className="rest-options" role="menu">
-                    {REST_OPTIONS.map((option) => (
-                      <button
-                        key={option.label}
-                        role="menuitem"
-                        onClick={() => {
-                          setRestOpen(false);
-                          runtime.command(option.command(runtime));
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                    {REST_OPTIONS.map((option) => {
+                      const seconds = option.seconds(runtime);
+                      return (
+                        <button
+                          key={option.label}
+                          role="menuitem"
+                          onClick={() => {
+                            setRestOpen(false);
+                            runtime.command({ type: "sleep", seconds });
+                          }}
+                        >
+                          {option.label}
+                          <small>{Math.max(1, Math.round(seconds / 3600))} h</small>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 <button
                   aria-label="Rest"
+                  data-tip="Rest"
+                  aria-haspopup="menu"
                   aria-expanded={restOpen}
                   onClick={() => { setNarratorOpen(false); setRestOpen((open) => !open); }}
                 >
@@ -1545,24 +1629,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             <ChevronDown aria-hidden="true" />
           </button>
           <section className="sky-card frame">
-            <div className="place-heading">
-              <h2>{regionLabel}</h2>
-              <p title={`${pack.date} · Day ${day} · ${timeLabel(obs.clock)}`}>
-                <em
-                  className={`season season-${season.id}`}
-                  style={{ ["--season" as string]: season.color }}
-                >
-                  {season.label}
-                </em>
-                <small>{landscape}</small>
-              </p>
-            </div>
-            <WeatherPanel
-              bare={!phone}
-              weather={weather}
-              lighting={lighting}
-              period={period}
-            />
+            {phone && locationWeather}
             <button
               className="character"
               aria-label={`Open ${p.name}'s profile`}
@@ -1635,6 +1702,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               clock={obs.clock}
             />}
           </section>
+          {!phone && <section className="location-weather">{locationWeather}</section>}
           <section className="region-section frame">
             <div className="section-heading">
               <h2>Map</h2>
@@ -1661,7 +1729,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              {!phone && <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} />}
+              {!phone && <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />}
               <span className="north">N ↑</span>
               <span className="map-scale">
                 <i />
@@ -1670,6 +1738,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   : "220 m"}
               </span>
             </button>
+            {guide && <div className="map-destination" role="status">
+              <MapPin size={13} /><span>{guide.label ?? "Marked destination"}</span>
+              <button aria-label="Clear destination" onClick={() => runtime.setGuide(undefined)}><X size={14} /></button>
+            </div>}
           </section>
           <section className="context-section frame">
             {selection ? (
@@ -1794,7 +1866,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   ).map(([id, label]) => (
                     <button
                       key={id}
-                      ref={id === "inventory" ? bagButton : undefined}
+                      ref={id === "inventory" ? bagButton : id === "around" ? nearbyTab : undefined}
                       role="tab"
                       aria-selected={sideTab === id}
                       onClick={() => setSideTab(id)}
@@ -1829,6 +1901,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         <button
                           key={t.id ?? `${t.kind}:${t.name}`}
                           disabled={!t.id}
+                          data-world-target={t.id}
+                          onMouseEnter={() => previewThing(t.id)}
+                          onMouseLeave={endPreview}
+                          onFocus={() => previewThing(t.id)}
+                          onBlur={endPreview}
                           data-mark={t.id ? markOf(runtime.engine.state, t.id) : undefined}
                           onClick={() => {
                             if (!t.id) return;
@@ -1836,15 +1913,17 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                             if (actor) openCharacter(t.id);
                           }}
                         >
+                          <span className="nearby-thumbnail">
                           {actor ? (
                             <CharacterSprite
                               appearance={runtime.appearanceFor(actor)}
                             />
                           ) : t.sprite ? (
-                            <Sprite name={t.sprite} scale={1} />
+                            <Sprite name={t.sprite} scale={1} maxSize={36} />
                           ) : (
                             <i className="nearby-blank" aria-hidden="true" />
                           )}
+                          </span>
                           <span>
                             {t.count ? `${t.name} ×${t.count}` : t.name}
                             {t.detail && <small>{t.detail}</small>}
@@ -1854,7 +1933,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       );
                     })}
                     {nearby.length === 0 && (
-                      <p>{nearbyAll ? (p.identity?.concern ?? pack.concern) : "No one within earshot."}</p>
+                      <div className="sidebar-empty">
+                        <Compass size={25} aria-hidden="true" />
+                        <h3>{nearbyAll ? "A quiet stretch of the world" : "No one within earshot"}</h3>
+                        <p>{nearbyAll ? "Nothing close enough to inspect. Keep walking, or choose a direction on the map." : "Walk a little farther, or look for useful things nearby."}</p>
+                        <button onClick={() => nearbyAll ? setModal("map") : setNearbyAll(true)}>
+                          {nearbyAll ? "Explore the map" : "Look for things nearby"}<ArrowRight size={14} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1879,7 +1965,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         </button>
                       ))}
                     {!Object.values(p.inventory).some((n) => n! > 0) && (
-                      <p>You carry nothing.</p>
+                      <div className="sidebar-empty">
+                        <ShoppingBag size={25} aria-hidden="true" />
+                        <h3>Travelling light</h3>
+                        <p>Find useful objects nearby, or trade with someone you meet. Your supplies will appear here.</p>
+                        <button onClick={() => { setNearbyAll(true); setSideTab("around"); nearbyTab.current?.focus(); }}>Look nearby<ArrowRight size={14} /></button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1913,9 +2004,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       {runtime.dayGoals().length > 0 ? (
                         [...runtime.dayGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g, i) => {
                           const [Icon, kind] = g.slot === "work" ? [Hammer, "Work"] : g.id.startsWith("fest.") ? [PartyPopper, "Holiday"] : [MapPin, "Errand"];
+                          if (g.slot === "work" && workLive)
+                            return <li key={g.id} className="today-work" onMouseEnter={() => previewGoal(g)} onMouseLeave={endPreview} onFocus={() => previewGoal(g)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPreview(undefined); }} style={{ "--i": i } as React.CSSProperties}>{workCard}</li>;
                           return (
                             <li key={g.id} style={{ "--i": i } as React.CSSProperties}>
-                              <button data-aim={g.id === aimGoal || undefined} data-done={g.done || undefined} onClick={() => setTask({ kind: "goal", id: g.id })}>
+                              <button onMouseEnter={() => previewGoal(g)} onMouseLeave={endPreview} onFocus={() => previewGoal(g)} onBlur={endPreview} data-aim={g.id === aimGoal || undefined} data-done={g.done || undefined} onClick={() => setTask({ kind: "goal", id: g.id })}>
                                 <span className="today-icon"><Icon size={15} /></span>
                                 <span className="today-text">
                                   <small>{kind}{g.id === aimGoal && " · today's aim"}</small>
@@ -1927,7 +2020,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           );
                         })
                       ) : (
-                        <li className="today-empty">{p.identity?.concern ?? pack.concern}</li>
+                        <li className="sidebar-empty">
+                          <Sun size={25} aria-hidden="true" /><h3>The day is yours</h3>
+                          <p>Nothing scheduled. Explore, meet someone, or make time for your own plans.</p>
+                          <button onClick={() => setModal("map")}>Explore the map<ArrowRight size={14} /></button>
+                        </li>
                       )}
                       {runtime.engine.state.plot && !runtime.engine.state.plot.ended && (
                         <li>
@@ -1955,7 +2052,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         );
                       })}
                     </ul>
-                    <h3 className="today-head">Lately</h3>
+                    <h3 className="today-head" tabIndex={-1}>Lately</h3>
+                    {!runtime.engine.state.events.length && <p className="today-empty-log">As you explore, the day’s moments will appear here.</p>}
                     <ol className="today-log">
                       {[...runtime.engine.state.events]
                         .reverse()

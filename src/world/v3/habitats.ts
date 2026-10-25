@@ -19,6 +19,8 @@ export type Habitat = {
   blend?: { ecology: Ecology; colorway?: Colorway; weight: number }[];
   vegetation?: VegetationPattern;
   layeredForest?: boolean;
+  /** Shared stand structure: 0 is a clearing, 1 is a grove interior. */
+  grove?: number;
   ecology: Ecology;
   colorway?: Colorway;
   kind: HabitatKind;
@@ -31,6 +33,13 @@ export type Habitat = {
   season: string;
 };
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
+export function groveAt(seed: string, x: number, y: number) {
+  const warp = (noise(seed, x, y, 42, "grove-warp") - 0.5) * 9;
+  const stand = noise(seed, x + warp, y - warp, 18, "grove-stand") * 0.8 +
+    noise(seed, x, y, 8, "grove-detail") * 0.2;
+  return clamp((stand - 0.35) / 0.3);
+}
+export const groveEdge = (grove: number) => Math.max(0, 1 - Math.abs(grove - 0.45) / 0.35);
 /** Local plant communities within an envelope, never a substitute climate.
  * Correlated broad patches and smaller colonies use absolute world coordinates.
  * Wet hollows follow low terrain; exposed mineral ground favors higher tiers. */

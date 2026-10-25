@@ -71,9 +71,12 @@ try {
   await confirm.or(page.locator(".arrival")).waitFor({ state: "visible", timeout: 30000 });
   if (await confirm.isVisible()) await confirm.click();
   // The arrival card holds play until "Enter life" is pressed.
-  await page
-    .getByRole("button", { name: /Enter life/ })
-    .click({ timeout: 120000 });
+  const enter = page.getByRole("button", { name: /Enter life/ });
+  const startError = page.locator(".modal-world [role='alert'], .splash:not(:has(.modal-world, .arrival)) > .splash-error");
+  await enter.or(startError).first().waitFor({ state: "visible", timeout: 120000 });
+  if (await startError.first().isVisible())
+    throw Error(`Could not start ${JSON.stringify(prompt)}: ${await startError.first().innerText()}`);
+  await enter.click({ timeout: 120000 });
   await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 120000 });
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.waitForFunction(() => !!(window as any).historySim, null, {

@@ -13,7 +13,7 @@ import {
   voxelItemsReady,
 } from "../render/voxel-items";
 
-export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
+export function Sprite({ name, scale = 2, maxSize }: { name: string; scale?: number; maxSize?: number }) {
   const sheets = useSheets();
   if (!sheets) return null;
   const source = name.startsWith("fauna-")
@@ -45,6 +45,7 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
                     : sheets.atlas;
   const f = source.frames[name]?.frame;
   if (!f) return null;
+  if (maxSize) scale = Math.min(scale, maxSize / Math.max(f.w, f.h));
   // The sheet is shown at its own size and the element is scaled afterwards.
   // Scaling backgroundSize instead makes the browser rasterise the whole sheet
   // at the zoomed size — 4096x3279 at scale 2 is 215MB for one 32px icon, and

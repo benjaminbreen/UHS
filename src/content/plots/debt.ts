@@ -4,6 +4,7 @@ import { stapleOf } from "../agriculture";
 import { capabilitiesFor } from "../characters/resolve";
 import { amountIn } from "../economy/money";
 import { goodName, sellerOf } from "../economy/products";
+import { ruled } from "../history/order";
 import type { Actor, HouseholdPurchase } from "../../core/types";
 import type { PlotContext, PlotTemplate } from "./types";
 
@@ -61,7 +62,8 @@ export const debt: PlotTemplate = {
     emblem: "slate",
     palette: { ink: "#141a1c", fill: "#1f2a29", edge: "#5a3d26", light: "#e9e5d6", accent: "#b8483a" },
   },
-  weight: (c) => (creditorOf(c) ? (c.household?.owes ? 1.2 : 0.7) : 0),
+  // Where nobody rules, help without a recorded debt is a gift to return; see gift.ts.
+  weight: (c) => (!creditorOf(c) ? 0 : c.household?.owes ? 1.2 : !c.setting || ruled(c.setting) ? 0.45 : 0),
   cast: (c) => {
     const creditor = creditorOf(c);
     return creditor && { creditor };

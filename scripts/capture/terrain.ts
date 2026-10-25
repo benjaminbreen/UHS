@@ -31,6 +31,43 @@ type Review = {
 };
 
 const reviews: Record<string, Review> = {
+  placements: {
+    dir: `artifacts/placement-composition/${process.env.UHS_REVIEW_PHASE ?? "after"}`,
+    title: "Fields, building clearance and rural house fitting",
+    seed: "placement-composition",
+    common: `ecology=temperate-woodland&water=none&season=spring&year=1400&start=resident&vegetationRevision=8&placementRevision=${process.env.UHS_PLACEMENT_REVISION ?? 1}`,
+    centre: "none",
+    studies: [
+      ["flat-village", "place=normandy&landform=plain&relief=0&population=sparse&pattern=clustered"],
+      ["hillside-village", "place=normandy&landform=rolling&relief=0.55&population=sparse&pattern=clustered"],
+      ["field-edge", "place=normandy&landform=plain&relief=0&population=sparse&pattern=clustered"],
+      ["dense-town", "place=london&landform=plain&relief=0&population=settled&pattern=dense"],
+    ],
+  },
+  groves: {
+    dir: `artifacts/grove-composition/${process.env.UHS_REVIEW_PHASE ?? "after"}`,
+    title: "Shared groves, clearings and woodland edges",
+    seed: "scenery-composition",
+    common: `season=spring&landform=plain&relief=0&year=785&water=none&vegetationRevision=${process.env.UHS_VEGETATION_REVISION ?? 8}`,
+    centre: "none",
+    studies: [
+      ["temperate", "ecology=temperate-woodland&population=none&start=wanderer"],
+      ["tropical", "ecology=tropical-woodland&population=none&start=wanderer"],
+      ["settlement-edge", "place=normandy&ecology=temperate-woodland&population=sparse&start=resident&pattern=clustered"],
+    ],
+  },
+  scenery: {
+    dir: `artifacts/scenery-composition/${process.env.UHS_REVIEW_PHASE ?? "after"}`,
+    title: "Ground wear, tree lighting and shoreline groups",
+    seed: "scenery-composition",
+    common: "season=spring&landform=plain&relief=0&year=785",
+    centre: "none",
+    studies: [
+      ["wear", "place=normandy&ecology=temperate-woodland&population=sparse&start=resident&water=none&pattern=clustered"],
+      ["woodland", "ecology=temperate-woodland&population=none&start=wanderer&water=none"],
+      ["shore", "ecology=tropical-woodland&population=none&start=wanderer&water=coast-n&waterContext"],
+    ],
+  },
   cliffs: {
     dir: "artifacts/cliff-review",
     title: "Continuous beach and terrace contours",
@@ -238,6 +275,39 @@ async function run(review: Review) {
         seed: review.seed,
         pauseWater: !query.includes("waterContext"),
       });
+      if (review === reviews.scenery || review === reviews.groves || review === reviews.placements) {
+        await page.addStyleTag({ content: ".gsp{display:none!important}" });
+        await page.evaluate(() => {
+          (window as any).terrainLab.scene.options.waterAnimation = false;
+        });
+      }
+      if (review === reviews.placements) {
+        await zoom(page, 1);
+        await page.evaluate((edge) => {
+          const lab = (window as any).terrainLab, world = lab.runtime.engine.world;
+          const town = [...world.settlements].sort((a, b) => Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y))[0];
+          if (!town) throw new Error("No settlement for the placement review");
+          const center = { x: town.x + (edge ? Math.round(town.size * 1.25) : 0), y: town.y };
+          lab.scene.options.center = center;
+          lab.scene.draw();
+          lab.scene.cameras.main.centerOn(center.x * 16 + 8, center.y * 16 + 8);
+        }, name === "field-edge");
+        await settled(page);
+      }
+      if (review === reviews.groves) await zoom(page, 1);
+      if (review === reviews.groves && name === "settlement-edge") {
+        await page.evaluate(() => {
+          const lab = (window as any).terrainLab, world = lab.runtime.engine.world;
+          const town = [...world.settlements].sort((a, b) =>
+            Math.hypot(a.x - world.spawn.x, a.y - world.spawn.y) - Math.hypot(b.x - world.spawn.x, b.y - world.spawn.y))[0];
+          if (!town) throw new Error("No settlement for the woodland-edge review");
+          const center = { x: town.x + Math.round(town.size * 0.9), y: town.y };
+          lab.scene.options.center = center;
+          lab.scene.draw();
+          lab.scene.cameras.main.centerOn(center.x * 16 + 8, center.y * 16 + 8);
+        });
+        await settled(page);
+      }
       if (review.centre === "spawn") await centreOnSpawn(page);
       if (review.centre === "paths" && name.startsWith("grassland"))
         await centreOnPaths(page);

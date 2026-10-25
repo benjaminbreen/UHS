@@ -18,6 +18,61 @@ grounds, fish, row back. The catch scales with season, hour and the day's luck,
 and says why. Cities only route a budgeted share of residents, so some boats
 stay moored there.
 
+## Distinct household equipment forms — October 18, 2026
+
+Both reviewed forms now ship as twelve separately named objects: clay tannur
+and banked oven, brick/iron and clay/brass kettle stoves, bronze bowl and vented
+iron braziers, raised and woven hen shelters, rail and wattle pens, and vise
+and low planing benches. Regional/date eligibility selects among appropriate
+forms. Native sprites preserve the approved player-relative scale, outlines,
+fire animation, pivots and six lighting masks. Indoor workshop fixtures use
+the selected sprite; both benches support woodwork. Outdoor placement avoids
+building footprints. Prepared-world revision 33 refreshes generated scenes.
+
+Generated indoor and outdoor examples were visually checked at
+`artifacts/scenery-review/distinct-equipment-inside.png` and
+`artifacts/scenery-review/distinct-equipment-outside-congo.png`.
+All 28 prop checks and both extended baking checks pass; the default suite
+passes 995 tests. Hanging signs no longer disappear because an actor starts
+beneath their intended position.
+
+## Household and workshop equipment — October 18, 2026
+
+The reviewed hearth, oven, pottery kiln, bloomery, press and trough now replace
+their shipped atlas frames. B is the baseline; three-stone hearths use C, and
+brick ovens/kilns, stone-clad furnaces, screw presses and stone troughs use
+bounded regional/date selection. Existing frame names retain the new art in
+saved scenes. Expanded placement clearances use prepared-world revision 32.
+Fires keep their animation; kilns gain ember motion. Native pivots and all six
+lighting masks follow the larger shapes. The normal prop build includes the
+painters, with `--equipment-only` available for a targeted atlas refresh.
+
+Twenty-five prop checks pass, including Belgrade's ordinary shared-oven path,
+variant boundaries, retained inventory/ownership, animation frames and shadows.
+A generated Belgrade 1350 scene was visually checked at
+`artifacts/scenery-review/equipment-installed-belgrade.png`.
+
+## Second regional container batch — October 18, 2026
+
+The twelve approved B sprites now ship as native container props: Egyptian and
+Canaanite jars, painted northwest Chinese pottery, a coiled grain hamper,
+Mexican olla, Andean sack, parfleche, Pacific leaf basket, raised woven grain
+bin, stoneware crock, glass demijohn and reused kerosene tin. Regional and date
+windows include appropriate port trade and later continuations. Early plain
+basketry and sack coverage is explicitly treated as reconstruction.
+
+The existing indoor furniture, household stores, yards and portable-object
+rendering use the same definitions. Substitutions retain goods and ownership;
+the grain bin stays nonportable. Prepared-world revision 31 refreshes generated
+areas without rewriting saved furnishings. Both batches are included in the
+normal art build, with native pivots and all six lighting masks.
+
+All twelve atlas crops match the approved review images. Indoor/outdoor selection
+and historical boundary checks pass; the project gate passes with 980 tests,
+typechecking and production build. Generated-game captures were reviewed at
+`artifacts/scenery-review/containers-batch2-installed-inside.png` and
+`artifacts/scenery-review/containers-batch2-installed-outside.png`.
+
 ## Directional Nile reed skiff — October 18, 2026
 
 The Middle Kingdom Nile fishing profile now uses an eight-direction reed skiff

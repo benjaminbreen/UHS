@@ -39,21 +39,18 @@ export function NarratorPanel({
         pane = a?.closest(".world-pane");
       if (!a || !pane) return;
       const r = a.getBoundingClientRect(),
-        p = pane.getBoundingClientRect();
+        p = pane.getBoundingClientRect(),
+        // Above the whole dock, not just the field, so it clears the prompts row.
+        bottom = p.bottom - a.closest(".bottom-bar")!.getBoundingClientRect().top;
       // The action input is a narrow slot on a phone; a column that shape puts
       // three words on a line and covers the stick. Take the whole pane there.
       if (window.matchMedia?.(PHONE_QUERY).matches)
-        setStyle({
-          left: 0,
-          width: (pane as HTMLElement).clientWidth,
-          bottom: p.bottom - a.closest(".bottom-bar")!.getBoundingClientRect().top,
-        });
-      else
-        setStyle({
-          left: r.left - p.left,
-          width: r.width,
-          bottom: p.bottom - r.top,
-        });
+        setStyle({ left: 0, width: (pane as HTMLElement).clientWidth, bottom });
+      else {
+        // Wide enough to read even over a narrow field, kept to its right edge.
+        const width = Math.max(r.width, Math.min(460, (pane as HTMLElement).clientWidth - 32));
+        setStyle({ left: Math.max(16, r.right - p.left - width), width, bottom });
+      }
     };
     place();
     window.addEventListener("resize", place);

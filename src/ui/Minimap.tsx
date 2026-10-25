@@ -8,6 +8,8 @@ import { timed } from "../render/perf-switches";
 import { faunaProfile } from "../content/fauna";
 import minimapTones from "../render/generated/minimap-tones.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
+import { cloudWash, washAt } from "../render/lighting";
+import { skySeed, weatherAt } from "../core/weather";
 import {
   atlasRivers,
   atlasSample,
@@ -50,6 +52,98 @@ const shade: Record<string, string> = {
 const buildingColors: Record<string, { roof: string; wall: string }> = minimapTones;
 function buildingTones(sprite: string) {
   return buildingColors[sprite] ?? { roof: "#4a5560", wall: "#d8cfb0" };
+}
+/** The live map under the scene's own sky: the same hour wash and cloud grey,
+ * so a wet pre-dawn is not a sunlit green on the map. */
+function mapSky(runtime: Runtime) {
+  const e = runtime.engine;
+  const setting = e.world.pack.setting;
+  const clock = runtime.displayClock();
+  const weather = setting
+    ? weatherAt(skySeed(e.state.manifest), setting.climate, setting.season, e.state.clock)
+    : undefined;
+  const wash = washAt(clock);
+  return {
+    wash,
+    weather,
+    hour: (((clock / 3600) % 24) + 24) % 24,
+    // The scene's thresholds: night proper past dusk's wash, full grey at 0.3.
+    night: Math.max(0, Math.min(1, (wash.alpha - 0.14) / 0.28)),
+    dull: weather ? Math.min(1, cloudWash(weather) / 0.3) : 0,
+  };
+}
+type Sky = ReturnType<typeof mapSky>;
+function paintSky(c: CanvasRenderingContext2D, sky: Sky, w: number, h: number, mx: number, my: number) {
+  const { wash, night, dull, hour } = sky;
+  if (wash.alpha > 0) {
+    // Moonlight pools where you stand and the far fields sink into the dark.
+    const rgb = `${wash.color >> 16},${(wash.color >> 8) & 255},${wash.color & 255}`;
+    const g = c.createRadialGradient(mx, my, 0, mx, my, Math.hypot(w, h) * 0.6);
+    g.addColorStop(0, `rgba(${rgb},${wash.alpha * (1 - 0.35 * night)})`);
+    g.addColorStop(1, `rgba(${rgb},${Math.min(0.8, wash.alpha * (1 + night))})`);
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    // The scene's moonlight takes the green out of turf; on the map, a cool multiply.
+    c.globalCompositeOperation = "multiply";
+    c.fillStyle = `rgba(140,165,225,${0.6 * night})`;
+    c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = "source-over";
+  }
+  // Low sun reaches in from its own side: east at dawn, west at evening.
+  const golden = wash.golden * (1 - dull);
+  if (golden > 0) {
+    const east = hour < 12;
+    const g = c.createLinearGradient(east ? w : 0, 0, east ? 0 : w, 0);
+    g.addColorStop(0, `rgba(255,154,74,${golden * 0.45})`);
+    g.addColorStop(0.75, "rgba(255,154,74,0)");
+    c.globalCompositeOperation = "soft-light";
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = "source-over";
+  }
+  if (dull > 0) {
+    c.fillStyle = `rgba(102,109,120,${dull * 0.18})`;
+    c.fillRect(0, 0, w, h);
+  }
+}
+/** Firelight in doors and windows after dark, on the same pixels the
+ * background drew them. */
+function paintLamps(
+  c: CanvasRenderingContext2D,
+  world: WorldModel,
+  sky: Sky,
+  px: (wx: number, wy: number) => { x: number; y: number },
+  size: number,
+  height: number,
+  extent: number,
+) {
+  const glow = sky.wash.lamps;
+  if (glow <= 0) return;
+  // Most houses keep a fire through the evening; after midnight only a few,
+  // then the early risers before dawn.
+  const share = sky.hour >= 17 ? 0.85 : sky.hour < 4 ? 0.2 : 0.55;
+  for (const b of world.places) {
+    if (hash(b.x * 3 + 1, b.y * 7 + 2) > share) continue;
+    const { x, y } = px(b.x + b.w / 2, b.y + b.h);
+    if (x < -8 || y < -8 || x > size + 8 || y > height + 8) continue;
+    const w = Math.max(6, Math.round((b.w * size) / extent) + 2);
+    const h = Math.max(6, Math.round(w * 0.8));
+    const left = x - Math.floor(w / 2),
+      wallTop = y - h + Math.max(3, Math.round(h * 0.45));
+    const halo = c.createRadialGradient(x, y - 1, 0, x, y - 1, w * 0.9 + 3);
+    halo.addColorStop(0, `rgba(255,170,80,${0.4 * glow})`);
+    halo.addColorStop(1, "rgba(255,170,80,0)");
+    c.globalCompositeOperation = "screen";
+    c.fillStyle = halo;
+    c.fillRect(x - w - 4, y - w - 4, w * 2 + 8, w * 2 + 8);
+    c.globalCompositeOperation = "source-over";
+    c.fillStyle = `rgba(255,214,130,${glow})`;
+    c.fillRect(x - 1, y - 2, 2, 2);
+    if (w >= 10) {
+      c.fillRect(left + 2, wallTop + 1, 2, 2);
+      c.fillRect(left + w - 4, wallTop + 1, 2, 2);
+    }
+  }
 }
 /** Ground far outside the region, read from the Earth atlas: one coastline
  *  lookup instead of generating terrain the region never sited. */
@@ -537,6 +631,7 @@ export function Minimap({
   center,
   dims,
   route,
+  highlight,
 }: {
   runtime: Runtime;
   large?: boolean;
@@ -547,6 +642,7 @@ export function Minimap({
   dims?: [number, number];
   /** A chosen destination, drawn with a dashed route from the player. */
   route?: Point;
+  highlight?: { pos: Point; label: string };
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const backing = useRef<Backing | undefined>(undefined);
@@ -566,6 +662,10 @@ export function Minimap({
   const origin =
     center ?? ((large || regional) && !world.pack.setting ? { x: 20, y: 25 } : p);
   const places = world.places.length;
+  const sky = large ? undefined : mapSky(runtime);
+  // Redrawn every ten minutes of the day, and when the weather turns.
+  const skyKey = sky ? `${Math.floor(sky.hour * 6)}:${sky.weather?.condition}:${sky.dull.toFixed(2)}` : "";
+  const weather = sky?.weather?.condition === "light-clouds" ? (sky.wash.alpha < 0.15 ? "clouds" : undefined) : sky?.weather?.condition;
   // Spends the frame's map budget on a deferred rebuild. The old map stays on
   // screen until the new one is finished, which is a beat later at most.
   useEffect(() => {
@@ -680,6 +780,8 @@ export function Minimap({
       const ctx = canvas.getContext("2d")!;
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, size, height);
+      if (sky)
+        ctx.filter = `saturate(${1 - 0.55 * sky.night - 0.35 * sky.dull}) brightness(${1 - 0.25 * sky.night - 0.06 * sky.dull})`;
       ctx.drawImage(
         map.canvas,
         PAD + ((origin.x - map.origin.x) * size) / extent,
@@ -691,11 +793,22 @@ export function Minimap({
         size,
         height,
       );
+      ctx.filter = "none";
       const mx = ((p.x - origin.x) * size) / extent + size / 2,
         my = ((p.y - origin.y) * size) / extent + height / 2;
+      if (sky) {
+        paintSky(ctx, sky, size, height, mx, my);
+        const at = map.origin,
+          dx = Math.round(((origin.x - at.x) * size) / extent),
+          dy = Math.round(((origin.y - at.y) * size) / extent);
+        paintLamps(ctx, world, sky, (wx, wy) => ({
+          x: Math.round(((wx - at.x) * size) / extent + size / 2) - dx,
+          y: Math.round(((wy - at.y) * size) / extent + height / 2) - dy,
+        }), size, height, extent);
+      }
       if (route) {
-        const tx = ((route.x - origin.x) * size) / extent + size / 2,
-          ty = ((route.y - origin.y) * size) / extent + height / 2;
+        const tx = Math.max(9, Math.min(size - 9, ((route.x - origin.x) * size) / extent + size / 2)),
+          ty = Math.max(9, Math.min(height - 9, ((route.y - origin.y) * size) / extent + height / 2));
         ctx.setLineDash([6, 5]);
         ctx.lineWidth = 2;
         ctx.strokeStyle = "#f3d38f";
@@ -706,6 +819,16 @@ export function Minimap({
         ctx.setLineDash([]);
         ctx.beginPath();
         ctx.arc(tx, ty, 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (highlight) {
+        const x = Math.max(8, Math.min(size - 8, ((highlight.pos.x - origin.x) * size) / extent + size / 2));
+        const y = Math.max(8, Math.min(height - 8, ((highlight.pos.y - origin.y) * size) / extent + height / 2));
+        ctx.strokeStyle = "#172031";
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = "#f3d38f";
+        ctx.lineWidth = 2;
         ctx.stroke();
       }
       ctx.lineWidth = 2;
@@ -760,6 +883,9 @@ export function Minimap({
     revision,
     route?.x,
     route?.y,
+    highlight?.pos.x,
+    highlight?.pos.y,
+    skyKey,
   ]);
   return (
     <span className="minimap-frame">
@@ -792,6 +918,15 @@ export function Minimap({
         }}
         onMouseLeave={() => setPin(undefined)}
       />
+      {weather && weather !== "clear" && weather !== "overcast" && (
+        <span
+          className="map-weather"
+          data-weather={weather}
+          style={{ "--lean": Math.cos(sky!.weather!.wind.angle) * sky!.weather!.wind.strength } as React.CSSProperties}
+          aria-hidden="true"
+        />
+      )}
+      {highlight && <span className="map-highlight" title={highlight.label}>{highlight.label}</span>}
       {pin && (
         <span className="map-pin" style={{ left: pin.x, top: pin.y }}>
           {pin.text}

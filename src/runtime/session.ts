@@ -1820,11 +1820,15 @@ export class Runtime {
     const station = plan?.station;
     const garden = plan && plan.done >= plan.stages.length && plan.side && !plan.side.done ? plan.side : undefined;
     if (garden) return p.space === "outside" ? { pos: garden.pos, label: "Your garden", work: true } : undefined;
-    if (!plan || !station || plan.done >= plan.stages.length) {
+    if (!plan || plan.done >= plan.stages.length) {
       this.guide = undefined;
       return;
     }
-    const pos = station.pos.space === p.space ? station.pos : plan.door;
+    let pos = station?.pos.space === p.space ? station.pos : plan.door;
+    if (pos && pos.space !== p.space && pos.space !== "outside") {
+      const entrance = this.engine.world.place(pos.space)?.entrance;
+      pos = entrance ? { ...entrance, space: "outside" } : undefined;
+    }
     return pos && { pos, label: plan.where, work: true };
   }
   releaseCharge() {

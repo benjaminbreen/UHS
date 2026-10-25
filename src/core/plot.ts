@@ -55,6 +55,29 @@ export function plotLine(plot: PlotState, key: string) {
   return line.replace(/\{(\w+)\}/g, (_, w) => plot.words[w] ?? "");
 }
 
+const RECENT = "uhs.recent-plots";
+/** How much a plot from one, two, three or four lives ago is held back. */
+const REPEAT = [0.15, 0.35, 0.6, 0.8];
+
+/** Plots of the last few lives in this browser, newest first. Outside a
+ * browser there are none, so seeded runs and tests choose the same way. */
+function recentPlots(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const ids = JSON.parse(window.localStorage.getItem(RECENT) ?? "[]");
+    return Array.isArray(ids) ? ids : [];
+  } catch {
+    return [];
+  }
+}
+
+function remember(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(RECENT, JSON.stringify([id, ...recentPlots().filter((x) => x !== id)].slice(0, REPEAT.length)));
+  } catch { /* storage blocked: every life draws fresh */ }
+}
+
 /** The game's choice for this life, or undefined when no plot fits. */
 export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState | undefined {
   if (snapshot.plot) return snapshot.plot;
@@ -69,8 +92,9 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
     households,
     household: households.find((h) => h.members.includes(snapshot.player.id)),
   };
+  const recent = recentPlots();
   const chosen = PLOTS
-    .map((t) => ({ t, score: t.weight(context) * (0.5 + random(seed, "plot", t.id, snapshot.player.id)) }))
+    .map((t) => ({ t, score: t.weight(context) * (0.5 + random(seed, "plot", t.id, snapshot.player.id)) * (REPEAT[recent.indexOf(t.id)] ?? 1) }))
     .filter((c) => c.score > 0)
     .sort((a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id))[0]?.t;
   const cast = chosen?.cast(context);
@@ -94,6 +118,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
     aim: snapshot.lifeAim,
   };
   snapshot.plot = plot;
+  remember(plot.id);
   snapshot.lifeAim = {
     id: `plot:${plot.id}`,
     text: plotLine(plot, "aim"),

@@ -105,6 +105,7 @@ export const settingSchema = z
     streetRevision: z.literal(1).optional(),
     // Towns straighten the contours under them and wall their steps.
     terraceRevision: z.literal(1).optional(),
+    placementRevision: z.union([z.literal(0), z.literal(1)]).optional(),
     vegetationRevision: z
       .union([
         z.literal(1),
@@ -114,6 +115,7 @@ export const settingSchema = z
         z.literal(5),
         z.literal(6),
         z.literal(7),
+        z.literal(8),
       ])
       .optional(),
     ecologyRevision: z.union([z.literal(1), z.literal(2)]).optional(),

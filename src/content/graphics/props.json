@@ -331,14 +331,14 @@
       "name": "Water or feed trough",
       "group": "Water sources",
       "size": [
-        48,
-        23
+        76,
+        41
       ],
       "description": "A long low receptacle with a deep shaded interior and separately authored hollowed-wood or masonry forms.",
       "variants": [
-        "Hollowed wood",
-        "Sandstone",
-        "Stone"
+        "Pegged timber trough",
+        "Carved stone trough",
+        "Pegged timber trough"
       ]
     },
     {
@@ -645,12 +645,12 @@
       "name": "Open firepit",
       "group": "Household",
       "size": [
-        34,
-        42
+        50,
+        37
       ],
       "description": "A ring of grey kerb stones round a few burning sticks; the small fire and the fallback.",
       "variants": [
-        "Lit firepit"
+        "Stone-kerbed open hearth"
       ],
       "frames": 8
     },
@@ -659,14 +659,14 @@
       "name": "Communal bake oven",
       "group": "Household",
       "size": [
-        27,
-        29
+        64,
+        69
       ],
       "description": "A clay dome on a stone base, its mouth glowing and a lick of flame at the lip.",
       "variants": [
-        "Terracotta",
-        "Buff clay",
-        "Red earth"
+        "Clay dome on stone base",
+        "Brick-vault bake oven",
+        "Clay dome on stone base"
       ],
       "frames": 4
     },
@@ -1858,12 +1858,12 @@
       "name": "Three-stone hearth",
       "group": "Household",
       "size": [
-        42,
-        42
+        56,
+        57
       ],
       "description": "A round clay pot on three stones, sticks pushed in from the sides.",
       "variants": [
-        "Lit hearth"
+        "Three-stone cooking hearth"
       ],
       "frames": 8
     },
@@ -3046,13 +3046,13 @@
       "name": "Pottery kiln",
       "group": "Work & agriculture",
       "size": [
-        28,
-        26
+        56,
+        79
       ],
       "description": "An updraft kiln: a clay dome over a firebox, stoked through the mouth at its foot.",
       "variants": [
-        "Red clay",
-        "Buff clay"
+        "Clay updraft kiln",
+        "Brick updraft kiln"
       ]
     },
     {
@@ -3101,13 +3101,13 @@
       "name": "Beam press",
       "group": "Work & agriculture",
       "size": [
-        58,
-        30
+        102,
+        79
       ],
       "description": "A beam press: a long lever weighted with a stone, squeezing baskets of olive or grape pulp.",
       "variants": [
-        "Olive",
-        "Grape"
+        "Weighted lever press",
+        "Twin-post screw press"
       ]
     },
     {
@@ -3156,13 +3156,13 @@
       "name": "Bloomery furnace",
       "group": "Work & agriculture",
       "size": [
-        26,
-        32
+        74,
+        80
       ],
       "description": "A clay shaft furnace for smelting iron, blown by a pair of bellows.",
       "variants": [
-        "Red clay",
-        "Buff clay"
+        "Clay shaft furnace",
+        "Stone-clad shaft furnace"
       ]
     },
     {

@@ -1,4 +1,5 @@
 import presets from "../content/graphics/lighting.json" with { type: "json" };
+import type { Weather } from "../core/weather";
 export type LightingId =
   | "early-morning"
   | "morning"
@@ -86,4 +87,17 @@ export function gradeAt(clock: number) {
     light: mix(a.grade.light, b.grade.light),
     curve: a.grade.curve + (b.grade.curve - a.grade.curve) * t,
   };
+}
+
+/** How far cloud and wet ground grey the outdoors, 0 to 0.3. */
+export function cloudWash(w: Weather) {
+  const cloud =
+    w.condition === "rain" || w.condition === "snow"
+      ? 1
+      : w.condition === "overcast"
+        ? 0.45
+        : w.condition === "mist"
+          ? 0.2
+          : 0;
+  return Math.min(0.3, cloud * 0.16 + w.wetness * 0.12);
 }

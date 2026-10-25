@@ -11,6 +11,7 @@ import {
 import { techFor } from "./selection";
 import { historicalWell } from "./wells";
 import { regionalContainer } from "./containers";
+import { equipmentVariant, equipmentChoices, equipmentProps } from "./equipment";
 import { doorwayFor } from "../settlements/ornaments";
 import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
@@ -68,7 +69,7 @@ export function propSprite(key: string) {
   const def = propDefs[key];
   return (
     def &&
-    (def.sprite ?? `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(1, 0)}`)
+    (def.sprite ?? `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${equipmentVariant(undefined,key,0)}`)
   );
 }
 export function withProps(world: WorldModel, seed: string): WorldModel {
@@ -118,7 +119,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       selected = regionalKits.get(localPack) ?? propKit(localPack);
       regionalKits.set(localPack, selected);
     }
-    const all = selected.contexts[context];
+    const all = selected.contexts[context].filter(k=>!required || propDefs[k]?.family !== "chicken-coop");
     let list = allow ? all.filter(allow) : all;
     if (!list.length && required)
       list = all.filter(
@@ -158,13 +159,14 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     o.prop = key;
     o.name = def.name;
     const variants = def.family === "stick" ? 1 : (def.variants ?? 3);
-    const variant =
+    const variant = equipmentVariant(local, key,
       (key === "privyMidden" || key === "communalMidden") && local
         ? middenContents(local, coast)
-        : variantOf(variants, random(seed, "prop-color", o.id));
+        : variantOf(variants, random(seed, "prop-color", o.id)));
     const native = ({ vat: "dolium", amphoraStack: "amphorae", well: "wellhead", townWell: "wellhead" } as Record<string, string>)[key];
     o.sprite = def.sprite ?? ((native && mediterraneanProp(local, native)) || `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variant}`);
     o.kind = def.drink ? "well" : def.fire ? "fire" : "container";
+    if (key === "leverPress" && variant === 1) o.name = "Screw press";
     o.open = false;
     if (def.contents && !Object.values(o.inventory).some(Boolean)) o.inventory = { ...def.contents };
     dressWell(o, key);
@@ -200,13 +202,15 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
   };
   for (const o of world.initialObjects) index(o);
   const roofCells = new Set<string>();
+  const buildingCells = new Set<string>();
   const actorsAt = new Set<string>();
   const actorById = new Map<string, (typeof world.initialActors)[number]>();
   const doorsAt = new Set<string>();
   const occupied = (p: Position, ignore?: string, prop?: string) => {
     const footprint = prop ? propVisualCells(prop, p) : [p];
     for (const q of footprint) {
-      if (p.space === "outside" && roofCells.has(at({ ...q, space: p.space })))
+      if (p.space === "outside" && (roofCells.has(at({ ...q, space: p.space })) ||
+        (prop && equipmentProps[prop] && buildingCells.has(at({ ...q, space: p.space })))))
         return true;
       if (
         (visualAt.get(at({ ...q, space: p.space })) ?? []).some(
@@ -259,14 +263,15 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     !world.blocked(p.x, p.y, p.space) &&
     // A board hangs over the street and a lantern above the step, so neither
     // needs the cell kept clear the way a barrel does.
-    !objectsAt.get(at(p))?.length &&
-    !actorsAt.has(at(p));
+    !objectsAt.get(at(p))?.length;
   const populate = () => {
     for (const a of world.initialActors) {
       actorsAt.add(at(a.pos));
       actorById.set(a.id, a);
     }
     for (const b of world.places) {
+      for (let y=b.y;y<b.y+b.h;y++)
+        for (let x=b.x;x<b.x+b.w;x++) buildingCells.add(at({x,y,space:"outside"}));
       for (const p of buildingRoofCells(b.sprite, b))
         roofCells.add(at({ ...p, space: "outside" }));
       for (let dy = -1; dy <= 1; dy++)
@@ -318,8 +323,21 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       else if (o.kind === "fire" && o.sprite === "fire")
         stamp(o, pick(o.id, "fire", o.pos));
       if (o.kind === "well") dressWell(o, o.prop);
+      if (planned && o.prop && /^study-propb?-/.test(o.sprite)) {
+        const entrance = o.pos.space === "outside" ? o.pos : world.place(o.pos.space)?.entrance;
+        const local = (entrance && world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? world.pack.setting;
+        if (equipmentProps[o.prop]) {
+          const choices = equipmentChoices(local,o.prop);
+          const key = o.sprite.startsWith("study-prop-equipment-") ? o.prop : choices[Math.floor(random(seed,"equipment-kind",o.id)*choices.length)] ?? o.prop;
+          stamp(o,key);
+        }
+        const old = Number(/-(\d+)$/.exec(o.sprite)?.[1] ?? 0);
+        const variant = equipmentVariant(local,o.prop,old);
+        if (variant !== old) o.sprite = o.sprite.replace(/-\d+$/,`-${variant}`);
+        if (o.prop === "leverPress" && variant === 1) o.name = "Screw press";
+      }
       index(o);
-      if (!planned && o.prop && !usable(o.pos, o.id, o.prop)) {
+      if ((!planned || !!equipmentProps[o.prop ?? ""]) && o.prop && !usable(o.pos, o.id, o.prop)) {
         const original = { ...o.pos };
         const choices: Position[] = [];
         for (let r = 1; r <= (urbanPack ? 2 : 6); r++)

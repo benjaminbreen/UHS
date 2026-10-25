@@ -4,6 +4,7 @@ import { eraAt } from "../history/dates";
 import { historyRegistry, resolveHistory } from "../history";
 import { lifeway } from "../settlements/lifeways";
 import { regionalContainers } from "./containers";
+import { regionalEquipment, equipmentChoices } from "./equipment";
 export type PropContext =
   | "household"
   | "yard"
@@ -692,10 +693,18 @@ export function propKit(pack: Pack): PropKit {
   // Authored historical exclusions/context/capability rules outrank broad
   // prototype kits. Unresearched entries remain explicitly provisional.
   const containers = regionalContainers(pack.setting && { ...pack.setting, year })
-    .filter(k => !way?.mode.includes("foraging") || ["waterskin","barkBox","coolamon"].includes(k));
+    .filter(k => !way?.mode.includes("foraging") || ["waterskin","barkBox","coolamon","parfleche","pacificBasket","andeanSack","keroseneTin"].includes(k));
   contexts.household.push(...containers);
   contexts.yard.push(...containers);
-  contexts.work.push(...containers.filter(k => ["merchantBale","riceBale","tradeJar","taru"].includes(k)));
+  contexts.work.push(...containers.filter(k => ["merchantBale","riceBale","tradeJar","taru","egyptJar","canaanJar","grainHamper","grainBin","andeanSack","demijohn","keroseneTin"].includes(k)));
+  const equipment = regionalEquipment(pack.setting && { ...pack.setting, year });
+  const foraging = way?.mode.includes("foraging");
+  if (!foraging) {
+    contexts.work.push(...equipment.filter(k=>["chickenCoop","wovenHenShelter","stockPen","wattlePen","joinerBench","lowPlaningBench","brazier","ironPanBrazier","charcoalStove","teaStove"].includes(k)));
+    contexts.yard.push(...equipment.filter(k=>["chickenCoop","wovenHenShelter","charcoalStove"].includes(k)));
+  }
+  for (const context of Object.keys(contexts) as PropContext[])
+    contexts[context] = contexts[context].flatMap(k=>equipmentChoices(pack.setting && { ...pack.setting, year },k));
   for (const context of Object.keys(contexts) as PropContext[]) {
     const resolved = resolveHistory(historyRegistry, {
       culture,

@@ -29,6 +29,10 @@ void main() {
   float k = uNight * (0.3 + 0.5 * green) * (1.0 - warm);
   col = mix(col, luma * vec3(0.72, 0.9, 1.35), k);
   col = mix(col, vec3(luma), uDull * 0.4 * (1.0 - warm * 0.5)) * (1.0 - 0.08 * uDull);
+  // Moonlight floor: the darks lift toward a dim blue-grey rather than black,
+  // so ground and figures stay readable through the small hours.
+  vec3 floorCol = vec3(0.07, 0.085, 0.13) * uNight;
+  col = floorCol + col * (1.0 - floorCol);
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), c.a);
 }
 `;
