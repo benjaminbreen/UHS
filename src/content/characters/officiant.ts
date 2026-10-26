@@ -87,7 +87,7 @@ export function officiantFor(
     return { label: chosen.label, tier: chosen.tier };
   const power = powers[Math.floor(random(seed, "character-v1", id, "power") * powers.length)];
   return {
-    label: `${chosen.label} of ${power.name}`,
+    label: power.officiant ?? `${chosen.label} of ${power.name}`,
     tier: chosen.tier,
   };
 }

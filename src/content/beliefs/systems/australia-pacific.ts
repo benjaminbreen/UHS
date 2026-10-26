@@ -355,6 +355,40 @@ export const australiaPacific: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "hawaiian-christian",
+    label: "Hawaiian Christian and ʻaumakua practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_Hawaii",
+    scope: { years: [1820, 2025], bounds: [-160, 18, -154, 23] },
+    powers: [
+      { name: "God", wiki: "https://en.wikipedia.org/wiki/God_in_Christianity", domain: "the Protestant and Catholic God of the missions", rank: "paramount" },
+      { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, the church", rank: "major" },
+      { name: "Pele", wiki: "https://en.wikipedia.org/wiki/Pele_(deity)", domain: "the volcano, Hawaiʻi island", rank: "major" },
+      { name: "The ʻaumakua", wiki: "https://en.wikipedia.org/wiki/%CA%BBAumakua", domain: "family guardians, often a shark or owl", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Sunday service in a Hawaiian-language church built of coral or wood.",
+      "Family ʻaumakua still respected: some families will not eat the shark or owl that guards them.",
+      "Lei and food left at Pele's crater by some visitors and families.",
+    ],
+    specialist:
+      "Ministers and Catholic priests; kahu of the Hawaiian churches; family elders for the ʻaumakua.",
+    afterlife:
+      "Heaven or judgement in the church's teaching; many families also hold that the dead join their ʻaumakua.",
+    evidence: {
+      status: "documented",
+      claim:
+        "The abolition of the kapu system in 1819, the American Protestant mission from 1820, Catholic and Latter-day Saint missions, and persisting family guardian beliefs are documented in mission records and Hawaiian-language sources.",
+      sources: [
+        "Kamakau, Ruling Chiefs of Hawaii",
+        "Silva, Aloha Betrayed",
+        "Pukui, Haertig & Lee, Nānā i ke Kumu",
+      ],
+      limitation:
+        "Covers two centuries of changing churches and a large immigrant Buddhist and Shinto population after 1885, which is left out.",
+    },
+  },
+  {
     id: "samoan-polynesian",
     label: "Samoan and Polynesian practice",
     wiki: "https://en.wikipedia.org/wiki/Polynesian_narrative",
@@ -433,7 +467,9 @@ export const australiaPacific: readonly BeliefSystem[] = [
     id: "hawaiian-precontact",
     label: "Hawaiian practice (precontact)",
     wiki: "https://en.wikipedia.org/wiki/Hawaiian_religion",
-    scope: { years: [1000, 1778], bounds: [-160, 18, -154, 23] },
+    // Nobody lived here before about 1000; anyone placed earlier is a
+    // Polynesian voyager, not a Paleoindian from the Americas box.
+    scope: { years: [-10000, 1820], bounds: [-160, 18, -154, 23] },
     powers: [
       {
         name: "Kāne",
@@ -681,7 +717,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Pacific mission Christianity",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Oceania",
-    scope: { years: [1800, 1950], bounds: [110, -50, 180, 25] },
+    scope: { years: [1800, 2025], bounds: [110, -50, 180, 25] },
     powers: [
       {
         name: "God",
@@ -759,10 +795,44 @@ export const australiaPacific: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "australian-settler-christianity",
+    label: "Australian settler practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_Australia",
+    scope: { years: [1788, 2025], bounds: [138, -44, 154, -26] },
+    powers: [
+      { name: "God", wiki: "https://en.wikipedia.org/wiki/God_in_Christianity", domain: "the God of the Anglican, Catholic and Methodist churches", rank: "paramount" },
+      { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, the church", rank: "major" },
+      { name: "The Virgin Mary", wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus", domain: "intercession, Irish Catholic devotion", rank: "major" },
+      { name: "The saints", wiki: "https://en.wikipedia.org/wiki/Saint", domain: "patrons of parishes and schools", rank: "major" },
+      { name: "The country", domain: "the land of its Aboriginal owners, often unacknowledged", rank: "local" },
+    ],
+    practice: [
+      "Sunday service at the Anglican, Catholic or Methodist church.",
+      "Catholic and Protestant families keep apart, with separate schools.",
+      "Church attendance falls after the 1960s; many marry and are buried without it.",
+    ],
+    specialist:
+      "Anglican and Catholic priests, Methodist ministers; the household head at grace.",
+    afterlife:
+      "Heaven or judgement in the churches' teaching.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Anglican establishment, a large Irish Catholic population, Nonconformist churches and the secularisation of the later twentieth century are documented by census and church records.",
+      sources: [
+        "Breward, A History of the Australian Churches",
+        "Hilliard, 'Australian Anglicans and Catholics'",
+        "Australian Bureau of Statistics census series",
+      ],
+      limitation:
+        "Covers the settled south-east only; Aboriginal practice under colonial rule has its own entry, and migrant Orthodox, Muslim and Buddhist communities are left out.",
+    },
+  },
+  {
     id: "aboriginal-australia-colonial",
     label: "Aboriginal Australia and Christian missions (colonial era)",
     wiki: "https://en.wikipedia.org/wiki/Australian_Aboriginal_mythology",
-    scope: { years: [1788, 2000], bounds: [110, -50, 160, -10] },
+    scope: { years: [1788, 2025], bounds: [110, -50, 160, -10] },
     powers: [
       {
         name: "The ancestral beings",

@@ -295,7 +295,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "classical-greek",
     label: "Classical Greek practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Greek_religion",
-    scope: { years: [-500, -323], bounds: [19, 36, 29, 42] },
+    scope: { years: [-1100, -27], bounds: [19, 36, 29, 42] },
     powers: [
       {
         name: "Zeus",
@@ -404,7 +404,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "republican-roman",
     label: "Republican Roman practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
-    scope: { years: [-509, -27], bounds: [8, 38, 18, 48] },
+    scope: { years: [-753, -27], bounds: [8, 38, 18, 48] },
     powers: [
       {
         name: "Jupiter",
@@ -450,6 +450,7 @@ const europeanBase: readonly BeliefSystem[] = [
       {
         name: "Vesta",
         wiki: "https://en.wikipedia.org/wiki/Vesta_(mythology)",
+        officiant: "Vestal",
         domain: "the hearth, the city hearth",
         rank: "major",
         relations: [{ kind: "sibling-of", of: "Jupiter" }],
@@ -539,6 +540,7 @@ const europeanBase: readonly BeliefSystem[] = [
       {
         name: "Vesta",
         wiki: "https://en.wikipedia.org/wiki/Vesta_(mythology)",
+        officiant: "Vestal",
         domain: "fire, continuity, the state",
         rank: "major",
         relations: [{ kind: "sibling-of", of: "Jupiter" }],
@@ -609,7 +611,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "celtic-britain",
     label: "Iron Age insular Celtic practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Celtic_religion",
-    scope: { years: [-100, 400], bounds: [-11, 49.5, 2, 61] },
+    scope: { years: [-800, 400], bounds: [-11, 49.5, 2, 61] },
     powers: [
       {
         name: "Lugus",
@@ -714,10 +716,46 @@ const europeanBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "anglo-saxon-paganism",
+    label: "Anglo-Saxon pagan practice",
+    wiki: "https://en.wikipedia.org/wiki/Anglo-Saxon_paganism",
+    scope: { years: [450, 650], bounds: [-3, 50.5, 2, 55.5] },
+    powers: [
+      { name: "Woden", wiki: "https://en.wikipedia.org/wiki/Woden", domain: "kings, war, the dead", rank: "paramount" },
+      { name: "Thunor", wiki: "https://en.wikipedia.org/wiki/Thunor", domain: "thunder, the oak, the farmer", rank: "major" },
+      { name: "Tiw", wiki: "https://en.wikipedia.org/wiki/Tiw", domain: "law, the assembly, war", rank: "major" },
+      { name: "Frige", wiki: "https://en.wikipedia.org/wiki/Frige", domain: "marriage, the household", rank: "major" },
+      { name: "Eostre", wiki: "https://en.wikipedia.org/wiki/%C4%92ostre", domain: "spring", rank: "major" },
+      { name: "The elves", domain: "illness, the wild places", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Cattle killed and feasted in the month Bede calls Blōtmōnaþ.",
+      "Charms sung over sick people and animals, with herbs.",
+      "Grave goods, weapons and brooches buried with the dead, some under mounds.",
+    ],
+    specialist:
+      "Temple priests; the household head at home.",
+    afterlife:
+      "The dead are buried or burned with what they will need; nothing more is recorded.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Woden, Thunor, Tiw and Frige are attested in weekday names, place names and royal genealogies; Bede records the month names, the goddess Eostre and the priest Coifi.",
+      sources: [
+        "Bede, Ecclesiastical History of the English People",
+        "Wilson, Anglo-Saxon Paganism",
+        "Sanmark, Power and Conversion",
+      ],
+      limitation:
+        "Almost all written evidence was set down by Christian monks after the conversion; ritual detail is thin and partly inferred from Scandinavian parallels.",
+    },
+  },
+  {
     id: "celtic-gaul",
     label: "Iron Age Gallic practice",
     wiki: "https://en.wikipedia.org/wiki/Gallo-Roman_religion",
-    scope: { years: [-500, 100], bounds: [-5, 42, 8, 51] },
+    scope: { years: [-500, 100], bounds: [-9.5, 36, 8, 51] },
     powers: [
       { name: "The tribe", domain: "unity, the land, war", rank: "paramount" },
       {
@@ -972,7 +1010,7 @@ const europeanBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Early medieval Frankish Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Franks",
-    scope: { years: [500, 850], bounds: [-10, 42, 20, 60] },
+    scope: { years: [500, 850], bounds: [1.9, 42, 20, 55] },
     powers: [
       { name: "God", domain: "the creator, all power", rank: "paramount" },
       {
@@ -1151,7 +1189,7 @@ const europeanBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Reformation Protestant practice",
     wiki: "https://en.wikipedia.org/wiki/Reformation",
-    scope: { years: [1500, 1800], bounds: [-11, 50.5, 20, 72] },
+    scope: { years: [1530, 1800], bounds: [-6.2, 50.5, 20, 72] },
     powers: [
       { name: "God", domain: "all power, predestination", rank: "paramount" },
       {
@@ -1425,7 +1463,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "european-industrial",
     label: "Industrial-era European practice",
     wiki: "https://en.wikipedia.org/wiki/Secularization",
-    scope: { years: [1800, 2000], bounds: [-26, 30, 50, 72] },
+    scope: { years: [1800, 2025], bounds: [-26, 30, 50, 72] },
     powers: [
       {
         name: "Progress",
@@ -1499,7 +1537,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "us-urban-congregations",
     label: "American city congregations",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_the_United_States",
-    scope: { years: [1820, 1960], bounds: [-125, 24, -66, 50] },
+    scope: { years: [1820, 2025], bounds: [-125, 24, -66, 50] },
     powers: [
       {
         name: "God",
@@ -1569,7 +1607,7 @@ const europeanBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Byzantine Orthodox practice",
     wiki: "https://en.wikipedia.org/wiki/Byzantine_Empire",
-    scope: { years: [330, 1460], bounds: [19, 29, 48, 46] },
+    scope: { years: [330, 1830], bounds: [19, 29, 48, 46] },
     powers: [
       { name: "God", domain: "creation, judgement", rank: "paramount" },
       {

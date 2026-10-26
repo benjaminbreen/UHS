@@ -1179,6 +1179,42 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "modern-west-central-africa",
+    label: "Modern West and Central African practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_Africa",
+    scope: { years: [1950, 2025], bounds: [-18, -10, 32, 20] },
+    powers: [
+      { name: "God", wiki: "https://en.wikipedia.org/wiki/God", domain: "the one God of the churches and the mosque", rank: "paramount" },
+      { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, healing, prosperity", rank: "major" },
+      { name: "The Prophet", wiki: "https://en.wikipedia.org/wiki/Muhammad", domain: "the example of Islam", rank: "major" },
+      { name: "The Holy Spirit", wiki: "https://en.wikipedia.org/wiki/Holy_Spirit_in_Christianity", domain: "prophecy, healing, deliverance", rank: "major" },
+      { name: "The ancestors", domain: "the lineage dead, owed respect and remembrance", rank: "local" },
+      { name: "Witches", domain: "hidden harm within the family, feared and prayed against", rank: "local" },
+    ],
+    practice: [
+      "Sunday service or Friday prayer, then a family gathering.",
+      "All-night prayer meetings for healing and protection against witchcraft.",
+      "Libation poured for the ancestors at funerals, naming ceremonies and chieftaincy rites.",
+      "A diviner or herbalist consulted alongside the church or mosque.",
+    ],
+    specialist:
+      "Pastors, prophets and Catholic priests; imams; diviners and herbalists.",
+    afterlife:
+      "Heaven or hell in the churches' and the mosque's teaching; many families also hold that the good dead become ancestors.",
+    evidence: {
+      status: "documented",
+      claim:
+        "The growth of mission, independent and Pentecostal churches, the spread of Islam in the Sahel and coastal cities, and continuing ancestor and witchcraft beliefs after independence are documented by surveys and ethnography.",
+      sources: [
+        "Meyer, 'Christianity in Africa'",
+        "Ellis & ter Haar, Worlds of Power",
+        "Pew Research Center, Tolerance and Tension (2010)",
+      ],
+      limitation:
+        "One summary across fifty countries; the mix of Christianity, Islam and older practice differs sharply from place to place.",
+    },
+  },
+  {
     id: "yoruba-nineteenth-century-christian",
     features: ["sacred-texts"],
     label: "Yoruba Christian mission encounter",

@@ -17,7 +17,7 @@ export const romanCapitolineTriad: readonly Power[] = [
 
 export const romanCivicFigures: readonly Power[] = [
   { name: "Mars", domain: "war, agriculture, Roman ancestry", rank: "major" },
-  { name: "Vesta", domain: "the public and household hearth", rank: "major" },
+  { name: "Vesta", domain: "the public and household hearth", rank: "major", officiant: "Vestal" },
   { name: "Mercury", domain: "trade, travel, messages", rank: "major" },
   { name: "Diana", domain: "the moon, hunting, childbirth", rank: "major" },
   { name: "Neptune", domain: "the sea, horses, earthquakes", rank: "major" },

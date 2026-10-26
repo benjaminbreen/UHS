@@ -209,7 +209,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Early Vedic practice",
     wiki: "https://en.wikipedia.org/wiki/Historical_Vedic_religion",
-    scope: { years: [-1500, -1000], bounds: [60, 20, 97, 37] },
+    scope: { years: [-1500, -1000], bounds: [60, 20, 88, 37] },
     powers: [
       {
         name: "Indra",
@@ -437,7 +437,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Jain practice",
     wiki: "https://en.wikipedia.org/wiki/Jainism",
-    scope: { years: [-500, 800], bounds: [70, 19, 78, 27] },
+    scope: { years: [-500, 800], bounds: [70, 20, 78, 27] },
     powers: [
       {
         name: "The Tirthankaras",
@@ -618,7 +618,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Tamil Shaivism",
     wiki: "https://en.wikipedia.org/wiki/Shaiva_Siddhanta",
-    scope: { years: [-500, 1900], bounds: [75, 7, 85, 20] },
+    scope: { years: [-1000, 1900], bounds: [75, 7, 85, 20] },
     powers: [
       {
         name: "Shiva",
@@ -1097,6 +1097,41 @@ const southAsiaBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "delhi-sultanate",
+    label: "Delhi Sultanate practice",
+    wiki: "https://en.wikipedia.org/wiki/Delhi_Sultanate",
+    scope: { years: [1206, 1526], bounds: [76, 26.5, 79, 29.5] },
+    powers: [
+      { name: "Allah", wiki: "https://en.wikipedia.org/wiki/Allah", domain: "the one God of the court and the mosques", rank: "paramount" },
+      { name: "Nizamuddin Auliya", wiki: "https://en.wikipedia.org/wiki/Nizamuddin_Auliya", domain: "the Chishti saint of Delhi", rank: "major" },
+      { name: "Vishnu", wiki: "https://en.wikipedia.org/wiki/Vishnu", domain: "order, protection, worshipped by the Hindu majority", rank: "major" },
+      { name: "Shiva", wiki: "https://en.wikipedia.org/wiki/Shiva", domain: "asceticism, the household linga", rank: "major" },
+      { name: "The village goddess", domain: "smallpox, the boundary, the harvest", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Friday prayer at the congregational mosque beside the Qutb Minar.",
+      "Thursday visits to the tomb of a Chishti saint, with music and food.",
+      "Hindu households keep their own shrines; temples in the capital are few and small.",
+    ],
+    specialist:
+      "Imams and qazis; Sufi shaikhs; Brahmin priests for the Hindu majority.",
+    afterlife:
+      "Paradise or hell after judgement for Muslims; rebirth according to deeds for Hindus.",
+    evidence: {
+      status: "documented",
+      claim:
+        "The Delhi mosques and madrasas, the Chishti saints Nizamuddin and Qutbuddin Bakhtiyar Kaki, and a largely Hindu population under Muslim rulers are documented in Persian chronicles, malfuzat and surviving monuments.",
+      sources: [
+        "Jackson, The Delhi Sultanate",
+        "Ernst & Lawrence, Sufi Martyrs of Love",
+        "Kumar, The Emergence of the Delhi Sultanate",
+      ],
+      limitation:
+        "Court chronicles speak for the ruling Muslim elite; the practice of the Hindu majority in the city is inferred.",
+    },
+  },
+  {
     id: "mughal-delhi",
     features: ["sacred-texts"],
     label: "Mughal Delhi and Agra",
@@ -1185,7 +1220,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Indo-Islamic Sufi practice",
     wiki: "https://en.wikipedia.org/wiki/Sufism_in_India",
-    scope: { years: [1000, 1950], bounds: [60, 5, 97, 37] },
+    scope: { years: [1000, 2025], bounds: [60, 24, 74.5, 37] },
     powers: [
       {
         name: "Allah",
@@ -1265,6 +1300,43 @@ const southAsiaBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "modern-india",
+    label: "Modern Indian practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_India",
+    scope: { years: [1947, 2025], bounds: [68, 6, 97, 35.5] },
+    powers: [
+      { name: "Vishnu", wiki: "https://en.wikipedia.org/wiki/Vishnu", domain: "order, protection, worshipped as Rama and Krishna", rank: "paramount" },
+      { name: "Shiva", wiki: "https://en.wikipedia.org/wiki/Shiva", domain: "asceticism, destruction and renewal", rank: "major" },
+      { name: "Durga", wiki: "https://en.wikipedia.org/wiki/Durga", domain: "the goddess who defeats demons", rank: "major" },
+      { name: "Ganesha", wiki: "https://en.wikipedia.org/wiki/Ganesha", domain: "beginnings, obstacles", rank: "major" },
+      { name: "Hanuman", wiki: "https://en.wikipedia.org/wiki/Hanuman", domain: "strength, devotion", rank: "major" },
+      { name: "Allah", wiki: "https://en.wikipedia.org/wiki/Allah", domain: "the one God of India's Muslims", rank: "major" },
+      { name: "The village goddess", domain: "smallpox, the boundary, the harvest", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "A lamp and incense at the household shrine morning and evening.",
+      "Temple visits on the god's weekday and at festivals such as Diwali and Durga Puja.",
+      "Muslim neighbours keep Friday prayer and Eid; many visit Sufi shrines alongside Hindus.",
+    ],
+    specialist:
+      "Temple priests and household purohits; imams; gurus and holy men.",
+    afterlife:
+      "Rebirth according to deeds for Hindus; paradise or hell after judgement for Muslims.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Temple and household Hinduism, large Muslim, Sikh and Christian minorities, and festival, pilgrimage and guru movements in the republic are documented by census, survey and ethnography.",
+      sources: [
+        "Fuller, The Camphor Flame",
+        "Pew Research Center, Religion in India (2021)",
+        "Flood, An Introduction to Hinduism",
+      ],
+      limitation:
+        "A national summary; regional gods, caste practice and the large minorities each deserve their own entry.",
+    },
+  },
+  {
     id: "hindu-reform",
     features: ["sacred-texts"],
     label: "Colonial-era Hindu reform",
@@ -1333,7 +1405,8 @@ const southAsiaBase: readonly BeliefSystem[] = [
       "Social reform: rejection of caste hierarchy and widow-burning.",
       "Congregational gatherings for instruction and moral uplift.",
     ],
-    specialist: "The educated Brahmin reformer, often Western-trained.",
+    specialist:
+      "Temple priests and household purohits; the Brahmin reformer, often Western-trained; the household head at the domestic shrine.",
     afterlife:
       "Moral progress toward eventual liberation through reason and virtue.",
     evidence: {
@@ -1574,7 +1647,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     id: "bengal-specific",
     label: "Bengal regional practice",
     wiki: "https://en.wikipedia.org/wiki/Bengali_Hindus",
-    scope: { years: [-500, 1950], bounds: [86, 21, 93, 26.6] },
+    scope: { years: [-500, 2025], bounds: [86, 21, 93, 26.6] },
     powers: [
       {
         name: "Ganga",

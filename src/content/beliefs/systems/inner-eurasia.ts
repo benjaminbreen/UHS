@@ -540,7 +540,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     id: "turkic-tengrism",
     label: "Early Turkic Tengrism",
     wiki: "https://en.wikipedia.org/wiki/Tengrism",
-    scope: { years: [550, 900], bounds: [50, 38, 130, 58] },
+    scope: { years: [550, 1150], bounds: [50, 38, 130, 58] },
     powers: [
       {
         name: "Tengri",
@@ -608,7 +608,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     id: "sogdian-zoroastrianism",
     label: "Sogdian Zoroastrian and Manichaean practice",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism",
-    scope: { years: [-300, 1000], bounds: [50, 35, 80, 50] },
+    scope: { years: [-300, 1000], bounds: [60, 35, 80, 50] },
     powers: [
       {
         name: "Ahura Mazda",
@@ -827,7 +827,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Central Asian Islamic practice with Sufi and shrine elements",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Central_Asia",
-    scope: { years: [900, 1950], bounds: [45, 32, 85, 50] },
+    scope: { years: [900, 2025], bounds: [52.5, 32, 85, 50] },
     powers: [
       {
         name: "Allah",
@@ -1150,6 +1150,43 @@ export const innerEurasia: readonly BeliefSystem[] = [
       ],
       limitation:
         "Islamic conversion was gradual; accounts show layering of Tengri practice and Islamic practice in the same communities.",
+    },
+  },
+  {
+    id: "mongolian-buddhism",
+    label: "Mongolian Buddhist practice",
+    wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Mongolia",
+    scope: { years: [1578, 2025], bounds: [87, 41.5, 120, 52.5], cultures: ["inner-eurasian", "east-asian"] },
+    powers: [
+      { name: "Buddha Shakyamuni", wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha", domain: "awakening, the teaching", rank: "paramount" },
+      { name: "Avalokiteshvara", wiki: "https://en.wikipedia.org/wiki/Avalokiteshvara", domain: "compassion", rank: "major" },
+      { name: "Tara", wiki: "https://en.wikipedia.org/wiki/Tara_(Buddhism)", domain: "rescue from danger, long life", rank: "major" },
+      { name: "Mahakala", wiki: "https://en.wikipedia.org/wiki/Mahakala", domain: "protection of the Mongols and the teaching", rank: "major" },
+      { name: "Tengri", wiki: "https://en.wikipedia.org/wiki/Tengri", domain: "the eternal sky", rank: "major" },
+      { name: "The ovoo spirits", domain: "the cairn, the pass, the mountain", rank: "local" },
+      { name: "The hearth fire", domain: "the household and its line", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Stones and blue silk added to the ovoo cairn when passing, walking round it clockwise.",
+      "Milk sprinkled to the sky and the four directions in the morning.",
+      "Lamas called to read for a sick person, a journey or a death.",
+    ],
+    specialist:
+      "Lamas and monks; shamans; the household head at the hearth.",
+    afterlife:
+      "Rebirth according to deeds; a lama chooses the day and place of burial or exposure.",
+    evidence: {
+      status: "documented",
+      claim:
+        "The conversion of Altan Khan in 1578, the Gelug monasteries such as Erdene Zuu and Urga, and continued sky, ovoo and hearth rites are documented in Mongolian chronicles, Qing records and ethnography.",
+      sources: [
+        "Heissig, The Religions of Mongolia",
+        "Kollmar-Paulenz, 'The Buddhist Way into Tibet and Mongolia'",
+        "Humphrey & Onon, Shamans and Elders",
+      ],
+      limitation:
+        "Monasteries were nearly destroyed in the 1930s; the summary does not separate the socialist period or the revival after 1990.",
     },
   },
   {

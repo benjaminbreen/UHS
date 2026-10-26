@@ -82,7 +82,7 @@ function parse(sentence: string): Officiant[] {
       if (!phrase || phrase.length < 3 || phrase.length > 40) continue;
       // A fragment left by the split is not a role: "current knowledge",
       // "their speakers" on its own. Require a plausible noun head.
-      if (!/\b(elder|eldest|head|priest|priestess|shaman|monk|nun|chief|king|queen|lord|master|healer|diviner|medium|keeper|specialist|scholar|minister|imam|rabbi|oracle|dreamer|singer|dancer|smith|midwife|mother|father|pilot|navigator|reader|teacher|catechist|worker|attendant|servant|leader|guardian|sorcerer|witch|magician|bard|storyteller|ritualist|officiant|celebrant|abbot|bori|magajiya|noro|tohunga|curaca|druid|kahuna|kāhuna|nganga|shrine|temple|clergy|prophet|seer|herbalist|doctor|sage)/i.test(phrase))
+      if (!/\b(elder|eldest|head|priest|priestess|shaman|monk|nun|chief|king|queen|lord|master|healer|diviner|medium|keeper|specialist|scholar|minister|imam|rabbi|oracle|dreamer|singer|dancer|smith|midwife|mother|father|pilot|navigator|reader|teacher|catechist|worker|attendant|servant|leader|guardian|sorcerer|witch|magician|bard|storyteller|ritualist|officiant|celebrant|abbot|bori|magajiya|noro|tohunga|curaca|pastor|qazi|qadi|shaikh|sheikh|purohit|guru|holy m|lama|ngakpa|kahu|druid|kahuna|kāhuna|nganga|shrine|temple|clergy|prophet|seer|herbalist|doctor|sage)/i.test(phrase))
         continue;
       const tier = HOUSEHOLD.test(phrase)
         ? "household"

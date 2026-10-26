@@ -42,6 +42,9 @@ export type Power = {
   /** What they are asked about, in a few words. */
   domain: string;
   rank: "paramount" | "major" | "local";
+  /** Who serves this power, where it is not the tradition's usual office:
+   * Vesta had Vestals, not priests. */
+  officiant?: string;
   /** How this power stands to others in the same list. More than one is
    * normal: a god is commonly the child of one and the consort of another. */
   relations?: readonly Relation[];

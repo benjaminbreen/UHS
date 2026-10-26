@@ -682,6 +682,42 @@ export const mesoamerica: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "toltec-central-mexico",
+    label: "Toltec-era Central Mexican practice",
+    wiki: "https://en.wikipedia.org/wiki/Toltec",
+    scope: { years: [850, 1250], bounds: [-100.5, 18.5, -97.5, 21] },
+    powers: [
+      { name: "Quetzalcoatl", wiki: "https://en.wikipedia.org/wiki/Quetzalcoatl", domain: "wind, learning, the ruling house", rank: "paramount" },
+      { name: "Tezcatlipoca", wiki: "https://en.wikipedia.org/wiki/Tezcatlipoca", domain: "night, fate, sorcery", rank: "major" },
+      { name: "Tlaloc", wiki: "https://en.wikipedia.org/wiki/Tlaloc", domain: "rain, storms, the mountains", rank: "major" },
+      { name: "Centeotl", wiki: "https://en.wikipedia.org/wiki/Cint%C4%93otl", domain: "maize", rank: "major" },
+      { name: "Chalchiuhtlicue", wiki: "https://en.wikipedia.org/wiki/Chalchiuhtlicue", domain: "rivers, lakes, birth", rank: "major" },
+      { name: "Xiuhtecuhtli", wiki: "https://en.wikipedia.org/wiki/Xiuhtecuhtli", domain: "fire, the hearth, the year", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Copal, maize cakes and quail offered at temple platforms on the feast days of the 260-day count.",
+      "Bloodletting from the ear or tongue as a personal offering.",
+      "A child's day name is set by the calendar diviner.",
+    ],
+    specialist:
+      "Temple priests and calendar diviners; the household head at the hearth.",
+    afterlife:
+      "The dead go where their manner of death sends them: the rain god's garden for the drowned, the sun's house for warriors, the underworld for most.",
+    evidence: {
+      status: "documented",
+      claim:
+        "The Feathered Serpent and Tezcatlipoca cults, Tlaloc worship and the 260-day calendar at Tula and in the Basin of Mexico are attested in Tula's sculpture and later Nahua accounts of the Toltecs.",
+      sources: [
+        "Diehl, Tula: The Toltec Capital of Ancient Mexico",
+        "Carrasco, Quetzalcoatl and the Irony of Empire",
+        "Smith, The Aztecs",
+      ],
+      limitation:
+        "Most written evidence is Mexica and Spanish, centuries later, and treats the Toltecs as legend; the reconstruction leans on Tula's archaeology and back-projection.",
+    },
+  },
+  {
     id: "mexica-aztec",
     label: "Mexica (Aztec) practice",
     wiki: "https://en.wikipedia.org/wiki/Aztec_religion",

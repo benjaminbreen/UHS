@@ -403,7 +403,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
     id: "ethiopian-orthodox-christian",
     features: ["sacred-texts"],
     label: "Ethiopian Orthodox Christian practice",
-    scope: { years: [350, 1920], bounds: [30, 0, 52, 18] },
+    scope: { years: [350, 2025], bounds: [30, 0, 52, 18] },
     wiki: "https://en.wikipedia.org/wiki/Ethiopian_Orthodox_Tewahedo_Church",
     powers: [
       {
@@ -474,7 +474,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   {
     id: "early-swahili-coast",
     label: "Early Swahili coast Islam with older layers",
-    scope: { years: [800, 1900], bounds: [36, -14, 44, 4] },
+    scope: { years: [800, 2025], bounds: [38.8, -14, 46, 4] },
     wiki: "https://en.wikipedia.org/wiki/Swahili_culture",
     powers: [
       {
@@ -895,7 +895,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   {
     id: "malagasy-razana-practice",
     label: "Malagasy razana practice",
-    scope: { years: [600, 1920], bounds: [39, -26, 52, -10] },
+    scope: { years: [600, 2025], bounds: [39, -26, 52, -10] },
     wiki: "https://en.wikipedia.org/wiki/Malagasy_mythology",
     powers: [
       {
@@ -1057,6 +1057,41 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
       ],
       limitation:
         "The evidence is concentrated in the 19th century. Earlier changes to the system and the practice of commoners outside the capital are less well known.",
+    },
+  },
+  {
+    id: "modern-east-southern-africa",
+    label: "Modern East and Southern African practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_Africa",
+    scope: { years: [1920, 2025], bounds: [10, -36, 52, 18] },
+    powers: [
+      { name: "God", wiki: "https://en.wikipedia.org/wiki/God", domain: "the one God of the churches and the mosque", rank: "paramount" },
+      { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, healing", rank: "major" },
+      { name: "The Prophet", wiki: "https://en.wikipedia.org/wiki/Muhammad", domain: "the example of Islam", rank: "major" },
+      { name: "The Holy Spirit", wiki: "https://en.wikipedia.org/wiki/Holy_Spirit_in_Christianity", domain: "prophecy, healing", rank: "major" },
+      { name: "The ancestors", domain: "the lineage dead, owed respect and remembrance", rank: "local" },
+      { name: "Witches", domain: "hidden harm, feared and prayed against", rank: "local" },
+    ],
+    practice: [
+      "Sunday service in a mission, Zionist or Pentecostal church.",
+      "Beer and snuff offered to the ancestors at a homestead ceremony.",
+      "A healer or diviner consulted for illness or misfortune.",
+    ],
+    specialist:
+      "Ministers, prophets and Catholic priests; imams on the coast; healers and diviners.",
+    afterlife:
+      "Heaven or hell in the churches' teaching; the dead also become ancestors who watch over the homestead.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Mission and African independent churches, Zionist churches in southern Africa, coastal Islam and continuing ancestor veneration and healing practice in the twentieth century are documented by ethnography and surveys.",
+      sources: [
+        "Sundkler, Bantu Prophets in South Africa",
+        "Ranger & Kimambo, The Historical Study of African Religion",
+        "Pew Research Center, Tolerance and Tension (2010)",
+      ],
+      limitation:
+        "One summary across many countries and churches; Ethiopia, Madagascar and the Swahili coast have their own entries.",
     },
   },
   {

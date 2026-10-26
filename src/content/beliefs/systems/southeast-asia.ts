@@ -721,6 +721,42 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "champa-hindu-buddhist",
+    label: "Cham Hindu and Buddhist practice",
+    wiki: "https://en.wikipedia.org/wiki/Champa",
+    scope: { years: [200, 1471], bounds: [106.5, 10.5, 109.5, 17] },
+    powers: [
+      { name: "Shiva", wiki: "https://en.wikipedia.org/wiki/Shiva", domain: "kingship, as Bhadreshvara", rank: "paramount" },
+      { name: "Po Nagar", wiki: "https://en.wikipedia.org/wiki/Po_Nagar", domain: "the land, the mother of the kingdom", rank: "major" },
+      { name: "Vishnu", wiki: "https://en.wikipedia.org/wiki/Vishnu", domain: "order, protection", rank: "major" },
+      { name: "Lokeshvara", wiki: "https://en.wikipedia.org/wiki/Avalokiteshvara", domain: "compassion", rank: "major" },
+      { name: "Ganesha", wiki: "https://en.wikipedia.org/wiki/Ganesha", domain: "beginnings, obstacles", rank: "major" },
+      { name: "The naga spirits", domain: "water, rain, the river mouths", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Offerings at brick temple towers on hilltops facing east.",
+      "The king's linga is consecrated in his name at My Son.",
+      "Rice and betel left for the household dead.",
+    ],
+    specialist:
+      "Brahmin priests at the temple towers; Buddhist monks at Dong Duong; the household head at the family altar.",
+    afterlife:
+      "Rebirth according to deeds; kings join the god whose linga bore their name.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Shaiva royal cult at My Son, the Po Nagar temple at Nha Trang and the ninth-century Mahayana monastery at Dong Duong are attested in Sanskrit and Cham inscriptions and the surviving towers.",
+      sources: [
+        "Guillon, Hindu-Buddhist Art of Vietnam",
+        "Hardy, Nguyen & Southworth, Champa and the Archaeology of My Son",
+        "Vickery, Champa Revised",
+      ],
+      limitation:
+        "Inscriptions record the court; ordinary Cham practice, including the later Islamic Cham, is left out.",
+    },
+  },
+  {
     id: "se-asia-vietnamese-ancestor",
     label: "Vietnamese ancestor veneration and Mahayana",
     scope: { years: [-200, 1900], bounds: [104, 8, 109, 24] },
@@ -1068,7 +1104,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   {
     id: "se-asia-colonial-modernization",
     label: "Colonial and postcolonial modernization",
-    scope: { years: [1850, 2000], bounds: [92, -11, 142, 25] },
+    scope: { years: [1850, 2025], bounds: [92, -11, 142, 25] },
     wiki: "https://en.wikipedia.org/wiki/History_of_Southeast_Asia",
     powers: [
       {

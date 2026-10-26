@@ -544,7 +544,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "City god",
+        name: "City God",
         wiki: "https://en.wikipedia.org/wiki/Chenghuangshen",
         domain: "urban order and moral record",
         rank: "major",
@@ -559,13 +559,13 @@ const eastAsiaBase: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
         domain: "household sustenance and the moral report",
         rank: "local",
-        relations: [{ kind: "serves", of: "City god" }],
+        relations: [{ kind: "serves", of: "City God" }],
       },
       {
         name: "Local earth god",
         domain: "fields and village boundaries",
         rank: "local",
-        relations: [{ kind: "serves", of: "City god" }],
+        relations: [{ kind: "serves", of: "City God" }],
       },
       {
         name: "Tutelary spirits",
@@ -621,7 +621,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
         relations: [{ kind: "serves", of: "Heaven" }],
       },
       {
-        name: "City god",
+        name: "City God",
         wiki: "https://en.wikipedia.org/wiki/Chenghuangshen",
         domain: "order, moral accounting, justice",
         rank: "major",
@@ -881,6 +881,44 @@ const eastAsiaBase: readonly BeliefSystem[] = [
       ],
       limitation:
         "Temple records dominate; rural practice is less documented; the role of shamanism alongside Buddhism is inferred from later ethnography.",
+    },
+  },
+  {
+    id: "kofun-nara-japan",
+    label: "Kofun to Nara Japanese practice",
+    wiki: "https://en.wikipedia.org/wiki/Kofun_period",
+    scope: { years: [250, 794], bounds: [129, 30, 142, 42] },
+    powers: [
+      { name: "Amaterasu", wiki: "https://en.wikipedia.org/wiki/Amaterasu", domain: "the sun, the ruling house", rank: "paramount" },
+      { name: "Ōmononushi", wiki: "https://en.wikipedia.org/wiki/%C5%8Cmononushi", domain: "Mount Miwa, plague, the land", rank: "major" },
+      { name: "Ōkuninushi", wiki: "https://en.wikipedia.org/wiki/%C5%8Ckuninushi", domain: "Izumo, healing, the making of the land", rank: "major" },
+      { name: "Susanoo", wiki: "https://en.wikipedia.org/wiki/Susanoo-no-Mikoto", domain: "storms, the sea", rank: "major" },
+      { name: "Hachiman", wiki: "https://en.wikipedia.org/wiki/Hachiman", domain: "war, the court", rank: "major", scope: { years: [700, 10001] } },
+      { name: "The Buddha", wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha", domain: "merit, protection of the state", rank: "major", scope: { years: [538, 10001] } },
+      { name: "The clan kami", domain: "the clan and its land", rank: "local" },
+      { name: "The mountain kami", domain: "the slopes, the water that comes down from them", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Rice, sake and cloth offered at a sacred rock, tree or mountain.",
+      "Ritual purification by water after death, birth or bloodshed.",
+      "Great mounded tombs for clan chiefs, ringed with clay figures.",
+    ],
+    specialist:
+      "Shrine priests and priestesses; Buddhist monks at the new temples; clan heads for the clan kami.",
+    afterlife:
+      "The dead go to a polluted underworld, Yomi; Buddhist ideas of rebirth spread among the court from the sixth century.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Kofun tomb culture, clan cults of local kami, the Miwa and Izumo cults, the arrival of Buddhism around 538 and the Nara state temples are attested in archaeology, the Kojiki and Nihon Shoki, and Chinese records.",
+      sources: [
+        "Piggott, The Emergence of Japanese Kingship",
+        "Como, Weaving and Binding",
+        "Kidder, Himiko and Japan's Elusive Chiefdom of Yamatai",
+      ],
+      limitation:
+        "The Kojiki and Nihon Shoki were written in the eighth century to support the ruling house and project its cult backwards; village practice before writing is inferred from archaeology.",
     },
   },
   {
@@ -1300,12 +1338,51 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "tibetan-buddhism",
+    label: "Tibetan Buddhist practice",
+    wiki: "https://en.wikipedia.org/wiki/Tibetan_Buddhism",
+    scope: { years: [780, 2025], bounds: [85, 27.8, 98, 33.5], cultures: ["east-asian", "south-asian", "inner-eurasian"] },
+    powers: [
+      { name: "Buddha Shakyamuni", wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha", domain: "awakening, the teaching", rank: "paramount" },
+      { name: "Avalokiteshvara", wiki: "https://en.wikipedia.org/wiki/Avalokiteshvara", domain: "compassion, the protector of Tibet", rank: "major" },
+      { name: "Tara", wiki: "https://en.wikipedia.org/wiki/Tara_(Buddhism)", domain: "rescue from danger, long life", rank: "major" },
+      { name: "Padmasambhava", wiki: "https://en.wikipedia.org/wiki/Padmasambhava", domain: "the taming of local spirits", rank: "major" },
+      { name: "Mahakala", wiki: "https://en.wikipedia.org/wiki/Mahakala", domain: "protection of the teaching", rank: "major" },
+      { name: "Palden Lhamo", wiki: "https://en.wikipedia.org/wiki/Palden_Lhamo", domain: "protection of Lhasa and its rulers", rank: "major" },
+      { name: "Nyenchen Tanglha", wiki: "https://en.wikipedia.org/wiki/Nyenchen_Tanglha_Mountains", domain: "the mountain range north of Lhasa", rank: "local" },
+      { name: "The lu", domain: "springs, lakes and the creatures in them", rank: "local" },
+      { name: "The hearth god", domain: "the household fire and its purity", rank: "local" },
+    ],
+    practice: [
+      "Butter lamps lit and prayer wheels turned on the circuit around a temple.",
+      "Juniper smoke offered to the mountain gods from the roof.",
+      "Prayer flags hung at passes and on the house, renewed at New Year.",
+      "A son sent to the monastery is a common duty and an honour.",
+    ],
+    specialist:
+      "Monks and lamas; village ngakpa for local spirits; the household head at the hearth shrine.",
+    afterlife:
+      "Rebirth according to deeds; the bardo between death and the next life is guided by readings over the body.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Monastic Buddhism in central Tibet from the founding of Samye in the late eighth century, the later diffusion from the eleventh, and the household and mountain cults alongside it are documented in Tibetan histories, monastery records and ethnography.",
+      sources: [
+        "Samuel, Civilized Shamans",
+        "Kapstein, The Tibetans",
+        "Tucci, The Religions of Tibet",
+      ],
+      limitation:
+        "One summary covers twelve centuries and several schools; the near-collapse of monasteries between 842 and the late tenth century is not separated out.",
+    },
+  },
+  {
     id: "tibetan-plateau-practice",
     features: ["sacred-texts"],
     label: "Tibetan Plateau and Qaidam Basin pastoralist tradition",
     wiki: "https://en.wikipedia.org/wiki/Bon",
     // Lhasa and the plateau are tagged South Asian.
-    scope: { years: [800, 1950], bounds: [79, 28.3, 104, 40], cultures: ["east-asian", "south-asian"] },
+    scope: { years: [800, 2025], bounds: [79, 28.3, 104, 40], cultures: ["east-asian", "south-asian"] },
     powers: [
       {
         name: "The sky",
@@ -1366,10 +1443,45 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "manchu-jurchen-practice",
+    label: "Jurchen and Manchu practice",
+    wiki: "https://en.wikipedia.org/wiki/Manchu_shamanism",
+    scope: { years: [500, 1920], bounds: [121, 41, 135, 53], cultures: ["east-asian", "inner-eurasian"] },
+    powers: [
+      { name: "Abka", wiki: "https://en.wikipedia.org/wiki/Abka_Enduri", domain: "Heaven, the sky", rank: "paramount" },
+      { name: "Fodo Mama", wiki: "https://en.wikipedia.org/wiki/Manchu_shamanism", domain: "the willow mother, children, the line", rank: "major" },
+      { name: "Changbai Mountain", wiki: "https://en.wikipedia.org/wiki/Paektu_Mountain", domain: "the ancestral mountain", rank: "major" },
+      { name: "The Buddha", wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha", domain: "merit, protection, the court's temples", rank: "major", scope: { years: [900, 10001] } },
+      { name: "The clan spirits", domain: "the clan, its hunters and its health", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "A pole raised in the courtyard, with grain and meat put out for the crows of Heaven.",
+      "Clan shamans drum and dance at the household altar on the west wall.",
+      "Willow branches set up when a child is born or a family prays for one.",
+    ],
+    specialist:
+      "Clan shamans and court shamans; Buddhist monks; the household head at the west-wall altar.",
+    afterlife:
+      "The dead join the clan ancestors; Buddhist rebirth for those who take it up.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Jurchen and Manchu sky worship, the pole sacrifice, clan shamans and the willow mother are documented in Jin and Qing ritual codes, the 1747 Manchu shamanic code, and ethnography.",
+      sources: [
+        "Elliott, The Manchu Way",
+        "Rawski, The Last Emperors",
+        "Shirokogoroff, Psychomental Complex of the Tungus",
+      ],
+      limitation:
+        "Most detail is Qing-era and courtly; Mohe, Balhae and Jurchen village practice before 1100 is inferred.",
+    },
+  },
+  {
     id: "modern-east-asia",
     label: "Modern East Asian practice and transition",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
-    scope: { years: [1900, 2020], bounds: [90, 15, 150, 55] },
+    scope: { years: [1900, 2025], bounds: [90, 15, 150, 55] },
     powers: [
       {
         name: "The ancestors",

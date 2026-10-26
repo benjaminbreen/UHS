@@ -284,6 +284,12 @@
     "hindu-reform": [
       {
         "tier": "temple",
+        "label": "Temple priest",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
         "label": "Brahmin reformer",
         "serves": "major",
         "weight": 5
