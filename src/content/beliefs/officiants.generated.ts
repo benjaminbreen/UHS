@@ -178,6 +178,11 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
     { tier: "household", label: "Family elder", serves: "local", weight: 40 },
   ],
+  "jomon-japan": [
+    { tier: "local", label: "Elder", serves: "local", weight: 14 },
+    { tier: "local", label: "Ritual specialist", serves: "local", weight: 14 },
+    { tier: "household", label: "Household head", serves: "local", weight: 40 },
+  ],
   "korean-three-kingdoms": [
     { tier: "local", label: "Shaman", serves: "local", weight: 14 },
     { tier: "local", label: "Spirit medium", serves: "local", weight: 14 },
@@ -837,6 +842,11 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "west-asia-foragers": [
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
+  ],
+  "berber-pre-islamic": [
+    { tier: "local", label: "Clan elder", serves: "local", weight: 14 },
+    { tier: "local", label: "Diviner", serves: "local", weight: 14 },
+    { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
   ],
   "west-asia-early-farming": [
     { tier: "local", label: "Elder", serves: "local", weight: 14 },

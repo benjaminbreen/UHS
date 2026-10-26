@@ -750,6 +750,41 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "jomon-japan",
+    label: "Jōmon practice",
+    wiki: "https://en.wikipedia.org/wiki/J%C5%8Dmon_period",
+    scope: { years: [-14000, -900], bounds: [129, 30, 146, 46] },
+    powers: [
+      { name: "The mountain", domain: "the peak above the village, its game and water", rank: "paramount" },
+      { name: "The sea", domain: "fish, shellfish, the boats", rank: "major" },
+      { name: "The forest", domain: "chestnuts, acorns, deer and boar", rank: "major" },
+      { name: "The mother figures", wiki: "https://en.wikipedia.org/wiki/Dog%C5%AB", domain: "birth, healing, the renewal of life", rank: "major" },
+      { name: "The bear and the boar", domain: "the animals that give themselves to hunters", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Clay figurines, often deliberately broken, buried or scattered at the village.",
+      "Stone circles laid out for the dead and the turning of the seasons.",
+      "Shell middens and pits where bones and broken pots are returned with care.",
+    ],
+    specialist:
+      "Elders and ritual specialists; the household head at the hearth.",
+    afterlife:
+      "The dead are buried in the village, often curled or under a pot, close to the living.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Dogū figurines, stone circles such as Ōyu, buried and broken ritual objects, and village burial are well attested archaeologically across the Jōmon period.",
+      sources: [
+        "Habu, Ancient Jomon of Japan",
+        "Kaner, 'Jomon Ritual and Belief'",
+        "Mizoguchi, The Archaeology of Japan",
+      ],
+      limitation:
+        "No texts survive; every named power is a description inferred from objects and from later Ainu and Japanese parallels.",
+    },
+  },
+  {
     id: "korean-three-kingdoms",
     label: "Korean Three Kingdoms shamanic practice",
     wiki: "https://en.wikipedia.org/wiki/Korean_shamanism",

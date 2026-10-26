@@ -144,6 +144,41 @@ const westAsiaBase: readonly BeliefSystem[] = [
     },
   },
   {
+    id: "berber-pre-islamic",
+    label: "Pre-Islamic Berber practice",
+    wiki: "https://en.wikipedia.org/wiki/Traditional_Berber_religion",
+    scope: { years: [-1000, 700], bounds: [-17, 20, 8, 37] },
+    powers: [
+      { name: "The sun and moon", domain: "the sky, oaths, the turning year", rank: "paramount" },
+      { name: "Ammon", wiki: "https://en.wikipedia.org/wiki/Amun", domain: "the oracle of Siwa, rams, the sky", rank: "major" },
+      { name: "Gurzil", wiki: "https://en.wikipedia.org/wiki/Gurzil", domain: "war, the bull", rank: "major" },
+      { name: "Tanit", wiki: "https://en.wikipedia.org/wiki/Tanit", domain: "fertility, the city, adopted from Carthage", rank: "major" },
+      { name: "Saturn", wiki: "https://en.wikipedia.org/wiki/Saturn_(mythology)", domain: "harvest, the altar; the old Baal under a Roman name", rank: "major" },
+      { name: "The holy places", domain: "springs, caves and mountain tops", rank: "local" },
+      { name: "The ancestors", domain: "the dead at their tombs, who answer in dreams", rank: "local" },
+    ],
+    practice: [
+      "Sleeping at an ancestor's tomb to receive advice in a dream.",
+      "Offerings at springs, caves and high places.",
+      "Votive stelae set up to Saturn in the Roman towns of the interior.",
+    ],
+    specialist:
+      "Clan elders and diviners; temple priests in the Roman towns.",
+    afterlife: "The dead remain near their tombs and can be consulted.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Herodotus on tomb incubation, inscriptions to Gurzil and other African gods, and thousands of Saturn stelae and Tanit dedications across Numidia and Mauretania are well attested.",
+      sources: [
+        "Brett & Fentress, The Berbers",
+        "Camps, Les Berbères",
+        "Leglay, Saturne africain",
+      ],
+      limitation:
+        "Classical writers and inscriptions describe the Romanised and Punic-influenced north; mountain and desert practice is largely inferred.",
+    },
+  },
+  {
     id: "west-asia-early-farming",
     label: "Early farming and herding communities",
     wiki: "https://en.wikipedia.org/wiki/Neolithic_religion",
