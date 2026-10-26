@@ -1080,7 +1080,15 @@ export class Runtime {
       const result = this.command(step.command);
       // A shut door or a refused harvest ends the errand with the engine's reason.
       if (result?.status === "rejected") this.finish(result.reason ?? "You can go no further.");
-    } else if ("done" in step) this.finish(step.done);
+    } else if ("done" in step) {
+      const plan = this.autopilot!.plan;
+      this.finish(step.done);
+      // Arriving at someone the sick card sent you to asks it again.
+      if (plan.kind === "seek" && this.engine.state.care) {
+        this.engine.reofferCard();
+        this.emit(false);
+      }
+    }
   }
   private finish(text: string) {
     this.stop(false);

@@ -19,6 +19,8 @@ export type CardEffect =
   /** The card's sick person is cared for: one in `odds` who were dying mend. */
   | { type: "tend"; odds: number }
   | { type: "care"; treatment: import("../health/infections").Treatment }
+  /** Walks the player to someone, the card still waiting for an answer. */
+  | { type: "go"; who: string }
   /** The chance, 0 to 1, of catching an illness from it. */
   | { type: "risk"; ailment: string; odds: number };
 

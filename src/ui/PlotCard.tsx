@@ -557,7 +557,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
           <div className="plot-speech-actions" data-ready={done || outcome ? true : undefined}>
             <Choices
               focus={begin}
-              items={outcome ? [{ label: "Continue", pick: () => close(), primary: true }] : [
+              items={outcome ? [{ label: "Continue", pick: () => close(outcome.go ? () => runtime.setOff({ kind: "seek", actor: outcome.go!, label: runtime.engine.state.actors.find((a) => a.id === outcome.go)?.name ?? "them" }) : undefined), primary: true }] : [
                 ...(speaker && runtime.engine.approacher?.id === speaker.id
                   ? [{ label: "Answer", pick: () => { onLook(); onClose(); onAnswer(speaker.id, line || card.text); }, primary: true }]
                   : []),

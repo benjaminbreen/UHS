@@ -174,6 +174,18 @@ const FAUNA_KEEP = 160;
 /** Grain from one reaped field cell, and the parcel size an ordinary farm works. */
 const GRAIN_PER_CELL = 6;
 const PARCEL_CELLS = 45;
+// How an illness looks to the sick and to their family: symptoms, never a diagnosis.
+const SICK: Record<string, [own: string, other: string]> = {
+  fever: ["Your head aches and your whole body is hot and heavy. It is hard to stand for long.", "{Name} has a fever and has gone to lie down."],
+  cough: ["You woke with a tight chest and a cough that won't settle. Now you're hot one minute and shivering the next.", "{Name} has a hacking cough and is hot to the touch."],
+  flux: ["Your stomach turned in the night and you've had diarrhea ever since. Now you're weak and very thirsty.", "{Name} has diarrhea and cramps and can barely keep water down."],
+  wound: ["The cut has gone red and swollen, and it throbs. You feel feverish.", "{Name}'s wound has gone red and swollen, and {name} is feverish."],
+  childbed: ["Since the birth you have been weak, and now a fever has set in.", "Since the birth {name} has been weak, and now a fever has set in."],
+  smallpox: ["You are burning with fever and your back aches. Red spots are coming up on your face.", "{Name} is burning with fever, and red spots are coming up on {name}'s face."],
+  measles: ["Your eyes are red and streaming, you have a fever, and a blotchy rash is spreading from your face.", "{Name} has red, streaming eyes, a fever, and a blotchy rash spreading from the face down."],
+  plague: ["You are burning with fever, and there is a hard, painful swelling in your groin.", "{Name} is burning with fever and has a hard, painful swelling under one arm."],
+  break: ["Your arm is broken. It hurts to move at all.", "{Name} has broken an arm and is in a lot of pain."],
+};
 /** Clock seconds between looks for a new raid, and the odds each time. A game
  * minute is about three real seconds. */
 const RAID_CHECK = 60;
@@ -905,12 +917,13 @@ export class Engine {
     const stats = this.stats();
     const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
     const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
+    const kin = care && kinOf(s).find((k) => k.actor.id === care.who);
     if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.care?.card === card.id && s.care.who === care.who ? s.care.at : s.clock };
     else if (!encounter) s.economy!.work!.card = card.id;
     const drawnStep = this.trade()?.process.steps[s.economy?.work?.drawn ?? -1];
     this.cards.unshift({
       kind: "speech",
-      title: encounter ? "On the road" : care ? (person ? person.name : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: encounter ? "On the road" : care ? (kin ? `your ${kinWord(kin.kind, kin.actor)}` : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {
@@ -946,6 +959,7 @@ export class Engine {
     const effects = won ? c.then : (c.otherwise ?? []);
     const careEffect = effects.find((e) => e.type === "care");
     const careOption = careEffect?.type === "care" ? this.careOptions(care?.who).find((o) => o.treatment === careEffect.treatment) : undefined;
+    let go: string | undefined;
     const sum = (type: string) => effects.reduce((n, e) => n + (e.type === type ? ("delta" in e ? e.delta : "n" in e ? e.n : 0) : 0), 0);
     const changes = [
       { kind: "time", delta: careOption?.minutes ?? sum("minutes") + sum("sleep") },
@@ -976,6 +990,11 @@ export class Engine {
       }
       else if (e.type === "hurt") this.hurt(e.n, e.cause, e.injury);
       else if (e.type === "care") this.giveCare(care?.who ?? "player", e.treatment);
+      else if (e.type === "go") {
+        // Still waiting on an answer, to be asked again on arrival.
+        if (care) s.care = care;
+        go = e.who;
+      }
       else if (e.type === "tend") {
         const who = care ? care.who : person?.id;
         const ail = who && s.ailments?.find((a) => a.who === who && !a.tended);
@@ -990,7 +1009,7 @@ export class Engine {
     record.push({ day: work?.day ?? Math.floor(s.clock / 86400), clock: s.clock, card: id, choice: n, line });
     if (record.length > 5000) record.shift();
     this.event(line);
-    this.lastChoice = { card: id, line, won: c.check ? won : undefined, changes };
+    this.lastChoice = { card: id, line, won: c.check ? won : undefined, changes, go };
     const t = this.trade();
     if (work && t && t.stage >= t.process.stages.length) this.finishWork(t);
   }
@@ -1036,13 +1055,41 @@ export class Engine {
 
   private choiceCard(id: string): ChoiceCard | undefined {
     if (id !== "care-symptoms") return CARDS.find((c) => c.id === id);
-    const who = this.state.care?.who;
-    if (!who) return;
-    return {
-      id, slot: "care-self", evidence: "inferred", text: "Symptoms: {ailment}. Decide what care you can arrange; you can also seek help later through the body panel or by inspecting the patient.",
-      choices: [...this.careOptions(who).map((o) => ({ label: o.label, note: `${o.note} · ${o.minutes} minutes${o.coin ? ` · ${o.coin} coins` : ""}`, then: [{ type: "care" as const, treatment: o.treatment }], line: o.label })),
-        { label: "Decide later", note: "Care remains available", then: [], line: "You put off arranging care." }],
+    const s = this.state, care = s.care, p = s.player;
+    if (!care) return;
+    const a = care.who === p.id ? p : s.actors.find((x) => x.id === care.who);
+    const own = a === p, near = own || (!!a && distance(a.pos, p.pos) <= 2.5);
+    const [mine, theirs] = SICK[care.ailment] ?? SICK.fever;
+    const home = s.households?.find((h) => a && h.members.includes(a.id))?.residence;
+    const text = own ? mine : near ? theirs : `${a?.pos.space === home ? "Word comes from home" : "Word reaches you"}: ${theirs.charAt(0).toLowerCase() + theirs.slice(1)}`;
+    const options = this.careOptions(care.who), doctor = options.find((o) => o.treatment === "consult")?.practitioner;
+    const role = doctor && s.actors.find((x) => x.id === doctor.id)?.role.toLowerCase();
+    const wound = !!a?.injury?.open && a.injury.until > s.clock;
+    const fits: Record<Treatment, boolean> = {
+      rest: own, nurse: !own, "clean-wound": wound, consult: !!doctor && (!own || distance(doctor.pos, p.pos) <= 2.5),
+      medicine: care.ailment === "wound", rehydration: care.ailment === "flux", "prepare-food": own && care.ailment === "flux",
     };
+    const you = own ? "you" : "{name}";
+    const words: Record<Treatment, [label: string, note: string, line: string]> = {
+      rest: ["Go to bed", "Six hours in bed. Rest helps you mend; the work will wait.", "You went to bed."],
+      nurse: ["Sit with {name}", "An hour at the bedside. Being looked after helps, but you may catch it.", "You sat with {name} for an hour."],
+      "clean-wound": ["Wash and bind the wound", "Keeps it clean for a day. It won't cure an infection that has taken hold.", "You washed and bound the wound."],
+      consult: [`Ask ${doctor?.name} to look at ${own ? "you" : "{name}"}`, `An hour, and the ${role} looks after ${you} for a day.`, `${doctor?.name} looked at ${you}.`],
+      medicine: ["Get antibiotics for the wound", "A week's course, if a doctor has one to spare.", "You got a course of antibiotics."],
+      rehydration: ["Get rehydration salts", "Mixed with clean water, they keep someone with diarrhea from drying out.", "You got rehydration salts."],
+      "prepare-food": ["Take care over food and water", "For a day the household drinks clean water and eats food cooked through.", "You saw to the household's food and water."],
+    };
+    const choices: ChoiceCard["choices"] = near ? options.filter((o) => fits[o.treatment]).map((o) => {
+      const [label, note, line] = words[o.treatment];
+      return { label, note, then: [{ type: "care" as const, treatment: o.treatment }], line };
+    }) : [];
+    if (!near && a) choices.push({ label: "Go to {name}", note: "Walk there now.", then: [{ type: "go", who: a.id }], line: "You set off to see {name}." });
+    else if (own && doctor && !fits.consult)
+      choices.push({ label: `Go to ${doctor.name}, the ${role}`, note: "Walk there now and ask for help.", then: [{ type: "go", who: doctor.id }], line: `You set off to find ${doctor.name}.` });
+    choices.push(own ? { label: "Push on", note: "Carry on as you are. You can rest or get help later.", then: [], line: "You pushed on, ill as you were." }
+      : near ? { label: "Let {name} rest", note: "You can sit with {name} later.", then: [], line: "You left {name} to rest." }
+      : { label: "Carry on with your day", note: "You can go to {name} later.", then: [], line: "You carried on with your day." });
+    return { id, slot: "care-self", evidence: "inferred", text, choices };
   }
 
   careOptions(target = "player") {
@@ -4757,7 +4804,7 @@ export class Engine {
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
   /** What the last answer to a work card did, for the card to show. Never saved. */
-  lastChoice?: { card: string; line: string; won?: boolean; changes: { kind: string; delta: number; who?: string }[] };
+  lastChoice?: { card: string; line: string; won?: boolean; changes: { kind: string; delta: number; who?: string }[]; go?: string };
   /** Whether a door opens for this caller right now. The rules are in
    * doors.ts; the engine only supplies who is inside and who is welcome. */
   doorVerdict(place: Place, actorId: string): DoorVerdict {

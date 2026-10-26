@@ -170,9 +170,10 @@ describe("exposure, symptoms and care", () => {
     const e = clinic(), ail = symptomatic(e);
     e.healthStep(e.state.clock, false);
     const card = e.cards.find((c) => c.choose?.card === "care-symptoms")!;
-    expect(card.text).toContain("cough, feverishness");
-    expect(card.choose!.choices.every((c) => c.odds === undefined)).toBe(true);
-    expect(act(e, { type: "choose", card: "care-symptoms", choice: 7 }).status).toBe("completed");
+    expect(card.text).toContain("cough");
+    expect(card.choose!.choices.map((c) => c.label)).not.toContain("Clean and dress the wound");
+    expect(card.choose!.choices.every((c) => c.odds === undefined && !c.unavailable)).toBe(true);
+    expect(act(e, { type: "choose", card: "care-symptoms", choice: card.choose!.choices.at(-1)!.index }).status).toBe("completed");
     expect(act(e, { type: "care", target: "player", treatment: "consult" }).status).toBe("completed");
     expect(bodySummary(e.state)).toContain("assessed by");
     expect(bodySummary(e.state)).toContain("cause is uncertain");
@@ -183,6 +184,24 @@ describe("exposure, symptoms and care", () => {
     expect(npc.course).toBe("die");
     expect(npc.tended).toBeUndefined();
     expect(ail.infection?.assessment).toBeDefined();
+  });
+
+  it("sends the player to a sick relative who is out of reach, and asks again on arrival", () => {
+    const e = clinic(), p = e.state.player, child = e.state.actors[1];
+    p.relations = [{ kind: "child", other: child.id }];
+    child.pos = { ...p.home, space: "outside" };
+    symptomatic(e, "flux", child);
+    e.healthStep(e.state.clock, false);
+    const card = e.cards.find((c) => c.choose?.card === "care-symptoms")!;
+    expect(card.text).toContain("diarrhea");
+    expect(card.choose!.choices.map((c) => c.label)).toEqual([`Go to ${child.name.split(" ")[0]}`, "Carry on with your day"]);
+    act(e, { type: "choose", card: "care-symptoms", choice: 0 });
+    expect(e.lastChoice?.go).toBe(child.id);
+    expect(e.state.care?.who).toBe(child.id);
+    p.pos = { ...child.pos, x: child.pos.x + 1 };
+    e.cards.length = 0;
+    e.reofferCard();
+    expect(e.cards[0].choose!.choices.map((c) => c.label)).toContain(`Sit with ${child.name.split(" ")[0]}`);
   });
 
   it("records recovery and temporary protection without making wound infection confer immunity", () => {
