@@ -18,6 +18,8 @@ export type Ailment = {
   course: "mend" | "linger" | "die";
   /** Someone sat with them while it was at its worst; checked once. */
   tended?: boolean;
+  /** The player looked after them, kin only; counted once for regard. */
+  cared?: boolean;
   infection?: {
     exposed: number; source: string; route: string;
     /** Extra recovery time earned by rest and treatment, in seconds. */

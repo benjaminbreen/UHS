@@ -966,7 +966,7 @@ export class Engine {
       { kind: "coin", delta: careOption ? -careOption.coin : effects.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0) },
       { kind: "pay", delta: sum("pay") },
       { kind: "day", delta: sum("day") },
-      { kind: "regard", delta: person ? sum("regard") : 0, who: person?.name.split(" ")[0] },
+      { kind: "regard", delta: person ? sum("regard") + (careOption && care && !s.ailments?.find((a) => a.who === care.who)?.cared && kinOf(s).some((k) => k.actor.id === care.who) ? 1 : 0) : 0, who: person?.name.split(" ")[0] },
       { kind: "hurt", delta: sum("hurt") },
     ].filter((ch) => ch.delta);
     for (const e of effects)
@@ -1008,7 +1008,7 @@ export class Engine {
     const record = (s.record ??= []);
     record.push({ day: work?.day ?? Math.floor(s.clock / 86400), clock: s.clock, card: id, choice: n, line });
     if (record.length > 5000) record.shift();
-    this.event(line);
+    if (!careOption) this.event(line);
     this.lastChoice = { card: id, line, won: c.check ? won : undefined, changes, go };
     const t = this.trade();
     if (work && t && t.stage >= t.process.stages.length) this.finishWork(t);
@@ -1064,34 +1064,19 @@ export class Engine {
     const text = own ? mine : near ? theirs : `${a?.pos.space === home ? "Word comes from home" : "Word reaches you"}: ${theirs.charAt(0).toLowerCase() + theirs.slice(1)}`;
     const options = this.careOptions(care.who), doctor = options.find((o) => o.treatment === "consult")?.practitioner;
     const role = doctor && s.actors.find((x) => x.id === doctor.id)?.role.toLowerCase();
-    const wound = !!a?.injury?.open && a.injury.until > s.clock;
-    const fits: Record<Treatment, boolean> = {
-      rest: own, nurse: !own, "clean-wound": wound, consult: !!doctor && (!own || distance(doctor.pos, p.pos) <= 2.5),
-      medicine: care.ailment === "wound", rehydration: care.ailment === "flux", "prepare-food": own && care.ailment === "flux",
-    };
-    const you = own ? "you" : "{name}";
-    const words: Record<Treatment, [label: string, note: string, line: string]> = {
-      rest: ["Go to bed", "Six hours in bed. Rest helps you mend; the work will wait.", "You went to bed."],
-      nurse: ["Sit with {name}", "An hour at the bedside. Being looked after helps, but you may catch it.", "You sat with {name} for an hour."],
-      "clean-wound": ["Wash and bind the wound", "Keeps it clean for a day. It won't cure an infection that has taken hold.", "You washed and bound the wound."],
-      consult: [`Ask ${doctor?.name} to look at ${own ? "you" : "{name}"}`, `An hour, and the ${role} looks after ${you} for a day.`, `${doctor?.name} looked at ${you}.`],
-      medicine: ["Get antibiotics for the wound", "A week's course, if a doctor has one to spare.", "You got a course of antibiotics."],
-      rehydration: ["Get rehydration salts", "Mixed with clean water, they keep someone with diarrhea from drying out.", "You got rehydration salts."],
-      "prepare-food": ["Take care over food and water", "For a day the household drinks clean water and eats food cooked through.", "You saw to the household's food and water."],
-    };
-    const choices: ChoiceCard["choices"] = near ? options.filter((o) => fits[o.treatment]).map((o) => {
-      const [label, note, line] = words[o.treatment];
-      return { label, note, then: [{ type: "care" as const, treatment: o.treatment }], line };
-    }) : [];
+    const far = own && !!doctor && distance(doctor.pos, p.pos) > 2.5;
+    const choices: ChoiceCard["choices"] = near ? options.filter((o) => o.fits && !(far && o.treatment === "consult"))
+      .map((o) => ({ label: o.label, note: o.note, then: [{ type: "care" as const, treatment: o.treatment }], line: o.line })) : [];
     if (!near && a) choices.push({ label: "Go to {name}", note: "Walk there now.", then: [{ type: "go", who: a.id }], line: "You set off to see {name}." });
-    else if (own && doctor && !fits.consult)
-      choices.push({ label: `Go to ${doctor.name}, the ${role}`, note: "Walk there now and ask for help.", then: [{ type: "go", who: doctor.id }], line: `You set off to find ${doctor.name}.` });
+    else if (far) choices.push({ label: `Go to ${doctor.name}, the ${role}`, note: "Walk there now and ask for help.", then: [{ type: "go", who: doctor.id }], line: `You set off to find ${doctor.name}.` });
     choices.push(own ? { label: "Push on", note: "Carry on as you are. You can rest or get help later.", then: [], line: "You pushed on, ill as you were." }
       : near ? { label: "Let {name} rest", note: "You can sit with {name} later.", then: [], line: "You left {name} to rest." }
-      : { label: "Carry on with your day", note: "You can go to {name} later.", then: [], line: "You carried on with your day." });
+      : { label: "Carry on with your day", note: "You can go to {name} later, but {name} will notice if you never come.", then: [], line: "You carried on with your day." });
     return { id, slot: "care-self", evidence: "inferred", text, choices };
   }
 
+  /** What can be done for someone ill, worded for the card and the panels;
+   * `fits` marks what applies to this illness at all. */
   careOptions(target = "player") {
     if (!this.state.manifest.disease) return [];
     const s = this.state, p = s.player, a = target === p.id ? p : s.actors.find((a) => a.id === target);
@@ -1103,20 +1088,30 @@ export class Engine {
     const home = s.households?.find((h) => h.members.includes(p.id));
     const atHome = !!home && (p.pos.space === home.residence || distance(p.pos, home.home) <= 3);
     const hearth = s.objects.some((o) => o.kind === "fire" && !o.broken && !o.depleted && distance(o.pos, p.pos) <= 3);
-    const common = !a || a.dead || a.kind !== "human" ? "There is no living patient here." : !own && distance(a.pos, p.pos) > 2.5 ? "Walk within reach of the patient." : undefined;
-    const options: Record<Treatment, { label: string; note: string; minutes: number; coin: number; problem?: string }> = {
-      rest: { label: "Go to bed and rest", note: "Six hours of rest supports recovery; shelter matters", minutes: 360, coin: 0, problem: !own ? "You can rest yourself; nurse another patient." : undefined },
-      nurse: { label: "Arrange nursing care", note: "An hour of close care; support lasts a day, and contact can expose you", minutes: 60, coin: 0, problem: own ? "Choose rest for yourself." : !ill ? "No symptoms need nursing." : undefined },
-      "clean-wound": { label: "Clean and dress the wound", note: "Reduces further wound exposure for a day; does not cure an established infection", minutes: 20, coin: 0, problem: !a?.injury?.open || a.injury.until <= clock ? "There is no open wound to dress." : undefined },
-      consult: { label: "Consult a local practitioner", note: provider ? `${provider.name}: an assessment and a day of supportive care` : "An assessment and supportive care", minutes: 60, coin: 2, problem: !ill ? "No symptoms to assess." : !provider ? providers[0] ? `Seek ${providers[0].name} (${providers[0].role}) first.` : "No practitioner is present on this map." : undefined },
-      medicine: { label: "Seek antibiotic treatment for the wound", note: antibiotic ? `${antibiotic.name} has a course in stock; helps an infected wound, not every illness` : "Requires a practitioner with appropriate medicine in stock", minutes: 60, coin: 3, problem: ill?.id !== "wound" ? "This treatment is for an infected wound." : !antibiotic ? "No nearby practitioner has this medicine." : (ill.infection?.medicineUntil ?? 0) > clock ? "A treatment course is already under way." : undefined },
-      rehydration: { label: "Arrange oral rehydration treatment", note: fluids ? `${fluids.name} has supplies; a day of prepared treatment for diarrhea` : "Requires a practitioner with prepared supplies", minutes: 30, coin: 1, problem: ill?.id !== "flux" ? "This treatment is for diarrhea." : !fluids ? "No nearby practitioner has these supplies." : (ill.infection?.fluidsUntil ?? 0) > clock ? "Treatment is already arranged for today." : undefined },
-      "prepare-food": { label: "Arrange careful food and water preparation", note: "A day of safer household provisions; no drinking upkeep", minutes: 30, coin: 0, problem: !own ? "Arrange this for your own household." : !atHome && !hearth ? "Return home or find a cooking fire." : (p.preparedFoodUntil ?? 0) > clock ? "Preparation is already arranged for today." : undefined },
+    const name = own ? "you" : a?.name.split(" ")[0] ?? "them";
+    const doctor = provider ?? providers[0], role = doctor?.role.toLowerCase();
+    const wound = !!a?.injury?.open && a.injury.until > clock;
+    const common = !a || a.dead || a.kind !== "human" ? "There is nobody here to look after." : !own && distance(a.pos, p.pos) > 2.5 ? `${name} is not here.` : undefined;
+    const options: Record<Treatment, { label: string; note: string; line: string; minutes: number; coin: number; fits: boolean; problem?: string }> = {
+      rest: { label: "Go to bed", note: "Six hours in bed. Rest helps you mend; the work will wait.", line: "You went to bed.", minutes: 360, coin: 0, fits: own && !!ill,
+        problem: !own ? "You can only rest yourself." : undefined },
+      nurse: { label: `Sit with ${name}`, note: `An hour at the bedside. Being looked after helps, and ${name} will remember it, but you may catch it.`, line: `You sat with ${name} for an hour.`, minutes: 60, coin: 0, fits: !own && !!ill,
+        problem: own ? "You can't nurse yourself; go to bed instead." : !ill ? `${name} is not ill.` : undefined },
+      "clean-wound": { label: "Wash and bind the wound", note: "Keeps it clean for a day. It won't cure an infection that has taken hold.", line: "You washed and bound the wound.", minutes: 20, coin: 0, fits: wound,
+        problem: !wound ? "There is no open wound." : undefined },
+      consult: { label: `Ask ${doctor?.name ?? "a healer"} to look at ${name}`, note: `An hour, and the ${role ?? "healer"} looks after ${name} for a day.`, line: `${doctor?.name ?? "The healer"} looked at ${name}.`, minutes: 60, coin: 2, fits: !!ill && !!doctor,
+        problem: !ill ? `${own ? "You are" : `${name} is`} not ill.` : !provider ? doctor ? `${doctor.name} the ${role} is not here.` : "There is no healer here." : undefined },
+      medicine: { label: "Get antibiotics for the wound", note: antibiotic ? `${antibiotic.name} has a week's course to spare.` : "A week's course, if a doctor has one to spare.", line: "You got a course of antibiotics.", minutes: 60, coin: 3, fits: ill?.id === "wound",
+        problem: ill?.id !== "wound" ? "Only for an infected wound." : !antibiotic ? "No doctor nearby has any." : (ill.infection?.medicineUntil ?? 0) > clock ? "A course is already under way." : undefined },
+      rehydration: { label: "Get rehydration salts", note: "Mixed with clean water, they keep someone with diarrhea from drying out.", line: "You got rehydration salts.", minutes: 30, coin: 1, fits: ill?.id === "flux",
+        problem: ill?.id !== "flux" ? "Only for diarrhea." : !fluids ? "No doctor nearby has any." : (ill.infection?.fluidsUntil ?? 0) > clock ? "That's already done for today." : undefined },
+      "prepare-food": { label: "Take care over food and water", note: "For a day the household drinks clean water and eats food cooked through.", line: "You saw to the household's food and water.", minutes: 30, coin: 0, fits: own && (!ill || ill.id === "flux"),
+        problem: !own ? "Only for your own household." : !atHome && !hearth ? "Go home or find a cooking fire." : (p.preparedFoodUntil ?? 0) > clock ? "That's already done for today." : undefined },
     };
     const year = this.world.pack.setting?.year ?? 1500;
     return treatments.filter((t) => (t !== "medicine" || year >= 1945) && (t !== "rehydration" || year >= 1970)).map((treatment) => {
       const o = options[treatment];
-      return { treatment, label: o.label, note: o.note, minutes: o.minutes, coin: o.coin, practitioner: ["consult", "medicine", "rehydration"].includes(treatment) && providers[0] ? { id: providers[0].id, name: providers[0].name, pos: { ...providers[0].pos } } : undefined, unavailable: common ?? o.problem ?? ((p.inventory.coin ?? 0) < o.coin ? `You need ${o.coin} coins.` : undefined), command: { type: "care" as const, target, treatment } };
+      return { treatment, label: o.label, note: o.note, line: o.line, fits: o.fits, minutes: o.minutes, coin: o.coin, practitioner: ["consult", "medicine", "rehydration"].includes(treatment) && providers[0] ? { id: providers[0].id, name: providers[0].name, pos: { ...providers[0].pos } } : undefined, unavailable: common ?? o.problem ?? ((p.inventory.coin ?? 0) < o.coin ? `You need ${o.coin} coins.` : undefined), command: { type: "care" as const, target, treatment } };
     });
   }
 
@@ -1156,7 +1151,11 @@ export class Engine {
       this.advance(option.minutes * 60, target === p.id ? undefined : target);
       if (!p.dead) p.activity = before;
     }
-    this.event(`${option.label}${a === p ? "." : `: ${a.name}.`}`);
+    if (ail && a !== p && !ail.cared && kinOf(s).some((k) => k.actor.id === a.id)) {
+      ail.cared = true;
+      this.regard(a, 1);
+    }
+    this.event(option.line);
   }
   private today() {
     const s = this.state;
@@ -5279,7 +5278,7 @@ export class Engine {
     if (actor) {
       if (actor.kind === "human") {
         interact("talk", "Talk");
-        for (const o of this.careOptions(actor.id).filter((o) => ["nurse", "clean-wound", "consult", "medicine", "rehydration"].includes(o.treatment)))
+        for (const o of this.careOptions(actor.id).filter((o) => o.fits))
           add(o.label, o.command, !o.unavailable, o.unavailable);
         if (this.state.manifest.survival) interact("strike", "Strike (may provoke a fight)", distance(this.state.player.pos, pos) <= 1.5, "Move within arm’s reach");
         const plot = this.state.plot;
@@ -7918,6 +7917,8 @@ export class Engine {
       }
       const a = s.actors.find((x) => x.id === ail.who);
       if (a && ail.course === "die" && !spare.has(a.id)) this.dies(a, this.diedOf(ail.id));
+      // Kin who got through it without you remember that you never came.
+      else if (a && ail.course !== "die" && ail.infection?.announced && !ail.cared && kinOf(s).some((k) => k.actor.id === a.id)) this.regard(a, -1);
     }
     // An illness wears the player down as it worsens.
     const p = s.player, sick = ailing(s, p.id, clock);

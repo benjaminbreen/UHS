@@ -136,7 +136,7 @@ export function Vitals({
         </button>
         {details && <div className="survival-details" role="region" aria-label="Body and danger details">
           <p>{bodySummary(engine.state, engine.world.pack.setting)}</p>
-          {onCare && engine.careOptions().map((o) => <div className="care-option" key={o.treatment}><button disabled={!!o.unavailable} onClick={() => onCare(o.command)}>{o.label} · {o.minutes}m{o.coin ? ` · ${o.coin} coins` : ""}</button><small>{o.unavailable ?? o.note}</small></div>)}
+          {onCare && engine.careOptions().filter((o) => o.fits).map((o) => <div className="care-option" key={o.treatment}><button disabled={!!o.unavailable} onClick={() => onCare(o.command)}>{o.label} · {o.minutes}m{o.coin ? ` · ${o.coin} coins` : ""}</button><small>{o.unavailable ?? o.note}</small></div>)}
           <p>{dangerSummary(danger)}</p>
           {engine.nearbyDanger().map((d) => <p key={d.bearing}>{d.bearing}, 16 paces ({d.pos.x}, {d.pos.y}): {d.level}. {d.reasons.join("; ")}</p>)}
         </div>}

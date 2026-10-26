@@ -201,7 +201,21 @@ describe("exposure, symptoms and care", () => {
     p.pos = { ...child.pos, x: child.pos.x + 1 };
     e.cards.length = 0;
     e.reofferCard();
-    expect(e.cards[0].choose!.choices.map((c) => c.label)).toContain(`Sit with ${child.name.split(" ")[0]}`);
+    const sit = e.cards[0].choose!.choices.find((c) => c.label === `Sit with ${child.name.split(" ")[0]}`)!;
+    const trust = child.trust;
+    act(e, { type: "choose", card: "care-symptoms", choice: sit.index });
+    expect(child.trust).toBe(trust + 1);
+    expect(e.state.events.filter((x) => x.text.includes("sat with")).length).toBe(1);
+  });
+
+  it("costs regard when sick kin get better without the player ever coming", () => {
+    const e = clinic(), p = e.state.player, child = e.state.actors[1];
+    p.relations = [{ kind: "child", other: child.id }];
+    const ail = symptomatic(e, "cough", child);
+    ail.infection!.announced = true;
+    const trust = child.trust;
+    e.healthStep(ail.since + ail.days * 86400 * 2, false);
+    expect(child.trust).toBe(trust - 1);
   });
 
   it("records recovery and temporary protection without making wound infection confer immunity", () => {
