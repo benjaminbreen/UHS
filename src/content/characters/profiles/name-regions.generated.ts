@@ -1993,6 +1993,18 @@ export const nameRegions: readonly NameRegion[] = [
     ],
   },
   {
+    id: "south-asian-gujarat",
+    label: "Gujarat",
+    bounds: [68,20.1,74.5,24.7],
+    culture: "south-asian",
+    windows: [
+      { years: [-1000000, -1500], options: [{ tradition: "early-south-asia", weight: 1 }] },
+      { years: [-1500, 1200], options: [{ tradition: "sanskrit-classical", weight: 1 }] },
+      { years: [1200, 1411], options: [{ tradition: "gujarati", weight: 8 }, { tradition: "gujarati-muslim", weight: 1 }] },
+      { years: [1411, 10001], options: [{ tradition: "gujarati", weight: 5 }, { tradition: "gujarati-muslim", weight: 1 }] },
+    ],
+  },
+  {
     id: "backstop-east-asia",
     label: "East Asia",
     bounds: [73,18,135,54],

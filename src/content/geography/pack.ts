@@ -97,10 +97,8 @@ export function periodBuildings(setting: WorldSetting): string[] {
     return year >= 1820
       ? ["straits-shophouse", "straits-shophouse-mint", "colonial-bungalow"]
       : ["chinese-shophouse", "colonial-bungalow"];
-  if (culture === "south-asian")
-    return year >= 1800
-      ? ["colonial-bungalow", "straits-shophouse-mint", "victorian-shop"]
-      : ["colonial-bungalow"];
+  // South Asian cities stay with their courtyard houses: bungalows and
+  // shophouses belonged to cantonments and civil lines, not the old city.
   return [];
 }
 

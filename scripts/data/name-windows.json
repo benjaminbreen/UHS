@@ -2083,6 +2083,67 @@
           ]
         }
       ]
+    },
+    "south-asian-gujarat": {
+      "why": "Gujarati speech is recognisable from about 1200; Muslim communities grow under the Sultanate founded at Ahmedabad in 1411 and were around a sixth of the city later.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -1500
+          ],
+          "options": [
+            {
+              "tradition": "early-south-asia",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1500,
+            1200
+          ],
+          "options": [
+            {
+              "tradition": "sanskrit-classical",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1200,
+            1411
+          ],
+          "options": [
+            {
+              "tradition": "gujarati",
+              "weight": 8
+            },
+            {
+              "tradition": "gujarati-muslim",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1411,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "gujarati",
+              "weight": 5
+            },
+            {
+              "tradition": "gujarati-muslim",
+              "weight": 1
+            }
+          ]
+        }
+      ]
     }
   },
   "deepTime": {

@@ -68,6 +68,7 @@ import {
 import type { Boundary, CropId } from "../../content/agriculture/types";
 import {
   plottedTown,
+  compoundCity,
   urbanNeighborhood,
   urbanSite,
   siteForm,
@@ -392,7 +393,7 @@ export function planSettlement(
       ? undefined
       : !!pack.setting && industrialized(pack.setting) && !plotted && pack.setting.year < 1900
         ? "paving"
-        : (pack.setting?.year ?? 0) >= 1900 || plotted
+        : (pack.setting?.year ?? 0) >= 1900 || (plotted && !compoundCity(pack))
         ? "grass"
         : "dirt";
   const motorAge = !!pack.setting && motorized(pack.setting);
@@ -1263,9 +1264,11 @@ export function planSettlement(
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
       (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
-    // Beaten earth in an old town's core; its outer blocks go back to grass.
+    // Beaten earth in an old town's core; its outer blocks go back to grass,
+    // except where the climate is too dry for any.
+    const dryCity = pack.setting?.climate === "arid";
     const earthCore = (x: number, y: number, ground: Terrain): Terrain =>
-      ground === "dirt" && cityGround === "dirt" && Math.hypot(x - c.x, y - c.y) > r * 0.45
+      ground === "dirt" && cityGround === "dirt" && !dryCity && Math.hypot(x - c.x, y - c.y) > r * 0.45
         ? "grass"
         : ground;
     const paintBlock = (block: Rect, given: Terrain = blockGround, role: Pavement = "yard") =>
@@ -3534,7 +3537,7 @@ export function planSettlement(
           plan.streetSurfaces!.set(k, footwaySurface ?? "slab");
       });
       // Grass is edging: a ring round the house, not a field between them.
-      if (cityGround)
+      if (cityGround && pack.setting?.climate !== "arid")
         eachCell(
           { x: rect.x - 1, y: rect.y - 1, w: rect.w + 2, h: rect.h + 2 },
           (x, y) => {

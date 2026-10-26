@@ -179,6 +179,12 @@ export function plottedTown(pack: Pack): boolean {
   return city && urbanFrames(pack).length === 0;
 }
 
+/** Plotted only for want of row frames: a courtyard city packs its compounds
+ * wall to wall on bare earth rather than setting each in a garden. */
+export function compoundCity(pack: Pack): boolean {
+  return plottedTown(pack) && settlementLayout(pack.setting) === "rows";
+}
+
 /** Period street facades are complete frames rather than base-and-form kits;
  * they carry their own storeys and a role the quarters sort by. */
 /** A house of the old core, kept for the blocks inside its ring. */
@@ -291,6 +297,7 @@ export function urbanNeighborhood(
 ): UrbanLot[] {
   const form = siteForm(site, pack);
   const plotted = plottedTown(pack);
+  const compound = compoundCity(pack);
   // A plotted town also builds the plain cottages its villages do.
   const cottages = plotted
     ? pack.buildings.filter((b) => buildingModels[b])
@@ -442,7 +449,7 @@ export function urbanNeighborhood(
     // A terrace keeps only the ground its roofs cover; a detached house also
     // keeps a little air on every side.
     // In rows the neighbour hides the side wall; only the roof needs room.
-    if (lot.tight || !plotted)
+    if (lot.tight || !plotted || compound)
       return behind ? [{ x: r.x, y: r.y - behind, w: r.w, h: behind }] : [];
     return [
       {
@@ -1154,7 +1161,7 @@ export function urbanNeighborhood(
     if (!parkRanks.has(rank)) {
       const use = uses.get(rank.block);
       const role = !rank.built ? "vacant"
-        : plotted || use === "suburb" || use === "estate" ? "garden"
+        : (plotted && !compound) || use === "suburb" || use === "estate" ? "garden"
         : rank.block.court ? "court" : "yard";
       api.paintBlock(
         {
@@ -1219,7 +1226,7 @@ export function urbanNeighborhood(
   /** Houses standing apart in their own ground rather than in rows. */
   function detached(block: Block) {
     const use = uses.get(block);
-    return plotted || use === "suburb" || use === "estate";
+    return (plotted && !compound) || use === "suburb" || use === "estate";
   }
 
   /** Share of a block's ground under buildings once infill is done. Falls

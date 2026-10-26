@@ -1875,8 +1875,12 @@ export function createSettlementWorld(
         if (track && cell.feature === "paving") cell.track = track;
         // Authored block ground and courts are areas, not thin paths. Preserve
         // their extent instead of reinterpreting only road centers as worn soil.
-        if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size)
+        if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size) {
           cell.surface = "soil";
+          // No turf survives between the houses of a dry-country city.
+          if (pack.setting?.climate === "arid" && (pavement === "yard" || pavement === "vacant"))
+            cell.groundWear = 1;
+        }
       }
     }
     if (t === "dirt")
@@ -1934,7 +1938,7 @@ export function createSettlementWorld(
       let wear = 0;
       for (const p of nearby(x, y))
         wear = Math.max(wear, (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0);
-      if (wear) cell.groundWear = wear;
+      if (wear) cell.groundWear = Math.max(cell.groundWear ?? 0, wear);
     }
     return cell;
   }

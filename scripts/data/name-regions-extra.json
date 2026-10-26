@@ -306,6 +306,18 @@
       "culture": "east-southern-african",
       "like": "sub-saharan-african-madagascar-and-islands",
       "why": "Uninhabited before the seventeenth century, then settled from Madagascar, France and India."
+    },
+    "south-asian-gujarat": {
+      "label": "Gujarat",
+      "bounds": [
+        68,
+        20.1,
+        74.5,
+        24.7
+      ],
+      "culture": "south-asian",
+      "like": "south-asian-indus-valley",
+      "why": "HPG had no Gujarat, so Ahmedabad, Surat and Kutch fell to the Indus Valley or Deccan boxes and drew Punjabi or Tamil names."
     }
   }
 }
