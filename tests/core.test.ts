@@ -19,17 +19,27 @@ import { generateCharacter } from "../src/content/characters/generate";
 import { livelihoodById } from "../src/content/characters/livelihoods";
 import { commandSchema, snapshotSchema } from "../src/runtime/schema";
 import { debt } from "../src/content/plots/debt";
+import { commission } from "../src/content/plots/commission";
 import { PLOTS } from "../src/content/plots";
 import { telling } from "../src/core/word";
 import { accused } from "../src/content/plots/accused";
 import { goodName, sellerOf } from "../src/content/economy/products";
-import type { PlotContext } from "../src/content/plots/types";
+import type { PlotContext, PlotTemplate } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
 import { ruled } from "../src/content/history/order";
 import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
 import type { Actor, Household, PlayerCommand, Position, SocialRelation } from "../src/core/types";
 let serial = 0;
+/** Plots are drawn by weight; a test about one plot gives the draw only that one. */
+function drawOnly<T>(plot: PlotTemplate, draw: () => T) {
+  const all = PLOTS.splice(0, PLOTS.length, plot);
+  try {
+    return draw();
+  } finally {
+    PLOTS.splice(0, 1, ...all);
+  }
+}
 const act = (e: Engine, command: PlayerCommand) =>
   e.act({
     actionId: `test-${serial++}`,
@@ -468,12 +478,13 @@ describe("shared deterministic foundation", () => {
   it("binds a seeded debt, sends the creditor over, and ends it by payment or seizure", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
     const e = createSettingSession(setting, "b");
-    const plot = e.state.plot!;
+    delete e.state.plot;
+    const plot = drawOnly(debt, () => startPlot(e.state, setting))!;
     expect(plot.id).toBe("debt");
     expect(e.state.lifeAim?.id).toBe("plot:debt");
     const again = structuredClone(e.state);
     delete again.plot;
-    expect(startPlot(again, setting)?.cast).toEqual(plot.cast);
+    expect(drawOnly(debt, () => startPlot(again, setting))?.cast).toEqual(plot.cast);
 
     const creditor = e.state.actors.find((a) => a.id === plot.cast.creditor)!;
     for (let i = 0; i < 30 && !e.approacher; i++) act(e, { type: "wait", seconds: 60 });
@@ -503,13 +514,25 @@ describe("shared deterministic foundation", () => {
     expect(next.ended).toBe("paid");
 
     delete e.state.plot;
-    const all = PLOTS.splice(0, PLOTS.length, accused);
-    const charge = startPlot(e.state, setting)!;
-    PLOTS.splice(0, 1, ...all);
+    const charge = drawOnly(accused, () => startPlot(e.state, setting))!;
     const witness = e.state.actors.find((a) => a.id === charge.cast.witness)!;
     witness.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     act(e, { type: "interact", target: witness.id, action: "talk" });
     expect(charge.ended).toBe("cleared");
+  });
+  it("ends an order only when the work is brought after the day's work is done", () => {
+    const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
+    const e = createSettingSession(setting, "b");
+    e.state.player.origin = { ...e.state.player.origin!, livelihood: "carpenter" };
+    delete e.state.plot;
+    const order = drawOnly(commission, () => startPlot(e.state, setting))!;
+    const patron = e.state.actors.find((a) => a.id === order.cast.patron)!;
+    patron.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    act(e, { type: "interact", target: patron.id, action: "talk" });
+    expect(order.ended).toBeUndefined();
+    order.fired.push("worked");
+    act(e, { type: "interact", target: patron.id, action: "talk" });
+    expect(order.ended).toBe("delivered");
   });
   it("calls up a levy or asks for rent only where a ruler could count households", () => {
     const at = (id: string, year: number) => ruled(settingFor(places.find((p) => p.id === id)!, year));
@@ -555,7 +578,7 @@ describe("shared deterministic foundation", () => {
     snapshot.households = c.households;
     snapshot.actors = c.actors;
     delete snapshot.plot;
-    const plot = startPlot(snapshot, setting)!;
+    const plot = drawOnly(debt, () => startPlot(snapshot, setting))!;
     expect(plot.cast.creditor).toBe(brewer.id);
     plot.owed = 0;
     expect(endPlot(snapshot)?.id).toBe("paid");
@@ -573,7 +596,7 @@ describe("shared deterministic foundation", () => {
     expect(titles[0].text).not.toMatch(/undefined|[{}]/);
     expect(titles[0].aim).toBe(e.state.plot!.aim!.text);
     expect(e.state.plot!.aim!.revision).toBe(2);
-    expect(titles[0].intro!.body.flat().map((s) => s.ref)).toContain(e.state.plot!.cast.creditor);
+    expect(titles[0].intro!.body.flat().map((s) => s.ref)).toContain(Object.values(e.state.plot!.cast)[0]);
     expect(composeIntro(e.state, setting, "London")).toEqual(composeIntro(structuredClone(e.state), setting, "London"));
   });
   it("remarks only on what is rare", () => {

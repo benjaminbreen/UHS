@@ -2,7 +2,7 @@ import type { Livelihood } from "../characters/context-types";
 import type { SeasonId } from "../../core/season";
 import type { SkillId } from "../../core/skills";
 import { workplaceFor } from "../characters/workplace";
-import { recipeFor, type Recipe } from "./recipes";
+import { dayOf, recipeFor, type Recipe, type Today } from "./recipes";
 import { goodsOf } from "./goods";
 
 /**
@@ -210,15 +210,15 @@ export type Process = {
   indoors: boolean;
 };
 
-export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "spring"): Process | undefined {
+export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "spring", today?: Today): Process | undefined {
   const entry = byActivity[kit.activity];
   if (!entry) return undefined;
   const [family, ...stations] = entry;
   if (["basket-maker", "basket-weaver"].includes(kit.id)) stations.splice(0, stations.length, "open-basket");
   const recipe = recipeFor(kit);
-  const day = recipe && ("title" in recipe.day ? recipe.day : recipe.day[season]);
-  // Work with no day of its own draws the general deck for its family at its
-  // second and third steps.
+  const day = recipe && dayOf(recipe, season, today);
+  // A step with no card of its own draws the general deck for its family at
+  // the second and third steps.
   const workplace = workplaceFor(kit.activity);
   const hunting: Step[] | undefined = kit.activity === "Looking for game" ? [
     // The words come from the hunter's weapon and the kill's fate; see hunting.ts.
@@ -235,7 +235,7 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
       // drawn at the well.
       ...(st.at === "wild" && workplace === "extraction" ? { at: undefined } : {}),
       ...(st.name === "load" && kit.activity === "Carrying water" ? { at: undefined, task: "Fill the vessels at the well" } : {}),
-      ...(i ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
+      ...(i && (hunting || !st.card) ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
     }));
   return {
     family, ...processFamilies[family], title: day?.title, skill: hunting ? "hunting" : recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, rises: recipe?.rises ?? 6, bench: recipe?.bench,

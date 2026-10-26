@@ -23,7 +23,7 @@ export const marriage: PlotTemplate = {
     palette: { ink: "#1a1214", fill: "#2c1c20", edge: "#7a3a44", light: "#f2e2e2", accent: "#d06a6a" },
   },
   payee: "inlaw",
-  weight: (c) => (c.setting && !ruled(c.setting) && (c.player.age ?? 30) >= 32 && youthOf(c) && inlawOf(c) ? 1 : 0),
+  weight: (c) => (c.setting && !ruled(c.setting) && (c.player.age ?? 30) >= 32 && youthOf(c) && inlawOf(c) ? 0.8 : 0),
   cast: (c) => {
     const inlaw = inlawOf(c);
     return inlaw && youthOf(c) && { inlaw };

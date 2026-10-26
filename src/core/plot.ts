@@ -93,10 +93,12 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
     household: households.find((h) => h.members.includes(snapshot.player.id)),
   };
   const recent = recentPlots();
-  const chosen = PLOTS
-    .map((t) => ({ t, score: t.weight(context) * (0.5 + random(seed, "plot", t.id, snapshot.player.id)) * (REPEAT[recent.indexOf(t.id)] ?? 1) }))
-    .filter((c) => c.score > 0)
-    .sort((a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id))[0]?.t;
+  // Drawn in proportion to weight, so a plot weighted 0.5 beside one weighted 1 still comes up a third of the time.
+  const weighed = PLOTS
+    .map((t) => ({ t, w: t.weight(context) * (REPEAT[recent.indexOf(t.id)] ?? 1) }))
+    .filter((c) => c.w > 0);
+  let draw = random(seed, "plot", snapshot.player.id) * weighed.reduce((n, c) => n + c.w, 0);
+  const chosen = weighed.find((c) => (draw -= c.w) < 0)?.t ?? weighed.at(-1)?.t;
   const cast = chosen?.cast(context);
   if (!chosen || !cast) return;
   const begun = chosen.begin(context, cast);
@@ -137,6 +139,7 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot): boolean {
     case "gone": return !snapshot.actors.some((a) => a.id === plot.cast[c.role] && !a.dead);
     case "fired": return plot.fired.includes(c.id);
     case "talked": return plot.fired.includes(`talked:${c.role}`);
+    case "brought": return plot.fired.includes("worked") && plot.fired.lastIndexOf(`talked:${c.role}`) > plot.fired.indexOf("worked");
     case "not": return !holds(c.of, plot, snapshot);
     case "all": return c.of.every((x) => holds(x, plot, snapshot));
   }

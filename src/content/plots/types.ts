@@ -3,7 +3,7 @@ import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
 
 export type PlotRole = "creditor" | "landlord" | "official" | "accuser" | "witness" | "rival" | "suspect" | "host"
-  | "giver" | "inlaw" | "claimant" | "elder" | "customer";
+  | "giver" | "inlaw" | "claimant" | "elder" | "customer" | "patron";
 
 export type PlotContext = {
   seed: string;
@@ -20,6 +20,8 @@ export type Condition =
   | { type: "since"; hours: number }
   /** The player has spoken with this member of the cast since the plot began. */
   | { type: "talked"; role: PlotRole }
+  /** The player has spoken with them after finishing a day's work since the plot began. */
+  | { type: "brought"; role: PlotRole }
   /** The deadline has passed by `hours`, or is that close when negative. */
   | { type: "due"; hours?: number }
   | { type: "settled" }

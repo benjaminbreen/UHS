@@ -8,6 +8,7 @@ import type { Economy, Household, WorldObject } from "../src/core/types";
 import { panelCity } from "../scripts/review/panel";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { processFor } from "../src/content/economy/processes";
+import { pieceOf, recipeFor } from "../src/content/economy/recipes";
 import type { SettlementPlan } from "../src/world/v3/types";
 import { goodsOf } from "../src/content/economy/goods";
 import { goodName, productFor, sellerOf } from "../src/content/economy/products";
@@ -343,7 +344,8 @@ it("gives every recipe step a card it can always draw, worded without gaps", () 
   const slots = new Set<string>();
   for (const k of commonLivelihoods)
     for (const season of ["spring", "summer", "autumn", "winter"] as const)
-      for (const step of processFor(k, 1, season)?.steps ?? []) if (step.card) slots.add(step.card);
+      for (const pick of [0, 0.3, 0.6, 0.9])
+        for (const step of processFor(k, 1, season, { pick, year: 1350, lon: 0, lat: 51 })?.steps ?? []) if (step.card) slots.add(step.card);
   expect(processFor(commonLivelihoods.find((l) => l.id === "rice-farmer")!, 1, "autumn")?.title).toBe("The rice harvest");
   for (const slot of slots) expect(CARDS.some((c) => c.slot === slot && !c.scope && !c.when), slot).toBe(true);
   for (const c of CARDS) {
@@ -351,6 +353,31 @@ it("gives every recipe step a card it can always draw, worded without gaps", () 
     for (const text of [c.text, ...c.choices.flatMap((x) => [x.label, x.note ?? "", x.line, x.otherwiseLine ?? ""])])
       expect(cardText(text, { boss: "foreman", name: "Ana", work: "weaving", good: "cloth", crop: "barley", ailment: "the fever", healer: "healer", gear: "the nets", owed: "the landlord", buyer: "the fish buyer", danger: "a bear", weapon: "the bow", lord: "the lord", ...herdWords("camel") }), c.id).not.toMatch(/[{}]/);
   }
+});
+
+it("varies a trade's day by place and period, naming only what was made there and then", () => {
+  const kit = (id: string) => commonLivelihoods.find((l) => l.id === id)!;
+  const PICKS = [0, 0.2, 0.4, 0.6, 0.8, 0.99];
+  const days = (id: string, year: number, lon: number, lat: number) =>
+    new Set(PICKS.map((pick) => processFor(kit(id), 1, "spring", { pick, year, lon, lat })?.title));
+  expect(days("carver", -5000, 116, 40)).toContain("Grinding jade");
+  expect(days("carver", 1350, 0, 51)).not.toContain("Grinding jade");
+  expect(days("smith", -1500, 32, 26)).toContain("Casting {piece}");
+  expect(days("smith", 1350, 0, 51)).not.toContain("Casting {piece}");
+  expect(days("religious-specialist", 1350, 0, 51)).toEqual(new Set(["Services and visits"]));
+  expect(days("religious-specialist", -3000, 0, 51)).toContain("Making an offering");
+  const flints = PICKS.map((pick) => pieceOf(recipeFor(kit("flintknapper")), "spring", { pick: 0, year: -1300, lon: 32, lat: 26 }, pick));
+  expect(flints).not.toContain("gunflints");
+
+  const places = [[-5639, 116, 40], [-1300, 32, 26], [100, 12, 42], [1150, 120, 30], [1350, 0, 51], [1750, 0, 51]] as const;
+  for (const k of commonLivelihoods)
+    for (const [year, lon, lat] of places)
+      for (const pick of PICKS) {
+        const today = { pick, year, lon, lat };
+        const p = processFor(k, 1, "spring", today);
+        const words = [p?.title ?? "", ...(p?.steps ?? []).map((st) => st.task)].join(" ");
+        if (words.includes("{piece}")) expect(pieceOf(recipeFor(k), "spring", today, 0), `${k.id} in ${year}`).toBeDefined();
+      }
 });
 
 it.runIf(!!process.env.FULL)("keeps a day's work that runs past midnight that day's, and lets yesterday's card lapse", () => {

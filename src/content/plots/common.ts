@@ -1,6 +1,7 @@
 import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
-import { capabilitiesFor } from "../characters/resolve";
+import { capabilitiesFor, matchesCharacterScope } from "../characters/resolve";
+import type { CharacterScope } from "../characters/context-types";
 import { amountIn } from "../economy/money";
 import type { Actor } from "../../core/types";
 import type { PlotContext } from "./types";
@@ -37,6 +38,16 @@ export const ITALY = [6.5, 36.5, 18.6, 47] as const;
 export const CHINA = [100, 20, 125, 42] as const;
 export const BRITAIN = [-8, 49.5, 2, 59] as const;
 export const EUROPE = [-10, 36, 30, 60] as const;
+export const AEGEAN = [19.5, 34.8, 28.5, 41.5] as const;
+/** North Africa to Persia and Transoxiana: the lands of the qadi and the muhtasib. */
+export const ISLAMIC = [-17, 12, 70, 44] as const;
+export const JAPAN = [129, 30, 146, 46] as const;
+export const KOREA = [124, 33, 131, 43] as const;
+export const VIETNAM = [102, 8, 110, 23.5] as const;
+
+/** Whether the plot's place and period falls in one of these. */
+export const within = (c: PlotContext, ...scopes: CharacterScope[]) =>
+  !!c.setting && scopes.some((scope) => matchesCharacterScope(scope, c.setting!, c.player.origin?.community ?? "*"));
 
 /** Sundown today if it is still morning, else noon tomorrow. */
 export function dueOf(clock: number) {

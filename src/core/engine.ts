@@ -86,7 +86,7 @@ import { keepsShop, stockFor } from "./shop";
 import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
 import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../content/economy/processes";
-import { recipeFor } from "../content/economy/recipes";
+import { pieceOf, recipeFor } from "../content/economy/recipes";
 import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { fieldParcel, findPlace, waterfrontMember, type StepPlace } from "./work-places";
@@ -570,12 +570,14 @@ export class Engine {
     const day = w && w.day === now - 1 && !w.done && (w.stage > 0 || w.card) && s.clock < now * 86400 + morning * 3600 ? w.day : now;
     const season = (setting ? seasonAt(setting.season, day * 86400 + 43200) : "spring") as SeasonId;
     const recipe = kit && recipeFor(kit);
+    const today = setting && { pick: random(s.manifest.seed, "workday", day), year: setting.year, lon: setting.lon, lat: setting.lat };
     // A farm's day goes by its own crop's calendar, not by the name of the season.
     const process = kit && processFor(kit, setting?.economyRevision,
-      household && recipe && !("title" in recipe.day) && recipe.skill === "farming" ? this.cropSeason(household, season) : season);
+      household && recipe && !Array.isArray(recipe.day) && !("title" in recipe.day) && recipe.skill === "farming" ? this.cropSeason(household, season) : season, today);
     if (!household || !kit || !process) return;
     const stage = w?.day === day ? w.stage : 0;
-    return { household, kit, process, day, stage };
+    const piece = recipe && pieceOf(recipe, season, today, random(s.manifest.seed, "piece", day));
+    return { household, kit, process, day, stage, piece };
   }
   private workAt(o: WorldObject, close: boolean, t = this.trade()): Affordance[] {
     if (!t) return [];
@@ -636,7 +638,7 @@ export class Engine {
     const work = this.state.economy?.work?.day === t.day ? this.state.economy.work : undefined;
     const steps = t.process.steps.map((st) => ({ ...st, task: this.stepTask(st) }));
     const today = {
-      title: t.process.title,
+      title: this.dayTitle(t),
       places: t.process.steps.map((st) => this.stepWhere(st, t) ?? undefined),
       quality: work?.quality ?? 0,
       pay: work?.pay ?? 0,
@@ -682,6 +684,9 @@ export class Engine {
       ...today,
     };
   }
+  private dayTitle(t = this.trade()) {
+    return t?.process.title && cardText(t.process.title, this.cardWords());
+  }
   stepTask(step: Step) {
     return cardText(step.barter && !this.markets() ? step.barter : step.task, this.cardWords());
   }
@@ -700,6 +705,7 @@ export class Engine {
       name: name ?? "they",
       work: t?.kit.activity.toLowerCase(),
       good: made ? (t.household.products?.[made] ? goodName(made, t.household.products[made]) : goodName(made)) : "work",
+      piece: t?.piece ?? "the work",
       crop: (t && this.stepPlace({ name: "field", task: "", at: "field" }, t)?.crop) ?? "crop",
       ...this.fishingWords(t),
       ...(t?.process.steps.some((st) => st.scene === "hunt") ? this.huntingWords(t.household, this.state.player) : {}),
@@ -904,7 +910,7 @@ export class Engine {
     const drawnStep = this.trade()?.process.steps[s.economy?.work?.drawn ?? -1];
     this.cards.unshift({
       kind: "speech",
-      title: encounter ? "On the road" : care ? (person ? person.name : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.trade()?.process.title ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: encounter ? "On the road" : care ? (person ? person.name : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {
@@ -1254,6 +1260,10 @@ export class Engine {
     else if (!made.coin) this.event("That is the day's work done.");
     if (advanceLifeAim(s, { type: "work" }))
       this.event("You have completed a step toward your life aim.");
+    if (s.plot && !s.plot.ended) {
+      s.plot.fired.push("worked");
+      this.runPlot();
+    }
   }
   /** Most households kept a garden beside whatever their trade was. The
    * day's turn in it, for anyone whose trade is not already the land. */
@@ -1413,7 +1423,7 @@ export class Engine {
           ? commissionFor(s.manifest.seed, today, p, s.actors, good)
           : undefined;
       // The day is its work and its occasions; hunger and company look after themselves.
-      const title = this.trade()?.process.title;
+      const title = this.dayTitle();
       // A trade with a day of its own is that day, whichever work template was picked.
       const work = picked.filter((g) => g.slot === "work" && !feast?.rest);
       s.goals = [
@@ -7429,7 +7439,8 @@ export class Engine {
           }
           const plot = this.state.plot;
           const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === a.id);
-          if (role && !plot.fired.includes(`talked:${role}`)) {
+          // Talking again after the day's work counts again: that is the work brought over.
+          if (role && plot.fired.lastIndexOf(`talked:${role}`) <= plot.fired.lastIndexOf("worked")) {
             plot.fired.push(`talked:${role}`);
             this.runPlot();
           }
