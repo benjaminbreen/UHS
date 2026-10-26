@@ -46,7 +46,10 @@ export function buildingPlacementEnvelope(sprite: string, rect: Rect, access: Po
     w: Math.ceil(left + model.bounds[2] / 16) - Math.floor(left),
     h: Math.ceil(top + model.bounds[3] / 16) - Math.floor(top) })
     .filter(p => p.x < rect.x || p.x >= rect.x + rect.w || p.y < rect.y || p.y >= rect.y + rect.h);
-  return { occupied: rectCells(rect), access, clearance };
+  // A door set back in the footprint keeps its aisle out to the front edge.
+  const aisle = (p: Point) => access.some(a => a.x === p.x && p.y >= a.y &&
+    a.x >= rect.x && a.x < rect.x + rect.w && a.y >= rect.y && a.y < rect.y + rect.h);
+  return { occupied: rectCells(rect).filter(p => !aisle(p)), access, clearance };
 }
 
 /** A tree is anchored at its trunk; most of its visible mass is behind it. */

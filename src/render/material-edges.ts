@@ -145,7 +145,8 @@ export function pathField(
   const area = materialCoverage(sample, x, y, cell.height, (c) => {
     if (!areaGround(c)) return 0;
     const patch = waterNoise((x + ox) * 16, (y + oy) * 16, 58, 619);
-    return c.pavement === "vacant" ? 0.12 + patch * 0.75
+    // Vacant ground is trodden earth with weeds in it, not a verge of turf.
+    return c.pavement === "vacant" ? 0.55 + patch * 0.45
       : c.pavement === "yard" ? 0.65 + patch * 0.35 : 1;
   });
   const areaField: PathField = { coverage: clamp01((area - 0.2) * 1.25), cross: 0.5,

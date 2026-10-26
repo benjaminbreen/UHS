@@ -8,6 +8,7 @@ import type { Rect, SettlementPlan } from "./types";
 import type { Sample } from "./roads";
 import { launchAt, shoreDirections, type Launch } from "./shoreline";
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
+import { industrialized } from "../../content/settlements/modernity";
 
 const key = (x: number, y: number) => `${x},${y}`;
 const cells = (r: Rect, f: (x: number, y: number) => void) => {
@@ -48,6 +49,10 @@ export function planWorksites(
     const first = profile.siting === "fringe" ? radius + Math.ceil(Math.hypot(w,h)/2) + 8 :
       profile.siting === "waterside" ? Math.max(30,Math.floor(radius*.65)) :
       profile.revision ? Math.max(42,Math.ceil(Math.hypot(w,h)/2)+24) : 30;
+    // A town's square, hall and sanctuary are planned after the yards, so a
+    // yard keeps clear of the civic core or it takes the temple's ground. An
+    // industrial city's grid is laid around its yards instead.
+    const core = radius >= 40 && !industrialized(s) ? Math.round(radius*.45)+Math.ceil(Math.hypot(w,h)/2) : 0;
     const install = (r: Rect, launch?: Launch) => {
       const id = `${plan.site.id}-worksite-${profile.id}`;
       const place = (suffix: string, frame: string, name: string, x: number, y: number): Place => {
@@ -73,7 +78,7 @@ export function planWorksites(
       for (const p of buildings) {
         cells(p,(x,y)=>plan.solid.add(key(x,y)));
         // Equipment can project in front of a workshop door, leaving an aisle to it.
-        if (profile.revision) for(let y=p.entrance.y;y<p.y+p.h;y++)
+        for(let y=p.entrance.y;y<p.y+p.h;y++)
           plan.solid.delete(key(p.entrance.x,y));
       }
       const gate = launch ? {x:Math.max(r.x+1,Math.min(r.x+w-2,launch.origin.x)),
@@ -143,7 +148,7 @@ export function planWorksites(
     const failures: Point[] = [];
     const bearing = random(seed,"worksite",plan.site.id,profile.id)*Math.PI*2;
     if(profile.launch) {
-      for(let ring=first;ring<=radius+90 && !chosen && tries<4;ring+=12)
+      for(let ring=Math.max(first,core);ring<=radius+90 && !chosen && tries<4;ring+=12)
         for(let i=0;i<32 && !chosen && tries<4;i++) {
           const a=((i*7)%32)*Math.PI/16+bearing;
           const origin={x:Math.round(c.x+Math.cos(a)*ring),y:Math.round(c.y+Math.sin(a)*ring)};
@@ -167,7 +172,7 @@ export function planWorksites(
         }
       continue;
     }
-    for (let ring = first; ring <= radius + 90 && !chosen && tries < 4; ring += 12)
+    for (let ring = Math.max(first, core); ring <= radius + 90 && !chosen && tries < 4; ring += 12)
       for (let i = 0; i < 32 && !chosen && tries < 4; i++) {
         const a = ((i*7)%32) * Math.PI / 16 + bearing;
         const r = { x: Math.round(c.x + Math.cos(a)*ring-w/2), y: Math.round(c.y + Math.sin(a)*ring-h/2), w, h };

@@ -99,6 +99,7 @@ import {
 import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
+import { noise } from "../geography/noise";
 import {
   buildingModel,
   buildingModels,
@@ -916,6 +917,9 @@ export function planSettlement(
     eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))));
   planWaterfront(plan, pack, seed, sample, dry, paint, (rect)=>gradeGround(rect,undefined,true),connect,(rect)=>
     eachCell(rect,(x,y)=>{if((pack.setting?.worksiteRevision??1)<5 || !plan.traffic.has(cellKey(x,y)))noRoad.add(cellKey(x,y));}));
+  // Mills, kilns and quays are not households: counted against the house
+  // limit, three worksites left a farmstead of five with nobody living in it.
+  const worksites = plan.places.length;
   let urbanLots: UrbanLot[] = [];
   const groundVenues: {
     venue: import("../../content/venues").Venue;
@@ -1264,13 +1268,14 @@ export function planSettlement(
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
       (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
-    // Beaten earth in an old town's core; its outer blocks go back to grass,
-    // except where the climate is too dry for any.
+    // Beaten earth in an old town's core, giving way to grass in patches
+    // through its outer blocks, except where the climate is too dry for any.
     const dryCity = pack.setting?.climate === "arid";
-    const earthCore = (x: number, y: number, ground: Terrain): Terrain =>
-      ground === "dirt" && cityGround === "dirt" && !dryCity && Math.hypot(x - c.x, y - c.y) > r * 0.45
-        ? "grass"
-        : ground;
+    const earthCore = (x: number, y: number, ground: Terrain): Terrain => {
+      if (ground !== "dirt" || cityGround !== "dirt" || dryCity) return ground;
+      const fade = (Math.hypot(x - c.x, y - c.y) / r - 0.6) / 0.5;
+      return fade > 0 && noise(seed, x, y, 7, "earth-core") < fade ? "grass" : ground;
+    };
     const paintBlock = (block: Rect, given: Terrain = blockGround, role: Pavement = "yard") =>
       eachCell(block, (x, y) => {
         // Behind a Tokyo street front the yards and lanes were beaten earth.
@@ -1305,7 +1310,8 @@ export function planSettlement(
         if (plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
         // An industrial city's boulevard trees stand in pits in the paving.
         const pavedVerge = industrialAge && !plotted;
-        if (setSurface(k, pavedVerge ? "paving" : "grass", 4)) {
+        const verge = pavedVerge ? "paving" : cityGround === "dirt" ? "dirt" : "grass";
+        if (setSurface(k, verge, 4)) {
           plan.pavement!.set(k, "verge");
           plan.reserved.add(k);
           if (pavedVerge && footwaySurface) plan.streetSurfaces!.set(k, footwaySurface);
@@ -3062,10 +3068,10 @@ export function planSettlement(
     for (const object of plan.objects)
       if (object.kind === "tree") claimEnvelope(plan.placement, treePlacementEnvelope(object.sprite, object.pos));
   }
-  for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
+  for (let j = 0; j < frontage.length && plan.places.length - worksites < limit; j++) {
     const lot = frontage[j];
     const { point: frontagePoint, nx, ny } = lot,
-      i = plan.places.length;
+      i = plan.places.length - worksites;
     const base = chooseBuildingFrame(
       pack.buildings,
       {
@@ -3537,7 +3543,7 @@ export function planSettlement(
           plan.streetSurfaces!.set(k, footwaySurface ?? "slab");
       });
       // Grass is edging: a ring round the house, not a field between them.
-      if (cityGround && pack.setting?.climate !== "arid")
+      if (cityGround && (pack.setting?.year ?? 0) >= 1900 && pack.setting?.climate !== "arid")
         eachCell(
           { x: rect.x - 1, y: rect.y - 1, w: rect.w + 2, h: rect.h + 2 },
           (x, y) => {
@@ -3793,6 +3799,40 @@ export function planSettlement(
       ...indoorStation(id, owner, livelihood),
     );
   }
+  // Before lawns, the ground in front of a door and between houses that
+  // stand close was trodden to earth: in patches, the more the closer.
+  if ((pack.setting?.year ?? 0) < 1900 && !(urban && cityGround === "paving")) {
+    const crowd = new Map<string, number>();
+    const houses = plan.places.slice(worksites);
+    for (const b of houses)
+      eachCell({ x: b.x - 3, y: b.y - 3, w: b.w + 6, h: b.h + 6 }, (x, y) =>
+        crowd.set(cellKey(x, y), (crowd.get(cellKey(x, y)) ?? 0) + 1));
+    const door = (x: number, y: number) => houses.some((b) =>
+      Math.hypot(x - b.entrance.x, y - b.entrance.y) < 3 + 3 * noise(seed, x, y, 4, "dooryard"));
+    for (const [k, n] of crowd) {
+      if (plan.solid.has(k) || roads.has(k) || (ranks.get(k) ?? -1) > 3) continue;
+      if (plan.surface.get(k) === "field") continue;
+      const [x, y] = k.split(",").map(Number);
+      const patch = noise(seed, x, y, 5, "trodden");
+      if (!door(x, y) && !(n >= 2 && patch < 0.25 + 0.2 * n)) continue;
+      if (!dry({ x, y, w: 1, h: 1 }, false)) continue;
+      // A pavement role is what makes the renderer draw plan earth as soil.
+      const kept = plan.pavement?.get(k);
+      const role = kept && !["garden", "verge", "park"].includes(kept) ? kept : "yard";
+      if (setSurface(k, "dirt", 3)) (plan.pavement ??= new Map()).set(k, role);
+    }
+  }
+  // Ground no block, street or yard claimed in an earth city is earth too,
+  // or the region's grass shows through as strips along the streets.
+  if (urban && cityGround === "dirt" && pack.setting?.climate !== "arid")
+    eachCell({ x: c.x - r, y: c.y - r, w: r * 2, h: r * 2 }, (x, y) => {
+      const k = cellKey(x, y);
+      if (ranks.has(k) || plan.solid.has(k) || roads.has(k)) return;
+      const fade = (Math.hypot(x - c.x, y - c.y) / r - 0.6) / 0.5;
+      if (fade > 0 && noise(seed, x, y, 7, "earth-core") < fade) return;
+      if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, "dirt", 1))
+        (plan.pavement ??= new Map()).set(k, "yard");
+    });
   // Yards take what ground the houses left, so they never cost a house.
   for (const lay of yardPlans) lay();
   function landPlot(w: number, h: number, label: string): Rect | undefined {
