@@ -35,6 +35,9 @@ export function officiantsFor(s: WorldSetting): readonly Officiant[] {
 const UNDEDICATED =
   /parish|minister|pastor|missionary|catechist|imam|rabbi|qadi|qazi|marabout|pir|monk|nun|bhikkhu|granthi|abbot|monastic|priest of the church|clergy|sexton/i;
 
+/** Offices that serve a god at all. A chieftain or an elder is not "of Sulis". */
+const DEDICATED = /priest|keeper|attendant|medium|oracle|flamen/i;
+
 /** A settlement this size can support an office of at most this standing. */
 const NEEDS_SETTLEMENT: Record<Officiant["tier"], number> = {
   household: 0,
@@ -72,21 +75,19 @@ export function officiantFor(
     (p) =>
       p.rank === chosen.serves &&
       // A reconstructed name carries an asterisk and a concept carries an
-      // article; "Priest of *Ilma" and "Priest of The market" both read as
+      // article; "Priest of Hnit" and "Priest of The market" both read as
       // mistakes, so only a plainly named power takes a dedication.
-      !/^the\b/i.test(p.name),
+      !/^(the\b|\*)/i.test(p.name),
   );
   // A pantheon is what gets divided between priesthoods, so a handful of
   // powers at this rank is the test -- except at the top, where there is
   // usually exactly one and serving it is the whole office.
   const enough = chosen.serves === "paramount" ? 1 : 2;
-  if (!chosen.serves || UNDEDICATED.test(chosen.label) || powers.length < enough)
+  if (!chosen.serves || !DEDICATED.test(chosen.label) || UNDEDICATED.test(chosen.label) || / of /.test(chosen.label) || powers.length < enough)
     return { label: chosen.label, tier: chosen.tier };
   const power = powers[Math.floor(random(seed, "character-v1", id, "power") * powers.length)];
-  // The asterisk marks a reconstructed form for the reader of a glossary; in
-  // a person's title it just looks like a typo.
   return {
-    label: `${chosen.label} of ${power.name.replace(/^\*/, "")}`,
+    label: `${chosen.label} of ${power.name}`,
     tier: chosen.tier,
   };
 }

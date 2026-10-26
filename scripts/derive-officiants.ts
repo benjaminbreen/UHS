@@ -30,11 +30,12 @@ const TEMPLE =
 
 /** Trailing qualifiers: "shamans for major concerns" is still a shaman. */
 const TRIM =
-  /\s+(for|who|as|at|to|in|on|with|that|when|during|among|guides?|leads?|performs?|maintains?|holds?|marks?|speaks?|tends?|attends?|retains?|receives?|oversees?|works?|consults?|judges?|conducts?|presides?|officiates?|offers?|makes?|keeps?|reads?|sings?|coexist)\b.*$/i;
+  /\s+(for|who|as|each|at|to|in|on|with|that|when|during|among|guides?|leads?|performs?|maintains?|holds?|marks?|speaks?|tends?|knows?|serves?|address(es)?|calls?|directs?|interprets?|journeys?|attends?|retains?|receives?|oversees?|works?|consults?|judges?|conducts?|presides?|officiates?|offers?|makes?|keeps?|reads?|sings?|coexist)\b.*$/i;
 
 const clean = (raw: string) =>
   raw
     .replace(/\([^)]*\)/g, " ")
+    .replace(/^\s*(or|often|usually|sometimes)\s+/i, "")
     .replace(/^\s*(the|a|an|their|its|his|her)\s+/i, "")
     .replace(TRIM, "")
     .replace(/[.;:,]+$/, "")
@@ -44,14 +45,13 @@ const clean = (raw: string) =>
 /** "Temple priests" -> "Temple priest". Plural forms only, possessives kept. */
 const singular = (s: string) =>
   s
-    .replace(/\bmen\b/g, "man")
-    .replace(/\bwomen\b/g, "woman")
+    .replace(/men\b/g, "man")
     .replace(/\bpeople\b/g, "person")
     .replace(/\bwives\b/g, "wife")
     .replace(/([a-z])ives\b/g, "$1ife")
     .replace(/([a-z])ies\b/g, "$1y")
     .replace(/(ss|sh|ch|x)es\b/g, "$1")
-    .replace(/([^s'])s\b/g, "$1");
+    .replace(/(\w*[^s'\W])s\b/g, (m, w) => (/(ou|hi)$/.test(w) ? m : w));
 
 const title = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -74,13 +74,15 @@ const SERVES = {
 function parse(sentence: string): Officiant[] {
   const out: Officiant[] = [];
   const seen = new Set<string>();
-  for (const segment of sentence.split(/;/)) {
-    for (const raw of segment.split(/,| and (?=[a-z])/i)) {
+  // A gloss in brackets is not a role. A full stop or colon ends a role as
+  // surely as a semicolon, and "elder or priest" is two roles, not one title.
+  for (const segment of sentence.replace(/\([^)]*\)/g, " ").split(/[;:]|\.\s/)) {
+    for (const raw of segment.split(/,| and (?=[a-z])| or (?=[a-z])/i)) {
       const phrase = clean(raw);
       if (!phrase || phrase.length < 3 || phrase.length > 40) continue;
       // A fragment left by the split is not a role: "current knowledge",
       // "their speakers" on its own. Require a plausible noun head.
-      if (!/\b(elder|eldest|head|priest|priestess|shaman|monk|nun|chief|king|queen|lord|master|healer|diviner|medium|keeper|specialist|scholar|minister|imam|rabbi|oracle|dreamer|singer|dancer|smith|midwife|mother|father|pilot|navigator|reader|teacher|catechist|worker|attendant|servant|leader|guardian|sorcerer|witch|magician|bard|storyteller|ritualist|officiant|celebrant|abbot|bori|magajiya|noro|tohunga|curaca|shrine|temple|clergy|prophet|seer|herbalist|doctor|sage)/i.test(phrase))
+      if (!/\b(elder|eldest|head|priest|priestess|shaman|monk|nun|chief|king|queen|lord|master|healer|diviner|medium|keeper|specialist|scholar|minister|imam|rabbi|oracle|dreamer|singer|dancer|smith|midwife|mother|father|pilot|navigator|reader|teacher|catechist|worker|attendant|servant|leader|guardian|sorcerer|witch|magician|bard|storyteller|ritualist|officiant|celebrant|abbot|bori|magajiya|noro|tohunga|curaca|druid|kahuna|kāhuna|nganga|shrine|temple|clergy|prophet|seer|herbalist|doctor|sage)/i.test(phrase))
         continue;
       const tier = HOUSEHOLD.test(phrase)
         ? "household"

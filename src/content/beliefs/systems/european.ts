@@ -501,7 +501,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "imperial-roman",
     label: "Imperial Roman practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
-    scope: { years: [-27, 400], bounds: [-20, 15, 50, 72] },
+    scope: { years: [-27, 400], bounds: [-10, 30, 45, 50] },
     powers: [
       {
         name: "The Emperor",
@@ -588,7 +588,7 @@ const europeanBase: readonly BeliefSystem[] = [
       "Graves hold coins for the ferryman and goods for the afterlife.",
     ],
     specialist:
-      "Imperial priests and town magistrates for state cults; the household head at home.",
+      "Temple priests and the high priests of the imperial cult; town magistrates for state cults; the household head at home.",
     afterlife:
       "Shades cross the river Styx with a coin; most dwell in the underworld.",
     evidence: {
@@ -608,7 +608,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "celtic-britain",
     label: "Iron Age insular Celtic practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Celtic_religion",
-    scope: { years: [-100, 400], bounds: [-25, 40, 5, 72] },
+    scope: { years: [-100, 400], bounds: [-11, 49.5, 2, 61] },
     powers: [
       {
         name: "Lugus",

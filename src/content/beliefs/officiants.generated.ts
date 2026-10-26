@@ -77,13 +77,14 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Keeper of genealogy", serves: "local", weight: 14 },
   ],
   "hawaiian-precontact": [
-    { tier: "local", label: "Kāhuna : healer", serves: "local", weight: 14 },
+    { tier: "local", label: "Kāhuna", serves: "local", weight: 14 },
+    { tier: "local", label: "Healer", serves: "local", weight: 14 },
     { tier: "temple", label: "Priest of the heiau", serves: "major", weight: 5 },
     { tier: "local", label: "Keeper of genealogy", serves: "local", weight: 14 },
   ],
   "maori-aotearoa-precontact": [
-    { tier: "local", label: "Tohunga (specialist", serves: "local", weight: 14 },
-    { tier: "temple", label: "Priest): tohunga whakairo", serves: "major", weight: 5 },
+    { tier: "local", label: "Tohunga", serves: "local", weight: 14 },
+    { tier: "local", label: "Tohunga whakairo", serves: "local", weight: 14 },
     { tier: "local", label: "Tohunga rongoā", serves: "local", weight: 14 },
     { tier: "local", label: "Tohunga ahi", serves: "local", weight: 14 },
   ],
@@ -212,7 +213,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "modern-east-asia": [
     { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
-    { tier: "local", label: "Daoist or Buddhist ritual specialist", serves: "local", weight: 14 },
+    { tier: "local", label: "Buddhist ritual specialist", serves: "local", weight: 14 },
     { tier: "household", label: "Family elder", serves: "local", weight: 40 },
   ],
   "regional-foragers-deep": [
@@ -253,7 +254,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Keeper of the sacred rock", serves: "local", weight: 14 },
   ],
   "medieval-kingdoms": [
-    { tier: "household", label: "King or paramount chief", serves: "local", weight: 40 },
+    { tier: "household", label: "King", serves: "local", weight: 40 },
+    { tier: "paramount", label: "Paramount chief", serves: "paramount", weight: 1 },
     { tier: "local", label: "Healer", serves: "local", weight: 14 },
     { tier: "temple", label: "Shrine keeper", serves: "major", weight: 5 },
   ],
@@ -292,10 +294,12 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "temple", label: "Desert monk", serves: "major", weight: 5 },
   ],
   "europe-foragers": [
-    { tier: "local", label: "Elder or shaman know the song", serves: "local", weight: 14 },
+    { tier: "local", label: "Elder", serves: "local", weight: 14 },
+    { tier: "local", label: "Shaman", serves: "local", weight: 14 },
   ],
   "europe-early-farming": [
-    { tier: "temple", label: "Elder or priest", serves: "major", weight: 5 },
+    { tier: "local", label: "Elder", serves: "local", weight: 14 },
+    { tier: "temple", label: "Priest", serves: "major", weight: 5 },
   ],
   "aegean-bronze-age": [
     { tier: "paramount", label: "Palace priest", serves: "paramount", weight: 1 },
@@ -313,12 +317,14 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
   ],
   "imperial-roman": [
-    { tier: "temple", label: "Imperial priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
+    { tier: "paramount", label: "High priest of the imperial cult", serves: "paramount", weight: 1 },
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
   ],
   "celtic-britain": [
-    { tier: "local", label: "Druid or bard", serves: "local", weight: 14 },
-    { tier: "local", label: "Chieftain call", serves: "local", weight: 14 },
+    { tier: "local", label: "Druid", serves: "local", weight: 14 },
+    { tier: "local", label: "Bard", serves: "local", weight: 14 },
+    { tier: "local", label: "Chieftain", serves: "local", weight: 14 },
   ],
   "celtic-gaul": [
     { tier: "temple", label: "Druid", serves: "major", weight: 5 },
@@ -327,14 +333,15 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
   ],
   "norse-scandinavia": [
-    { tier: "local", label: "Often the chieftain or a woman", serves: "local", weight: 14 },
+    { tier: "local", label: "Chieftain", serves: "local", weight: 14 },
   ],
   "slavic-paganism": [
-    { tier: "temple", label: "Priest or chieftain", serves: "major", weight: 5 },
+    { tier: "temple", label: "Priest", serves: "major", weight: 5 },
+    { tier: "local", label: "Chieftain", serves: "local", weight: 14 },
   ],
   "frankish-christian-early": [
     { tier: "temple", label: "Priest", serves: "major", weight: 5 },
-    { tier: "temple", label: "Abbot or bishop", serves: "major", weight: 5 },
+    { tier: "temple", label: "Abbot", serves: "major", weight: 5 },
   ],
   "catholic-high-medieval": [
     { tier: "temple", label: "Parish priest", serves: "major", weight: 5 },
@@ -501,7 +508,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "temple", label: "Fire priest", serves: "major", weight: 5 },
   ],
   "tibetan-bon": [
-    { tier: "temple", label: "Bon po priest or shaman", serves: "major", weight: 5 },
+    { tier: "temple", label: "Bon po priest", serves: "major", weight: 5 },
+    { tier: "local", label: "Shaman", serves: "local", weight: 14 },
     { tier: "local", label: "Head of a clan", serves: "local", weight: 14 },
   ],
   "siberian-shamanism": [
@@ -509,7 +517,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "central-asian-islam": [
     { tier: "local", label: "Sufi teacher", serves: "local", weight: 14 },
-    { tier: "temple", label: "Keeper of a shrine or holy site", serves: "major", weight: 5 },
+    { tier: "temple", label: "Keeper of a shrine", serves: "major", weight: 5 },
   ],
   "mongol-chinggis": [
     { tier: "local", label: "Shaman", serves: "local", weight: 14 },
@@ -520,7 +528,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "tarim-basin-peoples": [
     { tier: "temple", label: "Monk", serves: "major", weight: 5 },
-    { tier: "local", label: "Or an elder", serves: "local", weight: 14 },
+    { tier: "local", label: "Elder", serves: "local", weight: 14 },
   ],
   "post-mongol-steppe": [
     { tier: "local", label: "Shaman", serves: "local", weight: 14 },
@@ -535,11 +543,12 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "mesoamerican-foragers": [
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
-    { tier: "local", label: "Weather. Shaman journey", serves: "local", weight: 14 },
+    { tier: "local", label: "Shaman", serves: "local", weight: 14 },
   ],
   "early-mesoamerican-farming": [
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
-    { tier: "household", label: "Lineage head direct ritual. Shaman", serves: "local", weight: 40 },
+    { tier: "household", label: "Lineage head", serves: "local", weight: 40 },
+    { tier: "local", label: "Shaman", serves: "local", weight: 14 },
   ],
   "olmec-early": [
     { tier: "local", label: "Shaman", serves: "local", weight: 14 },
@@ -556,7 +565,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "central-american-traditions": [
     { tier: "local", label: "Shaman", serves: "local", weight: 14 },
-    { tier: "household", label: "Divination. Lineage elder", serves: "local", weight: 40 },
+    { tier: "household", label: "Lineage elder", serves: "local", weight: 40 },
   ],
   "teotihuacan-classical": [
     { tier: "temple", label: "Priest-administrator", serves: "major", weight: 5 },
@@ -566,8 +575,9 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
   ],
   "west-mexican-traditions": [
+    { tier: "temple", label: "Priest of Curicaveri", serves: "major", weight: 5 },
     { tier: "local", label: "Shaman", serves: "local", weight: 14 },
-    { tier: "household", label: "Elder serve household", serves: "local", weight: 40 },
+    { tier: "local", label: "Elder", serves: "local", weight: 14 },
     { tier: "household", label: "Lineage shrine", serves: "local", weight: 40 },
   ],
   "mexica-aztec": [
@@ -587,11 +597,12 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "modern-mesoamerica": [
     { tier: "temple", label: "Catholic priest", serves: "major", weight: 5 },
-    { tier: "local", label: "Indigenou shaman", serves: "local", weight: 14 },
-    { tier: "household", label: "Family elder each", serves: "local", weight: 40 },
+    { tier: "local", label: "Indigenous shaman", serves: "local", weight: 14 },
+    { tier: "household", label: "Family elder", serves: "local", weight: 40 },
   ],
   "prehistoric-foragers": [
-    { tier: "local", label: "Elder or shaman", serves: "local", weight: 14 },
+    { tier: "local", label: "Elder", serves: "local", weight: 14 },
+    { tier: "local", label: "Shaman", serves: "local", weight: 14 },
   ],
   "early-farming-neolithic": [
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
@@ -609,7 +620,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "household", label: "Lay householder", serves: "local", weight: 40 },
   ],
   "jainism": [
-    { tier: "temple", label: "Jain monk or nun", serves: "major", weight: 5 },
+    { tier: "temple", label: "Jain monk", serves: "major", weight: 5 },
+    { tier: "temple", label: "Nun", serves: "major", weight: 5 },
   ],
   "gupta-puranic": [
     { tier: "temple", label: "Brahmin priest", serves: "major", weight: 5 },
@@ -628,7 +640,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "household", label: "Household head", serves: "local", weight: 40 },
   ],
   "village-goddess-practice": [
-    { tier: "temple", label: "Village priestess or priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Village priestess", serves: "major", weight: 5 },
+    { tier: "temple", label: "Priest", serves: "major", weight: 5 },
   ],
   "theravada-sri-lanka": [
     { tier: "temple", label: "Bhikkhu", serves: "major", weight: 5 },
@@ -637,7 +650,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "himalayan-newar": [
     { tier: "temple", label: "Brahmin priest", serves: "major", weight: 5 },
-    { tier: "local", label: "Local shaman or juju", serves: "local", weight: 14 },
+    { tier: "local", label: "Local shaman", serves: "local", weight: 14 },
   ],
   "mughal-delhi": [
     { tier: "temple", label: "Imam of the mosque", serves: "major", weight: 5 },
@@ -689,7 +702,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "se-asia-angkorian-devaraja": [
     { tier: "temple", label: "Buddhist monk", serves: "major", weight: 5 },
-    { tier: "local", label: "Village headmen", serves: "local", weight: 14 },
+    { tier: "local", label: "Village headman", serves: "local", weight: 14 },
   ],
   "se-asia-theravada-burma": [
     { tier: "temple", label: "Monk", serves: "major", weight: 5 },
@@ -823,7 +836,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "modern-west-asia-islam": [
     { tier: "temple", label: "Imam", serves: "major", weight: 5 },
-    { tier: "local", label: "Scholar interpret", serves: "local", weight: 14 },
+    { tier: "local", label: "Scholar", serves: "local", weight: 14 },
   ],
   "west-central-foragers": [
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
@@ -833,7 +846,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Smith", serves: "local", weight: 14 },
   ],
   "regional-kingdoms-era": [
-    { tier: "household", label: "King or hi designated ritual deputy", serves: "local", weight: 40 },
+    { tier: "household", label: "King", serves: "local", weight: 40 },
     { tier: "local", label: "Smith", serves: "local", weight: 14 },
     { tier: "local", label: "Market elder", serves: "local", weight: 14 },
   ],
@@ -873,11 +886,12 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "household", label: "Hunon", serves: "local", weight: 40 },
   ],
   "kongo-nkisi": [
-    { tier: "local", label: "Nganga (healer", serves: "local", weight: 14 },
+    { tier: "local", label: "Nganga", serves: "local", weight: 14 },
     { tier: "household", label: "Family head", serves: "local", weight: 40 },
   ],
   "central-forest-spirits": [
     { tier: "local", label: "Elder", serves: "local", weight: 14 },
+    { tier: "local", label: "Nganga", serves: "local", weight: 14 },
   ],
   "atlantic-trade-era": [
     { tier: "local", label: "Chief", serves: "local", weight: 14 },
