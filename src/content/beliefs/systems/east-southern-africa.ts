@@ -474,7 +474,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   {
     id: "early-swahili-coast",
     label: "Early Swahili coast Islam with older layers",
-    scope: { years: [800, 1500], bounds: [36, -14, 44, 4] },
+    scope: { years: [800, 1900], bounds: [36, -14, 44, 4] },
     wiki: "https://en.wikipedia.org/wiki/Swahili_culture",
     powers: [
       {
@@ -822,7 +822,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   {
     id: "maasai-pastoral-practice",
     label: "Maasai pastoral practice",
-    scope: { years: [1400, 1920], bounds: [32, -6, 40, 4] },
+    scope: { years: [1400, 1920], bounds: [32, -6, 38.5, 4] },
     wiki: "https://en.wikipedia.org/wiki/Maasai_mythology",
     powers: [
       {

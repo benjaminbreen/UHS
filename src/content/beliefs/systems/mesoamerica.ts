@@ -152,7 +152,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
     id: "olmec-early",
     label: "Olmec ritual practice",
     wiki: "https://en.wikipedia.org/wiki/Olmecs",
-    scope: { years: [-1500, -200], bounds: [-103, 14, -82, 20] },
+    scope: { years: [-1500, -200], bounds: [-96.5, 17, -93, 19] },
     powers: [
       {
         name: "The jaguar-serpent being",
@@ -535,7 +535,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
     id: "zapotec-montealbán",
     label: "Zapotec Monte Albán practice",
     wiki: "https://en.wikipedia.org/wiki/Zapotec_civilization",
-    scope: { years: [-500, 1000], bounds: [-101, 14, -96, 20] },
+    scope: { years: [-500, 1000], bounds: [-98.5, 15, -94.5, 18.7] },
     powers: [
       {
         name: "Cocijo",

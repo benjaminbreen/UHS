@@ -154,7 +154,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
     id: "se-asia-early-hindu-buddhism",
     features: ["sacred-texts"],
     label: "Early Hindu-Buddhist kingdoms and villages",
-    scope: { years: [-500, 1000], bounds: [92, -10, 145, 24] },
+    scope: { years: [-500, 1200], bounds: [92, -10, 145, 24] },
     wiki: "https://en.wikipedia.org/wiki/Greater_India",
     powers: [
       {
@@ -723,7 +723,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   {
     id: "se-asia-vietnamese-ancestor",
     label: "Vietnamese ancestor veneration and Mahayana",
-    scope: { years: [1000, 1900], bounds: [102, 8, 109, 24] },
+    scope: { years: [-200, 1900], bounds: [104, 8, 109, 24] },
     wiki: "https://en.wikipedia.org/wiki/Vietnamese_folk_religion",
     powers: [
       {
@@ -808,6 +808,8 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   {
     id: "se-asia-upland-animism",
     label: "Upland and forest animism",
+    // A catch-all for the hills; any lowland tradition in the box wins.
+    priority: -1,
     scope: { years: [1, 2000], bounds: [98, 0, 122, 25] },
     wiki: "https://en.wikipedia.org/wiki/Kaharingan",
     powers: [

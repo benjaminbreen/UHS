@@ -285,6 +285,15 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Diviner", serves: "local", weight: 14 },
     { tier: "local", label: "Prophetic medium", serves: "local", weight: 14 },
   ],
+  "egypt-old-middle-kingdom": [
+    { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
+    { tier: "household", label: "Household head", serves: "local", weight: 40 },
+  ],
+  "egypt-late-period": [
+    { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Lector priest", serves: "major", weight: 5 },
+    { tier: "household", label: "Household head", serves: "local", weight: 40 },
+  ],
   "egypt-new-kingdom": [
     { tier: "temple", label: "Temple priest", serves: "major", weight: 5 },
     { tier: "household", label: "Household head", serves: "local", weight: 40 },

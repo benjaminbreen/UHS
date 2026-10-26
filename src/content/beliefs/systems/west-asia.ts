@@ -147,7 +147,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     id: "west-asia-early-farming",
     label: "Early farming and herding communities",
     wiki: "https://en.wikipedia.org/wiki/Neolithic_religion",
-    scope: { years: [-2000, 500], bounds: [-18, 12, 62, 42] },
+    scope: { years: [-2000, 400], bounds: [-18, 12, 62, 42] },
     powers: [
       {
         name: "*ʔArṣ́u",
@@ -221,7 +221,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     id: "sumerian-city-states",
     label: "Sumerian city-state religion",
     wiki: "https://en.wikipedia.org/wiki/Sumerian_religion",
-    scope: { years: [-3500, -1500], bounds: [40, 28, 52, 37] },
+    scope: { years: [-3500, -1500], bounds: [40, 29, 48.5, 37] },
     powers: [
       {
         name: "Enlil",
@@ -304,7 +304,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     id: "old-babylonian",
     label: "Old Babylonian practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
-    scope: { years: [-2000, -1400], bounds: [40, 29, 50, 37] },
+    scope: { years: [-2000, -1400], bounds: [40, 29, 48.5, 37] },
     powers: [
       {
         name: "Marduk",
@@ -388,7 +388,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     id: "neo-assyrian",
     label: "Neo-Assyrian state religion",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
-    scope: { years: [-1000, -500], bounds: [38, 32, 50, 40] },
+    scope: { years: [-1000, -500], bounds: [38, 32, 48.5, 40] },
     powers: [
       {
         name: "Ashur",
@@ -554,7 +554,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     id: "israelite-judahite",
     label: "Judahite monarchy religion",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Israelite_religion",
-    scope: { years: [-1000, -400], bounds: [34, 30, 37, 34] },
+    scope: { years: [-1000, -400], bounds: [34, 30, 36, 33.4] },
     powers: [
       {
         name: "YHWH",
@@ -646,7 +646,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Second Temple Jewish practice",
     wiki: "https://en.wikipedia.org/wiki/Second_Temple_Judaism",
-    scope: { years: [-500, 200], bounds: [34, 30, 37, 34] },
+    scope: { years: [-500, 200], bounds: [34, 30, 36, 33.4] },
     powers: [
       {
         name: "YHWH",
@@ -939,7 +939,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     id: "sasanian-zoroastrian",
     label: "Sasanian Zoroastrian Iran",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism_in_Iran",
-    scope: { years: [100, 700], bounds: [46, 24, 63, 40] },
+    scope: { years: [100, 700], bounds: [43.5, 24, 63, 40] },
     powers: [
       {
         name: "Ahura Mazda",
@@ -1045,7 +1045,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     id: "pre-islamic-arabia",
     label: "Pre-Islamic Arabian polytheism",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_pre-Islamic_Arabia",
-    scope: { years: [200, 650], bounds: [33, 12, 60, 34] },
+    scope: { years: [200, 650], bounds: [34, 12, 60, 30.5] },
     powers: [
       {
         name: "Allah",
@@ -1347,7 +1347,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Coptic Orthodox Christianity",
     wiki: "https://en.wikipedia.org/wiki/Coptic_Orthodox_Church_of_Alexandria",
-    scope: { years: [1000, 1700], bounds: [23, 20, 38, 34] },
+    scope: { years: [1000, 1700], bounds: [24, 20, 34, 32] },
     powers: [
       {
         name: "God the Father",
@@ -1445,7 +1445,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Ottoman Sufi-inflected Islam",
     wiki: "https://en.wikipedia.org/wiki/Sufism",
-    scope: { years: [1350, 1850], bounds: [18, 22, 52, 45] },
+    scope: { years: [1350, 1850], bounds: [18, 22, 46, 45] },
     powers: [
       {
         name: "God",
@@ -1538,7 +1538,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Post-Fatimid Egyptian Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Egypt",
-    scope: { years: [1069, 1450], bounds: [24, 22, 36, 32] },
+    scope: { years: [1069, 1450], bounds: [24, 22, 34, 32] },
     powers: [
       {
         name: "God",
@@ -1798,7 +1798,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Islamic practice across the Arabian Peninsula",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Saudi_Arabia",
-    scope: { years: [600, 1800], bounds: [30, 10, 62, 35] },
+    scope: { years: [600, 1800], bounds: [34, 10, 62, 30.5] },
     powers: [
       {
         name: "God",
@@ -1904,7 +1904,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Persian Sufi Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Sufism",
-    scope: { years: [900, 1600], bounds: [48, 25, 62, 38] },
+    scope: { years: [900, 1750], bounds: [48, 25, 62, 38] },
     powers: [
       {
         name: "God",

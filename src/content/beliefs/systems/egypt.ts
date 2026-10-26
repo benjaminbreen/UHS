@@ -5,10 +5,89 @@ import type { BeliefSystem } from "../types";
  * addresses. */
 export const egypt: readonly BeliefSystem[] = [
   {
+    id: "egypt-old-middle-kingdom",
+    label: "Old and Middle Kingdom Egyptian practice",
+    wiki: "https://en.wikipedia.org/wiki/Ancient_Egyptian_religion",
+    scope: { years: [-3100, -1550], bounds: [24, 22, 34, 32] },
+    powers: [
+      { name: "Ra", wiki: "https://en.wikipedia.org/wiki/Ra", domain: "the sun, kingship", rank: "paramount" },
+      { name: "Osiris", wiki: "https://en.wikipedia.org/wiki/Osiris", domain: "the dead, renewal, the flood", rank: "major" },
+      { name: "Horus", wiki: "https://en.wikipedia.org/wiki/Horus", domain: "the living king, the sky", rank: "major" },
+      { name: "Ptah", wiki: "https://en.wikipedia.org/wiki/Ptah", domain: "Memphis, craft, making", rank: "major" },
+      { name: "Hathor", wiki: "https://en.wikipedia.org/wiki/Hathor", domain: "love, music, foreign lands", rank: "major" },
+      { name: "Anubis", wiki: "https://en.wikipedia.org/wiki/Anubis", domain: "embalming, cemeteries", rank: "major" },
+      { name: "Thoth", wiki: "https://en.wikipedia.org/wiki/Thoth", domain: "writing, reckoning", rank: "major" },
+      { name: "Montu", wiki: "https://en.wikipedia.org/wiki/Montu", domain: "Thebes, war", rank: "major" },
+      { name: "Heqet", wiki: "https://en.wikipedia.org/wiki/Heqet", domain: "childbirth", rank: "local" },
+      { name: "Taweret", wiki: "https://en.wikipedia.org/wiki/Taweret", domain: "pregnancy, infants", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "Bread and beer brought to the family tomb chapel on feast days.",
+      "The king alone faces the gods in principle; temple staff act in his name.",
+      "Letters to the dead are left in the tomb asking for help in a dispute or an illness.",
+    ],
+    specialist:
+      "Temple priests in monthly shifts; the household head at the family tomb.",
+    afterlife:
+      "The king joins the sun and the stars; by the Middle Kingdom anyone properly buried hopes to become an Osiris.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Ra's place in royal theology, the rise of Osiris from the Fifth Dynasty, part-time phyles of temple priests, and letters to the dead are attested in the Pyramid and Coffin Texts, the Abusir papyri and tomb inscriptions.",
+      sources: [
+        "Assmann, The Search for God in Ancient Egypt",
+        "Quirke, Ancient Egyptian Religion",
+        "Posener-Kriéger, Les archives du temple funéraire de Néferirkarê-Kakaï",
+      ],
+      limitation:
+        "Most evidence is royal and elite and comes from tombs; what a farmer in a Theban village did is largely inferred from later periods.",
+    },
+  },
+  {
+    id: "egypt-late-period",
+    label: "Late Egyptian temple practice",
+    wiki: "https://en.wikipedia.org/wiki/Late_Period_of_ancient_Egypt",
+    scope: { years: [-1069, 200], bounds: [24, 22, 34, 32] },
+    powers: [
+      { name: "Amun-Ra", wiki: "https://en.wikipedia.org/wiki/Amun-Ra", domain: "Thebes, kingship, hidden power", rank: "paramount" },
+      { name: "Osiris", wiki: "https://en.wikipedia.org/wiki/Osiris", domain: "the dead, renewal, the flood", rank: "major" },
+      { name: "Isis", wiki: "https://en.wikipedia.org/wiki/Isis", domain: "healing, protection, motherhood", rank: "major", relations: [{ kind: "consort-of", of: "Osiris" }] },
+      { name: "Horus", wiki: "https://en.wikipedia.org/wiki/Horus", domain: "kingship, the sky", rank: "major", relations: [{ kind: "child-of", of: "Osiris" }] },
+      { name: "Ptah", wiki: "https://en.wikipedia.org/wiki/Ptah", domain: "Memphis, craft", rank: "major" },
+      { name: "Thoth", wiki: "https://en.wikipedia.org/wiki/Thoth", domain: "writing, wisdom, the ibis", rank: "major" },
+      { name: "Bastet", wiki: "https://en.wikipedia.org/wiki/Bastet", domain: "the home, cats, protection", rank: "major" },
+      { name: "Neith", wiki: "https://en.wikipedia.org/wiki/Neith", domain: "Sais, weaving, creation", rank: "major" },
+      { name: "Bes", wiki: "https://en.wikipedia.org/wiki/Bes", domain: "childbirth, the household door", rank: "local" },
+      { name: "The ancestors", domain: "the household's own dead", rank: "local" },
+    ],
+    practice: [
+      "A mummified ibis, cat or falcon bought at the temple and offered to its god.",
+      "Questions put to a god's oracle on written slips, answered yes or no.",
+      "Amulets of Bes and the eye of Horus worn against illness and the evil eye.",
+    ],
+    specialist:
+      "Temple priests and lector priests; the household head at the domestic shrine.",
+    afterlife:
+      "Judgement before Osiris, then a life in the fields of reeds, secured by the Book of the Dead and a good burial.",
+    evidence: {
+      status: "documented",
+      claim:
+        "Animal cults with millions of votive mummies, ticket oracles, the God's Wife of Amun at Thebes and the great Ptolemaic temples at Edfu, Dendera and Philae are well attested in excavation, papyri and temple texts.",
+      sources: [
+        "Dunand & Zivie-Coche, Gods and Men in Egypt, 3000 BCE to 395 CE",
+        "Frankfurter, Religion in Roman Egypt",
+        "Ikram, Divine Creatures: Animal Mummies in Ancient Egypt",
+      ],
+      limitation:
+        "Twelve centuries under Libyan, Kushite, Persian, Greek and Roman rulers are summarised as one; Greek-speaking Alexandria's Serapis cult is left out.",
+    },
+  },
+  {
     id: "egypt-new-kingdom",
     label: "New Kingdom Egyptian practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Egyptian_religion",
-    scope: { years: [-1550, -1069], bounds: [24, 22, 36, 32] },
+    scope: { years: [-1550, -1069], bounds: [24, 22, 34, 32] },
     powers: [
       {
         name: "Amun-Ra",
@@ -123,7 +202,7 @@ export const egypt: readonly BeliefSystem[] = [
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Egypt",
     scope: {
       years: [200, 642],
-      bounds: [24, 22, 36, 32],
+      bounds: [24, 22, 34, 32],
       cultures: ["north-african-west-asian", "european"],
     },
     powers: [

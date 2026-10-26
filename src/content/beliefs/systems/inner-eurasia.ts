@@ -672,7 +672,8 @@ export const innerEurasia: readonly BeliefSystem[] = [
     id: "tibetan-bon",
     label: "Tibetan Bon tradition",
     wiki: "https://en.wikipedia.org/wiki/Bon",
-    scope: { years: [-800, 1200], bounds: [75, 25, 105, 40] },
+    // Lhasa and the plateau are tagged South Asian.
+    scope: { years: [-800, 1200], bounds: [79, 28.3, 104, 40], cultures: ["inner-eurasian", "south-asian"] },
     powers: [
       {
         name: "Shenlha Okar",
@@ -747,7 +748,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     id: "siberian-shamanism",
     label: "Siberian shamanic practice",
     wiki: "https://en.wikipedia.org/wiki/Siberian_shamanism",
-    scope: { years: [-1000, 1950], bounds: [25, 35, 180, 90] },
+    scope: { years: [-1000, 1950], bounds: [60, 50, 180, 78] },
     powers: [
       {
         name: "Numi-Torum",
@@ -826,7 +827,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Central Asian Islamic practice with Sufi and shrine elements",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Central_Asia",
-    scope: { years: [900, 1900], bounds: [45, 32, 85, 50] },
+    scope: { years: [900, 1950], bounds: [45, 32, 85, 50] },
     powers: [
       {
         name: "Allah",
@@ -1155,7 +1156,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     id: "far-northeast-siberia",
     label: "Far northeast Siberia and Arctic peoples",
     wiki: "https://en.wikipedia.org/wiki/Shamanism_in_Siberia",
-    scope: { years: [-2000, 1950], bounds: [25, 35, 180, 90] },
+    scope: { years: [-2000, 1950], bounds: [130, 55, 180, 75] },
     powers: [
       {
         name: "Kutkh",

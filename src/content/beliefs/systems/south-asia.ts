@@ -618,7 +618,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Tamil Shaivism",
     wiki: "https://en.wikipedia.org/wiki/Shaiva_Siddhanta",
-    scope: { years: [100, 1000], bounds: [75, 7, 85, 20] },
+    scope: { years: [-500, 1900], bounds: [75, 7, 85, 20] },
     powers: [
       {
         name: "Shiva",
@@ -1024,7 +1024,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Himalayan and Newar syncretic practice",
     wiki: "https://en.wikipedia.org/wiki/Newar_Buddhism",
-    scope: { years: [400, 1800], bounds: [78, 26, 92, 37] },
+    scope: { years: [400, 1800], bounds: [80, 26.5, 88.5, 30.5] },
     powers: [
       {
         name: "Taleju",
@@ -1499,7 +1499,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     id: "northeast-regional",
     label: "Northeast regional practice",
     wiki: "https://en.wikipedia.org/wiki/Donyi-Polo",
-    scope: { years: [-500, 1800], bounds: [87, 20, 97, 37] },
+    scope: { years: [-500, 1800], bounds: [88, 20, 97, 28.3] },
     powers: [
       {
         name: "Donyi-Polo",
@@ -1574,7 +1574,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     id: "bengal-specific",
     label: "Bengal regional practice",
     wiki: "https://en.wikipedia.org/wiki/Bengali_Hindus",
-    scope: { years: [-500, 1950], bounds: [85, 22, 92, 30] },
+    scope: { years: [-500, 1950], bounds: [86, 21, 93, 26.6] },
     powers: [
       {
         name: "Ganga",

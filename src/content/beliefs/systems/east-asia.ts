@@ -142,7 +142,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "early-bronze-farming-era",
     label: "Early Bronze Age farming societies",
     wiki: "https://en.wikipedia.org/wiki/Chinese_Bronze_Age",
-    scope: { years: [-1600, -800], bounds: [95, 20, 145, 50] },
+    scope: { years: [-1600, 300], bounds: [95, 20, 145, 50] },
     powers: [
       {
         name: "The ancestors",
@@ -206,7 +206,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "shang-oracle",
     label: "Shang oracle bone practice",
     wiki: "https://en.wikipedia.org/wiki/Oracle_bone",
-    scope: { years: [-1600, -1046], bounds: [100, 25, 130, 48] },
+    scope: { years: [-1600, -1046], bounds: [105, 30, 122, 41] },
     powers: [
       {
         name: "Di",
@@ -260,7 +260,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "zhou-heaven-rites",
     label: "Early Zhou Heaven and ancestral rites",
     wiki: "https://en.wikipedia.org/wiki/Tian",
-    scope: { years: [-1046, -500], bounds: [100, 25, 135, 48] },
+    scope: { years: [-1046, -500], bounds: [100, 25, 123, 43] },
     powers: [
       {
         name: "Tian",
@@ -319,7 +319,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "warring-states-qin",
     label: "Warring States and Qin period belief",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
-    scope: { years: [-500, -206], bounds: [95, 20, 140, 50] },
+    scope: { years: [-500, -206], bounds: [95, 20, 123, 43] },
     powers: [
       {
         name: "Tian",
@@ -385,7 +385,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "han-popular",
     label: "Han dynasty popular religion",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
-    scope: { years: [-206, 300], bounds: [95, 18, 135, 52] },
+    scope: { years: [-206, 300], bounds: [95, 18, 123, 43] },
     powers: [
       {
         name: "Heaven",
@@ -459,7 +459,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Six Dynasties Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Chinese_Buddhism",
-    scope: { years: [300, 650], bounds: [100, 20, 140, 50] },
+    scope: { years: [300, 650], bounds: [100, 20, 123, 43] },
     powers: [
       {
         name: "Buddha",
@@ -524,7 +524,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Tang dynasty syncretism",
     wiki: "https://en.wikipedia.org/wiki/Sanjiao",
-    scope: { years: [618, 960], bounds: [95, 18, 140, 52] },
+    scope: { years: [618, 960], bounds: [95, 18, 123, 43] },
     powers: [
       {
         name: "The Three Jewels",
@@ -601,7 +601,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Song and Ming household pantheon",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
-    scope: { years: [960, 1700], bounds: [95, 15, 140, 52] },
+    scope: { years: [960, 1700], bounds: [95, 15, 123, 43] },
     powers: [
       {
         name: "Heaven",
@@ -690,7 +690,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "late-imperial-village",
     label: "Late imperial rural practice",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
-    scope: { years: [1700, 1912], bounds: [95, 18, 140, 50] },
+    scope: { years: [1700, 1912], bounds: [95, 18, 123, 43] },
     powers: [
       {
         name: "The ancestors",
@@ -753,7 +753,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     id: "korean-three-kingdoms",
     label: "Korean Three Kingdoms shamanic practice",
     wiki: "https://en.wikipedia.org/wiki/Korean_shamanism",
-    scope: { years: [-37, 800], bounds: [120, 30, 140, 50] },
+    scope: { years: [-37, 800], bounds: [124, 33, 131, 43.5] },
     powers: [
       {
         name: "Sky god",
@@ -819,7 +819,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Koryo kingdom Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Korea",
-    scope: { years: [800, 1450], bounds: [120, 30, 140, 50] },
+    scope: { years: [800, 1450], bounds: [124, 33, 131, 43.5] },
     powers: [
       {
         name: "Buddha",
@@ -1304,7 +1304,8 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Tibetan Plateau and Qaidam Basin pastoralist tradition",
     wiki: "https://en.wikipedia.org/wiki/Bon",
-    scope: { years: [800, 1950], bounds: [88, 30, 110, 45] },
+    // Lhasa and the plateau are tagged South Asian.
+    scope: { years: [800, 1950], bounds: [79, 28.3, 104, 40], cultures: ["east-asian", "south-asian"] },
     powers: [
       {
         name: "The sky",

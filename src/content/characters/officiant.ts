@@ -33,7 +33,7 @@ export function officiantsFor(s: WorldSetting): readonly Officiant[] {
  * office is simply the parish priest. These are the offices of those.
  */
 const UNDEDICATED =
-  /parish|minister|pastor|missionary|catechist|imam|rabbi|qadi|qazi|marabout|pir|monk|nun|bhikkhu|granthi|abbot|monastic|priest of the church|clergy|sexton/i;
+  /parish|minister|pastor|missionary|catechist|imam|rabbi|qadi|qazi|marabout|pir|monk|nun|bhikkhu|granthi|abbot|monastic|priest of the church|clergy|sexton|lector/i;
 
 /** Offices that serve a god at all. A chieftain or an elder is not "of Sulis". */
 const DEDICATED = /priest|keeper|attendant|medium|oracle|flamen/i;

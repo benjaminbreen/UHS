@@ -311,7 +311,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     id: "yoruba-orisha",
     label: "Yoruba orisha practice",
     wiki: "https://en.wikipedia.org/wiki/Yoruba_religion",
-    scope: { years: [900, 1750], bounds: [-2, 2, 10, 14] },
+    scope: { years: [900, 1750], bounds: [2.5, 6, 6, 9.5] },
     powers: [
       {
         name: "Olorun",
@@ -483,7 +483,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     id: "akan-suman",
     label: "Akan suman and abosom practice",
     wiki: "https://en.wikipedia.org/wiki/Akan_religion",
-    scope: { years: [1000, 1750], bounds: [-6, 2, 4, 10] },
+    scope: { years: [1000, 1750], bounds: [-6, 4, 1, 9] },
     powers: [
       {
         name: "Onyankopon",
@@ -556,7 +556,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     id: "dogon-mande",
     label: "Dogon cosmology and Mande spirit practice",
     wiki: "https://en.wikipedia.org/wiki/Dogon_religion",
-    scope: { years: [1200, 1750], bounds: [-18, 4, 10, 20] },
+    scope: { years: [1200, 1750], bounds: [-17.5, 10, -1, 17] },
     powers: [
       {
         name: "Amma",
@@ -783,7 +783,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     id: "fon-vodun",
     label: "Fon and Dahomey vodun",
     wiki: "https://en.wikipedia.org/wiki/West_African_Vodun",
-    scope: { years: [1400, 1900], bounds: [-4, 4, 8, 14] },
+    scope: { years: [1400, 1900], bounds: [0.5, 6, 2.8, 10] },
     powers: [
       {
         name: "Mawu-Lisa",
@@ -946,7 +946,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     id: "central-forest-spirits",
     label: "Central African forest spirits and earth power",
     wiki: "https://en.wikipedia.org/wiki/Kongo_religion",
-    scope: { years: [1000, 1800], bounds: [2, -10, 32, 8] },
+    scope: { years: [1000, 1800], bounds: [8.5, -10, 32, 6] },
     powers: [
       {
         name: "Nzambi a Mpungu",

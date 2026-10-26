@@ -457,7 +457,7 @@ export const andes: readonly BeliefSystem[] = [
     priority: 1,
     label: "Inca state religion",
     wiki: "https://en.wikipedia.org/wiki/Inca_religion",
-    scope: { years: [1450, 1532], bounds: [-77, -16, -69, -8] },
+    scope: { years: [1450, 1532], bounds: [-81, -17, -66, 1.5] },
     powers: [
       {
         name: "Inti",
@@ -538,7 +538,7 @@ export const andes: readonly BeliefSystem[] = [
     id: "inca-village",
     label: "Inca village practice",
     wiki: "https://en.wikipedia.org/wiki/Inca_religion",
-    scope: { years: [1450, 1532], bounds: [-77, -16, -69, -8] },
+    scope: { years: [1450, 1532], bounds: [-81, -17, -66, 1.5] },
     powers: [
       {
         name: "Pachamama",

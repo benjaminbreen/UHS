@@ -501,7 +501,8 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "imperial-roman",
     label: "Imperial Roman practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
-    scope: { years: [-27, 400], bounds: [-10, 30, 45, 50] },
+    // The Levant and North Africa are tagged West Asian.
+    scope: { years: [-27, 400], bounds: [-10, 30, 42, 50], cultures: ["european", "north-african-west-asian"] },
     powers: [
       {
         name: "The Emperor",
@@ -796,7 +797,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "norse-scandinavia",
     label: "Viking Age Norse practice",
     wiki: "https://en.wikipedia.org/wiki/Old_Norse_religion",
-    scope: { years: [700, 1300], bounds: [-26, 45, 50, 72] },
+    scope: { years: [400, 1100], bounds: [4, 54, 32, 72] },
     powers: [
       {
         name: "Odin",
@@ -886,7 +887,7 @@ const europeanBase: readonly BeliefSystem[] = [
     id: "slavic-paganism",
     label: "Pre-Christian Slavic practice",
     wiki: "https://en.wikipedia.org/wiki/Slavic_paganism",
-    scope: { years: [400, 1100], bounds: [15, 45, 40, 60] },
+    scope: { years: [400, 1000], bounds: [15, 45, 40, 57] },
     powers: [
       {
         name: "Perun",
@@ -971,7 +972,7 @@ const europeanBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Early medieval Frankish Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Franks",
-    scope: { years: [500, 850], bounds: [-15, 30, 45, 72] },
+    scope: { years: [500, 850], bounds: [-10, 42, 20, 60] },
     powers: [
       { name: "God", domain: "the creator, all power", rank: "paramount" },
       {
@@ -1147,11 +1148,10 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "reformation-protestant",
-    priority: 1,
     features: ["sacred-texts"],
     label: "Reformation Protestant practice",
     wiki: "https://en.wikipedia.org/wiki/Reformation",
-    scope: { years: [1500, 1800], bounds: [-26, 30, 50, 72] },
+    scope: { years: [1500, 1800], bounds: [-11, 50.5, 20, 72] },
     powers: [
       { name: "God", domain: "all power, predestination", rank: "paramount" },
       {
@@ -1228,7 +1228,7 @@ const europeanBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Russian Orthodox Christianity",
     wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
-    scope: { years: [1000, 1700], bounds: [15, 40, 50, 72] },
+    scope: { years: [1000, 1917], bounds: [26, 44, 50, 72] },
     powers: [...orthodoxTrinity, ...russianOrthodoxHolyFigures],
     patronOptions: russianOrthodoxPatronOptions,
     practice: [
@@ -1569,7 +1569,7 @@ const europeanBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Byzantine Orthodox practice",
     wiki: "https://en.wikipedia.org/wiki/Byzantine_Empire",
-    scope: { years: [330, 1460], bounds: [12, 33, 48, 49] },
+    scope: { years: [330, 1460], bounds: [19, 29, 48, 46] },
     powers: [
       { name: "God", domain: "creation, judgement", rank: "paramount" },
       {

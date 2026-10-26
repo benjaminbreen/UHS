@@ -971,7 +971,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     id: "eastern-woodlands-iroquoian",
     label: "Eastern Woodlands Iroquoian practice",
     wiki: "https://en.wikipedia.org/wiki/Haudenosaunee_creation_myth",
-    scope: { years: [1200, 1901], bounds: [-85, 40, -70, 50] },
+    scope: { years: [1200, 1901], bounds: [-81, 41.5, -73.5, 46.5] },
     powers: [
       {
         name: "Sky Woman",
