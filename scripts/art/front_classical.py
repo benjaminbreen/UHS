@@ -595,6 +595,7 @@ def cached(builder):
         if info is not None:
             info.update(metadata)
         return im
+    paint.images, paint.builder = images, builder
     return paint
 
 
@@ -602,10 +603,44 @@ BUILDERS = {name: cached(builder) for name, builder in
             [('classical-insula', insula), ('classical-tower', tower), ('classical-shrine', shrine)]}
 
 
+def _paint_one(job):
+    kind, spec = job
+    metadata = {}
+    return BUILDERS[kind].builder(spec, metadata), metadata
+
+
+def prime(jobs):
+    """Paint these (kind, spec) pairs across the cores into the builders'
+    caches: the towers and shrines are the slowest sprites in the bake."""
+    import multiprocessing as mp
+    import os
+    todo = list({(k, json.dumps(sp or {}, sort_keys=True)): (k, sp) for k, sp in jobs
+                 if json.dumps(sp or {}, sort_keys=True) not in BUILDERS[k].images}.values())
+    n = int(os.environ.get('UHS_BAKE_JOBS') or os.cpu_count() or 1)
+    if n < 2 or len(todo) < 2:
+        return
+    with mp.get_context('fork').Pool(min(n, len(todo))) as pool:
+        for (kind, spec), done in zip(todo, pool.map(_paint_one, todo)):
+            BUILDERS[kind].images[json.dumps(spec or {}, sort_keys=True)] = done
+
+
+def game_specs(styles):
+    """Every (kind, spec) game_recipes paints, in its order."""
+    for look, parts in styles.items():
+        for n in (1, 2, 3):
+            yield 'classical-tower', dict(parts['tower'], storeys=n, seed=31 + n)
+        if 'shrine' in parts:
+            for n in (2, 2, 3, 1, 1):
+                yield 'classical-insula', dict(storeys=n, seed=17, wall='whitewash' if look == 'egypt' else 'plaster-ochre')
+            for scale, width in (('small', 144), ('medium', 160), ('large', 184)):
+                yield 'classical-shrine', dict(parts['shrine'], width=width, seed=41, plants=scale != 'large')
+
+
 def game_recipes(recipes):
     styles = json.loads((ROOT / 'src/content/graphics/mediterranean-buildings.json').read_text())['styles']
     house = recipes['house-roman-ob-0']
     temple = recipes['religious-mesopotamian-temple-small-0']
+    prime(game_specs(styles))
     for look, parts in styles.items():
         for n in (1, 2, 3):
             spec = dict(parts['tower'], storeys=n, seed=31 + n)

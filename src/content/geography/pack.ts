@@ -12,6 +12,7 @@ import {
   lifewayHouses,
   romanRegionalHouses,
   southAsianRegionalHouses,
+  vernacularHouses,
   westAsianRegionalHouses,
 } from "../graphics/regional-houses";
 import { formatHistoricalYear } from "../../core/calendar";
@@ -292,6 +293,7 @@ export function packForSetting(setting: WorldSetting): Pack {
     setting.culture === "mesoamerican" && setting.year < 1540
       ? mesoamericanRegionalHouses(setting)
       : [];
+  const vernacular = vernacularHouses(setting);
   const buildings = prehistoric
     ? prehistoric
     : modernCity
@@ -315,7 +317,9 @@ export function packForSetting(setting: WorldSetting): Pack {
                 ? mesoamericanRegional
                 : steppeRegional.length
                   ? steppeRegional
-                  : architecture === "shelter"
+                  : vernacular.length
+                    ? vernacular
+                    : architecture === "shelter"
                     ? ["shelter-hide", "shelter-reed"]
                     : setting.culture === "european" &&
                         setting.climate === "mediterranean" &&

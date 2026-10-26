@@ -3,7 +3,7 @@ import { bce } from "../history/dates";
 import type { WorldSetting } from "../geography/types";
 import { hullWeights, waterOf, type FishingMethod } from "../economy/fishing";
 import { lifeway } from "./lifeways";
-import { lifewayHouses } from "../graphics/regional-houses";
+import { lifewayHouses, vernacularHouses } from "../graphics/regional-houses";
 
 export type WaterfrontProfile = {
   id:string; years:readonly [number,number]; bounds:readonly [number,number,number,number];
@@ -70,7 +70,9 @@ export function fishingWaterfront(s:WorldSetting):WaterfrontProfile|undefined {
   // its own houses, not stand-in shore houses outside it.
   const way=lifeway(s);
   if(way && lifewayHouses(way,s).length)return;
-  const [home,gear]=shelters[s.architecture];
+  const [stand,gear]=shelters[s.architecture];
+  // Where the region has its own house, the fishers live in one.
+  const home=vernacularHouses(s)[0] ?? stand;
   const dry=s.climate==="arid" || s.climate==="tropical" || s.climate==="monsoon";
   return {id:"fishing-landing",years:[s.year,s.year+1],bounds:[s.lon,s.lat,s.lon,s.lat],home,gear,
     boat:"worksite-plank-skiff",nets:"worksite-net-rail",sorting:dry ? "worksite-fish-mat" : "worksite-fish-trays",

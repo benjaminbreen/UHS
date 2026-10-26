@@ -171,6 +171,18 @@ def east_asian():
         yield name, im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), info['door_h'], []
 
 
+def vernacular():
+    """The regional vernacular houses, from each module's studies."""
+    from types import SimpleNamespace
+    from art import front_africa, front_seasia, front_andes, front_pacific
+    for mod in (front_africa, front_seasia, front_andes, front_pacific):
+        for name, kind, spec in mod.STUDIES:
+            info = {}
+            im = mod.BUILDERS[kind](spec, info)
+            yield f'{mod.__name__.split("_")[-1]}-{name}', im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), \
+                info['door_h'], []
+
+
 def worksites():
     from types import SimpleNamespace
     from art.front_worksites import worksite_recipes, FrontWorksitePainter
@@ -184,7 +196,7 @@ def audit():
     faults = ramp_faults()
     n = 0
     from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian(), worksites()):
+    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), worksites()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1

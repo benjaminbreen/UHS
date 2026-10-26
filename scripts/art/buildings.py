@@ -1,6 +1,7 @@
 """Composable building compiler. All dimensions are source pixels, never screen pixels.
 Recipes own materials/forms; neither this compiler nor the runtime knows an era.
 """
+import os
 import re
 import json
 import random
@@ -335,6 +336,13 @@ def door_rect(artist):
     return [x - w // 2, ground - h - 1, w, h]
 
 
+_PAINT=None
+
+
+def _paint_group(names):
+    return [(n,_PAINT(n)) for n in names]
+
+
 def build_buildings(root, sprites):
     source=json.loads((root/'src/content/graphics/buildings.json').read_text())
     phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
@@ -403,7 +411,11 @@ def build_buildings(root, sprites):
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,
                                       # Same silhouette whichever way it faces, so one set of cast masks.
                                       **({'shadowFrame':r.get('shadowFrame',name)} if r.get('oblique') or r.get('obliqueModern') or r.get('sacredVoxel') else {})}
-    for name,r in recipes.items():
+    def paint(name):
+        """One frame: its sprites in the order the atlas takes them, the
+        casts a voxel painter makes, and its model."""
+        r=recipes[name]
+        out,shadows={},{}
         painter=(FrontWorksitePainter if r.get('frontWorksite') else
                  FrontAncientPainter if r.get('frontAncient') else
                  FrontHousePainter if r.get('frontHouse') else
@@ -432,30 +444,29 @@ def build_buildings(root, sprites):
                  UrbanBuilding if r.get('urban') else Building)
         artist=painter(r,source['materials'][r['wall']])
         im=artist.render()
-        sprites[name]=im
+        out[name]=im
         # Lit rooms after dark, drawn by the painter; turned copies share it.
-        if r.get('obliqueModern') and 'facing' not in r: sprites[name+'-glow']=artist.glow
+        if r.get('obliqueModern') and 'facing' not in r: out[name+'-glow']=artist.glow
         # Front-on painters that know their paper and open rooms ship them lit.
         night=getattr(artist,'night',None)
-        if night is not None and 'facing' not in r: sprites[name+'-glow']=night
+        if night is not None and 'facing' not in r: out[name+'-glow']=night
         voxel=getattr(artist,'voxel',False)
         if voxel:
             artist.glow.info['trim']=True
-            sprites[name+'-glow']=artist.glow
-            from art.voxel_kit import SHADOWS
+            out[name+'-glow']=artist.glow
             # A turned copy or another look of the same silhouette borrows its shadow.
             if not r.get('shadowFrame'):
-                for phase,shadow in artist.cast(phases).items():SHADOWS[f'{phase}:{name}']=shadow
+                for phase,shadow in artist.cast(phases).items():shadows[f'{phase}:{name}']=shadow
             artist.lamp_glow.info['trim']=True
-            sprites[name+'-lamps']=artist.lamp_glow
-            sprites[name+'-snow'],sprites[name+'-wet']=artist.weather_frames()
+            out[name+'-lamps']=artist.lamp_glow
+            out[name+'-snow'],out[name+'-wet']=artist.weather_frames()
             life=[]
             for k,spec in enumerate(artist.bake_life()):
                 names=[f'{name}~{k}-{f}' for f in range(len(spec['frames']))]
-                for n,im in zip(names,spec['frames']):sprites[n]=im
+                for n,im in zip(names,spec['frames']):out[n]=im
                 life.append({**{a:b for a,b in spec.items() if a!='frames'},'f':names})
         w,h=im.size
-        models[name]={
+        model={
             **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),
             'frame':name,'label':r['label'],'footprint':r['footprint'],'entrance':r['entrance'],
             'anchor':[getattr(artist,'anchor_x',w/2),h-3],'bounds':[0,0,w,h],'height':r['height'],
@@ -516,6 +527,26 @@ def build_buildings(root, sprites):
             **({'oblique':True,'margins':[int(-(-(w-artist.anchor_x-r['footprint'][0]*8)//16)),
                                           max(0,int(-(-(h-3-r['footprint'][1]*16)//16)))]} if r.get('oblique') else {}),
             **({'animation':r['animation']} if r.get('animation') else {})}
+        return out,shadows,model
+    # Every frame paints alone, so the cores share them: a building and its
+    # turned copies go to one worker, which paints a shared spec only once.
+    global _PAINT
+    _PAINT=paint
+    groups={}
+    for name in recipes:groups.setdefault(re.sub(r'-(north|east|west)$','',name),[]).append(name)
+    jobs=int(os.environ.get('UHS_BAKE_JOBS') or os.cpu_count() or 1)
+    if jobs>1:
+        import multiprocessing as mp
+        with mp.get_context('fork').Pool(jobs) as pool:
+            done=dict(kv for part in pool.imap_unordered(_paint_group,list(groups.values()),chunksize=4) for kv in part)
+    else:
+        done=dict(kv for g in groups.values() for kv in _paint_group(g))
+    from art.voxel_kit import SHADOWS
+    for name in recipes:
+        out,shadows,model=done[name]
+        sprites.update(out)
+        SHADOWS.update(shadows)
+        models[name]=model
     # Not buildings.json: that name belongs to the packed atlas, which is
     # written later in the build and would silently clobber this.
     (root/'public/packs/models.json').write_text(json.dumps(models))

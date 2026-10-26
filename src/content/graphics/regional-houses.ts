@@ -182,3 +182,49 @@ export function mesoamericanRegionalHouses(setting: WorldSetting) {
     ...frames("meso-service", profile),
   ];
 }
+
+/** West and Central African houses: the kay across the Atlantic, banco in the
+ * Sahel, the Kongo house of mats and thatch in the forest and savanna. */
+export function africanRegionalHouses(setting: WorldSetting) {
+  const { lon, lat, placeId, climate, architecture } = setting;
+  const profile: Profile =
+    placeId === "haiti" || lon < -30
+      ? "kay"
+      : lat > 8 && (climate === "arid" || architecture === "mudbrick")
+        ? "sahel"
+        : "kongo";
+  return frames("africa-house", profile);
+}
+
+export function southeastAsianRegionalHouses(setting: WorldSetting) {
+  return frames("seasia-house", setting.lon < 100 ? "burmese" : "javanese");
+}
+
+export function andeanRegionalHouses(setting: WorldSetting) {
+  const city = setting.settlement === "city" || setting.settlement === "port";
+  return frames("andes-house", city ? "cusco" : "andean-highland");
+}
+
+/** Polynesia only: New Guinea and Australia build otherwise. */
+export function pacificRegionalHouses(setting: WorldSetting) {
+  return setting.lon > 160 || setting.lon < -120
+    ? frames("pacific-house", "polynesian")
+    : [];
+}
+
+/** Front-on vernacular houses where the culture had no family of its own. */
+export function vernacularHouses(setting: WorldSetting) {
+  if (setting.architecture === "shelter" || setting.year < 0) return [];
+  switch (setting.culture) {
+    case "west-central-african":
+      return africanRegionalHouses(setting);
+    case "southeast-asian":
+      return southeastAsianRegionalHouses(setting);
+    case "andean":
+      return setting.year >= 600 ? andeanRegionalHouses(setting) : [];
+    case "australian-pacific":
+      return pacificRegionalHouses(setting);
+    default:
+      return [];
+  }
+}

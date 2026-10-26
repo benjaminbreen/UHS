@@ -560,7 +560,15 @@
         "timber": ["#28151a", "#472326", "#6d3a31", "#935641", "#b87a57", "#d7a57a"],
         "accent": ["#142b45", "#1f4c6e", "#2b7394", "#3f9bb4", "#6fc1cc", "#aee3e0"]
       }
-    }
+    },
+    "kongo": {"label": "Kongo", "roofMaterial": "grass-thatch"},
+    "kay": {"label": "Haitian", "roofMaterial": "thatch"},
+    "sahel": {"label": "Sahelian", "roofMaterial": "earth"},
+    "javanese": {"label": "Javanese", "roofMaterial": "palm-thatch"},
+    "burmese": {"label": "Burmese", "roofMaterial": "palm-thatch"},
+    "andean-highland": {"label": "Andean highland", "roofMaterial": "ichu-thatch"},
+    "cusco": {"label": "Cusco", "roofMaterial": "ichu-thatch"},
+    "polynesian": {"label": "Polynesian", "roofMaterial": "pandanus-thatch"}
   },
   "sinoPalette": {
     "tile": ["#22262d", "#363c45", "#4e5561", "#6a727d", "#8a929a", "#aeb4b8"],
@@ -882,6 +890,52 @@
       "description": "Household service buildings: the bellied clay granary on a stone footing, and the temazcal sweat bath with its firebox. Illustrative.",
       "sizes": {
         "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 2, "seedOffset": 17900, "roofPlan": "hip", "roofAccess": "none", "serviceStyles": ["granary", "sweatbath"], "functions": ["granary", "sweat-bath"]}
+      }
+    },
+    "africa-house": {
+      "source": "house-cottage-timber-0",
+      "label": "West and Central African house",
+      "profiles": ["kongo", "kay", "sahel"],
+      "function": "household",
+      "description": "Kongo mat-walled houses under grass thatch, the limewashed Haitian kay with its gallery, and the banco houses of the Sahel. Front-on.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 21000, "roofPlan": "ridge", "roofAccess": "none"},
+        "medium": {"footprint": [6, 4], "entrance": 3, "stories": 1, "variants": 3, "seedOffset": 21400, "roofPlan": "ridge", "roofAccess": "none"},
+        "large": {"footprint": [9, 6], "entrance": 4, "stories": 1, "variants": 2, "seedOffset": 21800, "roofPlan": "ridge", "roofAccess": "none"}
+      }
+    },
+    "seasia-house": {
+      "source": "house-cottage-timber-0",
+      "label": "Southeast Asian stilt house",
+      "profiles": ["javanese", "burmese"],
+      "function": "household",
+      "description": "A house raised on posts with a ladder to the door: woven bamboo under a saddle-ridged palm roof in Java, teak under hipped thatch in Burma. Front-on.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 22200, "roofPlan": "ridge", "roofAccess": "none"},
+        "medium": {"footprint": [6, 4], "entrance": 3, "stories": 1, "variants": 3, "seedOffset": 22600, "roofPlan": "ridge", "roofAccess": "none"}
+      }
+    },
+    "andes-house": {
+      "source": "house-cottage-timber-0",
+      "label": "Andean house",
+      "profiles": ["andean-highland", "cusco"],
+      "function": "household",
+      "description": "Fieldstone or fitted ashlar under steep ichu thatch, with trapezoidal doorways and niches. Front-on.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 23000, "roofPlan": "ridge", "roofAccess": "none"},
+        "medium": {"footprint": [6, 4], "entrance": 3, "stories": 1, "variants": 3, "seedOffset": 23400, "roofPlan": "ridge", "roofAccess": "none"},
+        "large": {"footprint": [8, 5], "entrance": 4, "stories": 1, "variants": 2, "seedOffset": 23800, "roofPlan": "ridge", "roofAccess": "none"}
+      }
+    },
+    "pacific-house": {
+      "source": "house-cottage-timber-0",
+      "label": "Polynesian fare",
+      "profiles": ["polynesian"],
+      "function": "household",
+      "description": "A great hipped roof of pandanus thatch over walls of upright reeds. Front-on.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 24200, "roofPlan": "ridge", "roofAccess": "none"},
+        "medium": {"footprint": [6, 4], "entrance": 3, "stories": 1, "variants": 3, "seedOffset": 24600, "roofPlan": "ridge", "roofAccess": "none"}
       }
     }
   }

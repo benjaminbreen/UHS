@@ -26,6 +26,7 @@ from art.front_fixtures import fixture  # noqa: E402
 from art.front_weather import weather  # noqa: E402
 from art.front_kit import outline, consolidate  # noqa: E402
 from art.front_house import bevel, brace, recess, pot, carve  # noqa: E402
+from art import front_solid as so  # noqa: E402
 
 OAK = RAMPS['oak']
 
@@ -37,6 +38,7 @@ COVER = {
     'pantile': (fm.pantiles, RAMPS['terracotta']),
     'shingle': (lambda c, x, y, w, h, r=None: fm.shingles(c, x, y, w, h, r, tw=8, th=6, mix_=r is None or r is RAMPS['shingle']), RAMPS['shingle']),
     'imbrex': (fm.imbrex, RAMPS['tegula']),
+    'palm': (fm.palm, RAMPS['palm']),
 }
 # Historical roof colours, chosen per spec by `tone`. Clays, slates and
 # straws differ by region and age more than by anything a painter adds.
@@ -60,9 +62,11 @@ TONES = {
     'shingle-silver': ramp(255, 0.015, lift=-0.02),             # weathered to silver: Alps, Scandinavia, eastern Europe
     'tegula': RAMPS['tegula'],                                  # Roman fired tile, Campania and Latium
     'tegula-pale': ramp(52, 0.09, lift=0.02),                   # a lighter, yellower clay, Ostia and the provinces
+    'palm': RAMPS['palm'],                                      # fresh palm leaf
+    'attap': ramp(58, 0.05, lift=-0.08),                        # nipa palm weathered grey-brown, Southeast Asia
 }
 DEFAULT_TONE = {'thatch': 'straw', 'plain': 'tile-red', 'slate': 'slate-blue', 'pantile': 'pantile', 'shingle': 'shingle',
-                'imbrex': 'tegula'}
+                'imbrex': 'tegula', 'palm': 'palm'}
 
 WALL = {
     'render': lambda c, x, y, w, h: fm.render(c, x, y, w, h),
@@ -113,7 +117,7 @@ class EaveHouse:
         self.heights = s['heights'] or ([50] if n == 1 else [56] + [46] * (n - 1))
         # A roof's depth follows the frontage: a small house carries a small
         # roof, never one taller than its walls.
-        full = {'thatch': 74, 'pantile': 44, 'slate': 58, 'plain': 64, 'shingle': 60, 'imbrex': 52}[s['roof']]
+        full = {'thatch': 74, 'pantile': 44, 'slate': 58, 'plain': 64, 'shingle': 60, 'imbrex': 52, 'palm': 70}[s['roof']]
         self.rise = s['rise'] or min(full, round(full * (0.42 + 0.58 * min(1.0, s['W'] / 140))))
         self.tone = TONES[s['tone'] or DEFAULT_TONE[s['roof']]]
         self.lean = 40 if s['lean_to'] else 0
@@ -288,7 +292,8 @@ class EaveHouse:
         that sags."""
         c, s = self.c, self.s
         x0, x1 = self.x0, self.x0 + self.W
-        over, rise = (7 if s['roof'] == 'thatch' else 5), self.rise
+        leaf = s['roof'] in ('thatch', 'palm')
+        over, rise = (7 if leaf else 5), self.rise
         eave = self.eave
         top = eave - rise
         paint, _ = COVER[s['roof']]
@@ -296,8 +301,9 @@ class EaveHouse:
         self.roof_px = set()
         hip = s['hip']
         k_hip = 0.55
-        old = s['wear'] > 0.5 and s['roof'] in ('thatch', 'plain', 'shingle')
-        amp = 2 + (s['wear'] > 0.75)
+        old = s['wear'] > 0.5 and s['roof'] in ('thatch', 'plain', 'shingle') or bool(s.get('saddle'))
+        # a saddle ridge rises to its ends, as Southeast Asian roofs do
+        amp = s.get('saddle') or 2 + (s['wear'] > 0.75)
         span = x1 - x0 + 2 * over
 
         def sag(x):
@@ -335,7 +341,7 @@ class EaveHouse:
             for y in range(top, eave + 2):
                 d = round((rise - (y - top)) * k_hip)
                 for xx, cols in ((x0 - over + d, (r[2], r[3])), (x1 + over - d - 2, (r[4], r[5]))):
-                    if s['roof'] == 'thatch':
+                    if leaf:
                         c.p(xx, y, r[4]); c.p(xx + 1, y, r[5])
                     else:
                         cap = self.cap_ramp(s['roof'])
@@ -366,7 +372,7 @@ class EaveHouse:
             for x, left in ((L, True), (R - 1, False)):
                 if y < top + sag(x):
                     continue
-                if kind == 'thatch':
+                if kind in ('thatch', 'palm'):
                     for k, idx in enumerate((3, 4, 5)):
                         c.p(x + (k if left else -k), y, r[idx if left else min(7, idx + 1)])
                 else:
@@ -375,7 +381,7 @@ class EaveHouse:
 
     def eave_edge(self, L, R, eave, kind, r):
         c = self.c
-        if kind == 'thatch':
+        if kind in ('thatch', 'palm'):
             # the thatch ends in a thick rounded lip that shades the wall
             for x in range(L, R):
                 rag = int(h2(x // 2, 0, 501) * 2)
@@ -395,7 +401,7 @@ class EaveHouse:
 
     def ridge(self, L, R, y, kind, r, sag=lambda x: 0):
         c = self.c
-        if kind == 'thatch':
+        if kind in ('thatch', 'palm'):
             # a block-cut ridge with its lower edge cut in points, liggers crossed on it
             for x in range(L - 2, R + 2):
                 pt = 3 - abs((x - L) % 8 - 4) // 2 if L + 2 < x < R - 2 else 0
@@ -549,4 +555,90 @@ class EaveHouse:
         else:
             outline(self.c)
             consolidate(self.c)
+        return self.c.im
+
+
+# ------------------------------------------------------------------ vernacular
+
+# Openings painters by name, registered by the regional modules: each draws
+# a VernacularHouse's door and any windows, and sets its door_x and door_h.
+OPENINGS = {}
+
+
+class VernacularHouse(EaveHouse):
+    """The eave-front house without its European parts, for building
+    traditions with no chimneys, dormers or glass: openings by name from
+    OPENINGS, a gallery under the roof's front, a floor raised on stilts."""
+
+    def __init__(self, spec):
+        base = dict(plinth=None, stacks=None, dormers=0, wear=0.4, gallery=False, stilts=0, openings=None)
+        super().__init__({**base, **spec})
+        self.ground = self.base + self.s['stilts']
+        if self.s['stilts']:
+            self.c = C(self.c.w, self.ground + 6)
+
+    def openings(self):
+        if self.s['openings']:
+            self.sills, self.cols, self.door_col = [], [self.x0 + self.W // 2], 0
+            OPENINGS[self.s['openings']](self)
+        else:
+            super().openings()
+
+    def gallery(self):
+        """The roof's front slope carried out over posts: the wall behind
+        lies in the gallery's shade, the posts stand lit in front of it."""
+        c, x0 = self.c, self.x0
+        op.cast(c, x0, self.eave, self.W, self.base - self.eave, 0.66)
+        op.cast(c, x0, self.eave, self.W, 18, 0.55)
+        self.eave += 12
+        n = max(2, round(self.W / 40))
+        for k in range(n + 1):
+            px = round(x0 + 2 + k * (self.W - 9) / n)
+            if abs(px - self.door_x) < 16:
+                continue
+            bevel(c, px, self.eave + 4, 5, self.base - self.eave - 4, self.post, 2)
+            c.rect(px - 1, self.eave + 4, 7, 2, self.post[1])
+        so.box(c, x0 - 4, self.base + 3, self.W + 8, 4, 6, ramp(52, 0.06, lift=-0.08))
+
+    def raise_on_stilts(self):
+        """Posts from the ground to the floor, the joists' ends along the
+        floor's edge, the dark under the house, a ladder up to the door."""
+        c, x0, W, top, g = self.c, self.x0, self.W, self.base, self.ground
+        p = self.post
+        for yy in range(top, top + 8):
+            for xx in range(x0 + 2, x0 + W - 2):
+                c.p(xx, yy, (52, 40, 50, 255))
+        n = max(2, round(W / 34))
+        for k in range(n + 1):
+            bevel(c, round(x0 + k * (W - 6) / n), top, 6, g - top, p, 3)
+        bevel(c, x0 - 3, top - 1, W + 6, 6, p, 2)
+        for xx in range(x0, x0 + W - 3, 9):
+            c.rect(xx, top + 1, 3, 3, p[4]); c.p(xx, top + 1, p[1])
+        op.cast(c, x0, top + 5, W, 3, 0.6)
+        lx = self.door_x - 8
+        for yy in range(top - 2, g):
+            c.p(lx, yy, p[2]); c.p(lx + 1, yy, p[4])
+            c.p(lx + 14, yy, p[2]); c.p(lx + 15, yy, p[4])
+        for yy in range(top + 4, g - 1, 6):
+            c.rect(lx + 2, yy, 12, 1, p[1]); c.rect(lx + 2, yy + 1, 12, 1, p[4])
+        self.base = g
+
+    def build(self):
+        s = self.s
+        self.post = ramp(42, 0.07, lift=-0.2)
+        self.walls()
+        self.openings()
+        if s['gallery']:
+            self.gallery()
+        self.roof()
+        x0, x1 = self.x0, self.x0 + self.W
+        walls = {(x, y) for y in range(self.eave, self.base) for x in range(x0, x1)}
+        weather(self.c, dict(roof=self.roof_px, roof_shade=set(), eave_y=lambda x: self.eave, walls=walls,
+                             stone=set(), sills=self.sills, chimneys=[]), s['wear'], s['seed'])
+        if s['stilts']:
+            self.raise_on_stilts()
+        self.roof_span = (x0 - self.over, x1 + self.over)
+        self.stacks, self.stack_boxes = [], []
+        outline(self.c)
+        consolidate(self.c)
         return self.c.im

@@ -19,6 +19,10 @@ or Persian builders, with the footprint the new sprite stands on;
                                       compounds, shop rows, storehouses and gates
     hall-hammam-*-3, hall-madrasa-*-3 front_persian: the Iranian look of the bath and the
                                       madrasa (new frames; regional-looks.json routes Iran to them)
+    africa-house-{kongo,kay,sahel}-*  front_africa: Kongo, Haitian and Sahelian houses
+    seasia-house-*, andes-house-*, pacific-house-*
+                                      front_seasia, front_andes, front_pacific: stilt houses,
+                                      Andean houses, the fare
 
 Footprints widen by SCALE, as the European houses' do: these are drawn at
 the adult's scale, where the old frames were drawn small.
@@ -36,6 +40,7 @@ from art import front_roman as rome  # noqa: E402
 from art import front_persian as persia  # noqa: E402
 from art import front_westasia as wa  # noqa: E402
 from art import front_sinitic as sino  # noqa: E402
+from art import front_africa, front_seasia, front_andes, front_pacific  # noqa: E402
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
 
 SCALE = 1.45
@@ -80,11 +85,40 @@ def persian_spec(size, v, nw, seed):
     return 'persian', dict(W=W, wing=round(W * 0.19), portal=0.42 + 0.06 * (v % 2))
 
 
+WASHES = ['white', 'ochre', 'blue', 'pink']
+
+
+def vernacular_spec(family, profile, size, v, W, seed):
+    """The builder and spec for a regional vernacular frame."""
+    if profile == 'kongo':
+        return 'kongo', dict(W=W, hip=size != 'small' and v % 2 == 1, seed=seed)
+    if profile == 'kay':
+        paint = ('blue', 'green')[v % 2]
+        return 'kay', dict(W=W, hip=v % 2 == 0, storeys=[f'wash-{WASHES[(v + seed) % 4]}'], joinery=paint,
+                           door_paint=paint, gallery=size != 'small', seed=seed)
+    if profile == 'sahel':
+        if size == 'large':
+            return 'sahel-court', dict(W=W, wing=round(W * 0.19))
+        return 'sahel', dict(W=W, posts=max(3, W // 40))
+    if profile == 'javanese':
+        return 'stilt', dict(W=W, saddle=5 + v % 3, seed=seed)
+    if profile == 'burmese':
+        return 'stilt', dict(W=W, storeys=['teak'], hip=v % 2 == 0, saddle=0, tone='palm', seed=seed)
+    if profile == 'andean-highland':
+        return 'andes', dict(W=W, seed=seed)
+    if profile == 'cusco':
+        return 'andes', dict(W=W, storeys=['inca'], heights=[56], seed=seed, wear=0.15)
+    return 'fare', dict(W=W, seed=seed)
+
+
 def spec_for(name, r):
     base = re.sub(r'-(north|east|west)$', '', name)
     fw, fh = r['footprint']
     nw = max(3, round(fw * SCALE))
     seed = zlib.crc32(base.encode()) % 997
+    m = re.match(r'(africa|seasia|andes|pacific)-house-([a-z-]+)-(small|medium|large)-(\d+)$', base)
+    if m:
+        return vernacular_spec(m.group(1), m.group(2), m.group(3), int(m.group(4)), nw * 16, seed), (nw, fh)
     m = re.match(r'house-roman-ob-(\d+)(?:-urban-([a-z]+))?$', base)
     if m:
         got = roman_spec(m.group(2), int(m.group(1)), nw, seed)
@@ -239,6 +273,10 @@ BUILDERS = {
     'madrasa': lambda s, i: persia.madrasa(s, i),
     'hammam': lambda s, i: persia.hammam(s, i),
     **sino.BUILDERS,
+    **front_africa.BUILDERS,
+    **front_seasia.BUILDERS,
+    **front_andes.BUILDERS,
+    **front_pacific.BUILDERS,
 }
 
 
