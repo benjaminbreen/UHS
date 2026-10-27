@@ -1849,7 +1849,7 @@ export function planSettlement(
                   ...(alongX ? { x: v, y: back } : { x: back, y: v }),
                 });
           },
-          buildWall: (wall, parts) => {
+          buildWall: (wall, parts, gatehouses) => {
             for (const part of parts) {
               const k = cellKey(part.x, part.y);
               plan.solid.add(k);
@@ -1866,7 +1866,7 @@ export function planSettlement(
                   return { x, y };
                 })
                 .sort((a, b) => a.y - b.y || a.x - b.x)[0] ?? { ...c },
-              parts,
+              parts: [...parts.filter((p) => p.frame), ...gatehouses],
             });
           },
         })

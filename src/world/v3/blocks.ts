@@ -35,6 +35,8 @@ export type Wall = {
   cells: Point[];
   /** Cells left open for a road, keyed as "x,y". */
   openings: Set<string>;
+  /** The ring cells each gate removed, in perimeter order. */
+  gaps: Point[][];
 };
 export type Furniture = { kind: StreetFurniture; x: number; y: number };
 export type Verge = Rect & { axis: "x" | "y"; side: -1 | 1 };
@@ -1634,13 +1636,17 @@ export function composeUrban(
   function circuit(): Wall | undefined {
     if (!walled || form.wall === "none") return;
     const openings = new Set<string>();
-    for (const gate of gates)
-      for (let d = -loA - 1; d <= hiA + 1; d++)
-        openings.add(
+    const gateOf = new Map<string, number>();
+    for (const [g, gate] of gates.entries())
+      for (let d = -loA - 1; d <= hiA + 1; d++) {
+        const k =
           gate.axis === "x"
             ? cellKey(gate.point.x, gate.point.y + d)
-            : cellKey(gate.point.x + d, gate.point.y),
-        );
+            : cellKey(gate.point.x + d, gate.point.y);
+        openings.add(k);
+        gateOf.set(k, g);
+      }
+    const gaps: Point[][] = gates.map(() => []);
     const at = (i: number) => {
       const angle = bearing(i);
       const r = smoothed[((i % BEARINGS) + BEARINGS) % BEARINGS];
@@ -1661,6 +1667,7 @@ export function composeUrban(
         lo = { x: Math.min(lo.x, q.x), y: Math.min(lo.y, q.y) };
         hi = { x: Math.max(hi.x, q.x), y: Math.max(hi.y, q.y) };
         if (!openings.has(key)) cells.push(q);
+        else gaps[gateOf.get(key)!].push(q);
       }
     if (!cells.length) return;
     return {
@@ -1669,6 +1676,7 @@ export function composeUrban(
       rect: { ...lo, w: hi.x - lo.x + 1, h: hi.y - lo.y + 1 },
       cells,
       openings,
+      gaps: gaps.filter((g) => g.length),
     };
   }
 }

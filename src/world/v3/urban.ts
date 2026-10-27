@@ -120,7 +120,11 @@ export type UrbanSurface = {
   /** Hold a visible roof or crown without making it movement collision. */
   reserveClearance(rect: Rect): void;
   /** Stand the defensive circuit, before any street is laid through its gates. */
-  buildWall(wall: Wall, parts: { x: number; y: number; frame: string }[]): void;
+  buildWall(
+    wall: Wall,
+    parts: { x: number; y: number; frame: string }[],
+    gatehouses: { x: number; y: number; frame: string }[],
+  ): void;
   /** Lay the railway, after the streets it crosses on the level. */
   railway?(rail: Rail): void;
   /** A station platform along the line, from the track edge to the building
@@ -559,8 +563,37 @@ export function urbanNeighborhood(
       // Four variants keep the coursing from repeating cell to cell along a run.
       return { x: p.x, y: p.y, frame: `wall-${material}-${p.mask}${step ? "d" : ""}-${(p.x + p.y) & 3}` };
     });
+    // A gap across an east-west run gets a gatehouse spanning it and the wall
+    // cell either side; any other gets a tower on each flank.
+    const gatehouses: { x: number; y: number; frame: string }[] = [];
+    for (const gap of layout.wall.gaps) {
+      const xs = gap.map((p) => p.x), y = gap[0].y;
+      const lo = Math.min(...xs), hi = Math.max(...xs), n = hi - lo + 1;
+      const flanks = [cellKey(lo - 1, y), cellKey(hi + 1, y)];
+      if (gap.every((p) => p.y === y) && n === gap.length && n >= 3 && n <= 11 &&
+          flanks.every((k) => built.has(k))) {
+        for (const k of flanks) built.delete(k);
+        gatehouses.push({ x: (lo + hi) / 2, y, frame: `gate-${material}-${n}` });
+        continue;
+      }
+      const ends = new Set(gap.map((p) => cellKey(p.x, p.y)));
+      for (const p of standing)
+        if ([[0, -1], [1, 0], [0, 1], [-1, 0]].some(([dx, dy]) => ends.has(cellKey(p.x + dx, p.y + dy))))
+          gatehouses.push({ x: p.x, y: p.y, frame: `gate-tower-${material}` });
+    }
+    const covered = new Set(
+      gatehouses.filter((g) => g.frame.startsWith("gate-tower")).map((g) => cellKey(g.x, g.y)),
+    );
     if (parts.length) {
-      api.buildWall(layout.wall, parts);
+      api.buildWall(
+        layout.wall,
+        parts.map((p) =>
+          built.has(cellKey(p.x, p.y)) && !covered.has(cellKey(p.x, p.y))
+            ? p
+            : { ...p, frame: "" },
+        ),
+        gatehouses,
+      );
       // The ring is rasterised, so it does not sit exactly on the continuous
       // boundary. Holding its actual cells is what keeps a threshold or a work
       // pocket off the wall, where a margin against the boundary would not.

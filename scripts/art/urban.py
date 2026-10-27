@@ -739,31 +739,31 @@ def _wall_cap(d, style, v, mask):
         d.point((h % 16, CAP_TOP + (h >> 7) % WALL_H), fill=style["moss"])
 
 
-def _merlon(d, style, x0, x1):
+def _merlon(d, style, x0, x1, cap=CAP_TOP):
     """One tooth of a battlement, standing PARAPET proud of the walk, in the
     material's own profile."""
     mortar, shade, body, light, high = style["ramp"]
-    top = CAP_TOP - PARAPET
+    top = cap - PARAPET
     shape = style["crenels"]
     if shape == "stepped":
         top -= 1
-        d.rectangle((x0, top + 2, x1, CAP_TOP + 2), fill=light)
+        d.rectangle((x0, top + 2, x1, cap + 2), fill=light)
         d.rectangle((x0 + 1, top, x1 - 1, top + 1), fill=light)
         d.line((x0 + 1, top, x1 - 1, top), fill=high)
         d.line((x0, top + 2, x0, top + 2), fill=high)
         d.point((x1, top + 2), fill=high)
     elif shape == "pointed":
         top -= 1
-        d.rectangle((x0, top + 2, x1, CAP_TOP + 2), fill=light)
+        d.rectangle((x0, top + 2, x1, cap + 2), fill=light)
         mid = (x0 + x1) // 2
         d.line((x0 + 1, top + 1, x1 - 1, top + 1), fill=light)
         d.point((mid, top), fill=high)
         d.line((x0, top + 2, x0 + 1, top + 1), fill=high)
     else:
-        d.rectangle((x0, top, x1, CAP_TOP + 2), fill=light)
+        d.rectangle((x0, top, x1, cap + 2), fill=light)
         d.line((x0, top, x1, top), fill=high)
-    d.line((x1, top + 2, x1, CAP_TOP + 2), fill=shade)
-    d.line((x0, CAP_TOP + 3, x1, CAP_TOP + 3), fill=mortar)
+    d.line((x1, top + 2, x1, cap + 2), fill=shade)
+    d.line((x0, cap + 3, x1, cap + 3), fill=mortar)
 
 
 def _parapet_north(d, style, v):
@@ -898,6 +898,11 @@ def _wall_pier(d, style):
 
 
 def build_city_walls(sprites):
+    build_gatehouses(sprites)
+    _build_wall_tiles(sprites)
+
+
+def _build_wall_tiles(sprites):
     """Defensive circuits, autotiled.
 
     The circuit is a rasterised polygon, so it jogs constantly and no single
@@ -927,6 +932,225 @@ def build_city_walls(sprites):
                     sprites[f"wall-{material}-{mask}d-{v}"] = _wall_step(style, mask, v)
                 if mask in (0, 1, 2, 4, 8):
                     _wall_pier(d, style)
+
+
+# How each circuit's gate is finished: the arch over the passage and what
+# crowns the towers.
+GATE_STYLES = {
+    "masonry": {"arch": "round", "crown": "merlons", "portcullis": True},
+    "earth": {"arch": "flat", "crown": "toron"},
+    "mudbrick": {"arch": "round", "crown": "merlons", "recess": True},
+    "brick": {"arch": "round", "crown": "pavilion"},
+    "limestone": {"arch": "pointed", "crown": "merlons", "ablaq": True},
+    "laterite": {"arch": "corbel", "crown": "prasat"},
+    "drystone": {"arch": "flat", "crown": "round"},
+}
+GATE_H = 168
+
+
+def _gate_face(d, style, x0, y0, x1, y1, seed):
+    mortar, shade, body, light, high = style["ramp"]
+    d.rectangle((x0, y0, x1, y1), fill=body)
+    c = style["course"]
+    for i, row in enumerate(range(y0 + c, y1, c)):
+        d.line((x0, row, x1, row), fill=mortar if style["coursed"] else shade)
+        if style["coursed"]:
+            x = x0 + (_hash(seed, i) % max(style["block"], 1))
+            while x < x1:
+                d.line((x, row - c + 1, x, row - 1), fill=mortar)
+                x += style["block"] + (_hash(seed, i, x) % 3) - 1
+    if style.get("chevron"):
+        for x in range(x0, x1 + 1):
+            d.point((x, y0 + 5 + abs((x - x0) % 6 - 3)), fill=mortar)
+    if style.get("pitted"):
+        for i in range((x1 - x0) * (y1 - y0) // 30):
+            h = _hash(seed, i, 31)
+            d.point((x0 + h % (x1 - x0 + 1), y0 + (h >> 8) % (y1 - y0 + 1)), fill=shade)
+    d.line((x0, y0, x0, y1), fill=light)
+    d.line((x1, y0, x1, y1), fill=shade)
+    d.line((x0, y1, x1, y1), fill=mortar)
+
+
+def _gate_cap(d, style, x0, y0, x1, y1):
+    mortar, shade, body, light, high = style["ramp"]
+    d.rectangle((x0, y0, x1, y1), fill=light)
+    d.line((x0, y0, x1, y0), fill=high)
+    d.line((x0, y1, x1, y1), fill=shade)
+
+
+def _gate_crown(d, style, gate, x0, x1, top):
+    """What stands on a tower's top, whose far edge is at `top`."""
+    mortar, shade, body, light, high = style["ramp"]
+    crown = gate["crown"]
+    if crown == "merlons":
+        x = x0
+        while x + 3 <= x1:
+            _merlon(d, {**style, "crenels": style["crenels"] or "square"}, x, x + 3, top + 1)
+            x += 6
+    elif crown == "toron":
+        # Sahel earth gates bristle with the palm-wood beams left in for
+        # replastering, and rise to rounded pinnacles.
+        for x in (x0 + 2, x1 - 4):
+            d.rectangle((x, top - 8, x + 3, top), fill=body)
+            d.line((x, top - 8, x + 3, top - 8), fill=light)
+    elif crown == "round":
+        d.ellipse((x0, top - 4, x1, top + 4), fill=light)
+        d.line((x0 + 2, top - 4, x1 - 2, top - 4), fill=high)
+
+
+def _toron(d, x0, x1, y0, y1, seed):
+    for i in range((x1 - x0) // 6):
+        for j in range((y1 - y0) // 9):
+            x = x0 + 3 + i * 6 + (j % 2) * 3
+            y = y0 + 4 + j * 9
+            if x < x1:
+                d.line((x, y, x + 1, y + 1), fill="#4e3820")
+
+
+def _passage(d, style, gate, x0, x1, top, bottom):
+    """The gateway: an opening exactly as wide as the walkable gap, cut clear
+    so the road and whoever is passing show through it. `top` is where the
+    straight jambs stop; the arch rises above that."""
+    mortar, shade, body, light, high = style["ramp"]
+    half = (x1 - x0 + 1) / 2
+    cx = (x0 + x1) / 2
+    clear = (0, 0, 0, 0)
+    arch = gate["arch"]
+    # A wide gate gets a shallow segmental arch, not a semicircle taller
+    # than its towers.
+    rise = int(min(half, 12))
+    if gate.get("recess"):
+        d.rectangle((x0 - 3, top - rise - 5, x1 + 3, bottom), fill=shade)
+    if arch == "flat":
+        d.rectangle((x0 - 3, top - 4, x1 + 3, top - 1), fill="#6b4a2c")
+        d.line((x0 - 3, top - 4, x1 + 3, top - 4), fill="#8f6a42")
+        d.rectangle((x0, top, x1, bottom), fill=clear)
+        soffit = top
+    elif arch == "corbel":
+        for k in range(4):
+            d.rectangle((x0 + 6 - k * 2, top - 8 + k * 2, x1 - 6 + k * 2, top), fill=clear)
+            d.line((x0 + 6 - k * 2, top - 8 + k * 2, x0 + 6 - k * 2, top - 7 + k * 2), fill=high)
+        d.rectangle((x0, top, x1, bottom), fill=clear)
+        soffit = top - 8
+    else:
+        d.rectangle((x0, top, x1, bottom), fill=clear)
+        for x in range(x0, x1 + 1):
+            t = (x - cx) / half
+            if arch == "round":
+                y = top - int(rise * (1 - t * t) ** 0.5)
+            else:
+                y = top - int((rise + 4) * (1 - abs(t)))
+            d.line((x, y, x, top), fill=clear)
+            d.point((x, y - 1), fill=high)
+        soffit = top - rise
+    # The jambs and soffit of the tunnel, in its own shade.
+    d.rectangle((x0, soffit, x0 + 2, bottom), fill="#2b2420")
+    d.rectangle((x1 - 2, soffit, x1, bottom), fill="#2b2420")
+    d.line((x0 + 3, top, x0 + 3, bottom), fill=(43, 36, 32, 120))
+    d.line((x1 - 3, top, x1 - 3, bottom), fill=(43, 36, 32, 120))
+    if gate.get("portcullis"):
+        # Raised, so only its spikes hang below the arch.
+        for x in range(x0 + 4, x1 - 3, 4):
+            d.line((x, soffit + 1, x, soffit + 4), fill="#3d3530")
+
+
+def _pavilion(d, x0, x1, base):
+    """A Ming gate tower: red columns under a hipped tile roof with lifted eaves."""
+    pill, post, wall = "#7a2a20", "#a33a2a", "#c9b48a"
+    d.rectangle((x0 + 4, base - 16, x1 - 4, base), fill=wall)
+    for x in range(x0 + 5, x1 - 4, 7):
+        d.rectangle((x, base - 16, x + 1, base), fill=post)
+        d.line((x + 1, base - 16, x + 1, base), fill=pill)
+    d.line((x0 + 4, base, x1 - 4, base), fill="#3b2a22")
+    roof = ["#1f2428", "#363d44", "#4b545c", "#65707a"]
+    top = base - 30
+    d.polygon([(x0 - 3, base - 14), (x0 + 8, top), (x1 - 8, top), (x1 + 3, base - 14)], fill=roof[2])
+    for y in range(top + 3, base - 14, 3):
+        d.line((x0 + 8 - (y - top) * 11 // 16, y, x1 - 8 + (y - top) * 11 // 16, y), fill=roof[1])
+    d.line((x0 + 8, top, x1 - 8, top), fill=roof[3])
+    d.line((x0 - 4, base - 15, x1 + 4, base - 15), fill=roof[0])
+    d.point((x0 - 5, base - 17), fill=roof[0])
+    d.point((x1 + 5, base - 17), fill=roof[0])
+    d.line((x0 + 6, top - 1, x1 - 6, top - 1), fill=roof[0])
+
+
+def _prasat(d, style, x0, x1, base):
+    """An Angkorian gate tower: diminishing tiers to a lotus bud."""
+    mortar, shade, body, light, high = ["#4f4a3e", "#77705e", "#958d77", "#b0a88f", "#c9c2a8"]
+    cx = (x0 + x1) // 2
+    w = (x1 - x0) // 2
+    y = base
+    for k in range(5):
+        h = 7
+        d.rectangle((cx - w, y - h, cx + w, y), fill=body)
+        d.line((cx - w, y - h, cx + w, y - h), fill=high)
+        d.line((cx + w, y - h, cx + w, y), fill=shade)
+        d.line((cx - w, y, cx + w, y), fill=mortar)
+        if k == 1:
+            # The four faces of Angkor Thom, reduced to the one we can see.
+            d.point((cx - 2, y - 4), fill=mortar)
+            d.point((cx + 2, y - 4), fill=mortar)
+            d.line((cx - 1, y - 2, cx + 1, y - 2), fill=mortar)
+        y -= h
+        w = max(2, w - 3)
+    d.ellipse((cx - 2, y - 5, cx + 2, y + 1), fill=light)
+
+
+def build_gatehouses(sprites):
+    """Each circuit's gate, as one sprite over a gap of n cells and the wall
+    cell either side of it, and a lone tower for gates the ring meets
+    end-on or slantwise."""
+    for material, style in WALL_STYLES.items():
+        gate = GATE_STYLES[material]
+        mortar, shade, body, light, high = style["ramp"]
+        for n in range(3, 12):
+            # Towers stand on the flank cells and lean 6px out over the wall;
+            # everything between them is the walkable gap.
+            out = 6
+            w = (n + 2) * 16 + 2 * out
+            tw = 16 + out
+            im = Image.new("RGBA", (w, GATE_H))
+            d = ImageDraw.Draw(im)
+            g = GATE_H - 1
+            # An adult stands about 42px; the opening clears 52 at its jambs.
+            span_face, span_cap = 70, 12
+            tower_face, tower_cap = 82, 14
+            d.rectangle((0, g - 1, w - 1, g), fill=(24, 26, 20, 110))
+            sx0, sx1 = tw - 2, w - tw + 1
+            _gate_cap(d, style, sx0, g - span_face - span_cap, sx1, g - span_face)
+            _gate_face(d, style, sx0, g - span_face, sx1, g - 1, n)
+            if gate.get("ablaq"):
+                for k, y in enumerate(range(g - span_face + 2, g - span_face + 8)):
+                    d.line((sx0 + 1, y, sx1 - 1, y), fill="#8a5a3a" if k % 2 else light)
+            _passage(d, style, gate, tw, w - tw - 1, g - 52, g)
+            if gate["crown"] == "pavilion":
+                _pavilion(d, sx0 + 2, sx1 - 2, g - span_face - span_cap + 6)
+            elif gate["crown"] == "prasat":
+                _prasat(d, style, w // 2 - 16, w // 2 + 16, g - span_face - span_cap + 6)
+            elif gate["crown"] == "merlons":
+                _gate_crown(d, style, gate, sx0 + 2, sx1 - 2, g - span_face - span_cap)
+            if gate["crown"] == "toron":
+                _toron(d, sx0, sx1, g - span_face, g - 56, 7)
+            for tx in (0, w - tw):
+                top = g - tower_face - tower_cap
+                _gate_cap(d, style, tx, top, tx + tw - 1, g - tower_face)
+                _gate_face(d, style, tx, g - tower_face, tx + tw - 1, g - 1, tx + n)
+                _gate_crown(d, style, gate, tx + 2, tx + tw - 3, top)
+                if gate["crown"] == "toron":
+                    _toron(d, tx, tx + tw - 1, g - tower_face, g - 4, tx)
+                d.rectangle((tx + tw // 2 - 1, g - tower_face + 10, tx + tw // 2, g - tower_face + 19), fill="#2b2420")
+            sprites[f"gate-{material}-{n}"] = im
+        im = Image.new("RGBA", (24, 112))
+        d = ImageDraw.Draw(im)
+        g = 111
+        d.rectangle((0, g - 1, 23, g), fill=(24, 26, 20, 110))
+        _gate_cap(d, style, 0, g - 96, 23, g - 82)
+        _gate_face(d, style, 0, g - 82, 23, g - 1, 5)
+        _gate_crown(d, style, gate, 2, 21, g - 96)
+        if gate["crown"] == "toron":
+            _toron(d, 0, 23, g - 82, g - 4, 3)
+        d.rectangle((11, g - 72, 12, g - 63), fill="#2b2420")
+        sprites[f"gate-tower-{material}"] = im
 
 
 def build_square_furniture(sprites):

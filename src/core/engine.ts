@@ -1699,7 +1699,8 @@ export class Engine {
       this.wallCells = new Set();
       for (const e of all)
         for (const part of e.parts ?? [])
-          this.wallCells.add(`${part.x},${part.y}`);
+          // A gatehouse is drawn over its own gap, which stays a road.
+          if (!part.frame.startsWith("gate-")) this.wallCells.add(`${part.x},${part.y}`);
       this.wallCellsFor = all.length;
     }
     return this.wallCells.has(`${x},${y}`);
