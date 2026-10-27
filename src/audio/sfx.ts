@@ -780,6 +780,17 @@ export function bumpPerson(kind: VoiceKind, annoyed = false): Sound {
   ];
 }
 /** Broad shapes of animal. Species matter less than size and whether it flies. */
+/** A dog close by: two or three sharp barks. */
+export function bark(): Sound {
+  const n = Math.round(rand(2, 3));
+  return Array.from({ length: n }, (_, i) => {
+    const at = i * vary(0.3, 0.15), f = vary(480, 0.15);
+    return [
+      tone(at, 0.12, 0.08, f, { to: f * 0.62, wave: "sawtooth", attack: 0.01 }),
+      noise(at, 0.08, 0.05, 900, { q: 1.2 }),
+    ];
+  }).flat();
+}
 export type BeastVoice = "bird" | "critter" | "herd" | "beast";
 /** Walking into an animal: its own call, plus the scuff of it moving off. */
 export function bumpAnimal(kind: BeastVoice): Sound {

@@ -631,7 +631,7 @@ export type Snapshot = {
   losses?: Loss[];
   asks?: Ask[];
   /** Taken to whoever keeps order, waiting to be dealt with. */
-  complaints?: { by: string; story: Word; at: number; spokenFor?: string }[];
+  complaints?: { by: string; story: Word; at: number; spokenFor?: string; seen?: boolean }[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */

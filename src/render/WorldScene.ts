@@ -53,6 +53,7 @@ import {
   faunaLook,
   faunaProfile,
   type FaunaFacing,
+  eightWay,
 } from "../content/fauna";
 
 /** Actor facing numbers as the art names them. */
@@ -3305,6 +3306,7 @@ export class WorldScene extends Phaser.Scene {
         const player = this.entities.get("player");
         if (player) this.feel.blink(player);
       },
+      leapFauna: (id, height, span) => this.faunaMotion.leap(id, height, span),
     }));
   }
   addTestFauna(speciesId: string, state: FaunaState, count: number) {
@@ -5515,6 +5517,7 @@ export class WorldScene extends Phaser.Scene {
         aerial ? 20 : 0,
         !profile?.directions,
         !!player && Math.hypot(player.x - im.x, player.y - im.y) < 72,
+        !!profile?.directions?.includes("southeast"),
       );
       if (!pose) continue;
       let mood = this.faunaMood.get(id);
@@ -5568,7 +5571,8 @@ export class WorldScene extends Phaser.Scene {
         state = "idle";
         const dx = player.x - im.x,
           dy = player.y - im.y;
-        if (profile?.directions)
+        if (profile?.directions?.includes("southeast")) facing = eightWay(dx, dy, facing);
+        else if (profile?.directions)
           facing =
             Math.abs(dx) >= Math.abs(dy)
               ? dx < 0

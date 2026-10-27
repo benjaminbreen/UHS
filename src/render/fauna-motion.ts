@@ -1,4 +1,4 @@
-import type { FaunaFacing } from "../content/fauna";
+import { eightWay, type FaunaFacing } from "../content/fauna";
 
 export type Gait = "walk" | "hop" | "scurry";
 
@@ -140,6 +140,8 @@ export class FaunaMotion {
     /** Close enough to the player to be walked into: be where the simulation
      * says, because that is the cell that is solid. */
     close = false,
+    /** It has art for the diagonals. */
+    eight = false,
   ): FaunaPose | undefined {
     const b = this.bodies.get(id);
     if (!b) return undefined;
@@ -161,15 +163,16 @@ export class FaunaMotion {
       if (left > 3) {
         if (sideView) {
           if (Math.abs(dx) > 1) b.heading = dx < 0 ? "west" : "east";
-        } else
-          b.heading =
-            Math.abs(dx) >= Math.abs(dy)
-              ? dx < 0
-                ? "west"
-                : "east"
-              : dy < 0
-                ? "north"
-                : "south";
+        } else if (eight) b.heading = eightWay(dx, dy, b.heading);
+        else {
+          const across = Math.abs(dx) >= Math.abs(dy);
+          const next = across ? (dx < 0 ? "west" : "east") : dy < 0 ? "north" : "south";
+          // On a near-diagonal the old facing holds, so the sprite does not
+          // flick between side and front with every cell.
+          const held = b.heading === "east" || b.heading === "west" ? Math.abs(dx) : Math.abs(dy);
+          const ahead = b.heading === "east" ? dx > 0 : b.heading === "west" ? dx < 0 : b.heading === "south" ? dy > 0 : dy < 0;
+          if (!b.heading || !ahead || held < 0.6 * Math.max(Math.abs(dx), Math.abs(dy))) b.heading = next;
+        }
       }
       // Never slower than it takes to keep up with the simulation.
       const cruise = urgent

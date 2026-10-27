@@ -35,6 +35,11 @@ PALETTES = {
 }
 
 DIRECTIONS = ("south", "east", "north", "west")
+DIAGONALS = ("southeast", "northeast", "southwest", "northwest")
+
+
+def facings(species):
+    return DIRECTIONS + DIAGONALS if species in ("horse", "foal") else DIRECTIONS
 STATES = {
     "horse": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "foal": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
@@ -142,13 +147,13 @@ def _leg(c, hip, foot, hind, near, thick=2, lift=0.0, hoof="b", sock=False):
     c.paint(px)
 
 
-def _equine_neck_head_side(c, species, base, poll, frame, state, chew, by):
+def _equine_neck_head_side(c, species, base, poll, frame, state, chew, by, p=None):
     """One quad of neck from the shoulder to the poll, then the skull hung off it.
 
     Drawing neck and head together keeps them joined when the head drops to
     graze, which is where they came apart when they were placed separately.
     """
-    p = EQUINE[species]
+    p = p or EQUINE[species]
     (bx0, by0), (bx1, by1) = base
     px_, py_ = poll
     # Withers, point of the chest, throat, crest: wide at the shoulder and
@@ -163,7 +168,7 @@ def _equine_neck_head_side(c, species, base, poll, frame, state, chew, by):
     # crest: the mane sits on the upper-forward edge of that quad
     crest = line((bx0 + 1, by0 + by), (px_ + kx, py_ + ky), 2) | line((px_ + kx, py_ + ky - 1), (px_ + 2, py_ + 1), 2)
     c.paint(flat(crest & neck, "a"))
-    _equine_head_side(c, species, px_, py_, frame, state, chew)
+    {"front": _equine_head_quarter, "away": _equine_head_away}.get(p.get("view"), _equine_head_side)(c, species, px_, py_, frame, state, chew)
 
 
 def _equine_head_side(c, species, x, y, frame, state, chew):
@@ -191,8 +196,41 @@ def _equine_head_side(c, species, x, y, frame, state, chew):
     c.paint(flat(ear, "m"))
 
 
-def _equine_side(species, state, frame):
-    p = EQUINE[species]
+def _equine_head_quarter(c, species, x, y, frame, state, chew):
+    """Turned three-quarters to us: the long face drops nearly straight down
+    under both ears, the far eye just past the blaze."""
+    n = EQUINE[species]["head"]
+    cheek = ellipse((x - 2, y, x + 4, y + 6))
+    face = polygon([(x, y + 1), (x + 4, y + 2), (x + 5, y + n + 1), (x + 2, y + n + 3), (x, y + n)])
+    px = shade(cheek | face, 1, 1)
+    for k in range(2, n + 1):
+        px[(x + 3, y + k)] = "b"
+    for fx, fy in face:
+        if fy >= y + n + 1:
+            px[(fx, fy)] = "b"
+    c.paint(px)
+    c.dot(x + 3, y + n + 2 + chew, "e")
+    blink = state in {"idle", "rest"} and frame == 6
+    c.dot(x + 1, y + 3, "d" if blink else "e")
+    c.dot(x + 5, y + 3, "d" if blink else "e")
+    flick = state in {"idle", "rest", "graze"} and frame in (3, 4)
+    c.paint(flat(polygon([(x - 1, y + 1), (x - 1, y - 2), (x + 1, y + 1)]), "d"))
+    c.paint(flat(polygon([(x + 3, y + 1), (x + 4 + (1 if flick else 0), y - 2), (x + 5, y + 1)]), "m"))
+
+
+def _equine_head_away(c, species, x, y, frame, state, chew):
+    """From behind and to the left: the back of the skull between the ears,
+    and the end of the nose past the cheek."""
+    n = EQUINE[species]["head"]
+    skull = ellipse((x - 1, y, x + 3, y + 4)) | polygon([(x + 1, y + 2), (x + n, y + n - 1), (x + n - 1, y + n + 1), (x + 1, y + 4)])
+    c.paint(shade(skull, 1, 1))
+    flick = state in {"idle", "rest", "graze"} and frame in (3, 4)
+    c.paint(flat(polygon([(x - 1, y + 1), (x - 1, y - 1), (x, y + 1)]), "m"))
+    c.paint(flat(polygon([(x + 2, y + 1), (x + 2 + (1 if flick else 0), y - 1), (x + 3, y + 1)]), "d"))
+
+
+def _equine_side(species, state, frame, p=None):
+    p = p or EQUINE[species]
     c = Canvas(species)
     t = frame / 8
     moving = state in {"wander", "flee"}
@@ -222,8 +260,11 @@ def _equine_side(species, state, frame):
 
     def draw_leg(key, hip, hind, near):
         dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
-        ox = 0 if near else -3
-        _leg(c, (hip[0] + ox, hip[1] + (by_h if hind else by_f)), (hip[0] + ox + dx + (1 if hind else 0), ground - up),
+        # a three-quarter view stands the far end of the horse higher up the
+        # picture, and the far leg of each pair a row behind the near one
+        foot = p.get("ground_h" if hind else "ground_f", ground) - (0 if near else p.get("far_rise", 0))
+        ox = 0 if near else p.get("far_dx", -3)
+        _leg(c, (hip[0] + ox, hip[1] + (by_h if hind else by_f)), (hip[0] + ox + dx + (1 if hind else 0), foot - up),
              hind, near, p["thick"], up, p["hoof"], p["sock"] and near)
 
     draw_leg("fh", p["hip_h"], True, False)
@@ -270,7 +311,7 @@ def _equine_side(species, state, frame):
     elif state == "idle":
         poll = (poll[0], poll[1] + [0, 0, 1, 1, 1, 1, 0, 0][frame])
     base = ((p["neck_low"][0][0], p["neck_low"][0][1]), (p["neck_low"][1][0], p["neck_low"][1][1]))
-    _equine_neck_head_side(c, species, base, poll, frame, state, chew, by)
+    _equine_neck_head_side(c, species, base, poll, frame, state, chew, by, p)
 
     draw_leg("nh", p["hip_h"], True, True)
     draw_leg("nf", p["hip_f"], False, True)
@@ -383,13 +424,13 @@ def _equine_head_front(c, species, state, frame, by, running):
         c.dot(ex + 1, ey + 3 + dy, "d")
 
 
-def _equine_rest(species, facing, frame):
+def _equine_rest(species, facing, frame, p=None):
     """Lying folded, legs tucked. Only the head moves."""
-    p = EQUINE[species]
+    p = p or EQUINE[species]
     c = Canvas(species)
     ground = p["ground"]
     dip = [0, 0, 0, 1, 1, 1, 0, 0][frame]
-    if facing in {"east", "west"}:
+    if facing in {"east", "west", "quarter"}:
         x0, y0, x1, y1 = p["barrel"]
         drop = ground - y1 - 2
         body = ellipse((x0, y0 + drop, x1, y1 + drop)) | ellipse((p["chest"][0], p["chest"][1] + drop, p["chest"][2], ground - 1))
@@ -405,7 +446,7 @@ def _equine_rest(species, facing, frame):
         px_, py_ = p["poll"]
         base = p["neck_low"]
         base = ((base[0][0], base[0][1] + drop), (base[1][0], base[1][1] + drop))
-        _equine_neck_head_side(c, species, base, (px_ - 2, py_ + drop // 2 + dip), frame, "rest", 0, 0)
+        _equine_neck_head_side(c, species, base, (px_ - 2, py_ + drop // 2 + dip), frame, "rest", 0, 0, p)
         return c.finish()
 
     south = facing == "south"
@@ -426,7 +467,36 @@ def _equine_rest(species, facing, frame):
     return c.finish()
 
 
+def _equine_quarter(species, state, frame, front):
+    """The side drawing re-proportioned. Going down and right: quarters
+    smaller and higher, chest forward, face turned to us. Going up and right:
+    quarters big and low, the forehand small and high, the back of the head."""
+    p = dict(EQUINE[species])
+    u = p["ground"] / 33  # the foal is drawn on the same plan at 2/3 size
+    k = lambda v: round(v * u)
+    bx0, by0, bx1, by1 = p["barrel"]
+    if front:
+        p.update(barrel=(bx0 + k(3), by0 - k(2), bx1, by1 - k(2)), hip_h=(p["hip_h"][0] + k(2), p["hip_h"][1] - k(2)),
+                 tail_root=(p["tail_root"][0] + k(3), p["tail_root"][1] - k(2)), tail_tip=(p["tail_tip"][0] + k(3), p["tail_tip"][1] - k(3)),
+                 ground_h=p["ground"] - k(3), far_rise=1, far_dx=-2, view="front")
+        cx0, cy0, cx1, cy1 = p["chest"]
+        p["chest"] = (cx0 - k(1), cy0, cx1 + k(1), cy1 + k(2))
+    else:
+        cx0, cy0, cx1, cy1 = p["chest"]
+        p.update(barrel=(bx0 - k(2), by0 + k(1), bx1 - k(1), by1 + k(3)), chest=(cx0 + k(1), cy0 - k(2), cx1 - k(1), cy1 - k(2)),
+                 hip_f=(p["hip_f"][0], p["hip_f"][1] - k(2)), neck_low=tuple((x, y - k(2)) for x, y in p["neck_low"]),
+                 poll=(p["poll"][0] - k(1), p["poll"][1] - k(2)), tail_root=(p["tail_root"][0] - k(1), p["tail_root"][1] + k(1)),
+                 tail_tip=(p["tail_tip"][0] - k(1), p["tail_tip"][1] + k(3)), ground_f=p["ground"] - k(3), far_rise=1, far_dx=-2, view="away")
+    if state == "rest":
+        return _equine_rest(species, "quarter", frame, p)
+    return _equine_side(species, state, frame, p)
+
+
 def equine(species, state, facing, frame):
+    if facing in ("southeast", "northeast"):
+        return _equine_quarter(species, state, frame, facing == "southeast")
+    if facing in ("southwest", "northwest"):
+        return mirror(_equine_quarter(species, state, frame, facing == "southwest"))
     if state == "rest":
         return _equine_rest(species, facing, frame)
     if facing == "east":
@@ -631,7 +701,7 @@ def fauna_c():
     for species, states in STATES.items():
         draw = equine if species in EQUINE else leporid
         for state, count in states.items():
-            for facing in DIRECTIONS:
+            for facing in facings(species):
                 for frame in range(count):
                     result[f"faunac-{species}-{state}-{facing}-{frame}"] = draw(species, state, facing, frame)
     return result

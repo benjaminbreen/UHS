@@ -44,7 +44,7 @@ export function faunaAt(setting: WorldSetting) {
 }
 
 export type { FaunaProfile, HabitatTag, DietTag, FaunaFacing } from "./types";
-export { faunaFacings, faunaFrames, habitatTags } from "./types";
+export { eightWay, faunaFacings, faunaFrames, habitatTags } from "./types";
 export { faunaCombat } from "./combat";
 export { faunaLook, faunaCoats, type FaunaLook } from "./looks";
 export type { FaunaCombat, Temper } from "./combat";

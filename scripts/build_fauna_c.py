@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 from PIL import Image, ImageDraw
-from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS
+from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS, facings as facings_c, STATES as STATES_C
 from art.atlas import pack_atlas, write_metadata
 from art.quality.hue import tint_outline
 from art import fauna_d, fox, proboscidean, cervid, felid, grazer, ursid
@@ -27,7 +27,7 @@ write_metadata(out / "studies.json", json.dumps({
     species: {
         "palette": list(PALETTES[species].values()),
         "states": states,
-        "directions": list(DIRECTIONS),
+        "directions": list(fauna_d.facings(species) if species in fauna_d.STATES else facings_c(species) if species in STATES_C else DIRECTIONS),
         "size": NATIVE_SIZES[species],
         "standing": STANDING_SIZES[species],
         **({"looks": looks[species]} if species in looks else {}),

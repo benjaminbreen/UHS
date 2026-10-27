@@ -1075,7 +1075,7 @@ export const snapshotSchema = z.object({
     )
     .max(20)
     .optional(),
-  complaints: z.array(z.object({ by: z.string().max(100), story: z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict(), at: z.number(), spokenFor: z.string().max(100).optional() }).strict()).max(4).optional(),
+  complaints: z.array(z.object({ by: z.string().max(100), story: z.object({ act: z.string().max(200), object: z.string().max(80).optional(), victim: z.string().max(100).optional(), tone: z.number(), at: z.number(), hops: z.number(), from: z.string().optional(), about: z.string().optional() }).strict(), at: z.number(), spokenFor: z.string().max(100).optional(), seen: z.boolean().optional() }).strict()).max(4).optional(),
   asks: z
     .array(
       z.object({

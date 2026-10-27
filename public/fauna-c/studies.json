@@ -21,7 +21,11 @@
       "south",
       "east",
       "north",
-      "west"
+      "west",
+      "southeast",
+      "northeast",
+      "southwest",
+      "northwest"
     ],
     "size": [
       40,
@@ -136,7 +140,11 @@
       "south",
       "east",
       "north",
-      "west"
+      "west",
+      "southeast",
+      "northeast",
+      "southwest",
+      "northwest"
     ],
     "size": [
       24,
@@ -240,7 +248,11 @@
       "south",
       "east",
       "north",
-      "west"
+      "west",
+      "southeast",
+      "northeast",
+      "southwest",
+      "northwest"
     ],
     "size": [
       50,
@@ -558,7 +570,11 @@
       "south",
       "east",
       "north",
-      "west"
+      "west",
+      "southeast",
+      "northeast",
+      "southwest",
+      "northwest"
     ],
     "size": [
       52,
@@ -696,7 +712,11 @@
       "south",
       "east",
       "north",
-      "west"
+      "west",
+      "southeast",
+      "northeast",
+      "southwest",
+      "northwest"
     ],
     "size": [
       32,

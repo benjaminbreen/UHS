@@ -306,6 +306,7 @@ export type Signal = { serial: number } & (
       to: Point;
     }
   | { kind: "dodged"; group: string; n: number }
+  | { kind: "bark"; group: string; n: number }
   /** A pest has taken the crop off a cell. */
   | { kind: "eaten"; at: Point; species: string }
 );

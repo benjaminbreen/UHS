@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
-import { strike } from "../audio/sfx";
+import { bark, strike } from "../audio/sfx";
 import type { Signal, CreatureHit } from "../core/combat";
 import { flightMs, type SwingEffect, type ThrowEffect } from "./tool-effects";
 
@@ -82,6 +82,7 @@ export class CombatEffects {
       shadowOf: (id: string) => Sprite | undefined;
       /** The player has been hit: the scene plays the flinch. */
       hurt: () => void;
+      leapFauna: (id: string, height: number, span: number) => void;
     },
   ) {}
   /** Animals whose sprites this class is about to move: the scene must not
@@ -361,6 +362,10 @@ export class CombatEffects {
       } else if (e.kind === "dodged")
         void gameAudio()?.sound(strike("haft", "air", "whoosh"), "air");
       else if (e.kind === "mauled") this.mauled(e.damage);
+      else if (e.kind === "bark") {
+        this.view.leapFauna(id, 3, 0.16);
+        void gameAudio()?.sound(bark(), "bark");
+      }
     }
   }
   private mauled(damage: number) {

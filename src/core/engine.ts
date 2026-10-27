@@ -77,7 +77,7 @@ import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
-import { regardCue } from "./regard";
+import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { addStock, dayOfWork, importShare, runEconomy, stockOf } from "./economy";
@@ -1547,6 +1547,7 @@ export class Engine {
     return this.state.actors.filter(
       (a) =>
         a.kind === "human" && !a.dead &&
+        a.pos.space === at.space && !this.world.dormant?.(a.id) &&
         distance(a.pos, at) <= radius &&
         this.visibleFrom(a.pos, at),
     );
@@ -1554,13 +1555,21 @@ export class Engine {
   /** The one place a person's trust in the player changes. How they take it
    * shows on them: losing trust angers, a real gain warms, an ordinary
    * friendly exchange is a nod. */
-  regard(a: Actor, delta: number, cue?: CueKind) {
+  regard(a: Actor, delta: number, cue?: CueKind, bystander = false) {
     if (!delta) return;
     updateRelationships(this.state, a);
     a.trust += delta;
     updateRelationships(this.state, a);
     if (delta < 0) a.wronged = this.state.clock;
-    if (this.state.manifest.survival && delta < 0 && a.trust <= -4 && (delta <= -3 || a.trust <= -6)) this.retaliate(a);
+    if (delta <= -2 && a.terror?.fight && a.terror.cause === "anger")
+      a.terror.strikeAfter = Math.min(a.terror.strikeAfter ?? Infinity, this.state.clock + 12);
+    else if (delta > 0 && a.terror?.cause === "anger" && a.trust > -3) {
+      delete a.terror;
+      a.offRoutine = false;
+      this.event(`${a.name} lowers their fists.`, "social");
+    }
+    // Someone who only watched needs to have already disliked the player to wade in.
+    else if (delta < 0 && a.trust <= (bystander ? -6 : -3) && (delta <= -3 || a.trust <= (bystander ? -8 : -5))) this.retaliate(a);
     const t = this.today().trust;
     t[a.id] = (t[a.id] ?? 0) + delta;
     this.cue(a.id, cue ?? regardCue(delta, a.trust), this.state.player.pos);
@@ -1585,7 +1594,7 @@ export class Engine {
       seen ||= theirs;
       if (o.cost(theirs) <= 0) continue;
       this.witnessReaction(w, o.memory(theirs), o.cost(theirs));
-      this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
+      this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm", !theirs);
       if (o.cost(theirs) >= 3) this.provoke(w, `${o.story.act} ${o.story.object ?? "property"}`);
       w.memories.push(o.memory(theirs));
       hear(w, { ...o.story, victim: o.owner, tone: -o.cost(theirs), at: this.state.clock, hops: 0 });
@@ -3036,7 +3045,7 @@ export class Engine {
       const memory = `Saw player strike ${person.name}`;
       w.memories.push(memory);
       this.witnessReaction(w, memory, 6);
-      this.regard(w, -4, "alarm");
+      this.regard(w, -4, "alarm", true);
       hear(w, { act: "struck", object: person.name, victim: person.id, tone: -4, at: this.state.clock, hops: 0 });
     }
   }
@@ -3066,11 +3075,134 @@ export class Engine {
     if (!assault && !fight) return;
     a.terror = { until: clock + 300, place: a.pos.space, fight, strikeAfter: clock + (assault ? 12 : 90), cause: assault ? "assault" : "anger" };
     a.offRoutine = true;
-    a.activity = fight ? "Threatening you" : "Backing away from you";
-    this.event(`${a.name} ${fight ? "raises a hand against you. Move away before they strike." : "backs away, calling for help."}`, "social");
+    a.activity = fight ? "Squaring up to you" : "Backing away from you";
+    if (fight) this.drawCrowd(a);
+    this.event(`${a.name} ${fight ? "squares up to you. Back off before they start swinging." : "backs away, calling for help."}`, "social");
     if (fight) this.combatUntil = Math.max(this.combatUntil, clock + 300);
   }
 
+  /** Anyone free nearby stops to watch a fight, in a loose ring. */
+  private drawCrowd(a: Actor) {
+    const watchers = this.witnesses(12, a.pos).filter((w) => w.id !== a.id && !w.terror && !w.offRoutine && w.id !== this.conversing);
+    for (const w of watchers) {
+      this.crowd.set(w.id, this.state.clock + 180);
+      w.offRoutine = true;
+      w.activity = "Watching the fight";
+      this.cue(w.id, "alarm", a.pos);
+    }
+    if (!watchers.length) return;
+    this.event(`${watchers.length > 1 ? "People stop" : `${watchers[0].name} stops`} to watch.`, "social");
+    // Someone runs for whoever keeps order.
+    this.complain(a, { act: "picked a fight with", object: a.name, victim: a.id, tone: -5, at: this.state.clock, hops: 0 }, true);
+  }
+  /** The onlookers start back at a blow. */
+  private flinch(at: Position) {
+    for (const id of this.crowd.keys()) this.cue(id, "alarm", at);
+  }
+  private watch() {
+    const p = this.state.player;
+    const fighting = this.state.actors.some((a) => a.terror?.fight && a.pos.space === p.pos.space);
+    for (const [id, until] of this.crowd) {
+      const w = this.state.actors.find((a) => a.id === id);
+      if (!w || w.dead || w.terror || !fighting || this.state.clock > until || w.pos.space !== p.pos.space) {
+        this.crowd.delete(id);
+        if (w && !w.terror) w.offRoutine = false;
+        continue;
+      }
+      const d = distance(w.pos, p.pos);
+      const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        .map(([dx, dy]) => ({ ...w.pos, x: w.pos.x + dx, y: w.pos.y + dy }))
+        .filter((c) => !this.blocked(c.x, c.y, c.space) && !this.actorAt(c, w.id) && !(c.x === p.pos.x && c.y === p.pos.y))
+        .sort((c1, c2) => Math.abs(distance(c1, p.pos) - 4) - Math.abs(distance(c2, p.pos) - 4));
+      if ((d > 5 || d < 3) && steps[0] && Math.abs(distance(steps[0], p.pos) - 4) < Math.abs(d - 4)) this.moveActor(w, steps[0]);
+      w.direction = this.directionTo(w.pos, p.pos);
+    }
+  }
+  /** People the player walks past show what they make of them: a wave or a
+   * nod from those who like them, a look away from the wary, and a hard look
+   * from anyone who has heard something bad. */
+  private passersBy() {
+    const p = this.state.player, clock = this.state.clock;
+    for (const a of this.witnesses(3)) {
+      if (a.id === this.conversing || a.terror || this.crowd.has(a.id) || a.pos.space !== p.pos.space) continue;
+      if (clock < (this.passed.get(a.id) ?? -Infinity)) continue;
+      const heard = a.word?.find((w) => w.hops > 0 && !w.about && w.tone <= -3);
+      if (heard) {
+        this.passed.set(a.id, clock + 86400);
+        a.direction = this.directionTo(a.pos, p.pos);
+        this.cue(a.id, "anger", p.pos);
+        const name = (id: string) => this.state.actors.find((x) => x.id === id)?.name;
+        this.event(`${a.name} gives you a hard look. They've heard you ${telling(heard, name)}.`, "social");
+      } else if (a.trust >= 1) {
+        this.passed.set(a.id, clock + 1800);
+        a.direction = this.directionTo(a.pos, p.pos);
+        this.cue(a.id, a.trust >= WARM ? "wave" : "nod", p.pos);
+      } else if (a.trust < WARY) {
+        this.passed.set(a.id, clock + 1800);
+        a.direction = (this.directionTo(a.pos, p.pos) + 2) % 4;
+      }
+    }
+  }
+  /** In rain or snow most people out of doors drop what they are doing and
+   * hurry home; a few work on regardless. */
+  private runIndoors(clock: number) {
+    const setting = this.world.pack.setting;
+    const sky = weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock).condition;
+    if (sky !== "rain" && sky !== "snow") return;
+    for (const a of this.state.actors) {
+      if (a.kind !== "human" || a.dead || a.pos.space !== "outside" || a.offRoutine || a.errand || a.tends || a.guard || a.mount) continue;
+      const roll = random(this.state.manifest.seed, "shelter", a.id, Math.floor(clock / 3600));
+      if (a.id === this.conversing || roll < 0.15) continue;
+      // Some only get as far as the nearest doorway and wait it out there.
+      const door = roll < 0.3 && this.world.places
+        .filter((pl) => pl.access === "public" || pl.door)
+        .map((pl) => ({ ...doorApproach(pl), space: "outside" as const }))
+        .filter((d) => distance(d, a.pos) < 12)
+        .sort((d1, d2) => distance(d1, a.pos) - distance(d2, a.pos))[0];
+      if (roll < 0.3 && !door) continue;
+      a.errand = door
+        ? { to: door, label: `Sheltering in a doorway from the ${sky}`, until: clock + 1200 }
+        : { to: copy(a.home), label: `Hurrying home out of the ${sky}`, until: clock + 1200 };
+      a.activity = a.errand.label;
+      a.offRoutine = true;
+      this.routes.delete(a.id);
+    }
+  }
+  /** A dog sounds off at a stranger who comes near, and at anyone in a fight. */
+  private bark(groups: FaunaGroup[], clock: number) {
+    const p = this.state.player;
+    if (p.pos.space !== "outside") return;
+    for (const g of groups) {
+      if (g.speciesId !== "dog" || clock < (this.barked.get(g.id) ?? -Infinity)) continue;
+      const owner = g.owner ? this.state.actors.find((a) => a.id === g.owner) : undefined;
+      const stranger = g.owner !== "player" && (!owner || (owner.householdId !== p.householdId && owner.trust < WARM));
+      const fighter = this.state.actors.find((a) => a.terror?.fight && a.pos.space === "outside" && distance(a.pos, g.pos) < 12);
+      const fight = !!fighter;
+      const barking = g.members.filter((m) => fight || (stranger && Math.hypot(m.x - p.pos.x, m.y - p.pos.y) < 6));
+      if (!barking.length) {
+        this.noticed.delete(g.id);
+        continue;
+      }
+      // Head up and a long look first; the barking starts on the next tick.
+      if (!this.noticed.has(g.id)) {
+        this.noticed.add(g.id);
+        for (const m of barking) m.direction = this.directionTo(m, fighter?.pos ?? p.pos);
+        continue;
+      }
+      this.barked.set(g.id, clock + 20 + Math.floor(random(this.state.manifest.seed, "bark", g.id, clock) * 20));
+      for (const m of barking) this.signal({ kind: "bark", group: g.id, n: g.members.indexOf(m) });
+      // The leader comes out to meet a stranger and stands off a couple of
+      // paces, unless it is busy running from or after something.
+      const lead = g.members[0], d = Math.hypot(lead.x - p.pos.x, lead.y - p.pos.y);
+      if (!stranger || fight || d <= 3 || !["idle", "rest", "wander", "forage"].includes(g.state)) continue;
+      const to = { x: Math.round(p.pos.x + ((lead.x - p.pos.x) / d) * 2.5), y: Math.round(p.pos.y + ((lead.y - p.pos.y) / d) * 2.5), space: "outside" };
+      if (this.blocked(to.x, to.y, "outside")) continue;
+      g.target = to;
+      g.state = "wander";
+      g.since = clock;
+      g.nextDecisionAt = clock + 18;
+    }
+  }
   private stagger(a: Actor, push: readonly number[]) {
     const to = { ...a.pos, x: a.pos.x + push[0], y: a.pos.y + push[1] };
     if (!this.blocked(to.x, to.y, to.space) && !this.actorAt(to, a.id)) this.moveActor(a, to);
@@ -3087,13 +3219,18 @@ export class Engine {
       if (this.state.clock > t.until) {
         delete a.terror;
         a.offRoutine = false;
+        if (t.fight && a.pos.space === p.pos.space && distance(a.pos, p.pos) < 10)
+          this.event(`${a.name} lowers their fists and turns away.`, "social");
         continue;
       }
       if (a.pos.space !== p.pos.space || p.dead || distance(a.pos, p.pos) > 10) continue;
       const near = Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y));
-      a.activity = t.fight ? (this.state.clock >= (t.strikeAfter ?? 0) ? "Attacking you" : "Threatening you") : "Backing away";
+      a.activity = t.fight ? (this.state.clock >= (t.strikeAfter ?? 0) ? "Attacking you" : "Squaring up to you") : "Backing away";
       if (t.fight && near <= 1) {
-        if (this.state.clock < (t.strikeAfter ?? 0)) continue;
+        if (this.state.clock < (t.strikeAfter ?? 0)) {
+          if (this.state.clock % 12 === 0) this.shovedBy(a);
+          continue;
+        }
         // A blow every twelve seconds, and none just after being driven back.
         if (this.state.clock % 12 !== 0 || this.state.clock - (t.staggered ?? -99) < 12) continue;
         this.struckBy(a);
@@ -3120,6 +3257,7 @@ export class Engine {
    * wherever someone carries them. */
   private struckBy(a: Actor) {
     const p = this.state.player;
+    this.brokeOff = a.id;
     const armed = !!a.heldItem;
     const damage = (armed ? 12 : 7) + Math.floor(random(this.state.manifest.seed, "blow", a.id, this.state.clock) * 5);
     const dir = { x: Math.sign(p.pos.x - a.pos.x), y: Math.sign(p.pos.y - a.pos.y) };
@@ -3130,8 +3268,18 @@ export class Engine {
     if (this.state.manifest.disease && this.item(a.heldItem ?? "")?.hand?.edge)
       p.injury = { name: "a cut", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
     this.cue("player", "struck", a.pos);
+    this.flinch(p.pos);
     this.event(`${a.name.toUpperCase()} HITS YOU${armed ? ` WITH THE ${this.item(a.heldItem!)?.name.toUpperCase() ?? "WEAPON"}` : ""}! (-${damage})`);
     if (p.health <= 0) this.pendingCollapse = { by: a.name, part: "cracked ribs" };
+  }
+  /** Squaring up before the first blow: chest to chest, a push, no harm. */
+  private shovedBy(a: Actor) {
+    const p = this.state.player;
+    const next = { ...p.pos, x: p.pos.x + Math.sign(p.pos.x - a.pos.x), y: p.pos.y + Math.sign(p.pos.y - a.pos.y) };
+    if (!this.blocked(next.x, next.y, next.space) && !this.actorAt(next, "player")) p.pos = next;
+    this.cue(a.id, "anger", p.pos);
+    this.flinch(p.pos);
+    this.event(`${a.name} shoves you back.`, "social");
   }
   private heal(amount: number) {
     const p = this.state.player, current = p.health ?? 100;
@@ -3243,6 +3391,7 @@ export class Engine {
   /** An animal has run the player down: the hurt, and being thrown by it. */
   private mauled(g: FaunaGroup, m: FaunaMember, dir: Point, damage: number) {
     const p = this.state.player;
+    if (p.pos.space !== "outside") return;
     const from = { x: p.pos.x, y: p.pos.y };
     for (let i = 0; i < 2; i++) {
       const next = { ...p.pos, x: p.pos.x + dir.x, y: p.pos.y + dir.y };
@@ -5815,8 +5964,10 @@ export class Engine {
       const a = this.state.actors.find((a) => a.id === c.target);
       if (!a || a.kind !== "human") return "There is nobody there to take it.";
       if (p.heldItem !== c.item) return "You are not holding that.";
-      // A gift is not a way around a grievance.
-      if (a.trust < 0) return "They will not take anything from you yet.";
+      // A gift is not a way around a grievance, but after a day it can end
+      // one that was not too deep.
+      if (a.trust < 0 && (a.trust <= -6 || this.state.clock - (a.wronged ?? 0) < 86400))
+        return "They will not take anything from you yet.";
       return undefined;
     }
     if (c.type === "deal") {
@@ -6158,7 +6309,9 @@ export class Engine {
     );
     if (!near.length) return;
     const humans = [
-      player.pos,
+      // Indoors the player's cell is in the house's own grid, which the
+      // animals outside would read as a spot in the field and charge.
+      player.pos.space === "outside" ? player.pos : { x: -1e6, y: -1e6, space: "outside" },
       ...this.state.actors
         .filter(
           (a) =>
@@ -6169,6 +6322,18 @@ export class Engine {
         )
         .map((a) => a.pos),
     ];
+    // A scuffle or someone running among them sends even a kept flock off,
+    // the way a blow would.
+    const fighters = this.state.actors.filter((a) => a.terror?.fight && a.pos.space === "outside");
+    const running = player.pos.space === "outside" && this.lastStep.run && clock - this.lastStep.clock <= 4;
+    const tended = new Set(this.state.actors.map((a) => a.tends?.herd));
+    for (const g of near) {
+      if (g.speciesId === "dog" || faunaProfile(g.speciesId)?.category === "wild") continue;
+      const startled = fighters.some((a) => distance(a.pos, g.pos) < 12) ||
+        (running && g.owner !== "player" && !tended.has(g.id) && distance(g.pos, player.pos) < 5);
+      if (startled) g.hurtUntil = Math.max(g.hurtUntil ?? 0, clock + 30);
+    }
+    this.bark(near, clock);
     advanceFauna(
       near,
       {
@@ -6728,7 +6893,7 @@ export class Engine {
       if (told) this.event(told);
       else if (solid && solid.hit !== "creature")
         this.event(
-          `Your swing ${solid.kind === "thwock" ? "rings off" : "thumps into"} the ${plantName(solid.sprite)}.`,
+          `Your swing ${solid.kind === "thwock" ? "rings off" : "thumps into"} ${solid.sprite ? `the ${plantName(solid.sprite)}` : "something solid"}.`,
         );
       this.advance((solid ? 3 : 2) + power * 2);
       return;
@@ -7269,13 +7434,18 @@ export class Engine {
         a.hunger = Math.max(0, a.hunger - def.edible);
       }
       if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
-      this.regard(a, 1);
-      a.memories.push(`You gave them ${def.name.toLowerCase()}.`);
+      const peace = a.trust < 0;
+      this.regard(a, peace ? 3 : 1);
+      a.memories.push(`You gave them ${def.name.toLowerCase()}${peace ? " to make peace" : ""}.`);
+      if (peace) {
+        a.word = a.word?.filter((w) => w.hops > 0 || w.tone >= 0);
+        if (this.state.complaints) this.state.complaints = this.state.complaints.filter((x) => x.by !== a.id);
+      }
       const ask = this.state.asks?.find((x) => x.by === a.id && (x.kind === "food" ? !!def.edible : x.item === c.item));
       if (ask) this.grant(ask, a);
       this.advance(20, a.id);
       this.event(
-        `You hand ${def.name.toLowerCase()} to ${a.name}. They take it.`,
+        `You hand ${def.name.toLowerCase()} to ${a.name}. ${peace ? "They take it, and the grudge with it." : "They take it."}`,
         "social",
       );
       if (advanceLifeAim(this.state, { type: "give", actor: a.id, item: c.item }))
@@ -7844,6 +8014,16 @@ export class Engine {
   conversing?: string;
   /** The householder who has come to throw the player out; the UI opens the talk. */
   confronter?: string;
+  /** Who just hit the player, so the UI drops any conversation with them. */
+  brokeOff?: string;
+  /** Onlookers to a fight, and when they lose interest. */
+  private crowd = new Map<string, number>();
+  /** When each passer-by will next react to the player. */
+  private passed = new Map<string, number>();
+  /** When each dog may bark again. */
+  private barked = new Map<string, number>();
+  /** Dogs that have already looked up at whoever is about. */
+  private noticed = new Set<string>();
   /** Who is ordering the player out of their house right now; they shout. */
   confronting?: string;
   private intrusion?: { place: string; since: number; by?: string; done?: boolean; warnedAt?: number; escalated?: boolean };
@@ -8559,17 +8739,25 @@ export class Engine {
   }
   private keeperId?: string;
   /** Someone takes a grievance against the player to whoever keeps order. */
-  complain(a: Actor, story: Word) {
+  complain(a: Actor, story: Word, seen = false) {
     const list = (this.state.complaints ??= []);
-    if (list.some((c) => c.by === a.id) || list.length >= 4) return;
-    list.push({ by: a.id, story: { ...story, hops: 0 }, at: this.state.clock });
+    const had = list.find((c) => c.by === a.id);
+    if (had) {
+      // A fight in the street goes to the head of the queue.
+      if (seen && !had.seen) list.splice(list.indexOf(had), 1), list.unshift({ ...had, seen });
+      return;
+    }
+    if (list.length >= 4) return;
+    const c = { by: a.id, story: { ...story, hops: 0 }, at: this.state.clock, ...(seen ? { seen } : {}) };
+    if (seen) list.unshift(c);
+    else list.push(c);
   }
   /** An hour or so after a complaint, the keeper of order finds the player
    * and gives judgement: a warning, a fine paid to whoever was wronged, or
    * the rest of the day in the stocks. */
   private keeperStep(clock: number) {
     const s = this.state, p = s.player, c = s.complaints?.[0];
-    if (!c || clock - c.at < 3600 || this.approaching || this.conversing || p.dead || (p.stocked ?? 0) > clock) return;
+    if (!c || clock - c.at < (c.seen ? 60 : 3600) || this.approaching || this.conversing || p.dead || (p.stocked ?? 0) > clock) return;
     const hour = Math.floor(clock / 3600) % 24;
     if (hour < 7 || hour >= 20) return;
     s.complaints!.shift();
@@ -8589,7 +8777,7 @@ export class Engine {
     const days = severity >= 10 ? 3 : 1;
     const money = this.item("coin")?.name.toLowerCase() ?? "coin";
     const shame = law.shaming ?? "the stocks", blows = law.beating ?? "a beating";
-    const sentence = !penalty ? "I'll not hear of it again." : {
+    const sentence = !penalty ? "I don't want to hear about this again." : {
       compensation: `You'll make it good to ${by.name}, ${amount} ${money}'s worth, here and now.`,
       fine: `You'll pay a fine of ${amount} ${money}'s worth.`,
       shaming: `You'll be put in ${shame} till evening, where everyone can see you.`,
@@ -8611,6 +8799,10 @@ export class Engine {
       until: clock + 3600,
       situation: `You keep order here, as ${office}. ${by.name} complained to you that the player ${charge}. You have found the player and given your judgement: “${line}” Hold to it; you may hear them out, but you do not take it back.`,
       onArrive: () => {
+        if (c.seen && s.actors.some((a) => a.terror?.cause)) {
+          for (const a of s.actors) if (a.terror?.cause) { delete a.terror; a.offRoutine = false; }
+          this.event(`${keeper.name} pulls you apart.`, "social");
+        }
         by.memories.push(`Took my complaint to ${keeper.name}, who dealt with the player`);
         this.regard(by, penalty ? 2 : 1);
         if (penalty === "compensation" || penalty === "fine") {
@@ -9510,11 +9702,14 @@ export class Engine {
         this.spreadWord(next);
         this.askStep(next);
         this.keeperStep(next);
-      }
+      } else if (next % 60 === 0 && this.state.complaints?.[0]?.seen) this.keeperStep(next);
       if (this.approaching) this.approach(next);
       if (next % 300 === 0) this.syncWayfarers(next);
       this.burnStep();
       this.brawl();
+      this.watch();
+      this.passersBy();
+      if (next % 600 === 0) this.runIndoors(next);
       this.confront(next);
       if (next % 300 === 0) this.roadEncounter();
       if (this.state.encounter) break;
@@ -9575,7 +9770,8 @@ export class Engine {
           )
             this.moveActor(a, copy(target));
         }
-        if (this.state.manifest.survival && a.terror && a.terror.until >= next) continue;
+        // A fight or a scuffle to watch outranks the day's round.
+        if ((a.terror && a.terror.until >= next) || this.crowd.has(a.id)) continue;
         if (a.kind === "human" && next % 60 === 0) this.discover(a);
         if (a.kind === "human" && a.guard) this.keepWatch(a, next);
         if (a.kind === "human" && a.mount) {

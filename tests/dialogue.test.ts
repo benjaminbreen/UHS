@@ -459,12 +459,72 @@ describe("provoked householders", () => {
         expect(e.state.complaints?.some((c) => c.by === actor.id)).toBe(true);
       } else {
         expect(actor.terror?.fight).toBe(true);
-        expect(actor.activity).toMatch(/Threatening|Attacking/);
+        expect(actor.activity).toMatch(/Squaring up|Attacking/);
         expect(response.action).toBe("raises a hand, ready to strike");
         const before = e.state.player.health!;
         e.advance(120);
         expect(e.state.player.health).toBeLessThan(before);
       }
+    } finally { runtime.dispose(); }
+  });
+
+  it("shoves before striking, and a fresh insult brings the blow forward", () => {
+    const { runtime, e, actor } = houseConversation("aggressive");
+    try {
+      const p = e.state.player;
+      actor.pos = { ...p.pos, x: p.pos.x - 1 };
+      actor.terror = { until: e.state.clock + 300, place: actor.pos.space, fight: true, strikeAfter: e.state.clock + 90, cause: "anger" };
+      e.advance(12);
+      expect(p.health).toBe(100);
+      expect(e.state.events.some((x) => x.text.includes("shoves you"))).toBe(true);
+      e.regard(actor, -2, "anger");
+      e.advance(30);
+      expect(p.health).toBeLessThan(100);
+      expect(e.brokeOff).toBe(actor.id);
+      actor.trust = -3;
+      actor.terror.cause = "anger";
+      e.regard(actor, 1);
+      expect(actor.terror).toBeUndefined();
+      expect(e.state.events.some((x) => x.text.includes("lowers their fists"))).toBe(true);
+      e.regard(actor, -3, "alarm", true);
+      expect(actor.terror).toBeUndefined();
+    } finally { runtime.dispose(); }
+  });
+
+  it("draws a crowd to a fight, and passers-by show what they have heard", () => {
+    const { runtime, e, actor } = houseConversation("aggressive");
+    try {
+      const s = e.state;
+      const watcher = { ...structuredClone(actor), id: "watcher", name: "Watcher", trust: 0, terror: undefined, offRoutine: false };
+      watcher.pos = { ...s.player.pos, y: s.player.pos.y + 2 };
+      s.actors.push(watcher);
+      e.conversing = undefined;
+      e.provoke(actor, "insulted me");
+      expect(watcher.activity).toBe("Watching the fight");
+      expect(s.complaints?.[0]).toMatchObject({ by: actor.id, seen: true });
+      delete actor.terror;
+      e.advance(12);
+      expect(watcher.offRoutine).toBe(false);
+      watcher.word = [{ act: "struck", victim: actor.id, tone: -6, at: s.clock, hops: 1 }];
+      e.advance(12);
+      expect(s.events.some((x) => x.text.includes("gives you a hard look"))).toBe(true);
+    } finally { runtime.dispose(); }
+  });
+
+  it("takes a gift as a peace offering once a day has passed", () => {
+    const { runtime, e, actor } = houseConversation("aggressive");
+    try {
+      const p = e.state.player;
+      const item = Object.keys(e.items).find((id) => id !== "coin")!;
+      p.heldItem = item;
+      actor.trust = -3;
+      actor.wronged = e.state.clock;
+      expect(e.validate({ type: "give", target: actor.id, item })).toBe("They will not take anything from you yet.");
+      actor.wronged = e.state.clock - 90000;
+      actor.word = [{ act: "insulted", victim: actor.id, tone: -3, at: 0, hops: 0 }];
+      e.execute({ type: "give", target: actor.id, item });
+      expect(actor.memories.some((m) => m.includes("to make peace"))).toBe(true);
+      expect(actor.word?.some((w) => w.act === "insulted")).toBe(false);
     } finally { runtime.dispose(); }
   });
 

@@ -497,6 +497,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     openDialogue(id);
   }, [view]);
   useEffect(() => {
+    if (!runtime.engine.brokeOff) return;
+    runtime.engine.brokeOff = undefined;
+    if (modal === "dialogue") setModal(null);
+  }, [view]);
+  useEffect(() => {
     runtime.engine.conversing = modal === "dialogue" ? (dialogueActorId ?? undefined) : undefined;
     if (modal !== "dialogue" || !dialogueActorId) return;
     (game.current?.scene.getScene("world") as WorldScene | undefined)?.frameConversation(dialogueActorId);

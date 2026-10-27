@@ -111,7 +111,7 @@ describe("four-direction fauna", () => {
     for (const profile of directional)
       for (const state of Object.keys(profile.art)) {
         expect(knownStates.has(state), `${profile.id}:${state}`).toBe(true);
-        for (const facing of faunaFacings) {
+        for (const facing of profile.directions ?? faunaFacings) {
           const ids = faunaFrames(profile, state as never, facing);
           expect([8, 16], `${profile.id}:${state}:${facing}`).toContain(
             ids.length,

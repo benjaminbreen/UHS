@@ -130,6 +130,19 @@ it("a boar paws the ground, then charges down a fixed line and hurts", () => {
   expect(engine.state.player.pos.x).toBeLessThan(0);
 });
 
+it("an animal outside never reaches a player who has gone indoors", () => {
+  const engine = field("combat-indoors");
+  engine.devArm("stick");
+  quarry(engine, "wild-boar");
+  swing(engine);
+  // Same numbers as the field cell, but the grid of a house.
+  engine.state.player.pos = { ...engine.state.player.pos, space: "house" };
+  const before = engine.state.player.health ?? 100;
+  wait(engine, 10);
+  expect(engine.signals.some((e) => e.kind === "mauled")).toBe(false);
+  expect(engine.state.player.health).toBe(before);
+});
+
 it("a sidestep after the charge starts is a clean dodge", () => {
   const engine = field("combat-dodge");
   engine.devArm("stick");

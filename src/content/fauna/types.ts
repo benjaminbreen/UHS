@@ -108,7 +108,21 @@ export const columbianExchange = [
 ] as const;
 
 export const faunaFacings = ["south", "east", "north", "west"] as const;
-export type FaunaFacing = (typeof faunaFacings)[number];
+/** Clockwise from east, screen y down: the order `eightWay` indexes. */
+export const eightFacings = ["east", "southeast", "south", "southwest", "west", "northwest", "north", "northeast"] as const;
+export type FaunaFacing = (typeof eightFacings)[number];
+
+/** The facing nearest a screen direction. Off a diagonal by up to `hold`
+ * radians, `current` stays, so a sprite does not flick between two. */
+export function eightWay(dx: number, dy: number, current?: FaunaFacing, hold = 0.55) {
+  const angle = Math.atan2(dy, dx);
+  const at = current ? eightFacings.indexOf(current) : -1;
+  if (at >= 0) {
+    const off = Math.abs(((angle - (at * Math.PI) / 4 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    if (off < hold) return current!;
+  }
+  return eightFacings[(Math.round(angle / (Math.PI / 4)) + 8) % 8];
+}
 
 export function study(
   species: keyof typeof studies,
