@@ -60,7 +60,7 @@ export type UrbanForm = {
   gates: number;
   /** A defensive circuit around the built edge, where one is attested. "none"
    * means this fabric is not described as walled, not that it was undefended. */
-  wall: "none" | "earth" | "masonry";
+  wall: "none" | CircuitMaterial;
   /** Where the main public space sits relative to the arterials. */
   plaza: "crossing" | "offset" | "gate" | "waterfront";
   /** Plaza extent as a share of the settlement half-extent. */
@@ -123,6 +123,18 @@ export type UrbanForm = {
     note: string;
   };
 };
+
+/** What a town's defensive circuit is built of, which picks its face and its
+ * battlement: square merlons on European masonry, stepped on Near Eastern
+ * mudbrick, pointed on Islamic limestone, a plain parapet on Khmer laterite. */
+export type CircuitMaterial =
+  | "earth"
+  | "masonry"
+  | "mudbrick"
+  | "brick"
+  | "limestone"
+  | "laterite"
+  | "drystone";
 
 export type UrbanFormRule = UrbanForm & {
   from: number;

@@ -70,7 +70,7 @@ export const africaForms: UrbanFormRule[] = [
     tiers: [3, 1, 1],
     surface: "earth",
     gates: 3,
-    wall: "masonry",
+    wall: "drystone",
     plaza: "crossing",
     plazaScale: 0.26,
     civic: "side",

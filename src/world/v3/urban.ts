@@ -548,8 +548,16 @@ export function urbanNeighborhood(
         [8, -1, 0],
       ] as const)
         if (built.has(cellKey(p.x + dx, p.y + dy))) mask |= bit;
+      return { ...p, mask };
+    }).map((p, _, all) => {
+      const corner = (m: number) => m === 3 || m === 6 || m === 9 || m === 12;
+      const byKey = new Map(all.map((q) => [cellKey(q.x, q.y), q.mask]));
+      // A corner between two corners is a step on a diagonal, not a turn. The
+      // last step keeps its square tile so it meets the straight run flush.
+      const step = corner(p.mask) && [[0, -1], [1, 0], [0, 1], [-1, 0]]
+        .filter(([dx, dy]) => corner(byKey.get(cellKey(p.x + dx, p.y + dy)) ?? 0)).length === 2;
       // Four variants keep the coursing from repeating cell to cell along a run.
-      return { ...p, frame: `wall-${material}-${mask}-${(p.x + p.y) & 3}` };
+      return { x: p.x, y: p.y, frame: `wall-${material}-${p.mask}${step ? "d" : ""}-${(p.x + p.y) & 3}` };
     });
     if (parts.length) {
       api.buildWall(layout.wall, parts);

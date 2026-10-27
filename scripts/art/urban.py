@@ -536,7 +536,7 @@ CAP_TOP = 24 - WALL_H
 CAP_BOT = 39 - WALL_H
 FACE_TOP = CAP_BOT + 1
 # How far the ground shade reaches below an exposed foot.
-FOOT = 2
+FOOT = 3
 # Merlons stand this far proud of the walk.
 PARAPET = 3
 # The pitch divides the cell, so the teeth of one cell continue those of the
@@ -548,21 +548,71 @@ CRENEL_WIDTH = 5
 # ramp: mortar, shade, body, light, highlight. A fifth entry, moss, weathers
 # the foot and the walk.
 WALL_STYLES = {
+    # Northern and Roman Europe: coursed ashlar, square merlons.
     "masonry": {
         "ramp": ["#464a48", "#6a706c", "#868b84", "#a2a69c", "#c1c4b8"],
         "moss": "#6b7a52",
-        "crenels": True,
+        "crenels": "square",
         "coursed": True,
         "course": 5,
         "block": 9,
     },
+    # Rammed earth or a rampart: a rounded crest, no teeth.
     "earth": {
         "ramp": ["#4e4029", "#6f5c3d", "#8a7450", "#a68d63", "#c0a97f"],
         "moss": "#7c7f4e",
-        "crenels": False,
+        "crenels": None,
         "coursed": False,
         "course": 5,
         "block": 0,
+    },
+    # Mesopotamia and Iran: small sun-dried bricks, stepped merlons as on the
+    # Assyrian reliefs and the walls of Bam.
+    "mudbrick": {
+        "ramp": ["#5a4128", "#86643f", "#a58052", "#c09a68", "#d6b583"],
+        "moss": "#8d8656",
+        "crenels": "stepped",
+        "coursed": True,
+        "course": 3,
+        "block": 6,
+    },
+    # Ming brick: grey, thin courses, broad merlons with narrow embrasures.
+    "brick": {
+        "ramp": ["#33373a", "#55595b", "#6f7373", "#8b8e8c", "#a8aaa6"],
+        "moss": "#5d6b4c",
+        "crenels": "broad",
+        "coursed": True,
+        "course": 3,
+        "block": 7,
+    },
+    # Cairo, Jerusalem, Ahmedabad: pale dressed limestone, pointed merlons.
+    "limestone": {
+        "ramp": ["#6b5c45", "#a79474", "#c6b592", "#ddcfad", "#efe5c9"],
+        "moss": "#8d9064",
+        "crenels": "pointed",
+        "coursed": True,
+        "course": 5,
+        "block": 11,
+    },
+    # Angkor: big pitted laterite blocks under a plain parapet.
+    "laterite": {
+        "ramp": ["#4a2419", "#7a3e2a", "#98553a", "#b26e4e", "#c98d6b"],
+        "moss": "#5f7046",
+        "crenels": None,
+        "coursed": True,
+        "course": 6,
+        "block": 12,
+        "pitted": True,
+    },
+    # Great Zimbabwe: unmortared granite courses with a chevron band.
+    "drystone": {
+        "ramp": ["#3e3b36", "#6e6a62", "#8e897e", "#aaa59a", "#c6c1b5"],
+        "moss": "#6c7a50",
+        "crenels": None,
+        "coursed": True,
+        "course": 3,
+        "block": 5,
+        "chevron": True,
     },
 }
 
@@ -576,9 +626,10 @@ def _hash(*args):
     return h
 
 
-def _crenel(along):
+def _crenel(along, style=None):
     """True where a merlon stands."""
-    return along % CRENEL_PITCH < CRENEL_WIDTH
+    width = 6 if style and style["crenels"] == "broad" else CRENEL_WIDTH
+    return along % CRENEL_PITCH < width
 
 
 def _course_blocks(row, v, avg):
@@ -631,6 +682,15 @@ def _wall_face(d, style, v, footed):
             h = _hash(v, i, 409)
             x = (h + i * 7) % 16
             d.line((x, FACE_TOP + span // 3 + h % 3, x, bottom - 1), fill=shade)
+    if style.get("chevron"):
+        for x in range(16):
+            y = FACE_TOP + 4 + abs(x % 6 - 3)
+            d.point((x, y), fill=mortar)
+            d.point((x, y + 1), fill=light)
+    if style.get("pitted"):
+        for i in range(10):
+            h = _hash(v, i, 977)
+            d.point((h % 16, FACE_TOP + 1 + (h >> 6) % (bottom - FACE_TOP - 1)), fill=shade)
     # The courses thin out toward the foot, where the wall sits in its own
     # shade whatever it is made of.
     d.line((0, bottom, 15, bottom), fill=mortar)
@@ -638,7 +698,7 @@ def _wall_face(d, style, v, footed):
         h = _hash(v, i, 71)
         d.point(((h >> 3) % 16, bottom - 1 - (h >> 9) % 3), fill=style["moss"])
     if footed:
-        d.rectangle((0, 40 - FOOT, 15, 39), fill=(24, 26, 20, 90))
+        d.rectangle((0, 40 - FOOT, 15, 39), fill=(24, 26, 20, 120))
 
 
 def _wall_cap(d, style, v, mask):
@@ -680,12 +740,29 @@ def _wall_cap(d, style, v, mask):
 
 
 def _merlon(d, style, x0, x1):
-    """One tooth of a battlement, standing PARAPET proud of the walk."""
+    """One tooth of a battlement, standing PARAPET proud of the walk, in the
+    material's own profile."""
     mortar, shade, body, light, high = style["ramp"]
     top = CAP_TOP - PARAPET
-    d.rectangle((x0, top, x1, CAP_TOP + 2), fill=light)
-    d.line((x0, top, x1, top), fill=high)
-    d.line((x1, top, x1, CAP_TOP + 2), fill=shade)
+    shape = style["crenels"]
+    if shape == "stepped":
+        top -= 1
+        d.rectangle((x0, top + 2, x1, CAP_TOP + 2), fill=light)
+        d.rectangle((x0 + 1, top, x1 - 1, top + 1), fill=light)
+        d.line((x0 + 1, top, x1 - 1, top), fill=high)
+        d.line((x0, top + 2, x0, top + 2), fill=high)
+        d.point((x1, top + 2), fill=high)
+    elif shape == "pointed":
+        top -= 1
+        d.rectangle((x0, top + 2, x1, CAP_TOP + 2), fill=light)
+        mid = (x0 + x1) // 2
+        d.line((x0 + 1, top + 1, x1 - 1, top + 1), fill=light)
+        d.point((mid, top), fill=high)
+        d.line((x0, top + 2, x0 + 1, top + 1), fill=high)
+    else:
+        d.rectangle((x0, top, x1, CAP_TOP + 2), fill=light)
+        d.line((x0, top, x1, top), fill=high)
+    d.line((x1, top + 2, x1, CAP_TOP + 2), fill=shade)
     d.line((x0, CAP_TOP + 3, x1, CAP_TOP + 3), fill=mortar)
 
 
@@ -703,9 +780,9 @@ def _parapet_north(d, style, v):
         return
     x = 0
     while x < 16:
-        if _crenel(x):
+        if _crenel(x, style):
             run = x
-            while run < 16 and _crenel(run):
+            while run < 16 and _crenel(run, style):
                 run += 1
             _merlon(d, style, x, run - 1)
             x = run
@@ -747,10 +824,77 @@ def _parapet_side(d, style, v, east):
         # would leave a vertical run reading as a ladder of separate blocks
         # rather than one rail with notches in it.
         for y in range(CAP_TOP, CAP_BOT + 1):
-            if not _crenel(y):
+            if not _crenel(y, style):
                 a, b = (14, 15) if east else (0, 1)
                 d.line((a, y, b, y), fill=body)
                 d.point((15 if east else 0, y), fill=shade)
+
+
+def _wall_step(style, mask, v):
+    """A cell on a rasterised diagonal. The run is drawn as one band at 45
+    degrees, with its face slanting under it, rather than as a staircase of
+    full-height blocks. A staircase alternates a cell joined west and north
+    (the band crosses its north-west corner) with one joined east and south
+    (its south-east corner); the other diagonal is the mirror image."""
+    mirror = mask in (3, 12)
+    lower = mask in (9, 3)
+    c = 8 if lower else 24
+    mortar, shade, body, light, high = style["ramp"]
+    im = Image.new("RGBA", (16, 40))
+    px = im.load()
+    half = 6
+    for lx in range(16):
+        rows = [ly for ly in range(16) if abs(lx + ly - c) <= half]
+        if not rows:
+            # The band's shadow falls on the open ground south-east of it.
+            for ly in range(16):
+                if c + half < lx + ly <= c + half + 4:
+                    px[lx, 24 + ly] = (24, 26, 20, 110)
+            continue
+        south = max(rows)
+        for ly in range(16):
+            if c + half < lx + ly <= c + half + 4 and ly > south:
+                px[lx, 24 + ly] = (24, 26, 20, 110)
+        if lx + south == c + half:
+            top = 24 + south - WALL_H + 1
+            for y in range(top, 24 + south + 1):
+                k = y - top
+                course = (y // style["course"]) if style["coursed"] else 0
+                joint = style["coursed"] and (y % style["course"] == 0
+                                              or (lx + course * 4 + v) % 9 == 0)
+                fill = mortar if joint else body if k < 4 else shade
+                if not style["coursed"]:
+                    fill = body if k < 4 else shade if k < 11 else mortar
+                px[lx, y] = _rgb(fill)
+            px[lx, 24 + south] = _rgb(mortar)
+        for ly in rows:
+            d = lx + ly - c
+            fill = high if d == -half else light if d <= -half + 1 or d >= half - 1 else body
+            px[lx, 24 + ly - WALL_H] = _rgb(fill)
+        lip = [ly for ly in rows if lx + ly - c == -half]
+        if lip and style["crenels"] and _crenel(lx, style):
+            y = 24 + lip[0] - WALL_H
+            for k in range(1, PARAPET + 1):
+                px[lx, y - k] = _rgb(high if k == PARAPET else light)
+    if mirror:
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    return im
+
+
+def _rgb(h):
+    return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+
+
+def _wall_pier(d, style):
+    """A free end stands as a squat pier with a capstone, not a sawn-off run."""
+    mortar, shade, body, light, high = style["ramp"]
+    top = CAP_TOP - PARAPET - 2
+    d.rectangle((1, top, 14, CAP_BOT), fill=light)
+    d.rectangle((2, top + 2, 13, CAP_BOT - 2), fill=body)
+    d.line((1, top, 14, top), fill=high)
+    d.line((1, top, 1, CAP_BOT), fill=high)
+    d.line((14, top, 14, CAP_BOT), fill=shade)
+    d.line((1, CAP_BOT, 14, CAP_BOT), fill=mortar)
 
 
 def build_city_walls(sprites):
@@ -779,6 +923,10 @@ def build_city_walls(sprites):
                 if not mask & 1:
                     _parapet_north(d, style, v)
                 sprites[f"wall-{material}-{mask}-{v}"] = im
+                if mask in (3, 6, 9, 12):
+                    sprites[f"wall-{material}-{mask}d-{v}"] = _wall_step(style, mask, v)
+                if mask in (0, 1, 2, 4, 8):
+                    _wall_pier(d, style)
 
 
 def build_square_furniture(sprites):

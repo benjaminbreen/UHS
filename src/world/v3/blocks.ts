@@ -1,6 +1,7 @@
 import { random } from "../../core/random";
 import type { Point } from "../../core/types";
 import type {
+  CircuitMaterial,
   DistrictSpec,
   StreetFurniture,
   UrbanForm,
@@ -28,7 +29,7 @@ export type Block = Rect & {
 };
 /** The defensive circuit, as a ring of cells with the gate openings removed. */
 export type Wall = {
-  material: "earth" | "masonry";
+  material: CircuitMaterial;
   rect: Rect;
   /** Cells the circuit stands on, in perimeter order. */
   cells: Point[];
@@ -1663,7 +1664,8 @@ export function composeUrban(
       }
     if (!cells.length) return;
     return {
-      material: form.wall,
+      // Ming builders faced the old rammed-earth circuits in brick.
+      material: form.wall === "brick" && (year ?? 0) < 1368 ? "earth" : form.wall,
       rect: { ...lo, w: hi.x - lo.x + 1, h: hi.y - lo.y + 1 },
       cells,
       openings,

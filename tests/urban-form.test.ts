@@ -385,7 +385,7 @@ it("ranks and equips a place consistently across its whole history", () => {
 it("walls the fabrics attested as walled, with a closed ring open only at gates", () => {
   const walled = at("east-asian", 116, 40, 1450);
   const open = at("east-asian", 135, 35, 1200);
-  expect(walled.wall).toBe("masonry");
+  expect(walled.wall).toBe("brick");
   // A capital laid out without a circuit is not given one.
   expect(open.wall).toBe("none");
   expect(at("west-central-african", 8, 12, 1500).wall).toBe("earth");

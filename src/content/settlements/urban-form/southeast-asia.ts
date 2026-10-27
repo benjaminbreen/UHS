@@ -17,7 +17,7 @@ export const southeastAsiaForms: UrbanFormRule[] = [
     tiers: [4, 2, 1],
     surface: "earth",
     gates: 4,
-    wall: "masonry",
+    wall: "laterite",
     plaza: "crossing",
     plazaScale: 0.3,
     civic: "head",
