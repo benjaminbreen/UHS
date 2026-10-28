@@ -238,7 +238,7 @@ export type Actor = {
   knownResources?: string[];
   task?: { target: string; until: number };
   /** Somewhere they have taken themselves off to, off their routine until `until`. */
-  errand?: { to: Position; label: string; until: number };
+  errand?: { to: Position; label: string; until: number; pose?: "sit" | "sit-seat" | "idle" | "sway"; face?: Point };
   id: string;
   name: string;
   role: string;
@@ -821,6 +821,7 @@ export type Observation = {
     | "appearance"
     | "origin"
     | "held"
+    | "errand"
   >[];
   objects: WorldObject[];
   places: Place[];

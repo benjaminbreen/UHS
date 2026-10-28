@@ -36,6 +36,7 @@ export const feast: PlotTemplate = {
         amount: amountOf(c, owed),
         due,
         occasion: funeral ? "funeral feast" : "wedding feast",
+        scene: funeral ? "funeral" : "wedding",
         held: funeral ? "the dead are remembered" : "the new couple are seated together",
         why: funeral ? "has buried a parent" : "is marrying off a child",
         ...pronounWords(host),
@@ -46,7 +47,7 @@ export const feast: PlotTemplate = {
   },
   opening: [
     { type: "approach", role: "host", line: "invite" },
-    { type: "gather", at: "host", when: "deadline", label: "gather" },
+    { type: "gather", at: "host", when: "deadline", label: "gather", scene: "feast" },
   ],
   developments: [
     {

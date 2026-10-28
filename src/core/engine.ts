@@ -98,6 +98,7 @@ import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
 import { endPlot, plotLine, plotTemplate, stepPlot, type PlotCard, type PlotState } from "./plot";
 import type { Effect } from "../content/plots/types";
+import { sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
 import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
 import { bodilyLimits, ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress } from "./health";
@@ -143,6 +144,7 @@ import { amountIn, moneyFor } from "../content/economy/money";
 import { climbable, useOf } from "../content/props/uses";
 import { workplaceFor } from "../content/characters/workplace";
 import { propSprite } from "../content/props/place";
+import { buildingRoofCells } from "../content/graphics/models";
 import {
   levelOf,
   marksmanReach,
@@ -5361,6 +5363,7 @@ export class Engine {
           held: a.held,
           activity: a.activity,
           direction: a.direction,
+          errand: a.errand,
         })),
       objects: s.objects
         .filter((o) => visible(o.pos))
@@ -8476,10 +8479,19 @@ export class Engine {
   }
   private runPlot() {
     const s = this.state, plot = s.plot!, g = plot.gathering;
-    if (g && s.clock >= g.start && s.clock < g.until) {
+    // People set out a little early, so the place is full when it starts.
+    if (g && s.clock >= g.start - 1200 && s.clock < g.until) {
       if (!g.met) this.convene(plot, g);
       const p = s.player.pos;
-      if (!plot.fired.includes("came") && (p.space === "outside" ? distance(p, g.at) <= 6 : p.space === g.place)) plot.fired.push("came");
+      for (const a of s.actors)
+        if (a.errand?.label === g.label && distance(a.pos, a.errand.to) > 2 && (a.pos.space !== p.space || distance(a.pos, p) > 20) && distance(a.errand.to, p) > 20)
+          this.moveActor(a, copy(a.errand.to));
+      if (s.clock >= g.start && !plot.fired.includes("came") && (p.space === "outside" ? distance(p, g.at) <= 6 : p.space === g.place)) plot.fired.push("came");
+    }
+    if (g?.props && s.clock >= g.until) {
+      const set = new Set(g.props);
+      s.objects = s.objects.filter((o) => !set.has(o.id));
+      delete g.props;
     }
     for (const e of stepPlot(s)) {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
@@ -8531,37 +8543,108 @@ export class Engine {
       plot.words.keeper = whose.name;
     }
     plot.deadline = start;
-    plot.gathering = { at, place: place?.id, start, until: start + 3 * 3600, label: plotLine(plot, e.label) };
+    const scene = (plot.words.scene as Occasion | undefined) ?? e.scene;
+    const clearing = this.clearing(at, sceneFor(this.world.pack.setting, scene));
+    plot.gathering = { at: clearing ?? at, place: place?.id, start, until: start + 3 * 3600, label: plotLine(plot, e.label), ...(clearing ? { scene } : {}) };
     if (e.aim && s.lifeAim) s.lifeAim = { ...s.lifeAim, text: plotLine(plot, e.aim), subjects: Object.values(plot.cast) };
   }
+  /** Open, level ground near `door` where every cell of the scene is free,
+   * none of it on the doorstep. */
+  private clearing(door: Position, scene?: Scene) {
+    if (!scene) return;
+    const cells = [...scene.props, ...scene.spots];
+    const level = (x: number, y: number) => this.world.topography?.(x, y)?.height ?? 0;
+    // Ground behind a building is under its roof in this view, a doorway is
+    // for walking through, and a town wall's towers stand out past its cells.
+    const kept = new Set<string>();
+    for (const b of this.world.places) {
+      if (Math.abs(b.x - door.x) > 24 || Math.abs(b.y - door.y) > 24) continue;
+      for (const p of buildingRoofCells(b.sprite, b)) kept.add(`${p.x},${p.y}`);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) kept.add(`${b.entrance.x + dx},${b.entrance.y + dy}`);
+    }
+    const nearWall = (x: number, y: number) => {
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (this.wallAt(x + dx, y + dy, "outside")) return true;
+      return false;
+    };
+    // A clear step all round, so the company does not press against a stall or a fence.
+    const open = (x: number, y: number) => {
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (this.blocked(x + dx, y + dy, "outside")) return false;
+      return true;
+    };
+    for (let r = 3; r <= 16; r++)
+      for (let dx = -r; dx <= r; dx++)
+        for (let dy = -r; dy <= r; dy++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const x = door.x + dx, y = door.y + dy, h = level(x, y);
+          if (cells.every((c) => open(x + c.dx, y + c.dy) && level(x + c.dx, y + c.dy) === h && !kept.has(`${x + c.dx},${y + c.dy}`) && !nearWall(x + c.dx, y + c.dy) &&
+            distance({ x: x + c.dx, y: y + c.dy, space: "outside" }, door) >= 2))
+            return { x, y, space: "outside" };
+        }
+  }
   /** Those named in the plot and the nearest few neighbours stop what they
-   * are doing and stand round the spot until the gathering is over. */
+   * are doing and take their places: the one hosting or judging at the head,
+   * the other side of a case before them, one place kept for the player. */
   private convene(plot: PlotState, g: NonNullable<PlotState["gathering"]>) {
-    const s = this.state;
+    const s = this.state, at = g.at;
     g.met = true;
+    const scene = g.scene && sceneFor(this.world.pack.setting, g.scene);
+    if (scene) {
+      g.props = [];
+      scene.props.forEach(({ prop, dx, dy, v }, i) => {
+        const pos = { x: at.x + dx, y: at.y + dy, space: "outside" };
+        const sprite = v === undefined ? propSprite(prop) : propSprite(prop)?.replace(/-\d+$/, `-${v}`);
+        if (!sprite || this.blocked(pos.x, pos.y, "outside")) return;
+        const id = `gathering-${g.start}-${i}`;
+        s.objects.push({ id, prop, name: propDefs[prop].name, kind: "monument", sprite, inventory: {}, pos });
+        g.props!.push(id);
+      });
+    }
+    const payee = plot.cast[plotTemplate(plot)?.payee ?? "creditor"];
+    const head = g.scene === "hearing" ? plot.cast.official ?? payee : payee;
     const named = new Set([...Object.values(plot.cast), ...Object.values(plot.refs ?? {})]);
     const free = (a: Actor) => a.kind === "human" && !a.dead && a.id !== s.player.id && !a.terror && !a.tends && !a.guard && !a.mount && (a.age ?? 30) >= 13 && !this.laidUp(a.id);
+    const spots = (scene?.spots ?? []).filter((p) => p.role !== "you");
+    const cast = s.actors.filter((a) => named.has(a.id) && free(a));
+    // Enough to fill the places and two or three standing round, no more.
     const people = [
-      ...s.actors.filter((a) => named.has(a.id) && free(a)),
+      ...cast,
       ...s.actors
         .filter((a) => !named.has(a.id) && free(a) && a.pos.space === "outside")
-        .sort((x, y) => distance(x.pos, g.at) - distance(y.pos, g.at))
-        .slice(0, 8),
+        .sort((x, y) => distance(x.pos, at) - distance(y.pos, at))
+        .slice(0, Math.max(3, spots.length + 2 - cast.length)),
     ];
-    const ring: Position[] = [];
-    for (let r = 2; r <= 4 && ring.length < people.length; r++)
-      for (let dx = -r; dx <= r; dx++)
-        for (let dy = -r; dy <= r; dy++)
-          if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !this.blocked(g.at.x + dx, g.at.y + dy, "outside"))
-            ring.push({ x: g.at.x + dx, y: g.at.y + dy, space: "outside" });
-    people.forEach((a, i) => {
+    const take = (who?: string, role?: string) => {
+      const i = spots.findIndex((p) => p.role === role);
+      const a = people.find((x) => x.id === who);
+      if (i < 0 || !a) return;
+      place(a, spots.splice(i, 1)[0]);
+      people.splice(people.indexOf(a), 1);
+    };
+    const place = (a: Actor, p?: (typeof spots)[number], to?: Position) => {
       const inside = a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
       if (inside) this.moveActor(a, { ...doorApproach(inside), space: "outside" });
-      a.errand = { to: ring[Math.floor((i * ring.length) / people.length)] ?? copy(g.at), label: g.label, until: g.until };
+      a.errand = p
+        ? { to: { x: at.x + p.dx, y: at.y + p.dy, space: "outside" }, label: g.label, until: g.until, pose: p.pose, face: { x: at.x + p.face[0], y: at.y + p.face[1] } }
+        : { to: to ?? copy(at), label: g.label, until: g.until, face: { x: at.x, y: at.y } };
       a.activity = g.label;
       a.offRoutine = true;
       this.routes.delete(a.id);
-    });
+    };
+    take(head, "head");
+    if (g.scene === "hearing") take(payee, "party");
+    for (const p of spots.filter((p) => !p.role || p.role === "head" || p.role === "party")) {
+      const a = people.shift();
+      if (!a) break;
+      place(a, p);
+    }
+    // Anyone left over stands round the edge.
+    const ring: Position[] = [];
+    for (let r = 6; r <= 8 && ring.length < people.length; r++)
+      for (let dx = -r; dx <= r; dx += 2)
+        for (let dy = -r; dy <= r; dy += 2)
+          if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !this.blocked(at.x + dx, at.y + dy, "outside"))
+            ring.push({ x: at.x + dx, y: at.y + dy, space: "outside" });
+    people.forEach((a, i) => place(a, undefined, ring[Math.floor((i * ring.length) / people.length)]));
   }
   /** The player's own people: whether one of them has reason to come over,
    * and what it costs to leave them unanswered. */
@@ -9990,7 +10073,7 @@ export class Engine {
       if (!this.state.introduced) this.introduce();
       if (next % 3600 === 0) this.healthStep(next);
       if (player.dead) break;
-      if (next % 60 === 0 && this.state.plot && !this.state.plot.ended) this.runPlot();
+      if (next % 60 === 0 && this.state.plot && (!this.state.plot.ended || this.state.plot.gathering?.props)) this.runPlot();
       if (this.state.asks?.length) this.helpStep();
       if (next % 600 === 0) {
         this.kinStep(next);
@@ -10106,6 +10189,11 @@ export class Engine {
             // A brisk walk, not the one step an idle resident takes per tick.
             for (let i = 0; i < 3 && distance(a.pos, a.errand.to) >= 1.5; i++)
               this.stepToward(a, a.errand.to);
+            const { to, pose, face } = a.errand;
+            // A seat is often a solid bench or stool, which walking stops short of.
+            if (pose && distance(a.pos, to) < 1.5 && (a.pos.x !== to.x || a.pos.y !== to.y) && !this.actorAt(to, a.id) && !this.playerOn(to))
+              this.moveActor(a, copy(to));
+            if (face && distance(a.pos, to) < 1.5) a.direction = this.directionTo(a.pos, face);
             continue;
           }
           delete a.errand;

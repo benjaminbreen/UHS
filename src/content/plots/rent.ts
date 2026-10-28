@@ -63,7 +63,7 @@ export const rent: PlotTemplate = {
       then: [
         { type: "walk-off", role: "landlord", to: "authority" },
         { type: "card", line: "evicted", focus: "landlord" },
-        { type: "gather", at: "authority", when: "morning", label: "hearing", aim: "aim-hearing" },
+        { type: "gather", at: "authority", when: "morning", label: "hearing", scene: "hearing", aim: "aim-hearing" },
       ],
     },
     {

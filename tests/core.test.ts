@@ -575,6 +575,11 @@ describe("shared deterministic foundation", () => {
     meet(party);
     expect(party.ended).toBe("given");
     expect(e.state.actors.filter((a) => a.errand?.label === party.gathering!.label).length).toBeGreaterThan(2);
+    expect(e.state.actors.some((a) => a.errand?.label === party.gathering!.label && a.errand.pose === "sit-seat")).toBe(true);
+    expect(e.state.objects.filter((o) => o.id.startsWith("gathering-")).map((o) => o.prop)).toContain("bench");
+    e.state.clock = party.gathering!.until;
+    e.advance(120);
+    expect(e.state.objects.some((o) => o.id.startsWith("gathering-"))).toBe(false);
 
     delete e.state.plot;
     const charge = drawOnly(accused, () => startPlot(e.state, setting))!;

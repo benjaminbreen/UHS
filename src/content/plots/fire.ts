@@ -55,7 +55,7 @@ export const fire: PlotTemplate = {
       then: [
         { type: "walk-off", role: "accuser", to: "authority" },
         { type: "card", line: "charged", focus: "accuser" },
-        { type: "gather", at: "authority", when: "morning", label: "hearing", aim: "aim-hearing" },
+        { type: "gather", at: "authority", when: "morning", label: "hearing", scene: "hearing", aim: "aim-hearing" },
       ],
     },
     {

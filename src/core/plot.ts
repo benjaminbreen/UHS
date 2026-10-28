@@ -3,6 +3,7 @@ import { matchesCharacterScope } from "../content/characters/resolve";
 import { random } from "./random";
 import { orderKeeper } from "../content/history/order";
 import type { Condition, Effect, PlotContext } from "../content/plots/types";
+import type { Occasion } from "../content/plots/scenes";
 import type { Position, Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
 import type { Intro } from "./intro";
@@ -25,7 +26,7 @@ export type PlotState = {
   fired: string[];
   ended?: string;
   /** Where and when the people in it meet; `place` is the building whose door it is. */
-  gathering?: { at: Position; place?: string; start: number; until: number; label: string; met?: boolean };
+  gathering?: { at: Position; place?: string; start: number; until: number; label: string; met?: boolean; scene?: Occasion; props?: string[] };
   /** The life aim the plot displaced, given back when it ends. */
   aim?: Snapshot["lifeAim"];
 };

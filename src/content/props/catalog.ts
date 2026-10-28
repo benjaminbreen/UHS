@@ -988,6 +988,38 @@ export const propDefs: Record<string, PropDef> = {
     name: "Woven mat",
     family: "seat-mat",
   },
+  // Set out for a gathering and taken in again; never placed with a settlement.
+  trestleTable: {
+    solid: true,
+    span: [1, 0],
+    name: "Trestle table",
+    family: "trestle-table",
+  },
+  roundTable: {
+    solid: true,
+    name: "Round table",
+    family: "round-table",
+  },
+  foodTray: {
+    solid: false,
+    name: "Shared meal",
+    family: "food-tray",
+  },
+  floorCarpet: {
+    solid: false,
+    name: "Carpet",
+    family: "floor-carpet",
+  },
+  diningCouch: {
+    solid: true,
+    name: "Dining couch",
+    family: "dining-couch",
+  },
+  festoon: {
+    solid: false,
+    name: "Festoon",
+    family: "festoon",
+  },
   bakeOven: {
     solid: true,
     name: "Communal bake oven",

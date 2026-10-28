@@ -1,6 +1,7 @@
 import type { Actor, Household, WalkOff } from "../../core/types";
 import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
+import type { Occasion } from "./scenes";
 
 export type PlotRole = "creditor" | "landlord" | "official" | "accuser" | "witness" | "rival" | "suspect" | "host"
   | "giver" | "inlaw" | "claimant" | "elder" | "customer" | "patron";
@@ -46,7 +47,7 @@ export type Effect =
   /** People meet at a cast member's house or before the authority, at the
    * deadline or the next evening or morning, which becomes the new deadline.
    * `label` is what those who come are doing; `aim` replaces the player's aim. */
-  | { type: "gather"; at: PlotRole | "authority"; when: "deadline" | "evening" | "morning"; label: string; aim?: string };
+  | { type: "gather"; at: PlotRole | "authority"; when: "deadline" | "evening" | "morning"; label: string; aim?: string; scene: Occasion };
 
 /** Lines are templates over the words fixed when the plot begins. */
 export type PlotWording = {

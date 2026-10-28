@@ -63,7 +63,7 @@ export const marriage: PlotTemplate = {
     {
       id: "agreed",
       when: { type: "settled" },
-      then: [{ type: "card", line: "agreed", focus: "inlaw" }, { type: "gather", at: "inlaw", when: "evening", label: "gather", aim: "aim-wed" }],
+      then: [{ type: "card", line: "agreed", focus: "inlaw" }, { type: "gather", at: "inlaw", when: "evening", label: "gather", scene: "wedding", aim: "aim-wed" }],
     },
     {
       id: "wed",

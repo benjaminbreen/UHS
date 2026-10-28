@@ -461,6 +461,8 @@ export class WorldScene extends Phaser.Scene {
       | "heldItem"
       | "fatigue"
       | "trust"
+      | "pos"
+      | "errand"
     >
   >();
   private canopies: {
@@ -6311,6 +6313,7 @@ export class WorldScene extends Phaser.Scene {
         else if (moving)
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
         else if (seat) pose = seat.seated ? "sit" : "idle";
+        else if (human.errand?.pose && human.pos.x === human.errand.to.x && human.pos.y === human.errand.to.y) pose = human.errand.pose;
         else if (at) pose = work?.pose ?? this.ambientPose(id, at, time);
         else if (use) pose = use.role === "bed" ? "idle" : this.indoorPose(use, human.activity, wetPos!.space);
         else if (/rest|sleep/i.test(human.activity)) pose = "sit";

@@ -31,12 +31,14 @@ from .regional import REGIONAL
 from .ancient import ANCIENT
 from .lifeways import LIFEWAYS
 from .yardwork import YARDWORK
+from .feasting import FEASTING
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
 
 DRAW_B = {
  **STORES,
+ **FEASTING,
  'well': low_well,
  'framed-well': framed_well,
  'trough': trough,

@@ -155,7 +155,7 @@ export const debt: PlotTemplate = {
       then: [
         { type: "walk-off", role: "creditor", to: "authority" },
         { type: "card", line: "denounced", focus: "creditor" },
-        { type: "gather", at: "authority", when: "morning", label: "hearing", aim: "aim-hearing" },
+        { type: "gather", at: "authority", when: "morning", label: "hearing", scene: "hearing", aim: "aim-hearing" },
       ],
     },
     {
