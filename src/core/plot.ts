@@ -3,7 +3,7 @@ import { matchesCharacterScope } from "../content/characters/resolve";
 import { random } from "./random";
 import { orderKeeper } from "../content/history/order";
 import type { Condition, Effect, PlotContext } from "../content/plots/types";
-import type { Snapshot } from "./types";
+import type { Position, Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
 import type { Intro } from "./intro";
 
@@ -24,6 +24,8 @@ export type PlotState = {
   seized?: number;
   fired: string[];
   ended?: string;
+  /** Where and when the people in it meet; `place` is the building whose door it is. */
+  gathering?: { at: Position; place?: string; start: number; until: number; label: string; met?: boolean };
   /** The life aim the plot displaced, given back when it ends. */
   aim?: Snapshot["lifeAim"];
 };
@@ -51,7 +53,9 @@ export const plotTemplate = (plot: PlotState) => PLOTS.find((t) => t.id === plot
 const templateOf = (plot: PlotState) => PLOTS.find((t) => t.id === plot.id);
 
 export function plotLine(plot: PlotState, key: string) {
-  const line = templateOf(plot)?.wording[plot.wording]?.lines[key] ?? "";
+  // A scoped wording leaves out lines the general one words well enough.
+  const wording = templateOf(plot)?.wording;
+  const line = wording?.[plot.wording]?.lines[key] ?? wording?.at(-1)?.lines[key] ?? "";
   return line.replace(/\{(\w+)\}/g, (_, w) => plot.words[w] ?? "");
 }
 
@@ -138,6 +142,8 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot): boolean {
     case "seized": return (plot.seized ?? 0) > 0;
     case "gone": return !snapshot.actors.some((a) => a.id === plot.cast[c.role] && !a.dead);
     case "fired": return plot.fired.includes(c.id);
+    case "came": return plot.fired.includes("came");
+    case "gathered": return !!plot.gathering && snapshot.clock >= plot.gathering.until;
     case "talked": return plot.fired.includes(`talked:${c.role}`);
     case "brought": return plot.fired.includes("worked") && plot.fired.lastIndexOf(`talked:${c.role}`) > plot.fired.indexOf("worked");
     case "not": return !holds(c.of, plot, snapshot);

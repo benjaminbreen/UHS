@@ -152,14 +152,29 @@ export const debt: PlotTemplate = {
         type: "all",
         of: [{ type: "fired", id: "seize" }, { type: "due" }, { type: "not", of: { type: "settled" } }],
       },
-      then: [{ type: "walk-off", role: "creditor", to: "authority" }],
+      then: [
+        { type: "walk-off", role: "creditor", to: "authority" },
+        { type: "card", line: "denounced", focus: "creditor" },
+        { type: "gather", at: "authority", when: "morning", label: "hearing", aim: "aim-hearing" },
+      ],
+    },
+    {
+      id: "verdict",
+      when: { type: "all", of: [{ type: "came" }, { type: "not", of: { type: "settled" } }] },
+      then: [{ type: "seize", role: "creditor" }],
+    },
+    {
+      id: "default",
+      when: { type: "all", of: [{ type: "gathered" }, { type: "not", of: { type: "came" } }, { type: "not", of: { type: "settled" } }] },
+      then: [{ type: "seize", role: "creditor" }, { type: "regard", role: "official", delta: -2 }],
     },
   ],
   endings: [
     { id: "fled", when: { type: "gone", role: "creditor" } },
+    { id: "judged", when: { type: "fired", id: "verdict" } },
+    { id: "absent", when: { type: "fired", id: "default" } },
     { id: "paid", when: { type: "all", of: [{ type: "settled" }, { type: "not", of: { type: "seized" } }] } },
     { id: "seized", when: { type: "settled" } },
-    { id: "denounced", when: { type: "fired", id: "final" } },
   ],
   // `intro` opens the plot's paragraph; then `pledge` where a child can be
   // taken for the debt, else `threat`; then `partner` when there is no pledge.
@@ -321,6 +336,10 @@ export const debt: PlotTemplate = {
         seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to {authority} about the debt. You still owe it, and now everyone knows.",
         fled: "You've left {creditor} behind, but the debt and your bad name stay there.",
+        hearing: "At the hearing before {authority}",
+        "aim-hearing": "Answer {creditor} before {authority} {meet}, or pay what's still owed before then.",
+        judged: "{creditor} puts the debt before {authority}, and you don't deny it. What's still owed is to be taken from your house.",
+        absent: "You didn't come to answer for the debt, so it was decided without you. What's still owed is to be taken from your house, and everyone heard you stayed away.",
       },
     },
   ],

@@ -23,6 +23,7 @@ import { commission } from "../src/content/plots/commission";
 import { PLOTS } from "../src/content/plots";
 import { telling } from "../src/core/word";
 import { accused } from "../src/content/plots/accused";
+import { feast } from "../src/content/plots/feast";
 import { goodName, sellerOf } from "../src/content/economy/products";
 import type { PlotContext, PlotTemplate } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
@@ -552,6 +553,37 @@ describe("shared deterministic foundation", () => {
     witness.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     act(e, { type: "interact", target: witness.id, action: "talk" });
     expect(charge.ended).toBe("cleared");
+  });
+  it("holds the feast and the hearing as gatherings the player has to walk to", () => {
+    const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
+    const e = createSettingSession(setting, "b");
+    const meet = (plot: NonNullable<typeof e.state.plot>) => {
+      const g = plot.gathering!;
+      e.state.clock = g.start - 60;
+      e.state.player.pos = { ...g.at };
+      e.advance(120);
+    };
+    delete e.state.plot;
+    e.state.households!.find((h) => h.members.includes(e.state.player.id))!.fortune = 0.5;
+    const party = drawOnly(feast, () => startPlot(e.state, setting))!;
+    e.advance(60);
+    const host = e.state.actors.find((a) => a.id === party.cast.host)!;
+    host.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    e.state.player.inventory.coin = party.owed!;
+    act(e, { type: "interact", target: host.id, action: "pay" });
+    expect(party.ended).toBeUndefined();
+    meet(party);
+    expect(party.ended).toBe("given");
+    expect(e.state.actors.filter((a) => a.errand?.label === party.gathering!.label).length).toBeGreaterThan(2);
+
+    delete e.state.plot;
+    const charge = drawOnly(accused, () => startPlot(e.state, setting))!;
+    e.state.clock = charge.deadline;
+    e.advance(180);
+    expect(charge.ended).toBeUndefined();
+    expect(e.state.lifeAim?.text).toContain("Answer");
+    meet(charge);
+    expect(charge.ended).toBe("judged");
   });
   it("ends an order only when the work is brought after the day's work is done", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);

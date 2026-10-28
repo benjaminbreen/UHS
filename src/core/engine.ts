@@ -96,7 +96,8 @@ import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
-import { endPlot, plotLine, plotTemplate, stepPlot, type PlotCard } from "./plot";
+import { endPlot, plotLine, plotTemplate, stepPlot, type PlotCard, type PlotState } from "./plot";
+import type { Effect } from "../content/plots/types";
 import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
 import { bodilyLimits, ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress } from "./health";
@@ -8474,7 +8475,12 @@ export class Engine {
     });
   }
   private runPlot() {
-    const s = this.state, plot = s.plot!;
+    const s = this.state, plot = s.plot!, g = plot.gathering;
+    if (g && s.clock >= g.start && s.clock < g.until) {
+      if (!g.met) this.convene(plot, g);
+      const p = s.player.pos;
+      if (!plot.fired.includes("came") && (p.space === "outside" ? distance(p, g.at) <= 6 : p.space === g.place)) plot.fired.push("came");
+    }
     for (const e of stepPlot(s)) {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
       if (e.type === "card")
@@ -8496,6 +8502,7 @@ export class Engine {
         }
       } else if (e.type === "walk-off" && who) this.walkOff(who, e.to);
       else if (e.type === "extend") plot.deadline += e.hours * 3600;
+      else if (e.type === "gather") this.appoint(plot, e);
     }
     const ending = endPlot(s);
     if (ending) {
@@ -8503,6 +8510,58 @@ export class Engine {
       this.cards.push({ kind: "ending", title: plot.title, text: line, ending: ending.id });
       (s.record ??= []).push({ day: Math.floor(s.clock / 86400), clock: s.clock, card: `plot:${ending.id}`, choice: -1, line });
     }
+  }
+  /** Fixes where and when a plot's people will meet. Before the authority
+   * that is the court's building if the place has one, else the keeper's door. */
+  private appoint(plot: PlotState, e: Extract<Effect, { type: "gather" }>) {
+    const s = this.state, court = e.at === "authority";
+    const office = orderKeeper(this.world.pack.setting);
+    const whose = court ? this.keeper() : s.actors.find((a) => a.id === plot.cast[e.at]);
+    const hall = court ? this.world.places.find((p) => office.hall?.test(p.name)) ?? this.world.places.find((p) => AUTHORITY.test(p.name)) : undefined;
+    const residence = whose && this.household(whose.householdId)?.residence;
+    const place = hall ?? this.world.places.find((p) => p.id === residence);
+    const at = place ? { ...doorApproach(place), space: "outside" } : whose?.home.space === "outside" ? copy(whose.home) : undefined;
+    if (!at) return;
+    const day = Math.floor(s.clock / 86400) * 86400;
+    const next = (hour: number, lead: number) => day + hour * 3600 + (s.clock + lead > day + hour * 3600 ? 86400 : 0);
+    const start = e.when === "deadline" ? plot.deadline : e.when === "evening" ? next(18, 1800) : next(9, 3600);
+    plot.words.meet = e.when === "deadline" ? plot.words.due ?? "" : `${start - day < 86400 ? "this" : "tomorrow"} ${e.when}`;
+    if (court && whose) {
+      plot.cast.official ??= whose.id;
+      plot.words.keeper = whose.name;
+    }
+    plot.deadline = start;
+    plot.gathering = { at, place: place?.id, start, until: start + 3 * 3600, label: plotLine(plot, e.label) };
+    if (e.aim && s.lifeAim) s.lifeAim = { ...s.lifeAim, text: plotLine(plot, e.aim), subjects: Object.values(plot.cast) };
+  }
+  /** Those named in the plot and the nearest few neighbours stop what they
+   * are doing and stand round the spot until the gathering is over. */
+  private convene(plot: PlotState, g: NonNullable<PlotState["gathering"]>) {
+    const s = this.state;
+    g.met = true;
+    const named = new Set([...Object.values(plot.cast), ...Object.values(plot.refs ?? {})]);
+    const free = (a: Actor) => a.kind === "human" && !a.dead && a.id !== s.player.id && !a.terror && !a.tends && !a.guard && !a.mount && (a.age ?? 30) >= 13 && !this.laidUp(a.id);
+    const people = [
+      ...s.actors.filter((a) => named.has(a.id) && free(a)),
+      ...s.actors
+        .filter((a) => !named.has(a.id) && free(a) && a.pos.space === "outside")
+        .sort((x, y) => distance(x.pos, g.at) - distance(y.pos, g.at))
+        .slice(0, 8),
+    ];
+    const ring: Position[] = [];
+    for (let r = 2; r <= 4 && ring.length < people.length; r++)
+      for (let dx = -r; dx <= r; dx++)
+        for (let dy = -r; dy <= r; dy++)
+          if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !this.blocked(g.at.x + dx, g.at.y + dy, "outside"))
+            ring.push({ x: g.at.x + dx, y: g.at.y + dy, space: "outside" });
+    people.forEach((a, i) => {
+      const inside = a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
+      if (inside) this.moveActor(a, { ...doorApproach(inside), space: "outside" });
+      a.errand = { to: ring[Math.floor((i * ring.length) / people.length)] ?? copy(g.at), label: g.label, until: g.until };
+      a.activity = g.label;
+      a.offRoutine = true;
+      this.routes.delete(a.id);
+    });
   }
   /** The player's own people: whether one of them has reason to come over,
    * and what it costs to leave them unanswered. */

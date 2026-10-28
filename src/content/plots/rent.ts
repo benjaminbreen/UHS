@@ -60,14 +60,29 @@ export const rent: PlotTemplate = {
     {
       id: "final",
       when: { type: "all", of: [{ type: "fired", id: "seize" }, { type: "due" }, { type: "not", of: { type: "settled" } }] },
-      then: [{ type: "walk-off", role: "landlord", to: "authority" }],
+      then: [
+        { type: "walk-off", role: "landlord", to: "authority" },
+        { type: "card", line: "evicted", focus: "landlord" },
+        { type: "gather", at: "authority", when: "morning", label: "hearing", aim: "aim-hearing" },
+      ],
+    },
+    {
+      id: "verdict",
+      when: { type: "all", of: [{ type: "came" }, { type: "not", of: { type: "settled" } }] },
+      then: [{ type: "seize", role: "landlord" }],
+    },
+    {
+      id: "default",
+      when: { type: "all", of: [{ type: "gathered" }, { type: "not", of: { type: "came" } }, { type: "not", of: { type: "settled" } }] },
+      then: [{ type: "seize", role: "landlord" }, { type: "regard", role: "official", delta: -2 }],
     },
   ],
   endings: [
     { id: "fled", when: { type: "gone", role: "landlord" } },
+    { id: "judged", when: { type: "fired", id: "verdict" } },
+    { id: "absent", when: { type: "fired", id: "default" } },
     { id: "paid", when: { type: "all", of: [{ type: "settled" }, { type: "not", of: { type: "seized" } }] } },
     { id: "seized", when: { type: "settled" } },
-    { id: "evicted", when: { type: "fired", id: "final" } },
   ],
   wording: [
     {
@@ -146,6 +161,10 @@ export const rent: PlotTemplate = {
         seized: "{landlord} has taken what was owed from your store. The land is still yours, and the household will go short.",
         evicted: "{landlord} has gone to give your land to someone else.",
         fled: "You have left the land and what was owed for it behind.",
+        hearing: "At the hearing before {authority}",
+        "aim-hearing": "Answer {landlord} before {authority} {meet}, or pay what's still owed before then.",
+        judged: "You answer for yourself, and the hearing lets your household keep the land. But what's still owed is to be taken from your store.",
+        absent: "You didn't come to answer, so it was decided without you. What's still owed is to be taken from your store, and from next year the land goes to someone else.",
       },
     },
   ],

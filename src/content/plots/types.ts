@@ -28,6 +28,10 @@ export type Condition =
   | { type: "seized" }
   | { type: "gone"; role: PlotRole }
   | { type: "fired"; id: string }
+  /** The player turned up while a gathering was on. */
+  | { type: "came" }
+  /** A gathering has come and gone. */
+  | { type: "gathered" }
   | { type: "not"; of: Condition }
   | { type: "all"; of: Condition[] };
 
@@ -38,7 +42,11 @@ export type Effect =
   | { type: "regard"; role: PlotRole; delta: number }
   | { type: "seize"; role: PlotRole }
   | { type: "walk-off"; role: PlotRole; to: WalkOff }
-  | { type: "extend"; hours: number };
+  | { type: "extend"; hours: number }
+  /** People meet at a cast member's house or before the authority, at the
+   * deadline or the next evening or morning, which becomes the new deadline.
+   * `label` is what those who come are doing; `aim` replaces the player's aim. */
+  | { type: "gather"; at: PlotRole | "authority"; when: "deadline" | "evening" | "morning"; label: string; aim?: string };
 
 /** Lines are templates over the words fixed when the plot begins. */
 export type PlotWording = {
