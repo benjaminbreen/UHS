@@ -143,9 +143,16 @@ export function TaskSky({
     const at = view.where.pos as { x: number; y: number; space?: string };
     const pos = at.space && at.space !== "outside" ? runtime.engine.world.place(at.space)?.entrance : at;
     if (goal && goal.slot === "work") runtime.setGuide("work");
-    else if (pos) runtime.setGuide({ ...pos, space: "outside" });
+    else if (pos) runtime.setGuide({ x: pos.x, y: pos.y, space: "outside", label: view.where.actor ? `${view.where.to}, where last seen` : view.where.to });
   };
-  useEffect(() => { if (view?.who.self && !view.done) mark(); }, [view?.key, runtime]);
+  const go = () => {
+    const w = view!.where!;
+    runtime.setOff(w.actor ? { kind: "seek", actor: w.actor, label: w.to } : { kind: "go", to: w.pos!, label: w.to });
+    mark();
+    close();
+  };
+  const p = runtime.engine.state.player.pos;
+  const here = !view?.where?.actor && view?.where?.pos && Math.hypot(view.where.pos.x - p.x, view.where.pos.y - p.y) < 3;
 
   const close = () => {
     if (leaving) return;
@@ -221,12 +228,13 @@ export function TaskSky({
           ))}
         </dl>
         <div className="tasks-actions">
-          {view.where?.pos && (
-            <button className="primary" onClick={() => { runtime.setOff({ kind: "go", to: view.where!.pos!, label: view.where!.label }); close(); }}>
-              Go there
+          {view.where?.pos && !here && !view.done && (
+            <button className="primary" onClick={go}>
+              {view.where.actor ? `Find ${view.where.to}` : "Go there"}
             </button>
           )}
-          {view.where?.pos && <button onClick={() => { mark(); close(); }}>Show on map</button>}
+          {view.where?.pos && !here && <button onClick={() => { mark(); close(); }}>Show on map</button>}
+          {here && <span className="tasks-done">You are here</span>}
           {view.goalId && view.who.self && !view.done && (
             <button onClick={() => onPin(view.goalId!)} data-on={pinned === view.goalId || undefined}>
               {pinned === view.goalId ? "Today's aim ✓" : "Make this today's aim"}
@@ -267,6 +275,7 @@ function Record({ view }: { view: TaskView }) {
   const [account, setAccount] = useState<string>();
   const [asking, setAsking] = useState<"idle" | "busy" | "none">("idle");
   const [available, setAvailable] = useState(false);
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     let live = true;
     setPages([]);
@@ -306,9 +315,39 @@ function Record({ view }: { view: TaskView }) {
   if (!r && !pages.length && !available) return null;
   const lore = r?.lore ?? [];
   const shown = pages.slice(0, 2), more = pages.slice(2);
+  const further = lore.length + pages.length + (r?.books.length ?? 0);
+  if (!open)
+    return (
+      <section className="tasks-panel tasks-record" aria-label="In the record" data-evidence={r?.evidence} data-folded>
+        <h2>In the record</h2>
+        {lore[0] ? (
+          <article className="tasks-lore" data-evidence={lore[0].evidence}>
+            <Stamp evidence={lore[0].evidence} />
+            <h3>{lore[0].title}</h3>
+            <p>{lore[0].text}</p>
+          </article>
+        ) : r?.note ? (
+          <div className="tasks-lore" data-evidence={r.evidence}>
+            {r.evidence && <Stamp evidence={r.evidence} />}
+            <p className="tasks-note">{r.note}</p>
+          </div>
+        ) : pages[0] ? (
+          <article className="tasks-lore">
+            <h3>{pages[0].title}</h3>
+            <p>{pages[0].extract}</p>
+          </article>
+        ) : null}
+        <button className="tasks-unfold" onClick={() => setOpen(true)} aria-expanded="false">
+          Read the record{further > 1 ? ` · ${further} sources` : ""} ▾
+        </button>
+      </section>
+    );
   return (
-    <section className="tasks-panel tasks-record" aria-label="In the record" data-evidence={r?.evidence}>
-      <h2>In the record</h2>
+    <section className="tasks-panel tasks-record" aria-label="In the record" data-evidence={r?.evidence} data-open>
+      <h2>
+        In the record
+        <button className="tasks-unfold" onClick={() => setOpen(false)} aria-expanded="true">Fold ▴</button>
+      </h2>
       {r?.note && (
         <div className="tasks-lore" data-evidence={r.evidence}>
           {r.evidence && <Stamp evidence={r.evidence} />}

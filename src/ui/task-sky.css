@@ -157,6 +157,14 @@
   font-size: 16px;
 }
 .tasks-record h2 { color: var(--ink-soft); font-family: var(--pixel); }
+.tasks-record[data-folded] { width: min(340px, 30vw); }
+.tasks-record[data-folded] .tasks-lore { margin: 0; }
+.tasks-record[data-folded] .tasks-lore p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.tasks-record[data-open] { animation: tasks-unfold 0.35s cubic-bezier(0.2, 1, 0.3, 1) both; }
+@keyframes tasks-unfold { from { opacity: 0.6; transform: translateY(-6px); } }
+.tasks-unfold { margin-top: 10px; padding: 0 !important; font: 9px var(--pixel) !important; letter-spacing: 0.12em; text-transform: uppercase; color: #7a1f14 !important; }
+.tasks-record h2 .tasks-unfold { margin: 0 0 0 auto; }
+.tasks-unfold:hover { text-decoration: underline; }
 .tasks-stamp {
   padding: 3px 7px;
   font: 9px var(--pixel);

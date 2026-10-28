@@ -39,7 +39,9 @@ export type TaskView = {
   vignette: Vignette;
   /** Someone else in the picture, at this size: a child watching is smaller. */
   companion?: number;
-  where?: { label: string; pos?: Point };
+  /** `to` names the place in a sentence ("You reach the well."); `actor` is
+   * someone to find wherever they are, when that is what the task needs. */
+  where?: { label: string; to: string; pos?: Point; actor?: string };
   facts: Fact[];
   record?: {
     /** Accounts written for the game, most particular first. */
@@ -226,7 +228,13 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
     ? (world.places.find((p) => p.id === household.residence)?.entrance ?? household.home)
     : actor.home;
   const here = s.player.pos.space === "outside" ? s.player.pos : world.place(s.player.pos.space)?.entrance ?? s.player.pos;
-  const whereOf = (label: string, pos?: Point): TaskView["where"] => ({ label: pos ? `${label}, ${bearing(here, pos)}` : label, pos });
+  const whereOf = (label: string, pos?: Point, actor?: string): TaskView["where"] => ({
+    label: pos ? `${label}, ${bearing(here, pos)}` : label,
+    to: label.replace(/^At /, "").replace(/^(The|Where|Home|Out|On|There|Nearby|In)\b/, (w) => w.toLowerCase()),
+    pos,
+    actor,
+  });
+  const findOf = (a: Actor) => whereOf(a.name.split(" ")[0], a.pos.space === "outside" ? a.pos : world.place(a.pos.space)?.entrance, a.id);
   const agenda = world.agenda?.(actor, s.clock);
   const occasionView = (
     item: AgendaItem & { pos?: Point },
@@ -237,7 +245,10 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
     if (item.why.length) facts.push({ label: "Why today", text: item.why.map(say).join(" ") });
     if (subject) facts.push({ label: "Who", text: `${subject.name}, ${subject.role.toLowerCase()}${subject.age ? `, ${subject.age}` : ""}` });
     facts.push({ label: "When", text: extra.minute !== undefined ? `${PART_WORDS[item.part]}, about ${clockOf(extra.minute)}` : PART_WORDS[item.part] });
-    const where = whereOf(typeof item.place === "string" ? WHERE_WORDS[item.place] : subject ? `At ${subject.name.split(" ")[0]}'s door` : "Nearby", item.pos);
+    // The engine counts the errand done on talking to its subject, wherever they are.
+    const where = subject
+      ? findOf(subject)
+      : whereOf(typeof item.place === "string" ? WHERE_WORDS[item.place] : "Nearby", item.pos);
     const vignette = vignetteFor(item.activity, item.place);
     return {
       ...extra,
@@ -375,8 +386,6 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
       return a ? [{ role, a }] : [];
     });
     const lead = cast[0]?.a;
-    const theirs = lead && s.households?.find((h) => h.members.includes(lead.id));
-    const place = theirs?.residence ? world.place(theirs.residence) : undefined;
     const left = (plot.deadline - s.clock) / 3600;
     const facts: Fact[] = [
       { label: "What", text: plotLine(plot, "aim") },
@@ -395,7 +404,7 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
       part: partAt(s.clock / 60),
       vignette: "talk",
       companion: lead ? companionOf(lead, "talk") : undefined,
-      where: place ? whereOf(`${lead!.name.split(" ")[0]}'s house`, place.entrance) : undefined,
+      where: lead ? findOf(lead) : undefined,
       facts: facts.filter((f) => f.text),
       lore: lore(plotLine(plot, "aim")),
     };

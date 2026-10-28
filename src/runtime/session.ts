@@ -1809,8 +1809,8 @@ export class Runtime {
   workHold?: number;
   /** A marked destination, or "work" to follow the day's work from stage to
    * stage. Drawn on the minimap and, when in view, in the world. */
-  guide?: Position | "work";
-  setGuide(guide: Position | "work" | undefined) {
+  guide?: (Position & { label?: string }) | "work";
+  setGuide(guide: (Position & { label?: string }) | "work" | undefined) {
     this.guide = guide;
     this.emit(false);
   }
@@ -1822,7 +1822,7 @@ export class Runtime {
     if (!g) return;
     if (g !== "work") {
       if (g.space === p.space && Math.hypot(p.x - g.x, p.y - g.y) < 3) this.guide = undefined;
-      return this.guide && { pos: g };
+      return this.guide && { pos: g, label: g.label };
     }
     const plan = this.engine.workPlan();
     const station = plan?.station;
