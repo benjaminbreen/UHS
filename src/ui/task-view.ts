@@ -300,19 +300,20 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
       const plan = engine.workPlan();
       if (plan && plan.places.some(Boolean)) {
         const now = Math.min(plan.done, plan.steps.length - 1);
-        const at = plan.done < plan.steps.length ? plan.places[now] : undefined;
+        // A step done at a bench or prop has no place of its own; the engine walks you to the station's door.
+        const at = plan.done < plan.steps.length ? plan.places[now] ?? (plan.where && plan.door ? { label: plan.where, pos: plan.door } : undefined) : undefined;
         const scene = plan.steps[now].scene as Vignette | undefined;
         const trade = plan.skill ?? skill;
         const facts: Fact[] = plan.steps.map((st, i) => ({
           label: i < plan.done ? "Done" : i === plan.done ? "Now" : "Then",
-          text: `${st.task}${plan.places[i] ? `, at ${plan.places[i]!.label}` : ""}.`,
+          text: `${st.task}${i === now && at ? `, at ${at.label}` : plan.places[i] ? `, at ${plan.places[i]!.label}` : ""}.`,
         }));
         facts.push({
           label: "How",
           text: plan.done >= plan.steps.length && !plan.waiting ? "Done for today."
             : plan.waiting ? (plan.boss ? `The ${plan.boss} is waiting for your answer.` : "A choice is waiting for you.")
             : plan.activity === "Looking for game" ? "Click Hunt in the upper-left work card to equip your weapon and pursue wild game."
-            : at ? `At ${at.label}, hold F.` : "Hold F where the work is done.",
+            : at ? `At ${at.label}, hold F${plan.station ? ` at the ${plan.station.name.toLowerCase()}` : ""}.` : "Hold F where the work is done.",
         });
         if (plan.lines.length) facts.push({ label: "So far", text: plan.lines.join(" ") });
         facts.push({ label: "The day", text: ["Going badly.", "Slow going.", "Steady.", "Going well.", "Going very well."][plan.quality + 2] });

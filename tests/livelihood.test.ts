@@ -221,6 +221,17 @@ it("sends an indoor trade to a station inside the house", () => {
   expect((station as { pos: { space: string } }).pos.space).not.toBe("outside");
 });
 
+it("counts being inside a building as reaching an errand at its door", () => {
+  const konya = places.find((p) => p.id === "konya")!;
+  const e = createSettingSession({ ...settingFor(konya, -6499), role: "Potter" }, "probe");
+  const s = e.state;
+  const home = e.world.place(s.households!.find((h) => h.members.includes("player"))!.residence!)!;
+  e.dailyGoals();
+  s.goals = [{ id: "errand", slot: "own", text: "Be at home.", check: { type: "reach", x: home.entrance.x, y: home.entrance.y } }];
+  s.player.pos = { x: 2, y: 2, space: home.id };
+  expect(e.dailyGoals()[0].done).toBe(true);
+});
+
 it("sends a call-out trade to a neighbour's house for the job itself", () => {
   const london = places.find((p) => p.id === "london")!;
   const e = createSettingSession({ ...settingFor(london, 1986), role: "Painter and Decorator" }, "probe");

@@ -1475,10 +1475,12 @@ export class Engine {
       const made = goodsOf(kit, pack.setting?.economyRevision)[0];
       const product = s.households?.find((h) => h.members.includes(p.id))?.products?.[made];
       const good = made && goodName(made, product);
-      const job =
-        kit && (kit.workplace === "workshop" || kit.workplace === "market")
-          ? commissionFor(s.manifest.seed, today, p, s.actors, good)
-          : undefined;
+      // The order names someone from the household the day's client steps go to.
+      const orders = kit && (kit.workplace === "workshop" || kit.workplace === "market");
+      const t = orders ? this.trade() : undefined;
+      const regular = t && this.client(t);
+      const theirs = regular ? s.actors.filter((a) => regular.members.includes(a.id) && (a.age ?? 0) >= 18) : [];
+      const job = orders ? commissionFor(s.manifest.seed, today, p, theirs.length ? theirs : s.actors, good) : undefined;
       // The day is its work and its occasions; hunger and company look after themselves.
       const title = this.dayTitle();
       // A trade with a day of its own is that day, whichever work template was picked.
@@ -1494,8 +1496,11 @@ export class Engine {
       s.goalDay = today;
       s.goalFlags = { traded: false, talked: false, visited: [], talkedTo: [] };
     }
+    // Inside a building counts as standing at its door, where errand points are.
+    const door = p.pos.space === "outside" ? undefined : this.world.place(p.pos.space)?.entrance;
+    const at = door ? { ...p, pos: { ...door, space: "outside" } } : p;
     for (const g of s.goals ?? [])
-      if (!g.done && goalDone(g, p, s.goalFlags!)) g.done = true;
+      if (!g.done && goalDone(g, at, s.goalFlags!)) g.done = true;
     return s.goals ?? [];
   }
   private dropSpot(): Position | undefined {
