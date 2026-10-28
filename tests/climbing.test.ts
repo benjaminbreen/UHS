@@ -181,6 +181,7 @@ it("sends the watch along the wall to order the player down", () => {
   const beat = Array.from({ length: 8 }, (_, i) => ({ x: 2, y: 12 + i }));
   Object.assign(guard, { pos: { x: 2, y: 12, space: "outside" }, watch: { path: beat, loop: false, speed: 0.6, waits: [60, 60], phase: 0 } });
   engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+  engine.state.player.inventory.coin = 0;
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.climb();
   expect(engine.onWall()).toBe(true);
@@ -188,11 +189,54 @@ it("sends the watch along the wall to order the player down", () => {
   runtime.command({ type: "wait", seconds: 30 });
   expect(Math.abs(guard.pos.y) + Math.abs(guard.pos.x - 2)).toBeLessThanOrEqual(1);
   expect(guard.pos.x).toBe(2);
-  expect(engine.cards.some((c) => c.kind === "speech" && c.speaker === guard.id)).toBe(true);
+  const card = engine.cards.find((c) => c.kind === "speech" && c.speaker === guard.id)!;
+  expect(card.choose?.choices.map((c) => c.label)).toEqual(["Come down", "Explain yourself", "Pay him to look away", "Run along the wall"]);
+  expect(card.choose?.choices[2].unavailable).toBeTruthy();
 
-  runtime.climb();
+  // Running only buys a few seconds: he runs faster than you walk.
+  expect(runtime.command({ type: "choose", card: card.choose!.card, choice: 3 })?.status).toBe("completed");
+  runtime.move(0, -1);
+  runtime.command({ type: "wait", seconds: 10 });
   expect(engine.onWall()).toBe(false);
+  expect(engine.cards.some((c) => c.speaker === guard.id && /Got you/.test(c.text))).toBe(true);
   runtime.command({ type: "wait", seconds: 60 });
   expect(guard.activity).not.toMatch(/off the wall/);
   runtime.dispose();
+});
+
+it("lets the player talk, pay or step their way down from the watch", () => {
+  const setup = (seed: string) => {
+    const engine = createSession("roman", seed);
+    const guard = engine.state.actors.find((a) => a.kind === "human")!;
+    engine.state.actors = [guard];
+    engine.state.objects = [];
+    engine.world.blocked = (x) => x === 2;
+    engine.world.places = [];
+    engine.world.enclosures = [{ x: 2, y: -20, w: 1, h: 41, gate: { x: 2, y: 30 },
+      parts: Array.from({ length: 41 }, (_, i) => ({ x: 2, y: i - 20, frame: "wall-masonry-5-0" })) }];
+    Object.assign(guard, { pos: { x: 2, y: 4, space: "outside" },
+      watch: { path: [{ x: 2, y: 4 }, { x: 2, y: 8 }], loop: false, speed: 0.6, waits: [60, 60], phase: 0 } });
+    engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+    const runtime = new Runtime(engine, { cacheTerrain: false });
+    runtime.climb();
+    runtime.command({ type: "wait", seconds: 10 });
+    const card = engine.cards.find((c) => c.speaker === guard.id)!.choose!.card;
+    return { engine, runtime, guard, card };
+  };
+
+  const down = setup("watch-down");
+  down.runtime.command({ type: "choose", card: down.card, choice: 0 });
+  expect(down.engine.onWall()).toBe(false);
+  down.runtime.dispose();
+
+  const paid = setup("watch-pay");
+  paid.engine.state.player.inventory.coin = 5;
+  paid.runtime.command({ type: "choose", card: paid.card, choice: 2 });
+  const took = paid.engine.lastChoice!.won;
+  expect(paid.engine.state.player.inventory.coin).toBe(took ? 3 : 5);
+  // Paid off, he goes back to his round and leaves you up there.
+  paid.runtime.command({ type: "wait", seconds: 30 });
+  expect(paid.engine.onWall()).toBe(true);
+  if (took) expect(paid.guard.activity).not.toMatch(/off the wall/);
+  paid.runtime.dispose();
 });

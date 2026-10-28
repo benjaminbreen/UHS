@@ -349,6 +349,16 @@ const HELP: { label: string; stat: keyof import("./types").Stats; odds?: number;
   { label: "Ask {name} to teach you", stat: "wit", minutes: 150, fatigue: 8, xp: 9,
     line: "{name} talks you through it as you go. You'll know how next time." },
 ];
+const WALL_ANSWERS: { kind: "down" | "explain" | "bribe" | "run"; label: string; stat?: keyof import("./types").Stats; odds?: number; coin?: number; line: string; lost?: string }[] = [
+  { kind: "down", label: "Come down", line: "You go back down. {name} watches you all the way to the ground." },
+  { kind: "explain", label: "Explain yourself", stat: "wit", odds: 0.4,
+    line: "{name} hears you out, grumbles, and lets you stay. \"Half an hour. Then you're gone.\"",
+    lost: "{name} isn't having any of it. \"Tell it to the magistrate. Now get down.\"" },
+  { kind: "bribe", label: "Pay him to look away", coin: 2,
+    line: "{name} pockets the coins and turns to look out over the fields.",
+    lost: "{name} knocks the coins out of your hand. \"Trying to buy the watch? You'll be reported for that.\"" },
+  { kind: "run", label: "Run along the wall", line: "You turn and run along the wall. {name} comes after you, shouting." },
+];
 const workSkill: Record<ProcessFamily, SkillId> = {
   tend: "farming",
   gather: "foraging",
@@ -945,6 +955,7 @@ export class Engine {
   }
   private choose(id: string, n: number) {
     if (id.startsWith("help:")) return this.helpChoose(id, n);
+    if (id.startsWith("wall:")) return this.wallAnswer(n);
     const s = this.state, p = s.player;
     const care = s.care?.card === id ? s.care : undefined;
     const encounter = s.encounter?.card === id;
@@ -3065,16 +3076,23 @@ export class Engine {
       this.moveActor(a, { x: step.x, y: step.y, space: "outside" });
       return true;
     };
-    if (!up) {
-      if (!c) return false;
+    const backToRound = () => {
       const home = vehicleAt(a.watch!, clock);
       const to = { x: Math.round(home.x), y: Math.round(home.y) };
-      if ((a.pos.x === to.x && a.pos.y === to.y) || !stepTo(to)) {
-        this.wallChallenge = undefined;
-        return false;
-      }
+      if ((a.pos.x === to.x && a.pos.y === to.y) || !stepTo(to)) return false;
       a.activity = "Going back to the round";
       return true;
+    };
+    if (c?.chase && (!up || distance(a.pos, p.pos) > 16)) {
+      c.chase = undefined;
+      this.reportFromWall(a, "ran from the watch along");
+      this.event(`${a.name} gives up the chase and shouts after you that you'll be reported.`, "social");
+    }
+    if (!up || (c?.leave ?? 0) > clock) {
+      if (!c) return false;
+      if (backToRound()) return true;
+      if (!up) this.wallChallenge = undefined;
+      return false;
     }
     if (!c) {
       const near = (o: Actor) => distance(o.pos, p.pos);
@@ -3086,13 +3104,24 @@ export class Engine {
     const w = this.wallChallenge!;
     a.offRoutine = true;
     if (distance(a.pos, p.pos) > 1.6) {
-      a.activity = "Coming to turn you off the wall";
-      if (!stepTo(p.pos)) a.direction = this.directionTo(a.pos, p.pos);
+      a.activity = w.chase ? "Chasing you along the wall" : "Coming to turn you off the wall";
+      // Running, he gains a step a second on a walker.
+      for (let i = w.chase ? 2 : 1; i > 0 && distance(a.pos, p.pos) > 1.6; i--)
+        if (!stepTo(p.pos)) a.direction = this.directionTo(a.pos, p.pos);
       if (distance(a.pos, p.pos) > 1.6) return true;
     }
     a.direction = this.directionTo(a.pos, p.pos);
     a.activity = "Ordering you off the wall";
-    if (w.warnedAt === undefined) {
+    if (w.chase) {
+      // A head start: he can't grab someone who has only just turned to run.
+      if (clock - w.chase.from < 3) return true;
+      w.chase = undefined;
+      this.descend();
+      this.regard(a, -3, "fury");
+      this.reportFromWall(a, "ran from the watch along");
+      this.cards.push({ kind: "speech", title: a.name, text: "Got you! Down you go. The magistrate is going to hear about this.", speaker: a.id });
+      this.event(`${a.name} catches you and hauls you down off the wall.`, "social");
+    } else if (w.warnedAt === undefined) {
       w.warnedAt = clock;
       this.regard(a, -2, "anger");
       this.cue(a.id, "beckon", p.pos);
@@ -3101,20 +3130,87 @@ export class Engine {
         "You! Off the wall! Nobody comes up here without leave from the council.",
         "Who let you up here? Down the stairs, right now, before I drag you down.",
       ];
-      this.cards.push({ kind: "speech", title: a.name, text: lines[a.id.length % lines.length], speaker: a.id });
+      const stats = this.stats(), level = this.skillLevel("speech");
+      this.cards.push({
+        kind: "speech",
+        title: "the watch",
+        text: lines[a.id.length % lines.length],
+        speaker: a.id,
+        choose: {
+          card: `wall:${a.id}`,
+          choices: WALL_ANSWERS.map((x, index) => ({
+            index,
+            label: x.label,
+            odds: x.odds ? oddsOf({ stat: x.stat!, skill: "speech", odds: x.odds }, stats, level) : undefined,
+            coin: x.coin ? -x.coin : undefined,
+            unavailable: x.coin && (p.inventory.coin ?? 0) < x.coin ? "You don't have the coin." : undefined,
+          })),
+        },
+      });
       this.approacher = {
         id: a.id,
         situation: "YOU ARE A TOWN WATCHMAN and the player has climbed onto the town wall, where only the watch may go. You have marched along the wall walk straight up to them. Order them down, angrily. Demand who they are and what they are up to. Do not be polite.",
         until: clock + 300,
       };
-    } else if (!w.escalated && clock - w.warnedAt >= 90) {
-      w.escalated = true;
-      this.regard(a, -3, "fury");
-      a.memories.push("The player stayed on the town wall after being ordered down");
-      this.complain(a, { act: "refused to come down from", object: "the town wall", victim: a.id, tone: -4, at: clock, hops: 0 });
+    } else if (!w.escalated && !w.answered && clock - w.warnedAt >= 90) {
+      this.reportFromWall(a, "refused to come down from");
       this.cards.push({ kind: "speech", title: a.name, text: "Right, that's it. I'm reporting you. You'll answer for this.", speaker: a.id });
     }
     return true;
+  }
+  private reportFromWall(a: Actor, act: string) {
+    const w = this.wallChallenge;
+    if (!w || w.escalated) return;
+    w.escalated = true;
+    this.regard(a, -3, "fury");
+    a.memories.push(`The player ${act} the town wall`);
+    this.complain(a, { act, object: "the town wall", victim: a.id, tone: -4, at: this.state.clock, hops: 0 });
+  }
+  private wallAnswerProblem(card: string, n: number) {
+    const w = this.wallChallenge, x = WALL_ANSWERS[n];
+    if (!w || card !== `wall:${w.id}` || w.warnedAt === undefined || w.answered || w.chase || !x || !this.onWall()) return "There is nothing to answer.";
+    if (x.coin && (this.state.player.inventory.coin ?? 0) < x.coin) return "You don't have the coin.";
+  }
+  private wallAnswer(n: number) {
+    const w = this.wallChallenge!, p = this.state.player, clock = this.state.clock;
+    const a = this.actorsById?.get(w.id) ?? this.state.actors.find((o) => o.id === w.id)!;
+    const x = WALL_ANSWERS[n], first = a.name.split(" ")[0];
+    w.answered = true;
+    this.approacher = undefined;
+    let won = !x.odds || this.rng(`wall:${w.id}:${clock}`) < oddsOf({ stat: x.stat!, skill: "speech", odds: x.odds }, this.stats(), this.skillLevel("speech"));
+    let regard = 0, coin = 0;
+    if (x.kind === "down") {
+      this.descend();
+      regard = 1;
+    } else if (x.kind === "explain") {
+      this.grantXp("speech", won ? 6 : 3);
+      if (won) w.leave = clock + 1800;
+      else this.reportFromWall(a, "argued with the watch on");
+      regard = won ? 1 : -3;
+    } else if (x.kind === "bribe") {
+      // A dutiful man takes offence; anyone else takes the money.
+      won = statsOf(this.state.manifest.seed, a).conscientiousness < 70;
+      if (won) {
+        p.inventory.coin = (p.inventory.coin ?? 0) - x.coin!;
+        a.inventory.coin = (a.inventory.coin ?? 0) + x.coin!;
+        w.leave = clock + 3600;
+        coin = -x.coin!;
+      } else this.reportFromWall(a, "tried to bribe the watch on");
+      regard = won ? 0 : -3;
+    } else {
+      w.chase = { from: clock };
+      w.answered = false;
+    }
+    if (regard > 0) this.regard(a, regard, "warm");
+    const line = (won ? x.line : x.lost!).replaceAll("{name}", first);
+    this.event(line, "social");
+    this.lastChoice = {
+      card: `wall:${w.id}`, line, won: x.odds || x.kind === "bribe" ? won : undefined,
+      changes: [
+        ...(coin ? [{ kind: "coin", delta: coin }] : []),
+        ...(regard || !won ? [{ kind: "regard", delta: regard, who: first }] : []),
+      ],
+    };
   }
   private confront(clock: number) {
     const p = this.state.player;
@@ -5914,6 +6010,7 @@ export class Engine {
     if (c.type === "interact" && c.action === "fill") return this.fillProblem(c.target);
     if (c.type === "interact" && c.action === "work" && this.tileAt(c.target))
       return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
+    if (c.type === "choose" && c.card.startsWith("wall:")) return this.wallAnswerProblem(c.card, c.choice);
     if (c.type === "choose" && c.card.startsWith("help:"))
       return this.state.asks?.some((x) => `help:${x.id}` === c.card && x.offered) && HELP[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose") {
@@ -8160,7 +8257,7 @@ export class Engine {
   /** Who is ordering the player out of their house right now; they shout. */
   confronting?: string;
   private intrusion?: { place: string; since: number; by?: string; done?: boolean; warnedAt?: number; escalated?: boolean };
-  private wallChallenge?: { id: string; warnedAt?: number; escalated?: boolean };
+  private wallChallenge?: { id: string; warnedAt?: number; escalated?: boolean; answered?: boolean; leave?: number; chase?: { from: number } };
   /** Clock second each actor last took offence at a collision or a swing,
    * so leaning on them or swinging again does not keep costing trust. */
   private affronts = new Map<string, number>();
