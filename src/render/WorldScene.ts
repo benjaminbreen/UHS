@@ -302,8 +302,14 @@ const AMBIENT_MARGIN = 16;
 const ROUTINE_BUILD_BUDGET_MS = 2;
 /** Tiles of elbow room between drawn people. */
 const SPACING = 0.95;
-/** How far a town wall's coping stands above the ground it runs across. */
-const WALL_WALK_RISE = 11;
+/** Where someone up on a town wall stands, in pixels above the ground: a
+ * little way back from the front edge of the wall top, a tower top or a
+ * gatehouse span. From WALL_H, TOWER_FACE and the span face in
+ * scripts/art/urban.py; a flight's step k is at k * WALL_H / 3. */
+const WALK_RISE = { wall: 44, tower: 58, gate: 74 } as const;
+const STAIR_RISE = [0, 15, 28, 42];
+/** How far off the cell centre a diagonal's band runs, by the corner it crosses. */
+const WALK_CORNER = { nw: [-4, -4], ne: [4, -4], se: [4, 4], sw: [-4, 4] } as const;
 const ambientPoses: Record<StationActivity, CharacterPose> = {
   rest: "sit",
   work: "work",
@@ -1108,10 +1114,15 @@ export class WorldScene extends Phaser.Scene {
 
   private lift(x: number, y: number) {
     const w = this.runtime.engine.world;
-    return w.topography &&
-      this.runtime.engine.state.player.pos.space === "outside"
-      ? surfaceElevation(w.topography, x / 16 - 0.5, y / 16 - 1) * TERRAIN_RISE
-      : 0;
+    if (!w.topography || this.runtime.engine.state.player.pos.space !== "outside")
+      return 0;
+    const own = surfaceElevation(w.topography, x / 16 - 0.5, y / 16 - 1);
+    // Feet on low ground just behind a higher row would sit in the strip that
+    // row hides, so they stop at its lip instead of showing on the plateau.
+    const row = Math.ceil(y / 16),
+      front = w.topography(Math.floor(x / 16), row);
+    if (!front || front.ramp || front.height <= own) return own * TERRAIN_RISE;
+    return Math.max(own * TERRAIN_RISE, y - (row * 16 - front.height * TERRAIN_RISE));
   }
   /** What the last thing climbed sounds like, kept so the way down matches
    * the way up: the perch is already cleared by the time the sprite moves. */
@@ -1166,14 +1177,38 @@ export class WorldScene extends Phaser.Scene {
       },
     });
   }
-  /** A perched player renders on top of whatever they climbed. The tile
-   * position is unchanged, so collision and pathfinding never see the lift. */
+  /** Where on a town wall someone stands: the walk under them if they are up
+   * there, or the step of a flight they are on. */
+  private wallFooting(id: string) {
+    const engine = this.runtime.engine;
+    const a = id === "player" ? engine.state.player : this.watchers().get(id);
+    const pos = id === "player" ? engine.state.player.pos : a?.pos ?? this.destinations.get(id);
+    if (!pos || pos.space !== "outside") return undefined;
+    const stair = engine.stairAt(pos.x, pos.y);
+    if (stair) return { rise: STAIR_RISE[stair.step], dx: 0, dy: 0 };
+    const up = id === "player" ? engine.onWall() : !!a;
+    const walk = up ? engine.walkAt(pos.x, pos.y) : undefined;
+    if (!walk) return undefined;
+    const [dx, dy] = walk.corner ? WALK_CORNER[walk.corner] : [0, 0];
+    return { rise: WALK_RISE[walk.kind], dx, dy };
+  }
+  private watching?: { frame: number; by: Map<string, Actor> };
+  /** The watch, by id, rebuilt once a frame. */
+  private watchers() {
+    const frame = this.game.loop.frame;
+    if (this.watching?.frame !== frame)
+      this.watching = {
+        frame,
+        by: new Map(this.runtime.engine.state.actors.filter((a) => a.watch).map((a) => [a.id, a])),
+      };
+    return this.watching.by;
+  }
+  /** A perched player renders on top of whatever they climbed, and anyone on
+   * a town wall on its walk. The tile position is unchanged, so collision and
+   * pathfinding never see the lift. */
   private perchRise(id: string) {
-    if (id !== "player") return 0;
-    const perch = this.runtime.engine.state.player.perch;
-    // A wall walk has no perch target: the player's own cell is the wall, and
-    // the lift is the drawn height of its masonry.
-    if (!perch) return this.runtime.engine.onWall() ? WALL_WALK_RISE : 0;
+    const perch = id === "player" ? this.runtime.engine.state.player.perch : undefined;
+    if (!perch) return this.wallFooting(id)?.rise ?? 0;
     // The thing's own sprite is the honest height: a firewood stack stands
     // three times a pot. Overlap a couple of pixels so the feet sit in it
     // rather than float above the silhouette.
@@ -4579,10 +4614,12 @@ export class WorldScene extends Phaser.Scene {
       frame = reviewedPropFrame(frame, random(e.state.manifest.seed, "reviewed-prop", id));
       let im = this.entities.get(id);
       const on = this.perchCell(id) ?? pos;
-      let tx = on.x * 16 + 8,
+      const footing = this.perchCell(id) ? undefined : this.wallFooting(id);
+      let tx = on.x * 16 + 8 + (footing?.dx ?? 0),
         ty =
           on.y * 16 +
-          16 -
+          16 +
+          (footing?.dy ?? 0) -
           this.lift(on.x * 16 + 8, on.y * 16 + 16) -
           this.perchRise(id);
       if (id === "player" && this.bump) {
@@ -6168,12 +6205,13 @@ export class WorldScene extends Phaser.Scene {
         im.y +
         arcLift +
         // Standing on the thing means drawing in front of it, foliage and
-        // all, so the lift comes back off the depth. A wall walk only needs
-        // the nudge: the masonry is the cell the player is in.
+        // all, so the lift comes back off the depth. On a wall the walker is
+        // drawn just in front of their own cell's masonry and behind the next
+        // cell south, whose top would otherwise hide nothing.
         (perched
-          ? (id === "player" && this.runtime.engine.state.player.perch
-              ? perched
-              : 0) + 4
+          ? id === "player" && this.runtime.engine.state.player.perch
+            ? perched + 4
+            : perched + 2 - (this.wallFooting(id)?.dy ?? 0)
           : 0) +
         this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
         (frame ? 2 : 6);

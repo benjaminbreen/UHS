@@ -29,6 +29,31 @@ const post = (ip: string) =>
   });
 
 describe("dialogue endpoint", () => {
+  it("reports the provider's own error instead of a generic refusal", async () => {
+    const response = await dialogue(post("198.51.100.40"), { OPENAI_API_KEY: "test", OPENROUTER_API_KEY: "test" }, async () =>
+      new Response(JSON.stringify({ error: { message: "Incorrect API key provided." } }), { status: 401 }),
+    );
+    expect(response.status).toBe(502);
+    expect((await response.json()).error).toBe("OpenRouter rejected the API key on this server. Incorrect API key provided.");
+  });
+
+  it("calls Anthropic directly when that key is set, with thinking off for ordinary talk", async () => {
+    let sent: Record<string, any> | undefined;
+    let url = "";
+    const response = await dialogue(post("198.51.100.41"), { ANTHROPIC_API_KEY: "test", OPENROUTER_API_KEY: "test" }, async (input, init) => {
+      url = String(input instanceof Request ? input.url : input);
+      sent = JSON.parse(String((init as RequestInit).body));
+      return new Response(JSON.stringify({
+        id: "msg_1", type: "message", role: "assistant", model: "claude-haiku-5-5", stop_reason: "end_turn", stop_sequence: null,
+        content: [{ type: "text", text: JSON.stringify({ dialogue: "Morning.", regard: 0 }) }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    expect(url).toContain("api.anthropic.com/v1/messages");
+    expect(sent).toMatchObject({ model: "claude-haiku-5-5", thinking: { type: "disabled" }, output_config: { format: { type: "json_schema" } } });
+    expect(await response.json()).toMatchObject({ text: "Morning.", model: "claude-haiku-5-5", tokens: { out: 5 } });
+  });
+
   it("grounds a practitioner's response in visible symptoms and actual supplies without revealing exposure", () => {
     const resolved = resolveSetting("Doctor in London 1980", "health-dialogue");
     if ("error" in resolved) throw Error(resolved.error);

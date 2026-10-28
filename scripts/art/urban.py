@@ -527,13 +527,18 @@ def build_urban_furniture(sprites):
         sprites[f'urban-stall-{index}']=im
 
 
-# Wall geometry in a 16x40 frame whose bottom edge is the cell's south edge.
-# The cap is a full cell-sized top surface lifted by WALL_H; the face below it
-# is exactly WALL_H tall, so the cell to the south covers it exactly and a run
-# reads as one continuous mass rather than a row of separate blocks.
-WALL_H = 16
-CAP_TOP = 24 - WALL_H
-CAP_BOT = 39 - WALL_H
+# Wall geometry in a 16 x WALL_FRAME frame whose bottom edge is the cell's
+# south edge. The cap is a full cell-sized top surface lifted by WALL_H; the
+# face below it is WALL_H tall, so a run reads as one continuous mass rather
+# than a row of separate blocks. WALL_H is about a person's height: the wall
+# walk is something to stand on, not a kerb. The renderer's wall-walk lifts
+# in src/render/WorldScene.ts follow these numbers.
+WALL_H = 40
+WALL_FRAME = 24 + WALL_H
+# The frame row where the cell's own ground begins.
+GROUND = WALL_FRAME - 16
+CAP_TOP = GROUND - WALL_H
+CAP_BOT = CAP_TOP + 15
 FACE_TOP = CAP_BOT + 1
 # How far the ground shade reaches below an exposed foot.
 FOOT = 3
@@ -649,7 +654,7 @@ def _wall_face(d, style, v, footed):
     """The south elevation: what shows where the cell to the south is a gate,
     a street or open ground. `footed` adds the shade the wall casts on it."""
     mortar, shade, body, light, high = style["ramp"]
-    bottom = 39 - (FOOT if footed else 0)
+    bottom = WALL_FRAME - 1 - (FOOT if footed else 0)
     d.rectangle((0, FACE_TOP, 15, bottom), fill=shade)
     if style["coursed"]:
         for i, row in enumerate(range(FACE_TOP, bottom + 1, style["course"])):
@@ -658,7 +663,10 @@ def _wall_face(d, style, v, footed):
                 left = max(x0 + 1, 0)
                 if x1 < left:
                     continue
-                d.rectangle((left, row, x1, last), fill=body)
+                # Blocks differ a little in tone, as cut stone and fired brick do.
+                tone = _hash(i, x0, v, 5) % 5
+                fill = _mix(body, light, 0.22) if tone == 0 else _mix(body, shade, 0.22) if tone == 1 else body
+                d.rectangle((left, row, x1, last), fill=fill)
                 if i:
                     # The topmost course sits just under the coping; lighting
                     # it too would print a second bright line under the first.
@@ -691,6 +699,8 @@ def _wall_face(d, style, v, footed):
         for i in range(10):
             h = _hash(v, i, 977)
             d.point((h % 16, FACE_TOP + 1 + (h >> 6) % (bottom - FACE_TOP - 1)), fill=shade)
+    # The coping overhangs the face, so the course under it sits in shadow.
+    d.line((0, FACE_TOP, 15, FACE_TOP), fill=_mix(shade, mortar, 0.5))
     # The courses thin out toward the foot, where the wall sits in its own
     # shade whatever it is made of.
     d.line((0, bottom, 15, bottom), fill=mortar)
@@ -698,7 +708,7 @@ def _wall_face(d, style, v, footed):
         h = _hash(v, i, 71)
         d.point(((h >> 3) % 16, bottom - 1 - (h >> 9) % 3), fill=style["moss"])
     if footed:
-        d.rectangle((0, 40 - FOOT, 15, 39), fill=(24, 26, 20, 120))
+        d.rectangle((0, WALL_FRAME - FOOT, 15, WALL_FRAME - 1), fill=(24, 26, 20, 120))
 
 
 def _wall_cap(d, style, v, mask):
@@ -733,10 +743,10 @@ def _wall_cap(d, style, v, mask):
                     d.line((0, row, 15, row), fill=fill)
         for i in range(6):
             h = _hash(v, i, 17)
-            d.point((h % 16, CAP_TOP + (h >> 5) % WALL_H), fill=shade)
+            d.point((h % 16, CAP_TOP + (h >> 5) % 16), fill=shade)
     for i in range(2):
         h = _hash(v, i, 233)
-        d.point((h % 16, CAP_TOP + (h >> 7) % WALL_H), fill=style["moss"])
+        d.point((h % 16, CAP_TOP + (h >> 7) % 16), fill=style["moss"])
 
 
 def _merlon(d, style, x0, x1, cap=CAP_TOP):
@@ -770,6 +780,15 @@ def _parapet_north(d, style, v):
     """The lip of the walk facing the viewer's far side. This is the edge a
     near-overhead view can show teeth on, so it carries the battlement."""
     mortar, shade, body, light, high = style["ramp"]
+    if not style["crenels"] and style["coursed"]:
+        # Laterite and dry stone carry a plain parapet with a dressed coping.
+        d.rectangle((0, CAP_TOP - 2, 15, CAP_TOP + 2), fill=light)
+        d.line((0, CAP_TOP - 2, 15, CAP_TOP - 2), fill=high)
+        d.line((0, CAP_TOP + 3, 15, CAP_TOP + 3), fill=shade)
+        for x0, _ in _course_blocks(5, v, 7):
+            if 0 <= x0 < 16:
+                d.line((x0, CAP_TOP - 1, x0, CAP_TOP + 2), fill=body)
+        return
     if not style["crenels"]:
         # A rampart's crest is a rounded lip with the same body as a merlon,
         # so it stands as far proud of the walk and does not read as a line.
@@ -840,7 +859,7 @@ def _wall_step(style, mask, v):
     lower = mask in (9, 3)
     c = 8 if lower else 24
     mortar, shade, body, light, high = style["ramp"]
-    im = Image.new("RGBA", (16, 40))
+    im = Image.new("RGBA", (16, WALL_FRAME))
     px = im.load()
     half = 6
     for lx in range(16):
@@ -849,15 +868,15 @@ def _wall_step(style, mask, v):
             # The band's shadow falls on the open ground south-east of it.
             for ly in range(16):
                 if c + half < lx + ly <= c + half + 4:
-                    px[lx, 24 + ly] = (24, 26, 20, 110)
+                    px[lx, GROUND + ly] = (24, 26, 20, 110)
             continue
         south = max(rows)
         for ly in range(16):
             if c + half < lx + ly <= c + half + 4 and ly > south:
-                px[lx, 24 + ly] = (24, 26, 20, 110)
+                px[lx, GROUND + ly] = (24, 26, 20, 110)
         if lx + south == c + half:
-            top = 24 + south - WALL_H + 1
-            for y in range(top, 24 + south + 1):
+            top = GROUND + south - WALL_H + 1
+            for y in range(top, GROUND + south + 1):
                 k = y - top
                 course = (y // style["course"]) if style["coursed"] else 0
                 joint = style["coursed"] and (y % style["course"] == 0
@@ -866,16 +885,30 @@ def _wall_step(style, mask, v):
                 if not style["coursed"]:
                     fill = body if k < 4 else shade if k < 11 else mortar
                 px[lx, y] = _rgb(fill)
-            px[lx, 24 + south] = _rgb(mortar)
+            px[lx, GROUND + south] = _rgb(mortar)
         for ly in rows:
             d = lx + ly - c
             fill = high if d == -half else light if d <= -half + 1 or d >= half - 1 else body
-            px[lx, 24 + ly - WALL_H] = _rgb(fill)
+            px[lx, GROUND + ly - WALL_H] = _rgb(fill)
         lip = [ly for ly in rows if lx + ly - c == -half]
         if lip and style["crenels"] and _crenel(lx, style):
-            y = 24 + lip[0] - WALL_H
-            for k in range(1, PARAPET + 1):
-                px[lx, y - k] = _rgb(high if k == PARAPET else light)
+            # Each tooth is a block standing on the lip, so along a diagonal
+            # it shows as a small parallelogram with a lit top and a shaded
+            # east end, shaped like the material's straight teeth.
+            width = 6 if style["crenels"] == "broad" else CRENEL_WIDTH
+            i = lx % CRENEL_PITCH
+            bump = {"stepped": 0 < i < width - 1, "pointed": i == width // 2}.get(style["crenels"], False)
+            y = GROUND + lip[0] - WALL_H
+            top = y - PARAPET - (1 if bump else 0)
+            edge = i == width - 1
+            for yy in range(top, y + 2):
+                px[lx, yy] = _rgb(shade if edge else light)
+            px[lx, top] = _rgb(shade if edge else high)
+        elif lip and not style["crenels"] and style["coursed"]:
+            y = GROUND + lip[0] - WALL_H
+            for yy in range(y - 2, y + 1):
+                px[lx, yy] = _rgb(light)
+            px[lx, y - 2] = _rgb(high)
     if mirror:
         im = im.transpose(Image.FLIP_LEFT_RIGHT)
     return im
@@ -899,7 +932,12 @@ def _wall_pier(d, style):
 
 def build_city_walls(sprites):
     build_gatehouses(sprites)
+    build_wall_towers(sprites)
+    build_wall_stairs(sprites)
     _build_wall_tiles(sprites)
+    # Stands in for a wall cell a tower or gate is drawn over, so the cell
+    # keeps its place in the circuit without drawing anything.
+    sprites["wall-none"] = Image.new("RGBA", (1, 1))
 
 
 def _build_wall_tiles(sprites):
@@ -915,7 +953,7 @@ def _build_wall_tiles(sprites):
     for material, style in WALL_STYLES.items():
         for mask in range(16):
             for v in range(4):
-                im = Image.new("RGBA", (16, 40))
+                im = Image.new("RGBA", (16, WALL_FRAME))
                 d = ImageDraw.Draw(im)
                 _wall_face(d, style, v, footed=not mask & 4)
                 _wall_cap(d, style, v, mask)
@@ -999,12 +1037,14 @@ def _gate_crown(d, style, gate, x0, x1, top):
 
 
 def _toron(d, x0, x1, y0, y1, seed):
-    for i in range((x1 - x0) // 6):
-        for j in range((y1 - y0) // 9):
-            x = x0 + 3 + i * 6 + (j % 2) * 3
+    """Palm-wood beam ends left in an earth wall, in staggered rows."""
+    for j in range((y1 - y0) // 9):
+        for i in range((x1 - x0) // 8 + 1):
+            x = x0 + 3 + i * 8 + (j % 2) * 4
             y = y0 + 4 + j * 9
-            if x < x1:
-                d.line((x, y, x + 1, y + 1), fill="#4e3820")
+            if x + 2 < x1:
+                d.line((x, y, x + 2, y), fill="#8a6a44")
+                d.line((x, y + 1, x + 2, y + 1), fill="#4e3820")
 
 
 def _passage(d, style, gate, x0, x1, top, bottom):
@@ -1140,17 +1180,281 @@ def build_gatehouses(sprites):
                     _toron(d, tx, tx + tw - 1, g - tower_face, g - 4, tx)
                 d.rectangle((tx + tw // 2 - 1, g - tower_face + 10, tx + tw // 2, g - tower_face + 19), fill="#2b2420")
             sprites[f"gate-{material}-{n}"] = im
-        im = Image.new("RGBA", (24, 112))
-        d = ImageDraw.Draw(im)
-        g = 111
-        d.rectangle((0, g - 1, 23, g), fill=(24, 26, 20, 110))
-        _gate_cap(d, style, 0, g - 96, 23, g - 82)
-        _gate_face(d, style, 0, g - 82, 23, g - 1, 5)
-        _gate_crown(d, style, gate, 2, 21, g - 96)
-        if gate["crown"] == "toron":
-            _toron(d, 0, 23, g - 82, g - 4, 3)
-        d.rectangle((11, g - 72, 12, g - 63), fill="#2b2420")
-        sprites[f"gate-tower-{material}"] = im
+
+
+# A flight of stairs up the inside of the wall: three cells, two treads each,
+# rising to the top of the face. Against a wall that runs east-west the flight
+# runs along its face, climbing east or west, so it shows a stepped profile
+# against the masonry; against one running north-south it climbs north, so
+# every riser faces the viewer. Step k's top tread is at k * WALL_H / 3.
+STAIR_FRAME = 16 + WALL_H + 4
+
+
+def _tread(d, style, x0, x1, top, front):
+    mortar, shade, body, light, high = style["ramp"]
+    d.rectangle((x0, top, x1, front), fill=light)
+    d.line((x0, front, x1, front), fill=high)
+
+
+def _stair(style, art, step):
+    mortar, shade, body, light, high = style["ramp"]
+    im = Image.new("RGBA", (16, STAIR_FRAME))
+    d = ImageDraw.Draw(im)
+    g = STAIR_FRAME - 1
+    heights = [round(WALL_H * (2 * (step - 1) + i) / 6) for i in (1, 2)]
+    if art == "north":
+        below = round(WALL_H * (2 * (step - 1)) / 6)
+        for i in (1, 0):
+            h, lo = heights[i], heights[i - 1] if i else below
+            d0, d1 = 8 * i, 8 * i + 8
+            top, front = g - d1 + 1 - h, g - d0 - h
+            _tread(d, style, 1, 14, top, front)
+            d.rectangle((1, front + 1, 14, g - d0 - lo), fill=body)
+            d.line((1, g - d0 - lo, 14, g - d0 - lo), fill=mortar)
+            if lo:
+                d.rectangle((1, g - d0 - lo + 1, 14, g - d0), fill=shade)
+        for x, col in ((0, high), (15, mortar)):
+            d.line((x, g - 15 - heights[1] - 1, x, g), fill=col)
+    else:
+        # Climbing east: the west half is the lower tread. West is the mirror.
+        for i in (0, 1):
+            h = heights[i]
+            x0, x1 = (0, 7) if i == 0 else (8, 15)
+            top = g - 15 - h
+            _tread(d, style, x0, x1, top, g - h)
+            # The flight's south face, coursed like the wall it serves.
+            d.rectangle((x0, g - h + 1, x1, g), fill=body)
+            for row in range(g - h + 1 + style["course"], g, style["course"]):
+                d.line((x0, row, x1, row), fill=mortar)
+            d.line((x0, g, x1, g), fill=mortar)
+            # The step's edge, where the next tread rises.
+            if i:
+                d.line((x0, top, x0, g - heights[0]), fill=shade)
+        # A shadow along the foot of the step above.
+        d.line((7, g - 15 - heights[0], 7, g - heights[0]), fill=_mix(light, shade, 0.5))
+        if art == "west":
+            im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    return im
+
+
+def build_wall_stairs(sprites):
+    """Frames are stair-{material}-{art}-{step}, and the top step also names
+    the side it leads onto the wall: stair-masonry-east-3n."""
+    for material, style in WALL_STYLES.items():
+        for art in ("east", "west", "north"):
+            for step in (1, 2, 3):
+                im = _stair(style, art, step)
+                sprites[f"stair-{material}-{art}-{step}"] = im
+                if step == 3:
+                    for onto in "new":
+                        sprites[f"stair-{material}-{art}-{step}{onto}"] = im
+
+
+# Tower shapes per circuit: a is the common one, b a second form seen along
+# the same wall, c the grander tower that marks a turn.
+TOWER_SHAPES = {
+    "masonry": ("round", "square", "cone"),
+    "earth": ("sahel", "sahel", "sahel"),
+    "mudbrick": ("square", "round", "square"),
+    "brick": ("square", "square", "pavilion"),
+    "limestone": ("square", "round", "round"),
+    "laterite": ("square", "square", "square"),
+    "drystone": ("round", "round", "round"),
+}
+TOWER_FACE, TOWER_TOP = WALL_H + 14, 16
+TOWER_W, TOWER_H = 32, TOWER_FACE + TOWER_TOP + 30
+
+
+def _mix(a, b, t):
+    a = _rgb(a) if isinstance(a, str) else a
+    b = _rgb(b) if isinstance(b, str) else b
+    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3)) + (255,)
+
+
+def _tower_square(d, style, shape, seed):
+    mortar, shade, body, light, high = style["ramp"]
+    g = TOWER_H - 1
+    ft = g - TOWER_FACE
+    tt = ft - TOWER_TOP
+    x0, x1 = 0, TOWER_W - 1
+    _gate_face(d, style, x0, ft, x1, g, seed)
+    # Contact shadow under the coping, so the top reads as overhanging.
+    d.line((x0 + 1, ft + 1, x1 - 1, ft + 1), fill=_mix(shade, mortar, 0.4))
+    # The top: a parapet rim round a sunk platform.
+    d.rectangle((x0, tt, x1, ft), fill=light)
+    d.rectangle((x0 + 4, tt + 4, x1 - 4, ft - 3), fill=_mix(body, shade, 0.35))
+    d.line((x0 + 4, tt + 4, x1 - 4, tt + 4), fill=shade)
+    d.line((x0 + 4, tt + 4, x0 + 4, ft - 3), fill=shade)
+    d.line((x0, tt, x1, tt), fill=high)
+    d.line((x0, tt, x0, ft), fill=high)
+    d.line((x1, tt, x1, ft), fill=shade)
+    d.line((x0, ft, x1, ft), fill=mortar)
+    crenels = style["crenels"]
+    if crenels:
+        # Teeth along the far edge, and the side rims notched to match so the
+        # top reads as a parapet all round rather than a box with a fringe.
+        x = x0 + 1
+        while x + 4 <= x1:
+            _merlon(d, style, x, x + 4, tt + 1)
+            x += 7
+        for y in range(tt + 5, ft - 2, 5):
+            for xx in (x0 + 1, x1 - 3):
+                d.rectangle((xx, y, xx + 2, y + 1), fill=_mix(body, shade, 0.35))
+    elif style["coursed"]:
+        # A plain stone parapet with a dressed coping.
+        d.rectangle((x0, tt - 2, x1, tt + 1), fill=light)
+        d.line((x0, tt - 2, x1, tt - 2), fill=high)
+    slit = (x0 + x1) // 2
+    d.rectangle((slit, ft + 9, slit + 1, ft + 18), fill="#2b2420")
+    d.point((slit, ft + 8), fill=shade)
+
+
+def _cyl(x, cx, r):
+    """Column x on a cylinder of radius r about cx: (depth 0..1, shade -1..1)."""
+    t = (x + 0.5 - cx) / r
+    t = max(-1.0, min(1.0, t))
+    return (1 - t * t) ** 0.5, t
+
+
+def _tower_round(d, style, shape, seed, taper=0):
+    mortar, shade, body, light, high = style["ramp"]
+    g = TOWER_H - 1
+    ft = g - TOWER_FACE
+    cx, r = TOWER_W / 2, TOWER_W / 2
+    e = 4  # half-height of the top ellipse
+    for x in range(TOWER_W):
+        z, t = _cyl(x, cx, r)
+        if z <= 0.05:
+            continue
+        top = ft + int(e * z)
+        bot = g - int(2 * (1 - z))
+        # Lit from the west: a highlight a third of the way in, then rolling
+        # into shade past the axis.
+        if t < -0.75:
+            col = light
+        elif t < -0.2:
+            col = _mix(light, high, 0.35)
+        elif t < 0.35:
+            col = body
+        elif t < 0.75:
+            col = shade
+        else:
+            col = _mix(shade, mortar, 0.5)
+        d.line((x, top, x, bot), fill=col)
+        if style["coursed"]:
+            joint = _mix(col, mortar, 0.55)
+            for row in range(ft + style["course"], g, style["course"]):
+                y = row + int(e * z)
+                if top < y < bot:
+                    d.point((x, y), fill=joint)
+                    # Vertical joints, staggered course to course.
+                    k = (row - ft) // style["course"]
+                    if (x + k * 3 + seed) % style["block"] == 0:
+                        for yy in range(y - style["course"] + 1, y):
+                            if top < yy < bot:
+                                d.point((x, yy), fill=joint)
+        if style.get("chevron") and top + 6 < bot:
+            y = top + 4 + abs(x % 6 - 3)
+            d.point((x, y), fill=mortar)
+        d.point((x, bot), fill=mortar)
+    # The top, seen from above: a ring of parapet round a sunk floor.
+    tt = ft - 2 * e - 4
+    d.ellipse((0, tt, TOWER_W - 1, ft + 2 * e - 2), fill=light)
+    d.ellipse((4, tt + 3, TOWER_W - 5, ft + 2 * e - 5), fill=_mix(body, shade, 0.35))
+    d.arc((0, tt, TOWER_W - 1, ft + 2 * e - 2), 150, 330, fill=high)
+    d.arc((0, tt, TOWER_W - 1, ft + 2 * e - 2), 330, 150, fill=shade)
+    slit = int(cx) - 4
+    d.rectangle((slit, ft + 11, slit + 1, ft + 19), fill="#2b2420")
+    return tt
+
+
+def _rim_merlons(d, style, tt, w=TOWER_W):
+    """Merlons standing along the far half of a round tower's rim."""
+    cx, r = w / 2, w / 2 - 2
+    for k in range(6):
+        a = 3.14159 * (k + 0.5) / 6
+        x = int(cx - r * 0.98 * __import__("math").cos(a))
+        y = int(tt + 4 - 4 * __import__("math").sin(a))
+        _merlon(d, style, x - 2, x + 1, y + 1)
+
+
+def _cone(d, tt, w=TOWER_W):
+    """A conical slate roof on a round tower."""
+    roof = ["#24262c", "#3b3f48", "#555b66", "#717884", "#8f97a3"]
+    apex = (w // 2, tt - 22)
+    base_y = tt + 6
+    for x in range(-1, w + 1):
+        t = (x + 0.5 - w / 2) / (w / 2 + 1)
+        if abs(t) > 1:
+            continue
+        top = apex[1] + int(abs(t) * 26)
+        bot = base_y + int(3 * (1 - t * t) ** 0.5)
+        col = roof[3] if t < -0.4 else roof[2] if t < 0.25 else roof[1]
+        d.line((x, top, x, bot), fill=col)
+    # Slate courses follow the cone round, so they bow down at the middle.
+    for k in range(1, 6):
+        for x in range(0, w):
+            t = (x + 0.5 - w / 2) / (w / 2 + 1)
+            top = apex[1] + int(abs(t) * 26)
+            y = apex[1] + k * 5 + int(2 * (1 - t * t) ** 0.5) + 1
+            if y > top + 1 and y < base_y:
+                d.point((x, y), fill=roof[0] if t > 0.25 else roof[1])
+    d.line((apex[0], apex[1] - 3, apex[0], apex[1]), fill=roof[0])
+    d.point((apex[0], apex[1] - 4), fill="#b8a46a")
+    d.arc((-1, base_y - 2, w, base_y + 6), 0, 180, fill=roof[0])
+
+
+def _tower_sahel(d, style):
+    """A Sahelian earth tower: battered sides narrowing to a rounded crown,
+    smoothed by replastering, bristling with toron."""
+    mortar, shade, body, light, high = style["ramp"]
+    g = TOWER_H - 1
+    top = g - TOWER_FACE - 18
+    for y in range(top, g + 1):
+        k = (y - top) / (g - top)
+        half = 9 + 6 * k
+        if y < top + 7:
+            # The crown rounds over.
+            half = 9 * (1 - ((top + 7 - y) / 7) ** 2) ** 0.5
+        cx = TOWER_W / 2
+        for x in range(int(cx - half), int(cx + half) + 1):
+            t = (x + 0.5 - cx) / max(half, 1)
+            col = light if t < -0.45 else body if t < 0.3 else shade
+            if y < top + 7 and t < 0.2 and y < top + 3:
+                col = high
+            d.point((x, y), fill=col)
+    for j, y in enumerate(range(top + 10, g - 3, 8)):
+        k = (y - top) / (g - top)
+        half = 9 + 6 * k
+        for x in range(int(TOWER_W / 2 - half) + 2 + (j % 2) * 3, int(TOWER_W / 2 + half) - 2, 6):
+            d.line((x, y, x + 2, y), fill="#8a6a44")
+            d.line((x, y + 1, x + 2, y + 1), fill="#4e3820")
+    d.rectangle((TOWER_W // 2 - 1, g - 22, TOWER_W // 2, g - 15), fill="#2b2420")
+    d.line((int(TOWER_W / 2 - 15), g, int(TOWER_W / 2 + 15), g), fill=mortar)
+
+
+def build_wall_towers(sprites):
+    """Towers for each circuit, standing on a wall cell or astride a jog.
+    A little taller than the wall, so a run reads as curtain and towers."""
+    for material, style in WALL_STYLES.items():
+        for variant, shape in zip("abc", TOWER_SHAPES[material]):
+            im = Image.new("RGBA", (TOWER_W + 2, TOWER_H))
+            d = ImageDraw.Draw(im)
+            seed = ord(variant)
+            if shape in ("square", "pavilion"):
+                _tower_square(d, style, shape, seed)
+                if shape == "pavilion":
+                    _pavilion(d, 1, TOWER_W - 2, TOWER_H - 1 - TOWER_FACE - 6)
+            elif shape == "sahel":
+                _tower_sahel(d, style)
+            else:
+                tt = _tower_round(d, style, shape, seed)
+                if shape == "cone":
+                    _cone(d, tt)
+                elif style["crenels"]:
+                    _rim_merlons(d, style, tt)
+            d.line((1, TOWER_H - 1, TOWER_W, TOWER_H - 1), fill=(24, 26, 20, 120))
+            sprites[f"tower-{material}-{variant}"] = im
 
 
 def build_square_furniture(sprites):

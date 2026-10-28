@@ -295,6 +295,9 @@ export type Actor = {
   mount?: { vehicle: string; place: number };
   /** Stepped down from a vehicle for a while, to go back to it after. */
   dismounted?: { vehicle: string; place: number };
+  /** Walking a beat on the town wall walk, placed from the clock as a
+   * vehicle is (see vehicleAt). Always up on the wall. */
+  watch?: { path: Point[]; loop: boolean; speed: number; waits: [number, number]; phase: number };
   /** On watch over warded ground. `since` is when they last saw a stranger
    * on it; `warned` when they last told one to go. */
   guard?: { ward: string; since?: number; warned?: number };
@@ -302,6 +305,9 @@ export type Actor = {
    * whether they fight or cower, and when a blow last set them back. */
   terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" };
 };
+/** A cell of a town wall's walk. `corner` is where a diagonal's band crosses
+ * the cell, which is where someone walking it stands. */
+export type WallWalk = { kind: "wall" | "tower" | "gate"; corner?: "nw" | "ne" | "se" | "sw" };
 export type Place = {
   institution?: import("../content/characters/workplace").Institution;
   workCapacity?: number;

@@ -33,7 +33,10 @@ export type VehicleAt = { x: number; y: number; facing: number; moving: boolean;
 
 /** Where a vehicle is at `clock`, which way it faces (the eight facings, 0
  * north and clockwise) and how far it has come, for its wheels and gait. */
-export function vehicleAt(v: Vehicle, clock: number): VehicleAt {
+export function vehicleAt(
+  v: Pick<Vehicle, "path" | "loop" | "speed" | "waits" | "phase">,
+  clock: number,
+): VehicleAt {
   const L = v.path.length - 1;
   const drive = L / v.speed;
   const cycle = (v.loop ? 1 : 2) * drive + v.waits[0] + v.waits[1];
@@ -192,6 +195,49 @@ function crewMember(seed: string, pack: Pack, vehicle: string, c: Conveyance,
     Object.assign(actor, generateCharacter(setting, seed, id, age, member.livelihood, undefined, undefined,
       member.sex ?? characterSex(seed, id)));
     actor.role = member.role;
+    actor.age = age;
+  }
+  return actor;
+}
+
+/** A watchman walking a beat on the town wall, out and back, with a pause at
+ * each end to look out. */
+export function watchman(seed: string, pack: Pack, id: string, beat: Point[]): Actor {
+  const setting = pack.setting!;
+  const roll = (k: string) => random(seed, id, k);
+  const age = 20 + Math.floor(roll("age") * 30);
+  const pos = { x: beat[0].x, y: beat[0].y, space: "outside" as const };
+  const livelihood = setting.year >= -1000 ? "town-watchman" : "warrior";
+  const actor: Actor = {
+    id,
+    name: proceduralName(setting, seed, id),
+    role: "Watchman",
+    kind: "human",
+    pos: { ...pos },
+    home: { ...pos },
+    work: { ...pos },
+    sprite: `human-0-${Math.floor(roll("sprite") * 6)}`,
+    inventory: { water: 1 },
+    activity: "Keeping watch from the wall",
+    fatigue: 0,
+    hunger: 5,
+    trust: 1,
+    memories: [],
+    direction: 2,
+    age,
+    watch: {
+      path: beat,
+      loop: false,
+      // An unhurried pace, about half a walk.
+      speed: 0.6,
+      waits: [40 + roll("wait-out") * 60, 40 + roll("wait-back") * 60],
+      phase: roll("phase"),
+    },
+  };
+  if (setting.characterRevision) {
+    Object.assign(actor, generateCharacter(setting, seed, id, age, livelihood, undefined, undefined,
+      characterSex(seed, id)));
+    actor.role = "Watchman";
     actor.age = age;
   }
   return actor;

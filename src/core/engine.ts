@@ -263,7 +263,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Ask, CallIn, Favour, Place, Point, WalkOff, Word } from "./types";
+import type { Ask, CallIn, Favour, Place, Point, WalkOff, WallWalk, Word } from "./types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -1696,23 +1696,79 @@ export class Engine {
   private resourceObjects?: WorldObject[];
   private terrainCollision = new Map<string, boolean>();
   private interiors = new Map<string, InteriorLayout | null>();
-  private wallCells?: Set<string>;
-  private wallCellsFor = -1;
-  /** A cell belonging to an enclosure circuit: a wall you can stand on, as
-   * opposed to a building footprint or a tree. Districts push enclosures as
-   * they activate, so the index is rebuilt when their number changes. */
-  wallAt(x: number, y: number, space = this.state.player.pos.space) {
-    if (space !== "outside") return false;
+  private wallIndex?: {
+    cells: Set<string>;
+    walk: Map<string, WallWalk>;
+    stairs: Map<string, { step: number; onto?: Point }>;
+  };
+  private wallIndexFor = -1;
+  /** The circuits' cells, read off the frames the town was drawn with:
+   * wall-{material}-{mask}{d}-{v} for the wall, wall-none under a tower or a
+   * gatehouse's flank, tower-*, gate-{material}-{n} centred on its gap, and
+   * stair-{material}-{art}-{step}{onto}. Districts push enclosures as they
+   * activate, so the index is rebuilt when their number changes. */
+  private walls() {
     const all = this.world.enclosures ?? [];
-    if (!this.wallCells || this.wallCellsFor !== all.length) {
-      this.wallCells = new Set();
-      for (const e of all)
-        for (const part of e.parts ?? [])
-          // A gatehouse is drawn over its own gap, which stays a road.
-          if (!part.frame.startsWith("gate-")) this.wallCells.add(`${part.x},${part.y}`);
-      this.wallCellsFor = all.length;
-    }
-    return this.wallCells.has(`${x},${y}`);
+    if (this.wallIndex && this.wallIndexFor === all.length) return this.wallIndex;
+    const cells = new Set<string>();
+    const walk = new Map<string, WallWalk>();
+    const stairs = new Map<string, { step: number; onto?: Point }>();
+    const corners: Record<string, WallWalk["corner"]> = { "9": "nw", "3": "ne", "6": "se", "12": "sw" };
+    for (const e of all)
+      for (const { x, y, frame } of e.parts ?? []) {
+        const k = `${x},${y}`;
+        let m: RegExpMatchArray | null;
+        if ((m = frame.match(/^wall-[a-z]+-(\d+)(d?)-\d$/))) {
+          cells.add(k);
+          walk.set(k, m[2] ? { kind: "wall", corner: corners[m[1]] } : { kind: "wall" });
+        } else if (frame.startsWith("tower-")) walk.set(k, { kind: "tower" });
+        else if ((m = frame.match(/^gate-[a-z]+-(\d+)$/))) {
+          // The span over the gap and the towers either side, at one height.
+          const lo = x - (Number(m[1]) - 1) / 2;
+          for (let i = -1; i <= Number(m[1]); i++) walk.set(`${lo + i},${y}`, { kind: "gate" });
+        } else if ((m = frame.match(/^stair-[a-z]+-[a-z]+-(\d)([new]?)$/))) {
+          const onto = m[2] && { x: x + (m[2] === "e" ? 1 : m[2] === "w" ? -1 : 0), y: y - (m[2] === "n" ? 1 : 0) };
+          stairs.set(k, { step: Number(m[1]), ...(onto ? { onto } : {}) });
+        } else {
+          // Field walls, hedges and pens: anything else an enclosure is made of.
+          cells.add(k);
+          if (!walk.has(k)) walk.set(k, { kind: "wall" });
+        }
+      }
+    this.wallIndexFor = all.length;
+    return (this.wallIndex = { cells, walk, stairs });
+  }
+  /** A cell belonging to an enclosure circuit: a wall you can stand on, as
+   * opposed to a building footprint or a tree. A gate's span is not one: the
+   * road runs under it. */
+  wallAt(x: number, y: number, space = this.state.player.pos.space) {
+    return space === "outside" && this.walls().cells.has(`${x},${y}`);
+  }
+  /** What the wall walk is at a cell, for someone up on it. */
+  walkAt(x: number, y: number): WallWalk | undefined {
+    return this.walls().walk.get(`${x},${y}`);
+  }
+  /** Which step of a flight up the wall a cell is, for anyone on it. */
+  stairAt(x: number, y: number) {
+    return this.walls().stairs.get(`${x},${y}`);
+  }
+  /** The gate cell the player is up on, if they are: a span is road for
+   * whoever is below it, so being on it takes having walked there. Any other
+   * way of reaching the cell leaves this stale, and then they are below. */
+  private aloftAt?: string;
+  /** How a step from the player's cell meets the wall walk: up a flight onto
+   * it, along it, down off it onto the stairs, or off its edge into the air. */
+  private wallStep(dx: number, dy: number): "up" | "along" | "down" | "drop" | undefined {
+    const p = this.state.player.pos;
+    if (p.space !== "outside") return undefined;
+    if (dx && dy) return this.onWall() ? "drop" : undefined;
+    const to = { x: p.x + dx, y: p.y + dy };
+    const onto = this.stairAt(p.x, p.y)?.onto;
+    if (!this.onWall())
+      return onto && onto.x === to.x && onto.y === to.y && this.walkAt(to.x, to.y) ? "up" : undefined;
+    if (this.walkAt(to.x, to.y)) return "along";
+    const below = this.stairAt(to.x, to.y)?.onto;
+    return below && below.x === p.x && below.y === p.y ? "down" : "drop";
   }
   /** Past the edge of the playable map: map travel's business, not a wall to climb. */
   offMap(x: number, y: number) {
@@ -1724,7 +1780,8 @@ export class Engine {
   /** Standing on top of a wall, rather than beside it. */
   onWall() {
     const p = this.state.player.pos;
-    return this.wallAt(p.x, p.y, p.space);
+    return this.wallAt(p.x, p.y, p.space) ||
+      (p.space === "outside" && this.aloftAt === `${p.x},${p.y}`);
   }
   /** Re-files an actor in actorsAt after any write to a.pos, including ones
    * made by livelihood callbacks the engine does not own. */
@@ -2874,7 +2931,8 @@ export class Engine {
     const x = p.pos.x + c.dx, y = p.pos.y + c.dy;
     if (!this.playerBlocked(x, y) || this.offMap(x, y) || this.toppleTarget(c.dx, c.dy, true)) return undefined;
     if (p.pos.space === "outside" && this.treeFind(x, y)) return undefined;
-    if (this.onWall() && this.wallAt(x, y, p.pos.space)) return undefined;
+    // Up on the wall there is nowhere to dodge to but the air.
+    if (this.onWall() || this.wallStep(c.dx, c.dy) === "up") return undefined;
     const push = this.shovePlan(c.dx, c.dy);
     if (push && !("refused" in push)) return undefined;
     const sides = [{ x: c.dy, y: c.dx }, { x: -c.dy, y: -c.dx }];
@@ -2898,7 +2956,7 @@ export class Engine {
         c.dx !== this.lastStep.dx || c.dy !== this.lastStep.dy) return false;
     const x = p.pos.x + c.dx, y = p.pos.y + c.dy;
     if (!this.playerBlocked(x, y) || this.offMap(x, y) || this.lowPropAhead(c.dx, c.dy) ||
-        this.toppleTarget(c.dx, c.dy, true) || this.onWall() && this.wallAt(x, y, p.pos.space)) return false;
+        this.toppleTarget(c.dx, c.dy, true) || this.onWall() || this.wallStep(c.dx, c.dy) === "up") return false;
     const push = this.shovePlan(c.dx, c.dy);
     if (push && !("refused" in push)) return false;
     // Let diagonal input slide along an open side without taking an impact.
@@ -2992,6 +3050,71 @@ export class Engine {
       this.walkOff(a, "authority");
       this.event(`${a.name} calls for help and goes to report you.`, "social");
     }
+  }
+  /** Up on the wall without business there: the nearest watchman comes along
+   * the walk to order the player down, and goes back to his round after. */
+  private challengeFromWall(a: Actor, clock: number) {
+    const p = this.state.player, c = this.wallChallenge;
+    if (c && c.id !== a.id) return false;
+    const up = this.onWall() && !p.dead && !/watch|guard|soldier|sentry/i.test(p.role ?? "");
+    const off = (x: number, y: number) => !this.walkAt(x, y) || !!this.actorAt({ x, y, space: "outside" }, a.id);
+    const stepTo = (to: Point) => {
+      const step = findPath(a.pos, to, off, 400)[0];
+      if (!step) return false;
+      a.direction = this.directionTo(a.pos, step);
+      this.moveActor(a, { x: step.x, y: step.y, space: "outside" });
+      return true;
+    };
+    if (!up) {
+      if (!c) return false;
+      const home = vehicleAt(a.watch!, clock);
+      const to = { x: Math.round(home.x), y: Math.round(home.y) };
+      if ((a.pos.x === to.x && a.pos.y === to.y) || !stepTo(to)) {
+        this.wallChallenge = undefined;
+        return false;
+      }
+      a.activity = "Going back to the round";
+      return true;
+    }
+    if (!c) {
+      const near = (o: Actor) => distance(o.pos, p.pos);
+      if (a.pos.space !== "outside" || near(a) > 40 ||
+        this.state.actors.some((o) => o !== a && o.watch && !o.dead && near(o) < near(a))) return false;
+      this.wallChallenge = { id: a.id };
+      this.event(`${a.name} has seen you on the wall and is coming your way.`, "social");
+    }
+    const w = this.wallChallenge!;
+    a.offRoutine = true;
+    if (distance(a.pos, p.pos) > 1.6) {
+      a.activity = "Coming to turn you off the wall";
+      if (!stepTo(p.pos)) a.direction = this.directionTo(a.pos, p.pos);
+      if (distance(a.pos, p.pos) > 1.6) return true;
+    }
+    a.direction = this.directionTo(a.pos, p.pos);
+    a.activity = "Ordering you off the wall";
+    if (w.warnedAt === undefined) {
+      w.warnedAt = clock;
+      this.regard(a, -2, "anger");
+      this.cue(a.id, "beckon", p.pos);
+      const lines = [
+        "Hey! What do you think you're doing up here? The wall is for the watch. Get down, now!",
+        "You! Off the wall! Nobody comes up here without leave from the council.",
+        "Who let you up here? Down the stairs, right now, before I drag you down.",
+      ];
+      this.cards.push({ kind: "speech", title: a.name, text: lines[a.id.length % lines.length], speaker: a.id });
+      this.approacher = {
+        id: a.id,
+        situation: "YOU ARE A TOWN WATCHMAN and the player has climbed onto the town wall, where only the watch may go. You have marched along the wall walk straight up to them. Order them down, angrily. Demand who they are and what they are up to. Do not be polite.",
+        until: clock + 300,
+      };
+    } else if (!w.escalated && clock - w.warnedAt >= 90) {
+      w.escalated = true;
+      this.regard(a, -3, "fury");
+      a.memories.push("The player stayed on the town wall after being ordered down");
+      this.complain(a, { act: "refused to come down from", object: "the town wall", victim: a.id, tone: -4, at: clock, hops: 0 });
+      this.cards.push({ kind: "speech", title: a.name, text: "Right, that's it. I'm reporting you. You'll answer for this.", speaker: a.id });
+    }
+    return true;
   }
   private confront(clock: number) {
     const p = this.state.player;
@@ -5869,6 +5992,8 @@ export class Engine {
         ) > MAX_WADING_DEPTH
       )
         return "Too deep to wade — find a shallower crossing or a bridge.";
+      if (this.wallStep(c.dx, c.dy) === "drop")
+        return "It is a long drop from the wall. Jump, or go down by the stairs.";
       if (this.runningCollision(c) || this.sidestep(c)) return;
       if (!(c.dx && c.dy) && p.pos.space === "outside" && this.treeFind(p.pos.x + c.dx, p.pos.y + c.dy)) return;
       const push = this.shovePlan(c.dx, c.dy);
@@ -5883,7 +6008,7 @@ export class Engine {
           })) ||
         (!push && !toppling &&
           this.playerBlocked(p.pos.x + c.dx, p.pos.y + c.dy) &&
-          !(this.onWall() && this.wallAt(p.pos.x + c.dx, p.pos.y + c.dy))) ||
+          !["up", "along"].includes(this.wallStep(c.dx, c.dy) ?? "")) ||
         (c.dx !== 0 &&
           c.dy !== 0 &&
           (this.playerBlocked(p.pos.x + c.dx, p.pos.y) ||
@@ -7212,11 +7337,16 @@ export class Engine {
       }
       delete this.lastLeap;
       delete this.lastJostle;
+      const step = this.wallStep(c.dx, c.dy);
+      const aloft = step === "up" || step === "along";
+      // The watch on the wall and whoever is passing under a gate share a
+      // cell without meeting.
       const occupant = this.state.actors.find(
         (a) =>
           a.pos.space === p.pos.space &&
           a.pos.x === p.pos.x + c.dx &&
-          a.pos.y === p.pos.y + c.dy,
+          a.pos.y === p.pos.y + c.dy &&
+          !!a.watch === aloft,
       );
       if (occupant && !this.inPlayerWay(occupant.pos)) occupant.pos = { ...p.pos };
       else if (occupant) {
@@ -7278,9 +7408,12 @@ export class Engine {
         push && !("refused" in push) ? this.applyShove(push, c.dx, c.dy) : 0;
       p.pos.x += c.dx;
       p.pos.y += c.dy;
+      this.aloftAt = aloft ? `${p.pos.x},${p.pos.y}` : undefined;
+      if (step === "up") this.event("You climb the stairs onto the wall walk.");
+      else if (step === "down") this.event("You go down the stairs off the wall.");
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
       p.facing = facingFromStep(c.dx, c.dy, p.direction);
-      if (p.pos.space === "outside") this.tread(p.pos.x, p.pos.y);
+      if (p.pos.space === "outside" && !aloft) this.tread(p.pos.x, p.pos.y);
       const depth =
         p.pos.space === "outside" && this.world.topography
           ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
@@ -8027,6 +8160,7 @@ export class Engine {
   /** Who is ordering the player out of their house right now; they shout. */
   confronting?: string;
   private intrusion?: { place: string; since: number; by?: string; done?: boolean; warnedAt?: number; escalated?: boolean };
+  private wallChallenge?: { id: string; warnedAt?: number; escalated?: boolean };
   /** Clock second each actor last took offence at a collision or a swing,
    * so leaning on them or swinging again does not keep costing trust. */
   private affronts = new Map<string, number>();
@@ -9774,6 +9908,18 @@ export class Engine {
         if ((a.terror && a.terror.until >= next) || this.crowd.has(a.id)) continue;
         if (a.kind === "human" && next % 60 === 0) this.discover(a);
         if (a.kind === "human" && a.guard) this.keepWatch(a, next);
+        if (a.kind === "human" && a.watch) {
+          if (this.challengeFromWall(a, next)) continue;
+          const at = vehicleAt(a.watch, next);
+          const x = Math.round(at.x), y = Math.round(at.y);
+          if (a.pos.x !== x || a.pos.y !== y || a.pos.space !== "outside") {
+            a.direction = y < a.pos.y ? 0 : x > a.pos.x ? 1 : y > a.pos.y ? 2 : 3;
+            this.moveActor(a, { x, y, space: "outside" });
+          } else if (!at.moving) a.direction = 2;
+          a.activity = at.moving ? "Walking the wall" : "Keeping watch from the wall";
+          a.offRoutine = false;
+          continue;
+        }
         if (a.kind === "human" && a.mount) {
           const v = this.world.vehicle?.(a.mount.vehicle);
           if (v) {

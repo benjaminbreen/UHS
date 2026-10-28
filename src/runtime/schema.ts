@@ -408,6 +408,7 @@ const actor = z.object({
   goal: pos.optional(),
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
   wayfarer: z.object({ until: z.number() }).optional(),
+  watch: z.object({ path: z.array(point).max(400), loop: z.boolean(), speed: z.number(), waits: z.tuple([z.number(), z.number()]), phase: z.number() }).optional(),
 });
 const object = z.object({
   resource: z

@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { overLimit } from "./rate-limit";
 import { dropNulls, strictSchema } from "./json-schema";
@@ -127,11 +128,27 @@ export async function dialogue(
     return json({ error: "Malformed conversation request." }, 400);
   }
   const haiku = (input.provider ?? "haiku") === "haiku";
-  const key = haiku ? env.OPENROUTER_API_KEY : env.OPENAI_API_KEY;
-  if (!key) return json({ error: `No ${haiku ? "OpenRouter" : "OpenAI"} key on this server.` }, 503);
-  const model = haiku ? (env.UHS_HAIKU_MODEL ?? HAIKU_MODEL) : "gpt-6-luna";
+  // A direct Anthropic key is preferred: it bills the Max plan's API credit and skips OpenRouter's routing, which hung on about a third of calls in testing.
+  const direct = haiku && !!env.ANTHROPIC_API_KEY;
+  const key = direct ? env.ANTHROPIC_API_KEY : haiku ? env.OPENROUTER_API_KEY : env.OPENAI_API_KEY;
+  const name = direct ? "Anthropic" : haiku ? "OpenRouter" : "OpenAI";
+  if (!key) return json({ error: `No ${name} key on this server.` }, 503);
+  const model = direct ? "claude-haiku-5-5" : haiku ? (env.UHS_HAIKU_MODEL ?? HAIKU_MODEL) : "gpt-6-luna";
   const thinks = input.realLanguage && !input.explain;
   const schema = strictSchema(input.explain ? explanationSchema : replySchema);
+  const system = input.explain ? EXPLAIN : input.realLanguage ? SYSTEM + REAL_LANGUAGE : SYSTEM;
+  const user = input.explain ? `${input.user}\n\nSelected NPC line: ${input.explain.dialogue}${input.explain.original ? `\nOriginal-language line (${input.explain.language ?? "language unnamed"}): ${input.explain.original}` : ""}` : input.user;
+  const maxTokens = input.explain ? 300 : input.realLanguage ? 3000 : 300;
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(thinks ? 30000 : 15000)]);
+  const failed = (status: number, detail: string) => {
+    const reason =
+      status === 401 || status === 403 ? "rejected the API key on this server"
+      : status === 402 ? "says the account is out of credit"
+      : status === 429 ? "is rate limiting or out of quota"
+      : `returned HTTP ${status}`;
+    console.warn(`dialogue: ${name} ${status} ${detail}`);
+    return json({ error: `${name} ${reason}.${detail ? ` ${detail.slice(0, 200)}` : ""}` }, 502);
+  };
   inFlight++;
   // Timed so a slow reply can be blamed on the right thing. A ten-second
   // "What do you want?" is either the model or us, and guessing which has
@@ -139,36 +156,62 @@ export async function dialogue(
   const began = Date.now();
   let upstream = 0;
   try {
-    const response = await provider(haiku ? OPENROUTER : "https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(input.realLanguage && !input.explain ? 30000 : 15000)]),
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "system", content: input.explain ? EXPLAIN : input.realLanguage ? SYSTEM + REAL_LANGUAGE : SYSTEM }, { role: "user", content: input.explain ? `${input.user}\n\nSelected NPC line: ${input.explain.dialogue}${input.explain.original ? `\nOriginal-language line (${input.explain.language ?? "language unnamed"}): ${input.explain.original}` : ""}` : input.user }],
-        response_format: { type: "json_schema", json_schema: { name: input.explain ? "npc_explanation" : "npc_dialogue", schema, strict: true } },
-        [haiku ? "max_tokens" : "max_completion_tokens"]: input.explain ? 300 : input.realLanguage ? 3000 : 300,
-        // Choosing a language, reconstructing it and translating into it at once needs to think; ordinary talk does not.
-        ...(haiku ? (thinks ? { reasoning: { effort: "low" } } : {}) : { reasoning_effort: thinks ? "low" : "none" }),
-      }),
-    });
-    if (!response.ok) return json({ error: "The model provider refused the conversation." }, 502);
-    const result = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-      usage?: { completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
-    };
+    let text: string;
+    let out = 0;
+    let reasoning = 0;
+    if (direct) {
+      const client = new Anthropic({ apiKey: key, fetch: provider, maxRetries: 0 });
+      let message: Anthropic.Message;
+      try {
+        message = await client.messages.create({
+          model,
+          max_tokens: maxTokens,
+          system,
+          messages: [{ role: "user", content: user }],
+          // Choosing a language, reconstructing it and translating into it at once needs to think; ordinary talk does not.
+          thinking: thinks ? { type: "adaptive" } : { type: "disabled" },
+          output_config: { format: { type: "json_schema", schema }, ...(thinks ? { effort: "low" as const } : {}) },
+        }, { signal });
+      } catch (error) {
+        if (error instanceof Anthropic.APIError && error.status)
+          return failed(error.status, (error.error as { error?: { message?: string } } | undefined)?.error?.message ?? error.message);
+        throw error;
+      }
+      if (message.stop_reason === "refusal") return json({ error: "Claude declined to answer as this character." }, 502);
+      text = message.content.find((block) => block.type === "text")?.text ?? "";
+      out = message.usage.output_tokens;
+    } else {
+      const response = await provider(haiku ? OPENROUTER : "https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        signal,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "system", content: system }, { role: "user", content: user }],
+          response_format: { type: "json_schema", json_schema: { name: input.explain ? "npc_explanation" : "npc_dialogue", schema, strict: true } },
+          [haiku ? "max_tokens" : "max_completion_tokens"]: maxTokens,
+          ...(haiku ? (thinks ? { reasoning: { effort: "low" } } : {}) : { reasoning_effort: thinks ? "low" : "none" }),
+        }),
+      });
+      if (!response.ok)
+        return failed(response.status, await response.json().then((b: { error?: { message?: string } }) => b.error?.message ?? "", () => ""));
+      const result = (await response.json()) as {
+        choices?: { message?: { content?: string } }[];
+        usage?: { completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
+      };
+      text = result.choices?.[0]?.message?.content ?? "";
+      out = result.usage?.completion_tokens ?? 0;
+      // Reasoning tokens on a request that asked for none is the single most
+      // useful thing to see here, so it is reported rather than summarised.
+      reasoning = result.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
+    }
     upstream = Date.now() - began;
-    const text = result.choices?.[0]?.message?.content ?? "";
     if (input.explain) {
       const parsed = explanationSchema.safeParse(dropNulls(JSON.parse(text)));
       return parsed.success ? json(parsed.data) : json({ error: "The model returned an unusable explanation." }, 502);
     }
     const parsed = replySchema.safeParse(dropNulls(JSON.parse(text)));
     if (!parsed.success) return json({ error: "The model returned an unusable line." }, 502);
-    // Reasoning tokens on a request that asked for none is the single most
-    // useful thing to see here, so it is reported rather than summarised.
-    const reasoning =
-      result.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
     return json({
       text: parsed.data.dialogue,
       original: input.realLanguage ? parsed.data.original : undefined,
@@ -184,7 +227,7 @@ export async function dialogue(
       trade: parsed.data.trade,
       model,
       ms: { upstream, total: Date.now() - began },
-      tokens: { out: result.usage?.completion_tokens ?? 0, reasoning },
+      tokens: { out, reasoning },
     });
   } catch {
     return json({ error: "The conversation timed out." }, 502);

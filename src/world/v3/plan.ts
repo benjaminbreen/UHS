@@ -7,7 +7,7 @@ import { resolveJunctions } from "./junctions";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
 import { railStaff, railVisitors } from "./rail-travellers";
-import { planConveyances } from "./conveyances";
+import { planConveyances, watchman } from "./conveyances";
 import { religiousProfile, religiousScale } from "../../content/settlements/religious";
 import {
   generateCharacter,
@@ -1849,13 +1849,19 @@ export function planSettlement(
                   ...(alongX ? { x: v, y: back } : { x: back, y: v }),
                 });
           },
-          buildWall: (wall, parts, gatehouses) => {
+          buildWall: (wall, parts, overlays, stairs, beats) => {
             for (const part of parts) {
               const k = cellKey(part.x, part.y);
               plan.solid.add(k);
               plan.reserved.add(k);
               noRoad.add(k);
             }
+            for (const q of stairs) {
+              plan.reserved.add(cellKey(q.x, q.y));
+              noRoad.add(cellKey(q.x, q.y));
+            }
+            for (const [i, beat] of beats.entries())
+              plan.actors.push(watchman(seed, pack, `${site.id}-watch-${i}`, beat));
             plan.enclosures.push({
               ...wall.rect,
               // A circuit has many ways in. The single gate this field records
@@ -1866,7 +1872,7 @@ export function planSettlement(
                   return { x, y };
                 })
                 .sort((a, b) => a.y - b.y || a.x - b.x)[0] ?? { ...c },
-              parts: [...parts.filter((p) => p.frame), ...gatehouses],
+              parts: [...parts, ...overlays],
             });
           },
         })

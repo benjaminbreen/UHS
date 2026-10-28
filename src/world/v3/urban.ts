@@ -123,7 +123,12 @@ export type UrbanSurface = {
   buildWall(
     wall: Wall,
     parts: { x: number; y: number; frame: string }[],
-    gatehouses: { x: number; y: number; frame: string }[],
+    /** Drawn over the ground without standing on it: gatehouses, towers, stairs. */
+    overlays: { x: number; y: number; frame: string }[],
+    /** Stair cells, walkable but kept clear of streets and buildings. */
+    stairs: Point[],
+    /** The stretches of wall walk the watch patrols. */
+    beats: Point[][],
   ): void;
   /** Lay the railway, after the streets it crosses on the level. */
   railway?(rail: Rail): void;
@@ -543,56 +548,145 @@ export function urbanNeighborhood(
     // The circuit is a rasterised polygon, so it jogs constantly and no single
     // "run" frame can describe a cell. Each cell names the neighbours it
     // actually has, and the sprite carries the parapet on every open side.
-    const parts = standing.map((p) => {
+    const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
+    const maskOf = new Map<string, number>();
+    for (const p of standing) {
       let mask = 0;
-      for (const [bit, dx, dy] of [
-        [1, 0, -1],
-        [2, 1, 0],
-        [4, 0, 1],
-        [8, -1, 0],
-      ] as const)
-        if (built.has(cellKey(p.x + dx, p.y + dy))) mask |= bit;
-      return { ...p, mask };
-    }).map((p, _, all) => {
-      const corner = (m: number) => m === 3 || m === 6 || m === 9 || m === 12;
-      const byKey = new Map(all.map((q) => [cellKey(q.x, q.y), q.mask]));
-      // A corner between two corners is a step on a diagonal, not a turn. The
-      // last step keeps its square tile so it meets the straight run flush.
-      const step = corner(p.mask) && [[0, -1], [1, 0], [0, 1], [-1, 0]]
-        .filter(([dx, dy]) => corner(byKey.get(cellKey(p.x + dx, p.y + dy)) ?? 0)).length === 2;
+      for (const [i, [dx, dy]] of N4.entries())
+        if (built.has(cellKey(p.x + dx, p.y + dy))) mask |= 1 << i;
+      maskOf.set(cellKey(p.x, p.y), mask);
+    }
+    const corner = (k: string) => [3, 6, 9, 12].includes(maskOf.get(k) ?? 0);
+    const cornerNeighbours = (p: Point) =>
+      N4.map(([dx, dy]) => ({ x: p.x + dx, y: p.y + dy })).filter((q) => corner(cellKey(q.x, q.y)));
+    const parts = standing.map((p) => {
+      const k = cellKey(p.x, p.y), mask = maskOf.get(k)!;
+      // A corner beside another corner is a step: on a diagonal, at its end,
+      // or in a one-cell jog. Its tile carries the wall across at 45 degrees
+      // edge to edge, which meets a straight run's tile flush.
+      const step = corner(k) && cornerNeighbours(p).length > 0;
       // Four variants keep the coursing from repeating cell to cell along a run.
-      return { x: p.x, y: p.y, frame: `wall-${material}-${p.mask}${step ? "d" : ""}-${(p.x + p.y) & 3}` };
+      return { x: p.x, y: p.y, frame: `wall-${material}-${mask}${step ? "d" : ""}-${(p.x + p.y) & 3}` };
     });
+    const hidden = new Set<string>();
+    const towers: { x: number; y: number; frame: string }[] = [];
     // A gap across an east-west run gets a gatehouse spanning it and the wall
     // cell either side; any other gets a tower on each flank.
-    const gatehouses: { x: number; y: number; frame: string }[] = [];
+    const nearGate = new Set<string>();
+    // Gate cells the wall walk crosses on the gatehouse's span.
+    const spans = new Set<string>();
     for (const gap of layout.wall.gaps) {
+      for (const p of gap)
+        for (let dy = -3; dy <= 3; dy++)
+          for (let dx = -3; dx <= 3; dx++) nearGate.add(cellKey(p.x + dx, p.y + dy));
       const xs = gap.map((p) => p.x), y = gap[0].y;
       const lo = Math.min(...xs), hi = Math.max(...xs), n = hi - lo + 1;
       const flanks = [cellKey(lo - 1, y), cellKey(hi + 1, y)];
       if (gap.every((p) => p.y === y) && n === gap.length && n >= 3 && n <= 11 &&
           flanks.every((k) => built.has(k))) {
-        for (const k of flanks) built.delete(k);
-        gatehouses.push({ x: (lo + hi) / 2, y, frame: `gate-${material}-${n}` });
+        for (const k of flanks) hidden.add(k);
+        for (const p of gap) spans.add(cellKey(p.x, p.y));
+        towers.push({ x: (lo + hi) / 2, y, frame: `gate-${material}-${n}` });
         continue;
       }
       const ends = new Set(gap.map((p) => cellKey(p.x, p.y)));
       for (const p of standing)
-        if ([[0, -1], [1, 0], [0, 1], [-1, 0]].some(([dx, dy]) => ends.has(cellKey(p.x + dx, p.y + dy))))
-          gatehouses.push({ x: p.x, y: p.y, frame: `gate-tower-${material}` });
+        if (N4.some(([dx, dy]) => ends.has(cellKey(p.x + dx, p.y + dy)))) {
+          hidden.add(cellKey(p.x, p.y));
+          towers.push({ x: p.x, y: p.y, frame: `tower-${material}-a` });
+        }
     }
-    const covered = new Set(
-      gatehouses.filter((g) => g.frame.startsWith("gate-tower")).map((g) => cellKey(g.x, g.y)),
-    );
+    // Towers stand at each square turn and free end, where real circuits put
+    // them, and at intervals along the runs between. They are spaced on the
+    // ground, so two ends facing each other across a river both get one.
+    const placed: Point[] = [];
+    const spaced = (p: Point, gap: number) =>
+      placed.every((o) => Math.max(Math.abs(o.x - p.x), Math.abs(o.y - p.y)) >= gap);
+    const raise = (p: Point, variant: string) => {
+      placed.push(p);
+      hidden.add(cellKey(p.x, p.y));
+      towers.push({ x: p.x, y: p.y, frame: `tower-${material}-${variant}` });
+    };
+    const free = (p: Point) => !hidden.has(cellKey(p.x, p.y)) && !nearGate.has(cellKey(p.x, p.y));
+    const alternate = (p: Point) => ((p.x * 7 + p.y * 13) & 4 ? "b" : "a");
+    for (const p of standing)
+      if ([0, 1, 2, 4, 8].includes(maskOf.get(cellKey(p.x, p.y))!) && free(p) && spaced(p, 2))
+        raise(p, alternate(p));
+    for (const p of standing)
+      if (corner(cellKey(p.x, p.y)) && !cornerNeighbours(p).length && free(p) && spaced(p, 3))
+        raise(p, "c");
+    for (const p of standing) if (free(p) && spaced(p, 8)) raise(p, alternate(p));
+    // Flights of stairs up the inside face, three cells long, nearest the
+    // gates first, where people go up. Against an east-west run the flight
+    // lies along the face; against a north-south one it climbs north beside
+    // it. Only where the face behind is a plain run, clear of towers.
+    const stairs: { x: number; y: number; frame: string }[] = [];
+    const stairCells: Point[] = [];
+    const flights: Point[] = [];
+    const clear = (q: Point) => {
+      const k = cellKey(q.x, q.y);
+      return !built.has(k) && !used.has(k) && !nearGate.has(k) && layout.holds(q.x, q.y, 1) &&
+        api.dry({ ...q, w: 1, h: 1 }, false);
+    };
+    const run = (q: Point, mask: number) =>
+      maskOf.get(cellKey(q.x, q.y)) === mask && !hidden.has(cellKey(q.x, q.y));
+    const gateCells = layout.wall.gaps.flat();
+    const toGate = (p: Point) =>
+      Math.min(Infinity, ...gateCells.map((g) => Math.abs(g.x - p.x) + Math.abs(g.y - p.y)));
+    for (const p of [...standing].sort((a, b) => toGate(a) - toGate(b))) {
+      if (flights.length >= Math.max(2, Math.round(standing.length / 80))) break;
+      if (flights.some((o) => Math.max(Math.abs(o.x - p.x), Math.abs(o.y - p.y)) < 16)) continue;
+      const mask = maskOf.get(cellKey(p.x, p.y));
+      let flight: { cells: Point[]; art: string; onto: string } | undefined;
+      if (mask === 10) {
+        for (const dir of [1, -1]) {
+          const cells = [2, 1, 0].map((i) => ({ x: p.x - dir * i, y: p.y + 1 }));
+          if (cells.every((q) => clear(q) && run({ x: q.x, y: p.y }, 10))) {
+            flight = { cells, art: dir > 0 ? "east" : "west", onto: "n" };
+            break;
+          }
+        }
+      } else if (mask === 5) {
+        for (const side of [1, -1]) {
+          const cells = [2, 1, 0].map((i) => ({ x: p.x + side, y: p.y + i }));
+          if (cells.every((q) => clear(q) && run({ x: p.x, y: q.y }, 5))) {
+            flight = { cells, art: "north", onto: side > 0 ? "w" : "e" };
+            break;
+          }
+        }
+      }
+      if (!flight) continue;
+      flights.push(p);
+      for (const [i, q] of flight.cells.entries()) {
+        stairCells.push(q);
+        used.add(cellKey(q.x, q.y));
+        stairs.push({ ...q, frame: `stair-${material}-${flight.art}-${i + 1}${i === 2 ? flight.onto : ""}` });
+      }
+    }
+    // The watch walks beats along the wall walk: unbroken stretches of it,
+    // over the gatehouses and through the towers, out and back.
+    const walkable = (q: Point) => built.has(cellKey(q.x, q.y)) || spans.has(cellKey(q.x, q.y));
+    const ring = layout.wall.ring;
+    const start = Math.max(0, ring.findIndex((q) => !walkable(q)));
+    const stretches: Point[][] = [[]];
+    for (let i = 0; i < ring.length; i++) {
+      const q = ring[(start + i) % ring.length];
+      if (walkable(q)) stretches[stretches.length - 1].push(q);
+      else if (stretches[stretches.length - 1].length) stretches.push([]);
+    }
+    const beats: Point[][] = [];
+    const watch = Math.min(4, Math.max(1, Math.round(standing.length / 70)));
+    for (const s of stretches.filter((s) => s.length >= 14).sort((a, b) => b.length - a.length))
+      for (let i = 0; i + 14 <= s.length && beats.length < watch; i += 70)
+        beats.push(s.slice(i, i + 32));
     if (parts.length) {
       api.buildWall(
         layout.wall,
-        parts.map((p) =>
-          built.has(cellKey(p.x, p.y)) && !covered.has(cellKey(p.x, p.y))
-            ? p
-            : { ...p, frame: "" },
-        ),
-        gatehouses,
+        parts.map((p) => hidden.has(cellKey(p.x, p.y)) ? { ...p, frame: "wall-none" } : p),
+        // Southern towers last, so one standing in front of another covers it.
+        [...towers.sort((a, b) => a.y - b.y), ...stairs],
+        stairCells,
+        beats,
       );
       // The ring is rasterised, so it does not sit exactly on the continuous
       // boundary. Holding its actual cells is what keeps a threshold or a work

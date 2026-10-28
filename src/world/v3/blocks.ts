@@ -37,6 +37,8 @@ export type Wall = {
   openings: Set<string>;
   /** The ring cells each gate removed, in perimeter order. */
   gaps: Point[][];
+  /** Every cell of the ring, gates included, in perimeter order. */
+  ring: Point[];
 };
 export type Furniture = { kind: StreetFurniture; x: number; y: number };
 export type Verge = Rect & { axis: "x" | "y"; side: -1 | 1 };
@@ -1657,6 +1659,7 @@ export function composeUrban(
     };
     const seen = new Set<string>();
     const cells: Point[] = [];
+    const ring: Point[] = [];
     let lo = { x: Infinity, y: Infinity },
       hi = { x: -Infinity, y: -Infinity };
     for (let i = 0; i < BEARINGS; i++)
@@ -1664,6 +1667,7 @@ export function composeUrban(
         const key = cellKey(q.x, q.y);
         if (seen.has(key)) continue;
         seen.add(key);
+        ring.push(q);
         lo = { x: Math.min(lo.x, q.x), y: Math.min(lo.y, q.y) };
         hi = { x: Math.max(hi.x, q.x), y: Math.max(hi.y, q.y) };
         if (!openings.has(key)) cells.push(q);
@@ -1677,6 +1681,7 @@ export function composeUrban(
       cells,
       openings,
       gaps: gaps.filter((g) => g.length),
+      ring,
     };
   }
 }

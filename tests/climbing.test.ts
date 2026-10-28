@@ -160,3 +160,39 @@ it("makes jumping from a tall tree dangerous while climbing down is safe", () =>
   expect(engine.state.player.health).toBe(0);
   expect(engine.state.player.dead).toBe("a fall");
 });
+
+it("sends the watch along the wall to order the player down", () => {
+  const engine = createSession("roman", "wall-watch");
+  const guard = engine.state.actors.find((a) => a.kind === "human")!;
+  engine.state.actors = [guard];
+  engine.state.objects = [];
+  engine.world.blocked = (x) => x === 2;
+  engine.world.places = [];
+  engine.world.enclosures = [
+    {
+      x: 2,
+      y: -20,
+      w: 1,
+      h: 41,
+      gate: { x: 2, y: 30 },
+      parts: Array.from({ length: 41 }, (_, i) => ({ x: 2, y: i - 20, frame: "wall-masonry-5-0" })),
+    },
+  ];
+  const beat = Array.from({ length: 8 }, (_, i) => ({ x: 2, y: 12 + i }));
+  Object.assign(guard, { pos: { x: 2, y: 12, space: "outside" }, watch: { path: beat, loop: false, speed: 0.6, waits: [60, 60], phase: 0 } });
+  engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.climb();
+  expect(engine.onWall()).toBe(true);
+
+  runtime.command({ type: "wait", seconds: 30 });
+  expect(Math.abs(guard.pos.y) + Math.abs(guard.pos.x - 2)).toBeLessThanOrEqual(1);
+  expect(guard.pos.x).toBe(2);
+  expect(engine.cards.some((c) => c.kind === "speech" && c.speaker === guard.id)).toBe(true);
+
+  runtime.climb();
+  expect(engine.onWall()).toBe(false);
+  runtime.command({ type: "wait", seconds: 60 });
+  expect(guard.activity).not.toMatch(/off the wall/);
+  runtime.dispose();
+});
