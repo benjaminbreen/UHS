@@ -2985,7 +2985,10 @@ export function planSettlement(
     i: number,
     owner?: string,
   ) => {
-    eachCell(g, (x, y) => plan.reserved.add(cellKey(x, y)));
+    eachCell(g, (x, y) => {
+      plan.reserved.add(cellKey(x, y));
+      gardenCells.add(cellKey(x, y));
+    });
     const crop =
       yards.beds[Math.floor(rand("yard-crop", i) * yards.beds.length)];
     toftQueue.push(() => {
@@ -3013,13 +3016,24 @@ export function planSettlement(
         const k = cellKey(x, y);
         return roads.has(k) || !!plan.built?.has(k);
       };
+      // A side the next garden does not close is this one's to fence.
+      const unshared = (x: number, y: number) => !gardenCells.has(cellKey(x, y));
       const fenced = (x: number, y: number) => {
         if (x < g.x || y < g.y || x >= g.x + g.w || y >= g.y + g.h)
           return false;
         if (taken(x, y)) return false;
         const low = rows ? x === g.x : y === g.y,
-          high = g.last && (rows ? x === g.x + g.w - 1 : y === g.y + g.h - 1),
-          back = rear && away(x, y) === depth - 1 && (rows ? x : y) !== gap;
+          high =
+            (rows ? x === g.x + g.w - 1 : y === g.y + g.h - 1) &&
+            (g.last || unshared(rows ? x + 1 : x, rows ? y : y + 1)),
+          back =
+            away(x, y) === depth - 1 &&
+            (rows ? x : y) !== gap &&
+            (rear ||
+              unshared(
+                x + (east ? 1 : !rows ? -1 : 0),
+                y + (south ? 1 : north ? -1 : 0),
+              ));
         return low || high || back;
       };
       const bed = rand("garden-bed", i) < 0.7;
@@ -3073,6 +3087,7 @@ export function planSettlement(
   /** Household garden cells, merged with the pens after the farmland. */
   const toftFields: [string, FieldCell][] = [];
   const toftQueue: (() => void)[] = [];
+  const gardenCells = new Set<string>();
   const yardPlans: (() => void)[] = [];
   if (placed) {
     for (const place of plan.places) reserveBuilding(place.sprite, place, place.entrance);

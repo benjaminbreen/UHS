@@ -99,8 +99,8 @@ export const europeForms: UrbanFormRule[] = [
     plazaScale: 0.19,
     civic: "head",
     districts: [
-      { plan: "organic", block: [16, 12], regularity: 0.4 },
-      { plan: "orthogonal", block: [22, 14], regularity: 0.9 },
+      { plan: "organic", block: [16, 15], regularity: 0.4 },
+      { plan: "orthogonal", block: [22, 17], regularity: 0.9 },
     ],
     squares: 1,
     square: {

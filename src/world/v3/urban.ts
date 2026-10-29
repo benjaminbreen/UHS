@@ -2416,7 +2416,8 @@ export function urbanNeighborhood(
         // A row's lots all reach the same back line, whatever the house depth.
         const room = open ? Math.min(GARDEN, maxDepth - deep) : maxDepth - deep;
         const garden =
-          (open || (form.backs && !vertical && !use)) && use !== "estate" && room >= 3
+          // A town house's yard can be two rows: room for the privy and the wash.
+          (open || (form.backs && !vertical && !use)) && use !== "estate" && room >= (open ? 2 : 3)
             ? {
                 x: vertical
                   ? face === "west"
