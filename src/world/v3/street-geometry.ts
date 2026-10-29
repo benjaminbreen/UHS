@@ -6,10 +6,13 @@ export type StreetStroke = { a: [number, number]; b: [number, number]; radius: n
 
 export type StreetGeometry = { strokes: StreetStroke[]; infill: boolean };
 
+/** Square-ended: a made street stops at a straight edge, half a cell past
+ * its last centre, rather than in a round blob. */
 export function streetDistance(s: StreetStroke, x: number, y: number) {
-  const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1];
-  const t = Math.max(0, Math.min(1, ((x - s.a[0]) * dx + (y - s.a[1]) * dy) / (dx * dx + dy * dy || 1)));
-  return Math.hypot(x - s.a[0] - t * dx, y - s.a[1] - t * dy) - s.radius;
+  const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len = Math.hypot(dx, dy) || 1;
+  const along = ((x - s.a[0]) * dx + (y - s.a[1]) * dy) / len,
+    across = Math.abs((x - s.a[0]) * dy - (y - s.a[1]) * dx) / len;
+  return Math.max(across - s.radius, -along - 0.5, along - len - 0.5);
 }
 
 export function streetUnionDistance(strokes: StreetStroke[], x: number, y: number) {

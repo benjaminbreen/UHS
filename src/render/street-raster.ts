@@ -279,6 +279,10 @@ export function rasterStreetTile(
         if (road !== "cobble" && road !== "slab") {
           if (d >= -2 && d < 0) colour = lit(kerbStone(road), -2);
           if (d >= 0 && d < 2) colour = lit(kerbStone(road), d < 1 ? 2 : 0);
+        } else if (road !== walk && d >= -4 && d < 0) {
+          // Cobbles stop at a row of long edge stones and a joint, not a cut.
+          const along = closest.a[1] === closest.b[1] ? wx : wy;
+          colour = d >= -1 ? lit(COURSE[road], -3) : mod(along, 7) === 0 ? lit(COURSE[road], -2) : lit(COURSE[road], d >= -2 ? 2 : 0);
         }
         if (dust) colour = sunAndSand(colour as Color, dust, wx, wy, road === "asphalt" && d < -2);
         pixels.set([...colour, 255], (py * 16 + px) * 4);

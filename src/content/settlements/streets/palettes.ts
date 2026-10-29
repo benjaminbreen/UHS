@@ -13,7 +13,8 @@ export type StreetPalette = Record<StreetRole, Mix>;
  */
 const stoneTown = (stone: StreetMaterial): StreetPalette => ({
   main: [stone],
-  local: [stone, stone, "cobble"],
+  // Side streets in the main street's stone, never a third stone.
+  local: [stone],
   lane: ["earth", "earth", "cobble"],
   square: ["slab", "slab", stone],
   footway: ["slab", stone],

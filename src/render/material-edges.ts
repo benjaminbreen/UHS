@@ -140,8 +140,9 @@ export function pathField(
   if (["garden", "park", "verge"].includes(cell.pavement ?? ""))
     return { coverage: 0, cross: 1.5, radius: 0 };
   // An earth court is an area, not a network reconstructed from soil cell centers.
+  // So is an earth street and its footway, the trodden ground up to the fronts.
   const areaGround = (c: TopographyCell) => c.surface === "soil" &&
-    ["court", "yard", "square", "vacant"].includes(c.pavement ?? "");
+    ["court", "yard", "square", "vacant", "footway", "lane"].includes(c.pavement ?? "");
   const area = materialCoverage(sample, x, y, cell.height, (c) => {
     if (!areaGround(c)) return 0;
     const patch = waterNoise((x + ox) * 16, (y + oy) * 16, 58, 619);

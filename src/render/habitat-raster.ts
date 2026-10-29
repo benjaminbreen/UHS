@@ -373,6 +373,7 @@ function bareHabitatTile(
   const tile = rasterGroundTile(sample, x, y, ox, oy, art, under);
   const pixels = tile.pixels;
   const { soilPalette: soil } = habitatRamps(under.habitat!, art);
+  const loose = street ? cell.streetMaterial : lane?.streetMaterial;
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
   for (let py = 0; py < 16; py++)
@@ -393,6 +394,15 @@ function bareHabitatTile(
         continue;
       }
       if (d < -VERGE) continue;
+      // Setts work loose at a worn edge and lie scattered in the mud beside it.
+      if ((loose === "cobble" || loose === "sett") && d > -3.5) {
+        const bx = Math.floor((gx + px) / 3), by = Math.floor((gy + py) / 3);
+        if (hash(bx, by, 887) < 0.16 && mod(gx + px, 3) !== 2 && mod(gy + py, 3) !== 2) {
+          const stone = pavingStonePixel(gx + px, gy + py, loose, "street");
+          pixels.set(mod(gy + py, 3) === 0 ? stone.map((n) => n + 6) : stone.map((n) => n - 14), i);
+          continue;
+        }
+      }
       // Verge: packed earth against the stones, breaking up into the turf.
       const grit = hash(gx + px, gy + py, 883),
         keep = d > -1.6 ? 1 : 0;
