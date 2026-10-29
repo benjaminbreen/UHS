@@ -58,7 +58,7 @@ export function bankStyle(s: Settings) {
   const dry =
     material === "sand"
       ? red
-        ? "#dbb077"
+        ? "#e2c999"
         : "#d9cd9f"
       : snow
         ? "#e4ece6"
@@ -73,7 +73,9 @@ export function bankStyle(s: Settings) {
     wet: snow
       ? "#a6bcc1"
       : material === "sand"
-        ? "#b3ad89"
+        ? red
+          ? "#b69a6c"
+          : "#b3ad89"
         : material === "clay"
           ? "#98633e"
           : tropical

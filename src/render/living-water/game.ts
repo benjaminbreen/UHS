@@ -185,7 +185,8 @@ export function addLivingWater(
         type: "4fv",
         value: [
           defaults.wetEdgeWidth,
-          defaults.wetEdgeOpacity,
+          // The lab study's faint wet edge vanished on a world's wide beaches.
+          0.75,
           defaults.bankGradientSteps,
           defaults.boundaryOpacity,
         ],

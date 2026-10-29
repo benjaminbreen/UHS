@@ -33,7 +33,7 @@ void main(){
  murkMix=inland?mod(blue,4.)/3.:0.;
  if(raw<128.){
    float d=(128.-raw)/127.;
-   float extent=kind<.5?1.5:kind<1.5?8.:kind>3.5?.45:1.;
+   float extent=kind<.5?1.5:kind<1.5?3.:kind>3.5?.45:1.;
    float steps=max(1.,bankParams.z-1.);
    float band=floor(clamp(d/(bankParams.x/extent),0.,1.)*steps)/steps;
    vec3 dry=tone(9.,row),wet=tone(10.,row),contact=tone(11.,row);
@@ -106,7 +106,9 @@ void main(){
    float lap=sin(t*1.7+noise(p/19.)*5.);
    float rim=.08+(lap+1.)*.065;
    float broken=noise((p+displacement)/7.);
-   if(depth<rim+.07&&depth>rim-.06&&broken>.2)color=mix(color,vec3(.96,1.,.92),polishParams.y*(.75+.2*lap));
+   // The sea's swash is broader than a river's lap.
+   float swash=ocean?1.8:1.;
+   if(depth<rim+.07*swash&&depth>rim-.06*swash&&broken>.2)color=mix(color,vec3(.96,1.,.92),polishParams.y*(.75+.2*lap));
    if(depth>.15&&depth<.65&&abs(depth-rim-.23)<.045&&broken>.48)color=mix(color,vec3(.92,1.,.94),polishParams.y*.45);
    vec4 above=texture2D(iChannel2,(local+vec2(.5,-.5))/resolution);
    if(delay>.5&&above.a>.6&&art.a<.4&&sin(t*2.+p.x*.6)>.0)color=mix(color,vec3(.95,1.,.94),polishParams.y*.8);

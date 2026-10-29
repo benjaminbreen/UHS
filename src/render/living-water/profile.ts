@@ -57,12 +57,12 @@ export function livingProfile(cell: TopographyCell): Settings {
     clarity: swamp ? 0.25 : defaults.clarity,
     rocks: swamp ? 0.05 : defaults.rocks,
     plantType: swamp ? "reeds" : defaults.plantType,
-    customBankColors: !frozen && !red && kind !== "creek",
-    bankDryColor: swamp ? "#706449" : defaults.bankDryColor,
-    bankWetColor:
-      swamp ? "#464c37" : ecology === "desert" && !red ? "#b69a6c" : defaults.bankWetColor,
-    bankContactColor:
-      swamp ? "#2e4235" : palette === "polar" ? "#a8c9cb" : defaults.bankContactColor,
+    // The lab's saved study carries its own bank colours; in the world only
+    // a swamp overrides the material's.
+    customBankColors: swamp && !frozen,
+    bankDryColor: "#706449",
+    bankWetColor: "#464c37",
+    bankContactColor: "#2e4235",
     beachWidth: kind === "coast" ? 8 : kind === "river" ? 1.5 : kind === "creek" ? 0.18 : 1,
     strength:
       kind === "coast"
