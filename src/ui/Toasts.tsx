@@ -64,7 +64,7 @@ export function Toasts({ events, omit, space, home, onHistory }: {
     const entered = previousSpace.current !== space && space === home;
     previousSpace.current = space;
     if (entered) {
-      const event: Notice = { id: homeId.current--, time: 0, text: "Your home", kind: "world", count: 1 };
+      const event: Notice = { id: homeId.current--, time: 0, text: "You enter your home.", kind: "action", count: 1 };
       setShown((s) => [event, ...s.filter((e) => e.text !== event.text)].slice(0, 3));
     }
   }, [space, home]);
@@ -76,7 +76,8 @@ export function Toasts({ events, omit, space, home, onHistory }: {
       for (const e of fresh) {
         if (omit.includes(e.text)) continue;
         const previous = next.find((t) => t.text === e.text);
-        next = [{ ...e, count: (previous?.count ?? 0) + 1 }, ...next.filter((t) => t.text !== e.text)];
+        // The home notice is shown before the engine's own line for the same entry arrives.
+        next = [{ ...e, count: previous && previous.id >= 0 ? previous.count + 1 : 1 }, ...next.filter((t) => t.text !== e.text)];
       }
       return next.slice(0, 3);
     });

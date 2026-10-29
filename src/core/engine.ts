@@ -103,7 +103,7 @@ import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
 import { bodilyLimits, ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress } from "./health";
 import { treatments, type Treatment } from "../content/health/infections";
-import { kinWord } from "./concerns";
+import { inWords, kinWord } from "./concerns";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
@@ -7983,9 +7983,19 @@ export class Engine {
           const room = this.interiorOf(b.id);
           p.pos = room ? { ...room.entry, space: b.id } : { x: 6, y: 8, space: b.id };
           p.activity = "Visiting a household";
+          const mine = this.state.households?.some((h) => h.residence === b.id && h.members.includes(p.id));
           this.event(
-            `You ${this.world.pack.entryLabel.toLowerCase()} ${b.name.toLowerCase()}.`,
+            `You ${this.world.pack.entryLabel.toLowerCase()} ${mine ? "your home" : b.name.toLowerCase()}.`,
           );
+          const here = kinOf(this.state).filter((k) => k.actor.pos.space === b.id)
+            .map(({ actor, kind }) => `your ${kinWord(kind, actor)} ${actor.name}${kind === "child" && actor.age !== undefined && actor.age < 16 ? `, ${actor.age},` : ""}`);
+          if (here.length) {
+            const who = here.length > 3 ? [...here.slice(0, 2), `${inWords(here.length - 2)} others`] : here;
+            let line = who[0];
+            for (let i = 1; i < who.length; i++)
+              line += `${who.length > 2 && !line.endsWith(",") ? ", " : " "}${i === who.length - 1 ? "and " : ""}${who[i]}`;
+            this.event(`${line[0].toUpperCase()}${line.slice(1)} ${here.length > 1 ? "are" : "is"} here.`, "social");
+          }
         }
         break;
       case "exit": {
