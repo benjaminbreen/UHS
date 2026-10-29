@@ -116,16 +116,24 @@ const hyp = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
  * A climber (the wolf) takes the person's rule. */
 export function stepAllowed(
   world: Pick<FaunaWorld, "blocked" | "canCross" | "topography">,
-  profile: Pick<FaunaProfile, "climbs">,
+  profile: Pick<FaunaProfile, "climbs" | "swims">,
   from: Point,
   to: Point,
 ) {
-  if (world.blocked(to.x, to.y)) return false;
+  const swim = !!profile.swims && afloat(world, to);
+  if (!swim && world.blocked(to.x, to.y)) return false;
   if (world.canCross && !world.canCross(from, to)) return false;
   if (!world.topography || profile.climbs) return true;
   const a = world.topography(from.x, from.y),
     b = world.topography(to.x, to.y);
+  // Off the water a duck scrambles up a bank a step high.
+  if (profile.swims && (swim || afloat(world, from))) return Math.abs(a.height - b.height) <= 1;
   return a.height === b.height || !!a.ramp || !!b.ramp;
+}
+
+function afloat(world: Pick<FaunaWorld, "topography">, at: Point) {
+  const cell = world.topography?.(at.x, at.y);
+  return cell?.surface === "water" && !cell.bridge && !cell.solid;
 }
 
 /** Face the way the step went. Four-direction species use all four; the rest
@@ -223,7 +231,11 @@ function freeCellNear(
       x: Math.round(around.x + Math.cos(angle) * r),
       y: Math.round(around.y + Math.sin(angle) * r),
     };
-    if (world.blocked(c.x, c.y) || world.occupied(c.x, c.y)) continue;
+    if (
+      (world.blocked(c.x, c.y) && !(species && faunaProfile(species)?.swims && afloat(world, c))) ||
+      world.occupied(c.x, c.y)
+    )
+      continue;
     if (!scored) return c;
     let score = species && world.habitat ? world.habitat(species, c.x, c.y) : 0;
     if (crowd)

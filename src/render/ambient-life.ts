@@ -2,13 +2,23 @@ import type Phaser from "phaser";
 import type { LightingId } from "./lighting";
 import { gustAt, windVector, wind } from "./wind";
 
-export type CritterKind = "bird" | "butterfly" | "firefly" | "midge";
+export type CritterKind =
+  | "bird"
+  | "butterfly"
+  | "firefly"
+  | "midge"
+  | "gull"
+  | "hawk"
+  | "dragonfly"
+  | "fluff";
 type Spec = {
   /** How many are in the air per million world pixels of view. */
   density: number;
   depth: number;
   colors: string[];
   additive?: boolean;
+  /** Colour for the "o" pixels, such as a gull's dark wingtips. */
+  ink?: string;
 };
 
 const specs: Record<CritterKind, Spec> = {
@@ -26,6 +36,10 @@ const specs: Record<CritterKind, Spec> = {
     additive: true,
   },
   midge: { density: 110, depth: 18450, colors: ["#3b3d33", "#4a4c40"] },
+  gull: { density: 10, depth: 18700, colors: ["#f4f3ee", "#e2e5e8"], ink: "#4d535b" },
+  hawk: { density: 0, depth: 18750, colors: ["#4b3a2b"] },
+  dragonfly: { density: 40, depth: 18450, colors: ["#3c8fc4", "#3a9f78", "#b9533a"] },
+  fluff: { density: 45, depth: 18450, colors: ["#f6f3e8", "#ebe5d2"] },
 };
 
 // Two frames each: wings up and wings down, or a bright and a dim mote.
@@ -46,9 +60,26 @@ const shapes: Record<CritterKind, string[][]> = {
     ["X....", ".....", ".....", ".....", "....."],
     [".X...", ".....", ".....", ".....", "....."],
   ],
+  gull: [
+    ["o.....o", ".XX.XX.", "...X..."],
+    [".......", "oXXXXXo", "...X..."],
+  ],
+  hawk: [
+    ["XXXXXXX", ".XXXXX.", "...X...", "..XXX.."],
+    ["XXXXXXX", ".XXXXX.", "...X...", "..XXX.."],
+  ],
+  dragonfly: [
+    [".X...", "XXX..", ".X...", ".X...", "....."],
+    [".X...", ".X...", "XXX..", ".X...", "....."],
+  ],
+  fluff: [
+    [".X...", "X.X..", ".X...", ".....", "....."],
+    [".X...", "XXX..", ".X...", ".....", "....."],
+  ],
 };
-const W = 5,
-  H = 5;
+const soaring = (kind: CritterKind) => kind === "bird" || kind === "gull" || kind === "hawk";
+const W = 7,
+  H = 7;
 
 function ensureAtlas(scene: Phaser.Scene, kind: CritterKind) {
   const key = `critter-${kind}`;
@@ -62,7 +93,9 @@ function ensureAtlas(scene: Phaser.Scene, kind: CritterKind) {
     shapes[kind].forEach((shape, frame) => {
       shape.forEach((line, y) =>
         [...line].forEach((pixel, x) => {
-          if (pixel === "X") ctx.fillRect(frame * W + x, row * H + y, 1, 1);
+          if (pixel === "o" && spec.ink) ctx.fillStyle = spec.ink;
+          if (pixel === "X" || pixel === "o") ctx.fillRect(frame * W + x, row * H + y, 1, 1);
+          ctx.fillStyle = color;
         }),
       );
       canvas.add(`${row}-${frame}`, 0, frame * W, row * H, W, H);
@@ -121,6 +154,51 @@ export function critterFor(
   return light === "early-morning" || dusk ? "bird" : undefined;
 }
 
+/** A second, sparser layer tied to the ground it flies over: gulls off the
+ * coast, dragonflies over fresh water, a hawk over open country, thistledown
+ * in the autumn wind. `chance` varies by day and hour, so many hours have
+ * none of it. */
+export function accentFor(
+  season: string,
+  ecology: string,
+  light: LightingId,
+  condition: string,
+  tempC: number,
+  water: string,
+  chance: number,
+): CritterKind | undefined {
+  const odds = 0.55;
+  if (chance >= odds || light === "night") return undefined;
+  if (condition === "rain" || condition === "snow" || condition === "mist") return undefined;
+  const clear = condition !== "overcast";
+  const day = light !== "dusk" && light !== "early-morning";
+  const coast = water.startsWith("coast");
+  const options: CritterKind[] = [];
+  if (coast && tempC > -5) options.push("gull", "gull");
+  if (
+    (ecology === "wetland" || (water !== "none" && !coast)) &&
+    (season === "summer" || season === "spring") &&
+    tempC > 17 &&
+    clear &&
+    day
+  )
+    options.push("dragonfly");
+  if (
+    ["grassland", "savanna", "dry-scrub", "desert", "tundra"].includes(ecology) &&
+    (ecology !== "tundra" || season === "summer") &&
+    clear &&
+    day
+  )
+    options.push("hawk");
+  if (
+    (season === "autumn" || (season === "summer" && tempC > 22)) &&
+    ["grassland", "savanna", "dry-scrub", "temperate-woodland"].includes(ecology) &&
+    wind().strength > 0.25
+  )
+    options.push("fluff");
+  return options[Math.floor((chance / odds) * options.length)];
+}
+
 type Critter = {
   x: number;
   y: number;
@@ -130,6 +208,8 @@ type Critter = {
   ox: number;
   oy: number;
   lead: number;
+  /** How far it is faded in over ground that suits it. */
+  shown: number;
 };
 
 /** Small ambient life: a skein of birds at first light, butterflies over the
@@ -144,7 +224,13 @@ export class AmbientLife {
   private area = 0;
   private seed = 0;
 
-  constructor(private scene: Phaser.Scene) {}
+  /** `suits`, when given, says whether a creature of this kind belongs over
+   * the ground at a world point; elsewhere it fades out. */
+  constructor(
+    private scene: Phaser.Scene,
+    private suits?: (kind: CritterKind, x: number, y: number) => boolean,
+    private stat = "critters",
+  ) {}
 
   set(kind: CritterKind | undefined, seed: number) {
     if (!kind) return this.clear();
@@ -160,7 +246,8 @@ export class AmbientLife {
     const spec = specs[kind];
     const view = this.scene.cameras.main.worldView;
     this.area = Math.max(3e5, view.width * view.height);
-    const count = Math.min(220, Math.round((spec.density * this.area) / 1e6));
+    const count =
+      kind === "hawk" ? 1 : Math.min(220, Math.round((spec.density * this.area) / 1e6));
     const key = ensureAtlas(this.scene, kind);
     this.layer = this.scene.add.container(0, 0).setDepth(spec.depth);
     const rnd = (n: number) => {
@@ -179,6 +266,7 @@ export class AmbientLife {
         ox: (rnd(i + 4.5) - 0.5) * (kind === "bird" ? 34 : 26),
         oy: (rnd(i + 5.5) - 0.5) * (kind === "bird" ? 16 : 22),
         lead,
+        shown: 0,
       });
       const image = this.scene.add
         .image(0, 0, key, `${this.critters[i].row}-0`)
@@ -188,7 +276,7 @@ export class AmbientLife {
       this.sprites.push(image);
       // A silhouette at ground level is a beetle; the shadow underneath is
       // what makes it a bird in the air.
-      if (kind === "bird") {
+      if (soaring(kind)) {
         ensureBirdShadow(this.scene);
         const shadow = this.scene.add
           .image(0, 0, BIRD_SHADOW)
@@ -199,7 +287,7 @@ export class AmbientLife {
         this.shadows.push(shadow);
       }
     }
-    this.scene.game.canvas.dataset.critters = `${kind}:${count}`;
+    this.scene.game.canvas.dataset[this.stat] = `${kind}:${count}`;
   }
 
   clear() {
@@ -210,7 +298,7 @@ export class AmbientLife {
     this.critters = [];
     this.kind = undefined;
     this.area = 0;
-    if (this.scene.game?.canvas) this.scene.game.canvas.dataset.critters = "none";
+    if (this.scene.game?.canvas) this.scene.game.canvas.dataset[this.stat] = "none";
   }
 
   update(time: number, frozen = false) {
@@ -241,9 +329,14 @@ export class AmbientLife {
       const seat = this.path(kind, c, t, v);
       const x = view.x - 20 + ((((seat.x - view.x) % w) + w) % w);
       const y = view.y - 20 + ((((seat.y - view.y) % h) + h) % h);
-      sprite.setPosition(Math.round(x), Math.round(y) - (kind === "bird" ? ALTITUDE : 0));
+      const lift = kind === "hawk" ? ALTITUDE * 2 : soaring(kind) ? ALTITUDE : 0;
+      sprite.setPosition(Math.round(x), Math.round(y) - lift);
       sprite.setFrame(`${c.row}-${seat.frame}`);
-      if (seat.alpha !== undefined) sprite.setAlpha(seat.alpha);
+      if (this.suits) {
+        c.shown = Math.max(0, Math.min(1, c.shown + (this.suits(kind, x, y) ? 0.03 : -0.03)));
+        sprite.setAlpha(c.shown * (seat.alpha ?? 1));
+        this.shadows[i]?.setAlpha(c.shown * 0.3);
+      } else if (seat.alpha !== undefined) sprite.setAlpha(seat.alpha);
       this.shadows[i]?.setPosition(Math.round(x), Math.round(y));
     }
   }
@@ -264,6 +357,45 @@ export class AmbientLife {
         x: c.x + c.ox + (Math.cos(head) + v.x * 0.4) * speed * t,
         y: c.y + c.oy + (Math.sin(head) * 0.35 + v.y * 0.4) * speed * t,
         frame: Math.floor(t * 7 + c.phase) % 2,
+      };
+    }
+    if (kind === "gull" || kind === "hawk") {
+      // Wide wheeling turns, carried downwind; a gull flaps now and then, a
+      // hawk holds its wings still.
+      const slow = kind === "hawk" ? 0.16 : 0.3;
+      const reach = kind === "hawk" ? 80 : 55;
+      const a = t * slow + c.phase;
+      const flap = kind === "gull" && Math.sin(t * 0.9 + c.phase * 5) > 0.75;
+      return {
+        x: c.x + Math.cos(a) * reach + v.x * 8 * t,
+        y: c.y + Math.sin(a) * reach * 0.45 + v.y * 8 * t,
+        frame: flap ? Math.floor(t * 6) % 2 : 0,
+      };
+    }
+    if (kind === "dragonfly") {
+      // Hover, then a quick dart to a new spot nearby.
+      const leg = t / 1.8 + c.phase;
+      const n = Math.floor(leg);
+      const spot = (k: number, s: number) => (Math.sin(k * 12.9898 + c.phase * 78.2 + s) * 43758.5453) % 1;
+      const ease = Math.min(1, (leg - n) * 6);
+      const ax = spot(n, 0) * 40,
+        ay = spot(n, 7) * 24,
+        bx = spot(n + 1, 0) * 40,
+        by = spot(n + 1, 7) * 24;
+      return {
+        x: c.x + ax + (bx - ax) * ease + Math.sin(t * 9 + c.phase) * 0.6,
+        y: c.y + ay + (by - ay) * ease,
+        frame: Math.floor(t * 20 + c.phase) % 2,
+      };
+    }
+    if (kind === "fluff") {
+      // Thistledown rides the wind, rising and sinking a little.
+      const gust = gustAt(t * 1000, c.x, c.y, c.phase);
+      return {
+        x: c.x + v.x * (20 + gust * 10) * t + Math.sin(t * 0.7 + c.phase) * 5,
+        y: c.y + v.y * 20 * t + Math.sin(t * 0.5 + c.phase * 2) * 6 - t * 1.5,
+        frame: Math.floor(t * 1.5 + c.phase) % 2,
+        alpha: 0.85,
       };
     }
     if (kind === "midge") {

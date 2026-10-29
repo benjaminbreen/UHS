@@ -4167,7 +4167,7 @@ export function planSettlement(
   /** The species a settlement of this date keeps in a given place. Order is
    * the seed's, not the catalogue's, so two towns of the same period do not
    * both get the first animal in the file. */
-  const keptFor = (place: "pen" | "yard" | "paddock" | "tether") =>
+  const keptFor = (place: "pen" | "yard" | "paddock" | "tether" | "run") =>
     kept
       .filter(
         (k) =>
@@ -4485,6 +4485,103 @@ export function planSettlement(
             owner,
           });
       }
+    }
+  }
+  // A duck run: a fenced strip of bank whose open side is on fresh water, so
+  // the ducks go down to swim and come back up to be shut in.
+  const runSpecies = keptFor("run")[0];
+  if (runSpecies && owners.length && rand("duck-run") < 0.75) {
+    let run: (Rect & { side: Point }) | undefined,
+      near = Infinity;
+    for (let y = c.y - r - 16; y <= c.y + r + 16; y += 2)
+      for (let x = c.x - r - 16; x <= c.x + r + 16; x += 2)
+        for (const side of [{ x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }]) {
+          const d = Math.hypot(x - c.x, y - c.y);
+          if (d >= near) continue;
+          const w = side.x ? 5 : 7,
+            h = side.x ? 7 : 5;
+          const beyond =
+            side.y > 0 ? { x, y: y + h, w, h: 1 }
+            : side.y < 0 ? { x, y: y - 1, w, h: 1 }
+            : side.x > 0 ? { x: x + w, y, w: 1, h }
+            : { x: x - 1, y, w: 1, h };
+          const mid = sample(beyond.x + (beyond.w >> 1), beyond.y + (beyond.h >> 1));
+          if (mid.water >= 0 || mid.kind === "sea") continue;
+          let wet = 0;
+          eachCell(beyond, (bx, by) => {
+            const f = sample(bx, by);
+            if (f.water < 0 && f.kind !== "sea") wet++;
+          });
+          if (wet * 2 < beyond.w * beyond.h) continue;
+          let ok = true;
+          const tier = Math.round(sample(x + (w >> 1), y + (h >> 1)).elevation / 14);
+          // One level throughout, and the ground round it too, so no side of
+          // the fence stands on a terrace edge.
+          eachCell({ x: x - 1, y: y - 1, w: w + 2, h: h + 2 }, (rx, ry) => {
+            if (!ok) return;
+            const f = sample(rx, ry),
+              k = cellKey(rx, ry);
+            if (f.water >= 0 && Math.round(f.elevation / 14) !== tier) ok = false;
+            if (rx < x || ry < y || rx >= x + w || ry >= y + h) return;
+            // The open edge may dip into the water; the rest is bank.
+            const edge =
+              (side.y > 0 && ry === y + h - 1) ||
+              (side.y < 0 && ry === y) ||
+              (side.x > 0 && rx === x + w - 1) ||
+              (side.x < 0 && rx === x);
+            if ((f.water < 0 && !edge) || plan.reserved.has(k) || plan.solid.has(k) || (site.accepts && !site.accepts(rx, ry)))
+              ok = false;
+          });
+          if (!ok) continue;
+          run = { x, y, w, h, side };
+          near = d;
+        }
+    if (run) {
+      const id = `${site.id}-duck-run`;
+      const owner = owners[Math.floor(rand(id, "owner") * owners.length)];
+      const open = (x: number, y: number) =>
+        (run.side.y > 0 && y === run.y + run.h - 1) ||
+        (run.side.y < 0 && y === run.y) ||
+        (run.side.x > 0 && x === run.x + run.w - 1) ||
+        (run.side.x < 0 && x === run.x);
+      const wet = (x: number, y: number) => sample(x, y).water < 0;
+      const fenced = (x: number, y: number) =>
+        inside(run, x, y) &&
+        (x === run.x || y === run.y || x === run.x + run.w - 1 || y === run.y + run.h - 1) &&
+        !open(x, y) &&
+        !wet(x, y);
+      eachCell(run, (x, y) => {
+        plan.reserved.add(cellKey(x, y));
+        noRoad.add(cellKey(x, y));
+      });
+      encloseYard(run, wet, fenced, () => undefined, 100021, "x", "fence", owner);
+      const interior: Point[] = [];
+      eachCell(run, (x, y) => {
+        if (!fenced(x, y) && !wet(x, y)) interior.push({ x, y });
+      });
+      const shore = {
+        x: run.side.x > 0 ? run.x + run.w - 1 : run.side.x < 0 ? run.x : run.x + (run.w >> 1),
+        y: run.side.y > 0 ? run.y + run.h - 1 : run.side.y < 0 ? run.y : run.y + (run.h >> 1),
+      };
+      const [low, high] = runSpecies.groupSize;
+      const count = Math.min(interior.length, low + Math.floor(rand(id, "stock") * (high - low + 1)));
+      const step = Math.max(1, Math.floor(interior.length / count));
+      (plan.fauna ??= []).push({
+        id: `${id}-stock`,
+        speciesId: runSpecies.id,
+        members: Array.from({ length: count }, (_, j) => ({
+          ...interior[(j * step) % interior.length],
+          direction: (j % 2 ? 1 : 3) as 1 | 3,
+        })),
+        pos: pos(shore),
+        home: pos(shore),
+        homeRadius: 7,
+        state: "forage",
+        nextDecisionAt: 0,
+        stride: 0,
+        since: 0,
+        owner,
+      });
     }
   }
   if (farmed) layFarmland();

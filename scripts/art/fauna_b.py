@@ -31,6 +31,16 @@ PALETTES = {
     # after the outline, in k, so they stay one pixel thin.
     "cattle-egret": {"o": "#7b8074", "d": "#c3c8bc", "m": "#e6e9df", "l": "#f6f7f0", "h": "#ffffff", "b": "#e0ae62", "e": "#1d1d18", "a": "#e8b534", "k": "#6e6636"},
     "guinea-pig": {"o": "#3f2c1e", "d": "#6f4d31", "m": "#9a6c46", "l": "#c09163", "h": "#e6c294", "b": "#f2e9d6", "e": "#150f0a", "a": "#d9a273"},
+    # Waterfowl: b bill · a feet · n head · c breast · s wing patch.
+    # The farmyard duck is white, as the kept ducks of China and Europe often were.
+    "duck": {"o": "#8a806c", "d": "#cdc6b2", "m": "#ebe6d6", "l": "#f7f4ea", "h": "#ffffff", "b": "#e59a34", "e": "#1d1a16", "a": "#e88a2c", "n": "#ebe6d6", "c": "#ebe6d6", "s": "#cdc6b2"},
+    # A mallard drake: bottle-green head, white collar, chestnut breast, blue speculum.
+    "mallard": {"o": "#2b2922", "d": "#6f6556", "m": "#9c9282", "l": "#c2b9a8", "h": "#e4ddcf", "b": "#d6c046", "e": "#121110", "a": "#e0902f", "n": "#2f6a45", "c": "#74402a", "s": "#4058a8"},
+    # Greylag, the goose of Egypt and Europe: brown-grey, pale under the tail, orange bill.
+    "goose": {"o": "#4a4238", "d": "#7c7262", "m": "#a39886", "l": "#c8bead", "h": "#e6dfd2", "b": "#e9954f", "e": "#1a1712", "a": "#e59a6b", "n": "#8d8270", "c": "#f0ebe0", "s": "#7c7262"},
+    # Herons: k legs · b crest and neck stripe · a bill.
+    "grey-heron": {"o": "#3c4248", "d": "#7f878c", "m": "#a8afb2", "l": "#cdd2d2", "h": "#eff1ec", "b": "#24282e", "e": "#1b1b19", "a": "#d4a83c", "k": "#6c6343"},
+    "great-blue-heron": {"o": "#2d3746", "d": "#56677b", "m": "#7d8fa3", "l": "#a6b4c3", "h": "#e8e9e4", "b": "#1c2230", "e": "#1a1a18", "a": "#cf9f3d", "k": "#5c5844"},
 }
 STATES = {
     "house-sparrow": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
@@ -49,6 +59,11 @@ STATES = {
     "turkey": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
     "guinea-pig": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "cattle-egret": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
+    "duck": dict.fromkeys(["idle", "forage", "wander", "flee", "swim", "dabble"], 8),
+    "mallard": dict.fromkeys(["idle", "forage", "wander", "flee", "swim", "dabble"], 8),
+    "goose": dict.fromkeys(["idle", "forage", "wander", "flee", "swim", "dabble"], 8),
+    "grey-heron": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
+    "great-blue-heron": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
 }
 # Sized against the 29px standing human: deer shoulder ~20px, wolf ~13px, sheep ~12px.
 NATIVE_SIZES = {
@@ -70,6 +85,13 @@ NATIVE_SIZES = {
     "guinea-pig": (18, 14),
     # Half a man's height standing; the width is for the wingspan.
     "cattle-egret": (30, 26),
+    # A duck is a little lower and longer than a hen; a goose stands to a
+    # man's hip; a heron stands two-thirds of a man tall, with room for wings.
+    "duck": (20, 16),
+    "mallard": (20, 16),
+    "goose": (26, 24),
+    "grey-heron": (38, 36),
+    "great-blue-heron": (38, 36),
 }
 
 
@@ -1295,6 +1317,223 @@ def guinea_pig(state, frame):
     return c.finish()
 
 
+# ---------------------------------------------------------------- waterfowl
+FOWL = {
+    # canvas ground row, body box, head size, neck rise, leg length
+    "duck": dict(g=13, body=(3, 5, 15, 11), head=4, rise=6, legs=2, tail=3),
+    "mallard": dict(g=13, body=(3, 5, 15, 11), head=4, rise=6, legs=2, tail=3),
+    "goose": dict(g=21, body=(3, 9, 20, 18), head=5, rise=11, legs=3, tail=3),
+}
+
+
+def waterfowl(species, state, frame):
+    """A boat-shaped body, a head on a neck and a flat bill. Ashore it
+    waddles; afloat the legs go and the hull sits on the waterline, and now
+    and then the head goes under."""
+    c = Canvas(species)
+    P = FOWL[species]
+    g = P["g"]
+    t = frame / 8
+    swim = state in {"swim", "dabble"}
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    x0, y0, x1, y1 = P["body"]
+    # Afloat the hull sinks to the waterline, two rows above the canvas ground.
+    sink = (g - 1) - y1 if swim else 0
+    bob = (1 if frame in (2, 3, 6, 7) else 0) if moving else 0
+    by = sink - bob
+    rock = (1 if frame % 4 < 2 else -1) if moving else 0
+    if not swim:
+        for k, (lx, ph) in enumerate(((x0 + (x1 - x0) // 2 - 1, 0.5), (x0 + (x1 - x0) // 2 + 1, 0.0))):
+            near = k == 1
+            if moving:
+                dx, up = walk_foot(t + ph, 1.5 if not running else 2.5, 1.5, 0.55)
+            else:
+                dx, up = 0.0, 0.0
+            top = y1 + by
+            foot = (lx + dx, g - up)
+            pixels = flat(line((lx, top), (round(foot[0]), round(foot[1]))), "a" if near else "d")
+            # webbed foot: a flat paddle forward
+            for k2 in (0, 1, 2):
+                pixels[(round(foot[0]) + k2 - 1, round(foot[1]))] = "a" if near else "d"
+            c.paint(pixels)
+    # tail: a short upturned point behind
+    tail = polygon([(x0 + 2, y0 + 1 + by), (x0 - 2, y0 - 1 + by - (1 if moving and rock > 0 else 0)), (x0 - 2, y0 + 2 + by), (x0 + 1, y0 + P["tail"] + 3 + by)])
+    dabble = state == "dabble" and frame in (3, 4, 5, 6)
+    if dabble:
+        # Upended: tail to the sky, head under.
+        tail = polygon([(x0 + 3, y0 + 2 + by), (x0, y0 - 4 + by), (x0 + 2, y0 - 4 + by), (x0 + 5, y0 + 1 + by)])
+    c.paint(shade(tail, 1, 1))
+    body = ellipse((x0, y0 + by, x1, y1 + by))
+    if swim:
+        body = {(x, y) for x, y in body if y <= g - 1}
+    px = shade(body, 1, 2)
+    for x, y in body:
+        if (x, y - 1) not in body and x0 + 2 <= x <= x1 - 3:
+            px[(x, y)] = "h"
+        if x >= x1 - 3 and y <= y0 + by + (y1 - y0) // 2 + 1:
+            px[(x, y)] = "c"
+        if species == "goose" and x <= x0 + 3 and y >= y0 + by + (y1 - y0) // 2:
+            px[(x, y)] = "c"
+    c.paint(px)
+    flap = running and frame % 2 == 0
+    wx = x0 + 3
+    if flap:
+        wing = polygon([(wx, y0 + 2 + by), (wx + 6, y0 - 4 + by), (wx + 8, y0 - 2 + by), (wx + 7, y0 + 3 + by)])
+    else:
+        wing = polygon([(wx, y0 + 2 + by), (x1 - 3, y0 + 2 + by), (x1 - 2, y0 + 4 + by), (wx + 4, y1 - 2 + by), (wx - 1, y0 + 4 + by)])
+    c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"))
+    if not flap:
+        for k in (0, 1):
+            c.dot(wx + 3 + k, y1 - 3 + by, "s")
+    hs = P["head"]
+    # Head carriage: up, or down to the grass, or under the water.
+    if state == "forage":
+        dip = [0, 2, 5, 6, 6, 5, 2, 0][frame] * P["rise"] // 6
+    elif state == "swim" and frame in (2, 3):
+        dip = P["rise"] // 2
+    else:
+        dip = 0
+    stretch = 2 if running else (1 if moving and frame % 4 < 2 else 0)
+    hx = x1 - 2 + stretch
+    hy = y0 - P["rise"] + 2 + by + dip
+    if dabble:
+        hy = g + 4  # under
+    else:
+        # A goose's neck is long and slender; a duck's is short and thick.
+        nb = 2 if species == "goose" else 4
+        neck = polygon([(x1 - nb, y0 + 2 + by), (x1, y0 + 1 + by), (hx + hs - 2, hy + hs - 1), (hx + 1, hy + hs - 1)])
+        nk = shade(neck, 1, 1)
+        if species != "goose":
+            nk = {xy: ("n" if role == "m" else role) for xy, role in nk.items()} if species == "mallard" else nk
+        c.paint(over(c, nk))
+        if species == "mallard":
+            # white collar at the base of the green
+            for x in range(x1 - 3, x1 + 1):
+                if (x, y0 + by) in c.px:
+                    c.dot(x, y0 + by, "h")
+        head = ellipse((hx, hy, hx + hs, hy + hs))
+        hp = shade(head, 1, 1)
+        if species != "duck":
+            hp = {xy: ("n" if role in ("m", "l") else role) for xy, role in hp.items()}
+        c.paint(hp)
+        bl = 3 if hs == 4 else 4
+        bill = rect((hx + hs + 1, hy + hs // 2, hx + hs + bl, hy + hs // 2 + 1))
+        c.paint(flat(bill, "b"))
+        blink = state == "idle" and frame == 6
+        c.dot(hx + hs - 1, hy + 1, "d" if blink else "e")
+    im = c.finish()
+    if swim:
+        # Nothing shows under the waterline, not even the outline.
+        pix = im.load()
+        for y in range(g, im.height):
+            for x in range(im.width):
+                pix[x, y] = (0, 0, 0, 0)
+        # A ripple ring where the hull meets the water.
+        ring = _rgba(c.palette["l"])
+        lo = max(x for x, y in c.px if y == g - 1) if any(y == g - 1 for x, y in c.px) else x1
+        for x in (x0 - 2, lo + 2):
+            if 0 <= x < im.width:
+                pix[x, g - 1] = ring
+    return im
+
+
+# ---------------------------------------------------------------- herons
+def heron(species, state, frame):
+    """Long legs, a long dagger bill and a neck that folds into an S. It stalks
+    the shallows head forward and stabs; at rest it hunches, head on the
+    shoulders; in the air it flies slow with the neck drawn back and the legs
+    trailing."""
+    c = Canvas(species)
+    ground = 33
+    flying = state in {"flight", "approach"} or (state == "takeoff" and frame >= 2) or (state == "landing" and frame < 5)
+    legs = []
+    if flying:
+        lift = {"takeoff": -(frame - 1) * 2, "landing": -(5 - frame) * 2}.get(state, -8)
+        by = 24 + max(lift, -8)
+        beat = {"flight": [0, 0, 1, 1, 2, 3, 3, 1], "approach": [2, 2, 2, 1, 2, 2, 2, 3],
+                "takeoff": [0, 3, 0, 3, 1, 3, 1, 2], "landing": [0, 3, 0, 3, 1, 2, 2, 2]}[state][frame]
+        wings = [
+            [(14, by - 2), (24, by - 2), (22, by - 11), (16, by - 17), (10, by - 12)],
+            [(14, by - 2), (24, by - 2), (19, by - 9), (6, by - 10)],
+            [(14, by - 2), (24, by - 1), (16, by + 2), (4, by)],
+            [(14, by - 1), (23, by - 1), (19, by + 6), (12, by + 11), (10, by + 4)],
+        ]
+        c.paint(flat(shift(polygon(wings[beat]), -2, -1), "d"))
+        body = ellipse((12, by - 4, 26, by + 2))
+        c.paint(shade(body, 1, 1))
+        # neck drawn back in an S: the head sits on the chest
+        head = ellipse((24, by - 5, 28, by - 1))
+        c.paint(shade(head, 1, 1))
+        c.paint(flat(line((25, by - 5), (21, by - 6)), "b"))
+        c.paint(flat(line((29, by - 3), (33, by - 2)) | {(29, by - 2)}, "a"))
+        c.dot(27, by - 4, "e")
+        c.paint(shade(polygon(wings[beat]), 1, 1, base="m", light="l", dark="d"))
+        for x in range(4, 9):
+            if any((x, y) in c.px for y in range(by - 20, by + 14)):
+                pass
+        # dark primaries at the wingtip
+        for x, y in polygon(wings[beat]):
+            if x <= min(px for px, _ in wings[beat]) + 3:
+                c.dot(x, y, "b")
+        foot = 2 if state in {"flight", "approach"} else 0
+        legs = [((12, by + 1), (4 + foot, by + 2)), ((12, by), (4 + foot, by + 1))]
+        if state == "landing" and frame >= 3 or state == "takeoff" and frame < 4:
+            legs = [((17, by + 2), (15, by + 10)), ((19, by + 2), (20, by + 10))]
+    else:
+        walking = state == "forage"
+        t = frame / 8
+        stab = walking and frame in (5, 6)
+        by = 20
+        for ph in (0.0, 0.5):
+            dx, up = walk_foot(t + ph, 2.5, 2.5, 0.65) if walking and not stab else (0.0, 0.0)
+            hip = (17 + (1 if ph else 0), by)
+            foot = (17 + (1 if ph else 0) + dx, ground - up)
+            knee = ((hip[0] + foot[0]) / 2 - 1, (hip[1] + foot[1]) / 2)
+            legs.append((hip, knee))
+            legs.append((knee, foot))
+        hunch = state == "perch"
+        body = ellipse((9, by - 9, 23, by + 1)) | polygon([(10, by - 6), (6, by + 3), (10, by + 2)])
+        c.paint(shade(body, 1, 2))
+        wing = polygon([(10, by - 7), (21, by - 8), (20, by - 2), (11, by + 1)])
+        c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"))
+        for x in range(10, 14):
+            c.dot(x, by - 1, "b")
+        if hunch:
+            # head drawn down on the shoulders, bill out level
+            hx, hy = 20, by - 13 + (1 if frame in (5, 6) else 0)
+            neck = polygon([(19, by - 8), (23, by - 8), (hx + 4, hy + 4), (hx, hy + 3)])
+        else:
+            reach = [0, 1, 2, 2, 2, 3, 3, 1][frame] if walking else 0
+            if stab:
+                hx, hy = 27, by - 4 + (frame - 5) * 4
+            else:
+                hx, hy = 23 + reach, by - 17 + reach
+            neck = polygon([(19, by - 8), (22, by - 9), (hx + 3, hy + 3), (hx + 1, hy + 4)])
+        np = shade(neck, 1, 1, base="l", light="h", dark="m")
+        c.paint(over(c, np))
+        # the black stripe down the front of the neck
+        for x, y in neck:
+            if (x + 1, y) not in neck and y % 2 == 0:
+                c.dot(x, y, "b")
+        head = ellipse((hx, hy, hx + 4, hy + 4))
+        c.paint(shade(head, 1, 1, base="l", light="h", dark="m"))
+        # crest: the black stripe over the eye and a plume trailing behind
+        c.paint(flat(line((hx + 1, hy + 1), (hx - 3, hy + 2)), "b"))
+        down = 2 if stab else 0
+        c.paint(flat(line((hx + 5, hy + 2), (hx + 10, hy + 2 + down)) | line((hx + 5, hy + 3), (hx + 8, hy + 3 + down)), "a"))
+        blink = state == "perch" and frame == 4
+        c.dot(hx + 3, hy + 1, "o" if blink else "e")
+    im = c.finish()
+    px = im.load()
+    ink = _rgba(c.palette["k"])
+    for a, b in legs:
+        for x, y in line(a, b):
+            if 0 <= x < c.w and 0 <= y < c.h and (x, y) not in c.px:
+                px[x, y] = ink
+    return im
+
+
 # ---------------------------------------------------------------- birds (hand pixels)
 # Letters map to palette roles; '.' is clear. Grids are authored facing east with
 # the feet on row h-4. Wings are separate grids placed at absolute positions.
@@ -1621,6 +1860,10 @@ def fauna_b():
                     im = egret(state, frame)
                 elif species == "guinea-pig":
                     im = guinea_pig(state, frame)
+                elif species in FOWL:
+                    im = waterfowl(species, state, frame)
+                elif species in {"grey-heron", "great-blue-heron"}:
+                    im = heron(species, state, frame)
                 else:
                     im = wolf(state, frame)
                 result[f"faunab-{species}-{state}-{frame}"] = im

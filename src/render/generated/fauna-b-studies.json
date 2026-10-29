@@ -371,5 +371,136 @@
       30,
       26
     ]
+  },
+  "duck": {
+    "palette": [
+      "#8a806c",
+      "#cdc6b2",
+      "#ebe6d6",
+      "#f7f4ea",
+      "#ffffff",
+      "#e59a34",
+      "#1d1a16",
+      "#e88a2c",
+      "#ebe6d6",
+      "#ebe6d6",
+      "#cdc6b2"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "swim": 8,
+      "dabble": 8
+    },
+    "size": [
+      20,
+      16
+    ]
+  },
+  "mallard": {
+    "palette": [
+      "#2b2922",
+      "#6f6556",
+      "#9c9282",
+      "#c2b9a8",
+      "#e4ddcf",
+      "#d6c046",
+      "#121110",
+      "#e0902f",
+      "#2f6a45",
+      "#74402a",
+      "#4058a8"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "swim": 8,
+      "dabble": 8
+    },
+    "size": [
+      20,
+      16
+    ]
+  },
+  "goose": {
+    "palette": [
+      "#4a4238",
+      "#7c7262",
+      "#a39886",
+      "#c8bead",
+      "#e6dfd2",
+      "#e9954f",
+      "#1a1712",
+      "#e59a6b",
+      "#8d8270",
+      "#f0ebe0",
+      "#7c7262"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "swim": 8,
+      "dabble": 8
+    },
+    "size": [
+      26,
+      24
+    ]
+  },
+  "grey-heron": {
+    "palette": [
+      "#3c4248",
+      "#7f878c",
+      "#a8afb2",
+      "#cdd2d2",
+      "#eff1ec",
+      "#24282e",
+      "#1b1b19",
+      "#d4a83c",
+      "#6c6343"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    },
+    "size": [
+      38,
+      36
+    ]
+  },
+  "great-blue-heron": {
+    "palette": [
+      "#2d3746",
+      "#56677b",
+      "#7d8fa3",
+      "#a6b4c3",
+      "#e8e9e4",
+      "#1c2230",
+      "#1a1a18",
+      "#cf9f3d",
+      "#5c5844"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    },
+    "size": [
+      38,
+      36
+    ]
   }
 }

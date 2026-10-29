@@ -17,6 +17,9 @@ export const faunaStates = [
   "flight",
   "approach",
   "landing",
+  // Drawn, never decided: a swimmer on water paddles, or upends to feed.
+  "swim",
+  "dabble",
 ] as const;
 
 export type FaunaState = (typeof faunaStates)[number];

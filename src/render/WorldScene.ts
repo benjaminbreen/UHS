@@ -241,7 +241,7 @@ import { Drift } from "./drift";
 import { Mist } from "./mist";
 import { CloudShadows } from "./cloud-shadows";
 import { Reflections } from "./reflections";
-import { AmbientLife, critterFor } from "./ambient-life";
+import { accentFor, AmbientLife, critterFor, type CritterKind } from "./ambient-life";
 import { Flies, type FlySource } from "./flies";
 import { freshDung } from "../core/dung";
 import { freshCarcass } from "../core/remains";
@@ -746,6 +746,7 @@ export class WorldScene extends Phaser.Scene {
   private reflections?: Reflections;
   private reflectedWorld?: WorldModel;
   private life?: AmbientLife;
+  private accent?: AmbientLife;
   private weather?: Weather;
   private flies?: Flies;
   private remainsLife?: RemainsLife;
@@ -873,7 +874,8 @@ export class WorldScene extends Phaser.Scene {
     this.drift = new Drift(this);
     this.mist = new Mist(this);
     this.clouds = new CloudShadows(this);
-    this.life = new AmbientLife(this);
+    this.life = new AmbientLife(this, (kind, x, y) => this.critterGround(kind, x, y));
+    this.accent = new AmbientLife(this, (kind, x, y) => this.critterGround(kind, x, y), "accent");
     this.flies = new Flies(this);
     this.remainsLife = new RemainsLife(this);
     this.input.keyboard!.removeCapture([
@@ -3564,6 +3566,18 @@ export class WorldScene extends Phaser.Scene {
    * before the new one is built, then comes up out of it. Across the map only
    * the arrival fades: the world under the old view has already been swapped.
    * True while the old frame is being held. */
+  private critterGround(kind: CritterKind, x: number, y: number) {
+    const cell = this.runtime.engine.world.topography?.(Math.floor(x / 16), Math.floor(y / 16));
+    if (!cell) return false;
+    const water = cell.surface === "water";
+    if (kind === "gull") return cell.waterVisual?.kind === "sea";
+    if (kind === "dragonfly")
+      return (water && cell.waterVisual?.kind !== "sea") || cell.habitat?.kind === "hollow";
+    if (kind === "fluff") return !water && cell.feature !== "paving";
+    if (kind === "butterfly" || kind === "firefly") return !water || cell.waterVisual?.kind !== "sea";
+    return true;
+  }
+
   private holdForFade(world: WorldModel, space: string, clock: number): boolean {
     const was = this.fadeFrom;
     if (!was || this.options.lab || this.options.freeze) {
@@ -3695,6 +3709,20 @@ export class WorldScene extends Phaser.Scene {
           )
         : undefined,
       hashSeed(e.state.manifest.seed),
+    );
+    this.accent?.set(
+      outdoors && setting && this.weather && perf.fauna
+        ? accentFor(
+            this.season,
+            setting.environment?.ecology ?? "grassland",
+            this.light.id,
+            this.weather.condition,
+            this.weather.tempC,
+            setting.water,
+            hashSeed(`${e.state.manifest.seed}:${Math.floor(e.state.clock / 86400)}:${this.light.id}`),
+          )
+        : undefined,
+      hashSeed(e.state.manifest.seed) + 0.5,
     );
     this.mist?.set(
       outdoors && this.weather && this.options.colorGrade !== false
@@ -5647,6 +5675,12 @@ export class WorldScene extends Phaser.Scene {
                 : "south";
         else if (Math.abs(dx) > 4 && im.flipX !== dx < 0) im.setFlipX(dx < 0);
       }
+      if (
+        profile?.swims &&
+        !aerial &&
+        topo?.(Math.floor(pose.x / 16), Math.floor((pose.y - 8) / 16))?.surface === "water"
+      )
+        state = state === "forage" && !pose.moving ? "dabble" : "swim";
       const pace = Math.max(2, im.frame.height / 12);
       let name = this.faunaFrame(
         f.species,
@@ -5777,6 +5811,7 @@ export class WorldScene extends Phaser.Scene {
     this.mist?.update(time, !!this.options.freeze);
     this.clouds?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
+    this.accent?.update(time, !!this.options.freeze);
     this.remainsLife?.update(
       time,
       delta / 1000,

@@ -26,6 +26,7 @@ export function habitatTagsAt(world: WorldModel, x: number, y: number) {
   )
     tags.add("shore");
   if (terrain === "marsh") tags.add("wetland");
+  if (cell.surface === "water" && !cell.bridge) tags.add("water");
   if (terrain === "rock") tags.add("rock");
   const h = cell.habitat;
   if (h) {

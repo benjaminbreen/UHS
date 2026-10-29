@@ -19,6 +19,7 @@ export const habitatTags = [
   "wetland",
   "shore",
   "rock",
+  "water",
 ] as const;
 
 export type HabitatTag = (typeof habitatTags)[number];
@@ -56,8 +57,9 @@ export type FaunaProfile = {
    * paddock is fenced and then left alone. `from` is the year the keeping
    * starts, for animals kept later than they were known. */
   keeping?: {
-    /** A tether is one animal tied by its owner's door: the household donkey. */
-    place: "pen" | "yard" | "paddock" | "tether";
+    /** A tether is one animal tied by its owner's door: the household donkey.
+     * A run is a fenced strip of bank open to the water: the duck run. */
+    place: "pen" | "yard" | "paddock" | "tether" | "run";
     from?: number;
     /** How much more often than its neighbours it is the animal kept. */
     share?: number;
@@ -79,6 +81,8 @@ export type FaunaProfile = {
   followsHerds?: boolean;
   /** Scrambles a terrace step the way a person can. Others need a slope. */
   climbs?: boolean;
+  /** Goes out on water too deep to wade, and climbs out on to the bank. */
+  swims?: boolean;
   settlementTolerance: number;
   minimumSettlementDistance: number;
   alertRadius: number;
