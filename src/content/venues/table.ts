@@ -401,7 +401,7 @@ export const venues: readonly Venue[] = [
     activity: "visit",
     weight: 8,
     sign: "board",
-    building: "hall-union-hall",
+    // Elsewhere before public schooling the room is borrowed: an ordinary house.
     eras: [
       { from: -800, to: 400, building: "hall-schola", cultures: ["european"] },
       {
@@ -416,6 +416,7 @@ export const venues: readonly Venue[] = [
         building: "hall-charity-school",
         cultures: ["european"],
       },
+      { from: 1850, to: 10001, building: "hall-union-hall" },
     ],
     note: "Letters taught by rote to whoever is sent, in one borrowed room.",
     sources: [],
@@ -470,8 +471,9 @@ export const venues: readonly Venue[] = [
     activity: "visit",
     weight: 12,
     sign: "lantern",
-    building: "hall-thermae",
+    // The thermae is Roman; a bath elsewhere uses an ordinary house.
     eras: [
+      { from: -500, to: 400, building: "hall-thermae", cultures: ["european", "north-african-west-asian"] },
       { from: 400, to: 1500, building: "hall-stew", cultures: ["european"] },
       { from: 1500, to: 1800, building: "hall-bagnio", cultures: ["european"] },
     ],

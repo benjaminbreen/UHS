@@ -1038,7 +1038,7 @@ export function urbanNeighborhood(
   // carries what its own extent and fabric allow, which is the number a
   // theatre's size gate is written against.
   for (const venue of venuesFor(pack.setting, carries)) {
-    if (!venue.building || precinctVenues.has(venue.id)) continue;
+    if (!venueBuilding(venue, pack.setting!) || precinctVenues.has(venue.id)) continue;
     // Scale is the outer loop: a landmark on the far side of the square beats
     // a shrunken one on the near side.
     const placed = (["large", "medium", "small"] as const)
