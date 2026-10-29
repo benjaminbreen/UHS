@@ -380,8 +380,12 @@ function bareHabitatTile(
       const i = (py * 16 + px) * 4,
         d = mask(px, py);
       if (d >= 0) {
-        if (top) pixels.set(top.subarray(i, i + 4), i);
-        else if (lane) {
+        if (top) {
+          pixels.set(top.subarray(i, i + 4), i);
+          // The outer stones are set a little proud: a dark joint where they
+          // meet the ground, a lit arris just inside it.
+          if (d < 2) for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * (d < 1 ? 0.72 : 1.08));
+        } else if (lane) {
           // A fillet in a ground cell: sunk edge stones of the street beside it.
           const stone = pavingStonePixel(gx + px, gy + py, lane.streetMaterial ?? "slab", pavingGrade(lane.pavement));
           pixels.set(d < 1 ? [169, 156, 121] : stone.map((n) => n - 8), i);
@@ -695,6 +699,8 @@ function rasterGroundTile(
   const earth = new Uint8Array(18 * 18);
   // Pixels the path pass fills: the grass edge must not draw over a road.
   const trodden = new Uint8Array(18 * 18);
+  // Worn ground from the path pass, apron included, which the turf rims.
+  const tread = new Uint8Array(18 * 18);
   const at = (px: number, py: number) => (py + 1) * 18 + px + 1;
   for (let py = -1; py <= 16; py++)
     for (let px = -1; px <= 16; px++) {
@@ -1147,12 +1153,14 @@ function rasterGroundTile(
     cell.waterVisual.distance < cell.waterVisual.shoreWidth + 1.5 &&
     (!groundStyle() || shoreOnTier(sample, x, y, cell.height));
   const planted = ["garden", "park", "verge"].includes(cell.pavement ?? "");
-  if (!frozen && !planted && paintedGround(cell) && (hasPath || hasWear || nearShore)) {
+  // A planted cell still reads its neighbours' worn ground into the apron.
+  if (!frozen && paintedGround(cell) && (hasPath || hasWear || nearShore)) {
     const soil = soilPalette;
     // The apron rows exist only to mark trodden ground for the edge pass.
     for (let py = -1; py <= 16; py++)
       for (let px = -1; px <= 16; px++) {
         const inside = px >= 0 && py >= 0 && px < 16 && py < 16;
+        if (planted && inside) continue;
         const xx = x + (px + 0.5) / 16,
           yy = y + (py + 0.5) / 16,
           wx = gx + px,
@@ -1200,25 +1208,11 @@ function rasterGroundTile(
               );
           }
         }
-        // On turf the worn centre is narrower than the material boundary:
-        // the shoulder is a dither of soil into grass, not a filled band.
-        if (field && grassy && worn > 0.48 && worn < shoulder) {
-          if (!inside) continue;
-          const w = (worn - 0.48) / (shoulder - 0.48);
-          if (hash(wx, wy, 471) < w * 0.85) {
-            const wash = Math.round((noise(wx, wy, 44, 461) - 0.5) * 11);
-            put(px, py, soil[1], wash + [0, -5, 6][materialGrain(wx, wy)]);
-          } else {
-            const i = (py * 16 + px) * 4,
-              k0 = 0.2 + w * 0.3;
-            for (let k = 0; k < 3; k++)
-              pixels[i + k] = Math.round(
-                pixels[i + k] * (1 - k0) + soil[3][k] * k0,
-              );
-          }
-          continue;
-        }
+        // Turf and worn ground meet at one solid edge, halfway up the shoulder,
+        // which the turf rims below; a dithered shoulder frayed into specks.
+        if (field && grassy && worn > 0.48 && worn < (0.48 + shoulder) / 2) continue;
         if (field && worn > 0.48) {
+          tread[at(px, py)] = 1;
           if (!inside) continue;
           // One broken native pixel of contact shadow. A continuous dark rim,
           // however wide, is what made the corridor read as an outlined shape.
@@ -1388,8 +1382,16 @@ function rasterGroundTile(
   }
   // Grass ends in a dark serrated border: an outline on the turf side, blades
   // of one or two pixels leaning out over the earth. Light grass blends into
-  // the surrounding turf instead of receiving an island outline.
+  // the surrounding turf instead of receiving an island outline. Worn
+  // ground gets the same edge, and sits in the turf's shadow on its north side.
   if (grassy) {
+    // Planted ground is cut against paving, not worn into it: rim that edge too.
+    const cut = new Uint8Array(18 * 18);
+    if (planted)
+      for (let q = -1; q <= 16; q++)
+        for (const [px, py] of [[q, -1], [q, 16], [-1, q], [16, q]])
+          if (sample(x + Math.floor(px / 16), y + Math.floor(py / 16))?.feature === "paving") cut[at(px, py)] = 1;
+    const bare = (q: number) => earth[q] || tread[q] || cut[q];
     const dark = palette[5];
     const dirs = [
       [0, -1],
@@ -1401,12 +1403,12 @@ function rasterGroundTile(
       for (let px = 0; px < 16; px++) {
         const wx = gx + px,
           wy = gy + py;
-        if (trodden[at(px, py)]) continue;
-        const here = earth[at(px, py)],
+        if (trodden[at(px, py)] && !tread[at(px, py)]) continue;
+        const here = bare(at(px, py)),
           band = apron[at(px, py)];
         if (!here) {
           if (band > 2) continue;
-          const rim = dirs.some(([dx, dy]) => earth[at(px + dx, py + dy)]);
+          const rim = dirs.some(([dx, dy]) => bare(at(px + dx, py + dy)));
           if (rim) put(px, py, dark);
           continue;
         }
@@ -1416,11 +1418,11 @@ function rasterGroundTile(
         const tooth = (qx: number, qy: number) => {
           const back = dirs.filter(
             ([dx, dy]) =>
-              !earth[at(qx - dx, qy - dy)] && apron[at(qx - dx, qy - dy)] <= 2,
+              !bare(at(qx - dx, qy - dy)) && apron[at(qx - dx, qy - dy)] <= 2,
           );
           if (back.length !== 1) return undefined;
           const [dx, dy] = back[0];
-          if (!earth[at(qx + dy, qy + dx)] || !earth[at(qx - dy, qy - dx)])
+          if (!bare(at(qx + dy, qy + dx)) || !bare(at(qx - dy, qy - dx)))
             return undefined;
           const along = dx ? gy + qy : gx + qx;
           const across = dx ? gx + qx : gy + qy;
@@ -1429,10 +1431,15 @@ function rasterGroundTile(
           );
           return mod(along + phase, 3) === 0 ? back[0] : undefined;
         };
-        const d = tooth(px, py);
+        // Worn ground meets buildings and seams too, where teeth would float.
+        const d = earth[at(px, py)] ? tooth(px, py) : undefined;
         if (d) {
           put(px, py, dark);
           continue;
+        }
+        if (tread[at(px, py)] && [1, 2].some((k) => !bare(at(px, py - k)) && apron[at(px, py - k)] <= 2)) {
+          const i = (py * 16 + px) * 4;
+          for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.84);
         }
         // A second pixel of depth now and then, straight behind a tooth.
         for (const [dx, dy] of dirs) {
