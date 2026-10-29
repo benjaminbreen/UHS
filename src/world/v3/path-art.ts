@@ -77,9 +77,7 @@ export function pathArt(
             ? 2.6
             : road.width
               ? road.width * 0.72 + 0.44
-              : shared
-                ? 0.6
-                : 0.8,
+              : (shared ? 0.6 : 0.8) * wear(road.loads?.[0]),
           ...(ruts === false && { ruts }),
           ...(dung === false && { dung }),
           ...(blacktop && { paved }),
@@ -105,10 +103,13 @@ export function pathArt(
   return index;
 }
 
+/** A footpath fed by a few households wears a little wider, not a lane's width. */
+const wear = (load = 1) => 1 + 0.14 * Math.min(4, load - 1);
+
 /** Union cardinal edges before simplification, stopping at every junction. A
  * shared segment has one owner and the widest road wins, regardless of order. */
 export function uniqueRoads(roads: readonly Road[]): Road[] {
-  type Edge = { a: Point; b: Point; width: number; key: string };
+  type Edge = { a: Point; b: Point; width: number; load: number; key: string };
   const key = (p: Point) => `${p.x},${p.y}`;
   const edges = new Map<string, Edge>();
   for (const road of roads) {
@@ -116,9 +117,12 @@ export function uniqueRoads(roads: readonly Road[]): Road[] {
     for (let i = 1; i < road.points.length; i++) {
       const [a, b] = [road.points[i - 1], road.points[i]];
       if (key(a) === key(b)) continue;
-      const k = [key(a), key(b)].sort().join(":");
-      if (!edges.has(k) || edges.get(k)!.width < road.width)
-        edges.set(k, { a, b, width: road.width, key: k });
+      const k = [key(a), key(b)].sort().join(":"),
+        load = Math.min(road.loads?.[i - 1] ?? 1, road.loads?.[i] ?? 1),
+        old = edges.get(k);
+      if (!old || old.width < road.width)
+        edges.set(k, { a, b, width: road.width, load, key: k });
+      else if (old.width === road.width) old.load = Math.max(old.load, load);
     }
   }
   const adjacency = new Map<string, Edge[]>();
@@ -130,9 +134,9 @@ export function uniqueRoads(roads: readonly Road[]): Road[] {
     }
   const seen = new Set<string>(),
     out: Road[] = [];
-  const stop = (p: Point, width: number) => {
+  const stop = (p: Point, width: number, load: number) => {
     const list = adjacency.get(key(p))!;
-    return list.length !== 2 || list.some((e) => e.width !== width);
+    return list.length !== 2 || list.some((e) => e.width !== width || e.load !== load);
   };
   const walk = (first: Edge, start: Point) => {
     let edge = first,
@@ -142,7 +146,7 @@ export function uniqueRoads(roads: readonly Road[]): Road[] {
       seen.add(edge.key);
       p = key(edge.a) === key(p) ? edge.b : edge.a;
       points.push(p);
-      if (stop(p, first.width)) break;
+      if (stop(p, first.width, first.load)) break;
       const next = adjacency.get(key(p))!.find((e) => !seen.has(e.key));
       if (!next) break;
       edge = next;
@@ -153,12 +157,13 @@ export function uniqueRoads(roads: readonly Road[]): Road[] {
       width: first.width,
       kind: first.width ? "street" : "path",
       cost: 0,
+      ...(!first.width && { loads: [first.load] }),
     });
   };
   for (const edge of edges.values()) {
     if (seen.has(edge.key)) continue;
-    if (stop(edge.a, edge.width)) walk(edge, edge.a);
-    else if (stop(edge.b, edge.width)) walk(edge, edge.b);
+    if (stop(edge.a, edge.width, edge.load)) walk(edge, edge.a);
+    else if (stop(edge.b, edge.width, edge.load)) walk(edge, edge.b);
   }
   for (const edge of edges.values())
     if (!seen.has(edge.key)) walk(edge, edge.a);

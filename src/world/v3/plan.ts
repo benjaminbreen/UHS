@@ -112,6 +112,7 @@ import {
   planRoad,
   planAccess,
   joinNetwork,
+  footTraffic,
   roadCells,
   spanOffsets,
   type Sample,
@@ -487,6 +488,7 @@ export function planSettlement(
     width = 1,
     area?: Rect,
     preview = false,
+    goal?: Set<string>,
   ) => {
     const access = /^(door|yard-access|field-access|pen-access)/.test(label);
     // A doorstep path searches the town, not the fields round it.
@@ -498,7 +500,7 @@ export function planSettlement(
             ? b
             : a,
           sample,
-          sharedRoads ? centers : roads,
+          goal ?? (sharedRoads ? centers : roads),
           bridges,
           blockedForRoads,
           area,
@@ -3399,7 +3401,8 @@ export function planSettlement(
       continue;
     }
     if (placed) eachCell(rect, (x, y) => plan.solid.add(cellKey(x, y)));
-    if (!connect(door, point, `door${i}`, 0)) {
+    const doorPath = connect(door, point, `door${i}`, 0);
+    if (!doorPath) {
       if (placed) eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
       continue;
     }
@@ -3470,7 +3473,11 @@ export function planSettlement(
       plan.solid.add(cellKey(x, y));
       plan.built!.add(cellKey(x, y));
     });
-    if (!connect(workPoint, door, `yard-access${i}`, 0)) {
+    // The yard is reached by the house's own path, not a second one to
+    // whichever street is nearest, which looped round the neighbours.
+    const own = new Set([door, ...doorPath.points].map((p) => cellKey(p.x, p.y)));
+    if (!connect(workPoint, door, `yard-access${i}`, 0, undefined, false, own) &&
+      !connect(workPoint, door, `yard-access${i}`, 0)) {
       eachCell(rect, (x, y) => {
         plan.solid.delete(cellKey(x, y));
         if (placed) plan.built!.delete(cellKey(x, y));
@@ -5077,6 +5084,7 @@ export function planSettlement(
         clearance: propVisualCells(object.prop, object.pos),
       });
   }
+  footTraffic(plan.roads);
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
   railVisitors(plan, seed, pack);

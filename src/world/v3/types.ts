@@ -50,6 +50,9 @@ export type Road = {
   span?: number;
   kind: "street" | "lane" | "path" | "bridge";
   cost: number;
+  /** Footpaths only: how many paths' walkers pass each point, its own
+   * included, so a path wears wider toward the street it feeds. */
+  loads?: number[];
   /** Stable lifecycle seam for later paving, neglect and reuse. */
   baselineYear?: number;
   state?: "used" | "disused" | "ruined";

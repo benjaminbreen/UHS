@@ -374,3 +374,28 @@ export function planAccess(
     if (tried.length >= 8) break;
   }
 }
+
+/** Each footpath ends where it meets an earlier one, so its walkers carry on
+ * along that one to its own end: wear accumulates downstream. */
+export function footTraffic(roads: Road[]) {
+  const paths = roads.filter((r) => r.kind === "path" && r.points.length > 1);
+  const at = new Map<string, [Road, number]>();
+  for (const r of paths)
+    r.points.forEach((p, i) => {
+      const k = cellKey(p.x, p.y);
+      if (!at.has(k)) at.set(k, [r, i]);
+    });
+  const inflow = new Map<Road, number[]>();
+  for (let n = paths.length - 1; n >= 0; n--) {
+    const r = paths[n],
+      add = inflow.get(r) ?? [];
+    let load = 1;
+    r.loads = r.points.map((_, i) => (load += add[i] ?? 0));
+    const end = r.points.at(-1)!,
+      join = at.get(cellKey(end.x, end.y));
+    if (!join || join[0] === r || paths.indexOf(join[0]) > n) continue;
+    const list = inflow.get(join[0]) ?? [];
+    list[join[1]] = (list[join[1]] ?? 0) + r.loads.at(-1)!;
+    inflow.set(join[0], list);
+  }
+}
