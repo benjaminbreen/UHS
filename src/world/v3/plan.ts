@@ -2598,6 +2598,7 @@ export function planSettlement(
       if (skip(x, y) || placed && plan.placement.clearance.has(cellKey(x, y))) return;
       const k = cellKey(x, y);
       if (drawn && fenced(x, y)) {
+        if (!plan.solid.has(k)) fenceCells.add(k);
         plan.solid.add(k);
         return;
       }
@@ -3088,6 +3089,7 @@ export function planSettlement(
   };
   /** Household garden cells, merged with the pens after the farmland. */
   const toftFields: [string, FieldCell][] = [];
+  const fenceCells = new Set<string>();
   const toftQueue: (() => void)[] = [];
   const gardenCells = new Set<string>();
   const yardPlans: (() => void)[] = [];
@@ -4703,6 +4705,7 @@ export function planSettlement(
         );
   }
   for (const fence of [...toftQueue, ...campFences]) fence();
+  dropStubFences(toftFields, fenceCells, plan);
   if (penFields.length || toftFields.length) {
     plan.fields ??= new Map();
     for (const [k, cell] of [...penFields, ...toftFields])
@@ -5096,4 +5099,48 @@ export function planSettlement(
   plan.diagnostics.timing!.routines = Math.round(now() - tRoutines);
   plan.diagnostics.timing!.total = Math.round(now() - tPlan);
   return plan;
+}
+
+/** A yard fence that lost most of its run to a house's sprite or a road is
+ * a stray stub of wall; drop runs under three cells that no building ends. */
+function dropStubFences(
+  fields: [string, FieldCell][],
+  fences: Set<string>,
+  plan: SettlementPlan,
+) {
+  const seen = new Set<string>(),
+    drop = new Set<string>();
+  for (const start of fences) {
+    if (seen.has(start)) continue;
+    const run = [start];
+    seen.add(start);
+    for (let i = 0; i < run.length; i++) {
+      const [x, y] = run[i].split(",").map(Number);
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const n = cellKey(x + dx, y + dy);
+          if (fences.has(n) && !seen.has(n)) seen.add(n), run.push(n);
+        }
+    }
+    const anchored = run.some((k) => {
+      const [x, y] = k.split(",").map(Number);
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          if (plan.built?.has(cellKey(x + dx, y + dy))) return true;
+      return false;
+    });
+    if (run.length < 3 && !anchored) run.forEach((k) => drop.add(k));
+  }
+  if (!drop.size) return;
+  for (const f of fields) {
+    const [x, y] = f[0].split(",").map(Number);
+    let bits = f[1].fence;
+    for (const [dx, dy, bit] of [[0, -1, 1], [1, 0, 2], [0, 1, 4], [-1, 0, 8]] as const)
+      if (drop.has(cellKey(x + dx, y + dy))) bits &= ~bit;
+    if (bits !== f[1].fence) f[1] = { ...f[1], fence: bits, edges: bits };
+  }
+  for (const k of drop) {
+    plan.solid.delete(k);
+    fences.delete(k);
+  }
 }
