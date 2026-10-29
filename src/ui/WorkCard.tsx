@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Clock3, Coins, EyeOff, Hammer, MessageCircle, Sparkles, Sprout } from "lucide-react";
+import { ChevronRight, Clock3, Coins, EyeOff, MessageCircle, Sparkles, Sprout } from "lucide-react";
+import { workIcon } from "./task-icons";
 import type { Runtime } from "../runtime/session";
 
 /** "½h", "7h", "1½h": a step's length at a glance. */
@@ -31,6 +32,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
   const [cheer, setCheer] = useState<number>();
   const engine = runtime.engine;
   const plan = engine.workPlan();
+  const JobIcon = workIcon(engine.state.player.role);
   const day = Math.floor(engine.state.clock / 86400);
   const mainDone = !!plan && plan.done >= plan.stages.length && !plan.waiting;
   const side = plan?.side;
@@ -104,7 +106,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
     >
       <div className="work-row">
         <button className="work-card-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-          <span className="work-icon">{finished ? <Sparkles size={15} /> : garden ? <Sprout size={15} /> : <Hammer size={15} />}</span>
+          <span className="work-icon">{finished ? <Sparkles size={15} /> : garden ? <Sprout size={15} /> : <JobIcon size={15} />}</span>
           <span className="work-title">
             <b key={task}>{task}</b>
             {!finished && place && <span className="work-sub">{place}</span>}

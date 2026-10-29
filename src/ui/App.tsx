@@ -51,8 +51,7 @@ import {
   ScrollText,
   Menu,
   Maximize2,
-  Hammer,
-  PartyPopper,
+  Drum,
   MapPin,
   Sun,
   Moon,
@@ -141,12 +140,17 @@ import {
   ACCENT_KEY,
   BACKGROUNDS,
   BACKGROUND_KEY,
+  PROSE_FONTS,
+  PROSE_FONT_KEY,
+  type ProseFontId,
   accentHex,
+  applyProseFont,
   applyTheme,
   stored,
   type AccentId,
   type BackgroundId,
 } from "./theme";
+import { workIcon } from "./task-icons";
 import {
   CHARACTER_SPRITES_KEY,
   DISPLAY_SETTINGS_KEY,
@@ -331,7 +335,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   };
   const [settingsTab, setSettingsTab] = useState("Display");
   const [accent, setAccent] = useState<AccentId>(() => stored(ACCENT_KEY, ACCENTS, "gold"));
-  const [background, setBackground] = useState<BackgroundId>(() => stored(BACKGROUND_KEY, BACKGROUNDS, "night"));
+  const [background, setBackground] = useState<BackgroundId>(() => stored(BACKGROUND_KEY, BACKGROUNDS, "plum"));
+  const [proseFont, setProseFont] = useState<ProseFontId>(() => stored(PROSE_FONT_KEY, PROSE_FONTS, "atkinson"));
   const realLanguage = useRealLanguage();
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -915,6 +920,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     [audio, setting?.culture, setting?.year, setting?.lon, setting?.lat],
   );
   useEffect(() => applyTheme(accent, background, setting?.culture), [accent, background, setting?.culture]);
+  useEffect(() => applyProseFont(proseFont), [proseFont]);
   useEffect(() => {
     if (modal === "notebook") void audio?.sound(pageTurn(), "page");
   }, [audio, modal]);
@@ -2008,7 +2014,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     <ul className="today-goals">
                       {runtime.dayGoals().length > 0 ? (
                         [...runtime.dayGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g, i) => {
-                          const [Icon, kind] = g.slot === "work" ? [Hammer, "Work"] : g.id.startsWith("fest.") ? [PartyPopper, "Holiday"] : [MapPin, "Errand"];
+                          const [Icon, kind] = g.slot === "work" ? [workIcon(p.role), "Work"] : g.id.startsWith("fest.") ? [Drum, "Holiday"] : [Footprints, "Errand"];
                           if (g.slot === "work" && workLive)
                             return <li key={g.id} className="today-work" onMouseEnter={() => previewGoal(g)} onMouseLeave={endPreview} onFocus={() => previewGoal(g)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPreview(undefined); }} style={{ "--i": i } as React.CSSProperties}>{workCard}</li>;
                           return (
@@ -2840,7 +2846,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           aria-label={a.name}
                           data-tip={a.name}
                           data-culture={a.id === "culture" || undefined}
-                          style={{ background: accentHex(a.id, setting?.culture) }}
+                          style={{ background: accentHex(a.id, setting?.culture, background) }}
                           onClick={() => {
                             setAccent(a.id);
                             try {
@@ -2854,8 +2860,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     </div>
                   </div>
                   <div className="settings-row">
-                    <span>Background</span>
-                    <div className="swatches" role="radiogroup" aria-label="Background">
+                    <span>Palette</span>
+                    <div className="swatches" role="radiogroup" aria-label="Palette">
                       {BACKGROUNDS.map((b) => (
                         <button
                           key={b.id}
@@ -2864,7 +2870,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           aria-label={b.name}
                           data-tip={b.name}
                           data-bg
-                          style={{ background: `linear-gradient(135deg, ${b.bg3} 50%, ${b.bg} 50%)` }}
+                          style={{ background: `linear-gradient(135deg, ${b.gold} 30%, ${b.bg3} 30% 65%, ${b.bg} 65%)` }}
                           onClick={() => {
                             setBackground(b.id);
                             try {
@@ -2876,6 +2882,24 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         />
                       ))}
                     </div>
+                  </div>
+                  <div className="settings-row">
+                    <span>Reading text</span>
+                    <select
+                      aria-label="Reading text"
+                      value={proseFont}
+                      onChange={(e) => {
+                        const next = e.target.value as ProseFontId;
+                        setProseFont(next);
+                        try {
+                          localStorage.setItem(PROSE_FONT_KEY, next);
+                        } catch {
+                          /* private mode */
+                        }
+                      }}
+                    >
+                      {PROSE_FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </select>
                   </div>
                   <h3>Narrator and dialogue</h3>
                   <div className="settings-row">

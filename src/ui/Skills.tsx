@@ -20,7 +20,7 @@ import {
   ShieldAlert,
   Swords,
   Target,
-  Utensils,
+  Soup,
   Wheat,
   type LucideIcon,
 } from "lucide-react";
@@ -126,7 +126,7 @@ export function Vitals({
       )}
       {engine && player && danger && <>
         <button className="survival-toggle" aria-expanded={details} aria-label="Body and danger" onClick={() => setDetails(!details)}>
-          <span className="pip" data-warn={player.hunger >= 70 || undefined}><Utensils size={13} /><span>{player.hunger >= 70 ? "Hungry" : "Fed"}</span></span>
+          <span className="pip" data-warn={player.hunger >= 70 || undefined}><Soup size={13} /><span>{player.hunger >= 70 ? "Hungry" : "Fed"}</span></span>
           <span className="pip" data-warn={player.fatigue >= 70 || undefined}><Moon size={13} /><span>{player.fatigue >= 70 ? "Tired" : "Rested"}</span></span>
           <span className="pip" data-warn={danger.level === "raised" || undefined} data-alarm={danger.level === "high" || danger.level === "immediate" || undefined}>
             {danger.score > 0 ? <ShieldAlert size={13} /> : <Shield size={13} />}

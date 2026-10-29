@@ -1,4 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Silkscreen&display=swap");
+/* Reading faces, apart so one missing family cannot fail the request for the rest. */
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700&family=Nunito:wght@400;600;700&family=Lexend:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Pixelify+Sans:wght@400;500;600&family=Silkscreen&display=swap");
 @font-face {
   font-family: "Baskervville";
   font-style: normal;
@@ -8,28 +10,34 @@
 }
 :root {
   font-family: var(--serif);
-  color: #eee8dc;
+  color: var(--text);
   background: var(--bg);
   font-synthesis: none;
   font-size: 16px;
-  /* Settings > Display overrides --gold and the three backgrounds (theme.ts). */
-  --bg: #0f1526;
-  --bg-2: #141b2f;
-  --bg-3: #1c2542;
+  /* Plum. Settings > Display swaps in the other palettes and the accent (theme.ts). */
+  --bg: #1b1322;
+  --bg-2: #251a2f;
+  --bg-3: #352641;
   --bg-0: color-mix(in srgb, var(--bg) 70%, #000);
   --panel: color-mix(in srgb, var(--bg-2) 85%, transparent);
-  --gold: #d9b477;
+  --gold: #f2c35b;
   --gold-hi: color-mix(in srgb, var(--gold) 80%, #fff);
-  --line: color-mix(in srgb, var(--gold) 72%, var(--bg));
+  --line: #6c5283;
   --line-soft: color-mix(in srgb, var(--line) 25%, transparent);
-  --teal: #7fd3c4;
-  --cream: #f0e6cf;
+  --frame-dark: #0d0912;
+  --frame-hi: #4a3858;
+  --frame: inset 0 0 0 1px var(--frame-hi), 0 3px 0 #0008;
+  --teal: #6fe0c8;
+  --cream: #f7f0ea;
   --ink: #1a1f36;
-  --muted: #a7b6cc;
-  --text: #e6e2d8;
-  --rose: #e98bb0;
+  --muted: #b5a5c4;
+  --text: #ece3ee;
+  --rose: #ff86ad;
   --rose-line: #b96a8a;
-  --serif: "Baskervville", Georgia, serif;
+  /* The body face; the name predates the pixel type. */
+  --serif: "Pixelify Sans", "Silkscreen", monospace;
+  /* Anything read as sentences. Settings > Display picks the face (theme.ts). */
+  --prose: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, sans-serif;
   --sans: "DM Sans", system-ui, sans-serif;
   --pixel: "Silkscreen", "Courier New", monospace;
   --sidebar-w: clamp(320px, 24vw, 420px);
@@ -9135,11 +9143,14 @@ button:disabled {
   display: grid;
   justify-items: center;
   gap: 6px;
-  width: min(440px, calc(100% - 32px));
+  justify-items: start;
+  max-width: min(440px, calc(100% - 32px));
   transform: translateX(-50%);
   pointer-events: none;
 }
-.toast-list { display: grid; gap: 6px; width: 100%; }
+/* Newest at the bottom, so a burst reads in order; older lines step back. */
+.toast-list { display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 6px; }
+.toast:not(:first-child) { opacity: 0.62; }
 .toast {
   display: grid;
   grid-template-rows: 1fr;
@@ -9153,14 +9164,12 @@ button:disabled {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 8px 10px 12px;
+  padding: 7px 10px;
   color: var(--cream);
-  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
-  border: 1px solid var(--line-soft);
-  border-left: 2px solid var(--gold);
-  border-radius: 10px;
-  box-shadow: 0 5px 16px #0003;
-  backdrop-filter: blur(12px);
+  background: var(--bg-2);
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  box-shadow: inset 3px 0 var(--gold), var(--frame);
   font: 14px/1.45 var(--serif);
 }
 .toast-icon { flex: none; margin-top: 3px; color: var(--gold); }
@@ -9170,18 +9179,21 @@ button:disabled {
   display: grid;
   place-items: center;
   flex: none;
-  width: 28px;
+  width: 0;
   height: 28px;
   margin-block: -3px;
+  margin-right: -10px;
   border-radius: 5px;
-  opacity: 0.6;
-  transition: opacity 0.15s, background-color 0.15s;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.15s, margin 0.15s, opacity 0.15s, background-color 0.15s;
 }
+.toast:hover .toast-dismiss, .toast-dismiss:focus-visible { width: 28px; margin-right: 0; opacity: 0.6; }
 .toast-dismiss svg { color: var(--muted); }
 .toast-dismiss:hover, .toast-dismiss:focus-visible { opacity: 1; background: #ffffff0d; }
-.toast[data-kind="social"] .toast-body { border-left-color: var(--teal); }
+.toast[data-kind="social"] .toast-body { box-shadow: inset 3px 0 var(--teal), var(--frame); }
 .toast[data-kind="social"] .toast-icon { color: var(--teal); }
-.toast[data-kind="world"] .toast-body { border-left-color: #8fb3d9; }
+.toast[data-kind="world"] .toast-body { box-shadow: inset 3px 0 #8fb3d9, var(--frame); }
 .toast[data-kind="world"] .toast-icon { color: #8fb3d9; }
 .toast[data-kind="system"] .toast-body { border-left-color: var(--muted); }
 .toast[data-kind="system"] .toast-icon { color: var(--muted); }
@@ -9191,11 +9203,11 @@ button:disabled {
   justify-self: start;
   align-items: center;
   gap: 6px;
-  padding: 5px 9px;
+  padding: 2px 4px;
   border-radius: 6px;
   color: var(--muted);
-  background: color-mix(in srgb, var(--bg) 90%, transparent);
   font-size: 12px;
+  opacity: 0.75;
   pointer-events: auto;
 }
 .toasts-history:hover, .toasts-history:focus-visible { color: var(--cream); }
@@ -10144,14 +10156,14 @@ button:disabled {
   box-shadow: none;
 }
 .app:has(.desktop-topbar) .side-tabs button { border: 0; border-radius: 0; background: none; box-shadow: none; }
-.app:has(.desktop-topbar) .side-tabs button[aria-selected="true"] { color: var(--cream); box-shadow: inset 0 -2px var(--gold); }
+.app:has(.desktop-topbar) .side-tabs button[aria-selected="true"] { color: var(--cream); box-shadow: inset 0 -3px var(--gold); }
 .app:has(.desktop-topbar) .today { gap: 16px; }
 .app:has(.desktop-topbar) .today-aim {
   padding: 10px 12px;
-  border: 0;
-  border-left: 2px solid var(--gold);
-  border-radius: 0;
-  background: color-mix(in srgb, var(--gold) 5%, transparent);
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  background: var(--bg-2);
+  box-shadow: inset 3px 0 var(--gold), var(--frame);
 }
 .app:has(.desktop-topbar) .today-aim b { font-size: 17px; line-height: 1.4; }
 .app:has(.desktop-topbar) .today-goals { gap: 0; }
@@ -10169,11 +10181,13 @@ button:disabled {
 }
 .app:has(.desktop-topbar) .today-work .work-card-head { padding: 10px 2px; gap: 8px; }
 .app:has(.desktop-topbar) .today-work .work-icon { width: 24px; height: 24px; border: 0; background: none; }
-.app:has(.desktop-topbar) .today-work .work-hint { margin: -2px 0 10px 34px; color: var(--muted); font-size: 12px; }
+.app:has(.desktop-topbar) .today-work .work-hint { width: max-content; margin: -4px 2px 10px auto; color: var(--gold); font-size: 12px; }
 .app:has(.desktop-topbar) .today-head { color: var(--muted); }
 .app:has(.desktop-topbar) .today-log { background-image: linear-gradient(var(--line-soft), var(--line-soft)); }
-.app:has(.desktop-topbar) .today-log li { padding: 5px 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.app:has(.desktop-topbar) .today-log li { padding: 5px 0; color: color-mix(in srgb, var(--muted) 80%, var(--cream)); font-size: 13px; line-height: 1.45; }
+.app:has(.desktop-topbar) .today-log li:first-child { color: var(--cream); }
 .app:has(.desktop-topbar) .today-log li::before { width: 4px; height: 4px; left: -14px; background: var(--muted); box-shadow: none; }
+.app:has(.desktop-topbar) .today-log li:first-child::before { background: var(--gold); }
 .app:has(.desktop-topbar).sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 1250px) {
   .desktop-topbar .brand > img { width: 140px; }
@@ -10305,4 +10319,81 @@ button:disabled {
   .command-input button svg { color: var(--muted); }
   .command-input:has(input:not(:placeholder-shown)) button { background: var(--gold); }
   .command-input:has(input:not(:placeholder-shown)) button svg { color: var(--ink); }
+}
+
+/* Pixel frames: a hard dark edge, a one-pixel highlight inside, a flat drop. Last in the file and led
+   by :root so they win over the component rules above. */
+:root :is(.narrator-panel, .command-input, .prop-prompts .key-prompt, .map-controls, .map-switcher, .time-pill) {
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  background: var(--bg-2);
+  box-shadow: var(--frame);
+  backdrop-filter: none;
+}
+:root .desktop-topbar { background: var(--bg); backdrop-filter: none; box-shadow: 0 2px 0 var(--frame-dark), 0 3px 0 var(--frame-hi); }
+:root .desktop-bottom-bar { background: var(--bg); border-top: 2px solid var(--frame-dark); box-shadow: inset 0 1px 0 var(--frame-hi); }
+:root .app:has(.desktop-topbar) .sidebar { background: var(--bg); box-shadow: inset 2px 0 0 var(--frame-dark), inset 3px 0 0 var(--frame-hi); }
+:root .portrait { background: var(--bg-3); border: 2px solid var(--frame-dark); border-radius: 2px; box-shadow: inset 0 0 0 1px var(--frame-hi); }
+:root .map-button { border: 2px solid var(--frame-dark); border-radius: 2px; }
+:root :is(.work-actions .primary, .prop-prompts .key-prompt kbd) {
+  color: var(--frame-dark);
+  background: var(--gold);
+  border: 2px solid var(--frame-dark);
+  border-radius: 2px;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--gold) 65%, #000);
+}
+:root .work-actions .primary:active { box-shadow: inset 0 2px color-mix(in srgb, var(--gold) 65%, #000); transform: translateY(1px); }
+
+/* Small labels in the body face at a readable size, not 8px spaced caps. */
+:root :is(.today-aim small, .today-head, .eyebrow, .narrator-title) { font: 500 12px var(--serif); letter-spacing: 0.02em; text-transform: none; }
+:root .today-log time { font: 11px var(--serif); }
+.today-text { display: flex; flex-direction: column; }
+:root .today-goals .today-text small { order: 1; color: var(--muted); font: 12px var(--serif); letter-spacing: 0; text-transform: none; }
+
+:root .location-weather .place-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+:root .location-weather .place-heading p { margin-top: 0; }
+:root .location-weather .sky { display: flex; flex-direction: row; align-items: baseline; gap: 6px; white-space: nowrap; }
+:root .location-weather .sky > * { display: inline; margin: 0; }
+:root .location-weather .sky > * + *::before { content: "· "; color: var(--muted); }
+
+/* Lucide, heavier to sit beside the pixel type, with a faint fill in its closed shapes. */
+svg.lucide { stroke-width: 2.4; }
+svg.lucide :is(circle, rect, ellipse, polygon) { fill: color-mix(in srgb, currentColor 16%, transparent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  svg.lucide { transition: transform 0.22s cubic-bezier(0.3, 1.6, 0.5, 1); }
+  :is(button, a):hover > svg.lucide-settings { transform: rotate(60deg); }
+  :is(button, a):hover > svg.lucide-hourglass { transform: rotate(180deg); transition-duration: 0.45s; }
+  :is(button, a):hover > svg:is(.lucide-arrow-right, .lucide-chevron-right) { transform: translateX(2px); }
+  :is(button, a):hover > svg.lucide-chevron-left { transform: translateX(-2px); }
+  :is(button, a):hover > svg.lucide-message-circle { transform: translateY(-2px); }
+  :is(button, a):hover > svg.lucide-map { transform: scaleX(1.14); }
+  :is(button, a):hover > svg.lucide-compass { transform: rotate(-30deg); }
+  :is(button, a):hover > svg.lucide-music2 { animation: icon-bob 0.5s; }
+  :is(button, a):hover > svg:is(.lucide-notebook-pen, .lucide-circle-question-mark, .lucide-feather) { animation: icon-wiggle 0.4s; }
+  :is(button, a):hover > svg.lucide-heart { animation: icon-beat 0.45s; }
+  :is(button, a):hover > svg.lucide-search { animation: icon-circle 0.5s; }
+  /* A job's icon acts out its trade. */
+  :is(.today-goals button, .work-card):hover svg:is(.lucide-hammer, .lucide-axe, .lucide-pickaxe, .lucide-anvil, .lucide-shovel, .lucide-brick-wall) { animation: icon-tap 0.45s; }
+  :is(.today-goals button, .work-card):hover svg:is(.lucide-spool, .lucide-cooking-pot, .lucide-amphora) { animation: icon-spin 0.6s; }
+  :is(.today-goals button, .work-card):hover svg:is(.lucide-wheat, .lucide-sprout, .lucide-leaf, .lucide-fish, .lucide-sailboat, .lucide-footprints) { animation: icon-sway 0.6s; }
+  :is(.today-goals button, .work-card):hover svg:is(.lucide-scale, .lucide-hand-coins, .lucide-coins, .lucide-drum, .lucide-church, .lucide-landmark, .lucide-swords, .lucide-bow-arrow, .lucide-scroll-text, .lucide-handshake) { animation: icon-bob 0.5s; }
+  .toast-icon { animation: icon-pop 0.35s 0.12s both; }
+  .today-goals > li > button[data-done] .today-icon svg { animation: icon-hop 0.45s; }
+}
+@keyframes icon-bob { 40% { transform: translateY(-3px); } }
+@keyframes icon-wiggle { 25% { transform: rotate(-12deg); } 75% { transform: rotate(10deg); } }
+@keyframes icon-beat { 30% { transform: scale(1.25); } 60% { transform: scale(0.95); } }
+@keyframes icon-circle { 25% { transform: translate(2px, -1px); } 50% { transform: translate(0, -2px); } 75% { transform: translate(-2px, -1px); } }
+@keyframes icon-tap { 35% { transform: rotate(-24deg); } 60% { transform: rotate(6deg); } }
+@keyframes icon-spin { to { transform: rotate(360deg); } }
+@keyframes icon-sway { 30% { transform: rotate(-10deg); } 70% { transform: rotate(8deg); } }
+@keyframes icon-pop { from { transform: scale(0.4); opacity: 0; } 70% { transform: scale(1.2); } }
+@keyframes icon-hop { 40% { transform: translateY(-4px); } 70% { transform: translateY(1px); } }
+
+/* Sentences read in the reading face; labels and their small meta lines stay in the pixel type. */
+:root :is(.plot-prose, .plot-copy, .plot-aim, .pf-body, .plot-speech-body, .dialogue-line, .work-choice-text,
+  .narrator-said, .narration-log, .narrator-body, .brief, .death-card p, .today-text, .today-aim b, .today-log li,
+  .work-title b) {
+  font-family: var(--prose);
 }
