@@ -1193,6 +1193,9 @@ export function planSettlement(
             sprite: `study-propb-street-barrow-${Math.floor(rand("barrow", i) * 3)}`, pos: pos(at), inventory: {} });
         }
     };
+    // Earth where feet wear it; ground nobody crosses grows over unless the
+    // climate is too dry for it.
+    const openGround: Terrain = pack.setting?.climate === "arid" ? "dirt" : "grass";
     const paintForecourt = (rect: Rect) => {
       gradeGround(rect);
       const material = squareStone;
@@ -1213,7 +1216,7 @@ export function planSettlement(
         const key = cellKey(x, y);
         plan.reserved.add(key);
         if (!square) {
-          if (setSurface(key, "dirt", 3)) plan.pavement!.set(key, "court");
+          if (setSurface(key, openGround, 3)) plan.pavement!.set(key, "court");
         }
         else {
           roads.add(key);
@@ -1541,7 +1544,7 @@ export function planSettlement(
         for (let x = c.x - reach; x <= c.x + reach; x++) {
           if (!holds(x, y) || !dry({ x, y, w: 1, h: 1 }, false)) continue;
           const k = cellKey(x, y);
-          if (setSurface(k, earthCore(x, y, cityGround === "paving" ? "dirt" : cityGround), 1))
+          if (setSurface(k, cityGround === "dirt" ? openGround : earthCore(x, y, cityGround === "paving" ? "dirt" : cityGround), 1))
             plan.pavement!.set(k, "vacant");
           const besideRoad =
             !roads.has(k) &&
