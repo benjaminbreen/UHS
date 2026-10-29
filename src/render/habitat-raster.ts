@@ -122,6 +122,21 @@ const bankRamps: Record<PaletteKey, string[]> = {
 export const banks = Object.fromEntries(
   Object.entries(bankRamps).map(([k, v]) => [k, v.map(decode)]),
 ) as Record<PaletteKey, number[][]>;
+/** Fans of faint arcs a broom leaves in swept earth, one in a third of the
+ * 12 px blocks, each fan facing its own way. */
+function broomMark(wx: number, wy: number): boolean {
+  const bx = Math.floor(wx / 12),
+    by = Math.floor(wy / 12);
+  if (hash(bx, by, 521) > 0.33) return false;
+  const dx = wx - (bx * 12 + 6),
+    dy = wy - (by * 12 + 6);
+  const r = Math.hypot(dx, dy);
+  const facing = hash(bx, by, 523) * Math.PI * 2;
+  let off = Math.atan2(dy, dx) - facing;
+  off = Math.atan2(Math.sin(off), Math.cos(off));
+  return Math.abs(off) < 0.6 && [3, 5].some((ring) => Math.abs(r - ring) < 0.5);
+}
+
 /** Creek bed stones by region: slate in cool green country, ochre gravel in
  * dry grass and scrub, iron-red on red earth, cream on the Sahara. Returns
  * bed tone, lit stone, dark stone. */
@@ -1142,7 +1157,7 @@ function rasterGroundTile(
             ? 0
             : worn < shoulder
               ? 1
-              : worn > 0.87 && wide
+              : (worn > 0.87 || (field.swept && worn > 0.6)) && wide
                 ? 3
                 : 2;
           let tone = soil[wide ? band : Math.max(1, band)];
@@ -1154,11 +1169,12 @@ function rasterGroundTile(
             wx,
             wy,
             art.motifs,
-            motifTuning,
+            field.swept ? { ...motifTuning, density: (motifTuning?.density ?? 1) * 0.15 } : motifTuning,
           );
           // A slow wash keeps the treadway from reading as one flat fill.
+          // Swept ground is even: the broom takes the wash out of it.
           let shade =
-            Math.round((noise(wx, wy, 44, 461) - 0.5) * 11 / 6) * 6 +
+            (field.swept ? 0 : Math.round((noise(wx, wy, 44, 461) - 0.5) * 11 / 6) * 6) +
             (ink
               ? pebbled
                 ? [0, -34, -18, 8][ink]
@@ -1173,6 +1189,7 @@ function rasterGroundTile(
           // Bare ground is close in value to its own soil ramp; packing it
           // one step darker is what lets the tread read without grain.
           if (!grassy) shade -= 9;
+          if (field.swept && broomMark(wx, wy)) shade += 8;
           // Cart ruts either side of the crown on wagon-width roads: a dark
           // groove with a lit lip on its outer side, broken so the pair never
           // reads as two ruled lines.

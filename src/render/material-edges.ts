@@ -90,6 +90,8 @@ export type PathField = {
   radius: number;
   ruts?: false;
   dung?: false;
+  /** A house yard or court, kept swept: even, clean, with broom marks. */
+  swept?: true;
   paved?: "yellow" | "white" | "none";
   /** Signed distance from the centre line and distance along it, in native
    * pixels, for a paved road's paint. */
@@ -150,7 +152,8 @@ export function pathField(
       : c.pavement === "yard" ? 0.65 + patch * 0.35 : 1;
   });
   const areaField: PathField = { coverage: clamp01((area - 0.2) * 1.25), cross: 0.5,
-    radius: 1.2, ruts: false, dung: false };
+    radius: 1.2, ruts: false, dung: false,
+    ...(["yard", "court"].includes(cell.pavement ?? "") && { swept: true as const }) };
   if (area === 1) return areaField;
   if (cell.pathArt?.length && !cell.feature && !cell.ramp && !cell.bridge) {
     let best: PathField = { coverage: 0, cross: 1.5, radius: 0 };
