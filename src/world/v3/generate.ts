@@ -1922,7 +1922,7 @@ export function createSettlementWorld(
           if (use) {
             let form = forms.get(p);
             if (!form) forms.set(p, (form = siteForm(p.site, pack)));
-            cell.earth = earthFinish(form, use, pack.setting?.climate);
+            cell.earth = p.earth?.get(key) ?? earthFinish(form, use, pack.setting?.climate);
           }
           // No turf survives between the houses of a dry-country city.
           if (pack.setting?.climate === "arid" && (pavement === "yard" || pavement === "vacant"))

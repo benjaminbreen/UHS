@@ -24,7 +24,7 @@ export function pavingGrade(pavement?: Pavement): PavingGrade {
   return pavement === "dais" ? "dais"
     : pavement === "square" ? "broad"
     : pavement === "court" ? "court"
-    : pavement === "yard" ? "yard" : "street";
+    : pavement === "yard" || pavement === "apron" ? "yard" : "street";
 }
 const grades: Record<PavingGrade, { w: number; h: number; lift: number }> = {
   fine: { w: 18, h: 12, lift: 0 },
@@ -264,4 +264,14 @@ export function pavingStonePixel(
   if (y === g.h - 1 && x > width / 2) return tint(face, -4);
   if (id < 0.16 && y === g.h - 4 && x >= 4 && x <= 6) return tint(face, -5);
   return face;
+}
+
+/** A stable 0-1 draw per sett or brick, laid out as `pavingStonePixel` lays
+ * them, so a worn patch loses whole stones rather than cutting them. */
+export function stoneUnit(wx: number, wy: number, material: StreetMaterial): number {
+  const rounded = material === "cobble", fired = material === "brick";
+  const w = rounded ? 8 : fired ? 10 : 9, h = rounded ? 7 : fired ? 6 : 8;
+  const row = Math.floor(wy / h);
+  const offset = mod(row, 2) * Math.floor(w / 2) + (rounded ? Math.floor(hash(row, 0, 713) * 3) : 0);
+  return hash(Math.floor((wx + offset) / w), row, 719);
 }

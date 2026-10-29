@@ -85,3 +85,11 @@ export function oldCorePalette(setting: WorldSetting): { street: StreetSurface; 
     lane: setting.culture === "north-african-west-asian" ? "earth" : "slab",
   };
 }
+
+/** The humbler stone a town lays where its dressed paving gives out: setts
+ * or brick on odd ground by the streets. None where nothing is dressed stone. */
+export function infillStone(palette: StreetPalette): StreetMaterial | undefined {
+  const dressed = [...palette.footway, ...palette.square].find((m) => m !== "earth" && m !== "plank");
+  if (!dressed) return undefined;
+  return palette.main.includes("brick") ? "brick" : palette.main.includes("asphalt") || palette.main.includes("concrete") ? undefined : "cobble";
+}

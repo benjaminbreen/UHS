@@ -18,7 +18,7 @@ import {
 import { rasterStreetTile } from "./street-raster";
 import { blacktopPixel } from "./carriageway";
 import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
-import { dustOf, pavingGrade, pavingStonePixel } from "./paving-stones";
+import { dustOf, pavingGrade, pavingStonePixel, stoneUnit } from "./paving-stones";
 import { mottle, shade } from "./palette";
 import { rasterFieldTile, tilled } from "./field-raster";
 import { bold, width as fenceWidth } from "./fences";
@@ -338,6 +338,7 @@ function bareHabitatTile(
       if (top[i + 3]) tile.pixels.set(top.subarray(i, i + 4), i);
     return tile;
   }
+  if (street && cell.pavement === "apron" && cell.habitat) return apronTile(sample, x, y, ox, oy, art, cell);
   if (!street && (!cell.habitat || !wornEdge(cell)))
     return rasterGroundTile(sample, x, y, ox, oy, art, cell);
   if (!street && enclosed(sample, x, y)) {
@@ -365,7 +366,7 @@ function bareHabitatTile(
   for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     const n = sample(x + dx, y + dy);
     if (street && under === cell && n?.habitat && wornEdge(n))
-      under = { ...cell, feature: undefined, streetMaterial: undefined, pavement: undefined, surface: n.surface, habitat: cell.habitat ?? n.habitat };
+      under = { ...cell, feature: undefined, streetMaterial: undefined, pavement: n.pavement, earth: n.earth, surface: n.surface, habitat: cell.habitat ?? n.habitat };
     if (!street && !lane && n?.feature === "paving") lane = n;
   }
   if (street && under === cell) return rasterStreetTile(sample, x, y, ox, oy);
@@ -394,12 +395,15 @@ function bareHabitatTile(
         continue;
       }
       if (d < -VERGE) continue;
-      // Setts work loose at a worn edge and lie scattered in the mud beside it.
-      if ((loose === "cobble" || loose === "sett") && d > -3.5) {
-        const bx = Math.floor((gx + px) / 3), by = Math.floor((gy + py) / 3);
-        if (hash(bx, by, 887) < 0.16 && mod(gx + px, 3) !== 2 && mod(gy + py, 3) !== 2) {
+      // Setts work loose at a worn edge and lie scattered in the mud beside
+      // it; slabs break, and their pieces lie a little further apart.
+      const sett = loose === "cobble" || loose === "sett" || loose === "brick";
+      if (loose && (sett || loose === "slab" || loose === "basalt") && d > -3.5) {
+        const b = sett ? 3 : 4,
+          bx = Math.floor((gx + px) / b), by = Math.floor((gy + py) / b);
+        if (hash(bx, by, 887) < (sett ? 0.16 : 0.09) && mod(gx + px, b) !== b - 1 && mod(gy + py, b) !== b - 1) {
           const stone = pavingStonePixel(gx + px, gy + py, loose, "street");
-          pixels.set(mod(gy + py, 3) === 0 ? stone.map((n) => n + 6) : stone.map((n) => n - 14), i);
+          pixels.set(mod(gy + py, b) === 0 ? stone.map((n) => n + 6) : stone.map((n) => n - 14), i);
           continue;
         }
       }
@@ -411,6 +415,46 @@ function bareHabitatTile(
       pixels[i] = tone[0];
       pixels[i + 1] = tone[1];
       pixels[i + 2] = tone[2];
+    }
+  return tile;
+}
+/** Humble setts over trodden earth. Stones go missing toward open ground:
+ * whole ones, each hole a step down with the stone above shading it. */
+function apronTile(
+  sample: TopographySample,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+  art: GrassArt,
+  cell: TopographyCell,
+): GroundTileData {
+  const under = { ...cell, feature: undefined, streetMaterial: undefined, pavement: "yard" as const, surface: "soil" as const };
+  const tile = rasterGroundTile(sample, x, y, ox, oy, art, under);
+  const material = cell.streetMaterial ?? "cobble";
+  const gx = (x + ox) * 16,
+    gy = (y + oy) * 16;
+  // Missing stones per neighbour side that is not paved, read at the corners
+  // and blended so the loss grades across the cell instead of by cell.
+  const bare = (dx: number, dy: number) => (sample(x + dx, y + dy)?.feature === "paving" ? 0 : 1);
+  const w = bare(-1, 0), e = bare(1, 0), n = bare(0, -1), s = bare(0, 1);
+  const gone = (wx: number, wy: number) => {
+    const u = (wx - gx) / 15,
+      v = (wy - gy) / 15;
+    const loss = 0.12 + 0.55 * Math.max(w * (1 - u), e * u, n * (1 - v), s * v) ** 2;
+    return stoneUnit(wx, wy, material) < loss;
+  };
+  const pixels = tile.pixels;
+  for (let py = 0; py < 16; py++)
+    for (let px = 0; px < 16; px++) {
+      const i = (py * 16 + px) * 4,
+        wx = gx + px,
+        wy = gy + py;
+      if (gone(wx, wy)) {
+        if (!gone(wx, wy - 1)) for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.8);
+        continue;
+      }
+      pixels.set(pavingStonePixel(wx, wy, material, "yard"), i);
     }
   return tile;
 }

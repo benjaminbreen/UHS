@@ -16,6 +16,8 @@ export type Pavement =
   | "lane"
   | "verge"
   | "court"
+  /** Humbler stone laid where a town's dressed paving gives out. */
+  | "apron"
   | "yard"
   | "garden"
   | "park"
@@ -107,6 +109,8 @@ export type SettlementPlan = {
     import("../../content/settlements/streets/palettes").StreetSurface
   >;
   pavement?: Map<string, Pavement>;
+  /** Open ground whose finish the plan chose, over the town form's default. */
+  earth?: Map<string, import("../../content/settlements/urban-form/types").EarthFinish>;
   lanes?: Map<string, Lane>;
   junctions?: Junction[];
   streetGeometry?: Map<string, import("./street-geometry").StreetGeometry>;

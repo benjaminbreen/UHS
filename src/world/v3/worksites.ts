@@ -9,6 +9,7 @@ import type { Sample } from "./roads";
 import { launchAt, shoreDirections, type Launch } from "./shoreline";
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
 import { industrialized } from "../../content/settlements/modernity";
+import { infillStone, streetPalette } from "../../content/settlements/streets/palettes";
 
 const key = (x: number, y: number) => `${x},${y}`;
 const cells = (r: Rect, f: (x: number, y: number) => void) => {
@@ -93,9 +94,12 @@ export function planWorksites(
       placed.add(profile.kind);
       if (profile.revision) processingCount++;
       if(!launch) {paint(r,"dirt");grade(r);}
+      // A paved town gravels its work yards rather than leave them to mud.
+      const gravel = !launch && pack.setting && infillStone(streetPalette(pack.setting));
       cells(r,(x,y)=>{
         plan.reserved.add(key(x,y));
         if(!launch) plan.pavement?.set(key(x,y),"yard");
+        if(gravel) (plan.earth ??= new Map()).set(key(x,y),"gravel");
       });
       for (const p of buildings) {
         if(launch) {

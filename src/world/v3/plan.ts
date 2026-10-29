@@ -34,6 +34,7 @@ import { aboutBuilding } from "../../content/settlements/about-buildings";
 import {
   streetPalette,
   chooseStreetSurface,
+  infillStone,
   oldCorePalette,
 } from "../../content/settlements/streets/palettes";
 import {
@@ -43,6 +44,7 @@ import {
   roadMarkings,
 } from "../../content/settlements/streets/markings";
 import { tramways } from "../../content/settlements/streets/trams";
+import type { StreetMaterial } from "../../content/settlements/streets";
 import { industrialized, modernity, motorized } from "../../content/settlements/modernity";
 import { trafficControl } from "../../content/settlements/streets/control";
 import {
@@ -5206,6 +5208,7 @@ export function planSettlement(
       });
   }
   tidyGround(plan, roads);
+  if (palette) stepGround(plan, roads, seed, infillStone(palette), footwaySurface !== "earth" && footwaySurface !== "plank" ? squareStone : undefined);
   footTraffic(plan.roads);
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
@@ -5268,6 +5271,94 @@ const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 /** The town's ground as one plan: a square's edge is trodden to earth before
  * it meets turf, and a sliver or hole one or two cells across takes the
  * ground round it. */
+/** Leftover ground steps down from the stone it meets: a forecourt before a
+ * public building, then loose setts, gravel and trodden earth, so dressed
+ * paving never stops dead against turf. */
+function stepGround(plan: SettlementPlan, routes: Set<string>, seed: string, infill?: StreetMaterial, plaza?: StreetMaterial | "earth") {
+  if (!infill) return;
+  const open = (k: string) => {
+    const t = plan.surface.get(k), p = plan.pavement?.get(k);
+    return (t === "grass" || t === "dirt") && !routes.has(k) && !plan.solid.has(k) && !plan.fields?.has(k) &&
+      !plan.lanes?.has(k) && !plan.streetGeometry?.has(k) && (!p || p === "vacant" || (p === "court" && t === "grass"));
+  };
+  const stoneAt = (k: string) => plan.surface.get(k) === "paving" && plan.streetSurfaces?.get(k) !== "earth";
+  const pave = (k: string, stone: StreetMaterial, role: Pavement) => {
+    plan.surface.set(k, "paving");
+    plan.pavement!.set(k, role);
+    plan.streetSurfaces!.set(k, stone);
+  };
+  // Forecourts and paved-over pockets only where the footways are stone too.
+  for (const place of plaza && plaza !== "earth" ? plan.places : []) {
+    if (place.access !== "public" || /^(worksite|house)-/.test(place.sprite)) continue;
+    const reach = Math.min(3, 1 + Math.floor(Math.sqrt(place.w * place.h) / 8));
+    eachCell({ x: place.x - reach, y: place.y - reach, w: place.w + 2 * reach, h: place.h + 2 * reach }, (x, y) => {
+      const k = cellKey(x, y), t = plan.surface.get(k);
+      // Under the footprint too, for the corners a round building leaves.
+      const under = inside(place, x, y) && (t === "grass" || t === "dirt" || t === "sand" || t === "dry");
+      if (open(k) || under) pave(k, plaza as StreetMaterial, "square");
+    });
+  }
+  // The floor a precinct's stands enclose is sand, raked, not turf.
+  for (const [k, t] of plan.surface)
+    if ((t === "sand" || t === "dry") && plan.pavement?.get(k) === "court") {
+      plan.surface.set(k, "dirt");
+      (plan.earth ??= new Map()).set(k, "sand");
+    }
+  // A small pocket shut in by paving and walls takes the stone round it.
+  const seen = new Set<string>();
+  for (const k of [...plan.surface.keys()]) {
+    if (seen.has(k) || !open(k)) continue;
+    const pocket = [k];
+    let stone: string | undefined;
+    seen.add(k);
+    for (let i = 0; i < pocket.length; i++) {
+      const [x, y] = pocket[i].split(",").map(Number);
+      for (const [dx, dy] of N4) {
+        const n = cellKey(x + dx, y + dy);
+        if (stoneAt(n) && ["footway", "square", "court"].includes(plan.pavement?.get(n) ?? "")) stone ??= n;
+        if (seen.has(n) || !open(n)) continue;
+        seen.add(n);
+        pocket.push(n);
+      }
+    }
+    // A larger one is a yard of worn setts, too small to grade out to earth.
+    if (!plaza) continue;
+    if (stone && pocket.length <= 48)
+      for (const c of pocket) pave(c, plan.streetSurfaces!.get(stone) as StreetMaterial, plan.pavement!.get(stone)!);
+    else if (pocket.length <= 160) for (const c of pocket) pave(c, infill, "apron");
+  }
+  const step = new Map<string, number>();
+  let front: string[] = [];
+  for (const k of plan.surface.keys()) if (stoneAt(k)) front.push(k);
+  for (let d = 1; d <= 4 && front.length; d++) {
+    const next: string[] = [];
+    for (const k of front) {
+      const [x, y] = k.split(",").map(Number);
+      for (const [dx, dy] of N4) {
+        const n = cellKey(x + dx, y + dy);
+        if (step.has(n) || !open(n)) continue;
+        step.set(n, d);
+        next.push(n);
+      }
+    }
+    front = next;
+  }
+  for (const [k, d] of step) {
+    const [x, y] = k.split(",").map(Number);
+    // Bands that wander, not rings: each cell is a little nearer or further.
+    const e = d + (noise(seed, x, y, 4, "step-ground") - 0.5) * 1.4;
+    if (e < 1.6) pave(k, infill, "apron");
+    else if (e < 2.7) {
+      plan.surface.set(k, "dirt");
+      plan.pavement!.set(k, "court");
+      (plan.earth ??= new Map()).set(k, "gravel");
+    } else if (e < 3.6 && plan.surface.get(k) === "grass") {
+      plan.surface.set(k, "dirt");
+      plan.pavement!.set(k, "vacant");
+    }
+  }
+}
+
 function tidyGround(plan: SettlementPlan, routes: Set<string>) {
   const at = (x: number, y: number) => plan.surface.get(cellKey(x, y));
   const open = (t?: Terrain) => t === "paving" || t === "dirt" || t === "grass";
