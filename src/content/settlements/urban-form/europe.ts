@@ -47,6 +47,7 @@ export const europeForms: UrbanFormRule[] = [
     courts: 0.34,
     deadEnds: 0.3,
     tiers: [3, 2, 1],
+    backs: 5,
     plots: { block: [24, 20], garden: 4, paved: "arterial" },
     quarters: {
       market: ["shop", "tall", "inn"],
@@ -66,7 +67,7 @@ export const europeForms: UrbanFormRule[] = [
       sources: [
         "https://historicengland.org.uk/education/schools-resources/educational-images/guildhall-market-place-lavenham-suffolk-cc001481",
       ],
-      note: "A widened market place off the main through route, narrow burgage-depth plots and irregular back lanes follow the recorded plan form of English and north European market towns. Block proportions here are illustrative.",
+      note: "A widened market place off the main through route, narrow burgage-depth plots and irregular back lanes follow the recorded plan form of English and north European market towns. Each house keeps its burgage strip behind it, the yard, garden and privy off the street. Block proportions here are illustrative.",
     },
   },
   {
@@ -83,6 +84,7 @@ export const europeForms: UrbanFormRule[] = [
     courts: 0.4,
     deadEnds: 0.16,
     tiers: [3, 2, 1],
+    backs: 4,
     plots: { block: [26, 20], garden: 4, paved: "streets" },
     quarters: {
       market: ["shop", "tall", "inn"],
@@ -110,7 +112,7 @@ export const europeForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "Partly regularised streets over an older irregular core, with courts behind street ranges, is a broad reading of early modern European town plans rather than a claim about any one city.",
+      note: "Partly regularised streets over an older irregular core, with courts behind street ranges, is a broad reading of early modern European town plans rather than a claim about any one city. Terraces keep walled back yards for the privy, the wash and a few beds, as Georgian and earlier town houses did.",
     },
   },
   {
@@ -127,6 +129,7 @@ export const europeForms: UrbanFormRule[] = [
     courts: 0.22,
     deadEnds: 0.02,
     tiers: [4, 2, 1],
+    backs: 5,
     gates: 4,
     wall: "none",
     plaza: "crossing",
@@ -142,7 +145,7 @@ export const europeForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "Long rectangular blocks on a uniform survey module follow the 1683 Philadelphia plan and the 1811 Commissioners' Plan for Manhattan. The generator uses the module, not a named city's actual streets.",
+      note: "Long rectangular blocks on a uniform survey module follow the 1683 Philadelphia plan and the 1811 Commissioners' Plan for Manhattan. Lots ran deep, with the yard, garden and privy behind the house. The generator uses the module, not a named city's actual streets.",
     },
   },
 ];

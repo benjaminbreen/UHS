@@ -5,6 +5,7 @@ import {
   pickBoundary,
   yardBoundaries,
 } from "../src/content/settlements/boundaries";
+import { yardKit } from "../src/content/settlements/yards";
 import type { TopographyCell } from "../src/core/topography";
 
 type Field = NonNullable<TopographyCell["field"]>;
@@ -86,5 +87,32 @@ describe("yard boundaries", () => {
         expect(options.reduce((s, [, w]) => s + w, 0)).toBeCloseTo(1);
         expect(options.map(([b]) => b)).toContain(pickBoundary(options, 0.999));
       }
+  });
+});
+
+describe("yard kits", () => {
+  const kit = (culture: string, year: number, climate = "temperate") =>
+    yardKit({ culture, climate, year } as never);
+
+  it("gives a house of the brick centuries a front garden and a back yard", () => {
+    for (const [culture, year] of [["european", 1780], ["european", 1880], ["other-indigenous-american", 1780]] as const) {
+      const k = kit(culture, year);
+      expect(k.id, `${culture} ${year}`).toBe("cottage");
+      expect(k.front[0]).toBeGreaterThan(1);
+      expect(k.back?.[0]).toBeGreaterThan(2);
+    }
+    expect(kit("european", -5000).back).toBeUndefined();
+  });
+
+  it("keeps whatever stands behind the house in a kit that has a back", () => {
+    for (const culture of [
+      "european", "north-african-west-asian", "east-asian", "andean", "southeast-asian",
+      "west-central-african", "mesoamerican", "south-asian", "other-indigenous-american",
+    ])
+      for (const year of [-5000, 900, 1300, 1780, 1880])
+        for (const climate of ["temperate", "arid", "mediterranean"]) {
+          const k = kit(culture, year, climate);
+          if (k.props.some((p) => p.where === "back")) expect(k.back, `${k.id}`).toBeDefined();
+        }
   });
 });

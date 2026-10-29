@@ -645,13 +645,19 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             ...drink.map((q) => Math.hypot(q.x - p.x, q.y - p.y)),
             Infinity,
           );
+        const cx = b.x + b.w / 2,
+          cy = b.y + b.h / 2;
+        // Across the house from its door, where the street does not see it.
+        const behind = (p: Position) =>
+          (p.x + 0.5 - cx) * (b.entrance.x + 0.5 - cx) + (p.y + 0.5 - cy) * (b.entrance.y + 0.5 - cy) < 0;
         const far = around
           .filter((p) => usable(p))
-          // Furthest from the water first, and from the door after that: a
-          // privy belongs at the bottom of the yard, not beside the well.
+          // Half a dozen paces from the water, then behind the house, then
+          // furthest from the door: the bottom of the yard, not beside the well.
           .sort(
             (p, q) =>
-              Math.min(fromWater(q), 12) - Math.min(fromWater(p), 12) ||
+              Math.min(fromWater(q), 6) - Math.min(fromWater(p), 6) ||
+              Number(behind(q)) - Number(behind(p)) ||
               Math.hypot(q.x - b.entrance.x, q.y - b.entrance.y) -
                 Math.hypot(p.x - b.entrance.x, p.y - b.entrance.y),
           )[0];

@@ -2782,21 +2782,24 @@ export function planSettlement(
     const [fmin, fmax] = yards.front;
     const deepest =
       fmin + Math.floor(rand("toft-front", i) * (fmax - fmin + 1));
+    const [bmin, bmax] = yards.back ?? [0, 0];
+    const rear = bmin + Math.floor(rand("toft-back", i) * (bmax - bmin + 1));
     const first = rand("toft-side", i) < 0.5 ? -1 : 1;
-    const tries: [number, number, number][] = [];
-    for (let front = Math.max(1, deepest); front >= 1; front--)
-      for (const side of [first, -first])
-        // Widest bed that will fit, narrowing as the tries fall back.
-        for (const bed of [8, 7, 6, 5, 4].slice(
-          Math.floor(rand("toft-bed", i) * 3),
-        ))
-          tries.push([front, side, bed]);
+    const tries: [number, number, number, number][] = [];
+    for (const back of rear ? [rear, 0] : [0])
+      for (let front = Math.max(1, deepest); front >= 1; front--)
+        for (const side of [first, -first])
+          // Widest bed that will fit, narrowing as the tries fall back.
+          for (const bed of [8, 7, 6, 5, 4].slice(
+            Math.floor(rand("toft-bed", i) * 3),
+          ))
+            tries.push([front, side, bed, back]);
     yardPlans.push(() => {
-      for (const [front, side, bed] of tries) {
+      for (const [front, side, bed, back] of tries) {
         // A clear column on the right, where the side wall overhangs.
         const xl = rect.x - (side < 0 ? bed + 2 : 2),
           xr = rect.x + rect.w + (side > 0 ? bed + 2 : 2),
-          yt = rect.y + rect.h - 2,
+          yt = back ? rect.y - back - 1 : rect.y + rect.h - 2,
           yb = rect.y + rect.h + front;
         const toft = { x: xl, y: yt, w: xr - xl + 1, h: yb - yt + 1 };
         const inHouse = (x: number, y: number) =>
@@ -2836,9 +2839,9 @@ export function planSettlement(
         // The bed's own plot, at the garden end.
         const plot = {
           x: side < 0 ? xl : rect.x + rect.w + 1,
-          y: yt,
+          y: rect.y + rect.h - 2,
           w: bed + 2,
-          h: yb - yt + 1,
+          h: yb - rect.y - rect.h + 3,
         };
         const crop =
           yards.beds[Math.floor(rand("yard-crop", i) * yards.beds.length)];
@@ -2931,22 +2934,20 @@ export function planSettlement(
               i,
               30,
             );
-          const free: Point[] = [];
+          const free: Point[] = [],
+            behind: Point[] = [];
           eachCell(toft, (x, y) => {
-            if (
-              !inHouse(x, y) &&
-              !ring(x, y) &&
-              !open(x, y) &&
-              !(x >= plot.x && x < plot.x + plot.w) &&
-              y > rect.y + rect.h
-            )
+            if (inHouse(x, y) || ring(x, y) || open(x, y) || propCells.has(cellKey(x, y))) return;
+            if (y < rect.y - 1) behind.push({ x, y });
+            else if (!(x >= plot.x && x < plot.x + plot.w) && y > rect.y + rect.h)
               free.push({ x, y });
           });
           items
-            .filter((p) => p.where === "yard")
+            .filter((p) => p.where === "yard" || p.where === "back")
             .forEach((item, n) => {
+              const spots = item.where === "back" && behind.length ? behind : free;
               const at =
-                free[Math.floor(rand("yard-spot", i, n) * free.length)];
+                spots[Math.floor(rand("yard-spot", i, n) * spots.length)];
               if (at) yardProp(item, at, id, i, 40 + n);
             });
           if (yards.tree && rand("yard-tree", i) < yards.tree.chance) {
@@ -3684,7 +3685,7 @@ export function planSettlement(
     buildingRoofCells(frame, rect).forEach((p) =>
       propCells.add(cellKey(p.x, p.y)),
     );
-    if (organic && !urban && !lot.rect && (pack.setting?.year ?? 0) < 1800)
+    if (organic && !urban && !lot.rect && (pack.setting?.year ?? 0) < 1950)
       layToft(rect, door, point, workPoint, id, i, role, yard, owner);
     if (lot.garden) layGarden(lot.garden, rect, id, i, owner);
     const side = {

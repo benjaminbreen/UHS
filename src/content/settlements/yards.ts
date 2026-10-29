@@ -8,7 +8,8 @@ export type YardProp = {
   prop: string;
   family: string;
   name: string;
-  where: "bed" | "wall" | "door" | "yard";
+  /** `back` is behind the house, where the kit keeps a back yard. */
+  where: "bed" | "wall" | "door" | "yard" | "back";
   chance: number;
   /** Only for residents whose livelihood matches. */
   role?: RegExp;
@@ -37,6 +38,8 @@ export type YardKit = {
   boundary: "era" | Boundary;
   /** Rows of open yard kept in front of the house. */
   front: readonly [number, number];
+  /** Rows kept behind it, for the coop, the hives and the privy. */
+  back?: readonly [number, number];
   /** Shares of yards that wrap the house, fence only the bed, or go unfenced. */
   styles: { wrap: number; side: number; open: number };
   beds: readonly CropId[];
@@ -64,6 +67,7 @@ const toft: YardKit = {
   id: "toft",
   boundary: "era",
   front: [2, 4],
+  back: [2, 4],
   styles: { wrap: 0.55, side: 0.3, open: 0.15 },
   beds: ["vegetables", "vegetables", "beans", "flax"],
   tree: { sprites: ["nature-oak"], chance: 0.5 },
@@ -80,7 +84,7 @@ const toft: YardKit = {
       prop: "beehive",
       family: "beehive",
       name: "Beehive",
-      where: "yard",
+      where: "back",
       chance: 0.2,
       // Skeps stand in a row on the bee bench.
       with: [{ prop: "beehive", family: "beehive", name: "Beehive", dx: 1, dy: 0 }],
@@ -132,7 +136,7 @@ const toft: YardKit = {
       prop: "chickenCoop",
       family: "chicken-coop",
       name: "Henhouse",
-      where: "yard",
+      where: "back",
       chance: 0.35,
       with: [{ prop: "bucket", family: "bucket", name: "Feed bucket", dx: 1, dy: 1 }],
     },
@@ -140,7 +144,7 @@ const toft: YardKit = {
       prop: "hayRick",
       family: "hay-rick",
       name: "Hay rick",
-      where: "yard",
+      where: "back",
       chance: 0.5,
       role: /farm|plough|husband|peasant|herd|shepherd|dairy|cow|drover/i,
       with: [{ prop: "pitchfork", family: "pitchfork", name: "Pitchfork", dx: 1, dy: 0 }],
@@ -149,7 +153,7 @@ const toft: YardKit = {
       prop: "dovecote",
       family: "dovecote",
       name: "Dovecote",
-      where: "yard",
+      where: "back",
       chance: 0.1,
     },
   ],
@@ -165,6 +169,102 @@ const court: YardKit = {
   beds: ["vine", "vegetables", "beans"],
   tree: { sprites: ["nature-olive"], chance: 0.6 },
   props: [...stores],
+};
+
+const coop: YardProp = {
+  prop: "chickenCoop",
+  family: "chicken-coop",
+  name: "Henhouse",
+  where: "back",
+  chance: 0.45,
+  with: [{ prop: "bucket", family: "bucket", name: "Feed bucket", dx: 1, dy: 1 }],
+};
+const washing: YardProp = {
+  prop: "washingLine",
+  family: "washing-line",
+  name: "Washing line",
+  where: "back",
+  chance: 0.45,
+  with: [{ prop: "washTub", family: "wash-tub", name: "Wash tub", dx: 0, dy: 1 }],
+};
+
+/** Northern Europe and the settler colonies, 1650-1950: the cottage. Flowers
+ * and a path in a fenced front garden, the kitchen garden of potatoes and
+ * beans to the side, and the wash, the hens and the water butt out the back. */
+const cottage: YardKit = {
+  id: "cottage",
+  boundary: "era",
+  front: [2, 3],
+  back: [3, 4],
+  styles: { wrap: 0.7, side: 0.2, open: 0.1 },
+  beds: ["vegetables", "potato", "beans", "vegetables"],
+  tree: { sprites: ["nature-broadleaf-young"], chance: 0.55 },
+  props: [
+    ...stores,
+    coop,
+    washing,
+    {
+      prop: "flowerTub",
+      family: "flower-tub",
+      name: "Planted tub",
+      where: "door",
+      chance: 0.6,
+    },
+    {
+      prop: "barrel",
+      family: "barrel",
+      name: "Water butt",
+      where: "wall",
+      chance: 0.55,
+      contents: { water: 4 },
+    },
+    {
+      prop: "beehive",
+      family: "beehive",
+      name: "Beehive",
+      where: "back",
+      chance: 0.15,
+    },
+  ],
+};
+
+/** The Mesoamerican house lot, the solar: maize, beans and squash grown
+ * together by the house, fruit trees, and turkeys and hens kept out back. */
+const solar: YardKit = {
+  id: "solar",
+  boundary: "era",
+  front: [1, 2],
+  back: [2, 3],
+  styles: { wrap: 0.45, side: 0.35, open: 0.2 },
+  beds: ["maize", "beans", "squash", "maize"],
+  tree: { sprites: ["nature-tropical-broadleaf"], chance: 0.6 },
+  props: [...stores, { ...coop, name: "Turkey pen", chance: 0.5 }],
+};
+
+/** The Andes: a stone-walled patio and a plot of tubers and grain beside it;
+ * few trees at that height. */
+const andean: YardKit = {
+  id: "andean",
+  boundary: "era",
+  front: [1, 2],
+  back: [1, 2],
+  styles: { wrap: 0.5, side: 0.35, open: 0.15 },
+  beds: ["potato", "quinoa", "potato", "maize"],
+  tree: { chance: 0.15 },
+  props: [...stores],
+};
+
+/** Southeast Asia: a yard under fruit trees and palms, hens loose beneath
+ * the house, and a fenced bed of taro and greens to keep the stock out. */
+const kampong: YardKit = {
+  id: "kampong",
+  boundary: "era",
+  front: [1, 3],
+  back: [2, 3],
+  styles: { wrap: 0.35, side: 0.45, open: 0.2 },
+  beds: ["taro", "vegetables", "yam"],
+  tree: { sprites: ["nature-feather-palm", "nature-tropical-broadleaf"], chance: 0.75 },
+  props: [...stores, { ...coop, chance: 0.4 }],
 };
 
 /** Anywhere unresearched: a bed and the firewood, nothing period-specific. */
@@ -184,7 +284,18 @@ const plain: YardKit = {
 const eastAsian: YardKit = {
   ...plain,
   id: "east-asian",
+  back: [2, 3],
+  styles: { wrap: 0.6, side: 0.25, open: 0.15 },
   tree: { sprites: ["nature-bamboo-clump", "nature-bamboo-clump", "nature-maple"], chance: 0.5 },
+  props: [...stores, { ...coop, chance: 0.3 }],
+};
+
+/** The walled court of the Near East and North Africa, its shade a date palm
+ * where it is hot and dry. */
+const westAsian: YardKit = {
+  ...court,
+  id: "west-asian",
+  tree: { sprites: ["nature-feather-palm"], chance: 0.5 },
 };
 
 /** Before iron: wattle hurdles round a plot of emmer or pulses, a trough, a
@@ -385,7 +496,16 @@ export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (setting.year < -800) return croft;
   const { culture, climate, year } = setting;
   if (culture === "european" && climate === "mediterranean") return court;
-  if (culture === "european" && year >= 400 && year < 1800) return toft;
+  if (culture === "european" && year >= 400 && year < 1750) return toft;
+  if (
+    (culture === "european" && year >= 1750 && year < 1950) ||
+    (culture === "other-indigenous-american" && year >= 1650 && year < 1950)
+  )
+    return cottage;
+  if (culture === "north-african-west-asian") return climate === "arid" ? westAsian : court;
+  if (culture === "mesoamerican" && year < 1900) return solar;
+  if (culture === "andean" && year < 1900) return andean;
+  if (culture === "southeast-asian") return kampong;
   if (
     (culture === "west-central-african" || culture === "east-southern-african") &&
     year < 1900
