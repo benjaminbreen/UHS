@@ -13,10 +13,12 @@ import type { WaterTileData } from "./water-raster";
 import { paintedGround } from "./material-edges";
 import { contourSurfaces } from "./contour-surfaces";
 import {
+  bankFor,
   contourNoise,
   groundStyle,
   styledBankPixel,
   toneBank,
+  type BankStyle,
   type GroundStyle,
 } from "./ground-style";
 import { banks, soils } from "./habitat-raster";
@@ -845,6 +847,7 @@ function rasterWallContours(
   );
 
   const drop_ = (hi: number, lo: number) => (hi - lo) * R;
+  const ecoBanks = new Map<string | undefined, BankStyle>();
   /** One face pixel below a rim: a settlement's wall, bare rock on a tall
    * natural drop, or the earth bank. */
   const facePixel = (
@@ -856,11 +859,18 @@ function rasterWallContours(
     wy: number,
     /** The ground at the top of the face: its lip is that ground, not turf. */
     ground?: ArrayLike<number> | false,
+    /** Depth below the rim on an east or west return, whose `r` runs across
+     * the sliver: the face follows the rim, or its beds stand up as planks. */
+    belowRim?: number,
   ): readonly number[] => {
     if (upper?.edge) return wallPixel(upper.edge, r, drop, wx, trim.earth[4]);
+    const eco = upper?.habitat?.ecology;
+    let style = ecoBanks.get(eco);
+    if (!style) ecoBanks.set(eco, (style = bankFor(bank, eco)));
+    if (belowRim !== undefined) r = belowRim;
     if (drop >= R * 2 && upper?.surface !== "sand" && upper?.surface !== "snow")
       return cragPixel(trim.earth[4], r, drop, wx, wy);
-    const pixel = styledBankPixel(bank, r, drop, wx, wy);
+    const pixel = styledBankPixel(style, r, drop, wx, wy);
     return pixel.kind === "earth"
       ? trim.earth[pixel.tone]
       : pixel.kind === "crease"
@@ -899,7 +909,14 @@ function rasterWallContours(
         : toward(g, 250, 0.2);
   };
   // Painted after the ground, which would otherwise overwrite them.
-  const returns: [number, number, number, number, readonly number[]][] = [];
+  // Dry strata vary down a return, so those slivers carry a colour per row.
+  const returns: [
+    number,
+    number,
+    number,
+    number,
+    readonly number[] | ((y: number) => readonly number[]),
+  ][] = [];
   const feet: [number, number, number, TopographyCell | undefined, Trim][] = [];
   const sideFace = contour.sideFace ?? 0;
   const hillshade = contour.hillshade ?? 0;
@@ -1085,15 +1102,23 @@ function rasterWallContours(
           const width = pours ? sideFace + 3 : away ? Math.max(1, sideFace - 1) : sideFace;
           for (let k = 1; k <= width; k++) {
             const r = Math.round(((k - 1) / sideFace) * (R - 1));
-            const c = pours
-              ? fallPixel(rgba ?? FALL_WATER, px + side * k + ox, 1 + (k % 2), 6)
-              : facePixel(material, trim, r, R, sy + oy, px + ox);
+            const shade = tone * (away ? 0.82 : 1);
+            const at = (y: number) => {
+              const c = material?.edge
+                ? facePixel(material, trim, r, R, sy + oy, px + ox)
+                : facePixel(material, trim, r, (L - n) * R, px + side * k + ox, y + oy, undefined, y - sy);
+              return [c[0] * shade, c[1] * shade, c[2] * shade];
+            };
             returns.push([
               row,
               L,
               px + side * k,
               sy,
-              pours ? c : [c[0] * tone * (away ? 0.82 : 1), c[1] * tone * (away ? 0.82 : 1), c[2] * tone * (away ? 0.82 : 1)],
+              pours
+                ? fallPixel(rgba ?? FALL_WATER, px + side * k + ox, 1 + (k % 2), 6)
+                : material?.edge
+                  ? at(sy)
+                  : at,
             ]);
             // Higher ground further south stands in front of this wall and
             // hides its lower part. Unclipped, a north-east facing edge hung
@@ -1156,7 +1181,8 @@ function rasterWallContours(
   for (let i = 0; i < returns.length; i += 2) {
     const [row, tier, x, top, rgb] = returns[i];
     const bottom = returns[i + 1][3];
-    for (let y = top; y <= bottom; y++) paintRgb(row, tier, x, y, rgb);
+    for (let y = top; y <= bottom; y++)
+      paintRgb(row, tier, x, y, typeof rgb === "function" ? rgb(y) : rgb);
   }
   // The foot of a face: weeds or scree on earth, a gutter on paving, and a
   // contact shadow where the ground page, not this pass, owns the ground.

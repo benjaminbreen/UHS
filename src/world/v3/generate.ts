@@ -779,6 +779,25 @@ export function createSettlementWorld(
   }
   /** `wild` is the ground as it was before anyone cleared it: standing trees
    * are chosen from that, so a village keeps some of the wood it was cut from. */
+  /** +1 on the brow just above a bank, -1 at its foot, fading to 0 three
+   * cells away, so communities change along the step rather than across it. */
+  function brink(x: number, y: number) {
+    const tier = Math.round(land.sample(x, y).elevation / 14);
+    for (let d = 1; d <= 3; d++) {
+      let above = false,
+        below = false;
+      for (let dy = -d; dy <= d; dy++)
+        for (let dx = -d; dx <= d; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
+          const t = Math.round(land.sample(x + dx, y + dy).elevation / 14);
+          if (t > tier) above = true;
+          else if (t < tier) below = true;
+        }
+      if (above !== below) return (below ? 1 : -1) * (1 - (d - 1) / 3);
+      if (above) return 0;
+    }
+    return 0;
+  }
   function habitat(x: number, y: number, wild = false) {
     const key = wild ? `w${cellKey(x, y)}` : cellKey(x, y);
     let value = habitatCache.get(key);
@@ -794,6 +813,7 @@ export function createSettlementWorld(
         land.sample(x, y),
         setting.environment!.colorway,
         cleared,
+        relief ? brink(x, y) : 0,
       );
       if (pack.setting?.ecologyRevision === 1 && regional)
         value.blend = regional.ecologyAt(x, y).parts;
@@ -1171,6 +1191,14 @@ export function createSettlementWorld(
       p.site.profile.paved && Math.hypot(x - p.site.center.x, y - p.site.center.y) < p.site.profile.radius * 0.65
     ) || regionalRoads(x, y).has(k));
   }
+  /** A cell a bank's rim or face crosses. The face hangs more than a cell
+   * south of its rim, so the cell two above counts too. */
+  function onStep(x: number, y: number) {
+    const tier = Math.round(land.sample(x, y).elevation / 14);
+    for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, -2]])
+      if (Math.round(land.sample(x + dx, y + dy).elevation / 14) !== tier) return true;
+    return false;
+  }
   function decorate(x: number, y: number, k: string) {
     const situation = pack.setting?.situation;
     if (situation?.landform === "islet") {
@@ -1187,6 +1215,8 @@ export function createSettlementWorld(
     const f = land.sample(x, y);
     const scape = f.landscape;
     if (!sceneryAllowed(x, y, k, f)) return;
+    // Reeds and shore scrub may stand at a stream's cut bank; nothing else on a face.
+    if (relief && f.water > 3 && onStep(x, y)) return;
     const pole = blacktop && poleAt(x, y);
     if (pole) return pole;
     const h = environment ? habitat(x, y) : undefined;

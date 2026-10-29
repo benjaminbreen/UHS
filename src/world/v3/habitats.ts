@@ -53,6 +53,9 @@ export function habitatAt(
   colorway?: Colorway,
   /** 0-1: how far people have cleared this ground of its canopy. */
   clearing = 0,
+  /** +1 on a bank's brow, -1 at its foot: the brow drains and blows bare,
+   * the foot collects wash and shelter. */
+  brink = 0,
 ): Habitat {
   if (land.drainage && land.ecologyParts) {
     const dominant = land.ecologyParts.reduce((a,b) => b.weight > a.weight ? b : a);
@@ -62,8 +65,8 @@ export function habitatAt(
     const patch = noise(seed, x, y, 42, "habitat-stand");
     const wet = clamp(d.saturation + recipe.moisture * 0.15);
     const riparian = land.kind !== "sea" ? clamp(1 - Math.max(0, land.water) / 24) : 0;
-    const cover = (1 - clearing * 0.85) * clamp(recipe.canopy + (patch - 0.5) * 0.7 + riparian * (.25 + .45 * (1-recipe.canopy)) + d.lowland * .08 - d.slope * .2);
-    const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4);
+    const cover = (1 - clearing * 0.85) * clamp(recipe.canopy + (patch - 0.5) * 0.7 + riparian * (.25 + .45 * (1-recipe.canopy)) + d.lowland * .08 - d.slope * .2 - brink * .22);
+    const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4 + brink * .14);
     const flooded = clamp((d.saturation - 0.3) / 0.3);
     let blend = land.ecologyParts;
     let murk = colorway === "swamp" ? 1 : 0;

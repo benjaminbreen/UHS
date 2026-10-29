@@ -49,7 +49,28 @@ export type BankStyle = {
   rim?: number;
   /** Weeds and scree at the foot of a bank, a gutter under a wall. */
   foot?: boolean;
+  /** Pixels the strata shift from one lobe to the next; 3 when absent. */
+  drift?: number;
+  /** Chance of a dark joint cutting each bed, so it breaks into blocks. */
+  joints?: number;
 };
+
+/** How each ecology's ground breaks at a step. Colour comes from its bank
+ * ramp; this is the form: level beds in dry country, frost-split blocks in
+ * the north, slumped lobes under hanging roots where it is wet. */
+const ecologyBanks: Partial<Record<string, Partial<BankStyle>>> = {
+  desert: { strata: 0.8, lobes: 0.25, drift: 1.5 },
+  "dry-scrub": { strata: 0.75, lobes: 0.3, drift: 1.5, fringe: 0.4 },
+  savanna: { strata: 0.6, lobes: 0.3, drift: 2, fringe: 0.45, stones: 0.01 },
+  grassland: { strata: 0.3, lobes: 0.45, fringe: 0.85, roots: 0.05 },
+  "temperate-woodland": { strata: 0.3, lobes: 0.45, fringe: 0.75, roots: 0.09, stones: 0.03 },
+  "boreal-woodland": { strata: 0.65, lobes: 0.1, drift: 1, joints: 0.4, fringe: 0.6, stones: 0.03 },
+  tundra: { strata: 0.75, lobes: 0.08, drift: 1, joints: 0.55, fringe: 0.3, stones: 0.04 },
+  "tropical-woodland": { strata: 0.2, lobes: 0.5, fringe: 1, roots: 0.16, stones: 0 },
+  wetland: { strata: 0.12, lobes: 0.6, fringe: 0.9, roots: 0.12, stones: 0 },
+};
+export const bankFor = (bank: BankStyle, ecology: string | undefined): BankStyle =>
+  ecology && ecologyBanks[ecology] ? { ...bank, ...ecologyBanks[ecology] } : bank;
 
 export type ContourStyle = {
   /** How far, in tiers, the drawn edge may stray from the interpolated one. */
@@ -295,12 +316,25 @@ export function styledBankPixel(
   const phase = (worldX - lobe0) / period;
   const drift = noise(lobe0, Math.floor(worldY / 24), 41) * 2 - 1;
   const lobe = bank.lobes * (Math.abs(phase - 0.5) * 2 - 0.35) * 1.6;
-  const strata = Math.sin(((faceY + drift * 3) / 4) * Math.PI) * bank.strata;
+  const strata =
+    Math.sin(((faceY + drift * (bank.drift ?? 3)) / 4) * Math.PI) * bank.strata;
   let tone = 2.6 + strata - lobe - depth * 1.5;
   // Sunlit shoulder under the lip, darkest at the foot.
   if (faceY <= bank.lip + 1) tone += 1;
   if (faceY >= drop - 2) tone -= 2;
-  if (noise(worldX, worldY, 33) < bank.roots) tone = 0;
+  // Each bed is cut at its own places, staggered from the bed above.
+  if (bank.joints) {
+    const bed = Math.floor((faceY + drift * (bank.drift ?? 3)) / 4);
+    const x = worldX + bed * 5;
+    if (((x % 7) + 7) % 7 === 0 && noise(Math.floor(x / 7), bed, 61) < bank.joints) tone = 0;
+  }
+  // Roots hang from the lip in single strands of their own length.
+  const face = Math.floor(worldY / 16);
+  if (
+    noise(worldX, face, 33) < bank.roots &&
+    faceY - bank.lip < 2 + noise(worldX, face, 34) * (drop - bank.lip) * 0.6
+  )
+    tone = 0;
   return { kind: "earth", tone: Math.max(0, Math.min(3, Math.round(tone))) };
 }
 

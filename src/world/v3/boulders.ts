@@ -61,6 +61,14 @@ export function addBoulders(
           const [width, depth] = size === "large" ? [5, 2] : size === "medium" ? [3, 1] : [1, 1];
           const left = px - (width - 1) / 2, top = py - depth + 1;
           let clear = true;
+          // Off any bank: a ring round the footprint, and two cells above it
+          // where a face hangs down.
+          for (let dy = -2; dy <= depth && clear; dy++)
+            for (let dx = -1; dx <= width; dx++)
+              if (world.topography?.(left + dx, top + dy)?.height !== sample?.height) {
+                clear = false;
+                break;
+              }
           for (let dy = 0; dy < depth && clear; dy++)
             for (let dx = 0; dx < width; dx++) {
               const x = left + dx, y = top + dy;
