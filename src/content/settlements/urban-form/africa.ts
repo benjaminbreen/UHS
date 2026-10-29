@@ -30,6 +30,7 @@ export const africaForms: UrbanFormRule[] = [
   },
   {
     id: "swahili-stone-town",
+    ground: { court: "lime" },
     storeys: 2,
     label: "Stone town on narrow lanes",
     culture: "east-southern-african",
@@ -51,7 +52,7 @@ export const africaForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "Tall stone houses on lanes too narrow for carts, opening onto a seafront, follow the surviving fabric of Lamu and Zanzibar Stone Town. Lane widths here are a gameplay approximation.",
+      note: "Tall stone houses on lanes too narrow for carts, opening onto a seafront, follow the surviving fabric of Lamu and Zanzibar Stone Town. Lane widths here are a gameplay approximation. Courts floored with coral-lime plaster follow excavated houses at Gedi, Songo Mnara and Kilwa.",
     },
   },
   {

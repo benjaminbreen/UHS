@@ -21,6 +21,14 @@ export type SquareSpec = {
   hearth: "brazier" | "hidden";
 };
 
+/** How unpaved town ground is kept, drawn apart from the open country's dirt.
+ * beaten: rammed and worn smooth. sand: beaten ground in an arid climate,
+ * loose and rippled. swept: swept clean. gravel: fine gravel, raked. lime: lime
+ * or stucco plaster. daub: earth smeared with clay and dung. */
+export type EarthFinish = "beaten" | "sand" | "swept" | "gravel" | "lime" | "daub";
+// Open ground only: a street is a drawn stroke, not cells, and keeps its own look.
+export type GroundUse = "square" | "court" | "yard";
+
 /** One part of a city with its own street pattern and block module. */
 export type DistrictSpec = {
   plan: UrbanPlan;
@@ -93,6 +101,9 @@ export type UrbanForm = {
    * where the climate lets them (`settlementLayout`). The block is sized to
    * hold two rows of house and garden back to back; `paved` says how far down
    * the street tiers the cobbles go, the rest being earth. */
+  /** Finish of unpaved open ground by use. Omitted, squares are beaten earth
+   * and courts and yards swept. */
+  ground?: Partial<Record<GroundUse, EarthFinish>>;
   /** Rows of houses on the street, each with a fenced lot behind it this many
    * cells deep: garden, well and outbuildings off the street, the rows
    * backing onto each other across a green block middle. Omitted, rows stand

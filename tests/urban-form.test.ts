@@ -6,6 +6,7 @@ import {
   genericForm,
   urbanOnset,
   urbanized,
+  earthFinish,
 } from "../src/content/settlements/urban-form";
 import { settlementProfile } from "../src/content/settlements/profiles";
 import { lifeway } from "../src/content/settlements/lifeways";
@@ -105,6 +106,16 @@ it("selects street fabric by culture, date and place, with a labelled fallback",
   // An unprofiled culture family is not given another region's fabric.
   expect(at("australian-pacific", 145, -25, 1700)).toEqual(genericForm);
   expect(genericForm.evidence.status).toBe("fictional");
+});
+
+it("keeps town ground by its use, its fabric and its climate", () => {
+  const medieval = at("european", 12.5, 41.9, 1300);
+  expect(earthFinish(medieval, "square")).toBe("beaten");
+  expect(earthFinish(medieval, "yard")).toBe("swept");
+  expect(earthFinish(at("east-asian", 135, 35, 1200), "court")).toBe("gravel");
+  expect(earthFinish(at("mesoamerican", -99, 19, 1500), "square")).toBe("lime");
+  expect(earthFinish(medieval, "square", "arid")).toBe("sand");
+  expect(earthFinish(medieval, "court", "arid")).toBe("swept");
 });
 
 it("keeps every rule's evidence attributable and its parameters in range", () => {

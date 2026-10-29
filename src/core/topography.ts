@@ -40,6 +40,8 @@ export type TopographyCell = {
   loadingBay?: import("../world/v3/types").Rect;
   track?: import("../world/v3/types").Track;
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
+  /** How unpaved town ground is kept; absent on open-country dirt. */
+  earth?: import("../content/settlements/urban-form/types").EarthFinish;
   habitat?: import("../world/v3/habitats").Habitat;
   /** Presentation-only landscape feature painted by the ground raster. */
   landscape?: import("../world/v3/features").Landscape;

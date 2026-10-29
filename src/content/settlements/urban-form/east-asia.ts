@@ -30,6 +30,7 @@ export const eastAsiaForms: UrbanFormRule[] = [
   },
   {
     id: "japanese-capital-grid",
+    ground: { court: "gravel" },
     storeys: 1,
     label: "Chequerboard capital blocks",
     culture: "east-asian",
@@ -57,11 +58,12 @@ export const eastAsiaForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "Square blocks on a strict module follow the Heian-kyo and Heijo-kyo capital plans, themselves modelled on Chang'an. Townhouses on narrow, deep lots fronting the streets, with gardens, wells and storehouses behind and open ground in the block's middle, follow medieval Kyoto's machi as described by Takahashi Yasuo. Applying it to a procedural neighborhood is an inference; the generator does not reproduce a named capital's ward divisions.",
+      note: "Square blocks on a strict module follow the Heian-kyo and Heijo-kyo capital plans, themselves modelled on Chang'an. Townhouses on narrow, deep lots fronting the streets, with gardens, wells and storehouses behind and open ground in the block's middle, follow medieval Kyoto's machi as described by Takahashi Yasuo. Applying it to a procedural neighborhood is an inference; the generator does not reproduce a named capital's ward divisions. Courts of fine raked gravel follow the gravel forecourts of Kyoto's temples and great houses; streets were beaten earth.",
     },
   },
   {
     id: "edo-meiji-machi",
+    ground: { court: "gravel" },
     label: "Merchant quarters on a grid, lanes behind",
     culture: "east-asian",
     // Meiji to the 1923 earthquake; narrower than the colonial survey grid,
@@ -92,11 +94,12 @@ export const eastAsiaForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "The shitamachi of Edo and Meiji Tokyo: rectangular merchant blocks fronted by two-storey shops on the streets, nagaya tenements on narrow roji lanes behind, and from the 1870s broad main streets with kerbed footways and street trees on the Ginza model. Block sizes are scaled for play; the plan follows no surveyed ward.",
+      note: "The shitamachi of Edo and Meiji Tokyo: rectangular merchant blocks fronted by two-storey shops on the streets, nagaya tenements on narrow roji lanes behind, and from the 1870s broad main streets with kerbed footways and street trees on the Ginza model. Block sizes are scaled for play; the plan follows no surveyed ward. Courts of fine raked gravel follow the gravel forecourts of temples and merchant houses; streets were beaten earth.",
     },
   },
   {
     id: "edo-machi",
+    ground: { court: "gravel" },
     label: "Merchant quarters on a grid, lanes behind",
     culture: "east-asian",
     from: 1600,
@@ -123,7 +126,7 @@ export const eastAsiaForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "The shitamachi of Edo and Meiji Tokyo: rectangular merchant blocks fronted by two-storey shops on the streets, nagaya tenements on narrow roji lanes behind, and from the 1870s broad main streets with kerbed footways and street trees on the Ginza model. Block sizes are scaled for play; the plan follows no surveyed ward.",
+      note: "The shitamachi of Edo and Meiji Tokyo: rectangular merchant blocks fronted by two-storey shops on the streets, nagaya tenements on narrow roji lanes behind, and from the 1870s broad main streets with kerbed footways and street trees on the Ginza model. Block sizes are scaled for play; the plan follows no surveyed ward. Courts of fine raked gravel follow the gravel forecourts of temples and merchant houses; streets were beaten earth.",
     },
   },
 ];

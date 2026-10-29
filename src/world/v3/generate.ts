@@ -78,7 +78,9 @@ import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells } from "./roads";
 import { planSettlement } from "./plan";
-import { siteGate } from "./urban";
+import { siteForm, siteGate } from "./urban";
+import { earthFinish } from "../../content/settlements/urban-form";
+import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { territoryReach, type FieldCell } from "./farmland";
 import { cropStage } from "../../content/agriculture";
 import { propDefs } from "../../content/props/catalog";
@@ -932,6 +934,7 @@ export function createSettlementWorld(
       return { axis: along ? "x" : "y", dry: !!p.canalsDry };
     }
   }
+  const forms = new WeakMap<SettlementPlan, UrbanForm>();
   function terrain(x: number, y: number, space = "outside"): Terrain {
     if (space !== "outside") return "floor";
     const k = cellKey(x, y);
@@ -1877,6 +1880,12 @@ export function createSettlementWorld(
         // their extent instead of reinterpreting only road centers as worn soil.
         if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size) {
           cell.surface = "soil";
+          const use = pavement === "square" || pavement === "court" || pavement === "yard" ? pavement : undefined;
+          if (use) {
+            let form = forms.get(p);
+            if (!form) forms.set(p, (form = siteForm(p.site, pack)));
+            cell.earth = earthFinish(form, use, pack.setting?.climate);
+          }
           // No turf survives between the houses of a dry-country city.
           if (pack.setting?.climate === "arid" && (pavement === "yard" || pavement === "vacant"))
             cell.groundWear = 1;

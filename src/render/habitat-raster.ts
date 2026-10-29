@@ -1,3 +1,4 @@
+import type { EarthFinish } from "../content/settlements/urban-form/types";
 import { snowCover, snowOver } from "./snow-cover";
 import {
   edgeTufts,
@@ -122,12 +123,12 @@ const bankRamps: Record<PaletteKey, string[]> = {
 export const banks = Object.fromEntries(
   Object.entries(bankRamps).map(([k, v]) => [k, v.map(decode)]),
 ) as Record<PaletteKey, number[][]>;
-/** Fans of faint arcs a broom leaves in swept earth, one in a third of the
+/** Fans of faint arcs a broom leaves in swept earth, one in half of the
  * 12 px blocks, each fan facing its own way. */
 function broomMark(wx: number, wy: number): boolean {
   const bx = Math.floor(wx / 12),
     by = Math.floor(wy / 12);
-  if (hash(bx, by, 521) > 0.33) return false;
+  if (hash(bx, by, 521) > 0.5) return false;
   const dx = wx - (bx * 12 + 6),
     dy = wy - (by * 12 + 6);
   const r = Math.hypot(dx, dy);
@@ -135,6 +136,79 @@ function broomMark(wx: number, wy: number): boolean {
   let off = Math.atan2(dy, dx) - facing;
   off = Math.atan2(Math.sin(off), Math.cos(off));
   return Math.abs(off) < 0.6 && [3, 5].some((ring) => Math.abs(r - ring) < 0.5);
+}
+
+const mix = (a: readonly number[], b: readonly number[], t: number) =>
+  a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
+
+/** Pixels from the nearest side whose neighbour is kept differently; made
+ * ground stands a lip proud of whatever it meets. */
+function lipAt(sample: TopographySample, x: number, y: number, px: number, py: number, finish: EarthFinish): number {
+  if (finish === "beaten" || finish === "sand") return 9;
+  const open = (dx: number, dy: number) => sample(x + dx, y + dy)?.earth !== finish;
+  return Math.min(
+    open(-1, 0) ? px : 9,
+    open(1, 0) ? 15 - px : 9,
+    open(0, -1) ? py : 9,
+    open(0, 1) ? 15 - py : 9,
+  );
+}
+
+/** Town ground as it is kept, on the local soil ramp: tone and shade.
+ * `cross` is 0 on a path's centre line and 1 at its edge. */
+function finishPixel(
+  finish: EarthFinish,
+  wx: number,
+  wy: number,
+  soil: number[][],
+  cross: number,
+  lip: number,
+): [number[], number] {
+  if (finish === "beaten") {
+    // Rammed and darker than open dirt; traffic polishes the crown and water
+    // runs off to darker edges. Hairline cracks where it has dried out.
+    const crack = Math.abs(noise(wx, wy, 11, 533) - 0.5) < 0.02;
+    const crown = Math.round((1 - Math.min(1, cross)) * 10) - (cross > 0.8 ? 8 : 0);
+    return [soil[1], crack ? -16 : crown + (hash(wx, wy, 535) < 0.03 ? -8 : 0)];
+  }
+  if (finish === "sand") {
+    // Loose and pale, rippled across the wind, pocked with footprints.
+    const ripple = Math.sin(wx * 0.6 + wy * 0.22 + noise(wx, wy, 23, 531) * 5);
+    const fx = Math.floor(wx / 9), fy = Math.floor(wy / 7);
+    const step = hash(fx, fy, 547) < 0.18 &&
+      wx === fx * 9 + 2 + Math.floor(hash(fx, fy, 549) * 5) &&
+      wy - (fy * 7 + 2) >= 0 && wy - (fy * 7 + 2) < 2;
+    return [mix(soil[3], [232, 212, 168], 0.55), step ? -14 : ripple > 0.8 ? 9 : ripple < -0.9 ? -8 : 0];
+  }
+  // Made ground: a lip where it meets anything else, lit on top, shadowed below.
+  const edge = lip === 0 ? -16 : lip === 1 ? 9 : 0;
+  if (finish === "swept")
+    return [mix(soil[3], [255, 246, 226], 0.18), edge || (broomMark(wx, wy) ? 10 : 0)];
+  if (finish === "gravel") {
+    // Raked into wavering lines; the grain is the stones themselves.
+    const furrow = mod(wy + Math.round(Math.sin(wx / 9) * 1.5), 3) === 0;
+    return [mix(soil[3], [170, 166, 156], 0.6),
+      edge || (furrow ? -13 : 5) + Math.round((hash(wx, wy, 537) - 0.5) * 16)];
+  }
+  if (finish === "lime") {
+    // Worn through to its earth bed in patches; seams where it was relaid.
+    if (!edge && noise(wx, wy, 29, 539) > 0.8) return [soil[3], -2];
+    const seam = mod(wx, 48) === 0 || mod(wy, 48) === 0;
+    const crack = Math.abs(noise(wx, wy, 13, 541) - 0.5) < 0.012;
+    return [mix(soil[3], [234, 226, 206], 0.82),
+      edge || (seam || crack ? -11 : Math.round((noise(wx, wy, 7, 543) - 0.5) * 6))];
+  }
+  // Daub: smoothed by hand in overlapping sweeps.
+  const bx = Math.floor(wx / 10),
+    by = Math.floor(wy / 10);
+  const dx = wx - bx * 10 - 3 - Math.floor(hash(bx, by, 551) * 5),
+    dy = wy - by * 10 - 3 - Math.floor(hash(bx, by, 553) * 5);
+  const r = Math.hypot(dx, dy);
+  let off = Math.atan2(dy, dx) - hash(bx, by, 555) * Math.PI * 2;
+  off = Math.atan2(Math.sin(off), Math.cos(off));
+  const sweep = hash(bx, by, 545) < 0.45 && Math.abs(off) < 1 &&
+    [2, 4, 6].some((ring) => Math.abs(r - ring) < 0.4);
+  return [mix(soil[2], [128, 112, 84], 0.45), edge || (sweep ? 7 : 0)];
 }
 
 /** Creek bed stones by region: slate in cool green country, ochre gravel in
@@ -1157,7 +1231,7 @@ function rasterGroundTile(
             ? 0
             : worn < shoulder
               ? 1
-              : (worn > 0.87 || (field.swept && worn > 0.6)) && wide
+              : worn > 0.87 && wide
                 ? 3
                 : 2;
           let tone = soil[wide ? band : Math.max(1, band)];
@@ -1169,12 +1243,11 @@ function rasterGroundTile(
             wx,
             wy,
             art.motifs,
-            field.swept ? { ...motifTuning, density: (motifTuning?.density ?? 1) * 0.15 } : motifTuning,
+            motifTuning,
           );
           // A slow wash keeps the treadway from reading as one flat fill.
-          // Swept ground is even: the broom takes the wash out of it.
           let shade =
-            (field.swept ? 0 : Math.round((noise(wx, wy, 44, 461) - 0.5) * 11 / 6) * 6) +
+            Math.round((noise(wx, wy, 44, 461) - 0.5) * 11 / 6) * 6 +
             (ink
               ? pebbled
                 ? [0, -34, -18, 8][ink]
@@ -1189,11 +1262,13 @@ function rasterGroundTile(
           // Bare ground is close in value to its own soil ramp; packing it
           // one step darker is what lets the tread read without grain.
           if (!grassy) shade -= 9;
-          if (field.swept && broomMark(wx, wy)) shade += 8;
+          const finish = contact ? undefined : cell.earth;
+          if (finish) [tone, shade] = finishPixel(finish, wx, wy, soil, field.cross, lipAt(sample, x, y, px, py, finish));
+          const worked = !finish || finish === "beaten";
           // Cart ruts either side of the crown on wagon-width roads: a dark
           // groove with a lit lip on its outer side, broken so the pair never
           // reads as two ruled lines.
-          if (field.radius > 0.95 && field.ruts !== false) {
+          if (worked && field.radius > 0.95 && field.ruts !== false) {
             const rut = field.cross - 0.34 - (noise(wx, wy, 19, 445) - 0.5) * 0.06;
             // A faint dip on the tread colour: the shoulder tone read as ruled lines.
             if (hash(Math.floor(wx / 8), Math.floor(wy / 8), 443) > 0.45) {
@@ -1203,7 +1278,7 @@ function rasterGroundTile(
           }
           // Dung pats toward the crown, straw strands toward the edges; both
           // thicker on busy roads. Blocks keep them sparse and never touching.
-          if (field.dung !== false) {
+          if (worked && field.dung !== false) {
             const busy = Math.min(1, field.radius / 1.4);
             const bx = Math.floor(wx / 12),
               by = Math.floor(wy / 12);
@@ -1231,7 +1306,7 @@ function rasterGroundTile(
             }
           }
           // Grit collects off the treadway, not on it.
-          if (field.cross > 0.46) {
+          if (worked && field.cross > 0.46) {
             const bx = Math.floor(wx / 7),
               by = Math.floor(wy / 6);
             if (hash(bx, by, 447) > 0.82) {

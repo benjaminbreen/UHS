@@ -30,6 +30,7 @@ export const southAsiaForms: UrbanFormRule[] = [
   },
   {
     id: "gujarat-pol-quarter",
+    ground: { court: "daub", yard: "daub" },
     storeys: 2,
     label: "Walled city of pols",
     culture: "south-asian",
@@ -57,11 +58,12 @@ export const southAsiaForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: ["https://en.wikipedia.org/wiki/Pol_(housing)"],
-      note: "Ahmedabad's old city, walled in 1486, was a mesh of pols: gated neighbourhoods of tightly packed houses on a dead-end lane, each with its own chowk, entered from a few market streets running between the gates. Surat and Baroda grew a similar fabric. The proportions here are illustrative.",
+      note: "Ahmedabad's old city, walled in 1486, was a mesh of pols: gated neighbourhoods of tightly packed houses on a dead-end lane, each with its own chowk, entered from a few market streets running between the gates. Surat and Baroda grew a similar fabric. The proportions here are illustrative. Courtyards smeared with clay and cow dung follow the household practice described across South Asian texts and ethnography; that it held here is an inference.",
     },
   },
   {
     id: "shastra-town-grid",
+    ground: { court: "daub", yard: "daub" },
     storeys: 2,
     label: "Quartered town on cardinal streets",
     culture: "south-asian",
@@ -89,7 +91,7 @@ export const southAsiaForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "Cardinal main streets dividing a town into quarters, with courtyard houses on narrow lanes, follow the town-planning prescriptions in the Arthashastra and the Manasara Shilpashastra. Those are normative texts; actual towns varied widely, and this layout is an inference rather than a surveyed plan.",
+      note: "Cardinal main streets dividing a town into quarters, with courtyard houses on narrow lanes, follow the town-planning prescriptions in the Arthashastra and the Manasara Shilpashastra. Those are normative texts; actual towns varied widely, and this layout is an inference rather than a surveyed plan. Courtyards smeared with clay and cow dung follow the household practice described across South Asian texts and ethnography; that it held here is an inference.",
     },
   },
 ];

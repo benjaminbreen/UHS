@@ -1,6 +1,6 @@
 import type { WorldSetting } from "../../geography/types";
 import { networkOnset } from "../../geography/onsets";
-import type { UrbanForm, UrbanFormRule } from "./types";
+import type { EarthFinish, GroundUse, UrbanForm, UrbanFormRule } from "./types";
 import { eastAsiaForms } from "./east-asia";
 import { southAsiaForms } from "./south-asia";
 import { westAsiaForms } from "./west-asia";
@@ -111,4 +111,9 @@ export function urbanized(
   s: Pick<WorldSetting, "culture" | "lon" | "lat" | "year">,
 ): boolean {
   return s.year >= Math.min(urbanOnset(s), networkOnset(s));
+}
+
+export function earthFinish(form: UrbanForm, use: GroundUse, climate?: string): EarthFinish {
+  const finish = form.ground?.[use] ?? (use === "court" || use === "yard" ? "swept" : "beaten");
+  return finish === "beaten" && climate === "arid" ? "sand" : finish;
 }

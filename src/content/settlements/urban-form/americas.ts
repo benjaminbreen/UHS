@@ -3,6 +3,7 @@ import type { UrbanFormRule } from "./types";
 export const americasForms: UrbanFormRule[] = [
   {
     id: "mesoamerican-precinct-grid",
+    ground: { square: "lime", court: "lime" },
     storeys: 1,
     label: "Quarters around a ceremonial precinct",
     culture: "mesoamerican",
@@ -38,7 +39,7 @@ export const americasForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "A very large central open precinct with residential compounds on a grid of avenues follows the mapped layout of Teotihuacan and the causeway-divided quarters of Tenochtitlan. Compound sizes and the generated street pattern are an inference.",
+      note: "A very large central open precinct with residential compounds on a grid of avenues follows the mapped layout of Teotihuacan and the causeway-divided quarters of Tenochtitlan. Compound sizes and the generated street pattern are an inference. Plazas and patios floored with lime plaster follow excavated Maya and Aztec floors, resurfaced in layers.",
     },
   },
   {
