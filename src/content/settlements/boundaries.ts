@@ -196,6 +196,26 @@ export const boundaryStyles: Partial<Record<Boundary, BoundaryStyle>> = {
     cap: "tile",
     capRamp: ["#1d1f22", "#3c4046", "#555a60", "#6d7278", "#868b90"],
   },
+  railing: {
+    name: "Iron railings",
+    form: "paling",
+    height: 12,
+    depth: 1,
+    ramp: ["#121416", "#24282c", "#353a3f", "#4b5157", "#646b72"],
+    rails: [10, 2],
+    stake: { width: 1, gap: 2, top: "point" },
+    corners: true,
+  },
+  board: {
+    name: "Board fence",
+    form: "paling",
+    height: 13,
+    depth: 2,
+    ramp: ["#1e1712", "#3d3027", "#56463a", "#6e5c4c", "#86735f"],
+    rails: [11, 3],
+    stake: { width: 4, gap: 0, top: "flat" },
+    corners: true,
+  },
 };
 
 export const standingStyle = (b: Boundary | undefined) =>
@@ -265,6 +285,30 @@ export function yardBoundaries(setting: WorldSetting | undefined): Weighted {
         : [["reed", 0.5], ["bamboo", 0.3], ["wattle", 0.2]];
   }
   return [["fence", 1]];
+}
+
+/** What a town house shows the street where its yard meets it: walls in
+ * the courtyard cultures, railings in a Georgian street, hurdles in a
+ * medieval one, boards and earthen walls in a Japanese one. */
+export function frontBoundaries(setting: WorldSetting | undefined): Weighted {
+  if (!setting) return [["fence", 1]];
+  const { culture, climate, year } = setting;
+  if (year < -800) return yardBoundaries(setting);
+  switch (culture) {
+    case "european":
+      if (climate === "mediterranean") return [["plaster", 0.6], ["wall", 0.4]];
+      if (year < 1500) return [["wattle", 0.55], ["paling", 0.45]];
+      if (year < 1700) return [["paling", 0.5], ["brick", 0.3], ["wall", 0.2]];
+      if (year < 1880) return [["railing", 0.6], ["brick", 0.4]];
+      return [["railing", 0.35], ["hedge", 0.25], ["brick", 0.2], ["picket", 0.2]];
+    case "north-african-west-asian":
+      return climate === "arid" ? [["mud", 0.5], ["mudbrick", 0.5]] : [["plaster", 0.5], ["mudbrick", 0.5]];
+    case "east-asian":
+      return [["board", 0.45], ["rammed", 0.3], ["bamboo", 0.25]];
+    case "south-asian":
+      return [["mud", 0.45], ["plaster", 0.35], ["bamboo", 0.2]];
+  }
+  return yardBoundaries(setting);
 }
 
 /** Pick from weighted boundaries with a roll in [0, 1). */

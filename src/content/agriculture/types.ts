@@ -111,6 +111,9 @@ export type Boundary =
   | "mudbrick"
   | "brick"
   | "rammed"
+  /** Town fronts: iron area railings, close-boarded timber. */
+  | "railing"
+  | "board"
   | "none";
 
 export type Outbuilding =

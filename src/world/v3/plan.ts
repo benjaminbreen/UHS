@@ -66,6 +66,7 @@ import {
   penBoundary as localPen,
   pickBoundary,
   yardBoundaries,
+  frontBoundaries,
 } from "../../content/settlements/boundaries";
 import type { Boundary, CropId } from "../../content/agriculture/types";
 import {
@@ -2597,10 +2598,13 @@ export function planSettlement(
     axis: "x" | "y",
     boundary: Boundary,
     owner?: string,
+    // A town lot keeps its own ground, and its low wall may stand in a
+    // building's clearance.
+    townLot = false,
   ) => {
     const drawn = boundary !== "none";
     eachCell(area, (x, y) => {
-      if (skip(x, y) || placed && plan.placement.clearance.has(cellKey(x, y))) return;
+      if (skip(x, y) || placed && !townLot && plan.placement.clearance.has(cellKey(x, y))) return;
       const k = cellKey(x, y);
       if (drawn && fenced(x, y)) {
         if (!plan.solid.has(k)) fenceCells.add(k);
@@ -2630,7 +2634,7 @@ export function planSettlement(
           owner,
         },
       ]);
-      if (setSurface(k, crop ? "field" : "grass", 3) && urban)
+      if (!townLot && setSurface(k, crop ? "field" : "grass", 3) && urban)
         plan.pavement!.set(k, "garden");
     });
   };
@@ -4696,6 +4700,101 @@ export function planSettlement(
       }
     }
   }
+  // Each town house holds a walled or fenced lot: out to the street in front,
+  // a little to the sides and back, in the place's own way of closing it. The
+  // paths in break it; a terrace neighbour's wall closes a side.
+  if (urban) {
+    const fronts = frontBoundaries(pack.setting);
+    const claimed = new Set<string>();
+    // Every building's doorstep, painted or not, so one lot never walls a neighbour's.
+    const steps = new Set<string>();
+    for (const p of plan.places) {
+      const d = paintedDoor(p);
+      for (const s of [p.entrance, d && { x: d.x, y: d.y + 1 }])
+        if (s) for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) steps.add(cellKey(s.x + dx, s.y + dy));
+    }
+    const open = (k: string) => {
+      const t = plan.surface.get(k), role = plan.pavement?.get(k);
+      return (t === undefined || t === "dirt" || t === "grass") && !plan.solid.has(k) && !claimed.has(k) &&
+        !plan.built?.has(k) && !plan.fields?.has(k) && !gardenCells.has(k) && !plan.lanes?.has(k) &&
+        !plan.streetGeometry?.has(k) && (!role || ["yard", "court", "garden", "vacant"].includes(role));
+    };
+    const ways = new Set<string>();
+    for (const road of plan.roads)
+      if (road.kind !== "path")
+        for (const p of road.points)
+          for (let dy = -road.width; dy <= road.width; dy++)
+            for (let dx = -road.width; dx <= road.width; dx++) ways.add(cellKey(p.x + dx, p.y + dy));
+    const street = (k: string) => plan.surface.get(k) === "paving" || ways.has(k) || !!plan.lanes?.has(k) ||
+      !!plan.streetSurfaces?.has(k) || ["footway", "lane", "square"].includes(plan.pavement?.get(k) ?? "");
+    // A quarter keeps one way of walling; one house in four goes its own way.
+    const frontAt = (x: number, y: number, n: number) =>
+      pickBoundary(fronts, rand("front-boundary", rand("front-own", n) < 0.25 ? n : Math.floor(x / 24) * 977 + Math.floor(y / 24)));
+    const lots: { h: (typeof plan.plots)[number]; i: number; lot: Rect; wall: Set<string>; house?: Place; step?: Point }[] = [];
+    plan.plots.filter((p) => p.kind === "household").forEach((h, i) => {
+      const house = plan.places.find((p) => `${p.id}-plot` === h.id);
+      const door = (house && paintedDoor(house)) ?? house?.door ?? house?.entrance ?? h.access;
+      const facing = door.y >= h.y + h.h - 1 ? "s" : door.y <= h.y ? "n" : door.x < h.x + h.w / 2 ? "w" : "e";
+      // Wide enough that the wall stands clear of the eaves.
+      const reach = { n: 2, s: 2, e: 2, w: 2 };
+      reach[facing] = 2 + Math.floor(rand("lot-front", i) * 3);
+      const back = ({ n: "s", s: "n", e: "w", w: "e" } as const)[facing];
+      reach[back] = 2 + Math.floor(rand("lot-back", i) * 3);
+      for (const side of ["n", "s", "e", "w"] as const)
+        if (side !== facing && side !== back) reach[side] = 2 + (rand("lot-side", i, side) < 0.4 ? 1 : 0);
+      const lot = { ...h };
+      const row = (side: "n" | "s" | "e" | "w") =>
+        side === "n" ? { x: lot.x, y: lot.y - 1, w: lot.w, h: 1 }
+        : side === "s" ? { x: lot.x, y: lot.y + lot.h, w: lot.w, h: 1 }
+        : side === "w" ? { x: lot.x - 1, y: lot.y, w: 1, h: lot.h }
+        : { x: lot.x + lot.w, y: lot.y, w: 1, h: lot.h };
+      // Grow a side a row at a time while the whole row is open ground or a path.
+      for (const side of ["n", "s", "e", "w"] as const)
+        for (let d = 0; d < reach[side]; d++) {
+          let ok = true;
+          // A path crossing the lot is fine; the street is where it stops.
+          eachCell(row(side), (x, y) => { const k = cellKey(x, y); if (!open(k) && !(roads.has(k) && !plan.solid.has(k) && !street(k))) ok = false; });
+          if (!ok) break;
+          if (side === "n") { lot.y--; lot.h++; } else if (side === "s") lot.h++;
+          else if (side === "w") { lot.x--; lot.w++; } else lot.w++;
+        }
+      const wall = new Set<string>();
+      eachCell(lot, (x, y) => {
+        const k = cellKey(x, y);
+        if (inside(h, x, y)) return;
+        claimed.add(k);
+        const ring = x === lot.x || y === lot.y || x === lot.x + lot.w - 1 || y === lot.y + lot.h - 1;
+        const near = (p?: Point) => !!p && Math.abs(x - p.x) + Math.abs(y - p.y) <= 1;
+        // A gate straight out from the door; never across a doorstep.
+        const gate = facing === "n" || facing === "s" ? x === door.x && y !== door.y : y === door.y;
+        if (ring && !gate && !steps.has(k) && !roads.has(k) && !plan.placement.access.has(k) && !near(door) && !near({ x: door.x, y: door.y + 1 }) &&
+          !near(house?.entrance) &&
+          !plan.gatherings?.some(near)) wall.add(k);
+      });
+      if (wall.size >= 3) lots.push({ h, i, lot, wall, house, step: house && paintedDoor(house) ? { x: door.x, y: door.y + 1 } : undefined });
+    });
+    // Drop any lot whose wall, with the others standing, shuts a painted door off from its street.
+    const walled = () => new Set(lots.flatMap((l) => [...l.wall]));
+    for (let changed = true, all = walled(); changed; all = walled()) {
+      changed = false;
+      for (const l of [...lots])
+        if (l.house && l.step && route(l.house.entrance, l.step, (p) => plan.solid.has(cellKey(p.x, p.y)) || all.has(cellKey(p.x, p.y)) ? Infinity : 1,
+          { maxNodes: 1024, bounds: { x: l.house.x - 12, y: l.house.y - 12, w: l.house.w + 24, h: l.house.h + 24 } }).status !== "found")
+          lots.splice(lots.indexOf(l), 1), (changed = true);
+    }
+    for (const { h, i, lot, wall } of lots)
+      encloseYard(
+        lot,
+        (x, y) => inside(h, x, y) || roads.has(cellKey(x, y)),
+        (x, y) => wall.has(cellKey(x, y)),
+        () => undefined,
+        100900 + i,
+        "x",
+        frontAt(h.x, h.y, i),
+        h.owner,
+        true,
+      );
+  }
   // A churchyard: a stone wall broken where the paths come in, grass, a few
   // trees along the wall and the stones of the dead.
   for (const [n, { yard, church }] of churchyards.entries()) {
@@ -5336,7 +5435,14 @@ function stepGround(plan: SettlementPlan, routes: Set<string>, seed: string, inf
       const [x, y] = k.split(",").map(Number);
       for (const [dx, dy] of N4) {
         const n = cellKey(x + dx, y + dy);
-        if (step.has(n) || !open(n)) continue;
+        // A house's earth yard takes only the first worn setts off the street.
+        const yard = d === 1 && plan.surface.get(n) === "dirt" && plan.pavement?.get(n) === "yard" &&
+          !routes.has(n) && !plan.solid.has(n) && !plan.fields?.has(n);
+        if (step.has(n) || !(open(n) || yard)) continue;
+        if (yard) {
+          if (noise(seed, x + dx, y + dy, 3, "yard-setts") < 0.55) pave(n, infill, "apron");
+          continue;
+        }
         step.set(n, d);
         next.push(n);
       }

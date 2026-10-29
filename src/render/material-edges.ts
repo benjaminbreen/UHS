@@ -71,7 +71,7 @@ export function materialCoverage(
   const value = (a: number, b: number) => {
     const c = sample(a, b);
     if (!c || c.height !== height || c.bridge || c.ramp ||
-      (c.field ? raisedFieldEdge(c) : c.feature === "field")) return 0;
+      (c.field ? raisedFieldEdge(c) && !(c.field.yard && c.surface === "soil") : c.feature === "field")) return 0;
     if (c.feature === "paving") return paving;
     return Number(predicate(c));
   };
