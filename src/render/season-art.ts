@@ -180,6 +180,15 @@ const drift = (
   density: number,
 ): DriftStyle => ({ ...styles[kind], colors, density });
 
+/** Sideways over downward speed of a falling mote in this wind, east positive:
+ * the slant the scene's drift moves at, for skies drawn outside the scene. */
+export function driftLean(kind: DriftKind, wind: { angle: number; strength: number }) {
+  const { fall, windPull } = styles[kind];
+  const push = windPull * wind.strength;
+  const down = Math.max(fall[0], (fall[0] + fall[1]) / 2 + push * Math.sin(wind.angle));
+  return Math.max(-2, Math.min(2, (push * Math.cos(wind.angle)) / down));
+}
+
 const woodland = ["temperate-woodland", "boreal-woodland", "riparian-woodland"];
 
 /** What is in the air here, if anything. Falling weather outranks the

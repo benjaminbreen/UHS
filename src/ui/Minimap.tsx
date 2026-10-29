@@ -918,11 +918,10 @@ export function Minimap({
         }}
         onMouseLeave={() => setPin(undefined)}
       />
-      {weather && weather !== "clear" && weather !== "overcast" && (
+      {(weather === "mist" || weather === "clouds") && (
         <span
           className="map-weather"
           data-weather={weather}
-          style={{ "--lean": Math.cos(sky!.weather!.wind.angle) * sky!.weather!.wind.strength } as React.CSSProperties}
           aria-hidden="true"
         />
       )}

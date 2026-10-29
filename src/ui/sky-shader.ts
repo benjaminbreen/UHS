@@ -1,5 +1,6 @@
 import type { LightingId } from "../render/lighting";
 import type { Weather } from "../core/weather";
+import { driftLean } from "../render/season-art";
 
 const vert = `attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
 
@@ -8,7 +9,7 @@ const frag = `
 precision highp float;
 uniform vec2 R;
 uniform float T, H, COV, DEN, DARK, RAIN, SNOW, MIST;
-uniform vec2 S, W;
+uniform vec2 S, W, L;
 
 float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);
@@ -121,7 +122,7 @@ void main(){
     float rn=0.;
     for(int i=0;i<3;i++){
       float fi=float(i),s=1.+fi*.8;
-      float an=.18+W.x*.25;
+      float an=-atan(L.x);
       vec2 r=mat2(cos(an),sin(an),-sin(an),cos(an))*p;
       r*=vec2(55.*s,2.2*s);
       r.y+=T*(9.+fi*4.);
@@ -140,7 +141,7 @@ void main(){
       float fi=float(i),s=12.+fi*7.;
       vec2 q=p*s;
       q.y+=T*(1.1+fi*.35);
-      q.x+=W.x*T*.8+sin(T*.7+q.y*.4+fi)*.4;
+      q.x+=-L.y*T*(1.1+fi*.35)+sin(T*.7+q.y*.4+fi)*.4;
       vec2 c=floor(q),f=fract(q)-.5;
       vec2 o=vec2(hash(c+fi),hash(c+fi+9.))-.5;
       float rr=mix(.09,.04,fi/3.);
@@ -219,6 +220,8 @@ export function mountSky(canvas: HTMLCanvasElement, initial: SkyParams) {
     gl.uniform1f(u("MIST"), mist);
     const { angle, strength } = weather.wind;
     gl.uniform2f(u("W"), Math.cos(angle) * (0.3 + strength), Math.sin(angle) * strength * 0.3);
+    // The same slant the scene's falling rain and snow move at.
+    gl.uniform2f(u("L"), driftLean("rain", weather.wind), driftLean("snow", weather.wind));
   };
   set();
 

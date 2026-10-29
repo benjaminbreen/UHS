@@ -641,7 +641,7 @@ body {
 }
 @keyframes sky-rain {
   to {
-    transform: translate(-30px, 170px);
+    transform: translate(calc(var(--lean, 0) * 170px), 170px);
   }
 }
 .sky-snow circle {
@@ -649,7 +649,7 @@ body {
 }
 @keyframes sky-snow {
   to {
-    transform: translate(-18px, 170px);
+    transform: translate(calc(var(--lean, 0) * 170px), 170px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -825,36 +825,11 @@ body {
   pointer-events: none;
   border-radius: inherit;
 }
-.map-weather::before,
-.map-weather::after {
+.map-weather::before {
   content: "";
   position: absolute;
   inset: -40%;
-  transform: skewX(calc(var(--lean, 0) * 24deg));
 }
-.map-weather[data-weather="rain"]::before {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='52' shape-rendering='crispEdges'%3E%3Cpath d='M5 3v5M31 11v4M17 27v5M40 38v4' stroke='rgb(205,220,240)' stroke-opacity='.5'/%3E%3C/svg%3E") 0 0 / 46px 52px;
-  animation: map-rain-near 0.55s steps(8) infinite;
-}
-.map-weather[data-weather="rain"]::after {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='37' height='34' shape-rendering='crispEdges'%3E%3Cpath d='M24 2v3M8 19v3' stroke='rgb(190,205,228)' stroke-opacity='.28'/%3E%3C/svg%3E") 0 0 / 37px 34px;
-  animation: map-rain-far 0.8s steps(8) infinite;
-}
-@keyframes map-rain-near { to { background-position: 0 52px; } }
-@keyframes map-rain-far { to { background-position: 0 34px; } }
-.map-weather[data-weather="snow"]::before {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' shape-rendering='crispEdges'%3E%3Cg fill='white'%3E%3Crect x='4' y='3' width='2' height='2' opacity='.85'/%3E%3Crect x='15' y='13' width='1' height='1' opacity='.7'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 22px 22px;
-  animation: map-snow-near 5s linear infinite;
-}
-.map-weather[data-weather="snow"]::after {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' shape-rendering='crispEdges'%3E%3Crect x='9' y='6' width='1' height='1' fill='white' opacity='.5'/%3E%3C/svg%3E") 0 0 / 15px 15px;
-  animation: map-snow-far 8s linear infinite;
-}
-@keyframes map-snow-near { to { background-position: 22px 88px; } }
-@keyframes map-snow-far { to { background-position: -15px 45px; } }
-/* Mist and fair-weather cloud shadows drift with the wind, unskewed. */
-.map-weather:is([data-weather="mist"], [data-weather="clouds"])::before { transform: none; }
-.map-weather:is([data-weather="mist"], [data-weather="clouds"])::after { display: none; }
 .map-weather[data-weather="mist"]::before {
   background:
     radial-gradient(ellipse 34% 22% at 30% 35%, rgb(226 231 236 / 0.34), transparent 70%),
@@ -872,7 +847,7 @@ body {
 @keyframes map-drift-mist { to { background-position: 240px 0; } }
 @keyframes map-drift-clouds { to { background-position: 300px 60px; } }
 @media (prefers-reduced-motion: reduce) {
-  .map-weather::before, .map-weather::after { animation: none; }
+  .map-weather::before { animation: none; }
 }
 .map-pin {
   position: absolute;

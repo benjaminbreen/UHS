@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LightingId } from "../render/lighting";
 import { toFahrenheit, type Weather } from "../core/weather";
+import { driftLean } from "../render/season-art";
 import { mountSky } from "./sky-shader";
 
 const skies: Record<LightingId, [string, string, string]> = {
@@ -97,6 +98,8 @@ function SvgScene({
       i,
     }));
   }, []);
+  const rainLean = driftLean("rain", weather.wind);
+  const snowLean = driftLean("snow", weather.wind);
   const dim = night || lighting === "dusk";
   const cloudy = condition !== "clear" && condition !== "mist";
   const heavy =
@@ -254,13 +257,13 @@ function SvgScene({
         </>
       )}
       {condition === "rain" && (
-        <g className="sky-rain">
+        <g className="sky-rain" style={{ "--lean": rainLean } as React.CSSProperties}>
           {rain.map((d) => (
             <line
               key={d.i}
-              x1={d.x}
+              x1={d.x - rainLean * 85}
               y1="-20"
-              x2={d.x - 3}
+              x2={d.x - rainLean * 85 + rainLean * 12}
               y2="-8"
               stroke="#c7dcf3"
               strokeWidth="0.8"
@@ -272,11 +275,11 @@ function SvgScene({
         </g>
       )}
       {condition === "snow" && (
-        <g className="sky-rain sky-snow">
+        <g className="sky-rain sky-snow" style={{ "--lean": snowLean } as React.CSSProperties}>
           {rain.map((d) => (
             <circle
               key={d.i}
-              cx={d.x}
+              cx={d.x - snowLean * 85}
               cy="-14"
               r="1.1"
               fill="#f4f8fc"
