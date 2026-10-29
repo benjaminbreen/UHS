@@ -93,6 +93,11 @@ export type UrbanForm = {
    * where the climate lets them (`settlementLayout`). The block is sized to
    * hold two rows of house and garden back to back; `paved` says how far down
    * the street tiers the cobbles go, the rest being earth. */
+  /** Rows of houses on the street, each with a fenced lot behind it this many
+   * cells deep: garden, well and outbuildings off the street, the rows
+   * backing onto each other across a green block middle. Omitted, rows stand
+   * back to back on bare ground. */
+  backs?: number;
   plots?: {
     block: readonly [number, number];
     garden: number;

@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / 'artifacts/towns'
 GROUND = {'grass': '#5f8f3e', 'dirt': '#a58a5c', 'paving': '#8f8e84', 'kerb': '#b0aa98', 'field': '#6b5236',
-          'water': '#2f6f8f', 'sand': '#c9b77e', 'bridge': '#7a5c38', 'floor': '#b89a6b'}
+          'water': '#2f6f8f', 'sand': '#c9b77e', 'bridge': '#7a5c38', 'floor': '#b89a6b', 'dry': '#9a9a52', 'rock': '#7d7a70', 'marsh': '#4f6f4a', 'snow': '#e8eef0'}
 BOUNDARY = {'wall': '#8d8a7c', 'stones': '#8d8a7c', 'hedge': '#355f2a', 'wire': '#6d6d6d'}
 
 

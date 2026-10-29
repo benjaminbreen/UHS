@@ -43,6 +43,7 @@ export const eastAsiaForms: UrbanFormRule[] = [
     deadEnds: 0.06,
     tiers: [4, 2, 1],
     surface: "earth",
+    backs: 5,
     gates: 4,
     wall: "none",
     plaza: "crossing",
@@ -56,7 +57,7 @@ export const eastAsiaForms: UrbanFormRule[] = [
     evidence: {
       status: "inferred",
       sources: [],
-      note: "Square blocks on a strict module follow the Heian-kyo and Heijo-kyo capital plans, themselves modelled on Chang'an. Applying it to a procedural neighborhood is an inference; the generator does not reproduce a named capital's ward divisions.",
+      note: "Square blocks on a strict module follow the Heian-kyo and Heijo-kyo capital plans, themselves modelled on Chang'an. Townhouses on narrow, deep lots fronting the streets, with gardens, wells and storehouses behind and open ground in the block's middle, follow medieval Kyoto's machi as described by Takahashi Yasuo. Applying it to a procedural neighborhood is an inference; the generator does not reproduce a named capital's ward divisions.",
     },
   },
   {

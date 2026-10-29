@@ -22,17 +22,23 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
   const e = createSettingSession(setting, seed ?? "panel") as any;
   const cx = Math.round(e.state.player.pos.x),
     cy = Math.round(e.state.player.pos.y);
-  const p = e.world.planAt(cx, cy) ?? e.world.planAt(0, 0);
   const R = radius ?? 40;
+  // A city can be several sites (its quarters), each with its own plan.
+  const plans = new Set<any>();
   const surface: Record<string, string> = {};
+  const groundRoles: Record<string, string> = {};
   for (let y = cy - R; y <= cy + R; y++)
     for (let x = cx - R; x <= cx + R; x++) {
+      const p = e.world.planAt(x, y);
+      if (p) plans.add(p);
       const k = `${x},${y}`,
-        t = p.surface.get(k);
-      if (t) surface[k] = t === "paving" && p.pavement?.get(k) === "footway" ? `kerb` : t;
+        t = e.world.terrain(x, y),
+        role = p?.pavement?.get(k);
+      if (t) surface[k] = t === "paving" && role === "footway" ? `kerb` : t;
+      if (role) groundRoles[k] = role;
     }
   const fields: Record<string, unknown> = {};
-  for (const [k, f] of p.fields ?? []) {
+  for (const [k, f] of [...plans].flatMap((p) => [...(p.fields ?? [])])) {
     const [x, y] = k.split(",").map(Number);
     if (Math.abs(x - cx) <= R && Math.abs(y - cy) <= R)
       fields[k] = { crop: f.crop, fence: f.fence, boundary: f.boundary };
@@ -48,12 +54,9 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
       cy,
       R,
       surface,
-      groundRoles: Object.fromEntries([...p.pavement ?? []].filter(([k]) => {
-        const [x, y] = k.split(",").map(Number);
-        return Math.abs(x - cx) <= R && Math.abs(y - cy) <= R;
-      })),
+      groundRoles,
       fields,
-      places: p.places
+      places: [...plans].flatMap((p) => p.places)
         .filter(near)
         .map((b: any) => ({
           sprite: b.sprite,
@@ -82,5 +85,5 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
         })),
     }),
   );
-  console.log(name, setting.location, setting.year, "places", p.places.length);
+  console.log(name, setting.location, setting.year, "places", [...plans].reduce((n, p) => n + p.places.length, 0));
 }

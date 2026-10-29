@@ -45,6 +45,11 @@
     "radius": 40
   },
   {
+    "name": "kyoto-1350",
+    "query": "A dyer in Kyoto, 1350",
+    "radius": 40
+  },
+  {
     "name": "kyoto-1700",
     "query": "Kyoto 1700",
     "seed": "asia-gold",

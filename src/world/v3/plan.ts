@@ -1279,7 +1279,8 @@ export function planSettlement(
     const paintBlock = (block: Rect, given: Terrain = blockGround, role: Pavement = "yard") =>
       eachCell(block, (x, y) => {
         // Behind a Tokyo street front the yards and lanes were beaten earth.
-        const ground = earthCore(x, y, (meiji || role === "vacant") && given === "paving" ? "dirt" : given);
+        const ground = role === "vacant" && !dryCity && given === "dirt" ? "grass"
+          : earthCore(x, y, (meiji || role === "vacant") && given === "paving" ? "dirt" : given);
         const k = cellKey(x, y);
         if (dry({ x, y, w: 1, h: 1 }, false) && setSurface(k, ground, 2)) {
           plan.pavement!.set(k, role);

@@ -1306,7 +1306,8 @@ export function urbanNeighborhood(
           h: rank.block.h + 2,
         },
         use === "industrial" ? "dirt"
-          : use && ["downtown", "commercial", "tenement", "rowhouse"].includes(use) ? "paving" : undefined,
+          : use && ["downtown", "commercial", "tenement", "rowhouse"].includes(use) ? "paving"
+          : form.backs && rank.built && pack.setting?.climate !== "arid" ? "grass" : undefined,
         role,
       );
     }
@@ -2223,7 +2224,7 @@ export function urbanNeighborhood(
       return out;
     }
     const gap = block.court ? 3 : 1;
-    const yard = detached(block) ? GARDEN : 0;
+    const yard = detached(block) ? GARDEN : (form.backs ?? 0);
     let top = block.y,
       bottom = block.y + block.h;
     const north = terrace(
@@ -2412,9 +2413,10 @@ export function urbanNeighborhood(
               ? Math.max(spacing, margins[1])
               : spacing;
         const deep = vertical ? w : h;
-        const room = Math.min(GARDEN, maxDepth - deep);
+        // A row's lots all reach the same back line, whatever the house depth.
+        const room = open ? Math.min(GARDEN, maxDepth - deep) : maxDepth - deep;
         const garden =
-          open && use !== "estate" && room >= 3
+          (open || (form.backs && !vertical && !use)) && use !== "estate" && room >= 3
             ? {
                 x: vertical
                   ? face === "west"
