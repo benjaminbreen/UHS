@@ -390,11 +390,85 @@ export function vegetationTree(
     roll,
   );
 }
+type Form = "grass" | "bloom" | "shrub" | "scrub" | "heath" | "fern" | "reed";
+const forms: Form[] = ["grass", "bloom", "shrub", "scrub", "heath", "fern", "reed"];
+/** Growth forms on the ground, by ecology. The form picks a sprite and the
+ * flora tables name a regional species for it, so a heath is ling in
+ * Scotland and rooibos at the Cape. */
+const coverMix: Record<string, Partial<Record<Form, number>>> = {
+  grassland: { grass: 5, bloom: 2.5, shrub: 1, scrub: 0.5, heath: 0.5 },
+  savanna: { grass: 5, scrub: 2, shrub: 1, bloom: 0.7 },
+  "dry-scrub": { scrub: 4, grass: 2.5, shrub: 1, heath: 0.6, bloom: 0.6 },
+  desert: { scrub: 5, grass: 1.5, bloom: 0.4 },
+  "temperate-woodland": { fern: 3, shrub: 2.5, heath: 1.2, bloom: 1, grass: 1 },
+  "boreal-woodland": { heath: 3, fern: 2.5, shrub: 1.5, grass: 0.5 },
+  "tropical-woodland": { shrub: 3, fern: 3, grass: 1, bloom: 0.6 },
+  wetland: { reed: 4, fern: 1.5, shrub: 1, bloom: 0.8, grass: 0.5 },
+  tundra: { heath: 4, grass: 1.5, bloom: 1, shrub: 0.5 },
+};
+const community: Partial<Record<string, Partial<Record<Form, number>>>> = {
+  grassland: { grass: 2, bloom: 1.5, fern: 0.3, shrub: 0.6 },
+  scrub: { scrub: 2, shrub: 1.5, heath: 1.3, grass: 0.6 },
+  woodland: { fern: 2, shrub: 1.5, grass: 0.3, bloom: 0.5 },
+  "riparian-woodland": { fern: 2, reed: 1.5, shrub: 1.3, grass: 0.4 },
+  rocky: { heath: 2, scrub: 1.5, fern: 0.2, shrub: 0.3, reed: 0 },
+  barren: { scrub: 2, heath: 1.5, fern: 0, shrub: 0.2, reed: 0, bloom: 0.3 },
+  shore: { scrub: 2, grass: 1.5, fern: 0, heath: 0.6, reed: 0.5 },
+};
+const bloomSeason: Record<string, number> = { spring: 1.6, summer: 1.2, autumn: 0.5, winter: 0.2 };
+function groundCover(h: Habitat, roll: number, patch: number) {
+  const ecology = h.site?.region.ecology ?? h.ecology;
+  const base = coverMix[ecology] ?? coverMix.grassland;
+  const local = community[h.site?.primary ?? ""] ?? {};
+  const wet = h.wet,
+    open = h.exposed;
+  const dry = ["desert", "dry-scrub", "savanna"].includes(ecology);
+  const weights = forms.map((f) => {
+    let w = (base[f] ?? 0) * (local[f] ?? 1);
+    if (f === "reed" || f === "fern") w *= 1 + Math.max(0, wet - 0.3) * 3;
+    if (f === "grass" || f === "scrub") w *= 1 - wet * 0.5;
+    if (f === "heath" || f === "scrub") w *= 1 + open;
+    if (f === "fern" || f === "shrub") w *= 1 - open * 0.6;
+    if (f === "bloom") w *= bloomSeason[h.season] ?? 1;
+    return w;
+  });
+  // Most cells take the patch's form, so heather and bracken lie in drifts
+  // rather than as a sprinkle of everything.
+  // Smooth noise bunches round 0.5; stretched, every form gets its drifts.
+  const r = (roll * 7.31) % 1 < 0.7 ? Math.min(0.999, Math.max(0, (patch - 0.5) * 2 + 0.5)) : roll;
+  let pick = r * weights.reduce((a, b) => a + b, 0);
+  let form: Form = "grass";
+  for (let i = 0; i < forms.length; i++)
+    if ((pick -= weights[i]) < 0) {
+      form = forms[i];
+      break;
+    }
+  switch (form) {
+    case "grass":
+      return dry || h.season === "autumn" || h.season === "winter"
+        ? "nature-understory-dry-bunchgrass"
+        : "ecology-grazing";
+    case "bloom":
+      return "flowers";
+    case "shrub":
+      return "nature-understory-low-leafy-shrub";
+    case "scrub":
+      return scrub;
+    case "heath":
+      return heath;
+    case "fern":
+      return fern;
+    case "reed":
+      return "nature-understory-sedge";
+  }
+}
 export function vegetationUnderstory(
   s: WorldSetting,
   h: Habitat,
   land: LandSample,
   roll: number,
+  /** 0-1, smooth across a few cells: which form a drift of ground cover takes. */
+  patch = roll,
 ): string | undefined {
   if (h.site) {
     if (land.snow || h.site.primary === "water") return undefined;
@@ -405,32 +479,21 @@ export function vegetationUnderstory(
         return roll < 0.5 ? "nature-understory-sedge" : fern;
       case "bog":
         return roll < 0.6 ? "nature-understory-sedge" : heath;
-      case "scrub":
-        return roll < 0.65 ? scrub : "nature-understory-dry-bunchgrass";
-      case "grassland": {
-        // Dry bunchgrass belongs to dry country and the dead season; a moist
-        // meadow in leaf carries flowers and low shrubs instead.
-        const moist = [
-          "temperate-woodland",
-          "boreal-woodland",
-          "tropical-woodland",
-          "wetland",
-        ].includes(h.site.region.ecology);
-        if (!moist || h.season === "autumn" || h.season === "winter")
-          return roll < 0.8 ? "nature-understory-dry-bunchgrass" : "flowers";
-        return roll < 0.55
-          ? "flowers"
-          : roll < 0.8
-            ? "nature-understory-low-leafy-shrub"
-            : fern;
-      }
       case "rocky":
       case "barren":
+        // Cushions and scrub in the cracks, most of the ground bare.
+        return roll < 0.35 ? groundCover(h, roll / 0.35, patch) : undefined;
       case "shore":
-        return undefined;
+        // A strand line of low salt-tolerant growth on the upper beach only.
+        return land.water > (land.shoreWidth ?? 3) * 0.6 && roll < 0.4
+          ? groundCover(h, roll / 0.4, patch)
+          : undefined;
       case "woodland":
       case "riparian-woodland":
-        break;
+        if (roll > (h.season === "autumn" ? 0.92 : 0.975)) return "nature-understory-fungi";
+        return groundCover(h, roll, patch);
+      default:
+        return groundCover(h, roll, patch);
     }
   }
   const wet = land.kind !== "sea" && land.water < 16;

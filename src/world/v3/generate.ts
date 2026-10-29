@@ -1339,12 +1339,13 @@ export function createSettlementWorld(
         x + land.origin.x,
         y + land.origin.y,
       );
+      const patch = noise(seed, x + land.origin.x, y + land.origin.y, 9, "cover-patch");
       if (tree && sprite !== "rock" && sprite !== "reeds")
         selected = spaced
           ? proposed?.sprite
           : vegetationTree(local, h!, f, roll);
       else if (sprite === "bush" || sprite === "flowers")
-        selected = vegetationUnderstory(local, h!, f, roll);
+        selected = vegetationUnderstory(local, h!, f, roll, patch);
       else if (
         !sprite &&
         f.water > (f.shoreWidth ?? 3) &&
@@ -1352,15 +1353,20 @@ export function createSettlementWorld(
       ) {
         // Connected low vegetation patches share habitat cover, but independent
         // sampling keeps them from replacing rocks or changing tree collisions.
-        // Colonies: whole patches of scrub with little between them.
+        // Colonies: whole patches of scrub with little between them. Open
+        // ground clumps on its own field: shrubColony's band is too rare to
+        // carry all the ground cover.
+        const clump = h!.site
+          ? Math.max(colony, 0.3 + 2.7 * Math.min(1, Math.max(0, (noise(seed, x + land.origin.x, y + land.origin.y, 14, "cover-clump") - 0.45) / 0.25)))
+          : colony;
         const density =
           ((h!.ecology === "desert"
-            ? 0.006
+            ? 0.02
             : h!.ecology === "tundra"
-              ? 0.012
-              : 0.018) +
-            h!.cover * 0.035) *
-          colony *
+              ? 0.035
+              : 0.05) +
+            h!.cover * 0.08) *
+          clump *
           (scape?.kind === "arroyo" ? 3 : scape?.kind === "trail" ? 0.2 : 1);
         if (
           random(
@@ -1370,7 +1376,7 @@ export function createSettlementWorld(
             y + land.origin.y,
           ) < density
         )
-          selected = vegetationUnderstory(local, h!, f, roll);
+          selected = vegetationUnderstory(local, h!, f, roll, patch);
       }
     }
     if (
