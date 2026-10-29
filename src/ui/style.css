@@ -10355,6 +10355,16 @@ button:disabled {
 :root .location-weather .sky { display: flex; flex-direction: row; align-items: baseline; gap: 6px; white-space: nowrap; }
 :root .location-weather .sky > * { display: inline; margin: 0; }
 :root .location-weather .sky > * + *::before { content: "· "; color: var(--muted); }
+:root .location-weather { position: relative; isolation: isolate; overflow: hidden; }
+:root .location-weather .sky { position: static; mask-image: none; -webkit-mask-image: none; }
+:root .location-weather .sky > .sky-backdrop { position: absolute; inset: 0; z-index: -1; display: block; }
+:root .location-weather .sky > .sky-backdrop + *::before { content: none; }
+:root .location-weather .sky-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--bg-2) 30%, color-mix(in srgb, var(--bg-2) 72%, transparent) 55%, color-mix(in srgb, var(--bg-2) 40%, transparent));
+}
 
 /* Lucide, heavier to sit beside the pixel type, with a faint fill in its closed shapes. */
 svg.lucide { stroke-width: 2.4; }

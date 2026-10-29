@@ -332,7 +332,7 @@ export function WeatherPanel({
   weather: Weather;
   lighting: LightingId;
   period: string;
-  /** Labels only: the header's sky shows through behind them. */
+  /** Labels in a row; the sky fills the whole header behind them. */
   bare?: boolean;
 }) {
   const [unit, setUnit] = useState<"C" | "F">(() => {
@@ -359,7 +359,13 @@ export function WeatherPanel({
       data-lighting={lighting}
       style={bare ? undefined : { background: skyGradient(weather, lighting) }}
     >
-      {!bare && <Scene weather={weather} lighting={lighting} />}
+      {bare ? (
+        <div className="sky-backdrop" aria-hidden="true" style={{ background: skyGradient(weather, lighting) }}>
+          <Scene weather={weather} lighting={lighting} />
+        </div>
+      ) : (
+        <Scene weather={weather} lighting={lighting} />
+      )}
       <span className="sky-period">{period}</span>
       <span className="sky-condition">{weather.label}</span>
       <button
