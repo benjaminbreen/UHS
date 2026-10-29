@@ -1578,21 +1578,42 @@ export class WorldScene extends Phaser.Scene {
         : sex === "female" ? "SISTER" : sex === "male" ? "BROTHER" : "SIBLING";
       words.set(actor.id, word);
     }
-    for (const [id, word] of words) {
+    const player = this.entities.get("player");
+    let nearest: string | undefined, best = 40 ** 2;
+    for (const id of words.keys()) {
       const im = this.entities.get(id);
-      if (!im?.visible) continue;
+      if (!im?.visible || !player) continue;
+      const d = (im.x - player.x) ** 2 + (im.y - player.y) ** 2;
+      if (d < best) { best = d; nearest = id; }
+    }
+    const shown = [nearest, this.hoverId, this.runtime.engine.conversing]
+      .filter((id, i, all): id is string => !!id && words.has(id) && all.indexOf(id) === i && !!this.entities.get(id)?.visible)
+      .sort((a, b) => this.entities.get(b)!.y - this.entities.get(a)!.y);
+    const placed: { l: number; r: number; t: number; b: number }[] = [];
+    for (const id of shown) {
+      const im = this.entities.get(id)!;
       let label = this.familyLabels.get(id);
       if (!label || !label.scene) {
         label = this.add.text(0, 0, "", { fontFamily: 'Silkscreen, monospace', fontSize: "8px", color: "#ffe0bd", stroke: "#1a1410", strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(1e7);
         this.familyLabels.set(id, label);
       }
-      label.setText(`YOUR ${word}`).setPosition(Math.round(im.x), Math.round(im.y) - 42).setVisible(true);
+      label.setText(`YOUR ${words.get(id)}`);
+      const x = Math.round(im.x), w = label.width / 2, h = label.height;
+      let y = this.headTop(im) - 7;
+      // Front people keep their place; anyone behind steps up above them.
+      for (let hit = true; hit; ) {
+        hit = false;
+        for (const p of placed)
+          if (x - w < p.r && x + w > p.l && y - h < p.b && y > p.t) { y = p.t; hit = true; }
+      }
+      placed.push({ l: x - w, r: x + w, t: y - h, b: y });
+      label.setPosition(x, y).setVisible(true);
     }
     const bob = Math.round(Math.sin(time / 420));
     let key = "";
     for (const [id, mark] of this.castPeople) {
       const im = this.entities.get(id);
-      if (im?.visible) key += `${id}:${mark}:${Math.round(im.x)},${Math.round(im.y) - 34 + bob}|`;
+      if (im?.visible) key += `${id}:${mark}:${Math.round(im.x)},${this.headTop(im) + bob}|`;
     }
     if (this.castMarks && key === this.castMarkKey) return;
     this.castMarkKey = key;
@@ -1601,11 +1622,15 @@ export class WorldScene extends Phaser.Scene {
     for (const [id, mark] of this.castPeople) {
       const im = this.entities.get(id);
       if (!im?.visible) continue;
-      // The frame is taller than the body in it; a grown person stands about 28px.
-      const x = Math.round(im.x), y = Math.round(im.y) - 34 + bob;
+      const x = Math.round(im.x), y = this.headTop(im) - 3 + bob;
       g.fillStyle(0x1a1410, 0.9).fillPoints([{ x, y: y - 4 }, { x: x + 4, y }, { x, y: y + 4 }, { x: x - 4, y }], true);
       g.fillStyle(mark === "kin" ? 0xd9523f : 0xf2cf6b, 1).fillPoints([{ x, y: y - 3 }, { x: x + 3, y }, { x, y: y + 3 }, { x: x - 3, y }], true);
     }
+  }
+  /** The top of the head as drawn: the frame is taller than the body, and a sleeper is only a head on the pillow. */
+  private headTop(im: Phaser.GameObjects.Image): number {
+    if (im.angle) return Math.round(im.y - HEAD_ROWS / 2);
+    return Math.round(im.y - (im.height - this.crownOf(im.texture.key)) * im.scaleY);
   }
   private guideMark?: Phaser.GameObjects.Graphics;
   private guideAt?: { x: number; y: number };
