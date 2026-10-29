@@ -523,6 +523,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       seconds: z.number().int().min(1).max(3600),
     })
     .strict(),
+  z.object({ type: z.literal("attend") }).strict(),
   z
     .object({
       type: z.literal("interact"),

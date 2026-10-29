@@ -58,6 +58,8 @@ export type TaskView = {
   lore: { place: string; year: number; culture: string; role: string; task: string; note?: string };
   goalId?: string;
   done?: boolean;
+  /** A plot gathering the player can go straight to, skipping the wait. */
+  meet?: { label: string; start: number; owing: boolean };
 };
 
 const PART_WORDS: Record<Part, string> = {
@@ -408,6 +410,9 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
       where: lead ? findOf(lead) : undefined,
       facts: facts.filter((f) => f.text),
       lore: lore(plotLine(plot, "aim")),
+      ...(plot.gathering && s.clock < plot.gathering.until
+        ? { meet: { label: plot.gathering.label, start: plot.gathering.start, owing: (plot.owed ?? 0) > 0 } }
+        : {}),
     };
   }
 

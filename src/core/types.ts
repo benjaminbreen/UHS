@@ -515,6 +515,8 @@ export type PlayerCommand =
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */
   | { type: "pass"; seconds: number }
+  /** Goes to the plot's gathering and waits there for it to begin. */
+  | { type: "attend" }
   | {
       type: "interact";
       target: string;

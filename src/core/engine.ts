@@ -6139,6 +6139,11 @@ export class Engine {
         c.seconds <= 24 * 3600
         ? undefined
         : "Sleep between 10 minutes and a full day.";
+    if (c.type === "attend") {
+      const g = this.state.plot && !this.state.plot.ended ? this.state.plot.gathering : undefined;
+      if (!g || this.state.clock >= g.until) return "There is nothing to go to.";
+      return p.afloat || p.perch || p.mount ? "Get down first." : undefined;
+    }
     if (c.type === "wait" || c.type === "pass")
       return Number.isInteger(c.seconds) && c.seconds > 0 && c.seconds <= 3600
         ? undefined
@@ -7597,6 +7602,10 @@ export class Engine {
       this.sleep(c.seconds);
       return;
     }
+    if (c.type === "attend") {
+      this.attend();
+      return;
+    }
     if (c.type === "use") {
       const def = this.item(c.item)!;
       p.inventory[c.item] = (p.inventory[c.item] ?? 0) - 1;
@@ -8522,6 +8531,25 @@ export class Engine {
       this.cards.push({ kind: "ending", title: plot.title, text: line, ending: ending.id });
       (s.record ??= []).push({ day: Math.floor(s.clock / 86400), clock: s.clock, card: `plot:${ending.id}`, choice: -1, line });
     }
+  }
+  /** Walks the player to the plot's gathering and waits there until it starts.
+   * Anything that comes up on the way, a card or someone coming over, stops the wait. */
+  private attend() {
+    const s = this.state, p = s.player, g = s.plot!.gathering!;
+    const scene = g.scene && sceneFor(this.world.pack.setting, g.scene);
+    const yours = scene?.spots.find((o) => o.role === "you");
+    const spot = yours ? { x: g.at.x + yours.dx, y: g.at.y + yours.dy, space: "outside" } : { x: g.at.x, y: g.at.y + 2, space: "outside" };
+    const door = p.pos.space !== "outside" && this.world.place(p.pos.space)?.entrance;
+    const from = door ? { ...door, space: "outside" } : p.pos;
+    // About walking pace, a metre a cell.
+    const walk = Math.round(distance(from, spot) / 1.3);
+    const cards = this.cards.length, approaching = this.approaching;
+    p.pos = this.blocked(spot.x, spot.y, "outside") ? { ...g.at, space: "outside" } : spot;
+    this.advance(Math.max(60, walk));
+    while (s.clock < g.start && !p.dead && this.cards.length === cards && this.approaching === approaching)
+      this.advance(Math.min(600, g.start - s.clock));
+    if (p.dead) return;
+    this.event(s.clock < g.start ? "You go over to wait, but something comes up." : s.clock - g.start > 600 ? "You arrive late; it has already begun." : "You arrive as it begins.");
   }
   /** Fixes where and when a plot's people will meet. Before the authority
    * that is the court's building if the place has one, else the keeper's door. */

@@ -151,6 +151,11 @@ export function TaskSky({
     mark();
     close();
   };
+  const attend = () => {
+    runtime.stop(false);
+    runtime.command({ type: "attend" });
+    close();
+  };
   const p = runtime.engine.state.player.pos;
   const here = !view?.where?.actor && view?.where?.pos && Math.hypot(view.where.pos.x - p.x, view.where.pos.y - p.y) < 3;
 
@@ -234,6 +239,7 @@ export function TaskSky({
             </button>
           )}
           {view.where?.pos && !here && <button onClick={() => { mark(); close(); }}>Show on map</button>}
+          {view.meet && view.who.self && <button onClick={attend}>{meetLabel(view.meet, s.clock)}</button>}
           {here && <span className="tasks-done">You are here</span>}
           {view.goalId && view.who.self && !view.done && (
             <button onClick={() => onPin(view.goalId!)} data-on={pinned === view.goalId || undefined}>
@@ -242,6 +248,7 @@ export function TaskSky({
           )}
           {view.done && <span className="tasks-done">Done today</span>}
         </div>
+        {view.meet?.owing && view.who.self && <p className="tasks-fine">What you owe is still unpaid.</p>}
         <p className="tasks-fine">From this world: the people, places and reasons are the game's own.</p>
       </section>
       <Record view={view} key={`r-${view.key}`} />
@@ -265,6 +272,15 @@ export function TaskSky({
       </p>
     </div>
   );
+}
+
+function meetLabel(meet: NonNullable<TaskView["meet"]>, clock: number) {
+  const name = meet.label.replace(/^At /, "");
+  const hours = Math.round((meet.start - clock) / 3600);
+  const hour = Math.floor(meet.start / 3600) % 24;
+  const when = `${hour % 12 || 12} ${hour < 12 ? "am" : "pm"}`;
+  if (clock >= meet.start) return `Join ${name} now`;
+  return `Go to ${name} · ${when}${hours >= 1 ? ` (in ${hours} h)` : ""}`;
 }
 
 /** The historical side, kept apart from the game's: accounts written for

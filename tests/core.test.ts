@@ -572,7 +572,9 @@ describe("shared deterministic foundation", () => {
     e.state.player.inventory.coin = party.owed!;
     act(e, { type: "interact", target: host.id, action: "pay" });
     expect(party.ended).toBeUndefined();
-    meet(party);
+    // Going straight there waits out the hours; something coming up can stop it short.
+    for (let i = 0; i < 6 && e.state.clock < party.gathering!.start; i++) expect(act(e, { type: "attend" }).status).toBe("completed");
+    e.advance(60);
     expect(party.ended).toBe("given");
     expect(e.state.actors.filter((a) => a.errand?.label === party.gathering!.label).length).toBeGreaterThan(2);
     expect(e.state.actors.some((a) => a.errand?.label === party.gathering!.label && a.errand.pose === "sit-seat")).toBe(true);

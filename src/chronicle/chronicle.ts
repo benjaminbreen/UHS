@@ -94,6 +94,8 @@ function describe(turn: ChronicleTurn): string {
       return `Stepped ${compassOf({ x: 0, y: 0, space: "outside" }, { x: c.dx, y: c.dy, space: "outside" })}.`;
     case "wait":
       return `Waited ${duration(c.seconds)}.`;
+    case "attend":
+      return "Went to the gathering.";
     case "sleep":
       return c.seconds >= 5 * 3600
         ? `Slept ${duration(c.seconds)}.`
