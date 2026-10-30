@@ -97,11 +97,15 @@ const DIRECTIONS: Record<string, string> = {
   N: "north", NE: "northeast", E: "east", SE: "southeast", S: "south", SW: "southwest", W: "west", NW: "northwest",
 };
 /** The neighbouring country that has it, and the way it comes: the first
- * exit by sea, else by road, else over open land. */
+ * exit by sea, else by river or road, else over open land. */
 export function sourceOf(s: WorldSetting, r: Resource) {
   const order = ["sea", "ferry", "road", "land"];
   return (s.playableMap?.exits ?? [])
     .filter((x) => x.neighbor && endowmentFor({ ...x.neighbor, year: s.year })[r])
     .sort((a, b) => order.indexOf(a.mode) - order.indexOf(b.mode))
-    .map((x) => ({ direction: DIRECTIONS[x.bearing] ?? x.bearing.toLowerCase(), by: x.mode === "sea" || x.mode === "ferry" ? "by sea" : x.mode === "road" ? "by road" : "overland" }))[0];
+    // A town on a river had its goods come down or up it unless they came by sea.
+    .map((x) => ({
+      direction: DIRECTIONS[x.bearing] ?? x.bearing.toLowerCase(),
+      by: x.mode === "sea" || x.mode === "ferry" ? "by sea" : s.water.startsWith("river") ? "by river" : x.mode === "road" ? "by road" : "overland",
+    }))[0];
 }

@@ -99,6 +99,7 @@ import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
 import { endPlot, plotLine, plotTemplate, startPlot, stepPlot, type PlotCard, type PlotState } from "./plot";
 import { claimFor, shareWords, type Claim } from "../content/economy/claims";
+import { sourceOf, tradeOf, type Resource } from "../content/economy/endowments";
 import type { Effect } from "../content/plots/types";
 import { sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
 import { kinCall, kinOf } from "./kin";
@@ -185,6 +186,17 @@ const ROUND_STOP = 900;
 const GRAIN_PER_SACK = 20;
 /** Items priced by the grain in local stores. */
 const STAPLES = new Set(["grain", "bread", ...wares.filter((w) => w.good === "grain" || w.good === "bread").map((w) => w.id)]);
+/** The items that cost more where the place lacks what they are made of. */
+const IMPORTED: Partial<Record<Resource, Set<ItemId>>> = {
+  grain: STAPLES,
+  fish: new Set(["fish"]),
+  timber: new Set(["wood", "walking-cane", ...wares.filter((w) => w.good === "timber").map((w) => w.id)]),
+  ore: new Set(["tool", "arrow", "headwear-helmet", ...wares.filter((w) => w.good === "ironwork").map((w) => w.id)]),
+};
+/** Carriage by sea was cheapest and over land dearest by far: Diocletian's
+ * price edict puts sea, river and land at roughly 1, 5 and 28 for the same
+ * distance. Compressed here to markups a player can still afford. */
+const ROUTE_MARKUP: Record<string, number> = { "by sea": 1.25, "by river": 1.5, "by road": 2, overland: 2.5 };
 // How an illness looks to the sick and to their family: symptoms, never a diagnosis.
 const SICK: Record<string, [own: string, other: string]> = {
   fever: ["Your head aches and your whole body is hot and heavy. It is hard to stand for long.", "{Name} has a fever and has gone to lie down."],
@@ -8889,16 +8901,46 @@ export class Engine {
   /** One line on the price of staples, when a shop sells them and they are
    * well off their ordinary price. */
   priceNote(stock: Inventory) {
+    const brought = Object.keys(stock).map((id) => ({ id, from: this.imported().get(id) })).find((x) => x.from && !STAPLES.has(x.id));
+    const carried = brought && `${this.item(brought.id)?.name ?? brought.id} costs more here: it comes ${brought.from!.from}.`;
+    return [this.stapleNote(stock), carried].filter(Boolean).join(" ") || undefined;
+  }
+  private stapleNote(stock: Inventory) {
     if (!Object.keys(stock).some((id) => STAPLES.has(id))) return;
-    const f = this.stapleDearness(), setting = this.world.pack.setting, claim = setting && claimFor(setting);
-    const name = (this.item("grain")?.name ?? "Grain").toLowerCase();
-    if (f <= 0.85) return `${name.replace(/^./, (c) => c.toUpperCase())} is cheap; the stores are full.`;
+    const f = this.stapleDearness() * (this.imported().get("grain")?.factor ?? 1), setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    const name = (this.item("grain")?.name ?? "Grain").toLowerCase().replace(/^./, (c) => c.toUpperCase());
+    if (f <= 0.85) return `${name} is cheap; the stores are full.`;
     if (f < 1.3) return;
+    const grain = this.imported().get("grain");
+    if (grain && this.stapleDearness() < 1.3) return `${name} is dear: it comes ${grain.from}.`;
     const taken = claim?.share && this.state.economy?.collected !== undefined && seasonIndex(this.state.clock) - this.state.economy.collected <= 1;
     const seller = claim?.share && this.collector(claim);
-    return `${name.replace(/^./, (c) => c.toUpperCase())} is dear${taken ? ` since ${claim.to} took its share` : "; the stores are running low"}.` +
+    return `${name} is dear${taken ? ` since ${claim.to} took its share` : "; the stores are running low"}.` +
       (seller && this.granary(seller) ? ` ${seller.name} sells from the store.` : "");
   }
+  /** Items this place has to bring in, with the markup its route puts on
+   * them and where they come from in words. Fixed for the world. */
+  private imported() {
+    const setting = this.world.pack.setting;
+    if (this.imports && this.imports.setting === setting) return this.imports.items;
+    const items = new Map<ItemId, { factor: number; from: string }>();
+    this.imports = { setting, items };
+    if (!setting) return items;
+    const ground = { ...setting, ecology: setting.environment?.ecology };
+    const { lacks } = tradeOf(ground, capabilitiesFor(setting).has("settled_agriculture"));
+    // With no neighbour that has it, a shore or a river still brings it from afar by water.
+    const far = setting.water.startsWith("river") ? "by river" : setting.water === "none" ? "overland" : "by sea";
+    for (const r of lacks) {
+      const source = sourceOf(setting, r);
+      const markup = ROUTE_MARKUP[source?.by ?? far] + (source ? 0 : 0.25);
+      const from = source ? `from the ${source.direction}, ${source.by}` : far === "overland" ? "from far off" : `from far off, ${far}`;
+      // A smith's work is mostly labour; only the iron in it was carried.
+      const factor = r === "ore" ? 1 + (markup - 1) / 2 : markup;
+      for (const id of IMPORTED[r] ?? []) items.set(id, { factor, from });
+    }
+    return items;
+  }
+  private imports?: { setting: Engine["world"]["pack"]["setting"]; items: Map<ItemId, { factor: number; from: string }> };
   private terms() {
     return 1 + this.skillLevel("trade") * PER_LEVEL.tradeTerms + (this.knows("haggler") ? 0.15 : 0);
   }
@@ -8916,8 +8958,9 @@ export class Engine {
   }
   /** An item's worth here today: staples follow the stores. */
   private value(id: ItemId) {
-    const v = this.item(id)?.value ?? 0;
-    return STAPLES.has(id) && v > 0 ? Math.max(1, Math.round(v * this.stapleDearness())) : v;
+    const v = this.item(id)?.value ?? 0, carried = this.imported().get(id)?.factor ?? 1;
+    if (v <= 0 || (carried === 1 && !STAPLES.has(id))) return v;
+    return Math.max(1, Math.round(v * carried * (STAPLES.has(id) ? this.stapleDearness() : 1)));
   }
   worth(inv: Inventory, side: "buy" | "sell") {
     return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id) : this.sellPrice(id)), 0);
