@@ -3662,7 +3662,18 @@ export function planSettlement(
           });
         }
       }
-      const footway = ny
+      const fc = lot.forecourt;
+      if (fc) {
+        paint(fc, cityGround === "grass" ? "grass" : "dirt", true, 3, "yard");
+        eachCell(fc, (x, y) => plan.reserved.add(cellKey(x, y)));
+      }
+      // Beyond a forecourt, the footway runs at the street, not at the wall.
+      const footway = fc
+        ? fc.y + fc.h === rect.y ? { x: rect.x, y: fc.y - 2, w: rect.w, h: 2 }
+        : fc.y === rect.y + rect.h ? { x: rect.x, y: fc.y + fc.h, w: rect.w, h: 2 }
+        : fc.x + fc.w === rect.x ? { x: fc.x - 2, y: rect.y, w: 2, h: rect.h }
+        : { x: fc.x + fc.w, y: rect.y, w: 2, h: rect.h }
+        : ny
         ? {
             x: rect.x,
             y: ny > 0 ? rect.y - 2 : rect.y + rect.h,
@@ -4740,16 +4751,19 @@ export function planSettlement(
     const sideOf = (r: Rect, p: Point): Side =>
       p.y >= r.y + r.h ? "s" : p.y < r.y ? "n" : p.x < r.x ? "w" : "e";
     const lots: { h: (typeof plan.plots)[number]; i: number; lot: Rect; wall: Set<string>; house: Place; step?: Point;
-      boundary: Boundary; grandly: boolean; path: Point[] }[] = [];
-    plan.plots.filter((p) => p.kind === "household").forEach((h, i) => {
+      boundary: Boundary; grandly: boolean; path: Point[]; out?: Point }[] = [];
+    // Where a sanctuary or a hall stood in a walled precinct of its own.
+    const precincts = ["east-asian", "south-asian", "southeast-asian", "north-african-west-asian"].includes(pack.setting?.culture ?? "");
+    plan.plots.filter((p) => p.kind === "household" || precincts && p.kind === "public" && /-(religious|civic)-plot$/.test(p.id)).forEach((h, i) => {
       const house = plan.places.find((p) => `${p.id}-plot` === h.id);
       if (!house) return;
+      const precinct = h.kind === "public";
       const rank = lotRanks.get(h.id), form = house.sprite;
       const hovel = /-(hut|stall)\b/.test(form);
       const shopfront = /-(shop|inn)\b/.test(form);
       // A Japanese town house gives onto the street whatever its plan.
       const terrace = /-(row|tall)\b|townhouse/.test(form) || !!rank?.tight || pack.setting?.culture === "east-asian";
-      const grandly = rank?.quarter === "elite" && !hovel && !shopfront;
+      const grandly = precinct || rank?.quarter === "elite" && !hovel && !shopfront;
       if (hovel && rand("hovel-yard", i) < 0.7) return;
       const painted = paintedDoor(house);
       const door = painted ?? house.entrance;
@@ -4773,12 +4787,26 @@ export function planSettlement(
         : side === "s" ? { x: lot.x, y: lot.y + lot.h, w: lot.w, h: 1 }
         : side === "w" ? { x: lot.x - 1, y: lot.y, w: 1, h: lot.h }
         : { x: lot.x + lot.w, y: lot.y, w: 1, h: lot.h };
+      // The roof the art draws above the footprint hides any wall under it, so
+      // the back of the lot reaches past it.
+      const roof = new Set(buildingRoofCells(house.sprite, house).map((p) => cellKey(p.x, p.y)));
+      const underRoof = (r: Rect) => { let any = false; eachCell(r, (x, y) => { any ||= roof.has(cellKey(x, y)); }); return any; };
       // Grow a side a row at a time while the whole row is open ground or a path.
       for (const side of ["n", "s", "e", "w"] as const)
-        for (let d = 0; d < reach[side]; d++) {
-          let ok = true;
-          // A path crossing the lot is fine; the street is where it stops.
-          eachCell(row(side), (x, y) => { const k = cellKey(x, y); if (!open(k) && !(roads.has(k) && !plan.solid.has(k) && !street(k))) ok = false; });
+        for (let d = 0; d < reach[side] || side === "n" && d < reach.n + 8 && underRoof({ ...lot, h: 1 }); d++) {
+          let ok = true, crossed = 0, cells = 0;
+          // A path crossing the lot is fine; the street is where it stops. A
+          // compound's wall takes in a street that only clips it, gapped.
+          eachCell(row(side), (x, y) => {
+            const k = cellKey(x, y);
+            cells++;
+            // A precinct takes in the apron round its own sanctuary.
+            const apron = precinct && x >= house.x - 1 && y >= house.y - 1 && x <= house.x + house.w && y <= house.y + house.h;
+            if (open(k) || apron || roads.has(k) && !plan.solid.has(k) && !street(k)) return;
+            if (grandly && !plan.solid.has(k) && !plan.built?.has(k) && !claimed.has(k) && street(k)) crossed++;
+            else ok = false;
+          });
+          if (crossed > cells * 0.3) ok = false;
           if (!ok) break;
           if (side === "n") { lot.y--; lot.h++; } else if (side === "s") lot.h++;
           else if (side === "w") { lot.x--; lot.w++; } else lot.w++;
@@ -4787,8 +4815,26 @@ export function planSettlement(
       // the art paints opens away from it. A grand gate is three cells wide.
       const half = grandly ? 1 : 0;
       const gates = [{ side: doorSide, at: doorSide === "n" || doorSide === "s" ? door.x : door.y }];
-      if (streetSide !== doorSide)
-        gates.push({ side: streetSide, at: streetSide === "n" || streetSide === "s" ? house.entrance.x : house.entrance.y });
+      // The street a lot meets is the side with most street along it, which
+      // for a house set back in its grounds need not be the door's.
+      let out: Point | undefined;
+      const meets = (["n", "s", "e", "w"] as const).map((side) => {
+        const cells: Point[] = [];
+        eachCell(row(side), (x, y) => { if (street(cellKey(x, y))) cells.push({ x, y }); });
+        return { side, cells };
+      }).sort((a, b) => b.cells.length - a.cells.length)[0];
+      const front = grandly && meets.cells.length >= 3 ? meets.side : streetSide;
+      if (front !== doorSide) {
+        const ns = front === "n" || front === "s";
+        const along = ns ? door.x : door.y;
+        const at = along > (ns ? lot.x : lot.y) && along < (ns ? lot.x + lot.w - 1 : lot.y + lot.h - 1) ? along
+          : ns ? house.entrance.x : house.entrance.y;
+        gates.push({ side: front, at });
+      }
+      if (grandly && meets.cells.length >= 3) {
+        const g = gates.find((g) => g.side === meets.side);
+        out = g && meets.cells.find((c) => (meets.side === "n" || meets.side === "s" ? c.x : c.y) === g.at);
+      }
       const onSide = (x: number, y: number, side: Side) =>
         side === "n" ? y === lot.y : side === "s" ? y === lot.y + lot.h - 1 : side === "w" ? x === lot.x : x === lot.x + lot.w - 1;
       const wall = new Set<string>();
@@ -4801,8 +4847,8 @@ export function planSettlement(
         const gate = gates.some((g) => onSide(x, y, g.side) &&
           Math.abs((g.side === "n" || g.side === "s" ? x : y) - g.at) <= half);
         // A shop's front stays open to the street.
-        const front = shut && reach[streetSide] === 0 && onSide(x, y, streetSide);
-        if (ring && !gate && !front && !steps.has(k) && !roads.has(k) && !plan.placement.access.has(k) && !near(door) &&
+        const opening = shut && reach[streetSide] === 0 && onSide(x, y, streetSide);
+        if (ring && !gate && !opening && !roof.has(k) && !steps.has(k) && !roads.has(k) && !street(k) && !plan.placement.access.has(k) && !near(door) &&
           !near(house.entrance) && !plan.gatherings?.some(near)) wall.add(k);
       });
       if (wall.size < 3) return;
@@ -4811,16 +4857,19 @@ export function planSettlement(
       const path: Point[] = [];
       if (grandly && step)
         for (let y = step.y; y < lot.y + lot.h; y++) path.push({ x: door.x, y });
-      lots.push({ h, i, lot, wall, house, step, boundary, grandly, path });
+      lots.push({ h, i, lot, wall, house, step, boundary, grandly, path, out });
     });
     // Drop any lot whose wall, with the others standing, shuts a painted door off from its street.
     const walled = () => new Set(lots.flatMap((l) => [...l.wall]));
     for (let changed = true, all = walled(); changed; all = walled()) {
       changed = false;
-      for (const l of [...lots])
-        if (l.step && route(l.house.entrance, l.step, (p) => plan.solid.has(cellKey(p.x, p.y)) || all.has(cellKey(p.x, p.y)) ? Infinity : 1,
-          { maxNodes: 1024, bounds: { x: l.house.x - 12, y: l.house.y - 12, w: l.house.w + 24, h: l.house.h + 24 } }).status !== "found")
+      for (const l of [...lots]) {
+        const cost = (p: Point) => plan.solid.has(cellKey(p.x, p.y)) || all.has(cellKey(p.x, p.y)) ? Infinity : 1;
+        const bounds = { x: l.house.x - 12, y: l.house.y - 12, w: l.house.w + 24, h: l.house.h + 24 };
+        const reaches = (a: Point, b: Point) => route(a, b, cost, { maxNodes: 2048, bounds }).status === "found";
+        if (l.step && !reaches(l.house.entrance, l.step) || l.out && !reaches(l.step ?? l.house.entrance, l.out))
           lots.splice(lots.indexOf(l), 1), (changed = true);
+      }
     }
     const eastAsian = pack.setting?.culture === "east-asian";
     for (const { h, i, lot, wall, house, boundary, grandly, path } of lots) {

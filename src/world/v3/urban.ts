@@ -77,6 +77,8 @@ export type UrbanLot = {
   garden?: Rect & { last: boolean };
   /** One of a terrace: its side wall is its neighbour's to hide. */
   tight?: boolean;
+  /** The ground between a grand house and its street. */
+  forecourt?: Rect;
   civic?: CivicProfile;
   religious?: ReligiousProfile & { scale: "small" | "medium" | "large" };
   /** Somewhere people go after work. Stage one gives it no building of its
@@ -2334,6 +2336,7 @@ export function urbanNeighborhood(
     // A plotted market row is a true terrace: the next house hides this
     // one's side wall. Elsewhere each stands clear of its own overhang.
     const tight = plotted && quarter === "market" && !vertical;
+    const grand = quarter === "elite" && !tight && !modern;
     const spacing =
       use === "industrial"
         ? 2
@@ -2389,9 +2392,12 @@ export function urbanNeighborhood(
           [w, h] = model.footprint;
         const along = vertical ? h : w;
         if (cursor + along > end) continue;
+        // A grand house stands back from the street behind a forecourt, where
+        // its drawn door looks onto that street.
+        const setback = grand && face === "south" && h + 3 <= maxDepth ? 3 : 0;
         const rect = vertical
-          ? { x: face === "west" ? edge : edge - w, y: cursor, w, h }
-          : { x: cursor, y: face === "north" ? edge : edge - h, w, h };
+          ? { x: face === "west" ? edge + setback : edge - w - setback, y: cursor, w, h }
+          : { x: cursor, y: face === "north" ? edge + setback : edge - h - setback, w, h };
         const point = {
           x: rect.x + model.entrance[0],
           y: rect.y + model.entrance[1],
@@ -2413,10 +2419,10 @@ export function urbanNeighborhood(
               ? Math.max(spacing, margins[1])
               : spacing) +
           // A grand house stands in its own grounds, clear of the next.
-          (quarter === "elite" && !tight && !modern ? 3 + Math.floor(rand("grand-gap", block.x, edge, cursor) * 3) : 0);
+          (grand ? 3 + Math.floor(rand("grand-gap", block.x, edge, cursor) * 3) : 0);
         const deep = vertical ? w : h;
         // A row's lots all reach the same back line, whatever the house depth.
-        const room = open ? Math.min(GARDEN, maxDepth - deep) : maxDepth - deep;
+        const room = open ? Math.min(GARDEN, maxDepth - deep - setback) : maxDepth - deep - setback;
         const garden =
           // A town house's yard can be two rows: room for the privy and the wash.
           (open || (form.backs && !vertical && !use)) && use !== "estate" && room >= (open ? 2 : 3)
@@ -2452,11 +2458,18 @@ export function urbanNeighborhood(
             : { x: point.x - nx, y: point.y - ny },
           garden,
           tight,
+          ...(setback
+            ? {
+                forecourt: vertical
+                  ? { x: face === "west" ? edge : rect.x + w, y: rect.y - 1, w: setback, h: h + 2 }
+                  : { x: rect.x - 1, y: face === "north" ? edge : rect.y + h, w: w + 2, h: setback },
+              }
+            : {}),
         };
         if (!place(rank, lot)) continue;
         out.push(lot);
         span = along + clear - spacing;
-        depth = Math.max(depth, deep + (garden ? room : 0));
+        depth = Math.max(depth, deep + setback + (garden ? room : 0));
         break;
       }
       cursor += span + spacing;
