@@ -22,6 +22,7 @@ export const goods: Good[] = [
     match: /butcher|slaught|herd|shepherd|swine|goat|drover/,
   },
   { id: "fish", noun: "fish", match: /fish|boatman/ },
+  { id: "salt", noun: "salt", need: true, match: /^$/ },
   { id: "oil", noun: "oil", match: /oil|olive|press/ },
   {
     id: "cloth",
@@ -66,14 +67,14 @@ const byTrade: Record<string, string[]> = {
   "net-maker": [], "vine-dresser": [], "market-gardener": [],
   "tea-grower": [], "tea-picker": [], "cotton-grower": [], "jute-grower": [],
   "date-cultivator": [], "coca-grower": [], "coffee-picker": [], "palm-tapper": [],
-  "irrigation-keeper": [], ostler: [],
+  "irrigation-keeper": [], ostler: [], "salt-worker": ["salt"], "salt-panner": ["salt"],
 };
 const byActivity: Record<string, string[]> = {
   "Tending cultivation": ["grain"], "Watching the crop": ["grain"],
   "Bringing in the crop": ["grain"], "Working the smallholding": ["grain"],
   "Working the grain": ["grain"], "Tending animals": ["meat"],
   "Working near water": ["fish"], "Working the water": ["fish"],
-  Brewing: ["drink"], "Pressing oil": ["oil"],
+  Brewing: ["drink"], "Pressing oil": ["oil"], "Working the salt": ["salt"],
   "Working cloth": ["cloth"], "Making clothes": ["cloth"],
   "Working hides": ["leather"], "Working leather": ["leather"], "Making shoes": ["leather"],
   "Working wood": ["timber"], "Working timber": ["timber"], "Cutting timber": ["timber"],

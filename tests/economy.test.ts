@@ -669,4 +669,5 @@ it("reads what a place has from its ground, with documented specialties first", 
   expect(tradeOf(cornwall).known[0]).toBe("ore");
   expect(resourceName("ore", cornwall)).toBe("tin");
   expect(resourceName("grain", { ...ground, lon: 135.7, lat: 35, climate: "monsoon" })).toBe("rice");
+  expect(goodsOf(commonLivelihoods.find((l) => l.id === "salt-worker"), 1)).toEqual(["salt"]);
 });

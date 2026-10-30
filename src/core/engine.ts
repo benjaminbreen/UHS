@@ -194,6 +194,7 @@ const IMPORTED: Partial<Record<Resource, Set<ItemId>>> = {
   timber: new Set(["wood", "walking-cane", ...wares.filter((w) => w.good === "timber").map((w) => w.id)]),
   ore: new Set(["tool", "arrow", "headwear-helmet", ...wares.filter((w) => w.good === "ironwork").map((w) => w.id)]),
   herds: new Set(["wool", "hide", "meat"]),
+  salt: new Set(["salt"]),
 };
 /** Carriage by sea was cheapest and over land dearest by far: Diocletian's
  * price edict puts sea, river and land at roughly 1, 5 and 28 for the same
@@ -9894,7 +9895,9 @@ export class Engine {
     if (!setting) return {};
     const fate = catchFate(setting), preserve = waterfrontMember(this.world, t.household) && this.preserve(t.household);
     if (fate.owed) this.event(`${fate.owed.share >= 0.25 ? "A quarter" : "A tenth"} of the catch goes to ${fate.owed.to}.`);
-    if (preserve && preserve !== "fresh") this.event(`The rest is put by: ${preserveWords[preserve].doing.toLowerCase()}.`);
+    if ((preserve === "salt" || preserve === "ferment") && !this.saltFor(t.household))
+      this.event("There is no salt in the house, so the rest has to be eaten or sold fresh today.");
+    else if (preserve && preserve !== "fresh") this.event(`The rest is put by: ${preserveWords[preserve].doing.toLowerCase()}.`);
     if (fate.sold) {
       const coin = this.takings(2, (amount) => `${fate.buyer.replace(/^./, (c) => c.toUpperCase())} pays you ${amount} for the fish.`);
       if (!coin.coin) this.event("You trade the fish at the market for what the house needs.");
@@ -9906,6 +9909,24 @@ export class Engine {
     if (kin) this.regard(kin, 1, "warm");
     this.event(kin ? `You share out the catch. ${kin.name.split(" ")[0]}'s family gets a good part of it.` : "You share out the catch with the neighbours.");
     return {};
+  }
+  /** A day's catch takes a measure of salt: the player's own, else bought from
+   * the house's salt-maker or the market. */
+  private saltFor(h: Household) {
+    const inv = this.state.player.inventory, economy = this.state.economy;
+    if (inv.salt) {
+      inv.salt -= 1;
+      return true;
+    }
+    const SALTING = 5;
+    for (const id of [h.id, h.buys?.find((b) => b.good === "salt")?.from, "import"]) {
+      const stock = id ? economy?.stock[id] : undefined;
+      if (stock?.salt && stock.salt >= SALTING) {
+        stock.salt -= SALTING;
+        return true;
+      }
+    }
+    return false;
   }
   private preserve(household: Household) {
     const h = household.residence?.includes("-waterfront-") ? household.residence.split("-waterfront-")[0] : undefined;

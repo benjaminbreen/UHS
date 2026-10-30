@@ -15,6 +15,8 @@ const rates: Record<string, { make: number; need?: number }> = {
   // A fishing household lives largely on its own catch; nobody else needs fish.
   fish: { make: 6, need: 0.8 },
   oil: { make: 6, need: 0.05 },
+  // One salt-boiler kept a few hundred people in salt for food and curing.
+  salt: { make: 20, need: 0.05 },
   cloth: { make: 1, need: 0.02 },
   pots: { make: 3, need: 0.03 },
   ironwork: { make: 1, need: 0.01 },
@@ -226,6 +228,7 @@ export const shownAs: Record<string, ItemId> = {
   pots: "clay",
   ironwork: "tool",
   light: "torch",
+  salt: "salt",
 };
 /** Up to three items to set out by a store: more the fuller it is. */
 export function shownStock(economy: Economy, h: Household) {

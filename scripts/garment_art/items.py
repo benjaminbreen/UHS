@@ -1461,6 +1461,24 @@ item('flatbread', '#d8a860', '#9a6030', [
  "    ooooooooooootooo    ",
  "      oooooooooooo      ",
 ])
+item('salt', '#b89a6a', '#eeeae0', [
+ "",
+ "",
+ "",
+ "",
+ "         tttttt         ",
+ "       tttttttttt       ",
+ "      otttttttttto      ",
+ "     oootttttttoooo     ",
+ "     oooooooooooooo     ",
+ "    oooooooooooooooo    ",
+ "    oooooooooooooooo    ",
+ "    oooooooooooooooo    ",
+ "    oooooooooooooooo    ",
+ "    oooooooooooooooo    ",
+ "     oooooooooooooo     ",
+ "      oooooooooooo      ",
+])
 item('tortillas', '#e8d090', '#a87a3a', [
  "",
  "",

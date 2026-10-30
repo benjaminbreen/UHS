@@ -67,6 +67,8 @@ export const wares: Ware[] = [
     description: "Sap tapped from a palm that ferments by itself within the day; sweet in the morning, sour by night." },
   { id: "chicha", name: "Chicha", sprite: "water", value: 1, edible: 3, good: "drink", scope: { years: [...ALL], cultures: ["andean"] },
     description: "Maize beer brewed in big clay jars, drunk at every gathering and owed at every work party." },
+  { id: "salt", name: "Salt", sprite: "grain", value: 2, good: "salt", scope: { years: [...ALL] },
+    description: "Coarse grey salt in a sack, for the pot and for packing fish and meat to keep." },
   { id: "flatbread", name: "Flatbread", sprite: "bread", value: 1, edible: 8, good: "bread", scope: { years: [...ALL], cultures: ["north-african-west-asian", "south-asian", "inner-eurasian"] },
     description: "Dough slapped on the wall of a clay oven or a hot plate, eaten with everything." },
   { id: "tortillas", name: "Tortillas", sprite: "bread", value: 1, edible: 8, good: "bread", scope: { years: [...ALL], cultures: ["mesoamerican"] },

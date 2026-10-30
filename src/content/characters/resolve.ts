@@ -1,3 +1,4 @@
+import { endowmentFor } from "../economy/endowments";
 import { inventedNameNote } from "./invented-name";
 import { industrialized } from "../settlements/modernity";
 import { random } from "../../core/random";
@@ -355,6 +356,7 @@ function inScope(l: Livelihood, s: WorldSetting, localRequirements?: ReadonlySet
   // The planner lays a railway and a factory quarter only in an industrialised
   // town, so the work there exists only where it does.
   if ((l.activity === "On the line" || l.activity === "At the machine") && !industrialized(s)) return false;
+  if (l.activity === "Working the salt" && !endowmentFor({ ...s, ecology }).salt) return false;
   // A trade that needs a certain number of customers. Settlement form is the
   // only size the setting carries, so it stands in for a head count.
   if (l.requires?.some((r) => !localRequirements?.has(r) && !requirementMet(r, s))) return false;
