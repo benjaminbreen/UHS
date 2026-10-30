@@ -172,6 +172,33 @@ export function addStock(economy: Economy, h: Household, good: string, n: number
   return put;
 }
 
+/** A year is four 28-day seasons. */
+const YEAR_DAYS = 112;
+/**
+ * The yearly claim: `share` of each farm's grain, plus what it still owed,
+ * into `to`'s store. A household holds back a year's bread first; what it
+ * cannot spare stays owing. Returns each farm's taken and owing.
+ */
+export function collectClaim(economy: Economy, households: Household[], share: number, to?: Household) {
+  const out: Record<string, { taken: number; owing: number }> = {};
+  const arrears = (economy.arrears ??= {});
+  for (const h of households) {
+    const stock = economy.stock[h.id];
+    if (!h.makes?.includes("grain") || !stock || h === to) continue;
+    const have = stock.grain ?? 0;
+    const due = share * have + (arrears[h.id] ?? 0);
+    const spare = Math.max(0, have - h.members.length * (rates.bread.need ?? 1) * YEAR_DAYS);
+    const taken = Math.min(due, spare);
+    stock.grain = have - taken;
+    if (to) addStock(economy, to, "grain", taken);
+    const owing = due - taken;
+    if (owing > 0) arrears[h.id] = owing;
+    else delete arrears[h.id];
+    out[h.id] = { taken, owing };
+  }
+  return out;
+}
+
 /** The item that stands for each good when a store's stock is shown. */
 export const shownAs: Record<string, ItemId> = {
   bread: "bread",

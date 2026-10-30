@@ -56,6 +56,7 @@ import {
   Sun,
   Moon,
   Handshake,
+  Wheat,
 } from "lucide-react";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
@@ -2048,6 +2049,20 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           </button>
                         </li>
                       )}
+                      {(() => {
+                        const due = runtime.engine.claimDue();
+                        return due && (
+                          <li>
+                            <button onClick={() => due.collector && runtime.select(due.collector)}>
+                              <span className="today-icon"><Wheat size={15} /></span>
+                              <span className="today-text">
+                                <small>Owed · {due.when}</small>
+                                {due.text}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })()}
                       {(runtime.engine.state.asks ?? []).map((ask) => {
                         const by = runtime.engine.state.actors.find((a) => a.id === ask.by);
                         return (

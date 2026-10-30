@@ -97,6 +97,10 @@ export type Economy = {
   side?: number;
   /** The seasons the household's field was last sown and weeded, which the harvest pays back. */
   farm?: { sown?: number; weeded?: number };
+  /** The season the year's claim on the grain was last collected. */
+  collected?: number;
+  /** Grain each household could not spare at the last collection, still owed. */
+  arrears?: Record<string, number>;
 };
 /** The account of a day, shown on waking. */
 export type Evening = {

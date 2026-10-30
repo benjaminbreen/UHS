@@ -1,4 +1,4 @@
-import type { Actor, Household, WalkOff } from "../../core/types";
+import type { Actor, Economy, Household, WalkOff } from "../../core/types";
 import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
 import type { Occasion } from "./scenes";
@@ -14,6 +14,7 @@ export type PlotContext = {
   actors: Actor[];
   households: Household[];
   household?: Household;
+  economy?: Economy;
 };
 
 /** Plain data, so a scenario written from sources can produce the same thing. */

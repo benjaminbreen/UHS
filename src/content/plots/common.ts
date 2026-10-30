@@ -3,6 +3,7 @@ import { sexOf } from "../../core/brief";
 import { capabilitiesFor, matchesCharacterScope } from "../characters/resolve";
 import type { CharacterScope } from "../characters/context-types";
 import { amountIn } from "../economy/money";
+import { claimFor } from "../economy/claims";
 import type { Actor } from "../../core/types";
 import type { PlotContext } from "./types";
 
@@ -13,6 +14,12 @@ export const B = (year: number) => 1 - year;
 export const neighbours = (c: PlotContext) => c.actors
   .filter((a) => a.kind === "human" && !a.dead && a.id !== c.player.id && a.householdId !== c.player.householdId && (a.age ?? 30) >= 18)
   .sort((a, b) => (b.age ?? 30) - (a.age ?? 30));
+
+/** Whoever comes round for the year's claim here, else the leading household's head. */
+export function collectorOf(c: PlotContext, fits: (a: Actor) => boolean = () => true) {
+  const role = c.setting && claimFor(c.setting)?.collector;
+  return (role && neighbours(c).find((a) => role.test(a.role) && fits(a))) || notable(c, fits);
+}
 
 /** The head of the richest other household: the one others answer to. */
 export function notable(c: PlotContext, fits: (a: Actor) => boolean = () => true): Actor | undefined {

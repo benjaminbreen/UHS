@@ -1,11 +1,17 @@
 import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
 import { ruled } from "../history/order";
-import { amountOf, B, CHINA, EGYPT, notable, partnerWords, pronounWords } from "./common";
+import { claimFor } from "../economy/claims";
+import { amountOf, B, CHINA, collectorOf, EGYPT, partnerWords, pronounWords } from "./common";
 import type { PlotContext, PlotTemplate } from "./types";
 
-/** A man of the leading household, who answers to the ruler for the count. */
-const headman = (c: PlotContext) => notable(c, (a) => sexOf(a) === "male");
+/** The man who collects for the ruler here, who answers for the count. */
+const headman = (c: PlotContext) => collectorOf(c, (a) => sexOf(a) === "male");
+/** Labour owed where the year's claim says so, else wherever a state ruled. */
+const owesLabour = (c: PlotContext) => {
+  const claim = c.setting && claimFor(c.setting);
+  return claim ? claim.labour : ruled(c.setting);
+};
 
 /** Labour or arms owed to whoever rules, called up for tomorrow; silver can
  * buy a substitute. */
@@ -19,7 +25,7 @@ export const levy: PlotTemplate = {
   weight: (c) => {
     const age = c.player.age ?? 30;
     const year = c.setting?.year ?? 0;
-    return year > -3200 && year < 1920 && age >= 17 && age <= 45 && sexOf(c.player) !== "female" && ruled(c.setting) && headman(c) ? 0.9 : 0;
+    return year > -3200 && year < 1920 && age >= 17 && age <= 45 && sexOf(c.player) !== "female" && owesLabour(c) && headman(c) ? 0.9 : 0;
   },
   cast: (c) => {
     const official = headman(c);

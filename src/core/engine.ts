@@ -80,7 +80,7 @@ import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structur
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
-import { addStock, dayOfWork, importShare, runEconomy, stockOf } from "./economy";
+import { addStock, collectClaim, dayOfWork, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, stockFor } from "./shop";
 import { goodName } from "../content/economy/products";
@@ -96,7 +96,8 @@ import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
-import { endPlot, plotLine, plotTemplate, stepPlot, type PlotCard, type PlotState } from "./plot";
+import { endPlot, plotLine, plotTemplate, startPlot, stepPlot, type PlotCard, type PlotState } from "./plot";
+import { claimFor, shareWords, type Claim } from "../content/economy/claims";
 import type { Effect } from "../content/plots/types";
 import { sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
 import { kinCall, kinOf } from "./kin";
@@ -569,6 +570,7 @@ export class Engine {
         : h.makes?.includes("hide") ? this.gameYield(h, at) : 1,
     );
     if (Math.floor(hour / 24) === yesterday) return;
+    this.collectClaim();
     // At dawn, whoever buys from the player's house and went short holds it
     // against them.
     const mine = s.households.find((h) => h.members.includes("player"));
@@ -581,6 +583,48 @@ export class Engine {
       const head = letDown && s.actors.find((a) => a.id === h.members[0]);
       if (head) this.regard(head, -1);
     }
+  }
+  /** Who comes round for the year's claim: the role it names, else the head
+   * of the richest household other than the player's. */
+  private collector(claim: Claim) {
+    const s = this.state, mine = s.player.householdId;
+    const named = s.actors.find((a) => a.kind === "human" && !a.dead && a.householdId !== mine && claim.collector.test(a.role));
+    if (named) return named;
+    const rich = s.households?.filter((h) => h.id !== mine).sort((a, b) => (b.fortune ?? 0) - (a.fortune ?? 0))[0];
+    return rich && s.actors.find((a) => a.id === rich.members[0]);
+  }
+  /** Once a year, in its season: the collector's household takes the share
+   * of every farm's grain. Left owing a landlord, the player is in the rent plot. */
+  private collectClaim() {
+    const s = this.state, setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    const season = seasonIndex(s.clock);
+    if (!setting || !claim?.share || !s.economy || seasonAt(setting.season, s.clock) !== claim.due || s.economy.collected === season) return;
+    s.economy.collected = season;
+    const collector = this.collector(claim);
+    const taken = collectClaim(s.economy, s.households ?? [], claim.share, this.household(collector?.householdId));
+    const own = taken[s.player.householdId ?? ""];
+    if (!own) return;
+    const who = collector?.name ?? "The collector";
+    this.event(own.owing > 0
+      ? `${who} comes for ${claim.to}'s share of the grain. Your store can't spare all of it, and the rest is still owed.`
+      : `${who} takes ${shareWords(claim.share)} of the grain for ${claim.to}.`);
+    const before = s.plot;
+    const plot = own.owing > 0 && claim.landlord ? startPlot(s, setting, "rent") : undefined;
+    if (plot && plot !== before) this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, "intro"), focus: plot.cast.landlord });
+  }
+  /** The household's yearly due, for Today: the share, to whom, and when. */
+  claimDue(): { text: string; when: string; collector?: string } | undefined {
+    const s = this.state, setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    const mine = this.household(s.player.householdId);
+    if (!setting || !claim?.share || !mine?.makes?.includes("grain")) return;
+    const order = ["spring", "summer", "autumn", "winter"], now = seasonIndex(s.clock);
+    let k = (order.indexOf(claim.due) - order.indexOf(seasonAt(setting.season, s.clock)) + 4) % 4;
+    if (k === 0 && s.economy?.collected === now) k = 4;
+    // Seasons start at 9 a.m. on day 0, every 28 days, as `seasonIndex` counts them.
+    const days = Math.ceil((32400 + (now + k) * 28 * 86400 - s.clock) / 86400);
+    const text = `${shareWords(claim.share).replace(/^./, (c) => c.toUpperCase())} of the grain to ${claim.to}`;
+    const when = s.economy?.arrears?.[mine.id] ? "Still owed from the last collection" : k === 0 ? "Collected this season" : `Collected in ${days} day${days === 1 ? "" : "s"}`;
+    return { text, when, collector: this.collector(claim)?.id };
   }
   /** The player's trade, their household, and how far into today's work. */
   private trade() {
@@ -9591,13 +9635,13 @@ export class Engine {
     const sown = farm.sown !== undefined && now - farm.sown <= 3, weeded = farm.weeded !== undefined && now - farm.weeded <= 2;
     const tended = 0.6 + (sown ? 0.25 : 0) + (weeded ? 0.15 : 0);
     const luck = this.harvestLuck(now);
-    const owed = setting ? catchFate(setting).owed : undefined;
-    const grain = cells * GRAIN_PER_CELL * tended * luck * (1 + 0.25 * (work.quality ?? 0)) * (1 - (owed?.share ?? 0));
+    const claim = setting && claimFor(setting);
+    const grain = cells * GRAIN_PER_CELL * tended * luck * (1 + 0.25 * (work.quality ?? 0));
     const kept = addStock(s.economy, t.household, "grain", grain);
     const weeks = Math.round(kept / Math.max(1, t.household.members.length) / 7);
     const crop = crops[fieldParcel(this.world, t.household)?.crop as CropId]?.label.toLowerCase() ?? "grain";
     this.event(`${luck < 0.85 ? "A poor year." : luck > 1.2 ? "A good year." : "An ordinary year."} You bring in ${cells} rows of ${crop}: enough to feed the house for about ${weeks} weeks.`);
-    if (owed) this.event(`${owed.share >= 0.25 ? "A quarter" : "A tenth"} of it went to ${owed.to}.`);
+    if (claim?.share) this.event(`${shareWords(claim.share).replace(/^./, (c) => c.toUpperCase())} of it is owed to ${claim.to}, collected in the ${claim.due}.`);
     if (!sown) this.event("The field was never properly sown this year, and it shows.");
     else if (!weeded) this.event("The weeds took their share.");
     return kept ? { grain: kept } : {};

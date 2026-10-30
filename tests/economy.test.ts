@@ -1,7 +1,8 @@
 import { smallSession } from "./fixtures";
 import { items } from "../src/content/packs";
 import { it, expect } from "vitest";
-import { runEconomy } from "../src/core/economy";
+import { collectClaim, runEconomy } from "../src/core/economy";
+import { claimFor } from "../src/content/economy/claims";
 import { harvestResource, refreshResource, householdActivity, grazeActivity, depositSupplies } from "../src/core/livelihood";
 import { carryKit, parseLoad, withLoads } from "../src/content/economy/carrying";
 import type { Economy, Household, WorldObject } from "../src/core/types";
@@ -628,4 +629,21 @@ it("gives processing trades their own work at the workplace rather than househol
     expect(process.stations.some(s=>s.includes("loom")),id).toBe(false);
     expect(process.steps.some(s=>s.task.includes("Spin") || s.task.includes("Weave")),id).toBe(false);
   }
+});
+
+it("collects the year's share of the grain, holding back a year's bread and leaving the rest owing", () => {
+  const at = (name: string, year: number) => claimFor(settingFor(places.find((p) => p.name === name)!, year));
+  expect(at("Kyoto", 1750)).toMatchObject({ to: "the domain", share: 0.4 });
+  expect(at("Hangzhou", 1200)).toMatchObject({ share: 0.5, landlord: true });
+  expect(at("Cusco", 1500)).toMatchObject({ share: 0, labour: true });
+  const farm = (id: string, members: number) => ({ id, members: Array.from({ length: members }, (_, i) => `${id}-${i}`), home: { x: 0, y: 0, space: "outside" }, storeId: `${id}-store`, makes: ["grain"] }) as Household;
+  const [full, thin, lord] = [farm("full", 2), farm("thin", 5), { ...farm("lord", 1), makes: [] }];
+  const economy: Economy = { hour: 0, stock: { full: { grain: 1200 }, thin: { grain: 700 }, lord: {} }, short: {} };
+  const taken = collectClaim(economy, [full, thin, lord], 0.25, lord);
+  expect(taken.full).toEqual({ taken: 300, owing: 0 });
+  // Five eat 560 in a year, so 140 of the 700 can be spared against 175 due.
+  expect(taken.thin).toEqual({ taken: 140, owing: 35 });
+  expect(economy.stock.lord.grain).toBe(440);
+  expect(economy.arrears).toEqual({ thin: 35 });
+  expect(collectClaim(economy, [thin], 0.25).thin.owing).toBeCloseTo(35 + 0.25 * 560);
 });

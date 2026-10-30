@@ -1,7 +1,12 @@
 import { random } from "../../core/random";
-import { ruled } from "../history/order";
-import { amountOf, BRITAIN, CHINA, dueOf, MESOPOTAMIA, notable, partnerWords, pronounWords, working } from "./common";
-import type { PlotTemplate } from "./types";
+import { claimFor } from "../economy/claims";
+import { amountOf, BRITAIN, CHINA, collectorOf, dueOf, MESOPOTAMIA, partnerWords, pronounWords, working } from "./common";
+import type { PlotContext, PlotTemplate } from "./types";
+
+/** Grain the household still owes from the last collection. */
+const arrearsOf = (c: PlotContext) => c.economy?.arrears?.[c.household?.id ?? ""] ?? 0;
+/** Grain units, at a day's bread each, to one unit of payment. */
+const GRAIN_PER_UNIT = 40;
 
 /** What the land owes whoever holds it, due now, after a thin year. */
 export const rent: PlotTemplate = {
@@ -11,20 +16,25 @@ export const rent: PlotTemplate = {
     palette: { ink: "#141810", fill: "#232b1a", edge: "#5c4a2a", light: "#e8e4c8", accent: "#a8862e" },
   },
   payee: "landlord",
+  // Only where whoever takes the year's share also holds the land; a tax unpaid is another story.
   weight: (c) => {
     const year = c.setting?.year ?? 0;
-    const farming = working(c);
+    if (!c.setting || !claimFor(c.setting)?.landlord || !working(c) || !collectorOf(c)) return 0;
+    if (arrearsOf(c)) return 4;
     const poor = (c.household?.fortune ?? 0.5) < 0.55;
     const bad = c.household?.history?.some((e) => e.kind === "bad-year" && year - e.year <= 2);
-    return farming && year > -3000 && poor && ruled(c.setting) && notable(c) ? (bad ? 2 : 1) : 0;
+    return poor ? (bad ? 2 : 1) : 0;
   },
   cast: (c) => {
-    const landlord = notable(c);
+    const landlord = collectorOf(c);
     return landlord && { landlord };
   },
   begin: (c, cast) => {
     const landlord = cast.landlord!;
-    const owed = 5 + Math.floor(random(c.seed, "plot", "rent", "owed") * 6);
+    const arrears = arrearsOf(c);
+    const owed = arrears
+      ? Math.min(15, Math.max(3, Math.round(arrears / GRAIN_PER_UNIT)))
+      : 5 + Math.floor(random(c.seed, "plot", "rent", "owed") * 6);
     const { deadline, due } = dueOf(c.clock);
     const p = partnerWords(c);
     return {

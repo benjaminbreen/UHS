@@ -83,9 +83,10 @@ function remember(id: string) {
   } catch { /* storage blocked: every life draws fresh */ }
 }
 
-/** The game's choice for this life, or undefined when no plot fits. */
-export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState | undefined {
-  if (snapshot.plot) return snapshot.plot;
+/** The game's choice for this life, or undefined when no plot fits. `only`
+ * starts that plot later in a life, once the last one has ended. */
+export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: string): PlotState | undefined {
+  if (snapshot.plot && !(only && snapshot.plot.ended)) return snapshot.plot;
   const seed = snapshot.manifest.seed;
   const households = snapshot.households ?? [];
   const context: PlotContext = {
@@ -96,10 +97,12 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
     actors: snapshot.actors,
     households,
     household: households.find((h) => h.members.includes(snapshot.player.id)),
+    economy: snapshot.economy,
   };
   const recent = recentPlots();
   // Drawn in proportion to weight, so a plot weighted 0.5 beside one weighted 1 still comes up a third of the time.
   const weighed = PLOTS
+    .filter((t) => !only || t.id === only)
     .map((t) => ({ t, w: t.weight(context) * (REPEAT[recent.indexOf(t.id)] ?? 1) }))
     .filter((c) => c.w > 0);
   let draw = random(seed, "plot", snapshot.player.id) * weighed.reduce((n, c) => n + c.w, 0);
@@ -107,6 +110,8 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting): PlotState
   const cast = chosen?.cast(context);
   if (!chosen || !cast) return;
   const begun = chosen.begin(context, cast);
+  // The rent plot now holds what the household owed from the last collection.
+  if (chosen.id === "rent" && context.household) delete snapshot.economy?.arrears?.[context.household.id];
   const community = snapshot.player.origin?.community ?? "*";
   const wording = Math.max(0, chosen.wording.findIndex((w) =>
     !w.scope || (!!setting && matchesCharacterScope(w.scope, setting, community))));
