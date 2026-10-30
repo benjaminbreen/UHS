@@ -2405,13 +2405,15 @@ export function urbanNeighborhood(
         // Along a column the next house stands under this one's roof, so it
         // keeps that clear whatever the layout. A plot also keeps a gap.
         const clear =
-          open && !tight
+          (open && !tight
             ? margins[vertical ? 1 : 0] +
               (use === "estate" ? 4 : 1) +
               Math.floor(rand("plot-gap", block.x, edge, cursor) * 3)
             : vertical
               ? Math.max(spacing, margins[1])
-              : spacing;
+              : spacing) +
+          // A grand house stands in its own grounds, clear of the next.
+          (quarter === "elite" && !tight && !modern ? 3 + Math.floor(rand("grand-gap", block.x, edge, cursor) * 3) : 0);
         const deep = vertical ? w : h;
         // A row's lots all reach the same back line, whatever the house depth.
         const room = open ? Math.min(GARDEN, maxDepth - deep) : maxDepth - deep;

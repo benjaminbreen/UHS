@@ -67,6 +67,7 @@ import {
   pickBoundary,
   yardBoundaries,
   frontBoundaries,
+  grandBoundaries,
 } from "../../content/settlements/boundaries";
 import type { Boundary, CropId } from "../../content/agriculture/types";
 import {
@@ -75,6 +76,7 @@ import {
   urbanNeighborhood,
   urbanSite,
   siteForm,
+  type Quarter,
   type UrbanLot,
 } from "./urban";
 import type { Furniture } from "./blocks";
@@ -3101,6 +3103,8 @@ export function planSettlement(
   const fenceCells = new Set<string>();
   const toftQueue: (() => void)[] = [];
   const gardenCells = new Set<string>();
+  // What each town house's lot was laid out as: its quarter, and whether it stands in a terrace.
+  const lotRanks = new Map<string, { quarter?: Quarter; tight?: boolean }>();
   const yardPlans: (() => void)[] = [];
   if (placed) {
     for (const place of plan.places) reserveBuilding(place.sprite, place, place.entrance);
@@ -3724,6 +3728,7 @@ export function planSettlement(
       });
     else paint(yard, "dirt");
 
+    lotRanks.set(`${id}-plot`, { quarter: lot.quarter, tight: lot.tight });
     plan.plots.push({
       ...yard,
       id: `${id}-plot`,
@@ -4700,11 +4705,11 @@ export function planSettlement(
       }
     }
   }
-  // Each town house holds a walled or fenced lot: out to the street in front,
-  // a little to the sides and back, in the place's own way of closing it. The
-  // paths in break it; a terrace neighbour's wall closes a side.
+  // Each town house holds a lot in its own way: a shop or a terrace house
+  // gives straight onto the street and keeps its yard behind, a cottage
+  // keeps a front garden, a grand house a walled compound, a hut nothing.
   if (urban) {
-    const fronts = frontBoundaries(pack.setting);
+    const fronts = frontBoundaries(pack.setting), grand = grandBoundaries(pack.setting);
     const claimed = new Set<string>();
     // Every building's doorstep, painted or not, so one lot never walls a neighbour's.
     const steps = new Set<string>();
@@ -4728,22 +4733,42 @@ export function planSettlement(
     const street = (k: string) => plan.surface.get(k) === "paving" || ways.has(k) || !!plan.lanes?.has(k) ||
       !!plan.streetSurfaces?.has(k) || ["footway", "lane", "square"].includes(plan.pavement?.get(k) ?? "");
     // A quarter keeps one way of walling; one house in four goes its own way.
-    const frontAt = (x: number, y: number, n: number) =>
-      pickBoundary(fronts, rand("front-boundary", rand("front-own", n) < 0.25 ? n : Math.floor(x / 24) * 977 + Math.floor(y / 24)));
-    const lots: { h: (typeof plan.plots)[number]; i: number; lot: Rect; wall: Set<string>; house?: Place; step?: Point }[] = [];
+    const quarterly = (choices: typeof fronts, x: number, y: number, n: number) =>
+      pickBoundary(choices, rand("front-boundary", rand("front-own", n) < 0.25 ? n : Math.floor(x / 24) * 977 + Math.floor(y / 24)));
+    type Side = "n" | "s" | "e" | "w";
+    const across = { n: "s", s: "n", e: "w", w: "e" } as const;
+    const sideOf = (r: Rect, p: Point): Side =>
+      p.y >= r.y + r.h ? "s" : p.y < r.y ? "n" : p.x < r.x ? "w" : "e";
+    const lots: { h: (typeof plan.plots)[number]; i: number; lot: Rect; wall: Set<string>; house: Place; step?: Point;
+      boundary: Boundary; grandly: boolean; path: Point[] }[] = [];
     plan.plots.filter((p) => p.kind === "household").forEach((h, i) => {
       const house = plan.places.find((p) => `${p.id}-plot` === h.id);
-      const door = (house && paintedDoor(house)) ?? house?.door ?? house?.entrance ?? h.access;
-      const facing = door.y >= h.y + h.h - 1 ? "s" : door.y <= h.y ? "n" : door.x < h.x + h.w / 2 ? "w" : "e";
+      if (!house) return;
+      const rank = lotRanks.get(h.id), form = house.sprite;
+      const hovel = /-(hut|stall)\b/.test(form);
+      const shopfront = /-(shop|inn)\b/.test(form);
+      // A Japanese town house gives onto the street whatever its plan.
+      const terrace = /-(row|tall)\b|townhouse/.test(form) || !!rank?.tight || pack.setting?.culture === "east-asian";
+      const grandly = rank?.quarter === "elite" && !hovel && !shopfront;
+      if (hovel && rand("hovel-yard", i) < 0.7) return;
+      const painted = paintedDoor(house);
+      const door = painted ?? house.entrance;
+      const streetSide = sideOf(house, house.entrance);
+      const doorSide = painted ? "s" : streetSide;
+      const boundary = hovel ? pickBoundary(yardChoices, rand("hovel-fence", i))
+        : grandly ? quarterly(grand, h.x, h.y, i) : quarterly(fronts, h.x, h.y, i);
       // Wide enough that the wall stands clear of the eaves.
-      const reach = { n: 2, s: 2, e: 2, w: 2 };
-      reach[facing] = 2 + Math.floor(rand("lot-front", i) * 3);
-      const back = ({ n: "s", s: "n", e: "w", w: "e" } as const)[facing];
-      reach[back] = 2 + Math.floor(rand("lot-back", i) * 3);
-      for (const side of ["n", "s", "e", "w"] as const)
-        if (side !== facing && side !== back) reach[side] = 2 + (rand("lot-side", i, side) < 0.4 ? 1 : 0);
-      const lot = { ...h };
-      const row = (side: "n" | "s" | "e" | "w") =>
+      const reach: Record<Side, number> = { n: 2, s: 2, e: 2, w: 2 };
+      for (const side of ["n", "s", "e", "w"] as const) reach[side] = 2 + (rand("lot-side", i, side) < 0.4 ? 1 : 0);
+      reach[across[streetSide]] = 2 + Math.floor(rand("lot-back", i) * 3);
+      reach[streetSide] = 2 + Math.floor(rand("lot-front", i) * 3);
+      // Railings round a Georgian area: one step out, the rest is pavement.
+      const shut = (shopfront || terrace) && !grandly;
+      if (shut) reach[streetSide] = boundary === "railing" && terrace ? 1 : 0;
+      if (grandly) for (const side of ["n", "s", "e", "w"] as const) reach[side] += 1 + Math.floor(rand("grand-reach", i, side) * 2);
+      if (hovel) for (const side of ["n", "s", "e", "w"] as const) reach[side] = Math.min(reach[side], 2);
+      const lot = { ...house };
+      const row = (side: Side) =>
         side === "n" ? { x: lot.x, y: lot.y - 1, w: lot.w, h: 1 }
         : side === "s" ? { x: lot.x, y: lot.y + lot.h, w: lot.w, h: 1 }
         : side === "w" ? { x: lot.x - 1, y: lot.y, w: 1, h: lot.h }
@@ -4758,42 +4783,105 @@ export function planSettlement(
           if (side === "n") { lot.y--; lot.h++; } else if (side === "s") lot.h++;
           else if (side === "w") { lot.x--; lot.w++; } else lot.w++;
         }
+      // A gate on the line of each door, and one to the street when the door
+      // the art paints opens away from it. A grand gate is three cells wide.
+      const half = grandly ? 1 : 0;
+      const gates = [{ side: doorSide, at: doorSide === "n" || doorSide === "s" ? door.x : door.y }];
+      if (streetSide !== doorSide)
+        gates.push({ side: streetSide, at: streetSide === "n" || streetSide === "s" ? house.entrance.x : house.entrance.y });
+      const onSide = (x: number, y: number, side: Side) =>
+        side === "n" ? y === lot.y : side === "s" ? y === lot.y + lot.h - 1 : side === "w" ? x === lot.x : x === lot.x + lot.w - 1;
       const wall = new Set<string>();
       eachCell(lot, (x, y) => {
         const k = cellKey(x, y);
-        if (inside(h, x, y)) return;
+        if (inside(house, x, y)) return;
         claimed.add(k);
         const ring = x === lot.x || y === lot.y || x === lot.x + lot.w - 1 || y === lot.y + lot.h - 1;
         const near = (p?: Point) => !!p && Math.abs(x - p.x) + Math.abs(y - p.y) <= 1;
-        // A gate straight out from the door; never across a doorstep.
-        const gate = facing === "n" || facing === "s" ? x === door.x && y !== door.y : y === door.y;
-        if (ring && !gate && !steps.has(k) && !roads.has(k) && !plan.placement.access.has(k) && !near(door) && !near({ x: door.x, y: door.y + 1 }) &&
-          !near(house?.entrance) &&
-          !plan.gatherings?.some(near)) wall.add(k);
+        const gate = gates.some((g) => onSide(x, y, g.side) &&
+          Math.abs((g.side === "n" || g.side === "s" ? x : y) - g.at) <= half);
+        // A shop's front stays open to the street.
+        const front = shut && reach[streetSide] === 0 && onSide(x, y, streetSide);
+        if (ring && !gate && !front && !steps.has(k) && !roads.has(k) && !plan.placement.access.has(k) && !near(door) &&
+          !near(house.entrance) && !plan.gatherings?.some(near)) wall.add(k);
       });
-      if (wall.size >= 3) lots.push({ h, i, lot, wall, house, step: house && paintedDoor(house) ? { x: door.x, y: door.y + 1 } : undefined });
+      if (wall.size < 3) return;
+      const step = painted ? { x: door.x, y: door.y + 1 } : undefined;
+      // The walk from a grand gate to the door, straight.
+      const path: Point[] = [];
+      if (grandly && step)
+        for (let y = step.y; y < lot.y + lot.h; y++) path.push({ x: door.x, y });
+      lots.push({ h, i, lot, wall, house, step, boundary, grandly, path });
     });
     // Drop any lot whose wall, with the others standing, shuts a painted door off from its street.
     const walled = () => new Set(lots.flatMap((l) => [...l.wall]));
     for (let changed = true, all = walled(); changed; all = walled()) {
       changed = false;
       for (const l of [...lots])
-        if (l.house && l.step && route(l.house.entrance, l.step, (p) => plan.solid.has(cellKey(p.x, p.y)) || all.has(cellKey(p.x, p.y)) ? Infinity : 1,
+        if (l.step && route(l.house.entrance, l.step, (p) => plan.solid.has(cellKey(p.x, p.y)) || all.has(cellKey(p.x, p.y)) ? Infinity : 1,
           { maxNodes: 1024, bounds: { x: l.house.x - 12, y: l.house.y - 12, w: l.house.w + 24, h: l.house.h + 24 } }).status !== "found")
           lots.splice(lots.indexOf(l), 1), (changed = true);
     }
-    for (const { h, i, lot, wall } of lots)
+    const eastAsian = pack.setting?.culture === "east-asian";
+    for (const { h, i, lot, wall, house, boundary, grandly, path } of lots) {
       encloseYard(
         lot,
-        (x, y) => inside(h, x, y) || roads.has(cellKey(x, y)),
+        (x, y) => inside(house, x, y) || roads.has(cellKey(x, y)),
         (x, y) => wall.has(cellKey(x, y)),
         () => undefined,
         100900 + i,
         "x",
-        frontAt(h.x, h.y, i),
+        boundary,
         h.owner,
         true,
       );
+      for (const p of path) {
+        const k = cellKey(p.x, p.y);
+        if (plan.solid.has(k) || street(k)) continue;
+        plan.surface.set(k, "dirt");
+        plan.pavement!.set(k, "court");
+        (plan.earth ??= new Map()).set(k, "gravel");
+      }
+      // Inner corners, where two runs of wall meet: out of every way through.
+      const corners = [[lot.x + 1, lot.y + 1], [lot.x + lot.w - 2, lot.y + 1], [lot.x + 1, lot.y + lot.h - 2], [lot.x + lot.w - 2, lot.y + lot.h - 2]]
+        .filter(([x, y]) => {
+          const k = cellKey(x, y);
+          // The cell in from it stays free, so the walk round the corner does.
+          const ix = x + (x === lot.x + 1 ? 1 : -1), iy = y + (y === lot.y + 1 ? 1 : -1);
+          return !inside(house, x, y) && !plan.solid.has(k) && !roads.has(k) && !propCells.has(k) && !steps.has(k) &&
+            !inside(house, ix, iy) && !plan.solid.has(cellKey(ix, iy)) &&
+            wall.has(cellKey(x === lot.x + 1 ? lot.x : lot.x + lot.w - 1, y)) &&
+            wall.has(cellKey(x, y === lot.y + 1 ? lot.y : lot.y + lot.h - 1));
+        });
+      if (grandly) {
+        // A pair inside the gate, either side of the walk: stone lanterns in
+        // Japan, planted tubs elsewhere.
+        const gate = path.at(-1);
+        const pair = eastAsian
+          ? { prop: "stoneLantern", family: "stone-lantern", name: "Stone lantern", where: "yard" as const, chance: 1 }
+          : { prop: "flowerTub", family: "flower-tub", name: "Planted tub", where: "yard" as const, chance: 1 };
+        if (gate && path.length >= 3)
+          for (const dx of [-2, 2]) yardProp(pair, { x: gate.x + dx, y: gate.y - 1 }, house.id, i, 70 + dx);
+        corners.forEach(([x, y], n) => {
+          if (rand("grand-tree", i, n) > 0.6) return;
+          plan.solid.add(cellKey(x, y));
+          propCells.add(cellKey(x, y));
+          plan.objects.push({ id: `${house.id}-compound-tree-${n}`, name: "Garden tree", kind: "tree", pos: pos({ x, y }), sprite: yardTree(i + n), inventory: {} });
+        });
+        continue;
+      }
+      // An ordinary yard keeps a store or two against its wall.
+      const stores = yards.props.filter((p) => !p.role && (p.where === "wall" || p.where === "back" || p.where === "yard"));
+      corners.slice(0, 2).forEach(([x, y], n) => {
+        const item = stores[Math.floor(rand("lot-store", i, n) * stores.length)];
+        if (item && rand("lot-store-roll", i, n) < item.chance)
+          // A wide prop steps in from the corner until it clears the wall.
+          [0, 1, 2].some((d) => {
+            const at = { x: x + (x === lot.x + 1 ? d : -d), y };
+            return !inside(house, at.x, at.y) && yardProp({ ...item, with: undefined }, at, house.id, i, 80 + n);
+          });
+      });
+    }
   }
   // A churchyard: a stone wall broken where the paths come in, grass, a few
   // trees along the wall and the stones of the dead.

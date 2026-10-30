@@ -311,6 +311,32 @@ export function frontBoundaries(setting: WorldSetting | undefined): Weighted {
   return yardBoundaries(setting);
 }
 
+/** What closes a grand house's compound: a mansion's tiled garden wall, a
+ * noble's earthen tsuiji, a merchant's brick wall and railings. */
+export function grandBoundaries(setting: WorldSetting | undefined): Weighted {
+  if (!setting) return [["wall", 1]];
+  const { culture, climate, year } = setting;
+  if (year < -800) return frontBoundaries(setting);
+  switch (culture) {
+    case "european":
+      if (climate === "mediterranean") return [["plaster", 0.8], ["wall", 0.2]];
+      if (year < 1500) return [["wall", 0.7], ["paling", 0.3]];
+      if (year < 1700) return [["brick", 0.6], ["wall", 0.4]];
+      if (year < 1880) return [["brick", 0.5], ["railing", 0.5]];
+      return [["railing", 0.5], ["brick", 0.3], ["hedge", 0.2]];
+    case "north-african-west-asian":
+      return [["plaster", 0.6], ["mudbrick", 0.4]];
+    case "east-asian":
+      return [["rammed", 0.75], ["board", 0.25]];
+    case "south-asian":
+      return [["plaster", 0.7], ["mud", 0.3]];
+    case "mesoamerican":
+    case "andean":
+      return [["wall", 0.6], ["mud", 0.4]];
+  }
+  return frontBoundaries(setting);
+}
+
 /** Pick from weighted boundaries with a roll in [0, 1). */
 export function pickBoundary(options: Weighted, roll: number): Boundary {
   const total = options.reduce((s, [, w]) => s + w, 0);
