@@ -2809,10 +2809,17 @@ export function planSettlement(
           ))
             tries.push([front, side, bed, back]);
     yardPlans.push(() => {
+      // A wall right round stands clear of the art's sides, which may be
+      // wider than the footprint.
+      let wl = 0, wr = 0;
+      if (style === "wrap") {
+        while (wl < 4 && plan.placement.clearance.has(cellKey(rect.x - 1 - wl, rect.y + rect.h - 1))) wl++;
+        while (wr < 4 && plan.placement.clearance.has(cellKey(rect.x + rect.w + wr, rect.y + rect.h - 1))) wr++;
+      }
       for (const [front, side, bed, back] of tries) {
         // A clear column on the right, where the side wall overhangs.
-        const xl = rect.x - (side < 0 ? bed + 2 : 2),
-          xr = rect.x + rect.w + (side > 0 ? bed + 2 : 2),
+        const xl = rect.x - wl - (side < 0 ? bed + 2 : 2),
+          xr = rect.x + rect.w + wr + (side > 0 ? bed + 2 : 2),
           yt = back ? rect.y - back - 1 : rect.y + rect.h - 2,
           yb = rect.y + rect.h + front;
         const toft = { x: xl, y: yt, w: xr - xl + 1, h: yb - yt + 1 };
@@ -2852,7 +2859,7 @@ export function planSettlement(
         });
         // The bed's own plot, at the garden end.
         const plot = {
-          x: side < 0 ? xl : rect.x + rect.w + 1,
+          x: side < 0 ? xl : rect.x + rect.w + wr + 1,
           y: rect.y + rect.h - 2,
           w: bed + 2,
           h: yb - rect.y - rect.h + 3,
@@ -4751,7 +4758,7 @@ export function planSettlement(
     const sideOf = (r: Rect, p: Point): Side =>
       p.y >= r.y + r.h ? "s" : p.y < r.y ? "n" : p.x < r.x ? "w" : "e";
     const lots: { h: (typeof plan.plots)[number]; i: number; lot: Rect; wall: Set<string>; house: Place; step?: Point;
-      boundary: Boundary; grandly: boolean; path: Point[]; out?: Point }[] = [];
+      boundary: Boundary; grandly: boolean; path: Point[]; out?: Point; crossings: (Point & { side: Side })[] }[] = [];
     // Where a sanctuary or a hall stood in a walled precinct of its own.
     const precincts = ["east-asian", "south-asian", "southeast-asian", "north-african-west-asian"].includes(pack.setting?.culture ?? "");
     plan.plots.filter((p) => p.kind === "household" || precincts && p.kind === "public" && /-(religious|civic)-plot$/.test(p.id)).forEach((h, i) => {
@@ -4794,7 +4801,7 @@ export function planSettlement(
       // Grow a side a row at a time while the whole row is open ground or a path.
       for (const side of ["n", "s", "e", "w"] as const)
         for (let d = 0; d < reach[side] || side === "n" && d < reach.n + 8 && underRoof({ ...lot, h: 1 }); d++) {
-          let ok = true, crossed = 0, cells = 0;
+          let ok = true, crossed = 0, cells = 0, trodden = 0;
           // A path crossing the lot is fine; the street is where it stops. A
           // compound's wall takes in a street that only clips it, gapped.
           eachCell(row(side), (x, y) => {
@@ -4802,11 +4809,18 @@ export function planSettlement(
             cells++;
             // A precinct takes in the apron round its own sanctuary.
             const apron = precinct && x >= house.x - 1 && y >= house.y - 1 && x <= house.x + house.w && y <= house.y + house.h;
-            if (open(k) || apron || roads.has(k) && !plan.solid.has(k) && !street(k)) return;
+            if (open(k) || apron) return;
+            if (roads.has(k) && !plan.solid.has(k) && !street(k)) {
+              const [ox, oy] = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[side];
+              if (!roads.has(cellKey(x + ox, y + oy))) trodden++;
+              return;
+            }
             if (grandly && !plan.solid.has(k) && !plan.built?.has(k) && !claimed.has(k) && street(k)) crossed++;
             else ok = false;
           });
-          if (crossed > cells * 0.3) ok = false;
+          // A compound's wall may take the inner lane of a path running along
+          // it, but never the whole of it.
+          if (crossed > cells * 0.3 || grandly && trodden > cells * 0.5) ok = false;
           if (!ok) break;
           if (side === "n") { lot.y--; lot.h++; } else if (side === "s") lot.h++;
           else if (side === "w") { lot.x--; lot.w++; } else lot.w++;
@@ -4838,6 +4852,7 @@ export function planSettlement(
       const onSide = (x: number, y: number, side: Side) =>
         side === "n" ? y === lot.y : side === "s" ? y === lot.y + lot.h - 1 : side === "w" ? x === lot.x : x === lot.x + lot.w - 1;
       const wall = new Set<string>();
+      const crossings: (Point & { side: Side })[] = [];
       eachCell(lot, (x, y) => {
         const k = cellKey(x, y);
         if (inside(house, x, y)) return;
@@ -4848,8 +4863,12 @@ export function planSettlement(
           Math.abs((g.side === "n" || g.side === "s" ? x : y) - g.at) <= half);
         // A shop's front stays open to the street.
         const opening = shut && reach[streetSide] === 0 && onSide(x, y, streetSide);
-        if (ring && !gate && !opening && !roof.has(k) && !steps.has(k) && !roads.has(k) && !street(k) && !plan.placement.access.has(k) && !near(door) &&
-          !near(house.entrance) && !plan.gatherings?.some(near)) wall.add(k);
+        if (!ring || gate || opening || roof.has(k) || steps.has(k) || street(k) || near(door) || near(house.entrance) || plan.gatherings?.some(near)) return;
+        if (!roads.has(k)) wall.add(k);
+        else if (grandly) {
+          const side = (["n", "s", "e", "w"] as const).filter((sd) => onSide(x, y, sd));
+          if (side.length === 1) crossings.push({ x, y, side: side[0] });
+        }
       });
       if (wall.size < 3) return;
       const step = painted ? { x: door.x, y: door.y + 1 } : undefined;
@@ -4857,7 +4876,7 @@ export function planSettlement(
       const path: Point[] = [];
       if (grandly && step)
         for (let y = step.y; y < lot.y + lot.h; y++) path.push({ x: door.x, y });
-      lots.push({ h, i, lot, wall, house, step, boundary, grandly, path, out });
+      lots.push({ h, i, lot, wall, house, step, boundary, grandly, path, out, crossings });
     });
     // Drop any lot whose wall, with the others standing, shuts a painted door off from its street.
     const walled = () => new Set(lots.flatMap((l) => [...l.wall]));
@@ -4871,6 +4890,28 @@ export function planSettlement(
           lots.splice(lots.indexOf(l), 1), (changed = true);
       }
     }
+    // A path that ran across a compound now comes to its wall, so long as
+    // there is still a way round through a gate.
+    const all = walled();
+    for (const l of lots)
+      for (const c of l.crossings) {
+        const k = cellKey(c.x, c.y);
+        const [dx, dy] = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[c.side];
+        const outer = { x: c.x + dx, y: c.y + dy }, inner = { x: c.x - dx, y: c.y - dy };
+        all.add(k);
+        const cost = (p: Point) => plan.solid.has(cellKey(p.x, p.y)) || all.has(cellKey(p.x, p.y)) ? Infinity : 1;
+        const bounds = { x: l.lot.x - 16, y: l.lot.y - 16, w: l.lot.w + 32, h: l.lot.h + 32 };
+        const round = route(outer, inner, cost, { maxNodes: 8192, bounds });
+        const kept = !l.out || route(l.step ?? l.house.entrance, l.out, cost, { maxNodes: 2048, bounds }).status === "found";
+        if (round.status !== "found" || !kept) {
+          all.delete(k);
+          continue;
+        }
+        l.wall.add(k);
+        roads.delete(k);
+        // The run needs a yard cell inside to stand against.
+        if (!inside(l.house, inner.x, inner.y) && !steps.has(cellKey(inner.x, inner.y))) roads.delete(cellKey(inner.x, inner.y));
+      }
     const eastAsian = pack.setting?.culture === "east-asian";
     for (const { h, i, lot, wall, house, boundary, grandly, path } of lots) {
       encloseYard(
@@ -4911,11 +4952,15 @@ export function planSettlement(
           : { prop: "flowerTub", family: "flower-tub", name: "Planted tub", where: "yard" as const, chance: 1 };
         if (gate && path.length >= 3)
           for (const dx of [-2, 2]) yardProp(pair, { x: gate.x + dx, y: gate.y - 1 }, house.id, i, 70 + dx);
+        // One shade tree, in whichever corner its crown clears the house.
+        const tree = yardTree(i), roof = new Set(buildingRoofCells(house.sprite, house).map((p) => cellKey(p.x, p.y)));
+        const shade = corners.findIndex(([x, y], n) => rand("grand-tree", i, n) < 0.6 &&
+          !treePlacementEnvelope(tree, { x, y }).clearance.some((p) => plan.built?.has(cellKey(p.x, p.y)) || roof.has(cellKey(p.x, p.y))));
         corners.forEach(([x, y], n) => {
-          if (rand("grand-tree", i, n) > 0.6) return;
+          if (n !== shade) return;
           plan.solid.add(cellKey(x, y));
           propCells.add(cellKey(x, y));
-          plan.objects.push({ id: `${house.id}-compound-tree-${n}`, name: "Garden tree", kind: "tree", pos: pos({ x, y }), sprite: yardTree(i + n), inventory: {} });
+          plan.objects.push({ id: `${house.id}-compound-tree-${n}`, name: "Garden tree", kind: "tree", pos: pos({ x, y }), sprite: tree, inventory: {} });
         });
         continue;
       }
@@ -5392,8 +5437,10 @@ export function planSettlement(
     plan.objects = plan.objects.filter(object => {
       if (object.kind !== "tree" || object.pos.space !== "outside") return true;
       const envelope = treePlacementEnvelope(object.sprite, object.pos);
+      // A compound's own tree was placed clear of its house's walls and roof.
+      const near = object.id.includes("-compound-tree-") ? plan.built : buildingClearance;
       if (![...envelope.occupied, ...envelope.clearance].some(p =>
-        buildingClearance.has(cellKey(p.x, p.y)) || cultivatedAt(plan, p.x, p.y))) return true;
+        near?.has(cellKey(p.x, p.y)) || cultivatedAt(plan, p.x, p.y))) return true;
       plan.solid.delete(cellKey(object.pos.x, object.pos.y));
       return false;
     });

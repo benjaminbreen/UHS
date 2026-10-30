@@ -2392,9 +2392,10 @@ export function urbanNeighborhood(
           [w, h] = model.footprint;
         const along = vertical ? h : w;
         if (cursor + along > end) continue;
-        // A grand house stands back from the street behind a forecourt, where
-        // its drawn door looks onto that street.
-        const setback = grand && face === "south" && h + 3 <= maxDepth ? 3 : 0;
+        // A grand house stands back from the street behind a forecourt: on
+        // whichever street a detached one fronts, otherwise only where its
+        // drawn door looks onto it.
+        const setback = grand && (face === "south" || round) && (vertical ? w : h) + 3 <= maxDepth ? 3 : 0;
         const rect = vertical
           ? { x: face === "west" ? edge + setback : edge - w - setback, y: cursor, w, h }
           : { x: cursor, y: face === "north" ? edge + setback : edge - h - setback, w, h };

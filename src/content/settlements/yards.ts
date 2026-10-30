@@ -290,11 +290,13 @@ const eastAsian: YardKit = {
   props: [...stores, { ...coop, chance: 0.3 }],
 };
 
-/** The walled court of the Near East and North Africa, its shade a date palm
- * where it is hot and dry. */
+/** The walled court of the Near East and North Africa, the house standing
+ * in it, its shade a date palm where it is hot and dry. */
 const westAsian: YardKit = {
   ...court,
   id: "west-asian",
+  front: [2, 3],
+  styles: { wrap: 0.7, side: 0.25, open: 0.05 },
   tree: { sprites: ["nature-feather-palm"], chance: 0.5 },
 };
 
@@ -399,7 +401,7 @@ const angan: YardKit = {
   id: "angan",
   boundary: "era",
   front: [1, 3],
-  styles: { wrap: 0.3, side: 0.4, open: 0.3 },
+  styles: { wrap: 0.55, side: 0.3, open: 0.15 },
   beds: ["vegetables", "beans"],
   props: [
     ...stores,
