@@ -82,7 +82,8 @@ import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
-import { keepsShop, stockFor } from "./shop";
+import { keepsShop, stockFor, TRADER } from "./shop";
+import { isWayfarer } from "../world/v3/wayfarers";
 import { wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
@@ -99,7 +100,7 @@ import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
 import { endPlot, plotLine, plotTemplate, startPlot, stepPlot, type PlotCard, type PlotState } from "./plot";
 import { claimFor, shareWords, type Claim } from "../content/economy/claims";
-import { sourceOf, tradeOf, type Resource } from "../content/economy/endowments";
+import { resourceName, sourceOf, tradeOf, type Resource } from "../content/economy/endowments";
 import type { Effect } from "../content/plots/types";
 import { sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
 import { kinCall, kinOf } from "./kin";
@@ -142,7 +143,7 @@ import {
 import { faunaAt, faunaCombat, faunaProfile } from "../content/fauna";
 import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../content/agriculture/pests";
 import { livelihoodById } from "../content/characters/livelihoods";
-import { capabilitiesFor } from "../content/characters/resolve";
+import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { amountIn, moneyFor } from "../content/economy/money";
 import { climbable, useOf } from "../content/props/uses";
 import { workplaceFor } from "../content/characters/workplace";
@@ -192,6 +193,7 @@ const IMPORTED: Partial<Record<Resource, Set<ItemId>>> = {
   fish: new Set(["fish"]),
   timber: new Set(["wood", "walking-cane", ...wares.filter((w) => w.good === "timber").map((w) => w.id)]),
   ore: new Set(["tool", "arrow", "headwear-helmet", ...wares.filter((w) => w.good === "ironwork").map((w) => w.id)]),
+  herds: new Set(["wool", "hide", "meat"]),
 };
 /** Carriage by sea was cheapest and over land dearest by far: Diocletian's
  * price edict puts sea, river and land at roughly 1, 5 and 28 for the same
@@ -6366,7 +6368,7 @@ export class Engine {
         return "You do not have the offered goods.";
       if (Object.entries(c.take).some(([id, n]) => (id === "coin" ? shop.purse : (shop.stock[id] ?? 0)) < (n ?? 0)))
         return "They do not have that to give.";
-      if (this.worth(c.give, "sell") < this.worth(c.take, "buy")) return "They decline those terms.";
+      if (this.worth(c.give, "sell", a.id) < this.worth(c.take, "buy")) return "They decline those terms.";
       return;
     }
     if (c.type === "trade") {
@@ -8876,7 +8878,7 @@ export class Engine {
     const day = Math.floor(this.state.clock / (DAY_MINUTES * 60));
     const coined = this.coined();
     const shop = a.shop?.day === day ? a.shop
-      : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i));
+      : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i), [...this.imported().keys()].filter((i) => this.carried(i)));
     if (granary && a.shop?.day !== day) shop.stock = { ...shop.stock, grain: granary };
     return { actor: a, coined, ...shop };
   }
@@ -8900,7 +8902,8 @@ export class Engine {
   }
   /** One line on the price of staples, when a shop sells them and they are
    * well off their ordinary price. */
-  priceNote(stock: Inventory) {
+  priceNote(stock: Inventory, seller?: string) {
+    if (seller && this.merchant(seller)) return this.merchantNote();
     const brought = Object.keys(stock).map((id) => ({ id, from: this.imported().get(id) })).find((x) => x.from && !STAPLES.has(x.id));
     const carried = brought && `${this.item(brought.id)?.name ?? brought.id} costs more here: it comes ${brought.from!.from}.`;
     return [this.stapleNote(stock), carried].filter(Boolean).join(" ") || undefined;
@@ -8941,6 +8944,40 @@ export class Engine {
     return items;
   }
   private imports?: { setting: Engine["world"]["pack"]["setting"]; items: Map<ItemId, { factor: number; from: string }> };
+  /** Whether an imported item is one this era makes at all: a mail shirt is not a nineteenth-century good. */
+  private carried(id: ItemId) {
+    const ware = wares.find((w) => w.id === id), setting = this.world.pack.setting;
+    return !!this.item(id) && (!ware || (!!setting && matchesCharacterScope(ware.scope, setting)));
+  }
+  /** Items made from what this place has in plenty, which a merchant buys to carry on. */
+  private plenty() {
+    const setting = this.world.pack.setting;
+    if (this.plentiful && this.plentiful.setting === setting) return this.plentiful.items;
+    const ground = setting && { ...setting, ecology: setting.environment?.ecology };
+    const known = ground ? tradeOf(ground).known : [];
+    this.plentiful = { setting, items: new Set(known.flatMap((r) => [...(IMPORTED[r] ?? [])])), known };
+    return this.plentiful.items;
+  }
+  private plentiful?: { setting: Engine["world"]["pack"]["setting"]; items: Set<ItemId>; known: Resource[] };
+  private merchant(id: string) {
+    const a = this.state.actors.find((x) => x.id === id);
+    return !!a && isWayfarer(a.id) && TRADER.test(a.role);
+  }
+  private merchantNote() {
+    const setting = this.world.pack.setting, ground = setting && { ...setting, ecology: setting.environment?.ecology };
+    if (!setting || !ground) return;
+    const word = (r: Resource) => (r === "ore" ? "iron goods" : resourceName(r, ground));
+    const list = (xs: string[]) => xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : xs[0];
+    const brought = tradeOf(ground, capabilitiesFor(setting).has("settled_agriculture")).lacks
+      .filter((r) => [...(IMPORTED[r] ?? [])].some((id) => this.carried(id)));
+    const from = brought.length ? this.imported().get([...IMPORTED[brought[0]]!][0])?.from : undefined;
+    this.plenty();
+    const wants = this.plentiful!.known.filter((r) => IMPORTED[r]).map(word);
+    return [
+      brought.length > 0 && `Brings ${list(brought.map(word))}${from ? ` ${from}` : ""}.`,
+      wants.length > 0 && `Pays well for ${list(wants)} to carry on.`,
+    ].filter(Boolean).join(" ") || undefined;
+  }
   private terms() {
     return 1 + this.skillLevel("trade") * PER_LEVEL.tradeTerms + (this.knows("haggler") ? 0.15 : 0);
   }
@@ -8949,12 +8986,14 @@ export class Engine {
     const v = this.value(id);
     return id === "coin" ? 1 : v <= 0 ? 0 : Math.max(1, Math.ceil(v / this.terms()));
   }
-  /** What a seller pays for one. A shop pays half; bartered goods go at their worth. */
-  sellPrice(id: ItemId) {
+  /** What a seller pays for one. A shop pays half, a merchant most of its
+   * worth for what this place has plenty of; bartered goods go at their worth. */
+  sellPrice(id: ItemId, to?: string) {
     const v = this.value(id);
     if (id === "coin") return 1;
     if (v <= 0) return 0;
-    return this.coined() ? Math.max(1, Math.min(this.buyPrice(id), Math.floor((v * this.terms()) / 2))) : v;
+    const share = to && this.plenty().has(id) && this.merchant(to) ? 0.8 : 0.5;
+    return this.coined() ? Math.max(1, Math.min(this.buyPrice(id), Math.floor(v * this.terms() * share))) : v;
   }
   /** An item's worth here today: staples follow the stores. */
   private value(id: ItemId) {
@@ -8962,8 +9001,8 @@ export class Engine {
     if (v <= 0 || (carried === 1 && !STAPLES.has(id))) return v;
     return Math.max(1, Math.round(v * carried * (STAPLES.has(id) ? this.stapleDearness() : 1)));
   }
-  worth(inv: Inventory, side: "buy" | "sell") {
-    return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id) : this.sellPrice(id)), 0);
+  worth(inv: Inventory, side: "buy" | "sell", to?: string) {
+    return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id) : this.sellPrice(id, to)), 0);
   }
   private coined() {
     const setting = this.world.pack.setting;

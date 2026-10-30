@@ -45,7 +45,8 @@ export function keepsShop(pack: Pack, actor: Actor) {
 }
 
 /** The day's stock, the same for the same person on the same day. Someone
- * with no trade to stock from sells what they have about them. */
+ * with no trade to stock from sells what they have about them. A merchant
+ * brings mostly what the place `lacks`, and a little of everything else. */
 export function stockFor(
   pack: Pack,
   seed: string,
@@ -53,6 +54,7 @@ export function stockFor(
   day: number,
   coined: boolean,
   item: (id: ItemId) => ItemDef | undefined,
+  lacks: ItemId[] = [],
 ): Shop {
   const roll = (...k: (string | number)[]) => random(seed, "shop", actor.id, day, ...k);
   const goods = goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision);
@@ -64,7 +66,8 @@ export function stockFor(
   // Helmets and arrowheads from the smith, until guns made them obsolete.
   if (goods.includes("ironwork") && pack.year < 1650) ids.add("headwear-helmet").add("arrow");
   if (isWayfarer(actor.id)) {
-    for (const id of pack.commodities) if (roll("carry", id) < 0.6) ids.add(id);
+    for (const id of lacks) ids.add(id);
+    for (const id of pack.commodities) if (roll("carry", id) < (lacks.length ? 0.25 : 0.6)) ids.add(id);
     for (const id of worn) ids.add(id);
   }
   if (!ids.size) for (const [id, n] of Object.entries(actor.inventory)) if ((n ?? 0) > 0) ids.add(id);
@@ -72,7 +75,7 @@ export function stockFor(
   for (const id of ids) {
     const def = item(id);
     if (!def || def.value <= 0 || id === "coin") continue;
-    const many = def.edible || def.value <= 2 ? 6 : def.value <= 5 ? 3 : 2;
+    const many = (def.edible || def.value <= 2 ? 6 : def.value <= 5 ? 3 : 2) * (lacks.includes(id) ? 2 : 1);
     stock[id] = 1 + Math.floor(roll("n", id) * many);
   }
   return { day, stock, purse: coined ? 15 + Math.floor(roll("purse") * 40) : 0 };
