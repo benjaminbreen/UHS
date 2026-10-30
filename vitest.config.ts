@@ -20,9 +20,12 @@ export default defineConfig({
     include: ["tests/*.test.ts"],
     exclude: full ? [] : slow,
     env: { FULL: full ? "1" : "" },
-    // Each worker loads the world/content graph; bound memory on shared machines.
-    maxWorkers: 2,
-    testTimeout: 60000,
-    hookTimeout: 60000,
+    // Each worker loads the world/content graph, about a gigabyte; bound
+    // memory on shared machines.
+    maxWorkers: 4,
+    // A town session takes half a minute alone and twice that while other
+    // agents load the machine; a minute's limit failed sound tests.
+    testTimeout: 120000,
+    hookTimeout: 120000,
   },
 });

@@ -43,6 +43,8 @@ when the task is actually about its subject:
   Explicit files or `-t` names include their opt-in cases automatically.
 - `npm run shot -- artifacts/x.png "A dyer in Kyoto, 1350"` — one
   screenshot of the running game. Starts the dev server itself if needed.
+  More `out.png "prompt"` pairs in the same call share the server and
+  browser, which is much faster than one call each.
 - `npm run town:sheet` — a generated settlement without a browser. Use before
   and after changing layout, yards or building art.
 - `npm run capture:characters -- <preset>` and `npm run capture:terrain -- <review>`

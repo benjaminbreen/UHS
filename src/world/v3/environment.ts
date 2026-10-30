@@ -759,7 +759,9 @@ export function createEnvironment(
     let value = cache.get(key);
     if (!value) {
       value = calculate(x, y);
-      trimCache(cache, 65536);
+      // A large town and its fields outgrow 65536 cells; at that size the
+      // cache thrashed and London 1750 computed its land twice over.
+      trimCache(cache, 131072);
       cache.set(key, value);
     }
     return value;

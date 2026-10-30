@@ -28,13 +28,13 @@ export function captureErrors(page: Page) {
 }
 
 /** Other projects' dev servers also default to 5173; loading one looks like the game hanging. */
-export async function assertGameServer() {
-  const html = await fetch(base, { signal: AbortSignal.timeout(5000) })
+export async function assertGameServer(at = base) {
+  const html = await fetch(at, { signal: AbortSignal.timeout(5000) })
     .then((r) => r.text())
     .catch(() => "");
   if (!html.includes("<title>Universal History Simulator</title>"))
     throw Error(
-      `${base} is not this game's dev server. Start it (npm run dev) and pass its port as PORT=<port> or UHS_URL=<url>.`,
+      `${at} is not this game's dev server. Start it (npm run dev) and pass its port as PORT=<port> or UHS_URL=<url>.`,
     );
 }
 
