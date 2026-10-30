@@ -179,6 +179,8 @@ const FAUNA_KEEP = 160;
 /** Grain from one reaped field cell, and the parcel size an ordinary farm works. */
 const GRAIN_PER_CELL = 6;
 const PARCEL_CELLS = 45;
+/** Seconds the collector spends at each farm's door. */
+const ROUND_STOP = 900;
 /** Store grain, in days of one person's bread, to a sack on the counter. */
 const GRAIN_PER_SACK = 20;
 /** Items priced by the grain in local stores. */
@@ -598,21 +600,102 @@ export class Engine {
     const rich = s.households?.filter((h) => h.id !== mine).sort((a, b) => (b.fortune ?? 0) - (a.fortune ?? 0))[0];
     return rich && s.actors.find((a) => a.id === rich.members[0]);
   }
-  /** Once a year, in its season: the collector's household takes the share
-   * of every farm's grain. Left owing a landlord, the player is in the rent plot. */
+  /** Once a year, in its season, the collector sets out for every farm,
+   * nearest door next. With nobody to send, the share is simply taken. */
   private collectClaim() {
     const s = this.state, setting = this.world.pack.setting, claim = setting && claimFor(setting);
     const season = seasonIndex(s.clock);
     if (!setting || !claim?.share || !s.economy || seasonAt(setting.season, s.clock) !== claim.due || s.economy.collected === season) return;
+    if (s.economy.rounds) this.finishRounds(claim);
     s.economy.collected = season;
     const collector = this.collector(claim);
-    const taken = collectClaim(s.economy, s.households ?? [], claim.share, this.household(collector?.householdId));
-    const own = taken[s.player.householdId ?? ""];
-    if (!own) return;
-    const who = collector?.name ?? "The collector";
-    this.event(own.owing > 0
-      ? `${who} comes for ${claim.to}'s share of the grain. Your store can't spare all of it, and the rest is still owed.`
-      : `${who} takes ${shareWords(claim.share)} of the grain for ${claim.to}.`);
+    const left = (s.households ?? []).filter((h) => h.makes?.includes("grain") && h.id !== collector?.householdId);
+    if (!collector) {
+      for (const h of left) this.collectFrom(claim, h);
+      return;
+    }
+    const stops: string[] = [];
+    let at = this.farmDoor(this.household(collector.householdId)) ?? collector.home;
+    while (left.length) {
+      left.sort((a, b) => distance(at, this.farmDoor(a)) - distance(at, this.farmDoor(b)));
+      const h = left.shift()!;
+      stops.push(h.id);
+      at = this.farmDoor(h);
+    }
+    s.economy.rounds = { by: collector.id, stops };
+  }
+  private farmDoor(h: Household): Position;
+  private farmDoor(h: Household | undefined): Position | undefined;
+  private farmDoor(h: Household | undefined) {
+    const place = h && this.world.places.find((p) => p.id === h.residence);
+    return place ? { ...doorApproach(place), space: "outside" } : h?.home;
+  }
+  /** The collector's day from eight: a quarter hour at each farm's door,
+   * walking where the player might see and stepping over the rest. At the
+   * player's own door they come to find the player, if the player is near. */
+  private roundsStep(clock: number) {
+    const s = this.state, r = s.economy!.rounds!, setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    const a = s.actors.find((x) => x.id === r.by);
+    if (!claim?.share || !a || a.dead) return claim && this.finishRounds(claim);
+    if (Math.floor(clock / 3600) % 24 < 8) return;
+    const h = this.household(r.stops[0]), door = this.farmDoor(h);
+    const mine = !!h?.members.includes(s.player.id), label = `Collecting ${claim.to}'s share`;
+    if (!h || !door) return void this.nextStop();
+    if (r.since === undefined) {
+      const p = s.player.pos, near = (q: Position) => q.space === p.space && distance(q, p) <= 40;
+      if (a.pos.space === door.space && distance(a.pos, door) > 1.6 && !this.world.dormant?.(a.id) && (near(a.pos) || near(door))) {
+        a.errand = { to: copy(door), label, until: clock + 120 };
+        return;
+      }
+      if (a.pos.space !== door.space || distance(a.pos, door) > 1.6) this.moveActor(a, copy(door));
+      r.since = clock;
+      a.errand = { to: copy(door), label, until: clock + ROUND_STOP, pose: "idle" };
+      const home = p.space === h.residence || (p.space === door.space && distance(p, door) <= 25);
+      if (mine && home && !this.approaching) {
+        r.met = "asked";
+        this.approaching = {
+          id: a.id,
+          title: "Collection Day",
+          line: `I've come for ${claim.to}'s share: ${shareWords(claim.share)} of your grain.`,
+          until: clock + 1800,
+          onArrive: () => {
+            r.met = "paid";
+            this.collectFrom(claim, h, a, true);
+          },
+        };
+      }
+      return;
+    }
+    if (clock - r.since < ROUND_STOP || (mine && this.approaching?.id === a.id)) return;
+    if (!mine || r.met !== "paid") this.collectFrom(claim, h, a);
+    this.nextStop();
+  }
+  private nextStop() {
+    const e = this.state.economy!, r = e.rounds!;
+    r.stops.shift();
+    delete r.since;
+    delete r.met;
+    if (!r.stops.length) delete e.rounds;
+  }
+  /** Whatever farms the rounds did not reach are collected all the same. */
+  private finishRounds(claim: Claim) {
+    const e = this.state.economy!, r = e.rounds!;
+    const a = this.state.actors.find((x) => x.id === r.by);
+    for (const id of r.stops) {
+      const h = this.household(id);
+      if (h && !(h.members.includes(this.state.player.id) && r.met === "paid")) this.collectFrom(claim, h, a);
+    }
+    delete e.rounds;
+  }
+  /** Takes the share from one farm into the collector's store. For the
+   * player's own, says what went, and a debt to a landlord starts the rent plot. */
+  private collectFrom(claim: Claim, h: Household, collector?: Actor, met = false) {
+    const s = this.state, setting = this.world.pack.setting;
+    const own = collectClaim(s.economy!, [h], claim.share, this.household(collector?.householdId))[h.id];
+    if (!own || !h.members.includes(s.player.id)) return;
+    const who = collector?.name ?? "The collector", share = shareWords(claim.share);
+    const short = own.owing > 0 ? " The store couldn't spare all of it, and the rest is still owed." : "";
+    this.event(met ? `${who} takes ${share} of the grain for ${claim.to}.${short}` : `While you were out, ${who} took ${share} of the grain for ${claim.to}.${short}`);
     const before = s.plot;
     const plot = own.owing > 0 && claim.landlord ? startPlot(s, setting, "rent") : undefined;
     if (plot && plot !== before) this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, "intro"), focus: plot.cast.landlord });
@@ -628,8 +711,11 @@ export class Engine {
     // Seasons start at 9 a.m. on day 0, every 28 days, as `seasonIndex` counts them.
     const days = Math.ceil((32400 + (now + k) * 28 * 86400 - s.clock) / 86400);
     const text = `${shareWords(claim.share).replace(/^./, (c) => c.toUpperCase())} of the grain to ${claim.to}`;
-    const when = s.economy?.arrears?.[mine.id] ? "Still owed from the last collection" : k === 0 ? "Collected this season" : `Collected in ${days} day${days === 1 ? "" : "s"}`;
-    return { text, when, collector: this.collector(claim)?.id };
+    const rounds = s.economy?.rounds, by = rounds && s.actors.find((a) => a.id === rounds.by);
+    const when = rounds?.stops.includes(mine.id) ? `${by?.name.split(" ")[0] ?? "The collector"} is coming round today`
+      : s.economy?.arrears?.[mine.id] ? "Still owed from the last collection"
+      : k === 0 ? "Collected this season" : `Collected in ${days} day${days === 1 ? "" : "s"}`;
+    return { text, when, collector: by?.id ?? this.collector(claim)?.id };
   }
   /** The player's trade, their household, and how far into today's work. */
   private trade() {
@@ -10207,6 +10293,7 @@ export class Engine {
         this.keeperStep(next);
       } else if (next % 60 === 0 && this.state.complaints?.[0]?.seen) this.keeperStep(next);
       if (this.approaching) this.approach(next);
+      if (next % 60 === 0 && this.state.economy?.rounds) this.roundsStep(next);
       if (next % 300 === 0) this.syncWayfarers(next);
       this.burnStep();
       this.brawl();

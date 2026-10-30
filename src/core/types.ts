@@ -101,6 +101,9 @@ export type Economy = {
   collected?: number;
   /** Grain each household could not spare at the last collection, still owed. */
   arrears?: Record<string, number>;
+  /** The collector's day: the farms still to visit, in order; when they
+   * reached the first, and whether the player has been asked and has paid. */
+  rounds?: { by: string; stops: string[]; since?: number; met?: "asked" | "paid" };
 };
 /** The account of a day, shown on waking. */
 export type Evening = {
