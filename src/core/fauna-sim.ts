@@ -822,6 +822,25 @@ export function advanceFauna(
           )
           .map((h) => ({ ...h.group.pos }))
       : [];
+  /** Meat-eaters this animal keeps clear of even when they are not hunting:
+   * a herd does not graze among a sleeping pack, nor hens around a dog. */
+  const wary = (p: FaunaProfile, g: FaunaGroup) =>
+    p.prey
+      ? herds
+          .filter(
+            (h) =>
+              h.group.speciesId !== g.speciesId &&
+              h.group.members.length &&
+              // A hunter is seen, or not, through the stalking rules.
+              !hunts.has(h.group.id) &&
+              h.group.state !== "pounce" &&
+              (h.profile.preyTags?.includes(p.prey!) ||
+                (p.category !== "wild" &&
+                  p.prey === "small-animal" &&
+                  !!h.profile.preyTags?.length)),
+          )
+          .map((h) => ({ ...h.group.pos }))
+      : [];
   const player = world.humans[0];
   const crowd = groups.map((o) => o.pos);
   for (const g of [...groups].sort((a, b) => (a.id < b.id ? -1 : 1))) {
@@ -835,9 +854,11 @@ export function advanceFauna(
     if (g.catching && clock > g.since) take(g, p, groups, world, clock, taken);
     const near = !player || hyp(player, g.pos) <= DETAIL;
     const chasers = stalkers(p, g);
-    const menaces = chasers.length
-      ? [...world.humans, ...chasers]
-      : world.humans;
+    const shunned = wary(p, g);
+    const menaces =
+      chasers.length || shunned.length
+        ? [...world.humans, ...chasers, ...shunned]
+        : world.humans;
     const bird = p.locomotion === "ground-and-flight";
     const kept = p.category !== "wild";
     const turns = Boolean(p.directions);
@@ -847,7 +868,10 @@ export function advanceFauna(
     const radius = hurt ? Math.max(p.alertRadius, 10) : alertRadius(p);
     // A hurt animal is past being crept up on.
     const noise = hurt ? 1 : (world.noise ?? 1);
-    const threat = nearestThreat(menaces, g.pos, radius, noise);
+    // A kept animal's shove-width radius is too tight for a dog in the flock.
+    const threat =
+      nearestThreat(menaces, g.pos, radius, noise) ??
+      (kept && shunned.length ? nearestThreat(shunned, g.pos, 3) : undefined);
     // How close the trouble is as a share of the radius: 0 on top of the
     // animal, 1 at the edge of what it notices.
     const close = threat
@@ -994,7 +1018,9 @@ export function advanceFauna(
           g.homeRadius = 3;
         }
       }
-      decide(g, p, world, clock, near ? crowd : undefined);
+      // Predators go in twice: new ground is chosen well clear of them.
+      const avoid = near ? [...crowd, ...shunned, ...shunned] : shunned;
+      decide(g, p, world, clock, avoid.length ? avoid : undefined);
     }
 
     if (
@@ -1074,7 +1100,7 @@ export function advanceFauna(
         if (!moved) steps = 0;
       } else if (kept && threat && breaking) {
         for (const m of g.members)
-          if (hyp(m, threat) < radius) {
+          if (hyp(m, threat) < (world.humans.includes(threat) ? radius : 3)) {
             const to = bestStep(world, p, taken, m, threat, true);
             if (to) moveMember(m, to, taken, turns);
           }

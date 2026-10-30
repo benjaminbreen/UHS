@@ -203,6 +203,15 @@ describe("fauna behaviour", () => {
       Math.hypot(sheep.members[0].x - 10, sheep.members[0].y - 20),
     ).toBeLessThan(2);
   });
+  it("a herd moves off from a pack lying up, though it is not hunting", () => {
+    const deer = group("red-deer", 10, 10),
+      wolf = group("gray-wolf", 13, 10);
+    wolf.fedUntil = Infinity;
+    wolf.state = "rest";
+    for (let t = 6; t <= 30; t += 6) advanceFauna([deer, wolf], sim(), t);
+    expect(deer.state).toBe("flee");
+    expect(deer.members[0].x).toBeLessThan(10);
+  });
   it("a cornered deer stands its ground", () => {
     const deer = group("red-deer", 10, 10);
     // Wall on every side but the person's.
