@@ -402,9 +402,12 @@ export function urbanNeighborhood(
   const mosqueScales = sanctuary && /-mosque$|^(chinese|japanese)-temple$|^mediterranean-shrine$/.test(sanctuary.recipe)
     ? order.slice(order.indexOf(religiousScale(site.profile.radius))).filter((s) => buildingModels[sanctuaryFrame(s)])
     : [];
+  // Where the culture walled its sanctuaries, the ground keeps room for the
+  // precinct wall at the sides and back.
+  const verge = ["east-asian", "south-asian", "southeast-asian", "north-african-west-asian"].includes(pack.setting?.culture ?? "") ? 3 : 0;
   const mosqueSize = (s: (typeof order)[number]) => {
     const [w, h] = buildingModel(sanctuaryFrame(s)).footprint;
-    return [w, h + 3] as [number, number];
+    return [w + 2 * verge, h + 3 + verge] as [number, number];
   };
   const layout = composeUrban(
     site.id,
@@ -968,13 +971,14 @@ export function urbanNeighborhood(
       const frame = religious.recipe === "mediterranean-shrine" ? sanctuaryFrame(groundScale) : `religious-${religious.recipe}-${groundScale}-${look}`;
       const model = buildingModel(frame),
         [w, h] = model.footprint;
-      return { nx: 0, ny: -1, frame, model, rect: { x: ground.x, y: ground.y, w, h }, forecourt: { x: ground.x, y: ground.y + h, w, h: ground.h - h }, scale: groundScale };
+      return { nx: 0, ny: -1, frame, model, rect: { x: ground.x + verge, y: ground.y + verge, w, h }, forecourt: { x: ground.x + verge, y: ground.y + verge + h, w, h: ground.h - h - verge }, scale: groundScale };
     })();
     const chosen = onGround || candidates.find(
       (c) =>
         fits(c.rect) && free({ ...c.forecourt }) && api.dry(c.forecourt, false),
     );
     if (chosen) {
+      if (chosen === onGround) reserve(ground!);
       const point = {
         x: chosen.rect.x + chosen.model.entrance[0],
         y: chosen.rect.y + chosen.model.entrance[1],
