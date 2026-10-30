@@ -1,7 +1,7 @@
 import { smallSession } from "./fixtures";
 import { items } from "../src/content/packs";
 import { it, expect } from "vitest";
-import { collectClaim, runEconomy } from "../src/core/economy";
+import { collectClaim, dearness, grainDays, runEconomy } from "../src/core/economy";
 import { claimFor } from "../src/content/economy/claims";
 import { harvestResource, refreshResource, householdActivity, grazeActivity, depositSupplies } from "../src/core/livelihood";
 import { carryKit, parseLoad, withLoads } from "../src/content/economy/carrying";
@@ -646,4 +646,14 @@ it("collects the year's share of the grain, holding back a year's bread and leav
   expect(economy.stock.lord.grain).toBe(440);
   expect(economy.arrears).toEqual({ thin: 35 });
   expect(collectClaim(economy, [thin], 0.25).thin.owing).toBeCloseTo(35 + 0.25 * 560);
+});
+
+it("prices staples by the days of bread in the town's stores", () => {
+  const h = (id: string, members: number) => ({ id, members: Array.from({ length: members }, (_, i) => `${id}-${i}`) }) as Household;
+  const economy: Economy = { hour: 0, stock: { a: { grain: 500 }, b: { bread: 60 } }, short: {} };
+  expect(grainDays(economy, [h("a", 4), h("b", 6)])).toBe(56);
+  expect(dearness(56)).toBe(1);
+  expect(dearness(14)).toBe(2);
+  expect(dearness(400)).toBe(0.75);
+  expect(dearness(0)).toBe(2.5);
 });

@@ -199,6 +199,20 @@ export function collectClaim(economy: Economy, households: Household[], share: n
   return out;
 }
 
+/** Days of bread per head in the households' stores, grain and bread
+ * together, for the `fed` share of heads not fed from outside. */
+export function grainDays(economy: Economy, households: Household[], fed = 1) {
+  let grain = 0, heads = 0;
+  for (const h of households) {
+    grain += (economy.stock[h.id]?.grain ?? 0) + (economy.stock[h.id]?.bread ?? 0);
+    heads += h.members.length;
+  }
+  return heads ? grain / (heads * fed) : 0;
+}
+/** A staple's price against an ordinary day's. Half a year in store is
+ * ordinary; a quarter of that doubles it, and plenty takes a quarter off. */
+export const dearness = (days: number) => Math.min(2.5, Math.max(0.75, Math.sqrt(YEAR_DAYS / 2 / Math.max(1, days))));
+
 /** The item that stands for each good when a store's stock is shown. */
 export const shownAs: Record<string, ItemId> = {
   bread: "bread",

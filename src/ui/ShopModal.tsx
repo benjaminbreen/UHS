@@ -31,10 +31,12 @@ export function ShopModal({ runtime, actorId, onClose }: {
     setNote(result?.status === "completed" ? undefined : (result?.reason ?? "They decline."));
     return result?.status === "completed";
   };
+  const prices = engine.priceNote(shop.stock);
   const heading = (
     <header className="shop-head">
       <div className="eyebrow">{shop.actor.role}</div>
       <h2>{shop.actor.name.split(" ")[0]}’s goods</h2>
+      {prices && <p className="shop-lede">{prices}</p>}
     </header>
   );
 

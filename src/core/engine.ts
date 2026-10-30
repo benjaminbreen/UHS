@@ -80,9 +80,10 @@ import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structur
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
-import { addStock, collectClaim, dayOfWork, importShare, runEconomy, stockOf } from "./economy";
+import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, stockFor } from "./shop";
+import { wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
 import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../content/economy/processes";
@@ -178,6 +179,10 @@ const FAUNA_KEEP = 160;
 /** Grain from one reaped field cell, and the parcel size an ordinary farm works. */
 const GRAIN_PER_CELL = 6;
 const PARCEL_CELLS = 45;
+/** Store grain, in days of one person's bread, to a sack on the counter. */
+const GRAIN_PER_SACK = 20;
+/** Items priced by the grain in local stores. */
+const STAPLES = new Set(["grain", "bread", ...wares.filter((w) => w.good === "grain" || w.good === "bread").map((w) => w.id)]);
 // How an illness looks to the sick and to their family: symptoms, never a diagnosis.
 const SICK: Record<string, [own: string, other: string]> = {
   fever: ["Your head aches and your whole body is hot and heavy. It is hard to stand for long.", "{Name} has a fever and has gone to lie down."],
@@ -8768,27 +8773,65 @@ export class Engine {
    * person agreed in conversation to sell. */
   shopOf(id: string, anyone = false) {
     const a = this.state.actors.find((a) => a.id === id && a.kind === "human" && !a.dead);
-    if (!a || (!anyone && !keepsShop(this.world.pack, a))) return undefined;
+    const granary = a && this.granary(a);
+    if (!a || (!anyone && !granary && !keepsShop(this.world.pack, a))) return undefined;
     const day = Math.floor(this.state.clock / (DAY_MINUTES * 60));
     const coined = this.coined();
     const shop = a.shop?.day === day ? a.shop
       : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i));
+    if (granary && a.shop?.day !== day) shop.stock = { ...shop.stock, grain: granary };
     return { actor: a, coined, ...shop };
+  }
+  /** Sacks the collector sells today from what the claim brought in: a
+   * dozen at most, fewer as the store empties. */
+  private granary(a: Actor) {
+    const s = this.state, setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    if (!claim?.share || !s.economy || this.collector(claim)?.id !== a.id) return 0;
+    return Math.min(12, Math.floor((s.economy.stock[a.householdId ?? ""]?.grain ?? 0) / GRAIN_PER_SACK));
+  }
+  /** How dear staples are here: the grain in the town's stores, less what the
+   * collector holds back, against the mouths not fed by grain brought in. */
+  stapleDearness() {
+    const s = this.state, setting = this.world.pack.setting;
+    // Stores fill on the economy's first hour; before that nothing is known.
+    if (!s.economy || !s.households?.length || !Object.keys(s.economy.stock).length) return 1;
+    const claim = setting && claimFor(setting);
+    const held = claim?.share ? this.collector(claim)?.householdId : undefined;
+    const fed = 1 - (importShare[setting?.settlement ?? ""] ?? 0);
+    return dearness(grainDays(s.economy, s.households.filter((h) => h.id !== held), fed));
+  }
+  /** One line on the price of staples, when a shop sells them and they are
+   * well off their ordinary price. */
+  priceNote(stock: Inventory) {
+    if (!Object.keys(stock).some((id) => STAPLES.has(id))) return;
+    const f = this.stapleDearness(), setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    const name = (this.item("grain")?.name ?? "Grain").toLowerCase();
+    if (f <= 0.85) return `${name.replace(/^./, (c) => c.toUpperCase())} is cheap; the stores are full.`;
+    if (f < 1.3) return;
+    const taken = claim?.share && this.state.economy?.collected !== undefined && seasonIndex(this.state.clock) - this.state.economy.collected <= 1;
+    const seller = claim?.share && this.collector(claim);
+    return `${name.replace(/^./, (c) => c.toUpperCase())} is dear${taken ? ` since ${claim.to} took its share` : "; the stores are running low"}.` +
+      (seller && this.granary(seller) ? ` ${seller.name} sells from the store.` : "");
   }
   private terms() {
     return 1 + this.skillLevel("trade") * PER_LEVEL.tradeTerms + (this.knows("haggler") ? 0.15 : 0);
   }
   /** What one costs from a seller, in coin or, where nobody uses coin, in worth. */
   buyPrice(id: ItemId) {
-    const v = this.item(id)?.value ?? 0;
+    const v = this.value(id);
     return id === "coin" ? 1 : v <= 0 ? 0 : Math.max(1, Math.ceil(v / this.terms()));
   }
   /** What a seller pays for one. A shop pays half; bartered goods go at their worth. */
   sellPrice(id: ItemId) {
-    const v = this.item(id)?.value ?? 0;
+    const v = this.value(id);
     if (id === "coin") return 1;
     if (v <= 0) return 0;
     return this.coined() ? Math.max(1, Math.min(this.buyPrice(id), Math.floor((v * this.terms()) / 2))) : v;
+  }
+  /** An item's worth here today: staples follow the stores. */
+  private value(id: ItemId) {
+    const v = this.item(id)?.value ?? 0;
+    return STAPLES.has(id) && v > 0 ? Math.max(1, Math.round(v * this.stapleDearness())) : v;
   }
   worth(inv: Inventory, side: "buy" | "sell") {
     return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id) : this.sellPrice(id)), 0);
