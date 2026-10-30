@@ -3,6 +3,7 @@ import { items } from "../src/content/packs";
 import { it, expect } from "vitest";
 import { collectClaim, dearness, grainDays, runEconomy } from "../src/core/economy";
 import { claimFor } from "../src/content/economy/claims";
+import { endowmentFor, resourceName, tradeOf } from "../src/content/economy/endowments";
 import { harvestResource, refreshResource, householdActivity, grazeActivity, depositSupplies } from "../src/core/livelihood";
 import { carryKit, parseLoad, withLoads } from "../src/content/economy/carrying";
 import type { Economy, Household, WorldObject } from "../src/core/types";
@@ -656,4 +657,16 @@ it("prices staples by the days of bread in the town's stores", () => {
   expect(dearness(14)).toBe(2);
   expect(dearness(400)).toBe(0.75);
   expect(dearness(0)).toBe(2.5);
+});
+
+it("reads what a place has from its ground, with documented specialties first", () => {
+  const ground = { lon: 0, lat: 45, year: 1300, climate: "temperate", relief: 0.1, water: "none" } as const;
+  // An alluvial plain: grain and clay but no stone, as in Mesopotamia.
+  expect(tradeOf({ ...ground, lon: 45, lat: 32, year: -2000, climate: "arid", water: "river-ew", ecology: "desert" })).toEqual({ known: ["grain"], lacks: ["salt", "timber"] });
+  expect(endowmentFor({ ...ground, water: "coast-s", climate: "mediterranean" })).toMatchObject({ fish: 2, salt: 2, oil: 2 });
+  expect(endowmentFor({ ...ground, water: "coast-n", climate: "boreal" }).salt).toBe(1);
+  const cornwall = { ...ground, lon: -5, lat: 50.3, relief: 0.3, water: "coast-s" } as const;
+  expect(tradeOf(cornwall).known[0]).toBe("ore");
+  expect(resourceName("ore", cornwall)).toBe("tin");
+  expect(resourceName("grain", { ...ground, lon: 135.7, lat: 35, climate: "monsoon" })).toBe("rice");
 });

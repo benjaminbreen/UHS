@@ -7456,6 +7456,88 @@ button:disabled {
 .map-settlement.is-town { font-size: 12.5px; font-style: normal; font-variant: small-caps; letter-spacing: 0.03em; }
 .map-settlement.is-city { font-size: 15px; font-style: normal; font-variant: small-caps; font-weight: 700; letter-spacing: 0.05em; }
 
+/* Lenses: what the land gives, and what a town trades. */
+.map-lens-cell,
+.map-lens-known,
+.map-lens-import,
+.map-lens-routes {
+  position: absolute;
+  pointer-events: none;
+}
+.map-lens-cell,
+.map-lens-known,
+.map-lens-import {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 5px;
+  border-radius: 999px;
+  background: #1b1610d9;
+  box-shadow: 0 1px 2px #0006;
+}
+.map-lens-cell { transform: translate(-50%, -50%); }
+.map-lens-land {
+  position: absolute;
+  pointer-events: none;
+  background: var(--land);
+  opacity: 0.3;
+}
+.map-lens-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--land);
+}
+[data-land="grain"] { --land: #f2b42a; }
+[data-land="timber"] { --land: #1f6b33; }
+[data-land="herds"] { --land: #a8743c; }
+.map-lens-known { transform: translate(-50%, 6px); }
+.map-lens-known.is-home { transform: translate(-50%, 10px); padding: 4px 6px; }
+.map-lens-import {
+  transform: translate(-50%, -50%);
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  font-size: 11px;
+  color: #f1e4c3;
+  white-space: nowrap;
+}
+.map-lens-routes { inset: 0; width: 100%; height: 100%; }
+.map-lens-routes line {
+  stroke: #1b1610;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  opacity: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+.map-lens-routes marker path { fill: #1b1610; }
+.map-lens-legend {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-width: 60%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #1b1610e6;
+  color: #f1e4c3;
+  font-size: 12px;
+  pointer-events: none;
+}
+.map-lens-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.map-modal [data-resource] { color: #f1e4c3; }
+.map-modal [data-resource="grain"] { color: #e8c062; }
+.map-modal [data-resource="fish"] { color: #7fc4e6; }
+.map-modal [data-resource="salt"] { color: #f4f1ea; }
+.map-modal [data-resource="timber"] { color: #74c277; }
+.map-modal [data-resource="stone"] { color: #bdb6aa; }
+.map-modal [data-resource="clay"] { color: #d6905f; }
+.map-modal [data-resource="ore"] { color: #e8806a; }
+.map-modal [data-resource="herds"] { color: #cfa77d; }
+.map-modal [data-resource="reeds"] { color: #a3d47f; }
+.map-modal [data-resource="oil"] { color: #bccb58; }
+
 /* Period style: the region map after a cartographic tradition of its time. */
 .map-period {
   display: flex;
@@ -9635,6 +9717,7 @@ button:disabled {
 }
 .sky-card .place-heading p { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .sky-card .place-heading p small { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.place-heading .place-trade { font-size: 13px; margin-top: 4px; line-height: 1.3; }
 
 /* The card clips its overflow, so the hearts' tip opens upward into it. */
 .sky-card .hearts[data-tip]::after { top: auto; bottom: calc(100% + 7px); transform: translateY(3px); }

@@ -62,6 +62,8 @@ import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
 import { lightingAt } from "../render/lighting";
 import { describedRegionAt } from "../content/geography/region-label";
+import { resourceName, sourceOf, tradeOf } from "../content/economy/endowments";
+import { capabilitiesFor } from "../content/characters/resolve";
 import { SkyScene, WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
@@ -930,6 +932,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setting?.location ||
     pack.region;
   const borderHint = runtime.journey?.borderHint();
+  const ground = setting && { ...setting, ecology: setting.environment?.ecology };
+  const trade = ground && tradeOf(ground, capabilitiesFor(setting).has("settled_agriculture"));
+  const tradeLine = trade && (trade.known.length || trade.lacks.length) ? {
+    text: [
+      trade.known.length && `Known for ${trade.known.map((r) => resourceName(r, ground)).join(", ")}`,
+      trade.lacks.length && `brings in ${trade.lacks.map((r) => resourceName(r, ground)).join(", ")}`,
+    ].filter(Boolean).join(" · ").replace(/^b/, "B"),
+    title: trade.lacks.map((r) => {
+      const from = sourceOf(setting, r);
+      return `${resourceName(r, ground)}: ${from ? `from the ${from.direction}, ${from.by}` : "from far off"}`;
+    }).join("\n"),
+  } : undefined;
   const landscape = setting
     ? `${setting.climate[0].toUpperCase()}${setting.climate.slice(1)} ${
         setting.water.startsWith("river")
@@ -1023,6 +1037,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           </em>
           <small>{landscape}</small>
         </p>
+        {tradeLine && <small className="place-trade" title={tradeLine.title}>{tradeLine.text}</small>}
       </div>
       <WeatherPanel
         bare={!phone}

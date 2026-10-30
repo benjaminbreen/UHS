@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Crosshair, Minus, Plus } from "lucide-react";
+import { Amphora, Beef, Crosshair, Droplet, Fish, Gem, Minus, Mountain, Pickaxe, Plus, Sprout, TreePine, Wheat, type LucideIcon } from "lucide-react";
 import type { Runtime } from "../runtime/session";
 import type { Point } from "../core/types";
 import { Minimap, ridgeAt } from "./Minimap";
@@ -10,11 +10,25 @@ import { formatHistoricalYear } from "../core/calendar";
 import { PeriodMap, footprints, periodCaptions, periodStyle } from "./period-map";
 import { noise } from "../world/geography/noise";
 import { railSpeed } from "../world/v3/railway";
+import { endowmentFor, resourceName, sourceOf, tradeOf, type Ground, type Resource } from "../content/economy/endowments";
+import { capabilitiesFor } from "../content/characters/resolve";
 
 const W = 880, H = 540;
 // One world tile is two metres, as the old "km across" readout had it.
 const METRES = 2;
 const MAX_SPAN = 131072;
+
+const RESOURCE_ICON: Record<Resource, LucideIcon> = {
+  grain: Wheat, fish: Fish, salt: Gem, timber: TreePine, stone: Mountain, clay: Amphora,
+  ore: Pickaxe, herds: Beef, reeds: Sprout, oil: Droplet,
+};
+const COMPASS: Record<string, [number, number]> = {
+  north: [0, -1], northeast: [0.7, -0.7], east: [1, 0], southeast: [0.7, 0.7],
+  south: [0, 1], southwest: [-0.7, 0.7], west: [-1, 0], northwest: [-0.7, -0.7],
+};
+type Lens = "none" | "resources" | "trade";
+const LAND: Resource[] = ["grain", "timber", "herds"];
+const MARKED: Resource[] = ["ore", "salt", "fish", "oil", "stone", "reeds"];
 
 const railTime = (hours: number) => {
   const m = Math.max(10, Math.round((hours * 60) / 10) * 10);
@@ -49,6 +63,9 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number; glyph: ReturnType<typeof glyphFor> }[]>([]);
   const [homeGlyph, setHomeGlyph] = useState<ReturnType<typeof glyphFor>>();
   const [roads, setRoads] = useState<Point[][]>([]);
+  const [lens, setLens] = useState<Lens>("none");
+  const [cells, setCells] = useState<(Point & { size: number; land?: Resource; has: Resource[] })[]>([]);
+  const [knownFor, setKnownFor] = useState<Record<string, Resource[]>>({});
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean }>(undefined);
   const wheel = useRef(0);
   const settlements = [...world.settlements]
@@ -154,6 +171,45 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   }, [earth, span, center.x, center.y]);
 
   useEffect(() => {
+    if (lens === "none" || earth || !pack.setting) return setCells([]);
+    let live = true;
+    const o = toAtlas(pack.anchor.lon, pack.anchor.lat), h = (span * H) / W / 2, year = pack.setting.year;
+    // Whole 128-tile blocks, as the regional generator samples them, at most about fourteen across.
+    const cell = 128 * 2 ** Math.max(0, Math.ceil(Math.log2(span / 128 / 14)));
+    void import("../world/travel/environment").then(({ resolveMapEnvironment }) => {
+      if (!live) return;
+      const groundAt = (x: number, y: number): Ground | undefined => {
+        const e = resolveMapEnvironment(fromAtlas(o.x + x, o.y + y), year);
+        if (e.surface === "sea") return;
+        // The resolver names a river or a profile's coast; an open shore is only a distance.
+        const water = e.water !== "none" ? e.water : e.coastDistance < cell * 0.75 ? "coast-n" : "none";
+        return { ...e.anchor, year, climate: e.climate, relief: e.relief, water, ecology: e.ecology };
+      };
+      if (lens === "resources") {
+        const found: (Point & { size: number; land?: Resource; has: Resource[] })[] = [];
+        for (let y = Math.floor((o.y + center.y - h) / cell) * cell - o.y; y < center.y + h; y += cell)
+          for (let x = Math.floor((o.x + center.x - span / 2) / cell) * cell - o.x; x < center.x + span / 2; x += cell) {
+            const g = groundAt(x + cell / 2, y + cell / 2);
+            if (!g) continue;
+            const e = endowmentFor(g);
+            // Common land is a tint; only what is rarer earns an icon.
+            const land = LAND.find((r) => e[r] === 2);
+            const has = MARKED.filter((r) => e[r] === 2).slice(0, 3);
+            found.push({ x: x + cell / 2, y: y + cell / 2, size: cell, land, has });
+          }
+        setCells(found);
+      } else {
+        setCells([]);
+        setKnownFor(Object.fromEntries(nearby.map((p) => {
+          const g = groundAt(p.x, p.y);
+          return [p.id, g ? tradeOf(g).known : []];
+        })));
+      }
+    });
+    return () => { live = false; };
+  }, [lens, earth, span, center.x, center.y, nearby]);
+
+  useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (earth || (e.target as HTMLElement).closest?.("input, textarea")) return;
       const step = span / 6;
@@ -167,6 +223,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
       else if (e.key === "-") zoom(2);
       else if (e.key.toLowerCase() === "m") onClose();
       else if (e.key.toLowerCase() === "p" && regional) togglePeriod();
+      else if (e.key.toLowerCase() === "l" && regional) setLens(lens === "none" ? "resources" : lens === "resources" ? "trade" : "none");
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
@@ -181,6 +238,17 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const lonLat = fromAtlas(origin.x + here.x, origin.y + here.y);
   const setting = pack.setting;
   const style = period && setting && !earth ? periodStyle(setting.culture, setting.year) : undefined;
+  const homeGround = setting && { ...setting, ecology: setting.environment?.ecology };
+  const homeTrade = homeGround && (() => {
+    const t = tradeOf(homeGround, capabilitiesFor(setting!).has("settled_agriculture"));
+    return {
+      ...t,
+      imports: t.lacks.flatMap((r) => {
+        const from = sourceOf(setting!, r);
+        return from ? [{ resource: r, name: resourceName(r, homeGround), ...from }] : [];
+      }),
+    };
+  })();
   const journey = destination && <div className="map-journey">
     {!plan ? <span>Finding the road…</span> : <>
       <strong>{plan.name}</strong>
@@ -208,6 +276,10 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
       {regional && !earth && <div className="map-period">
         <button aria-pressed={period} onClick={togglePeriod} title="Period style (P)">Period style</button>
         {style && <small>{periodCaptions[style]}</small>}
+      </div>}
+      {regional && !earth && <div className="map-toggle" role="group" aria-label="Lens">
+        {(["resources", "trade"] as const).map((l) => <button key={l} aria-pressed={lens === l} title="Lens (L)"
+          onClick={() => setLens(lens === l ? "none" : l)}>{l === "resources" ? "Resources" : "Trade"}</button>)}
       </div>}
       {regional && <div className="map-toggle" role="group" aria-label="Map scale">
         <button aria-pressed={!earth} onClick={() => setEarth(false)}>Region</button>
@@ -267,6 +339,34 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
                 <ellipse key={`${i}-${n}`} className="map-foot" cx={f.x} cy={f.y} rx={3} ry={1.5} transform={`rotate(${f.angle} ${f.x} ${f.y})`} />))
               : roads.map((road, i) => <path key={i} d={smooth(road.map(toFrame))} />)}
           </svg>
+          {lens === "resources" && cells.map((c) => c.land && <div key={`t${c.x},${c.y}`} className="map-lens-land" data-land={c.land}
+            style={{ ...toScreen({ x: c.x - c.size / 2, y: c.y - c.size / 2 }), width: `${(c.size / span) * 100}%`, height: `${(c.size / (span * H / W)) * 100}%` }} />)}
+          {lens === "resources" && cells.map((c) => c.has.length > 0 && <div key={`${c.x},${c.y}`} className="map-lens-cell" style={toScreen(c)}>
+            {c.has.map((r) => { const Icon = RESOURCE_ICON[r]; return <Icon key={r} size={13} data-resource={r} />; })}
+          </div>)}
+          {lens === "trade" && homeTrade && <>
+            <svg className="map-lens-routes" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+              <defs><marker id="lens-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L8 4L0 8z" /></marker></defs>
+              {homeTrade.imports.map((m, i) => {
+                const at = toFrame(home), [dx, dy] = COMPASS[m.direction] ?? [0, 0], r = Math.min(W, H) * 0.36;
+                return <line key={i} x1={at.x + dx * r} y1={at.y + dy * r} x2={at.x + dx * 26} y2={at.y + dy * 26} markerEnd="url(#lens-arrow)" />;
+              })}
+            </svg>
+            {homeTrade.imports.map((m, i) => {
+              const [dx, dy] = COMPASS[m.direction] ?? [0, 0], k = span * 0.36 * (W / Math.max(W, H));
+              // Two imports from one side stack rather than overprint.
+              const same = homeTrade.imports.slice(0, i).filter((n) => n.direction === m.direction).length;
+              return <div key={i} className="map-lens-import" style={toScreen({ x: home.x + dx * k, y: home.y + dy * k * (H / W) + same * span * 0.035 })}>
+                {(() => { const Icon = RESOURCE_ICON[m.resource]; return <Icon size={13} />; })()}{m.name}, {m.by}
+              </div>;
+            })}
+            <div className="map-lens-known is-home" style={toScreen(home)}>
+              {homeTrade.known.map((r) => { const Icon = RESOURCE_ICON[r]; return <Icon key={r} size={14} data-resource={r} />; })}
+            </div>
+          </>}
+          {lens === "trade" && nearby.map((p) => (knownFor[p.id]?.length ?? 0) > 0 && <div key={p.id} className="map-lens-known" style={toScreen(p)}>
+            {knownFor[p.id].map((r) => { const Icon = RESOURCE_ICON[r]; return <Icon key={r} size={12} data-resource={r} />; })}
+          </div>)}
           {nearby.map((p) => <button key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}
             onClick={() => { setChosen(undefined); setDestination({ ...fromAtlas(origin.x + p.x, origin.y + p.y), name: p.name }); }}>
             <SettlementGlyph glyph={p.glyph} rank={p.rank} /><span>{p.name}</span>
@@ -278,6 +378,17 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
           {style && setting && <div className="period-cartouche">
             <strong>{pack.region}</strong>
             <span>{formatHistoricalYear(setting.year)}</span>
+          </div>}
+          {lens !== "none" && <div className="map-lens-legend">
+            {lens === "resources"
+              ? <>
+                {LAND.filter((r) => cells.some((c) => c.land === r)).map((r) => <span key={r}><i className="map-lens-swatch" data-land={r} />{setting ? resourceName(r, setting) : r}</span>)}
+                {MARKED.filter((r) => cells.some((c) => c.has.includes(r))).map((r) => { const Icon = RESOURCE_ICON[r]; return <span key={r}><Icon size={13} data-resource={r} />{setting ? resourceName(r, setting) : r}</span>; })}
+              </>
+              : homeTrade && <>
+                <span>{homeTrade.known.length ? `Known for ${homeTrade.known.map((r) => resourceName(r, setting!)).join(", ")}` : "Nothing in plenty"}</span>
+                {homeTrade.lacks.length > 0 && <span>Brings in {homeTrade.lacks.map((r) => resourceName(r, setting!)).join(", ")}</span>}
+              </>}
           </div>}
           {journey}
           {card && <div className="map-card" style={toScreen(card)}>
