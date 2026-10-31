@@ -1159,6 +1159,14 @@ export function advanceFauna(
               moveMember(m, away, taken, turns);
             continue;
           }
+          // Each on its own beat, off the shared rng so nothing else shifts.
+          const beat = Math.floor(clock / TICK) + (m.n ?? 0) * 7;
+          if (beat % 17 === 0)
+            m.direction = turns
+              ? (((beat / 17) % 4) as FaunaMember["direction"])
+              : (beat / 17) % 2
+                ? 1
+                : 3;
           if (world.rng(`fauna-${g.id}-drift`) >= drift) continue;
           const n =
             NEIGHBOURS[Math.floor(world.rng(`fauna-${g.id}-drift`) * 8)];

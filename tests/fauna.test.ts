@@ -74,9 +74,15 @@ describe("fauna profiles", () => {
       Object.values(profile.art).flat(),
     );
     // A form (faunab-cattle.zebu-…) is a second drawing of a species the
-    // profiles already name, so only the plain frames are counted.
+    // profiles already name, so only the plain frames are counted. The
+    // farmyard's side views also live in set C now, under four facings.
+    const turned = new Set(directional.map((p) => p.id));
     expect(new Set(referenced).size).toBe(
-      Object.keys(atlasB.frames).filter((name) => !name.includes(".")).length,
+      Object.keys(atlasB.frames).filter(
+        (name) =>
+          !name.includes(".") &&
+          !turned.has(name.replace(/^faunab-|-[a-z]+-\d+$/g, "")),
+      ).length,
     );
   });
 

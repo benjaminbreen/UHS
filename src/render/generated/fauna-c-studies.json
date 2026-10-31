@@ -2039,5 +2039,203 @@
       },
       "coatFrom": {}
     }
+  },
+  "sheep": {
+    "palette": [
+      "#7c6c57",
+      "#b3a98c",
+      "#ded6b9",
+      "#f2ecd5",
+      "#fffcec",
+      "#8a745b",
+      "#2a211a",
+      "#6b5744"
+    ],
+    "states": {
+      "idle": 8,
+      "graze": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      28,
+      26
+    ],
+    "standing": [
+      28,
+      22
+    ]
+  },
+  "goat": {
+    "palette": [
+      "#3d3226",
+      "#6a5640",
+      "#8f7757",
+      "#b39c75",
+      "#d8c8a4",
+      "#2f2820",
+      "#17120c",
+      "#e6ddc4"
+    ],
+    "states": {
+      "idle": 8,
+      "graze": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      28,
+      26
+    ],
+    "standing": [
+      28,
+      22
+    ]
+  },
+  "pig": {
+    "palette": [
+      "#6b4038",
+      "#9a6259",
+      "#c08d81",
+      "#d8aa9d",
+      "#efcdc0",
+      "#7d4a41",
+      "#291613",
+      "#5a3630"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      30,
+      24
+    ],
+    "standing": [
+      30,
+      20
+    ]
+  },
+  "chicken": {
+    "palette": [
+      "#7a4a22",
+      "#b7732d",
+      "#e2a247",
+      "#f3c975",
+      "#fbe7ad",
+      "#d9402f",
+      "#26190f",
+      "#e9b53a"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      18,
+      20
+    ],
+    "standing": [
+      18,
+      16
+    ]
+  },
+  "gray-wolf": {
+    "palette": [
+      "#3a4147",
+      "#535c61",
+      "#767f83",
+      "#a4aca9",
+      "#d3d6ce",
+      "#e4e5da",
+      "#1c1d1f",
+      "#c9a24d"
+    ],
+    "states": {
+      "idle": 8,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "rest": 8,
+      "dig": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      38,
+      26
+    ],
+    "standing": [
+      38,
+      23
+    ]
+  },
+  "red-deer": {
+    "palette": [
+      "#6a3d22",
+      "#8f5732",
+      "#bb7941",
+      "#dc9d5f",
+      "#f1c78c",
+      "#f3e4c0",
+      "#2a1a12",
+      "#55301c"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      40,
+      40
+    ],
+    "standing": [
+      40,
+      36
+    ]
   }
 }

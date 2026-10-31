@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { study } from "./types";
+import { study, directionalStudy } from "./types";
 
 const always = [-1000000, 10000] as const;
 
@@ -40,7 +40,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     prey: "ungulate",
     diet: ["grass", "plant"],
-    ...study("red-deer"),
+    ...directionalStudy("red-deer"),
   },
   {
     id: "gray-wolf",
@@ -79,7 +79,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     diet: ["small-animal", "ungulate"],
     preyTags: ["small-animal", "ungulate"],
-    ...study("gray-wolf"),
+    ...directionalStudy("gray-wolf"),
   },
   {
     id: "wapiti",
@@ -118,7 +118,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     diet: ["grass", "plant"],
     prey: "ungulate",
-    ...study("red-deer"),
+    ...directionalStudy("red-deer"),
   },
   {
     id: "aurochs",

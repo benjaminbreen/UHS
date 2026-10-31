@@ -5,19 +5,19 @@ from PIL import Image, ImageDraw
 from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS, facings as facings_c, STATES as STATES_C
 from art.atlas import pack_atlas, write_metadata
 from art.quality.hue import tint_outline
-from art import fauna_d, fox, proboscidean, cervid, felid, grazer, ursid
+from art import fauna_d, fox, fourway, proboscidean, cervid, felid, grazer, ursid
 
 root = Path(__file__).resolve().parent.parent
 out = root / "public/fauna-c"
 out.mkdir(exist_ok=True)
 # Set D is the working animals, drawn on a later rig and in several forms and
 # coats; it shares this atlas because it shares the four facings.
-sprites = {name: tint_outline(im) for name, im in {**fauna_c(), **fauna_d.fauna_d(), **fox.fauna_fox()}.items()}
+sprites = {name: tint_outline(im) for name, im in {**fauna_c(), **fauna_d.fauna_d(), **fox.fauna_fox(), **fourway.fauna_fourway()}.items()}
 looks = {**looks_c(), **fauna_d.looks(), **fox.looks()}
-PALETTES = {**PALETTES, **fauna_d.PALETTES, **fox.PALETTES}
-STATES = {**STATES, **fauna_d.STATES, **fox.STATES}
-NATIVE_SIZES = {**NATIVE_SIZES, **fauna_d.NATIVE_SIZES, **fox.NATIVE_SIZES}
-STANDING_SIZES = {**STANDING_SIZES, **{k: (w, h - fauna_d.HEADROOM[k] - 3) for k, (w, h) in fauna_d.NATIVE_SIZES.items()}, **fox.STANDING_SIZES}
+PALETTES = {**PALETTES, **fauna_d.PALETTES, **fox.PALETTES, **fourway.PALETTES}
+STATES = {**STATES, **fauna_d.STATES, **fox.STATES, **fourway.STATES}
+NATIVE_SIZES = {**NATIVE_SIZES, **fauna_d.NATIVE_SIZES, **fox.NATIVE_SIZES, **fourway.NATIVE_SIZES}
+STANDING_SIZES = {**STANDING_SIZES, **{k: (w, h - fauna_d.HEADROOM[k] - 3) for k, (w, h) in fauna_d.NATIVE_SIZES.items()}, **fox.STANDING_SIZES, **fourway.STANDING_SIZES}
 for name, im in sprites.items():
     assert set(im.getchannel("A").getdata()) <= {0, 255}, name
     assert len(im.getcolors(im.width * im.height)) <= 24, name

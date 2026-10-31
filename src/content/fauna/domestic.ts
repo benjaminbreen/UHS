@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { study, columbianExchange } from "./types";
+import { study, directionalStudy, columbianExchange } from "./types";
 
 export const domesticFauna: readonly FaunaProfile[] = [
   {
@@ -43,7 +43,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
     diet: ["seed", "plant", "invertebrate"],
     // Hens run down and swallow mice.
     preyTags: ["rodent"],
-    ...study("chicken"),
+    ...directionalStudy("chicken"),
   },
   {
     id: "sheep",
@@ -84,7 +84,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     prey: "ungulate",
     diet: ["grass", "plant"],
-    ...study("sheep"),
+    ...directionalStudy("sheep"),
   },
   {
     id: "goat",
@@ -126,7 +126,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 5,
     prey: "ungulate",
     diet: ["grass", "plant"],
-    ...study("goat"),
+    ...directionalStudy("goat"),
   },
   {
     id: "pig",
@@ -170,7 +170,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 5,
     prey: "ungulate",
     diet: ["plant", "seed", "invertebrate"],
-    ...study("pig"),
+    ...directionalStudy("pig"),
   },
   {
     id: "duck",

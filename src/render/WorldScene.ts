@@ -5777,14 +5777,17 @@ export class WorldScene extends Phaser.Scene {
         im.setScale(f.scale);
         mood.squashed = false;
       }
-      const ground = pose.y - this.lift(pose.x, pose.y);
-      im.setPosition(pose.x, ground - pose.alt - pose.hop);
-      const depth = pose.y - 2;
+      // A fixed nudge off the cell centre, so a flock is not laid out on the grid.
+      const jx = (this.poseOffset(id) % 7) - 3,
+        jy = (Math.floor(this.poseOffset(id) / 7) % 5) - 2;
+      const ground = pose.y + jy - this.lift(pose.x, pose.y);
+      im.setPosition(pose.x + jx, ground - pose.alt - pose.hop);
+      const depth = pose.y + jy - 2;
       if (im.depth !== depth) im.setDepth(depth);
       this.shadeFauna(
         id,
         im,
-        pose.x,
+        pose.x + jx,
         ground,
         pose.alt,
         f.scale,

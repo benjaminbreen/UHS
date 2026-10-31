@@ -268,13 +268,11 @@ def deer(state, frame):
     draw_leg("fh", hip_h, True, False)
     draw_leg("ff", hip_f, False, False)
     # body: chest a little deeper than the rump
-    body = ellipse((7, 16 + by, 30, 26 + by)) | ellipse((15, 15 + by, 31, 26 + by))
+    body = ellipse((7, 16 + by, 20, 25 + by)) | ellipse((11, 16 + by, 28, 25 + by)) | ellipse((19, 15 + by, 31, 26 + by))
     body_px = shade(body, top=1, bottom=2)
     for x, y in body:
-        if (x, y + 1) not in body and 13 <= x <= 27:
-            body_px[(x, y)] = "b"  # pale belly rim
-        if (x, y - 1) not in body and 12 <= x <= 26:
-            body_px[(x, y)] = "h"
+        if (x, y - 1) not in body and 22 <= x <= 28:
+            body_px[(x, y)] = "h"  # withers
     c.paint(body_px)
     # rump patch + tail
     c.paint(flat(polygon([(7, 18 + by), (9, 17 + by), (9, 23 + by), (7, 22 + by)]), "b"))
@@ -296,7 +294,7 @@ def deer(state, frame):
         # A deer's neck is short and its head small. Carried any higher or
         # further out it reads as a llama, and the muzzle leaves the canvas.
         top = (31 + nod, 10 + by + nod) if not running else (32, 12 + by)
-        neck = polygon([(24, 16 + by), (30, 21 + by), (top[0] + 2, top[1] + 3), (top[0] - 2, top[1])])
+        neck = polygon([(23, 15 + by), (31, 22 + by), (top[0] + 2, top[1] + 4), (top[0] - 2, top[1])])
         c.paint(over(c, shade(neck, top=1, bottom=1)))
         _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, running, chew)
     elif stage == 1:
@@ -444,13 +442,13 @@ def wolf(state, frame):
     t = frame / 8
     moving = state in {"wander", "stalk", "chase"}
     running = state == "chase"
-    ground = 22
+    ground = 23
     if state == "rest":
         return _wolf_rest(c, frame)
     low = 2 if state == "stalk" else 0
     bounce = round(1.5 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
     by = low - bounce
-    hip_h, hip_f = (10, 14 + by), (24, 14 + by)
+    hip_h, hip_f = (10, 12 + by), (24, 12 + by)
     if running:
         gait = lambda ph: walk_foot(ph, 5.0, 4.5, 0.4)
         phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
@@ -470,32 +468,34 @@ def wolf(state, frame):
     draw_leg("ff", hip_f, False, False)
     # tail: bushy, low when stalking, streaming when running
     if running:
-        tail = polygon([(2, 12 + by), (9, 12 + by), (9, 16 + by), (1, 15 + by)])
+        tail = polygon([(2, 9 + by), (9, 9 + by), (9, 13 + by), (1, 12 + by)])
     elif state == "stalk":
-        tail = polygon([(6, 14 + by), (9, 13 + by), (9, 17 + by), (4, 22 + by), (2, 21 + by)])
+        tail = polygon([(6, 11 + by), (9, 10 + by), (9, 14 + by), (4, 20 + by), (2, 19 + by)])
     else:
         wag = 1 if state == "idle" and frame in (2, 3, 6, 7) else 0
-        tail = polygon([(7, 13 + by), (9, 12 + by), (9, 17 + by), (3 - wag, 20 + by), (1 - wag, 18 + by)])
+        tail = polygon([(7, 10 + by), (9, 9 + by), (9, 14 + by), (3 - wag, 18 + by), (1 - wag, 16 + by)])
     c.paint(shade(tail, 1, 1))
     # body: deep chest, tucked belly
-    body = ellipse((6, 10 + by, 28, 18 + by)) | ellipse((14, 9 + by, 30, 19 + by))
+    body = ellipse((6, 7 + by, 22, 15 + by)) | ellipse((15, 7 + by, 30, 17 + by)) | ellipse((20, 6 + by, 29, 12 + by))
     px = shade(body, 1, 2)
     for x, y in body:
-        if (x, y + 1) not in body and 14 <= x <= 27:
+        if (x, y - 1) in body and (x, y - 2) not in body and 9 <= x <= 22:
+            px[(x, y)] = "d"  # saddle
+        if x >= 25 and y >= 11 + by and (x, y + 1) not in body | {(x, y + 2)}:
             px[(x, y)] = "b"
-        if (x, y - 1) not in body and 12 <= x <= 25:
-            px[(x, y)] = "h"
+        elif x >= 26 and y >= 12 + by:
+            px[(x, y)] = "b"  # pale chest
     c.paint(px)
     # neck + head
     if running:
-        hx, hy = 29, 7 + by
-        neck = polygon([(23, 11 + by), (29, 10 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
+        hx, hy = 28, 5 + by
+        neck = polygon([(22, 8 + by), (29, 8 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
     elif state == "stalk":
-        hx, hy = 28, 9 + by
-        neck = polygon([(23, 11 + by), (29, 10 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
+        hx, hy = 28, 8 + by
+        neck = polygon([(22, 8 + by), (29, 9 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
     else:
-        hx, hy = 27, 4 + by
-        neck = polygon([(23, 11 + by), (29, 10 + by), (hx + 4, hy + 5), (hx - 1, hy + 5)])
+        hx, hy = 27, 2 + by
+        neck = polygon([(22, 8 + by), (29, 8 + by), (hx + 4, hy + 5), (hx - 1, hy + 5)])
     c.paint(shade(neck, 1, 1))
     _wolf_head(c, hx, hy, frame, state)
     draw_leg("nh", hip_h, True, True)
@@ -533,8 +533,8 @@ def _wolf_rest(c, frame):
     body = ellipse((5, 13, 28, 21)) | ellipse((13, 12, 30, 21))
     px = shade(body, 1, 2)
     for x, y in body:
-        if (x, y - 1) not in body and 10 <= x <= 24:
-            px[(x, y)] = "h"
+        if (x, y - 1) in body and (x, y - 2) not in body and 8 <= x <= 22:
+            px[(x, y)] = "d"  # saddle
     c.paint(px)
     tail = polygon([(4, 16), (9, 15), (9, 20), (2, 22), (1, 20)])
     c.paint(shade(tail, 1, 1))
@@ -724,7 +724,7 @@ def pig(state, frame):
         return _pig_rest(c, frame)
     bounce = round(1.0 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
     by = -bounce
-    hip_h, hip_f = (7, 15 + by), (18, 15 + by)
+    hip_h, hip_f = (7, 13 + by), (18, 13 + by)
     if running:
         gait = lambda ph: walk_foot(ph, 2.6, 2.6, 0.45)
         phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
@@ -739,15 +739,16 @@ def pig(state, frame):
 
     draw_leg("fh", hip_h, True, False)
     draw_leg("ff", hip_f, False, False)
-    body = ellipse((3, 8 + by, 21, 18 + by)) | rect((6, 8 + by, 19, 13 + by))
+    # Round ham behind, a belly that sags a little between the legs.
+    body = ellipse((2, 5 + by, 14, 16 + by)) | ellipse((6, 6 + by, 21, 16 + by)) | rect((6, 6 + by, 19, 11 + by))
     c.paint(shade(body, 1, 2))
     # curly tail, drawn clear of the rump so the outline reads it
     wag = 1 if (moving and frame % 2) or (state == "idle" and frame in (2, 4)) else 0
-    for dx, dy in ((2, 10), (1, 9), (1 + wag, 8), (2 + wag, 7)):
+    for dx, dy in ((1, 8), (0, 7), (0 + wag, 6), (1 + wag, 5)):
         c.dot(dx, dy + by, "d")
     stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "forage" else 0
     root = 1 if state == "forage" and frame in (3, 5) else 0
-    hx, hy = [(19, 8 + by), (20, 10 + by), (21, 12 + by)][stage]
+    hx, hy = [(19, 6 + by), (20, 9 + by), (21, 12 + by)][stage]
     trot = moving and frame % 4 in (1, 2)
     if trot and not running:
         hy += 1
