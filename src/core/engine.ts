@@ -83,7 +83,7 @@ import { findPath } from "./pathfinding";
 import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, sellsTrade, stockFor, TRADER } from "./shop";
-import { isWayfarer } from "../world/v3/wayfarers";
+import { isStallholder, isWayfarer } from "../world/v3/wayfarers";
 import { wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
@@ -3528,6 +3528,8 @@ export class Engine {
     if (sky !== "rain" && sky !== "snow") return;
     for (const a of this.state.actors) {
       if (a.kind !== "human" || a.dead || a.pos.space !== "outside" || a.offRoutine || a.errand || a.tends || a.guard || a.mount) continue;
+      // A stall has its awning and a seller's living is the day's trade.
+      if (keepsShop(this.world.pack, a)) continue;
       const roll = random(this.state.manifest.seed, "shelter", a.id, Math.floor(clock / 3600));
       if (a.id === this.conversing || roll < 0.15) continue;
       // Some only get as far as the nearest doorway and wait it out there.
@@ -8892,7 +8894,7 @@ export class Engine {
     const collector = claim?.share ? this.collector(claim) : undefined;
     const list = s.actors.filter((a) => this.sellsNow(a) || (a === collector && this.granary(a) > 0)).map((a) => {
       const place = a.pos.space && a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
-      return { actor: a, at: place ? place.door ?? place.entrance : a.pos, door: place?.id, merchant: isWayfarer(a.id) };
+      return { actor: a, at: place ? place.door ?? place.entrance : a.pos, door: place?.id, merchant: isWayfarer(a.id) && !isStallholder(a.id) };
     });
     this.tradersAt = { minute, count: s.actors.length, list };
     return list;

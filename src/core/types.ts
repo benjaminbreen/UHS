@@ -360,6 +360,8 @@ export type WorldObject = {
   name: string;
   /** What it is, where the kind's stock line would say nothing. */
   description?: string;
+  /** The good a market stall's keeper sells there. */
+  sells?: string;
   placeId?: string;
   /** Clock at the last knock on this door; drives the rattle the scene draws. */
   knocked?: number;

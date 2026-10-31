@@ -163,6 +163,18 @@ export function signFor(pack: Pack): { key: string; style: WallStyle } | undefin
   return undefined;
 }
 
+const POSTS: Partial<Record<WallStyle, (typeof signStyles)[number]>> = {
+  oak: "oak", painted: "painted", cutout: "painted", fascia: "painted",
+  pennant: "pennant", bazaar: "bazaar", lacquer: "lacquer", split: "split", noren: "split",
+};
+/** A board on a post beside a market stall, in the street's style, with the
+ * mark of what it sells. Posts carry the first sixteen marks only. */
+export function stallSignFor(pack: Pack, mark: number | undefined) {
+  const street = signFor(pack), style = street && POSTS[street.style];
+  if (!style || mark === undefined || mark >= 16) return;
+  return { prop: `signpost-${style}`, sprite: `study-propb-signpost-${style}-${mark}`, label: signLabels[mark] };
+}
+
 /** The sign one house hangs, from the street's style, its trade's mark and
  * its venue: an English alehouse its ale-stake, a barber his pole and basin,
  * a sake brewer the cedar ball, a Song wine shop its flag, and a baker in

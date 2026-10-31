@@ -111,6 +111,11 @@ function marketKit(pack: Pack): MarketKit | undefined {
 /** What a market sold from. Five builds, chosen by date and region: trestles
  * before anything else, an awning where cloth was cheap, a roofed booth for a
  * permanent pitch, a cart for the street trader, a tubular barrow after that. */
+/** The wares a place's market stalls are painted with, if they have any. */
+export function marketTrades(pack: Pack): readonly string[] | undefined {
+  const kit = marketKit(pack);
+  return kit && marketKits.kits[kit].trades;
+}
 export function stallFor(
   pack: Pack,
   index = 0,

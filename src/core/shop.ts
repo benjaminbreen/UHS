@@ -2,7 +2,7 @@ import { goodsOf } from "../content/economy/goods";
 import { wares } from "../content/economy/wares";
 import { matchesCharacterScope } from "../content/characters/resolve";
 import { livelihoodOf } from "../world/v3/routines";
-import { isWayfarer } from "../world/v3/wayfarers";
+import { isStallholder, isWayfarer } from "../world/v3/wayfarers";
 import { random } from "./random";
 import type { Actor, Inventory, ItemDef, ItemId, Pack } from "./types";
 
@@ -39,7 +39,7 @@ export type Shop = { day: number; stock: Inventory; purse: number };
 /** Whether this person's trade is one that sells, wherever they are now. */
 export function sellsTrade(pack: Pack, actor: Actor) {
   if (actor.kind !== "human" || actor.dead || (actor.age ?? 30) < 14) return false;
-  if (isWayfarer(actor.id)) return TRADER.test(actor.role);
+  if (isWayfarer(actor.id)) return isStallholder(actor.id) || TRADER.test(actor.role);
   const kit = livelihoodOf(pack, actor);
   // Farmers and herders sell at market, not from the field; a porter dressed as a tailor is still a porter.
   if (!goodsOf(kit, pack.setting?.economyRevision).some((g) => g !== "grain" && (g !== "meat" || kit!.id === "butcher"))) return false;
@@ -72,7 +72,7 @@ export function stockFor(
   for (const g of goods) for (const id of worn) if (DRESSED[g]?.test(id)) ids.add(id);
   // Helmets and arrowheads from the smith, until guns made them obsolete.
   if (goods.includes("ironwork") && pack.year < 1650) ids.add("headwear-helmet").add("arrow");
-  if (isWayfarer(actor.id)) {
+  if (isWayfarer(actor.id) && !isStallholder(actor.id)) {
     for (const id of lacks) ids.add(id);
     for (const id of pack.commodities) if (roll("carry", id) < (lacks.length ? 0.25 : 0.6)) ids.add(id);
     for (const id of worn) ids.add(id);

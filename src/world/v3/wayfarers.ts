@@ -12,6 +12,7 @@ import { habitatTagsAt } from "./fauna";
 import { faunaProfiles } from "../../content/fauna";
 import { matchesCharacterScope } from "../../content/characters/resolve";
 import { DIRECTIONS, endowmentFor, resourceName, tradeOf, type Resource } from "../../content/economy/endowments";
+import { stallSeller } from "../../content/economy/market";
 
 /** A border crossing as a passer-by sees it: where it is, and what lies past it. */
 export type Way = MapEntrance & { point: Point };
@@ -20,6 +21,7 @@ export type Passing = { actor: Actor; itinerary: Itinerary; animals?: Itinerary[
 type Segment = Itinerary["segments"][number];
 
 export const isWayfarer = (id: string) => id.startsWith("wayfarer-");
+export const isStallholder = (id: string) => id.startsWith("wayfarer-stall-");
 
 /** Parties a day, by how many people live round here. */
 const DAILY = { settled: 3, sparse: 2, none: 1 } as const;
@@ -43,7 +45,9 @@ export function wayfarerDay(
   day: number,
 ): Passing[] {
   const setting = pack.setting;
-  if (!setting?.environment || !ways.length) return [];
+  if (!setting?.environment) return [];
+  const stalls = stallholders(world, seed, setting, day);
+  if (!ways.length) return stalls;
   const roll = (...k: (string | number)[]) => random(seed, "wayfarers", day, ...k);
   const population = setting.environment.population ?? "none";
   const deep = setting.year < -10000 ? 0.6 : 1;
@@ -74,7 +78,44 @@ export function wayfarerDay(
     for (let d = day - 4; d <= day; d++)
       for (let n = 0; n < 2; n++)
         out.push(...(trip(world, seed, setting, context, ways, d, n, day, kit) ?? []));
-  return out;
+  return [...stalls, ...out];
+}
+
+/** A seller at each market stall most days, selling what the stall is set
+ * up for: walks up at seven or so, sells till late afternoon, packs up and
+ * goes. The town's own people are mostly past the routine budget, so the
+ * market keeps its own. */
+function stallholders(world: WorldModel, seed: string, setting: NonNullable<Pack["setting"]>, day: number): Passing[] {
+  const ground = { ...setting, ecology: setting.environment?.ecology };
+  return (world.initialObjects ?? [])
+    .filter((o) => o.prop === "marketCounter" && o.sells)
+    .slice(0, 24)
+    .flatMap((o, k) => {
+      const r = (...key: (string | number)[]) => random(seed, "stalls", day, o.id, ...key);
+      const who = stallSeller(o.sells!, ground);
+      // Behind the counter where there is room, else in front of it.
+      const stand = [{ x: o.pos.x, y: o.pos.y - 1 }, { x: o.pos.x, y: o.pos.y + 1 }].find((p) => !world.blocked(p.x, p.y, "outside"));
+      if (!who || !stand || r("open") > 0.85) return [];
+      const from = [[0, 9], [9, 2], [-9, 2], [0, 12]].map(([dx, dy]) => ({ x: stand.x + dx, y: stand.y + dy }))
+        .find((p) => !world.blocked(p.x, p.y, "outside"));
+      const there = (from && across(world, from, stand)) ?? [stand];
+      const open = (7 + r("open-at")) * 60, close = (16 + r("close-at") * 1.5) * 60;
+      const start = day * DAY_MINUTES + open;
+      const selling = close - open - there.length * PACE * 2;
+      const itinerary = journey(
+        [
+          { path: there, label: `Bringing ${who.noun} to market` },
+          { path: [stand], label: `Selling ${who.noun}`, stop: { activity: "work", label: `Selling ${who.noun}`, minutes: Math.max(60, selling) } },
+          { path: [...there].reverse(), label: "Packing up and going home" },
+        ],
+        start,
+        PACE,
+      );
+      const done = itinerary.segments[itinerary.segments.length - 1].from;
+      const sex = who.dress === "smith" ? "male" : r("sex") < 0.5 ? "female" : "male";
+      const actor = person(seed, setting, `wayfarer-stall-${day}-${k}`, who.dress, who.seller, sex, 20 + Math.floor(r("age") * 35), there[0], (start + done + 10) * 60);
+      return [{ actor, itinerary }];
+    });
 }
 
 const GOODS = /(?<!small )goods/;

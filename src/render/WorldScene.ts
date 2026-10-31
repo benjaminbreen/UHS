@@ -440,6 +440,46 @@ const GLOW_RING = [1, 2].flatMap((r) =>
     alpha: r === 1 ? 0.85 : 0.3,
   })),
 );
+type TokenFace = "coin" | "cash" | "barter";
+const TOKEN_INK: Record<string, number> = {
+  k: 0x3a2410, d: 0xa8761f, m: 0xd9a63e, g: 0xf2cf6b, l: 0xffe39a, w: 0xfffbe8,
+  K: 0x4a3420, D: 0xa88a5c, M: 0xcdb487, G: 0xe8dcbc, L: 0xf6efda, a: 0x6b4a1e,
+};
+const RIM = ["....kkkk....", "..kkllllkk..", ".kllwggggmk.", ".klwgggggmk."];
+const BASE = [".kgggggggmk.", ".kmggggmmdk.", "..kkddddkk..", "....kkkk...."];
+/** Twelve-pixel tokens lit from the top left. A struck coin has a raised
+ * boss; cast cash a bevelled square hole; a barter token is pale wood. */
+const TOKENS: Record<TokenFace, string[]> = {
+  coin: [
+    ...RIM.slice(0, 3), ".klgmmmmgmk.", "klgmgggglgdk", "klgmgwlglgdk",
+    "klgmglmglgdk", "klgmgggglgdk", ".kggllllgmk.", ...BASE.slice(1),
+  ],
+  cash: [...RIM, "klgglllmggdk", "klgglkkdggdk", "klgglkkdggdk", "klggmdddggdk", ...BASE],
+  barter: [
+    "....KKKK....", "..KKLLLLKK..", ".KLLGGGGGMK.", ".KLGaGGGGMK.",
+    "KLGaaaaaaGDK", "KLGGaGGGGGDK", "KLGGGGGaGGDK", "KLGaaaaaaGDK",
+    ".KGGGGGaGMK.", ".KMGGGGGMDK.", "..KKDDDDKK..", "....KKKK....",
+  ],
+};
+const tokenPixels = (face: TokenFace) => TOKENS[face];
+/** Draws a token centred on x, y; `sx` below 1 is the token turned toward
+ * its edge, down to a thin bar. */
+function paintToken(g: Phaser.GameObjects.Graphics, rows: string[], x: number, y: number, sx: number) {
+  const w = rows[0].length, h = rows.length, top = y - h / 2;
+  if (sx < 0.2) {
+    g.fillStyle(TOKEN_INK.k, 1).fillRect(x - 1, top + 1, 3, h - 2);
+    g.fillStyle(TOKEN_INK.d, 1).fillRect(x, top + 2, 1, h - 4);
+    return;
+  }
+  for (let r = 0; r < h; r++)
+    for (let c = 0; c < w; c++) {
+      const ink = rows[r][c];
+      if (ink === ".") continue;
+      const left = x + (c - w / 2) * sx;
+      g.fillStyle(TOKEN_INK[ink], 1).fillRect(left, top + r, Math.max(1, sx), 1);
+    }
+}
+
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
   private characters?: WorldCharacters;
@@ -1705,7 +1745,10 @@ export class WorldScene extends Phaser.Scene {
     }
     const mark = (this.traderMark ??= this.add.graphics());
     mark.clear().setDepth(1e7 - 1);
-    const coined = engine.coined();
+    const setting = engine.world.pack.setting;
+    // Cast cash with a square hole in East Asia until modern coinage.
+    const face: TokenFace = !engine.coined() ? "barter"
+      : (setting?.culture === "east-asian" || setting?.culture === "southeast-asian") && engine.world.pack.year >= -300 && engine.world.pack.year < 1900 ? "cash" : "coin";
     for (const t of this.traders) {
       let x: number, y: number;
       const bob = Math.abs(Math.sin(time / 420 + (t.door?.x ?? 0))) * 2;
@@ -1718,15 +1761,16 @@ export class WorldScene extends Phaser.Scene {
         x = image.x;
         y = this.headTop(image) - (this.castPeople.has(t.id) ? 15 : 8) - bob;
       }
-      mark.fillStyle(0x1a1410, 1).fillCircle(x, y, 6);
-      mark.fillStyle(0xf2cf6b, 1).fillCircle(x, y, 5);
-      if (coined) {
-        mark.fillStyle(0xb8892f, 1).fillRect(x - 1, y - 3, 2, 6);
-        mark.fillStyle(0xfff4d0, 1).fillRect(x - 3, y - 3, 1, 2);
-      } else {
-        mark.fillStyle(0x6b4a1e, 1)
-          .fillRect(x - 3, y - 2, 5, 1).fillTriangle(x + 2, y - 4, x + 2, y, x + 4, y - 2)
-          .fillRect(x - 2, y + 1, 5, 1).fillTriangle(x - 2, y - 1, x - 2, y + 3, x - 4, y + 1);
+      const seed = t.id.length * 7 + (t.door?.x ?? 0);
+      // Now and then the coin turns over once on its edge.
+      const turn = ((time / 1000 + seed * 0.37) % 5) / 0.7;
+      const sx = turn < 1 ? Math.abs(Math.cos(turn * Math.PI)) : 1;
+      paintToken(mark, tokenPixels(face), Math.round(x), Math.round(y), sx);
+      // A glint off the rim, a few times a minute.
+      const glint = ((time / 1000 + seed * 0.61) % 3.2) / 0.36;
+      if (glint < 1 && sx === 1) {
+        const r = glint < 0.5 ? 1 : glint < 0.8 ? 2 : 1, gx = Math.round(x) + 4, gy = Math.round(y) - 5;
+        mark.fillStyle(0xfffbe8, 1).fillRect(gx, gy - r, 1, 2 * r + 1).fillRect(gx - r, gy, 2 * r + 1, 1);
       }
     }
   }

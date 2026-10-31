@@ -94,9 +94,12 @@ import type { FaunaGroup, FaunaMember } from "../../core/fauna";
 import { crops } from "../../content/agriculture/crops";
 import { farms } from "../../content/geography/onsets";
 import { route } from "../../core/routing";
+import { stallGood } from "../../content/economy/market";
+import { stallSignFor } from "../../content/props/signage";
 import {
   focusFor,
   lampFor,
+  marketTrades,
   ornaments,
   stallFor,
   streetFurnitureFor,
@@ -839,12 +842,23 @@ export function planSettlement(
     });
     if (blocked || plan.objects.some((o) => Math.abs(o.pos.x - at.x) < 4 && Math.abs(o.pos.y - at.y) < 3 &&
       (o.prop === "marketCounter" || o.kind === "monument" || o.kind === "tree"))) return;
-    const stall = stallFor(pack, index, trade);
+    const setting = pack.setting;
+    const sells = setting && stallGood({ ...setting, ecology: setting.environment?.ecology }, seed, id, marketTrades(pack));
+    const stall = stallFor(pack, index, sells?.trade ?? trade);
     eachCell(body, (x, y) => { plan.solid.add(cellKey(x, y)); plan.reserved.add(cellKey(x, y)); });
     gradeGround({ ...body, h: 2 }, plan.groundLevels?.get(cellKey(at.x, at.y)) ?? Math.round(sample(at.x, at.y).elevation / 14));
     plan.objects.push({ id, name: stall.label, prop: "marketCounter", kind: "container", sprite: stall.sprite,
       pos: pos(at), inventory: characterContext ? eligibleInventory({ grain: 6 }, characterContext) : { grain: 6 },
-      owner: `${site.id}-community` });
+      owner: `${site.id}-community`, sells: sells?.good,
+      ...(sells && { description: `Where the ${sells.seller.toLowerCase()} sets out the day's goods.` }) });
+    const sign = stallSignFor(pack, sells?.mark), post = { x: at.x + 2, y: at.y };
+    const free = !plan.solid.has(cellKey(post.x, post.y)) && !plan.lanes?.has(cellKey(post.x, post.y)) && dry({ ...post, w: 1, h: 1 }, false);
+    if (sign && sells && free) {
+      plan.solid.add(cellKey(post.x, post.y));
+      plan.reserved.add(cellKey(post.x, post.y));
+      plan.objects.push({ id: `${id}-sign`, name: `${sign.label} sign · ${sells.seller}`, prop: sign.prop, kind: "monument",
+        sprite: sign.sprite, pos: pos(post), inventory: {}, description: `A board on a post, showing what the stall beside it sells.` });
+    }
   };
   /** Nearest usable landing water. Sampled once; both the quay and the public
    * space that faces it ask the same question. */
