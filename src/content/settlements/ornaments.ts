@@ -103,6 +103,10 @@ function marketKit(pack: Pack): MarketKit | undefined {
     case "west-central-african":
     case "east-southern-african":
       return "westafrica";
+    case "south-asian":
+      return "bazaar";
+    case "andean":
+      return "andean";
     default:
       return undefined;
   }

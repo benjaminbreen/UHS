@@ -117,7 +117,7 @@ pack_atlas(sprites,OUT,'atlas',512)
 # Animation frames share the base frame's shadow.
 # The hangings cast no shadow of their own; the frame is a state the renderer
 # draws on its own, so it keeps a mask.
-shadows=build_shadows(ROOT,{k:v for k,v in sprites.items() if not re.search(r'-f\d$|-hang$',k)},{},output=OUT,atlas_name='shadows')
+shadows=build_shadows(ROOT,{k:v for k,v in sprites.items() if not re.search(r'-[fm]\d$|-hang$',k)},{},output=OUT,atlas_name='shadows')
 generated=ROOT/'src/render/generated'
 # Parked cars have their own sheet: a world before the motor age never loads it.
 from art.props_b.vehicles import vehicle_sprites, vehicle_shadows, vehicle_catalog

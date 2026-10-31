@@ -238,13 +238,13 @@ def _cloth(c, x0, x1, y, rng, hang, trade=None):
         hang(lambda hx, hy: [c.hline(hx - 2, hx + 3, hy + k, (b if k % 3 == 0 else d)[3 if k < 5 else 2]) for k in range(8)])
 
 
-@goods('cacao', 'kola', 'shea', 'dates', 'yams', 'greens', 'fruit')
+@goods('cacao', 'kola', 'shea', 'dates', 'yams', 'greens', 'fruit', 'coca')
 def _baskets(c, x0, x1, y, rng, hang, trade=None):
     fill = {'cacao': (CLOTH['ochre'], '#3a2014'), 'kola': (CLOTH['madder'], '#f0dcc0'),
             'shea': (['#8a7a5a', '#b3a57e', '#d6cba6', '#ece4c6', '#fbf6e2'], None),
             'dates': (['#2a1410', '#4a2418', '#6c3a20', '#8e552c', '#b07a44'], None),
             'yams': (['#3a2618', '#5a3c26', '#7a5536', '#9c724c', '#be9468'], None),
-            'greens': (CLOTH['green'], '#c8e0a0'), 'fruit': (CLOTH['saffron'], '#7a3a8a')}[trade]
+            'greens': (CLOTH['green'], '#c8e0a0'), 'coca': (['#1c2e14', '#2c4a1e', '#3e6628', '#56843a', '#7aa458'], None), 'fruit': (CLOTH['saffron'], '#7a3a8a')}[trade]
     x = x0 + 1
     while x < x1 - 8:
         if rng.random() < .55: basket(c, x, y, 8, 4, fill[0], fill[1])
@@ -357,6 +357,128 @@ def _rugs(c, x0, x1, y, rng, hang):
         hang(lambda hx, hy: [c.hline(hx - 3, hx + 4, hy + k, (q if k in (0, 9) or (k % 3 == 1 and (hx + k) % 2) else p)[3]) for k in range(11)])
 
 
+SALT = ['#6e7178', '#9da1a8', '#c9cdd1', '#e6e9ea', '#fbfcfc']
+IRON = ['#16171b', '#2a2c32', '#454850', '#6a6e76', '#9ca1a8']
+HIDE = ['#3a2010', '#5c3418', '#804c24', '#a46c38', '#c89258']
+BURLAP = ['#4a3a22', '#6e5832', '#937a48', '#b49c66', '#d2bc8a']
+
+
+def sack(c, cx, y, w, h, fill, speck=None):
+    """An open sack, its mouth rolled down over the grain."""
+    half = w // 2
+    for k in range(h):
+        bulge = half - (1 if k == 0 or k == h - 1 else 0)
+        for dx in range(-bulge, bulge + 1):
+            u = dx / max(1, bulge)
+            c.set(cx + dx, y - k, BURLAP[4 if u < -.4 else 3 if u < .3 else 2 if u < .8 else 1])
+        if k % 2: c.set(cx + (k * 3) % (2 * bulge) - bulge + 1, y - k, BURLAP[2])
+    c.hline(cx - half, cx + half, y - h, BURLAP[4]); c.hline(cx - half, cx + half, y - h + 1, BURLAP[1])
+    dome(c, cx, y - h - 1, max(2, half - 1), fill, speck)
+
+
+@goods('grain', 'rice')
+def _grain(c, x0, x1, y, rng, hang, trade=None):
+    fill = (['#8a8270', '#b8b09a', '#dcd6c2', '#efeadb', '#fffdf4'], None) if trade == 'rice' else (CLOTH['weld'], STRAW[2])
+    x = x0 + 5
+    while x < x1 - 5:
+        w = rng.choice([7, 9])
+        sack(c, x, y, w, 5 + rng.randrange(3), *fill)
+        x += w + 2
+    if x < x1 - 1:
+        c.hline(x - 3, x - 1, y - 1, WOOD[3]); c.set(x - 4, y - 2, WOOD[4])
+
+
+@goods('salt')
+def _salt(c, x0, x1, y, rng, hang):
+    x = x0 + 2
+    while x < x1 - 6:
+        if rng.random() < .5:
+            # Moulded loaves, as salt was sold by the cone or cake.
+            for i in range(2): cone(c, x + 2 + i * 4, y, 6 + rng.randrange(3), SALT)
+            x += 10
+        else:
+            for k in range(1 + rng.randrange(3)):
+                c.rect(x, y - 2 - k * 3, x + 6, y - k * 3, SALT[2 + k % 2])
+                c.hline(x, x + 6, y - 2 - k * 3, SALT[4]); c.set(x + 6, y - k * 3, SALT[1])
+            x += 9
+    if hang:
+        hang(lambda hx, hy: [c.hline(hx - 1, hx + 2, hy + k, BURLAP[3 - (k > 4)]) for k in range(6)])
+
+
+@goods('leather')
+def _leather(c, x0, x1, y, rng, hang):
+    x = x0 + 1
+    while x < x1 - 8:
+        if rng.random() < .5:
+            folded(c, x, y, 7, 2 + rng.randrange(3), HIDE, HIDE)
+            x += 10
+        else:
+            # A pair of shoes, toes out.
+            for i in range(2):
+                bx = x + i * 4
+                c.hline(bx, bx + 3, y, HIDE[1]); c.hline(bx, bx + 2, y - 1, HIDE[3]); c.set(bx, y - 2, HIDE[4])
+                c.set(bx + 1, y - 2, HIDE[2])
+            x += 10
+    if hang:
+        def hide(hx, hy):
+            for k in range(9):
+                half = [1, 2, 3, 3, 3, 3, 2, 2, 1][k]
+                for dx in range(-half, half + 1):
+                    c.set(hx + dx, hy + k, HIDE[3 if dx < 1 else 2] if (dx + k) % 5 else HIDE[1])
+        hang(hide)
+
+
+@goods('ironware')
+def _ironware(c, x0, x1, y, rng, hang):
+    x = x0 + 3
+    while x < x1 - 6:
+        r = rng.random()
+        if r < .35:
+            pot(c, x + 1, y, 5, 7, IRON, False)
+            c.hline(x - 2, x + 4, y - 5, IRON[3])
+            x += 9
+        elif r < .7:
+            # Blades laid out: knives and a hoe.
+            for i in range(3):
+                c.hline(x + i * 2, x + i * 2 + 4, y - i * 2, IRON[3]); c.set(x + i * 2, y - i * 2, IRON[4])
+                c.hline(x + i * 2 + 5, x + i * 2 + 6, y - i * 2, WOOD[2])
+            x += 11
+        else:
+            c.rect(x, y - 3, x + 4, y, IRON[2]); c.hline(x, x + 4, y - 3, IRON[4]); c.vline(x + 2, y - 8, y - 4, WOOD[3])
+            x += 7
+    if hang:
+        def sickle(hx, hy):
+            for k, (dx, dy) in enumerate([(0, 0), (1, 1), (2, 2), (2, 3), (2, 4), (1, 5), (0, 6), (-1, 6)]):
+                c.set(hx + dx, hy + dy, IRON[4 if k < 3 else 3])
+            c.vline(hx - 1, hy - 2, hy, WOOD[3])
+        hang(sickle)
+
+
+@goods('jugs')
+def _jugs(c, x0, x1, y, rng, hang):
+    glazes = [['#2a3a1c', '#435a2a', '#647e3a', '#8aa456', '#b4c882'], TERRACOTTA, BUFF]
+    x = x0 + 3
+    while x < x1 - 4:
+        g = rng.choice(glazes)
+        h = rng.choice([7, 9, 10])
+        pot(c, x, y, h, 5, g)
+        c.vline(x, y - h - 2, y - h, '#e8dcbc')
+        c.set(x + 3, y - h + 2, g[1]); c.set(x + 3, y - h + 3, g[1])
+        x += 7
+
+
+@goods('potatoes')
+def _potatoes(c, x0, x1, y, rng, hang):
+    kinds = [['#2a1a2a', '#4a2c48', '#6c4068', '#8e5a88', '#b07eaa'], ['#5a4818', '#86702a', '#b0983e', '#d4bc5c', '#ecd88a'],
+             ['#3a2618', '#5a3c26', '#7a5536', '#9c724c', '#be9468']]
+    x = x0 + 1
+    while x < x1 - 8:
+        k = kinds[rng.randrange(3)]
+        if rng.random() < .5: basket(c, x, y, 8, 3, k, k[1])
+        else: dome(c, x + 4, y, 4, k, k[1])
+        x += 10
+
+
 # -- bases ----------------------------------------------------------------------
 
 def base_mat(c, x0, x1, g, ramp):
@@ -374,6 +496,14 @@ def base_rug(c, x0, x1, g, ramp):
     return g - 2
 
 
+def base_aguayo(c, x0, x1, g):
+    bands = [CLOTH['cochineal'], CLOTH['weld'], CLOTH['green'], CLOTH['madder'], CLOTH['indigo'], CLOTH['saffron']]
+    for x in range(x0, x1 + 1):
+        b = bands[((x - x0) // 3) % len(bands)]
+        c.set(x, g, b[1]); c.set(x, g - 1, b[3] if (x - x0) % 3 else b[4])
+    return g - 2
+
+
 def base_table(c, x0, x1, g, w, h=7):
     top = g - h
     c.hline(x0, x1, top, w[4]); c.hline(x0, x1, top + 1, w[2])
@@ -382,14 +512,31 @@ def base_table(c, x0, x1, g, w, h=7):
     return top - 1
 
 
-def base_counter(c, x0, x1, g, w, front, h=13):
+def planks(c, x0, x1, y0, y1, w, seed):
+    """Upright boards: each its own tone, a dark seam between, a knot or two."""
+    rng = random.Random(seed)
+    x = x0
+    while x <= x1:
+        bw = rng.choice([4, 5, 5, 6])
+        tone = rng.choice([2, 3, 3])
+        for bx in range(x, min(x + bw, x1 + 1)):
+            for y in range(y0, y1 + 1):
+                # A grain streak down each board, broken here and there.
+                grain = bx == x + 2 and (y + seed + x) % 7 < 4
+                c.set(bx, y, w[tone - 1] if grain else w[tone])
+        c.vline(x, y0, y1, w[1])
+        if rng.random() < .35:
+            c.set(x + bw // 2, y0 + rng.randrange(max(1, y1 - y0)), w[1])
+        x += bw
+    c.hline(x0, x1, y1, w[1])
+
+
+def base_counter(c, x0, x1, g, w, h=13):
     top = g - h
-    c.hline(x0, x1, top, w[4]); c.hline(x0, x1, top + 1, w[3]); c.hline(x0, x1, top + 2, w[1])
-    for y in range(top + 3, g + 1):
-        for x in range(x0 + 1, x1):
-            c.set(x, y, front[3] if (x + y // 3) % 9 else front[2])
-    c.hline(x0 + 1, x1 - 1, top + 3, front[1])
-    c.vline(x0, top, g, w[2]); c.vline(x1, top, g, w[1])
+    # A board top proud of the front, lit along its edge.
+    c.hline(x0 - 1, x1 + 1, top, w[4]); c.hline(x0 - 1, x1 + 1, top + 1, w[3]); c.hline(x0, x1, top + 2, w[0])
+    planks(c, x0 + 1, x1 - 1, top + 3, g, w, x0 + h)
+    c.vline(x0, top + 2, g, w[2]); c.vline(x1, top + 2, g, w[1])
     return top - 1
 
 
@@ -397,9 +544,10 @@ def base_masonry(c, x0, x1, g, paint):
     top = g - 13
     c.rect(x0, top, x1, g, STONE[3])
     c.hline(x0, x1, top, STONE[4]); c.hline(x0, x1, top + 1, STONE[2])
-    c.rect(x0 + 2, top + 4, x1 - 2, g - 2, PLASTER[3])
-    c.hline(x0 + 2, x1 - 2, top + 4, paint[2]); c.hline(x0 + 2, x1 - 2, g - 2, paint[2])
-    c.vline(x0 + 2, top + 4, g - 2, paint[2]); c.vline(x1 - 2, top + 4, g - 2, paint[1])
+    c.rect(x0 + 2, top + 3, x1 - 2, g - 2, PLASTER[2])
+    c.hline(x0 + 2, x1 - 2, top + 3, PLASTER[1]); c.vline(x1 - 2, top + 3, g - 2, PLASTER[1])
+    # A painted dado, as on the Pompeian counters, worn at the foot.
+    c.hline(x0 + 2, x1 - 2, g - 3, paint[1])
     # Jars let into the counter top, as in a street bar.
     for jx in range(x0 + 5, x1 - 4, 9):
         c.hline(jx - 1, jx + 1, top, '#2a1e18')
@@ -407,12 +555,19 @@ def base_masonry(c, x0, x1, g, paint):
 
 
 def base_bench(c, x0, x1, g, rug):
+    """A plastered bench with a rug thrown over it, hanging part way down."""
     top = g - 9
-    c.rect(x0, top, x1, g, PLASTER[3]); c.hline(x0, x1, top, PLASTER[4]); c.vline(x1, top, g, PLASTER[1])
-    for y in range(top + 1, g - 1):
-        for x in range(x0 + 3, x1 - 3):
-            c.set(x, y, rug[3] if (x + y) % 4 else rug[1])
-    c.hline(x0 + 3, x1 - 3, g - 1, rug[4])
+    c.rect(x0, top, x1, g, PLASTER[2]); c.hline(x0, x1, top, PLASTER[4]); c.vline(x1, top, g, PLASTER[1])
+    for y in range(top + 1, g + 1):
+        c.set(x0, y, PLASTER[3])
+    c.hline(x0, x1, g, PLASTER[1])
+    drop = top + 5
+    for y in range(top, drop):
+        for x in range(x0 + 2, x1 - 2):
+            edge = y == top + 1 or y == drop - 2 or x in (x0 + 3, x1 - 4)
+            c.set(x, y, rug[4] if edge else rug[2] if (x + y) % 6 == 0 else rug[3] if y > top else rug[4])
+    for x in range(x0 + 2, x1 - 2, 2):
+        c.set(x, drop, rug[3])
     return top - 1
 
 
@@ -449,10 +604,15 @@ def cover_shade(c, x0, x1, top, g, cloth, border, w, motion, palm=False):
 
 def cover_awning(c, x0, x1, top, g, a, b, w, motion):
     for px in (x0, x1 - 1): post(c, px, top + 2, g, w)
+    plain = a is b
     for i, x in enumerate(range(x0 - 2, x1 + 3)):
         band = a if (i // 5) % 2 else b
         for k in range(6):
-            c.set(x, top + k + (1 if i > (x1 - x0) // 2 and k == 0 else 0), band[4] if k == 0 else band[3] if k < 4 else band[2])
+            t = 4 if k == 0 else 3 if k < 4 else 2
+            # A plain cloth shows its sag between the ribs instead of stripes.
+            if plain and k and i % 6 == 0: t -= 1
+            elif plain and k and i % 6 == 1: t = min(4, t + 1)
+            c.set(x, top + k + (1 if i > (x1 - x0) // 2 and k == 0 else 0), band[t])
         # Scalloped valance, stirring.
         sc = 2 if i % 5 in (1, 2, 3) else 1
         sc += wave(i, motion) if i % 5 == 2 else 0
@@ -468,7 +628,9 @@ def cover_canopy(c, x0, x1, top, g, a, b, w, motion):
         half = int((x1 - x0) / 2 * (k + 1) / 10) + 2
         for x in range(mid - half, mid + half + 1):
             band = a if ((x - mid + 40) // 4) % 2 else b
-            c.set(x, top + k, band[4 if x < mid - 1 else 3 if x < mid + 2 else 2])
+            t = 4 if x < mid - 1 else 3 if x < mid + 2 else 2
+            if a is b and (x - mid) % 5 == 0 and k > 1: t -= 1
+            c.set(x, top + k, band[t])
     for i, x in enumerate(range(x0 - 2, x1 + 3)):
         band = a if ((x - mid + 40) // 4) % 2 else b
         c.set(x, top + 10, band[1])
@@ -485,7 +647,10 @@ def cover_parasol(c, x0, x1, top, g, a, b, w, motion):
         h = int(round(math.sqrt(max(0, r * r - dx * dx)) * .38))
         for k in range(h + 1):
             band = a if ((dx + 40) // 4) % 2 else b
-            c.set(mid + dx, top + 6 - k, band[4 if dx < -r // 3 else 3 if dx < r // 3 else 2])
+            t = 4 if dx < -r // 3 else 3 if dx < r // 3 else 2
+            # Ribs of a paper or cloth umbrella, where it is one colour.
+            if a is b and dx % 4 == 0 and k > 0: t -= 1
+            c.set(mid + dx, top + 6 - k, band[t])
         if dx % 2 == 0: c.set(mid + dx, top + 7 + (wave(dx, motion) > 0), (a if ((dx + 40) // 4) % 2 else b)[1])
     c.set(mid, top + 6 - int(r * .38) - 1, w[4])
     return top + 9
@@ -510,16 +675,20 @@ STYLE = {
                      mat=PALM, cloths=['cotton'], borders=['cochineal', 'indigo', 'weld'],
                      wood=RAMPS['palewood'][1:6]),
     'roman': dict(bases=['table', 'counter', 'masonry'], covers=[['none'], ['awning'], ['awning']],
-                  cloths=['madder', 'weld', 'cotton'], borders=['cotton'], wood=WOOD, front='cotton'),
+                  cloths=['cotton', 'cotton', 'madder'], borders=['cotton'], wood=WOOD),
     'souk': dict(bases=['rug', 'bench', 'bench'], covers=[['none'], ['awning', 'shade'], ['canopy']],
-                 mat=CLOTH['madder'], cloths=['indigo', 'madder', 'green'], borders=['cotton', 'weld'], wood=WOOD),
+                 mat=CLOTH['madder'], cloths=['cotton', 'indigo', 'madder'], borders=['cotton', 'weld'], wood=WOOD, stripes=.3),
     'eastasia': dict(bases=['table', 'counter', 'counter'], covers=[['parasol'], ['awning', 'parasol'], ['booth']],
-                     cloths=['indigo', 'cotton'], borders=['cotton'], wood=['#2a1210'] + LACQUER[1:], roof=TILE,
-                     front='indigo'),
+                     cloths=['indigo', 'cotton'], borders=['cotton'], wood=RAMPS['palewood'][1:6], roof=TILE),
     'westafrica': dict(bases=['mat', 'table', 'table'], covers=[['none'], ['parasol'], ['palm', 'parasol']],
-                       mat=STRAW, cloths=['indigo', 'weld', 'madder', 'green'], borders=['weld', 'cotton'], wood=DARKWOOD),
+                       mat=STRAW, cloths=['indigo', 'cotton', 'madder'], borders=['weld', 'cotton'], wood=DARKWOOD, stripes=.2),
+    'bazaar': dict(bases=['rug', 'bench', 'counter'], covers=[['parasol', 'none'], ['awning', 'shade'], ['canopy', 'awning']],
+                   mat=CLOTH['saffron'], cloths=['cotton', 'saffron', 'madder', 'indigo'], borders=['weld', 'cotton'],
+                   wood=DARKWOOD, stripes=.3),
+    'andean': dict(bases=['aguayo', 'aguayo', 'table'], covers=[['none'], ['shade'], ['shade', 'none']],
+                   cloths=['cotton', 'cochineal'], borders=['cochineal', 'weld', 'green'], wood=RAMPS['palewood'][1:6]),
     'medieval': dict(bases=['table', 'counter', 'counter'], covers=[['none'], ['awning'], ['booth', 'awning']],
-                     cloths=['madder', 'woad', 'weld'], borders=['cotton'], wood=WOOD, roof=SHINGLE, front='woad'),
+                     cloths=['cotton', 'cotton', 'woad', 'madder'], borders=['cotton'], wood=WOOD, roof=SHINGLE),
 }
 
 
@@ -529,7 +698,7 @@ def pitch(kit, v, motion=0):
     form = v % FORMS
     rng = random.Random(f'{kit}-{v}')
     st = STYLE[kit]
-    width = [28, 40, 52][form] + rng.choice([-2, 0, 2])
+    width = [26, 38, 54][form] + rng.choice([-4, -2, 0, 2, 4])
     cover = rng.choice(st['covers'][form])
     height = {'none': 26, 'shade': 36, 'palm': 38, 'awning': 38, 'canopy': 46, 'parasol': 40, 'booth': 46}[cover]
     height += [0, 0, 6][form]
@@ -537,7 +706,8 @@ def pitch(kit, v, motion=0):
     x0, x1, g = 4, width + 3, height - 1
     w = st['wood']
     cloth = CLOTH[rng.choice(st['cloths'])]
-    alt = CLOTH[rng.choice([n for n in st['cloths'] if CLOTH[n] is not cloth] or st['cloths'])]
+    striped = rng.random() < st.get('stripes', 0)
+    alt = CLOTH[rng.choice([n for n in st['cloths'] if CLOTH[n] is not cloth] or st['cloths'])] if striped else cloth
     border = CLOTH[rng.choice(st['borders'])]
     # Cover behind the goods first where it has back posts; its front later.
     top = 2
@@ -545,9 +715,9 @@ def pitch(kit, v, motion=0):
     if cover == 'shade' or cover == 'palm':
         under = cover_shade(c, x0 + 1, x1 - 1, top, g, PALM if cover == 'palm' else cloth, border, w, motion, cover == 'palm')
     elif cover == 'awning':
-        under = cover_awning(c, x0 + 1, x1 - 1, top + 2, g, cloth, alt if kit != 'roman' else CLOTH['cotton'], w, motion)
+        under = cover_awning(c, x0 + 1, x1 - 1, top + 2, g, cloth, alt, w, motion)
     elif cover == 'canopy':
-        under = cover_canopy(c, x0 + 2, x1 - 2, top, g, cloth, CLOTH['cotton'], w, motion)
+        under = cover_canopy(c, x0 + 2, x1 - 2, top, g, cloth, alt, w, motion)
     elif cover == 'parasol':
         under = cover_parasol(c, x0 + 3, x1 - 3, top, g, cloth, alt, w, motion)
     elif cover == 'booth':
@@ -556,9 +726,10 @@ def pitch(kit, v, motion=0):
         under = None
     base = st['bases'][form]
     if base == 'mat': surf = base_mat(c, x0, x1, g, st['mat'])
+    elif base == 'aguayo': surf = base_aguayo(c, x0, x1, g)
     elif base == 'rug': surf = base_rug(c, x0, x1, g, st['mat'])
     elif base == 'table': surf = base_table(c, x0 + 1, x1 - 1, g, w, 7 + form)
-    elif base == 'counter': surf = base_counter(c, x0 + 1, x1 - 1, g, w, CLOTH[st.get('front', 'cotton')])
+    elif base == 'counter': surf = base_counter(c, x0 + 1, x1 - 1, g, w, rng.choice([11, 12, 13]))
     elif base == 'masonry': surf = base_masonry(c, x0, x1, g, CLOTH['madder'])
     else: surf = base_bench(c, x0, x1, g, CLOTH[rng.choice(['madder', 'indigo'])])
 
@@ -575,7 +746,7 @@ def pitch(kit, v, motion=0):
     # A little life at the foot of the pitch.
     if rng.random() < .45:
         ex = rng.choice([x0 - 2, x1 - 1])
-        if kit in ('tianguis', 'westafrica'): basket(c, ex, g, 5, 4, CLOTH['weld'] if kit == 'tianguis' else None)
+        if kit in ('tianguis', 'westafrica', 'andean'): basket(c, ex, g, 5, 4, CLOTH['weld'] if kit == 'tianguis' else None)
         else: pot(c, ex + 2, g, 6, 5, TERRACOTTA)
     soft_outline(c, w[0], w[2])
     im = c.image()
