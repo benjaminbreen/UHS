@@ -1689,30 +1689,45 @@ export class WorldScene extends Phaser.Scene {
     mark.fillStyle(gold, 1).fillTriangle(ax, ay, bx, by, dx, dy);
   }
   private traderMark?: Phaser.GameObjects.Graphics;
-  private traders: string[] = [];
+  private traders: { id: string; door?: { x: number; y: number } }[] = [];
   private tradersChecked = 0;
-  /** A small coin over everyone nearby with goods out for sale. */
+  /** A coin over everyone nearby who will sell, or over the door they sell
+   * behind; two arrows instead where nobody pays in coin. */
   private drawTraders(time: number) {
     const engine = this.runtime.engine;
     if (time - this.tradersChecked > 600) {
       this.tradersChecked = time;
       const p = engine.state.player.pos;
-      this.traders = engine.state.actors
-        .filter((a) => a.kind === "human" && a.pos.space === p.space &&
-          Math.abs(a.pos.x - p.x) + Math.abs(a.pos.y - p.y) < 24 && engine.shopOf(a.id))
-        .map((a) => a.id);
+      this.traders = engine.traders()
+        .filter((t) => Math.abs(t.at.x - p.x) + Math.abs(t.at.y - p.y) < 24 &&
+          (t.actor.pos.space === p.space || (!!t.door && (p.space ?? "outside") === "outside")))
+        .map((t) => ({ id: t.actor.id, door: t.actor.pos.space === p.space ? undefined : t.at }));
     }
     const mark = (this.traderMark ??= this.add.graphics());
     mark.clear().setDepth(1e7 - 1);
-    for (const id of this.traders) {
-      const image = this.entities.get(id);
-      if (!image?.visible) continue;
-      const x = image.x,
-        y = image.y - image.displayHeight * image.originY - 7 - Math.abs(Math.sin(time / 420 + x)) * 2;
-      mark.fillStyle(0x1a1410, 1).fillCircle(x, y, 5);
-      mark.fillStyle(0xf2cf6b, 1).fillCircle(x, y, 4);
-      mark.fillStyle(0xb8892f, 1).fillRect(x - 1, y - 2, 2, 4);
-      mark.fillStyle(0xfff4d0, 1).fillRect(x - 3, y - 3, 1, 1);
+    const coined = engine.coined();
+    for (const t of this.traders) {
+      let x: number, y: number;
+      const bob = Math.abs(Math.sin(time / 420 + (t.door?.x ?? 0))) * 2;
+      if (t.door) {
+        x = t.door.x * 16 + 8;
+        y = t.door.y * 16 - 36 - this.lift(x, t.door.y * 16 + 16) - bob;
+      } else {
+        const image = this.entities.get(t.id);
+        if (!image?.visible) continue;
+        x = image.x;
+        y = this.headTop(image) - (this.castPeople.has(t.id) ? 15 : 8) - bob;
+      }
+      mark.fillStyle(0x1a1410, 1).fillCircle(x, y, 6);
+      mark.fillStyle(0xf2cf6b, 1).fillCircle(x, y, 5);
+      if (coined) {
+        mark.fillStyle(0xb8892f, 1).fillRect(x - 1, y - 3, 2, 6);
+        mark.fillStyle(0xfff4d0, 1).fillRect(x - 3, y - 3, 1, 2);
+      } else {
+        mark.fillStyle(0x6b4a1e, 1)
+          .fillRect(x - 3, y - 2, 5, 1).fillTriangle(x + 2, y - 4, x + 2, y, x + 4, y - 2)
+          .fillRect(x - 2, y + 1, 5, 1).fillTriangle(x - 2, y - 1, x - 2, y + 3, x - 4, y + 1);
+      }
     }
   }
   /** Squat, tremble, sweat, heave: a rock going up over the head. */

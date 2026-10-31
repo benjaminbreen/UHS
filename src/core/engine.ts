@@ -82,7 +82,7 @@ import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
-import { keepsShop, stockFor, TRADER } from "./shop";
+import { keepsShop, sellsTrade, stockFor, TRADER } from "./shop";
 import { isWayfarer } from "../world/v3/wayfarers";
 import { wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
@@ -8875,13 +8875,55 @@ export class Engine {
   shopOf(id: string, anyone = false) {
     const a = this.state.actors.find((a) => a.id === id && a.kind === "human" && !a.dead);
     const granary = a && this.granary(a);
-    if (!a || (!anyone && !granary && !keepsShop(this.world.pack, a))) return undefined;
+    if (!a || (!anyone && !granary && !this.sellsNow(a))) return undefined;
     const day = Math.floor(this.state.clock / (DAY_MINUTES * 60));
     const coined = this.coined();
     const shop = a.shop?.day === day ? a.shop
       : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i), [...this.imported().keys()].filter((i) => this.carried(i)));
     if (granary && a.shop?.day !== day) shop.stock = { ...shop.stock, grain: granary };
     return { actor: a, coined, ...shop };
+  }
+  /** Everyone who would trade now, and where they show: themselves, or the
+   * door of the building they sell in. Rechecked once a game minute. */
+  traders() {
+    const s = this.state, minute = Math.floor(s.clock / 60);
+    if (this.tradersAt?.minute === minute && this.tradersAt.count === s.actors.length) return this.tradersAt.list;
+    const setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    const collector = claim?.share ? this.collector(claim) : undefined;
+    const list = s.actors.filter((a) => this.sellsNow(a) || (a === collector && this.granary(a) > 0)).map((a) => {
+      const place = a.pos.space && a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
+      return { actor: a, at: place ? place.door ?? place.entrance : a.pos, door: place?.id, merchant: isWayfarer(a.id) };
+    });
+    this.tradersAt = { minute, count: s.actors.length, list };
+    return list;
+  }
+  private tradersAt?: { minute: number; count: number; list: { actor: Actor; at: Point; door?: string; merchant: boolean }[] };
+  /** Open for trade now: at the stall, or by day in a workshop at home,
+   * which is where most crafts sold from. Never asleep or ill in bed. */
+  private sellsNow(a: Actor) {
+    if (!sellsTrade(this.world.pack, a) || /^Resting/.test(a.activity)) return false;
+    const day = this.world.itinerary?.(a.id);
+    if (day && itineraryAt(day, this.state.clock).activity === "rest" && a.activity !== "At home") return false;
+    if (keepsShop(this.world.pack, a)) return a.activity !== "At home";
+    const hour = Math.floor(this.state.clock / 3600) % 24;
+    return a.pos.space !== "outside" && a.pos.space === this.household(a.householdId)?.residence && hour >= 8 && hour < 18;
+  }
+  /** A seller's wares in a line: "Sells salt, wool and cloth · buys rice". */
+  tradeLine(id: string) {
+    const key = `${id}:${Math.floor(this.state.clock / (DAY_MINUTES * 60))}`;
+    if (!this.tradeLines.has(key)) this.tradeLines.set(key, this.describeTrade(id));
+    return this.tradeLines.get(key);
+  }
+  private tradeLines = new Map<string, string | undefined>();
+  private describeTrade(id: string) {
+    const shop = this.shopOf(id, true);
+    if (!shop) return;
+    const list = (xs: string[]) => xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : xs[0];
+    const name = (i: ItemId) => (this.item(i)?.name ?? i).toLowerCase();
+    const sells = Object.entries(shop.stock).filter(([i, n]) => i !== "coin" && (n ?? 0) > 0)
+      .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0)).slice(0, 3).map(([i]) => name(i));
+    const buys = this.merchant(id) ? [...this.plenty()].filter((i) => this.item(i)).slice(0, 2).map(name) : [];
+    return [sells.length && `Sells ${list(sells)}`, buys.length && `buys ${list(buys)}`].filter(Boolean).join(" · ") || undefined;
   }
   /** Sacks the collector sells today from what the claim brought in: a
    * dozen at most, fewer as the store empties. */
@@ -9005,7 +9047,7 @@ export class Engine {
   worth(inv: Inventory, side: "buy" | "sell", to?: string) {
     return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id) : this.sellPrice(id, to)), 0);
   }
-  private coined() {
+  coined() {
     const setting = this.world.pack.setting;
     const credit = this.state.households?.find((h) => h.members.includes(this.state.player.id))?.credit;
     return credit ? credit.repayment === "money" : !!setting && capabilitiesFor(setting).has("coinage");

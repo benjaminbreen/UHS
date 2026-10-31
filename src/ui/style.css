@@ -10490,3 +10490,4 @@ svg.lucide :is(circle, rect, ellipse, polygon) { fill: color-mix(in srgb, curren
   .work-title b) {
   font-family: var(--prose);
 }
+.trade-line { margin: 4px 0; color: #f2cf6b; font-size: 0.85em; }

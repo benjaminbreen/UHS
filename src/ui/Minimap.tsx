@@ -865,6 +865,22 @@ export function Minimap({
           text: `${(profile?.label ?? g.speciesId).replace(" study", "")} · ${g.members.length}`,
         });
       }
+      // Sellers in gold, merchants on the road in copper.
+      for (const t of runtime.engine.traders()) {
+        const x = ((t.at.x - origin.x) * size) / extent + size / 2,
+          y = ((t.at.y - origin.y) * size) / extent + height / 2;
+        if (x < 4 || y < 4 || x > size - 4 || y > height - 4) continue;
+        ctx.fillStyle = "#1a1410";
+        ctx.beginPath();
+        ctx.arc(x, y, large ? 4.5 : 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = t.merchant ? "#d9824a" : "#f2cf6b";
+        ctx.beginPath();
+        ctx.arc(x, y, large ? 3.5 : 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        const line = runtime.engine.tradeLine(t.actor.id);
+        pins.current.push({ x, y, text: `${t.actor.name.split(" ")[0]}, ${t.actor.role.toLowerCase()}${line ? ` · ${line.replace(/^Sells/, "sells")}` : ""}` });
+      }
     };
     redraw.current = draw;
     draw();

@@ -1843,6 +1843,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       .join(", ") || "Empty"}
                   </p>
                 )}
+                {runtime.engine.shopOf(selection.id) && runtime.engine.tradeLine(selection.id) && (
+                  <p className="trade-line">{runtime.engine.tradeLine(selection.id)}</p>
+                )}
                 <div className="context-actions">
                   {runtime.engine.shopOf(selection.id) && (
                     <button className="action" onClick={() => { setShopWith(selection.id); setModal("shop"); }}>

@@ -36,15 +36,19 @@ export type Shop = { day: number; stock: Inventory; purse: number };
 
 /** Who keeps goods to sell: a craftsperson or shopkeeper at their work, or a
  * travelling merchant on the road. */
-export function keepsShop(pack: Pack, actor: Actor) {
+/** Whether this person's trade is one that sells, wherever they are now. */
+export function sellsTrade(pack: Pack, actor: Actor) {
   if (actor.kind !== "human" || actor.dead || (actor.age ?? 30) < 14) return false;
   if (isWayfarer(actor.id)) return TRADER.test(actor.role);
   const kit = livelihoodOf(pack, actor);
   // Farmers and herders sell at market, not from the field; a porter dressed as a tailor is still a porter.
   if (!goodsOf(kit, pack.setting?.economyRevision).some((g) => g !== "grain" && (g !== "meat" || kit!.id === "butcher"))) return false;
-  if ((actor.origin?.roleLabel ?? kit!.label).toLowerCase() !== actor.role.toLowerCase()) return false;
-  return actor.pos.space === actor.work.space &&
-    Math.abs(actor.pos.x - actor.work.x) + Math.abs(actor.pos.y - actor.work.y) <= 8;
+  return (actor.origin?.roleLabel ?? kit!.label).toLowerCase() === actor.role.toLowerCase();
+}
+export function keepsShop(pack: Pack, actor: Actor) {
+  if (!sellsTrade(pack, actor)) return false;
+  return isWayfarer(actor.id) || (actor.pos.space === actor.work.space &&
+    Math.abs(actor.pos.x - actor.work.x) + Math.abs(actor.pos.y - actor.work.y) <= 8);
 }
 
 /** The day's stock, the same for the same person on the same day. Someone
