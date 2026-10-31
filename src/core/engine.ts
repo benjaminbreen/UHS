@@ -6506,7 +6506,8 @@ export class Engine {
   private syncWayfarers(clock: number) {
     if (!this.world.wayfarers) return;
     this.state.actors = this.state.actors.filter((a) => !a.wayfarer || a.wayfarer.until > clock);
-    this.state.fauna = this.state.fauna?.filter((g) => !g.train || g.members.length);
+    const leading = new Set(this.state.actors.map((a) => `${a.id}-train`));
+    this.state.fauna = this.state.fauna?.filter((g) => !g.train || g.members.length || leading.has(g.id));
     const here = new Set(this.state.actors.map((a) => a.id));
     for (const actor of this.world.wayfarers(clock))
       if (!here.has(actor.id)) {
@@ -6516,7 +6517,7 @@ export class Engine {
         const g: FaunaGroup = {
           id: `${actor.id}-train`,
           speciesId: train.species,
-          members: Array.from({ length: train.count }, (_, n) => ({ x: actor.pos.x, y: actor.pos.y, direction: 1, n })),
+          members: [],
           pos: { ...actor.pos },
           home: { ...actor.pos },
           homeRadius: 4,
@@ -6531,24 +6532,35 @@ export class Engine {
         (this.state.fauna ??= []).push(g);
       }
   }
+  private trainJoined = new Map<string, number>();
   /** Pack animals keep to their own day on the road, and are gone at the
    * border with the people driving them. */
   private walkTrain(g: FaunaGroup, clock: number) {
     const side = !faunaProfile(g.speciesId)?.directions;
+    const leader = this.state.actors.find((a) => `${a.id}-train` === g.id);
+    const count = leader?.wayfarer?.train?.count ?? Math.max(0, ...g.members.map((m) => (m.n ?? 0) + 1));
+    const was = new Map(g.members.map((m) => [m.n, m]));
+    // How many have come on so far; one gone from the list after that was killed.
+    let joined = this.trainJoined.get(g.id) ?? Math.max(0, ...g.members.map((m) => (m.n ?? 0) + 1));
     let moving = false;
-    g.members = g.members.filter((m) => {
-      const day = this.world.itinerary?.(`${g.id}-${m.n}`);
-      if (!day) return false;
-      if (clock / 60 < day.start) return true;
+    // A beast is on the map from when its own walk begins: waiting at the
+    // road's end, the whole string stood in one cell.
+    g.members = [];
+    for (let n = 0; n < count; n++) {
+      const day = this.world.itinerary?.(`${g.id}-${n}`);
+      if (!day || clock / 60 < day.start || (n < joined && !was.has(n))) continue;
+      joined = Math.max(joined, n + 1);
       const at = itineraryAt(day, clock);
-      if (at.activity === "rest") return false;
+      if (at.activity === "rest") continue;
+      const m = was.get(n) ?? { x: 0, y: 0, direction: 1, n };
       m.x = Math.round(at.x);
       m.y = Math.round(at.y);
       moving ||= at.moving;
       // Side-view art has no north or south: it keeps the last way it faced.
       if (at.moving && !(side && at.direction % 2 === 0)) m.direction = at.direction as FaunaMember["direction"];
-      return true;
-    });
+      g.members.push(m);
+    }
+    this.trainJoined.set(g.id, joined);
     if (g.members[0]) g.pos = { x: g.members[0].x, y: g.members[0].y, space: "outside" };
     g.state = moving ? "wander" : "graze";
   }

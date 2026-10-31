@@ -158,4 +158,13 @@ it("drives a llama train along the party's road, a few tiles behind", () => {
       expect(beast.segments.at(-1)!.activity).toBe("rest");
     }
   }
+  // On a short road too the string stands out along it where it halts, a body's length apart.
+  const short = ways.map((w) => ({ ...w, path: w.path.slice(0, 31), point: w.path[30] }));
+  const tight = Array.from({ length: 30 }, (_, d) => wayfarerDay(open, "seed", pack, short, d)).flat().filter((p) => p.animals);
+  expect(tight.length).toBeGreaterThan(0);
+  for (const { animals } of tight) {
+    const halts = animals!.map((b) => b.segments.find((s) => !s.path && s.activity !== "rest")!.pos);
+    for (let k = 1; k < halts.length; k++)
+      expect(Math.hypot(halts[k].x - halts[k - 1].x, halts[k].y - halts[k - 1].y)).toBeGreaterThanOrEqual(2);
+  }
 });

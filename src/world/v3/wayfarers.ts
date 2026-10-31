@@ -415,6 +415,17 @@ function roadParty(
   const pace = PACE / (kind.speed ?? 1);
   const arrive = (6 + r("arrive") * 10) * 60;
   /** `lag` tiles behind whoever leads, and halting that much short of them. */
+  const party = members(r, kind);
+  const beast = kind.animal;
+  const known =
+    beast &&
+    faunaProfiles.find((p) => p.id === beast.species)?.presence.some((scope) => matchesCharacterScope(scope, setting, "*"));
+  const count = known ? beast.count[0] + Math.floor(r("animals") * (beast.count[1] - beast.count[0] + 1)) : 0;
+  // A beast's length in tiles, nose to tail, so the string does not stand in a heap.
+  const gap = beast && ["camel", "horse", "cattle"].includes(beast.species) ? 3 : 2;
+  const tail = 2 * party.length + count * gap;
+  // Halt far enough along that the whole train stands on the road behind the leader.
+  stopAt = Math.min(path.length - 1, Math.max(stopAt, tail + 1));
   const walk = (lag: number) => {
     const halt = Math.max(1, stopAt - lag);
     const start = day * DAY_MINUTES + arrive + lag * pace;
@@ -431,16 +442,7 @@ function roadParty(
     );
     return { itinerary, done: start + itinerary.segments[itinerary.segments.length - 1].from };
   };
-  const party = members(r, kind);
-  const beast = kind.animal;
-  const known =
-    beast &&
-    faunaProfiles.find((p) => p.id === beast.species)?.presence.some((scope) => matchesCharacterScope(scope, setting, "*"));
-  const animals = known
-    ? Array.from({ length: beast.count[0] + Math.floor(r("animals") * (beast.count[1] - beast.count[0] + 1)) }, (_, k) =>
-        walk(2 * party.length + k).itinerary,
-      )
-    : [];
+  const animals = Array.from({ length: count }, (_, k) => walk(2 * party.length + k * gap).itinerary);
   return party.map((m, i) => {
     const { itinerary, done } = walk(2 * i);
     const actor = person(seed, setting, `${id}-${i}`, kind.dress, kind.label, m.sex, m.age, path[0], (done + 10) * 60);
