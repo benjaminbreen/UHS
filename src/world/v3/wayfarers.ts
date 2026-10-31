@@ -93,8 +93,8 @@ function stallholders(world: WorldModel, seed: string, setting: NonNullable<Pack
     .flatMap((o, k) => {
       const r = (...key: (string | number)[]) => random(seed, "stalls", day, o.id, ...key);
       const who = stallSeller(o.sells!, ground);
-      // Behind the counter where there is room, else in front of it.
-      const stand = [{ x: o.pos.x, y: o.pos.y - 1 }, { x: o.pos.x, y: o.pos.y + 1 }].find((p) => !world.blocked(p.x, p.y, "outside"));
+      // Beside the counter, opposite its sign, where they are not hidden behind it.
+      const stand = [{ x: o.pos.x - 2, y: o.pos.y }, { x: o.pos.x - 2, y: o.pos.y + 1 }, { x: o.pos.x, y: o.pos.y + 1 }].find((p) => !world.blocked(p.x, p.y, "outside"));
       if (!who || !stand || r("open") > 0.85) return [];
       const from = [[0, 9], [9, 2], [-9, 2], [0, 12]].map(([dx, dy]) => ({ x: stand.x + dx, y: stand.y + dy }))
         .find((p) => !world.blocked(p.x, p.y, "outside"));
