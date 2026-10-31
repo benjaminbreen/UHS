@@ -22,6 +22,7 @@ const rates: Record<string, { make: number; need?: number }> = {
   ironwork: { make: 1, need: 0.01 },
   leather: { make: 1 },
   hide: { make: 1 },
+  fibre: { make: 2 },
   timber: { make: 2 },
   light: { make: 8, need: 0.1 },
   milk: { make: 6, need: 0.5 },
@@ -40,7 +41,7 @@ const IMPORT = "import";
 /** Longest absence a map catches up on; a longer one is treated as this. */
 export const CATCH_UP_HOURS = 24 * 14;
 /** What a trade uses up, one for one, when someone in town makes it. */
-const inputs: Record<string, string> = { bread: "grain", drink: "grain" };
+const inputs: Record<string, string> = { bread: "grain", drink: "grain", cloth: "fibre", leather: "hide" };
 const needed = goods.filter((g) => g.need).map((g) => g.id);
 
 /**
@@ -225,6 +226,7 @@ export const shownAs: Record<string, ItemId> = {
   leather: "hide",
   hide: "hide",
   cloth: "wool",
+  fibre: "wool",
   pots: "clay",
   ironwork: "tool",
   light: "torch",

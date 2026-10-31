@@ -49,7 +49,7 @@ it("keeps basket weaving and cordage away from cloth looms", () => {
 it("classifies production without reading substrings of local role labels", () => {
   const kit = (id: string) => commonLivelihoods.find((l) => l.id === id)!;
   expect(goodsOf(kit("spinner"), 1)).toEqual(["cloth"]);
-  expect(goodsOf(kit("swineherd"), 1)).toEqual(["meat"]);
+  expect(goodsOf(kit("swineherd"), 1)).toEqual(["meat", "hide"]);
   expect(goodsOf({ ...kit("religious-specialist"), label: "Forest sage and diviner" }, 1)).toEqual([]);
   expect(goodsOf({ ...kit("spinner"), label: "Wine seller" }, 1)).toEqual(["cloth"]);
   expect(goodsOf(kit("brewer"), 1)).toEqual(["drink"]);

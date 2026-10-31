@@ -54,6 +54,7 @@ export const goods: Good[] = [
   },
   { id: "light", noun: "candles", match: /candle|chandler|soap|tallow/ },
   { id: "hide", noun: "hides", match: /^$/ },
+  { id: "fibre", noun: "wool and flax", match: /^$/ },
   { id: "milk", noun: "milk", match: /^$/ },
 ];
 /** Bread can be bought as grain where no one bakes. */
@@ -65,14 +66,16 @@ const byTrade: Record<string, string[]> = {
   innkeeper: ["drink"], publican: ["drink"],
   "basket-weaver": ["pots"], "basket-maker": ["pots"], cooper: ["pots"],
   "net-maker": [], "vine-dresser": [], "market-gardener": [],
-  "tea-grower": [], "tea-picker": [], "cotton-grower": [], "jute-grower": [],
+  "tea-grower": [], "tea-picker": [], "cotton-grower": ["fibre"], "jute-grower": [],
   "date-cultivator": [], "coca-grower": [], "coffee-picker": [], "palm-tapper": [],
   "irrigation-keeper": [], ostler: [], "salt-worker": ["salt"], "salt-panner": ["salt"],
+  shepherd: ["meat", "fibre"], goatherd: ["meat", "fibre"], "llama-herder": ["meat", "fibre"],
+  "yak-herder": ["meat", "fibre"], "camel-herder": ["milk", "fibre"],
 };
 const byActivity: Record<string, string[]> = {
   "Tending cultivation": ["grain"], "Watching the crop": ["grain"],
   "Bringing in the crop": ["grain"], "Working the smallholding": ["grain"],
-  "Working the grain": ["grain"], "Tending animals": ["meat"],
+  "Working the grain": ["grain"], "Tending animals": ["meat", "hide"],
   "Working near water": ["fish"], "Working the water": ["fish"],
   Brewing: ["drink"], "Pressing oil": ["oil"], "Working the salt": ["salt"],
   "Working cloth": ["cloth"], "Making clothes": ["cloth"],

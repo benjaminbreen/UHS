@@ -22,6 +22,8 @@ const SHELF: Record<string, ItemId[]> = {
   drink: ["bread", "cooked-meat", "water"],
   oil: ["herbs"],
   salt: ["salt"],
+  fibre: ["wool", "flax", "cotton"],
+  hide: ["hide"],
 };
 /** Goods whose makers also sell what they themselves wear. */
 const DRESSED: Record<string, RegExp> = {

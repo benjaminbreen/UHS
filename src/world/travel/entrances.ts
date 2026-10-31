@@ -8,6 +8,7 @@ export type EntranceSpec = {
   /** The map past this border, and whether anyone lives there. */
   name?: string;
   settlement?: string;
+  neighbor?: NonNullable<import("../../content/geography/types").WorldSetting["playableMap"]>["exits"][number]["neighbor"];
 };
 export type MapEntrance = EntranceSpec & {
   point?: { x: number; y: number };

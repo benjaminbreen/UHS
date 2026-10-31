@@ -93,7 +93,7 @@ export function tradeOf(g: Ground, farming = true) {
   return { known, lacks };
 }
 
-const DIRECTIONS: Record<string, string> = {
+export const DIRECTIONS: Record<string, string> = {
   N: "north", NE: "northeast", E: "east", SE: "southeast", S: "south", SW: "southwest", W: "west", NW: "northwest",
 };
 /** The neighbouring country that has it, and the way it comes: the first

@@ -11,6 +11,7 @@ import type { MapEntrance } from "../travel/entrances";
 import { habitatTagsAt } from "./fauna";
 import { faunaProfiles } from "../../content/fauna";
 import { matchesCharacterScope } from "../../content/characters/resolve";
+import { DIRECTIONS, endowmentFor, resourceName, type Resource } from "../../content/economy/endowments";
 
 /** A border crossing as a passer-by sees it: where it is, and what lies past it. */
 export type Way = MapEntrance & { point: Point };
@@ -66,7 +67,84 @@ export function wayfarerDay(
       : roadParty(world, seed, setting, kinds, ways, id, day, r, kit);
     if (party) out.push(...party);
   }
+  const caravan = kinds.filter((k) => k.halt === "trade" || (k.going && GOODS.test(k.going)));
+  if (caravan.length && roll("caravan") < 0.7)
+    out.push(...(roadParty(world, seed, setting, caravan, ways, `wayfarer-${day}-c`, day, (...k) => roll("c", ...k), kit) ?? []));
+  if (context)
+    for (let d = day - 4; d <= day; d++)
+      for (let n = 0; n < 2; n++)
+        out.push(...(trip(world, seed, setting, context, ways, d, n, day, kit) ?? []));
   return out;
+}
+
+const GOODS = /(?<!small )goods/;
+/** What a merchant on this road carries: what the country behind them has
+ * plenty of and the country ahead has none of. */
+const CARGO: Resource[] = ["salt", "ore", "oil", "timber", "fish", "herds", "grain"];
+function cargoOf(setting: NonNullable<Pack["setting"]>, from: Way, to: Way) {
+  if (!from.neighbor || !to.neighbor) return;
+  const a = endowmentFor({ ...from.neighbor, year: setting.year }), b = endowmentFor({ ...to.neighbor, year: setting.year });
+  const r = CARGO.find((r) => a[r] === 2 && !b[r] && (r !== "ore" || setting.year >= -1200));
+  if (!r) return;
+  const g = { ...from.neighbor, year: setting.year };
+  return r === "fish" ? "salt fish" : r === "herds" ? "wool and hides" : r === "ore" && resourceName(r, g) === "ore" ? "iron" : resourceName(r, g);
+}
+
+/** What each kind of work in the wild goes out for, and comes back with. */
+const TRIPS: [RegExp, { doing: string; with: string; carry: string; eco: string[] }][] = [
+  [/hunt|trap/, { doing: "hunting", with: "hides and meat", carry: "hide", eco: ["temperate-woodland", "boreal-woodland", "tropical-woodland", "grassland", "savanna"] }],
+  [/charcoal/, { doing: "burning charcoal", with: "charcoal", carry: "wood", eco: ["temperate-woodland", "boreal-woodland", "tropical-woodland"] }],
+  [/wood|timber/, { doing: "cutting timber", with: "timber", carry: "wood", eco: ["temperate-woodland", "boreal-woodland", "tropical-woodland"] }],
+];
+const DAYS = ["", "", "two", "three", "four"];
+
+/** Someone off for days to country past the border: seen leaving on the day
+ * they set out, and coming back loaded a few days later. Rolled from the day
+ * they left, so both walks are the same people. */
+function trip(
+  world: WorldModel,
+  seed: string,
+  setting: NonNullable<Pack["setting"]>,
+  context: ReturnType<typeof resolveCharacterContext>,
+  ways: Way[],
+  left: number,
+  n: number,
+  today: number,
+  kit: ReturnType<typeof carryKit>,
+): Passing[] | undefined {
+  const r = (...k: (string | number)[]) => random(seed, "trips", left, n, ...k);
+  const away = 2 + Math.floor(r("days") * 3);
+  if ((today !== left && today !== left + away) || r("go") > (world.settlements.length ? 0.6 : 0.4)) return;
+  const sex = r("sex") < 0.85 ? "male" : "female";
+  const open = workAt(context, "wild", sex).filter((l) => TRIPS.some(([re]) => re.test(l.id)));
+  if (!open.length) return;
+  const work = pick(open, (l) => l.weight ?? 1, r("work"));
+  const what = TRIPS.find(([re]) => re.test(work.id))![1];
+  const town = world.settlements[0];
+  const home = town ? undefined : pick(ways, () => 1, r("from"));
+  const choices = ways.filter((w) => w !== home);
+  if (!choices.length) return;
+  const to = pick(choices, (w) => (w.neighbor && what.eco.includes(w.neighbor.ecology) ? 3 : 1) * (w.settlement === "city" || w.settlement === "town" ? 0.3 : 1), r("to"));
+  const path = home ? road(world, home, to) ?? joined(home, to) : to.path;
+  if (path.length < 8) return;
+  const named = (name?: string) => name && name !== setting.playableMap?.name && !/ km /.test(name) ? name : undefined;
+  const homeName = named(home ? (home.settlement && home.settlement !== "none" ? home.name : undefined) : town?.name);
+  const where = DIRECTIONS[to.bearing] ?? to.bearing.toLowerCase();
+  const back = today !== left;
+  const label = back
+    ? `${homeName ? `Coming home to ${homeName}` : "Coming home"} after ${DAYS[away]} days ${what.doing}, with ${what.with}`
+    : `Off ${what.doing} to the ${where}${homeName ? ` from ${homeName}` : ""}, for ${DAYS[away]} days`;
+  const walk = back ? [...path].reverse() : path;
+  const livelihood = characterLivelihood(setting, seed, `wayfarer-trip-${left}-${n}-0`, work.id, context, sex);
+  const leave = ((back ? 13 : 5.5) + r(back ? "home" : "out") * 3) * 60;
+  const party = r("party") < 0.6 ? 1 : 2;
+  return Array.from({ length: party }, (_, i) => {
+    const start = today * DAY_MINUTES + leave + 2 * i * PACE;
+    const itinerary = journey([{ path: walk, label, carry: back ? what.carry : kit.bundle }], start, PACE);
+    const done = itinerary.segments[itinerary.segments.length - 1].from;
+    const actor = person(seed, setting, `wayfarer-trip-${left}-${n}-${i}`, livelihood.id, livelihood.label, sex, 20 + Math.floor(r(i, "age") * 30), walk[0], (start + done + 10) * 60);
+    return { actor, itinerary };
+  });
 }
 
 function pick<T>(items: readonly T[], weight: (t: T) => number, u: number) {
@@ -260,7 +338,11 @@ function roadParty(
   const path = road(world, from, to) ?? joined(from, to);
   if (path.length < 8) return;
   const named = to.name && to.settlement && to.settlement !== "none";
-  const label = named && kind.going ? kind.going.replace("{to}", to.name!) : kind.doing;
+  const cargo = kind.going && GOODS.test(kind.going) ? cargoOf(setting, from, to) : undefined;
+  const origin = from.name && from.settlement && from.settlement !== "none" ? ` from ${from.name}` : "";
+  const label = named && kind.going
+    ? kind.going.replace("{to}", to.name!).replace(GOODS, cargo ? `${cargo}${origin}` : "goods")
+    : kind.doing;
   // A seller stops where there are buyers: the place on this map, if the road
   // passes near it.
   let stopAt = Math.floor(path.length * (0.35 + r("halt") * 0.3));

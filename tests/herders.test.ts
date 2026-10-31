@@ -113,6 +113,24 @@ it("brings passers-by in over one border and out over another", () => {
   }
 });
 
+it("sends people off for days past the border and brings them back loaded", () => {
+  const setting = { ...at("london", 1400), environment: { ...at("london", 1400).environment, population: "settled" } } as ReturnType<typeof at>;
+  const pack = packForSetting(setting);
+  const town = { ...world, settlements: [{ x: 0, y: 0, name: "Barnet", size: 10 }] } as unknown as WorldModel;
+  const line = (dx: number, dy: number) => Array.from({ length: 121 }, (_, i) => ({ x: i * dx, y: i * dy }));
+  const ways = [["N", line(0, -1)], ["W", line(-1, 0)]].map(([id, path]) => ({
+    id, to: id, bearing: id, mode: "land", path, point: (path as Point[]).at(-1)!, shore: false, walkable: true,
+  })) as unknown as Way[];
+  const trips = Array.from({ length: 20 }, (_, d) => wayfarerDay(town, "seed", pack, ways, d)).flat()
+    .filter((p) => p.actor.id.startsWith("wayfarer-trip-"));
+  const out = trips.filter((p) => p.itinerary.segments[0].label.startsWith("Off"));
+  const home = trips.filter((p) => p.itinerary.segments[0].label.startsWith("Coming home to Barnet"));
+  expect(out.length).toBeGreaterThan(3);
+  const back = home.find((p) => out.some((o) => o.actor.id === p.actor.id));
+  expect(back?.itinerary.segments[0].carry).toBe("hide");
+  expect(back?.actor.name).toBe(out.find((o) => o.actor.id === back!.actor.id)!.actor.name);
+});
+
 it("drives a llama train along the party's road, a few tiles behind", () => {
   const base = at("cusco", 1500);
   const setting = { ...base, environment: { ...base.environment, population: "settled" } } as typeof base;
