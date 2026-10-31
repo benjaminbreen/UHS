@@ -2978,8 +2978,14 @@ export class Engine {
     const lead = g.members[0];
     if (lead) g.pos = { x: lead.x, y: lead.y, space: "outside" };
     // An animal that fights does so until it is badly hurt or one of its own
-    // is down. Everything else bolts.
-    const fights = combat.temper !== "bolt" && !killed && m.hp > full * 0.3;
+    // is down. Everything else bolts. A kept one runs from the first blow and
+    // only turns if it is struck again while it is still running.
+    const fights =
+      combat.temper !== "bolt" &&
+      !killed &&
+      m.hp > full * 0.3 &&
+      (profile.category === "wild" || (g.hurtUntil ?? 0) > clock);
+    if (!killed) this.cue(`${g.id}-${m.n}`, fights ? "anger" : "alarm", from);
     if (fights) {
       g.provoked = clock + 240;
       g.hurtUntil = undefined;

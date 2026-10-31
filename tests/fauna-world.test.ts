@@ -203,6 +203,19 @@ describe("fauna behaviour", () => {
       Math.hypot(sheep.members[0].x - 10, sheep.members[0].y - 20),
     ).toBeLessThan(2);
   });
+  it("a deer shows a question while it watches and a bang when it bolts", () => {
+    const deer = group("red-deer", 10, 10);
+    const cues: string[] = [];
+    const world = sim({
+      humans: [{ x: 5, y: 10, space: "outside" }],
+      emit: (e) => {
+        if (e.kind === "cue") cues.push(`${e.who}:${e.cue}`);
+      },
+    });
+    for (let t = 6; t <= 60; t += 6) advanceFauna([deer], world, t);
+    expect(cues[0]).toBe("g-red-deer-0:notice");
+    expect(cues).toContain("g-red-deer-0:alarm");
+  });
   it("a herd moves off from a pack lying up, though it is not hunting", () => {
     const deer = group("red-deer", 10, 10),
       wolf = group("gray-wolf", 13, 10);

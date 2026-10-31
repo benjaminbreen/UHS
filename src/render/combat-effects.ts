@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
-import { bark, strike } from "../audio/sfx";
+import { bark, bumpAnimal, strike } from "../audio/sfx";
+import { beastVoiceOf } from "../audio/voices";
 import type { Signal, CreatureHit } from "../core/combat";
 import { flightMs, type SwingEffect, type ThrowEffect } from "./tool-effects";
 
@@ -419,6 +420,7 @@ export class CombatEffects {
       image.once("destroy", () => this.deadBodies.delete(id));
     }
     const shade = orphan?.shade ?? this.view.shadowOf(id);
+    if (!c.killed) gameAudio()?.sound(bumpAnimal(beastVoiceOf(c.species)), "bump");
     const to = this.cell(c.to);
     // The number rises from where the blow landed, not where the animal ends up.
     const struck = image ?? this.cell(c.from);

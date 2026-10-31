@@ -456,6 +456,15 @@ function moveMember(
   taken.add(`${m.x},${m.y}`);
 }
 
+/** A mark over one animal's head: "!" when it bolts or is struck, "?" when
+ * something catches its eye. The renderer finds the sprite by this id. */
+function cue(world: FaunaWorld, g: FaunaGroup, m: FaunaMember, kind: "alarm" | "notice" | "anger", toward?: Point) {
+  const n = m.n ?? g.members.indexOf(m);
+  world.emit?.({ kind: "cue", who: `${g.id}-${n}`, cue: kind, toward: toward && { x: toward.x, y: toward.y } });
+}
+const nearestTo = (g: FaunaGroup, at: Point) =>
+  g.members.reduce((a, b) => (hyp(b, at) < hyp(a, at) ? b : a));
+
 /** Game seconds a vacated cell stays solid: about one step of the player's. */
 const TRAIL = 8;
 /** How far a jostled animal goes before it settles. */
@@ -900,6 +909,9 @@ export function advanceFauna(
       );
       g.alarm = clock + beat * TICK;
       g.target = undefined;
+      // A kept animal steps round a person without a second look.
+      if (near && (!kept || hurt || threat !== player))
+        cue(world, g, nearestTo(g, threat), hunted ? "alarm" : "notice", threat);
       // Stop where it is. A species without idle art stands in whatever it
       // does stand in, so a sparrow watches from its perch.
       if (
@@ -924,6 +936,7 @@ export function advanceFauna(
       if (bird) {
         g.state = "takeoff";
         g.since = clock;
+        if (near) cue(world, g, nearestTo(g, threat), "alarm", threat);
         // Off to a spot on the far side of home from whoever came too close.
         const away = {
           x: g.home.x + Math.sign(g.home.x - threat.x) * 3,
@@ -945,6 +958,7 @@ export function advanceFauna(
         g.state = "flee";
         g.since = clock;
         g.target = undefined;
+        if (near && !hurt) cue(world, g, nearestTo(g, threat), "alarm", threat);
       }
     } else if (
       g.state === "flee" &&
@@ -984,6 +998,8 @@ export function advanceFauna(
     if (quarry && springs)
       pounce(g, p, quarry, victim!, world, clock, taken, turns);
     else if (quarry) {
+      if (near && g.quarry !== quarry.id)
+        cue(world, g, g.members[0], "notice", quarry.pos);
       g.quarry = quarry.id;
       const want: FaunaState =
         quarry.state === "flee" ||

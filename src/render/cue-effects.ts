@@ -61,6 +61,7 @@ const ACTS: Record<
 /** Feet to just over the hair. A person's canvas is mostly empty headroom,
  * so its height says nothing about where the head is. */
 const HEAD = 35;
+const beast = (image: Sprite) => image.texture.key.startsWith("fauna");
 /** The same person does not flash the same thing twice in this long. */
 const COOLDOWN_MS = 4000;
 /** Thrown apart by a collision, and settled again. */
@@ -181,7 +182,7 @@ export class CueEffects {
     if (act.mark) p.mark = this.scene.add.graphics();
     this.playing.set(who, p);
     if (act.pose && who === "player") this.view.playerPose(act.pose);
-    if (act.sound) void gameAudio()?.event(act.sound);
+    if (act.sound && !beast(image)) void gameAudio()?.event(act.sound);
   }
 
   private stop(who: string) {
@@ -242,9 +243,12 @@ export class CueEffects {
               : act.move === "stomp" && t < 0.55
                 ? -Math.abs(Math.sin(t * Math.PI * 4 / 0.55)) * 4
                 : 0;
-      image.setPosition(image.x - p.dx + dx, image.y - p.dy + dy);
-      p.dx = dx;
-      p.dy = dy;
+      // An animal is placed afresh every frame, so it takes no offset.
+      if (!beast(image)) {
+        image.setPosition(image.x - p.dx + dx, image.y - p.dy + dy);
+        p.dx = dx;
+        p.dy = dy;
+      }
       if (p.mark && act.mark)
         this.mark(p.mark, image, act.mark, time - p.from, p.until - time);
       if (p.kind === "fury") this.fury(p, image, time);
@@ -323,7 +327,7 @@ export class CueEffects {
     const scale =
       pop < 1 ? pop * 1.25 : 1 + 0.25 * Math.max(0, 1 - (age - 140) / 90);
     const x = Math.round(image.x + 5),
-      y = Math.round(image.y - HEAD);
+      y = Math.round(image.y - (beast(image) ? image.displayHeight * image.originY - 2 : HEAD));
     g.clear()
       .setPosition(x, y)
       .setScale(scale)

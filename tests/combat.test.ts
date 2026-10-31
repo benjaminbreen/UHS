@@ -87,6 +87,22 @@ it("an aurochs does not move for a stick, and turns on you instead", () => {
   expect(g.state).not.toBe("flee");
 });
 
+it("a pig runs from the first blow and turns on you at the second", () => {
+  const engine = field("combat-pig");
+  engine.devArm("stick");
+  const g = quarry(engine, "pig");
+  swing(engine);
+  expect(g.provoked).toBeUndefined();
+  expect(g.state).toBe("flee");
+  const m = g.members[0];
+  m.x = 1;
+  m.y = 0;
+  m.stun = undefined;
+  swing(engine);
+  if (g.members.length && m.hp! > 0.3 * maxHp("pig", m.tier ?? "ordinary"))
+    expect(g.provoked).toBeGreaterThan(engine.state.clock);
+});
+
 it("slams an animal that has nowhere to go", () => {
   const engine = field("combat-slam");
   engine.devArm("stick");
