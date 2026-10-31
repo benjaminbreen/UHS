@@ -6,6 +6,9 @@ import { containerProps } from "./containers";
 import { equipmentProps } from "./equipment";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
+import propAtlas from "../../render/generated/props.json" with { type: "json" };
+import natureAtlas from "../../render/generated/nature-atlas.json" with { type: "json" };
+import packAtlas from "../../render/generated/atlas.json" with { type: "json" };
 
 export type PropDef = {
   name: string;
@@ -60,16 +63,35 @@ export type PropDef = {
   seats?: "log" | "stone" | "mat";
 };
 
-/** Tiles covered by the readable silhouette of a placed prop. This is an art
- * composition envelope, not its movement collision footprint. */
-export function propVisualCells(key: string, at: Point): Point[] {
-  const [left, right, behind, front] = propDefs[key]?.visualClearance ?? [
-    0, 0, 0, 0,
-  ];
+type Frame = { frame: { w: number; h: number }; pivot?: { x: number; y: number } };
+const frames: Record<string, Frame> = Object.assign({},
+  ...[packAtlas, natureAtlas, propAtlas].map((a) => (a as unknown as { frames: Record<string, Frame> }).frames));
+/** How far a drawing reaches past its cell, read off the sprite with half a
+ * cell of slack: a crate keeps to its cell, a bench takes three, a privy the
+ * rows behind it. Without this every prop claimed one cell, and a well and a
+ * bench beside it were drawn over each other. */
+function spriteReach(sprite: string | undefined): [number, number, number, number] {
+  const f = sprite && frames[sprite];
+  if (!f) return [0, 0, 0, 0];
+  const { w, h } = f.frame, px = (f.pivot?.x ?? 0.5) * w, py = (f.pivot?.y ?? 1) * h;
+  const reach = (n: number) => Math.max(0, Math.round(n / 16));
+  return [reach(px - 8), reach(w - px - 8), reach(py - 16), 0];
+}
+const cellsAround = (at: Point, [left, right, behind, front]: [number, number, number, number]) => {
   const cells: Point[] = [];
   for (let y = at.y - behind; y <= at.y + front; y++)
     for (let x = at.x - left; x <= at.x + right; x++) cells.push({ x, y });
   return cells;
+};
+/** The cells a placed sprite covers, for things drawn without a prop entry. */
+export const spriteVisualCells = (sprite: string | undefined, at: Point) => cellsAround(at, spriteReach(sprite));
+
+/** Tiles covered by the readable silhouette of a placed prop. This is an art
+ * composition envelope, not its movement collision footprint. */
+export function propVisualCells(key: string, at: Point, sprite?: string): Point[] {
+  const def = propDefs[key];
+  return cellsAround(at, def?.visualClearance ??
+    spriteReach(sprite ?? def?.sprite ?? (def && (frames[`study-propb-${def.family}-0`] ? `study-propb-${def.family}-0` : `study-prop-${def.family}-0`))));
 }
 export const propDefs: Record<string, PropDef> = {
   ...signpostDefs,

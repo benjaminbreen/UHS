@@ -5501,7 +5501,7 @@ export function planSettlement(
         occupied:
           propDefs[object.prop]?.solid && !object.broken ? [object.pos] : [],
         access: [],
-        clearance: propVisualCells(object.prop, object.pos),
+        clearance: propVisualCells(object.prop, object.pos, object.sprite),
       });
   }
   tidyGround(plan, roads);

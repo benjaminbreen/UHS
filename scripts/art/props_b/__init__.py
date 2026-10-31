@@ -120,28 +120,8 @@ from .street import STREET
 DRAW_B.update(STREET)
 from .goods import GOODS
 DRAW_B.update(GOODS)
-
-# Boxy families that stand beside buildings take the buildings' oblique view.
-# Market pitches are drawn front-on with their tops seen from above, as the
-# buildings now are.
-# Round ones are left alone: a barrel looks the same from every side.
-OBLIQUE = ['municipal-planter', 'crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench', 'park-bench',
-           'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern',
-           'saint-niche', 'newsstand', 'street-fountain', 'street-notice', 'market-display', 'water-station',
-           'farm-cart', 'privy-shed', 'privy-stone', 'privy-outhouse', 'granary-staddle', 'granary-stilt']
-
-
-def _oblique(fn):
- from .core import extrude
- from art.oblique_style import prop_side
- def draw(*args):
-  im = fn(*args)
-  return extrude(im, prop_side(im.width))
- return draw
-
-
-for _key in OBLIQUE:
- DRAW_B[_key] = _oblique(DRAW_B[_key])
+from .fronts import FRONTS
+DRAW_B.update(FRONTS)
 
 # These reviewed fronts already contain their top depth; do not extrude them.
 from .equipment_studies import EQUIPMENT_B

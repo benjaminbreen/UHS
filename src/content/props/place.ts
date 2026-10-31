@@ -6,6 +6,7 @@ import {
   propDefs,
   propKit,
   propVisualCells,
+  spriteVisualCells,
   type PropContext,
 } from "./catalog";
 import { techFor } from "./selection";
@@ -176,7 +177,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
   const objectsAt = new Map<string, WorldObject[]>();
   const visualAt = new Map<string, WorldObject[]>();
   const visualKeys = (o: WorldObject) =>
-    (o.prop ? propVisualCells(o.prop, o.pos) : [o.pos]).map((p) =>
+    (o.prop ? propVisualCells(o.prop, o.pos, o.sprite) : spriteVisualCells(o.sprite, o.pos)).map((p) =>
       at({ ...p, space: o.pos.space }),
     );
   const index = (o: WorldObject) => {
