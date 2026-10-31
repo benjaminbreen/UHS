@@ -481,26 +481,46 @@ def _potatoes(c, x0, x1, y, rng, hang):
 
 # -- bases ----------------------------------------------------------------------
 
-def base_mat(c, x0, x1, g, ramp):
-    for k in range(2):
+# A surface seen from above, in the buildings' convention: fronts square on,
+# tops at moderate depth. Goods stand on its middle.
+TOP = 6
+
+
+def top_face(c, x0, x1, y, ramp, boards=True):
+    """The top of a counter or table, rows above its front edge `y`; the back
+    row darkest, the front lit."""
+    for k in range(TOP):
+        row = y - TOP + k
+        t = 2 if k == 0 else 3 if k < TOP - 1 else 4
         for x in range(x0, x1 + 1):
-            c.set(x, g - k, ramp[3 if (x // 2 + k) % 2 else 2] if k else ramp[1 + (x // 2) % 2])
+            seam = boards and k in (2, 4) and (x * 5 + k) % 13 == 0
+            c.set(x, row, ramp[t - 1] if seam else ramp[t])
+        if boards and k in (1, 3): c.hline(x0, x1, row, ramp[t - 1])
+    return y - 2
+
+
+def base_mat(c, x0, x1, g, ramp):
+    for k in range(TOP):
+        for x in range(x0, x1 + 1):
+            c.set(x, g - k, ramp[1] if k == 0 else ramp[3 if (x // 2 + k) % 2 else 2])
+    c.hline(x0 + 1, x1 - 1, g - TOP, ramp[4])
     return g - 2
 
 
 def base_rug(c, x0, x1, g, ramp):
-    for k in range(2):
+    for k in range(TOP):
         for x in range(x0, x1 + 1):
-            c.set(x, g - k, ramp[3] if (x % 4 < 2) == (k == 0) else ramp[1])
-    c.hline(x0, x1, g - 2, ramp[4])
+            edge = k in (1, TOP - 1) or x in (x0 + 1, x1 - 1)
+            c.set(x, g - k, ramp[1] if k == 0 else ramp[4] if edge else ramp[3] if (x + k) % 4 else ramp[2])
     return g - 2
 
 
 def base_aguayo(c, x0, x1, g):
     bands = [CLOTH['cochineal'], CLOTH['weld'], CLOTH['green'], CLOTH['madder'], CLOTH['indigo'], CLOTH['saffron']]
-    for x in range(x0, x1 + 1):
-        b = bands[((x - x0) // 3) % len(bands)]
-        c.set(x, g, b[1]); c.set(x, g - 1, b[3] if (x - x0) % 3 else b[4])
+    for k in range(TOP):
+        b = bands[k % len(bands)]
+        for x in range(x0, x1 + 1):
+            c.set(x, g - k, b[1] if k == 0 else b[3] if (x + k) % 5 else b[4])
     return g - 2
 
 
@@ -509,7 +529,7 @@ def base_table(c, x0, x1, g, w, h=7):
     c.hline(x0, x1, top, w[4]); c.hline(x0, x1, top + 1, w[2])
     for lx in (x0 + 1, x1 - 2):
         for k in range(top + 2, g + 1): c.set(lx, k, w[2]); c.set(lx + 1, k, w[1])
-    return top - 1
+    return top_face(c, x0, x1, top, w)
 
 
 def planks(c, x0, x1, y0, y1, w, seed):
@@ -537,7 +557,7 @@ def base_counter(c, x0, x1, g, w, h=13):
     c.hline(x0 - 1, x1 + 1, top, w[4]); c.hline(x0 - 1, x1 + 1, top + 1, w[3]); c.hline(x0, x1, top + 2, w[0])
     planks(c, x0 + 1, x1 - 1, top + 3, g, w, x0 + h)
     c.vline(x0, top + 2, g, w[2]); c.vline(x1, top + 2, g, w[1])
-    return top - 1
+    return top_face(c, x0 - 1, x1 + 1, top, w)
 
 
 def base_masonry(c, x0, x1, g, paint):
@@ -551,24 +571,27 @@ def base_masonry(c, x0, x1, g, paint):
     # Jars let into the counter top, as in a street bar.
     for jx in range(x0 + 5, x1 - 4, 9):
         c.hline(jx - 1, jx + 1, top, '#2a1e18')
-    return top - 1
+    return top_face(c, x0, x1, top, STONE, boards=False)
 
 
 def base_bench(c, x0, x1, g, rug):
-    """A plastered bench with a rug thrown over it, hanging part way down."""
+    """A plastered bench with a rug thrown over its top and down its front."""
     top = g - 9
-    c.rect(x0, top, x1, g, PLASTER[2]); c.hline(x0, x1, top, PLASTER[4]); c.vline(x1, top, g, PLASTER[1])
-    for y in range(top + 1, g + 1):
+    c.rect(x0, top, x1, g, PLASTER[2]); c.vline(x1, top, g, PLASTER[1])
+    for y in range(top, g + 1):
         c.set(x0, y, PLASTER[3])
     c.hline(x0, x1, g, PLASTER[1])
-    drop = top + 5
-    for y in range(top, drop):
-        for x in range(x0 + 2, x1 - 2):
-            edge = y == top + 1 or y == drop - 2 or x in (x0 + 3, x1 - 4)
-            c.set(x, y, rug[4] if edge else rug[2] if (x + y) % 6 == 0 else rug[3] if y > top else rug[4])
-    for x in range(x0 + 2, x1 - 2, 2):
+    for k in range(TOP):
+        c.hline(x0, x1, top - TOP + k, PLASTER[4] if k == TOP - 1 else PLASTER[3])
+    drop = top + 4
+    for y in range(top - TOP + 1, drop):
+        for x in range(x0 + 2, x1 - 1):
+            edge = y in (top - TOP + 2, drop - 2) or x in (x0 + 3, x1 - 3)
+            c.set(x, y, rug[4] if edge else rug[2] if (x + y) % 6 == 0 else rug[3])
+    c.hline(x0 + 2, x1 - 2, top, rug[4])
+    for x in range(x0 + 2, x1 - 1, 2):
         c.set(x, drop, rug[3])
-    return top - 1
+    return top - 2
 
 
 def post(c, x, y0, y1, w):
@@ -701,7 +724,7 @@ def pitch(kit, v, motion=0):
     width = [26, 38, 54][form] + rng.choice([-4, -2, 0, 2, 4])
     cover = rng.choice(st['covers'][form])
     height = {'none': 26, 'shade': 36, 'palm': 38, 'awning': 38, 'canopy': 46, 'parasol': 40, 'booth': 46}[cover]
-    height += [0, 0, 6][form]
+    height += [0, 0, 6][form] + TOP
     c = Canvas(width + 8, height)
     x0, x1, g = 4, width + 3, height - 1
     w = st['wood']

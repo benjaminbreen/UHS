@@ -122,9 +122,11 @@ from .goods import GOODS
 DRAW_B.update(GOODS)
 
 # Boxy families that stand beside buildings take the buildings' oblique view.
+# Market pitches are drawn front-on with their tops seen from above, as the
+# buildings now are.
 # Round ones are left alone: a barrel looks the same from every side.
 OBLIQUE = ['municipal-planter', 'crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench', 'park-bench',
-           'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern', *PITCHES,
+           'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern',
            'saint-niche', 'newsstand', 'street-fountain', 'street-notice', 'market-display', 'water-station',
            'farm-cart', 'privy-shed', 'privy-stone', 'privy-outhouse', 'granary-staddle', 'granary-stilt']
 
