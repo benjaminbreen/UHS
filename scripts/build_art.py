@@ -222,18 +222,18 @@ street_frames={k:S.pop(k) for k in list(S) if _voxel(k)}
 worksite_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and k.startswith('worksite-')})
 building_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S})
 atlas=pack_atlas(S,OUT,'atlas')
-buildings_atlas=pack_atlas(building_frames,OUT,'buildings')
-pack_atlas(worksite_frames,OUT,'worksites')
+buildings_atlas=pack_atlas(building_frames,OUT,'buildings',paged=True)
+pack_atlas(worksite_frames,OUT,'worksites',paged=True)
 from art.boats import build as build_boats
 build_boats()
-regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings')
-camp_atlas=pack_atlas(camp_frames,OUT,'camp-buildings')
-modern_atlas=pack_atlas(modern_frames,OUT,'modern-buildings')
-street_atlas=pack_atlas(street_frames,OUT,'street-buildings')
-pack_atlas(weather_frames,OUT,'street-weather')
-civic_atlas=pack_atlas(civic_frames,OUT,'civic')
-sacred_atlas=pack_atlas(sacred_frames,OUT,'sacred-buildings')
-precinct_atlas=pack_atlas(precinct_frames,OUT,'precincts')
+regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings',paged=True)
+camp_atlas=pack_atlas(camp_frames,OUT,'camp-buildings',paged=True)
+modern_atlas=pack_atlas(modern_frames,OUT,'modern-buildings',paged=True)
+street_atlas=pack_atlas(street_frames,OUT,'street-buildings',paged=True)
+pack_atlas(weather_frames,OUT,'street-weather',paged=True)
+civic_atlas=pack_atlas(civic_frames,OUT,'civic',paged=True)
+sacred_atlas=pack_atlas(sacred_frames,OUT,'sacred-buildings',paged=True)
+precinct_atlas=pack_atlas(precinct_frames,OUT,'precincts',paged=True)
 print(f'Buildings atlas {buildings_atlas.size} ({len(building_frames)} frames); '
       f'regional atlas {regional_atlas.size} ({len(regional_frames)} frames); '
       f'camp atlas {camp_atlas.size} ({len(camp_frames)} frames); '

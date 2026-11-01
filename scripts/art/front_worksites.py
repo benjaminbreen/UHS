@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
-from art.front_materials import C, RAMPS, ramp
+from art.front_materials import C, RAMPS, ramp, lit
 from art.front_eave import EaveHouse
 from art.front_civic import CivicHall
 from art.front_kit import consolidate
@@ -1024,6 +1024,7 @@ class FrontWorksitePainter:
             self.__dict__.update(_PAINTED[style]); return
         info = {}
         self.image = draw(style,info)
+        self.night = lit(self.image)
         self.w,self.h = self.image.size
         self.anchor_x = info['x0']+info['W']//2
         self.door_x = info['door_x']

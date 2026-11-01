@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from art import front_materials as fm  # noqa: E402
-from art.front_materials import RAMPS, ramp, mix, h2  # noqa: E402
+from art.front_materials import RAMPS, ramp, mix, h2, lit  # noqa: E402
 from art import front_openings as op  # noqa: E402
 from art.front_eave import EaveHouse, WALL  # noqa: E402
 from art.front_house import bevel, brace  # noqa: E402
@@ -646,6 +646,7 @@ class FrontCivicPainter:
             self.door_x, self.door_size = b.door_x, (22, 44)
             self.anchor_x = b.x0 + b.W // 2
         self.image = im
+        self.night = lit(im)
         self.w, self.h = im.size
         self.door_ground = b.base + 1
         self.bottom = b.base + 1

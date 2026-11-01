@@ -9,7 +9,7 @@ down and to the right.
 import math
 
 from art import front_materials as fm
-from art.front_materials import RAMPS, ramp, mix, h2
+from art.front_materials import RAMPS, ramp, mix, h2, glazes
 from art import front_openings as op
 from art.front_eave import TONES, COVER
 
@@ -22,6 +22,7 @@ COPPER = ramp(170, 0.07, lift=-0.04)
 GLASS_INK = [ramp(262, 0.11, lift=-0.28), ramp(22, 0.15, lift=-0.18), ramp(80, 0.13, lift=-0.08),
              ramp(150, 0.1, lift=-0.2), ramp(300, 0.09, lift=-0.22)]
 CLEAR = ramp(225, 0.04, lift=-0.18)
+glazes(*GLASS_INK, CLEAR)
 
 STONE = {
     'limestone': RAMPS['grey-limestone'], 'sandstone': RAMPS['sandstone'], 'granite': RAMPS['granite'],

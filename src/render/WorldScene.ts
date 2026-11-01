@@ -5560,8 +5560,7 @@ export class WorldScene extends Phaser.Scene {
       this.washKey = "";
       return;
     }
-    // Felt, hide and bark have no glass, only trim the colour of it.
-    if (["steppe-tent", "steppe-cart", "forager-shelter"].includes((placement.model as { regionalHouse?: string }).regionalHouse ?? "")) return;
+    if ((placement.model as { unglazed?: boolean }).unglazed) return;
     const h = (((this.runtime.displayClock() / 3600) % 24) + 24) % 24;
     const share = h >= 17 && h < 22.5 ? 0.8 : h >= 4.5 && h < 8 ? 0.45 : 0.15;
     if (random(this.runtime.engine.state.manifest.seed, "lamp", place.id) >= share) return;

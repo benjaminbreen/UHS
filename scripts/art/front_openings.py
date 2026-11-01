@@ -18,10 +18,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from art.front_materials import (  # noqa: E402
-    C, RAMPS, ramp, mix, h2, ashlar, brick, render, adobe, half_timber, boards, whitewash,
+    C, RAMPS, ramp, mix, h2, ashlar, brick, render, adobe, half_timber, boards, whitewash, glazes,
 )
 
 GLASS = ramp(248, 0.095, warm=30, cool=20, lift=-0.02)
+LEADED = ramp(165, 0.03, lift=-0.08)
+glazes(GLASS, LEADED)
 LEAD = ramp(260, 0.02, lift=-0.25)
 PAINT = {
     'white': ramp(85, 0.012, lift=0.03),
@@ -125,7 +127,7 @@ def sash(c, x, y, w, h, paint='white'):
 def leaded(c, x, y, w, h, paint=None):
     """Leaded lights: diamond quarries of greenish crown glass in lead, an
     iron casement round them."""
-    gq = ramp(165, 0.03, lift=-0.08)
+    gq = LEADED
     for yy in range(y, y + h):
         for xx in range(x, x + w):
             a, b = xx - x, yy - y

@@ -498,6 +498,9 @@ def build_buildings(root, sprites):
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
             **({'glow':re.sub(r'-(north|east|west)$','',name)+'-glow'} if getattr(artist,'night',None) is not None else {}),
+            # Painters that mark their glass, and tents with none: nothing for the game to guess at.
+            **({'unglazed':True} if getattr(artist,'night',None) is None and any(r.get(k) for k in
+               ('frontHouse','frontCivic','frontAncient','frontWorksite','steppe','forager','campStyle')) else {}),
             **({'voxel':True,'glow':name+'-glow','lampFrame':name+'-lamps','lights':artist.lights,
                 'snowFrame':name+'-snow','wetFrame':name+'-wet','life':life} if voxel else {}),
             **({'clocks':artist.clocks} if getattr(artist,'clocks',None) else {}),

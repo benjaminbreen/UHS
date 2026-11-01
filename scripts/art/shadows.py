@@ -123,6 +123,7 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
     picked=[name for name in sprites
             if name.startswith(('human-','house-','worksite-','study-','prop-broken-','urban-stall-','nature-'))
             or name in PROPS or (buildings.get(name) or {}).get('frontClassical')]
+    picked=[name for name in picked if not name.endswith('-glow')]
     # Each sprite's masks are independent, so the cores share them.
     global _JOB
     _JOB=(sprites,buildings,phases)

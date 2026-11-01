@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 
 from art.front_eave import EaveHouse  # noqa: E402
 from art.front_house import GableHouse  # noqa: E402
+from art.front_materials import lit  # noqa: E402
 
 # family: [(frame suffix, spec)]. Gabled specs carry form='gable'.
 EUROPEAN = {
@@ -305,6 +306,7 @@ class FrontHousePainter:
             base = b.base
             self.door_size = (22, b.door_h)
         self.image = im
+        self.night = lit(im)
         self.w, self.h = im.size
         self.door_ground = base + 1
         self.bottom = base + 1

@@ -42,6 +42,7 @@ from art import front_westasia as wa  # noqa: E402
 from art import front_sinitic as sino  # noqa: E402
 from art import front_africa, front_seasia, front_andes, front_pacific  # noqa: E402
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
+from art.front_materials import lit  # noqa: E402
 
 SCALE = 1.45
 WALLS = ['stucco', 'stucco-ochre', 'stucco', 'render']
@@ -310,7 +311,7 @@ class FrontAncientPainter:
         self.door_ground = info.get('door_base', info['base']) + 1
         self.no_door = info.get('doorless', False)
         night = info.get('night')
-        self.night = night if night is not None and night.getbbox() else None
+        self.night = night if night is not None and night.getbbox() else lit(im)
         self.bottom = info['base'] + 1
         _PAINTED[key] = dict(self.__dict__)
 

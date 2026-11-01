@@ -124,24 +124,64 @@ RAMPS = {
 
 # ------------------------------------------------------------------ canvas
 
+# Colours only glass is painted in. A canvas notes where they land, in its
+# image's info, so a front can ship its windows lit after dark.
+GLAZE = set()
+LAMP_DEEP, LAMP_PALE = (226, 138, 58, 255), (255, 222, 146, 255)
+
+
+def glazes(*ramps):
+    for r in ramps:
+        GLAZE.update(tuple(c) for c in r)
+
+
 class C:
     def __init__(self, w, h):
         self.w, self.h = w, h
         self.im = Image.new('RGBA', (w, h))
         self.px = self.im.load()
+        self.glass = self.im.info['glass'] = {}
 
     def p(self, x, y, c):
         x, y = int(x), int(y)
         if 0 <= x < self.w and 0 <= y < self.h and c:
             self.px[x, y] = c
+            if type(c) is tuple and c in GLAZE:
+                self.glass[(x, y)] = c
+            elif self.glass:
+                self.glass.pop((x, y), None)
 
     def g(self, x, y):
         return self.px[x, y] if 0 <= x < self.w and 0 <= y < self.h else (0, 0, 0, 0)
 
     def rect(self, x, y, w, h, c):
+        glass = type(c) is tuple and c in GLAZE
         for yy in range(max(0, y), min(self.h, y + h)):
             for xx in range(max(0, x), min(self.w, x + w)):
                 self.px[xx, yy] = c
+                if glass:
+                    self.glass[(xx, yy)] = c
+                elif self.glass:
+                    self.glass.pop((xx, yy), None)
+
+
+def lit(im):
+    """The glass still showing on a finished front, lamplit, on a layer of its
+    own: deep amber where the glass is dark, pale in its streaks, a little of
+    its own colour kept so stained glass still reads. None if no glass shows."""
+    glass = im.info.get('glass')
+    if not glass:
+        return None
+    out = Image.new('RGBA', im.size)
+    o, s = out.load(), im.load()
+    for (x, y), col in glass.items():
+        q = s[x, y]
+        # Outlines and consolidation shift a colour or two; a frame painted over it is another colour.
+        if q[3] < 200 or sum(abs(q[i] - col[i]) for i in range(3)) > 36:
+            continue
+        o[x, y] = mix(mix(LAMP_DEEP, LAMP_PALE, min(1, sum(col[:3]) / 765 * 2.2)), col, 0.25)
+    out.info['trim'] = True
+    return out if out.getbbox() else None
 
 
 def fill(c, x0, y0, w, h, fn):
