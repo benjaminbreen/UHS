@@ -925,14 +925,45 @@ describe("shared deterministic foundation", () => {
     e.state.player.inventory.coin = 50;
     const shop = e.shopOf(a.id, true)!;
     const [id] = Object.keys(shop.stock);
-    const price = e.buyPrice(id);
+    const price = e.buyPrice(id, a.id);
     const have = e.state.player.inventory[id] ?? 0;
     expect(act(e, { type: "deal", target: a.id, give: { coin: price - 1 }, take: { [id]: 1 } }).status).toBe("rejected");
     expect(act(e, { type: "deal", target: a.id, give: { coin: price }, take: { [id]: 1 } }).status).toBe("completed");
     expect(e.state.player.inventory[id]).toBe(have + 1);
-    expect(e.shopOf(a.id, true)!.stock[id]).toBe(shop.stock[id]! - 1);
+    expect(e.shopOf(a.id, true)!.held[id]).toBe(shop.held[id]! - 1);
     expect(e.shopOf(a.id, true)!.purse).toBe(shop.purse + price);
     expect(e.sellPrice(id)).toBeLessThanOrEqual(price);
+  });
+  it("limits what the player can carry, and a hired beast carries more", () => {
+    const e = createSession();
+    const a = e.state.actors[0];
+    a.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    a.wayfarer = { until: e.state.clock + 86400, train: { species: "donkey", count: 4 } };
+    e.state.player.inventory.coin = 500;
+    const shop = e.shopOf(a.id, true)!;
+    const hire = Object.keys(shop.stock).find((i) => i.startsWith("hire-donkey"))!;
+    const [id] = Object.keys(shop.stock).filter((i) => !i.includes("donkey"));
+    e.state.player.inventory[id] = (e.state.player.inventory[id] ?? 0) + e.capacity() - e.load();
+    const buy = () => act(e, { type: "deal", target: a.id, give: { coin: e.buyPrice(id, a.id) }, take: { [id]: 1 } });
+    expect(buy().reason).toMatch(/carry/);
+    expect(act(e, { type: "deal", target: a.id, give: { coin: e.buyPrice(hire, a.id) }, take: { [hire]: 1 } }).status).toBe("completed");
+    expect(buy().status).toBe("completed");
+    e.state.clock += 86400;
+    act(e, { type: "wait", seconds: 60 });
+    expect(e.state.player.inventory[hire]).toBeUndefined();
+  });
+  it("sells a stall down through the day and dears its last few", () => {
+    const e = createSession();
+    const a = e.state.actors[0];
+    const day = Math.floor(e.state.clock / 86400) * 86400;
+    e.state.clock = day + 7 * 3600;
+    const morning = e.shopOf(a.id, true)!;
+    const [id] = Object.entries(morning.stock).sort((x, y) => y[1]! - x[1]!)[0];
+    const early = e.buyPrice(id, a.id);
+    e.state.clock = day + 18 * 3600;
+    const evening = e.shopOf(a.id, true)!;
+    expect(evening.stock[id]).toBeLessThan(morning.stock[id]!);
+    expect(e.buyPrice(id, a.id)).toBeGreaterThanOrEqual(early);
   });
   it("uses barter in the Neolithic pack and preserves item exclusions", () => {
     const e = createSession("neolithic");

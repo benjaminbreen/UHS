@@ -26,7 +26,7 @@ const COMPASS: Record<string, [number, number]> = {
   north: [0, -1], northeast: [0.7, -0.7], east: [1, 0], southeast: [0.7, 0.7],
   south: [0, 1], southwest: [-0.7, 0.7], west: [-1, 0], northwest: [-0.7, -0.7],
 };
-type Lens = "none" | "resources" | "trade";
+type Lens = "none" | "resources" | "trade" | "prices";
 const LAND: Resource[] = ["grain", "timber", "herds"];
 const MARKED: Resource[] = ["ore", "salt", "fish", "oil", "stone", "reeds"];
 
@@ -66,6 +66,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const [lens, setLens] = useState<Lens>("none");
   const [cells, setCells] = useState<(Point & { size: number; land?: Resource; has: Resource[] })[]>([]);
   const [knownFor, setKnownFor] = useState<Record<string, Resource[]>>({});
+  const [pricesFor, setPricesFor] = useState<Record<string, ReturnType<typeof runtime.engine.pricesThere>>>({});
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean }>(undefined);
   const wheel = useRef(0);
   const settlements = [...world.settlements]
@@ -200,10 +201,12 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         setCells(found);
       } else {
         setCells([]);
-        setKnownFor(Object.fromEntries(nearby.map((p) => {
+        const trades = nearby.map((p) => {
           const g = groundAt(p.x, p.y);
-          return [p.id, g ? tradeOf(g).known : []];
-        })));
+          return [p.id, g ? tradeOf(g) : { known: [], lacks: [] }] as const;
+        });
+        setKnownFor(Object.fromEntries(trades.map(([id, t]) => [id, t.known])));
+        setPricesFor(Object.fromEntries(trades.map(([id, t]) => [id, runtime.engine.pricesThere(t.known, t.lacks)])));
       }
     });
     return () => { live = false; };
@@ -223,7 +226,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
       else if (e.key === "-") zoom(2);
       else if (e.key.toLowerCase() === "m") onClose();
       else if (e.key.toLowerCase() === "p" && regional) togglePeriod();
-      else if (e.key.toLowerCase() === "l" && regional) setLens(lens === "none" ? "resources" : lens === "resources" ? "trade" : "none");
+      else if (e.key.toLowerCase() === "l" && regional) setLens(lens === "none" ? "resources" : lens === "resources" ? "trade" : lens === "trade" ? "prices" : "none");
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
@@ -278,8 +281,8 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         {style && <small>{periodCaptions[style]}</small>}
       </div>}
       {regional && !earth && <div className="map-toggle" role="group" aria-label="Lens">
-        {(["resources", "trade"] as const).map((l) => <button key={l} aria-pressed={lens === l} title="Lens (L)"
-          onClick={() => setLens(lens === l ? "none" : l)}>{l === "resources" ? "Resources" : "Trade"}</button>)}
+        {(["resources", "trade", "prices"] as const).map((l) => <button key={l} aria-pressed={lens === l} title="Lens (L)"
+          onClick={() => setLens(lens === l ? "none" : l)}>{l === "resources" ? "Resources" : l === "trade" ? "Trade" : "Prices"}</button>)}
       </div>}
       {regional && <div className="map-toggle" role="group" aria-label="Map scale">
         <button aria-pressed={!earth} onClick={() => setEarth(false)}>Region</button>
@@ -367,6 +370,9 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
           {lens === "trade" && nearby.map((p) => (knownFor[p.id]?.length ?? 0) > 0 && <div key={p.id} className="map-lens-known" style={toScreen(p)}>
             {knownFor[p.id].map((r) => { const Icon = RESOURCE_ICON[r]; return <Icon key={r} size={12} data-resource={r} />; })}
           </div>)}
+          {lens === "prices" && nearby.map((p) => (pricesFor[p.id]?.length ?? 0) > 0 && <div key={p.id} className="map-lens-known map-lens-price" style={toScreen(p)}>
+            {pricesFor[p.id].map((x) => <span key={x.id} data-cheap={x.there < x.here || undefined}>{x.name} {x.there} <small>· {x.here} here</small></span>)}
+          </div>)}
           {nearby.map((p) => <button key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}
             onClick={() => { setChosen(undefined); setDestination({ ...fromAtlas(origin.x + p.x, origin.y + p.y), name: p.name }); }}>
             <SettlementGlyph glyph={p.glyph} rank={p.rank} /><span>{p.name}</span>
@@ -384,6 +390,10 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
               ? <>
                 {LAND.filter((r) => cells.some((c) => c.land === r)).map((r) => <span key={r}><i className="map-lens-swatch" data-land={r} />{setting ? resourceName(r, setting) : r}</span>)}
                 {MARKED.filter((r) => cells.some((c) => c.has.includes(r))).map((r) => { const Icon = RESOURCE_ICON[r]; return <span key={r}><Icon size={13} data-resource={r} />{setting ? resourceName(r, setting) : r}</span>; })}
+              </>
+              : lens === "prices" ? <>
+                <span className="map-lens-price-key" data-cheap>Cheaper there: buy it there</span>
+                <span className="map-lens-price-key">Dearer there: carry it there to sell</span>
               </>
               : homeTrade && <>
                 <span>{homeTrade.known.length ? `Known for ${homeTrade.known.map((r) => resourceName(r, setting!)).join(", ")}` : "Nothing in plenty"}</span>

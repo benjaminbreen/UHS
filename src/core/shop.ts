@@ -3,6 +3,7 @@ import { wares } from "../content/economy/wares";
 import { matchesCharacterScope } from "../content/characters/resolve";
 import { livelihoodOf } from "../world/v3/routines";
 import { isStallholder, isWayfarer } from "../world/v3/wayfarers";
+import { BEASTS } from "../content/economy/carrying";
 import { random } from "./random";
 import type { Actor, Inventory, ItemDef, ItemId, Pack } from "./types";
 
@@ -32,7 +33,8 @@ const DRESSED: Record<string, RegExp> = {
 };
 export const TRADER = /merchant|pedlar|peddler|trader|hawker|chapman|huckster|packman|bobusang|pochteca|caravan/i;
 
-export type Shop = { day: number; stock: Inventory; purse: number };
+/** `opening` is the morning's stock, which the day's other buyers sell down from. */
+export type Shop = { day: number; stock: Inventory; purse: number; opening?: Inventory };
 
 /** Who keeps goods to sell: a craftsperson or shopkeeper at their work, or a
  * travelling merchant on the road. */
@@ -84,6 +86,11 @@ export function stockFor(
     if (!def || def.value <= 0 || id === "coin") continue;
     const many = (def.edible || def.value <= 2 ? 6 : def.value <= 5 ? 3 : 2) * (lacks.includes(id) ? 2 : 1);
     stock[id] = 1 + Math.floor(roll("n", id) * many);
+  }
+  const train = actor.wayfarer?.train;
+  if (train && BEASTS[train.species] && train.count > 1) {
+    stock[`beast-${train.species}`] = 1;
+    stock[`hire-${train.species}-${day}`] = Math.min(2, train.count - 1);
   }
   return { day, stock, purse: coined ? 15 + Math.floor(roll("purse") * 40) : 0 };
 }

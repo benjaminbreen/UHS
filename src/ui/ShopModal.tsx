@@ -43,17 +43,17 @@ export function ShopModal({ runtime, actorId, onClose }: {
   if (!shop.coined) {
     const add = (side: "give" | "take", id: ItemId, d: number, max: number) =>
       setOffer((o) => ({ ...o, [side]: { ...o[side], [id]: Math.max(0, Math.min(max, (o[side][id] ?? 0) + d)) } }));
-    const yours = engine.worth(offer.give, "sell", actorId), theirs = engine.worth(offer.take, "buy");
+    const yours = engine.worth(offer.give, "sell", actorId), theirs = engine.worth(offer.take, "buy", actorId);
     const empty = !yours && !theirs;
     const column = (side: "give" | "take", inv: Inventory, title: string) => (
       <div className="shop-column">
         <h3>{title}</h3>
         <ul className="shop-list">
-          {rows(inv, (id) => id === "coin" || !(side === "give" ? engine.sellPrice(id, actorId) : engine.buyPrice(id))).map(([id, n]) => (
+          {rows(inv, (id) => id === "coin" || !(side === "give" ? engine.sellPrice(id, actorId) : engine.buyPrice(id, actorId))).map(([id, n]) => (
             <li key={id} data-on={(offer[side][id] ?? 0) > 0 || undefined}>
               <ItemIcon id={id} sprite={runtime.item(id)?.sprite} scale={2} />
               <span className="shop-name">{name(id)}<small> × {n}</small></span>
-              <span className="shop-price">worth {side === "give" ? engine.sellPrice(id, actorId) : engine.buyPrice(id)}</span>
+              <span className="shop-price">worth {side === "give" ? engine.sellPrice(id, actorId) : engine.buyPrice(id, actorId)}</span>
               <span className="shop-step">
                 <button aria-label={`Less ${name(id)}`} onClick={() => add(side, id, -1, n)}><Minus size={12} /></button>
                 <b>{offer[side][id] ?? 0}</b>
@@ -73,7 +73,7 @@ export function ShopModal({ runtime, actorId, onClose }: {
           {column("give", mine, "You offer")}
         </div>
         <footer className="shop-foot">
-          <span>Your side <b>{yours}</b> · Their side <b>{theirs}</b></span>
+          <span>Your side <b>{yours}</b> · Their side <b>{theirs}</b> · Load {engine.load()} of {engine.capacity()}</span>
           {note && <span className="shop-note">{note}</span>}
           <button className="primary" disabled={empty || yours < theirs}
             onClick={() => deal(offer.give, offer.take) && setOffer({ give: {}, take: {} })}>Exchange</button>
@@ -84,7 +84,7 @@ export function ShopModal({ runtime, actorId, onClose }: {
   }
 
   const list = tab === "buy" ? rows(shop.stock) : rows(mine, (id) => id === "coin" || !engine.sellPrice(id, actorId));
-  const price = (id: ItemId) => (tab === "buy" ? engine.buyPrice(id) : engine.sellPrice(id, actorId));
+  const price = (id: ItemId) => (tab === "buy" ? engine.buyPrice(id, actorId) : engine.sellPrice(id, actorId));
   const have = (id: ItemId) => (tab === "buy" ? shop.stock[id] ?? 0 : mine[id] ?? 0);
   const max = picked ? Math.max(0, Math.min(have(picked),
     tab === "buy" ? Math.floor((mine.coin ?? 0) / price(picked)) : Math.floor(shop.purse / price(picked)))) : 0;
@@ -133,7 +133,7 @@ export function ShopModal({ runtime, actorId, onClose }: {
         )}
         {note && <span className="shop-note">{note}</span>}
       </footer>
-      <p className="shop-purse">You carry {money(mine.coin ?? 0)} · {shop.actor.name.split(" ")[0]} has {money(shop.purse)}</p>
+      <p className="shop-purse">You carry {money(mine.coin ?? 0)} · {shop.actor.name.split(" ")[0]} has {money(shop.purse)} · Load {engine.load()} of {engine.capacity()}</p>
     </div>
   );
 }

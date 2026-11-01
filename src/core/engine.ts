@@ -145,6 +145,7 @@ import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../conte
 import { livelihoodById } from "../content/characters/livelihoods";
 import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { amountIn, moneyFor } from "../content/economy/money";
+import { beastOf } from "../content/economy/carrying";
 import { climbable, useOf } from "../content/props/uses";
 import { workplaceFor } from "../content/characters/workplace";
 import { propSprite } from "../content/props/place";
@@ -187,6 +188,9 @@ const ROUND_STOP = 900;
 const GRAIN_PER_SACK = 20;
 /** Items priced by the grain in local stores. */
 const STAPLES = new Set(["grain", "bread", ...wares.filter((w) => w.good === "grain" || w.good === "bread").map((w) => w.id)]);
+/** The season the grain comes in. Mediterranean wheat is cut in early summer,
+ * Nile and Mesopotamian barley in spring, the monsoon's crop after the rains. */
+const HARVEST: Partial<Record<string, string>> = { temperate: "autumn", boreal: "autumn", mediterranean: "summer", arid: "spring", tropical: "autumn", monsoon: "autumn" };
 /** The items that cost more where the place lacks what they are made of. */
 const IMPORTED: Partial<Record<Resource, Set<ItemId>>> = {
   grain: STAPLES,
@@ -544,6 +548,8 @@ export class Engine {
     if (id === "coin" && known && setting)
       return (this.money ??= { ...known, name: moneyFor(setting).name, description: moneyFor(setting).about });
     if (known) return known;
+    const beast = beastOf(id);
+    if (beast) return { id, name: beast.day === undefined ? beast.name : `${beast.name}, hired for the day`, sprite: "hide", value: beast.day === undefined ? beast.value : Math.ceil(beast.value / 10) };
     // A garment carries its cloth in its id. Everything a worn item does —
     // the look it adds, the slot it fills — comes from the base definition;
     // the cloth only changes what it is called and what it is worth.
@@ -6122,6 +6128,7 @@ export class Engine {
         };
       else {
         this.fixDay();
+        this.returnHired();
         this.execute(request.command);
         if (request.command.type === "move") this.arrive();
         const held = heldObject(this.state);
@@ -6377,7 +6384,11 @@ export class Engine {
         return "You do not have the offered goods.";
       if (Object.entries(c.take).some(([id, n]) => (id === "coin" ? shop.purse : (shop.stock[id] ?? 0)) < (n ?? 0)))
         return "They do not have that to give.";
-      if (this.worth(c.give, "sell", a.id) < this.worth(c.take, "buy")) return "They decline those terms.";
+      if (this.worth(c.give, "sell", a.id) < this.worth(c.take, "buy", a.id)) return "They decline those terms.";
+      const gain = (inv: Inventory) => Object.entries(inv).reduce((n, [id, k]) => n + (id === "coin" || beastOf(id) ? 0 : k ?? 0), 0);
+      const room = Object.entries(c.take).reduce((n, [id, k]) => n + (beastOf(id)?.load ?? 0) * (k ?? 0), 0);
+      if (gain(c.take) > gain(c.give) && this.load() + gain(c.take) - gain(c.give) > this.capacity() + room)
+        return "You can't carry that much. A pack animal would help.";
       return;
     }
     if (c.type === "trade") {
@@ -8007,7 +8018,7 @@ export class Engine {
       b = this.world.place(c.target);
     if (c.type === "deal" && a) {
       const shop = this.shopOf(a.id, true)!;
-      const stock = { ...shop.stock };
+      const stock = { ...shop.held };
       let purse = shop.purse;
       for (const [id, n = 0] of Object.entries(c.give)) {
         p.inventory[id] = (p.inventory[id] ?? 0) - n;
@@ -8019,7 +8030,7 @@ export class Engine {
         if (id === "coin") purse -= n;
         else stock[id] = (stock[id] ?? 0) - n;
       }
-      a.shop = { day: shop.day, stock, purse };
+      a.shop = { day: shop.day, stock, purse, opening: shop.opening };
       if (this.state.goalFlags) this.state.goalFlags.traded = true;
       this.advance(60, a.id);
       this.regard(a, this.knows("fair-dealer") ? 2 : 1);
@@ -8901,8 +8912,38 @@ export class Engine {
     const shop = a.shop?.day === day ? a.shop
       : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i), [...this.imported().keys()].filter((i) => this.carried(i)));
     if (granary && a.shop?.day !== day) shop.stock = { ...shop.stock, grain: granary };
-    return { actor: a, coined, ...shop };
+    const opening = shop.opening ?? shop.stock, sold = this.soldToday(a, opening);
+    const stock = Object.fromEntries(Object.entries(shop.stock).map(([i, n]) => [i, Math.max(0, (n ?? 0) - (sold[i] ?? 0))]));
+    return { actor: a, coined, ...shop, opening, stock, held: shop.stock };
   }
+  /** What the day's other customers have bought of a seller's morning stock
+   * by now, and what a caravan in today has put back of the goods it brings. */
+  private soldToday(a: Actor, opening: Inventory) {
+    const hour = (this.state.clock / 3600) % 24, caravan = this.caravan(), sold: Inventory = {};
+    const day = Math.floor(this.state.clock / (DAY_MINUTES * 60)), merchant = this.merchant(a.id);
+    const through = Math.min(1, Math.max(0, (hour - 7) / 11));
+    for (const [id, n = 0] of Object.entries(opening)) {
+      if (beastOf(id)) continue;
+      const roll = (k: string) => random(this.state.manifest.seed, "sold", a.id, day, id, k);
+      // Bread and fish go by noon; a smith's tools may sit all week.
+      const pace = (this.item(id)?.edible ? 0.9 : 0.5) * (0.4 + 0.6 * roll("pace"));
+      let k = Math.floor(n * through * pace + roll("frac"));
+      if (!merchant && caravan && hour >= caravan.hour && this.imported().has(id)) k -= 2 + Math.floor(roll("caravan") * 3);
+      if (k) sold[id] = k;
+    }
+    return sold;
+  }
+  /** The day a merchant came in, the hour, and where from. Prices of what
+   * they bring ease while it lasts. */
+  private caravan() {
+    const day = Math.floor(this.state.clock / (DAY_MINUTES * 60));
+    if (this.caravanIn?.day === day && this.caravanIn.minute === Math.floor(this.state.clock / 60)) return this.caravanIn.at;
+    const at = this.caravanIn?.day === day ? this.caravanIn.at : undefined;
+    const here = !at && this.state.actors.find((a) => !a.dead && this.merchant(a.id));
+    this.caravanIn = { day, minute: Math.floor(this.state.clock / 60), at: at ?? (here ? { hour: (this.state.clock / 3600) % 24, name: here.name } : undefined) };
+    return this.caravanIn.at;
+  }
+  private caravanIn?: { day: number; minute: number; at?: { hour: number; name: string } };
   /** Everyone who would trade now, and where they show: themselves, or the
    * door of the building they sell in. Rechecked once a game minute. */
   traders() {
@@ -8968,15 +9009,18 @@ export class Engine {
   priceNote(stock: Inventory, seller?: string) {
     if (seller && this.merchant(seller)) return this.merchantNote();
     const brought = Object.keys(stock).map((id) => ({ id, from: this.imported().get(id) })).find((x) => x.from && !STAPLES.has(x.id));
-    const carried = brought && `${this.item(brought.id)?.name ?? brought.id} costs more here: it comes ${brought.from!.from}.`;
+    const caravan = this.caravan(), what = brought && (this.item(brought.id)?.name ?? brought.id);
+    const carried = brought && (caravan
+      ? `${what} is cheaper today: ${caravan.name.split(" ")[0]}'s train came in ${brought.from!.from}.`
+      : `${what} costs more here: it comes ${brought.from!.from}.`);
     return [this.stapleNote(stock), carried].filter(Boolean).join(" ") || undefined;
   }
   private stapleNote(stock: Inventory) {
     if (!Object.keys(stock).some((id) => STAPLES.has(id))) return;
-    const f = this.stapleDearness() * (this.imported().get("grain")?.factor ?? 1), setting = this.world.pack.setting, claim = setting && claimFor(setting);
+    const f = this.stapleDearness() * this.lean() * (this.imported().get("grain")?.factor ?? 1), setting = this.world.pack.setting, claim = setting && claimFor(setting);
     const name = (this.item("grain")?.name ?? "Grain").toLowerCase().replace(/^./, (c) => c.toUpperCase());
-    if (f <= 0.85) return `${name} is cheap; the stores are full.`;
-    if (f < 1.3) return;
+    if (f <= 0.85) return `${name} is cheap${this.lean() < 1 ? ": the harvest is in" : "; the stores are full"}.`;
+    if (f < 1.3) return this.lean() > 1.1 ? `${name} costs more in the weeks before the harvest.` : undefined;
     const grain = this.imported().get("grain");
     if (grain && this.stapleDearness() < 1.3) return `${name} is dear: it comes ${grain.from}.`;
     const taken = claim?.share && this.state.economy?.collected !== undefined && seasonIndex(this.state.clock) - this.state.economy.collected <= 1;
@@ -9041,31 +9085,77 @@ export class Engine {
       wants.length > 0 && `Pays well for ${list(wants)} to carry on.`,
     ].filter(Boolean).join(" ") || undefined;
   }
+  /** What another place charges for the goods of what it has (`known`) and
+   * has to bring in (`lacks`), against the price here, where the gap is
+   * worth a trader's walk. */
+  pricesThere(known: Resource[], lacks: Resource[]) {
+    return [...known, ...lacks].flatMap((r) => {
+      const id = [...(IMPORTED[r] ?? [])].find((i) => this.carried(i)), def = id && this.item(id);
+      if (!def || def.value <= 0) return [];
+      const there = Math.max(1, Math.round(def.value * (known.includes(r) ? 1 : ROUTE_MARKUP["by road"])));
+      const here = this.buyPrice(id!);
+      return Math.max(there, here) >= 1.5 * Math.min(there, here) ? [{ id: id!, name: def.name, there, here }] : [];
+    }).sort((a, b) => Math.max(b.here / b.there, b.there / b.here) - Math.max(a.here / a.there, a.there / a.here)).slice(0, 2);
+  }
+  /** Goods the player has about them; money and beasts are not a load. */
+  load() {
+    return Object.entries(this.state.player.inventory).reduce((n, [id, k]) => n + (id === "coin" || beastOf(id) ? 0 : Math.max(0, k ?? 0)), 0);
+  }
+  /** What they can carry: their own back, and whatever beasts they lead. */
+  capacity() {
+    return 16 + Math.round(this.stats().strength / 10) + Object.entries(this.state.player.inventory)
+      .reduce((n, [id, k]) => n + (beastOf(id)?.load ?? 0) * Math.max(0, k ?? 0), 0);
+  }
+  /** A hired beast goes back to its owner when the day it was hired for is over. */
+  private returnHired() {
+    const inv = this.state.player.inventory, day = Math.floor(this.state.clock / (DAY_MINUTES * 60));
+    for (const id of Object.keys(inv)) {
+      const b = beastOf(id);
+      if (b?.day === undefined || b.day === day || !inv[id]) continue;
+      delete inv[id];
+      this.event(`The hired ${b.name.toLowerCase()} goes back to its owner.`, "system");
+    }
+  }
   private terms() {
     return 1 + this.skillLevel("trade") * PER_LEVEL.tradeTerms + (this.knows("haggler") ? 0.15 : 0);
   }
   /** What one costs from a seller, in coin or, where nobody uses coin, in worth. */
-  buyPrice(id: ItemId) {
-    const v = this.value(id);
+  buyPrice(id: ItemId, from?: string) {
+    const v = this.value(id, from);
     return id === "coin" ? 1 : v <= 0 ? 0 : Math.max(1, Math.ceil(v / this.terms()));
   }
   /** What a seller pays for one. A shop pays half, a merchant most of its
    * worth for what this place has plenty of; bartered goods go at their worth. */
   sellPrice(id: ItemId, to?: string) {
-    const v = this.value(id);
+    const v = this.value(id, to);
     if (id === "coin") return 1;
     if (v <= 0) return 0;
     const share = to && this.plenty().has(id) && this.merchant(to) ? 0.8 : 0.5;
-    return this.coined() ? Math.max(1, Math.min(this.buyPrice(id), Math.floor(v * this.terms() * share))) : v;
+    return this.coined() ? Math.max(1, Math.min(this.buyPrice(id, to), Math.floor(v * this.terms() * share))) : v;
   }
-  /** An item's worth here today: staples follow the stores. */
-  private value(id: ItemId) {
-    const v = this.item(id)?.value ?? 0, carried = this.imported().get(id)?.factor ?? 1;
-    if (v <= 0 || (carried === 1 && !STAPLES.has(id))) return v;
-    return Math.max(1, Math.round(v * carried * (STAPLES.has(id) ? this.stapleDearness() : 1)));
+  /** An item's worth here today: staples follow the stores and the harvest,
+   * carried goods ease while a train is in, and a seller's last few cost more. */
+  private value(id: ItemId, seller?: string) {
+    const v = this.item(id)?.value ?? 0, scarce = seller ? this.scarcity(id, seller) : 1;
+    let carried = this.imported().get(id)?.factor ?? 1;
+    if (carried > 1 && this.caravan()) carried = 1 + (carried - 1) / 2;
+    if (v <= 0 || (carried === 1 && scarce === 1 && !STAPLES.has(id))) return v;
+    return Math.max(1, Math.round(v * carried * scarce * (STAPLES.has(id) ? this.stapleDearness() * this.lean() : 1)));
+  }
+  /** Half as much again for the last of a seller's morning stock. */
+  private scarcity(id: ItemId, seller: string) {
+    const shop = this.shopOf(seller, true), was = shop?.opening[id] ?? 0;
+    return was < 2 ? 1 : 1 + 0.5 * Math.max(0, 1 - (shop!.stock[id] ?? 0) / was);
+  }
+  /** Grain dearest in the season before the harvest, cheapest once it is in. */
+  private lean() {
+    const setting = this.world.pack.setting, harvest = setting && HARVEST[setting.climate];
+    if (!harvest) return 1;
+    const order = ["spring", "summer", "autumn", "winter"];
+    return [0.85, 0.95, 1.05, 1.2][(order.indexOf(seasonAt(setting.season, this.state.clock)) - order.indexOf(harvest) + 4) % 4];
   }
   worth(inv: Inventory, side: "buy" | "sell", to?: string) {
-    return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id) : this.sellPrice(id, to)), 0);
+    return Object.entries(inv).reduce((sum, [id, n]) => sum + (n ?? 0) * (side === "buy" ? this.buyPrice(id, to) : this.sellPrice(id, to)), 0);
   }
   coined() {
     const setting = this.world.pack.setting;

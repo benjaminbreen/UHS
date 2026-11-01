@@ -110,3 +110,18 @@ export function withLoads(
   if (product && last >= 0) bear(last + 1, product);
   return out;
 }
+
+/** Pack beasts a merchant's train will sell or hire out: worth in coin, and
+ * the load each bears in the units a person carries about twenty of. */
+export const BEASTS: Record<string, { name: string; value: number; load: number }> = {
+  donkey: { name: "Donkey", value: 30, load: 40 },
+  horse: { name: "Packhorse", value: 60, load: 50 },
+  camel: { name: "Camel", value: 80, load: 100 },
+  llama: { name: "Llama", value: 20, load: 25 },
+  cattle: { name: "Pack ox", value: 40, load: 60 },
+};
+/** `beast-camel` is bought; `hire-camel-12` is hired for day 12 only. */
+export function beastOf(id: string) {
+  const m = /^(beast|hire)-([a-z]+)(?:-(\d+))?$/.exec(id), b = m && BEASTS[m[2]];
+  return b ? { ...b, species: m![2], day: m![3] === undefined ? undefined : Number(m![3]) } : undefined;
+}

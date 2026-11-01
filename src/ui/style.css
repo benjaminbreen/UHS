@@ -7493,6 +7493,11 @@ button:disabled {
 [data-land="herds"] { --land: #a8743c; }
 .map-lens-known { transform: translate(-50%, 6px); }
 .map-lens-known.is-home { transform: translate(-50%, 10px); padding: 4px 6px; }
+.map-lens-price { flex-direction: column; gap: 0; border-radius: 6px; font-size: 11px; color: #f0b07a; white-space: nowrap; }
+.map-lens-price [data-cheap] { color: #a8e08a; }
+.map-lens-price small { opacity: 0.7; }
+.map-lens-price-key { color: #f0b07a; }
+.map-lens-price-key[data-cheap] { color: #a8e08a; }
 .map-lens-import {
   transform: translate(-50%, -50%);
   gap: 4px;
