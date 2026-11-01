@@ -13,6 +13,7 @@ import {
   depositSupplies,
   harvestResource,
   householdActivity,
+  personalItem,
   refreshResource,
   seasonAt,
   seasonIndex,
@@ -187,6 +188,24 @@ const ROUND_STOP = 900;
 /** Store grain, in days of one person's bread, to a sack on the counter. */
 const GRAIN_PER_SACK = 20;
 /** Items priced by the grain in local stores. */
+const TOLLED = new Set(["grain", "wood", "salt", "wool", "cloth", "fish", "hide", "ore", ...wares.map((w) => w.id)]);
+const BLESSINGS: Record<string, string> = {
+  european: "God keep you.",
+  "north-african-west-asian": "God reward you.",
+  "south-asian": "May the gods favour you.",
+  "east-asian": "May you be well and at peace.",
+  "southeast-asian": "May you be well and happy.",
+  "inner-eurasian": "May your road be open.",
+  mesoamerican: "The gods see what you give.",
+};
+const GUARD_ARMS = ["spear", "halberd", "glaive", "musket", "bow", "macuahuitl", "crossbow", "sling"];
+/** A watchman's own weapon, wherever in their kit it is. */
+const armsOf = (a: Actor) => GUARD_ARMS.find((id) => (a.inventory[id] ?? 0) > 0);
+/** Lamp-lighting to dawn: when a watch goes on with a light. */
+const dark = (clock: number) => {
+  const hour = (((clock / 3600) % 24) + 24) % 24;
+  return hour >= 19 || hour < 6;
+};
 const STAPLES = new Set(["grain", "bread", ...wares.filter((w) => w.good === "grain" || w.good === "bread").map((w) => w.id)]);
 /** The season the grain comes in. Mediterranean wheat is cut in early summer,
  * Nile and Mesopotamian barley in spring, the monsoon's crop after the rains. */
@@ -274,6 +293,7 @@ import {
   clearDoorsteps,
   doorApproach,
   isShutBarrier,
+  townGateShut,
   type DoorVerdict,
 } from "./doors";
 
@@ -389,6 +409,27 @@ const WALL_ANSWERS: { kind: "down" | "explain" | "bribe" | "run"; label: string;
     lost: "{name} knocks the coins out of your hand. \"Trying to buy the watch? You'll be reported for that.\"" },
   { kind: "run", label: "Run along the wall", line: "You turn and run along the wall. {name} comes after you, shouting." },
 ];
+const TOLL_ANSWERS: { kind: "pay" | "bribe" | "talk" | "slip"; label: string; stat?: keyof import("./types").Stats; odds?: number; line: string; lost?: string }[] = [
+  { kind: "pay", label: "Pay the toll", line: "You pay, and {name} waves you through." },
+  { kind: "bribe", label: "Pay half to look the other way",
+    line: "{name} pockets it and looks the other way.",
+    lost: "{name} hands it back. \"Not from you. The full toll, and I'll remember your face.\"" },
+  { kind: "talk", label: "Say it's for your own household", stat: "wit", odds: 0.35,
+    line: "{name} looks you over. \"Go on, then.\"",
+    lost: "\"That's what they all say.\" {name} takes the toll." },
+  { kind: "slip", label: "Keep walking into the crowd", stat: "agility", odds: 0.4,
+    line: "You keep walking. Nobody shouts after you.",
+    lost: "{name} catches your arm. \"Smuggling? Then the goods are forfeit.\" A quarter of your load is taken." },
+];
+/** What the duty on goods at a town gate was called, glossed where the word is not English. */
+function tollName(s: import("./types").Pack["setting"]) {
+  if (!s) return "the toll";
+  if (s.culture === "north-african-west-asian" && s.year >= 650) return "the ushr, the customs tenth";
+  if (s.year >= -30 && s.year < 480 && (s.culture === "european" || s.culture === "north-african-west-asian")) return "the portorium, the customs duty";
+  if (s.culture === "european" && s.year >= 1650) return "the octroi, the town's duty on goods";
+  if (s.culture === "east-asian" && s.year >= 1853) return "the likin, the transit tax";
+  return "the toll";
+}
 const workSkill: Record<ProcessFamily, SkillId> = {
   tend: "farming",
   gather: "foraging",
@@ -1115,6 +1156,7 @@ export class Engine {
   private choose(id: string, n: number) {
     if (id.startsWith("help:")) return this.helpChoose(id, n);
     if (id.startsWith("wall:")) return this.wallAnswer(n);
+    if (id.startsWith("toll:")) return this.tollAnswer(n);
     const s = this.state, p = s.player;
     const care = s.care?.card === id ? s.care : undefined;
     const encounter = s.encounter?.card === id;
@@ -1428,6 +1470,113 @@ export class Engine {
   }
   /** Arriving where the day's next step is done brings its card, so the
    * trouble comes before the work rather than after it. */
+  /** Goods carried in through a town gate pay toll to the guard on it: a coin
+   * for every ten loads where there is coin, one load in kind where not. */
+  private tolled = new Set<string>();
+  private gateToll(dx: number, dy: number) {
+    const p = this.state.player;
+    const gate = p.pos.space === "outside" && !this.onWall() ? this.walls().gates.get(`${p.pos.x},${p.pos.y}`) : undefined;
+    if (!gate || (gate.dx ? dx !== gate.dx : dy !== gate.dy)) return;
+    const key = `${gate.id}:${Math.floor(this.state.clock / 86400)}`;
+    if (this.tolled.has(key)) return;
+    const guard = this.state.actors.find((a) => a.post && !a.post.round && !a.dead && a.pos.space === "outside" &&
+      a.pos.x === a.post.at.x && a.pos.y === a.post.at.y && distance(a.pos, p.pos) < 6);
+    const goods = Object.entries(p.inventory).filter(([id, n]) => (n ?? 0) > 0 && TOLLED.has(id));
+    const loads = goods.reduce((n, [, k]) => n + (k ?? 0), 0);
+    if (!guard || !loads) return;
+    this.tolled.add(key);
+    const [most] = goods.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0];
+    const what = this.item(most)?.name.toLowerCase() ?? most;
+    const setting = this.world.pack.setting;
+    const coins = (setting ? capabilitiesFor(setting).has("coinage") : !!this.world.pack.currency) ? Math.max(1, Math.round(loads / 10)) : 0;
+    guard.direction = this.directionTo(guard.pos, p.pos);
+    guard.offRoutine = true;
+    this.toll = { id: guard.id, coins, most, at: this.state.clock };
+    const due = !coins ? `one ${what}` : setting ? amountIn(setting, coins, true) : coins === 1 ? "a coin" : `${coins} coins`;
+    const lines = [
+      `Hold on. That ${what} is coming in? Then it pays ${tollName(setting)}: ${due}.`,
+      `Goods through the gate pay ${tollName(setting)}. For that ${what}, ${due}.`,
+    ];
+    const stats = this.stats(), level = this.skillLevel("speech");
+    this.cards.push({
+      kind: "speech",
+      title: "the gate",
+      text: lines[guard.id.length % lines.length],
+      speaker: guard.id,
+      choose: {
+        card: `toll:${guard.id}`,
+        choices: TOLL_ANSWERS.map((x, index) => {
+          const cost = x.kind === "pay" ? coins : x.kind === "bribe" ? Math.ceil(coins / 2) : 0;
+          return {
+            index,
+            label: x.kind === "pay" && !coins ? `Hand over one ${what}` : x.label,
+            odds: x.odds ? oddsOf({ stat: x.stat!, skill: x.kind === "slip" ? "wayfaring" : "speech", odds: x.odds }, stats, level) : undefined,
+            coin: cost ? -cost : undefined,
+            unavailable: x.kind === "bribe" && !coins ? "Nobody here pays in coin." : cost > (p.inventory.coin ?? 0) ? "You don't have the coin." : undefined,
+          };
+        }),
+      },
+    });
+  }
+  private toll?: { id: string; coins: number; most: ItemId; at: number; answered?: boolean };
+  private tollAnswerProblem(card: string, n: number) {
+    const t = this.toll, x = TOLL_ANSWERS[n];
+    if (!t || card !== `toll:${t.id}` || t.answered || !x) return "There is nothing to answer.";
+    const cost = x.kind === "pay" ? t.coins : x.kind === "bribe" ? Math.ceil(t.coins / 2) : 0;
+    if (x.kind === "bribe" && !t.coins) return "Nobody here pays in coin.";
+    if (cost > (this.state.player.inventory.coin ?? 0)) return "You don't have the coin.";
+  }
+  private tollAnswer(n: number) {
+    const t = this.toll!, p = this.state.player, x = TOLL_ANSWERS[n], clock = this.state.clock;
+    const a = this.state.actors.find((o) => o.id === t.id)!, first = a.name.split(" ")[0];
+    t.answered = true;
+    a.offRoutine = false;
+    let regard = 0, paid = 0;
+    const pay = (coins: number) => {
+      if (!coins) {
+        p.inventory[t.most] = (p.inventory[t.most] ?? 0) - 1;
+        a.inventory[t.most] = (a.inventory[t.most] ?? 0) + 1;
+        return;
+      }
+      p.inventory.coin = (p.inventory.coin ?? 0) - coins;
+      a.inventory.coin = (a.inventory.coin ?? 0) + coins;
+      paid += coins;
+    };
+    let won = !x.odds || this.rng(`toll:${t.id}:${clock}`) < oddsOf({ stat: x.stat!, skill: x.kind === "slip" ? "wayfaring" : "speech", odds: x.odds }, this.stats(), this.skillLevel(x.kind === "slip" ? "wayfaring" : "speech"));
+    if (x.kind === "pay") pay(t.coins);
+    else if (x.kind === "bribe") {
+      won = statsOf(this.state.manifest.seed, a).conscientiousness < 70;
+      if (won) pay(Math.ceil(t.coins / 2));
+      else {
+        pay(t.coins);
+        regard = -3;
+        this.complain(a, { act: "tried to bribe the watch at", object: "the town gate", victim: a.id, tone: -3, at: clock, hops: 0 });
+      }
+    } else if (x.kind === "talk") {
+      this.grantXp("speech", won ? 6 : 3);
+      if (!won) pay(t.coins), regard = -1;
+    } else {
+      this.grantXp("wayfaring", won ? 6 : 2);
+      if (!won) {
+        // Smuggled goods are forfeit: a quarter of every load the toll is on.
+        for (const [id, k = 0] of Object.entries(p.inventory))
+          if (TOLLED.has(id) && k > 0) {
+            const seized = Math.ceil(k / 4);
+            p.inventory[id] = k - seized;
+            a.inventory[id] = (a.inventory[id] ?? 0) + seized;
+          }
+        regard = -3;
+        this.complain(a, { act: "smuggled goods past", object: "the town gate", victim: a.id, tone: -4, at: clock, hops: 0 });
+      }
+    }
+    if (regard) this.regard(a, regard, "anger");
+    const line = (won ? x.line : x.lost!).replaceAll("{name}", first);
+    this.event(line, "social");
+    this.lastChoice = {
+      card: `toll:${t.id}`, line, won: x.odds || x.kind === "bribe" ? won : undefined,
+      changes: [...(paid ? [{ kind: "coin", delta: -paid }] : []), ...(regard ? [{ kind: "regard", delta: regard, who: first }] : [])],
+    };
+  }
   private arrive() {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length || this.waitingCard() || !t.process.steps[t.stage].card) return;
@@ -1875,6 +2024,7 @@ export class Engine {
     cells: Set<string>;
     walk: Map<string, WallWalk>;
     stairs: Map<string, { step: number; onto?: Point }>;
+    gates: Map<string, { id: string; dx: number; dy: number }>;
   };
   private wallIndexFor = -1;
   /** The circuits' cells, read off the frames the town was drawn with:
@@ -1888,7 +2038,19 @@ export class Engine {
     const cells = new Set<string>();
     const walk = new Map<string, WallWalk>();
     const stairs = new Map<string, { step: number; onto?: Point }>();
+    // The road through each town gate, and which way along it is into town.
+    const gates = new Map<string, { id: string; dx: number; dy: number }>();
     const corners: Record<string, WallWalk["corner"]> = { "9": "nw", "3": "ne", "6": "se", "12": "sw" };
+    for (const e of all)
+      for (const [i, gap] of (e.gates ?? []).entries()) {
+        const across = gap.every((q) => q.y === gap[0].y);
+        for (const q of gap)
+          gates.set(`${q.x},${q.y}`, {
+            id: `${e.x},${e.y}:${i}`,
+            dx: across ? 0 : Math.sign(e.x + e.w / 2 - q.x) || 1,
+            dy: across ? Math.sign(e.y + e.h / 2 - q.y) || 1 : 0,
+          });
+      }
     for (const e of all)
       for (const { x, y, frame } of e.parts ?? []) {
         const k = `${x},${y}`;
@@ -1911,13 +2073,17 @@ export class Engine {
         }
       }
     this.wallIndexFor = all.length;
-    return (this.wallIndex = { cells, walk, stairs });
+    return (this.wallIndex = { cells, walk, stairs, gates });
   }
   /** A cell belonging to an enclosure circuit: a wall you can stand on, as
    * opposed to a building footprint or a tree. A gate's span is not one: the
    * road runs under it. */
   wallAt(x: number, y: number, space = this.state.player.pos.space) {
     return space === "outside" && this.walls().cells.has(`${x},${y}`);
+  }
+  /** A town gate's road at night, for anyone below the wall walk. */
+  gateShut(x: number, y: number) {
+    return townGateShut(this.state.clock) && this.walls().gates.has(`${x},${y}`) && !this.onWall();
   }
   /** What the wall walk is at a cell, for someone up on it. */
   walkAt(x: number, y: number): WallWalk | undefined {
@@ -2352,6 +2518,7 @@ export class Engine {
     const key = `${space}:${x},${y}`;
     return (
       this.ground(x, y, space) ||
+      (space === "outside" && this.gateShut(x, y)) ||
       (
         this.tickObstacles?.get(key) ??
         (this.tickObstacles ? [] : this.state.objects)
@@ -6130,7 +6297,10 @@ export class Engine {
         this.fixDay();
         this.returnHired();
         this.execute(request.command);
-        if (request.command.type === "move") this.arrive();
+        if (request.command.type === "move") {
+          this.arrive();
+          this.gateToll(request.command.dx, request.command.dy);
+        }
         const held = heldObject(this.state);
         if (held) held.pos = copy(this.state.player.pos);
         this.state.revision++;
@@ -6185,6 +6355,7 @@ export class Engine {
     if (c.type === "interact" && c.action === "work" && this.tileAt(c.target))
       return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
     if (c.type === "choose" && c.card.startsWith("wall:")) return this.wallAnswerProblem(c.card, c.choice);
+    if (c.type === "choose" && c.card.startsWith("toll:")) return this.tollAnswerProblem(c.card, c.choice);
     if (c.type === "choose" && c.card.startsWith("help:"))
       return this.state.asks?.some((x) => `help:${x.id}` === c.card && x.offered) && HELP[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose") {
@@ -6265,6 +6436,8 @@ export class Engine {
         return "Too deep to wade — find a shallower crossing or a bridge.";
       if (this.wallStep(c.dx, c.dy) === "drop")
         return "It is a long drop from the wall. Jump, or go down by the stairs.";
+      if (p.pos.space === "outside" && this.gateShut(p.pos.x + c.dx, p.pos.y + c.dy))
+        return "The town gate is shut for the night. It opens at first light.";
       if (this.runningCollision(c) || this.sidestep(c)) return;
       if (!(c.dx && c.dy) && p.pos.space === "outside" && this.treeFind(p.pos.x + c.dx, p.pos.y + c.dy)) return;
       const push = this.shovePlan(c.dx, c.dy);
@@ -7873,8 +8046,12 @@ export class Engine {
       const ask = this.state.asks?.find((x) => x.by === a.id && (x.kind === "food" ? !!def.edible : x.item === c.item));
       if (ask) this.grant(ask, a);
       this.advance(20, a.id);
+      const alms = a.origin?.livelihood === "religious-specialist" && (c.item === "coin" || !!def.edible) && !peace;
+      if (alms) this.regard(a, 1);
       this.event(
-        `You hand ${def.name.toLowerCase()} to ${a.name}. ${peace ? "They take it, and the grudge with it." : "They take it."}`,
+        alms
+          ? `You put ${def.name.toLowerCase()} in ${a.name}'s ${a.heldItem === "alms-bowl" ? "bowl" : "hand"}. "${BLESSINGS[this.world.pack.setting?.culture ?? ""] ?? "Bless you for it."}"`
+          : `You hand ${def.name.toLowerCase()} to ${a.name}. ${peace ? "They take it, and the grudge with it." : "They take it."}`,
         "social",
       );
       if (advanceLifeAim(this.state, { type: "give", actor: a.id, item: c.item }))
@@ -9083,6 +9260,7 @@ export class Engine {
     return [
       brought.length > 0 && `Brings ${list(brought.map(word))}${from ? ` ${from}` : ""}.`,
       wants.length > 0 && `Pays well for ${list(wants)} to carry on.`,
+      this.walls().gates.size > 0 && `Grumbles that ${tollName(setting)} at the gate comes out of every load.`,
     ].filter(Boolean).join(" ") || undefined;
   }
   /** What another place charges for the goods of what it has (`known`) and
@@ -9894,7 +10072,8 @@ export class Engine {
     this.aboard(a, at.boat, Math.round(at.x), Math.round(at.y));
     const household = this.household(a.householdId);
     a.offRoutine = false;
-    if (at.carry) a.heldItem = at.carry;
+    const own = at.carry ?? personalItem(a);
+    if (own) a.heldItem = own;
     else delete a.heldItem;
     const sites = this.world.activitySites?.(a.id);
     const gateId = sites?.gateId;
@@ -9939,6 +10118,8 @@ export class Engine {
     });
     a.direction = at.direction;
     a.activity = at.label;
+    if (at.activity !== "rest" && ["lute", "drum", "flute"].includes(a.heldItem ?? "") && a.origin?.livelihood === "musician")
+      a.activity = `Playing the ${this.item(a.heldItem!)?.name.toLowerCase()}`;
   }
   /** The player's household's place on the waterfront, if this is its boat. */
   private ownBoat(o: WorldObject) {
@@ -10204,6 +10385,47 @@ export class Engine {
    * keeps the team -- and across: to bar the way outside, or in through the
    * gate after them. One who stays after the warning is walked out through the
    * gate. With the ground clear again they go back and climb aboard. */
+  /** A gate guard or the night round: to the post or round on shift, to the
+   * rest spot off it, walking when anyone could see, placed when nobody can. */
+  private keepPost(a: Actor, post: NonNullable<Actor["post"]>, clock: number) {
+    const night = dark(clock);
+    const on = !!post.night === night;
+    const round = on && post.round;
+    if (round && a.pos.x === round[post.leg ?? 0].x && a.pos.y === round[post.leg ?? 0].y) post.leg = ((post.leg ?? 0) + 1) % round.length;
+    const to = { ...(round ? round[post.leg ?? 0] : on ? post.at : post.rest), space: "outside" as const };
+    a.heldItem = on && post.torch && night ? "torch" : armsOf(a);
+    const hour = Math.floor(clock / 3600);
+    if (round && post.called !== hour && this.state.player.pos.space === "outside" && distance(a.pos, this.state.player.pos) < 14) {
+      post.called = hour;
+      this.event(`${a.name} ${this.hourCall(hour % 24)}`, "social", a.pos);
+    }
+    a.offRoutine = false;
+    // Someone else on the rest spot: beside it will do.
+    const there = a.pos.space === "outside" && (a.pos.x === to.x && a.pos.y === to.y || (!on && distance(a.pos, to) < 1.5));
+    if (!there) {
+      if (!this.visible(a.pos) && !this.visible(to) && !round && !this.blocked(to.x, to.y, "outside") && !this.actorAt(to, a.id))
+        this.moveActor(a, to);
+      else this.stepToward(a, to);
+      a.activity = round ? "Walking the night round" : on ? "Going on watch" : "Coming off watch";
+      return;
+    }
+    if (on && post.face !== undefined) a.direction = post.face;
+    a.activity = !on ? "Off watch, resting by the gate" : this.gateShutNear(a) ? "Keeping the shut gate" : "Keeping the gate";
+  }
+  /** What a night watch calls or strikes on the hour, by where the town is. */
+  private hourCall(hour: number) {
+    const s = this.world.pack.setting, clock = hour % 12 || 12;
+    if (s?.culture === "east-asian" && s.lon > 128) return `knocks the clappers together and calls, "Watch out for fire!"`;
+    if (s?.culture === "east-asian") return `beats the watch drum: the ${["first", "second", "third", "fourth", "fifth"][Math.min(4, Math.floor(((hour + 5) % 24) / 2))]} watch of the night.`;
+    if (s?.culture === "european") return `calls out, "${clock} o'clock, and all's well!"`;
+    return `calls out the hour and that all is quiet.`;
+  }
+  private gateShutNear(a: Actor) {
+    return townGateShut(this.state.clock) && [...this.walls().gates.keys()].some((k) => {
+      const [x, y] = k.split(",").map(Number);
+      return Math.hypot(a.pos.x - x, a.pos.y - y) < 3;
+    });
+  }
   private keepWatch(a: Actor, clock: number) {
     const guard = a.guard!;
     const ward = this.world.ward?.(guard.ward);
@@ -10619,7 +10841,12 @@ export class Engine {
         if ((a.terror && a.terror.until >= next) || this.crowd.has(a.id)) continue;
         if (a.kind === "human" && next % 60 === 0) this.discover(a);
         if (a.kind === "human" && a.guard) this.keepWatch(a, next);
+        if (a.kind === "human" && a.post) {
+          this.keepPost(a, a.post, next);
+          continue;
+        }
         if (a.kind === "human" && a.watch) {
+          a.heldItem = dark(next) ? "torch" : armsOf(a);
           if (this.challengeFromWall(a, next)) continue;
           const at = vehicleAt(a.watch, next);
           const x = Math.round(at.x), y = Math.round(at.y);

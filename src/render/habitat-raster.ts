@@ -1183,19 +1183,39 @@ function rasterGroundTile(
   const hasWear = Array.from({ length: 9 }, (_, i) =>
     wearOf(x + (i % 3) - 1, y + Math.floor(i / 3) - 1),
   ).some((w) => w > 0);
+  // Cubic B-spline weights over four cell centres. Bilinear blending left
+  // diamond-shaped cores and straight lobes on the cell grid.
+  const spline = (t: number) => [
+    (1 - t) ** 3 / 6,
+    (3 * t ** 3 - 6 * t ** 2 + 4) / 6,
+    (-3 * t ** 3 + 3 * t ** 2 + 3 * t + 1) / 6,
+    t ** 3 / 6,
+  ];
+  const wearGrid = hasWear
+    ? Array.from({ length: 49 }, (_, i) => wearOf(x - 3 + (i % 7), y - 3 + Math.floor(i / 7)))
+    : [];
   const wearAt = (xx: number, yy: number) => {
-    const u = xx - 0.5,
-      v = yy - 0.5;
+    const wx = (xx + ox) * 16,
+      wy = (yy + oy) * 16;
+    // A slow wobble of the sample point, so the edge wanders off the grid.
+    const u = xx - 0.5 + (noise(wx, wy, 19, 701) - 0.5) * 0.5,
+      v = yy - 0.5 + (noise(wx, wy, 19, 703) - 0.5) * 0.5;
     const cx = Math.floor(u),
       cy = Math.floor(v);
-    const tx = u - cx,
-      ty = v - cy;
-    return (
-      wearOf(cx, cy) * (1 - tx) * (1 - ty) +
-      wearOf(cx + 1, cy) * tx * (1 - ty) +
-      wearOf(cx, cy + 1) * (1 - tx) * ty +
-      wearOf(cx + 1, cy + 1) * tx * ty
-    );
+    const bx = spline(u - cx),
+      by = spline(v - cy);
+    let sum = 0;
+    for (let j = 0; j < 4; j++)
+      for (let i = 0; i < 4; i++) {
+        const a = cx - 1 + i - x + 3,
+          b = cy - 1 + j - y + 3;
+        const w =
+          a >= 0 && b >= 0 && a < 7 && b < 7
+            ? wearGrid[b * 7 + a]
+            : wearOf(cx - 1 + i, cy - 1 + j);
+        sum += w * bx[i] * by[j];
+      }
+    return sum;
   };
   const hasPath =
     !!cell.pathArt?.length ||
@@ -1221,10 +1241,15 @@ function rasterGroundTile(
           wy = gy + py;
         const routed = hasPath ? pathField(sample, xx, yy, ox, oy) : undefined;
         const wear = hasWear ? wearAt(xx, yy) : 0;
+        // Trodden ground joins a path in a smooth union, not a crease, and is
+        // the same earth as a footpath rather than a wide road's pale centre.
+        const trod = routed?.coverage ?? 0,
+          blend = Math.max(0, 0.3 - Math.abs(wear - trod)) / 0.3;
+        const joined = Math.min(1, Math.max(wear, trod) + blend * blend * 0.075);
         const field =
-          wear > (routed?.coverage ?? 0)
-            ? { coverage: wear, radius: 0.7, cross: 0.5, ruts: false as const, dung: false as const }
-            : routed;
+          wear > trod
+            ? { coverage: joined, radius: 0.6, cross: 0.5, ruts: false as const, dung: false as const }
+            : routed && { ...routed, coverage: joined };
         if (routed?.paved && field === routed && inside) {
           const tone = blacktopPixel(routed, wx, wy, dustOf(cell.biome));
           if (tone) {

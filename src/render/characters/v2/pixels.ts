@@ -99,11 +99,12 @@ export function ramp(
   base: string,
   material: "cloth" | "skin" | "hair" = "cloth",
 ): Ramp {
-  // Black hair drawn at its true value is a hole in the sprite: lift it, and
-  // give it a sheen the lighter heads do not need.
+  // Black hair or cloth drawn at its true value is a hole in the sprite: lift
+  // it, and give it a sheen the lighter values do not need. Cloth less, so
+  // black still reads as black.
   const [, , l0] = toHsl(base),
-    dark = material === "hair" ? Math.max(0, 0.22 - l0) / 0.22 : 0;
-  if (dark) base = mix(base, "#4a3c46", 0.4 * dark);
+    dark = material === "skin" ? 0 : Math.max(0, 0.22 - l0) / 0.22;
+  if (dark) base = mix(base, "#4a3c46", (material === "hair" ? 0.4 : 0.2) * dark);
   const [h, s, l] = toHsl(base),
     // Skin shades toward rose, not violet: blood under the surface.
     cold = material === "skin" ? 330 : 255,
@@ -150,7 +151,7 @@ export function ramp(
         step(
           material === "hair" ? 10 : 14,
           material === "skin" ? 0.25 : -0.02,
-          material === "hair" ? 0.07 + 0.08 * dark : 0.11,
+          material === "hair" ? 0.07 + 0.08 * dark : 0.11 + 0.05 * dark,
           material === "cloth" ? 52 : 38,
         ),
         light.warm,

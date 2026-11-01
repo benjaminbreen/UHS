@@ -100,6 +100,41 @@ export const westCentralAfrica: readonly GarmentKit[] = [
     ],
   },
   {
+    // The Edo kingdom until the British sack of 1897. The court bronzes and
+    // Portuguese accounts show men in a wrapper, bare above the waist or with
+    // a cloth over one shoulder, and title-holders in coral beads at the neck
+    // and on the head. The robe of the savanna is rare this far south.
+    id: "wca-benin",
+    label: "Benin · the wrapper and coral",
+    scope: { years: [1300, 1897], cultures: ["west-central-african"], bounds: [4.5, 5.5, 7.5, 7.5] },
+    garment: [
+      { value: "none", weight: 6, sex: ["male"] },
+      { value: "wrap", weight: 6 },
+      { value: "open-robe", weight: 1, means: ["wealthy"] },
+    ],
+    leggings: [{ value: "sarong", weight: 9 }, { value: "none", weight: 1, means: ["poor"] }],
+    headwear: [
+      { value: "none", weight: 7 },
+      { value: "cap", weight: 3, means: ["wealthy"] },
+      { value: "wrap", weight: 2, sex: ["female"] },
+      { value: "band", weight: 1 },
+    ],
+    footwear: [{ value: "none", weight: 9 }, { value: "sandals", weight: 2, means: ["common", "wealthy"] }],
+    over: [{ value: "none", weight: 5 }, { value: "shoulder-cloth", weight: 4 }],
+    neck: [
+      { value: "beads", weight: 6, means: ["wealthy"] },
+      { value: "beads", weight: 2 },
+      { value: "none", weight: 5 },
+    ],
+    dye: [
+      { value: "undyed", weight: 5 },
+      { value: "indigo", weight: 5 },
+      { value: "morinda", weight: 4 },
+      { value: "bark", weight: 2 },
+      { value: "safflower", weight: 2, means: ["wealthy"] },
+    ],
+  },
+  {
     id: "wca-modern",
     label: "West & Central Africa · the robe beside the shirt",
     scope: { years: [1900, 10001], cultures: ["west-central-african"] },

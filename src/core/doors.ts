@@ -135,3 +135,9 @@ export function clearDoorsteps(objects: WorldObject[], places: Place[], blocked:
     }
   }
 }
+
+/** Town gates shut at curfew and open at first light. */
+export function townGateShut(clock: number) {
+  const hour = (((clock / 3600) % 24) + 24) % 24;
+  return hour >= 21 || hour < 5;
+}

@@ -25,7 +25,7 @@ export const eastAsia: readonly GarmentKit[] = [
     footwear: [{ value: "sandals", weight: 8 }, { value: "none", weight: 1, means: ["poor"] }],
     over: [{ value: "none" }],
     accessory: [{ value: "fan", weight: 8, roles: ["geisha"] }, { value: "fan", weight: 1, means: ["wealthy"], ages: ["adult", "elder"] },
-      { value: "none", weight: 4 }],
+      { value: "walking-cane", weight: 1, ages: ["elder"] }, { value: "none", weight: 4 }],
   },
   {
     id: "ea-early",

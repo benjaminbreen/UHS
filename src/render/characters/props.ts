@@ -141,7 +141,7 @@ export function iconCarriedArt(
   );
   return {
     sprite: id,
-    kind: id === "icon:spear" ? "haft" : id === "icon:walking-cane" ? "cane" : id === "icon:fan" ? "fan" : id === "icon:bow" ? "bow" : id === "icon:sling" ? "sling" : id === "icon:tool" ? "blade" : id === "icon:torch" ? "brand" : "both",
+    kind: /^icon:(spear|halberd|glaive|musket|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole)$/.test(id) ? "haft" : id === "icon:walking-cane" ? "cane" : id === "icon:fan" ? "fan" : id === "icon:bow" ? "bow" : id === "icon:sling" ? "sling" : id === "icon:tool" ? "blade" : id === "icon:torch" ? "brand" : "both",
     image: crop,
     width: crop.width,
     height: crop.height,

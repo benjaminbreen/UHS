@@ -35,7 +35,8 @@ export function clothColours(w: CharacterAppearance["wearing"]) {
   const n = [...(w.color + w.trim)].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 3);
   const pick = (list: readonly string[], salt: number) => list[(n + salt) % list.length];
   // Metal helmets, powdered wigs, glass visors and straw cones keep their own colour.
-  const hat = w.headwear === "helmet" ? "#8e9497" : w.headwear === "wig" ? "#e4e0d8" : w.headwear === "visor" ? "#c8d8e0"
+  const hat = ["helmet", "nasal", "kettle"].includes(w.headwear) ? (w.armourColor ?? "#767d83")
+    : w.headwear === "kabuto" ? (w.armourColor ?? "#7a2e24") : w.headwear === "jaguar" ? "#c8923a" : w.headwear === "eagle" ? "#6a4a30" : w.headwear === "official-cap" ? "#24222a" : w.headwear === "wig" ? "#e4e0d8" : w.headwear === "visor" ? "#c8d8e0"
     : w.headwear === "conical" ? (w.headColor ?? "#c9a45c")
     : w.headColor ?? (CLOTH_HATS.has(w.headwear) ? w.trim : w.lowerColor);
   return {

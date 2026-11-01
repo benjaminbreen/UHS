@@ -165,6 +165,10 @@ export function pathField(
     const width = tuning?.pathWidth ?? 1;
     const pathWobble = tuning?.pathWobble ?? 1;
     const wobble = margin(x, y, ox, oy) * edgeBreakup;
+    let top = -Infinity,
+      ux = 0,
+      uy = 0;
+    const strokes: [number, number, number][] = [];
     for (const s of cell.pathArt) {
       const ax = ix + s.a[0],
         ay = iy + s.a[1],
@@ -187,14 +191,17 @@ export function pathField(
         x - cx + (drift * dy) / len,
         y - cy - (drift * dx) / len,
       );
-      const coverage = clamp01(
+      const raw =
         0.48 +
-          (0.6 * (radius - distance + (paved ? wobble * 0.3 : wobble))) /
-            Math.min(1.4, radius),
-      );
-      if (coverage > best.coverage)
+        (0.6 * (radius - distance + (paved ? wobble * 0.3 : wobble))) /
+          Math.min(1.4, radius);
+      strokes.push([raw, dx / len, dy / len]);
+      if (raw > top) {
+        top = raw;
+        ux = dx / len;
+        uy = dy / len;
         best = {
-          coverage,
+          coverage: clamp01(raw),
           cross: distance / (radius || 1),
           radius,
           ...(s.ruts === false && { ruts: s.ruts }),
@@ -205,7 +212,18 @@ export function pathField(
             along: (((x + ox) * dx + (y + oy) * dy) / len) * 16,
           }),
         };
+      }
     }
+    // Where roads meet at an angle, a smooth union fills the inside corner
+    // with a curve. Pieces of one road meet nearly in line and are left as
+    // they are, or every bend would bulge.
+    let fillet = 0;
+    for (const [raw, vx, vy] of strokes) {
+      const k = 0.45 * clamp01((Math.abs(ux * vy - uy * vx) - 0.4) / 0.4);
+      const h = k && Math.max(0, k - (top - raw)) / k;
+      fillet = Math.max(fillet, (h * h * k) / 4);
+    }
+    best.coverage = clamp01(top + fillet);
     return areaField.coverage > best.coverage ? areaField : best;
   }
 

@@ -19,6 +19,8 @@ import { westAsiaNorthAfrica } from "./regions/west-asia-north-africa";
 import { workDress } from "./regions/work-dress";
 import { layers } from "./regions/layers";
 import { sidearms } from "./regions/sidearms";
+import { guards } from "./regions/guards";
+import { street } from "./regions/street";
 import { embroidery } from "./regions/embroidery";
 import { headdress } from "./regions/headdress";
 
@@ -394,6 +396,7 @@ export const regionalKits: readonly GarmentKit[] = [
   ...clothPalettes,
   // Uniforms, court dress and the future: overlays that beat regional dress.
   ...specialSets,
+  ...guards, ...street,
 ];
 
 export const garmentKits: readonly GarmentKit[] = [

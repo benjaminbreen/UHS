@@ -11,6 +11,7 @@ uniform float uDull;
 uniform vec3 uShadow;
 uniform vec3 uLight;
 uniform float uCurve;
+uniform float uFloor;
 varying vec2 outTexCoord;
 
 void main() {
@@ -31,7 +32,7 @@ void main() {
   col = mix(col, vec3(luma), uDull * 0.4 * (1.0 - warm * 0.5)) * (1.0 - 0.08 * uDull);
   // Moonlight floor: the darks lift toward a dim blue-grey rather than black,
   // so ground and figures stay readable through the small hours.
-  vec3 floorCol = vec3(0.07, 0.085, 0.13) * uNight;
+  vec3 floorCol = vec3(0.07, 0.085, 0.13) * uNight * uFloor;
   col = floorCol + col * (1.0 - floorCol);
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), c.a);
 }
@@ -44,6 +45,7 @@ export class NightGradePipeline extends Phaser.Renderer.WebGL.Pipelines
   shadow = [1, 1, 1];
   light = [1, 1, 1];
   curve = 0;
+  floor = 1;
 
   constructor(game: Phaser.Game) {
     super({ game, name: "NightGrade", fragShader });
@@ -55,5 +57,6 @@ export class NightGradePipeline extends Phaser.Renderer.WebGL.Pipelines
     this.set3f("uShadow", this.shadow[0], this.shadow[1], this.shadow[2]);
     this.set3f("uLight", this.light[0], this.light[1], this.light[2]);
     this.set1f("uCurve", this.curve);
+    this.set1f("uFloor", this.floor);
   }
 }

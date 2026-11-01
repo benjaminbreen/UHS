@@ -44,6 +44,7 @@ import { useOf } from "../content/props/uses";
 import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
+import { babyOnBack } from "../content/characters/wardrobe/regions/work-dress";
 import type {
   ToolEffect,
   SwingEffect,
@@ -386,6 +387,7 @@ export class Runtime {
       : this.defaultAppearance(actor);
     const record = this.bodyRecord(actor);
     const base = { ...drawn, ...(record ? { record } : {}), restingPose: restingPortraitPoseOf(statsOf(this.engine.state.manifest.seed, actor)) };
+    if (this.carriesInfant(actor)) base.wearing = { ...base.wearing, infant: true };
     if (!actor.worn) return base;
     return {
       ...base,
@@ -393,6 +395,25 @@ export class Runtime {
         this.engine.item(id),
       ),
     };
+  }
+  private infantCarriers = new Map<string, { key: string; id?: string }>();
+  /** One woman of the household carries its baby, where babies were carried on the back. */
+  private carriesInfant(actor: Partial<Pick<Actor, "id" | "householdId">>) {
+    const culture = this.engine.world.pack.setting?.culture;
+    if (!actor.householdId || !culture || !babyOnBack.includes(culture)) return false;
+    const h = this.engine.state.households?.find((x) => x.id === actor.householdId);
+    if (!h?.infants) return false;
+    const key = `${h.infants}:${h.members.join()}`;
+    let hit = this.infantCarriers.get(h.id);
+    if (hit?.key !== key) {
+      const people = [this.engine.state.player, ...this.engine.state.actors];
+      const id = h.members.find((m) => {
+        const a = people.find((p) => p.id === m);
+        return a?.origin?.sex === "female" && (a.age ?? 0) >= 15 && (a.age ?? 0) <= 45;
+      });
+      this.infantCarriers.set(h.id, (hit = { key, id }));
+    }
+    return hit.id === actor.id;
   }
   /** What the actor's life has done to their body, in steps coarse enough to key a portrait. */
   private bodyRecord(
@@ -739,7 +760,8 @@ export class Runtime {
     const target = command.type === "interact" ? this.engine.state.objects.find((o) => o.id === command.target) : undefined;
     const usePose = action === "use-prop" ? useOf(propDefs[target?.prop ?? ""]?.family)?.pose : undefined;
     const workPose = action === "work"
-      ? workPoseFor("work", livelihoodOf(this.engine.world.pack, this.engine.state.player)?.activity ?? "", propDefs[target?.prop ?? ""]?.family)
+      ? workPoseFor("work", livelihoodOf(this.engine.world.pack, this.engine.state.player)?.activity ?? "", propDefs[target?.prop ?? ""]?.family,
+        this.engine.state.player.origin?.livelihood, this.engine.state.player.heldItem)
       : undefined;
     const pose: CharacterPose | undefined = (
       {

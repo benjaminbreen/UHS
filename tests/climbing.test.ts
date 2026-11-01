@@ -240,3 +240,32 @@ it("lets the player talk, pay or step their way down from the watch", () => {
   if (took) expect(paid.guard.activity).not.toMatch(/off the wall/);
   paid.runtime.dispose();
 });
+
+it("takes toll at a town gate by day and shuts it at night", () => {
+  const engine = createSession("roman", "town-gate");
+  const guard = engine.state.actors.find((a) => a.kind === "human")!;
+  engine.state.actors = [guard];
+  engine.state.objects = [];
+  engine.world.blocked = () => false;
+  engine.world.places = [];
+  engine.world.enclosures = [{ x: -5, y: 0, w: 15, h: 12, gate: { x: 2, y: 0 }, parts: [], gates: [[{ x: 2, y: 0 }, { x: 3, y: 0 }]] }];
+  const post = { x: 1, y: -1 };
+  Object.assign(guard, { pos: { ...post, space: "outside" }, post: { at: post, rest: { x: 1, y: 3 }, face: 0 } });
+  delete guard.watch;
+  const day = Math.floor(engine.state.clock / 86400) * 86400;
+  engine.state.clock = day + 10 * 3600;
+  engine.state.player.pos = { x: 2, y: -2, space: "outside" };
+  Object.assign(engine.state.player.inventory, { salt: 12, coin: 3 });
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.move(0, 1);
+  runtime.move(0, 1);
+  expect(engine.state.player.pos.y).toBe(0);
+  expect(engine.state.player.inventory.coin).toBe(3);
+  expect(runtime.command({ type: "choose", card: `toll:${guard.id}`, choice: 0 })?.status).toBe("completed");
+  expect(engine.state.player.inventory.coin).toBe(2);
+
+  engine.state.player.pos = { x: 2, y: -1, space: "outside" };
+  engine.state.clock = day + 22 * 3600;
+  expect(runtime.command({ type: "move", dx: 0, dy: 1 })?.reason).toMatch(/shut for the night/);
+  runtime.dispose();
+});

@@ -1182,6 +1182,23 @@ export function createSettlementWorld(
     decorations.set(k, value ?? null);
     return value;
   }
+  /** Grass thinned under a lone tree or big bush. Closed wood is left to the
+   * raster's litter floor, or every forest would turn to bare earth. */
+  function crownWear(x: number, y: number) {
+    let wear = 0, crowns = 0;
+    for (let dy = -2; dy <= 2; dy++)
+      for (let dx = -2; dx <= 2; dx++) {
+        const d = decoration(x + dx, y + dy);
+        if (!d?.solid || d.sprite === "rock" || /cypress|poplar|palm|sapling/.test(d.sprite)) continue;
+        crowns++;
+        const reach = Math.min(2.6, Math.max(1.8, crownRadius(d.sprite) * 0.8));
+        const lobe = reach * (0.8 + noise(seed, x + land.origin.x, y + land.origin.y, 2, "crown-wear") * 0.4);
+        // Held under the raster's 0.48 turf edge, so it thins steadily to the trunk
+        // instead of turning to rimmed bare earth like a path.
+        wear = Math.max(wear, 0.47 * Math.min(1, 1.3 - 1.3 * Math.hypot(dx, dy) / lobe));
+      }
+    return crowns > 3 ? 0 : wear;
+  }
   function sceneryAllowed(x: number, y: number, k: string, f: ReturnType<typeof land.sample>) {
     if (f.landscape?.kind === "arroyo" && f.landscape.strength > 0.35) return false;
     return !(f.water < (relief ? 0 : 4) || nearby(x, y).some(p =>
@@ -1522,10 +1539,12 @@ export function createSettlementWorld(
   >();
   const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
   const desirePaths = new WeakMap<SettlementPlan, Map<string, number>>();
+  const desireTracks = new WeakMap<SettlementPlan, ReturnType<typeof pathArt>>();
   /** Presentation-only wear follows entrances and outdoor activity, not every wall. */
   function desireLines(p: SettlementPlan) {
     const wear = new Map<string, number>();
     desirePaths.set(p, wear);
+    const tracks: Road[] = [];
     const road = new Map<string, Point>();
     for (const r of p.roads) roadCells(r, (x, y) => road.set(cellKey(x, y), { x, y }));
     const planted = (key: string) => {
@@ -1557,14 +1576,21 @@ export function createSettlementWorld(
       anchor(work.water, 2.8, 0.95);
       anchor(work.social, 3.2, 0.7);
     }
-    for (const { at, radius, strength } of anchors.values()) {
-      if (!open(at)) continue;
-      stamp(at, radius, strength);
+    const nearest = (at: Point) => {
       let best: Point | undefined, bestD = 100;
       for (const point of road.values()) {
         const d = (point.x - at.x) ** 2 + (point.y - at.y) ** 2;
         if (d < bestD) { best = point; bestD = d; }
       }
+      return { best, bestD };
+    };
+    // Nearest first, and each track joins the ones before it, so neighbouring
+    // doors share a branching path instead of running parallel to the road.
+    const order = [...anchors.values()].map((a) => ({ ...a, d: nearest(a.at).bestD })).sort((a, b) => a.d - b.d);
+    for (const { at, radius, strength } of order) {
+      if (!open(at)) continue;
+      stamp(at, radius, strength);
+      const { best, bestD } = nearest(at);
       if (!best || bestD < 1) continue;
       const tier = (point: Point) => p.groundLevels?.get(cellKey(point.x, point.y)) ??
         Math.round(land.sample(point.x, point.y).elevation / 14);
@@ -1575,8 +1601,21 @@ export function createSettlementWorld(
         isGoal: (point) => road.has(cellKey(point.x, point.y)),
         bounds: { x: at.x - 10, y: at.y - 10, w: 21, h: 21 },
       });
-      if (found.status === "found")
-        for (const point of found.path) stamp(point, 1.9, 0.85);
+      if (found.status === "found" && found.path.length > 1) {
+        tracks.push({ id: `track-${tracks.length}`, points: found.path, width: 0, kind: "path", cost: 0 });
+        for (const point of found.path) road.set(cellKey(point.x, point.y), point);
+      }
+    }
+    // Drawn as footpaths, so a doorstep runs out in a curving track rather
+    // than a staircase of worn cells.
+    const art = pathArt(tracks, false, false, false);
+    for (const list of art.values()) for (const s of list) s.radius = 0.55;
+    desireTracks.set(p, art);
+    // Grass thins under a spreading crown; a narrow cypress or poplar shades too little.
+    for (const o of p.objects) {
+      if (o.kind !== "tree") continue;
+      const narrow = /cypress|poplar|palm|young|sapling/.test(o.sprite ?? "");
+      if (!narrow) stamp({ x: Math.floor(o.pos.x), y: Math.floor(o.pos.y) }, /bamboo/.test(o.sprite ?? "") ? 1.4 : 1.8, 0.55);
     }
     return wear;
   }
@@ -1959,7 +1998,11 @@ export function createSettlementWorld(
       !cell.bridge &&
       !cell.feature
     ) {
-      const strokes = strokesAt(x, y);
+      // Soil already draws its own ground, and a cell with strokes draws only them.
+      const strokes = cell.surface === "soil" ? strokesAt(x, y) : strokesAt(x, y).concat(nearby(x, y).flatMap((p) => {
+        if (!desireTracks.has(p)) desireLines(p);
+        return desireTracks.get(p)!.get(cellKey(x, y)) ?? [];
+      }));
       if (strokes.length)
         cell.pathArt = strokes.map((s) => ({
           a: [s.a[0] - x, s.a[1] - y],
@@ -1985,6 +2028,7 @@ export function createSettlementWorld(
       let wear = 0;
       for (const p of nearby(x, y))
         wear = Math.max(wear, (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0);
+      wear = Math.max(wear, crownWear(x, y));
       if (wear) cell.groundWear = Math.max(cell.groundWear ?? 0, wear);
     }
     return cell;

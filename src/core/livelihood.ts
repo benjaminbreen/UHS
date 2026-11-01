@@ -49,6 +49,14 @@ export function harvestResource(a: Actor, o: WorldObject, clock: number) {
   if (o.resource) strain(o.resource, clock);
   return true;
 }
+const ownItems = ["walking-cane", "fan", "beads", "alms-bowl", "censer", "ledger", "water-pole", "carrying-pole", "lamp-pole", "sweep-brush", "lute", "drum", "flute"];
+const arms = ["spear", "halberd", "glaive", "musket", "bow", "macuahuitl", "crossbow", "sling"];
+/** What someone goes about with in hand when not carrying a load: a stick, a
+ * fan, the tool of a calling, and a guard's weapon. */
+export function personalItem(a: Actor) {
+  const armed = ["warrior", "town-watchman", "gate-keeper", "retainer"].includes(a.origin?.livelihood ?? "");
+  return [...ownItems, ...(armed ? arms : [])].find((id) => (a.inventory[id] ?? 0) > 0);
+}
 export function householdActivity(
   a: Actor,
   s: Snapshot,
@@ -60,7 +68,7 @@ export function householdActivity(
   /** Where in the house a resident goes to bed; a fixed row without one. */
   indoors: (a: Actor, residence: string, index: number) => Position = (_a, residence, index) => ({ x: 3 + (index % 4), y: 3, space: residence }),
 ): boolean {
-  const personal = ["walking-cane", "fan"].find((id) => (a.inventory[id] ?? 0) > 0);
+  const personal = personalItem(a);
   if (personal) a.heldItem = personal;
   else delete a.heldItem;
   const bear = (load?: string) => load && (a.heldItem = load);

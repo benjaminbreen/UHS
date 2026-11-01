@@ -53,6 +53,12 @@ const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   wig: "Powdered wig",
   helmet: "Helmet",
   visor: "Sealed helmet",
+  nasal: "Nasal helm",
+  kettle: "Kettle hat",
+  kabuto: "Kabuto",
+  jaguar: "Jaguar helmet",
+  eagle: "Eagle helmet",
+  "official-cap": "Official's cap",
 };
 const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",
@@ -157,6 +163,18 @@ const about: Record<ItemId, string> = {
     "A shell of hardened leather or metal that turns a blow meant for the skull.",
   "headwear-visor":
     "A closed helmet with a clear visor, sealed to the suit beneath it.",
+  "headwear-nasal":
+    "A conical iron cap with a bar down over the nose, from Normandy to the steppe.",
+  "headwear-kettle":
+    "An iron hat with a broad brim that sheds a blow from above, worn by foot soldiers and the watch.",
+  "headwear-kabuto":
+    "A Japanese helmet: a low bowl of riveted plates over a flared neck guard of lacquered lames.",
+  "headwear-jaguar":
+    "A jaguar's head of pelt over a wood or cane frame, worn by the Mexica order of jaguar warriors.",
+  "headwear-eagle":
+    "A feathered eagle's head with the beak over the brow, worn by the Mexica order of eagle warriors.",
+  "headwear-official-cap":
+    "A stiff cap of black gauze with a flat wing either side, worn by Chinese officials from the Song to the Ming.",
   "headwear-top-hat":
     "A tall, flat-crowned silk hat, worn by gentlemen who wish to be seen as such.",
   "belt-cord":

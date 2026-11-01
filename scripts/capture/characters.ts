@@ -12,6 +12,43 @@ import { withPage, characterLab, shootCanvas, writeDataUrl, base } from "./lib";
 const out = (name: string) => `artifacts/characters/${name}.png`;
 
 /** Two renderers side by side, A on the paler ground: people, walks, kits, a crowd and accessories. */
+/** Four people of the given trades per place, front, side walking and back. */
+async function castSheet(page: Page, name: string, rows: readonly (readonly [string, string, number, readonly string[]])[]) {
+  await characterLab(page);
+  await page.evaluate("window.__name = (fn) => fn");
+  const sheet = await page.evaluate(async ({ rows, name }) => {
+    const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+    const { places } = await import("/src/content/geography/places.ts" as string);
+    const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+    const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+    const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+    const { drawGarmentIcon, garmentIconFor, itemIconFor, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
+    const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+    sheet.width = 3 * 4 * 3 * 48; sheet.height = Math.ceil(rows.length / 3) * 168;
+    frame.width = frame.height = 80;
+    const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+    ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+    rows.forEach(([label, placeId, year, trades], i) => {
+      const place = places.find((p: any) => p.id === placeId);
+      if (!place) return;
+      const setting = settingFor(place, year), x0 = (i % 3) * 4 * 3 * 48, y0 = Math.floor(i / 3) * 168;
+      trades.forEach((trade, n) => {
+        const c = generateCharacter(setting, `${name}-review`, `${name}-${i}-${n}`, 34, trade, undefined, undefined, "male");
+        const held = c.heldItem;
+        const prop = held ? iconCarriedArt(`icon:${held}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(held) ?? itemIconFor(held) ?? held, 0, 0), GARMENT_ICON) : undefined;
+        [[2, "idle", 0, 4], [1, "walk", 2, 3], [0, "idle", 0, 0]].forEach(([dir, pose, f, facing], j) => {
+          renderers.g.draw(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
+          ctx.drawImage(frame, 16, 12, 48, 68, x0 + (n * 3 + j) * 48, y0 + 22, 48, 68);
+        });
+      });
+      ctx.fillStyle = "#26352c"; ctx.font = "12px monospace";
+      ctx.fillText(`${label} ${year}`, x0 + 4, y0 + 14);
+    });
+    return sheet.toDataURL();
+  }, { rows, name });
+  await writeDataUrl(sheet, out(name));
+}
+
 async function dollSheets(page: Page, pair: [string, string], prefix: string) {
   await characterLab(page);
   await page.evaluate("window.__name = (fn) => fn");
@@ -52,6 +89,7 @@ async function dollSheets(page: Page, pair: [string, string], prefix: string) {
       ["london", 1830, "merchant", { shawl: "patterned", garment: "gown", headwear: "none" }, null, "female"],
       ["cusco", 1450, "weaver", { shawl: "patterned", trimPattern: "step" }, null, "female"],
       ["mexico", 1800, "market-seller", { shawl: "fringed", headwear: "none" }, null, "female"],
+      ["mexico", 1450, "farmer", { infant: true, headwear: "none" }, null, "female"], ["kyoto", 1800, "farmer", { infant: true, headwear: "wrap" }, null, "female"],
       ["london", 1350, "farmer", { hood: "down", headwear: "none", cloakColor: "#7a2a2a" }, null, "male"],
       ["paris", 2009, "student", { garment: "shirt", hood: "down", headwear: "none" }, null, "male"],
       ["london", 1640, "soldier", { sidearm: "sword" }, null, "male"],
@@ -859,6 +897,106 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     for (let i = 0; i < sheets.length; i++) await writeDataUrl(sheets[i], out(`wardrobe-${i + 1}`));
   },
 
+  guards: (page) => castSheet(page, "guards", [
+    ["Athens", "athens", -400], ["Rome", "rome", 100], ["London", "london", 1100], ["London", "london", 1350], ["London", "london", 1550], ["London", "london", 1750],
+    ["Konya", "konya", 1200], ["Konya", "konya", 1600], ["Delhi", "delhi", 1650], ["Beijing", "beijing", 1400], ["Kyoto", "kyoto", 1500], ["Kyoto", "kyoto", 1750],
+    ["Mongolia", "mongolia", 1250], ["Timbuktu", "timbuktu", 1450], ["Ethiopia", "ethiopia", 1500], ["Mexico", "mexico", 1450], ["Cusco", "cusco", 1450], ["Polynesia", "polynesia", 1600],
+  ].map(([l, p, y]) => [l as string, p as string, y as number, ["town-watchman", "town-watchman", "town-watchman", "gate-keeper"]] as const)),
+
+  /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
+  async motion(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+      const { drawGarmentIcon, garmentIconFor, itemIconFor, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
+      const cast = [["london", 1550, "town-watchman", {}], ["kyoto", 1500, "town-watchman", { backFlag: "#a8362c" }],
+        ["beijing", 1400, "porter", {}], ["london", 1550, "gate-keeper", { mantle: true, hatTrim: "feather" }],
+        ["london", 1350, "religious-specialist", {}], ["london", 1750, "shopkeeper", {}, "walking-cane"]] as const;
+      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+      sheet.width = 16 * 48; sheet.height = cast.length * 72; frame.width = frame.height = 80;
+      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      cast.forEach(([placeId, year, trade, patch, carry], row) => {
+        const setting = settingFor(places.find((p: any) => p.id === placeId), year);
+        const c = generateCharacter(setting, "motion-review", `motion-${row}`, 30, trade, undefined, undefined, "male");
+        const a = { ...c.appearance, wearing: { ...c.appearance.wearing, ...patch } };
+        const held = carry ?? c.heldItem;
+        const prop = held ? iconCarriedArt(`icon:${held}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(held) ?? itemIconFor(held) ?? held, 0, 0), GARMENT_ICON) : undefined;
+        for (let f = 0; f < 16; f++) {
+          renderers.g.draw(fc, a, 1, "walk", f % 8, prop, f < 8 ? 2 : 3, "neutral");
+          ctx.drawImage(frame, 16, 8, 48, 72, f * 48, row * 72, 48, 72);
+        }
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("motion"));
+  },
+
+  /** Every trade's work loop at twice size: four frames three-quarter, four in profile, two head-on. */
+  async work(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheets = await page.evaluate(async () => {
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+      const { drawGarmentIcon, garmentIconFor, itemIconFor, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
+      const cast: [string, number, string, string, string?][] = [
+        ["london", 1350, "blacksmith", "work-hammer"], ["london", 1350, "carpenter", "work-saw"], ["london", 1820, "sweeper", "work-sweep"],
+        ["beijing", 1400, "scribe", "work-write"], ["london", 1550, "publican", "work-pour"], ["konya", 1600, "musician", "play-strum", "lute"],
+        ["timbuktu", 1450, "musician", "play-drum", "drum"], ["mexico", 1500, "musician", "play-flute", "flute"], ["java", 1400, "religious-specialist", "pray", "beads"],
+        ["mexico", 1500, "religious-specialist", "cense", "censer"], ["london", 1820, "costermonger", "call"], ["london", 1350, "cook", "work-stir"],
+        ["london", 1350, "baker", "work-knead"], ["delhi", 1650, "miller", "work-pound"], ["london", 1350, "miller", "work-quern"], ["mexico", 1500, "cook", "work-grind"],
+        ["kyoto", 1500, "weaver", "work-weave"], ["london", 1350, "laundress", "work-scrub"], ["delhi", 1650, "dyer", "work-rinse"], ["java", 1400, "fisherman", "work-fish"],
+        ["java", 1400, "fisherman", "work-hang"], ["beijing", 1400, "farmer", "work-tend"], ["london", 1550, "shopkeeper", "work-sort"], ["london", 1550, "village-elder", "work-check"],
+      ];
+      const views: [number, number, number][] = [0, 1, 2, 3].map((f) => [3, f, 1] as [number, number, number])
+        .concat([0, 1, 2, 3].map((f) => [2, f, 1] as [number, number, number]), [[4, 0, 2], [4, 2, 2]]);
+      const urls: string[] = [];
+      for (let start = 0; start < cast.length; start += 12) {
+        const rows = cast.slice(start, start + 12);
+        const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+        sheet.width = views.length * 96; sheet.height = rows.length * 150; frame.width = frame.height = 80;
+        const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+        ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+        rows.forEach(([placeId, year, trade, pose, held], row) => {
+          const setting = settingFor(places.find((p: any) => p.id === placeId), year);
+          const c = generateCharacter(setting, "work-review", `work-${start + row}`, 34, trade, undefined, undefined, "male");
+          const id = held ?? c.heldItem;
+          const prop = id ? iconCarriedArt(`icon:${id}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(id) ?? itemIconFor(id) ?? id, 0, 0), GARMENT_ICON) : undefined;
+          views.forEach(([facing, f, dir], k) => {
+            renderers.g.draw(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
+            ctx.drawImage(frame, 16, 8, 48, 72, k * 96, row * 150, 96, 144);
+          });
+          ctx.fillStyle = "#26352c"; ctx.font = "12px monospace"; ctx.fillText(`${pose} · ${trade}`, 4, row * 150 + 148);
+        });
+        urls.push(sheet.toDataURL());
+      }
+      return urls;
+    });
+    for (let i = 0; i < sheets.length; i++) await writeDataUrl(sheets[i], out(`work-${i + 1}`));
+  },
+
+  /** Clergy, officials, carriers and musicians: the street's known faces. */
+  street: (page) => castSheet(page, "street", [
+    ["London", "london", 1350, ["religious-specialist", "tax-collector", "scribe", "musician"]],
+    ["London", "london", 1820, ["religious-specialist", "lamplighter", "chimney-sweep", "water-carrier"]],
+    ["Konya", "konya", 1600, ["religious-specialist", "scribe", "water-carrier", "musician"]],
+    ["Delhi", "delhi", 1650, ["religious-specialist", "tax-collector", "porter", "musician"]],
+    ["Beijing", "beijing", 1400, ["religious-specialist", "scribe", "night-soil-collector", "porter"]],
+    ["Kyoto", "kyoto", 1750, ["religious-specialist", "toll-keeper", "water-carrier", "musician"]],
+    ["Java", "java", 1400, ["religious-specialist", "porter", "water-carrier", "musician"]],
+    ["Mexico", "mexico", 1500, ["religious-specialist", "scribe", "musician", "musician"]],
+    ["Timbuktu", "timbuktu", 1450, ["religious-specialist", "scribe", "musician", "porter"]],
+  ]),
+
   async accessories(page) {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
@@ -942,46 +1080,6 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       sheet.style.imageRendering = "pixelated";
     });
     await shootCanvas(page, out("weapons"));
-  },
-  async work(page) {
-    await characterLab(page);
-    await page.evaluate(async () => {
-      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
-      const { originalAppearance } = await import("/src/core/character.ts" as string);
-      const rows = [
-        ["Stir · broth or dye", "work-stir"],
-        ["Knead · dough or clay", "work-knead"],
-        ["Pound · grain or metal", "work-pound"],
-        ["Turn · rotary quern", "work-quern"],
-        ["Grind · handstone or metate", "work-grind"],
-        ["Weave · shuttle and warp", "work-weave"],
-        ["Scrub · cloth or vessel", "work-scrub"],
-        ["Rinse · water and cloth", "work-rinse"],
-        ["Fish · cast and draw line", "work-fish"],
-        ["Hang · dry the catch", "work-hang"],
-        ["Tend · crop and garden", "work-tend"],
-        ["Sort · goods and records", "work-sort"],
-        ["Check · assess the work", "work-check"],
-      ] as const;
-      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
-      sheet.width = 8 * 144; sheet.height = rows.length * 156;
-      frame.width = frame.height = 80;
-      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
-      ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = "#667c57"; ctx.fillRect(0, 0, sheet.width, sheet.height);
-      rows.forEach(([label, pose], row) => {
-        for (let direction = 0; direction < 2; direction++)
-          for (let f = 0; f < 4; f++) {
-            drawCharacter(fc, originalAppearance, direction ? 2 : 1, pose, f);
-            ctx.drawImage(frame, 22, 24, 40, 46, (direction * 4 + f) * 144 + 8, row * 156 + 3, 128, 140);
-          }
-        ctx.fillStyle = "#f5e9c8"; ctx.font = "12px monospace";
-        ctx.fillText(label, 8, row * 156 + 151);
-      });
-      document.body.replaceChildren(sheet);
-      sheet.style.imageRendering = "pixelated";
-    });
-    await shootCanvas(page, out("work"));
   },
   /** The lab's own panels: the generated population and the direction sheet. */
   async lab(page) {

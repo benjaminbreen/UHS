@@ -16,6 +16,11 @@ const patterns: Record<string, RegExp> = {
     /\b(astronaut|cosmonaut|taikonaut|spacer|space ?(crew|pilot|marine)|flight engineer)\b/,
   soldier:
     /\b(soldier|infantry|infantryman|trooper|private|corporal|sergeant|rifleman|legionary|legionnaire|hoplite|musketeer|grenadier|conscript|marine|warrior|men-at-arms|man-at-arms|guardsman)\b/,
+  // Anyone who stands watch or fights, so the guard kits can arm them.
+  guard:
+    /\b(guard|guardsman|watchman|watchmen|gate[- ]?keeper|sentry|sentinel|warrior|retainer|soldier|legionary|hoplite|halberdier|musketeer|pikeman|man-at-arms|men-at-arms|samurai|ashigaru|janissary|mamluk|sepoy|bannerman)\b/,
+  // Islamic clergy by title, so a qazi in Delhi dresses as one and not as a brahmin.
+  imam: /\b(imam|qadi|qazi|kadi|mullah|mufti|muezzin|dervish|sufi)\b/,
   sailor:
     /\b(sailor|seaman|seafarer|mariner|deckhand|boatswain|bosun|able seaman|whaler|navigator|helmsman|ship'?s? (boy|mate|cook)|crewman)\b/,
   tradesman:

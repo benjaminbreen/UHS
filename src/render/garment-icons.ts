@@ -8,6 +8,12 @@ export { GARMENT_ICON };
  * a wrapped cloth, a wide belt is not wide trousers — so the slot decides. */
 const byId: Record<string, string> = {
   "headwear-wrap": "wrap_head",
+  "headwear-nasal": "helmet",
+  "headwear-kettle": "helmet",
+  "headwear-kabuto": "helmet",
+  "headwear-jaguar": "helmet",
+  "headwear-eagle": "helmet",
+  "headwear-official-cap": "cap",
   "belt-wide": "belt-wide",
   "belt-cord": "cord",
   "belt-sash": "sash",

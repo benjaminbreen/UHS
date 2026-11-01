@@ -1890,6 +1890,40 @@ export function planSettlement(
             }
             for (const [i, beat] of beats.entries())
               plan.actors.push(watchman(seed, pack, `${site.id}-watch-${i}`, beat));
+            // Two guards at each gate, one either side of the road: outside it
+            // where the ground is dry, inside where the gate opens on water.
+            // A night pair relieves the day pair; whoever is off rests inside.
+            const mid = { x: wall.rect.x + wall.rect.w / 2, y: wall.rect.y + wall.rect.h / 2 };
+            const open = (q: Point) => !plan.solid.has(cellKey(q.x, q.y)) && dry({ ...q, w: 1, h: 1 }, false);
+            const rests: Point[] = [];
+            for (const [i, gap] of wall.gaps.slice(0, 4).entries()) {
+              if (!gap.length) continue;
+              const ends = [gap[0], gap[gap.length - 1]];
+              const across = ends[0].y === ends[1].y;
+              const out = across ? Math.sign(ends[0].y - mid.y) || 1 : Math.sign(ends[0].x - mid.x) || 1;
+              const lo = across ? Math.min(ends[0].x, ends[1].x) - 1 : Math.min(ends[0].y, ends[1].y) - 1;
+              const hi = across ? Math.max(ends[0].x, ends[1].x) + 1 : Math.max(ends[0].y, ends[1].y) + 1;
+              const face = across ? (out > 0 ? 2 : 0) : out > 0 ? 1 : 3;
+              for (const [j, v] of [lo, hi].entries()) {
+                const at = (o: number) => (across ? { x: v, y: ends[0].y + o } : { x: ends[0].x + o, y: v });
+                const post = [at(out), at(-out)].find(open);
+                if (!post) continue;
+                const rest = [at(-out * 3), at(-out * 4), at(-out * 2)].find(open) ?? post;
+                rests.push(rest);
+                for (const night of [false, true])
+                  plan.actors.push(watchman(seed, pack, `${site.id}-gate-${i}-${j}${night ? "-n" : ""}`, [post, post],
+                    { at: post, rest: night ? rest : [{ ...rest, x: rest.x + (across ? 0 : 1), y: rest.y + (across ? 1 : 0) }].find(open) ?? rest, night, torch: night && j === 0, face },
+                    !night && j === 0 && rests.length === 1));
+              }
+            }
+            // The night watch goes round from gate to gate inside the walls.
+            if (rests.length > 1)
+              for (let k = 0; k < 2; k++) {
+                const round = [...rests.slice(k * 2), ...rests.slice(0, k * 2)].filter((_, n) => n % 2 === 0);
+                const home = rests[(k * 2 + 1) % rests.length];
+                plan.actors.push(watchman(seed, pack, `${site.id}-round-${k}`, [home, home],
+                  { at: round[0], rest: { ...home, x: home.x + 1 }, night: true, torch: true, round: round.length > 1 ? round : [...round, home], leg: 0 }));
+              }
             plan.enclosures.push({
               ...wall.rect,
               // A circuit has many ways in. The single gate this field records
@@ -1901,6 +1935,14 @@ export function planSettlement(
                 })
                 .sort((a, b) => a.y - b.y || a.x - b.x)[0] ?? { ...c },
               parts: [...parts, ...overlays],
+              // A gateway is a gap with wall at both ends; a break where the
+              // circuit simply stops (at water, at a cliff) has nothing to shut.
+              gates: wall.gaps.filter((gap) => {
+                const across = gap.every((q) => q.y === gap[0].y);
+                const [a, b] = across ? [Math.min(...gap.map((q) => q.x)), Math.max(...gap.map((q) => q.x))] : [Math.min(...gap.map((q) => q.y)), Math.max(...gap.map((q) => q.y))];
+                const at = (v: number) => cellKey(across ? v : gap[0].x, across ? gap[0].y : v);
+                return plan.solid.has(at(a - 1)) && plan.solid.has(at(b + 1));
+              }),
             });
           },
         })

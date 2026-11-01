@@ -9,6 +9,9 @@ import type {
   shawls,
   hoods,
   sidearms,
+  armours,
+  shields,
+  shieldMarks,
   wristwear,
   eyewear,
   beltStyles,
@@ -87,7 +90,7 @@ export type GarmentKit = {
   eyewear?: readonly Option<(typeof eyewear)[number]>[];
   /** A kit that says nothing leaves the base roll's necklace alone. */
   neck?: readonly Option<"none" | "beads" | "chain">[];
-  accessory?: readonly Option<"none" | "walking-cane" | "fan">[];
+  accessory?: readonly Option<Accessory>[];
   apron?: readonly Option<(typeof aprons)[number]>[];
   bag?: readonly Option<(typeof bags)[number]>[];
   wrist?: readonly Option<(typeof wristwear)[number]>[];
@@ -99,7 +102,17 @@ export type GarmentKit = {
   shawl?: readonly Option<(typeof shawls)[number]>[];
   hood?: readonly Option<(typeof hoods)[number]>[];
   sidearm?: readonly Option<(typeof sidearms)[number]>[];
+  armour?: readonly Option<(typeof armours)[number]>[];
+  /** A hex colour: iron, bronze, lacquer or quilt. */
+  armourColor?: readonly Option<string>[];
+  shield?: readonly Option<(typeof shields)[number]>[];
+  shieldColor?: readonly Option<string>[];
+  shieldMark?: readonly Option<(typeof shieldMarks)[number]>[];
+  backFlag?: readonly Option<string>[];
 };
+/** What a person goes about with in hand. The weapons are inventory items too. */
+export type Accessory = "none" | "walking-cane" | "fan" | "spear" | "halberd" | "glaive" | "musket" | "bow" | "macuahuitl" | "crossbow" | "sling"
+  | "beads" | "alms-bowl" | "censer" | "ledger" | "water-pole" | "carrying-pole" | "lamp-pole" | "sweep-brush" | "lute" | "drum" | "flute";
 export type Motif = (typeof motifs)[number];
 export type WardrobeSlot = Exclude<
   keyof GarmentKit,
@@ -132,6 +145,12 @@ export const wardrobeSlots = [
   "shawl",
   "hood",
   "sidearm",
+  "armour",
+  "armourColor",
+  "shield",
+  "shieldColor",
+  "shieldMark",
+  "backFlag",
 ] as const;
 
 /** The person a kit is dressing. Everything but `id` is optional: an actor

@@ -41,7 +41,8 @@ export const europe: readonly GarmentKit[] = [
       { value: "walnut", weight: 2, garments: ["coat"] }],
     motif: [{ value: "plain" }],
     accessory: [{ value: "walking-cane", weight: 3, sex: ["male"], means: ["wealthy"], ages: ["adult", "elder"], garments: ["coat"] },
-      { value: "fan", weight: 1, sex: ["female"], means: ["wealthy"], ages: ["adult", "elder"] }, { value: "none", weight: 5 }],
+      { value: "fan", weight: 1, sex: ["female"], means: ["wealthy"], ages: ["adult", "elder"] },
+      { value: "walking-cane", weight: 2, ages: ["elder"] }, { value: "none", weight: 5 }],
   },
   {
     id: "eu-classical",

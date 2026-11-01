@@ -56,6 +56,18 @@ const tradeBags: readonly Option<"none" | "purse" | "satchel">[] = [
 
 export const workDress: readonly GarmentKit[] = [
   {
+    // The old and the herders walk with a stick everywhere and in every era;
+    // at street distance it is one of the few things that changes the outline.
+    id: "staff",
+    label: "A walking stick",
+    scope: { years: [-100000, 10001] },
+    accessory: [
+      { value: "walking-cane", weight: 2, ages: ["elder"] },
+      { value: "walking-cane", weight: 3, livelihoods: ["herder"] },
+      { value: "none", weight: 6 },
+    ],
+  },
+  {
     id: "work-ancient-on",
     label: "Aprons at work, purses and satchels",
     scope: { years: [-800, 3000] },
@@ -162,4 +174,14 @@ export const workDress: readonly GarmentKit[] = [
       ],
     }),
   ),
+];
+
+/** Where a baby went to market and to the field tied on its mother's back in
+ * a cloth: the West African wrapper, the Japanese onbu and Korean podaegi, the
+ * Andean lliclla, the Mesoamerican rebozo. Europe and West Asia swaddled and
+ * cradled, South Asia carried on the hip, and North America used the
+ * cradleboard. Those are left undrawn rather than given the wrong carry. */
+export const babyOnBack: readonly string[] = [
+  "west-central-african", "east-southern-african", "east-asian", "southeast-asian",
+  "mesoamerican", "andean",
 ];

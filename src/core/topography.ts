@@ -65,6 +65,8 @@ export type TopographyCell = {
     /** Era enclosure drawn on the fence edges when `boundary` has none. */
     enclosure?: import("../content/agriculture/types").Boundary;
     ditch?: boolean;
+    /** Edges, same bits, where a terrace wall drops to the bench below. */
+    riser?: number;
     /** Inside a household's or church's yard rather than the farmland. */
     yard?: boolean;
     garden?: boolean;

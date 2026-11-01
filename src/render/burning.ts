@@ -255,13 +255,13 @@ const FLAME = [0xfff4b0, 0xffc43d, 0xf07a1c, 0xb8321a];
 export class TorchFlame {
   private glow?: Phaser.GameObjects.Image;
   private bits: { r: Phaser.GameObjects.Rectangle; life: number; max: number; vx: number }[] = [];
-  constructor(private scene: Phaser.Scene) {}
+  constructor(private scene: Phaser.Scene, private quiet = false) {}
 
   update(holder: Phaser.GameObjects.Image | undefined, lit: boolean, facing: number, glowAlpha: number) {
     const x = holder ? holder.x + [3, 6, -3, -6][facing] : 0,
       y = holder ? holder.y - holder.displayHeight * 0.62 : 0;
     if (lit && holder) {
-      if (!this.glow) void gameAudio()?.sound(fireSound.catch(), "torch-lit");
+      if (!this.glow && !this.quiet) void gameAudio()?.sound(fireSound.catch(), "torch-lit");
       this.glow ??= this.scene.add
         .image(x, y, ensureFireLight(this.scene, 40), "0")
         .setBlendMode(Phaser.BlendModes.ADD)

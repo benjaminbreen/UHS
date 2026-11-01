@@ -8,6 +8,7 @@ import { dyeAt, dyes } from "./cloth";
 import {
   ageBandOf,
   wardrobeSlots,
+  type Accessory,
   type GarmentKit,
   type Means,
   type Option,
@@ -387,12 +388,18 @@ export function wardrobeFor(
     // Worn up, a hood is headwear; it cannot also lie on the shoulders.
     hood: headwear === "hood" ? undefined : (chosen.hood as CharacterAppearance["wearing"]["hood"]),
     sidearm: chosen.sidearm as CharacterAppearance["wearing"]["sidearm"],
+    armour: chosen.armour as CharacterAppearance["wearing"]["armour"],
+    armourColor: chosen.armourColor as string | undefined,
+    shield: chosen.shield as CharacterAppearance["wearing"]["shield"],
+    shieldColor: chosen.shieldColor as string | undefined,
+    shieldMark: chosen.shieldMark as CharacterAppearance["wearing"]["shieldMark"],
+    backFlag: (chosen.backFlag as string | undefined) || undefined,
   };
 }
 
 export function accessoryFor(wearer: Wearer, place: { year: number; setting?: WorldSetting }, garment: CharacterAppearance["wearing"]["garment"]) {
   const w = { ...wearer, sex: sexOf(wearer), means: meansOf(wearer) }, band = ageBandOf(wearer.age);
-  const options = slotOptions<"none" | "walking-cane" | "fan">(kitsFor(place.setting, place.year), "accessory",
+  const options = slotOptions<Accessory>(kitsFor(place.setting, place.year), "accessory",
     (o) => fits(o, w, band) && (!o.garments || o.garments.includes(garment)));
   const selected = weighted(options, w.id, "accessory");
   return selected === "none" ? undefined : selected;

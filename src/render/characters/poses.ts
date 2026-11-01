@@ -60,6 +60,19 @@ export const poses = [
   "work-tend",
   "work-sort",
   "work-check",
+  "work-hammer",
+  "work-saw",
+  "work-sweep",
+  "work-write",
+  "work-pour",
+  "play-strum",
+  "play-drum",
+  "play-flute",
+  "pray",
+  /** A censer swung on its chains. */
+  "cense",
+  /** A hand cupped to the mouth: a hawker crying wares, a crier, a call to prayer. */
+  "call",
   "stoop",
   "kneel",
   "sway",
@@ -80,8 +93,23 @@ export const poses = [
 ] as const;
 export type CharacterPose = (typeof poses)[number];
 /** A small set of physical verbs shared by trades in every era. */
-export function workPoseFor(activity: string, label: string, family = ""): CharacterPose | undefined {
+export function workPoseFor(activity: string, label: string, family = "", trade = "", held = ""): CharacterPose | undefined {
   const task = label.toLowerCase();
+  const play = ({ lute: "play-strum", drum: "play-drum", flute: "play-flute" } as const)[held];
+  // A musician plays wherever the day stands them, not only at work.
+  if (play && (trade === "musician" || trade === "storyteller") && /^(work|play|visit|warm)$/.test(activity)) return play;
+  if (activity === "work" && trade) {
+    if (trade === "storyteller") return "talk";
+    if (trade === "religious-specialist") return held === "censer" ? "cense" : "pray";
+    if (/^(scribe|clerk|bank-clerk|tax-collector|toll-keeper|schoolteacher|stationmaster|headman)$/.test(trade)) return "work-write";
+    if (/^(innkeeper|publican|waiter)$/.test(trade)) return "work-pour";
+    if (/^(street-hawker|street-vendor|costermonger|hawker|pedlar|chapman)$/.test(trade)) return "call";
+    if (/^(sweeper|chimney-sweep|sexton|charwoman|housemaid|scullion|servant|domestic-servant)$/.test(trade)) return "work-sweep";
+    if (/^(washerwoman|laundress)$/.test(trade)) return "work-scrub";
+    if (/^(smith|blacksmith|armourer|ironworker|boilermaker|toolmaker|cooper|wheelwright|mason|stonemason|bricklayer)$/.test(trade) &&
+      !/quern|metate|grinder/.test(family)) return "work-hammer";
+    if (/^(sawyer|carpenter|cabinetmaker|boatwright|canoe-builder)$/.test(trade)) return "work-saw";
+  }
   if (activity === "draw-water" || (activity === "haul" && family === "seine-rope")) return "tug";
   if (activity === "haul-catch" && family === "drying-rack") return "work-hang";
   if (activity === "cook") return "work-stir";
@@ -98,7 +126,7 @@ export function workPoseFor(activity: string, label: string, family = ""): Chara
   if (/weav|cloth|loom|spin|thread|fibre|sew|stitch|tailor|clothes|shoes|leather/.test(task)) return "work-weave";
   if (/wash|clean|scrub|fulling|launder/.test(task)) return "work-scrub";
   if (/bake|bread|dough|clay|brick|turning pots|preparing food/.test(task)) return "work-knead";
-  if (/brew|cook|boil|stir|dye|vat|pressing oil|making candles|keeping the fire/.test(task)) return "work-stir";
+  if (/brew|cook|boil|stir|dye|\bvat|pressing oil|making candles|keeping the fire/.test(task)) return "work-stir";
   if (/grind|grain|mortar|pound|stone|metal|smith|tool|wood|timber|build|forge|hammer|roof|raising a barrel/.test(task)) return "work-pound";
   if (/field|cultivat|crop|weed|plant|harvest|garden|tend|farm|hive/.test(task)) return "work-tend";
   if (/exchang|stall|market|record|count|weigh|seal|pack|sort|keeping the house|household work|on the line/.test(task)) return "work-sort";
@@ -173,6 +201,16 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "work-sort") return 180;
   if (pose === "work-pound") return 155;
   if (pose === "work-check") return 230;
+  if (pose === "work-hammer") return 140;
+  if (pose === "work-saw" || pose === "work-sweep") return 160;
+  if (pose === "work-write") return 210;
+  if (pose === "work-pour") return 240;
+  // Strum and drum on the beat of a walking tune; the flute's fingers are slower.
+  if (pose === "play-strum" || pose === "play-drum") return 150;
+  if (pose === "play-flute") return 220;
+  if (pose === "pray") return 340;
+  if (pose === "cense") return 260;
+  if (pose === "call") return 200;
   return pose === "idle"
     ? 360
     : pose === "swing" || pose === "hurt"

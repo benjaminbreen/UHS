@@ -1,4 +1,4 @@
-import { ACCENT, APRON, CLOAK, H, KERCHIEF, LEATHER, METAL, Mask, SHAWL, SKIN, TOP, TRIM, W, WHITE, rnd, type Sheet } from "./paint";
+import { ACCENT, APRON, CLOAK, H, HAIR, KERCHIEF, LEATHER, METAL, Mask, SHAWL, SKIN, TOP, TRIM, W, WHITE, rnd, type Sheet } from "./paint";
 
 /** What the accessories need of the figure: its facing, its rows and widths,
  * and where its centre line runs at each height. */
@@ -97,6 +97,40 @@ export function bag(f: Figure, kind: "purse" | "satchel") {
     tone: (_x, y, t) => (y === y0 ? 2 : t),
   });
   if (kind === "satchel") s.px(rnd(x), y0 + 1, METAL, 4);
+}
+
+/** A baby tied on the back in a cloth. "behind" is the bundle, painted before
+ * the garment so the body covers it unless seen from behind; "over" is the
+ * baby's head at the shoulder and the cloth's ends knotted on the chest, and
+ * goes after the mother's head when her back is turned. */
+export function infant(f: Figure, layer: "behind" | "over") {
+  const { s, yOf } = f;
+  const back = away(f);
+  const top = f.shoulder - 1;
+  if (layer === "behind") {
+    const m = new Mask();
+    for (let y = f.hip; y <= top; y++) {
+      const u = Math.sin((Math.PI * (y - f.hip + 1)) / (top - f.hip + 2));
+      const half = f.waistW * (0.7 + 0.3 * u),
+        depth = 1 + 1.4 * u;
+      const c = sideX(f, y, 0, -(f.chestD + depth * 0.6));
+      const w = Math.hypot(half * f.cos, depth * f.sin);
+      m.span(yOf(y), rnd(c - w + 0.5), rnd(c + w - 0.5));
+    }
+    s.put(m, TRIM, { ring: "ink", shade: 0.35, light: 0.2, top: true, bottom: true });
+    return;
+  }
+  // The head rides high on one side, cheek against the mother's back.
+  const x = rnd(sideX(f, top, back ? -(f.shoulderW - 2.5) : -(f.shoulderW + 0.5), -(f.chestD + 0.8))),
+    y = yOf(top) - (back ? 2 : 4);
+  const head = new Mask().span(y, x - 1, x + 1).span(y + 1, x - 2, x + 2).span(y + 2, x - 2, x + 2).span(y + 3, x - 2, x + 2).span(y + 4, x - 1, x + 1);
+  s.put(head, back ? HAIR : SKIN, { ring: "ink", shade: 0.3, light: 0.2, top: true });
+  if (!back) s.put(new Mask().span(y, x - 1, x + 1), HAIR, { ring: "none", shade: 0 });
+  if (f.cos < 0.3) return;
+  const knot = [sideX(f, f.shoulder - 3, 0, f.chestD), yOf(f.shoulder - 3)] as const;
+  const ties = new Mask();
+  for (const side of [-1, 1]) ties.line(sideX(f, f.shoulder, side * (f.shoulderW - 1), f.chestD * 0.6), yOf(f.shoulder), knot[0], knot[1], 1);
+  s.put(ties, TRIM, { ring: "none", shade: 0, dark: 1 });
 }
 
 /** Rings of metal at each bare wrist. */

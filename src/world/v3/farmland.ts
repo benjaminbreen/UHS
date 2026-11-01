@@ -28,6 +28,8 @@ export type FieldCell = {
   enclosure?: Boundary;
   /** Standing water between bunds. */
   wet: boolean;
+  /** Edges, same bits, where the ground drops to the bench below. */
+  riser?: number;
   /** A kitchen garden bed: planted close, cropped in succession, and drawn
    * right up to its fence. */
   garden?: boolean;
@@ -505,6 +507,200 @@ export function planFarmland(input: {
     dig((u, v) => at(c, f, u, v), inner, outer, trunkV);
   }
 
+  // --- Hillsides -------------------------------------------------------------
+  // A terrace system farms the ground near a step on benches that follow the
+  // step's line: each bench a band at a set share of the way from the lip
+  // below to the foot of the rise above, so a bench narrows where the ledge
+  // does and bends with it. The grid leaves this ground alone.
+  const benched =
+    system.geometry === "terrace" || (wet && system.slopeLimit >= 4);
+  // Benches near the town only: further out the grid's fields stop at steps.
+  const hillReach = Math.min(outer, edge + 48);
+  const side = hillReach * 2 + 1,
+    bx0 = c.x - hillReach,
+    by0 = c.y - hillReach;
+  const boxed = (x: number, y: number) =>
+    x >= bx0 && y >= by0 && x < bx0 + side && y < by0 + side;
+  const slot = (x: number, y: number) => (y - by0) * side + (x - bx0);
+  /** Bench number up from the lip, -1 off the hillside. */
+  const benchAt = new Int16Array(benched ? side * side : 0).fill(-1);
+  const level = new Int16Array(benchAt.length);
+  /** Distance up from the lip, in cells. */
+  const rise = new Float32Array(benchAt.length).fill(Infinity);
+  const hill = (x: number, y: number) =>
+    benched && boxed(x, y) && benchAt[slot(x, y)] >= 0;
+  const N4 = [
+    [0, -1],
+    [1, 0],
+    [0, 1],
+    [-1, 0],
+  ] as const;
+  /** Chamfer distance (5 straight, 7 diagonal) over cells `pass` allows,
+   * spreading only on one tier, out to `limit` cells. Each cell also takes
+   * the label of the source that reached it first. */
+  const spread = (
+    sources: number[],
+    labels: number[],
+    pass: (i: number) => boolean,
+    limit: number,
+  ) => {
+    const dist = new Int32Array(benchAt.length).fill(-1);
+    const label = new Int32Array(benchAt.length).fill(-1);
+    const buckets: number[][] = [];
+    for (const [k, i] of sources.entries()) {
+      dist[i] = 0;
+      label[i] = labels[k];
+      (buckets[0] ??= []).push(i);
+    }
+    for (let d = 0; d < buckets.length && d <= limit * 5; d++)
+      for (const i of buckets[d] ?? []) {
+        if (dist[i] !== d) continue;
+        const x = i % side,
+          y = (i / side) | 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const nx = x + dx,
+              ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= side || ny >= side) continue;
+            const j = ny * side + nx;
+            if (!pass(j) || level[j] !== level[i]) continue;
+            const nd = d + (dx && dy ? 7 : 5);
+            if (dist[j] >= 0 && dist[j] <= nd) continue;
+            dist[j] = nd;
+            label[j] = label[i];
+            (buckets[nd] ??= []).push(j);
+          }
+      }
+    return { dist, label };
+  };
+  /** Bench cells grouped into plots: slices grown from seeds along the lip,
+   * so the cuts between plots run up the slope, cut again by bench. */
+  const plots: { cells: number[]; bench: number; tier: number; slice: number }[] =
+    [];
+  /** Cells left unsown between slices: a path up the terraces. */
+  const stairs = new Set<number>();
+  if (benched) {
+    const open = new Uint8Array(benchAt.length);
+    for (let y = 0; y < side; y++)
+      for (let x = 0; x < side; x++) {
+        const wx = bx0 + x,
+          wy = by0 + y,
+          i = y * side + x;
+        // The town itself is never terraced; its rim is only a neighbour.
+        const d = Math.hypot(wx - c.x, wy - c.y);
+        if (d < edge - 1) continue;
+        const f = sample(wx, wy);
+        level[i] = Math.round(f.elevation / 14);
+        open[i] = +(
+          d >= edge &&
+          f.water >= (wet ? 3 : 4) &&
+          !f.snow &&
+          f.moisture > 0.12 &&
+          !taken(wx, wy) &&
+          !foreign(wx, wy)
+        );
+      }
+    const tierOf = (x: number, y: number) =>
+      boxed(x, y) ? level[slot(x, y)] : tierAt(x, y);
+    const lips: number[] = [],
+      feet: number[] = [];
+    for (let i = 0; i < open.length; i++) {
+      if (!open[i]) continue;
+      const x = bx0 + (i % side),
+        y = by0 + ((i / side) | 0);
+      for (const [dx, dy] of N4) {
+        const t = tierOf(x + dx, y + dy);
+        if (t < level[i]) lips.push(i);
+        else if (t > level[i]) feet.push(i);
+        else continue;
+        break;
+      }
+    }
+    // A broad ledge is terraced only near its lip; a narrow one, all across.
+    const near = 14,
+      narrow = 40;
+    const down = spread(lips, lips, (j) => !!open[j], narrow).dist;
+    const up = spread(feet, feet, (j) => !!open[j], narrow).dist;
+    const depth = Math.max(3, back - 1);
+    for (let i = 0; i < open.length; i++) {
+      if (down[i] < 0) continue;
+      const d = down[i] / 5;
+      const u = up[i] < 0 ? Infinity : up[i] / 5;
+      // The cell at the lip and at the foot stays a grass bank.
+      if (d < 1 || u < 1) continue;
+      const span = d + u;
+      let b: number;
+      if (span <= narrow) {
+        const n = Math.max(1, Math.round(span / depth));
+        b = Math.min(n - 1, Math.floor((d / span) * n));
+      } else if (d <= near) b = Math.floor((d - 1) / depth);
+      else continue;
+      benchAt[i] = b;
+      rise[i] = d;
+    }
+    // Seeds a plot's length apart along the first bench.
+    const seeds: number[] = [];
+    const reach2: number[] = [];
+    for (let i = 0; i < benchAt.length; i++) {
+      if (benchAt[i] < 0 || rise[i] >= 2) continue;
+      const x = i % side,
+        y = (i / side) | 0;
+      if (
+        seeds.some((s, k) => {
+          const sx = s % side,
+            sy = (s / side) | 0;
+          return (sx - x) ** 2 + (sy - y) ** 2 < reach2[k];
+        })
+      )
+        continue;
+      const len = along * (0.7 + rand("plot", bx0 + x, by0 + y) * 0.6);
+      seeds.push(i);
+      reach2.push(len * len);
+    }
+    const { label } = spread(
+      seeds,
+      seeds.map((_, k) => k),
+      (j) => benchAt[j] >= 0,
+      narrow * 2,
+    );
+    // Every other cut or so is left as a path rather than a wall.
+    const stairCut = (a: number, b: number) =>
+      rand("stair", Math.min(a, b), Math.max(a, b)) < 0.45;
+    const byPlot = new Map<string, (typeof plots)[number]>();
+    for (let i = 0; i < benchAt.length; i++) {
+      if (benchAt[i] < 0 || label[i] < 0) continue;
+      const x = i % side,
+        y = (i / side) | 0;
+      let stair = false;
+      for (const [dx, dy] of N4) {
+        const nx = x + dx,
+          ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= side || ny >= side) continue;
+        const l = label[ny * side + nx];
+        if (l >= 0 && l < label[i] && stairCut(l, label[i])) stair = true;
+      }
+      if (stair) {
+        stairs.add(i);
+        continue;
+      }
+      const k = `${label[i]}:${benchAt[i]}`;
+      let plot = byPlot.get(k);
+      if (!plot)
+        byPlot.set(
+          k,
+          (plot = {
+            cells: [],
+            bench: benchAt[i],
+            tier: level[i],
+            slice: label[i],
+          }),
+        );
+      plot.cells.push(i);
+    }
+    plots.push(...byPlot.values());
+  }
+
   // --- Parcels ----------------------------------------------------------------
   // A town's fields are a ring or two of big parcels, a village's a handful
   // by its houses; the count is capped, and bands go round all four wedges
@@ -656,6 +852,13 @@ export function planFarmland(input: {
           )
             continue;
           if (!parcelGround(rect)) continue;
+          if (benched) {
+            let sloped = 0;
+            for (let y = rect.y; y < rect.y + rect.h; y += 2)
+              for (let x = rect.x; x < rect.x + rect.w; x += 2)
+                if (hill(x, y)) sloped++;
+            if (sloped * 4 > rect.w * rect.h * 0.2) continue;
+          }
           // A cell of clear ground all round, against buildings and walls:
           // a parcel hard against the stair-stepped ring left its access
           // in a pocket of it.
@@ -744,6 +947,103 @@ export function planFarmland(input: {
     ring++;
   }
 
+  // --- Benches ----------------------------------------------------------------
+  // Nearest first, a plot to each slice of each bench. Furrows run along the
+  // bench, across the way the ground falls.
+  const benchParcels = new Set<number>();
+  const benchCap = cap + (cap >> 1);
+  const centreOf = (cells: number[]) => {
+    let sx = 0,
+      sy = 0;
+    for (const i of cells) {
+      sx += i % side;
+      sy += (i / side) | 0;
+    }
+    return { x: bx0 + sx / cells.length, y: by0 + sy / cells.length };
+  };
+  const ordered = plots
+    .map((p) => ({ ...p, d: dist(centreOf(p.cells)) }))
+    .sort((a, b) => a.d - b.d);
+  const riseAt = (x: number, y: number, i: number) =>
+    hill(x, y) && level[slot(x, y)] === level[i] ? rise[slot(x, y)] : rise[i];
+  for (const plot of ordered) {
+    if (parcels.length >= benchCap) break;
+    const keys: string[] = [];
+    for (const i of plot.cells) {
+      const x = bx0 + (i % side),
+        y = by0 + ((i / side) | 0);
+      const key = cellKey(x, y);
+      if (
+        fields.has(key) ||
+        !arable(x, y) ||
+        laneMargin.has(key) ||
+        slotCells.has(key) ||
+        canals.has(key) ||
+        culverts.has(key)
+      )
+        continue;
+      keys.push(key);
+    }
+    if (keys.length < 6) continue;
+    const mine = new Set(keys);
+    let access: Point | undefined,
+      best = Infinity;
+    for (const key of keys) {
+      const [x, y] = key.split(",").map(Number);
+      for (const [dx, dy] of N4) {
+        const q = { x: x + dx, y: y + dy };
+        const qk = cellKey(q.x, q.y);
+        if (mine.has(qk) || fields.has(qk) || !arable(q.x, q.y)) continue;
+        if (N4.filter(([ex, ey]) => !taken(q.x + ex, q.y + ey)).length < 3)
+          continue;
+        // A path up the slope is the way in, where the plot has one.
+        const score =
+          dist(q) - (boxed(q.x, q.y) && stairs.has(slot(q.x, q.y)) ? 40 : 0);
+        if (score < best) [best, access] = [score, q];
+      }
+    }
+    if (!access) continue;
+    const id = nextParcel++;
+    benchParcels.add(id);
+    groupOf.set(id, 200000 + plot.tier * 1000 + plot.bench);
+    const crop: CropId = pastoral
+      ? "pasture"
+      : orchardKinds.length &&
+          rand("bench-crop", plot.slice, plot.bench) < system.orchard * 1.6
+        ? orchardKinds[(plot.slice + plot.bench) % orchardKinds.length].id
+        : rotation[(plot.slice * 2 + plot.bench) % rotation.length];
+    let x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
+    for (const key of keys) {
+      const [x, y] = key.split(",").map(Number);
+      const i = slot(x, y);
+      const gx = riseAt(x + 2, y, i) - riseAt(x - 2, y, i);
+      const gy = riseAt(x, y + 2, i) - riseAt(x, y - 2, i);
+      fields.set(key, {
+        parcel: id,
+        crop,
+        axis: Math.abs(gx) > Math.abs(gy) ? "y" : "x",
+        edges: 0,
+        fence: 0,
+        boundary: system.boundary,
+        wet: wet && crops[crop].wet === true,
+      });
+      x0 = Math.min(x0, x);
+      y0 = Math.min(y0, y);
+      x1 = Math.max(x1, x);
+      y1 = Math.max(y1, y);
+    }
+    parcels.push({
+      id,
+      rect: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
+      crop,
+      cells: keys.length,
+      access,
+    });
+  }
+
   // --- Feeder -----------------------------------------------------------------
   // From the nearest open water to the nearest trunk, two straight legs.
   if (irrigated && canals.size && source) {
@@ -793,68 +1093,77 @@ export function planFarmland(input: {
           wells.push(w);
       }
 
-  // --- Terraces ---------------------------------------------------------------
-  // A parcel cut across a step becomes one parcel per terrace: the boundary
-  // then falls on the bank and the furrows restart above it. Slivers on a
-  // third tier are given back to the grass.
+  // --- Steps ------------------------------------------------------------------
+  // A field ends at a step in the ground rather than running over it: the
+  // cell either side is left as a grass bank, a parcel keeps the tier most of
+  // it lies on, and a part on another tier stays only if it would make a
+  // field on its own.
   {
+    const bounds = (keys: string[]): Rect => {
+      let x0 = Infinity,
+        y0 = Infinity,
+        x1 = -Infinity,
+        y1 = -Infinity;
+      for (const k of keys) {
+        const [x, y] = k.split(",").map(Number);
+        x0 = Math.min(x0, x);
+        y0 = Math.min(y0, y);
+        x1 = Math.max(x1, x);
+        y1 = Math.max(y1, y);
+      }
+      return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+    };
     const byParcel = new Map<number, Map<number, string[]>>();
-    for (const [k, cell] of fields) {
+    for (const [k, cell] of [...fields]) {
+      if (benchParcels.has(cell.parcel)) continue;
       const [x, y] = k.split(",").map(Number);
+      const t = tierAt(x, y);
+      if (N4.some(([dx, dy]) => tierAt(x + dx, y + dy) !== t)) {
+        fields.delete(k);
+        continue;
+      }
       const tiers = byParcel.get(cell.parcel) ?? new Map<number, string[]>();
-      const e = sample(x, y).elevation;
-      tiers.set(e, [...(tiers.get(e) ?? []), k]);
+      tiers.set(t, [...(tiers.get(t) ?? []), k]);
       byParcel.set(cell.parcel, tiers);
     }
     for (const parent of [...parcels]) {
-      const tiers = byParcel.get(parent.id);
-      if (!tiers || tiers.size < 2) continue;
-      const ranked = [...tiers.entries()].sort(
-        (a, b) => b[1].length - a[1].length,
+      if (benchParcels.has(parent.id)) continue;
+      const ranked = [...(byParcel.get(parent.id)?.values() ?? [])].sort(
+        (a, b) => b.length - a.length,
       );
-      let kept = 0;
-      for (const [i, [, keys]] of ranked.entries()) {
-        if (i === 0) {
-          kept += keys.length;
-          continue;
-        }
-        if (keys.length < 6) {
+      const total = ranked.reduce((n, keys) => n + keys.length, 0);
+      parent.cells = ranked[0]?.length ?? 0;
+      if (ranked[0]) parent.rect = bounds(ranked[0]);
+      for (const keys of ranked.slice(1)) {
+        if (keys.length < Math.max(12, total * 0.35)) {
           for (const k of keys) fields.delete(k);
           continue;
         }
         const id = nextParcel++;
-        // Its own enclosure, so the headland and fence fall on the step.
+        // Its own enclosure, so the headland and fence fall on the bank.
         groupOf.set(id, id + 100000);
-        let x0 = Infinity,
-          y0 = Infinity,
-          x1 = -Infinity,
-          y1 = -Infinity;
-        for (const k of keys) {
-          fields.get(k)!.parcel = id;
-          const [x, y] = k.split(",").map(Number);
-          x0 = Math.min(x0, x);
-          y0 = Math.min(y0, y);
-          x1 = Math.max(x1, x);
-          y1 = Math.max(y1, y);
-        }
+        for (const k of keys) fields.get(k)!.parcel = id;
         parcels.push({
           id,
-          rect: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
+          rect: bounds(keys),
           crop: parent.crop,
           cells: keys.length,
           access: parent.access,
         });
       }
-      parent.cells = kept;
     }
+    for (let i = parcels.length - 1; i >= 0; i--)
+      if (!parcels[i].cells) parcels.splice(i, 1);
   }
 
   // --- Edges and fences -------------------------------------------------------
   for (const [k, cell] of fields) {
     const [x, y] = k.split(",").map(Number);
     let edges = 0,
-      fence = 0;
+      fence = 0,
+      riser = 0;
     const group = groupOf.get(cell.parcel);
+    const terraced = benchParcels.has(cell.parcel);
     for (const [bit, dx, dy] of [
       [1, 0, -1],
       [2, 1, 0],
@@ -862,11 +1171,20 @@ export function planFarmland(input: {
       [8, -1, 0],
     ]) {
       const n = fields.get(cellKey(x + dx, y + dy));
+      // Bench against bench is the terrace wall, not a fence: drawn on the
+      // upper side, where the drop is.
+      if (terraced && n && benchParcels.has(n.parcel)) {
+        const step =
+          benchAt[slot(x, y)] - benchAt[slot(x + dx, y + dy)];
+        if (step > 0) riser |= bit;
+        if (step) continue;
+      }
       if (!n || n.parcel !== cell.parcel) edges |= bit;
       if (!n || groupOf.get(n.parcel) !== group) fence |= bit;
     }
     cell.edges = edges;
     cell.fence = fence;
+    if (riser) cell.riser = riser;
     if (["none", "ditch", "baulk"].includes(cell.boundary)) {
       const era = eraEnclosure(setting.year);
       if (era !== "none") cell.enclosure = era;

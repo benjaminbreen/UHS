@@ -19,6 +19,7 @@ import { BUILDING_BURN } from "../content/ecology/metals";
 import { oreOverlay } from "./ore-art";
 import { showsWear, stillStanding, StructureDecay } from "./structure-decay";
 import { isRuin } from "../core/time/structure";
+import { townGateShut } from "../core/doors";
 import {
   waterDepthAt,
   wadingCost,
@@ -276,6 +277,7 @@ import {
   animatedFrames,
   ensureEmber,
   ensureFireLight,
+  ensureLightMask,
   lampLight,
   lightAlpha,
 } from "./fire";
@@ -415,6 +417,8 @@ type FireEffect = {
   frames: number;
   phase: number;
   glow: Phaser.GameObjects.Image;
+  /** Off the display list: stamped into the night wash each frame. */
+  pool: Phaser.GameObjects.Image;
   smoke: Phaser.GameObjects.Image[];
   embers?: Phaser.GameObjects.Particles.ParticleEmitter;
 };
@@ -499,6 +503,7 @@ export class WorldScene extends Phaser.Scene {
       | "activity"
       | "held"
       | "heldItem"
+      | "origin"
       | "fatigue"
       | "trust"
       | "pos"
@@ -715,6 +720,9 @@ export class WorldScene extends Phaser.Scene {
   private voxelLife = new VoxelLife();
   /** Station and tower clocks, whose hands keep the game's hour. */
   private clockHands: { g: Phaser.GameObjects.Graphics; x: number; y: number; r: number; minute: number }[] = [];
+  /** Town gates' leaves, shown while the gates are shut for the night. */
+  private gateDoors: Phaser.GameObjects.Graphics[] = [];
+  private actorTorches = new Map<string, TorchFlame>();
   /** One leaf per drawn building, hidden while shut. */
   private doors = new Map<
     string,
@@ -779,7 +787,9 @@ export class WorldScene extends Phaser.Scene {
   private light = lightingAt(9 * 3600);
   private tint = 0xffffff;
   private shadowPhase = this.light.id;
-  private night?: Phaser.GameObjects.Graphics;
+  /** The night wash with the lights cut into it, multiplied over the scene. */
+  private night?: Phaser.GameObjects.RenderTexture;
+  private washTint = 0xffffff;
   private drift?: Drift;
   private mist?: Mist;
   private clouds?: CloudShadows;
@@ -906,11 +916,7 @@ export class WorldScene extends Phaser.Scene {
     this.createHoverTip();
     this.routeOverlay = this.add.graphics().setDepth(20000);
     // Multiply, not a flat fill: a wash that lifts the darks greys the scene.
-    this.night = this.add
-      .graphics()
-      .setDepth(19000)
-      .setScrollFactor(0)
-      .setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.night = this.washTexture(16, 16);
     this.drift = new Drift(this);
     this.mist = new Mist(this);
     this.clouds = new CloudShadows(this);
@@ -2891,11 +2897,12 @@ export class WorldScene extends Phaser.Scene {
     const phase = Math.floor(this.poseOffset(id) % 8);
     // The light reaches well past the fire's own width either side.
     const radius = Math.max(56, Math.round((image.width * 1.6) / 4) * 4);
+    const pool = this.make.image({ x: Math.round(x), y: Math.round(y - 6), key: ensureLightMask(this, Math.round(radius * 1.5)), frame: "0" }, false);
     const glow = this.add
       .image(
         Math.round(x),
-        Math.round(y - 10),
-        ensureFireLight(this, radius),
+        Math.round(y - image.height * 0.35),
+        ensureFireLight(this, Math.round(radius * 0.6)),
         "0",
       )
       .setBlendMode(Phaser.BlendModes.ADD)
@@ -2924,14 +2931,14 @@ export class WorldScene extends Phaser.Scene {
               speedY: { min: -30, max: -12 },
               speedX: { min: -6, max: 6 },
               accelerationX: { min: -8, max: 8 },
-              lifespan: { min: 600, max: 1400 },
-              frequency: 240,
+              lifespan: { min: 700, max: 1700 },
+              frequency: 150,
               alpha: { start: 1, end: 0 },
               tint: [0xffe08a, 0xffa040, 0xff6a28],
               blendMode: Phaser.BlendModes.ADD,
             })
             .setDepth(19002);
-    this.fires.set(id, { image, base, frames, phase, glow, smoke, embers });
+    this.fires.set(id, { image, base, frames, phase, glow, pool, smoke, embers });
   }
   /** A street lamp or a door lantern: a pool on the ground and the flame
    * itself, both over the night wash. */
@@ -2943,16 +2950,14 @@ export class WorldScene extends Phaser.Scene {
     y: number,
   ) {
     if (this.streetLights.has(id)) return;
-    const at = (dy: number, radius: number) =>
-      this.add
-        .image(Math.round(x), Math.round(y - dy), ensureFireLight(this, radius), "0")
+    this.streetLights.set(id, {
+      pool: this.make.image({ x: Math.round(x), y: Math.round(y - 4), key: ensureLightMask(this, Math.round(lamp.radius * 1.5)), frame: "0" }, false),
+      // The lamp head sits near the top of the post or the bracket.
+      flame: this.add
+        .image(Math.round(x), Math.round(y - image.height * 0.8), ensureFireLight(this, 14), "0")
         .setBlendMode(Phaser.BlendModes.ADD)
         .setAlpha(lightAlpha[this.light.id])
-        .setDepth(19001);
-    this.streetLights.set(id, {
-      pool: at(4, lamp.radius),
-      // The lamp head sits near the top of the post or the bracket.
-      flame: at(Math.round(image.height * 0.8), 8),
+        .setDepth(19001),
       flickers: lamp.flame,
       phase: Math.floor(this.poseOffset(id) % 8),
     });
@@ -2968,6 +2973,7 @@ export class WorldScene extends Phaser.Scene {
     const fire = this.fires.get(id);
     if (!fire) return;
     fire.glow.destroy();
+    fire.pool.destroy();
     fire.embers?.destroy();
     for (const puff of fire.smoke) puff.destroy();
     this.fires.delete(id);
@@ -3249,7 +3255,7 @@ export class WorldScene extends Phaser.Scene {
   private nightGrade?: NightGradePipeline;
   /** The hour's grade outdoors, blue moonlight after dark, grey under cloud.
    * Off indoors, where a room has its own light. */
-  private applyGrade(amount: number, dull = 0, grade?: ReturnType<typeof gradeAt>) {
+  private applyGrade(amount: number, dull = 0, grade?: ReturnType<typeof gradeAt>, floor = 1) {
     const renderer = this.game.renderer;
     if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
     const camera = this.cameras.main;
@@ -3269,6 +3275,7 @@ export class WorldScene extends Phaser.Scene {
     this.nightGrade.shadow = grade?.shadow ?? [1, 1, 1];
     this.nightGrade.light = grade?.light ?? [1, 1, 1];
     this.nightGrade.curve = grade?.curve ?? 0;
+    this.nightGrade.floor = floor;
   }
   private applyTiltShift() {
     const renderer = this.game.renderer;
@@ -3956,6 +3963,7 @@ export class WorldScene extends Phaser.Scene {
       this.buildingAnimations.clear();
       this.voxelLife.clear();
       this.clockHands = [];
+      this.gateDoors = [];
       this.doors.clear();
       for (const puffs of this.hearths.values())
         for (const puff of puffs) this.tweens.killTweensOf(puff);
@@ -4546,7 +4554,13 @@ export class WorldScene extends Phaser.Scene {
           if (fence.parts) {
             for (const part of fence.parts) {
               if (Math.abs(part.x - p.x) > 100 || Math.abs(part.y - p.y) > 100)
-                continue;
+                for (const gap of fence.gates ?? []) {
+              const g = this.add.graphics().setDepth(Math.max(...gap.map((q) => q.y)) * 16 + 11).setVisible(false);
+              drawGateLeaves(g, gap);
+              this.layers.push(g);
+              this.gateDoors.push(g);
+            }
+            continue;
               this.sprite(
                 part.frame,
                 part.x * 16 + 8,
@@ -4713,6 +4727,11 @@ export class WorldScene extends Phaser.Scene {
       this.workObjects.set(o.id, { id: o.id, x: o.pos.x, y: o.pos.y, family });
     }
     this.separate(p);
+    // Figures take a third less of the hour's tint, as Stardew keeps its
+    // people lit: under the full night multiply a dark face goes to a blank.
+    const lift = (c: number) => c + Math.round((255 - c) * 0.35);
+    const figureTint =
+      (lift((this.tint >> 16) & 255) << 16) | (lift((this.tint >> 8) & 255) << 8) | lift(this.tint & 255);
 
     const renderEntity = (
       id: string,
@@ -4794,7 +4813,7 @@ export class WorldScene extends Phaser.Scene {
       if (lamp) this.lightLamp(id, im, lamp, tx, ty);
       else if (this.streetLights.has(id)) this.douseLamp(id);
       // A fire keeps its own colour at night.
-      const tint = fire ? 0xffffff : this.tint;
+      const tint = fire ? 0xffffff : actor ? figureTint : this.tint;
       if (im.tintTopLeft !== tint) im.setTint(tint);
       const depth = pos.y * 16 + (actor ? 14 : 10);
       if (im.depth !== depth) im.setDepth(depth);
@@ -5516,33 +5535,74 @@ export class WorldScene extends Phaser.Scene {
       ? lightingPreset(this.options.lighting).hour * 3600
       : this.runtime.displayClock();
     const w = washAt(clock);
-    const weather = this.weatherWash();
     const graded = this.options.colorGrade !== false;
+    // Fog and falling snow already lift and grey the view; the grade's own
+    // lift and overcast grey on top of them flattened it to slate.
+    const haze = graded && (this.weather?.condition === "mist" || this.weather?.condition === "snow") ? 1 : 0;
+    const weather = this.weatherWash() * (1 - 0.67 * haze);
+    const night = graded ? Phaser.Math.Clamp((w.alpha - 0.14) / 0.28, 0, 1) : 0;
     // Low sun is lost behind cloud.
     const golden = graded ? w.golden * 0.14 * (1 - weather / 0.3) : 0;
     const lamps = graded ? w.lamps : 0;
     // Rooms go dark one at a time, so the hour is part of the key.
-    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${lamps.toFixed(2)}:${Math.floor(clock / 900)}`;
+    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.floor(clock / 900)}`;
     if (key === this.washKey) return;
     this.washKey = key;
-    const x = -this.scale.width * 4,
-      y = -this.scale.height * 4,
-      width = this.scale.width * 9,
-      height = this.scale.height * 9;
-    this.night!.clear().fillStyle(w.color, graded ? w.alpha : 0).fillRect(x, y, width, height);
-    // Night proper only: dusk keeps its colour.
-    this.applyGrade(
-      graded ? Phaser.Math.Clamp((w.alpha - 0.14) / 0.28, 0, 1) : 0,
-      graded ? Math.min(1, weather / 0.3) : 0,
-      graded ? gradeAt(clock) : undefined,
+    // Stacked multiply fills over white come to one colour: their product.
+    const layers: [number, number][] = [[w.color, graded ? w.alpha : 0], [0xff9a4a, golden], [0x666d78, weather * 0.6]];
+    this.washTint = [16, 8, 0].reduce(
+      (tint, shift) =>
+        tint | (Math.round(layers.reduce((v, [c, a]) => v * (1 - a + (a * ((c >> shift) & 255)) / 255), 255)) << shift),
+      0,
     );
-    if (golden > 0) this.night!.fillStyle(0xff9a4a, golden).fillRect(x, y, width, height);
-    if (weather > 0) this.night!.fillStyle(0x666d78, weather * 0.6).fillRect(x, y, width, height);
+    // Night proper only: dusk keeps its colour.
+    this.applyGrade(night, graded ? Math.min(1, weather / 0.3) : 0, graded ? gradeAt(clock) : undefined, 1 - haze);
+    this.mist?.tint(night);
     const hour = (((clock / 3600) % 24) + 24) % 24;
     for (const l of this.lamps) {
       const on = lamps > 0 && (l.lit?.(hour) ?? true);
       l.pane.setAlpha(lamps).setVisible(on);
       l.halo.setAlpha(lamps * 0.6).setVisible(on);
+    }
+  }
+  /** The wash over the camera's view with each fire and lamp's pool laid
+   * into it, so where the light falls the scene is warmed, not darkened, and
+   * the night grade, which spares warm colour, leaves it lit. Redrawn every
+   * frame for the flicker; padded because the view is last frame's. */
+  private washTexture(width: number, height: number) {
+    return this.add
+      .renderTexture(0, 0, width, height)
+      .setOrigin(0)
+      .setDepth(19000)
+      .setBlendMode(Phaser.BlendModes.MULTIPLY)
+      .setVisible(false);
+  }
+  private paintLight() {
+    if (this.washTint === 0xffffff) {
+      this.night!.setVisible(false);
+      return;
+    }
+    const v = this.cameras.main.worldView,
+      pad = 48;
+    // Even, as a dynamic texture rounds itself up. Rebuilt rather than
+    // resized: resize left the framebuffer at its first size.
+    const w = Math.ceil(v.width / 2) * 2 + pad * 2,
+      h = Math.ceil(v.height / 2) * 2 + pad * 2;
+    if (this.night!.width !== w || this.night!.height !== h) {
+      this.night!.destroy();
+      this.night = this.washTexture(w, h);
+    }
+    const night = this.night!;
+    const ox = Math.floor(v.x) - pad,
+      oy = Math.floor(v.y) - pad;
+    night.setPosition(ox, oy).setVisible(true).fill(this.washTint);
+    const pools = [...[...this.fires.values()].map((f) => f.pool), ...[...this.streetLights.values()].map((l) => l.pool)];
+    for (const pool of pools) {
+      if (!pool.visible || !pool.alpha) continue;
+      const x = pool.x - ox,
+        y = pool.y - oy;
+      if (x < -pool.width / 2 || y < -pool.height / 2 || x > w + pool.width / 2 || y > h + pool.height / 2) continue;
+      night.stamp(pool.texture.key, pool.frame.name, x, y, { alpha: pool.alpha });
     }
   }
   /** Lamps behind the glass of an occupied house after dark: most of them
@@ -5896,7 +5956,10 @@ export class WorldScene extends Phaser.Scene {
     // The old view holds while it fades out; the room is built after.
     if (!this.fadingOut) this.syncRoom(delta);
     this.reflect(time);
-    if (this.night && !this.roomView) this.paintWash();
+    if (this.night && !this.roomView) {
+      this.paintWash();
+      this.paintLight();
+    }
     this.followTiltFocus();
     mark("weather");
     if (perf.fauna)
@@ -5941,10 +6004,12 @@ export class WorldScene extends Phaser.Scene {
         const name = n ? `${fire.base}-f${n}` : fire.base;
         if (fire.image.frame.name !== name) fire.image.setFrame(name);
         const size = String(LIGHT_FLICKER[step % LIGHT_FLICKER.length]);
-        if (fire.glow.frame.name !== size) fire.glow.setFrame(size);
         const alpha = lightAlpha[this.light.id];
-        if (fire.glow.alpha !== alpha) fire.glow.setAlpha(alpha);
-        if (fire.glow.visible !== alpha > 0) fire.glow.setVisible(alpha > 0);
+        for (const glow of [fire.glow, fire.pool]) {
+          if (glow.frame.name !== size) glow.setFrame(size);
+          if (glow.alpha !== alpha) glow.setAlpha(alpha);
+          if (glow.visible !== alpha > 0) glow.setVisible(alpha > 0);
+        }
         fire.embers?.setVisible(alpha > 0);
       }
     if (perf.fires)
@@ -5989,6 +6054,8 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.buildingAnimations = String(
         this.buildingAnimations.size,
       );
+    const shut = townGateShut(this.runtime.engine.state.clock);
+    for (const g of this.gateDoors) g.setVisible(shut);
     const minute = Math.floor(this.runtime.displayClock() / 60);
     for (const hand of this.clockHands)
       if (hand.minute !== minute) {
@@ -6078,6 +6145,15 @@ export class WorldScene extends Phaser.Scene {
         bearer.direction,
         lightAlpha[this.light.id],
       );
+    for (const a of this.runtime.engine.state.actors) {
+      const lit = a.heldItem === "torch" && !a.dead;
+      const flame = this.actorTorches.get(a.id);
+      if (!lit && !flame) continue;
+      const holder = this.entities.get(a.id);
+      (flame ?? this.actorTorches.set(a.id, new TorchFlame(this, true)).get(a.id)!)
+        .update(lit && holder?.visible ? holder : undefined, lit, a.direction, lightAlpha[this.light.id]);
+      if (!lit) this.actorTorches.delete(a.id);
+    }
     this.drawTarget(time);
     this.drawGuide(time);
     this.drawTraders(time);
@@ -6427,7 +6503,7 @@ export class WorldScene extends Phaser.Scene {
         const tired = human.fatigue > 65;
         const condition = loadWeight + (tired ? 3 : 0);
         const work = id !== "player" && at && !moving && !this.options.freeze
-          ? this.workMotion(id, at, time) : undefined;
+          ? this.workMotion(id, at, time, human.origin?.livelihood, human.heldItem) : undefined;
         const use = id !== "player" && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active || winding) pose = action!.pose;
@@ -7080,8 +7156,8 @@ export class WorldScene extends Phaser.Scene {
     if (!site || pose && workTargets[pose] && !workTargets[pose]!.includes(site.family)) return undefined;
     return Math.hypot(site.x - at.x, site.y - at.y) < 3.5 ? site : undefined;
   }
-  private workMotion(id: string, at: Ambient, time: number) {
-    let pose = workPoseFor(at.activity, at.label, this.workSite(at)?.family);
+  private workMotion(id: string, at: Ambient, time: number, trade?: string, held?: string) {
+    let pose = workPoseFor(at.activity, at.label, this.workSite(at)?.family, trade, held);
     if (!pose) return undefined;
     const site = this.workSite(at, pose);
     // A hoe in hand chops at the rows rather than miming.
@@ -7092,6 +7168,12 @@ export class WorldScene extends Phaser.Scene {
     const age = (time + offset) % cycle;
     const round = Math.floor((time + offset) / cycle);
     const stroke = poseTiming(pose) * 4;
+    // Music, prayer, writing and sweeping go on without the pauses of a craft.
+    if (/^(play-|pray|cense|call|work-(write|sweep|saw))/.test(pose)) {
+      const loop = Math.floor((time + offset) / stroke);
+      if (pose === "call" && loop % 3) return { pose: "idle" as CharacterPose, index: 0, site };
+      return { pose, index: Math.floor(((time + offset) % stroke) / poseTiming(pose)), beat: `${pose}:${loop}`, site };
+    }
     const second = stroke + 190;
     if (age < stroke) return { pose, index: Math.floor(age / poseTiming(pose)), beat: `${pose}:${round}:0`, site };
     if (age < second) return { pose, index: 3, site };
@@ -7165,6 +7247,24 @@ export class WorldScene extends Phaser.Scene {
     } else if (pose === "work-sort") {
       mark(-1, -1, 2, 1, 0xd9bf87, 3, -3, 280);
       mark(1, 1, 1, 1, 0xbba175, -3, 2, 260);
+    } else if (pose === "work-hammer") {
+      mark(-1, 0, 1, 1, 0xffedaa, -6, -6, 260);
+      mark(1, -1, 1, 1, 0xffd17a, 5, -8, 300);
+      mark(0, 0, 1, 1, 0xffb84a, 2, 4, 220);
+    } else if (pose === "work-saw") {
+      mark(2, 3, 1, 1, 0xe3c48e, 2, 6, 420);
+      mark(3, 3, 1, 1, 0xd2ae74, -1, 7, 480);
+    } else if (pose === "work-sweep") {
+      mark(-4, 9, 2, 1, 0xc9b896, -6, -2, 420);
+      mark(-2, 9, 1, 1, 0xb8a886, -4, -3, 500);
+    } else if (pose.startsWith("play-")) {
+      // A note: head and stem, drifting up and away.
+      const side = Number(beat.split(":")[1]) % 2 ? 1 : -1;
+      mark(side * 6, -12, 2, 2, 0x2a2232, side * 4, -10, 900);
+      mark(side * 6 + 1, -14, 1, 3, 0x2a2232, side * 4, -10, 900);
+    } else if (pose === "cense") {
+      mark(-2, 2, 2, 2, 0xe8e4dc, -3, -12, 1100);
+      mark(1, 0, 1, 1, 0xd8d4cc, 2, -14, 1300);
     }
   }
   /** A knot of people is not a chorus. Each takes a turn talking and a longer
@@ -7372,4 +7472,19 @@ function hashSeed(s: string) {
     h = Math.imul(h, 16777619);
   }
   return (h >>> 0) / 4294967296;
+}
+
+/** A pair of plank leaves barring a gateway in a north or south wall. Seen
+ * edge on, an east or west gate's leaves are a sliver; they are not drawn. */
+function drawGateLeaves(g: Phaser.GameObjects.Graphics, gap: { x: number; y: number }[]) {
+  if (!gap.every((q) => q.y === gap[0].y)) return;
+  const x0 = Math.min(...gap.map((q) => q.x)) * 16, x1 = (Math.max(...gap.map((q) => q.x)) + 1) * 16;
+  const top = (gap[0].y + 1) * 16 - 36;
+  g.fillStyle(0x5c3f27).fillRect(x0, top, x1 - x0, 36);
+  g.fillStyle(0x3f2b1b);
+  for (let x = x0 + 4; x < x1; x += 4) g.fillRect(x, top, 1, 36);
+  g.fillStyle(0x7a5636).fillRect(x0, top, x1 - x0, 1);
+  g.fillStyle(0x2c2a29).fillRect(x0, top + 7, x1 - x0, 2).fillRect(x0, top + 26, x1 - x0, 2);
+  g.fillStyle(0x1e1610).fillRect((x0 + x1) / 2 - 1, top, 2, 36);
+  g.fillStyle(0x8c8f92).fillRect((x0 + x1) / 2 - 4, top + 17, 2, 2).fillRect((x0 + x1) / 2 + 2, top + 17, 2, 2);
 }

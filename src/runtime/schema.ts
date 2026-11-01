@@ -43,6 +43,9 @@ import {
   shawls,
   hoods,
   sidearms,
+  armours,
+  shields,
+  shieldMarks,
   neckStyles,
   headShapes,
   jawShapes,
@@ -310,6 +313,13 @@ export const characterAppearanceSchema = z.object({
     shawl: z.enum(shawls).optional(),
     hood: z.enum(hoods).optional(),
     sidearm: z.enum(sidearms).optional(),
+    infant: z.boolean().optional(),
+    armour: z.enum(armours).optional(),
+    armourColor: z.string().optional(),
+    shield: z.enum(shields).optional(),
+    shieldColor: z.string().optional(),
+    shieldMark: z.enum(shieldMarks).optional(),
+    backFlag: z.string().optional(),
   }),
 });
 const actor = z.object({
@@ -409,6 +419,7 @@ const actor = z.object({
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
   wayfarer: z.object({ until: z.number() }).optional(),
   watch: z.object({ path: z.array(point).max(400), loop: z.boolean(), speed: z.number(), waits: z.tuple([z.number(), z.number()]), phase: z.number() }).optional(),
+  post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional() }).optional(),
 });
 const object = z.object({
   resource: z

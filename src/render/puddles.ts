@@ -272,7 +272,7 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
       for (let px = 0; px < b.w; px++) {
         const i = py * b.w + px,
           d = b.depth[i];
-        if (d <= 0) continue;
+        if (d <= 0 || px === 0 || py === 0 || px === b.w - 1 || py === b.h - 1) continue;
         const speck = hash(b.x + px, b.y + py, 713);
         const s = b.surface[i];
         if (s) {
@@ -521,30 +521,46 @@ function shape(s: PuddleSpot, px: number, py: number) {
   return strength * (1.15 - d * 0.75);
 }
 
+// Smooth maximum, so two puddles meet as one sheet rather than pinching at the join.
+function merge(a: number, b: number) {
+  // The blend lifts zero above zero, which would muddy the whole tile.
+  if (a <= 0 || b <= 0 || a >= 2 || b >= 2) return Math.max(a, b);
+  const k = 0.25,
+    h = Math.max(0, Math.min(1, 0.5 + (b - a) / (2 * k)));
+  return a + (b - a) * h + k * h * (1 - h);
+}
+
 export function addPuddles(scene: Phaser.Scene, spots: PuddleSpot[]) {
   if (!spots.length) return;
   const m = manager(scene);
   // Under the flowers, over the ground.
   const container = scene.add.container(0, 0).setDepth(-9998.5);
+  const pad = (s: PuddleSpot) => Math.ceil(Math.max(s.rx, s.ry) * 1.6) + 2;
+  // Tiles on a fixed grid, each taking every spot that reaches it, so neighbours share one outline.
   const groups = new Map<string, PuddleSpot[]>();
   for (const s of spots) {
-    const k = `${Math.floor(s.x / BUCKET)},${Math.floor(s.y / BUCKET)}`;
-    groups.set(k, [...(groups.get(k) ?? []), s]);
+    const p = pad(s);
+    for (let cy = Math.floor((s.y - p) / BUCKET); cy <= Math.floor((s.y + p) / BUCKET); cy++)
+      for (let cx = Math.floor((s.x - p) / BUCKET); cx <= Math.floor((s.x + p) / BUCKET); cx++) {
+        const k = `${cx},${cy}`;
+        groups.set(k, [...(groups.get(k) ?? []), s]);
+      }
   }
   const buckets: Bucket[] = [];
-  for (const group of groups.values()) {
-    const pad = (s: PuddleSpot) => Math.ceil(Math.max(s.rx, s.ry) * 1.6) + 2;
-    const x = Math.floor(Math.min(...group.map((s) => s.x - pad(s)))),
-      y = Math.floor(Math.min(...group.map((s) => s.y - pad(s)))),
-      w = Math.ceil(Math.max(...group.map((s) => s.x + pad(s)))) - x,
-      h = Math.ceil(Math.max(...group.map((s) => s.y + pad(s)))) - y;
+  for (const [k, group] of groups) {
+    const [cx, cy] = k.split(",").map(Number);
+    // One pixel of apron past the tile so the rim test sees across the seam; paint leaves it clear.
+    const x = Math.max(cx * BUCKET, Math.floor(Math.min(...group.map((s) => s.x - pad(s))))) - 1,
+      y = Math.max(cy * BUCKET, Math.floor(Math.min(...group.map((s) => s.y - pad(s))))) - 1,
+      w = Math.min((cx + 1) * BUCKET, Math.ceil(Math.max(...group.map((s) => s.x + pad(s))))) + 1 - x,
+      h = Math.min((cy + 1) * BUCKET, Math.ceil(Math.max(...group.map((s) => s.y + pad(s))))) + 1 - y;
     const depth = new Float32Array(w * h);
     for (const s of group) {
       const p = pad(s);
       for (let py = Math.max(0, Math.floor(s.y - p - y)); py < Math.min(h, s.y + p - y); py++)
         for (let px = Math.max(0, Math.floor(s.x - p - x)); px < Math.min(w, s.x + p - x); px++) {
           const i = py * w + px;
-          depth[i] = Math.max(depth[i], shape(s, px + x, py + y));
+          depth[i] = merge(depth[i], shape(s, px + x, py + y));
         }
     }
     const key = `puddles-${serial++}`;

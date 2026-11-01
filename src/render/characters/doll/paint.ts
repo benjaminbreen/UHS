@@ -39,7 +39,17 @@ export const SKIN = 0,
   VEST = 29,
   SHAWL = 30,
   SHEATH = 31,
-  MATS = 32;
+  ARMOUR = 32,
+  SHIELD = 33,
+  STEEL = 34,
+  /** What is painted or sewn on a shield, and a back flag's cloth. */
+  EMBLEM = 35,
+  FLAG = 36,
+  /** A trade's tools and instruments: wood, broom straw, what is poured. */
+  WOOD = 37,
+  STRAW = 38,
+  LIQUID = 39,
+  MATS = 40;
 
 /** Ties round toward the centre line, so a shape and its mirror land on mirrored columns. */
 export const rnd = (x: number) =>

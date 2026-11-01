@@ -1,3 +1,4 @@
+import type Phaser from "phaser";
 import type { LightingId } from "./lighting";
 /** Animated fire props: frame `x` has siblings `x-f1..` in the atlas; the
  * count is read from the atlas, four for the braziers and ovens, eight for
@@ -60,43 +61,50 @@ export function lampLight(frame: string): { radius: number; flame: boolean } | u
 }
 /** Three sizes of the pool, swapped in step with the flame. */
 export const LIGHT_FLICKER = [0, 1, 0, 2, 1, 0, 2, 1];
-/** A pool of firelight in whole-pixel rings, dithered where one ring meets
- * the next, flattened to the ground's perspective. Drawn additively over the
- * night wash, so it lights whatever stands in it. Three frames, each a little
- * smaller, for the flicker. */
-export function ensureFireLight(scene: Phaser.Scene, radius: number) {
-  const key = `fire-light-${radius}`;
+/** Three flicker frames of a soft ellipse flattened to the ground, painted
+ * per pixel by `shade(d)` for d from the centre (0) to the rim (1). */
+function ensureGlow(
+  scene: Phaser.Scene,
+  key: string,
+  radius: number,
+  shade: (d: number) => [number, number, number, number],
+) {
   if (scene.textures.exists(key)) return key;
   const w = radius * 2,
     h = Math.round(radius * 1.3);
   const canvas = scene.textures.createCanvas(key, w * 3, h)!;
-  const ctx = canvas.context;
-  const bayer = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-  const rings = [
-    "rgba(255,120,40,0.12)",
-    "rgba(255,130,50,0.23)",
-    "rgba(255,150,64,0.35)",
-    "rgba(255,175,90,0.48)",
-  ];
+  const img = canvas.context.createImageData(w * 3, h);
   for (let f = 0; f < 3; f++) {
-    const scale = 1 - f * 0.07;
+    const scale = 1 - f * 0.06;
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const dx = (x + 0.5 - w / 2) / (radius * scale),
           dy = (y + 0.5 - h / 2) / (radius * 0.65 * scale);
         const d = Math.sqrt(dx * dx + dy * dy);
         if (d >= 1) continue;
-        const level = Math.floor(
-          (1 - d) * 4.4 + bayer[(y & 3) * 4 + (x & 3)] / 16 - 0.5,
-        );
-        if (level < 0) continue;
-        ctx.fillStyle = rings[Math.min(level, 3)];
-        ctx.fillRect(f * w + x, y, 1, 1);
+        const i = (y * w * 3 + f * w + x) * 4;
+        const [r, g, b, a] = shade(d);
+        img.data.set([r, g, b, Math.round(a * 255)], i);
       }
     canvas.add(String(f), 0, f * w, 0, w, h);
   }
+  canvas.context.putImageData(img, 0, 0);
   canvas.refresh();
   return key;
+}
+/** The warm haze round a flame, added over everything: yellow-white at the
+ * heart, red at the rim, and gone well before the edge of the texture. */
+export function ensureFireLight(scene: Phaser.Scene, radius: number) {
+  return ensureGlow(scene, `fire-light-${radius}`, radius, (d) => {
+    const k = (1 - d) * (1 - d);
+    return [255, Math.round(110 + 110 * k), Math.round(40 + 100 * k * k), k * 0.5];
+  });
+}
+/** Firelight laid over the night wash before it multiplies the scene, so the
+ * ground in the pool keeps its own colour, warmed, rather than being painted
+ * orange. */
+export function ensureLightMask(scene: Phaser.Scene, radius: number) {
+  return ensureGlow(scene, `light-mask-${radius}`, radius, (d) => [255, 206, 150, (1 - d * d) ** 2]);
 }
 /** One pixel of spark, tinted per particle. */
 export function ensureEmber(scene: Phaser.Scene) {

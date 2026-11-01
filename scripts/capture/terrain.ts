@@ -24,7 +24,7 @@ type Review = {
   seed: string;
   common: string;
   /** Where to point the camera before the first shot. */
-  centre: "spawn" | "none" | "paths" | "arroyo" | "cliff";
+  centre: "spawn" | "none" | "paths" | "arroyo" | "cliff" | "ramp";
   /** Print paving counts, which is what the street studies are looking at. */
   paving?: boolean;
   studies: [name: string, query: string][];
@@ -180,7 +180,7 @@ const reviews: Record<string, Review> = {
     title: "Altitude steps: rims, faces and ramps",
     seed: "relief-review",
     common: "start=resident&water=none&relief=0.9",
-    centre: "spawn",
+    centre: "ramp",
     studies: [
       ["town-ridge", "ecology=grassland&season=summer&landform=ridge&population=settled&pattern=clustered&year=1300"],
       ["village-rolling", "ecology=dry-scrub&season=summer&landform=rolling&population=sparse&pattern=clustered&year=1200"],
@@ -320,6 +320,27 @@ async function run(review: Review) {
       if (review.centre === "paths" && name.startsWith("grassland"))
         await centreOnPaths(page);
       if (review.centre === "arroyo") await centreOnArroyo(page);
+      if (review.centre === "ramp") {
+        const at = await page.evaluate(() => {
+          const lab = (window as any).terrainLab, world = lab.runtime.engine.world;
+          const spawn = lab.scene.options.center ?? world.spawn;
+          let best = spawn, distance = Infinity;
+          for (let y = spawn.y - 60; y <= spawn.y + 60; y++)
+            for (let x = spawn.x - 60; x <= spawn.x + 60; x++) {
+              const c = world.topography(x, y);
+              if (!c.ramp) continue;
+              // Road cuts first: they carry the path that has to meet them.
+              const d = (x - spawn.x) ** 2 + (y - spawn.y) ** 2 + (c.rampStyle === "cut" ? 0 : 1e5);
+              if (d < distance) { best = { x, y }; distance = d; }
+            }
+          lab.scene.options.center = best;
+          lab.scene.draw();
+          lab.scene.cameras.main.centerOn(best.x * 16 + 8, best.y * 16 + 8);
+          return { ...best, ramp: distance < Infinity, style: world.topography(best.x, best.y).rampStyle };
+        });
+        console.log("  ramp camera", at);
+        await settled(page);
+      }
       if (review.centre === "cliff") {
         await page.addStyleTag({ content: ".gsp{display:none!important}" });
         const at = await page.evaluate(() => {

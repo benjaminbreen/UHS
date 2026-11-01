@@ -49,6 +49,12 @@ it("selects physical work by the task instead of treating every station alike", 
   expect(workPoseFor("gather", "Gathering plants")).toBe("work-tend");
   expect(workPoseFor("gather", "Working stone")).toBeUndefined();
   expect(workPoseFor("work", "Raising a barrel")).toBe("work-pound");
+  expect(workPoseFor("work", "Tending cultivation")).toBe("work-tend");
+  expect(workPoseFor("work", "Working metal", "", "blacksmith")).toBe("work-hammer");
+  expect(workPoseFor("work", "Working metal", "quern", "blacksmith")).toBe("work-quern");
+  expect(workPoseFor("visit", "Visiting", "", "musician", "lute")).toBe("play-strum");
+  expect(workPoseFor("work", "At the rite", "", "religious-specialist", "censer")).toBe("cense");
+  expect(workPoseFor("work", "Keeping the record", "", "scribe")).toBe("work-write");
   expect(workPoseFor("work", "At the workbench", "anvil")).toBe("work-pound");
   expect(workPoseFor("tend", "The agnihotra")).toBeUndefined();
   expect(workPoseFor("work", "Minding the stall", "barrel")).toBe("work-sort");

@@ -127,6 +127,17 @@ export const headwear = [
   /** A sealed bubble helmet with a visor across it. */
   "visor",
   "top-hat",
+  /** A conical iron cap with a bar down over the nose: Norman, steppe, Islamic. */
+  "nasal",
+  /** An iron hat with a brim: the medieval kettle hat and the morion after it. */
+  "kettle",
+  /** The Japanese helmet: a low bowl over a flared neck guard, a crest at the brow. */
+  "kabuto",
+  /** Mexica warrior orders' helmets: the face looks out of the animal's open jaws. */
+  "jaguar",
+  "eagle",
+  /** The Chinese official's black gauze cap with a wing either side. */
+  "official-cap",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -190,6 +201,13 @@ export const hoods = ["none", "down"] as const;
 /** Worn at the hip or in the sash: a straight sword, a curved sabre, a
  * Japanese pair, a dagger, a kris. */
 export const sidearms = ["none", "dagger", "sword", "sabre", "katana", "kris"] as const;
+/** Worn over the garment on the torso. Quilted is cloth: gambeson, linothorax, ichcahuipilli. */
+export const armours = ["none", "mail", "lamellar", "cuirass", "quilted"] as const;
+/** Carried on the arm that does not hold the weapon. Tall covers kite, scutum and hide shields. */
+export const shields = ["none", "round", "tall"] as const;
+/** What is painted on the face of a shield. Cowhide is the hair left on; a
+ * lambda is Sparta's; the tiger face is the Chinese rattan shield's. */
+export const shieldMarks = ["none", "cowhide", "lambda", "cross", "chevron", "tiger", "bands", "rim"] as const;
 export const trimPatterns = ["none", "cross-stitch", "meander", "chevron", "diamond", "step", "dots", "strip", "cloud"] as const;
 export const neckStyles = ["beads", "chain"] as const;
 export const beltStyles = ["none", "cord", "sash", "leather", "wide"] as const;
@@ -782,6 +800,16 @@ export type CharacterAppearance = {
     shawl?: (typeof shawls)[number];
     hood?: (typeof hoods)[number];
     sidearm?: (typeof sidearms)[number];
+    /** A baby tied on the back in a cloth. Set from the household, not rolled. */
+    infant?: boolean;
+    armour?: (typeof armours)[number];
+    /** Iron, bronze, lacquer or the quilt's cloth. */
+    armourColor?: string;
+    shield?: (typeof shields)[number];
+    shieldColor?: string;
+    shieldMark?: (typeof shieldMarks)[number];
+    /** A small flag on a pole at the back: the samurai and ashigaru sashimono. */
+    backFlag?: string;
     /** What the body garment is made of and how well, carried through from the
      * worn item's id so the drawn cloth and the item's name agree. Absent on
      * saves written before cloth had a material, and on authored looks. */

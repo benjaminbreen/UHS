@@ -123,6 +123,54 @@ export function enclosurePixel(
   }
 }
 
+/** A terrace riser on the cell's `riser` edges, where the ground drops to the
+ * bench below. Seen from the south, a drop to the south shows its whole
+ * face; any other way, only the top of the wall and a sliver of its side.
+ * Walled systems build it of dry stone, the rest bank it in turf. */
+export function riserPixel(
+  riser: number,
+  px: number,
+  py: number,
+  wx: number,
+  wy: number,
+  stoneFaced: boolean,
+  palette: Rgb[],
+  ground: Rgb,
+): Rgb | undefined {
+  const face = riser & 4 ? py - 10 : -1;
+  if (face >= 0) {
+    if (face === 5) return shade(ground, -30);
+    if (!stoneFaced) {
+      if (face === 0) return palette[6];
+      const bank = mix(palette[0], palette[5], face / 5);
+      return turfTickAt(wx, wy) ? shade(bank, 6) : bank;
+    }
+    if (face === 0) return mod(wx + 2, 7) === 0 ? stone.capJoint : stone.cap;
+    // Two courses of rough blocks, joints staggered and set at random.
+    const course = face < 3 ? 0 : 1;
+    const run = Math.floor((wx + course * 4) / 6);
+    const joint = mod(wx + course * 4, 6) === 0 || face === 2 || face === 4;
+    if (joint) return stone.faceJoint;
+    const tone = hash(run, course + Math.floor(wy / 16) * 2, 851);
+    return tone > 0.7 ? stone.face : tone > 0.3 ? stone.foot : shade(stone.foot, -10);
+  }
+  // Outermost pixel is the drop, then the wall's side, then its top.
+  const north = riser & 1 && py < 4;
+  const d = north ? py : riser & 2 ? 15 - px : riser & 8 ? px : 99;
+  if (d > 4) return undefined;
+  if (d === 0) return shade(ground, -34);
+  const along = north ? wx : wy;
+  if (stoneFaced) {
+    if (d === 4 || (north && d === 3)) return mod(along + 2, 7) === 0 ? stone.capJoint : stone.cap;
+    if (mod(along + (d > 2 ? 3 : 0), 6) === 0) return stone.faceJoint;
+    const tone = hash(Math.floor(along / 6), d > 2 ? 1 : 0, 851);
+    return tone > 0.6 ? stone.face : stone.foot;
+  }
+  return d >= 3 ? palette[6] : mix(palette[0], palette[5], d === 1 ? 0.8 : 0.4);
+}
+
+const turfTickAt = (wx: number, wy: number) => hash(wx, wy, 853) > 0.82;
+
 export function bold(
   e: Enclosure,
   d: number,

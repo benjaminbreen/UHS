@@ -3,7 +3,7 @@ import type { CropId } from "../content/agriculture/types";
 import { paletteKey, type Ecology } from "../content/ecology/profiles";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
-import { enclosurePixel } from "./fences";
+import { enclosurePixel, riserPixel } from "./fences";
 import { headlandDepths, innerDistance, troddenPixel } from "./headland";
 import { paintFences } from "./fence-pass";
 import { standingStyle } from "../content/settlements/boundaries";
@@ -339,6 +339,16 @@ export function rasterFieldTile(
         put(px, py, rgb);
       }
   }
+  if (f.riser)
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const i = (py * 16 + px) * 4;
+        const ground = [pixels[i], pixels[i + 1], pixels[i + 2]];
+        let rgb = riserPixel(f.riser, px, py, gx + px, gy + py, f.boundary === "wall", palette, ground);
+        if (!rgb) continue;
+        if (frozen) rgb = mix(rgb, [206, 212, 204], 0.5);
+        put(px, py, rgb);
+      }
   if (!frozen)
     paintFences(sample, x, y, ox, oy, put, (px, py, v) => {
       const i = (py * 16 + px) * 4;

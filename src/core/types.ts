@@ -308,6 +308,9 @@ export type Actor = {
   /** On watch over warded ground. `since` is when they last saw a stranger
    * on it; `warned` when they last told one to go. */
   guard?: { ward: string; since?: number; warned?: number };
+  /** Keeping a town gate, or walking the streets by night. On shift they
+   * stand at `at`, or go round `round`; off it they rest at `rest`. */
+  post?: { at: Point; rest: Point; night?: boolean; torch?: boolean; face?: number; round?: Point[]; leg?: number; called?: number };
   /** Terrified by someone breaking into their home: until when, which home,
    * whether they fight or cower, and when a blow last set them back. */
   terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" };
@@ -927,6 +930,8 @@ export interface WorldModel {
     gate: Point;
     /** Explicit per-cell frames, for a circuit that is not a plain fence run. */
     parts?: { x: number; y: number; frame: string }[];
+    /** A town wall's gateways, each the run of road cells through it. */
+    gates?: Point[][];
   }[];
   places: Place[];
   initialActors: Actor[];

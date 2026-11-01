@@ -106,6 +106,21 @@ describe("farmland", () => {
         cellKeys.some((k) => plan.fields!.get(k)!.edges !== 0),
         "boundaries",
       ).toBe(true);
+      // Mediterranean terraces step down to the bench below; open fields
+      // have no benches. A riser always faces another bench's field.
+      let risers = 0;
+      for (const [k, cell] of plan.fields!) {
+        if (!cell.riser) continue;
+        risers++;
+        const [x, y] = k.split(",").map(Number);
+        for (const [bit, dx, dy] of [[1, 0, -1], [2, 1, 0], [4, 0, 1], [8, -1, 0]])
+          if (cell.riser & bit) {
+            const below = plan.fields!.get(`${x + dx},${y + dy}`);
+            expect(below && below.parcel !== cell.parcel, `riser at ${k}`).toBe(true);
+          }
+      }
+      if (place === "alexandria") expect(risers, "terrace walls").toBeGreaterThan(20);
+      else expect(risers, "terrace walls").toBe(0);
     });
 });
 

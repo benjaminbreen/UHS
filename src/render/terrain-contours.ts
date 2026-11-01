@@ -932,6 +932,26 @@ function rasterWallContours(
       rampDir.set(key, (r = sampleAt(x, y)?.ramp));
     return r === dir;
   };
+  /** The surface height of a ramp at a world pixel, in tiers. */
+  const rampHeight = (px: number, py: number) => {
+    const x = Math.floor(px / 16),
+      y = Math.floor(py / 16);
+    const c = sampleAt(x, y);
+    if (!c?.ramp) return undefined;
+    const u = px - x * 16,
+      v = py - y * 16;
+    return (
+      c.height +
+      { n: 1 - v / 16, s: (v + 1) / 16, e: (u + 1) / 16, w: 1 - u / 16 }[c.ramp]
+    );
+  };
+  // A bank beside a ramp stands only as high as the ramp is low there, so a
+  // cut's walls shrink to nothing at its top instead of ending square.
+  const besideRamp = (L: number, x: number, py: number, n: number) => {
+    if (n >= L) return L;
+    const r = rampHeight(x, py);
+    return r === undefined ? n : r > L - 0.25 ? L : r;
+  };
   const CUE_SHADE = [0, 0.16, 0.1, 0.05];
   const HILL_DIRS: [number, number][] = [
     [1, 0],
@@ -955,11 +975,11 @@ function rasterWallContours(
       // A ramp joins its plateau flush: no rim line, strip or face there.
       const west =
           lvl(px - 1, py) < L && !rampInto(cx - 1, row, "e")
-            ? lvl(px - 1, py)
+            ? besideRamp(L, px - 1, py, lvl(px - 1, py))
             : L,
         east =
           lvl(px + 1, py) < L && !rampInto(cx + 1, row, "w")
-            ? lvl(px + 1, py)
+            ? besideRamp(L, px + 1, py, lvl(px + 1, py))
             : L,
         north =
           lvl(px, py - 1) < L && !rampInto(cx, row - 1, "s")
@@ -990,6 +1010,7 @@ function rasterWallContours(
         // A fixed contour cue stays on its own terrace, independent of sunlight.
         for (let k = 1; k <= 3; k++) {
           if (lvl(px, py - k) >= L) continue;
+          if (rampHeight(px, py - k) !== undefined) break;
           shade(row, px, sy, CUE_SHADE[k]);
           break;
         }
@@ -1008,7 +1029,8 @@ function rasterWallContours(
           search: for (let d = 2; d <= 12; d += 2)
             for (const [ux, uy] of HILL_DIRS) {
               const n = lvl(px + ux * d, py + uy * d);
-              if (n === L) continue;
+              if (n === L || rampHeight(px + ux * d, py + uy * d) !== undefined)
+                continue;
               shade(
                 row,
                 px,
@@ -1123,7 +1145,7 @@ function rasterWallContours(
             // Higher ground further south stands in front of this wall and
             // hides its lower part. Unclipped, a north-east facing edge hung
             // a strip over every step of the plateau below it.
-            let bottom = sy + (L - n) * R;
+            let bottom = sy + Math.round((L - n) * R);
             for (let j = 1; j <= (L - n) * R; j++) {
               const front = lvl(px + side * k, py + j);
               if (front > n) bottom = Math.min(bottom, py + j - front * R - 1);
@@ -1297,6 +1319,12 @@ function rasterWallContours(
       // slope onto a beach ends in sand rather than a square of turf.
       const upper = donor(cx + sx, cy + sy0),
         lower = donor(cx - sx, cy - sy0);
+      // A road cut carries the ground page's own path up the incline, so the
+      // path does not change colour and width where it climbs.
+      const bed =
+        style === "cut"
+          ? { x: cx, y: cy, cell: { ...cell, ramp: undefined } }
+          : undefined;
       for (let px = cx * 16; px < cx * 16 + 16; px++) {
         const wx = px + ox;
         // Screen span of this column, then each screen row finds the world
@@ -1334,7 +1362,7 @@ function rasterWallContours(
           // Rail depth wanders 0–2 px along the run, so the side is a broken
           // edge rather than two ruled lines; slopes have no rail at all.
           const railDepth =
-            style === "slope"
+            style === "slope" || bed
               ? 0
               : Math.floor(noise(Math.floor((rise + phase) / 3), 0, 99) * 3);
           const side =
@@ -1367,7 +1395,7 @@ function rasterWallContours(
             : southTier !== undefined && py >= cy * 16 + 14;
           // The plateau's turf hangs a pixel or two over the top of the cut.
           const lip =
-            style !== "steps" &&
+            (style === "sand" || style === "timber") &&
             // Distance from the high end: rows for a north ramp, columns
             // for one that climbs east or west.
             (along
@@ -1392,8 +1420,17 @@ function rasterWallContours(
             const f = rise % 4 === 0 ? 0.84 : 0.92;
             rgb = [c[0] * f, c[1] * f, c[2] * f];
           } else if (cut) rgb = cut;
+          else if (bed) {
+            const g = surfaces.pixel(bed, px, py, t, lvl) ?? soil[2];
+            const down = along
+              ? (sy - first) / Math.max(1, last - first)
+              : 1 - (h(px, cy * 16) - t);
+            const f = 0.84 + (1 - down) * 0.12;
+            rgb = [g[0] * f, g[1] * f, g[2] * f];
+            snowed = true;
+          }
           else if (lip)
-            rgb = style === "slope" ? trim.edge : n < 0.5 ? turf[0] : turf[5];
+            rgb = n < 0.5 ? turf[0] : turf[5];
           else if (style === "slope") {
             // The ground's own turf carried down the incline, shaded toward
             // the foot, with one wandering trail and broken earth shoulders.
@@ -1427,7 +1464,8 @@ function rasterWallContours(
               ) ?? turf[0];
             const tone = 0.84 + (1 - down) * 0.12;
             snowed = true;
-            if (edge < shoulder - 1 || (edge < shoulder && n < 0.5))
+            // A north slope's flanks fall away beside it instead.
+            if (dir !== "n" && (edge < shoulder - 1 || (edge < shoulder && n < 0.5)))
               rgb = [ground[0] * 0.72, ground[1] * 0.72, ground[2] * 0.72];
             else if (
               off < half &&
@@ -1477,37 +1515,43 @@ function rasterWallContours(
         }
         // Scree: a few stones tumble off a cut or slope onto the ground at
         // its foot, so the ramp does not end on a ruled line.
-        // Flanks: an earthen ramp falls away to either side as well, so each
-        // open end widens toward the foot. A mound, not a rectangle.
+        // Flanks: a ramp out of a north-facing bank is a mound on the lower
+        // ground, highest against the bank and gone at the foot. Painted over
+        // the bank's face, it tapers the face into the ramp.
         if (
-          style === "slope" &&
+          (style === "slope" || bed) &&
           dir === "n" &&
-          (px === cx * 16 || px === cx * 16 + 15)
+          ((px === cx * 16 && before === 0) ||
+            (px === cx * 16 + 15 && after === 0))
         ) {
           const west = px === cx * 16;
-          if (west ? before === 0 : after === 0) {
-            const ground =
-              surfaces.pixel(lower, px, cy * 16 + 8, t, lvl) ?? turf[0];
-            const f = west ? 0.8 : 0.64;
-            for (let sy = first; sy <= last + 3; sy++) {
-              const downRow = Math.min(
-                1,
-                (sy - first) / Math.max(1, last - first),
-              );
-              const reach = Math.round(
-                downRow * 7 + noise(Math.floor(sy / 2), runKey, 115) * 1.5,
-              );
-              for (let k = 1; k <= reach; k++) {
-                if (k === reach && noise(px + k, sy + oy, 117) < 0.5) continue;
-                const g = f * (1 - (k / Math.max(1, reach)) * 0.12);
-                paintRgb(
-                  sy > last ? cy + 1 : cy,
-                  t,
-                  west ? px - k : px + k,
-                  sy,
-                  [ground[0] * g, ground[1] * g, ground[2] * g],
-                );
-              }
+          const W = 10;
+          for (let k = 1; k <= W; k++) {
+            const x = west ? px - k : px + k;
+            const nx = Math.floor(x / 16);
+            const beside = sampleAt(nx, cy);
+            if (
+              !beside ||
+              beside.ramp ||
+              beside.surface === "water" ||
+              tierAt(nx, cy) !== t
+            )
+              break;
+            const ground = donor(nx, cy);
+            const rise = (y: number) => Math.max(t, h(px, y) - k / W);
+            for (let py = cy * 16; py < cy * 16 + 16; py++) {
+              if (rise(py) <= t) break;
+              const top = Math.round(py - rise(py) * R),
+                next = Math.round(py + 1 - rise(py + 1) * R);
+              const g =
+                surfaces.pixel(ground, x, py, t, lvl) ??
+                surfaces.pixel(lower, x, py, t, lvl) ??
+                turf[0];
+              // Shaded by aspect, lightening to the ground at the outer edge.
+              const f = (west ? 0.8 : 0.66) + (k / W) * 0.16;
+              if (k > W - 3 && noise(x + ox, py + oy, 117) < 0.5) continue;
+              for (let y = top; y < Math.max(top + 1, next); y++)
+                paintRgb(cy, t, x, y, [g[0] * f, g[1] * f, g[2] * f]);
             }
           }
         }
@@ -1557,7 +1601,7 @@ function rasterWallContours(
               ground[2] * 0.86,
             ]);
           }
-        } else if (style === "cut" && along) {
+        } else if (style === "cut" && dir === "n") {
           for (let r = 1; r <= 2; r++) {
             const sy = last + r;
             const roll = noise(px + ox, sy + oy, 105);

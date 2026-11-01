@@ -6,11 +6,11 @@ import { flush, luma, mix, ramp, type Ramp } from "../v2/pixels";
 import { drawHead, hairBehind, headSpans, type Head, type View } from "./head";
 import { irisOf } from "../../portraits/sculpted";
 import { clothColours } from "../cloth";
-import { apron, bag, bangles, hoodDown, neckwear, shawl, shoulderCloth, type Figure } from "./extras";
+import { apron, bag, bangles, hoodDown, infant, neckwear, shawl, shoulderCloth, type Figure } from "./extras";
 import type { Material } from "../../../content/characters/wardrobe/cloth";
 import {
   ACCENT, APRON, BLUSH, DECO, MARK, ORN, PLUME, SMEAR, BOOT, CLOAK, CX, EYE, GLASS, H, HAIR, HAT, INNER, IRIS, KERCHIEF, LEATHER, LEG, LIP, LOWER, PATCH,
-  MATS, METAL, Mask, SHAWL, SHEATH, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
+  ARMOUR, EMBLEM, FLAG, LIQUID, MATS, STRAW, WOOD, METAL, Mask, SHAWL, SHEATH, SHIELD, STEEL, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
 } from "./paint";
 
 // Renderer F, the paper doll. A figure is a few joints in body space, turned
@@ -68,6 +68,10 @@ type Key = {
   lift?: number;
   /** The working hand alone, relative to its own shoulder; inward is negative. */
   one?: Rel;
+  /** The other hand, the same way. */
+  off?: Rel;
+  /** Both hands pulled in to within this of the centre line: clasped. */
+  mid?: number;
   /** Both hands on one haft: the working hand here, the other lower down it. */
   grip?: Rel;
   /** Where a held tool points from the hand: toward the working side, up, forward. */
@@ -131,7 +135,143 @@ const stick: readonly Key[] = [
   { one: [-1, -2, 2], tool: [-0.2, -0.3, 1], lean: 0.4 },
 ];
 
+// Trades at their work. Each table is a loop: frame 2 is the stroke that
+// lands, where the scene puts its sparks, chips and splashes.
+const circle = (i: number, r: number) => [[r, 0], [0, r], [-r, 0], [0, -r]][i];
+const trades: Partial<Record<CharacterPose, readonly Key[]>> = {
+  // Both hands on a paddle round the pot.
+  "work-stir": [0, 1, 2, 3].map((i): Key => {
+    const [dx, dz] = circle(i, 1.4);
+    return { one: [-4.2 + dx, -4.5, 3.6 + dz], off: [-5 - dx, -7, 3.4 + dz], lean: 0.9, nod: 1, tilt: dx * 0.25 };
+  }),
+  "work-knead": [
+    { hands: [[-3.6, -5, 2.6]], lean: 0.6, nod: 1 },
+    { hands: [[-3.6, -5.8, 4]], lean: 1.2, nod: 1 },
+    { hands: [[-3.2, -6.8, 5]], lean: 1.9, rise: -1, nod: 1, shoulders: -1 },
+    { hands: [[-3.6, -5.6, 3.4]], lean: 1, nod: 1 },
+  ],
+  // A pestle lifted high and driven down into the mortar.
+  "work-pound": [
+    { hands: [[-4.6, -3.5, 3.2]], lean: 0.3 },
+    { hands: [[-4.6, -1, 3]], lean: -0.3, rise: 1, shoulders: 1 },
+    { hands: [[-4.6, -7.5, 3.4]], lean: 1.1, rise: -1, knee: 1.6, nod: 1, smear: "hands" },
+    { hands: [[-4.6, -6.5, 3.2]], lean: 0.7, nod: 1 },
+  ],
+  // The far hand holds the work on the anvil; the hammer comes over from behind the shoulder.
+  "work-hammer": [
+    { one: [0.5, 2.5, 0.5], off: [-3, -6.5, 4.2], lean: -0.1 },
+    { one: [0.6, 7.2, -0.4], off: [-3, -6.5, 4.2], lean: -0.5, shoulders: 1 },
+    { one: [-2.2, -6, 5], off: [-3, -6.8, 4.4], lean: 1.2, rise: -1, knee: 1.5, nod: 1, smear: "hands" },
+    { one: [-1.6, -4, 4.2], off: [-3, -6.5, 4.2], lean: 0.6, nod: 1 },
+  ],
+  "work-saw": [0, 1, 2, 3].map((i): Key => {
+    const z = [1, 3, 5.2, 3][i];
+    return { one: [-1.8, -5 - z * 0.25, z], off: [-3.4, -7.2, 4.6], lean: 0.6 + z * 0.15, nod: 1, smear: i === 2 ? "hands" : undefined };
+  }),
+  // Low hand driving, high hand steering: the broom's foot sweeps twice as far.
+  "work-sweep": [0, 1, 2, 3].map((i): Key => {
+    const dx = [-2, -0.5, 2.4, 1][i];
+    return { one: [-3 + dx, -6.5, 3], off: [-4.5 - dx, -3, 1.6], lean: 0.8, nod: 1, tilt: dx * 0.3 };
+  }),
+  "work-write": [0, 1, 2, 3].map((i): Key => ({
+    one: [-4 + [0, 0.6, 1.2, 0.5][i], -4.2 + [0, 0.3, -0.2, 0.2][i], 3.8], off: [-4.4, -4.6, 3.4], lean: 0.4, nod: 2,
+  })),
+  "work-pour": [
+    { one: [-2.4, -4.5, 3.4], off: [-4, -6, 4.2] },
+    { one: [-2.6, -1, 4], off: [-4, -6, 4.2], nod: 1 },
+    { one: [-2.8, -0.6, 4.4], off: [-4, -6, 4.4], nod: 1, lean: 0.4 },
+    { one: [-2.6, -3.6, 3.8], off: [-4, -6, 4.2] },
+  ],
+  // Kneeling at the hand mill, turning the handle round; the other hand feeds the grain.
+  "work-quern": [0, 1, 2, 3].map((i): Key => {
+    const [dx, dz] = circle(i, 1.4);
+    return { one: [-2.6 + dx, -6, 4.2 + dz], off: [-4, -6.5, 3], rise: -4, knee: 4, lean: 1.2, nod: 1, tilt: dx * 0.2 };
+  }),
+  // On the knees at the metate: the mano pushed out along the stone and drawn back.
+  "work-grind": [0, 1, 2, 3].map((i): Key => {
+    const z = [2.6, 4, 5.6, 4][i];
+    return { hands: [[-3.8, -6.6 - (z - 2.6) * 0.2, z]], rise: -5, knee: 5, lean: 1.6 + z * 0.2, nod: 1, smear: i === 2 ? "hands" : undefined };
+  }),
+  "work-weave": [
+    { one: [-3.4, -5, 4], off: [-3.4, -5, 4], nod: 1, lean: 0.5 },
+    { one: [-0.4, -5, 4.2], off: [-3.4, -5, 4], nod: 1, lean: 0.5, tilt: 0.4 },
+    // The weft beaten in.
+    { one: [-3.6, -5.4, 2.8], off: [-3.6, -5.4, 2.8], nod: 1, lean: 0.2, shoulders: -1 },
+    { one: [-3.4, -5, 4], off: [-0.6, -5, 4.2], nod: 1, lean: 0.5, tilt: -0.4 },
+  ],
+  "work-scrub": [0, 1, 2, 3].map((i): Key => {
+    const z = [0, 1.5, 3, 1.5][i];
+    return { one: [-3, -7, 2.4 + z], off: [-3.4, -7.2, 5.4 - z], rise: -3, knee: 3, lean: 1.7, nod: 1, tilt: (z - 1.5) * 0.2 };
+  }),
+  "work-rinse": [
+    { hands: [[-3.4, -7, 3.6]], rise: -3, knee: 3, lean: 1.6, nod: 1 },
+    { hands: [[-3.3, -9.2, 4.3]], rise: -3, knee: 3, lean: 2.2, nod: 2 },
+    { hands: [[-3.6, -6, 3.4]], rise: -3, knee: 3, lean: 1.4, nod: 1, shoulders: 1 },
+    { hands: [[-3.4, -7.4, 3.8]], rise: -3, knee: 3, lean: 1.7, nod: 1 },
+  ],
+  // Hauling a line hand over hand.
+  "work-fish": [0, 1, 2, 3].map((i): Key => {
+    const p = [0, 0.5, 1, 0.5][i];
+    return { one: [-3.2, -3 - 3 * p, 4 - p], off: [-3.2, -6 + 3 * p, 3 + p], rise: -2, knee: 2.5, lean: 1 - p * 0.8, nod: 1 };
+  }),
+  "work-hang": [
+    { hands: [[-2.6, -4, 3.2]] },
+    { hands: [[-2.2, 2, 3.4]], lean: -0.3 },
+    { hands: [[-1.8, 4.2, 3.6]], lean: -0.5, rise: 1, shoulders: 1, nod: -1 },
+    { hands: [[-2.2, 1, 3.4]], lean: -0.2 },
+  ],
+  // Squatting along the row: reach, pick, lift it to the other hand.
+  "work-tend": [
+    { one: [-2.4, -7.6, 4], off: [-1.4, -6.4, 2], rise: -3, knee: 3, lean: 1.5, nod: 1 },
+    { one: [-2.8, -9, 5.2], off: [-1.4, -6.4, 2], rise: -3, knee: 3, lean: 2, nod: 2 },
+    { one: [-2.6, -9.4, 5], off: [-1.4, -6.4, 2], rise: -3, knee: 3, lean: 2.1, nod: 2, tilt: 0.4 },
+    { one: [-1.6, -5.6, 2.6], off: [-1.4, -6.4, 2], rise: -2, knee: 2.5, lean: 1.2, nod: 1 },
+  ],
+  "work-sort": [
+    { one: [-3.6, -5, 4], off: [-3, -5.6, 3.2], nod: 1, lean: 0.4 },
+    { one: [-2.6, -4.6, 4.6], off: [-3, -5.6, 3.2], nod: 1, lean: 0.5 },
+    { one: [-0.6, -5.2, 4.2], off: [-3, -5.6, 3.2], nod: 1, lean: 0.5, tilt: 0.5 },
+    { one: [-2.2, -5, 3.6], off: [-3, -5.6, 3.2], nod: 1, lean: 0.4 },
+  ],
+  // Hands behind the back, bent to look the work over.
+  "work-check": [
+    { hands: [[-2.6, -6, -1.6]], lean: 0.5 },
+    { hands: [[-2.6, -6, -1.6]], lean: 0.9, nod: 1 },
+    { hands: [[-2.6, -6, -1.6]], lean: 1, nod: 2 },
+    { hands: [[-2.6, -6, -1.6]], lean: 0.6, nod: 1, tilt: 0.4 },
+  ],
+  // The lute across the body: strumming hand at the bowl, the other up the neck.
+  "play-strum": [0, 1, 2, 3].map((i): Key => ({
+    one: [-2.4, -5.6 + [0, -1.2, 0.6, -0.6][i], 3.4], off: [-0.6, -1.6, 3.6 + [0, 0.3, 0, -0.3][i]],
+    nod: i === 2 ? 1 : 0, tilt: [0, 0.4, 0.6, 0.2][i],
+  })),
+  "play-drum": [0, 1, 2, 3].map((i): Key => {
+    const up = i % 2 === 0;
+    return { one: [-3.4, up ? -3.6 : -5.8, 3.8], off: [-3.4, up ? -5.8 : -3.6, 3.8], nod: i === 2 ? 1 : 0, rise: i === 2 ? -1 : 0 };
+  }),
+  // Held out to the working side from the lips; the far hand crosses to the mouth.
+  "play-flute": [0, 1, 2, 3].map((i): Key => ({
+    one: [-2.4, 3.4 + [0, 0.3, 0, -0.3][i], 3], off: [-6.4, 3.6, 2.6], tilt: [0, 0.5, 0.8, 0.3][i], lean: -0.2,
+  })),
+  pray: [
+    { hands: [[-4, -2, 2.6]], mid: 0.6 },
+    { hands: [[-4, -1.6, 2.8]], mid: 0.6, nod: 1, lean: 0.8 },
+    { hands: [[-4, -1.4, 3]], mid: 0.6, nod: 2, lean: 2.2 },
+    { hands: [[-4, -1.8, 2.8]], mid: 0.6, nod: 1, lean: 0.9 },
+  ],
+  cense: [0, 1, 2, 3].map((i): Key => ({ one: [-1.4, -1.5 + [0, 0.6, 1.2, 0.6][i], 3 + [0, 1, 2, 1][i]], off: [-4.4, -3, 2.4], nod: 1 })),
+  call: [
+    { one: [-3.6, 2, 2.4], off: [-0.5, -6, 2], face: "talk" },
+    { one: [-3.8, 3, 2.8], off: [-0.5, -6, 2], lean: -0.6, shoulders: 1, face: "o" },
+    { one: [-3.8, 3.2, 2.8], off: [-0.5, -6, 2], lean: -0.9, shoulders: 1, nod: -1, face: "o" },
+    { one: [-3.6, 2.2, 2.4], off: [-0.5, -6, 2], lean: -0.2, face: "talk" },
+  ],
+};
+/** Poses whose tool the painter draws itself, so a held icon is put away. */
+const tooled = new Set<CharacterPose>(["work-stir", "work-pound", "work-hammer", "work-saw", "work-sweep", "work-write", "work-pour", "play-strum", "play-drum", "play-flute", "pray", "cense"]);
+
 const actions: Partial<Record<CharacterPose, readonly Key[]>> = {
+  ...trades,
   ...Object.fromEntries((["chop", "axe-chop", "pick-strike", "swing", "carve"] as const).map((p) => [p, chop])),
   ...Object.fromEntries((["dig", "shovel-dig", "till"] as const).map((p) => [p, dig])),
   ...Object.fromEntries((["sickle-cut", "reap", "slash"] as const).map((p) => [p, sickle])),
@@ -398,6 +538,8 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     shoulders = key.shoulders ?? 0;
     smear = key.smear;
     if (key.one) hands[near] = hand(ns, key.one);
+    if (key.off) hands[1 - near] = hand(-ns, key.off);
+    if (key.mid !== undefined) for (const h of hands) h[0] = Math.sign(h[0]) * Math.min(Math.abs(h[0]), key.mid);
     if (key.tool) tool = [ns * key.tool[0], key.tool[1], key.tool[2]];
     if (key.grip) {
       hands[near] = hand(ns, key.grip);
@@ -409,11 +551,29 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
   } else if (pose === "walk" || pose === "setoff" || pose === "halt" || pose === "wade" || pose === "carry") {
     const f = pose === "walk" || pose === "carry" ? frame : pose === "setoff" ? [1, 2, 3, 3][frame & 3] : [2, 1, 0, 0][frame & 3];
     frame = f;
-    const slow = 1 - load * 0.15 - (tired ? 0.15 : 0);
+    const kind = prop?.sprite.slice(5);
+    const yoked = shouldered(kind), armed = !!kind && /^(spear|halberd|glaive|musket|crossbow|macuahuitl)$/.test(kind);
+    const devout = kind === "beads" || kind === "alms-bowl" || kind === "censer";
+    const slow = (1 - load * 0.15 - (tired ? 0.15 : 0)) * (yoked ? 0.72 : devout ? 0.75 : 1);
     const old = elder ? 0.75 : 1;
-    step((pose === "wade" ? 2 : g ? 5 : 4) * slow * old, g ? 2.4 * old : 1.6, (g ? 4.4 : 3.2) * slow * old * old, false);
+    step((pose === "wade" ? 2 : g ? 5 : 4) * slow * old, (g ? 2.4 * old : 1.6) * (yoked ? 0.6 : 1), (g ? 4.4 : 3.2) * slow * old * old * (armed ? 1.25 : 1), false);
     if (tired || elder) nod = 1;
     if (elder) lean = 0.5;
+    // A yoke rides on bent knees and drops hard on each footfall; the pole springs it back.
+    if (yoked) {
+      for (const f of feet) f.knee = (f.knee ?? 0.6) + 1.4;
+      rise = frame % 4 === 2 ? -2 : frame % 4 === 3 ? -1 : 0;
+      lean = Math.max(lean, 0.6);
+    }
+    // A march: the head held level and the free arm swung stiff.
+    if (armed) {
+      nod = 0;
+      lean = -0.2;
+      rise = frame % 4 === 2 ? -1 : 0;
+    }
+    if (devout) nod = 1;
+    // The cane goes down with the far foot, so it and the near foot alternate.
+    if (kind === "walking-cane") hands[near] = [ns * (d.shoulderW + 0.6), hands[near][1], feet[1 - near].at[2] * 0.8 + 1.5];
     // Setting off leans into the push; halting braces back against it.
     if (pose === "setoff") lean = 0.9;
     if (pose === "halt") lean = -0.7;
@@ -506,7 +666,8 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
   } else {
     blink = frame === 3;
   }
-  if (prop?.kind === "both" && !swings.has(pose) && !thrusts.has(pose) && !key?.grip) {
+  const trade = pose in trades;
+  if (prop?.kind === "both" && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !trade) {
     hands[0] = [d.shoulderW - 1, sh - 4, 2.5];
     hands[1] = [-(d.shoulderW - 1), sh - 4, 2.5];
   }
@@ -514,6 +675,11 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     hands[0] = [d.shoulderW + 0.5, sh + 8, 0];
     hands[1] = [-(d.shoulderW + 0.5), sh + 8, 0];
   }
+  // A guard's pole stands upright in the hand, at rest and on the march alike.
+  if (prop && shouldered(prop.sprite.slice(5)) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
+    hands[near] = [ns * (d.shoulderW - 0.5), sh - 1, 3];
+  else if (prop && upright(prop) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
+    hands[near] = [ns * (d.shoulderW + 0.6), sh - (prop.sprite === "icon:musket" || prop.sprite === "icon:crossbow" ? 9 : prop.sprite === "icon:macuahuitl" ? 12 : 6), 1.5];
   const legs = feet.map(({ at, knee = 0.6 }, i) => {
     const side = i === 0 ? 1 : -1;
     const hip: J = [side * hipX, d.hip + Math.min(0, rise), 0];
@@ -526,6 +692,241 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     return ik(shoulder, target, d.upper, d.fore, [side * 0.25, -0.2, -1]);
   });
   return { legs, arms, rise, lean, nod, seated, blink, sway, moving, face, lift, tilt, smear, tool, near };
+}
+
+/** Polearms and long guns a figure stands with: drawn by the painter, not from the icon. */
+const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole)$/.test(prop.sprite);
+const shouldered = (kind?: string) => kind === "water-pole" || kind === "carrying-pole";
+const EMBLEMS: Record<string, string> = { cowhide: "#ece4d4", lambda: "#8a2a22", cross: "#ece4d4", chevron: "#d8b04a", tiger: "#d8a03a", bands: "#ece4d4", rim: "#a4aab0" };
+
+/** The pole from the ground (or the hip, for a gun) to above the head, with
+ * its head on the side away from the body. */
+function pole(sheet: Sheet, kind: string, hand: J, trail = 0, bob = 0) {
+  // A pole pivots in the fist: the head trails the stride and lags the bob,
+  // the foot swings the other way.
+  const pivot = Math.round(hand[1]);
+  const lean = (y: number) => (y < pivot ? Math.round((trail * (pivot - y)) / 30) : -Math.round((trail * (y - pivot)) / 60));
+  const lift = (y: number) => (y < pivot - 8 ? Math.round(bob) : 0);
+  const s = {
+    put: (mask: Mask, mat: number, o: Parameters<Sheet["put"]>[2]) => {
+      const out = new Mask();
+      for (let i = 0; i < mask.bits.length; i++) if (mask.bits[i]) {
+        const x = i % W, y = Math.floor(i / W);
+        out.set(x + lean(y), y + lift(y));
+      }
+      sheet.put(out, mat, o);
+    },
+    px: (x: number, y: number, mat: number, tone?: number) => sheet.px(x + lean(y), y + lift(y), mat, tone),
+  };
+  const x = rnd(hand[0]),
+    hy = Math.round(hand[1]),
+    side = hand[0] >= CX ? 1 : -1;
+  if (kind === "walking-cane") {
+    s.put(new Mask().line(x, hy - 1, x, GY - 1, 1).set(x + side, hy - 2).set(x + side * 2, hy - 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+    return;
+  }
+  if (kind === "musket") {
+    const top = hy - 21,
+      butt = hy + 5;
+    s.put(new Mask().span(top, x, x).line(x, top, x, hy - 3, 1), STEEL, { ring: "ink", shade: 0, light: 0.3 });
+    const stock = new Mask().line(x, hy - 3, x, butt - 2, 2).span(butt - 1, x - 1, x + 1).span(butt, x - 1, x + 1);
+    s.put(stock, LEATHER, { ring: "ink", shade: 0.3, light: 0.3 });
+    return;
+  }
+  if (kind === "lamp-pole" || kind === "sweep-brush") {
+    const top = hy - 30, foot = Math.min(GY - 1, hy + 15);
+    s.put(new Mask().line(x, top + 2, x, foot, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+    if (kind === "lamp-pole") {
+      s.put(new Mask().set(x, top + 1).set(x + side, top).set(x + side * 2, top + 1), STEEL, { ring: "ink", shade: 0, light: 0.3 });
+      s.px(x, top, WHITE, 4);
+    } else s.put(new Mask().span(top - 1, x - 1, x + 1).span(top, x - 2, x + 2).span(top + 1, x - 2, x + 2).span(top + 2, x - 1, x + 1), HAIR, { ring: "ink", shade: 0.4, light: 0.1 });
+    return;
+  }
+  if (kind === "crossbow") {
+    const top = hy - 16, butt = hy + 4;
+    s.put(new Mask().line(x, top, x, butt, 2), LEATHER, { ring: "ink", shade: 0.3, light: 0.3 });
+    s.put(new Mask().span(top + 1, x - 4, x + 4).set(x - 4, top + 2).set(x + 4, top + 2), STEEL, { ring: "ink", shade: 0.2, light: 0.3 });
+    return;
+  }
+  if (kind === "macuahuitl") {
+    // Carried blade up: a paddle of wood with obsidian set in both edges.
+    const top = hy - 13;
+    s.put(new Mask().line(x, top, x, hy + 2, 1).line(x, top, x, hy - 4, 2), LEATHER, { ring: "ink", shade: 0.3, light: 0.3, top: true });
+    for (let y = top + 1; y < hy - 4; y += 2) [x - 2, x + 2].forEach((ex) => s.px(ex, y, STEEL, 1));
+    return;
+  }
+  const top = hy - 34,
+    foot = Math.min(GY - 1, hy + 15);
+  const head = new Mask();
+  if (kind === "spear") head.span(top, x, x).span(top + 1, x - 1, x + 1).span(top + 2, x - 1, x + 1).span(top + 3, x, x);
+  else if (kind === "halberd") {
+    head.line(x, top - 1, x, top + 7, 1);
+    [[1, 2], [1, 4], [1, 4], [1, 4], [1, 3]].forEach(([a, b], i) => head.span(top + 3 + i, side > 0 ? x + a : x - b, side > 0 ? x + b : x - a));
+    head.set(x - side, top + 5).set(x - side * 2, top + 4).set(x - side * 2, top + 3);
+  } else head.line(x + side * 2, top - 1, x, top + 6, 2);
+  s.put(new Mask().line(x, top + 3, x, foot, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+  s.put(head, STEEL, { ring: "ink", shade: 0.3, light: 0.4, top: true });
+}
+
+/** On the forearm that does not hold the weapon: a disc with a boss, or a tall
+ * shield with the stick down its back showing as a ridge. */
+function shield(s: Sheet, t: Turn, kind: "round" | "tall", elbow: J, hand: J, mark = "none") {
+  const cx = (elbow[0] + hand[0] * 2) / 3,
+    cy = (elbow[1] + hand[1] * 2) / 3 - (kind === "tall" ? 1 : 0);
+  const [rx, ry] = kind === "round" ? [4.6, 4.6] : [3.6, 7.5];
+  const wx = Math.max(1.2, rx * Math.abs(t.cos));
+  const m = new Mask();
+  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+    const f = 1 - ((y + 0.5 - cy) / ry) ** 2;
+    if (f <= 0) continue;
+    const w = kind === "round" ? wx * Math.sqrt(f) : wx * (0.75 + 0.25 * Math.sqrt(f));
+    m.span(y, rnd(cx - w + 0.5), rnd(cx + w - 0.5));
+  }
+  const mid = rnd(cx);
+  s.put(m, SHIELD, {
+    ring: "ink",
+    shade: 0.35,
+    light: 0.25,
+    top: true,
+    bottom: true,
+    tone: kind === "tall" && Math.abs(t.cos) > 0.5 ? (x, _y, tn) => (x === mid ? Math.max(2, tn - 1) : tn) : undefined,
+  });
+  if (Math.abs(t.cos) <= 0.5) return;
+  const c = Math.round(cy), on = (x: number, y: number) => m.has(x, y);
+  const paint = (pts: number[][], mat = EMBLEM, tone = 3) => pts.forEach(([dx, dy]) => on(mid + dx, c + dy) && s.px(mid + dx, c + dy, mat, tone));
+  if (mark === "cowhide") paint([[-1, -5], [-2, -4], [1, -2], [2, -1], [-1, 1], [-2, 2], [1, 4], [2, 5], [-1, 5]]);
+  else if (mark === "lambda") paint([[0, -2], [-1, -1], [1, -1], [-1, 0], [1, 0], [-2, 1], [2, 1], [-2, 2], [2, 2]]);
+  else if (mark === "cross") paint([[0, -5], [0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [-2, -2], [-1, -2], [1, -2], [2, -2]]);
+  else if (mark === "chevron") paint([[-2, -1], [-1, -2], [0, -3], [1, -2], [2, -1], [-2, 0], [-1, -1], [0, -2], [1, -1], [2, 0]]);
+  else if (mark === "tiger") {
+    paint([[-2, -1], [2, -1]]);
+    paint([[-2, -2], [2, -2], [-1, 2], [0, 2], [1, 2]], WHITE, 3);
+    paint([[0, 0], [-1, 1], [1, 1]], LEATHER, 1);
+  } else if (mark === "bands") for (let y = -5; y <= 5; y += 3) for (let x = -4; x <= 4; x++) paint([[x, y]]);
+  else if (mark === "rim") for (let y = Math.floor(cy - 5); y <= Math.ceil(cy + 5); y++) for (let x = mid - 5; x <= mid + 5; x++)
+    if (on(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !on(x + dx, y + dy))) s.px(x, y, EMBLEM, 3);
+  if (kind === "round" && mark !== "tiger" && mark !== "lambda") s.px(mid, c, STEEL, 4);
+}
+
+/** A pole over the shoulder with a pail or basket at each end. Side on, both
+ * loads show; from the front or back only the near one, hanging before the chest. */
+function shoulderPole(s: Sheet, t: Turn, kind: string, x: number, y: number, side: number, near: boolean, swing = 0, bounce = 0) {
+  const pails = kind === "water-pole";
+  // Loads hang on cords: they swing behind the stride and bounce against the step.
+  const load = (hang: number, at: number) => {
+    const cx = hang + Math.round(swing), top = at + Math.round(bounce);
+    const m = new Mask();
+    for (let r = 0; r < 5; r++) m.span(top + r, rnd(cx - 2.5 + (r === 4 ? 0.5 : 0)), rnd(cx + 2.5 - (r === 4 ? 0.5 : 0)));
+    s.put(m, LEATHER, { ring: "ink", shade: 0.3, light: 0.3, top: true, bottom: true,
+      tone: pails ? (_x, yy, tn) => (yy === top + 1 ? 4 : tn) : (xx, yy, tn) => ((xx + yy) % 2 === 0 ? Math.max(1, tn - 1) : tn) });
+    if (pails) s.put(new Mask().span(top + 3, rnd(cx - 2.5), rnd(cx + 2.5)), STEEL, { ring: "none", shade: 0, light: 0 });
+    s.put(new Mask().line(rnd(hang), y + 1, rnd(cx), top - 1, 1), LEATHER, { ring: "none", shade: 0, light: 0 });
+  };
+  if (t.view !== "front" && t.view !== "back") {
+    // Foreshortened in three-quarter: the far end rides higher.
+    const reach = 11 * Math.abs(t.sin), rise = Math.round(3 * Math.abs(t.cos));
+    s.put(new Mask().line(rnd(x - reach), y + rise, rnd(x + reach), y - rise, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+    if (near) [[x - reach + 1, y + rise], [x + reach - 1, y - rise]].forEach(([cx, cy]) => load(cx, cy + 7));
+    return;
+  }
+  if (!near) return;
+  const cx = x + side * 3;
+  s.put(new Mask().line(rnd(x + side), y - 1, rnd(cx), y + 3, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+  load(cx, y + 8);
+}
+
+/** What a trade works with, drawn from where the hands are. `body` is a
+ * point fixed to the body at waist height, for what does not move with the hands. */
+function implement(s: Sheet, t: Turn, pose: CharacterPose, frame: number, [hn, hf]: J[], [en, ef]: J[], body: J, held?: string) {
+  const wood = { ring: "ink", shade: 0.3, light: 0.35 } as const;
+  const beyond = (a: J, b: J, k: number) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], n = Math.hypot(dx, dy) || 1;
+    return [b[0] + (dx / n) * k, b[1] + (dy / n) * k] as const;
+  };
+  const dots = (pts: readonly (readonly [number, number])[], mat: number, tone: number) => pts.forEach(([x, y]) => s.px(rnd(x), Math.round(y), mat, tone));
+  if (pose === "work-stir" || pose === "work-sweep") {
+    const [hi, lo] = hn[1] < hf[1] ? [hn, hf] : [hf, hn];
+    // Never level: a paddle or broom always points down to the work.
+    const dx = lo[0] - hi[0], dy = Math.max(Math.abs(dx) * 0.8, lo[1] - hi[1], 1);
+    const k = pose === "work-sweep" ? (GY - 1 - lo[1]) / dy : 6 / Math.hypot(dx, dy);
+    const foot = [lo[0] + dx * k, lo[1] + dy * k] as const;
+    s.put(new Mask().line(hi[0], hi[1] - 1, foot[0], foot[1], 1), WOOD, wood);
+    if (pose === "work-sweep") {
+      const x = rnd(foot[0]), y = Math.round(foot[1]);
+      s.put(new Mask().span(y - 2, x - 1, x + 1).span(y - 1, x - 2, x + 2).span(y, x - 3, x + 3), STRAW, { ring: "ink", shade: 0.4, light: 0.2, top: true });
+    }
+  } else if (pose === "work-pound") {
+    const x = (hn[0] + hf[0]) / 2;
+    s.put(new Mask().line(x, Math.min(hn[1], hf[1]) - 3, x, Math.max(hn[1], hf[1]) + 6, 2), WOOD, wood);
+  } else if (pose === "work-hammer") {
+    const end = beyond(en, hn, 4.5), dx = end[0] - hn[0], dy = end[1] - hn[1], n = Math.hypot(dx, dy) || 1;
+    s.put(new Mask().line(hn[0], hn[1], end[0], end[1], 1), WOOD, wood);
+    s.put(new Mask().line(end[0] - (dy / n) * 2, end[1] + (dx / n) * 2, end[0] + (dy / n) * 2, end[1] - (dx / n) * 2, 2), STEEL, { ring: "ink", shade: 0.3, light: 0.4 });
+    const tongs = beyond(ef, hf, 4);
+    s.put(new Mask().line(hf[0], hf[1], tongs[0], tongs[1], 1), STEEL, { ring: "ink", shade: 0, light: 0.3 });
+  } else if (pose === "work-saw") {
+    const tip = beyond(en, hn, 8);
+    s.put(new Mask().line(hn[0], hn[1], tip[0], tip[1], 2), STEEL, { ring: "ink", shade: 0.2, light: 0.4, bottom: true });
+    s.put(new Mask().rect(rnd(hn[0]) - 1, Math.round(hn[1]) - 1, rnd(hn[0]), Math.round(hn[1])), WOOD, wood);
+  } else if (pose === "work-write") {
+    const x = rnd(hf[0]) - 3, y = Math.round(hf[1]) - 2;
+    s.put(new Mask().rect(x, y, x + 5, y + 1), WHITE, { ring: "ink", shade: 0.5 });
+    s.put(new Mask().span(y + 2, x, x + 5), LEATHER, { ring: "ink", shade: 0.3 });
+    s.px(x + 3, y, WHITE, 2);
+    const side = hn[0] >= hf[0] ? 1 : -1;
+    dots([[hn[0] + side, hn[1] - 1], [hn[0] + side, hn[1] - 2], [hn[0] + side * 2, hn[1] - 3]], LEATHER, 1);
+  } else if (pose === "work-pour") {
+    const dir = hf[0] === hn[0] ? t.sx : Math.sign(hf[0] - hn[0]);
+    const tipped = frame === 1 || frame === 2;
+    const x0 = rnd(hn[0]) - 2, y0 = Math.round(hn[1]) - 1;
+    s.put(new Mask().glyph(x0, y0, tipped ? ["...##", "..###", ".####", "####.", "###..", ".#..."] : ["..#.", ".###", "####", "####", "####", ".##."], dir < 0), WOOD, { ring: "ink", shade: 0.35, light: 0.3, top: true });
+    const cx = rnd(hf[0]), cy = Math.round(hf[1]);
+    s.put(new Mask().rect(cx - 1, cy - 1, cx + 1, cy), WOOD, wood);
+    if (frame === 2) for (let y = y0 + 1; y < cy - 1; y++) s.px(dir > 0 ? x0 + 5 : x0 - 1, y, LIQUID, 3);
+  } else if (pose === "play-strum") {
+    // The strumming hand rests on the bowl's upper rim.
+    const c = [hn[0] + Math.sign(hf[0] - hn[0]) * 0.5, hn[1] + 2.5] as const;
+    const head = beyond(c as unknown as J, hf, 4);
+    s.put(new Mask().line(c[0], c[1], head[0], head[1], 1), WOOD, { ring: "ink", shade: 0, light: 0.2 });
+    s.px(rnd(head[0]), Math.round(head[1]), WOOD, 1);
+    const rx = 2.4 + 1.6 * Math.abs(t.cos), bowl = new Mask();
+    for (let y = -3; y <= 3; y++) bowl.span(Math.round(c[1]) + y, rnd(c[0] - rx * Math.sqrt(1 - (y / 4) ** 2)), rnd(c[0] + rx * Math.sqrt(1 - (y / 4) ** 2)));
+    s.put(bowl, WOOD, { ring: "ink", shade: 0.35, light: 0.4, top: true, bottom: true });
+    if (Math.abs(t.cos) > 0.4) s.px(rnd(c[0]), Math.round(c[1]) - 1, WOOD, 0);
+  } else if (pose === "play-drum") {
+    const x = rnd(body[0]), y = Math.round(body[1]);
+    s.put(new Mask().rect(x - 3, y + 1, x + 3, y + 4), WOOD, { ring: "ink", shade: 0.35, light: 0.3, bottom: true, tone: (px, py, tn) => ((px + py) % 3 === 0 && tn > 1 ? 2 : tn) });
+    s.put(new Mask().span(y, x - 3, x + 3).span(y + 1, x - 2, x + 2), WHITE, { ring: "ink", shade: 0.3 });
+  } else if (pose === "play-flute") {
+    const out = beyond(hf, hn, 5), lip = beyond(hn, hf, 1);
+    s.put(new Mask().line(lip[0], lip[1], out[0], out[1], 1), WOOD, { ring: "ink", shade: 0, light: 0.3 });
+  } else if (pose === "pray" && held === "beads") {
+    const x = (hn[0] + hf[0]) / 2, y = Math.max(hn[1], hf[1]) + 1;
+    dots([[x - 1, y], [x + 1, y], [x - 1, y + 1], [x + 1, y + 1], [x, y + 2]], WOOD, 2);
+    s.px(rnd(x), Math.round(y) + 3, TRIM, 3);
+  } else if (pose === "cense") {
+    // The pot swings ahead of the hand on its chains, and smoke trails it.
+    const swing = [-4, 0, 4, 0][frame & 3];
+    const x = hn[0] + swing * (t.sx * t.sin + Math.abs(t.cos) * 0.7), y = hn[1] + 8 - Math.abs(swing) * 0.4;
+    for (let i = 1; i < 7; i++) s.px(rnd(hn[0] + ((x - hn[0]) * i) / 7), Math.round(hn[1] + ((y - hn[1]) * i) / 7), METAL, 2);
+    s.put(new Mask().glyph(rnd(x) - 1, Math.round(y) - 1, [".#.", "###", "###", ".#."]), METAL, { ring: "ink", shade: 0.35, light: 0.4, top: true });
+    const back = -Math.sign(swing || 1);
+    dots([[x + back, y - 2], [x + back * 2, y - 3 - (frame & 1)], [x + back * 2, y - 4 - (frame & 1)], [x + back * 3, y - 6]], WHITE, 3);
+  }
+}
+
+/** A small flag on a pole from the back, above the head: the sashimono. */
+function backFlag(s: Sheet, t: Turn, x: number, foot: number, head: number, flap = 0) {
+  const back = rnd(x - t.sx * t.sin * 2.5), tip = back + Math.round(flap * 0.4);
+  s.put(new Mask().line(tip, head, back, foot, 1), LEATHER, { ring: "ink", shade: 0, light: 0.2 });
+  const flag = new Mask();
+  const w = Math.max(1, Math.round(4 * Math.abs(t.cos))), dir = t.view === "side" ? -t.sx : 1;
+  // The cloth streams out behind, most at the free bottom corner.
+  for (let y = head + 1; y <= head + 7; y++) {
+    const o = Math.round((flap * (y - head)) / 7);
+    flag.span(y, (dir > 0 ? tip + 1 : tip - w) + o, (dir > 0 ? tip + w : tip - 1) + o);
+  }
+  s.put(flag, FLAG, { ring: "ink", shade: 0.2, light: 0.3, top: true });
 }
 
 // ------------------------------------------------------------- the facing
@@ -713,6 +1114,15 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[SHAWL] = dye(c.shawl);
   // Black lacquer for a Japanese scabbard, pale wood for a kris, leather for the rest.
   p[SHEATH] = ramp(w.sidearm === "katana" ? "#2a2430" : w.sidearm === "kris" ? "#9a6a38" : "#4a3020");
+  // Quilted armour is undyed cotton or linen; the rest is the metal or lacquer it was made of.
+  p[ARMOUR] = ramp(w.armour === "quilted" ? "#d9cfb2" : w.armourColor ?? "#8e959c");
+  p[SHIELD] = dye(w.shieldColor ?? "#8a6440", 1);
+  p[STEEL] = ramp("#a4aab0");
+  p[EMBLEM] = ramp(EMBLEMS[w.shieldMark ?? "none"] ?? "#e8dcc0");
+  p[FLAG] = dye(w.backFlag ?? "#e8dcc0", 1);
+  p[WOOD] = ramp("#9c6c3e");
+  p[STRAW] = ramp("#d4b05c");
+  p[LIQUID] = ramp("#9ccad6");
   return p;
 }
 
@@ -812,6 +1222,26 @@ export function drawCharacterF(
   const arms = g ? sidearmAt(d, a.wearing.sidearm, r, prev, pose === "run") : [];
   arms.forEach((h, i) => drawSidearm(s, t, a.wearing.sidearm!, h, i > 0, "back"));
   for (const { arm, z } of armParts) if (behind(z)) drawArm(s, t, arm, k, deep ? 1 : 0, false, flare);
+  // G: a guard's pole in the working hand, a shield on the other forearm.
+  const carried = g && prop && upright(prop) && !r.tool && !tooled.has(pose) ? prop.sprite.slice(5) : undefined;
+  const shoulderLoad = shouldered(carried) ? carried : undefined;
+  const held = shoulderLoad ? undefined : carried ?? (g && prop?.sprite === "icon:walking-cane" && !r.tool && !tooled.has(pose) ? "walking-cane" : undefined);
+  const poleHand = P(r.arms[r.near].end);
+  if (held && behind(poleHand[2])) pole(s, held, poleHand, held === "walking-cane" ? 0 : drift(2.4), prev.rise - r.rise);
+  const work = tooled.has(pose)
+    ? [s, t, pose, frame & 3, [r.near, 1 - r.near].map((i) => P(r.arms[i].end)), [r.near, 1 - r.near].map((i) => P(r.arms[i].mid)),
+      P([0, d.shoulder - 7.6 + r.rise, 3.8 + r.lean * 0.6]), prop?.sprite.slice(5)] as Parameters<typeof implement>
+    : undefined;
+  const workBehind = work && Math.max(work[4][0][2], work[4][1][2]) < -1.2;
+  // What is held up in the hand goes over the arms and face; what the hands work on, under them.
+  const workOver = work && !workBehind && /^(work-write|work-pour|work-hammer|work-saw|play-strum|play-flute|cense|pray)$/.test(pose);
+  if (work && workBehind) implement(...work);
+  const shieldKind = g && a.wearing.shield && a.wearing.shield !== "none" && !d.child ? a.wearing.shield : undefined;
+  const offArm = r.arms[1 - r.near];
+  const shieldAt = [P(offArm.mid), P(offArm.end)] as const;
+  if (shieldKind && behind(shieldAt[1][2])) shield(s, t, shieldKind, shieldAt[0], shieldAt[1], a.wearing.shieldMark);
+  const flagFrom = g && a.wearing.backFlag && !d.child ? [centre(d.shoulder), yOf(d.shoulder - 3), yOf(d.shoulder + 26)] as const : undefined;
+  if (flagFrom && t.view !== "back" && t.view !== "bq") backFlag(s, t, ...flagFrom, drift(1.5));
   legParts.forEach(({ leg }, n) => drawLeg(s, t, leg, k, deep && n === 0 ? 1 : 0));
 
   // ---- the garment: torso and anything hanging below it, as one silhouette
@@ -872,17 +1302,40 @@ export function drawCharacterF(
       else if (k.quality < 0 && x % 3 === 0) body.clear(x, last);
     }
   }
+  const fig: Figure = { s, cos: t.cos, sin: t.sin, sx: t.sx, yOf, centre, hip: d.hip, shoulder: d.shoulder, leg: d.cut,
+    shoulderW: d.shoulderW, waistW: d.waistW, bellyD: d.bellyD, chestD: d.chestD, drift, refined: g };
+  const carrying = g && a.wearing.infant && !d.child;
+  if (carrying && !backView) infant(fig, "behind");
   const { zone, tone } = garment(k, d, t, yOf, centre, hem, bare, s.key);
   s.put(body, TOP, { zone, tone, shade: 0.34, light: fabricLight[k.material ?? "cotton"], top: true, bottom: hem !== undefined });
   if (hem !== undefined) hemDetail(s, a, t, yOf(hem), centre(hip));
+  const armour = g ? a.wearing.armour : undefined;
+  if (armour && armour !== "none") {
+    // Over the torso, and down over the hips for mail and lamellar.
+    const low = yOf(hip - (armour === "mail" || armour === "lamellar" ? 3 : armour === "quilted" ? 2 : 0));
+    const plate = new Mask();
+    for (let y = yOf(top); y <= low; y++) for (let x = 0; x < W; x++) if (body.has(x, y)) plate.set(x, y);
+    const ridge = rnd(centre(top - 2) + (t.view === "q" ? t.sx : 0));
+    s.put(plate, ARMOUR, {
+      ring: "ink",
+      shade: 0.35,
+      light: armour === "cuirass" ? 0.45 : 0.25,
+      top: true,
+      bottom: true,
+      tone: (x, y, tn) =>
+        tn < 3 ? tn
+        : armour === "mail" ? ((x + y) % 2 === 0 ? 2 : tn)
+        : armour === "lamellar" ? ((y - low) % 2 === 0 || x % 2 === 0 && (y - low) % 4 === 1 ? 2 : tn)
+        : armour === "quilted" ? (x % 2 === 0 ? 2 : tn)
+        : t.cos > 0.3 && x === ridge ? 4 : tn,
+    });
+  }
   belt(s, k, t, d, yOf, centre, width, drift);
   const vest = a.wearing.waistcoat;
   const vested = g && vest && vest !== "none" && !bare && !(k.g === "coat" && a.wearing.front === "closed") && k.g !== "poncho";
   if (vested) waistcoat(s, k, t, d, yOf, centre, width, vest);
   if (k.g === "loincloth" || (bare && k.legs === SKIN)) loincloth(s, k, t, d, yOf, centre);
   if (a.wearing.necklace) necklace(s, t, d, yOf, centre);
-  const fig: Figure = { s, cos: t.cos, sin: t.sin, sx: t.sx, yOf, centre, hip: d.hip, shoulder: d.shoulder, leg: d.cut,
-    shoulderW: d.shoulderW, waistW: d.waistW, bellyD: d.bellyD, chestD: d.chestD, drift, refined: g };
   const w = a.wearing;
   if (w.apron && w.apron !== "none" && !bare) apron(fig, w.apron);
   if (w.bag && w.bag !== "none") bag(fig, w.bag);
@@ -893,31 +1346,40 @@ export function drawCharacterF(
   }
 
   arms.forEach((h, i) => drawSidearm(s, t, a.wearing.sidearm!, h, i > 0, "front"));
+  if (held && !behind(poleHand[2])) pole(s, held, poleHand, held === "walking-cane" ? 0 : drift(2.4), prev.rise - r.rise);
+  if (work && !workBehind && !workOver) implement(...work);
 
   // ---- near arms, then what goes over them
   for (const { arm, z, shoulder } of armParts)
     if (!behind(z) && arm.end[1] <= d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
     // Hands held in front of a body seen from behind: the upper arm still shows.
     else if (behind(z) && !behind(shoulder)) drawArm(s, t, arm, k, 0, true);
+  if (shieldKind && !behind(shieldAt[1][2])) shield(s, t, shieldKind, shieldAt[0], shieldAt[1], a.wearing.shieldMark);
+  if (flagFrom && (t.view === "back" || t.view === "bq")) backFlag(s, t, ...flagFrom, drift(1.5));
+  if (shoulderLoad) shoulderPole(s, t, shoulderLoad, centre(d.shoulder), yOf(d.shoulder) - 1, poleHand[0] >= CX ? 1 : -1, true, drift(1.4), prev.rise - r.rise);
   if (k.g === "poncho") poncho(s, t, d, yOf, centre, a);
-  if (a.wearing.mantle) mantle(s, t, d, yOf, centre);
+  if (a.wearing.mantle) mantle(s, t, d, yOf, centre, drift);
   else if (k.pattern === "cloud") cloudCollar(s, t, d, yOf, centre);
   if (g && w.shawl && w.shawl !== "none") shawl(fig, w.shawl, ["step", "strip", "chevron"].includes(w.trimPattern ?? ""));
   else if (w.shoulderCloth && !a.wearing.cloak) shoulderCloth(fig);
   if (g && w.hood === "down" && w.headwear !== "hood") hoodDown(fig, k.g === "shirt");
   if (cloakMask && backView) s.put(cloakMask, CLOAK, { shade: 0.4, light: 0.2, bottom: true });
+  if (carrying && backView) infant(fig, "behind");
+  if (carrying && !backView) infant(fig, "over");
 
   // ---- the head, then anything raised above it
   drawHead(headArgs);
+  if (carrying && backView) infant(fig, "over");
   if (w.neckwear && w.neckwear !== "none" && !["hood", "headscarf", "veil"].includes(w.headwear)) neckwear(fig, w.neckwear);
   for (const { arm, z } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
   if (w.wrist === "bangles") bangles(fig, r.arms.map((arm) => project(t, arm.end)).map(([x, y]) => [x, y] as const));
+  if (workOver) implement(...work!);
 
   const image = ctx.getImageData(0, 0, W, H);
   s.resolve(palette(a), image.data);
   ctx.putImageData(image, 0, 0);
   // A thrown spear has left the hand.
-  if (prop && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
+  if (prop && !held && !shoulderLoad && !work && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
 }
 
 export function drawCharacterG(...args: Parameters<typeof drawCharacterF>) {
@@ -1336,11 +1798,13 @@ function poncho(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: 
   });
 }
 
-function mantle(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number) {
+function mantle(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number, drift: (f: number) => number) {
   const m = new Mask();
   for (let y = d.shoulder; y >= d.shoulder - 4; y--) {
     const w = Math.hypot((d.shoulderW + 1.5 - (y === d.shoulder ? 1.5 : 0)) * t.cos, (d.chestD + 1) * t.sin);
-    m.span(yOf(y), rnd(centre(y) - w + 0.5), rnd(centre(y) + w - 0.5));
+    // The hem lifts and trails; the yoke stays on the shoulders.
+    const o = Math.round(drift((d.shoulder - y) / 4));
+    m.span(yOf(y), rnd(centre(y) - w + 0.5) + Math.min(0, o), rnd(centre(y) + w - 0.5) + Math.max(0, o));
   }
   s.put(m, CLOAK, { shade: 0.36, light: 0.2, top: true, bottom: true });
 }

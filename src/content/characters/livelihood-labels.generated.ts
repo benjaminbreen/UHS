@@ -375,4 +375,38 @@ export const localLabels: Readonly<
   "innkeeper": [
     { scope: {"years":[600,1900],"bounds":[25,12,75,45]}, label: "Caravanserai Keeper" },
   ],
+  "warrior": [
+    { scope: {"years":[-800,-100],"bounds":[19,34,30,42]}, label: "Hoplite" },
+    { scope: {"years":[-300,400],"bounds":[-10,30,40,56]}, label: "Legionary" },
+    { scope: {"years":[1050,1450],"bounds":[-11,36,30,60]}, label: "Man-at-arms" },
+    { scope: {"years":[1450,1650],"bounds":[-11,36,30,60]}, label: "Pikeman" },
+    { scope: {"years":[1450,1650],"bounds":[-11,36,30,60]}, label: "Arquebusier" },
+    { scope: {"years":[1650,1870],"bounds":[-11,36,30,60]}, label: "Musketeer" },
+    { scope: {"years":[1380,1830],"bounds":[19,34,45,43]}, label: "Janissary" },
+    { scope: {"years":[1250,1517],"bounds":[25,22,42,38]}, label: "Mamluk" },
+    { scope: {"years":[1400,1868],"bounds":[128,30,146,46]}, label: "Ashigaru" },
+    { scope: {"years":[1644,1912],"bounds":[98,18,125,42]}, label: "Bannerman" },
+    { scope: {"years":[1750,1900],"bounds":[66,6,92,32]}, label: "Sepoy" },
+    { scope: {"years":[1300,1521],"bounds":[-105,13,-86,23]}, label: "Warrior", weight: 3 },
+    { scope: {"years":[1300,1521],"bounds":[-105,13,-86,23]}, label: "Eagle Warrior" },
+    { scope: {"years":[1300,1521],"bounds":[-105,13,-86,23]}, label: "Jaguar Warrior" },
+    { scope: {"years":[1816,1879],"bounds":[28,-32,33,-26]}, label: "Regiment Warrior" },
+  ],
+  "town-watchman": [
+    { scope: {"years":[-800,-100],"bounds":[19,34,30,42]}, label: "Hoplite" },
+    { scope: {"years":[1450,1650],"bounds":[-11,36,30,60]}, label: "Halberdier" },
+    { scope: {"years":[1450,1650],"bounds":[-11,36,30,60]}, label: "Watchman" },
+  ],
+  "gate-keeper": [
+    { scope: {"years":[-300,400],"bounds":[-10,30,40,56]}, label: "Legionary" },
+    { scope: {"years":[1450,1650],"bounds":[-11,36,30,60]}, label: "Halberdier" },
+    { scope: {"years":[1450,1830],"bounds":[19,34,45,43]}, label: "Janissary" },
+    { scope: {"years":[1600,1868],"bounds":[128,30,146,46]}, label: "Watch-House Guard" },
+  ],
+  "retainer": [
+    { scope: {"years":[1050,1450],"bounds":[-11,36,30,60]}, label: "Man-at-arms" },
+    { scope: {"years":[1250,1517],"bounds":[25,22,42,38]}, label: "Mamluk" },
+    { scope: {"years":[1185,1868],"bounds":[128,30,146,46]}, label: "Samurai" },
+    { scope: {"years":[1300,1897],"bounds":[4.5,5.5,7.5,7.5]}, label: "Palace Guard" },
+  ],
 };

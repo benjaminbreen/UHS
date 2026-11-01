@@ -201,13 +201,15 @@ function crewMember(seed: string, pack: Pack, vehicle: string, c: Conveyance,
 }
 
 /** A watchman walking a beat on the town wall, out and back, with a pause at
- * each end to look out. */
-export function watchman(seed: string, pack: Pack, id: string, beat: Point[]): Actor {
+ * each end to look out; or, with `gate`, a guard standing at a gate. */
+export function watchman(seed: string, pack: Pack, id: string, beat: Point[], post?: Actor["post"], captain = false): Actor {
+  const gate = !!post && !post.round;
   const setting = pack.setting!;
   const roll = (k: string) => random(seed, id, k);
   const age = 20 + Math.floor(roll("age") * 30);
   const pos = { x: beat[0].x, y: beat[0].y, space: "outside" as const };
-  const livelihood = setting.year >= -1000 ? "town-watchman" : "warrior";
+  const livelihood = setting.year < -1000 ? "warrior" : gate ? "gate-keeper" : "town-watchman";
+  const doing = gate ? "Keeping the gate" : post ? "Walking the night round" : "Keeping watch from the wall";
   const actor: Actor = {
     id,
     name: proceduralName(setting, seed, id),
@@ -218,26 +220,36 @@ export function watchman(seed: string, pack: Pack, id: string, beat: Point[]): A
     work: { ...pos },
     sprite: `human-0-${Math.floor(roll("sprite") * 6)}`,
     inventory: { water: 1 },
-    activity: "Keeping watch from the wall",
+    activity: doing,
     fatigue: 0,
     hunger: 5,
     trust: 1,
     memories: [],
     direction: 2,
     age,
-    watch: {
+    // A gate guard stands on the ground at the post; only the wall watch is aloft.
+    ...(post ? { post } : { watch: {
       path: beat,
       loop: false,
       // An unhurried pace, about half a walk.
       speed: 0.6,
       waits: [40 + roll("wait-out") * 60, 40 + roll("wait-back") * 60],
       phase: roll("phase"),
-    },
+    } }),
   };
   if (setting.characterRevision) {
     Object.assign(actor, generateCharacter(setting, seed, id, age, livelihood, undefined, undefined,
       characterSex(seed, id)));
-    actor.role = "Watchman";
+    // The local title where one is authored: halberdier, janissary, ashigaru.
+    actor.role = actor.origin?.roleLabel && actor.origin.livelihood === livelihood ? actor.origin.roleLabel : gate ? "Gate Keeper" : "Watchman";
+    actor.activity = doing;
+    // The captain of a town's watch: a plume, a cloak and a sword at the hip.
+    if (captain && actor.appearance) {
+      const w = actor.appearance.wearing;
+      actor.role = setting.year < -1000 ? "War Leader" : "Captain of the Watch";
+      actor.appearance = { ...actor.appearance, wearing: { ...w, hatTrim: w.headwear === "none" ? w.hatTrim : "feather", mantle: true,
+        sidearm: w.sidearm && w.sidearm !== "none" ? w.sidearm : w.headwear === "kabuto" ? "katana" : "sword" } };
+    }
     actor.age = age;
   }
   return actor;
