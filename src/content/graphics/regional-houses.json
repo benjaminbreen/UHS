@@ -455,6 +455,32 @@
         "extras": ["jar", "vat", "woodpile", "tree", "drying"]
       }
     },
+    "early-north-indian": {
+      "label": "Early North Indian",
+      "detailSet": "early-north-indian",
+      "wall": "lime-plaster",
+      "roofMaterial": "earth",
+      "windowStyle": "jali",
+      "surfaceTreatments": ["limewash", "red-earth-foot"],
+      "parapetStyle": "plain",
+      "accent": "#8a4a32",
+      "motifStyle": "carved-lintel",
+      "roofFeatures": ["water-jars"],
+      "turretStyles": ["none"]
+    },
+    "sultanate": {
+      "label": "Sultanate",
+      "detailSet": "sultanate",
+      "wall": "field-stone",
+      "roofMaterial": "earth",
+      "windowStyle": "jali",
+      "surfaceTreatments": ["bare-stone", "limewash"],
+      "parapetStyle": "plain",
+      "accent": "#9a4935",
+      "motifStyle": "carved-lintel",
+      "roofFeatures": ["water-jars"],
+      "turretStyles": ["none"]
+    },
     "north-indian": {
       "label": "North Indian",
       "detailSet": "north-indian",
@@ -466,6 +492,19 @@
       "accent": "#9a4935",
       "motifStyle": "painted-border",
       "roofFeatures": ["shade-frame", "water-jars", "laundry"],
+      "turretStyles": ["none", "corner-stair"]
+    },
+    "rajput": {
+      "label": "Rajput",
+      "detailSet": "rajput",
+      "wall": "lime-plaster",
+      "roofMaterial": "earth",
+      "windowStyle": "jali",
+      "surfaceTreatments": ["creamwash", "limewash", "red-earth-foot"],
+      "parapetStyle": "jali",
+      "accent": "#a8742e",
+      "motifStyle": "painted-border",
+      "roofFeatures": ["water-jars", "shade-frame"],
       "turretStyles": ["none", "corner-stair"]
     },
     "deccan": {
@@ -829,7 +868,7 @@
     "southasian-courtyard": {
       "source": "house-aegean-1",
       "label": "Haveli and courtyard house",
-      "profiles": ["north-indian", "deccan"],
+      "profiles": ["early-north-indian", "sultanate", "north-indian", "rajput", "deccan"],
       "function": "courtyard-household",
       "description": "An inward-looking urban household or haveli with rooms, work space and upper accommodation around a court. Regional finishes are illustrative, not a claim of one universal Indian form.",
       "sizes": {
@@ -851,7 +890,7 @@
     "southasian-service": {
       "source": "house-aegean-0",
       "label": "Neighborhood service building",
-      "profiles": ["north-indian", "deccan", "bengali", "malabar"],
+      "profiles": ["early-north-indian", "sultanate", "north-indian", "rajput", "deccan", "bengali", "malabar"],
       "function": "service-building",
       "description": "A small granary, weaving or craft shed, market pavilion or local devotional building using the profile's fabric. Religion-specific major landmarks remain selected by place and date.",
       "sizes": {

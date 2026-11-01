@@ -359,11 +359,12 @@ def persian(spec=None, info=None):
                      **(spec or {})}, info)
 
 
-def compound(s, info=None, face=None, roof=None, door=None, trees=True, head=None, court_fn=None):
+def compound(s, info=None, face=None, roof=None, door=None, trees=True, head=None, court_fn=None, windows=None):
     """The courtyard form every Persian house, mosque and madrasa shares: a
     street wall, a roof slab round a sunk court, the far range's face across
     the court. `face` draws that face, `roof` what stands on the slab (by
-    default the house's domes and windcatcher), `door` the street door."""
+    default the house's domes and windcatcher), `door` the street door,
+    `windows` what dresses the street wall."""
     W, wing = s['W'], s['wing']
     small = W < 220
     head = head or (52 if not small else 40)
@@ -395,10 +396,14 @@ def compound(s, info=None, face=None, roof=None, door=None, trees=True, head=Non
     (roof or house_roof)(c, g)
     street_wall(c, L, R, E, base)
     pcx = L + round(W * s['portal'])
-    for wx in (L + 26, L + 64, R - 78, R - 40):
-        if abs(wx + 7 - pcx) > (44 if not small else 24) and L < wx < R - 20:
-            lattice_window(c, wx, base - 46, 14, 14)
-    spouts(c, L, R, E, (pcx,))
+    g['pcx'] = pcx
+    if windows:
+        windows(c, g)
+    else:
+        for wx in (L + 26, L + 64, R - 78, R - 40):
+            if abs(wx + 7 - pcx) > (44 if not small else 24) and L < wx < R - 20:
+                lattice_window(c, wx, base - 46, 14, 14)
+        spouts(c, L, R, E, (pcx,))
     if door:
         door(c, pcx, base, g)
     elif small:

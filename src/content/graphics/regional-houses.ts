@@ -71,10 +71,13 @@ export function eastAsianRegionalHouses(setting: WorldSetting) {
 
 export function southAsianHouseProfile(setting: WorldSetting): Profile {
   const { lon, lat, placeId } = setting;
-  if (placeId === "bengal" || (lon >= 84 && lat < 27)) return "bengali";
+  if (placeId === "bengal" || (lon >= 87 && lat < 27)) return "bengali";
   if (lon < 78 && lat < 16) return "malabar";
+  if (setting.year < 1200) return lat < 24 ? "deccan" : "early-north-indian";
+  if (lon < 76.5 && lat >= 23.5 && lat <= 30.5) return "rajput";
   if (lat < 24) return "deccan";
-  return "north-indian";
+  // Babur took Delhi in 1526.
+  return setting.year < 1526 ? "sultanate" : "north-indian";
 }
 
 export function southAsianRegionalHouses(setting: WorldSetting) {

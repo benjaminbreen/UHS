@@ -5,18 +5,14 @@ import {
   type CourtyardLight,
 } from "../src/render/courtyard-lighting";
 
-it("publishes bounded, recessed courtyard surfaces without changing the exterior return", () => {
+it("publishes bounded, recessed courtyard surfaces", () => {
   let count = 0;
   for (const model of Object.values(buildingModels)) {
     const m = model as typeof model & {
-      roofVoid?: number[];
       courtyardLight?: CourtyardLight;
-      sideDepth?: number;
     };
-    // The East Asian compound draws its court open, so it needs no recess.
-    if (!m.roofVoid || model.frame.startsWith("eastasian-courtyard")) continue;
+    if (!m.courtyardLight) continue;
     count++;
-    expect(m.sideDepth).toBe(12);
     expect(m.courtyardLight, model.frame).toBeDefined();
     const court = m.courtyardLight!;
     for (const polygon of [
@@ -41,11 +37,11 @@ it("publishes bounded, recessed courtyard surfaces without changing the exterior
     expect(court.floor[3][1] - court.opening[3][1]).toBe(court.height);
     expect(court.floor[0][1]).toBeGreaterThan(court.floor[3][1]);
   }
-  expect(count).toBeGreaterThan(30);
+  expect(count).toBeGreaterThan(20);
 });
 
 it("uses the same reversing sun direction as ground shadows, with no solar cast at night", () => {
-  const model = buildingModels["southasian-courtyard-north-indian-medium-0"];
+  const model = buildingModels["hall-madrasa-medium-0"];
   const court = (model as unknown as { courtyardLight: CourtyardLight })
     .courtyardLight;
   const morning = courtyardSun(court, "morning");

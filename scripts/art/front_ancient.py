@@ -19,6 +19,9 @@ or Persian builders, with the footprint the new sprite stands on;
                                       compounds, shop rows, storehouses and gates
     hall-hammam-*-3, hall-madrasa-*-3 front_persian: the Iranian look of the bath and the
                                       madrasa (new frames; regional-looks.json routes Iran to them)
+    southasian-{courtyard,service}-{early-north-indian,sultanate,north-indian,rajput,deccan}-*
+                                      front_southasia: havelis, granaries, weavers' sheds,
+                                      market pavilions and shrines in each era's look
     africa-house-{kongo,kay,sahel}-*  front_africa: Kongo, Haitian and Sahelian houses
     seasia-house-*, andes-house-*, pacific-house-*
                                       front_seasia, front_andes, front_pacific: stilt houses,
@@ -40,7 +43,7 @@ from art import front_roman as rome  # noqa: E402
 from art import front_persian as persia  # noqa: E402
 from art import front_westasia as wa  # noqa: E402
 from art import front_sinitic as sino  # noqa: E402
-from art import front_africa, front_seasia, front_andes, front_pacific  # noqa: E402
+from art import front_africa, front_seasia, front_andes, front_pacific, front_southasia  # noqa: E402
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
 from art.front_materials import lit  # noqa: E402
 
@@ -138,6 +141,9 @@ def spec_for(name, r):
         nw = max(12, round(fw * 1.2))
         return ('mosque', dict(W=nw * 16, look=MOSQUES[int(m.group(2)) % 3],
                                court=max(80, fh * 8))), (nw, fh)
+    got = front_southasia.spec_for(base, nw)
+    if got:
+        return got, (nw, fh)
     m = re.match(r'westasian-courtyard-iranian-(small|medium|large)-(\d+)$', base)
     if m:
         return persian_spec(m.group(1), int(m.group(2)), nw, seed), (nw, fh)
@@ -275,6 +281,7 @@ BUILDERS = {
     'hammam': lambda s, i: persia.hammam(s, i),
     **sino.BUILDERS,
     **front_africa.BUILDERS,
+    **front_southasia.BUILDERS,
     **front_seasia.BUILDERS,
     **front_andes.BUILDERS,
     **front_pacific.BUILDERS,
