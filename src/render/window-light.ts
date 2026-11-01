@@ -64,6 +64,18 @@ export function windowGlow(
     if (pane.length < 3 || pane.length > 48) continue;
     const rows = new Set(pane.map((i) => Math.floor(i / w)));
     if (rows.size < 2) continue;
+    // A glint may cut a pane on the slant, but one side stays square to the
+    // frame. A run of trim, like a felt band round a tent, slants on both;
+    // a strip along an eave is far wider than any window.
+    const left = new Map<number, number>(), right = new Map<number, number>();
+    for (const i of pane) {
+      const x = i % w, y = Math.floor(i / w);
+      left.set(y, Math.min(left.get(y) ?? x, x));
+      right.set(y, Math.max(right.get(y) ?? x, x));
+    }
+    const across = Math.max(...right.values()) - Math.min(...left.values()) + 1;
+    const slant = new Set(left.values()).size >= 3 && new Set(right.values()).size >= 3 && pane.length < 0.6 * across * rows.size;
+    if (slant || across > 2 * rows.size) continue;
     let ring = 0,
       light = 0;
     for (const i of pane) {
