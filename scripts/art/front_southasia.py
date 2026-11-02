@@ -1,5 +1,8 @@
 """Havelis and neighbourhood buildings of North India, Rajputana and the
-Deccan, on the Persian courtyard form, in the looks of their eras.
+Deccan, on the Persian courtyard form, in the looks of their eras; and the
+rain-country houses of Bengal and Malabar on the eave-front house.
+
+    .venv/bin/python scripts/art/front_southasia.py artifacts/front-monsoon.png monsoon
 
     .venv/bin/python scripts/art/front_southasia.py artifacts/front-southasia.png
 
@@ -44,6 +47,9 @@ from art import front_solid as so  # noqa: E402
 from art import front_props as pr  # noqa: E402
 from art import front_persian as pz  # noqa: E402
 from art.front_kit import finish, consolidate  # noqa: E402
+from art import front_eave as ev  # noqa: E402
+from art import front_seasia  # noqa: E402,F401  (registers the bamboo-mat wall)
+from art.front_house import bevel  # noqa: E402
 
 CHUNA = ramp(76, 0.045, lift=0.04)
 CHUNA_TOP = ramp(74, 0.045, lift=0.04)
@@ -549,6 +555,289 @@ def service(look, kind, spec=None, info=None):
     return c.im
 
 
+
+# ------------------------------------------------------------------ monsoon country
+
+# Bengal: houses of mud, bamboo mat or thin brick on a raised earth plinth,
+# under the chala roof, thatch or tile, whose ridge and eaves bend down at
+# the ends to shed the rain; a veranda on posts across the front. Malabar:
+# laterite walls under steep hipped roofs of tile, a small carved gable
+# (mukhappu) at each end of the ridge, a veranda, wooden-barred windows.
+
+LATERITE = ramp(36, 0.1, lift=-0.06)
+BENGAL_BRICK = ramp(32, 0.12, lift=-0.04)
+TERRACOTTA = ramp(40, 0.13, lift=-0.06)
+BAMBOO_POST = ramp(70, 0.07, lift=-0.06)
+
+
+def mud(c, x, y, w, h):
+    fm.kahgel(c, x, y, w, h, MUD)
+
+
+def laterite(c, x0, y0, w, h, r=LATERITE):
+    """Laterite blocks, cut from the ground while soft: big red blocks in
+    courses, pitted all over with small dark holes."""
+    fm.ashlar(c, x0, y0, w, h, r, 9, 22)
+    for yy in range(y0, y0 + h):
+        for xx in range(x0, x0 + w):
+            if fm.h2(xx, yy, 611) < 0.06:
+                c.p(xx, yy, r[5])
+
+
+def limed_laterite(c, x0, y0, w, h):
+    fm.render(c, x0, y0, w, h, WHITE)
+    for yy in range(y0 + h - 12, y0 + h):
+        for xx in range(x0, x0 + w):
+            c.p(xx, yy, LATERITE[3] if fm.h2(xx, yy, 612) > 0.08 else LATERITE[5])
+
+
+ev.WALL.update({'sa-mud': mud, 'sa-brick': lambda c, x, y, w, h: fm.brick(c, x, y, w, h, BENGAL_BRICK),
+                'sa-whitewash': lambda c, x, y, w, h: fm.render(c, x, y, w, h, WHITE),
+                'sa-laterite': laterite, 'sa-limed-laterite': limed_laterite})
+ev.TONES.update({'bengal-tile': ramp(34, 0.11, lift=-0.06), 'malabar-tile': ramp(38, 0.12, lift=-0.04),
+                 'malabar-old': ramp(30, 0.07, lift=-0.14)})
+
+
+def terracotta_band(c, x0, x1, y):
+    """A frieze of moulded terracotta plaques set in a brick wall."""
+    for xx in range(x0, x1):
+        for k in range(6):
+            q = 2 if k == 0 else 5 if k == 5 else 3
+            if (xx - x0) % 8 in (0, 7) and 0 < k < 5:
+                q = 5
+            elif (xx - x0) % 8 in (3, 4) and k in (2, 3):
+                q = 1
+            c.p(xx, y + k, TERRACOTTA[q])
+
+
+def bengal_openings(h):
+    """A plank door in the middle; either side a small window of wooden bars;
+    on brick, a terracotta frieze over the openings."""
+    c, x0, W, top = h.c, h.x0, h.W, h.floors[0][0]
+    cx = x0 + W // 2
+    h.door_x, h.door_h = cx, 40
+    if h.s['storeys'][0] == 'sa-brick':
+        terracotta_band(c, x0, x0 + W, top + 6)
+    op.door_plank(c, cx - 10, h.base - 40, 20, 40)
+    for i, (ftop, fh, _) in enumerate(h.floors):
+        for wx in (x0 + W // 5, x0 + W - W // 5) if W > 110 else ():
+            wy = ftop + (16 if i == 0 else 10)
+            op.frame_timber(c, wx - 8, wy, 16, 14, None)
+            op.lattice(c, wx - 8, wy, 16, 14)
+            op.reveal(c, wx - 8, wy, 16, 14, 2)
+            h.sills.append((wx - 12, wy + 16, 24))
+
+
+def malabar_openings(h):
+    c, x0, W = h.c, h.x0, h.W
+    cx = x0 + W // 2
+    h.door_x, h.door_h = cx, 40
+    op.door_panel(c, cx - 11, h.base - 40, 22, 40, 'oak')
+    for i, (ftop, fh, _) in enumerate(h.floors):
+        n = 2 if W < 180 else 4
+        for k in range(n):
+            wx = round(x0 + W * (k + 0.5 + (k >= n // 2)) / (n + 1))
+            if i == 0 and abs(wx - cx) < 24:
+                continue
+            wy = ftop + (14 if i == 0 else 8)
+            ww, wh = 18, min(20, fh - 22)
+            op.frame_timber(c, wx - ww // 2, wy, ww, wh, None)
+            op.lattice(c, wx - ww // 2, wy, ww, wh)
+            op.reveal(c, wx - ww // 2, wy, ww, wh, 2)
+            h.sills.append((wx - 12, wy + wh + 2, 24))
+
+
+ev.OPENINGS.update({'sa-bengal': bengal_openings, 'sa-malabar': malabar_openings})
+
+
+class Chala(ev.VernacularHouse):
+    """The eave-front house with its roof bent: ridge and eaves curve down
+    toward the ends, as Bengal roofs do; and for Malabar a hipped roof with
+    a carved gable at each end of its ridge."""
+
+    def roof(self):
+        bend = self.s.get('bend', 0)
+        before = self.c.im.copy() if bend else None
+        super().roof()
+        if self.s.get('mukhappu'):
+            self.mukhappu()
+        if self.s.get('kalasha'):
+            cx = self.x0 + self.W // 2
+            so.lathe(self.c, cx, self.top - 1, [(0, 3), (3, 4), (6, 3), (8, 1.5), (12, 0.5)], pz.BRASS)
+        if not bend:
+            return
+        after = self.c.im.copy()
+        pb, pa = before.load(), after.load()
+        self.c.im.paste(before)
+        L, R = self.x0 - self.over - 1, self.x0 + self.W + self.over + 1
+        moved = set()
+        for x in range(max(0, L), min(self.c.w, R)):
+            t = (x - L + 0.5) / (R - L)
+            d = round(bend * (2 * t - 1) ** 2)
+            for y in range(self.c.h - 1, -1, -1):
+                if pa[x, y] != pb[x, y]:
+                    self.c.px[x, y + d] = pa[x, y] if y + d < self.c.h else None
+                    moved.add((x, y + d))
+        self.roof_px = {(x, y + round(bend * (2 * (x - L + 0.5) / (R - L) - 1) ** 2)) for x, y in self.roof_px}
+
+    def mukhappu(self):
+        """A small gable of carved boards in the hip at each end of the
+        ridge, its finial on top, its lattice dark."""
+        c, r = self.c, RAMPS['oak']
+        ins = round(self.rise * 0.55)
+        for cx in (self.x0 - self.over + ins + 6, self.x0 + self.W + self.over - ins - 6):
+            for k in range(12):
+                for i in range(-k // 2 - 1, k // 2 + 2):
+                    edge = abs(i) >= k // 2
+                    c.p(cx + i, self.top - 6 + k, r[2] if edge else (r[6] if (i + k) % 2 else r[4]))
+            c.rect(cx, self.top - 10, 1, 4, r[3])
+
+
+def chala(spec=None, info=None):
+    s = dict(W=192, storeys=['sa-mud'], heights=[50], roof='thatch', tone='straw-old', hip=False, bend=7, saddle=0,
+             gallery=True, openings='sa-bengal', seed=0, wear=0.35)
+    s.update(spec or {})
+    h = Chala(s)
+    im = h.build()
+    if info is not None:
+        info.update(x0=h.x0, W=h.W, base=h.base, door_x=h.door_x, door_h=h.door_h)
+    return im
+
+
+def nalukettu(spec=None, info=None):
+    s = dict(W=192, storeys=['sa-laterite'], heights=[52], roof='plain', tone='malabar-tile', hip=True, bend=0,
+             mukhappu=True, gallery=True, openings='sa-malabar', seed=0, wear=0.4)
+    s.update(spec or {})
+    h = Chala(s)
+    h.post = TEAK
+    im = h.build()
+    if info is not None:
+        info.update(x0=h.x0, W=h.W, base=h.base, door_x=h.door_x, door_h=h.door_h)
+    return im
+
+
+MONSOON = {
+    # walls, roof, roof tones; a tone picks one of each
+    'bengali': dict(walls=['sa-mud', 'sawali', 'sa-brick', 'sa-whitewash'], roofs=['thatch', 'thatch', 'plain'],
+                    tones=['straw-old', 'reed', 'bengal-tile'], large=['sa-brick', 'sa-whitewash']),
+    'malabar': dict(walls=['sa-laterite', 'sa-limed-laterite', 'sa-laterite'], roofs=['plain'],
+                    tones=['malabar-tile', 'malabar-old', 'tile-brown'], large=['sa-laterite', 'sa-limed-laterite']),
+}
+
+
+def monsoon_house(look, spec=None, info=None):
+    m = MONSOON[look]
+    s = dict(spec or {})
+    tone = s.pop('tone', 0)
+    large = s.pop('large', False)
+    walls = m['large'] if large else m['walls']
+    roof_i = tone % len(m['tones'])
+    roof = m['roofs'][roof_i % len(m['roofs'])] if look == 'bengali' else 'plain'
+    if large and look == 'bengali':
+        roof, roof_i = 'plain', 2
+    s.update(storeys=[walls[tone % len(walls)]] * (2 if large else 1), roof=roof, tone=m['tones'][roof_i],
+             seed=tone, rise=(48 if large else 40) if look == 'bengali' else (58 if large else 48))
+    if large:
+        s.setdefault('heights', [52, 44])
+        if look == 'malabar':
+            s['storeys'] = [s['storeys'][0], 'teak']
+    return (chala if look == 'bengali' else nalukettu)(s, info)
+
+
+def monsoon_service(look, kind, spec=None, info=None):
+    """The small buildings of rain country, all under the region's roof."""
+    s = dict(spec or {})
+    tone = s.pop('tone', 0)
+    m = MONSOON[look]
+    W = s.get('W', 112)
+    if kind == 'granary' and look == 'bengali':
+        return gola(W, tone, info)
+    if kind == 'shrine' and look == 'malabar':
+        return sreekovil(W, tone, info)
+    base = dict(W=W - 16, seed=tone, tone=m['tones'][tone % len(m['tones'])], heights=[46], rise=34)
+    if look == 'bengali':
+        base['roof'] = m['roofs'][tone % len(m['roofs'])]
+    if kind == 'shrine':
+        base.update(storeys=['sa-brick'], roof='plain', tone='bengal-tile', gallery=False, bend=9, kalasha=True)
+        return chala(base, info)
+    if kind in ('workshop', 'pavilion'):
+        base.update(storeys=['open-' + kind], gallery=False, openings='sa-open')
+        return (chala if look == 'bengali' else nalukettu)(dict(base, mukhappu=False), info)
+    base.update(storeys=[m['walls'][tone % len(m['walls'])]], gallery=False)
+    return (chala if look == 'bengali' else nalukettu)(dict(base, mukhappu=False), info)
+
+
+def open_shed(kind):
+    """An open shed: the roof on posts, the dark under it, and in it a pit
+    loom or baskets of grain and spice."""
+    def paint(c, x, y, w, h):
+        for yy in range(y, y + h):
+            for xx in range(x, x + w):
+                c.p(xx, yy, (62, 46, 52, 255) if yy < y + 10 else (78, 58, 58, 255))
+        base = y + h
+        if kind == 'open-workshop':
+            beam = base - 14
+            for xx in range(x + 14, x + w - 14):
+                c.p(xx, beam, TEAK[2]); c.p(xx, beam + 1, TEAK[4])
+            for xx in range(x + 16, x + w - 16, 3):
+                for yy in range(y + 8, beam):
+                    c.p(xx + (beam - yy) // 10, yy, (232, 222, 196, 255) if yy % 3 else (206, 194, 168, 255))
+        else:
+            for k, xx in enumerate(range(x + 14, x + w - 10, 16)):
+                pr.pot(c, xx, base - 1, 'basket', RAMPS['thatch'], fill=GRAIN[k % 3], scale=0.7)
+        n = max(2, w // 40)
+        for k in range(n + 1):
+            px = round(x + k * (w - 5) / n)
+            bevel(c, px, y, 5, h, BAMBOO_POST, 2)
+    return paint
+
+
+def open_openings(h):
+    h.door_x, h.door_h = h.x0 + h.W // 2, 40
+
+
+ev.WALL.update({'open-workshop': open_shed('open-workshop'), 'open-pavilion': open_shed('open-pavilion')})
+ev.OPENINGS['sa-open'] = open_openings
+
+
+def gola(W, tone, info):
+    """A Bengal granary (gola): a round bin of mud on a plinth, under a
+    conical thatch hat, a small hatch high in its side."""
+    c = C(W + 24, 132)
+    cx, by = (W + 24) // 2, 126
+    so.box(c, cx - 30, by, 60, 8, 20, ramp(52, 0.06, lift=-0.08))
+    so.lathe(c, cx, by - 8, [(0, 22), (6, 24), (40, 24), (44, 22)], MUD, courses=8)
+    c.rect(cx - 5, by - 44, 10, 10, DARK)
+    so.lathe(c, cx, by - 50, [(0, 32), (4, 28), (30, 8), (40, 1)], ev.TONES[('straw-old', 'reed')[tone % 2]], courses=4)
+    for k in range(3):
+        c.p(cx, by - 92 - k, TEAK[2])
+    if info is not None:
+        info.update(x0=12, W=W, base=by, door_x=cx, door_h=36)
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
+def sreekovil(W, tone, info):
+    """A Kerala shrine (sreekovil): a round laterite cella on a moulded
+    plinth, under a conical tiled roof in two tiers, a copper finial."""
+    c = C(W + 24, 150)
+    cx, by = (W + 24) // 2, 144
+    tile = ev.TONES[('malabar-tile', 'malabar-old')[tone % 2]]
+    so.lathe(c, cx, by, [(0, 34), (6, 34), (7, 31), (10, 31)], LATERITE)
+    so.lathe(c, cx, by - 10, [(0, 26), (34, 26)], WHITE if tone % 3 == 1 else LATERITE, courses=0)
+    c.rect(cx - 7, by - 38, 14, 26, DARK)
+    op.door_panel(c, cx - 6, by - 36, 12, 24, 'oak')
+    so.lathe(c, cx, by - 44, [(0, 40), (3, 37), (14, 20), (16, 19)], tile, courses=4)
+    so.lathe(c, cx, by - 60, [(0, 24), (3, 22), (18, 6), (22, 1)], tile, courses=3)
+    so.lathe(c, cx, by - 82, [(0, 2), (3, 3), (6, 2), (10, 0.5)], pz.BRASS)
+    if info is not None:
+        info.update(x0=12, W=W, base=by, door_x=cx, door_h=36)
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+MONSOON_RE = re.compile(r'southasian-(monsoon|service)-(bengali|malabar)-(small|medium|large)-(\d+)$')
 LOOK_RE = re.compile(r'southasian-(courtyard|service)-(%s)-(small|medium|large)-(\d+)$'
                      % '|'.join(sorted(LOOKS, key=len, reverse=True)))
 
@@ -556,6 +845,13 @@ LOOK_RE = re.compile(r'southasian-(courtyard|service)-(%s)-(small|medium|large)-
 def spec_for(base, nw):
     """The builder and spec for a southasian-{courtyard,service} frame in one
     of the looks drawn here, or None."""
+    m = MONSOON_RE.match(base)
+    if m:
+        family, look, size, v = m.group(1), m.group(2), m.group(3), int(m.group(4))
+        tone = v + zlib.crc32(base.encode()) % 5
+        if family == 'service':
+            return 'sa-monsoon-service', dict(look=look, kind=SERVICES[v % 4], W=nw * 16, tone=tone)
+        return 'sa-monsoon', dict(look=look, W=nw * 16, tone=tone, large=size == 'large')
     m = LOOK_RE.match(base)
     if not m:
         return None
@@ -571,6 +867,9 @@ def spec_for(base, nw):
 
 
 BUILDERS = {
+    'sa-monsoon': lambda s, i: monsoon_house(s['look'], {k: v for k, v in s.items() if k != 'look'}, i),
+    'sa-monsoon-service': lambda s, i: monsoon_service(s['look'], s['kind'],
+                                                       {k: v for k, v in s.items() if k not in ('look', 'kind')}, i),
     'sa-haveli': lambda s, i: haveli(s['look'], {k: v for k, v in s.items() if k != 'look'}, i),
     'sa-service': lambda s, i: service(s['look'], s['kind'], {k: v for k, v in s.items() if k not in ('look', 'kind')},
                                        i),
@@ -585,6 +884,12 @@ if __name__ == '__main__':
     for look, lk in LOOKS.items():
         rows.append([haveli(look, dict(medium, v=t, tone=t)) for t in range(len(lk['washes']))])
         rows.append([haveli(look, dict(tone=1))] + [service(look, k, dict(v=v, tone=v)) for v, k in enumerate(SERVICES)])
+    if len(sys.argv) > 2 and sys.argv[2] == 'monsoon':
+        rows = []
+        for look in MONSOON:
+            rows.append([monsoon_house(look, dict(W=192, tone=t)) for t in range(4)] +
+                        [monsoon_house(look, dict(W=256, tone=t, large=True)) for t in range(2)])
+            rows.append([monsoon_service(look, k, dict(tone=v)) for v, k in enumerate(SERVICES)])
     a = current_adult()
     W = max(sum(i.width + 8 for i in r) for r in rows) + a.width + 10
     H = sum(max(i.height for i in r) + 8 for r in rows)

@@ -22,6 +22,9 @@ or Persian builders, with the footprint the new sprite stands on;
     southasian-{courtyard,service}-{early-north-indian,sultanate,north-indian,rajput,deccan}-*
                                       front_southasia: havelis, granaries, weavers' sheds,
                                       market pavilions and shrines in each era's look
+    southasian-{monsoon,service}-{bengali,malabar}-*
+                                      front_southasia: Bengal chala and Malabar tiled houses,
+                                      the gola granary, the sreekovil
     africa-house-{kongo,kay,sahel}-*  front_africa: Kongo, Haitian and Sahelian houses
     seasia-house-*, andes-house-*, pacific-house-*
                                       front_seasia, front_andes, front_pacific: stilt houses,
