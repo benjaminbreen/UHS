@@ -494,6 +494,8 @@ def build_buildings(root, sprites):
             **({'banner':artist.banner} if getattr(artist,'banner',None) else {}),
             **({'courtyardLight':artist.court_light} if getattr(artist,'court_light',None) else {}),
             **({'smoke':artist.smoke} if getattr(artist,'smoke',None) else {}),
+            # A curtain or flap, not a hinged door: the game swings no leaf over it.
+            **({'doorLeaf':False} if getattr(artist,'door_leaf',True) is False else {}),
             **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),

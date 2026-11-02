@@ -2455,10 +2455,12 @@ export class WorldScene extends Phaser.Scene {
      * cell position: the sign does the same. */
     baseY: number,
   ) {
-    const rect = (
-      placement.model as typeof placement.model & { door?: number[] }
-    ).door;
-    if (!rect) return;
+    const { door: rect, doorLeaf } = placement.model as typeof placement.model & {
+      door?: number[];
+      doorLeaf?: boolean;
+    };
+    // Tents and huts hang a curtain or flap: there is no leaf to swing.
+    if (!rect || doorLeaf === false) return;
     const image = this.add
       .image(
         placement.x - placement.model.anchor[0] + rect[0],

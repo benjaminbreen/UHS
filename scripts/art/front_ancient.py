@@ -29,6 +29,9 @@ or Persian builders, with the footprint the new sprite stands on;
     seasia-house-*, andes-house-*, pacific-house-*
                                       front_seasia, front_andes, front_pacific: stilt houses,
                                       Andean houses, the fare
+    steppe-*, forager-shelter-*, house-{round,rondavel,pit,dome,tent}*, the lodges, camp-*
+                                      front_huts: tents, huts and lodges at their own
+                                      footprint, the entrance under the painted door
 
 Footprints widen by SCALE, as the European houses' do: these are drawn at
 the adult's scale, where the old frames were drawn small.
@@ -46,7 +49,7 @@ from art import front_roman as rome  # noqa: E402
 from art import front_persian as persia  # noqa: E402
 from art import front_westasia as wa  # noqa: E402
 from art import front_sinitic as sino  # noqa: E402
-from art import front_africa, front_seasia, front_andes, front_pacific, front_southasia  # noqa: E402
+from art import front_africa, front_seasia, front_andes, front_pacific, front_southasia, front_huts  # noqa: E402
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
 from art.front_materials import lit  # noqa: E402
 
@@ -123,6 +126,9 @@ def spec_for(name, r):
     fw, fh = r['footprint']
     nw = max(3, round(fw * SCALE))
     seed = zlib.crc32(base.encode()) % 997
+    got = front_huts.spec_for(base, r)
+    if got:
+        return (f'hut-{got[0]}', got[1]), (fw, fh)
     m = re.match(r'(africa|seasia|andes|pacific)-house-([a-z-]+)-(small|medium|large)-(\d+)$', base)
     if m:
         return vernacular_spec(m.group(1), m.group(2), m.group(3), int(m.group(4)), nw * 16, seed), (nw, fh)
@@ -261,6 +267,8 @@ def adopt(recipes):
         r.pop('shadowFrame', None)
         r['footprint'] = [fw, fh]
         r['entrance'] = [fw // 2, fh]
+        if spec[0].startswith('hut-'):
+            r['entrance'] = [front_huts.door_cell(spec[0][4:], spec[1], fw), fh]
         n += 1
     return n
 
@@ -285,6 +293,7 @@ BUILDERS = {
     **sino.BUILDERS,
     **front_africa.BUILDERS,
     **front_southasia.BUILDERS,
+    **{f'hut-{k}': v for k, v in front_huts.BUILDERS.items()},
     **front_seasia.BUILDERS,
     **front_andes.BUILDERS,
     **front_pacific.BUILDERS,
@@ -320,6 +329,8 @@ class FrontAncientPainter:
         self.door_size = (info.get('door_width', 22), info['door_h'])
         self.door_ground = info.get('door_base', info['base']) + 1
         self.no_door = info.get('doorless', False)
+        self.smoke = info.get('smoke')
+        self.door_leaf = info.get('leaf', True)
         night = info.get('night')
         self.night = night if night is not None and night.getbbox() else lit(im)
         self.bottom = info['base'] + 1

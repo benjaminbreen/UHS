@@ -90,6 +90,7 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_persian.py` | `compound`, the courtyard form with hooks for its court face, roof and door; courtyard, domed and vaulted houses; mosque (Safavid, Seljuk, mud brick), madrasa, hammam; `materials()` builds it in another region's ramps |
 | `scripts/art/front_westasia.py` | Levantine, Arabian, Nile and Maghrebi courtyard and one-room houses, each with its own court |
 | `scripts/art/front_sinitic.py` | Chinese, Korean and Japanese houses, halls, courtyard compounds, shop rows, kura and gates: round-tile roofs, gable fronts with lit and shaded slopes, horse-head and stepped gables, timber bays and lattice |
+| `scripts/art/front_huts.py` | Tents, huts and lodges: gers, cones, domes, snow and sod houses, round houses, longhouses, plank houses; the shallow `RY` ellipse, hand-banded `turn`, doors drawn on the curve of the wall |
 | `scripts/art/front_ancient.py` | Wires the Roman (`house-roman-ob-*`) and Iranian (`westasian-courtyard-iranian-*`) frames to those builders |
 | `scripts/art/front_audit.py` | The checkable rules; runs inside `oblique_audit.py` |
 | `scripts/art/front_review.py` | Review sheets beside the pinned gold masters |
@@ -152,3 +153,4 @@ Append a dated line when the user approves or rejects something.
 - 2026-10-11 Chinese and Japanese temples, the sento, kabuki theatres and noh stages joined the East Asian set (temples left the voxel set). Front-on painters can ship lamplight as a `-glow` frame of their own paper, slots and open rooms (`night_image` in front_sinitic); the scene prefers it to guessing glass.
 
 - 2026-10-17 Flat-bottom kilns and cabinet-like fulling vats rejected. The rebuilt curved masonry kiln and Roman working court approved as the direction for the processing set; keep equipment volume, recessed surfaces and workshop-specific fronts at the architectural parts’ standard.
+- 2026-11-01 Huts and tents: a first front-on kit on the shared lathe and ramps was rejected as worse than the old sprites (too big, grey and evenly textured, every door a centred dark slab). Approved instead: the old sprites' curated palettes, small scale, shallow ground ellipse and broad hand bands, with doors set round the curve and curtains or flaps, not plank leaves. Low hut doors are allowed; the audit's door-height rule is off for them.

@@ -183,6 +183,16 @@ def vernacular():
                 info['door_h'], []
 
 
+def huts():
+    """Huts, tents and lodges, from front_huts' studies. Their doorways are
+    stooped or crawled through, by design, so the door-height rule is off."""
+    from types import SimpleNamespace
+    from art import front_huts
+    for name, kind, spec in front_huts.STUDIES:
+        im = front_huts.BUILDERS[kind](spec)
+        yield f'hut-{name}', im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), None, []
+
+
 def worksites():
     from types import SimpleNamespace
     from art.front_worksites import worksite_recipes, FrontWorksitePainter
@@ -196,7 +206,7 @@ def audit():
     faults = ramp_faults()
     n = 0
     from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), worksites()):
+    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), worksites()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1
