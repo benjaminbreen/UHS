@@ -78,6 +78,20 @@ export const cropPests: readonly CropPest[] = [
     },
   },
   {
+    species: "red-deer",
+    kinds: ["grain", "root", "vegetable"],
+    stages: ["green", "ripe"],
+    hours: [17, 7],
+    weight: 2,
+    bites: 1,
+    verb: "drive",
+    evidence: {
+      status: "documented",
+      note: "Deer come out of cover at dusk to graze sown fields and are gone by full light; forest law and deer fences in medieval Europe were fought over for it.",
+      sources: ["https://en.wikipedia.org/wiki/Red_deer"],
+    },
+  },
+  {
     species: "wild-boar",
     kinds: ["grain", "root", "vegetable"],
     stages: ["green", "ripe"],
@@ -154,6 +168,7 @@ const nouns: Record<string, string> = {
   rabbit: "rabbits",
   mouse: "mice",
   "wild-boar": "boar",
+  "red-deer": "deer",
   pig: "pigs",
 };
 export const pestNoun = (species: string) =>
@@ -164,6 +179,7 @@ export function pestArrival(species: string) {
   const them = pestNoun(species);
   if (them === "locusts") return "A swarm of locusts settles on the";
   if (them === "boar" || them === "pigs") return `${them === "boar" ? "Wild boar" : "Pigs"} have got into the`;
+  if (them === "deer") return "Deer have come out of the trees into the";
   if (them === "rabbits" || them === "mice") return `${them[0].toUpperCase()}${them.slice(1)} are at the`;
   return `A flock of ${them} comes down on the`;
 }

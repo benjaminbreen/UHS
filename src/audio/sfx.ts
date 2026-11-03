@@ -835,6 +835,13 @@ export function bumpAnimal(kind: BeastVoice): Sound {
     }
   }
 }
+/** A rabbit's hind foot on the ground: the warning, felt as much as heard. */
+export function thump(): Sound {
+  return [
+    noise(0, 0.05, 0.07, 150, { q: 0.7, attack: 0.003 }),
+    tone(0, 0.07, 0.06, vary(95), { to: 60 }),
+  ];
+}
 /** A cock crowing at first light: three rising notes, then the long one,
  * held and falling away. `near` runs from 0, across the village, to 1. */
 export function cockCrow(near = 1): Sound {

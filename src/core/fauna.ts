@@ -126,6 +126,8 @@ export type FaunaGroup = {
   owner?: string;
   gateId?: string;
   pasture?: Position;
+  /** Burrowers: clock until which they are down the hole, out of sight. */
+  burrowed?: number;
   /** Young: the group of the adults they keep to. */
   follows?: string;
   /** Kept stock: the way worked out to its target, round the crops. */

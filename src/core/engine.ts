@@ -3730,13 +3730,27 @@ export class Engine {
   private bark(groups: FaunaGroup[], clock: number) {
     const p = this.state.player;
     if (p.pos.space !== "outside") return;
+    this.barks = this.barks.filter((b) => clock - b.at < 30);
     for (const g of groups) {
       if (g.speciesId !== "dog" || clock < (this.barked.get(g.id) ?? -Infinity)) continue;
       const owner = g.owner ? this.state.actors.find((a) => a.id === g.owner) : undefined;
       const stranger = g.owner !== "player" && (!owner || (owner.householdId !== p.householdId && owner.trust < WARM));
       const fighter = this.state.actors.find((a) => a.terror?.fight && a.pos.space === "outside" && distance(a.pos, g.pos) < 12);
       const fight = !!fighter;
-      const barking = g.members.filter((m) => fight || (stranger && Math.hypot(m.x - p.pos.x, m.y - p.pos.y) < 6));
+      const near = g.members.filter((m) => fight || (stranger && Math.hypot(m.x - p.pos.x, m.y - p.pos.y) < 6));
+      // At night one dog sets off the next, and the next, down the village.
+      const hour = (clock / 3600) % 24;
+      const answering =
+        !near.length && (hour >= 21 || hour < 5)
+          ? this.barks.find((b) => b.group !== g.id && clock - b.at < 30 && clock - b.at >= 4 && Math.hypot(b.x - g.pos.x, b.y - g.pos.y) < 14)
+          : undefined;
+      const barking = answering ? g.members.slice(0, 1) : near;
+      if (answering) {
+        this.barked.set(g.id, clock + 40 + Math.floor(random(this.state.manifest.seed, "bark", g.id, clock) * 40));
+        this.barks.push({ group: g.id, x: g.pos.x, y: g.pos.y, at: clock });
+        this.signal({ kind: "bark", group: g.id, n: 0 });
+        continue;
+      }
       if (!barking.length) {
         this.noticed.delete(g.id);
         continue;
@@ -3749,6 +3763,7 @@ export class Engine {
       }
       this.barked.set(g.id, clock + 20 + Math.floor(random(this.state.manifest.seed, "bark", g.id, clock) * 20));
       for (const m of barking) this.signal({ kind: "bark", group: g.id, n: g.members.indexOf(m) });
+      this.barks.push({ group: g.id, x: g.pos.x, y: g.pos.y, at: clock });
       // The leader comes out to meet a stranger and stands off a couple of
       // paces, unless it is busy running from or after something.
       const lead = g.members[0], d = Math.hypot(lead.x - p.pos.x, lead.y - p.pos.y);
@@ -8716,6 +8731,8 @@ export class Engine {
   private passed = new Map<string, number>();
   /** When each dog may bark again. */
   private barked = new Map<string, number>();
+  /** Recent barking, for the dogs that answer it. */
+  private barks: { group: string; x: number; y: number; at: number }[] = [];
   /** Dogs that have already looked up at whoever is about. */
   private noticed = new Set<string>();
   /** Who is ordering the player out of their house right now; they shout. */

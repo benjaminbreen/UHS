@@ -141,6 +141,7 @@ import {
   bumpAnimal,
   bumpPerson,
   cockCrow,
+  thump,
   footstep,
   type FungusStep,
   landing,
@@ -645,6 +646,8 @@ export class WorldScene extends Phaser.Scene {
       /** Lying in a wallow: only its back shows above the mud. */
       sunk: boolean;
       young: boolean;
+      /** The one of a feeding herd that keeps its head up. */
+      sentinel: boolean;
     }
   >();
   /** Egrets and crows riding on the backs of grazing stock, by the beast's id. */
@@ -5226,7 +5229,11 @@ export class WorldScene extends Phaser.Scene {
     this.stunned.clear();
     const struck = this.combat().pending(rt.swingEffect, rt.throwEffect);
     for (const g of [...(e.state.fauna ?? []), ...this.testFauna]) {
-      if (Math.abs(g.pos.x - p.x) > range || Math.abs(g.pos.y - p.y) > range)
+      if (
+        Math.abs(g.pos.x - p.x) > range ||
+        Math.abs(g.pos.y - p.y) > range ||
+        (g.burrowed ?? 0) > e.state.clock
+      )
         continue;
       // Four-direction species have an authored frame per facing; the rest
       // are side views flipped for west.
@@ -5306,6 +5313,12 @@ export class WorldScene extends Phaser.Scene {
             (g.state === "rest" || g.state === "idle") &&
             wallowable(w.topography?.(m.x, m.y)),
           young: !!m.young,
+          sentinel:
+            i === 0 &&
+            g.members.length > 1 &&
+            faunaProfile(g.speciesId)?.category === "wild" &&
+            faunaProfile(g.speciesId)?.social === "herd" &&
+            (g.state === "graze" || g.state === "forage"),
         });
       }
     }
@@ -5829,6 +5842,7 @@ export class WorldScene extends Phaser.Scene {
         this.feel.puff(im.x, im.y, FAUNA_DUST, 3);
         if (profile?.locomotion === "ground" && profile.social === "flock")
           this.feel.puff(im.x, im.y - 6, FAUNA_FEATHERS, 4, 0.7);
+        if (profile?.burrows) void gameAudio()?.sound(thump(), "thump");
       }
       if (mood.state !== f.state) mood.began = this.time.now;
       mood.state = f.state;
@@ -5858,6 +5872,7 @@ export class WorldScene extends Phaser.Scene {
       const watching = calm && now >= mood.from && now < mood.until;
       let facing = profile?.directions ? (pose.heading ?? f.facing) : f.facing;
       let state = f.state;
+      if (f.sentinel && !pose.moving) state = "idle";
       if (pose.moving && !STRIDING.has(state)) state = "wander";
       else if (!pose.moving && state === "wander") state = "idle";
       if (watching && player) {

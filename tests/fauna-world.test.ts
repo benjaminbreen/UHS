@@ -364,6 +364,31 @@ describe("fauna behaviour", () => {
     for (let t = 6; t <= 600; t += 6) advanceFauna([hens], sim({ hour: 19 }), t);
     expect(Math.hypot(hens.members[0].x - 10, hens.members[0].y - 10)).toBeLessThanOrEqual(1.5);
   });
+  it("sends a frightened rabbit down its hole, out of sight a while", () => {
+    const rabbits = group("rabbit", 13, 10);
+    rabbits.home = { x: 10, y: 10, space: "outside" };
+    const world = sim({ humans: [{ x: 16, y: 10, space: "outside" }] });
+    let down = 0;
+    for (let t = 6; t <= 120 && !down; t += 6) {
+      advanceFauna([rabbits], world, t);
+      if ((rabbits.burrowed ?? 0) > t) down = t;
+    }
+    expect(down).toBeGreaterThan(0);
+    const at = { ...rabbits.members[0] };
+    advanceFauna([rabbits], world, down + 6);
+    expect(rabbits.members[0]).toEqual(at);
+  });
+  it("puts a grazing herd's heads up when something close by bolts", () => {
+    const deer = group("red-deer", 10, 10);
+    deer.state = "graze";
+    const flushed = group("rabbit", 18, 10);
+    flushed.id = "g-flushed";
+    flushed.state = "flee";
+    flushed.since = 0;
+    advanceFauna([deer, flushed], sim(), 6);
+    expect(deer.state).toBe("idle");
+    expect(deer.members[0].direction).toBe(1);
+  });
   it("keeps a calf at its mother's side", () => {
     const herd = group("cattle", 10, 10);
     herd.state = "graze";

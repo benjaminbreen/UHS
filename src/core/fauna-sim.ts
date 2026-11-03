@@ -101,6 +101,10 @@ const WINDED = 0.55;
  * spacing, crowding. Past it a group moves on the cheap rules, since nobody
  * is close enough to see the difference. */
 const DETAIL = 36;
+/** Seconds a hunter leaves off after its quarry has gone down a hole. */
+const GONE_TO_GROUND = 3 * 3600;
+/** Cells within which one animal bolting puts every other head up. */
+const HEARD = 12;
 /** How far one group's presence puts another off a patch of ground. */
 const ELBOW = 8;
 /** Where a flock settles round its leader's landing cell. */
@@ -873,6 +877,7 @@ function chooseQuarry(
     (h) =>
       h.group.members.length &&
       h.group.id !== g.id &&
+      (h.group.burrowed ?? 0) <= clock &&
       h.profile.prey &&
       p.preyTags!.includes(h.profile.prey) &&
       hyp(h.group.pos, g.pos) <= range,
@@ -1055,9 +1060,25 @@ export function advanceFauna(
       : [];
   const player = world.humans[0];
   const crowd = groups.map((o) => o.pos);
+  // Whatever was already running when the tick began: the alarm calls and
+  // the crash of it going carry to everything round about.
+  const startled = groups
+    .filter((o) => o.state === "flee" || o.state === "takeoff")
+    .map((o) => ({ id: o.id, x: o.pos.x, y: o.pos.y }));
   for (const g of [...groups].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const p = faunaProfile(g.speciesId);
     if (!p || !g.members.length) continue;
+    if (g.burrowed !== undefined) {
+      // It does not come up while whatever sent it down is still about.
+      const about =
+        nearestThreat(world.humans, g.pos, p.alertRadius) ||
+        groups.some((o) => !!faunaProfile(o.speciesId)?.preyTags?.length && hyp(o.pos, g.pos) < p.alertRadius * 2);
+      if (g.burrowed > clock || about) {
+        if (about) g.burrowed = Math.max(g.burrowed, clock + 30);
+        continue;
+      }
+      g.burrowed = undefined;
+    }
     // A gander does not wait to be struck: come onto its ground and it comes for you.
     if (
       p.defends &&
@@ -1088,7 +1109,10 @@ export function advanceFauna(
     const airborne = aerialStates.has(g.state);
     // Struck by a person: even a kept animal runs, and from further off.
     const hurt = (g.hurtUntil ?? 0) > clock;
-    const radius = hurt ? Math.max(p.alertRadius, 10) : alertRadius(p);
+    const heard = p.preyTags?.length
+      ? undefined
+      : startled.find((s) => s.id !== g.id && hyp(s, g.pos) < HEARD);
+    const radius = (hurt ? Math.max(p.alertRadius, 10) : alertRadius(p)) * (heard && !kept ? 2 : 1);
     // A hurt animal is past being crept up on.
     const noise = hurt ? 1 : (world.noise ?? 1);
     // A kept animal's shove-width radius is too tight for a dog in the flock.
@@ -1136,6 +1160,14 @@ export function advanceFauna(
         g.state = p.art.idle ? "idle" : p.art.perch ? "perch" : "rest";
         g.since = clock;
       }
+    }
+    // Nothing in sight, but something nearby went: heads come up toward it.
+    if (heard && !threat && !airborne && (g.state === "graze" || g.state === "forage") && p.art.idle) {
+      g.state = "idle";
+      g.since = clock;
+      g.nextDecisionAt = Math.max(g.nextDecisionAt, clock + 2 * TICK);
+      for (const m of g.members) face(m, heard.x - m.x, heard.y - m.y, turns);
+      if (near) cue(world, g, nearestTo(g, heard), "notice", heard);
     }
     // Watching: the group holds still with its head turned. It only breaks
     // once the thing is inside the band, and only after its own beat.
@@ -1326,8 +1358,12 @@ export function advanceFauna(
         let moved = false;
         // Nearest first: the animal with the thing on its heels picks its cell
         // before the ones behind take the ground it needed.
+        // A rabbit makes for its hole unless the trouble is between them.
+        const hole = p.burrows && hyp(g.home, threat) > hyp(leader, threat) ? g.home : undefined;
         for (const m of bolting!) {
-          const to = bestStep(world, p, taken, m, threat, true, refuge);
+          const to = hole
+            ? bestStep(world, p, taken, m, hole, false)
+            : bestStep(world, p, taken, m, threat, true, refuge);
           if (to) {
             moveMember(m, to, taken, turns);
             moved = true;
@@ -1462,6 +1498,20 @@ export function advanceFauna(
         }
         steps = 0;
       } else steps = 0;
+    }
+    if (p.burrows && g.state === "flee" && hyp(leader, g.home) <= 1.5) {
+      g.burrowed = clock + 120 + world.rng(`fauna-${g.id}-burrow`) * 180;
+      // Gone to ground: whatever was after it gives up and goes elsewhere.
+      for (const o of groups)
+        if (o.quarry === g.id) {
+          o.quarry = undefined;
+          o.fedUntil = Math.max(o.fedUntil ?? 0, clock + GONE_TO_GROUND);
+        }
+      g.state = "rest";
+      g.panic = 0;
+      g.alarm = undefined;
+      g.since = clock;
+      g.nextDecisionAt = g.burrowed;
     }
     if (p.wallows && world.topography && (g.state === "rest" || g.state === "idle"))
       for (const m of g.members)
