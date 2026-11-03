@@ -32,6 +32,8 @@ or Persian builders, with the footprint the new sprite stands on;
     steppe-*, forager-shelter-*, house-{round,rondavel,pit,dome,tent}*, the lodges, camp-*
                                       front_huts: tents, huts and lodges at their own
                                       footprint, the entrance under the painted door
+    house-mudbrick-*                  front_mudbrick: early mud-brick houses, one look per
+                                      region, the entrance under the painted door
 
 Footprints widen by SCALE, as the European houses' do: these are drawn at
 the adult's scale, where the old frames were drawn small.
@@ -49,7 +51,7 @@ from art import front_roman as rome  # noqa: E402
 from art import front_persian as persia  # noqa: E402
 from art import front_westasia as wa  # noqa: E402
 from art import front_sinitic as sino  # noqa: E402
-from art import front_africa, front_seasia, front_andes, front_pacific, front_southasia, front_huts  # noqa: E402
+from art import front_africa, front_seasia, front_andes, front_pacific, front_southasia, front_huts, front_mudbrick  # noqa: E402
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
 from art.front_materials import lit  # noqa: E402
 
@@ -249,6 +251,7 @@ def adopt(recipes):
     persian_civic(recipes)
     from art.front_classical import game_recipes
     game_recipes(recipes)
+    front_mudbrick.game_recipes(recipes)
     n = 0
     for name, r in recipes.items():
         if r.get('frontAncient'):
@@ -294,6 +297,7 @@ BUILDERS = {
     **front_africa.BUILDERS,
     **front_southasia.BUILDERS,
     **{f'hut-{k}': v for k, v in front_huts.BUILDERS.items()},
+    **front_mudbrick.BUILDERS,
     **front_seasia.BUILDERS,
     **front_andes.BUILDERS,
     **front_pacific.BUILDERS,

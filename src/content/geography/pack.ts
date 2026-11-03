@@ -133,7 +133,7 @@ export function modernBuildings(setting: WorldSetting): string[] {
  * it stood on every inhabited continent; the rest are the forms the
  * excavated record is clearest about. Inferred and illustrative. */
 function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
-  const { year, culture, climate, architecture } = setting;
+  const { year, culture, climate, architecture, lon, lat } = setting;
   if (year >= -800) return;
   const round = [
     "house-round-0",
@@ -153,6 +153,19 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
     "house-mudbrick-ob-gold-medium-1",
     "house-mudbrick-ob-gold-large-0",
   ];
+  // Each region's own early house where the excavations show one: the
+  // roof-entered cells of Çatalhöyük, Deir el-Medina's whitewash, the Levant's
+  // pillared house, Mohenjo-daro's brick. Mesopotamia's is the shared default.
+  const regional = (look: string) =>
+    ["small-0", "small-1", "small-2", "medium-0", "medium-1", "large-0"].map((v) => `house-mudbrick-${look}-${v}`);
+  const mudbrickHere =
+    year < -5500
+      ? regional("catal")
+      : lon > 24 && lon < 34 && lat < 31.4
+        ? regional("egypt")
+        : lon >= 34 && lon < 38.5 && lat > 29 && lat < 37
+          ? regional("levant")
+          : mudbrick;
   const dome = [
     "house-dome-0",
     "house-dome-1",
@@ -199,7 +212,7 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
     "neolithic-service-gold-small-1",
     "neolithic-service-gold-small-2",
   ];
-  if (culture === "north-african-west-asian") return mudbrick;
+  if (culture === "north-african-west-asian") return mudbrickHere;
   if (architecture === "shelter") {
     if (culture === "australian-pacific") return;
     return culture === "inner-eurasian" ||
@@ -230,7 +243,7 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
       return [...pit, "house-round-2"];
     case "south-asian":
       return year >= -3300
-        ? ["house-mudbrick-ob-0", "house-mudbrick-ob-2", "house-round-0"]
+        ? [...regional("indus"), "house-round-0"]
         : round;
     case "west-central-african":
     case "east-southern-african":

@@ -193,6 +193,18 @@ def huts():
         yield f'hut-{name}', im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), None, []
 
 
+def mudbrick():
+    """The early mud-brick houses. A Çatalhöyük house has no door, only the
+    ladder to its roof, so its door rule is off."""
+    from types import SimpleNamespace
+    from art import front_mudbrick
+    for name, kind, spec in front_mudbrick.STUDIES:
+        info = {}
+        im = front_mudbrick.BUILDERS[kind](spec, info)
+        yield (f'mudbrick-{name}', im, SimpleNamespace(roof_span=(0, im.width), stacks=[]),
+               None if spec['look'] == 'catal' else info['door_h'], [])
+
+
 def worksites():
     from types import SimpleNamespace
     from art.front_worksites import worksite_recipes, FrontWorksitePainter
@@ -206,7 +218,7 @@ def audit():
     faults = ramp_faults()
     n = 0
     from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), worksites()):
+    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), worksites()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1
