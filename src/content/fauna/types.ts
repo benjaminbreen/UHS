@@ -100,6 +100,9 @@ export type FaunaProfile = {
    * and is mirrored for west; one with it has art authored per direction. */
   directions?: readonly FaunaFacing[];
   art: Partial<Record<FaunaState, readonly string[]>>;
+  /** Cells the drawn body reaches past its own: either side, and rows behind.
+   * A buffalo is three cells long; two stood a cell apart are one blob. */
+  body?: readonly [number, number];
 };
 
 /** Old World stock in the Americas: landed with Columbus in the Caribbean,
@@ -158,7 +161,7 @@ export function directionalStudy(
     | keyof typeof studiesF
     | keyof typeof studiesG
     | keyof typeof studiesU,
-): Pick<FaunaProfile, "art" | "palette" | "directions"> {
+): Pick<FaunaProfile, "art" | "palette" | "directions" | "body"> {
   const [set, studies] = (
     [
       ["faunam", studiesM],
@@ -172,11 +175,20 @@ export function directionalStudy(
   const study = (
     studies as Record<
       string,
-      { palette: string[]; states: Record<string, number>; directions: string[] }
+      {
+        palette: string[];
+        states: Record<string, number>;
+        directions: string[];
+        size: number[];
+        standing?: number[];
+      }
     >
   )[species];
+  const [w, h] = [study.size[0], (study.standing ?? study.size)[1]];
   return {
     palette: study.palette,
+    // Pixels at 16 a cell, less a margin: animals in a herd may touch.
+    body: [Math.floor((w - 8) / 32), Math.floor((h - 8) / 24)],
     directions: study.directions as readonly FaunaFacing[],
     art: Object.fromEntries(
       Object.entries(study.states).map(([state, count]) => [

@@ -291,6 +291,37 @@ describe("fauna behaviour", () => {
     for (let t = 6; t <= 240; t += 6) advanceFauna([herd], world, t);
     expect(herd.members[0].y).toBeGreaterThan(16);
   });
+  it("walks kept stock round a field to its pasture, not through it", () => {
+    const herd = group("cattle", 10, 10);
+    herd.gateId = "gate";
+    herd.pasture = { x: 10, y: 30, space: "outside" };
+    herd.nextDecisionAt = 0;
+    // The field lies square across the way, with a lane round its east end.
+    const crop = (x: number, y: number) => y >= 16 && y <= 24 && x >= 0 && x <= 20;
+    const world = sim({ gateOpen: () => true, hour: 9, crop });
+    for (let t = 6; t <= 1800; t += 6) {
+      advanceFauna([herd], world, t);
+      expect(crop(herd.members[0].x, herd.members[0].y)).toBe(false);
+    }
+    expect(herd.members[0].y).toBeGreaterThan(26);
+  });
+  it("keeps buffalo out of the crop and out of each other's bodies", () => {
+    const herds = [0, 1].map((k) => {
+      const g = group("water-buffalo", 10 + k * 4, 10);
+      g.id += k;
+      g.members = [0, 1, 2].map((i) => ({ x: 10 + k * 4, y: 10 + i * 3, direction: 1 as const }));
+      g.homeRadius = 15;
+      g.nextDecisionAt = 0;
+      return g;
+    });
+    const world = sim({ crop: (x) => x >= 18 });
+    for (let t = 6; t <= 3600; t += 6) advanceFauna(herds, world, t);
+    const all = herds.flatMap((g) => g.members);
+    expect(all.every((m) => m.x < 18)).toBe(true);
+    for (const a of all)
+      for (const b of all)
+        if (a !== b) expect(Math.abs(a.x - b.x) > 2 || Math.abs(a.y - b.y) > 1).toBe(true);
+  });
 });
 
 describe("fauna hunting", () => {

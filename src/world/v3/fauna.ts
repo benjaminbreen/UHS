@@ -83,6 +83,19 @@ function weightsFor(speciesId: string) {
   return w;
 }
 
+/** A crop in the ground: sown, green or ripe. Pasture, fallow, bare tilth
+ * and stubble are open to stock, as they were. */
+export function standingCrop(world: WorldModel, x: number, y: number) {
+  const f = world.topography?.(x, y)?.field;
+  return (
+    !!f &&
+    !f.ditch &&
+    f.crop !== "pasture" &&
+    f.crop !== "fallow" &&
+    (f.stage === "sown" || f.stage === "green" || f.stage === "ripe")
+  );
+}
+
 /** How well a cell suits a species, 0 to 1. The sim asks this for every cell
  * an animal might step on, so the tags of a cell are worked out once and kept
  * as a bitmask; terrain does not change under us. The cache is thrown away

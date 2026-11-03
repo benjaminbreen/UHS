@@ -1,4 +1,4 @@
-import type { Position } from "./types";
+import type { Point, Position } from "./types";
 
 export const faunaStates = [
   "idle",
@@ -120,6 +120,8 @@ export type FaunaGroup = {
   owner?: string;
   gateId?: string;
   pasture?: Position;
+  /** Kept stock: the way worked out to its target, round the crops. */
+  route?: Point[];
   /** Being brought in: home through the open gate rather than out of it. */
   fold?: boolean;
   /** Come down on a crop: the cell it went for, and how it has gone. */

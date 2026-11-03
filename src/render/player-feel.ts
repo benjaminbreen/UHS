@@ -191,6 +191,32 @@ export class PlayerFeel {
     }
   }
 
+  /** Dust hanging low behind something walking: fainter and slower than a
+   * puff, it spreads and thins over a second or two. */
+  trail(x: number, y: number, palette: number[]) {
+    const rect = this.scene.add
+      .rectangle(
+        x + (Math.random() - 0.5) * 10,
+        y - 1 - Math.random() * 2,
+        4,
+        3,
+        palette[Math.floor(Math.random() * palette.length)],
+      )
+      .setAlpha(0.4)
+      .setDepth(y + 4000);
+    this.scene.tweens.add({
+      targets: rect,
+      x: rect.x + (Math.random() - 0.5) * 12,
+      y: rect.y - 5 - Math.random() * 6,
+      scaleX: 2.5,
+      scaleY: 2,
+      alpha: 0,
+      duration: 1400 + Math.random() * 700,
+      ease: "Sine.easeOut",
+      onComplete: () => rect.destroy(),
+    });
+  }
+
   /** True on the frame a run comes to rest. */
   stoppedRun(running: boolean, moving: boolean, time: number) {
     // Shift usually comes up a moment before the last step finishes.

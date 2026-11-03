@@ -75,6 +75,8 @@ const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
 /** The sling hand overhead, from the player sprite's origin; tuned by eye. */
 const WHIRL_HAND = { x: 7, y: -33 };
 const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
+/** Dust in a low sun, gold rather than grey. */
+const DUSK_DUST = [0xe2b878, 0xcf9d62, 0xf2d29a];
 /** Sun strength below which shadows are cloud-soft: overcast, mist, rain, snow. */
 const CLOUDED = 0.5;
 /** States whose art already shows the animal travelling. */
@@ -5811,6 +5813,22 @@ export class WorldScene extends Phaser.Scene {
         facing,
         pose.moving && !aerial
           ? pose.travelled / (URGENT.has(state) ? pace * 1.6 : pace)
+      // Godhuli, the cow-dust hour: stock walking home at sundown raises a
+      // haze off dry lanes that catches the light.
+      if (pose.moving && !aerial && dt && profile?.category === "domestic" && profile.art.graze) {
+        const hour = (this.runtime.displayClock() / 3600) % 24;
+        const ground = topo?.(Math.floor(pose.x / 16), Math.floor((pose.y - 8) / 16));
+        if (
+          hour >= 16.5 &&
+          hour < 19 &&
+          (this.weather?.wetness ?? 0) < 0.3 &&
+          ground &&
+          (ground.surface === "dry" || ground.surface === "soil" || ground.surface === "gravel") &&
+          !ground.field?.wet &&
+          Math.random() < dt * 5
+        )
+          this.feel.trail(pose.x, pose.y, DUSK_DUST);
+      }
           : undefined,
         f.art,
         mood.began,

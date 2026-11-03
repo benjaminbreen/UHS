@@ -43,6 +43,8 @@ export type FaunaWorld = {
   /** A hunter home with what it carried: a fox eats it at the den, a cat
    * leaves it on the step. */
   onDrop?(hunter: FaunaGroup, prey: string, at: Point): void;
+  /** A crop sown or standing. Kept grazers are walked round it. */
+  crop?(x: number, y: number): boolean;
   /** Ground an animal could dig: soil, not paving, water or a crop. */
   canDig?(x: number, y: number): boolean;
   /** It has been at it long enough to leave a hole. */
@@ -110,6 +112,103 @@ const SPREAD: readonly [number, number][] = [
   [-1, -1],
 ];
 const hyp = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+
+/** Stock let into the standing corn is the thing a herder is there to stop. */
+const keptOff = (world: FaunaWorld, p: FaunaProfile, at: Point) =>
+  p.category === "domestic" && !!p.art.graze && !!world.crop?.(at.x, at.y);
+
+/** Cells a route search will open before giving up and walking straight. */
+const ROUTE_SEARCH = 4000;
+
+/** The way from `from` to `to` for stock that must not cross the crops, by
+ * breadth-first search over cells it may step on. Undefined when there is no
+ * way within the search, and the animal walks straight at it instead. */
+function route(world: FaunaWorld, p: FaunaProfile, from: Point, to: Point) {
+  const key = (c: Point) => `${c.x},${c.y}`;
+  const came = new Map<string, Point | null>([[key(from), null]]);
+  const queue: Point[] = [from];
+  for (let i = 0; i < queue.length && came.size < ROUTE_SEARCH; i++) {
+    const at = queue[i];
+    if (at.x === to.x && at.y === to.y) {
+      const path: Point[] = [];
+      for (let c: Point | null = at; c && c !== from; c = came.get(key(c))!)
+        path.unshift({ x: c.x, y: c.y });
+      return path;
+    }
+    for (const n of NEIGHBOURS) {
+      const next = { x: at.x + n.x, y: at.y + n.y };
+      const k = key(next);
+      if (came.has(k)) continue;
+      const goal = next.x === to.x && next.y === to.y;
+      if (!goal && keptOff(world, p, next)) continue;
+      if (!stepAllowed(world, p, at, next)) continue;
+      came.set(k, at);
+      queue.push(next);
+    }
+  }
+  return undefined;
+}
+
+/** Where the leader steps for next: the next cell of its route for kept
+ * grazers, the target itself for everything else. */
+function waypoint(world: FaunaWorld, p: FaunaProfile, g: FaunaGroup, leader: Point) {
+  const target = g.target!;
+  if (p.category !== "domestic" || !p.art.graze) return target;
+  const end = g.route?.[g.route.length - 1];
+  if (!end || end.x !== target.x || end.y !== target.y)
+    g.route = route(world, p, leader, target);
+  const r = g.route;
+  if (!r?.length) return target;
+  // Shoved off its line by the others, it picks the route up further on.
+  let near = 0;
+  for (let i = 0; i < Math.min(r.length, 8); i++)
+    if (hyp(r[i], leader) < hyp(r[near], leader)) near = i;
+  if (hyp(r[near], leader) > 3) {
+    g.route = route(world, p, leader, target);
+    return g.route?.[0] ?? target;
+  }
+  r.splice(0, hyp(r[near], leader) < 1 ? near + 1 : near);
+  return r[0] ?? target;
+}
+
+/** The cells every animal's body covers this tick, so a buffalo cannot stand
+ * in the one beside it, whichever herd either belongs to. */
+class Bodies {
+  private count = new Map<string, number>();
+  private reach = new Map<FaunaMember, readonly [number, number]>();
+  place(m: FaunaMember, body: readonly [number, number] = [0, 0]) {
+    this.reach.set(m, body);
+    this.mark(m, 1);
+  }
+  lift(m: FaunaMember) {
+    this.mark(m, -1);
+  }
+  put(m: FaunaMember) {
+    this.mark(m, 1);
+  }
+  /** Whether `m` standing on `to` would overlap anyone else. */
+  blocks(m: FaunaMember, to: Point) {
+    const [rx, ry] = this.reach.get(m) ?? [0, 0];
+    for (let dy = -ry; dy <= 0; dy++)
+      for (let dx = -rx; dx <= rx; dx++) {
+        const x = to.x + dx,
+          y = to.y + dy;
+        const own = Math.abs(x - m.x) <= rx && y <= m.y && y >= m.y - ry ? 1 : 0;
+        if ((this.count.get(`${x},${y}`) ?? 0) > own) return true;
+      }
+    return false;
+  }
+  private mark(m: FaunaMember, d: number) {
+    const [rx, ry] = this.reach.get(m) ?? [0, 0];
+    for (let dy = -ry; dy <= 0; dy++)
+      for (let dx = -rx; dx <= rx; dx++) {
+        const k = `${m.x + dx},${m.y + dy}`;
+        const n = (this.count.get(k) ?? 0) + d;
+        if (n > 0) this.count.set(k, n);
+        else this.count.delete(k);
+      }
+  }
+}
 
 /** Ground rules for one step. A person scrambles up a terrace and drops off
  * any edge; most animals keep to their level unless a slope joins the two.
@@ -183,6 +282,9 @@ function standing(p: FaunaProfile, state: FaunaState) {
   );
 }
 
+/** Grazing stock eat morning and evening and lie up through the heat. */
+const midday = (hour: number) => hour >= 11 && hour < 15;
+
 function resting(p: FaunaProfile, hour: number) {
   const night = hour < 6 || hour >= 20;
   const twilight = (hour >= 5 && hour < 8) || (hour >= 17 && hour < 20);
@@ -236,6 +338,8 @@ function freeCellNear(
       world.occupied(c.x, c.y)
     )
       continue;
+    const profile = species ? faunaProfile(species) : undefined;
+    if (profile && keptOff(world, profile, c)) continue;
     if (!scored) return c;
     let score = species && world.habitat ? world.habitat(species, c.x, c.y) : 0;
     if (crowd)
@@ -283,7 +387,9 @@ function decide(
     } else if (out) {
       const local = freeCellNear(world, goal, 3, `fauna-${g.id}-graze`, p.id);
       g.state = pick(world, `fauna-${g.id}-state`, [
-        [feed, 5],
+        [feed, midday(world.hour) ? 2 : 5],
+        // Lying up through the heat, chewing the cud.
+        [doze, midday(world.hour) ? 4 : 0],
         ["idle", 2],
         ["wander", local ? 2 : 0],
       ]);
@@ -330,8 +436,9 @@ function decide(
     crowd,
   );
   const tired = resting(p, world.hour);
+  const lying = p.category === "domestic" && !!p.art.graze && midday(world.hour);
   g.state = pick(world, `fauna-${g.id}-state`, [
-    [doze, tired ? 7 : 1],
+    [doze, tired ? 7 : lying ? 4 : 1],
     ["idle", 2],
     [feed, tired ? 1 : 4],
     // A dog after a smell, a wolf opening a den or a cache.
@@ -367,7 +474,7 @@ type Refuge = { cover: number; home: Point };
 function bestStep(
   world: FaunaWorld,
   p: FaunaProfile,
-  taken: Set<string>,
+  taken: Bodies,
   m: FaunaMember,
   ref: Point,
   away: boolean,
@@ -375,7 +482,8 @@ function bestStep(
 ) {
   const pull = refuge && world.habitat ? refuge : undefined;
   const score = (at: Point) => {
-    const d = away ? hyp(at, ref) : -hyp(at, ref);
+    // Going round a field is a few steps; through it, more than it is worth.
+    const d = (away ? hyp(at, ref) : -hyp(at, ref)) - (keptOff(world, p, at) ? 2 : 0);
     if (!pull) return d;
     return (
       d +
@@ -388,7 +496,7 @@ function bestStep(
   let ties = 0;
   for (const n of NEIGHBOURS) {
     const to = { x: m.x + n.x, y: m.y + n.y };
-    if (taken.has(`${to.x},${to.y}`) || world.occupied(to.x, to.y)) continue;
+    if (taken.blocks(m, to) || world.occupied(to.x, to.y)) continue;
     if (!stepAllowed(world, p, m, to)) continue;
     const d = score(to);
     const better = d > bestD + 1e-6;
@@ -402,20 +510,27 @@ function bestStep(
   return best;
 }
 
-/** Followers keep station: give way when a neighbour is on top of them, close
- * up when the leader gets ahead. A herd holds its shape instead of trailing
- * the leader in a line. Only run for groups near the player; further off the
- * cheap follow does. */
+/** Followers keep station: give way when a neighbour is on top of them, and
+ * on the move fall in behind the leader, staggered, the way stock walks a
+ * lane. Only run for groups near the player; further off the cheap follow
+ * does. */
 function keepStation(
   world: FaunaWorld,
   p: FaunaProfile,
   g: FaunaGroup,
-  taken: Set<string>,
+  taken: Bodies,
   turns: boolean,
+  ahead?: Point,
 ) {
   const leader = g.members[0];
-  for (const m of g.members) {
-    if (m === leader) continue;
+  const [rx, ry] = p.body ?? [0, 0];
+  const len = ahead ? hyp(ahead, leader) : 0;
+  const ux = len ? (ahead!.x - leader.x) / len : 0,
+    uy = len ? (ahead!.y - leader.y) / len : 0;
+  // Nose to tail: a body's length across, its depth up and down.
+  const gap = Math.max(2, Math.abs(ux) * (2 * rx + 1) + Math.abs(uy) * (ry + 2));
+  g.members.forEach((m, i) => {
+    if (m === leader) return;
     let crowdedBy: FaunaMember | undefined,
       nearest = p.separationRadius;
     for (const o of g.members) {
@@ -426,13 +541,24 @@ function keepStation(
         nearest = d;
       }
     }
+    const side = i % 2 ? 0.6 : -0.6;
+    const slot = len
+      ? {
+          x: Math.round(leader.x - ux * gap * i - uy * side),
+          y: Math.round(leader.y - uy * gap * i + ux * side),
+        }
+      : undefined;
     const to = crowdedBy
       ? bestStep(world, p, taken, m, crowdedBy, true)
-      : hyp(m, leader) > p.cohesionRadius * 0.7
-        ? bestStep(world, p, taken, m, leader, false)
-        : undefined;
+      : slot
+        ? hyp(m, slot) > 1.5
+          ? bestStep(world, p, taken, m, slot, false)
+          : undefined
+        : hyp(m, leader) > p.cohesionRadius * 0.7
+          ? bestStep(world, p, taken, m, leader, false)
+          : undefined;
     if (to) moveMember(m, to, taken, turns);
-  }
+  });
 }
 
 /** The tick being run, so a move can tell whether the animal is still reeling. */
@@ -441,7 +567,7 @@ let now = 0;
 function moveMember(
   m: FaunaMember,
   to: Point,
-  taken: Set<string>,
+  taken: Bodies,
   all = false,
 ) {
   if ((m.stun ?? 0) > now) return;
@@ -449,11 +575,11 @@ function moveMember(
   // kept, because the sprite is still coming from there.
   if (!m.trail || m.trail.until <= now)
     m.trail = { x: m.x, y: m.y, until: now + TRAIL };
-  taken.delete(`${m.x},${m.y}`);
+  taken.lift(m);
   face(m, to.x - m.x, to.y - m.y, all);
   m.x = to.x;
   m.y = to.y;
-  taken.add(`${m.x},${m.y}`);
+  taken.put(m);
 }
 
 /** A mark over one animal's head: "!" when it bolts or is struck, "?" when
@@ -492,7 +618,7 @@ function run(
   combat: FaunaCombat,
   world: FaunaWorld,
   clock: number,
-  taken: Set<string>,
+  taken: Bodies,
   target: Point,
   reach: number,
 ) {
@@ -529,7 +655,7 @@ function run(
       return rest(12);
     }
     if (
-      taken.has(`${next.x},${next.y}`) ||
+      taken.blocks(m, next) ||
       world.occupied(next.x, next.y) ||
       !stepAllowed(world, p, m, next)
     ) {
@@ -557,7 +683,7 @@ function fight(
   p: FaunaProfile,
   world: FaunaWorld,
   clock: number,
-  taken: Set<string>,
+  taken: Bodies,
 ) {
   const target = world.humans[0];
   const lead = g.members[0];
@@ -713,14 +839,14 @@ function pounce(
   victim: FaunaMember,
   world: FaunaWorld,
   clock: number,
-  taken: Set<string>,
+  taken: Bodies,
   turns: boolean,
 ) {
   const lead = g.members[0];
   const land = NEIGHBOURS.map((n) => ({ x: victim.x + n.x, y: victim.y + n.y }))
     .filter(
       (c) =>
-        !taken.has(`${c.x},${c.y}`) &&
+        !taken.blocks(lead, c) &&
         !world.occupied(c.x, c.y) &&
         stepAllowed(world, p, lead, c),
     )
@@ -755,7 +881,7 @@ function take(
   groups: FaunaGroup[],
   world: FaunaWorld,
   clock: number,
-  taken: Set<string>,
+  taken: Bodies,
 ) {
   const { group, n } = g.catching!;
   g.catching = undefined;
@@ -763,7 +889,7 @@ function take(
   const i = held ? held.members.findIndex((m, k) => (m.n ?? k) === n) : -1;
   if (held && i >= 0) {
     const [dead] = held.members.splice(i, 1);
-    taken.delete(`${dead.x},${dead.y}`);
+    taken.lift(dead);
     const next = held.members[0];
     if (next) held.pos = { x: next.x, y: next.y, space: "outside" };
     held.target = undefined;
@@ -800,8 +926,11 @@ export function advanceFauna(
   clock: number,
 ) {
   now = clock;
-  const taken = new Set<string>();
-  for (const g of groups) for (const m of g.members) taken.add(`${m.x},${m.y}`);
+  const taken = new Bodies();
+  for (const g of groups) {
+    const body = faunaProfile(g.speciesId)?.body;
+    for (const m of g.members) taken.place(m, body);
+  }
   const herds = groups
     .map((group) => ({ group, profile: faunaProfile(group.speciesId) }))
     .filter(
@@ -1124,10 +1253,12 @@ export function advanceFauna(
       } else if (watching) {
         steps = 0;
       } else if (g.target && !airborne) {
-        const to = bestStep(world, p, taken, leader, g.target, false);
+        const ahead = waypoint(world, p, g, leader);
+        const to = bestStep(world, p, taken, leader, ahead, false);
         if (to) moveMember(leader, to, taken, turns);
         if (!quarry && (!to || hyp(leader, g.target) < 1)) {
           g.target = undefined;
+          g.route = undefined;
           if (g.carrying) {
             world.onDrop?.(g, g.carrying, { x: leader.x, y: leader.y });
             g.carrying = undefined;
@@ -1140,7 +1271,7 @@ export function advanceFauna(
           }
           steps = 0;
         }
-        if (near) keepStation(world, p, g, taken, turns);
+        if (near) keepStation(world, p, g, taken, turns, ahead);
         else {
           const follow = Math.max(1.6, p.separationRadius + 0.6);
           for (const m of g.members.slice(1))
@@ -1166,7 +1297,7 @@ export function advanceFauna(
                 (to) =>
                   hyp(to, from) > hyp(m, from) &&
                   hyp(to, g.home) <= g.homeRadius + 2 &&
-                  !taken.has(`${to.x},${to.y}`) &&
+                  !taken.blocks(m, to) &&
                   !world.occupied(to.x, to.y) &&
                   stepAllowed(world, p, m, to),
               )
@@ -1175,12 +1306,25 @@ export function advanceFauna(
               moveMember(m, away, taken, turns);
             continue;
           }
-          // Each on its own beat, off the shared rng so nothing else shifts.
+          // Off the crop first, then back to the others if the walk strung
+          // them out; only then the idle shuffle.
+          const back = keptOff(world, p, m)
+            ? bestStep(world, p, taken, m, g.home, false)
+            : p.social === "herd" && hyp(m, leader) > p.cohesionRadius + 1
+              ? bestStep(world, p, taken, m, leader, false)
+              : undefined;
+          if (back) {
+            moveMember(m, back, taken, turns);
+            continue;
+          }
+          // Each on its own beat and its own period, off the shared rng so
+          // nothing else shifts and no two turn in step.
+          const period = 13 + (((m.n ?? 0) * 5) % 11);
           const beat = Math.floor(clock / TICK) + (m.n ?? 0) * 7;
-          if (beat % 17 === 0)
+          if (beat % period === 0)
             m.direction = turns
-              ? (((beat / 17) % 4) as FaunaMember["direction"])
-              : (beat / 17) % 2
+              ? (Math.floor(beat / period) % 4 as FaunaMember["direction"])
+              : Math.floor(beat / period) % 2
                 ? 1
                 : 3;
           if (world.rng(`fauna-${g.id}-drift`) >= drift) continue;
@@ -1190,7 +1334,8 @@ export function advanceFauna(
           if (
             hyp(to, leader) <= p.cohesionRadius &&
             hyp(to, g.home) <= g.homeRadius + 1 &&
-            !taken.has(`${to.x},${to.y}`) &&
+            !keptOff(world, p, to) &&
+            !taken.blocks(m, to) &&
             !world.occupied(to.x, to.y) &&
             stepAllowed(world, p, m, to)
           )
@@ -1206,7 +1351,7 @@ export function advanceFauna(
       );
       if (hit >= 0 && world.rng(`fauna-${g.id}-hold`) < HOLD) {
         const [dead] = quarry.members.splice(hit, 1);
-        taken.delete(`${dead.x},${dead.y}`);
+        taken.lift(dead);
         const next = quarry.members[0];
         if (next) quarry.pos = { x: next.x, y: next.y, space: "outside" };
         quarry.target = undefined;

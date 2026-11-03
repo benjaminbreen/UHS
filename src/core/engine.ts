@@ -162,7 +162,7 @@ import {
   type SkillId,
 } from "./skills";
 import { optionsAt, pendingPicks, technique, TIERS as TECHNIQUE_TIERS, type TechniqueId } from "./techniques";
-import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
+import { faunaBlockOf, habitatScorer, standingCrop } from "../world/v3/fauna";
 import { herdNoun, herdWords, keptSpecies } from "../content/fauna/herding";
 import { crops, pickable } from "../content/agriculture/crops";
 import { cropStage } from "../content/agriculture";
@@ -6956,6 +6956,7 @@ export class Engine {
             remainsObject(kind, prey.speciesId, g.speciesId, pos, clock, `remains-${prey.id}-${clock}`),
           );
         },
+        crop: (x, y) => standingCrop(this.world, x, y),
         canDig: (x, y) =>
           !this.state.tiles?.[tileKey(x, y)]?.dug &&
           !this.cropAt(x, y) &&
