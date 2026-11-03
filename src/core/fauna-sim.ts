@@ -45,6 +45,8 @@ export type FaunaWorld = {
   onDrop?(hunter: FaunaGroup, prey: string, at: Point): void;
   /** Rain or snow falling: grazers stand bunched, rumps to the wind. */
   rain?: boolean;
+  /** Carcasses lying out, for the scavengers. */
+  carrion?: readonly Point[];
   /** Where the wind blows toward, in screen radians: 0 is east. */
   wind?: number;
   /** A crop sown or standing. Kept grazers are walked round it. */
@@ -296,6 +298,8 @@ const roosting = (p: FaunaProfile, hour: number) =>
 
 /** Grazing stock eat morning and evening and lie up through the heat. */
 const midday = (hour: number) => hour >= 11 && hour < 15;
+/** Cells a scavenger winds remains from. */
+const SCENT = 24;
 /** Game seconds a wallow's mud takes to dry off. */
 export const MUD_DRIES = 3 * 3600;
 
@@ -487,6 +491,7 @@ function decide(
     return;
   }
   if (soak(g, p, world, clock)) return;
+  if (scavenge(g, p, world, clock)) return;
   const prowl = p.art.stalk ? "stalk" : "wander";
   const roam = freeCellNear(
     world,
@@ -535,6 +540,25 @@ function soak(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number) 
   else {
     g.state = "wander";
     g.target = { ...wet, space: "outside" };
+  }
+  g.nextDecisionAt = clock + p.calmDecisionSeconds;
+  g.since = clock;
+  return true;
+}
+
+/** After dark a jackal or coyote slips in to remains nobody is standing over.
+ * True when that is what it has decided. */
+function scavenge(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number) {
+  if (!p.scavenges || !world.carrion?.length || (world.hour >= 6 && world.hour < 18)) return false;
+  const leader = g.members[0];
+  const meal = world.carrion
+    .filter((c) => hyp(c, leader) <= SCENT && !world.humans.some((h) => hyp(h, c) <= p.alertRadius))
+    .sort((a, b) => hyp(a, leader) - hyp(b, leader))[0];
+  if (!meal) return false;
+  if (hyp(meal, leader) <= 1.5) g.state = p.art.forage ? "forage" : "idle";
+  else {
+    g.state = "wander";
+    g.target = { ...meal, space: "outside" };
   }
   g.nextDecisionAt = clock + p.calmDecisionSeconds;
   g.since = clock;

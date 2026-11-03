@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-import { faunaAt, faunaProfile } from "../src/content/fauna";
+import { faunaAt, faunaCoats, faunaProfile } from "../src/content/fauna";
 import {
   advanceFauna,
   stepAllowed,
@@ -339,6 +339,25 @@ describe("fauna behaviour", () => {
     const far = group("goose", 10, 10);
     advanceFauna([far], sim({ humans: [{ x: 16, y: 10, space: "outside" }] }), 6);
     expect(far.provoked).toBeUndefined();
+  });
+  it("brings a jackal in to a carcass after dark, unless someone is by it", () => {
+    const carrion = [{ x: 20, y: 10 }];
+    const jackal = group("golden-jackal", 10, 10);
+    jackal.homeRadius = 20;
+    jackal.nextDecisionAt = 0;
+    const night = sim({ hour: 21, carrion });
+    for (let t = 6; t <= 120; t += 6) advanceFauna([jackal], night, t);
+    expect(Math.hypot(jackal.pos.x - 20, jackal.pos.y - 10)).toBeLessThanOrEqual(1.5);
+    const wary = group("golden-jackal", 10, 10);
+    wary.nextDecisionAt = 0;
+    advanceFauna([wary], sim({ hour: 21, carrion, humans: [{ x: 21, y: 10, space: "outside" }] }), 6);
+    expect(wary.target).not.toEqual(expect.objectContaining(carrion[0]));
+  });
+  it("dresses borrowed drawings in their own coats", () => {
+    for (const [art, coat] of [["rabbit", "hare"], ["red-deer", "chital"], ["dog", "jackal"], ["dog", "tan"]])
+      expect(faunaCoats(art, coat)?.size).toBeGreaterThan(0);
+    expect(faunaProfile("roe-deer")!.scale).toBeLessThan(1);
+    expect(ids(1400, "konya")).toEqual(expect.arrayContaining(["hare", "golden-jackal", "roe-deer"]));
   });
   it("strings ducklings out in a line behind the duck", () => {
     const ducks = group("duck", 10, 10);

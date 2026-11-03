@@ -7048,6 +7048,7 @@ export class Engine {
           );
         },
         crop: (x, y) => standingCrop(this.world, x, y),
+        carrion: this.state.objects.filter((o) => o.remains === "carcass").map((o) => o.pos),
         ...this.faunaSky(clock),
         canDig: (x, y) =>
           !this.state.tiles?.[tileKey(x, y)]?.dug &&

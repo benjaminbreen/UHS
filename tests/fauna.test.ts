@@ -16,6 +16,12 @@ const sideView = faunaProfiles.filter((profile) => !profile.directions);
  * of their own; anything else must be drawn as itself. */
 const borrowed: Record<string, string> = {
   wapiti: "red-deer",
+  "roe-deer": "red-deer",
+  "white-tailed-deer": "red-deer",
+  chital: "red-deer",
+  hare: "rabbit",
+  "golden-jackal": "dog",
+  coyote: "dog",
   "wild-turkey": "turkey",
   "wild-horse": "horse",
   rook: "crow",

@@ -106,6 +106,10 @@ export type FaunaProfile = {
   defends?: number;
   /** Lies up in mud or shallow water through the heat of the day. */
   wallows?: boolean;
+  /** Comes in to remains after dark when nobody is by them. */
+  scavenges?: boolean;
+  /** Drawn at this size against the study it borrows. */
+  scale?: number;
   /** Cells the drawn body reaches past its own: either side, and rows behind.
    * A buffalo is three cells long; two stood a cell apart are one blob. */
   body?: readonly [number, number];

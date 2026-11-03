@@ -77,6 +77,12 @@ const table: Record<string, FaunaCombat> = {
   camel: beast(60, 3, 16),
   "red-deer": beast(22, 2, 8),
   wapiti: beast(30, 3, 12),
+  "roe-deer": beast(12, 1, 4),
+  "white-tailed-deer": beast(18, 2, 6),
+  chital: beast(16, 1, 5),
+  hare: beast(5, 0, 1),
+  "golden-jackal": { ...beast(9, 0, 1), damage: 2, yields: { meat: 1, hide: 1 } },
+  coyote: { ...beast(11, 1, 2), damage: 3, yields: { meat: 1, hide: 1 } },
   // Runs from a person; the pelt was worth more than the meat.
   "red-fox": { ...beast(7, 0, 1), damage: 2, yields: { meat: 1, hide: 1 } },
   "arctic-fox": { ...beast(6, 0, 1), damage: 2, yields: { meat: 1, hide: 1 } },

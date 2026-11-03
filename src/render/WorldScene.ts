@@ -5291,7 +5291,7 @@ export class WorldScene extends Phaser.Scene {
         if ((m.stun ?? 0) > e.state.clock + 6 && !struck.has(id))
           this.stunned.add(id);
         const tier = TIERS[m.tier ?? "ordinary"];
-        const scale = m.young ? tier.scale * 0.6 : tier.scale;
+        const scale = tier.scale * (faunaProfile(g.speciesId)?.scale ?? 1) * (m.young ? 0.6 : 1);
         if (im.getData("tier") !== scale)
           im.setData("tier", scale).setScale(scale);
         if (tier.tint !== 0xffffff) im.setTint(mixTint(this.tint, tier.tint));

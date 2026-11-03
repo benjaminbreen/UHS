@@ -92,6 +92,48 @@ export const cropPests: readonly CropPest[] = [
     },
   },
   {
+    species: "white-tailed-deer",
+    kinds: ["grain", "root", "vegetable"],
+    stages: ["green", "ripe"],
+    hours: [17, 7],
+    weight: 2,
+    bites: 1,
+    verb: "drive",
+    evidence: {
+      status: "documented",
+      note: "White-tailed deer browse maize, beans and squash at dusk; field-watching platforms in Native American fields kept them and the crows off.",
+      sources: ["https://en.wikipedia.org/wiki/White-tailed_deer"],
+    },
+  },
+  {
+    species: "chital",
+    kinds: ["grain", "root", "vegetable"],
+    stages: ["green", "ripe"],
+    hours: [17, 7],
+    weight: 2,
+    bites: 1,
+    verb: "drive",
+    evidence: {
+      status: "documented",
+      note: "Chital graze into sown fields from the forest edge at night, and crop guarding from machans is still the answer in India.",
+      sources: ["https://en.wikipedia.org/wiki/Chital"],
+    },
+  },
+  {
+    species: "roe-deer",
+    kinds: ["grain", "root", "vegetable"],
+    stages: ["green", "ripe"],
+    hours: [17, 7],
+    weight: 2,
+    bites: 1,
+    verb: "drive",
+    evidence: {
+      status: "documented",
+      note: "Roe browse young cereals and turnips at the woodland edge from dawn and dusk.",
+      sources: ["https://en.wikipedia.org/wiki/Roe_deer"],
+    },
+  },
+  {
     species: "wild-boar",
     kinds: ["grain", "root", "vegetable"],
     stages: ["green", "ripe"],
@@ -169,6 +211,9 @@ const nouns: Record<string, string> = {
   mouse: "mice",
   "wild-boar": "boar",
   "red-deer": "deer",
+  "roe-deer": "deer",
+  "white-tailed-deer": "deer",
+  chital: "deer",
   pig: "pigs",
 };
 export const pestNoun = (species: string) =>
