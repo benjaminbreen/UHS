@@ -34,10 +34,14 @@ type Crow = {
   ty: number;
   flap: number;
 };
+/** A kite or vulture turning high over a kill, which is how a carcass is
+ * found from across a valley. */
+type Soarer = { angle: number; r: number; h: number; speed: number };
 type Site = {
   source: RemainsSource;
   feathers: Feather[];
   crows: Crow[];
+  soarers: Soarer[];
   scared: number;
   lift: number;
 };
@@ -49,6 +53,8 @@ const CROW_INK: Record<string, number> = {
   b: 0x2c2a28,
   l: 0x2c2a28,
 };
+// Wings held flat with the primaries spread, seen from below and to the side.
+const SOAR = ["XX..........XX", "..XXXX.XXXXX..", "......XXb....."];
 // A carrion crow, facing right: s the sheen along the back, b the beak.
 const CROW_STAND = [
   "......XX.",
@@ -80,6 +86,7 @@ export class RemainsLife {
         source: s,
         feathers: [],
         crows: [],
+        soarers: [],
         scared: 0,
         lift: rand(2, 8),
       };
@@ -92,7 +99,18 @@ export class RemainsLife {
             this.crow(rand(-60, 60), rand(-40, -20), rand(20, 40), "back"),
           );
       }
-      if (!day) site.crows = [];
+      if (s.kind === "carcass" && !site.soarers.length && day)
+        for (let i = 0, n = 1 + Math.floor(Math.random() * 3); i < n; i++)
+          site.soarers.push({
+            angle: rand(0, Math.PI * 2),
+            r: rand(36, 64),
+            h: rand(70, 110),
+            speed: rand(0.35, 0.55) * (Math.random() < 0.5 ? 1 : -1),
+          });
+      if (!day) {
+        site.crows = [];
+        site.soarers = [];
+      }
       this.sites.set(s.id, site);
     }
     for (const id of this.sites.keys())
@@ -129,13 +147,15 @@ export class RemainsLife {
     const step = frozen ? 0 : Math.min(dt, 0.05);
     for (const site of this.sites.values()) {
       const s = site.source;
+      // The birds overhead show from well beyond the carcass itself.
       if (
-        s.x < view.x - 80 ||
-        s.x > view.right + 80 ||
+        s.x < view.x - 140 ||
+        s.x > view.right + 140 ||
         s.y < view.y - 80 ||
-        s.y > view.bottom + 80
+        s.y > view.bottom + 200
       )
         continue;
+      for (const b of site.soarers) this.soar(g, s, b, step);
       const near = walkers.find(
         (w) =>
           Math.abs(w.x - s.x) < STARTLE && Math.abs(w.y - s.y) < STARTLE * 0.7,
@@ -220,6 +240,25 @@ export class RemainsLife {
       this.moveCrow(c, dt, site.scared > 0);
       this.drawCrow(g, Math.round(s.x + c.x), Math.round(s.y + c.y), c);
     }
+  }
+
+  private soar(g: Phaser.GameObjects.Graphics, s: RemainsSource, b: Soarer, dt: number) {
+    b.angle += b.speed * dt;
+    const x = Math.round(s.x + Math.cos(b.angle) * b.r),
+      y = Math.round(s.y + Math.sin(b.angle) * b.r * 0.45);
+    g.fillStyle(0x000000, 0.1);
+    g.fillRect(x - 4, y, 9, 1);
+    // Banking: the far wing dips as it comes round toward the viewer.
+    const tilt = Math.sin(b.angle) > 0 ? 1 : 0;
+    const face = Math.cos(b.angle) * b.speed > 0 ? -1 : 1;
+    const top = y - b.h;
+    for (const [row, line] of SOAR.entries())
+      for (let i = 0; i < line.length; i++) {
+        if (line[i] === ".") continue;
+        g.fillStyle(line[i] === "b" ? 0x6b5a48 : 0x2a231e, 1);
+        const dx = face === 1 ? i - 7 : 6 - i;
+        g.fillRect(x + dx, top + row + (tilt && i < 3 ? 1 : 0), 1, 1);
+      }
   }
 
   private moveCrow(c: Crow, dt: number, scared: boolean) {

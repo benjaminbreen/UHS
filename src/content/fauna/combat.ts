@@ -52,6 +52,9 @@ const table: Record<string, FaunaCombat> = {
   ),
   "rock-dove": bird(2, 1),
   chicken: bird(3, 1),
+  duck: bird(2, 2),
+  // A goose's wing and bill bruise; it is the hissing run that sends you off.
+  goose: { ...bird(5, 3), temper: "charge", damage: 2 },
   "cattle-egret": bird(3, 1),
   turkey: bird(5, 2),
   "wild-turkey": bird(6, 2),

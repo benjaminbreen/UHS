@@ -199,6 +199,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 4,
     diet: ["plant", "seed", "invertebrate"],
     prey: "ungulate",
+    wallows: true,
     ...study("wild-boar"),
   },
 ];

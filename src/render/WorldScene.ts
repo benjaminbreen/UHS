@@ -78,6 +78,7 @@ const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
 /** The sling hand overhead, from the player sprite's origin; tuned by eye. */
 const WHIRL_HAND = { x: 7, y: -33 };
 const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
+const FAUNA_FEATHERS = [0xf4efe4, 0xd8c7a6, 0xa8743f];
 /** Wet mud on a coat; it pales back to the coat as it dries. */
 const MUD = 0x9c8064;
 const muddied = (t: number) => {
@@ -139,6 +140,7 @@ import { TreeFinds } from "./tree-finds";
 import {
   bumpAnimal,
   bumpPerson,
+  cockCrow,
   footstep,
   type FungusStep,
   landing,
@@ -662,6 +664,8 @@ export class WorldScene extends Phaser.Scene {
     }
   >();
   private playerSeen = { x: 0, y: 0, movedAt: -Infinity };
+  /** Time after which a cock may crow again. */
+  private crowAt = 0;
   private jostleSerial = 0;
   private faunaMotion = new FaunaMotion();
   /** Cast shadows by pose, facing and lighting phase. */
@@ -5823,6 +5827,8 @@ export class WorldScene extends Phaser.Scene {
       if (URGENT.has(f.state) && !URGENT.has(mood.state) && !aerial && dt) {
         this.faunaMotion.leap(id, 2.5, 0.18);
         this.feel.puff(im.x, im.y, FAUNA_DUST, 3);
+        if (profile?.locomotion === "ground" && profile.social === "flock")
+          this.feel.puff(im.x, im.y - 6, FAUNA_FEATHERS, 4, 0.7);
       }
       if (mood.state !== f.state) mood.began = this.time.now;
       mood.state = f.state;
@@ -5891,6 +5897,29 @@ export class WorldScene extends Phaser.Scene {
           Math.random() < dt * 5
         )
           this.feel.trail(pose.x, pose.y, DUSK_DUST);
+      }
+      if (profile?.category === "domestic" && profile.social === "flock" && !profile.swims && dt) {
+        const hour = (this.runtime.displayClock() / 3600) % 24;
+        const ground = topo?.(Math.floor(pose.x / 16), Math.floor((pose.y - 8) / 16));
+        // Hens dust-bathe through the midday heat, throwing it over their backs.
+        if (
+          !pose.moving &&
+          hour >= 11 &&
+          hour < 15 &&
+          (ground?.surface === "dry" || ground?.surface === "soil") &&
+          Math.random() < dt * 0.8
+        )
+          this.feel.puff(pose.x, pose.y, FAUNA_DUST, 2, 0.4);
+        if (profile.id === "chicken" && hour >= 5 && hour < 7 && player && now > this.crowAt) {
+          const d = Math.hypot(player.x - im.x, player.y - im.y);
+          this.crowAt = now + 8000 + Math.random() * 14000;
+          if (d < 480)
+            void gameAudio()?.sound(
+              cockCrow(1 - d / 480),
+              "rooster",
+              Math.max(-1, Math.min(1, (im.x - player.x) / 240)),
+            );
+        }
       }
       const pace = Math.max(2, im.frame.height / 12);
       let name = this.faunaFrame(

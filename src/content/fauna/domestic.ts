@@ -170,6 +170,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 5,
     prey: "ungulate",
     diet: ["plant", "seed", "invertebrate"],
+    wallows: true,
     ...directionalStudy("pig"),
   },
   {
@@ -251,6 +252,8 @@ export const domesticFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     prey: "small-animal",
     diet: ["grass", "plant", "seed"],
+    // Kept as much to raise the alarm as to eat: a gander sees off strangers.
+    defends: 2.5,
     ...study("goose"),
   },
 ];

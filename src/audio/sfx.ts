@@ -835,6 +835,19 @@ export function bumpAnimal(kind: BeastVoice): Sound {
     }
   }
 }
+/** A cock crowing at first light: three rising notes, then the long one,
+ * held and falling away. `near` runs from 0, across the village, to 1. */
+export function cockCrow(near = 1): Sound {
+  const f = vary(520, 0.12),
+    g = 0.02 + 0.05 * near;
+  return [
+    tone(0, 0.11, g * 0.7, f, { to: f * 1.25, wave: "sawtooth", attack: 0.02 }),
+    tone(0.15, 0.1, g * 0.8, f * 1.3, { to: f * 1.4, wave: "sawtooth" }),
+    tone(0.29, 0.13, g, f * 1.5, { to: f * 1.62, wave: "sawtooth" }),
+    tone(0.46, 0.6, g, f * 1.62, { to: f * 1.05, wave: "sawtooth", attack: 0.03 }),
+    tone(0.46, 0.6, g * 0.35, f * 3.2, { to: f * 2.1, wave: "triangle", attack: 0.03 }),
+  ];
+}
 export const catalog: { name: string; detail: string; make: () => Sound }[] = [
   ...(
     [

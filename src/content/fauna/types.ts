@@ -100,6 +100,8 @@ export type FaunaProfile = {
    * and is mirrored for west; one with it has art authored per direction. */
   directions?: readonly FaunaFacing[];
   art: Partial<Record<FaunaState, readonly string[]>>;
+  /** Cells within which it goes for a person who has not touched it. */
+  defends?: number;
   /** Lies up in mud or shallow water through the heat of the day. */
   wallows?: boolean;
   /** Cells the drawn body reaches past its own: either side, and rows behind.

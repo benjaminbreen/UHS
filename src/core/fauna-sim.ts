@@ -286,6 +286,10 @@ function standing(p: FaunaProfile, state: FaunaState) {
   );
 }
 
+/** Hens go in to roost as the light goes, and keep still there till morning. */
+const roosting = (p: FaunaProfile, hour: number) =>
+  p.category === "domestic" && p.social === "flock" && !p.swims && (hour >= 18.5 || hour < 5.5);
+
 /** Grazing stock eat morning and evening and lie up through the heat. */
 const midday = (hour: number) => hour >= 11 && hour < 15;
 /** Game seconds a wallow's mud takes to dry off. */
@@ -460,6 +464,15 @@ function decide(
     ]);
     if (g.state === "takeoff" && hop) g.target = { ...hop, space: "outside" };
     g.nextDecisionAt = g.state === "takeoff" ? clock + TICK : calm();
+    g.since = clock;
+    return;
+  }
+  if (roosting(p, world.hour)) {
+    if (hyp(g.pos, g.home) > 1.5) {
+      g.state = "wander";
+      g.target = { ...g.home };
+    } else g.state = "idle";
+    g.nextDecisionAt = calm();
     g.since = clock;
     return;
   }
@@ -1045,6 +1058,17 @@ export function advanceFauna(
   for (const g of [...groups].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const p = faunaProfile(g.speciesId);
     if (!p || !g.members.length) continue;
+    // A gander does not wait to be struck: come onto its ground and it comes for you.
+    if (
+      p.defends &&
+      g.provoked === undefined &&
+      player?.space === "outside" &&
+      (g.hurtUntil ?? 0) <= clock &&
+      g.members.some((m) => hyp(m, player) <= p.defends!)
+    ) {
+      g.provoked = clock + 30;
+      cue(world, g, nearestTo(g, player), "anger", player);
+    }
     if (g.provoked !== undefined && fight(g, p, world, clock, taken)) {
       const lead = g.members[0];
       g.pos = { x: lead.x, y: lead.y, space: "outside" };
@@ -1381,7 +1405,7 @@ export function advanceFauna(
           const mother = m.young ? g.members.find((o) => o.n === m.mother) : undefined;
           const back = keptOff(world, p, m)
             ? bestStep(world, p, taken, m, g.home, false)
-            : mother && hyp(m, mother) > 2.3
+            : mother && hyp(m, mother) > (p.body?.[0] ? 2.3 : 1.5)
               ? bestStep(world, p, taken, m, mother, false)
               : p.social === "herd" && hyp(m, leader) > (wet ? p.separationRadius + 1.5 : p.cohesionRadius + 1)
                 ? bestStep(world, p, taken, m, leader, false)
@@ -1422,7 +1446,7 @@ export function advanceFauna(
               : Math.floor(beat / period) % 2
                 ? 1
                 : 3;
-          if (world.rng(`fauna-${g.id}-drift`) >= drift) continue;
+          if (roosting(p, world.hour) || world.rng(`fauna-${g.id}-drift`) >= drift) continue;
           const n =
             NEIGHBOURS[Math.floor(world.rng(`fauna-${g.id}-drift`) * 8)];
           const to = { x: m.x + n.x, y: m.y + n.y };

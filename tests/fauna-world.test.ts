@@ -331,6 +331,39 @@ describe("fauna behaviour", () => {
       expect(m.direction).toBe(1);
     }
   });
+  it("sends a goose at a stranger who comes onto its ground", () => {
+    const geese = group("goose", 10, 10);
+    const world = sim({ humans: [{ x: 12, y: 10, space: "outside" }] });
+    advanceFauna([geese], world, 6);
+    expect(geese.provoked).toBeGreaterThan(6);
+    const far = group("goose", 10, 10);
+    advanceFauna([far], sim({ humans: [{ x: 16, y: 10, space: "outside" }] }), 6);
+    expect(far.provoked).toBeUndefined();
+  });
+  it("strings ducklings out in a line behind the duck", () => {
+    const ducks = group("duck", 10, 10);
+    ducks.state = "forage";
+    ducks.homeRadius = 20;
+    ducks.members = [
+      { x: 10, y: 10, direction: 1, n: 1 },
+      { x: 15, y: 13, direction: 1, n: 2, young: true, mother: 1 },
+      { x: 6, y: 14, direction: 1, n: 3, young: true, mother: 2 },
+      { x: 14, y: 6, direction: 1, n: 4, young: true, mother: 3 },
+    ];
+    for (let t = 6; t <= 600; t += 6) advanceFauna([ducks], sim(), t);
+    for (const m of ducks.members.slice(1)) {
+      const ahead = ducks.members.find((o) => o.n === m.mother)!;
+      expect(Math.hypot(m.x - ahead.x, m.y - ahead.y)).toBeLessThanOrEqual(1.5);
+    }
+  });
+  it("takes hens home to roost at dusk", () => {
+    const hens = group("chicken", 18, 10);
+    hens.home = { x: 10, y: 10, space: "outside" };
+    hens.homeRadius = 12;
+    hens.nextDecisionAt = 0;
+    for (let t = 6; t <= 600; t += 6) advanceFauna([hens], sim({ hour: 19 }), t);
+    expect(Math.hypot(hens.members[0].x - 10, hens.members[0].y - 10)).toBeLessThanOrEqual(1.5);
+  });
   it("keeps a calf at its mother's side", () => {
     const herd = group("cattle", 10, 10);
     herd.state = "graze";

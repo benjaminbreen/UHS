@@ -6844,12 +6844,30 @@ export class Engine {
     return { rain: w.condition === "rain" || w.condition === "snow", wind: w.wind.angle };
   }
   /** Calves for a herd of big stock whose species has no young art of its
-   * own: a quarter of the cows have one at foot, drawn small beside her. */
+   * own: a quarter of the cows have one at foot, drawn small beside her.
+   * In spring and summer a duck or goose flock may have a brood, which
+   * follows her in a line. */
   private calvesFor(g: FaunaGroup) {
     const p = faunaProfile(g.speciesId);
-    if (!p || g.train || p.young || p.social !== "herd" || !p.art.graze || !(p.body?.[0] ?? 0)) return [];
+    if (!p || g.train || p.young) return [];
     const seed = this.state.manifest.seed;
     const out: [FaunaMember, FaunaMember][] = [];
+    const season = this.world.pack.setting?.season;
+    if (p.swims && p.social === "flock") {
+      if ((season !== "spring" && season !== "summer") || random(seed, "brood", g.id) >= 0.5) return [];
+      const n = 3 + Math.floor(random(seed, "brood-size", g.id) * 3);
+      let ahead = g.members[0];
+      for (let i = 1; i <= n; i++) {
+        const at = { x: g.members[0].x - i, y: g.members[0].y };
+        if (this.blocked(at.x, at.y, "outside") && !this.world.topography?.(at.x, at.y)?.waterDepth) break;
+        const chick: FaunaMember = { ...at, direction: ahead.direction, young: true };
+        g.members.push(chick);
+        out.push([chick, ahead]);
+        ahead = chick;
+      }
+      return out;
+    }
+    if (p.social !== "herd" || !p.art.graze || !(p.body?.[0] ?? 0)) return [];
     for (const [i, mother] of [...g.members].entries()) {
       if (out.length >= 2 || random(seed, "calf", g.id, i) >= 0.25) continue;
       const at = [[0, 1], [-2, 0], [2, 0], [-1, 1], [1, 1]]
