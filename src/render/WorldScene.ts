@@ -53,8 +53,10 @@ import { MUD_DRIES, wallowable } from "../core/fauna-sim";
 import {
   faunaCoats,
   faunaLook,
+  faunaAt,
   faunaProfile,
   type FaunaFacing,
+  type FaunaProfile,
   eightWay,
 } from "../content/fauna";
 
@@ -638,16 +640,20 @@ export class WorldScene extends Phaser.Scene {
       scale: number;
       /** Frame-name stem: the species, or its form and coat. */
       art: string;
+      /** Lying in a wallow: only its back shows above the mud. */
+      sunk: boolean;
+      young: boolean;
     }
   >();
+  /** Egrets and crows riding on the backs of grazing stock, by the beast's id. */
+  private riders = new Map<string, Phaser.GameObjects.Image>();
+  private riderArt?: string;
   private faunaArt = new Map<string, string>();
   /** What each animal was doing last frame, to catch the moment it bolts,
    * and whether it has its head up watching the player. */
   private faunaMood = new Map<
     string,
     {
-      /** Lying in a wallow: only its back shows above the mud. */
-      sunk: boolean;
       state: FaunaState;
       from: number;
       until: number;
@@ -5274,9 +5280,12 @@ export class WorldScene extends Phaser.Scene {
         if ((m.stun ?? 0) > e.state.clock + 6 && !struck.has(id))
           this.stunned.add(id);
         const tier = TIERS[m.tier ?? "ordinary"];
-        if (im.getData("tier") !== tier.scale)
-          im.setData("tier", tier.scale).setScale(tier.scale);
+        const scale = m.young ? tier.scale * 0.6 : tier.scale;
+        if (im.getData("tier") !== scale)
+          im.setData("tier", scale).setScale(scale);
         if (tier.tint !== 0xffffff) im.setTint(mixTint(this.tint, tier.tint));
+        const wet = (m.muddy ?? 0) - e.state.clock;
+        if (wet > 0) im.setTint(mixTint(this.tint, muddied(wet / MUD_DRIES)));
         const flip = !turns && m.direction === 3;
         if (im.flipX !== flip) im.setFlipX(flip);
         // Three clear rows under the hooves in every study frame.
@@ -5285,11 +5294,14 @@ export class WorldScene extends Phaser.Scene {
           species: g.speciesId,
           state: m.pose ?? g.state,
           phase,
-        const wet = (m.muddy ?? 0) - e.state.clock;
-        if (wet > 0) im.setTint(mixTint(this.tint, muddied(wet / MUD_DRIES)));
           facing,
-          scale: tier.scale,
+          scale,
           art,
+          sunk:
+            !!faunaProfile(g.speciesId)?.wallows &&
+            (g.state === "rest" || g.state === "idle") &&
+            wallowable(w.topography?.(m.x, m.y)),
+          young: !!m.young,
         });
       }
     }
@@ -5298,10 +5310,6 @@ export class WorldScene extends Phaser.Scene {
       if (!this.faunaSprites.has(id)) this.faunaMood.delete(id);
     // Walked into: it hops out of the way, and the player feels the bump.
     const jostle = rt.jostleEffect;
-          sunk:
-            !!faunaProfile(g.speciesId)?.wallows &&
-            (g.state === "rest" || g.state === "idle") &&
-            wallowable(w.topography?.(m.x, m.y)),
     if (jostle && jostle.serial !== this.jostleSerial) {
       this.jostleSerial = jostle.serial;
       const id = faunaSpriteId(jostle.group, jostle.n);
@@ -5714,7 +5722,55 @@ export class WorldScene extends Phaser.Scene {
       : `faunab-${art}-${state}-${n}`;
   }
   /** Walks each animal towards its cell and dresses it for where it is. */
+  /** A cattle egret on the back of a grazing beast, or a crow where there
+   * are no egrets: a third of the big stock carry one by day, and it is off
+   * the moment the beast bolts. */
+  private perchOnBack(
+    id: string,
+    im: Phaser.GameObjects.Image,
+    state: FaunaState,
+    young: boolean,
+    profile: FaunaProfile | undefined,
+  ) {
+    let bird = this.riders.get(id);
+    const hour = (this.runtime.displayClock() / 3600) % 24;
+    const carries =
+      !!profile?.art.graze &&
+      (profile.body?.[0] ?? 0) > 0 &&
+      !young &&
+      !URGENT.has(state) &&
+      hour >= 6.5 &&
+      hour < 18.5 &&
+      this.poseOffset(`${id}-rider`) % 3 === 0;
+    if (!carries) {
+      bird?.destroy();
+      this.riders.delete(id);
+      return;
+    }
+    const setting = this.runtime.engine.world.pack?.setting;
+    const art = (this.riderArt ??=
+      setting && faunaAt(setting).some((p) => p.id === "cattle-egret") ? "cattle-egret" : "crow");
+    const frame = `faunab-${art}-perch-${Math.floor(this.time.now / 300 + this.poseOffset(id)) % 8}`;
+    if (!bird) {
+      bird = this.add.image(0, 0, this.texture(frame), frame).setOrigin(0.5, 1);
+      this.riders.set(id, bird);
+    } else if (bird.frame.name !== frame) bird.setFrame(frame);
+    // Toward the rump on a side view; square on the middle from ahead or behind.
+    const name = im.frame.name;
+    const along = name.includes("-north-") || name.includes("-south-") ? 0 : im.flipX ? 5 : -5;
+    bird
+      .setScale((art === "crow" ? 0.8 : 0.6) * im.scaleX)
+      .setPosition(im.x + along * im.scaleX, im.y - im.displayHeight * 0.68)
+      .setFlipX(im.flipX)
+      .setDepth(im.depth + 0.5)
+      .setTint(this.tint);
+  }
   private placeFauna(dt: number) {
+    for (const [id, bird] of this.riders)
+      if (!this.faunaSprites.has(id)) {
+        bird.destroy();
+        this.riders.delete(id);
+      }
     const topo = this.runtime.engine.world.topography;
     const struck = this.combat().pending(
       this.runtime.swingEffect,
@@ -5820,14 +5876,6 @@ export class WorldScene extends Phaser.Scene {
         topo?.(Math.floor(pose.x / 16), Math.floor((pose.y - 8) / 16))?.surface === "water"
       )
         state = state === "forage" && !pose.moving ? "dabble" : "swim";
-      const pace = Math.max(2, im.frame.height / 12);
-      let name = this.faunaFrame(
-        f.species,
-        state,
-        f.phase,
-        facing,
-        pose.moving && !aerial
-          ? pose.travelled / (URGENT.has(state) ? pace * 1.6 : pace)
       // Godhuli, the cow-dust hour: stock walking home at sundown raises a
       // haze off dry lanes that catches the light.
       if (pose.moving && !aerial && dt && profile?.category === "domestic" && profile.art.graze) {
@@ -5844,6 +5892,14 @@ export class WorldScene extends Phaser.Scene {
         )
           this.feel.trail(pose.x, pose.y, DUSK_DUST);
       }
+      const pace = Math.max(2, im.frame.height / 12);
+      let name = this.faunaFrame(
+        f.species,
+        state,
+        f.phase,
+        facing,
+        pose.moving && !aerial
+          ? pose.travelled / (URGENT.has(state) ? pace * 1.6 : pace)
           : undefined,
         f.art,
         mood.began,
@@ -5862,6 +5918,10 @@ export class WorldScene extends Phaser.Scene {
         // Three clear rows under the hooves in every study frame.
         im.setOrigin(0.5, (im.frame.height - 3) / im.frame.height);
       }
+      if (f.sunk && !pose.moving)
+        im.setCrop(0, 0, im.frame.width, Math.round(im.frame.height * 0.6));
+      else if (im.isCropped) im.setCrop();
+      this.perchOnBack(id, im, f.state, f.young, profile);
       if (!profile?.directions && pose.heading) {
         const flip = pose.heading === "west";
         if (im.flipX !== flip) im.setFlipX(flip);
@@ -5870,9 +5930,6 @@ export class WorldScene extends Phaser.Scene {
         im.setScale(f.scale * pose.sx, f.scale * pose.sy);
         mood.squashed = true;
       } else if (mood.squashed) {
-      if (f.sunk && !pose.moving)
-        im.setCrop(0, 0, im.frame.width, Math.round(im.frame.height * 0.6));
-      else if (im.isCropped) im.setCrop();
         im.setScale(f.scale);
         mood.squashed = false;
       }

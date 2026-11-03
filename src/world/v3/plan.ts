@@ -4563,6 +4563,7 @@ export function planSettlement(
             pos: pos(middle),
             home: pos(middle),
             homeRadius: Math.max(paddock.w, paddock.h),
+            follows: `${id}-stock`,
             state: "idle",
             nextDecisionAt: 0,
             stride: 0,

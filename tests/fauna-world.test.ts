@@ -316,6 +316,33 @@ describe("fauna behaviour", () => {
     expect(buffalo.members[0]).toMatchObject({ x: 14, y: 10 });
     expect(buffalo.members[0].muddy).toBeGreaterThan(600);
   });
+  it("stands a herd bunched with its rumps to the rain", () => {
+    const herd = group("cattle", 10, 10);
+    herd.state = "graze";
+    herd.members = [
+      { x: 10, y: 10, direction: 3, n: 1 },
+      { x: 17, y: 10, direction: 3, n: 2 },
+      { x: 10, y: 16, direction: 3, n: 3 },
+    ];
+    const world = sim({ rain: true, wind: 0 });
+    for (let t = 6; t <= 600; t += 6) advanceFauna([herd], world, t);
+    for (const m of herd.members) {
+      expect(Math.hypot(m.x - 10, m.y - 10)).toBeLessThanOrEqual(4.5);
+      expect(m.direction).toBe(1);
+    }
+  });
+  it("keeps a calf at its mother's side", () => {
+    const herd = group("cattle", 10, 10);
+    herd.state = "graze";
+    herd.homeRadius = 20;
+    herd.members = [
+      { x: 10, y: 10, direction: 1, n: 1 },
+      { x: 16, y: 15, direction: 1, n: 2, young: true, mother: 1 },
+    ];
+    for (let t = 6; t <= 600; t += 6) advanceFauna([herd], sim(), t);
+    const [mother, calf] = herd.members;
+    expect(Math.hypot(calf.x - mother.x, calf.y - mother.y)).toBeLessThanOrEqual(2.3);
+  });
   it("keeps buffalo out of the crop and out of each other's bodies", () => {
     const herds = [0, 1].map((k) => {
       const g = group("water-buffalo", 10 + k * 4, 10);

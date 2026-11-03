@@ -6820,7 +6820,10 @@ export class Engine {
    * One already slain does not come back with its block. */
   private enrol(g: FaunaGroup) {
     if (g.members.every((m) => m.n !== undefined)) return;
-    ensureVitals(this.state.manifest.seed, g);
+    const seed = this.state.manifest.seed;
+    const calves = g.members.every((m) => m.n === undefined) ? this.calvesFor(g) : [];
+    ensureVitals(seed, g);
+    for (const [calf, mother] of calves) calf.mother = mother.n;
     const legends = (this.state.legends ??= {});
     g.members = g.members.filter((m) => {
       if (!m.name) return true;
@@ -6833,6 +6836,31 @@ export class Engine {
       };
       return true;
     });
+  }
+  /** Rain and wind as the animals feel them. */
+  private faunaSky(clock: number) {
+    const setting = this.world.pack.setting;
+    const w = weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock);
+    return { rain: w.condition === "rain" || w.condition === "snow", wind: w.wind.angle };
+  }
+  /** Calves for a herd of big stock whose species has no young art of its
+   * own: a quarter of the cows have one at foot, drawn small beside her. */
+  private calvesFor(g: FaunaGroup) {
+    const p = faunaProfile(g.speciesId);
+    if (!p || g.train || p.young || p.social !== "herd" || !p.art.graze || !(p.body?.[0] ?? 0)) return [];
+    const seed = this.state.manifest.seed;
+    const out: [FaunaMember, FaunaMember][] = [];
+    for (const [i, mother] of [...g.members].entries()) {
+      if (out.length >= 2 || random(seed, "calf", g.id, i) >= 0.25) continue;
+      const at = [[0, 1], [-2, 0], [2, 0], [-1, 1], [1, 1]]
+        .map(([dx, dy]) => ({ x: mother.x + dx, y: mother.y + dy }))
+        .find((c) => !this.blocked(c.x, c.y, "outside") && !g.members.some((m) => m.x === c.x && m.y === c.y));
+      if (!at) continue;
+      const calf: FaunaMember = { ...at, direction: mother.direction, young: true };
+      g.members.push(calf);
+      out.push([calf, mother]);
+    }
+    return out;
   }
   private devSerial = 0;
   /** Dev panel: real, simulated animals in a ring round the player. */
@@ -6987,6 +7015,7 @@ export class Engine {
           );
         },
         crop: (x, y) => standingCrop(this.world, x, y),
+        ...this.faunaSky(clock),
         canDig: (x, y) =>
           !this.state.tiles?.[tileKey(x, y)]?.dug &&
           !this.cropAt(x, y) &&

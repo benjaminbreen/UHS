@@ -242,6 +242,7 @@ export function spawnFauna(
                 pos: { x: yx, y: yy, space: "outside" },
                 home: { x: px, y: py, space: "outside" },
                 homeRadius: young.cohesionRadius * 2,
+                follows: `fauna-${p.id}-${cx}-${cy}-${i}`,
                 state: "idle",
                 nextDecisionAt: 0,
                 stride: 0,

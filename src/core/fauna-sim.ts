@@ -43,6 +43,10 @@ export type FaunaWorld = {
   /** A hunter home with what it carried: a fox eats it at the den, a cat
    * leaves it on the step. */
   onDrop?(hunter: FaunaGroup, prey: string, at: Point): void;
+  /** Rain or snow falling: grazers stand bunched, rumps to the wind. */
+  rain?: boolean;
+  /** Where the wind blows toward, in screen radians: 0 is east. */
+  wind?: number;
   /** A crop sown or standing. Kept grazers are walked round it. */
   crop?(x: number, y: number): boolean;
   /** Ground an animal could dig: soil, not paving, water or a crop. */
@@ -410,7 +414,8 @@ function decide(
   if (g.gateId) {
     // Kept herds: out through the gate by day when the herder has opened it,
     // back to the pen for the night. The player's go out whenever they open it.
-    const out = !g.fold && (g.owner === "player" || (world.hour >= 8 && world.hour < 17)) && world.gateOpen(g.gateId);
+    // Rain brings them in early.
+    const out = !g.fold && (g.owner === "player" || (world.hour >= 8 && world.hour < 17 && !world.rain)) && world.gateOpen(g.gateId);
     const goal = out && g.pasture ? g.pasture : g.home;
     if (out && soak(g, p, world, clock)) return;
     if (hyp(g.pos, goal) > 2.5) {
@@ -455,6 +460,12 @@ function decide(
     ]);
     if (g.state === "takeoff" && hop) g.target = { ...hop, space: "outside" };
     g.nextDecisionAt = g.state === "takeoff" ? clock + TICK : calm();
+    g.since = clock;
+    return;
+  }
+  if (world.rain && p.art.graze && p.locomotion === "ground") {
+    g.state = "idle";
+    g.nextDecisionAt = calm();
     g.since = clock;
     return;
   }
@@ -979,7 +990,7 @@ export function advanceFauna(
   const taken = new Bodies();
   for (const g of groups) {
     const body = faunaProfile(g.speciesId)?.body;
-    for (const m of g.members) taken.place(m, body);
+    for (const m of g.members) taken.place(m, m.young ? [0, 0] : body);
   }
   const herds = groups
     .map((group) => ({ group, profile: faunaProfile(group.speciesId) }))
@@ -1199,6 +1210,13 @@ export function advanceFauna(
       !watching &&
       !aerialStates.has(g.state)
     ) {
+      if (g.follows) {
+        const mother = groups.find((o) => o.id === g.follows);
+        if (mother?.members.length) {
+          g.home = { ...mother.pos, space: "outside" };
+          g.homeRadius = 2;
+        }
+      }
       if (p.followsHerds) {
         const herd = herds
           .filter(
@@ -1337,6 +1355,7 @@ export function advanceFauna(
         // Grazing shuffle: each animal drifts on its own account, so a feeding
         // group mills about instead of one of them twitching per tick.
         const drift = g.state === "idle" ? 0.1 : 0.25;
+        const wet = !!world.rain && !!p.art.graze;
         for (const m of g.members) {
           // Walked into: it keeps going, away from whoever did it, a step a
           // tick until it has put some ground between them.
@@ -1358,13 +1377,39 @@ export function advanceFauna(
           }
           // Off the crop first, then back to the others if the walk strung
           // them out; only then the idle shuffle.
+          // A calf keeps to its mother; in the rain the herd closes up.
+          const mother = m.young ? g.members.find((o) => o.n === m.mother) : undefined;
           const back = keptOff(world, p, m)
             ? bestStep(world, p, taken, m, g.home, false)
-            : p.social === "herd" && hyp(m, leader) > p.cohesionRadius + 1
-              ? bestStep(world, p, taken, m, leader, false)
-              : undefined;
+            : mother && hyp(m, mother) > 2.3
+              ? bestStep(world, p, taken, m, mother, false)
+              : p.social === "herd" && hyp(m, leader) > (wet ? p.separationRadius + 1.5 : p.cohesionRadius + 1)
+                ? bestStep(world, p, taken, m, leader, false)
+                : undefined;
           if (back) {
             moveMember(m, back, taken, turns);
+            continue;
+          }
+          if (wet) {
+            if (world.wind !== undefined) face(m, Math.cos(world.wind), Math.sin(world.wind), turns);
+            continue;
+          }
+          // At first light the calves kick up their heels: a dash out and
+          // round, never far from the mother.
+          if (mother && world.hour >= 5.5 && world.hour < 8 && world.rng(`fauna-${g.id}-play`) < 0.08) {
+            const n = NEIGHBOURS[Math.floor(world.rng(`fauna-${g.id}-play`) * 8)];
+            for (let i = 0; i < 2; i++) {
+              const to = { x: m.x + n.x, y: m.y + n.y };
+              if (
+                hyp(to, mother) > 4 ||
+                keptOff(world, p, to) ||
+                taken.blocks(m, to) ||
+                world.occupied(to.x, to.y) ||
+                !stepAllowed(world, p, m, to)
+              )
+                break;
+              moveMember(m, to, taken, turns);
+            }
             continue;
           }
           // Each on its own beat and its own period, off the shared rng so

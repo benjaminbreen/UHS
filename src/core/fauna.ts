@@ -48,6 +48,10 @@ export type FaunaMember = {
   shy?: { x: number; y: number; until: number };
   /** Clock until which a blow has it reeling: it does not move. */
   stun?: number;
+  /** A calf in its mother's herd, drawn small, with the member number of its
+   * mother. Species with young art of their own have a group of young instead. */
+  young?: boolean;
+  mother?: number;
   /** Clock until which it carries the mud of a wallow, drying as it goes. */
   muddy?: number;
   /** Legendaries only: "the grey boar of the ford". */
@@ -122,6 +126,8 @@ export type FaunaGroup = {
   owner?: string;
   gateId?: string;
   pasture?: Position;
+  /** Young: the group of the adults they keep to. */
+  follows?: string;
   /** Kept stock: the way worked out to its target, round the crops. */
   route?: Point[];
   /** Being brought in: home through the open gate rather than out of it. */
