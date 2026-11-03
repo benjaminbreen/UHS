@@ -2204,38 +2204,5 @@
       38,
       23
     ]
-  },
-  "red-deer": {
-    "palette": [
-      "#6a3d22",
-      "#8f5732",
-      "#bb7941",
-      "#dc9d5f",
-      "#f1c78c",
-      "#f3e4c0",
-      "#2a1a12",
-      "#55301c"
-    ],
-    "states": {
-      "idle": 8,
-      "forage": 8,
-      "wander": 8,
-      "flee": 8,
-      "rest": 8
-    },
-    "directions": [
-      "south",
-      "east",
-      "north",
-      "west"
-    ],
-    "size": [
-      40,
-      40
-    ],
-    "standing": [
-      40,
-      36
-    ]
   }
 }

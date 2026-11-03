@@ -8,18 +8,51 @@ import math
 from art.fauna_b import (
     Canvas, ellipse, polygon, rect, line, shade, flat,
     PALETTES as B_PALETTES, STATES as B_STATES, NATIVE_SIZES as B_SIZES,
-    sheep, goat, pig, chicken, wolf, deer,
+    sheep, goat, pig, chicken, wolf, deer, antlers, _deer_canvas,
 )
+from art import fauna_b
 from art.fauna_d import Stride, _by, _mirror
 
-SPECIES = ("sheep", "goat", "pig", "chicken", "gray-wolf", "red-deer")
+ANTLER = {"c": "#efe3c4", "k": "#a88d66"}
+
+
+def _deer(o, d, m, l, h, b, e, a, w, s):
+    return dict(o=o, d=d, m=m, l=l, h=h, b=b, e=e, a=a, w=w, s=s, **ANTLER)
+
+
+# The deer, all drawn on set B's red deer and told apart by the parts that
+# tell them apart in the field. The first form is the plain art; the others
+# are "species.form". Sizes come from the profile's scale.
+DEER_KINDS = {
+    "red-deer": dict(palette=_deer(*B_PALETTES["red-deer"].values(), "#fbf6ea", "#5e3420"),
+                     forms={"hind": {}, "stag": dict(antler="elaphus", neck="s")},
+                     winter=dict(o="#4a3a2e", d="#6e5a4a", m="#8f7a66", l="#a8937d", h="#c2ae96", s="#3e2f24")),
+    # Pale body, chocolate neck, a big straw rump and long back-swept beams.
+    "wapiti": dict(palette=_deer("#4a3624", "#8a6a48", "#b39169", "#cdb088", "#e2cba4", "#f0e2c0", "#21160e", "#3a2818", "#f2e4c2", "#5a3c26"),
+                   forms={"cow": dict(neck="s", rump="big"), "bull": dict(antler="wapiti", neck="s", rump="big")}),
+    # Brown above and white below, the tail too; up like a flag as it runs.
+    "white-tailed-deer": dict(palette=_deer("#5c3a1e", "#8a5a30", "#b07440", "#cc915a", "#e3b37e", "#f3ead8", "#22160e", "#4a2c18", "#fffaf0", "#5a3a22"),
+                              forms={"doe": dict(tail="flag", rump=None, band=True), "buck": dict(tail="flag", rump=None, band=True, antler="virginianus")},
+                              winter=dict(o="#3c3228", d="#5f5244", m="#7f7060", l="#9a8b78", h="#b5a690")),
+    # Rufous gold in white rows, a dark line down the back, a lyre of tines.
+    "chital": dict(palette=_deer("#6a2e10", "#a4501e", "#cc6d2b", "#e08c42", "#efb06a", "#f6ecdc", "#24150b", "#4a2410", "#fffaf0", "#5e2a10"),
+                   forms={"hind": dict(spots=True, tail="long"), "stag": dict(spots=True, tail="long", antler="axis")}),
+    # Foxy red, black nose and white chin, no tail and a big white rump.
+    "roe-deer": dict(palette=_deer("#5a2410", "#8c3a1a", "#b45226", "#cc6b35", "#e08c52", "#f0dcc4", "#1a0e08", "#3a1a0c", "#fdf8ee", "#55230f"),
+                     forms={"doe": dict(tail=None, rump="big", band=True), "buck": dict(tail=None, rump="big", band=True, antler="roe")},
+                     winter=dict(o="#3e3026", d="#5e4a3c", m="#7a6555", l="#927d6b", h="#ab9784")),
+}
+# Room over the head for the antlers.
+DEER_PAD = 14
+
+SPECIES = ("sheep", "goat", "pig", "chicken", "gray-wolf", *DEER_KINDS)
 DIRECTIONS = ("south", "east", "north", "west")
-PALETTES = {s: B_PALETTES[s] for s in SPECIES}
-STATES = {s: B_STATES[s] for s in SPECIES}
-NATIVE_SIZES = {s: B_SIZES[s] for s in SPECIES}
-GROUND = {"sheep": 22, "goat": 22, "pig": 20, "chicken": 16, "gray-wolf": 23, "red-deer": 36}
+PALETTES = {**{s: B_PALETTES[s] for s in SPECIES if s not in DEER_KINDS}, **{s: k["palette"] for s, k in DEER_KINDS.items()}}
+STATES = {s: B_STATES["red-deer" if s in DEER_KINDS else s] for s in SPECIES}
+NATIVE_SIZES = {s: (40, 40 + DEER_PAD) if s in DEER_KINDS else B_SIZES[s] for s in SPECIES}
+GROUND = {"sheep": 22, "goat": 22, "pig": 20, "chicken": 16, "gray-wolf": 23, **dict.fromkeys(DEER_KINDS, 36)}
 STANDING_SIZES = {s: (NATIVE_SIZES[s][0], GROUND[s]) for s in SPECIES}
-SIDE = {"sheep": sheep, "goat": goat, "pig": pig, "chicken": chicken, "gray-wolf": wolf, "red-deer": deer}
+SIDE = {"sheep": sheep, "goat": goat, "pig": pig, "chicken": chicken, "gray-wolf": wolf, **dict.fromkeys(DEER_KINDS, deer)}
 
 
 def end_legs(c, s, xs, top, ground, w, keys, role, hoof):
@@ -282,7 +315,8 @@ def wolf_end(state, frame, south):
 
 
 def deer_end(state, frame, south):
-    c = Canvas("red-deer")
+    c = _deer_canvas()
+    V = fauna_b.DEER
     s = Stride(state, frame, walk=(3.0, 3.0, 0.62), run=(5.5, 5.5, 0.4), bounce=1.6)
     g, cx = GROUND["red-deer"], 20
     rest = state == "rest"
@@ -305,7 +339,12 @@ def deer_end(state, frame, south):
     if south:
         hy = 6 + by + 6 * stage + s.nod
         neck = rect((cx - 2, hy + 6, cx + 2, 18 + by))
-        c.paint(shade(neck, 0, 0))
+        c.paint({xy: V["neck"] for xy in neck} if V["neck"] else shade(neck, 0, 0))
+        if V["band"]:  # the white throat patch
+            c.paint(flat(rect((cx - 1, hy + 11, cx + 1, hy + 12)), "w"))
+        if not stage:
+            antlers(c, cx - 2, hy + 1, view="front", far=True)
+            antlers(c, cx + 2, hy + 1, view="front")
         for sgn in (-1, 1):
             ear = polygon([(cx + sgn * 2, hy + 2), (cx + sgn * (7 + flick), hy - 1), (cx + sgn * 6, hy + 3)])
             c.paint(flat(ear, "m"))
@@ -313,27 +352,50 @@ def deer_end(state, frame, south):
         head = ellipse((cx - 3, hy, cx + 3, hy + 6)) | polygon([(cx - 2, hy + 5), (cx + 2, hy + 5), (cx + 1, hy + 10), (cx - 1, hy + 10)])
         c.paint(shade(head, 1, 1))
         c.paint(flat(rect((cx - 1, hy + 9, cx + 1, hy + 10)), "a"))
+        if V["band"]:
+            c.paint(flat(rect((cx - 1, hy + 8, cx + 1, hy + 8)), "w"))
         for sgn in (-1, 1):
             c.dot(cx + sgn * 2, hy + 3, "d" if frame == 6 and state == "idle" else "e")
     else:
         if not stage:
             hy = 5 + by
-            c.paint(shade(rect((cx - 2, hy + 5, cx + 2, 16 + by)), 1, 0))
+            antlers(c, cx - 2, hy + 1, view="front", far=True)
+            antlers(c, cx + 2, hy + 1, view="front")
+            nk = rect((cx - 2, hy + 5, cx + 2, 16 + by))
+            c.paint({xy: V["neck"] for xy in nk} if V["neck"] else shade(nk, 1, 0))
             for sgn in (-1, 1):
                 c.paint(flat(polygon([(cx + sgn * 2, hy + 3), (cx + sgn * (7 + flick), hy), (cx + sgn * 6, hy + 4)]), "d"))
             c.paint(shade(ellipse((cx - 3, hy, cx + 3, hy + 6)), 1, 1))
             c.paint(px)
         # the pale rump patch, and the tail that flags it when she runs
-        c.paint(flat(ellipse((cx - 4, 15 + by, cx + 4, 23 + by)), "b"))
         up = s.running or (state == "idle" and frame in (5, 6))
-        c.paint(flat(rect((cx - 1, (14 if up else 16) + by, cx + 1, (17 if up else 20) + by)), "b" if up else "m"))
+        if V["rump"]:
+            big = V["rump"] == "big"
+            c.paint(flat(ellipse((cx - 5, 14 + by, cx + 5, 24 + by) if big else (cx - 4, 15 + by, cx + 4, 23 + by)), "w" if big else "b"))
+        if V["tail"] == "flag":
+            if up:
+                c.paint(flat(ellipse((cx - 4, 10 + by, cx + 4, 19 + by)), "w"))
+            else:
+                c.paint(flat(rect((cx - 1, 15 + by, cx + 1, 22 + by)), "m"))
+                c.paint(flat(rect((cx - 2, 18 + by, cx - 2, 22 + by)) | rect((cx + 2, 18 + by, cx + 2, 22 + by)), "w"))
+        elif V["tail"]:
+            c.paint(flat(rect((cx - 1, (14 if up else 16) + by, cx + 1, (17 if up else 20 if V["tail"] == "short" else 22) + by)),
+                         "b" if up else "s" if V["tail"] == "long" else "m"))
     return c.finish()
 
 
-END = {"sheep": sheep_end, "goat": goat_end, "pig": pig_end, "chicken": chicken_end, "gray-wolf": wolf_end, "red-deer": deer_end}
+END = {"sheep": sheep_end, "goat": goat_end, "pig": pig_end, "chicken": chicken_end, "gray-wolf": wolf_end, **dict.fromkeys(DEER_KINDS, deer_end)}
+DEER_PLAIN = dict(fauna_b.DEER)
 
 
-def draw(species, state, facing, frame):
+def forms(species):
+    return list(DEER_KINDS[species]["forms"]) if species in DEER_KINDS else [None]
+
+
+def draw(species, state, facing, frame, form=None):
+    if species in DEER_KINDS:
+        k = DEER_KINDS[species]
+        fauna_b.DEER.update(DEER_PLAIN, palette=k["palette"], pad=DEER_PAD, **k["forms"][form or forms(species)[0]])
     if facing == "east":
         return SIDE[species](state, frame)
     if facing == "west":
@@ -341,10 +403,27 @@ def draw(species, state, facing, frame):
     return END[species](state, frame, facing == "south")
 
 
+def looks():
+    """Does and hinds outnumber the males two to one; red, roe and
+    white-tailed deer go grey-brown for the winter."""
+    out = {}
+    for sp, k in DEER_KINDS.items():
+        coats = {"summer": k["palette"], **({"winter": {**k["palette"], **k["winter"]}} if "winter" in k else {})}
+        out[sp] = {
+            "roles": k["palette"],
+            "forms": [{"id": f, "weight": 2.0 if i == 0 else 1.0, "where": None, "coats": {"summer": 1}} for i, f in enumerate(k["forms"])],
+            "coats": coats,
+            "coatFrom": {},
+            **({"seasons": {"summer": {"winter": "winter"}}} if "winter" in k else {}),
+        }
+    return out
+
+
 def fauna_fourway():
     return {
-        f"faunac-{species}-{state}-{facing}-{frame}": draw(species, state, facing, frame)
+        f"faunac-{species if i == 0 else f'{species}.{form}'}-{state}-{facing}-{frame}": draw(species, state, facing, frame, form)
         for species in SPECIES
+        for i, form in enumerate(forms(species))
         for state, count in STATES[species].items()
         for facing in DIRECTIONS
         for frame in range(count)

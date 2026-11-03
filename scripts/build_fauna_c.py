@@ -13,7 +13,7 @@ out.mkdir(exist_ok=True)
 # Set D is the working animals, drawn on a later rig and in several forms and
 # coats; it shares this atlas because it shares the four facings.
 sprites = {name: tint_outline(im) for name, im in {**fauna_c(), **fauna_d.fauna_d(), **fox.fauna_fox(), **fourway.fauna_fourway()}.items()}
-looks = {**looks_c(), **fauna_d.looks(), **fox.looks()}
+looks = {**looks_c(), **fauna_d.looks(), **fox.looks(), **fourway.looks()}
 PALETTES = {**PALETTES, **fauna_d.PALETTES, **fox.PALETTES, **fourway.PALETTES}
 STATES = {**STATES, **fauna_d.STATES, **fox.STATES, **fourway.STATES}
 NATIVE_SIZES = {**NATIVE_SIZES, **fauna_d.NATIVE_SIZES, **fox.NATIVE_SIZES, **fourway.NATIVE_SIZES}
@@ -22,18 +22,32 @@ for name, im in sprites.items():
     assert set(im.getchannel("A").getdata()) <= {0, 255}, name
     assert len(im.getcolors(im.width * im.height)) <= 24, name
     assert im.getbbox(), name
-pack_atlas(sprites, out, "atlas", 1024, module=True)
-write_metadata(out / "studies.json", json.dumps({
-    species: {
-        "palette": list(PALETTES[species].values()),
-        "states": states,
-        "directions": list(fauna_d.facings(species) if species in fauna_d.STATES else facings_c(species) if species in STATES_C else DIRECTIONS),
-        "size": NATIVE_SIZES[species],
-        "standing": STANDING_SIZES[species],
-        **({"looks": looks[species]} if species in looks else {}),
-    }
-    for species, states in STATES.items()
-}, indent=2) + "\n")
+# The deer, the jackal, the coyote and the hare are a sheet of their own,
+# fetched when one is in the world, or set C outgrows a GPU texture.
+WILD = {*fourway.DEER_KINDS, "golden-jackal", "coyote", "hare"}
+
+
+def kind_of(name):
+    art = name.split("-", 1)[1]
+    return next(sp for sp in sorted(STATES, key=len, reverse=True) if art.startswith(sp + "-") or art.startswith(sp + "."))
+
+
+wild = {"faunaw" + name[6:]: im for name, im in sprites.items() if kind_of(name) in WILD}
+sprites = {name: im for name, im in sprites.items() if kind_of(name) not in WILD}
+for sheet_dir, frames, kinds in ((out, sprites, [s for s in STATES if s not in WILD]), (root / "public/fauna-w", wild, [s for s in STATES if s in WILD])):
+    sheet_dir.mkdir(exist_ok=True)
+    pack_atlas(frames, sheet_dir, "atlas", 1024, module=sheet_dir == out)
+    write_metadata(sheet_dir / "studies.json", json.dumps({
+        species: {
+            "palette": list(PALETTES[species].values()),
+            "states": STATES[species],
+            "directions": list(fauna_d.facings(species) if species in fauna_d.STATES else facings_c(species) if species in STATES_C else DIRECTIONS),
+            "size": NATIVE_SIZES[species],
+            "standing": STANDING_SIZES[species],
+            **({"looks": looks[species]} if species in looks else {}),
+        }
+        for species in kinds
+    }, indent=2) + "\n")
 
 # The megafauna are several times the size of a fox and live only in the
 # deep past or far north, so each rig gets its own sheet, fetched when one
@@ -65,9 +79,9 @@ for rig_art, sprites_of, sheet in ((proboscidean, proboscidean.fauna_megafauna, 
 artifacts = root / "artifacts/fauna-lab"
 artifacts.mkdir(exist_ok=True, parents=True)
 scale = 4
-rows = [(sp, st, d) for sp in STATES for st in STATES[sp] for d in DIRECTIONS]
-cell_w = max(NATIVE_SIZES[s][0] for s in STATES) * scale + 10
-cell_h = max(NATIVE_SIZES[s][1] for s in STATES) * scale + 6
+rows = [(sp, st, d) for sp in STATES if sp not in WILD for st in STATES[sp] for d in DIRECTIONS]
+cell_w = max(NATIVE_SIZES[s][0] for s in STATES if s not in WILD) * scale + 10
+cell_h = max(NATIVE_SIZES[s][1] for s in STATES if s not in WILD) * scale + 6
 
 
 def sheet(frame):

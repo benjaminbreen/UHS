@@ -31,6 +31,7 @@ PALETTES = {
     "horse": {"o": "#2f1d14", "d": "#4a2e1f", "m": "#6b452c", "l": "#8d5c38", "h": "#ae7c51", "b": "#ece2d2", "e": "#150e09", "a": "#23202c"},
     "foal": {"o": "#5c3f26", "d": "#836039", "m": "#a8834f", "l": "#c6a375", "h": "#e0c49b", "b": "#f2e9d8", "e": "#241810", "a": "#3b4257"},
     "rabbit": {"o": "#7d5a33", "d": "#a67c48", "m": "#c79d68", "l": "#e0bf92", "h": "#f4ddb6", "b": "#fbf3e2", "e": "#241810", "a": "#d79a97"},
+    "hare": {"o": "#4a3220", "d": "#7a5532", "m": "#a07446", "l": "#c39a65", "h": "#dcbd8c", "b": "#f6efe2", "e": "#17100a", "a": "#c8908a"},
     "rabbit-kit": {"o": "#828b9c", "d": "#aab3c0", "m": "#ced5de", "l": "#e8edf2", "h": "#ffffff", "b": "#bcc4d0", "e": "#262b34", "a": "#d7a5a2"},
 }
 
@@ -45,6 +46,7 @@ STATES = {
     "foal": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "rabbit": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "rabbit-kit": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
+    "hare": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
 }
 # True scale against the 29px human is ~17px per metre. Horse 2.4m long and
 # 1.55m at the withers lands on 40x36; the foal is 60% of it. Rabbits are drawn
@@ -54,13 +56,14 @@ STATES = {
 # measured from the standing pose; finish() shifts the whole sprite down.
 # FOOTROOM matches sets A and B, whose renderer reads the ground line as three
 # rows up from the bottom of the frame.
-HEADROOM = {"horse": 3, "foal": 3, "rabbit": 5, "rabbit-kit": 4}
+HEADROOM = {"horse": 3, "foal": 3, "rabbit": 5, "rabbit-kit": 4, "hare": 7}
 FOOTROOM = 3
 STANDING_SIZES = {
     "horse": (40, 35),
     "foal": (24, 23),
     "rabbit": (16, 16),
     "rabbit-kit": (10, 10),
+    "hare": (24, 21),
 }
 NATIVE_SIZES = {
     k: (w, h + HEADROOM[k] + FOOTROOM) for k, (w, h) in STANDING_SIZES.items()
@@ -516,6 +519,16 @@ LEPORID = {
         f_eye=((6, 5), (9, 5)), f_nose=(7, 7), f_paw=(5, 10), n_rump=(3, 6, 12, 14), n_tail=(7, 7),
         hop=4, arch=3,
     ),
+    # Longer in the ear, the leg and the body than a rabbit, and it stands
+    # up on its forelegs; the ear tips and the top of the tail are black.
+    "hare": dict(
+        ground=20, haunch=(2, 8, 12, 18), chest=(9, 7, 16, 14), head=(13, 2, 19, 8),
+        ear_x=(13, 16), ear_w=2, ear_h=9, eye=(17, 4), nose=(19, 6), tail=(1, 9), tail_r=2,
+        fore_x=15, hind_x=2, foot_w=5, fore_h=6, tips=True,
+        f_body=(6, 9, 17, 20), f_head=(7, 2, 16, 9), f_ear=(8, 14), f_ear_h=7,
+        f_eye=((9, 5), (14, 5)), f_nose=(11, 8), f_paw=(8, 15), n_rump=(5, 8, 18, 20), n_tail=(10, 10),
+        hop=7, arch=3,
+    ),
     "rabbit-kit": dict(
         ground=8, haunch=(1, 3, 5, 8), chest=(3, 4, 7, 8), head=(4, 2, 7, 6),
         ear_x=(4, 6), ear_w=1, ear_h=3, eye=(6, 4), nose=(7, 5), tail=(1, 5), tail_r=1,
@@ -552,6 +565,9 @@ def _ears_side(c, p, x_off, y_off, lay, flick):
             tip = (ex + tilt, y_off - h + 1)
         stalk = line((ex + x_off, y_off + 1), (tip[0] + x_off, tip[1]), p["ear_w"])
         c.paint(flat(stalk, "m" if i else "d"))
+        if p.get("tips"):
+            top = sorted(stalk, key=lambda q: q[0] if lay else q[1])[: 2 * p["ear_w"]]
+            c.paint(flat(set(top), "e"))
         if i and not lay:
             c.paint(flat({(tip[0] + x_off, tip[1] + 1)}, "a"))
 
@@ -585,7 +601,8 @@ def _leporid_side(species, state, frame):
         airborne = lift > 0
         fw = p["foot_w"]
         hind = rect((p["hind_x"], ground - 1 + (0 if not airborne else -2), p["hind_x"] + fw, ground - (0 if not airborne else 2)))
-        fore = rect((p["fore_x"] + stretch, ground - 1 + (0 if not airborne else -3), p["fore_x"] + stretch + 1, ground - (0 if not airborne else 3)))
+        fh = p.get("fore_h", 1)
+        fore = rect((p["fore_x"] + stretch, ground - fh + (0 if not airborne else -3), p["fore_x"] + stretch + 1, ground - (0 if not airborne else 3)))
         if moving and airborne:
             hind = shift(hind, -1, 0)
             fore = shift(fore, 1, 0)
@@ -602,6 +619,8 @@ def _leporid_side(species, state, frame):
     c.paint(px)
     r = p["tail_r"]
     c.paint(flat(rect((p["tail"][0], p["tail"][1] + by, p["tail"][0] + r - 1, p["tail"][1] + r + by)), "b"))
+    if p.get("tips"):
+        c.paint(flat(rect((p["tail"][0], p["tail"][1] + by, p["tail"][0] + r - 1, p["tail"][1] + by)), "e"))
 
     ex0, ey0, ex1, ey1 = p["head"]
     head = ellipse((ex0 + stretch, ey0 + by + head_dy, ex1 + stretch, ey1 + by + head_dy))
@@ -684,6 +703,8 @@ def _ears_face(c, p, by, lay, state, frame, back):
         tip_y = top + 1 if lay else top - h
         stalk = rect((ex + tilt, tip_y, ex + tilt + 1, top + 1))
         c.paint(flat(stalk, "m" if not back else "d"))
+        if p.get("tips") and not lay:
+            c.paint(flat(rect((ex + tilt, tip_y, ex + tilt + 1, tip_y + 1)), "e"))
         if not back and not lay:
             c.dot(ex + tilt, tip_y + 1, "a")
 

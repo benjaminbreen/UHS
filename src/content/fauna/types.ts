@@ -4,6 +4,7 @@ import studies from "../../render/generated/fauna-b-studies.json" with { type: "
 import studiesC from "../../render/generated/fauna-c-studies.json" with { type: "json" };
 import studiesM from "../../render/generated/fauna-m-studies.json" with { type: "json" };
 import studiesR from "../../render/generated/fauna-r-studies.json" with { type: "json" };
+import studiesW from "../../render/generated/fauna-w-studies.json" with { type: "json" };
 import studiesF from "../../render/generated/fauna-f-studies.json" with { type: "json" };
 import studiesG from "../../render/generated/fauna-g-studies.json" with { type: "json" };
 import studiesU from "../../render/generated/fauna-u-studies.json" with { type: "json" };
@@ -168,6 +169,7 @@ export function directionalStudy(
     | keyof typeof studiesC
     | keyof typeof studiesM
     | keyof typeof studiesR
+    | keyof typeof studiesW
     | keyof typeof studiesF
     | keyof typeof studiesG
     | keyof typeof studiesU,
@@ -176,6 +178,7 @@ export function directionalStudy(
     [
       ["faunam", studiesM],
       ["faunar", studiesR],
+      ["faunaw", studiesW],
       ["faunaf", studiesF],
       ["faunag", studiesG],
       ["faunau", studiesU],

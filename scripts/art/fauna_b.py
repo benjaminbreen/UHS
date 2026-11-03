@@ -189,6 +189,10 @@ class Canvas:
                     ring.add((nx, ny))
         im = Image.new("RGBA", (self.w, self.h))
         px = im.load()
+        pad = getattr(self, "pad", 0)
+        if pad:
+            ring = {(x, y + pad) for x, y in ring}
+            self.px = {(x, y + pad): r for (x, y), r in self.px.items()}
         for x, y in ring:
             if 0 <= x < self.w and 0 <= y < self.h:
                 px[x, y] = _rgba(self.palette["o"])
@@ -235,8 +239,74 @@ def leg(canvas, hip, foot, hind, near, thick=2, role=None, lift=0.0, hoof="a"):
 
 
 # ---------------------------------------------------------------- quadrupeds
-def deer(state, frame):
+# The deer being drawn. The defaults are the red deer hind of set B; set C
+# draws the stags and the other deer by changing it (see fourway.DEER_KINDS).
+# antler: a key of ANTLERS. tail: short, flag, long or None. rump: patch,
+# big or None. neck: a role to darken the neck to. band: white chin and
+# muzzle ring. spots: white rows down the flank and a dark line on the back.
+DEER = dict(palette=None, pad=0, antler=None, tail="short", rump="patch", neck=None, band=False, spots=False)
+
+# Antlers in pixels from the pedicle, for a 40px deer: (beam, tines). Side
+# view: x forward, y up negative. Front view: x outward from the head.
+ANTLERS = {
+    "elaphus": dict(side=([(0, 0), (-1, -4), (-2, -8), (-2, -11), (-1, -13)],
+                          [((0, -1), (3, -2)), ((-1, -4), (2, -5)), ((-2, -8), (1, -9)), ((-1, -13), (1, -15)), ((-2, -11), (-4, -14))]),
+                    front=([(0, 0), (2, -4), (4, -8), (5, -11), (4, -13)],
+                           [((1, -2), (3, -1)), ((4, -8), (6, -9)), ((4, -13), (3, -15)), ((4, -13), (6, -15))])),
+    "wapiti": dict(side=([(0, 0), (-2, -4), (-4, -8), (-6, -12), (-7, -15), (-6, -17)],
+                         [((0, -1), (3, -2)), ((-1, -3), (2, -5)), ((-4, -8), (-1, -11)), ((-6, -12), (-3, -14)), ((-7, -15), (-5, -17))]),
+                   front=([(0, 0), (3, -4), (5, -9), (6, -13), (6, -17)],
+                          [((1, -2), (3, 0)), ((5, -9), (7, -10)), ((6, -13), (8, -14)), ((6, -17), (5, -19))])),
+    "virginianus": dict(side=([(0, 0), (-2, -2), (-2, -5), (0, -6), (3, -6)],
+                              [((-2, -4), (-2, -8)), ((0, -6), (0, -9)), ((2, -6), (2, -8))]),
+                        front=([(0, 0), (3, -2), (5, -4), (4, -6), (2, -7)],
+                               [((3, -2), (3, -5)), ((5, -4), (6, -7))])),
+    "axis": dict(side=([(0, 0), (-1, -4), (-2, -8), (-1, -11)],
+                       [((0, -1), (3, -3)), ((-2, -9), (-4, -12))]),
+                 front=([(0, 0), (1, -4), (2, -8), (2, -11)],
+                        [((2, -9), (4, -11)), ((0, -1), (2, 0))])),
+    "roe": dict(side=([(0, 0), (0, -3), (-1, -6)], [((0, -3), (2, -4)), ((-1, -5), (-2, -7))]),
+                front=([(0, 0), (1, -3), (1, -6)], [((1, -3), (2, -4))])),
+}
+
+
+def _deer_canvas():
     c = Canvas("red-deer")
+    c.palette = DEER["palette"] or c.palette
+    c.pad = DEER["pad"]
+    c.h += c.pad
+    return c
+
+
+def antlers(c, x, y, tilt=0.0, view="side", far=False):
+    """The antler at pedicle (x, y), the head tipped `tilt` degrees nose-down.
+    The far one of a pair is the darker."""
+    if not DEER["antler"]:
+        return
+    beam, tines = ANTLERS[DEER["antler"]][view]
+    a = math.radians(tilt)
+
+    def P(v):
+        vx, vy = v
+        if view == "front" and far:
+            vx = -vx
+        return x + vx * math.cos(a) - vy * math.sin(a), y + vx * math.sin(a) + vy * math.cos(a)
+
+    m = set()
+    for p, q in zip(beam, beam[1:]):
+        m |= line(P(p), P(q))
+    # Side on, the far antler is only its beam and the top tine, or the two
+    # pairs read as a ladder.
+    for p, q in (tines[-1:] if view == "side" and far else tines):
+        m |= line(P(p), P(q))
+    if view == "side" and far:
+        c.paint(flat(m, "k"))
+    else:
+        c.paint({(px, py): "k" if (px + 1, py) in m and (px, py - 1) not in m else "c" for px, py in m})
+
+
+def deer(state, frame):
+    c = _deer_canvas()
     t = frame / 8
     moving = state in {"wander", "flee"}
     running = state == "flee"
@@ -273,14 +343,9 @@ def deer(state, frame):
     for x, y in body:
         if (x, y - 1) not in body and 22 <= x <= 28:
             body_px[(x, y)] = "h"  # withers
+    _spots(body_px, body, by)
     c.paint(body_px)
-    # rump patch + tail
-    c.paint(flat(polygon([(7, 18 + by), (9, 17 + by), (9, 23 + by), (7, 22 + by)]), "b"))
-    # a running deer flags: the tail goes up and shows its white
-    tail_up = running or (state == "idle" and frame in (5, 6))
-    tail = polygon([(6, 17 + by), (8, 16 + by), (8, 21 + by), (5, 21 + by)]) if not tail_up else polygon([(6, 16 + by), (8, 15 + by), (9, 19 + by), (6, 19 + by)])
-    c.paint(flat(tail, "b" if running else "m"))
-    c.paint({(x, y): "b" for x, y in tail if (x, y + 1) not in tail})
+    _rump_tail(c, by, running or (state == "idle" and frame in (5, 6)), running)
 
     # neck + head
     if state == "forage":
@@ -295,15 +360,15 @@ def deer(state, frame):
         # further out it reads as a llama, and the muzzle leaves the canvas.
         top = (31 + nod, 10 + by + nod) if not running else (32, 12 + by)
         neck = polygon([(23, 15 + by), (31, 22 + by), (top[0] + 2, top[1] + 4), (top[0] - 2, top[1])])
-        c.paint(over(c, shade(neck, top=1, bottom=1)))
+        _neck(c, neck)
         _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, running, chew)
     elif stage == 1:
         neck = polygon([(24, 16 + by), (30, 21 + by), (34, 21 + by), (32, 24 + by)])
-        c.paint(over(c, shade(neck, 1, 1)))
+        _neck(c, neck)
         _deer_head(c, 31, 19 + by, "low", frame, False, chew)
     else:
         neck = polygon([(24, 16 + by), (30, 21 + by), (34, 26 + by), (31, 28 + by)])
-        c.paint(over(c, shade(neck, 1, 1)))
+        _neck(c, neck)
         _deer_head(c, 30, 25 + by, "down", frame, False, chew)
 
     # near legs on top
@@ -312,8 +377,60 @@ def deer(state, frame):
     return c.finish()
 
 
+def _spots(px, body, by):
+    """The chital's white spots, in staggered rows, and its dark back line."""
+    if not DEER["spots"]:
+        return
+    for x, y in body:
+        if (x, y - 1) not in body and 10 <= x <= 27:
+            px[(x, y)] = "s"
+        row = y - by
+        if row in (18, 20, 22) and 10 <= x <= 27 and (x + row // 2) % 3 == 0 and (x, y + 2) in body:
+            px[(x, y)] = "w"
+
+
+def _rump_tail(c, by, up, running):
+    """The rump patch and the tail over it. A running deer flags: the tail
+    goes up and shows its white."""
+    if DEER["rump"] == "patch":
+        c.paint(flat(polygon([(7, 18 + by), (9, 17 + by), (9, 23 + by), (7, 22 + by)]), "b"))
+    elif DEER["rump"] == "big":
+        c.paint(flat(polygon([(6, 17 + by), (10, 16 + by), (10, 24 + by), (6, 23 + by)]), "w"))
+    kind = DEER["tail"]
+    if kind == "short":
+        tail = polygon([(6, 17 + by), (8, 16 + by), (8, 21 + by), (5, 21 + by)]) if not up else polygon([(6, 16 + by), (8, 15 + by), (9, 19 + by), (6, 19 + by)])
+        c.paint(flat(tail, "b" if running else "m"))
+        c.paint({(x, y): "b" for x, y in tail if (x, y + 1) not in tail})
+    elif kind == "flag":
+        if up:  # the white flag, fanned
+            c.paint(flat(polygon([(7, 17 + by), (9, 15 + by), (6, 9 + by), (3, 11 + by)]), "w"))
+            c.paint(flat(line((7, 16 + by), (5, 11 + by)), "m"))
+        else:
+            tail = polygon([(6, 17 + by), (8, 16 + by), (8, 24 + by), (5, 24 + by)])
+            c.paint(flat(tail, "m"))
+            c.paint({(x, y): "w" for x, y in tail if (x - 1, y) not in tail})
+    elif kind == "long":
+        tail = polygon([(6, 17 + by), (8, 16 + by), (7, 25 + by), (5, 24 + by)]) if not up else polygon([(6, 16 + by), (8, 15 + by), (4, 11 + by), (3, 13 + by)])
+        c.paint(flat(tail, "s"))
+        c.paint({(x, y): "w" for x, y in tail if (x - 1, y) not in tail})
+
+
+def _neck(c, neck):
+    px = shade(neck, top=1, bottom=1)
+    if DEER["neck"]:
+        px = {xy: "d" if r == "l" else DEER["neck"] for xy, r in px.items()}
+    c.paint(over(c, px) if not DEER["neck"] else px)
+
+
 def _deer_head(c, x, y, pose, frame, running, chew=0):
     """Head anchored at (x, y) = back of skull. fwd: alert; low: lowering; down: grazing."""
+    tilt, ped = {"fwd": (0, (x + 2, y)), "low": (40, (x + 1, y + 1)), "down": (55, (x + 1, y + 1))}[pose]
+    antlers(c, ped[0] + 3, ped[1], tilt, far=True)
+    _deer_face(c, x, y, pose, frame, running, chew)
+    antlers(c, *ped, tilt)
+
+
+def _deer_face(c, x, y, pose, frame, running, chew=0):
     if pose == "fwd":
         c.paint(flat(polygon([(x, y + 2), (x - 2, y - 3), (x + 3, y + 1)]), "d"))
         head = ellipse((x, y, x + 5, y + 5)) | polygon([(x + 4, y + 1), (x + 8, y + 3), (x + 8, y + 4), (x + 4, y + 5)])
@@ -321,6 +438,10 @@ def _deer_head(c, x, y, pose, frame, running, chew=0):
         c.paint(flat(polygon([(x + 6, y + 3), (x + 8, y + 3), (x + 8, y + 4), (x + 6, y + 5)]), "d"))
         c.dot(x + 8, y + 3, "e")
         c.dot(x + 3, y + 2, "e")
+        if DEER["band"]:
+            c.dot(x + 6, y + 5, "w")
+            c.dot(x + 7, y + 5, "w")
+            c.dot(x + 5, y + 3, "w")
         flick = frame in (3, 4) and not running
         ear = polygon([(x + 2, y + 1), (x + 1 + (2 if flick else 0), y - 4), (x + 5, y)])
         c.paint(flat(ear, "m"))
@@ -355,6 +476,7 @@ def _deer_rest(c, frame):
     for x, y in body:
         if (x, y - 1) not in body and 12 <= x <= 26:
             px[(x, y)] = "h"
+    _spots(px, body, 6)
     c.paint(px)
     # foreleg folded forward along the ground, hind hoof tucked at the rear
     fore = rect((24, 33, 34, 35)) | rect((22, 31, 26, 34))
@@ -362,11 +484,12 @@ def _deer_rest(c, frame):
     fp[(34, 34)] = fp[(34, 35)] = "a"
     c.paint(fp)
     c.paint(flat(rect((9, 34, 12, 35)), "d"))
-    c.paint(flat(polygon([(6, 26), (8, 25), (8, 30), (5, 29)]), "b"))
+    if DEER["rump"]:
+        c.paint(flat(polygon([(6, 26), (8, 25), (8, 30), (5, 29)]), "b" if DEER["rump"] == "patch" else "w"))
     dip = [0, 0, 0, 1, 1, 1, 0, 0][frame]
     top = (32, 18 + dip)
     neck = polygon([(24, 25), (30, 28), (top[0] + 2, top[1] + 3), (top[0] - 2, top[1])])
-    c.paint(over(c, shade(neck, 1, 1)))
+    _neck(c, neck)
     _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, False)
     return c.finish()
 

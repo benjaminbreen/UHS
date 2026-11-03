@@ -353,9 +353,11 @@ describe("fauna behaviour", () => {
     advanceFauna([wary], sim({ hour: 21, carrion, humans: [{ x: 21, y: 10, space: "outside" }] }), 6);
     expect(wary.target).not.toEqual(expect.objectContaining(carrion[0]));
   });
-  it("dresses borrowed drawings in their own coats", () => {
-    for (const [art, coat] of [["rabbit", "hare"], ["red-deer", "chital"], ["dog", "jackal"], ["dog", "tan"]])
-      expect(faunaCoats(art, coat)?.size).toBeGreaterThan(0);
+  it("draws the new deer, jackals, coyotes and hares as themselves", () => {
+    for (const [species, coat] of [["golden-jackal", "russet"], ["coyote", "tawny"], ["roe-deer", "winter"], ["red-deer", "winter"]])
+      expect(faunaCoats(species, coat)?.size).toBeGreaterThan(0);
+    for (const id of ["hare", "roe-deer", "white-tailed-deer", "chital", "golden-jackal", "coyote", "wapiti"])
+      expect(faunaProfile(id)!.art.idle![0]).toMatch(new RegExp(`^faunaw-${id}-`));
     expect(faunaProfile("roe-deer")!.scale).toBeLessThan(1);
     expect(ids(1400, "konya")).toEqual(expect.arrayContaining(["hare", "golden-jackal", "roe-deer"]));
   });

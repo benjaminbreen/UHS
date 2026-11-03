@@ -1,0 +1,746 @@
+{
+  "hare": {
+    "palette": [
+      "#4a3220",
+      "#7a5532",
+      "#a07446",
+      "#c39a65",
+      "#dcbd8c",
+      "#f6efe2",
+      "#17100a",
+      "#c8908a"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      24,
+      31
+    ],
+    "standing": [
+      24,
+      21
+    ]
+  },
+  "golden-jackal": {
+    "palette": [
+      "#3b2814",
+      "#8a6436",
+      "#b88d54",
+      "#d4ad72",
+      "#e9cc98",
+      "#b8ab96",
+      "#ecdfc8",
+      "#faf3e6",
+      "#5a4632",
+      "#1a0f08",
+      "#c08a4a",
+      "#120b08",
+      "#1d1612",
+      "#9a6a50"
+    ],
+    "states": {
+      "idle": 16,
+      "forage": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "carry": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      52,
+      42
+    ],
+    "standing": [
+      52,
+      25
+    ],
+    "looks": {
+      "roles": {
+        "o": "#3b2814",
+        "d": "#8a6436",
+        "m": "#b88d54",
+        "l": "#d4ad72",
+        "h": "#e9cc98",
+        "r": "#b8ab96",
+        "p": "#ecdfc8",
+        "q": "#faf3e6",
+        "b": "#5a4632",
+        "e": "#1a0f08",
+        "a": "#c08a4a",
+        "k": "#120b08",
+        "t": "#1d1612",
+        "u": "#9a6a50"
+      },
+      "forms": [
+        {
+          "id": "fox",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "golden": 3,
+            "russet": 1
+          }
+        }
+      ],
+      "coats": {
+        "golden": {
+          "o": "#3b2814",
+          "d": "#8a6436",
+          "m": "#b88d54",
+          "l": "#d4ad72",
+          "h": "#e9cc98",
+          "r": "#b8ab96",
+          "p": "#ecdfc8",
+          "q": "#faf3e6",
+          "b": "#5a4632",
+          "e": "#1a0f08",
+          "a": "#c08a4a",
+          "k": "#120b08",
+          "t": "#1d1612",
+          "u": "#9a6a50"
+        },
+        "russet": {
+          "o": "#3a2111",
+          "d": "#80512b",
+          "m": "#ab7443",
+          "l": "#c79260",
+          "h": "#ddb282",
+          "r": "#b5a491",
+          "p": "#eadbc6",
+          "q": "#f9f1e4",
+          "b": "#4f3a28",
+          "e": "#1a0f08",
+          "a": "#b0703a",
+          "k": "#120b08",
+          "t": "#1d1612",
+          "u": "#9a6450"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "coyote": {
+    "palette": [
+      "#2d261f",
+      "#6b5d4b",
+      "#978268",
+      "#b5a185",
+      "#d0c0a3",
+      "#b0a594",
+      "#e3d8c4",
+      "#f6f0e4",
+      "#463c31",
+      "#140e09",
+      "#a9805a",
+      "#0e0a07",
+      "#1a1511",
+      "#8f6c5c"
+    ],
+    "states": {
+      "idle": 16,
+      "forage": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "carry": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      52,
+      42
+    ],
+    "standing": [
+      52,
+      25
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2d261f",
+        "d": "#6b5d4b",
+        "m": "#978268",
+        "l": "#b5a185",
+        "h": "#d0c0a3",
+        "r": "#b0a594",
+        "p": "#e3d8c4",
+        "q": "#f6f0e4",
+        "b": "#463c31",
+        "e": "#140e09",
+        "a": "#a9805a",
+        "k": "#0e0a07",
+        "t": "#1a1511",
+        "u": "#8f6c5c"
+      },
+      "forms": [
+        {
+          "id": "fox",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 3,
+            "tawny": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#2d261f",
+          "d": "#6b5d4b",
+          "m": "#978268",
+          "l": "#b5a185",
+          "h": "#d0c0a3",
+          "r": "#b0a594",
+          "p": "#e3d8c4",
+          "q": "#f6f0e4",
+          "b": "#463c31",
+          "e": "#140e09",
+          "a": "#a9805a",
+          "k": "#0e0a07",
+          "t": "#1a1511",
+          "u": "#8f6c5c"
+        },
+        "tawny": {
+          "o": "#33261a",
+          "d": "#7a6040",
+          "m": "#a6845a",
+          "l": "#c2a276",
+          "h": "#d9c098",
+          "r": "#b3a690",
+          "p": "#e6dac4",
+          "q": "#f7f1e4",
+          "b": "#4b3d2c",
+          "e": "#140e09",
+          "a": "#b07e4c",
+          "k": "#0e0a07",
+          "t": "#1a1511",
+          "u": "#94705a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "red-deer": {
+    "palette": [
+      "#6a3d22",
+      "#8f5732",
+      "#bb7941",
+      "#dc9d5f",
+      "#f1c78c",
+      "#f3e4c0",
+      "#2a1a12",
+      "#55301c",
+      "#fbf6ea",
+      "#5e3420",
+      "#efe3c4",
+      "#a88d66"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      40,
+      54
+    ],
+    "standing": [
+      40,
+      36
+    ],
+    "looks": {
+      "roles": {
+        "o": "#6a3d22",
+        "d": "#8f5732",
+        "m": "#bb7941",
+        "l": "#dc9d5f",
+        "h": "#f1c78c",
+        "b": "#f3e4c0",
+        "e": "#2a1a12",
+        "a": "#55301c",
+        "w": "#fbf6ea",
+        "s": "#5e3420",
+        "c": "#efe3c4",
+        "k": "#a88d66"
+      },
+      "forms": [
+        {
+          "id": "hind",
+          "weight": 2.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        },
+        {
+          "id": "stag",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        }
+      ],
+      "coats": {
+        "summer": {
+          "o": "#6a3d22",
+          "d": "#8f5732",
+          "m": "#bb7941",
+          "l": "#dc9d5f",
+          "h": "#f1c78c",
+          "b": "#f3e4c0",
+          "e": "#2a1a12",
+          "a": "#55301c",
+          "w": "#fbf6ea",
+          "s": "#5e3420",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        },
+        "winter": {
+          "o": "#4a3a2e",
+          "d": "#6e5a4a",
+          "m": "#8f7a66",
+          "l": "#a8937d",
+          "h": "#c2ae96",
+          "b": "#f3e4c0",
+          "e": "#2a1a12",
+          "a": "#55301c",
+          "w": "#fbf6ea",
+          "s": "#3e2f24",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        }
+      },
+      "coatFrom": {},
+      "seasons": {
+        "summer": {
+          "winter": "winter"
+        }
+      }
+    }
+  },
+  "wapiti": {
+    "palette": [
+      "#4a3624",
+      "#8a6a48",
+      "#b39169",
+      "#cdb088",
+      "#e2cba4",
+      "#f0e2c0",
+      "#21160e",
+      "#3a2818",
+      "#f2e4c2",
+      "#5a3c26",
+      "#efe3c4",
+      "#a88d66"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      40,
+      54
+    ],
+    "standing": [
+      40,
+      36
+    ],
+    "looks": {
+      "roles": {
+        "o": "#4a3624",
+        "d": "#8a6a48",
+        "m": "#b39169",
+        "l": "#cdb088",
+        "h": "#e2cba4",
+        "b": "#f0e2c0",
+        "e": "#21160e",
+        "a": "#3a2818",
+        "w": "#f2e4c2",
+        "s": "#5a3c26",
+        "c": "#efe3c4",
+        "k": "#a88d66"
+      },
+      "forms": [
+        {
+          "id": "cow",
+          "weight": 2.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        },
+        {
+          "id": "bull",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        }
+      ],
+      "coats": {
+        "summer": {
+          "o": "#4a3624",
+          "d": "#8a6a48",
+          "m": "#b39169",
+          "l": "#cdb088",
+          "h": "#e2cba4",
+          "b": "#f0e2c0",
+          "e": "#21160e",
+          "a": "#3a2818",
+          "w": "#f2e4c2",
+          "s": "#5a3c26",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "white-tailed-deer": {
+    "palette": [
+      "#5c3a1e",
+      "#8a5a30",
+      "#b07440",
+      "#cc915a",
+      "#e3b37e",
+      "#f3ead8",
+      "#22160e",
+      "#4a2c18",
+      "#fffaf0",
+      "#5a3a22",
+      "#efe3c4",
+      "#a88d66"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      40,
+      54
+    ],
+    "standing": [
+      40,
+      36
+    ],
+    "looks": {
+      "roles": {
+        "o": "#5c3a1e",
+        "d": "#8a5a30",
+        "m": "#b07440",
+        "l": "#cc915a",
+        "h": "#e3b37e",
+        "b": "#f3ead8",
+        "e": "#22160e",
+        "a": "#4a2c18",
+        "w": "#fffaf0",
+        "s": "#5a3a22",
+        "c": "#efe3c4",
+        "k": "#a88d66"
+      },
+      "forms": [
+        {
+          "id": "doe",
+          "weight": 2.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        },
+        {
+          "id": "buck",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        }
+      ],
+      "coats": {
+        "summer": {
+          "o": "#5c3a1e",
+          "d": "#8a5a30",
+          "m": "#b07440",
+          "l": "#cc915a",
+          "h": "#e3b37e",
+          "b": "#f3ead8",
+          "e": "#22160e",
+          "a": "#4a2c18",
+          "w": "#fffaf0",
+          "s": "#5a3a22",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        },
+        "winter": {
+          "o": "#3c3228",
+          "d": "#5f5244",
+          "m": "#7f7060",
+          "l": "#9a8b78",
+          "h": "#b5a690",
+          "b": "#f3ead8",
+          "e": "#22160e",
+          "a": "#4a2c18",
+          "w": "#fffaf0",
+          "s": "#5a3a22",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        }
+      },
+      "coatFrom": {},
+      "seasons": {
+        "summer": {
+          "winter": "winter"
+        }
+      }
+    }
+  },
+  "chital": {
+    "palette": [
+      "#6a2e10",
+      "#a4501e",
+      "#cc6d2b",
+      "#e08c42",
+      "#efb06a",
+      "#f6ecdc",
+      "#24150b",
+      "#4a2410",
+      "#fffaf0",
+      "#5e2a10",
+      "#efe3c4",
+      "#a88d66"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      40,
+      54
+    ],
+    "standing": [
+      40,
+      36
+    ],
+    "looks": {
+      "roles": {
+        "o": "#6a2e10",
+        "d": "#a4501e",
+        "m": "#cc6d2b",
+        "l": "#e08c42",
+        "h": "#efb06a",
+        "b": "#f6ecdc",
+        "e": "#24150b",
+        "a": "#4a2410",
+        "w": "#fffaf0",
+        "s": "#5e2a10",
+        "c": "#efe3c4",
+        "k": "#a88d66"
+      },
+      "forms": [
+        {
+          "id": "hind",
+          "weight": 2.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        },
+        {
+          "id": "stag",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        }
+      ],
+      "coats": {
+        "summer": {
+          "o": "#6a2e10",
+          "d": "#a4501e",
+          "m": "#cc6d2b",
+          "l": "#e08c42",
+          "h": "#efb06a",
+          "b": "#f6ecdc",
+          "e": "#24150b",
+          "a": "#4a2410",
+          "w": "#fffaf0",
+          "s": "#5e2a10",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "roe-deer": {
+    "palette": [
+      "#5a2410",
+      "#8c3a1a",
+      "#b45226",
+      "#cc6b35",
+      "#e08c52",
+      "#f0dcc4",
+      "#1a0e08",
+      "#3a1a0c",
+      "#fdf8ee",
+      "#55230f",
+      "#efe3c4",
+      "#a88d66"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      40,
+      54
+    ],
+    "standing": [
+      40,
+      36
+    ],
+    "looks": {
+      "roles": {
+        "o": "#5a2410",
+        "d": "#8c3a1a",
+        "m": "#b45226",
+        "l": "#cc6b35",
+        "h": "#e08c52",
+        "b": "#f0dcc4",
+        "e": "#1a0e08",
+        "a": "#3a1a0c",
+        "w": "#fdf8ee",
+        "s": "#55230f",
+        "c": "#efe3c4",
+        "k": "#a88d66"
+      },
+      "forms": [
+        {
+          "id": "doe",
+          "weight": 2.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        },
+        {
+          "id": "buck",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "summer": 1
+          }
+        }
+      ],
+      "coats": {
+        "summer": {
+          "o": "#5a2410",
+          "d": "#8c3a1a",
+          "m": "#b45226",
+          "l": "#cc6b35",
+          "h": "#e08c52",
+          "b": "#f0dcc4",
+          "e": "#1a0e08",
+          "a": "#3a1a0c",
+          "w": "#fdf8ee",
+          "s": "#55230f",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        },
+        "winter": {
+          "o": "#3e3026",
+          "d": "#5e4a3c",
+          "m": "#7a6555",
+          "l": "#927d6b",
+          "h": "#ab9784",
+          "b": "#f0dcc4",
+          "e": "#1a0e08",
+          "a": "#3a1a0c",
+          "w": "#fdf8ee",
+          "s": "#55230f",
+          "c": "#efe3c4",
+          "k": "#a88d66"
+        }
+      },
+      "coatFrom": {},
+      "seasons": {
+        "summer": {
+          "winter": "winter"
+        }
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@ import atlasR from "../public/fauna-r/atlas.json" with { type: "json" };
 import atlasF from "../public/fauna-f/atlas.json" with { type: "json" };
 import atlasG from "../public/fauna-g/atlas.json" with { type: "json" };
 import atlasU from "../public/fauna-u/atlas.json" with { type: "json" };
+import atlasW from "../public/fauna-w/atlas.json" with { type: "json" };
 import { faunaFacings, faunaFrames, faunaProfiles } from "../src/content/fauna";
 import { faunaStates } from "../src/core/fauna";
 
@@ -15,13 +16,6 @@ const sideView = faunaProfiles.filter((profile) => !profile.directions);
  * that a 40-pixel sprite cannot tell them apart, so they do not earn a sheet
  * of their own; anything else must be drawn as itself. */
 const borrowed: Record<string, string> = {
-  wapiti: "red-deer",
-  "roe-deer": "red-deer",
-  "white-tailed-deer": "red-deer",
-  chital: "red-deer",
-  hare: "rabbit",
-  "golden-jackal": "dog",
-  coyote: "dog",
   "wild-turkey": "turkey",
   "wild-horse": "horse",
   rook: "crow",
@@ -111,6 +105,7 @@ describe("four-direction fauna", () => {
     ...atlasF.frames,
     ...atlasG.frames,
     ...atlasU.frames,
+    ...atlasW.frames,
   } as Record<
     string,
     { frame: { w: number; h: number } }
@@ -130,7 +125,7 @@ describe("four-direction fauna", () => {
           );
           for (const id of ids) {
             expect(
-              id.replace(/^fauna[cmrfgu]-/, "").startsWith(`${borrowed[profile.id] ?? profile.id}-`),
+              id.replace(/^fauna[cmrfguw]-/, "").startsWith(`${borrowed[profile.id] ?? profile.id}-`),
             ).toBe(true);
             expect(frames[id], id).toBeDefined();
             seen.add(id);

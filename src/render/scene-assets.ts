@@ -15,6 +15,7 @@ const atlases = {
   faunaf: "/fauna-f/atlas",
   faunag: "/fauna-g/atlas",
   faunau: "/fauna-u/atlas",
+  faunaw: "/fauna-w/atlas",
   "nature-shadows": "/nature/shadows",
   ecology: "/ecology/atlas",
   props: "/props/atlas",
@@ -73,6 +74,8 @@ export const lazySheets = [
   "faunaf",
   "faunag",
   "faunau",
+  // The deer, jackals, coyotes and hares: wild country, not every town.
+  "faunaw",
 ] as const;
 
 /** Building sheets the game reads as 1024px pages (scripts/art/page_sheets.py),

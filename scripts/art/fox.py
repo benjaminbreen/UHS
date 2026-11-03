@@ -53,13 +53,27 @@ KINDS = {
         "grey": _c("#23211f", "#5d5a57", "#8a8783", "#aba8a3", "#cfccc6", "#b4703a", "#e6dccf", "#faf6ef", "#1f1d1b", "#0d0c0b", "#9b5a2e", "#1c1612", "#141312", "#c07845"),
         "dark": _c("#1a1917", "#45423f", "#686561", "#8a8781", "#aeaaa4", "#9c5e30", "#ddd2c3", "#f5f0e7", "#151412", "#0a0908", "#834a24", "#15100d", "#0e0d0c", "#a8683c"),
     }, weights={"grey": 5, "dark": 1}),
+    # The jackals and the coyote are the same rig longer in the leg, with a
+    # shorter, thinner brush tipped black and a grizzled saddle down the back.
+    # The golden jackal is gold to russet, with tawny legs and a pale throat.
+    "golden-jackal": dict(s=1.1, skull=1.05, snout=1.15, ear=0.95, ear_w=1.05, brush=0.62, plump=0.0, face="red", leg=1.2, saddle=True, coats={
+        "golden": _c("#3b2814", "#8a6436", "#b88d54", "#d4ad72", "#e9cc98", "#b8ab96", "#ecdfc8", "#faf3e6", "#5a4632", "#1a0f08", "#c08a4a", "#120b08", "#1d1612", "#9a6a50"),
+        "russet": _c("#3a2111", "#80512b", "#ab7443", "#c79260", "#ddb282", "#b5a491", "#eadbc6", "#f9f1e4", "#4f3a28", "#1a0f08", "#b0703a", "#120b08", "#1d1612", "#9a6450"),
+    }, weights={"golden": 3, "russet": 1}),
+    # Bigger again: grey-buff grizzled over rusty legs and ears.
+    "coyote": dict(s=1.22, skull=1.08, snout=1.15, ear=1.05, ear_w=1.1, brush=0.85, plump=0.15, face="red", leg=1.15, saddle=True, coats={
+        "grey": _c("#2d261f", "#6b5d4b", "#978268", "#b5a185", "#d0c0a3", "#b0a594", "#e3d8c4", "#f6f0e4", "#463c31", "#140e09", "#a9805a", "#0e0a07", "#1a1511", "#8f6c5c"),
+        "tawny": _c("#33261a", "#7a6040", "#a6845a", "#c2a276", "#d9c098", "#b3a690", "#e6dac4", "#f7f1e4", "#4b3d2c", "#140e09", "#b07e4c", "#0e0a07", "#1a1511", "#94705a"),
+    }, weights={"grey": 3, "tawny": 1}),
 }
 SPECIES = list(KINDS)
 for _kind in KINDS.values():
     for _coat_roles in _kind["coats"].values():
         assert len(set(_coat_roles.values())) == 14
-NATIVE_SIZES = {sp: (WIDTH, GROUND + 4 + HEADROOM) for sp in SPECIES}
-STANDING_SIZES = {sp: (WIDTH, GROUND + 1) for sp in SPECIES}
+# A kind drawn bigger than the red fox gets a wider canvas, or its brush is cut off.
+WIDE = 52
+NATIVE_SIZES = {sp: (WIDE if KINDS[sp]["s"] > 1 else WIDTH, GROUND + 4 + HEADROOM) for sp in SPECIES}
+STANDING_SIZES = {sp: (NATIVE_SIZES[sp][0], GROUND + 1) for sp in SPECIES}
 STATES = {sp: {"idle": 16, "forage": 16, "wander": 8, "stalk": 8, "chase": 8, "flee": 8, "pounce": 8, "carry": 8, "rest": 16} for sp in SPECIES}
 PALETTES = {sp: next(iter(k["coats"].values())) for sp, k in KINDS.items()}
 
@@ -70,7 +84,7 @@ AX = WIDTH // 2
 
 
 def T(p):
-    return AX + (p[0] - AX) * K["s"], GROUND + (p[1] - GROUND) * K["s"]
+    return AX + (p[0] - WIDTH // 2) * K["s"], GROUND + (p[1] - GROUND) * K["s"]
 
 
 def at(p):
@@ -84,7 +98,7 @@ def seg(a, b):
 
 class Canvas(_BCanvas):
     def __init__(self):
-        self.w, self.h = WIDTH, GROUND + 4 + HEADROOM
+        self.w, self.h = 2 * AX, GROUND + 4 + HEADROOM
         self.palette = next(iter(K["coats"].values()))
         self.px = {}
         self.post = {}
@@ -173,6 +187,9 @@ def pose(**k):
              feet=dict(fh=(13.0, GROUND), nh=(15.0, GROUND), ff=(24.0, GROUND), nf=(26.0, GROUND)),
              eye="open", mouth=0, arch=0.0, breath=0, loin=2.7, chest=3.3)
     p.update(k)
+    lift = (K.get("leg", 1.0) - 1) * 11
+    p["hip"], p["sh"], p["head"] = add(p["hip"], (0, -lift)), add(p["sh"], (0, -lift)), add(p["head"], (0, -lift))
+    p["tail"] = [add(q, (0, -lift)) for q in p["tail"]]
     p["loin"] += K["plump"]
     p["chest"] += K["plump"]
     p["tail_r"] = [r * K["brush"] for r in p["tail_r"]]
@@ -191,7 +208,7 @@ def body(c, p):
     px = shade(mask, 1, 2)
     for x, y in mask:
         if (x, y - 1) not in mask and ((x, y - 2) not in mask) and lerp(hip, sh, 0.2)[0] <= x <= lerp(hip, sh, 0.85)[0]:
-            px[(x, y)] = "h"
+            px[(x, y)] = "b" if K.get("saddle") else "h"
     # the pale belly, and the white bib that runs up into the throat
     for x, y in mask:
         dx, dy = x - sh[0], y - sh[1]
@@ -812,8 +829,9 @@ def carried(im, grid, ox=0):
 
 
 def draw(species, state, facing, frame):
-    global K
+    global K, AX
     K = KINDS[species]
+    AX = NATIVE_SIZES[species][0] // 2
     if state == "carry":  # home at a trot, head up to keep it off the ground
         small = K["s"] < 0.8
         if facing in ("east", "west"):

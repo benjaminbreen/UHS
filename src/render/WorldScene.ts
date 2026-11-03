@@ -3133,7 +3133,7 @@ export class WorldScene extends Phaser.Scene {
     if (frame.startsWith("faunac-"))
       return frame.includes("+") ? this.coatTexture(frame) : "faunac";
     // A lazy megafauna sheet; its plain frames were found above.
-    if (/^fauna[mrfgu]-/.test(frame)) {
+    if (/^fauna[mrfguw]-/.test(frame)) {
       const set = frame.slice(0, 6);
       if (this.textures.exists(set))
         return frame.includes("+") ? this.coatTexture(frame) : set;
