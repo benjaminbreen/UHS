@@ -48,6 +48,8 @@ export type FaunaMember = {
   shy?: { x: number; y: number; until: number };
   /** Clock until which a blow has it reeling: it does not move. */
   stun?: number;
+  /** Clock until which it carries the mud of a wallow, drying as it goes. */
+  muddy?: number;
   /** Legendaries only: "the grey boar of the ford". */
   name?: string;
   /** Art to show instead of the group's, while this one is doing something

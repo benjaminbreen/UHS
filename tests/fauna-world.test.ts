@@ -305,6 +305,17 @@ describe("fauna behaviour", () => {
     }
     expect(herd.members[0].y).toBeGreaterThan(26);
   });
+  it("takes buffalo to the mud through the heat, and they come out muddy", () => {
+    const buffalo = group("water-buffalo", 10, 10);
+    buffalo.nextDecisionAt = 0;
+    const world = sim({
+      hour: 12,
+      topography: (x, y) => ({ height: 0, surface: x === 14 && y === 10 ? "damp" : "grass" }) as TopographyCell,
+    });
+    for (let t = 6; t <= 600; t += 6) advanceFauna([buffalo], world, t);
+    expect(buffalo.members[0]).toMatchObject({ x: 14, y: 10 });
+    expect(buffalo.members[0].muddy).toBeGreaterThan(600);
+  });
   it("keeps buffalo out of the crop and out of each other's bodies", () => {
     const herds = [0, 1].map((k) => {
       const g = group("water-buffalo", 10 + k * 4, 10);

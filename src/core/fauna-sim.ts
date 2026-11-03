@@ -284,6 +284,37 @@ function standing(p: FaunaProfile, state: FaunaState) {
 
 /** Grazing stock eat morning and evening and lie up through the heat. */
 const midday = (hour: number) => hour >= 11 && hour < 15;
+/** Game seconds a wallow's mud takes to dry off. */
+export const MUD_DRIES = 3 * 3600;
+
+/** Mud or water shallow enough for a buffalo to lie down in. */
+export function wallowable(cell: TopographyCell | undefined) {
+  return (
+    !!cell &&
+    (cell.waterDepth === "shallow" ||
+      cell.surface === "damp" ||
+      !!cell.field?.wet ||
+      cell.habitat?.ecology === "wetland")
+  );
+}
+
+/** The nearest wallow within a short walk of `from`, ring by ring. */
+function wallowNear(world: FaunaWorld, p: FaunaProfile, from: Point) {
+  if (!world.topography) return undefined;
+  for (let r = 0; r <= 12; r++)
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const c = { x: from.x + dx, y: from.y + dy };
+        if (
+          wallowable(world.topography(c.x, c.y)) &&
+          !keptOff(world, p, c) &&
+          (r === 0 || !world.blocked(c.x, c.y))
+        )
+          return c;
+      }
+  return undefined;
+}
 
 function resting(p: FaunaProfile, hour: number) {
   const night = hour < 6 || hour >= 20;
@@ -381,6 +412,7 @@ function decide(
     // back to the pen for the night. The player's go out whenever they open it.
     const out = !g.fold && (g.owner === "player" || (world.hour >= 8 && world.hour < 17)) && world.gateOpen(g.gateId);
     const goal = out && g.pasture ? g.pasture : g.home;
+    if (out && soak(g, p, world, clock)) return;
     if (hyp(g.pos, goal) > 2.5) {
       g.state = "wander";
       g.target = { ...goal };
@@ -426,6 +458,7 @@ function decide(
     g.since = clock;
     return;
   }
+  if (soak(g, p, world, clock)) return;
   const prowl = p.art.stalk ? "stalk" : "wander";
   const roam = freeCellNear(
     world,
@@ -461,6 +494,23 @@ function decide(
     g.target = { ...roam, space: "outside" };
   g.nextDecisionAt = calm();
   g.since = clock;
+}
+
+/** Through the heat a wallower makes for mud and lies down in it. True when
+ * that is what it has decided. */
+function soak(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number) {
+  if (!p.wallows || !midday(world.hour)) return false;
+  const leader = g.members[0];
+  const wet = wallowNear(world, p, leader);
+  if (!wet) return false;
+  if (wet.x === leader.x && wet.y === leader.y) g.state = p.art.rest ? "rest" : "idle";
+  else {
+    g.state = "wander";
+    g.target = { ...wet, space: "outside" };
+  }
+  g.nextDecisionAt = clock + p.calmDecisionSeconds;
+  g.since = clock;
+  return true;
 }
 
 /** Ground an animal running for its life prefers: cover it can put between
@@ -1344,6 +1394,9 @@ export function advanceFauna(
         steps = 0;
       } else steps = 0;
     }
+    if (p.wallows && world.topography && (g.state === "rest" || g.state === "idle"))
+      for (const m of g.members)
+        if (wallowable(world.topography(m.x, m.y))) m.muddy = clock + MUD_DRIES;
     g.pos = { x: leader.x, y: leader.y, space: "outside" };
     if (quarry && g.state === "chase") {
       const hit = quarry.members.findIndex((m) =>

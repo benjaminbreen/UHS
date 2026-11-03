@@ -89,6 +89,7 @@ export const workingFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 8,
     prey: "ungulate",
     diet: ["grass", "plant"],
+    wallows: true,
     ...directionalStudy("water-buffalo"),
   },
   {

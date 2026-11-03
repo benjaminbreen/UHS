@@ -49,6 +49,7 @@ const GENERIC_TRADES = [
 import type { Place } from "../core/types";
 import type { WorldSetting } from "../content/geography/types";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
+import { MUD_DRIES, wallowable } from "../core/fauna-sim";
 import {
   faunaCoats,
   faunaLook,
@@ -75,6 +76,12 @@ const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
 /** The sling hand overhead, from the player sprite's origin; tuned by eye. */
 const WHIRL_HAND = { x: 7, y: -33 };
 const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
+/** Wet mud on a coat; it pales back to the coat as it dries. */
+const MUD = 0x9c8064;
+const muddied = (t: number) => {
+  const ch = (shift: number) => Math.round(255 + (((MUD >> shift) & 255) - 255) * t) << shift;
+  return ch(16) | ch(8) | ch(0);
+};
 /** Dust in a low sun, gold rather than grey. */
 const DUSK_DUST = [0xe2b878, 0xcf9d62, 0xf2d29a];
 /** Sun strength below which shadows are cloud-soft: overcast, mist, rain, snow. */
@@ -639,6 +646,8 @@ export class WorldScene extends Phaser.Scene {
   private faunaMood = new Map<
     string,
     {
+      /** Lying in a wallow: only its back shows above the mud. */
+      sunk: boolean;
       state: FaunaState;
       from: number;
       until: number;
@@ -5276,6 +5285,8 @@ export class WorldScene extends Phaser.Scene {
           species: g.speciesId,
           state: m.pose ?? g.state,
           phase,
+        const wet = (m.muddy ?? 0) - e.state.clock;
+        if (wet > 0) im.setTint(mixTint(this.tint, muddied(wet / MUD_DRIES)));
           facing,
           scale: tier.scale,
           art,
@@ -5287,6 +5298,10 @@ export class WorldScene extends Phaser.Scene {
       if (!this.faunaSprites.has(id)) this.faunaMood.delete(id);
     // Walked into: it hops out of the way, and the player feels the bump.
     const jostle = rt.jostleEffect;
+          sunk:
+            !!faunaProfile(g.speciesId)?.wallows &&
+            (g.state === "rest" || g.state === "idle") &&
+            wallowable(w.topography?.(m.x, m.y)),
     if (jostle && jostle.serial !== this.jostleSerial) {
       this.jostleSerial = jostle.serial;
       const id = faunaSpriteId(jostle.group, jostle.n);
@@ -5855,6 +5870,9 @@ export class WorldScene extends Phaser.Scene {
         im.setScale(f.scale * pose.sx, f.scale * pose.sy);
         mood.squashed = true;
       } else if (mood.squashed) {
+      if (f.sunk && !pose.moving)
+        im.setCrop(0, 0, im.frame.width, Math.round(im.frame.height * 0.6));
+      else if (im.isCropped) im.setCrop();
         im.setScale(f.scale);
         mood.squashed = false;
       }

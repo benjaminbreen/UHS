@@ -6766,19 +6766,49 @@ export class Engine {
     // The middle of the animals as they stand, not where the herd began.
     const cx = herd.members.reduce((s, m) => s + m.x, 0) / herd.members.length,
       cy = herd.members.reduce((s, m) => s + m.y, 0) / herd.members.length;
-    const [dx, dy] = (
-      [
-        [3, 1],
-        [-3, 2],
-        [1, -3],
-      ] as const
-    )[a.tends!.seat % 3];
-    const target = {
-      x: Math.round(cx) + dx,
-      y: Math.round(cy) + dy,
-      space: "outside",
-    };
-    if (distance(a.pos, target) > 2.5) this.stepToward(a, target);
+    const centre = { x: cx, y: cy };
+    const apart = (p: Point, q: Point) => Math.hypot(p.x - q.x, p.y - q.y);
+    const profile = faunaProfile(herd.speciesId);
+    // One that has wandered off, or into someone's crop: the first herder
+    // goes round beyond it and turns it back with the stick.
+    const stray = a.tends!.seat % 3 === 0 && profile
+      ? herd.members
+          .filter((m) => apart(m, centre) > profile.cohesionRadius + 2 || standingCrop(this.world, m.x, m.y))
+          .sort((m, n) => apart(n, centre) - apart(m, centre))[0]
+      : undefined;
+    let target: Point;
+    if (stray) {
+      const d = Math.max(1, apart(stray, centre));
+      target = {
+        x: Math.round(stray.x + ((stray.x - cx) / d) * 2),
+        y: Math.round(stray.y + ((stray.y - cy) / d) * 2),
+      };
+      if (apart(a.pos, target) <= 2.5 && !(stray.shy && stray.shy.until > clock)) {
+        stray.shy = { x: a.pos.x, y: a.pos.y, until: clock + 30 };
+        this.cue(a.id, "wave", stray);
+      }
+    } else if (herd.target && herd.state === "wander") {
+      // On the move the herders walk behind, spread across the line.
+      const ahead = herd.route?.[0] ?? herd.target;
+      const d = Math.max(1, apart(ahead, centre));
+      const ux = (ahead.x - cx) / d,
+        uy = (ahead.y - cy) / d,
+        side = [0, -2, 2][a.tends!.seat % 3];
+      target = {
+        x: Math.round(cx - ux * 4 - uy * side),
+        y: Math.round(cy - uy * 4 + ux * side),
+      };
+    } else {
+      const [dx, dy] = (
+        [
+          [3, 1],
+          [-3, 2],
+          [1, -3],
+        ] as const
+      )[a.tends!.seat % 3];
+      target = { x: Math.round(cx) + dx, y: Math.round(cy) + dy };
+    }
+    if (apart(a.pos, target) > (stray ? 1.5 : 2.5)) this.stepToward(a, { ...target, space: "outside" });
     else {
       const fx = cx - a.pos.x,
         fy = cy - a.pos.y;
