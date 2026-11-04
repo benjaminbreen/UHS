@@ -13,7 +13,7 @@ const SURFACES: Partial<
   >
 > = {
   snow: {
-    print: { color: 0x6f86a6, alpha: 0.65, ms: 9000 },
+    print: { color: 0x6f86a6, alpha: 1, ms: 150000 },
     puff: [0xffffff, 0xe3ecf5],
   },
   sand: {
@@ -26,8 +26,46 @@ const SURFACES: Partial<
 };
 /** Rain turns bare earth to mud, which takes a print. */
 const MUD = { color: 0x3a2c1c, alpha: 0.4, ms: 6000 };
-const MAX_PRINTS = 90;
-const STRIDE_PX = 5;
+/** Falling snow fills a track in within the minute. */
+const FILLING_MS = 40000;
+const MAX_PRINTS = 320;
+
+/** Who made a track: boots, cloven hooves, pads, a bird's three toes, or the
+ * bunched four of a hare's bound. */
+export type PrintKind = "boot" | "hoof" | "paw" | "bird" | "hop";
+const STRIDE: Record<PrintKind, number> = { boot: 5, hoof: 6, paw: 4, bird: 3, hop: 14 };
+// Snow prints as pixel rows: a hollow shaded blue at its back wall, lighter
+// toward the toe, so it reads pressed in rather than painted on.
+const SNOW_PRINTS: Record<string, string[]> = {
+  "boot-v": ["aa", "ab", "bc"],
+  "boot-h": ["abc", "abc"],
+  hoof: ["a.a", "b.b"],
+  paw: ["ab", "bc"],
+  bird: ["a.a", ".a.", ".b."],
+  hop: ["a...", "b..a", "..ab", "a..."],
+};
+const SNOW_INK: Record<string, number[]> = {
+  a: [140, 170, 228],
+  b: [172, 196, 240],
+  c: [204, 220, 247],
+};
+function snowPrint(scene: Phaser.Scene, name: string) {
+  const key = `snow-print-${name}`;
+  if (scene.textures.exists(key)) return key;
+  const rows = SNOW_PRINTS[name];
+  const tex = scene.textures.createCanvas(key, rows[0].length, rows.length)!;
+  const ctx = tex.getContext();
+  rows.forEach((row, y) =>
+    [...row].forEach((ch, x) => {
+      const ink = SNOW_INK[ch];
+      if (!ink) return;
+      ctx.fillStyle = `rgb(${ink.join(",")})`;
+      ctx.fillRect(x, y, 1, 1);
+    }),
+  );
+  tex.refresh();
+  return key;
+}
 
 export type Fidget = {
   /** A pose to play through once, or none when it is only a look. */
@@ -45,8 +83,8 @@ export type Fidget = {
  * what it gets up to when left standing. All of it is drawn over the engine's
  * state and changes none of it. */
 export class PlayerFeel {
-  private prints: Phaser.GameObjects.Rectangle[] = [];
-  private foot = 1;
+  private prints: (Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image)[] = [];
+  private walkers = new Map<string, { x: number; y: number; foot: number }>();
   private fidget?: Fidget;
   private nextFidget = 0;
   /** Until when a squash owns the sprite's scale, so nothing resets it. */
@@ -91,54 +129,84 @@ export class PlayerFeel {
     if (height > 26) this.scene.cameras.main.shake(70, 0.0016);
   }
 
-  private lastPrint = { x: 0, y: 0 };
   /** Called while walking. Prints go down by ground covered, a stride apart,
-   * not by animation frame: a walk cycle is slower than the feet it draws. */
+   * not by animation frame: a walk cycle is slower than the feet it draws.
+   * `direction` is north, east, south, west as 0 to 3. */
   track(
-    im: Sprite,
+    id: string,
+    x: number,
+    y: number,
     surface: HitClass,
     direction: number,
     wet: boolean,
     depth: number,
+    kind: PrintKind = "boot",
+    filling = false,
   ) {
     const print = surface === "soil" && wet ? MUD : SURFACES[surface]?.print;
-    if (
-      Math.hypot(im.x - this.lastPrint.x, im.y - this.lastPrint.y) < STRIDE_PX
-    )
-      return;
-    this.lastPrint = { x: im.x, y: im.y };
-    this.foot = -this.foot;
-    if (print) {
-      // Left and right of the line of travel, turn about.
-      const across = direction % 2 ? [0, 2] : [2, 0];
-      const mark = this.scene.add
-        .rectangle(
-          Math.round(im.x + across[0] * this.foot),
-          Math.round(im.y - 1 + across[1] * this.foot),
-          direction % 2 ? 3 : 2,
-          direction % 2 ? 2 : 3,
-          print.color,
-          print.alpha,
-        )
-        .setDepth(depth);
-      this.prints.push(mark);
-      this.scene.tweens.add({
-        targets: mark,
-        alpha: 0,
-        delay: print.ms * 0.5,
-        duration: print.ms * 0.5,
-        onComplete: () => {
-          this.prints = this.prints.filter((p) => p !== mark);
-          mark.destroy();
-        },
-      });
-      if (this.prints.length > MAX_PRINTS) this.prints.shift()?.destroy();
-    }
+    let walker = this.walkers.get(id);
+    if (!walker) this.walkers.set(id, (walker = { x, y, foot: 1 }));
+    if (Math.hypot(x - walker.x, y - walker.y) < STRIDE[kind]) return;
+    walker.x = x;
+    walker.y = y;
+    walker.foot = -walker.foot;
+    if (!print) return;
+    const across = direction % 2 ? [0, 1] : [1, 0];
+    // Left and right of the line of travel, turn about; a hare lands in one bunch.
+    const spread = kind === "hop" ? 0 : kind === "boot" ? 2 : 1;
+    const mx = Math.round(x + across[0] * spread * walker.foot),
+      my = Math.round(y - 1 + across[1] * spread * walker.foot);
+    const shape = kind === "boot" ? (direction % 2 ? "boot-h" : "boot-v") : kind;
+    const mark =
+      surface === "snow"
+        ? this.scene.add
+            .image(mx, my, snowPrint(this.scene, shape))
+            .setFlipX(direction === 3)
+            // Toes point the way it went.
+            .setFlipY(kind === "bird" && direction === 2)
+        : this.scene.add.rectangle(mx, my, direction % 2 ? 3 : 2, direction % 2 ? 2 : 3, print.color, print.alpha);
+    mark.setDepth(depth);
+    this.prints.push(mark);
+    const ms = surface === "snow" && filling ? FILLING_MS : print.ms;
+    this.scene.tweens.add({
+      targets: mark,
+      alpha: 0,
+      delay: ms * 0.6,
+      duration: ms * 0.4,
+      onComplete: () => {
+        this.prints = this.prints.filter((p) => p !== mark);
+        mark.destroy();
+      },
+    });
+    if (this.prints.length > MAX_PRINTS) this.prints.shift()?.destroy();
   }
   /** A running foot coming down throws up a little of what it lands on. */
   step(im: Sprite, surface: HitClass) {
     const puff = SURFACES[surface]?.puff;
     if (puff) this.puff(im.x, im.y, puff, 2, 0.5);
+  }
+
+  /** A breath on cold air: a small white cloud out from the mouth that
+   * rises, spreads and goes. `dx` is the way the face points, -1 to 1. */
+  breath(x: number, y: number, dx: number, depth: number) {
+    for (let i = 0; i < 3; i++) {
+      const rect = this.scene.add
+        .rectangle(x + dx * (2 + i * 2), y + (i === 1 ? -1 : 0), i ? 3 : 4, i === 2 ? 2 : 3, 0xeef4fc)
+        .setAlpha(0.9 - i * 0.15)
+        .setDepth(depth);
+      this.scene.tweens.add({
+        targets: rect,
+        x: rect.x + dx * (5 + i * 2) + (i - 1),
+        y: rect.y - 3 - i,
+        scaleX: 1.6,
+        scaleY: 1.4,
+        alpha: 0,
+        delay: i * 60,
+        duration: 900 + i * 150,
+        ease: "Sine.easeOut",
+        onComplete: () => rect.destroy(),
+      });
+    }
   }
 
   /** Blades either side of the foot bow outward and whip back upright. */
@@ -316,5 +384,6 @@ export class PlayerFeel {
   dispose() {
     for (const p of this.prints) p.destroy();
     this.prints = [];
+    this.walkers.clear();
   }
 }

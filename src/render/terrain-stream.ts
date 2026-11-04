@@ -1,4 +1,4 @@
-import { snowCover } from "./snow-cover";
+import { frostCover, snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
 import { workerBudget } from "../runtime/device";
 import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
@@ -136,6 +136,7 @@ export class TerrainStream {
         }
       ).options.shorePolish,
       snow: snowCover(),
+      frost: frostCover(),
     };
     first.worker.postMessage(this.styling);
     this.pool.push(first);
@@ -575,6 +576,11 @@ export class TerrainStream {
   setSnow(cover: number) {
     if (cover === this.styling.snow) return;
     this.styling = { ...this.styling, snow: cover };
+    this.restyle(this.styling.style);
+  }
+  setFrost(frost: number) {
+    if (frost === this.styling.frost) return;
+    this.styling = { ...this.styling, frost };
     this.restyle(this.styling.style);
   }
   /** The season moved the fields on: draw every chunk again at the new stage.

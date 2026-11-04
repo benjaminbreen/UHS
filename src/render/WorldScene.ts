@@ -248,9 +248,10 @@ import {
   type Ambient,
   type StationActivity,
 } from "../core/itinerary";
+import { SNOW_SHADOW } from "./shadow-style";
 import { cloudWash, gradeAt, lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
 import { windowGlow } from "./window-light";
-import { buildingWear } from "./building-wear";
+import { buildingSnowBank, buildingWear } from "./building-wear";
 import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
 import { Mist } from "./mist";
@@ -268,7 +269,7 @@ import {
   type Weather,
 } from "../core/weather";
 import { puddleUnder, reflectIn, setGroundState, splashPuddle, updatePuddles } from "./puddles";
-import { setSnowCover, snowSteps } from "./snow-cover";
+import { meltPatch, openSnow, setFrost, setSnowCover, snowSteps } from "./snow-cover";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
 
@@ -280,6 +281,11 @@ import {
   seasonFrame,
   treeVariant,
   crateFrame,
+  LEAF_COLOURS,
+  LITTER_H,
+  LITTER_W,
+  leafLitter,
+  turnsColour,
 } from "./season-art";
 import { seasonAt, seasonIndex } from "../core/livelihood";
 import {
@@ -435,6 +441,7 @@ type FireEffect = {
   pool: Phaser.GameObjects.Image;
   smoke: Phaser.GameObjects.Image[];
   embers?: Phaser.GameObjects.Particles.ParticleEmitter;
+  melt?: Phaser.GameObjects.Image;
 };
 type StreetLight = {
   pool: Phaser.GameObjects.Image;
@@ -679,6 +686,15 @@ export class WorldScene extends Phaser.Scene {
   private testFauna: FaunaGroup[] = [];
   private testFaunaSerial = 0;
   private layers: Phaser.GameObjects.GameObject[] = [];
+  private snowyCasts = false;
+  private breathAt = new Map<string, number>();
+  private frost = 0;
+  private rained = false;
+  /** Golden-hour rim light: a warm copy of each figure a pixel toward the sun, behind it. */
+  private rims = new Map<string, { rim: Phaser.GameObjects.Image; owner: Phaser.GameObjects.Image }>();
+  private rainbow?: Phaser.GameObjects.Graphics;
+  /** Where fallen leaves lie, for feet to kick through. */
+  private leafPiles: { x: number; y: number }[] = [];
   private ground?: Phaser.Tilemaps.TilemapLayer;
   private tilemap?: Phaser.Tilemaps.Tilemap;
   private shadows = new Map<string, Phaser.GameObjects.Image>();
@@ -2964,7 +2980,16 @@ export class WorldScene extends Phaser.Scene {
               blendMode: Phaser.BlendModes.ADD,
             })
             .setDepth(19002);
-    this.fires.set(id, { image, base, frames, phase, glow, pool, smoke, embers });
+    // An open fire thaws a ring round itself; an oven keeps its heat in.
+    const across = Math.min(48, Math.max(24, Math.round(image.width * 1.3))) & ~1;
+    const melt =
+      this.snow >= 0.34 && frames >= 8
+        ? this.add
+            .image(Math.round(x), Math.round(y - 3), meltPatch(this, across, Math.round(across * 0.55)))
+            .setTint(this.tint)
+            .setDepth(this.printDepth() - 0.5)
+        : undefined;
+    this.fires.set(id, { image, base, frames, phase, glow, pool, smoke, embers, melt });
   }
   /** A street lamp or a door lantern: a pool on the ground and the flame
    * itself, both over the night wash. */
@@ -3001,6 +3026,7 @@ export class WorldScene extends Phaser.Scene {
     fire.glow.destroy();
     fire.pool.destroy();
     fire.embers?.destroy();
+    fire.melt?.destroy();
     for (const puff of fire.smoke) puff.destroy();
     this.fires.delete(id);
   }
@@ -3302,6 +3328,11 @@ export class WorldScene extends Phaser.Scene {
     this.nightGrade.light = grade?.light ?? [1, 1, 1];
     this.nightGrade.curve = grade?.curve ?? 0;
     this.nightGrade.floor = floor;
+    this.nightGrade.snow = Math.min(1, this.snow * 3 + this.frost);
+    // Sprites and ground carry the hour's tint under the wash: both multiply.
+    this.nightGrade.wash = [16, 8, 0].map(
+      (shift) => (((this.washTint >> shift) & 255) * ((this.tint >> shift) & 255)) / 65025,
+    );
   }
   private applyTiltShift() {
     const renderer = this.game.renderer;
@@ -3625,7 +3656,170 @@ export class WorldScene extends Phaser.Scene {
     // Under cloud the cast is the short midday one (see draw), kept dark enough to ground.
     if (sun < 1) image.setAlpha(sun < CLOUDED ? 0.6 : sun);
     if (!transient) this.layers.push(image);
+    this.snowCast(image.setName("cast"));
     return image;
+  }
+  /** Sun on lying snow, or on dew or frost on a clear morning's grass: now
+   * and then a crystal or a drop catches it and flashes. */
+  private glint(delta: number) {
+    const dew = this.snow < 0.34 && this.light.id === "early-morning" && this.season !== "winter";
+    if (
+      this.options.freeze ||
+      this.roomView ||
+      (this.snow < 0.34 && !dew) ||
+      this.light.id === "night" ||
+      this.light.id === "dusk" ||
+      this.sunStrength() < 0.85 ||
+      Math.random() > delta * 0.014
+    )
+      return;
+    const view = this.cameras.main.worldView;
+    const x = Math.floor(view.x + Math.random() * view.width),
+      y = Math.floor(view.y + Math.random() * view.height);
+    const cell = this.runtime.engine.world.topography?.(Math.floor(x / 16), Math.floor(y / 16));
+    const lift = this.lift(x, y);
+    if (
+      !cell ||
+      cell.solid ||
+      cell.surface === "water" ||
+      cell.feature === "paving" ||
+      cell.pathArt?.length ||
+      (dew ? cell.surface !== "grass" || !!cell.field : cell.surface !== "snow" && !openSnow(x, y))
+    )
+      return;
+    if (!this.textures.exists("snow-glint")) {
+      const tex = this.textures.createCanvas("snow-glint", 3, 3)!;
+      const ctx = tex.getContext();
+      ctx.fillStyle = "#d8e8ff";
+      ctx.fillRect(1, 0, 1, 3);
+      ctx.fillRect(0, 1, 3, 1);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(1, 1, 1, 1);
+      tex.refresh();
+    }
+    const star = this.add.image(x, y - lift, "snow-glint").setDepth(y - 12).setAlpha(0);
+    this.tweens.add({
+      targets: star,
+      alpha: 1,
+      duration: 160 + Math.random() * 140,
+      yoyo: true,
+      hold: 120,
+      onComplete: () => star.destroy(),
+    });
+  }
+  /** The hour after a shower: drops still falling from the trees, the wet
+   * ground steaming where the sun is back on it, and some days a rainbow. */
+  private afterRain(delta: number) {
+    const out = !this.options.freeze && !this.roomView && this.light.id !== "night";
+    const wet = out && (this.rained || ((this.weather?.wetness ?? 0) > 0.3 && this.weather?.condition !== "rain"));
+    const sun = this.sunStrength() >= 0.85;
+    const view = this.cameras.main.worldView;
+    if (wet && this.canopies.length && Math.random() < delta * 0.006) {
+      const tree = this.canopies[Math.floor(Math.random() * this.canopies.length)].image;
+      if (view.contains(tree.x, tree.y)) {
+        const x = Math.round(tree.x + (Math.random() - 0.5) * tree.displayWidth * 0.6),
+          y = Math.round(tree.y - tree.displayHeight * (0.3 + Math.random() * 0.2));
+        const drop = this.add.rectangle(x, y, 1, 2, 0xd8ecff, 0.9).setDepth(tree.depth + 1);
+        this.tweens.add({
+          targets: drop,
+          y: y + 10 + Math.random() * 8,
+          duration: 260,
+          ease: "Quad.easeIn",
+          onComplete: () => {
+            drop.setSize(3, 1).setAlpha(0.6);
+            this.tweens.add({ targets: drop, alpha: 0, duration: 200, onComplete: () => drop.destroy() });
+          },
+        });
+      }
+    }
+    if (wet && sun && (this.weather?.tempC ?? 0) > 6 && Math.random() < delta * 0.008) {
+      const x = view.x + Math.random() * view.width,
+        y = view.y + Math.random() * view.height;
+      const cell = this.runtime.engine.world.topography?.(Math.floor(x / 16), Math.floor(y / 16));
+      if (cell && cell.surface !== "water" && !cell.solid) {
+        const wisp = this.add.rectangle(x, y, 4, 2, 0xf2f4f6, 0.22).setDepth(y + 4000);
+        this.tweens.add({
+          targets: wisp,
+          y: y - 10 - Math.random() * 8,
+          x: x + (Math.random() - 0.5) * 6,
+          scaleX: 2.5,
+          scaleY: 2.5,
+          alpha: 0,
+          duration: 1800 + Math.random() * 900,
+          ease: "Sine.easeOut",
+          onComplete: () => wisp.destroy(),
+        });
+      }
+    }
+    // Opposite a low sun only, and not after every shower.
+    const bow =
+      out &&
+      this.rained &&
+      sun &&
+      this.light.id !== "midday" &&
+      random(this.runtime.engine.state.manifest.seed, "rainbow", Math.floor(this.runtime.engine.state.clock / 86400)) < 0.5;
+    if (bow && !this.rainbow) {
+      this.rainbow = this.add.graphics().setDepth(18990).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      this.tweens.add({ targets: this.rainbow, alpha: 1, duration: 4000 });
+    } else if (!bow && this.rainbow) {
+      const g = this.rainbow;
+      this.rainbow = undefined;
+      this.tweens.add({ targets: g, alpha: 0, duration: 3000, onComplete: () => g.destroy() });
+    }
+    if (this.rainbow) {
+      // Morning sun is in the east, so the bow stands in the west, and the reverse.
+      const side = this.light.id === "early-morning" || this.light.id === "morning" ? -0.25 : 0.25;
+      const r = view.width * 0.62;
+      this.rainbow.clear().setPosition(view.centerX + view.width * side, view.bottom + r * 0.35);
+      const bands = [0xff4a4a, 0xff9a3a, 0xffe25a, 0x6ad86a, 0x5a9aff, 0x8a6aff];
+      bands.forEach((colour, i) => {
+        this.rainbow!.lineStyle(3, colour, 0.13);
+        this.rainbow!.beginPath();
+        this.rainbow!.arc(0, 0, r - i * 3, Math.PI, Math.PI * 2);
+        this.rainbow!.strokePath();
+      });
+    }
+  }
+  /** Which way a low sun lights edges: east at sunrise, west at dusk, else 0. */
+  private rimSide() {
+    if (this.roomView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
+    return this.light.id === "early-morning" ? 1 : this.light.id === "dusk" ? -1 : 0;
+  }
+  private rimColour(side: number) {
+    return side > 0 ? 0xffdca6 : 0xffb46e;
+  }
+  private rimLight(id: string, owner: Phaser.GameObjects.Image) {
+    const entry = this.rims.get(id);
+    if (entry && entry.owner === owner) return;
+    entry?.rim.destroy();
+    this.rims.set(id, { rim: this.add.image(owner.x, owner.y, owner.texture.key, owner.frame.name), owner });
+  }
+  private syncRims() {
+    const side = this.rimSide();
+    for (const [id, { rim, owner }] of this.rims) {
+      if (!side || !owner.active) {
+        rim.destroy();
+        this.rims.delete(id);
+        continue;
+      }
+      rim
+        .setTexture(owner.texture.key, owner.frame.name)
+        .setOrigin(owner.originX, owner.originY)
+        .setFlip(owner.flipX, owner.flipY)
+        .setScale(owner.scaleX, owner.scaleY)
+        .setPosition(owner.x + side, owner.y)
+        .setDepth(owner.depth - 0.01)
+        .setVisible(owner.visible)
+        .setAlpha(0.85 * owner.alpha)
+        .setTintFill(this.rimColour(side));
+    }
+  }
+  /** Just over the ground, under everything standing on it. */
+  private printDepth() {
+    return (this.runtime.engine.world.topography ? -1000 : -60000) - 1;
+  }
+  private snowCast(image: Phaser.GameObjects.Image) {
+    return this.snowyCasts ? image.setTintFill(SNOW_SHADOW) : image.clearTint();
   }
   /** Trees, houses and people mirrored in the water beside them. */
   private reflect(time: number) {
@@ -3749,6 +3943,16 @@ export class WorldScene extends Phaser.Scene {
           e.state.clock,
         )
       : undefined;
+    // A shower in the last two hours, now over.
+    this.rained =
+      !!setting &&
+      this.weather?.condition !== "rain" &&
+      this.weather?.condition !== "snow" &&
+      [3600, 7200].some(
+        (ago) =>
+          weatherAt(skySeed(e.state.manifest), setting.climate, setting.season, e.state.clock - ago)
+            .condition === "rain",
+      );
     // No sun behind the cloud to throw a long shadow; only the soft one under each thing.
     if (p.space === "outside" && this.shadowPhase !== "night" && this.sunStrength() < CLOUDED)
       this.shadowPhase = "midday";
@@ -3767,6 +3971,25 @@ export class WorldScene extends Phaser.Scene {
         : 0;
     setSnowCover(this.snow);
     this.terrainStream?.setSnow(this.snow);
+    // Hoar frost wants a still, clear night at freezing; the morning sun takes it.
+    const hour = (((e.state.clock / 3600) % 24) + 24) % 24;
+    const air = this.weather;
+    this.frost =
+      air && !this.options.lab && !this.snow && hour < 10 && ["clear", "light-clouds", "mist"].includes(air.condition)
+        ? air.tempC <= -1
+          ? 1
+          : air.tempC <= 2
+            ? 0.7
+            : 0
+        : 0;
+    setFrost(this.frost);
+    this.terrainStream?.setFrost(this.frost);
+    if (this.snowyCasts !== this.snow >= 0.34) {
+      this.snowyCasts = !this.snowyCasts;
+      for (const layer of this.layers)
+        if (layer.name === "cast") this.snowCast(layer as Phaser.GameObjects.Image);
+      for (const shade of this.shadows.values()) this.snowCast(shade);
+    }
     setGroundState(
       this,
       setting && this.weather
@@ -3940,6 +4163,7 @@ export class WorldScene extends Phaser.Scene {
       this.sunStrength(),
       this.scale.width,
       this.scale.height,
+      this.snow,
     ].join(":");
     const tiles = e.state.tiles;
     setBloomCut(
@@ -3978,6 +4202,7 @@ export class WorldScene extends Phaser.Scene {
         this.structureDecay?.release();
       }
       this.layers = [];
+      this.leafPiles = [];
       this.courtyardLighting.begin();
       this.canopies = [];
       this.plantHeights.clear();
@@ -4340,6 +4565,23 @@ export class WorldScene extends Phaser.Scene {
               const worked = e.state.tiles?.[`${x},${y}`];
               if (worked?.burnt) tint = blendTint(tint, 0x4a3f36);
               if (tint !== this.tint) decoration.setTint(tint);
+              const ecology = w.pack.setting?.environment?.ecology ?? "grassland";
+              if (
+                originalIsTree &&
+                this.season === "autumn" &&
+                turnsColour(originalName) &&
+                ecology !== "tropical-woodland" &&
+                ecology !== "desert" &&
+                !worked?.burnt
+              ) {
+                this.leafPiles.push({ x: decoration.x, y: decoration.y - 3 });
+                this.layers.push(
+                  this.add
+                    .image(decoration.x, decoration.y - 3, leafLitter(this, Math.floor(random(e.state.manifest.seed, "litter", x, y) * 4)))
+                    .setTint(this.tint)
+                    .setDepth(this.printDepth() - 0.5),
+                );
+              }
               const ore = d && !worked?.stage && spriteName === "rock" ? e.oreAt({ x, y }) : undefined;
               if (ore)
                 this.layers.push(
@@ -4386,6 +4628,21 @@ export class WorldScene extends Phaser.Scene {
                   random(e.state.manifest.seed, "wind-phase", x, y),
                   true,
                 );
+                const side = this.rimSide();
+                if (side) {
+                  const rim = this.add
+                    .image(decoration.x + side, decoration.y, decoration.texture.key, decoration.frame.name)
+                    .setOrigin(decoration.originX, decoration.originY)
+                    .setScale(decoration.scaleX, decoration.scaleY)
+                    .setFlipX(decoration.flipX)
+                    .setCrop(0, 0, decoration.width, cut)
+                    .setDepth(decoration.depth - 0.01)
+                    .setAlpha(0.85)
+                    .setTintFill(this.rimColour(side));
+                  this.layers.push(rim);
+                  decoration.setData("rim", rim);
+                  this.addWind(rim, frame, random(e.state.manifest.seed, "wind-phase", x, y), true);
+                }
                 const trunk = this.sprite(
                   frame,
                   x * 16 + 8,
@@ -4553,6 +4810,30 @@ export class WorldScene extends Phaser.Scene {
             const weathered = voxelWeather(this, image, placement.model as VoxelModel, this.snow,
               this.weather?.wetness ?? 0, (frame) => this.texture(frame));
             if (weathered) this.layers.push(weathered.setTint(this.tint));
+            if (this.snow >= 0.34) {
+              const warm =
+                (b.access === "household" || !!model.smoke?.length) && this.hearthLit(b.id);
+              // A lived-in house thaws the ground along its front; anything
+              // cold catches a drift against the wall.
+              const bank = warm ? undefined : buildingSnowBank(this, image.texture.key, image.frame.name, model.door);
+              if (bank)
+                this.layers.push(
+                  this.add
+                    .image(image.x, image.y, bank)
+                    .setOrigin(image.originX, image.originY)
+                    .setTint(this.tint)
+                    .setDepth(image.depth + 0.35),
+                );
+              else if (warm) {
+                const w = Math.max(8, b.w * 16 - 6) & ~1;
+                this.layers.push(
+                  this.add
+                    .image(placement.x, image.y + 3, meltPatch(this, w, 6))
+                    .setTint(this.tint)
+                    .setDepth(this.printDepth() - 0.5),
+                );
+              }
+            }
             this.layers.push(
               ...this.voxelLife.add(this, image, (placement.model as VoxelModel).life,
                 this.runtime.engine.state.manifest.seed, b.id, (frame) => this.texture(frame), this.tint),
@@ -5589,7 +5870,7 @@ export class WorldScene extends Phaser.Scene {
     const golden = graded ? w.golden * 0.14 * (1 - weather / 0.3) : 0;
     const lamps = graded ? w.lamps : 0;
     // Rooms go dark one at a time, so the hour is part of the key.
-    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.floor(clock / 900)}`;
+    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.floor(clock / 900)}:${this.snow}`;
     if (key === this.washKey) return;
     this.washKey = key;
     // Stacked multiply fills over white come to one colour: their product.
@@ -5913,6 +6194,28 @@ export class WorldScene extends Phaser.Scene {
         )
           this.feel.trail(pose.x, pose.y, DUSK_DUST);
       }
+      if (this.rimSide()) this.rimLight(id, im);
+      if (pose.moving && !aerial && dt && profile && this.snow >= 0.34) {
+        const ground = topo?.(Math.floor(pose.x / 16), Math.floor((pose.y - 8) / 16));
+        if (ground && ground.surface !== "water")
+          this.feel.track(
+            id,
+            pose.x,
+            pose.y,
+            "snow",
+            /east/.test(facing) ? 1 : /west/.test(facing) ? 3 : facing === "north" ? 0 : 2,
+            false,
+            this.printDepth(),
+            profile.locomotion === "ground-and-flight" || profile.social === "flock"
+              ? "bird"
+              : profile.gait === "hop"
+                ? "hop"
+                : profile.art.graze
+                  ? "hoof"
+                  : "paw",
+            this.weather?.condition === "snow",
+          );
+      }
       if (profile?.category === "domestic" && profile.social === "flock" && !profile.swims && dt) {
         const hour = (this.runtime.displayClock() / 3600) % 24;
         const ground = topo?.(Math.floor(pose.x / 16), Math.floor((pose.y - 8) / 16));
@@ -6052,7 +6355,7 @@ export class WorldScene extends Phaser.Scene {
     }
     let shade = this.shadows.get(id);
     if (!shade) {
-      shade = this.add.image(x, y, cast.key);
+      shade = this.snowCast(this.add.image(x, y, cast.key));
       this.shadows.set(id, shade);
     }
     if (shade.texture.key !== cast.key) shade.setTexture(cast.key);
@@ -6095,6 +6398,8 @@ export class WorldScene extends Phaser.Scene {
     // The old view holds while it fades out; the room is built after.
     if (!this.fadingOut) this.syncRoom(delta);
     this.reflect(time);
+    this.glint(delta);
+    this.afterRain(delta);
     if (this.night && !this.roomView) {
       this.paintWash();
       this.paintLight();
@@ -6923,6 +7228,12 @@ export class WorldScene extends Phaser.Scene {
             pose === "run" && index % 4 === 1 && water <= 0.025 && !arcLift;
           // Heel strikes: frames 2 and 6 of the walk, 1 and 5 of the run.
           const heel = moving && index % 4 === (pose === "run" ? 1 : 2);
+          if (
+            heel &&
+            !arcLift &&
+            this.leafPiles.some((p) => ((im.x - p.x) / (LITTER_W / 2)) ** 2 + ((im.y - p.y) / (LITTER_H / 2)) ** 2 < 0.6)
+          )
+            this.feel.puff(im.x, im.y, LEAF_COLOURS, pose === "run" ? 5 : 2, pose === "run" ? 0.8 : 0.4);
           if (puddle === "water" && heel)
             splashPuddle(this, im.x, im.y - 1, human.direction, pose === "run", im.depth, time);
           const cell = this.destinations.get(id);
@@ -6941,8 +7252,36 @@ export class WorldScene extends Phaser.Scene {
             this.feel.step(im, this.underfoot(cell, puddle));
           else if (afoot) this.kickDust(im.x, im.y, 2, 0.5);
         }
-        if (id === "player") {
+        {
           const cell = this.destinations.get(id);
+          const ground = moving && cell && water <= 0.025 && !arcLift ? this.underfoot(cell, puddle) : undefined;
+          if (
+            cell?.space === "outside" &&
+            ((this.weather?.tempC ?? 20) < 2 || this.snow >= 0.34) &&
+            time >= (this.breathAt.get(id) ?? 0) &&
+            this.cameras.main.worldView.contains(im.x, im.y)
+          ) {
+            const pace = pose === "run" ? 900 : 2300;
+            this.breathAt.set(id, time + pace + Math.random() * pace * 0.5);
+            const dx = [0, 1, 0, -1][human.direction];
+            this.feel.breath(im.x + dx * 4, im.y - 31, dx, im.depth + (human.direction ? 0.1 : -0.1));
+          }
+          if (this.rimSide()) this.rimLight(id, im);
+          // Townsfolk mark only snow: a wet street under a crowd would be all prints.
+          if (ground && (id === "player" || ground === "snow"))
+            this.feel.track(
+              id,
+              im.x,
+              im.y,
+              ground,
+              human.direction,
+              (this.weather?.wetness ?? 0) > 0.4,
+              this.printDepth(),
+              "boot",
+              this.weather?.condition === "snow",
+            );
+        }
+        if (id === "player") {
           if (this.options.shadows === false) {
             const contact = this.playerContact ??= this.add.ellipse(0, 0, 11, 4, 0x07100c, 0.28);
             contact.setPosition(im.x, im.y + arcLift - 1).setDepth(im.depth - 1)
@@ -6950,14 +7289,6 @@ export class WorldScene extends Phaser.Scene {
               .setScale(1 - Math.min(0.5, arcLift / 40))
               .setAlpha(0.28 * (1 - Math.min(0.7, arcLift / 40)));
           }
-          if (moving && cell && water <= 0.025 && !arcLift)
-            this.feel.track(
-              im,
-              this.underfoot(cell, puddle),
-              human.direction,
-              (this.weather?.wetness ?? 0) > 0.4,
-              (this.runtime.engine.world.topography ? -1000 : -60000) - 1,
-            );
           if (
             this.feel.stoppedRun(pose === "run", moving, time) &&
             !active &&
@@ -7007,7 +7338,7 @@ export class WorldScene extends Phaser.Scene {
           );
           let shade = this.shadows.get(id);
           if (!shade) {
-            shade = this.add.image(im.x, im.y, shadowTexture);
+            shade = this.snowCast(this.add.image(im.x, im.y, shadowTexture));
             this.shadows.set(id, shade);
           }
           shade.setVisible(true);
@@ -7082,7 +7413,10 @@ export class WorldScene extends Phaser.Scene {
         Math.abs(image.alpha - target) < 0.02
           ? target
           : image.alpha + (target - image.alpha) * 0.25;
-      if (alpha !== image.alpha) image.setAlpha(alpha);
+      if (alpha !== image.alpha) {
+        image.setAlpha(alpha);
+        (image.getData("rim") as Phaser.GameObjects.Image | undefined)?.setAlpha(alpha * 0.85);
+      }
     }
     this.characters?.prune();
     mark("actors");
@@ -7109,6 +7443,7 @@ export class WorldScene extends Phaser.Scene {
         : undefined,
       plants,
     );
+    this.syncRims();
     this.placeLodgedProjectiles();
     mark("scene update tail");
   }

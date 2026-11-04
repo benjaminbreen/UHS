@@ -1,5 +1,7 @@
 /** Seasonal dress for scenery: which trees turn, what colour they turn, and
  * what blows through the air. The ground palette turns in habitat-appearance. */
+import type Phaser from "phaser";
+import { waterHash as hash } from "../core/water-field";
 
 const evergreen = [
   "pine",
@@ -230,4 +232,30 @@ export function driftStyle(
     );
   if (season === "summer") return drift("seed", ["#f2eeda", "#e8e4c4"], 40);
   return undefined;
+}
+
+/** Fallen leaves, what a turned tree drops round its foot. */
+export const LEAF_COLOURS = [0xd8662e, 0xe8a03a, 0xf2c45a, 0xb8452a, 0x9a6a3a];
+export const LITTER_W = 52,
+  LITTER_H = 26;
+/** A drift of fallen leaves round a tree's foot, thick by the trunk and
+ * scattered at the edge, each leaf a lit pixel or two over a dark one. */
+export function leafLitter(scene: Phaser.Scene, variant: number) {
+  const key = `leaf-litter-${variant}`;
+  if (scene.textures.exists(key)) return key;
+  const tex = scene.textures.createCanvas(key, LITTER_W, LITTER_H)!;
+  const ctx = tex.getContext();
+  for (let i = 0; i < 90; i++) {
+    const a = hash(i, variant, 861) * Math.PI * 2,
+      r = Math.sqrt(hash(i, variant, 863)) * (0.35 + hash(i, variant, 865) * 0.65);
+    const x = Math.round(LITTER_W / 2 + Math.cos(a) * r * (LITTER_W / 2 - 2)),
+      y = Math.round(LITTER_H / 2 + Math.sin(a) * r * (LITTER_H / 2 - 2));
+    const colour = LEAF_COLOURS[Math.floor(hash(i, variant, 867) * LEAF_COLOURS.length)];
+    ctx.fillStyle = "rgba(58,40,24,0.55)";
+    ctx.fillRect(x, y + 1, 2, 1);
+    ctx.fillStyle = `#${colour.toString(16).padStart(6, "0")}`;
+    ctx.fillRect(x, y, hash(i, variant, 869) < 0.5 ? 2 : 1, 1);
+  }
+  tex.refresh();
+  return key;
 }

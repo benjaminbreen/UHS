@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
-import { waterHash as hash } from "../core/water-field";
+import { waterHash as hash, waterNoise as noise } from "../core/water-field";
+import { snowShades, white } from "./snow-cover";
 
 // How readily moss takes on roofs and damp creeps up walls, by climate.
 const damp: Record<string, number> = {
@@ -119,6 +120,71 @@ export function buildingWear(
     const [dx, dy, dw] = options.forge;
     smudge(dx + dw / 2, dy - 7, Math.ceil(dw / 2) + 1, 8, 170);
     for (const [x, y] of options.smoke) smudge(x, y + 2, 4, 14, 190);
+  }
+  ctx.putImageData(out, 0, 0);
+  tex.refresh();
+  return key;
+}
+
+/** Snow banked against the foot of the walls, as the wind leaves it: a
+ * lumpy white drift three to nine pixels up the wall, a bright crest and a blue
+ * underside, broken at the doorway where it is shovelled clear. */
+export function buildingSnowBank(
+  scene: Phaser.Scene,
+  texture: string,
+  frame: string,
+  door?: number[],
+) {
+  const key = `snow-bank:${frame}`;
+  if (scene.textures.exists(key)) return key;
+  const f = scene.textures.getFrame(texture, frame);
+  if (!f) return undefined;
+  const w = f.cutWidth,
+    h = f.cutHeight;
+  const read = document.createElement("canvas");
+  read.width = w;
+  read.height = h;
+  const rctx = read.getContext("2d", { willReadFrequently: true })!;
+  rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, w, h, 0, 0, w, h);
+  const px = rctx.getImageData(0, 0, w, h).data;
+  const tex = scene.textures.createCanvas(key, w, h)!;
+  const ctx = tex.getContext();
+  const out = ctx.createImageData(w, h);
+  const seed = frame.length * 31 + frame.charCodeAt(0);
+  let ground = 0;
+  for (let i = 3; i < px.length; i += 4) if (px[i] > 200) ground = Math.max(ground, Math.floor(i / 4 / w));
+  const [dx0, , dw] = door ?? [-99, 0, 0];
+  const foot = (x: number) => {
+    for (let y = h - 1; y >= 0; y--) if (px[(y * w + x) * 4 + 3] > 200) return y;
+    return -1;
+  };
+  const heightAt = (x: number) => {
+    const bottom = foot(x);
+    // Only where the wall stands on the ground, and never across the door.
+    if (bottom < ground - 14 || (x >= dx0 - 1 && x <= dx0 + dw)) return 0;
+    return Math.round(3 + noise(x + seed, 0, 11, 851) * 5 + noise(x + seed, 0, 3, 853) * 1.5);
+  };
+  for (let x = 0; x < w; x++) {
+    const t = heightAt(x);
+    if (!t) continue;
+    const bottom = foot(x);
+    for (let k = 0; k < t; k++) {
+      const y = bottom - k;
+      if (y < 0) break;
+      // A white crest over a face turned to us, which goes blue as
+      // every south face of the snow does, deepest at its foot.
+      const rgb =
+        k === t - 1
+          ? snowShades.lip
+          : k === t - 2
+            ? white
+            : k === 0
+              ? snowShades.shade
+              : k < t / 2
+                ? snowShades.midShade
+                : snowShades.underShade;
+      out.data.set([...rgb, 255], (y * w + x) * 4);
+    }
   }
   ctx.putImageData(out, 0, 0);
   tex.refresh();

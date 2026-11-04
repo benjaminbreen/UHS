@@ -1,5 +1,5 @@
 import type { EarthFinish } from "../content/settlements/urban-form/types";
-import { snowCover, snowOver } from "./snow-cover";
+import { frostCover, snowCover, snowOver } from "./snow-cover";
 import {
   edgeTufts,
   earthSpeckle,
@@ -316,7 +316,7 @@ export function rasterHabitatTile(
   cell: TopographyCell = sample(x, y)!,
 ): GroundTileData {
   const tile = bareHabitatTile(sample, x, y, ox, oy, art, cell);
-  if (snowCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
+  if (snowCover() || frostCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
   return tile;
 }
 
@@ -850,10 +850,10 @@ function rasterGroundTile(
       if (frozen)
         rgb =
           band === 3 || tilled
-            ? [181, 194, 191]
+            ? [200, 215, 242]
             : band === 2
-              ? [195, 208, 204]
-              : [215, 223, 207];
+              ? [218, 229, 248]
+              : [236, 242, 252];
       const style = groundStyle();
       if (style)
         rgb = styleGroundPixel(
@@ -1393,7 +1393,7 @@ function rasterGroundTile(
           }
           if (frozen)
             tone = tone.map((v, k) =>
-              Math.round(v * 0.45 + [196, 204, 202][k] * 0.55),
+              Math.round(v * 0.45 + [204, 213, 232][k] * 0.55),
             );
           put(px, py, tone, contact ? 0 : shade);
           if (!contact) trodden[at(px, py)] = 1;
