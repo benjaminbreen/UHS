@@ -28,6 +28,7 @@ import type { FaunaGroup } from "../../core/fauna";
 import { livelihoodOf } from "../../world/v3/routines";
 import { processFor } from "../economy/processes";
 import { workplaceFor } from "../characters/workplace";
+import { lifeway } from "../settlements/lifeways";
 
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
@@ -419,7 +420,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         done.add(seat.id);
       });
     }
-    const bare = urbanPack ? 0.75 : 0.2;
+    // A band's shelter sprite already carries its fire and gear.
+    const bare = urbanPack ? 0.75 : lifeway(world.pack.setting)?.camp.form === "band" ? 0.9 : 0.2;
     for (const b of world.places) {
       if (places.has(b.id) || isRuin(b) || (b.claim.startsWith("worksite-") || b.claim.startsWith("waterfront-"))) continue;
       places.add(b.id);

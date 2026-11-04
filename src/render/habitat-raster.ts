@@ -478,7 +478,7 @@ function rasterGroundTile(
   const composition = groundStyle()?.composition;
   const upkeep = cell.pavement === "yard" ? 0.55
     : ["court", "square", "footway", "platform"].includes(cell.pavement ?? "") ? 0.25
-    : cell.pavement === "vacant" ? 0.85 : 1;
+    : cell.pavement === "vacant" ? 0.85 : 1 - (cell.tended ?? 0) * 0.8;
   // Detail fades under the stand, not in the open: a cleared village is turf.
   const groveDetail = h.grove === undefined ? 1 : Math.max(h.grove < 0.45 ? 1 : 0, 0.18 + groveEdge(h.grove) * 0.95);
   const motifTuning = composition

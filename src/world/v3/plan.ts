@@ -2818,7 +2818,9 @@ export function planSettlement(
           ),
         );
     // An unresearched setting still gets the container of its day by the door.
+    // A kit with no props at all is researched and means it.
     if (
+      yards.props.length &&
       !items.some((p) => p.where === "wall" && p.prop !== "woodpile") &&
       wallSpots[1]
     ) {
@@ -3493,8 +3495,11 @@ export function planSettlement(
         if (goal.has(k)) return { id: `${site.id}-door${i}`, points, width: 0, kind: "path" as const, cost: s };
       }
     })();
-    if (straight) addRoad(straight);
-    const doorPath = straight ?? connect(door, point, `door${i}`, 0);
+    // A camp has no street to front: its tracks are worn by feet between the
+    // fires, the water and the bush, which the ground's desire lines draw.
+    const trackless = profile.pattern === "band" || profile.pattern === "encampment";
+    if (straight && !trackless) addRoad(straight);
+    const doorPath = straight ?? connect(door, point, `door${i}`, 0, undefined, trackless);
     if (!doorPath) {
       if (placed) eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
       continue;

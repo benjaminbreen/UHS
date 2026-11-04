@@ -1,7 +1,7 @@
 import type { WorldSetting } from "../geography/types";
 import { urbanized, urbanForm } from "./urban-form";
 import { farms } from "../geography/onsets";
-import { lifeway } from "./lifeways";
+import { lifeway, type Lifeway } from "./lifeways";
 export const patterns = [
   "farmstead",
   "clustered",
@@ -24,6 +24,10 @@ export type SettlementProfile = {
   paved: boolean;
   /** Gardens out beyond the houses with none beside them: swidden. */
   outfields?: boolean;
+  /** How far round the doors and hearths people strip the low growth: trodden,
+   * swept, grazed, cut for kindling. `reach` is tiles to wild ground, `bare`
+   * the share of scrub gone at the door. */
+  clearing: { reach: number; bare: number };
 };
 const profiles: Record<Pattern, SettlementProfile> = {
   band: {
@@ -35,6 +39,7 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "none",
     livestock: false,
     paved: false,
+    clearing: { reach: 14, bare: 0.9 },
   },
   encampment: {
     pattern: "encampment",
@@ -45,6 +50,7 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "none",
     livestock: true,
     paved: false,
+    clearing: { reach: 16, bare: 0.7 },
   },
   farmstead: {
     pattern: "farmstead",
@@ -55,6 +61,7 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "grouped",
     livestock: true,
     paved: false,
+    clearing: { reach: 10, bare: 0.6 },
   },
   clustered: {
     pattern: "clustered",
@@ -65,6 +72,7 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "household",
     livestock: true,
     paved: false,
+    clearing: { reach: 14, bare: 0.75 },
   },
   roadside: {
     pattern: "roadside",
@@ -75,6 +83,7 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "strips",
     livestock: true,
     paved: false,
+    clearing: { reach: 12, bare: 0.7 },
   },
   dense: {
     pattern: "dense",
@@ -85,6 +94,7 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "none",
     livestock: false,
     paved: true,
+    clearing: { reach: 18, bare: 0.85 },
   },
   planned: {
     pattern: "planned",
@@ -95,6 +105,7 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "none",
     livestock: false,
     paved: true,
+    clearing: { reach: 18, bare: 0.85 },
   },
   waterfront: {
     pattern: "waterfront",
@@ -105,7 +116,17 @@ const profiles: Record<Pattern, SettlementProfile> = {
     fields: "none",
     livestock: false,
     paved: true,
+    clearing: { reach: 18, bare: 0.85 },
   },
+};
+// A herd grazes and browses a wide halo round its camp; a ring village weeds
+// its plaza bare; a band sweeps round its fires and gathers kindling well beyond them.
+const lifewayClearing: Record<Lifeway["mode"], SettlementProfile["clearing"]> = {
+  "nomadic-pastoral": { reach: 22, bare: 0.75 },
+  "mobile-foraging": { reach: 14, bare: 0.9 },
+  "sedentary-foraging": { reach: 14, bare: 0.85 },
+  horticultural: { reach: 14, bare: 0.9 },
+  "mixed-farming": { reach: 14, bare: 0.65 },
 };
 export function settlementProfile(
   s: WorldSetting,
@@ -146,6 +167,7 @@ export function settlementProfile(
     p.livestock = way.mode === "nomadic-pastoral" || !!way.camp.livestock;
     p.outfields = way.mode === "horticultural" && !way.camp.gardens;
     if (way.camp.gardens) p.fields = "household";
+    p.clearing = lifewayClearing[way.mode];
     return home ? p : { ...p, buildings: perGroup[1], radius: 60 };
   }
   if (!home) {
@@ -176,5 +198,6 @@ export function settlementProfile(
     p.livestock = false;
     p.paved = false;
   }
+  if (p.livestock) p.clearing = { ...p.clearing, reach: p.clearing.reach + 4 };
   return p;
 }

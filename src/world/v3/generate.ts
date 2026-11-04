@@ -1208,6 +1208,34 @@ export function createSettlementWorld(
       p.site.profile.paved && Math.hypot(x - p.site.center.x, y - p.site.center.y) < p.site.profile.radius * 0.65
     ) || regionalRoads(x, y).has(k));
   }
+  const tendAnchors = new WeakMap<SettlementPlan, Map<string, Point[]>>();
+  /** 0 in wild country, up to the profile's `bare` at a door or hearth. */
+  function tendedAt(x: number, y: number) {
+    let tended = 0;
+    for (const p of nearby(x, y)) {
+      const { reach, bare } = p.site.profile.clearing;
+      let buckets = tendAnchors.get(p);
+      if (!buckets) {
+        buckets = new Map();
+        const points = [p.site.center, ...p.places.map((b) => b.entrance), ...(p.gatherings ?? []),
+          ...[...p.work.values()].flatMap((w) => [w.work, w.water, w.social])];
+        for (const a of points) {
+          const key = cellKey(Math.floor(a.x / 32), Math.floor(a.y / 32));
+          buckets.set(key, [...(buckets.get(key) ?? []), a]);
+        }
+        tendAnchors.set(p, buckets);
+      }
+      let d = Infinity;
+      for (let by = -1; by <= 1; by++)
+        for (let bx = -1; bx <= 1; bx++)
+          for (const a of buckets.get(cellKey(Math.floor(x / 32) + bx, Math.floor(y / 32) + by)) ?? [])
+            d = Math.min(d, Math.hypot(a.x - x, a.y - y));
+      // Lobed so the cleared ground ends in bays and spurs, not a ring.
+      const t = 1 - d * (0.8 + 0.4 * noise(seed, x + land.origin.x, y + land.origin.y, 6, "tended-edge")) / reach;
+      if (t > 0) tended = Math.max(tended, bare * t * t * (3 - 2 * t));
+    }
+    return tended;
+  }
   /** A cell a bank's rim or face crosses. The face hangs more than a cell
    * south of its rim, so the cell two above counts too. */
   function onStep(x: number, y: number) {
@@ -1506,6 +1534,12 @@ export function createSettlementWorld(
             ? "log"
             : "nature-stump";
     }
+    // Near the houses low growth is trodden, grazed or cut for kindling. The
+    // weeds of disturbed ground hold on: it is what they live on.
+    if (environment && !tree && selected && selected !== "rock" && selected !== "reeds" &&
+      random(seed, "tended", x + land.origin.x, y + land.origin.y) <
+        tendedAt(x, y) * (/flower/.test(selected) ? 0.5 : 1))
+      selected = undefined;
     return selected
       ? {
           id: `decor-${x}-${y}`,
@@ -2030,6 +2064,8 @@ export function createSettlementWorld(
         wear = Math.max(wear, (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0);
       wear = Math.max(wear, crownWear(x, y));
       if (wear) cell.groundWear = Math.max(cell.groundWear ?? 0, wear);
+      const tended = tendedAt(x, y);
+      if (tended) cell.tended = tended;
     }
     return cell;
   }

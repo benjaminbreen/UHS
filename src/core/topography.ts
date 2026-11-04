@@ -47,6 +47,8 @@ export type TopographyCell = {
   landscape?: import("../world/v3/features").Landscape;
   /** Derived entrance/activity wear, 0–1; presentation only, never movement. */
   groundWear?: number;
+  /** How hard the settlement uses the ground here, 0–1; thins tufts and scrub. */
+  tended?: number;
   surface: GroundSurface;
   /** Continuous gravel ground versus the legacy shallow drainage overlay. */
   feature?: "bank" | "paving" | "field";
