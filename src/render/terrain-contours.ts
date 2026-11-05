@@ -1463,10 +1463,9 @@ function rasterWallContours(
         const wx = px + ox, wy = py + oy;
         // Three hard bands: a lit crest, the face of the slope, a darker foot.
         const band = down < 0.1 ? 1.06 : down > 0.86 ? 0.86 : 0.97;
-        const off = Math.abs(U - runPx / 2);
+
         // Each look is a feature down the middle of a turf slope: stairs
-        // nearly its full width, a scree fan or an earth track widening
-        // toward the foot. Off the run, on a cheek, only the turf.
+        // nearly its full width, or a scree or earth track.
         if (U >= 0 && look === "stairs" && stones) {
           // Six rows a step: a lit tread with its nose catching the light,
           // then the riser, shadowed under the nose. Steps are slabs of
@@ -1490,19 +1489,26 @@ function rasterWallContours(
             return [[g[0] * 0.7, g[1] * 0.7, g[2] * 0.7], true];
           }
         }
-        if (U >= 0 && look === "scree" && stones && off < (runPx / 2 - 3) * (0.4 + 0.6 * down)) {
-          const tri = Math.abs(((((rise + runPhase) % 20) + 20) % 20) / 10 - 1) * 2 - 1;
-          if (Math.abs(U - runPx / 2 - tri * Math.min(4, runPx * 0.15)) < 1.5)
-            return [scale(rise % 3 ? soil[2] : soil[3], band), false];
-          const hsh = noise(wx, wy, 135);
-          return [scale(hsh < 0.07 ? stones[5] : hsh < 0.14 ? stones[1] : mix(stones[3], soil[2], 0.45), band), false];
+        // Tracks keep one width the whole way down, wandering a little, with
+        // edges that waver a pixel either side rather than ruled lines.
+        const track = (hw: number) => {
+          const x = U - runPx / 2 - Math.sin(rise / 11 + runKey * 1.7) * Math.min(3, runPx * 0.12);
+          const wl = hw + (noise(Math.floor(rise / 2), runKey, 145) - 0.5) * 1.6,
+            wr = hw + (noise(Math.floor(rise / 2), runKey, 147) - 0.5) * 1.6;
+          return U < 0 ? Infinity : x < 0 ? -x - wl : x - wr;
+        };
+        if (look === "scree" && stones) {
+          const d = track(runPx > 16 ? 5 : 4);
+          // Pebbles two pixels across, lit on top, a few strayed into the turf.
+          const pebble = noise(wx >> 1, wy >> 1, 135) < (d < 0 ? 0.16 : d < 3 ? 0.06 : 0);
+          if (pebble) return [scale(stones[wy & 1 ? 1 : 5], band), false];
+          if (d < 0) return [scale(d > -1 ? mix(stones[2], soil[1], 0.5) : mix(stones[3], soil[2], 0.45), band), false];
         }
-        if (U >= 0 && look === "earth" && off < 2.5 + 3 * down) {
+        if (look === "earth" || worn) {
+          const d = track(look === "earth" ? 3 : 2);
           const n = noise(wx, wy, 91);
-          const line = (rise + Math.floor(noise(Math.floor(U / 6), 0, 93) * 5)) % 5 === 0 && noise(wx, wy, 95) < 0.6;
-          return [scale(line ? mix(soil[2], soil[1], 0.5) : n < 0.1 ? soil[1] : n > 0.85 ? soil[3] : soil[2], band), false];
+          if (d < 0) return [scale(d > -1 ? soil[1] : n < 0.06 ? soil[1] : n > 0.9 ? soil[3] : soil[2], band), false];
         }
-        if (worn && U >= 0 && off < 2.5) return [scale(noise(wx, wy, 91) > 0.9 ? soil[3] : soil[2], band), false];
         const g = surfaces.pixel(upper, px, py, t, lvl) ?? turf[0];
         return [[g[0] * band, g[1] * band, g[2] * band], true];
       };
