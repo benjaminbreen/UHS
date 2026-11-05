@@ -30,7 +30,7 @@ import {
   type Ecology,
 } from "../content/ecology/profiles";
 import { TERRAIN_RISE } from "./terrain-projection";
-import { caveAt, cliffPixel, talusPixel, copingColor, hasParapet, tuftHeight, tuftPixel, wallPixel, type Stain } from "./edge-faces";
+import { caveAt, cliffPixel, rockRamp, talusPixel, copingColor, hasParapet, tuftHeight, tuftPixel, wallPixel, type Stain } from "./edge-faces";
 import { rockAt } from "../content/geography/rock";
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
 import style from "./generated/topography-style.json" with { type: "json" };
@@ -1440,6 +1440,72 @@ function rasterWallContours(
         style === "cut" || (style === "slope" && cell.pathArt?.length)
           ? { x: cx, y: cy, cell: { ...cell, ramp: undefined } }
           : undefined;
+      // How a natural slope is made: turf carried down, steps cut in the
+      // rock, or a scree track. Rolled per run so one coast mixes them.
+      const roll = noise(runKey, t * 7 + (along ? cy : cx), 131);
+      const runPhase = Math.floor(noise(runKey, t, 97) * 16);
+      const rock = natural(upper.cell) ? rockOf(upper.cell) : "earth";
+      const look =
+        style !== "slope" || bed
+          ? undefined
+          : rock === "earth"
+            ? roll < 0.5 ? "grass" : "earth"
+            : capped(upper.cell)
+              ? roll < 0.6 ? "scree" : "stairs"
+              : roll < 0.65 ? "grass" : "stairs";
+      const stones = rock === "earth" ? undefined : rockRamp(rock);
+      const worn = (cell.groundWear ?? 0) > 0.3;
+      const scale = (c: readonly number[], f: number) => [c[0] * f, c[1] * f, c[2] * f];
+      /** One pixel of a natural slope, `down` 0 at the crest to 1 at the foot;
+       * `U` runs across the whole run, or is negative off it on a flank. The
+       * flag says the colour came from the ground page, snow and all. */
+      const slopePixel = (px: number, py: number, U: number, down: number, rise: number): [readonly number[], boolean] => {
+        const wx = px + ox, wy = py + oy;
+        // Three hard bands: a lit crest, the face of the slope, a darker foot.
+        const band = down < 0.1 ? 1.06 : down > 0.86 ? 0.86 : 0.97;
+        const off = Math.abs(U - runPx / 2);
+        // Each look is a feature down the middle of a turf slope: stairs
+        // nearly its full width, a scree fan or an earth track widening
+        // toward the foot. Off the run, on a cheek, only the turf.
+        if (U >= 0 && look === "stairs" && stones) {
+          // Six rows a step: a lit tread with its nose catching the light,
+          // then the riser, shadowed under the nose. Steps are slabs of
+          // uneven length, so the flight's sides stagger into the turf, and
+          // each riser is two blocks.
+          const r6 = rise + runPhase;
+          const k = Math.floor(r6 / 6), row = ((r6 % 6) + 6) % 6;
+          const x = U - runPx / 2;
+          const span = runPx / 2 - 3;
+          const west = -span + Math.floor(noise(k, runKey, 137) * 3),
+            east = span - Math.floor(noise(k, runKey, 139) * 3);
+          if (x >= west && x < east) {
+            if (row >= 3 && x === Math.round(west + (east - west) * (0.35 + noise(k, runKey, 141) * 0.3)))
+              return [stones[1], false];
+            const grain = noise(wx, wy, 143) < 0.07 ? -1 : 0;
+            const tone = row < 2 ? 5 + grain : row === 2 ? 6 : row === 3 ? 2 : 3 + grain;
+            return [scale(stones[tone], band), false];
+          }
+          if (x === east && row >= 2) {
+            const g = surfaces.pixel(upper, px, py, t, lvl) ?? turf[0];
+            return [[g[0] * 0.7, g[1] * 0.7, g[2] * 0.7], true];
+          }
+        }
+        if (U >= 0 && look === "scree" && stones && off < (runPx / 2 - 3) * (0.4 + 0.6 * down)) {
+          const tri = Math.abs(((((rise + runPhase) % 20) + 20) % 20) / 10 - 1) * 2 - 1;
+          if (Math.abs(U - runPx / 2 - tri * Math.min(4, runPx * 0.15)) < 1.5)
+            return [scale(rise % 3 ? soil[2] : soil[3], band), false];
+          const hsh = noise(wx, wy, 135);
+          return [scale(hsh < 0.07 ? stones[5] : hsh < 0.14 ? stones[1] : mix(stones[3], soil[2], 0.45), band), false];
+        }
+        if (U >= 0 && look === "earth" && off < 2.5 + 3 * down) {
+          const n = noise(wx, wy, 91);
+          const line = (rise + Math.floor(noise(Math.floor(U / 6), 0, 93) * 5)) % 5 === 0 && noise(wx, wy, 95) < 0.6;
+          return [scale(line ? mix(soil[2], soil[1], 0.5) : n < 0.1 ? soil[1] : n > 0.85 ? soil[3] : soil[2], band), false];
+        }
+        if (worn && U >= 0 && off < 2.5) return [scale(noise(wx, wy, 91) > 0.9 ? soil[3] : soil[2], band), false];
+        const g = surfaces.pixel(upper, px, py, t, lvl) ?? turf[0];
+        return [[g[0] * band, g[1] * band, g[2] * band], true];
+      };
       for (let px = cx * 16; px < cx * 16 + 16; px++) {
         const wx = px + ox;
         // Screen span of this column, then each screen row finds the world
@@ -1461,7 +1527,11 @@ function rasterWallContours(
                 break;
               }
           } else py = sy + Math.round(h(px, cy * 16) * R);
-          const wy = py + oy;
+          // A north or south ramp stretches 16 world rows over its whole
+          // screen height; texture and grain are read one row per screen row
+          // so the slope keeps the ground's own resolution.
+          const ty = along ? sy + t * R : py;
+          const wy = ty + oy;
           // Across the ramp: two pixels of cut earth where the side is open,
           // trodden soil between, with erosion lines across the slope and a
           // darker foot where it meets the lower ground.
@@ -1547,8 +1617,6 @@ function rasterWallContours(
           else if (lip)
             rgb = n < 0.5 ? turf[0] : turf[5];
           else if (style === "slope") {
-            // The ground's own turf carried down the incline, shaded toward
-            // the foot, with one wandering trail and broken earth shoulders.
             const U = before * 16 + u;
             const down = along
               ? (sy - first) / Math.max(1, last - first)
@@ -1563,46 +1631,12 @@ function rasterWallContours(
                   99,
                 ) * 3.4,
               );
-            const trail =
-              runPx / 2 +
-              (noise(Math.floor(rise / 7), runKey, 93) - 0.5) *
-                Math.min(18, runPx * 0.35);
-            const half = (runPx > 16 ? 3 : 2) + down * 2.5;
-            const off = Math.abs(U - trail);
-            const ground =
-              surfaces.pixel(
-                noise(wx, wy, 125) < down ? lower : upper,
-                px,
-                py,
-                t,
-                lvl,
-              ) ?? turf[0];
-            const tone = 0.84 + (1 - down) * 0.12;
-            snowed = true;
-            const rock = natural(upper.cell) ? rockOf(upper.cell) : "earth";
-            if (rock !== "earth") {
-              // Up a rock step: a narrow footpath, stepped where it climbs,
-              // between stones fallen from the face.
-              if (off < half) {
-                rgb = rise % 4 === 0 ? soil[1] : rise % 4 === 1 ? soil[3] : n < 0.12 ? soil[1] : soil[2];
-                snowed = false;
-              } else {
-                const stone = talusPixel(rock, wx, (Math.floor((rise + oy) / 8) + 512) * 16, (((rise + oy) % 8) + 8) % 8 - 1, off < half + 2 ? 0.25 : 0.7);
-                rgb = stone === "shadow"
-                  ? [ground[0] * 0.66, ground[1] * 0.66, ground[2] * 0.66]
-                  : stone ?? [ground[0] * tone, ground[1] * tone, ground[2] * tone];
-              }
-            } else if (dir !== "n" && (edge < shoulder - 1 || (edge < shoulder && n < 0.5)))
-              rgb = [ground[0] * 0.72, ground[1] * 0.72, ground[2] * 0.72];
-            else if (
-              off < half &&
-              noise(wx, wy, 107) > (off > half - 2 ? 0.55 : 0.2) &&
-              noise(Math.floor(rise / 5), runKey, 109) > 0.2
-            )
-            {
-              rgb = n > 0.9 ? soil[3] : soil[2];
-              snowed = false;
-            } else rgb = [ground[0] * tone, ground[1] * tone, ground[2] * tone];
+            [rgb, snowed] = slopePixel(px, ty, U, down, rise);
+            // The bank to the west shades the ramp's west edge.
+            if (dir === "n" && U < 2 && openLow) rgb = scale(rgb, U === 0 ? 0.72 : 0.84);
+            // A side-climbing slope's ends fall away as broken shoulders.
+            if (dir !== "n" && look !== "stairs" && (edge < shoulder - 1 || (edge < shoulder && n < 0.5)))
+              rgb = scale(rgb, 0.74);
           } else if (style === "steps") {
             // Risers every three rows, treads between; a lit tread edge.
             const step = (rise + phase) % 3;
@@ -1640,48 +1674,6 @@ function rasterWallContours(
             );
           paintFlat(cy, t, px, sy, rgb);
         }
-        // Scree: a few stones tumble off a cut or slope onto the ground at
-        // its foot, so the ramp does not end on a ruled line.
-        // Flanks: a ramp out of a north-facing bank is a mound on the lower
-        // ground, highest against the bank and gone at the foot. Painted over
-        // the bank's face, it tapers the face into the ramp.
-        if (
-          (style === "slope" || bed) &&
-          dir === "n" &&
-          ((px === cx * 16 && before === 0) ||
-            (px === cx * 16 + 15 && after === 0))
-        ) {
-          const west = px === cx * 16;
-          const W = 10;
-          for (let k = 1; k <= W; k++) {
-            const x = west ? px - k : px + k;
-            const nx = Math.floor(x / 16);
-            const beside = sampleAt(nx, cy);
-            if (
-              !beside ||
-              beside.ramp ||
-              beside.surface === "water" ||
-              tierAt(nx, cy) !== t
-            )
-              break;
-            const ground = donor(nx, cy);
-            const rise = (y: number) => Math.max(t, h(px, y) - k / W);
-            for (let py = cy * 16; py < cy * 16 + 16; py++) {
-              if (rise(py) <= t) break;
-              const top = Math.round(py - rise(py) * R),
-                next = Math.round(py + 1 - rise(py + 1) * R);
-              const g =
-                surfaces.pixel(ground, x, py, t, lvl) ??
-                surfaces.pixel(lower, x, py, t, lvl) ??
-                turf[0];
-              // Shaded by aspect, lightening to the ground at the outer edge.
-              const f = (west ? 0.8 : 0.66) + (k / W) * 0.16;
-              if (k > W - 3 && noise(x + ox, py + oy, 117) < 0.5) continue;
-              for (let y = top; y < Math.max(top + 1, next); y++)
-                paintRgb(cy, t, x, y, [g[0] * f, g[1] * f, g[2] * f]);
-            }
-          }
-        }
         // The low end of a side-climbing slope fans onto the ground too.
         if (
           style === "slope" &&
@@ -1709,26 +1701,7 @@ function rasterWallContours(
             }
           }
         }
-        if (style === "slope" && dir === "n") {
-          // An apron: the slope spills onto the lower ground in a ragged fan,
-          // deepest mid-run and gone by the ends, fading by dither.
-          const U = before * 16 + (px - cx * 16);
-          const taper = Math.min(1, Math.min(U, runPx - 1 - U) / 10);
-          const reach = Math.round(
-            (2 + noise(Math.floor(wx / 5), runKey, 111) * 5) * taper,
-          );
-          for (let r = 1; r <= reach; r++) {
-            const sy = last + r;
-            if (noise(wx, sy + oy, 113) < (r - 1) / reach) continue;
-            const ground =
-              surfaces.pixel(lower, px, cy * 16 + 15, t, lvl) ?? turf[0];
-            paintFlat(cy + 1, t, px, sy, [
-              ground[0] * 0.86,
-              ground[1] * 0.86,
-              ground[2] * 0.86,
-            ]);
-          }
-        } else if (style === "cut" && dir === "n") {
+        if (style === "cut" && dir === "n") {
           for (let r = 1; r <= 2; r++) {
             const sy = last + r;
             const roll = noise(px + ox, sy + oy, 105);

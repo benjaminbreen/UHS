@@ -452,3 +452,7 @@ export function talusPixel(rock: Rock, wx: number, wy: number, j: number, densit
   }
   return shadow ? "shadow" : undefined;
 }
+
+export function rockRamp(rock: Rock): readonly Color[] {
+  return rocks[rock].ramp;
+}
