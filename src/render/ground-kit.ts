@@ -301,8 +301,14 @@ function plantPixel(r: Resolved, wx: number, wy: number, wild: (x: number, y: nu
       for (let gx = Math.floor((wx - 9) / step); gx <= Math.floor((wx + 9) / step); gx++) {
         const cx = gx * step + step / 2,
           cy = gy * step + step / 2;
-        const colony = field(cx, cy, tf.colonyScale, 1200);
-        const chance = tf.density * (1 - tf.colony + tf.colony * Math.max(0, (colony - 0.35) * 3.3));
+        // Clumps gather in and just around the taller-grass drifts and a few
+        // colonies of their own; `colony` is how much of the kit's density is
+        // held back for those places rather than scattered evenly.
+        const d = r.drifts[0];
+        const drift = d ? (field(cx, cy, d.scale, 1100) - d.threshold + 0.06) * 9 : 0;
+        const own = (field(cx, cy, tf.colonyScale, 1200) - 0.6) * 8;
+        const gather = Math.min(1, Math.max(0, drift, own));
+        const chance = tf.density * (1 - tf.colony + tf.colony * gather);
         const roll = hash(gx, gy, 1201);
         if (roll > chance) continue;
         const rx = Math.floor(gx * step + hash(gx, gy, 1202) * step),
