@@ -1,3 +1,4 @@
+import type { Rock } from "../content/geography/rock";
 import type { EarthFinish } from "../content/settlements/urban-form/types";
 import { frostCover, snowCover, snowOver } from "./snow-cover";
 import {
@@ -210,6 +211,26 @@ function finishPixel(
   const sweep = hash(bx, by, 545) < 0.45 && Math.abs(off) < 1 &&
     [2, 4, 6].some((ring) => Math.abs(r - ring) < 0.4);
   return [mix(soil[2], [128, 112, 84], 0.45), edge || (sweep ? 7 : 0)];
+}
+
+/** A sea beach is ground-down coast, so its sand takes the colour of the
+ * local rock: black on basalt, shell-white on limestone and chalk and on
+ * tropical reefs, gold on sandstone; shingle likewise. Returned as a per-channel factor on the
+ * habitat's own sand, which keeps its ripples and grain. */
+const beachSand: Record<Rock, number[]> = {
+  basalt: [104, 100, 102],
+  granite: [198, 188, 170],
+  limestone: [236, 228, 204],
+  chalk: [238, 234, 218],
+  sandstone: [226, 192, 136],
+  redstone: [224, 170, 128],
+  laterite: [220, 164, 124],
+  shale: [180, 168, 144],
+};
+export function beachTint(c: TopographyCell): number[] | undefined {
+  if ((c.surface !== "sand" && c.surface !== "gravel") || c.waterVisual?.kind !== "sea" || !c.rock || c.habitat?.ecology === "desert") return undefined;
+  const to = c.habitat?.ecology === "tropical-woodland" && c.rock !== "basalt" ? [242, 236, 216] : beachSand[c.rock];
+  return [to[0] / 214, to[1] / 198, to[2] / 152];
 }
 
 /** Creek bed stones by region: slate in cool green country, ochre gravel in
@@ -812,6 +833,7 @@ function rasterGroundTile(
     for (let k = 0; k < 3; k++) pixels[i + k] = c[k];
     pixels[i + 3] = 255;
   };
+  const beach = beachTint(cell);
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = gx + px,
@@ -835,6 +857,7 @@ function rasterGroundTile(
                   ? litterTone
                   : palette[b];
       let rgb = h.site && !tilled ? communityPixel(px,py).rgb : tone(band);
+      if (beach) rgb = rgb.map((v, k) => Math.min(255, Math.round(v * beach[k])));
       // Interlocking clusters only within four native pixels of a real seam.
       // The interiors of transition tiles remain solid habitat colors.
       const other = [

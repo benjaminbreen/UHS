@@ -30,7 +30,7 @@ import {
   type Ecology,
 } from "../content/ecology/profiles";
 import { TERRAIN_RISE } from "./terrain-projection";
-import { cliffPixel, copingColor, hasParapet, tuftHeight, tuftPixel, wallPixel, type Stain } from "./edge-faces";
+import { caveAt, cliffPixel, talusPixel, copingColor, hasParapet, tuftHeight, tuftPixel, wallPixel, type Stain } from "./edge-faces";
 import { rockAt } from "../content/geography/rock";
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
 import style from "./generated/topography-style.json" with { type: "json" };
@@ -879,6 +879,20 @@ function rasterWallContours(
     desert: [0.08, 5],
     tundra: [0.25, 4],
   };
+  const rockOf = (cell: TopographyCell | undefined) => {
+    const eco = cell?.habitat?.ecology;
+    return eco === "wetland" ? "earth" : (cell?.rock ?? rockAt(undefined, undefined, eco ?? "grassland", cell?.habitat?.colorway));
+  };
+  // Cold, high and dry ground: the rock runs to a bare brink of cleared earth
+  // and stones rather than under a cushion of turf.
+  const capped = (cell: TopographyCell) => {
+    const eco = cell.habitat?.ecology,
+      way = cell.habitat?.colorway;
+    return eco === "tundra" || eco === "boreal-woodland" || eco === "desert" ||
+      way === "alpine" || way === "polar" || way === "highland" || cell.height >= 5;
+  };
+  const natural = (cell: TopographyCell | undefined) =>
+    !!cell && !cell.edge && cell.feature !== "paving" && cell.surface !== "sand" && cell.surface !== "snow" && cell.surface !== "water";
   const tuftsFor = (cell: TopographyCell | undefined) =>
     cell && !cell.edge && cell.feature !== "paving" && cell.surface !== "sand" && cell.surface !== "snow" && cell.surface !== "water"
       ? tufts[cell.habitat?.ecology ?? "grassland"]
@@ -898,6 +912,7 @@ function rasterWallContours(
     /** Depth below the rim on an east or west return, whose `r` runs across
      * the sliver: the face follows the rim, or its beds stand up as planks. */
     belowRim?: number,
+    cave?: { dx: number; hw: number },
   ): readonly number[] => {
     if (upper?.edge) return wallPixel(upper.edge, r, drop, wx, trim.earth[4]);
     const eco = upper?.habitat?.ecology;
@@ -905,12 +920,8 @@ function rasterWallContours(
     if (!style) ecoBanks.set(eco, (style = bankFor(bank, eco)));
     if (belowRim !== undefined) r = belowRim;
     if (upper?.surface !== "sand" && upper?.surface !== "snow") {
-      const rock =
-        eco === "wetland"
-          ? "earth"
-          : (upper?.rock ?? rockAt(undefined, undefined, eco ?? "grassland", upper?.habitat?.colorway));
-      const bare = !upper || upper.surface === "gravel" || eco === "desert";
-      return cliffPixel(rock, r, drop, wx, wy, bare ? undefined : ground || trim.lip, stains[eco ?? "grassland"]);
+      const bare = !upper || upper.surface === "gravel" || capped(upper);
+      return cliffPixel(rockOf(upper), r, drop, wx, wy, bare ? undefined : ground || trim.lip, stains[eco ?? "grassland"], cave);
     }
     const pixel = styledBankPixel(style, r, drop, wx, wy);
     return pixel.kind === "earth"
@@ -1114,7 +1125,24 @@ function rasterWallContours(
           stone ? [122, 120, 110] : tone ? scale(tone, 0.78) : trim.sides,
         );
       const below = rampInto(cx, row + 1, "n") ? L : lvl(px, py + 1);
-      const tuft = below < L && rim ? tuftsFor(material) : undefined;
+      const bareBrink = below < L && natural(material) && capped(material!);
+      const tuft = below < L && rim && !bareBrink ? tuftsFor(material) : undefined;
+      if (bareBrink) {
+        // Cleared earth back from the brink, ragged into the ground behind,
+        // with stones of the cliff's own rock bedded in it.
+        const k = 3 + Math.floor(contourNoise(px + ox, py + oy, 7, 141) * 7);
+        for (let j = 1; j <= k; j++) {
+          const n = contourNoise(px + ox, py + oy - j, 1, 143);
+          paintRgb(row, L, px, sy - j, j === k ? trim.earth[2] : n > 0.9 ? trim.earth[4] : n < 0.15 ? trim.earth[1] : n < 0.5 ? trim.earth[2] : trim.earth[3]);
+        }
+        const rock = rockOf(material);
+        if (rock !== "earth")
+          for (let j = 1; j <= 9; j++) {
+            const stone = talusPixel(rock, px + ox, py + oy + 3, -j + 4, 0.55);
+            if (stone === "shadow") shade(row, px, sy - j, 0.3);
+            else if (stone) paintRgb(row, L, px, sy - j, stone);
+          }
+      }
       if (tuft) {
         const h = tuftHeight(px + ox, py + oy, tuft[0], tuft[1]);
         for (let j = 0; j < h; j++) paintRgb(row, L, px, sy - j, tuftPixel(trim.lip, j, h, px + ox));
@@ -1223,17 +1251,44 @@ function rasterWallContours(
             paintFlat(row + 1, below, px, sy + 1 + drop + r, foamOf(src, r === 0));
         continue;
       }
+      const spot = natural(material) && drop >= R ? caveAt(rockOf(material), px + ox, py + oy) : undefined;
+      // A mouth only where the face runs on unbroken either side of it.
+      const cave =
+        spot &&
+        [spot.cx - spot.hw - 3, spot.cx + spot.hw + 3].every((x) => {
+          for (let dy = -3; dy <= 3; dy++) if (lvl(x - ox, py + dy) === L && lvl(x - ox, py + dy + 1) === below) return true;
+          return false;
+        })
+          ? spot
+          : undefined;
       for (let r = 0; r < drop; r++)
         paintRgb(
           row,
           L,
           px,
           sy + 1 + r,
-          facePixel(material, trim, r, drop, px + ox, py + oy, rgba),
+          facePixel(material, trim, r, drop, px + ox, py + oy, rgba, undefined, cave),
         );
-      if (tuft) {
+      if (cave && Math.abs(cave.dx) <= cave.hw + 1) {
+        // Ground worn bare in front of the mouth.
+        const reach = Math.round(6 * Math.sqrt(Math.max(0, 1 - (cave.dx / (cave.hw + 2)) ** 2)));
+        for (let j = 1; j <= reach; j++)
+          paintRgb(Math.max(row + 1, Math.floor((py + j) / 16)), below, px, sy + drop + j, contourNoise(px + ox, j, 1, 145) > 0.85 ? trim.earth[4] : j === reach ? trim.earth[2] : trim.earth[3]);
+      } else if (tuft) {
         const h = tuftHeight(px + ox, py + oy + 1, tuft[0] * 1.2, tuft[1] + 1);
         for (let j = 0; j < h; j++) paintRgb(row, L, px, sy + drop - j, tuftPixel(trim.lip, j, h, px + ox));
+      }
+      const rock = !cave && natural(material) && drop >= R ? rockOf(material) : "earth";
+      if (rock !== "earth") {
+        const density = lower?.waterVisual?.kind === "sea" || capped(material!) ? 0.75 : 0.3;
+        for (let j = -6; j <= 6; j++) {
+          const stone = talusPixel(rock, px + ox, py + oy, j, density);
+          // In the lower ground's face strip, which draws over both this face
+          // and the ground of the rows beneath.
+          const at = Math.max(row + 1, Math.floor((py + j) / 16));
+          if (stone === "shadow") occlude(at, below, px, sy + drop + j, 70);
+          else if (stone) paintRgb(at, below, px, sy + drop + j, stone);
+        }
       }
       if (material?.edge && hasParapet(material.edge) && drop >= R) {
         const cap = copingColor(material.edge, trim.earth[4]);
@@ -1524,8 +1579,20 @@ function rasterWallContours(
               ) ?? turf[0];
             const tone = 0.84 + (1 - down) * 0.12;
             snowed = true;
-            // A north slope's flanks fall away beside it instead.
-            if (dir !== "n" && (edge < shoulder - 1 || (edge < shoulder && n < 0.5)))
+            const rock = natural(upper.cell) ? rockOf(upper.cell) : "earth";
+            if (rock !== "earth") {
+              // Up a rock step: a narrow footpath, stepped where it climbs,
+              // between stones fallen from the face.
+              if (off < half) {
+                rgb = rise % 4 === 0 ? soil[1] : rise % 4 === 1 ? soil[3] : n < 0.12 ? soil[1] : soil[2];
+                snowed = false;
+              } else {
+                const stone = talusPixel(rock, wx, (Math.floor((rise + oy) / 8) + 512) * 16, (((rise + oy) % 8) + 8) % 8 - 1, off < half + 2 ? 0.25 : 0.7);
+                rgb = stone === "shadow"
+                  ? [ground[0] * 0.66, ground[1] * 0.66, ground[2] * 0.66]
+                  : stone ?? [ground[0] * tone, ground[1] * tone, ground[2] * tone];
+              }
+            } else if (dir !== "n" && (edge < shoulder - 1 || (edge < shoulder && n < 0.5)))
               rgb = [ground[0] * 0.72, ground[1] * 0.72, ground[2] * 0.72];
             else if (
               off < half &&

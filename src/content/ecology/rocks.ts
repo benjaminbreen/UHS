@@ -1,4 +1,5 @@
 import type { Habitat } from "../../world/v3/habitats";
+import type { Rock } from "../geography/rock";
 
 /** Which stone a loose rock is drawn as. The shared grey masonry trio stays
  * the temperate default; regional colourways lean on their own stone. */
@@ -7,7 +8,10 @@ const regional = (kind: string) =>
   [0, 1, 2].map((i) => `nature-rock-${kind}-${i}`);
 /** Which regional stone a habitat is made of, and how much of its loose rock
  * uses it rather than the shared grey trio. */
-export function stoneKind(h: Habitat): { kind: string; share: number } {
+const fromRock: Partial<Record<Rock, string>> = { sandstone: "dune", redstone: "red", laterite: "red", basalt: "basalt" };
+export function stoneKind(h: Habitat, rock?: Rock): { kind: string; share: number } {
+  const own = rock && fromRock[rock];
+  if (own && h.ecology !== "wetland") return { kind: own, share: 0.85 };
   const c = h.colorway;
   if (h.ecology === "desert")
     return {
@@ -34,19 +38,19 @@ export function stoneKind(h: Habitat): { kind: string; share: number } {
     return { kind: "mossy", share: 0.4 };
   return { kind: "lichen", share: 0.25 };
 }
-export function boulderFrame(h: Habitat | undefined, roll: number, size?: "medium" | "large"): string {
+export function boulderFrame(h: Habitat | undefined, roll: number, size?: "medium" | "large", rock?: Rock): string {
   if (size) {
-    const stone = h && stoneKind(h);
+    const stone = h && stoneKind(h, rock);
     return `nature-rock-${stone && roll < stone.share ? stone.kind : "grey"}-${size}`;
   }
-  const kind = h ? stoneKind(h).kind : "slab";
+  const kind = h ? stoneKind(h, rock).kind : "slab";
   if (kind === "basalt" || kind === "slab") {
     if (roll >= 0.6) return `nature-boulder-${kind}-b`;
     roll /= 0.6;
   }
   return `nature-boulder-${kind}-${Math.floor(roll * 3)}`;
 }
-export function rockFrame(h: Habitat | undefined, roll: number): string {
+export function rockFrame(h: Habitat | undefined, roll: number, rock?: Rock): string {
   const alternate = roll >= 0.6;
   roll = alternate ? (roll - 0.6) / 0.4 : roll / 0.6;
   const pick = (set: string[], share: number) => {
@@ -55,8 +59,9 @@ export function rockFrame(h: Habitat | undefined, roll: number): string {
       ? set[Math.floor(r * set.length)]
       : legacy[Math.floor(((roll - share) / (1 - share)) * 3)];
   };
-  const frame = h ? pick(regional(stoneKind(h).kind), stoneKind(h).share) : legacy[Math.floor(roll * 3)];
+  const frame = h ? pick(regional(stoneKind(h, rock).kind), stoneKind(h, rock).share) : legacy[Math.floor(roll * 3)];
   return alternate
-    ? frame.startsWith("nature-rock-") ? frame.replace(/-\d$/, "-b") : "nature-rock-grey-b"
+    ? frame.startsWith("nature-rock-dune") ? frame
+      : frame.startsWith("nature-rock-") ? frame.replace(/-\d$/, "-b") : "nature-rock-grey-b"
     : frame;
 }

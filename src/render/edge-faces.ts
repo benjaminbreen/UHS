@@ -194,7 +194,7 @@ const rocks: Record<Rock, RockLook> = {
   },
   granite: {
     ramp: [[52, 50, 60], [80, 78, 86], [108, 104, 108], [136, 130, 130], [162, 156, 152], [188, 182, 174], [212, 206, 196]],
-    pillar: 24, course: 13, block: 18, notch: 0.7,
+    pillar: 22, course: 19, block: 26, notch: 0.8,
   },
   limestone: {
     ramp: [[86, 80, 76], [122, 114, 104], [154, 146, 130], [180, 172, 154], [202, 194, 174], [222, 216, 196], [240, 234, 216]],
@@ -247,9 +247,15 @@ export function cliffPixel(
   wy: number,
   turf?: ArrayLike<number>,
   stain?: Stain,
+  /** Offset from a cave's centre and its half-width, when one opens here. */
+  cave?: { dx: number; hw: number },
 ): number[] {
   const look = rock === "earth" ? earth : rocks[rock];
   const ramp = look.ramp;
+  if (cave) {
+    const c = cavePixel(ramp, cave.dx, cave.hw, r, drop);
+    if (c) return c;
+  }
   // Keyed to the world, not to the rim: on a diagonal brink every column has
   // its own rim height, and a pattern hung from it shatters into speckle.
   const salt = 0,
@@ -283,7 +289,16 @@ export function cliffPixel(
       return tip < 0.25 ? shade : base;
     }
     top = lip;
-  } else if (r === 0) return [...ramp[6]];
+  } else {
+    // No turf: each buttress shows its own rounded top from above, lit, with
+    // a shadow under its lip.
+    const x = ((u + 0.5) / w) * 2 - 1;
+    const dome = Math.sqrt(Math.max(0, 1 - x * x));
+    const cap = edge < 1 ? 1 : 1 + Math.round(dome * (1 + hk * (drop > 24 ? 4 : 2)));
+    if (r < cap) return [...ramp[r === 0 && x < 0.2 ? 6 : r === cap - 1 ? 3 : x < 0 ? 5 : 4]];
+    if (r === cap) return [...ramp[2]];
+    top = cap + 1;
+  }
   const rr = r - top,
     height = Math.max(1, drop - top);
   let f: number;
@@ -327,7 +342,7 @@ export function cliffPixel(
     const s = hash(wx >> 1, wy, 67);
     const run = height * (0.25 + hash(wx >> 1, wy, 69) * 0.55);
     if (stain === "lichen") {
-      if (hash(wx >> 1, r >> 1, 71) < 0.04) c = mix(c, STAINS.lichen, 0.6);
+      if (hash(wx >> 1, r >> 1, 71) < 0.018) c = mix(c, STAINS.lichen, 0.5);
     } else if (s < 0.12 && rr < run) c = mix(c, STAINS[stain], 0.35 * (1 - rr / run / 2));
   }
   return c;
@@ -368,4 +383,72 @@ export function tuftPixel(turf: ArrayLike<number>, j: number, h: number, wx: num
   if (j === 0) return dark;
   if (j === 1) return shade;
   return wx % 2 ? base : lit;
+}
+
+/** Where a cave opens along a face, if one does near `wx`: one chance in a
+ * stretch of rock, likelier in limestone and sandstone, which dissolve and
+ * hollow, than in granite or basalt. */
+export function caveAt(rock: Rock | "earth", wx: number, wy: number) {
+  const odds = { limestone: 0.3, sandstone: 0.22, chalk: 0.15, redstone: 0.2, laterite: 0.12, shale: 0.08, granite: 0.1, basalt: 0.1, earth: 0 }[rock];
+  const g = Math.floor(wx / 112);
+  if (hash(g, wy >> 6, 111) >= odds) return undefined;
+  const hw = 6 + Math.floor(hash(g, wy >> 6, 113) * 4);
+  const cx = g * 112 + 24 + Math.floor(hash(g, wy >> 6, 115) * 64);
+  return Math.abs(wx - cx) <= hw + 3 ? { cx, hw, dx: wx - cx } : undefined;
+}
+
+/** A cave mouth: a round-headed opening ringed by its own stones, dark
+ * within, with a lighter floor where people have come and gone. */
+function cavePixel(ramp: readonly Color[], dx: number, hw: number, r: number, drop: number): number[] | undefined {
+  const h = Math.min(drop - 2, Math.max(10, Math.round(drop * 0.72)));
+  const base = drop - h;
+  const ax = Math.abs(dx);
+  const arch = (x: number) => base + hw - Math.sqrt(Math.max(0, hw * hw - x * x));
+  if (ax <= hw && r >= arch(ax)) {
+    const depth = (r - arch(ax)) / Math.max(1, drop - arch(ax));
+    if (r >= drop - 2) return mix(ramp[1], [70, 56, 44], 0.5);
+    // Darkest at the back of the roof, a little light falling on the floor.
+    return depth > 0.75 ? mul(ramp[0], 0.55) : depth < 0.15 && ax > hw - 3 ? mul(ramp[0], 0.8) : mul(ramp[0], 0.38);
+  }
+  // Ring stones round the arch, each a lit block with a dark joint.
+  const ring = ax <= hw + 2 && r >= arch(Math.min(ax, hw)) - 3 && r < (ax <= hw ? arch(ax) : drop);
+  if (ring) {
+    const along = Math.round(Math.atan2(r - (base + hw), dx) * 4);
+    if (hash(along, hw, 117) < 0.25 || (ax > hw && r % 4 === 0)) return [...ramp[1]];
+    return [...ramp[r < base + 2 ? 5 : 4]];
+  }
+  return undefined;
+}
+
+/** Fallen stones heaped along the foot of a face, `j` rows below its foot
+ * (negative overlaps the face). Each stone is a squat lump lit from the upper
+ * left, with "shadow" just under it; `density` thins them under turf and
+ * heaps them as scree where bare. */
+export function talusPixel(rock: Rock, wx: number, wy: number, j: number, density: number): number[] | "shadow" | undefined {
+  const ramp = rocks[rock].ramp;
+  let shadow = false;
+  for (const [stride, salt, lift, odds] of [[11, 151, 1, density], [6, 157, 5, density * 0.4]] as const) {
+    for (const k of [Math.floor(wx / stride) - 1, Math.floor(wx / stride), Math.floor(wx / stride) + 1]) {
+      if (hash(k, wy >> 4, salt) >= odds) continue;
+      const big = hash(k, wy >> 4, salt + 1);
+      const rx = lift > 1 ? 1.6 + big * 1.6 : 3.5 + big * 4,
+        ry = rx * (0.55 + hash(k, wy >> 4, salt + 2) * 0.2);
+      const cx = k * stride + stride / 2 + (hash(k, wy >> 4, salt + 3) - 0.5) * stride * 0.5,
+        cy = lift + hash(k, wy >> 4, salt + 4) * 2 - ry * 0.3;
+      const nx = (wx + 0.5 - cx) / rx,
+        ny = (j + 0.5 - cy) / ry;
+      const d = nx * nx + ny * ny;
+      if (d > 1) {
+        // The shadow falls down and right of the stone.
+        const sx = (wx + 0.5 - cx - 1) / rx,
+          sy = (j + 0.5 - cy - 1.5) / ry;
+        if (sx * sx + sy * sy <= 1 && ny > 0) shadow = true;
+        continue;
+      }
+      if (d > 0.68) return [...ramp[ny > 0.2 ? 0 : nx > 0.3 ? 1 : 2]];
+      const light = -nx * 0.55 - ny * 0.85 + (hash(Math.floor(wx / 2), j, salt) - 0.5) * 0.3;
+      return [...ramp[light > 0.8 ? 6 : light > 0.35 ? 5 : light > -0.1 ? 4 : light > -0.5 ? 3 : 2]];
+    }
+  }
+  return shadow ? "shadow" : undefined;
 }

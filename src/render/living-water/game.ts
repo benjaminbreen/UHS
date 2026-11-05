@@ -14,6 +14,7 @@ import type { LightingId } from "../lighting";
 import { lightingPreset } from "../lighting";
 import { canvasStat } from "../canvas-stat";
 import { inRoom } from "../crops";
+import { beachTint } from "../habitat-raster";
 const LUT = "living-water-colors-3";
 const shaders = new WeakMap<Phaser.Scene, Set<Phaser.GameObjects.Shader>>();
 let sequence = 0;
@@ -157,6 +158,12 @@ export function addLivingWater(
   const bendKey = `${key}-bends`;
   scene.textures.addCanvas(bendKey, bends);
   resources.textures.push(bendKey);
+  let tint: number[] | undefined;
+  for (let y = 0; y < height && !tint; y += 2)
+    for (let x = 0; x < width && !tint; x += 2) {
+      const c = sample(x, y);
+      if (c) tint = beachTint(c);
+    }
   const compiling = performance.now();
   const base = new Phaser.Display.BaseShader(
     "living-water-1",
@@ -170,7 +177,7 @@ export function addLivingWater(
       waterTime: { type: "1f", value: 0 },
       oceanParams: {
         type: "4fv",
-        value: [polish?.offshoreCalm ?? 0.95, 0, 0, 0],
+        value: [polish?.offshoreCalm ?? 0.95, ...(tint ?? [0, 0, 0])],
       },
       polishParams: {
         type: "4fv",

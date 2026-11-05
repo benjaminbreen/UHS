@@ -2815,6 +2815,7 @@ export class Engine {
       sprite: rockFrame(
         this.world.topography?.(at.x, at.y)?.habitat,
         random(this.state.manifest.seed, "rock-art", at.x, at.y),
+        this.world.topography?.(at.x, at.y)?.rock,
       ),
       inventory: {},
       pos: copy(p.pos),

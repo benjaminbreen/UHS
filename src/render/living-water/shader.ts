@@ -37,6 +37,8 @@ void main(){
    float steps=max(1.,bankParams.z-1.);
    float band=floor(clamp(d/(bankParams.x/extent),0.,1.)*steps)/steps;
    vec3 dry=tone(9.,row),wet=tone(10.,row),contact=tone(11.,row);
+   // A sea beach in the colour of the coast's rock; yzw is 0 where there is none.
+   if(kind>.5&&kind<1.5&&oceanParams.y>0.){dry*=oceanParams.yzw;wet*=oceanParams.yzw;contact*=oceanParams.yzw;}
    vec3 bank=band<.35?mix(contact,wet,band/.35):mix(wet,dry,(band-.35)/.65);
    bank=mix(dry,bank,bankParams.y);
    if(d>.94)bank=mix(bank,tone(12.,row),bankParams.w);

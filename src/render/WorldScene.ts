@@ -4510,6 +4510,7 @@ export class WorldScene extends Phaser.Scene {
                   ? rockFrame(
                       w.topography?.(x, y)?.habitat,
                       random(e.state.manifest.seed, "rock-art", x, y),
+                      w.topography?.(x, y)?.rock,
                     )
                   : seasonFrame(
                       treeVariant(

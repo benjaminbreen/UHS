@@ -98,6 +98,7 @@ export function addBoulders(
               sample?.habitat,
               random(seed, k, ix, iy, "stone"),
               size,
+              sample?.rock,
             ),
             inventory: {},
             pos: { x: left, y: top, space: "outside" },
