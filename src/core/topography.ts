@@ -43,6 +43,8 @@ export type TopographyCell = {
   /** How unpaved town ground is kept; absent on open-country dirt. */
   earth?: import("../content/settlements/urban-form/types").EarthFinish;
   habitat?: import("../world/v3/habitats").Habitat;
+  /** What a tall natural face here is cut from. Presentation only. */
+  rock?: import("../content/geography/rock").Rock;
   /** Presentation-only landscape feature painted by the ground raster. */
   landscape?: import("../world/v3/features").Landscape;
   /** Derived entrance/activity wear, 0–1; presentation only, never movement. */

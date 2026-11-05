@@ -22,6 +22,8 @@ export type PuddleSpot = {
   seed: number;
   /** Spring-fed: holds water whatever the season. */
   pond?: boolean;
+  /** A runoff channel: runs only while it rains and leaves no mud. */
+  rill?: boolean;
 };
 
 const earth = (c: TopographyCell | undefined, height: number) =>
@@ -46,6 +48,7 @@ export function puddlesAt(
   top: number,
 ): PuddleSpot[] {
   const c = sample(x, y);
+  if (c?.surface === "sand" && c.waterVisual?.kind === "sea") return rivuletsFrom(sample, x, y, ox, oy, top);
   const bed = (b: TopographyCell | undefined) =>
     b?.landscape?.kind === "arroyo" && !b.landscape.cut && b.landscape.strength >= 0.5 &&
     b.surface !== "water" && !b.bridge && b.height === c?.height;
@@ -74,8 +77,8 @@ export function puddlesAt(
     // in a wet winter runs half water.
     const wx = x + ox,
       wy = y + oy;
-    if (hash(wx, wy, 731) > 0.6) return [];
-    const r = 8 + hash(wx, wy, 733) * 7;
+    if (hash(wx, wy, 731) > 0.15) return [];
+    const r = 5 + hash(wx, wy, 733) * 5;
     const tilt = (hash(wx, wy, 735) - 0.5) * 0.8;
     return [
       {
@@ -86,7 +89,7 @@ export function puddlesAt(
         rx: r,
         ry: r * 0.58,
         traffic: 1,
-        rank: hash(wx, wy, 707) * 0.6,
+        rank: 0.3 + hash(wx, wy, 707) * 0.6,
         seed: hash(wx, wy, 709) * 10,
       },
     ];
@@ -114,7 +117,7 @@ export function puddlesAt(
     y: top + (ty - y) * 16,
   });
 
-  if (road && road.radius > 0.95 && road.ruts !== false && hash(wx, wy, 715) < 0.15 + traffic * 0.15) {
+  if (road && road.radius > 0.95 && road.ruts !== false && hash(wx, wy, 715) < 0.06 + traffic * 0.08) {
     let ax = road.b[0] - road.a[0],
       ay = road.b[1] - road.a[1];
     const len = Math.hypot(ax, ay) || 1;
@@ -158,7 +161,7 @@ export function puddlesAt(
 
   // Pools stand on roads and trodden ground, not across every bare yard.
   if (!road && !scape) return [];
-  if (hash(wx, wy, 701) > 0.015 + traffic * 0.05) return [];
+  if (hash(wx, wy, 701) > 0.008 + traffic * 0.022) return [];
   const px = 3 + Math.floor(hash(wx, wy, 703) * 10),
     py = 4 + Math.floor(hash(wx, wy, 705) * 9);
   // Water stands in the worn treadway, never in the turf beside it.
@@ -180,6 +183,63 @@ export function puddlesAt(
       seed,
     },
   ];
+}
+
+/** Rain running off the land and across a beach to the sea: thin channels
+ * from the foot of a cliff or the top of the sand, wandering, splitting and
+ * rejoining as they go. Drawn as chains of narrow hollows, so they fill and
+ * dry with the weather like any puddle. */
+function rivuletsFrom(
+  sample: TopographySample,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+  top: number,
+): PuddleSpot[] {
+  const c = sample(x, y)!;
+  const wx = x + ox,
+    wy = y + oy;
+  const above = [sample(x, y - 1), sample(x - 1, y), sample(x + 1, y)];
+  // A track often runs between the sand and the rock, so look a little past it.
+  const foot = [sample(x, y - 2), sample(x - 2, y), sample(x + 2, y), ...above].some((n) => n && n.height > c.height);
+  const head = above.some((n) => n && n.surface !== "sand" && n.surface !== "water" && n.height === c.height);
+  if (!(head || foot) || hash(wx, wy, 751) > (foot ? 0.3 : 0.12)) return [];
+  const lift = top - y * 16;
+  const distance = (px: number, py: number) => {
+    const n = sample(Math.floor(px / 16), Math.floor(py / 16));
+    return !n || n.height !== c.height ? undefined : n.surface === "water" ? -1 : n.waterVisual?.distance;
+  };
+  const spots: PuddleSpot[] = [];
+  const walk = (px: number, py: number, angle: number, depth: number, salt: number) => {
+    for (let step = 0; step < 160 && spots.length < 400; step++) {
+      const here = distance(px, py);
+      if (here === undefined || here < 0.1) return;
+      // Downhill is toward the water; the channel meanders about it.
+      const gx = (distance(px + 16, py) ?? here) - (distance(px - 16, py) ?? here),
+        gy = (distance(px, py + 16) ?? here) - (distance(px, py - 16) ?? here);
+      const down = Math.atan2(-gy, -gx);
+      const turn = Math.atan2(Math.sin(down - angle), Math.cos(down - angle));
+      angle += turn * 0.25 + (hash(wx * 97 + step, wy * 89 + salt, 753) - 0.5) * 0.7;
+      const ax = Math.cos(angle),
+        ay = Math.sin(angle);
+      spots.push({
+        x: px, y: py + lift, ax, ay, rx: 2.4, ry: 1.1, traffic: 1,
+        // Branches are shallower than the stem and show only in heavier rain.
+        rank: 0.15 + depth * 0.25,
+        seed: hash(step, salt, 755) * 10,
+        rill: true,
+      });
+      px += ax * 2;
+      py += ay * 2;
+      // Splits come oftener as the sand flattens toward the sea.
+      const fan = here < 1.5 ? 0.07 : 0.025;
+      if (depth < 2 && hash(step, wx * 31 + wy + salt, 757) < fan)
+        walk(px, py, angle + (hash(step, salt, 759) < 0.5 ? -0.6 : 0.6), depth + 1, salt * 7 + step);
+    }
+  };
+  walk(x * 16 + 4 + hash(wx, wy, 761) * 8, y * 16 + 6, Math.PI / 2, 0, 1);
+  return spots;
 }
 
 type Sky = { rgb: readonly [number, number, number]; rain: number };
@@ -252,14 +312,16 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
   b.surface.fill(0);
   b.wet = [];
   if (state) {
-    const water = 1.02 - state.puddles * 0.95,
-      mud = 1 - state.mud * 1.1;
+    // Even a downpour fills a hollow only to its rim; shallow ones stay small.
+    const water = 1.02 - state.puddles * 0.62,
+      mud = 1 - state.mud * 0.7;
     const kind = state.frozen ? 2 : 1;
     // A pond's depth is stored as 2 + its shape; rain only widens it.
     const pond = 0.3 - state.puddles * 0.2;
     for (let i = 0; i < b.depth.length; i++) {
       const d = b.depth[i];
-      if (d >= 2 ? d - 2 > pond : state.puddles > 0.05 && d > water) b.surface[i] = kind;
+      if (d >= 3 ? state.puddles > 0.05 && d - 3 > water : d >= 2 ? d - 2 > pond : state.puddles > 0.05 && d > water)
+        b.surface[i] = kind;
     }
     const put = (i: number, r: number, g: number, bl: number, a: number) => {
       data[i * 4] = r;
@@ -275,6 +337,15 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
         if (d <= 0 || px === 0 || py === 0 || px === b.w - 1 || py === b.h - 1) continue;
         const speck = hash(b.x + px, b.y + py, 713);
         const s = b.surface[i];
+        if (d >= 3) {
+          // Running water reflects the sky paler than a still pool, with a lit
+          // edge, and a thin damp margin; out of the rain they are gone.
+          const above = py > 0 && b.surface[i - b.w];
+          if (s === 1) put(i, Math.min(255, sr * 0.7 + 60), Math.min(255, sg * 0.75 + 72), Math.min(255, sb * 0.8 + 84), above ? 220 : 255);
+          else if (s === 2) put(i, 214, 224, 230, 230);
+          else if (state.puddles > 0.05 && d - 3 > water - 0.25) put(i, 40, 30, 18, 45);
+          continue;
+        }
         if (s) {
           const above = py > 0 && b.surface[i - b.w],
             below = py < b.h - 1 && b.surface[i + b.w];
@@ -284,16 +355,23 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
             continue;
           }
           if (speck > 0.9 && b.wet.length < 400) b.wet.push(i);
+          // Darker and bluer than the sky it mirrors, so it reads as water on
+          // any soil rather than as a grey stone.
+          const wr = sr * 0.78 + 26, wg = sg * 0.8 + 30, wb = sb * 0.8 + 36;
           // The near bank shades the water; the far lip catches the sky.
-          if (!above) put(i, sr * 0.42 + 14, sg * 0.4 + 10, sb * 0.4 + 6, 255);
-          else if (!below) put(i, Math.min(255, sr * 1.3), Math.min(255, sg * 1.28), Math.min(255, sb * 1.22), 255);
+          if (!above) put(i, wr * 0.6, wg * 0.62, wb * 0.68, 235);
+          else if (!below) put(i, Math.min(255, sr * 1.15 + 20), Math.min(255, sg * 1.15 + 22), Math.min(255, sb * 1.12 + 24), 255);
           else {
-            const glint =
-              speck > 0.975 || (px > 0 && hash(b.x + px - 1, b.y + py, 713) > 0.975);
-            const deep = d > water + 0.25 ? 0.88 : 1;
-            if (glint) put(i, Math.min(255, sr * 1.45 + 30), Math.min(255, sg * 1.4 + 30), Math.min(255, sb * 1.3 + 30), 255);
-            else put(i, sr * deep, sg * deep, sb * deep, 255);
+            // Sky caught in short level streaks, not single pixels.
+            const streak = [0, 1, 2].some((k) => px >= k && hash(b.x + px - k, b.y + py, 713) > 0.986) &&
+              !!b.surface[i - 3] && !!b.surface[i + 3];
+            const deep = d > water + 0.3 ? 0.86 : 1;
+            if (streak) put(i, Math.min(255, sr * 1.2 + 26), Math.min(255, sg * 1.2 + 28), Math.min(255, sb * 1.15 + 30), 255);
+            else put(i, wr * deep, wg * deep, wb * deep, 225);
           }
+        } else if (state.puddles > 0.05 && !state.frozen && d < 2 && d > water - 0.1) {
+          // A rim of soaked soil round the water.
+          put(i, 30, 21, 12, 90);
         } else if (d >= 2 || (state.mud > 0.05 && d > mud - (speck - 0.5) * 0.08)) {
           // Darkens whatever soil it lies on, so laterite and loess keep their
           // own colour when wet.
@@ -518,7 +596,8 @@ function shape(s: PuddleSpot, px: number, py: number) {
   if (d > 1.5) return 0;
   if (s.pond) return 2 + 1.15 - d * 0.75;
   const strength = (1 - s.rank * 0.5) * (0.7 + 0.3 * s.traffic);
-  return strength * (1.15 - d * 0.75);
+  // Rills are stored as 3 + their depth so the painter can tell them apart.
+  return (s.rill ? 3 : 0) + strength * (1.15 - d * 0.75);
 }
 
 // Smooth maximum, so two puddles meet as one sheet rather than pinching at the join.

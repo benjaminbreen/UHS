@@ -30,7 +30,8 @@ import {
   type Ecology,
 } from "../content/ecology/profiles";
 import { TERRAIN_RISE } from "./terrain-projection";
-import { copingColor, cragPixel, hasParapet, wallPixel } from "./edge-faces";
+import { cliffPixel, copingColor, hasParapet, tuftHeight, tuftPixel, wallPixel, type Stain } from "./edge-faces";
+import { rockAt } from "../content/geography/rock";
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
 import style from "./generated/topography-style.json" with { type: "json" };
 const B = 6;
@@ -518,17 +519,22 @@ function rasterWallContours(
           16;
       const x0 = Math.floor(u),
         y0 = Math.floor(v);
-      const fx = ease(u - x0),
-        fy = ease(v - y0);
       const a = tierAt(x0, y0),
         b = tierAt(x0 + 1, y0),
         c = tierAt(x0, y0 + 1),
         d = tierAt(x0 + 1, y0 + 1);
+      const fx = ease(u - x0),
+        fy = ease(v - y0);
       const h =
         (a + (b - a) * fx) * (1 - fy) +
         (c + (d - c) * fx) * fy +
         (contourNoise(px + ox, py + oy, contour.scale) - 0.5) * contour.wobble;
-      levels[i * FW + j] = Math.max(0, Math.min(maxTier, Math.round(h)));
+      // The nearest corner's tier, not the nearest tier: a drop of several
+      // tiers is one cliff on one curved line, where rounding would fan its
+      // steps out into a stack of ledges a few pixels apart.
+      let near = a;
+      for (const t of [b, c, d]) if (Math.abs(t - h) < Math.abs(near - h)) near = t;
+      levels[i * FW + j] = Math.max(0, Math.min(maxTier, near));
     }
 
   // Wobble on its own throws off single-pixel islands that read as artefacts.
@@ -850,6 +856,33 @@ function rasterWallContours(
   );
 
   const drop_ = (hi: number, lo: number) => (hi - lo) * R;
+  const stains: Record<Ecology, Stain | undefined> = {
+    grassland: undefined,
+    savanna: "varnish",
+    "temperate-woodland": "moss",
+    "boreal-woodland": "lichen",
+    "tropical-woodland": "moss",
+    wetland: "moss",
+    "dry-scrub": "varnish",
+    desert: "varnish",
+    tundra: "lichen",
+  };
+  // Grass tufts along a brink and at its foot: how many, how tall.
+  const tufts: Record<Ecology, readonly [number, number]> = {
+    grassland: [0.6, 9],
+    savanna: [0.55, 10],
+    "temperate-woodland": [0.5, 8],
+    "boreal-woodland": [0.4, 6],
+    "tropical-woodland": [0.65, 9],
+    wetland: [0.65, 9],
+    "dry-scrub": [0.4, 7],
+    desert: [0.08, 5],
+    tundra: [0.25, 4],
+  };
+  const tuftsFor = (cell: TopographyCell | undefined) =>
+    cell && !cell.edge && cell.feature !== "paving" && cell.surface !== "sand" && cell.surface !== "snow" && cell.surface !== "water"
+      ? tufts[cell.habitat?.ecology ?? "grassland"]
+      : undefined;
   const ecoBanks = new Map<string | undefined, BankStyle>();
   /** One face pixel below a rim: a settlement's wall, bare rock on a tall
    * natural drop, or the earth bank. */
@@ -871,8 +904,14 @@ function rasterWallContours(
     let style = ecoBanks.get(eco);
     if (!style) ecoBanks.set(eco, (style = bankFor(bank, eco)));
     if (belowRim !== undefined) r = belowRim;
-    if (drop >= R * 2 && upper?.surface !== "sand" && upper?.surface !== "snow")
-      return cragPixel(trim.earth[4], r, drop, wx, wy);
+    if (upper?.surface !== "sand" && upper?.surface !== "snow") {
+      const rock =
+        eco === "wetland"
+          ? "earth"
+          : (upper?.rock ?? rockAt(undefined, undefined, eco ?? "grassland", upper?.habitat?.colorway));
+      const bare = !upper || upper.surface === "gravel" || eco === "desert";
+      return cliffPixel(rock, r, drop, wx, wy, bare ? undefined : ground || trim.lip, stains[eco ?? "grassland"]);
+    }
     const pixel = styledBankPixel(style, r, drop, wx, wy);
     return pixel.kind === "earth"
       ? trim.earth[pixel.tone]
@@ -1075,6 +1114,11 @@ function rasterWallContours(
           stone ? [122, 120, 110] : tone ? scale(tone, 0.78) : trim.sides,
         );
       const below = rampInto(cx, row + 1, "n") ? L : lvl(px, py + 1);
+      const tuft = below < L && rim ? tuftsFor(material) : undefined;
+      if (tuft) {
+        const h = tuftHeight(px + ox, py + oy, tuft[0], tuft[1]);
+        for (let j = 0; j < h; j++) paintRgb(row, L, px, sy - j, tuftPixel(trim.lip, j, h, px + ox));
+      }
       // Rim feet for the sun-cast shadow drawn on the main thread: screen
       // point on the lower ground, wall height, lower tier, which way it faces.
       if (
@@ -1124,7 +1168,10 @@ function rasterWallContours(
           const pours =
             material?.surface === "water" &&
             sample(Math.floor((px + side) / 16), row)?.surface === "water";
-          const width = pours ? sideFace + 3 : away ? Math.max(1, sideFace - 1) : sideFace;
+          // Bare rock shows more of its side than a bank or a wall does: at a
+          // sliver's width a cliff facing east or west read as a crack.
+          const rocky = !material?.edge && material?.feature !== "paving" && material?.surface !== "sand";
+          const width = pours ? sideFace + 3 : away ? Math.max(1, sideFace - 1) : sideFace + (rocky ? 3 : 0);
           for (let k = 1; k <= width; k++) {
             const r = Math.round(((k - 1) / sideFace) * (R - 1));
             const shade = tone * (away ? 0.82 : 1);
@@ -1184,6 +1231,10 @@ function rasterWallContours(
           sy + 1 + r,
           facePixel(material, trim, r, drop, px + ox, py + oy, rgba),
         );
+      if (tuft) {
+        const h = tuftHeight(px + ox, py + oy + 1, tuft[0] * 1.2, tuft[1] + 1);
+        for (let j = 0; j < h; j++) paintRgb(row, L, px, sy + drop - j, tuftPixel(trim.lip, j, h, px + ox));
+      }
       if (material?.edge && hasParapet(material.edge) && drop >= R) {
         const cap = copingColor(material.edge, trim.earth[4]);
         paintRgb(row, L, px, sy - 3, cap);

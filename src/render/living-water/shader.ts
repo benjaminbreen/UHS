@@ -51,6 +51,19 @@ void main(){
      else if(edge>.1)bank=mix(dry,wet,.55+edge*.5);
      if(noise(floor(p/2.)/2.)>.78&&d>.24&&d<.72)bank=mix(bank,wet,.18);
    }
+   if(kind>.5&&kind<1.5){
+     // Each wave runs up the sand as a thin sheet with a lace edge, and the
+     // last one's high-water mark stays as a faint line where it drained.
+     float t=waterTime*.5;
+     float run=max(0.,sin(t*.8+noise(p/41.)*5.))*.14+.01;
+     float lace=noise(p/vec2(5.,3.));
+     if(d<run){
+       bank=mix(bank,tone(1.,row),.45*(1.-d/run));
+       if(d>run-.025&&lace>.3)bank=mix(bank,vec3(.95,1.,.95),.8);
+     }
+     float back=.16+noise(p/60.)*.04;
+     if(abs(d-back)<.008&&lace>.45)bank=mix(bank,vec3(.92,.94,.86),.35);
+   }
    vec4 bankArt=texture2D(iChannel2,(local+.5)/resolution);
    bank=mix(bank,bankArt.rgb,bankArt.a);
    gl_FragColor=vec4(bank,1.);return;
@@ -80,7 +93,7 @@ void main(){
  depthTone+=polishParams.z*.95;
  float z=depthTone*.82+(a+b)*(ocean?.08:.18)+wave*(ocean?.2:.35)+(detail-.5)*(ocean?.18:.4);
  float net=abs(sin((q.x+warp+(cluster-.5)*12.)/7.)+sin(q.y/7.+sin(q.x/16.)+(detail-.5)*2.));
- float causticRange=ocean?1.-smoothstep(8.,12.,depth):1.-step(6.,depth);
+ float causticRange=ocean?1.-smoothstep(1.,3.,depth):1.-step(6.,depth);
  float caustic=(net<.1?.5:net<.2?.2:0.)*waveParams.w*min(1.,depth*2.)*causticRange;
  float gradSteps=ocean?8.:2.;
  float k=clamp(floor(z+1.),0.,8.),f=floor(fract(max(0.,z+1.))*gradSteps)/gradSteps;
@@ -95,13 +108,34 @@ void main(){
    if((abs(fp.x)<3.&&abs(fp.y)<1.)||(fp.x<-2.&&fp.x>-5.&&abs(fp.y-sin(t*5.))<2.))
      color=mix(color,vec3(.1,.3,.35),.45*exp(-depth*.18));
  }
- if(ocean&&wave>1.-(.065+waveParams.y*.14)&&detail>waveParams.z*.4&&solid<.5&&depth>.3&&depth<13.){
-   float crest=(.55+waveParams.x*.6)*(1.-smoothstep(7.,13.,depth));
-   color=mix(color,mix(tone(0.,row),vec3(1.),.6),crest);
+ if(ocean&&solid<.5){
+   vec3 foam=vec3(.95,1.,.96);
+   // Breakers roll in across the shelf, thickening and breaking up as they
+   // near the beach; past the surf only the odd whitecap shows.
+   float swell=noise(p/vec2(23.,17.)+vec2(t*.05,0.));
+   float phase=depth*5.5+t*1.5+swell*2.4-delay/17.;
+   float crest=sin(phase);
+   float zone=1.-smoothstep(2.,5.,depth);
+   float lace=noise((p+displacement)/vec2(6.,4.))*.65+noise(p/3.)*.35;
+   if(zone>0.&&depth>.25){
+     float width=.06+.22*zone;
+     if(crest>1.-width&&lace>.6-.32*zone)color=mix(color,foam,.55+.35*zone);
+     // The spent wave behind a crest: lacework on its shoreward side.
+     else if(crest<.2&&crest>-.6&&cos(phase)<0.&&net<.35&&lace>.45)color=mix(color,foam,.5*zone);
+   }
+   // Out on the open water, short ripple lines lying along the swell.
+   float rip=mod(p.y+sin(p.x/9.+t*.4)*2.+noise(p/40.)*6.,7.);
+   if(depth>1.5&&rip<1.&&noise((p+vec2(t*2.,0.))/vec2(14.,5.))>.64)color=mix(color,tone(0.,row),.28);
+   if(depth>3.5&&depth<13.){
+     vec2 cap=floor(p/vec2(37.,23.)),at=mod(p,vec2(37.,23.));
+     float s=hash(cap),life=sin(t*.9+s*30.);
+     if(s>.72&&life>.55&&at.y<1.&&at.x>10.&&at.x<14.+s*6.)color=mix(color,foam,.75*(life-.55)/.45);
+     else if(s>.72&&life>.75&&at.y>=1.&&at.y<2.&&at.x>12.&&at.x<13.+s*4.)color=mix(color,tone(0.,row),.4);
+   }
  }
  float wash=fract(t*(kind>2.5&&kind<3.5?.15:.35)+sin((p.x+p.y)/27.)*.12);
- float target=(1.-wash)*(kind>.5&&kind<1.5?.6:.28);
- if(solid<.5&&abs(depth-target)<.06&&noise(p/vec2(11.,9.))>.32)color=mix(color,vec3(.91,.98,.87),sin(wash*3.14159)*.4);
+ float target=(1.-wash)*.28;
+ if(!ocean&&solid<.5&&abs(depth-target)<.06&&noise(p/vec2(11.,9.))>.32)color=mix(color,vec3(.91,.98,.87),sin(wash*3.14159)*.4);
  if(polishParams.z>.5&&solid<.5){
    float lap=sin(t*1.7+noise(p/19.)*5.);
    float rim=.08+(lap+1.)*.065;

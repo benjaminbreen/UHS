@@ -709,6 +709,17 @@ export function createEnvironment(
         : water < terrace
           ? Math.max(valleyFloor, Math.min(valleyFloor + 1, baseTier))
           : baseTier;
+    // A sea cliff: the land stands straight up behind a narrow beach, two to
+    // four steps high, and comes down again inland a step at a time. Low,
+    // marshy and mangrove shores keep their beaches.
+    if (kind === "sea" && water >= 0 && habitat.ecology !== "wetland") {
+      const bluff = noise(seed, fx, fy, 64, "sea-cliffs") * 0.8 + Math.min(relief, 0.6) * 0.5;
+      if (bluff > 0.55) {
+        const tall = 2 + Math.min(2, Math.floor((bluff - 0.55) * 9));
+        const foot = Math.min(floodplain, shoreWidth + 1.5);
+        level = water < foot ? 0 : Math.max(level, tall - Math.floor((water - foot) / 16));
+      }
+    }
     // A creek keeps its own tier and steps down at its falls; near a river
     // it can be no higher than the valley floor it joins.
     if (creekMargin && creekTier !== undefined) {

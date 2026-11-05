@@ -48,6 +48,7 @@ import type { GeographicArea } from "../../core/geography";
 import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { floraRegion, speciesAt } from "../../content/ecology/flora";
+import { rockAt } from "../../content/geography/rock";
 import { populateHouseholds, addWildResources } from "./population";
 import { addBoulders } from "./boulders";
 import { forgetFaunaBlock, spawnFauna } from "./fauna";
@@ -1806,6 +1807,8 @@ export function createSettlementWorld(
     const cell = reliefCell(height, f.water, f.moisture);
     if (environment) {
       cell.habitat = habitat(x, y);
+      const env = settingAt(x, y).environment!;
+      cell.rock = rockAt(pack.anchor?.lon, pack.anchor?.lat, env.ecology, env.colorway);
       if ((pack.setting?.vegetationRevision ?? 0) >= 2)
         cell.habitat = { ...cell.habitat, layeredForest: true };
       {
