@@ -1,5 +1,7 @@
 import swatchData from "./generated/turf-swatches.json" with { type: "json" };
 import { DEFAULT_TERRAIN_RISE, setTerrainRise } from "./terrain-projection";
+import type { GroundKit } from "./ground-kit";
+import { groundKits } from "../content/graphics/ground-kits";
 
 /** Experimental restyling of ground and banks, shared by the main thread and
  * the terrain worker. Off by default: with no style set every raster keeps its
@@ -107,6 +109,9 @@ export type GroundStyle = {
   tiers: Partial<LayerStyle>[];
   bank: BankStyle;
   composition?: CompositionStyle;
+  /** Turf and paths painted from the kit each place picks (see `pickKit`);
+   * without them grass falls back to the habitat palettes. */
+  kits?: GroundKit[];
 };
 
 /** Altitude steps the style panel exposes a row for. */
@@ -170,6 +175,7 @@ export function defaultGroundStyle(): GroundStyle {
       pathEdgeBreakup: 1,
       pathFringe: 1,
     },
+    kits: groundKits,
     bank: {
       lip: 2,
       strata: 0.4,

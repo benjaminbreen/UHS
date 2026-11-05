@@ -20,6 +20,7 @@ import { blacktopPixel } from "./carriageway";
 import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
 import { dustOf, pavingGrade, pavingStonePixel, stoneUnit } from "./paving-stones";
 import { mottle, shade } from "./palette";
+import { kitGroundPixel, kitPalette, kitSoil, pickKit } from "./ground-kit";
 import { rasterFieldTile, tilled } from "./field-raster";
 import { bold, width as fenceWidth } from "./fences";
 import { paintFences } from "./fence-pass";
@@ -320,6 +321,9 @@ export function rasterHabitatTile(
   return tile;
 }
 
+/** How far past its tile a kit path looks for the grass bank above it. */
+const BANK_REACH = 5;
+
 function bareHabitatTile(
   sample: TopographySample,
   x: number,
@@ -471,7 +475,15 @@ function rasterGroundTile(
   if (cell.field && !(cell.field.yard && cell.field.crop === "pasture"))
     return rasterFieldTile(sample, x, y, ox, oy, art, cell);
   const h = cell.habitat!;
-  const { palette, soilPalette } = habitatRamps(h, art);
+  const kits = groundStyle()?.kits;
+  const kit = pickKit(kits, h.ecology, h.colorway, h.vegetation);
+  // Tundra sedge and lichen take a kit over its stony ground too.
+  const kitTundra = (h.ecology === "tundra" || h.vegetation === "alpine");
+  let { palette, soilPalette } = habitatRamps(h, art);
+  if (kit) {
+    palette = kitPalette(kit);
+    soilPalette = kitSoil(kit);
+  }
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
@@ -756,6 +768,8 @@ function rasterGroundTile(
   // Worn ground from the path pass, apron included, which the turf rims.
   const tread = new Uint8Array(18 * 18);
   const at = (px: number, py: number) => (py + 1) * 18 + px + 1;
+  const treadWide = new Uint8Array((16 + BANK_REACH * 2) ** 2);
+  const wideAt = (px: number, py: number) => (py + BANK_REACH) * (16 + BANK_REACH * 2) + px + BANK_REACH;
   for (let py = -1; py <= 16; py++)
     for (let px = -1; px <= 16; px++) {
       const b = smoothBand(px, py);
@@ -763,6 +777,34 @@ function rasterGroundTile(
       // Exposed ground, litter and tilled plots are all bare earth here.
       if (grassy && b >= 3) earth[at(px, py)] = 1;
     }
+  // Plants root only on open turf at this tile's height, never on a path,
+  // and thin out where people walk: round doors, hearths and work spots.
+  const wild = (rx: number, ry: number) => {
+    const c = sample(Math.floor(rx / 16) - ox, Math.floor(ry / 16) - oy);
+    if (!c || !["grass", "damp", "dry"].includes(c.surface) || c.height !== cell.height || c.pathArt?.length ||
+      c.feature || c.field || c.pavement || c.ramp || c.bridge) return 0;
+    return Math.max(0, 1 - Math.max(c.tended ?? 0, c.groundWear ?? 0) * (kit?.wear ?? 1));
+  };
+  // The trodden field between cell centres, for the commons edge.
+  const tendedGrid = kit
+    ? Array.from({ length: 9 }, (_, i) => {
+        const c = sample(x - 1 + (i % 3), y - 1 + Math.floor(i / 3));
+        if (!c) return 0;
+        // Wear stays off planted ground and on its own terrace, as in the shipped raster.
+        const wear = c.height === cell.height && !["garden", "park", "verge"].includes(c.pavement ?? "") ? c.groundWear ?? 0 : 0;
+        return Math.max(c.tended ?? 0, wear, c.pavement === "yard" ? 0.8 : 0);
+      })
+    : [];
+  const trod = (wx: number, wy: number) => {
+    const u = Math.min(1.999, Math.max(0, wx / 16 - ox - x + 0.5)),
+      v = Math.min(1.999, Math.max(0, wy / 16 - oy - y + 0.5));
+    const i = Math.floor(u),
+      j = Math.floor(v),
+      fx = u - i,
+      fy = v - j;
+    const at = (a: number, b: number) => tendedGrid[b * 3 + a];
+    return (at(i, j) * (1 - fx) + at(i + 1, j) * fx) * (1 - fy) + (at(i, j + 1) * (1 - fx) + at(i + 1, j + 1) * fx) * fy;
+  };
   const put = (px: number, py: number, rgb: number[], dv = 0) => {
     if (px < 0 || py < 0 || px >= 16 || py >= 16) return;
     const i = (py * 16 + px) * 4,
@@ -854,6 +896,13 @@ function rasterGroundTile(
             : band === 2
               ? [218, 229, 248]
               : [236, 242, 252];
+      if (kit && !frozen && (grassy ? band <= 2 : kitTundra && band <= 3)) {
+        // Kits meet along a ragged line, not on tile squares.
+        const near = kits!.length > 1 && sample(Math.floor((wx + (noise(wx, wy, 9, 1411) - 0.5) * 16) / 16) - ox, Math.floor((wy + (noise(wx, wy, 9, 1413) - 0.5) * 16) / 16) - oy)?.habitat;
+        const k = (near && pickKit(kits, near.ecology, near.colorway, near.vegetation)) || kit;
+        put(px, py, kitGroundPixel(k, h.season, wx, wy, wild, trod));
+        continue;
+      }
       const style = groundStyle();
       if (style)
         rgb = styleGroundPixel(
@@ -1230,9 +1279,14 @@ function rasterGroundTile(
   // A planted cell still reads its neighbours' worn ground into the apron.
   if (!frozen && paintedGround(cell) && (hasPath || hasWear || nearShore)) {
     const soil = soilPalette;
-    // The apron rows exist only to mark trodden ground for the edge pass.
-    for (let py = -1; py <= 16; py++)
-      for (let px = -1; px <= 16; px++) {
+    // The apron rows exist only to mark trodden ground for the edge pass;
+    // a kit's bank shading looks further out, into the wider ring.
+    const reach = kit ? BANK_REACH : 1;
+    for (let py = -reach; py < 16 + reach; py++)
+      for (let px = -reach; px < 16 + reach; px++) {
+        const ring = px < -1 || py < -1 || px > 16 || py > 16;
+        // Only the strips the bank test reads: five rows north and west, three south and east.
+        if (ring && ((px < -1 || px > 16) === (py < -1 || py > 16) || px > 19 || py > 19)) continue;
         const inside = px >= 0 && py >= 0 && px < 16 && py < 16;
         if (planted && inside) continue;
         const xx = x + (px + 0.5) / 16,
@@ -1272,10 +1326,12 @@ function rasterGroundTile(
         // darker than their neighbours.
         const worn = path + interlock + (noise(wx, wy, 96, 467) - 0.5) * 0.08;
         const shoulder = 0.68 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
+        if (field && worn > (grassy ? (0.48 + shoulder) / 2 : 0.48)) treadWide[wideAt(px, py)] = 1;
+        if (ring) continue;
         // Dust and thinned turf beside the road: warm soil stippled into the
         // grass, thickest at the edge and gone within a few pixels. Patchy
         // along the road so it never reads as a second outline.
-        if (field && grassy && inside && worn > 0.2 && worn <= 0.48) {
+        if (field && grassy && !kit && inside && worn > 0.2 && worn <= 0.48) {
           const w = (worn - 0.2) / 0.28,
             patch = 0.45 + noise(wx, wy, 17, 479) * 0.9;
           if (hash(wx, wy, 481) < w * w * 0.7 * patch) {
@@ -1341,7 +1397,7 @@ function rasterGroundTile(
           // Cart ruts either side of the crown on wagon-width roads: a dark
           // groove with a lit lip on its outer side, broken so the pair never
           // reads as two ruled lines.
-          if (worked && field.radius > 0.95 && field.ruts !== false) {
+          if (worked && !kit && field.radius > 0.95 && field.ruts !== false) {
             const rut = field.cross - 0.34 - (noise(wx, wy, 19, 445) - 0.5) * 0.06;
             // A faint dip on the tread colour: the shoulder tone read as ruled lines.
             if (hash(Math.floor(wx / 8), Math.floor(wy / 8), 443) > 0.45) {
@@ -1471,7 +1527,7 @@ function rasterGroundTile(
         for (const [px, py] of [[q, -1], [q, 16], [-1, q], [16, q]])
           if (sample(x + Math.floor(px / 16), y + Math.floor(py / 16))?.feature === "paving") cut[at(px, py)] = 1;
     const bare = (q: number) => earth[q] || tread[q] || cut[q];
-    const dark = palette[5];
+    const dark = kit ? kitPalette(kit)[2] : palette[5];
     const dirs = [
       [0, -1],
       [1, 0],
@@ -1512,9 +1568,38 @@ function rasterGroundTile(
         };
         // Worn ground meets buildings and seams too, where teeth would float.
         const d = earth[at(px, py)] ? tooth(px, py) : undefined;
+        // A kit's path sits a little below the turf: grass leans over its
+        // south and east edges in lit blades.
+        if (d && kit && (d[1] === -1 || d[0] === -1)) {
+          put(px, py, kitPalette(kit)[6]);
+          continue;
+        }
         if (d) {
           put(px, py, dark);
           continue;
+        }
+        // ...and its north and west banks fall into shadow, a band of darker
+        // soil 3-5 px deep in blocky steps rather than a ruled line.
+        const turfAt = (dx: number, dy: number) => {
+          const qx = px + dx,
+            qy = py + dy;
+          if (qx < -1 || qy < -1 || qx > 16 || qy > 16) return !treadWide[wideAt(qx, qy)];
+          return !bare(at(qx, qy)) && apron[at(qx, qy)] <= 2;
+        };
+        if (kit && tread[at(px, py)]) {
+          const deep = 3 + Math.floor(hash(Math.floor(wx / 3), Math.floor(wy / 16), 1471) * 3);
+          const side = 1 + Math.floor(hash(Math.floor(wx / 8), Math.floor(wy / 3), 1473) * 2);
+          if ([1, 2, 3, 4].some((k) => k <= deep && turfAt(0, -k)) || [1, 2].some((k) => k <= side && turfAt(-k, 0))) {
+            const i = (py * 16 + px) * 4;
+            const lip = turfAt(0, -1) || turfAt(-1, 0) ? 0.76 : 0.86;
+            for (let k = 0; k < 3; k++) pixels[i + k] = Math.round((pixels[i + k] * 0.15 + soilPalette[0][k] * 0.85) * lip);
+            continue;
+          }
+          // The far banks are out of sight, so the tread runs up to the grass.
+          if ([1, 2, 3].some((k) => turfAt(0, k) || turfAt(k, 0))) {
+            const i = (py * 16 + px) * 4;
+            for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.3 + soilPalette[2][k] * 0.7);
+          }
         }
         if (tread[at(px, py)] && [1, 2].some((k) => !bare(at(px, py - k)) && apron[at(px, py - k)] <= 2)) {
           const i = (py * 16 + px) * 4;
@@ -1666,12 +1751,14 @@ function rasterGroundTile(
       // Blade body is fresher turf than the surrounding sward; the lit tip
       // stays short of the full highlight or the tufts read as straw.
       // Same tones as the sward clumps, so the verge belongs to the field.
-      const tones = [
-        palette[5],
-        palette[5],
-        palette[0].map((v, k) => Math.round(v * 0.4 + palette[1][k] * 0.6)),
-        palette[1].map((v, k) => Math.round(v * 0.4 + palette[6][k] * 0.6)),
-      ];
+      const tones = kit
+        ? [palette[2], palette[2], palette[2].map((v, k) => Math.round((v + palette[6][k]) / 2)), palette[6]]
+        : [
+            palette[5],
+            palette[5],
+            palette[0].map((v, k) => Math.round(v * 0.4 + palette[1][k] * 0.6)),
+            palette[1].map((v, k) => Math.round(v * 0.4 + palette[6][k] * 0.6)),
+          ];
       for (let yy = 0; yy < glyph.length; yy++)
         for (let xx = 0; xx < glyph[yy].length; xx++) {
           const ink = Number(glyph[yy][xx]);

@@ -186,6 +186,7 @@ const reviews: Record<string, Review> = {
       ["village-rolling", "ecology=dry-scrub&season=summer&landform=rolling&population=sparse&pattern=clustered&year=1200"],
       ["tundra-winter", "ecology=tundra&season=winter&landform=ridge&population=sparse&pattern=clustered&year=1021"],
       ["open-ridge", "ecology=grassland&season=autumn&landform=ridge&population=none"],
+      ["tropical-steep", "ecology=tropical-woodland&colorway=monsoon&season=summer&landform=ridge&population=sparse&pattern=clustered&year=1400"],
     ],
   },
   arroyos: {
@@ -275,6 +276,28 @@ const pavingReport = (page: Page) =>
     return { paved, example, materials: [...materials] };
   });
 
+/** Centre the lab camera on the nearest ramp, road cuts first. */
+const centreOnRamp = (page: Page) =>
+  page.evaluate(() => {
+    const lab = (window as any).terrainLab, world = lab.runtime.engine.world;
+    const spawn = lab.scene.options.center ?? world.spawn;
+    let best = spawn, distance = Infinity;
+    for (let y = spawn.y - 60; y <= spawn.y + 60; y++)
+      for (let x = spawn.x - 60; x <= spawn.x + 60; x++) {
+        const c = world.topography(x, y);
+        if (!c.ramp) continue;
+        // Road cuts first: they carry the path that has to meet them. Then
+        // ones climbing east or west, whose flanks are the hard case.
+        const d = (x - spawn.x) ** 2 + (y - spawn.y) ** 2 + (c.rampStyle === "cut" ? 0 : 1e5) +
+          (c.ramp === "e" || c.ramp === "w" ? 0 : 5e4);
+        if (d < distance) { best = { x, y }; distance = d; }
+      }
+    lab.scene.options.center = best;
+    lab.scene.draw();
+    lab.scene.cameras.main.centerOn(best.x * 16 + 8, best.y * 16 + 8);
+    return { ...best, ramp: distance < Infinity, style: world.topography(best.x, best.y).rampStyle };
+  });
+
 async function run(review: Review) {
   const cards: string[] = [];
   await withPage({ width: 1536, height: 1024 }, async (page) => {
@@ -321,23 +344,7 @@ async function run(review: Review) {
         await centreOnPaths(page);
       if (review.centre === "arroyo") await centreOnArroyo(page);
       if (review.centre === "ramp") {
-        const at = await page.evaluate(() => {
-          const lab = (window as any).terrainLab, world = lab.runtime.engine.world;
-          const spawn = lab.scene.options.center ?? world.spawn;
-          let best = spawn, distance = Infinity;
-          for (let y = spawn.y - 60; y <= spawn.y + 60; y++)
-            for (let x = spawn.x - 60; x <= spawn.x + 60; x++) {
-              const c = world.topography(x, y);
-              if (!c.ramp) continue;
-              // Road cuts first: they carry the path that has to meet them.
-              const d = (x - spawn.x) ** 2 + (y - spawn.y) ** 2 + (c.rampStyle === "cut" ? 0 : 1e5);
-              if (d < distance) { best = { x, y }; distance = d; }
-            }
-          lab.scene.options.center = best;
-          lab.scene.draw();
-          lab.scene.cameras.main.centerOn(best.x * 16 + 8, best.y * 16 + 8);
-          return { ...best, ramp: distance < Infinity, style: world.topography(best.x, best.y).rampStyle };
-        });
+        const at = await centreOnRamp(page);
         console.log("  ramp camera", at);
         await settled(page);
       }
@@ -454,6 +461,58 @@ async function pavingReview() {
   console.log("wrote artifacts/paving-review/materials.png and edges.png");
 }
 
+/** The terrain kits lab across the biomes: each study is a small real
+ * village, shot as the shipped renderer draws it and with kits chosen by
+ * biome, at 1x and 2x. UHS_KITS_ONLY picks studies by id. */
+const kitStudies: [id: string, title: string, query: string][] = [
+  ["temperate", "Normandy oak woodland, summer", "place=area-normandy&ecology=temperate-woodland&landform=rolling&relief=0.55&season=summer&year=1400"],
+  ["temperate-winter", "Normandy oak woodland, winter", "place=area-normandy&ecology=temperate-woodland&landform=rolling&relief=0.55&season=winter&year=1400"],
+  ["sward", "Iceland montane sheepwalk, summer", "place=area-iceland&ecology=grassland&colorway=montane&landform=rolling&relief=0.6&season=summer&year=1100"],
+  ["prairie", "Kansas tallgrass, summer", "place=city-kansas-city&ecology=grassland&colorway=prairie&landform=plain&relief=0.3&season=summer&year=1700"],
+  ["prairie-autumn", "Kansas tallgrass, autumn", "place=city-kansas-city&ecology=grassland&colorway=prairie&landform=plain&relief=0.3&season=autumn&year=1700"],
+  ["steppe", "Konya feather-grass steppe, summer", "place=city-konya&ecology=grassland&colorway=steppe&vegetation=steppe&landform=plain&relief=0.35&season=summer&year=1200"],
+  ["wetland", "Nile delta marsh, spring", "place=area-nile-delta&ecology=wetland&colorway=marsh&landform=plain&relief=0.2&season=spring&year=1300"],
+  ["boreal", "Helsinki larch clearing, summer", "place=city-helsinki&ecology=boreal-woodland&colorway=larch&landform=rolling&relief=0.5&season=summer&year=1500"],
+  ["tundra", "Polar tundra, summer", "ecology=tundra&colorway=polar&landform=rolling&relief=0.45&season=summer&year=1500"],
+  ["mediterranean", "Athens maquis, spring", "place=area-athens-basin&ecology=dry-scrub&colorway=maquis&landform=rolling&relief=0.6&season=spring&year=-400"],
+  ["mediterranean-summer", "Athens maquis, high summer", "place=area-athens-basin&ecology=dry-scrub&colorway=maquis&landform=rolling&relief=0.6&season=summer&year=-400"],
+  ["savanna", "Nairobi acacia savanna, wet season", "place=city-nairobi&ecology=savanna&colorway=acacia&landform=rolling&relief=0.4&season=summer&year=1700"],
+  ["savanna-dry", "Nairobi acacia savanna, dry season", "place=city-nairobi&ecology=savanna&colorway=acacia&landform=rolling&relief=0.4&season=winter&year=1700"],
+  ["sahel", "Timbuktu Sahel, summer", "place=area-timbuktu-basin&ecology=dry-scrub&colorway=sahel&landform=plain&relief=0.25&season=summer&year=1400"],
+  ["tropical", "Haiti monsoon woodland, summer", "place=city-port-au-prince&ecology=tropical-woodland&colorway=monsoon&landform=rolling&relief=0.55&season=summer&year=1800"],
+];
+
+async function kitsReview() {
+  const dir = `artifacts/terrain-kits/${process.env.UHS_REVIEW_PHASE ?? "gamut"}`;
+  const only = process.env.UHS_KITS_ONLY?.split(",");
+  const cards: string[] = [];
+  await withPage({ width: 1536, height: 1024 }, async (page) => {
+    for (const [id, title, query] of kitStudies.filter(([id]) => !only || only.includes(id))) {
+      const url = `${base}/terrain-kits?seed=kits-${id}&population=sparse&pattern=clustered&start=resident&water=none&${query}`;
+      await page.goto(url);
+      await page.waitForFunction(
+        () => document.querySelector("canvas")?.getAttribute("data-terrain-ready") === "true",
+        {},
+        { timeout: 120000 },
+      );
+      await page.getByRole("button", { name: "Pause water" }).click();
+      await page.addStyleTag({ content: ".tk-panel{display:none!important}" });
+      for (const mode of ["shipped", "auto"]) {
+        await page.evaluate((mode) => (window as any).terrainKits.select(mode), mode);
+        await page.waitForTimeout(600);
+        await settled(page);
+        await zoom(page, 1);
+        await page.locator("canvas").first().screenshot({ path: `${dir}/${id}-${mode}.png` });
+        await zoom(page, 2);
+        await page.locator("canvas").first().screenshot({ path: `${dir}/${id}-${mode}-detail.png` });
+        cards.push(card(`${id}-${mode}`, url, `${title} · <a href="${id}-${mode}-detail.png">2× detail</a> · `));
+      }
+      console.log(` ${id}`);
+    }
+  });
+  await contactSheet(dir, "Terrain kits across the biomes", cards);
+}
+
 const asked = process.argv.slice(2);
 const names = asked.length ? asked : Object.keys(reviews);
 for (const name of names) {
@@ -461,10 +520,14 @@ for (const name of names) {
     await pavingReview();
     continue;
   }
+  if (name === "kits") {
+    await kitsReview();
+    continue;
+  }
   const review = reviews[name];
   if (!review)
     throw Error(
-      `no terrain review "${name}". Try: paving, ${Object.keys(reviews).join(", ")}`,
+      `no terrain review "${name}". Try: paving, kits, ${Object.keys(reviews).join(", ")}`,
     );
   console.log(`--- ${name}`);
   await run(review);

@@ -23,6 +23,7 @@ import {
 } from "./ground-style";
 import { banks, soils } from "./habitat-raster";
 import { defaultGrassArt } from "../content/graphics/grass-art";
+import { kitPalette, kitSoil, pickKit } from "./ground-kit";
 import {
   paletteKey,
   type Colorway,
@@ -799,8 +800,10 @@ function rasterWallContours(
       const earth = (banks[eco] ?? banks.grassland).map((c) =>
         toneBank(c, bank),
       );
-      const turf =
-        defaultGrassArt.palettes[eco] ?? defaultGrassArt.palettes.grassland;
+      const kit = pickKit(groundStyle()?.kits, ecology, colorway);
+      const turf = kit
+        ? kitPalette(kit)
+        : defaultGrassArt.palettes[eco] ?? defaultGrassArt.palettes.grassland;
       trim =
         surface === "sand"
           ? {
@@ -1234,9 +1237,13 @@ function rasterWallContours(
   // Ramps: a trodden-earth slope lifted continuously from its own tier to
   // the plateau it climbs, in place of the old atlas slope sprite. Rows and
   // columns are walked in screen space so a stretched slope has no gaps.
+  const kits = groundStyle()?.kits;
+  const kitFor = (ecology: string | undefined, colorway?: Colorway) => pickKit(kits, ecology, colorway);
   const soilFor = (ecology: string | undefined, colorway?: Colorway) =>
-    soils[paletteKey((ecology ?? "grassland") as Ecology, colorway)] ??
-    soils.grassland;
+    kitFor(ecology, colorway)
+      ? kitSoil(kitFor(ecology, colorway)!)
+      : soils[paletteKey((ecology ?? "grassland") as Ecology, colorway)] ??
+        soils.grassland;
   const noise = (x: number, y: number, salt: number) =>
     contourNoise(x, y, 1, salt);
   for (let cy = 0; cy < height; cy++)
@@ -1247,8 +1254,10 @@ function rasterWallContours(
       const t = cell.height;
       const soil = soilFor(cell.habitat?.ecology, cell.habitat?.colorway);
       const style = cell.rampStyle ?? "cut";
-      const turf =
-        defaultGrassArt.palettes[
+      const rampKit = kitFor(cell.habitat?.ecology, cell.habitat?.colorway);
+      const turf = rampKit
+        ? kitPalette(rampKit)
+        : defaultGrassArt.palettes[
           paletteKey(
             (cell.habitat?.ecology ?? "grassland") as Ecology,
             cell.habitat?.colorway,
@@ -1322,7 +1331,7 @@ function rasterWallContours(
       // A road cut carries the ground page's own path up the incline, so the
       // path does not change colour and width where it climbs.
       const bed =
-        style === "cut"
+        style === "cut" || (style === "slope" && cell.pathArt?.length)
           ? { x: cx, y: cy, cell: { ...cell, ramp: undefined } }
           : undefined;
       for (let px = cx * 16; px < cx * 16 + 16; px++) {
@@ -1425,7 +1434,7 @@ function rasterWallContours(
             const down = along
               ? (sy - first) / Math.max(1, last - first)
               : 1 - (h(px, cy * 16) - t);
-            const f = 0.84 + (1 - down) * 0.12;
+            const f = 0.9 + (1 - down) * 0.08;
             rgb = [g[0] * f, g[1] * f, g[2] * f];
             snowed = true;
           }
@@ -1620,7 +1629,7 @@ function rasterWallContours(
         if (southTier === undefined) continue;
         const foot = cy * 16 + 16 - southTier * R;
         const drop = foot - (last + 1);
-        if (style === "slope" || style === "sand") {
+        if (style === "slope" || style === "sand" || bed) {
           // The near flank of an earthen ramp is a battered grass slope, not
           // a cut: darker turf, falling a little past the cell, no lip.
           const ground =

@@ -1,0 +1,99 @@
+.tk-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 320px;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #1e221fee;
+  border: 1px solid #4d4737;
+  border-radius: 4px;
+  color: #ded5bd;
+  font-family: Georgia, serif;
+  backdrop-filter: blur(3px);
+}
+.tk-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.tk-panel h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 400;
+}
+.tk-actions,
+.tk-kits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+.tk-panel button {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  background: #2b2f2a;
+  color: #ded5bd;
+  border: 1px solid #4d4737;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tk-panel button.on {
+  background: #5a4b2a;
+  border-color: #b99a52;
+}
+.tk-note {
+  font-size: 12px;
+  color: #b4ab93;
+  margin: 0;
+}
+.tk-group {
+  border: 1px solid #3c3a30;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tk-group legend {
+  font-size: 11px;
+  color: #cbbd9c;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.tk-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.tk-row > span {
+  width: 86px;
+  flex: none;
+  color: #b4ab93;
+}
+.tk-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+.tk-row input[type="color"] {
+  width: 26px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.tk-row code {
+  font-size: 11px;
+  color: #8f8873;
+  min-width: 48px;
+}

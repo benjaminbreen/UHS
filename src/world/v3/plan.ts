@@ -801,6 +801,14 @@ export function planSettlement(
     if (!first && !label.startsWith("field-")) plan.diagnostics.routeFailures++;
     return first;
   };
+  /** A cell a bank's rim or face crosses; the face hangs more than a cell
+   * south of its rim, so the cell two above counts too. */
+  const onStep = (x: number, y: number) => {
+    if (!pack.setting?.terrainRevision) return false;
+    const tier = (x: number, y: number) => plan.groundLevels?.get(cellKey(x, y)) ?? Math.round(sample(x, y).elevation / 14);
+    const t = tier(x, y);
+    return [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, -2]].some(([dx, dy]) => tier(x + dx, y + dy) !== t);
+  };
   /** Rural foundations stay level; urban parcels can be graded through one tier. */
   const dry = (rect: Rect, occupied = true, core: Rect = rect, hinterland = false) => {
     let lo = Infinity,
@@ -2705,9 +2713,11 @@ export function planSettlement(
     i: number,
     n: number,
   ): boolean => {
-    const cells = propVisualCells(item.prop, at).map((p) => cellKey(p.x, p.y));
+    const visual = propVisualCells(item.prop, at);
+    const cells = visual.map((p) => cellKey(p.x, p.y));
     if (
-      cells.some((k) => plan.solid.has(k) || roads.has(k) || propCells.has(k))
+      cells.some((k) => plan.solid.has(k) || roads.has(k) || propCells.has(k)) ||
+      visual.some((p) => onStep(p.x, p.y))
     )
       return false;
     cells.forEach((k) => propCells.add(k));
@@ -3236,7 +3246,10 @@ export function planSettlement(
       return { frame, model, point, door, rect, yard, workPoint };
     };
     const fits = (f: ReturnType<typeof fit>) => {
-      if (!dry(f.yard, !lot.rect, f.rect)) return false;
+      // A country house wants level ground behind its roof and before its
+      // door: both overhang the footprint, and a bank there cuts them.
+      const level = urban || lot.rect ? f.rect : { ...f.rect, y: f.rect.y - 1, h: f.rect.h + 2 };
+      if (!dry(f.yard, !lot.rect, level)) return false;
       if (!placed || lot.rect) return true;
       const envelope = buildingPlacementEnvelope(f.frame, f.rect, [f.door, f.workPoint]);
       if (envelope.occupied.some(p => plan.placement.clearance.has(cellKey(p.x, p.y))) ||

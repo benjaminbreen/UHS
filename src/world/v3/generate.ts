@@ -1239,9 +1239,9 @@ export function createSettlementWorld(
   /** A cell a bank's rim or face crosses. The face hangs more than a cell
    * south of its rim, so the cell two above counts too. */
   function onStep(x: number, y: number) {
-    const tier = Math.round(land.sample(x, y).elevation / 14);
+    const tier = tierAt(x, y);
     for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, -2]])
-      if (Math.round(land.sample(x + dx, y + dy).elevation / 14) !== tier) return true;
+      if (tierAt(x + dx, y + dy) !== tier) return true;
     return false;
   }
   function decorate(x: number, y: number, k: string) {
@@ -1762,10 +1762,10 @@ export function createSettlementWorld(
     }
     return tier;
   }
-  function rawCell(x: number, y: number): TopographyCell {
+  /** A cell's final tier: the landform's, levelled across streams and set
+   * by graded plots, streets and bridge decks. */
+  function tierAt(x: number, y: number, t = terrain(x, y)) {
     const f = land.sample(x, y);
-    let t = terrain(x, y);
-    // A deck's ends rest on the banks; only the span over water is timber.
     if (t === "bridge" && f.water >= 0) t = "dirt";
     let height = Math.round(f.elevation / 14) as HeightTier;
     // A stream is level across its width: taking the lowest bed nearby puts
@@ -1795,6 +1795,14 @@ export function createSettlementWorld(
       break;
     }
     if (t === "bridge" && !decked) height = 1;
+    return height;
+  }
+  function rawCell(x: number, y: number): TopographyCell {
+    const f = land.sample(x, y);
+    let t = terrain(x, y);
+    // A deck's ends rest on the banks; only the span over water is timber.
+    if (t === "bridge" && f.water >= 0) t = "dirt";
+    const height = tierAt(x, y, t);
     const cell = reliefCell(height, f.water, f.moisture);
     if (environment) {
       cell.habitat = habitat(x, y);
@@ -2339,7 +2347,10 @@ export function createSettlementWorld(
       )
     ) {
       const slope = naturalSlopesFor(x, y).get(key);
-      if (slope) {
+      // A grass slope beside a road's ramp would step the bank twice.
+      const roadRamp = () => [-2, -1, 0, 1, 2].some((dy) => [-2, -1, 0, 1, 2].some((dx) =>
+        nearby(x + dx, y + dy).some((p) => slopesFor(p).has(cellKey(x + dx, y + dy)))));
+      if (slope && !roadRamp()) {
         c.ramp = slope;
         c.rampStyle = rampStyleFor(c, "natural", x, y);
       }
@@ -3041,6 +3052,41 @@ export function createSettlementWorld(
     }
     return out;
   }
+  /** A well, hearth or planted tree that landed on a bank, a lane or another
+   * prop's doorstep steps to the nearest open level cell. */
+  function settleOffSteps(p: SettlementPlan) {
+    const taken = new Set(p.objects.map((o) => cellKey(Math.floor(o.pos.x), Math.floor(o.pos.y))));
+    const props = new Set(p.objects.filter((o) => o.kind !== "tree").map((o) => cellKey(Math.floor(o.pos.x), Math.floor(o.pos.y))));
+    const open = (x: number, y: number) => {
+      const k = cellKey(x, y);
+      return !p.solid.has(k) && !p.traffic.has(k) && !taken.has(k) && land.sample(x, y).water >= 2 && !onStep(x, y);
+    };
+    for (const o of p.objects) {
+      if (!["well", "fire", "tree"].includes(o.kind)) continue;
+      const x = Math.floor(o.pos.x),
+        y = Math.floor(o.pos.y);
+      const k = cellKey(x, y);
+      // A square is traffic too, and a well belongs in one; a lane is not a place to stand.
+      let road = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (p.traffic.has(cellKey(x + dx, y + dy))) road++;
+      // A crown spreads over the next cell, so a tree gives a neighbouring prop
+      // room; orchard rows may still stand close.
+      const crowded = (cx: number, cy: number) => o.kind === "tree" &&
+        [-1, 0, 1].some((dy) => [-1, 0, 1].some((dx) => (dx || dy) && props.has(cellKey(cx + dx, cy + dy))));
+      if (!(relief && onStep(x, y)) && !(road && road < 7) && !crowded(x, y)) continue;
+      search: for (let r = 1; r <= 3; r++)
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !open(x + dx, y + dy)) continue;
+            if (crowded(x + dx, y + dy)) continue;
+            taken.delete(k);
+            taken.add(cellKey(x + dx, y + dy));
+            if (props.delete(k)) props.add(cellKey(x + dx, y + dy));
+            o.pos = { ...o.pos, x: o.pos.x + dx, y: o.pos.y + dy };
+            break search;
+          }
+    }
+  }
   function activate(p: SettlementPlan) {
     if (active.has(p.site.id)) return;
     active.add(p.site.id);
@@ -3053,6 +3099,7 @@ export function createSettlementWorld(
       size: p.site.profile.radius,
     });
     world.places.push(...p.places);
+    settleOffSteps(p);
     world.initialObjects.push(...p.objects);
     world.initialActors.push(...p.actors);
     keptFauna.push(...(p.fauna ?? []));
