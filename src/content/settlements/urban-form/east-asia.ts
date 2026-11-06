@@ -34,7 +34,7 @@ export const eastAsiaForms: UrbanFormRule[] = [
     ...chineseWardGrid,
     id: "korean-ward-grid",
     from: 300,
-    to: 1910,
+    to: 1392,
     bounds: [124.5, 33.9, 129.5, 43],
     evidence: {
       status: "inferred",
@@ -148,7 +148,7 @@ export const eastAsiaForms: UrbanFormRule[] = [
     storeys: 1,
     label: "Walled county town round the magistrate's hall",
     culture: "east-asian",
-    from: 300,
+    from: 1392,
     to: 1910,
     bounds: [124, 33, 131, 43.5],
     plan: "organic",

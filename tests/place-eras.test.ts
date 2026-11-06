@@ -70,9 +70,9 @@ describe("culture families by region and date", () => {
     ["city-lhasa", 1400, "inner-eurasian", undefined],
     ["city-kabul", 1500, "inner-eurasian", undefined],
     ["city-tehran", 1800, "north-african-west-asian", undefined],
-    ["city-seoul", 1500, "east-asian", "korean-ward-grid"],
+    ["city-seoul", 1500, "east-asian", "korean-walled-town"],
     ["city-gyeongju", 750, "east-asian", "korean-ward-grid"],
-    ["city-busan", 1700, "east-asian", "korean-ward-grid"],
+    ["city-busan", 1700, "east-asian", "korean-walled-town"],
     ["city-constantinople", 1000, "european", undefined],
     ["city-constantinople", 1500, "north-african-west-asian", undefined],
   ] as const)("%s in %i is %s", (id, year, culture, form) => {
