@@ -24,6 +24,9 @@ const evergreen = [
   "cypress",
   "olive",
   "acacia",
+  "banyan",
+  "ceiba",
+  "yew",
 ];
 export function turnsColour(sprite: string) {
   return !evergreen.some((k) => sprite.includes(k));
@@ -69,7 +72,7 @@ export function treeVariant(
 
 export const crateFrame = (roll: number) => roll < 0.5 ? "nature-crate-b" : "nature-crate-c";
 /** The frame drawn for the season, where one exists: leafless in winter,
- * turned in autumn. Returns the frame and whether it is already dressed, in
+ * turned in autumn, in blossom in spring. Returns the frame and whether it is already dressed, in
  * which case no tint should be laid over it. */
 export function seasonFrame(
   sprite: string,
@@ -88,7 +91,9 @@ export function seasonFrame(
       ? `${sprite}-bare`
       : season === "autumn"
         ? `${sprite}-autumn`
-        : "";
+        : season === "spring"
+          ? `${sprite}-spring`
+          : "";
   return dressed && has(dressed) ? [dressed, true] : [sprite, false];
 }
 

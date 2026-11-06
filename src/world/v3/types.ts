@@ -125,6 +125,8 @@ export type SettlementPlan = {
   solid: Set<string>;
   /** Shared interpretation of solid, traffic and visual keep-out cells. */
   placement: import("./placement").PlacementClaims;
+  /** Trees the place keeps on purpose, by trunk cell; drawn as scenery. */
+  landmarks?: Map<string, string>;
   /** Building footprints only: what wears the ground round it. */
   built?: Set<string>;
   work: Map<string, WorkSite>;

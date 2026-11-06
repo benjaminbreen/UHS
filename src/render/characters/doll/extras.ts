@@ -1,4 +1,4 @@
-import { ACCENT, APRON, CLOAK, H, HAIR, KERCHIEF, LEATHER, METAL, Mask, SHAWL, SKIN, TOP, TRIM, W, WHITE, rnd, type Sheet } from "./paint";
+import { ACCENT, APRON, CLOAK, H, HAIR, KERCHIEF, LEATHER, LOWER, METAL, Mask, SHAWL, SKIN, TOP, TRIM, W, WHITE, rnd, type Sheet } from "./paint";
 
 /** What the accessories need of the figure: its facing, its rows and widths,
  * and where its centre line runs at each height. */
@@ -28,8 +28,10 @@ const sideX = (f: Figure, y: number, lx: number, fz: number) => f.centre(y) + lx
 /** How near the viewer that point is; negative is behind the body. */
 const near = (f: Figure, lx: number, fz: number) => -lx * f.sx * f.sin + fz * f.cos;
 
-/** Over the front: a waist apron of linen, or a smith's leather bib on a neck strap. */
-export function apron(f: Figure, kind: "cloth" | "leather") {
+/** Over the front: a waist apron of linen, a smith's leather bib on a neck
+ * strap, a bibbed pinafore, or denim overalls in the trouser cloth. */
+export function apron(f: Figure, kind: "cloth" | "leather" | "pinafore" | "overalls") {
+  if (kind === "pinafore" || kind === "overalls") return bib(f, kind);
   const { s, yOf } = f;
   const mat = kind === "leather" ? LEATHER : APRON;
   const waist = f.hip + 1;
@@ -70,6 +72,52 @@ export function apron(f: Figure, kind: "cloth" | "leather") {
     }
   strings.minus(m);
   s.put(strings, mat, { ring: "none", shade: 0, dark: 1 });
+}
+
+/** A bib to the chest on two straps: the wrap pinafore falls to the knee over
+ * the skirt; overalls stop at the waist, the trousers below being the same cloth. */
+function bib(f: Figure, kind: "pinafore" | "overalls") {
+  const { s, yOf } = f;
+  const mat = kind === "overalls" ? LOWER : APRON;
+  const waist = f.hip + 1;
+  const chest = f.shoulder - 2;
+  const straps = new Mask();
+  if (away(f)) {
+    // The straps cross between the shoulder blades.
+    for (const side of [-1, 1])
+      straps.line(sideX(f, f.shoulder, side * (f.waistW - 2), -f.chestD), yOf(f.shoulder), sideX(f, waist, -side * (f.waistW - 2), -f.bellyD), yOf(waist), 1);
+    if (kind === "pinafore") {
+      const c = f.centre(waist);
+      straps.span(yOf(waist), rnd(c - 1), rnd(c + 1)).set(rnd(c - 1), yOf(waist) + 1).set(rnd(c + 1), yOf(waist) + 1);
+    }
+    s.put(straps, mat, { ring: "line", shade: 0.3 });
+    return;
+  }
+  const bottom = kind === "pinafore" ? 2 + Math.round(f.leg * 0.4) : waist;
+  const m = new Mask();
+  for (let y = chest; y >= bottom; y--) {
+    const half = Math.max(0.6, (y > waist ? f.waistW - (kind === "overalls" ? 2.2 : 1.4) : f.waistW - 0.4 + (waist - y) * 0.1) * f.cos);
+    const c = sideX(f, y, 0, (y > f.hip ? f.chestD : f.bellyD) * 0.95) + (y < waist ? f.drift((waist - y) / Math.max(1, waist - bottom)) * 0.5 : 0);
+    m.span(yOf(y), rnd(c - half + 0.5), rnd(c + half - 0.5));
+  }
+  s.put(m, mat, {
+    ring: "ink",
+    shade: 0.3,
+    light: 0.15,
+    bottom: kind === "pinafore",
+    // A small print on the pinafore; the overalls' bib pocket.
+    tone: (x, y, t) =>
+      kind === "pinafore" ? (t >= 3 && (x * 3 + y * 2) % 7 === 0 ? 2 : t)
+      : y === yOf(chest - 2) && Math.abs(x + 0.5 - sideX(f, chest - 2, 0, f.chestD)) < 1.6 ? Math.min(t, 2) : t,
+  });
+  for (const side of [-1, 1]) {
+    const x = rnd(sideX(f, f.shoulder, side * (f.waistW - 2), f.chestD * 0.9));
+    straps.set(x, yOf(f.shoulder)).set(x, yOf(f.shoulder - 1));
+    // Brass buttons where the straps meet the bib.
+    if (kind === "overalls" && f.cos > 0.5) s.px(rnd(sideX(f, chest, side * (f.waistW - 2.6), f.chestD)), yOf(chest), METAL, 4);
+  }
+  straps.minus(m);
+  s.put(straps, mat, { ring: "none", shade: 0, dark: 1 });
 }
 
 /** A purse hung from the belt, or a satchel on a strap across the body. */
@@ -146,11 +194,26 @@ export function bangles(f: Figure, wrists: readonly (readonly [number, number])[
 
 /** At the neck, over the garment: a pleated ruff, a cravat's fall of linen,
  * or a working neckerchief knotted at the throat. */
-export function neckwear(f: Figure, kind: "ruff" | "cravat" | "neckerchief") {
+export function neckwear(f: Figure, kind: "ruff" | "cravat" | "neckerchief" | "necktie" | "bow-tie") {
   const { s, yOf } = f;
   const row = yOf(f.shoulder);
   const c = f.centre(f.shoulder) + f.sx * f.sin * f.chestD * 0.6;
   const m = new Mask();
+  if (kind === "necktie" || kind === "bow-tie") {
+    if (away(f)) return;
+    // White collar points either side of the knot.
+    if (f.cos > 0.5) s.put(new Mask().set(rnd(c - 1.5), row).set(rnd(c + 1.5), row), WHITE, { ring: "none", shade: 0 });
+    if (kind === "bow-tie") m.span(row, rnd(c - 1.5), rnd(c + 1.5));
+    else {
+      m.set(rnd(c), row);
+      // The blade widens to its point a hand above the belt.
+      const len = Math.max(3, f.shoulder - f.hip - 3);
+      for (let i = 1; i <= len; i++) m.set(rnd(c), row + i);
+      if (f.cos > 0.5) m.set(rnd(c) + 1, row + len - 1);
+    }
+    s.put(m, KERCHIEF, { ring: "line", shade: 0.3, light: 0.3, tone: (x, y, t) => (kind === "bow-tie" && x === rnd(c) ? 2 : y === row && kind === "necktie" ? 2 : t) });
+    return;
+  }
   if (kind === "ruff") {
     const w = Math.hypot((f.shoulderW - 0.5) * f.cos, (f.chestD + 1) * f.sin);
     m.span(row - 1, rnd(c - w + 1.5), rnd(c + w - 1.5)).span(row, rnd(c - w + 0.5), rnd(c + w - 0.5)).span(row + 1, rnd(c - w + 1.5), rnd(c + w - 1.5));

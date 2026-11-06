@@ -17,7 +17,9 @@ const stoneTown = (stone: StreetMaterial): StreetPalette => ({
   local: [stone],
   lane: ["earth", "earth", "cobble"],
   square: ["slab", "slab", stone],
-  footway: ["slab", stone],
+  // A basalt street's raised walks were limestone or beaten earth behind
+  // kerbs, never more basalt: Pompeii's crepidines.
+  footway: stone === "basalt" ? ["slab"] : ["slab", stone],
 });
 const kits = Object.fromEntries(
   (["basalt", "cobble", "slab", "brick", "sett"] as const).map((m) => [

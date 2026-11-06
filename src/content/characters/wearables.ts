@@ -59,6 +59,12 @@ const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   jaguar: "Jaguar helmet",
   eagle: "Eagle helmet",
   "official-cap": "Official's cap",
+  fedora: "Fedora",
+  boater: "Straw boater",
+  cloche: "Cloche hat",
+  beret: "Beret",
+  kerchief: "Kerchief",
+  pillbox: "Pillbox hat",
 };
 const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",
@@ -175,6 +181,18 @@ const about: Record<ItemId, string> = {
     "A feathered eagle's head with the beak over the brow, worn by the Mexica order of eagle warriors.",
   "headwear-official-cap":
     "A stiff cap of black gauze with a flat wing either side, worn by Chinese officials from the Song to the Ming.",
+  "headwear-fedora":
+    "Soft felt with a creased crown and a brim snapped down at the front; for forty years most men outdoors wore one.",
+  "headwear-boater":
+    "Stiff plaited straw with a flat top and a flat brim, a ribbon round the crown: the summer hat.",
+  "headwear-cloche":
+    "A felt bell pulled down to the eyebrows over short hair.",
+  "headwear-beret":
+    "A flat round of felted wool worn tipped to one side.",
+  "headwear-kerchief":
+    "A printed cotton square folded into a triangle and knotted under the chin, to keep the hair clean at work.",
+  "headwear-pillbox":
+    "A small, stiff, brimless hat pinned to the back of the hair for town.",
   "headwear-top-hat":
     "A tall, flat-crowned silk hat, worn by gentlemen who wish to be seen as such.",
   "belt-cord":

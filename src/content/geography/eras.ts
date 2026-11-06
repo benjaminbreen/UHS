@@ -23,6 +23,9 @@ export type SettlerEra = {
   id: string;
   label: string;
   bounds: readonly [number, number, number, number];
+  /** Only these gazetteer ids inside the box, where the towns and the villages
+   * around them went different ways. */
+  places?: readonly string[];
   /** Culture families this overlay replaces; others in the box are untouched. */
   replaces: readonly CultureId[];
   /** Year the replacing society's towns are established here. */
@@ -95,6 +98,21 @@ export const settlerEras: readonly SettlerEra[] = [
     note: "The plains and Pacific towns date from the gold rush and the railways. The Spanish-speaking southwest predates them and is described as a population rather than a settler era.",
   },
   {
+    id: "era.northern-gold-rush",
+    label: "Gold-rush and railway towns of Alaska and the Yukon",
+    bounds: [-170, 54, -110, 72],
+    places: [
+      "city-anchorage", "city-fairbanks", "city-juneau", "city-whitehorse", "city-yellowknife",
+      "city-valdez", "city-nome", "city-dawson-city", "city-prince-rupert", "city-prudhoe-bay",
+    ],
+    replaces: ["other-indigenous-american"],
+    from: 1898,
+    culture: "european",
+    architecture: "board",
+    sources: ["https://doi.org/10.1017/CHOL9780521382892"],
+    note: "The Klondike and Nome rushes of 1897–99, then the Alaska Railroad, which founded Anchorage in 1915, made these settler towns. Bethel, Utqiagvik, Point Hope and the Inuit hamlets stayed Native-majority and keep the gazetteer's label.",
+  },
+  {
     id: "era.australia-settler",
     label: "Settler Australia",
     bounds: [112, -44, 154, -10],
@@ -125,10 +143,10 @@ const inBox = (
 
 /** The settler era covering this place, latest start first. */
 export function settlerEraFor(
-  place: Pick<AtlasPlace, "lon" | "lat" | "culture">,
+  place: Pick<AtlasPlace, "lon" | "lat" | "culture"> & { id?: string },
 ): SettlerEra | undefined {
   return settlerEras
-    .filter((e) => e.replaces.includes(place.culture) && inBox(place, e.bounds))
+    .filter((e) => e.replaces.includes(place.culture) && inBox(place, e.bounds) && (!e.places || e.places.includes(place.id ?? "")))
     .sort((a, b) => b.from - a.from)[0];
 }
 

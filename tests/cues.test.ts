@@ -112,7 +112,9 @@ it("talk warms or nods with the trust it wins, and angers someone wronged", () =
   const friend = bystander(engine, person, 1, 0);
   engine.execute({ type: "interact", target: friend.id, action: "talk" });
   expect(friend.trust).toBeGreaterThan(0);
-  expect(["nod", "warm"]).toContain(cues(engine, friend.id)[0]);
+  // A greeting in the local manner, then what they make of it.
+  expect(cues(engine, friend.id)[0]).toBe("greet");
+  expect(["nod", "warm"]).toContain(cues(engine, friend.id)[1]);
   // They turned to each other.
   expect(engine.state.player.direction).toBe(1);
   expect(friend.direction).toBe(3);

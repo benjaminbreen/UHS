@@ -17,6 +17,8 @@ const CLOAK = 10 as Mat;
 const VEST = 11 as Mat;
 const SHAWL = 12 as Mat;
 const PLUME = 13 as Mat;
+const LOWER = 14 as Mat;
+const APRON = 15 as Mat;
 
 /** Screen position of the model origin (between the eyes, a little behind). */
 const OX = 31;
@@ -67,6 +69,13 @@ function capsule(p: V, a: V, b: V, r: number) {
 function cylinder(p: V, cx: number, cy: number, cz: number, r: number, h: number) {
   const dx = Math.hypot(p[0] - cx, p[2] - cz) - r, dy = Math.abs(p[1] - cy) - h;
   return Math.min(Math.max(dx, dy), 0) + Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
+}
+/** A point turned about a level axis through height cy: front-to-back through cz, or side-to-side when `sideways`. */
+function tip(p: V, cy: number, cz: number, a: number, sideways = false): V {
+  const c = Math.cos(a), s = Math.sin(a), dy = p[1] - cy;
+  if (sideways) return [p[0] * c - dy * s, cy + p[0] * s + dy * c, p[2]];
+  const dz = p[2] - cz;
+  return [p[0], cy + dy * c - dz * s, cz + dy * s + dz * c];
 }
 /** Torus lying flat around the vertical axis through (cx, cz). */
 function torus(p: V, cx: number, cy: number, cz: number, R: number, r: number, sx = 1, sz = 1) {
@@ -251,6 +260,8 @@ function model(a: CharacterAppearance, age: number): Model {
       [VEST]: tones(c.vest, "cloth"),
       [SHAWL]: tones(c.shawl, "cloth"),
       [PLUME]: tones(c.plume, "cloth"),
+      [LOWER]: tones(c.lower, "cloth"),
+      [APRON]: tones(c.apron, "cloth"),
     },
     headW, headH, jawW, chinY, chinR,
     // Most cheekbones are quiet; a few people have them high and sculpted.
@@ -289,6 +300,8 @@ function model(a: CharacterAppearance, age: number): Model {
 
 const TAILORED = ["shirt", "coat"];
 const BARE = ["none", "loincloth", "skirt"];
+// The sprite draws a skirt with a bodice or blouse above it unless it has no sleeves.
+const garmentOf = (w: CharacterAppearance["wearing"]) => (w.garment === "skirt" && w.sleeves !== "none" ? "shirt" : w.garment);
 const HIDES_HAIR = ["hood", "headscarf", "veil", "wrap", "turban", "helmet", "wig"];
 
 /** Fibonacci points on a unit sphere, for placing curls. */
@@ -303,7 +316,7 @@ type Scene = (pb: V, ph: V) => Hit;
 function build(m: Model): Scene {
   const a = m.a, n = m.nose, hw = a.wearing.headwear, style = a.hair;
   const tex = refined && style === "curls" && m.face.hairTexture === "straight" ? "curly" : m.face.hairTexture;
-  const garment = a.wearing.garment;
+  const garment = garmentOf(a.wearing);
   const curly = tex === "curly" || tex === "coiled" || style === "curls";
   const hidden = HIDES_HAIR.includes(hw);
   const hatted = !["none", "band", "fillet", "plume", "visor"].includes(hw);
@@ -442,7 +455,7 @@ function build(m: Model): Scene {
       d += Math.sin(p[0] * 2.1 + Math.sin(p[2])) * Math.sin(p[1] * 1.7 + p[2] * 0.9) * 0.22;
     if (refined && tex === "curly" && d < 2)
       d += Math.sin(p[0] * 1.2 + Math.sin(p[2] * 0.8)) * Math.sin(p[1] * 1.1 + p[2] * 0.7) * 0.45;
-    if (refined && hatted) d = smax(d, -(hatAt(p) - 0.7), 0.5);
+    if (refined && hatted) d = smax(smax(d, -(hatAt(p) - 0.7), 0.5), -cover(p), 0.4);
     return d;
   };
 
@@ -485,13 +498,16 @@ function build(m: Model): Scene {
   const vee = (p: V, depth: number, slope: number, off = 0) => Math.max(-28 - depth + slope * Math.abs(p[0] - off) - p[1], -2 - p[2]);
   const round = (p: V) => ellipsoid(p, 0, -27.5, 6.5, 7, 4, 7);
   /** The neck opening: negative inside it. */
+  // A collared dress or blouse buttons to a small round neck.
+  const collared = a.wearing.motif === "collar" && !["coat", "robe", "open-robe", "gown", "poncho", "suit"].includes(garment);
   const cut = (p: V): number => {
+    if (collared) return Math.min(round(p) + 1.5, Math.max(Math.abs(p[0]) - 0.8, -(p[1] + 32), -2 - p[2]));
     switch (garment) {
       case "shirt": return vee(p, 4, 1.4);
       case "coat": return vee(p, 15, 0.95);
       case "robe": return vee(p, 13, 1.25, 2.5);
       case "open-robe": return Math.min(round(p), Math.max(Math.abs(p[0]) - 4.5, -2 - p[2]));
-      case "dress": return ellipsoid(p, 0, -28, 7, 10, 5.5, 7);
+      case "dress": return a.wearing.hem === "calf" ? round(p) : ellipsoid(p, 0, -28, 7, 10, 5.5, 7);
       case "gown": return Math.max(Math.abs(p[0]) - 11, -(p[1] + 31.5), -2 - p[2]);
       // A head-hole, not a scoop: the poncho's own colour must fill the bust.
       case "poncho": return ellipsoid(p, 0, -27.5, 3, 4, 3, 4);
@@ -539,9 +555,15 @@ function build(m: Model): Scene {
     return d;
   };
   const shirtCollar = (p: V): number =>
-    garment === "shirt" ? Math.min(capsule(p, [-5, -25.5, 5], [-2.2, -30, 8.2], 1.15), capsule(p, [5, -25.5, 5], [2.2, -30, 8.2], 1.15)) : 99;
+    garment === "shirt" && !collared ? Math.min(capsule(p, [-5, -25.5, 5], [-2.2, -30, 8.2], 1.15), capsule(p, [5, -25.5, 5], [2.2, -30, 8.2], 1.15)) : 99;
+  /** A white turned-down collar lying flat round the neck, its points rounded. */
+  const whiteCollar = (p: V): number =>
+    collared ? Math.min(capsule(p, [-5.6, -25.4, 4.6], [-1.4, -29.4, 8.6], 1.25), capsule(p, [5.6, -25.4, 4.6], [1.4, -29.4, 8.6], 1.25)) : 99;
+  const neckwear = a.wearing.neckwear;
+  const tied = neckwear === "necktie" || (garment === "coat" && neckwear !== "bow-tie");
   const tie = (p: V): number =>
-    garment === "coat" ? Math.min(capsule(p, [0, -28.3, 8.4], [0, -29.6, 8.7], 1.3), capsule(p, [0, -30, 8.7], [0.4, -46, 11], 1.3)) : 99;
+    neckwear === "bow-tie" ? Math.min(ellipsoid(p, -1.9, -29, 8.9, 1.9, 1.2, 0.9), ellipsoid(p, 1.9, -29, 8.9, 1.9, 1.2, 0.9), sphere(p, 0, -29, 9.1, 0.8))
+    : tied && ["coat", "shirt", "suit"].includes(garment) ? Math.min(capsule(p, [0, -28.3, 8.4], [0, -29.6, 8.7], 1.3), capsule(p, [0, -30, 8.7], [0.4, -46, 11], 1.3)) : 99;
   const cape = (p: V): number => {
     if (!a.wearing.mantle && !a.wearing.cloak) return 99;
     let d = smax(torso(p) - thick - 1.3, collar(p) - (a.wearing.cloak ? 3 : 0.5), 1);
@@ -571,6 +593,12 @@ function build(m: Model): Scene {
   const vest = (p: V): number => {
     if (!vested) return 99;
     let d = smax(torso(p) - (garment === "coat" ? thick * 0.8 : thick + 0.6), collar(p) + 1.5, 1);
+    // A cardigan has sleeves and stays open down the front below a shallow V.
+    if (w.waistcoat === "cardigan") {
+      d = smax(torso(p) - thick - 1, collar(p) + 0.5, 1);
+      d = smax(d, -Math.max(Math.abs(p[0]) - Math.max(1.4, (p[1] + 36) * 0.7), -2 - p[2]), 0.5);
+      return d < 1 ? d + 0.12 * Math.abs(Math.sin(p[0] * 2.4)) : d;
+    }
     // Sleeveless: the shirt's sleeves show at the armholes.
     d = smax(d, Math.abs(p[0]) - (m.shoulder - 2.5), 1);
     return smax(d, -Math.max(Math.abs(p[0]) - (p[1] + 41) * 0.6, -2 - p[2]), 0.5);
@@ -587,6 +615,15 @@ function build(m: Model): Scene {
     }
     return d;
   };
+  /** A pinafore or overalls: two straps over the shoulders to a bib across the chest. */
+  const bibbed = (w.apron === "pinafore" || w.apron === "overalls") && !BARE.includes(garment);
+  const bib = (p: V): number => {
+    if (!bibbed) return 99;
+    const shell = smax(torso(p) - thick - (vested ? 1.8 : 1.1), collar(p) + 1, 1);
+    const panel = Math.max(Math.abs(p[0]) - (w.apron === "overalls" ? 5.5 : 7), p[1] + 37, -p[2]);
+    const straps = Math.max(Math.abs(Math.abs(p[0]) - 5.5) - 1.1, -(p[1] + 37));
+    return smax(shell, Math.min(panel, straps), 0.4);
+  };
   const skinExtra = (p: V): number => {
     if (!BARE.includes(garment) && garment !== "wrap") return 99;
     // Collarbones, and a chest that follows strength.
@@ -602,6 +639,34 @@ function build(m: Model): Scene {
   // The camera is level, so a flat peak is seen edge-on: it needs thickness and a tilt to read.
   const peak = (p: V, y: number, r: number, back: number, droop = 0.12, thick = 0.55) =>
     Math.max(Math.abs(p[1] - y + Math.max(0, p[2] - back) * droop) - thick, Math.hypot(p[0], p[2] - back) - r, back - p[2]) - 0.2;
+  /** Crown, brim and band of a fedora: a tapering crown creased down the middle and pinched at the front, the brim snapped down over the eyes. */
+  const fedora = (p: V): [number, number, number] => {
+    const W = m.headW, q = tip(p, m.hairline, -1.5, -0.1), base = m.hairline - 2.4, top = 25.6 - (q[2] + 1.5) * 0.12;
+    const t = clamp((q[1] - base) / (top - base), 0, 1), rx = W + 1.4 - t * 2.6, rz = W + 2.4 - t * 2;
+    let side = (Math.hypot(q[0] / rx, (q[2] + 1.5) / rz) - 1) * rx;
+    side += Math.exp(-((Math.abs(q[0]) - 5) ** 2) / 4) * Math.exp(-((q[2] - W + 1) ** 2) / 8) * t * 3;
+    const crown = smax(smax(side, q[1] - top + Math.exp(-(q[0] ** 2) / 6) * 2.8, 2), base - q[1], 0.3);
+    const lip = base + 0.2 - Math.max(0, q[2] - 3) * 0.17 + Math.max(0, -q[2] - 6) * 0.15 + Math.max(0, Math.abs(q[0]) - 10) * 0.12;
+    const brim = Math.max(Math.abs(q[1] - lip) - 0.5, Math.hypot(q[0], q[2] + 1.5) - (W + 6.6)) - 0.2;
+    return [crown, brim, smax(side - 0.35, Math.abs(q[1] - base - 1.5) - 1.2, 0.3)];
+  };
+  const clocheEdge = (p: V) => 3.2 - clamp((9 - p[2]) * 0.4, 0, 8);
+  const clocheBell = (p: V) => ellipsoid(p, 0, 5.5, -1.5, m.headW + 1.5 - Math.max(0, p[1] - 12) * 0.2, m.headH + 3.6, m.headW + 2.4 - Math.max(0, p[1] - 12) * 0.15);
+  /** Negative where the scarf can lie: behind the rolled front edge and clear of the face. */
+  const kerchiefOpen = (p: V) => Math.max(p[2] - 11 - clamp(12 - p[1], 0, 10) * 0.2, -ellipsoid(p, 0, -3, 12, m.headW - 2.3, m.headH - 1, 10));
+  /** Where a hat presses the hair flat: positive outside it. */
+  const cover = (p: V): number => {
+    switch (hw) {
+      case "fedora": return m.hairline - 2.4 - tip(p, m.hairline, -1.5, -0.1)[1];
+      case "boater": return m.hairline + 1 - tip(p, m.hairline, -1.5, -0.1)[1];
+      case "cloche": return clocheEdge(p) - 0.5 - p[1];
+      case "beret": return m.hairline - clamp((2 - p[2]) * 0.2, 0, 3) - p[1];
+      case "flat-cap": return m.hairline - 1.5 - clamp((4 - p[2]) * 0.25, 0, 3) - p[1];
+      case "kerchief": return Math.max(kerchiefOpen(p) + 0.5, -(p[1] + 9));
+      case "pillbox": return 20.5 - tip(p, 21, -1, 0.2)[1];
+      default: return 99;
+    }
+  };
   const hat = (p: V): number => {
     const T = m.headH + 1;
     const W = m.headW;
@@ -615,12 +680,52 @@ function build(m: Model): Scene {
         return Math.min(d, cylinder(p, 0, brim + Math.abs(p[0]) * 0.07 - Math.max(0, p[2]) * 0.06, -1.5, W + 7.5, refined ? 0.9 : 0.55) - 0.25);
       }
       case "bowler": return Math.min(smax(sphere(p, 0, T - 3, -1.5, W + 0.5), -(p[1] - (T - 4)), 1), torus(p, 0, T - 4, -1.5, W + 2.4, 1.1));
+      case "fedora": return Math.min(fedora(p)[0], fedora(p)[1]);
+      case "boater": {
+        const q = tip(p, m.hairline, -1.5, -0.1), base = m.hairline + 1.5;
+        return Math.min(cylinder(q, 0, (base + 23.5) / 2, -1.5, W + 0.6, (23.5 - base) / 2) - 0.3, cylinder(q, 0, base, -1.5, W + 6.5, 0.45) - 0.2);
+      }
+      // A felt bell pulled down to the brows and over the ears, its edge flared.
+      case "cloche": {
+        const e = clocheEdge(p);
+        const b = clocheBell(p);
+        const bell = smax(b, e - p[1], 0.6);
+        // A skirt flaring out and down from the edge, standing off the brow.
+        const skirt = Math.max(Math.abs(p[1] - e + 0.2) - 1.3, b - clamp(e + 1.1 - p[1], 0, 2.6) * 1.1 - 0.5, -b - 0.2);
+        return smin(bell, skirt, 0.5);
+      }
+      // A felt disc pulled to one side over a snug band, with the stalk on top.
+      case "beret": {
+        const line = m.hairline + 0.5 - clamp((2 - p[2]) * 0.2, 0, 3);
+        const band = smax(cranium(p) - 1.3, line - p[1], 0.5);
+        const q = tip(p, 19, -2, -0.3, true);
+        return Math.min(smin(band, ellipsoid(q, 1.5, 19, -1.5, W + 3, 4.6, W + 3.4), 3), capsule(p, [-0.5, 23, -1.5], [-0.3, 24.8, -1.5], 0.55));
+      }
+      // Pinned on top of the hair, tipped back.
+      case "pillbox": return cylinder(tip(p, 21, -1, 0.2), 0, 23, -1, 7.6, 2.6) - 0.5;
+      // Tied under the chin, the front edge rolled back to show the hair, folds running down to the knot.
+      case "kerchief": {
+        const open = kerchiefOpen(p);
+        const over = cranium(p) - hairDepth * 0.7 - sides(p) - 1.8;
+        let d = smax(smax(over, open, 0.8), -(p[1] + 9), 1);
+        d = smin(d, smax(over - 0.7, Math.abs(open + 0.9) - 0.9, 0.4), 0.5);
+        d += 0.3 * Math.abs(Math.sin(Math.atan2(p[0], p[1] - m.chinY) * 9));
+        const knot = Math.min(sphere(p, -1.2, m.chinY - 1.6, 7, 1.5), sphere(p, 1.2, m.chinY - 1.6, 7, 1.5), capsule(p, [0.5, m.chinY - 2.4, 7], [2.5, m.chinY - 6.5, 6.5], 0.8));
+        const ties = Math.min(capsule(p, [-W - 0.8, -7.5, 2], [-1.5, m.chinY - 1.2, 6.5], 1), capsule(p, [W + 0.8, -7.5, 2], [1.5, m.chinY - 1.2, 6.5], 1));
+        return Math.min(d, ties, knot);
+      }
       case "top-hat": {
         const brim = m.hairline - 0.5;
         return Math.min(cylinder(p, 0, brim + 9, -1.5, W - 0.5 + (p[1] - brim) * 0.03, 9) - 0.5, cylinder(p, 0, brim + Math.abs(p[0]) * 0.1, -1.5, W + 4.5, 0.5) - 0.25);
       }
       // Peaks as flat discs: a very flat ellipsoid's distance estimate let the march step clean over it.
-      case "flat-cap": return Math.min(ellipsoid(p, 0, T - 2, 1, W + 1.8, 5.2, W + 3.4), peak(p, T - 5, 7, 9));
+      // A slab of cloth sloping forward from the crown and snapped down over a short stiff peak.
+      case "flat-cap": {
+        const line = m.hairline - 1.2 - clamp((4 - p[2]) * 0.25, 0, 3);
+        const top = ellipsoid(tip(p, m.hairline, -1.5, -0.16), 0, 16.5, 1.5, W + 2.2, 5.5, W + 4.2);
+        const body = smax(smax(smin(cranium(p) - 1.4, top, 2), line - p[1], 0.5), p[1] - 22.6, 0.8);
+        return Math.min(body, peak(p, m.hairline - 0.9, 6.5, W - 1, 0.35));
+      }
       case "ball-cap": return Math.min(smax(sphere(p, 0, T - 5, -1.5, W + 1), -(p[1] - (T - 5)), 1), peak(p, T - 4.6, 11, 9, 0.5, 1));
       case "conical": {
         const apex = T + 11, base = T - 4, h = apex - p[1];
@@ -663,6 +768,13 @@ function build(m: Model): Scene {
       case "top-hat": return cylinder(p, 0, m.hairline + 1.6, -1.5, W, 1.3) - 0.2;
       case "bowler": return cylinder(p, 0, T - 2.8, -1.5, W + 0.9, 1) - 0.2;
       case "fez": return Math.min(capsule(p, [0, m.hairline + 9.3, -1.5], [-(W - 3.5), m.hairline + 5, 2], 0.6), sphere(p, -(W - 3.3), m.hairline + 4, 2.4, 1.2));
+      case "fedora": return fedora(p)[2];
+      case "boater": return cylinder(tip(p, m.hairline, -1.5, -0.1), 0, m.hairline + 3.1, -1.5, W + 0.85, 1.3) - 0.1;
+      // A petersham band, and a flat rosette at the side.
+      case "cloche": {
+        const e = clocheEdge(p);
+        return Math.min(Math.max(clocheBell(p) - 0.4, Math.abs(p[1] - e - 3.2) - 1.1), ellipsoid(p, -W - 1.6, clocheEdge([-W, 0, 3]) + 3.5, 3, 1.2, 2.2, 2.2));
+      }
       // Low enough to stay inside the frame above the head.
       case "plume": return Math.min(ellipsoid(p, -5, m.hairline + 5, -4, 2.2, 5.5, 1.8), ellipsoid(p, -2, m.hairline + 6, -5, 2.2, 6, 1.8), ellipsoid(p, 1, m.hairline + 4.5, -5, 2, 5, 1.8));
       case "fillet": return sphere(p, 0, m.hairline + 0.5, 13.6, 1.1);
@@ -670,18 +782,18 @@ function build(m: Model): Scene {
     }
   };
   // Refined: hats a size up, made to sit over the fuller hair rather than inside it.
-  const grow = refined && ["brimmed", "bowler", "top-hat", "flat-cap", "ball-cap", "fez", "turban", "wrap", "helmet"].includes(hw) ? 1.16 : 1;
+  const grow = refined && ["brimmed", "bowler", "top-hat", "ball-cap", "fez", "turban", "wrap", "helmet"].includes(hw) ? 1.16 : 1;
   const hatAt = (p: V) => grow === 1 ? hat(p) : hat([p[0] / grow, (p[1] - m.hairline) / grow + m.hairline, (p[2] + 1.5) / grow - 1.5]) * grow;
   // Bands in the hat colour, as the sprite paints them.
   const hatMat = (): Mat => (hw === "fillet" ? MAT.metal : ["band", "plume"].includes(hw) && !refined ? MAT.trim : HAT);
-  const trimmed = ["brimmed", "bowler", "top-hat", "cap", "flat-cap", "conical", "turban", "wrap", "fez"].includes(hw);
+  const trimmed = ["brimmed", "bowler", "top-hat", "cap", "flat-cap", "conical", "turban", "wrap", "fez", "fedora", "boater", "cloche", "pillbox"].includes(hw);
   /** A hat's trim, as the sprite pins it: a feather curling up and back from the side of
    * the crown, a cockade, or a ribbon round the crown. */
   const hatTrim = (p: V): number => {
     const t = a.wearing.hatTrim;
     if (!t || t === "none" || !trimmed) return 99;
-    const W = (m.headW + (hw === "turban" ? 3 : hw === "wrap" ? 2 : 0.4)) * grow, y = m.hairline + (hw === "conical" ? 0 : 2.5);
-    if (t === "ribbon") return hw === "brimmed" || hw === "top-hat" || hw === "bowler" ? cylinder(p, 0, m.hairline + 1.6, -1.5, W, 1.3) - 0.1 : 99;
+    const W = (m.headW + (hw === "turban" ? 3 : hw === "wrap" ? 2 : ["fedora", "boater", "cloche"].includes(hw) ? 1.8 : 0.4)) * grow, y = m.hairline + (hw === "conical" ? 0 : 2.5);
+    if (t === "ribbon") return ["brimmed", "top-hat", "bowler"].includes(hw) ? cylinder(p, 0, m.hairline + 1.6, -1.5, W, 1.3) - 0.1 : 99;
     // On the front quarter of the crown, where the three-quarter view sees it.
     if (t === "cockade") return sphere(p, -W * 0.72, y + 1.5, W * 0.62, 2.3);
     return Math.min(
@@ -693,7 +805,7 @@ function build(m: Model): Scene {
 
   const earring = (p: V): number => {
     const ear = a.adornment?.ears && a.adornment.ears !== "none" ? a.adornment.ears : a.wearing.earrings ? "drop" : "none";
-    if (ear === "none" || ["hood", "headscarf", "veil", "wig"].includes(hw)) return 99;
+    if (ear === "none" || ["hood", "headscarf", "veil", "wig", "kerchief", "cloche"].includes(hw)) return 99;
     const side = refined && p[0] > 0 ? 1 : -1;
     const x = side * (m.headW + 0.2), y = -4.8 - m.old * 1.2, z = 0.8;
     switch (ear) {
@@ -746,8 +858,10 @@ function build(m: Model): Scene {
     if (c < best[0]) best = [c, garmentMat(p)];
     take(under(p), garment === "coat" ? SHIRT : INNER);
     take(shirtCollar(p), MAT.cloth);
-    take(tie(p), MAT.trim);
+    take(whiteCollar(p), SHIRT);
     take(vest(p), VEST);
+    take(bib(p), w.apron === "overalls" ? LOWER : APRON);
+    take(tie(p), MAT.trim);
     take(sash(p), CLOAK);
     const sh = shawl(p);
     if (sh < best[0]) best = [sh, shawlMat(p)];
@@ -775,7 +889,7 @@ function build(m: Model): Scene {
     // Distance out from the neck opening: cloth lies where the cut is positive.
     const edge = cut(p);
     if (garment === "wrap") return Math.abs(p[1] + 24 + (p[0] + 6) * 0.85) < 1.4 ? MAT.trim : MAT.cloth;
-    const trimmed = !["shirt", "coat", "suit"].includes(garment);
+    const trimmed = !["shirt", "coat", "suit"].includes(garment) && !collared;
     const band = garment === "robe" || garment === "open-robe" ? 2.4 : garment === "poncho" ? 0.9 : 1.3;
     if (trimmed && edge < band) return motif === "stitch" && Math.sin(p[0] * 3 + p[1] * 3) > 0.3 ? MAT.cloth : MAT.trim;
     if (garment === "open-robe" && Math.abs(p[0]) < 7.5 && p[1] < -28) return MAT.trim;
@@ -1460,7 +1574,7 @@ function accessories(r: Raster, m: Model, put: Put, visible: Find, onFace: Find)
  * on the chest and kept to cloth pixels.
  */
 function garmentDetail(r: Raster, m: Model, project: Frame["projectBody"]) {
-  const a = m.a, g = a.wearing.garment, cloth = m.ramps[MAT.cloth], trim = m.ramps[MAT.trim], metal = m.ramps[MAT.metal];
+  const a = m.a, g = garmentOf(a.wearing), cloth = m.ramps[MAT.cloth], trim = m.ramps[MAT.trim], metal = m.ramps[MAT.metal];
   const onCloth = [MAT.cloth, MAT.trim, INNER, SHIRT, CLOAK];
   const mark = (x: number, y: number, z: number, c: string) => {
     const [px, py] = project([x, y, z]);

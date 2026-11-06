@@ -570,7 +570,7 @@ it("shakes a tree's hidden find loose once, into the player's hands", () => {
   let x = 1;
   for (; x < 4000; x++) {
     plant(engine, { id: "tree", x, y: 0, sprite: "nature-silver-birch", solid: true });
-    if (engine.treeFind(x, 0)) break;
+    if (engine.treeFind(x, 0) && engine.treeFind(x, 0) !== "hive") break;
   }
   const kind = engine.treeFind(x, 0)!;
   expect(kind).toBeDefined();
@@ -582,6 +582,59 @@ it("shakes a tree's hidden find loose once, into the player's hands", () => {
   const got = runtime.treeFindEffect!.loot[0];
   expect(engine.state.player.inventory[got.item]).toBe((before[got.item] ?? 0) + got.n);
   expect(engine.treeFind(x, 0)).toBeUndefined();
+});
+
+it("knocks a wild hive down, takes its comb on F, and is stung until the bees are shaken off", () => {
+  const engine = createSession("roman", "tree-hive");
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  ground(engine);
+  let x = 1;
+  for (; x < 4000; x++) {
+    plant(engine, { id: "tree", x, y: 0, sprite: "nature-silver-birch", solid: true });
+    if (engine.treeFind(x, 0) === "hive") break;
+  }
+  const p = engine.state.player;
+  p.pos = { x: x - 1, y: 0, space: "outside" };
+  p.health = 100;
+  expect(runtime.move(1, 0)?.status).toBe("completed");
+  expect(p.inventory.honeycomb ?? 0).toBe(0);
+  expect(p.bees).toBeUndefined();
+  const verb = runtime.verbs().primary;
+  expect(verb?.label).toBe("Take the honeycomb");
+  runtime.runVerb("primary");
+  expect(p.inventory.honeycomb).toBe(2);
+  expect(runtime.treeFindEffect?.taken).toBe(true);
+  expect(engine.hiveInReach()).toBeUndefined();
+  expect(p.bees).toBeDefined();
+  engine.advance(30);
+  expect(p.health).toBeLessThan(100);
+  p.heldItem = "torch";
+  engine.advance(6);
+  expect(p.bees).toBeUndefined();
+});
+
+it("a rock landing beside people makes them jump, then run, square up or come over about it", () => {
+  const engine = createSession("roman", "near-miss");
+  const people = engine.state.actors.filter((a) => a.kind === "human").slice(0, 3);
+  ground(engine);
+  engine.state.actors = people;
+  const [timid, tough, fair] = people;
+  for (const [i, a] of people.entries()) {
+    Object.assign(a, { age: 30, health: 100, trust: 0, terror: undefined, injury: undefined, dead: undefined });
+    a.pos = { x: 4, y: i - 1, space: "outside" };
+  }
+  timid.stats = { ...timid.stats!, neuroticism: 90 };
+  tough.stats = { ...tough.stats!, neuroticism: 20, agreeableness: 0, extraversion: 100 };
+  tough.trust = -2;
+  fair.stats = { ...fair.stats!, neuroticism: 20, agreeableness: 90, extraversion: 20 };
+  holding(engine, "fieldStone");
+  engine.execute({ type: "throw", dx: 1, dy: 0, reach: 3 });
+  expect(timid.terror).toMatchObject({ cause: "fright", fight: false });
+  expect(tough.terror).toMatchObject({ fight: true });
+  expect(fair.terror).toBeUndefined();
+  expect(engine.nuisance.get(fair.id)?.what).toMatch(/nearly hit/);
+  expect(engine.lastThrow?.crumbles).toBe(true);
+  expect(engine.state.objects.some((o) => o.prop === "fieldStone")).toBe(false);
 });
 
 it("gathers a fallen log from the woodland floor into firewood", () => {

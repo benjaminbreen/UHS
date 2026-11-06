@@ -481,7 +481,7 @@ it("applies regional wardrobes to ordinary generated residents as well as scenar
   }
   const gentleman = generateCharacter(settingFor(place("paris"), 1888), "ordinary-wardrobe", "gentleman", 34, "Gentleman", "Jacques Laurent", undefined, "male");
   expect(gentleman.appearance.wearing.garment).toBe("coat");
-  expect(["bowler", "top-hat"]).toContain(gentleman.appearance.wearing.headwear);
+  expect(["bowler", "top-hat", "boater"]).toContain(gentleman.appearance.wearing.headwear);
 });
 
 it("gives new local populations varied component names while preserving unpinned naming", () => {

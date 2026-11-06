@@ -1,3 +1,4 @@
+import { setArtEra } from "../render/garment-icons";
 import { amountIn } from "../content/economy/money";
 import { TimeModal } from "./time/TimeModal";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
@@ -371,7 +372,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     const t = window.setTimeout(() => setHintsOn(false), 60_000);
     return () => window.clearTimeout(t);
   }, [hintsShown]);
-  const touchBlocked = !!modal || audioOpen || characterOpen || portraitOpen || !!card || !!inspecting || !!sky || !!task || (phone && (sheetOpen || narratorOpen || restOpen));
+  // A conversation leaves the world live, so the player can walk away from it.
+  const touchBlocked = (!!modal && modal !== "dialogue") || audioOpen || characterOpen || portraitOpen || !!card || !!inspecting || !!sky || !!task || (phone && (sheetOpen || narratorOpen || restOpen));
   useEffect(() => { if (touchBlocked) runtime.stop(); }, [touchBlocked, runtime]);
   useEffect(() => {
     if (!modal && !audioOpen && !sky && !task) return;
@@ -509,8 +511,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     runtime.engine.brokeOff = undefined;
     if (modal === "dialogue") setModal(null);
   }, [view]);
+  // Walking off mid-conversation hands the camera back to the player.
+  const walkedOff = useRef(false);
+  useEffect(() => {
+    const p = runtime.engine.state.player.pos;
+    const a = modal === "dialogue" ? runtime.engine.state.actors.find((x) => x.id === dialogueActorId) : undefined;
+    if (!a || walkedOff.current || Math.max(Math.abs(a.pos.x - p.x), Math.abs(a.pos.y - p.y)) < 3) return;
+    walkedOff.current = true;
+    lookAt();
+  }, [view]);
   useEffect(() => {
     runtime.engine.conversing = modal === "dialogue" ? (dialogueActorId ?? undefined) : undefined;
+    walkedOff.current = false;
     if (modal !== "dialogue" || !dialogueActorId) return;
     (game.current?.scene.getScene("world") as WorldScene | undefined)?.frameConversation(dialogueActorId);
     return () => lookAt();
@@ -538,8 +550,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       return "framed";
     }
   });
+  // A card waits under anything opened over the world, rather than sitting on top of it.
+  const covered = !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen;
   useEffect(() => {
-    if (card || modal) return;
+    if (card || covered) return;
     // Someone come to talk waits until the held work or passing hours are over.
     if (runtime.engine.cards[0]?.kind === "speech" && (runtime.workHold !== undefined || runtime.passing)) return;
     const next = runtime.engine.cards.shift();
@@ -547,7 +561,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     runtime.hold(true);
     setCard(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, obs.clock, modal, card, runtime.engine.cards.length, runtime.workHold, runtime.passing]);
+  }, [runtime, obs.clock, covered, card, runtime.engine.cards.length, runtime.workHold, runtime.passing]);
   const lookAt = (id?: string) =>
     (game.current?.scene.getScene("world") as WorldScene | undefined)?.lookAt(id);
   // A guard who has come down to bar your way has something to say.
@@ -918,6 +932,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       place ? interiorMusic(buildingUse(place.claim) && `${buildingUse(place.claim)} ${place.name.toLowerCase()}`, faith, place.access === "household") ?? null : "home",
     );
   }, [audio, runtime, p.pos.space, setting]);
+  // Set during render, not in an effect: the inventory's first paint already needs it.
+  setArtEra(setting?.year ?? 0, setting?.culture);
   useEffect(
     () => audio?.setSetting(setting?.culture, setting?.year, setting),
     [audio, setting?.culture, setting?.year, setting?.lon, setting?.lat],
@@ -1035,9 +1051,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           >
             {season.label}
           </em>
-          <small>{landscape}</small>
+          <small title={tradeLine && [tradeLine.text, tradeLine.title].filter(Boolean).join("\n")}>{landscape}</small>
         </p>
-        {tradeLine && <small className="place-trade" title={tradeLine.title}>{tradeLine.text}</small>}
       </div>
       <WeatherPanel
         bare={!phone}
@@ -1206,7 +1221,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four). F does the action shown on screen — talk, pick up, swing, throw or climb. E does the second action shown, such as putting down what you hold. Up a tree or on a wall, Space with a direction jumps down that side."
             tabIndex={0}
           />
-          {card && (
+          {card && !covered && (
             <PlotCard
               runtime={runtime}
               card={card}
@@ -2700,6 +2715,17 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     rel="noreferrer"
                   >
                     Terrain lab ↗
+                  </a>
+                  <a
+                    className="action settings-featured"
+                    href="/terrain-kits"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Terrain kits lab ↗
+                    <small>
+                      Ground covers by biome and use · tune and export kits
+                    </small>
                   </a>
                   <a
                     className="action settings-featured"

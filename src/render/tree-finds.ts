@@ -5,9 +5,11 @@ import type { TreeFind } from "../core/engine";
 import { flushBirds } from "./ambient-life";
 
 type Image = Phaser.GameObjects.Image;
-type Effect = { x: number; y: number; kind: TreeFind; loot: { item: string; n: number }[] };
+type Effect = { x: number; y: number; kind: TreeFind; loot: { item: string; n: number }[]; taken?: boolean };
 type View = {
   treeFind: (x: number, y: number) => TreeFind | undefined;
+  fallenHives: () => { x: number; y: number }[];
+  swarming: () => boolean;
   player: () => Image | undefined;
   brush: (cell: { x: number; y: number }, dx: number, dy: number, force: number) => void;
   spill: (at: { x: number; y: number }, loot: { item: string; n: number }[]) => void;
@@ -94,13 +96,16 @@ type Marker = {
   bees: Phaser.GameObjects.Rectangle[];
   glintAt: number;
 };
-type Swarm = { bee: Phaser.GameObjects.Rectangle; until: number; seed: number };
+type Swarm = { bee: Phaser.GameObjects.Rectangle; seed: number };
+type Fallen = { image: Image; bees: Phaser.GameObjects.Rectangle[] };
 
 /** What a tree keeps in its crown, drawn on the canopy and swaying with it,
  * and the show when it comes down: the tumble, the bounce, the birds or the
  * bees, then the loot popping out to the player. */
 export class TreeFinds {
   private markers = new Map<string, Marker>();
+  /** Hives knocked down and lying at the tree's foot until the comb is taken. */
+  private fallen = new Map<string, Fallen>();
   private swarm: Swarm[] = [];
   private live = new Set<Phaser.GameObjects.GameObject>();
 
@@ -136,6 +141,19 @@ export class TreeFinds {
         glintAt: Math.abs(jitter) * 4000,
       });
     }
+    for (const { x, y } of this.view.fallenHives()) {
+      const key = `${x},${y}`;
+      const canopy = plants.get(key)?.[0];
+      if (this.fallen.has(key) || !canopy) continue;
+      const image = this.scene.add
+        .image(canopy.x + 7, canopy.y + 2, texture(this.scene, "hive"))
+        .setOrigin(0.5, 1)
+        .setDepth(canopy.depth + 1);
+      this.fallen.set(key, { image, bees: this.hovering(image.depth) });
+    }
+  }
+  private hovering(depth: number) {
+    return Array.from({ length: 3 }, (_, i) => this.scene.add.rectangle(0, 0, 1, 1, BEE[i % 2]).setDepth(depth + 0.2));
   }
 
   update(time: number) {
@@ -158,6 +176,13 @@ export class TreeFinds {
         this.glint(x + (Math.random() - 0.5) * 6, y - 2, c.depth + 0.3);
       }
     }
+    for (const f of this.fallen.values())
+      f.bees.forEach((bee, i) => {
+        const t = time / 260 + i * 2.1;
+        bee
+          .setPosition(Math.round(f.image.x + Math.sin(t * 1.3) * 6), Math.round(f.image.y - 8 + Math.sin(t * 2.1) * 4))
+          .setDepth(f.image.depth + 0.2);
+      });
     if (this.swarm.length) this.chase(time);
   }
 
@@ -165,6 +190,7 @@ export class TreeFinds {
     const key = `${effect.x},${effect.y}`;
     const m = this.markers.get(key);
     const player = this.view.player();
+    if (effect.taken) return this.rob(key, effect, m);
     if (!m) {
       if (player) this.view.spill({ x: player.x, y: player.y - 8 }, effect.loot);
       return;
@@ -189,7 +215,8 @@ export class TreeFinds {
       return;
     }
     const image = m.image.setDepth(depth);
-    this.live.add(image);
+    if (effect.kind === "hive") this.fallen.set(key, { image, bees: m.bees });
+    else this.live.add(image);
     // Anticipation: it shudders on its branch before it lets go.
     this.scene.tweens.add({
       targets: image,
@@ -206,13 +233,13 @@ export class TreeFinds {
           rotation: side * 0.35,
           duration: 300 + Math.max(0, ground.y - from.y) * 2,
           ease: "Quad.easeIn",
-          onComplete: () => this.land(image, effect, ground, depth, m.bees),
+          onComplete: () => this.land(image, effect, ground, depth),
         });
       },
     });
   }
 
-  private land(image: Image, effect: Effect, ground: { x: number; y: number }, depth: number, bees: Phaser.GameObjects.Rectangle[]) {
+  private land(image: Image, effect: Effect, ground: { x: number; y: number }, depth: number) {
     image.setRotation(0).setOrigin(0.5, 1).setPosition(ground.x, ground.y);
     gameAudio()?.sound(landing("brush", 0.7), "find");
     this.scene.cameras.main.shake(70, 0.0014);
@@ -226,11 +253,11 @@ export class TreeFinds {
         { scaleX: 1, scaleY: 1, duration: 140, ease: "Back.easeOut" },
       ],
     });
+    if (effect.kind === "hive") return;
     this.scene.time.delayedCall(260, () => {
       gameAudio()?.sound(events.gather(), "find-jingle");
       this.burst(ground.x, ground.y - 8, depth + 2);
       this.view.spill({ x: ground.x, y: ground.y - 4 }, effect.loot);
-      if (effect.kind === "hive") this.release(bees, ground);
     });
     this.scene.tweens.add({
       targets: image,
@@ -241,7 +268,23 @@ export class TreeFinds {
       duration: 260,
       onComplete: () => this.kill(image),
     });
-    if (effect.kind !== "hive") for (const bee of bees) bee.destroy();
+  }
+
+  /** The comb comes out, whether from the hive on the ground or the one in
+   * the crown, and the bees come out with it. */
+  private rob(key: string, effect: Effect, m?: Marker) {
+    const f = this.fallen.get(key) ?? (m && { image: m.image, bees: m.bees });
+    this.fallen.delete(key);
+    this.markers.delete(key);
+    const player = this.view.player();
+    const at = f ? { x: f.image.x, y: f.image.y } : { x: player?.x ?? 0, y: player?.y ?? 0 };
+    gameAudio()?.sound(events.gather(), "find-jingle");
+    this.burst(at.x, at.y - 8, (f?.image.depth ?? at.y) + 2);
+    this.view.spill({ x: at.x, y: at.y - 4 }, effect.loot);
+    this.release(f?.bees ?? [], at);
+    if (!f) return;
+    this.live.add(f.image);
+    this.scene.tweens.add({ targets: f.image, alpha: 0, scaleX: 0.6, scaleY: 0.6, delay: 500, duration: 300, onComplete: () => this.kill(f.image) });
   }
 
   /** Fruit and cones come down one by one, each with its own bounce. */
@@ -281,24 +324,25 @@ export class TreeFinds {
     });
   }
 
-  /** The hive's bees come out angry and chase you a little way, then give up. */
+  /** The hive's bees come out angry and chase you for as long as the engine
+   * says they are after you. */
   private release(bees: Phaser.GameObjects.Rectangle[], at: { x: number; y: number }) {
-    const now = this.scene.time.now;
     for (const bee of bees) bee.destroy();
     for (let i = 0; i < 12; i++) {
       const bee = this.scene.add
         .rectangle(at.x + (Math.random() - 0.5) * 6, at.y - 4 - Math.random() * 4, 1, 1, BEE[i % 2])
         .setDepth(at.y + 6000);
       this.live.add(bee);
-      this.swarm.push({ bee, until: now + 2200 + Math.random() * 900, seed: Math.random() * 100 });
+      this.swarm.push({ bee, seed: Math.random() * 100 });
     }
     gameAudio()?.sound(buzz(), "bees");
   }
   private chase(time: number) {
     const player = this.view.player();
+    const after = this.view.swarming();
     this.swarm = this.swarm.filter((s) => {
       if (!s.bee.active) return false;
-      if (time > s.until) {
+      if (!after) {
         this.scene.tweens.add({
           targets: s.bee,
           x: s.bee.x + (Math.random() - 0.5) * 60,
@@ -402,6 +446,8 @@ export class TreeFinds {
   }
   dispose() {
     for (const key of [...this.markers.keys()]) this.remove(key);
+    for (const f of this.fallen.values()) [f.image, ...f.bees].forEach((o) => o.destroy());
+    this.fallen.clear();
     for (const o of this.live) o.destroy();
     this.live.clear();
     this.swarm = [];

@@ -19,7 +19,7 @@ const fibre: Record<Material, number> = {
   silk: 1.15,
   synthetic: 1.11,
 };
-const CLOTH_HATS = new Set(["headscarf", "veil", "hood", "turban", "wrap", "band"]);
+const CLOTH_HATS = new Set(["headscarf", "veil", "hood", "turban", "wrap", "band", "kerchief"]);
 
 function saturate(hex: string, k: number) {
   const v = parseInt(hex.slice(1), 16),
@@ -47,7 +47,11 @@ export function clothColours(w: CharacterAppearance["wearing"]) {
     hat,
     cloak: w.cloakColor,
     // Figured waistcoats in the silks of the day; plain ones a shade off the breeches.
-    vest: w.waistcoat === "figured" ? pick(["#8e2234", "#c09a3a", "#2c6448", "#e2d6bc", "#34407e"], 5) : mix(w.lowerColor, "#2a2228", 0.25),
+    vest: w.waistcoat === "figured" ? pick(["#8e2234", "#c09a3a", "#2c6448", "#e2d6bc", "#34407e"], 5)
+      // Knitting wool in the shades the mills sold it in.
+      : w.waistcoat === "cardigan" ? pick(["#8a3a3a", "#3a4a6a", "#5a6a4a", "#c8b896", "#7a5a7a", "#4a4a52", "#b07a3a"], 7)
+      : mix(w.lowerColor, "#2a2228", 0.25),
+    apron: pick(["#e8e1cf", "#d9cdb0", "#ece7da"], 0),
     shawl: pick(["#6a2e4a", "#2e4a5e", "#8a3a28", "#4a5a34", "#d8c8a8", "#3a3040"], 6),
     // A hat's trim: a dark ribbon band, a pale cockade, or a white, black or dyed feather.
     plume: w.hatTrim === "ribbon" ? (luma(hat) < 0.3 ? "#6a2a34" : "#2a2630") : w.hatTrim === "cockade" ? "#ece6d6"

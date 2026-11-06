@@ -1754,6 +1754,99 @@ ITEMS.update({
 })
 
 
+# ---- the twentieth century --------------------------------------------------
+
+def fedora(dye='#5a5048'):
+    M = Model((20, 24))
+    M.dye = dye
+    felt = M.mat(dye, 0.3)
+    R = np.hypot(M.X, M.Y * 1.12)
+    crown = (R <= 5.9 - np.clip(M.Z - 10, 0, 3) * 0.6) & (M.Z >= 4) & (M.Z <= 12.5 + np.minimum(np.abs(M.X), 3) * 0.3)
+    # The crease down the crown and the two pinches at the front.
+    crown &= ~((np.abs(M.X) < 1.3) & (M.Z > 11) & (M.Y > -4))
+    crown &= ~((M.Z > 9.5) & (M.Y < -3) & (np.abs(np.abs(M.X) - 2.8) < 1.2))
+    M.put(crown, felt)
+    # Snap brim: down at the front, up at the back.
+    zb = 4 - np.clip(-M.Y - 4, 0, 6) * 0.35 + np.clip(M.Y - 4, 0, 6) * 0.3
+    M.put((np.hypot(M.X, M.Y) <= 10) & (M.Z >= zb - 0.6) & (M.Z < zb + 0.6), felt)
+    M.put((R <= 6.2) & (R > 5.0) & (M.Z >= 4.4) & (M.Z < 6.2), M.mat('#2a2426', 0.4))
+    return M
+
+def boater(straw='#d9c27a'):
+    M = Model((20, 30))
+    M.dye = straw
+    R = np.hypot(M.X, M.Y)
+    s = M.put(((R <= 6) & (M.Z >= 4) & (M.Z <= 9)) | ((R <= 10.5) & (M.Z >= 3.6) & (M.Z < 4.7)), M.mat(straw, 0.2))
+    M.put(s & ((np.floor(R * 1.4) + np.floor(M.Z * 1.4)) % 2 == 0), M.mat(item_ramp(straw)[3]))
+    M.put((R <= 6.3) & (R > 5.2) & (M.Z >= 5) & (M.Z < 7.2), M.mat('#1e2440', 0.4))
+    return M
+
+def cloche(dye='#7a3a4a'):
+    M = Model((20, 24))
+    M.dye = dye
+    M.put(M.lathe([2, 3, 6, 10, 12.5, 13.5], [8.4, 7.6, 7.0, 6.6, 4.8, 1.8]), M.mat(dye, 0.2))
+    M.put(M.lathe([4.2, 5.8], [7.5, 7.3]), M.mat(item_ramp(dye)[3]))
+    M.put(M.ell((-5.6, -4.6, 5), (1.6, 1.1, 1.6)), M.mat('#e8dcc4', 0.3))
+    return M
+
+def beret(dye='#2a2a3a'):
+    M = Model((20, 30))
+    M.dye = dye
+    M.put(M.ell((1, 0, 7.5), (9, 8.5, 3)) | M.lathe([4, 6], [6, 6]), M.mat(dye, 0.1))
+    M.put(M.seg((1, 0, 10.3), (1.6, 0, 12), 0.5), M.mat(dye))
+    return M
+
+def kerchief(dye='#a83b34'):
+    M = Model()
+    s, body, tr = cloth_bits(M, lambda X, Z: (np.abs(X) <= (Z - 4) * 0.72) & (Z >= 4) & (Z <= 17), dye, '#efe9d8')
+    M.put(s & ((M.X + 20) % 3 < 1.1) & (M.Z % 3 < 1.1) & (M.Y < 0), tr)
+    knot = M.mat(dye)
+    for sx in (-1, 1):
+        M.put(M.seg((sx * 8.5, 0, 16.5), (sx * 11, -0.5, 13), 0.9, 0.6), knot)
+    return M
+
+def pillbox(dye='#2f4a6a'):
+    M = hat_shape(dye, ([4, 8.5], [6.2, 6.2]), None, view=(20, 30))
+    M.put(M.lathe([4, 5.2], [6.45, 6.45]), M.mat(item_ramp(dye)[3]))
+    return M
+
+def water_pail(tin='#a9b0b4', water='#5a89b0'):
+    M = Model((20, 30))
+    t = M.mat(tin, 0.7)
+    s = M.put(M.lathe([1, 15], [6, 7.6], wall=0.9), t)
+    M.put(s & ((np.abs(M.Z - 5) < 0.5) | (np.abs(M.Z - 10) < 0.5)), M.mat(item_ramp(tin)[3], 0.7))
+    M.put(M.lathe([14.6, 15.4], [8, 8]) & (np.hypot(M.X, M.Y) > 6.9), t)
+    M.put(M.lathe([12.5, 13.3], [7.2, 7.2]), M.mat(water, 0.9))
+    M.put((np.abs(np.hypot(M.X, M.Z - 15) - 7.6) < 0.45) & (np.abs(M.Y) < 0.45) & (M.Z > 15), M.mat('#6a6e74', 0.8))
+    return M
+
+def water_bottle(plastic='#c8dde6', label='#3a7fc0'):
+    M = Model((20, 16))
+    M.put(M.lathe([1, 2, 14, 16.5, 18], [3.0, 3.3, 3.3, 1.7, 1.4]), M.mat(plastic, 0.9))
+    M.put(M.lathe([6, 11], [3.45, 3.45]), M.mat(label, 0.3))
+    M.put(M.lathe([18, 20], [1.6, 1.6]), M.mat('#2f6fb0', 0.5))
+    return M
+
+def beer_bottle(glass='#6a3a1a', label='#e8d8a0'):
+    M = Model((20, 16))
+    M.put(M.lathe([1, 11, 14, 19, 20], [3.2, 3.2, 1.6, 1.3, 1.5]), M.mat(glass, 0.9))
+    M.put(M.lathe([4, 9], [3.35, 3.35]), M.mat(label, 0.2))
+    M.put(M.lathe([20, 21], [1.6, 1.6]), M.mat('#d9b35a', 0.9))
+    return M
+
+ITEMS.update({
+    'fedora': ('Fedora', fedora),
+    'boater': ('Boater', boater),
+    'cloche': ('Cloche', cloche),
+    'beret': ('Beret', beret),
+    'kerchief': ('Kerchief', kerchief),
+    'pillbox': ('Pillbox hat', pillbox),
+    'water-pail': ('Water pail', water_pail),
+    'water-bottle': ('Bottle of water', water_bottle),
+    'beer-bottle': ('Bottle of beer', beer_bottle),
+})
+
+
 def icon(M, size=48, fill=0.9, yaw=None, pitch=None, index=False):
     """The model rendered and fitted to the icon, centred on what is drawn."""
     yaw = M.view[0] if yaw is None else yaw

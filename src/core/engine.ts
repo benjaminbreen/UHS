@@ -85,7 +85,7 @@ import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, ru
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, sellsTrade, stockFor, TRADER } from "./shop";
 import { isStallholder, isWayfarer } from "../world/v3/wayfarers";
-import { wares } from "../content/economy/wares";
+import { periodLook, wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
 import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../content/economy/processes";
@@ -280,7 +280,7 @@ const BUMP_GAP = 2;
 export type TreeFind = "nest" | "hive" | "fruit" | "cones";
 const TREE_FINDS: Record<TreeFind, { loot: { item: string; n: number }[]; told: string }> = {
   nest: { loot: [{ item: "eggs", n: 3 }, { item: "feathers", n: 1 }], told: "A nest tumbles out of the branches. Three speckled eggs, unbroken!" },
-  hive: { loot: [{ item: "honeycomb", n: 2 }], told: "A wild hive drops from a hollow bough, and the bees boil out of it. Honeycomb!" },
+  hive: { loot: [], told: "A wild hive drops out of the tree and lands at its foot, humming. The bees are still on the comb." },
   fruit: { loot: [{ item: "fruit", n: 4 }], told: "Ripe fruit comes pattering down out of the crown." },
   cones: { loot: [{ item: "pinecone", n: 3 }, { item: "resin", n: 1 }], told: "Cones rattle down through the needles, sticky with resin." },
 };
@@ -588,6 +588,8 @@ export class Engine {
     const setting = this.world.pack.setting;
     if (id === "coin" && known && setting)
       return (this.money ??= { ...known, name: moneyFor(setting).name, description: moneyFor(setting).about });
+    const look = known && periodLook(id, this.world.pack.year, setting?.culture);
+    if (look) return { ...known, name: look.name, description: look.description };
     if (known) return known;
     const beast = beastOf(id);
     if (beast) return { id, name: beast.day === undefined ? beast.name : `${beast.name}, hired for the day`, sprite: "hide", value: beast.day === undefined ? beast.value : Math.ceil(beast.value / 10) };
@@ -1492,6 +1494,7 @@ export class Engine {
     guard.direction = this.directionTo(guard.pos, p.pos);
     guard.offRoutine = true;
     this.toll = { id: guard.id, coins, most, at: this.state.clock };
+    this.cue(guard.id, "halt", p.pos);
     const due = !coins ? `one ${what}` : setting ? amountIn(setting, coins, true) : coins === 1 ? "a coin" : `${coins} coins`;
     const lines = [
       `Hold on. That ${what} is coming in? Then it pays ${tollName(setting)}: ${due}.`,
@@ -1533,6 +1536,8 @@ export class Engine {
     a.offRoutine = false;
     let regard = 0, paid = 0;
     const pay = (coins: number) => {
+      if (coins) this.cue("player", "pay", a.pos);
+      this.cue(a.id, coins ? "take-coin" : "take", p.pos);
       if (!coins) {
         p.inventory[t.most] = (p.inventory[t.most] ?? 0) - 1;
         a.inventory[t.most] = (a.inventory[t.most] ?? 0) + 1;
@@ -1980,6 +1985,14 @@ export class Engine {
     }
   }
   /** Asks the renderer to act something out. Cosmetic: nothing reads it back. */
+  /** People talking or handing something over look at each other. */
+  private faceEachOther(a: Actor) {
+    const p = this.state.player;
+    p.direction = this.directionTo(p.pos, a.pos);
+    a.direction = this.directionTo(a.pos, p.pos);
+    delete p.facing;
+    delete a.facing;
+  }
   cue(who: string, cue: CueKind, toward?: Point) {
     this.signal({
       kind: "cue",
@@ -3693,7 +3706,7 @@ export class Engine {
       } else if (a.trust >= 1) {
         this.passed.set(a.id, clock + 1800);
         a.direction = this.directionTo(a.pos, p.pos);
-        this.cue(a.id, a.trust >= WARM ? "wave" : "nod", p.pos);
+        this.cue(a.id, a.trust >= WARM ? "wave" : "greet", p.pos);
       } else if (a.trust < WARY) {
         this.passed.set(a.id, clock + 1800);
         a.direction = (this.directionTo(a.pos, p.pos) + 2) % 4;
@@ -3799,7 +3812,7 @@ export class Engine {
       }
       if (a.pos.space !== p.pos.space || p.dead || distance(a.pos, p.pos) > 10) continue;
       const near = Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y));
-      a.activity = t.fight ? (this.state.clock >= (t.strikeAfter ?? 0) ? "Attacking you" : "Squaring up to you") : "Backing away";
+      a.activity = t.fight ? (this.state.clock >= (t.strikeAfter ?? 0) ? "Attacking you" : "Squaring up to you") : t.cause === "fright" ? "Running from you" : "Backing away";
       if (t.fight && near <= 1) {
         if (this.state.clock < (t.strikeAfter ?? 0)) {
           if (this.state.clock % 12 === 0) this.shovedBy(a);
@@ -3818,13 +3831,118 @@ export class Engine {
         continue;
       }
       const toward = -1;
-      const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-        .map(([dx, dy]) => ({ ...a.pos, x: a.pos.x + dx, y: a.pos.y + dy }))
-        .filter((c) => !this.blocked(c.x, c.y, c.space) && !this.actorAt(c, a.id) && !(c.x === p.pos.x && c.y === p.pos.y))
-        .sort((c1, c2) => toward * (distance(c1, p.pos) - distance(c2, p.pos)));
-      if (steps[0] && toward * (distance(steps[0], p.pos) - distance(a.pos, p.pos)) < 0) this.moveActor(a, steps[0]);
+      // Backing off is a step a tick; a fright is a run.
+      for (let i = t.cause === "fright" ? 3 : 1; i > 0; i--) {
+        const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+          .map(([dx, dy]) => ({ ...a.pos, x: a.pos.x + dx, y: a.pos.y + dy }))
+          .filter((c) => !this.blocked(c.x, c.y, c.space) && !this.actorAt(c, a.id) && !(c.x === p.pos.x && c.y === p.pos.y))
+          .sort((c1, c2) => toward * (distance(c1, p.pos) - distance(c2, p.pos)));
+        if (steps[0] && toward * (distance(steps[0], p.pos) - distance(a.pos, p.pos)) < 0) this.moveActor(a, steps[0]);
+      }
       a.direction = Math.abs(p.pos.x - a.pos.x) > Math.abs(p.pos.y - a.pos.y) ? (p.pos.x > a.pos.x ? 1 : 3) : p.pos.y > a.pos.y ? 2 : 0;
     }
+  }
+  /** Something thrown lands within a few paces of people or animals. Everyone
+   * jumps; then the timid run, the hot-tempered who don't like you come at you,
+   * and the nearest of the rest marches over to have it out. */
+  private nearMiss(at: Position, struckGroup?: string) {
+    const clock = this.state.clock, seed = this.state.manifest.seed;
+    const close = (q: Point) => Math.max(Math.abs(q.x - at.x), Math.abs(q.y - at.y)) <= 3;
+    const people = this.state.actors
+      .filter((a) => a.kind === "human" && !a.dead && !a.terror && a.id !== this.conversing && a.pos.space === at.space && close(a.pos))
+      .sort((a, b) => distance(a.pos, at) - distance(b.pos, at));
+    let spoken = !!this.approaching;
+    for (const a of people) {
+      this.cue(a.id, "alarm", at);
+      this.nuisance.set(a.id, { what: "threw a rock that nearly hit you", at: clock });
+      hear(a, { act: "nearly hit with a thrown rock", object: a.name, victim: a.id, tone: -2, at: clock, hops: 0 });
+      const age = a.age ?? 30, stats = statsOf(seed, a);
+      if (age < 14 || age >= 65 || stats.neuroticism >= 65 || (a.health ?? 100) <= 25) {
+        a.terror = { until: clock + 45, place: a.pos.space, fight: false, cause: "fright" };
+        a.offRoutine = true;
+        this.event(`${a.name} yelps and runs.`, "social");
+        continue;
+      }
+      const warmth = a.trust, friend = warmth >= 3;
+      this.regard(a, friend ? -1 : -2);
+      if (warmth < 0 && this.standsGround(a)) {
+        this.retaliate(a, false, true);
+        if (a.terror?.fight) a.terror.strikeAfter = clock + 12;
+        continue;
+      }
+      if (spoken) continue;
+      spoken = true;
+      a.offRoutine = true;
+      this.approaching = {
+        id: a.id,
+        line: friend ? "Hey! Watch where you're throwing those. You nearly hit me!" : "What do you think you're doing? That nearly took my head off!",
+        situation: `The player just threw a rock that landed right beside you and nearly hit you, and you have marched straight over about it. ${friend ? "You like them, so you are more shaken and exasperated than hostile." : "You don't much like or know them, and you are angry."} Let your temperament decide how hard you come at them. Say it to their face; do not greet them or make small talk.`,
+        until: clock + 300,
+      };
+    }
+    for (const g of this.state.fauna ?? []) {
+      if (g.id === struckGroup || aerialStates.has(g.state) || !g.members.some(close)) continue;
+      const profile = faunaProfile(g.speciesId);
+      if (!profile) continue;
+      const temper = faunaCombat(profile).temper;
+      const lead = g.members.find(close)!;
+      const charges = temper !== "bolt" && (profile.category === "wild" || random(seed, "near-miss", g.id, clock) < 0.3);
+      this.cue(`${g.id}-${lead.n}`, charges ? "anger" : "alarm", at);
+      if (charges) {
+        g.provoked = clock + 240;
+        continue;
+      }
+      g.panic = 1;
+      g.alarm = clock;
+      g.target = undefined;
+      if (profile.locomotion !== "ground-and-flight" && profile.art.flee) {
+        g.state = "flee";
+        g.since = clock;
+      }
+    }
+  }
+  /** The clock the player first walked out of earshot mid-conversation. */
+  private walkingOff?: number;
+  /** The player walking off mid-conversation. Someone who wants something of
+   * them follows a little way, then gives up; anyone else lets them go. */
+  private walkAway(clock: number) {
+    const a = this.conversing ? this.actorsById?.get(this.conversing) : undefined;
+    const p = this.state.player;
+    const gap = a && a.pos.space === p.pos.space ? distance(a.pos, p.pos) : Infinity;
+    if (!a || gap <= 3) {
+      this.walkingOff = undefined;
+      return;
+    }
+    const plot = this.state.plot;
+    const owed = !!plot && !plot.ended && (plot.owed ?? 0) > 0 && plot.cast[plotTemplate(plot)?.payee ?? "creditor"] === a.id;
+    const pursues = owed || this.approacher?.id === a.id || this.confronting === a.id || !!a.terror?.fight || (a.wronged ?? -Infinity) > clock - 300;
+    this.walkingOff ??= clock;
+    if (pursues && gap <= 8 && clock - this.walkingOff < 30) {
+      // A brisk walk: three paces a tick, the player's own walking pace.
+      for (let i = 0; i < 3 && distance(a.pos, p.pos) > 1.6; i++) {
+        // Where the player stands is the goal, even if it is a wall top or a doorstep.
+        const step = findPath(a.pos, p.pos, (x, y) => !(x === p.pos.x && y === p.pos.y) && (this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id)), 400)[0];
+        if (!step || (step.x === p.pos.x && step.y === p.pos.y)) break;
+        this.moveActor(a, { ...a.pos, ...step });
+      }
+      a.activity = "Following you";
+      return;
+    }
+    const line = owed ? "This isn't over. I'll be back for what you owe." :
+      pursues ? (a.trust < 0 ? "Don't you walk away from me!" : "Hey! I wasn't finished!") :
+      a.trust >= 3 ? "Oh. Alright then." : "Fine. Go, then.";
+    this.event(`${a.name} calls after you: “${line}”`, "social");
+    this.cue(a.id, pursues ? "anger" : "refuse", p.pos);
+    a.memories.push("The player walked off in the middle of talking to me");
+    hear(a, { act: "walked off mid-conversation with", object: a.name, victim: a.id, tone: pursues ? -2 : -1, at: clock, hops: 0 });
+    const warmth = a.trust;
+    this.regard(a, pursues || statsOf(this.state.manifest.seed, a).neuroticism >= 60 ? -2 : -1);
+    if (pursues && warmth < 0 && this.standsGround(a)) this.retaliate(a, false, true);
+    if (this.approacher?.id === a.id) this.approacher = undefined;
+    if (this.confronting === a.id) this.confronting = undefined;
+    this.brokeOff = a.id;
+    this.conversing = undefined;
+    this.walkingOff = undefined;
   }
   /** A householder's blow: a fist, or whatever they are holding. It knocks
    * the player back a step; enough of them and the player goes down, to wake
@@ -4125,11 +4243,14 @@ export class Engine {
     straight?: boolean;
     arrow?: boolean;
     sling?: boolean;
+    /** A thrown rock that broke into pieces and is gone. */
+    crumbles?: boolean;
   };
-  /** A tree that has just given up what it kept in its crown. */
-  lastTreeFind?: { x: number; y: number; kind: TreeFind; loot: { item: string; n: number }[] };
-  /** One standing tree in forty keeps something in its crown: a nest in
-   * spring, fruit or cones later in the year, a wild hive in any season. */
+  /** A tree that has just given up what it kept in its crown. `taken` is the
+   * comb pulled out of a hive, which is what sets the bees off. */
+  lastTreeFind?: { x: number; y: number; kind: TreeFind; loot: { item: string; n: number }[]; taken?: boolean };
+  /** One standing tree in twenty holds a wild hive, in any season. One in
+   * forty of the rest keeps a nest in spring, fruit or cones later on. */
   treeFind(x: number, y: number): TreeFind | undefined {
     const plant = this.world.decoration(x, y);
     const size = plantClass(plant?.sprite);
@@ -4137,11 +4258,11 @@ export class Engine {
     const edit = this.state.tiles?.[tileKey(x, y)];
     if (edit?.stage || edit?.shaken) return undefined;
     const seed = this.state.manifest.seed;
+    if (random(seed, "tree-hive", x, y) < 1 / 20) return "hive";
     if (random(seed, "tree-find", x, y) >= 1 / 40) return undefined;
     const season = seasonAt(this.world.pack.setting?.season ?? "spring", this.state.clock) ?? "spring";
     const conifer = /pine|spruce|fir|cedar|larch|conifer|cypress|juniper/.test(plant!.sprite);
     const roll = random(seed, "tree-find-kind", x, y);
-    if (roll < 0.3) return "hive";
     if (season === "winter") return undefined;
     if (season === "spring" || (season === "summer" && roll < 0.55)) return "nest";
     return conifer ? "cones" : "fruit";
@@ -4150,13 +4271,70 @@ export class Engine {
   private shakeTree(x: number, y: number) {
     const kind = this.treeFind(x, y);
     if (!kind) return false;
-    this.editAt(x, y).shaken = true;
+    const edit = this.editAt(x, y);
+    edit.shaken = true;
+    if (kind === "hive") edit.hive = true;
     const loot = TREE_FINDS[kind].loot;
     const p = this.state.player;
     for (const { item, n } of loot) p.inventory[item] = (p.inventory[item] ?? 0) + n;
     this.lastTreeFind = { x, y, kind, loot };
     this.event(TREE_FINDS[kind].told);
     return true;
+  }
+  /** The tree cell of a hive within reach to take comb from: one lying at
+   * the foot of a tree next to you, or one in the crown you are up. */
+  hiveInReach(): string | undefined {
+    const p = this.state.player;
+    if (p.pos.space !== "outside") return undefined;
+    const up = p.perch?.at;
+    if (up) return this.treeFind(up.x, up.y) === "hive" ? Engine.tileTarget(up.x, up.y) : undefined;
+    const ahead = this.facingCell();
+    for (const q of [ahead, ...[-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dy) => ({ x: p.pos.x + dx, y: p.pos.y + dy })))])
+      if (this.state.tiles?.[tileKey(q.x, q.y)]?.hive) return Engine.tileTarget(q.x, q.y);
+    return undefined;
+  }
+  /** Cells where a knocked-down hive still lies with its comb in it. */
+  fallenHives(): Point[] {
+    return Object.entries(this.state.tiles ?? {})
+      .filter(([, e]) => e.hive)
+      .map(([k]) => this.tileAt(`tile:${k}`)!);
+  }
+  private robHive(target: string) {
+    const at = this.tileAt(target)!;
+    const p = this.state.player;
+    const edit = this.editAt(at.x, at.y);
+    edit.shaken = true;
+    delete edit.hive;
+    const loot = [{ item: "honeycomb", n: 2 }];
+    for (const { item, n } of loot) p.inventory[item] = (p.inventory[item] ?? 0) + n;
+    this.lastTreeFind = { ...at, kind: "hive", loot, taken: true };
+    p.bees = { until: this.state.clock + 60, at };
+    this.event("You pull the honeycomb out, and the bees pour out after you. Run!");
+    this.advance(4);
+  }
+  /** An angry swarm, each tick. Shut a door on it, get into the water,
+   * smoke it off with a torch or outrun it; otherwise it stings. */
+  private beeStep(now: number) {
+    const p = this.state.player;
+    const bees = p.bees;
+    if (!bees) return;
+    const away = Math.max(Math.abs(p.pos.x - bees.at.x), Math.abs(p.pos.y - bees.at.y));
+    const lost =
+      p.pos.space !== "outside" ? "You shut the bees out." :
+      p.afloat ? "The bees lose you on the water." :
+      p.heldItem === "torch" ? "The smoke from your torch drives the bees off." :
+      away > 12 ? "You outrun the bees. They drift back to their comb." :
+      now >= bees.until ? "The bees give up and drift back to their comb." : undefined;
+    if (lost) {
+      delete p.bees;
+      this.event(lost);
+      return;
+    }
+    if (random(this.state.manifest.seed, "sting", now) >= 0.7) return;
+    const damage = 2 + Math.floor(random(this.state.manifest.seed, "sting-hurt", now) * 3);
+    this.flinch(p.pos);
+    this.event(`A bee stings you! (-${damage})`);
+    this.hurt(damage, "bee stings");
   }
   /** The last animal walked into, for the hop it makes out of the way.
    * `yielded` is false when it stood its ground. */
@@ -6358,6 +6536,8 @@ export class Engine {
       return this.toolProblem(c.action, c.target);
     if (c.type === "interact" && c.action === "heave")
       return this.heaveProblem(c.target);
+    if (c.type === "interact" && c.action === "rob")
+      return c.target === this.hiveInReach() ? undefined : "There is no hive within reach.";
     if (c.type === "interact" && c.action === "enter" && this.burningPlace(c.target))
       return "It is on fire.";
     if (c.type === "interact" && c.action === "talk") {
@@ -7037,6 +7217,9 @@ export class Engine {
         rng: (purpose) => this.rng(purpose),
         hour: (clock / 3600) % 24,
         habitat: (this.habitat ??= habitatScorer(this.world)),
+        crop: (x, y) => standingCrop(this.world, x, y),
+        carrion: this.state.objects.filter((o) => o.remains === "carcass").map((o) => o.pos),
+        ...this.faunaSky(clock),
         noise: this.noise(),
         dodging: clock - this.lastJump <= 6,
         onMaul: (g, m, dir, damage) => this.mauled(g, m, dir, damage),
@@ -7048,9 +7231,6 @@ export class Engine {
             remainsObject(kind, prey.speciesId, g.speciesId, pos, clock, `remains-${prey.id}-${clock}`),
           );
         },
-        crop: (x, y) => standingCrop(this.world, x, y),
-        carrion: this.state.objects.filter((o) => o.remains === "carcass").map((o) => o.pos),
-        ...this.faunaSky(clock),
         canDig: (x, y) =>
           !this.state.tiles?.[tileKey(x, y)]?.dug &&
           !this.cropAt(x, y) &&
@@ -7792,8 +7972,13 @@ export class Engine {
       }
       // A pot that bursts gives up what it held, as one broken by a swing does.
       const loot = bursts ? this.spill(prop) : [];
+      if (distance) this.nearMiss(prop.pos, struck?.group);
       const impactKind = struck ? "flinch" : kind;
+      // A lifted rock comes down in pieces, as rocks do in arcade games.
+      const crumbles = prop.prop === "fieldStone" && !!distance && landing?.kind !== "sink" && kind !== "splash";
+      if (crumbles) this.state.objects = this.state.objects.filter((o) => o !== prop);
       this.lastThrow = {
+        crumbles,
         creature: struck,
         id: prop.id,
         small: !!item,
@@ -7817,6 +8002,8 @@ export class Engine {
         this.event(
           `You hurl ${prop.name.toLowerCase()}. It shatters where it lands.`,
         );
+      else if (crumbles)
+        this.event(`You hurl the rock. It breaks apart where it lands.`);
       else if (landing?.kind === "sink")
         this.event(
           `You hurl ${prop.name.toLowerCase()}. It goes under and does not come back.`,
@@ -8124,6 +8311,8 @@ export class Engine {
       const a = this.state.actors.find((a) => a.id === c.target)!;
       const def = this.item(c.item)!;
       delete p.heldItem;
+      this.faceEachOther(a);
+      this.cue(a.id, c.item === "coin" ? "take-coin" : "take", p.pos);
       a.inventory[c.item] = (a.inventory[c.item] ?? 0) + 1;
       // Someone hungry eats what they are handed, there and then.
       if (def.edible && a.hunger > 40) {
@@ -8303,6 +8492,8 @@ export class Engine {
         else stock[id] = (stock[id] ?? 0) - n;
       }
       a.shop = { day: shop.day, stock, purse, opening: shop.opening };
+      this.faceEachOther(a);
+      this.cue(a.id, c.give.coin ? "take-coin" : "take", p.pos);
       if (this.state.goalFlags) this.state.goalFlags.traded = true;
       this.advance(60, a.id);
       this.regard(a, this.knows("fair-dealer") ? 2 : 1);
@@ -8324,6 +8515,8 @@ export class Engine {
       a.inventory[c.give] = (a.inventory[c.give] ?? 0) + c.giveQuantity;
       a.inventory[c.take] = (a.inventory[c.take] ?? 0) - c.takeQuantity;
       p.inventory[c.take] = (p.inventory[c.take] ?? 0) + c.takeQuantity;
+      this.faceEachOther(a);
+      this.cue(a.id, c.give === "coin" ? "take-coin" : "take", p.pos);
       this.advance(60, a.id);
       this.regard(a, this.knows("fair-dealer") ? 2 : 1);
       this.grantXp(
@@ -8367,11 +8560,8 @@ export class Engine {
             (this.state.goalFlags.talkedTo ??= []).push(a.id);
           }
           this.advance(90, a.id);
-          // People talking look at each other.
-          p.direction = this.directionTo(p.pos, a.pos);
-          a.direction = this.directionTo(a.pos, p.pos);
-          delete p.facing;
-          delete a.facing;
+          this.faceEachOther(a);
+          if (a.trust >= 0) this.cue(a.id, "greet", p.pos);
           if (a.trust >= 0)
             this.regard(
               a,
@@ -8405,6 +8595,7 @@ export class Engine {
       case "pay":
         if (a) {
           const given = this.settle(p.inventory, a, this.payable());
+          this.cue(a.id, "take-coin", p.pos);
           this.advance(30, a.id);
           this.regard(a, 1);
           const owed = this.state.plot?.owed ?? 0;
@@ -8575,6 +8766,9 @@ export class Engine {
         break;
       case "heave":
         this.heave(c.target);
+        break;
+      case "rob":
+        this.robHive(c.target);
         break;
       case "light":
         this.lightTorch(o!);
@@ -10875,6 +11069,7 @@ export class Engine {
       this.passersBy();
       if (next % 600 === 0) this.runIndoors(next);
       this.confront(next);
+      this.beeStep(next);
       if (next % 300 === 0) this.roadEncounter();
       if (this.state.encounter) break;
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
@@ -10886,8 +11081,9 @@ export class Engine {
         const season = seasonAt(this.world.pack.setting.season, next);
         for (const o of this.resourceObjects) refreshResource(o, next, season);
       }
+      this.walkAway(next);
       const partner = this.conversing ? actors.find((a) => a.id === this.conversing) : undefined;
-      if (partner && partner.pos.space === player.pos.space) player.direction = this.directionTo(player.pos, partner.pos);
+      if (partner && partner.pos.space === player.pos.space && distance(partner.pos, player.pos) <= 3) player.direction = this.directionTo(player.pos, partner.pos);
       for (const a of actors) {
         if (a.id === heldActor) continue;
         if (a.id === this.conversing && a.pos.space === player.pos.space) {

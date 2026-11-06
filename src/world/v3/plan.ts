@@ -142,6 +142,8 @@ import {
   genericCamp,
   lifeway,
 } from "../../content/settlements/lifeways";
+import { landmarkTree } from "../../content/settlements/landmark-trees";
+import { crownRadius } from "./vegetation-spacing";
 import {
   buildingPlacementEnvelope,
   claimEnvelope,
@@ -544,6 +546,17 @@ export function planSettlement(
             width ? 2 : 1,
             organic && !label.startsWith("worksite-") ? seed : undefined,
           );
+    // A track that reaches the network ends there, rather than riding the
+    // street's edge to its goal as a second ribbon beside it.
+    if (road && !access && !road.width && road.kind !== "bridge" && !roads.has(cellKey(road.points[0].x, road.points[0].y))) {
+      const join = road.points.findIndex((p) => roads.has(cellKey(p.x, p.y)));
+      const at = road.points[join];
+      let centre: Point | undefined;
+      for (let r = 0; join > 0 && r <= 2 && !centre; r++)
+        for (const [dx, dy] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]])
+          if (!centre && centers.has(cellKey(at.x + dx, at.y + dy))) centre = { x: at.x + dx, y: at.y + dy };
+      if (centre) road.points = [...road.points.slice(0, join), ...line(at, centre)];
+    }
     if(preview)return road;
     // A composed town's footway already serves the door; an access path
     // painted over it only cut dirt notches into the street.
@@ -906,8 +919,9 @@ export function planSettlement(
     urban && composed ? { ...publicArea, w: 0, h: 0 } : publicArea,
     (x, y) => {
       if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
-        // A camp's middle is trodden grass round the fire, not a square.
-        if (!camp)
+        // A camp's middle is trodden grass round the fire, not a square; so is
+        // an unpaved village's common, whose wear the generator draws soft.
+        if (!camp && (urban || profile.paved))
           setSurface(cellKey(x, y), profile.paved ? "paving" : "dirt", 9);
         plan.reserved.add(cellKey(x, y));
         roads.add(cellKey(x, y));
@@ -998,7 +1012,7 @@ export function planSettlement(
           const at = { x: x + 1, y: y + 1 };
           plan.solid.add(cellKey(at.x, at.y));
           plan.objects.push({ id: `${site.id}-square-tree-${i}-${j}`, name: "Square tree",
-            kind: "tree", pos: pos(at), sprite: pack.trees[0], inventory: {}, claim: "landscape" });
+            kind: "tree", pos: pos(at), sprite: landmarkTree(pack.setting, "common") ?? pack.trees[0], inventory: {}, claim: "landscape" });
           place(`bench-${i}-${j}`, "Park bench", furniture?.bench ?? "study-propb-park-bench-0", { x: x + 1, y: y + 4 }, 3);
         }
         const lamp = lampFor(pack);
@@ -1047,7 +1061,7 @@ export function planSettlement(
           name: "Square tree",
           kind: "tree",
           pos: pos(at),
-          sprite: pack.trees[0],
+          sprite: landmarkTree(pack.setting, "common") ?? pack.trees[0],
           inventory: {},
         });
         return true;
@@ -1536,7 +1550,7 @@ export function planSettlement(
           name: "Square tree",
           kind: "tree",
           pos: pos({ x: cx, y: cy }),
-          sprite: pack.trees[0],
+          sprite: landmarkTree(pack.setting, "common") ?? pack.trees[0],
           inventory: {},
         });
       } else if (spec.focus && ornaments[spec.focus]) {
@@ -3957,8 +3971,9 @@ export function planSettlement(
     );
   }
   // Before lawns, the ground in front of a door and between houses that
-  // stand close was trodden to earth: in patches, the more the closer.
-  if ((pack.setting?.year ?? 0) < 1900 && !(urban && cityGround === "paving")) {
+  // stand close was trodden to earth: in patches, the more the closer. A
+  // village's wear is drawn soft by the generator instead; these are whole cells.
+  if ((pack.setting?.year ?? 0) < 1900 && urban && cityGround !== "paving") {
     const crowd = new Map<string, number>();
     const houses = plan.places.slice(worksites);
     for (const b of houses)
@@ -5112,7 +5127,7 @@ export function planSettlement(
               name: "Churchyard tree",
               kind: "tree",
               pos: pos(at),
-              sprite: pack.trees[m % pack.trees.length],
+              sprite: landmarkTree(pack.setting, "shrine") ?? pack.trees[m % pack.trees.length],
               inventory: {},
             }
           : {
@@ -5565,8 +5580,126 @@ export function planSettlement(
         clearance: propVisualCells(object.prop, object.pos, object.sprite),
       });
   }
+  /** Before the industrial age stone went where the traffic went: the
+   * carriageway, the walk along its fronts, a square. Courts, back ground and
+   * paved-over pockets were beaten earth, so the streets read as streets. */
+  function unpaveBackland() {
+    const way = new Set<string>();
+    for (const r of plan.roads) if (r.kind !== "bridge") roadCells(r, (x, y) => way.add(cellKey(x, y)));
+    for (const k of plan.lanes?.keys() ?? []) way.add(k);
+    // A block town's carriageway is paving with no role, laid without a route.
+    for (const [k, t] of plan.surface) if (t === "paving" && !plan.pavement?.get(k)) way.add(k);
+    const near = (x: number, y: number) => {
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++) if (way.has(cellKey(x + dx, y + dy))) return true;
+      return false;
+    };
+    for (const [k, t] of plan.surface) {
+      if (t !== "paving" || way.has(k) || plan.solid.has(k)) continue;
+      const role = plan.pavement?.get(k);
+      if (!role || ["square", "dais", "platform", "rail", "lane"].includes(role)) continue;
+      const [x, y] = k.split(",").map(Number);
+      if ((role === "footway" || role === "court") && near(x, y)) continue;
+      plan.surface.set(k, "dirt");
+      plan.pavement!.set(k, "yard");
+      plan.streetSurfaces?.delete(k);
+    }
+  }
+  /** A neighbourhood street is laid toward an anchor before any house; where
+   * no house, work spot or other road came to it, the tail runs out in grass. */
+  function pruneStubs() {
+    const used = new Set<string>();
+    const mark = (p: Point, reach: number) => {
+      for (let dy = -reach; dy <= reach; dy++)
+        for (let dx = -reach; dx <= reach; dx++) used.add(cellKey(p.x + dx, p.y + dy));
+    };
+    for (const b of plan.places) {
+      mark(b.entrance, 2);
+      eachCell({ x: b.x - 1, y: b.y - 1, w: b.w + 2, h: b.h + 2 }, (x, y) => used.add(cellKey(x, y)));
+    }
+    for (const w of plan.work.values()) for (const p of [w.work, w.water, w.social]) mark(p, 2);
+    for (const k of plan.fields?.keys() ?? []) used.add(k);
+    const stubs = plan.roads.filter((r) => r.kind !== "bridge" && /-neighborhood\d+$/.test(r.id));
+    for (const road of stubs) {
+      const others = new Set<string>();
+      for (const r of plan.roads) if (r !== road) roadCells(r, (x, y) => others.add(cellKey(x, y)));
+      const near = (p: Point) => {
+        for (let dy = -road.width - 1; dy <= road.width + 1; dy++)
+          for (let dx = -road.width - 1; dx <= road.width + 1; dx++) {
+            const k = cellKey(p.x + dx, p.y + dy);
+            if (used.has(k) || others.has(k)) return true;
+          }
+        return false;
+      };
+      // The anchor is whichever end nothing reached.
+      const tailAtEnd = !near(road.points.at(-1)!);
+      if (!tailAtEnd && near(road.points[0])) continue;
+      const pts = tailAtEnd ? [...road.points].reverse() : [...road.points];
+      let cut = 0;
+      while (cut < pts.length - 1 && !near(pts[cut])) cut++;
+      if (!cut) continue;
+      const kept = pts.slice(cut);
+      const drop = new Set<string>();
+      roadCells({ ...road, points: pts.slice(0, cut + 1) }, (x, y) => drop.add(cellKey(x, y)));
+      // A court laid round the anchor goes with it.
+      const end = pts[0];
+      for (let dy = -4; dy <= 4; dy++)
+        for (let dx = -4; dx <= 4; dx++) {
+          const k = cellKey(end.x + dx, end.y + dy);
+          if (roads.has(k) && !centers.has(k)) drop.add(k);
+        }
+      road.points = tailAtEnd ? kept.reverse() : kept;
+      const keep = new Set(others);
+      if (road.points.length > 1) roadCells(road, (x, y) => keep.add(cellKey(x, y)));
+      else plan.roads.splice(plan.roads.indexOf(road), 1);
+      for (const k of drop) {
+        if (keep.has(k) || used.has(k) || plan.solid.has(k)) continue;
+        roads.delete(k);
+        centers.delete(k);
+        ranks.delete(k);
+        plan.surface.delete(k);
+        plan.pavement?.delete(k);
+        plan.streetSurfaces?.delete(k);
+      }
+    }
+  }
+  // The tree a place keeps on purpose: by its well or meeting ground, and at
+  // its sanctuary. Herders and bands move on before one is theirs.
+  if (!urban && !(camp && /mobile|nomadic/.test(camp.mode))) {
+    const plant = (near: Point, role: "common" | "shrine") => {
+      const sprite = landmarkTree(pack.setting, role);
+      if (!sprite) return;
+      const spots: Point[] = [];
+      // A wide crown needs to look further out for room.
+      const reach = 8 + Math.ceil(crownRadius(sprite));
+      for (let dy = -reach; dy <= reach; dy++)
+        for (let dx = -reach; dx <= reach; dx++)
+          if (Math.hypot(dx, dy) >= 3 && Math.hypot(dx, dy) <= reach) spots.push({ x: near.x + dx, y: near.y + dy });
+      const score = (p: Point) => Math.hypot(p.x - near.x, p.y - near.y) + rand("landmark", role, p.x, p.y) * 3;
+      spots.sort((a, b) => score(a) - score(b));
+      for (const at of spots) {
+        const k = cellKey(at.x, at.y);
+        if (roads.has(k) || plan.reserved.has(k) || plan.solid.has(k) || sample(at.x, at.y).water < 4) continue;
+        const envelope = treePlacementEnvelope(sprite, at);
+        if ([...envelope.occupied, ...envelope.clearance].some((p) => {
+          const q = cellKey(p.x, p.y);
+          return plan.built?.has(q) || plan.placement.occupied.has(q) || plan.placement.access.has(q) ||
+            plan.placement.clearance.has(q) || cultivatedAt(plan, p.x, p.y);
+        })) continue;
+        plan.solid.add(k);
+        claimEnvelope(plan.placement, envelope);
+        (plan.landmarks ??= new Map()).set(k, sprite);
+        return;
+      }
+    };
+    plant(c, "common");
+    const sanctuary = plan.places.find((p) => p.claim.startsWith("religious-"));
+    if (sanctuary) plant({ x: sanctuary.x + (sanctuary.w >> 1), y: sanctuary.y + sanctuary.h }, "shrine");
+  }
+  if (organic && !urban) pruneStubs();
   tidyGround(plan, roads);
   if (palette) stepGround(plan, roads, seed, infillStone(palette), footwaySurface !== "earth" && footwaySurface !== "plank" ? squareStone : undefined);
+  if (profile.paved && !industrialAge) unpaveBackland();
   footTraffic(plan.roads);
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);

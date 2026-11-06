@@ -138,6 +138,18 @@ export const headwear = [
   "eagle",
   /** The Chinese official's black gauze cap with a wing either side. */
   "official-cap",
+  /** Soft felt, the crown creased and pinched at the front, a snap brim: 1910s–1960s. */
+  "fedora",
+  /** Stiff straw, flat crown, flat brim, a ribbon round it: 1880s–1930s summer. */
+  "boater",
+  /** A felt bell pulled down to the brows: women, 1920s–early 1930s. */
+  "cloche",
+  /** A soft round of felt worn tipped to one side. */
+  "beret",
+  /** A square folded and knotted under the chin, the front of the hair showing. */
+  "kerchief",
+  /** A small brimless drum set back on the head: women, 1930s–1960s. */
+  "pillbox",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -154,6 +166,9 @@ export const motifs = [
   "plaid",
   /** Contrast shoulders and a chest number: the sports jersey. */
   "jersey",
+  /** A white turned-down collar and a short button front: the shirtwaist and
+   * the house dress. */
+  "collar",
 ] as const;
 /** What covers the leg between hem and ankle. */
 export const leggings = [
@@ -177,13 +192,17 @@ export const footwear = [
 export const eyewear = ["none", "glasses", "sunglasses"] as const;
 /** Worn over the garment at work: linen for the kitchen and the shop, leather
  * where sparks and blades fly. */
-export const aprons = ["none", "cloth", "leather"] as const;
+export const aprons = ["none", "cloth", "leather",
+  /** A bibbed wrap apron over the whole front, ties at the back: the house and the laundry, 1880s–1960s. */
+  "pinafore",
+  /** Bib-and-brace denim over the shirt, in the trouser cloth. */
+  "overalls"] as const;
 /** Carried at the hip: a purse on the belt, a satchel on a strap. */
 export const bags = ["none", "purse", "satchel"] as const;
 export const wristwear = ["none", "bangles"] as const;
 /** Round the neck above the garment: a working neckerchief, a starched ruff,
  * a gentleman's cravat. */
-export const neckwear = ["none", "neckerchief", "ruff", "cravat"] as const;
+export const neckwear = ["none", "neckerchief", "ruff", "cravat", "necktie", "bow-tie"] as const;
 /** Patterns worked into the trim: embroidered, woven in, or block-printed.
  * The drawing is a small repeating tile; which tile a place used is in the
  * wardrobe kits. */
@@ -192,8 +211,9 @@ export const neckwear = ["none", "neckerchief", "ruff", "cravat"] as const;
 export const hairOrnaments = ["none", "comb", "pins", "flower", "net", "ribbon"] as const;
 /** On a hat: a feather, a cockade, a ribbon band. */
 export const hatTrims = ["none", "feather", "cockade", "ribbon"] as const;
-/** A sleeveless layer over the shirt: plain cloth, or figured silk and brocade. */
-export const waistcoats = ["none", "plain", "figured"] as const;
+/** A sleeveless layer over the shirt: plain cloth, or figured silk and brocade.
+ * A cardigan is the knitted one with sleeves. */
+export const waistcoats = ["none", "plain", "figured", "cardigan"] as const;
 /** A square of cloth worn over the shoulders and crossed or knotted at the front. */
 export const shawls = ["none", "plain", "fringed", "patterned"] as const;
 /** A hood lying back on the shoulders; worn up, it is the `hood` headwear. */
@@ -382,7 +402,8 @@ export const wearSlots = [
   "eyes",
 ] as const;
 export type WearSlot = (typeof wearSlots)[number];
-export const hemStyles = ["plain", "split", "slanted"] as const;
+/** `calf` is the twentieth century's: a dress or skirt stopping below the knee over stockings. */
+export const hemStyles = ["plain", "split", "slanted", "calf"] as const;
 export type CharacterPhysique = {
   strength: number;
   sex: "unspecified" | "male" | "female";

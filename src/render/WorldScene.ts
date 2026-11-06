@@ -143,6 +143,7 @@ import {
   cockCrow,
   thump,
   footstep,
+  type DungStep,
   type FungusStep,
   landing,
   scramble,
@@ -150,6 +151,7 @@ import {
   takeoff,
 } from "../audio/sfx";
 import { beastVoiceOf, voiceOf } from "../audio/voices";
+import { DUNG_DRY_HOURS, DUNG_FRESH_HOURS } from "../content/fauna/dung";
 import type { HitClass } from "../core/reactions";
 import { hash, random } from "../core/random";
 import { VoxelLife, voxelLamps, voxelWeather, type VoxelModel } from "./voxel-life";
@@ -189,6 +191,11 @@ const flyProps: Record<string, number> = {
 const fungusSteps: Record<string, FungusStep> = {
   puffball: "puff",
   "reindeer-lichen": "lichen",
+  stinkhorn: "slime",
+  "wood-ear": "slime",
+  "cup-fungus": "pop",
+  "fairy-ring": "pop",
+  psilocybe: "pop",
 };
 const DUST = [0x9c8c6a, 0xbcae8c, 0x7d7054];
 /** A jump pressed this long before the previous move ends still fires, so a
@@ -233,6 +240,10 @@ const SKID_MS = 140;
 const WALL_RUN_MS = 150,
   WALL_KICK_WINDOW_MS = 320;
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
+/** The conversation's reply box with nothing typed in it yet: the arrows
+ * still walk from there, so the player can turn their back mid-talk. */
+const walkableBox = (el: Element | null) =>
+  el instanceof HTMLInputElement && el.dataset.walkable !== undefined && !el.value;
 const DIRECTION_KEYS = [
   "arrowleft",
   "arrowright",
@@ -251,6 +262,7 @@ import {
 import { SNOW_SHADOW } from "./shadow-style";
 import { cloudWash, gradeAt, lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
 import { windowGlow } from "./window-light";
+import { greetingFor, twoHanded } from "../content/characters/greetings";
 import { buildingSnowBank, buildingWear } from "./building-wear";
 import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
@@ -332,6 +344,8 @@ const WALK_RISE = { wall: 44, tower: 58, gate: 74 } as const;
 const STAIR_RISE = [0, 15, 28, 42];
 /** How far off the cell centre a diagonal's band runs, by the corner it crosses. */
 const WALK_CORNER = { nw: [-4, -4], ne: [4, -4], se: [4, 4], sw: [-4, 4] } as const;
+/** Someone minding a stall or a shop counter, who serves whoever stops at it. */
+const keeps = (a: Ambient) => a.activity === "work" && /sell|stall|market|shop|trading/i.test(a.label);
 const ambientPoses: Record<StationActivity, CharacterPose> = {
   rest: "sit",
   work: "work",
@@ -558,6 +572,11 @@ export class WorldScene extends Phaser.Scene {
       entityAt: (id) => this.entities.get(id),
       playerPose: (pose) => this.runtime.playPose(pose),
       collided: (who, dx, dy, run) => this.collided(who, dx, dy, run),
+      greeting: (who) => {
+        const a = this.humanActors.get(who);
+        const pose = greetingFor(this.runtime.engine.state.manifest.setting, a?.origin?.sex === "female");
+        return twoHanded.has(pose) && (this.heldSprites.has(who) || (this.loadWeights.get(who) ?? 0) > 0) ? "bow" : pose;
+      },
     }));
   }
   private feelFx?: PlayerFeel;
@@ -976,15 +995,15 @@ export class WorldScene extends Phaser.Scene {
       if (this.options.lab || event.metaKey || event.ctrlKey || event.altKey)
         return;
       const active = document.activeElement;
+      const key = event.key.toLowerCase();
       if (
-        active instanceof HTMLInputElement ||
+        ((active instanceof HTMLInputElement && !(walkableBox(active) && key.startsWith("arrow"))) ||
         active instanceof HTMLTextAreaElement ||
         active instanceof HTMLSelectElement ||
         (active instanceof HTMLElement && active.isContentEditable) ||
-        this.modalOpen
+        this.modalOpen)
       )
         return;
-      const key = event.key.toLowerCase();
       const steering = DIRECTION_KEYS.includes(key);
       if (steering) {
         event.preventDefault();
@@ -1960,6 +1979,7 @@ export class WorldScene extends Phaser.Scene {
     const { hit } = engine.hitClass(cell.x, cell.y, cell.space);
     // Grass tufts stay silent: they cover every meadow.
     const through =
+      this.dungUnderfoot(cell) ??
       this.fungusUnderfoot(cell) ??
       (hit === "brush" || hit === "crop"
         ? hit
@@ -1981,16 +2001,24 @@ export class WorldScene extends Phaser.Scene {
   private fungusUnderfoot(cell: { x: number; y: number; space: string }) {
     if (cell.space !== "outside") return undefined;
     const engine = this.runtime.engine;
-    if (
-      engine.state.objects.some(
-        (o) => o.dung === "pat" && !o.carriedBy && o.pos.space === "outside" && o.pos.x === cell.x && o.pos.y === cell.y,
-      )
-    )
-      return "squish";
     const sprite = engine.world.decoration(cell.x, cell.y)?.sprite;
     if (sprite !== "nature-understory-fungi") return undefined;
     const id = engine.plantSpecies(sprite, cell.x, cell.y)?.id;
     return id ? (fungusSteps[id] ?? "squish") : undefined;
+  }
+  /** What dung a foot comes down in, by kind and how far it has dried. */
+  private dungUnderfoot(cell: { x: number; y: number }): DungStep | FungusStep | undefined {
+    const { objects, clock } = this.runtime.engine.state;
+    const dung = objects.find(
+      (o) => o.dung && !o.carriedBy && o.pos.space === "outside" && o.pos.x === cell.x && o.pos.y === cell.y,
+    );
+    if (!dung) return undefined;
+    const hours = (clock - (dung.laid ?? clock)) / 3600;
+    if (dung.dung === "pellets") return "pellets";
+    if (dung.dung === "droppings") return "squish";
+    if (hours >= DUNG_DRY_HOURS) return "crumble";
+    if (dung.dung === "pile") return "squelch";
+    return hours >= DUNG_FRESH_HOURS ? "crust" : "splat";
   }
   /** Spores and flies stirred by a foot on a fungus. */
   private stirFungus(x: number, y: number, step: FungusStep, id: string) {
@@ -2143,7 +2171,7 @@ export class WorldScene extends Phaser.Scene {
     this.noticedAt.set(id, time);
     this.near.add(id);
     const trust = this.humanActors.get(id)?.trust ?? 0;
-    this.cues.react(id, trust >= 2 ? "wave" : trust >= 0 ? "nod" : "notice", { x: (me.x - 8) / 16, y: (me.y - 16) / 16 });
+    this.cues.react(id, trust >= 2 ? "wave" : trust >= 0 ? "greet" : "notice", { x: (me.x - 8) / 16, y: (me.y - 16) / 16 });
   }
   private onlookers(x: number, y: number, tiles: number, kind: CueKind) {
     const toward = { x: (x - 8) / 16, y: (y - 16) / 16 };
@@ -6012,10 +6040,11 @@ export class WorldScene extends Phaser.Scene {
         ? Math.min(count - 1, Math.floor((this.time.now - began) / ms))
         : Math.floor((stride ?? this.time.now / ms) + phase) % count;
     // A profile drawn with another species' study names that species in its
-    // frames: "faunac-horse-idle-south-0" for a wild horse.
+    // frames: "faunac-horse-idle-south-0" for a wild horse, "fauna-crow-forage-0"
+    // for a rook.
     const first = profile?.art[state]?.[0]?.split("-");
-    if (profile?.directions && first && art === species)
-      art = first.slice(1, -3).join("-");
+    if (first && art === species)
+      art = first.slice(1, profile?.directions ? -3 : -2).join("-");
     return profile?.directions
       ? `${first?.[0] ?? "faunac"}-${art}-${state}-${facing}-${n}`
       : `faunab-${art}-${state}-${n}`;
@@ -6549,6 +6578,8 @@ export class WorldScene extends Phaser.Scene {
     this.toolEffects.update(time);
     this.treeFinds ??= new TreeFinds(this, {
       treeFind: (x, y) => this.runtime.engine.treeFind(x, y),
+      fallenHives: () => this.runtime.engine.fallenHives(),
+      swarming: () => !!this.runtime.engine.state.player.bees,
       player: () => this.entities.get("player"),
       brush: (cell, dx, dy, force) => this.toolEffects?.brush(cell, dx, dy, force),
       spill: (at, loot) => this.toolEffects?.spill(at, loot),
@@ -6629,7 +6660,7 @@ export class WorldScene extends Phaser.Scene {
     mark("wind");
     const active = document.activeElement;
     const typing =
-      active instanceof HTMLInputElement ||
+      (active instanceof HTMLInputElement && !walkableBox(active)) ||
       active instanceof HTMLTextAreaElement ||
       active instanceof HTMLSelectElement ||
       (active instanceof HTMLElement && active.isContentEditable) ||
@@ -6950,6 +6981,8 @@ export class WorldScene extends Phaser.Scene {
         const work = id !== "player" && at && !moving && !this.options.freeze
           ? this.workMotion(id, at, time, human.origin?.livelihood, human.heldItem) : undefined;
         const use = id !== "player" && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
+        const pair = !moving && !active && !winding && !landed && !stunt && !seat && !use ? this.together(id, at, time) : undefined;
+        this.standApart(id, im, pair?.im, moving);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active || winding) pose = action!.pose;
         else if (landed) pose = after;
@@ -6958,6 +6991,7 @@ export class WorldScene extends Phaser.Scene {
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
         else if (seat) pose = seat.seated ? "sit" : "idle";
         else if (human.errand?.pose && human.pos.x === human.errand.to.x && human.pos.y === human.errand.to.y) pose = human.errand.pose;
+        else if (pair) pose = pair.pose;
         else if (at) pose = work?.pose ?? this.ambientPose(id, at, time);
         else if (use) pose = use.role === "bed" ? "idle" : this.indoorPose(use, human.activity, wetPos!.space);
         else if (/rest|sleep/i.test(human.activity)) pose = "sit";
@@ -6983,7 +7017,7 @@ export class WorldScene extends Phaser.Scene {
           id === "player" && !this.options.freeze
             ? this.feel.idle(
                 time,
-                pose === "breathe" && loadWeight < 2 && !this.runtime.charge && !this.aimStarted,
+                pose === "breathe" && !pair && loadWeight < 2 && !this.runtime.charge && !this.aimStarted,
                 {
                   injured: !!me.injury,
                   tired: me.fatigue > 65,
@@ -7084,6 +7118,8 @@ export class WorldScene extends Phaser.Scene {
                       ? Math.min(3, Math.floor(recoveryAge / 55))
                     : work && pose === work.pose
                       ? work.index
+                    : pair && pose === pair.pose
+                      ? pair.index
                     : this.options.freeze
                       ? 0
                       : cued
@@ -7133,6 +7169,7 @@ export class WorldScene extends Phaser.Scene {
           seat?.facing ??
           (id === "player" ? this.blockedFacing : undefined) ??
           cued?.facing ??
+          (pair && pose === pair.pose ? pair.facing : undefined) ??
           workFacing ??
           human.facing ??
           facingFromDirection(human.direction);
@@ -7759,6 +7796,97 @@ export class WorldScene extends Phaser.Scene {
     const beat = 2600 + (offset % 2400);
     return Math.floor((time + offset) / beat) % 3 ? "idle" : "talk";
   }
+  /** Two people together: whoever the player is talking to and the player,
+   * or two people stopped at the same errand. They face each other and take
+   * turns, and at a market one sells to the other. */
+  private together(id: string, at: Ambient | undefined, time: number) {
+    const engine = this.runtime.engine, talking = engine.conversing;
+    const me = this.entities.get(id);
+    if (!me) return undefined;
+    let other: string | undefined, kind: "chat" | "sale" = "chat", sells = false;
+    if (talking && (id === talking || id === "player")) other = id === "player" ? talking : "player";
+    else if (at && !at.moving && (at.activity === "visit" || keeps(at)) && id !== "player") {
+      other = this.partnerOf(id, at, time);
+      const there = other && this.ambient.get(other);
+      if (!there) return undefined;
+      const selling = (a: Ambient) => keeps(a) || !!a.carry || /selling|sharing/i.test(a.label);
+      if (keeps(at) || keeps(there) || /market|trading|square|shop|selling|sharing|landing/i.test(at.label + there.label)) {
+        kind = "sale";
+        sells = selling(at) === selling(there) ? id < other! : selling(at);
+      }
+    }
+    const im = other && this.entities.get(other);
+    if (!im) return undefined;
+    const facing = facingFromStep((im.x - me.x) / 16, (im.y - me.y) / 16, at?.direction ?? this.humanActors.get(id)?.direction ?? 2);
+    const first = id < other!;
+    const offset = this.poseOffset(first ? id : other!);
+    const loop = (pose: CharacterPose) => ({ pose, index: Math.floor((time + this.poseOffset(id)) / poseTiming(pose)) % 4, facing, im });
+    // Walked up to each other: the greeting first, once.
+    const gait = this.gaits.get(id);
+    const still = id === "player" || talking === id || !gait || gait.since === -Infinity ? Infinity : time - (gait.still ?? time);
+    if (still < 1100) {
+      const pose = this.cues.greetingOf(id);
+      return { pose, index: Math.min(3, Math.floor(still / 275)), facing, im };
+    }
+    const beat = kind === "sale" ? 1800 : 2600 + (offset % 1200);
+    const turn = Math.floor((time + offset) / beat), into = (time + offset) % beat;
+    const once = (pose: CharacterPose) => ({ pose, index: Math.min(3, Math.floor(into / (beat / 4))), facing, im });
+    const wary = (id === "player" ? 0 : this.humanActors.get(id)?.trust ?? 0) < 0;
+    if (kind === "chat") {
+      const speaking = (turn % 2 === 0) === first;
+      if (speaking) return loop(turn % 3 === 2 ? "gesture" : "talk");
+      return wary || this.poseOffset(id) % 5 === 0 ? loop("fold-arms") : turn % 4 === 3 ? once("nod") : loop("listen");
+    }
+    // A sale: the buyer points at what they want, the two argue the price,
+    // the coin goes over and the goods come back.
+    const step = turn % 8;
+    if (sells && (step === 4 || step === 5) && into < 40 && this.saleBeat.get(id) !== turn) {
+      this.saleBeat.set(id, turn);
+      if (step === 4) this.cues.pass(im.x, im.y, me, "coin");
+      else this.cues.pass(me.x, me.y, im, "goods");
+    }
+    if (sells)
+      return [loop("gesture"), loop("talk"), loop("gesture"), loop("talk"), once("receive"), once("give"), once("nod"), loop("listen")][step];
+    return [once("point"), loop("listen"), loop("shake-head"), loop("fold-arms"), loop("pay"), once("receive"), loop("talk"), once("nod")][step];
+  }
+  /** The nearest other person stopped at an errand beside this one. A
+   * stall keeper only looks for customers. */
+  private partnerOf(id: string, at: Ambient, time: number) {
+    const known = this.partners.get(id);
+    if (known && time < known.until) return known.partner;
+    let partner: string | undefined, best = 2.2;
+    for (const [other, there] of this.ambient) {
+      if (other === id || there.moving || !(there.activity === "visit" || (!keeps(at) && keeps(there)))) continue;
+      const d = Math.hypot(there.x - at.x, there.y - at.y);
+      if (d < best) (best = d), (partner = other);
+    }
+    this.partners.set(id, { partner, until: time + 800 + (this.poseOffset(id) % 400) });
+    return partner;
+  }
+  private partners = new Map<string, { partner?: string; until: number }>();
+  /** A figure is wider than its tile, so two people talking from neighbouring
+   * tiles touch faces. Each steps back a pixel a frame, and the offset is taken
+   * back before the next frame; the player stays put under the camera. */
+  private standApart(id: string, im: Phaser.GameObjects.Image, other: Phaser.GameObjects.Image | undefined, moving: boolean) {
+    const was = this.apart.get(im) ?? { x: 0, y: 0 };
+    // A walk tween owns the position, so the offset is dropped, not undone.
+    if (moving) return void this.apart.delete(im);
+    let tx = 0, ty = 0;
+    if (other && id !== "player") {
+      const off = this.apart.get(other) ?? { x: 0, y: 0 };
+      const dx = im.x - was.x - (other.x - off.x), dy = im.y - was.y - (other.y - off.y), d = Math.hypot(dx, dy);
+      const gap = d ? Math.min(6, Math.max(0, 22 - d)) * (other === this.entities.get("player") ? 1 : 0.5) : 0;
+      tx = Math.round((dx / (d || 1)) * gap);
+      ty = Math.round((dy / (d || 1)) * gap * 0.5);
+    }
+    const x = was.x + Math.sign(tx - was.x), y = was.y + Math.sign(ty - was.y);
+    if (x === was.x && y === was.y) return;
+    im.setPosition(im.x - was.x + x, im.y - was.y + y);
+    if (x || y) this.apart.set(im, { x, y });
+    else this.apart.delete(im);
+  }
+  private apart = new WeakMap<Phaser.GameObjects.Image, { x: number; y: number }>();
+  private saleBeat = new Map<string, number>();
   private idleGesture(id: string, time: number, held: boolean, hat: boolean, load: number, temperament?: () => Stats) {
     if (load >= 2) return undefined;
     const offset = this.poseOffset(id), cycle = 16000 + offset % 14000;

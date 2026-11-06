@@ -17,7 +17,7 @@ const leatherTrades = [
   "lime-burner", "quarryman",
 ];
 // Flour, food, dye and the shop counter: linen or canvas.
-const clothTrades = [
+export const clothTrades = [
   "baker", "cook", "brewer", "alewife", "butcher", "confectioner", "innkeeper", "publican", "dairymaid",
   "milkmaid", "domestic-servant", "housemaid", "servant", "charwoman", "scullion", "kitchen-porter", "laundress",
   "washerwoman", "laundry-worker", "shopkeeper", "grocer", "market-seller", "potter", "dyer", "fuller",
@@ -35,13 +35,13 @@ const satchelTrades = [
   "scribe", "clerk", "bank-clerk", "schoolteacher", "healer", "herbalist", "midwife", "postman", "traveler",
   "religious-specialist", "storyteller", "pharmacist", "musician",
 ];
-const kerchiefTrades = [
+export const kerchiefTrades = [
   "sailor", "boatman", "dock-worker", "dock-labourer", "navvy", "railway-labourer", "miner", "coal-miner",
   "farm-hand", "farm-labourer", "agricultural-labourer", "ranch-hand", "cattle-hand", "drover", "carter",
   "cabman", "porter", "factory-hand", "mill-worker", "construction-labourer", "ploughman",
 ];
 
-const tradeAprons: readonly Option<"none" | "cloth" | "leather">[] = [
+export const tradeAprons: readonly Option<"none" | "cloth" | "leather">[] = [
   { value: "leather", livelihoods: leatherTrades, weight: 4 },
   { value: "none", livelihoods: leatherTrades, weight: 1 },
   { value: "cloth", livelihoods: clothTrades, weight: 3 },

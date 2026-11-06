@@ -283,6 +283,8 @@ export type Actor = {
   /** Perched on top of something: one cell, no roaming. `rise` is the sprite
    * lift in world pixels. `drop` is the physical height in terrain tiers. */
   perch?: { on: string; label: string; rise: number; at?: Point; drop?: number };
+  /** Bees from a robbed hive at `at`, after the player until the clock passes `until`. */
+  bees?: { until: number; at: Point };
   held?: string;
   /** An inventory item taken in hand. A carried world object wins over this,
    * and the engine never lets both be set. */
@@ -313,7 +315,7 @@ export type Actor = {
   post?: { at: Point; rest: Point; night?: boolean; torch?: boolean; face?: number; round?: Point[]; leg?: number; called?: number };
   /** Terrified by someone breaking into their home: until when, which home,
    * whether they fight or cower, and when a blow last set them back. */
-  terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" };
+  terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" | "fright" };
 };
 /** A cell of a town wall's walk. `corner` is where a diagonal's band crosses
  * the cell, which is where someone walking it stands. */
@@ -568,6 +570,7 @@ export type PlayerCommand =
         | "right"
         | "topple"
         | "heave"
+        | "rob"
         | "light"
         | "burn"
         | "fill"

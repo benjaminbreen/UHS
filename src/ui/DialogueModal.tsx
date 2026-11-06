@@ -79,7 +79,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   const [history, setHistory] = useState<DialogueLine[]>(() => said ? [{ speaker: "npc", text: said }] : []);
   const [input, setInput] = useState("");
-  const [responding, setResponding] = useState(!!said);
+  const [responding, setResponding] = useState(true);
   const [full, setFull] = useState(false);
   const [calling, setCalling] = useState(false);
   const firstChoice = useRef<HTMLButtonElement>(null);
@@ -115,6 +115,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   // whole conversation for every character is not worth a moving lip.
   const viseme = useRef<Viseme>("closed");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const reply = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController>(null);
   const latest = history.at(-1);
   const realLanguage = useRealLanguage();
@@ -199,6 +200,10 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   }, [mood, speaking]);
 
   useEffect(() => () => beat.current?.(), []);
+  // The box is disabled while they think, and a disabled box drops focus.
+  useEffect(() => {
+    if (!busy) reply.current?.focus();
+  }, [busy]);
 
   if (!actor) return null;
   const appearance = runtime.appearanceFor(actor);
@@ -354,7 +359,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
           {error && <p className="dialogue-error">{error}</p>}
         </div>
         <div className="dialogue-foot">
-          {responding && !left && !helpAsked && !calling && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
+          {responding && !left && !helpAsked && !calling && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input ref={reply} autoFocus data-walkable value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
           <div className="plot-speech-actions" data-ready>
             <Choices
               focus={firstChoice}

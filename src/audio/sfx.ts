@@ -486,9 +486,40 @@ export function landing(ground: HitClass, weight = 1): Sound {
   ];
 }
 /** What a fungus does underfoot: a puffball breathes out, dry lichen
- * crackles, a fleshy cap snaps and squashes. */
-export type FungusStep = "puff" | "lichen" | "squish";
-type Through = HitClass | "bloom" | FungusStep;
+ * crackles, a fleshy cap squashes, a small one pops, a jelly one slurps. */
+export type FungusStep = "puff" | "lichen" | "squish" | "pop" | "slime";
+/** What dung does underfoot: a fresh pat splats, a crusted one cracks first,
+ * a dry one crumbles, a horse pile squelches, pellets squeak. */
+export type DungStep = "splat" | "crust" | "crumble" | "squelch" | "pellets";
+type Through = HitClass | "bloom" | FungusStep | DungStep;
+/** A run of bubbles, each rising: the pitch climbing is what makes it wet. */
+const bubbles = (at: number, span: number, n: number, low: number, gain: number) =>
+  grains(at, span, n, (t) => bubble(t, rand(low, low * 1.8), gain));
+/** A cap or pat giving way: a soft thud under a narrow resonance sweeping
+ * down. A broad noise burst here sounds like cardboard, not flesh. */
+const squash = (at: number, g: number, low = 520) => [
+  tone(at, 0.08, 0.16 * g, rand(110, 135), { to: 55, attack: 0.003 }),
+  noise(at, 0.09, 0.08 * g, 650, { filter: "lowpass", attack: 0.004 }),
+  noise(at + 0.005, 0.17, 0.3 * g, low * 1.7, { to: low * 0.5, q: 9, attack: 0.006 }),
+  ...bubbles(at + 0.02, 0.09, 3, low * 0.6, 0.07 * g),
+];
+/** The foot pulling free: suction rising. */
+const suck = (at: number, g: number) => [
+  noise(at, 0.13, 0.22 * g, 300, { to: 1400, q: 8, attack: 0.03 }),
+  tone(at + 0.02, 0.1, 0.07 * g, rand(140, 180), { to: rand(420, 520), wave: "triangle", attack: 0.02 }),
+  ...bubbles(at + 0.08, 0.06, 2, 420, 0.05 * g),
+];
+/** Each squish is one of several, so a field of caps never repeats itself. */
+const squishes: ((g: number) => Sound)[] = [
+  (g) => squash(0, g),
+  (g) => [
+    ...squash(0, g, 620),
+    tone(0.03, 0.08, 0.08 * g, rand(320, 420), { to: rand(900, 1150), attack: 0.01 }),
+  ],
+  (g) => [...squash(0, g, 480), ...squash(0.1, 0.65 * g, 380)],
+  (g) => [...squash(0, g), ...suck(0.1, g)],
+  (g) => [...squash(0, 1.1 * g, 420), ...bubbles(0.08, 0.22, 6, 260, 0.06 * g)],
+];
 /** Leaves and stalks parting round the legs, laid over the footfall. */
 function brushing(through: Through, g: number): Sound {
   switch (through) {
@@ -500,11 +531,53 @@ function brushing(through: Through, g: number): Sound {
     case "lichen":
       return grains(0, 0.14, 7, (t) => noise(t, 0.014, 0.12 * g, vary(4200, 0.3), { q: 3 }));
     case "squish":
+      return squishes[Math.floor(Math.random() * squishes.length)](g);
+    case "pop":
       return [
-        noise(0, 0.035, 0.16 * g, 1400, { q: 2, attack: 0.003 }),
-        noise(0.015, 0.14, 0.14 * g, 520, { to: 280, q: 1.4, attack: 0.008 }),
-        bubble(rand(0.03, 0.06), rand(260, 380), 0.08 * g),
+        noise(0, 0.012, 0.14 * g, 3200, { q: 4 }),
+        tone(0.004, 0.035, 0.1 * g, rand(800, 1000), { to: rand(380, 450), attack: 0.002 }),
+        bubble(0.03, rand(500, 650), 0.05 * g),
       ];
+    case "slime":
+      return [
+        ...squash(0, 0.8 * g, 460),
+        noise(0.02, 0.26, 0.24 * g, 380, { to: 1500, q: 9, attack: 0.06 }),
+        tone(0.04, 0.22, 0.07 * g, rand(110, 140), { to: rand(360, 420), wave: "triangle", attack: 0.05 }),
+        ...grains(0.12, 0.2, 3, (t) => bubble(t, rand(300, 560), 0.06 * g)),
+      ];
+    case "splat":
+      return [
+        ...squash(0, 1.4 * g, 380),
+        noise(0.02, 0.22, 0.12 * g, 520, { filter: "lowpass", attack: 0.01 }),
+        ...bubbles(0.06, 0.18, 5, 200, 0.08 * g),
+        ...suck(0.2, 1.2 * g),
+        // Now and then the pat lets out air on the way.
+        ...(Math.random() < 0.25
+          ? [tone(0.06, 0.16, 0.035 * g, rand(70, 90), { to: 55, wave: "sawtooth", attack: 0.02 })]
+          : []),
+      ];
+    case "crust":
+      return [
+        ...grains(0, 0.04, 4, (t) => noise(t, 0.012, 0.12 * g, vary(3000, 0.3), { q: 3 })),
+        ...shift(brushing("splat", 0.7 * g), 0.035),
+      ];
+    case "crumble":
+      return [
+        noise(0, 0.06, 0.08 * g, 380, { q: 0.9, attack: 0.004 }),
+        ...grains(0.01, 0.12, 6, (t) => noise(t, 0.016, 0.07 * g, vary(1800, 0.4), { q: 2.5 })),
+      ];
+    case "squelch":
+      return [
+        tone(0, 0.1, 0.12 * g, rand(200, 240), { to: 90, wave: "triangle", attack: 0.004 }),
+        ...squash(0, 1.2 * g, 460),
+        ...squash(0.1, 0.7 * g, 340),
+        bubble(0.08, rand(220, 280), 0.08 * g),
+        bubble(0.17, rand(300, 380), 0.06 * g),
+      ];
+    case "pellets":
+      return grains(0, 0.1, 4, (t) =>
+        tone(t, 0.03, 0.05 * g, rand(700, 1100), { to: rand(1300, 1700), attack: 0.003 }),
+      ).flatMap((l) => [noise(l.at, 0.01, 0.06 * g, 2400, { q: 3 }), l]);
     case "bloom":
       return [noise(0.02, 0.12, 0.03 * g, 5200, { to: 7200, q: 0.6, attack: 0.04 })];
     case "brush":
@@ -928,6 +1001,11 @@ export const catalog: { name: string; detail: string; make: () => Sound }[] = [
     name: `Step · ${ground}`,
     detail: "A footfall",
     make: () => footstep(ground)!,
+  })),
+  ...(["squish", "pop", "slime", "puff", "splat", "crust", "crumble", "squelch", "pellets"] as const).map((through) => ({
+    name: `Step · ${through}`,
+    detail: "A foot on a fungus or dung",
+    make: () => footstep("grass", false, through)!,
   })),
   ...(Object.keys(events) as EventId[]).map((id) => ({
     name: `Event · ${id}`,

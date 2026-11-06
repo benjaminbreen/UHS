@@ -210,10 +210,10 @@ export const eraFloors: readonly GarmentKit[] = [
     ],
     headwear: [
       { value: "none", weight: 4 },
-      { value: "brimmed", weight: 4, sex: ["male"], ages: ["adult", "elder"] },
+      { value: "fedora", weight: 4, sex: ["male"], ages: ["adult", "elder"] },
       { value: "flat-cap", weight: 2, sex: ["male"], means: ["poor", "common"] },
       { value: "ball-cap", weight: 1, sex: ["male"], ages: ["child", "youth"] },
-      { value: "headscarf", weight: 2, sex: ["female"] },
+      { value: "kerchief", weight: 2, sex: ["female"] },
     ],
     leggings: [
       { value: "trousers", weight: 8, sex: ["male"] },

@@ -1,4 +1,5 @@
-import type { GarmentKit } from "../types";
+import type { GarmentKit, Option } from "../types";
+import { clothTrades, kerchiefTrades, tradeAprons } from "./work-dress";
 
 /**
  * Europe. Two long phases: a draped Mediterranean one, where the garment is a
@@ -10,6 +11,33 @@ import type { GarmentKit } from "../types";
  * time — a mark of the people beyond the frontier rather than ordinary dress —
  * so they are deliberately scarce before the medieval band.
  */
+const grown = ["youth", "adult", "elder"] as const;
+// Bib overalls: denim on the farm, the railway and the shop floor from the 1890s.
+const overallTrades = [
+  "farmer", "farm-hand", "farm-labourer", "farm-worker", "agricultural-labourer", "tenant-farmer", "sharecropper",
+  "homesteader", "dairy-farmer", "railway-labourer", "factory-hand", "machine-operator", "motor-mechanic",
+  "painter-and-decorator", "plumber", "electrician", "welder", "boilermaker", "construction-labourer", "carpenter",
+];
+/** The working apron, with the wrap pinafore in place of the waist apron for
+ * women of the house, the laundry and the kitchen. */
+const pinafores = (overalls: number): readonly Option<"none" | "cloth" | "leather" | "pinafore" | "overalls">[] => [
+  ...tradeAprons.filter((o) => o.value !== "cloth"),
+  { value: "pinafore", sex: ["female"], livelihoods: clothTrades, weight: 8 },
+  { value: "cloth", sex: ["male"], livelihoods: clothTrades, weight: 3 },
+  { value: "pinafore", sex: ["female"], means: ["poor", "common"], weight: 2 },
+  { value: "none", sex: ["female"], weight: 3 },
+  { value: "overalls", sex: ["male"], livelihoods: overallTrades, weight: overalls },
+  { value: "none", sex: ["male"], livelihoods: overallTrades, weight: 2 },
+];
+/** The necktie on every man above the poorest, the knotted kerchief at work. */
+const neckties = (bow: number): readonly Option<"none" | "neckerchief" | "necktie" | "bow-tie">[] => [
+  { value: "necktie", sex: ["male"], ages: grown, means: ["common", "wealthy"], weight: 6 },
+  { value: "bow-tie", sex: ["male"], ages: grown, means: ["wealthy"], weight: bow },
+  { value: "necktie", sex: ["male"], ages: grown, means: ["poor"], weight: 2 },
+  { value: "neckerchief", sex: ["male"], livelihoods: kerchiefTrades, weight: 3 },
+  { value: "none", sex: ["male"], weight: 2 },
+];
+
 export const europe: readonly GarmentKit[] = [
   {
     id: "eu-before-bowler",
@@ -200,10 +228,196 @@ export const europe: readonly GarmentKit[] = [
     ],
     belt: [{ value: "leather", weight: 6 }, { value: "none", weight: 2 }],
   },
+  // Europe and the settler towns it dressed, decade by decade from the bowler
+  // to the end of the hat. A hat outdoors was all but universal until the
+  // 1950s, and which hat dated and placed a person more than anything else.
+  {
+    id: "eu-belle-epoque",
+    label: "Europe · bowlers, boaters and the shirtwaist",
+    scope: { years: [1880, 1915], cultures: ["european"] },
+    garment: [
+      { value: "coat", weight: 6, sex: ["male"], ages: grown, means: ["common", "wealthy"] },
+      { value: "shirt", weight: 5, sex: ["male"] },
+      { value: "dress", weight: 5, sex: ["female"] },
+      // The shirtwaist: a blouse over a separate skirt, the working woman's dress.
+      { value: "skirt", weight: 5, sex: ["female"] },
+    ],
+    sleeves: [{ value: "long" }],
+    motif: [
+      { value: "collar", weight: 5, sex: ["female"], garments: ["skirt", "dress"] },
+      { value: "plain", weight: 2, sex: ["female"] },
+      { value: "placket", weight: 3, sex: ["male"], garments: ["shirt"] },
+      { value: "plain", weight: 3, sex: ["male"] },
+    ],
+    headwear: [
+      { value: "bowler", weight: 5, sex: ["male"], ages: grown, means: ["common", "wealthy"] },
+      { value: "flat-cap", weight: 6, sex: ["male"], means: ["poor", "common"] },
+      { value: "boater", weight: 2, sex: ["male"], ages: ["youth", "adult"] },
+      { value: "top-hat", weight: 3, sex: ["male"], ages: ["adult", "elder"], ranks: ["gentry", "elite"] },
+      { value: "brimmed", weight: 5, sex: ["female"], ages: grown, means: ["common", "wealthy"] },
+      { value: "boater", weight: 2, sex: ["female"], ages: ["youth", "adult"] },
+      { value: "kerchief", weight: 4, sex: ["female"], means: ["poor"] },
+      { value: "kerchief", weight: 1, sex: ["female"], means: ["common"] },
+      { value: "none", weight: 2, sex: ["female"] },
+      { value: "none", weight: 1, ages: ["child", "youth"] },
+    ],
+    // Plumes on the wide hats of the 1900s; grosgrain on the men's.
+    hatTrim: [
+      { value: "feather", weight: 3, sex: ["female"] },
+      { value: "ribbon", weight: 3, sex: ["female"] },
+      { value: "ribbon", weight: 2, sex: ["male"] },
+      { value: "none", weight: 1 },
+    ],
+    leggings: [
+      { value: "trousers", sex: ["male", "unspecified"] },
+      { value: "hose", sex: ["female"] },
+    ],
+    footwear: [{ value: "boots", weight: 6 }, { value: "shoes", weight: 3 }, { value: "none", weight: 1, means: ["poor"], ages: ["child"] }],
+    belt: [{ value: "leather", weight: 3, garments: ["shirt", "skirt"] }, { value: "none", weight: 3 }],
+    over: [{ value: "none" }],
+    neckwear: neckties(1),
+    apron: pinafores(1),
+  },
+  {
+    id: "eu-twenties",
+    label: "Europe · the cloche and the trilby",
+    scope: { years: [1915, 1930], cultures: ["european"] },
+    garment: [
+      { value: "coat", weight: 6, sex: ["male"], ages: grown, means: ["common", "wealthy"] },
+      { value: "shirt", weight: 5, sex: ["male"] },
+      { value: "dress", weight: 7, sex: ["female"] },
+      { value: "skirt", weight: 3, sex: ["female"] },
+    ],
+    sleeves: [{ value: "long", weight: 3 }, { value: "short", weight: 2, sex: ["female"] }],
+    motif: [
+      { value: "collar", weight: 3, sex: ["female"] },
+      { value: "plain", weight: 4, sex: ["female"] },
+      { value: "placket", weight: 3, sex: ["male"], garments: ["shirt"] },
+      { value: "plain", weight: 3, sex: ["male"] },
+    ],
+    headwear: [
+      { value: "fedora", weight: 5, sex: ["male"], ages: grown, means: ["common", "wealthy"] },
+      { value: "flat-cap", weight: 6, sex: ["male"], means: ["poor", "common"] },
+      { value: "bowler", weight: 2, sex: ["male"], ages: ["adult", "elder"], means: ["common", "wealthy"] },
+      { value: "boater", weight: 2, sex: ["male"], ages: ["youth", "adult"] },
+      { value: "cloche", weight: 7, sex: ["female"], ages: grown, means: ["common", "wealthy"] },
+      { value: "cloche", weight: 2, sex: ["female"], ages: grown, means: ["poor"] },
+      { value: "kerchief", weight: 3, sex: ["female"], means: ["poor"] },
+      { value: "none", weight: 1 },
+    ],
+    hatTrim: [
+      { value: "ribbon", weight: 2, sex: ["female"] },
+      { value: "feather", weight: 1, sex: ["female"], means: ["wealthy"] },
+      { value: "none", weight: 3 },
+    ],
+    leggings: [
+      { value: "trousers", sex: ["male", "unspecified"] },
+      { value: "hose", sex: ["female"] },
+    ],
+    footwear: [{ value: "shoes", weight: 6 }, { value: "boots", weight: 3, means: ["poor", "common"] }],
+    belt: [{ value: "leather", weight: 2, garments: ["shirt", "skirt"] }, { value: "none", weight: 3 }],
+    over: [{ value: "none" }],
+    neckwear: neckties(1),
+    apron: pinafores(2),
+  },
+  {
+    id: "eu-thirties",
+    label: "Europe · the snap-brim, the beret and the kerchief",
+    scope: { years: [1930, 1946], cultures: ["european"] },
+    garment: [
+      { value: "coat", weight: 5, sex: ["male"], ages: grown, means: ["common", "wealthy"] },
+      { value: "shirt", weight: 6, sex: ["male"] },
+      { value: "dress", weight: 7, sex: ["female"] },
+      { value: "skirt", weight: 3, sex: ["female"] },
+    ],
+    sleeves: [{ value: "short", weight: 3, sex: ["female"] }, { value: "long", weight: 2 }],
+    motif: [
+      { value: "collar", weight: 4, sex: ["female"] },
+      { value: "plain", weight: 3, sex: ["female"] },
+      { value: "placket", weight: 3, sex: ["male"], garments: ["shirt"] },
+      { value: "plain", weight: 3, sex: ["male"] },
+    ],
+    headwear: [
+      { value: "fedora", weight: 7, sex: ["male"], ages: grown, means: ["common", "wealthy"] },
+      { value: "fedora", weight: 2, sex: ["male"], ages: grown, means: ["poor"] },
+      { value: "flat-cap", weight: 5, sex: ["male"], means: ["poor", "common"] },
+      { value: "beret", weight: 1, sex: ["male"] },
+      { value: "none", weight: 1, sex: ["male"] },
+      { value: "pillbox", weight: 2, sex: ["female"], ages: grown, means: ["common", "wealthy"] },
+      { value: "beret", weight: 3, sex: ["female"], ages: grown },
+      { value: "brimmed", weight: 2, sex: ["female"], ages: grown, means: ["common", "wealthy"] },
+      { value: "kerchief", weight: 5, sex: ["female"], means: ["poor", "common"] },
+      { value: "none", weight: 1 },
+    ],
+    hatTrim: [
+      { value: "feather", weight: 1, sex: ["female"] },
+      { value: "ribbon", weight: 1, sex: ["female"] },
+      { value: "none", weight: 3 },
+    ],
+    leggings: [
+      { value: "trousers", sex: ["male", "unspecified"] },
+      { value: "hose", weight: 6, sex: ["female"] },
+      // Slacks for war work and the weekend.
+      { value: "trousers", weight: 1, sex: ["female"], ages: ["youth", "adult"] },
+    ],
+    footwear: [{ value: "shoes", weight: 7 }, { value: "boots", weight: 2, means: ["poor", "common"] }],
+    belt: [{ value: "leather", weight: 3, garments: ["shirt", "skirt", "dress"] }, { value: "none", weight: 2 }],
+    over: [{ value: "none" }],
+    neckwear: neckties(1),
+    apron: pinafores(3),
+  },
+  {
+    id: "eu-postwar",
+    label: "Europe · the last of the hats",
+    scope: { years: [1946, 1962], cultures: ["european"] },
+    garment: [
+      { value: "coat", weight: 5, sex: ["male"], ages: grown, means: ["common", "wealthy"] },
+      { value: "shirt", weight: 6, sex: ["male"] },
+      { value: "dress", weight: 6, sex: ["female"] },
+      { value: "skirt", weight: 4, sex: ["female"] },
+    ],
+    sleeves: [{ value: "short", weight: 3 }, { value: "long", weight: 2 }],
+    motif: [
+      { value: "collar", weight: 3, sex: ["female"] },
+      { value: "plain", weight: 4, sex: ["female"] },
+      { value: "plaid", weight: 2, sex: ["male"], garments: ["shirt"] },
+      { value: "placket", weight: 2, sex: ["male"], garments: ["shirt"] },
+      { value: "plain", weight: 3, sex: ["male"] },
+    ],
+    headwear: [
+      { value: "fedora", weight: 5, sex: ["male"], ages: ["adult", "elder"] },
+      { value: "flat-cap", weight: 2, sex: ["male"], means: ["poor", "common"] },
+      { value: "none", weight: 4, sex: ["male"] },
+      { value: "pillbox", weight: 2, sex: ["female"], ages: grown, means: ["common", "wealthy"] },
+      { value: "kerchief", weight: 3, sex: ["female"] },
+      { value: "none", weight: 6, sex: ["female"] },
+      { value: "none", weight: 1 },
+    ],
+    leggings: [
+      { value: "trousers", sex: ["male", "unspecified"] },
+      { value: "hose", weight: 5, sex: ["female"] },
+      { value: "trousers", weight: 1, sex: ["female"], ages: ["youth", "adult"] },
+    ],
+    footwear: [{ value: "shoes", weight: 7 }, { value: "boots", weight: 2, means: ["poor", "common"] }, { value: "sneakers", weight: 2, ages: ["child", "youth"] }],
+    belt: [{ value: "leather", weight: 4, garments: ["shirt", "skirt", "dress"] }, { value: "none", weight: 2 }],
+    over: [{ value: "none" }],
+    neckwear: neckties(1),
+    apron: pinafores(3),
+  },
+  {
+    id: "eu-cardigan",
+    label: "Europe · the cardigan",
+    // Knitted jackets came in with the 1920s and stayed.
+    scope: { years: [1920, 1975], cultures: ["european"] },
+    waistcoat: [
+      { value: "cardigan", weight: 2, sex: ["female"], garments: ["dress", "skirt", "shirt"] },
+      { value: "none", weight: 5, sex: ["female"] },
+    ],
+  },
   {
     id: "eu-modern",
     label: "Europe · factory clothing",
-    scope: { years: [1920, 10001], cultures: ["european"] },
+    scope: { years: [1962, 10001], cultures: ["european"] },
     sleeves: [{ value: "long", weight: 6 }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
     motif: [{ value: "plain", weight: 7 }, { value: "band", weight: 2, garments: ["tunic", "long-tunic", "robe"] }, { value: "placket", weight: 2, garments: ["shirt", "coat"] }],
     garment: [
@@ -219,7 +433,8 @@ export const europe: readonly GarmentKit[] = [
     ],
     headwear: [
       { value: "none", weight: 6 },
-      { value: "ball-cap", weight: 3, ages: ["child", "youth", "adult"] },
+      { value: "ball-cap", weight: 3, ages: ["child", "youth"] },
+      { value: "ball-cap", weight: 1, ages: ["adult"] },
       { value: "flat-cap", weight: 2, ages: ["elder"] },
       { value: "headscarf", weight: 2, sex: ["female"], ages: ["elder"] },
       { value: "brimmed", weight: 1 },

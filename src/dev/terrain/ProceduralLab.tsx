@@ -2,7 +2,7 @@ import { shorePolishDefaults } from "../../render/living-water/polish";
 import { colorwayLabels, colorwaysFor } from "../../content/ecology/variants";
 import type { Colorway } from "../../content/ecology/profiles";
 import { prepareSettingSession } from "../../runtime/preparation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Phaser from "phaser";
 import { Runtime } from "../../runtime/session";
 import { WorldScene } from "../../render/WorldScene";
@@ -476,7 +476,8 @@ function Preview({
     />
   );
 }
-export function ProceduralLab() {
+/** `route` keeps the address on reload; `panel` replaces the ground style panel. */
+export function ProceduralLab({ route = "/terrain-lab", panel }: { route?: string; panel?: ReactNode } = {}) {
   const [draft, setDraft] = useState<Config>(readConfig),
     [applied, setApplied] = useState<Config>(),
     [runtime, setRuntime] = useState<Runtime>(),
@@ -526,7 +527,7 @@ export function ProceduralLab() {
         "offshoreCalm",
       ])
         if (previous.has(key)) q.set(key, previous.get(key)!);
-      history.replaceState(null, "", `/terrain-lab?${q}`);
+      history.replaceState(null, "", `${route}?${q}`);
     } catch (e) {
       if (!controller.signal.aborted) setError(String(e));
     } finally {
@@ -747,9 +748,8 @@ export function ProceduralLab() {
               Play this world →
             </button>
           </div>
-          {!new URLSearchParams(location.search).has("waterContext") && (
-            <GroundStylePanel />
-          )}
+          {!new URLSearchParams(location.search).has("waterContext") &&
+            (panel ?? <GroundStylePanel />)}
           {error ? (
             <p role="alert">{error}</p>
           ) : (

@@ -7,6 +7,12 @@ import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
 import { streetDistance, streetUnionDistance } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
+/** World-space value noise at stone scale, so a seam wanders by whole stones. */
+const jitter = (wx: number, wy: number) => {
+  const fx = wx / 6, fy = wy / 6, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+  const a = hash(ix, iy, 611), b = hash(ix + 1, iy, 611), c = hash(ix, iy + 1, 611), d = hash(ix + 1, iy + 1, 611);
+  return (a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty) * 0.8 + hash(wx >> 2, wy >> 2, 612) * 0.2;
+};
 type RGB = readonly number[];
 type Color = readonly [number, number, number];
 const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
@@ -18,6 +24,8 @@ const lit = (c: RGB, v: number): RGB => {
 };
 const mix = (a: RGB, b: RGB, t: number): RGB => a.map((v, i) => v + (b[i] - v) * t);
 const GRIT: RGB = [150, 136, 106];
+const GRIME: RGB = [96, 86, 70];
+const TRAFFIC = new Set<StreetMaterial>(["cobble", "sett", "slab", "basalt", "brick", "macadam"]);
 /** Each material's dressed edge course: the mean of its own face, so an edge
  * is the same stone cut long, not a pale band laid round everything. */
 const COURSE: Record<StreetMaterial, RGB> = {
@@ -230,6 +238,16 @@ export function rasterStreetTile(
   const lee = track
     ? sides.find(([dx, dy]) => dy >= 0 && at(dx, dy)?.pavement === "platform")
     : undefined;
+  const trafficked = !!c.lane && !c.pavement && (c.lane.marks?.centre ?? "none") === "none" && TRAFFIC.has(material);
+  const key = `${material}/${grade}`;
+  const meets = dais || kerb || lane || track || c.pavement === "platform" ? [] : sides.flatMap(([dx, dy]) => {
+    const n = at(dx, dy);
+    if (n?.feature !== "paving" || n.height !== c.height || n.track || n.pavement === "dais" || n.pavement === "platform") return [];
+    if (kerbed(sample, x + dx, y + dy) || lip.some(([lx, ly]) => lx === dx && ly === dy)) return [];
+    const m = (n.pavement === "footway" ? roadwayMaterial(sample, x + dx, y + dy) : undefined) ?? n.streetMaterial ?? "slab";
+    const g = pavingGrade(n.pavement), other = `${m}/${g}`;
+    return other === key ? [] : [{ dx, dy, material: m, grade: g, first: key < other }];
+  });
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = (x + ox) * 16 + px,
@@ -331,6 +349,21 @@ export function rasterStreetTile(
           material === "asphalt" || material === "concrete",
         );
       }
+      // Horse traffic wears the crown of a stone street dark, with a pair of
+      // wheel ruts; a motor road's paint and binder carry their own wear.
+      if (trafficked) {
+        const l = c.lane!, alongX = l.axis === "x";
+        const width = l.span * 16, u = (l.at * 16 + (alongX ? py : px) + 0.5) / width;
+        const along = alongX ? wx : wy;
+        const fleck = jitter(alongX ? along / 3 : wx * 2, alongX ? wy * 2 : along / 3);
+        let k = l.junction ? 0.1 : 0.22 * (1 - Math.abs(2 * u - 1));
+        if (!l.junction && width >= 32)
+          for (const r of [0.32, 0.68]) {
+            const off = (u - r) * width;
+            k += 0.3 * Math.exp(-off * off / 3) * (fleck > 0.35 ? 1 : 0.3);
+          }
+        tone = mix(tone, GRIME, k * (0.6 + fleck * 0.8));
+      }
       const course = COURSE[material];
       if (border < 3 && !nearest)
         tone = cutEdge(
@@ -345,28 +378,16 @@ export function rasterStreetTile(
           course,
           tone,
         );
-      // Where two pavings meet, each is finished with a dressed course of its
-      // own stone behind a shared joint, rather than one cut into the other.
-      const seam = (
-        [
-          [at(0, -1), "n", py],
-          [at(0, 1), "s", 15 - py],
-          [at(-1, 0), "w", px],
-          [at(1, 0), "e", 15 - px],
-        ] as const
-      ).find(
-        ([n, , d]) =>
-          d < 2 &&
-          !dais &&
-          n?.feature === "paving" &&
-          n.pavement !== "dais" &&
-          (n.streetMaterial ?? "slab") !== (c.streetMaterial ?? "slab"),
-      );
-      if (seam)
-        tone =
-          seam[2] === 0
-            ? lit(course, -3)
-            : lit(course, seam[1] === "s" || seam[1] === "e" ? -1 : 2);
+      // Where two pavings meet they interlock along a wandering line, stone
+      // into stone, instead of each stopping at the cell's straight edge.
+      for (const m of meets) {
+        const d = (m.dx ? (m.dx < 0 ? px : 15 - px) : m.dy < 0 ? py : 15 - py) + 0.5;
+        const jag = (jitter(wx, wy) - 0.5) * 9;
+        if (d < (m.first ? jag : -jag)) {
+          tone = pavingStonePixel(wx, wy, m.material, m.grade, (north || south) && !(west || east));
+          break;
+        }
+      }
       const kerbSide = (
         [
           [kerbN && !rounded(0, -1, px, py), "n", py, wx],

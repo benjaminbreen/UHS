@@ -80,6 +80,26 @@ export const wares: Ware[] = [
     description: "A glass chimney over a flat wick, brighter than any candle and cheaper to burn." },
 ];
 
+/** Everyday things that kept their use and changed their look: the same item
+ * id, named and drawn for the date. `art` is the drawing the icon and the hand
+ * use; later entries win. */
+type PeriodLook = { from: number; cultures?: readonly string[]; art: string; name: string; description: string };
+const periodLooks: Record<string, readonly PeriodLook[]> = {
+  water: [
+    { from: 1850, cultures: ["european"], art: "water-pail", name: "Water pail",
+      description: "A galvanised tin pail, filled at the pump or the kitchen tap and carried with a wire handle." },
+    { from: 1990, art: "water-bottle", name: "Bottle of water",
+      description: "A plastic bottle of water with a screw cap." },
+  ],
+  ale: [
+    { from: 1880, cultures: ["european"], art: "beer-bottle", name: "Bottle of beer",
+      description: "Brewery lager in a brown glass bottle with a crown cap." },
+  ],
+};
+export function periodLook(id: string, year: number, culture?: string): PeriodLook | undefined {
+  return periodLooks[id]?.filter((l) => year >= l.from && (!l.cultures || l.cultures.includes(culture ?? ""))).at(-1);
+}
+
 export const wareItems: Record<string, ItemDef> = Object.fromEntries(
   wares.map(({ good: _good, scope: _scope, ...def }) => [def.id, def]),
 );

@@ -137,7 +137,7 @@ def wall(c, x0, x1, top, base, pal, tex=None, foot=None, seed=0):
                 c.p(x, y, P(fpal, k))
 
 
-def deck(c, x0, x1, eave, depth, pal, seed=0, edge=None, ledge=6):
+def deck(c, x0, x1, eave, depth, pal, seed=0, edge=None, ledge=6, speck=0.93):
     """A flat roof: a thick plastered ledge along the front, lit along its top
     and throwing a band of shade down the wall; behind it the deck, sunk
     inside parapets whose tops catch the light. The back parapet shows its
@@ -176,9 +176,9 @@ def deck(c, x0, x1, eave, depth, pal, seed=0, edge=None, ledge=6):
                 k = 3
                 if y < top + 8 or lx < 7 or y == eave - 4:
                     k = 2 if not (lx < 5) else 1
-                elif h2(x, y, seed + 3) > 0.93:
+                elif h2(x, y, seed + 3) > speck:
                     k = 4
-                elif h2(x, y, seed + 4) < 0.05:
+                elif h2(x, y, seed + 4) < 1 - speck - 0.02:
                     k = 2
                 c.p(x, y, P(pal, k))
                 continue

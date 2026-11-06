@@ -273,6 +273,9 @@ def _render(g, cn, look, W, H, base):
         lit[hit] *= .6  # leaves let some light through
     val = .42 * (.35 + .65 * occ[x, y, z]) + .72 * np.clip(nrm @ SUN, 0, 1) * lit + .14 * np.clip(nrm[:, 2], 0, 1)
     val[~leaf] += (h3(np.round(np.arctan2(y - D / 2, x - W / 2) * 5), 0, z // 4, 3)[~leaf] - .5) * .18
+    # Bark that sheds in plates, as a plane's does.
+    if look.get('mottle'):
+        val[~leaf] += (h3(x // 3, y // 3, z // 4, 11)[~leaf] - .5) * look['mottle']
     sx = x
     sy = (base - z - (y - D / 2) * K).astype(int)
     leafR = np.array([hexrgb(c) for c in look['leaf']], float)

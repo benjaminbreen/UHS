@@ -205,6 +205,18 @@ def mudbrick():
                None if spec['look'] == 'catal' else info['door_h'], [])
 
 
+def meso():
+    """Mesoamerican houses. The granary's hatch and the sweat bath's crawl
+    door are not doors people walk through, so the door rule is off."""
+    from types import SimpleNamespace
+    from art import front_meso
+    for name, kind, spec in front_meso.STUDIES:
+        info = {}
+        im = front_meso.BUILDERS[kind](spec, info)
+        yield (f'meso-{name}', im, SimpleNamespace(roof_span=(0, im.width), stacks=[]),
+               None if kind == 'meso-service' else info['door_h'], [])
+
+
 def worksites():
     from types import SimpleNamespace
     from art.front_worksites import worksite_recipes, FrontWorksitePainter
@@ -218,7 +230,7 @@ def audit():
     faults = ramp_faults()
     n = 0
     from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), worksites()):
+    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), meso(), worksites()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1

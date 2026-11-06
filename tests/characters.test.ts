@@ -23,6 +23,9 @@ import type { CharacterAppearance } from "../src/core/character";
 import type { RestingExpression } from "../src/core/persona";
 import type { CharacterPose } from "../src/render/characters/poses";
 import { poses, workPoseFor } from "../src/render/characters/poses";
+import { greetingFor } from "../src/content/characters/greetings";
+import { places } from "../src/content/geography/places";
+import { settingFor } from "../src/content/geography/resolve";
 import { defaultRenderer, workerDrawn } from "../src/render/characters/renderers";
 import { drawCharacterF, drawCharacterG } from "../src/render/characters/doll/draw";
 
@@ -37,6 +40,20 @@ it("carries the same healed cheek scar into the world sprite", () => {
     return data;
   };
   expect(render("cheek")).not.toEqual(render("none"));
+});
+
+it("greets in the manner of the place and the time", () => {
+  const at = (id: string, year: number) => settingFor(places.find((p) => p.id === id)!, year);
+  expect(greetingFor(at("kyoto", 1500))).toBe("bow");
+  expect(greetingFor(at("beijing", 1400))).toBe("fist-salute");
+  expect(greetingFor(at("delhi", 1650))).toBe("palms");
+  expect(greetingFor(at("konya", 1600))).toBe("salaam");
+  expect(greetingFor(at("timbuktu", 1450))).toBe("salaam");
+  expect(greetingFor(at("london", 1820))).toBe("doff");
+  expect(greetingFor(at("london", 1820), true)).toBe("curtsy");
+  expect(greetingFor(undefined)).toBe("nod");
+  for (const pose of ["bow", "fist-salute", "palms", "salaam", "doff", "curtsy", "clap", "raise-hand", "listen", "fold-arms", "gesture", "shake-head", "receive", "pay", "halt-hand"])
+    expect(poses).toContain(pose);
 });
 
 it("selects physical work by the task instead of treating every station alike", () => {

@@ -75,6 +75,7 @@ export type ThrowEffect = {
   straight?: boolean;
   arrow?: boolean;
   sling?: boolean;
+  crumbles?: boolean;
   /** The thrown object, hidden from the scene until it lands. */
   id?: string;
   /** An item from the hand rather than a prop. */
@@ -381,9 +382,15 @@ export class ToolEffects {
       void gameAudio()?.sound(
         effect.arrow || effect.straight
           ? projectileImpact(effect.arrow ? "arrow" : "spear", effect.hit.hit)
-          : strike("thrown", effect.hit.hit, effect.hit.kind, effect.hit.damaged),
+          : effect.crumbles
+            ? strike("thrown", "stone", "shatter", true)
+            : strike("thrown", effect.hit.hit, effect.hit.kind, effect.hit.damaged),
         "strike",
       );
+      if (effect.crumbles && frame) {
+        this.crumble(to, frame);
+        this.scene.cameras.main.shake(120, 0.003);
+      }
       this.react(effect.hit, effect.arrow || effect.straight ? 0.65 : 1.2);
       if (effect.hit.loot?.length) this.spill(to, effect.hit.loot);
       if (effect.arrow || effect.straight) {
@@ -491,6 +498,40 @@ export class ToolEffects {
         dot.destroy();
       },
     });
+  }
+  /** A thrown rock in four chunks: each hops out, skips once, blinks and is gone. */
+  private crumble(at: { x: number; y: number }, frame: string) {
+    const palette = spritePalette(this.scene, this.view.texture(frame), this.view.frame(frame)) ?? DEBRIS.stone;
+    this.burst({ x: at.x, y: at.y - 4 }, palette, 10, 1.6);
+    for (const [i, [sx, sy]] of [[-1, -1], [1, -1], [-1, 1], [1, 1]].entries()) {
+      const chunk = this.scene.add
+        .image(at.x + sx * 3, at.y - 6 + sy * 2, this.view.texture(frame), this.view.frame(frame))
+        .setOrigin(0.5, 1)
+        .setScale(0.4 + (i % 2) * 0.08)
+        .setTint(this.view.tint())
+        .setDepth(at.y + 4600 + sy);
+      this.live.add(chunk);
+      const lx = at.x + sx * (10 + Math.random() * 7);
+      const ly = at.y + sy * (3 + Math.random() * 3);
+      const kill = () => {
+        this.live.delete(chunk);
+        chunk.destroy();
+      };
+      this.scene.tweens.add({ targets: chunk, x: lx, rotation: sx * (1.5 + Math.random()), duration: 330 });
+      this.scene.tweens.chain({
+        targets: chunk,
+        tweens: [
+          { y: chunk.y - 9 - Math.random() * 6, duration: 140, ease: "Quad.easeOut" },
+          { y: ly, duration: 190, ease: "Quad.easeIn" },
+          { y: ly - 3, duration: 80, ease: "Quad.easeOut" },
+          { y: ly, duration: 80, ease: "Quad.easeIn" },
+          // The arcade blink before a thing vanishes.
+          { alpha: 0, delay: 260, duration: 60, yoyo: true, repeat: 3 },
+          { alpha: 0, duration: 60 },
+        ],
+        onComplete: kill,
+      });
+    }
   }
   /** Four short rays where something thrown comes down: the comic-book knock. */
   private impact(at: { x: number; y: number }) {

@@ -3,7 +3,7 @@ import {
   parseCloth,
   type Material,
 } from "../content/characters/wardrobe/cloth";
-import { garmentIconFor } from "./garment-icons";
+import { garmentIconFor, periodArt } from "./garment-icons";
 
 /** Voxel item art baked by scripts/art/voxel_items.py --bake. Sprites carry a
  * material in red and a ramp step in green; colour is applied here, so a
@@ -54,8 +54,8 @@ export const voxelTurn = () => manifest?.turn;
 export function voxelKey(id: string) {
   if (!manifest) return undefined;
   const base = parseCloth(id)?.base ?? id;
-  const key = garmentIconFor(base) ?? base;
-  return key in manifest.items ? key : undefined;
+  const key = garmentIconFor(base) ?? periodArt(base);
+  return key in manifest.items ? key : base in manifest.items ? base : undefined;
 }
 
 // Python's colorsys HLS, so ramps match scripts/art/voxel_items.py item_ramp.

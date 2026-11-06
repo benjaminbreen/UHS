@@ -1270,6 +1270,7 @@ function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
           stripes: 5,
           plaid: 6,
           jersey: 7,
+          collar: 1,
         }[named];
   const only = [MAT.cloth];
   // The neckline is where the chest starts, so a motif clears it whatever the

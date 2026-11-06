@@ -24,6 +24,8 @@ export type TileEdit = {
   trodden?: boolean;
   /** What this tree kept in its crown has been knocked out of it. */
   shaken?: boolean;
+  /** A wild hive knocked out of this tree lies at its foot, comb and all. */
+  hive?: boolean;
   /** Fire went through: what stands here is charred. */
   burnt?: boolean;
 };

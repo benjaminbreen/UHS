@@ -707,6 +707,57 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     await writeDataUrl(sheet, out("portrait-ab"));
   },
+  /** Western dress from the bowler to the end of the hat: sprite and portrait, women and men, by decade. */
+  async "modern-dress"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const where = [["london", 1895], ["paris", 1912], ["city-chicago", 1925], ["city-anchorage", 1939], ["london", 1942], ["city-new-york", 1955]];
+      const who = [["female", 34, "Laundry Worker"], ["male", 40, undefined], ["female", 62, undefined], ["male", 26, "Factory Hand"], ["female", 22, undefined], ["male", 58, undefined]];
+      const W = 96, H = 120, cell = 48 + W, cols = who.length;
+      const out = document.createElement("canvas");
+      out.width = cols * cell; out.height = (where.length + 2) * (H + 18);
+      const ctx = out.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, out.width, out.height);
+      const f = document.createElement("canvas"); f.width = f.height = 80;
+      where.forEach(([id, year], r) => {
+        const setting = settingFor(places.find((p: any) => p.id === id), year);
+        const y = r * (H + 18);
+        ctx.fillStyle = "#e6dcc4"; ctx.font = "12px monospace"; ctx.fillText(`${setting.location} ${year}`, 4, y + 12);
+        who.forEach(([sex, age, role], k) => {
+          const c = generateCharacter(setting, "modern-dress", `m${r}-${k}`, age, role, undefined, undefined, sex);
+          const x = k * cell;
+          renderers.g.draw(f.getContext("2d")!, c.appearance, 2, "idle", 0, undefined, 3, "neutral");
+          ctx.fillStyle = "#3a5a3a"; ctx.fillRect(x, y + 18, 48, H); ctx.drawImage(f, 22, 27, 36, 52, x, y + 30, 48, 70);
+          const pc = document.createElement("canvas"); pc.width = 64; pc.height = 80;
+          drawSculptedPortrait(pc.getContext("2d")!, c.appearance, age);
+          ctx.fillStyle = "#2a3a78"; ctx.fillRect(x + 48, y + 18, W, H); ctx.drawImage(pc, x + 48, y + 18, W, H);
+        });
+      });
+      // Every modern hat on the same two heads.
+      const hats = ["fedora", "boater", "flat-cap", "bowler", "cloche", "kerchief", "beret", "pillbox"];
+      const setting = settingFor(places.find((p: any) => p.id === "city-chicago"), 1930);
+      [["female", 30, "h0"], ["male", 40, "h1"]].forEach(([sex, age, seed], r) => {
+        const base = generateCharacter(setting, "modern-dress", seed, age, undefined, undefined, undefined, sex);
+        const y = (where.length + r) * (H + 18);
+        hats.forEach((headwear, k) => {
+          const c = { ...base.appearance, wearing: { ...base.appearance.wearing, headwear, hatTrim: "none" } };
+          const x = k * (W + 8);
+          const pc = document.createElement("canvas"); pc.width = 64; pc.height = 80;
+          drawSculptedPortrait(pc.getContext("2d")!, c, age);
+          ctx.fillStyle = "#2a3a78"; ctx.fillRect(x, y + 18, W, H); ctx.drawImage(pc, x, y + 18, W, H);
+        });
+      });
+      return out.toDataURL();
+    });
+    await writeDataUrl(sheet, out("modern-dress"));
+  },
   /** Three people well and in each of illness's three looks: portrait above, the world sprite below. */
   async sick(page) {
     await characterLab(page);
@@ -982,6 +1033,88 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       return urls;
     });
     for (let i = 0; i < sheets.length; i++) await writeDataUrl(sheets[i], out(`work-${i + 1}`));
+  },
+
+  /** Greetings, the turns of a conversation and the hand-over: each pose alone,
+   * then in pairs a tile apart, to see that the hands meet. */
+  async social(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheets = await page.evaluate(async () => {
+      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+      const { drawGarmentIcon, garmentIconFor, itemIconFor, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
+      const { greetingFor } = await import("/src/content/characters/greetings.ts" as string);
+      const person = (placeId: string, year: number, trade: string, n: string, sex = "male") => {
+        const setting = settingFor(places.find((p: any) => p.id === placeId), year);
+        return { c: generateCharacter(setting, "social-review", n, 34, trade, undefined, undefined, sex), setting };
+      };
+      const propOf = (id?: string) => id ? iconCarriedArt(`icon:${id}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(id) ?? itemIconFor(id) ?? id, 0, 0), GARMENT_ICON) : undefined;
+      const frame = document.createElement("canvas");
+      frame.width = frame.height = 80;
+      const fc = frame.getContext("2d")!;
+      const sheetOf = (w: number, h: number) => {
+        const sheet = document.createElement("canvas");
+        sheet.width = w; sheet.height = h;
+        const ctx = sheet.getContext("2d")!;
+        ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, w, h);
+        return { sheet, ctx };
+      };
+      const greeters: [string, number, string, string?][] = [
+        ["kyoto", 1500, "farmer"], ["beijing", 1400, "shopkeeper"], ["delhi", 1650, "farmer"], ["konya", 1600, "shopkeeper"],
+        ["london", 1820, "shopkeeper"], ["london", 1820, "shopkeeper", "female"], ["timbuktu", 1450, "shopkeeper"], ["mesopotamia", -600, "farmer"],
+      ];
+      const rest: [string, number, string, string, string?][] = [
+        ["london", 1350, "farmer", "clap"], ["london", 1350, "farmer", "listen"], ["london", 1350, "farmer", "fold-arms"], ["london", 1350, "shopkeeper", "gesture"],
+        ["london", 1350, "shopkeeper", "shake-head"], ["london", 1350, "shopkeeper", "receive"], ["london", 1350, "farmer", "pay"],
+        ["london", 1350, "guard", "halt-hand", "spear"],
+      ];
+      const views: [number, number, number][] = [0, 1, 2, 3].map((f) => [3, f, 1] as [number, number, number])
+        .concat([0, 1, 2, 3].map((f) => [2, f, 1] as [number, number, number]), [[4, 1, 2], [4, 2, 2]]);
+      const rows = [
+        ...greeters.map(([place, year, trade, sex], i) => {
+          const { c, setting } = person(place, year, trade, `greet-${i}`, sex);
+          return { c, pose: greetingFor(setting, sex === "female"), label: `${place} ${year}`, held: undefined as string | undefined };
+        }),
+        ...rest.map(([place, year, trade, pose, held], i) => ({ c: person(place, year, trade, `rest-${i}`).c, pose, label: trade, held })),
+      ];
+      const one = sheetOf(views.length * 96, rows.length * 150);
+      rows.forEach(({ c, pose, label, held }, row) => {
+        const prop = propOf(held);
+        views.forEach(([facing, f, dir], k) => {
+          renderers.g.draw(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
+          one.ctx.drawImage(frame, 16, 8, 48, 72, k * 96, row * 150, 96, 144);
+        });
+        one.ctx.fillStyle = "#26352c"; one.ctx.font = "12px monospace"; one.ctx.fillText(`${pose} · ${label}`, 4, row * 150 + 148);
+      });
+      // Left faces right, right faces left, a tile and a quarter between their feet.
+      const pairs: [string, number, string, string, string, string, string?][] = [
+        ["london", 1350, "farmer", "pay", "shopkeeper", "receive"],
+        ["london", 1350, "shopkeeper", "give", "farmer", "receive"],
+        ["london", 1350, "farmer", "talk", "farmer", "listen"],
+        ["london", 1350, "shopkeeper", "gesture", "farmer", "fold-arms"],
+        ["london", 1350, "farmer", "pay", "guard", "receive", "spear"],
+        ["kyoto", 1500, "farmer", "bow", "farmer", "bow"],
+        ["beijing", 1400, "shopkeeper", "fist-salute", "farmer", "fist-salute"],
+      ];
+      const two = sheetOf(4 * 160, pairs.length * 150);
+      pairs.forEach(([place, year, ta, pa, tb, pb, held], row) => {
+        const a = person(place, year, ta, `pair-a-${row}`).c, b = person(place, year, tb, `pair-b-${row}`).c;
+        for (let f = 0; f < 4; f++) {
+          renderers.g.draw(fc, a.appearance, 1, pa, f, undefined, 2, "neutral");
+          two.ctx.drawImage(frame, 16, 8, 48, 72, f * 160 + 8, row * 150, 96, 144);
+          renderers.g.draw(fc, b.appearance, 3, pb, f, propOf(held), 6, "neutral");
+          two.ctx.drawImage(frame, 16, 8, 48, 72, f * 160 + 8 + 40, row * 150, 96, 144);
+        }
+        two.ctx.fillStyle = "#26352c"; two.ctx.font = "12px monospace"; two.ctx.fillText(`${pa} / ${pb}`, 4, row * 150 + 148);
+      });
+      return [one.sheet.toDataURL(), two.sheet.toDataURL()];
+    });
+    await writeDataUrl(sheets[0], out("social"));
+    await writeDataUrl(sheets[1], out("social-pairs"));
   },
 
   /** Clergy, officials, carriers and musicians: the street's known faces. */

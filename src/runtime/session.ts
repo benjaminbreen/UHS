@@ -776,8 +776,10 @@ export class Runtime {
         reap: this.toolPose("reap"),
         mine: this.toolPose("mine"),
         talk: "talk",
-        trade: "give",
-        deal: "give",
+        trade: command.type === "trade" && command.give === "coin" ? "pay" : "give",
+        deal: command.type === "deal" && command.give.coin ? "pay" : "give",
+        give: "give",
+        pay: "pay",
         work: workPose ?? "work",
         "use-prop": usePose ?? "give",
         cook: "work-stir",
@@ -1622,8 +1624,11 @@ export class Runtime {
       { type: "interact" as const, target: Engine.tileTarget(facing.x, facing.y), action: "fill" as const },
       ...this.engine.state.objects.map((o) => ({ type: "interact" as const, target: o.id, action: "fill" as const })),
     ].find((command) => !this.engine.validate(command));
+    const hive = this.engine.hiveInReach();
     if (!this.engine.validate(douse))
       primary = { kind: "strike", label: "Douse the fire", command: douse };
+    else if (hive)
+      primary = { kind: "pickup", label: "Take the honeycomb", command: { type: "interact", target: hive, action: "rob" } };
     else if (p.heldItem === "torch" && !this.engine.validate(burn))
       primary = { kind: "strike", label: "Set it alight", command: burn };
     else if (item?.id === "bow")

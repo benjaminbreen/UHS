@@ -1,4 +1,5 @@
 import { dyes, type Cloth } from "../content/characters/wardrobe/cloth";
+import { periodLook } from "../content/economy/wares";
 import { GARMENT_ICON, garmentArt, type IconArt } from "./garment-art";
 import { itemArt, itemColors } from "./item-art";
 
@@ -29,9 +30,21 @@ export function garmentIconFor(baseId: string): string | undefined {
   return key in garmentArt ? key : undefined;
 }
 
+let era: { year: number; culture?: string } = { year: 0 };
+/** The date and place being played, so a water pail is drawn in 1939 and a
+ * clay jar in 1339. Set by the app when the setting changes. */
+export function setArtEra(year: number, culture?: string) {
+  era = { year, culture };
+}
+/** The drawing for an item at the current date, by item id. */
+export function periodArt(id: string): string {
+  return periodLook(id, era.year, era.culture)?.art ?? id;
+}
+
 /** An item's own drawing, for the things that are not clothes. */
 export function itemIconFor(id: string): string | undefined {
-  return id in itemArt ? id : undefined;
+  const dated = periodArt(id);
+  return dated in itemArt ? dated : id in itemArt ? id : undefined;
 }
 
 function rgb(hex: string) {

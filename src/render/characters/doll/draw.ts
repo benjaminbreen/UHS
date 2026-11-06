@@ -51,6 +51,7 @@ type Rig = {
   tool?: J;
   /** Which arm is the working one. */
   near: number;
+  look: number;
 };
 
 export type Face = "o" | "squint" | "grit" | "talk";
@@ -82,6 +83,8 @@ type Key = {
   shoulders?: number;
   /** Motion lines behind what moved fastest into this frame. */
   smear?: "hands" | "tool" | "feet";
+  /** The head turned a facing to the working side (+) or away (-). */
+  look?: number;
 };
 /**
  * The scene carries a jump through its arc and squashes the sprite at either
@@ -267,11 +270,90 @@ const trades: Partial<Record<CharacterPose, readonly Key[]>> = {
     { one: [-3.6, 2.2, 2.4], off: [-0.5, -6, 2], lean: -0.2, face: "talk" },
   ],
 };
+
+// Greetings and the give and take between two people. One-handed gestures
+// use the far hand, so a held spear or ledger stays where it is.
+const social: Partial<Record<CharacterPose, readonly Key[]>> = {
+  bow: [{ nod: 1, lean: 0.6 }, { nod: 2, lean: 2.2 }, { nod: 2, lean: 3.2, rise: -1 }, { nod: 1, lean: 1 }],
+  "fist-salute": [
+    { hands: [[-3, -4, 2.6]], mid: 1 },
+    { hands: [[-4, -1, 3.6]], mid: 0.8, nod: 1, lean: 0.6 },
+    { hands: [[-4, -0.6, 3.9]], mid: 0.8, nod: 2, lean: 1.6 },
+    { hands: [[-4, -1, 3.4]], mid: 0.8, nod: 1, lean: 0.5 },
+  ],
+  palms: [
+    { hands: [[-3, -3, 2]], mid: 1 },
+    { hands: [[-4, 0.5, 2.4]], mid: 0.5, nod: 1 },
+    { hands: [[-4, 1, 2.4]], mid: 0.5, nod: 2, lean: 1.3 },
+    { hands: [[-4, 0.5, 2.2]], mid: 0.5, nod: 1, lean: 0.4 },
+  ],
+  salaam: [
+    { one: [-2, -5, 1.5] },
+    { one: [-4.2, -1.4, 2.4], nod: 1 },
+    { one: [-4.2, -1.2, 2.4], nod: 2, lean: 1.3 },
+    { one: [-4.2, -1.4, 2.4], nod: 1, lean: 0.4 },
+  ],
+  doff: [
+    { one: [-1, 1, 2] },
+    { one: [-0.8, 7, 1.8], nod: 1 },
+    { one: [0.6, 6, 3.4], nod: 1, lean: 0.9 },
+    { one: [-0.5, 6.6, 1.8], lean: 0.3 },
+  ],
+  // The skirt held out at either side, a knee bent behind the other.
+  curtsy: [
+    { hands: [[0.6, -7.5, 1.2]] },
+    { hands: [[1, -7, 1.6]], rise: -1, knee: 2, nod: 1, feet: [[0, 0, 0], [0, 0.4, -1.2]] },
+    { hands: [[1.2, -7, 1.8]], rise: -2, knee: 3, nod: 2, lean: 0.4, feet: [[0, 0, 0.4], [0, 0.6, -1.8]] },
+    { hands: [[0.8, -7.2, 1.4]], rise: -1, knee: 1, nod: 1 },
+  ],
+  clap: [
+    { hands: [[-1, -2.5, 3.4]] },
+    { hands: [[-4, -2.5, 3.4]], mid: 0.4, nod: 1 },
+    { hands: [[-1, -2.5, 3.4]], nod: 1, lean: 0.5 },
+    { hands: [[-4, -2.5, 3.4]], mid: 0.4, nod: 1, lean: 0.7 },
+  ],
+  "raise-hand": [{ one: [0, 0, 1.5] }, { one: [0.6, 5, 1.6] }, { one: [0.6, 5.4, 1.8], nod: 1 }, { one: [0.6, 5, 1.6] }],
+  "halt-hand": [
+    { one: [-1, -1, 3] },
+    { one: [-1.2, 3.4, 5], lean: -0.3 },
+    { one: [-1.2, 3.8, 5.2], lean: -0.4, nod: -1 },
+    { one: [-1.2, 3.4, 5], lean: -0.3 },
+  ],
+  listen: [
+    { hands: [[-4, -6, 2]], mid: 0.6 },
+    { hands: [[-4, -6, 2]], mid: 0.6, nod: 1 },
+    { hands: [[-4, -6, 2]], mid: 0.6 },
+    { hands: [[-4, -6, 2]], mid: 0.6, tilt: 0.5 },
+  ],
+  "fold-arms": [
+    { hands: [[-5.6, -4, 2.4]] },
+    { hands: [[-5.6, -4, 2.4]], tilt: 0.6, feet: [[0, 0, 0], [0, 0.6, 0.6]], knee: 1 },
+    { hands: [[-5.6, -4, 2.4]], tilt: 0.6, nod: -1, feet: [[0, 0, 0], [0, 0.6, 0.6]], knee: 1 },
+    { hands: [[-5.6, -4, 2.4]] },
+  ],
+  gesture: [
+    { hands: [[0.6, -5, 3.6]] },
+    { one: [0, -3, 4.2], off: [0.6, -5, 3.4], face: "talk" },
+    { hands: [[1.2, -4, 3.6]], nod: 1, shoulders: 1 },
+    { one: [0.4, -4.6, 3.8], off: [0, -3.4, 4], face: "talk" },
+  ],
+  "shake-head": [-1, 1, -1, 0].map((look): Key => ({ look, off: [0.8, -4, 3.6] })),
+  receive: [
+    { hands: [[-2.5, -4, 4.6]], mid: 1.2 },
+    { hands: [[-2.5, -3.6, 5.8]], mid: 1, lean: 0.8 },
+    { hands: [[-2.8, -4.4, 3.4]], mid: 0.8, nod: 1 },
+    { one: [-1.5, -5, 2.4], off: [-2.8, -5, 2] },
+  ],
+  pay: [0, 1, 2, 3].map((i): Key => ({
+    one: i & 1 ? [-2, -3.4, 5.6] : [-3.4, -3.6, 3.2], off: [-3, -4, 3], lean: i & 1 ? 0.6 : 0.2, nod: 1,
+  })),
+};
 /** Poses whose tool the painter draws itself, so a held icon is put away. */
 const tooled = new Set<CharacterPose>(["work-stir", "work-pound", "work-hammer", "work-saw", "work-sweep", "work-write", "work-pour", "play-strum", "play-drum", "play-flute", "pray", "cense"]);
 
 const actions: Partial<Record<CharacterPose, readonly Key[]>> = {
   ...trades,
+  ...social,
   ...Object.fromEntries((["chop", "axe-chop", "pick-strike", "swing", "carve"] as const).map((p) => [p, chop])),
   ...Object.fromEntries((["dig", "shovel-dig", "till"] as const).map((p) => [p, dig])),
   ...Object.fromEntries((["sickle-cut", "reap", "slash"] as const).map((p) => [p, sickle])),
@@ -483,7 +565,8 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     tilt = 0,
     shoulders = 0,
     smear: Key["smear"],
-    tool: J | undefined;
+    tool: J | undefined,
+    look = 0;
   const feet: { at: J; knee?: number }[] = [
     { at: [hipX, 2, 0] },
     { at: [-hipX, 2, 0] },
@@ -537,7 +620,9 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     tilt = key.tilt ?? 0;
     shoulders = key.shoulders ?? 0;
     smear = key.smear;
-    if (key.one) hands[near] = hand(ns, key.one);
+    look = key.look ?? 0;
+    if (key.one && prop && pose in social && !key.off) hands[1 - near] = hand(-ns, key.one);
+    else if (key.one) hands[near] = hand(ns, key.one);
     if (key.off) hands[1 - near] = hand(-ns, key.off);
     if (key.mid !== undefined) for (const h of hands) h[0] = Math.sign(h[0]) * Math.min(Math.abs(h[0]), key.mid);
     if (key.tool) tool = [ns * key.tool[0], key.tool[1], key.tool[2]];
@@ -691,7 +776,7 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     const target: J = [hand[0], hand[1] + rise, hand[2] + lean * 0.6];
     return ik(shoulder, target, d.upper, d.fore, [side * 0.25, -0.2, -1]);
   });
-  return { legs, arms, rise, lean, nod, seated, blink, sway, moving, face, lift, tilt, smear, tool, near };
+  return { legs, arms, rise, lean, nod, seated, blink, sway, moving, face, lift, tilt, smear, tool, near, look };
 }
 
 /** Polearms and long guns a figure stands with: drawn by the painter, not from the icon. */
@@ -981,6 +1066,8 @@ type Kit = {
   wideLegs: boolean;
   wrapped: boolean;
   sarong: boolean;
+  /** What the sleeves are made of: the garment's cloth, or a cardigan's knit over it. */
+  sleeve: number;
 };
 
 function kit(a: CharacterAppearance, d: Dims): Kit {
@@ -1003,16 +1090,20 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     gown: [0, 5],
   };
   let [hem, flare] = hems[g] ?? [undefined, 0];
+  // Below the knee over stockings: the twentieth century's dress and skirt.
+  const calf = w.hem === "calf" && (g === "dress" || g === "skirt");
+  if (calf) [hem, flare] = [2 + Math.round(leg * 0.42), 1.5];
   if (leggings === "sarong" && hem === undefined) [hem, flare] = [2, 1];
   if (hem !== undefined) flare += w.cut === "full" ? 1 : w.cut === "fitted" ? -0.5 : 0;
   const outfit = [...(w.color + w.trim + g + w.belt)].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
   const named = w.motif ?? "auto";
+  const cardigan = w.waistcoat === "cardigan" && !bare && g !== "poncho";
   return {
     g,
-    sleeves,
+    sleeves: cardigan ? "long" : sleeves,
     hem,
     flare,
-    legs: g === "suit" ? TOP : leggings === "none" ? SKIN : LOWER,
+    legs: g === "suit" ? TOP : leggings === "none" ? SKIN : calf && leggings === "hose" ? LEG : LOWER,
     feet: w.footwear ?? "shoes",
     belt: bare || g === "gown" || g === "poncho" ? "none" : (w.belt ?? "leather"),
     motif: g === "wrap" || bare ? "plain" : named === "auto" ? ["plain", "placket", "band", "yoke", "stitch"][outfit % 5] : named,
@@ -1024,6 +1115,7 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     wideLegs: leggings === "wide",
     wrapped: leggings === "wrapped",
     sarong: leggings === "sarong",
+    sleeve: cardigan ? VEST : TOP,
   };
 }
 
@@ -1084,7 +1176,8 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[EYE] = flat("#231a2b");
   p[GLASS] = ramp(hat === "visor" ? "#b8d8e8" : "#2c3440");
   p[STUBBLE] = ramp(mix(a.skin, a.hairColor, 0.4), "skin");
-  p[LEG] = p[SKIN];
+  // Stockings under a calf-length hem: skin seen through tan silk or rayon.
+  p[LEG] = w.hem === "calf" && w.leggings === "hose" ? ramp(mix(a.skin, "#b08a6a", 0.4), "skin") : p[SKIN];
   p[SMEAR] = flat("#fff4d8");
   // A patch is whatever came to hand: duller, browner.
   p[PATCH] = ramp(mix(w.color, "#7a6a52", 0.5));
@@ -1109,7 +1202,7 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[PLUME] = ramp(c.plume);
   // Stitches that stand out from the band they are worked on; gold on fine cloth.
   p[ACCENT] = ramp((w.quality ?? 0) >= 2 ? "#e0bc5e" : luma(w.trim) > 0.45 ? "#2c2a44" : "#efe6d0");
-  p[APRON] = w.apron === "leather" ? ramp("#7a5236") : ramp(["#e8e1cf", "#d9cdb0", "#ece7da"][n % 3]);
+  p[APRON] = w.apron === "leather" ? ramp("#7a5236") : ramp(c.apron);
   p[VEST] = dye(c.vest);
   p[SHAWL] = dye(c.shawl);
   // Black lacquer for a Japanese scabbard, pale wood for a kris, leather for the rest.
@@ -1170,7 +1263,7 @@ export function drawCharacterF(
   const headShift = t.view === "side" ? t.sx : t.view === "q" ? t.sx * 0.5 : 0;
   const hx = CX + headShift + r.lean * t.sx * t.sin * 1.9 + r.tilt * t.cos;
   // A turn leads with the head: it faces the new way a beat before the body.
-  const ht = Math.abs(turn) === 3 ? turnOf(face8 + Math.sign(turn)) : turnOf(face8);
+  const ht = Math.abs(turn) === 3 ? turnOf(face8 + Math.sign(turn)) : turnOf(face8 + r.look * t.sx);
   const headArgs: Head = {
     s,
     a,
@@ -1484,32 +1577,39 @@ function drawSidearm(s: Sheet, t: Turn, kind: Sidearm, h: Hang, short: boolean, 
  * below it, with welted pockets and two points at the waist. The back is the
  * cheaper lining, drawn in with a buckled strap. Under an open coat only the
  * opening shows it. */
-function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number, width: (y: number) => number, kind: "plain" | "figured") {
+function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number, width: (y: number) => number, kind: "plain" | "figured" | "cardigan") {
   const m = new Mask();
   const front = t.cos > 0.2,
     back = t.cos < -0.2,
     coat = k.g === "coat";
+  const knit = kind === "cardigan";
   const fc = (y: number) => centre(y) + d.chestD * 0.9 * t.sx * t.sin;
   const vee = d.shoulder - 4;
-  for (let y = d.hip - 1; y <= d.shoulder - 1; y++) {
+  // A cardigan hangs past the waist and stays open a finger's width below its V.
+  for (let y = d.hip - (knit ? 2 : 1); y <= d.shoulder - (knit ? 0 : 1); y++) {
     const c = centre(y),
-      w = width(y);
+      w = width(y) + (knit ? 0.3 : 0);
     for (let x = rnd(c - w + 0.5); x <= rnd(c + w - 0.5); x++) {
       const off = Math.abs(x + 0.5 - fc(y) - 0.5);
       if (front && y > vee && off < (y - vee) * 0.75) continue;
+      if (front && knit && off < 0.9) continue;
       if (coat && front && off > 1.5 * t.cos + 0.8) continue;
       m.set(x, yOf(y));
     }
   }
-  if (front && !coat) for (const side of [-1, 1]) m.set(rnd(fc(d.hip) + side * 1.4 * t.cos), yOf(d.hip - 2));
+  if (front && !coat && !knit) for (const side of [-1, 1]) m.set(rnd(fc(d.hip) + side * 1.4 * t.cos), yOf(d.hip - 2));
   s.put(m, VEST, {
     shade: 0.38,
-    light: kind === "figured" ? 0.3 : 0.2,
+    light: kind === "figured" ? 0.3 : knit ? 0.12 : 0.2,
     top: true,
     bottom: true,
-    zone: (x, y) => (back ? INNER : kind === "figured" && y % 2 === 0 && (x + 2 * y) % 4 === 0 ? ACCENT : VEST),
+    zone: (x, y) => (back && !knit ? INNER : kind === "figured" && y % 2 === 0 && (x + 2 * y) % 4 === 0 ? ACCENT : VEST),
+    // Knit ribbing at the hem.
+    tone: knit ? (x, y, tn) => (y === yOf(d.hip - 2) && x % 2 === 0 ? Math.min(tn, 2) : tn) : undefined,
   });
-  if (front) {
+  if (front && knit) {
+    for (let y = d.hip; y <= vee; y += 2) s.px(rnd(fc(y) - 1.2 * t.cos), yOf(y), METAL, 3);
+  } else if (front) {
     for (let y = d.hip; y <= vee; y += 2) s.px(rnd(fc(y)), yOf(y), METAL, 4);
     if (!coat) for (const side of [-1, 1]) for (const dx of [2, 3]) s.px(rnd(fc(d.hip + 1) + side * dx * t.cos), yOf(d.hip + 1), VEST, 1);
   } else if (back) {
@@ -1584,11 +1684,11 @@ function drawArm(s: Sheet, t: Turn, arm: Limb, k: Kit, dark: number, upperOnly =
     zone: (x, y) => {
       if (hand.has(x, y) && !(fore.has(x, y) && y < hy - 0.5)) return SKIN;
       if (fore.has(x, y) && !upper.has(x, y)) {
-        if (k.sleeves === "long" || k.sleeves === "loose") return cuffed && y >= Math.round(hy) - 1 ? TRIM : TOP;
+        if (k.sleeves === "long" || k.sleeves === "loose") return cuffed && y >= Math.round(hy) - 1 && k.sleeve === TOP ? TRIM : k.sleeve;
         return SKIN;
       }
       if (k.sleeves === "short" && y >= Math.round(ey) && !upper.has(x, y + 1)) return TRIM;
-      return k.sleeves === "none" ? SKIN : TOP;
+      return k.sleeves === "none" ? SKIN : k.sleeve;
     },
   });
 }
@@ -1627,8 +1727,8 @@ function garment(
   const open = g === "coat" || g === "open-robe";
   const long = hem !== undefined && hem <= 3;
   const flared = hem !== undefined && ["dress", "gown", "robe", "skirt", "long-tunic", "open-robe", "tunic", "wrap"].includes(g);
-  const buttoned = g === "shirt" || g === "suit" || (g === "coat" && !open) || k.motif === "placket";
-  const laced = g === "dress" || g === "gown";
+  const buttoned = g === "shirt" || g === "suit" || (g === "coat" && !open) || k.motif === "placket" || k.motif === "collar";
+  const laced = (g === "dress" || g === "gown") && k.motif !== "collar";
   const banded = k.motif === "band" || (hem !== undefined && (k.band || !!k.pattern));
   const tile = k.pattern && k.pattern !== "cloud" ? tiles[k.pattern] : undefined;
   // A patterned band is three rows deep, a plain one two.
@@ -1659,6 +1759,8 @@ function garment(
     if (g === "shirt" && y > waist + 1 && k.legs !== SKIN) return LOWER;
     if (banded && y >= hemRow - bandRows && y > hipRow) return tile && stitch(x, y, hemRow - 2) ? ACCENT : TRIM;
     if (facing && panel && y > top && y <= top + 3 && ax < 2.6) return stitch(x, y, top + 1) ? ACCENT : TRIM;
+    // A white turned-down collar, its points either side of the neck.
+    if (k.motif === "collar" && facing && !open && ((y === top && ax < 2.6) || (y === top + 1 && ax > 0.6 && ax < 2.1))) return WHITE;
     if (facing) {
       // Open fronts: the inner layer, edged its whole length.
       if (open && ax < 1.1 && y > top) return INNER;

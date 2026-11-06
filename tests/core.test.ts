@@ -1259,6 +1259,32 @@ describe("survival and local danger", () => {
     expect(p.health).toBe(100);
   });
 
+  it("lets a casual talker go when the player walks off, but someone with a grievance follows a while first", () => {
+    const e = body(), p = e.state.player, a = e.state.actors[0];
+    e.state.actors = [a];
+    e.world.blocked = () => false;
+    Object.assign(a, { age: 30, health: 100, trust: 0, terror: undefined, wronged: undefined });
+    a.stats = { ...p.stats!, neuroticism: 20 };
+    a.pos = { ...p.pos, x: p.pos.x + 5 };
+    e.conversing = a.id;
+    e.advance(6);
+    expect(e.conversing).toBeUndefined();
+    expect(e.brokeOff).toBe(a.id);
+    expect(e.state.events.some((x) => /calls after you: “Fine\. Go, then\.”/.test(x.text))).toBe(true);
+
+    e.brokeOff = undefined;
+    a.pos = { ...p.pos, x: p.pos.x + 5 };
+    a.wronged = e.state.clock;
+    e.conversing = a.id;
+    e.advance(6);
+    expect(e.conversing).toBe(a.id);
+    expect(Math.abs(a.pos.x - p.pos.x)).toBeLessThan(5);
+    p.pos = { ...p.pos, x: p.pos.x - 20 };
+    e.advance(6);
+    expect(e.conversing).toBeUndefined();
+    expect(e.brokeOff).toBe(a.id);
+  });
+
   it("retains the old harmless hunger and fatigue rules for pinned older worlds", () => {
     const e = body(), p = e.state.player;
     delete e.state.manifest.survival;

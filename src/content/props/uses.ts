@@ -18,7 +18,7 @@ const USE: Record<Use, { verb: string; pose: CharacterPose; minutes: number; fam
   stir: { verb: "Tend", pose: "work-stir", minutes: 15, families: ["cooking-pot", "oven", "tannur", "earth-oven", "stove", "dye-vats", "kiln", "bloomery"] },
   warm: { verb: "Warm yourself at", pose: "sit", minutes: 20, families: ["hearth", "camp-hearth", "communal-hearth", "three-stone-hearth", "council-fire", "long-fire", "brazier", "fire-basket"] },
   sit: { verb: "Sit on", pose: "sit", minutes: 20, families: ["bench", "stool", "seat-log", "seat-mat", "seat-stone", "charpoy", "privy-bench"] },
-  pray: { verb: "Pray at", pose: "talk", minutes: 10, families: ["wayside-shrine", "standing-stone", "skull-post"] },
+  pray: { verb: "Pray at", pose: "pray", minutes: 10, families: ["wayside-shrine", "standing-stone", "skull-post"] },
   tend: { verb: "Tend", pose: "work-tend", minutes: 15, families: ["trough", "stock-pen", "chicken-coop", "dovecote", "beehive", "log-hive", "pipe-hive"] },
   weave: { verb: "Work at", pose: "work-weave", minutes: 20, families: ["loom", "warp-loom", "backstrap-loom", "hide-frame", "lever-press"] },
   scrub: { verb: "Wash at", pose: "work-scrub", minutes: 15, families: ["wash-tub", "tanning-pits"] },

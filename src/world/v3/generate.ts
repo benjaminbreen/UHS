@@ -1268,6 +1268,10 @@ export function createSettlementWorld(
       return;
     }
     if (situation?.landform === "open-ocean") return;
+    for (const p of nearby(x, y)) {
+      const planted = p.landmarks?.get(k);
+      if (planted) return { id: `landmark-${x}-${y}`, x, y, sprite: planted, solid: true };
+    }
     if (situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25) return;
     const f = land.sample(x, y);
     const scape = f.landscape;
@@ -1616,23 +1620,48 @@ export function createSettlementWorld(
           if (!open(to)) continue;
           // Lobed, not a disc: trodden ground spreads where feet actually go.
           const reach = radius * (0.75 + noise(seed, to.x + land.origin.x, to.y + land.origin.y, 3, "dooryard") * 0.5);
-          const value = strength * Math.max(0, 1 - Math.hypot(dx, dy) / reach);
+          let value = strength * Math.max(0, 1 - Math.hypot(dx, dy) / reach);
+          // Planted ground takes no wear, so ease off beside it or the patch ends in a square edge.
+          if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([ox, oy]) => planted(cellKey(to.x + ox, to.y + oy))))
+            value *= 0.4;
           if (value > (wear.get(key) ?? 0)) wear.set(key, value);
         }
     };
     const anchors = new Map<string, { at: Point; radius: number; strength: number }>();
+    // Households share a well and a gathering spot a cell or two apart; one
+    // stamp each, or a dozen overlapping discs spread into a shapeless blot.
     const anchor = (at: Point, radius: number, strength: number) => {
-      const key = cellKey(at.x, at.y), old = anchors.get(key);
-      if (!old || strength > old.strength) anchors.set(key, { at, radius, strength });
+      const old = [...anchors].find(([, a]) => Math.abs(a.at.x - at.x) <= 2 && Math.abs(a.at.y - at.y) <= 2);
+      if (!old) anchors.set(cellKey(at.x, at.y), { at, radius, strength });
+      else if (strength > old[1].strength) {
+        anchors.delete(old[0]);
+        anchors.set(cellKey(at.x, at.y), { at, radius, strength });
+      }
     };
+    // Before lawns, ground between three or more close houses wore through in patches.
+    if ((pack.setting?.year ?? 0) < 1900) {
+      const crowd = new Map<string, number>();
+      for (const b of p.places)
+        for (let y = b.y - 3; y < b.y + b.h + 3; y++)
+          for (let x = b.x - 3; x < b.x + b.w + 3; x++)
+            crowd.set(cellKey(x, y), (crowd.get(cellKey(x, y)) ?? 0) + 1);
+      for (const [k, n] of crowd) {
+        if (n < 3) continue;
+        const [x, y] = k.split(",").map(Number);
+        const value = 0.25 + 0.12 * n - noise(seed, x + land.origin.x, y + land.origin.y, 5, "trodden");
+        if (value > 0.3 && open({ x, y })) wear.set(k, Math.min(0.75, value));
+      }
+    }
+    // An unpaved common is trodden ground where its roads meet, not a square of earth.
+    if (!p.streetSurfaces?.size) anchor(p.site.center, 3.6, 1);
     for (const place of p.places) anchor(place.entrance, 3.2, 1);
     for (const work of p.work.values()) {
       anchor(work.work, 3.2, 0.85);
       anchor(work.water, 2.8, 0.95);
-      anchor(work.social, 3.2, 0.7);
+      anchor(work.social, 2.4, 0.7);
     }
     const nearest = (at: Point) => {
-      let best: Point | undefined, bestD = 100;
+      let best: Point | undefined, bestD = 256;
       for (const point of road.values()) {
         const d = (point.x - at.x) ** 2 + (point.y - at.y) ** 2;
         if (d < bestD) { best = point; bestD = d; }
@@ -1644,19 +1673,24 @@ export function createSettlementWorld(
     const order = [...anchors.values()].map((a) => ({ ...a, d: nearest(a.at).bestD })).sort((a, b) => a.d - b.d);
     for (const { at, radius, strength } of order) {
       if (!open(at)) continue;
-      stamp(at, radius, strength);
       const { best, bestD } = nearest(at);
-      if (!best || bestD < 1) continue;
+      if (!best || bestD < 1) {
+        // A patch with no track to it reads as a stray blot; keep only the doorstep.
+        stamp(at, best ? radius : Math.min(radius, 1.4), strength);
+        continue;
+      }
       const tier = (point: Point) => p.groundLevels?.get(cellKey(point.x, point.y)) ??
         Math.round(land.sample(point.x, point.y).elevation / 14);
       const found = route(at, best, (to, from) =>
         open(to) && tier(to) === tier(from) ? 1 : Infinity, {
-        maxNodes: 128,
+        maxNodes: 600,
         diagonal: false,
         isGoal: (point) => road.has(cellKey(point.x, point.y)),
-        bounds: { x: at.x - 10, y: at.y - 10, w: 21, h: 21 },
+        bounds: { x: at.x - 16, y: at.y - 16, w: 33, h: 33 },
       });
-      if (found.status === "found" && found.path.length > 1) {
+      const joined = found.status === "found" && found.path.length > 1;
+      stamp(at, joined ? radius : Math.min(radius, 1.4), strength);
+      if (joined) {
         tracks.push({ id: `track-${tracks.length}`, points: found.path, width: 0, kind: "path", cost: 0 });
         for (const point of found.path) road.set(cellKey(point.x, point.y), point);
       }
@@ -2050,12 +2084,7 @@ export function createSettlementWorld(
             y >= b.y - 1 &&
             y < b.y + b.h + 1,
         );
-        if (
-          center.has(cellKey(x, y)) ||
-          doorstep ||
-          Math.hypot(x - p.site.center.x, y - p.site.center.y) < 2
-        )
-          cell.surface = "soil";
+        if (center.has(cellKey(x, y)) || doorstep) cell.surface = "soil";
       }
     if (
       environment &&

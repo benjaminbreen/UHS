@@ -264,6 +264,15 @@ export const cueKinds = [
   "beckon",
   /** Caught sight of the player close by. The scene's own, never the engine's. */
   "notice",
+  /** A greeting in the local manner: the scene asks content which. */
+  "greet",
+  /** Taking what the player hands over, goods or coin. */
+  "take",
+  "take-coin",
+  /** The player counting out coin. */
+  "pay",
+  /** A guard's flat palm: stop there. */
+  "halt",
   /** A blow thrown at somebody. */
   "strike",
   /** A blow taken. */

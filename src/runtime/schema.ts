@@ -576,6 +576,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "right",
         "topple",
         "heave",
+        "rob",
         "light",
         "burn",
         "fill",

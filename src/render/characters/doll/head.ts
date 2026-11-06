@@ -63,7 +63,8 @@ const jaws: Record<NonNullable<CharacterAppearance["jaw"]>, [number, number][]> 
 
 const hides = {
   all: new Set(["hood", "headscarf", "veil", "wrap", "turban", "wig", "helmet", "kabuto", "jaguar", "eagle"]),
-  top: new Set(["cap", "bowler", "flat-cap", "ball-cap", "brimmed", "conical", "fez", "top-hat", "nasal", "kettle", "official-cap"]),
+  top: new Set(["cap", "bowler", "flat-cap", "ball-cap", "brimmed", "conical", "fez", "top-hat", "nasal", "kettle", "official-cap",
+    "fedora", "boater", "cloche", "beret", "kerchief"]),
 };
 
 function hash(s: string) {
@@ -665,6 +666,11 @@ const hatBands: Partial<Record<CharacterAppearance["wearing"]["headwear"], { ban
   "top-hat": { band: [1, 4, 9], pin: [9, -2] },
   cap: { pin: [10, 0] },
   "flat-cap": { pin: [10, 0] },
+  fedora: { band: [1, 3, 10], pin: [10, -1] },
+  boater: { band: [0, 3, 10], pin: [10, -1] },
+  cloche: { band: [2, 1, 12], pin: [11, 1] },
+  beret: { pin: [11, -1] },
+  pillbox: { band: [0, 4, 9], pin: [9, -2] },
   conical: { band: [0, 1, 12], pin: [9, -1] },
   turban: { pin: [8, -3] },
   wrap: { pin: [9, -1] },
@@ -741,6 +747,7 @@ function nape(h: Head, last: number) {
 /** Brim row and how far its shade reaches down the face, counting the brim's own line. */
 const brims: Partial<Record<CharacterAppearance["wearing"]["headwear"], [number, number]>> = {
   brimmed: [2, 4], conical: [2, 4], "top-hat": [2, 3], bowler: [3, 3], "flat-cap": [3, 3], "ball-cap": [3, 3], kettle: [2, 3], kabuto: [2, 2],
+  fedora: [2, 3], boater: [2, 3], cloche: [4, 1],
 };
 
 /** The brim's upper face catches the light, and the face under it is in shade;
@@ -820,6 +827,37 @@ function headwear(h: Head, lo: number) {
       k.span(-1, sideways ? 4 : 3, sideways ? 12 : 10).rows(0, [[0, 13], [0, 13], [0, 13]]);
       if (sideways) k.span(3, 9, 15);
       else extra.span(3, 2, 11);
+      break;
+    case "fedora":
+      // A creased crown: two lobes over a dip from in front, sloping to a pinched front in profile.
+      if (sideways) k.span(-4, 3, 8).rows(-3, [[3, 10], [3, 10], [3, 10], [3, 10], [3, 10]]).span(2, -1, 14).set(15, 3).set(14, 3);
+      else k.span(-4, 4, 5).span(-4, 8, 9).rows(-3, [[3, 10], [3, 10], [3, 10], [3, 10], [3, 10]]).span(2, -1, 14);
+      // The brim snaps down at the front and turns up behind.
+      if (view === "front") k.span(3, 2, 11);
+      if (view === "back" || view === "bq") k.span(1, -1, 0).span(1, 13, 14);
+      extra.span(1, 3, 10);
+      break;
+    case "boater":
+      k.rows(-2, [[3, 10], [3, 10], [3, 10], [3, 10]]).span(2, sideways ? -2 : -1, sideways ? 15 : 14);
+      extra.span(0, 3, 10).span(1, 3, 10);
+      break;
+    case "cloche":
+      // A bell to the eyebrows, its edge flaring a little all round.
+      k.span(-2, 4, 9).span(-1, 2, 11).rows(0, [[1, 12], [0, 13], [0, 13], [0, 13]]).span(4, -1, 14);
+      if (sideways) k.span(4, -1, 12).rows(5, [[-1, 4], [0, 3]]);
+      if (view === "back" || view === "bq") k.rows(5, [[-1, 14], [0, 13]]);
+      extra.span(2, 1, 12);
+      break;
+    case "beret":
+      // A soft disc tipped toward one ear, with its stalk on top.
+      k.span(-2, 3, 11).span(-1, 1, 14).span(0, 0, 14).span(1, 1, 12);
+      extra.set(7, -3);
+      break;
+    case "pillbox":
+      // Set back on the crown, the front hair showing.
+      if (sideways) k.rows(-3, [[1, 7], [1, 7], [1, 7], [1, 7]]);
+      else k.rows(-3, [[4, 9], [4, 9], [4, 9], [4, 9]]);
+      extra.span(0, sideways ? 1 : 4, sideways ? 7 : 9);
       break;
     case "ball-cap":
       k.span(-1, 4, 9).rows(0, [[2, 11], [1, 12], [1, 12]]);
@@ -905,6 +943,7 @@ function headwear(h: Head, lo: number) {
       break;
     case "hood":
     case "headscarf":
+    case "kerchief":
     case "veil": {
       // A shell one pixel proud of the skull, pinched at the neck, then
       // spread over the shoulders: the head-and-shoulders shape survives.
@@ -915,16 +954,23 @@ function headwear(h: Head, lo: number) {
       if (hat === "hood" && view === "side") k.rows(0, [[-2, -1], [-3, -2], [-3, -2]]);
       if (hat === "hood" && view === "q") k.rows(0, [[-2, -1], [-2, -2]]);
       const c = h.bodyC - (view === "side" ? 1.5 : view === "q" ? 0.5 : 0);
-      const drop = hat === "veil" ? 6 : 2;
-      k.span(last + 1, Math.round(c - 3.5), Math.round(c + 2.5));
+      const drop = hat === "veil" ? 6 : hat === "kerchief" ? 0 : 2;
+      // A kerchief is knotted under the chin; its point hangs at the nape.
+      if (hat === "kerchief") {
+        if (view === "back" || view === "bq") k.rows(last - 1, [[4, 9], [5, 8], [6, 7]]);
+        else if (view === "front") k.span(last + 1, 6, 7);
+        else k.span(last + 1, 8, 9);
+      } else k.span(last + 1, Math.round(c - 3.5), Math.round(c + 2.5));
       for (let i = 0; i < drop; i++) {
         const w = Math.min(h.shoulderW + 1.5, 4.5 + i * 1.5) - (hat === "veil" && i > 4 ? 0 : 0);
         k.span(last + 2 + i, Math.round(c - w), Math.round(c + w - 1));
       }
       const chin = hat === "headscarf" ? last - 1 : last;
-      if (view === "front") for (let r = 3; r <= chin; r++) for (let x = 2; x <= 11; x++) if (!(r === chin && (x < 4 || x > 9))) k.mask.clear(X(x), Y(r));
-      if (view === "q") for (let r = 3; r <= chin; r++) for (let x = 5; x <= 14; x++) if (!(r === chin && x < 6)) k.mask.clear(X(x), Y(r));
-      if (view === "side") for (let r = 3; r <= chin; r++) for (let x = 7; x <= 14; x++) k.mask.clear(X(x), Y(r));
+      // The kerchief sits back off the brow, so the front of the hair shows.
+      const brow = hat === "kerchief" ? 2 : 3;
+      if (view === "front") for (let r = brow; r <= chin; r++) for (let x = 2; x <= 11; x++) if (!(r === chin && (x < 4 || x > 9))) k.mask.clear(X(x), Y(r));
+      if (view === "q") for (let r = brow; r <= chin; r++) for (let x = 5; x <= 14; x++) if (!(r === chin && x < 6)) k.mask.clear(X(x), Y(r));
+      if (view === "side") for (let r = brow; r <= chin; r++) for (let x = 7; x <= 14; x++) k.mask.clear(X(x), Y(r));
       break;
     }
     case "visor": {
@@ -941,7 +987,7 @@ function headwear(h: Head, lo: number) {
     default:
       return;
   }
-  const cloth = hat === "hood" || hat === "headscarf" || hat === "veil" || hat === "turban" || hat === "wrap";
+  const cloth = hat === "hood" || hat === "headscarf" || hat === "veil" || hat === "turban" || hat === "wrap" || hat === "kerchief";
   // Straw reads by its colour: pale and yellow.
   const hc = parseInt((a.wearing.headColor ?? "#000000").slice(1), 16);
   const straw = luma(a.wearing.headColor ?? "#000000") > 0.5 && (hc >> 16) > (hc & 255) + 30;
@@ -951,12 +997,15 @@ function headwear(h: Head, lo: number) {
     light: 0.25,
     top: true,
     cast: true,
-    bottom: hat !== "hood" && hat !== "headscarf" && hat !== "veil",
+    bottom: hat !== "hood" && hat !== "headscarf" && hat !== "veil" && hat !== "kerchief",
     tone:
       // Wound cloth: bands crossing on a slant, as the portrait winds them.
       hat === "turban" || (h.refined && hat === "wrap")
         ? (x, y, t) => (t >= 3 && (x - y + 40) % 4 === 0 ? 2 : t)
-        : straw && hat === "brimmed"
+        // Printed cotton: a small light spot.
+        : hat === "kerchief"
+          ? (x, y, t) => (t >= 3 && (x * 2 + y * 3) % 5 === 0 ? 4 : t)
+        : straw && (hat === "brimmed" || hat === "boater")
           // Plaited straw: a woven tick along the brim and round the crown.
           ? (x, y, t) => (t >= 3 && (y === Y(2) || y === Y(-1)) && x % 2 === 0 ? 2 : t)
         : hat === "helmet"
@@ -977,11 +1026,13 @@ function headwear(h: Head, lo: number) {
   hatTrim(h);
   if (!extra.mask.empty()) {
     const accent = hat === "fillet" || hat === "turban" || hat === "kabuto" || hat === "eagle" ? METAL : TRIM;
-    s.put(extra.mask, hat === "plume" || hat === "jaguar" ? WHITE : hat === "flat-cap" || hat === "ball-cap" ? HAT : accent, {
+    // Felt hats carry a band of the same felt, darker; a boater's is ribbon.
+    const self = ["flat-cap", "ball-cap", "fedora", "cloche", "pillbox", "beret"].includes(hat);
+    s.put(extra.mask, hat === "plume" || hat === "jaguar" ? WHITE : self ? HAT : accent, {
       ring: hat === "plume" || (h.refined && hat === "fez") ? "ink" : "none",
       shade: 0.3,
       light: 0.3,
-      dark: hat === "flat-cap" || hat === "ball-cap" ? 1 : 0,
+      dark: self ? 1 : 0,
     });
   }
 }

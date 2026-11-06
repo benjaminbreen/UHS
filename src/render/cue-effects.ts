@@ -18,8 +18,10 @@ const ACTS: Record<
     pose?: CharacterPose;
     ms: number;
     mark?: { glyph: keyof typeof GLYPHS; color: number };
-    move?: "hop" | "shake" | "dip" | "stomp";
+    move?: "hop" | "shake" | "dip" | "stomp" | "lean";
     sound?: "alarm";
+    /** What crosses from the other person's hands into these. */
+    pass?: "coin" | "goods";
   }
 > = {
   alarm: {
@@ -45,7 +47,7 @@ const ACTS: Record<
   warm: { pose: "wave", ms: 650, mark: { glyph: "heart", color: 0xd9527a } },
   nod: { pose: "nod", ms: 390 },
   wave: { pose: "wave", ms: 650 },
-  refuse: { pose: "shrug", ms: 900, mark: { glyph: "dots", color: 0x5c6470 } },
+  refuse: { pose: "shake-head", ms: 900, mark: { glyph: "dots", color: 0x5c6470 } },
   point: { pose: "point", ms: 800 },
   // Stops, turns to look, and a small hop under the mark.
   notice: {
@@ -55,6 +57,12 @@ const ACTS: Record<
     move: "hop",
   },
   beckon: { pose: "beckon", ms: 960 },
+  // The pose is the place's own; see `greeting`.
+  greet: { pose: "bow", ms: 1100 },
+  take: { pose: "receive", ms: 1200, move: "lean", pass: "goods" },
+  "take-coin": { pose: "receive", ms: 1200, move: "lean", pass: "coin" },
+  pay: { pose: "pay", ms: 1100 },
+  halt: { pose: "halt-hand", ms: 1600 },
   strike: { pose: "swing", ms: 480, move: "shake" },
   struck: { pose: "hurt", ms: 520, move: "shake", sound: "alarm" },
 };
@@ -64,12 +72,18 @@ const HEAD = 35;
 const beast = (image: Sprite) => image.texture.key.startsWith("fauna");
 /** The same person does not flash the same thing twice in this long. */
 const COOLDOWN_MS = 4000;
+/** Cues that play out before a reaction to them is shown. */
+const EXCHANGES = new Set<CueKind>(["greet", "take", "take-coin", "pay"]);
 /** Thrown apart by a collision, and settled again. */
 const RECOIL_MS = 320;
 const STEAM = [0xffffff, 0xe8e2d6];
 
 type Playing = {
   kind: CueKind;
+  pose?: CharacterPose;
+  /** Unit step toward whoever the cue is aimed at. */
+  ux: number;
+  uy: number;
   from: number;
   until: number;
   facing?: number;
@@ -88,6 +102,7 @@ type Playing = {
 export class CueEffects {
   private seen = 0;
   private playing = new Map<string, Playing>();
+  private queued = new Map<string, { kind: CueKind; toward?: { x: number; y: number } }>();
   private last = new Map<string, number>();
   private zs?: Phaser.GameObjects.Graphics;
   private angerMarks = new Map<string, Phaser.GameObjects.Graphics>();
@@ -103,6 +118,8 @@ export class CueEffects {
       playerPose: (pose: CharacterPose) => void;
       /** The player's half of a collision, and its sound. */
       collided: (who: string, dx: number, dy: number, run: boolean) => void;
+      /** How this person greets someone, here and now. */
+      greeting: (who: string) => CharacterPose;
     },
   ) {}
 
@@ -161,14 +178,23 @@ export class CueEffects {
     const image = this.view.entityAt(who);
     if (!image) return;
     const now = this.scene.time.now;
+    const current = this.playing.get(who);
+    if (current && EXCHANGES.has(current.kind) && !EXCHANGES.has(kind) && now < current.until) {
+      this.queued.set(who, { kind, toward });
+      return;
+    }
     const key = `${who}:${kind}`;
     if (now - (this.last.get(key) ?? -COOLDOWN_MS) < COOLDOWN_MS) return;
     this.last.set(key, now);
     this.stop(who);
     const act = ACTS[kind];
     const at = { x: (image.x - 8) / 16, y: (image.y - 16) / 16 };
+    const dist = toward ? Math.hypot(toward.x - at.x, toward.y - at.y) : 0;
     const p: Playing = {
       kind,
+      pose: kind === "greet" ? this.view.greeting(who) : act.pose,
+      ux: dist ? (toward!.x - at.x) / dist : 0,
+      uy: dist ? (toward!.y - at.y) / dist : 0,
       from: now,
       until: now + act.ms,
       facing:
@@ -181,7 +207,8 @@ export class CueEffects {
     };
     if (act.mark) p.mark = this.scene.add.graphics();
     this.playing.set(who, p);
-    if (act.pose && who === "player") this.view.playerPose(act.pose);
+    if (p.pose && who === "player") this.view.playerPose(p.pose);
+    if (act.pass && toward) this.pass(toward.x * 16 + 8, toward.y * 16 + 16, image, act.pass, 180);
     if (act.sound && !beast(image)) void gameAudio()?.event(act.sound);
   }
 
@@ -194,13 +221,17 @@ export class CueEffects {
     this.playing.delete(who);
   }
 
+  greetingOf(who: string) {
+    return this.view.greeting(who);
+  }
+
   /** The pose and facing a cue asks of somebody other than the player. */
   poseFor(id: string) {
     // The scene clock, which is what cues are stamped with. The time handed
     // to `update` by the game loop is a different one.
     const time = this.scene.time.now;
     const p = this.playing.get(id);
-    const pose = p && ACTS[p.kind].pose;
+    const pose = p?.pose;
     if (!p || !pose || time >= p.until) return undefined;
     return {
       pose,
@@ -218,6 +249,9 @@ export class CueEffects {
       const image = this.view.entityAt(who);
       if (!image || time >= p.until) {
         this.stop(who);
+        const next = this.queued.get(who);
+        this.queued.delete(who);
+        if (next) this.play(who, next.kind, next.toward);
         continue;
       }
       const act = ACTS[p.kind];
@@ -225,12 +259,14 @@ export class CueEffects {
       // Added as an offset and taken back each frame, so a step taken
       // mid-cue is not fought over.
       const early = Math.min(1, (time - p.from) / 220);
+      // A step in to meet the other's hands, and back.
+      const lean = act.move === "lean" && who !== "player" ? Math.sin(Math.PI * t) * 3 : 0;
       const dx =
         (act.move === "shake" && t < 0.5) || (act.move === "stomp" && t < 0.7)
           ? Math.floor(time / 40) % 2
             ? 1
             : -1
-          : 0;
+          : Math.round(lean * p.ux);
       // The camera rides the player's sprite, so the player's start shows in
       // the pose alone; a hop would bob the whole world.
       const dy =
@@ -242,7 +278,7 @@ export class CueEffects {
               ? Math.sin(Math.PI * early) * 2
               : act.move === "stomp" && t < 0.55
                 ? -Math.abs(Math.sin(t * Math.PI * 4 / 0.55)) * 4
-                : 0;
+                : Math.round(lean * p.uy);
       // An animal is placed afresh every frame, so it takes no offset.
       if (!beast(image)) {
         image.setPosition(image.x - p.dx + dx, image.y - p.dy + dy);
@@ -312,6 +348,39 @@ export class CueEffects {
         });
       }
     }
+  }
+
+  /** A coin or a bundle crossing from one pair of hands to another, from a
+   * point at the giver's feet to the taker's sprite. */
+  pass(fromX: number, fromY: number, to: Sprite, what: "coin" | "goods", delay = 0) {
+    // Hands at waist height, held out a little toward each other.
+    const HANDS = 17;
+    const dx = Math.sign(to.x - fromX) * 4;
+    const g = this.scene.add.graphics().setVisible(false);
+    if (what === "coin") {
+      g.fillStyle(0x8a6418, 1).fillRect(-1, -1, 3, 3);
+      g.fillStyle(0xe8c050, 1).fillRect(-1, -1, 2, 2);
+      g.fillStyle(0xfff4c0, 1).fillRect(-1, -1, 1, 1);
+    } else {
+      g.fillStyle(0x5a3e22, 1).fillRect(-2, -2, 5, 4);
+      g.fillStyle(0xb08a58, 1).fillRect(-2, -2, 4, 3);
+      g.fillStyle(0xd8b884, 1).fillRect(-1, -2, 2, 1);
+    }
+    const s = { t: 0 };
+    this.scene.tweens.add({
+      targets: s,
+      t: 1,
+      delay,
+      duration: 420,
+      ease: "Sine.easeInOut",
+      onStart: () => g.setVisible(true),
+      onUpdate: () => {
+        const x0 = fromX + dx, y0 = fromY - HANDS, x1 = to.x - dx, y1 = to.y - HANDS;
+        const x = x0 + (x1 - x0) * s.t, y = y0 + (y1 - y0) * s.t - Math.sin(Math.PI * s.t) * 3;
+        g.setPosition(Math.round(x), Math.round(y)).setDepth(Math.max(y0, y1) + HANDS + 4600);
+      },
+      onComplete: () => g.destroy(),
+    });
   }
 
   /** A small speech bubble with one glyph in it: pops in, sits, fades. */
@@ -388,6 +457,7 @@ export class CueEffects {
 
   dispose() {
     for (const who of [...this.playing.keys()]) this.stop(who);
+    this.queued.clear();
     this.recoils.clear();
     for (const g of this.angerMarks.values()) g.destroy();
     this.angerMarks.clear();

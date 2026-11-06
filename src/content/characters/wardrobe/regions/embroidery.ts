@@ -30,7 +30,7 @@ export const embroidery: readonly GarmentKit[] = [
   kit("classical", "Greek and Roman borders", ["european"], [-800, 500], [["meander", 3], ["dots", 1]]),
   // Counted cross-stitch on shirt fronts and hems, from Byzantine work to
   // the folk dress of the Balkans, the Baltic and Ukraine.
-  kit("europe-folk", "European counted work", ["european"], [500, 1950], [["cross-stitch", 3], ["diamond", 1], ["chevron", 1]], 4),
+  kit("europe-folk", "European counted work", ["european"], [500, 1880], [["cross-stitch", 3], ["diamond", 1], ["chevron", 1]], 4),
   // Tatreez on Levantine dress; lozenges in Amazigh weaving; block-printed spots.
   kit("wana", "Levantine and Maghrebi needlework", ["north-african-west-asian"], [-1000, 3000], [["cross-stitch", 3], ["diamond", 2], ["dots", 1]]),
   // Block-printed butis and woven borders.

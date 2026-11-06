@@ -73,6 +73,31 @@ export const poses = [
   "cense",
   /** A hand cupped to the mouth: a hawker crying wares, a crier, a call to prayer. */
   "call",
+  // Greetings, by where and when: the scene asks content which.
+  "bow",
+  /** The cupped fist at the chest, the Chinese yi. */
+  "fist-salute",
+  /** Palms together at the chest: namaste, the wai, the sampeah. */
+  "palms",
+  /** The right hand to the heart and a small bow. */
+  "salaam",
+  /** The hat lifted, or the forelock touched without one. */
+  "doff",
+  "curtsy",
+  "clap",
+  "raise-hand",
+  // Two people together: one listens while the other talks.
+  "listen",
+  "fold-arms",
+  /** Both hands open, explaining. */
+  "gesture",
+  "shake-head",
+  /** Hands out for what is handed over, then drawn in. */
+  "receive",
+  /** Coins counted out of one hand into the other's palm. */
+  "pay",
+  /** A guard's flat palm: stop there. */
+  "halt-hand",
   "stoop",
   "kneel",
   "sway",
@@ -211,6 +236,9 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "pray") return 340;
   if (pose === "cense") return 260;
   if (pose === "call") return 200;
+  if (pose === "listen" || pose === "fold-arms") return 420;
+  if (pose === "gesture") return 210;
+  if (pose === "shake-head") return 140;
   return pose === "idle"
     ? 360
     : pose === "swing" || pose === "hurt"
