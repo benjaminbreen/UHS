@@ -201,8 +201,8 @@ for (const [id, r] of Object.entries(EXTRA)) {
   if (!shape) { console.error(`extra role ${id}: unknown keyword ${r.keyword}`); continue; }
   roles.set(id, {
     id, label: r.label, tier: r.tier ?? "village",
-    activity: shape.activity, inventory: shape.inventory,
-    needs: r.capabilities ?? [], needsAny: [], excludes: [],
+    activity: shape.activity, inventory: r.inventory ?? shape.inventory,
+    needs: r.capabilities ?? [], needsAny: r.anyCapability ?? [], excludes: [],
     sex: r.sex,
   });
   scopes[id] = { ...r, ...(scopes[id] ?? {}) };
@@ -258,7 +258,8 @@ const FOOD_ACTIVITY = new Set([
   "Working the water", "Gathering plants", "Looking for game",
 ]);
 for (const r of roles.values())
-  if (r.tier === "village" && !FOOD_ACTIVITY.has(r.activity))
+  // `lasting` marks work that outlived industry: the griot, the diviner.
+  if (r.tier === "village" && !FOOD_ACTIVITY.has(r.activity) && !EXTRA[r.id]?.lasting)
     r.tier = "village-craft";
 
 writeFileSync(

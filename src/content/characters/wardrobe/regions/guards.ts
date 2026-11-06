@@ -27,6 +27,13 @@ const kit = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit):
   id: `guard-${id}`, label, scope, priority: 3, ...parts,
 });
 const arms = (...xs: [Accessory, number][]) => xs.map(([v, w]) => g(v, w));
+// Standing armies and irregulars after 1870 are keyed on the work, not the role
+// text, so an askari or a jawan is dressed as one without a word list.
+const on = (livelihood: string) => <T>(value: T, weight = 1): Option<T> => ({ value, weight, livelihoods: [livelihood], ages: ["youth", "adult"] });
+const u = on("soldier"), q = on("guerrilla");
+const uniform = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit): GarmentKit => ({
+  id: `uniform-${id}`, label, scope, priority: 4, ...parts,
+});
 const bare = { footwear: [g("none" as const)] };
 const sandals = { footwear: [g("sandals" as const)] };
 
@@ -205,6 +212,55 @@ export const guards: readonly GarmentKit[] = [
     shield: [g("none", 4), g("round", 1)], shieldColor: [g(HIDE)],
     accessory: arms(["bow", 5], ["spear", 3]),
   }),
+  uniform("1870", "Coat, peaked cap and the breech-loader", { years: [1870, 1914] }, {
+    garment: [u("coat")], leggings: [u("trousers")], footwear: [u("boots")], belt: [u("leather")],
+    headwear: [u("peaked-cap", 5), u("helmet", 1), u("cap", 1)],
+    dye: [u("vat", 4), u("soot", 2), u("madder", 1), u("bark", 2)], motif: [u("placket")],
+    armour: [u("none")], shield: [u("none")], accessory: [u("rifle", 6), u("none", 1)],
+  }),
+  uniform("world-wars", "Khaki, field grey and olive: helmet, puttees, rifle", { years: [1914, 1946] }, {
+    garment: [u("coat", 4), u("shirt", 2)], leggings: [u("wrapped", 4), u("trousers", 4)], footwear: [u("boots")], belt: [u("leather")],
+    headwear: [u("helmet", 5), u("peaked-cap", 3), u("cap", 2)], over: [u("none", 5), u("cloak", 1)],
+    dye: [u("bark", 4), u("ash", 4), u("umber", 3), u("chilca", 2)], motif: [u("placket")],
+    armour: [u("none")], shield: [u("none")], accessory: [u("rifle", 8), u("none", 1)],
+  }),
+  uniform("late", "Fatigues, beret and boots", { years: [1946, 10001] }, {
+    garment: [u("shirt", 4), u("coat", 2)], leggings: [u("trousers")], footwear: [u("boots")], belt: [u("wide")],
+    headwear: [u("helmet", 4), u("beret", 3), u("ball-cap", 2), u("brimmed", 1), u("peaked-cap", 1)],
+    dye: [u("chilca", 4), u("bark", 3), u("umber", 2), u("ash", 1)], motif: [u("placket")],
+    armour: [u("none")], shield: [u("none")], accessory: [u("rifle", 6), u("none", 1)],
+  }),
+  uniform("africa", "Askari and tirailleur: the red chechia, khaki and puttees", { years: [1870, 1965], cultures: ["west-central-african", "east-southern-african", "north-african-west-asian"] }, {
+    headwear: [u("fez", 6), u("peaked-cap", 1), u("pith-helmet", 1)],
+    leggings: [u("wrapped", 3), u("trousers", 2), u("none", 2)], footwear: [u("boots", 3), u("none", 2)],
+    dye: [u("ochre", 4), u("bark", 3), u("vat", 1)],
+  }),
+  uniform("south-asia", "Sepoy and jawan: the pagri over khaki", { years: [1870, 1948], cultures: ["south-asian"] }, {
+    headwear: [u("turban", 6), u("helmet", 1)], dye: [u("ochre", 4), u("bark", 3)], leggings: [u("wrapped", 3), u("trousers", 2)],
+  }),
+  uniform("japan", "Imperial conscript: khaki, peaked cap, puttees", { years: [1873, 1946], cultures: ["east-asian"], bounds: [128, 30, 146, 46] }, {
+    headwear: [u("peaked-cap", 4), u("helmet", 2)], leggings: [u("wrapped")], dye: [u("ochre", 4), u("bark", 2)],
+  }),
+  uniform("pla", "PLA: soft cap, green cotton, canvas shoes", { years: [1947, 1990], cultures: ["east-asian"], bounds: [98, 18, 125, 42] }, {
+    garment: [u("coat")], headwear: [u("cap", 5), u("helmet", 1)], footwear: [u("sneakers", 3), u("boots", 1)],
+    dye: [u("chilca", 5), u("ochre", 1)],
+  }),
+  uniform("red-army", "Red Army: the gymnastyorka, the greatcoat, the furazhka", { years: [1918, 1992], bounds: [27, 41, 60, 70] }, {
+    headwear: [u("peaked-cap", 3), u("cap", 2), u("helmet", 2)], over: [u("none", 3), u("cloak", 2)],
+    dye: [u("chilca", 3), u("bark", 3), u("ash", 1)],
+  }),
+  uniform("guerrilla", "Irregulars: their own clothes, a hat, a rifle", { years: [1870, 10001] }, {
+    garment: [q("shirt", 4), q("tunic", 1), q("coat", 1)], leggings: [q("trousers")],
+    headwear: [q("brimmed", 3), q("beret", 1), q("cap", 2), q("none", 2)], footwear: [q("sandals", 2), q("boots", 2), q("shoes", 1)],
+    dye: [q("bark", 3), q("undyed", 2), q("chilca", 2), q("umber", 2)], accessory: [q("rifle", 5), q("none", 1)],
+  }),
+  uniform("revolution-mexico", "The Revolution: the sombrero and the carbine", { years: [1910, 1931], bounds: [-118, 13, -86, 33] }, {
+    headwear: [q("brimmed")], garment: [q("shirt")], footwear: [q("sandals", 2), q("boots", 1)], dye: [q("undyed", 3), q("bleached", 2), q("bark", 1)],
+  }),
+  uniform("guerrilla-early", "The Peninsular guerrilla: musket and cloak", { years: [1800, 1870] }, {
+    headwear: [q("brimmed", 2), q("cap", 2)], over: [q("cloak", 1), q("none", 2)], accessory: [q("musket", 4), q("none", 1)],
+  }),
+
   kit("pacific", "The long shield and the spear", { years: [-5000, 1900], cultures: ["australian-pacific"] }, {
     garment: [g("none", 2), g("loincloth", 1)], ...bare,
     headwear: [g("none")], armour: [g("none")],

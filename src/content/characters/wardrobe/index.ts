@@ -322,7 +322,7 @@ export function wardrobeFor(
     // Men's felt came in a few sober shades: grey, brown, black, navy.
     : headwear === "fedora" ? dyes[(["ash", "walnut", "soot", "umber", "woad"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 5)]].hex
     : headwear === "bowler" || headwear === "top-hat" ? dyes.soot.hex
-    : straw || headwear === "boater" ? dyes.undyed.hex
+    : straw || headwear === "boater" || headwear === "pith-helmet" ? dyes.undyed.hex
     : head ? dyes[head].hex : base.lowerColor;
   const neck = chosen.neck as "none" | "beads" | "chain" | undefined;
   const over = chosen.over as

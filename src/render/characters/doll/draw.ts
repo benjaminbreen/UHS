@@ -637,7 +637,7 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     const f = pose === "walk" || pose === "carry" ? frame : pose === "setoff" ? [1, 2, 3, 3][frame & 3] : [2, 1, 0, 0][frame & 3];
     frame = f;
     const kind = prop?.sprite.slice(5);
-    const yoked = shouldered(kind), armed = !!kind && /^(spear|halberd|glaive|musket|crossbow|macuahuitl)$/.test(kind);
+    const yoked = shouldered(kind), armed = !!kind && /^(spear|halberd|glaive|musket|rifle|crossbow|macuahuitl)$/.test(kind);
     const devout = kind === "beads" || kind === "alms-bowl" || kind === "censer";
     const slow = (1 - load * 0.15 - (tired ? 0.15 : 0)) * (yoked ? 0.72 : devout ? 0.75 : 1);
     const old = elder ? 0.75 : 1;
@@ -764,7 +764,7 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
   if (prop && shouldered(prop.sprite.slice(5)) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
     hands[near] = [ns * (d.shoulderW - 0.5), sh - 1, 3];
   else if (prop && upright(prop) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
-    hands[near] = [ns * (d.shoulderW + 0.6), sh - (prop.sprite === "icon:musket" || prop.sprite === "icon:crossbow" ? 9 : prop.sprite === "icon:macuahuitl" ? 12 : 6), 1.5];
+    hands[near] = [ns * (d.shoulderW + 0.6), sh - (prop.sprite === "icon:musket" || prop.sprite === "icon:rifle" || prop.sprite === "icon:crossbow" ? 9 : prop.sprite === "icon:macuahuitl" ? 12 : 6), 1.5];
   const legs = feet.map(({ at, knee = 0.6 }, i) => {
     const side = i === 0 ? 1 : -1;
     const hip: J = [side * hipX, d.hip + Math.min(0, rise), 0];
@@ -780,7 +780,7 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
 }
 
 /** Polearms and long guns a figure stands with: drawn by the painter, not from the icon. */
-const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole)$/.test(prop.sprite);
+const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|rifle|harpoon|paddle|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole)$/.test(prop.sprite);
 const shouldered = (kind?: string) => kind === "water-pole" || kind === "carrying-pole";
 const EMBLEMS: Record<string, string> = { cowhide: "#ece4d4", lambda: "#8a2a22", cross: "#ece4d4", chevron: "#d8b04a", tiger: "#d8a03a", bands: "#ece4d4", rim: "#a4aab0" };
 
@@ -816,6 +816,35 @@ function pole(sheet: Sheet, kind: string, hand: J, trail = 0, bob = 0) {
     s.put(new Mask().span(top, x, x).line(x, top, x, hy - 3, 1), STEEL, { ring: "ink", shade: 0, light: 0.3 });
     const stock = new Mask().line(x, hy - 3, x, butt - 2, 2).span(butt - 1, x - 1, x + 1).span(butt, x - 1, x + 1);
     s.put(stock, LEATHER, { ring: "ink", shade: 0.3, light: 0.3 });
+    return;
+  }
+  if (kind === "rifle") {
+    // At order arms, butt by the foot; the fixed bayonet is what clears the big head.
+    const r = x + side,
+      butt = Math.min(GY - 1, hy + 12),
+      top = butt - 34;
+    s.put(new Mask().set(r, top - 7).line(r, top - 6, r, top + 2, 1).set(r, top + 12).set(r, hy - 3).set(r, hy - 2), STEEL, { ring: "ink", shade: 0, light: 0.4 });
+    const wood = new Mask().line(r, top + 3, r, top + 11, 1).line(r, top + 13, r, hy - 4, 1).line(r, hy - 1, r, butt - 2, 2).span(butt - 1, r - 1, r + 1).span(butt, r - 1, r + 1);
+    s.put(wood, LEATHER, { ring: "ink", shade: 0.3, light: 0.3 });
+    return;
+  }
+  if (kind === "paddle") {
+    // Grip up, the leaf of the blade down by the feet.
+    const top = hy - 20, foot = Math.min(GY - 1, hy + 15);
+    s.put(new Mask().span(top, x - 1, x + 1).line(x, top + 1, x, foot - 9, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+    const blade = new Mask().span(foot - 9, x - 1, x + 1).span(foot - 1, x - 1, x + 1).set(x, foot);
+    for (let y = foot - 8; y <= foot - 2; y++) blade.span(y, x - 2, x + 2);
+    s.put(blade, LEATHER, { ring: "ink", shade: 0.35, light: 0.3, top: true, bottom: true });
+    for (let y = foot - 8; y <= foot - 2; y += 2) s.px(x, y, LEATHER, 1);
+    return;
+  }
+  if (kind === "harpoon") {
+    // An iron foreshaft and a barbed head; the line coiled at the hand.
+    const top = hy - 34, foot = Math.min(GY - 1, hy + 15);
+    s.put(new Mask().line(x, top + 7, x, foot, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+    const head = new Mask().set(x, top - 1).span(top, x - 1, x + 1).line(x, top + 1, x, top + 6, 1).set(x - side, top + 2).set(x - side * 2, top + 3);
+    s.put(head, STEEL, { ring: "ink", shade: 0.3, light: 0.4, top: true });
+    for (const [dx, dy] of [[1, 8], [2, 9], [2, 10], [1, 11], [2, 12], [3, 13], [3, 14], [2, 15]]) s.px(x - side * dx, top + dy, WHITE, 2);
     return;
   }
   if (kind === "lamp-pole" || kind === "sweep-brush") {

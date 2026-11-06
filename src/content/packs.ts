@@ -73,6 +73,12 @@ export const items: Record<
   lute: { id: "lute", name: "Lute", description: "A plucked instrument with a round back and a fretted neck: lute, oud, pipa, biwa, kora.", sprite: "lute", value: 12, hand: {} },
   drum: { id: "drum", name: "Hand drum", description: "A skin stretched over a frame or a hollow log, played with the hands or a stick.", sprite: "drum", value: 6, hand: {} },
   flute: { id: "flute", name: "Flute", description: "A pipe of cane, bone, clay or bamboo with finger holes.", sprite: "flute", value: 3, hand: {} },
+  rifle: { id: "rifle", name: "Rifle", description: "A breech-loading rifle with a bolt or lever and a magazine of cartridges; a bayonet fixes to the muzzle.", sprite: "rifle", value: 30, hand: {} },
+  harpoon: { id: "harpoon", name: "Harpoon", description: "A barbed or toggling iron head on a long shaft, with a line made fast to it, thrown into a whale, seal or walrus.", sprite: "harpoon", value: 8, hand: { strike: true, edge: true, weapon: "spear" } },
+  paddle: { id: "paddle", name: "Steering paddle", description: "A long carved paddle held over the stern to steer a canoe, or dug in to drive it.", sprite: "paddle", value: 4, hand: {} },
+  scales: { id: "scales", name: "Hand scales", description: "A beam and two pans on cords, with a set of weights, for coin, gold dust, spice or medicine.", sprite: "scales", value: 8, hand: {} },
+  briefcase: { id: "briefcase", name: "Briefcase", description: "A flat leather case with a handle for papers: deeds, ledgers, contracts, drawings.", sprite: "briefcase", value: 6, hand: {} },
+  "doctor-bag": { id: "doctor-bag", name: "Doctor's bag", description: "A hinged leather bag that opens wide on a metal frame, holding instruments, dressings and medicines.", sprite: "doctor-bag", value: 10, hand: {} },
   sling: { id: "sling", name: "Sling", description: "Two cords and a pouch; whirled overhead, it hurls a stone hard enough to kill.", sprite: "sling", value: 3, hand: {} },
 };
 export const packs: Record<string, Pack> = resolvePlayablePacks();

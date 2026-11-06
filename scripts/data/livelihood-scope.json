@@ -1659,6 +1659,635 @@
       "keyword": "medicine",
       "tier": "town",
       "weight": 2
+    },
+    "soldier": {
+      "label": "Soldier",
+      "keyword": "warfare",
+      "tier": "industrial",
+      "weight": 1.5,
+      "years": [
+        1870,
+        10001
+      ],
+      "sex": "male",
+      "sexUntil": 1975,
+      "inventory": {
+        "water": 2,
+        "bread": 1,
+        "tool": 1
+      },
+      "why": "A conscript or regular in a standing army. The older `warrior` is a craft of the village and closes where wage labour comes in, so after 1900 nobody in a modern state fought."
+    },
+    "physician": {
+      "label": "Physician",
+      "keyword": "medicine",
+      "tier": "town",
+      "weight": 1.2,
+      "capabilities": [
+        "writing"
+      ],
+      "inventory": {
+        "water": 2,
+        "berries": 2,
+        "coin": 1
+      },
+      "why": "Learned medicine practised for a fee in a town. The healer row is the village and the camp, so until now no city had a doctor in it."
+    },
+    "merchant": {
+      "label": "Merchant",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 2,
+      "capabilities": [
+        "market_exchange"
+      ],
+      "inventory": {
+        "water": 2,
+        "coin": 4,
+        "fruit": 1
+      },
+      "why": "Wholesale trade from a warehouse or counting house: the town has more of it than the single hand-written trader suggested."
+    },
+    "moneylender": {
+      "label": "Moneylender",
+      "keyword": "trade",
+      "tier": "village",
+      "weight": 0.6,
+      "capabilities": [
+        "coinage"
+      ],
+      "inventory": {
+        "water": 2,
+        "coin": 6
+      },
+      "minPopulation": 200,
+      "why": "Lending at interest against land, crops or pledges, in every society with coin and a harvest."
+    },
+    "banker": {
+      "label": "Banker",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 0.5,
+      "capabilities": [
+        "coinage",
+        "writing"
+      ],
+      "minPopulation": 2000,
+      "inventory": {
+        "water": 1,
+        "coin": 8
+      },
+      "why": "Deposit, bills of exchange and loans as a house's business: Roman argentarii, the Italian banchi, the Marwari and Shanxi houses, the joint-stock banks."
+    },
+    "broker": {
+      "label": "Broker",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 0.6,
+      "capabilities": [
+        "market_exchange"
+      ],
+      "inventory": {
+        "water": 2,
+        "coin": 3
+      },
+      "why": "A go-between paid on the deal: the dallal of the bazaar, the produce broker, the stockbroker."
+    },
+    "shipowner": {
+      "label": "Shipowner",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 0.3,
+      "requires": [
+        "coast"
+      ],
+      "minPopulation": 2000,
+      "inventory": {
+        "water": 2,
+        "coin": 6,
+        "fish": 1
+      },
+      "why": "Owning and freighting ships, or shares in them: the nakhuda, the Venetian patron, the Liverpool owner."
+    },
+    "comprador": {
+      "label": "Comprador",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 0.6,
+      "years": [
+        1760,
+        1950
+      ],
+      "requires": [
+        "coast"
+      ],
+      "bounds": [
+        95,
+        0,
+        125,
+        40
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 6
+      },
+      "why": "The Chinese go-between who ran a foreign firm's dealings in a treaty port, and his like in Bangkok and Saigon."
+    },
+    "sugar-boiler": {
+      "label": "Sugar Boiler",
+      "keyword": "fire",
+      "tier": "village",
+      "weight": 1.2,
+      "requires": [
+        "sugar"
+      ],
+      "sex": "male",
+      "lasting": true,
+      "inventory": {
+        "water": 3,
+        "wood": 2
+      },
+      "why": "The skilled man of the boiling house, who judged the strike of the cane juice. In the slave colonies often himself enslaved, and among the most valued on the estate."
+    },
+    "overseer": {
+      "label": "Overseer",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 1.5,
+      "requires": [
+        "plantation"
+      ],
+      "sex": "male",
+      "lasting": true,
+      "inventory": {
+        "water": 2,
+        "coin": 2,
+        "tool": 1
+      },
+      "why": "The man who drove the work on an export estate for its owner, from the slave plantation to the rubber and tea estates of the twentieth century."
+    },
+    "indentured-labourer": {
+      "label": "Indentured Labourer",
+      "keyword": "harvest",
+      "tier": "village",
+      "weight": 10,
+      "requires": [
+        "indenture"
+      ],
+      "inventory": {
+        "water": 2,
+        "grain": 1,
+        "tool": 1
+      },
+      "why": "Contract labour shipped to the estates after slavery ended, bound for five years or more under penal law."
+    },
+    "typist": {
+      "label": "Typist",
+      "keyword": "writing",
+      "tier": "industrial",
+      "weight": 0.8,
+      "years": [
+        1885,
+        2000
+      ],
+      "sex": "female",
+      "sexUntil": 1970,
+      "requires": [
+        "office"
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 1,
+        "reeds": 1
+      },
+      "why": "The office typewriter came in the 1880s and was a woman's job within a generation."
+    },
+    "telephone-operator": {
+      "label": "Telephone Operator",
+      "keyword": "errands",
+      "tier": "industrial",
+      "weight": 0.5,
+      "years": [
+        1880,
+        1990
+      ],
+      "sex": "female",
+      "sexUntil": 1980,
+      "inventory": {
+        "water": 1,
+        "coin": 1
+      },
+      "why": "Switchboards needed a hand on every call until automatic exchanges took over after the 1960s."
+    },
+    "office-worker": {
+      "label": "Office Worker",
+      "keyword": "writing",
+      "tier": "industrial",
+      "weight": 1.5,
+      "years": [
+        1900,
+        10001
+      ],
+      "requires": [
+        "office"
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 2,
+        "reeds": 1
+      },
+      "why": "Salaried desk work in a firm or ministry, the twentieth century's largest new class of work."
+    },
+    "civil-servant": {
+      "label": "Civil Servant",
+      "keyword": "authority",
+      "tier": "industrial",
+      "weight": 0.8,
+      "years": [
+        1870,
+        10001
+      ],
+      "requires": [
+        "office"
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 2
+      },
+      "why": "A salaried official of a ministry, municipality or colonial administration."
+    },
+    "engineer": {
+      "label": "Engineer",
+      "keyword": "construction",
+      "tier": "industrial",
+      "weight": 0.7,
+      "years": [
+        1820,
+        10001
+      ],
+      "requires": [
+        "factories"
+      ],
+      "inventory": {
+        "water": 2,
+        "wood": 1,
+        "tool": 2
+      },
+      "why": "Railways, dams, mines and power: the professional engineer, trained in a school rather than a workshop."
+    },
+    "garment-worker": {
+      "label": "Garment Worker",
+      "keyword": "factory",
+      "tier": "industrial",
+      "weight": 1.2,
+      "years": [
+        1860,
+        10001
+      ],
+      "sex": "female",
+      "sexUntil": 1960,
+      "inventory": {
+        "water": 1,
+        "coin": 1,
+        "flax": 1
+      },
+      "why": "Machine sewing in workshops and factories: the Lower East Side sweatshop, the East End, Shanghai, the border maquiladora and Dhaka."
+    },
+    "oil-worker": {
+      "label": "Oil Worker",
+      "keyword": "mining",
+      "tier": "modern",
+      "weight": 4,
+      "years": [
+        1857,
+        10001
+      ],
+      "requires": [
+        "oil"
+      ],
+      "sex": "male",
+      "inventory": {
+        "water": 2,
+        "tool": 2
+      },
+      "why": "Drilling, pumping and refining wherever the oilfields opened."
+    },
+    "rubber-tapper": {
+      "label": "Rubber Tapper",
+      "keyword": "harvest",
+      "tier": "modern",
+      "weight": 12,
+      "years": [
+        1850,
+        10001
+      ],
+      "requires": [
+        "rubber"
+      ],
+      "inventory": {
+        "water": 2,
+        "tool": 1,
+        "fruit": 1
+      },
+      "why": "Cutting the bark of the rubber tree at dawn and collecting the latex: wild trees on the Amazon, then estates."
+    },
+    "rickshaw-puller": {
+      "label": "Rickshaw Puller",
+      "keyword": "transport",
+      "tier": "industrial",
+      "weight": 1.5,
+      "years": [
+        1870,
+        10001
+      ],
+      "bounds": [
+        68,
+        -11,
+        146,
+        46
+      ],
+      "sex": "male",
+      "inventory": {
+        "water": 2,
+        "coin": 1
+      },
+      "why": "The jinrikisha came out of Tokyo in 1869 and spread to every Asian city within thirty years; the cycle rickshaw replaced it after the 1930s."
+    },
+    "journalist": {
+      "label": "Journalist",
+      "keyword": "writing",
+      "tier": "industrial",
+      "weight": 0.4,
+      "years": [
+        1830,
+        10001
+      ],
+      "requires": [
+        "print"
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 1,
+        "reeds": 2
+      },
+      "why": "Reporting for the daily press, from the penny papers to the wire services."
+    },
+    "scientist": {
+      "label": "Scientist",
+      "keyword": "medicine",
+      "tier": "industrial",
+      "weight": 0.3,
+      "years": [
+        1870,
+        10001
+      ],
+      "requires": [
+        "factories"
+      ],
+      "inventory": {
+        "water": 1,
+        "berries": 1,
+        "tool": 1
+      },
+      "why": "Paid research in a laboratory, university or government institute."
+    },
+    "programmer": {
+      "label": "Programmer",
+      "keyword": "writing",
+      "tier": "industrial",
+      "weight": 0.4,
+      "years": [
+        1950,
+        10001
+      ],
+      "requires": [
+        "computers"
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 2
+      },
+      "why": "Writing instructions for stored-program computers, from the coding rooms of the 1950s to software houses."
+    },
+    "delivery-rider": {
+      "label": "Delivery Rider",
+      "keyword": "errands",
+      "tier": "modern",
+      "weight": 1.2,
+      "years": [
+        1980,
+        10001
+      ],
+      "inventory": {
+        "water": 2,
+        "coin": 1
+      },
+      "why": "Moving parcels, food and passengers by motorbike or bicycle, latterly dispatched by an app."
+    },
+    "navigator": {
+      "label": "Navigator",
+      "keyword": "seafaring",
+      "tier": "village",
+      "weight": 0.6,
+      "years": [
+        -1500,
+        10001
+      ],
+      "requires": [
+        "coast"
+      ],
+      "inventory": {
+        "water": 3,
+        "fish": 1,
+        "tool": 1
+      },
+      "why": "Finding the way at sea: the Pacific wayfinder reading swells and stars, the Arab mu'allim, the pilot and the ship's master with a chart."
+    },
+    "bronze-caster": {
+      "label": "Bronze Caster",
+      "keyword": "metalwork",
+      "tier": "village",
+      "weight": 0.6,
+      "capabilities": [
+        "metallurgy"
+      ],
+      "minPopulation": 200,
+      "sex": "male",
+      "inventory": {
+        "water": 2,
+        "tool": 2
+      },
+      "why": "Casting in bronze or brass by the lost-wax method, for a court, a temple or the market."
+    },
+    "shipwright": {
+      "label": "Shipwright",
+      "keyword": "timber",
+      "tier": "town",
+      "weight": 0.8,
+      "requires": [
+        "coast"
+      ],
+      "sex": "male",
+      "inventory": {
+        "water": 1,
+        "wood": 4,
+        "tool": 2
+      },
+      "why": "Building seagoing ships in a yard: the Arsenal of Venice, the dhow yards of Gujarat and Oman, the junk yards of Fujian, the Thames and the Clyde."
+    },
+    "jeweller": {
+      "label": "Jeweller",
+      "keyword": "metalwork",
+      "tier": "town",
+      "weight": 0.6,
+      "capabilities": [
+        "metallurgy"
+      ],
+      "sex": "male",
+      "sexUntil": 1950,
+      "inventory": {
+        "water": 1,
+        "coin": 3,
+        "tool": 1
+      },
+      "why": "Working gold, silver and stones for the wealthy and for brides' dowries."
+    },
+    "griot": {
+      "label": "Griot",
+      "keyword": "performance",
+      "tier": "village",
+      "weight": 1.2,
+      "years": [
+        1200,
+        10001
+      ],
+      "bounds": [
+        -18,
+        8,
+        16,
+        20
+      ],
+      "lasting": true,
+      "inventory": {
+        "water": 1,
+        "coin": 1
+      },
+      "why": "The hereditary keeper of genealogies, praise and history in the Mande and Wolof world, and its counterparts across the Sahel."
+    },
+    "diviner": {
+      "label": "Diviner",
+      "keyword": "ritual",
+      "tier": "village",
+      "weight": 0.5,
+      "lasting": true,
+      "inventory": {
+        "water": 1,
+        "coin": 1
+      },
+      "why": "Reading fate for clients, by cowries, bones, stars, livers or the casting of lots. Not an officiant of a cult: a consultant, paid by the question."
+    },
+    "entertainer": {
+      "label": "Entertainer",
+      "keyword": "performance",
+      "tier": "town",
+      "weight": 0.7,
+      "inventory": {
+        "water": 1,
+        "coin": 1
+      },
+      "why": "Acting, tumbling, juggling, dancing and puppetry for a paying crowd, in the market or a theatre."
+    },
+    "courtesan": {
+      "label": "Courtesan",
+      "keyword": "performance",
+      "tier": "town",
+      "weight": 0.3,
+      "years": [
+        -700,
+        1960
+      ],
+      "sex": "female",
+      "minPopulation": 2000,
+      "inventory": {
+        "water": 1,
+        "coin": 2
+      },
+      "why": "A woman kept or hired for company, music and sex by wealthy men, ranked well above the brothel: the hetaira, the Venetian cortigiana, the tawaif, the kisaeng and the oiran."
+    },
+    "notary": {
+      "label": "Notary",
+      "keyword": "writing",
+      "tier": "town",
+      "weight": 0.6,
+      "capabilities": [
+        "writing"
+      ],
+      "requires": [
+        "office"
+      ],
+      "sex": "male",
+      "sexUntil": 1950,
+      "inventory": {
+        "water": 1,
+        "coin": 2,
+        "reeds": 2
+      },
+      "why": "Drawing up contracts, wills and deeds that a court would accept: the notary, the advocate and the litigation master."
+    },
+    "courier": {
+      "label": "Courier",
+      "keyword": "errands",
+      "tier": "village",
+      "weight": 0.5,
+      "capabilities": [
+        "urban_settlement"
+      ],
+      "lasting": true,
+      "minPopulation": 200,
+      "sex": "male",
+      "sexUntil": 1950,
+      "inventory": {
+        "water": 3,
+        "bread": 1
+      },
+      "why": "Carrying messages and dispatches by relay: the Inca chasqui, the Mongol yam rider, the Persian royal courier, the Japanese hikyaku, the European post rider."
+    },
+    "caravaneer": {
+      "label": "Caravaneer",
+      "keyword": "transport",
+      "tier": "village",
+      "weight": 2,
+      "years": [
+        -1000,
+        1980
+      ],
+      "requires": [
+        "camel-country"
+      ],
+      "sex": "male",
+      "lasting": true,
+      "inventory": {
+        "water": 4,
+        "fodder": 1,
+        "coin": 1
+      },
+      "why": "Leading and driving the camel trains across the desert: the Saharan azalai, the Arabian incense road, the Silk Road, and the Afghan cameleers of inland Australia."
+    },
+    "guerrilla": {
+      "label": "Guerrilla",
+      "keyword": "warfare",
+      "tier": "village",
+      "weight": 2,
+      "requires": [
+        "insurgency"
+      ],
+      "lasting": true,
+      "inventory": {
+        "water": 2,
+        "bread": 1,
+        "tool": 1
+      },
+      "why": "Irregular fighters in a war of occupation, revolution or independence, living among the villages that hid and fed them."
     }
   }
 }

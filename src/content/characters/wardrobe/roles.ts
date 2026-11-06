@@ -22,7 +22,8 @@ const patterns: Record<string, RegExp> = {
   // Islamic clergy by title, so a qazi in Delhi dresses as one and not as a brahmin.
   imam: /\b(imam|qadi|qazi|kadi|mullah|mufti|muezzin|dervish|sufi)\b/,
   sailor:
-    /\b(sailor|seaman|seafarer|mariner|deckhand|boatswain|bosun|able seaman|whaler|navigator|helmsman|ship'?s? (boy|mate|cook)|crewman)\b/,
+    /\b(sailor|seaman|seafarer|mariner|deckhand|boatswain|bosun|able seaman|whaler|navigator|helmsman|ship'?s? (boy|mate|cook)|crewman|lascar|stoker|bluejacket)\b/,
+  harpooner: /\b(whaler|harpooner|whale hunter)\b/,
   tradesman:
     /\b(boilermaker|welder|mechanic|machinist|plumber|electrician|pipefitter|ironworker|steelworker|roofer|mason|bricklayer|labou?rer|construction|longshoreman|dockworker|trucker|truck driver|lineman|miner|carpenter|roughneck|factory worker)\b/,
   office:

@@ -14,7 +14,7 @@ import type { GarmentKit, Option } from "../types";
 const leatherTrades = [
   "smith", "blacksmith", "armourer", "ironworker", "toolmaker", "tanner", "hide-worker", "leatherworker",
   "cobbler", "saddler", "mason", "stonemason", "cooper", "wheelwright", "boilermaker", "welder", "glazier",
-  "lime-burner", "quarryman",
+  "lime-burner", "quarryman", "bronze-caster", "jeweller", "shipwright", "sugar-boiler",
 ];
 // Flour, food, dye and the shop counter: linen or canvas.
 export const clothTrades = [
@@ -23,22 +23,23 @@ export const clothTrades = [
   "washerwoman", "laundry-worker", "shopkeeper", "grocer", "market-seller", "potter", "dyer", "fuller",
   "seamstress", "tailor", "dressmaker", "milliner", "candle-maker", "soap-boiler", "waiter", "oil-presser",
   "miller", "printer", "barber", "hairdresser", "carpenter", "cabinetmaker", "weaver", "spinner",
-  "wool-comber", "nurse", "hospital-orderly", "pharmacist", "midwife",
+  "wool-comber", "nurse", "hospital-orderly", "pharmacist", "midwife", "garment-worker",
 ];
 const purseTrades = [
   "trader", "chapman", "pedlar", "hawker", "street-hawker", "costermonger", "market-seller", "shopkeeper",
   "grocer", "money-changer", "tax-collector", "toll-keeper", "innkeeper", "publican", "guild-master",
-  "street-vendor",
+  "street-vendor", "merchant", "moneylender", "shipowner", "comprador",
 ];
 // Papers, tools of a calling, and the road.
 const satchelTrades = [
   "scribe", "clerk", "bank-clerk", "schoolteacher", "healer", "herbalist", "midwife", "postman", "traveler",
-  "religious-specialist", "storyteller", "pharmacist", "musician",
+  "religious-specialist", "storyteller", "pharmacist", "musician", "notary", "journalist", "courier",
 ];
 export const kerchiefTrades = [
   "sailor", "boatman", "dock-worker", "dock-labourer", "navvy", "railway-labourer", "miner", "coal-miner",
   "farm-hand", "farm-labourer", "agricultural-labourer", "ranch-hand", "cattle-hand", "drover", "carter",
   "cabman", "porter", "factory-hand", "mill-worker", "construction-labourer", "ploughman",
+  "rickshaw-puller", "oil-worker", "rubber-tapper", "indentured-labourer", "caravaneer",
 ];
 
 export const tradeAprons: readonly Option<"none" | "cloth" | "leather">[] = [

@@ -737,6 +737,18 @@ function build(m: Model): Scene {
       // A coif over the crown, set back from the hairline so the hair shows beneath it.
       case "cap": return smax(cranium(p) - 4.8, -(p[1] - m.hairline - 1.5 + clamp((3 - p[2]) * 0.5, 0, 9)), 1);
       case "helmet": return Math.min(smax(cranium(p) - 1.8, -(p[1] - m.hairline + 1.5), 1), capsule(p, [0, m.hairline, 13.5], [0, -4, 15.5], 0.9));
+      // A band over the brow under a flat crown that stands proud of it, and a short peak.
+      case "peaked-cap": {
+        const band = smax(cranium(p) - 1.6, Math.abs(p[1] - m.hairline - 2.2) - 2.4, 0.4);
+        const crown = cylinder(tip(p, m.hairline, -1.5, -0.12), 0, m.hairline + 6.2, -2, W + 2.6, 1.6) - 0.4;
+        return Math.min(smin(band, crown, 1.2), peak(p, m.hairline - 0.3, 6.5, W - 1, 0.4));
+      }
+      // A dome over the head and a brim dipping front and back.
+      case "pith-helmet": {
+        const dome = smax(ellipsoid(p, 0, m.hairline + 2, -1.5, W + 1.4, 11, W + 2.2), m.hairline - 0.5 - p[1], 0.6);
+        const lip = m.hairline - 0.5 - Math.abs(p[2] + 1.5) * 0.12;
+        return Math.min(dome, Math.max(Math.abs(p[1] - lip) - 0.5, ellipsoid(p, 0, lip, -1.5, W + 4, 9, W + 6.5)) - 0.2);
+      }
       case "hood": case "headscarf": case "veil": {
         const shell = smax(Math.min(ellipsoid(p, 0, 2, -2, W + 3.2, m.headH + 5, W + 3.6), capsule(p, [0, -20, -4], [0, hw === "veil" ? -50 : -38, -6], hw === "hood" ? 15 : 12)), -ellipsoid(p, 0, -4, 12, W - 3.5, m.headH - 2, 10), 1.5);
         return smax(shell, p[2] - 8.5, 1);
@@ -778,6 +790,8 @@ function build(m: Model): Scene {
       // Low enough to stay inside the frame above the head.
       case "plume": return Math.min(ellipsoid(p, -5, m.hairline + 5, -4, 2.2, 5.5, 1.8), ellipsoid(p, -2, m.hairline + 6, -5, 2.2, 6, 1.8), ellipsoid(p, 1, m.hairline + 4.5, -5, 2, 5, 1.8));
       case "fillet": return sphere(p, 0, m.hairline + 0.5, 13.6, 1.1);
+      case "peaked-cap": return smax(cranium(p) - 1.4, Math.abs(p[1] - m.hairline - 1.6) - 1.1, 0.3);
+      case "pith-helmet": return smax(ellipsoid(p, 0, m.hairline + 2, -1.5, W + 1.6, 11, W + 2.4), Math.abs(p[1] - m.hairline - 1) - 0.9, 0.3);
       default: return 99;
     }
   };

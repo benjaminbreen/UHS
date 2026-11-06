@@ -150,6 +150,10 @@ export const headwear = [
   "kerchief",
   /** A small brimless drum set back on the head: women, 1930s–1960s. */
   "pillbox",
+  /** A stiff flat crown over a band and a short black peak: soldiers, police, railwaymen. */
+  "peaked-cap",
+  /** Cork or pith under khaki cloth, a dome with a brim longer front and back: the tropics, 1870s–1950s. */
+  "pith-helmet",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [

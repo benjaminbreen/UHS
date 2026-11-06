@@ -58,9 +58,9 @@ const pick = <T>(
  * first. The curated starts ask for these; unmatched, they drew at random. */
 const kin: Record<string, string[]> = {
   featherworker: ["craftsperson", "carver"],
-  player: ["musician", "storyteller"],
+  player: ["entertainer", "musician", "storyteller"],
   librarian: ["scribe", "clerk"],
-  "silk merchant": ["trader", "market-seller", "shopkeeper", "pedlar"],
+  "silk merchant": ["merchant", "trader", "market-seller", "shopkeeper", "pedlar"],
   "court poet": ["storyteller", "scribe", "musician"],
   tilemaker: ["brickmaker", "potter"],
   "manuscript copyist": ["scribe", "clerk"],
@@ -70,8 +70,8 @@ const kin: Record<string, string[]> = {
   "wild-grain harvester": ["gatherer", "forager"],
   painter: ["painter-and-decorator", "craftsperson", "carver"],
   "miniature painter": ["craftsperson", "scribe"],
-  navigator: ["sailor", "boatman", "fisher"],
-  "bronze caster": ["smith", "blacksmith"],
+  navigator: ["navigator", "sailor", "boatman", "fisher"],
+  "bronze caster": ["bronze-caster", "smith", "blacksmith"],
 };
 
 /** The local work closest to a title the tables do not list by that name:

@@ -175,6 +175,7 @@ export const capabilityOverrides: readonly CapabilityOverride[] = [
       settled_agriculture: -4000,
       heritable_land: -1200,
       market_exchange: -500,
+      wage_labor: 1540,
     },
   },
   {
@@ -360,6 +361,15 @@ export const capabilityOverrides: readonly CapabilityOverride[] = [
     bounds: [10,-35,36,-15],
     capabilities: {
       coinage: 1874,
+    },
+  },
+  {
+    id: "americas-colonial",
+    label: "Mines, haciendas, missions and towns hiring Native labour",
+    bounds: [-170,-56,-30,72],
+    cultures: ["other-indigenous-american","mesoamerican"],
+    capabilities: {
+      wage_labor: 1700,
     },
   },
 ];

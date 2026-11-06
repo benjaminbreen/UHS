@@ -556,3 +556,74 @@ it("scopes fishing waterfronts without removing ordinary shore fishing",()=>{
   plan.employment=workplacesIn(plan,pack);
   expect(localWorkContext(plan,pack,"ordinary-fisher").livelihoods.some(l=>l.id==="fisher")).toBe(true);
 });
+
+describe("the professions expansion", () => {
+  const ids = (q: string) => new Set(resolveCharacterContext(settingFor(q)).livelihoods.map((l) => l.id));
+  const names = (id: string, s: ReturnType<typeof settingFor>, n = 40) => {
+    const kit = [...livelihoods, ...commonLivelihoods].find((l) => l.id === id)!;
+    return new Set(Array.from({ length: n }, (_, i) => localLabel(kit, s, "x", `p${i}`)));
+  };
+  const at = (lon: number, lat: number, year: number) => ({ ...settingFor("medieval Normandy"), lon, lat, year, water: "coast-s" as const });
+
+  it("keeps soldiers in modern states and names them by army", () => {
+    // `warrior` is a village craft and closes with industry, so 1916 Paris had nobody under arms.
+    for (const q of ["Paris 1916", "Shanghai 1930", "Lagos 1960", "Mexico City 1950"]) expect(ids(q).has("soldier"), q).toBe(true);
+    expect(ids("Paris 1850").has("soldier")).toBe(false);
+    expect(names("soldier", at(2.35, 48.85, 1916))).toContain("Poilu");
+    expect(names("soldier", at(37.6, 55.7, 1942))).toContain("Red Army Soldier");
+    expect(names("soldier", at(36.8, -1.3, 1940))).toContain("Askari");
+    expect(names("soldier", at(77.2, 28.6, 1960))).toContain("Jawan");
+    expect(names("guerrilla", at(-99, 18.5, 1914))).toContain("Zapatista");
+  });
+
+  it("puts doctors, merchants and money in towns", () => {
+    for (const q of ["London 1600", "Delhi 1650", "Kyoto 1750"]) {
+      const here = ids(q);
+      expect(here.has("physician"), q).toBe(true);
+      expect(here.has("merchant"), q).toBe(true);
+    }
+    expect([...names("physician", settingFor("Delhi 1650"))].some((n) => /Hakim|Vaidya/.test(n))).toBe(true);
+    expect(names("physician", settingFor("Beijing 1450"))).toContain("Chinese Doctor");
+    expect(names("money-changer", settingFor("Delhi 1650"))).toContain("Shroff");
+    expect(ids("Neolithic Anatolia").has("physician")).toBe(false);
+  });
+
+  it("ties the plantation to its crops and dates", () => {
+    const sd = ids("Saint-Domingue 1780");
+    expect(sd.has("overseer") && sd.has("sugar-boiler")).toBe(true);
+    expect(ids("London 1780").has("sugar-boiler")).toBe(false);
+    expect(names("field-slave", settingFor("Saint-Domingue 1780"))).toContain("Cane Cutter");
+    expect(names("field-slave", at(-84, 33, 1850))).toContain("Cotton Picker");
+    expect(names("indentured-labourer", at(178, -17.8, 1900))).toContain("Girmitiya");
+  });
+
+  it("gives the twentieth century work beyond the British list", () => {
+    const shanghai = ids("Shanghai 1930");
+    for (const id of ["office-worker", "rickshaw-puller", "typist", "telephone-operator", "engineer"]) expect(shanghai.has(id), id).toBe(true);
+    expect(ids("Mexico City 1950").has("factory-hand"), "wage labour in Mexico").toBe(true);
+    expect(names("office-worker", at(139.7, 35.7, 1960))).toContain("Salaryman");
+    expect(names("rickshaw-puller", at(106.7, 10.8, 1960))).toContain("Cyclo Driver");
+    expect(names("delivery-rider", at(3.4, 6.5, 2015))).toContain("Okada Rider");
+  });
+
+  it("names the specialist trades where they were practised", () => {
+    expect(names("smith", at(135.8, 35, 1500))).toContain("Swordsmith");
+    expect(names("potter", at(117.2, 29.3, 1600))).toContain("Porcelain Potter");
+    expect(names("weaver", at(-1.6, 6.7, 1800))).toContain("Kente Weaver");
+    expect(names("scribe", at(-3, 16.8, 1450))).toContain("Manuscript Copyist");
+    expect(names("sailor", at(72.8, 19, 1880))).toContain("Lascar");
+  });
+
+  it("hunts whales and dives for pearls beyond the North Atlantic and the Gulf", () => {
+    expect(names("fisher", at(-70.1, 41.3, 1800))).toContain("Whaler");
+    expect(names("fisher", at(122.2, -18, 1900))).toContain("Pearl-shell Diver");
+    expect(names("fisher", at(79, 9, 1700))).toContain("Pearl Diver");
+  });
+
+  it("staffs the Polynesian navigator and the Benin bronze caster", () => {
+    for (const [placeId, year, role, id] of [["polynesia", 1200, "Navigator", "navigator"], ["city-benin-city", 1500, "Bronze caster", "bronze-caster"]] as const) {
+      const s = placeSetting(places.find((p) => p.id === placeId)!, year);
+      expect(characterLivelihood(s, "x", "player", role, resolveCharacterContext(s), "male").id).toBe(id);
+    }
+  });
+});

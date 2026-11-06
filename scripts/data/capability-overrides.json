@@ -3,7 +3,8 @@
   "overrides": [
     { "id": "mesoamerica", "label": "Mesoamerica", "bounds": [-105, 13, -86, 23],
       "capabilities": { "writing": -300, "urban_settlement": -1200, "metallurgy": 800,
-                        "settled_agriculture": -4000, "heritable_land": -1200, "market_exchange": -500 } },
+                        "settled_agriculture": -4000, "heritable_land": -1200, "market_exchange": -500,
+                        "wage_labor": 1540 } },
     { "id": "ethiopia-nubia", "label": "Nubia and the Ethiopian highlands", "bounds": [30, 6, 43, 22],
       "capabilities": { "writing": -300, "coinage": 100, "urban_settlement": -700 } },
     { "id": "sahel-towns", "label": "Sahelian trade towns", "bounds": [-9, 11, 16, 18],
@@ -51,6 +52,9 @@
     { "id": "dai-viet", "label": "Dai Viet: first coins struck by Dinh Bo Linh", "bounds": [102, 17, 108.5, 23.5],
       "capabilities": { "coinage": 970 } },
     { "id": "southern-africa-interior", "label": "Southern African interior: cattle, cloth and beads until the Transvaal pound", "bounds": [10, -35, 36, -15],
-      "capabilities": { "coinage": 1874 } }
+      "capabilities": { "coinage": 1874 } },
+    { "id": "americas-colonial", "label": "Mines, haciendas, missions and towns hiring Native labour", "bounds": [-170, -56, -30, 72],
+      "cultures": ["other-indigenous-american", "mesoamerican"],
+      "capabilities": { "wage_labor": 1700 } }
   ]
 }
