@@ -274,5 +274,493 @@
       },
       "coatFrom": {}
     }
+  },
+  "lion": {
+    "palette": [
+      "#2b1c0f",
+      "#8f6534",
+      "#bb8b4c",
+      "#d3a865",
+      "#e8cd96",
+      "#f0dfbd",
+      "#17120e",
+      "#c8963a",
+      "#a3622b",
+      "#efe6d0",
+      "#8a4a45",
+      "#4a2914"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      63,
+      50
+    ],
+    "standing": [
+      63,
+      30
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2b1c0f",
+        "d": "#8f6534",
+        "m": "#bb8b4c",
+        "l": "#d3a865",
+        "h": "#e8cd96",
+        "b": "#f0dfbd",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#a3622b",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#4a2914"
+      },
+      "forms": [
+        {
+          "id": "male",
+          "weight": 1.0,
+          "where": [
+            {
+              "years": [
+                -10000,
+                10000
+              ],
+              "bounds": [
+                -20,
+                -36,
+                34,
+                38
+              ]
+            },
+            {
+              "years": [
+                -10000,
+                10000
+              ],
+              "bounds": [
+                34,
+                -12,
+                52,
+                12
+              ]
+            }
+          ],
+          "coats": {
+            "tawny": 4,
+            "sandy": 1,
+            "dark-maned": 1
+          }
+        },
+        {
+          "id": "asiatic",
+          "weight": 1.0,
+          "where": [
+            {
+              "years": [
+                -10000,
+                10000
+              ],
+              "bounds": [
+                19,
+                34,
+                30,
+                46
+              ]
+            },
+            {
+              "years": [
+                -10000,
+                10000
+              ],
+              "bounds": [
+                34,
+                8,
+                92,
+                46
+              ]
+            }
+          ],
+          "coats": {
+            "tawny": 4,
+            "sandy": 1,
+            "dark-maned": 1
+          }
+        },
+        {
+          "id": "lioness",
+          "weight": 2.5,
+          "where": null,
+          "coats": {
+            "tawny": 4,
+            "sandy": 1,
+            "dark-maned": 1
+          }
+        }
+      ],
+      "coats": {
+        "tawny": {
+          "o": "#2b1c0f",
+          "d": "#8f6534",
+          "m": "#bb8b4c",
+          "l": "#d3a865",
+          "h": "#e8cd96",
+          "b": "#f0dfbd",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#a3622b",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#4a2914"
+        },
+        "sandy": {
+          "o": "#2d2214",
+          "d": "#9a7848",
+          "m": "#c6a26a",
+          "l": "#dcbe88",
+          "h": "#ecd9b0",
+          "b": "#f4e8cf",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#b07c42",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#5a3a1e"
+        },
+        "dark-maned": {
+          "o": "#2a1b0e",
+          "d": "#8a6032",
+          "m": "#b8874a",
+          "l": "#d0a462",
+          "h": "#d9b47c",
+          "b": "#efdcb8",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#5c3518",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#24150b"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "tiger": {
+    "palette": [
+      "#2a1508",
+      "#a24d16",
+      "#d97a2b",
+      "#ec9a47",
+      "#f6c68c",
+      "#f4ece0",
+      "#17120e",
+      "#c8963a",
+      "#1f130b",
+      "#efe6d0",
+      "#8a4a45",
+      "#26170c"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      64,
+      51
+    ],
+    "standing": [
+      64,
+      31
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2a1508",
+        "d": "#a24d16",
+        "m": "#d97a2b",
+        "l": "#ec9a47",
+        "h": "#f6c68c",
+        "b": "#f4ece0",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#1f130b",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#26170c"
+      },
+      "forms": [
+        {
+          "id": "tiger",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "orange": 4,
+            "amur": 1
+          }
+        }
+      ],
+      "coats": {
+        "orange": {
+          "o": "#2a1508",
+          "d": "#a24d16",
+          "m": "#d97a2b",
+          "l": "#ec9a47",
+          "h": "#f6c68c",
+          "b": "#f4ece0",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#1f130b",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#26170c"
+        },
+        "amur": {
+          "o": "#2b1a0d",
+          "d": "#a5602d",
+          "m": "#d9904f",
+          "l": "#e9ad70",
+          "h": "#f3d0a6",
+          "b": "#f8f3ea",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#2a1b11",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#302012"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "leopard": {
+    "palette": [
+      "#2a1c0e",
+      "#9a6c31",
+      "#cc9b52",
+      "#e0b874",
+      "#eed6a6",
+      "#f3ead6",
+      "#17120e",
+      "#c8963a",
+      "#2b1b0e",
+      "#efe6d0",
+      "#8a4a45",
+      "#34210f"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      49,
+      40
+    ],
+    "standing": [
+      49,
+      24
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2a1c0e",
+        "d": "#9a6c31",
+        "m": "#cc9b52",
+        "l": "#e0b874",
+        "h": "#eed6a6",
+        "b": "#f3ead6",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#2b1b0e",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#34210f"
+      },
+      "forms": [
+        {
+          "id": "leopard",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "golden": 12,
+            "pale": 2,
+            "black": 1
+          }
+        }
+      ],
+      "coats": {
+        "golden": {
+          "o": "#2a1c0e",
+          "d": "#9a6c31",
+          "m": "#cc9b52",
+          "l": "#e0b874",
+          "h": "#eed6a6",
+          "b": "#f3ead6",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#2b1b0e",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#34210f"
+        },
+        "pale": {
+          "o": "#2b2216",
+          "d": "#9c8257",
+          "m": "#c8ad7c",
+          "l": "#dcc69a",
+          "h": "#ebdcbc",
+          "b": "#f5efe2",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#30251a",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#3a2c1d"
+        },
+        "black": {
+          "o": "#0e0b0a",
+          "d": "#241e1b",
+          "m": "#352d29",
+          "l": "#4a403a",
+          "h": "#5e534b",
+          "b": "#3f3631",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#181312",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#1c1614"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "jaguar": {
+    "palette": [
+      "#2b1a0b",
+      "#a2682a",
+      "#d49c4d",
+      "#e5b66d",
+      "#f0d29e",
+      "#f4eadb",
+      "#17120e",
+      "#c8963a",
+      "#25160a",
+      "#efe6d0",
+      "#8a4a45",
+      "#2f1c0d"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      54,
+      44
+    ],
+    "standing": [
+      54,
+      27
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2b1a0b",
+        "d": "#a2682a",
+        "m": "#d49c4d",
+        "l": "#e5b66d",
+        "h": "#f0d29e",
+        "b": "#f4eadb",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#25160a",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#2f1c0d"
+      },
+      "forms": [
+        {
+          "id": "jaguar",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "golden": 9,
+            "black": 1
+          }
+        }
+      ],
+      "coats": {
+        "golden": {
+          "o": "#2b1a0b",
+          "d": "#a2682a",
+          "m": "#d49c4d",
+          "l": "#e5b66d",
+          "h": "#f0d29e",
+          "b": "#f4eadb",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#25160a",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#2f1c0d"
+        },
+        "black": {
+          "o": "#0e0b09",
+          "d": "#251e1a",
+          "m": "#372d27",
+          "l": "#4c4038",
+          "h": "#60534a",
+          "b": "#41362f",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#191311",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#1d1613"
+        }
+      },
+      "coatFrom": {}
+    }
   }
 }

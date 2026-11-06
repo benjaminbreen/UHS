@@ -111,6 +111,29 @@ const table: Record<string, FaunaCombat> = {
   "polar-bear": { ...beast(110, 5, 30, "charge", 36), yields: { meat: 30, hide: 1 } },
   "cave-bear": { ...beast(110, 5, 30, "charge", 34), yields: { meat: 30, hide: 1 } },
   "short-faced-bear": { ...beast(140, 6, 36, "charge", 40), yields: { meat: 36, hide: 1 } },
+  "african-elephant": beast(260, 7, 70, "charge", 42),
+  "asian-elephant": beast(220, 6, 60, "charge", 38),
+  lion: { ...beast(80, 4, 25, "charge", 28), yields: { meat: 25, hide: 1 } },
+  tiger: { ...beast(95, 4, 28, "charge", 32), yields: { meat: 28, hide: 1 } },
+  leopard: { ...beast(45, 2, 10, "charge", 20), yields: { meat: 10, hide: 1 } },
+  jaguar: { ...beast(60, 3, 14, "charge", 24), yields: { meat: 14, hide: 1 } },
+  zebra: beast(28, 3, 12),
+  // A cow moose with a calf, or a bull in rut, kicks and tramples.
+  moose: beast(55, 4, 30, "charge", 18),
+  gazelle: beast(8, 1, 3),
+  springbok: beast(9, 1, 3),
+  // The kick of a cock ostrich disembowels; he comes at you to show it.
+  ostrich: { ...beast(25, 2, 12, "charge", 14), yields: { meat: 12, feathers: 2 } },
+  emu: { ...beast(15, 1, 8), yields: { meat: 8, feathers: 1 } },
+  rhea: { ...beast(10, 1, 5), yields: { meat: 5, feathers: 1 } },
+  "red-kangaroo": beast(18, 2, 8),
+  "grey-kangaroo": beast(15, 1, 7),
+  // The buffalo that circles back and waits for its hunter in the grass.
+  "african-buffalo": beast(85, 5, 38, "charge", 28),
+  wildebeest: beast(30, 3, 14),
+  // The herd backs into a ring, horns out, and a bull comes out of it at you.
+  "musk-ox": beast(60, 4, 25, "charge", 20),
+  yak: beast(50, 4, 25),
 };
 
 /** A species without an entry is sized from what the profile already says. */

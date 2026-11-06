@@ -3187,7 +3187,7 @@ export class WorldScene extends Phaser.Scene {
     if (frame.startsWith("faunac-"))
       return frame.includes("+") ? this.coatTexture(frame) : "faunac";
     // A lazy megafauna sheet; its plain frames were found above.
-    if (/^fauna[mrfguw]-/.test(frame)) {
+    if (/^fauna[mrfguwoke]-/.test(frame)) {
       const set = frame.slice(0, 6);
       if (this.textures.exists(set))
         return frame.includes("+") ? this.coatTexture(frame) : set;
@@ -3651,6 +3651,11 @@ export class WorldScene extends Phaser.Scene {
     }
     return g.setDepth(Math.max(y, to.y) * 16 + 13);
   }
+  private natureShadows(key: string) {
+    return this.textures.get("nature-shadows").has(key)
+      ? "nature-shadows"
+      : "nature-shadows-2";
+  }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false || waterborneFrames.has(frame)) return undefined;
     let key = shadowFrame(this.shadowPhase, frame);
@@ -3666,7 +3671,7 @@ export class WorldScene extends Phaser.Scene {
     if (sacred === "__DEFAULT") return undefined;
     const texture = sacred ??
       (this.texture(frame) === "nature"
-        ? "nature-shadows"
+        ? this.natureShadows(key)
         : this.texture(frame) === "props"
           ? "prop-shadows"
           : frame.startsWith("vehicle-")
@@ -5190,7 +5195,7 @@ export class WorldScene extends Phaser.Scene {
       const shadowKey = shadowFrame(this.shadowPhase, frame);
       const shadowTexture =
         texture === "nature"
-          ? "nature-shadows"
+          ? this.natureShadows(shadowKey)
           : texture === "props"
             ? "prop-shadows"
             : frame.startsWith("vehicle-")

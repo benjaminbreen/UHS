@@ -9,6 +9,9 @@ import studiesF from "../../render/generated/fauna-f-studies.json" with { type: 
 import studiesG from "../../render/generated/fauna-g-studies.json" with { type: "json" };
 import studiesU from "../../render/generated/fauna-u-studies.json" with { type: "json" };
 import studiesW from "../../render/generated/fauna-w-studies.json" with { type: "json" };
+import studiesO from "../../render/generated/fauna-o-studies.json" with { type: "json" };
+import studiesK from "../../render/generated/fauna-k-studies.json" with { type: "json" };
+import studiesE from "../../render/generated/fauna-e-studies.json" with { type: "json" };
 
 type Looks = {
   /** Role to colour in the coat the atlas is drawn in. */
@@ -37,6 +40,9 @@ const looks = Object.fromEntries(
     ...studiesG,
     ...studiesU,
     ...studiesW,
+    ...studiesO,
+    ...studiesK,
+    ...studiesE,
   } as Record<string, { looks?: unknown }>)
     .filter(([, study]) => study.looks)
     .map(([species, study]) => [species, study.looks as Looks]),

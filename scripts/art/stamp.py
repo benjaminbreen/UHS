@@ -15,7 +15,7 @@ ATLASES = ['public/packs/boats.png', 'public/packs/worksites.png', 'public/packs
            'public/packs/street-shadows.png', 'public/packs/civic-shadows.png', 'public/packs/sacred-buildings.png', 'public/packs/street-weather.png',
            'public/packs/terrain.png', 'public/packs/lighting-shadows.png',
            'public/props/atlas.png', 'public/props/shadows.png',
-           'public/nature/atlas.png', 'public/nature/shadows.png',
+           'public/nature/atlas.png', 'public/nature/shadows.png', 'public/nature/shadows-2.png',
            'public/ecology/atlas.png',
            'public/props/vehicles.png', 'public/props/vehicle-shadows.png']
 

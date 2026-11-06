@@ -27,7 +27,9 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [-2000, 10000], bounds: [25, 25, 75, 50] },
       { years: [-1600, 10000], bounds: [-15, 30, 40, 62] },
       { years: [-1300, 10000], bounds: [75, 20, 135, 50] },
-      { years: [-500, 10000], bounds: [-20, -5, 55, 35] },
+      // Sleeping sickness kept horses out of the forest and wet savanna.
+      { years: [-500, 10000], bounds: [-20, 10, 55, 35] },
+      { years: [-500, 10000], bounds: [33, -5, 55, 10] },
       ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
@@ -66,7 +68,9 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [-2000, 10000], bounds: [25, 25, 75, 50] },
       { years: [-1600, 10000], bounds: [-15, 30, 40, 62] },
       { years: [-1300, 10000], bounds: [75, 20, 135, 50] },
-      { years: [-500, 10000], bounds: [-20, -5, 55, 35] },
+      // Sleeping sickness kept horses out of the forest and wet savanna.
+      { years: [-500, 10000], bounds: [-20, 10, 55, 35] },
+      { years: [-500, 10000], bounds: [33, -5, 55, 10] },
       ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],

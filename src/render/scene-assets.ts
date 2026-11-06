@@ -15,8 +15,12 @@ const atlases = {
   faunaf: "/fauna-f/atlas",
   faunag: "/fauna-g/atlas",
   faunau: "/fauna-u/atlas",
+  faunao: "/fauna-o/atlas",
+  faunak: "/fauna-k/atlas",
+  faunae: "/fauna-e/atlas",
   faunaw: "/fauna-w/atlas",
   "nature-shadows": "/nature/shadows",
+  "nature-shadows-2": "/nature/shadows-2",
   ecology: "/ecology/atlas",
   props: "/props/atlas",
   "prop-shadows": "/props/shadows",
@@ -74,6 +78,9 @@ export const lazySheets = [
   "faunaf",
   "faunag",
   "faunau",
+  "faunao",
+  "faunak",
+  "faunae",
   // The deer, jackals, coyotes and hares: wild country, not every town.
   "faunaw",
 ] as const;

@@ -81,6 +81,16 @@ const natives = [
   "nature-doum-palm",
   "nature-enset",
   "nature-grass-tree",
+  "nature-mesquite",
+  "nature-columnar-cactus",
+  "nature-prickly-pear",
+  "nature-joshua-tree",
+  "nature-polylepis",
+  "nature-araucaria",
+  "nature-tree-fern",
+  "nature-ombu",
+  "nature-tamarisk",
+  "nature-protea",
 ] as const;
 export const natureTreeSprites = [
   oak,
@@ -318,136 +328,214 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [palm, 3],
   ],
 };
-type Native = (typeof natives)[number];
+type Native =
+  | (typeof natives)[number]
+  | typeof eucalyptus
+  | typeof baobab
+  | "nature-ceiba";
+const box =
+  (w: number, south: number, e: number, n: number, from = -Infinity) =>
+  (s: WorldSetting) =>
+    s.year >= from && s.lon > w && s.lon < e && s.lat > south && s.lat < n;
 const pacific = (s: WorldSetting) =>
   Math.abs(s.lat) < 25 && (s.lon > 150 || s.lon < -130);
+const montane = (s: WorldSetting) =>
+  s.environment?.colorway === "montane" || s.environment?.colorway === "alpine";
+const andes = (s: WorldSetting) => box(-82, -35, -62, 10)(s) && montane(s);
+const lowland =
+  (here: (s: WorldSetting) => boolean) =>
+  (s: WorldSetting) =>
+    here(s) && !montane(s) && s.environment?.ecology !== "desert";
 // Trees with narrow homes, joined to whatever mix the place already has as
-// a share of it. `from` is the year a planted tree arrives.
+// a share of it. A fifth number to `box` is the year a planted tree arrives.
 const ranges: readonly [Native, number, (s: WorldSetting) => boolean][] = [
-  [
-    "nature-lombardy-poplar",
-    0.2,
-    (s) => s.lat > 30 && s.lat < 46 && s.lon > 26 && s.lon < 75,
-  ],
-  [
-    "nature-lombardy-poplar",
-    0.1,
-    (s) =>
-      s.year >= 1750 && s.lat > 40 && s.lat < 53 && s.lon > -5 && s.lon < 30,
-  ],
-  [
-    "nature-cottonwood",
-    0.3,
-    (s) => s.lat > 30 && s.lat < 50 && s.lon > -112 && s.lon < -90,
-  ],
-  [
-    "nature-cottonwood",
-    0.15,
-    (s) => s.lat > 34 && s.lat < 45 && s.lon > 105 && s.lon < 125,
-  ],
-  [
-    "nature-red-cedar",
-    0.5,
-    (s) => s.lat > 40 && s.lat < 58 && s.lon > -136 && s.lon < -120,
-  ],
-  [
-    "nature-sugi",
-    0.4,
-    (s) => s.lat > 30 && s.lat < 41 && s.lon > 129 && s.lon < 142,
-  ],
-  [
-    "nature-chestnut",
-    0.15,
-    (s) => s.lat > 30 && s.lat < 42 && s.lon > 129 && s.lon < 142,
-  ],
-  [
-    "nature-chestnut",
-    0.15,
-    (s) => s.lat > 38 && s.lat < 48 && s.lon > -9 && s.lon < 42,
-  ],
-  [
-    "nature-stone-pine",
-    0.2,
-    (s) => s.lat > 35 && s.lat < 45 && s.lon > -9 && s.lon < 36,
-  ],
-  [
-    "nature-casuarina",
-    0.2,
-    (s) => s.lat > -40 && s.lat < -10 && s.lon > 113 && s.lon < 154,
-  ],
-  [
-    "nature-grass-tree",
-    0.15,
-    (s) => s.lat > -40 && s.lat < -12 && s.lon > 113 && s.lon < 154,
-  ],
-  [
-    "nature-casuarina",
-    0.2,
-    (s) => s.lat > -11 && s.lat < 0 && s.lon > 130 && s.lon < 151,
-  ],
-  [
-    "nature-pandanus",
-    0.15,
-    (s) => s.lat > -16 && s.lat < 0 && s.lon > 129 && s.lon < 151,
-  ],
-  [
-    "nature-pandanus",
-    0.1,
-    (s) => s.lat > -10 && s.lat < 10 && s.lon > 95 && s.lon < 129,
-  ],
+  ["nature-lombardy-poplar", 0.2, box(26, 30, 75, 46)],
+  ["nature-lombardy-poplar", 0.1, box(-5, 40, 30, 53, 1750)],
+  ["nature-cottonwood", 0.3, box(-112, 30, -90, 50)],
+  ["nature-cottonwood", 0.15, box(105, 34, 125, 45)],
+  ["nature-red-cedar", 0.5, box(-136, 40, -120, 58)],
+  ["nature-sugi", 0.4, box(129, 30, 142, 41)],
+  ["nature-chestnut", 0.15, box(129, 30, 142, 42)],
+  ["nature-chestnut", 0.15, box(-9, 38, 42, 48)],
+  ["nature-stone-pine", 0.2, box(-9, 35, 36, 45)],
+  ["nature-casuarina", 0.2, box(113, -40, 154, -10)],
+  ["nature-casuarina", 0.2, box(130, -11, 151, 0)],
   ["nature-casuarina", 0.2, pacific],
+  // The heaths of the south-west and the south-east coast, not the desert.
+  ["nature-grass-tree", 0.15, box(113, -36, 125, -28)],
+  ["nature-grass-tree", 0.15, box(138, -40, 154, -25)],
+  ["nature-pandanus", 0.15, box(129, -16, 151, 0)],
+  ["nature-pandanus", 0.1, box(95, -10, 129, 10)],
   ["nature-pandanus", 0.3, pacific],
   ["nature-breadfruit", 0.25, pacific],
-  [
-    "nature-breadfruit",
-    0.1,
-    (s) =>
-      s.year >= 1793 && s.lat > 10 && s.lat < 24 && s.lon > -86 && s.lon < -59,
-  ],
-  [
-    "nature-shea",
-    0.3,
-    (s) => s.lat > 7 && s.lat < 15 && s.lon > -17 && s.lon < 32,
-  ],
-  [
-    "nature-doum-palm",
-    0.2,
-    (s) => s.lat > 10 && s.lat < 27 && s.lon > -17 && s.lon < 45,
-  ],
-  [
-    "nature-enset",
-    0.4,
-    (s) => s.lat > 4 && s.lat < 14 && s.lon > 35 && s.lon < 41,
-  ],
-  [
-    "nature-sal",
-    0.3,
-    (s) => s.lat > 20 && s.lat < 30 && s.lon > 75 && s.lon < 92,
-  ],
-  [
-    "nature-neem",
-    0.15,
-    (s) => s.lat > 8 && s.lat < 30 && s.lon > 68 && s.lon < 92,
-  ],
-  [
-    "nature-ahuehuete",
-    0.2,
-    (s) => s.lat > 16 && s.lat < 26 && s.lon > -105 && s.lon < -96,
-  ],
+  ["nature-breadfruit", 0.1, box(-86, 10, -59, 24, 1793)],
+  ["nature-shea", 0.3, box(-17, 7, 32, 15)],
+  ["nature-doum-palm", 0.2, box(-17, 10, 45, 27)],
+  ["nature-enset", 0.4, box(35, 4, 41, 14)],
+  ["nature-sal", 0.3, box(75, 20, 92, 27.5)],
+  ["nature-neem", 0.15, box(68, 8, 84, 31)],
+  ["nature-neem", 0.15, box(84, 8, 92, 27)],
+  ["nature-ahuehuete", 0.2, box(-105, 16, -96, 26)],
+  ["nature-tamarisk", 0.25, box(-17, 15, 90, 46)],
+  ["nature-mesquite", 0.3, box(-118, 15, -94, 37)],
+  // Algarrobo, the same genus, on the Peruvian coast and in the Chaco.
+  ["nature-mesquite", 0.25, (s) => box(-82, -35, -60, -3)(s) && !montane(s)],
+  ["nature-columnar-cactus", 0.25, box(-116, 15, -96, 31)],
+  ["nature-columnar-cactus", 0.25, box(-80, 8, -60, 20)],
+  ["nature-columnar-cactus", 0.2, box(-82, -32, -64, -5)],
+  ["nature-columnar-cactus", 0.2, box(-45, -16, -35, -3)],
+  ["nature-prickly-pear", 0.25, box(-112, 14, -86, 30)],
+  ["nature-prickly-pear", 0.08, box(-10, 30, 36, 42, 1550)],
+  ["nature-prickly-pear", 0.1, box(36, 12, 41, 16, 1850)],
+  ["nature-joshua-tree", 0.4, box(-118.5, 33.8, -113.5, 37.5)],
+  ["nature-polylepis", 0.4, andes],
+  ["nature-araucaria", 0.35, box(-74, -42, -70, -36)],
+  ["nature-araucaria", 0.35, box(-54, -30, -48, -22)],
+  ["nature-araucaria", 0.3, box(160, -30, 170, -19)],
+  ["nature-tree-fern", 0.3, box(165, -48, 179, -34)],
+  ["nature-tree-fern", 0.15, box(143, -44, 154, -28)],
+  ["nature-tree-fern", 0.1, box(140, -10, 151, -4)],
+  ["nature-tree-fern", 0.2, box(-161, 18, -154, 23)],
+  ["nature-ombu", 0.15, box(-64, -38, -56, -30)],
+  ["nature-protea", 0.3, box(17, -35, 28, -30)],
+  ["nature-ceiba", 0.1, lowland(box(-100, -20, -35, 23))],
+  ["nature-ceiba", 0.1, lowland(box(-18, 0, 15, 15))],
+  // The baobabs of Madagascar's dry west.
+  [baobab, 0.2, box(43, -26, 50, -11)],
+  // The boab of the Kimberley.
+  [baobab, 0.15, box(120, -20, 130, -14)],
+  // Blue gums, planted from the 1860s wherever firewood ran short.
+  [eucalyptus, 0.3, box(35, 5, 42, 15, 1895)],
+  [eucalyptus, 0.25, (s) => andes(s) && s.year >= 1860],
+  [eucalyptus, 0.1, box(-123, 32, -116, 40, 1875)],
+  [eucalyptus, 0.15, box(-64, -38, -56, -30, 1860)],
+  [eucalyptus, 0.1, box(-10, 37, -7, 44, 1870)],
 ];
-function withNatives(s: WorldSetting, mix: Mix): Mix {
-  if (!mix.length || s.environment?.ecology === "boreal-woodland") return mix;
-  const total = mix.reduce((sum, [, weight]) => sum + weight, 0);
-  const extra = ranges.filter(([, , here]) => here(s));
-  return extra.length
-    ? [
-        ...mix,
-        ...extra.map(([sprite, share]) => [sprite, total * share] as const),
-      ]
-    : mix;
+const americas = (s: WorldSetting) => s.lon < -30;
+const australia = box(110, -45, 155, -9);
+// Generic trees in the base mixes that do not grow where the mix lands, and
+// what grows there instead; null drops the tree.
+const foreign: readonly [
+  string,
+  (s: WorldSetting) => boolean,
+  (s: WorldSetting) => string | null,
+][] = [
+  [
+    saguaro,
+    (s) => !box(-116, 26, -108, 35)(s),
+    (s) =>
+      box(-118.5, 33.8, -113.5, 37.5)(s)
+        ? "nature-joshua-tree"
+        : s.lat > 36
+          ? juniper
+          : "nature-mesquite",
+  ],
+  [
+    "nature-teak",
+    (s) => s.lon < 60 || s.lon > 130,
+    (s) => (americas(s) ? "nature-ceiba" : tropical),
+  ],
+  [
+    eucalyptus,
+    (s) => !australia(s),
+    (s) =>
+      americas(s)
+        ? s.lat < 0
+          ? "nature-araucaria"
+          : s.lat > 30
+            ? juniper
+            : "nature-mesquite"
+        : s.lon > 160
+          ? "nature-yew"
+          : null,
+  ],
+  [
+    juniper,
+    (s) => s.lat < (americas(s) ? 20 : 10),
+    (s) =>
+      andes(s)
+        ? "nature-polylepis"
+        : americas(s)
+          ? s.lat < -25
+            ? "nature-mesquite"
+            : "nature-columnar-cactus"
+          : box(17, -35, 28, -30)(s)
+            ? "nature-protea"
+            : null,
+  ],
+  [
+    birch,
+    (s) => s.lat < 25,
+    (s) => (andes(s) ? "nature-polylepis" : s.lon > -20 ? juniper : null),
+  ],
+  [
+    pine,
+    (s) => (s.lat < 0 && s.year < 1880) || box(-20, -36, 52, 20)(s),
+    (s) =>
+      andes(s)
+        ? "nature-polylepis"
+        : americas(s)
+          ? "nature-araucaria"
+          : s.lon > 160
+            ? "nature-yew"
+            : australia(s)
+              ? "nature-casuarina"
+              : s.lat > 0
+                ? juniper
+                : null,
+  ],
+  [
+    oak,
+    (s) => s.lat < 0 || (s.lat < 34 && s.lon > -20 && s.lon < 65),
+    (s) => (s.environment?.colorway === "marsh" && s.lat > 0 ? datePalm : null),
+  ],
+  [
+    oak,
+    (s) => americas(s) && s.lat < 31 && s.environment?.colorway === "marsh",
+    () => "nature-ahuehuete",
+  ],
+  [maple, (s) => s.lat < 30, () => oak],
+  [
+    maple,
+    (s) => s.environment?.colorway === "prairie" && s.lon < -97 && s.lat < 37,
+    () => "nature-mesquite",
+  ],
+  [
+    datePalm,
+    (s) => s.lat > 37 || s.lat < 8,
+    (s) => (s.lat > 37 ? "nature-tamarisk" : palm),
+  ],
+  [
+    baobab,
+    (s) => americas(s) || s.lon > 52,
+    (s) => (americas(s) ? "nature-mesquite" : null),
+  ],
+  [thorn, americas, () => "nature-mesquite"],
+  [acacia, americas, () => "nature-mesquite"],
+  [candelabra, americas, () => "nature-columnar-cactus"],
+];
+function localise(s: WorldSetting, base: Mix): Mix {
+  if (!base.length) return base;
+  const weights = new Map<string, number>();
+  for (const [sprite, weight] of base) {
+    let tree: string | null = sprite;
+    for (const [from, away, instead] of foreign)
+      if (tree === from && away(s)) tree = instead(s);
+    if (tree) weights.set(tree, (weights.get(tree) ?? 0) + weight);
+  }
+  if (
+    s.environment?.ecology !== "boreal-woodland" &&
+    s.environment?.colorway !== "mangrove"
+  ) {
+    const total = [...weights.values()].reduce((sum, w) => sum + w, 0);
+    for (const [sprite, share, here] of ranges)
+      if (here(s))
+        weights.set(sprite, (weights.get(sprite) ?? 0) + total * share);
+  }
+  return [...weights];
 }
 export function treeMix(s: WorldSetting): Mix {
-  return withNatives(s, baseMix(s));
+  return localise(s, baseMix(s));
 }
 function baseMix(s: WorldSetting): Mix {
   const colorway = s.environment?.colorway;
@@ -536,10 +624,10 @@ export function vegetationTree(
   if (h.ecology === "tundra" || h.vegetation === "alpine") return undefined;
   if (h.vegetation === "savanna") {
     const mix = h.colorway && regional[h.colorway];
-    if (mix) return choose(withNatives(s, mix), roll);
+    if (mix) return choose(localise(s, mix), roll);
     return Math.abs(s.lat) < 30 && s.lon > -20 && s.lon < 55
-      ? choose(withNatives(s, sahel), roll)
-      : choose(withNatives(s, [[tropical, 1]]), roll);
+      ? choose(localise(s, sahel), roll)
+      : choose(localise(s, [[tropical, 1]]), roll);
   }
   const fresh =
     land.kind !== "sea" &&

@@ -64,8 +64,10 @@ export const temperateFauna: readonly FaunaProfile[] = [
       { years: always, bounds: [-10, 36, 2, 50] },
       { years: [-1000000, 1700], bounds: [-11, 50, 2, 61] },
       { years: [-1000000, 1905], bounds: [128, 30, 146, 46] },
-      { years: always, bounds: [-170, 15, -50, 80] },
-      { years: always, bounds: [60, 5, 100, 36] },
+      // Not the Caribbean islands, nor south of the Mexican plateau.
+      { years: always, bounds: [-170, 26, -50, 80] },
+      { years: always, bounds: [-118, 18, -96, 26] },
+      { years: always, bounds: [60, 8, 92, 36] },
     ],
     density: 0.3,
     pace: 1.5,
@@ -226,7 +228,8 @@ export const temperateFauna: readonly FaunaProfile[] = [
       { years: always, bounds: [-11, 30, 145, 70] },
       { years: always, bounds: [-18, -35, 52, 30] },
       { years: always, bounds: [60, 5, 110, 30] },
-      { years: always, bounds: [-168, 15, -55, 72] },
+      { years: always, bounds: [-168, 24, -55, 72] },
+      { years: always, bounds: [-118, 15, -86, 24] },
       { years: [1862, 10000], bounds: [112, -44, 154, -10] },
     ],
     density: 0.5,
@@ -261,7 +264,9 @@ export const temperateFauna: readonly FaunaProfile[] = [
     // Europe and Anatolia, and the larger Siberian roe on to Korea. Small
     // enough to live in hedges and copses where a red deer cannot.
     presence: [
-      { years: always, bounds: [-10, 36, 50, 66] },
+      // Never in Ireland.
+      { years: always, bounds: [-6, 36, 50, 66] },
+      { years: always, bounds: [-10, 36, -6, 50] },
       { years: always, bounds: [50, 38, 135, 62] },
     ],
     density: 0.8,

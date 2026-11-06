@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS, facings as facings_c, STATES as STATES_C
 from art.atlas import pack_atlas, write_metadata
 from art.quality.hue import tint_outline
-from art import fauna_d, fox, fourway, proboscidean, cervid, felid, grazer, ursid
+from art import fauna_d, fox, fourway, proboscidean, cervid, felid, grazer, ursid, ratite, macropod
 
 root = Path(__file__).resolve().parent.parent
 out = root / "public/fauna-c"
@@ -49,32 +49,46 @@ for sheet_dir, frames, kinds in ((out, sprites, [s for s in STATES if s not in W
         for species in kinds
     }, indent=2) + "\n")
 
-# The megafauna are several times the size of a fox and live only in the
-# deep past or far north, so each rig gets its own sheet, fetched when one
-# of its animals is in the world.
+# The big animals are several times the size of a fox and live only in the
+# deep past or in wild country, so each rig gets its own sheet, fetched when
+# one of its animals is in the world.
 for rig_art, sprites_of, sheet in ((proboscidean, proboscidean.fauna_megafauna, "fauna-m"),
                                    (cervid, cervid.fauna_cervid, "fauna-r"),
                                    (felid, felid.fauna_felid, "fauna-f"),
                                    (grazer, grazer.fauna_grazer, "fauna-g"),
-                                   (ursid, ursid.fauna_ursid, "fauna-u")):
+                                   (ursid, ursid.fauna_ursid, "fauna-u"),
+                                   (ratite, ratite.fauna_ratite, "fauna-o"),
+                                   (macropod, macropod.fauna_macropod, "fauna-k")):
     mega = {name: tint_outline(im) for name, im in sprites_of().items()}
     for name, im in mega.items():
         assert set(im.getchannel("A").getdata()) <= {0, 255}, name
         assert len(im.getcolors(im.width * im.height)) <= 24, name
-    mega_out = root / "public" / sheet
-    mega_out.mkdir(exist_ok=True)
-    pack_atlas(mega, mega_out, "atlas", 1024)
-    write_metadata(mega_out / "studies.json", json.dumps({
-        species: {
-            "palette": list(rig_art.PALETTES[species].values()),
-            "states": states,
-            "directions": list(rig_art.DIRECTIONS),
-            "size": rig_art.NATIVE_SIZES[species],
-            "standing": rig_art.STANDING_SIZES[species],
-            "looks": rig_art.looks()[species],
+    parts = {sheet: (mega, rig_art.STATES)}
+    # The living elephants would push the mammoths past one 4096px texture.
+    if sheet == "fauna-m":
+        living = ("african-elephant", "asian-elephant")
+        ours = lambda name: name.split("-", 1)[1].startswith(living)
+        parts = {
+            "fauna-m": ({k: v for k, v in mega.items() if not ours(k)},
+                        {k: v for k, v in rig_art.STATES.items() if k not in living}),
+            "fauna-e": ({"faunae-" + k.split("-", 1)[1]: v for k, v in mega.items() if ours(k)},
+                        {k: v for k, v in rig_art.STATES.items() if k in living}),
         }
-        for species, states in rig_art.STATES.items()
-    }, indent=2) + "\n")
+    for part, (frames, kinds) in parts.items():
+        mega_out = root / "public" / part
+        mega_out.mkdir(exist_ok=True)
+        pack_atlas(frames, mega_out, "atlas", 1024)
+        write_metadata(mega_out / "studies.json", json.dumps({
+            species: {
+                "palette": list(rig_art.PALETTES[species].values()),
+                "states": states,
+                "directions": list(rig_art.DIRECTIONS),
+                "size": rig_art.NATIVE_SIZES[species],
+                "standing": rig_art.STANDING_SIZES[species],
+                "looks": rig_art.looks()[species],
+            }
+            for species, states in kinds.items()
+        }, indent=2) + "\n")
 
 artifacts = root / "artifacts/fauna-lab"
 artifacts.mkdir(exist_ok=True, parents=True)

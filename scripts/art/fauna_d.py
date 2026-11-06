@@ -106,6 +106,12 @@ COATS = {
         "dark": _solid("#1e140c", "#382719", "#54402b", "#725a40", "#917759", "#7d6449", k="#130c07", t="#1a1009"),
         "white": _solid("#7a6f5c", "#b8ad95", "#ded5bf", "#f1ead8", "#ffffff", "#f6f0e2", k="#4a4032", t="#a3977e"),
     },
+    # r p q are the black stripes and muzzle; a is the brown shadow stripe
+    # between them on a southern zebra's haunch, gone in the crisp coat.
+    "zebra": {
+        "plains": _coat(o="#2a2730", d="#a9a59e", m="#d8d4cb", l="#ece9e1", h="#fbfaf5", r="#17151a", p="#26232a", q="#3b3741", b="#c4bfb5", e="#3a2a1e", a="#b59d7e", k="#0b0a0c", t="#121014", u="#e9d6cf"),
+        "crisp": _coat(o="#2a2730", d="#a9a59e", m="#d8d4cb", l="#ece9e1", h="#fbfaf5", r="#17151a", p="#26232a", q="#3b3741", b="#c4bfb5", e="#3a2a1e", a="#d8d4cb", k="#0b0a0c", t="#121014", u="#e9d6cf"),
+    },
     # u is the bare tail, ears and feet.
     "mouse": {
         "house": _coat(o="#2a241f", d="#4d4439", m="#6e6253", l="#8c806e", h="#a89c88", r="#4d443a", p="#6e6254", q="#8c806f", b="#b6ab97", e="#08070a", a="#5a5046", k="#1a1512", t="#b58c86", u="#d9a49c"),
@@ -152,6 +158,7 @@ FORMS = {
     "water-buffalo": {"buffalo": dict(weight=1.0)},
     "dog": {"pariah": dict(weight=1.0), "hound": dict(weight=0.6, where=[dict(years=[-3500, 10000])])},
     "donkey": {"donkey": dict(weight=1.0)},
+    "zebra": {"plains": dict(weight=1.0)},
     "cat": {"cat": dict(weight=1.0)},
     "mouse": {"mouse": dict(weight=1.0)},
     "camel": {
@@ -175,6 +182,7 @@ COAT_WEIGHTS = {
     "mouse": {"mouse": {"house": 4, "brown": 2, "grey": 2}},
     "cat": {"cat": {"tabby": 5, "tabby-white": 1.5, "ginger": 1.5, "ginger-white": 0.8, "black": 2, "black-white": 1.2, "grey": 0.8, "white": 0.4}},
     "donkey": {"donkey": {"grey-dun": 5, "brown": 2, "black": 1, "pale": 0.7}},
+    "zebra": {"plains": {"plains": 3, "crisp": 2}},
     "camel": {
         "dromedary": {"sand": 5, "brown": 1.5, "white": 0.8, "dark": 0.5},
         "bactrian": {"brown": 4, "dark": 2, "sand": 1.5, "white": 0.3},
@@ -193,17 +201,18 @@ STATES = {
     "water-buffalo": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "dog": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "dig"], 8),
     "donkey": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "zebra": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "camel": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "cat": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "stalk", "chase", "pounce", "carry"], 8),
     "mouse": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
 }
 # Drawing coordinates are measured with the ground line at GROUND; HEADROOM is
 # empty rows above for horns, ears and the top of a stride.
-GROUND = {"cattle": 38, "water-buffalo": 38, "dog": 20, "donkey": 32, "camel": 46, "cat": 16, "mouse": 8}
-HEADROOM = {"cattle": 5, "water-buffalo": 6, "dog": 4, "donkey": 7, "camel": 3, "cat": 8, "mouse": 3}
-WIDTH = {"cattle": 50, "water-buffalo": 52, "dog": 32, "donkey": 40, "camel": 54, "cat": 28, "mouse": 16}
-# Against the 29px human: a cow's withers ~22px, a donkey's 19, a village dog's
-# 10, a camel's hump 36.
+GROUND = {"cattle": 38, "water-buffalo": 38, "dog": 20, "donkey": 32, "zebra": 34, "camel": 46, "cat": 16, "mouse": 8}
+HEADROOM = {"cattle": 5, "water-buffalo": 6, "dog": 4, "donkey": 7, "zebra": 6, "camel": 3, "cat": 8, "mouse": 3}
+WIDTH = {"cattle": 50, "water-buffalo": 52, "dog": 32, "donkey": 40, "zebra": 46, "camel": 54, "cat": 28, "mouse": 16}
+# Against the 29px human: a cow's withers ~22px, a donkey's 19, a zebra's 22,
+# a village dog's 10, a camel's hump 36.
 NATIVE_SIZES = {s: (WIDTH[s], GROUND[s] + 4 + HEADROOM[s]) for s in GROUND}
 
 
@@ -213,10 +222,6 @@ class Canvas(_BCanvas):
         self.palette = PALETTES[species]
         self.pad = HEADROOM[species]
         self.px = {}
-
-    def finish(self):
-        self.px = {(x, y + self.pad): role for (x, y), role in self.px.items()}
-        return super().finish()
 
 
 # ------------------------------------------------------------------ skeleton
@@ -1685,6 +1690,264 @@ def _camel_face(form, state, frame, south):
     return c.finish()
 
 
+# --------------------------------------------------------------------- zebra
+class _Layer:
+    """A part drawn aside, to be striped before it goes on the canvas."""
+
+    def __init__(self):
+        self.px = {}
+
+    def paint(self, px):
+        self.px.update(px)
+
+
+def _bands(c, region, phase, every=4, on=2):
+    mark(c, region, {(x, y) for x, y in region if phase(x, y) % every < on})
+
+
+def _zebra_coat(c, body, top):
+    """`top` is the croup. Upright bands on the barrel; behind the flank they
+    become arcs round the hock, so they sweep back over the haunch and lie
+    flat across the thigh."""
+    haunch = {(x, y) for x, y in body if x < 15 + (y - top) * 0.3}
+    arc = lambda x, y: math.hypot(x - 1, y - top - 21)
+    _bands(c, body - haunch, lambda x, y: x + 1)
+    _bands(c, haunch, arc, 5, 2)
+    # the brown shadow stripe down the middle of each white band
+    for x, y in haunch:
+        if 3 <= arc(x, y) % 5 < 4 and c.px.get((x, y)) in ("m", "l"):
+            c.px[(x, y)] = "a"
+
+
+def zebra(form, state, frame):
+    """The donkey's build a hand taller and thicker through the neck, with
+    small round ears, an upright mane and no forelock."""
+    c = Canvas("zebra")
+    if state == "rest":
+        return _zebra_rest(c, frame)
+    s = Stride(state, frame, walk=(2.6, 2.2, 0.62), run=(4.7, 4.4, 0.40), bounce=1.6)
+    ground = GROUND["zebra"]
+
+    def put(key, hip, hind, near):
+        dx, up = s.foot(key)
+        ox = 0 if near else -3
+        hx, hy = hip[0] + ox, hip[1] + (s.h if hind else s.f)
+        layer = _Layer()
+        leg(layer, (hx, hy), (hx + dx + (-1 if hind else 0), ground - up), *bones(hip[1], ground, hind), hind, near, 3, 2, pied=False)
+        _bands(layer, set(layer.px), lambda x, y: y - hy, 3, 1)
+        c.paint(layer.px)
+
+    put("fh", (12, 21), True, False)
+    put("ff", (26, 22), False, False)
+    root = (5, 15 + s.h)
+    if s.running:
+        tip = (3, 17 + s.h + round(math.sin(2 * math.pi * s.t + 1)))
+    elif state == "idle":
+        tip = [(4, 26), (4, 26), (3, 25), (3, 22), (3, 25), (5, 26), (4, 26), (4, 26)][frame]
+    else:
+        tip = (4 - s.sway(1.2), 26 + s.h)
+    tufted_tail(c, root, tip, 4)
+
+    body = ellipse((4, 13 + s.h, 27, 25 + s.h + s.breath)) | rect((8, 13 + s.h, 24, 18 + s.h))
+    body |= ellipse((19, 12 + s.f, 31, 25 + s.f))
+    px = lit(body, 1, 2, (8, 26))
+    for x, y in body:
+        if (x, y + 1) not in body and 10 <= x <= 26:
+            px[(x, y)] = "b"
+    c.paint(px)
+    _zebra_coat(c, body, 13 + s.h)
+
+    stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "graze" else 0
+    chew = 1 if state == "graze" and frame in (3, 5) else 0
+    hx, hy = [(31, 6), (33, 16), (32, 23)][stage]
+    # at the gallop the head reaches out and down
+    hx, hy = hx + s.nod + (2 if s.running else 0), hy + s.f + s.nod + (3 if s.running else 0)
+    _zebra_neck(c, (22, 13 + s.f), (30, 21 + s.f), hx, hy)
+    _zebra_head(c, hx, hy, s, chew)
+    put("nh", (12, 21), True, True)
+    put("nf", (26, 22), False, True)
+    return c.finish()
+
+
+def _zebra_neck(c, withers, throat, hx, hy):
+    """Bands across the neck that run on up through the mane."""
+    neck = polygon([withers, throat, (hx + 3, hy + 7), (hx - 2, hy + 2)])
+    lay(c, neck)
+    wx, wy = withers
+    ax, ay = hx - wx, hy - wy
+    n = math.hypot(ax, ay)
+    phase = lambda x, y: ((x - wx) * ax + (y - wy) * ay) / n + 1
+    _bands(c, neck, phase)
+    for x, y in line((wx, wy - 1), (hx - 2, hy + 1), 1):
+        role = "t" if phase(x, y) % 4 < 2 else "h"
+        c.dot(x, y, role)
+        c.dot(x, y - 1, role)
+
+
+def _zebra_head(c, x, y, s, chew=0):
+    """(x, y) is the poll. Short round ears, the face stripes narrowing down
+    to a black muzzle."""
+    f = s.frame
+    if s.running:
+        far = near = "back"
+    else:
+        far = "back" if s.state == "idle" and f in (5, 6) else "up"
+        near = "back" if s.state in {"idle", "graze"} and f in (2, 3) else "up"
+    ears = {"up": (0, -6), "back": (-5, -3)}
+    tx, ty = ears[far]
+    c.paint(flat(polygon([(x - 2, y + 1), (x - 2 + tx, y + ty + 1), (x - 1 + tx, y + ty + 1), (x, y + 1)]), "d"))
+    c.dot(x - 2 + tx, y + ty + 1, "t")
+    cheek = ellipse((x - 2, y, x + 5, y + 7))
+    nose = polygon([(x + 2, y + 2), (x + 9, y + 7), (x + 8, y + 11 + chew), (x + 1, y + 7)])
+    head = cheek | nose
+    c.paint(shade(head, 1, 1))
+    # two thin bands over the bridge of the nose; the cheek stays white
+    _bands(c, {(hx, hy) for hx, hy in head if 5 <= (hx - x) * 0.6 + (hy - y) * 0.8 < 9}, lambda hx, hy: (hx - x) * 0.6 + (hy - y) * 0.8, 2, 1)
+    mark(c, head, {(hx, hy) for hx, hy in nose if hx + hy >= x + y + 13})
+    c.dot(x + 8, y + 8, "k")
+    for ex, ey in ((x + 2, y + 3), (x + 4, y + 3), (x + 3, y + 2), (x + 3, y + 4)):
+        c.dot(ex, ey, "l")
+    c.dot(x + 3, y + 3, "d" if s.blink else "e")
+    tx, ty = ears[near]
+    ear = polygon([(x, y + 1), (x + tx, y + ty), (x + 1 + tx, y + ty), (x + 3, y + 1)])
+    c.paint(flat(ear, "m"))
+    for ex, ey in line((x + 1, y), (x + 1 + tx, y + ty + 2), 1):
+        if (ex, ey) in ear:
+            c.dot(ex, ey, "u" if near == "up" else "d")
+    c.dot(x + tx, y + ty, "t")
+    c.dot(x + 1 + tx, y + ty, "t")
+
+
+def _zebra_rest(c, frame):
+    s = Stride("rest", frame, (0, 0, 1), (0, 0, 1))
+    g = GROUND["zebra"]
+    body = ellipse((4, g - 14, 27, g - 1)) | ellipse((19, g - 15 - s.breath, 31, g - 1))
+    c.paint(lit(body, 1, 2, (8, 26)))
+    _zebra_coat(c, body, g - 14)
+    fold = _Layer()
+    fold.paint(shade(rect((27, g - 3, 34, g - 1)) | rect((26, g - 6, 29, g - 2)), 1, 1))
+    fold.paint(flat(rect((8, g - 2, 13, g - 1)), "d"))
+    _bands(fold, set(fold.px), lambda x, y: x, 3, 1)
+    c.paint(fold.px)
+    c.paint(flat(rect((35, g - 2, 35, g - 1)), "k"))
+    tufted_tail(c, (5, g - 12), (3, g - 4), 3)
+    dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
+    hx, hy = 31, g - 23 + dip
+    s.state = "idle"
+    _zebra_neck(c, (22, g - 15), (29, g - 7), hx, hy)
+    _zebra_head(c, hx, hy, s)
+    return c.finish()
+
+
+def _zebra_face(form, state, frame, south):
+    c = Canvas("zebra")
+    s = Stride(state, frame, walk=(2.6, 2.4, 0.62), run=(4.7, 4.4, 0.40), bounce=1.6)
+    g, cx = GROUND["zebra"], 22
+    rest = state == "rest"
+    by = (g - 28) if rest else _by(s)
+    graze = [0, 5, 12, 12, 12, 12, 5, 0][frame] if state == "graze" else 0
+    chew = state == "graze" and frame in (3, 5)
+
+    def legs(xs, top, w, near, keys):
+        layer = _Layer()
+        face_legs(layer, s, xs, top, g, w, near, keys, pied=False)
+        _bands(layer, set(layer.px), lambda x, y: y - top, 3, 1)
+        c.paint(layer.px)
+
+    def folded():
+        layer = _Layer()
+        for x in (12, 28):
+            layer.paint(shade(rect((x, g - 3, x + 4, g - 1)), 1, 1))
+        _bands(layer, set(layer.px), lambda x, y: x, 3, 1)
+        c.paint(layer.px)
+
+    def ears(hy, back=False):
+        for sgn, swivel in ((-1, state == "idle" and frame in (5, 6)), (1, state in {"idle", "graze"} and frame in (2, 3))):
+            x = cx + sgn * 3
+            if s.running:
+                tip = (x + sgn * 5, hy)
+            elif swivel:
+                tip = (x + sgn * 5, hy - 3)
+            else:
+                tip = (x + sgn * 2, hy - 5)
+            ear = polygon([(x - sgn, hy + 1), tip, (tip[0] + sgn, tip[1]), (x + sgn * 2, hy + 2)])
+            c.paint(flat(ear, "d" if back else "m"))
+            if not back:
+                for ex, ey in line((x, hy), (tip[0], tip[1] + 2), 1):
+                    if (ex, ey) in ear:
+                        c.dot(ex, ey, "u")
+            c.dot(tip[0], tip[1], "t")
+            c.dot(tip[0] + sgn, tip[1], "t")
+
+    def mane(top, bottom):
+        for y in range(top, bottom + 1):
+            c.dot(cx, y, "t" if (y - top) % 4 < 2 else "h")
+
+    if south:
+        if not rest:
+            legs((18, 26), 20 + by, 2, False, ("nh", "fh"))
+        body = face_body(c, (12, 13 + by, 32, 25 + by), cx)
+        for x, y in body:
+            if (x, y + 1) not in body and 15 <= x <= 29:
+                c.px[(x, y)] = "b"
+        # the brisket between the forelegs stays white
+        u = lambda x, y: 11 * math.asin(min(1, abs(x - cx) / 11))
+        _bands(c, {(x, y) for x, y in body if u(x, y) >= 3}, lambda x, y: u(x, y) + 1)
+        if not rest:
+            legs((17, 27), 19 + by, 3, True, ("ff", "nf"))
+        else:
+            folded()
+        hy = 4 + by + graze + s.nod + (1 if s.running else 0)
+        if not graze:
+            neck = polygon([(cx - 3, hy + 4), (cx + 3, hy + 4), (cx + 6, 16 + by), (cx - 6, 16 + by)])
+            npx = shade(neck, 1, 0)
+            for x, y in neck:
+                if (x - 1, y) not in neck or (x + 1, y) not in neck:
+                    npx[(x, y)] = "d"
+            c.paint(npx)
+        ears(hy)
+        mane(hy - 2, hy + 1)
+        head = ellipse((cx - 5, hy, cx + 5, hy + 8)) | polygon([(cx - 5, hy + 4), (cx + 5, hy + 4), (cx + 3, hy + 12), (cx - 3, hy + 12)])
+        c.paint(shade(head, 1, 1))
+        _bands(c, {(x, y) for x, y in head if y < hy + 7}, lambda x, y: abs(x - cx), 3, 1)
+        muzzle = ellipse((cx - 3, hy + 10, cx + 3, hy + 14 + (1 if chew else 0))) - rect((cx - 3, hy + 10, cx - 3, hy + 10)) - rect((cx + 3, hy + 10, cx + 3, hy + 10))
+        c.paint(shade(muzzle, 1, 1))
+        mark(c, muzzle, muzzle)
+        c.dot(cx - 2, hy + 13, "k")
+        c.dot(cx + 2, hy + 13, "k")
+        for sgn in (-1, 1):
+            ex = cx + sgn * 4
+            c.dot(ex, hy + 4, "l")
+            c.dot(ex, hy + 5, "d" if s.blink else "e")
+    else:
+        hy = 10 + by
+        if not graze:
+            back = ellipse((cx - 4, hy - 3, cx + 4, hy + 6))
+            c.paint(shade(back, 1, 1))
+            _bands(c, back, lambda x, y: y - hy)
+            ears(hy - 2, back=True)
+            mane(hy - 4, hy + 2)
+        if not rest:
+            legs((18, 26), 20 + by, 2, False, ("ff", "nf"))
+        body = face_body(c, (12, 12 + by, 32, 25 + by), cx)
+        # the haunch bands meet over the croup in chevrons
+        _bands(c, body, lambda x, y: y - by - 0.8 * abs(x - cx))
+        for y in range(12 + by, 18 + by):
+            c.dot(cx, y, "t")
+        if not rest:
+            legs((17, 27), 19 + by, 3, True, ("nh", "fh"))
+        else:
+            folded()
+        if s.running:
+            sway, length = round(2 * math.sin(2 * math.pi * s.t)), 5
+        elif state == "idle":
+            sway, length = [0, 0, 1, 3, 4, 2, 0, 0][frame], [12, 12, 12, 10, 9, 11, 12, 12][frame]
+        else:
+            sway, length = s.sway(2), 12
+        hanging_tail(c, (cx, 15 + by), min(length, g - 19 - by), sway, 4)
+    return c.finish()
+
+
 # ----------------------------------------------------------------------- cat
 def _stripes(c, region, top, every=3, lean=0):
     """Mackerel tabby: thin dark bands down the flank from the spine, on body
@@ -2089,7 +2352,7 @@ def _mouse_face(form, state, frame, south):
         c.paint(flat(rect((cx - 3, g, cx - 2, g - step)) | rect((cx + 2, g - (1 - step if move else 0), cx + 3, g)), "u"))
     return c.finish()
 
-FACE = {"cattle": _cattle_face, "water-buffalo": lambda f, st, fr, south: _cattle_face(f, st, fr, south, "water-buffalo"), "dog": _dog_face, "donkey": _donkey_face, "camel": _camel_face, "cat": _cat_face, "mouse": _mouse_face}
+FACE = {"cattle": _cattle_face, "water-buffalo": lambda f, st, fr, south: _cattle_face(f, st, fr, south, "water-buffalo"), "dog": _dog_face, "donkey": _donkey_face, "zebra": _zebra_face, "camel": _camel_face, "cat": _cat_face, "mouse": _mouse_face}
 DIRECTIONS = ("south", "east", "north", "west")
 
 
@@ -2124,7 +2387,7 @@ def draw(species, form, state, facing, frame):
     return FACE[species](form, state, frame, facing == "south")
 
 
-DRAW = {"cattle": cattle, "water-buffalo": lambda f, st, fr: cattle(f, st, fr, "water-buffalo"), "dog": dog, "donkey": donkey, "camel": camel, "cat": cat, "mouse": mouse}
+DRAW = {"cattle": cattle, "water-buffalo": lambda f, st, fr: cattle(f, st, fr, "water-buffalo"), "dog": dog, "donkey": donkey, "zebra": zebra, "camel": camel, "cat": cat, "mouse": mouse}
 
 
 def fauna_d():

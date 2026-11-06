@@ -2,6 +2,7 @@
 import re
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from PIL import Image, ImageDraw
 from art.nature_trees import trees
 from art.nature_understory import understory
@@ -14,6 +15,7 @@ from art.village_trees import village_trees
 from art.tropical_trees import tropical_trees
 from art.forest_trees import forest_trees
 from art.world_trees import world_trees
+from art.world_plants import world_plants
 from art.succulents import succulent_shrubs, succulent_trees
 from art.fungi import fungi
 from art.dung import dung
@@ -343,6 +345,13 @@ if any(arg in sys.argv for arg in ['--shrub-abc','--plant-abc','--plant-survey',
         sheet.save(review/f'{group}-abc-revised.png')
         print(f'wrote {review/group}-abc-revised.png',flush=True)
     raise SystemExit(0)
+def pack_shadows(frames):
+    """Tree casts outgrow one 4096px texture; half the times of day go on a second."""
+    first={'dusk','morning','night'}
+    pack_atlas({k:v for k,v in frames.items() if k.split(':')[0] in first},root/'public/nature','shadows',4096)
+    pack_atlas({k:v for k,v in frames.items() if k.split(':')[0] not in first},root/'public/nature','shadows-2',4096)
+
+
 if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-trees','--shrubs','--small-plants','--rocks-crates','--rock-sizes','--containers','--historical-wells','--historical-containers']):
     import json
     from tempfile import TemporaryDirectory
@@ -362,6 +371,7 @@ if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-t
         return result
 
     sprites,shadows=unpack('atlas'),unpack('shadows')
+    if (out/'shadows-2.json').exists():shadows.update(unpack('shadows-2'))
     changed={}
     if '--historical-containers' in sys.argv:
         changed.update(historical_containers())
@@ -384,7 +394,7 @@ if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-t
             assert len(im.getcolors(im.width*im.height)) <= 24
             im.save(out/f'{name}.png')
     if '--village-trees' in sys.argv or '--tropical-trees' in sys.argv:
-        changed.update(village_trees() if '--village-trees' in sys.argv else {**tropical_trees(), **forest_trees(), **world_trees(), **{f'nature-shrub-{k}': shrub(k) for k in ['gorse','bramble','blackthorn']}})
+        changed.update(village_trees() if '--village-trees' in sys.argv else {**tropical_trees(), **forest_trees(), **world_trees(), **world_plants(), **{f'nature-shrub-{k}': shrub(k) for k in ['gorse','bramble','blackthorn']}})
         for name,im in changed.items():
             assert set(im.getchannel('A').getdata()) <= {0,255},name
             assert len(im.getcolors(im.width*im.height)) <= 24,name
@@ -450,7 +460,7 @@ if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-t
     pack_atlas(sprites,out,'atlas',512,module=True)
     with TemporaryDirectory() as temp:
         shadows.update(build_shadows(root,changed,{},Path(temp)))
-    pack_atlas(shadows,out,'shadows',2048)
+    pack_shadows(shadows)
     print(f'Updated {len(changed)} nature frames. Art stamp {write_stamp(root)}')
     raise SystemExit(0)
 if '--tree-abc' in sys.argv:
@@ -500,7 +510,7 @@ if '--tree-abc' in sys.argv:
         print(f'wrote {review/species}-abc.png', flush=True)
     raise SystemExit(0)
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **village_trees(), **tropical_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **historical_containers(), **forest_trees(), **world_trees()}
+sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **village_trees(), **tropical_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **historical_containers(), **forest_trees(), **world_trees(), **world_plants()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name
@@ -508,7 +518,7 @@ for name,im in sprites.items():
     assert bbox and bbox[0]>0 and bbox[1]>0 and bbox[2]<im.width and bbox[3]<im.height,name
     im.save(out/f'{name}.png')
 pack_atlas(sprites,out,'atlas',512, module=True)
-build_shadows(root,sprites,{},out,'shadows')
+with TemporaryDirectory() as temp:pack_shadows(build_shadows(root,sprites,{},Path(temp)))
 review_sprites={**trees(), **understory(), **regional_trees(), **succulent_trees(), **rocks(), **boulders()}
 review=Image.new('RGB',(4*320,((len(review_sprites)+3)//4)*400),'#829456')
 for i,(name,im) in enumerate(review_sprites.items()):

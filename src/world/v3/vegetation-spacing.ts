@@ -77,6 +77,16 @@ const regionalCrowns: Record<string, number> = {
   "nature-doum-palm": 3.4,
   "nature-enset": 2.4,
   "nature-grass-tree": 1.4,
+  "nature-mesquite": 2.8,
+  "nature-columnar-cactus": 1.4,
+  "nature-prickly-pear": 1.6,
+  "nature-joshua-tree": 1.8,
+  "nature-polylepis": 2.2,
+  "nature-araucaria": 2.8,
+  "nature-tree-fern": 1.8,
+  "nature-ombu": 4.2,
+  "nature-tamarisk": 2.2,
+  "nature-protea": 1.2,
 };
 export function crownRadius(sprite: string) {
   if (sprite in regionalCrowns) return regionalCrowns[sprite];

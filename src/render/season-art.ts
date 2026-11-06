@@ -42,6 +42,16 @@ const evergreen = [
   "breadfruit",
   "shea",
   "ahuehuete",
+  "mesquite",
+  "cactus",
+  "prickly-pear",
+  "joshua-tree",
+  "polylepis",
+  "araucaria",
+  "tree-fern",
+  "ombu",
+  "tamarisk",
+  "protea",
 ];
 export function turnsColour(sprite: string) {
   return !evergreen.some((k) => sprite.includes(k));

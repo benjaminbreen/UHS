@@ -43,7 +43,8 @@ export const bears: readonly FaunaProfile[] = [
     // Rockies.
     presence: [
       { years: [-1000000, 700], bounds: [-11, 49.8, 2, 61] },
-      { years: [-1000000, 1800], bounds: [-10, 36, 20, 58] },
+      { years: [-1000000, 1800], bounds: [-10, 36, 20, 49.8] },
+      { years: [-1000000, 1800], bounds: [2, 49.8, 20, 58] },
       { years: always, bounds: [-2, 42, 3, 43.5] },
       { years: always, bounds: [10, 45, 16, 47.5] },
       { years: always, bounds: [16, 39, 30, 50] },

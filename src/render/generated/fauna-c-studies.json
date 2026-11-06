@@ -1034,6 +1034,109 @@
       "coatFrom": {}
     }
   },
+  "zebra": {
+    "palette": [
+      "#2a2730",
+      "#a9a59e",
+      "#d8d4cb",
+      "#ece9e1",
+      "#fbfaf5",
+      "#17151a",
+      "#26232a",
+      "#3b3741",
+      "#c4bfb5",
+      "#3a2a1e",
+      "#b59d7e",
+      "#0b0a0c",
+      "#121014",
+      "#e9d6cf"
+    ],
+    "states": {
+      "idle": 8,
+      "graze": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      46,
+      44
+    ],
+    "standing": [
+      46,
+      35
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2a2730",
+        "d": "#a9a59e",
+        "m": "#d8d4cb",
+        "l": "#ece9e1",
+        "h": "#fbfaf5",
+        "r": "#17151a",
+        "p": "#26232a",
+        "q": "#3b3741",
+        "b": "#c4bfb5",
+        "e": "#3a2a1e",
+        "a": "#b59d7e",
+        "k": "#0b0a0c",
+        "t": "#121014",
+        "u": "#e9d6cf"
+      },
+      "forms": [
+        {
+          "id": "plains",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "plains": 3,
+            "crisp": 2
+          }
+        }
+      ],
+      "coats": {
+        "plains": {
+          "o": "#2a2730",
+          "d": "#a9a59e",
+          "m": "#d8d4cb",
+          "l": "#ece9e1",
+          "h": "#fbfaf5",
+          "r": "#17151a",
+          "p": "#26232a",
+          "q": "#3b3741",
+          "b": "#c4bfb5",
+          "e": "#3a2a1e",
+          "a": "#b59d7e",
+          "k": "#0b0a0c",
+          "t": "#121014",
+          "u": "#e9d6cf"
+        },
+        "crisp": {
+          "o": "#2a2730",
+          "d": "#a9a59e",
+          "m": "#d8d4cb",
+          "l": "#ece9e1",
+          "h": "#fbfaf5",
+          "r": "#17151a",
+          "p": "#26232a",
+          "q": "#3b3741",
+          "b": "#c4bfb5",
+          "e": "#3a2a1e",
+          "a": "#d8d4cb",
+          "k": "#0b0a0c",
+          "t": "#121014",
+          "u": "#e9d6cf"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
   "camel": {
     "palette": [
       "#5e4526",

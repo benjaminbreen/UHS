@@ -145,11 +145,13 @@ export const megafauna: readonly FaunaProfile[] = [
     ],
     // South to Iberia while the ice stood: the Magdalenians are the "reindeer
     // age" for how much of their food it was. North with the Holocene to the
-    // tundra and taiga, where it stays. Caribou are the same species.
+    // tundra and taiga, where it stays. Caribou are the same species; the
+    // woodland caribou held on south to Maine and the Great Lakes into 1900.
     presence: [
       { years: [-1000000, -9500], bounds: [-10, 42, 30, 58] },
       { years: [-1000000, 10000], bounds: [5, 58, 180, 78] },
       { years: [-1000000, -10000], bounds: [-170, 42, -52, 50] },
+      { years: [-10000, 1900], bounds: [-125, 45, -60, 50] },
       { years: [-1000000, 10000], bounds: [-170, 50, -52, 83] },
       { years: [-1000000, 10000], bounds: [-73, 60, -12, 84] },
     ],
