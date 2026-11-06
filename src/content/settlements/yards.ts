@@ -403,6 +403,8 @@ export function keptTrees(setting: WorldSetting): string[] {
   const americas = setting.lon < -30;
   const africa = !americas && (setting.culture === "west-central-african" || setting.culture === "east-southern-african");
   const year = setting.year;
+  if (Math.abs(setting.lat) < 25 && (setting.lon > 150 || setting.lon < -130))
+    return ["nature-breadfruit", "nature-breadfruit", "nature-coconut-palm", "nature-pandanus", "nature-banana"];
   return [
     ...(africa ? ["nature-oil-palm", "nature-oil-palm"] : []),
     ...(!africa && (!americas || year >= 1550) ? ["nature-coconut-palm"] : []),

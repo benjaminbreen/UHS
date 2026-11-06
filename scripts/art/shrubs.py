@@ -231,10 +231,100 @@ def _broom(im, rng, leaf):
     return spots
 
 
+def _gorse(im, rng, R, leaf, stem):
+    """Gorse: a dense spiny mound of many small tufts on short dark stems,
+    prickles breaking the outline."""
+    W, H = im.size
+    bx, by = W // 2, H - 3
+    wood = ramp(stem)
+    for lean in (-0.7, -0.2, 0.3, 0.75):
+        _line(im, [(bx + lean * 2, by), (bx + lean * (W / 2 - 6), by - H * 0.42)], wood[1])
+    clumps = []
+    r = R * 0.62
+    for i in range(16):
+        a = math.pi * (0.06 + 0.88 * rng.random())
+        k = rng.uniform(0.35, 1.0)
+        x = bx - math.cos(a) * (W / 2 - r - 2) * k
+        y = by - r * 0.7 - math.sin(a) * (H - 2 * r - 4) * k
+        clumps.append((x, y, r * rng.uniform(0.85, 1.15), (by - y) * 0.3 + rng.uniform(0, r),
+                       (rng.uniform(0, 6.3), rng.uniform(0, 6.3), rng.uniform(0.1, 0.18), rng.uniform(0.06, 0.12))))
+    tones = paint_leaves(im.size, clumps, rng, r)
+    pal = ramp(leaf)
+    for q, t in tones.items():
+        _put(im, q[0], q[1], pal[t])
+    for (x, y), t in tones.items():
+        if (x + 2 * y) % 4 == 0:
+            for dx, dy in ((0, -1), (-1, 0), (1, 0)):
+                if (x + dx, y + dy) not in tones and y + dy < by - 2:
+                    _put(im, x + dx, y + dy, pal[1])
+                    break
+    return [q for q, t in tones.items() if t >= 3]
+
+
+def _bramble(im, rng, leaf, stem):
+    """Bramble: thorny canes arching out and down to root at the tips, small
+    leaf clusters all along them, the canes showing between."""
+    W, H = im.size
+    bx, by = W // 2, H - 3
+    pal, wood = ramp(leaf), ramp(stem)
+    canes = []
+    for i in range(7):
+        side = -1 if i % 2 else 1
+        reach = (W / 2 - 3) * rng.uniform(0.45, 1.0)
+        rise = (H - 6) * rng.uniform(0.55, 0.95)
+        canes.append((rise, side, reach))
+    clumps, spots = [], []
+    for rise, side, reach in sorted(canes):
+        x0 = bx + rng.uniform(-3, 3)
+        mid = (x0 + side * reach * 0.3, by - rise)
+        tip = (x0 + side * reach, by - rng.uniform(1, rise * 0.3))
+        prev = None
+        for k in range(21):
+            t = k / 20
+            x = (1 - t) ** 2 * x0 + 2 * (1 - t) * t * mid[0] + t * t * tip[0]
+            y = (1 - t) ** 2 * by + 2 * (1 - t) * t * mid[1] + t * t * tip[1]
+            if prev:
+                _line(im, [prev, (x, y)], wood[2] if k % 5 else wood[4])
+            prev = (x, y)
+            if k > 3 and k % 4 == 0:
+                clumps.append((x + rng.uniform(-1, 1), y - 1.5, rng.uniform(2.2, 3.0), (by - y) * 0.4 + t,
+                               (rng.uniform(0, 6.3), rng.uniform(0, 6.3), 0.16, 0.1)))
+                spots.append((int(x), int(y) + 1))
+    tones = paint_leaves(im.size, clumps, rng, 2.6, gaps=0.2)
+    for q, t in tones.items():
+        _put(im, q[0], q[1], pal[t])
+    return spots
+
+
+def _thicket(im, rng, leaf, stem):
+    """Blackthorn: a suckering thicket of dark, crooked, thorny stems with
+    small leaf clusters along them, the wood showing through."""
+    W, H = im.size
+    segs, tips = [], []
+    for x0, lean in ((W // 2 - 8, -0.7), (W // 2 - 4, -0.3), (W // 2, 0.05), (W // 2 + 4, 0.35), (W // 2 + 8, 0.7)):
+        sg, tp = skeleton(rng, (x0, H - 3), (H - 5) * 1.05, 3, 1.5, lean, 0.8, 0.34)
+        segs += sg
+        tips += tp
+    wood = ramp(stem)
+    for q, t in paint_wood(im.size, segs, rng).items():
+        _put(im, q[0], q[1], wood[min(5, t + 1)])
+    clumps = [(x, y - 1, rng.uniform(2.8, 3.6), 6 + rng.uniform(0, 2), (rng.uniform(0, 6.3), rng.uniform(0, 6.3), 0.14, 0.1))
+              for x, y, *_ in tips]
+    for x0, y0, x1, y1, w0, w1, depth in segs:
+        if depth >= 1 and y1 < H * 0.75 and rng.random() < 0.75:
+            clumps.append((x1, y1 - 1, rng.uniform(2.2, 3.0), depth * 2 + rng.uniform(0, 2),
+                           (rng.uniform(0, 6.3), rng.uniform(0, 6.3), 0.14, 0.1)))
+    tones = paint_leaves(im.size, clumps, rng, 3, gaps=0.15)
+    pal = ramp(leaf)
+    for q, t in tones.items():
+        _put(im, q[0], q[1], pal[t])
+    return [(int(x), int(y)) for x, y, *_ in tips] + [q for q, t in tones.items() if t <= 2]
+
+
 # id: (habit, size, leaf, carried kind, carried colour, how many, options)
 LOOKS = {
     'dog-rose': ('arching', 'M', '#4f8a3a', 'flower', '#f0a8c0', 7, {}),
-    'blackthorn': ('mound', 'M', '#3f6e34', 'bead', '#3a3f7a', 12, {'open': True, 'stem': '#3a2a24'}),
+    'blackthorn': ('thicket', 'M', '#3f6e34', 'berry', '#3a3f7a', 10, {'stem': '#3a2a24'}),
     'liquorice': ('mound', 'M', '#5a8f3e', 'spike', '#a890d0', 5, {}),
     'henna': ('mound', 'M', '#5d8a3c', 'floret', '#efe6c8', 9, {}),
     'tree-cotton': ('mound', 'M', '#4f8440', 'boll', '#f4f2ea', 5, {'open': True}),
@@ -265,7 +355,7 @@ LOOKS = {
     'chilca': ('mound', 'M', '#5a8a48', 'floret', '#efe8c8', 10, {}),
     'bush-clover': ('arching', 'M', '#5a9048', 'floret', '#d060a0', 12, {}),
     'kerria': ('arching', 'M', '#58a040', 'flower', '#f0c820', 7, {}),
-    'bramble': ('arching', 'M', '#3f7a38', 'bead', '#3a2040', 12, {}),
+    'bramble': ('bramble', 'M', '#3f7a38', 'berry', '#3a2040', 9, {'stem': '#6a3a3a'}),
     'elder': ('mound', 'L', '#4f8a3c', 'floret', '#f0ecd8', 14, {}),
     'broom': ('broom', 'M', '#4a8a40', 'bead', '#f0d020', 12, {}),
     'myrtle': ('mound', 'M', '#2f6a3a', 'floret', '#f6f2ea', 8, {}),
@@ -275,7 +365,7 @@ LOOKS = {
     'coca': ('mound', 'M', '#5a9a48', 'bead', '#d03828', 8, {}),
     'crowberry': ('cushion', 'S', '#3a6238', 'bead', '#1a1a2a', 9, {}),
     'hazel': ('mound', 'L', '#5a9444', 'bead', '#b08a4a', 5, {'open': True}),
-    'gorse': ('mound', 'M', '#3f6e3a', 'floret', '#f0cc20', 20, {}),
+    'gorse': ('gorse', 'M', '#3f6e3a', 'floret', '#f0cc20', 22, {'stem': '#4a3a2a'}),
     'heather': ('cushion', 'M', '#4a6a40', 'floret', '#b870a8', 24, {}),
     'bell-heather': ('cushion', 'S', '#3f6238', 'floret', '#a8408a', 16, {}),
     'bilberry': ('cushion', 'S', '#5a9040', 'bead', '#3a4a8a', 9, {}),
@@ -330,6 +420,12 @@ def shrub(species):
             spots = [(W // 2 - 6, H // 2), (W // 2 + 5, H // 2 - 3), (W // 2 + 1, H // 2 + 5)]
     elif habit == 'rosette':
         spots = _rosette(im, rng, leaf, opt.get('n', 11), not opt.get('loose'))
+    elif habit == 'gorse':
+        spots = _gorse(im, rng, R, leaf, stem)
+    elif habit == 'bramble':
+        spots = _bramble(im, rng, leaf, stem)
+    elif habit == 'thicket':
+        spots = _thicket(im, rng, leaf, stem)
     elif habit == 'twiggy':
         spots = _twiggy(im, rng, leaf, stem, opt.get('flat', False))
     else:

@@ -64,6 +64,24 @@ const palm = "nature-feather-palm",
   mahogany = "nature-mahogany",
   fig = "nature-fig",
   umbrella = "nature-umbrella-tree";
+const natives = [
+  "nature-lombardy-poplar",
+  "nature-cottonwood",
+  "nature-chestnut",
+  "nature-sal",
+  "nature-neem",
+  "nature-breadfruit",
+  "nature-shea",
+  "nature-stone-pine",
+  "nature-ahuehuete",
+  "nature-red-cedar",
+  "nature-sugi",
+  "nature-casuarina",
+  "nature-pandanus",
+  "nature-doum-palm",
+  "nature-enset",
+  "nature-grass-tree",
+] as const;
 export const natureTreeSprites = [
   oak,
   olive,
@@ -110,6 +128,7 @@ export const natureTreeSprites = [
   mahogany,
   fig,
   umbrella,
+  ...natives,
 ];
 type Mix = readonly (readonly [string, number])[];
 const north: Mix = [
@@ -299,7 +318,138 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [palm, 3],
   ],
 };
+type Native = (typeof natives)[number];
+const pacific = (s: WorldSetting) =>
+  Math.abs(s.lat) < 25 && (s.lon > 150 || s.lon < -130);
+// Trees with narrow homes, joined to whatever mix the place already has as
+// a share of it. `from` is the year a planted tree arrives.
+const ranges: readonly [Native, number, (s: WorldSetting) => boolean][] = [
+  [
+    "nature-lombardy-poplar",
+    0.2,
+    (s) => s.lat > 30 && s.lat < 46 && s.lon > 26 && s.lon < 75,
+  ],
+  [
+    "nature-lombardy-poplar",
+    0.1,
+    (s) =>
+      s.year >= 1750 && s.lat > 40 && s.lat < 53 && s.lon > -5 && s.lon < 30,
+  ],
+  [
+    "nature-cottonwood",
+    0.3,
+    (s) => s.lat > 30 && s.lat < 50 && s.lon > -112 && s.lon < -90,
+  ],
+  [
+    "nature-cottonwood",
+    0.15,
+    (s) => s.lat > 34 && s.lat < 45 && s.lon > 105 && s.lon < 125,
+  ],
+  [
+    "nature-red-cedar",
+    0.5,
+    (s) => s.lat > 40 && s.lat < 58 && s.lon > -136 && s.lon < -120,
+  ],
+  [
+    "nature-sugi",
+    0.4,
+    (s) => s.lat > 30 && s.lat < 41 && s.lon > 129 && s.lon < 142,
+  ],
+  [
+    "nature-chestnut",
+    0.15,
+    (s) => s.lat > 30 && s.lat < 42 && s.lon > 129 && s.lon < 142,
+  ],
+  [
+    "nature-chestnut",
+    0.15,
+    (s) => s.lat > 38 && s.lat < 48 && s.lon > -9 && s.lon < 42,
+  ],
+  [
+    "nature-stone-pine",
+    0.2,
+    (s) => s.lat > 35 && s.lat < 45 && s.lon > -9 && s.lon < 36,
+  ],
+  [
+    "nature-casuarina",
+    0.2,
+    (s) => s.lat > -40 && s.lat < -10 && s.lon > 113 && s.lon < 154,
+  ],
+  [
+    "nature-grass-tree",
+    0.15,
+    (s) => s.lat > -40 && s.lat < -12 && s.lon > 113 && s.lon < 154,
+  ],
+  [
+    "nature-casuarina",
+    0.2,
+    (s) => s.lat > -11 && s.lat < 0 && s.lon > 130 && s.lon < 151,
+  ],
+  [
+    "nature-pandanus",
+    0.15,
+    (s) => s.lat > -16 && s.lat < 0 && s.lon > 129 && s.lon < 151,
+  ],
+  [
+    "nature-pandanus",
+    0.1,
+    (s) => s.lat > -10 && s.lat < 10 && s.lon > 95 && s.lon < 129,
+  ],
+  ["nature-casuarina", 0.2, pacific],
+  ["nature-pandanus", 0.3, pacific],
+  ["nature-breadfruit", 0.25, pacific],
+  [
+    "nature-breadfruit",
+    0.1,
+    (s) =>
+      s.year >= 1793 && s.lat > 10 && s.lat < 24 && s.lon > -86 && s.lon < -59,
+  ],
+  [
+    "nature-shea",
+    0.3,
+    (s) => s.lat > 7 && s.lat < 15 && s.lon > -17 && s.lon < 32,
+  ],
+  [
+    "nature-doum-palm",
+    0.2,
+    (s) => s.lat > 10 && s.lat < 27 && s.lon > -17 && s.lon < 45,
+  ],
+  [
+    "nature-enset",
+    0.4,
+    (s) => s.lat > 4 && s.lat < 14 && s.lon > 35 && s.lon < 41,
+  ],
+  [
+    "nature-sal",
+    0.3,
+    (s) => s.lat > 20 && s.lat < 30 && s.lon > 75 && s.lon < 92,
+  ],
+  [
+    "nature-neem",
+    0.15,
+    (s) => s.lat > 8 && s.lat < 30 && s.lon > 68 && s.lon < 92,
+  ],
+  [
+    "nature-ahuehuete",
+    0.2,
+    (s) => s.lat > 16 && s.lat < 26 && s.lon > -105 && s.lon < -96,
+  ],
+];
+function withNatives(s: WorldSetting, mix: Mix): Mix {
+  if (!mix.length || s.environment?.ecology === "boreal-woodland") return mix;
+  const total = mix.reduce((sum, [, weight]) => sum + weight, 0);
+  const extra = ranges.filter(([, , here]) => here(s));
+  return extra.length
+    ? [
+        ...mix,
+        ...extra.map(([sprite, share]) => [sprite, total * share] as const),
+      ]
+    : mix;
+}
 export function treeMix(s: WorldSetting): Mix {
+  return withNatives(s, baseMix(s));
+}
+function baseMix(s: WorldSetting): Mix {
   const colorway = s.environment?.colorway;
   if (
     colorway &&
@@ -386,10 +536,10 @@ export function vegetationTree(
   if (h.ecology === "tundra" || h.vegetation === "alpine") return undefined;
   if (h.vegetation === "savanna") {
     const mix = h.colorway && regional[h.colorway];
-    if (mix) return choose(mix, roll);
+    if (mix) return choose(withNatives(s, mix), roll);
     return Math.abs(s.lat) < 30 && s.lon > -20 && s.lon < 55
-      ? choose(sahel, roll)
-      : choose([[tropical, 1]], roll);
+      ? choose(withNatives(s, sahel), roll)
+      : choose(withNatives(s, [[tropical, 1]]), roll);
   }
   const fresh =
     land.kind !== "sea" &&
