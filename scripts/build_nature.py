@@ -10,6 +10,7 @@ from art.small_shrubs import small_shrubs
 from art.shrubs import shrubs
 from art.habitat_plants import habitat_plants
 from art.regional_trees import regional_trees
+from art.tropical_trees import tropical_trees
 from art.succulents import succulent_shrubs, succulent_trees
 from art.fungi import fungi
 from art.dung import dung
@@ -339,7 +340,7 @@ if any(arg in sys.argv for arg in ['--shrub-abc','--plant-abc','--plant-survey',
         sheet.save(review/f'{group}-abc-revised.png')
         print(f'wrote {review/group}-abc-revised.png',flush=True)
     raise SystemExit(0)
-if any(arg in sys.argv for arg in ['--deciduous','--shrubs','--small-plants','--rocks-crates','--rock-sizes','--containers','--historical-wells','--historical-containers']):
+if any(arg in sys.argv for arg in ['--deciduous','--tropical-trees','--shrubs','--small-plants','--rocks-crates','--rock-sizes','--containers','--historical-wells','--historical-containers']):
     import json
     from tempfile import TemporaryDirectory
     from art.voxel_trees import deciduous_tree
@@ -378,6 +379,12 @@ if any(arg in sys.argv for arg in ['--deciduous','--shrubs','--small-plants','--
         for name,im in changed.items():
             assert set(im.getchannel('A').getdata()) <= {0,255}
             assert len(im.getcolors(im.width*im.height)) <= 24
+            im.save(out/f'{name}.png')
+    if '--tropical-trees' in sys.argv:
+        changed.update(tropical_trees())
+        for name,im in changed.items():
+            assert set(im.getchannel('A').getdata()) <= {0,255},name
+            assert len(im.getcolors(im.width*im.height)) <= 24,name
             im.save(out/f'{name}.png')
     for species in (['oak','maple'] if '--deciduous' in sys.argv else []):
         for variant in range(1,4):
@@ -490,7 +497,7 @@ if '--tree-abc' in sys.argv:
         print(f'wrote {review/species}-abc.png', flush=True)
     raise SystemExit(0)
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **historical_containers()}
+sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **tropical_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **historical_containers()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name

@@ -89,6 +89,10 @@ export const natureTreeSprites = [
   tropical,
   willow,
   thorn,
+  "nature-oil-palm",
+  "nature-coconut-palm",
+  "nature-banana",
+  "nature-mango",
 ];
 type Mix = readonly (readonly [string, number])[];
 const north: Mix = [

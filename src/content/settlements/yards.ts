@@ -396,6 +396,21 @@ const compound: YardKit = {
   ],
 };
 
+/** The trees a wet-tropics village plants or spares. Oil palm is African;
+ * bananas reached the Americas in 1516 and mangoes the Caribbean about 1780
+ * and inland Africa about 1800. */
+export function keptTrees(setting: WorldSetting): string[] {
+  const americas = setting.lon < -30;
+  const africa = !americas && (setting.culture === "west-central-african" || setting.culture === "east-southern-african");
+  const year = setting.year;
+  return [
+    ...(africa ? ["nature-oil-palm", "nature-oil-palm"] : []),
+    ...(!africa && (!americas || year >= 1550) ? ["nature-coconut-palm"] : []),
+    ...(year >= (americas ? 1520 : -500) ? ["nature-banana"] : []),
+    ...(year >= (americas ? 1780 : africa ? 1800 : -1000) ? ["nature-mango"] : []),
+  ];
+}
+
 /** South Asia: the rope bed out in the yard by day. */
 const angan: YardKit = {
   id: "angan",
@@ -508,12 +523,14 @@ export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (culture === "mesoamerican" && year < 1900) return solar;
   if (culture === "andean" && year < 1900) return andean;
   if (culture === "southeast-asian") return kampong;
+  const forest = setting.environment?.ecology === "tropical-woodland";
   if (
     (culture === "west-central-african" || culture === "east-southern-african") &&
     year < 1900
   )
-    return compound;
-  if (culture === "south-asian" && year >= 1000 && year < 1950) return angan;
+    return forest && keptTrees(setting).length ? { ...compound, id: "forest-compound", tree: { sprites: keptTrees(setting), chance: 0.75 } } : compound;
+  if (culture === "south-asian" && year >= 1000 && year < 1950)
+    return forest ? { ...angan, tree: { sprites: keptTrees(setting), chance: 0.7 } } : angan;
   if (culture === "east-asian") return eastAsian;
   return plain;
 }

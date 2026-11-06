@@ -33,6 +33,7 @@ import {
 } from "../../content/settlements/streets/markings";
 import { motorized } from "../../content/settlements/modernity";
 import { poleStyle } from "../../content/settlements/streets/control";
+import { keptTrees } from "../../content/settlements/yards";
 import { streetMaterial } from "../../content/settlements/streets";
 import {
   pavingReach,
@@ -979,6 +980,8 @@ export function createSettlementWorld(
   }
   const treeCandidates = new Map<string, TreeCandidate | null>();
   const eligibleTrees = new Map<string, TreeCandidate | null>();
+  const keptTree = (x: number, y: number, h: { ecology: string }) =>
+    h.ecology === "tropical-woodland" && clearing(x, y) > 0.3 ? keptTrees(settingAt(x, y)) : [];
   function candidate(x: number, y: number): TreeCandidate | undefined {
     const key = cellKey(x, y);
     if (treeCandidates.has(key)) return treeCandidates.get(key) ?? undefined;
@@ -1017,6 +1020,10 @@ export function createSettlementWorld(
         );
         if (sprite === "nature-tropical-broadleaf")
           sprite = broadleafAge(random(seed, "tree-age", ax, ay));
+        // Forest villages spare and plant oil palms and fruit trees: old
+        // palm stands still mark where Congo villages once were.
+        const kept = keptTree(x, y, h);
+        if (kept.length) sprite = kept[Math.floor(random(seed, "kept-tree", ax, ay) * kept.length)];
         if (sprite)
           value = {
             sprite,
@@ -1147,9 +1154,13 @@ export function createSettlementWorld(
         environment && f.travelRoad || blacktop && poleAt(x, y) ||
         saltPan(seed, ax, ay, h.colorway, f.elevation === 0, h.wet, f.water) > 0.3 ||
         oasis(seed, ax, ay, h.ecology, f.elevation === 0) > 0.3;
-      const stand = h.grove === undefined ? 1 : Math.max(0, Math.min(1, (h.grove - 0.3) / 0.4));
+      const kept = keptTree(x, y, h).length > 0;
+      const stand = h.grove === undefined ? 1 : Math.max(kept ? 0.35 : 0, Math.min(1, (h.grove - 0.3) / 0.4));
+      // A tall crown just south of a house would hide its front and door.
+      const front = kept && nearby(x, y).some((plan) =>
+        placesNear(plan, x, y).some((b) => x >= b.x - 1 && x <= b.x + b.w && y >= b.y + b.h && y < b.y + b.h + 6));
       const opening = h.grove !== undefined || h.site || noise(seed, ax, ay, 22, "vegetation-openings") >= 0.4;
-      if (!blocked && sceneryAllowed(x, y, key, f) && ground(x, y) !== "rock" && opening &&
+      if (!blocked && !front && sceneryAllowed(x, y, key, f) && ground(x, y) !== "rock" && opening &&
         !(relief && (f.water < 3 && n < 0.05 || f.water < 8 && f.moisture > 0.68 && n < 0.12)) &&
         random(seed, "tree-density-thinning", ax, ay) < (h.site ? 0.75 : 0.34) * shelterAt(x, y) * stand &&
         settledTree(x, y, tree)) value = tree;
