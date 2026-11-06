@@ -173,6 +173,10 @@ const spike = (x: number, salt: number, max: number) =>
 const field = (x: number, y: number, scale: number, salt: number) =>
   noise(x, y, scale, salt) * 0.7 + noise(x, y, scale / 2.3, salt + 1) * 0.3;
 
+/** Stretches of richer and quieter ground a few cells across, so a kit is
+ * not equally busy everywhere. */
+const lush = (x: number, y: number) => Math.min(1.6, Math.max(0.2, (field(x, y, 150, 1250) - 0.5) * 3 + 1));
+
 /** Ground trodden past the kit's threshold: a lobed edge, not a ring. */
 const commonsAt = (kit: GroundKit, trod: Trod, x: number, y: number) =>
   trod(x, y) + (noise(x, y, 11, 1401) - 0.5) * 0.2 > kit.commons.clearAt;
@@ -308,7 +312,7 @@ function plantPixel(r: Resolved, wx: number, wy: number, wild: (x: number, y: nu
         const drift = d ? (field(cx, cy, d.scale, 1100) - d.threshold + 0.06) * 9 : 0;
         const own = (field(cx, cy, tf.colonyScale, 1200) - 0.6) * 8;
         const gather = Math.min(1, Math.max(0, drift, own));
-        const chance = tf.density * (1 - tf.colony + tf.colony * gather);
+        const chance = tf.density * (1 - tf.colony + tf.colony * gather) * lush(cx, cy);
         const roll = hash(gx, gy, 1201);
         if (roll > chance) continue;
         const rx = Math.floor(gx * step + hash(gx, gy, 1202) * step),
@@ -342,7 +346,9 @@ function plantPixel(r: Resolved, wx: number, wy: number, wild: (x: number, y: nu
   if (r.petals.length)
     for (let gy = Math.floor((wy - 8) / FLOWER_STEP); gy <= Math.floor((wy + 12) / FLOWER_STEP); gy++)
       for (let gx = Math.floor((wx - 9) / FLOWER_STEP); gx <= Math.floor((wx + 9) / FLOWER_STEP); gx++) {
-        if (hash(gx, gy, 1301) > fl.density * 2) continue;
+        const cx = gx * FLOWER_STEP, cy = gy * FLOWER_STEP;
+        const patch = Math.min(2, Math.max(0, (field(cx, cy, 48, 1310) - 0.42) * 5));
+        if (hash(gx, gy, 1301) > fl.density * 2 * patch * lush(cx, cy)) continue;
         const pi = Math.floor(hash(gx, gy, 1302) * r.petals.length);
         const small = hash(gx, gy, 1303) < 0.4;
         const key = `${pi}:${small}`;
