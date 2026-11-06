@@ -326,7 +326,48 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [umbrella, 2],
     [tropical, 2],
     [palm, 3],
+  ],  "pine-oak": [
+    [pine, 5],
+    [oak, 4],
+    [juniper, 1],
   ],
+  "temperate-rain": [
+    [beech, 5],
+    ["nature-tree-fern", 3],
+    ["nature-yew", 1],
+  ],
+  rainforest: [
+    [tropical, 4],
+    [mahogany, 3],
+    [fig, 2],
+    [umbrella, 1],
+    ["nature-ceiba", 1],
+    [palm, 1],
+  ],
+  cloud: [
+    [tropical, 4],
+    ["nature-tree-fern", 3],
+    [oak, 1],
+  ],
+  puna: [["nature-polylepis", 1]],
+  paramo: [["nature-polylepis", 1]],
+  tibetan: [[juniper, 1]],
+  afroalpine: [[scrub, 1]],
+  loess: [
+    [willow, 2],
+    ["nature-lombardy-poplar", 1],
+    [oak, 1],
+  ],
+  reg: [
+    [acacia, 1],
+    [scrub, 2],
+  ],
+  fen: [
+    [willow, 6],
+    [birch, 2],
+    [oak, 1],
+  ],
+  ice: [],
 };
 type Native =
   | (typeof natives)[number]
@@ -542,7 +583,7 @@ function baseMix(s: WorldSetting): Mix {
   if (
     colorway &&
     (s.vegetationRevision ?? 0) >= 6 &&
-    s.environment?.ecology !== "tropical-woodland"
+    (s.environment?.ecology !== "tropical-woodland" || colorway !== "monsoon")
   ) {
     const mix = regional[colorway];
     if (mix) return mix;
@@ -633,6 +674,9 @@ export function vegetationTree(
     land.kind !== "sea" &&
     land.water > (land.shoreWidth ?? 3) &&
     land.water < 20;
+  // An oasis or a desert river: a grove of date palms where the water is.
+  if (fresh && h.ecology === "desert" && land.water < 12)
+    return choose(localise(s, [[datePalm, 5], ["nature-tamarisk", 1]]), roll);
   if (
     fresh &&
     ["temperate-woodland", "grassland", "wetland"].includes(h.ecology) &&

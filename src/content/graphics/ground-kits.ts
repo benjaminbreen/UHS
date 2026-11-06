@@ -22,10 +22,11 @@ const tropicalVillage: GroundKit = {
   id: "tropical-village",
   name: "Tropical grass",
   note: "Guinea-grass clumps with arching blades on olive turf; orange and white weeds. Winter is the dry season. Target: the Haitian village mockup.",
-  match: colourways("tropical-woodland", ["monsoon"]),
+  match: ["tropical-woodland:monsoon"],
   commons: { base: "#6b8444", grainLight: "#738b49", clearAt: 0.3, fringe: 3, flowers: 0.12 },
   wear: 1,
-  seasons: { spring: asAuthored, summer: asAuthored, autumn: season(1, 1, 0.8, 0.1), winter: season(0.85, 0.9, 0.5, 0.35) },
+  // Spring is the hot dry season before the monsoon; winter the cool dry one.
+  seasons: { spring: season(0.75, 0.8, 0.3, 0.6), summer: asAuthored, autumn: season(1, 1, 0.8, 0.1), winter: season(0.85, 0.9, 0.5, 0.4) },
   turf: { base: "#627c3f", grainDark: "#5b743a", grainLight: "#6a8442", grain: 0.22, grainSize: 2 },
   drifts: [
     { tone: "#6f8742", shade: "#566d37", coverage: 0.34, scale: 34, blade: 3, shadeDepth: 2 },
@@ -55,7 +56,7 @@ const temperateMeadow: GroundKit = {
   id: "temperate-meadow",
   name: "Temperate meadow",
   note: "Hay meadow of cocksfoot and fescue under woodland: cool fresh green, mid-height clumps, daisy, buttercup and knapweed.",
-  match: colourways("temperate-woodland", ["oak-hickory", "east-asian", "southern-beech", "conifer", "redwood"]),
+  match: colourways("temperate-woodland", ["oak-hickory", "east-asian", "southern-beech", "conifer", "redwood", "pine-oak", "temperate-rain"]),
   commons: { base: "#6b9248", grainLight: "#74994f", clearAt: 0.3, fringe: 3, flowers: 0.15 },
   wear: 1,
   seasons: { spring: season(0.8, 0.75, 1.6, 0), summer: asAuthored, autumn: season(0.85, 0.95, 0.4, 0.35), winter: season(0.55, 0.6, 0, 0.7) },
@@ -340,7 +341,7 @@ const wetMeadow: GroundKit = {
   id: "wet-meadow",
   name: "Wet meadow",
   note: "Lush damp grassland: upright rush and sedge clumps with brown heads, marsh marigold and ragged robin, dark peaty tracks.",
-  match: colourways("wetland", ["marsh", "monsoon", "papyrus", "pantanal", "bog", "mangrove", "swamp"]),
+  match: colourways("wetland", ["marsh", "fen", "bog"]),
   commons: { base: "#61844b", grainLight: "#688b50", clearAt: 0.3, fringe: 3, flowers: 0.1 },
   wear: 1,
   seasons: { spring: season(0.8, 0.7, 1.4, 0), summer: asAuthored, autumn: season(0.9, 1, 0.3, 0.45), winter: season(0.6, 0.7, 0, 0.75) },
@@ -366,7 +367,94 @@ const wetMeadow: GroundKit = {
   soil: { edge: "#4e4232", shoulder: "#645440", tread: "#74644c", centre: "#86765c", grit: "#6c6a5c" },
 };
 
+const evergreen = { spring: asAuthored, summer: asAuthored, autumn: asAuthored, winter: asAuthored };
+
+/** Rainforest and cloud forest floor: no dry season to cure it. */
+const rainforest: GroundKit = {
+  ...tropicalVillage,
+  id: "rainforest",
+  name: "Rainforest floor",
+  note: "Deep shade-green turf with broad arching clumps; no dry season, so it never cures.",
+  match: colourways("tropical-woodland", ["rainforest", "cloud"]),
+  seasons: evergreen,
+  turf: { base: "#4f7438", grainDark: "#476a33", grainLight: "#577c3d", grain: 0.24, grainSize: 2 },
+  drifts: [
+    { tone: "#5a8040", shade: "#3e5f2e", coverage: 0.38, scale: 30, blade: 3, shadeDepth: 2 },
+    { tone: "#679048", shade: "#4b6d35", coverage: 0.12, scale: 20, blade: 3, shadeDepth: 1 },
+  ],
+};
+
+/** Papyrus, mangrove and swamp forest stay green the year round. */
+const tropicalWet: GroundKit = {
+  ...wetMeadow,
+  id: "tropical-wet",
+  name: "Tropical swamp",
+  note: "Wet meadow with no winter: rush and sedge that stay green the year round.",
+  match: ["wetland:papyrus", "wetland:mangrove", "wetland:swamp"],
+  seasons: evergreen,
+};
+
+/** Flooded savanna and monsoon marsh dry out in the dry season, the world's winter. */
+const seasonalWet: GroundKit = {
+  ...wetMeadow,
+  id: "seasonal-wet",
+  name: "Seasonal flood meadow",
+  note: "Green under the floods, curing gold as the water draws back in the dry season.",
+  match: ["wetland:pantanal", "wetland:monsoon"],
+  seasons: { spring: season(0.85, 0.85, 0.6, 0.35), summer: asAuthored, autumn: asAuthored, winter: season(0.8, 0.85, 0.3, 0.6) },
+};
+
+/** Ichu bunchgrass of the puna and the Tibetan alpine steppe: tawny tussocks on gravel. */
+const highSteppe: GroundKit = {
+  ...steppe,
+  id: "high-steppe",
+  name: "High-plateau bunchgrass",
+  note: "Puna ichu and Tibetan Stipa: stiff straw-gold tussocks spaced over thin gravelly turf.",
+  match: ["grassland:puna", "grassland:tibetan"],
+  commons: { base: "#8e8a60", grainLight: "#989468", clearAt: 0.3, fringe: 2, flowers: 0.03 },
+  turf: { base: "#86825a", grainDark: "#7b7853", grainLight: "#918d62", grain: 0.32, grainSize: 2 },
+  drifts: [{ tone: "#a39a62", shade: "#76704a", coverage: 0.22, scale: 26, blade: 3, shadeDepth: 1 }],
+  tufts: { ...steppe.tufts, mid: "#a89a5a", light: "#cdb878", tip: "#e8d8a0", density: 0.4, spacing: 17, colony: 0.6 },
+  soil: { edge: "#7a6a54", shoulder: "#92806a", tread: "#a8957c", centre: "#bba98e", grit: "#8a8478" },
+};
+
+/** Páramo and afroalpine moorland: grey-green tussock, cold and wet. */
+const moorland: GroundKit = {
+  ...tundra,
+  id: "moorland",
+  name: "Tropical alpine moorland",
+  note: "Páramo and afroalpine grass: silvery sage tussocks on dark wet peat, everlasting flowers, no seasons to speak of.",
+  match: ["grassland:paramo", "grassland:afroalpine"],
+  seasons: evergreen,
+  turf: { base: "#6f7d58", grainDark: "#667352", grainLight: "#78865f", grain: 0.3, grainSize: 2 },
+  drifts: [
+    { tone: "#808c66", shade: "#5a6448", coverage: 0.3, scale: 24, blade: 3, shadeDepth: 1 },
+    { tone: "#9aa088", shade: "#727866", coverage: 0.12, scale: 20, blade: 1, shadeDepth: 1 },
+  ],
+  tufts: { ...tundra.tufts, mid: "#8a9668", light: "#b4b892", tip: "#d4d6be", seedHead: "#eef0e4", density: 0.55 },
+  flowers: { petals: ["#f2f0e8", "#e8d040"], center: "#c8a030", stem: "#4f5430", density: 0.05, cluster: 3 },
+};
+
+/** Loess: sparse grass on yellow earth. */
+const loess: GroundKit = {
+  ...steppe,
+  id: "loess",
+  name: "Loess grassland",
+  note: "Thin bunchgrass and wormwood on yellow earth, much of it bare where it has been grazed and ploughed.",
+  match: ["grassland:loess"],
+  turf: { base: "#9a955a", grainDark: "#8e8953", grainLight: "#a5a062", grain: 0.3, grainSize: 2 },
+  drifts: [{ tone: "#aaa264", shade: "#86804e", coverage: 0.24, scale: 28, blade: 2, shadeDepth: 1 }],
+  tufts: { ...steppe.tufts, density: 0.35 },
+  soil: { edge: "#a8844e", shoulder: "#bc9a60", tread: "#ccac72", centre: "#dcbe86", grit: "#a89a7a" },
+};
+
 export const groundKits: GroundKit[] = [
+  rainforest,
+  tropicalWet,
+  seasonalWet,
+  highSteppe,
+  moorland,
+  loess,
   temperateMeadow,
   grazedSward,
   prairie,

@@ -53,6 +53,9 @@ const evergreen = [
   "tamarisk",
   "protea",
 ];
+// Evergreen in the temperate sense, but they shed in the tropical dry season
+// (the world's winter, hemisphere-flipped) and are thin until the rains.
+const dryDeciduous = ["teak", "baobab", "ceiba", "nature-sal", "shea"];
 export function turnsColour(sprite: string) {
   return !evergreen.some((k) => sprite.includes(k));
 }
@@ -134,6 +137,8 @@ export function foliageTint(
   ecology: string,
   variation: number,
 ): number | undefined {
+  if (dryDeciduous.some((k) => sprite.includes(k)))
+    return season === "winter" ? 0xd2a868 : season === "spring" ? 0xe6cf98 : undefined;
   if (ecology === "tropical-woodland" || ecology === "desert") return undefined;
   if (!turnsColour(sprite)) return season === "winter" ? 0xc8d2d8 : undefined;
   if (season === "autumn")

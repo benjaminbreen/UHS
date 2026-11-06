@@ -15,7 +15,12 @@ export type LandscapeKind =
   | "gravel-bar"
   | "creek-pool"
   | "oasis"
-  | "qanat";
+  | "qanat"
+  | "glacier"
+  | "scree"
+  | "lava"
+  | "cinder"
+  | "pavement";
 export type Landscape = {
   kind: LandscapeKind;
   strength: number;

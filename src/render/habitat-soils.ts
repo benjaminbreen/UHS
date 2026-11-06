@@ -89,6 +89,18 @@ const soilRamps: Record<PaletteKey, string[]> = {
   "wetland:swamp": ["#403f30", "#57533b", "#6b6345", "#82774f", "#4b6150"],
   "wetland:mangrove": ["#5b523e", "#706650", "#827661", "#8f836e", "#69685c"],
   "tundra:alpine": ["#7a6e54", "#92856b", "#a6997f", "#b4a98f", "#848176"],
+  "temperate-woodland:pine-oak": ["#7d6644", "#977f57", "#ad966c", "#bca67e", "#8a836e"],
+  "temperate-woodland:temperate-rain": ["#5e4a36", "#76604a", "#8b745c", "#9a846c", "#6e7064"],
+  "tropical-woodland:rainforest": ["#7a4a30", "#955f40", "#ad7652", "#bc8862", "#7e7462"],
+  "tropical-woodland:cloud": ["#5e5444", "#766a58", "#8b7e6a", "#998c78", "#727468"],
+  "grassland:puna": ["#8a7658", "#a28e6e", "#b6a282", "#c4b192", "#948e7e"],
+  "grassland:paramo": ["#5e5446", "#766a5a", "#8a7e6c", "#988c7a", "#6f7068"],
+  "grassland:tibetan": ["#86745a", "#9e8c70", "#b2a084", "#c0ae92", "#8e8a7e"],
+  "grassland:afroalpine": ["#5a4e42", "#72655a", "#86796c", "#94887a", "#706e66"],
+  "grassland:loess": ["#b08a52", "#c6a066", "#d6b47a", "#e2c48c", "#b4a07c"],
+  "desert:reg": ["#8e7458", "#a68a6a", "#b89e7e", "#c6ae90", "#6e6458"],
+  "wetland:fen": ["#6e6648", "#877e5c", "#9b9170", "#aa9f80", "#7a7c6c"],
+  "tundra:ice": ["#9aa6b2", "#b2bcc6", "#c6ced8", "#d6dde4", "#8e959c"],
   "tundra:polar": ["#878170", "#a19a8a", "#b7b09f", "#c7c1b0", "#929189"],
 };
 const decode = (s: string) => [

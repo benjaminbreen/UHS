@@ -17,6 +17,7 @@ import {
 } from "./features";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { regionalLandforms } from "./landforms";
+import { cenoteDistance, formCeiling, metresPerTier, placeAltitude, reshape, snowlineAt, terrainFormOf } from "./terrain-forms";
 import { noise } from "../geography/noise";
 import { random } from "../../core/random";
 import { toAtlas, atlasSample } from "../geography/atlas";
@@ -55,7 +56,7 @@ export function createEnvironment(
         ? 1
         : Math.max(0, Math.min(1, (384 - Math.hypot(x, y)) / 192))
       : 0;
-  const field = (x: number, y: number) => {
+  const baseField = (x: number, y: number) => {
     const global = plan.field(
       regional ? x + origin.x : x,
       regional ? y + origin.y : y,
@@ -65,6 +66,21 @@ export function createEnvironment(
       ? global * (1 - weight) + configuredPlan.field(x, y) * weight
       : global;
   };
+  const form = terrainFormOf(s);
+  const reshaped = new Map<number, number>();
+  const field = form
+    ? (x: number, y: number) => {
+        const key = x * 2097152 + y;
+        let h = reshaped.get(key);
+        if (h === undefined) {
+          h = reshape(form, seed, baseField(x, y), x + origin.x, y + origin.y);
+          trimCache(reshaped, 131072);
+          reshaped.set(key, h);
+        }
+        return h;
+      }
+    : baseField;
+  const altitude = placeAltitude(s);
   const atlasCache = new Map<string, ReturnType<typeof atlasSample>>();
   const fineCache = new Map<string, ReturnType<typeof atlasSample>>();
   function earth(x: number, y: number) {
@@ -175,7 +191,7 @@ export function createEnvironment(
       s.relief ?? 0,
       0.1,
     );
-    const ceiling = Math.max(2, 1 + relief * 8);
+    const ceiling = Math.max(2, 1 + relief * 8, form ? formCeiling[form] : 0);
     // Search near real outlets; dry blocks need not contain a stream.
     if (kind) {
       const count = connectedWater ? 2 : simpleWater ? 1 : 2 + Math.floor(random(seed, "stream-count", bx, by) * 3);
@@ -699,6 +715,35 @@ export function createEnvironment(
       floodplain = 2.5;
       waterFlow = [0, 0];
     }
+    if (form === "cenote" && kind !== "sea") {
+      const d = cenoteDistance(seed, x + origin.x, y + origin.y);
+      if (d < water) {
+        water = d;
+        kind = "lake";
+        shoreWidth = 0.3;
+        floodplain = 0.6;
+        waterFlow = [0, 0];
+      }
+    }
+    // A spring-fed oasis pool on low desert ground, and a playa that holds
+    // shallow water only in the cool wet months and is a salt crust after.
+    if (habitat.ecology === "desert" && kind !== "sea" && water > 8 && field(x, y) < 0.45 && !regional?.placeAt(x, y)) {
+      const ax = x + origin.x,
+        ay = y + origin.y;
+      const spring = noise(seed, ax, ay, 24, "oasis") * 0.8 + noise(seed, ax, ay, 5, "oasis-rim") * 0.2;
+      const wet = s.season === "winter" || s.season === "spring";
+      const playa = wet && ["atacama", "highland", "sahara", "kalahari", "reg"].includes(habitat.colorway ?? "")
+        ? noise(seed, ax, ay, 38, "salt-pan")
+        : 0;
+      const d = Math.min((0.86 - spring) * 60, (0.77 - playa) * 50);
+      if (d < 7 && d < water) {
+        water = d;
+        kind = "lake";
+        shoreWidth = 0.6;
+        floodplain = 2;
+        waterFlow = [0, 0];
+      }
+    }
     const seam = s.playableMap && s.hydrologyRevision !== 3 && !(simpleWater && s.geographyMode === "earth")
       ? boundarySample(
           s.playableMap.size,
@@ -743,7 +788,7 @@ export function createEnvironment(
     );
     // Fractional so the number of steps drifts with the countryside rather
     // than jumping at a block edge.
-    const ceiling = Math.max(2, 1 + relief * 8);
+    const ceiling = Math.max(2, 1 + relief * 8, form ? formCeiling[form] : 0);
     // Spread across the landform's whole working range rather than three fixed
     // bands. The old middle band swallowed most of the map into one tier, so
     // no ceiling above it ever showed.
@@ -872,6 +917,9 @@ export function createEnvironment(
         : level * 14,
       travelRoad: !!seam?.road && water >= 0,
       summit: ceiling * 14,
+      ...(habitat.colorway === "ice" || altitude + level * metresPerTier(relief) > snowlineAt(s.lat, "summer") + 150
+        ? { glacier: true }
+        : {}),
       // Cold envelopes keep snow on their highest steps all year once the
       // relief is mountainous, which also marks the summit from a distance.
       snow:
@@ -880,7 +928,9 @@ export function createEnvironment(
           s.season === "winter") ||
         (["tundra", "boreal-woodland"].includes(habitat.ecology) &&
           ceiling >= 6 &&
-          level >= ceiling - 1),
+          level >= ceiling - 1) ||
+        habitat.colorway === "ice" ||
+        altitude + level * metresPerTier(relief) > snowlineAt(s.lat, s.season),
     };
   };
   const sample = (x: number, y: number) => {

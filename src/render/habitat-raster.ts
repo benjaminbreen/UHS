@@ -120,6 +120,18 @@ const bankRamps: Record<PaletteKey, string[]> = {
   "wetland:swamp": ["#302f23", "#43422f", "#59523a", "#716446", "#465b4b"],
   "wetland:mangrove": ["#3c3225", "#524636", "#695c4c", "#80725f", "#6d6d62"],
   "tundra:alpine": ["#4d473b", "#685f4f", "#837b67", "#9e957f", "#9a9890"],
+  "temperate-woodland:pine-oak": ["#5a4230", "#7a5a3e", "#9a7650", "#b69266", "#928c7e"],
+  "temperate-woodland:temperate-rain": ["#3e3226", "#56453a", "#6e5a48", "#87705a", "#76786e"],
+  "tropical-woodland:rainforest": ["#5a2e1e", "#7c4029", "#a05a38", "#c07a4e", "#8a7a6a"],
+  "tropical-woodland:cloud": ["#43392c", "#5c4f3e", "#766652", "#8f7e68", "#7e8076"],
+  "grassland:puna": ["#6a5440", "#8a6e52", "#a88a6a", "#c2a684", "#9a9488"],
+  "grassland:paramo": ["#46392c", "#5e4e3e", "#786652", "#927e68", "#7c7c74"],
+  "grassland:tibetan": ["#64503e", "#826a52", "#a2876a", "#bea384", "#9a968a"],
+  "grassland:afroalpine": ["#3e3630", "#56493f", "#6e5f52", "#887868", "#7a7872"],
+  "grassland:loess": ["#8a6436", "#a87c46", "#c49a5c", "#dab676", "#c2ab84"],
+  "desert:reg": ["#5e4a38", "#7c624a", "#9a7e60", "#b49a7a", "#6e665c"],
+  "wetland:fen": ["#4a3e2a", "#64553c", "#807056", "#9a8a6c", "#828274"],
+  "tundra:ice": ["#5a7a9c", "#7a9cc0", "#a0bede", "#c6dcf0", "#e8f2fa"],
   "tundra:polar": ["#55524a", "#726e64", "#918d80", "#aea99b", "#aaa9a4"],
 };
 export const banks = Object.fromEntries(
@@ -254,6 +266,17 @@ export function pebbleBed(
     return [mixc(soil[1], [120, 128, 110], 0.6), [172, 178, 158], [70, 78, 64]];
   // Temperate, boreal, tundra: grey slate with a cool cast.
   return [mixc(turf[4], [140, 144, 138], 0.7), [190, 194, 186], [86, 92, 90]];
+}
+/** Perennial ice: white firn, and bare blue ice crossed by crevasses. */
+function glacierPixel(wx: number, wy: number) {
+  const blue = noise(wx, wy, 52, 561) * 0.7 + noise(wx, wy, 17, 563) * 0.3;
+  if (blue < 0.55) return [238, 244, 252];
+  const crack = (wy + wx * 0.25 + noise(wx, wy, 23, 565) * 10) / 9;
+  const phase = crack - Math.floor(crack);
+  const broken = hash(Math.floor(wx / 7), Math.floor(crack), 567) < 0.35;
+  if (!broken && phase < 0.1) return [70, 108, 160];
+  if (!broken && phase < 0.18) return [232, 242, 252];
+  return blue > 0.65 ? [158, 196, 232] : [190, 216, 240];
 }
 export function naturalGround(c: TopographyCell) {
   return (
@@ -959,7 +982,9 @@ function rasterGroundTile(
       )
         // Turning toward gold, not toward one flat tone: red up, blue down.
         rgb = [Math.min(255, Math.round(rgb[0] * 1.08 + 6)), Math.round(rgb[1] * 0.99), Math.round(rgb[2] * 0.82)];
-      if (frozen)
+      if (frozen && cell.landscape?.kind === "glacier" && !tilled)
+        rgb = glacierPixel(wx, wy);
+      else if (frozen)
         rgb =
           band === 3 || tilled
             ? [200, 215, 242]
@@ -1280,6 +1305,43 @@ function rasterGroundTile(
           else if (r < 6) put(px, py, py < 8 ? soil[3] : soil[1], (noise(wx, wy, 5, 541) - 0.5) * 8);
           else if (r < 7.3 && group < 0.55) mixInto(px, py, soil[2], 0.55);
           if (r < 7.3) trodden[at(px, py)] = 1;
+        } else if (scape.kind === "scree") {
+          // Angular talus in 3 px chips: lit on top, shadowed below.
+          const cx = Math.floor(wx / 3),
+            cy = Math.floor(wy / 3);
+          if (hash(cx, cy, 541) < scape.strength * 0.6) {
+            const stone = mix(soil[4], [146, 144, 136], 0.5);
+            const top = mod(wy, 3) === 0,
+              foot = mod(wy, 3) === 2;
+            if (mod(wx, 3) !== 2 || !foot) put(px, py, stone, top ? 18 : foot ? -26 : hash(cx, cy, 543) < 0.5 ? -6 : 4);
+            trodden[at(px, py)] = 1;
+          }
+        } else if (scape.kind === "lava" || scape.kind === "cinder") {
+          // Lava: black basalt in ropy folds, mossed over where it rains.
+          // Cinders: loose red-black scoria round a cone.
+          const t = scape.strength;
+          if (noise(wx, wy, 9, 545) < 0.2 + t * 0.9) {
+            let rgb: number[];
+            if (scape.kind === "lava") {
+              const fold = mod(Math.round(wy + noise(wx, wy, 14, 547) * 9), 6);
+              rgb = fold === 0 ? [96, 90, 88] : fold === 1 ? [44, 40, 44] : [64, 60, 62];
+              if (h.wet > 0.35 && noise(wx, wy, 19, 553) > 0.5) rgb = fold === 0 ? [138, 160, 88] : [108, 132, 72];
+            } else {
+              const c = hash(Math.floor(wx / 3), Math.floor(wy / 3), 549);
+              rgb = c < 0.12 ? (mod(wy, 3) === 0 ? [122, 78, 62] : [52, 42, 42]) : [82, 60, 56];
+            }
+            put(px, py, rgb);
+            trodden[at(px, py)] = 1;
+          }
+        } else if (scape.kind === "pavement") {
+          // Limestone pavement: pale clints split by dark grikes, ferns in the cracks.
+          if (group < 0.3 + scape.strength * 0.8) {
+            const row = Math.floor(wy / 5);
+            const gx2 = wx + (row % 2) * 4 + Math.floor(noise(wx, wy, 7, 557) * 3);
+            const grike = mod(wy, 5) === 4 || mod(gx2, 8) === 0;
+            put(px, py, grike ? (hash(wx, wy, 559) < 0.3 ? palette[2] : [70, 70, 66]) : mod(wy, 5) === 0 ? [214, 212, 202] : [186, 184, 174]);
+            trodden[at(px, py)] = 1;
+          }
         } else if (scape.kind === "outcrop") {
           const ink = groundMotif("stone", wx, wy, art.motifs, { density: 1 + scape.strength * 1.5 });
           if (ink) put(px, py, palette[3], [0, -29, -6, 22][ink]);
@@ -1287,6 +1349,23 @@ function rasterGroundTile(
         }
       }
   }
+  // Bog hummocks: sphagnum mounds, rust and ochre, lit on top with a wet
+  // shadow at the foot, scattered between the pools.
+  if (h.colorway === "bog" && !frozen && cell.surface !== "water" && !cell.field)
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const wx = gx + px,
+          wy = gy + py;
+        const bx = Math.floor(wx / 7),
+          by = Math.floor(wy / 6);
+        if (hash(bx, by, 571) > 0.45 || trodden[at(px, py)]) continue;
+        const dx = mod(wx, 7) - 3 - (hash(bx, by, 573) - 0.5) * 2,
+          dy = mod(wy, 6) - 2.5;
+        const d = Math.hypot(dx / 2.6, dy / 2);
+        if (d > 1) continue;
+        const moss = hash(bx, by, 575) < 0.5 ? [150, 92, 64] : [168, 136, 70];
+        put(px, py, dy < -0.8 ? mix(moss, [230, 210, 150], 0.3) : dy > 1 ? mix(moss, [40, 44, 36], 0.45) : moss);
+      }
   // Compose material boundaries over the same habitat underpainting. Only natural
   // edges are reconstructed; raised terrain and paving keep their own outlines.
   // Trodden ground and animal trails are worn ground like a path, so they
