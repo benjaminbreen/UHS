@@ -59,7 +59,8 @@ function kindFor(venue: Venue): Kind | undefined {
 
 function frameFor(kind: Kind, key: string, scale: string, s: WorldSetting) {
   if (kind === "ballcourt") {
-    const profile = mesoamericanHouseProfile(s);
+    // Ballcourts are drawn in the two lowland and highland looks only.
+    const profile = mesoamericanHouseProfile(s) === "maya" ? "maya" : "nahua";
     return key === "shrine"
       ? `religious-meso-temple-${profile}-small-0`
       : `precinct-ballcourt-${profile}-${scale}-${key}`;

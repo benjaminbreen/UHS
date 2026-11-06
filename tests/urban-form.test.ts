@@ -447,3 +447,78 @@ it("walls the fabrics attested as walled, with a closed ring open only at gates"
     }
   }
 });
+
+it("gives the Byzantine, Rus, Iranian, Korean, Andean and North American towns their own fabric", () => {
+  expect(at("european", 28.97, 41.01, 1000).id).toBe("byzantine-city");
+  expect(at("european", 28.97, 41.01, 1500).id).not.toBe("byzantine-city");
+  expect(at("european", 31.3, 58.5, 1200).id).toBe("rus-timber-town");
+  expect(at("european", 37.6, 55.75, 1600).id).toBe("muscovite-timber-town");
+  expect(at("north-african-west-asian", 52.9, 29.9, -400).id).toBe("iranian-shahrestan");
+  expect(at("north-african-west-asian", 44.6, 33.1, 500).id).toBe("mesopotamian-lane-fabric");
+  expect(at("inner-eurasian", 66.97, 39.65, 700).id).toBe("sogdian-oasis-town");
+  expect(at("east-asian", 127, 37.6, 1700).id).toBe("korean-walled-town");
+  expect(at("east-southern-african", 38.7, 14.1, 600).id).toBe("ethiopian-highland-town");
+  expect(at("southeast-asian", 105.1, 10.2, 300).id).toBe("funan-canal-port");
+  expect(at("southeast-asian", 104.7, -3, 650).id).toBe("early-riverine-port");
+  expect(at("other-indigenous-american", -107.96, 36.06, 1050).id).toBe("pueblo-roomblocks");
+  expect(at("other-indigenous-american", -90.06, 38.66, 1150).id).toBe("mississippian-mound-town");
+  expect(at("andean", -77.52, -10.89, -2500).id).toBe("andean-coastal-platform-centre");
+  expect(at("andean", -79.0, -8.1, 500).id).toBe("moche-adobe-town");
+  expect(at("andean", -71.7, -13.6, 800).id).toBe("wari-orthogonal-enclosures");
+  expect(at("andean", -68.67, -16.55, 800).id).toBe("tiwanaku-moated-core");
+  expect(at("west-central-african", -72.2, 19.76, 1750).id).toMatch(/^caribbean-plantation-port/);
+  expect(at("european", -38.5, -13, 1700).id).toMatch(/^brazilian-colonial-town/);
+});
+
+it("camps each herding people in its own tents, and settles Polynesia in hamlets", () => {
+  const place = (id: string) => places.find((p) => p.id === id)!;
+  const at = (id: string, year: number) => {
+    const s = settingFor(place(id), year);
+    return { way: lifeway(s)?.id, houses: packForSetting(s).buildings };
+  };
+  const cases: [string, number, string, string][] = [
+    ["area-hejaz-mountains", 1700, "bedouin", "black-tent-bedouin-"],
+    ["area-tibetan-plateau", 1700, "tibetan-drokpa", "black-tent-tibetan-"],
+    ["area-lapland", 1700, "sami", "pastoral-tent-sami-"],
+    ["great-plains-early", 1800, "plains", "pastoral-tent-plains-"],
+    ["area-society-islands", 1700, "polynesian-hamlets-east", "pacific-house-polynesian-"],
+  ];
+  for (const [id, year, way, house] of cases) {
+    const got = at(id, year);
+    expect(got.way, id).toBe(way);
+    expect(got.houses.every((b) => b.startsWith(house)), id).toBe(true);
+  }
+  // Before the horse the Plains were walked, not ridden.
+  expect(at("great-plains-early", 1500).way).not.toBe("plains");
+});
+
+it("builds each region's own house where it had no family before", () => {
+  const houses = (culture: WorldSetting["culture"], lon: number, lat: number, year: number, settlement = "village") =>
+    packForSetting({
+      ...settingFor(places.find((p) => p.id === "rome")!, year),
+      culture, lon, lat, year, settlement, architecture: "timber", placeId: "x",
+    } as WorldSetting).buildings;
+  const first = (...a: Parameters<typeof houses>) => houses(...a)[0];
+  expect(first("east-southern-african", 39.5, -8.96, 1350, "port")).toMatch(/^africa-house-swahili-/);
+  // The gazetteer has filed the coast as West African; the house follows the map.
+  expect(first("west-central-african", 39.7, -4, 1400)).toMatch(/^africa-house-swahili-|^hut-house-daga-/);
+  expect(first("east-southern-african", 37.5, 11, 1300)).toMatch(/^hut-house-tukul-/);
+  expect(first("east-southern-african", 39.5, 13.5, 1300)).toMatch(/^africa-house-hidmo-/);
+  expect(first("east-southern-african", 30.9, -20.3, 1350)).toMatch(/^hut-house-daga-/);
+  expect(first("east-southern-african", 31, -28.5, 1820)).toMatch(/^hut-house-nguni-/);
+  expect(first("european", 31.3, 58.5, 1200)).toMatch(/^orthodox-house-rus-/);
+  expect(first("european", 28.97, 41.01, 1000, "city")).toMatch(/^orthodox-house-byzantine-/);
+  expect(first("southeast-asian", 103.9, 13.4, 1200)).toMatch(/^seasia-house-khmer-/);
+  expect(first("southeast-asian", 100.6, 14.35, 1500)).toMatch(/^seasia-house-thai-/);
+  expect(first("southeast-asian", 105.8, 21, 1500)).toMatch(/^seasia-house-vietnamese-/);
+  expect(first("southeast-asian", 102.25, 2.2, 1450)).toMatch(/^seasia-house-malay-/);
+  expect(first("southeast-asian", 121, 14.6, 1500)).toMatch(/^seasia-house-filipino-/);
+  expect(first("australian-pacific", -171.8, -13.8, 1700)).toMatch(/^pacific-house-samoan-/);
+  expect(first("australian-pacific", 176.2, -38.1, 1700)).toMatch(/^pacific-house-maori-/);
+  expect(first("australian-pacific", 158.2, 6.9, 1700)).toMatch(/^pacific-house-polynesian-/);
+  expect(first("other-indigenous-american", -107.96, 36.06, 1050)).toMatch(/^house-mudbrick-pueblo-/);
+  expect(first("other-indigenous-american", -90.06, 38.66, 1150)).toMatch(/^hut-house-mississippian-/);
+  expect(first("andean", -77.52, -10.89, -2500)).toMatch(/^andes-house-moche-/);
+  expect(first("mesoamerican", -96.4, 16.9, 1450)).toMatch(/^meso-jacal-zapotec-/);
+  expect(houses("mesoamerican", -101.7, 19.6, 1450).some((b) => b.startsWith("meso-terrace-"))).toBe(false);
+});

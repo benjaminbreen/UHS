@@ -54,6 +54,7 @@ from art import front_persian as persia  # noqa: E402
 from art import front_westasia as wa  # noqa: E402
 from art import front_sinitic as sino  # noqa: E402
 from art import front_africa, front_seasia, front_andes, front_pacific, front_southasia, front_huts, front_mudbrick, front_meso  # noqa: E402
+from art import front_tents, front_orthodox  # noqa: E402,F401  (front_tents registers its hut builders)
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
 from art.front_materials import lit  # noqa: E402
 
@@ -122,6 +123,18 @@ def vernacular_spec(family, profile, size, v, W, seed):
         return 'andes', dict(W=W, seed=seed)
     if profile == 'cusco':
         return 'andes', dict(W=W, storeys=['inca'], heights=[56], seed=seed, wear=0.15)
+    if profile in ('khmer', 'thai', 'vietnamese', 'malay', 'filipino'):
+        return 'seasia', dict(look=profile, W=W, seed=seed)
+    if profile == 'byzantine':
+        return 'byzantine', dict(W=W, size=size, seed=seed + v)
+    if profile == 'rus':
+        return 'izba', dict(W=W, size=size, seed=seed + v, roof='thatch' if size == 'small' and v % 2 else 'shingle')
+    if profile in ('swahili', 'hidmo', 'moche'):
+        return profile, dict(W=W, seed=seed + v)
+    if profile == 'samoan':
+        return 'fale', dict(W=W, seed=seed + v)
+    if profile == 'maori':
+        return 'whare', dict(W=W, seed=seed + v)
     return 'fare', dict(W=W, seed=seed)
 
 
@@ -133,7 +146,7 @@ def spec_for(name, r):
     got = front_huts.spec_for(base, r)
     if got:
         return (f'hut-{got[0]}', got[1]), (fw, fh)
-    m = re.match(r'(africa|seasia|andes|pacific)-house-([a-z-]+)-(small|medium|large)-(\d+)$', base)
+    m = re.match(r'(africa|seasia|andes|pacific|orthodox)-house-([a-z-]+)-(small|medium|large)-(\d+)$', base)
     if m:
         return vernacular_spec(m.group(1), m.group(2), m.group(3), int(m.group(4)), nw * 16, seed), (nw, fh)
     m = re.match(r'house-roman-ob-(\d+)(?:-urban-([a-z]+))?$', base)
@@ -273,6 +286,12 @@ def adopt(recipes):
         r.pop('shadowFrame', None)
         r['footprint'] = [fw, fh]
         r['entrance'] = [fw // 2, fh]
+        if spec[0] == 'izba':
+            # The izba's door is in its entrance passage at one end.
+            info = {}
+            BUILDERS['izba'](spec[1], info)
+            left = info['x0'] + info['W'] / 2 - fw * 8
+            r['entrance'] = [max(0, min(fw - 1, int((info['door_x'] - left) // 16))), fh]
         if spec[0].startswith('hut-'):
             r['entrance'] = [front_huts.door_cell(spec[0][4:], spec[1], fw), fh]
         n += 1
@@ -305,6 +324,7 @@ BUILDERS = {
     **front_seasia.BUILDERS,
     **front_andes.BUILDERS,
     **front_pacific.BUILDERS,
+    **front_orthodox.BUILDERS,
 }
 
 

@@ -187,4 +187,43 @@ export const eastAsia: readonly GarmentKit[] = [
       { value: "boots", weight: 2 },
     ],
   },
+  {
+    // Goguryeo tomb paintings to Goryeo: a short jacket over wide trousers for
+    // men, a jacket over a long wrapped skirt for women, the head cloth or cap.
+    id: "korea-early",
+    label: "Korea · jacket, trousers and skirt",
+    scope: { years: [-100, 1392], bounds: [124, 33, 131, 43.5] },
+    garment: [{ value: "coat", weight: 5, sex: ["male"] }, { value: "tunic", weight: 4, sex: ["male"] }, { value: "dress", weight: 8, sex: ["female"] }],
+    front: [{ value: "cross" }],
+    leggings: [{ value: "wide", weight: 8 }],
+    headwear: [{ value: "cap", weight: 5, sex: ["male"] }, { value: "band", weight: 2 }, { value: "none", weight: 4 }],
+    footwear: [{ value: "shoes", weight: 5 }, { value: "sandals", weight: 4 }],
+    belt: [{ value: "sash" }],
+    dye: [{ value: "undyed", weight: 6 }, { value: "bleached", weight: 3 }, { value: "madder", weight: 2 }, { value: "indigo", weight: 2 }],
+  },
+  {
+    // Joseon: the people "clothed in white", jeogori and baji or chima, the
+    // durumagi coat outdoors, the black horsehair gat for married men, straw
+    // sandals in the fields.
+    id: "korea-joseon",
+    label: "Joseon · white hanbok and the gat",
+    scope: { years: [1392, 1910], bounds: [124, 33, 131, 43.5] },
+    garment: [
+      { value: "coat", weight: 5, sex: ["male"] },
+      { value: "open-robe", weight: 3, sex: ["male"], means: ["common", "wealthy"] },
+      { value: "dress", weight: 8, sex: ["female"] },
+    ],
+    front: [{ value: "cross" }],
+    leggings: [{ value: "wide", weight: 8 }],
+    headwear: [
+      { value: "brimmed", weight: 6, sex: ["male"], ages: ["adult", "elder"] },
+      { value: "band", weight: 3, sex: ["male"] },
+      { value: "none", weight: 5, sex: ["female"] },
+      { value: "headscarf", weight: 2, sex: ["female"] },
+    ],
+    footwear: [{ value: "sandals", weight: 5 }, { value: "shoes", weight: 4 }],
+    belt: [{ value: "sash" }],
+    material: [{ value: "hemp", weight: 4 }, { value: "ramie", weight: 3 }, { value: "cotton", weight: 4 }, { value: "silk", weight: 1, means: ["wealthy"] }],
+    dye: [{ value: "bleached", weight: 7 }, { value: "undyed", weight: 5 }, { value: "indigo", weight: 1 }, { value: "safflower", weight: 1, sex: ["female"] }],
+  },
 ];

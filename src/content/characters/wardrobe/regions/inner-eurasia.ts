@@ -157,4 +157,36 @@ export const innerEurasia: readonly GarmentKit[] = [
       { value: "shoes", weight: 5 },
     ],
   },
+  {
+    // The chuba: a long sheepskin or wool robe belted high so it bags over
+    // the belt, one sleeve often off the shoulder, felt boots, a fur hat.
+    id: "tibetan",
+    label: "Tibet · the chuba",
+    scope: { years: [600, 1950], bounds: [78, 27, 103, 38] },
+    garment: [{ value: "robe", weight: 7 }, { value: "open-robe", weight: 3 }],
+    sleeves: [{ value: "long", weight: 7 }, { value: "loose", weight: 3 }],
+    leggings: [{ value: "trousers", weight: 6 }],
+    headwear: [{ value: "cap", weight: 5 }, { value: "brimmed", weight: 2 }, { value: "none", weight: 3 }],
+    footwear: [{ value: "boots" }],
+    belt: [{ value: "sash" }],
+    material: [{ value: "wool", weight: 6 }, { value: "fur", weight: 4 }],
+    dye: [{ value: "undyed", weight: 5 }, { value: "madder", weight: 2 }, { value: "soot", weight: 2 }, { value: "bark", weight: 2 }],
+    neck: [{ value: "beads", weight: 4 }, { value: "none", weight: 4 }],
+  },
+  {
+    // Nenets and Evenki: the closed hooded reindeer-skin coat (malitsa) and
+    // fur boots; women's open coats edged with appliqué fur and beads.
+    id: "siberian-reindeer",
+    label: "Siberian herders · reindeer-skin coats",
+    scope: { years: [1000, 1950], bounds: [44, 58, 180, 75] },
+    garment: [{ value: "coat", weight: 8 }],
+    sleeves: [{ value: "long" }],
+    leggings: [{ value: "trousers" }],
+    headwear: [{ value: "hood", weight: 7 }, { value: "cap", weight: 3 }],
+    footwear: [{ value: "boots" }],
+    belt: [{ value: "leather" }],
+    material: [{ value: "fur", weight: 7 }, { value: "hide", weight: 3 }],
+    motif: [{ value: "band", weight: 5 }, { value: "plain", weight: 3 }],
+    trimPattern: [{ value: "step", weight: 4 }, { value: "diamond", weight: 2 }],
+  },
 ];

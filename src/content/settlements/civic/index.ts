@@ -2,11 +2,13 @@ import type { WorldSetting } from "../../geography/types";
 import type { CivicProfile } from "./types";
 import { italyCivic } from "./italy";
 import { europeCivic } from "./europe";
+import { asiaCivic } from "./asia";
+import { americasCivic } from "./americas";
 /** Dated regional content names institutions; the planner only sees shared forms.
  * An unresearched setting gets an explicitly illustrative meeting hall, never
  * a Roman institution or a purportedly documented civic building by default. */
 export function civicProfile(s: WorldSetting): CivicProfile {
-  for (const p of [...italyCivic, ...europeCivic]) {
+  for (const p of [...italyCivic, ...europeCivic, ...asiaCivic, ...americasCivic]) {
     const [w, south, e, n] = p.bounds;
     if (
       s.culture === p.culture &&

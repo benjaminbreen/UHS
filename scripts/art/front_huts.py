@@ -1011,6 +1011,65 @@ def cart(s):
                    smoke=[[cx, bed_y - tent.height + 6, 'vent']])
 
 
+def mississippian(s):
+    """A Mississippian house, Cahokia to Moundville, 1050-1500: posts set
+    in wall trenches, woven with cane and daubed with clay, the post lines
+    showing where the daub has cracked; a tall roof of grass thatch, hipped
+    or gabled, its ridge bound; a low doorway hung with a cane mat."""
+    W = s['W']
+    mud, wood, straw = PAL['mud'], PAL['wood'], PAL['straw-old' if s['seed'] % 3 else 'straw']
+    hw = 30
+    depth = round(W * 0.42) + 12
+    c = C(W + 24, hw + depth + 16)
+    x0, base = 12, c.h - 4
+    step = max(8, W // 9)
+    for yy in range(base - hw, base + 1):
+        for xx in range(x0, x0 + W):
+            lx = (xx - x0) % step
+            k = 3
+            if lx == 0:
+                k = 2
+            elif lx == 1:
+                k = 4
+            elif h2(xx // 3, yy // 4, s['seed'] + 2) > 0.9:
+                k = 2
+            if yy > base - 5:
+                k -= 1
+            c.p(xx, yy, mud[k])
+    for xx in range(x0 + step, x0 + W - 2, step):  # cracks where the posts stand under the daub
+        for yy in range(base - hw + 6, base - 4):
+            if h2(xx, yy // 5, s['seed']) > 0.55:
+                c.p(xx, yy, wood[2]); c.p(xx + 1, yy, wood[3])
+    for yy in (base - hw + 1, base - hw + 2):
+        c.rect(x0, yy, W, 1, mud[1])
+    eave = base - hw - 1
+    hip = 0.55 if s['hip'] else 0.0
+    eave_roof(c, x0 - 6, x0 + W + 6, eave + 2, depth, straw, thatch_tex(5, s['seed']), hip=hip)
+    ragged_eave(c, x0 - 6, x0 + W + 6, eave + 2, straw, s['seed'])
+    op_cast(c, x0, eave + 4, W, 4)
+    top = eave + 2 - depth
+    if not hip:  # the straw rolled over the gable ends, lit left, shaded right
+        for yy in range(top, eave + 3):
+            for k, (l, r) in enumerate(((5, 0), (4, 1), (4, 2))):
+                c.p(x0 - 6 + k, yy, straw[l]); c.p(x0 + W + 5 - k, yy, straw[r])
+    inset = round(depth * hip)
+    rx0, rx1 = x0 - 6 + inset, x0 + W + 6 - inset
+    if rx1 - rx0 < 10:
+        rx0, rx1 = x0 + W // 2 - 5, x0 + W // 2 + 5
+    c.rect(rx0, top - 2, rx1 - rx0, 3, straw[4]); c.rect(rx0, top + 1, rx1 - rx0, 1, straw[1])
+    for xx in range(rx0 + 2, rx1 - 1, 7):
+        c.rect(xx, top - 3, 2, 5, wood[2]); c.p(xx, top - 3, wood[4])
+    dx = x0 + round(W * (0.36 if s['seed'] % 2 else 0.62))
+    reed = PAL['reed']
+    plain_door(c, dx - 7, base, 14, 24, wood)
+    for yy in range(base - 24, base - 13):
+        for xx in range(dx - 7, dx + 7):
+            c.p(xx, yy, reed[(4, 3, 2)[(xx - dx) % 3]] if yy < base - 14 else reed[1])
+    c.rect(dx - 9, base, 18, 2, mud[4])
+    return c, dict(x0=x0, W=W, base=base, door_x=dx, door_h=24, door_width=14, door_base=base,
+                   smoke=[[(rx0 + rx1) // 2, top - 4, 'vent']])
+
+
 def built(fn, defaults):
     def make(spec=None, info=None):
         s = dict(seed=0, gear=(), door_at=0.3)
@@ -1040,6 +1099,7 @@ BUILDERS = {
     'chise': built(chise, dict(W=80)),
     'ridge-tent': built(ridge_tent, dict(W=40, cover='canvas')),
     'cart': built(cart, dict(W=70, felt='felt-white', accent='blue')),
+    'mississippian': built(mississippian, dict(W=76, hip=True)),
 }
 STEPPE_GEAR = {'fuel': 'fuel', 'hitching': 'hitching', 'rack': 'rack', 'standard': 'standard'}
 FORAGER_GEAR = ('coolamon', 'grindstone', 'spears', 'kayak', 'sled')
@@ -1093,7 +1153,19 @@ def spec_for(name, r):
         if kind:
             return kind, dict(base, W=fw * 16 - (20 if kind == 'chise' else 8))
         return None
+    hut = r.get('hut')
+    if hut:
+        spec = dict(base, **{k: rng.choice(v) if isinstance(v, list) else v for k, v in hut.items() if k != 'kind'})
+        kind = hut['kind']
+        if 'gear' in spec:
+            spec['gear'] = tuple(spec['gear'])
+        spec['W'] = fw * 16 + (4 if kind == 'black-tent' else -4 if kind == 'mississippian' else -6)
+        return kind, spec
     style = r.get('campStyle')
+    if style == 'goat-hair':
+        return 'black-tent', dict(base, W=fw * 16 + 8)
+    if style == 'cone':
+        return 'shell', dict(base, W=fw * 16 - 24, form='cone', cover='hide-pale', gear=('hearth',))
     if style:
         W = fw * 16 - 16
         if style in ('canvas', 'leather'):
@@ -1164,6 +1236,8 @@ STUDIES = [
     ('plank-house', 'plank-house', dict(W=124)),
     ('maloca', 'maloca', dict(W=150)),
     ('chise', 'chise', dict(W=80)),
+    ('mississippian', 'mississippian', dict(W=76, seed=1)),
+    ('mississippian-gable', 'mississippian', dict(W=96, hip=False, seed=2)),
     ('tent-canvas', 'ridge-tent', dict(W=40)),
     ('tent-leather', 'ridge-tent', dict(W=42, cover='hide', seed=1)),
 ]

@@ -626,3 +626,22 @@ it("does not cut the hat, the top and the legs from one bolt", () => {
   const hatted = people.filter((w) => ["wrap", "headscarf", "turban", "band"].includes(w.headwear));
   expect(hatted.filter((w) => w.headColor === w.color && w.color === w.lowerColor)).toEqual([]);
 });
+
+it("dresses the regions that had only a culture-wide kit in their own everyday clothes", () => {
+  const ids = (culture: string, lon: number, lat: number, year: number) =>
+    kitsFor({ culture, lon, lat, year, community: "" } as never, year).map((k) => k.id);
+  expect(ids("european", 28.97, 41.01, 1000)).toContain("byzantine");
+  expect(ids("european", 31.3, 58.5, 1200)).toContain("rus");
+  expect(ids("european", 25, 68.5, 1700)).toContain("sami");
+  expect(ids("west-central-african", 39.5, -8.96, 1350)).toContain("swahili");
+  expect(ids("east-southern-african", 38.7, 12, 1600)).toContain("ethiopian-highlands");
+  expect(ids("east-southern-african", 30.9, -20.3, 1350)).toContain("shona");
+  expect(ids("north-african-west-asian", 45, 25, 1750)).toContain("bedouin");
+  expect(ids("north-african-west-asian", 8, 18, 1800)).toContain("tuareg");
+  expect(ids("north-african-west-asian", 52.9, 29.9, -400)).toContain("persia-achaemenid");
+  expect(ids("north-african-west-asian", 52.6, 29.6, 400)).toContain("persia-parthian-sasanian");
+  expect(ids("north-african-west-asian", 51.7, 32.7, 1650)).toContain("persia-safavid");
+  expect(ids("east-asian", 127, 37.6, 1700)).toContain("korea-joseon");
+  expect(ids("east-asian", 88.6, 33.5, 1700)).toContain("tibetan");
+  expect(ids("other-indigenous-american", -101, 44, 1850)).toContain("plains");
+});

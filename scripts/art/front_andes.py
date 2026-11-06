@@ -8,6 +8,10 @@ fitted ashlar, the blocks pillowed at their edges and every joint tight, the
 doorway double-jambed as the high-status buildings were. Doorways and niches
 narrow toward their lintels; there are no windows, and the door is a cloth
 or a hide hung in the opening.
+
+North coast (Caral to Chimu): adobe brick under mud plaster, a band painted
+round the room, a flat roof, and beside the closed room an open one shaded
+by cane matting on algarrobo posts, where most of the day's work was done.
 """
 from pathlib import Path
 import sys
@@ -111,11 +115,103 @@ def andes(spec=None, info=None):
 
 
 ev.TONES['ichu'] = ICHU
-BUILDERS = {'andes': andes}
+
+# ------------------------------------------------------------------ north coast
+
+def moche(spec=None, info=None):
+    """A north-coast adobe house: the closed room with its painted band and a
+    mat hung in the doorway, and beside it the open room under a cane-mat
+    roof on posts, its back wall and floor in the mat's shade."""
+    from art import front_mudbrick as mb
+    from art.front_materials import C
+    from art.front_kit import finish, consolidate
+    s = dict(W=150, seed=0)
+    s.update(spec or {})
+    W, seed = s['W'], s['seed']
+    pal = [mb._rgb(q) for q in ('#46362a', '#6e5844', '#968066', '#b8a286', '#d2bea2', '#e6d6bc')]
+    cane = mb.PAL['straw-old']
+    wood = mb.PAL['wood']
+    band = mb.PAL['paint-red'] if seed % 2 == 0 else mb.PAL['ochre']
+    hw, depth, mx = 48, 26, 12
+    c = C(W + 2 * mx, hw + depth + 30)
+    x0, x1, base = mx, mx + W, c.h - 4
+    side = 1 if seed % 2 == 0 else -1
+    cw = round(W * 0.56)
+    rx0, rx1 = (x0, x0 + cw) if side > 0 else (x1 - cw, x1)
+    ox0, ox1 = (rx1, x1) if side > 0 else (x0, rx0)
+
+    # The open room first, so the closed room's wall stands over its edge.
+    oh = hw - 6
+    otop = base - oh
+    mb.wall(c, ox0, ox1, otop, base, pal, mb.plaster(seed + 3), seed=seed + 3)
+    for y in range(otop, base + 1):
+        for x in range(ox0, ox1):
+            fp_shade(c, x, y, 0.3 if y < base - 6 else 0.15)
+    for x in range(ox0, ox1):
+        for y in range(base - 5, base + 1):
+            c.p(x, y, mb.P(pal, 3 if y > base - 5 else 4))
+    mb.jar(c, ox0 + (ox1 - ox0) // 3, base - 1, 4, 11)
+    md = 14
+    mtop = otop - md
+    for x in range(ox0 - 2, ox1 + 2):
+        for y in range(mtop, otop + 1):
+            k = 4 if (x - ox0) % 3 else 3
+            if y == mtop:
+                k = 3
+            elif y >= otop - 1:
+                k = 2 if y == otop - 1 else 1
+            elif h2(x, y // 4, seed + 7) > 0.92:
+                k -= 1
+            c.p(x, y, cane[k])
+    for x in range(ox0 - 2, ox1 + 2, 2):
+        c.p(x, otop + 1, cane[2])
+    posts = [ox0 + 2, (ox0 + ox1) // 2, ox1 - 5] if ox1 - ox0 > 56 else [ox0 + 2, ox1 - 5]
+    if side > 0:
+        posts = posts[1:]
+    else:
+        posts = posts[:-1]
+    for px in posts:
+        for y in range(otop + 1, base + 1):
+            c.p(px, y, wood[4]); c.p(px + 1, y, wood[3]); c.p(px + 2, y, wood[1])
+        c.rect(px - 1, otop + 1, 5, 2, wood[2])
+
+    # The closed room.
+    top = base - hw
+    mb.wall(c, rx0, rx1, top, base, pal, mb.plaster(seed), seed=seed)
+    by0 = top + 14
+    for x in range(rx0, rx1):
+        c.p(x, by0, band[4]); c.p(x, by0 + 5, band[1])
+        for y in range(by0 + 1, by0 + 5):
+            step = (x - rx0) % 12
+            up = step < 6
+            k = 4 if (up and y < by0 + 3) or (not up and y >= by0 + 3) else 2
+            c.p(x, y, band[k])
+    mb.deck(c, rx0, rx1, top, depth, pal, seed, pal)
+    mb.beams(c, rx0, rx1, top + 7, pal, 13, seed)
+    dcx = rx0 + round(cw * (0.4 if side > 0 else 0.6))
+    info_ = mb.door(c, dcx, base - 2, 18, 38, pal, 'mat', lintel='log')
+    if cw > 70:
+        mb.window(c, rx1 - 20 if side > 0 else rx0 + 8, top + 24, 10, 8, pal, 'lattice')
+    mb.mat(c, rx0 + 8, top - depth + 10, min(22, cw - 20), 5, grain=mb.PAL['date'] if seed % 3 else None)
+    finish(c)
+    consolidate(c, rare=3)
+    if info is not None:
+        info.update(x0=x0, W=W, base=base, door_x=dcx, door_h=info_['door_h'], leaf=False)
+    return c.im
+
+
+def fp_shade(c, x, y, k):
+    from art import front_parts as fp
+    fp.shade(c, x, y, k)
+
+
+BUILDERS = {'andes': andes, 'moche': moche}
 STUDIES = [
     ('highland', 'andes', {}),
     ('highland-small', 'andes', dict(W=92, seed=2)),
     ('cusco', 'andes', dict(W=160, storeys=['inca'], heights=[56], seed=3, wear=0.15)),
+    ('moche', 'moche', {}),
+    ('moche-small', 'moche', dict(W=110, seed=1)),
 ]
 
 

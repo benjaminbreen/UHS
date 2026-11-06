@@ -165,6 +165,28 @@ export const westCentralAfrica: readonly GarmentKit[] = [
       { value: "none", weight: 2, means: ["poor"] },
     ],
   },
+  {
+    // Fulbe herders: the men's wide robe and trousers, the conical leather and
+    // straw hat against the sun, a staff over the shoulders; women in wrapped
+    // cloth with amber, beads and brass in the hair.
+    id: "fulani",
+    label: "Fulbe herders · the wide robe and the sun hat",
+    scope: { years: [1000, 1950], bounds: [-17, 9, 16, 17] },
+    garment: [
+      { value: "open-robe", weight: 5, sex: ["male"] },
+      { value: "tunic", weight: 3, sex: ["male"] },
+      { value: "wrap", weight: 7, sex: ["female"] },
+    ],
+    headwear: [
+      { value: "conical", weight: 4, sex: ["male"], livelihoods: ["herder"] },
+      { value: "wrap", weight: 3, sex: ["male"] },
+      { value: "headscarf", weight: 5, sex: ["female"] },
+    ],
+    leggings: [{ value: "wide", weight: 6, sex: ["male"] }, { value: "sarong", weight: 6, sex: ["female"] }],
+    neck: [{ value: "beads", weight: 5 }, { value: "none", weight: 3 }],
+    accessory: [{ value: "walking-cane", weight: 4, livelihoods: ["herder"] }, { value: "none", weight: 4 }],
+    dye: [{ value: "indigo", weight: 5 }, { value: "undyed", weight: 5 }, { value: "bleached", weight: 2 }],
+  },
 ];
 
 /**
@@ -279,5 +301,93 @@ export const eastSouthernAfrica: readonly GarmentKit[] = [
       { value: "none", weight: 2, means: ["poor"] },
     ],
     over: [{ value: "mantle", weight: 3 }, { value: "none", weight: 6 }],
+  },
+  {
+    // Kilwa, Mombasa, Lamu: men in the long white kanzu and an embroidered cap,
+    // women in wrapped cloths with the head covered, cotton from India and
+    // the coast's own looms.
+    id: "swahili",
+    label: "Swahili coast · the kanzu and the wrapped cloth",
+    scope: { years: [900, 1900], bounds: [38.5, -12, 44, 4.5] },
+    garment: [
+      { value: "long-tunic", weight: 7, sex: ["male"] },
+      { value: "wrap", weight: 3, sex: ["male"], means: ["poor"] },
+      { value: "wrap", weight: 7, sex: ["female"] },
+      { value: "dress", weight: 2, sex: ["female"] },
+    ],
+    leggings: [{ value: "sarong", weight: 7 }, { value: "none", weight: 2 }],
+    headwear: [
+      { value: "cap", weight: 7, sex: ["male"] },
+      { value: "turban", weight: 2, sex: ["male"], means: ["wealthy"] },
+      { value: "headscarf", weight: 5, sex: ["female"] },
+      { value: "veil", weight: 3, sex: ["female"], means: ["common", "wealthy"] },
+    ],
+    footwear: [{ value: "sandals", weight: 7 }, { value: "none", weight: 2, means: ["poor"] }],
+    over: [{ value: "none", weight: 6 }, { value: "shoulder-cloth", weight: 2 }],
+    material: [{ value: "cotton", weight: 8 }, { value: "silk", weight: 1, means: ["wealthy"] }],
+    dye: [{ value: "bleached", weight: 6 }, { value: "undyed", weight: 3 }, { value: "indigo", weight: 3 }, { value: "madder", weight: 1 }],
+  },
+  {
+    // The highlands: white cotton for everyone, the shamma wrapped over the
+    // shoulders, a woven coloured border (tibeb) on the women's dresses,
+    // narrow trousers for men, bare feet.
+    id: "ethiopian-highlands",
+    label: "Ethiopian highlands · white cotton and the shamma",
+    scope: { years: [300, 1950], bounds: [35, 6, 42.5, 15.5] },
+    garment: [
+      { value: "long-tunic", weight: 6, sex: ["male"] },
+      { value: "tunic", weight: 3, sex: ["male"] },
+      { value: "dress", weight: 8, sex: ["female"] },
+    ],
+    sleeves: [{ value: "long", weight: 8 }],
+    motif: [{ value: "band", weight: 7 }, { value: "plain", weight: 2 }],
+    leggings: [{ value: "trousers", weight: 6, sex: ["male"] }, { value: "none", weight: 4 }],
+    headwear: [{ value: "none", weight: 6 }, { value: "wrap", weight: 3 }, { value: "headscarf", weight: 3, sex: ["female"] }],
+    footwear: [{ value: "none", weight: 7 }, { value: "sandals", weight: 2 }],
+    over: [{ value: "shoulder-cloth", weight: 7 }, { value: "mantle", weight: 2 }, { value: "none", weight: 2 }],
+    material: [{ value: "cotton" }],
+    dye: [{ value: "bleached", weight: 6 }, { value: "undyed", weight: 5 }],
+    trimPattern: [{ value: "diamond", weight: 4 }, { value: "step", weight: 3 }, { value: "cross-stitch", weight: 2 }],
+  },
+  {
+    // The Zimbabwe plateau: cotton was spun at Great Zimbabwe and Ingombe
+    // Ilede, but hide aprons and skin cloaks stayed ordinary; copper and gold
+    // beads and wire for the rich.
+    id: "shona",
+    label: "Zimbabwe plateau · hide, cotton and beads",
+    scope: { years: [1000, 1900], bounds: [25, -23, 34, -15] },
+    garment: [
+      { value: "loincloth", weight: 4, sex: ["male"] },
+      { value: "wrap", weight: 5 },
+      { value: "none", weight: 3, sex: ["male"] },
+      { value: "skirt", weight: 4, sex: ["female"] },
+    ],
+    leggings: [{ value: "none", weight: 7 }, { value: "sarong", weight: 3 }],
+    headwear: [{ value: "none", weight: 6 }, { value: "band", weight: 3 }, { value: "fillet", weight: 1, means: ["wealthy"] }],
+    footwear: [{ value: "none", weight: 8 }, { value: "sandals", weight: 2 }],
+    over: [{ value: "mantle", weight: 5 }, { value: "none", weight: 4 }],
+    neck: [{ value: "beads", weight: 6 }, { value: "none", weight: 3 }],
+    material: [{ value: "hide", weight: 5 }, { value: "cotton", weight: 3 }, { value: "barkcloth", weight: 2 }],
+    dye: [{ value: "undyed", weight: 5 }, { value: "ochre", weight: 3 }, { value: "bark", weight: 3 }],
+  },
+  {
+    // Nguni men in a hide apron front and back and a skin cloak, women in the
+    // pleated leather skirt of married women; beadwork and feathers marked
+    // rank and age.
+    id: "nguni",
+    label: "Nguni · hide aprons, skin cloaks and beadwork",
+    scope: { years: [1000, 1900], bounds: [27, -34, 33, -24] },
+    garment: [
+      { value: "loincloth", weight: 6, sex: ["male"] },
+      { value: "none", weight: 3, sex: ["male"] },
+      { value: "skirt", weight: 7, sex: ["female"] },
+    ],
+    leggings: [{ value: "none" }],
+    headwear: [{ value: "none", weight: 5 }, { value: "band", weight: 4 }, { value: "plume", weight: 2, means: ["wealthy"] }],
+    footwear: [{ value: "none" }],
+    over: [{ value: "mantle", weight: 5 }, { value: "none", weight: 5 }],
+    neck: [{ value: "beads", weight: 7 }, { value: "none", weight: 2 }],
+    material: [{ value: "hide", weight: 8 }, { value: "fur", weight: 2 }],
+    dye: [{ value: "undyed", weight: 5 }, { value: "ochre", weight: 3 }, { value: "bark", weight: 3 }],
   },
 ];

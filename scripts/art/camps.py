@@ -8,6 +8,8 @@ STYLES = {
     'canvas': ('Canvas ridge tent', ['#43483f', '#797f6a', '#b7b79a', '#d8d2ae']),
     'dome': ('Expedition dome tent', ['#553d31', '#925633', '#d18c39', '#ebbd5c']),
     'felt': ('Felt round tent', ['#4b4b40', '#898979', '#bfbba3', '#ded6b8']),
+    'goat-hair': ('Black tent', ['#1e1816', '#3c312a', '#4e4136', '#665644']),
+    'cone': ('Hide cone tent', ['#4a3a2a', '#9c805e', '#bea27c', '#d8c09c']),
     'brush': ('Branch and mat shelter', ['#394631', '#647046', '#939b63', '#bec18a']),
 }
 

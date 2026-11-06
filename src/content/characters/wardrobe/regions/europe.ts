@@ -441,4 +441,91 @@ export const europe: readonly GarmentKit[] = [
     ],
     footwear: [{ value: "shoes", weight: 7 }, { value: "boots", weight: 3 }],
   },
+  {
+    // Constantinople, Thessaloniki and the Aegean until the Ottoman conquest.
+    // Manuscripts and church mosaics show the long belted tunic with woven
+    // bands (clavi), the cloak pinned at the shoulder for the well off, and
+    // women's long gowns with the head covered outdoors.
+    id: "byzantine",
+    label: "Byzantium · the banded tunic and the mantle",
+    scope: { years: [600, 1460], bounds: [19, 34.5, 30.5, 42.2] },
+    garment: [
+      { value: "long-tunic", weight: 6, sex: ["male"] },
+      { value: "tunic", weight: 4, sex: ["male"], means: ["poor", "common"] },
+      { value: "dress", weight: 8, sex: ["female"] },
+      { value: "robe", weight: 3, means: ["wealthy"] },
+    ],
+    sleeves: [{ value: "long", weight: 7 }, { value: "loose", weight: 2, garments: ["robe"] }],
+    motif: [{ value: "band", weight: 6 }, { value: "plain", weight: 3 }],
+    leggings: [{ value: "hose", weight: 6 }, { value: "trousers", weight: 2, sex: ["male"] }, { value: "none", weight: 2 }],
+    headwear: [
+      { value: "none", weight: 5, sex: ["male"] },
+      { value: "cap", weight: 3, sex: ["male"] },
+      { value: "veil", weight: 6, sex: ["female"], ages: ["adult", "elder"] },
+      { value: "headscarf", weight: 3, sex: ["female"] },
+    ],
+    footwear: [{ value: "shoes", weight: 6 }, { value: "boots", weight: 2 }, { value: "sandals", weight: 2 }],
+    belt: [{ value: "leather", weight: 5 }, { value: "sash", weight: 4 }],
+    over: [{ value: "none", weight: 5 }, { value: "cloak", weight: 3, means: ["wealthy"] }, { value: "mantle", weight: 3 }],
+    material: [{ value: "linen", weight: 5 }, { value: "wool", weight: 5 }, { value: "silk", weight: 3, means: ["wealthy"] }],
+    dye: [
+      { value: "undyed", weight: 4 },
+      { value: "madder", weight: 3 },
+      { value: "woad", weight: 2 },
+      { value: "weld", weight: 2 },
+      { value: "kermes", weight: 2, means: ["wealthy"] },
+      { value: "tyrian", weight: 1, means: ["elite"] },
+      { value: "goldthread", weight: 1, means: ["wealthy"] },
+    ],
+    trimPattern: [{ value: "meander", weight: 3 }, { value: "diamond", weight: 3 }, { value: "none", weight: 3 }],
+  },
+  {
+    // Novgorod's excavated textiles and the birch-bark letters: a long linen
+    // shirt belted outside, trousers tucked into foot-wrappings and bast shoes,
+    // a kaftan over it for those who could pay; women's long shirts and a
+    // pinafore dress, the head always covered once married.
+    id: "rus",
+    label: "Rus · the belted shirt and the kaftan",
+    scope: { years: [880, 1700], bounds: [24, 48.5, 60, 64] },
+    garment: [
+      { value: "tunic", weight: 6, sex: ["male"] },
+      { value: "coat", weight: 3, sex: ["male"], means: ["common", "wealthy"] },
+      { value: "dress", weight: 8, sex: ["female"] },
+      { value: "open-robe", weight: 2, means: ["wealthy"] },
+    ],
+    sleeves: [{ value: "long", weight: 9 }],
+    motif: [{ value: "band", weight: 5 }, { value: "plain", weight: 4 }],
+    leggings: [{ value: "wrapped", weight: 6 }, { value: "trousers", weight: 4 }],
+    headwear: [
+      { value: "cap", weight: 6, sex: ["male"] },
+      { value: "none", weight: 3, sex: ["male"] },
+      { value: "headscarf", weight: 5, sex: ["female"] },
+      { value: "kerchief", weight: 3, sex: ["female"] },
+    ],
+    footwear: [{ value: "shoes", weight: 6 }, { value: "boots", weight: 4, means: ["common", "wealthy"] }],
+    belt: [{ value: "sash", weight: 7 }, { value: "cord", weight: 2 }],
+    over: [{ value: "none", weight: 5 }, { value: "cloak", weight: 3 }],
+    material: [{ value: "linen", weight: 6 }, { value: "wool", weight: 4 }, { value: "fur", weight: 1, means: ["wealthy"] }],
+    dye: [{ value: "undyed", weight: 6 }, { value: "madder", weight: 4 }, { value: "woad", weight: 2 }, { value: "bark", weight: 2 }],
+    trimPattern: [{ value: "cross-stitch", weight: 5 }, { value: "none", weight: 3 }],
+  },
+  {
+    // The gákti: a wool tunic in blue or red with bands of contrasting cloth
+    // at hem, cuff and collar, worn with a leather belt, reindeer-skin boots
+    // and leggings; fur coats in winter.
+    id: "sami",
+    label: "Sápmi · the gákti",
+    scope: { years: [1500, 1950], bounds: [14, 65.5, 41, 71] },
+    garment: [{ value: "long-tunic", weight: 7 }, { value: "coat", weight: 3 }],
+    sleeves: [{ value: "long" }],
+    motif: [{ value: "band", weight: 8 }, { value: "plain", weight: 1 }],
+    leggings: [{ value: "trousers", weight: 8 }],
+    headwear: [{ value: "cap", weight: 8 }, { value: "hood", weight: 2 }],
+    footwear: [{ value: "boots" }],
+    belt: [{ value: "leather" }],
+    over: [{ value: "none", weight: 7 }, { value: "cloak", weight: 2 }],
+    material: [{ value: "wool", weight: 7 }, { value: "fur", weight: 3 }],
+    dye: [{ value: "woad", weight: 6 }, { value: "madder", weight: 3 }, { value: "soot", weight: 1 }],
+    trimPattern: [{ value: "step", weight: 4 }, { value: "strip", weight: 4 }],
+  },
 ];
