@@ -30,6 +30,30 @@ const kit = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit):
 });
 const held = (f: typeof clergy, ...xs: [Accessory, number][]) => xs.map(([v, w]) => f(v, w));
 
+// Clergy by the office the role names: an Orthodox priest, deacon, monk or bishop.
+const as = (...roles: string[]) => <T>(value: T, weight = 1): Option<T> => ({ value, weight, livelihoods: CLERGY, ages: ["adult", "elder"], roles });
+const cleric = as("cleric"), deacon = as("deacon"), bishop = as("bishop"), monastic = as("monastic");
+type Box = readonly [number, number, number, number];
+// Greece and the Balkans, Romania, Rus, Belarus, the Caucasus, the Levant, Egypt and Nubia.
+const ORTHODOX: Box[] = [
+  [19.5, 34, 45, 45.5], [24.5, 43.5, 30, 48.5], [28.5, 44, 60, 70], [24.5, 48.5, 28.5, 54],
+  [41.4, 38.5, 46, 43.6], [34, 29, 44, 37.5], [24, 12, 36, 31.7],
+];
+const orthodox: GarmentKit[] = ORTHODOX.flatMap((bounds, i) => [
+  kit(`clergy-orthodox-${i}`, "Orthodox priest: black cassock, soft cap, the censer", { years: [330, 1950], bounds }, {
+    garment: [cleric("robe")], dye: [cleric("soot", 4), cleric("walnut", 1)], belt: [cleric("sash")],
+    headwear: [cleric("cap")], accessory: [cleric("censer", 2), cleric("beads", 2), cleric("none", 1)],
+  }),
+  // The tall kamilavka hat is post-Byzantine.
+  kit(`clergy-orthodox-late-${i}`, "Orthodox priest's kamilavka", { years: [1600, 1950], bounds }, { headwear: [cleric("fez")] }),
+  { ...kit(`clergy-orthodox-office-${i}`, "Monk's veil, deacon's vestment, bishop's staff and panagia", { years: [330, 1950], bounds }, {
+    headwear: [monastic("veil"), bishop("veil"), deacon("none")],
+    dye: [deacon("goldthread", 1), deacon("bleached", 1)],
+    accessory: [bishop("walking-cane"), deacon("censer"), monastic("beads")],
+    neck: [bishop("chain")],
+  }), priority: 3 },
+]);
+
 export const street: readonly GarmentKit[] = [
   // ---- clergy
   kit("clergy-latin", "Monk, friar and priest: the habit, the cord, the beads", { years: [500, 1900], cultures: ["european"] }, {
@@ -60,6 +84,33 @@ export const street: readonly GarmentKit[] = [
   }),
   kit("clergy-tibet", "Maroon robes of the Himalaya", { years: [800, 1950], cultures: ["inner-eurasian"], bounds: [78, 27, 100, 36] }, {
     garment: [clergy("robe")], dye: [clergy("madder")], headwear: [clergy("none")], accessory: held(clergy, ["beads", 3], ["alms-bowl", 1]),
+  }),
+  ...orthodox,
+  kit("clergy-ethiopia", "Ethiopian priest: white shamma, turban, prayer staff", { years: [330, 1950], bounds: [35.5, 6, 43, 16.5] }, {
+    garment: [cleric("robe")], dye: [cleric("bleached")], over: [cleric("mantle")], headwear: [cleric("turban")],
+    accessory: [cleric("walking-cane", 2), cleric("censer", 1)],
+  }),
+  { ...kit("clergy-ethiopia-office", "Ethiopian monk's yellow and the bare-headed deacon", { years: [330, 1950], bounds: [35.5, 6, 43, 16.5] }, {
+    dye: [monastic("turmeric", 2), monastic("ochre", 1)], headwear: [monastic("cap"), deacon("none")],
+  }), priority: 3 },
+  kit("clergy-pharaonic", "Egyptian priest: shaven head, white linen, the censer", { years: [-3000, -332], bounds: [24, 15, 36, 32] }, {
+    garment: [clergy("long-tunic")], dye: [clergy("bleached")], headwear: [clergy("none")], footwear: [clergy("sandals")],
+    accessory: held(clergy, ["censer", 2], ["none", 1]),
+  }),
+  kit("clergy-burma", "Burmese monk: the dark red robe and the alms bowl", { years: [-250, 1950], cultures: ["southeast-asian"], bounds: [92, 9.5, 98.5, 28.5] }, {
+    garment: [monastic("wrap")], dye: [monastic("madder", 3), monastic("russet", 1)], headwear: [monastic("none")],
+    footwear: [monastic("none")], accessory: [monastic("alms-bowl", 3), monastic("beads", 1)],
+  }),
+  { ...kit("clergy-faiths-by-office", "Bhikkhu, Jain monk, granthi, mobad and Brahmin by their dress", { years: [-1000, 1950] }, {
+    garment: [as("monastic")("wrap"), as("jain")("wrap"), as("granthi")("long-tunic"), as("mobad")("robe"), as("brahmin")("wrap")],
+    dye: [as("jain")("bleached"), as("granthi")("bleached", 2), as("granthi")("saffron", 1), as("mobad")("bleached"), as("brahmin")("bleached")],
+    headwear: [as("granthi")("turban"), as("mobad")("wrap"), as("jain")("none"), as("brahmin")("none")],
+    footwear: [as("jain")("none"), as("brahmin")("none")],
+    sidearm: [as("granthi")("dagger")],
+    accessory: [as("jain")("alms-bowl"), as("mobad")("censer"), as("granthi")("beads")],
+  }), priority: 3 },
+  kit("clergy-south-asian-monk", "Bhikkhu: the saffron robe and the bowl", { years: [-500, 1950], cultures: ["south-asian"] }, {
+    dye: [monastic("saffron", 2), monastic("ochre", 2)], footwear: [monastic("none")], accessory: [monastic("alms-bowl")],
   }),
   kit("clergy-mesoamerica", "Priest: black robe, long hair, the copal burner", { years: [-800, 1530], cultures: ["mesoamerican"] }, {
     garment: [clergy("robe")], dye: [clergy("soot")], headwear: [clergy("none")], accessory: held(clergy, ["censer", 3], ["none", 1]),

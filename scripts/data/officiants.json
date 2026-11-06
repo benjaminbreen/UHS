@@ -674,6 +674,138 @@
         "serves": "local",
         "weight": 40
       }
+    ],
+    "byzantine-orthodox": [
+      {
+        "tier": "temple",
+        "label": "Parish priest",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Monk",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Deacon",
+        "serves": "major",
+        "weight": 3
+      },
+      {
+        "tier": "paramount",
+        "label": "Bishop",
+        "serves": "paramount",
+        "weight": 1
+      }
+    ],
+    "orthodox-russia": [
+      {
+        "tier": "temple",
+        "label": "Orthodox priest",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Monk",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Deacon",
+        "serves": "major",
+        "weight": 3
+      },
+      {
+        "tier": "paramount",
+        "label": "Bishop",
+        "serves": "paramount",
+        "weight": 1
+      }
+    ],
+    "ethiopian-orthodox-christian": [
+      {
+        "tier": "temple",
+        "label": "Priest",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Monk",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Deacon",
+        "serves": "major",
+        "weight": 3
+      },
+      {
+        "tier": "local",
+        "label": "Debtera",
+        "serves": "local",
+        "weight": 14
+      }
+    ],
+    "coptic-orthodox": [
+      {
+        "tier": "temple",
+        "label": "Priest",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Monk",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Deacon",
+        "serves": "major",
+        "weight": 3
+      },
+      {
+        "tier": "paramount",
+        "label": "Bishop",
+        "serves": "paramount",
+        "weight": 1
+      }
+    ],
+    "sasanian-zoroastrian": [
+      {
+        "tier": "temple",
+        "label": "Mobad",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Herbad",
+        "serves": "local",
+        "weight": 14
+      }
+    ],
+    "achaemenid-zoroastrian": [
+      {
+        "tier": "temple",
+        "label": "Magus",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Keeper of fire",
+        "serves": "local",
+        "weight": 14
+      }
     ]
   },
   "skip": [

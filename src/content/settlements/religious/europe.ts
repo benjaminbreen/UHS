@@ -1,5 +1,15 @@
 import type { ReligiousRule } from "./types";
 
+/** Latin Christendom: the west, then Hungary, Poland and Transylvania, then
+ * Lithuania and Livonia. Greece, the Balkans east of the Drina and Rus are
+ * Orthodox (orthodox.ts). */
+const latin = [
+  [-10, 36, 19, 62],
+  [19, 45.5, 24.5, 62],
+  [24.5, 54, 28.5, 62],
+] as const;
+const inLatin = (rule: Omit<ReligiousRule, "bounds">): ReligiousRule[] => latin.map((bounds) => ({ ...rule, bounds }));
+
 export const europeReligious: ReligiousRule[] = [
   {
     id: "roman-temple",
@@ -39,7 +49,7 @@ export const europeReligious: ReligiousRule[] = [
       note: "A Doric temple on a three-stepped base with a triglyph frieze follows the excavated temples of Aegina, Olympia and Athens; the peristyle running down the sides is not seen from the front.",
     },
   },
-  {
+  ...inLatin({
     id: "romanesque-parish",
     faith: "Latin Christian",
     recipe: "parish-church",
@@ -51,7 +61,6 @@ export const europeReligious: ReligiousRule[] = [
     culture: "european",
     from: 900,
     to: 1150,
-    bounds: [-10, 36, 30, 62],
     side: "north",
     about:
       "The parish church, where people come to Mass, are baptised, married and buried, and where the bells mark the hours of the day.",
@@ -61,8 +70,8 @@ export const europeReligious: ReligiousRule[] = [
       sources: [],
       note: "A stone church beside the market, sized to the town, follows the Romanesque parish and abbey churches of western and central Europe. One towered parish form stands in for the whole range; Romanesque and Gothic are not yet told apart.",
     },
-  },
-  {
+  }),
+  ...inLatin({
     id: "gothic-parish",
     faith: "Latin Christian",
     recipe: "gothic",
@@ -74,7 +83,6 @@ export const europeReligious: ReligiousRule[] = [
     culture: "european",
     from: 1150,
     to: 10001,
-    bounds: [-10, 36, 30, 62],
     side: "north",
     about:
       "The parish church, where people come to Mass, are baptised, married and buried, and where the bells mark the hours of the day.",
@@ -84,5 +92,5 @@ export const europeReligious: ReligiousRule[] = [
       sources: [],
       note: "West tower and spire, buttressed aisles, a transept rose and an apse: the parish Gothic of northern France, England and the Rhineland from the later twelfth century, kept and restored through the nineteenth. One form stands for the whole range.",
     },
-  },
+  }),
 ];

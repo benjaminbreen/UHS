@@ -19,7 +19,16 @@
     { "id": "france", "bounds": [-1.8, 42.9, 3.4, 44.5] },
     { "id": "iberia", "bounds": [-9.6, 35.9, 3.4, 43.9] },
     { "id": "france", "bounds": [-5.2, 42.3, 8.3, 51.2] },
-    { "id": "iran", "bounds": [44.0, 25.0, 63.5, 39.8] }
+    { "id": "iran", "bounds": [44.0, 25.0, 63.5, 39.8] },
+    { "id": "georgia", "bounds": [40.0, 41.1, 46.8, 43.6] },
+    { "id": "armenia", "bounds": [42.5, 38.5, 46.6, 41.1] },
+    { "id": "serbia", "bounds": [19.0, 42.3, 23.0, 45.5] },
+    { "id": "novgorod", "bounds": [29.0, 57.0, 36.0, 61.0] },
+    { "id": "vladimir", "bounds": [38.5, 55.5, 41.5, 57.2] },
+    { "id": "lalibela", "bounds": [38.9, 11.9, 39.2, 12.15] },
+    { "id": "benin", "bounds": [5.4, 5.8, 6.6, 7.0] },
+    { "id": "dahomey", "bounds": [1.6, 6.2, 2.6, 8.0] },
+    { "id": "yorubaland", "bounds": [2.6, 6.3, 5.8, 9.2] }
   ],
   "fallback": {
     "east-anglia": "england",
@@ -45,6 +54,11 @@
     "hall-bagnio": ["england"],
     "hall-union-hall": ["england"],
     "hall-hammam": [null, null, null, "iran"],
-    "hall-madrasa": [null, null, null, "iran"]
+    "hall-madrasa": [null, null, null, "iran"],
+    "religious-caucasian-church": ["georgia", "armenia"],
+    "religious-rus-church": ["vladimir", "novgorod"],
+    "religious-byzantine-church": [null, "serbia"],
+    "religious-ethiopian-church": [null, "lalibela"],
+    "religious-yoruba-shrine": ["yorubaland", "benin", "dahomey"]
   }
 }

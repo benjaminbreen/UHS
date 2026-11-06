@@ -239,7 +239,7 @@ export const civic: InteriorProfile[] = [
 export const assemblies: InteriorProfile[] = [
   {
     id: "wharenui",
-    uses: ["venue.meeting-house"],
+    uses: ["venue.meeting-house", "religious.wharenui"],
     program: "gather",
     regulars: { hours: [18, 24], fill: 0.6 },
     styles: { ledge: "mattress" },

@@ -21,6 +21,15 @@ const patterns: Record<string, RegExp> = {
     /\b(guard|guardsman|watchman|watchmen|gate[- ]?keeper|sentry|sentinel|warrior|retainer|soldier|legionary|hoplite|halberdier|musketeer|pikeman|man-at-arms|men-at-arms|samurai|ashigaru|janissary|mamluk|sepoy|bannerman)\b/,
   // Islamic clergy by title, so a qazi in Delhi dresses as one and not as a brahmin.
   imam: /\b(imam|qadi|qazi|kadi|mullah|mufti|muezzin|dervish|sufi)\b/,
+  // Clergy by office, so a deacon, a monk and a bishop of one church dress apart.
+  cleric: /\b(priest|deacon|monk|nun|bishop|abbot|abbess|hieromonk|metropolitan|patriarch|debtera|archimandrite)\b/,
+  deacon: /\b(deacon|deaconess)\b/,
+  bishop: /\b(bishop|archbishop|metropolitan|patriarch|abuna)\b/,
+  monastic: /\b(monk|nun|abbot|abbess|hieromonk|archimandrite|bhikkhu|bhikkhuni|monastic)\b/,
+  jain: /\bjain\b/,
+  granthi: /\b(granthi|guru)\b/,
+  mobad: /\b(mobad|herbad|dastur|magus|magi|fire priest|keeper of fire)\b/,
+  brahmin: /\b(brahmin|purohita?|pujari|archaka)\b/,
   sailor:
     /\b(sailor|seaman|seafarer|mariner|deckhand|boatswain|bosun|able seaman|whaler|navigator|helmsman|ship'?s? (boy|mate|cook)|crewman)\b/,
   tradesman:

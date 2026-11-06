@@ -1,9 +1,11 @@
 import type { CultureId } from "../../history/types";
 import type { ReligiousRule } from "./types";
 
-/** The atlas keys the Americas by indigenous family whatever the date, so
+/** The atlas keys most of the Americas by indigenous family whatever the
+ * date (settler colonies such as the Caribbean and Brazil turn european), so
  * the colonial church is listed under every family the region carries. */
 const americas: CultureId[] = [
+  "european",
   "other-indigenous-american",
   "mesoamerican",
   "andean",
@@ -114,7 +116,8 @@ export const americasReligious: ReligiousRule[] = [
       large: "Great platform",
     },
     culture: "andean",
-    from: -1000,
+    // Caral's platform mounds date from about 2600 BCE.
+    from: -2700,
     to: 1600,
     bounds: [-82, -22, -65, -4],
     side: "north",

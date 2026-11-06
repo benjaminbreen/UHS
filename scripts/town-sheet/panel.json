@@ -320,5 +320,20 @@
     "query": "A boilermaker in Zuwara, 2017 CE",
     "radius": 70,
     "seed": "world-zuwara-a"
+  },
+  {
+    "name": "kyiv-1100",
+    "query": "Kyiv 1100",
+    "radius": 40
+  },
+  {
+    "name": "djenne-1400",
+    "query": "Djenné 1400",
+    "radius": 36
+  },
+  {
+    "name": "madurai-1600",
+    "query": "Madurai 1600",
+    "radius": 40
   }
 ]
