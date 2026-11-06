@@ -144,6 +144,703 @@
       "settlement": "village",
       "relief": 0.7,
       "why": "Nan Madol — a city of ninety-odd artificial islets walled in basalt logs, begun around 1200 CE — is the largest thing anyone built in the Pacific, and Micronesia had almost nothing between the Marshalls and the Philippines. Chosen over Tarawa because the atlas coastline has no atoll there, so a Tarawa anchor would have generated in open water. The longitude rule would otherwise have filed it as Southeast Asian."
+    },
+    {
+      "id": "city-kilwa",
+      "name": "Kilwa",
+      "aliases": [
+        "kilwa kisiwani",
+        "quiloa"
+      ],
+      "lon": 39.51,
+      "lat": -8.96,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "east-southern-african",
+      "year": 1330,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.2,
+      "why": "The richest Swahili port in the fourteenth century, which controlled the gold trade from Sofala; Ibn Battuta visited in 1331."
+    },
+    {
+      "id": "city-great-zimbabwe",
+      "name": "Great Zimbabwe",
+      "aliases": [
+        "zimbabwe",
+        "dzimba dza mabwe"
+      ],
+      "lon": 30.93,
+      "lat": -20.27,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "east-southern-african",
+      "year": 1350,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.5,
+      "why": "Capital of a Shona state of perhaps ten thousand people between about 1100 and 1450, built in dry-stone enclosures."
+    },
+    {
+      "id": "city-mapungubwe",
+      "name": "Mapungubwe",
+      "aliases": [
+        "k2"
+      ],
+      "lon": 29.39,
+      "lat": -22.2,
+      "climate": "arid",
+      "water": "river-ew",
+      "culture": "east-southern-african",
+      "year": 1250,
+      "architecture": "mudbrick",
+      "settlement": "village",
+      "relief": 0.4,
+      "why": "Hilltop capital at the Limpopo-Shashe confluence, about 1075-1220, the forerunner of Great Zimbabwe."
+    },
+    {
+      "id": "city-aksum",
+      "name": "Aksum",
+      "aliases": [
+        "axum",
+        "aksumite"
+      ],
+      "lon": 38.72,
+      "lat": 14.13,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "east-southern-african",
+      "year": 350,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.6,
+      "why": "Royal town of the Aksumite kingdom from the first century CE, which minted coins and adopted Christianity under Ezana about 340."
+    },
+    {
+      "id": "city-lalibela",
+      "name": "Lalibela",
+      "aliases": [
+        "roha"
+      ],
+      "lon": 39.05,
+      "lat": 12.03,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "east-southern-african",
+      "year": 1220,
+      "architecture": "mudbrick",
+      "settlement": "village",
+      "relief": 0.8,
+      "why": "Zagwe royal centre whose rock-hewn churches were cut around 1200."
+    },
+    {
+      "id": "city-lamu",
+      "name": "Lamu",
+      "aliases": [
+        "lamu island"
+      ],
+      "lon": 40.9,
+      "lat": -2.27,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "east-southern-african",
+      "year": 1600,
+      "architecture": "mudbrick",
+      "settlement": "port",
+      "relief": 0.1,
+      "why": "A Swahili stone town continuously inhabited since the fourteenth century."
+    },
+    {
+      "id": "city-meroe",
+      "name": "Meroë",
+      "aliases": [
+        "meroe",
+        "kush",
+        "kushite"
+      ],
+      "lon": 33.75,
+      "lat": 16.94,
+      "climate": "arid",
+      "water": "river-ns",
+      "culture": "north-african-west-asian",
+      "year": -200,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.2,
+      "why": "Capital of the kingdom of Kush from about 590 BCE to 350 CE, with iron smelting and its own pyramids. Filed with the Nile valley."
+    },
+    {
+      "id": "city-kumbi-saleh",
+      "name": "Koumbi Saleh",
+      "aliases": [
+        "kumbi saleh",
+        "ghana empire",
+        "wagadu"
+      ],
+      "lon": -7.98,
+      "lat": 15.77,
+      "climate": "arid",
+      "water": "none",
+      "culture": "west-central-african",
+      "year": 1050,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.2,
+      "why": "Probably the capital of ancient Ghana that al-Bakri described in 1068, with a Muslim merchant town and a royal town."
+    },
+    {
+      "id": "city-ile-ife",
+      "name": "Ile-Ife",
+      "aliases": [
+        "ife",
+        "ile ife"
+      ],
+      "lon": 4.56,
+      "lat": 7.48,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "west-central-african",
+      "year": 1300,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.3,
+      "why": "Sacred city of the Yoruba, known for naturalistic brass and terracotta heads of about 1200-1400."
+    },
+    {
+      "id": "city-mbanza-kongo",
+      "name": "Mbanza Kongo",
+      "aliases": [
+        "sao salvador",
+        "kongo"
+      ],
+      "lon": 14.24,
+      "lat": -6.27,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "west-central-african",
+      "year": 1500,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.5,
+      "why": "Capital of the kingdom of Kongo, where Afonso I ruled as a Christian king from 1509."
+    },
+    {
+      "id": "city-cahokia",
+      "name": "Cahokia",
+      "aliases": [
+        "cahokia mounds",
+        "monks mound",
+        "mississippian"
+      ],
+      "lon": -90.06,
+      "lat": 38.66,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "other-indigenous-american",
+      "year": 1100,
+      "architecture": "timber",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "The largest town north of Mexico, about 1050-1250, with Monks Mound and perhaps ten to twenty thousand people."
+    },
+    {
+      "id": "city-chaco-canyon",
+      "name": "Chaco Canyon",
+      "aliases": [
+        "chaco",
+        "pueblo bonito",
+        "ancestral puebloan",
+        "anasazi"
+      ],
+      "lon": -107.96,
+      "lat": 36.06,
+      "climate": "arid",
+      "water": "none",
+      "culture": "other-indigenous-american",
+      "year": 1080,
+      "architecture": "mudbrick",
+      "settlement": "village",
+      "relief": 0.5,
+      "why": "Great houses such as Pueblo Bonito were built here from about 850 to 1150, linked by roads across the San Juan basin."
+    },
+    {
+      "id": "city-teotihuacan",
+      "name": "Teotihuacan",
+      "aliases": [
+        "teotihuacán"
+      ],
+      "lon": -98.84,
+      "lat": 19.69,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "mesoamerican",
+      "year": 450,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.3,
+      "why": "A city of perhaps a hundred thousand at its height around 450 CE, laid out on the Avenue of the Dead."
+    },
+    {
+      "id": "city-monte-alban",
+      "name": "Monte Albán",
+      "aliases": [
+        "monte alban",
+        "zapotec"
+      ],
+      "lon": -96.77,
+      "lat": 17.04,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "mesoamerican",
+      "year": 500,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.8,
+      "why": "Zapotec capital on a levelled mountaintop above the Oaxaca valley, about 500 BCE to 750 CE."
+    },
+    {
+      "id": "city-chichen-itza",
+      "name": "Chichén Itzá",
+      "aliases": [
+        "chichen itza"
+      ],
+      "lon": -88.57,
+      "lat": 20.68,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "mesoamerican",
+      "year": 1000,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "The dominant city of the northern Yucatán from about 900 to 1100."
+    },
+    {
+      "id": "city-chan-chan",
+      "name": "Chan Chan",
+      "aliases": [
+        "chimu",
+        "chimor"
+      ],
+      "lon": -79.07,
+      "lat": -8.11,
+      "climate": "arid",
+      "water": "none",
+      "culture": "andean",
+      "year": 1400,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "Capital of the Chimú kingdom, built of adobe compounds on the desert coast until the Inca conquest about 1470."
+    },
+    {
+      "id": "city-moche",
+      "name": "Huacas de Moche",
+      "aliases": [
+        "moche",
+        "huaca del sol",
+        "huaca de la luna"
+      ],
+      "lon": -78.99,
+      "lat": -8.13,
+      "climate": "arid",
+      "water": "none",
+      "culture": "andean",
+      "year": 450,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.2,
+      "why": "The Moche ceremonial capital of about 100-800 CE, with the Huaca del Sol, one of the largest adobe structures in the Americas."
+    },
+    {
+      "id": "city-caral",
+      "name": "Caral",
+      "aliases": [
+        "caral supe",
+        "norte chico",
+        "supe valley"
+      ],
+      "lon": -77.52,
+      "lat": -10.89,
+      "climate": "arid",
+      "water": "none",
+      "culture": "andean",
+      "year": -2500,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.4,
+      "why": "Platform mounds and sunken plazas from about 2600 BCE, among the oldest towns in the Americas."
+    },
+    {
+      "id": "city-huari",
+      "name": "Huari",
+      "aliases": [
+        "wari"
+      ],
+      "lon": -74.2,
+      "lat": -13.06,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "andean",
+      "year": 750,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.6,
+      "why": "Capital of the Wari state, about 600-1000, in the Ayacucho valley."
+    },
+    {
+      "id": "city-tiwanaku",
+      "name": "Tiwanaku",
+      "aliases": [
+        "tiahuanaco",
+        "tiwanacu"
+      ],
+      "lon": -68.67,
+      "lat": -16.55,
+      "climate": "tundra",
+      "water": "none",
+      "culture": "andean",
+      "year": 700,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.3,
+      "why": "Ceremonial city near Lake Titicaca, about 500-1000, fed by raised fields at 3,800 metres."
+    },
+    {
+      "id": "area-tongatapu",
+      "name": "Tongatapu",
+      "aliases": [
+        "mu'a",
+        "lapaha",
+        "tonga"
+      ],
+      "lon": -175.13,
+      "lat": -21.17,
+      "climate": "tropical",
+      "water": "island",
+      "culture": "australian-pacific",
+      "year": 1300,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.1,
+      "why": "Seat of the Tu'i Tonga, whose maritime chiefdom reached Samoa and 'Uvea; the royal tombs at Lapaha date from about 1200."
+    },
+    {
+      "id": "area-kealakekua",
+      "name": "Kealakekua Bay",
+      "aliases": [
+        "hawai'i",
+        "hawaii",
+        "kona",
+        "big island"
+      ],
+      "lon": -155.92,
+      "lat": 19.48,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "australian-pacific",
+      "year": 1700,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.6,
+      "why": "A chiefly centre on the Kona coast of Hawai'i island, with the heiau of Hikiau, where Cook landed in 1779."
+    },
+    {
+      "id": "area-sapmi-kautokeino",
+      "name": "Guovdageaidnu",
+      "aliases": [
+        "kautokeino",
+        "sapmi",
+        "sami",
+        "lapland"
+      ],
+      "lon": 23.04,
+      "lat": 69.01,
+      "climate": "tundra",
+      "water": "none",
+      "culture": "european",
+      "year": 1700,
+      "architecture": "timber",
+      "settlement": "camp",
+      "relief": 0.3,
+      "why": "A Sámi reindeer-herding centre of the Finnmark plateau. The gazetteer has no Sámi place, and Tromsø is a Norwegian town."
+    },
+    {
+      "id": "area-jokkmokk",
+      "name": "Jokkmokk",
+      "aliases": [
+        "jahkamahkke"
+      ],
+      "lon": 19.83,
+      "lat": 66.6,
+      "climate": "boreal",
+      "water": "none",
+      "culture": "european",
+      "year": 1700,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.3,
+      "why": "Lule Sámi winter market site since 1605."
+    },
+    {
+      "id": "city-angkor",
+      "name": "Angkor",
+      "aliases": [
+        "yasodharapura",
+        "angkor thom",
+        "khmer"
+      ],
+      "lon": 103.86,
+      "lat": 13.43,
+      "climate": "monsoon",
+      "water": "none",
+      "culture": "southeast-asian",
+      "year": 1150,
+      "architecture": "timber",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "The Khmer capital from the ninth to the fifteenth century, with reservoirs and canals around Angkor Wat and Angkor Thom."
+    },
+    {
+      "id": "city-ayutthaya",
+      "name": "Ayutthaya",
+      "aliases": [
+        "ayudhya",
+        "siam"
+      ],
+      "lon": 100.57,
+      "lat": 14.36,
+      "climate": "monsoon",
+      "water": "river-ns",
+      "culture": "southeast-asian",
+      "year": 1600,
+      "architecture": "timber",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "Siamese capital from 1351 until its sack in 1767, on an island in the Chao Phraya."
+    },
+    {
+      "id": "city-melaka",
+      "name": "Melaka",
+      "aliases": [
+        "malacca",
+        "malaka"
+      ],
+      "lon": 102.25,
+      "lat": 2.19,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "southeast-asian",
+      "year": 1500,
+      "architecture": "timber",
+      "settlement": "port",
+      "relief": 0.1,
+      "why": "The sultanate that controlled the strait from about 1400 until the Portuguese took it in 1511."
+    },
+    {
+      "id": "city-trowulan",
+      "name": "Trowulan",
+      "aliases": [
+        "majapahit"
+      ],
+      "lon": 112.38,
+      "lat": -7.56,
+      "climate": "tropical",
+      "water": "none",
+      "culture": "southeast-asian",
+      "year": 1400,
+      "architecture": "timber",
+      "settlement": "city",
+      "relief": 0.2,
+      "why": "Capital of Majapahit, the fourteenth-century Javanese empire, built in fired brick."
+    },
+    {
+      "id": "city-hormuz",
+      "name": "Hormuz",
+      "aliases": [
+        "ormus",
+        "ormuz",
+        "hormuz island"
+      ],
+      "lon": 56.46,
+      "lat": 27.06,
+      "climate": "arid",
+      "water": "island",
+      "culture": "north-african-west-asian",
+      "year": 1450,
+      "architecture": "mudbrick",
+      "settlement": "port",
+      "relief": 0.2,
+      "why": "The island entrepot that controlled Gulf trade from about 1300 until 1622."
+    },
+    {
+      "id": "city-vijayanagara",
+      "name": "Vijayanagara",
+      "aliases": [
+        "hampi",
+        "vijayanagar"
+      ],
+      "lon": 76.47,
+      "lat": 15.33,
+      "climate": "monsoon",
+      "water": "river-ew",
+      "culture": "south-asian",
+      "year": 1520,
+      "architecture": "courtyard",
+      "settlement": "city",
+      "relief": 0.5,
+      "why": "Capital of the Vijayanagara empire, perhaps the second-largest city in the world about 1500, sacked in 1565."
+    },
+    {
+      "id": "city-persepolis",
+      "name": "Persepolis",
+      "aliases": [
+        "parsa",
+        "takht-e jamshid",
+        "achaemenid"
+      ],
+      "lon": 52.89,
+      "lat": 29.93,
+      "climate": "arid",
+      "water": "none",
+      "culture": "north-african-west-asian",
+      "year": -480,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.4,
+      "why": "Ceremonial capital of the Achaemenid kings from about 518 BCE until Alexander burned it in 330."
+    },
+    {
+      "id": "city-ctesiphon",
+      "name": "Ctesiphon",
+      "aliases": [
+        "tisfun",
+        "al-mada'in",
+        "sasanian"
+      ],
+      "lon": 44.58,
+      "lat": 33.09,
+      "climate": "arid",
+      "water": "none",
+      "culture": "north-african-west-asian",
+      "year": 550,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "Parthian and Sasanian capital on the Tigris until the Arab conquest of 637."
+    },
+    {
+      "id": "city-merv",
+      "name": "Merv",
+      "aliases": [
+        "marv",
+        "mary"
+      ],
+      "lon": 61.84,
+      "lat": 37.66,
+      "climate": "arid",
+      "water": "none",
+      "culture": "inner-eurasian",
+      "year": 1100,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "Seljuk capital of Khorasan and one of the largest cities in the world before the Mongols destroyed it in 1221."
+    },
+    {
+      "id": "city-sarai",
+      "name": "Sarai",
+      "aliases": [
+        "sarai batu",
+        "golden horde"
+      ],
+      "lon": 47.27,
+      "lat": 46.62,
+      "climate": "arid",
+      "water": "river-ns",
+      "culture": "inner-eurasian",
+      "year": 1300,
+      "architecture": "mudbrick",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "Capital of the Golden Horde on the lower Volga in the thirteenth and fourteenth centuries."
+    },
+    {
+      "id": "city-novgorod",
+      "name": "Novgorod",
+      "aliases": [
+        "veliky novgorod",
+        "great novgorod",
+        "novgorod the great"
+      ],
+      "lon": 31.27,
+      "lat": 58.52,
+      "climate": "boreal",
+      "water": "river-ns",
+      "culture": "european",
+      "year": 1200,
+      "architecture": "timber",
+      "settlement": "city",
+      "relief": 0.1,
+      "why": "Merchant republic of the north, with log-paved streets and birch-bark letters, independent until 1478."
+    },
+    {
+      "id": "city-constantinople",
+      "name": "Constantinople",
+      "aliases": [
+        "byzantium",
+        "byzantine",
+        "new rome",
+        "tsargrad"
+      ],
+      "lon": 28.98,
+      "lat": 41.01,
+      "climate": "mediterranean",
+      "water": "none",
+      "culture": "european",
+      "year": 1000,
+      "architecture": "classical",
+      "settlement": "city",
+      "relief": 0.3,
+      "why": "Capital of the eastern Roman empire from 330 until the Ottoman conquest in 1453. The gazetteer's Istanbul entry is the modern city."
+    },
+    {
+      "id": "city-gyeongju",
+      "name": "Gyeongju",
+      "aliases": [
+        "seorabeol",
+        "silla",
+        "kyongju"
+      ],
+      "lon": 129.22,
+      "lat": 35.84,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "east-asian",
+      "year": 750,
+      "architecture": "courtyard",
+      "settlement": "city",
+      "relief": 0.3,
+      "why": "The Silla capital for nearly a thousand years, laid out in grid wards on the Tang model."
+    },
+    {
+      "id": "city-kaesong",
+      "name": "Kaesong",
+      "aliases": [
+        "kaegyong",
+        "goryeo",
+        "koryo"
+      ],
+      "lon": 126.55,
+      "lat": 37.97,
+      "climate": "temperate",
+      "water": "none",
+      "culture": "east-asian",
+      "year": 1100,
+      "architecture": "courtyard",
+      "settlement": "city",
+      "relief": 0.5,
+      "why": "Capital of Goryeo from 919 to 1392."
     }
   ]
 }

@@ -178,6 +178,9 @@ const sovietBloc = (["european", "inner-eurasian"] as const).map(
  * generic fallback, whatever it was and wherever it stood. */
 export const modernForms: UrbanFormRule[] = [
   ...spanishGrid,
+  // Caribbean and Rio de la Plata towns read as European once settled
+  // (geography/eras.ts); their plans followed the same ordinances.
+  { ...spanishGrid[0], culture: "european", to: 1880, bounds: [-85.5, -40, -50, 24] },
   ...industrialGrid,
   ...latinGrid,
   ...sovietBloc,
@@ -187,7 +190,7 @@ export const modernForms: UrbanFormRule[] = [
     culture: "east-asian",
     from: 1920,
     to: 2026,
-    bounds: [128, 30, 146, 46],
+    bounds: [129.5, 30, 146, 46],
     plan: "organic",
     block: [16, 12],
     regularity: 0.55,
