@@ -320,5 +320,20 @@
     "query": "A boilermaker in Zuwara, 2017 CE",
     "radius": 70,
     "seed": "world-zuwara-a"
+  },
+  {
+    "name": "kano-1700",
+    "query": "Kano 1700",
+    "radius": 70
+  },
+  {
+    "name": "varanasi-1750",
+    "query": "Varanasi 1750",
+    "radius": 70
+  },
+  {
+    "name": "quanzhou-1300",
+    "query": "Quanzhou 1300",
+    "radius": 70
   }
 ]

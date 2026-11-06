@@ -525,8 +525,45 @@ it("keeps processing profiles regional, dated and outside old generator revision
 });
 
 
+it("gives Africa, Asia, the Americas and Oceania their own worksites", () => {
+  const base=settingFor("London 1650");
+  const at=(lon:number,lat:number,year:number)=>worksitesFor({...base,lon,lat,year}).map(p=>p.id);
+  expect(at(8.5,12,1700)).toEqual(expect.arrayContaining(["west-african-bloomery","kano-dye-pits","west-african-strip-looms","west-african-pottery"]));
+  expect(at(83,25.3,1750)).toEqual(expect.arrayContaining(["indian-smithy","indian-weavers-shed","indian-pottery","indian-dye-yard","indian-ghani","indian-gur-works","mughal-sarai"]));
+  expect(at(118.6,24.9,1300)).toEqual(expect.arrayContaining(["chinese-salt-boiling","junk-yard","chinese-dragon-kiln","chinese-smithy","chinese-sugar-works","chinese-dye-works"]));
+  expect(at(51.7,32.6,1600)).toEqual(expect.arrayContaining(["persian-caravanserai","west-asian-glasshouse"]));
+  expect(at(28.9,41,1600)).toContain("ottoman-han");
+  expect(at(-59.6,13.1,1700)).toContain("caribbean-sugar-works");
+  expect(at(-72,-13.5,1500)).toEqual(expect.arrayContaining(["maras-salt-terraces","andean-pottery"]));
+  expect(at(-102.6,22.8,1700)).toContain("zacatecas-silver");
+  expect(at(30.9,-20.3,1300)).toContain("great-zimbabwe-gold");
+  expect(at(39.2,-6.2,1500)).toContain("dhow-yard");
+  expect(at(-159.6,21.9,1880)).toEqual(expect.arrayContaining(["hawaiian-salt-pans","hawaiian-sugar-mill"]));
+  expect(at(100,13.8,1400)).toContain("southeast-asian-kiln");
+  expect(at(-76.5,38,1750)).toContain("chesapeake-tobacco-barn");
+  expect(at(138.9,36.3,1900)).toContain("japanese-filature");
+  expect(worksitesFor({...base,lon:138.9,lat:36.3,year:1900,settlement:"village"}).some(p=>p.kind==="factory")).toBe(false);
+  // No British factory shed, and no essential forge where smiths keep household shops.
+  expect(worksitesFor({...base,year:1960,settlement:"city"}).some(p=>p.kind==="factory")).toBe(false);
+  expect(at(-0.1,51.5,1500).some(id=>id.endsWith("smithy"))).toBe(false);
+});
+
+it("sends smiths, salt workers, oil pressers and weavers to their worksite only where one is authored", () => {
+  const kit=(id:string)=>[...livelihoods,...commonLivelihoods].find(l=>l.id===id)!;
+  for (const [id,kind] of [["smith","forge"],["salt-worker","saltworks"],["oil-presser","oilpress"],["weaver","weaving"],["potter","pottery"]] as const) {
+    expect(institutionFor(kit(id),true),id).toBe(kind);
+    expect(institutionFor(kit(id),false),id).not.toBe(kind);
+  }
+  const kano=packForSetting(settingFor("Kano 1700"));
+  expect(localWorkContext(workPlan(),kano,"smith").livelihoods.some(l=>l.id==="smith"||l.id==="blacksmith")).toBe(false);
+  const plan=workPlan();
+  plan.places.push({...school,id:"forge",name:"Smithy",claim:"worksite-west-african-bloomery",institution:"forge",workCapacity:3,workRoles:["smith","blacksmith","ironworker","bronze-caster"]});
+  plan.employment=workplacesIn(plan,kano);
+  expect(localWorkContext(plan,kano,"smith").livelihoods.some(l=>l.id==="smith"||l.id==="blacksmith")).toBe(true);
+});
+
 it("keeps domestic craft work available where processing profiles are not yet authored", () => {
-  const pack=packForSetting(settingFor("Delhi 1500"));
+  const pack=packForSetting(settingFor("Kyiv 1500"));
   const ctx=localWorkContext(workPlan(),pack,"craft-worker");
   for(const id of ["potter","dyer","tanner"])
     expect(ctx.livelihoods.some(l=>l.id===id),id).toBe(true);

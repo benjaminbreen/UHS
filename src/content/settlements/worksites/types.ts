@@ -5,8 +5,11 @@ export type WorksiteProfile = {
   id: string;
   kind: import("../../characters/workplace").Institution;
   revision?: 2 | 3;
-  launch?: {frame:string; wayFrame?:string; width:number; dryLength:number; reach:number; waterLength:number};
-  waterSupply?: boolean;
+  launch?: {frame:string; wayFrame?:string; width:number; dryLength:number; reach:number; waterLength:number; label?:string; description?:string};
+  /** true needs a river nearby; "sea" needs salt water, as coastal salt pans do. */
+  waterSupply?: boolean | "sea";
+  /** Work every town of its kind has: placed first and outside the cap of two processing yards. */
+  essential?: boolean;
   supplies?: readonly {prop: string; label: string}[];
   label: string;
   scope: Omit<CharacterScope, "communities">;

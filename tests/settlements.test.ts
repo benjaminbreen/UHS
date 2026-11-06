@@ -386,3 +386,19 @@ it("places wet processing only beside fresh water, keeping the whole work yard c
   for(const b of plan.places.filter(b=>!b.id.startsWith(tannery.id)))
     expect(b.x < yard.x+yard.w && b.x+b.w > yard.x && b.y < yard.y+yard.h && b.y+b.h > yard.y,b.name).toBe(false);
 });
+
+it("places a West African smithy as essential work and salt pans only beside the sea", () => {
+  const s={...setting("Kano 1700"),role:"Smith"};
+  const site={id:"kano-yard",cx:0,cy:0,home:true,center:{x:0,y:0},profile:{...settlementProfile(s),radius:60}};
+  const plan=planSettlement(site,packForSetting(s),"forge",()=>flat(),[]);
+  const forge=plan.places.find(p=>p.institution==="forge")!;
+  expect(forge?.sprite).toBe("worksite-forge-westafrica");
+  expect(plan.places.some(p=>p.id===`${forge.id}-store` && p.sprite==="worksite-store-westafrica")).toBe(true);
+  const coast={...setting("Venice 1500"),role:"Salt worker"};
+  const shore={...site,id:"salt-bank",profile:{...settlementProfile(coast),radius:60}};
+  const inland=planSettlement(shore,packForSetting(coast),"salt",()=>flat(),[]);
+  expect(inland.places.some(p=>p.institution==="saltworks")).toBe(false);
+  const sea=(x:number)=>({...flat(),kind:"sea" as const,water:x>=80 ? -5 : 100});
+  const pans=planSettlement(shore,packForSetting(coast),"salt",sea,[]).places.find(p=>p.institution==="saltworks");
+  expect(pans?.sprite).toBe("worksite-saltpans-europe");
+});

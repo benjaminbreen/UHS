@@ -12,7 +12,7 @@ import json, sys
 ROOT = Path(__file__).resolve().parents[2]
 PACKS = ROOT / 'public/packs'
 SHEETS = ['worksites', 'buildings', 'regional-buildings', 'camp-buildings', 'modern-buildings',
-          'street-buildings', 'street-weather', 'civic', 'sacred-buildings', 'precincts']
+          'street-buildings', 'street-weather', 'civic', 'sacred-buildings', 'precincts', 'worksite-shadows']
 SIZE = 1024
 
 

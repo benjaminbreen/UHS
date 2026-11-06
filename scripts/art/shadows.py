@@ -135,6 +135,9 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
     else:
         cast=[_cast(name) for name in picked]
     result=dict(kv for part in cast for kv in part)
-    atlas=pack_atlas(result,output or root/'public/packs',atlas_name,2048)
+    # Worksite casts are many and large; they page in with the towns that have them.
+    work={k:v for k,v in result.items() if k.split(':',1)[1].startswith('worksite-')}
+    atlas=pack_atlas({k:v for k,v in result.items() if k not in work},output or root/'public/packs',atlas_name,2048)
+    if work:pack_atlas(work,output or root/'public/packs','worksite-shadows',2048,paged=True)
     print(f'Built {len(result)} lighting masks; shadow atlas {atlas.size}.')
     return result

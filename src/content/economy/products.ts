@@ -3,6 +3,10 @@ import { matchesCharacterScope } from "../characters/resolve";
 import { southAsianProducts } from "./south-asia";
 import { westEurasianProducts } from "./west-eurasia";
 import { eastAsianProducts } from "./east-asia";
+import { africanProducts } from "./africa";
+import { americanProducts } from "./americas";
+import { southeastAsianProducts } from "./southeast-asia";
+import { oceanianProducts } from "./oceania";
 import type { CharacterScope } from "../characters/context-types";
 import type { WorldSetting } from "../geography/types";
 import type { Actor, Household, HouseholdPurchase } from "../../core/types";
@@ -17,7 +21,8 @@ export type Product = {
   sources: string[];
   note: string;
 };
-const products: Product[] = [...southAsianProducts, ...westEurasianProducts, ...eastAsianProducts];
+const products: Product[] = [...southAsianProducts, ...westEurasianProducts, ...eastAsianProducts,
+  ...africanProducts, ...americanProducts, ...southeastAsianProducts, ...oceanianProducts];
 export const productById = (id: string | undefined) => products.find((p) => p.id === id);
 
 export function productFor(good: string, setting: WorldSetting, trade?: string) {
