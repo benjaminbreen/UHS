@@ -75,6 +75,7 @@ export type Institution =
   | "fishery"
   | "boatyard"
   | "pottery" | "brickworks" | "limeworks" | "dyehouse" | "fullery" | "tannery"
+  | "saltworks" | "sugarworks" | "oilpress" | "forge" | "glassworks" | "weaving" | "caravanserai" | "plantation"
   | "school"
   | "administration"
   | "bank"
@@ -121,5 +122,11 @@ export function institutionFor(
 export const processingInstitution: Readonly<Record<string, Institution>> = {
   potter: "pottery", brickmaker: "brickworks", "lime-burner": "limeworks",
   dyer: "dyehouse", fuller: "fullery", tanner: "tannery",
-  boatwright: "boatyard",
+  boatwright: "boatyard", shipwright: "boatyard",
+  smith: "forge", blacksmith: "forge", ironworker: "forge", "bronze-caster": "forge",
+  "salt-worker": "saltworks", "salt-panner": "saltworks", "sugar-boiler": "sugarworks",
+  "oil-presser": "oilpress", glassblower: "glassworks", weaver: "weaving",
+  caravaneer: "caravanserai", innkeeper: "caravanserai",
+  "indigo-worker": "plantation", "tobacco-worker": "plantation",
+  "factory-hand": "factory", "power-loom-weaver": "factory", "mill-worker": "factory",
 };

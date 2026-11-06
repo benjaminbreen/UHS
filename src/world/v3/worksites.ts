@@ -33,10 +33,10 @@ export function planWorksites(
   const priority=(p:ReturnType<typeof worksitesFor>[number])=>p.roles?.includes(role??"") || p.kind==="boatyard" && !!fishingWaterfront(s);
   const profiles = worksitesFor(s).sort((a,b) =>
     Number(!!a.revision)-Number(!!b.revision) ||
-    (a.revision && b.revision ? Number(!priority(a))-Number(!priority(b)) ||
+    (a.revision && b.revision ? Number(!a.essential)-Number(!b.essential) || Number(!priority(a))-Number(!priority(b)) ||
     random(seed,"worksite-order",a.id)-random(seed,"worksite-order",b.id) : 0));
   for (const profile of profiles) {
-    if (profile.revision && processingCount >= 2) continue;
+    if (profile.revision && !profile.essential && processingCount >= 2) continue;
     if (placed.has(profile.kind)) continue;
     const main = buildingModel(profile.frame), store = buildingModel(profile.outbuilding.frame);
     const [mw, mh] = main.footprint, [sw, sh] = store.footprint;
@@ -92,7 +92,7 @@ export function planWorksites(
         return false;
       }
       placed.add(profile.kind);
-      if (profile.revision) processingCount++;
+      if (profile.revision && !profile.essential) processingCount++;
       if(!launch) {paint(r,"dirt");grade(r);}
       // A paved town gravels its work yards rather than leave them to mud.
       const gravel = !launch && pack.setting && infillStone(streetPalette(pack.setting));
@@ -131,8 +131,8 @@ export function planWorksites(
               pos:{...at,space:"outside"},inventory:{},owner:buildings[0].owner});
           }
         }
-        plan.objects.push({id:`${id}-boat`,kind:"monument",name:"Clinker-built boat on stocks",
-          description:"Overlapping planks, curved frames and a keel supported on timber stocks. The clear ground ahead leads to launching water.",
+        plan.objects.push({id:`${id}-boat`,kind:"monument",name:profile.launch.label ?? "Clinker-built boat on stocks",
+          description:profile.launch.description ?? "Overlapping planks, curved frames and a keel supported on timber stocks. The clear ground ahead leads to launching water.",
           sprite:`${profile.launch.frame}-${direction.id}`,pos:{...boat!,space:"outside"},inventory:{},owner:buildings[0].owner});
         plan.plots.push({...lane,id:`${id}-launch`,kind:"public",owner:buildings[0].owner,access:origin});
       }
@@ -187,7 +187,7 @@ export function planWorksites(
           for (let dy = -24; dy <= r.h+24 && !fresh; dy += 4)
             for (let dx = -24; dx <= r.w+24; dx += 4) {
               const f = sample(r.x+dx,r.y+dy);
-              if (f.kind === "river" && f.water < 4) { fresh = true; break; }
+              if (f.kind === (profile.waterSupply === "sea" ? "sea" : "river") && f.water < 4) { fresh = true; break; }
             }
           if (!fresh) continue;
         }

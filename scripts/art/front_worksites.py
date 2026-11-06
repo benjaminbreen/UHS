@@ -18,6 +18,7 @@ from art.front_review import sheet
 
 OAK, STONE = RAMPS['oak'], RAMPS['granite']
 IRON = ramp(270, .025, lift=-.12)
+HULL = {'dhow': ramp(40, .08, lift=-.14), 'junk': ramp(32, .06, lift=-.1)}
 
 
 def wheel(im, cx, cy, radius=28):
@@ -560,7 +561,19 @@ def clinker_hull(direction,info,fishing=False,form="clinker"):
             y=breadth*(1.3*k if k<.5 else .65+.7*(k-.5))
             return ((t-.5)*174,math.copysign(y,angle),
                     7*abs(2*t-1)**3+23*max(0,2*k-1)+(2 if inside else 0))
+        if form=='junk':
+            # Flat-floored, hard-chined, square at both ends, the stern rising.
+            breadth=27*(.5+.5*math.sin(math.pi*t)**.5)-(2 if inside else 0)
+            k=abs(angle)/(math.pi/2)
+            y=breadth*(1.3*k if k<.5 else .65+.7*(k-.5))
+            return ((t-.5)*174,math.copysign(y,angle),
+                    5*abs(2*t-1)**2+16*max(0,t-.6)/.4+24*max(0,2*k-1)+(2 if inside else 0))
         s=math.sin(math.pi*t)
+        if form=='dhow':
+            breadth=28*s**.55
+            rise=22+6*abs(2*t-1)**2+10*max(0,(t-.72)/.28)**2
+            return ((t-.5)*174,(breadth-(2 if inside else 0))*math.sin(angle),
+                    8+12*abs(2*t-1)**3+rise*(1-math.cos(angle))+(2*math.cos(angle) if inside else 0))
         breadth=27*s**.65
         rocker=(0 if fishing else 8)+12*abs(2*t-1)**3
         rise=24+8*abs(2*t-1)**2
@@ -576,7 +589,7 @@ def clinker_hull(direction,info,fishing=False,form="clinker"):
                 quad((x+sign*13,side*33,3),(x+sign*10,side*33,3),
                      (x,side*23,14),(x+sign*3,side*23,14),OAK)
     for side in (-1,1):
-        strakes=3 if form=='plank' else 6
+        strakes=3 if form in ('plank','junk') else 6
         for plank in range(strakes):
             a0=side*plank*math.pi/(2*strakes);a1=side*(plank+1)*math.pi/(2*strakes)
             for k in range(36):
@@ -585,7 +598,7 @@ def clinker_hull(direction,info,fishing=False,form="clinker"):
                 inner=[section(t0,a0,True),section(t0,a1,True),section(t1,a1,True),section(t1,a0,True)]
                 if side>0:outer.reverse();inner.reverse()
                 water_clip=True
-                quad(*outer,RAMPS["cedar"] if form=="plank" else OAK,plank%2)
+                quad(*outer,RAMPS["cedar"] if form=="plank" else HULL.get(form,OAK),plank%2)
                 water_clip=False
                 quad(*inner,OAK if form=='plank' else RAMPS['cedar'],1 if plank==0 else 0)
                 # A narrow raised lap follows the curve of each overlapping strake.
@@ -597,6 +610,13 @@ def clinker_hull(direction,info,fishing=False,form="clinker"):
                 water_clip=False
                 if plank==strakes-1:
                     quad(section(t0,a1),section(t1,a1),section(t1,a1,True),section(t0,a1,True),RAMPS['pine'])
+    if form=='junk':
+        for t in (0,1):
+            pts=[section(t,-math.pi/2),section(t,0),section(t,math.pi/2)]
+            top=pts[0][2]+3
+            quad(pts[0],pts[1],pts[2],(pts[2][0],pts[2][1],top),HULL['junk'])
+            quad(pts[0],pts[2],(pts[2][0],pts[2][1],top),(pts[0][0],pts[0][1],top),HULL['junk'])
+        for x in range(-70,70,10):box(x,-14,8,7,28,2,OAK)
     if form=='plank':
         water_clip=True
         for side in (-1,1):
@@ -950,6 +970,9 @@ def draw(style, info):
     if style.startswith('launching-way-'):return launching_way(style.rsplit('-',1)[1],info)
     if style=='clinker-boatyard':return boatyard(info)
     if style.startswith('clinker-hull-'):return clinker_hull(style.rsplit('-',1)[1],info)
+    if style.startswith(('dhow-hull-','junk-hull-')):return clinker_hull(style.rsplit('-',1)[1],info,False,style.split('-')[0])
+    from art import front_worksites_world as world
+    if style in world.STYLES:return world.draw(style,info)
     if style in ('pottery-kiln','brick-clamp','lime-kiln','dyehouse','japanese-dyehouse','roman-fullery','fullery','tannery','japanese-pottery','colonial-pottery'): return processing(style,info)
     if style == 'windmill': return windmill(info)
     if style in ('stone-adit','andean-adit'): return adit(style,info)

@@ -70,6 +70,25 @@ it("dates local drinks and distinguishes a wine seller from a grain brewer", () 
   expect(goodName("cloth", "vedic-sura")).toBe("cloth");
 });
 
+it("names regional products in Africa, the Americas, Southeast Asia and Oceania", () => {
+  const at = (lon: number, lat: number, year: number) => ({ ...local("london", year), lon, lat, year });
+  function local(id: string, year: number) { return settingFor(places.find((p) => p.id === id)!, year); }
+  const named = (good: string, lon: number, lat: number, year: number, trade = "brewer") =>
+    goodName(good, productFor(good, at(lon, lat, year), trade));
+  expect(named("drink", 8.5, 12, 1700)).toBe("sorghum beer");
+  expect(named("drink", 31.2, 30, -1500)).toBe("barley beer");
+  expect(named("drink", 3.4, 6.5, 1700, "innkeeper")).toBe("palm wine");
+  expect(named("oil", 8.5, 12, 1700)).toBe("shea butter");
+  expect(named("salt", -3, 16.8, 1500)).toBe("rock salt");
+  expect(named("drink", -72, -13.5, 1500)).toBe("chicha (maize beer)");
+  expect(named("drink", -99.1, 19.4, 1500)).toBe("pulque");
+  expect(named("drink", -59.6, 13.1, 1750, "innkeeper")).toBe("rum");
+  expect(named("drink", 106.8, -6.2, 1700)).toBe("rice wine");
+  expect(named("cloth", 110.4, -7.8, 1800)).toBe("batik cloth");
+  expect(named("drink", 178.4, -18.1, 1800)).toBe("kava");
+  expect(named("cloth", -149.6, -17.5, 1700)).toBe("tapa (bark cloth)");
+});
+
 it("does not consume alcohol in households that do not want it", () => {
   const v = village();
   v.forEach((h) => h.needs = ["bread"]);

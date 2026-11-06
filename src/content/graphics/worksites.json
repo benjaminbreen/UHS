@@ -796,5 +796,697 @@
     "roofMaterial": "reed",
     "height": 35,
     "waterborne": true
+  },
+  "worksite-saltpans-europe": {
+    "style": "saltpans-europe",
+    "label": "Salt store and evaporation pans",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Salt store and evaporation pans. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-saltpans-sinitic": {
+    "style": "saltpans-sinitic",
+    "label": "Salt store, pans and boiling hearth",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Salt store, pans and boiling hearth. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-saltpans-india": {
+    "style": "saltpans-india",
+    "label": "Salt store and evaporation pans",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Salt store and evaporation pans. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-saltpans-westafrica": {
+    "style": "saltpans-westafrica",
+    "label": "Salt store, pans and boiling hearth",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Salt store, pans and boiling hearth. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-saltpans-andes": {
+    "style": "saltpans-andes",
+    "label": "Salt store and terraced pans",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Salt store and terraced pans. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-saltpans-pacific": {
+    "style": "saltpans-pacific",
+    "label": "Salt store and evaporation pans",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Salt store and evaporation pans. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-sugarworks-colonial": {
+    "style": "sugarworks-colonial",
+    "label": "Sugar mill and boiling house",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Sugar mill and boiling house. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "ochre-plaster",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-sugarworks-india": {
+    "style": "sugarworks-india",
+    "label": "Cane press and sugar-boiling hearth",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Cane press and sugar-boiling hearth. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-sugarworks-sinitic": {
+    "style": "sugarworks-sinitic",
+    "label": "Cane press and sugar-boiling hearth",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Cane press and sugar-boiling hearth. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-oilpress-mediterranean": {
+    "style": "oilpress-mediterranean",
+    "label": "Olive mill and lever press",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Olive mill and lever press. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-oilpress-levant": {
+    "style": "oilpress-levant",
+    "label": "Olive mill and lever press",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Olive mill and lever press. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-oilpress-india": {
+    "style": "oilpress-india",
+    "label": "Bullock oil mill (ghani)",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Bullock oil mill (ghani). Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-oilpress-westafrica": {
+    "style": "oilpress-westafrica",
+    "label": "Palm-oil boiling and pounding yard",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Palm-oil boiling and pounding yard. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-forge-europe": {
+    "style": "forge-europe",
+    "label": "Smithy and forge hearth",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Smithy and forge hearth. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-forge-westafrica": {
+    "style": "forge-westafrica",
+    "label": "Smithy and bloomery furnace",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Smithy and bloomery furnace. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-forge-sinitic": {
+    "style": "forge-sinitic",
+    "label": "Smithy with box bellows",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Smithy with box bellows. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-forge-india": {
+    "style": "forge-india",
+    "label": "Smithy and bloomery furnace",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Smithy and bloomery furnace. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-glassworks-europe": {
+    "style": "glassworks-europe",
+    "label": "Glasshouse and furnace",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Glasshouse and furnace. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "terracotta"
+  },
+  "worksite-glassworks-westasia": {
+    "style": "glassworks-westasia",
+    "label": "Glasshouse and furnace",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Glasshouse and furnace. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-dragonkiln-sinitic": {
+    "style": "dragonkiln-sinitic",
+    "label": "Climbing (dragon) kiln and workshop",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Climbing (dragon) kiln and workshop. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-dragonkiln-seasia": {
+    "style": "dragonkiln-seasia",
+    "label": "Climbing kiln and workshop",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Climbing kiln and workshop. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-openfiring-westafrica": {
+    "style": "openfiring-westafrica",
+    "label": "Pottery shed and open firing",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Pottery shed and open firing. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-openfiring-india": {
+    "style": "openfiring-india",
+    "label": "Pottery shed and open firing",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Pottery shed and open firing. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-openfiring-andes": {
+    "style": "openfiring-andes",
+    "label": "Pottery shed and open firing",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Pottery shed and open firing. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-openfiring-meso": {
+    "style": "openfiring-meso",
+    "label": "Pottery shed and open firing",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Pottery shed and open firing. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-dyepits-sahel": {
+    "style": "dyepits-sahel",
+    "label": "Indigo dye pits",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Indigo dye pits. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-dyeyard-india": {
+    "style": "dyeyard-india",
+    "label": "Dyeing yard and cloth lines",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Dyeing yard and cloth lines. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-dyeyard-sinitic": {
+    "style": "dyeyard-sinitic",
+    "label": "Dye works and drying racks",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Dye works and drying racks. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-tannery-fez": {
+    "style": "tannery-fez",
+    "label": "Tannery and dye vats",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Tannery and dye vats. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-indigo-india": {
+    "style": "indigo-india",
+    "label": "Indigo vats and works",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Indigo vats and works. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-indigo-colonial": {
+    "style": "indigo-colonial",
+    "label": "Indigo vats and works",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Indigo vats and works. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "ochre-plaster",
+    "roof": "gable",
+    "roofMaterial": "pantile"
+  },
+  "worksite-weaving-india": {
+    "style": "weaving-india",
+    "label": "Weaving shed and warp walk",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Weaving shed and warp walk. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-weaving-westafrica": {
+    "style": "weaving-westafrica",
+    "label": "Strip-loom weaving shed",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Strip-loom weaving shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-dhow-yard": {
+    "style": "dhow-yard",
+    "label": "Dhow-building shed and sawpit",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Dhow-building shed and sawpit. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-junk-yard": {
+    "style": "junk-yard",
+    "label": "Junk-building shed and sawpit",
+    "footprint": [
+      22,
+      12
+    ],
+    "description": "Junk-building shed and sawpit. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-filature": {
+    "style": "filature",
+    "label": "Reeling hall (filature)",
+    "footprint": [
+      22,
+      8
+    ],
+    "description": "Reeling hall (filature). Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "grey-brick",
+    "roof": "gable",
+    "roofMaterial": "grey-tile"
+  },
+  "worksite-sawtooth": {
+    "style": "sawtooth",
+    "label": "North-light factory",
+    "footprint": [
+      22,
+      8
+    ],
+    "description": "North-light factory. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "concrete-frame",
+    "roof": "flat",
+    "roofMaterial": "tar"
+  },
+  "worksite-tobacco-barn": {
+    "style": "tobacco-barn",
+    "label": "Tobacco curing barn",
+    "footprint": [
+      22,
+      10
+    ],
+    "description": "Tobacco curing barn. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle"
+  },
+  "worksite-caravanserai-persian": {
+    "style": "caravanserai-persian",
+    "label": "Caravanserai",
+    "footprint": [
+      16,
+      13
+    ],
+    "description": "Caravanserai. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-caravanserai-ottoman": {
+    "style": "caravanserai-ottoman",
+    "label": "Caravanserai",
+    "footprint": [
+      16,
+      13
+    ],
+    "description": "Caravanserai. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-caravanserai-mughal": {
+    "style": "caravanserai-mughal",
+    "label": "Caravanserai",
+    "footprint": [
+      16,
+      13
+    ],
+    "description": "Caravanserai. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-store-westafrica": {
+    "style": "store-westafrica",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-store-sahel": {
+    "style": "store-sahel",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth"
+  },
+  "worksite-store-india": {
+    "style": "store-india",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-store-seasia": {
+    "style": "store-seasia",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-store-pacific": {
+    "style": "store-pacific",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-store-andes": {
+    "style": "store-andes",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-store-swahili": {
+    "style": "store-swahili",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-store-meso": {
+    "style": "store-meso",
+    "label": "Store and work shed",
+    "footprint": [
+      7,
+      5
+    ],
+    "description": "Store and work shed. Shared-material pixel-art reconstruction; historical eligibility is defined by the worksite profile.",
+    "wall": "white-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch"
+  },
+  "worksite-dhow-hull-north": {
+    "style": "dhow-hull-north",
+    "label": "Sewn-plank dhow on stocks",
+    "footprint": [
+      5,
+      7
+    ],
+    "description": "Smooth-planked hull with a raked stem, the planks fastened edge to edge, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
+  },
+  "worksite-dhow-hull-east": {
+    "style": "dhow-hull-east",
+    "label": "Sewn-plank dhow on stocks",
+    "footprint": [
+      12,
+      4
+    ],
+    "description": "Smooth-planked hull with a raked stem, the planks fastened edge to edge, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
+  },
+  "worksite-dhow-hull-south": {
+    "style": "dhow-hull-south",
+    "label": "Sewn-plank dhow on stocks",
+    "footprint": [
+      5,
+      7
+    ],
+    "description": "Smooth-planked hull with a raked stem, the planks fastened edge to edge, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
+  },
+  "worksite-dhow-hull-west": {
+    "style": "dhow-hull-west",
+    "label": "Sewn-plank dhow on stocks",
+    "footprint": [
+      12,
+      4
+    ],
+    "description": "Smooth-planked hull with a raked stem, the planks fastened edge to edge, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
+  },
+  "worksite-junk-hull-north": {
+    "style": "junk-hull-north",
+    "label": "Junk hull on stocks",
+    "footprint": [
+      5,
+      7
+    ],
+    "description": "Flat-floored, square-ended hull with a rising stern, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
+  },
+  "worksite-junk-hull-east": {
+    "style": "junk-hull-east",
+    "label": "Junk hull on stocks",
+    "footprint": [
+      12,
+      4
+    ],
+    "description": "Flat-floored, square-ended hull with a rising stern, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
+  },
+  "worksite-junk-hull-south": {
+    "style": "junk-hull-south",
+    "label": "Junk hull on stocks",
+    "footprint": [
+      5,
+      7
+    ],
+    "description": "Flat-floored, square-ended hull with a rising stern, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
+  },
+  "worksite-junk-hull-west": {
+    "style": "junk-hull-west",
+    "label": "Junk hull on stocks",
+    "footprint": [
+      12,
+      4
+    ],
+    "description": "Flat-floored, square-ended hull with a rising stern, resting on timber stocks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 36
   }
 }

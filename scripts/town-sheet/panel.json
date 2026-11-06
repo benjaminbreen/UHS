@@ -322,18 +322,18 @@
     "seed": "world-zuwara-a"
   },
   {
-    "name": "kyiv-1100",
-    "query": "Kyiv 1100",
-    "radius": 40
+    "name": "kano-1700",
+    "query": "Kano 1700",
+    "radius": 70
   },
   {
-    "name": "djenne-1400",
-    "query": "Djenné 1400",
-    "radius": 36
+    "name": "varanasi-1750",
+    "query": "Varanasi 1750",
+    "radius": 70
   },
   {
-    "name": "madurai-1600",
-    "query": "Madurai 1600",
-    "radius": 40
+    "name": "quanzhou-1300",
+    "query": "Quanzhou 1300",
+    "radius": 70
   }
 ]
