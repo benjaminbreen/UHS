@@ -32,5 +32,12 @@ export type ReligiousRule = ReligiousProfile & {
   to: number;
   /** West, south, east, north degrees. */
   bounds: readonly [number, number, number, number];
-  culture: WorldSetting["culture"];
+  /** One family, several, or none: a rule for a few islands or one valley
+   * can trust its bounds over a family tag the atlas may have wrong. */
+  culture?: WorldSetting["culture"] | readonly WorldSetting["culture"][];
 };
+
+export type Box = readonly [number, number, number, number];
+/** One rule over several boxes: a region no single rectangle fits. */
+export const over = (rule: Omit<ReligiousRule, "bounds">, ...boxes: Box[]): ReligiousRule[] =>
+  boxes.map((bounds) => ({ ...rule, bounds }));

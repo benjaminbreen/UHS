@@ -4,11 +4,20 @@ import { europeReligious } from "./europe";
 import { americasReligious } from "./americas";
 import { nearEastReligious } from "./near-east";
 import { eastAsiaReligious } from "./east-asia";
+import { orthodoxReligious } from "./orthodox";
+import { africaReligious } from "./africa";
+import { southAsiaReligious } from "./south-asia";
+import { southeastAsiaReligious } from "./southeast-asia";
+import { minorityReligious } from "./minorities";
+import { pacificReligious } from "./pacific";
 
 /** Narrower date ranges win, so a specific period is not shadowed by a
  * broad one. No rule means no religious building: the setting's tradition
  * has not been researched for this engine, not that it had none. */
-const rules: ReligiousRule[] = [...europeReligious, ...americasReligious, ...nearEastReligious, ...eastAsiaReligious].sort(
+const rules: ReligiousRule[] = [
+  ...europeReligious, ...americasReligious, ...nearEastReligious, ...eastAsiaReligious, ...orthodoxReligious,
+  ...africaReligious, ...southAsiaReligious, ...southeastAsiaReligious, ...minorityReligious, ...pacificReligious,
+].sort(
   (a, b) => a.to - a.from - (b.to - b.from) || a.id.localeCompare(b.id),
 );
 
@@ -18,7 +27,7 @@ export function religiousProfile(
   const rule = rules.find((p) => {
     const [w, south, e, n] = p.bounds;
     return (
-      s.culture === p.culture &&
+      (p.culture === undefined || [p.culture].flat().includes(s.culture)) &&
       s.year >= p.from &&
       s.year < p.to &&
       s.lon >= w &&

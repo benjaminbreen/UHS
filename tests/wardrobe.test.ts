@@ -626,3 +626,23 @@ it("does not cut the hat, the top and the legs from one bolt", () => {
   const hatted = people.filter((w) => ["wrap", "headscarf", "turban", "band"].includes(w.headwear));
   expect(hatted.filter((w) => w.headColor === w.color && w.color === w.lowerColor)).toEqual([]);
 });
+
+it("dresses each church's clergy by their office", () => {
+  const priest = (label: string, [culture, year, lon, lat]: [string, number, number, number], i: number) =>
+    wardrobeFor({ id: `cleric-${label}-${i}`, age: 45, sex: "male", livelihood: "religious-specialist", roles: rolesFrom(label) },
+      { year, setting: place(culture, year, lon, lat) }, base);
+  const novgorod: [string, number, number, number] = ["european", 1200, 31.3, 58.5];
+  const moscow: [string, number, number, number] = ["european", 1700, 37.6, 55.75];
+  const gondar: [string, number, number, number] = ["west-central-african", 1700, 37.46, 12.6];
+  for (let i = 0; i < 8; i++) {
+    expect(priest("Orthodox priest", novgorod, i)).toMatchObject({ garment: "robe", headwear: "cap" });
+    expect(priest("Orthodox priest", moscow, i).headwear).toBe("fez");
+    expect(priest("Monk", moscow, i).headwear).toBe("veil");
+    expect(priest("Deacon", moscow, i).headwear).toBe("none");
+    expect(priest("Bishop", moscow, i).headwear).toBe("veil");
+    expect(priest("Priest", gondar, i)).toMatchObject({ headwear: "turban", mantle: true });
+    expect(priest("Parish priest", ["european", 1300, 2.35, 48.85], i).belt).toBe("cord");
+    expect(priest("Granthi", ["south-asian", 1700, 74.87, 31.64], i)).toMatchObject({ headwear: "turban", sidearm: "dagger" });
+    expect(priest("Mobad", ["north-african-west-asian", 600, 54.4, 31.9], i).headwear).toBe("wrap");
+  }
+});

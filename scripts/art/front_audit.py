@@ -226,11 +226,16 @@ def worksites():
         yield name, im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), p.door_size[1], []
 
 
+def sacred():
+    from art.front_sacred import studies
+    yield from studies()
+
+
 def audit():
     faults = ramp_faults()
     n = 0
     from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), meso(), worksites()):
+    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), meso(), worksites(), sacred()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1

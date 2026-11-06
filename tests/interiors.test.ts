@@ -229,6 +229,67 @@ describe("interior profiles", () => {
     expect(east(135.77, 35.01, 1700)).toBe("japanese-temple");
   });
 
+  it("builds each faith's own sanctuary where it was the town's", () => {
+    const at = (culture: WorldSetting["culture"], lon: number, lat: number, year: number) =>
+      religiousProfile({ culture, lon, lat, year } as WorldSetting)?.id;
+    // The Latin parish stops at the Orthodox frontier.
+    expect(at("european", 2, 47, 1300)).toBe("gothic-parish");
+    expect(at("european", 19.9, 50.06, 1400)).toBe("gothic-parish"); // Kraków
+    expect(at("european", 25.3, 54.7, 1500)).toBe("gothic-parish"); // Vilnius
+    expect(at("european", 22.9, 40.6, 1300)).toBe("byzantine-church"); // Thessaloniki
+    expect(at("european", 23.7, 38, 1100)).toBe("byzantine-church"); // Athens
+    expect(at("european", 20.5, 44.8, 1300)).toBe("byzantine-church"); // Belgrade
+    expect(at("european", 26.1, 44.4, 1700)).toBe("byzantine-church"); // Bucharest
+    expect(at("european", 31.3, 58.5, 1200)).toBe("rus-church"); // Novgorod
+    expect(at("european", 30.5, 50.4, 1100)).toBe("rus-church"); // Kyiv
+    expect(at("european", 37.6, 55.75, 1600)).toBe("muscovite-church");
+    expect(at("european", 28.97, 41.0, 1600)).toBe("ottoman-mosque-istanbul");
+    expect(at("european", 22.9, 40.6, 1700)).toBe("sephardi-synagogue");
+    expect(at("north-african-west-asian", 44.8, 41.7, 1600)).toBe("caucasian-church"); // Tbilisi
+    expect(at("north-african-west-asian", 36.3, 33.5, 500)).toBe("byzantine-church"); // Damascus
+    expect(at("north-african-west-asian", 23.9 + 0.3, 40.2, 1500)).toBe("orthodox-monastery"); // Athos
+    // Ethiopia, the Swahili coast and the Sahel, whatever family the atlas gives them.
+    expect(at("west-central-african", 37.46, 12.6, 1700)).toBe("ethiopian-church"); // Gondar
+    expect(at("east-southern-african", 39.04, 12.03, 1300)).toBe("ethiopian-church"); // Lalibela
+    expect(at("west-central-african", 39.67, -4.05, 1600)).toBe("swahili-mosque"); // Mombasa
+    expect(at("west-central-african", -4.55, 13.9, 1400)).toBe("sahel-mosque"); // Djenné
+    expect(at("west-central-african", 8.52, 12, 1600)).toBe("sahel-mosque-south"); // Kano
+    expect(at("west-central-african", 5.62, 6.34, 1600)).toBe("orisha-shrine"); // Benin City
+    expect(at("west-central-african", -1.6, 6.7, 1800)).toBe("asante-shrine"); // Kumasi
+    expect(at("west-central-african", 7.5, 6.4, 1500)).toBe("sacred-grove"); // Igboland
+    expect(at("north-african-west-asian", 31.2, 30, 600)).toBe("coptic-church");
+    expect(at("north-african-west-asian", 31.2, 30, 1000)).toBe("arab-mosque");
+    expect(at("north-african-west-asian", 32.65, 25.7, -1300)).toBe("pharaonic-temple"); // Thebes
+    expect(at("west-central-african", 30.5, 18.2, 900)).toBe("nubian-church"); // Old Dongola
+    // Iran and Central Asia.
+    expect(at("north-african-west-asian", 54.4, 31.9, 600)).toBe("iranian-fire-temple"); // Yazd
+    expect(at("north-african-west-asian", 54.4, 31.9, 1100)).toBe("persian-mosque");
+    expect(at("inner-eurasian", 64.4, 39.8, 1500)).toBe("central-asian-mosque"); // Bukhara
+    // South and Southeast Asia.
+    expect(at("south-asian", 78.12, 9.92, 1600)).toBe("dravida-temple"); // Madurai
+    expect(at("south-asian", 79.93, 23.4, 1050)).toBe("nagara-temple"); // Khajuraho's region
+    expect(at("south-asian", 77.74, 23.48, -100)).toBe("early-stupa"); // Sanchi
+    expect(at("south-asian", 80.4, 8.35, 300)).toBe("lanka-dagoba"); // Anuradhapura
+    expect(at("south-asian", 74.87, 31.64, 1700)).toBe("gurdwara"); // Amritsar
+    expect(at("south-asian", 74.35, 31.56, 1650)).toBe("indo-islamic-mosque"); // Lahore
+    expect(at("south-asian", 71.8, 21.5, 1500)).toBe("jain-temple"); // Palitana
+    expect(at("south-asian", 72.85, 20.5, 1800)).toBe("parsi-fire-temple"); // Udvada
+    expect(at("south-asian", 85.31, 27.72, 1600)).toBe("newar-temple"); // Kathmandu
+    expect(at("southeast-asian", 94.9, 21.17, 1200)).toBe("burmese-pagoda"); // Bagan
+    expect(at("southeast-asian", 100.57, 14.35, 1600)).toBe("wat"); // Ayutthaya
+    expect(at("southeast-asian", 103.87, 13.41, 1150)).toBe("khmer-temple"); // Angkor
+    expect(at("southeast-asian", 108.12, 15.76, 900)).toBe("cham-tower"); // My Son
+    expect(at("southeast-asian", 110.49, -7.75, 850)).toBe("javanese-candi"); // Prambanan
+    expect(at("south-asian", 115.09, -8.46, 1600)).toBe("balinese-pura");
+    // The Pacific, keyed on bounds while the atlas tags these islands American.
+    expect(at("mesoamerican", -157.86, 21.31, 1700)).toBe("heiau"); // Honolulu
+    expect(at("andean", -149.57, -17.53, 1700)).toBe("marae"); // Tahiti
+    expect(at("australian-pacific", 174.76, -36.85, 1700)).toBe("wharenui");
+    // Synagogues where the town was Jewish.
+    expect(at("north-african-west-asian", 35.5, 32.9, 400)).toBe("galilean-synagogue");
+    expect(at("european", 25.15, 50.08, 1800)).toBe("ashkenazi-synagogue"); // Brody
+  });
+
   it("faces every place of worship to its altar down an aisle no column stands in", () => {
     const sites = [
       { id: "romanesque-church", lon: 2, lat: 47, year: 1100, use: "religious.romanesque-parish" },

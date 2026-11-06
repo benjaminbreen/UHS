@@ -174,3 +174,121 @@ export const nearEastReligious: ReligiousRule[] = [
     },
   },
 ];
+
+const fireTemple = {
+  faith: "Zoroastrian",
+  recipe: "fire-temple",
+  labels: { small: "Fire shrine", medium: "Fire temple", large: "Great fire temple" },
+  side: "north",
+  about:
+    "The house of the sacred fire: priests in white keep it burning day and night behind a veil, the town brings sandalwood and incense, and no unbeliever goes in to it.",
+  forecourt: 2,
+  warded: true,
+} as const;
+
+/** The Ottoman cities of the Balkans, where the atlas keys the place as European. */
+const rumelia: [string, number, number, readonly [number, number, number, number]][] = [
+  ["istanbul", 1453, 10001, [28.8, 40.9, 29.2, 41.2]],
+  ["edirne", 1365, 10001, [26.4, 41.5, 26.7, 41.8]],
+  ["sarajevo", 1461, 10001, [18.3, 43.8, 18.5, 43.9]],
+  ["skopje", 1392, 1912, [21.3, 41.9, 21.6, 42.1]],
+];
+
+nearEastReligious.push(
+  ...rumelia.map(([place, from, to, bounds]): ReligiousRule => ({
+    ...nearEastReligious.find((r) => r.id === "ottoman-mosque")!,
+    id: `ottoman-mosque-${place}`,
+    culture: "european",
+    from,
+    to,
+    bounds,
+  })),
+  ...([
+    [52, 34, 72, 46, 750],
+    [60, 29, 72, 34, 900],
+    [72, 36, 80, 43, 950],
+  ] as const).map(([w, south, e, n, from]): ReligiousRule => ({
+    id: "central-asian-mosque",
+    faith: "Islam",
+    recipe: "persian-mosque",
+    labels: { small: "Mosque", medium: "Friday mosque", large: "Great mosque" },
+    culture: ["inner-eurasian", "north-african-west-asian"],
+    from,
+    to: 2100,
+    bounds: [w, south, e, n],
+    side: "north",
+    about:
+      "The Friday mosque: its court and pool, the tiled iwan, the ribbed dome over the sanctuary, and the call to prayer from the minaret over the bazaar.",
+    forecourt: 2,
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "Transoxiana was conquered by 750 and Kashgar's khans converted in the 950s. The Iranian court-and-iwan mosque stands for the Samanid, Karakhanid and Timurid mosques of Bukhara, Samarkand and Herat; the wooden-columned aivan mosques of Khiva and the Ferghana are not yet drawn.",
+    },
+  })),
+  {
+    ...fireTemple,
+    id: "iranian-fire-temple",
+    culture: "north-african-west-asian",
+    from: -550,
+    to: 1000,
+    bounds: [44, 25, 63, 40],
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "The Sasanian chahar taq, four arches under a dome in a walled court (Niasar, Takht-e Soleyman), and the stone towers of Pasargadae and Naqsh-e Rustam before it. Most of the plateau stayed Zoroastrian into the ninth and tenth centuries; Yazd and Kerman kept their fire temples after.",
+    },
+  },
+  {
+    ...fireTemple,
+    id: "sogdian-fire-temple",
+    culture: ["inner-eurasian", "north-african-west-asian"],
+    from: -500,
+    to: 750,
+    bounds: [55, 35, 72, 44],
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "Sogdian towns (Panjikent, Samarkand) had fire temples in walled courts; the Iranian chahar taq stands in for their local form.",
+    },
+  },
+  {
+    id: "pharaonic-temple",
+    faith: "Egyptian",
+    recipe: "pylon-temple",
+    labels: { small: "Shrine", medium: "Temple", large: "Great temple" },
+    culture: "north-african-west-asian",
+    from: -3000,
+    to: -332,
+    bounds: [24, 20, 36, 32],
+    side: "north",
+    about:
+      "The god's house behind its pylon gate: priests wash and dress the god's statue each dawn and offer it food, and the town sees the god only when it is carried out on feast days.",
+    forecourt: 3,
+    warded: true,
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "A pylon gateway with flagstaffs, a hypostyle hall and the sanctuary behind follows the New Kingdom temples of Karnak, Luxor and Medinet Habu. Old Kingdom town temples were smaller and of mud brick, which the smallest frame shows.",
+    },
+  },
+  {
+    id: "kushite-temple",
+    faith: "Egyptian",
+    recipe: "pylon-temple",
+    labels: { small: "Shrine", medium: "Temple", large: "Great temple" },
+    from: -800,
+    to: 350,
+    bounds: [30, 15, 35, 20],
+    side: "north",
+    about:
+      "The house of Amun or of the lion god Apedemak behind its pylon gate, where the priests serve the god and the king is confirmed.",
+    forecourt: 3,
+    warded: true,
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "Napatan and Meroitic kings built Egyptian pylon temples at Jebel Barkal, Kawa, Naqa and Meroe. The atlas may tag Nubia as African or West Asian, so this rule keys on bounds alone.",
+    },
+  },
+);

@@ -255,6 +255,8 @@ def adopt(recipes):
     game_recipes(recipes)
     front_mudbrick.game_recipes(recipes)
     front_meso.game_recipes(recipes)
+    from art import front_sacred
+    front_sacred.game_recipes(recipes)
     n = 0
     for name, r in recipes.items():
         if r.get('frontAncient'):
@@ -305,6 +307,7 @@ BUILDERS = {
     **front_seasia.BUILDERS,
     **front_andes.BUILDERS,
     **front_pacific.BUILDERS,
+    'sacred': lambda s, i: __import__('art.front_sacred', fromlist=['builder']).builder(s, i),
 }
 
 

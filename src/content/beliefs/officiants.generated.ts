@@ -277,8 +277,10 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Local elder", serves: "local", weight: 14 },
   ],
   "ethiopian-orthodox-christian": [
-    { tier: "temple", label: "Priest ordained", serves: "major", weight: 5 },
+    { tier: "temple", label: "Priest", serves: "major", weight: 5 },
     { tier: "temple", label: "Monk", serves: "major", weight: 5 },
+    { tier: "temple", label: "Deacon", serves: "major", weight: 3 },
+    { tier: "local", label: "Debtera", serves: "local", weight: 14 },
   ],
   "early-swahili-coast": [
     { tier: "local", label: "Qadi", serves: "local", weight: 14 },
@@ -409,6 +411,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   "orthodox-russia": [
     { tier: "temple", label: "Orthodox priest", serves: "major", weight: 5 },
     { tier: "temple", label: "Monk", serves: "major", weight: 5 },
+    { tier: "temple", label: "Deacon", serves: "major", weight: 3 },
+    { tier: "paramount", label: "Bishop", serves: "paramount", weight: 1 },
   ],
   "catholic-early-modern": [
     { tier: "temple", label: "Priest", serves: "major", weight: 5 },
@@ -430,6 +434,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   "byzantine-orthodox": [
     { tier: "temple", label: "Parish priest", serves: "major", weight: 5 },
     { tier: "temple", label: "Monk", serves: "major", weight: 5 },
+    { tier: "temple", label: "Deacon", serves: "major", weight: 3 },
+    { tier: "paramount", label: "Bishop", serves: "paramount", weight: 1 },
   ],
   "post-roman-christian-mediterranean": [
     { tier: "temple", label: "Priest", serves: "major", weight: 5 },
@@ -876,6 +882,7 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Sage", serves: "local", weight: 14 },
   ],
   "achaemenid-zoroastrian": [
+    { tier: "temple", label: "Magus", serves: "major", weight: 5 },
     { tier: "local", label: "Keeper of fire", serves: "local", weight: 14 },
   ],
   "hellenistic-syria": [
@@ -883,7 +890,8 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
     { tier: "local", label: "Local leader", serves: "local", weight: 14 },
   ],
   "sasanian-zoroastrian": [
-    { tier: "temple", label: "Organized into a priesthood", serves: "major", weight: 5 },
+    { tier: "temple", label: "Mobad", serves: "major", weight: 5 },
+    { tier: "local", label: "Herbad", serves: "local", weight: 14 },
   ],
   "pre-islamic-arabia": [
     { tier: "temple", label: "Keeper of the shrine", serves: "major", weight: 5 },
@@ -898,6 +906,9 @@ export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> 
   ],
   "coptic-orthodox": [
     { tier: "temple", label: "Priest", serves: "major", weight: 5 },
+    { tier: "temple", label: "Monk", serves: "major", weight: 5 },
+    { tier: "temple", label: "Deacon", serves: "major", weight: 3 },
+    { tier: "paramount", label: "Bishop", serves: "paramount", weight: 1 },
   ],
   "ottoman-sufi": [
     { tier: "temple", label: "Imam", serves: "major", weight: 5 },

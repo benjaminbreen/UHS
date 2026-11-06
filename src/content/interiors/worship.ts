@@ -44,7 +44,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "orthodox-church",
-    uses: ["religious.romanesque-parish", "religious.gothic-parish", "venue.churchyard"],
+    uses: ["religious.romanesque-parish", "religious.gothic-parish", "venue.churchyard", "religious.byzantine-church", "religious.rus-church", "religious.muscovite-church", "religious.muscovite-church-south", "religious.muscovite-church-volga", "religious.caucasian-church", "religious.orthodox-monastery", "religious.ethiopian-church", "religious.coptic-church", "religious.nubian-church"],
     program: "rows",
     regulars: { hours: [8, 11], fill: 0.7 },
     styles: { altar: "screen-iconostasis", pole: "stone" },
@@ -176,7 +176,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "mosque",
-    uses: ["venue.mosque-court", "religious.ottoman-mosque", "religious.arab-mosque", "religious.maghrebi-mosque", "religious.persian-mosque"],
+    uses: ["venue.mosque-court", "religious.ottoman-mosque", "religious.arab-mosque", "religious.maghrebi-mosque", "religious.persian-mosque", "religious.ottoman-mosque-istanbul", "religious.ottoman-mosque-edirne", "religious.ottoman-mosque-sarajevo", "religious.ottoman-mosque-skopje", "religious.central-asian-mosque", "religious.indo-islamic-mosque", "religious.sahel-mosque", "religious.sahel-mosque-south", "religious.swahili-mosque"],
     regulars: { hours: [12, 14], fill: 0.7 },
     rooms: [
       { id: "sahn", label: "Sahn", role: "entry", size: [11, 9], shapes: ["courtyard"], fire: "none", pole: false, furnish: ["plant", "plant"], clutter: ["shoes", "shoes", "shoes"], looks: [{ floor: "flag" }, { floor: "flag" }, { floor: "tile" }] },
@@ -278,7 +278,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "hindu-temple",
-    uses: ["venue.temple-court-south"],
+    uses: ["venue.temple-court-south", "religious.nagara-temple", "religious.dravida-temple", "religious.jain-temple", "religious.newar-temple", "religious.khmer-temple", "religious.cham-tower", "religious.javanese-candi", "religious.balinese-pura"],
     regulars: { hours: [6, 12], fill: 0.4 },
     rooms: [
       { id: "mandapa", label: "Mandapa", role: "entry", program: "rows", size: [11, 10], fire: "none", furnish: ["lamp", "lamp"], clutter: ["flowers", "flowers", "shoes"] },
@@ -314,7 +314,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "wat",
-    uses: ["venue.wat"],
+    uses: ["venue.wat", "religious.wat", "religious.burmese-pagoda", "religious.early-stupa", "religious.pala-vihara", "religious.lanka-dagoba", "religious.early-sea-stupa"],
     program: "rows",
     regulars: { hours: [6, 12], fill: 0.4 },
     styles: { altar: "buddha", pole: "red" },
@@ -380,7 +380,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "mesopotamian-temple",
-    uses: ["religious.mesopotamian-temple", "religious.hittite-temple"],
+    uses: ["religious.mesopotamian-temple", "religious.hittite-temple", "religious.pharaonic-temple", "religious.kushite-temple"],
     program: "rows",
     regulars: { hours: [7, 11], fill: 0.15 },
     styles: { altar: "mesopotamian" },
