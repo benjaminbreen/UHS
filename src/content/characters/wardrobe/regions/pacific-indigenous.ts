@@ -148,6 +148,27 @@ export const indigenousAmerican: readonly GarmentKit[] = [
       { value: "sandals", weight: 2 },
     ],
   },
+  {
+    // Plains horse nomads: men's breechcloth, hide leggings and moccasins, the
+    // quilled or beaded war shirt for men of standing, women's two-hide dress,
+    // and the painted buffalo robe over everything.
+    id: "plains",
+    label: "Great Plains · buffalo robe and moccasins",
+    scope: { years: [1700, 1885], bounds: [-112, 32, -95, 53] },
+    garment: [
+      { value: "loincloth", weight: 5, sex: ["male"] },
+      { value: "shirt", weight: 3, sex: ["male"], means: ["common", "wealthy"] },
+      { value: "dress", weight: 8, sex: ["female"] },
+    ],
+    leggings: [{ value: "wrapped", weight: 7 }, { value: "none", weight: 2 }],
+    headwear: [{ value: "none", weight: 6 }, { value: "plume", weight: 3, sex: ["male"] }, { value: "band", weight: 2 }],
+    footwear: [{ value: "shoes" }],
+    over: [{ value: "cloak", weight: 5 }, { value: "none", weight: 4 }],
+    material: [{ value: "hide" }],
+    motif: [{ value: "band", weight: 6 }, { value: "plain", weight: 2 }],
+    trimPattern: [{ value: "step", weight: 3 }, { value: "diamond", weight: 3 }, { value: "strip", weight: 2 }],
+    neck: [{ value: "beads", weight: 4 }, { value: "none", weight: 4 }],
+  },
 ];
 
 /**
@@ -229,5 +250,29 @@ export const australiaPacific: readonly GarmentKit[] = [
       { value: "shoes", weight: 3 },
     ],
     over: [{ value: "mantle", weight: 3 }, { value: "none", weight: 7 }],
+  },
+  {
+    // Polynesian dress was beaten bark cloth (tapa) and finely plaited mats:
+    // the wrapped lavalava and pareu, the man's loincloth, flowers and combs
+    // in the hair, oiled and tattooed skin the ornament.
+    id: "polynesia-east",
+    label: "Polynesia · tapa and the wrapped cloth",
+    scope: { years: [-1000, 1830], cultures: ["australian-pacific"], bounds: [-180, -48, -120, 30] },
+    material: [{ value: "barkcloth", weight: 8 }],
+    dye: [{ value: "undyed", weight: 5 }, { value: "bark", weight: 3 }, { value: "soot", weight: 2 }, { value: "ochre", weight: 2 }],
+    motif: [{ value: "band", weight: 4 }, { value: "plain", weight: 4 }],
+    hairOrnament: [{ value: "flower", weight: 4 }, { value: "comb", weight: 2 }, { value: "none", weight: 4 }],
+  },
+  {
+    // Polynesian dress was beaten bark cloth (tapa) and finely plaited mats:
+    // the wrapped lavalava and pareu, the man's loincloth, flowers and combs
+    // in the hair, oiled and tattooed skin the ornament.
+    id: "polynesia-west",
+    label: "Polynesia · tapa and the wrapped cloth",
+    scope: { years: [-1000, 1830], cultures: ["australian-pacific"], bounds: [155, -48, 180, 30] },
+    material: [{ value: "barkcloth", weight: 8 }],
+    dye: [{ value: "undyed", weight: 5 }, { value: "bark", weight: 3 }, { value: "soot", weight: 2 }, { value: "ochre", weight: 2 }],
+    motif: [{ value: "band", weight: 4 }, { value: "plain", weight: 4 }],
+    hairOrnament: [{ value: "flower", weight: 4 }, { value: "comb", weight: 2 }, { value: "none", weight: 4 }],
   },
 ];

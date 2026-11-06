@@ -353,7 +353,7 @@ it("selects civic institutions by local date, with an explicitly unresearched fa
   expect(
     civicProfile({ ...setting, culture: "east-asian", lon: 120, lat: 32 })
       .label,
-  ).toBe("Public meeting hall");
+  ).toBe("Magistrate's yamen");
 });
 
 it("assigns coherent, deterministic materials to civic squares and street lanes", () => {

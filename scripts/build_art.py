@@ -202,7 +202,7 @@ civic_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and _land
 # Tents, shelters, lodges and the front-on vernacular houses take a page of
 # their own: the regional page was full with the courtyard compounds alone.
 CAMP_FAMILIES=('steppe-','forager-','northwest-house','amazon-maloca','enkang-house','iroquoian-longhouse','ainu-chise',
-               'africa-house','seasia-house','andes-house','pacific-house')
+               'africa-house','seasia-house','andes-house','pacific-house','hut-house','pastoral-tent','black-tent','orthodox-house')
 camp_frames={k:S.pop(k) for k in list(buildings)
              if k in S and (buildings[k].get('campStyle') or
                             (buildings[k].get('regionalHouse') or '').startswith(CAMP_FAMILIES))}

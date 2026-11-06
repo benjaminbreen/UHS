@@ -33,7 +33,34 @@ from art.front_huts import _rgb, turn, DARK, DOORWAY  # noqa: E402
 from art.front_mudbrick import deck, jar, mat, ladder, P, PAL as MB  # noqa: E402
 
 _PROF = json.loads((ROOT / 'src/content/graphics/regional-houses.json').read_text())['profiles']
-PROFILE = {p: {k: [_rgb(c) for c in v] for k, v in _PROF[p]['palette'].items()} for p in ('maya', 'nahua')}
+# Zapotec (Oaxaca) and Purépecha (Michoacán) palettes, used until
+# regional-houses.json carries its own for them.
+_PALETTES = {
+    'zapotec': {
+        'plaster': ['#3d3438', '#6c625e', '#9f9488', '#cdc0a8', '#e9dcc0', '#faf0da'],
+        'red': ['#3a1418', '#6a1e22', '#9a2e2a', '#c4462e', '#de6e42', '#f09a66'],
+        'stone': ['#2a2422', '#4a403a', '#6e6254', '#948470', '#b6a68c', '#d2c4aa'],
+        'adobe': ['#3a2a24', '#624434', '#8a6446', '#ae845e', '#cca478', '#e4c296'],
+        'ochre': ['#3d2a24', '#6c462e', '#9e6838', '#c88e48', '#e2b25e', '#f4d488'],
+        'thatch': ['#2e2219', '#523a20', '#7e5e2a', '#aa863a', '#d0ac52', '#ecd282'],
+        'thatch-old': ['#2a2420', '#4a3e30', '#6e6046', '#928462', '#b2a47e', '#cec29e'],
+        'timber': ['#2a1b16', '#4a3020', '#70492c', '#98683c', '#bd8c52', '#dcb277'],
+        'accent': ['#2a1430', '#4a2448', '#6e3a62', '#94567e', '#b87a9c', '#d8a6be'],
+    },
+    'purepecha': {
+        'plaster': ['#3a3436', '#68605c', '#9a9086', '#c8bea8', '#e4dac2', '#f6eedc'],
+        'red': ['#3a1418', '#6a1e22', '#9a2e2a', '#c4462e', '#de6e42', '#f09a66'],
+        'stone': ['#262424', '#444040', '#666058', '#8a8274', '#aca290', '#cac0ac'],
+        'adobe': ['#3a2a24', '#624434', '#8a6446', '#ae845e', '#cca478', '#e4c296'],
+        'ochre': ['#3d2a24', '#6c462e', '#9e6838', '#c88e48', '#e2b25e', '#f4d488'],
+        'thatch': ['#2a201a', '#4a3424', '#6e4e32', '#946c44', '#b68c5a', '#d2ac78'],
+        'thatch-old': ['#262220', '#423a34', '#62584c', '#847866', '#a49882', '#c2b8a2'],
+        'timber': ['#24170f', '#422a1a', '#644026', '#885a34', '#a87646', '#c6965e'],
+        'accent': ['#16263a', '#24405c', '#345e7e', '#4c80a0', '#70a2be', '#a0c6da'],
+    },
+}
+PROFILE = {p: {k: [_rgb(c) for c in v] for k, v in (_PROF.get(p, {}).get('palette') or _PALETTES[p]).items()}
+           for p in ('maya', 'nahua', 'zapotec', 'purepecha')}
 CLAY = MB['clay']
 EARTH = MB['dung']
 HW = 54
@@ -361,11 +388,12 @@ def jacal(s):
 def calli(s):
     p = PROFILE[s['profile']]
     maya = s['profile'] == 'maya'
+    zap = s['profile'] == 'zapotec'
     W, seed, size = s['W'], s['seed'], s['size']
     finish_ = s['finish']
     pal = dict(p, wall=p[{'lime': 'plaster', 'ochre-wash': 'ochre', 'bare-adobe': 'adobe', 'red': 'red'}[finish_]])
     big = size == 'large'
-    ph = (10 if big else 3 if maya else 0)
+    ph = (10 if big else 3 if maya else 6 if zap else 0)
     upper = 22 if maya and big else 0
     comb = 28 if maya and big and s['crest'] == 'comb' else 0
     depth = 26 if not big else 30
@@ -408,9 +436,11 @@ def calli(s):
     # Openings: Maya T vents, Nahua square vents, set high either side of the door.
     vy = wb - HW + 12
     for vx in (dcx - 30, dcx + 30) if span > 90 else (dcx + side * 26,):
-        if hx0 + 8 < vx < hx1 - 8:
+        if hx0 + 8 < vx < hx1 - 8 and not zap:
             (t_vent if maya else vent)(c, vx, vy, pal)
-    if (big and not maya) or s['colonnade']:
+    if zap:
+        info.update(mitla(c, hx0, hx1, wb, dcx, pal, p, big, seed))
+    elif (big and not maya) or s['colonnade']:
         info.update(portico(c, hx0 + 8, hx1 - 8, wb, wb - HW + 8, pal, p, dcx, seed))
     else:
         cloth = (p['accent'] if seed % 2 else p['red']) if s['cloth'] else None
@@ -420,6 +450,43 @@ def calli(s):
         ramada(c, rx0, rx1, base, wb - 30, p, seed, side)
     life(c, s, hx0, hx1, deck_top, eave, comb, p, info)
     return c, info
+
+
+def mitla(c, x0, x1, base, dcx, pal, p, big, seed):
+    """The Zapotec front, as at Mitla and Lambityeco: stone jambs and a great
+    lintel, panels of stepped fret (greca) set in a stone frame over the
+    doorway, and on a lord's house a long fret band across the whole front
+    and three doorways."""
+    st = p['stone']
+    doors = (dcx - 44, dcx, dcx + 44) if big and x1 - x0 > 130 else (dcx,)
+    top = base - HW
+    if big:
+        y = top + 6
+        c.rect(x0 + 2, y - 2, x1 - x0 - 4, 14, P(st, 2))
+        c.rect(x0 + 2, y - 2, x1 - x0 - 4, 1, P(st, 5)); c.rect(x0 + 2, y + 11, x1 - x0 - 4, 1, P(st, 1))
+        n = max(2, (x1 - x0 - 8) // 34)
+        pw = (x1 - x0 - 8) // n
+        for i in range(n):
+            px = x0 + 4 + i * pw
+            c.rect(px, y, pw - 3, 10, P(st, 1))
+            fret(c, px + 1, y + 1, pw - 5, 8, P(st, 4), P(st, 1))
+        shade(c, x0 + 2, x1 - 2, y + 12, (0.7, 0.86))
+    info = None
+    for i, dx in enumerate(doors):
+        got = doorway(c, dx, base - 1, DOOR[0], DOOR[1], pal['wall'], p['accent'] if (seed + i) % 2 else None,
+                      'moulded', p, side=1, band=p['red'])
+        info = info or got
+        if dx == dcx:
+            info = got
+        if not big:
+            pw = DOOR[0] + 16
+            py = base - 1 - DOOR[1] - 18
+            c.rect(dx - pw // 2 - 1, py - 1, pw + 2, 12, P(st, 5))
+            c.rect(dx - pw // 2, py, pw, 10, P(st, 1))
+            fret(c, dx - pw // 2 + 1, py + 1, pw - 2, 8, P(st, 4), P(st, 1))
+            c.rect(dx - pw // 2 - 1, py + 10, pw + 2, 1, P(st, 1))
+            shade(c, dx - pw // 2, dx + pw // 2, py + 11, (0.72, 0.88))
+    return info
 
 
 def mould(c, x0, x1, y, pal):
@@ -575,6 +642,121 @@ def service(s):
     return c, info
 
 
+def shingles(c, x0, x1, eave, H, inset, pal, seed):
+    """A steep hipped roof of tejamanil, split pine shingles: short courses
+    of upright shingles, each course lit along its butt and dark under it;
+    the left hip lit, the right in shade; a ridge board along the top."""
+    mid = (x0 + x1) / 2
+    for j in range(H):
+        t = j / H
+        y = eave - j
+        L, R = x0 + inset * t, x1 - inset * t
+        hipw = (inset + 3) * (1 - t)
+        course, row = j // 4, j % 4
+        for x in range(math.floor(L), math.ceil(R)):
+            face = 'L' if x - L < hipw and x < mid else 'R' if R - x < hipw * 1.2 and x > mid else 'F'
+            k = {'L': 4, 'R': 2, 'F': 3}[face]
+            # rows from the butt up: lit butt, body, body, the shadow of the course above
+            k += (1, 0, 0, -2)[row]
+            sx = (x + (course % 2) * 2) % 4
+            if sx == 3 and row < 3:
+                k -= 1
+            elif sx == 0 and row in (1, 2) and h2(x // 4, course, seed) > 0.5:
+                k += 1
+            c.p(x, y, P(pal, k))
+        if hipw > 1:
+            lx, rx = math.floor(L + hipw), math.ceil(R - hipw * 1.2)
+            if lx < mid:
+                c.p(lx, y, pal[4])
+            if rx > mid:
+                c.p(rx, y, pal[1])
+    for x in range(x0, x1):
+        c.p(x, eave + 1, pal[4]); c.p(x, eave + 2, pal[1])
+    rL, rR = round(x0 + inset), round(x1 - inset)
+    top = eave - H
+    c.rect(rL - 1, top - 2, rR - rL + 2, 2, pal[4]); c.rect(rL - 1, top, rR - rL + 2, 1, pal[1])
+
+
+def boards(c, x0, x1, top, base, pal, seed):
+    """Fitted horizontal boards, each lit along its top edge; at the
+    corners the board ends stand out, notched over one another."""
+    for y in range(top, base + 1):
+        ly = (y - top) % 6
+        for x in range(x0, x1):
+            k = 4 if ly == 0 else 1 if ly == 5 else 3
+            if ly in (2, 3) and h2(x // 3, (y - top) // 6 * 5 + ly, seed) > 0.93:
+                k = 2
+            c.p(x, y, P(pal, k))
+    for x in (x0 - 3, x1 - 1):
+        for y in range(top, base + 1):
+            ly = (y - top) % 6
+            for i in range(4):
+                c.p(x + i, y, P(pal, 5 if ly == 0 else 1 if ly == 5 else 4 - (i > 2)))
+
+
+def troje(s):
+    """The Purépecha troje of the Meseta: a house of fitted pine boards on a
+    stone footing, a tall hipped roof of shingles, and across the front a
+    porch whose beam rests on carved brackets over its posts."""
+    p = PROFILE[s['profile']]
+    W, seed, size = s['W'], s['seed'], s['size']
+    tim, roof, st = p['timber'], (p['thatch-old'] if s['old'] else p['thatch']), p['stone']
+    JH = 50
+    H = 34 + (6 if size != 'small' else 0)
+    ph = 5
+    c = C(W + 24, JH + H + ph + 16)
+    x0, base = 12, c.h - 4
+    info = dict(x0=x0, W=W, base=base)
+    platform(c, x0 - 2, x0 + W + 2, base, ph, p, seed=seed, finish=st)
+    wb = base - ph
+    top = wb - JH
+    porch = 14 if size != 'small' else 0
+    boards(c, x0 + 2, x0 + W - 2, top, wb, tim, seed)
+    dcx = door_at(s, x0, x0, x0 + W)
+    # the door: boards in a carved frame, a lintel cut in steps
+    x = dcx - DOOR[0] // 2 - 2
+    dw = DOOR[0] + 4
+    c.rect(x - 3, wb - DOOR[1] - 4, dw + 6, DOOR[1] + 4, P(tim, 1))
+    for xx in range(x, x + dw):
+        for yy in range(wb - DOOR[1], wb):
+            c.p(xx, yy, P(tim, 2 if (xx - x) % 4 == 0 else 3))
+    c.rect(x + dw - 4, wb - DOOR[1] // 2, 2, 2, P(st, 5))
+    for i in range(3):
+        c.rect(x - 4 - i * 2, wb - DOOR[1] - 6 - i * 2, dw + 8 + i * 4, 2, P(tim, 4 - i % 2))
+    info.update(door_x=dcx, door_h=DOOR[1], door_width=dw, door_base=wb, leaf=True)
+    if W > 70:
+        wx = dcx + (30 if dcx < x0 + W // 2 else -30)
+        c.rect(wx - 7, top + 14, 14, 12, DARK)
+        c.rect(wx - 8, top + 13, 16, 1, P(tim, 5)); c.rect(wx - 8, top + 26, 16, 2, P(tim, 4))
+        c.rect(wx - 1, top + 14, 2, 12, P(tim, 3))
+    eave = top - porch // 2
+    if porch:
+        # the porch: the wall behind in shade, posts with carved zapatas
+        shade(c, x0 + 2, x0 + W - 2, top, (0.6, 0.66, 0.72, 0.78) + (0.86,) * (wb - top - 4))
+        by = top + 2
+        c.rect(x0 - 4, by - 4, W + 8, 5, P(tim, 3)); c.rect(x0 - 4, by - 4, W + 8, 1, P(tim, 5))
+        c.rect(x0 - 4, by + 1, W + 8, 1, P(tim, 1))
+        for xx in range(x0 - 2, x0 + W + 2, 6):
+            c.p(xx, by - 2, P(tim, 1)); c.p(xx + 1, by - 2, P(tim, 5))
+        n = max(2, W // 34)
+        for i in range(n + 1):
+            px = x0 + round(i * (W - 6) / n)
+            if abs(px + 3 - dcx) < 14 or (W > 70 and abs(px + 3 - (dcx + (30 if dcx < x0 + W // 2 else -30))) < 12):
+                continue
+            c.rect(px, by + 2, 6, wb - by - 2, P(tim, 4)); c.rect(px, by + 2, 2, wb - by - 2, P(tim, 5))
+            c.rect(px + 5, by + 2, 1, wb - by - 2, P(tim, 2))
+            for k in range(4):  # the zapata, a bracket cut in steps, lit on top and in shadow under
+                w = 18 - 3 * k
+                c.rect(px + 3 - w // 2, by + 2 + k * 2, w, 1, P(tim, 5))
+                c.rect(px + 3 - w // 2, by + 3 + k * 2, w, 1, P(tim, 2))
+            shade(c, px - 6, px + 12, by + 10, (0.8,))
+            c.rect(px - 1, wb - 3, 8, 3, P(st, 4))
+    shingles(c, x0 - 8, x0 + W + 8, eave, H, round(W * 0.16) + 6, roof, seed)
+    shade(c, x0, x0 + W, eave + 3, (0.6, 0.74, 0.88))
+    info['smoke'] = [[x0 + W // 2, eave - H - 2, 'vent']]
+    return c, info
+
+
 def built(fn):
     def make(spec=None, info=None):
         s = dict(profile='maya', size='medium', W=96, seed=1, finish='lime', wall='daub', frame='timber',
@@ -590,7 +772,7 @@ def built(fn):
     return make
 
 
-BUILDERS = {'jacal': built(jacal), 'calli': built(calli), 'meso-service': built(service)}
+BUILDERS = {'jacal': built(jacal), 'calli': built(calli), 'meso-service': built(service), 'troje': built(troje)}
 
 def spec(r):
     """A recipe's choices, drawn as oblique_meso drew them so each frame keeps
@@ -600,13 +782,15 @@ def spec(r):
     maya = r['regionalProfile'] == 'maya'
     size, tier = r.get('goldScale', 'medium'), r.get('wealthTier', 1)
     kind = {'meso-jacal': 'jacal', 'meso-terrace': 'calli'}.get(r['regionalHouse'], 'meso-service')
+    if r['regionalProfile'] == 'purepecha' and kind != 'meso-service':
+        kind = 'troje'
     fw = r['footprint'][0]
     rich = tier >= 2 or (tier == 1 and rng.random() < .55)
     finish = r.get('surfaceTreatments', ['lime'])[0]
     if tier >= 2:
         finish = 'red' if maya and kind == 'calli' and r['goldVariant'] % 2 == 0 else 'lime'
     dado = bool(r.get('dado')) and finish in ('lime', 'ochre-wash') and rng.random() < .8
-    parapet = pick('parapetStyles') if rich else r['parapetStyles'][0]
+    parapet = pick('parapetStyles') if rich else (r.get('parapetStyles') or ['plain'])[0]
     frieze = pick('friezes') if (tier >= 2 or rich and size != 'small') else None
     frames = r.get('doorFrames', ['timber'])
     frame = frames[min(len(frames) - 1, rng.randrange(tier + 1))]
@@ -618,7 +802,7 @@ def spec(r):
     crest = 'comb' if r.get('goldVariant', 0) % 2 == 0 else 'merlons'
     upper = rng.choice(['masks', 'fret'])
     slot = r['entrance'][0]
-    ramada = kind != 'meso-service' and size != 'large' and fw >= 5 and slot >= 2 and rng.random() < .5
+    ramada = kind not in ('meso-service', 'troje') and size != 'large' and fw >= 5 and slot >= 2 and rng.random() < .5
     return kind, dict(profile=r['regionalProfile'], size=size, W=fw * 16, seed=r['seed'] % 997, finish=finish,
                       wall=wall, frame=frame, dado=dado, ramada=ramada, old=old, parapet=parapet, frieze=frieze,
                       feature=feature, kind=r.get('serviceStyle', 'granary'), slot=slot, lift=rng.choice([0, 0, 2, 4]),
@@ -633,6 +817,27 @@ def recipes():
 
 
 STUDIES = [(n, *spec(r)) for n, r in sorted(recipes().items(), key=lambda kv: (kv[0].split('-')[1], kv[1]['footprint'][0], kv[0]))]
+# Until regional-houses.json lists them, the new profiles' frames are shown
+# from hand-written specs at the families' footprints.
+_HAVE = {n.split('-')[2] for n, _, _ in STUDIES}
+_NEW = dict(seed=7, finish='lime', wall='daub-stone', frame='moulded', parapet='plain', frieze=None, cloth=True)
+STUDIES += [(n, k, dict(_NEW, **sp)) for n, k, sp in (
+    ('meso-jacal-zapotec-small-0', 'jacal', dict(profile='zapotec', size='small', W=48, slot=1, old=True, wall='cane',
+                                                 frame='timber', dado=False)),
+    ('meso-jacal-zapotec-medium-0', 'jacal', dict(profile='zapotec', size='medium', W=96, slot=3, finish='bare-adobe',
+                                                  frame='timber', dado=False, ramada=True)),
+    ('meso-terrace-zapotec-small-0', 'calli', dict(profile='zapotec', size='small', W=80, slot=2, finish='lime')),
+    ('meso-terrace-zapotec-medium-0', 'calli', dict(profile='zapotec', size='medium', W=128, slot=4, finish='red',
+                                                    frieze='bands')),
+    ('meso-terrace-zapotec-large-0', 'calli', dict(profile='zapotec', size='large', W=160, slot=5)),
+    ('meso-jacal-purepecha-small-0', 'troje', dict(profile='purepecha', size='small', W=64, slot=1)),
+    ('meso-jacal-purepecha-medium-0', 'troje', dict(profile='purepecha', size='medium', W=96, slot=2, seed=3)),
+    ('meso-jacal-purepecha-large-0', 'troje', dict(profile='purepecha', size='large', W=128, slot=4, seed=4,
+                                                   old=True)),
+    ('meso-service-zapotec-small-0', 'meso-service', dict(profile='zapotec', size='small', W=48, kind='granary')),
+    ('meso-service-purepecha-small-0', 'meso-service', dict(profile='purepecha', size='small', W=48,
+                                                            kind='sweatbath')),
+) if n.split('-')[2] not in _HAVE]
 
 
 def game_recipes(recipes):
@@ -640,7 +845,7 @@ def game_recipes(recipes):
     the entrance under the painted door."""
     import re
     for name, r in list(recipes.items()):
-        if not re.match(r'meso-(jacal|terrace|service)-(maya|nahua)-(small|medium|large)-\d+$', name):
+        if not re.match(r'meso-(jacal|terrace|service)-(maya|nahua|zapotec|purepecha)-(small|medium|large)-\d+$', name):
             continue
         kind, sp = spec(r)
         info = {}
@@ -656,7 +861,8 @@ def sheet(names, out):
     from PIL import Image
     from art.reference import current_adult
     groups = [[n for n, _, _ in STUDIES if n.startswith(g)] for g in
-              ('meso-jacal-maya', 'meso-jacal-nahua', 'meso-terrace-maya', 'meso-terrace-nahua', 'meso-service')]
+              ('meso-jacal-maya', 'meso-jacal-nahua', 'meso-terrace-maya', 'meso-terrace-nahua', 'meso-jacal-zapotec',
+               'meso-terrace-zapotec', 'meso-jacal-purepecha', 'meso-service')]
     rows = [[BUILDERS[k](sp) for n, k, sp in STUDIES if n in g and (not names or n in names)] for g in groups]
     rows = [r for r in rows if r]
     a = current_adult()

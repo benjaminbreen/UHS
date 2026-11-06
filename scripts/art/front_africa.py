@@ -26,6 +26,7 @@ from art import front_props as pr  # noqa: E402
 from art import front_persian as pz  # noqa: E402
 from art import front_eave as ev  # noqa: E402
 from art.front_house import bevel  # noqa: E402
+from art import front_parts as fp  # noqa: E402
 
 MATS = ramp(66, 0.07, lift=-0.02)
 POLE = ramp(42, 0.07, lift=-0.2)
@@ -226,7 +227,229 @@ def sahel_court(spec=None, info=None):
     return im
 
 
-BUILDERS = {'kongo': kongo, 'kay': kay, 'sahel': sahel, 'sahel-court': sahel_court}
+# ------------------------------------------------------------------ Swahili coast and Ethiopian highlands
+
+LIME = ramp(88, 0.022, lift=0.035)
+LIME_TOP = ramp(84, 0.02, lift=0.06)
+CORAL = ramp(72, 0.04, lift=-0.04)
+TEAK = ramp(36, 0.065, lift=-0.22)
+BRASS = ramp(78, 0.1, lift=-0.04)
+MANGROVE = ramp(30, 0.05, lift=-0.24)
+DRYSTONE = ramp(62, 0.035, lift=0.02)
+CHINK = ramp(40, 0.03, lift=-0.2)
+EARTH = ramp(50, 0.05, lift=-0.08)
+JUNIPER = ramp(42, 0.06, lift=-0.18)
+
+
+def face(c, L, R, E, base, paint, wall, top):
+    """A street wall under its parapet: the coping's lit lip, the parapet's
+    shadow fading down the wall, the foot a little darker."""
+    paint(c, L, E, R - L, base - E)
+    for xx in range(L, R):
+        c.p(xx, E, top[1]); c.p(xx, E + 1, wall[2])
+    for k in range(7):
+        for xx in range(L, R):
+            fp.shade(c, xx, E + 2 + k, 0.36 * (1 - k / 7))
+    for k in range(5):
+        for xx in range(L, R):
+            fp.shade(c, xx, base - 1 - k, 0.12 * (1 - k / 5))
+
+
+def boriti(c, L, R, y, step=11, skip=()):
+    """Mangrove-pole joists through the wall under the parapet: round ends,
+    lit upper left, each throwing a short shadow down the lime."""
+    for xx in range(L + 7, R - 6, step):
+        if any(a <= xx <= b for a, b in skip):
+            continue
+        for dx, dy, k in ((1, 0, 2), (2, 0, 3), (0, 1, 2), (1, 1, 1), (2, 1, 3), (3, 1, 4),
+                          (0, 2, 3), (1, 2, 3), (2, 2, 4), (3, 2, 5), (1, 3, 5), (2, 3, 5)):
+            c.p(xx + dx, y + dy, MANGROVE[k])
+        op.cast(c, xx + 1, y + 4, 4, 3, 0.7)
+
+
+def swahili_door(c, cx, base, w=26, h=46):
+    """The carved door of the coast: two teak leaves with a centre post and
+    rows of brass bosses, in a heavy frame carved in chain and rope bands,
+    a lintel carved across and the whole set deep in the lime wall."""
+    x, top = cx - w // 2, base - h
+    fw = 6
+    # The recess in the wall the frame stands in.
+    c.rect(x - fw - 4, top - 12, w + 2 * fw + 8, h + 12, LIME[3])
+    op.reveal(c, x - fw - 4, top - 12, w + 2 * fw + 8, h + 12, 3)
+    # Posts and lintel, carved: a rope of alternating lit and dark beads,
+    # a chain of lozenges down the inner band.
+    for px in (x - fw, x + w):
+        for yy in range(top - 8, base):
+            for i in range(fw):
+                k = 3
+                if i == 0:
+                    k = 2
+                elif i == fw - 1:
+                    k = 5
+                elif i in (1, 2):
+                    k = 2 if (yy + i) % 3 == 0 else 4
+                elif (yy // 3 + i) % 2 == 0:
+                    k = 3 if (yy % 6) < 3 else 4
+                c.p(px + i, yy, TEAK[k])
+    for yy in range(top - 8, top):
+        for xx in range(x - fw, x + w + fw):
+            k = 2 if yy == top - 8 else 5 if yy == top - 1 else (3 if ((xx - x) // 3 + yy) % 2 else 4)
+            c.p(xx, yy, TEAK[k])
+    # Leaves.
+    m = x + w // 2
+    for yy in range(top, base):
+        for xx in range(x, x + w):
+            a = xx - x if xx < m else xx - m
+            lw = m - x
+            k = 3 if 1 < a < lw - 1 else 2 if a <= 1 else 5
+            if (yy - top) % 12 == 0:
+                k = 4
+            c.p(xx, yy, TEAK[k])
+    for yy in range(top, base):
+        c.p(m - 1, yy, TEAK[2]); c.p(m, yy, TEAK[4]); c.p(m + 1, yy, TEAK[5])
+    for yy in range(top + 6, base - 3, 6):
+        for xx in range(x + 3, x + w - 2, 5):
+            if abs(xx - m) > 2:
+                c.p(xx, yy, BRASS[1]); c.p(xx + 1, yy, BRASS[3]); c.p(xx, yy + 1, BRASS[4])
+    op.reveal(c, x, top, w, h, 3)
+    op.cast(c, x - fw, top, w + 2 * fw, 2, 0.7)
+
+
+def baraza(c, x, w, base):
+    """A stone bench built against the wall beside the door, plastered."""
+    so.box(c, x, base + 2, w, 9, 7, LIME, LIME_TOP)
+    c.rect(x + w - 1, base - 7, 1, 9, LIME[4])
+    op.cast(c, x, base + 2, w, 2, 0.75)
+
+
+def small_window(c, x, y, w, h, wood, wall):
+    """A small window deep in a thick wall, closed by a board shutter."""
+    c.rect(x - 2, y - 2, w + 4, h + 4, wall[3])
+    c.rect(x, y, w, h, wood[4])
+    for xx in range(x, x + w, 3):
+        c.rect(xx, y, 1, h, wood[5])
+    c.rect(x, y, w, 1, wood[2])
+    op.reveal(c, x, y, w, h, 2)
+    c.rect(x - 3, y + h + 2, w + 6, 1, wall[1])
+    op.cast(c, x - 2, y + h + 3, w + 4, 2, 0.72)
+
+
+PALM = ramp(70, 0.07, lift=-0.06)
+
+
+def makuti(c, x0, x1, back, front):
+    """A roof shelter of coconut-leaf thatch on mangrove posts, seen from
+    above: the fronds running back, the shade it throws on the roof."""
+    top = back
+    eave = front - 14
+    for yy in range(eave, front):
+        for xx in range(x0 + 3, x1 + 3):
+            fp.shade(c, xx, yy, 0.3)
+    for px in (x0 + 2, x1 - 4):
+        bevel(c, px, eave, 3, front - eave, MANGROVE, 1)
+    for yy in range(top, eave):
+        for xx in range(x0, x1):
+            k = 2 if (xx - x0) % 4 else 3
+            if yy == top:
+                k = 1
+            elif yy >= eave - 2:
+                k = 4 if (xx + yy) % 3 else 5
+            elif xx < x0 + 2:
+                k = 1
+            elif xx > x1 - 3:
+                k = 4
+            c.p(xx, yy, PALM[k])
+    for xx in range(x0, x1, 3):
+        c.p(xx, eave, PALM[5])
+
+
+def coral_wall(c, x, y, w, h):
+    fm.whitewash(c, x, y, w, h, LIME, CORAL)
+
+
+def swahili(spec=None, info=None):
+    """A coral-stone house of the Swahili towns: coral rag under lime, a flat
+    roof of coral concrete on mangrove poles behind a plain parapet, the
+    carved door deep in its frame between two stone benches."""
+    s = {**dict(W=150, door=0.5, seed=0), **(spec or {})}
+
+    def extra(c, g):
+        L, R, E, base, dx = g['L'], g['R'], g['E'], g['base'], g['door']
+        face(c, L, R, E, base, coral_wall, LIME, LIME_TOP)
+        boriti(c, L, R, E + 6, 11 + s['seed'] % 3, skip=((dx - 22, dx + 22),))
+        swahili_door(c, dx, base)
+        bw = min(30, (R - L) // 2 - 28)
+        if bw > 10:
+            baraza(c, dx - 22 - bw, bw, base)
+            baraza(c, dx + 23, bw, base)
+        if R - L > 120:
+            wx = L + 14 if s['seed'] % 2 else R - 26
+            small_window(c, wx, E + 16, 10, 12, TEAK, LIME)
+        so.box(c, dx - 20, base + 3, 40, 3, 6, LIME_TOP)
+        if R - L > 120:
+            sx = R - 58 if s['seed'] % 2 == 0 else L + 12
+            makuti(c, sx, sx + 46, g['B'] + 10, E - 4)
+    with pz.materials(WALL=LIME, TOP=LIME_TOP, PAVE=LIME_TOP, WALL_FN=coral_wall, BRICK=LIME):
+        im = pz.house({**s, 'extra': extra, 'dome': False, 'street': 62}, info)
+    if info is not None:
+        info['door_h'] = 46
+    return im
+
+
+def drystone(c, x0, y0, w, h):
+    """Dry-laid stone in courses, dark chinking between, bound every few
+    courses by a timber band with its cross-pieces' round ends standing out:
+    the 'monkey heads' of Aksum and Debre Damo."""
+    fm.rubble(c, x0, y0, w, h, DRYSTONE, CHINK)
+    for by in range(y0 + 11, y0 + h - 8, 17):
+        c.rect(x0, by, w, 3, JUNIPER[3]); c.rect(x0, by, w, 1, JUNIPER[1]); c.rect(x0, by + 3, w, 1, JUNIPER[6])
+        op.cast(c, x0, by + 4, w, 2, 0.72)
+        for xx in range(x0 + 5 + (by // 17 % 2) * 6, x0 + w - 8, 14):
+            monkey_head(c, xx, by - 2)
+
+
+HEAD = ('.dddd.', 'dLLmmd', 'dLmmmD', 'dmmmDD', 'dmmDDD', '.DDDD.')
+
+
+def monkey_head(c, x, y):
+    """A round cross-piece end standing out of the band: end grain lit at its
+    upper left, a shadow thrown down and right onto the stone."""
+    for i in range(7):
+        for j in range(4):
+            fp.shade(c, x + 2 + i, y + 4 + j, 0.38 if i < 5 else 0.25)
+    for j, row in enumerate(HEAD):
+        for i, ch in enumerate(row):
+            if ch != '.':
+                c.p(x + i, y + j, JUNIPER[{'L': 0, 'm': 2, 'D': 5, 'd': 4}[ch]])
+
+
+def hidmo(spec=None, info=None):
+    """A Tigray highland house: drystone walls bound by timber bands, a flat
+    roof of packed earth on juniper beams behind a low parapet, a plank door
+    in a timber frame and a small shuttered window."""
+    s = {**dict(W=140, door=0.38, seed=0), **(spec or {})}
+
+    def extra(c, g):
+        L, R, E, base, dx = g['L'], g['R'], g['E'], g['base'], g['door']
+        face(c, L, R, E, base, drystone, DRYSTONE, EARTH)
+        boriti(c, L, R, E + 5, 12, skip=())
+        bevel(c, dx - 15, base - 46, 30, 4, JUNIPER, 2)
+        for px in (dx - 15, dx + 11):
+            bevel(c, px, base - 42, 4, 42, JUNIPER, 2)
+        op.door_plank(c, dx - 10, base - 40, 20, 40)
+        wx = R - 30 if s['seed'] % 2 == 0 else L + 16
+        if abs(wx - dx) > 30:
+            small_window(c, wx, base - 42, 12, 12, JUNIPER, DRYSTONE)
+        so.box(c, dx - 16, base + 3, 32, 3, 6, DRYSTONE)
+    with pz.materials(WALL=DRYSTONE, TOP=EARTH, PAVE=EARTH, WALL_FN=drystone, BRICK=DRYSTONE):
+        im = pz.house({**s, 'extra': extra, 'dome': False, 'street': 58}, info)
+    if info is not None:
+        info['door_h'] = 40
+    return im
+
+
+BUILDERS = {'kongo': kongo, 'kay': kay, 'sahel': sahel, 'sahel-court': sahel_court, 'swahili': swahili,
+            'hidmo': hidmo}
 STUDIES = [
     ('kongo', 'kongo', {}),
     ('kongo-hipped', 'kongo', dict(W=160, hip=True, seed=3)),
@@ -236,12 +459,16 @@ STUDIES = [
     ('kay-small', 'kay', dict(W=104, storeys=['wash-blue'], gallery=False, seed=7)),
     ('sahel', 'sahel', {}),
     ('sahel-court', 'sahel-court', {}),
+    ('swahili', 'swahili', {}),
+    ('swahili-small', 'swahili', dict(W=110, seed=1)),
+    ('hidmo', 'hidmo', {}),
+    ('hidmo-small', 'hidmo', dict(W=100, seed=1)),
 ]
 if __name__ == '__main__':
     from PIL import Image
     from art.reference import current_adult
     built = [BUILDERS[kind](spec) for _, kind, spec in STUDIES]
-    rows = [built[:3], built[3:6], built[6:]]
+    rows = [built[:3], built[3:6], built[6:8], built[8:]]
     a = current_adult()
     W = max(sum(i.width + 8 for i in r) for r in rows) + a.width + 10
     H = sum(max(i.height for i in r) + 8 for r in rows)

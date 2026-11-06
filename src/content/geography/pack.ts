@@ -6,6 +6,7 @@ import { civicProfile } from "../settlements/civic";
 import { packTemplates } from "../legacy-packs";
 import { landscapes } from "../graphics/landscapes";
 import {
+  andeanRegionalHouses,
   eastAsianRegionalHouses,
   mesoamericanRegionalHouses,
   steppeRegionalHouses,
@@ -241,6 +242,11 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
         : [...round, ...stoneRound];
     case "east-asian":
       return [...pit, "house-round-2"];
+    case "andean": {
+      // Caral and the coastal valleys built in adobe and cane from 3000 BCE.
+      const coast = andeanRegionalHouses(setting);
+      return coast.length && year >= -3000 ? coast : round;
+    }
     case "south-asian":
       return year >= -3300
         ? [...regional("indus"), "house-round-0"]

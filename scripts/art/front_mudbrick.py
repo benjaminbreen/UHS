@@ -46,6 +46,8 @@ PAL.update({k: [_rgb(c) for c in v] for k, v in {
     'date': ['#4a1c10', '#7a3016', '#a8481c', '#c8642a', '#dc8838', '#eaaa50'],
     'clay': ['#40221a', '#683824', '#905034', '#b06a44', '#c88a5c', '#dcaa7c'],
     'blue': ['#1e2836', '#2c3c52', '#3e546e', '#567090', '#7690ac', '#9cb2c6'],
+    'pueblo': ['#3c2a24', '#624436', '#88624c', '#aa8266', '#c6a284', '#dcbea0'],
+    'pueblo-roof': ['#3e2e24', '#644a38', '#8a6a50', '#ac8a6a', '#c8a888', '#dec4a6'],
 }.items()})
 
 
@@ -111,6 +113,25 @@ def fieldstone(seed):
         if d > 0.7:
             return 2 if u + v > 0 else 4
         return 4 if u + v < -0.6 else 3
+    return at
+
+
+def coursed(seed):
+    """Chacoan banded masonry: courses of thick sandstone blocks alternating
+    with bands of thin tabular stones, the joints a step down, each stone a
+    little lighter or darker than its neighbours."""
+    def at(x, y, k):
+        band = (y // 10) % 2
+        course = 4 if band else 2
+        row = y // course
+        if y % course == course - 1:
+            return k - 1
+        length = 11 if band else 6
+        off = (row * 5) % length
+        if (x + off) % length == 0:
+            return k - 1
+        t = h2((x + off) // length, row, seed)
+        return k + 1 if t > 0.82 else k - 1 if t < 0.1 else k
     return at
 
 
@@ -238,13 +259,27 @@ def door(c, cx, base, w, h, wallpal, kind='plank', paint=None, lintel='log'):
     `kind` 'mat' hangs a reed mat rolled up over the dark doorway instead."""
     x = cx - w // 2
     wood = PAL['wood']
-    c.rect(x - 4, base - h - 4, w + 8, h + 5, P(wallpal, 0))
-    for i, k in enumerate((1, 1, 0)):
-        c.rect(x - 3 + i, base - h - 3 + i, 1, h + 4 - i, P(wallpal, k))
-    for i, k in enumerate((3, 4, 4)):
-        c.rect(x + w + 2 - i, base - h - 3 + i, 1, h + 4 - i, P(wallpal, k))
-    c.rect(x - 2, base - h - 3, w + 4, 3, P(wallpal, 0))
-    if kind == 'mat':
+    if kind != 'T':
+        c.rect(x - 4, base - h - 4, w + 8, h + 5, P(wallpal, 0))
+        for i, k in enumerate((1, 1, 0)):
+            c.rect(x - 3 + i, base - h - 3 + i, 1, h + 4 - i, P(wallpal, k))
+        for i, k in enumerate((3, 4, 4)):
+            c.rect(x + w + 2 - i, base - h - 3 + i, 1, h + 4 - i, P(wallpal, k))
+        c.rect(x - 2, base - h - 3, w + 4, 3, P(wallpal, 0))
+    if kind == 'T':
+        # The Puebloan T doorway: wide at shoulder height, narrow below.
+        sh = h * 2 // 5
+        n = max(3, w // 4)
+        top = base - h
+        T = {(xx, yy) for yy in range(top, top + sh) for xx in range(x, x + w)}
+        T |= {(xx, yy) for yy in range(top + sh, base + 1) for xx in range(x + n, x + w - n)}
+        for (xx, yy) in T:
+            c.p(xx, yy, DOORWAY if (xx - 1, yy) not in T or (xx - 2, yy) not in T or yy < top + 2 else DARK)
+        for (xx, yy) in T:
+            for nx, ny, k in ((xx - 1, yy, 1), (xx, yy - 1, 0), (xx + 1, yy, 4), (xx, yy + 1, 4)):
+                if (nx, ny) not in T and ny <= base:
+                    c.p(nx, ny, P(wallpal, k))
+    elif kind == 'mat':
         c.rect(x, base - h, w, h + 1, DARK)
         c.rect(x, base - h, 3, h + 1, DOORWAY)
         reed = PAL['straw-old']
@@ -294,7 +329,7 @@ def door(c, cx, base, w, h, wallpal, kind='plank', paint=None, lintel='log'):
     st = PAL['field']
     c.rect(x - 5, base, w + 10, 3, st[3]); c.rect(x - 5, base, w + 10, 1, st[5]); c.rect(x - 5, base + 1, 1, 2, st[4])
     c.rect(x + w + 4, base + 1, 1, 2, st[1]); c.rect(x - 5, base + 3, w + 10, 1, st[0])
-    return dict(door_x=cx, door_h=h, door_width=w, door_base=base, leaf=kind != 'mat')
+    return dict(door_x=cx, door_h=h, door_width=w, door_base=base, leaf=kind not in ('mat', 'T'))
 
 
 def window(c, x, y, w, h, wallpal, kind='grille'):
@@ -491,8 +526,10 @@ LOOKS = {
     'plain-catal': dict(wall='catal', roof='catal'),
     'plain-mesopotamia': dict(wall='tan', roof='tan'),
     'plain-egypt': dict(wall='lime', roof='nile-mud'),
+    'pueblo': dict(wall='pueblo', roof='pueblo-roof'),
+    'plain-pueblo': dict(wall='pueblo', roof='pueblo-roof'),
 }
-REGIONS = ('catal', 'mesopotamia', 'egypt', 'indus', 'levant')
+REGIONS = ('catal', 'mesopotamia', 'egypt', 'indus', 'levant', 'pueblo')
 HW, HW2 = 50, 92
 DOOR = (20, 38)
 
@@ -515,16 +552,21 @@ def block(c, x0, x1, base, hw, depth, look, seed, beams_=True):
             worn = 4 + int(h2(x // 4, 5, seed) * 5) + (3 if h2(x // 9, 6, seed) > 0.7 else 0)
             for y in range(base - worn, base + 1):
                 c.p(x, y, P(nm, 3 if y > base - worn else 4))
+    elif look.endswith('pueblo'):
+        # Chaco's masonry stood bare or under mud plaster; seeds choose.
+        wall(c, x0, x1, top, base, wp, coursed(seed) if seed % 3 else plaster(seed), seed=seed)
     else:
         wall(c, x0, x1, top, base, wp, plaster(seed), seed=seed)
     deck_top = deck(c, x0, x1, top, depth, rp, seed, rp if look == 'indus' else wp)
     if beams_ and look in ('mesopotamia', 'levant', 'egypt'):
         beams(c, x0, x1, top + 8, wp, 12 if look != 'egypt' else 14, seed)
+    if look.endswith('pueblo'):
+        beams(c, x0, x1, top + 7, wp, 13, seed)
     return deck_top, top
 
 
 def sprinkle_bare(c, x0, x1, top, base, look, seed, n=1):
-    if look in ('indus',):
+    if look in ('indus', 'pueblo'):
         return
     pal = PAL[LOOKS[look]['wall']] if look != 'egypt' else PAL['nile-mud']
     for i in range(n):
@@ -577,7 +619,7 @@ def house(s):
         x0 + round(W * (0.3 if side > 0 else 0.7))
     if look == 'levant' and size != 'small':
         dcx = mx0 + span // 2
-    dkind = 'mat' if look == 'mesopotamia' and seed % 3 == 0 else 'plank'
+    dkind = 'mat' if look == 'mesopotamia' and seed % 3 == 0 else 'T' if look == 'pueblo' else 'plank'
     lintel = {'egypt': 'painted', 'levant': 'stone', 'indus': 'log'}.get(look, 'log')
     paint = PAL['blue'] if look == 'egypt' and seed % 3 == 1 else None
     info.update(door(c, dcx, base - 2, DOOR[0], DOOR[1], wp, dkind, paint, lintel))
@@ -596,6 +638,13 @@ def house(s):
         wins = [dcx + side * 34]
     elif look == 'levant':
         wins = [mx0 + span - 22 if side > 0 else mx0 + 10]
+    if look == 'pueblo':
+        for wx in ([dcx + side * 26] + ([dcx - side * 34] if size != 'small' else [])):
+            if mx0 + 6 < wx < mx1 - 14:
+                window(c, wx, base - hw + 16, 8, 8, wp, 'none')
+        if size != 'small':
+            lx = mx1 - 22 if side < 0 else mx0 + 10
+            ladder(c, lx, base - hw - 10, base, 4)
     for wx in wins:
         if wx and mx0 + 6 < wx < mx1 - 18:
             window(c, wx, wy if not tall else base - hw + 14, 12, 12, wp, 'grille')
@@ -691,7 +740,7 @@ def roof_life(c, s, x0, x1, deck_top, eave, look, size, info):
         jar(c, x1 - 12 if side > 0 else x0 + 12, eave - 6, 3, 7)
         info['smoke'] = [[x1 - 22 if side > 0 else x0 + 22, deck_top - 2, 'vent']]
         return
-    if size != 'small' and look in ('mesopotamia', 'egypt', 'indus', 'levant'):
+    if size != 'small' and look in ('mesopotamia', 'egypt', 'indus', 'levant', 'pueblo'):
         rw = 40 if size == 'medium' else 48
         r0 = x1 - rw - 6 if side > 0 else x0 + 6
         roof_room(c, r0, r0 + rw, eave - 8, look, seed)
@@ -704,6 +753,8 @@ def roof_life(c, s, x0, x1, deck_top, eave, look, size, info):
         a0 = free0 if side > 0 else free1 - aw
         arish(c, a0, a0 + aw, eave - 6, 10, 5)
         rest0, rest1 = (a0 + aw + 3, free1) if side > 0 else (free0, a0 - 3)
+    elif look == 'pueblo':
+        rest0, rest1 = free0, free0
     else:
         rest0, rest1 = free0, free1
     if rest1 - rest0 > 20:
@@ -715,6 +766,12 @@ def roof_life(c, s, x0, x1, deck_top, eave, look, size, info):
     if look == 'levant':
         roller(c, x1 - 26 if side < 0 else x0 + 8, deck_top + 4)
     hx = x1 - 12 if side > 0 else x0 + 12
+    if look == 'pueblo':
+        # Rooms below are entered from the roof as well as through the door.
+        hatch(c, (free0 + free1) // 2 if size != 'small' else hx, mid + 1)
+        if size == 'small':
+            info['smoke'] = [[hx, deck_top - 2, 'vent']]
+            return
     if size == 'small':
         ladder(c, hx - 4, deck_top - 8, eave - 6, 0)
         smoke.append([hx - 12 * side, deck_top - 1, 'vent'])
@@ -753,6 +810,10 @@ def roof_room(c, x0, x1, base, look, seed):
                     c.p(x, y, PAL['reed'][3 if (x - x0) % 2 else 4])
         c.rect(x0, top + 5, x1 - x0, 1, wood[1]); c.rect(x0, base - 5, x1 - x0, 1, wood[4])
         deck(c, x0 - 2, x1 + 2, top + 2, 16, PAL['tan'], seed + 9)
+        return
+    if look == 'pueblo':
+        block(c, x0, x1, base, hw, 16, 'plain-pueblo', seed + 9)
+        door(c, (x0 + x1) // 2 + (6 if seed % 2 else -6), base, 10, 20, rp, 'T', lintel=None)
         return
     block(c, x0, x1, base, hw, 16, 'plain-' + look, seed + 9, beams_=False)
     dx = x0 + 6 if seed % 2 else x1 - 20
@@ -874,6 +935,9 @@ ABOUT = {
     'levant': ('Mud-brick house',
                'A mud-brick house on a footing of fieldstones. Animals are stabled in the bay behind the stone '
                'pillars, and a stone roller on the roof packs the mud down after rain.'),
+    'pueblo': ('Pueblo roomblock',
+               'Rooms of coursed sandstone or adobe under flat roofs on log beams, stepped back storey above '
+               'storey. Ladders reach the upper rooms, and the lower ones can be entered through hatches in the roof.'),
     'mesopotamia': ('Mud-brick house',
                     'A mud-brick house with a flat roof on palm-log beams. People work and sleep on the roof in '
                     'summer, in the shade of a reed mat.'),
@@ -911,7 +975,7 @@ def game_recipes(recipes):
             v = int(m.group(1) or m.group(3))
             fw = r['footprint'][0]
             recipes[name] = frame(r, 'mesopotamia', size, fw, spec('mesopotamia', size, v, fw))
-    for look in ('catal', 'egypt', 'indus', 'levant'):
+    for look in ('catal', 'egypt', 'indus', 'levant', 'pueblo'):
         for size, v, fw in VARIANTS:
             recipes[f'house-mudbrick-{look}-{size}-{v}'] = frame(src, look, size, fw, spec(look, size, v, fw))
 

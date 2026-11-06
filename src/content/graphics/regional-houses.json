@@ -607,7 +607,33 @@
     "burmese": {"label": "Burmese", "roofMaterial": "palm-thatch"},
     "andean-highland": {"label": "Andean highland", "roofMaterial": "ichu-thatch"},
     "cusco": {"label": "Cusco", "roofMaterial": "ichu-thatch"},
-    "polynesian": {"label": "Polynesian", "roofMaterial": "pandanus-thatch"}
+    "polynesian": {"label": "Polynesian", "roofMaterial": "pandanus-thatch"},
+    "swahili": {"label": "Swahili coral stone", "roofMaterial": "earth"},
+    "hidmo": {"label": "Tigray hidmo", "roofMaterial": "earth"},
+    "khmer": {"label": "Khmer", "roofMaterial": "palm-thatch"},
+    "thai": {"label": "Central Thai", "roofMaterial": "palm-thatch"},
+    "vietnamese": {"label": "Red River delta", "roofMaterial": "thatch"},
+    "malay": {"label": "Malay", "roofMaterial": "palm-thatch"},
+    "filipino": {"label": "Bahay kubo", "roofMaterial": "palm-thatch"},
+    "moche": {"label": "North coast adobe", "roofMaterial": "earth"},
+    "samoan": {"label": "Samoan fale", "roofMaterial": "pandanus-thatch"},
+    "maori": {"label": "Māori whare", "roofMaterial": "thatch"},
+    "tukul": {"label": "Ethiopian tukul", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "drum", "form": ["roundhouse"], "wall": ["stone", "mud"], "thatch": ["straw-old", "straw"]}},
+    "daga": {"label": "Shona daga house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "drum", "form": ["rondavel"], "wall": ["mud"], "thatch": ["straw", "straw-old"], "band": ["red", null]}},
+    "nguni": {"label": "Nguni beehive house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["beehive"], "cover": ["grass"], "gear": [["hearth"], []]}},
+    "mississippian": {"label": "Mississippian house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "mississippian"}},
+    "tuareg": {"label": "Tuareg tent", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["dome"], "cover": ["hide"], "gear": [["hearth"], []]}},
+    "fulani": {"label": "Fulani mat house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["dome"], "cover": ["mat"], "gear": [["hearth"], []]}},
+    "sami": {"label": "Sámi lavvu", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["cone"], "cover": ["hide-pale", "canvas"], "gear": [["hearth"], ["rack"], []]}},
+    "nenets": {"label": "Nenets chum", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["cone"], "cover": ["hide"], "gear": [["rack"], ["sled"], []]}},
+    "evenki": {"label": "Evenki chum", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["cone"], "cover": ["bark-paper"], "gear": [["rack"], []]}},
+    "plains": {"label": "Plains tipi", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["cone"], "cover": ["hide-pale"], "painted": [true, false], "gear": [["hearth"], []]}},
+    "bedouin": {"label": "Bedouin black tent", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "black-tent", "look": ["bedouin"]}},
+    "tibetan": {"label": "Tibetan black tent", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "black-tent", "look": ["tibetan"]}},
+    "zapotec": {"label": "Zapotec and Mixtec (Oaxaca)", "mesoamerican": true, "wall": "lime-plaster", "roofMaterial": "earth", "surfaceTreatments": ["lime", "red", "bare-adobe", "lime"], "parapetStyles": ["plain"], "friezes": ["bands"], "doorFrames": ["timber", "moulded"], "windowStyle": "vent", "wallStyles": ["daub-stone", "cane", "daub"], "thatchForms": ["hip"], "roofFeatures": ["jars", "mat", "none"], "dado": true, "palette": {"plaster": ["#3d3438", "#6c625e", "#9f9488", "#cdc0a8", "#e9dcc0", "#faf0da"], "red": ["#3a1418", "#6a1e22", "#9a2e2a", "#c4462e", "#de6e42", "#f09a66"], "stone": ["#2a2422", "#4a403a", "#6e6254", "#948470", "#b6a68c", "#d2c4aa"], "adobe": ["#3a2a24", "#624434", "#8a6446", "#ae845e", "#cca478", "#e4c296"], "ochre": ["#3d2a24", "#6c462e", "#9e6838", "#c88e48", "#e2b25e", "#f4d488"], "thatch": ["#2e2219", "#523a20", "#7e5e2a", "#aa863a", "#d0ac52", "#ecd282"], "thatch-old": ["#2a2420", "#4a3e30", "#6e6046", "#928462", "#b2a47e", "#cec29e"], "timber": ["#2a1b16", "#4a3020", "#70492c", "#98683c", "#bd8c52", "#dcb277"], "accent": ["#2a1430", "#4a2448", "#6e3a62", "#94567e", "#b87a9c", "#d8a6be"]}},
+    "purepecha": {"label": "Purépecha (Michoacán)", "mesoamerican": true, "wall": "lime-plaster", "roofMaterial": "shingle", "surfaceTreatments": ["lime", "red", "bare-adobe", "lime"], "parapetStyles": ["plain"], "friezes": ["bands"], "doorFrames": ["timber"], "windowStyle": "vent", "wallStyles": ["daub"], "thatchForms": ["hip"], "roofFeatures": ["jars", "mat", "none"], "dado": false, "palette": {"plaster": ["#3a3436", "#68605c", "#9a9086", "#c8bea8", "#e4dac2", "#f6eedc"], "red": ["#3a1418", "#6a1e22", "#9a2e2a", "#c4462e", "#de6e42", "#f09a66"], "stone": ["#262424", "#444040", "#666058", "#8a8274", "#aca290", "#cac0ac"], "adobe": ["#3a2a24", "#624434", "#8a6446", "#ae845e", "#cca478", "#e4c296"], "ochre": ["#3d2a24", "#6c462e", "#9e6838", "#c88e48", "#e2b25e", "#f4d488"], "thatch": ["#2a201a", "#4a3424", "#6e4e32", "#946c44", "#b68c5a", "#d2ac78"], "thatch-old": ["#262220", "#423a34", "#62584c", "#847866", "#a49882", "#c2b8a2"], "timber": ["#24170f", "#422a1a", "#644026", "#885a34", "#a87646", "#c6965e"], "accent": ["#16263a", "#24405c", "#345e7e", "#4c80a0", "#70a2be", "#a0c6da"]}},
+    "byzantine": {"label": "Byzantine", "wall": "field-stone", "roofMaterial": "pantile"},
+    "rus": {"label": "Rus", "wall": "weatherboard", "roofMaterial": "shingle"}
   },
   "sinoPalette": {
     "tile": ["#22262d", "#363c45", "#4e5561", "#6a727d", "#8a929a", "#aeb4b8"],
@@ -900,7 +926,7 @@
     "meso-jacal": {
       "source": "house-mudbrick-ob-0",
       "label": "Jacal",
-      "profiles": ["nahua", "maya"],
+      "profiles": ["nahua", "maya", "zapotec", "purepecha"],
       "function": "farm-household",
       "description": "A pole-framed house with cane or daubed walls under a thatched roof: the ordinary Mesoamerican dwelling, often with a shade ramada at one end. Regional walls, thatch and trim are profile-driven; illustrative.",
       "sizes": {
@@ -912,7 +938,7 @@
     "meso-terrace": {
       "source": "house-mudbrick-ob-0",
       "label": "Flat-roofed house",
-      "profiles": ["nahua", "maya"],
+      "profiles": ["nahua", "maya", "zapotec"],
       "function": "town-household",
       "description": "Adobe or masonry rooms under a flat beam-and-mortar roof, plastered and painted; the largest stand on a platform reached by a stair. Parapets, friezes and door frames are profile-driven; illustrative.",
       "sizes": {
@@ -924,7 +950,7 @@
     "meso-service": {
       "source": "house-mudbrick-ob-0",
       "label": "Granary and sweat bath",
-      "profiles": ["nahua", "maya"],
+      "profiles": ["nahua", "maya", "zapotec", "purepecha"],
       "function": "granary",
       "description": "Household service buildings: the bellied clay granary on a stone footing, and the temazcal sweat bath with its firebox. Illustrative.",
       "sizes": {
@@ -934,7 +960,7 @@
     "africa-house": {
       "source": "house-cottage-timber-0",
       "label": "West and Central African house",
-      "profiles": ["kongo", "kay", "sahel"],
+      "profiles": ["kongo", "kay", "sahel", "swahili", "hidmo"],
       "function": "household",
       "description": "Kongo mat-walled houses under grass thatch, the limewashed Haitian kay with its gallery, and the banco houses of the Sahel. Front-on.",
       "sizes": {
@@ -946,7 +972,7 @@
     "seasia-house": {
       "source": "house-cottage-timber-0",
       "label": "Southeast Asian stilt house",
-      "profiles": ["javanese", "burmese"],
+      "profiles": ["javanese", "burmese", "khmer", "thai", "vietnamese", "malay", "filipino"],
       "function": "household",
       "description": "A house raised on posts with a ladder to the door: woven bamboo under a saddle-ridged palm roof in Java, teak under hipped thatch in Burma. Front-on.",
       "sizes": {
@@ -957,7 +983,7 @@
     "andes-house": {
       "source": "house-cottage-timber-0",
       "label": "Andean house",
-      "profiles": ["andean-highland", "cusco"],
+      "profiles": ["andean-highland", "cusco", "moche"],
       "function": "household",
       "description": "Fieldstone or fitted ashlar under steep ichu thatch, with trapezoidal doorways and niches. Front-on.",
       "sizes": {
@@ -969,12 +995,57 @@
     "pacific-house": {
       "source": "house-cottage-timber-0",
       "label": "Polynesian fare",
-      "profiles": ["polynesian"],
+      "profiles": ["polynesian", "samoan", "maori"],
       "function": "household",
       "description": "A great hipped roof of pandanus thatch over walls of upright reeds. Front-on.",
       "sizes": {
         "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 24200, "roofPlan": "ridge", "roofAccess": "none"},
         "medium": {"footprint": [6, 4], "entrance": 3, "stories": 1, "variants": 3, "seedOffset": 24600, "roofPlan": "ridge", "roofAccess": "none"}
+      }
+    },
+    "hut-house": {
+      "source": "study-timber",
+      "label": "Round and thatched house",
+      "profiles": ["tukul", "daga", "nguni", "mississippian"],
+      "function": "household",
+      "description": "A household's house of earth, stone or grass under thatch: the Ethiopian tukul, the Shona daga house, the Nguni beehive and the Mississippian wattle-and-daub house. Front-on; illustrative.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 25000, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [0, 1]},
+        "medium": {"footprint": [5, 4], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 25200, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [1, 2]}
+      }
+    },
+    "pastoral-tent": {
+      "source": "study-timber",
+      "label": "Herders' tent",
+      "profiles": ["tuareg", "fulani", "sami", "nenets", "evenki", "plains"],
+      "function": "herding-household",
+      "description": "A family's tent that moves with the herd: Tuareg leather, Fulani mats, Sámi and Siberian cones of hide, cloth or bark, the Plains tipi. Front-on; illustrative.",
+      "sizes": {
+        "small": {"footprint": [3, 3], "entrance": 1, "stories": 1, "variants": 3, "seedOffset": 25400, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [0, 1]},
+        "medium": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 25600, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [1, 2]}
+      }
+    },
+    "black-tent": {
+      "source": "study-timber",
+      "label": "Black tent",
+      "profiles": ["bedouin", "tibetan"],
+      "function": "herding-household",
+      "description": "A long tent of goat- or yak-hair strips on a row of poles, guyed out to pegs, open to the front by day. Front-on; illustrative.",
+      "sizes": {
+        "medium": {"footprint": [6, 3], "entrance": 3, "stories": 1, "variants": 3, "seedOffset": 25800, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [0, 1]},
+        "large": {"footprint": [9, 4], "entrance": 4, "stories": 1, "variants": 2, "seedOffset": 26000, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [2]}
+      }
+    },
+    "orthodox-house": {
+      "source": "house-cottage-timber-0",
+      "label": "Byzantine and Rus house",
+      "profiles": ["byzantine", "rus"],
+      "function": "household",
+      "description": "The Byzantine town house of stone banded with brick under a tiled roof, and the Rus log house. Front-on.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 26200, "roofPlan": "ridge", "roofAccess": "none"},
+        "medium": {"footprint": [6, 4], "entrance": 3, "stories": 2, "variants": 3, "seedOffset": 26400, "roofPlan": "ridge", "roofAccess": "none"},
+        "large": {"footprint": [8, 5], "entrance": 4, "stories": 2, "variants": 2, "seedOffset": 26600, "roofPlan": "ridge", "roofAccess": "none"}
       }
     }
   }
