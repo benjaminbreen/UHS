@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 from art.voxel import hexrgb, h3
-from art.voxel_trees import Tree, roots, bake
+from art.voxel_trees import Tree, roots, bake, unit
 
 np.seterr(over='ignore')
 
@@ -504,7 +504,7 @@ BAN_BUNCH = [
 ]
 
 
-def paddle(sp, pts, tf, ramp, width, tears, seed):
+def paddle(sp, pts, tf, ramp, width, tears, seed, stalk=.25, rib=2):
     """A banana leaf: a narrow petiole, then a broad oblong blade with a round
     tip and a pale midrib. Wind tears it along the veins, which run out from
     the midrib slanting toward the tip."""
@@ -521,7 +521,7 @@ def paddle(sp, pts, tf, ramp, width, tears, seed):
         if ny > 0:
             nx, ny = -nx, -ny
         normals.append((nx, ny, tx / m, ty / m))
-        u = (s - .25) / .75
+        u = (s - stalk) / (1 - stalk)
         w = 0 if u < 0 else width * max(0, 1 - (u * 2 - 1) ** 6) ** .5 * (1 + .06 * math.sin(s * 23 + seed))
         for side, half in ((1, 2), (-1, 1)):
             for d in np.arange(0, w * (1 if side > 0 else .85) + .01, .5):
@@ -545,7 +545,7 @@ def paddle(sp, pts, tf, ramp, width, tears, seed):
         k = tf - 2 if edge[y, x] else tf if mask[y, x] == 2 else tf - 1
         sp.idx[y, x] = ramp[max(0, k)]
     for j, (x, y) in enumerate(pts[:int(n * .94)]):
-        sp.put(x, y, ramp[min(7, tf + 2)] if j > n * .25 else ramp[tf - 1])
+        sp.put(x, y, ramp[min(7, tf + rib)] if j > n * stalk else ramp[tf - 1])
 
 
 def banana(seed):
@@ -615,6 +615,151 @@ def banana(seed):
                      18: 18, 19: 18, 20: 18, 21: 21, 22: 21, 23: 21})
 
 
+MAHOGANY_PAL = [
+    '#0a1c12', '#123220', '#1c4a26', '#2a642c', '#3e7e32', '#5e9a3a', '#9cc05a',
+    '#2a1d16', '#4a342a', '#6c4e3c', '#8f6b52', '#b38c6c',
+]
+
+
+def mahogany_model(seed, bare=False):
+    """An emergent of the rainforest (mahogany, African khaya, Asian meranti):
+    plank buttresses, a long clean bole, and a broad flat-topped crown of a
+    few spreading limbs held above the canopy."""
+    t = Tree(seed, bare)
+    rng = t.rng
+    for k in range(5):
+        a = k * 2 * math.pi / 5 + rng.uniform(-.3, .3)
+        reach = rng.uniform(9, 13)
+        for h in range(5):
+            t.caps.append(((0, 0, 22 - h * 4), (math.cos(a) * (4 + reach * h / 4), math.sin(a) * (4 + reach * h / 4), 0), 2.2, 1.2))
+    top, _ = t.limb((0, 0, 0), (0, 0, 1), 74, 5.2, 3.6, wobble=.015, segs=6)
+    for i in range(5):
+        a = i * 2 * math.pi / 5 + rng.uniform(-.4, .4)
+        tip, _ = t.limb(top, (math.cos(a), math.sin(a), .55), 24, 3, 1.3, wobble=.08)
+        t.spray(tip + (0, 0, 3), 5, 7, 9, .45)
+    t.clumps.append(((top[0], top[1], top[2] + 9), 13, .45))
+    return t, dict(leaf=LEAF_IDS, bark=BARK_IDS, ragged=.3, bounds=[c for c, *_ in t.clumps])
+
+
+def mahogany(seed, angle):
+    sp = paintover(bake(mahogany_model, seed, (128, 176), angle), LEAF, BARK, seed, spacing=4.2, sparkle=.25)
+    sp.pal = MAHOGANY_PAL
+    return sp.image({**{k: 0 for k in LEAF}, **{k: 7 for k in BARK}})
+
+
+FIG_PAL = [
+    '#081a16', '#0f2e22', '#18452c', '#246034', '#367c3a', '#5a9a40', '#a6c868',
+    '#34342f', '#55554d', '#7a7a70', '#a09f92', '#c6c4b4',
+    '#4a140f', '#a83a24', '#e88038',
+]
+FIG_FRUIT = [".o.", "oRo", "oOR", ".o."]
+
+
+def fig_model(seed, bare=False):
+    """A wild fig: several stems braided into one pale fluted trunk, a few
+    aerial roots, and a low, dense, glossy dome far wider than it is tall."""
+    t = Tree(seed, bare)
+    rng = t.rng
+    roots(t, 6)
+    fork = np.array([0., 0, 20])
+    for k in range(4):
+        a = k * math.pi / 2 + rng.uniform(-.3, .3)
+        t.caps.append(((math.cos(a) * 5, math.sin(a) * 5, 0), tuple(fork + (math.cos(a + 1) * 2, math.sin(a + 1) * 2, 0)), 3.2, 2.6))
+    masses = []
+    for i in range(9):
+        a = i * 2.39996 + rng.uniform(-.2, .2)
+        rr = 30 * math.sqrt((i + .5) / 9)
+        tip, _ = t.limb(fork, (math.cos(a), math.sin(a), .5), rr * .8, 2.8, 1.2, wobble=.1)
+        masses.append(tip)
+        t.clumps.append(((tip[0], tip[1], 30 + 10 * (1 - rr / 30) + rng.uniform(-2, 2)), 13, .62))
+    return t, dict(leaf=LEAF_IDS, bark=BARK_IDS, ragged=.25, bounds=[c for c, *_ in t.clumps])
+
+
+def fig(seed, angle):
+    im = bake(fig_model, seed, (128, 112), angle)
+    sp = paintover(im, LEAF, BARK, seed, spacing=3.0, sparkle=.55)
+    sp.pal = FIG_PAL
+    L, _ = bands(im)
+    rng = np.random.default_rng(seed + 3)
+    ys, xs = np.nonzero(L >= 3)
+    for _ in range(9):
+        k = rng.integers(len(xs))
+        sp.stamp(FIG_FRUIT, xs[k] - 1, ys[k] - 1, {'o': 12, 'R': 13, 'O': 14})
+    return sp.image({**{k: 0 for k in LEAF}, **{k: 7 for k in BARK}, **{k: 12 for k in (12, 13, 14)}})
+
+
+UMBRELLA_PAL = [
+    '#0c2412', '#163c1a', '#225a22', '#33782a', '#4f9632', '#78b23e', '#a8cc5c', '#dcea96',
+    '#3a4a3c', '#6e8070', '#a4b4a2', '#d2dccc',
+    '#2c2a26', '#4e4a42', '#76705f', '#a29a84', '#ccc4ac',
+]
+UM_LEAF = list(range(8))
+UM_SILVER = [8, 8, 8, 9, 9, 10, 11, 11]
+UM_BARK = list(range(12, 17))
+
+
+def umbrella_tree(seed):
+    """The pioneer that first fills a clearing (cecropia, musanga, macaranga):
+    a slim pale ringed stem on stilt roots, a few candelabra arms, and at each
+    tip a rosette of huge palmate leaves, the old ones hanging silver side out."""
+    W, H = 128, 156
+    sp = Sprite((W, H), UMBRELLA_PAL)
+    rng = np.random.default_rng(seed)
+    foot = (W / 2 + rng.uniform(-3, 3), H - 3)
+    lean = rng.uniform(-.08, .08)
+    top_y = 44
+    stem = [(foot[0] + lean * (foot[1] - y), y) for y in range(int(foot[1]), top_y, -1)]
+
+    def wood(pts, w0, w1):
+        for i, (x, y) in enumerate(pts):
+            w = w0 + (w1 - w0) * i / max(1, len(pts) - 1)
+            for dx in range(-int(w), int(w) + 1):
+                u = dx / max(w, 1)
+                k = 3 if u < -.3 else 2 if u < .4 else 1
+                if i % 6 == 0:
+                    k -= 1
+                sp.put(x + dx, y, UM_BARK[k])
+
+    for k in (-1, 1, rng.choice([-1, 1]) * .4):
+        root = _line((foot[0] + k * 11, foot[1]), (foot[0] + k * 1.5, foot[1] - 15 - abs(k) * 2))
+        wood(root, 1, 1)
+    wood(stem, 3, 1.8)
+    tips = [stem[-1]]
+    for i, side in enumerate(rng.permutation([-1, 1, 1, -1])[:3]):
+        y0 = top_y + 16 + i * 11 + rng.uniform(-2, 2)
+        x0 = foot[0] + lean * (foot[1] - y0)
+        out = rng.uniform(16, 24)
+        arm = [(x0 + side * out * math.sin(min(1, s * 1.6) * math.pi / 2), y0 - s * s * rng.uniform(14, 20)) for s in np.linspace(0, 1, 26)]
+        wood(arm, 1.4, 1)
+        tips.append(arm[-1])
+    rosettes = []
+    for (tx, ty) in tips:
+        for j in range(6):
+            yaw = j * 1.05 + rng.uniform(-.2, .2)
+            age = j % 3 / 2
+            depth = math.sin(yaw)
+            pet = _rachis((tx, ty), yaw, .9 - age * 1.9, 9 + age * 3, .4)
+            rosettes.append((ty, depth, pet, age))
+    rosettes.sort(key=lambda r: (r[0] > top_y + 4, -r[1]))
+    for k, (ty, depth, pet, age) in enumerate(rosettes):
+        for x, y in pet:
+            sp.put(x, y, UM_LEAF[2])
+        (cx, cy) = pet[-1]
+        silver = age > .7
+        ramp = UM_SILVER if silver else UM_LEAF
+        tf = 5 if silver else int(np.clip(round(4.4 - depth * .9), 3, 6))
+        head = math.atan2(pet[-1][1] - pet[-2][1], pet[-1][0] - pet[-2][0])
+        lobes = sorted(range(-3, 4), key=lambda i: abs(i))[::-1]
+        for i in lobes:
+            a = head + i * .52
+            L = 14 - abs(i) * 1.6 + rng.uniform(-1, 1)
+            if silver:
+                a = math.pi / 2 + i * .36
+            pts = [(cx + math.cos(a) * d, cy + math.sin(a) * d * (.75 if not silver else 1)) for d in np.linspace(0, L, int(L * 1.6))]
+            paddle(sp, pts, tf, ramp, 2.3, 0, seed * 90 + k * 7 + i, stalk=.15, rib=1)
+    return sp.image({**{k: 0 for k in UM_LEAF}, **{k: 8 for k in range(8, 12)}, **{k: 12 for k in UM_BARK}})
+
+
 def _pad(im):
     out = Image.new('RGBA', (im.width + 4, im.height + 3))
     out.paste(im, (2, 2))
@@ -631,4 +776,10 @@ def tropical_trees():
         'nature-oil-palm-2': oil_palm(8),
         'nature-banana': banana(4),
         'nature-banana-2': banana(9),
+        'nature-mahogany': mahogany(2, 0),
+        'nature-mahogany-2': mahogany(7, 150),
+        'nature-fig': fig(3, 0),
+        'nature-fig-2': fig(5, 120),
+        'nature-umbrella-tree': umbrella_tree(4),
+        'nature-umbrella-tree-2': umbrella_tree(11),
     }.items()}

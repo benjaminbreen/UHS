@@ -297,7 +297,7 @@ const westAsian: YardKit = {
   id: "west-asian",
   front: [2, 3],
   styles: { wrap: 0.7, side: 0.25, open: 0.05 },
-  tree: { sprites: ["nature-feather-palm"], chance: 0.5 },
+  tree: { sprites: ["nature-date-palm"], chance: 0.5 },
 };
 
 /** Before iron: wattle hurdles round a plot of emmer or pulses, a trough, a

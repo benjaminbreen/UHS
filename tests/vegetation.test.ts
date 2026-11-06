@@ -94,7 +94,7 @@ it("keeps cold, dry, freshwater and regional flora distinct", () => {
         land,
         r,
       ),
-    ).toMatch(/tropical|palm/);
+    ).toMatch(/tropical|palm|mahogany|fig|umbrella/);
   }
   expect(
     vegetationTree(

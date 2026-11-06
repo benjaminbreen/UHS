@@ -12,6 +12,7 @@ from art.habitat_plants import habitat_plants
 from art.regional_trees import regional_trees
 from art.village_trees import village_trees
 from art.tropical_trees import tropical_trees
+from art.forest_trees import forest_trees
 from art.succulents import succulent_shrubs, succulent_trees
 from art.fungi import fungi
 from art.dung import dung
@@ -382,7 +383,7 @@ if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-t
             assert len(im.getcolors(im.width*im.height)) <= 24
             im.save(out/f'{name}.png')
     if '--village-trees' in sys.argv or '--tropical-trees' in sys.argv:
-        changed.update(village_trees() if '--village-trees' in sys.argv else tropical_trees())
+        changed.update(village_trees() if '--village-trees' in sys.argv else {**tropical_trees(), **forest_trees()})
         for name,im in changed.items():
             assert set(im.getchannel('A').getdata()) <= {0,255},name
             assert len(im.getcolors(im.width*im.height)) <= 24,name
@@ -498,7 +499,7 @@ if '--tree-abc' in sys.argv:
         print(f'wrote {review/species}-abc.png', flush=True)
     raise SystemExit(0)
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **village_trees(), **tropical_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **historical_containers()}
+sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **village_trees(), **tropical_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **historical_containers(), **forest_trees()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name

@@ -83,7 +83,7 @@ const rules: readonly LandmarkRule[] = [
   },
   {
     bounds: [34, 29, 50, 34],
-    common: "nature-feather-palm",
+    common: "nature-date-palm",
     status: "inferred",
     note: "Lowland Mesopotamian and Levantine villages are drawn with a date palm at the well.",
   },
@@ -96,8 +96,8 @@ const rules: readonly LandmarkRule[] = [
   },
   {
     bounds: [-17, 15, 60, 32],
-    common: "nature-feather-palm",
-    shrine: "nature-feather-palm",
+    common: "nature-date-palm",
+    shrine: "nature-date-palm",
     status: "inferred",
     note: "North African and Arabian villages are drawn with a date palm at the well and mosque.",
   },

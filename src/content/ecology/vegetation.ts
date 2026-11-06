@@ -58,7 +58,12 @@ const palm = "nature-feather-palm",
   fir = "nature-douglas-fir",
   cedar = "nature-cedar",
   cypress = "nature-cypress",
-  mangrove = "nature-mangrove";
+  mangrove = "nature-mangrove",
+  beech = "nature-beech",
+  datePalm = "nature-date-palm",
+  mahogany = "nature-mahogany",
+  fig = "nature-fig",
+  umbrella = "nature-umbrella-tree";
 export const natureTreeSprites = [
   oak,
   olive,
@@ -100,6 +105,11 @@ export const natureTreeSprites = [
   "nature-coconut-palm",
   "nature-banana",
   "nature-mango",
+  beech,
+  datePalm,
+  mahogany,
+  fig,
+  umbrella,
 ];
 type Mix = readonly (readonly [string, number])[];
 const north: Mix = [
@@ -108,13 +118,18 @@ const north: Mix = [
   [birch, 3],
 ];
 const temperate: Mix = [
-  [oak, 5],
-  [pine, 4],
+  [oak, 4],
+  [beech, 3],
+  [pine, 3],
   [birch, 1],
 ];
+// Emergents, figs and the pioneers of gaps, with the generic broadleaf as filler.
 const humid: Mix = [
-  [tropical, 8],
-  [palm, 2],
+  [mahogany, 3],
+  [fig, 2],
+  [umbrella, 2],
+  [tropical, 2],
+  [palm, 1],
 ];
 const mediterranean: Mix = [
   [olive, 5],
@@ -128,7 +143,7 @@ const sahel: Mix = [
 ];
 // Colourway mixes take precedence over the latitude and longitude boxes below.
 const regional: Partial<Record<Colorway, Mix>> = {
-  sahara: [[palm, 1]],
+  sahara: [[datePalm, 1]],
   "red-earth": [
     [eucalyptus, 2],
     [scrub, 3],
@@ -218,16 +233,18 @@ const regional: Partial<Record<Colorway, Mix>> = {
   "oak-hickory": [
     [oak, 5],
     [maple, 4],
+    [beech, 1],
     [pine, 1],
   ],
   "east-asian": [
     [maple, 4],
     [oak, 3],
+    [beech, 1],
     [pine, 2],
     ["nature-bamboo-clump", 1],
   ],
   "southern-beech": [
-    [oak, 4],
+    [beech, 4],
     [eucalyptus, 3],
     [pine, 2],
   ],
@@ -257,13 +274,14 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [oak, 3],
   ],
   papyrus: [
-    [palm, 4],
+    [datePalm, 4],
     [thorn, 2],
     [tropical, 2],
   ],
   pantanal: [
     [palm, 5],
-    [tropical, 4],
+    [fig, 2],
+    [tropical, 2],
   ],
   bog: [
     [spruce, 5],
@@ -275,7 +293,9 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [palm, 1],
   ],
   swamp: [
-    [tropical, 7],
+    [fig, 3],
+    [umbrella, 2],
+    [tropical, 2],
     [palm, 3],
   ],
 };
@@ -308,10 +328,7 @@ export function treeMix(s: WorldSetting): Mix {
         ["nature-bamboo-clump", 2],
         [palm, 0.3],
       ];
-    return [
-      [tropical, 12],
-      [palm, 1],
-    ];
+    return humid;
   }
   switch (s.environment?.ecology) {
     case "tundra":
