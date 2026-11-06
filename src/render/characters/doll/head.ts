@@ -2,7 +2,7 @@ import type { CharacterAppearance } from "../../../core/character";
 import type { RestingExpression } from "../../../core/persona";
 import {
   H, W,
-  BLUSH, DECO, EYE, GLASS, HAIR, HAT, IRIS, LIP, MARK, METAL, Mask, ORN, PLUME, SKIN, STUBBLE, TRIM, WHITE,
+  BLUSH, BOOT, DECO, EYE, GLASS, HAIR, HAT, IRIS, LIP, MARK, METAL, Mask, ORN, PLUME, SKIN, STUBBLE, TRIM, WHITE,
   type Sheet,
 } from "./paint";
 import { luma } from "../v2/pixels";
@@ -64,7 +64,7 @@ const jaws: Record<NonNullable<CharacterAppearance["jaw"]>, [number, number][]> 
 const hides = {
   all: new Set(["hood", "headscarf", "veil", "wrap", "turban", "wig", "helmet", "kabuto", "jaguar", "eagle"]),
   top: new Set(["cap", "bowler", "flat-cap", "ball-cap", "brimmed", "conical", "fez", "top-hat", "nasal", "kettle", "official-cap",
-    "fedora", "boater", "cloche", "beret", "kerchief"]),
+    "fedora", "boater", "cloche", "beret", "kerchief", "peaked-cap", "pith-helmet"]),
 };
 
 function hash(s: string) {
@@ -747,7 +747,7 @@ function nape(h: Head, last: number) {
 /** Brim row and how far its shade reaches down the face, counting the brim's own line. */
 const brims: Partial<Record<CharacterAppearance["wearing"]["headwear"], [number, number]>> = {
   brimmed: [2, 4], conical: [2, 4], "top-hat": [2, 3], bowler: [3, 3], "flat-cap": [3, 3], "ball-cap": [3, 3], kettle: [2, 3], kabuto: [2, 2],
-  fedora: [2, 3], boater: [2, 3], cloche: [4, 1],
+  fedora: [2, 3], boater: [2, 3], cloche: [4, 1], "pith-helmet": [2, 3],
 };
 
 /** The brim's upper face catches the light, and the face under it is in shade;
@@ -863,6 +863,23 @@ function headwear(h: Head, lo: number) {
       k.span(-1, 4, 9).rows(0, [[2, 11], [1, 12], [1, 12]]);
       if (sideways) k.span(3, 10, 16);
       else if (view === "front") extra.span(3, 3, 10).span(4, 4, 9);
+      break;
+    case "peaked-cap": {
+      // The crown stands wider than the band; the peak is lacquered black.
+      k.span(-3, 1, 12).span(-2, 0, 13).span(-1, 1, 12).rows(0, [[2, 11], [2, 11], [2, 11]]);
+      extra.span(1, 2, 11).span(2, 2, 11);
+      const peak = m();
+      if (sideways) peak.span(3, 10, 15).span(2, 12, 14);
+      else if (view === "front") peak.span(3, 3, 10);
+      if (!peak.mask.empty()) s.put(peak.mask, BOOT, { ring: "ink", shade: 0, light: 0.4 });
+      break;
+    }
+    case "pith-helmet":
+      k.span(-4, 5, 8).span(-3, 3, 10).rows(-2, [[2, 11], [1, 12], [1, 12], [1, 12]]);
+      // The brim dips over the brow and the nape and stands off at the ears.
+      if (sideways) k.span(2, -2, 15).span(3, -3, -1).span(3, 14, 16);
+      else k.span(2, -1, 14).span(3, view === "front" ? 1 : -1, view === "front" ? 12 : 14);
+      extra.span(1, 1, 12);
       break;
     case "fez":
       k.span(-4, 5, 8).span(-3, 4, 9).span(-2, 4, 9).span(-1, 4, 9).span(0, 3, 10).span(1, 3, 10).span(2, 3, 10);

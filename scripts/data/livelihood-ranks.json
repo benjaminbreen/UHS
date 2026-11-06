@@ -13,7 +13,8 @@
     "hawker",
     "street-hawker",
     "costermonger",
-    "street-vendor"
+    "street-vendor",
+    "indentured-labourer"
   ],
   "middling": [
     "healer",
@@ -77,7 +78,20 @@
     "plumber",
     "electrician",
     "motor-mechanic",
-    "hairdresser"
+    "hairdresser",
+    "physician",
+    "merchant",
+    "moneylender",
+    "broker",
+    "overseer",
+    "civil-servant",
+    "engineer",
+    "journalist",
+    "scientist",
+    "programmer",
+    "navigator",
+    "jeweller",
+    "notary"
   ],
   "gentry": [
     "guild-master",
@@ -85,6 +99,9 @@
     "village-elder",
     "tax-collector",
     "toll-keeper",
-    "religious-specialist"
+    "religious-specialist",
+    "banker",
+    "shipowner",
+    "comprador"
   ]
 }

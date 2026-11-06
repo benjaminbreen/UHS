@@ -141,6 +141,7 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
     at(1875, [128, 30, 146, 46]),
     at(1880, [20, 40, 60, 62]),
     at(1895, EAST_ASIA),
+    at(1880, [-120, -56, -30, 33]),
     at(1920),
   ],
   railways: [
@@ -170,6 +171,107 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
   // çırak; Chinese and Japanese trade guilds. Not the hereditary crafts of
   // India, Benin or the calpolli.
   "journeymen": [at(1150, EUROPE), at(1450, [20, 28, 50, 45]), at(1000, [100, 18, 125, 45]), at(1600, [128, 30, 146, 46]), ...colonial],
+  // Cane boiled down for export: Madeira and São Tomé, then Brazil, the
+  // Caribbean, Louisiana, the Mascarenes, Java, Natal, Fiji and Hawaii.
+  sugar: [
+    at(1450, [-18, 0, 8, 33], 1650),
+    at(1540, [-45, -25, -34, -3], 1950),
+    at(1640, [-86, 10, -59, 24]),
+    at(1795, [-94, 28, -88, 32], 1950),
+    at(1730, [55, -22, 58, -19]),
+    at(1830, [105, -9, 115, -5], 1960),
+    at(1850, [29, -31, 32, -27]),
+    at(1870, [176, -19, 180, -16]),
+    at(1850, [-161, 18, -154, 23], 1995),
+  ],
+  // Any export estate worked by gangs: sugar, Chesapeake tobacco, Lowcountry
+  // rice, upland cotton, Brazilian and Ceylon coffee, Assam and Ceylon tea,
+  // Malayan and Sumatran rubber.
+  plantation: [
+    at(1450, [-18, 0, 8, 33], 1650),
+    at(1540, [-55, -25, -34, -3], 1960),
+    at(1620, [-86, 10, -59, 24], 1960),
+    at(1620, [-98, 28, -74, 40], 1940),
+    at(1730, [55, -22, 58, -19]),
+    at(1830, [79, 5, 82, 10], 1980),
+    at(1840, [88, 24, 97, 28], 1980),
+    at(1830, [95, -9, 115, 6], 1960),
+    at(1850, [29, -31, 32, -27]),
+    at(1870, [176, -19, 180, -16]),
+    at(1850, [-161, 18, -154, 23], 1995),
+    at(1900, [99, 1, 105, 7], 1980),
+    at(1926, [-11, 4, -8, 8]),
+  ],
+  // Contracted Asian and Pacific labour after abolition: Indians to Mauritius,
+  // the Caribbean, Natal and Fiji; Chinese to Cuba and Peru; Javanese to
+  // Suriname; Islanders to Queensland.
+  indenture: [
+    at(1834, [55, -22, 58, -19], 1925),
+    at(1838, [-62, 5, -52, 11], 1925),
+    at(1845, [-62, 10, -60, 11], 1925),
+    at(1847, [-85, 19, -74, 23.5], 1875),
+    at(1849, [-82, -18, -75, -4], 1875),
+    at(1860, [29, -31, 32, -27], 1912),
+    at(1863, [138, -29, 154, -10], 1907),
+    at(1879, [176, -19, 180, -16], 1920),
+    at(1873, [-58, 2, -53, 6], 1940),
+    at(1840, [79, 5, 82, 10], 1940),
+    at(1880, [99, 1, 105, 7], 1940),
+  ],
+  // Hevea tapped wild on the Amazon from the vulcanisation boom, then on
+  // estates in Malaya, Sumatra, Ceylon, Indochina and Liberia.
+  rubber: [
+    at(1850, [-75, -15, -45, 5]),
+    at(1900, [95, -6, 120, 8]),
+    at(1905, [79, 5, 82, 10]),
+    at(1910, [102, 8, 108, 14]),
+    at(1926, [-11, 4, -8, 8]),
+    at(1960, [-8, 4, 10, 10]),
+  ],
+  // Oilfields: Pennsylvania, Baku, Galicia and Romania, Burma, Sumatra,
+  // Texas and California, Persia, Mexico, Venezuela, the Gulf, Alberta,
+  // Nigeria, Siberia and the North Sea.
+  oil: [
+    at(1859, [-81, 39, -78, 43], 1950),
+    at(1857, [23, 44, 27, 50]),
+    at(1872, [46, 38, 51, 42]),
+    at(1880, [94, 19, 96, 22]),
+    at(1890, [95, -5, 119, 6]),
+    at(1892, [-121, 33, -117, 36]),
+    at(1901, [-104, 26, -93, 37]),
+    at(1908, [47, 28, 52, 33]),
+    at(1910, [-99, 18, -94, 23]),
+    at(1914, [-73, 8, -70, 12]),
+    at(1932, [46, 22, 57, 30]),
+    at(1947, [-120, 50, -110, 58]),
+    at(1958, [4, 4, 8, 6]),
+    at(1965, [65, 55, 80, 65]),
+    at(1970, [-3, 56, 7, 62]),
+  ],
+  // Stored-program machines in offices and laboratories, then everywhere.
+  computers: [at(1955, [-125, 25, -60, 50]), at(1958, [-11, 36, 40, 62]), at(1962, [128, 30, 146, 46]), at(1980, [-180, -60, 180, 72])],
+  // Irregular war: the Peninsular guerrilla, the Mexican Revolution, the
+  // European resistance, the wars of decolonisation and the Central American
+  // and Afghan insurgencies.
+  insurgency: [
+    at(1808, [-10, 36, 3, 44], 1814),
+    at(1910, [-118, 14, -86, 33], 1930),
+    at(1941, [12, 36, 45, 56], 1946),
+    at(1940, [-5, 42, 8, 51], 1945),
+    at(1942, [116, 4, 127, 21], 1946),
+    at(1937, [105, 22, 125, 42], 1950),
+    at(1945, [95, -11, 141, 6], 1950),
+    at(1946, [102, 8, 110, 24], 1976),
+    at(1952, [34, -5, 42, 5], 1961),
+    at(1954, [-9, 19, 12, 37], 1963),
+    at(1956, [-85, 19, -74, 23.5], 1960),
+    at(1961, [11, -27, 41, -8], 1981),
+    at(1963, [-18, 10, -13, 13], 1975),
+    at(1960, [-92, 7, -82, 18], 1997),
+    at(1979, [60, 29, 75, 39], 1993),
+    at(1916, [34, 20, 45, 32], 1919),
+    at(1936, [33, 3, 48, 15], 1942),
+  ],
 };
 
 /** Some animal that can be milked, ridden, yoked or shorn. */

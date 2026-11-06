@@ -65,6 +65,8 @@ const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   beret: "Beret",
   kerchief: "Kerchief",
   pillbox: "Pillbox hat",
+  "peaked-cap": "Service cap",
+  "pith-helmet": "Pith helmet",
 };
 const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",

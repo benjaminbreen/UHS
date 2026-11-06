@@ -112,7 +112,8 @@ export type GarmentKit = {
 };
 /** What a person goes about with in hand. The weapons are inventory items too. */
 export type Accessory = "none" | "walking-cane" | "fan" | "spear" | "halberd" | "glaive" | "musket" | "bow" | "macuahuitl" | "crossbow" | "sling"
-  | "beads" | "alms-bowl" | "censer" | "ledger" | "water-pole" | "carrying-pole" | "lamp-pole" | "sweep-brush" | "lute" | "drum" | "flute";
+  | "beads" | "alms-bowl" | "censer" | "ledger" | "water-pole" | "carrying-pole" | "lamp-pole" | "sweep-brush" | "lute" | "drum" | "flute"
+  | "rifle" | "harpoon" | "paddle" | "scales" | "briefcase" | "doctor-bag";
 export type Motif = (typeof motifs)[number];
 export type WardrobeSlot = Exclude<
   keyof GarmentKit,

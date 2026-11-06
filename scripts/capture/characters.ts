@@ -1130,6 +1130,28 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Timbuktu", "timbuktu", 1450, ["religious-specialist", "scribe", "musician", "porter"]],
   ]),
 
+  /** Soldiers, doctors, money, estates and the twentieth century's work. */
+  professions: (page) => castSheet(page, "professions", [
+    ["Paris", "paris", 1916, ["soldier", "soldier", "physician", "typist"]],
+    ["Moscow", "area-moscow-basin", 1942, ["soldier", "guerrilla", "civil-servant", "engineer"]],
+    ["Delhi", "delhi", 1920, ["soldier", "physician", "moneylender", "rickshaw-puller"]],
+    ["Beijing", "beijing", 1960, ["soldier", "physician", "office-worker", "rickshaw-puller"]],
+    ["Mexico City", "city-mexico-city", 1914, ["guerrilla", "guerrilla", "soldier", "notary"]],
+    ["Kyoto", "kyoto", 1900, ["soldier", "courtesan", "rickshaw-puller", "banker"]],
+    ["Haiti", "haiti", 1780, ["overseer", "sugar-boiler", "field-slave", "merchant"]],
+    ["Java", "java", 1925, ["overseer", "rubber-tapper", "soldier", "money-changer"]],
+    ["Timbuktu", "timbuktu", 1450, ["griot", "caravaneer", "money-changer", "physician"]],
+    ["New York", "city-new-york", 1925, ["office-worker", "typist", "physician", "scientist"]],
+    ["London", "london", 1880, ["physician", "banker", "engineer", "journalist"]],
+    ["Polynesia", "polynesia", 1200, ["navigator", "navigator", "diviner", "Whale hunter"]],
+    ["Eastern Arctic", "eastern-arctic", 1850, ["Whale hunter", "Whale hunter", "Whaler", "sailor"]],
+    ["Niger Delta", "area-niger-delta", 1985, ["oil-worker", "oil-worker", "delivery-rider", "soldier"]],
+    ["Mumbai", "city-mumbai", 2015, ["delivery-rider", "programmer", "garment-worker", "soldier"]],
+    ["Benin City", "city-benin-city", 1500, ["bronze-caster", "jeweller", "diviner", "courier"]],
+    ["Lagos", "area-niger-delta", 1925, ["soldier", "soldier", "physician", "merchant"]],
+    ["Kenya", "area-serengeti-plain", 1955, ["guerrilla", "soldier", "soldier", "civil-servant"]],
+  ]),
+
   async accessories(page) {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
