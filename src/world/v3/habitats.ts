@@ -65,8 +65,11 @@ export function habitatAt(
     const patch = noise(seed, x, y, 42, "habitat-stand");
     const wet = clamp(d.saturation + recipe.moisture * 0.15);
     const riparian = land.kind !== "sea" ? clamp(1 - Math.max(0, land.water) / 24) : 0;
-    const cover = (1 - clearing * 0.85) * clamp(recipe.canopy + (patch - 0.5) * 0.7 + riparian * (.25 + .45 * (1-recipe.canopy)) + d.lowland * .08 - d.slope * .2 - brink * .22);
-    const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4 + brink * .14);
+    // In a dry climate the slope out of the sun keeps its moisture: trees and
+    // brush on the shaded side, open baked ground on the other.
+    const aspect = (d.shade ?? 0) * clamp((0.75 - recipe.moisture) / 0.4);
+    const cover = (1 - clearing * 0.85) * clamp(recipe.canopy + (patch - 0.5) * 0.7 + riparian * (.25 + .45 * (1-recipe.canopy)) + d.lowland * .08 - d.slope * .2 - brink * .22 + aspect * .35);
+    const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4 + brink * .14 - aspect * .1);
     const flooded = clamp((d.saturation - 0.3) / 0.3);
     let blend = land.ecologyParts;
     let murk = colorway === "swamp" ? 1 : 0;
@@ -173,7 +176,11 @@ export function habitatTree(
 export function treeGrouping(h: Habitat, ecologyAware = false) {
   if (h.site) {
     const w = h.site.weights;
-    return (w.woodland ?? 0) * 2.4 + (w["riparian-woodland"] ?? 0) * 2.6 + (w.swamp ?? 0) * 2 + (w.scrub ?? 0) * .22 + (w.bog ?? 0) * .12;
+    // Open grassland grows its trees along water and in damp hollows, not as
+    // stray woods on the dry plain.
+    const open = clamp((0.2 - landscapeRecipe([{ ...h.site.region, weight: 1 }]).canopy) / 0.12);
+    const damp = clamp((h.site.conditions.saturation - 0.08) / 0.27);
+    return (w.woodland ?? 0) * 2.4 * (1 - open * (1 - damp) * 0.85) + (w["riparian-woodland"] ?? 0) * 2.6 + (w.swamp ?? 0) * 2 + (w.scrub ?? 0) * .22 + (w.bog ?? 0) * .12;
   }
   const base = Math.max(0, h.cover - 0.22) * 2.6;
   if (!ecologyAware) return base;

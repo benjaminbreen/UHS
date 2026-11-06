@@ -550,7 +550,7 @@ export function createEnvironment(
         : regional?.ecologyAt(x, y).parts ?? [{ ecology: cfg.ecology, colorway: cfg.colorway, weight: 1 }]
       : undefined;
     const recipe = ecologyParts ? landscapeRecipe(ecologyParts) : undefined;
-    const drainage = recipe ? drainageAt(field, x, y, water, recipe) : undefined;
+    const drainage = recipe ? drainageAt(field, x, y, water, recipe, Math.sign(s.lat) || 1) : undefined;
     if (drainage && kind !== "sea" && water >= -1.2 && !regional?.placeAt(x, y)) {
       const edgeFade = s.playableMap ? Math.max(0, Math.min(1, (s.playableMap.size / 2 - 1 - Math.max(Math.abs(x), Math.abs(y))) / 24)) : 1;
       const spread = Math.max(0, drainage.saturation - 0.4) * 18 * edgeFade;

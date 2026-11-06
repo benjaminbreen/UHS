@@ -1319,9 +1319,18 @@ export function createSettlementWorld(
               ecologyProfiles[h!.ecology].trees,
             )
           : x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38);
-    const colony = h?.grove === undefined
+    let colony = h?.grove === undefined
       ? shrubColony(seed, x + land.origin.x, y + land.origin.y)
       : 0.12 + groveEdge(h.grove) * 2.8;
+    // Brush thickens where open ground meets woods, and in dry country it
+    // gathers in the shade round a tree's foot.
+    if (h?.site && h.grove === undefined && composedVegetation && !tree) {
+      const w = h.site.weights,
+        woods = (w.woodland ?? 0) + (w["riparian-woodland"] ?? 0);
+      const nurse = ["savanna", "dry-scrub"].includes(h.site.region.ecology) &&
+        [[-1, 0], [1, 0], [0, 1], [-1, 1], [1, 1], [0, -1], [-2, 0], [2, 0]].some(([dx, dy]) => eligibleTree(x + dx, y + dy));
+      colony = Math.max(colony, 0.12 + woods * (1 - woods) * 14, nurse ? 4 : 0);
+    }
     const sprite =
       relief && f.water < 3 && n < 0.05
         ? "rock"

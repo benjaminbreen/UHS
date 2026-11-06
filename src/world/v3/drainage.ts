@@ -3,6 +3,8 @@ export type Drainage = {
   slope: number;
   lowland: number;
   saturation: number;
+  /** +1 on a slope facing the pole, -1 facing the sun. */
+  shade?: number;
   waterDistance: number;
 };
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
@@ -12,6 +14,8 @@ export function drainageAt(
   y: number,
   water: number,
   recipe: LandscapeRecipe,
+  /** 1 north of the equator, -1 south of it. */
+  hemisphere = 1,
 ): Drainage {
   const h = height(x, y);
   const neighbors = [
@@ -30,5 +34,7 @@ export function drainageAt(
       (1 - slope) *
       (near * 0.95 + depression * 0.45),
   );
-  return { slope, lowland, saturation, waterDistance: water };
+  // North is -y: ground falling away northward faces north.
+  const shade = Math.max(-1, Math.min(1, (neighbors[3] - neighbors[2]) * 8 * hemisphere));
+  return { slope, lowland, saturation, shade, waterDistance: water };
 }
