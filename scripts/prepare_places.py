@@ -53,10 +53,42 @@ def locate(names,hint):
  """Most prominent candidate near the legacy record's own coordinate. Beyond
  that radius the hint is too coarse to trust, so prominence decides alone."""
  for table in (cityPoints,regionPoints):
-  found=[c for n in names if n in table for c in table[n]]
-  if not found:continue
-  near=[c for c in found if apart(c,hint)<HINT_KM]
+  near=[c for n in names if n in table for c in table[n] if apart(c,hint)<HINT_KM]
   if near:return max(near,key=lambda c:c[2])
+ # The hints are often several hundred km out (Moscow Basin sits at 52N 30E),
+ # so with nothing near, the old prominence match stands.
+ for table in (cityPoints,regionPoints):
+  found=[c for n in names if n in table for c in table[n]]
+  if found:return max(found,key=lambda c:c[2])
+ return None
+def lerp(table,x):
+ for (x0,y0),(x1,y1) in zip(table,table[1:]):
+  if x1<=x<=x0:return y0+(y1-y0)*(x0-x)/(x0-x1)
+ return table[0][1] if x>table[0][0] else table[-1][1]
+# Eastern edge of the Andean culture area by latitude: the highlands, the
+# Pacific coast and the Inca south as far as Mendoza.
+ANDES=[(8,-72),(5,-73.5),(0,-77),(-4,-78),(-8,-76.5),(-12,-73.5),(-14,-70),(-16,-67.5),(-18,-64.5),(-24,-63.5),(-28,-64.5),(-33,-67.5),(-35.5,-70)]
+def himalaya(lon):
+ return 33.5 if lon<78.5 else 30.5 if lon<81 else 28.3 if lon<88 else 27.3 if lon<93 else 28
+def family(lon,lat):
+ """Culture family where the coarse continental rule below gets it wrong."""
+ if (lon<-125 and lat<35) or (lon<-100 and lat<-20):return 'australian-pacific'
+ if lon<-30 and lat<8:
+  return 'andean' if lat>-35.5 and lon<lerp(ANDES,lat) else 'other-indigenous-american'
+ if 32<lon<34.7 and 34.5<lat<35.8:return 'european'
+ if 108<lon<111.5 and 18<lat<20.5:return 'east-asian'
+ if -20<lon<(64 if lat<0 else 55) and -36<lat<20:
+  if lat>12.4 and lon>43.3-(lat-12.6)*.45:return 'north-african-west-asian'
+  if 22<lon<38.5 and lat>=12 and not (lon>36.5 and lat<16.5):return 'north-african-west-asian'
+  if lat<-16 or lon>=29:return 'east-southern-african'
+  return 'west-central-african'
+ if lon>=131 and -12<lat<20:return 'australian-pacific'
+ if 77.3<lon<102 and lat<37 and lat>himalaya(lon):return 'inner-eurasian'
+ if 60.5<lon<71 and 31<lat<38.5:return 'inner-eurasian'
+ if lon>=60 and lat>=50:return 'inner-eurasian'
+ if 87<lon<120 and 41.5<lat<52:return 'inner-eurasian'
+ if lon>45 and lat>35 and lat<41.8 and (lon<52.8 or (lon<61.2 and lat<37.5)):return 'north-african-west-asian'
+ if 45<lon<50 and 35<lat<44.5:return 'north-african-west-asian'
  return None
 def defaults(lon,lat):
  a=abs(lat);climate='tropical' if a<23 else 'tundra' if a>66 else 'boreal' if a>55 else 'temperate'
@@ -73,6 +105,7 @@ def defaults(lon,lat):
   elif lat>=23 or lon>-85: culture='north-american'
   else: culture='mesoamerican'
   architecture='board' if culture=='north-american' else 'mudbrick'
+  if family(lon,lat)=='australian-pacific':architecture='timber'
  elif -20<lon<55 and -36<lat<35:
   culture='sub-saharan-african' if lat<20 else 'mena';architecture='mudbrick'
  elif lon>110 and lat<-10:culture='australian-pacific'
@@ -83,6 +116,7 @@ def defaults(lon,lat):
  elif lon>60 and lat<35:culture='south-asian';architecture='courtyard'
  elif lon>45 and lat>35:culture='central-asian'
  elif lon>30 and lat<43:culture='mena';architecture='mudbrick'
+ culture=family(lon,lat) or culture
  return dict(climate=climate,culture=culture,architecture=architecture,year=1400,water='none',settlement='village',relief=.35)
 # Nearest coast and river from the prepared atlas, in game tiles, so a port is
 # generated on its shore. Segments are bucketed by degree; the search stops
@@ -142,14 +176,15 @@ for p in legacy:
  point=locate(names,(p['lon'],p['lat']))
  if point and abs(point[1])<=85:
   lon,lat,population,settlement=point
-  # The curated record wins where it says anything. Architecture and settlement
-  # are the exceptions: every legacy row reads 'timber' and 'village', which is
-  # a placeholder rather than a judgement, so the region and the source decide.
+  # The curated record wins where it says anything. Architecture, settlement
+  # and culture are the exceptions: every legacy row reads 'timber' and
+  # 'village', and its culture is one of eight continental buckets, so the
+  # region and the source decide.
   fill=defaults(lon,lat)
   near,water,settlement=waters(lon,lat,settlement or 'village')
   # Legacy 'none' is the same placeholder as its 'village'; a named river or
   # lake is a judgement and stays.
-  record={**fill,**p,**near,'architecture':fill['architecture'],'settlement':settlement,'lon':round(lon,4),'lat':round(lat,4)}
+  record={**fill,**p,**near,'culture':fill['culture'],'architecture':fill['architecture'],'settlement':settlement,'lon':round(lon,4),'lat':round(lat,4)}
   if p.get('water','none')=='none' and water: record['water']=water
   if population: record['population']=int(population)
   result[norm(p['name'])]=record;matched+=1

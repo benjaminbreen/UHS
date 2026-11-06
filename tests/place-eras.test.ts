@@ -3,6 +3,7 @@ import { places } from "../src/content/geography/places";
 import { placeAtYear, populationAt } from "../src/content/geography/eras";
 import { settingFor } from "../src/content/geography/resolve";
 import { describedRegionAt } from "../src/content/geography/region-label";
+import { urbanForm } from "../src/content/settlements/urban-form";
 import {
   characterCommunity,
   resolveCharacterContext,
@@ -43,6 +44,58 @@ describe("dated gazetteer", () => {
     expect(placeAtYear(hangzhou, 1200).culture).toBe("east-asian");
     expect(placeAtYear(hangzhou, 1200).settlement).toBe("port");
     expect(populationAt(hangzhou, 1200)).toBeGreaterThan(100000);
+  });
+});
+
+describe("culture families by region and date", () => {
+  it.each([
+    ["city-mombasa", 1400, "east-southern-african", "swahili-stone-town"],
+    ["city-kilwa", 1330, "east-southern-african", "swahili-stone-town"],
+    ["city-great-zimbabwe", 1350, "east-southern-african", "southern-african-enclosures"],
+    ["city-aksum", 350, "east-southern-african", undefined],
+    ["city-aden", 1400, "north-african-west-asian", undefined],
+    ["city-cape-town", 1500, "east-southern-african", undefined],
+    ["city-cape-town", 1750, "european", undefined],
+    ["city-buenos-aires", 1400, "other-indigenous-american", undefined],
+    ["city-buenos-aires", 1750, "european", "laws-of-the-indies-grid"],
+    ["city-salvador", 1700, "european", undefined],
+    ["city-lima", 1700, "andean", "laws-of-the-indies-grid"],
+    ["city-havana", 1600, "european", "laws-of-the-indies-grid"],
+    ["city-port-au-prince", 1780, "european", undefined],
+    ["city-port-au-prince", 1850, "west-central-african", undefined],
+    ["city-honolulu", 1700, "australian-pacific", undefined],
+    ["city-papeete", 1600, "australian-pacific", undefined],
+    ["city-yakutsk", 1500, "inner-eurasian", undefined],
+    ["city-yakutsk", 1750, "european", undefined],
+    ["city-lhasa", 1400, "inner-eurasian", undefined],
+    ["city-kabul", 1500, "inner-eurasian", undefined],
+    ["city-tehran", 1800, "north-african-west-asian", undefined],
+    ["city-seoul", 1500, "east-asian", "korean-ward-grid"],
+    ["city-gyeongju", 750, "east-asian", "korean-ward-grid"],
+    ["city-busan", 1700, "east-asian", "korean-ward-grid"],
+    ["city-constantinople", 1000, "european", undefined],
+    ["city-constantinople", 1500, "north-african-west-asian", undefined],
+  ] as const)("%s in %i is %s", (id, year, culture, form) => {
+    const s = settingFor(byId(id), year);
+    expect(s.culture).toBe(culture);
+    if (form) expect(urbanForm(s).id).toBe(form);
+  });
+  it.each([
+    ["city-cahokia", 1100],
+    ["city-chaco-canyon", 1080],
+    ["city-caral", -2500],
+    ["city-tiwanaku", 700],
+    ["city-aksum", 350],
+    ["city-lhasa", 1400],
+    ["city-merv", 1100],
+  ])("%s is a settled place in %i", (id, year) => {
+    expect(settingFor(byId(id), year).settlement).not.toBe("camp");
+  });
+  it("lets an era that names a town outrank the box around it", () => {
+    const brasilia = byId("city-brasilia");
+    expect(placeAtYear(brasilia, 1800).culture).toBe("other-indigenous-american");
+    expect(placeAtYear(byId("city-belo-horizonte"), 1750).culture).toBe("other-indigenous-american");
+    expect(placeAtYear(byId("city-cuiaba"), 1750).culture).toBe("european");
   });
 });
 
