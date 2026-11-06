@@ -122,7 +122,31 @@ export function waterBand(
           ? 3
           : 4;
 }
+// Sediment and clarity by river rather than by ecology: silt-laden flood
+// water, the Yellow River's loess, a karst spring you can see the bed through.
+const tints: Record<"silt" | "loess" | "clear", Pick<WaterPalette, "depths" | "texture" | "submerged" | "glint">> = {
+  silt: {
+    depths: ["#b7a27a", "#a68d65", "#947b56", "#82694a", "#6f5a40"],
+    texture: ["#c0ad86", "#b09872", "#9e8662", "#8c7555", "#79644a"],
+    submerged: ["#7d6749", "#988160"],
+    glint: "#d3c4a0",
+  },
+  loess: {
+    depths: ["#d2b57c", "#c4a16a", "#b28e5a", "#9d7b4c", "#866841"],
+    texture: ["#dbc08b", "#cdac77", "#bc9a66", "#a88757", "#92744b"],
+    submerged: ["#9a7b4f", "#b8955f"],
+    glint: "#e6d3a4",
+  },
+  clear: {
+    depths: ["#b9e4cf", "#86d4c3", "#55bdb9", "#3399a8", "#2c7895"],
+    texture: ["#c6ead8", "#94dccb", "#66c7c1", "#40a6b1", "#36849f"],
+    submerged: ["#5ea79a", "#88c4b3"],
+    glint: "#dcf6ec",
+  },
+};
 export function waterStyle(c: TopographyCell) {
+  const tint = c.waterVisual?.tint;
+  if (tint) return { ...waterPalette(c.waterVisual!.ecology, c.waterVisual!.kind), ...tints[tint] };
   if (c.habitat?.colorway === "swamp") return {
     ...wetland,
     depths: ["#a3ae77", "#768d66", "#526f59", "#395749", "#293f39"],

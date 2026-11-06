@@ -10,6 +10,7 @@ import type {
 } from "../../content/agriculture/types";
 import { cropsFor, farmSystem } from "../../content/agriculture";
 import { crops } from "../../content/agriculture/crops";
+import { waterscape } from "../../content/geography/waterscapes";
 
 /** One cell of farmland, as the renderer reads it. */
 export type FieldCell = {
@@ -28,6 +29,8 @@ export type FieldCell = {
   enclosure?: Boundary;
   /** Standing water between bunds. */
   wet: boolean;
+  /** Under the river's flood. */
+  flood?: boolean;
   /** Edges, same bits, where the ground drops to the bench below. */
   riser?: number;
   /** A kitchen garden bed: planted close, cropped in succession, and drawn
@@ -191,6 +194,8 @@ export function planFarmland(input: {
   const [along, back] = system.module;
   const strips = ["strip", "ribbon", "terrace"].includes(system.geometry);
   const wet = system.geometry === "basin";
+  // Flood basins stand under the inundation until it drains.
+  const flooded = system.irrigation === "flood" && waterscape(setting).flood >= 0.6;
   // Two clear cells between enclosures: a trodden headland, a bank and the
   // fence on each side, with ground between.
   const boundaryWidth = 2;
@@ -911,7 +916,8 @@ export function planFarmland(input: {
                 edges: 0,
                 fence: 0,
                 boundary: system.boundary,
-                wet: wet && crops[crop].wet === true,
+                wet: flooded || (wet && crops[crop].wet === true),
+                ...(flooded && { flood: true }),
               });
               cells++;
             }
@@ -1028,7 +1034,8 @@ export function planFarmland(input: {
         edges: 0,
         fence: 0,
         boundary: system.boundary,
-        wet: wet && crops[crop].wet === true,
+        wet: flooded || (wet && crops[crop].wet === true),
+        ...(flooded && { flood: true }),
       });
       x0 = Math.min(x0, x);
       y0 = Math.min(y0, y);
@@ -1261,7 +1268,7 @@ export function planFarmland(input: {
       if (owner) cell.owner = owner;
       const crop = sown.get(cell.parcel);
       // Rice is sown into flooded basins whatever the land round about grows.
-      if (crop) Object.assign(cell, { crop, wet: crops[crop].wet === true });
+      if (crop) Object.assign(cell, { crop, wet: cell.flood || crops[crop].wet === true });
     }
   return {
     system,

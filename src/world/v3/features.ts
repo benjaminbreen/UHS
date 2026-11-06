@@ -14,7 +14,8 @@ export type LandscapeKind =
   | "pan"
   | "gravel-bar"
   | "creek-pool"
-  | "oasis";
+  | "oasis"
+  | "qanat";
 export type Landscape = {
   kind: LandscapeKind;
   strength: number;

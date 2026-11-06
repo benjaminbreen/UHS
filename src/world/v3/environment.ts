@@ -5,6 +5,7 @@ import { tributary } from "./tributaries";
 import { boundarySample } from "../travel/seams";
 import { trimCache } from "../../core/cache";
 import { marshBasin } from "./wet-features";
+import { waterscape } from "../../content/geography/waterscapes";
 import type { WorldSetting } from "../../content/geography/types";
 import { habitatLayout } from "../../content/ecology/variants";
 import {
@@ -28,6 +29,7 @@ export function createEnvironment(
   regional?: RegionalContext,
 ) {
   const cfg = s.environment!;
+  const ws = waterscape(s);
   const simpleWater = !!s.hydrologyRevision;
   const connectedWater = (s.hydrologyRevision ?? 0) >= 2;
   const origin = toAtlas(s.lon, s.lat);
@@ -402,12 +404,42 @@ export function createEnvironment(
       shoreWidth = 1.1;
       floodplain = Math.max(floodplain, 12);
     }
-    return { water, floodplain, shoreWidth, waterFlow, kind, riverAlong };
+    let reef: LandSample["reef"];
+    if (ws.reef === "atoll") {
+      // A portrait of the atoll: a ring of motus round its lagoon, the
+      // village on the southern rim, passes through the reef elsewhere.
+      const R = 58,
+        rx = (x + wx) / 2,
+        ry = (y + wy) / 2 + R;
+      const r = Math.hypot(rx, ry),
+        a = Math.atan2(ry, rx);
+      const pass = Math.hypot(x, y) > 30 && noise(seed, Math.cos(a) * 40, Math.sin(a) * 40, 9, "atoll-passes") < 0.32;
+      water = 3 + noise(seed, fx, fy, 23, "motu-width") * 4 - (pass ? 9 : 0) - Math.abs(r - R);
+      kind = "sea";
+      shoreWidth = 2.5 + noise(seed, fx, fy, 31, "motu-beach") * 2;
+      floodplain = shoreWidth + 4;
+      waterFlow = [0, 0];
+      reef = r < R ? "lagoon" : "outer";
+    } else if (ws.reef === "fringing" && kind === "sea") reef = "outer";
+    return { water, floodplain, shoreWidth, waterFlow, kind, riverAlong, reef };
   };
   const connectedBoundary = boundaryWater(s, seed, nativeWater, field);
   const mainWater = (x: number, y: number) => {
     const native = nativeWater(x, y);
     return s.hydrologyRevision === 3 ? { ...native, ...connectedBoundary(x, y, native) } : native;
+  };
+  // A qanat's line of shaft mounds, one every seven cells, from the hills to the town.
+  const qanatAngle = random(seed, "qanat-angle") * Math.PI * 2;
+  const qanat = (x: number, y: number, water: number): LandSample["landscape"] => {
+    if (ws.works !== "qanat" || water < 3) return undefined;
+    const ux = Math.cos(qanatAngle),
+      uy = Math.sin(qanatAngle);
+    const k = Math.round((x * ux + y * uy) / 7);
+    if (k < 2 || k > 18) return undefined;
+    const bend = (noise(seed, k * 7, 0, 40, "qanat-bend") - 0.5) * 12;
+    return Math.floor(k * 7 * ux - uy * bend) === x && Math.floor(k * 7 * uy + ux * bend) === y
+      ? { kind: "qanat", strength: 1 }
+      : undefined;
   };
   const calculate = (x: number, y: number): LandSample => {
     const situation = s.situation;
@@ -426,7 +458,90 @@ export function createEnvironment(
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
     const shape = field(x, y);
-    let { water, floodplain, shoreWidth, waterFlow, kind, riverAlong } = s.hydrologyRevision === 3 ? nativeWater(x, y) : mainWater(x, y);
+    let { water, floodplain, shoreWidth, waterFlow, kind, riverAlong, reef } = s.hydrologyRevision === 3 ? nativeWater(x, y) : mainWater(x, y);
+    const town = regional
+      ? (() => {
+          const place = regional.placeAt(x, y);
+          if (!place) return false;
+          const c0 = regional.local(place);
+          return Math.max(Math.abs(x - c0.x), Math.abs(y - c0.y)) < place.radius * 0.5;
+        })()
+      : Math.hypot(x, y) < 16;
+    let tidal: number | undefined, flooded = false, dike = false;
+    let waterGradientOverride: readonly [number, number] | undefined;
+    // Distributaries: the contours of two smooth fields cross the delta plain
+    // as a web of channels round low islands, the town on its own mound.
+    if (ws.delta && water > 1.5 && !town) {
+      const web =
+        Math.min(
+          Math.abs(noise(seed, fx, fy, 46, "delta-a") - 0.5) * 64,
+          Math.abs(noise(seed, fx + 311, fy - 97, 70, "delta-b") - 0.5) * 98,
+        ) - (0.9 + noise(seed, fx, fy, 30, "delta-width") * 1.5);
+      if (web < water) {
+        water = web;
+        kind = "river";
+        shoreWidth = 1.4;
+      }
+    }
+    if (ws.delta) floodplain = Math.max(floodplain, 40);
+    // The season's flood fills the valley floor to the first terrace; a
+    // monsoon river swells within its banks. Shallow enough to wade.
+    if (ws.flood > 0 && kind === "river" && water >= -1 && !town) {
+      const reach = ws.delta || ws.flood >= 0.5 && s.climate !== "monsoon" ? floodplain + 18 * ws.flood : 2.5 * ws.flood;
+      if (water < reach) {
+        water = Math.max(-1.6, water - reach);
+        flooded = ws.flood >= 0.5;
+      }
+    }
+    // The scene stands at low water: the intertidal shelf is bare mud.
+    if (kind === "sea" && water < 0 && ws.tide >= 0.3 && !reef) {
+      const width = 1 + ws.tide * 9;
+      if (water > -width) tidal = 1 + water / width;
+    }
+    if (ws.works === "polder" && !town && water > 2) {
+      // Straight drainage ditches across the reclaimed land, a raised dike
+      // along the open water.
+      dike = water < 3.4 && kind !== "lake";
+      const axis = random(seed, "polder-axis") < 0.5;
+      const u = axis ? fx : fy,
+        v = axis ? fy : fx;
+      const ditch = Math.min(((u % 11) + 11) % 11, 11 - (((u % 11) + 11) % 11)) - 0.55,
+        drain = Math.min(((v % 44) + 44) % 44, 44 - (((v % 44) + 44) % 44)) - 0.7;
+      if (!dike && Math.min(ditch, drain) < water) {
+        water = Math.min(ditch, drain);
+        kind = "lake";
+        shoreWidth = 0.9;
+        waterFlow = [0, 0];
+        waterGradientOverride = ditch < drain ? (axis ? [1, 0] : [0, 1]) : axis ? [0, 1] : [1, 0];
+        const side = ditch < drain ? (((u % 11) + 11) % 11 < 5.5 ? 1 : -1) : (((v % 44) + 44) % 44 < 22 ? 1 : -1);
+        waterGradientOverride = [waterGradientOverride[0] * side, waterGradientOverride[1] * side];
+      }
+      floodplain = Math.max(floodplain, 40);
+    }
+    if (ws.works === "chinampa" && (kind !== "sea" || water > 0)) {
+      // The lake the Valley of Mexico has since lost: the city on its island,
+      // open water round it, the far shore two lake-widths off.
+      const r = Math.hypot(x + (noise(seed, fx, fy, 40, "texcoco-x") - 0.5) * 24, y + (noise(seed, fx, fy, 40, "texcoco-y") - 0.5) * 24);
+      const lake = Math.max(30 - r, r - 120);
+      if (lake < water) {
+        water = lake;
+        kind = "lake";
+        shoreWidth = 1.5;
+      }
+    }
+    if (ws.works === "chinampa" && kind !== "river" && water < 0 && water > -36 && !town) {
+      // Long raised beds of lake mud between canals, in a grid off the shore.
+      const u = ((fx % 6) + 6) % 6,
+        v = ((fy % 22) + 22) % 22;
+      water =
+        u < 4 && v < 20
+          ? Math.min(u + 0.5, 3.5 - u, v + 0.5, 19.5 - v) * 0.6
+          : -Math.max(u < 4 ? 0 : Math.min(u - 3.5, 5.5 - u), v < 20 ? 0 : Math.min(v - 19.5, 21.5 - v)) - 0.4;
+      kind = "lake";
+      shoreWidth = 0.5;
+      floodplain = 40;
+      waterFlow = [0, 0];
+    }
     // Oxbows: a crescent of still water on the floodplain, its horns toward
     // the river, in the green envelopes.
     if (
@@ -464,9 +579,9 @@ export function createEnvironment(
     }
     // Landscape streams: a creek from a spring to open water or a pond, a dry
     // arroyo in dry country, an animal trail from pasture to water.
-    let landscape: LandSample["landscape"];
+    let landscape: LandSample["landscape"] = qanat(x, y, water);
     let fall = false;
-    let waterGradient: LandSample["waterGradient"];
+    let waterGradient: LandSample["waterGradient"] = waterGradientOverride;
     let creekTier: number | undefined;
     let creekMargin = false;
     const preCreek = { water, floodplain };
@@ -712,7 +827,7 @@ export function createEnvironment(
     // A sea cliff: the land stands straight up behind a narrow beach, two to
     // four steps high, and comes down again inland a step at a time. Low,
     // marshy and mangrove shores keep their beaches.
-    if (kind === "sea" && water >= 0 && habitat.ecology !== "wetland") {
+    if (kind === "sea" && water >= 0 && habitat.ecology !== "wetland" && !reef) {
       const bluff = noise(seed, fx, fy, 64, "sea-cliffs") * 0.8 + Math.min(relief, 0.6) * 0.5;
       if (bluff > 0.55) {
         const tall = 2 + Math.min(2, Math.floor((bluff - 0.55) * 9));
@@ -720,6 +835,7 @@ export function createEnvironment(
         level = water < foot ? 0 : Math.max(level, tall - Math.floor((water - foot) / 16));
       }
     }
+    if (dike) level = Math.max(level, 1);
     // A creek keeps its own tier and steps down at its falls; near a river
     // it can be no higher than the valley floor it joins.
     if (creekMargin && creekTier !== undefined) {
@@ -746,6 +862,9 @@ export function createEnvironment(
       ...(landscape && water >= 0 ? { landscape } : {}),
       ...(fall ? { fall: true } : {}),
       ...(waterGradient ? { waterGradient } : {}),
+      ...(tidal !== undefined ? { tidal } : {}),
+      ...(reef ? { reef } : {}),
+      ...(flooded ? { flooded } : {}),
       elevation: seam
         ? Math.round(
             (level * 14 * (1 - seam.weight) + seam.height * seam.weight) / 14,

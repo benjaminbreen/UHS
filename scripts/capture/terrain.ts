@@ -24,7 +24,7 @@ type Review = {
   seed: string;
   common: string;
   /** Where to point the camera before the first shot. */
-  centre: "spawn" | "none" | "paths" | "arroyo" | "cliff" | "ramp";
+  centre: "spawn" | "none" | "paths" | "arroyo" | "cliff" | "ramp" | "shore";
   /** Print paving counts, which is what the street studies are looking at. */
   paving?: boolean;
   studies: [name: string, query: string][];
@@ -91,6 +91,31 @@ const reviews: Record<string, Review> = {
       ["tropical-ridge", "ecology=tropical-woodland&water=none&landform=ridge&relief=0.9"],
       ["wetland-ridge", "ecology=wetland&water=none&landform=ridge&relief=0.9"],
       ["savanna-ridge", "ecology=savanna&water=none&landform=ridge&relief=0.9"],
+    ],
+  },
+  waters: {
+    dir: `artifacts/water-review/${process.env.UHS_REVIEW_PHASE ?? "after"}`,
+    title: "Deltas, flood, ice, reefs, tides and water works (pairs are A/B by season)",
+    seed: "water-review",
+    common: "landform=plain&relief=0.2&start=wanderer",
+    centre: "shore",
+    studies: [
+      ["nile-low", "lon=31.25&lat=29.85&year=-1300&season=spring&ecology=desert&water=river-ns&population=sparse&pattern=clustered"],
+      ["nile-flood", "lon=31.25&lat=29.85&year=-1300&season=autumn&ecology=desert&water=river-ns&population=sparse&pattern=clustered"],
+      ["nile-delta", "lon=30.8&lat=31&year=-600&season=winter&ecology=grassland&water=river-ns&population=none"],
+      ["yellow-river", "lon=116.5&lat=36.5&year=1100&season=summer&ecology=grassland&water=river-ew&population=none"],
+      ["li-river-clear", "lon=110.3&lat=25.1&year=1600&season=summer&ecology=tropical-woodland&water=river-ns&population=none"],
+      ["ladoga-summer", "lon=31.5&lat=60.8&year=1600&season=summer&ecology=boreal-woodland&water=lake&population=none"],
+      ["ladoga-winter", "lon=31.5&lat=60.8&year=1600&season=winter&ecology=boreal-woodland&water=lake&population=none"],
+      ["greenland-winter", "lon=-51&lat=69.2&year=1600&season=winter&ecology=tundra&water=coast-n&population=none"],
+      ["greenland-summer", "lon=-51&lat=69.2&year=1600&season=summer&ecology=tundra&water=coast-n&population=none"],
+      ["tuamotu-atoll", "lon=-147.7&lat=-15&year=1700&season=summer&ecology=tropical-woodland&water=island&population=none"],
+      ["bahamas-reef", "lon=-77.5&lat=24.5&year=1700&season=summer&ecology=tropical-woodland&water=coast-n&population=none"],
+      ["sundarbans", "lon=89.2&lat=21.9&year=1700&season=winter&ecology=wetland&colorway=mangrove&water=coast-s&population=none"],
+      ["severn-saltmarsh", "lon=-3&lat=51.3&year=1700&season=summer&ecology=grassland&water=coast-n&population=none"],
+      ["holland-polder", "lon=4.9&lat=52.37&year=1650&season=summer&ecology=grassland&water=coast-n&population=none"],
+      ["chinampas", "lon=-99.13&lat=19.43&year=1500&season=summer&ecology=dry-scrub&water=lake&population=none"],
+      ["kashan-qanat", "lon=51.4&lat=33.98&year=1600&season=summer&ecology=desert&water=none&population=none"],
     ],
   },
   streets: {
@@ -348,6 +373,23 @@ async function run(review: Review) {
       if (review.centre === "paths" && name.startsWith("grassland"))
         await centreOnPaths(page);
       if (review.centre === "arroyo") await centreOnArroyo(page);
+      if (review.centre === "shore") {
+        await page.evaluate(() => {
+          const lab = (window as any).terrainLab, world = lab.runtime.engine.world;
+          const spawn = world.spawn;
+          let best = spawn, distance = Infinity;
+          for (let y = spawn.y - 70; y <= spawn.y + 70; y += 2)
+            for (let x = spawn.x - 70; x <= spawn.x + 70; x += 2) {
+              const v = world.topography(x, y).waterVisual;
+              const d = (x - spawn.x) ** 2 + (y - spawn.y) ** 2;
+              if (v && Math.abs(v.distance) < 1 && v.kind !== "canal" && d < distance) { best = { x, y }; distance = d; }
+            }
+          lab.scene.options.center = best;
+          lab.scene.draw();
+          lab.scene.cameras.main.centerOn(best.x * 16 + 8, best.y * 16 + 8);
+        });
+        await settled(page);
+      }
       if (review.centre === "ramp") {
         const at = await centreOnRamp(page);
         console.log("  ramp camera", at);

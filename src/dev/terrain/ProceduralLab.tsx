@@ -41,6 +41,9 @@ type Config = {
   placementRevision: 0 | 1;
   /** Overrides the place's relief, which sets how many altitude steps exist. */
   relief: number;
+  /** Stands a procedural study somewhere on Earth, for its waterscape. */
+  lon?: number;
+  lat?: number;
 };
 const defaults: Config = {
   seed: "ecology-01",
@@ -182,6 +185,7 @@ function readConfig(): Config {
     c.place = q.get("place")!;
   if (q.has("year")) c.year = Number(q.get("year"));
   if (q.has("relief")) c.relief = Number(q.get("relief"));
+  if (q.has("lon") && q.has("lat")) [c.lon, c.lat] = [Number(q.get("lon")), Number(q.get("lat"))];
   if (q.has("vegetationRevision")) {
     const revision = settingSchema.shape.vegetationRevision.safeParse(Number(q.get("vegetationRevision")));
     if (revision.success && revision.data) c.vegetationRevision = revision.data;
@@ -207,6 +211,7 @@ export function labSetting(c: Config): WorldSetting {
   };
   return {
     ...base,
+    ...(c.lat !== undefined && { lon: c.lon!, lat: c.lat }),
     geographyMode: c.place ? "earth" : "configured",
     relief: c.relief,
     location: c.place

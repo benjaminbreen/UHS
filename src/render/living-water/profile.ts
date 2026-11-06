@@ -14,6 +14,7 @@ export const ecologyOrder: Ecology[] = [
   "desert",
   "tundra",
 ];
+export const livingTints = ["silt", "loess", "clear", "lagoon"] as const;
 export function livingProfile(cell: TopographyCell): Settings {
   const ecology =
     cell.waterVisual?.ecology ?? cell.habitat?.ecology ?? "grassland";
@@ -27,8 +28,11 @@ export function livingProfile(cell: TopographyCell): Settings {
         : (cell.waterVisual?.shoreWidth ?? 3) < 1.2
           ? "creek"
           : "river";
-  const palette =
-    ecology === "tundra"
+  const palette = cell.waterVisual?.reef
+    ? "lagoon"
+    : cell.waterVisual?.tint
+      ? cell.waterVisual.tint
+      : ecology === "tundra"
       ? "polar"
       : ecology === "wetland"
         ? "green"

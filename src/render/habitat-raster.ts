@@ -1272,6 +1272,14 @@ function rasterGroundTile(
           if (t > 0.45) mixInto(px, py, soil[0], 0.45);
           else if (group < 0.4 + t) mixInto(px, py, [82, 112, 50], 0.35 + t * 0.6);
           trodden[at(px, py)] = 1;
+        } else if (scape.kind === "qanat") {
+          // A shaft mouth in its ring of spoil, lit on the north slope.
+          const r = Math.hypot(px - 7.5, (py - 8) * 1.15);
+          if (r < 1.8) put(px, py, [46, 36, 28], 0);
+          else if (r < 2.7) put(px, py, soil[0], -12);
+          else if (r < 6) put(px, py, py < 8 ? soil[3] : soil[1], (noise(wx, wy, 5, 541) - 0.5) * 8);
+          else if (r < 7.3 && group < 0.55) mixInto(px, py, soil[2], 0.55);
+          if (r < 7.3) trodden[at(px, py)] = 1;
         } else if (scape.kind === "outcrop") {
           const ink = groundMotif("stone", wx, wy, art.motifs, { density: 1 + scape.strength * 1.5 });
           if (ink) put(px, py, palette[3], [0, -29, -6, 22][ink]);

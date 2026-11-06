@@ -69,6 +69,8 @@ export type TopographyCell = {
     /** Era enclosure drawn on the fence edges when `boundary` has none. */
     enclosure?: import("../content/agriculture/types").Boundary;
     ditch?: boolean;
+    /** Under the river's seasonal flood: a basin of silty water. */
+    flood?: boolean;
     /** Edges, same bits, where a terrace wall drops to the bench below. */
     riser?: number;
     /** Inside a household's or church's yard rather than the farmland. */
@@ -92,6 +94,13 @@ export type TopographyCell = {
     frozenMargin: boolean;
     /** Unit gradient of `distance` at the cell centre, for narrow streams. */
     gradient?: readonly [number, number];
+    /** Walkable ice; "floes" is broken pack drifting on open water. */
+    ice?: "solid" | "floes";
+    icebergs?: boolean;
+    tint?: "silt" | "loess" | "clear";
+    /** Bare mud at low tide: 1 at the high-water line, 0 at the low. */
+    tidal?: number;
+    reef?: "outer" | "lagoon";
   };
   /** On the lower tile, pointing toward its one-tier-higher neighbor. */
   ramp?: Direction;
