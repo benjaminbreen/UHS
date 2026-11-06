@@ -580,6 +580,15 @@ export function treeMix(s: WorldSetting): Mix {
 }
 function baseMix(s: WorldSetting): Mix {
   const colorway = s.environment?.colorway;
+  // RESOLVE files South China's subtropical evergreen forest under the
+  // tropical biome: camphor and other evergreen broadleaf, Masson pine, bamboo.
+  if (colorway === "rainforest" && Math.abs(s.lat) >= 23.5)
+    return [
+      [tropical, 4],
+      [pine, 3],
+      ["nature-bamboo-clump", 3],
+      ["nature-banyan", 1],
+    ];
   if (
     colorway &&
     (s.vegetationRevision ?? 0) >= 6 &&

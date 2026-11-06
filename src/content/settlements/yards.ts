@@ -407,7 +407,7 @@ export function keptTrees(setting: WorldSetting): string[] {
     return ["nature-breadfruit", "nature-breadfruit", "nature-coconut-palm", "nature-pandanus", "nature-banana"];
   return [
     ...(africa ? ["nature-oil-palm", "nature-oil-palm"] : []),
-    ...(!africa && (!americas || year >= 1550) ? ["nature-coconut-palm"] : []),
+    ...(!africa && (!americas || year >= 1550) && Math.abs(setting.lat) < 24 ? ["nature-coconut-palm"] : []),
     ...(year >= (americas ? 1520 : -500) ? ["nature-banana"] : []),
     ...(year >= (americas ? 1780 : africa ? 1800 : -1000) ? ["nature-mango"] : []),
   ];

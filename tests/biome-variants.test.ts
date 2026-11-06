@@ -90,6 +90,22 @@ describe("regional biome variants", () => {
     expect(foliageTint("nature-teak", "winter", "tropical-woodland", 0)).toBeDefined();
     expect(foliageTint("nature-mahogany", "winter", "tropical-woodland", 0)).toBeUndefined();
   });
+  it("plants subtropical South China without coconuts or rainforest palms", async () => {
+    const { keptTrees } = await import("../src/content/settlements/yards");
+    const guilin = {
+      lon: 110.28,
+      lat: 25.28,
+      year: 1400,
+      culture: "east-asian",
+      vegetationRevision: 6,
+      environment: { ecology: "tropical-woodland", colorway: "rainforest", landform: "rolling", population: "settled", start: "resident", household: "mixed" },
+    } as WorldSetting;
+    const trees = treeMix(guilin).map(([sprite]) => sprite);
+    expect(trees).toContain("nature-bamboo-clump");
+    expect(trees.filter((t) => /palm|mahogany|ceiba/.test(t))).toEqual([]);
+    expect(keptTrees(guilin)).not.toContain("nature-coconut-palm");
+    expect(keptTrees({ ...guilin, lon: 101, lat: 3 })).toContain("nature-coconut-palm");
+  });
   it("gives every regional tree mix sprites that exist in an atlas", () => {
     const frames = new Set([...Object.keys(nature.frames), ...Object.keys(atlas.frames)]);
     const base: WorldSetting = {
