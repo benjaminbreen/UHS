@@ -7,7 +7,9 @@ import type { WaterObject } from "./scenery";
 import type { TopographySample } from "../../core/topography";
 import type { TerrainRegion } from "../terrain-region";
 import { shoreDistance, shoreOnTier } from "../material-edges";
-import { ecologyOrder, livingBeachWidth, livingProfile } from "./profile";
+import { ecologyOrder, livingBeachWidth, livingProfile, livingTints } from "./profile";
+import { specialWater } from "../water-raster";
+import { waterStyle } from "../water-style";
 import { TERRAIN_RISE } from "../terrain-projection";
 export type LivingMask = {
   width: number;
@@ -87,26 +89,17 @@ export function rasterLivingWater(
         continue;
       const rowOf = (c: NonNullable<ReturnType<typeof sample>>) => {
         const v = c.waterVisual!, p = livingProfile(c);
+        const kind = p.kind === "coast" ? 8 : p.kind === "lake" ? 16 : p.kind === "pond" ? 24 : p.kind === "creek" ? 32 : 0;
+        const tint = v.reef ? 3 : livingTints.indexOf(v.tint as (typeof livingTints)[number]);
+        if (tint >= 0) return 160 + kind + tint;
         return (
           ecologyOrder.indexOf(v.ecology) +
-          (p.kind === "coast" ? 8 : p.kind === "lake" ? 16 : p.kind === "pond" ? 24 : p.kind === "creek" ? 32 : 0) +
+          kind +
           (v.frozenMargin ? 40 : 0) +
           (c.habitat?.colorway === "red-earth" ? 80 : 0)
         );
       };
-      const row =
-        ecologyOrder.indexOf(visual.ecology) +
-        (profile.kind === "coast"
-          ? 8
-          : profile.kind === "lake"
-            ? 16
-            : profile.kind === "pond"
-              ? 24
-              : profile.kind === "creek"
-                ? 32
-                : 0) +
-        (visual.frozenMargin ? 40 : 0) +
-        (cell.habitat?.colorway === "red-earth" ? 80 : 0);
+      const row = rowOf(cell);
       const angle =
         profile.kind === "coast"
           ? Math.atan2(
@@ -116,6 +109,7 @@ export function rasterLivingWater(
                 (sample(tx - 1, ty)?.waterVisual?.distance ?? visual.distance),
             )
           : (profile.direction * Math.PI) / 180;
+      const special = visual.ice || visual.icebergs || visual.tidal !== undefined || visual.reef ? waterStyle(cell) : undefined;
       const shoreTiers = new Map<number, boolean>();
       for (let py = 0; py < 16; py++)
         for (let px = 0; px < 16; px++) {
@@ -160,6 +154,8 @@ export function rasterLivingWater(
               (liftedReceiver === -1 && cell.surface === "water")
             : true;
           if (d > localBeach || !lowGround) continue;
+          // Ice, mud, floes, bergs and reef crests are the raster's.
+          if (d < 0 && special && specialWater(cell, special, d, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy, 0, true)) continue;
           const y: number = sy - lift + shift;
           if (y < 0 || y >= H) continue;
           const i = (y * W + tx * 16 + px) * 4;

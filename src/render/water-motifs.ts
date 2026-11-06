@@ -296,6 +296,8 @@ export function waterMotif(e: WaterEffect): WaterMotif | undefined {
   if (
     e.cell.bridge ||
     e.cell.surface !== "water" ||
+    e.cell.waterVisual?.ice ||
+    e.cell.waterVisual?.tidal !== undefined ||
     (e.cell.habitat && (e.cell.waterVisual?.distance ?? -3) > -0.7)
   )
     return;

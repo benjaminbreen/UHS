@@ -8,14 +8,14 @@ import { own } from "../resources";
 import type { TerrainRegion } from "../terrain-region";
 import { waterRamps } from "./surface";
 import { bankStyle } from "./banks";
-import { ecologyOrder, livingProfile } from "./profile";
+import { ecologyOrder, livingProfile, livingTints } from "./profile";
 import { livingFragment } from "./shader";
 import type { LightingId } from "../lighting";
 import { lightingPreset } from "../lighting";
 import { canvasStat } from "../canvas-stat";
 import { inRoom } from "../crops";
 import { beachTint } from "../habitat-raster";
-const LUT = "living-water-colors-3";
+const LUT = "living-water-colors-4";
 const shaders = new WeakMap<Phaser.Scene, Set<Phaser.GameObjects.Shader>>();
 let sequence = 0;
 export function usesLivingWater(scene: Phaser.Scene) {
@@ -29,7 +29,7 @@ function colors(scene: Phaser.Scene) {
   if (scene.textures.exists(LUT)) return;
   const canvas = document.createElement("canvas");
   canvas.width = 32;
-  canvas.height = 160;
+  canvas.height = 200;
   const ctx = canvas.getContext("2d")!;
   const boundary =
     "#" +
@@ -47,9 +47,11 @@ function colors(scene: Phaser.Scene) {
   // then the frozen and red-clay sets. Columns 0-15 are the clear ramp and
   // bank tones, 16-31 the swamp counterpart; the shader mixes the two pairs
   // by a per-pixel murk value.
-  for (let row = 0; row < 160; row++) {
+  // Rows 160-199 are the tinted waters by kind: silt, loess, clear, lagoon.
+  for (let row = 0; row < 200; row++) {
     const kind = Math.floor((row % 40) / 8),
-      ecology = ecologyOrder[row % 8];
+      ecology = row >= 160 ? "grassland" : ecologyOrder[row % 8],
+      tint = row >= 160 ? livingTints[row % 8] : undefined;
     const cell = {
       height: 0,
       surface: "water" as const,
@@ -59,7 +61,8 @@ function colors(scene: Phaser.Scene) {
         distance: -2,
         ecology,
         flow: [0, 1] as [number, number],
-        frozenMargin: row % 80 >= 40,
+        frozenMargin: row < 160 && row % 80 >= 40,
+        ...(tint === "lagoon" ? { reef: "lagoon" as const } : tint ? { tint } : {}),
       },
     };
     const swampHabitat = {
@@ -74,7 +77,7 @@ function colors(scene: Phaser.Scene) {
     };
     [false, true].forEach((swamp) => {
       const profile = livingProfile(swamp ? { ...cell, habitat: swampHabitat } : cell);
-      if (row >= 80) {
+      if (row >= 80 && row < 160) {
         profile.customBankColors = false;
         profile.bankMaterial = "clay";
         profile.bankClimate = "desert";

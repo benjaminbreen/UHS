@@ -6,7 +6,7 @@ The shared topography renderer adds five stepped depth colors, submerged stones,
 
 `src/render/water-style.ts` defines shared material palettes selected by ecology and water type, independent of cultural families. Desert rivers have warm silt, buff sandstone and muted turquoise channels; tropical rivers have jade water, dark mineral tones and earthy banks, whereas tropical coasts have clear aqua shelves and pale sand. Temperate shores use blue-green water and neutral stone, boreal shores cooler blue and slate, tundra coasts cold blue with pale gravel, wetlands more olive water. Dry scrub uses warm banks with cooler water. The ecology remains the broad environmental envelope even when a local habitat becomes wetland or grassland.
 
-Northern shores use gravel; temperate coastal gravel and sand vary with the existing shoreline width. Tropical coastal beaches retain pale sand. Existing ecological reeds and shoreline decorations are reused; rocks close to water receive the matching mineral tint. Winter margins gain small pale ice accents, not walkable frozen water. These are art-direction defaults, not a claim that latitude alone determines water color, geology or sediment. The explorer's “Monsoon river” uses the existing tropical ecological envelope; it does not introduce a rainfall or flood-season simulation.
+Northern shores use gravel; temperate coastal gravel and sand vary with the existing shoreline width. Tropical coastal beaches retain pale sand. Existing ecological reeds and shoreline decorations are reused; rocks close to water receive the matching mineral tint. These are art-direction defaults, not a claim that latitude alone determines water color, geology or sediment. Regional water that ecology cannot say is in the waterscape below.
 
 ## Geometry and rendering
 
@@ -31,3 +31,16 @@ No save restoration work or new hydrology model is included. Rocky foam supports
 ## Local bank and marsh refinement — September 8, 2026
 
 Sparse independent riverbank coves/bars and admitted small marsh basins add local variation before siting. Banks and water share a native-pixel signed edge mask; wash animation follows cached shoreline pixels. Low pool margins use muted wet soil and shallow water. This does not replace the existing reach planner with a watershed simulation. See `TERRAIN_ART.md`.
+
+## Waterscapes — November 6, 2026
+
+`content/geography/waterscapes.ts` reads a place's lon/lat, year and season into a `Waterscape`: delta, flood stage, tint, ice, icebergs, reef, tidal range, mangroves and water works. Region boxes are broad and editable there; nothing enters saves.
+
+- **Deltas and flood.** Delta places (Nile, Shatt al-Arab, Yellow River, Ganges–Brahmaputra, Mekong, Irrawaddy, Indus, Red River, Mississippi, Rhine–Meuse) get a web of distributaries from the contours of two smooth fields, the town on its mound. The flood stage follows the river's regime by season (Nile autumn, monsoon summer, snowmelt spring; the Aswan dams end the Nile's). In flood the valley floor fills with wadable silty water and flood-system basin fields (`nile-flood-basins`) stand under it; a monsoon river widens within its banks.
+- **Colour.** `tint` overrides the ecology palette: silt, Yellow River loess, clear karst water (Guilin, Yucatán, Dinaric, Florida). The living-water colour table has matching rows (160–199).
+- **Ice.** Cold winters (and the Little Ice Age) freeze lakes and rivers: walkable (`waterDepthAt` is 0), with snow drifts, black ice and a single crack field. Subpolar coasts add shore-fast ice about seven cells out; polar ones pack floes beyond it. Glacier coasts (Greenland, Svalbard, Alaska, Patagonia, Antarctica) carry icebergs with a lit and a shaded face.
+- **Reefs.** Atoll places are drawn as a ring of motus round a lagoon with passes; tropical reef coasts get a lagoon band, a coral crest with breakers, coral heads and seagrass.
+- **Tides.** The scene stands at low water: the intertidal shelf, scaled by tidal range (macrotidal Fundy, Severn, Brittany, Yellow Sea, Bengal...), is bare mud with creeks and pools, wadable; temperate shores carry salt marsh above mid-tide. On mangrove coasts mangroves stand out on the mud.
+- **Works.** Low Countries polders get drainage ditches and a raised dike along open water; the Valley of Mexico gets back its lake with chinampa beds and canals; Iran, Turpan, Oman and the Saharan foggara country get a qanat's line of shaft mounds.
+
+The tide, ice and flood are fixed when the world is built from its starting season; they do not yet change as the engine's season turns. Review: `npm run capture:terrain -- waters` (pairs are A/B by season); the lab takes `lon`/`lat`.

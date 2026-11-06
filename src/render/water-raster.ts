@@ -252,6 +252,96 @@ function rasterCanalTile(
     },
   };
 }
+const hex = (c: string) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+const ramp = (...c: string[]) => c.map(hex);
+const ICE = ramp("#f1f5f4", "#dde9ec", "#c6dce3", "#a9c6d2", "#86a9ba", "#6f93a8");
+const BERG = ramp("#f6fafb", "#dcedf3", "#b9d9e7", "#8fbdd4", "#5f93ad");
+const MUD = ramp("#6f604e", "#7f6f59", "#8f7f66", "#a49a8a");
+const MANGROVE_MUD = ramp("#4f4537", "#5e5241", "#6c604c", "#8a8577");
+const MARSH = ramp("#5f7449", "#6f8452", "#80955f", "#4b5a38");
+const LAGOON = ramp("#d6f0d9", "#ace5d3", "#7fd6cb", "#5bc3c5", "#3f9fb4");
+const CORAL = ramp("#8f7a5f", "#b99a72", "#cfb48a", "#d9cfb3");
+const GRASS = ramp("#4f8a6b", "#629c79");
+const FOAM = hex("#f3f6ee");
+/** Ice, pack floes, icebergs, tidal mud, salt marsh and reefs. Undefined is
+ * ordinary open water. `d` is the pixel's water distance in cells. */
+export function specialWater(cell: TopographyCell, palette: WaterPalette, d: number, wx: number, wy: number, index: number, living = false): number[] | undefined {
+  const v = cell.waterVisual;
+  if (!v) return;
+  if (v.icebergs && d < -4) {
+    // One berg at most per six-cell block: a white top and its south face.
+    const bx = Math.floor(wx / 96),
+      by = Math.floor(wy / 96);
+    if (waterHash(bx, by, 619) < 0.12) {
+      const cx = bx * 96 + 24 + waterHash(bx, by, 620) * 48,
+        cy = by * 96 + 24 + waterHash(bx, by, 622) * 40;
+      const r = 12 + waterHash(bx, by, 624) * 14,
+        tall = 5 + Math.floor(r / 3);
+      const top = (px: number, py: number) =>
+        Math.hypot(px - cx, (py - cy) * 1.5) < r + (waterNoise(px, py, 9, 621) - 0.5) * 12;
+      if (top(wx, wy)) return top(wx, wy - 1) ? (waterHash(Math.floor(wx / 3), wy, 625) > 0.93 ? BERG[1] : BERG[0]) : BERG[1];
+      for (let k = 1; k <= tall; k++)
+        if (top(wx, wy - k))
+          return k === tall || k === tall - 1 ? BERG[4] : wx < cx - r * 0.2 ? BERG[2] : BERG[3];
+    }
+  }
+  if (v.ice === "solid" && !(v.kind === "sea" && d < -7 + (waterNoise(wx, wy, 14, 615) - 0.5) * 1.4)) {
+    const drift = waterNoise(wx, wy, 22, 601) + (waterNoise(wx, wy, 7, 602) - 0.5) * 0.12;
+    let rgb = drift > 0.6 ? ICE[0] : drift > 0.56 ? ICE[1] : d > -0.5 ? ICE[3] : ICE[2];
+    if (drift <= 0.56 && d < -2 && waterNoise(wx, wy, 31, 603) < 0.3) rgb = ICE[3];
+    if (
+      drift <= 0.58 &&
+      Math.abs(waterNoise(wx, wy, 44, 605) - 0.5) < 0.006
+    )
+      rgb = ICE[4];
+    if (v.kind === "sea" && d < -6.4) rgb = waterHash(Math.floor(wx / 2), Math.floor(wy / 2), 609) > 0.5 ? ICE[0] : ICE[3];
+    return rgb;
+  }
+  if (v.ice) {
+    const floe = (px: number, py: number) => waterNoise(px, py, 40, 611) + (waterNoise(px, py, 11, 613) - 0.5) * 0.16 > 0.5;
+    if (!floe(wx, wy)) return;
+    if (!floe(wx, wy + 1)) return ICE[5];
+    if (!floe(wx, wy + 2)) return ICE[4];
+    if (!floe(wx, wy - 1)) return ICE[0];
+    return waterNoise(wx, wy, 9, 617) > 0.62 ? ICE[0] : ICE[1];
+  }
+  if (v.tidal !== undefined) {
+    const width = v.tidal < 1 ? -v.distance / (1 - v.tidal) : 4;
+    const t = 1 + d / width;
+    if (t < 0) return;
+    const tropical = v.ecology === "tropical-woodland" || cell.habitat?.colorway === "mangrove";
+    const mud = tropical ? MANGROVE_MUD : MUD;
+    // Salt marsh above mid-tide on temperate shores, a small cliff at its foot.
+    const edge = 0.6 + (waterNoise(wx, wy, 16, 635) - 0.5) * 0.25;
+    if (!tropical && v.ecology !== "desert" && t > edge) {
+      if (waterNoise(wx, wy, 11, 637) > 0.7) return waterNoise(wx, wy, 11, 637) > 0.74 ? hex(palette.depths[0]) : MARSH[3];
+      if (t < edge + 0.03) return MARSH[3];
+      const tuft = waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 639);
+      return tuft > 0.8 ? MARSH[2] : tuft < 0.15 ? MARSH[0] : MARSH[1];
+    }
+    // Branching creeks drain to the low-water line; pools stand on the low flats.
+    const creek = Math.abs(waterNoise(wx, wy, 48, 633) - 0.5);
+    if (creek < 0.012 + (1 - t) * 0.03) return creek < 0.006 + (1 - t) * 0.02 ? hex(palette.depths[1]) : mud[0];
+    if (t < 0.35 && waterNoise(wx, wy, 20, 631) > 0.6) return hex(palette.depths[0]);
+    if ((wy & 1) === 0 && waterHash(Math.floor(wx / 6), wy, 641) > 0.9) return mud[3];
+    return t < 0.4 ? mud[1] : waterHash(Math.floor(wx / 4), Math.floor(wy / 3), 643) > 0.75 ? mud[1] : mud[2];
+  }
+  if (v.reef) {
+    const crest = 5.5 + (waterNoise(wx, wy, 60, 645) - 0.5) * 3;
+    if (v.reef === "outer" && d < -crest - 0.5) return living ? undefined : hex(palette.depths[Math.min(4, index + 2)]);
+    if (v.reef === "outer" && d < -crest + 0.5) {
+      const foam = waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 647);
+      return d < -crest - 0.1 && foam > 0.35 ? FOAM : foam > 0.7 ? CORAL[3] : CORAL[2];
+    }
+    if (d < -1.2 && d > -5 && waterNoise(wx, wy, 30, 649) > 0.7)
+      return GRASS[(waterHash(Math.floor(wx / 2), wy, 651) > 0.7 ? 1 : 0)];
+    if (v.reef === "outer" && d < -1.2 && waterHash(Math.floor(wx / 5), Math.floor(wy / 4), 653) > 0.96 && (wx % 5) && (wy % 4))
+      return CORAL[(wy % 4) === 1 ? 2 : 1];
+    if (living) return;
+    const depth = Math.min(4, Math.floor(-d / (v.reef === "lagoon" ? 2.2 : 1.6) + (waterNoise(wx, wy, 30, 655) - 0.5) * 1.2));
+    return LAGOON[Math.max(0, depth)];
+  }
+}
 export function rasterWaterTile(
   sample: TopographySample,
   x: number,
@@ -358,13 +448,17 @@ export function rasterWaterTile(
           continue;
         }
       }
-      pixels.set(colors[index], (py * 16 + px) * 4);
+      const special = cell.bridge ? undefined : specialWater(cell, palette, distance, wx, wy, index);
+      pixels.set(special ? [...special, 255] : colors[index], (py * 16 + px) * 4);
     }
   // Submerged stones are deliberately sparse, tinted by the water column.
   const depth = -(cell.waterVisual?.distance ?? -3);
   if (
     !cell.bridge &&
     cell.habitat?.colorway !== "swamp" &&
+    !cell.waterVisual?.ice &&
+    !cell.waterVisual?.reef &&
+    cell.waterVisual?.tidal === undefined &&
     depth > 0.4 &&
     depth < (kind === "sea" ? 8 : 3.8) &&
     waterHash(gx, gy, 44) > 0.86 &&

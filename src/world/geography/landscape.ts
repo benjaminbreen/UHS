@@ -31,6 +31,12 @@ export type LandSample = {
    * a narrow stream: lets the shoreline be reconstructed per pixel rather
    * than interpolated between cell centres a channel wide apart. */
   waterGradient?: readonly [number, number];
+  /** Exposed at low tide: 1 at the high-water line, 0 at the low. */
+  tidal?: number;
+  /** Sea inside a reef: "lagoon" is an atoll's enclosed water. */
+  reef?: "outer" | "lagoon";
+  /** Floodplain under the seasonal inundation. */
+  flooded?: boolean;
 };
 export function createLandscape(s: WorldSetting, seed: string) {
   const origin = toAtlas(s.lon, s.lat),

@@ -32,6 +32,30 @@ export const palettes = {
     bed: "#c8c9ae",
     foam: "#edf5e8",
   },
+  silt: {
+    label: "Silt · flood brown",
+    colors: ["#c4ad82", "#ad9468", "#957c55", "#7f6748", "#6a563d"],
+    bed: "#8c7655",
+    foam: "#e3d8bc",
+  },
+  loess: {
+    label: "Loess · yellow river",
+    colors: ["#dcc187", "#c9a66c", "#b38f5a", "#9b7a4b", "#836640"],
+    bed: "#a58858",
+    foam: "#efe3c2",
+  },
+  clear: {
+    label: "Karst spring · clear",
+    colors: ["#c6efdb", "#84dccb", "#46c1c0", "#2a9fb2", "#257b9a"],
+    bed: "#d9d1ae",
+    foam: "#f2fbf3",
+  },
+  lagoon: {
+    label: "Reef lagoon",
+    colors: ["#d8f4dc", "#a3ead6", "#6fdccf", "#3ec4ca", "#1993bd"],
+    bed: "#efe4c0",
+    foam: "#f7fbf2",
+  },
   polar: {
     label: "Polar · slate & ice",
     colors: ["#bdcfca", "#93b9bd", "#719aa9", "#507b92", "#3e586f"],

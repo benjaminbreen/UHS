@@ -74,6 +74,7 @@ import {
 import { route } from "../../core/routing";
 import { CHUNK_SIZE } from "../../core/types";
 import { random } from "../../core/random";
+import { waterscape } from "../../content/geography/waterscapes";
 import { settlementProfile } from "../../content/settlements/profiles";
 import { createLandscape } from "../geography/landscape";
 import { noise } from "../geography/noise";
@@ -758,6 +759,7 @@ export function createSettlementWorld(
   const previewNeighbor = pack.setting
     ? adjacentTerrain(pack.setting)
     : undefined;
+  const waters = pack.setting?.lon !== undefined ? waterscape(pack.setting) : undefined;
   const settingAt = (x: number, y: number) =>
     pack.setting?.geographyMode === "configured"
       ? pack.setting
@@ -1275,6 +1277,16 @@ export function createSettlementWorld(
     if (situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25) return;
     const f = land.sample(x, y);
     const scape = f.landscape;
+    // Mangroves stand out on the tidal mud on their prop roots, in stands.
+    if (
+      waters?.mangrove &&
+      f.tidal !== undefined &&
+      f.tidal > 0.2 &&
+      noise(seed, x + land.origin.x, y + land.origin.y, 14, "mangrove-stand") > 0.42 &&
+      random(seed, "mangrove", x + land.origin.x, y + land.origin.y) < 0.3 &&
+      !nearby(x, y).some((p) => p.reserved.has(k) || p.solid.has(k))
+    )
+      return { id: `mangrove-${x}-${y}`, x, y, sprite: "nature-mangrove", solid: true };
     if (!sceneryAllowed(x, y, k, f)) return;
     // Reeds and shore scrub may stand at a stream's cut bank; nothing else on a face.
     if (relief && f.water > 3 && onStep(x, y)) return;
@@ -1903,6 +1915,17 @@ export function createSettlementWorld(
         frozenMargin: f.snow,
         ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
       };
+      if (waters && f.water < 0) {
+        const v = cell.waterVisual;
+        // Shore ice reaches about seven cells out; pack floes drift beyond it.
+        const ice = waters.ice && (f.kind !== "sea" || (waters.ice !== "lakes" && f.water > -9.5) ? "solid" : waters.ice === "pack" ? "floes" : undefined);
+        if (ice) v.ice = ice;
+        if (waters.icebergs && f.kind === "sea") v.icebergs = true;
+        const tint = f.flooded ? "silt" : f.kind === "sea" ? undefined : waters.tint;
+        if (tint) v.tint = tint;
+        if (f.tidal !== undefined && !ice) v.tidal = f.tidal;
+        if (f.reef && !ice) v.reef = f.reef;
+      }
       cell.biome = cell.habitat.site
         ? cell.habitat.ecology
         : localEcology(

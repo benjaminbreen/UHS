@@ -55,6 +55,7 @@ const paddy = {
   sky: [138, 170, 178],
   mud: [88, 78, 58],
 };
+const flood = { water: [150, 128, 92], deep: [128, 108, 78], sky: [198, 182, 146], mud: [112, 96, 70] };
 const tan = [190, 168, 116];
 /** Plants along a ridge, in world pixels. */
 const PLANT_PITCH = 10;
@@ -256,17 +257,20 @@ export function rasterFieldTile(
             by = mod(wy, 16);
           const shadeRow = by <= 1 || bx <= 1;
           const farLip = by === 14 || bx === 14;
-          rgb = shadeRow ? paddy.deep : paddy.water;
+          const pool = f.flood ? flood : paddy;
+          rgb = shadeRow ? pool.deep : pool.water;
           if (farLip && hash(Math.floor((axis === "x" ? wx : wy) / 5), 0, 837) > 0.5)
-            rgb = paddy.sky;
+            rgb = pool.sky;
           if (
             mod(along, 8) < 2 &&
             hash(Math.floor(along / 8), row, 835) > 0.9 &&
             !top
           )
-            rgb = paddy.sky;
+            rgb = pool.sky;
           const ridge = t >= 0.6;
-          if (stage === "bare" || stage === "sown") {
+          if (f.flood) {
+            // An open sheet over the basin: nothing stands above it.
+          } else if (stage === "bare" || stage === "sown") {
             if (ridge) rgb = shade(paddy.mud, wash + (top ? 4 : -4));
           } else if (stage === "green") {
             if (ridge) rgb = mix(paddy.mud, leaf, top ? 0.5 : 0.3);
@@ -274,7 +278,7 @@ export function rasterFieldTile(
             if (top) rgb = shade(hue, rowHash > 0.6 ? 14 : 4);
             else if (ridge) rgb = shade(hue, -18);
           } else if (ridge) rgb = shade(tan, -6);
-          if (ink) rgb = leafRamp[ink - 1];
+          if (ink && !f.flood) rgb = leafRamp[ink - 1];
         } else {
           rgb = soilAt(t, wx, wy, wash);
           if (stage === "sown") {

@@ -290,3 +290,79 @@ it("uses low kneeling crew places and natural reed finishes for the Nile skiff",
     for(const [suffix,facing] of [["",4],["-north",0],["-east",2],["-west",6]] as const)
       expect(mooredBoatFrame(`worksite-reed-skiff${suffix}`,variation)).toBe(`boat-papyrus${finish}-${facing}`);
 });
+
+it("reads deltas, floods, ice, reefs, tides and water works from the place and season", async () => {
+  const { waterscape } = await import("../src/content/geography/waterscapes");
+  const at = (lon: number, lat: number, year: number, season: WorldSetting["season"], climate: WorldSetting["climate"] = "temperate") =>
+    waterscape({ lon, lat, year, season, climate });
+  expect(at(31.25, 29.85, -1300, "autumn", "arid").flood).toBe(1);
+  expect(at(31.25, 29.85, -1300, "spring", "arid").flood).toBe(0);
+  expect(at(31.25, 29.85, 1980, "autumn", "arid").flood).toBe(0);
+  expect(at(30.8, 31, -600, "winter", "arid").delta).toBe(true);
+  expect(at(116.5, 36.5, 1100, "summer").tint).toBe("loess");
+  expect(at(110.3, 25.1, 1600, "summer", "monsoon").tint).toBe("clear");
+  expect(at(31.5, 60.8, 1600, "winter", "boreal").ice).toBe("fast");
+  expect(at(31.5, 60.8, 1600, "summer", "boreal").ice).toBeUndefined();
+  expect(at(-51, 69.2, 1600, "summer", "tundra").icebergs).toBe(true);
+  expect(at(-147.7, -15, 1700, "summer", "tropical").reef).toBe("atoll");
+  const sundarbans = at(89.2, 21.9, 1700, "winter", "monsoon");
+  expect([sundarbans.mangrove, sundarbans.tide, sundarbans.delta]).toEqual([true, 1, true]);
+  expect(at(4.9, 52.37, 1650, "summer").works).toBe("polder");
+  expect(at(-99.13, 19.43, 1500, "summer", "mediterranean").works).toBe("chinampa");
+  expect(at(51.4, 33.98, 1600, "summer", "arid").works).toBe("qanat");
+});
+
+it("walks on ice and wades across tidal mud", async () => {
+  const { waterDepthAt, MAX_WADING_DEPTH } = await import("../src/core/water-field");
+  const cell = (extra: object): TopographySample => () => ({
+    height: 0,
+    surface: "water",
+    waterVisual: { distance: -6, kind: "lake", ecology: "boreal-woodland", shoreWidth: 2, flow: [0, 0], frozenMargin: true, ...extra },
+  });
+  expect(waterDepthAt(cell({}), 0.5, 0.5)).toBeGreaterThan(MAX_WADING_DEPTH);
+  expect(waterDepthAt(cell({ ice: "solid" }), 0.5, 0.5)).toBe(0);
+  expect(waterDepthAt(cell({ ice: "floes" }), 0.5, 0.5)).toBeGreaterThan(MAX_WADING_DEPTH);
+  expect(waterDepthAt(cell({ tidal: 0.5 }), 0.5, 0.5)).toBeLessThan(MAX_WADING_DEPTH);
+});
+
+it("paints ice pale, flood water brown and a reef with a breaker line", () => {
+  const tile = (extra: object, distance: (x: number, y: number) => number) =>
+    rasterWaterTile(
+      (x, y) => ({
+        height: 0,
+        surface: distance(x, y) < 0 ? "water" : "sand",
+        waterVisual: { distance: distance(x, y), kind: "sea", ecology: "tropical-woodland", shoreWidth: 3, flow: [0, 1], frozenMargin: false, ...extra },
+      }),
+      0, 0, 0, 0,
+    ).pixels;
+  const mean = (p: Uint8ClampedArray) => {
+    const s = [0, 0, 0];
+    for (let i = 0; i < p.length; i += 4) for (let k = 0; k < 3; k++) s[k] += p[i + k] / (p.length / 4);
+    return s;
+  };
+  const [ir, ig, ib] = mean(tile({ ice: "solid", kind: "lake" }, () => -4));
+  expect(Math.min(ir, ig, ib)).toBeGreaterThan(150);
+  const [sr, , sb] = mean(tile({ tint: "silt", kind: "river" }, () => -3));
+  expect(sr).toBeGreaterThan(sb);
+  const reef = tile({ reef: "outer" }, (x) => -5 - 3 * x);
+  let foam = 0;
+  for (let i = 0; i < reef.length; i += 4) if (reef[i] > 235 && reef[i + 2] > 225) foam++;
+  expect(foam).toBeGreaterThan(10);
+});
+
+it("freezes Lake Ladoga in winter and rings a Tuamotu atoll round its lagoon", () => {
+  const world = (lon: number, lat: number, season: WorldSetting["season"], ecology: "boreal-woodland" | "tropical-woodland", water: WorldSetting["water"]) =>
+    createSettingSession({ ...setting(ecology as never, water), lon, lat, season, climate: ecology === "boreal-woodland" ? "boreal" : "tropical" }, "waterscape").world;
+  const count = (w: ReturnType<typeof world>, test: (v: NonNullable<ReturnType<NonNullable<typeof w.topography>>>["waterVisual"]) => boolean) => {
+    let n = 0;
+    for (let y = -80; y <= 80; y += 2) for (let x = -80; x <= 80; x += 2) if (test(w.topography!(x, y)?.waterVisual)) n++;
+    return n;
+  };
+  const ladoga = world(31.5, 60.8, "winter", "boreal-woodland", "lake");
+  expect(count(ladoga, (v) => !!v && v.distance < 0 && v.ice === "solid")).toBeGreaterThan(20);
+  expect(count(ladoga, (v) => !!v && v.distance < 0 && !v.ice)).toBe(0);
+  const atoll = world(-147.7, -15, "summer", "tropical-woodland", "island");
+  expect(count(atoll, (v) => v?.reef === "lagoon" && v.distance < 0)).toBeGreaterThan(50);
+  expect(count(atoll, (v) => v?.reef === "outer" && v.distance < 0)).toBeGreaterThan(50);
+  expect(count(atoll, (v) => !!v && v.distance > 0)).toBeGreaterThan(20);
+});

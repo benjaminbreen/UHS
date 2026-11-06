@@ -173,7 +173,8 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
     active: 0,
     shores: effects.filter(
       (e) =>
-        (e.shoreline ? e.shoreline.length : e.edges.length) && !e.cell.bridge,
+        (e.shoreline ? e.shoreline.length : e.edges.length) && !e.cell.bridge &&
+        !e.cell.waterVisual?.ice && e.cell.waterVisual?.tidal === undefined,
     ),
     bounds: {
       x: Math.min(...effects.map((e) => e.x)),
