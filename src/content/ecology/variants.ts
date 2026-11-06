@@ -1,4 +1,6 @@
 import { ecoregionNear } from "../geography/ecoregions";
+import { koppenAt } from "../geography/climate-map";
+import { highlandAltitude, iceSheetAt, terrainProvinceAt } from "../geography/landforms";
 import type { WorldSetting } from "../geography/types";
 import { desertColorwayFor, type Colorway, type Ecology } from "./profiles";
 
@@ -17,7 +19,11 @@ export function regionalEcology(
   climate: WorldSetting["climate"],
   moisture?: number,
   geographic = false,
+  year?: number,
 ): RegionalEcology {
+  // Köppen EF, and the ice sheets of a glacial age.
+  if (koppenAt(lon, lat) === 30 || (year !== undefined && iceSheetAt(lon, lat, year)))
+    return { ecology: "tundra", colorway: "ice" };
   if (!geographic && climate === "tundra") return { ecology: "tundra", colorway: "polar" };
   // A dry climate reading wins over the map: it is what dry previews and
   // regional terrain agree on, and the biome cell may be a plateau edge.
@@ -28,13 +34,26 @@ export function regionalEcology(
     return { ecology: "wetland", colorway: "swamp" };
   const biome = region?.biome ?? 0;
   const realm = region?.realm ?? "";
+  const name = region?.sourceName ?? "";
   const tropical = Math.abs(lat) < 23.5;
+  const altitude = highlandAltitude(lon, lat);
+  const province = terrainProvinceAt(lon, lat);
+  if (province === "loess") return { ecology: "grassland", colorway: "loess" };
+  // The Fens and the Somerset Levels before their seventeenth-century drainage.
+  if ((year === undefined || year < 1650) && (inBox(lon, lat, [-0.5, 52.2, 0.6, 53.1]) || inBox(lon, lat, [-3.1, 51, -2.6, 51.3])))
+    return { ecology: "wetland", colorway: "fen" };
   switch (biome) {
     case 1:
-      return { ecology: "tropical-woodland" };
+      return {
+        ecology: "tropical-woodland",
+        colorway: /montane|Yungas/.test(name) ? "cloud" : "rainforest",
+      };
     case 2:
       return { ecology: "tropical-woodland", colorway: "monsoon" };
     case 3:
+      // Pine-oak country: the Sierra Madre, Central America, the Himalayan
+      // chir pine belt, Luzon and Sumatra.
+      return { ecology: "temperate-woodland", colorway: "pine-oak" };
     case 5:
       // Redwood and Douglas fir country: the coast ranges, Cascades and Sierra.
       return {
@@ -49,9 +68,11 @@ export function regionalEcology(
             ? "oak-hickory"
             : realm === "Palearctic" && lon > 70
               ? "east-asian"
-              : realm === "Australasia" || realm === "Neotropic"
-                ? "southern-beech"
-                : undefined,
+              : /Valdivian|Fiordland|Westland|Tasmanian temperate rain/.test(name)
+                ? "temperate-rain"
+                : realm === "Australasia" || realm === "Neotropic"
+                  ? "southern-beech"
+                  : undefined,
       };
     case 6:
       return {
@@ -96,10 +117,23 @@ export function regionalEcology(
               : "monsoon"
           : Math.abs(lat) > 50
             ? "bog"
-            : "marsh",
+            : Math.abs(lat) > 40
+              ? "fen"
+              : "marsh",
       };
     case 10:
-      return { ecology: "grassland", colorway: "montane" };
+      return {
+        ecology: "grassland",
+        colorway: /páramo/.test(name)
+          ? "paramo"
+          : /puna/.test(name)
+            ? "puna"
+            : /moorland/.test(name) || (realm === "Afrotropic" && altitude >= 3000)
+              ? "afroalpine"
+              : realm === "Palearctic" && altitude >= 3000
+                ? "tibetan"
+                : "montane",
+      };
     case 11:
       return { ecology: "tundra", colorway: lat < 66 ? "alpine" : undefined };
     case 12:
@@ -138,15 +172,16 @@ export function climateEcology(
   switch (climate) {
     case "tundra":
       return { ecology: "tundra" };
+    case "tropical":
+      return { ecology: "tropical-woodland", colorway: "rainforest" };
     case "boreal":
       return { ecology: "boreal-woodland" };
     case "arid":
       return { ecology: "desert", colorway: desertColorwayFor(lon, lat) };
     case "mediterranean":
       return { ecology: "dry-scrub" };
-    case "tropical":
     case "monsoon":
-      return { ecology: "tropical-woodland" };
+      return { ecology: "tropical-woodland", colorway: "monsoon" };
     default:
       return { ecology: "temperate-woodland" };
   }
@@ -154,20 +189,21 @@ export function climateEcology(
 
 /** Colourways that make sense for each envelope, for labs and validation. */
 export const colorwaysFor: Record<Ecology, readonly Colorway[]> = {
-  desert: ["highland", "sahara", "red-earth", "sonoran", "atacama", "kalahari"],
+  desert: ["highland", "sahara", "reg", "red-earth", "sonoran", "atacama", "kalahari"],
   "dry-scrub": ["maquis", "chaparral", "mallee", "fynbos", "matorral", "sahel"],
-  grassland: ["prairie", "steppe", "pampas", "montane"],
+  grassland: ["prairie", "steppe", "pampas", "montane", "puna", "paramo", "tibetan", "afroalpine", "loess"],
   savanna: ["acacia", "cerrado", "eucalypt", "monsoon"],
-  "temperate-woodland": ["oak-hickory", "east-asian", "southern-beech", "conifer", "redwood"],
+  "temperate-woodland": ["oak-hickory", "east-asian", "southern-beech", "conifer", "redwood", "pine-oak", "temperate-rain"],
   "boreal-woodland": ["larch", "coastal"],
-  "tropical-woodland": ["monsoon"],
-  wetland: ["marsh", "monsoon", "papyrus", "pantanal", "bog", "mangrove", "swamp"],
-  tundra: ["alpine", "polar"],
+  "tropical-woodland": ["rainforest", "monsoon", "cloud"],
+  wetland: ["marsh", "fen", "monsoon", "papyrus", "pantanal", "bog", "mangrove", "swamp"],
+  tundra: ["alpine", "polar", "ice"],
 };
 
 export const colorwayLabels: Record<Colorway, string> = {
   highland: "Gravel plateau",
   sahara: "Sand sea",
+  reg: "Stony desert",
   "red-earth": "Red earth",
   sonoran: "Cactus desert",
   atacama: "Fog desert",
@@ -201,6 +237,17 @@ export const colorwayLabels: Record<Colorway, string> = {
   swamp: "Freshwater swamp forest",
   alpine: "Alpine",
   polar: "Polar",
+  "pine-oak": "Pine and oak",
+  "temperate-rain": "Temperate rainforest",
+  rainforest: "Rainforest",
+  cloud: "Cloud forest",
+  puna: "Puna",
+  paramo: "Páramo",
+  tibetan: "High plateau",
+  afroalpine: "Afroalpine moorland",
+  loess: "Loess",
+  fen: "Fen",
+  ice: "Ice cap",
 };
 
 /** How a colourway lays its habitat out. Multipliers on the shared noise
@@ -246,6 +293,18 @@ const layouts: Partial<Record<Colorway, HabitatLayout>> = {
   redwood: { wet: 1.1, exposed: 0.5, cover: 1.4 },
   alpine: { wet: 0.7, exposed: 1.4, cover: 0.5 },
   polar: { wet: 0.8, exposed: 1.3, cover: 0.3 },
+  reg: { wet: 0.2, exposed: 1.45, cover: 0.35 },
+  "pine-oak": { wet: 0.8, exposed: 0.9, cover: 1.05 },
+  "temperate-rain": { wet: 1.3, exposed: 0.4, cover: 1.45 },
+  rainforest: { wet: 1.15, exposed: 0.35, cover: 1.5 },
+  cloud: { wet: 1.25, exposed: 0.6, cover: 1.25 },
+  puna: { wet: 0.5, exposed: 1.35, cover: 0.35 },
+  paramo: { wet: 1.25, exposed: 0.9, cover: 0.45 },
+  tibetan: { wet: 0.6, exposed: 1.3, cover: 0.3 },
+  afroalpine: { wet: 0.9, exposed: 1.2, cover: 0.5 },
+  loess: { wet: 0.4, exposed: 1.35, cover: 0.45 },
+  fen: { wet: 1.35, exposed: 0.3, cover: 0.7 },
+  ice: { wet: 0.2, exposed: 1.6, cover: 0 },
 };
 const plain: HabitatLayout = { wet: 1, exposed: 1, cover: 1 };
 export function habitatLayout(colorway?: Colorway): HabitatLayout {

@@ -3,10 +3,10 @@ import { regionalEcology } from "../ecology/variants";
 import { climateAt } from "./climate-map";
 
 export function environmentFor(
-  s: Pick<WorldSetting, "climate" | "lon" | "lat" | "relief" | "settlement"> & Partial<Pick<WorldSetting, "ecologyRevision" | "geographyMode">>,
+  s: Pick<WorldSetting, "climate" | "lon" | "lat" | "relief" | "settlement"> & Partial<Pick<WorldSetting, "ecologyRevision" | "geographyMode" | "year">>,
   moisture?: number,
 ): NonNullable<WorldSetting["environment"]> {
-  const { ecology, colorway } = regionalEcology(s.lon, s.lat, s.climate, moisture, s.ecologyRevision === 2 && s.geographyMode !== "configured");
+  const { ecology, colorway } = regionalEcology(s.lon, s.lat, s.climate, moisture, s.ecologyRevision === 2 && s.geographyMode !== "configured", s.year);
   return {
     ecology,
     colorway,

@@ -23,6 +23,8 @@ export type LandSample = {
   water: number;
   kind: "sea" | "river" | "lake";
   snow: boolean;
+  /** Perennial ice: above the summer snowline, or on an ice cap. */
+  glacier?: boolean;
   /** A dry channel or trail through this cell; see world/v3/features. */
   landscape?: import("../v3/features").Landscape;
   /** A creek drops a tier here: the cell just below the lip. */

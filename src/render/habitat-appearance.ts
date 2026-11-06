@@ -108,13 +108,19 @@ function computeAppearance(h: Habitat, art: GrassArt) {
         ),
       )
     : palette[0];
-  const tint = wilt(h.ecology, h.season);
+  const tint = wilt(h.ecology, h.colorway, h.season);
   if (tint) {
     // Blades and ground must turn together, or a brown autumn field keeps a
     // vivid green sward standing in it.
     const dun = mix(palette[4], palette[8], 0.4);
     for (const i of greens) palette[i] = drain(mix(palette[i], dun, tint[0]), tint[1]);
     ground = drain(mix(ground, dun, tint[0]), tint[1]);
+  }
+  // A desert after its rains: a green haze over the sand.
+  const flush = h.ecology === "desert" ? (greenUp[h.season] ?? 0) : 0;
+  if (flush) {
+    for (const i of greens) palette[i] = mix(palette[i], FLUSH, flush);
+    ground = mix(ground, FLUSH, flush * 0.6);
   }
   return { palette, soil, ground: ground.map(Math.round) };
 }
@@ -144,20 +150,43 @@ const cycles: Record<string, [number, number][]> = {
     [0.08, 0],
     [0.3, 0.1],
     [0.22, 0.35],
+  ],  // Rains in summer, dry in winter (seasons are hemisphere-flipped already),
+  // and the hot weeks before the monsoon the driest of all.
+  tropical: [
+    [0.3, 0.1],
+    [0, 0],
+    [0.06, 0],
+    [0.44, 0.14],
   ],
 };
+const FLUSH = [128, 158, 74];
+const greenUp: Record<string, number> = { spring: 0.16, winter: 0.06 };
 const order = ["spring", "summer", "autumn", "winter"];
 const cycleOf: Record<string, keyof typeof cycles | undefined> = {
   grassland: "temperate",
   "temperate-woodland": "temperate",
   wetland: "temperate",
-  savanna: "dry",
+  savanna: "tropical",
   "dry-scrub": "dry",
   "boreal-woodland": "cold",
   tundra: "cold",
 };
-function wilt(ecology: string, season: string) {
-  const cycle = cycleOf[ecology];
+// Colourways whose year differs from their envelope's. Undefined is evergreen.
+const cycleOfColorway: Record<string, keyof typeof cycles | undefined> = {
+  "wetland:papyrus": undefined,
+  "wetland:mangrove": undefined,
+  "wetland:swamp": undefined,
+  "wetland:pantanal": "tropical",
+  "wetland:monsoon": "tropical",
+  "tropical-woodland:monsoon": "tropical",
+  "dry-scrub:sahel": "tropical",
+  "grassland:paramo": undefined,
+  "grassland:afroalpine": undefined,
+  "tundra:ice": undefined,
+};
+function wilt(ecology: string, colorway: string | undefined, season: string) {
+  const key = `${ecology}:${colorway}`;
+  const cycle = key in cycleOfColorway ? cycleOfColorway[key] : cycleOf[ecology];
   const i = order.indexOf(season);
   if (!cycle || i < 0) return undefined;
   const step = cycles[cycle][i];

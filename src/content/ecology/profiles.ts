@@ -1,3 +1,4 @@
+import { terrainProvinceAt } from "../geography/landforms";
 /** Broad ecological envelopes; species and land use remain separate choices. */
 export const ecologies = [
   "grassland",
@@ -50,6 +51,18 @@ export const colorways = [
   "swamp",
   "alpine",
   "polar",
+  "pine-oak",
+  "temperate-rain",
+  "rainforest",
+  "cloud",
+  "puna",
+  "paramo",
+  "tibetan",
+  "afroalpine",
+  "loess",
+  "reg",
+  "fen",
+  "ice",
 ] as const;
 export type Colorway = (typeof colorways)[number];
 /** Kept for the desert-only callers that predate regional variants. */
@@ -91,6 +104,18 @@ export const variantPaletteKeys = [
   "wetland:swamp",
   "tundra:alpine",
   "tundra:polar",
+  "temperate-woodland:pine-oak",
+  "temperate-woodland:temperate-rain",
+  "tropical-woodland:rainforest",
+  "tropical-woodland:cloud",
+  "grassland:puna",
+  "grassland:paramo",
+  "grassland:tibetan",
+  "grassland:afroalpine",
+  "grassland:loess",
+  "desert:reg",
+  "wetland:fen",
+  "tundra:ice",
 ] as const;
 export type VariantPaletteKey = (typeof variantPaletteKeys)[number];
 /** Key into the per-ecology colour tables. */
@@ -100,8 +125,10 @@ export function paletteKey(ecology: Ecology, colorway?: Colorway): PaletteKey {
   const key = `${ecology}:${colorway}`;
   return colorway && variantKeySet.has(key) ? (key as PaletteKey) : ecology;
 }
-/** Default colourway for an arid place, by where on Earth it is. */
+/** Default colourway for an arid place, by where on Earth it is. Most of
+ * the Sahara and Arabia is stony reg and hamada; the sand seas are boxed. */
 export function desertColorwayFor(lon: number, lat: number): Colorway {
+  const erg = terrainProvinceAt(lon, lat) === "erg";
   const sahara =
     (lat > 10 && lat < 38 && lon > -18 && lon < 62) ||
     (lat > 20 && lat < 45 && lon > 60 && lon < 95);
@@ -119,9 +146,11 @@ export function desertColorwayFor(lon: number, lat: number): Colorway {
         ? "atacama"
         : kalahari
           ? "kalahari"
-          : sahara
+          : erg
             ? "sahara"
-            : "highland";
+            : sahara
+              ? "reg"
+              : "highland";
 }
 export const landforms = ["plain", "rolling", "ridge", "basin"] as const;
 export const populations = ["none", "sparse", "settled"] as const;

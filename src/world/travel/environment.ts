@@ -71,6 +71,7 @@ export function resolveMapEnvironment(anchor: Coordinate, year: number) {
   const ecology = { ...environmentFor({
     ...defaults,
     ...anchor,
+    year,
     settlement: "camp",
     ecologyRevision: 2,
     // Travel's arid climate is an explicit map contract; geographic biome

@@ -56,6 +56,57 @@ describe("landscape features", () => {
     const woods = count("temperate-woodland");
     expect(woods.creek ?? 0).toBeGreaterThan(20);
     expect(woods.arroyo ?? 0).toBe(0);
+  });  it("raises each regional landform in tiers and lays its water", () => {
+    const at = (lon: number, lat: number, ecology: any, colorway?: any, season = "summer", relief = 0.3) => {
+      const land = createEnvironment({ ...setting(ecology, colorway), lon, lat, season, relief, water: "none" } as WorldSetting, "forms-check");
+      const tiers = new Map<number, number>();
+      let lake = 0, snow = 0, glacier = 0;
+      for (let y = -120; y < 120; y += 2)
+        for (let x = -120; x < 120; x += 2) {
+          const f = land.sample(x, y);
+          tiers.set(f.elevation / 14, (tiers.get(f.elevation / 14) ?? 0) + 1);
+          if (f.water < 0 && f.kind === "lake") lake++;
+          if (f.snow) snow++;
+          if (f.glacier) glacier++;
+        }
+      return { top: Math.max(...tiers.keys()), floor: tiers.get(0) ?? 0, lake, snow, glacier, n: 120 * 120 };
+    };
+    // Guilin: towers five or more steps high standing on a level floor.
+    const karst = at(110.3, 25.27, "tropical-woodland", "rainforest");
+    expect(karst.top).toBeGreaterThanOrEqual(5);
+    expect(karst.floor / karst.n).toBeGreaterThan(0.4);
+    // Yucatán: a shelf one step up with round pools sunk in it.
+    const cenotes = at(-89.6, 20.97, "tropical-woodland", "monsoon", "summer", 0.1);
+    expect(cenotes.lake).toBeGreaterThan(10);
+    // A sand sea is ridged, not flat.
+    expect(at(10, 25, "desert", "sahara").top).toBeGreaterThanOrEqual(1);
+    // The loess tableland stands high and its gullies cut to the floor.
+    const loess = at(109.5, 36.6, "grassland", "loess");
+    expect(loess.top).toBeGreaterThanOrEqual(4);
+    expect(loess.floor).toBeGreaterThan(0);
+    // Snow keeps to the high ground in a Tibetan summer and comes down in winter.
+    const lhasaSummer = at(91.1, 29.65, "grassland", "tibetan", "summer", 0.9);
+    const lhasaWinter = at(91.1, 29.65, "grassland", "tibetan", "winter", 0.9);
+    expect(lhasaWinter.snow).toBeGreaterThan(lhasaSummer.snow);
+    expect(lhasaSummer.snow).toBeLessThan(lhasaSummer.n * 0.5);
+    // An ice cap is ice everywhere.
+    const cap = at(-40, 72, "tundra", "ice");
+    expect(cap.glacier).toBe(cap.n);
+    // Lowland England has no snowline at all.
+    expect(at(-0.1, 51.5, "temperate-woodland", undefined, "summer").snow).toBe(0);
+  });
+  it("fills playas in the wet months only and gives desert springs water", () => {
+    const lakes = (season: string) => {
+      const land = createEnvironment({ ...setting("desert", "reg"), lon: 46.7, lat: 24.6, season, relief: 0.15, water: "none" } as WorldSetting, "playa-check");
+      let n = 0;
+      for (let y = -300; y < 300; y += 3)
+        for (let x = -300; x < 300; x += 3) if (land.sample(x, y).water < 0) n++;
+      return n;
+    };
+    const dry = lakes("summer"),
+      wet = lakes("winter");
+    expect(dry).toBeGreaterThan(0);
+    expect(wet).toBeGreaterThan(dry);
   });
 });
 

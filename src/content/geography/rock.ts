@@ -1,3 +1,4 @@
+import { terrainProvinceAt } from "./landforms";
 import type { Colorway, Ecology } from "../ecology/profiles";
 
 /** The rock a cliff face shows. Broad strokes from real geology where a coast
@@ -76,9 +77,14 @@ export function rockAt(
   ecology: Ecology,
   colorway?: Colorway,
 ): Rock {
-  if (lon !== undefined && lat !== undefined)
+  if (lon !== undefined && lat !== undefined) {
+    const province = terrainProvinceAt(lon, lat);
+    if (province === "karst" || province === "cenote" || province === "doline" || province === "pavement") return "limestone";
+    if (province === "volcanic") return "basalt";
+    if (province === "loess") return "sandstone";
     for (const [rock, w, s, e, n] of boxes)
       if (lon >= w && lon <= e && lat >= s && lat <= n) return rock;
+  }
   if (lon !== undefined && lat !== undefined && lon >= -10 && lon <= 36 && lat >= 30 && lat <= 46)
     return "limestone";
   return (colorway && byColorway[colorway]) ?? byEcology[ecology];

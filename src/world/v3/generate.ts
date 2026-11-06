@@ -41,6 +41,9 @@ import {
 } from "../../content/settlements/streets/reach";
 import { crossingStyle, edgeStyle } from "../../content/settlements/terraces";
 import { gravelBar, oasis, outcrop, saltPan, shrubColony } from "./features";
+import { formSurface, terrainFormOf } from "./terrain-forms";
+import type { LandSample } from "../geography/landscape";
+import type { Habitat } from "./habitats";
 import { groveAt, groveEdge, habitatAt, habitatTree } from "./habitats";
 import { createRegionalContext } from "../regional/context";
 import { regionalSettlements, shorePreference } from "../regional/settlements";
@@ -1152,8 +1155,7 @@ export function createSettlementWorld(
       const blocked = situation?.landform === "islet" || situation?.landform === "open-ocean" ||
         situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25 ||
         environment && f.travelRoad || blacktop && poleAt(x, y) ||
-        saltPan(seed, ax, ay, h.colorway, f.elevation === 0, h.wet, f.water) > 0.3 ||
-        oasis(seed, ax, ay, h.ecology, f.elevation === 0) > 0.3;
+        saltPan(seed, ax, ay, h.colorway, f.elevation === 0, h.wet, f.water) > 0.3;
       const kept = keptTree(x, y, h).length > 0;
       const stand = h.grove === undefined ? 1 : Math.max(kept ? 0.35 : 0, Math.min(1, (h.grove - 0.3) / 0.4));
       // A tall crown just south of a house would hide its front and door.
@@ -1292,11 +1294,6 @@ export function createSettlementWorld(
         h.wet,
         f.water,
       ) > 0.3
-    )
-      return;
-    if (
-      h &&
-      oasis(seed, x + land.origin.x, y + land.origin.y, h.ecology, f.elevation === 0) > 0.3
     )
       return;
     const n = random(
@@ -1819,6 +1816,21 @@ export function createSettlementWorld(
   }
   /** A cell's final tier: the landform's, levelled across streams and set
    * by graded plots, streets and bridge decks. */
+  const form = pack.setting?.environment ? terrainFormOf(pack.setting) : undefined;
+  /** Scree fans under the faces of high bare country, thinning downslope. */
+  function screeAt(x: number, y: number, f: LandSample, h: Habitat) {
+    if ((f.summit ?? 0) < 70 || !(h.exposed > 0.3 || h.ecology === "tundra" || h.vegetation === "alpine" || form === "karst" || form === "volcanic"))
+      return 0;
+    for (let k = 1; k <= 3; k++)
+      for (const dx of [0, -1, 1]) {
+        const g = land.sample(x + dx * Math.min(k, 2), y - k);
+        if (g.water >= 0 && g.elevation - f.elevation >= 28) {
+          const lobe = noise(seed, x + land.origin.x, y + land.origin.y, 6, "scree-lobe");
+          return Math.max(0, (1.25 - k * 0.3 - Math.abs(dx) * 0.2) * (0.5 + lobe));
+        }
+      }
+    return 0;
+  }
   function tierAt(x: number, y: number, t = terrain(x, y)) {
     const f = land.sample(x, y);
     if (t === "bridge" && f.water >= 0) t = "dirt";
@@ -1870,6 +1882,7 @@ export function createSettlementWorld(
         const ax = x + land.origin.x,
           ay = y + land.origin.y;
         let scape = f.landscape;
+        if (!scape && f.glacier) scape = { kind: "glacier", strength: 1 };
         if (!scape && f.water >= (f.shoreWidth ?? 3)) {
           const pan = saltPan(
             seed,
@@ -1888,9 +1901,15 @@ export function createSettlementWorld(
             f.summit ? f.elevation / f.summit : 0,
           );
           const pond = oasis(seed, ax, ay, h.ecology, f.elevation === 0);
+          const surface = formSurface(form, seed, ax, ay, h.exposed);
           if (pond) scape = { kind: "oasis", strength: pond };
           else if (pan) scape = { kind: "pan", strength: pan };
-          else if (rocky) scape = { kind: "outcrop", strength: rocky };
+          else if (surface) scape = surface;
+          else {
+            const scree = screeAt(x, y, f, h);
+            if (scree) scape = { kind: "scree", strength: scree };
+            else if (rocky) scape = { kind: "outcrop", strength: rocky };
+          }
         }
         if (scape) cell.landscape = scape;
       }
