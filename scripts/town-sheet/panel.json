@@ -335,5 +335,20 @@
     "name": "quanzhou-1300",
     "query": "Quanzhou 1300",
     "radius": 70
+  },
+  {
+    "name": "kyiv-1100",
+    "query": "Kyiv 1100",
+    "radius": 40
+  },
+  {
+    "name": "djenne-1400",
+    "query": "Djenn\u00e9 1400",
+    "radius": 36
+  },
+  {
+    "name": "madurai-1600",
+    "query": "Madurai 1600",
+    "radius": 40
   }
 ]
