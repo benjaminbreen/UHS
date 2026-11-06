@@ -63,6 +63,7 @@ const BANK_FIELDS: {
   { key: "stones", label: "Stones", min: 0, max: 0.15, step: 0.005 },
   { key: "rise", label: "Step height (px)", min: 8, max: 28, step: 1 },
   { key: "shadow", label: "Contact shadow (px)", min: 0, max: 14, step: 1 },
+  { key: "backShade", label: "Shade behind a rise (px)", min: 0, max: 6, step: 1 },
   {
     key: "brightness",
     label: "Earth brightness",

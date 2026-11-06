@@ -1110,7 +1110,13 @@ function rasterWallContours(
               : pour
                 ? foamOf(tone!, true)
                 : tone
-                  ? lit(tone)
+                  ? // Seen from behind, a rim is a lighter shade of its own
+                    // grass, broken in places, not a pale line round it.
+                    north < L && west === L && east === L
+                    ? contourNoise(Math.floor((px + ox) / 3), py + oy, 1, 151) < 0.2
+                      ? scale(tone, 1)
+                      : [0, 1, 2].map((k) => Math.min(255, tone[k] * 1.07 + 6))
+                    : lit(tone)
                   : trim.edge,
         );
       else if (
@@ -1171,7 +1177,12 @@ function rasterWallContours(
           paintRgb(row, L, px, sy - k, foamOf(tone!, k === 1));
         }
       else if (north < L && L) {
-        occlude(row, L, px, sy - 1, 64);
+        // The plateau shades the ground behind it in blocky steps, deepest
+        // against the rim, so a step facing away still reads as one.
+        const reach = bank.backShade ?? 1;
+        const deep = Math.min(reach, Math.max(1, reach - 2 + Math.floor(contourNoise(Math.floor((px + ox) / 3), py + oy, 1, 153) * 3)));
+        for (let k = 1; k <= deep; k++)
+          occlude(row, L, px, sy - k, Math.round(72 * (1 - (k - 1) / (deep + 1))));
       }
       // East and west drops show a sliver of the same face, so they read as
       // one object with the south wall rather than as a stray line.

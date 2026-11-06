@@ -49,6 +49,8 @@ export type BankStyle = {
   rise: number;
   /** How much of the turf lip's full brightness survives, 0–1. */
   rim?: number;
+  /** Deepest pixels of shade on the lower ground behind a north rim. */
+  backShade?: number;
   /** Weeds and scree at the foot of a bank, a gutter under a wall. */
   foot?: boolean;
   /** Pixels the strata shift from one lobe to the next; 3 when absent. */
@@ -189,6 +191,7 @@ export function defaultGroundStyle(): GroundStyle {
       contrast: 1.15,
       rise: 20,
       rim: 0.1,
+      backShade: 4,
       foot: true,
     },
   };

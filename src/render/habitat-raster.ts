@@ -483,6 +483,14 @@ function apronTile(
     }
   return tile;
 }
+/** Grassy ecologies expose brown earth; dry and cold ones, and rocky sites, expose stone. */
+const mineralHabitat = (h: Habitat) =>
+  h.site ? ["rocky", "barren", "shore"].includes(h.site.primary) : h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
+/** The choices a tile makes once for its whole square. Cells that differ
+ * here would meet on the tile edge, so they meet along a drawn line instead. */
+const groundLook = (h: Habitat) =>
+  `${pickKit(groundStyle()?.kits, h.ecology, h.colorway, h.vegetation)?.id ?? paletteKey(h.ecology, h.colorway)}|${mineralHabitat(h)}`;
+
 function rasterGroundTile(
   sample: TopographySample,
   x: number,
@@ -491,11 +499,51 @@ function rasterGroundTile(
   oy: number,
   art: GrassArt,
   cell: TopographyCell,
+  as?: Habitat,
 ): GroundTileData {
   // Yard grass is the same turf as outside the fence; only beds are tilled.
   if (cell.field && !(cell.field.yard && cell.field.crop === "pasture"))
     return rasterFieldTile(sample, x, y, ox, oy, art, cell);
-  const h = cell.habitat!;
+  const h = as ?? cell.habitat!;
+  if (!as) {
+    const own = groundLook(h);
+    const lookOf: (string | undefined)[] = [];
+    const looks = new Map<string, Habitat>();
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const c = sample(x + dx, y + dy);
+        const k = c?.habitat && c.height === cell.height && c.surface !== "water" && !c.field && c.feature !== "paving"
+          ? groundLook(c.habitat) : undefined;
+        lookOf.push(k);
+        if (k && k !== own && !looks.has(k)) looks.set(k, c!.habitat!);
+      }
+    if (looks.size) {
+      // Each look is painted here as if this cell were its own, and every
+      // pixel takes the look of the nearest cell centre, nudged by noise.
+      // All world-anchored, so a neighbour drawing the same pixel agrees.
+      const tile = rasterGroundTile(sample, x, y, ox, oy, art, cell, h);
+      const other = new Map([...looks].map(([k, n]) => [k, rasterGroundTile(sample, x, y, ox, oy, art, cell, n).pixels]));
+      const ease = (t: number) => t * t * (3 - 2 * t);
+      const weight = new Map<string, number>();
+      for (let py = 0; py < 16; py++)
+        for (let px = 0; px < 16; px++) {
+          const wx = (x + ox) * 16 + px, wy = (y + oy) * 16 + py;
+          const u = (px + 0.5) / 16 - 0.5 + (noise(wx, wy, 13, 1601) - 0.5) * 0.7,
+            v = (py + 0.5) / 16 - 0.5 + (noise(wx, wy, 13, 1603) - 0.5) * 0.7;
+          const cx = Math.floor(u), cy = Math.floor(v), tx = ease(u - cx), ty = ease(v - cy);
+          weight.clear();
+          for (const [ix, iy, w] of [[cx, cy, (1 - tx) * (1 - ty)], [cx + 1, cy, tx * (1 - ty)], [cx, cy + 1, (1 - tx) * ty], [cx + 1, cy + 1, tx * ty]]) {
+            const k = lookOf[(iy + 1) * 3 + ix + 1] ?? own;
+            weight.set(k, (weight.get(k) ?? 0) + w);
+          }
+          let best = own, most = -1;
+          for (const [k, w] of weight) if (w > most) [best, most] = [k, w];
+          const src = other.get(best);
+          if (src) tile.pixels.set(src.subarray((py * 16 + px) * 4, (py * 16 + px) * 4 + 4), (py * 16 + px) * 4);
+        }
+      return tile;
+    }
+  }
   const kits = groundStyle()?.kits;
   const kit = pickKit(kits, h.ecology, h.colorway, h.vegetation);
   // Tundra sedge and lichen take a kit over its stony ground too.
@@ -532,8 +580,7 @@ function rasterGroundTile(
     ...motifTuning,
     density: (motifTuning?.density ?? groveDetail) * (0.45 + lush * 0.75),
   };
-  // Grassy ecologies expose brown earth; dry and cold ones expose stone.
-  const mineralGround = h.site ? ["rocky", "barren", "shore"].includes(h.site.primary) : h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
+  const mineralGround = mineralHabitat(h);
   // Sand seas expose darker sand crests, not stone.
   const dune =
     h.ecology === "desert" &&
@@ -920,10 +967,7 @@ function rasterGroundTile(
               ? [218, 229, 248]
               : [236, 242, 252];
       if (kit && !frozen && (grassy ? band <= 2 : kitTundra && band <= 3)) {
-        // Kits meet along a ragged line, not on tile squares.
-        const near = kits!.length > 1 && sample(Math.floor((wx + (noise(wx, wy, 9, 1411) - 0.5) * 16) / 16) - ox, Math.floor((wy + (noise(wx, wy, 9, 1413) - 0.5) * 16) / 16) - oy)?.habitat;
-        const k = (near && pickKit(kits, near.ecology, near.colorway, near.vegetation)) || kit;
-        put(px, py, kitGroundPixel(k, h.season, wx, wy, wild, trod));
+        put(px, py, kitGroundPixel(kit, h.season, wx, wy, wild, trod));
         continue;
       }
       const style = groundStyle();
