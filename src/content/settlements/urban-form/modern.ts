@@ -27,6 +27,9 @@ const spanishGrid = americas.map(
     deadEnds: 0.03,
     tiers: [4, 2, 1],
     storeys: 2,
+    // Limewashed patios on the street, and the solar behind each house its own planted yard.
+    ground: { square: "lime", court: "lime" },
+    backs: 5,
     gates: 4,
     wall: "none",
     plaza: "crossing",
