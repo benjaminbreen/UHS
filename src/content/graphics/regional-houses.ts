@@ -105,9 +105,10 @@ export function steppeHouseProfile(setting: WorldSetting): Profile {
 
 export function steppeRegionalHouses(setting: WorldSetting) {
   const { lon, lat, settlement } = setting;
-  // Bukhara, Samarkand and Merv built courtyard houses, not tents.
-  if ((settlement === "city" || settlement === "port") && lon >= 56 && lon <= 75 && lat >= 35 && lat <= 44)
-    return westAsianRegionalHouses(setting);
+  // Towns south of the open steppe, from Bukhara and Kabul to Kashgar and
+  // Lhasa, built flat-roofed courtyard houses, not tents; Xining built Chinese ones.
+  if ((settlement === "city" || settlement === "port") && lon >= 56 && lat >= 26 && lat <= 44)
+    return lon >= 100 ? eastAsianRegionalHouses(setting) : westAsianRegionalHouses(setting);
   const profile = steppeHouseProfile(setting);
   return [
     ...frames("steppe-tent", profile),
@@ -297,6 +298,10 @@ export function eastAfricanHouses(setting: WorldSetting) {
  * conquest; Rus log houses from Novgorod to Kyiv and Vladimir. */
 export function easternEuropeanHouses(setting: WorldSetting) {
   const { lon, lat, year } = setting;
+  // Post-built, unwindowed longhouses: Iron Age and Viking Scandinavia, and
+  // the Norse North Atlantic, whose turf walls are not drawn yet.
+  if ((lon >= 4 && lat >= 54.5 && (lon <= 19 || (lon <= 24.5 && lat >= 60)) && year < 1100) || (lon < -0.5 && lat >= 58.5 && year >= 800 && year < 1450))
+    return ["house-longhouse-0", "house-longhouse-1", "house-longhouse-gold-medium-0", "house-longhouse-gold-medium-1", "house-longhouse-gold-large-0"];
   if (lon >= 19 && lon <= 30.5 && lat >= 34.5 && lat <= 42.2 && year >= 600 && year < 1460)
     return frames("orthodox-house", "byzantine");
   if (lon >= 24 && lon <= 60 && lat >= 48.5 && lat <= 64 && year >= 880 && year < 1800)

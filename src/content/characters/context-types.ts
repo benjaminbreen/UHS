@@ -15,7 +15,8 @@ export type CharacterScope = {
   years: readonly [number, number]; // start inclusive, end exclusive; astronomical years
   cultures?: readonly CultureId[];
   places?: readonly string[];
-  bounds?: readonly [number, number, number, number]; // west, south, east, north
+  bounds?: readonly [number, number, number, number]; // west, south, east, north; west > east crosses 180°
+  except?: readonly (readonly [number, number, number, number])[];
   communities?: readonly string[]; // structured community IDs, not substring guesses
 };
 export type QualifiedContent = {

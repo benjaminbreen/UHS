@@ -665,3 +665,28 @@ it("dresses the regions that had only a culture-wide kit in their own everyday c
   expect(ids("east-asian", 88.6, 33.5, 1700)).toContain("tibetan");
   expect(ids("other-indigenous-american", -101, 44, 1850)).toContain("plains");
 });
+
+it("keeps the habit on Christian monks and nuns and the robe on Buddhist ones", () => {
+  const dress = (label: string, sex: "male" | "female", culture: string, year: number, lon: number, lat: number, i: number) =>
+    wardrobeFor({ id: `monastic-${label}-${i}`, age: 45, sex, livelihood: "religious-specialist", roles: rolesFrom(label) },
+      { year, setting: place(culture, year, lon, lat) }, base);
+  for (let i = 0; i < 8; i++) {
+    expect(dress("Monk", "male", "european", 1300, 2.35, 48.85, i).garment).toBe("robe");
+    expect(dress("Nun", "female", "european", 1300, 2.35, 48.85, i).garment).toBe("robe");
+    expect(dress("Monk", "male", "european", 1700, 37.6, 55.75, i).garment).toBe("robe");
+    expect(dress("Monk", "male", "south-asian", 300, 80, 20, i).garment).toBe("wrap");
+    expect(dress("Monk", "male", "southeast-asian", 1500, 100.5, 13.8, i).garment).toBe("wrap");
+  }
+});
+
+it("dresses soldiers by the army of the place", () => {
+  const ids = (culture: string, lon: number, lat: number, year: number) =>
+    kitsFor({ culture, lon, lat, year, community: "" } as never, year).map((k) => k.id);
+  expect(ids("north-african-west-asian", 28.97, 41.01, 1930)).not.toContain("uniform-red-army");
+  expect(ids("north-african-west-asian", 28.97, 41.01, 1930)).not.toContain("uniform-africa");
+  expect(ids("north-african-west-asian", 28.97, 41.01, 1900)).toContain("uniform-ottoman");
+  expect(ids("east-asian", 121.5, 25.03, 1960)).not.toContain("uniform-pla");
+  expect(ids("east-asian", 114.17, 22.3, 1960)).not.toContain("uniform-pla");
+  expect(ids("east-asian", 116.4, 39.9, 1960)).toContain("uniform-pla");
+  expect(ids("european", 37.6, 55.75, 1940)).toContain("uniform-red-army");
+});

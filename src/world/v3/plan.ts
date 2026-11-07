@@ -2591,7 +2591,7 @@ export function planSettlement(
   // against the square.
   const sacred = !urban && !camp && pack.setting ? religiousProfile(pack.setting) : undefined;
   if (sacred) {
-    const scale = religiousScale(profile.radius);
+    const scale = sacred.drawnAt ?? religiousScale(profile.radius);
     const look =
       regionalLook(`religious-${sacred.recipe}`, pack.setting) ??
       Math.floor(rand("religious-look") * 3);

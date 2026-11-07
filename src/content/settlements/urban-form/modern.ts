@@ -180,9 +180,11 @@ export const modernForms: UrbanFormRule[] = [
   ...spanishGrid,
   // Caribbean and Rio de la Plata towns read as European once settled
   // (geography/eras.ts); their plans followed the same ordinances.
-  { ...spanishGrid[0], culture: "european", to: 1880, bounds: [-85.5, -40, -50, 24] },
+  { ...spanishGrid[0], culture: "european", to: 1900, bounds: [-85.5, -40, -50, 24] },
   ...industrialGrid,
   ...latinGrid,
+  // North of Cuba the European family's survey grid takes over.
+  ...(["european", "west-central-african"] as const).map((culture): UrbanFormRule => ({ ...latinGrid[0], culture, bounds: [-118, -56, -34, 24.5] })),
   ...sovietBloc,
   {
     id: "japanese-machi",
@@ -287,7 +289,7 @@ export const modernForms: UrbanFormRule[] = [
       note: "The old walled city left intact beside a gridded new town of boulevards and apartment blocks, as Prost laid out Casablanca and Rabat from 1914, with later housing beyond both. The same doubling is found from Tunis to Damascus. Illustrative dimensions.",
     },
   },
-  ...(["west-central-african", "east-southern-african"] as const).map(
+  ...(["west-central-african", "east-southern-african", "european"] as const).map(
     (culture): UrbanFormRule => ({
       id: "colonial-grid-and-townships",
       label: "Colonial grid, townships and self-built quarters",
@@ -505,7 +507,7 @@ export const modernForms: UrbanFormRule[] = [
     culture: "european",
     from: 1850,
     to: 2026,
-    bounds: [-170, 20, -52, 72],
+    bounds: [-170, 24.5, -52, 72],
     plan: "orthogonal",
     block: [36, 16],
     regularity: 0.99,

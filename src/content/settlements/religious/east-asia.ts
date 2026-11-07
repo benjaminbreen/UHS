@@ -1,4 +1,4 @@
-import type { ReligiousRule } from "./types";
+import { over, type ReligiousRule } from "./types";
 
 export const eastAsiaReligious: ReligiousRule[] = [
   {
@@ -39,23 +39,27 @@ export const eastAsiaReligious: ReligiousRule[] = [
       note: "Korean temple halls share the Chinese plan and swept roof; their painted dancheong brackets and gentler eaves are not yet told apart here.",
     },
   },
-  {
-    id: "japanese-temple",
-    faith: "Buddhism",
-    recipe: "japanese-temple",
-    labels: { small: "Temple", medium: "Temple", large: "Great temple" },
-    culture: "east-asian",
-    from: 552,
-    to: 2100,
-    bounds: [128, 30, 146, 46],
-    side: "north",
-    about:
-      "The Buddhist temple: the gate, stone lanterns in the court, the pagoda over its relics and the main hall, where the town's dead are remembered and its children may be taught.",
-    forecourt: 2,
-    evidence: {
-      status: "inferred",
-      sources: [],
-      note: "A walled compound with a gate, paired stone lanterns, a five-storeyed pagoda in the larger temples and the main hall under a deep hip-and-gable roof of grey tile, in dark timber and white plaster, after the temples of Nara and Kyoto. Buddhism came to Japan in the sixth century.",
+  ...over(
+    {
+      id: "japanese-temple",
+      faith: "Buddhism",
+      recipe: "japanese-temple",
+      labels: { small: "Temple", medium: "Temple", large: "Great temple" },
+      culture: "east-asian",
+      from: 552,
+      to: 2100,
+      side: "north",
+      about:
+        "The Buddhist temple: the gate, stone lanterns in the court, the pagoda over its relics and the main hall, where the town's dead are remembered and its children may be taught.",
+      forecourt: 2,
+      evidence: {
+        status: "inferred",
+        sources: [],
+        note: "A walled compound with a gate, paired stone lanterns, a five-storeyed pagoda in the larger temples and the main hall under a deep hip-and-gable roof of grey tile, in dark timber and white plaster, after the temples of Nara and Kyoto. Buddhism came to Japan in the sixth century.",
+      },
     },
-  },
+    // Kyushu and western Honshu, clear of Busan and the Korean north-east coast.
+    [129.4, 30, 146, 35],
+    [131, 35, 146, 46],
+  ),
 ];

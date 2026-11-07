@@ -121,11 +121,8 @@ export function matchesCharacterScope(
     (!scope.cultures || scope.cultures.includes(s.culture)) &&
     (!scope.places || scope.places.includes(s.placeId)) &&
     (!scope.communities || scope.communities.includes(community)) &&
-    (!scope.bounds ||
-      (s.lon >= scope.bounds[0] &&
-        s.lat >= scope.bounds[1] &&
-        s.lon <= scope.bounds[2] &&
-        s.lat <= scope.bounds[3]))
+    (!scope.bounds || inBox(scope.bounds, s.lon, s.lat)) &&
+    !scope.except?.some((b) => inBox(b, s.lon, s.lat))
   );
 }
 const fallbackAppearance: AppearanceKit = {
@@ -204,8 +201,10 @@ export const regionsByArea = [...nameRegions].sort(
       (b.bounds[2] - b.bounds[0]) * (b.bounds[3] - b.bounds[1]) ||
     a.id.localeCompare(b.id),
 );
-const inBox = (b: readonly number[], lon: number, lat: number) =>
-  lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3];
+// A west edge east of the east edge crosses 180°.
+function inBox(b: readonly number[], lon: number, lat: number) {
+  return lat >= b[1] && lat <= b[3] && (b[0] <= b[2] ? lon >= b[0] && lon <= b[2] : lon >= b[0] || lon <= b[2]);
+}
 export const inRegion = (r: NameRegion, lon: number, lat: number) =>
   inBox(r.bounds, lon, lat) && !(r.except && inBox(r.except, lon, lat));
 export function nameTraditionsFor(s: WorldSetting) {

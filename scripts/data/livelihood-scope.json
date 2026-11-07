@@ -2288,6 +2288,50 @@
         "tool": 1
       },
       "why": "Irregular fighters in a war of occupation, revolution or independence, living among the villages that hid and fed them."
+    },
+    "glassblower": {
+      "label": "Glassblower",
+      "keyword": "glass",
+      "tier": "town",
+      "weight": 0.8,
+      "years": [
+        -50,
+        10001
+      ],
+      "requires": [
+        "glass"
+      ],
+      "sex": "male",
+      "sexUntil": 1970,
+      "why": "Blowing vessels and window glass at a furnace, from the Roman invention of the blowpipe to the glasshouses of Venice, Hebron and Bohemia."
+    },
+    "indigo-worker": {
+      "label": "Indigo Worker",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 3,
+      "requires": [
+        "indigo"
+      ],
+      "why": "Steeping, beating and drying indigo for export: enslaved labour in the Carolina Lowcountry, and peasants bound by advances to European planters in Bengal."
+    },
+    "tobacco-worker": {
+      "label": "Tobacco Worker",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 4,
+      "years": [
+        1620,
+        1865
+      ],
+      "bounds": [
+        -80,
+        35,
+        -74,
+        40.5
+      ],
+      "standing": "unfree",
+      "why": "Cutting, hanging, curing and packing tobacco on the Chesapeake estates, almost all of it done by enslaved people."
     }
   }
 }

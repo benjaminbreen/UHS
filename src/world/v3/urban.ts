@@ -12,7 +12,7 @@ import { urbanForm } from "../../content/settlements/urban-form";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import type { Pack, Point } from "../../core/types";
-import { buildingModel, buildingModels } from "../../content/graphics/models";
+import { buildingModel, buildingModels, buildingRoofCells } from "../../content/graphics/models";
 import {
   buildingScale,
   buildingScaleWeight,
@@ -457,8 +457,7 @@ export function urbanNeighborhood(
   const bodies = new Set<string>(),
     shade = new Set<string>();
   const overhang = (lot: UrbanLot): Rect[] => {
-    const [right, behind] = (buildingModel(lot.frame) as { margins?: number[] })
-      .margins ?? [0, 0];
+    const [right, behind] = marginsOf(lot.frame);
     const r = lot.rect;
     // A terrace keeps only the ground its roofs cover; a detached house also
     // keeps a little air on every side.
@@ -477,7 +476,7 @@ export function urbanNeighborhood(
   // Any town whose houses overhang their footprints keeps those roofs clear.
   const roofed =
     plotted ||
-    frames.some((f) => (buildingModels[f] as { margins?: number[] }).margins);
+    frames.some((f) => marginsOf(f)[1] > 0);
   let noted = 0;
   const note = (lot: UrbanLot) => {
     for (const k of cells(lot.rect)) bodies.add(k);
@@ -887,7 +886,7 @@ export function urbanNeighborhood(
     // A mosque that found no ground of its own tries its own size first, then
     // smaller, and set back from the square; a church keeps the one it had.
     const wide = mosqueScales.length > 0;
-    const scales = wide ? mosqueScales : [religiousScale(site.profile.radius)];
+    const scales = wide ? mosqueScales : [religious.drawnAt ?? religiousScale(site.profile.radius)];
     const civicSide: [number, number] | undefined =
       civicRect &&
       (civicRect.y + civicRect.h <= front.y
@@ -2412,7 +2411,7 @@ export function urbanNeighborhood(
         // is asked here, while there is still another frame to try.
         if (!api.dry(rect, false) || !api.dry({ ...point, w: 1, h: 1 }, false))
           continue;
-        const margins = (model as { margins?: number[] }).margins ?? [0, 0];
+        const margins = marginsOf(frame);
         // Along a column the next house stands under this one's roof, so it
         // keeps that clear whatever the layout. A plot also keeps a gap.
         const clear =
@@ -2493,4 +2492,14 @@ export function urbanNeighborhood(
       }
     return { lots: out, depth };
   }
+}
+
+/** Cells a frame's drawing overhangs its footprint to the right and behind.
+ * Period facades are drawn front-on and carry no baked margins, but a
+ * three-storey front still rises over the lot behind it. */
+function marginsOf(frame: string): number[] {
+  const model = buildingModel(frame) as { margins?: number[]; period?: boolean; footprint: number[] };
+  if (model.margins || !model.period) return model.margins ?? [0, 0];
+  const [w, h] = model.footprint;
+  return [0, -Math.min(0, ...buildingRoofCells(frame, { x: 0, y: 0, w, h }).map((c) => c.y))];
 }

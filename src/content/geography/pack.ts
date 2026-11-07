@@ -35,12 +35,25 @@ const namesByCulture: Partial<Record<WorldSetting["culture"], string[]>> = {
   ],
   "inner-eurasian": ["Altan", "Saran", "Batu", "Oyu", "Temur", "Nara"],
 };
+/** Spain, Portugal and the towns they founded from Mexico to the Plata, which
+ * built stuccoed, tile-roofed courtyard houses rather than British rows. The
+ * British, French and Dutch Caribbean and the Guianas are left out. */
+function iberianTown(setting: WorldSetting) {
+  const { lon, lat, year, settlement } = setting;
+  if (year >= 1900 || (settlement !== "city" && settlement !== "port")) return false;
+  if (setting.culture === "european" && lon >= -10 && lon <= 3.5 && lat >= 36 && lat <= 44) return year >= 1500;
+  const outside = ([[-78.5, 17.5, -76, 18.6], [-74.5, 17.9, -71.6, 20.1], [-63.2, 10.5, -59, 18.3], [-61, 1.5, -51.5, 9]] as const)
+    .some(([w, s, e, n]) => lon >= w && lon <= e && lat >= s && lat <= n);
+  return year >= 1550 && lon < -30 && lat < 24.5 && !outside;
+}
+
 /** Street facades for a city of 1700 to 1899, by region and decade. These are
  * full model frames, not kit bases; the urban planner passes them through. */
 export function periodBuildings(setting: WorldSetting): string[] {
   const { year, culture, lon, lat } = setting;
   if (year < 1700 || year >= 1900) return [];
   if (setting.settlement !== "city" && setting.settlement !== "port") return [];
+  if (iberianTown(setting)) return [];
   const victorian = year >= 1840;
   if (culture === "european" && lon < -30)
     return year < 1830
@@ -79,7 +92,7 @@ export function periodBuildings(setting: WorldSetting): string[] {
         : []),
     ];
   if (culture === "east-asian") {
-    const japan = lon > 128 && lat > 30 && lat < 46;
+    const japan = lat > 30 && lat < 46 && (lon > 131 || (lon > 129.4 && lat < 35));
     const korea = !japan && lon > 124 && lon < 130.5 && lat > 33.5 && lat < 39;
     if (japan)
       return [
@@ -315,6 +328,8 @@ export function packForSetting(setting: WorldSetting): Pack {
     ? prehistoric
     : modernCity
       ? modernBuildings(setting)
+      : iberianTown(setting)
+        ? ["house-med-0", "house-med-1", "house-med-2", "house-med-3"]
       : romanRegional.length
         ? [
             "house-roman-ob-0",

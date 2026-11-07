@@ -124,7 +124,7 @@ export function reshape(form: TerrainForm, seed: string, h: number, x: number, y
           cone = Math.max(cone, Math.pow(clamp(1 - d / R), 0.75) * (0.3 + f.r * 0.15) - crater * 0.18);
         }
       }
-      return 0.38 + (h - 0.5) * 0.4 + cone;
+      return 0.38 + (h - 0.5) * 0.4 + cone * clamp((fromTown - 30) / 14);
     }
     case "loess":
     case "badland": {

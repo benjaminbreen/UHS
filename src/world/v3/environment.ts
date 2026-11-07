@@ -73,7 +73,12 @@ export function createEnvironment(
         const key = x * 2097152 + y;
         let h = reshaped.get(key);
         if (h === undefined) {
-          h = reshape(form, seed, baseField(x, y), x + origin.x, y + origin.y, Math.hypot(x, y));
+          const place = regional?.placeAt(x, y);
+          const c = place ? regional!.local(place) : { x: 0, y: 0 };
+          // reshape keeps 30 cells clear; a big town keeps clear to 60% of its
+          // radius. A 140-cell radius is a farm's catchment, not built ground.
+          const core = place && place.radius < 100 ? Math.max(30, place.radius * 0.6) : 30;
+          h = reshape(form, seed, baseField(x, y), x + origin.x, y + origin.y, Math.hypot(x - c.x, y - c.y) - core + 30);
           trimCache(reshaped, 131072);
           reshaped.set(key, h);
         }
@@ -435,6 +440,8 @@ export function createEnvironment(
       shoreWidth = 2.5 + noise(seed, fx, fy, 31, "motu-beach") * 2;
       floodplain = shoreWidth + 4;
       waterFlow = [0, 0];
+      // The village's own motu is wide enough to hold it.
+      water = Math.max(water, 36 - Math.hypot(x, y));
       reef = r < R ? "lagoon" : "outer";
     } else if (ws.reef === "fringing" && kind === "sea") reef = "outer";
     return { water, floodplain, shoreWidth, waterFlow, kind, riverAlong, reef };
@@ -538,7 +545,7 @@ export function createEnvironment(
       // The lake the Valley of Mexico has since lost: the city on its island,
       // open water round it, the far shore two lake-widths off.
       const r = Math.hypot(x + (noise(seed, fx, fy, 40, "texcoco-x") - 0.5) * 24, y + (noise(seed, fx, fy, 40, "texcoco-y") - 0.5) * 24);
-      const lake = Math.max(30 - r, r - 120);
+      const lake = Math.max(44 - r, r - 130);
       if (lake < water) {
         water = lake;
         kind = "lake";
@@ -715,7 +722,8 @@ export function createEnvironment(
       floodplain = 2.5;
       waterFlow = [0, 0];
     }
-    if (form === "cenote" && kind !== "sea") {
+    // A regional map calls all dry land "sea" when no river is near, so test distance from the shore.
+    if (form === "cenote" && (kind !== "sea" || water > 6)) {
       const d = cenoteDistance(seed, x + origin.x, y + origin.y);
       if (d < water) {
         water = d;
@@ -727,7 +735,7 @@ export function createEnvironment(
     }
     // A spring-fed oasis pool on low desert ground, and a playa that holds
     // shallow water only in the cool wet months and is a salt crust after.
-    if (habitat.ecology === "desert" && kind !== "sea" && water > 8 && field(x, y) < 0.45 && !regional?.placeAt(x, y)) {
+    if (habitat.ecology === "desert" && water > 8 && field(x, y) < 0.45 && !regional?.placeAt(x, y)) {
       const ax = x + origin.x,
         ay = y + origin.y;
       const spring = noise(seed, ax, ay, 24, "oasis") * 0.8 + noise(seed, ax, ay, 5, "oasis-rim") * 0.2;

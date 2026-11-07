@@ -12,7 +12,7 @@ import { waterfrontFor } from "../src/content/settlements/waterfronts";
 import { catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeights, preserveOf } from "../src/content/economy/fishing";
 import { gameOf, huntFate, huntWeapon, weaponHand, weaponWeights } from "../src/content/economy/hunting";
 import { CARDS } from "../src/content/cards";
-import { seasonAt } from "../src/core/livelihood";
+import { personalItem, seasonAt } from "../src/core/livelihood";
 import { fieldParcel } from "../src/core/work-places";
 import { cropStage } from "../src/content/agriculture";
 import { findPlace } from "../src/core/work-places";
@@ -836,3 +836,8 @@ it("follows the household's own crop through the year: sowing, weeding, harvest,
     expect(reaped).toBe(true);
   } finally {a.runtime.dispose();}
 },120000);
+
+it("puts the rifle in a guerrilla's hands", () => {
+  const a = { inventory: { rifle: 1 }, origin: { livelihood: "guerrilla" } } as never;
+  expect(personalItem(a)).toBe("rifle");
+});

@@ -34,6 +34,8 @@ const u = on("soldier"), q = on("guerrilla");
 const uniform = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit): GarmentKit => ({
   id: `uniform-${id}`, label, scope, priority: 4, ...parts,
 });
+const TAIWAN = [119.3, 21.8, 122.1, 25.4] as const, HONG_KONG = [113.8, 22.15, 114.45, 22.6] as const;
+const TURKEY = [26, 36.5, 41.6, 42.2] as const, TURKEY_NE = [41.6, 36, 43.5, 41.1] as const;
 const bare = { footwear: [g("none" as const)] };
 const sandals = { footwear: [g("sandals" as const)] };
 
@@ -230,7 +232,9 @@ export const guards: readonly GarmentKit[] = [
     dye: [u("chilca", 4), u("bark", 3), u("umber", 2), u("ash", 1)], motif: [u("placket")],
     armour: [u("none")], shield: [u("none")], accessory: [u("rifle", 6), u("none", 1)],
   }),
-  uniform("africa", "Askari and tirailleur: the red chechia, khaki and puttees", { years: [1870, 1965], cultures: ["west-central-african", "east-southern-african", "north-african-west-asian"] }, {
+  uniform("ottoman", "Ottoman conscript: the fez", { years: [1870, 1925], bounds: TURKEY }, { headwear: [u("fez")] }),
+  // Turkey dropped the fez in 1925; Iran's army never wore it.
+  uniform("africa", "Askari and tirailleur: the red chechia, khaki and puttees", { years: [1870, 1965], cultures: ["west-central-african", "east-southern-african", "north-african-west-asian"], except: [TURKEY, TURKEY_NE, [44, 25, 63, 40]] }, {
     headwear: [u("fez", 6), u("peaked-cap", 1), u("pith-helmet", 1)],
     leggings: [u("wrapped", 3), u("trousers", 2), u("none", 2)], footwear: [u("boots", 3), u("none", 2)],
     dye: [u("ochre", 4), u("bark", 3), u("vat", 1)],
@@ -241,11 +245,11 @@ export const guards: readonly GarmentKit[] = [
   uniform("japan", "Imperial conscript: khaki, peaked cap, puttees", { years: [1873, 1946], cultures: ["east-asian"], bounds: [128, 30, 146, 46] }, {
     headwear: [u("peaked-cap", 4), u("helmet", 2)], leggings: [u("wrapped")], dye: [u("ochre", 4), u("bark", 2)],
   }),
-  uniform("pla", "PLA: soft cap, green cotton, canvas shoes", { years: [1947, 1990], cultures: ["east-asian"], bounds: [98, 18, 125, 42] }, {
+  uniform("pla", "PLA: soft cap, green cotton, canvas shoes", { years: [1947, 1990], cultures: ["east-asian"], bounds: [98, 18, 125, 42], except: [TAIWAN, HONG_KONG] }, {
     garment: [u("coat")], headwear: [u("cap", 5), u("helmet", 1)], footwear: [u("sneakers", 3), u("boots", 1)],
     dye: [u("chilca", 5), u("ochre", 1)],
   }),
-  uniform("red-army", "Red Army: the gymnastyorka, the greatcoat, the furazhka", { years: [1918, 1992], bounds: [27, 41, 60, 70] }, {
+  uniform("red-army", "Red Army: the gymnastyorka, the greatcoat, the furazhka", { years: [1918, 1992], bounds: [27, 41, 60, 70], except: [TURKEY, TURKEY_NE] }, {
     headwear: [u("peaked-cap", 3), u("cap", 2), u("helmet", 2)], over: [u("none", 3), u("cloak", 2)],
     dye: [u("chilca", 3), u("bark", 3), u("ash", 1)],
   }),

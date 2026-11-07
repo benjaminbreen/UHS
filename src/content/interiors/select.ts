@@ -94,7 +94,7 @@ const PUBLIC: Rule[] = [
   { lon: [12, 34], lat: [20, 33], from: 680, pick: () => "hammam" },
   // Churches by confession and age: the Orthodox east, Protestant north, Catholic south and New Spain, medieval everywhere before.
   { lon: [19.5, 30], lat: [34, 46], from: 500, to: 1453, pick: () => "orthodox-church" },
-  { lon: [20, 30], lat: [34, 44], from: 500, pick: () => "orthodox-church" },
+  { lon: [19, 30], lat: [34, 46], from: 500, pick: () => "orthodox-church" },
   { lon: [22, 30], lat: [43.5, 48.5], from: 500, pick: () => "orthodox-church" },
   { lon: [24, 60], lat: [44, 70], from: 988, pick: () => "orthodox-church" },
   { lon: [-11, 32], lat: [36, 72], from: 900, to: 1150, pick: () => "romanesque-church" },
@@ -103,12 +103,13 @@ const PUBLIC: Rule[] = [
   { lon: [-125, -34], lat: [-56, 38], from: 1520, to: 1900, pick: () => "baroque-church" },
   { lon: [-11, 32], lat: [36, 72], from: 1150, to: 1900, pick: () => "gothic-church" },
   { lon: [-18, 75], lat: [5, 46], from: 650, pick: () => "mosque" },
+  { lon: [75, 95], lat: [30, 46], from: 900, pick: () => "mosque" },
   { lon: [38, 46], lat: [-16, 10], from: 1000, pick: () => "mosque" },
   { lon: [24, 47], lat: [6, 43.6], from: 301, pick: () => "orthodox-church" },
   { lon: [124, 131], lat: [33, 43.5], from: 372, pick: () => "chinese-temple" },
   { lon: [128, 146], lat: [30, 46], from: 552, pick: () => "japanese-temple" },
   { lon: [95, 128], lat: [8, 50], from: 68, pick: () => "chinese-temple" },
-  { lon: [92, 110], lat: [5, 25], from: 1250, pick: () => "wat" },
+  { lon: [92, 110], lat: [-11, 25], from: 500, pick: () => "wat" },
   { lon: [60, 95], lat: [5, 36], from: 500, pick: () => "hindu-temple" },
   { lon: [60, 95], lat: [5, 36], pick: () => "wat" },
   { lon: [95, 120], lat: [-10, 25], from: 500, pick: () => "hindu-temple" },
@@ -197,6 +198,8 @@ export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefin
     const found = interiorProfile(r.pick(site));
     if (found?.uses?.includes(site.use)) return found;
   }
+  // A synagogue, fire temple or shrine with no researched interior of its own.
+  if (/^(religious|civic)\./.test(site.use)) return meetingHall(site);
 }
 
 /** Whether whoever keeps a venue lives in it: yes over a taproom, no in a

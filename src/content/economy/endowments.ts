@@ -32,6 +32,7 @@ const specialties: Specialty[] = [
   { resource: "salt", name: "rock salt", years: [1250, 1996], bounds: [19.9, 49.9, 20.2, 50.1], source: "Wieliczka salt mine" },
   { resource: "salt", name: "brine salt", years: [-250, 2000], bounds: [104.5, 29.2, 105, 29.5], source: "Zigong brine wells, Sichuan" },
   { resource: "salt", name: "rock salt", years: [1000, 1600], bounds: [-5, 23.4, -4.5, 23.8], source: "Taghaza salt slabs, carried south across the Sahara" },
+  { resource: "salt", name: "spring salt", years: [1000, 2000], bounds: [-73, -14.5, -71, -12.5], source: "Maras salt pans, fed by a saline spring in the Sacred Valley" },
   { resource: "timber", name: "cedar", years: [-3000, 600], bounds: [35.5, 33.3, 36.5, 34.6], source: "Cedars of Lebanon, shipped to Egypt and Mesopotamia" },
   { resource: "clay", name: "kaolin", years: [1004, 2000], bounds: [117, 29, 117.5, 29.5], source: "Jingdezhen porcelain clay" },
 ];

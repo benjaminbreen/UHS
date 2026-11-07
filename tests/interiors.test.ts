@@ -288,6 +288,29 @@ describe("interior profiles", () => {
     // Synagogues where the town was Jewish.
     expect(at("north-african-west-asian", 35.5, 32.9, 400)).toBe("galilean-synagogue");
     expect(at("european", 25.15, 50.08, 1800)).toBe("ashkenazi-synagogue"); // Brody
+    // Korea keeps its temples east of 128°; the Levant and the Gulf are not Egypt or Iran.
+    expect(at("east-asian", 129.22, 35.84, 750)).toBe("korean-temple"); // Gyeongju
+    expect(at("east-asian", 129.01, 35.1, 1600)).toBe("korean-temple"); // Busan
+    expect(at("east-asian", 130.4, 33.59, 1600)).toBe("japanese-temple"); // Fukuoka
+    expect(at("north-african-west-asian", 35.21, 31.78, -1000)).not.toBe("pharaonic-temple"); // Jerusalem
+    expect(at("north-african-west-asian", 32.65, 25.7, -1300)).toBe("pharaonic-temple");
+    expect(at("north-african-west-asian", 50.58, 26.24, 900)).not.toBe("iranian-fire-temple"); // Manama
+    expect(at("north-african-west-asian", 52.5, 29.6, 600)).toBe("iranian-fire-temple"); // Shiraz
+    expect(religiousProfile({ culture: "other-indigenous-american", lon: -90.06, lat: 38.66, year: 1100 } as WorldSetting)?.drawnAt).toBe("small");
+  });
+
+  it("gives a sanctuary with no interior of its own a hall, never a house", () => {
+    for (const [use, lon, lat, year] of [
+      ["religious.sephardi-synagogue", 22.9, 40.6, 1600],
+      ["religious.gurdwara", 74.87, 31.64, 1700],
+      ["religious.iranian-fire-temple", 54.4, 31.9, 600],
+      ["religious.orisha-shrine", 5.62, 6.34, 1600],
+      ["religious.heiau", -157.86, 21.31, 1700],
+    ] as const)
+      expect(interiorProfileFor({ use, lon, lat, year }).program, use).toBe("rows");
+    expect(interiorProfileFor({ use: "religious.central-asian-mosque", lon: 75.99, lat: 39.47, year: 1500 }).id).toBe("mosque");
+    expect(interiorProfileFor({ use: "religious.burmese-pagoda", lon: 96.2, lat: 16.8, year: 1100 }).id).toBe("wat");
+    expect(interiorProfileFor({ use: "religious.byzantine-church", lon: 20.47, lat: 44.82, year: 1700 }).id).toBe("orthodox-church");
   });
 
   it("faces every place of worship to its altar down an aisle no column stands in", () => {

@@ -226,19 +226,20 @@ nearEastReligious.push(
       note: "Transoxiana was conquered by 750 and Kashgar's khans converted in the 950s. The Iranian court-and-iwan mosque stands for the Samanid, Karakhanid and Timurid mosques of Bukhara, Samarkand and Herat; the wooden-columned aivan mosques of Khiva and the Ferghana are not yet drawn.",
     },
   })),
-  {
+  // The Iranian side of the Gulf; Bahrain, Qatar and Oman were Muslim from the 630s.
+  ...([[44, 29.5, 63, 40], [48.5, 27, 63, 29.5], [56.5, 25, 63, 27]] as const).map((bounds): ReligiousRule => ({
     ...fireTemple,
     id: "iranian-fire-temple",
     culture: "north-african-west-asian",
     from: -550,
     to: 1000,
-    bounds: [44, 25, 63, 40],
+    bounds,
     evidence: {
       status: "inferred",
       sources: [],
       note: "The Sasanian chahar taq, four arches under a dome in a walled court (Niasar, Takht-e Soleyman), and the stone towers of Pasargadae and Naqsh-e Rustam before it. Most of the plateau stayed Zoroastrian into the ninth and tenth centuries; Yazd and Kerman kept their fire temples after.",
     },
-  },
+  })),
   {
     ...fireTemple,
     id: "sogdian-fire-temple",
@@ -252,7 +253,8 @@ nearEastReligious.push(
       note: "Sogdian towns (Panjikent, Samarkand) had fire temples in walled courts; the Iranian chahar taq stands in for their local form.",
     },
   },
-  {
+  // Egypt and its Red Sea coast, not Gaza or the Judean hills.
+  ...([[24, 20, 34.2, 32], [34.2, 20, 36, 26.5]] as const).map((bounds): ReligiousRule => ({
     id: "pharaonic-temple",
     faith: "Egyptian",
     recipe: "pylon-temple",
@@ -260,7 +262,7 @@ nearEastReligious.push(
     culture: "north-african-west-asian",
     from: -3000,
     to: -332,
-    bounds: [24, 20, 36, 32],
+    bounds,
     side: "north",
     about:
       "The god's house behind its pylon gate: priests wash and dress the god's statue each dawn and offer it food, and the town sees the god only when it is carried out on feast days.",
@@ -271,7 +273,7 @@ nearEastReligious.push(
       sources: [],
       note: "A pylon gateway with flagstaffs, a hypostyle hall and the sanctuary behind follows the New Kingdom temples of Karnak, Luxor and Medinet Habu. Old Kingdom town temples were smaller and of mud brick, which the smallest frame shows.",
     },
-  },
+  })),
   {
     id: "kushite-temple",
     faith: "Egyptian",

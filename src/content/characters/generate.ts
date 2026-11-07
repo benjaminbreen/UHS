@@ -270,7 +270,8 @@ export function characterLivelihood(
   // A request still has to pass the filters a drawn role passes, and a
   // religious office still takes its title from what people here believe.
   if (named && allowedBy(standing, named)) {
-    const resolved = localRole(named);
+    // Asking for a Potter by that name gets a Potter, not the local Kiln Worker.
+    const resolved = !named.fromBeliefs && named.label.toLowerCase() === key ? named : localRole(named);
     if (resolved) return resolveApprentice(resolved);
   }
   // A few kinds of work were done overwhelmingly by one sex; the rest are open.

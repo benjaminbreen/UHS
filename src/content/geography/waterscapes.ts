@@ -64,8 +64,11 @@ const icebergCoasts: Box[] = [
   [-180, -85, 180, -60], // Antarctica
   [-82, 66, -60, 80], // Baffin Bay
 ];
+// The Gulf Stream keeps Norway's and Iceland's harbours open all winter.
+// The Baltic and the Gulf of Bothnia, east of 16°E below 68.5°N, still freeze.
+const gulfStream = (lon: number, lat: number) => lon > -25 && lat < 71 && (lon < 16 || (lat > 68.5 && lon < 30));
 const atolls: Box[] = [
-  [-150.5, -23.5, -134, -14], // Tuamotu
+  [-148.9, -23.5, -134, -14], // Tuamotu, east of high Tahiti
   [72.5, -0.8, 74, 7.2], // Maldives
   [160, 4, 173, 15], // Marshall Islands
   [172, -10, 180, 4], // Kiribati and Tuvalu
@@ -134,11 +137,11 @@ export function waterscape(s: Pick<WorldSetting, "lon" | "lat" | "year" | "seaso
   // The Little Ice Age froze the Thames and the Dutch canals.
   const littleIceAge = year >= 1450 && year <= 1850 ? 2 : 0;
   const cold =
-    climate === "tundra" || climate === "boreal" || Math.abs(lat) >= 54 - littleIceAge ||
+    (climate === "tundra" && Math.abs(lat) > 40) || climate === "boreal" || Math.abs(lat) >= 54 - littleIceAge ||
     // Continental winters: the steppe, Siberia, Manchuria, the Great Lakes and prairie.
     (Math.abs(lat) >= 42 && ((lon > 25 && lon < 135) || (lon > -105 && lon < -70)));
   if (season === "winter" && cold)
-    out.ice = Math.abs(lat) >= 72 || (climate === "tundra" && Math.abs(lat) >= 64) ? "pack" : Math.abs(lat) >= 58 ? "fast" : "lakes";
+    out.ice = Math.abs(lat) >= 72 || (climate === "tundra" && Math.abs(lat) >= 64) ? "pack" : Math.abs(lat) >= 58 && !gulfStream(lon, lat) ? "fast" : "lakes";
   else if (season !== "summer" && Math.abs(lat) >= 76) out.ice = "pack";
   out.icebergs = Math.abs(lat) >= 55 && icebergCoasts.some((b) => inBox(b, lon, lat));
   if (atolls.some((b) => inBox(b, lon, lat))) out.reef = "atoll";

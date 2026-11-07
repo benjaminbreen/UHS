@@ -54,7 +54,7 @@ const arms = ["rifle", "spear", "halberd", "glaive", "musket", "bow", "macuahuit
 /** What someone goes about with in hand when not carrying a load: a stick, a
  * fan, the tool of a calling, and a guard's weapon. */
 export function personalItem(a: Actor) {
-  const armed = ["warrior", "soldier", "town-watchman", "gate-keeper", "retainer"].includes(a.origin?.livelihood ?? "");
+  const armed = ["warrior", "soldier", "guerrilla", "town-watchman", "gate-keeper", "retainer"].includes(a.origin?.livelihood ?? "");
   return [...ownItems, ...(armed ? arms : [])].find((id) => (a.inventory[id] ?? 0) > 0);
 }
 export function householdActivity(

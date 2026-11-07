@@ -1,4 +1,20 @@
 import type { CivicRule } from "./types";
+const korean: Omit<CivicRule, "bounds"> = {
+  id: "korean-dongheon",
+  from: 1392,
+  to: 1910,
+  culture: "east-asian",
+  label: "Magistrate's hall",
+  square: "Hall forecourt",
+  form: "hall",
+  about:
+    "The dongheon, where the county magistrate sent from the capital heard cases, collected taxes and governed the county.",
+  evidence: {
+    status: "inferred",
+    sources: ["https://en.wikipedia.org/wiki/Eupseong"],
+    note: "Surviving dongheon in walled county towns such as Naganeupseong inform the hall. Dimensions are illustrative.",
+  },
+};
 export const asiaCivic: CivicRule[] = [
   {
     id: "bazaar",
@@ -34,11 +50,13 @@ export const asiaCivic: CivicRule[] = [
       note: "The surviving Qing yamen at Neixiang and Pingyao inform the hall and forecourt. Earlier dynasties' county offices followed a similar axial plan but are less well preserved.",
     },
   },
+  // Before Japan's box, which would otherwise take Busan; Kyushu stays Japanese.
+  ...([[124, 33, 129.4, 43.5], [129.4, 38, 131, 43.5]] as const).map((bounds): CivicRule => ({ ...korean, bounds })),
   {
     id: "japanese-machi-bugyo",
     from: 1603,
     to: 1868,
-    bounds: [128, 30, 146, 46],
+    bounds: [129.4, 30, 146, 46],
     culture: "east-asian",
     label: "Town magistrate's office",
     square: "Office forecourt",
@@ -51,28 +69,12 @@ export const asiaCivic: CivicRule[] = [
       note: "Edo had north and south bugyō offices; castle towns had their own town magistrates. The hall here stands for the type.",
     },
   },
-  {
-    id: "korean-dongheon",
-    from: 1392,
-    to: 1910,
-    bounds: [124, 33, 131, 43.5],
-    culture: "east-asian",
-    label: "Magistrate's hall",
-    square: "Hall forecourt",
-    form: "hall",
-    about:
-      "The dongheon, where the county magistrate sent from the capital heard cases, collected taxes and governed the county.",
-    evidence: {
-      status: "inferred",
-      sources: ["https://en.wikipedia.org/wiki/Eupseong"],
-      note: "Surviving dongheon in walled county towns such as Naganeupseong inform the hall. Dimensions are illustrative.",
-    },
-  },
-  {
+  // Mughal India: north of the Tamil country and south of Nepal.
+  ...([[66, 15, 80, 35], [80, 15, 92, 26.4]] as const).map((bounds): CivicRule => ({
     id: "mughal-kotwali",
     from: 1526,
     to: 1857,
-    bounds: [66, 8, 92, 35],
+    bounds,
     culture: "south-asian",
     label: "Kotwali",
     square: "Chowk",
@@ -84,5 +86,5 @@ export const asiaCivic: CivicRule[] = [
       sources: ["https://en.wikipedia.org/wiki/Kotwal"],
       note: "The kotwal's duties are set out in the Ain-i-Akbari; the building itself varied and is drawn as a generic hall on the chowk.",
     },
-  },
+  })),
 ];

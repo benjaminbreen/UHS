@@ -54,6 +54,7 @@ export const americasReligious: ReligiousRule[] = [
     about:
       "A great earthen mound with a temple on top. Chiefs and priests climb it for ceremonies that the whole town gathers below to watch.",
     forecourt: 2,
+    drawnAt: "small",
     evidence: {
       status: "inferred",
       sources: [],

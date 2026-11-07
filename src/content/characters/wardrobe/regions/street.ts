@@ -107,7 +107,7 @@ export const street: readonly GarmentKit[] = [
     footwear: [monastic("none")], accessory: [monastic("alms-bowl", 3), monastic("beads", 1)],
   }),
   { ...kit("clergy-faiths-by-office", "Bhikkhu, Jain monk, granthi, mobad and Brahmin by their dress", { years: [-1000, 1950] }, {
-    garment: [as("monastic")("wrap"), as("jain")("wrap"), as("granthi")("long-tunic"), as("mobad")("robe"), as("brahmin")("wrap")],
+    garment: [as("jain")("wrap"), as("granthi")("long-tunic"), as("mobad")("robe"), as("brahmin")("wrap")],
     dye: [as("jain")("bleached"), as("granthi")("bleached", 2), as("granthi")("saffron", 1), as("mobad")("bleached"), as("brahmin")("bleached")],
     headwear: [as("granthi")("turban"), as("mobad")("wrap"), as("jain")("none"), as("brahmin")("none")],
     footwear: [as("jain")("none"), as("brahmin")("none")],
@@ -115,7 +115,7 @@ export const street: readonly GarmentKit[] = [
     accessory: [as("jain")("alms-bowl"), as("mobad")("censer"), as("granthi")("beads")],
   }), priority: 3 },
   kit("clergy-south-asian-monk", "Bhikkhu: the saffron robe and the bowl", { years: [-500, 1950], cultures: ["south-asian"] }, {
-    dye: [monastic("saffron", 2), monastic("ochre", 2)], footwear: [monastic("none")], accessory: [monastic("alms-bowl")],
+    garment: [monastic("wrap")], dye: [monastic("saffron", 2), monastic("ochre", 2)], footwear: [monastic("none")], accessory: [monastic("alms-bowl")],
   }),
   kit("clergy-mesoamerica", "Priest: black robe, long hair, the copal burner", { years: [-800, 1530], cultures: ["mesoamerican"] }, {
     garment: [clergy("robe")], dye: [clergy("soot")], headwear: [clergy("none")], accessory: held(clergy, ["censer", 3], ["none", 1]),

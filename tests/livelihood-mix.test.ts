@@ -609,7 +609,7 @@ describe("the professions expansion", () => {
     expect(names("soldier", at(2.35, 48.85, 1916))).toContain("Poilu");
     expect(names("soldier", at(37.6, 55.7, 1942))).toContain("Red Army Soldier");
     expect(names("soldier", at(36.8, -1.3, 1940))).toContain("Askari");
-    expect(names("soldier", at(77.2, 28.6, 1960))).toContain("Jawan");
+    expect(names("soldier", { ...at(77.2, 28.6, 1960), culture: "south-asian" })).toContain("Jawan");
     expect(names("guerrilla", at(-99, 18.5, 1914))).toContain("Zapatista");
   });
 
@@ -662,5 +662,42 @@ describe("the professions expansion", () => {
       const s = placeSetting(places.find((p) => p.id === placeId)!, year);
       expect(characterLivelihood(s, "x", "player", role, resolveCharacterContext(s), "male").id).toBe(id);
     }
+  });
+});
+
+describe("the professions and worksites together", () => {
+  const placed = (id: string, year: number) => placeSetting(places.find((p) => p.id === id)!, year);
+  const kit = (id: string) => [...livelihoods, ...commonLivelihoods].find((l) => l.id === id)!;
+  const names = (id: string, s: ReturnType<typeof placed>) =>
+    new Set(Array.from({ length: 60 }, (_, i) => localLabel(kit(id), s, "x", `p${i}`)));
+  const ids = (s: ReturnType<typeof placed>) => new Set(resolveCharacterContext(s).livelihoods.map((l) => l.id));
+
+  it("names a real job for every worksite role and finds it where the worksite stands", () => {
+    for (const p of worksiteProfiles) for (const r of p.roles ?? []) expect(kit(r), `${p.id}: ${r}`).toBeDefined();
+    for (const [place, year, role] of [["city-isfahan", 1600, "glassblower"], ["city-dhaka", 1800, "indigo-worker"],
+      ["virginia", 1750, "tobacco-worker"], ["city-varanasi", 1750, "sugar-boiler"], ["city-quanzhou", 1300, "sugar-boiler"],
+      ["cusco-city", 1500, "salt-worker"]] as const)
+      expect(ids(placed(place, year)).has(role), `${role} in ${place}`).toBe(true);
+  });
+
+  it("does not send oil workers to a mine or innkeepers to a caravanserai", () => {
+    expect(institutionFor(kit("oil-worker"), true)).toBeUndefined();
+    expect(institutionFor(kit("innkeeper"), true)).not.toBe("caravanserai");
+  });
+
+  it("keeps each army's name inside its own country", () => {
+    for (const [place, year, wrong] of [["city-hanoi", 1960, "PLA Soldier"], ["area-taipei-basin", 1960, "PLA Soldier"],
+      ["city-hong-kong", 1960, "PLA Soldier"], ["city-lhasa", 1960, "Jawan"], ["city-yangon", 1960, "Jawan"],
+      ["city-colombo", 1960, "Jawan"], ["city-kabul", 1930, "Sepoy"], ["city-lagos", 1940, "Tirailleur"],
+      ["city-accra", 1950, "Tirailleur"], ["city-tripoli", 1930, "Tirailleur"], ["city-istanbul", 1930, "Red Army Soldier"]] as const)
+      expect(names("soldier", placed(place, year)).has(wrong), `${wrong} in ${place}`).toBe(false);
+    expect(names("soldier", placed("area-taipei-basin", 1960))).toContain("Nationalist Soldier");
+    expect(names("soldier", placed("beijing", 1960))).toContain("PLA Soldier");
+    expect(names("broker", placed("timbuktu", 1850)).has("Stockbroker")).toBe(false);
+  });
+
+  it("reads label boxes across the 180th meridian", () => {
+    expect(names("navigator", placed("polynesia", 1200))).toContain("Wayfinder");
+    expect(names("weaver", placed("polynesia", 1200))).toContain("Mat Weaver");
   });
 });

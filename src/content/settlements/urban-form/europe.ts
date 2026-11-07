@@ -122,7 +122,7 @@ export const europeForms: UrbanFormRule[] = [
     culture: "european",
     from: 1600,
     to: 1950,
-    bounds: [-125, 20, -58, 52],
+    bounds: [-125, 24.5, -58, 52],
     plan: "orthogonal",
     block: [34, 16],
     regularity: 0.99,

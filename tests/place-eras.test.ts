@@ -4,6 +4,8 @@ import { placeAtYear, populationAt } from "../src/content/geography/eras";
 import { settingFor } from "../src/content/geography/resolve";
 import { describedRegionAt } from "../src/content/geography/region-label";
 import { urbanForm } from "../src/content/settlements/urban-form";
+import { civicProfile } from "../src/content/settlements/civic";
+import { packForSetting } from "../src/content/geography/pack";
 import {
   characterCommunity,
   resolveCharacterContext,
@@ -96,6 +98,41 @@ describe("culture families by region and date", () => {
     expect(placeAtYear(brasilia, 1800).culture).toBe("other-indigenous-american");
     expect(placeAtYear(byId("city-belo-horizonte"), 1750).culture).toBe("other-indigenous-american");
     expect(placeAtYear(byId("city-cuiaba"), 1750).culture).toBe("european");
+  });
+  it.each([
+    ["city-buenos-aires", 1980, "latin-american-metropolis"],
+    ["city-sao-paulo", 1920, "latin-american-metropolis"],
+    ["city-havana", 1920, "latin-american-metropolis"],
+    ["city-havana", 1820, "laws-of-the-indies-grid"],
+    ["city-cape-town", 1980, "colonial-grid-and-townships"],
+    ["city-new-york", 1920, "modern-survey-grid"],
+  ])("keeps a retagged %s in %i on its own plan", (id, year, form) => {
+    expect(urbanForm(settingFor(byId(id), year)).id).toBe(form);
+  });
+  it.each([
+    ["city-kabul", 1600, /^westasian-courtyard-/],
+    ["city-lhasa", 1600, /^westasian-courtyard-/],
+    ["city-kashgar", 1600, /^westasian-courtyard-/],
+    ["city-xining", 1600, /^eastasian-/],
+    ["city-havana", 1820, /^house-med-/],
+    ["city-lima", 1750, /^house-med-/],
+    ["city-boston", 1820, /^period-/],
+    ["city-oslo", 421, /^house-longhouse-/],
+    ["city-reykjavik", 950, /^house-longhouse-/],
+    ["city-novgorod", 1000, /^orthodox-house-rus-/],
+  ])("builds %s in %i in its own houses", (id, year, house) => {
+    expect(packForSetting(settingFor(byId(id), year)).buildings[0]).toMatch(house);
+  });
+  it.each([
+    ["city-busan", 1750, "korean-dongheon"],
+    ["city-gyeongju", 1750, "korean-dongheon"],
+    ["city-fukuoka", 1750, "japanese-machi-bugyo"],
+    ["city-fukuoka", 1450, "illustrative-public-hall"],
+    ["city-kathmandu", 1600, "illustrative-public-hall"],
+    ["city-madurai", 1600, "illustrative-public-hall"],
+    ["city-agra", 1600, "mughal-kotwali"],
+  ])("gives %s in %i the right magistrate", (id, year, civic) => {
+    expect(civicProfile(settingFor(byId(id), year)).id).toBe(civic);
   });
 });
 

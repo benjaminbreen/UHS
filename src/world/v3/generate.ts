@@ -1913,7 +1913,7 @@ export function createSettlementWorld(
             f.summit ? f.elevation / f.summit : 0,
           );
           const pond = oasis(seed, ax, ay, h.ecology, f.elevation === 0);
-          const surface = formSurface(form, seed, ax, ay, h.exposed);
+          const surface = townAt(x, y) ? undefined : formSurface(form, seed, ax, ay, h.exposed);
           if (pond) scape = { kind: "oasis", strength: pond };
           else if (pan) scape = { kind: "pan", strength: pan };
           else if (surface) scape = surface;
@@ -1937,7 +1937,8 @@ export function createSettlementWorld(
       if (waters && f.water < 0) {
         const v = cell.waterVisual;
         // Shore ice reaches about seven cells out; pack floes drift beyond it.
-        const ice = waters.ice && (f.kind !== "sea" || (waters.ice !== "lakes" && f.water > -9.5) ? "solid" : waters.ice === "pack" ? "floes" : undefined);
+        // Inside the raster's ragged -7 edge, so no walkable cell is drawn as open water.
+        const ice = waters.ice && (f.kind !== "sea" || (waters.ice !== "lakes" && f.water > -6.3) ? "solid" : waters.ice === "pack" ? "floes" : undefined);
         if (ice) v.ice = ice;
         if (waters.icebergs && f.kind === "sea") v.icebergs = true;
         const tint = f.flooded ? "silt" : f.kind === "sea" ? undefined : waters.tint;

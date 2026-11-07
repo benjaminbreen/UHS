@@ -4,17 +4,17 @@ const common = { revision: 2, basis: "reconstructed" } as const;
 const fodder = [{prop:"grainSacks",label:"Fodder and grain"},{prop:"crate",label:"Travellers' baggage"}];
 
 const caravanserais: WorksiteProfile[] = [
-  {...common,id:"persian-caravanserai",kind:"caravanserai",roles:["caravaneer","innkeeper"],siting:"fringe",capacity:4,
+  {...common,id:"persian-caravanserai",kind:"caravanserai",roles:["caravaneer"],siting:"fringe",capacity:4,
     label:"Caravanserai",scope:{years:[1000,1900],bounds:[44,25,63,40]},frame:"worksite-caravanserai-persian",
     outbuilding:{frame:"worksite-masonry-store",label:"Stable and fodder store"},supplies:fodder,
     sources:["https://whc.unesco.org/en/list/1668/"],
     note:"Rooms in vaulted bays round a court with a well, entered through one tall portal that could be shut at night. Shah Abbas I built them a day's march apart; this one is not a surveyed building."},
-  {...common,id:"ottoman-han",kind:"caravanserai",roles:["caravaneer","innkeeper"],siting:"fringe",capacity:4,
+  {...common,id:"ottoman-han",kind:"caravanserai",roles:["caravaneer"],siting:"fringe",capacity:4,
     label:"Han (caravanserai)",scope:{years:[1200,1900],bounds:[24,29,44,42]},frame:"worksite-caravanserai-ottoman",
     outbuilding:{frame:"worksite-masonry-store",label:"Stable and fodder store"},supplies:fodder,
     sources:["https://en.wikipedia.org/wiki/Caravanserai"],
     note:"A stone han on the road, rooms round a court, stabling and stores. Seljuk and Ottoman sultans and pious foundations endowed them so that lodging was often free for three days."},
-  {...common,id:"mughal-sarai",kind:"caravanserai",roles:["caravaneer","innkeeper"],siting:"fringe",capacity:4,
+  {...common,id:"mughal-sarai",kind:"caravanserai",roles:["caravaneer"],siting:"fringe",capacity:4,
     label:"Sarai",scope:{years:[1530,1860],bounds:[68,20,90,34]},frame:"worksite-caravanserai-mughal",
     outbuilding:{frame:"worksite-store-india",label:"Stable and fodder store"},supplies:fodder,
     sources:["https://en.wikipedia.org/wiki/Grand_Trunk_Road"],

@@ -17,6 +17,9 @@ export type ReligiousProfile = {
   about: string;
   /** Paved apron between the square and the door, in cells. */
   forecourt: number;
+  /** The only scale whose frame fits, whatever the town's size: of the stepped
+   * platforms only the small one is earth-faced. */
+  drawnAt?: "small" | "medium" | "large";
   /** Holy ground a stranger may not walk onto: the town keeps guards on
    * watch over it. */
   warded?: boolean;

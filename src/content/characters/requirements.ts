@@ -182,8 +182,12 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
     at(1830, [105, -9, 115, -5], 1960),
     at(1850, [29, -31, 32, -27]),
     at(1870, [176, -19, 180, -16]),
-    at(1850, [-161, 18, -154, 23], 1995),
+    at(1835, [-161, 18, -154, 23], 1995),
+    // Jaggery and boiled sugar for the home market, long before the export estates.
+    at(300, [66, 6, 92, 34]),
+    at(1000, [104, 18, 122, 27]),
   ],
+  indigo: [at(1744, [-82, 31.5, -78.5, 34.5], 1800), at(1777, [84, 21, 92, 27], 1900)],
   // Any export estate worked by gangs: sugar, Chesapeake tobacco, Lowcountry
   // rice, upland cotton, Brazilian and Ceylon coffee, Assam and Ceylon tea,
   // Malayan and Sumatran rubber.

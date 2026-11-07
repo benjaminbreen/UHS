@@ -103,7 +103,7 @@ export function institutionFor(
   if (l.id === "printer") return "printing";
   if (l.id === "miller") return "mill";
   if (l.id === "sexton") return "worship";
-  if (l.activity === "Working underground") return "mine";
+  if (l.activity === "Working underground" && !l.requires?.includes("oil")) return "mine";
   if (l.requires?.includes("factories")) return "factory";
   if (l.id === "clerk" || l.id === "tax-collector") return "administration";
   if (l.id === "nurse") return "hospital";
@@ -126,7 +126,7 @@ export const processingInstitution: Readonly<Record<string, Institution>> = {
   smith: "forge", blacksmith: "forge", ironworker: "forge", "bronze-caster": "forge",
   "salt-worker": "saltworks", "salt-panner": "saltworks", "sugar-boiler": "sugarworks",
   "oil-presser": "oilpress", glassblower: "glassworks", weaver: "weaving",
-  caravaneer: "caravanserai", innkeeper: "caravanserai",
+  caravaneer: "caravanserai",
   "indigo-worker": "plantation", "tobacco-worker": "plantation",
   "factory-hand": "factory", "power-loom-weaver": "factory", "mill-worker": "factory",
 };
