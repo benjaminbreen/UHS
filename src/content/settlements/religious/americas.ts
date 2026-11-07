@@ -62,6 +62,26 @@ export const americasReligious: ReligiousRule[] = [
     },
   },
   {
+    id: "cahokia-great-mound",
+    faith: "Mississippian",
+    recipe: "mississippian-great-mound",
+    labels: { small: "Great mound", medium: "Great mound", large: "Great mound" },
+    culture: "other-indigenous-american",
+    from: 1050,
+    to: 1350,
+    bounds: [-90.5, 38.4, -89.7, 38.9],
+    side: "north",
+    about:
+      "The great mound at the head of the plaza, the chief's hall on its summit. Chiefs and priests climb it for ceremonies that the whole town gathers below to watch.",
+    forecourt: 2,
+    drawnAt: "large",
+    evidence: {
+      status: "inferred",
+      sources: [],
+      note: "Monks Mound: a terraced earthen platform about 30 m high, its broad first terrace on the plaza side, raised from about 900 to 1200, with a large building on the summit known from post molds. The ramp, steps and summit fence are reconstructed; the scale is reduced to fit the town.",
+    },
+  },
+  {
     id: "maya-temple-pyramid",
     faith: "Maya",
     recipe: "meso-temple-maya",

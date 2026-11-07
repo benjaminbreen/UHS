@@ -1070,6 +1070,159 @@ def mississippian(s):
                    smoke=[[(rx0 + rx1) // 2, top - 4, 'vent']])
 
 
+LAWN = [_rgb(h) for h in ('#26361f', '#3a5027', '#506b30', '#68863a', '#84a046', '#a3b85c')]
+TURF = [_rgb(h) for h in ('#2a2219', '#43372a', '#5d4c37', '#776347', '#917d5a', '#a99872')]
+
+
+def turf_wall(c, x0, y0, w, h, seed):
+    """Turf laid on a stone footing: a course of rounded stones, then sods
+    in courses, long strips (strengur) alternating with herringbone
+    (klambra); the ends rounded, lit left and in shade right."""
+    stone = PAL['stone']
+    base = y0 + h
+    for yy in range(y0, base):
+        rise = base - 1 - yy
+        for xx in range(x0, x0 + w):
+            if rise < 5:
+                sx = (xx - x0 + int(h2((xx - x0) // 7, 0, seed) * 3)) % 7
+                k = 1 if sx == 0 or rise == 4 else 3 if rise == 3 and sx < 4 else 2
+            else:
+                band = (rise - 5) // 4
+                j = (rise - 5) % 4
+                if band % 2:
+                    lean = 1 if ((xx - x0) // 4) % 2 else -1
+                    k = 4 if (xx * lean + rise) % 4 == 0 else 2
+                    if j == 0:
+                        k = 1
+                else:
+                    k = (1, 3, 3, 4)[j] if (xx - x0 + band * 9) % 19 else 2
+                    if j == 3 and h2(xx // 2, band, seed) > 0.8:
+                        k = 6
+            e = min(xx - x0, x0 + w - 1 - xx)
+            if e < 4:
+                k = k + 1 if xx - x0 < 4 else max(0, k - 1)
+            c.p(xx, yy, LAWN[3] if k == 6 else (stone if rise < 5 else TURF)[max(0, min(5, k))])
+    for k in range(3):  # the rounded tops of the end walls
+        for xx in (x0 + k, x0 + w - 1 - k):
+            for yy in range(y0, y0 + 3 - k):
+                c.p(xx, yy, (0, 0, 0, 0))
+
+
+def grass_roof(c, x0, x1, eave, depth, seed, end=0.45):
+    """Living grass seen from above: banded light to the ridge, the ends
+    rounded off, tufts standing out of it, a ragged fringe over the eave."""
+    for j in range(depth):
+        y = eave - j
+        t = j / depth
+        inset = round((t ** 2) * depth * end)
+        L, R = x0 + inset, x1 - inset
+        for x in range(L, R):
+            k = 2 if t < 0.18 else 3 if t < 0.5 else 4
+            if j == depth - 1:
+                k = 5
+            if x - L < 3 + round(depth * end * (1 - t)) and x < (x0 + x1) // 2:
+                k = min(5, k + 1)
+            elif R - x < 4 + round(depth * end * (1 - t)) and x > (x0 + x1) // 2:
+                k = max(1, k - 1)
+            tuft = h2(x // 2, j // 3, seed)
+            if tuft > 0.86 and j % 3 == 0:
+                k = min(5, k + 1)
+            elif tuft < 0.07 and j % 3 == 1:
+                k = max(1, k - 1)
+            c.p(x, y, LAWN[k])
+    for x in range(x0, x1):
+        hang = int(h2(x // 2, 7, seed) * 3)
+        for k in range(hang + 1):
+            c.p(x, eave + 1 + k, LAWN[2 if k < hang else 1])
+    op_cast(c, x0 + 2, eave + 2, x1 - x0 - 4, 3)
+
+
+def turf_gable(c, cx, gw, base, wall_h, rise, run, wood, seed, door=True):
+    """A timber gable end square on: boards between the turf, the door in
+    them, and over it the grass roof seen from above, its ridge running back."""
+    half = gw // 2
+    eave = base - wall_h
+
+    def rake(x):
+        return round(eave - (half - abs(x + 0.5 - cx)) * rise / half)
+    for x in range(cx - half + 2, cx + half - 2):
+        for y in range(rake(x) + 2, base):
+            bx = (x - cx + half) % 5
+            k = 1 if bx == 0 else 4 if bx == 1 else 3
+            if y > base - 3:
+                k = max(1, k - 1)
+            c.p(x, y, wood[k])
+    for x in range(cx - half - 3, cx + half + 3):
+        left = x < cx
+        yr = rake(max(cx - half, min(cx + half - 1, x)))
+        for y in range(yr - run, yr + 1):
+            w = yr - y
+            k = (4 if left else 2) if w < run - 2 else 5 if left else 3
+            if w < 3:
+                k = (5, 4, 3)[w] if left else (3, 2, 1)[w]
+            if h2(x // 2, y // 3, seed + 4) > 0.88:
+                k = min(5, k + 1)
+            c.p(x, y, LAWN[k])
+        hang = int(h2(x, 3, seed) * 2)
+        for k in range(hang):
+            c.p(x, yr + 1 + k, LAWN[1])
+    for y in range(rake(cx) - run, rake(cx) + 1):
+        c.p(cx, y, LAWN[5]); c.p(cx + 1, y, LAWN[3])
+    for x in range(cx - half + 2, cx + half - 2):  # shadow under the verge
+        for k in range(2):
+            q = c.g(x, rake(x) + 2 + k)
+            if q[3]:
+                c.p(x, rake(x) + 2 + k, tuple(round(q[i] * (0.72 + 0.12 * k)) for i in range(3)) + (255,))
+    if not door:
+        return None
+    dw, dh = 12, 25
+    dx = cx - dw // 2
+    plain_door(c, dx, base, dw, dh, wood)
+    for yy in range(base - dh, base):
+        c.p(dx, yy, wood[4]); c.p(dx + 1, yy, wood[3]); c.p(dx + 2, yy, wood[2])
+    c.rect(dx - 3, base, dw + 6, 2, PAL['stone'][3])
+    return dx + dw // 2
+
+
+def turf(s):
+    """A Norse turf house, Iceland, the Faroes, Greenland and Orkney: low
+    thick walls of sod on a stone footing, a roof of living grass over a
+    timber frame, the entrance in a timber gable. The hall (skáli) lies long
+    side on with its gabled entry; the byre or store stands gable on."""
+    W = s['W']
+    wood = PAL['cedar-grey' if s['seed'] % 3 else 'wood']
+    seed = s['seed']
+    if s.get('form') == 'byre':
+        wall, rise, run = 22, 20, 12
+        c = C(W + 20, wall + rise + run + 14)
+        x0, base = 10, c.h - 4
+        gw = round(W * 0.46)
+        cx = x0 + W // 2
+        turf_wall(c, x0, base - wall, W, wall, seed)
+        grass_roof(c, x0 - 3, x0 + W + 3, base - wall - 1, rise + run - 6, seed)
+        dx = turf_gable(c, cx, gw, base, wall, rise, run, wood, seed)
+        return c, dict(x0=x0, W=W, base=base, door_x=dx, door_h=25, door_width=12, door_base=base, smoke=[])
+    wall = 24
+    depth = round(W * 0.12) + 16
+    c = C(W + 24, wall + depth + 24)
+    x0, base = 12, c.h - 4
+    turf_wall(c, x0, base - wall, W, wall, seed)
+    eave = base - wall - 1
+    grass_roof(c, x0 - 4, x0 + W + 4, eave, depth, seed)
+    top = eave - depth + 1
+    hx = x0 + round(W * (0.7 if seed % 2 else 0.3))
+    c.rect(hx - 4, top + 3, 9, 4, wood[3]); c.rect(hx - 3, top + 4, 7, 2, DARK)
+    c.rect(hx - 4, top + 3, 9, 1, wood[5])
+    gables = [0.3 if seed % 2 else 0.68] + ([0.82 if seed % 2 else 0.16] if s.get('gables', 1) > 1 else [])
+    door_x = None
+    for i, at in enumerate(gables):
+        gx = x0 + round(W * at)
+        dx = turf_gable(c, gx, 38 if i == 0 else 32, base, wall, 20, 10, wood, seed + i, door=True)
+        door_x = door_x or dx
+    return c, dict(x0=x0, W=W, base=base, door_x=door_x, door_h=25, door_width=12, door_base=base,
+                   smoke=[[hx, top, 'vent']])
+
+
 def built(fn, defaults):
     def make(spec=None, info=None):
         s = dict(seed=0, gear=(), door_at=0.3)
@@ -1100,6 +1253,7 @@ BUILDERS = {
     'ridge-tent': built(ridge_tent, dict(W=40, cover='canvas')),
     'cart': built(cart, dict(W=70, felt='felt-white', accent='blue')),
     'mississippian': built(mississippian, dict(W=76, hip=True)),
+    'turf': built(turf, dict(W=104, form='hall')),
 }
 STEPPE_GEAR = {'fuel': 'fuel', 'hitching': 'hitching', 'rack': 'rack', 'standard': 'standard'}
 FORAGER_GEAR = ('coolamon', 'grindstone', 'spears', 'kayak', 'sled')
@@ -1160,6 +1314,8 @@ def spec_for(name, r):
         if 'gear' in spec:
             spec['gear'] = tuple(spec['gear'])
         spec['W'] = fw * 16 + (4 if kind == 'black-tent' else -4 if kind == 'mississippian' else -6)
+        if kind == 'turf':
+            spec.update(form='byre' if fw <= 4 else 'hall', gables=2 if fw >= 9 else 1)
         return kind, spec
     style = r.get('campStyle')
     if style == 'goat-hair':
@@ -1238,6 +1394,10 @@ STUDIES = [
     ('chise', 'chise', dict(W=80)),
     ('mississippian', 'mississippian', dict(W=76, seed=1)),
     ('mississippian-gable', 'mississippian', dict(W=96, hip=False, seed=2)),
+    ('turf-hall', 'turf', dict(W=106, seed=1)),
+    ('turf-hall-long', 'turf', dict(W=138, seed=2, gables=2)),
+    ('turf-byre', 'turf', dict(W=58, form='byre', seed=1)),
+    ('turf-byre-b', 'turf', dict(W=58, form='byre', seed=3)),
     ('tent-canvas', 'ridge-tent', dict(W=40)),
     ('tent-leather', 'ridge-tent', dict(W=42, cover='hide', seed=1)),
 ]

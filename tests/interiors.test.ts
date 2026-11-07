@@ -296,7 +296,8 @@ describe("interior profiles", () => {
     expect(at("north-african-west-asian", 32.65, 25.7, -1300)).toBe("pharaonic-temple");
     expect(at("north-african-west-asian", 50.58, 26.24, 900)).not.toBe("iranian-fire-temple"); // Manama
     expect(at("north-african-west-asian", 52.5, 29.6, 600)).toBe("iranian-fire-temple"); // Shiraz
-    expect(religiousProfile({ culture: "other-indigenous-american", lon: -90.06, lat: 38.66, year: 1100 } as WorldSetting)?.drawnAt).toBe("small");
+    expect(religiousProfile({ culture: "other-indigenous-american", lon: -90.06, lat: 38.66, year: 1100 } as WorldSetting)?.drawnAt).toBe("large");
+    expect(religiousProfile({ culture: "other-indigenous-american", lon: -87.6, lat: 33.0, year: 1300 } as WorldSetting)?.drawnAt).toBe("small");
   });
 
   it("gives a sanctuary with no interior of its own a hall, never a house", () => {

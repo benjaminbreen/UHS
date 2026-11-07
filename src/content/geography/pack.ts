@@ -54,6 +54,8 @@ export function periodBuildings(setting: WorldSetting): string[] {
   if (year < 1700 || year >= 1900) return [];
   if (setting.settlement !== "city" && setting.settlement !== "port") return [];
   if (iberianTown(setting)) return [];
+  // Iceland and the Faroes built in turf, not brick terraces.
+  if (lon < -5 && lon > -30 && lat >= 60) return [];
   const victorian = year >= 1840;
   if (culture === "european" && lon < -30)
     return year < 1830

@@ -118,7 +118,8 @@ describe("culture families by region and date", () => {
     ["city-lima", 1750, /^house-med-/],
     ["city-boston", 1820, /^period-/],
     ["city-oslo", 421, /^house-longhouse-/],
-    ["city-reykjavik", 950, /^house-longhouse-/],
+    ["city-reykjavik", 950, /^turf-house-norse-turf-/],
+    ["city-reykjavik", 1750, /^turf-house-norse-turf-/],
     ["city-novgorod", 1000, /^orthodox-house-rus-/],
   ])("builds %s in %i in its own houses", (id, year, house) => {
     expect(packForSetting(settingFor(byId(id), year)).buildings[0]).toMatch(house);
