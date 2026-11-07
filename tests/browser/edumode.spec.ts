@@ -27,6 +27,8 @@ test("classroom entry requires consent and uploads human game actions", async ({
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 60000 });
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click();
+  await expect(page.locator(".plot-card")).toBeHidden();
   await page.locator(".game-container").focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => uploads.flatMap((b) => b.events).map((e) => e.kind), { timeout: 15000 })

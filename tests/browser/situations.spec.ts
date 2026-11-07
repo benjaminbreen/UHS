@@ -84,8 +84,10 @@ test("task views browse the day without moving the player or opening game shortc
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
   expect(await page.evaluate(() => (window as any).__uhs.engine.world.pack.setting.year)).toBe(100);
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click();
   await page.getByRole("tab", { name: "Today", exact: true }).click();
-  await page.locator(".event-open").first().click();
+  await page.locator(".today-work .work-card-head").click();
+  await page.getByRole("button", { name: "About today's work", exact: true }).click();
   const task = page.locator(".tasks");
   await expect(task).toBeVisible();
   await expect(task).toHaveAttribute("data-settled", "true");
@@ -118,13 +120,14 @@ for (const [id, prompt, landform, camp] of [
   ["roman", "Roman military camp", "local", "military"],
 ])
   test(`${id} starts through World Weaver`, async ({ page }) => {
+    const { enabled } = await (await page.request.get("/api/world-weaver")).json();
+    test.skip(!enabled, "World Weaver needs OPENAI_API_KEY on the dev server");
+    test.setTimeout(300000);
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("/");
     await page.getByRole("button", { name: "Choose starting details" }).click();
-    await page
-      .getByRole("button", { name: "World Weaver", exact: false })
-      .click();
+    await page.getByRole("button", { name: /^World Weaver/ }).click();
     await page
       .getByPlaceholder("Describe a place, period, and character…")
       .fill(prompt);
@@ -185,6 +188,9 @@ test("running impacts hurt and fatal fire offers a new world", async ({ page }) 
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
+  // The day's opening card would cover the death card, and swallows arrows while it closes.
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click();
+  await expect(page.locator(".plot-card")).toBeHidden();
   await page.evaluate(() => {
     const r = (window as any).__uhs, e = r.engine;
     r.stop();
@@ -214,10 +220,12 @@ test("running impacts hurt and fatal fire offers a new world", async ({ page }) 
   expect(await page.evaluate(() => (window as any).__uhs.engine.state.player.pos.x)).toBe(2);
   await page.evaluate(() => {
     const r = (window as any).__uhs, e = r.engine, p = e.state.player;
+    e.cards = [];
+    e.state.plot = undefined;
     e.state.fires = [{ x: p.pos.x, y: p.pos.y, until: e.state.clock + 300 }];
     r.command({ type: "wait", seconds: 30 });
   });
-  const death = page.getByRole("alertdialog", { name: "You died", exact: true });
+  const death = page.getByRole("alertdialog", { name: / has died$/ });
   await expect(death).toBeVisible();
   await expect(death).toContainText("burns");
   await expect(page.getByRole("status", { name: "Health 0 of 100", exact: true })).toBeVisible();
@@ -230,9 +238,9 @@ test("running impacts hurt and fatal fire offers a new world", async ({ page }) 
   await page.keyboard.press("ArrowLeft");
   expect(await page.evaluate(() => (window as any).__uhs.engine.state.clock)).toBe(ended.clock);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(death.getByRole("button", { name: "New world", exact: true })).toBeInViewport();
+  await expect(death.getByRole("button", { name: "Close this life", exact: true })).toBeInViewport();
   await page.screenshot({ path: "artifacts/hazard-death-mobile.png", animations: "disabled" });
-  await death.getByRole("button", { name: "New world", exact: true }).click();
+  await death.getByRole("button", { name: "Close this life", exact: true }).click();
   await expect(death).toHaveCount(0);
   await expect(page.getByRole("dialog")).toBeVisible();
   expect(errors).toEqual([]);
@@ -279,7 +287,7 @@ test("refusing to leave during dialogue ends talk and produces a real threat", a
   if (await respond.count()) await respond.click();
   await conversation.getByRole("textbox", { name: "Your response" }).fill("No, I'm staying.");
   await conversation.getByRole("button", { name: "Send response" }).click();
-  await expect(conversation.getByText("GET OUT OF MY HOUSE!!", { exact: true })).toBeVisible();
+  await expect(conversation.locator(".dialogue-line.npc:not([data-typing])")).toContainText("GET OUT OF MY HOUSE!!", { timeout: 20000 });
   await expect(conversation.getByRole("textbox", { name: "Your response" })).toHaveCount(0);
   await expect(conversation.getByRole("button", { name: "Leave", exact: true })).toBeVisible();
   expect(await page.evaluate(() => {
