@@ -38,6 +38,8 @@ export type TerrainRequest =
       frost?: number;
       /** The season on the clock: fields are rastered at its stage. */
       season?: string;
+      /** The tide, from `tideAt`. */
+      tide?: number;
     }
   | { id: string; region: TerrainRegion }
   | { previews: { id: string; region: TerrainRegion }[] };
@@ -70,7 +72,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
       if (data.living !== undefined) livingEnabled = data.living;
       if (data.snow !== undefined) setSnowCover(data.snow);
       if (data.frost !== undefined) setFrost(data.frost);
-      if (data.season) world?.setSeason?.(data.season);
+      if (data.season) world?.setSeason?.(data.season, data.tide);
       return;
     }
     if ("pack" in data) {

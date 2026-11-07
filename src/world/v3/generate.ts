@@ -77,7 +77,8 @@ import {
 import { route } from "../../core/routing";
 import { CHUNK_SIZE } from "../../core/types";
 import { random } from "../../core/random";
-import { waterscape } from "../../content/geography/waterscapes";
+import { waterscape, type Waterscape } from "../../content/geography/waterscapes";
+import { crops } from "../../content/agriculture/crops";
 import { settlementProfile } from "../../content/settlements/profiles";
 import { createLandscape } from "../geography/landscape";
 import { noise } from "../geography/noise";
@@ -92,6 +93,7 @@ import { cropStage } from "../../content/agriculture";
 import { propDefs } from "../../content/props/catalog";
 import { landPotential } from "./land-potential";
 import { cultivatedAt, treePlacementEnvelope } from "./placement";
+const seasons = ["spring", "summer", "autumn", "winter"];
 export const DISTRICT_SIZE = 384;
 /** Residents per settlement given a full daily routine. Past this the rest keep
  * the simpler needs-driven behaviour; routing every resident of a large town
@@ -927,6 +929,12 @@ export function createSettlementWorld(
   /** The season on the clock, set by the engine as the year turns: fields
    * are drawn and worked at the stage this season gives their crop. */
   let liveSeason = (pack.setting?.season ?? "summer") as import("../../content/agriculture/types").Season;
+  const seasonalWaters = waters && seasons.map((season) => waterscape({ ...pack.setting!, season }));
+  // Water whose ice or colour changes with the season is resolved live everywhere.
+  const waterTurns = !!seasonalWaters && (seasonalWaters.some((w) => w.ice) || new Set(seasonalWaters.map((w) => w.tint)).size > 1);
+  let liveWaters = waters,
+    liveTide = 0,
+    waterStamp = 0;
   /** The crop on a cell, with its stage for this world's season, or the
    * ditch beside a lane. */
   function fieldAt(
@@ -1217,7 +1225,8 @@ export function createSettlementWorld(
   }
   function sceneryAllowed(x: number, y: number, k: string, f: ReturnType<typeof land.sample>) {
     if (f.landscape?.kind === "arroyo" && f.landscape.strength > 0.35) return false;
-    return !(f.water < (relief ? 0 : 4) || nearby(x, y).some(p =>
+    // Nothing stands where the flood or the winter playa comes.
+    return !(Math.min(f.water, ...(f.seasonal ?? [])) < (relief ? 0 : 4) || nearby(x, y).some(p =>
       p.reserved.has(k) || p.solid.has(k) ||
       pack.setting?.placementRevision === 1 && cultivatedAt(p, x, y) ||
       p.enclosures.some(pen => Math.hypot(x - pen.gate.x, y - pen.gate.y) < 4) ||
@@ -1934,17 +1943,14 @@ export function createSettlementWorld(
         frozenMargin: f.snow,
         ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
       };
-      if (waters && f.water < 0) {
+      if (waters && (f.water < 0 || f.seasonal)) {
         const v = cell.waterVisual;
-        // Shore ice reaches about seven cells out; pack floes drift beyond it.
-        // Inside the raster's ragged -7 edge, so no walkable cell is drawn as open water.
-        const ice = waters.ice && (f.kind !== "sea" || (waters.ice !== "lakes" && f.water > -6.3) ? "solid" : waters.ice === "pack" ? "floes" : undefined);
-        if (ice) v.ice = ice;
         if (waters.icebergs && f.kind === "sea") v.icebergs = true;
-        const tint = f.flooded ? "silt" : f.kind === "sea" ? undefined : waters.tint;
-        if (tint) v.tint = tint;
-        if (f.tidal !== undefined && !ice) v.tidal = f.tidal;
-        if (f.reef && !ice) v.reef = f.reef;
+        if (f.reef) v.reef = f.reef;
+        // Ice, tint, tide and flood are resolved from the live season in `topography`.
+        if (waterTurns || f.seasonal || f.tidal !== undefined)
+          cell.live = { ...(f.seasonal && { water: f.seasonal }), ...(f.tidal !== undefined && { shelf: f.tidal }) };
+        else if (f.kind !== "sea" && waters.tint) v.tint = waters.tint;
       }
       cell.biome = cell.habitat.site
         ? cell.habitat.ecology
@@ -2367,11 +2373,43 @@ export function createSettlementWorld(
       return "timber";
     return "cut";
   }
-  // Cells are cached for good; a field's stage is read fresh from the season.
+  // Cells are cached for good; a field's stage and the water are read fresh
+  // from the season and the tide.
   function topography(x: number, y: number): TopographyCell {
     const c = topographyCell(x, y);
-    if (c.field) c.field.stage = cropStage(c.field.crop, liveSeason, pack.setting?.lat ?? 0);
+    if (c.field) {
+      c.field.stage = cropStage(c.field.crop, liveSeason, pack.setting?.lat ?? 0);
+      if (c.field.flood !== undefined) {
+        c.field.flood = (liveWaters?.flood ?? 0) >= 0.6;
+        c.field.wet = c.field.flood || crops[c.field.crop].wet === true;
+      }
+    }
+    if (c.live && c.live.stamp !== waterStamp) liveWater(c, c.live, c.waterVisual!, liveWaters!);
     return c;
+  }
+  function liveWater(c: TopographyCell, l: NonNullable<TopographyCell["live"]>, v: NonNullable<TopographyCell["waterVisual"]>, ws: Waterscape) {
+    l.stamp = waterStamp;
+    const dry = (l.dry ??= { surface: c.surface, waterDepth: c.waterDepth, landscape: c.landscape, distance: v.distance });
+    // Roads, bridges and fields keep their ground; basins flood as fields.
+    const d = l.water && !c.bridge && !c.ramp && !c.feature && !c.field && !c.pathArt?.length
+      ? l.water[seasons.indexOf(liveSeason)]
+      : dry.distance;
+    v.distance = d;
+    if (d < 0 && dry.distance >= 0) Object.assign(c, { surface: "water", waterDepth: d > -2 ? "shallow" : "deep", landscape: undefined });
+    else Object.assign(c, { surface: dry.surface, waterDepth: dry.waterDepth, landscape: dry.landscape });
+    const tint = v.kind === "sea" ? undefined : d !== dry.distance && v.kind === "river" && ws.flood >= 0.5 ? "silt" : ws.tint;
+    if (tint) v.tint = tint;
+    else delete v.tint;
+    // Shore ice reaches about seven cells out; pack floes drift beyond it.
+    // Inside the raster's ragged -7 edge, so no walkable cell is drawn as open water.
+    const ice = d < 0 && ws.ice && (v.kind !== "sea" || (ws.ice !== "lakes" && d > -6.3) ? "solid" : ws.ice === "pack" ? "floes" : undefined);
+    if (ice) v.ice = ice;
+    else delete v.ice;
+    if (l.shelf !== undefined && !ice && l.shelf > liveTide) Object.assign(v, { tidal: l.shelf, tide: liveTide });
+    else {
+      delete v.tidal;
+      delete v.tide;
+    }
   }
   function topographyCell(x: number, y: number): TopographyCell {
     if (
@@ -2933,7 +2971,13 @@ export function createSettlementWorld(
       : {}),
     ...(environment ? { households: [] } : {}),
     generatorVersion: 3,
-    setSeason: (season: string) => { liveSeason = season as typeof liveSeason; },
+    setSeason: (season: string, tide = liveTide) => {
+      if (season === liveSeason && tide === liveTide) return;
+      liveSeason = season as typeof liveSeason;
+      liveWaters = seasonalWaters?.[seasons.indexOf(liveSeason)];
+      liveTide = tide;
+      waterStamp++;
+    },
     ...(relief
       ? {
           topography,

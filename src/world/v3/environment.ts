@@ -5,7 +5,7 @@ import { tributary } from "./tributaries";
 import { boundarySample } from "../travel/seams";
 import { trimCache } from "../../core/cache";
 import { marshBasin } from "./wet-features";
-import { waterscape } from "../../content/geography/waterscapes";
+import { floodReach, waterscape } from "../../content/geography/waterscapes";
 import type { WorldSetting } from "../../content/geography/types";
 import { habitatLayout } from "../../content/ecology/variants";
 import {
@@ -23,6 +23,7 @@ import { random } from "../../core/random";
 import { toAtlas, atlasSample } from "../geography/atlas";
 import type { RegionalContext } from "../regional/context";
 import type { LandSample } from "../geography/landscape";
+const seasons = ["spring", "summer", "autumn", "winter"] as const;
 /** Geography is sampled independently of settlements and player circumstances. */
 export function createEnvironment(
   s: WorldSetting,
@@ -31,6 +32,7 @@ export function createEnvironment(
 ) {
   const cfg = s.environment!;
   const ws = waterscape(s);
+  const byS = seasons.map((season) => waterscape({ ...s, season }));
   const simpleWater = !!s.hydrologyRevision;
   const connectedWater = (s.hydrologyRevision ?? 0) >= 2;
   const origin = toAtlas(s.lon, s.lat);
@@ -490,7 +492,8 @@ export function createEnvironment(
           return Math.max(Math.abs(x - c0.x), Math.abs(y - c0.y)) < place.radius * 0.5;
         })()
       : Math.hypot(x, y) < 16;
-    let tidal: number | undefined, flooded = false, dike = false;
+    let tidal: number | undefined, dike = false;
+    let reaches: number[] | undefined, wetPlaya: number | undefined;
     let waterGradientOverride: readonly [number, number] | undefined;
     // Distributaries: the contours of two smooth fields cross the delta plain
     // as a web of channels round low islands, the town on its own mound.
@@ -507,15 +510,9 @@ export function createEnvironment(
       }
     }
     if (ws.delta) floodplain = Math.max(floodplain, 40);
-    // The season's flood fills the valley floor to the first terrace; a
-    // monsoon river swells within its banks. Shallow enough to wade.
-    if (ws.flood > 0 && kind === "river" && water >= -1 && !town) {
-      const reach = ws.delta || ws.flood >= 0.5 && s.climate !== "monsoon" ? floodplain + 18 * ws.flood : 2.5 * ws.flood;
-      if (water < reach) {
-        water = Math.max(-1.6, water - reach);
-        flooded = ws.flood >= 0.5;
-      }
-    }
+    // Each season's flood, laid over the dry ground at the end.
+    if (kind === "river" && water >= -1 && !town && byS.some((w) => w.flood > 0))
+      reaches = byS.map((w) => floodReach(w, floodplain, s.climate));
     // The scene stands at low water: the intertidal shelf is bare mud.
     if (kind === "sea" && water < 0 && ws.tide >= 0.3 && !reef) {
       const width = 1 + ws.tide * 9;
@@ -739,13 +736,14 @@ export function createEnvironment(
       const ax = x + origin.x,
         ay = y + origin.y;
       const spring = noise(seed, ax, ay, 24, "oasis") * 0.8 + noise(seed, ax, ay, 5, "oasis-rim") * 0.2;
-      const wet = s.season === "winter" || s.season === "spring";
-      const playa = wet && ["atacama", "highland", "sahara", "kalahari", "reg"].includes(habitat.colorway ?? "")
+      const playa = ["atacama", "highland", "sahara", "kalahari", "reg"].includes(habitat.colorway ?? "")
         ? noise(seed, ax, ay, 38, "salt-pan")
         : 0;
-      const d = Math.min((0.86 - spring) * 60, (0.77 - playa) * 50);
-      if (d < 7 && d < water) {
-        water = d;
+      const d = (0.86 - spring) * 60,
+        wet = Math.min(d, (0.77 - playa) * 50);
+      if (wet < 7 && wet < water) {
+        if (d < 7 && d < water) water = d;
+        if (wet < water) wetPlaya = wet;
         kind = "lake";
         shoreWidth = 0.6;
         floodplain = 2;
@@ -871,8 +869,9 @@ export function createEnvironment(
       }
       valleyFloor = Math.max(0, Math.min(baseTier - 1, floor - 1));
     }
+    // Ground the flood covers is valley floor even when dry.
     let level =
-      water < floodplain
+      water < floodplain || (reaches && water < Math.max(...reaches))
         ? valleyFloor
         : water < terrace
           ? Math.max(valleyFloor, Math.min(valleyFloor + 1, baseTier))
@@ -917,7 +916,14 @@ export function createEnvironment(
       ...(waterGradient ? { waterGradient } : {}),
       ...(tidal !== undefined ? { tidal } : {}),
       ...(reef ? { reef } : {}),
-      ...(flooded ? { flooded } : {}),
+      ...(reaches || wetPlaya !== undefined
+        ? {
+            seasonal: seasons.map((season, i) => {
+              const w = wetPlaya !== undefined && (season === "winter" || season === "spring") ? wetPlaya : water;
+              return reaches && w < reaches[i] ? Math.max(-1.6, w - reaches[i]) : w;
+            }),
+          }
+        : {}),
       elevation: seam
         ? Math.round(
             (level * 14 * (1 - seam.weight) + seam.height * seam.weight) / 14,

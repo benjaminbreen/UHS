@@ -29,7 +29,8 @@ export type FieldCell = {
   enclosure?: Boundary;
   /** Standing water between bunds. */
   wet: boolean;
-  /** Under the river's flood. */
+  /** Under the river's flood; absent outside a flood-basin system. The world
+   * sets it from the live season. */
   flood?: boolean;
   /** Edges, same bits, where the ground drops to the bench below. */
   riser?: number;
@@ -917,7 +918,7 @@ export function planFarmland(input: {
                 fence: 0,
                 boundary: system.boundary,
                 wet: flooded || (wet && crops[crop].wet === true),
-                ...(flooded && { flood: true }),
+                ...(system.irrigation === "flood" && { flood: flooded }),
               });
               cells++;
             }
@@ -1035,7 +1036,7 @@ export function planFarmland(input: {
         fence: 0,
         boundary: system.boundary,
         wet: flooded || (wet && crops[crop].wet === true),
-        ...(flooded && { flood: true }),
+        ...(system.irrigation === "flood" && { flood: flooded }),
       });
       x0 = Math.min(x0, x);
       y0 = Math.min(y0, y);
