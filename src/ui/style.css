@@ -47,6 +47,8 @@
 }
 body {
   margin: 0;
+  /* Pixelify Sans's "fi" ligature reads as "A": "five" became "Ave". */
+  font-variant-ligatures: no-common-ligatures;
 }
 button,
 input,
@@ -9440,8 +9442,8 @@ button:disabled {
   .day-plan li { grid-template-columns: 24px 40px minmax(0, 1fr); gap: 8px; font-size: 14px; }
   .day-plan li > em { grid-column: 3; font: 11px var(--sans); margin-top: -4px; }
   .modal-map { padding: 0; display: flex; flex-direction: column; overflow-y: auto; }
-  .map-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 16px 60px 12px 14px; }
-  .map-title > div:first-child { grid-column: 1 / -1; }
+  .map-title { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 16px 60px 12px 14px; }
+  .map-title > div:first-child { flex-basis: 100%; }
   .map-title h2 { overflow-wrap: anywhere; font-size: 24px; }
   .map-toggle button, .map-period button { min-height: 44px; }
   .map-body { flex-direction: column; }

@@ -116,6 +116,8 @@
   margin: -9px 6px 0 0;
   image-rendering: pixelated;
   animation: plot-point 0.7s steps(2) infinite;
+  /* In a conversation it hangs over the reply's Send button. */
+  pointer-events: none;
 }
 .plot-hand .px-X { fill: var(--ink); }
 .plot-hand .px-W { fill: var(--light); }

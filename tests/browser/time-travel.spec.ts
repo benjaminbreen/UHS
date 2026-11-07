@@ -38,7 +38,8 @@ test("arrival reveals the real character early and prepares a paused first frame
   expect(await state()).toEqual(prepared);
   await page.locator(".arrival").getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.locator(".game-container canvas")).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => (window as any).__vitals.now().counts.workers)).toBe(0);
+  // The sculpted-portrait tracer (6208e937) lives for the page; every world worker must go.
+  await expect.poll(() => page.evaluate(() => (window as any).__vitals.now().counts.workers)).toBe(1);
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await canvas.waitFor({ state: "attached", timeout: 120000 });
   await page.getByRole("button", { name: /Enter life/ }).click();
@@ -60,6 +61,7 @@ test("a historical journey preserves the original date and connects the family",
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await page.locator(".game-container canvas").waitFor({ timeout: 120000 });
+  await page.waitForFunction(() => !!(window as any).__uhs);
   const state = () => page.evaluate(() => {
     const r = (window as any).__uhs;
     return { year: r.engine.state.manifest.setting.year, name: r.engine.state.player.name,
@@ -68,7 +70,7 @@ test("a historical journey preserves the original date and connects the family",
   const original = await state();
   expect(original.year).toBe(100);
   expect(original.place).toMatch(/Naples|Neapolis/);
-  await page.getByTitle("Change your world").click();
+  await page.getByRole("button", { name: /Change place or time/ }).click();
   await page.getByLabel("Exact destination year").fill("900");
   await page.keyboard.press("ArrowRight");
   expect((await state()).year).toBe(100);
@@ -87,7 +89,7 @@ test("a historical journey preserves the original date and connects the family",
   expect((await state()).locked).toBe(false);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByTitle("Change your world").click();
+  await page.getByTitle("Travel through time — forward or backward").click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByLabel("Exact destination year").fill("100");
   await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -95,7 +97,7 @@ test("a historical journey preserves the original date and connects the family",
   expect((await state()).name).toBe(original.name);
   expect((await state()).year).toBe(100);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByTitle("Change your world").click();
+  await page.getByTitle("Travel through time — forward or backward").click();
   await page.getByRole("button", { name: "Choose another world" }).click();
   await expect(page.getByTestId("time-modal")).toHaveCount(0);
   await expect(page.getByRole("dialog")).toBeVisible();
