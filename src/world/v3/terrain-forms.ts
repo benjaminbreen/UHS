@@ -67,14 +67,14 @@ function nearestFeatures(seed: string, kind: string, x: number, y: number, size:
   return out;
 }
 
-const TOWER = 13,
+const TOWER = 36,
   CONE = 52,
   SINK = 34,
   DOLINE = 26;
 const ridged = (n: number) => 1 - Math.abs(n * 2 - 1);
 
 /** The landform height at a world point, reshaped by the form. */
-export function reshape(form: TerrainForm, seed: string, h: number, x: number, y: number): number {
+export function reshape(form: TerrainForm, seed: string, h: number, x: number, y: number, fromTown = Infinity): number {
   switch (form) {
     case "erg": {
       // Long transverse ridges across a north-east trade wind: a slow
@@ -89,14 +89,15 @@ export function reshape(form: TerrainForm, seed: string, h: number, x: number, y
     }
     case "karst": {
       // Flat paddy plain with steep-sided limestone towers standing out of it.
+      // A few broad towers round the edge of the scene; the town keeps the plain.
       let tower = 0;
-      for (const f of nearestFeatures(seed, "karst", x, y, TOWER, 0.5)) {
-        const r = 2.5 + f.r * 3.2;
+      for (const f of nearestFeatures(seed, "karst", x, y, TOWER, 0.55)) {
+        const r = 6 + f.r * 6;
         const warp = (noise(seed, x, y, 5, "karst-wall") - 0.5) * 1.6;
         const d = Math.hypot(x - f.x, y - f.y) + warp;
         tower = Math.max(tower, clamp((r - d) / 1.4) * (0.32 + f.r * 0.3));
       }
-      return 0.26 + (h - 0.5) * 0.08 + tower;
+      return 0.26 + (h - 0.5) * 0.08 + tower * clamp((fromTown - 30) / 14);
     }
     case "cenote":
       // A level limestone shelf, one step above the water in its sinks.

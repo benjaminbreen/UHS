@@ -73,7 +73,7 @@ export function createEnvironment(
         const key = x * 2097152 + y;
         let h = reshaped.get(key);
         if (h === undefined) {
-          h = reshape(form, seed, baseField(x, y), x + origin.x, y + origin.y);
+          h = reshape(form, seed, baseField(x, y), x + origin.x, y + origin.y, Math.hypot(x, y));
           trimCache(reshaped, 131072);
           reshaped.set(key, h);
         }

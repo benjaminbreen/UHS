@@ -2151,7 +2151,9 @@ export function createSettlementWorld(
     }
     if (terraces && cell.surface !== "water") {
       const town = townAt(x, y);
-      if (town) {
+      const tier = town ? tierAt(x, y) : 0;
+      // A drop of two tiers or more is a natural cliff or bluff, not a wall anyone built.
+      if (town && [[0, 1], [1, 0], [-1, 0]].every(([dx, dy]) => tierAt(x + dx, y + dy) > tier - 2)) {
         const eco = cell.habitat?.ecology;
         cell.edge = edgeStyle(
           town.pack?.setting ?? settingAt(x, y),

@@ -137,6 +137,7 @@ import {
   type Site,
 } from "./types";
 import { clearDoorsteps, makeDoor, paintedDoor } from "../../core/doors";
+import { boundaryGraph, type FieldAt } from "../../render/fence-pass";
 import {
   genericBand,
   genericCamp,
@@ -5196,7 +5197,7 @@ export function planSettlement(
         );
   }
   for (const fence of [...toftQueue, ...campFences]) fence();
-  dropStubFences(toftFields, fenceCells, plan);
+  dropStubFences([...penFields, ...toftFields], fenceCells, plan);
   if (penFields.length || toftFields.length) {
     plan.fields ??= new Map();
     for (const [k, cell] of [...penFields, ...toftFields])
@@ -5744,18 +5745,34 @@ function dropStubFences(
     });
     if (run.length < 3 && !anchored) run.forEach((k) => drop.add(k));
   }
-  if (!drop.size) return;
-  for (const f of fields) {
-    const [x, y] = f[0].split(",").map(Number);
-    let bits = f[1].fence;
-    for (const [dx, dy, bit] of [[0, -1, 1], [1, 0, 2], [0, 1, 4], [-1, 0, 8]] as const)
-      if (drop.has(cellKey(x + dx, y + dy))) bits &= ~bit;
-    if (bits !== f[1].fence) f[1] = { ...f[1], fence: bits, edges: bits };
+  const unsolid = (drop: Set<string>) => {
+    for (const f of fields) {
+      const [x, y] = f[0].split(",").map(Number);
+      let bits = f[1].fence;
+      for (const [dx, dy, bit] of [[0, -1, 1], [1, 0, 2], [0, 1, 4], [-1, 0, 8]] as const)
+        if (drop.has(cellKey(x + dx, y + dy))) bits &= ~bit;
+      if (bits !== f[1].fence) f[1] = { ...f[1], fence: bits, edges: bits };
+    }
+    for (const k of drop) {
+      plan.solid.delete(k);
+      fences.delete(k);
+    }
+  };
+  unsolid(drop);
+  // The renderer draws a fence only where field edges link into a run through
+  // its cell; any other fence cell would block with nothing to see.
+  const at = new Map([...(plan.fields ?? []), ...fields]);
+  if (!fences.size) return;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const k of fences) {
+    const [x, y] = k.split(",").map(Number);
+    x0 = Math.min(x0, x), y0 = Math.min(y0, y), x1 = Math.max(x1, x + 1), y1 = Math.max(y1, y + 1);
   }
-  for (const k of drop) {
-    plan.solid.delete(k);
-    fences.delete(k);
-  }
+  const drawn = new Set<string>();
+  // The renderer reads only edges and fences, which a plan field already has.
+  for (const n of boundaryGraph(((x, y) => at.get(cellKey(x, y))) as FieldAt, x0, y0, x1, y1).values())
+    if (n.links) drawn.add(cellKey(n.cx, n.cy));
+  unsolid(new Set([...fences].filter((k) => !drawn.has(k))));
 }
 
 const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
