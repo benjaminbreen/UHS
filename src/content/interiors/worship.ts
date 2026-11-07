@@ -540,7 +540,7 @@ export const worship: InteriorProfile[] = [
   },
   {
     id: "mound-temple",
-    uses: ["religious.mississippian-platform-mound"],
+    uses: ["religious.mississippian-platform-mound", "religious.cahokia-great-mound"],
     program: "gather",
     regulars: { hours: [5, 9], fill: 0.2 },
     styles: { altar: "etowah", ledge: "platform" },

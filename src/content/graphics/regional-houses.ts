@@ -298,10 +298,17 @@ export function eastAfricanHouses(setting: WorldSetting) {
  * conquest; Rus log houses from Novgorod to Kyiv and Vladimir. */
 export function easternEuropeanHouses(setting: WorldSetting) {
   const { lon, lat, year } = setting;
-  // Post-built, unwindowed longhouses: Iron Age and Viking Scandinavia, and
-  // the Norse North Atlantic, whose turf walls are not drawn yet.
-  if ((lon >= 4 && lat >= 54.5 && (lon <= 19 || (lon <= 24.5 && lat >= 60)) && year < 1100) || (lon < -0.5 && lat >= 58.5 && year >= 800 && year < 1450))
-    return ["house-longhouse-0", "house-longhouse-1", "house-longhouse-gold-medium-0", "house-longhouse-gold-medium-1", "house-longhouse-gold-large-0"];
+  // Turf halls and byres in the Norse North Atlantic: Iceland and the Faroes
+  // until timber and stone farmhouses replaced them, Greenland until the
+  // settlements were abandoned, Orkney and Shetland until Scottish stone farms.
+  if (lon < -0.5 && lat >= 58.5 && year >= 800 && year < (lon < -30 ? 1450 : lon < -5 ? 1900 : 1500))
+    return frames("turf-house", "norse-turf");
+  // Post-built longhouses in Iron Age and Viking Scandinavia; Norway's were
+  // often roofed and banked with turf.
+  if (lon >= 4 && lat >= 54.5 && (lon <= 19 || (lon <= 24.5 && lat >= 60)) && year < 1100) {
+    const longhouses = ["house-longhouse-0", "house-longhouse-1", "house-longhouse-gold-medium-0", "house-longhouse-gold-medium-1", "house-longhouse-gold-large-0"];
+    return lat >= 58 && lon <= 12.5 ? [...longhouses, ...frames("turf-house", "norse-turf")] : longhouses;
+  }
   if (lon >= 19 && lon <= 30.5 && lat >= 34.5 && lat <= 42.2 && year >= 600 && year < 1460)
     return frames("orthodox-house", "byzantine");
   if (lon >= 24 && lon <= 60 && lat >= 48.5 && lat <= 64 && year >= 880 && year < 1800)

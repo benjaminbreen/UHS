@@ -622,6 +622,7 @@
     "daga": {"label": "Shona daga house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "drum", "form": ["rondavel"], "wall": ["mud"], "thatch": ["straw", "straw-old"], "band": ["red", null]}},
     "nguni": {"label": "Nguni beehive house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["beehive"], "cover": ["grass"], "gear": [["hearth"], []]}},
     "mississippian": {"label": "Mississippian house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "mississippian"}},
+    "norse-turf": {"label": "Norse turf house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "turf"}},
     "tuareg": {"label": "Tuareg tent", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["dome"], "cover": ["hide"], "gear": [["hearth"], []]}},
     "fulani": {"label": "Fulani mat house", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["dome"], "cover": ["mat"], "gear": [["hearth"], []]}},
     "sami": {"label": "Sámi lavvu", "wall": "mud-plaster", "roofMaterial": "thatch", "roofStyle": "shelter", "hut": {"kind": "shell", "form": ["cone"], "cover": ["hide-pale", "canvas"], "gear": [["hearth"], ["rack"], []]}},
@@ -1046,6 +1047,18 @@
         "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 26200, "roofPlan": "ridge", "roofAccess": "none"},
         "medium": {"footprint": [6, 4], "entrance": 3, "stories": 2, "variants": 3, "seedOffset": 26400, "roofPlan": "ridge", "roofAccess": "none"},
         "large": {"footprint": [8, 5], "entrance": 4, "stories": 2, "variants": 2, "seedOffset": 26600, "roofPlan": "ridge", "roofAccess": "none"}
+      }
+    },
+    "turf-house": {
+      "source": "study-timber",
+      "label": "Turf house",
+      "profiles": ["norse-turf"],
+      "function": "household",
+      "description": "The Norse turf house of the North Atlantic: low walls of sod on a stone footing, a roof of living grass over a timber frame, the entrance in a timber gable; the hall long side on, the byre or store gable on. Front-on; illustrative.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 27000, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [0, 1]},
+        "medium": {"footprint": [7, 3], "entrance": 3, "stories": 1, "variants": 2, "seedOffset": 27200, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true, "wealthTiers": [1, 2]},
+        "large": {"footprint": [9, 4], "entrance": 4, "stories": 1, "variants": 1, "seedOffset": 27400, "roofPlan": "ridge", "roofAccess": "none", "symmetric": true}
       }
     }
   }

@@ -9,6 +9,7 @@ synagogue of Brody and the tiered wooden synagogues of Poland-Lithuania.
 The Sasanian chahar taq, the walled fire house with its ambulatory, and
 the stone tower of Naqsh-e Rostam; the Parsi agiary and atash behram.
 The Hawaiian heiau, the Tahitian marae and the Maori meeting house.
+Monks Mound at Cahokia.
 """
 from pathlib import Path
 import math
@@ -796,10 +797,109 @@ def wharenui(spec=None, info=None):
     return complete(c, info, x0 - 4, W + 8, base, dx, 38, D)
 
 
+SWARD = ramp(128, 0.085, lift=-0.07)
+CLAY = ramp(52, 0.075, lift=-0.08)
+
+
+def terrace(c, x0, x1, base, face, top, seed, slope=8):
+    """One stage of an earthen mound: its grassed front slope, the ends
+    battered in by `slope`, its level top seen from above with rounded back
+    corners; lit on the left, in shade on the right."""
+    for j in range(face + top):
+        y = base - 1 - j
+        on_top = j >= face
+        inset = round(min(j, face) * slope / face)
+        if on_top:
+            back = j - face
+            inset += round(max(0, back - top + 6) ** 2 / 6)
+        L, R = x0 + inset, x1 - inset
+        for x in range(L, R):
+            if on_top:
+                k = 2 if j == face else 3
+            else:
+                k = 5 if j < 3 else 3 if j == face - 1 else 4
+            e = round(slope * 0.9) + 2
+            if x - L < e:
+                k = max(0, k - 1)
+            elif R - x <= e:
+                k = min(6, k + 2)
+            if h2(x // 2, y // 3, seed) > 0.9 and (y - base) % 3 == 0:
+                k = max(0, k - 1)
+            elif h2(x // 3, y // 2, seed + 1) < 0.05:
+                k = min(6, k + 1)
+            c.p(x, y, SWARD[k])
+    return base - face, base - face - top, x0 + slope, x1 - slope
+
+
+def earth_flight(c, cx, foot, head, w0, w1, rise=4, logs=False):
+    """Steps cut in the earth up a slope, wider at the foot: each tread lit,
+    each riser in shade, faced with a log where the climb is steep."""
+    n = max(1, (foot - head) // rise)
+    for i in range(n):
+        y = foot - (i + 1) * rise
+        w = round(w0 + (w1 - w0) * i / max(1, n - 1))
+        x = cx - w // 2
+        c.rect(x, y, w, rise, CLAY[3])
+        c.rect(x, y, w, 1, CLAY[1])
+        if logs:
+            c.rect(x, y + rise - 2, w, 1, TOTARA[3]); c.rect(x, y + rise - 1, w, 1, TOTARA[5])
+        else:
+            c.rect(x, y + rise - 1, w, 1, CLAY[5])
+        c.rect(x, y, 2, rise, CLAY[2]); c.rect(x + w - 2, y, 2, rise, CLAY[5])
+        c.p(x - 1, y + rise - 1, SWARD[5]); c.p(x + w, y + rise - 1, SWARD[6])
+
+
+def great_mound(spec=None, info=None):
+    """Monks Mound at Cahokia, raised about 900 to 1200: a terraced platform
+    of basket-loaded earth some 30 m high, grassed, the broad first terrace
+    on the plaza side reached by a ramp, steps on up the main slope, and on
+    the summit the great timber-and-thatch hall of the paramount chief inside
+    a post fence."""
+    from art import front_huts
+    s = {**dict(W=272, depth=190, seed=11), **(spec or {})}
+    W, D, seed = s['W'], s['depth'], s['seed']
+    c = C(W + 40, 240)
+    x0, base = 20, c.h - 6
+    cx = x0 + W // 2
+    f1, t1, l1, r1 = terrace(c, x0, x0 + W, base, 20, 30, seed, slope=12)
+    f2, t2, l2, r2 = terrace(c, l1 + 8, r1 - 8, t1 + 4, 36, 10, seed + 1, slope=16)
+    f3, t3, l3, r3 = terrace(c, l2 + 22, r2 - 22, t2 + 3, 14, 38, seed + 2, slope=8)
+    # the ramp up from the plaza, the path worn across the first terrace,
+    # then the steps on up the main slope and the summit
+    earth_flight(c, cx, base, f1, 46, 34)
+    for y in range(t1 + 4, f1):
+        w = 30 - (f1 - y) // 4
+        c.rect(cx - w // 2, y, w, 1, CLAY[2 if y > f1 - 3 else 3])
+    earth_flight(c, cx, t1 + 4, f2, 26, 20, rise=4, logs=True)
+    c.rect(cx - 9, t2 + 3, 18, f2 - t2 - 3, CLAY[3])
+    earth_flight(c, cx, t2 + 3, f3, 18, 16, rise=3, logs=True)
+    hall_info = {}
+    hall = front_huts.BUILDERS['mississippian'](dict(W=118, hip=True, seed=4), hall_info)
+    hb = t3 + 26
+    hx = cx - hall.width // 2
+    # the post fence round the summit, open where the steps arrive
+    fl, fr = l3 + 4, r3 - 6
+
+    def post(x, y):
+        c.rect(x, y - 9, 2, 9, TOTARA[3]); c.p(x, y - 9, TOTARA[1]); c.p(x + 1, y - 1, TOTARA[5])
+    for x in range(fl, fr + 1, 5):
+        post(x, t3 + 8)
+    for y in range(t3 + 12, f3 - 2, 4):
+        post(fl, y); post(fr, y)
+    c.im.alpha_composite(hall, (hx, hb - hall_info['base']))
+    for x in range(fl, fr + 1, 5):
+        if abs(x + 1 - cx) >= 12:
+            post(x, f3 - 1)
+    for a, b in ((fl, cx - 12), (cx + 12, fr + 2)):
+        c.rect(a, f3 - 7, b - a, 1, TOTARA[2])
+    ground_shadow(c, x0, x0 + W, base)
+    return complete(c, info, x0, W, base, cx, 40, D, doorless=True, roof='flat')
+
+
 # ------------------------------------------------------------------ catalogue
 
 BUILDERS = {'synagogue': synagogue, 'fire-temple': fire_temple, 'agiary': agiary,
-            'heiau': heiau, 'marae': marae, 'wharenui': wharenui}
+            'heiau': heiau, 'marae': marae, 'wharenui': wharenui, 'great-mound': great_mound}
 
 S, M, L = 'small', 'medium', 'large'
 
@@ -816,6 +916,9 @@ FIRE_LABELS = {S: 'Fire shrine', M: 'Fire temple', L: 'Great fire temple'}
 HOUSE = {S: 'Meeting house', M: 'Meeting house', L: 'Meeting house'}
 
 SPECS = {
+    'mississippian-great-mound': {L: [('great-mound', dict(
+        label='Great mound',
+        description='The great earthen mound, with the chief\'s hall on its summit. Priests and chiefs climb it for ceremonies that the whole town gathers below to watch.'))]},
     'galilean-synagogue': looks('synagogue', SYN,
         'The synagogue, where the town reads the Law on the Sabbath and gathers to pray and hear it taught.', {
             S: [dict(style='galilean', W=140, look=0, doors=1, wall_h=66, depth=120),
