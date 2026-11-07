@@ -434,6 +434,32 @@ it("lets a placed school supply teaching work without bypassing writing capabili
   }
 });
 
+it("staffs a caravanserai that stands and leaves innkeepers free where none does", () => {
+  const pack = packForSetting(settingFor("Isfahan 1650"));
+  const hire = (plan: SettlementPlan, id: string, role: string) => {
+    const actor = { id, kind: "human", ...generateCharacter(pack.setting!, "sarai", id, 34, role) } as Actor;
+    const site = workSite();
+    plan.work.set(id, site);
+    assignLocalWork(plan, pack, "sarai", actor, site);
+    plan.actors.push(actor);
+    return site.employment?.kind;
+  };
+  const without = workPlan();
+  without.employment = workplacesIn(without, pack);
+  expect(localWorkContext(without, pack, "x").livelihoods.some((l) => l.id === "innkeeper")).toBe(true);
+  expect(hire(without, "inn", "Innkeeper")).toBeUndefined();
+
+  const plan = workPlan();
+  plan.places.push({ ...school, id: "sarai", claim: "worksite-persian-caravanserai", institution: "caravanserai",
+    workCapacity: 2, workRoles: ["caravaneer", "innkeeper", "porter"] });
+  plan.employment = workplacesIn(plan, pack);
+  expect(hire(plan, "keeper", "Innkeeper")).toBe("caravanserai");
+  expect(hire(plan, "porter", "Porter")).toBe("caravanserai");
+  // Full: a third keeper keeps the trade and works on their own.
+  expect(hire(plan, "keeper-2", "Innkeeper")).toBeUndefined();
+  expect(plan.actors.at(-1)!.origin?.livelihood).toBe("innkeeper");
+});
+
 it("prefers a worker's own holding to a nearer neighbour's field", () => {
   const pack = packForSetting(settingFor("medieval Normandy"));
   const plan = workPlan();
@@ -694,6 +720,19 @@ describe("the professions and worksites together", () => {
     expect(names("soldier", placed("area-taipei-basin", 1960))).toContain("Nationalist Soldier");
     expect(names("soldier", placed("beijing", 1960))).toContain("PLA Soldier");
     expect(names("broker", placed("timbuktu", 1850)).has("Stockbroker")).toBe(false);
+  });
+
+  it("counts each local name once, so a city signature keeps its intended weight", () => {
+    for (const l of [...livelihoods, ...commonLivelihoods]) {
+      const own = new Set((l.labels ?? []).map((v) => v.label));
+      for (const v of localLabels[l.id] ?? []) expect(own.has(v.label), `${l.id}: ${v.label}`).toBe(false);
+    }
+    // Nishijin Weaver 5 against the Kyoto signature's Nishijin Silk Weaver 4.
+    const kyoto = placed("kyoto", 1700);
+    const weaver = resolveCharacterContext(kyoto).livelihoods.find((l) => l.id === "weaver")!;
+    const silk = Array.from({ length: 2000 }, (_, i) => localLabel(weaver, kyoto, "x", `p${i}`))
+      .filter((v) => v === "Nishijin Silk Weaver").length / 2000;
+    expect(silk).toBeGreaterThan(0.38);
   });
 
   it("reads label boxes across the 180th meridian", () => {

@@ -20,6 +20,8 @@ export type WorksiteProfile = {
   outbuilding: { frame: string; label: string };
   capacity: number;
   roles?: readonly string[];
+  /** Taken on while the worksite stands; where it does not, they work on their own. */
+  hires?: readonly string[];
   ward?: { cells?: number; bedding: "bed" | "mat"; wall: import("../../../render/interiors/room").WallPattern; floor: import("../../../render/interiors/room").FloorPattern };
   basis: "documented" | "reconstructed";
   sources: readonly string[];

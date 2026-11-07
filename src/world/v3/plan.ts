@@ -3201,6 +3201,10 @@ export function planSettlement(
     for (const object of plan.objects)
       if (object.kind === "tree") claimEnvelope(plan.placement, treePlacementEnvelope(object.sprite, object.pos));
   }
+  // A built worksite asks for one of its trades, as a pasture asks for a
+  // herder: drawn freely, a caravanserai's keeper was too rare to turn up.
+  const unstaffed = plan.places.slice(0, worksites).flatMap((p) =>
+    p.workRoles?.find((r) => characterContext?.livelihoods.some((l) => l.id === r)) ?? []);
   for (let j = 0; j < frontage.length && plan.places.length - worksites < limit; j++) {
     const lot = frontage[j];
     const { point: frontagePoint, nx, ny } = lot,
@@ -3559,7 +3563,7 @@ export function planSettlement(
                     "field",
                     characterSex(seed, owner),
                   )[0]?.id ?? "farmer")
-                : undefined;
+                : unstaffed.shift();
     const livelihood = pack.setting?.characterRevision
       ? characterLivelihood(
           pack.setting,

@@ -9,6 +9,7 @@ import { industrialized } from "../settlements/modernity";
 import { farms } from "./onsets";
 import { integratedSetting } from "./defaults";
 import { matchesCharacterScope, resolveCharacterContext } from "../characters/resolve";
+import { localLabels } from "../characters/livelihood-labels.generated";
 import { placeAtYear } from "./eras";
 import { workplaceFor } from "../characters/workplace";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
@@ -256,7 +257,7 @@ export function resolveSetting(
     const context = resolveCharacterContext(s);
     const namedRole = context.livelihoods.flatMap((livelihood) => [
       livelihood.label,
-      ...(livelihood.labels ?? [])
+      ...[...(livelihood.labels ?? []), ...(localLabels[livelihood.id] ?? [])]
         .filter((label) => matchesCharacterScope(label.scope, s) &&
           (!label.ecologies || !!s.environment?.ecology && label.ecologies.includes(s.environment.ecology)))
         .map((label) => label.label),
