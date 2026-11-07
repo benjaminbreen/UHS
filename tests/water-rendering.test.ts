@@ -375,13 +375,13 @@ it.runIf(!!process.env.FULL)("freezes in winter and thaws in spring, floods the 
   const { waterDepthAt, MAX_WADING_DEPTH } = await import("../src/core/water-field");
   const world = (lon: number, lat: number, season: WorldSetting["season"], ecology: string, climate: WorldSetting["climate"], water: WorldSetting["water"]) =>
     createSettingSession({ ...setting(ecology as never, water), lon, lat, season, climate }, "waterscape").world;
-  const cells = (w: ReturnType<typeof world>) => {
+  const cells = () => {
     const out: { x: number; y: number }[] = [];
     for (let y = -80; y <= 80; y += 2) for (let x = -80; x <= 80; x += 2) out.push({ x, y });
     return out;
   };
   const novgorod = world(31.3, 58.5, "winter", "boreal-woodland", "boreal", "lake");
-  const lake = cells(novgorod).filter(({ x, y }) => novgorod.topography!(x, y).waterVisual?.ice === "solid");
+  const lake = cells().filter(({ x, y }) => novgorod.topography!(x, y).waterVisual?.ice === "solid");
   expect(lake.length).toBeGreaterThan(20);
   expect(lake.every(({ x, y }) => waterDepthAt(novgorod.topography!, x + 0.5, y + 0.5) === 0)).toBe(true);
   novgorod.setSeason!("spring");
@@ -393,14 +393,14 @@ it.runIf(!!process.env.FULL)("freezes in winter and thaws in spring, floods the 
   const memphis = world(31.25, 29.85, "spring", "desert", "arid", "river-ns");
   const wet = (season: WorldSetting["season"]) => {
     memphis.setSeason!(season);
-    return cells(memphis).filter(({ x, y }) => memphis.topography!(x, y).surface === "water").length;
+    return cells().filter(({ x, y }) => memphis.topography!(x, y).surface === "water").length;
   };
   const low = wet("spring");
   expect(wet("autumn")).toBeGreaterThan(low * 1.5);
   expect(wet("winter")).toBe(low);
 
   const fundy = world(-64.5, 45.3, "summer", "temperate-woodland", "temperate", "coast-s");
-  const shelf = cells(fundy).filter(({ x, y }) => fundy.topography!(x, y).waterVisual?.tidal !== undefined);
+  const shelf = cells().filter(({ x, y }) => fundy.topography!(x, y).waterVisual?.tidal !== undefined);
   expect(shelf.length).toBeGreaterThan(10);
   const walkable = () => shelf.filter(({ x, y }) => waterDepthAt(fundy.topography!, x + 0.5, y + 0.5) <= MAX_WADING_DEPTH).length;
   expect(walkable()).toBe(shelf.length);

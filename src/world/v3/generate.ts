@@ -93,7 +93,7 @@ import { cropStage } from "../../content/agriculture";
 import { propDefs } from "../../content/props/catalog";
 import { landPotential } from "./land-potential";
 import { cultivatedAt, treePlacementEnvelope } from "./placement";
-const seasons = ["spring", "summer", "autumn", "winter"];
+const seasons = ["spring", "summer", "autumn", "winter"] as const;
 export const DISTRICT_SIZE = 384;
 /** Residents per settlement given a full daily routine. Past this the rest keep
  * the simpler needs-driven behaviour; routing every resident of a large town
