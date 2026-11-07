@@ -1212,6 +1212,16 @@ export function urbanNeighborhood(
         return false;
     }
     if (repeats(lot.frame, lot.rect)) return false;
+    // A neighbour on the same front line hides a side wall; one set further
+    // back is drawn under it.
+    const sideOver = (a: UrbanLot, b: UrbanLot) => {
+      const [right, behind] = marginsOf(a.frame);
+      const x = a.rect.x + a.rect.w;
+      return right > 0 && a.rect.y + a.rect.h > b.rect.y + b.rect.h &&
+        b.rect.x < x + right && x < b.rect.x + b.rect.w &&
+        b.rect.y < a.rect.y + a.rect.h && a.rect.y - behind < b.rect.y + b.rect.h;
+    };
+    if (roofed && lots.some((o) => sideOver(lot, o) || sideOver(o, lot))) return false;
     // A tall range hides whatever stands in the eight rows behind it.
     if (tallKit(lot.frame) && lots.some((o) => tallKit(o.frame) &&
       o.rect.x < lot.rect.x + lot.rect.w && lot.rect.x < o.rect.x + o.rect.w &&

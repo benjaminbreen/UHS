@@ -195,7 +195,8 @@ def _with_glow(sel):
     """A building's lit-room frame travels on its building's sheet."""
     for k in list(sel):
         b=buildings.get(k) or {}
-        if k+'-glow' in S and not b.get('obliqueModern') and not b.get('voxel'): sel[k+'-glow']=S.pop(k+'-glow')
+        for lit in ('-glow','-lamps'):
+            if k+lit in S and not b.get('obliqueModern'): sel[k+lit]=S.pop(k+lit)
     return sel
 sacred_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and (buildings.get(k) or {}).get('religious')})
 civic_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and _landmark(k)})

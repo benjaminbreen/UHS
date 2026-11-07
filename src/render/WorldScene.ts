@@ -5990,8 +5990,9 @@ export class WorldScene extends Phaser.Scene {
     // A painter that draws its own lit rooms ships them as a frame beside the
     // building's; the rest are found in the art's glass.
     const authored = (placement.model as { glow?: string }).glow;
+    // Not the building's own page: houses share one glow, packed beside the first.
     const [key, frame] = authored
-      ? [image.texture.key, authored]
+      ? [this.texture(authored), authored]
       : [windowGlow(this, image.texture.key, image.frame.name, (placement.model as { door?: number[] }).door), undefined];
     if (!key) return;
     const at = (depth: number) =>
