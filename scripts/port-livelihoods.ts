@@ -318,23 +318,7 @@ writeFileSync(
         (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : "") +
         (sc?.fromBeliefs ? `    fromBeliefs: true,\n` : "") +
         (sc?.standing ? `    standing: ${JSON.stringify(sc.standing)},\n` : "") +
-        (sc?.needs ? `    needs: ${JSON.stringify(sc.needs)},\n` : "") +
-        ((vs: any[] | undefined) =>
-          vs?.length
-            ? `    labels: [\n` +
-              vs
-                .map(
-                  (v) =>
-                    `      { scope: ${JSON.stringify(v.scope)}` +
-                (v.ecologies ? `, ecologies: ${JSON.stringify(v.ecologies)}` : "") +
-                (v.requires ? `, requires: ${JSON.stringify(v.requires)}` : "") +
-                `, label: ${JSON.stringify(v.label)}` +
-                    (v.weight ? `, weight: ${v.weight}` : "") +
-                    ` },`,
-                )
-                .join("\n") +
-              `\n    ],\n`
-            : "")(LABELS[r.id]))(
+        (sc?.needs ? `    needs: ${JSON.stringify(sc.needs)},\n` : ""))(
         scopes[r.id],
         scopes[r.id]?.years ?? tierDates[r.tier],
       ) +

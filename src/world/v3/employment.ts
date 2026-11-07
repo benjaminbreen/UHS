@@ -24,7 +24,8 @@ function institutionAt(l: Parameters<typeof institutionFor>[0], pack: Pack, plan
   if(l.id==="fisher" && plan.waterfront?.members.some(m=>id===m.owner || id.startsWith(`${m.owner}-member-`)))return "fishery" as const;
   const processing = (pack.setting?.worksiteRevision ?? 1) >= 2 && worksitesFor(pack.setting!)
     .some(p=>p.revision && p.roles?.includes(l.id));
-  return institutionFor(l,processing);
+  return institutionFor(l,processing) ??
+    plan.employment?.find(o=>o.roles?.includes(l.id) && available(plan,o.kind,id,l.id).length)?.kind;
 }
 
 /** Only placed workplaces count; a venue that failed to fit supplies no jobs. */
@@ -139,6 +140,11 @@ export function localWorkContext(
     livelihoods: context.livelihoods.filter((l) => {
       const kind = institutionAt(l,pack,plan,id);
       return !kind || available(plan, kind, id, l.id).length > 0;
+    }).map((l) => {
+      // Weights sum to 100; a worksite's trades are often a fraction of one,
+      // which left a placed caravanserai empty in a town of forty.
+      const hiring = plan.employment?.some((o) => !o.owner && o.roles?.includes(l.id) && available(plan, o.kind, id, l.id).length);
+      return hiring && (l.weight ?? 1) < 3 ? { ...l, weight: 3 } : l;
     }),
   };
 }

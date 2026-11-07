@@ -75,7 +75,7 @@ export function planWorksites(
       if(hull) cells(hull,(x,y)=>plan.solid.add(key(x,y)));
       buildings[0].institution = profile.kind;
       buildings[0].workCapacity = profile.capacity;
-      buildings[0].workRoles = profile.roles;
+      buildings[0].workRoles = profile.hires ? [...profile.hires, ...profile.roles ?? []] : profile.roles;
       for (const p of buildings) {
         cells(p,(x,y)=>plan.solid.add(key(x,y)));
         // Equipment can project in front of a workshop door, leaving an aisle to it.
