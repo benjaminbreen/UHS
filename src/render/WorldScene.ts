@@ -282,6 +282,7 @@ import {
 } from "../core/weather";
 import { puddleUnder, reflectIn, setGroundState, splashPuddle, updatePuddles } from "./puddles";
 import { meltPatch, openSnow, setFrost, setSnowCover, snowSteps } from "./snow-cover";
+import { tideAt } from "../content/geography/waterscapes";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
 
@@ -757,6 +758,7 @@ export class WorldScene extends Phaser.Scene {
   private drawnWorld?: WorldModel;
   private watercraft = new Watercraft(this, frame=>this.texture(frame));
   private fieldSeason?: string;
+  private fieldTide = 0;
   /** Hulls under residents out fishing, by resident. */
   private crafts = new Map<string, Watercraft>();
   private fishingGear = new FishingGear(this);
@@ -3963,10 +3965,12 @@ export class WorldScene extends Phaser.Scene {
     this.season = season;
     // The year has turned: fields stand at the new season's stage, so the
     // ground under them is drawn again.
-    if (setting && this.fieldSeason !== season) {
-      w.setSeason?.(season);
-      this.terrainStream?.setSeason(season);
+    const tide = setting ? tideAt(setting, e.state.clock) : 0;
+    if (setting && (this.fieldSeason !== season || this.fieldTide !== tide)) {
+      w.setSeason?.(season, tide);
+      this.terrainStream?.setSeason(season, tide);
       this.fieldSeason = season;
+      this.fieldTide = tide;
     }
     this.weather = setting
       ? weatherAt(
@@ -4152,7 +4156,7 @@ export class WorldScene extends Phaser.Scene {
     if (w.topography && p.space === "outside") {
       if (!this.terrainStream) {
         this.terrainStream = new TerrainStream(this, w, e.state.manifest.seed);
-        if (this.fieldSeason) this.terrainStream.setSeason(this.fieldSeason);
+        if (this.fieldSeason) this.terrainStream.setSeason(this.fieldSeason, this.fieldTide);
       }
       this.terrainStream.setHidden(false);
       this.terrainStream.setView(

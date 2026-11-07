@@ -157,3 +157,15 @@ export function waterscape(s: Pick<WorldSetting, "lon" | "lat" | "year" | "seaso
   else if (qanatLands.some((b) => inBox(b, lon, lat)) && year >= -800) out.works = "qanat";
   return out;
 }
+
+/** How far from the river, in cells, the flood reaches: the valley floor to
+ * the first terrace, or a monsoon river swelling within its banks. */
+export const floodReach = (ws: Waterscape, floodplain: number, climate: WorldSetting["climate"]) =>
+  ws.flood <= 0 ? -Infinity : ws.delta || (ws.flood >= 0.5 && climate !== "monsoon") ? floodplain + 18 * ws.flood : 2.5 * ws.flood;
+
+/** How far the tide has come up the intertidal shelf: 0 at low water, 0.6 at
+ * high, the foot of the salt marsh. A 12.42-hour tide in three steps, so the
+ * shore is redrawn a few times a tide rather than every frame; low water at
+ * nine on the first morning, when the game opens. */
+export const tideAt = (s: Parameters<typeof waterscape>[0], clock: number) =>
+  waterscape(s).tide >= 0.3 ? Math.round(1 - Math.cos(((clock - 32400) / 44712) * 2 * Math.PI)) * 0.3 : 0;

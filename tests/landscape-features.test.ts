@@ -96,15 +96,16 @@ describe("landscape features", () => {
     expect(at(-0.1, 51.5, "temperate-woodland", undefined, "summer").snow).toBe(0);
   });
   it("fills playas in the wet months only and gives desert springs water", () => {
-    const lakes = (season: string) => {
-      const land = createEnvironment({ ...setting("desert", "reg"), lon: 46.7, lat: 24.6, season, relief: 0.15, water: "none" } as WorldSetting, "playa-check");
-      let n = 0;
-      for (let y = -300; y < 300; y += 3)
-        for (let x = -300; x < 300; x += 3) if (land.sample(x, y).water < 0) n++;
-      return n;
-    };
-    const dry = lakes("summer"),
-      wet = lakes("winter");
+    // The sample is the dry season's; `seasonal` holds the winter playa.
+    const land = createEnvironment({ ...setting("desert", "reg"), lon: 46.7, lat: 24.6, season: "summer", relief: 0.15, water: "none" } as WorldSetting, "playa-check");
+    let dry = 0,
+      wet = 0;
+    for (let y = -300; y < 300; y += 3)
+      for (let x = -300; x < 300; x += 3) {
+        const f = land.sample(x, y);
+        if (f.water < 0) dry++;
+        if ((f.seasonal?.[3] ?? f.water) < 0) wet++;
+      }
     expect(dry).toBeGreaterThan(0);
     expect(wet).toBeGreaterThan(dry);
   });

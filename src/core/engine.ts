@@ -336,6 +336,7 @@ import {
   type Species,
 } from "../content/ecology/flora";
 import { bloomsAt } from "../content/ecology/blooms";
+import { tideAt } from "../content/geography/waterscapes";
 const copy = <T>(x: T): T => structuredClone(x);
 const listing = (xs: string[]) =>
   xs.length < 2
@@ -533,10 +534,10 @@ export class Engine {
     clearDoorsteps(this.state.objects, world.places, (x, y) => world.blocked(x, y, "outside"));
     this.syncSeason();
   }
-  /** Tells the world which season the clock is in, so its fields stand at that season's stage. */
+  /** Tells the world the season and tide on the clock, for its fields and water. */
   private syncSeason() {
     const setting = this.world.pack.setting;
-    if (setting) this.world.setSeason?.(seasonAt(setting.season, this.state.clock));
+    if (setting) this.world.setSeason?.(seasonAt(setting.season, this.state.clock), tideAt(setting, this.state.clock));
   }
   /** A cell picked this season; the crop stands again the next. */
   private pickedNow(edit?: TileEdit) {

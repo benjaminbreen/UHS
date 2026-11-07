@@ -310,6 +310,10 @@ it("reads deltas, floods, ice, reefs, tides and water works from the place and s
   expect(at(4.9, 52.37, 1650, "summer").works).toBe("polder");
   expect(at(-99.13, 19.43, 1500, "summer", "mediterranean").works).toBe("chinampa");
   expect(at(51.4, 33.98, 1600, "summer", "arid").works).toBe("qanat");
+  const { tideAt } = await import("../src/content/geography/waterscapes");
+  const fundy = { lon: -64.5, lat: 45.3, year: 1700, season: "summer", climate: "temperate" } as const;
+  expect([0, 3.1, 6.2, 9.3, 12.4].map((h) => tideAt(fundy, (9 + h) * 3600))).toEqual([0, 0.3, 0.6, 0.3, 0]);
+  expect(tideAt({ ...fundy, lon: 15, lat: 40 }, 6.2 * 3600)).toBe(0);
 });
 
 it("walks on ice and wades across tidal mud", async () => {
@@ -365,4 +369,43 @@ it("freezes Lake Ladoga in winter and rings a Tuamotu atoll round its lagoon", (
   expect(count(atoll, (v) => v?.reef === "lagoon" && v.distance < 0)).toBeGreaterThan(50);
   expect(count(atoll, (v) => v?.reef === "outer" && v.distance < 0)).toBeGreaterThan(50);
   expect(count(atoll, (v) => !!v && v.distance > 0)).toBeGreaterThan(20);
+});
+
+it.runIf(!!process.env.FULL)("freezes in winter and thaws in spring, floods the Nile in autumn and ebbs the tide by the clock", async () => {
+  const { waterDepthAt, MAX_WADING_DEPTH } = await import("../src/core/water-field");
+  const world = (lon: number, lat: number, season: WorldSetting["season"], ecology: string, climate: WorldSetting["climate"], water: WorldSetting["water"]) =>
+    createSettingSession({ ...setting(ecology as never, water), lon, lat, season, climate }, "waterscape").world;
+  const cells = (w: ReturnType<typeof world>) => {
+    const out: { x: number; y: number }[] = [];
+    for (let y = -80; y <= 80; y += 2) for (let x = -80; x <= 80; x += 2) out.push({ x, y });
+    return out;
+  };
+  const novgorod = world(31.3, 58.5, "winter", "boreal-woodland", "boreal", "lake");
+  const lake = cells(novgorod).filter(({ x, y }) => novgorod.topography!(x, y).waterVisual?.ice === "solid");
+  expect(lake.length).toBeGreaterThan(20);
+  expect(lake.every(({ x, y }) => waterDepthAt(novgorod.topography!, x + 0.5, y + 0.5) === 0)).toBe(true);
+  novgorod.setSeason!("spring");
+  expect(lake.some(({ x, y }) => novgorod.topography!(x, y).waterVisual?.ice)).toBe(false);
+  expect(lake.some(({ x, y }) => waterDepthAt(novgorod.topography!, x + 0.5, y + 0.5) > MAX_WADING_DEPTH)).toBe(true);
+  novgorod.setSeason!("winter");
+  expect(lake.every(({ x, y }) => novgorod.topography!(x, y).waterVisual?.ice === "solid")).toBe(true);
+
+  const memphis = world(31.25, 29.85, "spring", "desert", "arid", "river-ns");
+  const wet = (season: WorldSetting["season"]) => {
+    memphis.setSeason!(season);
+    return cells(memphis).filter(({ x, y }) => memphis.topography!(x, y).surface === "water").length;
+  };
+  const low = wet("spring");
+  expect(wet("autumn")).toBeGreaterThan(low * 1.5);
+  expect(wet("winter")).toBe(low);
+
+  const fundy = world(-64.5, 45.3, "summer", "temperate-woodland", "temperate", "coast-s");
+  const shelf = cells(fundy).filter(({ x, y }) => fundy.topography!(x, y).waterVisual?.tidal !== undefined);
+  expect(shelf.length).toBeGreaterThan(10);
+  const walkable = () => shelf.filter(({ x, y }) => waterDepthAt(fundy.topography!, x + 0.5, y + 0.5) <= MAX_WADING_DEPTH).length;
+  expect(walkable()).toBe(shelf.length);
+  fundy.setSeason!("summer", 0.6);
+  expect(walkable()).toBeLessThan(shelf.length * 0.8);
+  fundy.setSeason!("summer", 0);
+  expect(walkable()).toBe(shelf.length);
 });

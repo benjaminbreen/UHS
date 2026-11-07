@@ -37,8 +37,9 @@ export type LandSample = {
   tidal?: number;
   /** Sea inside a reef: "lagoon" is an atoll's enclosed water. */
   reef?: "outer" | "lagoon";
-  /** Floodplain under the seasonal inundation. */
-  flooded?: boolean;
+  /** `water` in spring, summer, autumn and winter, where a flood or a playa
+   * changes it; `water` itself is the driest season's. */
+  seasonal?: readonly number[];
 };
 export function createLandscape(s: WorldSetting, seed: string) {
   const origin = toAtlas(s.lon, s.lat),

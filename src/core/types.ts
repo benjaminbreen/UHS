@@ -851,8 +851,9 @@ export interface WorldModel {
   households?: Household[];
   generatorVersion?: 3;
   topography?(x: number, y: number): import("./topography").TopographyCell;
-  /** The season on the clock, so fields stand at this season's stage. */
-  setSeason?(season: string): void;
+  /** The season and tide (`tideAt`) on the clock, so fields stand at this
+   * season's stage and the water freezes, floods and ebbs with it. */
+  setSeason?(season: string, tide?: number): void;
   canCross?(from: Point, to: Point): boolean;
   navigationCost?(x: number, y: number, actorId?: string): number;
   protectedCell?(x: number, y: number): boolean;

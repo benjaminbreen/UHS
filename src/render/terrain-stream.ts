@@ -583,12 +583,13 @@ export class TerrainStream {
     this.styling = { ...this.styling, frost };
     this.restyle(this.styling.style);
   }
-  /** The season moved the fields on: draw every chunk again at the new stage.
-   * The first call only tells the workers, before anything is drawn wrong. */
-  setSeason(season: string) {
-    if (season === this.styling.season) return;
+  /** The season moved the fields and water on, or the tide turned: draw every
+   * chunk again. The first call only tells the workers, before anything is
+   * drawn wrong. */
+  setSeason(season: string, tide = 0) {
+    if (season === this.styling.season && tide === this.styling.tide) return;
     const first = this.styling.season === undefined;
-    this.styling = { ...this.styling, season };
+    this.styling = { ...this.styling, season, tide };
     if (!first) return this.restyle(this.styling.style);
     for (const r of this.pool) r.worker.postMessage(this.styling);
   }

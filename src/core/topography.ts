@@ -84,6 +84,17 @@ export type TopographyCell = {
    * in it. Walkable, and drawn by the canal raster with a dry bed. */
   dryChannel?: boolean;
   waterDepth?: "shallow" | "deep";
+  /** What the season and the tide change here: the world resolves `surface`,
+   * `waterVisual` and the rest from it as its clock turns. */
+  live?: {
+    /** Water distance by season, spring first, where a flood or playa moves the shore. */
+    water?: readonly number[];
+    /** Exposed at low water, as `tidal`. */
+    shelf?: number;
+    /** The cell as generated, to restore when the water goes down. */
+    dry?: Pick<TopographyCell, "surface" | "waterDepth" | "landscape"> & { distance: number; tint?: "silt" | "loess" | "clear" };
+    stamp?: number;
+  };
   /** Presentation metadata only: does not change water collision or simulation. */
   waterVisual?: {
     distance: number;
@@ -98,8 +109,10 @@ export type TopographyCell = {
     ice?: "solid" | "floes";
     icebergs?: boolean;
     tint?: "silt" | "loess" | "clear";
-    /** Bare mud at low tide: 1 at the high-water line, 0 at the low. */
+    /** Bare mud above the tide: 1 at the high-water line, 0 at the low. */
     tidal?: number;
+    /** How far up the shelf the tide stands now, as `tidal` measures it. */
+    tide?: number;
     reef?: "outer" | "lagoon";
   };
   /** On the lower tile, pointing toward its one-tier-higher neighbor. */
