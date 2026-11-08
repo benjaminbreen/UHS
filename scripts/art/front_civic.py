@@ -542,14 +542,15 @@ CHURCH_REGION = {
         'low-countries': dict(style='baltic-brick', cover='slate', tone='slate-blue'),
         'baroque': dict(style='baroque'),
     },
-    'mission-church': {},
 }
-MISSION = [dict(style='mediterranean'), dict(style='mediterranean', walls='ochre', tone='pantile'),
-           dict(style='mediterranean', layout='campanile', tower_top='campanile', walls='whitewash')]
 
 
 def civic_spec(name, r):
     import re
+    from art.front_landmarks import landmark_spec
+    got = landmark_spec(name, r)
+    if got:
+        return got
     m = re.match(r'(religious|hall)-(.+)-(small|medium|large)-(\d+)(?:-(north|east|west))?$', name)
     if not m:
         return None
@@ -558,11 +559,8 @@ def civic_spec(name, r):
     nw = max(6, round(fw * SCALE))
     if kind == 'religious' and fam in CHURCH_REGION:
         looks = LOOKS.get(f'religious-{fam}')
-        if looks:
-            region = looks[v] if v < len(looks) and looks[v] else looks[0]
-            base = CHURCH_REGION[fam][region]
-        else:
-            base = MISSION[v % len(MISSION)]
+        region = looks[v] if v < len(looks) and looks[v] else looks[0]
+        base = CHURCH_REGION[fam][region]
         spec = dict(base, size=size, W=nw * 16, seed=zlib.crc32(name.encode()) % 997)
         if spec.get('tone') == 'shingle-tar':
             from art.front_church import SHINGLE_TAR
@@ -605,6 +603,8 @@ def adopt(recipes):
         # layer; drawn front-on they have none, and they belong on the sacred
         # page with the other churches.
         r.pop('obliqueModern', None)
+        if 'landmark' in spec:
+            r.pop('oblique', None)
         if 'church' in spec:
             fam = name.split('-')[1] if name.startswith('religious-gothic') else r.get('family', 'parish')
             r['religious'] = True
@@ -634,7 +634,13 @@ class FrontCivicPainter:
     def _paint(self, r):
         from art.front_church import Church
         spec = r['frontCivic']
-        if 'church' in spec:
+        if 'landmark' in spec:
+            from art.front_landmarks import landmark
+            b = landmark(spec['landmark'])
+            im = b.build()
+            self.door_x, self.door_size = b.door_x, b.door_size
+            self.anchor_x = b.x0 + b.W // 2
+        elif 'church' in spec:
             s = dict(spec['church'])
             b = Church(style=s.pop('style'), size=s.pop('size'), **{k: v for k, v in s.items()})
             im = b.build()
