@@ -80,6 +80,7 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_parts.py` | Arches, windows of every period, walls, buttresses, mouldings, gables and copings, clocks, tower tops |
 | `scripts/art/front_church.py` | Churches from a spec, with regional `STYLES` (English and French Gothic, flint, Romanesque, Italian, Mediterranean, Danish, stave, Baltic brick, Baroque) |
 | `scripts/art/front_civic.py` | Civic halls on the eave-front house: arcades, posts, cross wings, stairs, frontispieces, turrets; regional `HALL_STYLES`; the game hook for churches and halls |
+| `scripts/art/front_landmarks.py` | Romanesque church, Spanish American mission church (facade on), Elizabethan polygon playhouse, nineteenth-century playhouse, picture house; routed from `front_civic.civic_spec` |
 | `scripts/art/front_eave.py` | The eave-front house: roof band, hips, eaves, ridges, dormers, stacks, lean-to |
 | `scripts/art/front_houses.py` | Pre-industrial European house families as specs; family and street A/B sheets |
 | `scripts/art/front_solid.py` | The projection kit: `box` (face and top), `lathe` (any round solid: domes, pots, wells, basins), `vault`, `recess` (pools, courts); one light, K = 0.5 |

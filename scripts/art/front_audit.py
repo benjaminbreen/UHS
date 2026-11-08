@@ -133,6 +133,12 @@ def subjects():
             im = ch.build()
             ch.roof_span, ch.stacks = (0, ch.c.w), []
             yield f'church-{style}-{size}', im, ch, 40, []
+    from art.front_landmarks import landmark, studies as landmark_studies
+    for label, sp in landmark_studies():
+        b = landmark(sp)
+        im = b.build()
+        b.roof_span, b.stacks = (0, b.c.w), []
+        yield label, im, b, b.door_size[1], []
     for roof in ROOFS:
         for W in (120, 152):
             g = GableHouse(roof=roof, W=W, lean_to=W > 140)

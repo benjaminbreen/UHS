@@ -231,7 +231,7 @@
    "label": "Playhouse",
    "family": "theatre",
    "form": "ring",
-   "description": "A timber amphitheatre of the sixteenth and seventeenth centuries: a polygonal drum of galleries round an open yard, thatched over the seating, with a flag flown on playing days. Dimensions are illustrative.",
+   "description": "The street front of a proscenium playhouse of 1800 to 1950: a stucco or brick front with a pediment over the slate roof, a colonnade, canopy or arcade over the doors. Dimensions are illustrative.",
    "footprint": [
     10,
     10
@@ -248,7 +248,7 @@
    "seed": 3221,
    "scales": {
     "small": {
-     "label": "Playing yard",
+     "label": "Small playhouse",
      "footprint": [
       5,
       5
@@ -286,7 +286,7 @@
    },
    "looks": [
     {
-     "label": "Thatched playhouse",
+     "label": "Regency playhouse",
      "roofCover": "ring",
      "hangings": "painted",
      "stairTurret": true,
@@ -294,7 +294,7 @@
      "flag": true
     },
     {
-     "label": "Inn-yard stage",
+     "label": "Victorian playhouse",
      "roofCover": "half",
      "hangings": "none",
      "stairTurret": false,
@@ -303,7 +303,7 @@
      "tiers": 2
     },
     {
-     "label": "Unroofed playing yard",
+     "label": "Stadttheater",
      "roofCover": "none",
      "hangings": "heraldic",
      "stairTurret": true,
