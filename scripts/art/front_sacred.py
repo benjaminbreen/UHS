@@ -24,7 +24,7 @@ from art import front_parts as fp  # noqa: E402
 from art.front_kit import finish, consolidate  # noqa: E402
 from art.front_style import FIGURE  # noqa: E402
 
-GROUPS = ('christian', 'southasia', 'seasia', 'africa', 'world')
+GROUPS = ('christian', 'southasia', 'seasia', 'africa', 'world', 'ancient')
 VOID = (36, 28, 38, 255)
 GOLD = fp.GOLD
 WOOD = RAMPS['oak']

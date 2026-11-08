@@ -6,8 +6,8 @@ Galilean basilica synagogues of the third to sixth centuries (Capernaum in
 white limestone, Chorazin in basalt); the whitewashed court synagogues of
 Ottoman Safed and Djerba and the stone ones of Salonica; the fortress
 synagogue of Brody and the tiered wooden synagogues of Poland-Lithuania.
-The Sasanian chahar taq, the walled fire house with its ambulatory, and
-the stone tower of Naqsh-e Rostam; the Parsi agiary and atash behram.
+The stone tower of Naqsh-e Rostam (drawn for front_sacred_ancient's fire
+temples); the Parsi agiary and atash behram.
 The Hawaiian heiau, the Tahitian marae and the Maori meeting house.
 Monks Mound at Cahokia.
 """
@@ -35,7 +35,6 @@ LEAD = RAMPS['lead']
 RENDER = ramp(72, 0.05, lift=0.0)
 SHINGLE = fp.tone_for('shingle', 'shingle-silver')
 PINE = ramp(48, 0.07, lift=-0.08)
-RUBBLE = ramp(58, 0.035, lift=-0.04)
 GYPSUM = ramp(85, 0.022, lift=0.04)
 DARK_LIME = ramp(250, 0.015, lift=-0.2)
 CREAM = ramp(78, 0.06, lift=0.03)
@@ -47,7 +46,6 @@ KOKOWAI = ramp(26, 0.14, lift=-0.1)
 TOTARA = ramp(42, 0.07, lift=-0.12)
 THATCH = RAMPS['thatch']
 RAUPO = ramp(72, 0.07, lift=-0.04)
-FIRE = ramp(48, 0.16, lift=0.04)
 fm.glazes()
 
 
@@ -391,85 +389,6 @@ def wooden(s, info):
 
 
 # ------------------------------------------------------------------ fire temples
-
-def fire_altar(c, cx, base, r):
-    """The fire on its stepped altar, glowing in the dark of the arch."""
-    so.box(c, cx - 6, base, 12, 4, 6, r)
-    so.box(c, cx - 3, base - 4, 6, 8, 4, r)
-    so.box(c, cx - 7, base - 12, 14, 3, 8, r)
-    for k in range(9):
-        hw = max(0, 4 - k // 2)
-        for i in range(-hw, hw + 1):
-            c.p(cx + i, base - 16 - k, FIRE[1 if abs(i) < hw - 1 else 3])
-    c.p(cx, base - 26, FIRE[0])
-
-
-def chahar_taq(c, cx, base, w, h, r, kind, R=None, dome_r=None):
-    """Four piers and four arches under a dome on squinches: the arch
-    toward us opens on the fire."""
-    D = round(w * 0.4)
-    fy, ty = so.box(c, cx - w // 2, base, w, h, D, lambda c, x, y, ww, hh: face(c, x, y, ww, hh, kind, r),
-                    lambda c, x, y, ww, hh: pebbles(c, x, y, ww, hh, r if kind != 'mud' else persia.TOP))
-    aw = w - 22
-    spring = fy + 8 + aw // 2
-    for yy in range(fy + 8, base):
-        for xx in range(cx - aw // 2, cx + aw // 2):
-            if fp.rounded(xx, yy, cx - aw // 2, spring, aw):
-                c.p(xx, yy, VOID if xx > cx - aw // 2 + 3 else mix(VOID, r[6], 0.5))
-    for yy in range(fy + 5, base):
-        for xx in range(cx - aw // 2 - 3, cx + aw // 2 + 3):
-            if fp.rounded(xx, yy, cx - aw // 2 - 3, spring, aw + 6) and not fp.rounded(xx, yy, cx - aw // 2, spring, aw):
-                c.p(xx, yy, r[1] if xx < cx else r[3])
-    fire_altar(c, cx, base - 2, GYPSUM)
-    R = R or w // 2 - 14
-    so.lathe(c, cx, fy - 3, [(0, R + 3), (8, R + 2)], r, courses=4)
-    so.dome(c, cx, fy - 11, R, dome_r or GYPSUM, kind='hemi', courses=5)
-    return fy
-
-
-def fire_temple(spec=None, info=None):
-    s = {**dict(form='court', W=200, depth=150), **(spec or {})}
-    W, D = s['W'], s['depth']
-    form = s['form']
-    if form == 'tower':
-        return fire_tower(s, info)
-    c = C(W + 40, 250 if W > 180 else 220)
-    x0, base = 20, c.h - 6
-    cx = x0 + W // 2
-    if form == 'court':
-        r = RUBBLE
-        tw = min(96, W - 60)
-        wall_top = base - 30
-        court_floor(c, x0 + 2, wall_top - 3, W - 4, 56, ramp(58, 0.04, lift=0.0))
-        chahar_taq(c, cx, wall_top - 10, tw, 74, r, 'rubble')
-        front_wall(c, x0, x0 + W, wall_top, base, 'rubble', r, GYPSUM)
-        gw = 40
-        so.box(c, cx - gw // 2, base, gw, 50, 20, lambda c, x, y, ww, hh: face(c, x, y, ww, hh, 'rubble', r), GYPSUM)
-        arch_door(c, cx, base, 22, 40, GYPSUM, 'round', wood=persia.WOOD)
-        door_h = 40
-    else:
-        # mud-brick ambulatory round the fire house, its door in the middle
-        amb_h = 46
-        fy, ty = so.box(c, x0, base, W, amb_h, D * 0.6, lambda c, x, y, ww, hh: persia.wall(c, x, y, ww, hh),
-                        persia.TOP)
-        for k in range(3):
-            for xx in range(x0 + 2, x0 + W - 2):
-                fp.shade(c, xx, fy - 1 - k, 0.18)
-        for sx in (x0 + 26, x0 + W - 26):
-            persia.dome(c, sx, fy - 12, 14)
-        tw = min(84, W - 90)
-        chahar_taq(c, cx, fy - 22, tw, 54, persia.WALL, 'mud', dome_r=persia.DOME)
-        persia.brick(c, x0, base - 10, W, 10)
-        c.rect(x0, base - 11, W, 1, persia.TOP[1])
-        for k in range(3):
-            wx = x0 + 18 + k * (W - 36) // 2
-            if abs(wx - cx) > 30:
-                persia.lattice_window(c, wx - 6, base - 34, 12, 10)
-        arch_door(c, cx, base, 22, 40, persia.TOP, 'round', wood=persia.WOOD)
-        door_h = 40
-    ground_shadow(c, x0, x0 + W, base)
-    return complete(c, info, x0, W, base, cx, door_h, D, roof='dome')
-
 
 def fire_tower(s, info):
     """A square stone tower on a stepped plinth, its walls set with blind
@@ -898,7 +817,7 @@ def great_mound(spec=None, info=None):
 
 # ------------------------------------------------------------------ catalogue
 
-BUILDERS = {'synagogue': synagogue, 'fire-temple': fire_temple, 'agiary': agiary,
+BUILDERS = {'synagogue': synagogue, 'agiary': agiary,
             'heiau': heiau, 'marae': marae, 'wharenui': wharenui, 'great-mound': great_mound}
 
 S, M, L = 'small', 'medium', 'large'
@@ -912,7 +831,6 @@ def looks(kind, labels, desc, per_scale, **common):
 
 
 SYN = {S: 'Synagogue', M: 'Synagogue', L: 'Great synagogue'}
-FIRE_LABELS = {S: 'Fire shrine', M: 'Fire temple', L: 'Great fire temple'}
 HOUSE = {S: 'Meeting house', M: 'Meeting house', L: 'Meeting house'}
 
 SPECS = {
@@ -937,13 +855,6 @@ SPECS = {
             S: [dict(style='wooden', W=150, tiers=1, wall_h=56, depth=120), dict(style='brody', W=140, wall_h=96, depth=130)],
             M: [dict(style='brody', W=180), dict(style='wooden', W=190, tiers=2)],
             L: [dict(style='brody', W=224, wall_h=124, depth=200), dict(style='wooden', W=236, tiers=2, wall_h=70, depth=190)]}),
-    'fire-temple': looks("fire-temple", FIRE_LABELS,
-        'The house of the sacred fire, which the priests keep burning day and night; the faithful pray before it.', {
-            S: [dict(form='court', W=150, depth=120), dict(form='ambulatory', W=170, depth=120),
-                dict(form='tower', tower_w=52, tower_h=100)],
-            M: [dict(form='court', W=196), dict(form='ambulatory', W=210), dict(form='tower')],
-            L: [dict(form='court', W=244, depth=190), dict(form='ambulatory', W=260, depth=190),
-                dict(form='tower', tower_w=76, tower_h=136)]}),
     'parsi-fire-temple': looks('agiary', {S: 'Agiary', M: 'Agiary', L: 'Atash behram'},
         'The fire temple of the Parsi community, where the priests tend the fire and only Parsis may enter.', {
             S: [dict(form='agiary', W=170, depth=120), dict(form='plain', W=150, depth=110)],

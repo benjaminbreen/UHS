@@ -2,9 +2,9 @@
 
     .venv/bin/python scripts/art/front_sacred.py artifacts/sacred-southasia.png southasia
 
-Nagara and Dravida temples, the Jain temple, the stupa and the Sri Lankan
-dagoba, the gurdwara and the Newar pagoda, each from a spec. The contract is
-in front_sacred.py.
+Nagara and Dravida temples, the Jain temple, the stupa, the gurdwara and
+the Newar pagoda, each from a spec (the Sri Lankan dagoba is in
+front_sacred_ancient). The contract is in front_sacred.py.
 """
 from pathlib import Path
 import math
@@ -18,7 +18,6 @@ from art.front_materials import C, RAMPS, ramp, mix  # noqa: E402
 from art import front_solid as so  # noqa: E402
 from art import front_parts as fp  # noqa: E402
 from art import front_southasia as sa  # noqa: E402
-from art.front_kit import consolidate  # noqa: E402
 from art.front_sacred import complete, arch_door, steps, flag, ground_shadow, VOID, GOLD  # noqa: E402
 
 K = so.K
@@ -41,7 +40,6 @@ NEWAR_TILE = ramp(30, 0.07, lift=-0.16)
 PAINT = [ramp(245, 0.1, lift=-0.06), ramp(150, 0.09, lift=-0.04), ramp(15, 0.11, lift=-0.02), ramp(82, 0.12)]
 PASTEL = ramp(85, 0.03, lift=0.04)
 COURT = ramp(62, 0.05, lift=0.02)
-OLD_BRICK = ramp(36, 0.075, lift=-0.1)
 
 
 # ------------------------------------------------------------------ parts
@@ -577,64 +575,6 @@ def stupa(spec, info):
                     label=label)
 
 
-# ------------------------------------------------------------------ dagoba
-
-def dagoba(spec, info):
-    s = {**dict(size='medium', look='white'), **spec}
-    size, look = s['size'], s['look']
-    R = {'small': 26, 'medium': 34, 'large': 42}[size]
-    r = WHITE if look == 'white' else OLD_BRICK
-    trim = BUFF
-    shrine = size != 'small'
-    W = 2 * R + 60 + (70 if shrine else 0)
-    m = 14
-    H = round(R * 1.2 + R * K + 150)
-    c = C(W + 2 * m, H)
-    L = m
-    base = H - 6
-    cx = L + R + 30
-    by = base - round(R * K) - 6
-    for k, (dr, h) in enumerate(((R + 16, 6), (R + 10, 6), (R + 4, 6))):
-        so.lathe(c, cx, by - k * 6, [(0, dr), (h, dr)], trim if look == 'white' else r)
-    by -= 18
-    n = 14
-    prof = []
-    for i in range(n + 1):
-        t = i / n
-        prof.append((t * R * 1.05, R * (1 - t ** 2.2) ** 0.5 * (0.92 + 0.08 * (1 - t))))
-    so.lathe(c, cx, by, prof, r)
-    crown = by - round(R * 1.05) + round(R * 0.15)
-    hw = max(12, R // 2)
-    so.box(c, cx - hw // 2, crown + 2, hw, 10, hw, r)
-    c.rect(cx - hw // 2 - 1, crown - 9, hw + 2, 2, r[1])
-    sp = round(R * 1.15)
-    so.lathe(c, cx, crown - 9, [(0, hw * 0.35), (sp * 0.75, 1.8), (sp * 0.75, 1.4)], r, courses=4)
-    so.lathe(c, cx, crown - 9 - round(sp * 0.75), [(0, 1.8), (sp * 0.25, 0.6)], GOLD)
-    so.lathe(c, cx, crown - 9 - round(sp * 0.75) + 2, [(0, 2.5), (3, 2.5)], GOLD)
-    for k in range(5):
-        sw = 30 - k * 3
-        c.rect(cx - sw // 2, base - 4 - k * 3, sw, 3, trim[2]); c.rect(cx - sw // 2, base - 4 - k * 3, sw, 1, trim[0])
-    for k, rr in enumerate((14, 11, 8)):
-        for xx in range(cx - rr, cx + rr + 1):
-            d = abs(xx - cx) / rr
-            yy = base + 1 - round(2.5 * math.sqrt(max(0, 1 - d * d)))
-            c.p(xx, yy, trim[1 + k])
-    door_x, door_h, doorless = cx, 0, True
-    if shrine:
-        sx = cx + R + 26
-        sw = W - (sx - L) - 2
-        fm.render(c, sx, base - 46, sw, 44, WHITE)
-        c.rect(sx, base - 46, 1, 44, WHITE[2]); c.rect(sx + sw - 1, base - 46, 1, 44, WHITE[4])
-        fp.roof_band(c, sx - 4, sx + sw + 4, base - 46, 22, 'plain', fp.tone_for('plain', 'tile-red'), hip=0.5)
-        arch_door(c, sx + sw // 2, base - 2, 20, 40, trim, 'square')
-        door_x, door_h, doorless = sx + sw // 2, 40, False
-    ground_shadow(c, L, L + W, base + 1, 3)
-    complete(c, info, L, W, base, door_x, door_h, 2 * R + 60, doorless=doorless, label='Dagoba')
-    # the round terraces' rims leave single odd tones that the usual reach misses
-    consolidate(c, rare=3, reach=90)
-    return c.im
-
-
 # ------------------------------------------------------------------ gurdwara
 
 def gilt_dome(c, cx, by, R, drum=6):
@@ -818,7 +758,6 @@ BUILDERS = {
     'nagara': nagara,
     'dravida': dravida,
     'stupa': stupa,
-    'dagoba': dagoba,
     'gurdwara': gurdwara,
     'newar': newar,
 }
@@ -845,9 +784,6 @@ SPECS = {
     'stupa': _scales('stupa', ('sanchi', 'brick', 'vihara'),
                      'A stupa: a dome over relics of the Buddha, walked round by pilgrims.',
                      {'small': 'Stupa', 'medium': 'Stupa', 'large': 'Monastery'}, roof='dome'),
-    'dagoba': _scales('dagoba', ('white', 'brick'),
-                      'A dagoba: a white bell-shaped dome over relics, and the image house where the Buddha sits.',
-                      {'small': 'Dagoba', 'medium': 'Dagoba', 'large': 'Great dagoba'}, roof='dome'),
     'gurdwara': {size: [('gurdwara', dict(size=size, label='Gurdwara', roof='dome',
                                           description='A gurdwara: the hall where the Guru Granth Sahib is read, open to all, with its kitchen for anyone who comes.'))]
                  for size in ('small', 'medium', 'large')},

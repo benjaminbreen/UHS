@@ -1,7 +1,7 @@
-"""Mosques, temples and shrines of Africa and pharaonic Egypt, front-on:
-the Sahelian banco mosque, the Swahili coral mosque, the Egyptian pylon
-temple, the Asante shrine house, the Yoruba, Benin and Fon shrines, and the
-forest's sacred grove. The contract is front_sacred's.
+"""Mosques and shrines of Africa, front-on: the Sahelian banco mosque, the
+Swahili coral mosque, the Asante shrine house, the Yoruba, Benin and Fon
+shrines, and the forest's sacred grove (the Egyptian pylon temple is in
+front_sacred_ancient). The contract is front_sacred's.
 
     .venv/bin/python scripts/art/front_sacred.py artifacts/sacred-africa.png africa
 """
@@ -30,7 +30,6 @@ INDIGO = ramp(262, 0.09, lift=-0.2)
 CLOTH = ramp(95, 0.01, lift=0.06)
 BRONZE = ramp(66, 0.1, lift=-0.12)
 CEDAR = RAMPS['cedar']
-PENNANT = ramp(26, 0.16, lift=-0.08)
 LEAF = ramp(140, 0.09, lift=-0.16)
 BARK = ramp(50, 0.035, lift=-0.12)
 BOWL = ramp(245, 0.11, lift=-0.06)
@@ -334,124 +333,6 @@ def relief(c, x, y, pattern, r, paint=None, s=2):
                 c.rect(x + i * s, y + j * s, s, 1, r[5])
 
 
-def gorge(c, x, top, w, r, painted=None):
-    """The cavetto cornice: a lit lip, the concave band in vertical leaves,
-    the rounded torus under it, and the band's shadow."""
-    c.rect(x - 4, top, w + 8, 2, r[1])
-    for k in range(7):
-        ins = 4 - (k * 4) // 7
-        for xx in range(x - ins, x + w + ins):
-            leaf = (xx - x) % 4
-            q = 3 if leaf < 2 else 4
-            if painted and k > 1:
-                col = painted[(xx - x) // 4 % len(painted)][2 + (leaf > 1)]
-            else:
-                col = r[q + (k > 4)]
-            c.p(xx, top + 2 + k, col)
-    c.rect(x - 1, top + 9, w + 2, 2, r[1]); c.rect(x - 1, top + 11, w + 2, 1, r[4])
-    op.cast(c, x, top + 12, w, 3, 0.7)
-
-
-def pylon_tower(c, cx, top, base, w, r, tex, paint, flip):
-    w1 = w - 12
-    batter(c, cx, top, base, w, w1, r, tex)
-    # the torus moulding down the battered edges
-    for yy in range(top, base):
-        t = (yy - top) / max(1, base - top - 1)
-        half = (w1 + (w - w1) * t) / 2
-        c.p(round(cx - half), yy, r[0]); c.p(round(cx - half) + 1, yy, r[1])
-        c.p(round(cx + half) - 1, yy, r[5])
-    gorge(c, round(cx - w1 / 2), top - 13, w1, r, paint)
-    so.box(c, round(cx - w1 / 2) - 4, top - 12, w1 + 8, 1, 18, r)
-    # the flagstaff niches on the side toward the gate
-    nx = round(cx + (w1 / 2 - 10) * (1 if flip else -1))
-    for yy in range(top + 6, base):
-        c.p(nx - 2, yy, r[5]); c.p(nx - 1, yy, r[5]); c.p(nx, yy, r[6]); c.p(nx + 1, yy, r[4])
-    fh = base - top + 40
-    for yy in range(base - fh, base):
-        c.p(nx - 1, yy, CEDAR[2]); c.p(nx, yy, CEDAR[4])
-    for k in range(3):
-        c.rect(nx - 3, top + 14 + k * 22, 6, 2, CEDAR[3])
-    flag(c, nx - 1, base, fh, PENNANT, w=10, fh=7)
-    fx = round(cx - 14) if not flip else round(cx - 10)
-    relief(c, fx, top + 22, KING if not flip else GOD, r, paint)
-    relief(c, fx + 4, top + 58, GOD if not flip else KING, r, paint) if base - top > 90 else None
-
-
-def obelisk(c, cx, base, H, r):
-    so.box(c, cx - 8, base, 16, 5, 10, r)
-    b = base - 5
-    for yy in range(b - H, b):
-        t = (yy - (b - H)) / H
-        half = 3.5 + 3 * t
-        for xx in range(round(cx - half), round(cx + half)):
-            c.p(xx, yy, r[1] if xx < cx - half + 2 else r[2] if xx < cx + half - 2 else r[4])
-    for yy in range(b - H + 8, b - 6, 4):
-        c.p(cx - 1, yy, r[4]); c.p(cx, yy + 1, r[5])
-    for k in range(7):
-        for xx in range(cx - k // 2 - 1, cx + k // 2 + 1):
-            c.p(xx, b - H - 7 + k, GOLD[1] if xx < cx else GOLD[3])
-
-
-def pylon_temple(spec=None, info=None):
-    s = {**dict(W=220, pylon=100, look='sandstone', obelisks=False, seed=2), **(spec or {})}
-    look, W, ph = s['look'], s['W'], s['pylon']
-    r = {'sandstone': RAMPS['sandstone'], 'limestone': RAMPS['limestone'], 'mudbrick': RAMPS['adobe']}[look]
-    frame = RAMPS['sandstone'] if look == 'mudbrick' else r
-    paint = [ramp(25, 0.13, lift=-0.06), ramp(250, 0.1, lift=-0.1), ramp(85, 0.12, lift=0.0)] if look == 'limestone' else None
-    D = s.get('depth', 160)
-    hall_h = round(ph * 0.62)
-    L = 18
-    base = round(D * so.K) + hall_h + 40 + max(0, ph - hall_h - round(D * so.K) + 60)
-    c = C(W + 2 * L, base + 10)
-    cx = L + W // 2
-
-    def tex(xx, yy, q):
-        if look == 'mudbrick':
-            row = yy // 4
-            joint = yy % 4 == 3 or (xx + (row % 2) * 5) % 10 == 9
-            return r[min(7, q + 1)] if joint else r[q]
-        joint = yy % 9 == 8 or (xx + (yy // 9 % 2) * 11) % 22 == 21
-        return r[min(7, q + 1)] if joint else r[q]
-
-    # the hypostyle hall behind, its roof slabs and a raised nave
-    hw = W - 40
-    def hall_roof(c, x, y, w, h):
-        for yy in range(y, y + h):
-            for xx in range(x, x + w):
-                c.p(xx, yy, r[2] if (xx - x) % 16 else r[3])
-        c.rect(x, y, w, 1, r[1])
-    so.box(c, cx - hw // 2, base - 30, hw, hall_h, D - 40, lambda c, x, y, w, h: fm.fill(c, x, y, w, h, lambda a, b: tex(a, b, 3)), hall_roof)
-    so.box(c, cx - hw // 6, base - 40, hw // 3, hall_h + 14, D - 60, lambda c, x, y, w, h: fm.fill(c, x, y, w, h, lambda a, b: tex(a, b, 3)), hall_roof)
-
-    tw = (W - 40) // 2
-    gw = 44
-    for side in (-1, 1):
-        tcx = cx + side * (gw // 2 + tw // 2 - 4)
-        pylon_tower(c, tcx, base - ph, base, tw, r, tex, paint, side < 0)
-    # the gate between the towers, a little lower, in dressed stone
-    gt = base - round(ph * 0.66)
-    so.box(c, cx - gw // 2, base, gw, base - gt, 16, lambda c, x, y, w, h: fm.fill(c, x, y, w, h, lambda a, b: tex(a, b, 2) if look != 'mudbrick' else frame[2]), frame)
-    gorge(c, cx - gw // 2 + 3, gt - 12, gw - 6, frame, paint)
-    dw, dh = 24, 52
-    op.raised(c, cx - dw // 2 - 4, base - dh - 4, dw + 8, dh + 4, frame, 2)
-    for yy in range(base - dh, base):
-        for xx in range(cx - dw // 2, cx + dw // 2):
-            lx = xx - cx + dw // 2
-            c.p(xx, yy, CEDAR[5] if lx in (0, dw // 2) else CEDAR[3] if lx % 4 else CEDAR[4])
-    op.reveal(c, cx - dw // 2, base - dh, dw, dh, 3)
-    # a winged disc over the door
-    for k in range(-9, 10):
-        c.p(cx + k, base - dh - 9 + abs(k) // 4, GOLD[2] if k < 0 else GOLD[3])
-    so.ellipse(c, cx, base - dh - 9, 2.5, 2.5, PENNANT[2])
-    if s['obelisks']:
-        for side in (-1, 1):
-            obelisk(c, cx + side * (gw // 2 + 18), base + 6, round(ph * 1.05), ramp(28, 0.06, lift=-0.04))
-    so.box(c, L - 4, base + 6, W + 8, 6, 12, frame)
-    ground_shadow(c, L - 4, L + W + 4, base + 6)
-    return complete(c, info, L - 4, W + 8, base + 6, cx, dh, D, roof='flat')
-
-
 # ------------------------------------------------------------------ shrine houses
 
 def painted_earth(lower, upper=None, split=0.42, motif=None):
@@ -732,14 +613,13 @@ def sacred_grove(spec=None, info=None):
     return complete(c, info, 20, W, base + 4, hx, 40, s.get('depth', 140), doorless=True, roof='gable')
 
 
-BUILDERS = {'sahel-mosque': sahel_mosque, 'swahili-mosque': swahili_mosque, 'pylon-temple': pylon_temple,
+BUILDERS = {'sahel-mosque': sahel_mosque, 'swahili-mosque': swahili_mosque,
             'shrine-compound': shrine_compound, 'sacred-grove': sacred_grove}
 
 M = dict(label='Mosque', description='A small mosque of plastered mud, where the quarter prays.')
 FM = dict(label='Friday mosque', description='The Friday mosque, where the town gathers for the noon prayer on Fridays.')
 GM = dict(label='Great mosque', description='The great mosque, its walls replastered by the whole town every year.')
 SW = dict(description='A mosque of coral stone and lime, cool inside, with a cistern at the door for washing.')
-PY = dict(description="A god's house behind its gateway towers; only the priests go beyond the first court.")
 OR = dict(description='The shrine house of a god, where offerings are brought and the priest keeps the god\'s things.')
 
 
@@ -763,14 +643,6 @@ def _swahili(look, size):
                                    bays=3 if size == 'small' else 4 if size == 'medium' else 6, roof='flat'))
 
 
-def _pylon(look, size):
-    lab = {'small': 'Shrine', 'medium': 'Temple', 'large': 'Great temple'}[size]
-    return ('pylon-temple', dict(PY, label=lab, look=look, W={'small': 160, 'medium': 220, 'large': 290}[size],
-                                 pylon={'small': 76, 'medium': 104, 'large': 130}[size],
-                                 depth={'small': 120, 'medium': 160, 'large': 200}[size],
-                                 obelisks=size == 'large', roof='flat'))
-
-
 def _shrine(look, size, label):
     W = {'small': 96, 'medium': 120, 'large': 140}[size]
     wings = 0 if size == 'small' or look not in ('asante',) else (64 if size == 'medium' else 76)
@@ -783,7 +655,6 @@ SIZES = ('small', 'medium', 'large')
 SPECS = {
     'sahel-mosque': {z: [_sahel(l, z) for l in ('djenne', 'timbuktu', 'larabanga')] for z in SIZES},
     'swahili-mosque': {z: [_swahili(l, z) for l in ('kilwa', 'lamu', 'tomb')] for z in SIZES},
-    'pylon-temple': {z: [_pylon(l, z) for l in ('sandstone', 'limestone', 'mudbrick')] for z in SIZES},
     'asante-shrine': {z: [_shrine('asante', z, 'Shrine house' if z != 'large' else 'Great shrine')] for z in SIZES},
     'yoruba-shrine': {z: [_shrine(l, z, 'Shrine') for l in ('yoruba', 'benin', 'fon')] for z in SIZES},
     'sacred-grove': {z: [('sacred-grove', dict(label='Shrine' if z == 'small' else 'Sacred grove', size=z,
