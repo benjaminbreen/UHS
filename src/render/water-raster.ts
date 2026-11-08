@@ -308,7 +308,9 @@ export function specialWater(cell: TopographyCell, palette: WaterPalette, d: num
   if (v.tidal !== undefined) {
     const width = v.tidal < 1 ? -v.distance / (1 - v.tidal) : 4;
     const t = 1 + d / width;
-    if (t < (v.tide ?? 0)) return;
+    // Only water cells whose centre is on the shelf carry it; stay 3/4 tile
+    // (a pixel's farthest reach from its centre) inside, or the flat ends on the grid.
+    if (d > -0.75 || t < (v.tide ?? 0) + 0.75 / width) return;
     const tropical = v.ecology === "tropical-woodland" || cell.habitat?.colorway === "mangrove";
     const mud = tropical ? MANGROVE_MUD : MUD;
     // Salt marsh above mid-tide on temperate shores, a small cliff at its foot.
