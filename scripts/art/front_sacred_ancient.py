@@ -1216,11 +1216,6 @@ SPECS = {
                                   label={S: 'Shrine', M: 'Temple', L_: 'Great temple'}[z], description=PY_DESC, roof='flat'))
             for i, lk in enumerate(('sandstone', 'limestone', 'mudbrick'))]
         for z in (S, M, L_)},
-    'hittite-temple': {
-        z: [('hittite', dict(size=z, look=lk, W={S: 208, M: 288, L_: 352}[z], seed=5 + i,
-                             label='Temple precinct' if z != L_ else 'Great temple', description=HIT_DESC, roof='flat'))
-            for i, lk in enumerate(('red', 'buff', 'pale'))]
-        for z in (S, M, L_)},
     'mesopotamian-temple': {
         z: [('mesopotamian', dict(size=z, look=lk, W={S: 192, M: 256, L_: 320}[z], seed=3 + i,
                                   label='Ziggurat' if z == L_ else 'Temple precinct',

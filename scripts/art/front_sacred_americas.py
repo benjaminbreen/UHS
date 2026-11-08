@@ -378,6 +378,8 @@ def _meso():
     data = json.loads((ROOT / 'src/content/graphics/meso-landmarks.json').read_text())['temples']
     out = {}
     for prof, spec in data.items():
+        if prof == 'maya':  # The old Maya temple stays: the user preferred it.
+            continue
         rec = {}
         for scale, shape in spec['scales'].items():
             rec[scale] = [('pyramid', dict(profile=prof, scale=scale, look=look, footprint=shape['footprint'],

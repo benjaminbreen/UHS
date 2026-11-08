@@ -24,11 +24,7 @@ from art import front_parts as fp  # noqa: E402
 from art.front_kit import finish, consolidate  # noqa: E402
 from art.front_style import FIGURE  # noqa: E402
 
-<<<<<<< HEAD
-GROUPS = ('christian', 'southasia', 'seasia', 'africa', 'world', 'ancient')
-=======
-GROUPS = ('christian', 'southasia', 'seasia', 'africa', 'world', 'americas')
->>>>>>> worktree-agent-a1a418b9dce1caaff
+GROUPS = ('christian', 'southasia', 'seasia', 'africa', 'world', 'ancient', 'americas')
 VOID = (36, 28, 38, 255)
 GOLD = fp.GOLD
 WOOD = RAMPS['oak']
