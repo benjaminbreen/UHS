@@ -1,6 +1,8 @@
 {
   "about": "Which numbered look of a church or hall family a settlement builds, by region. Regions are tried in order (a region may take several boxes), the first whose bounds [west, south, east, north] hold the settlement (and whose dates hold its year) wins; a region a family has no look for falls back along `fallback`. The art build (scripts/art/front_civic.py) draws look i of a family in the style of looks[family][i]. A family not listed here, or a region it has no look for, keeps the old seeded roll.",
   "regions": [
+    { "id": "maghreb", "bounds": [-18.0, 20.0, 11.6, 35.85] },
+    { "id": "maghreb", "bounds": [-2.2, 35.85, 11.6, 37.4] },
     { "id": "east-anglia", "bounds": [0.1, 51.8, 1.8, 53.1] },
     { "id": "england", "bounds": [-6.5, 49.8, 1.8, 55.9] },
     { "id": "norway", "bounds": [4.0, 57.9, 12.4, 71.5] },
@@ -28,7 +30,10 @@
     { "id": "lalibela", "bounds": [38.9, 11.9, 39.2, 12.15] },
     { "id": "benin", "bounds": [5.4, 5.8, 6.6, 7.0] },
     { "id": "dahomey", "bounds": [1.6, 6.2, 2.6, 8.0] },
-    { "id": "yorubaland", "bounds": [2.6, 6.3, 5.8, 9.2] }
+    { "id": "yorubaland", "bounds": [2.6, 6.3, 5.8, 9.2] },
+    { "id": "mamluk", "bounds": [24.0, 12.0, 56.0, 36.9] },
+    { "id": "anatolia", "bounds": [26.0, 36.9, 44.8, 42.2] },
+    { "id": "anatolia", "bounds": [19.0, 39.0, 30.0, 45.5] }
   ],
   "fallback": {
     "east-anglia": "england",
@@ -40,7 +45,8 @@
     "low-countries": "germany",
     "denmark": "germany",
     "germany": "france",
-    "iberia": "italy"
+    "iberia": "italy",
+    "serbia": "anatolia"
   },
   "looks": {
     "religious-parish-church": ["france", "england", "italy", "denmark", "norway", "germany", "iberia"],
@@ -54,7 +60,7 @@
     "hall-bagnio": ["england"],
     "hall-union-hall": ["england"],
     "hall-hammam": [null, null, null, "iran"],
-    "hall-madrasa": [null, null, null, "iran"],
+    "hall-madrasa": ["anatolia", "mamluk", "maghreb", "iran"],
     "religious-caucasian-church": ["georgia", "armenia"],
     "religious-rus-church": ["vladimir", "novgorod"],
     "religious-byzantine-church": [null, "serbia"],
