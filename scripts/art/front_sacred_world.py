@@ -25,6 +25,7 @@ from art import front_parts as fp  # noqa: E402
 from art import front_solid as so  # noqa: E402
 from art import front_stepped as st  # noqa: E402
 from art import front_persian as persia  # noqa: E402
+from art import front_persian as pz  # noqa: E402
 from art.front_sacred import complete, arch_door, steps, cone, flag, ground_shadow, VOID, GOLD  # noqa: E402
 
 LIME = RAMPS['limestone']
@@ -260,56 +261,104 @@ def galilean(s, info):
 
 
 def sephardi(s, info):
-    """The prayer hall behind its walled court: flat roof and a low dome
-    (whitewash, blue shutters) or a hipped tile roof (Ottoman stone)."""
+    """The Sephardi court synagogue, on the courtyard form of the houses
+    round it: a street wall with the door under a tiled hood and a carved
+    plaque over it; the court with its laver for washing the hands; across
+    it the prayer hall's face, the women's gallery behind lattice above.
+    Whitewash, blue shutters and a low lime dome (Safed, Djerba), or Ottoman
+    stone under a hipped tile roof (Salonica)."""
+    from art import front_props as pr
     W = s['W']
     stone = s['style'] == 'stone'
     r = RAMPS['sandstone'] if stone else WHITE
-    kind = 'ashlar' if stone else 'render'
+    top = RAMPS['limestone'] if stone else ramp(92, 0.01, lift=0.1)
     hall_h = s.get('hall_h', 62)
-    court = s.get('court', 40)
     D = s.get('depth', 130)
-    head = 70
-    c = C(W + 40, head + hall_h + round(court * so.K) + 60)
-    x0, base = 20, c.h - 6
-    cx = x0 + W // 2
-    wall_top = base - 46
-    court_back = wall_top - 3 - round(court * so.K)
-    hall_top = court_back - hall_h
-    hx0, hw = x0 + 10, W - 20
-    if stone:
-        fp.roof_band(c, hx0 - 6, hx0 + hw + 6, hall_top + 2, 34, 'plain', TILE, hip=0.7)
-    else:
-        flat_roof(c, hx0, hall_top + 2, hw, s.get('roof_d', 70), r)
-        so.dome(c, cx, hall_top - 8, min(26, hw // 5), LEAD if s.get('lead') else WHITE, kind='hemi', courses=3)
+    big = W > 200
+    sp = dict(W=W, wing=max(26, W // 7), street=60, front=14, court=max(54, D // 2), far=22 if stone else 24,
+              face=hall_h - 4, portal=0.5)
+    wall = (lambda c, x, y, w, h: fm.ashlar(c, x, y, w, h, r, 8, 20)) if stone else \
+        (lambda c, x, y, w, h: fm.render(c, x, y, w, h, r))
+    shutter = BLUE if not stone else RAMPS['oak']
+
+    def hall_face(c, L, R, ftop, h):
+        wall(c, L, ftop, R - L, h)
+        cx = (L + R) // 2
+        n = max(2, (R - L) // 30)
+        span = (R - L) / n
+        for k in range(n):
+            wx = round(L + (k + 0.5) * span)
+            # the women's gallery, behind lattice under a little hood
+            op.raised(c, wx - 8, ftop + 5, 16, 14, r, 1)
+            op.lattice(c, wx - 6, ftop + 7, 12, 10)
+            c.rect(wx - 9, ftop + 3, 18, 2, top[0])
+            fp.cast_down(c, wx - 8, wx + 8, ftop + 5, 2, 0.4)
+            if abs(wx - cx) > 14:
+                arch_window(c, wx, ftop + h - 30, 10, 22, r, 'shutter' if not stone else 'grille', shutter)
+        dw = 18
+        arch_door(c, cx, ftop + h, dw, 26, top, 'round', wood=shutter, band=2)
+        c.rect(L, ftop, R - L, 1, top[0])
+        so.box(c, L, ftop + h + 4, R - L, 3, 8, top)
+
+    def court(c, L, R, ctop, face_h, front, face=None, trees=True):
+        floor = ctop + face_h + 4
+        for yy in range(floor, front):
+            for xx in range(L, R):
+                i, j = (xx - L) // 14, (yy - floor) // 7
+                q = 1 if (i + j) % 2 else 2
+                c.p(xx, yy, top[q + 1] if (yy - floor) % 7 == 6 else top[q])
+        hall_face(c, L, R, ctop, face_h)
+        cy = (floor + front) // 2 + 6
+        # the laver: a stone basin and its spout, for washing the hands before prayer
+        so.box(c, L + 10, cy + 6, 22, 9, 8, RAMPS['marble'])
+        c.rect(L + 14, cy - 1, 14, 2, pr.WATER[2])
+        c.rect(L + 20, cy - 8, 2, 5, RAMPS['marble'][2])
+        pr.tree(c, R - 18, front - 4, 'cypress' if stone else 'lemon', 0.8 if not stone else 0.7)
+        pz.court_shade(c, L, R, ctop, floor, front)
+
+    def roof(c, g):
+        cx = (g['L'] + g['R']) // 2
+        if stone:
+            fp.roof_band(c, g['CL'] - 8, g['CR'] + 8, g['court_top'] + 1, g['court_top'] - g['B'] + 8, 'plain',
+                         TILE, hip=0.7)
+            return
+        R0 = min(22, (g['CR'] - g['CL']) // 5)
+        pz.dome(c, cx, g['B'] + 12, R0)
         if s.get('domes', 1) > 1:
-            for sx in (hx0 + 24, hx0 + hw - 24):
-                so.dome(c, sx, hall_top - 4, 11, WHITE, kind='hemi', courses=2)
-    face(c, hx0, hall_top + 2, hw, court_back - hall_top - 2, kind, r)
-    c.rect(hx0, hall_top + 2, hw, 2, r[0])
-    n = max(3, hw // 34)
-    for k in range(n):
-        wx = hx0 + round((k + 0.5) * hw / n)
-        arch_window(c, wx, hall_top + 14, 12, 26, r if not stone else RAMPS['sandstone'],
-                    'shutter' if not stone else 'grille', BLUE)
-    court_floor(c, x0 + 2, wall_top - 3, W - 4, court, RAMPS['limestone'] if not stone else RAMPS['sandstone'])
-    if s.get('tree', True):
-        from art import front_props as pr
-        pr.tree(c, x0 + W - 26, wall_top - 2, 'cypress' if stone else 'pomegranate', size=0.8)
-    for yy in range(c.h):
-        for xx in range(c.w):
-            q = c.g(xx, yy)
-            if q[3] and max(q[:3]) < 16:
-                c.p(xx, yy, (34, 46, 36, 255))
-    front_wall(c, x0, x0 + W, wall_top, base, kind, r, RAMPS['sandstone'])
-    c.rect(x0, base - 6, W, 6, (RAMPS['sandstone'] if not stone else r)[3])
-    c.rect(x0, base - 6, W, 1, (RAMPS['sandstone'] if not stone else r)[1])
-    dw, dh = 22, 40
-    door_wood = BLUE if not stone else RAMPS['oak']
-    arch_door(c, cx, base, dw, dh, RAMPS['sandstone'], 'round', wood=door_wood, band=3)
-    hood(c, cx, base - dh - 14, dw + 18, RAMPS['sandstone'], TILE)
-    ground_shadow(c, x0, x0 + W, base)
-    return complete(c, info, x0, W, base, cx, dh, D, roof='flat' if not stone else 'gable')
+            for sx in (g['L'] + g['wing'] // 2, g['R'] - g['wing'] // 2):
+                pz.dome(c, sx, g['court_front'] - 14, 9)
+
+    def door(c, pcx, base, g):
+        dw, dh = 22, 40
+        arch_door(c, pcx, base, dw, dh, RAMPS['sandstone'] if not stone else RAMPS['limestone'], 'round',
+                  wood=shutter, band=3)
+        hood(c, pcx, base - dh - 10, dw + 18, RAMPS["sandstone"], TILE)
+        # a carved plaque by the door, its lines of Hebrew too small to read
+        px, py = pcx + dw // 2 + 10, base - dh + 2
+        op.raised(c, px, py, 24, 12, RAMPS['marble'], 1)
+        for k in range(3):
+            for xx in range(px + 3, px + 21):
+                if (xx * 7 + k * 3) % 5:
+                    c.p(xx, py + 3 + k * 3, RAMPS['marble'][4])
+
+    def windows(c, g):
+        for wx in (g['L'] + 18, g['R'] - 30):
+            if abs(wx + 6 - g['pcx']) > 34:
+                op.raised(c, wx - 2, g['E'] + 10, 16, 14, r, 1)
+                op.grille(c, wx, g['E'] + 12, 12, 10)
+
+    ramps = dict(WALL=r, TOP=top, PAVE=top, WALL_FN=wall, BRICK=RAMPS['sandstone'],
+                 DOME=LEAD if s.get('lead') else top)
+    with pz.materials(**ramps):
+        im = pz.compound(sp, info, None, roof, door, head=40 if not stone else 36, windows=windows, court_fn=court)
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            if px[x, y][3] and max(px[x, y][:3]) < 16:
+                px[x, y] = (34, 46, 36, 255)
+    if info is not None:
+        info.update(door_h=40, depth=D)
+    return im
 
 
 def brody(s, info):

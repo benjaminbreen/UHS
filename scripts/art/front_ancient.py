@@ -19,6 +19,7 @@ or Persian builders, with the footprint the new sprite stands on;
                                       compounds, shop rows, storehouses and gates
     hall-hammam-*-3, hall-madrasa-*-3 front_persian: the Iranian look of the bath and the
                                       madrasa (new frames; regional-looks.json routes Iran to them)
+    hall-madrasa-*-{0,1,2}            front_sacred_islam: the Ottoman, Mamluk and Maghrebi madrasa
     southasian-{courtyard,service}-{early-north-indian,sultanate,north-indian,rajput,deccan}-*
                                       front_southasia: havelis, granaries, weavers' sheds,
                                       market pavilions and shrines in each era's look
@@ -55,6 +56,7 @@ from art import front_westasia as wa  # noqa: E402
 from art import front_sinitic as sino  # noqa: E402
 from art import front_africa, front_seasia, front_andes, front_pacific, front_southasia, front_huts, front_mudbrick, front_meso  # noqa: E402
 from art import front_tents, front_orthodox  # noqa: E402,F401  (front_tents registers its hut builders)
+from art import front_sacred_islam as islam  # noqa: E402
 from art.front_classical import BUILDERS as CLASSICAL_BUILDERS  # noqa: E402
 from art.front_materials import lit  # noqa: E402
 
@@ -162,6 +164,10 @@ def spec_for(name, r):
     m = re.match(r'hall-thermae-(small|medium|large)-\d+$', base)
     if m:
         return ('thermae', dict(W=nw * 16)), (nw, fh)
+    m = re.match(r'hall-madrasa-(small|medium|large)-([012])$', base)
+    if m:
+        nw = max(8, round(fw * 1.3))
+        return islam.madrasa_spec(int(m.group(2)), nw, fh), (nw, fh)
     m = re.match(r'religious-persian-mosque-(small|medium|large)-(\d+)$', base)
     if m:
         nw = max(12, round(fw * 1.2))
@@ -317,6 +323,7 @@ BUILDERS = {
     'wa-small': lambda s, i: wa.small(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'madrasa': lambda s, i: persia.madrasa(s, i),
     'hammam': lambda s, i: persia.hammam(s, i),
+    'islamic-madrasa': islam.BUILDERS['islamic-madrasa'],
     **sino.BUILDERS,
     **front_africa.BUILDERS,
     **front_southasia.BUILDERS,

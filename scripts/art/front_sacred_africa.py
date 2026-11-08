@@ -193,8 +193,13 @@ def merlons(c, L, R, y, r=WHITE):
     """Stepped merlons along a parapet: three courses each, the lit side left."""
     for x in range(L, R - 8, 12):
         for k, ww in enumerate((9, 5, 2)):
-            c.rect(x + (9 - ww) // 2, y - 3 * (k + 1), ww, 3, r[1])
-            c.rect(x + (9 - ww) // 2 + ww - 1, y - 3 * (k + 1), 1, 3, r[3])
+            x0 = x + (9 - ww) // 2
+            for yy in range(y - 3 * (k + 1), y - 3 * k):
+                for i in range(2):
+                    fp.shade(c, x0 + ww + i, yy - 1, 0.3 - i * 0.12)
+            c.rect(x0, y - 3 * (k + 1), ww, 3, r[1])
+            c.rect(x0, y - 3 * (k + 1), 1, 3, r[0])
+            c.rect(x0 + ww - 1, y - 3 * (k + 1), 1, 3, r[3])
         c.rect(x, y - 3, 9, 1, r[0])
 
 
@@ -228,7 +233,39 @@ def pillar_tomb(c, cx, base, H=96):
         c.p(cx - 1, y - 1, WHITE[0])
 
 
+def lime_roof(c, x, y, w, h):
+    """A lime-plastered flat roof in the sun: broad bands stepping from light
+    at the back left to a deeper tone at the front right, a lit parapet lip
+    all round and its shadow on the roof inside it."""
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            t = 0.5 * (xx - x) / w + 0.5 * (yy - y) / h + 0.05 * math.sin(xx * 0.05 + 1.1)
+            c.p(xx, yy, WHITE[0] if t < 0.22 else WHITE[1] if t < 0.62 else WHITE[2])
+    c.rect(x, y, w, 2, WHITE[0]); c.rect(x, y + 2, w, 1, CORAL[3])
+    c.rect(x, y, 2, h, WHITE[0]); c.rect(x + w - 2, y, 2, h, WHITE[2])
+    for k in range(4):
+        for xx in range(x + 2, x + w - 2):
+            fp.shade(c, xx, y + 3 + k, 0.26 * (1 - k / 4))
+        for yy in range(y + 3, y + h):
+            fp.shade(c, x + 2 + k, yy, 0.2 * (1 - k / 4))
+
+
+def seated(c, x, y, R, fn):
+    """A roof dome or vault sitting on the roof: its shadow cast down and to
+    the right first, a lime ring at its foot, then the solid."""
+    for yy in range(y - 2, y + round(R * so.K) + 4):
+        for xx in range(x - R + 2, x + R + 7):
+            if ((xx - x - 4) / (R + 2)) ** 2 + ((yy - y - 2) / (R * so.K + 2)) ** 2 <= 1:
+                fp.shade(c, xx, yy, 0.3)
+    so.lathe(c, x, y, [(0, R + 1.5), (2, R + 1.5)], CORAL)
+    fn()
+
+
 def swahili_mosque(spec=None, info=None):
+    """A coral-rag mosque of the coast, limewashed: Kilwa's hall roofed in
+    rows of little domes and fluted vaults, with the great fluted dome over
+    the extension; Lamu's flat roof behind stepped merlons; the pillar tomb
+    beside it. The mihrab's apse shows over the back of the roof."""
     s = {**dict(W=200, wall=54, depth=130, look='kilwa', bays=4, seed=5), **(spec or {})}
     W, wh, D, look = s['W'], s['wall'], s['depth'], s['look']
     extra = 70 if look == 'tomb' else 0
@@ -237,57 +274,67 @@ def swahili_mosque(spec=None, info=None):
     c = C(W + extra + 2 * L, base + 8)
     R = L + W
     wb = base - 4
-
-    def roof_top(c, x, y, w, h):
-        flat_roof(WHITE, 11, lit=0)(c, x, y, w, h)
-        for yy in range(y + 8, y + h - 4, 12):
-            for xx in range(x + 4, x + w - 4, 3):
-                c.p(xx, yy, WHITE[2])
-
-    so.box(c, L, wb, W, wh, D, coral_wall, roof_top)
     top = wb - wh
     roof_back = top - round(D * so.K)
+    cx = L + W // 2
+    apse = roof_back + wh + 4
+    so.lathe(c, cx, apse, [(0, 12), (wh, 12), (wh + 1, 13), (wh + 3, 13)], WHITE)
+    so.dome(c, cx, apse, 10, WHITE, z0=wh + 3, kind='hemi', courses=0, ribs=10)
+    so.box(c, L, wb, W, wh, D, coral_wall, lime_roof)
     if look == 'kilwa':
-        # rows of little domes and barrel vaults over the bays of the hall
-        rows = 3
+        rows = 2 if s['size'] == 'small' else 3
+        n = max(3, W // 36)
+        span = (top - roof_back - 16) / rows
         for j in range(rows):
-            y = roof_back + 12 + j * (top - roof_back - 14) // rows
-            n = max(3, W // 34)
+            y = round(roof_back + 14 + j * span + span / 2)
             for i in range(n):
                 x = round(L + (i + 0.5) * W / n)
-                if (i + j) % 2 and s['size'] != 'small':
-                    so.vault(c, x, y + 6, 11, 18, WHITE, rings=5)
-                else:
-                    so.dome(c, x, y + 6, 10, WHITE, courses=0)
+                if s['size'] == 'large' and j == rows - 1 and abs(x - cx) < W / n:
+                    continue
+                rr = 9 if (i + j) % 2 else 10
+                seated(c, x, y + 4, rr, lambda x=x, y=y, rr=rr: so.dome(c, x, y + 4, rr - 1, WHITE, courses=0,
+                                                                          ribs=0))
         if s['size'] == 'large':
-            so.dome(c, L + W // 2, top - 6, 20, WHITE, kind='hemi', courses=0, ribs=14, drum=4)
+            seated(c, cx, top - 10, 22, lambda: so.dome(c, cx, top - 10, 21, WHITE, z0=2, kind='hemi', courses=0,
+                                                         ribs=16, drum=5))
     else:
-        merlons(c, L, R, top + 1)
-        for xx in (L + 8, R - 14):
-            c.rect(xx, top + 4, 6, 3, CORAL[3]); c.rect(xx, top + 7, 2, 4, CORAL[4])
+        # the roof's coral-slab bays between the mangrove beams, each a seam of lime
+        for yy in range(roof_back + 16, top - 6, 16):
+            for xx in range(L + 4, R - 3):
+                c.p(xx, yy, WHITE[0]); c.p(xx, yy + 1, WHITE[2])
+        merlons(c, L + 2, R - 2, roof_back + 3)
+        merlons(c, L + 2, R - 2, top + 1)
+    for xx in range(L + 14, R - 10, 40):
+        if abs(xx - cx) > 20:
+            so.box(c, xx, top + 6, 3, 3, 8, CEDAR)
+            op.cast(c, xx, top + 6, 3, 3, 0.7)
+    for xx in range(L, R):
+        c.p(xx, top, WHITE[0])
+    for k in range(4):
+        for xx in range(L, R):
+            fp.shade(c, xx, top + 1 + k, 0.3 * (1 - k / 4))
 
-    # the arcade of the prayer hall's front
+    # the arcade of the prayer hall's front, its arches open on the lamplit hall
     bays = s['bays']
-    door_x = L + W // 2
     for i in range(bays):
         bx = round(L + (i + 0.5) * W / bays)
-        if abs(bx - door_x) < 18:
+        if abs(bx - cx) < 18:
             continue
         arch_door(c, bx, wb, 18, 42, CORAL, shape='pointed', leaf=False)
     if look == 'kilwa':
-        arch_door(c, door_x, wb, 22, 46, CORAL, shape='pointed')
+        arch_door(c, cx, wb, 22, 46, CORAL, shape='pointed')
         dh = 46
     else:
-        carved_door(c, door_x, wb, 24, 48)
+        carved_door(c, cx, wb, 24, 48)
         dh = 48
     # the cistern and its step by the door, where the town washes
-    so.box(c, door_x + 18, base + 2, 22, 7, 12, WHITE)
-    c.rect(door_x + 20, base - 12, 18, 2, ramp(220, 0.06, lift=-0.18)[3])
+    so.box(c, cx + 18, base + 2, 22, 7, 12, WHITE)
+    c.rect(cx + 20, base - 12, 18, 2, ramp(220, 0.06, lift=-0.18)[3])
     so.box(c, L - 6, base + 2, W + 12, 3, 8, WHITE)
     if look == 'tomb':
         pillar_tomb(c, R + 40, base + 2, 84 if s['size'] != 'large' else 104)
     ground_shadow(c, L - 6, R + extra, base + 2)
-    return complete(c, info, L - 6, W + 12 + extra, base + 2, door_x, dh, D + 10, roof='flat')
+    return complete(c, info, L - 6, W + 12 + extra, base + 2, cx, dh, D + 10, roof='flat')
 
 
 # ------------------------------------------------------------------ pharaonic Egypt
