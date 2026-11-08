@@ -83,6 +83,7 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_eave.py` | The eave-front house: roof band, hips, eaves, ridges, dormers, stacks, lean-to |
 | `scripts/art/front_houses.py` | Pre-industrial European house families as specs; family and street A/B sheets |
 | `scripts/art/front_solid.py` | The projection kit: `box` (face and top), `lathe` (any round solid: domes, pots, wells, basins), `vault`, `recess` (pools, courts); one light, K = 0.5 |
+| `scripts/art/front_stepped.py` | Stepped stone: coursed and fitted masonry in value bands, paving and gravel from above, tiered platforms and pyramids, stairs with balustrades; `step_rect` shades by stepping along a ramp |
 | `scripts/art/front_props.py` | Shared props on that kit: trees, shrubs, hedges, planters, fountains, wells, pools, the pot family, benches |
 | `scripts/art/front_goods.py` | Shop interiors as bays: back wall, floor, fittings (oven, shelves, rack, counter) carrying goods; one oven makes a Roman or a medieval bakery |
 | `scripts/art/front_roman.py` | Casa, insula, shop row, domus (mitred hipped roof round the atrium), temple (4 to 8 columns) |

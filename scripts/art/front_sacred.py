@@ -24,7 +24,7 @@ from art import front_parts as fp  # noqa: E402
 from art.front_kit import finish, consolidate  # noqa: E402
 from art.front_style import FIGURE  # noqa: E402
 
-GROUPS = ('christian', 'southasia', 'seasia', 'africa', 'world')
+GROUPS = ('christian', 'southasia', 'seasia', 'africa', 'world', 'americas')
 VOID = (36, 28, 38, 255)
 GOLD = fp.GOLD
 WOOD = RAMPS['oak']
@@ -190,6 +190,11 @@ def game_recipes(recipes):
             'frontAncient': ('sacred', dict(kind=kind, spec=spec, group=group_of(builders))),
             'footprint': [fw, fh], 'entrance': [door, fh], 'height': im.height,
             'roof': spec.get('roof', 'gable')}
+    for m in modules():
+        for name, (kind, spec) in getattr(m, 'HALLS', {}).items():
+            if name in recipes:
+                recipes[name] = {**recipes[name], 'front': True,
+                                 'frontAncient': ('sacred', dict(kind=kind, spec=spec, group=m.__name__.split('_')[-1]))}
 
 
 def builder(spec, info):
@@ -206,7 +211,7 @@ def faults(groups=None):
     for name, recipe, scale, look, kind, spec, builders in entries(groups):
         im, info = paint(kind, spec, builders)
         out += image_faults(name, im)
-        if not info.get('doorless') and info['door_h'] < FIGURE:
+        if not info.get('doorless') and not info.get('summit_door') and info['door_h'] < FIGURE:
             out.append(f'{name}: door {info["door_h"]}px is shorter than the {FIGURE}px adult')
     return out
 
@@ -216,8 +221,14 @@ def studies():
     from types import SimpleNamespace
     for name, recipe, scale, look, kind, spec, builders in entries():
         im, info = paint(kind, spec, builders)
+        # A shrine's door on a pyramid's summit is drawn to the shrine, not the street.
         yield (name, im, SimpleNamespace(roof_span=(0, im.width), stacks=[]),
-               None if info.get('doorless') else info['door_h'], [])
+               None if info.get('doorless') or info.get('summit_door') else info['door_h'], [])
+    for m in modules():
+        for name, (kind, spec) in getattr(m, 'HALLS', {}).items():
+            info = {}
+            im = m.BUILDERS[kind](dict(spec), info)
+            yield name, im, SimpleNamespace(roof_span=(0, im.width), stacks=[]), None, []
 
 
 def sheet(out, groups=None, zoom=2):

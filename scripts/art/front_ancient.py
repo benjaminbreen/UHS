@@ -361,6 +361,7 @@ class FrontAncientPainter:
         self.door_ground = info.get('door_base', info['base']) + 1
         self.no_door = info.get('doorless', False)
         self.smoke = info.get('smoke')
+        self.overlays = info.get('overlays')
         self.door_leaf = info.get('leaf', True)
         night = info.get('night')
         self.night = night if night is not None and night.getbbox() else lit(im)
