@@ -23,6 +23,7 @@ from art.front_materials import C, RAMPS, ramp, mix, h2  # noqa: E402
 from art import front_openings as op  # noqa: E402
 from art import front_parts as fp  # noqa: E402
 from art import front_solid as so  # noqa: E402
+from art import front_stepped as st  # noqa: E402
 from art import front_persian as persia  # noqa: E402
 from art.front_sacred import complete, arch_door, steps, cone, flag, ground_shadow, VOID, GOLD  # noqa: E402
 
@@ -39,7 +40,6 @@ GYPSUM = ramp(85, 0.022, lift=0.04)
 DARK_LIME = ramp(250, 0.015, lift=-0.2)
 CREAM = ramp(78, 0.06, lift=0.03)
 MANGALORE = ramp(36, 0.13, lift=-0.04)
-LAVA = ramp(28, 0.018, lift=-0.16)
 CORAL = ramp(82, 0.03, lift=0.02)
 KAPA = ramp(88, 0.02, lift=0.06)
 KOKOWAI = ramp(26, 0.14, lift=-0.1)
@@ -519,12 +519,6 @@ def agiary(spec=None, info=None):
 
 # ------------------------------------------------------------------ Polynesia
 
-def lava_platform(c, x, base, w, h, D, r=LAVA, top=None):
-    """Dry-laid stones: the face rubble, the top paved with smaller stones."""
-    return so.box(c, x, base, w, h, D, lambda c, xx, yy, ww, hh: fm.rubble(c, xx, yy, ww, hh, r, r),
-                  top or (lambda c, xx, yy, ww, hh: pebbles(c, xx, yy, ww, hh, r)))
-
-
 def pebbles(c, x, y, w, h, r):
     for yy in range(y, y + h):
         for xx in range(x, x + w):
@@ -533,109 +527,264 @@ def pebbles(c, x, y, w, h, r):
     c.rect(x, y, w, 1, r[1])
 
 
-def hale(c, cx, base, w, h, tone=THATCH):
-    """A small thatched house on the platform: a steep hipped roof that is
-    nearly all of it, the low wall of lashed poles under it."""
-    so.box(c, cx - w // 2, base, w, h // 3, 10, TOTARA)
-    for xx in range(cx - w // 2, cx + w // 2, 3):
-        c.rect(xx, base - h // 3, 1, h // 3, TOTARA[5])
-    fp.roof_band(c, cx - w // 2 - 4, cx + w // 2 + 4, base - h // 3 + 2, h - h // 3, 'thatch', tone, hip=0.55)
+# Hawaiian basalt and ʻōhiʻa wood, Tahitian coral limestone.
+LAVA = ramp(40, 0.024, lift=-0.09)
+OHIA = ramp(38, 0.08, lift=-0.1)
+PILI = [THATCH[7], THATCH[6], THATCH[5], THATCH[3], THATCH[2], THATCH[1]]
+BANANA = ramp(95, 0.13, lift=0.04)
+LEAF = ramp(140, 0.1, lift=-0.06)
+PIG = ramp(30, 0.05, lift=-0.08)
 
 
-def kii(c, x, base, h, r=TOTARA):
-    """A carved image on its post: the crested head, the gaping mouth, arms
-    on the belly, the legs bent."""
-    c.rect(x, base - h, 6, h, r[3])
-    c.rect(x, base - h, 2, h, r[2]); c.rect(x + 5, base - h, 1, h, r[5])
-    ht = base - h
-    for k in range(4):
-        c.rect(x - 1 + k // 2, ht - 3 - k * 2, 8 - k, 2, r[2 if k % 2 else 3])
-    c.rect(x + 1, ht + 4, 4, 2, VOID)
-    c.p(x + 1, ht + 1, r[6]); c.p(x + 4, ht + 1, r[6])
-    c.rect(x - 1, ht + 9, 8, 2, r[2]); c.rect(x, ht + 14, 6, 1, r[5])
+def basalt_face(c, x, y, w, h, q=3, seed=0):
+    st.coursed(c, x, y, w, h, LAVA, q=q, course=6, block=13, seed=seed, fitted=True)
+    st.ends(c, x, y, w, h, LAVA)
 
 
-def anuu(c, cx, base, h, w=18):
+def platform(c, cx, base, plan, top, seed=0):
+    """Dry-laid basalt in battered courses: each course a fitted face, the
+    ledge above it lit; the last tier's top painted by top(c, x, y, w, h)."""
+    def face_k(c, x, y, w, h, k):
+        basalt_face(c, x, y, w, h, q=3 if k else 4, seed=seed + k)
+
+    def top_k(c, x, y, w, h, k):
+        if k == len(plan) - 1 or h > 6:
+            top(c, x, y, w, h)
+        else:
+            c.rect(x, y, w, h, LAVA[1])
+            c.rect(x, y + h - 1, w, 1, LAVA[0])
+    return st.tiers(c, cx, base, plan, face_k, top_k, shadow=LAVA)
+
+
+def iliili(c, x, y, w, h):
+    st.gravel(c, x, y, w, h, LAVA, q=1, quiet=True)
+    c.rect(x, y + h - 1, w, 1, LAVA[0])
+
+
+def stone_stair(c, cx, foot, head, w, r=LAVA):
+    st.stair(c, cx, foot, head, w, r, q=2, rise=4)
+    for yy in range(head, foot):
+        c.p(cx - w // 2 - 1, yy, r[5]); c.p(cx + w // 2, yy, r[6])
+
+
+def hale(c, cx, base, w, seed=0):
+    """A thatched house: walls of lashed pili grass, a steep hipped roof
+    that is most of it, the door a low dark opening."""
+    from art.front_meso import thatch
+    wh = 13
+    x0 = cx - w // 2
+    for yy in range(base - wh, base):
+        for xx in range(x0 + 2, x0 + w - 2):
+            k = 3 if (xx - x0) % 3 else 4
+            if xx > x0 + w - 8:
+                k += 1
+            if (base - yy) in (4, 9):
+                k = 2
+            c.p(xx, yy, THATCH[k])
+    dx = cx - 4
+    c.rect(dx, base - 11, 9, 11, VOID)
+    c.rect(dx - 1, base - 12, 11, 1, OHIA[2])
+    thatch(c, x0, x0 + w, base - wh, round(w * 0.5), round(w * 0.22), PILI, seed)
+    fp.cast_down(c, x0 + 2, x0 + w - 2, base - wh + 3, 2, 0.3)
+
+
+KII = ('...ab....',
+       '..aabc...',
+       '.aabbbc..',
+       '.abbbbcc.',
+       'aabbbbbcc',
+       '.abbbbbc.',
+       '..abbbc..',
+       '.aabbbcc.',
+       'abdbbbdbc',
+       'abbbbbbbc',
+       'abddddddc',
+       'abdbbbbdc',
+       'abddddddc',
+       '.abbbbbc.',
+       '..abbbc..',
+       '.aabbbcc.',
+       'aab.b.bcc',
+       'ab.abc.cc',
+       'ab.abc.cc',
+       '.a.abc.c.',
+       '...abc...',
+       '..aabcc..',
+       '.ab...bc.',
+       'ab.....bc',
+       'aab...bcc')
+
+
+def kii(c, x, base, h, r=OHIA, flip=False):
+    """A carved image (kiʻi akua) on its post: the tall crest, the gaping
+    figure-eight mouth, arms bent, knees bent."""
+    post = max(0, h - len(KII))
+    c.rect(x + 1, base, 8, 1, LAVA[5])
+    st.glyph(c, x, base - h, KII, {'a': r[1], 'b': r[3], 'c': r[5], 'd': VOID}, flip)
+    c.rect(x + 3, base - post, 3, post, r[3])
+    c.rect(x + 3, base - post, 1, post, r[2]); c.rect(x + 5, base - post, 1, post, r[5])
+
+
+def lele(c, x, base, w=16, h=24):
+    """The offering stand: a platform of poles on four posts, a pig, a
+    bunch of bananas and a coconut laid on it."""
+    for px in (x, x + w - 2):
+        c.rect(px + 3, base - h - 4, 2, h, OHIA[4])
+    for px in (x, x + w - 2):
+        c.rect(px, base - h, 2, h, OHIA[2]); c.p(px + 1, base - 1, OHIA[4])
+    c.rect(x - 1, base - h - 2, w + 6, 3, OHIA[3]); c.rect(x - 1, base - h - 2, w + 6, 1, OHIA[1])
+    st.glyph(c, x + 1, base - h - 7, ('..aabb...e', '.abbbbbc.f', 'abbbbbbbcf', '.cc..cc...'),
+             {'a': PIG[3], 'b': PIG[5], 'c': PIG[6], 'e': LEAF[2], 'f': LEAF[4]})
+    st.glyph(c, x + w - 3, base - h - 7, ('ab.', 'aab', 'abb', 'bbc'), {'a': BANANA[1], 'b': BANANA[3], 'c': BANANA[5]})
+
+
+def anuu(c, cx, base, h, w=22):
     """The oracle tower: a tapering frame of poles sheathed in white kapa,
-    three floors, open at the very top."""
-    for yy in range(base - h, base):
+    three floors, the frame open at the very top."""
+    open_h = h // 6
+    body = h - open_h
+    for yy in range(base - body, base):
         t = (base - yy) / h
-        hw = w / 2 * (1 - 0.45 * t)
-        for xx in range(round(cx - hw), round(cx + hw) + 1):
-            u = (xx - cx) / max(hw, 1)
-            q = 1 if u < -0.4 else 2 if u < 0.3 else 3
-            if (base - yy) % (h // 3) in (0, 1):
+        hw = round(w / 2 * (1 - 0.4 * t))
+        L, R = cx - hw, cx + hw
+        floor = (base - yy) % (body // 3)
+        for xx in range(L, R + 1):
+            u = (xx - L) / max(1, R - L)
+            q = 0 if u < 0.3 else 1 if u < 0.68 else 3
+            if floor == 0:
                 q = 5
+            elif floor == 1:
+                q = max(0, q - 1)
             c.p(xx, yy, KAPA[q])
-        c.p(round(cx - hw) - 1, yy, TOTARA[3]); c.p(round(cx + hw) + 1, yy, TOTARA[5])
-    for k in range(6):
-        c.p(cx - 5 + k * 2, base - h - 2 - (k % 2), TOTARA[2])
-    c.rect(cx - 6, base - h - 1, 13, 1, TOTARA[4])
+        c.p(L - 1, yy, OHIA[2]); c.p(R + 1, yy, OHIA[4])
+    top = base - h
+    hw = round(w / 2 * 0.6)
+    for xx in (cx - hw - 1, cx - 1, cx + hw):
+        c.rect(xx, top, 2, open_h, OHIA[2] if xx < cx else OHIA[4])
+    for yy in (top, top + open_h // 2):
+        c.rect(cx - hw - 2, yy, 2 * hw + 4, 1, OHIA[3])
+    for k in range(3):
+        c.p(cx - hw - 1 + k * hw, top - 2, OHIA[1]); c.p(cx - hw - 1 + k * hw, top - 1, OHIA[2])
+
+
+def fence(c, x0, x1, y, h=20, gap=4):
+    """A fence of ʻōhiʻa poles, a lashed rail across them near the top."""
+    for x in range(x0, x1, gap):
+        c.rect(x, y - h, 2, h, OHIA[3]); c.p(x, y - h, OHIA[1]); c.p(x + 1, y - h, OHIA[2])
+        c.rect(x, y - h + 1, 1, h - 1, OHIA[2])
+    c.rect(x0 - 1, y - h + 4, x1 - x0 + 1, 2, OHIA[4]); c.rect(x0 - 1, y - h + 4, x1 - x0 + 1, 1, OHIA[2])
 
 
 def heiau(spec=None, info=None):
+    """The heiau as Webber and the early missionaries drew it: a platform
+    of fitted basalt, its top paved with water-worn stones, a pole fence
+    round the court, the thatched house of the priests, and on the luakini
+    the white oracle tower with the carved images before it."""
     s = {**dict(form='luakini', W=220, depth=150), **(spec or {})}
     W, D = s['W'], s['depth']
     luakini = s['form'] == 'luakini'
-    c = C(W + 40, 240 if luakini else 170)
+    c = C(W + 40, 236 if luakini else 170)
     x0, base = 20, c.h - 6
     cx = x0 + W // 2
     if luakini:
-        fy, ty = lava_platform(c, x0, base, W, 26, 96)
-        mid = (fy + ty) // 2
-        if s.get('tower', True):
-            anuu(c, x0 + W - 50, mid + 4, 112, 22)
-        hale(c, x0 + 66, ty + 18, 92, 66)
-        for xx in range(x0 + 8, x0 + W - 8, 6):
-            c.rect(xx, fy - 16, 2, 18, TOTARA[3]); c.p(xx, fy - 17, TOTARA[1])
-        c.rect(x0 + 6, fy - 12, W - 12, 2, TOTARA[2])
-        for k in range(5):
-            kii(c, x0 + 16 + k * (W - 38) // 4, fy + 2, 40 - (k % 2) * 6)
+        out = platform(c, cx, base, [(W, 14, 3), (W - 6, 12, 3), (W - 12, 11, 56)], iliili, seed=3)
     else:
-        fy, ty = lava_platform(c, x0, base, W, 16, 80)
-        fy2, ty2 = lava_platform(c, x0 + 24, fy - 6, W - 48, 16, 50)
-        hale(c, cx - 14, ty2 + 14, 74, 54)
-        for k in range(2):
-            kii(c, x0 + 12 + k * (W - 30), fy + 2, 34)
-        so.box(c, cx + 40, ty2 + 20, 10, 6, 8, CORAL)
-    # the stone ramp up the front
-    for k in range(4):
-        c.rect(cx - 14 + k, base - 4 - k * 4 - 4, 28 - 2 * k, 4, LAVA[2 + k % 2])
+        out = platform(c, cx, base, [(W, 13, 3), (W - 6, 11, 30), (W - 70, 12, 3), (W - 76, 10, 36)],
+                       iliili, seed=5)
+    tx, fy, tw, th, tt = out[-1]
+    if luakini:
+        fence(c, tx + 4, tx + tw - 4, tt + 10, 22)
+        hale(c, tx + 50, tt + 34, 74, seed=2)
+        ax = tx + tw - 46
+        if s.get('tower', True):
+            anuu(c, ax, tt + 30, 104 + (W - 210) // 4, 24)
+        lele(c, ax - 44, tt + 38)
+        for k, (dx, hh) in enumerate(((-30, 30), (-14, 34), (14, 34), (30, 30))):
+            kii(c, ax + dx - 4, fy - 2, hh, flip=dx > 0)
+    else:
+        lx, lfy, lw, lh, lt = out[1]
+        fence(c, tx + 4, tx + tw - 4, tt + 8, 18)
+        hale(c, cx - 6, tt + 30, 64, seed=4)
+        lele(c, x0 + 22, lfy - 4, 14, 20)
+        for xx, fl in ((x0 + 8, False), (x0 + W - 18, True)):
+            kii(c, xx, lfy - 2, 34, flip=fl)
+    stone_stair(c, cx, base, out[-1][1] if not luakini else fy, 22)
     ground_shadow(c, x0, x0 + W, base)
     return complete(c, info, x0, W, base, cx, 40, D, doorless=True, roof='flat')
 
 
 def unu(c, x, base, h, r=TOTARA):
-    """A carved board: a plank with notched sides and a bird on its top."""
-    c.rect(x, base - h, 5, h, r[3])
-    c.rect(x, base - h, 1, h, r[1])
-    for k in range(base - h + 4, base - 4, 6):
-        c.p(x + 4, k, r[6]); c.p(x, k + 3, r[5])
-    c.rect(x - 2, base - h - 3, 9, 3, r[2]); c.p(x + 6, base - h - 4, r[1]); c.p(x - 2, base - h - 4, r[4])
+    """A carved board (unu) on the ahu: a broad plank cut through in
+    notches and lozenges, a bird standing on its top."""
+    w = 7
+    c.rect(x, base - h, w, h, r[3])
+    c.rect(x, base - h, 1, h, r[1]); c.rect(x + w - 1, base - h, 1, h, r[5])
+    for k in range(base - h + 4, base - 6, 6):
+        st.glyph(c, x, k, ('a.....c', 'ab.d.cc', 'a.....c'), {'a': r[2], 'b': r[1], 'c': r[5], 'd': VOID})
+    st.glyph(c, x - 2, base - h - 6, ('....ab...', '..aabbc..', '.abbbbbcc', 'ab.bbc...', '...c.c...', '..rrrrr..'),
+             {'a': r[1], 'b': r[3], 'c': r[5], 'r': r[4]})
+
+
+def coral_face(c, x, y, w, h, q=2, seed=0):
+    st.coursed(c, x, y, w, h, CORAL, q=q, course=5, block=15, seed=seed, foot=0)
+    st.ends(c, x, y, w, h, CORAL)
+
+
+def backrest(c, x, base, h, r=LAVA):
+    """An upright stone in the court where a chief or priest sat: a slab
+    lit on its face and top, its shadow on the paving to the right."""
+    st.glyph(c, x, base - h, ('.aab.', 'abbbc') + ('abbbc',) * (h - 3) + ('bbbcc',),
+             {'a': r[0], 'b': r[2], 'c': r[4]})
+    c.rect(x + 5, base - 3, 3, 3, r[3]); c.rect(x + 1, base, 6, 1, r[4])
+
+
+def court(c, x, y, w, h):
+    """The court seen from above: big basalt flags, a kerb of the low wall
+    round its sides and back."""
+    st.paving(c, x, y, w, h, LAVA, q=3, slab=19, row=5, seed=4, lip=False)
+    for xx, ww in ((x, 4), (x + w - 4, 4)):
+        c.rect(xx, y, ww, h, LAVA[2]); c.rect(xx, y, 1, h, LAVA[0] if xx == x else LAVA[1])
+    c.rect(x, y, w, 3, LAVA[2]); c.rect(x, y, w, 1, LAVA[0])
+    c.rect(x, y + h - 2, w, 2, LAVA[1]); c.rect(x, y + h - 1, w, 1, LAVA[0])
 
 
 def marae(spec=None, info=None):
+    """The Society Islands marae: a paved court inside a low stone wall,
+    the ahu across its back stepped up in squared coral blocks on a basalt
+    footing, carved unu boards along its top, upright stones in the court
+    where chiefs and priests sat, and the offering stand."""
     s = {**dict(W=220, depth=170, tiers=5), **(spec or {})}
     W, D = s['W'], s['depth']
-    c = C(W + 40, 140 + s['tiers'] * 11)
+    n = s['tiers']
+    c = C(W + 40, 112 + n * 13)
     x0, base = 20, c.h - 6
     cx = x0 + W // 2
-    # the court: a low enclosing wall, the paving seen from above
-    fy, ty = so.box(c, x0, base, W, 8, min(D, 130), lambda c, x, y, ww, hh: fm.rubble(c, x, y, ww, hh, LAVA, LAVA),
-                    lambda c, x, y, ww, hh: pebbles(c, x, y, ww, hh, LAVA))
-    # the ahu at the back, stepped, dressed coral facing
-    aw, tiers = W - 40, s['tiers']
-    by = ty + 24
-    for k in range(tiers):
-        tw = aw - k * (aw // (tiers + 2))
-        so.box(c, cx - tw // 2, by - k * 11, tw, 11, 14, lambda c, x, y, ww, hh: fm.ashlar(c, x, y, ww, hh, CORAL, 11, 16),
-               CORAL)
+    deep = min(D, 140) // 3
+    st.tiers(c, cx, base, [(W, 8, deep)],
+             lambda c, x, y, w, h, k: basalt_face(c, x, y, w, h, q=3, seed=1),
+             lambda c, x, y, w, h, k: court(c, x, y, w, h))
+    ty = base - 8 - deep
+    aw = W - 44
+    plan = [(aw, 6, 2)] + [(aw - 8 - k * (aw // (n + 3)), 9, 3 if k < n - 1 else 7) for k in range(n)]
+
+    def face(c, x, y, w, h, k):
+        if k == 0:
+            basalt_face(c, x, y, w, h, q=4, seed=9)
+        else:
+            coral_face(c, x, y, w, h, q=3, seed=k)
+
+    def top(c, x, y, w, h, k):
+        r = CORAL if k else LAVA
+        c.rect(x, y, w, h, r[1])
+        c.rect(x, y + h - 1, w, 1, r[0])
+    ahu = st.tiers(c, cx, ty + 12, plan, face, top, shadow=CORAL)
+    tx, fy, tw, th, tt = ahu[-1]
     for k in range(4):
-        unu(c, cx - aw // 2 + 14 + k * (aw - 28) // 3, by + 16, 34 + (k % 2) * 6)
-    # upright backrests of the chiefs and priests in the court
-    for k, (dx, dy) in enumerate(((-60, 30), (-24, 38), (30, 34), (66, 28))):
-        if abs(dx) < W // 2 - 10:
-            so.box(c, cx + dx, ty + dy + 10, 5, 12 + (k % 2) * 4, 3, LAVA)
+        unu(c, tx + 6 + k * (tw - 19) // 3, tt + 5, 26 + (k % 2) * 6)
+    for fx, dy, hh in ((0.12, 22, 13), (0.26, 30, 11), (0.74, 30, 12), (0.88, 22, 11)):
+        backrest(c, x0 + round(W * fx), ty + dy, hh)
+    lele(c, x0 + W - 34, ty + deep - 4, 14, 20)
+    stone_stair(c, cx, base, base - 8, 20)
     ground_shadow(c, x0, x0 + W, base)
     return complete(c, info, x0, W, base, cx, 40, D, doorless=True, roof='flat')
 

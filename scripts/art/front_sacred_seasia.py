@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from art import front_materials as fm  # noqa: E402
 from art.front_materials import C, RAMPS, ramp  # noqa: E402
 from art import front_solid as so  # noqa: E402
+from art import front_stepped as st  # noqa: E402
 from art import front_parts as fp  # noqa: E402
 from art.front_sacred import complete, steps, ground_shadow, VOID  # noqa: E402
 
@@ -379,76 +380,190 @@ def tiered_tower(c, cx, foot, w, tiers, r, bud=True, horns=False, ratna=False, s
     return y
 
 
-def prasat(c, cx, base, w, h_body, r, door=False, look=0):
-    so.box(c, cx - w // 2 - 3, base, w + 6, 6, w * 0.6, r)
-    fy = base - 6
-    face(c, cx - w // 2, fy - h_body, w, h_body, r, 2)
-    for px in (cx - w // 2 + 3, cx + w // 2 - 7):
-        c.rect(px, fy - h_body, 4, h_body, r[1 if px < cx else 3])
-    dw = max(10, w // 3)
-    c.rect(cx - dw // 2 - 3, fy - h_body + 6, dw + 6, h_body - 6, r[1])
-    c.rect(cx - dw // 2, fy - h_body + 12, dw, h_body - 12, VOID if door else r[4])
-    if not door:
-        for yy in range(fy - h_body + 14, fy - 2, 4):
-            c.rect(cx - dw // 2 + 2, yy, dw - 4, 1, r[5])
-    for k in range(5):
-        c.rect(cx - dw // 2 - 3 + k, fy - h_body + 6 - k * 2, dw + 6 - 2 * k, 2, r[1 if k % 2 else 2])
-    band(c, cx - w // 2 - 2, fy - h_body - 3, w + 4, r, (0, 1, 3))
-    return tiered_tower(c, cx, fy - h_body - 3, w, 5, r, step=0.15, th=max(9, w // 4))
+def redent(c, x, y, w, h, r):
+    """A redented wall square on: the corner pilasters a step lit on the
+    left and a step shaded on the right, each re-entrant angle a dark line."""
+    st.step_rect(c, x, y, 3, h, r, -1)
+    st.step_rect(c, x + 3, y, 1, h, r, 2)
+    st.step_rect(c, x + w - 4, y, 1, h, r, 2)
+    st.step_rect(c, x + w - 3, y, 3, h, r, 1)
+    st.step_rect(c, x + w - 1, y, 1, h, r, 1)
 
 
-def gopura(c, cx, base, w, r, roof_r, wall_w):
-    """The gateway in the enclosure: galleries either side, a cross-shaped
-    stone roof in ribbed courses, the door under a pediment."""
-    gh = 52
-    c.rect(cx - wall_w // 2, base - 30, wall_w, 30, r[3])
-    for yy in range(base - 26, base, 5):
-        c.rect(cx - wall_w // 2, yy, wall_w, 1, r[4])
-    band(c, cx - wall_w // 2, base - 33, wall_w, r, (1, 2, 4))
-    face(c, cx - w // 2, base - gh, w, gh, r, 2)
-    rr = roof_r
-    for j in range(16):
-        hw = w // 2 + 3 - j * 2
+def cornice(c, x, y, w, r):
+    """A moulding jutting from the wall: lit top, its face, a dark lip, and
+    its shadow a step down the wall under it."""
+    st.step_rect(c, x + 2, y + 4, w - 4, 2, r, 2)
+    c.rect(x, y, w, 1, r[0]); c.rect(x, y + 1, w, 2, r[2]); c.rect(x, y + 3, w, 1, r[5])
+    c.rect(x + w - 2, y + 1, 2, 2, r[4])
+
+
+def flame_pediment(c, cx, y, half, r, rows=None):
+    """A fronton over a door: nested pointed frames rising to a flame,
+    each frame lit on its left limb."""
+    rows = rows or half
+    for j in range(rows):
+        hw = round(half * (1 - j / rows) ** 0.8)
+        if hw < 1:
+            break
         for xx in range(cx - hw, cx + hw):
-            c.p(xx, base - gh - j, rr[3 if (xx - cx) % 4 else 5] if xx < cx + hw - 4 else rr[5])
-    c.rect(cx - w // 2 - 3, base - gh, w + 6, 2, rr[1])
-    for k in range(4):
-        c.rect(cx - 13 + k * 2, base - 46 - k * 3, 26 - k * 4, 3, r[1 if k % 2 else 2])
-    c.rect(cx - 13, base - 44, 26, 44, r[1])
-    c.rect(cx - 11, base - 42, 22, 42, VOID)
-    fp.cast_down(c, cx - w // 2, cx + w // 2, base - gh + 1, 3, 0.3)
-    return 42
+            edge = xx < cx - hw + 2 or xx >= cx + hw - 2
+            q = (1 if xx < cx else 4) if edge else 2 if (j + 1) % 3 else 3
+            c.p(xx, y - j, r[q])
+    c.p(cx, y - rows, r[1]); c.p(cx - 1, y - rows + 1, r[1])
 
 
-KHMER = {0: (SAND_GREY, LATERITE), 1: (SAND_PINK, LATERITE), 2: (BRICK, LATERITE)}
+def portal(c, cx, base, dw, dh, r, door=True):
+    """A doorway in a projecting frame: colonnettes either side lit on
+    their left, the lintel, a flame fronton over it; dark if it is a real
+    door, else carved false leaves."""
+    fx = cx - dw // 2 - 4
+    c.rect(fx, base - dh - 4, dw + 8, dh + 4, r[1])
+    c.rect(fx + dw + 6, base - dh - 4, 2, dh + 4, r[4])
+    for px in (cx - dw // 2 - 3, cx + dw // 2 + 1):
+        c.rect(px, base - dh, 2, dh, r[0]); c.rect(px + 1, base - dh, 1, dh, r[3])
+    if door:
+        c.rect(cx - dw // 2, base - dh, dw, dh, VOID)
+        c.rect(cx - dw // 2, base - dh, dw, 2, r[6])
+    else:
+        c.rect(cx - dw // 2, base - dh, dw, dh, r[3])
+        c.rect(cx, base - dh, 1, dh, r[5])
+        for yy in range(base - dh + 3, base - 2, 4):
+            c.rect(cx - dw // 2 + 1, yy, dw - 2, 1, r[4])
+    c.rect(fx - 1, base - dh - 5, dw + 10, 2, r[0])
+    flame_pediment(c, cx, base - dh - 6, dw // 2 + 5, r, rows=dw // 2 + 6)
+
+
+def antefix(c, x, y, r):
+    st.glyph(c, x, y - 5, ('.a.', 'aab', 'abc', 'abc', 'bbc'), {'a': r[0], 'b': r[2], 'c': r[4]})
+
+
+def corncob(c, cx, foot, w, tiers, r, th):
+    """The prasat's tower: false storeys narrowing on an ogee to a lotus bud;
+    each lit left and shaded right, its ledge lit with a dark joint under,
+    a niche at its middle, antefixes at its corners."""
+    y, fixes = foot, []
+    for k in range(tiers):
+        t = k / tiers
+        ww = round(w * (1 - 0.52 * t ** 1.2))
+        h = max(5, round(th * (1 - 0.09 * k)))
+        x = cx - ww // 2
+        for xx in range(x, x + ww):
+            u = (xx - x) / ww
+            c.rect(xx, y - h, 1, h, r[1 if u < 0.2 else 2 if u < 0.6 else 3 if u < 0.86 else 4])
+        c.rect(x, y - 1, ww, 1, r[5])
+        c.rect(x - 1, y - h, ww + 2, 1, r[0])
+        c.rect(cx - 2, y - h + 2, 4, h - 4, r[4]); c.rect(cx - 2, y - h + 2, 4, 1, r[5])
+        fixes += [(x - 1, y - h), (x + ww - 2, y - h)]
+        y -= h
+    for fx, fy in fixes:
+        antefix(c, fx, fy, r)
+    bud = round(w * 0.42)
+    so.lathe(c, cx, y + 2, [(0, w * 0.2), (bud * 0.25, w * 0.24), (bud * 0.7, w * 0.13), (bud, 0.6)], r,
+             courses=3)
+    return y - bud
+
+
+def prasat(c, cx, base, w, h, r, door=False, tiers=5):
+    """A sanctuary tower: plinth, redented body with its portal, cornice,
+    then the corncob."""
+    so.box(c, cx - w // 2 - 4, base, w + 8, 5, 18, r)
+    fy = base - 5
+    x = cx - w // 2
+    st.coursed(c, x, fy - h, w, h, r, q=2, course=5, block=11, foot=0, seed=w)
+    redent(c, x, fy - h, w, h, r)
+    portal(c, cx, fy, max(10, w // 3), min(h - 10, 30), r, door)
+    cornice(c, x - 2, fy - h - 4, w + 4, r)
+    return corncob(c, cx, fy - h - 4, w - 2, tiers, r, max(8, w // 4))
+
+
+def gallery(c, x, base, w, h, r):
+    """The enclosing gallery: a wall of courses pierced by windows of turned
+    balusters, under a stone roof corbelled in lit and shaded courses."""
+    st.coursed(c, x, base - h, w, h, r, q=3, course=5, block=14, seed=3)
+    for wx in range(x + 6, x + w - 12, 14):
+        c.rect(wx, base - h + 7, 8, 11, VOID)
+        c.rect(wx - 1, base - h + 6, 10, 1, r[1]); c.rect(wx - 1, base - h + 18, 10, 1, r[1])
+        for bx in range(wx + 1, wx + 8, 2):
+            c.rect(bx, base - h + 7, 1, 11, r[2])
+    st.ends(c, x, base - h, w, h, r)
+    for j, q in enumerate((5, 3, 2, 3, 1, 2, 0)):
+        c.rect(x - 2 + j // 3, base - h - 1 - j, w + 4 - 2 * (j // 3), 1, r[q])
+
+
+def gopura(c, cx, base, w, r, wall_w):
+    """The gateway in the enclosure: galleries either side, the gate's body
+    with its portal, its roof stepped in three stages to a lotus."""
+    gallery(c, cx - wall_w // 2, base, wall_w, 24, r)
+    gh = 44
+    x = cx - w // 2
+    st.coursed(c, x, base - gh, w, gh, r, q=2, course=5, block=11, seed=5)
+    redent(c, x, base - gh, w, gh, r)
+    portal(c, cx, base, 20, 38, r, True)
+    y = base - gh
+    for k in range(2):
+        ww = w + 4 - k * 12
+        cornice(c, cx - ww // 2, y - 4, ww, r)
+        y -= 4
+        ww -= 6
+        for xx in range(cx - ww // 2, cx + ww // 2):
+            u = (xx - cx + ww // 2) / ww
+            c.rect(xx, y - 7, 1, 7, r[1 if u < 0.25 else 2 if u < 0.65 else 3])
+        y -= 7
+    so.lathe(c, cx, y + 2, [(0, 3), (2, 4), (6, 2), (9, 0.5)], r, courses=3)
+    return 38
+
+
+def laterite_face(c, x, y, w, h, lat, r, seed=0):
+    st.coursed(c, x, y + 3, w, h - 3, lat, q=3, course=6, block=15, seed=seed)
+    st.ends(c, x, y + 3, w, h - 3, lat)
+    c.rect(x, y, w, 1, r[0]); c.rect(x, y + 1, w, 1, r[2]); c.rect(x, y + 2, w, 1, r[4])
+
+
+KH_SAND = ramp(70, 0.042, lift=-0.03)
+KH_PINK = ramp(30, 0.07, lift=-0.01)
+KH_LATERITE = ramp(40, 0.085, lift=-0.08)
+KHMER = {0: (KH_SAND, KH_LATERITE), 1: (KH_PINK, KH_LATERITE), 2: (BRICK, KH_LATERITE)}
 
 
 def khmer(spec, info):
+    """A temple-mountain: laterite terraces with sandstone copings stepping
+    up behind the enclosure gallery, a steep stair to the top, and the
+    sanctuary towers on it, one, three in a row, or five in a quincunx."""
     s = {**dict(look=0, towers=1, depth=160), **spec}
     r, lat = KHMER[s['look']]
     n = s['towers']
-    tw = {1: 44, 3: 40, 5: 42}[n]
     W = {1: 150, 3: 210, 5: 260}[n]
-    H = 290 if n == 5 else 250 if n == 3 else 220
+    H = {1: 250, 3: 272, 5: 312}[n]
     c = C(W + 30, H)
     base = H - 6
     cx = (W + 30) // 2
-    pb = base - 34
-    for k in range(3):
-        pw = W - 20 - k * 24
-        plinth(c, cx - pw // 2, pb - k * 9, pw, 9, 40, lat)
-    top = pb - 27
+    steps_n = 3
+    plan = [(W - 24 - k * (28 if n > 1 else 22), 16, 5 if k < steps_n - 1 else 22) for k in range(steps_n)]
+
+    def top(c, x, y, w, h, k):
+        st.paving(c, x, y, w, h, r, q=1, slab=16, row=4, seed=k)
+    out = st.tiers(c, cx, base - 18, plan, lambda c, x, y, w, h, k: laterite_face(c, x, y, w, h, lat, r, seed=k),
+                   top, shadow=r)
+    tx, fy, tw, th, tt = out[-1]
+    st.stair(c, cx, base - 18, fy - 2, 20, r, q=2, rise=3, bal=r, bal_w=3)
+    tw_main = {1: 46, 3: 44, 5: 46}[n]
     if n == 5:
         for sx in (-1, 1):
-            prasat(c, cx + sx * 44, top - 30, tw - 8, 34, r)
-    if n >= 3:
+            prasat(c, cx + sx * (tw // 2 - 36), tt + 4, 28, 24, r, tiers=4)
+        so.box(c, cx - 36, tt + 18, 72, 6, 12, r)
+        prasat(c, cx, tt + 12, tw_main, 36, r, door=True, tiers=5)
         for sx in (-1, 1):
-            prasat(c, cx + sx * (62 if n == 3 else 88), top, tw - 4, 38, r)
-    prasat(c, cx, top - (14 if n > 1 else 0), tw + (10 if n > 1 else 0), 46, r)
-    steps(c, cx, pb, 24, 9, lat)
-    dh = gopura(c, cx, base, 54, r, r, W - 12)
+            prasat(c, cx + sx * (tw // 2 - 14), fy + 2, 30, 28, r, tiers=4)
+    elif n == 3:
+        for sx in (-1, 1):
+            prasat(c, cx + sx * 56, tt + 18, 34, 30, r, tiers=4)
+        prasat(c, cx, tt + 20, tw_main, 36, r, door=True, tiers=5)
+    else:
+        prasat(c, cx, tt + 20, tw_main, 36, r, door=True, tiers=5)
+    dh = gopura(c, cx, base, 44 if n > 1 else 38, r, W - 12)
     ground_shadow(c, cx - W // 2 + 6, cx + W // 2 - 6, base)
-    return complete(c, info, cx - W // 2 + 6, W - 12, base + 1, cx, dh, s['depth'], leaf=False)
+    return complete(c, info, cx - W // 2 + 6, W - 12, base + 1, cx, dh, s['depth'], leaf=False, door_width=22)
 
 
 # ------------------------------------------------------------------ Cham kalan
@@ -506,57 +621,237 @@ def cham(spec, info):
 
 # ------------------------------------------------------------------ Javanese candi
 
+# Merapi andesite weathers to a warm grey; Majapahit built in red brick.
+ANDESITE_W = ramp(64, 0.024, lift=-0.05)
+MOSS = ramp(118, 0.05, lift=-0.08)
+
+
 def kala(c, cx, y, r):
-    """The kala over the door: a lion face of bulging eyes and a toothed upper jaw."""
-    glyph(c, cx - 7, y, ('..aaaaaaaaa...', '.abbbbbbbbbba.', 'abccbbbbbccbba', 'abcdcbbbcdcbb.',
-                         'abbbbbbbbbbbb.', '.abbaabbaabba.', '.bdbdbdbdbdb..', '..b.b.b.b.b...'),
-          {'a': r[1], 'b': r[2], 'c': r[0], 'd': r[5]})
+    """The kala over the door: a lion face of bulging eyes, a broad nose and
+    a toothed upper jaw, no lower jaw."""
+    st.glyph(c, cx - 8, y, ('...aaaaaaaaaa...', '..abbbbbbbbbbc..', '.abaabbbbbbaabc.', 'abadbcbaabbadbcc',
+                            'abbbbbbaabbbbbcc', '.abbbbabbcbbbbc.', '..bebebebebebc..', '...e.e.e.e.e....'),
+             {'a': r[0], 'b': r[2], 'c': r[4], 'd': VOID, 'e': r[5]})
 
 
-def candi_tower(c, cx, base, w, r, body_h=40, door=True, roof_tiers=4):
-    bh = 24
-    for k in range(3):
-        ww = w + 26 - k * 6
-        so.box(c, cx - ww // 2, base - k * 8, ww, 8, ww * 0.5, r)
-        c.rect(cx - ww // 2, base - k * 8 - 4, ww, 1, r[4])
-    fy = base - bh
-    face(c, cx - w // 2, fy - body_h, w, body_h, r, 2)
-    for px in (cx - w // 2 + 4, cx + w // 2 - 8):
-        c.rect(px, fy - body_h + 4, 4, body_h - 6, r[1 if px < cx else 3])
+def ratna(c, cx, by, R, r):
+    """A ratna finial: a bell on a cushion, a ring, the spike."""
+    so.lathe(c, cx, by, [(0, R * 0.7), (R * 0.35, R), (R * 0.9, R * 0.8), (R * 1.4, R * 0.35), (R * 1.5, R * 0.45),
+                         (R * 2.3, 0.5)], r)
+
+
+def relief(c, x, y, w, h, r, panel=13):
+    """A base course of relief panels, each sunk a step inside a lit frame,
+    a figure in it picked out in light."""
+    st.coursed(c, x, y, w, h, r, q=3, course=5, block=12, foot=1)
+    for k, px in enumerate(range(x + 5, x + w - panel - 2, panel + 5)):
+        c.rect(px, y + 2, panel, h - 4, r[4])
+        c.rect(px, y + 2, panel, 1, r[5]); c.rect(px, y + h - 3, panel, 1, r[2])
+        c.rect(px + panel - 1, y + 2, 1, h - 4, r[2])
+        fx = px + 3 + (k % 3) * 2
+        c.rect(fx, y + 4, 2, h - 8, r[2]); c.p(fx, y + 3, r[2]); c.rect(fx + 2, y + 5, 1, 2, r[2])
+    st.ends(c, x, y, w, h, r)
+
+
+def niche(c, cx, base, w, h, r):
+    """A niche in the wall with a figure standing in its shade."""
+    c.rect(cx - w // 2 - 2, base - h - 2, w + 4, h + 2, r[1])
+    c.rect(cx - w // 2, base - h, w, h, r[5])
+    c.rect(cx - 1, base - h + 3, 3, h - 3, r[3]); c.rect(cx - 1, base - h + 1, 3, 2, r[2])
+    c.rect(cx - w // 2 - 3, base - h - 4, w + 6, 2, r[0])
+
+
+def candi_shrine(c, cx, base, w, r, body_h=52, tiers=3, door=True, kaki=14):
+    """One candi: the foot (kaki) carved in relief panels with its stair,
+    the body (tubuh) redented, the door under its kala, and the roof (atap)
+    in shrinking storeys ringed with ratna finials. Returns the door's foot."""
+    kw = w + 26
+    so.box(c, cx - kw // 2, base, kw, kaki, kw * 0.3, r,
+           lambda c, x, y, ww, hh: st.paving(c, x, y, ww, hh, r, q=1, slab=12, row=3))
+    relief(c, cx - kw // 2, base - kaki, kw, kaki, r)
+    fy = base - kaki
+    x = cx - w // 2
+    st.coursed(c, x, fy - body_h, w, body_h, r, q=2, course=5, block=10, foot=0, seed=w)
+    redent(c, x, fy - body_h, w, body_h, r)
     if door:
-        c.rect(cx - 10, fy - 38, 20, 38, VOID)
-        for side in (-1, 1):
-            c.rect(cx + side * 12 - (2 if side < 0 else 0), fy - 40, 3, 40, r[1])
-        kala(c, cx, fy - body_h + 1, r)
-    band(c, cx - w // 2 - 3, fy - body_h - 4, w + 6, r, (0, 1, 2, 4))
-    return tiered_tower(c, cx, fy - body_h - 4, w - 2, roof_tiers, r, bud=True, ratna=True, step=0.16,
-                        th=max(10, w // 4))
+        dw, dh = 14, 38
+        c.rect(cx - dw // 2 - 3, fy - dh - 3, dw + 6, dh + 3, r[1])
+        c.rect(cx + dw // 2 + 1, fy - dh - 3, 2, dh + 3, r[4])
+        c.rect(cx - dw // 2, fy - dh, dw, dh, VOID)
+        kala(c, cx, fy - dh - 11, r)
+        if w >= 54:
+            for sx in (-1, 1):
+                niche(c, cx + sx * (w // 2 - 11), fy - 14, 9, 22, r)
+        st.stair(c, cx, base, fy, 14, r, q=2, rise=3, bal=r, bal_w=3)
+    else:
+        niche(c, cx, fy - 8, 10, 22, r)
+    cornice(c, x - 3, fy - body_h - 4, w + 6, r)
+    y = fy - body_h - 4
+    finials = []
+    for k in range(tiers):
+        ww = round(w * (0.9 - 0.6 * k / tiers))
+        h = max(8, 14 - k)
+        tx = cx - ww // 2
+        for xx in range(tx, tx + ww):
+            u = (xx - tx) / ww
+            c.rect(xx, y - h, 1, h, r[1 if u < 0.2 else 2 if u < 0.6 else 3 if u < 0.86 else 4])
+        c.rect(cx - 3, y - h + 2, 6, h - 3, r[4]); c.rect(cx - 3, y - h + 2, 6, 1, r[5])
+        c.rect(tx - 1, y - h - 1, ww + 2, 1, r[0]); c.rect(tx, y - 1, ww, 1, r[5])
+        finials += [(tx + 2, y - h - 1), (tx + ww - 3, y - h - 1)]
+        y -= h + 1
+    for fx, fy_ in finials:
+        ratna(c, fx, fy_ + 1, 3, r)
+    ratna(c, cx, y + 2, max(5, w // 9), r)
+    return fy
 
 
-def bell_stupa(c, cx, by, R, r):
-    so.lathe(c, cx, by, [(0, R), (2, R), (3, R * 0.95), (R * 0.9 + 3, R * 0.55), (R * 1.15 + 3, 1.5),
-                         (R * 1.15 + 4, R * 0.3), (R * 1.15 + 7, R * 0.25), (R * 1.15 + 12, 0.5)], r)
+def bell_stupa(c, cx, by, R, r, lattice=True):
+    """A bell stupa on its lotus cushion; the Borobudur ones are cut through
+    in a lattice of diamond holes."""
+    so.lathe(c, cx, by, [(0, R), (1.5, R), (2, R * 0.95), (R * 0.9 + 2, R * 0.6), (R * 1.15 + 2, 1.5),
+                         (R * 1.15 + 3, R * 0.32), (R * 1.15 + 6, R * 0.28), (R * 1.15 + 10, 0.5)], r)
+    if lattice:
+        for row in range(2):
+            yy = by - 3 - row * 3
+            for xx in range(cx - R + 2 + row, cx + R - 2, 3):
+                c.p(xx, yy, VOID if xx < cx + R // 2 else r[6])
 
 
 def borobudur(c, cx, base, W, r):
-    y = base
-    for k in range(5):
-        w = W - k * (W // 8)
-        fy, ty = so.box(c, cx - w // 2, y, w, 10, w * 0.4, r)
-        for xx in range(cx - w // 2 + 3, cx + w // 2 - 3, 7):
-            c.rect(xx, fy - 3, 4, 3, r[2]); c.p(xx + 1, fy - 4, r[1])
-        c.rect(cx - w // 2, fy + 4, w, 1, r[4])
-        y = fy - round(w * 0.4 * so.K) + 6
+    """The stepped terraces: five square galleries, each faced with relief
+    panels and crowned with a balustrade of niches; then three round
+    terraces ringed with lattice stupas; the great bell stupa on top."""
+    n = 5
+    plan = [(W - k * (W // 9), 12, 4) for k in range(n)]
+    plan[-1] = (plan[-1][0], 12, 12)
+
+    def top(c, x, y, w, h, k):
+        st.paving(c, x, y, w, h, r, q=1, slab=12, row=3, seed=k)
+    out = st.tiers(c, cx, base, plan, lambda c, x, y, w, h, k: relief(c, x, y, w, h, r, panel=11), top, shadow=r)
+    for x, fy, w, h, tt in out:
+        for nx in range(x + 2, x + w - 4, 8):
+            st.glyph(c, nx, fy - 5, ('..a..', '.abb.', 'abbbc', 'adddc'), {'a': r[0], 'b': r[2], 'c': r[4], 'd': r[5]})
+    st.stair(c, cx, base, out[-1][1], 14, r, q=2, rise=3)
+    tx, fy, tw, th, tt = out[-1]
+    y = fy - 2
     for k in range(3):
-        w = W // 2 - k * (W // 9)
-        so.lathe(c, cx, y, [(0, w // 2), (4, w // 2)], r)
-        n = 7 - k * 2
-        for i in range(n):
-            a = math.pi * (0.1 + 0.8 * i / max(1, n - 1))
-            bell_stupa(c, cx - round(math.cos(a) * w * 0.4), y - 4 + round(math.sin(a) * 2), 5, r)
-        y -= 7
-    bell_stupa(c, cx, y, 14, r)
+        R = tw // 2 - 8 - k * (tw // 8)
+        y = round_tier(c, cx, y, R, 5, 4, r)
+        m = 7 - k * 2
+        for i in range(m):
+            a = math.pi * (0.08 + 0.84 * i / max(1, m - 1))
+            bell_stupa(c, cx - round(math.cos(a) * (R - 5)), y + 3 + round(math.sin(a) * 2), 5, r)
+        y -= 1
+    bell_stupa(c, cx, y + 2, max(12, tw // 7), r, lattice=False)
     return y
+
+
+def round_tier(c, cx, by, R, h, ry, r):
+    """A round terrace at the house's shallow depth: its curved face banded
+    lit to shaded across, its top a thin lit ellipse. Returns the top's
+    front row."""
+    for yy in range(by - h, by):
+        for xx in range(cx - R, cx + R):
+            u = (xx - cx + R) / (2 * R)
+            q = 1 if u < 0.2 else 2 if u < 0.55 else 3 if u < 0.85 else 4
+            if yy == by - 1:
+                q += 1
+            c.p(xx, yy, r[q])
+    top = by - h
+    for dy in range(-2 * ry, 1):
+        t = 1 - ((dy + ry) / ry) ** 2
+        if t < 0:
+            continue
+        hw = round(R * math.sqrt(t))
+        c.rect(cx - hw, top + dy, 2 * hw, 1, r[0] if dy == 0 else r[1])
+    return top - ry
+
+
+def paduraksa(c, cx, base, w, r, body_h=58, tiers=6):
+    """A roofed brick gate of Majapahit, as at Bajang Ratu: a stepped foot,
+    the body with its narrow door under a kala, and the roof stepping up
+    in cornices to a square tip."""
+    kw = w + 12
+    for k in range(3):
+        bw = kw - k * 4
+        st.coursed(c, cx - bw // 2, base - 5 * (k + 1), bw, 5, r, q=3, course=5, block=8, seed=k)
+        c.rect(cx - bw // 2, base - 5 * (k + 1), bw, 1, r[1])
+    st.ends(c, cx - kw // 2, base - 15, kw, 15, r)
+    fy = base - 15
+    x = cx - w // 2
+    st.coursed(c, x, fy - body_h, w, body_h, r, q=3, course=4, block=8, foot=0, seed=w)
+    redent(c, x, fy - body_h, w, body_h, r)
+    dw, dh = 14, 40
+    c.rect(cx - dw // 2 - 3, fy - dh - 3, dw + 6, dh + 3, r[2])
+    c.rect(cx + dw // 2 + 1, fy - dh - 3, 2, dh + 3, r[5])
+    c.rect(cx - dw // 2, fy - dh, dw, dh, VOID)
+    kala(c, cx, fy - dh - 11, r)
+    st.stair(c, cx, base, fy, 16, r, q=3, rise=3)
+    y = fy - body_h
+    for k in range(tiers):
+        ww = round(w * (1.04 - 0.13 * k))
+        cornice(c, cx - ww // 2 - 1, y - 4, ww + 2, r)
+        y -= 4
+        h = 7 if k < tiers - 1 else 5
+        for xx in range(cx - ww // 2 + 2, cx + ww // 2 - 2):
+            u = (xx - cx + ww // 2) / ww
+            c.rect(xx, y - h, 1, h, r[2 if u < 0.25 else 3 if u < 0.65 else 4])
+        for ex in (cx - ww // 2 + 2, cx + ww // 2 - 5):
+            c.rect(ex, y - h - 3, 3, 3, r[1]); c.p(ex + 2, y - h - 1, r[4])
+        y -= h
+    c.rect(cx - 3, y - 8, 6, 8, r[2]); c.rect(cx - 3, y - 8, 6, 1, r[0]); c.rect(cx + 2, y - 7, 1, 7, r[4])
+    return fy
+
+
+def brick_wall(c, x, base, w, h, r):
+    st.coursed(c, x, base - h, w, h, r, q=3, course=4, block=8, seed=x)
+    st.ends(c, x, base - h, w, h, r)
+    for j, q in enumerate((5, 2, 1, 0)):
+        c.rect(x - 1 + (j // 2), base - h - 1 - j, w + 2 - 2 * (j // 2), 1, r[q])
+
+
+def candi(spec, info):
+    s = {**dict(look='prambanan', size='medium', depth=160), **spec}
+    look, size = s['look'], s['size']
+    if look == 'borobudur':
+        W = {'small': 150, 'medium': 200, 'large': 260}[size]
+        H = W // 2 + 150
+        c = C(W + 30, H)
+        base = H - 6
+        cx = (W + 30) // 2
+        borobudur(c, cx, base, W, ANDESITE_W)
+        ground_shadow(c, cx - W // 2, cx + W // 2, base)
+        return complete(c, info, cx - W // 2, W, base + 1, cx, 0, s['depth'], doorless=True, roof='dome')
+    if look == 'prambanan':
+        r = ANDESITE_W
+        w = {'small': 50, 'medium': 56, 'large': 64}[size]
+        W = w + 40 + (120 if size == 'large' else 70 if size == 'medium' else 0)
+        H = 300 if size == 'large' else 270
+        c = C(W + 20, H)
+        base = H - 6
+        cx = (W + 20) // 2
+        if size == 'large':
+            for sx in (-1, 1):
+                candi_shrine(c, cx + sx * 76, base - 26, 40, r, body_h=40, tiers=4, door=False, kaki=10)
+        if size == 'medium':
+            for sx in (-1, 1):
+                candi_shrine(c, cx + sx * 56, base - 4, 26, r, body_h=30, tiers=3, door=False, kaki=8)
+        fy = candi_shrine(c, cx, base, w, r, body_h=60, tiers={'small': 4, 'medium': 4, 'large': 5}[size], kaki=16)
+        ground_shadow(c, cx - W // 2, cx + W // 2, base)
+        return complete(c, info, cx - W // 2, W, base + 1, cx, 38, s['depth'], leaf=False, door_base=fy,
+                        door_width=14)
+    r = BRICK
+    W = {'small': 140, 'medium': 170, 'large': 200}[size]
+    H = 250 if size != 'small' else 220
+    c = C(W + 20, H)
+    base = H - 6
+    cx = (W + 20) // 2
+    gw = 40 if size == 'small' else 46
+    for x in (cx - W // 2, cx + gw // 2 + 6):
+        brick_wall(c, x, base, W // 2 - gw // 2 - 6, 28, r)
+    fy = paduraksa(c, cx, base, gw, r, body_h=58 if size != 'small' else 52, tiers=6 if size == 'large' else 5)
+    ground_shadow(c, cx - W // 2, cx + W // 2, base)
+    return complete(c, info, cx - W // 2, W, base + 1, cx, 40, s['depth'], leaf=False, door_base=fy, door_width=14)
 
 
 def candi_bentar(c, cx, base, gap, h, w, r, top):
@@ -581,55 +876,6 @@ def candi_bentar(c, cx, base, gap, h, w, r, top):
                 courses(c, xx + 3, y - hh + 3, ww - 6, hh - 8, r)
             y -= hh
         so.lathe(c, x0 + (w // 6 if side > 0 else w - w // 6), y, [(0, 3), (5, 2), (8, 0.5)], top)
-
-
-def candi(spec, info):
-    s = {**dict(look='prambanan', size='medium', depth=160), **spec}
-    look, size = s['look'], s['size']
-    if look == 'borobudur':
-        W = {'small': 150, 'medium': 200, 'large': 260}[size]
-        H = W // 2 + 150
-        c = C(W + 30, H)
-        base = H - 6
-        cx = (W + 30) // 2
-        borobudur(c, cx, base, W, ANDESITE)
-        steps(c, cx, base, 18, 6, ANDESITE)
-        ground_shadow(c, cx - W // 2, cx + W // 2, base)
-        return complete(c, info, cx - W // 2, W, base + 1, cx, 0, s['depth'], doorless=True, roof='dome')
-    if look == 'prambanan':
-        r = ANDESITE
-        w = {'small': 48, 'medium': 56, 'large': 64}[size]
-        W = w + 40 + (120 if size == 'large' else 70 if size == 'medium' else 0)
-        H = 300 if size == 'large' else 270
-        c = C(W + 20, H)
-        base = H - 6
-        cx = (W + 20) // 2
-        if size == 'large':
-            for sx in (-1, 1):
-                candi_tower(c, cx + sx * 74, base - 30, w - 18, r, body_h=46, roof_tiers=3)
-        if size == 'medium':
-            for sx in (-1, 1):
-                candi_tower(c, cx + sx * 56, base - 10, 26, r, body_h=22, door=False, roof_tiers=2)
-        candi_tower(c, cx, base, w, r, body_h=54, roof_tiers=5 if size == 'large' else 4)
-        steps(c, cx, base, 22, 8, r)
-        ground_shadow(c, cx - W // 2, cx + W // 2, base)
-        return complete(c, info, cx - W // 2, W, base + 1, cx, 38, s['depth'], leaf=False)
-    r = BRICK
-    W = {'small': 140, 'medium': 170, 'large': 200}[size]
-    H = 250 if size != 'small' else 220
-    c = C(W + 20, H)
-    base = H - 6
-    cx = (W + 20) // 2
-    candi_tower(c, cx, base - 44, 40 if size == 'small' else 48, r, body_h=36, roof_tiers=4)
-    gap = 26
-    wh = 30
-    for x in (cx - W // 2, cx + gap // 2 + 30):
-        ww = W // 2 - gap // 2 - 30
-        courses(c, x, base - wh, ww, wh, r)
-        band(c, x - 1, base - wh - 3, ww + 2, PARAS, (0, 1, 3))
-    candi_bentar(c, cx, base, gap, 100 if size != 'small' else 86, 32, r, PARAS)
-    ground_shadow(c, cx - W // 2, cx + W // 2, base)
-    return complete(c, info, cx - W // 2, W, base + 1, cx, 60, s['depth'], leaf=False)
 
 
 # ------------------------------------------------------------------ Balinese pura
