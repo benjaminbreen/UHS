@@ -256,6 +256,9 @@ const KIN: Record<string, string> = {
   master: "your master",
   apprentice: "your apprentice",
   servant: "your servant",
+  "parent-in-law": "your parent-in-law",
+  "child-in-law": "your child's spouse",
+  "ritual-kin": "kin to you by ceremony",
   "co-resident": "one of your household",
 };
 /** Why a trigger held, in a line the task panel can show. */

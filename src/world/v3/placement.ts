@@ -1,5 +1,5 @@
 import type { Point } from "../../core/types";
-import { buildingModel } from "../../content/graphics/models";
+import { buildingArtCells } from "../../content/graphics/models";
 import { crownRadius } from "./vegetation-spacing";
 import { cellKey, type Rect, type SettlementPlan } from "./types";
 
@@ -39,12 +39,7 @@ export function cultivatedAt(plan: Pick<SettlementPlan, "fields" | "surface">, x
 }
 
 export function buildingPlacementEnvelope(sprite: string, rect: Rect, access: Point[]): PlacementEnvelope {
-  const model = buildingModel(sprite);
-  const left = rect.x + rect.w / 2 - model.anchor[0] / 16,
-    top = rect.y + rect.h - model.anchor[1] / 16;
-  const clearance = rectCells({ x: Math.floor(left), y: Math.floor(top),
-    w: Math.ceil(left + model.bounds[2] / 16) - Math.floor(left),
-    h: Math.ceil(top + model.bounds[3] / 16) - Math.floor(top) })
+  const clearance = buildingArtCells(sprite, rect)
     .filter(p => p.x < rect.x || p.x >= rect.x + rect.w || p.y < rect.y || p.y >= rect.y + rect.h);
   // A door set back in the footprint keeps its aisle out to the front edge.
   const aisle = (p: Point) => access.some(a => a.x === p.x && p.y >= a.y &&

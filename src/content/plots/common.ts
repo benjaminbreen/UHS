@@ -1,18 +1,21 @@
 import { random } from "../../core/random";
+import { statsOf } from "../../core/stats";
+import { seasonAt } from "../../core/livelihood";
 import { sexOf } from "../../core/brief";
 import { capabilitiesFor, matchesCharacterScope } from "../characters/resolve";
 import type { CharacterScope } from "../characters/context-types";
 import { amountIn } from "../economy/money";
 import { claimFor } from "../economy/claims";
-import type { Actor } from "../../core/types";
+import type { Actor, Stats } from "../../core/types";
 import type { PlotContext } from "./types";
 
 /** Astronomical year for a BCE date. */
 export const B = (year: number) => 1 - year;
 
-/** Living adults outside the player's household, oldest first. */
+/** Living adults outside the player's household and not their partner, oldest first. */
 export const neighbours = (c: PlotContext) => c.actors
-  .filter((a) => a.kind === "human" && !a.dead && a.id !== c.player.id && a.householdId !== c.player.householdId && (a.age ?? 30) >= 18)
+  .filter((a) => a.kind === "human" && !a.dead && a.id !== c.player.id && a.householdId !== c.player.householdId && (a.age ?? 30) >= 18 &&
+    !c.player.relations?.some((r) => r.kind === "partner" && r.other === a.id))
   .sort((a, b) => (b.age ?? 30) - (a.age ?? 30));
 
 /** Whoever comes round for the year's claim here, else the leading household's head. */
@@ -38,6 +41,15 @@ export const pickOf = <T,>(c: PlotContext, xs: readonly T[], key: string) =>
 /** Livelihoods that live off land someone else may hold. */
 export const working = (c: PlotContext) =>
   /farm|grow|cultivat|herd|shepherd|peasant|tenant|plough|irrigation|garden|vine|orchard|rice|tiller/.test(c.player.origin?.livelihood ?? "");
+
+/** The season today, where the plot has a setting. */
+export const seasonOf = (c: PlotContext) => c.setting && seasonAt(c.setting.season, c.clock);
+
+/** Whether the player's livelihood id matches. */
+export const trade = (c: PlotContext, re: RegExp) => re.test(c.player.origin?.livelihood ?? "");
+
+/** A weight multiplier from 0.6 to 1.4 for how strongly the player has a trait. */
+export const temper = (c: PlotContext, trait: keyof Stats) => 0.5 + statsOf(c.seed, c.player)[trait] / 100;
 
 export const EGYPT = [24, 22, 35, 32] as const;
 export const MESOPOTAMIA = [38, 29, 50, 38] as const;

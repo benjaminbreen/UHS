@@ -19,6 +19,9 @@ import { random } from "../../core/random";
 import { outlookOf } from "../../core/outlook";
 import { standingOf } from "../../core/standing";
 import { venuesFor, type Venue } from "../../content/venues";
+import { groundFor, type Ground } from "../../content/plots/scenes";
+import { landmarkTree } from "../../content/settlements/landmark-trees";
+import { propSprite } from "../../content/props/place";
 import { keeperLivesIn, publicInteriorFor } from "../../content/interiors/select";
 import type { Rank } from "../../content/characters/context-types";
 import type { StanceTag } from "../../content/outlook/types";
@@ -743,7 +746,7 @@ export function planRoutines(
 ) {
   plan.gatherings = gatherings(plan, seed);
   plan.outdoors = outdoorSites(plan, seed, sample);
-  attachOpenVenues(plan, pack);
+  attachOpenVenues(plan, pack, sample);
   prepareLocalWork(plan, pack, seed);
   for (const [id, site] of plan.work) {
     const actor = plan.actors.find((a) => a.id === id);
@@ -1213,18 +1216,86 @@ function workdayFor(
  * ground, the wrestling pitch — take a gathering point each, so every
  * settlement has somewhere to go even where nothing is authored for it.
  */
-function attachOpenVenues(plan: SettlementPlan, pack: Pack) {
+function attachOpenVenues(plan: SettlementPlan, pack: Pack, sample: Sample) {
   const spots = plan.gatherings ?? [];
   if (!spots.length) return;
   plan.venues ??= [];
   const open = venuesFor(pack.setting, plan.places.length).filter(
     (v) => v.open && !plan.venues!.some((held) => held.venue.id === v.id),
   );
+  const stalls = plan.objects.some((o) => o.prop === "marketCounter");
   open.forEach((venue, i) => {
     const pos = spots[i % spots.length];
-    const marked = venue.marker && markOpenVenue(plan, venue, pos);
+    const ground = pack.setting && !(stalls && venue.kind === "market") ? groundFor(pack.setting, venue.id) : undefined;
+    const marked = ground ? layGround(plan, pack, sample, venue.id, ground, pos) : venue.marker && markOpenVenue(plan, venue, pos);
     plan.venues!.push({ venue, pos: marked || pos });
   });
+  // A burial ground where the town has no churchyard, past the houses.
+  const burial = pack.setting && plan.places.length >= 6 && !plan.objects.some((o) => o.id.includes("-gravestone-")) && groundFor(pack.setting, "burial");
+  if (burial) layGround(plan, pack, sample, "burial", burial, spots[spots.length - 1], 0.95);
+}
+/** Lays a ground's furniture on dry, level, unclaimed land out from `from`
+ * towards the edge, and keeps its whole footprint clear; a crowded town
+ * pushes it further out and round. Returns where visitors stand. */
+function layGround(plan: SettlementPlan, pack: Pack, sample: Sample, id: string, ground: Ground, from: Point, reach = 0.7) {
+  const c = plan.site.center,
+    r = plan.site.profile.radius;
+  const turn = Math.atan2(from.y - c.y, from.x - c.x);
+  const wants = [reach, reach - 0.25, reach + 0.25, reach + 0.5, reach + 0.75].flatMap((k) => [0, 1, -1, 2, -2, 3, -3, 4].map((t) => ({
+    x: Math.round(c.x + Math.cos(turn + (t * Math.PI) / 4) * r * k),
+    y: Math.round(c.y + Math.sin(turn + (t * Math.PI) / 4) * r * k),
+  })));
+  const taken = new Set(plan.objects.map((o) => cellKey(o.pos.x, o.pos.y)));
+  const [x0, y0, x1, y1] = ground.box;
+  const claimed = (k: string) => plan.solid.has(k) || plan.traffic.has(k) || plan.reserved.has(k) || taken.has(k) || !!plan.fields?.has(k);
+  // Two cells to spare all round: a tomb draws wider than its cell, and a fence is no edge for a ground.
+  const free = (x: number, y: number) => {
+    for (let dy = y0 - 2; dy <= y1 + 2; dy++)
+      for (let dx = x0 - 2; dx <= x1 + 2; dx++) if (claimed(cellKey(x + dx, y + dy))) return false;
+    const level = Math.round(sample(x, y).elevation / 14);
+    for (let dy = y0; dy <= y1; dy++)
+      for (let dx = x0; dx <= x1; dx++) {
+        const f = sample(x + dx, y + dy);
+        if (f.water < 4 || Math.round(f.elevation / 14) !== level || (plan.site.accepts && !plan.site.accepts(x + dx, y + dy))) return false;
+      }
+    return true;
+  };
+  for (const want of wants)
+    for (let ring = 0; ring <= 16; ring++)
+      for (let dy = -ring; dy <= ring; dy++)
+        for (let dx = -ring; dx <= ring; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+          const x = want.x + dx,
+            y = want.y + dy;
+          if (!free(x, y)) continue;
+          for (let by = y0; by <= y1; by++)
+            for (let bx = x0; bx <= x1; bx++) {
+              const k = cellKey(x + bx, y + by);
+              plan.reserved.add(k);
+              // Trodden bare in an oval, ragged at the edge, not a ruled plot.
+              const u = (bx - (x0 + x1) / 2) / ((x1 - x0) / 2 + 0.5), w = (by - (y0 + y1) / 2) / ((y1 - y0) / 2 + 0.5);
+              if (u * u + w * w > 1 - random(id, "worn", bx, by) * 0.3) continue;
+              plan.surface.set(k, "dirt");
+              (plan.pavement ??= new Map()).set(k, "yard");
+            }
+          ground.props.forEach(({ prop, dx: px, dy: py, v }, i) => {
+            const at = { x: x + px, y: y + py, space: "outside" as const };
+            const def = propDefs[prop];
+            if (prop !== "tree" && !def) return;
+            if (prop === "tree" || def.solid) plan.solid.add(cellKey(at.x, at.y));
+            plan.objects.push({
+              id: i ? `${id}-ground-${i}` : `${id}-ground`,
+              ...(prop === "tree"
+                ? { name: "Shade tree", kind: "tree", sprite: landmarkTree(pack.setting, "common") ?? pack.trees[0] }
+                : { name: def.name, kind: "monument", prop, sprite: v === undefined ? propSprite(prop) : propSprite(prop)?.replace(/-\d+$/, `-${v}`) }),
+              pos: at,
+              inventory: {},
+              claim: "landscape",
+            } as WorldObject);
+          });
+          return { x, y: y + 2 };
+        }
+  return undefined;
 }
 /** Stands an open venue's marker on free ground off the street, out towards
  * the edge of the settlement: a grove is not in the lane. */

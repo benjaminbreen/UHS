@@ -15,6 +15,7 @@ import { workplaceFor } from "../content/characters/workplace";
 import type { Runtime } from "../runtime/session";
 import { loreFor, type LoreTopic, type TaskLore } from "../content/task-lore";
 import { plotLine } from "../core/plot";
+import { aimLabel } from "../content/goals/types";
 
 /** A scene the task screen can draw: a figure, what they hold, what is round them. */
 export const vignettes = [
@@ -554,9 +555,6 @@ function wikiTitle(url: string) {
   const m = /en\.wikipedia\.org\/wiki\/([^#?]+)/.exec(url);
   return m ? [decodeURIComponent(m[1]).replace(/_/g, " ")] : [];
 }
-
-/** A plot stands in for the life aim until it ends; it should not wear the name. */
-export const aimLabel = (aim: { id: string }) => (aim.id.startsWith("plot:") ? "Most pressing" : "Life aim");
 
 /** The tasks the strip along the bottom offers, in the order of the day. */
 export function tasksOf(runtime: Runtime, actorId: string): { source: TaskSource; label: string }[] {

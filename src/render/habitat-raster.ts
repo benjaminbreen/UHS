@@ -324,7 +324,7 @@ function habitatRamps(h: Habitat, art: GrassArt) {
         .map(([id, w]) => `${id}=${w}`)
         .join(",")
     : "";
-  const id = `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}|${h.vegetation ?? ""}|${blend}|${site}`;
+  const id = `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}${h.dry ? "-dry" : ""}|${h.vegetation ?? ""}|${blend}|${site}`;
   let value = cache.get(id);
   if (value) return value;
   const key = paletteKey(h.ecology, h.colorway);
@@ -512,7 +512,7 @@ const mineralHabitat = (h: Habitat) =>
 /** The choices a tile makes once for its whole square. Cells that differ
  * here would meet on the tile edge, so they meet along a drawn line instead. */
 const groundLook = (h: Habitat) =>
-  `${pickKit(groundStyle()?.kits, h.ecology, h.colorway, h.vegetation)?.id ?? paletteKey(h.ecology, h.colorway)}|${mineralHabitat(h)}`;
+  `${pickKit(groundStyle()?.kits, h.ecology, h.colorway, h.vegetation)?.id ?? paletteKey(h.ecology, h.colorway)}|${mineralHabitat(h)}|${h.site?.primary ?? ""}|${h.dry ?? ""}`;
 
 function rasterGroundTile(
   sample: TopographySample,
@@ -992,7 +992,7 @@ function rasterGroundTile(
               ? [218, 229, 248]
               : [236, 242, 252];
       if (kit && !frozen && (grassy ? band <= 2 : kitTundra && band <= 3)) {
-        put(px, py, kitGroundPixel(kit, h.season, wx, wy, wild, trod));
+        put(px, py, kitGroundPixel(kit, h.dry ? `${h.season}-dry` : h.season, wx, wy, wild, trod));
         continue;
       }
       const style = groundStyle();

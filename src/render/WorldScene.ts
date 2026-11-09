@@ -4044,6 +4044,7 @@ export class WorldScene extends Phaser.Scene {
             setting.climate,
             this.weather.condition,
             this.weather.tempC,
+            this.weather.rain,
           )
         : undefined,
       hashSeed(e.state.manifest.seed),
@@ -5407,6 +5408,7 @@ export class WorldScene extends Phaser.Scene {
       }
       // Dung and remains are drawn at world size and lie too flat to cast a shadow.
       if (o.dung || o.remains) this.shadows.get(o.id)?.setVisible(false);
+      if (o.prop && propDefs[o.prop]?.underfoot) this.entities.get(o.id)?.setData("underfoot", true);
       // A pebble on the ground is a pebble, not the boulder its art was cut from.
       else if (o.kind === "item") {
         this.entities.get(o.id)?.setScale(ITEM_SCALE);
@@ -6886,9 +6888,10 @@ export class WorldScene extends Phaser.Scene {
         arcLift = 0;
       }
       const perched = this.perchRise(id);
-      const seat = this.mounted.get(id);
-      this.shadows.get(id)?.setVisible(!seat);
-      const depth = seat ? seat.depth : 
+      const seat = this.mounted.get(id), under = im.getData("underfoot") as boolean | undefined;
+      this.shadows.get(id)?.setVisible(!seat && !under);
+      // Anchored at its near edge, so everyone standing on it would sort behind it.
+      const depth = under ? im.y - 6 * 16 : seat ? seat.depth : 
         im.y +
         arcLift +
         // Standing on the thing means drawing in front of it, foliage and
@@ -7390,6 +7393,8 @@ export class WorldScene extends Phaser.Scene {
             this.shadows.set(id, shade);
           }
           shade.setVisible(true);
+          // Darkened with the ground, or a fixed blue over dusk grass lightens it.
+          if (!this.snowyCasts && shade.tintTopLeft !== this.tint) shade.setTint(this.tint);
           if (shade.texture.key !== shadowTexture)
             shade.setTexture(shadowTexture);
           if (shade.originY !== 32 / 96) shade.setOrigin(0.5, 32 / 96);

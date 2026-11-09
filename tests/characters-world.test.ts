@@ -112,6 +112,19 @@ it("can display the first completed frame after the requested pose advances", ()
   expect(characters.frame(actor, "walk", 3)).toMatch(/^character-test-/);
 });
 
+it("reuses an unchanged cached frame without scanning the worker queue again", () => {
+  characters.frame(actor, "walk", 0);
+  FakeWorker.instances[0].finish();
+  const pending = (characters as unknown as { pending: Map<string, unknown> }).pending;
+  const scan = vi.spyOn(pending, Symbol.iterator);
+  const first = characters.frame(actor, "walk", 0);
+  scene.time.now = 1000;
+  expect(characters.frame(actor, "walk", 0)).toBe(first);
+  expect(scan).not.toHaveBeenCalled();
+  characters.frame(actor, "walk", 1);
+  expect(scan).toHaveBeenCalled();
+});
+
 it.each([false, true])("prepares strides and transitions without delaying a visible resident (mobile=%s)", (mobile) => {
   device.mobile = mobile;
   characters.destroy();

@@ -131,6 +131,9 @@ const relationLabels: Record<string, string> = {
   parent: "parent",
   child: "child",
   "co-resident": "household",
+  "parent-in-law": "parent-in-law",
+  "child-in-law": "child-in-law",
+  "ritual-kin": "kin by ceremony",
 };
 type HouseholdRow = {
   person: Actor;

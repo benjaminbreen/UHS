@@ -9,6 +9,7 @@ import {
 } from "../../content/settlements/religious";
 import type { ReligiousProfile } from "../../content/settlements/religious/types";
 import { urbanForm } from "../../content/settlements/urban-form";
+import { lampFor } from "../../content/settlements/ornaments";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import type { Pack, Point } from "../../core/types";
@@ -426,6 +427,7 @@ export function urbanNeighborhood(
     pack.year,
     [...precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })), ...(mosqueScales.length ? [{ sizes: mosqueScales.map(mosqueSize) }] : [])],
     !!zoning && site.profile.radius >= 40,
+    lampFor(pack).street,
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {

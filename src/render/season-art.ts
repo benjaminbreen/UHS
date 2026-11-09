@@ -238,13 +238,14 @@ export function driftStyle(
   climate: string,
   condition: string,
   tempC: number,
+  rain = 0.6,
 ): DriftStyle | undefined {
   if (condition === "snow")
     return drift("snow", ["#ffffff", "#e4eef6", "#cfe0ee"], 260);
   if (condition === "rain")
     return tempC <= 0
       ? drift("snow", ["#ffffff", "#e4eef6", "#cfe0ee"], 230)
-      : drift("rain", ["#cfe0ef", "#b9d0e4"], 520);
+      : drift("rain", ["#cfe0ef", "#b9d0e4"], 120 + 65 * Math.round(rain * 10));
   const wooded = woodland.includes(ecology);
   if (
     season === "winter" &&

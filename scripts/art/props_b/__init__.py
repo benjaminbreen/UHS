@@ -138,6 +138,7 @@ LAYERED = {
 
 # Props that move on their own: the base sprite plus `-m1..` motion frames.
 ANIMATED = {
+ 'censer': 4,
  'beehive': 4,
  'beam-scale': 8,
  'privy-shed': 4,

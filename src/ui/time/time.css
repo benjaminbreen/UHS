@@ -563,3 +563,237 @@
     margin-bottom: 20px;
   }
 }
+
+.years-card {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 14px;
+  width: min(640px, 100%);
+  /* Fixed, so the buttons hold still while the years arrive. */
+  height: min(720px, calc(100dvh - 48px));
+}
+.years-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 6px;
+}
+.years-portrait {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  transition: filter 1.6s ease;
+}
+.years-portrait canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+.years-head[data-dead] .years-portrait {
+  filter: grayscale(1) sepia(0.35) brightness(0.8);
+}
+.years-who {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--muted);
+  font-family: var(--prose);
+  font-size: 15px;
+}
+.years-year {
+  font-family: var(--pixel);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--cream);
+  animation: years-tick 260ms ease-out;
+}
+.years-house {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.years-house li {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  width: 52px;
+  animation: years-arrive 600ms ease-out both;
+}
+.years-house-face {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+}
+.years-house-face canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+.years-house small {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.years-log {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 180px;
+  margin: 0;
+  padding: 2px 6px 2px 0;
+  overflow-y: auto;
+  list-style: none;
+  font-family: var(--prose);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text);
+}
+.years-log > li {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.years-log ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+  border-left: 1px dashed var(--line);
+}
+.years-log ul li {
+  animation: years-arrive 500ms ease-out both;
+}
+.years-log ul li[data-kind="born"] { color: #a7e3b6; }
+.years-log ul li[data-kind="died"] { color: var(--rose); }
+.years-log ul li[data-kind="wed"] { color: var(--gold-hi); }
+.years-log ul li[data-kind="left"],
+.years-log ul li[data-kind="body"] { color: var(--muted); }
+.years-log ul li[data-kind="news"] { color: #9fc4ef; font-style: italic; }
+.years-log ul li[data-kind="news"][title] { cursor: help; }
+.years-log ul li[data-kind="death"] {
+  color: var(--cream);
+  font-weight: 700;
+}
+.years-log ul li em {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.years-mark {
+  display: grid;
+  justify-items: start;
+  padding: 3px 6px;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-family: var(--pixel);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.years-mark small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.years-mark:hover:not(:disabled),
+.years-mark:focus-visible {
+  border-color: var(--line);
+  background: #f0e6cf12;
+}
+.years-quiet {
+  color: var(--muted);
+  font-style: italic;
+}
+.years-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.years-actions .evening-sleep {
+  margin: 0;
+}
+.years-actions .evening-sleep:disabled {
+  opacity: 0.5;
+  animation: none;
+  cursor: default;
+}
+.years-quiet-button {
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  font-family: var(--pixel);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.years-quiet-button:first-child {
+  margin-right: auto;
+}
+.years-quiet-button kbd {
+  font-family: inherit;
+  opacity: 0.6;
+}
+.evening-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+.evening-choices .evening-sleep {
+  margin: 0;
+}
+@keyframes years-tick {
+  from { opacity: 0.4; transform: translateY(-4px); }
+}
+@keyframes years-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@media (max-width: 560px) {
+  .years-card { padding: 26px 16px 16px; height: calc(100dvh - 32px); }
+  .years-portrait { width: 64px; height: 64px; }
+  .years-year { font-size: 26px; }
+  .years-log > li { grid-template-columns: 1fr; gap: 4px; }
+  .years-mark { grid-auto-flow: column; gap: 8px; align-items: baseline; }
+  .years-quiet-button:first-child { margin-right: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .years-year, .years-house li, .years-log ul li { animation: none; }
+}
+.death-summary {
+  max-width: 34em;
+  margin: 6px auto 14px;
+  font-family: var(--prose);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}

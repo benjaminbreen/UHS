@@ -47,7 +47,9 @@ function norm([x, y, z]: V): V {
   const l = Math.hypot(x, y, z) || 1;
   return [x / l, y / l, z / l];
 }
-const len3 = (x: number, y: number, z: number) => Math.hypot(x, y, z);
+// Model coordinates are small enough to square directly in the ray marcher.
+const len2 = (x: number, y: number) => Math.sqrt(x * x + y * y);
+const len3 = (x: number, y: number, z: number) => Math.sqrt(x * x + y * y + z * z);
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 function sphere(p: V, cx: number, cy: number, cz: number, r: number) {
@@ -67,8 +69,8 @@ function capsule(p: V, a: V, b: V, r: number) {
 }
 /** Vertical capped cylinder centred at (cx, cy, cz). */
 function cylinder(p: V, cx: number, cy: number, cz: number, r: number, h: number) {
-  const dx = Math.hypot(p[0] - cx, p[2] - cz) - r, dy = Math.abs(p[1] - cy) - h;
-  return Math.min(Math.max(dx, dy), 0) + Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
+  const dx = len2(p[0] - cx, p[2] - cz) - r, dy = Math.abs(p[1] - cy) - h;
+  return Math.min(Math.max(dx, dy), 0) + len2(Math.max(dx, 0), Math.max(dy, 0));
 }
 /** A point turned about a level axis through height cy: front-to-back through cz, or side-to-side when `sideways`. */
 function tip(p: V, cy: number, cz: number, a: number, sideways = false): V {
@@ -79,8 +81,8 @@ function tip(p: V, cy: number, cz: number, a: number, sideways = false): V {
 }
 /** Torus lying flat around the vertical axis through (cx, cz). */
 function torus(p: V, cx: number, cy: number, cz: number, R: number, r: number, sx = 1, sz = 1) {
-  const q = Math.hypot((p[0] - cx) / sx, (p[2] - cz) / sz) - R;
-  return Math.hypot(q, p[1] - cy) - r;
+  const q = len2((p[0] - cx) / sx, (p[2] - cz) / sz) - R;
+  return len2(q, p[1] - cy) - r;
 }
 function smin(a: number, b: number, k: number) {
   const h = Math.max(k - Math.abs(a - b), 0) / k;
@@ -535,7 +537,7 @@ function build(m: Model): Scene {
       if (e > 0 && e < 3) d -= 0.7 * (1 - e / 3);
     }
     if (d < 1.5) {
-      const r = Math.hypot(p[0], p[1] + 26);
+      const r = len2(p[0], p[1] + 26);
       if (r > 8) d += (mat === "silk" ? 0.45 : 0.3) * Math.sin(Math.atan2(p[0], -(p[1] + 26)) * 9 + r * 0.15) * clamp((r - 8) / 8, 0, 1);
       if (mat === "fur" && -cut(p) < 2.5) d -= 0.5 * Math.abs(Math.sin(p[0] * 2.2) * Math.sin(p[1] * 2.2));
     }
@@ -638,16 +640,16 @@ function build(m: Model): Scene {
   /** A cap's peak: a disc `r` across, centred over the brow, cut off behind `back`. */
   // The camera is level, so a flat peak is seen edge-on: it needs thickness and a tilt to read.
   const peak = (p: V, y: number, r: number, back: number, droop = 0.12, thick = 0.55) =>
-    Math.max(Math.abs(p[1] - y + Math.max(0, p[2] - back) * droop) - thick, Math.hypot(p[0], p[2] - back) - r, back - p[2]) - 0.2;
+    Math.max(Math.abs(p[1] - y + Math.max(0, p[2] - back) * droop) - thick, len2(p[0], p[2] - back) - r, back - p[2]) - 0.2;
   /** Crown, brim and band of a fedora: a tapering crown creased down the middle and pinched at the front, the brim snapped down over the eyes. */
   const fedora = (p: V): [number, number, number] => {
     const W = m.headW, q = tip(p, m.hairline, -1.5, -0.1), base = m.hairline - 2.4, top = 25.6 - (q[2] + 1.5) * 0.12;
     const t = clamp((q[1] - base) / (top - base), 0, 1), rx = W + 1.4 - t * 2.6, rz = W + 2.4 - t * 2;
-    let side = (Math.hypot(q[0] / rx, (q[2] + 1.5) / rz) - 1) * rx;
+    let side = (len2(q[0] / rx, (q[2] + 1.5) / rz) - 1) * rx;
     side += Math.exp(-((Math.abs(q[0]) - 5) ** 2) / 4) * Math.exp(-((q[2] - W + 1) ** 2) / 8) * t * 3;
     const crown = smax(smax(side, q[1] - top + Math.exp(-(q[0] ** 2) / 6) * 2.8, 2), base - q[1], 0.3);
     const lip = base + 0.2 - Math.max(0, q[2] - 3) * 0.17 + Math.max(0, -q[2] - 6) * 0.15 + Math.max(0, Math.abs(q[0]) - 10) * 0.12;
-    const brim = Math.max(Math.abs(q[1] - lip) - 0.5, Math.hypot(q[0], q[2] + 1.5) - (W + 6.6)) - 0.2;
+    const brim = Math.max(Math.abs(q[1] - lip) - 0.5, len2(q[0], q[2] + 1.5) - (W + 6.6)) - 0.2;
     return [crown, brim, smax(side - 0.35, Math.abs(q[1] - base - 1.5) - 1.2, 0.3)];
   };
   const clocheEdge = (p: V) => 3.2 - clamp((9 - p[2]) * 0.4, 0, 8);
@@ -729,7 +731,7 @@ function build(m: Model): Scene {
       case "ball-cap": return Math.min(smax(sphere(p, 0, T - 5, -1.5, W + 1), -(p[1] - (T - 5)), 1), peak(p, T - 4.6, 11, 9, 0.5, 1));
       case "conical": {
         const apex = T + 11, base = T - 4, h = apex - p[1];
-        const side = (Math.hypot(p[0], p[2] + 1.5) - h * ((W + 11) / (apex - base))) * 0.55;
+        const side = (len2(p[0], p[2] + 1.5) - h * ((W + 11) / (apex - base))) * 0.55;
         return Math.max(side, -h, base - 1 - p[1]);
       }
       // A tall truncated cone on the crown, as the sprite has it.
@@ -825,7 +827,7 @@ function build(m: Model): Scene {
     switch (ear) {
       case "hoop": return refined
         ? Math.min(sphere(p, x, y, z + 1.2, 0.6), torus([p[0], p[2], p[1]], x, z + 1.2, y - 2.3, 1.6, 0.5, 1, 1.3))
-        : Math.hypot(Math.hypot(p[1] - y + 2, p[2] - z) - 2, p[0] - x) - 0.45;
+        : len2(len2(p[1] - y + 2, p[2] - z) - 2, p[0] - x) - 0.45;
       case "drop": return Math.min(sphere(p, x, y, z, 0.65), capsule(p, [x, y, z], [x, y - 2, z], 0.35), ellipsoid(p, x, y - 3.2, z, refined ? 1.1 : 0.8, 1.4, 0.8));
       // A disc set into a stretched lobe.
       case "spool": return cylinder([p[1], p[0], p[2]] as V, y - 0.5, x, z, 1.7, 0.5);

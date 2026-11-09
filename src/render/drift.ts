@@ -133,7 +133,7 @@ export class Drift {
   set(style: DriftStyle | undefined, seed: number) {
     if (!style) return this.clear();
     const key = atlasKey(style);
-    if (key === this.key) return;
+    if (key === this.key && style.density === this.style?.density) return;
     this.clear();
     this.key = key;
     this.style = style;

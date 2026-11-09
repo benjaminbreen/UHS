@@ -21,6 +21,9 @@ export type Weather = {
   wind: Wind;
   /** How wet the ground is, 0 to 1. Rain soaks it and it dries out after. */
   wetness: number;
+  /** How hard it is raining, 0 to 1: under 0.25 a drizzle, over 0.75 a
+   * downpour. 0 unless the condition is rain. */
+  rain: number;
 };
 
 const labels: Record<WeatherCondition, string> = {
@@ -82,6 +85,32 @@ function conditionFor(
           ? "mist"
           : "clear";
 }
+
+// What a wet day is like where you are, as [typical, spread] of intensity:
+// northern drizzle, Mediterranean showers, tropical and monsoon downpours,
+// and the rare desert cloudburst.
+const rainStyle: Record<string, [number, number]> = {
+  temperate: [0.35, 0.3],
+  mediterranean: [0.5, 0.35],
+  tropical: [0.7, 0.3],
+  monsoon: [0.75, 0.25],
+  arid: [0.6, 0.4],
+  boreal: [0.3, 0.25],
+  tundra: [0.2, 0.2],
+};
+/** The day's rain comes and goes in showers through the hours; tropical rain
+ * builds to an afternoon storm. */
+function rainAt(seed: string, day: number, hour: number, climate: string) {
+  const [typical, spread] = rainStyle[climate] ?? rainStyle.temperate;
+  const base = typical + (hash(`${seed}:${day}:rain`) - 0.5) * 2 * spread;
+  const phase = hash(`${seed}:${day}:shower`) * 24;
+  const showers = 0.7 + 0.2 * Math.sin((hour + phase) * 1.3) + 0.1 * Math.sin((hour + phase) * 3.7);
+  const afternoon =
+    (climate === "tropical" || climate === "monsoon") && hour > 13 && hour < 19 ? 0.15 : 0;
+  return Math.max(0.05, Math.min(1, base * showers + afternoon));
+}
+const rainLabel = (rain: number) =>
+  rain < 0.25 ? "Drizzle" : rain < 0.55 ? "Rain" : rain < 0.8 ? "Heavy rain" : "Downpour";
 
 /** How much water a day's weather puts on the ground. */
 const soak: Record<WeatherCondition, number> = {
@@ -154,13 +183,15 @@ export function weatherAt(
     before - hour / (condition === "clear" ? 7 : 14),
     0,
   );
+  const falling = condition === "rain" ? rainAt(seed, day, hour, climate) : 0;
   return {
     condition,
-    label: labels[condition],
+    label: falling ? rainLabel(falling) : labels[condition],
     tempC,
     night: hour < 5 || hour >= 20,
     wind: windFor(seed, day, hour, climate, si, condition),
     wetness: Math.min(1, wetness),
+    rain: falling,
   };
 }
 

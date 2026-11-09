@@ -79,3 +79,6 @@ export type PersonalAim = {
     | { type: "give"; actor: string; items: ItemId[]; text: string; done?: boolean }
     | { type: "work"; target: number; progress: number; text: string };
 };
+
+/** A plot stands in for the life aim until it ends; it should not wear the name. */
+export const aimLabel = (aim: { id: string }) => (aim.id.startsWith("plot:") ? "Most pressing" : "Life aim");

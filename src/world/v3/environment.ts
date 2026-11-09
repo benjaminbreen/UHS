@@ -492,7 +492,7 @@ export function createEnvironment(
           return Math.max(Math.abs(x - c0.x), Math.abs(y - c0.y)) < place.radius * 0.5;
         })()
       : Math.hypot(x, y) < 16;
-    let tidal: number | undefined, dike = false;
+    let dike = false;
     let reaches: number[] | undefined, wetPlaya: number | undefined;
     let waterGradientOverride: readonly [number, number] | undefined;
     // Distributaries: the contours of two smooth fields cross the delta plain
@@ -513,11 +513,6 @@ export function createEnvironment(
     // Each season's flood, laid over the dry ground at the end.
     if (kind === "river" && water >= -1 && !town && byS.some((w) => w.flood > 0))
       reaches = byS.map((w) => floodReach(w, floodplain, s.climate));
-    // The scene stands at low water: the intertidal shelf is bare mud.
-    if (kind === "sea" && water < 0 && ws.tide >= 0.3 && !reef) {
-      const width = 1 + ws.tide * 9;
-      if (water > -width) tidal = 1 + water / width;
-    }
     if (ws.works === "polder" && !town && water > 2) {
       // Straight drainage ditches across the reclaimed land, a raised dike
       // along the open water.
@@ -908,13 +903,14 @@ export function createEnvironment(
       ...(drainage ? { drainage, ecologyParts } : {}),
       water,
       shoreWidth,
+      floodplain,
       waterFlow,
       kind,
       moisture,
       ...(landscape && water >= 0 ? { landscape } : {}),
       ...(fall ? { fall: true } : {}),
       ...(waterGradient ? { waterGradient } : {}),
-      ...(tidal !== undefined ? { tidal } : {}),
+      ...(kind === "sea" && ws.tide >= 0.3 && !reef ? { shelf: 1 + ws.tide * 9 } : {}),
       ...(reef ? { reef } : {}),
       ...(reaches || wetPlaya !== undefined
         ? {

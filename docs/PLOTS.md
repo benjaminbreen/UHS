@@ -65,6 +65,16 @@ plot needs it. Conditions still to come as plots need them: `fortune-below`,
 `stock-below`, `regard-below/above`, `player-health-below`, `flag`, `any`.
 Effects still to come: `injure`/`kill`, `spawn`, `set-flag`.
 
+Every plot has a `shape` (claim, work, household, occasion, desire, world,
+news, discovery, witness, mystery, light). The draw picks a shape first, then
+a plot within it; about one life in five has none. The `choose` effect puts a
+decision card up (lines `<key>`, `<id>:label`, `<id>:then`, `<id>:failed`);
+the answer fires its id for developments and endings. Banners are scenes in
+`src/ui/plot-emblems.ts` or `src/ui/emblems/scenes/<name>.ts`, drawn at the
+opening, at each card's line and at each ending. `npm run plot:play -- <plot>
+<place>:<year>` plays a plot every way; `npm run capture:emblems -- <plot>`
+draws its banner states.
+
 ## Clocks
 
 Many players will see only a few hours of game time (an hour of game time is

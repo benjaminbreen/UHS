@@ -297,7 +297,7 @@ describe("shared deterministic foundation", () => {
       const story = householdStory({
         seed: `relationship-${i}`, id: "player-house", year: 1200, age: 50,
         sex: i % 2 ? "female" : "male", means: 0.6, shared: false,
-        extended: true, small: false, craft: false, player: true,
+        extended: true, small: false, player: true,
         modern: false, revised: true, formalMarriage: false,
         built: 1180, fabric: "timber",
       });
@@ -578,6 +578,19 @@ describe("shared deterministic foundation", () => {
     expect(unusualOf(e.state.manifest.seed, p, setting, e.state.actors)).toEqual([]);
     p.stats.strength = 90;
     expect(composeIntro(e.state, setting, "London").uncommon).toBe("Nobody in London is stronger than you, and everyone knows it.");
+  });
+  it("names whoever is learning the player's trade, and stops saying nobody is", () => {
+    const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
+    const e = smallSession(setting, "b");
+    delete e.state.plot;
+    const boy = e.state.actors.find((a) => a.kind === "human" && a.id !== e.state.player.id && !a.mount && !a.tends && !a.guard)!;
+    Object.assign(boy, { householdId: e.state.player.householdId, origin: { ...boy.origin, sex: "male", standing: "free" } });
+    e.state.player.relations = [...(e.state.player.relations ?? []).filter((r) => r.other !== boy.id), { other: boy.id, kind: "apprentice" }];
+    const intro = composeIntro(e.state, setting, "London");
+    const text = introText(intro);
+    expect(text).toContain(boy.name);
+    expect(text).not.toMatch(/[{}]|undefined|taken no apprentice/);
+    expect(intro.body.flat().some((s) => s.ref === boy.id)).toBe(true);
   });
   it("opens on a sick child, keeps them in bed, and lets the illness run its course", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);

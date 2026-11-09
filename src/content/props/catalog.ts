@@ -39,6 +39,8 @@ export type PropDef = {
   fire?: boolean;
   /** Sprite variants the family has; three unless said otherwise. */
   variants?: number;
+  /** Lies on the ground and is drawn under everyone standing on it. */
+  underfoot?: boolean;
   /** Too solid to break: a blow knocks it over instead. */
   tips?: boolean;
   /** A running shoulder loosens it; a second push lays it down. */
@@ -51,7 +53,7 @@ export type PropDef = {
   shove?: ShoveDef;
   /** Where this belongs. A washing line hangs behind a house, not on the
    * square; a crate stands at a works or a farm, not on a shopping street. */
-  where?: "backyard" | "worksite" | "privy";
+  where?: "backyard" | "worksite" | "privy" | "trade";
   /** Cells blocked either side of its own, [x, y], for a prop wider than a
    * cell: a village hearth is three cells of stone and fire, not one. */
   span?: [number, number];
@@ -385,7 +387,6 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Spring-water basin",
     family: "trough",
-    visualClearance: [3, 3, 2, 0],
     drink: true,
   },
   trough: {
@@ -393,7 +394,6 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Animal trough",
     family: "trough",
-    visualClearance: [3, 3, 2, 0],
     container: true,
     contents: { water: 4 },
   },
@@ -1041,6 +1041,34 @@ export const propDefs: Record<string, PropDef> = {
     solid: false,
     name: "Festoon",
     family: "festoon",
+  },
+  wrestlingRing: {
+    solid: false,
+    name: "Wrestling ring",
+    family: "wrestling-ring",
+    variants: 4,
+    underfoot: true,
+  },
+  graveMound: {
+    solid: true,
+    name: "Grave",
+    family: "grave-mound",
+  },
+  festivalDrum: {
+    solid: true,
+    name: "Drum",
+    family: "festival-drum",
+  },
+  censer: {
+    solid: false,
+    name: "Incense burner",
+    family: "censer",
+    variants: 2,
+  },
+  tradeGoods: {
+    solid: true,
+    name: "Trade goods",
+    family: "trade-goods",
   },
   bakeOven: {
     solid: true,

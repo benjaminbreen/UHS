@@ -372,8 +372,8 @@ const actor = z.object({
     .array(
       z.object({
         other: z.string(),
-        kind: z.enum(["partner", "parent", "child", "co-resident", "servant", "apprentice", "master", "friend"]),
-        reciprocal: z.enum(["partner", "parent", "child", "co-resident", "servant", "apprentice", "master", "friend"]).optional(),
+        kind: z.enum(["partner", "parent", "child", "co-resident", "servant", "apprentice", "master", "friend", "parent-in-law", "child-in-law", "ritual-kin"]),
+        reciprocal: z.enum(["partner", "parent", "child", "co-resident", "servant", "apprentice", "master", "friend", "parent-in-law", "child-in-law", "ritual-kin"]).optional(),
       }),
     )
     .optional(),
@@ -891,6 +891,7 @@ export const snapshotSchema = z.object({
         }).strict()).max(500).optional(),
         fortune: z.number().min(0).max(1).optional(),
         infants: z.number().int().nonnegative().max(100).optional(),
+        nurse: z.literal("out").optional(),
         familyPlans: z.array(z.object({
           kind: z.literal("seek-match"),
           subject: z.string().max(100),

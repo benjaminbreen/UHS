@@ -6,7 +6,7 @@ import { SHADOW } from "../shadow-style";
 const CAST = 0.8;
 /** Native-grid projection of the composed pose, including clothing and held objects.
  * Alpha uses max coverage so overlapping body pixels never darken the cast. */
-export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
+export function characterShadow(source: HTMLCanvasElement, phase: LightingId, feet = 79) {
   const canvas = document.createElement("canvas");
   canvas.width = 160;
   canvas.height = 96;
@@ -29,19 +29,20 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
     for (let x = 0; x < 80; x++) {
       if (!pixels[(y * 80 + x) * 4 + 3]) continue;
       if (light.opacity) {
-        const px = 80 + (x - 40) + (79 - y) * vx * CAST;
-        const py = 32 + (79 - y) * vy * CAST;
+        const px = 80 + (x - 40) + (feet - y) * vx * CAST;
+        const py = 32 - (79 - feet) + (feet - y) * vy * CAST;
         for (let dx = 0; dx < 2; dx++)
           for (let dy = 0; dy < 2; dy++)
             mark(px + dx, py + dy, Math.round(light.opacity * 255));
       }
-      if (y >= 78)
+      if (y >= feet - 1 && y <= feet)
         for (let dx = -2; dx <= 2; dx++) {
+          const c = 32 - (79 - feet);
           // Contact as dark as a baked prop's (alpha 83-91), not a blot.
-          mark(80 + x - 40 + dx, 31, 40);
-          mark(80 + x - 40 + dx, 32, 92);
-          mark(80 + x - 40 + dx, 33, 72);
-          mark(80 + x - 40 + dx, 34, 40);
+          mark(80 + x - 40 + dx, c - 1, 40);
+          mark(80 + x - 40 + dx, c, 92);
+          mark(80 + x - 40 + dx, c + 1, 72);
+          mark(80 + x - 40 + dx, c + 2, 40);
         }
     }
   ctx.putImageData(data, 0, 0);

@@ -153,6 +153,7 @@ try {
     await canvas.waitFor({ timeout: 90000 });
     const readyMs = Date.now() - selection;
     const startupTasks = await page.evaluate(() => window.longTasks);
+    await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 30000 });
     await page
       .locator('.game-container canvas[data-terrain-pending="0"]')
       .waitFor({ timeout: 90000 });

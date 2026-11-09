@@ -97,6 +97,14 @@ type Resolved = {
   florets: Map<string, Map<number, Pixel>>;
   petals: Rgb[];
 };
+/** Any kit on unwatered ground under a dry climate: the Mediterranean kit's
+ * year, green from the winter rains and cured by midsummer. */
+const drySeasons: GroundKit["seasons"] = {
+  spring: { density: 1, height: 1, flowers: 1.6, cure: 0 },
+  summer: { density: 0.8, height: 0.9, flowers: 0.2, cure: 0.75 },
+  autumn: { density: 0.85, height: 0.9, flowers: 0.3, cure: 0.55 },
+  winter: { density: 1, height: 0.85, flowers: 0.8, cure: 0.05 },
+};
 const resolved = new WeakMap<GroundKit, Map<string, Resolved>>();
 /** The kit as it stands in one season: summer is the kit as authored. */
 function resolve(authored: GroundKit, season: string): Resolved {
@@ -104,7 +112,7 @@ function resolve(authored: GroundKit, season: string): Resolved {
   if (!bySeason) resolved.set(authored, (bySeason = new Map()));
   let r = bySeason.get(season);
   if (r) return r;
-  const shift: SeasonShift = authored.seasons[season as keyof GroundKit["seasons"]] ?? { density: 1, height: 1, flowers: 1, cure: 0 };
+  const shift: SeasonShift = (season.endsWith("-dry") ? drySeasons : authored.seasons)[season.replace("-dry", "") as keyof GroundKit["seasons"]] ?? { density: 1, height: 1, flowers: 1, cure: 0 };
   const straw = rgb(authored.tufts.straw);
   const cure = (hex: Hex, t: number) => {
     const c = rgb(hex);

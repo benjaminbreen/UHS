@@ -23,6 +23,8 @@ SP_LEAF = ['#0e2124', '#193e37', '#246049', '#397d58', '#659d6a', '#a4be86']
 SP_BARK = ['#1a1614', '#302d2a', '#4a3a30', '#6a5040']
 CYPRESS_LEAF = ['#0d1c18', '#152f24', '#1f472d', '#2b5f33', '#3c7a3a', '#5a9448', '#8bb166']
 CYPRESS_BARK = ['#251b16', '#66493a', '#87664e']
+MANGROVE_LEAF = ['#0b2420', '#143a30', '#1e5539', '#2c7042', '#438d4b', '#6aab58', '#a0c977']
+MANGROVE_BARK = ['#231915', '#43302a', '#664a3a', '#8a6a52', '#ad8d70']
 
 
 def unit(v):
@@ -187,6 +189,48 @@ def cypress(seed, bare=False):
             rr = w * t.rng.uniform(.2, .6)
             t.clumps.append(((math.cos(a) * rr, math.sin(a) * rr, z), max(2, w * .7), 1.4))
     return t, dict(leaf=CYPRESS_LEAF, bark=CYPRESS_BARK, ragged=.3)
+
+
+def mangrove(seed, bare=False):
+    """Red mangrove: the trunk stands clear of the mud on arching stilt roots,
+    drop roots hang from the low limbs, and a dense crown spreads wider than tall."""
+    t = Tree(seed, bare)
+    rng = t.rng
+
+    def arch(p0, p1, lift, r0, r1, n=6):
+        p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+        mid = (p0 + p1) / 2 + (0, 0, lift)
+        pts = [(1 - u) ** 2 * p0 + 2 * u * (1 - u) * mid + u * u * p1 for u in np.linspace(0, 1, n + 1)]
+        for i in range(n):
+            t.caps.append((tuple(pts[i]), tuple(pts[i + 1]), r0 + (r1 - r0) * i / n, r0 + (r1 - r0) * (i + 1) / n))
+
+    base = rng.uniform(0, 2 * math.pi)
+    for k in range(9):
+        a = base + k * 2 * math.pi / 9 + rng.uniform(-.25, .25)
+        z0 = rng.uniform(10, 18)
+        reach = rng.uniform(16, 26)
+        arch((0, 0, z0), (math.cos(a) * reach, math.sin(a) * reach, -1), rng.uniform(7, 11), 1.6, 1.1)
+    top, _ = t.limb((0, 0, 9), (rng.uniform(-.1, .1), 0, 1), 15, 3.2, 2.8, wobble=.08)
+    for k in range(5):
+        a = base + .4 + k * 2 * math.pi / 5 + rng.uniform(-.3, .3)
+        tilt = rng.uniform(1.15, 1.35)
+        tip, _ = t.limb(top, (math.cos(a) * math.sin(tilt), math.sin(a) * math.sin(tilt), math.cos(tilt)),
+                        rng.uniform(22, 28), 2.2, 1.2, bend=(0, 0, .15), wobble=.1, segs=3)
+        # A drop root hangs from the limb into the water.
+        if k % 2 == 0:
+            mid = (np.asarray(top) + tip) / 2
+            arch(mid, (mid[0] * 1.15, mid[1] * 1.15, -1), 0, .8, .9, n=3)
+        if not bare:
+            for u in (.55, 1):
+                o = rng.normal(0, 1, 3) * (3, 3, 1)
+                c = np.asarray(top) + (tip - top) * u + o + (0, 0, 4)
+                t.clumps.append((tuple(c), rng.uniform(9, 11), .45))
+    if not bare:
+        t.clumps.append((tuple(np.asarray(top) + (0, 0, 7)), 12, .45))
+        for k in range(5):
+            a = base + .4 + (k + .5) * 2 * math.pi / 5
+            t.clumps.append((tuple(np.asarray(top) + (math.cos(a) * 13, math.sin(a) * 13, 6)), 8, .45))
+    return t, dict(leaf=MANGROVE_LEAF, bark=MANGROVE_BARK, ragged=.3)
 
 
 def _scaled(tree, ang, s):
@@ -432,6 +476,8 @@ def voxel_trees():
         out[_named('nature-acacia', i)] = bake(acacia, seed, (112, 108), ang)
     for i, (seed, ang) in enumerate([(3, 0), (11, 120), (14, 240)]):
         out[_named('nature-boreal-spruce', i)] = bake(spruce, seed, (64, 96), ang)
+    for i, (seed, ang) in enumerate([(5, 0), (8, 120), (13, 240)]):
+        out[_named('nature-mangrove', i)] = bake(mangrove, seed, (96, 80), ang)
     for i, (seed, ang) in enumerate([(1, 0), (2, 120), (3, 240)]):
         out[_named('nature-cypress', i)] = bake(cypress, seed, (32, 112), ang)
     return out

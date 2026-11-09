@@ -1,16 +1,23 @@
 import { random } from "../../core/random";
 import { claimFor } from "../economy/claims";
 import { amountOf, BRITAIN, CHINA, collectorOf, dueOf, MESOPOTAMIA, partnerWords, pronounWords, working } from "./common";
-import type { PlotContext, PlotTemplate } from "./types";
+import type { Effect, PlotContext, PlotTemplate } from "./types";
 
 /** Grain the household still owes from the last collection. */
 const arrearsOf = (c: PlotContext) => c.economy?.arrears?.[c.household?.id ?? ""] ?? 0;
 /** Grain units, at a day's bread each, to one unit of payment. */
 const GRAIN_PER_UNIT = 40;
 
+const plea: Effect = {
+  type: "choose", line: "plea", focus: "landlord",
+  choices: [{ id: "pledge" }, { id: "labour" }, { id: "appeal", check: { stat: "wit", skill: "speech", odds: 0.35 } }],
+};
+const notSpurned = { type: "not", of: { type: "fired", id: "appeal:failed" } } as const;
+
 /** What the land owes whoever holds it, due now, after a thin year. */
 export const rent: PlotTemplate = {
   id: "rent",
+  shape: "claim",
   look: {
     emblem: "rent",
     palette: { ink: "#141810", fill: "#232b1a", edge: "#5c4a2a", light: "#e8e4c8", accent: "#a8862e" },
@@ -53,13 +60,33 @@ export const rent: PlotTemplate = {
   opening: [{ type: "approach", role: "landlord", line: "dun" }],
   developments: [
     {
+      id: "plea",
+      when: { type: "all", of: [{ type: "talked", role: "landlord" }, { type: "not", of: { type: "fired", id: "plea-late" } }, { type: "not", of: { type: "settled" } }] },
+      then: [plea],
+    },
+    {
+      id: "plea-late",
+      when: { type: "all", of: [{ type: "since", hours: 1.5 }, { type: "not", of: { type: "fired", id: "plea" } }, { type: "not", of: { type: "settled" } }] },
+      then: [plea],
+    },
+    { id: "terms", when: { type: "fired", id: "labour" }, then: [{ type: "extend", hours: 12 }] },
+    {
+      id: "spurned",
+      when: { type: "fired", id: "appeal:failed" },
+      then: [
+        { type: "regard", role: "landlord", delta: -2 },
+        { type: "walk-off", role: "landlord", to: "authority" },
+        { type: "gather", at: "authority", when: "morning", label: "hearing", scene: "hearing", aim: "aim-hearing" },
+      ],
+    },
+    {
       id: "remind",
-      when: { type: "all", of: [{ type: "due", hours: -3 }, { type: "not", of: { type: "settled" } }] },
+      when: { type: "all", of: [{ type: "due", hours: -3 }, { type: "not", of: { type: "settled" } }, notSpurned] },
       then: [{ type: "approach", role: "landlord", line: "remind" }],
     },
     {
       id: "seize",
-      when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }] },
+      when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }, notSpurned] },
       then: [
         { type: "seize", role: "landlord" },
         { type: "regard", role: "landlord", delta: -2 },
@@ -69,7 +96,7 @@ export const rent: PlotTemplate = {
     },
     {
       id: "final",
-      when: { type: "all", of: [{ type: "fired", id: "seize" }, { type: "due" }, { type: "not", of: { type: "settled" } }] },
+      when: { type: "all", of: [{ type: "fired", id: "seize" }, { type: "due" }, { type: "not", of: { type: "settled" } }, notSpurned] },
       then: [
         { type: "walk-off", role: "landlord", to: "authority" },
         { type: "card", line: "evicted", focus: "landlord" },
@@ -93,6 +120,9 @@ export const rent: PlotTemplate = {
     { id: "absent", when: { type: "fired", id: "default" } },
     { id: "paid", when: { type: "all", of: [{ type: "settled" }, { type: "not", of: { type: "seized" } }] } },
     { id: "seized", when: { type: "settled" } },
+    { id: "pledged", when: { type: "fired", id: "pledge" } },
+    { id: "laboured", when: { type: "all", of: [{ type: "fired", id: "labour" }, { type: "brought", role: "landlord" }] } },
+    { id: "remitted", when: { type: "all", of: [{ type: "fired", id: "appeal" }, notSpurned] } },
   ],
   wording: [
     {
@@ -113,6 +143,7 @@ export const rent: PlotTemplate = {
         seized: "{landlord} has taken the share from your store. The share is paid, but your household will go hungry.",
         evicted: "{landlord} has gone to have the field given to another household. Next year someone else will plough it.",
         fled: "You have left the field and the temple's share behind you.",
+        remitted: "{landlord} has the field inspected, and the tablet is written again with a smaller share for the bad year, as the law allows when a crop fails.",
       },
     },
     {
@@ -133,6 +164,8 @@ export const rent: PlotTemplate = {
         seized: "{landlord} has taken the rent in goods from your store. It's paid, but there's little left in the house.",
         evicted: "{landlord} has gone to present you at the manor court. You may lose the holding.",
         fled: "You have left the holding and the rent behind. If you're found, you can be brought back.",
+        "labour:label": "Offer boon-work on the lord's land",
+        laboured: "You give the day to the lord's own fields, and the reeve marks it against your rent. The rest can wait until Michaelmas.",
       },
     },
     {
@@ -152,7 +185,7 @@ export const rent: PlotTemplate = {
         paid: "The rent is paid. The field is yours to work another year.",
         seized: "{landlord} has taken the rent from your store. It's paid, but it will be a hungry winter.",
         evicted: "{landlord} has gone to let your field to another family.",
-        fled: "You have left the field and the rent behind, and with them your only living.",
+        fled: "You have left the field and the rent behind, and now your household has no land to work.",
       },
     },
     {
@@ -174,6 +207,15 @@ export const rent: PlotTemplate = {
         hearing: "At the hearing before {authority}",
         "aim-hearing": "Answer {landlord} before {authority} {meet}, or pay what's still owed before then.",
         judged: "You answer for yourself, and the hearing lets your household keep the land. But what's still owed is to be taken from your store.",
+        plea: "{landlord} wants {amount} {due}, and the store won't stretch to it. What do you offer?",
+        "pledge:label": "Promise a bigger share next harvest",
+        "labour:label": "Offer days of work on {his} land",
+        "labour:then": "{landlord} will take a day's work on {his} own fields toward the rent. Do the work, then come and tell {him}.",
+        "appeal:label": "Ask for the rent to be cut for the bad year",
+        "appeal:failed": "{landlord} hears you out, then says a bad year is no excuse. {He} is taking it to {authority}.",
+        pledged: "{landlord} agrees to wait, in return for a bigger share of next year's crop. If the next harvest is thin too, you'll be worse off than now.",
+        laboured: "You spend the day on {landlord}'s own land, and {he} counts the work toward the rent. The rest can wait until harvest.",
+        remitted: "{landlord} looks at the field and the store, and lets part of the rent go for the bad year. The land stays yours.",
         absent: "You didn't come to answer, so it was decided without you. What's still owed is to be taken from your store, and from next year the land goes to someone else.",
       },
     },

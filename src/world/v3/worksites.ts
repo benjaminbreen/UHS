@@ -2,7 +2,7 @@ import { propSprite } from "../../content/props/place";
 import { random } from "../../core/random";
 import type { Pack, Place, Point, Terrain } from "../../core/types";
 import { paintedDoor } from "../../core/doors";
-import { buildingModel, buildingRoofCells } from "../../content/graphics/models";
+import { buildingModel, buildingArtCells } from "../../content/graphics/models";
 import { worksitesFor } from "../../content/settlements/worksites";
 import type { Rect, SettlementPlan } from "./types";
 import type { Sample } from "./roads";
@@ -109,7 +109,7 @@ export function planWorksites(
         }
         grade(p);
         cells(p,(x,y)=>plan.built?.add(key(x,y)));
-        for (const at of buildingRoofCells(p.sprite,p)) plan.placement.clearance.add(key(at.x,at.y));
+        for (const at of buildingArtCells(p.sprite,p)) plan.placement.clearance.add(key(at.x,at.y));
         connect(p.entrance,gate,`worksite-${profile.id}${p.id.endsWith("-store")?"-store":"-door"}`,0,area);
         plan.places.push(p);
         plan.objects.push({id:`${p.id}-exit`,name:"Return to the work yard",kind:"exit",pos:{x:6,y:9,space:p.id},sprite:"door-open",inventory:{}});

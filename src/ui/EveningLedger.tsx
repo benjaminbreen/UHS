@@ -13,6 +13,7 @@ import { SplashStars } from "./SplashStars";
 import { SkyScene } from "./WeatherPanel";
 import { bannerFor } from "./splash-banner";
 import { regionAt } from "../content/geography/region-label";
+import "./time/time.css";
 
 const ROW_MS = 520;
 const noun = (runtime: Runtime, good: string) => {
@@ -66,10 +67,13 @@ export function EveningLedger({
   runtime,
   evening,
   onClose,
+  onYears,
 }: {
   runtime: Runtime;
   evening: Evening;
   onClose: () => void;
+  /** Let the years pass; `true` runs them to the end of the life. */
+  onYears?: (toEnd: boolean) => void;
 }) {
   const engine = runtime.engine;
   const s = engine.state;
@@ -217,6 +221,7 @@ export function EveningLedger({
     night: false,
     wind: { angle: 0, strength: 0.2 },
     wetness: 0,
+    rain: 0,
   };
   rows.push({
     label: "Tomorrow",
@@ -291,12 +296,20 @@ export function EveningLedger({
             </li>
           ))}
         </ol>
-        <button
-          className={`evening-sleep ${shown >= rows.length ? "ready" : ""}`}
-          onClick={() => (shown < rows.length ? setShown(rows.length) : onClose())}
-        >
-          {shown < rows.length ? "Skip" : "Another day"} <kbd>↵</kbd>
-        </button>
+        <div className="evening-choices">
+          {onYears && setting && shown >= rows.length && (
+            <>
+              <button className="years-quiet-button" onClick={() => onYears(true)}>To the end</button>
+              <button className="years-quiet-button" onClick={() => onYears(false)}>Let the years pass</button>
+            </>
+          )}
+          <button
+            className={`evening-sleep ${shown >= rows.length ? "ready" : ""}`}
+            onClick={() => (shown < rows.length ? setShown(rows.length) : onClose())}
+          >
+            {shown < rows.length ? "Skip" : "Another day"} <kbd>↵</kbd>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -27,6 +27,11 @@ export type PlotState = {
   ended?: string;
   /** Where and when the people in it meet; `place` is the building whose door it is. */
   gathering?: { at: Position; place?: string; start: number; until: number; label: string; met?: boolean; scene?: Occasion; props?: string[] };
+  /** When some fired ids fired, for `after`. */
+  firedAt?: Record<string, number>;
+  /** A choice card waiting on an answer, and when it was last put up; `due`, while it has yet to be
+   * brought, and `by`, whoever comes to ask it. */
+  asking?: { line: string; focus?: string; by?: string; choices: import("../content/plots/types").PlotChoice[]; at: number; due?: number };
   /** The life aim the plot displaced, given back when it ends. */
   aim?: Snapshot["lifeAim"];
 };
@@ -45,6 +50,8 @@ export type PlotCard = {
   speaker?: string;
   /** Which ending, so the emblem can show how it came out. */
   ending?: string;
+  /** The plot banner drawn at this moment of the plot, on a turn. */
+  moment?: string;
   /** A work card waiting for one of these; `odds` is shown on hover. */
   choose?: { card: string; choices: { index: number; label: string; note?: string; odds?: number; minutes?: number; coin?: number; unavailable?: string }[] };
 };
@@ -63,6 +70,10 @@ export function plotLine(plot: PlotState, key: string) {
 const RECENT = "uhs.recent-plots";
 /** How much a plot from one, two, three or four lives ago is held back. */
 const REPEAT = [0.15, 0.35, 0.6, 0.8];
+/** Lives with no plot, as a share of those with one: about one in five goes without. */
+const QUIET = 0.25;
+/** Debts, levies and accusations were the weight of most lives; one shape among eleven undersells them. */
+const CLAIM = 2;
 
 /** Plots of the last few lives in this browser, newest first. Outside a
  * browser there are none, so seeded runs and tests choose the same way. */
@@ -85,7 +96,8 @@ function remember(id: string) {
 
 /** The game's choice for this life, or undefined when no plot fits. `only`
  * starts that plot later in a life, once the last one has ended. */
-export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: string): PlotState | undefined {
+/** `chapter` draws afresh for a later part of the same life: the years after a jump. */
+export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: string, chapter?: number): PlotState | undefined {
   if (snapshot.plot && !(only && snapshot.plot.ended)) return snapshot.plot;
   const seed = snapshot.manifest.seed;
   const households = snapshot.households ?? [];
@@ -100,13 +112,25 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
     economy: snapshot.economy,
   };
   const recent = recentPlots();
-  // Drawn in proportion to weight, so a plot weighted 0.5 beside one weighted 1 still comes up a third of the time.
+  const recentShapes = recent.map((id) => PLOTS.find((t) => t.id === id)?.shape);
   const weighed = PLOTS
     .filter((t) => !only || t.id === only)
     .map((t) => ({ t, w: t.weight(context) * (REPEAT[recent.indexOf(t.id)] ?? 1) }))
     .filter((c) => c.w > 0);
-  let draw = random(seed, "plot", snapshot.player.id) * weighed.reduce((n, c) => n + c.w, 0);
-  const chosen = weighed.find((c) => (draw -= c.w) < 0)?.t ?? weighed.at(-1)?.t;
+  // A shape first, worth its likeliest plot, then a plot within it in proportion to weight.
+  const shapes = [...new Set(weighed.map((c) => c.t.shape))].map((shape) => ({
+    shape,
+    w: Math.max(...weighed.filter((c) => c.t.shape === shape).map((c) => c.w)) * (REPEAT[recentShapes.indexOf(shape)] ?? 1)
+      * (shape === "claim" ? CLAIM : 1),
+  }));
+  const total = shapes.reduce((n, c) => n + c.w, 0);
+  const keys = chapter === undefined ? [] : [chapter];
+  let draw = random(seed, "plot", snapshot.player.id, ...keys) * total * (only ? 1 : 1 + QUIET);
+  const shape = shapes.find((c) => (draw -= c.w) < 0)?.shape;
+  if (!shape && !only) return;
+  const within = weighed.filter((c) => c.t.shape === (shape ?? shapes.at(-1)?.shape));
+  let pick = random(seed, "plot", snapshot.player.id, "within", ...keys) * within.reduce((n, c) => n + c.w, 0);
+  const chosen = within.find((c) => (pick -= c.w) < 0)?.t ?? within.at(-1)?.t;
   const cast = chosen?.cast(context);
   if (!chosen || !cast) return;
   const begun = chosen.begin(context, cast);
@@ -117,7 +141,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
     !w.scope || (!!setting && matchesCharacterScope(w.scope, setting, community))));
   const plot: PlotState = {
     id: chosen.id,
-    title: chosen.wording[wording].title,
+    title: chosen.wording[wording].title.replace(/\{(\w+)\}/g, (m, w) => begun.words[w] ?? m),
     wording,
     words: { ...begun.words, authority: orderKeeper(setting).who, Authority: orderKeeper(setting).who.replace(/^./, (c) => c.toUpperCase()) },
     refs: begun.refs,
@@ -154,6 +178,13 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot): boolean {
     case "brought": return plot.fired.includes("worked") && plot.fired.lastIndexOf(`talked:${c.role}`) > plot.fired.indexOf("worked");
     case "not": return !holds(c.of, plot, snapshot);
     case "all": return c.of.every((x) => holds(x, plot, snapshot));
+    case "any": return c.of.some((x) => holds(x, plot, snapshot));
+    case "after": {
+      if (!plot.fired.includes(c.id)) return false;
+      // Noted the first time it is looked for, which is the step it fired on.
+      const at = ((plot.firedAt ??= {})[c.id] ??= snapshot.clock);
+      return snapshot.clock >= at + c.hours * 3600;
+    }
   }
 }
 

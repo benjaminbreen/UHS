@@ -9,18 +9,22 @@ const candidateOf = (c: PlotContext) => c.actors.find((a) =>
   a.kind === "human" && !a.dead && a.id !== c.player.id && a.householdId === c.player.householdId &&
   sexOf(a) === "male" && (a.age ?? 30) >= 14 && (a.age ?? 30) <= 40);
 
+/** Degree holders, who alone could vouch, were men. */
+const patronOf = (c: PlotContext) => notable(c, (a) => sexOf(a) === "male");
+
 /** A young man of the household is to sit the civil examinations, and needs
  * someone of standing to vouch for him first. */
 export const exam: PlotTemplate = {
   id: "exam",
+  shape: "household",
   look: {
-    emblem: "slate",
+    emblem: "candidate",
     palette: { ink: "#10141a", fill: "#1c2430", edge: "#3a5a7a", light: "#e6ecf2", accent: "#c0462e" },
   },
   payee: "patron",
-  weight: (c) => (within(c, ...EXAMS) && candidateOf(c) && notable(c) ? 0.8 : 0),
+  weight: (c) => (within(c, ...EXAMS) && candidateOf(c) && patronOf(c) ? 0.8 : 0),
   cast: (c) => {
-    const patron = notable(c);
+    const patron = patronOf(c);
     return patron && candidateOf(c) && { patron };
   },
   begin: (c, cast) => {
@@ -44,7 +48,7 @@ export const exam: PlotTemplate = {
       refs: { patron: patron.id, candidate: candidate.id, ...p.refs },
     };
   },
-  opening: [{ type: "approach", role: "patron", line: "terms" }],
+  opening: [{ type: "choose", line: "terms", focus: "patron", from: "patron", choices: [{ id: "pay" }, { id: "gift" }, { id: "plead", check: { stat: "wit", odds: 0.45 } }] }],
   developments: [
     {
       id: "nerves",
@@ -54,7 +58,9 @@ export const exam: PlotTemplate = {
   ],
   endings: [
     { id: "vouched", when: { type: "settled" } },
-    { id: "favoured", when: { type: "brought", role: "patron" } },
+    { id: "favoured", when: { type: "all", of: [{ type: "fired", id: "gift" }, { type: "brought", role: "patron" }] } },
+    { id: "refused", when: { type: "all", of: [{ type: "fired", id: "plead:failed" }, { type: "since", hours: 2 }] } },
+    { id: "pleaded", when: { type: "all", of: [{ type: "fired", id: "plead" }, { type: "since", hours: 2 }] } },
     { id: "gone", when: { type: "gone", role: "patron" } },
     { id: "missed", when: { type: "due" } },
   ],
@@ -70,7 +76,7 @@ export const exam: PlotTemplate = {
         partner: "Your {partnerKin} {partner} has sold a bracelet to pay for the paper and ink.",
         "kin-partner": "Has {patron} agreed yet? {candidate} hasn't slept.",
         "cast-patron": "A degree holder whose guarantee {candidate} needs to sit the examination.",
-        terms: "I'll put my name to {candidate}'s guarantee. These things cost something to arrange. {amount}, {due}.",
+        terms: "I'll put my name to {candidate}'s guarantee. These things cost something to arrange: {amount}, {due}.",
         nerves: "{candidate} is reciting the classics under his breath and can't eat.",
         vouched: "{patron} signs the guarantee. {candidate} will sit the examination. Whatever happens, your household has a candidate.",
         favoured: "{patron} accepts your gift and signs the guarantee without mentioning the fee again.",
@@ -89,7 +95,7 @@ export const exam: PlotTemplate = {
         partner: "Your {partnerKin} {partner} has gone through the family's papers twice.",
         "kin-partner": "Has {patron} agreed to vouch for us? {candidate} keeps asking.",
         "cast-patron": "A person of standing whose word on the family record {candidate} needs.",
-        terms: "I can vouch for your family's record. But you understand, these things cost something. {amount}, {due}.",
+        terms: "I can vouch for your family's record. But you understand, these things cost something: {amount}, {due}.",
         nerves: "{candidate} is copying out practice answers by lamplight and can't eat.",
         vouched: "{patron} vouches for the record. {candidate} will sit the examination.",
         favoured: "{patron} accepts your gift and vouches for the record without mentioning payment.",
@@ -106,12 +112,21 @@ export const exam: PlotTemplate = {
         partner: "Your {partnerKin} {partner} has spent the household's savings on his books.",
         "kin-partner": "Has {patron} agreed? {candidate} can't think of anything else.",
         "cast-patron": "A person of standing whose guarantee {candidate} needs.",
-        terms: "I'll vouch for {candidate}. These things cost something. {amount}, {due}.",
+        terms: "I'll vouch for {candidate}. These things cost something: {amount}, {due}.",
         nerves: "{candidate} is reciting under his breath and can't eat.",
         vouched: "{patron} gives the guarantee. {candidate} will sit the examination.",
         favoured: "{patron} accepts your gift and gives the guarantee without asking for more.",
         gone: "With {patron} gone, you'll have to find someone else before the next examination.",
         missed: "No guarantee came, so {candidate} can't sit the examination this time.",
+        "pay:label": "Agree to the fee",
+        "pay:then": "You tell {patron} you'll bring {amount}. Now you have to find it.",
+        "gift:label": "Offer something of your own work",
+        "gift:then": "You say you'll bring {patron} something of your own making once the day's work is done. {He} raises an eyebrow, but doesn't say no.",
+        "plead:label": "Remind {him} of an old family tie",
+        "plead:then": "You remind {patron} that your grandfathers studied under the same teacher. {He} is quiet a moment, then says that between old families the fee can be forgotten.",
+        "plead:failed": "You remind {patron} of an old tie between your families. {He} says {he} remembers no such thing, and that you insult {him} by asking.",
+        pleaded: "{patron} signs the guarantee as a favour between families. One day {he} will ask a favour back.",
+        refused: "{patron} won't put {his} name to {candidate}'s guarantee now, at any price. {candidate} will have to wait for the next examination.",
       },
     },
   ],

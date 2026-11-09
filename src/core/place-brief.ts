@@ -11,6 +11,8 @@ function kin(kind: SocialRelation["kind"] | undefined, sex: Sex) {
   if (kind === "child") return by("daughter", "son", "child");
   if (kind === "parent") return by("mother", "father", "parent");
   if (kind === "servant" || kind === "apprentice") return kind;
+  if (kind === "parent-in-law") return `${by("mother", "father", "parent")}-in-law`;
+  if (kind === "child-in-law") return `${by("daughter", "son", "child")}-in-law`;
   return "lodger";
 }
 /** The householder's relation to them, else theirs to the householder turned round. */
@@ -90,7 +92,7 @@ export function placeBrief(
       const kind =
         holder.relations?.find((r) => r.other === a.id)?.kind ??
         (back && INVERSE[back]);
-      const term = kin(kind, sexOf(a));
+      const term = kind === "servant" && a.origin?.standing === "unfree" ? "bound servant" : kin(kind, sexOf(a));
       if (term === "lodger") lodgers.push(a.name);
       else others.push(`${their} ${term} ${a.name}`);
     }

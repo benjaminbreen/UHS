@@ -1,3 +1,27 @@
+## The years — November 8, 2026
+
+A life now runs past its day. **Let the years pass** (ledger or Rest menu) plays
+the life forward a year at a time under the night sky. The player and household
+die by period mortality (Gompertz-Makeham calibrated to e20 by era, period child
+loss, death in childbirth), with causes drawn from the day's own ailments plus
+age, trade, war and epidemic years. People marry and children are born and
+named, the heir's spouse moves in and the others leave. There are good and bad
+years, fires and thefts, dated news and ageing, and the plot comes to an end.
+Any year can be stepped into, older, in the same house with the household
+carried, the town aged and a new plot; or watched **to the end**, where the death
+card counts the children who outlived you against the period's typical age at
+death, and **Go on as** starts the heir with their own plot.
+
+Households follow local custom (`src/content/history/households.ts`). That
+covers who brings a spouse home: daughters among the Haudenosaunee, Pueblos,
+Minangkabau, Khasi and in Malabar; nobody in north-west Europe and the modern
+West. The Mongolian hearth goes to the youngest son. Marriage ages follow
+Hajnal's late European pattern or the earlier pattern elsewhere. In Africa a
+well-off man may take more wives. Year lines suit market, farm, herd and
+forager households. Outside Europe, North America, Australasia and Japan,
+mortality stays at old levels until 1950. The Americas get contact epidemics
+from 1519.
+
 ## Fishing as a general system — October 18, 2026
 
 `src/content/economy/fishing.ts` works out how a household fishes from the

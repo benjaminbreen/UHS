@@ -83,7 +83,7 @@ import { settlementProfile } from "../../content/settlements/profiles";
 import { createLandscape } from "../geography/landscape";
 import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
-import { crossing, planRoad, roadCells } from "./roads";
+import { crossing, planRoad, roadCells, spanOffsets } from "./roads";
 import { planSettlement } from "./plan";
 import { siteForm, siteGate } from "./urban";
 import { earthFinish } from "../../content/settlements/urban-form";
@@ -265,7 +265,8 @@ export function createSettlementWorld(
    * so steps run straight for whole blocks and turn only at right angles. */
   function terracedSample(x: number, y: number) {
     const f = rawLand.sample(x, y);
-    if (f.water < 2) return f;
+    // The shore keeps its own smooth rise: a block grid there cuts the beach into steps.
+    if (f.water < (f.floodplain ?? 2)) return f;
     const s = townAt(x, y);
     if (!s) return f;
     const key = cellKey(x, y),
@@ -277,7 +278,7 @@ export function createSettlementWorld(
       s.center.y + Math.floor((y - s.center.y) / B) * B + B / 2,
     );
     const result =
-      g.water < 2 || g.elevation === f.elevation
+      g.water < (g.floodplain ?? 2) || g.elevation === f.elevation
         ? f
         : { ...f, elevation: g.elevation };
     trimCache(terraceCache, 131072);
@@ -826,6 +827,7 @@ export function createSettlementWorld(
       );
       if (pack.setting?.ecologyRevision === 1 && regional)
         value.blend = regional.ecologyAt(x, y).parts;
+      if (setting.climate === "arid" && value.wet < 0.5) value.dry = true;
       const pattern = value.site
         ? undefined
         : vegetationPattern(setting, land.sample(x, y));
@@ -1291,8 +1293,9 @@ export function createSettlementWorld(
     // Mangroves stand out on the tidal mud on their prop roots, in stands.
     if (
       waters?.mangrove &&
-      f.tidal !== undefined &&
-      f.tidal > 0.2 &&
+      f.shelf !== undefined &&
+      f.water < 0 &&
+      1 + f.water / f.shelf > 0.2 &&
       noise(seed, x + land.origin.x, y + land.origin.y, 14, "mangrove-stand") > 0.42 &&
       random(seed, "mangrove", x + land.origin.x, y + land.origin.y) < 0.3 &&
       !nearby(x, y).some((p) => p.reserved.has(k) || p.solid.has(k))
@@ -1615,6 +1618,20 @@ export function createSettlementWorld(
     ReturnType<typeof pathArt>
   >();
   const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
+  const builtGround = new WeakMap<SettlementPlan, Set<string>>();
+  /** Streets, and the ground within a few cells of a building: where a step is worth walling. */
+  const builtNear = (x: number, y: number) =>
+    nearby(x, y).some((p) => {
+      let zone = builtGround.get(p);
+      if (!zone) {
+        zone = new Set(p.pavement?.keys());
+        for (const b of p.places)
+          for (let yy = b.y - 4; yy < b.y + b.h + 4; yy++)
+            for (let xx = b.x - 4; xx < b.x + b.w + 4; xx++) zone.add(cellKey(xx, yy));
+        builtGround.set(p, zone);
+      }
+      return zone.has(cellKey(x, y));
+    });
   const desirePaths = new WeakMap<SettlementPlan, Map<string, number>>();
   const desireTracks = new WeakMap<SettlementPlan, ReturnType<typeof pathArt>>();
   /** Presentation-only wear follows entrances and outdoor activity, not every wall. */
@@ -1781,16 +1798,25 @@ export function createSettlementWorld(
     if (levels) return levels;
     levels = new Map();
     streetLevelCache.set(p, levels);
+    // Each cell takes its nearest centreline point's tier, so where the level
+    // changes along a road the step crosses it square-on.
+    const nearest = new Map<string, number>();
     for (const road of p.roads) {
-      if (road.kind !== "street" && road.kind !== "lane") continue;
+      if (road.kind === "bridge") continue;
       for (const pt of road.points) {
         const f = land.sample(pt.x, pt.y);
-        if (f.water < 0 || townAt(pt.x, pt.y)?.id !== p.site.id) continue;
+        // A track out in the fields cuts its own level through natural contours too.
+        if (f.water < 0 || (road.kind !== "path" && townAt(pt.x, pt.y)?.id !== p.site.id)) continue;
         const tier = p.groundLevels?.get(cellKey(pt.x, pt.y)) ?? Math.round(f.elevation / 14);
-        roadCells({ ...road, points: [pt] }, (a, b) => {
-          const key = cellKey(a, b);
-          if (!levels!.has(key)) levels!.set(key, tier);
-        });
+        const [lo, hi] = road.span ? spanOffsets(road.span) : [road.width, road.width];
+        for (let dy = -lo; dy <= hi; dy++)
+          for (let dx = -lo; dx <= hi; dx++) {
+            const key = cellKey(pt.x + dx, pt.y + dy);
+            const d = dx * dx + dy * dy;
+            if ((nearest.get(key) ?? Infinity) <= d) continue;
+            nearest.set(key, d);
+            levels.set(key, tier);
+          }
       }
     }
     // Footways beside the carriageway take its level.
@@ -1943,13 +1969,13 @@ export function createSettlementWorld(
         frozenMargin: f.snow,
         ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
       };
-      if (waters && (f.water < 0 || f.seasonal)) {
+      if (waters && (f.water < 0 || f.seasonal || f.shelf !== undefined)) {
         const v = cell.waterVisual;
-        if (waters.icebergs && f.kind === "sea") v.icebergs = true;
+        if (waters.icebergs && f.kind === "sea" && f.water < 0) v.icebergs = true;
         if (f.reef) v.reef = f.reef;
         // Ice, tint, tide and flood are resolved from the live season in `topography`.
-        if (waterTurns || f.seasonal || f.tidal !== undefined)
-          cell.live = { ...(f.seasonal && { water: f.seasonal }), ...(f.tidal !== undefined && { shelf: f.tidal }) };
+        if (waterTurns || f.seasonal || f.shelf !== undefined)
+          cell.live = { ...(f.seasonal && { water: f.seasonal }), ...(f.shelf !== undefined && { shelf: f.shelf }) };
         else if (f.kind !== "sea" && waters.tint) v.tint = waters.tint;
       }
       cell.biome = cell.habitat.site
@@ -2112,8 +2138,10 @@ export function createSettlementWorld(
             cell.earth = p.earth?.get(key) ?? earthFinish(form, use, pack.setting?.climate);
           }
           // No turf survives between the houses of a dry-country city.
+          // Except at the foot of a wall, where roof and wall runoff gathers out of the way of feet.
           if (pack.setting?.climate === "arid" && (pavement === "yard" || pavement === "vacant"))
-            cell.groundWear = 1;
+            cell.groundWear = [[0, -1], [1, 0], [0, 1], [-1, 0]].some(([dx, dy]) => p.solid.has(cellKey(x + dx, y + dy))) &&
+              noise(seed, x + land.origin.x, y + land.origin.y, 3, "wallfoot") > 0.35 ? 0.3 : 1;
         }
       }
     }
@@ -2159,8 +2187,9 @@ export function createSettlementWorld(
     if (terraces && cell.surface !== "water") {
       const town = townAt(x, y);
       const tier = town ? tierAt(x, y) : 0;
-      // A drop of two tiers or more is a natural cliff or bluff, not a wall anyone built.
-      if (town && [[0, 1], [1, 0], [-1, 0]].every(([dx, dy]) => tierAt(x + dx, y + dy) > tier - 2)) {
+      // A drop of two tiers or more is a natural cliff or bluff, not a wall anyone built;
+      // nor is a step out in the bush.
+      if (town && [[0, 1], [1, 0], [-1, 0]].every(([dx, dy]) => tierAt(x + dx, y + dy) > tier - 2) && builtNear(x, y)) {
         const eco = cell.habitat?.ecology;
         cell.edge = edgeStyle(
           town.pack?.setting ?? settingAt(x, y),
@@ -2186,13 +2215,13 @@ export function createSettlementWorld(
     if (old) return old;
     const result = new Map<string, "n" | "s" | "e" | "w">();
     slopePlans.set(plan.site.id, result);
-    const chosen: { x: number; y: number }[] = [];
-    // One opening per nearby group of crossing roads, never one per road pixel.
+    const chosen: { x: number; y: number; h: number; dir: string }[] = [];
+    // One opening per nearby group of roads crossing the same step, never one
+    // per road pixel; a road that crosses two steps close together gets both.
     const points = plan.roads
       .flatMap((r) => r.points)
       .sort((a, b) => a.y - b.y || a.x - b.x);
     for (const p of points) {
-      if (chosen.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 10)) continue;
       const c = rawCell(p.x, p.y);
       if (c.surface === "water" || c.bridge) continue;
       for (const [dx, dy, dir] of [
@@ -2222,6 +2251,7 @@ export function createSettlementWorld(
               rawCell(q.x - dx, q.y - dy).height === c.height,
           );
         if (!companion) continue;
+        if (chosen.some((q) => q.h === c.height && q.dir === dir && Math.hypot(q.x - p.x, q.y - p.y) < 10)) break;
         result.set(cellKey(p.x, p.y), dir);
         result.set(cellKey(companion.x, companion.y), dir);
         // The whole street climbs, kerb to kerb, not a notch in its middle.
@@ -2241,7 +2271,7 @@ export function createSettlementWorld(
               result.set(cellKey(qx, qy), dir);
             }
         }
-        chosen.push(p);
+        chosen.push({ x: p.x, y: p.y, h: c.height, dir });
         break;
       }
     }
@@ -2405,9 +2435,9 @@ export function createSettlementWorld(
     const ice = d < 0 && ws.ice && (v.kind !== "sea" || (ws.ice !== "lakes" && d > -6.3) ? "solid" : ws.ice === "pack" ? "floes" : undefined);
     if (ice) v.ice = ice;
     else delete v.ice;
-    if (l.shelf !== undefined && !ice && l.shelf > liveTide) Object.assign(v, { tidal: l.shelf, tide: liveTide });
+    if (l.shelf !== undefined && !ice) Object.assign(v, { shelf: l.shelf, tide: liveTide });
     else {
-      delete v.tidal;
+      delete v.shelf;
       delete v.tide;
     }
   }

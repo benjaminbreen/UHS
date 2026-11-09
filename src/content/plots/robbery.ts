@@ -1,14 +1,20 @@
 import { BRITAIN, dueOf, EUROPE, neighbours, partnerWords, pickOf, pronounWords } from "./common";
-import type { PlotContext, PlotTemplate } from "./types";
+import type { Effect, PlotContext, PlotTemplate } from "./types";
 
 const robbed = (c: PlotContext) => {
   const year = c.setting?.year;
   return year !== undefined && !!c.household?.history?.some((e) => e.kind === "robbed" && year - e.year <= 3);
 };
 
+const confront: Effect = {
+  type: "choose", line: "confront", focus: "suspect",
+  choices: [{ id: "accuse", check: { stat: "wit", odds: 0.4 } }, { id: "watch" }, { id: "drop" }],
+};
+
 /** Your household was robbed, and you think you know who did it. */
 export const robbery: PlotTemplate = {
   id: "robbery",
+  shape: "claim",
   look: {
     emblem: "robbery",
     palette: { ink: "#1a1210", fill: "#2c1d18", edge: "#5a3426", light: "#efe2da", accent: "#c0563a" },
@@ -39,14 +45,35 @@ export const robbery: PlotTemplate = {
   opening: [],
   developments: [
     {
+      id: "confront",
+      when: { type: "all", of: [{ type: "talked", role: "suspect" }, { type: "not", of: { type: "fired", id: "confront-late" } }] },
+      then: [confront],
+    },
+    {
+      id: "confront-late",
+      when: { type: "all", of: [{ type: "since", hours: 1.5 }, { type: "not", of: { type: "fired", id: "confront" } }] },
+      then: [confront],
+    },
+    { id: "wait", when: { type: "fired", id: "watch" }, then: [{ type: "extend", hours: 6 }] },
+    {
       id: "doubt",
       when: { type: "all", of: [{ type: "since", hours: 3 }, { type: "not", of: { type: "talked", role: "suspect" } }] },
       then: [{ type: "card", line: "doubt", focus: "suspect" }],
     },
+    {
+      id: "night",
+      when: { type: "all", of: [{ type: "fired", id: "watch" }, { type: "since", hours: 5 }] },
+      then: [{ type: "choose", line: "night", focus: "suspect", choices: [{ id: "grab", check: { stat: "strength", odds: 0.5 } }, { id: "report" }] }],
+    },
   ],
   endings: [
-    { id: "confronted", when: { type: "talked", role: "suspect" } },
     { id: "gone", when: { type: "gone", role: "suspect" } },
+    { id: "confessed", when: { type: "all", of: [{ type: "fired", id: "accuse" }, { type: "not", of: { type: "fired", id: "accuse:failed" } }] } },
+    { id: "denied", when: { type: "fired", id: "accuse:failed" } },
+    { id: "recovered", when: { type: "all", of: [{ type: "fired", id: "grab" }, { type: "not", of: { type: "fired", id: "grab:failed" } }] } },
+    { id: "brawl", when: { type: "fired", id: "grab:failed" } },
+    { id: "reported", when: { type: "fired", id: "report" } },
+    { id: "let-go", when: { type: "fired", id: "drop" } },
     { id: "let-go", when: { type: "due" } },
   ],
   wording: [
@@ -62,7 +89,9 @@ export const robbery: PlotTemplate = {
         "kin-partner": "You're thinking about {suspect}, aren't you? Be sure before you say anything.",
         "cast-suspect": "You think {he} robbed your household.",
         doubt: "You keep watching {suspect}. The longer you wait, the harder it is to say anything.",
-        confronted: "You accuse {suspect} to {his} face. Whatever the truth is, it's out now, and the neighbours will take sides.",
+        confessed: "You name {suspect} in front of witnesses and lay out what you saw. {He} can't answer it, and {his} kin agree to pay the compensation the law sets for theft.",
+        "report:label": "Raise the hue and cry",
+        reported: "You raise the hue and cry, and the neighbours come out. {suspect} is held until the assembly meets, with the stolen goods as evidence.",
         gone: "{suspect} has left, and you'll never know for sure.",
         "let-go": "You say nothing. Nobody pays for the robbery, and you still see {suspect} every day.",
       },
@@ -79,7 +108,9 @@ export const robbery: PlotTemplate = {
         "kin-partner": "Leave {suspect} be. If you're wrong, we'll never live it down.",
         "cast-suspect": "You suspect {him} of robbing your household.",
         doubt: "You keep looking at {suspect}, and {he} has noticed.",
-        confronted: "You accuse {suspect}, and the whole street hears it.",
+        confessed: "You accuse {suspect} in front of the street and say exactly what you saw. {He} breaks, gives back what's left, and begs you not to go to the magistrate.",
+        "report:label": "Go and fetch the constable",
+        reported: "You fetch the constable, who finds the bundle. {suspect} is taken before the magistrate, and you'll have to pay to bring the prosecution.",
         gone: "{suspect} has left, and you'll never know for sure.",
         "let-go": "You say nothing. Nobody is charged, and {suspect} still nods to you in the street.",
       },
@@ -94,7 +125,21 @@ export const robbery: PlotTemplate = {
         "kin-partner": "You keep watching {suspect}. Are you sure?",
         "cast-suspect": "You think {he} robbed your household.",
         doubt: "You keep watching {suspect}. The longer you wait, the harder it is to say anything.",
-        confronted: "You accuse {suspect}. It's out now, and everyone will have an opinion.",
+        confront: "Every time you see {suspect} you think of the robbery. What do you do about it?",
+        "accuse:label": "Accuse {him} in front of witnesses",
+        "accuse:failed": "You say it in front of the neighbours, and {suspect} has an answer for everything.",
+        "watch:label": "Say nothing yet, and watch {his} house",
+        "watch:then": "You say nothing, and find a place where you can see {suspect}'s door without being seen.",
+        "drop:label": "Let it go",
+        night: "After hours of waiting, {suspect}'s door opens, and {he} slips out with a bundle under {his} arm.",
+        "grab:label": "Stop {him} and open the bundle",
+        "grab:failed": "You grab the bundle, and {suspect} fights you for it.",
+        "report:label": "Go and fetch {authority}",
+        confessed: "You accuse {suspect} in front of witnesses and say exactly what you saw. {He} breaks, and gives back what's left of what was taken.",
+        denied: "The neighbours take {suspect}'s side, and now you're the one people talk about. Nothing comes back.",
+        recovered: "You pull the bundle open, and there are your things. {suspect} runs, and you carry them home.",
+        brawl: "You end up rolling in the dirt, the bundle torn open between you. The neighbours pull you apart, and nobody can say whose things they were.",
+        reported: "You bring {authority}, and the bundle is opened. Now it's for {authority} to decide.",
         gone: "{suspect} has left, and you'll never know for sure.",
         "let-go": "You say nothing. Nobody pays for the robbery.",
       },

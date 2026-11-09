@@ -6,7 +6,7 @@ import { amountIn } from "../economy/money";
 import { goodName, sellerOf } from "../economy/products";
 import { ruled } from "../history/order";
 import type { Actor, HouseholdPurchase } from "../../core/types";
-import type { PlotContext, PlotTemplate } from "./types";
+import type { Effect, PlotContext, PlotTemplate } from "./types";
 
 const BRITAIN = [-8, 49.5, 2, 59] as const;
 const MESOPOTAMIA = [38, 29, 50, 38] as const;
@@ -55,8 +55,14 @@ function creditorOf(c: PlotContext): Actor | undefined {
     .sort((a, b) => (b.age ?? 30) - (a.age ?? 30))[0];
 }
 
+const plea: Effect = {
+  type: "choose", line: "plea", focus: "creditor",
+  choices: [{ id: "part" }, { id: "labour" }, { id: "surety", check: { stat: "extraversion", skill: "speech", odds: 0.45 } }],
+};
+
 export const debt: PlotTemplate = {
   id: "debt",
+  shape: "claim",
   // Slate, chalk and a joiner's frame: the tally of a debt as it was kept on a wall.
   look: {
     emblem: "slate",
@@ -132,6 +138,18 @@ export const debt: PlotTemplate = {
   opening: [{ type: "approach", role: "creditor", line: "dun" }],
   developments: [
     {
+      id: "plea",
+      when: { type: "all", of: [{ type: "talked", role: "creditor" }, { type: "not", of: { type: "fired", id: "plea-late" } }, { type: "not", of: { type: "settled" } }] },
+      then: [plea],
+    },
+    {
+      id: "plea-late",
+      when: { type: "all", of: [{ type: "since", hours: 1.5 }, { type: "not", of: { type: "fired", id: "plea" } }, { type: "not", of: { type: "settled" } }] },
+      then: [plea],
+    },
+    { id: "part-paid", when: { type: "fired", id: "part" }, then: [{ type: "seize", role: "creditor" }] },
+    { id: "terms", when: { type: "fired", id: "labour" }, then: [{ type: "extend", hours: 12 }] },
+    {
       id: "remind",
       when: { type: "all", of: [{ type: "due", hours: -3 }, { type: "not", of: { type: "settled" } }] },
       then: [{ type: "approach", role: "creditor", line: "remind" }],
@@ -174,7 +192,11 @@ export const debt: PlotTemplate = {
     { id: "judged", when: { type: "fired", id: "verdict" } },
     { id: "absent", when: { type: "fired", id: "default" } },
     { id: "paid", when: { type: "all", of: [{ type: "settled" }, { type: "not", of: { type: "seized" } }] } },
+    { id: "paid", when: { type: "all", of: [{ type: "settled" }, { type: "fired", id: "part-paid" }] } },
     { id: "seized", when: { type: "settled" } },
+    { id: "respite", when: { type: "fired", id: "part-paid" } },
+    { id: "worked", when: { type: "all", of: [{ type: "fired", id: "labour" }, { type: "brought", role: "creditor" }] } },
+    { id: "surety", when: { type: "all", of: [{ type: "fired", id: "surety" }, { type: "not", of: { type: "fired", id: "surety:failed" } }] } },
   ],
   // `intro` opens the plot's paragraph; then `pledge` where a child can be
   // taken for the debt, else `threat`; then `partner` when there is no pledge.
@@ -198,6 +220,7 @@ export const debt: PlotTemplate = {
         seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to the elders at the gate. Under the law, {pledge} can be taken into that house to work off the debt for up to three years.",
         fled: "You've left {creditor} and the loan behind, but the tablet with your name on it is still in that house.",
+        surety: "A neighbour agrees to stand guarantor, and a new tablet is written in front of witnesses. {creditor} will wait until the harvest; if you don't pay then, your guarantor must.",
       },
     },
     {
@@ -280,6 +303,7 @@ export const debt: PlotTemplate = {
         seized: "{creditor} has taken what you owed from your store. The debt is settled, but the household will go short.",
         denounced: "{creditor} has gone to the magistrate with the contract. The magistrate's men will come to collect.",
         fled: "You've left {creditor} and the debt behind, but your name is still on the contract.",
+        surety: "A neighbour signs the contract as your guarantor. {creditor} will wait until after the harvest; if you don't pay then, your guarantor must.",
       },
     },
     {
@@ -339,6 +363,15 @@ export const debt: PlotTemplate = {
         hearing: "At the hearing before {authority}",
         "aim-hearing": "Answer {creditor} before {authority} {meet}, or pay what's still owed before then.",
         judged: "{creditor} puts the debt before {authority}, and you don't deny it. What's still owed is to be taken from your house.",
+        plea: "{creditor} wants {amount} {due}, and you don't have it all. What do you offer?",
+        "part:label": "Pay what's in the store, ask for time",
+        "labour:label": "Offer to work it off",
+        "labour:then": "{creditor} agrees to take a day's work against the debt. Do the work, then come back to {him}.",
+        "surety:label": "Find someone to stand surety",
+        "surety:failed": "You go from door to door, but nobody will put their name to your debt.",
+        respite: "{creditor} takes what's in your store and gives you until the next market day for the rest. The debt isn't cleared, but you have time.",
+        worked: "You put in a hard day's work for {creditor}, and {he} counts it against the debt. {He} gives you another month for the rest.",
+        surety: "A neighbour agrees to stand surety for you. {creditor} gives you another month, and if you don't pay by then, your neighbour will.",
         absent: "You didn't come to answer for the debt, so it was decided without you. What's still owed is to be taken from your house, and everyone heard you stayed away.",
       },
     },

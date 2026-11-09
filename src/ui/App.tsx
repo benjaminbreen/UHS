@@ -1,6 +1,7 @@
 import { setArtEra } from "../render/garment-icons";
 import { amountIn } from "../content/economy/money";
 import { TimeModal } from "./time/TimeModal";
+import { Years } from "./time/Years";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
@@ -127,14 +128,14 @@ import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { ItemInspect, itemKind } from "./ItemInspect";
-import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
-import { CombatTestPanel } from "../dev/CombatTestPanel";
-import { SkillTestPanel } from "../dev/SkillTestPanel";
+const LiveGraphicsPanel = lazy(() => import("../dev/LiveGraphicsPanel").then((m) => ({ default: m.LiveGraphicsPanel })));
+const CombatTestPanel = lazy(() => import("../dev/CombatTestPanel").then((m) => ({ default: m.CombatTestPanel })));
+const SkillTestPanel = lazy(() => import("../dev/SkillTestPanel").then((m) => ({ default: m.SkillTestPanel })));
 import { CollapseNotice, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
 import { DeathCard } from "./DeathCard";
 import { SkillSky } from "./SkillSky";
-import type { DailyGoal } from "../content/goals/types";
-import { aimLabel, type TaskSource } from "./task-view";
+import { aimLabel, type DailyGoal } from "../content/goals/types";
+import type { TaskSource } from "./task-view";
 import type { SkillId } from "../core/skills";
 import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
@@ -248,10 +249,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "dialogue"
     | "character"
     | "evening"
+    | "years"
     | "shop"
     | null
   >(null);
   const [shopWith, setShopWith] = useState<string>();
+  const [yearsToEnd, setYearsToEnd] = useState(false);
   const trader = runtime.nearestTrader();
   const modalPanel = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
@@ -905,6 +908,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       night: lighting === "night",
       season: season.id,
       climate: setting?.climate ?? "temperate",
+      ecology: setting?.environment?.ecology,
       hour: obs.clock / 3600 - Math.floor(obs.clock / 86400) * 24,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -916,6 +920,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     obs.objects,
     obs.actors,
     weather.condition,
+    weather.rain,
+    weather.wetness > 0.3,
     weather.wind.strength,
     weather.tempC,
     lighting,
@@ -1254,6 +1260,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             />
           )}
           {graphicsOpen && (
+            <Suspense fallback={null}>
             <LiveGraphicsPanel
               settings={liveGraphics}
               zoom={view.zoom}
@@ -1276,8 +1283,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 )?.clearTestFauna()
               }
             />
+            </Suspense>
           )}
           {combatOpen && (
+            <Suspense fallback={null}>
             <CombatTestPanel
               onSpawn={(species, count, tier) =>
                 runtime.devSpawnFauna(species, count, tier)
@@ -1287,13 +1296,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               onHeal={() => runtime.devHeal()}
               onClose={() => setCombatOpen(false)}
             />
+            </Suspense>
           )}
           {skillTestOpen && (
+            <Suspense fallback={null}>
             <SkillTestPanel
               engine={runtime.engine}
               onChange={() => runtime.emit()}
               onClose={() => setSkillTestOpen(false)}
             />
+            </Suspense>
           )}
           {phone && <Vitals
             engine={runtime.engine}
@@ -1443,7 +1455,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               </button>
             </div>
           )}
-          {phone && (
+          {phone && active && (
             <button
               className="world-minimap"
               aria-label="Open regional map"
@@ -1568,6 +1580,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         </button>
                       );
                     })}
+                    {!p.dead && runtime.engine.world.pack.setting && (
+                      <button role="menuitem" onClick={() => { setRestOpen(false); setYearsToEnd(false); setModal("years"); }}>
+                        Let the years pass
+                      </button>
+                    )}
                   </div>
                 )}
                 <button
@@ -1771,7 +1788,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              {!phone && <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />}
+              {!phone && active && <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />}
               <span className="north">N ↑</span>
               <span className="map-scale">
                 <i />
@@ -2152,8 +2169,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           runtime={runtime}
           evening={evening}
           onClose={() => setModal(null)}
+          onYears={(end) => { setYearsToEnd(end); setModal("years"); }}
         />
       )}
+      {modal === "years" && <Years runtime={runtime} toEnd={yearsToEnd} onClose={() => setModal(null)} />}
       {inspecting && runtime.item(inspecting) && (p.inventory[inspecting] ?? 0) > 0 && (
         <ItemInspect
           id={inspecting}
@@ -2169,7 +2188,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           onClose={() => setInspecting(undefined)}
         />
       )}
-      {modal && modal !== "dialogue" && modal !== "time" && modal !== "evening" && (
+      {modal && modal !== "dialogue" && modal !== "time" && modal !== "evening" && modal !== "years" && (
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {

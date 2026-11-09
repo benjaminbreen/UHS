@@ -1036,7 +1036,12 @@ function headwear(h: Head, lo: number) {
         : hat === "conical"
           ? (x, y, t) => (t >= 3 && Math.abs(x - X(6.5)) % 3 === 0 && y > Y(-3) ? 2 : t)
           : cloth
-            ? (x, y, t) => (t === 3 && y > Y(headSpans(h).length + 1) && Math.abs(x - X(6.5)) === 2 ? 2 : t)
+            ? (x, y, t) =>
+                t === 3 && y > Y(headSpans(h).length + 1) && Math.abs(x - X(6.5)) === 2 ? 2
+                // From behind, the seam up the back of a hood or scarf.
+                : t >= 3 && (view === "back" || view === "bq") && (hat === "hood" || hat === "headscarf" || hat === "veil") &&
+                    x === X(view === "back" ? 7 : 5) && y > Y(0) && y <= Y(headSpans(h).length) ? 2
+                : t
             : undefined,
   });
   if (h.refined) brim(h, k.mask);

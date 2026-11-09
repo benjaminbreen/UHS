@@ -11,6 +11,10 @@ import type { Actor, Place, WorldModel } from "../src/core/types";
 import { timeArrival } from "../server/time-arrival";
 import { TimeTravel } from "../src/core/time/travel";
 import { createSettingSession } from "../src/runtime/session";
+import { remainingAt20, typicalDeathAge, yearlyRisk } from "../src/core/time/mortality";
+import { causeOfDeath } from "../src/content/history/deaths";
+import { householdWays } from "../src/content/history/households";
+import { endOfLife, liveOn, liveYears } from "../src/core/time/years";
 const resolved = resolveSetting("Rome 100 CE");
 if (!("setting" in resolved)) throw Error("Fixture setting");
 const setting = { ...resolved.setting, lon: 14.268, lat: 40.852, placeId: "naples", location: "Neapolis" };
@@ -142,4 +146,60 @@ describe("historical time", () => {
     expect(prepared.engine.world.pack.setting?.year).toBe(1350);
     expect(prepared.engine.state.player.age).toBe(1350 - prepared.arrival.person.born);
   });
+  it("calibrates adult lifespans and child losses to each period", () => {
+    for (const year of [1200, 1850, 1925, 1980]) expect(Math.abs(typicalDeathAge(year) - 20 - remainingAt20(year))).toBeLessThanOrEqual(1);
+    let alive = 1;
+    for (let age = 0; age < 15; age++) alive *= 1 - yearlyRisk(age, 1700);
+    expect(1 - alive).toBeGreaterThan(0.25);
+    expect(1 - alive).toBeLessThan(0.4);
+    expect(yearlyRisk(70, 1700)).toBeGreaterThan(yearlyRisk(40, 1700));
+    expect(yearlyRisk(40, 1700, "destitute")).toBeGreaterThan(yearlyRisk(40, 1700, "elite"));
+  });
+  it("keeps old death rates where they fell late, and households to local custom", () => {
+    const delhi = { lon: 77.2, lat: 28.6 }, ohio = { lon: -82, lat: 40 };
+    expect(typicalDeathAge(1925, delhi)).toBeLessThan(typicalDeathAge(1925, ohio) - 10);
+    expect(yearlyRisk(0, 1925, "middling", 1, delhi)).toBeGreaterThan(yearlyRisk(0, 1925, "middling", 1, ohio));
+    const at = (lon: number, lat: number, year: number) => ({ ...setting, lon, lat, year });
+    expect(householdWays(at(-76, 43, 1600), "Farmer").stays).toBe("daughter");
+    expect(householdWays(at(-0.1, 51.5, 1700), "Weaver")).toMatchObject({ stays: "none", marries: { female: [22, 32] } });
+    expect(householdWays(at(-0.1, 51.5, 1700), "Weaver").leaves?.("female")).toBe("to go into service");
+    expect(householdWays(at(106, 47, 1250), "Herder")).toMatchObject({ heir: "youngest", living: "herd", leaves: undefined });
+    expect(householdWays(at(-4, 13, 1350), "Coil Potter").wives).toBeGreaterThan(1);
+    expect(householdWays({ ...at(-124, 48, 1500), culture: "other-indigenous-american" }, "Gatherer").living).toBe("forage");
+  });
+  it("names deaths a sentence can follow, and none a baby could not die of", () => {
+    for (let i = 0; i < 200; i++) {
+      const baby = causeOfDeath({ age: 0, role: "child", setting }, 100, i / 200);
+      expect(baby).not.toMatch(/drown|fall|accident|battle|war/);
+      expect(causeOfDeath({ age: 40, sex: "male", role: "fisherman", setting }, 100, i / 200)).toMatch(/^(of|in|by|under) /);
+    }
+  });
+  it.runIf(process.env.FULL)("runs a life to its end and carries the household into a later year", () => {
+    const start = resolveSetting("Kyoto 1200 CE");
+    if (!("setting" in start)) throw Error("Fixture setting");
+    const engine = createSettingSession(start.setting, "years");
+    const age = engine.state.player.age!;
+    const life = liveYears(engine);
+    expect(liveYears(engine).years).toEqual(life.years);
+    expect(life.died).toBeDefined();
+    const year = life.years[Math.floor(life.years.length / 2)].year;
+    const later = liveOn(engine, life, year);
+    const s = later.state, span = year - life.from;
+    expect(later.world.pack.setting?.year).toBe(year);
+    expect(later.world.pack.year).toBe(year);
+    const at = s.player.pos;
+    expect(later.world.geography?.packAt(at.x, at.y).year ?? year).toBe(year);
+    expect(s.player.age).toBe(age + span);
+    expect(s.player.dead).toBeUndefined();
+    const home = s.households!.find((h) => h.members.includes("player"))!;
+    const expected = life.years.find((y) => y.year === year)!.home.filter((id) => id !== "player" && year - life.people[id].born >= 5);
+    expect(home.members.filter((id) => id !== "player").sort()).toEqual(expected.sort());
+    for (const id of home.members.filter((id) => id !== "player"))
+      expect(s.actors.find((a) => a.id === id)!.age).toBe(year - life.people[id].born);
+    expect(engine.state.player.age).toBe(age);
+    const end = endOfLife(engine, life);
+    expect(end.state.player.dead).toBe(life.died!.cause);
+    expect(end.heirs().every((a) => (a.age ?? 0) >= 12)).toBe(true);
+  }, 600000);
 });
+

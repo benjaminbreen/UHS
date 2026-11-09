@@ -23,7 +23,9 @@ import { layeredThemes } from "../src/audio/layered-themes";
 import { interiorThemes } from "../src/audio/interior-themes";
 import { AudioDirector } from "../src/audio/director";
 import { catalog } from "../src/audio/sfx";
-import { bellFor, townKindFor } from "../src/audio/ambience";
+import { ambienceFor, bellFor, townKindFor } from "../src/audio/ambience";
+import { listeningScenes } from "../src/audio/ambience-scenes";
+import { weatherAt } from "../src/core/weather";
 import * as handling from "../src/audio/handling";
 
 describe("original soundtrack scores", () => {
@@ -372,6 +374,26 @@ describe("town ambience", () => {
     expect(bellFor("Latin Christian", 1300)).toBe("church");
     expect(bellFor("Roman", 100)).toBeUndefined();
     expect(bellFor(undefined, 1900)).toBe("whistle");
+  });
+  it("hears a drizzle, a downpour and what the rain falls on", () => {
+    const mix = (id: string) => ambienceFor(listeningScenes.find((s) => s.id === id)!.scene);
+    const drizzle = mix("drizzle-meadow"),
+      storm = mix("thunderstorm");
+    expect(drizzle.rain).toBeLessThan(0.25);
+    expect(drizzle.music).toBeGreaterThan(0.9);
+    expect(drizzle.thunder).toBe(0);
+    expect(storm.thunder).toBeGreaterThan(0);
+    expect(storm.music).toBeLessThan(0.5);
+    expect(mix("boreal-rain").surface).toBe("needles");
+    expect(mix("town-rain").surface).toBe("paving");
+    expect(mix("monsoon-night").frogs).toBeGreaterThan(0);
+    // Wet days vary: tropical rain runs heavier than northern drizzle.
+    const wet = (climate: string) =>
+      Array.from({ length: 400 }, (_, d) => weatherAt("s", climate, "summer", d * 86400 + 12 * 3600))
+        .filter((w) => w.condition === "rain");
+    const mean = (ws: { rain: number }[]) => ws.reduce((a, w) => a + w.rain, 0) / ws.length;
+    expect(mean(wet("tropical"))).toBeGreaterThan(mean(wet("boreal")) + 0.2);
+    expect(wet("temperate").every((w) => w.rain > 0 && w.rain <= 1)).toBe(true);
   });
 });
 

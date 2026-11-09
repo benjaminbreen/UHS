@@ -352,7 +352,7 @@ def pack_shadows(frames):
     pack_atlas({k:v for k,v in frames.items() if k.split(':')[0] not in first},root/'public/nature','shadows-2',4096)
 
 
-if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-trees','--shrubs','--small-plants','--rocks-crates','--rock-sizes','--containers','--historical-wells','--historical-containers']):
+if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-trees','--shrubs','--small-plants','--rocks-crates','--rock-sizes','--containers','--historical-wells','--historical-containers','--mangroves']):
     import json
     from tempfile import TemporaryDirectory
     from art.voxel_trees import deciduous_tree
@@ -380,6 +380,11 @@ if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-t
         changed.update(historical_wells())
         for name,im in changed.items():
             assert set(im.getchannel('A').getdata()) <= {0,255}
+            assert len(im.getcolors(im.width*im.height)) <= 24
+            im.save(out/f'{name}.png')
+    if '--mangroves' in sys.argv:
+        changed.update({k:im for k,im in voxel_trees().items() if k.startswith('nature-mangrove')})
+        for name,im in changed.items():
             assert len(im.getcolors(im.width*im.height)) <= 24
             im.save(out/f'{name}.png')
     if '--containers' in sys.argv:

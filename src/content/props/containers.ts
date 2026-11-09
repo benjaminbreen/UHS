@@ -5,7 +5,7 @@ const vessel = { solid: true, container: true, variants: 1, rarity: 0.65 } as co
 const portable = { ...vessel, portable: true };
 export const containerProps: Record<string, PropDef> = {
   waterskin: { ...portable, name: "Sewn waterskin", family: "waterskin", sprite: "nature-container-waterskin", breakable: "fiber", contents: { water: 2 }, shove: { as: "free", mass: 0.4 } },
-  merchantBale: { ...portable, name: "Bound cloth bale", family: "merchant-bale", sprite: "nature-container-bale", breakable: "fiber", shove: { as: "free", mass: 1.2 }, visualClearance: [1,1,0,0] },
+  merchantBale: { ...portable, where: "trade", name: "Bound cloth bale", family: "merchant-bale", sprite: "nature-container-bale", breakable: "fiber", shove: { as: "free", mass: 1.2 }, visualClearance: [1,1,0,0] },
   waterJar: { ...portable, name: "Covered water jar", family: "water-jar", sprite: "nature-container-matka", breakable: "clay", contents: { water: 3 }, shove: { as: "free", mass: 0.8, rolls: true } },
   milkBag: { ...portable, name: "Leather milk bag", family: "milk-bag", sprite: "nature-container-milkbag", breakable: "fiber", shove: { as: "free", mass: 0.6 }, visualClearance: [1,1,0,0] },
   onggiJar: { ...vessel, name: "Onggi storage jar", family: "onggi", sprite: "nature-container-onggi", breakable: "glaze", shove: { as: "free", mass: 1.6 }, visualClearance: [1,1,0,0] },
@@ -17,7 +17,7 @@ export const containerProps: Record<string, PropDef> = {
   barkBox: { ...portable, name: "Birchbark storage box", family: "bark-box", sprite: "nature-container-barkbox", breakable: "fiber", shove: { as: "free", mass: 0.4 }, visualClearance: [1,1,0,0] },
   coolamon: { ...portable, name: "Carved wooden carrying dish", family: "coolamon", sprite: "nature-container-coolamon", breakable: "wood", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
   egyptJar: { ...portable, name: "Sealed Egyptian storage jar", family: "egyptian-jar", sprite: "nature-container-egyptjar", breakable: "clay", shove: { as: "free", mass: 1.1 } },
-  canaanJar: { ...portable, name: "Canaanite transport jar", family: "canaanite-jar", sprite: "nature-container-canaanjar", breakable: "clay", shove: { as: "free", mass: 1.2 }, visualClearance: [1,1,0,0] },
+  canaanJar: { ...portable, where: "trade", name: "Canaanite transport jar", family: "canaanite-jar", sprite: "nature-container-canaanjar", breakable: "clay", shove: { as: "free", mass: 1.2 }, visualClearance: [1,1,0,0] },
   paintedChineseJar: { ...portable, name: "Painted storage jar", family: "majiayao-jar", sprite: "nature-container-majiayao", breakable: "clay", shove: { as: "free", mass: 1.1 }, visualClearance: [1,1,0,0] },
   grainHamper: { ...portable, name: "Lidded grain basket", family: "grain-hamper", sprite: "nature-container-grainhamper", breakable: "fiber", contents: { grain: 4 }, shove: { as: "free", mass: 1.3 }, visualClearance: [1,1,0,0] },
   olla: { ...portable, name: "Earthen storage olla", family: "olla", sprite: "nature-container-olla", breakable: "clay", shove: { as: "free", mass: 0.9 }, visualClearance: [1,1,0,0] },

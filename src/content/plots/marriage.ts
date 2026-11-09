@@ -18,9 +18,10 @@ const inlawOf = (c: PlotContext) => {
  * bride-wealth to the bride's kin, or goods that go with her. */
 export const marriage: PlotTemplate = {
   id: "marriage",
+  shape: "household",
   look: {
-    emblem: "feast",
-    palette: { ink: "#1a1214", fill: "#2c1c20", edge: "#7a3a44", light: "#f2e2e2", accent: "#d06a6a" },
+    emblem: "betrothal",
+    palette: { ink: "#1a1214", fill: "#2e1e22", edge: "#7a4a3a", light: "#f2e2e2", accent: "#e09a50" },
   },
   payee: "inlaw",
   weight: (c) => (c.setting && !ruled(c.setting) && (c.player.age ?? 30) >= 32 && youthOf(c) && inlawOf(c) ? 0.8 : 0),
@@ -46,6 +47,7 @@ export const marriage: PlotTemplate = {
         due,
         match: bride ? `${youth.name} is to marry into ${inlaw.name}'s household` : `${youth.name} is to marry a daughter of ${inlaw.name}'s household`,
         gifts: bride ? "the goods that go with her" : "the bride-gifts",
+        more: bride ? "a second cooking pot and a good blanket to go with her" : `a season of ${youth.name}'s work in their fields as well`,
         spouse: bride ? "her husband" : "his bride",
         ...pronounWords(inlaw),
         ...p.words,
@@ -56,9 +58,9 @@ export const marriage: PlotTemplate = {
   opening: [{ type: "approach", role: "inlaw", line: "terms" }],
   developments: [
     {
-      id: "doubt",
-      when: { type: "all", of: [{ type: "since", hours: 5 }, { type: "not", of: { type: "settled" } }] },
-      then: [{ type: "card", line: "doubt", focus: "inlaw" }],
+      id: "more",
+      when: { type: "all", of: [{ type: "since", hours: 2 }, { type: "not", of: { type: "settled" } }] },
+      then: [{ type: "choose", line: "more", focus: "inlaw", from: "inlaw", choices: [{ id: "agree" }, { id: "hold", check: { stat: "wit", odds: 0.5 } }, { id: "elders" }] }],
     },
     {
       id: "agreed",
@@ -80,7 +82,8 @@ export const marriage: PlotTemplate = {
     { id: "gone", when: { type: "gone", role: "inlaw" } },
     { id: "married", when: { type: "came" } },
     { id: "absent", when: { type: "fired", id: "snub" } },
-    { id: "broken", when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }] } },
+    { id: "broken", when: { type: "all", of: [{ type: "fired", id: "hold:failed" }, { type: "since", hours: 3 }] } },
+    { id: "lapsed", when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }] } },
   ],
   wording: [
     {
@@ -93,14 +96,22 @@ export const marriage: PlotTemplate = {
         "kin-partner": "Have you seen {inlaw} yet? {youth} can't stop asking.",
         "cast-inlaw": "Head of the other household in {youth}'s marriage, and waiting for {gifts}.",
         terms: "We're all agreed, then. {amount}, as we said. Then the young ones can be married.",
-        doubt: "{inlaw} was seen talking with another household that has someone of marrying age.",
+        more: "My household has been talking. For a match like this we want {more}. Then we're agreed.",
+        "agree:label": "Agree to it",
+        "agree:then": "You agree. {inlaw} smiles for the first time today. The match is safe, and the rest can be paid off over time.",
+        "hold:label": "Hold to what was agreed",
+        "hold:then": "You remind {inlaw}, in front of witnesses, what was agreed between the old people. {He} grumbles, and lets it drop.",
+        "hold:failed": "You say a bargain is a bargain. {inlaw} says there are other households with young people of marrying age, and walks off.",
+        "elders:label": "Let the elders settle it",
+        "elders:then": "The old people of both households sit down together and split the difference. Neither side is happy, but both accept it.",
         agreed: "{inlaw} takes the gifts in front of both households. The wedding is {meet}, at {inlaw}'s house.",
         "aim-wed": "Go to {inlaw}'s house {meet} for {youth}'s wedding.",
         gather: "At {youth}'s wedding",
         married: "Both households are there, and the neighbours crowd round. {youth} and {spouse} are led in, there's food and singing, and the old people make speeches. The two households are kin now.",
         absent: "{youth} was married without you there. {inlaw}'s household took it as an insult, and {youth} hasn't forgiven you either.",
         gone: "With {inlaw} gone, the match is off until someone else in that household takes it up.",
-        broken: "Nothing came, so {inlaw} has called the marriage off. {youth} won't speak to you.",
+        broken: "{inlaw} has called the marriage off and is talking to another household. {youth} won't speak to you.",
+        lapsed: "Nothing came, so {inlaw} has called the marriage off. {youth} won't speak to you.",
       },
     },
   ],

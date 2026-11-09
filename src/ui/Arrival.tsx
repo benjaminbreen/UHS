@@ -10,7 +10,7 @@ import type { StartingCharacter } from "../runtime/preparation";
 import { formatHistoricalYear } from "../core/calendar";
 import { ArrivalPortrait } from "./ArrivalPortrait";
 import { ArrivalMap } from "./ArrivalMap";
-import { aimLabel } from "./task-view";
+import { aimLabel } from "../content/goals/types";
 import { arrivalBackdrop, birthPercentile } from "./arrival-data";
 import "./arrival.css";
 

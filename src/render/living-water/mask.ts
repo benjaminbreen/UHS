@@ -109,11 +109,11 @@ export function rasterLivingWater(
                 (sample(tx - 1, ty)?.waterVisual?.distance ?? visual.distance),
             )
           : (profile.direction * Math.PI) / 180;
-      const special = visual.ice || visual.icebergs || visual.tidal !== undefined || visual.reef ? waterStyle(cell) : undefined;
+      const special = visual.ice || visual.icebergs || visual.shelf !== undefined || visual.reef ? waterStyle(cell) : undefined;
       const shoreTiers = new Map<number, boolean>();
       for (let py = 0; py < 16; py++)
         for (let px = 0; px < 16; px++) {
-          const d = waterContactDistance(
+          const contact = waterContactDistance(
             sample,
             tx + (px + 0.5) / 16,
             ty + (py + 0.5) / 16,
@@ -121,6 +121,8 @@ export function rasterLivingWater(
             region?.y ?? 0,
             polish,
           );
+          // On a tidal shelf the shore is wherever the tide stands now.
+          const d = visual.shelf !== undefined ? contact + visual.shelf * (1 - (visual.tide ?? 1)) : contact;
           const localWidth = fieldAt(beachGrid, tx + (px + 0.5) / 16, ty + (py + 0.5) / 16);
           const localBeach =
             visual.kind === "sea"
@@ -155,7 +157,7 @@ export function rasterLivingWater(
             : true;
           if (d > localBeach || !lowGround) continue;
           // Ice, mud, floes, bergs and reef crests are the raster's.
-          if (d < 0 && special && specialWater(cell, special, d, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy, 0, true)) continue;
+          if (contact < 0 && special && specialWater(cell, special, contact, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy, 0, true)) continue;
           const y: number = sy - lift + shift;
           if (y < 0 || y >= H) continue;
           const i = (y * W + tx * 16 + px) * 4;

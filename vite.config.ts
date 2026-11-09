@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { handleTimeArrival, handleTaskLore, handleDialogue, handleNarrator, handleWorldWeaver, handleEdu, handleJev } from "./server/node-handler";
 import { execFile } from "node:child_process";
-import { writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 export default defineConfig({
   // Every worker is created with type "module", and the travel worker loads
@@ -45,6 +45,44 @@ export default defineConfig({
         });
         server.middlewares.use("/api/jev", (req, res) => { void handleJev(req, res); });
         server.middlewares.use("/api/edu", (req, res) => { void handleEdu(req, res); });
+        // Dev only: the studio's ambience tab plays the reference recordings
+        // that `npm run audio:ambience` fetched, and appends listening verdicts.
+        server.middlewares.use("/api/audio-ref", (req, res) => {
+          const name = path.basename(req.url ?? "");
+          if (!/^[a-z-]+\.wav$/.test(name)) {
+            res.statusCode = 400;
+            return res.end();
+          }
+          readFile(path.resolve("artifacts/audio-ref", name)).then(
+            (data) => {
+              res.setHeader("content-type", "audio/wav");
+              res.end(data);
+            },
+            () => {
+              res.statusCode = 404;
+              res.end();
+            },
+          );
+        });
+        server.middlewares.use("/api/audio-verdict", (req, res) => {
+          if (req.method !== "POST") {
+            res.statusCode = 405;
+            return res.end();
+          }
+          let body = "";
+          req.on("data", (c) => (body += c));
+          req.on("end", async () => {
+            try {
+              const line = JSON.stringify({ ...JSON.parse(body), at: new Date().toISOString() });
+              await mkdir("artifacts/audio-review", { recursive: true });
+              await appendFile("artifacts/audio-review/verdicts.jsonl", line + "\n");
+              res.end("{}");
+            } catch {
+              res.statusCode = 400;
+              res.end();
+            }
+          });
+        });
         // Dev only: the building panel writes a recipe file and recompiles
         // the art. Paths are confined to the graphics content directory.
         server.middlewares.use("/api/art", (req, res) => {
@@ -97,5 +135,8 @@ export default defineConfig({
   server: {
     port: Number(process.env.PORT) || 5173,
     strictPort: !process.env.PORT,
+    // Other sessions' worktrees and review output would otherwise reload
+    // every open game whenever they write a file.
+    watch: { ignored: ["**/.claude/worktrees/**", "**/artifacts/**"] },
   },
 });

@@ -6,6 +6,7 @@ import type { PlotTemplate } from "./types";
  * or you can pay to make it go away. */
 export const accused: PlotTemplate = {
   id: "accused",
+  shape: "claim",
   look: {
     emblem: "accused",
     palette: { ink: "#18121a", fill: "#2a1f2b", edge: "#5e3a48", light: "#ece0e2", accent: "#b84a5e" },
@@ -57,6 +58,15 @@ export const accused: PlotTemplate = {
       ],
     },
     {
+      id: "answer",
+      when: { type: "all", of: [{ type: "since", hours: 1 }, { type: "not", of: { type: "talked", role: "witness" } }, { type: "not", of: { type: "settled" } }, { type: "not", of: { type: "fired", id: "final" } }] },
+      then: [{
+        type: "choose", line: "answer", focus: "accuser",
+        choices: [{ id: "oath", check: { stat: "agreeableness", skill: "speech", odds: 0.45 } }, { id: "search", check: { stat: "wit", odds: 0.35 } }, { id: "pay" }],
+      }],
+    },
+    { id: "paid", when: { type: "fired", id: "pay" }, then: [{ type: "seize", role: "accuser" }] },
+    {
       id: "verdict",
       when: { type: "all", of: [{ type: "came" }, { type: "not", of: { type: "talked", role: "witness" } }, { type: "not", of: { type: "settled" } }] },
       then: [{ type: "seize", role: "accuser" }],
@@ -74,6 +84,8 @@ export const accused: PlotTemplate = {
     { id: "compensated", when: { type: "settled" } },
     { id: "heard", when: { type: "all", of: [{ type: "came" }, { type: "talked", role: "witness" }] } },
     { id: "dropped", when: { type: "gone", role: "accuser" } },
+    { id: "sworn", when: { type: "all", of: [{ type: "fired", id: "oath" }, { type: "not", of: { type: "fired", id: "oath:failed" } }] } },
+    { id: "found", when: { type: "all", of: [{ type: "fired", id: "search" }, { type: "not", of: { type: "fired", id: "search:failed" } }] } },
   ],
   wording: [
     {
@@ -114,6 +126,7 @@ export const accused: PlotTemplate = {
         compensated: "You pay {accuser} for {thing}. It's over, but some people will take the payment as a confession.",
         denounced: "{accuser} has gone to bring the matter before the court. You'll need neighbours to swear for you.",
         dropped: "With {accuser} gone, the story stops.",
+        "oath:label": "Swear to your innocence at the church door",
       },
     },
     {
@@ -137,6 +150,14 @@ export const accused: PlotTemplate = {
         heard: "{accuser} makes the charge in front of everyone. Then {witness} stands up and says you're honest, and the charge is thrown out.",
         judged: "{accuser} makes the charge, and nobody speaks for you. The hearing goes against you: {amount} is to be taken from your house and given to {accuser}.",
         absent: "You didn't come to answer the charge, so it was decided without you. {amount} is to be taken from your house, and people say you stayed away because you're guilty.",
+        answer: "{accuser} is still telling the story to anyone who stops. What do you do?",
+        "oath:label": "Swear in public that you never touched it",
+        "oath:failed": "You swear it in front of the neighbours. A few believe you; more of them look at {accuser}, and {accuser} just laughs.",
+        "search:label": "Find out what really happened to {thing}",
+        "search:failed": "You ask around and look everywhere you can think of, and find nothing.",
+        "pay:label": "Pay {amount} from the store to end it",
+        sworn: "You swear it in front of the neighbours, and they believe you. {accuser} has nothing to answer that with, and stops.",
+        found: "You find {thing} at the back of {accuser}'s own shed, put away and forgotten. The neighbours see it, and {accuser} doesn't say another word about it.",
       },
     },
   ],

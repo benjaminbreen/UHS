@@ -372,7 +372,21 @@ export class AudioDirector {
     if (enabled) this.configure({ themeId: this.rotation.next() });
   }
   /** The world's ambient picture: weather, water, a town, a fire, a roof. */
+  private pinned?: AmbienceMix;
+  /** Holds the ambience on a chosen scene, for listening in the studio;
+   * undefined hands it back to the world. */
+  async pinScene(mix: AmbienceMix | undefined) {
+    const world = this.pinned ?? this.scene;
+    this.pinned = undefined;
+    if (mix) await this.unlock();
+    this.setScene(mix ?? world);
+    if (mix) this.pinned = world;
+  }
   setScene(mix: AmbienceMix) {
+    if (this.pinned) {
+      this.pinned = mix;
+      return;
+    }
     this.scene = mix;
     this.ambience?.set(mix);
     this.room?.set(mix);

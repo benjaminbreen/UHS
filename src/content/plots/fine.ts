@@ -2,7 +2,7 @@ import { random } from "../../core/random";
 import { livelihoodById } from "../characters/livelihoods";
 import { ruled } from "../history/order";
 import { AEGEAN, amountOf, B, BRITAIN, CHINA, dueOf, ISLAMIC, ITALY, neighbours, notable, partnerWords, pickOf, pronounWords } from "./common";
-import type { PlotContext, PlotTemplate } from "./types";
+import type { Effect, PlotContext, PlotTemplate } from "./types";
 
 /** What an inspector could find wrong, by the kind of work sold. */
 const FAULTS: Record<string, string[]> = {
@@ -32,11 +32,18 @@ const officialOf = (c: PlotContext) => {
   return neighbours(c).find((a) => a.householdId !== vouch?.householdId && (a.age ?? 30) >= 30);
 };
 
+const answer: Effect = {
+  type: "choose", line: "answer", focus: "official",
+  choices: [{ id: "vouch", check: { stat: "agreeableness", skill: "trade", odds: 0.55 } }, { id: "test", check: { stat: "conscientiousness", odds: 0.5 } }, { id: "pay" }],
+};
+const not = (id: string) => ({ type: "not", of: { type: "fired", id } }) as const;
+
 /** A market officer says your goods or measures are short. */
 export const fine: PlotTemplate = {
   id: "fine",
+  shape: "claim",
   look: {
-    emblem: "levy",
+    emblem: "scales",
     palette: { ink: "#14140f", fill: "#24241a", edge: "#5e5a2e", light: "#ecebd8", accent: "#b8a03a" },
   },
   payee: "official",
@@ -70,22 +77,29 @@ export const fine: PlotTemplate = {
   },
   opening: [{ type: "approach", role: "official", line: "charge" }],
   developments: [
+    { id: "ask-official", when: { type: "all", of: [{ type: "talked", role: "official" }, not("ask-witness"), not("ask-late")] }, then: [answer] },
+    { id: "ask-witness", when: { type: "all", of: [{ type: "talked", role: "witness" }, not("ask-official"), not("ask-late")] }, then: [answer] },
+    { id: "ask-late", when: { type: "all", of: [{ type: "since", hours: 1 }, not("ask-official"), not("ask-witness"), { type: "not", of: { type: "settled" } }] }, then: [answer] },
+    { id: "paying", when: { type: "fired", id: "pay" }, then: [{ type: "seize", role: "official" }] },
+    { id: "shown", when: { type: "fired", id: "test:failed" }, then: [{ type: "seize", role: "official" }, { type: "regard", role: "official", delta: -1 }] },
     {
       id: "remind",
-      when: { type: "all", of: [{ type: "since", hours: 4 }, { type: "not", of: { type: "settled" } }, { type: "not", of: { type: "talked", role: "witness" } }] },
+      when: { type: "all", of: [{ type: "since", hours: 4 }, { type: "not", of: { type: "settled" } }, not("vouch")] },
       then: [{ type: "card", line: "remind", focus: "official" }],
     },
     {
       id: "seize",
-      when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }, { type: "not", of: { type: "talked", role: "witness" } }] },
+      when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }] },
       then: [{ type: "approach", role: "official", line: "seize" }, { type: "seize", role: "official" }],
     },
   ],
   endings: [
-    { id: "cleared", when: { type: "talked", role: "witness" } },
-    { id: "paid", when: { type: "settled" } },
-    { id: "seized", when: { type: "fired", id: "seize" } },
     { id: "gone", when: { type: "gone", role: "official" } },
+    { id: "shamed", when: { type: "fired", id: "shown" } },
+    { id: "cleared", when: { type: "all", of: [{ type: "fired", id: "vouch" }, not("vouch:failed")] } },
+    { id: "tried", when: { type: "all", of: [{ type: "fired", id: "test" }, not("test:failed")] } },
+    { id: "paid", when: { type: "all", of: [{ type: "settled" }, not("seize")] } },
+    { id: "seized", when: { type: "fired", id: "seize" } },
   ],
   wording: [
     {
@@ -107,6 +121,7 @@ export const fine: PlotTemplate = {
         paid: "You pay {official} the fine. Your stall is clear.",
         seized: "{official} takes the value of the fine from your stock.",
         gone: "With {official} gone, nobody follows up the fine.",
+        "test:label": "Have your weights tried against the city's standards",
       },
     },
     {
@@ -149,6 +164,7 @@ export const fine: PlotTemplate = {
         paid: "You pay {official}. The muhtasib's people leave you alone.",
         seized: "{official} takes the value of the fine from your stock, in front of the other traders.",
         gone: "With {official} gone, nobody comes back about the fine.",
+        "test:label": "Ask for your weights to be tried against the muhtasib's standard",
       },
     },
     {
@@ -170,6 +186,8 @@ export const fine: PlotTemplate = {
         paid: "You pay {official}. Your name comes off the list.",
         seized: "{official} takes the value of the fine from your stock.",
         gone: "With {official} gone, your name never reaches the court.",
+        "test:label": "Have your weights tried against the town's standard at the guildhall",
+        shamed: "Your weights come up short against the town's standard. {official} takes the fine in goods, and next time it will be the pillory.",
       },
     },
     {
@@ -210,6 +228,15 @@ export const fine: PlotTemplate = {
         paid: "You pay {official}, and that's the end of it.",
         seized: "{official} takes the value of the fine from your stock.",
         gone: "With {official} gone, nobody collects the fine.",
+        answer: "{official} is waiting at your stall for the fine, and the next stall is listening. What do you do?",
+        "vouch:label": "Ask {witness} to vouch for you",
+        "vouch:failed": "{witness} won't vouch for another trader's measures, not in front of the inspector.",
+        "test:label": "Demand your weights be tried against the standard",
+        "test:then": "You carry your weights and measures to the standard, and a crowd follows to watch.",
+        "test:failed": "Your weights go on the scale against the standard, and they come up short.",
+        "pay:label": "Pay the {amount} from your takings",
+        tried: "Every weight balances true against the standard, in front of half the market. {official} has to let the fine go, and everyone saw your measures are honest.",
+        shamed: "Your weights come up short in front of half the market. {official} takes the fine in goods on the spot, and people will remember it.",
       },
     },
   ],

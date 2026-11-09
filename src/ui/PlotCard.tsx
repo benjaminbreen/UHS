@@ -507,6 +507,11 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   });
 
   if (card.kind === "speech" || card.kind === "turn") {
+    const moment = card.moment && (
+      <div className="plot-scene">
+        <Emblem look={look} marks={Math.max(1, Math.min(15, plot?.total ?? 5))} ending={card.moment} />
+      </div>
+    );
     const body = (
       <>
         {speaker && (
@@ -578,7 +583,9 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
           aria-label={speaker ? `${speaker.name} speaks` : card.title}
           onClick={() => !done && finish()}
         >
-          {dress === "framed" ? <Frame><div className="plot-speech-row">{body}</div></Frame> : <div className="plot-frame plot-speech-row">{body}</div>}
+          {dress === "framed"
+            ? <Frame>{moment}<div className="plot-speech-row">{body}</div></Frame>
+            : <div className="plot-frame">{moment}<div className="plot-speech-row">{body}</div></div>}
         </section>
       </div>
     );

@@ -102,8 +102,8 @@ import { advanceLifeAim, ensureLifeAim } from "./life-aim";
 import { endPlot, plotLine, plotTemplate, startPlot, stepPlot, type PlotCard, type PlotState } from "./plot";
 import { claimFor, shareWords, type Claim } from "../content/economy/claims";
 import { resourceName, sourceOf, tradeOf, type Resource } from "../content/economy/endowments";
-import type { Effect } from "../content/plots/types";
-import { sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
+import type { Effect, PlotChoice } from "../content/plots/types";
+import { groundFor, sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
 import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
 import { bodilyLimits, ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress } from "./health";
@@ -313,7 +313,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Ask, CallIn, Favour, Place, Point, WalkOff, WallWalk, Word } from "./types";
+import type { Ask, CallIn, Favour, Place, Point, Stats, WalkOff, WallWalk, Word } from "./types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -354,6 +354,8 @@ function reverseRelation(actor: Actor, relation: SocialRelation): SocialRelation
     case "child": return "parent";
     case "servant":
     case "apprentice": return "master";
+    case "parent-in-law": return "child-in-law";
+    case "child-in-law": return "parent-in-law";
     // Older generators did not retain the reverse link.
     case "master": return actor.origin?.livelihood === "apprentice" || /^apprentice\b/i.test(actor.role)
       ? "apprentice" : "servant";
@@ -1118,6 +1120,8 @@ export class Engine {
   }
   /** Puts the card waiting on today's work back on screen. */
   reofferCard() {
+    const plot = this.state.plot;
+    if (plot?.asking && plot.asking.due === undefined && !plot.ended) return this.askPlot(plot);
     const id = this.state.encounter?.card ?? this.state.care?.card ?? this.waitingCard();
     const card = id && this.choiceCard(id);
     if (card && !this.cards.some((c) => c.choose?.card === id)) this.offerCard(card, this.state.care?.card === id ? this.state.care : undefined);
@@ -1157,6 +1161,7 @@ export class Engine {
     });
   }
   private choose(id: string, n: number) {
+    if (id.startsWith("plot:")) return this.plotChoose(id, n);
     if (id.startsWith("help:")) return this.helpChoose(id, n);
     if (id.startsWith("wall:")) return this.wallAnswer(n);
     if (id.startsWith("toll:")) return this.tollAnswer(n);
@@ -6553,6 +6558,8 @@ export class Engine {
       return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
     if (c.type === "choose" && c.card.startsWith("wall:")) return this.wallAnswerProblem(c.card, c.choice);
     if (c.type === "choose" && c.card.startsWith("toll:")) return this.tollAnswerProblem(c.card, c.choice);
+    if (c.type === "choose" && c.card.startsWith("plot:"))
+      return this.state.plot?.asking?.choices[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose" && c.card.startsWith("help:"))
       return this.state.asks?.some((x) => `help:${x.id}` === c.card && x.offered) && HELP[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose") {
@@ -9092,7 +9099,13 @@ export class Engine {
     if (s.economy) delete s.economy.work;
     s.goalDay = undefined;
     s.lifeAim = undefined;
+    // A new life gets its own trouble once the old one is over.
+    if (s.plot?.ended) {
+      s.plot = undefined;
+      startPlot(s, this.world.pack.setting, undefined, (year ?? 0) + 1);
+    }
     ensureLifeAim(s, this.world.pack.setting);
+    s.introduced = false;
     this.routes.delete(id);
     this.laid = undefined;
     this.cards.length = 0;
@@ -9146,8 +9159,50 @@ export class Engine {
       aim: s.plot && !s.plot.ended ? s.plot.aim?.text ?? s.lifeAim?.text : s.lifeAim?.text,
     });
   }
+  /** Puts the plot's waiting decision on screen, unless it is already there;
+   * spoken, when the one it is about is standing by. */
+  private askPlot(plot: PlotState) {
+    const a = plot.asking!, card = `plot:${plot.id}`, p = this.state.player.pos;
+    a.at = this.state.clock;
+    if (this.cards.some((c) => c.choose?.card === card)) return;
+    const stats = this.stats(), by = a.by && this.actorsById?.get(a.by);
+    const near = by && !by.dead && by.pos.space === p.space && distance(by.pos, p) <= 8;
+    this.cards.push({
+      kind: near ? "speech" : "turn", title: plot.title, text: plotLine(plot, a.line), moment: a.line, focus: a.focus, ...(near ? { speaker: by.id } : {}),
+      choose: { card, choices: a.choices.map((c, index) => ({
+        index, label: plotLine(plot, `${c.id}:label`),
+        odds: c.check && this.plotOdds(plot, c.check, stats),
+      })) },
+    });
+  }
+  private plotOdds(plot: PlotState, check: NonNullable<PlotChoice["check"]>, stats: Stats) {
+    const stat = (check.stat.startsWith("{") ? plot.words[check.stat.slice(1, -1)] : check.stat) as keyof Stats;
+    return oddsOf({ ...check, stat }, stats, check.skill ? this.skillLevel(check.skill) : 0);
+  }
+    private plotChoose(id: string, n: number) {
+    const s = this.state, plot = s.plot!, c = plot.asking!.choices[n];
+    delete plot.asking;
+    const won = !c.check || this.rng(`${id}:${plot.fired.length}`) < this.plotOdds(plot, c.check, this.stats());
+    plot.fired.push(c.id);
+    if (!won) plot.fired.push(`${c.id}:failed`);
+    const line = plotLine(plot, won ? `${c.id}:then` : `${c.id}:failed`);
+    (s.record ??= []).push({ day: Math.floor(s.clock / 86400), clock: s.clock, card: id, choice: n, line });
+    this.lastChoice = line ? { card: id, line, won: c.check ? won : undefined, changes: [] } : undefined;
+    if (line) this.event(line);
+    this.runPlot();
+  }
   private runPlot() {
     const s = this.state, plot = s.plot!, g = plot.gathering;
+    const ask = plot.asking, by = ask?.by && this.actorsById?.get(ask.by);
+    if (ask?.due !== undefined && s.clock >= ask.due) {
+      // Brought by the one it is about; if they have not found you in half an hour, it comes anyway.
+      delete ask.due;
+      ask.at = s.clock;
+      if (by && !by.dead && !this.approaching) this.approaching = { id: by.id, line: "", until: s.clock + 1800, onArrive: () => this.askPlot(plot) };
+      else this.askPlot(plot);
+    }
+    // A decision put away unanswered comes back after half an hour.
+    else if (ask && ask.due === undefined && s.clock >= ask.at + 1800) this.askPlot(plot);
     // People set out a little early, so the place is full when it starts.
     if (g && s.clock >= g.start - 1200 && s.clock < g.until) {
       if (!g.met) this.convene(plot, g);
@@ -9165,7 +9220,7 @@ export class Engine {
     for (const e of stepPlot(s)) {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
       if (e.type === "card")
-        this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, e.line), focus: e.focus && plot.cast[e.focus] });
+        this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, e.line), moment: e.line, focus: e.focus && plot.cast[e.focus] });
       else if (e.type === "approach" && who) {
         // A seizure that cleared the debt is told by the ending, not by "the rest is still owed".
         if (e.line === "seize" && (plot.owed ?? 0) <= 0) continue;
@@ -9183,6 +9238,13 @@ export class Engine {
         }
       } else if (e.type === "walk-off" && who) this.walkOff(who, e.to);
       else if (e.type === "extend") plot.deadline += e.hours * 3600;
+      else if (e.type === "owe" && plot.owed) plot.owed = Math.max(1, Math.round(plot.owed * e.times));
+      else if (e.type === "choose") {
+        // The day's first decision waits a minute or three of play.
+        const due = s.clock - plot.began < 1800 ? plot.began + 1200 + Math.floor(this.rng(`${plot.id}:due`) * 2400) : undefined;
+        plot.asking = { line: e.line, focus: e.focus && plot.cast[e.focus], by: e.from && plot.cast[e.from], choices: e.choices, at: s.clock, ...(due ? { due } : {}) };
+        if (!due) this.askPlot(plot);
+      }
       else if (e.type === "gather") this.appoint(plot, e);
     }
     const ending = endPlot(s);
@@ -9196,7 +9258,7 @@ export class Engine {
    * Anything that comes up on the way, a card or someone coming over, stops the wait. */
   private attend() {
     const s = this.state, p = s.player, g = s.plot!.gathering!;
-    const scene = g.scene && sceneFor(this.world.pack.setting, g.scene);
+    const scene = g.scene && sceneFor(this.world.pack.setting, g.scene, s.plot?.words);
     const yours = scene?.spots.find((o) => o.role === "you");
     const spot = yours ? { x: g.at.x + yours.dx, y: g.at.y + yours.dy, space: "outside" } : { x: g.at.x, y: g.at.y + 2, space: "outside" };
     const door = p.pos.space !== "outside" && this.world.place(p.pos.space)?.entrance;
@@ -9214,33 +9276,69 @@ export class Engine {
   /** Fixes where and when a plot's people will meet. Before the authority
    * that is the court's building if the place has one, else the keeper's door. */
   private appoint(plot: PlotState, e: Extract<Effect, { type: "gather" }>) {
-    const s = this.state, court = e.at === "authority";
+    const s = this.state, court = e.at === "authority", common = court || e.at === "green";
     const office = orderKeeper(this.world.pack.setting);
-    const whose = court ? this.keeper() : s.actors.find((a) => a.id === plot.cast[e.at]);
-    const hall = court ? this.world.places.find((p) => office.hall?.test(p.name)) ?? this.world.places.find((p) => AUTHORITY.test(p.name)) : undefined;
+    const whose = common ? this.keeper() : s.actors.find((a) => a.id === plot.cast[e.at]);
+    const hall = common ? this.world.places.find((p) => office.hall?.test(p.name)) ?? this.world.places.find((p) => AUTHORITY.test(p.name)) : undefined;
     const residence = whose && this.household(whose.householdId)?.residence;
     const place = hall ?? this.world.places.find((p) => p.id === residence);
-    const at = place ? { ...doorApproach(place), space: "outside" } : whose?.home.space === "outside" ? copy(whose.home) : undefined;
+    const scene = (plot.words.scene as Occasion | undefined) ?? e.scene;
+    const ground = this.townGround(scene, plot.words, !!hall);
+    if (ground?.exact) plot.words.ground = "1";
+    else delete plot.words.ground;
+    const at = ground?.at ?? (e.at === "edge" ? this.townEdge() : place ? { ...doorApproach(place), space: "outside" } : whose?.home.space === "outside" ? copy(whose.home) : undefined);
     if (!at) return;
     const day = Math.floor(s.clock / 86400) * 86400;
     const next = (hour: number, lead: number) => day + hour * 3600 + (s.clock + lead > day + hour * 3600 ? 86400 : 0);
-    const start = e.when === "deadline" ? plot.deadline : e.when === "evening" ? next(18, 1800) : next(9, 3600);
-    plot.words.meet = e.when === "deadline" ? plot.words.due ?? "" : `${start - day < 86400 ? "this" : "tomorrow"} ${e.when}`;
+    const start = typeof e.when === "number" ? Math.round((s.clock + e.when * 3600) / 900) * 900
+      : e.when === "deadline" ? plot.deadline : e.when === "evening" ? next(18, 1800) : next(9, 3600);
+    const hour = ((start - day) / 3600) % 24, part = typeof e.when === "number" ? (hour < 11 ? "morning" : hour < 13 ? "midday" : hour < 17 ? "afternoon" : "evening") : e.when;
+    plot.words.meet = e.when === "deadline" ? plot.words.due ?? "" : `${start - day < 86400 ? part === "midday" ? "at" : "this" : "tomorrow"} ${part}`;
     if (court && whose) {
       plot.cast.official ??= whose.id;
       plot.words.keeper = whose.name;
     }
     plot.deadline = start;
-    const scene = (plot.words.scene as Occasion | undefined) ?? e.scene;
-    const clearing = this.clearing(at, sceneFor(this.world.pack.setting, scene));
-    plot.gathering = { at: clearing ?? at, place: place?.id, start, until: start + 3 * 3600, label: plotLine(plot, e.label), ...(clearing ? { scene } : {}) };
+    const clearing = ground?.exact ? at : this.clearing(at, sceneFor(this.world.pack.setting, scene, plot.words));
+    plot.gathering = { at: clearing ?? at, place: ground ? undefined : place?.id, start, until: start + 3 * 3600, label: plotLine(plot, e.label), ...(clearing ? { scene } : {}) };
     if (e.aim && s.lifeAim) s.lifeAim = { ...s.lifeAim, text: plotLine(plot, e.aim), subjects: Object.values(plot.cast) };
+  }
+  /** The town's own ground for an occasion, if it keeps one: the wrestling
+   * ring, the assembly ground where there is no hall, the burial ground, the
+   * market ground, else the market stalls to set up beside. `exact` when the
+   * scene lands on furniture laid out for it. */
+  private townGround(scene: Occasion, words: Record<string, string>, hall: boolean): { at: Position; exact: boolean } | undefined {
+    const setting = this.world.pack.setting, s = this.state;
+    if (!setting) return;
+    const me = s.player.pos.space === "outside" ? s.player.pos : { ...(this.world.place(s.player.pos.space)?.entrance ?? s.player.pos), space: "outside" };
+    const nearest = (test: (o: import("./types").WorldObject) => boolean) =>
+      s.objects.filter(test).sort((a, b) => distance(a.pos, me) - distance(b.pos, me))[0];
+    const ids = scene === "match" && words.ring ? ["venue.wrestling-ground"] : scene === "hearing" && !hall ? ["venue.kgotla", "venue.assembly"]
+      : scene === "graves" ? ["burial"] : scene === "market" ? ["venue.market-ground"] : [];
+    for (const id of ids) {
+      const key = nearest((o) => o.id === `${id}-ground`), first = groundFor(setting, id)?.props[0];
+      if (key && first) return { at: { x: key.pos.x - first.dx, y: key.pos.y - first.dy, space: "outside" }, exact: true };
+    }
+    const stall = scene === "market" && nearest((o) => o.prop === "marketCounter");
+    if (stall) return { at: { ...stall.pos, space: "outside" }, exact: false };
+  }
+  /** Past the last houses: a few steps beyond the door farthest from the middle of the place. */
+  private townEdge(): Position | undefined {
+    const doors = this.world.places.filter((p) => p.entrance).map((p) => p.entrance);
+    if (!doors.length) return;
+    const mx = doors.reduce((t, d) => t + d.x, 0) / doors.length, my = doors.reduce((t, d) => t + d.y, 0) / doors.length;
+    const far = doors.reduce((a, b) => (Math.hypot(b.x - mx, b.y - my) > Math.hypot(a.x - mx, a.y - my) ? b : a));
+    const d = Math.hypot(far.x - mx, far.y - my) || 1;
+    return { x: Math.round(far.x + ((far.x - mx) / d) * 10), y: Math.round(far.y + ((far.y - my) / d) * 10), space: "outside" };
   }
   /** Open, level ground near `door` where every cell of the scene is free,
    * none of it on the doorstep. */
   private clearing(door: Position, scene?: Scene) {
     if (!scene) return;
-    const cells = [...scene.props, ...scene.spots];
+    // A ring lies over the cells behind its anchor as well as its own.
+    const under = scene.props.filter((o) => propDefs[o.prop]?.underfoot)
+      .flatMap((o) => [-2, -1, 0, 1, 2].flatMap((dx) => [-3, -2, -1].map((dy) => ({ dx: o.dx + dx, dy: o.dy + dy }))));
+    const cells = [...scene.props, ...scene.spots, ...under];
     const level = (x: number, y: number) => this.world.topography?.(x, y)?.height ?? 0;
     // Ground behind a building is under its roof in this view, a doorway is
     // for walking through, and a town wall's towers stand out past its cells.
@@ -9275,30 +9373,36 @@ export class Engine {
   private convene(plot: PlotState, g: NonNullable<PlotState["gathering"]>) {
     const s = this.state, at = g.at;
     g.met = true;
-    const scene = g.scene && sceneFor(this.world.pack.setting, g.scene);
+    const scene = g.scene && sceneFor(this.world.pack.setting, g.scene, s.plot?.words);
     if (scene) {
       g.props = [];
       scene.props.forEach(({ prop, dx, dy, v }, i) => {
         const pos = { x: at.x + dx, y: at.y + dy, space: "outside" };
         const sprite = v === undefined ? propSprite(prop) : propSprite(prop)?.replace(/-\d+$/, `-${v}`);
-        if (!sprite || this.blocked(pos.x, pos.y, "outside")) return;
+        // The town's own ground already has it standing there.
+        if (!sprite || this.blocked(pos.x, pos.y, "outside") || s.objects.some((o) => o.prop === prop && o.pos.x === pos.x && o.pos.y === pos.y)) return;
         const id = `gathering-${g.start}-${i}`;
         s.objects.push({ id, prop, name: propDefs[prop].name, kind: "monument", sprite, inventory: {}, pos });
         g.props!.push(id);
       });
     }
     const payee = plot.cast[plotTemplate(plot)?.payee ?? "creditor"];
-    const head = g.scene === "hearing" ? plot.cast.official ?? payee : payee;
+    const head = g.scene === "hearing" ? plot.cast.official ?? payee : g.scene === "match" ? plot.cast.rival ?? payee : payee;
     const named = new Set([...Object.values(plot.cast), ...Object.values(plot.refs ?? {})]);
     const free = (a: Actor) => a.kind === "human" && !a.dead && a.id !== s.player.id && !a.terror && !a.tends && !a.guard && !a.mount && (a.age ?? 30) >= 13 && !this.laidUp(a.id);
     const spots = (scene?.spots ?? []).filter((p) => p.role !== "you");
     const cast = s.actors.filter((a) => named.has(a.id) && free(a));
-    // Enough to fill the places and two or three standing round, no more.
+    // Enough to fill the places and two or three standing round, no more,
+    // called out of the nearest houses as well as off the street.
+    const from = (a: Actor): Position | undefined => {
+      const door = a.pos.space === "outside" ? undefined : this.world.place(a.pos.space)?.entrance;
+      return a.pos.space === "outside" ? a.pos : door && { ...door, space: "outside" };
+    };
     const people = [
       ...cast,
       ...s.actors
-        .filter((a) => !named.has(a.id) && free(a) && a.pos.space === "outside")
-        .sort((x, y) => distance(x.pos, at) - distance(y.pos, at))
+        .filter((a) => !named.has(a.id) && free(a) && from(a))
+        .sort((x, y) => distance(from(x)!, at) - distance(from(y)!, at))
         .slice(0, Math.max(3, spots.length + 2 - cast.length)),
     ];
     const take = (who?: string, role?: string) => {
@@ -9675,12 +9779,14 @@ export class Engine {
       a.direction = this.directionTo(a.pos, p.pos);
       delete a.facing;
       this.cue(a.id, "beckon", p.pos);
-      this.cards.push({ kind: "speech", title: ap.title ?? this.state.plot?.title ?? "", text: ap.line, speaker: a.id });
-      this.approacher = {
-        id: a.id,
-        situation: ap.situation ?? `You have just walked up to the player and said: “${ap.line}” You want an answer.`,
-        until: clock + 300,
-      };
+      if (ap.line) {
+        this.cards.push({ kind: "speech", title: ap.title ?? this.state.plot?.title ?? "", text: ap.line, speaker: a.id });
+        this.approacher = {
+          id: a.id,
+          situation: ap.situation ?? `You have just walked up to the player and said: “${ap.line}” You want an answer.`,
+          until: clock + 300,
+        };
+      }
       ap.onArrive?.();
       return;
     }
@@ -10176,7 +10282,9 @@ export class Engine {
       if (to) label = `Going to complain to ${keeper ? `${keeper.name}, ` : ""}${office.who}`;
       const grudge = a.word?.find((w) => !w.about && w.tone < 0 && !w.hops) ?? a.word?.find((w) => !w.about && w.tone < 0);
       if (grudge) this.complain(a, grudge);
-    } else if (where === "away") {
+    }
+    // Anyone who lives with the player has no home to storm off to.
+    if (where === "away" || (!to && a.householdId === this.state.player.householdId)) {
       const p = this.state.player.pos;
       const d = Math.hypot(a.pos.x - p.x, a.pos.y - p.y) || 1;
       to = {

@@ -1,4 +1,7 @@
-import type { TopographySample } from "./topography";
+import type { TopographyCell, TopographySample } from "./topography";
+/** The cell's centre is bare mud on the intertidal shelf at the present tide. */
+export const bareShelf = (v: TopographyCell["waterVisual"]) =>
+  v?.shelf !== undefined && v.distance < 0 && 1 + v.distance / v.shelf > (v.tide ?? 0);
 /** Integer world-coordinate noise: no per-frame random draws or chunk-local seeds. */
 export function waterHash(x: number, y: number, salt = 0) {
   let n =
@@ -142,7 +145,7 @@ export function waterDepthAt(sample: TopographySample, x: number, y: number) {
   if (!c.waterVisual) return c.surface === "water" ? Infinity : 0;
   if (c.waterVisual.kind === "canal") return c.dryChannel ? 0 : Infinity;
   if (c.waterVisual.ice === "solid") return 0;
-  if (c.waterVisual.tidal !== undefined) return 0.3;
+  if (bareShelf(c.waterVisual)) return 0.3;
   if (c.waterVisual.distance > 3) return 0;
   const d = Math.max(
     0,

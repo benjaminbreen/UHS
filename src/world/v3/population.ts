@@ -27,6 +27,12 @@ import { treePlacementEnvelope } from "./placement";
 import { keeperLivesIn, buildingUse } from "../../content/interiors/select";
 import { officeFor } from "../../content/interiors/offices";
 import { marriagePracticeFor } from "../../content/households/practices";
+import { learnerArrangementFor, takesLearner } from "../../content/households/learners";
+import { residenceFor } from "../../content/households/residence";
+import { pluralMarriageFor } from "../../content/households/plural-marriage";
+import { bondageFor } from "../../content/households/bondage";
+import { nursingFor } from "../../content/households/nursing";
+import { ritualKinFor } from "../../content/households/ritual-kin";
 import { capabilitiesFor } from "../../content/characters/resolve";
 import { goodName, productFor, sellerOf } from "../../content/economy/products";
 const seasons = ["spring", "summer", "autumn", "winter"];
@@ -41,6 +47,7 @@ export function populateHouseholds(
   const form = pack.setting!.environment!.household;
   const year = pack.setting?.year ?? pack.year;
   const made: Household[] = [];
+  let playerSelf: { sex: Sex; age: number; household: string } | undefined;
   let playerFriend: { a: Pick<Actor, "id" | "age" | "householdId" | "origin" | "relations">; home: Point } | undefined;
   const pending: {
     id: string;
@@ -118,6 +125,7 @@ export function populateHouseholds(
       : ownerSex && pack.setting?.lifeStoryRevision
         ? ownerSex
         : characterSex(seed, owner) === "female" ? "female" : "male";
+    if (owner === "player") playerSelf = { sex: holderSex, age, household: id };
     const story = householdStory({
       seed,
       id,
@@ -128,9 +136,13 @@ export function populateHouseholds(
       shared,
       extended: form === "extended" || owner === "player",
       small: owner !== "player" && place.w * place.h <= 12,
-      craft:
-        place.access === "public" ||
-        (!!kit && (kit.workplace ?? workplaceFor(kit.activity)) === "workshop"),
+      learner: place.access === "public" ||
+        (!!kit && takesLearner(kit.workplace ?? workplaceFor(kit.activity), kit.activity))
+        ? learnerArrangementFor(pack.setting) : undefined,
+      residence: residenceFor(pack.setting),
+      plural: pluralMarriageFor(pack.setting),
+      bondage: bondageFor(pack.setting),
+      nursing: nursingFor(pack.setting),
       player: owner === "player",
       modern: year >= 1900,
       revised: !!pack.setting?.lifeStoryRevision,
@@ -143,6 +155,7 @@ export function populateHouseholds(
       history: story.history,
       fortune: story.fortune,
       infants: story.infants,
+      nurse: story.nurse,
       makes: goodsOf(
         kit ?? (parent && livelihoodOf(pack, { origin: parent } as Actor)),
         pack.setting?.economyRevision,
@@ -167,7 +180,7 @@ export function populateHouseholds(
       if (pack.setting && motorized(pack.setting)) place.structure.vegetation *= 0.15;
       place.condition = conditionOf(place.structure);
     }
-    let partnerId: string | undefined;
+    let partnerId: string | undefined, firstPartnerId: string | undefined;
     story.residents.forEach((m, i) => {
       const memberId = `${owner}-member-${i}`;
       const child = m.role === "Child";
@@ -240,7 +253,7 @@ export function populateHouseholds(
               : m.role === "Servant"
                 ? "servant"
                 : m.role === "Apprentice"
-                  ? "apprentice"
+                  ? kit?.label ?? "apprentice"
                   : undefined,
             undefined,
             inherited,
@@ -264,10 +277,16 @@ export function populateHouseholds(
           drawn = draw(salt);
         }
         Object.assign(a, drawn);
+        if (m.bound && a.origin) a.origin = { ...a.origin, standing: "unfree" };
+        if (m.as === "wet nurse") a.role = "Wet nurse";
+        if (m.role === "Apprentice" && kit && a.origin?.livelihood === kit.id) a.role = `Apprentice ${kit.label}`;
         // Kin look like kin: a child takes after the head and their partner,
         // and the head's own parent is drawn to match the head.
         const headLooks = adult?.appearance ?? ownerCharacter?.appearance;
         if (headLooks && !headLooks.lineage) headLooks.lineage = id;
+        const inLawOf = m.fromHead === "parent-in-law" && world.initialActors.find((b) => b.id === firstPartnerId);
+        if (a.appearance && inLawOf && inLawOf.appearance)
+          a.appearance = inheritLikeness(a.appearance, [inLawOf.appearance], seed, memberId);
         if (a.appearance && headLooks && (kin || m.fromHead === "parent")) {
           const parents = m.fromHead === "parent" ? [headLooks]
             : m.ofPartner ? [partner?.appearance] : [headLooks, partner?.appearance];
@@ -304,7 +323,7 @@ export function populateHouseholds(
       household.members.push(memberId);
       world.initialActors.push(a);
       if (pack.setting?.employmentRevision && !child) {
-        const memberSite = { ...sites, work: { ...(sites.domesticWork ?? sites.work) }, employment: undefined, role: undefined,
+        const memberSite = { ...sites, work: { ...(m.role === "Apprentice" ? sites.work : sites.domesticWork ?? sites.work) }, employment: undefined, role: undefined,
           gateId: undefined, rackId: undefined, pasture: undefined };
         plan.work.set(memberId, memberSite);
         assignLocalWork(plan, pack, seed, a, memberSite);
@@ -314,13 +333,30 @@ export function populateHouseholds(
           m.fromHead === "child" && m.age >= 17 && m.age <= 23 &&
           !household.familyPlans?.length && random(seed, id, "seek-match", memberId) < 0.6)
         (household.familyPlans ??= []).push({ kind: "seek-match", subject: memberId });
-      if (m.toHead === "partner") partnerId = memberId;
+      if (m.toHead === "partner") {
+        partnerId = memberId;
+        firstPartnerId ??= memberId;
+      }
+      const spouse = m.spouseOf !== undefined && world.initialActors.find((b) => b.id === `${owner}-member-${m.spouseOf}`);
+      if (spouse) {
+        a.relations!.push({ other: spouse.id, kind: "partner" });
+        spouse.relations!.push({ other: a.id, kind: "partner" });
+      }
+      const theirs = m.fromHead === "parent-in-law" && world.initialActors.find((b) => b.id === firstPartnerId);
+      if (theirs) {
+        a.relations!.push({ other: theirs.id, kind: "child" });
+        theirs.relations!.push({ other: a.id, kind: "parent" });
+      }
       if (m.ofPartner && partnerId) {
         const partner = world.initialActors.find((b) => b.id === partnerId)!;
         a.relations!.push({ other: partnerId, kind: "parent" });
         partner.relations!.push({ other: a.id, kind: "child" });
       }
       adult?.relations?.push({ other: memberId, kind: m.fromHead, reciprocal: m.toHead });
+      if (m.role === "Apprentice" && m.fromHead === "child") {
+        a.relations!.push({ other: owner, kind: "master", reciprocal: "apprentice" });
+        adult?.relations?.push({ other: memberId, kind: "apprentice", reciprocal: "master" });
+      }
       pending.push({ id: memberId, a, child, site: sites, household });
     });
   }
@@ -472,6 +508,20 @@ export function populateHouseholds(
         child ? undefined : goodsOf(kit, pack.setting?.economyRevision)[0],
       ),
     );
+  }
+  const tie = playerSelf && ritualKinFor(pack.setting);
+  if (playerSelf && tie && random(seed, "ritual-kin") < tie.odds) {
+    const self = playerSelf;
+    const pool = world.initialActors.filter((a) => a.kind === "human" && !a.dead && !a.guard && !a.tends &&
+      a.householdId && a.householdId !== self.household && (a.age ?? 0) >= 20 &&
+      (tie.tie !== "sworn" || (sexOf(a) === self.sex && Math.abs((a.age ?? 0) - self.age) <= 8)));
+    const fortune = (a: Actor) => made.find((h) => h.id === a.householdId)?.fortune ?? 0;
+    // Godparents were asked from better-off houses, sponsors from the older generation.
+    const ranked = tie.tie === "co-parent" ? [...pool].sort((p, q) => fortune(q) - fortune(p)).slice(0, 4)
+      : tie.tie === "sponsor" ? [...pool].sort((p, q) => (q.age ?? 0) - (p.age ?? 0)).slice(0, 6)
+      : pool;
+    const kin = ranked[Math.floor(random(seed, "ritual-kin", "who") * ranked.length)];
+    if (kin) (kin.relations ??= []).push({ other: "player", kind: "ritual-kin", reciprocal: "ritual-kin" });
   }
 }
 const populated = new WeakMap<WorldModel, Set<string>>();

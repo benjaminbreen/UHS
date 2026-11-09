@@ -1,10 +1,17 @@
-import type { Actor, Economy, Household, WalkOff } from "../../core/types";
+import type { Actor, Economy, Household, Stats, WalkOff } from "../../core/types";
+import type { SkillId } from "../../core/skills";
 import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
 import type { Occasion } from "./scenes";
 
 export type PlotRole = "creditor" | "landlord" | "official" | "accuser" | "witness" | "rival" | "suspect" | "host"
-  | "giver" | "inlaw" | "claimant" | "elder" | "customer" | "patron";
+  | "giver" | "inlaw" | "claimant" | "elder" | "customer" | "patron"
+  | "kin" | "friend" | "neighbour" | "stranger" | "child" | "helper" | "buyer" | "beloved";
+
+/** What kind of day the plot makes. The draw balances shapes, so the many
+ * plots where someone comes to demand something do not crowd out the rest. */
+export type PlotShape = "claim" | "work" | "household" | "occasion" | "discovery" | "world" | "news"
+  | "witness" | "desire" | "mystery" | "light";
 
 export type PlotContext = {
   seed: string;
@@ -35,20 +42,35 @@ export type Condition =
   /** A gathering has come and gone. */
   | { type: "gathered" }
   | { type: "not"; of: Condition }
-  | { type: "all"; of: Condition[] };
+  | { type: "all"; of: Condition[] }
+  | { type: "any"; of: Condition[] }
+  /** `hours` have passed since `id` fired. */
+  | { type: "after"; id: string; hours: number };
+
+/** One answer on a choice card. Its button reads line `<id>:label`; choosing
+ * fires `id`, shows line `<id>:then` if there is one, and a failed check also
+ * fires and shows `<id>:failed`. A check's stat may be a word, "{stat}". */
+export type PlotChoice = { id: string; check?: { stat: keyof Stats | `{${string}}`; skill?: SkillId; odds: number } };
 
 export type Effect =
   | { type: "approach"; role: PlotRole; line: string }
+  /** The world stops for a decision; the banner shows the scene at `line`. `from` walks up and asks
+   * it in person: only for a question they would put to you themselves. */
+  | { type: "choose"; line: string; focus?: PlotRole; from?: PlotRole; choices: PlotChoice[] }
   /** A turn: the world stops and the card shows this line, the camera on `focus`. */
   | { type: "card"; line: string; focus?: PlotRole }
   | { type: "regard"; role: PlotRole; delta: number }
   | { type: "seize"; role: PlotRole }
   | { type: "walk-off"; role: PlotRole; to: WalkOff }
   | { type: "extend"; hours: number }
-  /** People meet at a cast member's house or before the authority, at the
-   * deadline or the next evening or morning, which becomes the new deadline.
+  /** What is owed, multiplied: 0.7 after a good haggle, 1.5 when they ask for more. */
+  | { type: "owe"; times: number }
+  /** People meet at a cast member's house, before the authority, on the common
+   * ground by the temple or hall (`green`) or past the last houses (`edge`), at
+   * the deadline, the next evening or morning, or so many hours from now;
+   * that becomes the new deadline.
    * `label` is what those who come are doing; `aim` replaces the player's aim. */
-  | { type: "gather"; at: PlotRole | "authority"; when: "deadline" | "evening" | "morning"; label: string; aim?: string; scene: Occasion };
+  | { type: "gather"; at: PlotRole | "authority" | "green" | "edge"; when: "deadline" | "evening" | "morning" | number; label: string; aim?: string; scene: Occasion };
 
 /** Lines are templates over the words fixed when the plot begins. */
 export type PlotWording = {
@@ -60,12 +82,14 @@ export type PlotWording = {
 /** How the plot's cards look: a drawn emblem and the five colours its frame,
  * text and emblem share. */
 export type PlotLook = {
-  emblem: "slate" | "dawn" | "rent" | "levy" | "accused" | "rival" | "robbery" | "feast";
+  /** A scene in src/ui/plot-emblems.ts, or a file of that name in src/ui/emblems/scenes. */
+  emblem: string;
   palette: { ink: string; fill: string; edge: string; light: string; accent: string };
 };
 
 export type PlotTemplate = {
   id: string;
+  shape: PlotShape;
   look: PlotLook;
   weight: (c: PlotContext) => number;
   cast: (c: PlotContext) => Partial<Record<PlotRole, Actor>> | undefined;

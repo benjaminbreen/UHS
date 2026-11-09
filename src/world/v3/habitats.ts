@@ -31,6 +31,9 @@ export type Habitat = {
   cover: number;
   exposed: number;
   season: string;
+  /** Ground under a dry climate that no water reaches: green in the wet
+   * winter and spring, cured in summer, whatever its ecology. */
+  dry?: boolean;
 };
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
 export function groveAt(seed: string, x: number, y: number) {

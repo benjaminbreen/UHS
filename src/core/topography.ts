@@ -89,7 +89,7 @@ export type TopographyCell = {
   live?: {
     /** Water distance by season, spring first, where a flood or playa moves the shore. */
     water?: readonly number[];
-    /** Exposed at low water, as `tidal`. */
+    /** The shelf width, as on `waterVisual`. */
     shelf?: number;
     /** The cell as generated, to restore when the water goes down. */
     dry?: Pick<TopographyCell, "surface" | "waterDepth" | "landscape"> & { distance: number; tint?: "silt" | "loess" | "clear" };
@@ -109,9 +109,10 @@ export type TopographyCell = {
     ice?: "solid" | "floes";
     icebergs?: boolean;
     tint?: "silt" | "loess" | "clear";
-    /** Bare mud above the tide: 1 at the high-water line, 0 at the low. */
-    tidal?: number;
-    /** How far up the shelf the tide stands now, as `tidal` measures it. */
+    /** Width in tiles of the intertidal shelf, on every cell of a tidal sea:
+     * a point `d` from shore is `1 + d / shelf` up it, 1 at high water. */
+    shelf?: number;
+    /** How far up the shelf the tide stands now, on that scale. */
     tide?: number;
     reef?: "outer" | "lagoon";
   };

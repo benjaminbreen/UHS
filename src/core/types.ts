@@ -66,6 +66,8 @@ export type Household = {
   fortune?: number;
   /** Children too small to be out in the street, counted rather than drawn. */
   infants?: number;
+  /** A baby sent out of the house to a wet nurse. */
+  nurse?: "out";
   familyPlans?: { kind: "seek-match"; subject: string }[];
   /** Goods from `goods.ts` it makes for others. */
   makes?: string[];
@@ -159,7 +161,11 @@ export type SocialRelation = {
     | "servant"
     | "apprentice"
     | "master"
-    | "friend";
+    | "friend"
+    | "parent-in-law"
+    | "child-in-law"
+    /** Godparent, wedding sponsor or sworn sibling: kin by ceremony. */
+    | "ritual-kin";
 };
 export type Resource = {
   item: ItemId;
@@ -245,7 +251,7 @@ export type Actor = {
   knownResources?: string[];
   task?: { target: string; until: number };
   /** Somewhere they have taken themselves off to, off their routine until `until`. */
-  errand?: { to: Position; label: string; until: number; pose?: "sit" | "sit-seat" | "idle" | "sway"; face?: Point };
+  errand?: { to: Position; label: string; until: number; pose?: "sit" | "sit-seat" | "idle" | "sway" | "work"; face?: Point };
   id: string;
   name: string;
   role: string;
@@ -857,7 +863,8 @@ export interface WorldModel {
   canCross?(from: Point, to: Point): boolean;
   navigationCost?(x: number, y: number, actorId?: string): number;
   protectedCell?(x: number, y: number): boolean;
-  propSlots?(placeId: string): { yard: Point[]; work: Point[] } | undefined;
+  /** `furnished`: the yard kit laid this yard, so only a trade's fitting is added. */
+  propSlots?(placeId: string): { yard: Point[]; work: Point[]; furnished?: boolean } | undefined;
   /** A resident's whole day as a route. Built on demand and cached by the
    * world: sampling it costs a binary search, not a path search. */
   itinerary?(actorId: string): import("./itinerary").Itinerary | undefined;

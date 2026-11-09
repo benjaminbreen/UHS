@@ -276,6 +276,12 @@ export class WorldCharacters {
       art = this.carried(prop);
     const signatureFor = (pose: CharacterPose, frame: number) => `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}:${turn}:${condition}:${this.renderer}`;
     const signature = signatureFor(pose, frame);
+    const cached = this.cache.get(signature);
+    if (cached && this.wanted.get(actor.id) === signature) {
+      cached.used = this.scene.time.now;
+      this.lastFrames.set(actor.id, signature);
+      return cached.key;
+    }
     this.wanted.set(actor.id, signature);
     if (workerDrawn(this.renderer)) this.startWorkers();
     if (this.pool.length && workerDrawn(this.renderer)) {
@@ -367,7 +373,7 @@ export class WorldCharacters {
     if (!texture) {
       texture = `${key}-shadow-${phase}`;
       this.scene.textures
-        .addCanvas(texture, characterShadow(entry.canvas, phase))
+        .addCanvas(texture, characterShadow(entry.canvas, phase, this.renderer === "f" || this.renderer === "g" ? 78 : 79))
         ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
       entry.shadows.set(phase, texture);
     }

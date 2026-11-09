@@ -1,4 +1,10 @@
 import { householdStory } from "../src/world/v3/household-story";
+import { learnerArrangementFor, learnerArrangements } from "../src/content/households/learners";
+import { residenceCustoms, residenceFor } from "../src/content/households/residence";
+import { pluralMarriages, pluralMarriageFor } from "../src/content/households/plural-marriage";
+import { bondages, bondageFor } from "../src/content/households/bondage";
+import { nursingCustoms, nursingFor } from "../src/content/households/nursing";
+import { ritualKin, ritualKinFor } from "../src/content/households/ritual-kin";
 import { it, expect } from "vitest";
 import { createSettingSession } from "../src/runtime/session";
 import { resolveSetting, settingFor } from "../src/content/geography/resolve";
@@ -106,7 +112,7 @@ it("builds households from a life, so they differ and their ages agree", () => {
       shared: false,
       extended: false,
       small: false,
-      craft: i % 3 === 0,
+      learner: i % 3 === 0 ? learnerArrangementFor() : undefined,
       player: false,
       modern: false,
       built: 1400 - (i % 90),
@@ -126,6 +132,96 @@ it("builds households from a life, so they differ and their ages agree", () => {
   expect(sizes.size, "household sizes vary").toBeGreaterThan(4);
   expect(widowed).toBeGreaterThan(10);
   expect(help).toBeGreaterThan(10);
+});
+it("keeps house the way the place and century did", () => {
+  const at = (id: string, year: number) => settingFor(places.find((p) => p.id === id)!, year);
+  expect(residenceFor(at("beijing", 1700))?.rule).toBe("patrilocal");
+  expect(residenceFor(at("kyoto", 1750))?.heirOnly).toBe(true);
+  expect(residenceFor(at("london", 1600))?.rule).toBe("neolocal");
+  expect(pluralMarriageFor(at("konya", 1600))?.id).toBe("islamic-co-wives");
+  expect(pluralMarriageFor(at("london", 1600))).toBeUndefined();
+  expect(bondageFor(at("rome", 100))?.id).toBe("roman-slaves");
+  expect(bondageFor(at("london", 1600))).toBeUndefined();
+  expect(nursingFor(at("beijing", 1700))?.mode).toBe("in");
+  expect(ritualKinFor(at("beijing", 1700))?.tie).toBe("sworn");
+  const keys = /^\{(name|first|kid|as|child|she|her|him|She|Her)\}$/;
+  const lines = [
+    ...residenceCustoms.flatMap((c) => [...c.lines.child, ...c.lines.parent]),
+    ...pluralMarriages.flatMap((c) => c.lines), ...bondages.flatMap((c) => c.lines),
+    ...nursingCustoms.flatMap((c) => c.lines), ...ritualKin.flatMap((c) => [...(c.lines.child ?? []), ...c.lines.other]),
+  ];
+  for (const line of lines) expect((line.match(/\{\w+\}/g) ?? []).every((k) => keys.test(k)), line).toBe(true);
+
+  const story = (i: number, o: Partial<Parameters<typeof householdStory>[0]>) => householdStory({
+    seed: "customs", id: `h${i}`, year: 1700, age: 40 + (i % 20), sex: i % 2 ? "female" : "male", means: 0.3 + (i % 7) / 10,
+    shared: false, extended: false, small: false, player: false, modern: false, revised: true,
+    built: 1650, fabric: "timber", ...o,
+  });
+  const china = at("beijing", 1700);
+  let sons = 0, daughters = 0, brides = 0, concubines = 0, bound = 0, nursed = 0, husbandsMother = 0;
+  for (let i = 0; i < 400; i++) {
+    const s = story(i, { residence: residenceFor(china), plural: pluralMarriageFor(china), bondage: bondageFor(china), nursing: nursingFor(china) });
+    for (const m of s.residents) {
+      if (m.fromHead === "child" && m.age >= 18) m.sex === "male" ? sons++ : daughters++;
+      if (m.as === "daughter-in-law") {
+        brides++;
+        expect(s.residents[m.spouseOf!]).toMatchObject({ fromHead: "child", sex: "male" });
+      }
+      if (m.as === "concubine") concubines++;
+      if (m.bound) bound++;
+      if (m.as === "wet nurse") nursed++;
+      if (m.fromHead === "parent-in-law") {
+        husbandsMother++;
+        expect(i % 2).toBe(1);
+      }
+    }
+    if (i % 2) expect(s.residents.some((m) => m.as === "concubine")).toBe(false);
+  }
+  expect(sons).toBeGreaterThan(daughters * 3);
+  expect(brides).toBeGreaterThan(10);
+  expect(concubines).toBeGreaterThan(3);
+  expect(bound).toBeGreaterThan(3);
+  expect(nursed).toBeGreaterThan(0);
+  expect(husbandsMother).toBeGreaterThan(5);
+  const longhouse = residenceCustoms.find((c) => c.id === "longhouse")!;
+  let sonsIn = 0, daughtersIn = 0;
+  for (let i = 0; i < 300; i++)
+    for (const m of story(i, { residence: longhouse }).residents)
+      if (m.fromHead === "child" && m.age >= 18) m.sex === "male" ? sonsIn++ : daughtersIn++;
+  expect(daughtersIn).toBeGreaterThan(sonsIn * 3);
+  const paris = nursingCustoms.find((c) => c.id === "paris-nurse-bureau")!;
+  expect(Array.from({ length: 300 }, (_, i) => story(i, { age: 26 + (i % 6), nursing: paris }).nurse).filter(Boolean).length).toBeGreaterThan(5);
+});
+it("teaches a trade the way the place and century did", () => {
+  const at = (id: string, year: number) => learnerArrangementFor(settingFor(places.find((p) => p.id === id)!, year)).id;
+  expect(at("london", 1450)).toBe("guild-indenture");
+  expect(at("rome", 100)).toBe("mediterranean");
+  expect(at("konya", 1600)).toBe("esnaf");
+  expect(at("london", 1950)).toBe("modern");
+  for (const a of learnerArrangements)
+    for (const line of [...a.lines.own, ...a.lines.taken, ...(a.lines.bound ?? [])]) {
+      expect(line.match(/\{(\w+)\}/g)!.every((k) => /^\{(name|as|child|left|she|her|him|She|Her)\}$/.test(k)), line).toBe(true);
+      if (line.includes("{left}")) expect(a.term, `${a.id}: ${line}`).toBeDefined();
+    }
+  let own = 0, taken = 0;
+  for (let i = 0; i < 200; i++) {
+    const s = householdStory({
+      seed: "learn", id: `h${i}`, year: 1450, age: 30 + (i % 25), sex: "male", means: 0.5,
+      shared: false, extended: false, small: false, player: false, modern: false,
+      learner: learnerArrangementFor(settingFor(places.find((p) => p.id === "london")!, 1450)),
+      built: 1420, fabric: "timber",
+    });
+    const l = s.residents.find((r) => r.role === "Apprentice");
+    if (l?.fromHead === "child") own++;
+    if (l?.fromHead === "apprentice") {
+      taken++;
+      const joined = s.history.find((e) => e.kind === "joined" && e.as === "apprentice")!;
+      expect(1450 - joined.year).toBeLessThan(7);
+      expect(l.age - (1450 - joined.year)).toBeGreaterThanOrEqual(12);
+    }
+  }
+  expect(own).toBeGreaterThan(5);
+  expect(taken).toBeGreaterThan(own);
 });
 it("the same seed and environment reproduce terrain while landform and water controls change it", () => {
   const build = (landform: "plain" | "ridge", water: WorldSetting["water"]) =>

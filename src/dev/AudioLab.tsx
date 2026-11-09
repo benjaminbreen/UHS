@@ -17,6 +17,8 @@ import {
   X,
 } from "lucide-react";
 import { AudioDirector } from "../audio/director";
+import { listeningScenes } from "../audio/ambience-scenes";
+import { AmbienceTab } from "./AmbienceTab";
 import {
   compose,
   periods,
@@ -83,7 +85,7 @@ export function AudioLab({
   const { arrangement, beat } = state;
   const score = useMemo(() => compose(arrangement), [arrangement]);
   const library = slotThemes(arrangement.season);
-  const [tab, setTab] = useState<"music" | "effects">("music");
+  const [tab, setTab] = useState<"music" | "effects" | "ambience">("music");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const [lastEffect, setLastEffect] = useState("");
@@ -211,6 +213,13 @@ export function AudioLab({
             onClick={() => setTab("effects")}
           >
             Sound effects <span>06 sketches</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === "ambience"}
+            onClick={() => setTab("ambience")}
+          >
+            Weather &amp; place <span>{listeningScenes.length} scenes</span>
           </button>
           <div className="audio-status">
             <i className={state.playing ? "is-playing" : ""} />
@@ -560,6 +569,8 @@ export function AudioLab({
                 </div>
               </section>
             </div>
+          ) : tab === "ambience" ? (
+            <AmbienceTab director={director} />
           ) : (
             <section className="audio-effects">
               <div className="audio-label">

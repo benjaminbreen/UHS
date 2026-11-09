@@ -1,5 +1,28 @@
 import { test, expect } from "@playwright/test";
 
+test("minimaps finish their first build and zoom rebuilds during view updates", async ({ page }) => {
+  await page.goto("/?start=A%20Roman%20baker%20in%20Ostia%2C%20100%20CE&seed=minimap-rebuild");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
+  await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click();
+  await expect(page.locator("canvas.minimap")).toHaveAttribute("data-map-builds", "1", { timeout: 30000 });
+  await page.getByRole("button", { name: "Open regional map", exact: true }).click();
+  const map = page.locator("canvas.large-map");
+  await expect(map).toHaveAttribute("data-map-builds", "1", { timeout: 30000 });
+  const before = await map.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
+  await page.evaluate(() => {
+    const w = window as any;
+    w.__mapUpdates = setInterval(() => w.__uhs.emit(false), 16);
+  });
+  try {
+    await page.locator(".map-modal").getByRole("button", { name: "Zoom out", exact: true }).click();
+    await expect(map).toHaveAttribute("data-map-builds", "2", { timeout: 30000 });
+  } finally {
+    await page.evaluate(() => clearInterval((window as any).__mapUpdates));
+  }
+  const after = await map.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
+  expect(after).not.toEqual(before);
+});
 
 test("props keep their atlas ground anchors across animation and redraws", async ({ page }) => {
   await page.goto("/");

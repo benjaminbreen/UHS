@@ -606,7 +606,7 @@ function* paintBackgroundSteps(
   c.restore();
 }
 
-/** Whole repaint in one go: the first map, and the cheap places-only pass. */
+/** The cheap places-only pass does not need to yield. */
 function paintBackground(...args: Parameters<typeof paintBackgroundSteps>) {
   const steps = paintBackgroundSteps(...args);
   while (!steps.next().done);
@@ -704,14 +704,12 @@ export function Minimap({
         !!target &&
         ((Math.abs(origin.x - target.origin.x) * size) / extent > PAD - 4 ||
           (Math.abs(origin.y - target.origin.y) * size) / extent > PAD - 4);
-      // A different world, zoom or map size cannot be shown by the map we
-      // have, so it is rebuilt at once. Only walking is deferred.
       const stale =
-        !map || map.world !== world || map.key !== key || map.places > places;
+        !target || target.world !== world || target.key !== key || target.places > places;
       // Places activate constantly while walking. Painting the new roofs over
       // the map we have costs a few rectangles; the full rebuild resamples the
       // world per pixel and was stalling a frame every few seconds.
-      if (!stale && !shifted && map && map.places < places) {
+      if (!stale && !shifted && map && map.world === world && map.key === key && map.places < places) {
         paintBackground(
           map.canvas,
           world,
@@ -731,32 +729,7 @@ export function Minimap({
         background.height = height + PAD * 2;
         return background;
       };
-      if (stale) {
-        job.current = undefined;
-        const background = surface();
-        timed("minimap rebuild", () =>
-          paintBackground(
-            background,
-            world,
-            origin,
-            size,
-            height,
-            extent,
-            large,
-            regional,
-          ),
-        );
-        map = backing.current = {
-          world,
-          origin: { ...origin },
-          key,
-          canvas: background,
-          places,
-        };
-        canvas.dataset.mapBuilds = String(
-          Number(canvas.dataset.mapBuilds ?? 0) + 1,
-        );
-      } else if (shifted) {
+      if (stale || shifted) {
         const background = surface();
         job.current = {
           world,
@@ -776,10 +749,14 @@ export function Minimap({
           ),
         };
       }
-      map = backing.current!;
+      map = backing.current;
       const ctx = canvas.getContext("2d")!;
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, size, height);
+      if (!map || map.world !== world || map.key !== key) {
+        pins.current = [];
+        return;
+      }
       if (sky)
         ctx.filter = `saturate(${1 - 0.55 * sky.night - 0.35 * sky.dull}) brightness(${1 - 0.25 * sky.night - 0.06 * sky.dull})`;
       ctx.drawImage(
@@ -829,6 +806,20 @@ export function Minimap({
         ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = "#f3d38f";
         ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      const plot = runtime.engine.state.plot, meet = plot && !plot.ended ? plot.gathering : undefined;
+      if (meet && runtime.engine.state.clock < meet.until) {
+        // The plot's meeting place: a gold diamond, held at the edge when it is off the map.
+        const x = Math.max(8, Math.min(size - 8, ((meet.at.x - origin.x) * size) / extent + size / 2));
+        const y = Math.max(8, Math.min(height - 8, ((meet.at.y - origin.y) * size) / extent + height / 2));
+        const r = large ? 7 : 5.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+        ctx.fillStyle = "#e8b030";
+        ctx.strokeStyle = "#172031";
+        ctx.lineWidth = 2;
+        ctx.fill();
         ctx.stroke();
       }
       ctx.lineWidth = 2;

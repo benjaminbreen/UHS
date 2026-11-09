@@ -29,7 +29,7 @@ when the task is actually about its subject:
 | Character generation pipeline | `docs/CHARACTER_GENERATION.md` |
 | Performance | `docs/PERFORMANCE.md` (`docs/PERFORMANCE_REVIEW.md` is a past audit) |
 | Licences of third-party art | `docs/ASSET_PROVENANCE.md` |
-| Audio | `docs/AUDIO.md` |
+| Audio | `docs/AUDIO.md`; for making or tuning any sound, the `sound` skill, `.claude/skills/sound/SKILL.md` |
 
 ## Verifying
 

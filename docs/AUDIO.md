@@ -77,7 +77,11 @@ Sound effects are built in code (`src/audio/sfx.ts`, `handling.ts`, `time.ts`) a
 
 Every effect then passes through `Room` in `src/audio/ambience.ts`. Indoors it adds an echo sized by the room the player stands in and coloured by the house's finish: a hide or thatch hut swallows a step, a plastered hall hands it back. Outdoors it is dry.
 
-`ambienceFor` turns the scene into the ambient mix. Beds: rain, wind, birds, crickets, water or sea swell, a town murmur and a hearth. Indoors the outdoor beds are muffled, and rain is also heard on the roof: thuds on thatch, ticks on tile.
+`ambienceFor` turns the scene into the ambient mix. Beds: rain, wind, birds, crickets, frogs, water or sea swell, a town murmur and a hearth. Indoors the outdoor beds are muffled, and rain is also heard on the roof: thuds on thatch, ticks on tile.
+
+Rain has a strength (`Weather.rain`, 0–1): each climate has its own typical wet day (northern drizzle, Mediterranean showers, tropical and monsoon downpours, rare desert cloudbursts), and it comes and goes in showers through the day. The weather label reads Drizzle, Rain, Heavy rain or Downpour, and the visible rain thins or thickens with it. The sound is layered: a grainy wash of far drops, near drops on what the rain hits (leaves, pine needles, grass, bare ground, paving, from the ecology and town), a low roar in heavy rain, thunder in warm downpours, and tree-frog whistles or croaks on warm wet nights.
+
+**Reviewing sound.** `npm run audio:ambience` renders the listening scenes in `src/audio/ambience-scenes.ts` offline and draws each one's spectrogram above field recordings of the real thing (`artifacts/audio-review/`). `--clap` adds CLAP scores from `.venv` (torch + transformers). The studio's **Weather & place** tab plays each scene live beside its recordings and saves the listener's verdicts. The `sound` skill describes the loop.
 
 Over the town murmur come occasional street sounds, chosen by period and size (`townKindFor`):
 

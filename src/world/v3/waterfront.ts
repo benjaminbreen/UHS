@@ -1,6 +1,6 @@
 import type { Actor, Pack, Place, Point, Terrain } from "../../core/types";
 import { paintedDoor } from "../../core/doors";
-import { buildingModel, buildingRoofCells } from "../../content/graphics/models";
+import { buildingModel, buildingArtCells } from "../../content/graphics/models";
 import { characterLivelihood, generateCharacter } from "../../content/characters/generate";
 import { resolveCharacterContext } from "../../content/characters/resolve";
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
@@ -190,7 +190,7 @@ export function planWaterfront(
         claim(yards[i]);grade(p);
         paint({x:p.x-1,y:p.y+p.h,w:p.w+2,h:2},"dirt");
         cells(p,(x,y)=>plan.built?.add(key(x,y)));
-        for(const q of buildingRoofCells(p.sprite,p))plan.placement.clearance.add(key(q.x,q.y));
+        for(const q of buildingArtCells(p.sprite,p))plan.placement.clearance.add(key(q.x,q.y));
         plan.places.push(p);
         plan.objects.push({id:`${p.id}-exit`,kind:"exit",name:"Return to the waterfront",sprite:"door-open",pos:{x:6,y:9,space:p.id},inventory:{},owner});
       }

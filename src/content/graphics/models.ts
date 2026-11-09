@@ -15,10 +15,9 @@ export function buildingModel(frame: string): BuildingModel {
   return model;
 }
 
-/** World tiles above a building footprint occupied by its drawn roof and
- * upper wall. Props behind the house keep out of these cells so they do not
- * read as sitting on the roof. */
-export function buildingRoofCells(
+/** Every world tile the building's drawing covers: footprint, eaves, roof,
+ * and any step drawn below. */
+export function buildingArtCells(
   frame: string,
   rect: { x: number; y: number; w: number; h: number },
 ) {
@@ -28,8 +27,19 @@ export function buildingRoofCells(
   const left = Math.floor(drawX / 16);
   const right = Math.ceil((drawX + model.bounds[2]) / 16);
   const top = Math.floor(drawY / 16);
+  const bottom = Math.ceil((drawY + model.bounds[3]) / 16);
   const cells: { x: number; y: number }[] = [];
-  for (let y = top; y < rect.y; y++)
+  for (let y = top; y < bottom; y++)
     for (let x = left; x < right; x++) cells.push({ x, y });
   return cells;
+}
+
+/** World tiles above a building footprint occupied by its drawn roof and
+ * upper wall. Props behind the house keep out of these cells so they do not
+ * read as sitting on the roof. */
+export function buildingRoofCells(
+  frame: string,
+  rect: { x: number; y: number; w: number; h: number },
+) {
+  return buildingArtCells(frame, rect).filter((p) => p.y < rect.y);
 }

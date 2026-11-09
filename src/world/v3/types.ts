@@ -153,7 +153,7 @@ export type SettlementPlan = {
   territory?: import("./farmland").Territory;
   /** Ordered daily errands per resident; the world turns these into routes. */
   stations: Map<string, import("../../core/itinerary").Station[]>;
-  slots: Map<string, { yard: Point[]; work: Point[] }>;
+  slots: Map<string, { yard: Point[]; work: Point[]; furnished?: boolean }>;
   spawn: Point;
   diagnostics: {
     routeFailures: number;

@@ -2,6 +2,11 @@ import { random } from "../../core/random";
 import type { Sex } from "../../core/brief";
 import type { Fabric } from "../../core/time/structure";
 import type { HouseholdEvent, SocialRelation } from "../../core/types";
+import type { LearnerArrangement } from "../../content/households/learners";
+import type { ResidenceCustom } from "../../content/households/residence";
+import type { PluralMarriage } from "../../content/households/plural-marriage";
+import type { HouseholdBondage } from "../../content/households/bondage";
+import type { NursingCustom } from "../../content/households/nursing";
 
 /** Someone the story leaves living in the house. */
 export type Resident = {
@@ -15,6 +20,10 @@ export type Resident = {
   /** Born to the partner who still lives here, so they are that partner's too. */
   ofPartner?: boolean;
   role?: "Child" | "Elder" | "Servant" | "Apprentice";
+  /** Index of the resident this one is married to, for a child's spouse. */
+  spouseOf?: number;
+  /** Held in the house and not free to leave it. */
+  bound?: boolean;
 };
 const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 
@@ -36,8 +45,12 @@ export function householdStory(o: {
   extended: boolean;
   /** A hut or a stall: room for a couple and their smallest. */
   small: boolean;
-  /** Work done at a bench, which takes an apprentice. */
-  craft: boolean;
+  /** How this trade is taught here, where the work takes a learner. */
+  learner?: Pick<LearnerArrangement, "odds" | "own" | "ages" | "girls" | "term" | "word">;
+  residence?: Pick<ResidenceCustom, "rule" | "heirOnly" | "stay">;
+  plural?: Pick<PluralMarriage, "share" | "minMeans" | "word">;
+  bondage?: Pick<HouseholdBondage, "minMeans" | "share" | "servants" | "ages" | "girls" | "word">;
+  nursing?: Pick<NursingCustom, "mode" | "minMeans" | "odds">;
   player: boolean;
   modern: boolean;
   revised?: boolean;
@@ -59,7 +72,12 @@ export function householdStory(o: {
   const offspring = (s: Sex) => (s === "female" ? "daughter" : "son");
   let fortune = o.means,
     infants = 0,
-    children = 0;
+    babies = 0,
+    children = 0,
+    heirKept = false;
+  const rule = o.residence?.rule;
+  /** Whether a grown child of this sex stays at home when they marry. */
+  const keeps = (sex: Sex) => rule === "patrilocal" ? sex === "male" : rule === "matrilocal" ? sex === "female" : undefined;
   let unionYear: number | undefined;
 
   if (o.shared) {
@@ -147,9 +165,12 @@ export function householdStory(o: {
         history.push({ year: t, kind: "born", as });
         if (age < 5) {
           infants++;
+          if (age < 2) babies++;
           continue;
         }
-        const grown = age >= 15 && r("left", ui, t) < clamp((age - 14) / 8);
+        const k = keeps(sex);
+        const leaving = k === undefined ? 1 : !k ? 1.8 : !o.residence!.heirOnly ? 0.25 : heirKept ? 1.2 : 0.15;
+        const grown = age >= 15 && r("left", ui, t) < clamp(((age - 14) / 8) * leaving);
         if (grown || children >= 4 || (o.small && age >= 12)) {
           history.push({
             year: at(t + 14 + r("left-at", ui, t) * Math.max(0, age - 14)),
@@ -159,6 +180,7 @@ export function householdStory(o: {
           continue;
         }
         children++;
+        if (k && o.residence!.heirOnly) heirKept = true;
         residents.push({
           as,
           toHead: "parent",
@@ -170,11 +192,53 @@ export function householdStory(o: {
         });
       }
     });
+    const pl = o.plural;
+    if (pl && living && o.sex === "male" && a >= 28 && o.means >= pl.minMeans &&
+        r("plural") < pl.share * clamp(0.4 + (o.means - pl.minMeans) / 0.4)) {
+      const age = 18 + Math.floor(r("plural-age") * Math.max(1, Math.min(a, living.partnerAge) - 22));
+      const wed = at(Y - Math.floor(r("plural-wed") * Math.min(12, age - 17)));
+      residents.push({ as: pl.word, toHead: "partner", fromHead: "partner", age, sex: "female" });
+      history.push({ year: wed, kind: pl.word === "concubine" ? "joined" : "wed", as: pl.word });
+      // Pushed after her, so the household links the child to her.
+      if (Y - wed >= 2 && r("plural-child") < 0.6) {
+        const c = 1 + Math.floor(r("plural-child-age") * (Y - wed - 1)),
+          sex: Sex = r("plural-child-sex") < 0.5 ? "female" : "male";
+        history.push({ year: Y - c, kind: "born", as: offspring(sex) });
+        if (c < 5) {
+          infants++;
+          if (c < 2) babies++;
+        } else residents.push({ as: offspring(sex), toHead: "parent", fromHead: "child", age: c, sex, ofPartner: true, role: "Child" });
+      }
+    }
   }
-  if (!o.shared && a < 50 && r("elder") < (o.extended ? 0.6 : 0.15)) {
+  if (o.residence) {
+    for (const [i, m] of [...residents.entries()]) {
+      const k = keeps(m.sex!);
+      if (m.fromHead !== "child" || m.age < 18 || k === false ||
+          r("married-in", i) >= o.residence.stay * clamp((m.age - 17) / 6)) continue;
+      const sex: Sex = m.sex === "female" ? "male" : "female";
+      const as = sex === "female" ? "daughter-in-law" : "son-in-law";
+      residents.push({
+        as, toHead: "parent-in-law", fromHead: "child-in-law", sex, spouseOf: i,
+        age: Math.max(16, m.age + (sex === "male" ? 1 : -4) + Math.floor(r("in-law-age", i) * 5)),
+      });
+      history.push({ year: at(Y - r("married-in-at", i) * Math.min(5, m.age - 17)), kind: "joined", as });
+    }
+  }
+  const partnered = residents.find((m) => m.toHead === "partner");
+  // Where the couple lives with one side's parents, a parent taken in comes from that side.
+  const inLaw = !!partnered && (rule === "patrilocal" ? o.sex === "female" : rule === "matrilocal" && o.sex === "male");
+  if (!o.shared && a < 50 && r("elder") < (o.extended || (rule && rule !== "neolocal") ? 0.6 : 0.15)) {
     // Widows outlived their husbands, so the parent taken in is mostly a mother.
     const sex: Sex = r("elder-sex") < 0.7 ? "female" : "male";
-    residents.push({
+    residents.push(inLaw ? {
+      as: sex === "female" ? "mother-in-law" : "father-in-law",
+      toHead: "child-in-law",
+      fromHead: "parent-in-law",
+      age: partnered!.age + 20 + Math.floor(r("elder-age") * 10),
+      sex,
+      role: "Elder",
+    } : {
       as: sex === "female" ? "mother" : "father",
       toHead: "child",
       fromHead: "parent",
@@ -185,28 +249,74 @@ export function householdStory(o: {
     history.push({
       year: at(Y - r("elder-in") * 8),
       kind: "joined",
-      as: sex === "female" ? "mother" : "father",
+      as: residents.at(-1)!.as,
     });
   }
+  const b = o.bondage;
+  const boundWord = (sex: Sex) => b!.word[sex === "female" ? 0 : 1];
   if (o.means >= 0.6 && r("servant") < o.means - 0.15) {
+    const bound = !!b && r("servant-bound") < b.servants;
+    const sex: Sex | undefined = bound ? (r("bound-sex") < b!.girls ? "female" : "male") : undefined;
+    const as = bound ? boundWord(sex!) : "servant";
     residents.push({
-      as: "servant",
+      as,
       toHead: "master",
       fromHead: "servant",
       age: 13 + Math.floor(r("servant-age") * 18),
+      sex,
       role: "Servant",
+      bound,
     });
-    history.push({ year: at(Y - r("servant-in") * 6), kind: "joined", as: "servant" });
+    history.push({ year: at(Y - r("servant-in") * 6), kind: "joined", as });
   }
-  if (o.craft && !o.small && r("apprentice") < 0.4) {
+  if (b && o.means >= b.minMeans && !residents.some((m) => m.bound) &&
+      r("bound") < b.share * clamp(0.4 + (o.means - b.minMeans) / 0.4)) {
+    const sex: Sex = r("bound-sex") < b.girls ? "female" : "male";
+    const [lo, hi] = b.ages;
     residents.push({
-      as: "apprentice",
+      as: boundWord(sex),
       toHead: "master",
-      fromHead: "apprentice",
-      age: 12 + Math.floor(r("apprentice-age") * 8),
-      role: "Apprentice",
+      fromHead: "servant",
+      age: lo + Math.floor(r("bound-age") * (hi - lo + 1)),
+      sex,
+      role: "Servant",
+      bound: true,
     });
-    history.push({ year: at(Y - r("apprentice-in") * 5), kind: "joined", as: "apprentice" });
+    history.push({ year: at(Y - r("bound-in") * 10), kind: "joined", as: boundWord(sex) });
+  }
+  const n = o.nursing;
+  let nurse: "out" | undefined;
+  if (n && babies && o.means >= n.minMeans && r("nurse") < n.odds) {
+    if (n.mode === "out") {
+      nurse = "out";
+      infants--;
+    } else {
+      residents.push({
+        as: "wet nurse",
+        toHead: "master",
+        fromHead: "servant",
+        age: 18 + Math.floor(r("nurse-age") * 16),
+        sex: "female",
+        role: "Servant",
+        bound: !!b && r("nurse-bound") < b.servants,
+      });
+      history.push({ year: at(Y - r("nurse-in")), kind: "joined", as: "wet nurse" });
+    }
+  }
+  const l = o.learner;
+  if (l && !o.small && r("apprentice") < l.odds) {
+    const [lo, hi] = l.ages;
+    const own = residents.find((m) => m.fromHead === "child" && m.age >= lo && m.age <= hi + 3 &&
+      (l.girls > 0 || m.sex === "male"));
+    if (own && r("learner-own") < l.own) own.role = "Apprentice";
+    else {
+      const sex: Sex = r("learner-sex") < l.girls ? "female" : "male";
+      const as = l.word[sex === "female" ? 0 : 1];
+      const age = lo + Math.floor(r("apprentice-age") * (hi - lo + 3));
+      const served = Math.floor(r("apprentice-in") * Math.min(l.term ?? Infinity, age - lo + 1));
+      residents.push({ as, toHead: "master", fromHead: "apprentice", age, sex, role: "Apprentice" });
+      history.push({ year: at(Y - served), kind: "joined", as });
+    }
   }
   if (!o.shared && o.means < 0.4 && !o.small && r("lodger") < 0.15)
     residents.push({
@@ -265,6 +375,7 @@ export function householdStory(o: {
     residents: o.small ? residents.slice(0, 2) : residents,
     history,
     infants,
+    nurse,
     fortune: clamp(fortune, 0.02),
     weatherFrom,
   };

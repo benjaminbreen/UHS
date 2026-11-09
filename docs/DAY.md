@@ -490,6 +490,12 @@ each. One `npm run shot` per new screen.
    placeholder, stopping on a year with the household carried. Tests in
    `tests/time.test.ts`: same seed same life; expectation at 20 within two
    years of target per era; no births before 15 or after 45.
+   Done, November 8: `core/time/mortality.ts`, `content/history/deaths.ts`
+   and `core/time/years.ts` (`liveYears` runs the life to its death; `liveOn`
+   builds the world at a chosen year with the household carried, the town
+   aged and some houses taken by newcomers). The screen is
+   `ui/time/Years.tsx`, opened from the ledger (**Let the years pass**, **To
+   the end**) and the Rest menu. Tests are in `tests/time-travel.test.ts`.
 5. **Plots.** Plot per life with the none chance, developments as cards,
    cast bound into routine cards, the tail. Then plots 2 to 10, each with
    general wording, three regional wordings and a tail.

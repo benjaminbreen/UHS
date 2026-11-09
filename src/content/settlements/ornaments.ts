@@ -19,38 +19,43 @@ export type Ornament = {
   grounded?: boolean;
 };
 
-/** What a street was lit by, where and when. Broad defaults, not a history of
- * public lighting: oil and then gas in western cities from about 1700, wired
- * lamps from the 1890s, sodium and its successors from about 1960. Before any
- * of that a city lit a square, not a street, and lit it with fire. */
-export function lampFor(pack: Pack): { sprite: string; label: string } {
+/** What lit a city's public ground, where and when, and whether that reached
+ * its streets or only its square. Broad defaults, not a history of public
+ * lighting: oil lanterns in western European cities from the 1670s (Paris
+ * 1667, London 1680s), gas from about 1810, in Ottoman and Egyptian cities
+ * from the 1850s and 60s, wired lamps from the 1890s, sodium from about 1960.
+ * Before any of that a city lit a square, not a street, and lit it with fire. */
+export function lampFor(pack: Pack): { sprite: string; label: string; street: boolean } {
   const native = mediterraneanProp(pack.setting, "oil-lamp");
-  if (native) return { sprite: native, label: "Oil lamp stand" };
+  if (native) return { sprite: native, label: "Oil lamp stand", street: false };
   const year = pack.year;
   const culture = pack.setting?.culture;
-  const western =
-    culture === "european" || culture === "north-african-west-asian";
+  const european = culture === "european";
+  const western = european || culture === "north-african-west-asian";
   const eastern = culture === "east-asian" || culture === "southeast-asian";
   const variant = western ? 0 : eastern ? 1 : 2;
-  const lamp = (id: string, label: string) => ({
+  const lamp = (id: string, label: string, street = true) => ({
     sprite: `study-propb-${id}-${variant}`,
     label,
+    street,
   });
-  if (year >= 2005) return { sprite: "study-propb-city-lamp-2", label: "Street lamp" };
+  if (year >= 2005) return { sprite: "study-propb-city-lamp-2", label: "Street lamp", street: true };
   if (year >= 1960) return lamp("sodium-lamp", "Street lamp");
   // Meiji Tokyo lit its streets from the poles that carried the wires.
   if (year >= 1890 && year < 1945 && pack.anchor.lon >= 128 && pack.anchor.lon <= 146 && culture === "east-asian")
-    return { sprite: "study-propb-meiji-pole-0", label: "Utility pole" };
+    return { sprite: "study-propb-meiji-pole-0", label: "Utility pole", street: true };
   if (year >= 1890) return lamp("electric-lamp", "Street lamp");
-  if (year >= 1840 && culture === "european")
-    return { sprite: "study-propb-city-lamp-0", label: "Gas lamp" };
-  if (year >= 1700 && western) return lamp("gas-lamp", "Gas lamp");
-  if (year >= 1000 && eastern) return lamp("lantern-post", "Lantern post");
+  if (year >= 1840 && european)
+    return { sprite: "study-propb-city-lamp-0", label: "Gas lamp", street: true };
+  if (year >= (european ? 1810 : 1856) && western) return lamp("gas-lamp", "Gas lamp");
+  // The same glazed lantern on its post burned oil before gas reached it.
+  if (year >= 1670 && european) return lamp("gas-lamp", "Oil lamp");
+  if (year >= 1000 && eastern) return lamp("lantern-post", "Lantern post", year >= 1700);
   // A square's fire, not a lit street: the column is a classical and west
   // Asian habit, the plain post is everyone else's.
   if (year >= -499 && (western || culture === "south-asian"))
-    return lamp("brazier-post", "Brazier column");
-  return lamp("torch-post", "Torch post");
+    return lamp("brazier-post", "Brazier column", false);
+  return lamp("torch-post", "Torch post", false);
 }
 
 /** A municipal street's furniture, from the mid-nineteenth-century city on.

@@ -8,6 +8,7 @@ import {
 import type Phaser from "phaser";
 import type { TopographyCell } from "../core/topography";
 import { waterHash, waterStyle } from "./water-style";
+import { bareShelf } from "../core/water-field";
 import { canvasStat } from "./canvas-stat";
 import { inRoom } from "./crops";
 import type { WaterEffect, WaterTileData } from "./water-raster";
@@ -174,7 +175,7 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
     shores: effects.filter(
       (e) =>
         (e.shoreline ? e.shoreline.length : e.edges.length) && !e.cell.bridge &&
-        !e.cell.waterVisual?.ice && e.cell.waterVisual?.tidal === undefined,
+        !e.cell.waterVisual?.ice && !bareShelf(e.cell.waterVisual),
     ),
     bounds: {
       x: Math.min(...effects.map((e) => e.x)),

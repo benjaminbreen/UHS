@@ -16,7 +16,7 @@ import { equipmentVariant, equipmentChoices, equipmentProps } from "./equipment"
 import { doorwayFor } from "../settlements/ornaments";
 import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
-import { buildingRoofCells } from "../graphics/models";
+import { buildingArtCells } from "../graphics/models";
 import { mediterraneanProp } from "../graphics/mediterranean-buildings";
 
 import { signFor, emblemFor, signLabels, wallSignFor } from "./signage";
@@ -42,6 +42,8 @@ function tradeFitting(name: string, iron: boolean, loom: string | undefined, sca
 /** Work premises: a spade leans here, a chest does not. */
 const worksite =
   /farm|field|herd|garden|workshop|shop|stores|yard|smith|mason|potter|tann|brew|mill|weav|carpent/i;
+/** Goods packed for carrying belong where goods are bought, sold or shipped. */
+const trading = /merchant|trader|pedlar|peddler|shop|market|stores|warehouse|chandler|carrier|carter|caravan|quay|wharf|dock/i;
 
 /** Pick from a list by each prop's rarity rather than evenly. */
 function weighted(list: string[], roll: number) {
@@ -211,8 +213,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
   const occupied = (p: Position, ignore?: string, prop?: string) => {
     const footprint = prop ? propVisualCells(prop, p) : [p];
     for (const q of footprint) {
+      // A prop may stand in front of a wall and cover it, but its base may not
+      // share a row with the wall, where the two are drawn through each other.
       if (p.space === "outside" && (roofCells.has(at({ ...q, space: p.space })) ||
-        (prop && equipmentProps[prop] && buildingCells.has(at({ ...q, space: p.space })))))
+        (q.y >= p.y && buildingCells.has(at({ ...q, space: p.space })))))
         return true;
       if (
         (visualAt.get(at({ ...q, space: p.space })) ?? []).some(
@@ -251,9 +255,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       .filter((o) => o.kind === "well" && o.pos.space === "outside")
       .map((o) => o.pos);
   /** Whether a prop with a `where` rule belongs at this spot. */
-  const belongs = (key: string, at: Position, works: boolean) => {
+  const belongs = (key: string, at: Position, works: boolean, trades = false) => {
     const where = propDefs[key]?.where;
     if (!where) return true;
+    if (where === "trade") return trades;
     const central =
       Math.hypot(at.x - middle.x, at.y - middle.y) < inner;
     if (where === "backyard") return !central;
@@ -272,10 +277,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       actorById.set(a.id, a);
     }
     for (const b of world.places) {
+      for (const p of buildingArtCells(b.sprite, b))
+        (p.y < b.y ? roofCells : buildingCells).add(at({ ...p, space: "outside" }));
       for (let y=b.y;y<b.y+b.h;y++)
         for (let x=b.x;x<b.x+b.w;x++) buildingCells.add(at({x,y,space:"outside"}));
-      for (const p of buildingRoofCells(b.sprite, b))
-        roofCells.add(at({ ...p, space: "outside" }));
       for (let dy = -1; dy <= 1; dy++)
         for (let dx = -1; dx <= 1; dx++)
           doorsAt.add(at({ x: b.entrance.x + dx, y: b.entrance.y + dy, space: "outside" }));
@@ -301,7 +306,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           const entrance = o.pos.space === "outside" ? o.pos : world.place(o.pos.space)?.entrance;
           const local = (entrance && world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? world.pack.setting;
           const key = regionalContainer(local,o.prop,random(seed,"regional-container",o.id));
-          if (key && (o.pos.space !== "outside" || usable(o.pos,o.id,key))) {
+          if (key && (o.pos.space !== "outside" || usable(o.pos,o.id,key) && belongs(key,o.pos,false))) {
             o.prop=key; o.sprite=propDefs[key].sprite!; o.name=propDefs[key].name;
           }
         }
@@ -313,8 +318,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             o.pos.space === "outside" ? "yard" : "household",
             o.pos,
             // This object is a container: it can become a barrel or a bin,
-            // never a washing line.
-            (key) => !!propDefs[key]?.container && belongs(key, o.pos, false),
+            // never a washing line, and one that fits where it was planned.
+            (key) => !!propDefs[key]?.container && belongs(key, o.pos, false) && !occupied(o.pos, o.id, key),
             true,
           ),
         );
@@ -326,6 +331,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         stamp(o, pick(o.id, "fire", o.pos));
       if (o.kind === "well") dressWell(o, o.prop);
       if (planned && o.prop && /^study-propb?-/.test(o.sprite)) {
+        // A yard's privy takes the form and contents of its place and day.
+        if (propDefs[o.prop]?.where === "privy") stamp(o, o.prop);
         const entrance = o.pos.space === "outside" ? o.pos : world.place(o.pos.space)?.entrance;
         const local = (entrance && world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? world.pack.setting;
         if (equipmentProps[o.prop]) {
@@ -445,12 +452,12 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       // Half the buildings in a town get nothing in the yard at all. Every
       // house with its own bin and washing line is what made a street read as
       // a back yard. The frontage below is placed either way.
-      const bareYard = !fitting || alreadyFitted
-        ? b.landUse === "industrial" || b.landUse === "downtown" ||
-          b.landUse === "commercial" || random(seed, "yard-empty", b.id) < bare
-        : false;
       // Side-of-house and yard pockets, never entrance tiles or street centers.
       const planned = world.propSlots?.(b.id);
+      const bareYard = !fitting || alreadyFitted
+        ? planned?.furnished || b.landUse === "industrial" || b.landUse === "downtown" ||
+          b.landUse === "commercial" || random(seed, "yard-empty", b.id) < bare
+        : false;
       const pockets: Position[] = planned
         ? [...planned.work, ...planned.yard].map((p) => ({
             ...p,
@@ -481,7 +488,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       const domestic = b.access === "household";
       for (
         let slot = 0;
-        !bareYard && slot < (random(seed, "yard-density", b.id) < 0.3 ? 2 : 1);
+        !bareYard && slot < (!planned?.furnished && random(seed, "yard-density", b.id) < 0.3 ? 2 : 1);
         slot++
       ) {
         const o: WorldObject = {
@@ -497,6 +504,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         // names a trade that needs one; otherwise tools, otherwise the yard.
         const slotFitting = slot === 0 && !alreadyFitted ? fitting : undefined;
         const works = worksite.test(`${b.name} ${b.entranceLabel}`);
+        const trades = trading.test(`${b.name} ${b.entranceLabel} ${worker?.role ?? ""}`);
         const tools =
           slot !== 1 && (works || random(seed, "tool-slot", o.id) < 0.16);
         const chosen = slotFitting
@@ -508,7 +516,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               // A back yard is a household's own ground away from the middle
               // of town; packing cases belong to a trade or the countryside.
               (key) =>
-                belongs(key, o.pos, works) &&
+                belongs(key, o.pos, works, trades) &&
                 (propDefs[key]?.where !== "backyard" || domestic),
             );
         if (!chosen) break;
@@ -627,7 +635,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       // to roll one takes it, and its neighbours find the ground taken.
       const spacing = urbanPack ? 11 : 5;
       if (
-        domestic &&
+        domestic && !planned?.furnished &&
         random(seed, "privy-here", b.id) < (urbanPack ? 0.4 : 0.55) &&
         !privies.some((p) => Math.hypot(p.x - b.x, p.y - b.y) < spacing)
       ) {
@@ -653,8 +661,14 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         // Across the house from its door, where the street does not see it.
         const behind = (p: Position) =>
           (p.x + 0.5 - cx) * (b.entrance.x + 0.5 - cx) + (p.y + 0.5 - cy) * (b.entrance.y + 0.5 - cy) < 0;
-        const far = around
-          .filter((p) => usable(p))
+        // A yard has one of whatever this place does; where the kit offers
+        // both a midden and a muck heap, which one is the household's.
+        const kinds = kit.contexts.privy;
+        const key = kinds.length
+          ? weighted(kinds, random(seed, "privy-kind", b.id))
+          : undefined;
+        const far = key && around
+          .filter((p) => usable(p, undefined, key))
           // Half a dozen paces from the water, then behind the house, then
           // furthest from the door: the bottom of the yard, not beside the well.
           .sort(
@@ -664,12 +678,6 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               Math.hypot(q.x - b.entrance.x, q.y - b.entrance.y) -
                 Math.hypot(p.x - b.entrance.x, p.y - b.entrance.y),
           )[0];
-        // A yard has one of whatever this place does; where the kit offers
-        // both a midden and a muck heap, which one is the household's.
-        const kinds = kit.contexts.privy;
-        const key = kinds.length
-          ? weighted(kinds, random(seed, "privy-kind", b.id))
-          : undefined;
         if (far && key) {
           const o: WorldObject = {
             id: `${b.id}-privy`,

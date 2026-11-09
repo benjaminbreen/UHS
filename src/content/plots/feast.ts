@@ -11,6 +11,7 @@ const hostOf = (c: PlotContext) => {
  * to bring its share. */
 export const feast: PlotTemplate = {
   id: "feast",
+  shape: "occasion",
   look: {
     emblem: "feast",
     palette: { ink: "#16120c", fill: "#2a2114", edge: "#6a4a22", light: "#f2e6cc", accent: "#d08a2c" },
@@ -51,8 +52,14 @@ export const feast: PlotTemplate = {
   ],
   developments: [
     {
+      id: "share",
+      when: { type: "all", of: [{ type: "since", hours: 1 }, { type: "not", of: { type: "settled" } }, { type: "not", of: { type: "came" } }, { type: "not", of: { type: "gathered" } }] },
+      then: [{ type: "choose", line: "share", focus: "host", choices: [{ id: "store" }, { id: "labour" }, { id: "stay" }] }],
+    },
+    { id: "sent-share", when: { type: "fired", id: "store" }, then: [{ type: "seize", role: "host" }] },
+    {
       id: "cold",
-      when: { type: "all", of: [{ type: "came" }, { type: "not", of: { type: "settled" } }] },
+      when: { type: "all", of: [{ type: "came" }, { type: "not", of: { type: "settled" } }, { type: "not", of: { type: "fired", id: "labour" } }] },
       then: [{ type: "card", line: "cold", focus: "host" }, { type: "regard", role: "host", delta: -1 }],
     },
     {
@@ -64,6 +71,8 @@ export const feast: PlotTemplate = {
   endings: [
     { id: "gone", when: { type: "gone", role: "host" } },
     { id: "given", when: { type: "all", of: [{ type: "came" }, { type: "settled" }] } },
+    { id: "helped", when: { type: "all", of: [{ type: "came" }, { type: "fired", id: "labour" }] } },
+    { id: "stayed", when: { type: "fired", id: "stay" } },
     { id: "shamed", when: { type: "fired", id: "snub" } },
     { id: "sent", when: { type: "gathered" } },
   ],
@@ -86,6 +95,7 @@ export const feast: PlotTemplate = {
         sent: "Your gift is in {host}'s book, but people noticed your seat was empty.",
         gone: "With {host} gone, the feast does not happen, and nobody's gift is counted.",
         shamed: "The feast went on without your household's gift. {host}'s book shows that your household gave nothing.",
+        stayed: "You send word that your household can't give this year. Your name goes in {host}'s book with nothing next to it, and that will be remembered when it's your turn.",
       },
     },
     {
@@ -102,7 +112,7 @@ export const feast: PlotTemplate = {
         invite: "We hope to see you at the {occasion}. Your household always gives generously. Something like {amount}.",
         gather: "At {host}'s {occasion}",
         cold: "Every household has brought something for the table except yours, and {host} has noticed.",
-        given: "You give your share and are thanked in front of everyone. You eat lying on the couches with the others, {held}, and there are toasts until the lamps burn low.",
+        given: "You give your share and are thanked in front of everyone. You eat lying on the couches with the others, {held}, and there are toasts late into the night.",
         sent: "Your share reached {host}'s table, but you didn't, and people asked why.",
         gone: "With {host} gone, there is no feast.",
         shamed: "The {occasion} went on without anything from your household. People noticed.",
@@ -124,6 +134,14 @@ export const feast: PlotTemplate = {
         sent: "Your share reached {host}'s {occasion}, but people noticed you didn't come.",
         gone: "With {host} gone, there is no feast.",
         shamed: "The {occasion} went on without your household's share. It will be remembered.",
+        share: "Everyone is bringing something to {host}'s {occasion}. What will your household give?",
+        "store:label": "Send {amount} from the store",
+        "store:then": "You measure out the share from the store and send it over to {host}'s.",
+        "labour:label": "Offer to help cook and serve instead",
+        "labour:then": "{host} is glad of another pair of hands. Be there early to help with the cooking.",
+        "stay:label": "Plead a poor year, and stay home",
+        helped: "You spend the {occasion} carrying dishes and keeping the fire going, and eat in the kitchen with the other helpers. {host} thanks you in front of the guests.",
+        stayed: "You send word that your household can't give this year, and stay home. {host} sends back a polite answer, but people notice.",
       },
     },
   ],

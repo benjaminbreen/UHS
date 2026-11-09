@@ -28,7 +28,8 @@ import {
   propVisualCells,
 } from "../src/content/props/catalog";
 import { resolveSetting } from "../src/content/geography/resolve";
-import { buildingRoofCells } from "../src/content/graphics/models";
+import { buildingArtCells } from "../src/content/graphics/models";
+import { wallSignDefs } from "../src/content/props/signage";
 import { packs } from "../src/content/packs";
 import { withProps } from "../src/content/props/place";
 import type { PlayerCommand, WorldModel, WorldObject } from "../src/core/types";
@@ -540,36 +541,31 @@ it("keeps European yard kit out of other regions", () => {
 });
 
 it("keeps broad yard props clear of houses and one another", () => {
-  const resolved = resolveSetting("Congo 1500") as any;
-  expect(resolved.error).toBeUndefined();
-  const e = createSettingSession(resolved.setting, "yard-clearance");
-  const yard = e.state.objects.filter(
-    (o) =>
-      o.pos.space === "outside" && o.prop && propDefs[o.prop].visualClearance,
-  );
-  expect(yard.length).toBeGreaterThan(0);
-  const claimed = new Set<string>();
-  for (const o of yard) {
-    for (const p of propVisualCells(o.prop!, o.pos)) {
-      const key = `${p.x},${p.y}`;
-      expect(claimed.has(key), `${o.id} overlaps another yard prop`).toBe(
-        false,
-      );
-      claimed.add(key);
-      expect(
-        e.world.places.some(
-          (b) => p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h,
-        ),
-        `${o.id} overlaps a house`,
-      ).toBe(false);
-      expect(
-        e.world.places.some((b) =>
-          buildingRoofCells(b.sprite, b).some(
-            (cell) => cell.x === p.x && cell.y === p.y,
-          ),
-        ),
-        `${o.id} overlaps a roof silhouette`,
-      ).toBe(false);
+  for (const [query, seed] of [["Congo 1500", "yard-clearance"], ["Bronze Age Denmark", "a"]]) {
+    const resolved = resolveSetting(query) as any;
+    expect(resolved.error).toBeUndefined();
+    const e = createSettingSession(resolved.setting, seed);
+    // A prop may cover a wall it stands in front of, but not share a row with
+    // the drawn walls, nor reach the roof.
+    const walls = new Set<string>(), roofs = new Set<string>();
+    for (const b of e.world.places)
+      for (const p of buildingArtCells(b.sprite, b)) (p.y < b.y ? roofs : walls).add(`${p.x},${p.y}`);
+    const yard = e.state.objects.filter(
+      (o) => o.pos.space === "outside" && o.prop && propDefs[o.prop] && !wallSignDefs[o.prop],
+    );
+    expect(yard.length).toBeGreaterThan(50);
+    const claimed = new Set<string>();
+    for (const o of yard) {
+      const cells = propVisualCells(o.prop!, o.pos);
+      for (const p of cells) {
+        const key = `${p.x},${p.y}`;
+        if (cells.length > 1) {
+          expect(claimed.has(key), `${o.id} overlaps another yard prop`).toBe(false);
+          claimed.add(key);
+        }
+        expect(p.y >= o.pos.y && walls.has(key), `${o.id} overlaps a house`).toBe(false);
+        expect(roofs.has(key), `${o.id} overlaps a roof silhouette`).toBe(false);
+      }
     }
   }
 });

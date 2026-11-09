@@ -117,7 +117,7 @@ export const AILMENTS: readonly AilmentDef[] = [
     id: "measles",
     names: [{ name: "measles" }],
     gloss: "Measles, a childhood illness wherever towns were big enough to keep it going; deadly where it was new.",
-    rate: (p) => (p.age >= 12 || !before(p, 1965) ? 0 : 0.003),
+    rate: (p) => (p.age >= 12 || !before(p, 1965) || (box(p, AMERICAS) && !(p.setting!.year >= 1530)) ? 0 : 0.003),
     days: [7, 14],
     deadly: () => 0.05,
     of: "{who} has had the measles {for}",

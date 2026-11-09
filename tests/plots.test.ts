@@ -38,6 +38,18 @@ const act = (e: Engine, command: PlayerCommand) =>
     command,
   });
 
+describe("plot templates", () => {
+  it("word every line their opening, developments and endings call for", () => {
+    for (const plot of PLOTS) {
+      const called = ["aim", "intro", "threat", ...plot.endings.map((e) => e.id),
+        ...[...plot.opening, ...plot.developments.flatMap((d) => d.then)].flatMap((e) =>
+          e.type === "choose" ? [e.line, ...e.choices.map((c) => `${c.id}:label`)] : "line" in e ? [e.line] : [])];
+      for (const w of plot.wording)
+        for (const key of called) expect(w.lines[key] ?? plot.wording.at(-1)!.lines[key], `${plot.id} ${w.title}: ${key}`).toBeTruthy();
+    }
+  });
+});
+
 describe("plots played out in London, 1750", () => {
   it("binds a seeded debt, sends the creditor over, and ends it by payment or seizure", () => {
     const e = session();
@@ -119,6 +131,34 @@ describe("plots played out in London, 1750", () => {
     expect(e.state.lifeAim?.text).toContain("Answer");
     meet(charge);
     expect(charge.ended).toBe("judged");
+  });
+  it("puts a choice card up, and ends on what the player chose", () => {
+    const e = session();
+    delete e.state.plot;
+    const choice: PlotTemplate = {
+      ...commission, id: "test-choice", shape: "light", weight: () => 1, cast: () => ({}),
+      begin: (c) => ({ deadline: c.clock + 86400, words: {} }),
+      opening: [{ type: "choose", line: "ask", choices: [{ id: "stay" }, { id: "go", check: { stat: "agility", odds: 2 } }] }],
+      developments: [],
+      endings: [{ id: "went", when: { type: "fired", id: "go" } }, { id: "stayed", when: { type: "fired", id: "stay" } }],
+      wording: [{ title: "A Choice", lines: { aim: "Choose.", intro: "", threat: "", ask: "Stay or go?", "stay:label": "Stay", "go:label": "Go", "go:then": "You go.", went: "Gone.", stayed: "Stayed." } }],
+    };
+    PLOTS.push(choice);
+    try {
+      const plot = drawOnly(choice, () => startPlot(e.state, setting))!;
+      e.advance(60);
+      // The first decision waits a little while into the day.
+      expect(e.cards.some((c) => c.choose?.card === "plot:test-choice")).toBe(false);
+      e.advance(3600);
+      const card = e.cards.find((c) => c.choose?.card === "plot:test-choice")!;
+      expect(card.choose!.choices.map((c) => c.label)).toEqual(["Stay", "Go"]);
+      expect(card.moment).toBe("ask");
+      expect(act(e, { type: "choose", card: "plot:test-choice", choice: 1 }).status).toBe("completed");
+      expect(e.lastChoice?.line).toBe("You go.");
+      expect(plot.ended).toBe("went");
+    } finally {
+      PLOTS.pop();
+    }
   });
   it("ends an order only when the work is brought after the day's work is done", () => {
     const e = session();

@@ -1,6 +1,7 @@
 import type Phaser from "phaser";
 import type { WaterEffect } from "./water-raster";
 import { waterHash } from "./water-style";
+import { bareShelf } from "../core/water-field";
 
 export const WATER_ATLAS = "water-motifs-1";
 export const motifKinds = [
@@ -297,7 +298,7 @@ export function waterMotif(e: WaterEffect): WaterMotif | undefined {
     e.cell.bridge ||
     e.cell.surface !== "water" ||
     e.cell.waterVisual?.ice ||
-    e.cell.waterVisual?.tidal !== undefined ||
+    bareShelf(e.cell.waterVisual) ||
     (e.cell.habitat && (e.cell.waterVisual?.distance ?? -3) > -0.7)
   )
     return;

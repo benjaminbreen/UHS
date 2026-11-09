@@ -1,7 +1,7 @@
 import { random } from "../../core/random";
 import { ruled } from "../history/order";
 import { amountOf, B, BRITAIN, CHINA, dueOf, fillIn, ISLAMIC, ITALY, neighbours, notable, partnerWords, pickOf, pronounWords } from "./common";
-import type { PlotContext, PlotTemplate } from "./types";
+import type { Condition, Effect, PlotContext, PlotTemplate } from "./types";
 
 /** Whose estate it is: a parent while none is alive in the scene, else an uncle. */
 const deceasedOf = (c: PlotContext) => {
@@ -15,11 +15,19 @@ const claimantOf = (c: PlotContext) => {
   return pool.length ? pickOf(c, pool, "estate-claimant") : undefined;
 };
 
+const answer: Effect = {
+  type: "choose", line: "answer", focus: "claimant",
+  choices: [{ id: "ask", check: { stat: "agreeableness", odds: 0.55 } }, { id: "search", check: { stat: "wit", odds: 0.4 } }, { id: "kin" }, { id: "pay" }],
+};
+const not = (id: string) => ({ type: "not", of: { type: "fired", id } }) as const;
+const vouched: Condition = { type: "all", of: [{ type: "fired", id: "ask" }, not("ask:failed")] };
+
 /** Someone has a claim on what a dead relative left, and the claim falls on you. */
 export const estate: PlotTemplate = {
   id: "estate",
+  shape: "claim",
   look: {
-    emblem: "slate",
+    emblem: "chest",
     palette: { ink: "#16120f", fill: "#2a211b", edge: "#6a4a3a", light: "#efe4da", accent: "#a8705a" },
   },
   payee: "claimant",
@@ -58,14 +66,18 @@ export const estate: PlotTemplate = {
   },
   opening: [{ type: "approach", role: "claimant", line: "claim" }],
   developments: [
+    { id: "ask-claimant", when: { type: "all", of: [{ type: "talked", role: "claimant" }, not("ask-witness"), not("ask-late")] }, then: [answer] },
+    { id: "ask-witness", when: { type: "all", of: [{ type: "talked", role: "witness" }, not("ask-claimant"), not("ask-late")] }, then: [answer] },
+    { id: "ask-late", when: { type: "all", of: [{ type: "since", hours: 1 }, not("ask-claimant"), not("ask-witness"), { type: "not", of: { type: "settled" } }] }, then: [answer] },
+    { id: "paying", when: { type: "fired", id: "pay" }, then: [{ type: "seize", role: "claimant" }] },
     {
       id: "talk",
-      when: { type: "all", of: [{ type: "since", hours: 4 }, { type: "not", of: { type: "talked", role: "witness" } }, { type: "not", of: { type: "settled" } }] },
+      when: { type: "all", of: [{ type: "since", hours: 4 }, { type: "not", of: vouched }, { type: "not", of: { type: "settled" } }] },
       then: [{ type: "card", line: "talk", focus: "claimant" }],
     },
     {
       id: "final",
-      when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }, { type: "not", of: { type: "talked", role: "witness" } }] },
+      when: { type: "all", of: [{ type: "due" }, { type: "not", of: { type: "settled" } }, { type: "not", of: vouched }] },
       then: [
         { type: "walk-off", role: "claimant", to: "authority" },
         { type: "card", line: "court", focus: "claimant" },
@@ -74,7 +86,7 @@ export const estate: PlotTemplate = {
     },
     {
       id: "verdict",
-      when: { type: "all", of: [{ type: "came" }, { type: "not", of: { type: "talked", role: "witness" } }, { type: "not", of: { type: "settled" } }] },
+      when: { type: "all", of: [{ type: "came" }, { type: "not", of: vouched }, { type: "not", of: { type: "settled" } }] },
       then: [{ type: "seize", role: "claimant" }],
     },
     {
@@ -84,11 +96,13 @@ export const estate: PlotTemplate = {
     },
   ],
   endings: [
-    { id: "dismissed", when: { type: "all", of: [{ type: "talked", role: "witness" }, { type: "not", of: { type: "fired", id: "final" } }] } },
+    { id: "dismissed", when: { type: "all", of: [vouched, not("final")] } },
+    { id: "proved", when: { type: "all", of: [{ type: "fired", id: "search" }, not("search:failed"), not("final")] } },
+    { id: "shared", when: { type: "fired", id: "kin" } },
     { id: "judged", when: { type: "fired", id: "verdict" } },
     { id: "absent", when: { type: "fired", id: "default" } },
     { id: "paid", when: { type: "settled" } },
-    { id: "heard", when: { type: "all", of: [{ type: "came" }, { type: "talked", role: "witness" }] } },
+    { id: "heard", when: { type: "all", of: [{ type: "came" }, vouched] } },
     { id: "dropped", when: { type: "gone", role: "claimant" } },
   ],
   wording: [
@@ -110,6 +124,7 @@ export const estate: PlotTemplate = {
         paid: "You pay {claimant} out of the estate. What is left is yours.",
         court: "{claimant} has taken the claim to {authority}. You'll have to answer it there.",
         dropped: "With {claimant} gone, nobody presses the claim.",
+        proved: "Among your {dead}'s wax tablets is a receipt, sealed by {claimant}'s own witnesses, saying it was paid. {claimant} reads it and lets the claim drop.",
       },
     },
     {
@@ -150,6 +165,8 @@ export const estate: PlotTemplate = {
         paid: "You pay {claimant}, {he} signs, and the household's property is divided.",
         court: "{claimant} has taken it to {authority}. The division will wait until the case is heard.",
         dropped: "With {claimant} gone, the contract is signed without {him}.",
+        proved: "In your {dead}'s box of papers is a receipt with {claimant}'s own mark on it, saying the debt was paid. The relatives see it, and the division contract is signed.",
+        "kin:label": "Ask the relatives to share the cost",
       },
     },
     {
@@ -191,6 +208,16 @@ export const estate: PlotTemplate = {
         hearing: "At the hearing before {authority}",
         "aim-hearing": "Answer {claimant}'s claim before {authority} {meet}. Get {witness} to speak for you first.",
         heard: "{claimant} sets out the claim. Then {witness} says your {dead} never owed anything of the kind, and the claim is thrown out.",
+        answer: "{claimant} wants {amount} out of your {dead}'s estate. What do you do?",
+        "ask:label": "Ask {witness} what was really owed",
+        "ask:failed": "{witness} thinks for a long time, and says your {dead} never spoke of it either way.",
+        "search:label": "Go through your {dead}'s things for proof",
+        "search:then": "You go through the chest your {dead} kept, one thing at a time.",
+        "search:failed": "There's nothing in the chest about {claimant} at all.",
+        "kin:label": "Call the family together to share the cost",
+        "pay:label": "Pay {amount} out of the estate",
+        proved: "At the bottom of the chest is the proof that it was settled years ago. You show it to {claimant} in front of witnesses, and {he} lets it drop.",
+        shared: "The family meets and agrees that the debt is the whole family's, not yours alone. Each household puts in a share, {claimant} is paid, and nobody is ruined by it.",
         judged: "{claimant} sets out the claim, and nobody contradicts it. The hearing goes against you: {amount} is to be paid out of the estate.",
         absent: "You didn't come to answer the claim, so it was decided without you. {amount} is to be paid to {claimant} out of the estate.",
       },

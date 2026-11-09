@@ -12,7 +12,6 @@ BAOBAB = ['#2a3a2c', '#3f5a3a', '#5f7f47', '#83a054', '#a9bb66', '#cfd28a']
 LARCH = ['#233a26', '#3a5b2f', '#5f8a3a', '#86ad45', '#b2cb5e', '#dbe38c']
 JUNIPER = ['#172a25', '#25443a', '#37604b', '#4f7d5a', '#729a6b', '#a4bd8d']
 MAPLE = ['#25352a', '#3e5c34', '#5f8a3b', '#82ad44', '#a9c85a', '#d0dd82']
-MANGROVE = ['#14302b', '#1f4a3c', '#2f6a4a', '#468a55', '#6ca866', '#9fc487']
 PALE_BARK = ['#3a3a34', '#7c7568', '#a8a08e', '#cbc2ad', '#e2dac6', '#f1ebd9']
 CUT = ['#5a3e26', '#8a6a44', '#b8956a', '#d4b788', '#ead3a6']
 
@@ -120,23 +119,6 @@ def maple():
     return im
 
 
-def mangrove():
-    im, d = canvas((72, 72))
-    # Arched stilt roots carry the trunk above the mud; a low glossy crown.
-    for pts in [[(36, 44), (24, 54), (14, 66)], [(37, 44), (48, 54), (60, 66)], [(35, 46), (30, 58), (26, 68)], [(38, 46), (44, 58), (50, 68)], [(36, 48), (36, 60), (38, 68)]]:
-        branch(d, pts, 2)
-    branch(d, [(36, 50), (36, 36), (35, 24)], 5)
-    branch(d, [(36, 40), (22, 30), (16, 22)], 3)
-    branch(d, [(36, 38), (52, 28), (58, 20)], 3)
-    for cx, cy, rx, ry, seed in [(16, 22, 11, 7, 911), (57, 20, 11, 7, 912), (28, 12, 12, 7, 913), (48, 11, 12, 7, 914), (36, 22, 14, 8, 915)]:
-        crown(im, cx, cy, rx, ry, MANGROVE, seed)
-    d = ImageDraw.Draw(im)
-    for x, y in [(20, 20), (52, 18), (30, 10), (44, 10), (36, 20), (26, 26), (48, 26)]:
-        d.line((x - 2, y, x + 2, y), fill=MANGROVE[5])
-        d.line((x - 1, y + 1, x + 1, y + 1), fill=MANGROVE[3])
-    return im
-
-
 WATER = ['#2f6f8a', '#4f9cb8', '#8fd0e6', '#d6f2fb', '#ffffff']
 
 
@@ -199,5 +181,4 @@ def regional_trees():
         'nature-maple-bare': deciduous_tree('maple',1, bare=True),
         'nature-maple-2-bare': deciduous_tree('maple',2, bare=True),
         'nature-maple-3-bare': deciduous_tree('maple',3, bare=True),
-        'nature-mangrove': mangrove(),
     }

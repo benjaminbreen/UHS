@@ -1,22 +1,7 @@
 import type { PlotLook } from "../content/plots/types";
+import { BAYER, EMBLEM_H, EMBLEM_W, bayer, ease, fadeEdges, flame, glow, hash, mix, pen, person, rgb, sealAt, type Pal, type RGB } from "./emblems/kit";
 
-export const EMBLEM_W = 160;
-export const EMBLEM_H = 64;
-
-type RGB = [number, number, number];
-const rgb = (hex: string): RGB => {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-};
-const mix = (a: RGB, b: RGB, t: number) =>
-  `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`;
-const hash = (i: number) => {
-  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
-  return x - Math.floor(x);
-};
-// 4x4 ordered dither: the pixel-art way to grade one colour into another.
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
-const ease = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - (1 - t) ** 3);
+export { EMBLEM_H, EMBLEM_W } from "./emblems/kit";
 
 /** One frame of a plot's emblem at native pixels; `t` is ms since the card opened. */
 export function drawEmblem(
@@ -27,7 +12,7 @@ export function drawEmblem(
 ) {
   if (look.emblem === "slate") slate(ctx, look.palette, t, o);
   else if (look.emblem === "dawn") dawn(ctx, look.palette, t);
-  else SCENES[look.emblem](ctx, look.palette, t, o.ending);
+  else (SCENES[look.emblem] ?? dawn)(ctx, look.palette, t, o.ending);
 }
 
 /** A life with no plot: first light over the hills, and a lit window. */
@@ -157,7 +142,8 @@ function slate(
   }
   // A sleeve takes off whole strokes: all of them when paid, half when seized.
   const half = marks < 5 ? Math.floor(marks / 2) : Math.min(marks - 1, Math.max(5, Math.round(marks / 10) * 5));
-  const wiped = Math.round((ending === "paid" ? marks : ending === "seized" ? half : 0) * ease((t - 500) / 900));
+  const part = ending === "seized" || ending === "respite" || ending === "judged" || ending === "absent" ? half : ending === "worked" ? Math.ceil(marks / 3) : 0;
+  const wiped = Math.round((ending === "paid" ? marks : part) * ease((t - 500) / 900));
   const faded = ending === "fled" ? 0.45 : 1;
   const dust = mix(fill, chalk, 0.17);
   at.forEach((m, i) => {
@@ -192,63 +178,35 @@ function slate(
   if (ending === "fled") rect(118, 60, 5, 2, mix(chalk, ink, 0.2));
   else rect(X + 8, Y + H, 6, 2, mix(chalk, ink, 0.1));
 
-  if (ending === "denounced") {
+  const chalkLine = mix(fill, chalk, 0.85);
+  // Respite: a line under the tally and the new moon it runs to.
+  if (ending === "respite") {
+    const len = Math.round(40 * ease((t - 1300) / 500));
+    rect(sx + 6, sy + sh - 6, len, 1, chalkLine);
+    if (len >= 40) for (let a = -5; a <= 5; a++) px(sx + 52 + Math.round(3 * Math.cos(a / 3.3)), sy + sh - 6 + Math.round(3 * Math.sin(a / 3.3)), chalkLine);
+  }
+  // Surety: a second hand's mark beside yours at the foot of the slate.
+  if (ending === "surety")
+    [sx + sw - 20, sx + sw - 11].forEach((x, i) => {
+      const k = ease((t - 400 - i * 400) / 300);
+      for (let d = 0; d <= 5 * k; d++) px(x + d, sy + sh - 9 + d, chalkLine), px(x + 5 - d, sy + sh - 9 + d, chalkLine);
+    });
+  // The day's work set against the debt: the hoe leaned by the slate.
+  if (ending === "worked") {
+    for (let k = 0; k < 30; k++) px(124 + Math.round(k * 0.18), 26 + k, mix(wood, chalk, 0.35));
+    rect(119, 24, 8, 3, mix(chalk, ink, 0.45));
+  }
+  // What's in the store, set out on the shelf to offer.
+  if (ending === "plea")
+    [16, 19, 33].forEach((x, i) => {
+      const k = ease((t - 300 - i * 180) / 300);
+      if (k > 0) rect(x, 49 - Math.round(3 * (1 - k)), 3, 1, mix(chalk, wood, 0.3));
+    });
+  if (ending === "denounced" || ending === "judged" || ending === "absent") {
     const drop = ease((t - 450) / 380);
     const cx = 104, cy = Math.round(-10 + (Y + H - 12 + 10) * drop);
     sealAt(ctx, pal, cx, cy);
   }
-}
-
-type Pal = PlotLook["palette"];
-const pen = (ctx: CanvasRenderingContext2D) => {
-  const rect = (x: number, y: number, w: number, h: number, c: string) => {
-    ctx.fillStyle = c;
-    ctx.fillRect(x, y, w, h);
-  };
-  return { rect, px: (x: number, y: number, c: string) => rect(x, y, 1, 1, c) };
-};
-const bayer = (x: number, y: number) => BAYER[(y & 3) * 4 + (x & 3)];
-// The slate's lamplight as a level: 2 lit, 1 the dithered rim, 0 dark.
-const glow = (x: number, y: number, cx: number, cy: number, rx: number, ry: number, f = 0) => {
-  const d = Math.hypot((x - cx) / rx, (y - cy) / ry) - f * 0.01, b = bayer(x, y);
-  return d < 0.42 ? 2 : d < 0.62 ? ((0.62 - d) / 0.2 > b ? 2 : 1) : d < 0.92 && (0.92 - d) / 0.3 > b ? 1 : 0;
-};
-function fadeEdges(ctx: CanvasRenderingContext2D, ink: string) {
-  const { px } = pen(ctx);
-  for (let y = 0; y < EMBLEM_H; y++)
-    for (let x = 0; x < EMBLEM_W; x++) {
-      const edge = Math.min(x, EMBLEM_W - 1 - x) / 18;
-      if (edge < 1 && bayer(x, y) > edge) px(x, y, ink);
-    }
-}
-function flame(ctx: CanvasRenderingContext2D, x: number, y: number, f: number) {
-  const { rect } = pen(ctx);
-  const lean = f === 1 ? 1 : f === 2 ? -1 : 0;
-  rect(x + lean, y - (f === 2 ? 1 : 0), 3, 4 + (f === 2 ? 1 : 0), "#e8853a");
-  rect(x + 1 + lean, y + 1, 1, 3, "#f8dc7a");
-}
-function person(ctx: CanvasRenderingContext2D, x: number, foot: number, h: number, body: string, head: string) {
-  const { rect } = pen(ctx);
-  const w = Math.max(1, Math.round(h / 3)), hd = Math.max(1, Math.round(h / 5)), leg = Math.max(1, Math.round(h / 5));
-  rect(x + ((w - hd) >> 1), foot - h, hd, hd, head);
-  rect(x, foot - h + hd, w, h - hd - leg, body);
-  if (w >= 3) {
-    rect(x, foot - leg, 1, leg, body);
-    rect(x + w - 1, foot - leg, 1, leg, body);
-  } else rect(x, foot - leg, w, leg, body);
-}
-function sealAt(ctx: CanvasRenderingContext2D, pal: Pal, cx: number, cy: number) {
-  const { px, rect } = pen(ctx);
-  const ink = rgb(pal.ink), seal = rgb(pal.accent), chalk = rgb(pal.light);
-  const rim = mix(seal, ink, 0.45), shine = mix(seal, chalk, 0.35), wax = mix(seal, ink, 0.05);
-  for (let y = -6; y <= 6; y++)
-    for (let x = -6; x <= 6; x++) {
-      const r = Math.hypot(x, y);
-      if (r > 6.2) continue;
-      px(cx + x, cy + y, r > 5 ? rim : r < 2.5 && x < 0 && y < 0 ? shine : wax);
-    }
-  rect(cx - 3, cy + 6, 2, 5, mix(seal, ink, 0.3));
-  rect(cx + 1, cy + 6, 2, 4, mix(seal, ink, 0.3));
 }
 
 /** The rent: grain measured into a basket in the store-room, the door open on the field. */
@@ -262,7 +220,8 @@ function rent(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: strin
     for (let x = 0; x < EMBLEM_W; x++) px(x, y, (y < 50 ? wall : floor)[glow(x, y, 64, 30, 84, 42, f)]);
   rect(0, 50, EMBLEM_W, 1, mix(ink, wood, 0.5));
   // The door on the field; shut and barred on eviction.
-  const shut = ending === "evicted" ? ease((t - 400) / 700) : 0;
+  const shut = ending === "evicted" || ending === "absent" ? ease((t - 400) / 700) : 0;
+  const taken = ending === "seized" || ending === "judged" || ending === "absent";
   rect(122, 24, 18, 26, mix(wood, ink, 0.35));
   for (let y = 26; y < 50; y++)
     for (let x = 124; x < 138; x++)
@@ -309,9 +268,9 @@ function rent(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: strin
       }
     for (let x = -1; x <= 1; x++) px(cx - 4 + x, 47, mix(gold, light, 0.15));
   };
-  if (ending === "seized") for (const x of [20, 37, 54]) tipped(x);
+  if (taken) for (const x of [20, 37, 54]) tipped(x);
   else if (ending !== "fled") for (const x of [12, 25, 38]) jar(x);
-  if (ending !== "fled" && ending !== "seized")
+  if (ending !== "fled" && !taken)
     for (const x of [92, 106])
       [5, 7, 9, 11, 12, 12, 12, 12, 11, 10].forEach((w, i) => {
         const lx = x + ((12 - w) >> 1);
@@ -323,9 +282,9 @@ function rent(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: strin
     for (let i = 0; i < 7; i++) px(56 + Math.floor(hash(i) * 44), 52 + Math.floor(hash(i + 3) * 6), mix(gold, ink, 0.45));
   else {
     // The measuring basket, filled from the scoop; carried off when paid.
-    const go = ending === "paid" ? ease((t - 500) / 1200) : 0;
+    const go = ending === "paid" || ending === "remitted" ? ease((t - 500) / 1200) : 0;
     const bx = 70 + Math.round(go * 90), by = 50 - Math.round(Math.min(1, go * 4) * 4);
-    const full = ending === "seized" ? 0 : ending ? 1 : ease((t - 300) / 1600);
+    const full = taken || ending === "pledged" || ending === "plea" ? 0 : ending === "remitted" || ending === "laboured" ? 0.5 : ending ? 1 : ease((t - 300) / 1600);
     const heap = Math.round(full * 4);
     for (let r = 0; r < heap; r++) rect(bx + 1 + r * 2, by - 11 - r, 12 - r * 4, 1, mix(gold, light, 0.1 + r * 0.08));
     rect(bx - 1, by - 10, 16, 1, mix(wood, light, 0.4));
@@ -341,6 +300,19 @@ function rent(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: strin
       for (let y = 15; y < by - 11 - heap; y++)
         if ((y + Math.floor(t / 55)) % 3) px(77 + (y % 5 ? 0 : 1), y, mix(gold, light, 0.25));
     }
+  }
+  // The landlord in the bright doorway, waiting for an answer.
+  if (ending === "plea") person(ctx, 127, 50, 22, mix(ink, wood, 0.3), mix(ink, wood, 0.45));
+  // A tally stick hung by the door, notched for the bigger share to come.
+  if (ending === "pledged") {
+    rect(116, 26, 2, 16, mix(wood, light, 0.45));
+    for (let y = 28; y < 41; y += 3) rect(115, y, 1, 1, pal.ink);
+    rect(116, 24, 2, 2, mix(wood, ink, 0.4));
+  }
+  // The hoe back from a day on the landlord's fields.
+  if (ending === "laboured") {
+    for (let k = 0; k < 26; k++) px(112 + Math.round(k * 0.2), 24 + k, mix(wood, light, 0.35));
+    rect(108, 22, 7, 3, mix(light, fill, 0.45));
   }
   fadeEdges(ctx, pal.ink);
 }
@@ -372,7 +344,7 @@ function levy(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: strin
     const foot = HY + Math.round(26 * (1 - u));
     return { x: Math.round(VX + (66 - VX) * ((foot - HY) / 29)), foot, h: Math.max(2, Math.round(2 + 12 * (1 - u))) };
   };
-  const leaving = ending === "commuted" || ending === "excused";
+  const leaving = ending === "commuted" || ending === "excused" || ending === "exempted" || ending === "hid";
   const base = 0.04 + 0.26 * ease(t / 2000) + (leaving ? 0.8 * ease((t - 400) / 1800) : 0);
   const body = mix(ink, wood, 0.35), load = mix(wood, light, 0.35);
   const carrier = (x: number, foot: number, h: number, i: number, c: string) => {
@@ -391,9 +363,25 @@ function levy(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: strin
     carrier(p.x, p.foot, p.h, i, body);
   }
   // You on the verge; you fall in behind when you serve.
-  const j = ending === "served" ? ease((t - 400) / 1400) : 0, end = at(base - 0.1);
+  const j = ending === "served" || ending === "caught" ? ease((t - 400) / 1400) : 0, end = at(base - 0.1);
   const you = { x: Math.round(24 + (end.x - 24) * j), foot: Math.round(58 + (end.foot - 58) * j), h: Math.round(12 + (end.h - 12) * j) };
-  carrier(you.x, you.foot, you.h, j ? 1 : 2, mix(sunC, ink, 0.2));
+  if (ending !== "hid") carrier(you.x, you.foot, you.h, j ? 1 : 2, mix(sunC, ink, 0.2));
+  // Caught: a man either side, marching you in.
+  if (ending === "caught") for (const dx of [-4, 5]) person(ctx, you.x + dx, you.foot + 1, you.h + 1, mix(ink, fill, 0.5), mix(ink, wood, 0.55));
+  // The headman at your side with the list, waiting on your answer.
+  if (ending === "choice") {
+    person(ctx, 34, 59, 13, mix(light, wood, 0.45), mix(ink, wood, 0.55));
+    rect(38, 50, 3, 4, mix(light, sunC, 0.25));
+  }
+  // Hid: only the top of a head among the reeds at the field's edge.
+  if (ending === "hid") {
+    if (t > 600) rect(21, 49 - Math.round(ease((t - 600) / 500) * 2), 4, 3, mix(ink, wood, 0.6));
+    for (let i = 0; i < 14; i++) {
+      const h = 12 + ((i * 5) % 7);
+      rect(12 + i * 2, 62 - h, 1, h, mix(wood, light, 0.15 + (i % 2) * 0.12));
+      px(12 + i * 2 + (i % 2 ? 1 : -1), 62 - h, mix(sunC, light, 0.2));
+    }
+  }
   if (ending === "commuted")
     [[30, 60], [34, 61], [29, 62]].forEach(([x, y], i) => {
       if (t < 300 + i * 120) return;
@@ -421,7 +409,20 @@ function accused(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: st
   for (let i = 0; i < 30; i++) px(Math.floor(hash(i) * EMBLEM_W), 50 + Math.floor(hash(i + 40) * 13), mix(fill, light, 0.08));
   person(ctx, 30, 56, 18, mix(wood, light, 0.25), mix(light, wood, 0.4));
   person(ctx, 104, 56, 18, mix(light, fill, 0.45), mix(light, wood, 0.4));
-  const fade = ending === "cleared" || ending === "compensated" ? ease((t - 300) / 800) : 0;
+  const fade = ["cleared", "compensated", "heard", "sworn", "found"].includes(ending ?? "") ? ease((t - 300) / 800) : 0;
+  // Your answer: a hand raised to swear, or the missing thing held up.
+  const hand = mix(light, wood, 0.4);
+  if (ending === "sworn" || ending === "answer") {
+    const k = ease((t - 300) / 500), top = ending === "sworn" ? 31 : 38;
+    for (let y = 44; y >= Math.round(44 - (44 - top) * k); y--) px(110, y, mix(light, fill, 0.45));
+    px(110, Math.round(44 - (44 - top) * k) - 1, hand);
+  }
+  if (ending === "found") {
+    const k = ease((t - 300) / 600), y = Math.round(44 - 10 * k);
+    for (let yy = 44; yy > y; yy--) px(110, yy, mix(light, fill, 0.45));
+    rect(109, y - 3, 4, 3, mix(red, light, 0.25));
+    if (k >= 1 && Math.floor(t / 140) % 6 === 0) px(112, y - 4, pal.light);
+  }
   if (ending !== "dropped") {
     const body = mix(red, ink, 0.25);
     person(ctx, 56, 56, 18, body, mix(light, wood, 0.4));
@@ -443,7 +444,7 @@ function accused(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: st
     rect(x, y, 2, 2, mix(light, red, 0.15));
     if (c >= 1 && Math.floor(t / 110) % 6 === 0) px(x + 1, y - 1, pal.light);
   }
-  if (ending === "denounced") sealAt(ctx, pal, 132, Math.round(-10 + 40 * ease((t - 450) / 380)));
+  if (ending === "denounced" || ending === "judged" || ending === "absent") sealAt(ctx, pal, 132, Math.round(-10 + 40 * ease((t - 450) / 380)));
   fadeEdges(ctx, pal.ink);
 }
 
@@ -456,8 +457,8 @@ function rival(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: stri
   for (let i = 0; i < 40; i++) px(Math.floor(hash(i) * EMBLEM_W), 10 + Math.floor(hash(i + 70) * 40), mix(ink, wood, 0.55));
   rect(0, 50, EMBLEM_W, 14, mix(fill, ink, 0.2));
   rect(0, 50, EMBLEM_W, 1, mix(fill, light, 0.2));
-  const sag = ending === "outdone" ? ease((t - 400) / 900) : 0;
-  const shutter = ending === "gone" ? ease((t - 400) / 700) : 0;
+  const sag = ending === "outdone" || ending === "rebuffed" ? ease((t - 400) / 900) : 0;
+  const shutter = (ending === "gone" ? 1 : ending === "faced" ? 0.5 : 0) * ease((t - 400) / 700);
   for (const [x0, mine] of [[14, false], [90, true]] as const) {
     const dim = mine ? sag * 0.5 : 0, shut = mine ? 0 : shutter;
     const tone = (a: RGB, b: RGB, k: number, d = 0) => mix(a.map((v, i) => v + (b[i] - v) * k) as RGB, ink, dim + d);
@@ -487,7 +488,20 @@ function rival(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: stri
       }
     }
   }
-  if (!ending || ending === "outdone")
+  // The two of you in the street: squared up, or meeting halfway.
+  const them = mix(wood, light, 0.35), you = mix(blue, light, 0.2), head = mix(light, wood, 0.4);
+  if (ending === "face" || ending === "truce") {
+    const k = ending === "truce" ? ease((t - 300) / 900) : 0;
+    person(ctx, 58 + Math.round(10 * k), 60, 16, them, head);
+    person(ctx, 96 - Math.round(12 * k), 60, 16, you, head);
+    if (k >= 1) rect(73, 51, 8, 1, head);
+  }
+  if (ending === "proved")
+    [108, 115, 122].forEach((x, i) => {
+      const k = ease((t - 300 - i * 300) / 600);
+      if (k > 0) person(ctx, x + Math.round(20 * (1 - k)), 62, 12, i % 2 ? them : mix(fill, light, 0.4), head);
+    });
+  if (!ending || ["outdone", "rebuffed", "face", "spread"].includes(ending))
     for (let i = 0; i < 4; i++) {
       if (t < 700 + i * 650) continue;
       const p = ((t - 700) / 2600 + i / 4) % 1, a = Math.sin(Math.PI * p);
@@ -503,10 +517,11 @@ function robbery(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: st
   const { px, rect } = pen(ctx);
   const ink = rgb(pal.ink), fill = rgb(pal.fill), wood = rgb(pal.edge), light = rgb(pal.light), fire = rgb(pal.accent);
   const f = Math.floor(t / 110) % 3, tq = Math.floor(t / 110) * 110;
-  const lit = ending !== "gone", up = ending === "confronted" ? ease((t - 300) / 600) : 0;
+  const fallen = ending === "brawl", back = ending === "confessed" || ending === "recovered";
+  const lit = ending !== "gone" && ending !== "night", up = ending === "confront" || ending === "reported" || ending === "confessed" ? ease((t - 300) / 600) : 0;
   const a = (0.55 * (1 - ease(t / 1600)) + 0.12) * Math.sin(tq / 260);
   const hx = 110 + 6 * Math.sin(a), hy = 22 + 6 * Math.cos(a);
-  const lx = Math.round(hx + (116 - hx) * up), ly = Math.round(hy + (24 - hy) * up);
+  const lx = fallen ? 108 : Math.round(hx + (116 - hx) * up), ly = fallen ? 50 : Math.round(hy + (24 - hy) * up);
   const wall = [mix(wood, ink, 0.55), mix(wood, fire, 0.2), mix(wood, fire, 0.6 + 0.2 * up)];
   const ground = [mix(fill, ink, 0.2), mix(fill, wood, 0.6), mix(wood, fire, 0.35 + 0.15 * up)];
   const rx = lit ? 70 + 40 * up : 0.1, ry = lit ? 44 + 16 * up : 0.1;
@@ -549,6 +564,13 @@ function robbery(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: st
   rect(77, 48, 16, 1, band);
   rect(77, 53, 16, 1, dark);
   rect(84, 49, 2, 3, mix(fire, ink, 0.3));
+  if (back) for (const [x, w, c] of [[78, 6, 0.3], [83, 5, 0.5], [87, 6, 0.2]] as const) rect(x, 41, w, 2, mix(light, fire, c));
+  // The thief slipping out under the moon with a bundle.
+  if (ending === "night") {
+    const k = ease(t / 1400);
+    person(ctx, 30 - Math.round(14 * k), 56, 14, mix(ink, fill, 0.2), mix(ink, wood, 0.4));
+    rect(33 - Math.round(14 * k), 46, 5, 4, mix(fill, light, 0.25));
+  }
   // The door leaf: swung out on its hinges, broken latch, or shut on let-go.
   const o = ending === "let-go" ? 1 - ease((t - 400) / 700) : ease(t / 900);
   const pw = Math.round(24 * (1 - o)), sw = Math.round(9 * o), leaf = mix(wood, light, 0.12);
@@ -559,14 +581,14 @@ function robbery(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: st
     rect(70 - sw, 25, 1, 29, mix(wood, ink, 0.5));
     [[100, 36], [101, 38], [100, 40], [101, 42]].forEach(([x, y]) => px(x, y, mix(wood, light, 0.5)));
   }
-  if (o > 0.5) {
+  if (o > 0.5 && !fallen) {
     rect(104, 56, 4, 2, mix(fire, light, 0.35));
     px(105, 56, pal.light);
     px(110, 58, mix(fire, light, 0.5));
   }
   // The lantern: swinging on its bracket, or held up to the dark.
   const glass = lit ? mix(fire, light, 0.45 + 0.1 * f + 0.2 * up) : mix(ink, wood, 0.3);
-  if (up < 1) {
+  if (up < 1 && !fallen) {
     rect(104, 20, 9, 1, mix(wood, ink, 0.6));
     rect(104, 18, 1, 5, mix(wood, ink, 0.6));
     for (let k = 0; k <= 4; k++) px(Math.round(112 + ((lx + 3 - 112) * k) / 4), Math.round(21 + ((ly - 21) * k) / 4), mix(wood, ink, 0.6));
@@ -576,10 +598,20 @@ function robbery(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: st
     person(ctx, fx, 56, 24, mix(light, fill, 0.45), mix(light, wood, 0.35));
     rect(fx + 1, ly + 7, 2, 37 - ly - 7, mix(light, fill, 0.45));
   }
-  rect(lx, ly, 7, 1, mix(wood, ink, 0.5));
-  rect(lx, ly + 1, 7, 6, glass);
-  rect(lx + 3, ly + 1, 1, 6, mix(wood, ink, 0.4));
-  rect(lx, ly + 7, 7, 1, mix(wood, ink, 0.5));
+  if (ending === "reported") {
+    person(ctx, 134, 56, 24, mix(ink, fill, 0.55), mix(light, wood, 0.35));
+    rect(131, 26, 1, 30, mix(wood, light, 0.3));
+  }
+  if (fallen) {
+    rect(108, 54, 6, 7, glass);
+    rect(107, 53, 1, 8, mix(wood, ink, 0.5));
+    for (const [x, y] of [[96, 58], [100, 61], [118, 59], [123, 62]]) rect(x, y, 3, 2, mix(light, fire, 0.3));
+  } else {
+    rect(lx, ly, 7, 1, mix(wood, ink, 0.5));
+    rect(lx, ly + 1, 7, 6, glass);
+    rect(lx + 3, ly + 1, 1, 6, mix(wood, ink, 0.4));
+    rect(lx, ly + 7, 7, 1, mix(wood, ink, 0.5));
+  }
   fadeEdges(ctx, pal.ink);
 }
 
@@ -607,7 +639,7 @@ function feast(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: stri
   [24, 40, 56, 96, 112, 128].forEach((x, i) => {
     const yours = i === 4;
     if (yours) rect(x - 1, 40, 10, 1, mix(wood, light, 0.35));
-    if (yours && ending !== "given") return;
+    if (yours && ending !== "given" && ending !== "helped") return;
     const drop = yours ? ease((t - 500) / 300) : ending ? 1 : ease((t - 200 - i * 200) / 250);
     if (drop <= 0) return;
     const y = 38 - Math.round(3 * (1 - drop));
@@ -622,8 +654,20 @@ function feast(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: stri
       if (bayer(sx, sy) > p * 1.1) px(sx, sy, mix(light, fill, 0.5));
     }
   });
-  if (ending === "shamed") {
-    const k = ease((t - 400) / 900);
+  // What your household might bring, waiting on the floor by your place.
+  if (ending === "share") {
+    for (let i = 0; i < 6; i++) rect(108 + (i >> 1), 50 + i, 12 - (i >> 1) * 2, 1, mix(wood, light, i % 2 ? 0.3 : 0.18));
+    for (let r = 0; r < 3; r++) rect(110 + r, 49 - r, 8 - r * 2, 1, mix(amber, light, 0.2 + r * 0.1));
+  }
+  // You on your feet behind the table, bringing the next dish round.
+  if (ending === "helped") {
+    const x = 98 + Math.round(16 * ease((t - 200) / 900));
+    person(ctx, x, 41, 15, mix(amber, ink, 0.3), mix(light, wood, 0.4));
+    rect(x - 2, 28, 9, 1, mix(wood, light, 0.35));
+    rect(x - 1, 27, 7, 1, mix(amber, light, 0.2));
+  }
+  if (ending === "shamed" || ending === "stayed") {
+    const k = ease((t - 400) / 900) * (ending === "stayed" ? 0.6 : 1);
     for (let y = 18; y < 58; y++)
       for (let x = 102; x < 126; x++) {
         const d = Math.hypot((x - 116) / 12, (y - 38) / 20);
@@ -633,4 +677,10 @@ function feast(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: stri
   fadeEdges(ctx, pal.ink);
 }
 
-const SCENES = { rent, levy, accused, rival, robbery, feast };
+type Scene = (ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: string) => void;
+// Each file in emblems/scenes is one scene, named for its file, as its default export.
+const drawn = import.meta.glob<{ default: Scene }>("./emblems/scenes/*.ts", { eager: true });
+const SCENES: Record<string, Scene | undefined> = {
+  rent, levy, accused, rival, robbery, feast,
+  ...Object.fromEntries(Object.entries(drawn).map(([path, m]) => [path.split("/").pop()!.replace(".ts", ""), m.default])),
+};

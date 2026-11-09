@@ -36,7 +36,7 @@ function toneKey(h: Habitat) {
         .map(([id, w]) => `${id}=${w}`)
         .join(",")
     : "";
-  return `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}|${blend}|${site}|${h.grove === undefined ? "" : Math.round(h.grove * 8)}`;
+  return `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}${h.dry ? "-dry" : ""}|${blend}|${site}|${h.grove === undefined ? "" : Math.round(h.grove * 8)}`;
 }
 const toneCache = new WeakMap<GrassArt, Map<string, Appearance>>();
 type Appearance = ReturnType<typeof computeAppearance>;
@@ -108,11 +108,12 @@ function computeAppearance(h: Habitat, art: GrassArt) {
         ),
       )
     : palette[0];
-  const tint = wilt(h.ecology, h.colorway, h.season);
+  const tint = wilt(h.dry && cycleOf[h.ecology] ? "dry-scrub" : h.ecology, h.colorway, h.season);
   if (tint) {
     // Blades and ground must turn together, or a brown autumn field keeps a
     // vivid green sward standing in it.
-    const dun = mix(palette[4], palette[8], 0.4);
+    // A marsh palette's own dun is still green; dry ground cures to straw.
+    const dun = h.dry ? [164, 140, 96] : mix(palette[4], palette[8], 0.4);
     for (const i of greens) palette[i] = drain(mix(palette[i], dun, tint[0]), tint[1]);
     ground = drain(mix(ground, dun, tint[0]), tint[1]);
   }

@@ -1328,7 +1328,8 @@ export function drawCharacterF(
   const drift = (f: number) => f * ((r.moving ? -t.sx * t.sin * (pose === "run" ? 2 : 1.2) : 0) + prev.sway * t.cos - settle);
   headArgs.drift = drift(1);
   const cloakMask = a.wearing.cloak ? cloak(t, d, yOf, centre, drift) : undefined;
-  if (cloakMask && !backView) s.put(cloakMask, CLOAK, { shade: 0.4, bottom: true });
+  // Its inside, in the body's shadow: a step darker, or pale cloth reads as an outline.
+  if (cloakMask && !backView) s.put(cloakMask, CLOAK, { shade: 0.4, bottom: true, dark: 1 });
   if (!backView) hairBehind(headArgs);
 
   // ---- limbs, far to near
@@ -1485,7 +1486,23 @@ export function drawCharacterF(
   if (g && w.shawl && w.shawl !== "none") shawl(fig, w.shawl, ["step", "strip", "chevron"].includes(w.trimPattern ?? ""));
   else if (w.shoulderCloth && !a.wearing.cloak) shoulderCloth(fig);
   if (g && w.hood === "down" && w.headwear !== "hood") hoodDown(fig, k.g === "shirt");
-  if (cloakMask && backView) s.put(cloakMask, CLOAK, { shade: 0.4, light: 0.2, bottom: true });
+  if (cloakMask && backView) {
+    // Two folds hanging from the shoulder blades, or the back is one flat slab.
+    const top = yOf(d.shoulder) + 3;
+    s.put(cloakMask, CLOAK, {
+      shade: 0.4,
+      light: 0.2,
+      bottom: true,
+      tone: (x, y, tone) => {
+        if (tone < 3 || y < top) return tone;
+        let x0 = x, x1 = x;
+        while (cloakMask.has(x0 - 1, y)) x0--;
+        while (cloakMask.has(x1 + 1, y)) x1++;
+        const w = x1 - x0;
+        return w >= 6 && (x - x0 === Math.round(w * 0.3) || x - x0 === Math.round(w * 0.68)) ? 2 : tone;
+      },
+    });
+  }
   if (carrying && backView) infant(fig, "behind");
   if (carrying && !backView) infant(fig, "over");
 
@@ -1670,6 +1687,8 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
   const wrapped = k.wrapped;
   s.put(m, k.legs, {
     shade: 0.45,
+    // Bare legs stay unlit, as G's bare arms do.
+    light: k.legs === SKIN ? 0 : 0.3,
     dark,
     zone: (_x, y) => (boots && shin(y) ? BOOT : k.legs),
     tone: (_x, y, tone) =>
@@ -1762,8 +1781,10 @@ function garment(
   const tile = k.pattern && k.pattern !== "cloud" ? tiles[k.pattern] : undefined;
   // A patterned band is three rows deep, a plain one two.
   const bandRows = tile ? 2 : 1;
+  // Only the tile's middle row, between plain rows: all three at one pixel a stitch read as dither.
   const stitch = (x: number, y: number, y0: number) => {
-    const row = tile![(((y - y0) % 3) + 3) % 3];
+    if ((((y - y0) % 3) + 3) % 3 !== 1) return false;
+    const row = tile![1];
     return row[(((x - Math.round(centreAt())) % row.length) + row.length) % row.length] === "x";
   };
   const panel = !!tile && ["tunic", "long-tunic", "robe", "dress", "gown", "skirt", "wrap", "poncho"].includes(g);

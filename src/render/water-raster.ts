@@ -1,6 +1,7 @@
 import { rasterHabitatTile } from "./habitat-raster";
 import { shoreDistance, shorePixel } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
+import { bareShelf } from "../core/water-field";
 import { TERRAIN_RISE } from "./terrain-projection";
 import {
   waterBand,
@@ -256,8 +257,13 @@ const hex = (c: string) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5),
 const ramp = (...c: string[]) => c.map(hex);
 const ICE = ramp("#f1f5f4", "#dde9ec", "#c6dce3", "#a9c6d2", "#86a9ba", "#6f93a8");
 const BERG = ramp("#f6fafb", "#dcedf3", "#b9d9e7", "#8fbdd4", "#5f93ad");
-const MUD = ramp("#6f604e", "#7f6f59", "#8f7f66", "#a49a8a");
-const MANGROVE_MUD = ramp("#4f4537", "#5e5241", "#6c604c", "#8a8577");
+// Wet, flat, raised, sunlit rim, dark speck.
+const MUD = ramp("#6c5140", "#7c5e49", "#8b6b52", "#a3825f", "#5a4436");
+const MANGROVE_MUD = ramp("#4a3c2f", "#574735", "#64523d", "#7a6a52", "#3b3026");
+// Light edge, water, shaded edge.
+const CREEK = ramp("#b4e6dc", "#68c0c0", "#4e9fa6");
+// Water, sky glint.
+const POOL = ramp("#7393b0", "#c4d8e6");
 const MARSH = ramp("#5f7449", "#6f8452", "#80955f", "#4b5a38");
 const LAGOON = ramp("#d6f0d9", "#ace5d3", "#7fd6cb", "#5bc3c5", "#3f9fb4");
 const CORAL = ramp("#8f7a5f", "#b99a72", "#cfb48a", "#d9cfb3");
@@ -305,12 +311,11 @@ export function specialWater(cell: TopographyCell, palette: WaterPalette, d: num
     if (!floe(wx, wy - 1)) return ICE[0];
     return waterNoise(wx, wy, 9, 617) > 0.62 ? ICE[0] : ICE[1];
   }
-  if (v.tidal !== undefined) {
-    const width = v.tidal < 1 ? -v.distance / (1 - v.tidal) : 4;
-    const t = 1 + d / width;
-    // Only water cells whose centre is on the shelf carry it; stay 3/4 tile
-    // (a pixel's farthest reach from its centre) inside, or the flat ends on the grid.
-    if (d > -0.75 || t < (v.tide ?? 0) + 0.75 / width) return;
+  if (v.shelf !== undefined) {
+    const t = 1 + d / v.shelf;
+    // Only water tiles are rastered: stay 3/4 tile (a pixel's farthest reach
+    // from its centre) off the shore, or the flat ends on the grid.
+    if (d > -0.75 - waterNoise(wx, wy, 10, 629) * 0.6 || t < (v.tide ?? 0)) return;
     const tropical = v.ecology === "tropical-woodland" || cell.habitat?.colorway === "mangrove";
     const mud = tropical ? MANGROVE_MUD : MUD;
     // Salt marsh above mid-tide on temperate shores, a small cliff at its foot.
@@ -321,12 +326,22 @@ export function specialWater(cell: TopographyCell, palette: WaterPalette, d: num
       const tuft = waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 639);
       return tuft > 0.8 ? MARSH[2] : tuft < 0.15 ? MARSH[0] : MARSH[1];
     }
-    // Branching creeks drain to the low-water line; pools stand on the low flats.
-    const creek = Math.abs(waterNoise(wx, wy, 48, 633) - 0.5);
-    if (creek < 0.012 + (1 - t) * 0.03) return creek < 0.006 + (1 - t) * 0.02 ? hex(palette.depths[1]) : mud[0];
-    if (t < 0.35 && waterNoise(wx, wy, 20, 631) > 0.6) return hex(palette.depths[0]);
-    if ((wy & 1) === 0 && waterHash(Math.floor(wx / 6), wy, 641) > 0.9) return mud[3];
-    return t < 0.4 ? mud[1] : waterHash(Math.floor(wx / 4), Math.floor(wy / 3), 643) > 0.75 ? mud[1] : mud[2];
+    // Creeks widen as they drain to the low-water line.
+    const creek = Math.abs(waterNoise(wx, wy, 48, 633) - 0.5) / (0.012 + (1 - t) * 0.03);
+    if (creek < 1) return creek < 0.6 ? CREEK[1] : creek < 0.85 ? CREEK[(wy & 1) && creek > 0.7 ? 2 : 0] : mud[0];
+    // Pools lie on the low flats, the far lip lit, the water showing the sky.
+    const pool = (x: number, y: number) => waterNoise(x, y, 22, 631) * 0.75 + waterNoise(x, y, 7, 632) * 0.25;
+    if (t < 0.5 && pool(wx, wy) > 0.66) {
+      if (pool(wx, wy - 1) <= 0.66) return mud[0];
+      return (wy % 3) === 0 && waterHash(Math.floor(wx / 4), wy, 641) > 0.75 ? POOL[1] : POOL[0];
+    }
+    // Low lobes of drying mud stand out of the wet, sunlit along their top edge.
+    const lobe = (x: number, y: number) =>
+      waterNoise(x + (waterNoise(x, y, 17, 645) - 0.5) * 20, y, 30, 643) * 0.7 + waterNoise(x, y, 11, 644) * 0.3 + (t - 0.5) * 0.3;
+    const here = lobe(wx, wy), speck = waterHash(wx, wy, 647);
+    if (here < 0.4) return speck > 0.985 ? POOL[1] : mud[0];
+    if (here > 0.58) return lobe(wx, wy - 1) <= 0.58 || speck > 0.97 ? mud[3] : mud[2];
+    return speck > 0.975 ? mud[3] : speck < 0.02 ? mud[4] : mud[1];
   }
   if (v.reef) {
     const crest = 5.5 + (waterNoise(wx, wy, 60, 645) - 0.5) * 3;
@@ -460,7 +475,7 @@ export function rasterWaterTile(
     cell.habitat?.colorway !== "swamp" &&
     !cell.waterVisual?.ice &&
     !cell.waterVisual?.reef &&
-    cell.waterVisual?.tidal === undefined &&
+    !bareShelf(cell.waterVisual) &&
     depth > 0.4 &&
     depth < (kind === "sea" ? 8 : 3.8) &&
     waterHash(gx, gy, 44) > 0.86 &&

@@ -200,6 +200,8 @@ export function composeUrban(
   precincts?: { sizes: readonly (readonly [number, number])[] }[],
   /** An industrial-age town has a railway through it. */
   railway = false,
+  /** Whether the place and date lit its streets, not only its square. */
+  lit = (year ?? 0) >= 1700,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -1446,9 +1448,9 @@ export function composeUrban(
         }
       }
     }
-  // Lit streets are a modern fabric's habit, but any city from about 1700 on
-  // put lamps on its arterials, and before that a square still had its fire.
-  if (wants("lamp") || (year !== undefined && year >= 1700)) {
+  // Lit streets are a modern fabric's habit; an older city lamps its
+  // arterials only where its place and date did.
+  if (wants("lamp") || lit) {
     const lampAt = (x: number, y: number) => {
       if (!holds(x, y, 1) || lines.has(cellKey(x, y))) return;
       if (

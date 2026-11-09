@@ -1208,9 +1208,10 @@ function rasterWallContours(
             material?.surface === "water" &&
             sample(Math.floor((px + side) / 16), row)?.surface === "water";
           // Bare rock shows more of its side than a bank or a wall does: at a
-          // sliver's width a cliff facing east or west read as a crack.
+          // sliver's width a cliff facing east or west read as a crack. A
+          // one-tier step widened so is a dark notch in the bank instead.
           const rocky = !material?.edge && material?.feature !== "paving" && material?.surface !== "sand";
-          const width = pours ? sideFace + 3 : away ? Math.max(1, sideFace - 1) : sideFace + (rocky ? 3 : 0);
+          const width = pours ? sideFace + 3 : away ? Math.max(1, sideFace - 1) : sideFace + (rocky && L - n >= 2 ? 3 : 0);
           for (let k = 1; k <= width; k++) {
             const r = Math.round(((k - 1) / sideFace) * (R - 1));
             const shade = tone * (away ? 0.82 : 1);

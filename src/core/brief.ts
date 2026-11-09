@@ -62,7 +62,13 @@ function kinTerm(kind: string, sex: Sex, first: boolean) {
             : sex === "male"
               ? "Father of"
               : "Parent of"
-          : "Lives with";
+          : kind === "parent-in-law"
+            ? sex === "female" ? "Daughter-in-law of" : sex === "male" ? "Son-in-law of" : "Child-in-law of"
+            : kind === "child-in-law"
+              ? sex === "female" ? "Mother-in-law of" : sex === "male" ? "Father-in-law of" : "Parent-in-law of"
+              : kind === "ritual-kin"
+                ? "Bound by ceremony to"
+                : "Lives with";
   return first ? word : lower(word);
 }
 

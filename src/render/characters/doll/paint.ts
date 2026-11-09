@@ -145,6 +145,8 @@ export class Sheet {
   mat = new Uint8Array(W * H);
   tone = new Uint8Array(W * H);
   part = new Uint16Array(W * H);
+  /** Lit-side outer contour: drawn in the ramp's `edge`, not `shadowEdge`. */
+  soft = new Uint8Array(W * H);
   private n = 0;
   key = lightKey();
 
@@ -191,7 +193,11 @@ export class Sheet {
             if (behind === id || (o.merge && behind && this.mat[j] === zone(x, y))) continue;
             this.part[j] = id;
             this.mat[j] = zone(x, y);
-            this.tone[j] = behind && ring === "line" ? 1 : 0;
+            // Selective outline: the lit side and top take the material's own
+            // dark, so only the shadow side and the feet keep the ink.
+            const lit = !behind && (dx === key || dy === -1);
+            this.tone[j] = behind ? (ring === "line" ? 1 : 0) : lit ? 1 : 0;
+            this.soft[j] = lit ? 1 : 0;
           }
         }
     if (o.cast)
@@ -214,6 +220,7 @@ export class Sheet {
       this.part[i] = id;
       this.mat[i] = zone(x, y);
       this.tone[i] = tone;
+      this.soft[i] = 0;
     }
     return id;
   }
@@ -225,6 +232,7 @@ export class Sheet {
     this.part[i] ||= ++this.n;
     this.mat[i] = mat;
     this.tone[i] = tone;
+    this.soft[i] = 0;
   }
   at(x: number, y: number) {
     if (x < 0 || y < 0 || x >= W || y >= H) return undefined;
@@ -239,7 +247,7 @@ export class Sheet {
 
   resolve(palette: Ramp[], out: Uint8ClampedArray) {
     const cache = palette.map((r) =>
-      [mix(r.shadowEdge ?? r.edge, INK, 0.55), r.shadowEdge ?? r.edge, r.shade, r.base, r.light].map(
+      [mix(r.shadowEdge ?? r.edge, INK, 0.55), r.shadowEdge ?? r.edge, r.shade, r.base, r.light, r.edge].map(
         (hex) => parseInt(hex.slice(1), 16),
       ),
     );
@@ -249,7 +257,7 @@ export class Sheet {
         out[o + 3] = 0;
         continue;
       }
-      const v = cache[this.mat[i]][this.tone[i]];
+      const v = cache[this.mat[i]][this.soft[i] && this.tone[i] === 1 ? 5 : this.tone[i]];
       out[o] = v >> 16;
       out[o + 1] = (v >> 8) & 255;
       out[o + 2] = v & 255;
