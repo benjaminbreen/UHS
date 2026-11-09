@@ -1240,13 +1240,13 @@ function rasterWallContours(
             const at = (y: number) => {
               const c = material?.edge
                 ? facePixel(material, trim, r, R, sy + oy, px + ox)
-                : rocky
-                  ? // The lip, then the face's own rock taken in short runs
-                    // along the rim. Its depth below the rim restarts at
-                    // every row, which drew the whole side as lip.
-                    facePixel(material, trim, k === 1 ? 0 : 5 + Math.floor(contourNoise((px + side * k + ox) >> 1, Math.floor((y + oy) / 4), 1, 171) * (R - 8)), (L - n) * R, px + side * k + ox, y + oy)
+                : width >= 5
+                  ? // An upright side: the face's own rock in short runs along
+                    // the rim. Depth below the rim restarts at every row
+                    // there, which drew the whole side as lip.
+                    facePixel(material, trim, 5 + Math.floor(contourNoise((px + side * k + ox) >> 1, Math.floor((y + oy) / 4), 1, 171) * (R - 8)), (L - n) * R, px + side * k + ox, y + oy)
                   : facePixel(material, trim, r, (L - n) * R, px + side * k + ox, y + oy, undefined, y - sy);
-              const f = rocky && k === width ? shade * 0.82 : shade;
+              const f = width >= 5 && k === width ? shade * 0.82 : shade;
               return [c[0] * f, c[1] * f, c[2] * f];
             };
             returns.push([
