@@ -236,6 +236,8 @@ export type Actor = {
     setting?: WorldSetting;
     concern: string;
     household?: { size: number; people: { id: string; name: string; age?: number }[] };
+    /** What was left on the map they set out from, as of leaving it. */
+    holdings?: { map: string; home: Point; herd?: { species: string; count: number; at: Point } };
   };
   origin?: CharacterOrigin;
   appearance?: CharacterAppearance;

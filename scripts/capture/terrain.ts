@@ -24,7 +24,7 @@ type Review = {
   seed: string;
   common: string;
   /** Where to point the camera before the first shot. */
-  centre: "spawn" | "none" | "paths" | "arroyo" | "cliff" | "ramp" | "shore";
+  centre: "spawn" | "none" | "paths" | "arroyo" | "creek" | "cliff" | "ramp" | "shore";
   /** Print paving counts, which is what the street studies are looking at. */
   paving?: boolean;
   studies: [name: string, query: string][];
@@ -246,6 +246,18 @@ const reviews: Record<string, Review> = {
       ["bog", "ecology=wetland&colorway=bog&season=summer&landform=plain&relief=0.1"],
     ],
   },
+  streams: {
+    dir: "artifacts/stream-review",
+    title: "Creeks and rivulets against the terraces",
+    seed: "stream-review",
+    common: "population=none&start=wanderer",
+    centre: "creek",
+    studies: [
+      ["woodland-rolling", "ecology=temperate-woodland&season=summer&water=river-ew&landform=rolling&relief=0.5"],
+      ["grassland-plain", "ecology=grassland&season=spring&water=river-ns&landform=plain&relief=0.25"],
+      ["boreal-ridge", "ecology=boreal-woodland&season=summer&water=lake&landform=ridge&relief=0.8"],
+    ],
+  },
   arroyos: {
     dir: "artifacts/arroyo-review",
     title: "Arroyo beds and banks",
@@ -259,6 +271,29 @@ const reviews: Record<string, Review> = {
     ],
   },
 };
+
+/** Point the camera at the creek or rivulet cell nearest the spawn. */
+async function centreOnCreek(page: Page) {
+  const at = await page.evaluate(() => {
+    const lab = (window as any).terrainLab,
+      world = lab.runtime.engine.world;
+    const { x: sx, y: sy } = world.spawn;
+    // A rivulet if one lies on the ground the lab paints, else a creek.
+    for (const widest of [0.5, 0.9])
+    for (let r = 0; r < 42; r++)
+      for (let y = sy - r; y <= sy + r; y++)
+        for (let x = sx - r; x <= sx + r; x++) {
+          const v = world.topography(x, y).waterVisual;
+          if (v?.kind === "river" && v.shoreWidth <= widest) {
+            lab.scene.options.center = { x, y };
+            lab.scene.draw();
+            return { x, y };
+          }
+        }
+  });
+  await settled(page);
+  console.log("  creek camera", at);
+}
 
 /** Point the camera at the arroyo cell nearest the spawn. */
 async function centreOnArroyo(page: Page) {
@@ -401,6 +436,7 @@ async function run(review: Review) {
       if (review.centre === "paths" && name.startsWith("grassland"))
         await centreOnPaths(page);
       if (review.centre === "arroyo") await centreOnArroyo(page);
+      if (review.centre === "creek") await centreOnCreek(page);
       if (review.centre === "shore") {
         await page.evaluate(() => {
           const lab = (window as any).terrainLab, world = lab.runtime.engine.world;

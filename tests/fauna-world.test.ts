@@ -195,9 +195,9 @@ describe("fauna behaviour", () => {
     // Head up and turned on whoever it is, but still standing.
     expect(deer.state).not.toBe("flee");
     expect(deer.members[0]).toMatchObject({ x: 10, y: 10, direction: 3 });
-    for (let t = 12; t <= 60; t += 6) advanceFauna([deer, sheep], world, t);
+    for (let t = 12; t <= 60 && deer.state !== "flee"; t += 6) advanceFauna([deer, sheep], world, t);
     expect(deer.state).toBe("flee");
-    expect(deer.members[0].x).toBeGreaterThan(10);
+    expect(deer.members[0].x).toBeGreaterThan(13);
     expect(sheep.state).toBe("idle");
     expect(
       Math.hypot(sheep.members[0].x - 10, sheep.members[0].y - 20),
@@ -221,7 +221,7 @@ describe("fauna behaviour", () => {
       wolf = group("gray-wolf", 13, 10);
     wolf.fedUntil = Infinity;
     wolf.state = "rest";
-    for (let t = 6; t <= 30; t += 6) advanceFauna([deer, wolf], sim(), t);
+    for (let t = 6; t <= 30 && deer.state !== "flee"; t += 6) advanceFauna([deer, wolf], sim(), t);
     expect(deer.state).toBe("flee");
     expect(deer.members[0].x).toBeLessThan(10);
   });
@@ -409,6 +409,33 @@ describe("fauna behaviour", () => {
     advanceFauna([deer, flushed], sim(), 6);
     expect(deer.state).toBe("idle");
     expect(deer.members[0].direction).toBe(1);
+  });
+  it("a herd bolts when the herd beside it does, and they do not keep each other running", () => {
+    const deer = group("chital", 10, 10);
+    deer.state = "graze";
+    const struck = group("chital", 18, 10);
+    struck.id = "g-struck";
+    struck.state = "flee";
+    struck.fright = { x: 24, y: 10, space: "outside" };
+    const world = sim();
+    advanceFauna([deer, struck], world, 6);
+    expect(deer.state).toBe("flee");
+    expect(deer.members[0].x).toBeLessThan(6);
+    for (let t = 12; t <= 120; t += 6) advanceFauna([deer, struck], world, t);
+    expect(deer.state).not.toBe("flee");
+    expect(struck.state).not.toBe("flee");
+  });
+  it("a person running in is gone from before they arrive, however quiet a hunter they are", () => {
+    const deer = group("chital", 10, 10);
+    const runner = { x: 0, y: 10, space: "outside" };
+    const world = sim({ humans: [runner], noise: 1.3 * 0.4 });
+    let gap = Infinity;
+    for (let t = 6; t <= 120; t += 6) {
+      runner.x += 6;
+      advanceFauna([deer], world, t);
+      gap = Math.min(gap, Math.hypot(deer.members[0].x - runner.x, deer.members[0].y - runner.y));
+    }
+    expect(gap).toBeGreaterThan(2);
   });
   it("keeps a calf at its mother's side", () => {
     const herd = group("cattle", 10, 10);

@@ -96,6 +96,9 @@ export type FaunaGroup = {
   /** How hard the last fright was, 0 to 1. It sets the pace of the run and
    * eases off once whatever caused it has gone. */
   panic?: number;
+  /** What it ran from, when that is no longer anything it can see: the place
+   * the herd next to it bolted from, or where it was struck. */
+  fright?: Position;
   /** Seconds of hard running banked. A blown animal cannot keep the pace up. */
   hard?: number;
   /** Hunters: the clock after which this group hunts again. A kill feeds a

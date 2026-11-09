@@ -11,6 +11,7 @@ import { habitatLayout } from "../../content/ecology/variants";
 import {
   STREAM_BLOCK,
   streamDistance,
+  joinStream,
   streamKind,
   walkStream,
   type Stream,
@@ -196,9 +197,42 @@ export function createEnvironment(
     const t = Math.min(1, Math.max(0, (h - 0.28) / 0.52));
     return Math.min(Math.round(ceiling), Math.round(Math.pow(t, 1.15) * ceiling));
   };
-  type Walked = { stream: Stream; kind: "creek" | "arroyo" | "trail" };
+  /** `thin`: a rivulet, about a cell of water across. */
+  type Walked = { stream: Stream; kind: "creek" | "arroyo" | "trail"; ceiling: number; thin?: boolean };
   const streamBlocks = new Map<string, Walked[]>();
+  const joinedBlocks = new Map<string, Walked[]>();
+  // Streams are walked a block at a time, blind to each other: left alone
+  // they cross and run in pairs. Each yields to those ranked before it,
+  // creeks before rivulets, so the small water gathers into the larger.
   const streamsIn = (bx: number, by: number) => {
+    const key = `${bx},${by}`;
+    let list = joinedBlocks.get(key);
+    if (list) return list;
+    const joins = (w: Walked) => w.kind === "arroyo" || (w.kind === "creek" && connectedWater);
+    const near: { w: Walked; rank: string; own: boolean }[] = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        walkedIn(bx + dx, by + dy).forEach((w, i) => {
+          if (joins(w)) near.push({ w, rank: `${w.thin ? 1 : 0},${by + dy},${bx + dx},${i}`, own: !dx && !dy });
+        });
+    near.sort((a, b) => (a.rank < b.rank ? -1 : 1));
+    list = walkedIn(bx, by).filter((w) => !joins(w));
+    const settled: Walked[] = [];
+    for (const { w, own } of near) {
+      const stream = joinStream(
+        w.stream,
+        settled.filter((o) => o.kind === w.kind).map((o) => o.stream),
+        (x, y) => tierOfHeight(terraceHeight(x, y, w.ceiling), w.ceiling),
+      );
+      if (!stream) continue;
+      settled.push({ ...w, stream });
+      if (own) list.push({ ...w, stream });
+    }
+    trimCache(joinedBlocks, 64);
+    joinedBlocks.set(key, list);
+    return list;
+  };
+  const walkedIn = (bx: number, by: number) => {
     const key = `${bx},${by}`;
     let list = streamBlocks.get(key);
     if (list) return list;
@@ -233,23 +267,28 @@ export function createEnvironment(
       }
       candidates.sort((a, b) => b.score - a.score);
       const taken: number[][] = [];
+      // After the creeks, a few rivulets from the springs left over.
+      const rivulets = connectedWater && kind === "creek" ? 3 : 0;
       for (const c of candidates) {
-        if (taken.length >= count) break;
-        if (taken.some(([tx, ty]) => Math.hypot(tx - c.p[0], ty - c.p[1]) < 40)) continue;
+        if (taken.length >= count + rivulets) break;
+        const thin = taken.length >= count;
+        if (taken.some(([tx, ty]) => Math.hypot(tx - c.p[0], ty - c.p[1]) < (thin ? 28 : 40))) continue;
         const stream = connectedWater && kind === "creek"
-          ? tributary(seed, `${kind}-${bx}-${by}-${taken.length}`, c.p, openWater, field, (h) => tierOfHeight(h, ceiling))
+          ? tributary(seed, `${kind}-${bx}-${by}-${taken.length}`, c.p, openWater, (x, y) => terraceHeight(x, y, ceiling), (h) => tierOfHeight(h, ceiling))
           : walkStream(
           seed,
           `${kind}-${bx}-${by}-${taken.length}`,
           c.p,
-          field,
+          // A wash runs on the ground the terraces are cut from, so it keeps
+          // to the low of each one and leaves it where the rim dips.
+          kind === "arroyo" ? (x, y) => terraceHeight(x, y, ceiling) : field,
           // Inside the channel proper, not merely near its bank.
           (x, y) => openWater(x, y) < -2,
           (h) => tierOfHeight(h, ceiling),
           60,
           0.006,
           (x, y) => Math.min(120, openWater(x, y)),
-          !simpleWater,
+          kind === "arroyo" ? "wash" : !simpleWater,
         );
         if (!stream || (simpleWater && kind === "creek" && stream.pond)) continue;
         // Through a town's outskirts is fine (roads bridge it, houses keep
@@ -264,7 +303,7 @@ export function createEnvironment(
           })
         )
           continue;
-        list.push({ stream, kind });
+        list.push({ stream, kind, ceiling, ...(thin ? { thin } : {}) });
         taken.push(c.p);
       }
     }
@@ -286,7 +325,7 @@ export function createEnvironment(
           36,
           0.0012,
         );
-        if (trail) list.push({ stream: trail, kind: "trail" });
+        if (trail) list.push({ stream: trail, kind: "trail", ceiling });
       }
     }
     trimCache(streamBlocks, 64);
@@ -640,8 +679,9 @@ export function createEnvironment(
     let waterGradient: LandSample["waterGradient"] = waterGradientOverride;
     let creekTier: number | undefined;
     let creekMargin = false;
+    let washTier: number | undefined;
     const preCreek = { water, floodplain };
-    for (const { stream, kind: sort } of streamsNear(x, y)) {
+    for (const { stream, kind: sort, thin } of streamsNear(x, y)) {
       const d = streamDistance(stream, x, y, connectedWater ? 8 : 4);
       if (!d) continue;
       if (sort === "creek") {
@@ -650,11 +690,13 @@ export function createEnvironment(
         const plunge = stream.falls.some(
           (f) => Math.hypot(x - stream.points[f][0], y - stream.points[f][1]) < 2.8,
         );
-        const width =
-          (connectedWater ? 0.8 : 0.55) +
-          d.along * (connectedWater ? 0.7 : 0.45) +
-          (noise(seed, fx, fy, 7, "creek-width") - 0.5) * 0.3 +
-          (plunge ? 0.7 : 0);
+        const width = thin
+          ? // Water is decided a cell at a time: under 0.71 a diagonal run breaks into beads.
+            0.74 + d.along * 0.12 + (noise(seed, fx, fy, 7, "creek-width") - 0.5) * 0.06 + (plunge ? 0.5 : 0)
+          : (connectedWater ? 0.8 : 0.55) +
+            d.along * (connectedWater ? 0.7 : 0.45) +
+            (noise(seed, fx, fy, 7, "creek-width") - 0.5) * 0.3 +
+            (plunge ? 0.7 : 0);
         const pool = stream.pond ? d.toEnd - (3 + noise(seed, fx, fy, 6, "pond-rim") * 1.4) : Infinity;
         const creekWater = Math.min(d.distance - width, pool);
         if (d.distance < width + 6 && water > 3) {
@@ -675,7 +717,7 @@ export function createEnvironment(
                 })()
               : d.gradient;
           kind = pool < d.distance - width ? "lake" : "river";
-          shoreWidth = 0.9;
+          shoreWidth = thin ? 0.45 : 0.9;
           floodplain = 1.8;
           const i = Math.min(stream.points.length - 2, Math.floor(d.along * (stream.points.length - 1)));
           const [ax, ay] = stream.points[i],
@@ -686,7 +728,15 @@ export function createEnvironment(
             fall = true;
         }
       } else if (sort === "arroyo") {
-        const width = 1.5 + d.along * 1.3 + (noise(seed, fx, fy, 9, "arroyo-width") - 0.5) * 0.8;
+        // Narrow at its head, and again where it dies on the flat short of
+        // any water. Under a cell and a half across the bed breaks into beads.
+        const width =
+          (0.9 + d.along * 0.9 + (noise(seed, fx, fy, 9, "arroyo-width") - 0.5) * 0.5) *
+          Math.min(1, d.along * 5 + 0.8, stream.pond ? (1 - d.along) * 5 + 0.8 : 1);
+        // The bed takes the tier it is about to drop to a few cells early,
+        // so the rim opens into a gully round it.
+        if (d.distance < Math.max(width + 1, 2))
+          washTier = stream.tiers[Math.min(stream.tiers.length - 1, d.vertex + 5)];
         if (d.distance < width + 1) {
           // Which bank is uphill, for the cut face on that side.
           const i = Math.min(stream.points.length - 2, Math.max(0, d.vertex));
@@ -889,6 +939,7 @@ export function createEnvironment(
         level = water < foot ? 0 : Math.max(level, tall - Math.floor((water - foot) / 16));
       }
     }
+    if (washTier !== undefined && washTier < level) level -= 1;
     if (dike) level = Math.max(level, 1);
     // A creek keeps its own tier and steps down at its falls; near a river
     // it can be no higher than the valley floor it joins.

@@ -33,10 +33,8 @@ for (const water of ["river-ns", "coast-n", "lake"] as const) {
     expect(streams.length).toBeGreaterThan(0);
     for (const stream of streams) {
       expect(stream.pond).toBe(false);
+      // In the main water, or in the stream it joined: the loop below checks it is wet.
       const end = stream.points.at(-1)!;
-      expect(land.mainWater(...(end as [number, number])).water).toBeLessThan(
-        -2,
-      );
       let length = 0;
       for (let i = 1; i < stream.points.length; i++) {
         const a = stream.points[i - 1],
@@ -47,6 +45,8 @@ for (const water of ["river-ns", "coast-n", "lake"] as const) {
         ).toBeLessThan(0);
       }
       const start = stream.points[0];
+      // A short run into the next stream down has no room to wind.
+      if (length < 60) continue;
       expect(
         length / Math.hypot(end[0] - start[0], end[1] - start[1]),
       ).toBeGreaterThan(1.05);

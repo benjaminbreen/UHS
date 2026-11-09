@@ -341,6 +341,16 @@ export class MapTravel {
       people: source.actors.filter((a) => player.relations?.some((r) => r.other === a.id))
         .map(({ id, name, age }) => ({ id, name, age })),
     };
+    if (!player.identity.holdings || player.identity.holdings.map === this.id) {
+      // The pen is only in the snapshot once the player has been near it.
+      const herd = [...(source.fauna ?? []), ...(this.runtime.engine.world.fauna?.(player.home.x, player.home.y) ?? [])]
+        .find((g) => g.owner === "player" && g.members.length);
+      player.identity.holdings = {
+        map: this.id,
+        home: { x: player.home.x, y: player.home.y },
+        herd: herd && { species: herd.speciesId, count: herd.members.length, at: { x: herd.pos.x, y: herd.pos.y } },
+      };
+    }
     const carried = source.objects.filter(
       (o) => o.carriedBy === "player" || o.id === player.held,
     );
@@ -465,6 +475,64 @@ export class MapTravel {
       this.arrive(destination, id, point, seconds);
       this.arrival = undefined;
       destination.engine.grantXp("wayfaring", 40 + Math.round(seconds / 8640));
+      destination.engine.event(told, "system");
+      this.runtime.notice = told;
+    } catch (e) {
+      if (!this.closed) this.runtime.notice = "Journey unavailable: " + String(e);
+    } finally {
+      this.busy = false;
+      if (!this.closed) {
+        this.runtime.resumeAmbient();
+        this.runtime.emit();
+      }
+    }
+  }
+  /** What the traveller left on the map they set out from, and the walk back
+   * to it from where they stand. */
+  away() {
+    const p = this.runtime.engine.state.player,
+      h = p.identity?.holdings;
+    if (!h || h.map === this.id) return undefined;
+    const here = tileCentre(this.id),
+      there = tileCentre(h.map),
+      a = toAtlas(here.lon, here.lat),
+      b = toAtlas(there.lon, there.lat),
+      to = h.herd?.at ?? h.home;
+    const dx = b.x + to.x - a.x - (p.pos.space === "outside" ? p.pos.x : 0),
+      dy = b.y + to.y - a.y - (p.pos.space === "outside" ? p.pos.y : 0);
+    const bearing = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"][
+      (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8
+    ];
+    // Two seconds a cell is the engine's walk; a third more for the way not being straight.
+    const seconds = Math.max(300, Math.round((Math.hypot(dx, dy) * 2 * 1.3) / 300) * 300);
+    const m = seconds / 60;
+    const time = m < 90 ? `${m} minutes` : `${Math.round(m / 30) / 2} hours`;
+    return { ...h, name: permanentMap(h.map, this.year).name, to, bearing, seconds, time };
+  }
+  /** Walks back to the herd or the house left behind, unplayed. */
+  async goBack() {
+    const away = this.away();
+    if (!away || this.busy || this.closed) return;
+    if (this.runtime.engine.state.encounter) { this.runtime.notice = "Answer the encounter before leaving."; this.runtime.emit(); return; }
+    this.busy = true;
+    this.runtime.stop(false);
+    this.runtime.notice = "Setting out…";
+    this.runtime.emit(false);
+    try {
+      const destination = await this.load(away.map);
+      if (this.closed) return;
+      const world = destination.engine.world;
+      // Outside the pen, at its gate: the side of the gate away from the animals.
+      const state = destination.engine.state,
+        herd = [...(state.fauna ?? []), ...(world.fauna?.(away.to.x, away.to.y) ?? [])].find((g) => g.owner === "player"),
+        gate = state.objects.find((o) => o.id === herd?.gateId)?.pos ?? away.to;
+      const point = [[0, 1], [1, 0], [0, -1], [-1, 0], [0, 2], [2, 0], [0, -2], [-2, 0]]
+        .map(([x, y]) => ({ x: gate.x + x, y: gate.y + y }))
+        .filter((q) => !world.blocked(q.x, q.y, "outside"))
+        .sort((a, b) => Math.hypot(b.x - away.to.x, b.y - away.to.y) - Math.hypot(a.x - away.to.x, a.y - away.to.y))[0] ?? world.spawn;
+      this.arrive(destination, away.map, point, away.seconds);
+      this.arrival = undefined;
+      const told = `After ${away.time} on foot, you are back at ${away.name}.`;
       destination.engine.event(told, "system");
       this.runtime.notice = told;
     } catch (e) {

@@ -38,8 +38,8 @@ it.runIf(!!process.env.FULL)("keeps wild scenery out of cultivated plots in plac
 }, 60000);
 const base: WorldSetting = {
   ...settingFor(places.find((p) => p.id === "konya")!),
-  lon: 105,
-  lat: 15,
+  lon: 103.5,
+  lat: 14.5,
   climate: "tropical",
   geographyMode: "configured",
   terrainRevision: 2,

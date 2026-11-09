@@ -410,3 +410,15 @@ it("lets the agent ask the narrator about a pending encounter without bypassing 
     expect(await a.call("act", { command: { type: "sleep", seconds: 3600 } })).toContain("Answer the encounter");
   } finally { a.runtime.dispose(); }
 });
+
+it("holds a narrator errand behind its yes/no offer", async () => {
+  const a = localAgent();
+  a.runtime.modelFetch = async (url) => url === "/api/jev" ? new Response("{}", { status: 503 })
+    : new Response(JSON.stringify({ text: JSON.stringify({ narration: "Your legs are stiff from sitting.", intents: [], errand: { kind: "roam" }, offer: "Go for a walk?" }) }));
+  try {
+    expect(await a.call("say", { text: "I feel restless today, what could I do about it?" })).toContain("Go for a walk?");
+    expect(a.runtime.running).toBe(false);
+    a.runtime.command({ type: "choose", card: "offer", choice: 0 });
+    expect(a.runtime.running).toBe(true);
+  } finally { a.runtime.dispose(); }
+});

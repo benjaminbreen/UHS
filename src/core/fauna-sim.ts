@@ -105,8 +105,16 @@ const WINDED = 0.55;
 const DETAIL = 36;
 /** Seconds a hunter leaves off after its quarry has gone down a hole. */
 const GONE_TO_GROUND = 3 * 3600;
-/** Cells within which one animal bolting puts every other head up. */
+/** Cells within which one animal bolting puts every other head up, and sets
+ * off anything that runs for a living. */
 const HEARD = 12;
+/** Inside this fraction of its alert radius it does not stop to look. */
+const FLUSH = 0.5;
+/** Nothing is crept up on closer than this: it sees you. */
+const POINT_BLANK = 2.5;
+/** What flat-out is to a walk for wild game. A person running covers six
+ * cells a tick, and nobody runs down a fresh deer. */
+const BOLT = 3.5;
 /** How far one group's presence puts another off a patch of ground. */
 const ELBOW = 8;
 /** Where a flock settles round its leader's landing cell. */
@@ -267,7 +275,7 @@ function alertRadius(p: FaunaProfile) {
 /** `noise` applies to the first threat only, which is the player. */
 function nearestThreat(
   threats: readonly Position[],
-  at: Point,
+  at: Point | readonly Point[],
   radius: number,
   noise = 1,
 ) {
@@ -275,13 +283,20 @@ function nearestThreat(
     bestD = radius;
   for (const [i, h] of threats.entries()) {
     if (h.space !== "outside") continue;
-    const d = hyp(h, at) / (i ? 1 : noise);
+    const d = heardAt(h, at, i ? 1 : noise);
     if (d < bestD) {
       best = h;
       bestD = d;
     }
   }
   return best;
+}
+
+/** How far off something seems to the nearest of a herd, which is the one
+ * that gives the alarm. Quiet feet stretch it, but not at point blank. */
+function heardAt(h: Point, at: Point | readonly Point[], noise: number) {
+  const d = "x" in at ? hyp(h, at) : Math.min(...at.map((m) => hyp(h, m)));
+  return d <= POINT_BLANK ? d / Math.max(1, noise) : d / noise;
 }
 
 /** States in which an animal is already still, so a fright need not change it. */
@@ -700,7 +715,9 @@ const SHY_REACH = 4.5;
 /** Seconds an animal paws the ground before it comes. Long enough to read. */
 const WINDUP = 18;
 /** Cells a charge carries before the animal pulls up. */
-const CHARGE_RUN = 9;
+const CHARGE_RUN = 12;
+/** Inside this it does not need a run-up: it turns and is on you. */
+const CLOSE_QUARTERS = 3;
 /** How far a pack stands off while it circles. */
 const RING = 3.2;
 /** Past this the quarrel is over. */
@@ -728,7 +745,9 @@ function run(
     dir = a.dir!,
     tier = TIERS[m.tier ?? "ordinary"];
   const from = a.from!;
-  let steps = Math.ceil(3 * tier.speed);
+  const [rx, ry] = m.young ? [0, 0] : (p.body ?? [0, 0]);
+  // Faster than a person runs: the way out is sideways, not away.
+  let steps = Math.ceil(7 * tier.speed);
   const rest = (seconds: number) => {
     a.phase = "recover";
     a.until = clock + seconds;
@@ -742,7 +761,8 @@ function run(
     };
     a.ran = ran;
     if (next.x === m.x && next.y === m.y) continue;
-    if (next.x === target.x && next.y === target.y) {
+    // Anywhere its body would cover: one pace aside does not clear an elephant.
+    if (Math.abs(target.x - next.x) <= rx && target.y <= next.y && target.y >= next.y - ry) {
       face(m, next.x - m.x, next.y - m.y, Boolean(p.directions));
       if (world.dodging) {
         world.emit?.({ kind: "dodged", group: g.id, n: m.n! });
@@ -841,13 +861,16 @@ function fight(
     if (hyp(ready, target) > (pack ? RING + 2 : CHARGE_RUN - 1)) {
       // Too far to come from here: close the distance first.
       if (!pack) {
-        ready.pose = p.art.wander ? "wander" : undefined;
-        const to = bestStep(world, p, taken, ready, target, false);
-        if (to) moveMember(ready, to, taken, turns);
+        ready.pose = p.art.chase ? "chase" : p.art.wander ? "wander" : undefined;
+        for (let step = 0; step < 4; step++) {
+          const to = bestStep(world, p, taken, ready, target, false);
+          if (!to) break;
+          moveMember(ready, to, taken, turns);
+        }
       }
       return true;
     }
-    const seconds = pack ? 12 : WINDUP;
+    const seconds = pack ? 12 : hyp(ready, target) <= CLOSE_QUARTERS ? TICK : WINDUP;
     g.attack = { n: ready.n!, phase: "windup", until: clock + seconds };
     ready.pose =
       pack && p.art.stalk ? "stalk" : p.art.idle ? "idle" : undefined;
@@ -866,6 +889,8 @@ function fight(
     a.from = { x: m.x, y: m.y };
     m.pose = p.art.chase ? "chase" : p.art.flee ? "flee" : undefined;
     world.emit?.({ kind: pack ? "lunge" : "charge", group: g.id, n: m.n! });
+    // The line is set a tick before it is run, which is the time to leave it.
+    if (!pack) return true;
   }
   if (a.phase === "charge")
     run(g, m, p, combat, world, clock, taken, target, pack ? 5 : CHARGE_RUN);
@@ -1087,8 +1112,8 @@ export function advanceFauna(
   // Whatever was already running when the tick began: the alarm calls and
   // the crash of it going carry to everything round about.
   const startled = groups
-    .filter((o) => o.state === "flee" || o.state === "takeoff")
-    .map((o) => ({ id: o.id, x: o.pos.x, y: o.pos.y }));
+    .filter((o) => o.state === "takeoff" || (o.state === "flee" && clock - o.since <= TICK))
+    .map((o) => ({ id: o.id, species: o.speciesId, x: o.pos.x, y: o.pos.y, space: "outside" }));
   for (const g of [...groups].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const p = faunaProfile(g.speciesId);
     if (!p || !g.members.length) continue;
@@ -1140,16 +1165,24 @@ export function advanceFauna(
     // A hurt animal is past being crept up on.
     const noise = hurt ? 1 : (world.noise ?? 1);
     // A kept animal's shove-width radius is too tight for a dog in the flock.
+    // Game that runs goes when its own kind goes, or anything else of its
+    // sort: a deer does not bolt for a rabbit.
+    const stampede =
+      !!heard &&
+      (heard.species === g.speciesId || (!!p.prey && faunaProfile(heard.species)?.prey === p.prey)) &&
+      !kept && !bird && !!p.art.flee && g.state !== "flee" && faunaCombat(p).temper === "bolt";
     const threat =
-      nearestThreat(menaces, g.pos, radius, noise) ??
-      (kept && shunned.length ? nearestThreat(shunned, g.pos, 3) : undefined);
+      nearestThreat(menaces, g.members, radius, noise) ??
+      (kept && shunned.length ? nearestThreat(shunned, g.pos, 3) : undefined) ??
+      (stampede
+        ? heard
+        : g.state === "flee" && g.fright && hyp(g.fright, g.pos) < p.alertRadius * 2.5
+          ? g.fright
+          : undefined);
     // How close the trouble is as a share of the radius: 0 on top of the
     // animal, 1 at the edge of what it notices.
     const close = threat
-      ? Math.min(
-          1,
-          hyp(threat, g.pos) / (threat === player ? noise : 1) / radius,
-        )
+      ? Math.min(1, heardAt(threat, g.members, threat === player ? noise : 1) / radius)
       : 1;
     // A kept animal's radius is already the width of a shove, so there is no
     // watching band inside it: anything it notices, it steps away from.
@@ -1158,6 +1191,11 @@ export function advanceFauna(
     // A thing that is hunting you is not a shape on the skyline: it is seen
     // at once and run from flat out.
     const hunted = !!threat && chasers.includes(threat);
+    if (stampede) {
+      g.fright = heard;
+      g.panic = Math.max(g.panic ?? 0, 0.8);
+      g.alarm = clock;
+    }
     if (threat && close <= band)
       g.panic = Math.max(g.panic ?? 0, hunted ? 1 : 1 - close);
     else if (!threat) g.panic = Math.max(0, (g.panic ?? 0) - 0.05);
@@ -1166,8 +1204,10 @@ export function advanceFauna(
       // Heads up first. How long an animal watches before it goes depends on
       // how close the thing is and on the animal: this is what stops a herd
       // breaking on the same tick, all together, every time.
+      // Somebody running straight in is not something to stand and look at.
+      const rushed = threat === player && noise > 1;
       const beat = Math.floor(
-        (hunted ? 0 : close * 3) + world.rng(`fauna-${g.id}-notice`) * 2,
+        (hunted || rushed ? 0 : close * 3) + world.rng(`fauna-${g.id}-notice`) * 2,
       );
       g.alarm = clock + beat * TICK;
       g.target = undefined;
@@ -1195,9 +1235,12 @@ export function advanceFauna(
     }
     // Watching: the group holds still with its head turned. It only breaks
     // once the thing is inside the band, and only after its own beat.
-    const watching = threat && g.alarm !== undefined && clock < g.alarm;
+    const watching = threat && g.alarm !== undefined && clock < g.alarm && !(!kept && close <= FLUSH);
     const breaking =
-      threat && g.alarm !== undefined && clock >= g.alarm && close <= band;
+      threat &&
+      g.alarm !== undefined &&
+      close <= band &&
+      (clock >= g.alarm || stampede || (!kept && close <= FLUSH));
     if (watching || (threat && !breaking))
       for (const m of g.members)
         face(m, threat!.x - m.x, threat!.y - m.y, turns);
@@ -1228,13 +1271,15 @@ export function advanceFauna(
         g.state = "flee";
         g.since = clock;
         g.target = undefined;
+        g.fright = { x: threat.x, y: threat.y, space: "outside" };
         if (near && !hurt) cue(world, g, nearestTo(g, threat), "alarm", threat);
       }
     } else if (
       g.state === "flee" &&
       clock - g.since >= 3 * TICK &&
-      !nearestThreat(menaces, g.pos, p.alertRadius * 1.5)
+      !nearestThreat(menaces, g.pos, p.alertRadius * (kept ? 1.5 : 2.5))
     ) {
+      g.fright = undefined;
       g.state = "idle";
       g.since = clock;
       // Wary afterwards: it goes back to feeding sooner than it would
@@ -1336,19 +1381,19 @@ export function advanceFauna(
       (fleeing
         ? // Graded: a shape at the edge of what it notices is a trot, a person
           // on top of it is a bolt.
-          (kept ? 1 : 1.2) + (kept ? 0.6 : 1) * (g.panic ?? 1)
+          kept ? 1 + 0.6 * (g.panic ?? 1) : (1.2 + (g.panic ?? 1)) * BOLT
         : flying
           ? 3
           : g.state === "chase"
             ? // Short of a fleeing deer, behind a rabbit with a head start.
-              1.8
+              1.8 * (kept ? 1 : BOLT)
             : g.state === "stalk"
               ? 0.5
               : 1) *
       (running ? winded : 1) *
       TIERS[g.members[0].tier ?? "ordinary"].speed;
     g.stride += p.pace * boost;
-    let steps = Math.min(3, Math.floor(g.stride));
+    let steps = Math.min(running && !kept ? 9 : 3, Math.floor(g.stride));
     g.stride -= steps;
     const leader = g.members[0];
     const bolting =
@@ -1383,11 +1428,19 @@ export function advanceFauna(
         // Nearest first: the animal with the thing on its heels picks its cell
         // before the ones behind take the ground it needed.
         // A rabbit makes for its hole unless the trouble is between them.
-        const hole = p.burrows && hyp(g.home, threat) > hyp(leader, threat) ? g.home : undefined;
+        const hole = p.burrows && hyp(g.home, threat) >= hyp(leader, threat) ? g.home : undefined;
         for (const m of bolting!) {
+          // A herd goes one way: a straggler makes for the leader unless
+          // that takes it back toward the trouble.
+          const rejoin =
+            !hole && m !== leader && hyp(m, leader) > p.cohesionRadius
+              ? bestStep(world, p, taken, m, leader, false)
+              : undefined;
           const to = hole
             ? bestStep(world, p, taken, m, hole, false)
-            : bestStep(world, p, taken, m, threat, true, refuge);
+            : rejoin && hyp(rejoin, threat) >= Math.min(hyp(m, threat), 6)
+              ? rejoin
+              : bestStep(world, p, taken, m, threat, true, refuge);
           if (to) {
             moveMember(m, to, taken, turns);
             moved = true;

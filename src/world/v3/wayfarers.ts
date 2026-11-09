@@ -313,7 +313,7 @@ function journey(
   return { segments, start, period: Number.MAX_SAFE_INTEGER };
 }
 
-function person(
+export function person(
   seed: string,
   setting: NonNullable<Pack["setting"]>,
   id: string,

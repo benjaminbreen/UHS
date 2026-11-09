@@ -1,5 +1,5 @@
 import { random } from "../../core/random";
-import type { Stream } from "./features";
+import { wobble, type Stream } from "./features";
 
 type Field = (x: number, y: number) => number;
 
@@ -22,7 +22,8 @@ export function tributary(
     const gx = water(x + 2, y) - water(x - 2, y);
     const gy = water(x, y + 2) - water(x, y - 2);
     const bend =
-      Math.sin(phase + (travelled * Math.PI * 2) / wavelength) * 1.15;
+      Math.sin(phase + (travelled * Math.PI * 2) / wavelength) * 0.9;
+    const h0 = height(x, y);
     const heading =
       Math.atan2(-gy, -gx) + bend * Math.min(1, Math.max(0, here / 8));
     let best: number[] | undefined;
@@ -33,8 +34,11 @@ export function tributary(
         ny = y + Math.sin(angle) * 2;
       const distance = water(nx, ny);
       if (distance >= here - 0.2) continue;
-      const climb = Math.max(0, height(nx, ny) - height(x, y));
-      const cost = 1 - Math.cos(angle - heading) + climb * 8;
+      const climb = Math.max(0, height(nx, ny) - h0);
+      // Always nearer the river, but by the lowest ground on the way: the
+      // height a few cells on steers it into hollows and round spurs.
+      const ahead = height(x + Math.cos(angle) * 6, y + Math.sin(angle) * 6) - h0;
+      const cost = 1 - Math.cos(angle - heading) + climb * 8 + ahead * 10;
       if (cost < score) {
         score = cost;
         best = [nx, ny];
@@ -54,6 +58,7 @@ export function tributary(
     smooth.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
   }
   smooth.push(end);
+  wobble(smooth, seed, id, (x, y) => tierOf(height(x, y)));
   let tier = Infinity;
   const tiers = smooth.map(
     ([x, y]) => (tier = Math.min(tier, tierOf(height(x, y)))),

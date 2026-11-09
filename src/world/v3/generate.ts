@@ -1387,7 +1387,7 @@ export function createSettlementWorld(
                             0.16 *
                             (h!.ecology === "desert" ? 0.2 : 1)) *
                         colony *
-                        (scape?.kind === "arroyo" ? 3 : 1)
+                        (scape?.kind === "arroyo" ? (scape.strength < 1 ? 4 : 0.2) : 1)
                       : 0.015)
                   ? "bush"
                   : relief && n < 0.016 && f.moisture > 0.5 && f.moisture < 0.73
@@ -1420,7 +1420,7 @@ export function createSettlementWorld(
         // ground clumps on its own field: shrubColony's band is too rare to
         // carry all the ground cover.
         const clump = h!.site
-          ? Math.max(colony, 0.3 + 2.7 * Math.min(1, Math.max(0, (noise(seed, x + land.origin.x, y + land.origin.y, 14, "cover-clump") - 0.45) / 0.25)))
+          ? Math.max(colony, 0.14 + 3 * Math.min(1, Math.max(0, (noise(seed, x + land.origin.x, y + land.origin.y, 14, "cover-clump") - 0.45) / 0.25)))
           : colony;
         const density =
           ((h!.ecology === "desert"
@@ -1430,7 +1430,8 @@ export function createSettlementWorld(
               : 0.05) +
             h!.cover * 0.08) *
           clump *
-          (scape?.kind === "arroyo" ? 3 : scape?.kind === "trail" ? 0.2 : 1);
+          // Scrub lines a wash's banks; the bed itself is scoured bare.
+          (scape?.kind === "arroyo" ? (scape.strength < 1 ? 4 : 0.2) : scape?.kind === "trail" ? 0.2 : 1);
         if (
           random(
             seed,

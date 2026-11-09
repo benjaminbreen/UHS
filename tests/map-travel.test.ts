@@ -114,8 +114,10 @@ it("preserves the traveler, carried objects and changed maps across a return vis
   };
   const original = personal(source);
   const playerName = source.state.player.name;
+  const home = source.state.player.home;
   await journey.cross(journey.entrances[0]);
   expect(journey.id).toBe(b);
+  expect(runtime.engine.state.player.identity?.holdings).toMatchObject({ map: a, home: { x: home.x, y: home.y } });
   expect(runtime.engine.state.player.name).toBe(playerName);
   expect(runtime.engine.state.player.health).toBe(63);
   expect(runtime.engine.state.ailments?.filter((a) => a.who === "player")).toEqual(source.state.ailments);

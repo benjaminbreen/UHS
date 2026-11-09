@@ -11,6 +11,7 @@ import type { WorldSetting } from "../content/geography/types";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
 import { distance, type Actor, type Position } from "../core/types";
+import { herdCount } from "../content/fauna/herding";
 const RULES = `You narrate one turn of a historical simulation. The player types what they try to do; you tell them what happens, in the second person and present tense, in two to five sentences. No headers, no lists, no options, no questions about what they want to do next.
 
 Write like a good historical novelist, not a summary. Every turn should carry at least one concrete, period-specific particular the player could see, hear, smell or handle: the material of a wall or garment, a tool of their trade, what a named neighbour is doing, the feel of the weather at this hour. Draw these from the WORLD grounding, the culture and the SCENE; plausible everyday detail of the time and place is wanted, but invented named people, buildings or goods are not. Prefer the specific word to the generic one (not "food" but what the food is, not "the Household" but the kind of house it is). Stay plain and unsentimental; no purple prose, no stacked adjectives. When the player asks who they are, where they are or what to do, answer as a short vivid portrait of their life and circumstances today, not a restatement of facts.
@@ -36,9 +37,11 @@ When the player sets off on foot, give an errand and the game walks them there; 
 - workday: the character's own trade for the day.
 - go: to a listed place (target: its SCENE id) or toward an edge (direction: north|south|east|west).
 - seek: to find a person, in view or not, indoors or out (target: their SCENE id, or their name or kin word such as "husband" when they are not in the SCENE).
+- return: back to the player's own house and animals when the SCENE lists them under Elsewhere. It is a journey to another map and takes the time given there.
+offer is a yes/no question, under 120 characters, that the player must answer before the errand starts ("Go back to your pigs, about an hour to the north?"). Always give one with return, and with any errand the player did not plainly ask for. When the player asks after something of theirs that is Elsewhere, say where it is and offer the return. An offer always comes with the errand that a yes would start. With an offer, your narration is what they know, not the setting-off.
 Also, when the player plainly asks for a listed action on a listed target, put it in command with the target id, exactly as the SCENE offers it. Use at most one command per turn and only the affordances listed. Leave intents empty when nothing changes.
 
-Reply with JSON only: {"narration": string, "intents": [...], "verdict": string, "command"?: {...}, "errand"?: {...}}.`;
+Reply with JSON only: {"narration": string, "intents": [...], "verdict": string, "command"?: {...}, "errand"?: {...}, "offer"?: string}.`;
 export const compass = (from: Position, to: Position) => {
   const dx = to.x - from.x,
     dy = to.y - from.y,
@@ -109,7 +112,7 @@ export function worldFacts(engine: Engine): string {
 export function worldCard(engine: Engine): string {
   return `${RULES}\n\n${worldFacts(engine)}`;
 }
-export function sceneDigest(engine: Engine, input: string): string {
+export function sceneDigest(engine: Engine, input: string, elsewhere = ""): string {
   const s = engine.state,
     p = s.player,
     { pack } = engine.world,
@@ -198,6 +201,7 @@ export function sceneDigest(engine: Engine, input: string): string {
       (l) =>
         `- ${l.name}, a ${l.species.replace(/-/g, " ")} everyone here knows of${l.slain !== undefined ? "; the player killed it" : ", still at large"}`,
     );
+  const herd = s.fauna?.find((g) => g.owner === "player" && g.members.length);
   const able = skillIds
     .map((id) => ({ id, level: levelOf(p.skills?.[id]) }))
     .filter((x) => x.level >= 3)
@@ -216,6 +220,8 @@ export function sceneDigest(engine: Engine, input: string): string {
     nearbyDanger.length ? `Nearby ground (16 paces): ${nearbyDanger.map((d) => `${d.bearing} (${d.pos.x},${d.pos.y}): ${d.level}${d.reasons.length ? ` (${d.reasons.join(", ")})` : ""}`).join("; ")}.` : "",
     able.length ? `You are known to be good at: ${able.join(", ")}.` : "",
     p.injury ? `You are nursing a ${p.injury.name}.` : "",
+    herd ? `Your own animals: ${herdCount(herd.speciesId, herd.members.length)}, ${inside ? "outside" : compass(p.pos, herd.pos)}${herd.gateId ? ", kept in your pen" : ""}.` : "",
+    elsewhere,
     people.length ? `People nearby:\n${people.join("\n")}` : "Nobody in sight.",
     things.length ? `Things nearby:\n${things.join("\n")}` : "",
     places.length ? `Buildings nearby:\n${places.join("\n")}` : "",

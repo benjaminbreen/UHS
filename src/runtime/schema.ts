@@ -342,6 +342,11 @@ const actor = z.object({
       size: z.number().int().nonnegative(),
       people: z.array(z.object({ id: z.string(), name: z.string(), age: z.number().optional() })),
     }).optional(),
+    holdings: z.object({
+      map: z.string(),
+      home: z.object({ x: z.number(), y: z.number() }),
+      herd: z.object({ species: z.string(), count: z.number().int(), at: z.object({ x: z.number(), y: z.number() }) }).optional(),
+    }).optional(),
   }).optional(),
   origin: z
     .object({
@@ -637,7 +642,7 @@ export const narratorReplySchema = z
     command: playerCommandSchema.optional(),
     errand: z
       .object({
-        kind: z.enum(["roam", "forage", "workday", "go", "seek"]),
+        kind: z.enum(["roam", "forage", "workday", "go", "seek", "return"]),
         run: z.boolean().optional(),
         item: z.string().max(40).optional(),
         target: z.string().max(100).optional(),
@@ -645,6 +650,7 @@ export const narratorReplySchema = z
       })
       .strict()
       .optional(),
+    offer: z.string().min(1).max(160).optional(),
   })
   .strict();
 export type NarratorReply = z.infer<typeof narratorReplySchema>;
@@ -708,6 +714,7 @@ const faunaGroup = z
     carrying: z.string().optional(),
     serial: z.number().int().optional(),
     hurtUntil: z.number().optional(),
+    fright: pos.optional(),
     provoked: z.number().optional(),
     attack: z
       .object({

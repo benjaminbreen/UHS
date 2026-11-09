@@ -2,6 +2,7 @@ import type { Runtime } from "../runtime/session";
 import { narratorReplySchema, type NarratorReply } from "../runtime/schema";
 import { sceneDigest, worldCard } from "./prompt";
 import { planOf } from "../runtime/autopilot";
+import { herdCount } from "../content/fauna/herding";
 export type Provider = "haiku" | "openai" | "gemini";
 export const PROVIDER_KEY = "uhs-narrator-provider";
 export function narratorProvider(): Provider {
@@ -29,10 +30,11 @@ export async function narratorTurn(
 ): Promise<Turn> {
   const engine = runtime.engine;
   input = input.trim().slice(0, 600);
+  const away = runtime.journey?.away();
   const body = {
     provider,
     system: worldCard(engine),
-    user: sceneDigest(engine, input),
+    user: sceneDigest(engine, input, away ? `Elsewhere: your house${away.herd ? ` and your ${herdCount(away.herd.species, away.herd.count)}` : ""} are at ${away.name}, on the next map to the ${away.bearing}, ${away.time} on foot. None of it is in this SCENE.` : ""),
   };
   let reply: NarratorReply;
   try {
@@ -75,7 +77,14 @@ export async function narratorTurn(
     }
   }
   const plan = reply.errand && planOf(reply.errand, engine);
-  if (plan) runtime.setOff(plan);
+  // An offer with no errand, away from home, can only mean the way back.
+  const back = reply.errand?.kind === "return" || (!!away && !!reply.offer && !reply.errand);
+  const go = back
+    ? away && (() => void runtime.journey?.goBack())
+    : plan && (() => runtime.setOff(plan));
+  if (go && (reply.offer || back))
+    runtime.propose(reply.offer ?? `Go back to ${away!.name}, ${away!.time} to the ${away!.bearing}?`, go);
+  else if (go) go();
   const text = lines.filter(Boolean).join(" ");
   const s = engine.state;
   s.narration = [...(s.narration ?? []), { clock: s.clock, input, text }].slice(

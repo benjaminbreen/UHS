@@ -84,7 +84,7 @@ import { findPath } from "./pathfinding";
 import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, sellsTrade, stockFor, TRADER } from "./shop";
-import { isStallholder, isWayfarer } from "../world/v3/wayfarers";
+import { isStallholder, isWayfarer, person } from "../world/v3/wayfarers";
 import { periodLook, wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
 import { carryKit } from "../content/economy/carrying";
@@ -1132,7 +1132,7 @@ export class Engine {
     const s = this.state, boss = bossTitle(this.world.pack.setting);
     const encounter = s.encounter?.card === card.id;
     const stats = this.stats();
-    const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
+    const person = care ? s.actors.find((a) => a.id === care.who) : encounter ? s.actors.find((a) => a.id.startsWith("robber-")) : this.cardPerson(card);
     const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
     const kin = care && kinOf(s).find((k) => k.actor.id === care.who);
     if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.care?.card === card.id && s.care.who === care.who ? s.care.at : s.clock };
@@ -1172,7 +1172,7 @@ export class Engine {
     const card = this.choiceCard(id)!, c = card.choices[n];
     if (encounter) p.encounterAfter = s.clock + 86400;
     if (care) delete s.care;
-    else if (encounter) delete s.encounter;
+    else if (encounter) { delete s.encounter; this.robbersLeave(); }
     else delete work!.card;
     const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
     const won = !c.check || this.rng(`card:${id}`) < oddsOf(c.check, this.stats(), c.check.skill ? this.skillLevel(c.check.skill) : 0);
@@ -3103,7 +3103,10 @@ export class Engine {
     m.hp = (m.hp ?? full) - damage;
     m.x = to.x;
     m.y = to.y;
-    m.stun = clock + (weapon.stun ?? 6);
+    // A blow staggers a deer. It does not stagger an elephant, and nothing
+    // is kept reeling by blow after blow: it gets its feet under it between.
+    const reels = combat.mass < 4 && (m.stun ?? 0) + 12 <= clock;
+    if (reels) m.stun = clock + (weapon.stun ?? 6);
     const killed = m.hp <= 0;
     const hit: CreatureHit = {
       group: g.id,
@@ -3132,7 +3135,7 @@ export class Engine {
       for (const w of this.witnesses(12)) this.cue(w.id, "alarm", from);
     this.combatUntil = clock + 90;
     // A blow breaks whatever it was in the middle of.
-    if (g.attack?.n === m.n) {
+    if (reels && g.attack?.n === m.n) {
       g.attack = { n: m.n!, phase: "recover", until: clock + 12 };
       m.pose = undefined;
     }
@@ -3190,6 +3193,7 @@ export class Engine {
       g.panic = 1;
       g.alarm = clock;
       g.target = undefined;
+      g.fright = { ...from, space: "outside" };
       if (profile.locomotion !== "ground-and-flight" && profile.art.flee) {
         g.state = "flee";
         g.since = clock;
@@ -5706,7 +5710,7 @@ export class Engine {
   /** Someone the plot sent to the player, and what they came to say. Talking
    * to them in time opens on it. */
   approacher?: { id: string; situation: string; until: number };
-  private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; onArrive?: () => void };
+  private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; with?: string[]; onArrive?: () => void };
   private working = false;
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
@@ -6892,8 +6896,8 @@ export class Engine {
   }
   /** Lets in whoever is coming down the road and drops whoever has gone on. */
   private syncWayfarers(clock: number) {
-    if (!this.world.wayfarers) return;
     this.state.actors = this.state.actors.filter((a) => !a.wayfarer || a.wayfarer.until > clock);
+    if (!this.world.wayfarers) return;
     const leading = new Set(this.state.actors.map((a) => `${a.id}-train`));
     this.state.fauna = this.state.fauna?.filter((g) => !g.train || g.members.length || leading.has(g.id));
     const here = new Set(this.state.actors.map((a) => a.id));
@@ -9051,10 +9055,43 @@ export class Engine {
       this.conversing || p.activity !== "Exploring" || s.encounter || s.care || this.waitingCard() || (p.encounterAfter ?? 0) > s.clock) return;
     const risk = this.danger();
     if (risk.threats.length || !risk.hourlyRisk || random(s.manifest.seed, "roadside", risk.area, Math.floor(s.clock / 300)) >= risk.hourlyRisk / 12) return;
+    const stop = () => {
+      s.encounter = { card: "roadside-robbery", at: copy(p.pos), clock: s.clock };
+      this.event("People step into your path and demand your valuables.", "world");
+      this.offerCard(CARDS.find((c) => c.id === "roadside-robbery")!);
+    };
+    const setting = this.world.pack.setting;
+    // Just out of sight, so they are seen coming.
+    const from = setting && !this.approaching && Array.from({ length: 8 }, (_, i) => {
+      const t = ((i + Math.floor(this.rng("robbers") * 8)) * Math.PI) / 4;
+      return { x: Math.round(p.pos.x + Math.cos(t) * (SIGHT + 2)), y: Math.round(p.pos.y + Math.sin(t) * (SIGHT + 2)), space: "outside" as const };
+    }).find((q) => !this.blocked(q.x, q.y, q.space) && !this.blocked(q.x + 1, q.y, q.space) &&
+      this.findRoute(q, this.beside(p.pos), "robber", 5000).path.length);
     p.encounterAfter = s.clock + 86400;
-    s.encounter = { card: "roadside-robbery", at: copy(p.pos), clock: s.clock };
-    this.event("People step into your path and demand your valuables.", "world");
-    this.offerCard(CARDS.find((c) => c.id === "roadside-robbery")!);
+    if (!from) return stop();
+    const robbers = [0, 1].map((i) => ({
+      ...person(s.manifest.seed, setting, `robber-${s.clock}-${i}`, "traveler", "Stranger", "male", 19 + Math.floor(this.rng(`robber:${i}`) * 20), { x: from.x + i, y: from.y }, s.clock + 900),
+      trust: -2,
+      lastUpdated: s.clock,
+    }));
+    for (const a of robbers) {
+      s.actors.push(a);
+      this.actorsById?.set(a.id, a);
+      this.syncActor(a);
+    }
+    this.event("Two strangers are heading straight for you.", "world");
+    this.approaching = { id: robbers[0].id, line: "", until: s.clock + 600, with: [robbers[1].id], onArrive: stop };
+    return true;
+  }
+  /** The robbers go their way once it is settled, and are dropped past the next rise. */
+  private robbersLeave() {
+    const s = this.state, p = s.player.pos;
+    for (const a of s.actors) {
+      if (!a.id.startsWith("robber-")) continue;
+      const d = distance(a.pos, p) || 1;
+      a.errand = { to: { x: Math.round(a.pos.x + ((a.pos.x - p.x) / d) * 40), y: Math.round(a.pos.y + ((a.pos.y - p.y) / d) * 40), space: "outside" }, label: "Making off", until: s.clock + 600 };
+      a.wayfarer = { until: s.clock + 300 };
+    }
   }
 
   /** Those of the dead player's household who could go on as them: alive,
@@ -9764,6 +9801,12 @@ export class Engine {
     if (credit?.seller === to.id) credit.amount = Math.max(0, plot.owed ?? 0);
     return handed.join(", ") || "nothing";
   }
+  /** A stranger with no household is not routed round an occupied cell: the
+   * cell itself, or a free one next to it. */
+  private beside(at: Position): Position {
+    return !this.blocked(at.x, at.y, at.space) ? at
+      : [[0, 1], [1, 0], [0, -1], [-1, 0]].map(([x, y]) => ({ ...at, x: at.x + x, y: at.y + y })).find((q) => !this.blocked(q.x, q.y, q.space)) ?? at;
+  }
   /** The plot's messenger walks over and says their piece. */
   private approach(clock: number) {
     const ap = this.approaching!, p = this.state.player;
@@ -9791,7 +9834,8 @@ export class Engine {
       return;
     }
     const inside = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
-    const to: Position = inside ? { ...doorApproach(inside), space: "outside" } : p.pos;
+    const at: Position = inside ? { ...doorApproach(inside), space: "outside" } : p.pos;
+    const to = a.householdId ? at : this.beside(at);
     const from = a.pos.space !== to.space && this.world.place(a.pos.space);
     if (from) this.moveActor(a, { ...doorApproach(from), space: "outside" });
     // Beyond the simulated ring nobody walks; they have come most of the way unseen.
@@ -9808,6 +9852,10 @@ export class Engine {
         break;
       }
     a.errand = { to: copy(to), label: "Coming to find you", until: clock + 60 };
+    for (const id of ap.with ?? []) {
+      const b = this.actorsById?.get(id);
+      if (b) b.errand = { to: copy(a.pos), label: a.errand.label, until: clock + 60 };
+    }
   }
   /** Stories move about an hour per hop of company, and a household pools
    * what it heard each evening. Each retelling is half as strong; one about
@@ -11179,8 +11227,7 @@ export class Engine {
       if (next % 600 === 0) this.runIndoors(next);
       this.confront(next);
       this.beeStep(next);
-      if (next % 300 === 0) this.roadEncounter();
-      if (this.state.encounter) break;
+      if ((next % 300 === 0 && this.roadEncounter()) || this.state.encounter) break;
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
       if (next % 3600 === 0) {
         this.world.rotateRoutines?.(next);

@@ -16,6 +16,7 @@ import { skySeed, weatherAt } from "./weather";
 import { random } from "./random";
 import { sexOf } from "./brief";
 import { concernsOf, fill, inWords, kinWord, type Concern, type IntroSpan } from "./concerns";
+import { herdCount } from "../content/fauna/herding";
 import type { Actor, Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
 
@@ -278,6 +279,8 @@ export function composeIntro(s: Snapshot, setting?: WorldSetting, place?: string
   const told = new Set([top, also].flatMap((c) => c?.spans.flatMap((x) => (x.ref ? [x.ref] : [])) ?? []));
   const second = plotted.length ? plotted
     : [...hardship(s, setting), ...(also ? sentence([...capital(also.spans), { text: "." }]) : []), ...household(s, told, setting)];
+  const herd = s.fauna?.find((g) => g.owner === "player" && g.members.length);
+  if (herd) second.push(...sentence([{ text: `Your ${herdCount(herd.speciesId, herd.members.length).replace(/^\d+/, (n) => inWords(+n))} ${herd.members.length === 1 ? "is" : "are"} ${herd.gateId ? "in the pen by your house" : "grazing close by"}.` }]));
   const trim = (p: IntroSpan[]) => {
     const spans = tidy(p);
     const last = spans.at(-1);

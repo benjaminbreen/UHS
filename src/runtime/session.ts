@@ -114,6 +114,7 @@ import {
 import { items, packs } from "../content/packs";
 import { rollStats } from "../core/stats";
 import { narratorTurn, type Turn } from "../narrator/turn";
+import { herdCount } from "../content/fauna/herding";
 import { Autopilot, parsePlan, type Plan } from "./autopilot";
 import { routePlan } from "./router";
 import {
@@ -977,6 +978,7 @@ export class Runtime {
     if (!preserveJourney) this.journey?.dispose();
     releaseTerrainWorker(this.engine.world);
     this.replay = undefined;
+    this.offer = undefined;
     this.stop();
     this.engine = engine;
     this.attachChronicle(engine);
@@ -1060,7 +1062,7 @@ export class Runtime {
     const animal = terms && namedAnimal(terms);
     const routed = plan || found || animal ? undefined : await routePlan(this.engine, input, this.modelFetch);
     if (plan ?? routed) turn = this.startPlan(input, (plan ?? routed)!);
-    else if (found) turn = this.walkToFound(input, found);
+    else if (found && !(animal && /\b(my|our)\b/i.test(input) && this.leftBehind(animal))) turn = this.walkToFound(input, found);
     else if (animal) turn = this.noneFound(input, animal);
     else turn = await narratorTurn(this, input);
     this.onRecord?.("text", { input: input.trim().slice(0, 600), response: turn.text, error: turn.error });
@@ -1084,6 +1086,14 @@ export class Runtime {
   }
   /** Starts a standing errand; the narrator uses this when its turn sends the
    * player somewhere. */
+  private offer?: () => void;
+  /** Puts a yes/no question from the narrator on screen; yes runs `yes`. */
+  propose(question: string, yes: () => void) {
+    const cards = this.engine.cards;
+    for (let i = cards.length; i--; ) if (cards[i].choose?.card === "offer") cards.splice(i, 1);
+    this.offer = yes;
+    cards.push({ kind: "speech", title: "Narrator", text: question, choose: { card: "offer", choices: [{ index: 0, label: "Yes" }, { index: 1, label: "Not now" }] } });
+  }
   setOff(plan: Plan) {
     this.flushAmbient();
     this.stop(false);
@@ -1122,8 +1132,17 @@ export class Runtime {
   }
   /** Walks to a found target and logs it as a narration turn, so the search
    * reads back in the log beside everything else the player has said. */
+  /** The player's own herd of this animal, when it is on another map. */
+  private leftBehind(animal: string) {
+    const away = this.journey?.away();
+    return away?.herd && new RegExp(`\\b${away.herd.species}s?\\b`).test(animal) ? away : undefined;
+  }
   private noneFound(input: string, animal: string): Turn {
-    const text = `There is no ${animal} anywhere nearby.`;
+    const mine = this.leftBehind(animal);
+    const text = mine
+      ? `Your ${herdCount(mine.herd!.species, mine.herd!.count)} are not here. You left them at ${mine.name}, ${mine.time} to the ${mine.bearing}.`
+      : `There is no ${animal} anywhere nearby.`;
+    if (mine) this.propose(`Go back to them, ${mine.time} to the ${mine.bearing}?`, () => void this.journey?.goBack());
     const s = this.engine.state;
     s.narration = [
       ...(s.narration ?? []),
@@ -1182,6 +1201,19 @@ export class Runtime {
     return result;
   }
   private dispatch(command: PlayerCommand) {
+    if (command.type === "choose" && command.card === "offer") {
+      const yes = this.offer;
+      this.offer = undefined;
+      if (command.choice === 0) yes?.();
+      this.emit();
+      return {
+        actionId: "offer-" + ++this.serial,
+        revision: this.engine.state.revision,
+        status: "completed" as const,
+        elapsedSeconds: 0,
+        events: [],
+      };
+    }
     if (!this.engine.state.player.dead && this.journey?.intercept(command)) {
       this.emit(false);
       return {

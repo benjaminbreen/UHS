@@ -136,7 +136,7 @@ it("a boar paws the ground, then charges down a fixed line and hurts", () => {
   const g = quarry(engine, "wild-boar");
   swing(engine);
   expect(g.provoked).toBeGreaterThan(engine.state.clock);
-  wait(engine, 2);
+  wait(engine, 1);
   expect(g.attack?.phase).toBe("windup");
   expect(engine.signals.some((e) => e.kind === "windup")).toBe(true);
   const before = engine.state.player.health ?? 100;
@@ -170,6 +170,16 @@ it("a sidestep after the charge starts is a clean dodge", () => {
   const before = engine.state.player.health ?? 100;
   wait(engine, 4);
   expect(engine.state.player.health ?? 100).toBe(before);
+});
+
+it("an elephant is not held off by stabbing it: it turns and is on you", () => {
+  const engine = field("combat-elephant");
+  engine.devArm("spear");
+  const g = quarry(engine, "asian-elephant");
+  for (let i = 0; i < 12; i++) swing(engine);
+  expect(g.members[0].stun ?? 0).toBeLessThanOrEqual(engine.state.clock);
+  expect(engine.signals.some((e) => e.kind === "mauled")).toBe(true);
+  expect(engine.state.player.health).toBeLessThan(70);
 });
 
 it("a badly hurt boar gives up and runs", () => {

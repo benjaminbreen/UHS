@@ -1244,6 +1244,13 @@ function rasterGroundTile(
           continue;
         }
         const cut = bilinear(cutOf, xx, yy);
+        // The bank that faces the viewer stands in shade over the bed; the
+        // far one is only a thin dark lip.
+        if (a < (bilinear(arroyoOf, xx, yy + 0.19) > a ? 0.6 : 0.54) && !(cut > 0.35)) {
+          put(px, py, soil[0], a < 0.54 ? -4 : 6);
+          trodden[at(px, py)] = 1;
+          continue;
+        }
         if (cut > 0.35 && a < 0.62) {
           // Low cut bank on the uphill side: dark clods along the lip.
           put(px, py, soil[hash(wx >> 1, wy >> 1, 521) < 0.5 ? 0 : 1], (noise(wx, wy, 7, 535) - 0.5) * 6);
@@ -1267,12 +1274,11 @@ function rasterGroundTile(
           if ((wy + Math.floor(noise(Math.floor(wx / 5), 0, 3, 539) * 3)) % 4 === 0)
             put(px, py, soil[2], 4 + lift);
         } else {
-          const silt = soil[3].map((v, k) => Math.round(v * 0.8 + palette[1][k] * 0.2));
-          put(px, py, silt, lift + (noise(wx, wy, 11, 527) - 0.5) * 10);
-          if (g === 1 && hash(Math.floor(wx / 8), Math.floor(wy / 8), 529) > 0.3)
-            put(px, py, soil[1], lift);
-          const ink = groundMotif("pebble", wx, wy, art.motifs, { density: 0.8 + depth * 1.2 });
-          if (ink) put(px, py, soil[2], [0, -30, -14, 10][ink]);
+          // Greyer and darker than a trodden path, so the bed does not read as a road.
+          const silt = soil[2].map((v, k) => Math.round(v * 0.62 + [146, 142, 130][k] * 0.38));
+          put(px, py, silt, lift + Math.round((noise(wx, wy, 11, 527) - 0.5) * 2) * 5);
+          const ink = groundMotif("pebble", wx, wy, art.motifs, { density: 1.2 + depth * 1.6, spacing: 0.8 });
+          if (ink) put(px, py, silt, [0, -34, -16, 16][ink]);
         }
         trodden[at(px, py)] = 1;
       }

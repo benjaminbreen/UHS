@@ -69,8 +69,9 @@ export function walkStream(
   /** Distance to the water the stream drains to; on flat ground the walk
    * follows this gradient so a plain tributary still finds its river. */
   toWater?: (x: number, y: number) => number,
-  addMeanders = true,
+  addMeanders: boolean | "wash" = true,
 ): Stream | undefined {
+  const wash = addMeanders === "wash";
   const points = [start];
   const falls: number[] = [];
   const tiers = [tierOf(height(start[0], start[1]))];
@@ -100,7 +101,10 @@ export function walkStream(
         ? Math.abs(Math.atan2(dy, dx) - Math.atan2(y - prev[1], x - prev[0]))
         : 0;
       const bend = turn > Math.PI ? 2 * Math.PI - turn : turn;
+      // Never back alongside its own earlier course: it would loop and cross itself.
+      if (points.slice(0, -5).some(([qx, qy]) => Math.hypot(nx - qx, ny - qy) < 11)) continue;
       const nh = height(nx, ny);
+      if (wash && tierOf(nh) > tiers[tiers.length - 1]) continue;
       // Stay on the terrace while it still descends; drop a tier only when
       // nothing on this one leads down. Falls then sit at real edges.
       const dropCost = tierOf(nh) < tiers[tiers.length - 1] ? bias * 6 : 0;
@@ -126,7 +130,8 @@ export function walkStream(
       }
     }
     if (!best) {
-      if (++stuck > 1) break;
+      // A wash dies on the flat; a blind step could take it up a terrace.
+      if (wash || ++stuck > 1) break;
       // One flat step allowed so a shallow saddle does not end every creek.
       const [dx, dy] = dirs[Math.floor(random(seed, `${salt}-flat`, x, y) * 8)];
       best = [x + dx * STEP, y + dy * STEP];
@@ -162,7 +167,8 @@ export function walkStream(
   // slides sideways by a slow noise along the stream, growing downstream
   // where a real stream has more water to cut with. Ends stay put so the
   // spring and the mouth keep their places.
-  for (let i = 1; addMeanders && i < smoothPoints.length - 1; i++) {
+  if (wash) wobble(smoothPoints, seed, salt, (x, y) => tierOf(height(x, y)));
+  for (let i = 1; addMeanders === true && i < smoothPoints.length - 1; i++) {
     const [ax, ay] = smoothPoints[i - 1],
       [bx, by] = smoothPoints[i + 1];
     const dx = bx - ax,
@@ -195,6 +201,62 @@ export function walkStream(
       Math.max(...ys) + 4,
     ],
   };
+}
+
+/** Small bends for a stream walked down a smooth slope, which runs too
+ * straight. A bend is kept only where it leaves the stream on its terrace,
+ * and the ends stay put. */
+export function wobble(points: number[][], seed: string, salt: string, tierAt: (x: number, y: number) => number) {
+  const straight = points.map((p) => [...p]);
+  const last = straight.length - 1;
+  for (let i = 1; i < last; i++) {
+    const [ax, ay] = straight[Math.max(0, i - 3)],
+      [bx, by] = straight[Math.min(last, i + 3)];
+    const len = Math.hypot(bx - ax, by - ay) || 1;
+    const tier = tierAt(straight[i][0], straight[i][1]);
+    let sway =
+      Math.min(1, i / 6, (last - i) / 6) *
+      ((noise(seed, i, 0, 11, `${salt}-sweep`) - 0.5) * 9 + (noise(seed, i, 7, 4, `${salt}-bend`) - 0.5) * 3);
+    for (let k = 0; k < 3; k++, sway /= 2) {
+      const x = straight[i][0] - ((by - ay) / len) * sway,
+        y = straight[i][1] + ((bx - ax) / len) * sway;
+      if (tierAt(x, y) !== tier) continue;
+      points[i] = [x, y];
+      break;
+    }
+  }
+}
+
+/** A wash that comes within reach of another on its own terrace or below
+ * turns into it and ends there; one that starts beside another is dropped. */
+export function joinStream(
+  s: Stream,
+  others: Stream[],
+  tierAt: (x: number, y: number) => number,
+  reach = 7,
+): Stream | undefined {
+  for (let i = 0; i < s.points.length; i++) {
+    const [x, y] = s.points[i];
+    for (const o of others) {
+      const d = streamDistance(o, x, y, reach);
+      if (!d) continue;
+      const meet = [x - d.gradient[0] * d.distance, y - d.gradient[1] * d.distance];
+      // The other runs on the terrace above: a rim lies between, no meeting.
+      if (tierAt(meet[0], meet[1]) > s.tiers[i]) continue;
+      if (i < 10) return undefined;
+      const points = [...s.points.slice(0, i + 1), meet];
+      const xs = points.map((p) => p[0]),
+        ys = points.map((p) => p[1]);
+      return {
+        points,
+        tiers: [...s.tiers.slice(0, i + 1), s.tiers[i]],
+        falls: s.falls.filter((f) => f <= i),
+        pond: false,
+        bounds: [Math.min(...xs) - 4, Math.min(...ys) - 4, Math.max(...xs) + 4, Math.max(...ys) + 4],
+      };
+    }
+  }
+  return s;
 }
 
 /** Signed-ish distance from a point to a stream's centre line, with the

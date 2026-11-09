@@ -1219,6 +1219,11 @@ describe("survival and local danger", () => {
     p.inventory.coin = 5;
     const risk = vi.spyOn(e, "danger").mockReturnValue({ ...e.danger(), hourlyRisk: 12, areaRisk: 2 });
     act(e, { type: "wait", seconds: 3600 });
+    if (!e.state.encounter) {
+      // They are seen coming before they stop you.
+      expect(e.state.actors.filter((a) => a.id.startsWith("robber-"))).toHaveLength(2);
+      act(e, { type: "wait", seconds: 600 });
+    }
     expect(e.state.encounter?.card).toBe("roadside-robbery");
     expect(e.cards.some((c) => c.choose?.card === "roadside-robbery")).toBe(true);
     expect(act(e, { type: "sleep", seconds: 3600 }).status).toBe("rejected");
@@ -1227,6 +1232,7 @@ describe("survival and local danger", () => {
     expect(e.state.encounter).toBeUndefined();
     act(e, { type: "wait", seconds: 3600 });
     expect(e.state.encounter).toBeUndefined();
+    expect(e.state.actors.some((a) => a.id.startsWith("robber-"))).toBe(false);
     risk.mockRestore();
   });
 

@@ -140,6 +140,8 @@ export function keptSpecies(setting: WorldSetting, seed: string, trade = "") {
     .map((k) => [k.id, random(seed, "kept", k.id) / (k.keeping?.share ?? 1)] as const)
     .sort((a, b) => a[1] - b[1])[0]?.[0];
 }
+/** "4 pigs", "1 goat", "6 sheep". */
+export const herdCount = (species: string, n: number) => `${n} ${n === 1 ? species.replace(/-/g, " ") : herdNoun(species)}`;
 /** The females that bear and their young, for the words of a birthing. */
 const BREEDING: Record<string, [string, string]> = {
   sheep: ["ewes", "lamb"],
