@@ -318,6 +318,8 @@ export const pathCoverage = (
 const hexes = (...c: string[]) => c.map((h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
 // Standing wet, damp, drying, dry crest, sunlit crest edge.
 const MUD = hexes("#5f4636", "#6f5240", "#82624a", "#977556", "#b08c64");
+// Dry coasts have sand flats, not mud: the beach's own sand, wet.
+const SAND_FLAT = hexes("#8c7353", "#a08460", "#b4966d", "#c6a87b", "#dcc091");
 const MANGROVE_MUD = hexes("#43362b", "#514133", "#5f4d3b", "#6f5c46", "#857258");
 // The sky lying on wet mud, and on standing water: film, pool, pool glint.
 const SHEEN = hexes("#7d7f92", "#7f8fb2", "#9fb6d6", "#e4eef6");
@@ -339,7 +341,7 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
   const low = (v.tide ?? 0) + (waterNoise(wx, wy, 34, 629) - 0.5) * 0.12 + (waterNoise(wx, wy, 11, 630) - 0.5) * 0.05;
   if (t < low) return;
   const tropical = v.ecology === "tropical-woodland" || cell.habitat?.colorway === "mangrove";
-  const mud = tropical ? MANGROVE_MUD : MUD;
+  const mud = tropical ? MANGROVE_MUD : v.ecology === "desert" || v.ecology === "dry-scrub" ? SAND_FLAT : MUD;
   // Salt marsh above mid-tide on temperate shores, a small cliff at its foot.
   const edge = 0.6 + (waterNoise(wx, wy, 16, 635) - 0.5) * 0.25;
   if (!tropical && v.ecology !== "desert" && t > edge) {
@@ -366,7 +368,7 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
   if (across < 1) {
     if (across < 0.32) return (dash(657, 4, 2) || 0) > 0.45 ? CREEK[0] : CREEK[1];
     // Lit on the side the sun reaches, deep under the other bank.
-    return across < 0.72 ? CREEK[s < 0 ? 1 : 2] : CREEK[s < 0 ? 2 : 3];
+    return across < 0.72 ? CREEK[s < 0 ? 1 : 2] : CREEK[s < 0 || reach < 0.02 ? 2 : 3];
   }
   if (across < 1.55) return mud[0];
   // The flat's own small relief: hollows hold water, crests dry pale.
@@ -449,18 +451,19 @@ export function shorePixel(
   const wide = waterHash(bx, by, 326) > 0.6 ? 3 : 2;
   if (stone && px >= sx && px < sx + wide && py >= sy && py <= sy + 1)
     return rgb(p.stone[py === sy ? 2 : 0]);
-  if (distance < 0.16) return rgb(p.bank[0]);
-  if (cell.waterVisual?.kind === "sea" && !gravel) {
+  if (distance < 0.16 && cell.waterVisual?.kind !== "sea") return rgb(p.bank[0]);
+  if (cell.waterVisual?.kind === "sea") {
     // Wet sand the last tide left, glinting in short runs, then a broken
     // line of wrack at its limit, then the dry beach.
-    const wet = 0.75 + (waterNoise(wx, wy, 23, 331) - 0.5) * 0.6;
-    const dark = rgb(p.bank[0]), dry = rgb(p.bank[1]);
+    const wet = 0.9 + (waterNoise(wx, wy, 23, 331) - 0.5) * 0.8;
+    const dark = rgb(p.bank[1]), dry = rgb(p.bank[2]);
     if (distance < wet)
       return (wy & 1) === 0 && waterHash(Math.floor(wx / 5), wy, 333) > 0.86
         ? dark.map((v, k) => Math.round((v + dry[k]) / 2))
         : dark;
     if (distance < wet + 0.14 && waterHash(Math.floor(wx / 2), Math.floor(wy / 2), 335) > 0.6)
       return dark.map((v) => Math.round(v * 0.74));
+    return dry.map((v) => v + (waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0));
   }
   return rgb(p.bank[1]).map(
     (v) =>

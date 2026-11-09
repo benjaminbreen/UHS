@@ -77,6 +77,7 @@ const reviews: Record<string, Review> = {
     studies: [
       ["coast", "ecology=boreal-woodland&water=coast-n&landform=ridge&relief=0.9&year=1700&waterContext&coastBeachWidth=12"],
       ["inland", "ecology=grassland&water=river-ew&landform=rolling&relief=0.7"],
+      ["inland-ns", "ecology=temperate-woodland&water=river-ns&landform=rolling&relief=0.7"],
       ["flat-coast", "ecology=boreal-woodland&water=coast-n&landform=plain&relief=0"],
       ["desert-coast", "ecology=desert&colorway=sonoran&water=coast-n&landform=ridge&relief=0.9&waterContext"],
       ["cape-south", "ecology=dry-scrub&colorway=fynbos&water=coast-s&landform=rolling&relief=0.4&waterContext"],

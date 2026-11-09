@@ -1,4 +1,5 @@
 import type { Habitat } from "../world/v3/habitats";
+import { waterPalette } from "./water-style";
 import type { Community } from "../content/ecology/communities";
 import { paletteKey } from "../content/ecology/profiles";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
@@ -80,7 +81,8 @@ function computeAppearance(h: Habitat, art: GrassArt) {
   );
   const tones: Record<Community, number[]> = {
     water: palette[7],
-    shore: soil[3],
+    // The beach is the coast's own sand, as the shore raster draws it, not path soil.
+    shore: [1, 3, 5].map((i) => parseInt(waterPalette(h.ecology, "sea").bank[2].slice(i, i + 2), 16)),
     rocky: mix(soil[4], [133, 134, 122], 0.45),
     barren: soil[2],
     grassland: palette[0],

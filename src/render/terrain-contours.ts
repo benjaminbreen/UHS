@@ -926,8 +926,8 @@ function rasterWallContours(
     if (upper?.surface === "sand" && ground) {
       // A sand step is a slump, not a cut: the beach's own sand, shaded in
       // three soft bands that break along the face, darkest at the foot.
-      const f = (r + (contourNoise(Math.floor(wx / 4), wy, 1, 161) - 0.5) * 5) / drop;
-      const k = r === 0 ? 1.06 : f < 0.3 ? 0.93 : f < 0.72 ? 0.86 : 0.78;
+      const f = (r + (contourNoise(wx, 0, 18, 161) - 0.5) * 6) / drop;
+      const k = r === 0 ? 1.05 : f < 0.3 ? 0.95 : f < 0.72 ? 0.9 : 0.83;
       return [ground[0] * k, ground[1] * k, ground[2] * k * (k < 1 ? 0.97 : 1)];
     }
     const pixel = styledBankPixel(style, r, drop, wx, wy);

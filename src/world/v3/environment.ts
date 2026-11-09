@@ -106,18 +106,30 @@ export function createEnvironment(
     // Distance to a shore changes by at most a cell per cell, so a sample at
     // the middle of a four-cell block is within three cells of the truth.
     // Exact sampling is only needed where that error would move the water.
-    const fx = Math.floor(ax / 4) * 4,
-      fy = Math.floor(ay / 4) * 4;
-    const fineKey = `${fx},${fy}`;
-    let mid = fineCache.get(fineKey);
-    if (!mid) {
-      mid = atlasSample(fx + 2, fy + 2);
-      trimCache(fineCache, 16384);
-      fineCache.set(fineKey, mid);
-    }
-    return Math.abs(mid.coast) < 12 || mid.river < 12
-      ? atlasSample(ax, ay)
-      : mid;
+    const fine = (fx: number, fy: number) => {
+      const fineKey = `${fx},${fy}`;
+      let mid = fineCache.get(fineKey);
+      if (!mid) {
+        mid = atlasSample(fx + 2, fy + 2);
+        trimCache(fineCache, 16384);
+        fineCache.set(fineKey, mid);
+      }
+      return mid;
+    };
+    const mid = fine(Math.floor(ax / 4) * 4, Math.floor(ay / 4) * 4);
+    if (Math.abs(mid.coast) < 12 || mid.river < 12) return atlasSample(ax, ay);
+    // Between block middles the distance is interpolated: taken whole, the
+    // sea's depth stepped every four cells and its swell drew the blocks.
+    const u = (ax - 2) / 4,
+      v = (ay - 2) / 4,
+      ix = Math.floor(u),
+      iy = Math.floor(v),
+      tx = u - ix,
+      ty = v - iy;
+    const corner = [fine(ix * 4, iy * 4), fine(ix * 4 + 4, iy * 4), fine(ix * 4, iy * 4 + 4), fine(ix * 4 + 4, iy * 4 + 4)];
+    const blend = (k: "coast" | "river") =>
+      (corner[0][k] * (1 - tx) + corner[1][k] * tx) * (1 - ty) + (corner[2][k] * (1 - tx) + corner[3][k] * tx) * ty;
+    return { ...mid, coast: blend("coast"), river: corner.every((c) => Number.isFinite(c.river)) ? blend("river") : mid.river };
   }
   // Meanders: the query point slides sideways to the channel by an amount
   // that varies along it, so a ruler-straight atlas centreline or planned
@@ -857,8 +869,11 @@ export function createEnvironment(
       valleyFloor = Math.max(0, Math.min(baseTier - 1, floor - 1));
     }
     // Ground the flood covers is valley floor even when dry.
+    // Every shore keeps a low margin two to four cells deep: a bank standing
+    // at the water's edge cuts the shoreline square along its cells.
+    const margin = 2.6 + noise(seed, fx, fy, 13, "shore-margin") * 1.6;
     let level =
-      water < floodplain || (reaches && water < Math.max(...reaches))
+      water < Math.max(floodplain, margin) || (reaches && water < Math.max(...reaches))
         ? valleyFloor
         : water < terrace
           ? Math.max(valleyFloor, Math.min(valleyFloor + 1, baseTier))
