@@ -1,3 +1,38 @@
+## Terraces, cliffs, tidal flats — November 9, 2026
+
+Relief is cut differently. The height a terrace comes from is the landform plus
+lobes about a step tall, median-filtered over a disc (`terraceHeight` in
+`world/v3/environment.ts`), so brinks run in spurs and bays and no plateau or
+sliver is smaller than a few cells. A hillside climbs in at most four or five
+steps (`ceilingOf`), where it took up to nine; `summit` and `metresPerTier`
+keep the land's stature for snow, scree and alpine plants. The town's 6-cell
+block terrace grid is gone: towns grade their own plots and streets. Bare rock
+needs real exposure (`classifyCommunity`), and a bank's brow no longer flips
+the ground's community, which had drawn grey-teal cell-stepped bands along
+every cliff on a wet hillside.
+
+Every road that steps up a bank gets a ramp across its worn width
+(`slopesFor`), country roads step square across their lanes, and a ramp cell
+keeps its path. Cliff shadows are capped at about half the bank's height with
+a lighter outer step; back edges shade in three soft steps; rock side faces
+are drawn as rock, wide where the rim runs north-south; sand steps are slumps
+of the beach's own sand, and sand ramps have no rails.
+
+The intertidal shelf is `tidalFlat` in `render/material-edges.ts`, called by
+water tiles, shore ground tiles and the living-water mask alike: mottled mud,
+pools that show the sky, a creek trunk with landward feeders widening to low
+water, cord grass and stones, a wandering low-water line and an upper edge
+that interlocks with the beach. On tidal shores the living layer draws no
+bank (that was the dark squiggle and the tan trapezoids) and ground and water
+tiles share one shoreline. Tidal beaches get wet sand and a wrack line. The
+head of the Gulf is macrotidal. Review: `UHS_STUDY=gulf npm run
+capture:terrain -- waters`.
+
+Not done: one shoreline function for non-tidal coasts (ground, living water
+and collision still reconstruct it separately); removing the legacy water
+raster; paths that climb east or west still shear a tier in one cell; a steep
+range reads by fewer steps rather than by taller faces.
+
 ## The years — November 8, 2026
 
 A life now runs past its day. **Let the years pass** (ledger or Rest menu) plays

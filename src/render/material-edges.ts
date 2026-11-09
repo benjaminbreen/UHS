@@ -158,7 +158,7 @@ export function pathField(
   const areaField: PathField = { coverage: clamp01((area - 0.2) * 1.25), cross: 0.5,
     radius: 1.2, ruts: false, dung: false };
   if (area === 1) return areaField;
-  if (cell.pathArt?.length && !cell.feature && !cell.ramp && !cell.bridge) {
+  if (cell.pathArt?.length && !cell.feature && !cell.bridge) {
     let best: PathField = { coverage: 0, cross: 1.5, radius: 0 };
     const tuning = groundStyle()?.composition;
     const edgeBreakup = tuning?.pathEdgeBreakup ?? 1;
@@ -315,6 +315,96 @@ export const pathCoverage = (
   ox: number,
   oy: number,
 ) => pathField(sample, x, y, ox, oy).coverage;
+const hexes = (...c: string[]) => c.map((h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
+// Standing wet, damp, drying, dry crest, sunlit crest edge.
+const MUD = hexes("#5f4636", "#6f5240", "#82624a", "#977556", "#b08c64");
+const MANGROVE_MUD = hexes("#43362b", "#514133", "#5f4d3b", "#6f5c46", "#857258");
+// The sky lying on wet mud, and on standing water: film, pool, pool glint.
+const SHEEN = hexes("#7d7f92", "#7f8fb2", "#9fb6d6", "#e4eef6");
+// Creek water from its lit middle to its shaded edge.
+const CREEK = hexes("#a6e6e0", "#62c3c6", "#439aa6", "#2f7384");
+const MARSH = hexes("#5f7449", "#6f8452", "#80955f", "#4b5a38");
+const FLAT_TUFT = hexes("#c3b552", "#8f9440", "#5d6a34");
+const FLAT_STONE = hexes("#a59c8c", "#6f675c");
+/** The intertidal shelf at the present tide: mud in drying lobes, standing
+ * pools that show the sky, and creeks that gather and widen toward low water.
+ * Undefined is open water. `d` is the pixel's water distance in cells. */
+export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: number): number[] | undefined {
+  const v = cell.waterVisual;
+  if (v?.shelf === undefined) return;
+  // The mud and the beach above it interlock along a wandering line.
+  if (d >= Math.max(0, (waterNoise(wx, wy, 19, 627) - 0.35) * 0.9 + (waterNoise(wx, wy, 6, 628) - 0.5) * 0.2)) return;
+  const t = 1 + d / v.shelf;
+  // Low water wanders: a ruled tide line is the first thing the eye finds.
+  const low = (v.tide ?? 0) + (waterNoise(wx, wy, 34, 629) - 0.5) * 0.12 + (waterNoise(wx, wy, 11, 630) - 0.5) * 0.05;
+  if (t < low) return;
+  const tropical = v.ecology === "tropical-woodland" || cell.habitat?.colorway === "mangrove";
+  const mud = tropical ? MANGROVE_MUD : MUD;
+  // Salt marsh above mid-tide on temperate shores, a small cliff at its foot.
+  const edge = 0.6 + (waterNoise(wx, wy, 16, 635) - 0.5) * 0.25;
+  if (!tropical && v.ecology !== "desert" && t > edge) {
+    const pan = waterNoise(wx, wy, 11, 637);
+    if (pan > 0.7) return pan > 0.74 ? SHEEN[1] : MARSH[3];
+    if (t < edge + 0.03) return MARSH[3];
+    const tuft = waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 639);
+    return tuft > 0.8 ? MARSH[2] : tuft < 0.15 ? MARSH[0] : MARSH[1];
+  }
+  const dash = (salt: number, len: number, rows: number) =>
+    ((wy % rows) + rows) % rows === 0 && waterHash(Math.floor(wx / len), wy, salt);
+  // A sheet of water still draining off the lowest mud.
+  if (t < low + 0.035) return (dash(651, 5, 2) || 0) > 0.6 ? SHEEN[2] : SHEEN[1];
+  // Creeks: the trunk is one winding contour, its feeders a finer one that
+  // joins from the landward side only, and both widen toward low water.
+  const warp = (waterNoise(wx, wy, 23, 655) - 0.5) * 26;
+  const trunk = waterNoise(wx + warp, wy - warp, 88, 633) - 0.5;
+  const feeder = waterNoise(wx - warp, wy + warp, 41, 634) - 0.5;
+  const reach = 0.011 + (1 - t) * 0.024;
+  const a = trunk / reach,
+    b = trunk > 0 && t < 0.92 ? feeder / (reach * 0.8) : 9;
+  const s = Math.abs(a) < Math.abs(b) ? a : b;
+  const across = Math.abs(s);
+  if (across < 1) {
+    if (across < 0.32) return (dash(657, 4, 2) || 0) > 0.45 ? CREEK[0] : CREEK[1];
+    // Lit on the side the sun reaches, deep under the other bank.
+    return across < 0.72 ? CREEK[s < 0 ? 1 : 2] : CREEK[s < 0 ? 2 : 3];
+  }
+  if (across < 1.55) return mud[0];
+  // The flat's own small relief: hollows hold water, crests dry pale.
+  const lift =
+    waterNoise(wx + warp * 0.6, wy, 52, 643) * 0.5 +
+    waterNoise(wx, wy + warp * 0.4, 21, 644) * 0.32 +
+    waterNoise(wx, wy, 8, 645) * 0.18 +
+    (t - 0.5) * 0.16;
+  if (lift < 0.34) {
+    if (lift > 0.318) return mud[0];
+    if (lift < 0.28 && (dash(659, 3, 3) || 0) > 0.7) return SHEEN[3];
+    return lift < 0.28 ? SHEEN[2] : SHEEN[1];
+  }
+  const bx = Math.floor(wx / 13),
+    by = Math.floor(wy / 11);
+  const ux = ((wx % 13) + 13) % 13,
+    uy = ((wy % 11) + 11) % 11;
+  const mark = waterHash(bx, by, 661);
+  if (lift > 0.5 && mark > 0.93) {
+    // A tuft of cord grass: three blades off one root.
+    const gx = ux - 3 - Math.floor(waterHash(bx, by, 662) * 5),
+      gy = uy - 3 - Math.floor(waterHash(bx, by, 663) * 3);
+    if (gy === 3 && gx >= 0 && gx <= 4) return FLAT_TUFT[2];
+    if (gy >= 0 && gy < 3 && (gx === 0 || gx === 2 || gx === 4) && gy >= (gx === 2 ? 0 : 1))
+      return FLAT_TUFT[gy === (gx === 2 ? 0 : 1) ? 0 : 1];
+  } else if (mark < 0.1) {
+    const gx = ux - 2 - Math.floor(waterHash(bx, by, 664) * 8),
+      gy = uy - 2 - Math.floor(waterHash(bx, by, 665) * 6);
+    if (gy === 0 && (gx === 0 || gx === 1)) return FLAT_STONE[0];
+    if (gy === 1 && gx >= 0 && gx <= 2) return FLAT_STONE[1];
+  }
+  if (lift < 0.42) return (dash(667, 6, 2) || 0) > 0.82 ? SHEEN[0] : mud[0];
+  if (lift < 0.53) return mud[1];
+  if (lift < 0.64) return mud[2];
+  // A crest's seaward edge catches the light.
+  const above = waterNoise(wx + warp * 0.6, wy - 1, 52, 643) * 0.5 + waterNoise(wx, wy - 1 + warp * 0.4, 21, 644) * 0.32 + waterNoise(wx, wy - 1, 8, 645) * 0.18 + (t - 0.5) * 0.16;
+  return above < 0.64 ? mud[4] : mud[3];
+}
 export function shorePixel(
   cell: TopographyCell,
   distance: number,
@@ -333,6 +423,8 @@ export function shorePixel(
     return distance < 0.15 ? [112, 126, 94] : [131, 140, 101];
   }
 
+  const flat = distance < 0.8 ? tidalFlat(cell, distance, wx, wy) : undefined;
+  if (flat) return flat;
   if (distance < 0) {
     const i = waterBand(
       distance,
@@ -358,6 +450,18 @@ export function shorePixel(
   if (stone && px >= sx && px < sx + wide && py >= sy && py <= sy + 1)
     return rgb(p.stone[py === sy ? 2 : 0]);
   if (distance < 0.16) return rgb(p.bank[0]);
+  if (cell.waterVisual?.kind === "sea" && !gravel) {
+    // Wet sand the last tide left, glinting in short runs, then a broken
+    // line of wrack at its limit, then the dry beach.
+    const wet = 0.75 + (waterNoise(wx, wy, 23, 331) - 0.5) * 0.6;
+    const dark = rgb(p.bank[0]), dry = rgb(p.bank[1]);
+    if (distance < wet)
+      return (wy & 1) === 0 && waterHash(Math.floor(wx / 5), wy, 333) > 0.86
+        ? dark.map((v, k) => Math.round((v + dry[k]) / 2))
+        : dark;
+    if (distance < wet + 0.14 && waterHash(Math.floor(wx / 2), Math.floor(wy / 2), 335) > 0.6)
+      return dark.map((v) => Math.round(v * 0.74));
+  }
   return rgb(p.bank[1]).map(
     (v) =>
       v +

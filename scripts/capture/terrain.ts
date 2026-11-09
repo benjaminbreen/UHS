@@ -112,6 +112,7 @@ const reviews: Record<string, Review> = {
       ["tuamotu-atoll", "lon=-147.7&lat=-15&year=1700&season=summer&ecology=tropical-woodland&water=island&population=none"],
       ["bahamas-reef", "lon=-77.5&lat=24.5&year=1700&season=summer&ecology=tropical-woodland&water=coast-n&population=none"],
       ["sundarbans", "lon=89.2&lat=21.9&year=1700&season=winter&ecology=wetland&colorway=mangrove&water=coast-s&population=none"],
+      ["gulf-flat", "lon=48&lat=29.3&year=1700&season=summer&ecology=desert&water=coast-n&population=none"],
       ["severn-saltmarsh", "lon=-3&lat=51.3&year=1700&season=summer&ecology=grassland&water=coast-n&population=none"],
       ["holland-polder", "lon=4.9&lat=52.37&year=1650&season=summer&ecology=grassland&water=coast-n&population=none"],
       ["chinampas", "lon=-99.13&lat=19.43&year=1500&season=summer&ecology=dry-scrub&water=lake&population=none"],
@@ -356,7 +357,8 @@ const centreOnRamp = (page: Page) =>
 async function run(review: Review) {
   const cards: string[] = [];
   await withPage({ width: 1536, height: 1024 }, async (page) => {
-    for (const [name, query] of review.studies) {
+    // UHS_STUDY=severn runs only the studies whose name contains it.
+    for (const [name, query] of review.studies.filter(([n]) => n.includes(process.env.UHS_STUDY ?? ""))) {
       const url = await terrainLab(page, `${query}&${review.common}`, {
         seed: review.seed,
         pauseWater: !query.includes("waterContext"),

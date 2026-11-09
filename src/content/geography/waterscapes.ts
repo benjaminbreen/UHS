@@ -87,6 +87,7 @@ const reefCoasts: Box[] = [
 ];
 // Large macrotidal and mesotidal coasts; the rest of the world is lower.
 const macrotidal: Box[] = [
+  [47.3, 28.3, 51, 30.6], // Head of the Gulf: Kuwait Bay and the Shatt al-Arab flats
   [-67.5, 44.5, -63.5, 46], // Bay of Fundy
   [-5.5, 50.8, -2.5, 51.8], // Bristol Channel
   [-3.5, 47.5, -0.8, 49.8], // Brittany and Normandy

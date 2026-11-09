@@ -8,7 +8,8 @@ import {
   TERRAIN_CHUNK_PAD as PAD,
 } from "./terrain-region";
 
-const MIN_CAST = 0.3;
+const MIN_CAST = 0.3,
+  MAX_CAST = 0.55;
 export type ShadowLayer = {
   row: number;
   x: number;
@@ -37,11 +38,12 @@ export function rasterBankShadows(
   if (opacity <= 0 || (!vx && !vy) || (!rims.length && !origin)) return;
   // A bank is only a few metres tall, so a high sun would leave it with no
   // visible shadow at all. Keep the direction, floor the length.
+  // And a low sun would lay a slab several cells long, stepped wherever the
+  // rim or the ground under it steps. Cap it at about half the bank's height.
   const len = Math.hypot(vx, vy);
-  if (len < MIN_CAST) {
-    vx *= MIN_CAST / len;
-    vy *= MIN_CAST / len;
-  }
+  const clamp = Math.min(MAX_CAST, Math.max(MIN_CAST, len)) / len;
+  vx *= clamp;
+  vy *= clamp;
   const R = TERRAIN_RISE;
   const stride = SIZE + PAD * 2;
   let maxTier = 0;
@@ -108,9 +110,11 @@ export function rasterBankShadows(
         const j = at(bx, by);
         const tier = tierAt(bx, by);
         if (tier < 0 || tier > below) continue;
-        // Adjacent rim rays share receiver pixels.
-        if (a <= alpha[j]) continue;
-        alpha[j] = a;
+        // The outer third is a lighter step, so the shadow has an edge to
+        // lose rather than a ruled one. Adjacent rim rays share pixels.
+        const v = s > 0.66 ? a * 0.5 : a;
+        if (v <= alpha[j]) continue;
+        alpha[j] = v;
         if (bx < x0) x0 = bx;
         if (bx > x1) x1 = bx;
         if (by < y0) y0 = by;

@@ -93,7 +93,8 @@ export function classifyCommunity(
       : canopy > 0.46
         ? "swamp"
         : "marsh";
-  const mineral = ramp(exposure, 0.42, 0.75) * (1 - wet);
+  // Bare rock is the exception even on a steep hillside: most slopes hold turf.
+  const mineral = ramp(exposure, 0.6, 0.9) * (1 - wet);
   const forest = ramp(canopy, 0.38, 0.72);
   const shrubs = ramp(
     canopy,

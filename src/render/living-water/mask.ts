@@ -157,7 +157,10 @@ export function rasterLivingWater(
             : true;
           if (d > localBeach || !lowGround) continue;
           // Ice, mud, floes, bergs and reef crests are the raster's.
-          if (contact < 0 && special && specialWater(cell, special, contact, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy, 0, true)) continue;
+          // A tidal shore's beach is the ground's: the mud and sand above the
+          // tide are drawn there, and a bank here would lie across them.
+          if (visual.shelf !== undefined && d > 0) continue;
+          if ((contact < 0 || (visual.shelf !== undefined && contact < 0.5)) && special && specialWater(cell, special, contact, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy, 0, true)) continue;
           const y: number = sy - lift + shift;
           if (y < 0 || y >= H) continue;
           const i = (y * W + tx * 16 + px) * 4;

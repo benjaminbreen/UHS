@@ -72,7 +72,7 @@ export function habitatAt(
     // brush on the shaded side, open baked ground on the other.
     const aspect = (d.shade ?? 0) * clamp((0.75 - recipe.moisture) / 0.4);
     const cover = (1 - clearing * 0.85) * clamp(recipe.canopy + (patch - 0.5) * 0.7 + riparian * (.25 + .45 * (1-recipe.canopy)) + d.lowland * .08 - d.slope * .2 - brink * .22 + aspect * .35);
-    const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4 + brink * .14 - aspect * .1);
+    const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4 - aspect * .1);
     const flooded = clamp((d.saturation - 0.3) / 0.3);
     let blend = land.ecologyParts;
     let murk = colorway === "swamp" ? 1 : 0;

@@ -187,4 +187,5 @@ export function placeAltitude(s: Pick<WorldSetting, "lon" | "lat">) {
   return highlandAltitude(s.lon, s.lat);
 }
 /** Metres a tier stands for: steps in a mountain range are higher than a floodplain's. */
-export const metresPerTier = (relief: number) => 40 + relief * 160;
+// The second factor keeps most of a range's height now that it climbs in fewer, taller steps.
+export const metresPerTier = (relief: number) => ((40 + relief * 160) * (1 + relief * 7)) / (1 + relief * 3.5);

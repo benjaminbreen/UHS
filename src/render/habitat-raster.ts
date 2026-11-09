@@ -44,7 +44,9 @@ import {
   shoreOnTier,
   shoreWidth,
   shorePixel,
+  tidalFlat,
 } from "./material-edges";
+import { waterDistance } from "../core/water-field";
 import {
   paletteKey,
   type Ecology,
@@ -361,6 +363,16 @@ export function rasterHabitatTile(
   cell: TopographyCell = sample(x, y)!,
 ): GroundTileData {
   const tile = bareHabitatTile(sample, x, y, ox, oy, art, cell);
+  // The tide's mud laps into the shore's own cells along the same line the
+  // water tiles draw it to, whatever the beach here is made of.
+  const v = cell.waterVisual;
+  if (v?.shelf !== undefined && v.distance < 1.6 && cell.surface !== "water" && cell.feature !== "paving" && !cell.bridge)
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const d = waterDistance(sample, x + (px + 0.5) / 16, y + (py + 0.5) / 16);
+        const mud = d < 0.8 ? tidalFlat(cell, d, (x + ox) * 16 + px, (y + oy) * 16 + py) : undefined;
+        if (mud) tile.pixels.set(mud, (py * 16 + px) * 4);
+      }
   if (snowCover() || frostCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
   return tile;
 }

@@ -175,7 +175,12 @@ export function createEnvironment(
     }
     return s.water.startsWith("river") ? plan.river(mx, my).water : 1000;
   };
-  const tierFor = (h: number, ceiling: number) => {
+  // How many steps the ground may climb: a floodplain tops out at two, a
+  // mountain range at four or five. More than that on one hillside draws
+  // a rule every few cells, so a range reads by its faces, not their count.
+  const ceilingOf = (relief: number) => Math.max(2, 1 + relief * 3.5, form ? formCeiling[form] : 0);
+  // Spread across the landform's whole working range rather than fixed bands.
+  const tierOfHeight = (h: number, ceiling: number) => {
     const t = Math.min(1, Math.max(0, (h - 0.28) / 0.52));
     return Math.min(Math.round(ceiling), Math.round(Math.pow(t, 1.15) * ceiling));
   };
@@ -198,7 +203,7 @@ export function createEnvironment(
       s.relief ?? 0,
       0.1,
     );
-    const ceiling = Math.max(2, 1 + relief * 8, form ? formCeiling[form] : 0);
+    const ceiling = ceilingOf(relief);
     // Search near real outlets; dry blocks need not contain a stream.
     if (kind) {
       const count = connectedWater ? 2 : simpleWater ? 1 : 2 + Math.floor(random(seed, "stream-count", bx, by) * 3);
@@ -220,7 +225,7 @@ export function createEnvironment(
         if (taken.length >= count) break;
         if (taken.some(([tx, ty]) => Math.hypot(tx - c.p[0], ty - c.p[1]) < 40)) continue;
         const stream = connectedWater && kind === "creek"
-          ? tributary(seed, `${kind}-${bx}-${by}-${taken.length}`, c.p, openWater, field, (h) => tierFor(h, ceiling))
+          ? tributary(seed, `${kind}-${bx}-${by}-${taken.length}`, c.p, openWater, field, (h) => tierOfHeight(h, ceiling))
           : walkStream(
           seed,
           `${kind}-${bx}-${by}-${taken.length}`,
@@ -228,7 +233,7 @@ export function createEnvironment(
           field,
           // Inside the channel proper, not merely near its bank.
           (x, y) => openWater(x, y) < -2,
-          (h) => tierFor(h, ceiling),
+          (h) => tierOfHeight(h, ceiling),
           60,
           0.006,
           (x, y) => Math.min(120, openWater(x, y)),
@@ -287,9 +292,34 @@ export function createEnvironment(
     return out;
   };
   const stationTiers = new Map<string, number>();
-  const tierOfHeight = (h: number, ceiling: number) => {
-    const t = Math.min(1, Math.max(0, (h - 0.28) / 0.52));
-    return Math.min(Math.round(ceiling), Math.round(Math.pow(t, 1.15) * ceiling));
+  // The height the terraces are cut from: the landform, plus lobes about a
+  // step tall so a hillside's brinks run in spurs and bays rather than as
+  // parallel rules, then a median over a disc, which rounds corners and
+  // drops any plateau, pit or sliver too small to stand on.
+  const lobed = new Map<number, number>();
+  const lobedHeight = (x: number, y: number, ceiling: number) => {
+    const key = x * 2097152 + y;
+    let h = lobed.get(key);
+    if (h === undefined) {
+      const fx = regional ? x + origin.x : x,
+        fy = regional ? y + origin.y : y;
+      h =
+        field(x, y) +
+        ((noise(seed, fx, fy, 46, "terrace-lobe") - 0.5) * 2.4 +
+          (noise(seed, fx, fy, 17, "terrace-bay") - 0.5) * 1) *
+          (0.52 / ceiling);
+      trimCache(lobed, 262144);
+      lobed.set(key, h);
+    }
+    return h;
+  };
+  const DISC: [number, number][] = [];
+  for (let dy = -3; dy <= 3; dy++)
+    for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= 10) DISC.push([dx, dy]);
+  const window = new Float64Array(DISC.length);
+  const terraceHeight = (x: number, y: number, ceiling: number) => {
+    for (let i = 0; i < DISC.length; i++) window[i] = lobedHeight(x + DISC[i][0], y + DISC[i][1], ceiling);
+    return window.sort()[DISC.length >> 1];
   };
   const cache = new Map<number, LandSample>();
   const nativeWater = (x: number, y: number) => {
@@ -482,7 +512,6 @@ export function createEnvironment(
     const profile = ecologyProfiles[habitat.ecology];
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
-    const shape = field(x, y);
     let { water, floodplain, shoreWidth, waterFlow, kind, riverAlong, reef } = s.hydrologyRevision === 3 ? nativeWater(x, y) : mainWater(x, y);
     const town = regional
       ? (() => {
@@ -777,8 +806,6 @@ export function createEnvironment(
             0.28,
       ),
     );
-    // The place's own relief sets how many steps the ground may climb: a
-    // floodplain still tops out at two, a mountain range runs to nine.
     // The ambient regional relief describes the countryside; the setting's own
     // relief is the floor, so a mountain place raises the ground around it
     // rather than being levelled by whatever the region averages to.
@@ -789,43 +816,8 @@ export function createEnvironment(
     );
     // Fractional so the number of steps drifts with the countryside rather
     // than jumping at a block edge.
-    const ceiling = Math.max(2, 1 + relief * 8, form ? formCeiling[form] : 0);
-    // Spread across the landform's whole working range rather than three fixed
-    // bands. The old middle band swallowed most of the map into one tier, so
-    // no ceiling above it ever showed.
-    const tierOf = (h: number) => {
-      const t = Math.min(1, Math.max(0, (h - 0.28) / 0.52));
-      return Math.min(
-        Math.round(ceiling),
-        Math.round(Math.pow(t, 1.15) * ceiling),
-      );
-    };
-    // A town terraces rather than levels: sampling the landform broadly gives
-    // it a few wide steps to build on instead of a stair at every cell, while
-    // still letting it climb a hillside the way a real one does.
-    const built = !!regional?.placeAt(x, y);
-    let baseTier = tierOf(
-      built
-        ? (shape +
-            field(x - 4, y) +
-            field(x + 4, y) +
-            field(x, y - 4) +
-            field(x, y + 4)) /
-            5
-        : shape,
-    );
-    // A tier with no neighbour at the same height is a speck. Fall back to
-    // whichever neighbouring height is nearest rather than snapping to one.
-    const around = [
-      [0, -2],
-      [2, 0],
-      [0, 2],
-      [-2, 0],
-    ].map(([dx, dy]) => tierOf(field(x + dx, y + dy)));
-    if (!around.some((t) => t === baseTier))
-      baseTier = around.reduce((best, t) =>
-        Math.abs(t - baseTier) < Math.abs(best - baseTier) ? t : best,
-      );
+    const ceiling = ceilingOf(relief);
+    let baseTier = tierOfHeight(terraceHeight(x, y, ceiling), ceiling);
     // The terrace above the floodplain wanders: a straight reach otherwise
     // draws its first step as a ruled line the length of the screen.
     const terrace =
@@ -926,7 +918,8 @@ export function createEnvironment(
           ) * 14
         : level * 14,
       travelRoad: !!seam?.road && water >= 0,
-      summit: ceiling * 14,
+      // The land's stature, not its step count: scree, snow and alpine plants read it.
+      summit: Math.max(ceiling, 1 + relief * 8) * 14,
       ...(habitat.colorway === "ice" || altitude + level * metresPerTier(relief) > snowlineAt(s.lat, "summer") + 150
         ? { glacier: true }
         : {}),
@@ -937,7 +930,7 @@ export function createEnvironment(
         (habitat.ecology === "boreal-woodland" &&
           s.season === "winter") ||
         (["tundra", "boreal-woodland"].includes(habitat.ecology) &&
-          ceiling >= 6 &&
+          relief >= 0.625 &&
           level >= ceiling - 1) ||
         habitat.colorway === "ice" ||
         altitude + level * metresPerTier(relief) > snowlineAt(s.lat, s.season),

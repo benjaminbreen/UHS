@@ -141,7 +141,7 @@ export function createSettlementWorld(
   const relief = !!pack.setting?.terrainRevision;
   const environment =
     pack.setting?.terrainRevision === 2 ? pack.setting.environment : undefined;
-  const rawLand = environment
+  const land = environment
       ? createEnvironment(pack.setting!, seed, regional)
       : relief
         ? createReliefLandscape(pack.setting!, seed)
@@ -158,7 +158,7 @@ export function createSettlementWorld(
   const rawPlanner = regional
     ? regionalSettlements(
         regional,
-        rawLand.sample,
+        land.sample,
         seed,
         prepared?.regionalSites,
       )
@@ -169,8 +169,8 @@ export function createSettlementWorld(
           ...rawPlanner,
           sitesIn: (cx: number, cy: number) => {
             if (pack.setting?.environment?.population === "none") return [];
-            const x = cx * DISTRICT_SIZE - rawLand.origin.x,
-              y = cy * DISTRICT_SIZE - rawLand.origin.y;
+            const x = cx * DISTRICT_SIZE - land.origin.x,
+              y = cy * DISTRICT_SIZE - land.origin.y;
             if (
               x >= half ||
               x + DISTRICT_SIZE < -half ||
@@ -193,11 +193,11 @@ export function createSettlementWorld(
       : rawPlanner;
   const transport =
     regional && regionalPlanner
-      ? regionalTransport(regional, regionalPlanner.sitesIn, rawLand.sample)
+      ? regionalTransport(regional, regionalPlanner.sitesIn, land.sample)
       : undefined;
   const home = {
-    x: Math.floor(rawLand.origin.x / DISTRICT_SIZE),
-    y: Math.floor(rawLand.origin.y / DISTRICT_SIZE),
+    x: Math.floor(land.origin.x / DISTRICT_SIZE),
+    y: Math.floor(land.origin.y / DISTRICT_SIZE),
   };
   const startingSite = regionalPlanner
     ? [-1, 0, 1]
@@ -220,11 +220,8 @@ export function createSettlementWorld(
         )[0]
     : undefined;
   if (startingSite) regionalPlanner!.setHome(startingSite.id);
-  // Towns stand on straightened ground. Site choice reads the raw land, or
-  // terracing would recurse into it.
+  // Towns grade their own plots and streets on the land's terraces.
   const terraces = !!pack.setting?.terraceRevision && !!environment;
-  const land = terraces ? { ...rawLand, sample: terracedSample } : rawLand;
-  const TERRACE_BLOCK = 6;
   const terraceReach = (s: Site) => Math.max(14, s.profile.radius * 0.62);
   const townBuckets = new Map<string, Site[]>();
   /** The settlement whose built ground covers this cell, if any. */
@@ -259,31 +256,6 @@ export function createSettlementWorld(
       }
     }
     return best;
-  }
-  const terraceCache = new Map<string, ReturnType<typeof rawLand.sample>>();
-  /** Inside a town the contour follows a coarse grid anchored on the centre,
-   * so steps run straight for whole blocks and turn only at right angles. */
-  function terracedSample(x: number, y: number) {
-    const f = rawLand.sample(x, y);
-    // The shore keeps its own smooth rise: a block grid there cuts the beach into steps.
-    if (f.water < (f.floodplain ?? 2)) return f;
-    const s = townAt(x, y);
-    if (!s) return f;
-    const key = cellKey(x, y),
-      old = terraceCache.get(key);
-    if (old) return old;
-    const B = TERRACE_BLOCK;
-    const g = rawLand.sample(
-      s.center.x + Math.floor((x - s.center.x) / B) * B + B / 2,
-      s.center.y + Math.floor((y - s.center.y) / B) * B + B / 2,
-    );
-    const result =
-      g.water < (g.floodplain ?? 2) || g.elevation === f.elevation
-        ? f
-        : { ...f, elevation: g.elevation };
-    trimCache(terraceCache, 131072);
-    terraceCache.set(key, result);
-    return result;
   }
   const coord = (x: number, y: number) => ({
     x: Math.floor((x + land.origin.x) / DISTRICT_SIZE),
@@ -326,13 +298,13 @@ export function createSettlementWorld(
     });
     if (environment) {
       const suitability = (p: { x: number; y: number }) => {
-        const f = rawLand.sample(p.x, p.y),
+        const f = land.sample(p.x, p.y),
           near = [
             [-6, -6],
             [6, -6],
             [-6, 6],
             [6, 6],
-          ].map(([dx, dy]) => rawLand.sample(p.x + dx, p.y + dy));
+          ].map(([dx, dy]) => land.sample(p.x + dx, p.y + dy));
         return (
           near.reduce(
             (n, q) =>
@@ -354,7 +326,7 @@ export function createSettlementWorld(
         [-6, 6],
         [6, 6],
         [0, 0],
-      ].map(([x, y]) => rawLand.sample(p.x + x, p.y + y));
+      ].map(([x, y]) => land.sample(p.x + x, p.y + y));
       if (
         samples.some((f) => f.water < 5) ||
         Math.max(...samples.map((f) => f.elevation)) -
@@ -1808,7 +1780,8 @@ export function createSettlementWorld(
         // A track out in the fields cuts its own level through natural contours too.
         if (f.water < 0 || (road.kind !== "path" && townAt(pt.x, pt.y)?.id !== p.site.id)) continue;
         const tier = p.groundLevels?.get(cellKey(pt.x, pt.y)) ?? Math.round(f.elevation / 14);
-        const [lo, hi] = road.span ? spanOffsets(road.span) : [road.width, road.width];
+        // A footpath's worn ground laps a cell either side of its line, and steps with it.
+        const [lo, hi] = road.span ? spanOffsets(road.span) : [Math.max(1, road.width), Math.max(1, road.width)];
         for (let dy = -lo; dy <= hi; dy++)
           for (let dx = -lo; dx <= hi; dx++) {
             const key = cellKey(pt.x + dx, pt.y + dy);
@@ -1891,13 +1864,25 @@ export function createSettlementWorld(
           if (g.water < 0)
             height = Math.min(height, Math.round(g.elevation / 14)) as HeightTier;
         }
+    let graded = false;
     if (terraces && f.water >= 0)
       for (const p of nearby(x, y)) {
         const level = p.groundLevels?.get(cellKey(x, y)) ?? streetLevels(p).get(cellKey(x, y));
         if (level === undefined) continue;
         height = level;
+        graded = true;
         break;
       }
+    // A country road steps square across its width: each cell takes the
+    // middle tier of the road cells round it, so the lanes climb together.
+    if (!graded && regional && f.water >= 0 && regionalRoads(x, y).has(cellKey(x, y))) {
+      const tiers: number[] = [];
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          if (regionalRoads(x + dx, y + dy).has(cellKey(x + dx, y + dy)))
+            tiers.push(Math.round(land.sample(x + dx, y + dy).elevation / 14));
+      height = tiers.sort((a, b) => a - b)[tiers.length >> 1] as HeightTier;
+    }
     let decked = false;
     for (const p of nearby(x, y)) {
       let deck = bridgeDecks.get(p);
@@ -2215,64 +2200,46 @@ export function createSettlementWorld(
     if (old) return old;
     const result = new Map<string, "n" | "s" | "e" | "w">();
     slopePlans.set(plan.site.id, result);
-    const chosen: { x: number; y: number; h: number; dir: string }[] = [];
-    // One opening per nearby group of roads crossing the same step, never one
-    // per road pixel; a road that crosses two steps close together gets both.
-    const points = plan.roads
-      .flatMap((r) => r.points)
-      .sort((a, b) => a.y - b.y || a.x - b.x);
-    for (const p of points) {
-      const c = rawCell(p.x, p.y);
-      if (c.surface === "water" || c.bridge) continue;
-      for (const [dx, dy, dir] of [
-        [0, -1, "n"],
-        [1, 0, "e"],
-        [0, 1, "s"],
-        [-1, 0, "w"],
-      ] as const) {
-        const hi = rawCell(p.x + dx, p.y + dy),
-          lo = rawCell(p.x - dx, p.y - dy);
-        if (
-          hi.height !== c.height + 1 ||
-          lo.height !== c.height ||
-          hi.surface === "water" ||
-          lo.surface === "water"
-        )
-          continue;
-        const companion = [-1, 1]
-          .map((sign) => ({
-            x: p.x + sign * Math.abs(dy),
-            y: p.y + sign * Math.abs(dx),
-          }))
-          .find(
-            (q) =>
-              rawCell(q.x, q.y).height === c.height &&
-              rawCell(q.x + dx, q.y + dy).height === hi.height &&
-              rawCell(q.x - dx, q.y - dy).height === c.height,
-          );
-        if (!companion) continue;
-        if (chosen.some((q) => q.h === c.height && q.dir === dir && Math.hypot(q.x - p.x, q.y - p.y) < 10)) break;
-        result.set(cellKey(p.x, p.y), dir);
-        result.set(cellKey(companion.x, companion.y), dir);
-        // The whole street climbs, kerb to kerb, not a notch in its middle.
-        if (terraces) {
-          const levels = streetLevels(plan);
-          for (const sign of [-1, 1])
-            for (let k = 1; k <= 8; k++) {
-              const qx = p.x + sign * k * Math.abs(dy),
-                qy = p.y + sign * k * Math.abs(dx);
-              if (
-                !levels.has(cellKey(qx, qy)) ||
-                rawCell(qx, qy).height !== c.height ||
-                rawCell(qx + dx, qy + dy).height !== hi.height ||
-                rawCell(qx - dx, qy - dy).height !== c.height
-              )
-                break;
-              result.set(cellKey(qx, qy), dir);
-            }
+    // A ramp wherever a road actually steps up a bank, kerb to kerb: a road
+    // running along the foot of one has the bank beside it at every cell.
+    const dirOf = (dx: number, dy: number) => (dy < 0 ? "n" : dx > 0 ? "e" : dy > 0 ? "s" : "w");
+    const climb = (lo: Point, hi: Point, half: number) => {
+      const dx = hi.x - lo.x,
+        dy = hi.y - lo.y;
+      const steps = (x: number, y: number) => {
+        const c = rawCell(x, y),
+          up = rawCell(x + dx, y + dy);
+        return up.height === c.height + 1 && c.surface !== "water" && up.surface !== "water" && !c.bridge && !up.bridge;
+      };
+      if (!steps(lo.x, lo.y)) return;
+      const h = rawCell(lo.x, lo.y).height;
+      result.set(cellKey(lo.x, lo.y), dirOf(dx, dy));
+      for (const sign of [-1, 1])
+        for (let k = 1; k <= half; k++) {
+          const qx = lo.x + sign * k * Math.abs(dy),
+            qy = lo.y + sign * k * Math.abs(dx);
+          // The bank often crosses a road on the skew: each lane climbs where it meets it.
+          const t = [0, -1, 1].find((t) => rawCell(qx + t * dx, qy + t * dy).height === h && steps(qx + t * dx, qy + t * dy));
+          if (t === undefined) break;
+          result.set(cellKey(qx + t * dx, qy + t * dy), dirOf(dx, dy));
         }
-        chosen.push({ x: p.x, y: p.y, h: c.height, dir });
-        break;
+    };
+    for (const r of plan.roads) {
+      if (r.kind === "bridge") continue;
+      // Even a footpath's worn ground laps onto the cells either side of its line.
+      const half = Math.max(1, r.width, Math.floor(((r.span ?? 1) - 1) / 2));
+      for (let i = 1; i < r.points.length; i++) {
+        let a = r.points[i - 1],
+          b = r.points[i];
+        if (Math.abs(a.x - b.x) > 1 || Math.abs(a.y - b.y) > 1) continue;
+        if (rawCell(a.x, a.y).height > rawCell(b.x, b.y).height) [a, b] = [b, a];
+        if (rawCell(b.x, b.y).height !== rawCell(a.x, a.y).height + 1) continue;
+        if (a.x !== b.x && a.y !== b.y) {
+          // A diagonal step takes the bank on whichever leg of the corner has it.
+          const via = { x: b.x, y: a.y };
+          if (rawCell(via.x, via.y).height === rawCell(a.x, a.y).height) climb(via, b, half);
+          else climb(a, via, half);
+        } else climb(a, b, half);
       }
     }
     for(const launch of plan.launches ?? []) {

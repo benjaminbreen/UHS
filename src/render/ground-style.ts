@@ -191,7 +191,7 @@ export function defaultGroundStyle(): GroundStyle {
       contrast: 1.15,
       rise: 20,
       rim: 0.1,
-      backShade: 4,
+      backShade: 7,
       foot: true,
     },
   };

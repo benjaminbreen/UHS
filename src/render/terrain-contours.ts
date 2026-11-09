@@ -923,6 +923,13 @@ function rasterWallContours(
       const bare = !upper || upper.surface === "gravel" || capped(upper);
       return cliffPixel(rockOf(upper), r, drop, wx, wy, bare ? undefined : ground || trim.lip, stains[eco ?? "grassland"], cave);
     }
+    if (upper?.surface === "sand" && ground) {
+      // A sand step is a slump, not a cut: the beach's own sand, shaded in
+      // three soft bands that break along the face, darkest at the foot.
+      const f = (r + (contourNoise(Math.floor(wx / 4), wy, 1, 161) - 0.5) * 5) / drop;
+      const k = r === 0 ? 1.06 : f < 0.3 ? 0.93 : f < 0.72 ? 0.86 : 0.78;
+      return [ground[0] * k, ground[1] * k, ground[2] * k * (k < 1 ? 0.97 : 1)];
+    }
     const pixel = styledBankPixel(style, r, drop, wx, wy);
     return pixel.kind === "earth"
       ? trim.earth[pixel.tone]
@@ -1115,7 +1122,7 @@ function rasterWallContours(
                     north < L && west === L && east === L
                     ? contourNoise(Math.floor((px + ox) / 3), py + oy, 1, 151) < 0.2
                       ? scale(tone, 1)
-                      : [0, 1, 2].map((k) => Math.min(255, tone[k] * 1.07 + 6))
+                      : [0, 1, 2].map((k) => Math.min(255, tone[k] * 1.12 + 8))
                     : lit(tone)
                   : trim.edge,
         );
@@ -1179,10 +1186,12 @@ function rasterWallContours(
       else if (north < L && L) {
         // The plateau shades the ground behind it in blocky steps, deepest
         // against the rim, so a step facing away still reads as one.
+        // Three soft steps, not one dark one: a single dark band at this
+        // width reads as a crack drawn across the grass.
         const reach = bank.backShade ?? 1;
         const deep = Math.min(reach, Math.max(1, reach - 2 + Math.floor(contourNoise(Math.floor((px + ox) / 3), py + oy, 1, 153) * 3)));
         for (let k = 1; k <= deep; k++)
-          occlude(row, L, px, sy - k, Math.round(72 * (1 - (k - 1) / (deep + 1))));
+          occlude(row, L, px, sy - k, [54, 36, 20][Math.min(2, Math.floor(((k - 1) * 3) / deep))]);
       }
       // East and west drops show a sliver of the same face, so they read as
       // one object with the south wall rather than as a stray line.
@@ -1211,15 +1220,34 @@ function rasterWallContours(
           // sliver's width a cliff facing east or west read as a crack. A
           // one-tier step widened so is a dark notch in the bank instead.
           const rocky = !material?.edge && material?.feature !== "paving" && material?.surface !== "sand";
-          const width = pours ? sideFace + 3 : away ? Math.max(1, sideFace - 1) : sideFace + (rocky && L - n >= 2 ? 3 : 0);
+          // Rock shows its full side where the rim runs north to south and
+          // less as it leans: on a diagonal every column already has a south
+          // face, and a wide side on each would saw the brink.
+          const lean = (y: number) => {
+            for (let d = 0; d <= 12; d++)
+              for (const x of [px + d, px - d])
+                if (lvl(x, y) === L && lvl(x + side, y) < L) return d;
+            return 12;
+          };
+          const width = pours
+            ? sideFace + 3
+            : rocky
+              ? Math.max(2, Math.round(7 - (lean(py - 8) + lean(py + 8)) * 0.4))
+              : away ? Math.max(1, sideFace - 1) : sideFace;
           for (let k = 1; k <= width; k++) {
-            const r = Math.round(((k - 1) / sideFace) * (R - 1));
-            const shade = tone * (away ? 0.82 : 1);
+            const r = Math.round(((k - 1) / Math.max(sideFace, width - 1)) * (R - 1));
+            const shade = rocky ? (s ? 0.8 : 0.94) : tone * (away ? 0.82 : 1);
             const at = (y: number) => {
               const c = material?.edge
                 ? facePixel(material, trim, r, R, sy + oy, px + ox)
-                : facePixel(material, trim, r, (L - n) * R, px + side * k + ox, y + oy, undefined, y - sy);
-              return [c[0] * shade, c[1] * shade, c[2] * shade];
+                : rocky
+                  ? // The lip, then the face's own rock taken in short runs
+                    // along the rim. Its depth below the rim restarts at
+                    // every row, which drew the whole side as lip.
+                    facePixel(material, trim, k === 1 ? 0 : 5 + Math.floor(contourNoise((px + side * k + ox) >> 1, Math.floor((y + oy) / 4), 1, 171) * (R - 8)), (L - n) * R, px + side * k + ox, y + oy)
+                  : facePixel(material, trim, r, (L - n) * R, px + side * k + ox, y + oy, undefined, y - sy);
+              const f = rocky && k === width ? shade * 0.82 : shade;
+              return [c[0] * f, c[1] * f, c[2] * f];
             };
             returns.push([
               row,
@@ -1563,9 +1591,9 @@ function rasterWallContours(
           const rise = along ? sy : px;
           const runPos = along ? px : sy;
           // Rail depth wanders 0–2 px along the run, so the side is a broken
-          // edge rather than two ruled lines; slopes have no rail at all.
+          // edge rather than two ruled lines; slopes and sand slumps have none.
           const railDepth =
-            style === "slope" || bed
+            style === "slope" || style === "sand" || bed
               ? 0
               : Math.floor(noise(Math.floor((rise + phase) / 3), 0, 99) * 3);
           const side =

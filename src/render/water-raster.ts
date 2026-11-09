@@ -1,5 +1,5 @@
 import { rasterHabitatTile } from "./habitat-raster";
-import { shoreDistance, shorePixel } from "./material-edges";
+import { shoreDistance, shorePixel, tidalFlat } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { bareShelf } from "../core/water-field";
 import { TERRAIN_RISE } from "./terrain-projection";
@@ -257,14 +257,6 @@ const hex = (c: string) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5),
 const ramp = (...c: string[]) => c.map(hex);
 const ICE = ramp("#f1f5f4", "#dde9ec", "#c6dce3", "#a9c6d2", "#86a9ba", "#6f93a8");
 const BERG = ramp("#f6fafb", "#dcedf3", "#b9d9e7", "#8fbdd4", "#5f93ad");
-// Wet, flat, raised, sunlit rim, dark speck.
-const MUD = ramp("#6c5140", "#7c5e49", "#8b6b52", "#a3825f", "#5a4436");
-const MANGROVE_MUD = ramp("#4a3c2f", "#574735", "#64523d", "#7a6a52", "#3b3026");
-// Light edge, water, shaded edge.
-const CREEK = ramp("#b4e6dc", "#68c0c0", "#4e9fa6");
-// Water, sky glint.
-const POOL = ramp("#7393b0", "#c4d8e6");
-const MARSH = ramp("#5f7449", "#6f8452", "#80955f", "#4b5a38");
 const LAGOON = ramp("#d6f0d9", "#ace5d3", "#7fd6cb", "#5bc3c5", "#3f9fb4");
 const CORAL = ramp("#8f7a5f", "#b99a72", "#cfb48a", "#d9cfb3");
 const GRASS = ramp("#4f8a6b", "#629c79");
@@ -311,38 +303,7 @@ export function specialWater(cell: TopographyCell, palette: WaterPalette, d: num
     if (!floe(wx, wy - 1)) return ICE[0];
     return waterNoise(wx, wy, 9, 617) > 0.62 ? ICE[0] : ICE[1];
   }
-  if (v.shelf !== undefined) {
-    const t = 1 + d / v.shelf;
-    // Only water tiles are rastered: stay 3/4 tile (a pixel's farthest reach
-    // from its centre) off the shore, or the flat ends on the grid.
-    if (d > -0.75 - waterNoise(wx, wy, 10, 629) * 0.6 || t < (v.tide ?? 0)) return;
-    const tropical = v.ecology === "tropical-woodland" || cell.habitat?.colorway === "mangrove";
-    const mud = tropical ? MANGROVE_MUD : MUD;
-    // Salt marsh above mid-tide on temperate shores, a small cliff at its foot.
-    const edge = 0.6 + (waterNoise(wx, wy, 16, 635) - 0.5) * 0.25;
-    if (!tropical && v.ecology !== "desert" && t > edge) {
-      if (waterNoise(wx, wy, 11, 637) > 0.7) return waterNoise(wx, wy, 11, 637) > 0.74 ? hex(palette.depths[0]) : MARSH[3];
-      if (t < edge + 0.03) return MARSH[3];
-      const tuft = waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 639);
-      return tuft > 0.8 ? MARSH[2] : tuft < 0.15 ? MARSH[0] : MARSH[1];
-    }
-    // Creeks widen as they drain to the low-water line.
-    const creek = Math.abs(waterNoise(wx, wy, 48, 633) - 0.5) / (0.012 + (1 - t) * 0.03);
-    if (creek < 1) return creek < 0.6 ? CREEK[1] : creek < 0.85 ? CREEK[(wy & 1) && creek > 0.7 ? 2 : 0] : mud[0];
-    // Pools lie on the low flats, the far lip lit, the water showing the sky.
-    const pool = (x: number, y: number) => waterNoise(x, y, 22, 631) * 0.75 + waterNoise(x, y, 7, 632) * 0.25;
-    if (t < 0.5 && pool(wx, wy) > 0.66) {
-      if (pool(wx, wy - 1) <= 0.66) return mud[0];
-      return (wy % 3) === 0 && waterHash(Math.floor(wx / 4), wy, 641) > 0.75 ? POOL[1] : POOL[0];
-    }
-    // Low lobes of drying mud stand out of the wet, sunlit along their top edge.
-    const lobe = (x: number, y: number) =>
-      waterNoise(x + (waterNoise(x, y, 17, 645) - 0.5) * 20, y, 30, 643) * 0.7 + waterNoise(x, y, 11, 644) * 0.3 + (t - 0.5) * 0.3;
-    const here = lobe(wx, wy), speck = waterHash(wx, wy, 647);
-    if (here < 0.4) return speck > 0.985 ? POOL[1] : mud[0];
-    if (here > 0.58) return lobe(wx, wy - 1) <= 0.58 || speck > 0.97 ? mud[3] : mud[2];
-    return speck > 0.975 ? mud[3] : speck < 0.02 ? mud[4] : mud[1];
-  }
+  if (v.shelf !== undefined) return tidalFlat(cell, d, wx, wy);
   if (v.reef) {
     const crest = 5.5 + (waterNoise(wx, wy, 60, 645) - 0.5) * 3;
     if (v.reef === "outer" && d < -crest - 0.5) return living ? undefined : hex(palette.depths[Math.min(4, index + 2)]);

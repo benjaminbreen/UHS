@@ -140,8 +140,10 @@ export function handleTerrainRequest(data: TerrainRequest) {
           ...c,
           waterVisual: {
             ...c.waterVisual,
+            // A tidal shore keeps its true line: the mud above the tide is
+            // drawn by water and ground tiles both, and they must agree.
             distance:
-              c.waterVisual.kind === "sea"
+              c.waterVisual.kind === "sea" && c.waterVisual.shelf === undefined
                 ? coastDistance(
                     c.waterVisual.distance,
                     x + region.x,
