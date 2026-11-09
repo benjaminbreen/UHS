@@ -7,6 +7,7 @@ import type {
   Boundary,
   CropId,
   FarmSystem,
+  FarmZone,
 } from "../../content/agriculture/types";
 import { cropsFor, farmSystem } from "../../content/agriculture";
 import { crops } from "../../content/agriculture/crops";
@@ -193,7 +194,7 @@ export function planFarmland(input: {
   const outer = r + territoryReach(r, pack);
   if (outer - inner < 16) return;
   const [along, back] = system.module;
-  const strips = ["strip", "ribbon", "terrace"].includes(system.geometry);
+  const strips = ["strip", "ribbon"].includes(system.geometry);
   const wet = system.geometry === "basin";
   // Flood basins stand under the inundation until it drains.
   const flooded = system.irrigation === "flood" && waterscape(setting).flood >= 0.6;
@@ -201,18 +202,51 @@ export function planFarmland(input: {
   // fence on each side, with ground between.
   const boundaryWidth = 2;
   const systemIrrigates = IRRIGATED.has(system.irrigation);
-  const mix = cropsFor(system, setting.climate);
-  const pastoral = mix.every((m) => m.id === "pasture" || m.id === "fallow");
-  const orchardKinds = mix.filter((m) =>
-    ["tree", "vine", "vegetable"].includes(crops[m.id].kind),
-  );
-  /** Crops in a fixed rotation, each repeated by its share, so successive
-   * furlongs alternate the way a three-course rotation does rather than
-   * rolling dice per field. */
-  const rotation: CropId[] = [];
-  for (const m of mix)
-    for (let i = 0; i < Math.max(1, Math.round(m.share * 6)); i++)
-      rotation.push(m.id);
+  const landUse = (zone: FarmZone) => {
+    const mix = cropsFor(zone, setting.climate);
+    /** Crops in a fixed rotation, each repeated by its share, so successive
+     * furlongs alternate the way a three-course rotation does rather than
+     * rolling dice per field. */
+    const rotation: CropId[] = [];
+    for (const m of mix)
+      for (let i = 0; i < Math.max(1, Math.round(m.share * 6)); i++)
+        rotation.push(m.id);
+    return {
+      rotation,
+      pastoral: mix.every((m) => m.id === "pasture" || m.id === "fallow"),
+      orchardKinds: mix.filter((m) =>
+        ["tree", "vine", "vegetable"].includes(crops[m.id].kind),
+      ),
+    };
+  };
+  const slopeZone: FarmZone = system.slope ?? system;
+  const uplandZone: FarmZone = system.upland ?? slopeZone;
+  const lands = {
+    floor: landUse(system),
+    slope: landUse(slopeZone),
+    upland: landUse(uplandZone),
+  };
+  // The valley floor is the lowest tier with real ground on it, the upland
+  // the highest, where the land climbs far enough to have one.
+  const tierArea = new Map<number, number>();
+  let landCells = 0;
+  for (let y = c.y - outer; y <= c.y + outer; y += 4)
+    for (let x = c.x - outer; x <= c.x + outer; x += 4) {
+      const f = sample(x, y);
+      if (f.water < 4) continue;
+      const t = Math.round(f.elevation / 14);
+      tierArea.set(t, (tierArea.get(t) ?? 0) + 1);
+      landCells++;
+    }
+  const broad = [...tierArea].filter(([, n]) => n >= landCells * 0.06).map(([t]) => t);
+  const floorTier = Math.min(...broad),
+    topTier = Math.max(...broad);
+  const zoneOfTier = (t: number) =>
+    t <= floorTier ? "floor" : t >= topTier && topTier - floorTier >= 2 ? "upland" : "slope";
+  const terraceOfTier = (t: number) => {
+    const zone = zoneOfTier(t);
+    return zone === "floor" ? undefined : (zone === "upland" ? uplandZone : slopeZone).terrace;
+  };
 
   // --- Ground -----------------------------------------------------------------
   /** Elevation bands crossed over eight cells: the slope a system can farm. */
@@ -429,6 +463,8 @@ export function planFarmland(input: {
   // The nearest fresh water worth digging to. Found before anything is laid:
   // whether there is a source at all decides both who irrigates and whether
   // the channels have water in them.
+  /** Every river, lake, creek and rivulet in reach, sampled every third cell. */
+  const fresh: Point[] = [];
   const source = (() => {
     let best = Infinity,
       found: Point | undefined;
@@ -436,7 +472,9 @@ export function planFarmland(input: {
       for (let x = c.x - outer - 24; x <= c.x + outer + 24; x += 3) {
         const f = sample(x, y);
         // Real fresh water only: a beach cell at the shore is not a source.
-        if (f.water >= -1 || f.kind === "sea") continue;
+        // A rivulet is under a cell across, so its centre is barely wet.
+        if (f.water >= 1 || f.kind === "sea") continue;
+        fresh.push({ x, y });
         const d = Math.hypot(x - c.x, y - c.y);
         if (d > edge + 4 && d < best) {
           best = d;
@@ -448,6 +486,16 @@ export function planFarmland(input: {
   // A system that documents irrigation digs wherever it settles; anywhere
   // dry enough to need it digs too, so long as there is water to divert.
   const thirsty = ["arid", "mediterranean"].includes(setting.climate);
+  const freshDist = (p: Point) => {
+    let best = Infinity;
+    for (const q of fresh) best = Math.min(best, Math.abs(q.x - p.x) + Math.abs(q.y - p.y));
+    return best;
+  };
+  // How far from a stream a field may lie: a system that lives by its water,
+  // and any system in dry country, keeps to the banks; one that farms on
+  // rain spreads where it likes. No stream in reach, no rule.
+  const pull = Math.min(1, system.riverside + (thirsty ? 0.4 : 0));
+  const dryLimit = fresh.length && pull > 0 ? 24 + (1 - pull) * 110 : Infinity;
   const irrigated = systemIrrigates || (thirsty && !!source);
   // Empty channels: a flood system outside its flood, high summer in a dry
   // country, when the head is spent upstream, or a dry country with no
@@ -518,8 +566,7 @@ export function planFarmland(input: {
   // step's line: each bench a band at a set share of the way from the lip
   // below to the foot of the rise above, so a bench narrows where the ledge
   // does and bends with it. The grid leaves this ground alone.
-  const benched =
-    system.geometry === "terrace" || (wet && system.slopeLimit >= 4);
+  const benched = !!(slopeZone.terrace || uplandZone.terrace);
   // Benches near the town only: further out the grid's fields stop at steps.
   const hillReach = Math.min(outer, edge + 48);
   const side = hillReach * 2 + 1,
@@ -598,9 +645,11 @@ export function planFarmland(input: {
         if (d < edge - 1) continue;
         const f = sample(wx, wy);
         level[i] = Math.round(f.elevation / 14);
+        const terrace = terraceOfTier(level[i]);
         open[i] = +(
+          !!terrace &&
           d >= edge &&
-          f.water >= (wet ? 3 : 4) &&
+          f.water >= (terrace.wet ? 3 : 4) &&
           !f.snow &&
           f.moisture > 0.12 &&
           !taken(wx, wy) &&
@@ -624,23 +673,29 @@ export function planFarmland(input: {
       }
     }
     // A broad ledge is terraced only near its lip; a narrow one, all across.
-    const near = 14,
-      narrow = 40;
+    const narrow = 40;
     const down = spread(lips, lips, (j) => !!open[j], narrow).dist;
     const up = spread(feet, feet, (j) => !!open[j], narrow).dist;
-    const depth = Math.max(3, back - 1);
     for (let i = 0; i < open.length; i++) {
       if (down[i] < 0) continue;
+      const terrace = terraceOfTier(level[i])!;
       const d = down[i] / 5;
       const u = up[i] < 0 ? Infinity : up[i] / 5;
       // The cell at the lip and at the foot stays a grass bank.
       if (d < 1 || u < 1) continue;
+      // A bench swells and pinches as it follows the hill.
+      const drift =
+        (noise(seed, bx0 + (i % side), by0 + ((i / side) | 0), 12, "bench") - 0.5) *
+        terrace.sinuous *
+        terrace.depth *
+        1.6;
       const span = d + u;
       let b: number;
       if (span <= narrow) {
-        const n = Math.max(1, Math.round(span / depth));
-        b = Math.min(n - 1, Math.floor((d / span) * n));
-      } else if (d <= near) b = Math.floor((d - 1) / depth);
+        const n = Math.max(1, Math.round(span / terrace.depth));
+        b = Math.max(0, Math.min(n - 1, Math.floor(((d + drift) / span) * n)));
+      } else if (d <= terrace.reach)
+        b = Math.max(0, Math.floor((d - 1 + drift) / terrace.depth));
       else continue;
       benchAt[i] = b;
       rise[i] = d;
@@ -660,7 +715,7 @@ export function planFarmland(input: {
         })
       )
         continue;
-      const len = along * (0.7 + rand("plot", bx0 + x, by0 + y) * 0.6);
+      const len = terraceOfTier(level[i])!.plot * (0.7 + rand("plot", bx0 + x, by0 + y) * 0.6);
       seeds.push(i);
       reach2.push(len * len);
     }
@@ -716,12 +771,16 @@ export function planFarmland(input: {
   const groupOf = new Map<number, number>();
   const reach = outer - inner;
   const rows = strips ? 1 : 2;
-  const alongCells = strips ? along * 2 : along;
+  // Fields in one enclosure share their boundaries: a furlong of six strips,
+  // four blocks to a hedged close. Only a clearing stands alone.
+  const per = system.geometry === "clearing" ? 1 : strips ? 6 : 2;
+  const rowGap = per === 1 ? boundaryWidth : 0;
+  const alongCells = strips ? Math.round(along * 1.5) : along;
   const backCells = strips ? Math.round(back * 1.25) : back;
-  const bandDepth = backCells * rows + boundaryWidth * (rows - 1);
+  const bandDepth = backCells * rows + rowGap * (rows - 1);
   const pitch = bandDepth + 1;
-  const crossPitch = alongCells + boundaryWidth;
-  const use = (u: number, group: number, band: number, k: number) => {
+  const loose = per === 2 ? (1 - system.regularity) * 0.5 : 0;
+  const use = (u: number, group: number, band: number, k: number, pastoral: boolean) => {
     if (pastoral) return "pasture";
     const t = (u - inner) / reach;
     if (system.geometry === "clearing")
@@ -735,17 +794,124 @@ export function planFarmland(input: {
     return group % 3 === 0 ? "pasture" : "none";
   };
   const furlongCrop = (
+    land: (typeof lands)["floor"],
     k: number,
     band: number,
     group: number,
     orchard: boolean,
   ): CropId => {
-    if (orchard && orchardKinds.length)
-      return orchardKinds[(k + band + group) % orchardKinds.length].id;
-    return rotation[(band * 2 + group + k) % rotation.length];
+    if (orchard && land.orchardKinds.length)
+      return land.orchardKinds[(k + band + group) % land.orchardKinds.length].id;
+    return land.rotation[(band * 2 + group + k) % land.rotation.length];
   };
   let nextParcel = 1,
     nextGroup = 1;
+  // --- Benches ----------------------------------------------------------------
+  // Cut before the grid, which takes what level ground is left. Nearest
+  // first, a plot to each slice of each bench. Furrows run along the bench,
+  // across the way the ground falls. Bench plots are a quarter the size of a
+  // field, so a hillside gets several to each field the cap allows.
+  const benchParcels = new Set<number>();
+  const benchCap = cap * 3;
+  const gridCount = () => parcels.length - benchParcels.size;
+  const centreOf = (cells: number[]) => {
+    let sx = 0,
+      sy = 0;
+    for (const i of cells) {
+      sx += i % side;
+      sy += (i / side) | 0;
+    }
+    return { x: bx0 + sx / cells.length, y: by0 + sy / cells.length };
+  };
+  const ordered = plots
+    .map((p) => ({ ...p, d: dist(centreOf(p.cells)) }))
+    .sort((a, b) => a.d - b.d);
+  const riseAt = (x: number, y: number, i: number) =>
+    hill(x, y) && level[slot(x, y)] === level[i] ? rise[slot(x, y)] : rise[i];
+  for (const plot of ordered) {
+    if (benchParcels.size >= benchCap) break;
+    const keys: string[] = [];
+    for (const i of plot.cells) {
+      const x = bx0 + (i % side),
+        y = by0 + ((i / side) | 0);
+      const key = cellKey(x, y);
+      if (
+        fields.has(key) ||
+        !arable(x, y) ||
+        laneMargin.has(key) ||
+        slotCells.has(key) ||
+        canals.has(key) ||
+        culverts.has(key)
+      )
+        continue;
+      keys.push(key);
+    }
+    if (keys.length < 6) continue;
+    const mine = new Set(keys);
+    let access: Point | undefined,
+      best = Infinity;
+    for (const key of keys) {
+      const [x, y] = key.split(",").map(Number);
+      for (const [dx, dy] of N4) {
+        const q = { x: x + dx, y: y + dy };
+        const qk = cellKey(q.x, q.y);
+        if (mine.has(qk) || fields.has(qk) || !arable(q.x, q.y)) continue;
+        if (N4.filter(([ex, ey]) => !taken(q.x + ex, q.y + ey)).length < 3)
+          continue;
+        // A path up the slope is the way in, where the plot has one.
+        const score =
+          dist(q) - (boxed(q.x, q.y) && stairs.has(slot(q.x, q.y)) ? 40 : 0);
+        if (score < best) [best, access] = [score, q];
+      }
+    }
+    if (!access) continue;
+    const id = nextParcel++;
+    benchParcels.add(id);
+    groupOf.set(id, 200000 + plot.tier * 1000 + plot.bench);
+    const terrace = terraceOfTier(plot.tier)!;
+    const land = lands[zoneOfTier(plot.tier)];
+    // One crop to a bench for most of its length, as a hillside is planted.
+    const crop: CropId = land.pastoral
+      ? "pasture"
+      : land.rotation[
+          (plot.bench + plot.tier * 2 + (rand("bench-crop", plot.slice, plot.bench) < 0.3 ? 1 : 0)) %
+            land.rotation.length
+        ];
+    const boundary: Boundary =
+      terrace.riser === "wall" ? "wall" : terrace.riser === "bund" ? "bund" : "baulk";
+    let x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
+    for (const key of keys) {
+      const [x, y] = key.split(",").map(Number);
+      const i = slot(x, y);
+      const gx = riseAt(x + 2, y, i) - riseAt(x - 2, y, i);
+      const gy = riseAt(x, y + 2, i) - riseAt(x, y - 2, i);
+      fields.set(key, {
+        parcel: id,
+        crop,
+        axis: Math.abs(gx) > Math.abs(gy) ? "y" : "x",
+        edges: 0,
+        fence: 0,
+        boundary,
+        wet: flooded || (!!terrace.wet && crops[crop].wet === true),
+        ...(system.irrigation === "flood" && { flood: flooded }),
+      });
+      x0 = Math.min(x0, x);
+      y0 = Math.min(y0, y);
+      x1 = Math.max(x1, x);
+      y1 = Math.max(y1, y);
+    }
+    parcels.push({
+      id,
+      rect: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
+      crop,
+      cells: keys.length,
+      access,
+    });
+  }
+
   const wedge = FRAMES.map((f, k) => ({
     f,
     k,
@@ -761,11 +927,11 @@ export function planFarmland(input: {
     band: 0,
   }));
   let ring = 0;
-  while (parcels.length < cap && wedge.some((w) => w.u + bandDepth <= outer)) {
+  while (gridCount() < cap && wedge.some((w) => w.u + bandDepth <= outer)) {
     for (const w of wedge) {
       const { f, k, axis } = w;
       const u = w.u;
-      if (u + bandDepth > outer || parcels.length >= cap) continue;
+      if (u + bandDepth > outer || gridCount() >= cap) continue;
       const band = w.band;
       const uEnd = u + bandDepth;
       const half = uEnd;
@@ -822,25 +988,34 @@ export function planFarmland(input: {
       const orchard = band === 0 && system.orchard > 0;
       let v = -half + 2;
       let index = 0;
-      while (v + alongCells <= half - 1 && parcels.length < cap) {
-        const groupIndex = strips ? Math.floor(index / 6) : index;
+      while (v + alongCells <= half - 1 && gridCount() < cap) {
+        const groupIndex = Math.floor(index / per);
         const groupId = nextGroup + groupIndex;
-        const land = use(u, groupIndex, band, k);
-        const crop: CropId =
-          land === "pasture"
-            ? "pasture"
-            : land === "fallow"
-              ? "fallow"
-              : furlongCrop(
-                  k,
-                  band,
-                  groupIndex,
-                  orchard && groupIndex % 2 === 0,
-                );
+        // A close is not cut in equal quarters: the pair lean one way, and
+        // each column's cross-boundary falls where its own holders set it.
+        const lean = Math.round((rand("lean", k, band, groupIndex) - 0.5) * loose * alongCells);
+        const wide = alongCells + (index % per ? -lean : lean);
+        const split = Math.round((rand("split", k, band, index) - 0.5) * loose * backCells);
+        const here = at(c, f, u + (bandDepth >> 1), v + (wide >> 1));
+        const zone = zoneOfTier(tierAt(here.x, here.y));
+        const land = use(u, groupIndex, band, k, lands[zone].pastoral);
         for (let row = 0; row < rows && land !== "none"; row++) {
-          const u0 = u + row * (backCells + boundaryWidth);
+          const sown: CropId =
+            land === "pasture"
+              ? "pasture"
+              : land === "fallow"
+                ? "fallow"
+                : furlongCrop(
+                    lands[zone],
+                    k,
+                    band,
+                    strips ? groupIndex : index + row,
+                    orchard && groupIndex % 3 === 0,
+                  );
+          const u0 = row ? u + backCells + split + rowGap : u;
+          const deep = rows === 1 ? backCells : row ? backCells - split : backCells + split;
           const corner = at(c, f, u0, v),
-            far = at(c, f, u0 + backCells - 1, v + alongCells - 1);
+            far = at(c, f, u0 + deep - 1, v + wide - 1);
           const rect = {
             x: Math.min(corner.x, far.x),
             y: Math.min(corner.y, far.y),
@@ -849,7 +1024,15 @@ export function planFarmland(input: {
           };
           const mid = { x: rect.x + (rect.w >> 1), y: rect.y + (rect.h >> 1) };
           if (foreign(mid.x, mid.y)) continue;
-          if (wet && !nearWater(mid.x, mid.y)) continue;
+          if (freshDist(mid) > dryLimit) continue;
+          // Paddy needs water to hand; the same farmers sow the dry ground
+          // beyond it with whatever else they grow.
+          let crop = sown;
+          if (wet && crops[crop].wet && !nearWater(mid.x, mid.y)) {
+            const dry = lands[zone].rotation.filter((id) => !crops[id].wet);
+            if (!dry.length) continue;
+            crop = dry[(index + row + band) % dry.length];
+          }
           if (
             Math.hypot(rect.x - c.x, rect.y - c.y) < edge ||
             Math.hypot(rect.x + rect.w - c.x, rect.y - c.y) < edge ||
@@ -878,6 +1061,7 @@ export function planFarmland(input: {
             const key = cellKey(x, y);
             return (
               arable(x, y) &&
+              !fields.has(key) &&
               !laneMargin.has(key) &&
               !slotCells.has(key) &&
               !canals.has(key) &&
@@ -926,10 +1110,10 @@ export function planFarmland(input: {
           // The worker steps in from the lane on the town side, or from the
           // far side where the near one is wall, water or someone's yard.
           const access = [
-            at(c, f, u0 - 1, v + (alongCells >> 1)),
-            at(c, f, u0 + backCells, v + (alongCells >> 1)),
-            at(c, f, u0 + (backCells >> 1), v - 1),
-            at(c, f, u0 + (backCells >> 1), v + alongCells),
+            at(c, f, u0 - 1, v + (wide >> 1)),
+            at(c, f, u0 + deep, v + (wide >> 1)),
+            at(c, f, u0 + (deep >> 1), v - 1),
+            at(c, f, u0 + (deep >> 1), v + wide),
           ].find(
             (q) =>
               arable(q.x, q.y) &&
@@ -944,112 +1128,14 @@ export function planFarmland(input: {
           if (!access) continue;
           parcels.push({ id, rect, crop, cells, access });
         }
-        v += crossPitch + (strips && index % 6 === 5 ? 1 : 0);
+        v += wide + (index % per === per - 1 ? boundaryWidth + (strips ? 1 : 0) : 0);
         index++;
       }
-      nextGroup += strips ? Math.ceil(index / 6) + 1 : index + 1;
+      nextGroup += Math.ceil(index / per) + 1;
       w.u = uEnd + 1;
       w.band++;
     }
     ring++;
-  }
-
-  // --- Benches ----------------------------------------------------------------
-  // Nearest first, a plot to each slice of each bench. Furrows run along the
-  // bench, across the way the ground falls.
-  const benchParcels = new Set<number>();
-  const benchCap = cap + (cap >> 1);
-  const centreOf = (cells: number[]) => {
-    let sx = 0,
-      sy = 0;
-    for (const i of cells) {
-      sx += i % side;
-      sy += (i / side) | 0;
-    }
-    return { x: bx0 + sx / cells.length, y: by0 + sy / cells.length };
-  };
-  const ordered = plots
-    .map((p) => ({ ...p, d: dist(centreOf(p.cells)) }))
-    .sort((a, b) => a.d - b.d);
-  const riseAt = (x: number, y: number, i: number) =>
-    hill(x, y) && level[slot(x, y)] === level[i] ? rise[slot(x, y)] : rise[i];
-  for (const plot of ordered) {
-    if (parcels.length >= benchCap) break;
-    const keys: string[] = [];
-    for (const i of plot.cells) {
-      const x = bx0 + (i % side),
-        y = by0 + ((i / side) | 0);
-      const key = cellKey(x, y);
-      if (
-        fields.has(key) ||
-        !arable(x, y) ||
-        laneMargin.has(key) ||
-        slotCells.has(key) ||
-        canals.has(key) ||
-        culverts.has(key)
-      )
-        continue;
-      keys.push(key);
-    }
-    if (keys.length < 6) continue;
-    const mine = new Set(keys);
-    let access: Point | undefined,
-      best = Infinity;
-    for (const key of keys) {
-      const [x, y] = key.split(",").map(Number);
-      for (const [dx, dy] of N4) {
-        const q = { x: x + dx, y: y + dy };
-        const qk = cellKey(q.x, q.y);
-        if (mine.has(qk) || fields.has(qk) || !arable(q.x, q.y)) continue;
-        if (N4.filter(([ex, ey]) => !taken(q.x + ex, q.y + ey)).length < 3)
-          continue;
-        // A path up the slope is the way in, where the plot has one.
-        const score =
-          dist(q) - (boxed(q.x, q.y) && stairs.has(slot(q.x, q.y)) ? 40 : 0);
-        if (score < best) [best, access] = [score, q];
-      }
-    }
-    if (!access) continue;
-    const id = nextParcel++;
-    benchParcels.add(id);
-    groupOf.set(id, 200000 + plot.tier * 1000 + plot.bench);
-    const crop: CropId = pastoral
-      ? "pasture"
-      : orchardKinds.length &&
-          rand("bench-crop", plot.slice, plot.bench) < system.orchard * 1.6
-        ? orchardKinds[(plot.slice + plot.bench) % orchardKinds.length].id
-        : rotation[(plot.slice * 2 + plot.bench) % rotation.length];
-    let x0 = Infinity,
-      y0 = Infinity,
-      x1 = -Infinity,
-      y1 = -Infinity;
-    for (const key of keys) {
-      const [x, y] = key.split(",").map(Number);
-      const i = slot(x, y);
-      const gx = riseAt(x + 2, y, i) - riseAt(x - 2, y, i);
-      const gy = riseAt(x, y + 2, i) - riseAt(x, y - 2, i);
-      fields.set(key, {
-        parcel: id,
-        crop,
-        axis: Math.abs(gx) > Math.abs(gy) ? "y" : "x",
-        edges: 0,
-        fence: 0,
-        boundary: system.boundary,
-        wet: flooded || (wet && crops[crop].wet === true),
-        ...(system.irrigation === "flood" && { flood: flooded }),
-      });
-      x0 = Math.min(x0, x);
-      y0 = Math.min(y0, y);
-      x1 = Math.max(x1, x);
-      y1 = Math.max(y1, y);
-    }
-    parcels.push({
-      id,
-      rect: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
-      crop,
-      cells: keys.length,
-      access,
-    });
   }
 
   // --- Feeder -----------------------------------------------------------------
@@ -1185,7 +1271,8 @@ export function planFarmland(input: {
         const step =
           benchAt[slot(x, y)] - benchAt[slot(x + dx, y + dy)];
         if (step > 0) riser |= bit;
-        if (step) continue;
+        // Plots along one bench are parted by a marker stone, not a wall.
+        continue;
       }
       if (!n || n.parcel !== cell.parcel) edges |= bit;
       if (!n || groupOf.get(n.parcel) !== group) fence |= bit;

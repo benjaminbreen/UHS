@@ -76,8 +76,6 @@ export type ParcelGeometry =
   | "block"
   /** Long lots running back from a river or road frontage. */
   | "ribbon"
-  /** Bands following the elevation contours on a slope. */
-  | "terrace"
   /** Level basins bounded by bunds, flooded from a channel. */
   | "basin"
   /** Irregular clearings in woodland, shifting with fallow. */
@@ -127,6 +125,30 @@ export type Outbuilding =
   | "dovecote"
   | "press";
 
+/** How a slope is cut into benches. The benches are half-steps: drawn drops
+ * inside one tier of the land, which nobody has to climb round. */
+export type Terrace = {
+  /** What holds a bench up: dry stone, an earth bund, or a turf bank. */
+  riser: "wall" | "bund" | "bank";
+  /** Bench depth in cells, front to back. */
+  depth: number;
+  /** Plot length along the bench. */
+  plot: number;
+  /** How far back from a brink a broad ledge is benched; a narrow one is
+   * benched right across. */
+  reach: number;
+  /** 0 even bands, 1 benches that swell and pinch as they follow the hill. */
+  sinuous: number;
+  /** Flooded behind the riser. */
+  wet?: boolean;
+};
+
+/** What the ground above the valley floor carries. */
+export type FarmZone = {
+  crops: readonly { id: CropId; share: number }[];
+  terrace?: Terrace;
+};
+
 export type FarmSystem = {
   id: string;
   label: string;
@@ -141,6 +163,11 @@ export type FarmSystem = {
   crops: readonly { id: CropId; share: number }[];
   /** Share of the nearest ring given to orchards and gardens. */
   orchard: number;
+  /** The tiers between the valley floor and the top, where they are farmed
+   * differently from the floor: `geometry` and `crops` describe the floor. */
+  slope?: FarmZone;
+  /** The highest ground, where the land climbs two tiers or more. */
+  upland?: FarmZone;
   /** Steepest slope farmed, as elevation bands crossed per 8 cells. */
   slopeLimit: number;
   /** Pull toward river and lake margins: 0 indifferent, 1 only there. */

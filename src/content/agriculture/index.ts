@@ -56,7 +56,7 @@ export function cropStage(crop: CropId, season: Season, lat: number): CropStage 
 /** The system's crops that grow in this climate, shares renormalised. Falls
  * back to the full list when none fit, so a parcel always has a crop. */
 export function cropsFor(
-  system: FarmSystem,
+  system: Pick<FarmSystem, "crops">,
   climate: Climate,
 ): { id: CropId; share: number }[] {
   const fit = system.crops.filter((c) => crops[c.id].climates.includes(climate));

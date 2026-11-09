@@ -3008,9 +3008,10 @@ export function planSettlement(
             x < rows.x + rows.w &&
             y >= rows.y &&
             y < rows.y + rows.h &&
-            // Trodden baulks the gardener works from: across a long bed, and
-            // down a wide one, so no plant is out of arm's reach.
-            !(rows.h >= 4 && y === rows.y + (rows.h >> 1)) &&
+            // Trodden baulks the gardener works from: beds two rows deep
+            // with a path between, and one down a wide plot, so no plant is
+            // out of arm's reach.
+            !(rows.h >= 4 && (rows.h < 6 ? y === rows.y + (rows.h >> 1) : (y - rows.y) % 3 === 2)) &&
             !(rows.w >= 6 && x === rows.x + (rows.w >> 1)) &&
             !open(x, y) &&
             !propCells.has(cellKey(x, y));

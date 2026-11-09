@@ -24,19 +24,32 @@ const mediterraneanTerraces = mediterraneanCultures.map(
     to: 1950,
     bounds: [-10, 30, 40, 45],
     climates: ["mediterranean", "arid"],
-    geometry: "terrace",
-    module: [20, 5],
+    geometry: "block",
+    module: [14, 9],
     regularity: 0.35,
     boundary: "wall",
     irrigation: "none",
     crops: [
-      { id: "wheat", share: 0.3 },
-      { id: "barley", share: 0.1 },
-      { id: "olive", share: 0.2 },
-      { id: "vine", share: 0.15 },
-      { id: "fallow", share: 0.15 },
-      { id: "pasture", share: 0.1 },
+      { id: "wheat", share: 0.4 },
+      { id: "barley", share: 0.15 },
+      { id: "vine", share: 0.1 },
+      { id: "vegetables", share: 0.05 },
+      { id: "fallow", share: 0.3 },
     ],
+    slope: {
+      crops: [
+        { id: "olive", share: 0.45 },
+        { id: "vine", share: 0.4 },
+        { id: "wheat", share: 0.15 },
+      ],
+      terrace: { riser: "wall", depth: 3, plot: 10, reach: 18, sinuous: 0.3 },
+    },
+    upland: {
+      crops: [
+        { id: "pasture", share: 0.8 },
+        { id: "fallow", share: 0.2 },
+      ],
+    },
     orchard: 0.3,
     slopeLimit: 5,
     riverside: 0.2,
@@ -93,6 +106,187 @@ const mechanised = [...americas, "european", "east-asian"].map((culture) => {
   };
   return rule;
 });
+
+/** Polynesia either side of the date line; Australia is outside both boxes. */
+const pacificGardens = (
+  [
+    [155, -24, 180, 24],
+    [-180, -28, -108, 24],
+  ] as const
+).map(
+  (bounds): FarmSystemRule => ({
+    id: "pacific-root-gardens",
+    label: "Walled root gardens and taro pondfields",
+    culture: "australian-pacific",
+    from: -1000,
+    to: 1900,
+    bounds,
+    geometry: "block",
+    module: [8, 6],
+    regularity: 0.3,
+    boundary: "wall",
+    irrigation: "none",
+    crops: [
+      { id: "taro", share: 0.3 },
+      { id: "yam", share: 0.25 },
+      { id: "sugarcane", share: 0.05 },
+      { id: "orchard", share: 0.15 },
+      { id: "fallow", share: 0.25 },
+    ],
+    slope: {
+      crops: [
+        { id: "taro", share: 0.8 },
+        { id: "orchard", share: 0.2 },
+      ],
+      terrace: { riser: "wall", depth: 2, plot: 6, reach: 14, sinuous: 0.6, wet: true },
+    },
+    upland: {
+      crops: [
+        { id: "yam", share: 0.3 },
+        { id: "fallow", share: 0.7 },
+      ],
+    },
+    orchard: 0.4,
+    slopeLimit: 4,
+    riverside: 0.5,
+    reach: 1.8,
+    commons: false,
+    outbuildings: [],
+    evidence: {
+      status: "inferred",
+      note: "Island gardens of taro, yam, breadfruit and coconut inside low stone walls, with stone-faced taro pondfields stepped up the stream valleys of the high islands, as at Hawaii, Rarotonga and Futuna; the same pattern is assumed for islands not separately researched.",
+      sources: [
+        "https://en.wikipedia.org/wiki/Lo%CA%BBi",
+        "https://en.wikipedia.org/wiki/Polynesian_agriculture",
+      ],
+    },
+  }),
+);
+
+/** Paddy on the floor throughout; the hills are cut into flooded benches
+ * only from the Tang, when the south filled up. */
+const riceBase: Omit<FarmSystemRule, "from" | "to" | "bounds"> = {
+  id: "east-asian-wet-rice-basins",
+  label: "Bunded rice paddies",
+  culture: "east-asian",
+  geometry: "basin",
+  module: [8, 8],
+  regularity: 0.4,
+  boundary: "bund",
+  irrigation: "river",
+  crops: [
+    { id: "rice", share: 0.7 },
+    { id: "wheat", share: 0.1 },
+    { id: "vegetables", share: 0.1 },
+    { id: "orchard", share: 0.1 },
+  ],
+  orchard: 0.3,
+  slopeLimit: 2,
+  riverside: 0.7,
+  reach: 2,
+  commons: false,
+  outbuildings: ["granary", "shrine", "threshing-floor", "well"],
+  evidence: {
+    status: "documented",
+    note: "Rice paddies of the Yangtze basin, south China, Korea and Japan are small level basins behind earth bunds, fed from streams and ponds, with a winter crop of wheat or rape on drained fields in the later period.",
+    sources: ["https://en.wikipedia.org/wiki/Paddy_field"],
+  },
+};
+
+const riceHills: Pick<FarmSystemRule, "slope" | "upland" | "slopeLimit"> = {
+  slope: {
+    crops: [
+      { id: "rice", share: 0.85 },
+      { id: "vegetables", share: 0.15 },
+    ],
+    terrace: { riser: "bund", depth: 2, plot: 9, reach: 40, sinuous: 0.9, wet: true },
+  },
+  upland: {
+    crops: [
+      { id: "millet", share: 0.3 },
+      { id: "orchard", share: 0.3 },
+      { id: "fallow", share: 0.4 },
+    ],
+  },
+  slopeLimit: 5,
+};
+
+const riceBasins: FarmSystemRule[] = [
+  {
+    ...riceBase,
+    id: "south-china-early-rice",
+    label: "Early rice paddies with millet",
+    from: -3000,
+    to: -1000,
+    bounds: [97, 22, 123, 34],
+    crops: [
+      { id: "rice", share: 0.5 },
+      { id: "millet", share: 0.25 },
+      { id: "vegetables", share: 0.1 },
+      { id: "fallow", share: 0.15 },
+    ],
+    evidence: {
+      status: "inferred",
+      note: "Rice and foxtail millet are both found at Baodun-culture sites on the Chengdu Plain from about 2700 BCE and at Sanxingdui after them; small bunded paddies beside the streams are inferred from the Yangtze sites downstream.",
+      sources: ["https://en.wikipedia.org/wiki/Baodun_culture"],
+    },
+  },
+  { ...riceBase, from: -1000, to: 600, bounds: [100, 18, 146, 34] },
+  { ...riceBase, ...riceHills, from: 600, to: 1950, bounds: [100, 18, 146, 34] },
+  // Northern Honshu lies outside the south's box; its hill paddies are the tanada.
+  { ...riceBase, ...riceHills, from: 300, to: 1950, bounds: [130, 34, 146, 42] },
+];
+
+// Two spans, because the narrower dates win: one under the open fields'
+// 950 years, one under enclosure's 250, which reached the Highlands late.
+const highland = (
+  [
+    [800, 1700],
+    [1700, 1800],
+  ] as const
+).map(
+  ([from, to]): FarmSystemRule => ({
+      id: "highland-infield-outfield",
+      label: "Runrig infield, outfield and hill grazing",
+      culture: "european",
+      from,
+      to,
+      bounds: [-8, 55.5, -1.5, 59],
+      geometry: "strip",
+      module: [3, 14],
+      regularity: 0.2,
+      boundary: "baulk",
+      irrigation: "none",
+      crops: [
+        { id: "oats", share: 0.45 },
+        { id: "barley", share: 0.3 },
+        { id: "vegetables", share: 0.05 },
+        { id: "fallow", share: 0.2 },
+      ],
+      slope: {
+        crops: [
+          { id: "oats", share: 0.2 },
+          { id: "fallow", share: 0.2 },
+          { id: "pasture", share: 0.6 },
+        ],
+      },
+      upland: { crops: [{ id: "pasture", share: 1 }] },
+      orchard: 0,
+      slopeLimit: 3,
+      riverside: 0.2,
+      reach: 2.4,
+      commons: true,
+      outbuildings: ["barn", "hayrick", "mill"],
+      evidence: {
+        status: "documented",
+        note: "A Highland township dunged and cropped its infield every year in ridged strips shared out among the tenants (runrig), took a few oat crops from patches of outfield before resting them, and sent the cattle above the head dyke to the shielings in summer.",
+        sources: [
+          "https://en.wikipedia.org/wiki/Run_rig",
+          "https://en.wikipedia.org/wiki/Infield-outfield",
+        ],
+      },
+    }),
+);
 
 export const farmSystems: FarmSystemRule[] = [
   {
@@ -229,36 +423,7 @@ export const farmSystems: FarmSystemRule[] = [
       ],
     },
   },
-  {
-    id: "east-asian-wet-rice-basins",
-    label: "Bunded rice paddies",
-    culture: "east-asian",
-    from: -1000,
-    to: 1950,
-    bounds: [100, 18, 146, 34],
-    geometry: "basin",
-    module: [8, 8],
-    regularity: 0.4,
-    boundary: "bund",
-    irrigation: "river",
-    crops: [
-      { id: "rice", share: 0.7 },
-      { id: "wheat", share: 0.1 },
-      { id: "vegetables", share: 0.1 },
-      { id: "orchard", share: 0.1 },
-    ],
-    orchard: 0.3,
-    slopeLimit: 2,
-    riverside: 0.7,
-    reach: 2,
-    commons: false,
-    outbuildings: ["granary", "shrine", "threshing-floor", "well"],
-    evidence: {
-      status: "documented",
-      note: "Rice paddies of the Yangtze basin, south China, Korea and Japan are small level basins behind earth bunds, fed from streams and ponds, with a winter crop of wheat or rape on drained fields in the later period.",
-      sources: ["https://en.wikipedia.org/wiki/Paddy_field"],
-    },
-  },
+  ...riceBasins,
   {
     id: "north-china-millet-wheat-blocks",
     label: "Dry-farmed millet and wheat blocks",
@@ -310,8 +475,23 @@ export const farmSystems: FarmSystemRule[] = [
       { id: "sugarcane", share: 0.05 },
       { id: "fallow", share: 0.15 },
     ],
+    slope: {
+      crops: [
+        { id: "millet", share: 0.4 },
+        { id: "rice", share: 0.25 },
+        { id: "wheat", share: 0.2 },
+        { id: "barley", share: 0.15 },
+      ],
+      terrace: { riser: "wall", depth: 2, plot: 8, reach: 30, sinuous: 0.6 },
+    },
+    upland: {
+      crops: [
+        { id: "barley", share: 0.2 },
+        { id: "pasture", share: 0.8 },
+      ],
+    },
     orchard: 0.2,
-    slopeLimit: 2,
+    slopeLimit: 5,
     riverside: 0.5,
     reach: 2.2,
     commons: true,
@@ -341,8 +521,23 @@ export const farmSystems: FarmSystemRule[] = [
       { id: "vegetables", share: 0.1 },
       { id: "orchard", share: 0.15 },
     ],
+    slope: {
+      crops: [
+        { id: "rice", share: 0.8 },
+        { id: "taro", share: 0.2 },
+      ],
+      terrace: { riser: "bund", depth: 2, plot: 8, reach: 40, sinuous: 0.8, wet: true },
+    },
+    upland: {
+      crops: [
+        { id: "dry-rice", share: 0.35 },
+        { id: "taro", share: 0.1 },
+        { id: "orchard", share: 0.15 },
+        { id: "fallow", share: 0.4 },
+      ],
+    },
     orchard: 0.35,
-    slopeLimit: 4,
+    slopeLimit: 5,
     riverside: 0.7,
     reach: 2,
     commons: true,
@@ -390,18 +585,34 @@ export const farmSystems: FarmSystemRule[] = [
     from: -1000,
     to: 1900,
     bounds: [-82, -35, -60, 12],
-    geometry: "terrace",
-    module: [20, 5],
+    geometry: "block",
+    module: [12, 8],
     regularity: 0.5,
     boundary: "wall",
     irrigation: "canal",
     crops: [
-      { id: "potato", share: 0.35 },
-      { id: "quinoa", share: 0.15 },
-      { id: "maize", share: 0.25 },
-      { id: "fallow", share: 0.15 },
-      { id: "pasture", share: 0.1 },
+      { id: "maize", share: 0.55 },
+      { id: "beans", share: 0.15 },
+      { id: "squash", share: 0.1 },
+      { id: "fallow", share: 0.2 },
     ],
+    slope: {
+      crops: [
+        { id: "maize", share: 0.45 },
+        { id: "potato", share: 0.35 },
+        { id: "quinoa", share: 0.2 },
+      ],
+      terrace: { riser: "wall", depth: 4, plot: 16, reach: 40, sinuous: 0.1 },
+    },
+    upland: {
+      crops: [
+        { id: "potato", share: 0.3 },
+        { id: "quinoa", share: 0.15 },
+        { id: "fallow", share: 0.25 },
+        { id: "pasture", share: 0.3 },
+      ],
+      terrace: { riser: "wall", depth: 3, plot: 12, reach: 14, sinuous: 0.2 },
+    },
     orchard: 0.1,
     slopeLimit: 6,
     riverside: 0.3,
@@ -592,6 +803,146 @@ export const farmSystems: FarmSystemRule[] = [
     },
   },
   ...mechanised,
+  {
+    id: "atlas-irrigated-terraces",
+    label: "Irrigated valley terraces under dry pasture",
+    culture: "north-african-west-asian",
+    from: 700,
+    to: 1950,
+    bounds: [-10, 29, 6, 34],
+    geometry: "block",
+    module: [8, 6],
+    regularity: 0.3,
+    boundary: "wall",
+    irrigation: "canal",
+    crops: [
+      { id: "barley", share: 0.4 },
+      { id: "wheat", share: 0.15 },
+      { id: "vegetables", share: 0.15 },
+      { id: "orchard", share: 0.2 },
+      { id: "fallow", share: 0.1 },
+    ],
+    slope: {
+      crops: [
+        { id: "barley", share: 0.6 },
+        { id: "orchard", share: 0.3 },
+        { id: "vegetables", share: 0.1 },
+      ],
+      terrace: { riser: "wall", depth: 2, plot: 7, reach: 16, sinuous: 0.5 },
+    },
+    upland: { crops: [{ id: "pasture", share: 1 }] },
+    orchard: 0.35,
+    slopeLimit: 5,
+    riverside: 0.8,
+    reach: 1.8,
+    commons: true,
+    outbuildings: ["granary", "threshing-floor", "mill"],
+    evidence: {
+      status: "documented",
+      note: "Amazigh villages of the High Atlas farm narrow walled terraces along the valley floor, watered turn by turn from a contour channel (targa), with walnut and almond at the edges, barley on the benches and collective summer pasture (agdal) above.",
+      sources: [
+        "https://en.wikipedia.org/wiki/High_Atlas",
+        "https://en.wikipedia.org/wiki/Agdal_(pastoralism)",
+      ],
+    },
+  },
+  {
+    id: "yemeni-highland-terraces",
+    label: "Mountain terraces of sorghum",
+    culture: "north-african-west-asian",
+    from: -1000,
+    to: 1950,
+    bounds: [42, 12.5, 46, 18],
+    geometry: "block",
+    module: [10, 7],
+    regularity: 0.3,
+    boundary: "wall",
+    irrigation: "flood",
+    crops: [
+      { id: "sorghum", share: 0.5 },
+      { id: "barley", share: 0.15 },
+      { id: "date", share: 0.1 },
+      { id: "vegetables", share: 0.1 },
+      { id: "fallow", share: 0.15 },
+    ],
+    slope: {
+      crops: [
+        { id: "sorghum", share: 0.5 },
+        { id: "wheat", share: 0.2 },
+        { id: "barley", share: 0.15 },
+        { id: "orchard", share: 0.15 },
+      ],
+      terrace: { riser: "wall", depth: 2, plot: 9, reach: 40, sinuous: 0.6 },
+    },
+    upland: {
+      crops: [
+        { id: "barley", share: 0.3 },
+        { id: "pasture", share: 0.7 },
+      ],
+      terrace: { riser: "wall", depth: 2, plot: 8, reach: 12, sinuous: 0.6 },
+    },
+    orchard: 0.2,
+    slopeLimit: 6,
+    riverside: 0.3,
+    reach: 2,
+    commons: true,
+    outbuildings: ["granary", "threshing-floor", "well"],
+    evidence: {
+      status: "documented",
+      note: "The western highlands of Yemen are terraced from valley to ridge in dry-stone benches that catch the monsoon runoff, sown mainly with sorghum, with wheat and barley higher and, from the fifteenth century, coffee and qat on the best-watered slopes.",
+      sources: ["https://en.wikipedia.org/wiki/Agriculture_in_Yemen"],
+    },
+  },
+  {
+    id: "ethiopian-highland-plough-and-terrace",
+    label: "Plough land with stone terraces",
+    culture: "east-southern-african",
+    from: -500,
+    to: 1950,
+    bounds: [34, 4, 43, 15],
+    geometry: "block",
+    module: [12, 9],
+    regularity: 0.3,
+    boundary: "none",
+    irrigation: "none",
+    crops: [
+      { id: "teff", share: 0.4 },
+      { id: "barley", share: 0.15 },
+      { id: "sorghum", share: 0.15 },
+      { id: "fallow", share: 0.15 },
+      { id: "pasture", share: 0.15 },
+    ],
+    slope: {
+      crops: [
+        { id: "sorghum", share: 0.5 },
+        { id: "teff", share: 0.3 },
+        { id: "barley", share: 0.2 },
+      ],
+      terrace: { riser: "wall", depth: 3, plot: 10, reach: 24, sinuous: 0.5 },
+    },
+    upland: {
+      crops: [
+        { id: "barley", share: 0.35 },
+        { id: "pasture", share: 0.65 },
+      ],
+    },
+    orchard: 0.1,
+    slopeLimit: 5,
+    riverside: 0.1,
+    reach: 2.2,
+    commons: true,
+    outbuildings: ["granary", "threshing-floor"],
+    evidence: {
+      status: "documented",
+      note: "Ox-ploughed teff and barley on the plateau, with dry-stone terraces on the escarpments: those of Konso are at least four centuries old, and those of Tigray are taken back to Aksumite times.",
+      sources: [
+        "https://en.wikipedia.org/wiki/Agriculture_in_Ethiopia",
+        "https://en.wikipedia.org/wiki/Konso",
+      ],
+    },
+  },
+  ...highland,
+  ...pacificGardens,
 ];
 
 /** An unprofiled place farms a plainly labelled generic pattern, never

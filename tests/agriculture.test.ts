@@ -65,9 +65,24 @@ describe("farm systems", () => {
       ["other-indigenous-american", -95, 41, 1900, "temperate", "north-american-section-grid"],
       ["other-indigenous-american", -95, 41, 2000, "temperate", "modern-mechanised-plantation"],
       ["inner-eurasian", 90, 47, 1200, "arid", "inner-eurasian-pastoral"],
+      ["east-asian", 104, 30.7, -1380, "temperate", "south-china-early-rice"],
+      ["north-african-west-asian", -7.9, 31.1, 1600, "arid", "atlas-irrigated-terraces"],
+      ["north-african-west-asian", 44.2, 15.3, 1500, "arid", "yemeni-highland-terraces"],
+      ["east-southern-african", 38.7, 14.1, 400, "temperate", "ethiopian-highland-plough-and-terrace"],
+      ["european", -4.2, 57.5, 1750, "temperate", "highland-infield-outfield"],
+      ["australian-pacific", -155.9, 19.5, 1500, "tropical", "pacific-root-gardens"],
     ];
     for (const [culture, lon, lat, year, climate, id] of probes)
       expect(farmSystem({ culture, lon, lat, year, climate }).id, `${culture} ${year}`).toBe(id);
+  });
+
+  it("terraces the hills only where and when they were terraced", () => {
+    const at = (year: number) => farmSystem({ culture: "east-asian", lon: 110, lat: 25, year, climate: "temperate" });
+    expect(at(200).slope).toBeUndefined();
+    expect(at(1700).slope?.terrace).toMatchObject({ riser: "bund", wet: true });
+    for (const s of farmSystems)
+      for (const zone of [s.slope, s.upland])
+        for (const c of zone?.crops ?? []) expect(crops[c.id], `${s.id} ${c.id}`).toBeDefined();
   });
 
   it("falls back to the labelled generic system", () => {
