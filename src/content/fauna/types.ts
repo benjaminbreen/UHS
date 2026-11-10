@@ -83,8 +83,9 @@ export type FaunaProfile = {
   pace: number;
   /** Keeps to the nearest grazing herd and feeds on what its feet put up. */
   followsHerds?: boolean;
-  /** Scrambles a terrace step the way a person can. Others need a slope. */
-  climbs?: boolean;
+  /** Terrace steps it goes up at a bound. Absent is one, the bank a person
+   * scrambles; a deer clears two; an elephant, none, and needs a slope. */
+  leaps?: number;
   /** Goes out on water too deep to wade, and climbs out on to the bank. */
   swims?: boolean;
   settlementTolerance: number;

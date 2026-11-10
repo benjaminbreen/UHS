@@ -123,16 +123,19 @@ describe("fauna movement rules", () => {
     blocked: () => false,
     topography: (x: number, y: number) => cell(heights.get(`${x},${y}`) ?? 1),
   };
-  it("keeps a sheep on its level and lets a wolf scramble the step", () => {
-    const sheep = faunaProfile("sheep")!,
-      wolf = faunaProfile("gray-wolf")!;
-    expect(stepAllowed(world, sheep, { x: 0, y: 0 }, { x: 1, y: 0 })).toBe(
-      true,
-    );
-    expect(stepAllowed(world, sheep, { x: 1, y: 0 }, { x: 2, y: 0 })).toBe(
-      false,
-    );
-    expect(stepAllowed(world, wolf, { x: 1, y: 0 }, { x: 2, y: 0 })).toBe(true);
+  it("an elephant keeps to its level, a pig scrambles one step, a deer clears two", () => {
+    const tall = {
+      ...world,
+      topography: (x: number) => cell(x >= 2 ? 3 : 1),
+    };
+    const at = (id: string, w: typeof world) =>
+      stepAllowed(w, faunaProfile(id)!, { x: 1, y: 0 }, { x: 2, y: 0 });
+    expect(at("asian-elephant", world)).toBe(false);
+    expect(at("pig", world)).toBe(true);
+    expect(at("pig", tall)).toBe(false);
+    expect(at("chital", tall)).toBe(true);
+    // Down is a step further than up.
+    expect(stepAllowed(tall, faunaProfile("pig")!, { x: 2, y: 0 }, { x: 1, y: 0 })).toBe(true);
   });
   it("lets any animal use a slope", () => {
     const ramped = {
@@ -436,6 +439,20 @@ describe("fauna behaviour", () => {
       gap = Math.min(gap, Math.hypot(deer.members[0].x - runner.x, deer.members[0].y - runner.y));
     }
     expect(gap).toBeGreaterThan(2);
+  });
+  it("elephants put down inside one another, and a deer inside them, step apart", () => {
+    const herd = group("asian-elephant", 10, 10);
+    herd.members.push({ x: 11, y: 10, direction: 1 });
+    const deer = group("chital", 10, 9);
+    const world = sim();
+    for (let t = 6; t <= 120; t += 6) advanceFauna([herd, deer], world, t);
+    const [rx, ry] = faunaProfile("asian-elephant")!.body!;
+    const [a, b] = herd.members;
+    expect(Math.abs(a.x - b.x) > 2 * rx || Math.abs(a.y - b.y) > ry).toBe(true);
+    for (const e of herd.members) {
+      const d = deer.members[0];
+      expect(Math.abs(d.x - e.x) > rx || d.y > e.y + 1 || d.y < e.y - ry).toBe(true);
+    }
   });
   it("keeps a calf at its mother's side", () => {
     const herd = group("cattle", 10, 10);

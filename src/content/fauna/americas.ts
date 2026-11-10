@@ -7,6 +7,7 @@ import { study } from "./types";
 export const americanFauna: readonly FaunaProfile[] = [
   {
     id: "llama",
+    leaps: 2,
     label: "Llama study",
     latin: "Lama glama",
     category: "domestic",
@@ -31,7 +32,6 @@ export const americanFauna: readonly FaunaProfile[] = [
     keeping: { place: "pen" },
     density: 0,
     pace: 0.8,
-    climbs: true,
     settlementTolerance: 0.8,
     minimumSettlementDistance: 0,
     alertRadius: 2,

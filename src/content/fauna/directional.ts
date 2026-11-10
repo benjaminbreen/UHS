@@ -6,6 +6,7 @@ import { directionalStudy, columbianExchange } from "./types";
 export const directionalFauna: readonly FaunaProfile[] = [
   {
     id: "horse",
+    leaps: 2,
     label: "Horse study",
     latin: "Equus caballus",
     category: "domestic",
@@ -89,6 +90,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
   },
   {
     id: "rabbit",
+    leaps: 2,
     label: "Rabbit study",
     latin: "Oryctolagus cuniculus",
     category: "wild",
@@ -120,7 +122,6 @@ export const directionalFauna: readonly FaunaProfile[] = [
     young: { id: "rabbit-kit", chance: 0.45 },
     burrows: true,
     pace: 1.4,
-    climbs: true,
     settlementTolerance: 0.35,
     minimumSettlementDistance: 2,
     alertRadius: 5,
@@ -134,6 +135,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
   },
   {
     id: "rabbit-kit",
+    leaps: 2,
     label: "Rabbit kit study",
     latin: "Oryctolagus cuniculus",
     category: "wild",
@@ -159,7 +161,6 @@ export const directionalFauna: readonly FaunaProfile[] = [
     density: 0,
     burrows: true,
     pace: 1,
-    climbs: true,
     settlementTolerance: 0.2,
     minimumSettlementDistance: 3,
     alertRadius: 6,

@@ -6,6 +6,7 @@ const always = [-1000000, 10000] as const;
 export const temperateFauna: readonly FaunaProfile[] = [
   {
     id: "red-deer",
+    leaps: 2,
     label: "Red deer study",
     latin: "Cervus elaphus",
     category: "wild",
@@ -44,6 +45,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "gray-wolf",
+    leaps: 2,
     label: "Gray wolf study",
     latin: "Canis lupus",
     category: "wild",
@@ -71,7 +73,6 @@ export const temperateFauna: readonly FaunaProfile[] = [
     ],
     density: 0.3,
     pace: 1.5,
-    climbs: true,
     settlementTolerance: 0.05,
     minimumSettlementDistance: 42,
     alertRadius: 9,
@@ -85,6 +86,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "wapiti",
+    leaps: 2,
     label: "Wapiti",
     latin: "Cervus canadensis",
     category: "wild",
@@ -207,6 +209,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "hare",
+    leaps: 2,
     label: "Hare study",
     latin: "Lepus europaeus",
     category: "wild",
@@ -248,6 +251,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "roe-deer",
+    leaps: 2,
     label: "Roe deer study",
     latin: "Capreolus capreolus",
     category: "wild",
@@ -286,6 +290,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "white-tailed-deer",
+    leaps: 2,
     label: "White-tailed deer study",
     latin: "Odocoileus virginianus",
     category: "wild",
@@ -323,6 +328,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "chital",
+    leaps: 2,
     label: "Chital study",
     latin: "Axis axis",
     category: "wild",
@@ -356,6 +362,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "golden-jackal",
+    leaps: 2,
     label: "Golden jackal study",
     latin: "Canis aureus",
     category: "wild",
@@ -395,6 +402,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   },
   {
     id: "coyote",
+    leaps: 2,
     label: "Coyote study",
     latin: "Canis latrans",
     category: "wild",

@@ -26,6 +26,7 @@ export const megafauna: readonly FaunaProfile[] = [
   {
     ...herd,
     id: "woolly-mammoth",
+    leaps: 0,
     label: "Woolly mammoth",
     latin: "Mammuthus primigenius",
     groupSize: [3, 9],
@@ -55,6 +56,7 @@ export const megafauna: readonly FaunaProfile[] = [
   {
     ...herd,
     id: "columbian-mammoth",
+    leaps: 0,
     label: "Columbian mammoth",
     latin: "Mammuthus columbi",
     groupSize: [2, 8],
@@ -73,6 +75,7 @@ export const megafauna: readonly FaunaProfile[] = [
   {
     ...herd,
     id: "american-mastodon",
+    leaps: 0,
     label: "American mastodon",
     latin: "Mammut americanum",
     groupSize: [1, 5],
@@ -94,6 +97,7 @@ export const megafauna: readonly FaunaProfile[] = [
   },
   {
     id: "irish-elk",
+    leaps: 2,
     label: "Giant deer",
     latin: "Megaloceros giganteus",
     category: "wild",
@@ -130,6 +134,7 @@ export const megafauna: readonly FaunaProfile[] = [
   },
   {
     id: "reindeer",
+    leaps: 2,
     label: "Reindeer",
     latin: "Rangifer tarandus",
     category: "wild",
@@ -170,6 +175,7 @@ export const megafauna: readonly FaunaProfile[] = [
   },
   {
     id: "wild-horse",
+    leaps: 2,
     label: "Wild horse",
     latin: "Equus ferus",
     category: "wild",
@@ -209,6 +215,7 @@ export const megafauna: readonly FaunaProfile[] = [
   },
   {
     id: "cave-lion",
+    leaps: 2,
     label: "Cave lion",
     latin: "Panthera spelaea",
     category: "wild",
@@ -243,6 +250,7 @@ export const megafauna: readonly FaunaProfile[] = [
   },
   {
     id: "american-lion",
+    leaps: 2,
     label: "American lion",
     latin: "Panthera atrox",
     category: "wild",
@@ -273,6 +281,7 @@ export const megafauna: readonly FaunaProfile[] = [
   },
   {
     id: "smilodon",
+    leaps: 2,
     label: "Sabre-toothed cat",
     latin: "Smilodon fatalis",
     category: "wild",
@@ -421,6 +430,7 @@ export const megafauna: readonly FaunaProfile[] = [
   },
   {
     id: "woolly-rhinoceros",
+    leaps: 0,
     label: "Woolly rhinoceros",
     latin: "Coelodonta antiquitatis",
     category: "wild",

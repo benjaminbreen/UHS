@@ -6,6 +6,7 @@ import { directionalStudy, type FaunaProfile } from "./types";
 export const bigGame: FaunaProfile[] = [
   {
     id: "african-elephant",
+    leaps: 0,
     label: "African bush elephant",
     latin: "Loxodonta africana",
     category: "wild",
@@ -49,6 +50,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "asian-elephant",
+    leaps: 0,
     label: "Asian elephant",
     latin: "Elephas maximus",
     category: "wild",
@@ -97,6 +99,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "lion",
+    leaps: 2,
     label: "Lion",
     latin: "Panthera leo",
     category: "wild",
@@ -140,6 +143,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "tiger",
+    leaps: 2,
     label: "Tiger",
     latin: "Panthera tigris",
     category: "wild",
@@ -181,6 +185,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "leopard",
+    leaps: 3,
     label: "Leopard",
     latin: "Panthera pardus",
     category: "wild",
@@ -205,7 +210,6 @@ export const bigGame: FaunaProfile[] = [
     ],
     density: 0.08,
     pace: 1.1,
-    climbs: true,
     settlementTolerance: 0.15,
     minimumSettlementDistance: 8,
     alertRadius: 6,
@@ -219,6 +223,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "jaguar",
+    leaps: 2,
     label: "Jaguar",
     latin: "Panthera onca",
     category: "wild",
@@ -255,6 +260,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "zebra",
+    leaps: 2,
     label: "Plains zebra",
     latin: "Equus quagga",
     category: "wild",
@@ -287,6 +293,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "moose",
+    leaps: 2,
     label: "Moose",
     latin: "Alces alces",
     category: "wild",
@@ -328,6 +335,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "gazelle",
+    leaps: 2,
     label: "Gazelle",
     latin: "Gazella",
     category: "wild",
@@ -363,6 +371,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "springbok",
+    leaps: 2,
     label: "Springbok",
     latin: "Antidorcas marsupialis",
     category: "wild",
@@ -493,6 +502,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "red-kangaroo",
+    leaps: 2,
     label: "Red kangaroo",
     latin: "Osphranter rufus",
     category: "wild",
@@ -527,6 +537,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "grey-kangaroo",
+    leaps: 2,
     label: "Grey kangaroo",
     latin: "Macropus giganteus",
     category: "wild",
@@ -606,6 +617,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "wildebeest",
+    leaps: 2,
     label: "Blue wildebeest",
     latin: "Connochaetes taurinus",
     category: "wild",
@@ -639,6 +651,7 @@ export const bigGame: FaunaProfile[] = [
   },
   {
     id: "musk-ox",
+    leaps: 2,
     label: "Musk ox",
     latin: "Ovibos moschatus",
     category: "wild",

@@ -12,7 +12,7 @@ import {
   type FaunaCombat,
   type FaunaProfile,
 } from "../content/fauna";
-import { TIERS, type SignalInput } from "./combat";
+import { TIERS, maxHp, type SignalInput } from "./combat";
 
 /** What a group needs from the world to move: the engine supplies it once per tick. */
 export type FaunaWorld = {
@@ -130,6 +130,11 @@ const SPREAD: readonly [number, number][] = [
   [-1, -1],
 ];
 const hyp = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+/** How far from its leader a herd animal keeps: wide bodies need the room. */
+const spread = (p: FaunaProfile) => p.cohesionRadius + 2 * (p.body?.[0] ?? 0);
+/** Badly hurt: it cannot keep up with the rest. */
+const lame = (g: FaunaGroup, m: FaunaMember) =>
+  m.hp !== undefined && m.hp < maxHp(g.speciesId, m.tier ?? "ordinary") * 0.6;
 
 /** Stock let into the standing corn is the thing a herder is there to stop. */
 const keptOff = (world: FaunaWorld, p: FaunaProfile, at: Point) =>
@@ -228,24 +233,28 @@ class Bodies {
   }
 }
 
-/** Ground rules for one step. A person scrambles up a terrace and drops off
- * any edge; most animals keep to their level unless a slope joins the two.
- * A climber (the wolf) takes the person's rule. */
+/** Ground rules for one step. Like a person, most animals scramble one
+ * terrace step; the jumpers clear more, and all drop one further than they
+ * climb. A slope takes anything. */
 export function stepAllowed(
   world: Pick<FaunaWorld, "blocked" | "canCross" | "topography">,
-  profile: Pick<FaunaProfile, "climbs" | "swims">,
+  profile: Pick<FaunaProfile, "leaps" | "swims">,
   from: Point,
   to: Point,
 ) {
   const swim = !!profile.swims && afloat(world, to);
   if (!swim && world.blocked(to.x, to.y)) return false;
   if (world.canCross && !world.canCross(from, to)) return false;
-  if (!world.topography || profile.climbs) return true;
+  if (!world.topography) return true;
   const a = world.topography(from.x, from.y),
     b = world.topography(to.x, to.y);
   // Off the water a duck scrambles up a bank a step high.
   if (profile.swims && (swim || afloat(world, from))) return Math.abs(a.height - b.height) <= 1;
-  return a.height === b.height || !!a.ramp || !!b.ramp;
+  if (a.ramp || b.ramp) return true;
+  const rise = b.height - a.height;
+  if (!rise) return true;
+  const leaps = profile.leaps ?? 1;
+  return rise <= leaps && -rise <= (leaps && leaps + 1);
 }
 
 function afloat(world: Pick<FaunaWorld, "topography">, at: Point) {
@@ -1046,6 +1055,36 @@ function settle(
   g.nextDecisionAt = clock + p.calmDecisionSeconds;
 }
 
+/** Animals standing in one another, from where they were put down or knocked
+ * to, step apart: the smaller gives way, a cell a tick, until it is clear. */
+function unstack(groups: readonly FaunaGroup[], world: FaunaWorld, taken: Bodies) {
+  // A cat on its mouse is meant to be there.
+  const held = new Set(groups.flatMap((g) => (g.catching ? [g.id, g.catching.group] : [])));
+  const all = groups
+    .filter((g) => !aerialStates.has(g.state) && g.burrowed === undefined && !g.train && !held.has(g.id))
+    .flatMap((g) => {
+      const p = faunaProfile(g.speciesId);
+      return p ? g.members.map((m) => ({ g, p, m, size: m.young ? 0 : (p.body?.[0] ?? 0) + (p.body?.[1] ?? 0) })) : [];
+    })
+    .sort((a, b) => a.size - b.size);
+  for (const { g, p, m } of all) {
+    if ((g.attack && g.attack.n === m.n) || !taken.blocks(m, m)) continue;
+    const open = NEIGHBOURS.map((n) => ({ x: m.x + n.x, y: m.y + n.y })).filter(
+      (to) => !world.occupied(to.x, to.y) && !keptOff(world, p, to) && stepAllowed(world, p, m, to),
+    );
+    let other: Point | undefined;
+    for (const o of all)
+      if (o.m !== m && (!other || hyp(o.m, m) < hyp(other, m))) other = o.m;
+    const to =
+      open.find((c) => !taken.blocks(m, c)) ??
+      // A full pen stays full: only wild animals shove for room.
+      (other && p.category === "wild" && open.sort((a, b) => hyp(b, other!) - hyp(a, other!))[0]);
+    if (!to) continue;
+    moveMember(m, to, taken, Boolean(p.directions));
+    if (m === g.members[0]) g.pos = { x: m.x, y: m.y, space: "outside" };
+  }
+}
+
 /** One six-second step for every group near enough to matter. Groups are
  * visited in id order and draw from the shared counter, so replays agree. */
 export function advanceFauna(
@@ -1059,6 +1098,7 @@ export function advanceFauna(
     const body = faunaProfile(g.speciesId)?.body;
     for (const m of g.members) taken.place(m, m.young ? [0, 0] : body);
   }
+  unstack(groups, world, taken);
   const herds = groups
     .map((group) => ({ group, profile: faunaProfile(group.speciesId) }))
     .filter(
@@ -1280,6 +1320,9 @@ export function advanceFauna(
       !nearestThreat(menaces, g.pos, p.alertRadius * (kept ? 1.5 : 2.5))
     ) {
       g.fright = undefined;
+      // Put off its ground, it stays off it rather than drifting back.
+      if (!kept && !p.burrows && !g.follows && hyp(g.pos, g.home) > g.homeRadius)
+        g.home = { ...g.pos };
       g.state = "idle";
       g.since = clock;
       // Wary afterwards: it goes back to feeding sooner than it would
@@ -1430,10 +1473,12 @@ export function advanceFauna(
         // A rabbit makes for its hole unless the trouble is between them.
         const hole = p.burrows && hyp(g.home, threat) >= hyp(leader, threat) ? g.home : undefined;
         for (const m of bolting!) {
+          // The wounded one drops behind, which is the one to follow.
+          if (steps % 2 && lame(g, m)) continue;
           // A herd goes one way: a straggler makes for the leader unless
           // that takes it back toward the trouble.
           const rejoin =
-            !hole && m !== leader && hyp(m, leader) > p.cohesionRadius
+            !hole && m !== leader && hyp(m, leader) > spread(p)
               ? bestStep(world, p, taken, m, leader, false)
               : undefined;
           const to = hole
@@ -1520,7 +1565,7 @@ export function advanceFauna(
             ? bestStep(world, p, taken, m, g.home, false)
             : mother && hyp(m, mother) > (p.body?.[0] ? 2.3 : 1.5)
               ? bestStep(world, p, taken, m, mother, false)
-              : p.social === "herd" && hyp(m, leader) > (wet ? p.separationRadius + 1.5 : p.cohesionRadius + 1)
+              : p.social === "herd" && hyp(m, leader) > (wet ? p.separationRadius + 1.5 : spread(p) + 1)
                 ? bestStep(world, p, taken, m, leader, false)
                 : undefined;
           if (back) {
@@ -1564,7 +1609,7 @@ export function advanceFauna(
             NEIGHBOURS[Math.floor(world.rng(`fauna-${g.id}-drift`) * 8)];
           const to = { x: m.x + n.x, y: m.y + n.y };
           if (
-            hyp(to, leader) <= p.cohesionRadius &&
+            hyp(to, leader) <= spread(p) &&
             hyp(to, g.home) <= g.homeRadius + 1 &&
             !keptOff(world, p, to) &&
             !taken.blocks(m, to) &&

@@ -7,6 +7,7 @@ const always = [-1000000, 10000] as const;
 export const foxes: readonly FaunaProfile[] = [
   {
     id: "red-fox",
+    leaps: 2,
     label: "Red fox study",
     latin: "Vulpes vulpes",
     category: "wild",
@@ -48,6 +49,7 @@ export const foxes: readonly FaunaProfile[] = [
   },
   {
     id: "arctic-fox",
+    leaps: 2,
     label: "Arctic fox study",
     latin: "Vulpes lagopus",
     category: "wild",
@@ -80,6 +82,7 @@ export const foxes: readonly FaunaProfile[] = [
   },
   {
     id: "fennec",
+    leaps: 2,
     label: "Fennec study",
     latin: "Vulpes zerda",
     category: "wild",
@@ -113,6 +116,7 @@ export const foxes: readonly FaunaProfile[] = [
   },
   {
     id: "grey-fox",
+    leaps: 2,
     label: "Grey fox study",
     latin: "Urocyon cinereoargenteus",
     category: "wild",

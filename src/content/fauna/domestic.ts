@@ -49,6 +49,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
   },
   {
     id: "sheep",
+    leaps: 2,
     label: "Sheep study",
     latin: "Ovis aries",
     category: "domestic",
@@ -90,6 +91,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
   },
   {
     id: "goat",
+    leaps: 3,
     label: "Goat study",
     latin: "Capra hircus",
     category: "domestic",
@@ -118,7 +120,6 @@ export const domesticFauna: readonly FaunaProfile[] = [
     keeping: { place: "pen", ranging: 0.6 },
     density: 0,
     pace: 0.6,
-    climbs: true,
     settlementTolerance: 0.85,
     minimumSettlementDistance: 0,
     alertRadius: 2,

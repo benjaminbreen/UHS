@@ -274,14 +274,16 @@ export function placeMembers(
   const members: FaunaGroup["members"][number][] = [
     { x, y, direction: random(seed, "fauna", key, "face") < 0.5 ? 1 : 3 },
   ];
+  // A body's width apart, so an elephant is not put down inside the next.
+  const [sx, sy] = [2 * (p.body?.[0] ?? 0) + 1, (p.body?.[1] ?? 0) + 1];
   const used = new Set([`${x},${y}`]);
   for (let ring = 1; ring <= p.cohesionRadius && members.length < count; ring++)
     for (let dy = -ring; dy <= ring && members.length < count; dy++)
       for (let dx = -ring; dx <= ring && members.length < count; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
         if (random(seed, "fauna", key, dx, dy) > 0.45) continue;
-        const cx = x + dx,
-          cy = y + dy,
+        const cx = x + dx * sx,
+          cy = y + dy * sy,
           ck = `${cx},${cy}`;
         if (used.has(ck) || world.blocked(cx, cy, "outside")) continue;
         if (level !== undefined && world.topography?.(cx, cy).height !== level)

@@ -94,6 +94,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   },
   {
     id: "dog",
+    leaps: 2,
     label: "Dog study",
     latin: "Canis familiaris",
     category: "domestic",
@@ -129,6 +130,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   },
   {
     id: "cat",
+    leaps: 3,
     label: "Cat study",
     latin: "Felis catus",
     category: "domestic",
@@ -165,7 +167,6 @@ export const workingFauna: readonly FaunaProfile[] = [
     keeping: { place: "yard" },
     density: 0,
     pace: 0.8,
-    climbs: true,
     settlementTolerance: 1,
     minimumSettlementDistance: 0,
     alertRadius: 2,
@@ -214,6 +215,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   },
   {
     id: "donkey",
+    leaps: 2,
     label: "Donkey study",
     latin: "Equus asinus",
     category: "domestic",
@@ -243,7 +245,6 @@ export const workingFauna: readonly FaunaProfile[] = [
     keeping: { place: "tether", ranging: 0.2 },
     density: 0,
     pace: 0.6,
-    climbs: true,
     settlementTolerance: 0.95,
     minimumSettlementDistance: 0,
     alertRadius: 1,
@@ -297,6 +298,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   },
   {
     id: "yak",
+    leaps: 2,
     label: "Yak",
     latin: "Bos grunniens",
     category: "domestic",
