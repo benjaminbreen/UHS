@@ -848,6 +848,10 @@ function rasterGroundTile(
             : 0;
   };
   const grassy = !mineralGround && !frozen;
+  const paintedPlants = h.lushness === undefined;
+  const sparse = h.vegetation === "alpine" || h.ecology === "boreal-woodland";
+  const dryGrass = h.vegetation === "savanna" || h.vegetation === "steppe" ||
+    ["savanna", "dry-scrub"].includes(paletteKey(h.ecology, h.colorway));
   const lightSward = palette[1].map((v, k) =>
     Math.round(v * 0.72 + palette[3][k] * 0.28),
   );
@@ -1004,7 +1008,7 @@ function rasterGroundTile(
               ? [218, 229, 248]
               : [236, 242, 252];
       if (kit && !frozen && (grassy ? band <= 2 : kitTundra && band <= 3)) {
-        put(px, py, kitGroundPixel(kit, h.dry ? `${h.season}-dry` : h.season, wx, wy, wild, trod));
+        put(px, py, kitGroundPixel(kit, h.dry ? `${h.season}-dry` : h.season, wx, wy, wild, trod, paintedPlants));
         continue;
       }
       const style = groundStyle();
@@ -1021,7 +1025,7 @@ function rasterGroundTile(
         );
       // Broad hard-edged patches of shade and light: living ground is never
       // one value, and a fill with marks on it reads as a fill.
-      const mottling = composition?.mottle ?? 0.65;
+      const mottling = (composition?.mottle ?? 0.65) * (paintedPlants ? 1 : 0.75);
       let shaded = false;
       if (!frozen && grassy && band <= 2 && mottling > 0) {
         // Whole stretches of turf lean sunlit or deep, a scale above the mottle.
@@ -1052,7 +1056,8 @@ function rasterGroundTile(
         // hatch reads as dither noise rather than as grass.
         const clump = noise(wx, wy, 12, 611) * 0.6 + noise(wx, wy, 5, 612) * 0.4;
         let mark = swardHatch(wx, wy);
-        const detail = Math.min(1, (composition?.motifDensity ?? 1) * upkeep * groveDetail);
+        const detail = Math.min(1, (composition?.motifDensity ?? 1) * upkeep * groveDetail *
+          (h.lushness === undefined ? 1 : 0.25 + h.lushness * 0.75));
         if (tuftColony(wx, wy) < 1 - detail * 0.75 || clump < 0.74) mark = 0;
         if (mark === 2 && clump < 0.8) mark = 0;
         if (mark === 1) {
@@ -1092,32 +1097,18 @@ function rasterGroundTile(
       }
       // Texture describes the material: little faceted stones or composed turf.
       // No blanket of independently varied pixels behind these marks.
-      const sparse = h.vegetation === "alpine" || h.ecology === "boreal-woodland";
       const colony = tuftColony(wx, wy);
-      const dryGrass =
-        h.vegetation === "savanna" || h.vegetation === "steppe" ||
-        ["savanna", "dry-scrub"].includes(paletteKey(h.ecology, h.colorway));
+      const sward = dryGrass && band < 3;
+      const motif = sward || band === 1 ? "sward"
+        : tilled || (grassy && band >= 3) ? "pebble"
+          : band === 3 && !dune ? "stone"
+            : h.ecology === "desert" || frozen || (h.layeredForest && band === 4) ? "earth" : "turf";
       const ink =
-        sparse && colony < 0.56 ? 0 :
-        dryGrass && band < 3
-          ? (colony > 0.47 ? groundMotif("sward", wx, wy, art.motifs, motifTuning) : 0)
-          : band === 1
-          ? groundMotif("sward", wx, wy, undefined, motifTuning)
-          : groundMotif(
-              tilled || (grassy && band >= 3)
-                ? "pebble"
-                : band === 3 && !dune
-                  ? "stone"
-                  : h.ecology === "desert" ||
-                      frozen ||
-                      (h.layeredForest && band === 4)
-                    ? "earth"
-                    : "turf",
-              wx,
-              wy,
-              art.motifs,
-              grassy && band <= 2 ? turfTuning : motifTuning,
-            );
+        (!paintedPlants && (motif === "sward" || motif === "turf")) ||
+        (sparse && colony < 0.56) || (sward && colony <= 0.47)
+          ? 0
+          : groundMotif(motif, wx, wy, art.motifs,
+            motif !== "sward" && grassy && band <= 2 ? turfTuning : motifTuning);
       // Forest floor: a low-contrast dappled ground, sparse leaf marks off
       // any lattice, and fern clumps only in colonies. Nothing on the floor
       // is brighter than the turf's mid tone except one frond tip.
@@ -1889,7 +1880,7 @@ function rasterGroundTile(
       [1, -1],
       [-1, 1],
     ].some(([dx, dy]) => apronAt(px + dx, py + dy) === 3);
-  if ((hasPath || hasWear || hasBare) && tufted && colony && h.exposed < 0.65) {
+  if (paintedPlants && (hasPath || hasWear || hasBare) && tufted && colony && h.exposed < 0.65) {
     let placed = 0;
     for (const [px, py] of [
       [2, 5],
@@ -2011,7 +2002,7 @@ function rasterGroundTile(
         [4, -2],
       ])
         put(px + dx, py + dy, palette[1], -6);
-    } else {
+    } else if (paintedPlants) {
       const glyph =
         groundClumps[
           Math.floor(hash(x + ox, y + oy, 359) * groundClumps.length)

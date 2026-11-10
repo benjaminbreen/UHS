@@ -136,6 +136,22 @@ function rasterCanalTile(
   // Water: the river's mid and deep tones, so a canal is the same water as
   // the river that feeds it, not a grey wash.
   const dry = !!cell.dryChannel;
+  // Ditch water carries the silt of its bed. It comes in as clear as the
+  // stream it leaves and clouds over the first few cells.
+  const silt = [118, 104, 66];
+  const shallow = mix(rgb(palette.depths[1]), rgb(palette.depths[2]), 0.4);
+  const streams: number[][] = [];
+  for (let dy = -3; dy <= 3; dy++)
+    for (let dx = -3; dx <= 3; dx++) {
+      const n = sample(x + dx, y + dy);
+      if (n?.surface === "water" && !isCanal(n) && !n.bridge) streams.push([dx * 16, dy * 16]);
+    }
+  const cloud = (px: number, py: number) => {
+    let d = 44;
+    for (const [sx, sy] of streams)
+      d = Math.min(d, Math.hypot(Math.max(sx - px, 0, px - sx - 15), Math.max(sy - py, 0, py - sy - 15)));
+    return d / 44;
+  };
   const still = rgb(palette.depths[3]),
     deep = rgb(palette.depths[4]),
     light = rgb(palette.depths[2]),
@@ -198,16 +214,22 @@ function rasterCanalTile(
         const shadow1 = !shadow2 && (at(px, py - 2) === 0 || at(px - 2, py) === 0);
         // Deep under the near bank, lighter toward the far, sunlit side.
         tone = shadow2 ? deep : shadow1 ? mix(deep, still, 0.5) : c >= 10 ? mix(still, light, 0.5) : still;
+        // At the mouth it is the stream's own colour, with no line between.
+        const lit = shadow2 ? -34 : shadow1 ? -18 : c >= 10 ? 8 : 0;
+        const far = cloud(px, py);
+        tone = mix(mix(shade(shallow, lit), tone, far * 0.4), shade(silt, lit), far * 0.85);
         const lane = Math.floor((c - 3) / 3);
         const phase = Math.floor(waterHash(lane, Math.floor(along / 14), 903) * 6);
         const dash = mod(along + lane * 5 + phase, 14);
         // Ripples: a two-pixel-high crest with a one-pixel tail, in lanes.
+        // On clouded water a ripple is a paler brown, not a glint of blue.
+        const crest = mix(glint, shade(silt, 40), cloud(px, py));
         if (!shadow2 && !shadow1 && c >= 5 && c <= 11) {
-          if (dash < 3) tone = mix(tone, glint, dash === 1 ? 1 : 0.6);
-          else if (dash === 3 && mod(c, 3) === 1) tone = mix(tone, glint, 0.35);
+          if (dash < 3) tone = mix(tone, crest, dash === 1 ? 1 : 0.6);
+          else if (dash === 3 && mod(c, 3) === 1) tone = mix(tone, crest, 0.35);
         }
         // The far bank's foot catches light along the water's edge.
-        if (c === 12 && mod(along + phase, 5) !== 2) tone = mix(tone, glint, 0.35);
+        if (c === 12 && mod(along + phase, 5) !== 2) tone = mix(tone, crest, 0.35);
       } else {
         const inner =
           at(px + 1, py) === 1 ||

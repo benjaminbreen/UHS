@@ -29,7 +29,8 @@ import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
 import { perf, open, mark, span, timed } from "./perf-switches";
-import { natureTreeSprites } from "../content/ecology/vegetation";
+import { isGrassTuft, natureTreeSprites } from "../content/ecology/vegetation";
+import { grassTuftFrame, TUFT_ATLAS } from "./ground-motifs";
 import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety, reviewedPropFrame } from "./prop-variety";
@@ -164,6 +165,7 @@ import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
 import { sexOf } from "../core/brief";
 import { kinOf } from "../core/kin";
+import { plotRoleKnown } from "../core/plot";
 import { CueEffects } from "./cue-effects";
 import { TIERS, type CueKind } from "../core/combat";
 import {
@@ -317,6 +319,8 @@ import {
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 import { bloomAt, setBloomCut } from "./flowers";
 import { FLOOR_X, FLOOR_Y, PixelRoom } from "./interiors/pixel";
+import { CaveView } from "./cave/view";
+import { caveLight } from "../content/caves";
 import type { Kind, Prop } from "./interiors/room";
 import { ROOM_ORIGIN } from "../world/interior";
 import { setCropSelector, setCropCut, setCropsIndoors } from "./crops";
@@ -726,6 +730,12 @@ export class WorldScene extends Phaser.Scene {
   /** The first opaque row of a character frame: the top of the head. */
   private crowns = new Map<string, number>();
   /** The generated room the player is standing in, if their space has one. */
+  private caveView?: CaveView;
+  /** A space that draws and lights itself: a generated room or a cave. */
+  private selfLit(space: string) {
+    const e = this.runtime.engine;
+    return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space));
+  }
   private roomView?: {
     space: string;
     pixel: PixelRoom;
@@ -1669,7 +1679,7 @@ export class WorldScene extends Phaser.Scene {
       this.castRevision = s.revision;
       this.castPeople.clear();
       if (s.plot && !s.plot.ended)
-        for (const id of Object.values(s.plot.cast)) this.castPeople.set(id, "plot");
+        for (const id of Object.values(s.plot.cast)) if (plotRoleKnown(s.plot, id)) this.castPeople.set(id, "plot");
       this.familyPeople = kinOf(s);
       this.relationshipLabels = socialLabels(s);
       for (const k of this.familyPeople)
@@ -3154,6 +3164,8 @@ export class WorldScene extends Phaser.Scene {
   }
   private texture(frame: string) {
     if (frame === "bow" || frame === "arrow" || frame === "sling") return frame;
+    if (frame.startsWith("tuft-kit-")) return frame.slice(0, frame.lastIndexOf("-"));
+    if (frame.startsWith("tuft-")) return TUFT_ATLAS;
     if (!this.sheetFrames) {
       this.sheetFrames = new Map();
       const { atlases } = sceneAssets();
@@ -3701,6 +3713,7 @@ export class WorldScene extends Phaser.Scene {
     if (
       this.options.freeze ||
       this.roomView ||
+      this.caveView ||
       (this.snow < 0.34 && !dew) ||
       this.light.id === "night" ||
       this.light.id === "dusk" ||
@@ -3745,7 +3758,7 @@ export class WorldScene extends Phaser.Scene {
   /** The hour after a shower: drops still falling from the trees, the wet
    * ground steaming where the sun is back on it, and some days a rainbow. */
   private afterRain(delta: number) {
-    const out = !this.options.freeze && !this.roomView && this.light.id !== "night";
+    const out = !this.options.freeze && !this.roomView && !this.caveView && this.light.id !== "night";
     const wet = out && (this.rained || ((this.weather?.wetness ?? 0) > 0.3 && this.weather?.condition !== "rain"));
     const sun = this.sunStrength() >= 0.85;
     const view = this.cameras.main.worldView;
@@ -3817,7 +3830,7 @@ export class WorldScene extends Phaser.Scene {
   }
   /** Which way a low sun lights edges: east at sunrise, west at dusk, else 0. */
   private rimSide() {
-    if (this.roomView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
+    if (this.roomView || this.caveView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
     return this.light.id === "early-morning" ? 1 : this.light.id === "dusk" ? -1 : 0;
   }
   private rimColour(side: number) {
@@ -3951,7 +3964,7 @@ export class WorldScene extends Phaser.Scene {
         ? 0xffffff
         : parseInt(this.light.tint, 16);
     // A generated room lights its people with its own layer.
-    const lit = p.space !== "outside" && !!e.interiorOf?.(p.space);
+    const lit = this.selfLit(p.space);
     if (lit) this.tint = 0xffffff;
     this.shadowPhase = p.space === "outside" ? this.light.id : lit ? "midday" : "night";
     // The figures are lit for the same hour their shadows are cast for.
@@ -4111,7 +4124,7 @@ export class WorldScene extends Phaser.Scene {
         footprint * 16 + margin * 2,
         footprint * 16 + margin * 2,
       );
-    else if (p.space === "outside" || !e.interiorOf?.(p.space)) c.removeBounds();
+    else if (!this.selfLit(p.space)) c.removeBounds();
     const viewCenter = (value: number, pixels: number) => {
       if (!footprint) return value;
       const reach = Math.max(
@@ -4156,7 +4169,12 @@ export class WorldScene extends Phaser.Scene {
     }
     if (w.topography && p.space === "outside") {
       if (!this.terrainStream) {
-        this.terrainStream = new TerrainStream(this, w, e.state.manifest.seed);
+        this.terrainStream = new TerrainStream(
+          this,
+          w,
+          e.state.manifest.seed,
+          !this.drawnWorld && !this.options.lab ? p : undefined,
+        );
         if (this.fieldSeason) this.terrainStream.setSeason(this.fieldSeason, this.fieldTide);
       }
       this.terrainStream.setHidden(false);
@@ -4289,7 +4307,7 @@ export class WorldScene extends Phaser.Scene {
           }
         this.layers.push(g);
       }
-      if ((!w.topography || p.space !== "outside") && !e.interiorOf?.(p.space)) {
+      if ((!w.topography || p.space !== "outside") && !this.selfLit(p.space)) {
         const data = Array.from({ length: height }, (_, iy) =>
           Array.from({ length: width }, (_, ix) => {
             const x = startX + ix,
@@ -4531,6 +4549,10 @@ export class WorldScene extends Phaser.Scene {
             }
             if (d || previewRock) {
               const originalName = previewRock ? "rock" : d!.sprite;
+              const tuft = isGrassTuft(originalName);
+              const seed = e.state.manifest.seed;
+              const tuftX = tuft ? Math.floor(random(seed, "tuft-x", x, y) * 7) - 3 : 0;
+              const tuftY = tuft ? 2 + Math.floor(random(seed, "tuft-y", x, y) * 6) : 0;
               const originalIsTree =
                 natureTreeSprites.includes(originalName) ||
                 w.pack.trees.includes(originalName);
@@ -4543,8 +4565,13 @@ export class WorldScene extends Phaser.Scene {
                       ? "study-sheet-tree-broadleaf"
                       : `study-tree-${alternate}-${alternateTrees[alternate][1] - 1}`
                   : originalName;
+              const plainShrub = !tuft && (w.pack.setting?.vegetationRevision ?? 0) >= 9 &&
+                (/^nature-dry-scrub-(small|medium)/.test(spriteName) ||
+                  random(seed, "named-shrub-art", Math.floor(x / 4), Math.floor(y / 4)) < 0.55);
               const frameAndDress =
-                spriteName === "rock"
+                tuft ? grassTuftFrame(this, w.topography?.(x, y)?.habitat,
+                  spriteName === "dry-grass-tuft", this.season, random(seed, "tuft-art", x, y))
+                : spriteName === "rock"
                   ? rockFrame(
                       w.topography?.(x, y)?.habitat,
                       random(e.state.manifest.seed, "rock-art", x, y),
@@ -4556,7 +4583,7 @@ export class WorldScene extends Phaser.Scene {
                           namedShrub(
                             spriteName,
                             e.plantSpecies(spriteName, x, y)?.id,
-                            (f) => this.textures.get("nature").has(f),
+                            (f) => (!plainShrub || !f.startsWith("nature-shrub-")) && this.textures.get("nature").has(f),
                           ),
                           !!e.state.tiles?.[`${x},${y}`]?.trodden,
                           (f) => this.textures.get("nature").has(f),
@@ -4572,12 +4599,12 @@ export class WorldScene extends Phaser.Scene {
                 ? frameAndDress[0]
                 : frameAndDress;
               const dressed = Array.isArray(frameAndDress) && frameAndDress[1];
-              this.shadow(frame, x * 16 + 8, y * 16 + 16);
+              if (!tuft) this.shadow(frame, x * 16 + 8, y * 16 + 16);
               const decoration = this.sprite(
                 frame,
-                x * 16 + 8,
-                y * 16 + 16,
-                y * 16 + 12,
+                x * 16 + 8 + tuftX,
+                y * 16 + 16 - tuftY,
+                y * 16 + 12 - tuftY,
               );
               if (
                 spriteName.startsWith("study-tree-") ||
@@ -4900,19 +4927,19 @@ export class WorldScene extends Phaser.Scene {
           if (fence.parts) {
             for (const part of fence.parts) {
               if (Math.abs(part.x - p.x) > 100 || Math.abs(part.y - p.y) > 100)
-                for (const gap of fence.gates ?? []) {
-              const g = this.add.graphics().setDepth(Math.max(...gap.map((q) => q.y)) * 16 + 11).setVisible(false);
-              drawGateLeaves(g, gap);
-              this.layers.push(g);
-              this.gateDoors.push(g);
-            }
-            continue;
+                continue;
               this.sprite(
                 part.frame,
                 part.x * 16 + 8,
                 part.y * 16 + 16,
                 part.y * 16 + 10,
               );
+            }
+            for (const gap of fence.gates ?? []) {
+              const g = this.add.graphics().setDepth(Math.max(...gap.map((q) => q.y)) * 16 + 11).setVisible(false);
+              drawGateLeaves(g, gap);
+              this.layers.push(g);
+              this.gateDoors.push(g);
             }
             continue;
           }
@@ -4927,7 +4954,7 @@ export class WorldScene extends Phaser.Scene {
               )
                 this.sprite("fence", x * 16 + 8, y * 16 + 16, y * 16 + 10);
         }
-      } else if (e.interiorOf?.(p.space)) {
+      } else if (this.selfLit(p.space)) {
         this.courtyardLighting.end();
         // The generated room draws its own walls; around it is only dark.
         const dark = this.add.graphics().setDepth(-99995);
@@ -5885,6 +5912,47 @@ export class WorldScene extends Phaser.Scene {
     v.sheet.refresh();
     for (const im of v.light) (im.texture as Phaser.Textures.CanvasTexture).refresh();
   }
+  /** Underground the level paints and lights itself; the scene lends it the
+   * player's position, the animals' drawn frames and the sound. */
+  private syncCave(delta: number) {
+    const e = this.runtime.engine, space = e.state.player.pos.space;
+    const level = e.caveOf?.(space), run = e.state.cave;
+    if (!level || !run) {
+      this.caveView?.destroy();
+      this.caveView = undefined;
+      return;
+    }
+    let v = this.caveView;
+    if (!v || v.space !== space) {
+      v?.destroy();
+      v = this.caveView = new CaveView(this, level);
+      v.sound = (what, volume) => void gameAudio()?.caveCue(what, volume);
+      if (import.meta.env.DEV) (window as unknown as { uhsCave?: typeof CaveView }).uhsCave = CaveView;
+      this.applyGrade(0);
+    }
+    const camera = this.cameras.main;
+    const W = level.w * 16, H = level.h * 16;
+    const width = Math.max(W, camera.displayWidth), height = Math.max(H, camera.displayHeight);
+    camera.setBounds((W - width) / 2, (H - height) / 2, width, height);
+    const me = this.entities.get("player");
+    const p = e.state.player;
+    v.update({
+      x: me?.x ?? p.pos.x * 16 + 8,
+      y: me?.y ?? p.pos.y * 16 + 16,
+      facing: p.direction,
+      run,
+      done: e.state.caves?.[level.cave]?.done ?? [],
+      light: caveLight(run.light),
+      hour: (((e.state.clock / 3600) % 24) + 24) % 24,
+      time: this.time.now,
+      delta,
+      beast: (species, state, dir, stride) => {
+        const frame = this.faunaFrame(species, state as FaunaState, 0, (["north", "east", "south", "west"] as const)[dir] ?? "south", stride);
+        const texture = this.texture(frame);
+        return texture === "__DEFAULT" || !this.textures.get(texture).has(frame) ? undefined : { texture, frame };
+      },
+    });
+  }
   private dropRoom() {
     const v = this.roomView;
     if (!v) return;
@@ -6439,10 +6507,11 @@ export class WorldScene extends Phaser.Scene {
     updatePuddles(this, time);
     // The old view holds while it fades out; the room is built after.
     if (!this.fadingOut) this.syncRoom(delta);
+    if (!this.fadingOut) this.syncCave(delta);
     this.reflect(time);
     this.glint(delta);
     this.afterRain(delta);
-    if (this.night && !this.roomView) {
+    if (this.night && !this.roomView && !this.caveView) {
       this.paintWash();
       this.paintLight();
     }
@@ -7290,7 +7359,7 @@ export class WorldScene extends Phaser.Scene {
           const cell = this.destinations.get(id);
           if (heel && id === "player" && cell && !arcLift) {
             void gameAudio()?.sound(
-              this.footstepAt(cell, puddle, water, pose === "run"),
+              () => this.footstepAt(cell, puddle, water, pose === "run"),
               "step",
             );
             const fungus = this.fungusUnderfoot(cell);

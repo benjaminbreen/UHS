@@ -50,7 +50,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     streetRevision: 1,
     terraceRevision: 1,
     placementRevision: s.placementRevision ?? 1,
-    vegetationRevision: 8,
+    vegetationRevision: 9,
     ecologyRevision: 2,
     hydrologyRevision: 3,
     geographyMode,

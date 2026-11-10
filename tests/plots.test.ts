@@ -1,17 +1,22 @@
-import { describe, expect, it } from "vitest";
-import { createSettingSession } from "../src/runtime/session";
+import { describe, expect, it, vi } from "vitest";
+import { createSettingSession, type Runtime } from "../src/runtime/session";
 import { startPlot } from "../src/core/plot";
 import { PLOTS } from "../src/content/plots";
 import { accused } from "../src/content/plots/accused";
 import { commission } from "../src/content/plots/commission";
 import { debt } from "../src/content/plots/debt";
 import { feast } from "../src/content/plots/feast";
+import { token } from "../src/content/plots/token";
 import type { PlotTemplate } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import { Engine } from "../src/core/engine";
+import { doorApproach } from "../src/core/doors";
+import { markOf } from "../src/core/kin";
 import { items } from "../src/content/packs";
 import type { PlayerCommand } from "../src/core/types";
+import { taskView, tasksOf } from "../src/ui/task-view";
+import { smallSession } from "./fixtures";
 
 // London 1750 takes half a minute to build, so the cases share one world and
 // each plays on its own copy of the state, apart from core.test.ts.
@@ -41,7 +46,7 @@ const act = (e: Engine, command: PlayerCommand) =>
 describe("plot templates", () => {
   it("word every line their opening, developments and endings call for", () => {
     for (const plot of PLOTS) {
-      const called = ["aim", "intro", "threat", ...plot.endings.map((e) => e.id),
+      const called = ["aim", "intro", "threat", ...plot.endings.map((e) => e.id), ...(plot.journal?.notes.map((n) => n.line) ?? []),
         ...[...plot.opening, ...plot.developments.flatMap((d) => d.then)].flatMap((e) =>
           e.type === "choose" ? [e.line, ...e.choices.map((c) => `${c.id}:label`)] : "line" in e ? [e.line] : [])];
       for (const w of plot.wording)
@@ -50,10 +55,148 @@ describe("plot templates", () => {
   });
 });
 
+function tokenScene() {
+  const e = smallSession(setting, "token-fixture");
+  const s = e.state;
+  delete s.plot;
+  const plot = drawOnly(token, () => startPlot(s, { ...setting, year: -4321 }, token.id))!;
+  const household = s.households!.find((h) => h.id === s.player.householdId)!;
+  const house = e.world.place(household.residence!);
+  const doorstep = house ? { ...doorApproach(house), space: "outside" } : household.home;
+  const wild = { ...doorstep, x: doorstep.x + 100 };
+  const actor = (role: string) => s.actors.find((a) => a.id === plot.cast[role])!;
+  const runtime = { engine: e, dayGoals: () => [] } as unknown as Runtime;
+  const today = () => taskView(runtime, { kind: "plot" });
+  const talk = (role: string) => {
+    const a = actor(role);
+    a.pos = { ...s.player.pos, x: s.player.pos.x + 1 };
+    return act(e, { type: "interact", action: "talk", target: a.id });
+  };
+  const answer = (line: string, choice: number) => act(e, { type: "choose", card: `plot:token:${line}`, choice });
+  return { e, s, plot, actor, doorstep, wild, runtime, today, talk, answer };
+}
+
+describe("Something at the Door", () => {
+  it.each(["witness", "suspect"])("only shows discovered leads in Today when %s is first", (first) => {
+    const { e, s, plot, actor, doorstep, wild, runtime, today, talk, answer } = tokenScene();
+    const suspect = actor("suspect"), neighbour = actor("neighbour"), witness = actor("witness");
+    suspect.name = "Wola";
+    neighbour.name = "Chika";
+    witness.name = "Taro";
+    s.player.relations = [{ kind: "parent", other: "shared-parent" }];
+    witness.relations = [{ kind: "parent", other: "shared-parent" }];
+    witness.origin = { ...witness.origin!, sex: "male" };
+
+    s.player.pos = { ...wild };
+    e.advance(3660);
+    expect(e.cards.every((c) => c.kind === "title")).toBe(true);
+    expect(today()).toBeUndefined();
+    expect(tasksOf(runtime, s.player.id).some((task) => task.source.kind === "plot")).toBe(false);
+    expect(markOf(s, suspect.id)).toBeUndefined();
+
+    s.player.pos = { ...doorstep };
+    e.advance(60);
+    const opening = e.cards.find((c) => c.choose?.card === "plot:token:intro")!;
+    expect(opening.text).toContain("figure carved from bone");
+    expect(today()?.facts.map((f) => f.text).join(" ")).not.toMatch(/Wola|Chika|Taro/);
+
+    s.player.pos = { ...wild };
+    expect(e.canShowCard(opening)).toBe(false);
+    expect(answer("intro", 0).status).toBe("rejected");
+    e.cards.length = 0;
+    e.reofferCard();
+    expect(e.cards.some((c) => c.choose?.card === "plot:token:intro")).toBe(false);
+
+    s.player.pos = { ...doorstep };
+    e.reofferCard();
+    expect(answer("intro", 0).status).toBe("completed");
+    e.cards.length = 0;
+    s.player.pos = { ...wild };
+    suspect.home = { ...s.player.home };
+    neighbour.home = { ...s.player.home, x: s.player.home.x + 80 };
+    if (first === "witness") {
+      expect(talk("witness").status).toBe("completed");
+      expect(today()?.facts.find((f) => f.label === "What you heard")?.text).toContain("Taro, your brother,");
+      expect(today()?.facts.map((f) => f.text).join(" ")).toContain("Chika, another member of your settlement");
+      expect(today()?.facts.map((f) => f.text).join(" ")).not.toContain("Wola");
+      expect(e.cards.find((c) => c.speaker === witness.id)?.text).toContain("at first light");
+    }
+
+    suspect.pos = { ...s.player.pos, x: s.player.pos.x + 1 };
+    e.advance(60, suspect.id);
+    expect(today()?.facts.find((f) => f.label === "What you noticed")?.text).toContain("Wola, your neighbor, has fresh red ochre");
+    expect(e.cards.some((c) => c.choose?.card === "plot:token:blush")).toBe(false);
+    if (first === "suspect") {
+      expect(today()?.facts.map((f) => f.text).join(" ")).not.toMatch(/Chika|Taro/);
+      expect(talk("witness").status).toBe("completed");
+      expect(today()?.facts.map((f) => f.text).join(" ")).toContain("Chika");
+    }
+    expect(talk("suspect").status).toBe("completed");
+    const reply = e.cards.find((c) => c.choose?.card === "plot:token:blush")!;
+    expect(reply.text).toContain("Wola, your neighbor, admits");
+    s.player.pos = { ...doorstep };
+    expect(e.canShowCard(reply)).toBe(false);
+    expect(answer("blush", 0).status).toBe("rejected");
+    expect(talk("suspect").status).toBe("completed");
+    expect(answer("blush", 0).status).toBe("completed");
+    expect(plot.ended).toBe("found");
+  });
+
+  it("waits at the doorstep for the visitor and cancels the watch if the player leaves", () => {
+    const startWatch = () => {
+      const scene = tokenScene();
+      const { e, s, actor, doorstep, wild, answer } = scene;
+      s.player.pos = { ...doorstep };
+      actor("suspect").pos = { ...wild };
+      e.advance(60);
+      const rng = e.rng.bind(e);
+      vi.spyOn(e, "rng").mockImplementation((key) => key.startsWith("plot:token:intro:") ? 0 : rng(key));
+      expect(answer("intro", 1).status).toBe("completed");
+      e.cards.length = 0;
+      return scene;
+    };
+    const waiting = startWatch();
+    waiting.e.advance(1740, waiting.actor("suspect").id);
+    expect(waiting.e.cards).toEqual([]);
+    expect(waiting.today()?.facts.map((f) => f.text).join(" ")).not.toContain(waiting.actor("suspect").name);
+    waiting.actor("suspect").pos = { ...waiting.doorstep };
+    waiting.e.advance(120, waiting.actor("suspect").id);
+    expect(waiting.e.cards.find((c) => c.choose?.card === "plot:token:dawn")?.speaker).toBe(waiting.actor("suspect").id);
+    expect(waiting.answer("dawn", 1).status).toBe("completed");
+    expect(waiting.plot.ended).toBe("cool");
+
+    const leaving = startWatch();
+    leaving.s.player.pos = { ...leaving.wild };
+    leaving.e.advance(60);
+    expect(leaving.plot.ended).toBe("left-watch");
+    expect(leaving.e.cards).toEqual([]);
+  });
+
+  it("expires an undiscovered mystery without a card or a record entry", () => {
+    const { e, s, plot, wild, today } = tokenScene();
+    s.player.pos = { ...wild };
+    s.clock = plot.deadline - 60;
+    e.advance(120);
+    expect(plot.ended).toBe("unsolved");
+    expect(today()).toBeUndefined();
+    expect(e.cards.every((c) => c.kind === "title")).toBe(true);
+    expect(s.record?.some((entry) => entry.card.startsWith("plot:")) ?? false).toBe(false);
+  });
+});
+
 describe("plots played out in London, 1750", () => {
   it("binds a seeded debt, sends the creditor over, and ends it by payment or seizure", () => {
     const e = session();
-    delete e.state.plot;
+    const s = e.state;
+    delete s.plot;
+    const home = s.households!.find((h) => h.members.includes(s.player.id))!;
+    const lender = s.actors.find((a) => a.kind === "human" && !a.dead && (a.age ?? 30) >= 18 &&
+      a.householdId && a.householdId !== home.id)!;
+    const supplier = s.households!.find((h) => h.id === lender.householdId)!;
+    supplier.makes = [...(supplier.makes ?? []), "bread"];
+    supplier.producers = { ...supplier.producers, bread: lender.id };
+    home.owes = supplier.id;
+    home.credit = { good: "bread", from: supplier.id, seller: lender.id, debtor: s.player.id, amount: 8, reason: "household", repayment: "money" };
     const plot = drawOnly(debt, () => startPlot(e.state, setting))!;
     expect(plot.id).toBe("debt");
     expect(e.state.lifeAim?.id).toBe("plot:debt");
@@ -72,7 +215,6 @@ describe("plots played out in London, 1750", () => {
     expect(plot.owed).toBe(owed - 3 * coin);
     expect(plot.ended).toBeUndefined();
 
-    const home = e.state.households!.find((h) => h.members.includes(e.state.player.id))!;
     const store = e.state.objects.find((o) => o.id === home.storeId)!;
     store.inventory = { ...store.inventory, coin: 20 };
     plot.deadline = e.state.clock;

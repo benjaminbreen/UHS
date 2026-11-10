@@ -223,7 +223,8 @@ describe("walking through", () => {
       expect(e.blocked(from.x, from.y, "outside"), `${b.sprite} step`).toBe(false);
       for (const a of e.state.actors) if (a.pos.space === "outside" && Math.abs(a.pos.x - d.x) <= 1 && Math.abs(a.pos.y - d.y) <= 2) a.pos = { x: 9999, y: 9999, space: "outside" };
       e.state.player.pos = { ...from, space: "outside" };
-      act(e, { type: "move", dx: d.x - from.x, dy: d.y - from.y });
+      const move = act(e, { type: "move", dx: d.x - from.x, dy: d.y - from.y });
+      expect(move.status, `${b.sprite}: ${move.reason ?? ""}`).toBe("completed");
       expect(e.state.player.pos.space, b.sprite).toBe(b.id);
     }
   });

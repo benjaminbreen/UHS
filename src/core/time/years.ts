@@ -8,7 +8,7 @@ import { standingOf } from "../standing";
 import { rollStats } from "../stats";
 import { conditionsOf, healthPerson } from "../health";
 import { inheritLikeness } from "../character";
-import { plotLine, plotTemplate, startPlot } from "../plot";
+import { plotKnown, plotLine, plotTemplate, startPlot } from "../plot";
 import { ensureLifeAim } from "../life-aim";
 import { causeOfDeath, epidemic } from "../../content/history/deaths";
 import { TIDINGS } from "../../content/history/tidings";
@@ -248,14 +248,16 @@ export function liveYears(engine: Engine): Life {
 
     // The plot comes out one way or another within the year.
     const plot = s.plot;
-    if (plot && !plot.ended && year === from + 1 && plotTemplate(plot)) {
-      const endings = [...new Set(plotTemplate(plot)!.endings.map((e) => e.id))].filter((id) => plotLine(plot, id));
+    const template = plot && plotTemplate(plot);
+    if (plot && !plot.ended && year === from + 1 && template) {
+      const endings = template.journal ? [template.journal.missed]
+        : [...new Set(template.endings.map((e) => e.id))].filter((id) => plotLine(plot, id));
       const weigh = (id: string) => (GOOD_END.test(id) ? fortune + 0.3 : BAD_END.test(id) ? 1.3 - fortune : 0.5);
       let draw = r("plot") * endings.reduce((n, id) => n + weigh(id), 0);
       const ending = endings.find((id) => (draw -= weigh(id)) < 0) ?? endings.at(-1);
       if (ending) {
         life.plot = { year, ending };
-        lines.push({ text: plotLine(plot, ending), kind: "plot", label: plot.title });
+        if (plotKnown(plot)) lines.push({ text: plotLine(plot, ending, s), kind: "plot", label: plot.title });
         fortune += GOOD_END.test(ending) ? 0.02 : BAD_END.test(ending) ? -0.1 : 0;
       }
     }
@@ -590,7 +592,7 @@ export function liveOn(engine: Engine, life: Life, year: number): Engine {
   if (s.manifest.setting) s.manifest.setting.year = year;
   if (s.plot && !s.plot.ended && life.plot) {
     s.plot.ended = life.plot.ending;
-    s.lifeAim = s.plot.aim;
+    if (plotKnown(s.plot)) s.lifeAim = s.plot.aim;
   }
   for (const key of ["workday", "today", "evening", "care", "kin", "encounter", "relationships"] as const) delete s[key];
   if (s.economy) delete s.economy.work;

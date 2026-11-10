@@ -116,6 +116,7 @@ export const settingSchema = z
         z.literal(6),
         z.literal(7),
         z.literal(8),
+        z.literal(9),
       ])
       .optional(),
     ecologyRevision: z.union([z.literal(1), z.literal(2)]).optional(),

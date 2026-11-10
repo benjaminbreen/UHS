@@ -828,7 +828,7 @@ export const farmSystems: FarmSystemRule[] = [
         { id: "orchard", share: 0.3 },
         { id: "vegetables", share: 0.1 },
       ],
-      terrace: { riser: "wall", depth: 2, plot: 7, reach: 16, sinuous: 0.5 },
+      terrace: { riser: "wall", depth: 3, plot: 12, reach: 9, sinuous: 0.3 },
     },
     upland: { crops: [{ id: "pasture", share: 1 }] },
     orchard: 0.35,

@@ -6,7 +6,8 @@ export type InteriorMusic =
   | "tavern"
   | "home"
   | "workshop"
-  | "hall";
+  | "hall"
+  | "cave";
 
 const everywhere = {
   culture: [],
@@ -28,6 +29,31 @@ const jig = [
 /** Music that replaces the outdoor score while the player is inside a building.
  * Original sketches; no culture or date claims beyond the choice of room. */
 export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
+  cave: {
+    ...everywhere,
+    years: [-1000000, 10000],
+    place: "Underground, any place",
+    id: "inside-the-rock",
+    title: "Inside the rock",
+    subtitle:
+      "A struck stalactite rings three notes into a long room; a low breath holds under them, and now and then a clay flute tries the echo.",
+    evidence:
+      "Inference: stalactites and flowstone curtains worn by striking are documented in painted caves (Nerja, Les Fieux, Réseau Clastres), and bone flutes from Swabian cave sites. The notes and their order are original.",
+    bpm: 44,
+    meter: 4,
+    bars: 32,
+    key: "D, three stones",
+    tuning: { "2": 14, "9": -20 },
+    reverb: [0.7, 7],
+    layers: [
+      { voice: "drone", stem: "bass", loop: "D2:16 C2:16", velocity: 0.07 },
+      { voice: "sub", stem: "bass", loop: "D1:8 -:24", velocity: 0.05, enter: 8 },
+      { voice: "rockgong", stem: "harmony", loop: "D4:1:.9 -:6 A3:1:.6 -:9 E4:1:.7 -:14", velocity: 0.16, pan: -0.3, echo: [1.5, 3, 0.45] },
+      { voice: "rockgong", stem: "harmony", loop: "-:11 A4:1:.5 -:17 D5:1:.4 -:8", velocity: 0.1, pan: 0.4, enter: 4, echo: [2, 3, 0.5], drift: 0.5 },
+      { voice: "xun", stem: "harmony", loop: "-:16 A4:3 G4:1 E4:4 -:20 D4:2 E4:2 A4:6 -:10", velocity: 0.07, enter: 12, exit: 30, echo: [3, 2, 0.4] },
+      { voice: "wood", stem: "percussion", loop: "-:23 C6:1:.3 -:19 C6:1:.2 -:9", velocity: 0.03, pan: 0.6, echo: [0.75, 4, 0.5] },
+    ],
+  },
   chant: {
     ...everywhere,
     id: "inside-stone-office",

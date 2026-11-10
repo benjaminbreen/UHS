@@ -60,7 +60,7 @@ const defaults: Config = {
   water: "river-ns",
   season: "summer",
   year: -6499,
-  vegetationRevision: 8,
+  vegetationRevision: 9,
   placementRevision: 1,
   relief: 0.35,
 };

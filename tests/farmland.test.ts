@@ -1,13 +1,47 @@
 import { describe, expect, it } from "vitest";
 import { panelCity } from "../scripts/review/panel";
 import { crops, pickable } from "../src/content/agriculture/crops";
+import { packs } from "../src/content/packs";
+import { settlementProfile } from "../src/content/settlements/profiles";
 import { createSettingSession } from "../src/runtime/session";
+import { planFarmland } from "../src/world/v3/farmland";
 import { panelSetting } from "../scripts/review/panel";
 import { smallSession } from "./fixtures";
 
 /** Farmland round a town: parcels exist, keep off the built ground, reach
  * a lane, and carry the system the culture and date imply. */
 describe("farmland", () => {
+  it("draws one half-step behind a lone brink and several between terrain tiers", () => {
+    const setting = { ...panelSetting("london", 1650), culture: "south-asian" as const, lon: 85.88, lat: 20.47 };
+    const riserRows = (upper: number) => {
+      const farm = planFarmland({
+        site: { id: "brink", cx: 0, cy: 0, center: { x: 0, y: 0 }, home: true, profile: { ...settlementProfile(setting), radius: 25 } },
+        pack: { ...packs.roman, setting },
+        seed: "brink",
+        sample: (_x, y) => ({ elevation: y < upper ? 28 : y < -30 ? 14 : 0, water: 80, kind: "river", moisture: 0.7, snow: false }),
+        urban: true,
+        connections: [],
+        taken: () => false,
+        solid: () => false,
+        foreign: () => false,
+        cap: 80,
+        lane: () => undefined,
+        join: () => undefined,
+        owners: [],
+        homeOf: () => undefined,
+        holding: () => 0,
+        reachable: () => true,
+      })!;
+      return [...farm.fields]
+        .filter(([, f]) => (f.riser ?? 0) & 4)
+        .map(([key]) => Number(key.split(",")[1]));
+    };
+    const shelf = riserRows(-Infinity);
+    expect(shelf.length).toBeGreaterThan(0);
+    expect(Math.min(...shelf)).toBeGreaterThanOrEqual(-35);
+    expect(Math.min(...riserRows(-46))).toBeLessThan(-40);
+  });
+
   it("does not wrap irrigation round the town in a diamond", () => {
     const engine = createSettingSession(
       { ...panelSetting("london", 1400), climate: "arid" },
@@ -37,7 +71,8 @@ describe("farmland", () => {
       )
         diagonal++;
     }
-    expect(plan.canals.size).toBeGreaterThan(100);
+    // Channels with no field beside them are not dug, so fewer than the grid lays.
+    expect(plan.canals.size).toBeGreaterThan(50);
     expect(diagonal).toBeLessThan(10);
   });
 

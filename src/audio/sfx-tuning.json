@@ -1,1 +1,8 @@
-{}
+{
+  "blip": { "gain": 0.55, "gap": 140 },
+  "bump": { "gain": 0.55, "gap": 320 },
+  "gear": { "gain": 0.45, "gap": 130 },
+  "knock": { "gap": 320 },
+  "select": { "gain": 0.65 },
+  "step": { "gain": 0.65 }
+}

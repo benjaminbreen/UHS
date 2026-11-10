@@ -7,6 +7,7 @@ import {
   biteOf,
   drink,
   eat,
+  handle,
   materialOf,
   moneyOf,
   pay,
@@ -57,6 +58,7 @@ import { heldObject, nearbyProp } from "../core/props";
 import { withProps } from "../content/props/place";
 import { propDefs } from "../content/props/catalog";
 import { Engine } from "../core/engine";
+import { caveMouthsNear } from "../core/cave";
 import {
   axeWork,
   pickWork,
@@ -252,7 +254,8 @@ export function createSession(
   engine.state.bonds ??= bondsFor(engine.state, pack.setting);
   if (plot && !plot.ended && !plot.aim?.revision) {
     plot.aim = lifeAimOf(seed, pack.setting, engine.state.player, engine.state.actors, engine.state.households, engine.state);
-  } else ensureLifeAim(engine.state, pack.setting);
+  }
+  ensureLifeAim(engine.state, pack.setting);
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn
@@ -1052,21 +1055,46 @@ export class Runtime {
    * answer every time, and the player walks off at once. */
   async say(input: string): Promise<Turn> {
     const terms = parseFind(input);
-    const plan = parsePlan(input, this.engine);
     let turn: Turn;
-    let found: FindTarget | undefined;
-    if (!plan && terms) {
-      this.engine.syncFauna();
-      found = findNearest(this.engine.state, terms);
+    if (terms && /^caves?(?: (?:mouth|entrance)s?)?$/.test(terms.join(" "))) {
+      turn = this.findCave(input);
+    } else {
+      const plan = parsePlan(input, this.engine);
+      let found: FindTarget | undefined;
+      if (!plan && terms) {
+        this.engine.syncFauna();
+        found = findNearest(this.engine.state, terms);
+      }
+      const animal = terms && namedAnimal(terms);
+      const routed = plan || found || animal ? undefined : await routePlan(this.engine, input, this.modelFetch);
+      if (plan ?? routed) turn = this.startPlan(input, (plan ?? routed)!);
+      else if (found && !(animal && /\b(my|our)\b/i.test(input) && this.leftBehind(animal))) turn = this.walkToFound(input, found);
+      else if (animal) turn = this.noneFound(input, animal);
+      else turn = await narratorTurn(this, input);
     }
-    const animal = terms && namedAnimal(terms);
-    const routed = plan || found || animal ? undefined : await routePlan(this.engine, input, this.modelFetch);
-    if (plan ?? routed) turn = this.startPlan(input, (plan ?? routed)!);
-    else if (found && !(animal && /\b(my|our)\b/i.test(input) && this.leftBehind(animal))) turn = this.walkToFound(input, found);
-    else if (animal) turn = this.noneFound(input, animal);
-    else turn = await narratorTurn(this, input);
     this.onRecord?.("text", { input: input.trim().slice(0, 600), response: turn.text, error: turn.error });
     return turn;
+  }
+  private findCave(input: string): Turn {
+    const e = this.engine, p = e.state.player.pos;
+    if (p.space.startsWith("cave:")) return this.log(input, "You are already inside a cave.");
+    if (p.space !== "outside") return this.log(input, "Step outside to look for a cave.");
+    const size = e.world.pack.setting?.playableMap?.size;
+    let found = false;
+    for (const mouth of caveMouthsNear(e.world, p, size ?? 96)) {
+      if (!e.inspect(`cave-mouth:${mouth.x},${mouth.y}`)) continue;
+      found = true;
+      if (mouth.x === p.x && mouth.y === p.y) return this.log(input, "You are already at a cave entrance.");
+      if (e.playerBlocked(mouth.x, mouth.y)) continue;
+      const path = this.pathTo(mouth);
+      if (!path.length) continue;
+      this.stop(false);
+      this.route = path;
+      this.running = true;
+      this.notice = "";
+      return this.log(input, "You set off toward a cave entrance.");
+    }
+    return this.log(input, found ? "You can't find a walkable route to a cave entrance." : size ? "There are no cave entrances on this map." : "There are no cave entrances nearby.");
   }
   private startPlan(input: string, plan: Plan): Turn {
     this.setOff(plan);
@@ -1225,23 +1253,11 @@ export class Runtime {
         reason: this.notice,
       };
     }
-    const previousProp =
-      heldObject(this.engine.state)?.sprite ??
-      (this.engine.state.player.heldItem
-        ? `icon:${this.engine.state.player.heldItem}`
-        : undefined);
-    const previousPlant = this.toolTargetPlant(command);
-    const result = this.engine.act({
+    const result = this.actAndPresent({
       actionId: `ui-${this.engine.state.revision}-${++this.serial}`,
       expectedRevision: this.engine.state.revision,
       command,
     });
-    this.animateCommand(
-      command,
-      result.status !== "rejected",
-      previousProp,
-      previousPlant,
-    );
     this.notice = result.reason ?? "";
     if (result.status !== "rejected") this.onChange?.();
     if (result.status === "completed" && command.type === "interact" && command.action === "work" && result.elapsedSeconds >= 1200)
@@ -1305,22 +1321,44 @@ export class Runtime {
         observation: structuredClone(this.observation!),
       };
     }
-    const previousProp =
-      heldObject(this.engine.state)?.sprite ??
-      (this.engine.state.player.heldItem
-        ? `icon:${this.engine.state.player.heldItem}`
-        : undefined);
-    const previousPlant = this.toolTargetPlant(command);
-    const result = this.engine.act({ ...request, command });
-    this.animateCommand(
-      command,
-      result.status !== "rejected",
-      previousProp,
-      previousPlant,
-    );
+    const result = this.actAndPresent({ ...request, command });
     if (result.status !== "rejected") this.onChange?.();
     this.emit();
     return { ...result, observation: structuredClone(this.observation!) };
+  }
+  private actAndPresent(request: CommandRequest) {
+    const { command } = request;
+    const state = this.engine.state;
+    if (Object.hasOwn(state.receipts, request.actionId)) return this.engine.act(request);
+    const player = state.player;
+    const held = heldObject(state);
+    const previousProp = held?.sprite ?? (player.heldItem ? `icon:${player.heldItem}` : undefined);
+    const previousPlant = this.toolTargetPlant(command);
+    const previousBoat = player.boat;
+    const previousItem = command.type === "remove" ? player.worn?.[command.slot] : player.heldItem;
+    const door = command.type === "interact" && (command.action === "open" || command.action === "close")
+      ? state.objects.find((o) => o.id === command.target && (o.kind === "door" || o.kind === "gate"))
+      : undefined;
+    const wasOpen = !!door?.open;
+    const result = this.engine.act(request);
+    this.animateCommand(command, result.status !== "rejected", previousProp, previousPlant);
+    const audio = gameAudio();
+    if (result.status !== "completed" || !audio) return result;
+    if (door && !!door.open !== wasOpen)
+      void audio.event(door.open ? "door" : "doorClose");
+    else if (command.type === "interact" && command.action === "knock")
+      void audio.event("knock");
+    else if (command.type === "interact" && command.action === "launch" && !previousBoat && state.player.boat)
+      void audio.event("boatLaunch");
+    else if (command.type === "move" && previousBoat && !state.player.boat)
+      void audio.event("boatLand");
+    else if (command.type === "hold" || command.type === "wear" || command.type === "stow" || command.type === "remove") {
+      const item = command.type === "hold" || command.type === "wear" ? command.item : previousItem;
+      void audio.sound(() => handle(item
+        ? materialOf(item, this.engine.item(item))
+        : propMaterial(propDefs[held?.prop ?? ""])), "gear");
+    }
+    return result;
   }
   /**
    * The person close enough to speak with, if any. The reach matches the
@@ -1738,7 +1776,10 @@ export class Runtime {
     // Something in hand and somebody in front of you: handing it over is what
     // the second slot is for, ahead of any scenery.
     // A fire and raw meat: cooking comes before putting the stick down.
-    if (light)
+    const cave = this.engine.caveVerb();
+    if (cave)
+      alternate = { kind: "climb", label: cave.label, command: { type: "interact", target: cave.target, action: "cave" } };
+    else if (light)
       alternate = { kind: "look", label: "Light the stick in the fire", command: light };
     else if (fill) alternate = { kind: "look", label: "Fill the pail", command: fill };
     else if (c.secondary?.action === "cook")
@@ -1806,7 +1847,7 @@ export class Runtime {
       this.select(verb.actor);
       return verb;
     }
-    if (verb.kind === "climb") {
+    if (verb.kind === "climb" && !verb.command) {
       this.climb();
       return verb;
     }
@@ -2159,9 +2200,14 @@ export class Runtime {
     this.engine.event(`Cell ${x},${y}: ${parts.join(" · ")}`, "action");
     this.emit(false);
   }
+  private pathTo(target: Point) {
+    const p = this.engine.state.player.pos;
+    return this.engine.state.manifest.simulation === 2
+      ? this.engine.findRoute(p, target).path
+      : findPath(p, target, (x, y) => this.engine.playerBlocked(x, y));
+  }
   walkTo(target: Point) {
     this.stop(false);
-    const p = this.engine.state.player.pos;
     let candidates = [target];
     if (this.engine.playerBlocked(target.x, target.y))
       candidates = [
@@ -2172,10 +2218,7 @@ export class Runtime {
       ];
     for (const end of candidates) {
       if (this.engine.playerBlocked(end.x, end.y)) continue;
-      const path =
-        this.engine.state.manifest.simulation === 2
-          ? this.engine.findRoute(p, end).path
-          : findPath(p, end, (x, y) => this.engine.playerBlocked(x, y));
+      const path = this.pathTo(end);
       if (path.length) {
         this.route = path;
         this.running = true;
@@ -2203,10 +2246,7 @@ export class Runtime {
     );
     for (const end of candidates) {
       if (this.engine.playerBlocked(end.x, end.y)) continue;
-      const path =
-        this.engine.state.manifest.simulation === 2
-          ? this.engine.findRoute(p, end).path
-          : findPath(p, end, (x, y) => this.engine.playerBlocked(x, y));
+      const path = this.pathTo(end);
       if (path.length) {
         this.stop(false);
         this.route = path;

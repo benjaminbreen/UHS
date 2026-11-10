@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Square } from "lucide-react";
 import type { AudioDirector } from "../audio/director";
-import { ambienceFor, type AmbienceMix, type Surface } from "../audio/ambience";
+import { ambienceFor, type AmbienceMix } from "../audio/ambience";
 import { listeningScenes, references } from "../audio/ambience-scenes";
 
-const surfaces: Surface[] = ["leaves", "needles", "grass", "ground", "paving"];
 const verdicts = ["Sounds right", "Better than before", "Worse than before", "Not like rain"];
 
 /** Plays the world's ambience for a chosen scene, next to the field recording
@@ -81,23 +80,9 @@ export function AmbienceTab({ director }: { director: AudioDirector }) {
             <input type="range" min={0} max={1} step={0.01} value={mix.rain} onChange={(e) => patch({ rain: +e.target.value })} />
           </label>
           <label>
-            Falling on
-            <select value={mix.surface} onChange={(e) => patch({ surface: e.target.value as Surface })}>
-              {surfaces.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-          <label>
             <input type="checkbox" checked={!!mix.inside} onChange={(e) => patch({ inside: e.target.checked ? 1 : 0, room: e.target.checked ? 0.3 : 0 })} />
             Indoors
           </label>
-          {mix.inside ? (
-            <label>
-              Roof {mix.hard < 0.5 ? "thatch" : "tile"}
-              <input type="range" min={0} max={1} step={0.05} value={mix.hard} onChange={(e) => patch({ hard: +e.target.value })} />
-            </label>
-          ) : null}
           <div className="ambience-refs">
             <button aria-pressed={!ref} onClick={backToSynth}>
               Game

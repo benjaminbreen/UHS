@@ -150,8 +150,11 @@ try {
     const canvas = page.locator(
       '.game-container canvas[data-terrain-ready="true"]',
     );
-    await canvas.waitFor({ timeout: 90000 });
-    const readyMs = Date.now() - selection;
+    const [readyMs, entryMs] = await Promise.all([
+      canvas.waitFor({ timeout: 90000 }).then(() => Date.now() - selection),
+      page.waitForFunction(() => !!window.historySim, null, { timeout: 90000 })
+        .then(() => Date.now() - selection),
+    ]);
     const startupTasks = await page.evaluate(() => window.longTasks);
     await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 30000 });
     await page
@@ -274,6 +277,7 @@ try {
       world,
       shellMs,
       readyMs,
+      entryMs,
       startupTasks,
       sample,
       metrics,

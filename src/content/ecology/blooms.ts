@@ -1,5 +1,5 @@
 import type { TopographyCell, TopographySample } from "../../core/topography";
-import { waterHash as hash } from "../../core/water-field";
+import { waterHash as hash, waterNoise } from "../../core/water-field";
 import { pickSpecies, type FloraRegion, type Species } from "./flora";
 import { groveEdge } from "../../world/v3/habitats";
 
@@ -20,6 +20,7 @@ const seasonal: Record<string, number> = {
   autumn: 0.2,
   winter: 0,
 };
+const rainySeason: Record<string, number> = { spring: 0, summer: 1, autumn: 0.55, winter: 0 };
 /** The flora of the world being drawn. The renderer's chunk builder has no
  * pack to read, so the scene sets this once per world. */
 let current: FloraRegion = "europe";
@@ -58,7 +59,7 @@ export function bloomsAt(
   if (!c || !h || !turf(c)) return [];
   const growth = Math.max(0, 1 - (c.groundWear ?? 0));
   if (!growth) return [];
-  const season = seasonal[h.season] ?? 0.5;
+  const season = (h.rainSeasonBlooms ? rainySeason : seasonal)[h.season] ?? 0.5;
   if (!season) return [];
   for (let dy = -1; dy <= 1; dy++)
     for (let dx = -1; dx <= 1; dx++) {
@@ -73,9 +74,14 @@ export function bloomsAt(
   const colony = hash(Math.floor(wx / 5), Math.floor(wy / 5), 601);
   const dense = h.kind === "meadow" ? 1.6 : h.kind === "open" ? 1 : 0.5;
   // A colony is thick with its one flower; the odd stray grows anywhere.
-  const thick = colony > 0.8;
+  // Colonies gather in drifts: spread evenly they left no turf empty.
+  const drift = waterNoise(Math.floor(wx / 5) * 5, Math.floor(wy / 5) * 5, 20, 621) > 0.58;
+  const thick = h.lushness === undefined ? drift && colony > 0.68
+    : colony > 0.72 && h.lushness > 0.22;
   const edge = h.grove === undefined ? 1 : 0.15 + groveEdge(h.grove) * 0.85;
-  const chance = (thick ? 0.22 : 0.012) * season * dense * growth * growth * edge;
+  const local = h.lushness === undefined ? (thick ? 0.22 : 0.005)
+    : thick ? 0.24 * h.lushness : 0.001 + 0.003 * h.lushness;
+  const chance = local * season * dense * growth * growth * edge;
   if (hash(wx, wy, 603) > chance) return [];
   const count = 1 + Math.floor(hash(wx, wy, 605) * (thick ? 3 : 1.6));
   const spots: BloomSpot[] = [];

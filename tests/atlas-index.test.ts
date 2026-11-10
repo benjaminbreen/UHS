@@ -14,9 +14,9 @@ it("preserves global coast, river and flow samples after offline indexing", () =
       const p = toAtlas(lon, lat);
       samples.push(atlasSample(p.x, p.y));
     }
-  // Captured after the move to the 10m coastline and half-degree buckets;
-  // the a00d0dc runtime-built index hashed to 30bd2d09.
-  expect(stateHash(samples)).toBe("194c3cfb");
+  // Captured after every Natural Earth 10m river and the Europe and North
+  // America supplements went in; with rivers of rank 6 and under it was 194c3cfb.
+  expect(stateHash(samples)).toBe("e6ad9f85");
   const p = toAtlas(31, 30);
   expect(nearestRiverPoint(p.x, p.y, "Nile")).toEqual([
     63940.4032, -61455.9744,

@@ -26,6 +26,8 @@ import { catalog } from "../src/audio/sfx";
 import { ambienceFor, bellFor, townKindFor } from "../src/audio/ambience";
 import { listeningScenes } from "../src/audio/ambience-scenes";
 import { weatherAt } from "../src/core/weather";
+import { doorApproach } from "../src/core/doors";
+import { createSession, Runtime } from "../src/runtime/session";
 import * as handling from "../src/audio/handling";
 
 describe("original soundtrack scores", () => {
@@ -399,6 +401,25 @@ describe("town ambience", () => {
 
 
 describe("soundtrack setting updates", () => {
+  it("skips making effects when muted or when effects volume is zero", async () => {
+    vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
+    vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem() {} });
+    const director = new AudioDirector();
+    const cue = vi.fn(() => catalog[0].make());
+    try {
+      director.mute();
+      await director.sound(cue, "test");
+      director.mute();
+      director.setVolume("sfxVolume", 0);
+      await director.sound(cue, "test");
+      expect(cue).not.toHaveBeenCalled();
+    } finally {
+      director.dispose();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it.each(["playing", "loading"] as const)("keeps an outdoor piece while %s when the setting changes", (transport) => {
     vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
     vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
@@ -423,4 +444,44 @@ describe("soundtrack setting updates", () => {
       vi.restoreAllMocks();
     }
   });
+});
+
+it("plays door and gear cues only for new, successful commands", () => {
+  vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
+  vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
+  const engine = createSession();
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  const director = new AudioDirector();
+  const event = vi.spyOn(director, "event").mockResolvedValue(undefined);
+  const sound = vi.spyOn(director, "sound").mockResolvedValue(undefined);
+  try {
+    const house = engine.world.places.find((p) => p.access === "household" && p.owner !== "player")!;
+    const door = engine.doorOf(house.id)!;
+    door.open = false;
+    engine.state.player.pos = { ...doorApproach(house), space: "outside" };
+    const knock = {
+      actionId: "door-knock",
+      expectedRevision: engine.state.revision,
+      command: { type: "interact", action: "knock", target: door.id } as const,
+    };
+    expect(runtime.act(knock).status).toBe("completed");
+    expect(runtime.act(knock).status).toBe("completed");
+
+    door.open = false;
+    engine.state.permissions[house.owner] = engine.state.clock + 3600;
+    expect(runtime.command({ type: "interact", action: "open", target: door.id })?.status).toBe("completed");
+    expect(runtime.command({ type: "interact", action: "close", target: door.id })?.status).toBe("completed");
+    expect(runtime.command({ type: "interact", action: "close", target: door.id })?.status).toBe("rejected");
+    expect(event.mock.calls.map(([id]) => id)).toEqual(["knock", "door", "doorClose"]);
+
+    engine.state.player.inventory.tool = 1;
+    expect(runtime.command({ type: "hold", item: "tool" })?.status).toBe("completed");
+    expect(runtime.command({ type: "stow" })?.status).toBe("completed");
+    expect(runtime.command({ type: "stow" })?.status).toBe("rejected");
+    expect(sound.mock.calls.map(([, key]) => key)).toEqual(["gear", "gear"]);
+  } finally {
+    director.dispose();
+    runtime.dispose();
+    vi.unstubAllGlobals();
+  }
 });

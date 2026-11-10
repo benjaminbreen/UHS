@@ -18,7 +18,7 @@ import {
   toAtlas,
 } from "../world/geography/atlas";
 import { noise } from "../world/geography/noise";
-import { boxBlur } from "./ArrivalMap";
+import { boxBlur } from "../render/box-blur";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
@@ -655,7 +655,7 @@ export function Minimap({
   const revision = runtime.engine.state.revision;
   const local = runtime.engine.state.player.pos;
   const p =
-    local.space === "outside" ? local : world.place(local.space)!.entrance;
+    local.space === "outside" ? local : (world.place(local.space)?.entrance ?? runtime.engine.state.cave?.mouth ?? local);
   const [size, height] = dims ?? (large ? [520, 350] : [256, 148]);
   const extent =
     span ?? (large || regional ? (world.regionExtent ?? 320) : 110);

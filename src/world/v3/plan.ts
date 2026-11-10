@@ -4183,7 +4183,8 @@ export function planSettlement(
         noRoad.add(k);
       }
       for (const k of farmland.culverts) {
-        setSurface(k, "bridge", 10);
+        // Over whatever the lane laid: an outranked deck drew as a gap.
+        plan.surface.set(k, "bridge");
         plan.reserved.add(k);
       }
       for (const [i, w] of farmland.wells.entries()) {
@@ -5562,9 +5563,21 @@ export function planSettlement(
   // Routes through the territory are searched after the fields are cut, so
   // a field cell a road ended up on gives way to it.
   if (plan.fields) {
+    // A route crosses a canal on a deck; one that only strays onto its line
+    // for a few cells leaves the water open.
+    const dry = (x: number, y: number) => {
+      const n = cellKey(x, y);
+      return plan.traffic.has(n) && !plan.canals?.has(n) && !plan.culverts?.has(n);
+    };
     for (const k of plan.traffic) {
       plan.fields.delete(k);
-      if (plan.canals?.delete(k)) plan.culverts?.add(k);
+      const [x, y] = k.split(",").map(Number);
+      const crosses = (dry(x - 1, y) && dry(x + 1, y)) || (dry(x, y - 1) && dry(x, y + 1));
+      if (crosses && plan.canals?.delete(k)) {
+        plan.culverts?.add(k);
+        // Whatever the road laid here, it crosses on a deck.
+        plan.surface.set(k, "bridge");
+      }
     }
   }
   // Every place gets a door, last, so nothing placed earlier lands on the cell

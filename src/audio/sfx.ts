@@ -361,11 +361,14 @@ export function work(kind: ToolWork): Sound {
     // A pailful thrown: the slap of water, then the fire hissing under it.
     case "douse":
       return [
-        noise(0, 0.12, 0.4, 900, { to: 300, q: 1.2, attack: 0.01 }),
-        noise(0.08, 0.9, 0.18, 5200, { filter: "highpass", attack: 0.05 }),
+        noise(0, 0.12, 0.12, 900, { to: 380, q: 1, attack: 0.015 }),
+        noise(0.05, 0.4, 0.065, 3400, { to: 1800, q: 0.55, attack: 0.04 }),
       ];
     case "fill":
-      return [noise(0, 0.5, 0.16, 700, { to: 1100, filter: "lowpass", attack: 0.08 })];
+      return [
+        noise(0, 0.28, 0.09, 900, { to: 450, filter: "lowpass", attack: 0.035 }),
+        bubble(0.07, 270, 0.025),
+      ];
     default:
       return strike(
         "blade",
@@ -751,9 +754,24 @@ export const events = {
   /** A technique taken: two notes settling. */
   learn: () => [...run([9, 12], 0.09, 0.18, 0.7), ...pluck(0.2, 16, 0.08, 0.9)],
   door: () => [
-    ...body("timber", 1.3),
-    tone(0.13, 0.03, 0.12, 1900, { wave: "triangle" }),
-    noise(0.13, 0.02, 0.1, 3000, { q: 2 }),
+    tone(0, 0.035, 0.055, 1050, { to: 700, wave: "triangle", attack: 0.004 }),
+    noise(0.02, 0.12, 0.055, 590, { to: 360, q: 0.9, attack: 0.02 }),
+  ],
+  doorClose: () => [
+    noise(0, 0.075, 0.065, 460, { q: 0.9, attack: 0.005 }),
+    tone(0.05, 0.028, 0.045, 900, { to: 640, wave: "triangle" }),
+  ],
+  knock: () => [0, 0.14].flatMap((at) => [
+    tone(at, 0.065, 0.065, vary(330), { to: 260, wave: "triangle" }),
+    noise(at, 0.032, 0.04, 760, { q: 1.2 }),
+  ]),
+  boatLaunch: () => [
+    noise(0, 0.16, 0.055, 570, { to: 320, q: 1, attack: 0.028 }),
+    noise(0.09, 0.24, 0.095, 1000, { to: 520, filter: "lowpass", attack: 0.027 }),
+  ],
+  boatLand: () => [
+    noise(0, 0.18, 0.08, 850, { to: 420, filter: "lowpass", attack: 0.02 }),
+    noise(0.08, 0.13, 0.065, 560, { to: 290, q: 0.85, attack: 0.012 }),
   ],
 } satisfies Record<string, () => Sound>;
 export type EventId = keyof typeof events;
@@ -957,7 +975,7 @@ export const catalog: { name: string; detail: string; make: () => Sound }[] = [
     detail: "Thrown and burst",
     make: () => strike("thrown", "pottery", "shatter", true),
   },
-  ...(["fell", "dig", "reap", "mine", "shatter"] as ToolWork[]).map((kind) => ({
+  ...(["fell", "dig", "reap", "mine", "shatter", "fill", "douse"] as ToolWork[]).map((kind) => ({
     name: `Work · ${kind}`,
     detail: "A tool at its own job",
     make: () => work(kind),

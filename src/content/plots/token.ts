@@ -1,6 +1,6 @@
 import { dueOf, fillIn, JAPAN, neighbours, partnerWords, pickOf, pronounWords, temper } from "./common";
 import type { Actor } from "../../core/types";
-import type { PlotContext, PlotTemplate } from "./types";
+import type { Condition, PlotContext, PlotTemplate } from "./types";
 
 const single = (c: PlotContext, a: Actor) => !c.actors.some((b) => !b.dead && a.relations?.some((r) => r.kind === "partner" && r.other === b.id));
 
@@ -9,8 +9,19 @@ const castOf = (c: PlotContext) => {
   const suspect = pool.length ? pickOf(c, pool, "token-suspect") : undefined;
   const others = pool.filter((a) => a.householdId !== suspect?.householdId);
   const neighbour = others.length ? pickOf(c, others, "token-neighbour") : undefined;
-  return suspect && neighbour ? { suspect, neighbour } : undefined;
+  if (!suspect || !neighbour) return;
+  const witnesses = neighbours(c).filter((a) => a.id !== suspect.id && a.id !== neighbour.id);
+  const witness = witnesses.length ? pickOf(c, witnesses, "token-witness") : undefined;
+  return witness ? { suspect, neighbour, witness } : { suspect, neighbour };
 };
+
+const fired = (id: string): Condition => ({ type: "fired", id });
+const not = (of: Condition): Condition => ({ type: "not", of });
+const all = (...of: Condition[]): Condition => ({ type: "all", of });
+const doorstep = { type: "at", scene: "doorstep" } as const;
+const timeLeft = not({ type: "due" });
+const investigating = all(fired("found-token"), timeLeft, not(fired("stakeout")), not(fired("spoke-to-giver")));
+const response = [{ id: "thanks" }, { id: "decline" }];
 
 /** Something has been left at your door in the night, and you don't know
  * whether it is a kindness or a curse. */
@@ -21,10 +32,10 @@ export const token: PlotTemplate = {
     emblem: "token",
     palette: { ink: "#16121c", fill: "#3a2c40", edge: "#7a5a5a", light: "#f4ece4", accent: "#e8b070" },
   },
-  weight: (c) => (castOf(c) ? 0.5 * temper(c, "openness") : 0),
+  weight: (c) => (c.household && castOf(c) ? 0.5 * temper(c, "openness") : 0),
   cast: (c) => castOf(c),
   begin: (c, cast) => {
-    const suspect = cast.suspect!, neighbour = cast.neighbour!;
+    const suspect = cast.suspect!, neighbour = cast.neighbour!, witness = cast.witness;
     const { deadline, due } = dueOf(c.clock);
     const p = partnerWords(c);
     const who = { suspect: suspect.name, ...pronounWords(suspect) };
@@ -34,46 +45,79 @@ export const token: PlotTemplate = {
       words: {
         ...who,
         neighbour: neighbour.name,
+        ...(witness ? { witness: witness.name } : {}),
         due,
-        reason: fillIn(courting
-          ? "{suspect} has been working up the nerve to speak to you for a long time, and this was as far as {he} got"
-          : pickOf(c, ["years ago your household fed {suspect}'s through a hard winter, and {he} never found a way to say thank you",
-            "you once pulled {suspect}'s child out of the water, and {he} has wanted to repay you ever since"], "token-reason"), who),
-        reply: courting ? "You both hope to see more of each other." : "The two households have been friends ever since.",
-        quarrel: pickOf(c, ["the quarrel over a borrowed tool that came back broken", "the argument at the last big gathering", "the quarrel over whose turn it was to fetch water"], "token-quarrel"),
+        reason: fillIn(courting ? "{he} wanted an excuse to meet you" : "{he} meant it as a small kindness", who),
         ...p.words,
       },
-      refs: { suspect: suspect.id, neighbour: neighbour.id, ...p.refs },
+      refs: { suspect: suspect.id, neighbour: neighbour.id, ...(witness ? { witness: witness.id } : {}), ...p.refs },
     };
+  },
+  journal: {
+    opens: "found-token",
+    missed: "unsolved",
+    notes: [
+      { after: "found-token", label: "What you found", line: "intro" },
+      { after: "noticed-ochre", label: "What you noticed", line: "ochre", roles: ["suspect"] },
+      { after: "heard-witness", label: "What you heard", line: "report", roles: ["witness", "neighbour"] },
+      { after: "asked-neighbour", label: "What they said", line: "wrong" },
+      { after: "stakeout", label: "What you’re doing", line: "watching" },
+      { after: "spoke-to-giver", label: "Who left it", line: "blush", roles: ["suspect"] },
+      { after: "offered:dawn", label: "Who left it", line: "dawn", roles: ["suspect"] },
+    ],
   },
   opening: [],
   developments: [
     {
-      id: "seen",
-      when: { type: "since", hours: 1 },
-      then: [{ type: "choose", line: "seen", focus: "suspect", choices: [{ id: "asked" }, { id: "neighbour" }, { id: "watch", check: { stat: "wit", odds: 0.5 } }] }],
+      id: "found-token",
+      when: all(doorstep, timeLeft, not({ type: "gone", role: "suspect" })),
+      then: [{ type: "choose", line: "intro", at: "doorstep", choices: [{ id: "look" }, { id: "stakeout", check: { stat: "wit", odds: 0.5 } }] }],
     },
     {
-      id: "wrong",
-      when: { type: "fired", id: "neighbour" },
-      then: [{ type: "regard", role: "neighbour", delta: -1 }, { type: "choose", line: "wrong", focus: "neighbour", choices: [{ id: "asked" }, { id: "drop" }] }],
+      id: "spoke-to-giver",
+      when: all(investigating, { type: "speaking", role: "suspect" }),
+      then: [{ type: "choose", line: "blush", at: "suspect", from: "suspect", choices: response }],
     },
-    { id: "found", when: { type: "fired", id: "asked" }, then: [{ type: "choose", line: "blush", focus: "suspect", choices: [{ id: "warm" }, { id: "cool" }] }] },
     {
-      id: "caught",
-      when: { type: "all", of: [{ type: "fired", id: "watch" }, { type: "not", of: { type: "fired", id: "watch:failed" } }] },
-      then: [{ type: "choose", line: "dawn", focus: "suspect", choices: [{ id: "warm" }, { id: "cool" }] }],
+      id: "noticed-ochre",
+      when: all(investigating, { type: "at", scene: "suspect" }),
+      then: [{ type: "note", line: "ochre" }],
     },
-    { id: "glad", when: { type: "fired", id: "warm" }, then: [{ type: "regard", role: "suspect", delta: 3 }] },
-    { id: "hurt", when: { type: "fired", id: "cool" }, then: [{ type: "regard", role: "suspect", delta: -2 }] },
+    {
+      id: "heard-witness",
+      when: all(investigating, { type: "speaking", role: "witness" }),
+      then: [{ type: "card", line: "report", at: "witness", from: "witness" }],
+    },
+    {
+      id: "asked-neighbour",
+      when: all(investigating, fired("heard-witness"), { type: "speaking", role: "neighbour" }),
+      then: [{ type: "card", line: "wrong", at: "neighbour", from: "neighbour" }],
+    },
+    {
+      id: "left-watch",
+      when: all(fired("stakeout"), not(fired("offered:dawn")), not(doorstep)),
+      then: [],
+    },
+    {
+      id: "watch-ready",
+      when: all({ type: "after", id: "stakeout", hours: 0.5 }, doorstep),
+      then: [],
+    },
+    {
+      id: "watch-visit",
+      when: all(fired("watch-ready"), not(fired("stakeout:failed")), doorstep, timeLeft),
+      then: [{ type: "choose", line: "dawn", at: "doorstep", from: "suspect", choices: response }],
+    },
+    { id: "glad", when: fired("thanks"), then: [{ type: "regard", role: "suspect", delta: 3 }] },
+    { id: "hurt", when: fired("decline"), then: [{ type: "regard", role: "suspect", delta: -2 }] },
   ],
   endings: [
-    { id: "found", when: { type: "fired", id: "warm" } },
-    { id: "cool", when: { type: "fired", id: "cool" } },
-    { id: "unsolved", when: { type: "fired", id: "watch:failed" } },
-    { id: "unsolved", when: { type: "fired", id: "drop" } },
-    { id: "gone", when: { type: "gone", role: "suspect" } },
-    { id: "unsolved", when: { type: "due" } },
+    { id: "found", when: fired("thanks") },
+    { id: "cool", when: fired("decline") },
+    { id: "left-watch", when: fired("left-watch"), quiet: true },
+    { id: "watch-empty", when: all(fired("watch-ready"), fired("stakeout:failed")), quiet: true },
+    { id: "gone", when: { type: "gone", role: "suspect" }, quiet: true },
+    { id: "unsolved", when: { type: "due" }, quiet: true },
   ],
   wording: [
     {
@@ -82,20 +126,21 @@ export const token: PlotTemplate = {
       title: "A Poem at the Door",
       lines: {
         aim: "Find out who left a poem at your door, {due}.",
-        intro: "This morning you found a sprig of plum blossom tied to your gate, with a slip of paper knotted round it. On it is a short poem in a careful hand. It isn't signed.",
+        intro: "A sprig of plum blossom is tied to your gate with a slip of paper knotted round it. On it is a short poem in a careful hand. It isn't signed.",
         threat: "It may be kindly meant. It may be a joke at your expense. Either way, people will have seen it.",
         partner: "Your {partnerKin} {partner} wants very much to know who it is from.",
         "kin-partner": "Who is writing you poems? I'd like to know too.",
         "cast-suspect": "Has a careful hand with a brush.",
-        "cast-neighbour": "Has not spoken to you since {quarrel}.",
-        seen: "You notice {suspect} watching your gate, and looking away quickly when you turn. But {neighbour}'s household has been laughing about something all morning.",
-        "watch:label": "Tie a reply poem to the gate, and watch",
-        "watch:failed": "You tie a reply poem to the gate and watch from behind the blinds. Nobody comes for it, and in the end you fall asleep.",
-        dawn: "Before dawn someone comes to the gate and unties your reply: {suspect}. Caught, {he} tells you everything. It turns out {reason}.",
-        found: "You write a proper answering poem and have it carried to {suspect}'s gate on a branch of your own. {reply}",
-        wrong: "You ask {neighbour} about the poem, and get laughed at. After {quarrel}, nobody in that house would write you a poem.",
-        gone: "With {suspect} gone, you never learn who wrote it. You keep the poem anyway.",
-        unsolved: "You never find out. The blossom wilts, but you keep the poem.",
+        ochre: "You notice ink on the fingers of {suspectWho}. The poem was written with a brush.",
+        report: "{witnessWho}, tells you they saw {neighbourWho}, by your gate at first light.",
+        "stakeout:label": "Tie a reply poem to the gate and watch",
+        watching: "You’ve tied a reply to the gate and are keeping watch.",
+        "watch-empty": "Nobody came for the reply while you were watching.",
+        dawn: "{suspectWho}, comes to the gate for your reply and admits to leaving the poem. It turns out {reason}.",
+        blush: "{suspectWho}, admits to writing the poem. It turns out {reason}.",
+        wrong: "{neighbourWho}, says they passed the gate this morning and saw no one there.",
+        gone: "There is no one left to ask about the poem.",
+        unsolved: "The blossom wilts, and you let the matter rest.",
       },
     },
     {
@@ -103,44 +148,45 @@ export const token: PlotTemplate = {
       title: "Something at the Door",
       lines: {
         aim: "Find out who left the carving at your shelter, {due}.",
-        intro: "This morning there was a small carved figure of bone at the mouth of your shelter, set on a flat stone, with red ochre rubbed into its lines. Nobody has said a word about it.",
+        intro: "There’s a small figure carved from bone at the mouth of your shelter. It’s set on a flat stone, with red ochre rubbed into its lines.",
         threat: "A carving like that can be a gift, or it can be a way of wishing someone harm.",
         partner: "Your {partnerKin} {partner} won't touch it until you find out who made it.",
         "kin-partner": "Don't bring it inside until we know whose hands made it.",
         "cast-suspect": "Has been carving bone by the fire in the evenings.",
-        "cast-neighbour": "Has not spoken to you since {quarrel}.",
-        seen: "You notice {suspect} has fresh ochre under {his} fingernails. But {neighbour} was seen near your shelter at first light.",
-        dawn: "Before dawn someone comes to the mouth of your shelter to see whether the carving was taken, and finds your gift waiting: {suspect}. Caught, {he} tells you everything. It turns out {reason}.",
-        wrong: "You ask {neighbour} about the carving, and get a cold answer. After {quarrel}, you are the last person {neighbour} would make a gift for.",
-        gone: "With {suspect} gone, you never learn who made it. You keep it anyway.",
-        unsolved: "You never find out. In the end you keep the carving and wear it on a cord.",
+        ochre: "{suspectWho}, has fresh red ochre under {his} fingernails.",
+        report: "{witnessWho}, tells you they saw {neighbourWho}, near your shelter at first light.",
+        dawn: "{suspectWho}, comes to the mouth of your shelter and finds your gift waiting. {He} admits to leaving the carving. It turns out {reason}.",
+        blush: "{suspectWho}, admits to leaving the carving. It turns out {reason}.",
+        wrong: "{neighbourWho}, says they passed your shelter this morning and saw no one there.",
+        gone: "There is no one left to ask about the carving.",
+        unsolved: "The carving is still at your shelter. You let the matter rest.",
       },
     },
     {
       title: "Something at the Door",
       lines: {
         aim: "Find out who left something at your door, {due}.",
-        intro: "This morning you found a small carved token on your doorstep, wrapped in a clean cloth. There's no note and nobody has said a word about it.",
+        intro: "There’s a small carved token on your doorstep, wrapped in a clean cloth. There’s no note.",
         threat: "It may be a kindness. It may be someone wishing you harm. You'd like to know which.",
         partner: "Your {partnerKin} {partner} wants to know who it's from.",
         "kin-partner": "Who's leaving you things? Go and find out.",
         "cast-suspect": "Has been working on something small in the evenings.",
-        "cast-neighbour": "Has not spoken to you since {quarrel}.",
-        seen: "You notice {suspect} watching your door, and looking away quickly when you turn. But {neighbour} was out this way early too, and {neighbour} has reasons to wish you ill.",
-        "asked:label": "Ask {suspect}",
-        "neighbour:label": "Ask {neighbour}",
-        "watch:label": "Leave something out in return, and watch",
-        "watch:failed": "You leave a small gift on your own step and watch from inside. Nobody comes, and in the end you fall asleep.",
-        wrong: "You ask {neighbour} about the token, and get a cold answer. After {quarrel}, you are the last person {neighbour} would leave a gift for.",
-        "drop:label": "Let it be",
-        blush: "You ask {suspect}, who goes red. It turns out {reason}.",
-        dawn: "Before dawn someone crouches at your step to see if the gift was taken, and finds yours waiting: {suspect}. Caught, {he} tells you everything. It turns out {reason}.",
-        "warm:label": "Thank {him} properly",
-        "cool:label": "Give it back",
-        found: "You thank {suspect} properly, and the next day you leave something on {his} step. {reply}",
-        cool: "You hand it back and say it isn't needed. {suspect} takes it without a word. After that, {he} avoids you in the street.",
-        gone: "With {suspect} gone, you never learn who left it. You keep it anyway.",
-        unsolved: "You never find out. You put the token on the shelf, and sometimes wonder who left it.",
+        ochre: "{suspectWho}, has fine wood shavings caught in {his} clothes.",
+        report: "{witnessWho}, tells you they saw {neighbourWho}, by your door at first light.",
+        "look:label": "Ask around",
+        "stakeout:label": "Leave something out in return and keep watch",
+        watching: "You’ve left something out in return and are keeping watch.",
+        "watch-empty": "Nobody came to the door while you were watching.",
+        "left-watch": "You left before anyone came to see what you’d put out.",
+        wrong: "{neighbourWho}, says they passed your door this morning and saw no one there.",
+        blush: "{suspectWho}, admits to leaving the token. It turns out {reason}.",
+        dawn: "{suspectWho}, comes to the door and finds your gift waiting. {He} admits to leaving the token. It turns out {reason}.",
+        "thanks:label": "Thank {him}",
+        "decline:label": "Give it back",
+        found: "You thank {suspectWho}, for the gift.",
+        cool: "You return the gift to {suspectWho}.",
+        gone: "There is no one left to ask about the token.",
+        unsolved: "The token is still at your door. You let the matter rest.",
       },
     },
   ],

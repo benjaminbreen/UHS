@@ -137,7 +137,16 @@ export function riserPixel(
   palette: Rgb[],
   ground: Rgb,
 ): Rgb | undefined {
-  const face = riser & 4 ? py - 10 : -1;
+  // A drop on two adjacent sides is one wall across the corner; `t` is how
+  // far past that diagonal the pixel is, towards the drop.
+  const t =
+    (riser & 6) === 6 ? px + py - 15
+    : (riser & 12) === 12 ? py - px
+    : (riser & 3) === 3 ? px - py
+    : (riser & 9) === 9 ? 15 - px - py
+    : undefined;
+  const face = t !== undefined && riser & 4 ? t + 3 : riser & 4 ? py - 10 : -1;
+  if (t !== undefined && riser & 4 && (face < 0 || face > 5)) return undefined;
   if (face >= 0) {
     if (face === 5) return shade(ground, -30);
     if (!stoneFaced) {
@@ -155,9 +164,9 @@ export function riserPixel(
     return tone > 0.7 ? stone.face : tone > 0.3 ? stone.foot : shade(stone.foot, -10);
   }
   // Outermost pixel is the drop, then the wall's side, then its top.
-  const north = riser & 1 && py < 4;
-  const d = north ? py : riser & 2 ? 15 - px : riser & 8 ? px : 99;
-  if (d > 4) return undefined;
+  const north = t !== undefined || (riser & 1 && py < 4);
+  const d = t !== undefined ? 2 - t : north ? py : riser & 2 ? 15 - px : riser & 8 ? px : 99;
+  if (d < 0 || d > 4) return undefined;
   if (d === 0) return shade(ground, -34);
   const along = north ? wx : wy;
   if (stoneFaced) {

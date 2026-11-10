@@ -16,7 +16,7 @@ import {
   MusicRotation,
 } from "./cultural-themes";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
-import { events, playSound, type EventId, type Sound } from "./sfx";
+import { events, noise, playSound, tone, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, silence, type AmbienceMix } from "./ambience";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
@@ -125,6 +125,7 @@ export class AudioDirector {
   private autoplay = () => {
     for (const type of ["pointerdown", "keydown"])
       window.removeEventListener(type, this.autoplay, { capture: true });
+    if (this.disposed) return;
     // Weather is heard at once; the score waits.
     this.unlock().catch(() => {});
     this.later(FIRST_DELAY, () => this.play(SLOW_FADE_IN));
@@ -438,17 +439,21 @@ export class AudioDirector {
       /* Optional preference. */
     }
   }
-  /** Plays a built sound. Sounds sharing a `key` are throttled together, so
+  /** Sounds sharing a `key` are throttled together, so
    * a burst of the same cue does not stack into a buzz. `pan` runs from -1
    * (left) to 1 (right). */
-  async sound(sound: Sound | undefined, key = "", pan = 0) {
-    if (!sound?.length) return;
+  async sound(cue: Sound | (() => Sound | undefined) | undefined, key = "", pan = 0) {
+    if (!cue || this.disposed || this.state.muted || !this.state.sfxVolume) return;
     const tuned = tuning(key);
+    if (tuned.gain <= 0) return;
     const now = performance.now();
-    if (now - (this.lastSfx.get(key) ?? 0) < tuned.gap) return;
-    this.lastSfx.set(key, now);
+    if (now - (this.lastSfx.get(key) ?? -Infinity) < tuned.gap) return;
     try {
+      const sound = typeof cue === "function" ? cue() : cue;
+      if (!sound?.length) return;
+      this.lastSfx.set(key, now);
       const ctx = await this.unlock();
+      if (this.state.muted || !this.state.sfxVolume) return;
       playSound(
         ctx,
         this.room!.input(pan),
@@ -461,8 +466,20 @@ export class AudioDirector {
         this.patch({ error: `Sound effect unavailable: ${String(error)}` });
     }
   }
+  /** One-shots from underground: a drop into a pool, wings, a find. */
+  caveCue(what: "drip" | "bats" | "take", volume: number) {
+    if (what === "take") return this.event("gather");
+    if (what === "drip") {
+      const f = 900 + Math.random() * 900;
+      return this.sound([tone(0, 0.11, 0.05 * volume, f * 1.5, { to: f, attack: 0.002 }), tone(0.03, 0.2, 0.02 * volume, f * 2.2, { to: f * 2.6 })], "cave-drip", Math.random() - 0.5);
+    }
+    return this.sound(
+      Array.from({ length: 22 }, (_, i) => noise(i * 0.05 + Math.random() * 0.03, 0.035, 0.07 * (1 - i / 26), 3200 + Math.random() * 2600, { q: 3 })),
+      "cave-bats",
+    );
+  }
   event(id: EventId) {
-    return this.sound(events[id](), id);
+    return this.sound(events[id], id);
   }
   resetMix() {
     stems.forEach((stem) => this.setLevel(stem, defaultLevels[stem]));

@@ -28,9 +28,9 @@ The lab opens on set B with both sets side by side; the header switches the time
 
 `npm run art:fauna-c` builds 608 frames into `public/fauna-c/` (frame ids use the `faunac-` prefix) for horse, foal, rabbit and rabbit kit. Unlike sets A and B these are authored per direction: south, east, north and west each get their own eight-frame cycle, because a head-on horse is a different silhouette from a side-on one rather than a rotation of it. West is the only mirrored facing.
 
-Drawing rules follow set B — masses at native size, light from above, one hue-matched outline round the whole silhouette, no interior outlines, binary alpha, no baked shadow — with Stardew-style exaggeration: heads and eyes a little large, legs a little short, so a 16px rabbit still reads as a rabbit.
+Drawing rules follow set B — masses at native size, light from above, one hue-matched outline round the whole silhouette, no interior outlines, binary alpha, no baked shadow — with Stardew-style exaggeration: heads and eyes a little large, legs a little short, so a small rabbit still reads as a rabbit.
 
-Standing sizes against the 29px human, at roughly 17px per metre: horse 40×35, foal 24×23, rabbit 16×16, rabbit kit 10×10. Horse and foal are at true scale. Rabbits are not — a true-scale rabbit is four pixels of body — and are lifted to set B's small-bird floor instead, keeping the kit at about half the adult so the hierarchy still reads. Canvases carry three to five empty rows above the standing pose as headroom for airborne frames; `studies.json` reports both `size` (the canvas) and `standing` (the animal), and the lab labels the standing figure.
+Standing art is sized against the 29px human at roughly 17px per metre. The horse is 40×35 px and the foal is 24×23 px. Rabbits (13×12 px), kits (10×10 px), and hares (17×15 px) are exaggerated for legibility and drawn smaller than gazelles and springbok. Canvases include headroom for airborne frames. The lab uses the `standing` dimensions from `studies.json`, which also records the full canvas under `size`.
 
 States are the existing ones: idle, graze and wander, flee and rest for the equines; forage in place of graze for the rabbits, and no rest for the kit. Grazing swings the poll down an arc so neck and head stay joined, hops crouch and stretch and land, and ears flick, eyes blink and noses twitch on the quiet cycles.
 

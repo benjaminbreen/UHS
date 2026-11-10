@@ -1247,11 +1247,23 @@ function layGround(plan: SettlementPlan, pack: Pack, sample: Sample, id: string,
   })));
   const taken = new Set(plan.objects.map((o) => cellKey(o.pos.x, o.pos.y)));
   const [x0, y0, x1, y1] = ground.box;
-  const claimed = (k: string) => plan.solid.has(k) || plan.traffic.has(k) || plan.reserved.has(k) || taken.has(k) || !!plan.fields?.has(k);
+  // Candidate footprints overlap almost entirely, so each cell is looked up
+  // once: a crowded city otherwise builds millions of keys finding no room.
+  const span = Math.ceil(r * (reach + 0.75)) + 20 + Math.max(-x0, x1, -y0, y1),
+    side = span * 2 + 1,
+    seen = new Uint8Array(side * side);
+  const claimed = (x: number, y: number) => {
+    const i = (y - Math.round(c.y) + span) * side + (x - Math.round(c.x) + span);
+    if (!seen[i]) {
+      const k = cellKey(x, y);
+      seen[i] = plan.solid.has(k) || plan.traffic.has(k) || plan.reserved.has(k) || taken.has(k) || plan.fields?.has(k) ? 2 : 1;
+    }
+    return seen[i] === 2;
+  };
   // Two cells to spare all round: a tomb draws wider than its cell, and a fence is no edge for a ground.
   const free = (x: number, y: number) => {
     for (let dy = y0 - 2; dy <= y1 + 2; dy++)
-      for (let dx = x0 - 2; dx <= x1 + 2; dx++) if (claimed(cellKey(x + dx, y + dy))) return false;
+      for (let dx = x0 - 2; dx <= x1 + 2; dx++) if (claimed(x + dx, y + dy)) return false;
     const level = Math.round(sample(x, y).elevation / 14);
     for (let dy = y0; dy <= y1; dy++)
       for (let dx = x0; dx <= x1; dx++) {

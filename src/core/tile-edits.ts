@@ -1,4 +1,4 @@
-import { fellingSwings, plantClass } from "../content/ecology/vegetation";
+import { fellingSwings, isGrassTuft, plantClass } from "../content/ecology/vegetation";
 import type { Decoration } from "./types";
 
 /** What the player has done to one cell of ground. Held in the snapshot, so a
@@ -70,7 +70,7 @@ export function editedDecoration(
   if (edit.stage === "stump") return { ...at, sprite: STUMP_SPRITE };
   if (edit.stage === "rubble") return { ...at, sprite: RUBBLE_SPRITE };
   if (edit.stage === "stems") return { ...at, sprite: stemsFor(base?.sprite) };
-  if (edit.cut && base) return { ...at, sprite: STUBBLE_SPRITE };
+  if (edit.cut && base) return isGrassTuft(base.sprite) ? undefined : { ...at, sprite: STUBBLE_SPRITE };
   return base;
 }
 const workedNames: Record<string, string> = {

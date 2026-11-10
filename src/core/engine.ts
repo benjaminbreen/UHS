@@ -77,6 +77,7 @@ import { askLines, hear, telling, tidings } from "./word";
 import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
+import { caveAct, caveBeastAt, caveGround, caveInspect, caveLevelOf, caveStrike, caveTime, caveVerb, type CaveHost } from "./cave";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
@@ -99,10 +100,10 @@ import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
-import { endPlot, plotLine, plotTemplate, startPlot, stepPlot, type PlotCard, type PlotState } from "./plot";
+import { endPlot, plotKnown, plotLine, plotTemplate, startPlot, stepPlot, syncPlotAim, type PlotCard, type PlotState } from "./plot";
 import { claimFor, shareWords, type Claim } from "../content/economy/claims";
 import { resourceName, sourceOf, tradeOf, type Resource } from "../content/economy/endowments";
-import type { Effect, PlotChoice } from "../content/plots/types";
+import type { Effect, PlotChoice, PlotScene } from "../content/plots/types";
 import { groundFor, sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
 import { kinCall, kinOf } from "./kin";
 import { composeIntro, introText, settlementName } from "./intro";
@@ -336,6 +337,7 @@ import {
   type Species,
 } from "../content/ecology/flora";
 import { bloomsAt } from "../content/ecology/blooms";
+import { isGrassTuft } from "../content/ecology/vegetation";
 import { tideAt } from "../content/geography/waterscapes";
 const copy = <T>(x: T): T => structuredClone(x);
 const listing = (xs: string[]) =>
@@ -1121,7 +1123,7 @@ export class Engine {
   /** Puts the card waiting on today's work back on screen. */
   reofferCard() {
     const plot = this.state.plot;
-    if (plot?.asking && plot.asking.due === undefined && !plot.ended) return this.askPlot(plot);
+    if (plot?.asking && plot.asking.due === undefined && this.askPlot(plot)) return;
     const id = this.state.encounter?.card ?? this.state.care?.card ?? this.waitingCard();
     const card = id && this.choiceCard(id);
     if (card && !this.cards.some((c) => c.choose?.card === id)) this.offerCard(card, this.state.care?.card === id ? this.state.care : undefined);
@@ -2038,6 +2040,31 @@ export class Engine {
   private loads?: ReturnType<typeof carryKit>;
   private resourceObjects?: WorldObject[];
   private terrainCollision = new Map<string, boolean>();
+  private caveHost: CaveHost = {
+    state: undefined as never,
+    world: undefined as never,
+    event: (text, kind) => this.event(text, kind),
+    advance: (seconds) => this.advance(seconds),
+    hurt: (damage, cause, injury) => this.hurt(damage, cause, injury),
+    itemName: (id) => this.item(id)?.name ?? id,
+    unblock: (space, x, y) => void this.terrainCollision.delete(`${space}:${x},${y}`),
+    sites: new Map(),
+    levels: new Map(),
+  };
+  private get caves() {
+    this.caveHost.state = this.state;
+    this.caveHost.world = this.world;
+    return this.caveHost;
+  }
+  /** The cave level a space is, if it is one. */
+  caveOf(space: string) {
+    return space.startsWith("cave:") ? caveLevelOf(this.caves, space)?.level : undefined;
+  }
+  /** What the action key does at a cave mouth or beside something underground. */
+  caveVerb() {
+    const p = this.state.player.pos;
+    return p.space === "outside" || this.state.cave ? caveVerb(this.caves) : undefined;
+  }
   private interiors = new Map<string, InteriorLayout | null>();
   private wallIndex?: {
     cells: Set<string>;
@@ -2393,7 +2420,7 @@ export class Engine {
    * The household's bed, chest, work station and way out move onto the
    * room's own pieces, so what is drawn is what is used. */
   interiorOf(space: string): InteriorLayout | undefined {
-    if (space === "outside") return undefined;
+    if (space === "outside" || space.startsWith("cave:")) return undefined;
     const known = this.interiors.get(space);
     if (known !== undefined) return known ?? undefined;
     const place = this.world.place(space);
@@ -2526,8 +2553,9 @@ export class Engine {
     const key = `${space}:${x},${y}`;
     let fixed = this.terrainCollision.get(key);
     if (fixed === undefined) {
-      const room = space === "outside" ? undefined : this.interiorOf(space);
-      fixed = room ? !room.floor.has(`${x},${y}`) : this.world.blocked(x, y, space);
+      const cave = space.startsWith("cave:") ? caveGround(this.caves, space, x, y) : undefined;
+      const room = space === "outside" || cave !== undefined ? undefined : this.interiorOf(space);
+      fixed = cave ?? (room ? !room.floor.has(`${x},${y}`) : this.world.blocked(x, y, space));
       trimCache(this.terrainCollision, 16384);
       this.terrainCollision.set(key, fixed);
     }
@@ -2538,6 +2566,7 @@ export class Engine {
     return (
       this.ground(x, y, space) ||
       (space === "outside" && this.gateShut(x, y)) ||
+      (!!this.state.cave && !!caveBeastAt(this.state, space, x, y)) ||
       (
         this.tickObstacles?.get(key) ??
         (this.tickObstacles ? [] : this.state.objects)
@@ -4719,7 +4748,9 @@ export class Engine {
     const plant = this.world.decoration(x, y);
     const c = plantClass(plant?.sprite);
     if (plant && (c === "grass" || c === "shrub")) {
-      const species = this.plantSpecies(plant.sprite, x, y);
+      const species = isGrassTuft(plant.sprite)
+        ? this.bloomSpecies(x, y)
+        : this.plantSpecies(plant.sprite, x, y);
       if (c === "grass") this.editAt(x, y).cut = true;
       // A wound-up swing takes brush to the ground, not only to stems.
       else this.editAt(x, y).stage = power ? "clear" : "stems";
@@ -5710,7 +5741,7 @@ export class Engine {
   /** Someone the plot sent to the player, and what they came to say. Talking
    * to them in time opens on it. */
   approacher?: { id: string; situation: string; until: number };
-  private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; with?: string[]; onArrive?: () => void };
+  private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; with?: string[]; onArrive?: () => void; valid?: () => boolean };
   private working = false;
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
@@ -6014,6 +6045,7 @@ export class Engine {
     return [...rows.values()].slice(0, limit);
   }
   inspect(id: string): Inspection | undefined {
+    if (id.startsWith("cave-")) return caveInspect(this.caves, id);
     const coordinates = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     if (coordinates) {
       const x = Number(coordinates[1]),
@@ -6051,8 +6083,10 @@ export class Engine {
         y: Number(bloom[2]),
         space: "outside",
       };
+      if (!this.visible(pos)) return;
+      const plant = this.world.decoration(pos.x, pos.y);
       const species =
-        this.visible(pos) && !this.world.decoration(pos.x, pos.y)
+        !plant || isGrassTuft(plant.sprite)
           ? this.bloomSpecies(pos.x, pos.y)
           : undefined;
       if (!species) return;
@@ -6505,6 +6539,10 @@ export class Engine {
           this.arrive();
           this.gateToll(request.command.dx, request.command.dy);
         }
+        if (this.state.plot && !this.state.plot.ended && plotTemplate(this.state.plot)?.journal &&
+            (request.command.type === "move" || (request.command.type === "interact" &&
+              (request.command.action === "enter" || request.command.action === "exit"))))
+          this.runPlot();
         const held = heldObject(this.state);
         if (held) held.pos = copy(this.state.player.pos);
         this.state.revision++;
@@ -6562,8 +6600,14 @@ export class Engine {
       return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
     if (c.type === "choose" && c.card.startsWith("wall:")) return this.wallAnswerProblem(c.card, c.choice);
     if (c.type === "choose" && c.card.startsWith("toll:")) return this.tollAnswerProblem(c.card, c.choice);
-    if (c.type === "choose" && c.card.startsWith("plot:"))
-      return this.state.plot?.asking?.choices[c.choice] ? undefined : "There is nothing to answer.";
+    if (c.type === "choose" && c.card.startsWith("plot:")) {
+      const plot = this.state.plot, ask = plot?.asking;
+      if (!plot || !ask || plot.ended || c.card !== this.plotQuestionId(plot) || !ask.choices[c.choice] ||
+          (plotTemplate(plot)?.journal && !ask.scene)) return "There is nothing to answer.";
+      if (ask.scene && (this.state.clock >= plot.deadline || !this.atPlotScene(plot, ask.scene) || (ask.by && !this.withinPlotReach(ask.by))))
+        return "You need to be there to answer.";
+      return;
+    }
     if (c.type === "choose" && c.card.startsWith("help:"))
       return this.state.asks?.some((x) => `help:${x.id}` === c.card && x.offered) && HELP[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose") {
@@ -7646,6 +7690,10 @@ export class Engine {
         }
         const animal =
           p.pos.space === "outside" ? this.faunaAt(at.x, at.y) : undefined;
+        if (this.state.cave && caveStrike(this.caves, at, weapon.damage * force * (1 + this.skillLevel("arms") * PER_LEVEL.armsDamage))) {
+          this.grantXp("arms", 4);
+          continue;
+        }
         const found = this.hitClass(at.x, at.y, p.pos.space);
         if (animal) {
           // A wound-up swing throws things outward from the player, not
@@ -8563,9 +8611,14 @@ export class Engine {
           const plot = this.state.plot;
           const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === a.id);
           // Talking again after the day's work counts again: that is the work brought over.
-          if (role && plot.fired.lastIndexOf(`talked:${role}`) <= plot.fired.lastIndexOf("worked")) {
-            plot.fired.push(`talked:${role}`);
-            this.runPlot();
+          if (role) {
+            const first = plot.fired.lastIndexOf(`talked:${role}`) <= plot.fired.lastIndexOf("worked");
+            if (first) plot.fired.push(`talked:${role}`);
+            if (plotTemplate(plot)?.journal) {
+              this.runPlot();
+              if (!plot.ended) this.runPlot(a.id);
+              if (plot.asking?.scene && plot.asking.by === a.id) this.askPlot(plot);
+            } else if (first) this.runPlot();
           }
           if (this.state.goalFlags) {
             this.state.goalFlags.talked = true;
@@ -8629,6 +8682,9 @@ export class Engine {
             "social",
           );
         }
+        break;
+      case "cave":
+        caveAct(this.caves, c.target);
         break;
       case "enter":
         if (b) {
@@ -9190,46 +9246,86 @@ export class Engine {
     const intro = composeIntro(s, setting, place);
     this.cards.unshift({
       kind: "title",
-      title: s.plot?.title ?? place,
+      title: s.plot && plotKnown(s.plot) ? s.plot.title : place,
       text: introText(intro),
       intro,
-      aim: s.plot && !s.plot.ended ? s.plot.aim?.text ?? s.lifeAim?.text : s.lifeAim?.text,
+      aim: s.plot && !s.plot.ended && plotKnown(s.plot) ? s.plot.aim?.text ?? s.lifeAim?.text : s.lifeAim?.text,
     });
   }
-  /** Puts the plot's waiting decision on screen, unless it is already there;
-   * spoken, when the one it is about is standing by. */
+  private withinPlotReach(id: string) {
+    const actor = this.actorsById?.get(id) ?? this.state.actors.find((a) => a.id === id);
+    return !!actor && !actor.dead && distance(this.state.player.pos, actor.pos) <= 2.5 && this.visible(actor.pos);
+  }
+  private atPlotScene(plot: PlotState, scene: PlotScene) {
+    if (scene !== "doorstep") return this.withinPlotReach(plot.cast[scene]);
+    const p = this.state.player, h = this.household(p.householdId);
+    const door = this.farmDoor(h);
+    return door?.space === "outside" && distance(p.pos, door) <= 2.5 && this.visible(door);
+  }
+  private plotQuestionId(plot: PlotState) {
+    return plot.asking?.scene ? `plot:${plot.id}:${plot.asking.line}` : `plot:${plot.id}`;
+  }
+  canShowCard(card: PlotCard) {
+    const scene = card.scene, plot = this.state.plot;
+    return !scene || (!!plot && !plot.ended && plot.id === scene.plot && plot.began === scene.began &&
+      this.atPlotScene(plot, scene.at) && (!card.speaker || this.withinPlotReach(card.speaker)) &&
+      (!card.choose || (card.choose.card === this.plotQuestionId(plot) && this.state.clock < plot.deadline)));
+  }
   private askPlot(plot: PlotState) {
-    const a = plot.asking!, card = `plot:${plot.id}`, p = this.state.player.pos;
+    const s = this.state, a = plot.asking;
+    if (!a || plot.ended || (plotTemplate(plot)?.journal && !a.scene)) return false;
+    const scene = a.scene, card = this.plotQuestionId(plot), p = s.player.pos;
+    if (scene && (s.clock >= plot.deadline || !this.atPlotScene(plot, scene))) return false;
+    if (scene && a.by && !this.withinPlotReach(a.by)) {
+      const by = this.actorsById?.get(a.by);
+      if (!this.approaching && by && !by.dead) {
+        this.approaching = {
+          id: by.id, line: "", until: Math.min(s.clock + 1800, plot.deadline),
+          valid: () => s.plot === plot && !plot.ended && plot.asking === a && this.atPlotScene(plot, scene),
+          onArrive: () => this.askPlot(plot),
+        };
+      }
+      return false;
+    }
     a.at = this.state.clock;
-    if (this.cards.some((c) => c.choose?.card === card)) return;
+    if (this.cards.some((c) => c.choose?.card === card)) return true;
     const stats = this.stats(), by = a.by && this.actorsById?.get(a.by);
-    const near = by && !by.dead && by.pos.space === p.space && distance(by.pos, p) <= 8;
+    const speaker = scene ? a.by : by && !by.dead && distance(by.pos, p) <= 8 ? by.id : undefined;
+    if (scene && speaker && !plot.fired.includes(`offered:${a.line}`)) {
+      plot.fired.push(`offered:${a.line}`);
+      syncPlotAim(s, plot);
+    }
     this.cards.push({
-      kind: near ? "speech" : "turn", title: plot.title, text: plotLine(plot, a.line), moment: a.line, focus: a.focus, ...(near ? { speaker: by.id } : {}),
+      kind: speaker ? "speech" : "turn", title: plot.title, text: plotLine(plot, a.line, s), moment: a.line, focus: a.focus, speaker,
+      ...(scene ? { scene: { plot: plot.id, began: plot.began, at: scene } } : {}),
       choose: { card, choices: a.choices.map((c, index) => ({
-        index, label: plotLine(plot, `${c.id}:label`),
+        index, label: plotLine(plot, `${c.id}:label`, s),
         odds: c.check && this.plotOdds(plot, c.check, stats),
       })) },
     });
+    return true;
   }
   private plotOdds(plot: PlotState, check: NonNullable<PlotChoice["check"]>, stats: Stats) {
     const stat = (check.stat.startsWith("{") ? plot.words[check.stat.slice(1, -1)] : check.stat) as keyof Stats;
     return oddsOf({ ...check, stat }, stats, check.skill ? this.skillLevel(check.skill) : 0);
   }
-    private plotChoose(id: string, n: number) {
-    const s = this.state, plot = s.plot!, c = plot.asking!.choices[n];
+  private plotChoose(id: string, n: number) {
+    const s = this.state, plot = s.plot!, ask = plot.asking!, c = ask.choices[n];
     delete plot.asking;
     const won = !c.check || this.rng(`${id}:${plot.fired.length}`) < this.plotOdds(plot, c.check, this.stats());
     plot.fired.push(c.id);
+    if (ask.scene) (plot.firedAt ??= {})[c.id] = s.clock;
     if (!won) plot.fired.push(`${c.id}:failed`);
-    const line = plotLine(plot, won ? `${c.id}:then` : `${c.id}:failed`);
+    const line = plotLine(plot, won ? `${c.id}:then` : `${c.id}:failed`, s);
     (s.record ??= []).push({ day: Math.floor(s.clock / 86400), clock: s.clock, card: id, choice: n, line });
     this.lastChoice = line ? { card: id, line, won: c.check ? won : undefined, changes: [] } : undefined;
     if (line) this.event(line);
     this.runPlot();
   }
-  private runPlot() {
+  private runPlot(speaker?: string) {
     const s = this.state, plot = s.plot!, g = plot.gathering;
+    const journal = plotTemplate(plot)?.journal, wasKnown = plotKnown(plot), fired = plot.fired.length;
+    if (journal && !plot.asking?.scene) delete plot.asking;
     const ask = plot.asking, by = ask?.by && this.actorsById?.get(ask.by);
     if (ask?.due !== undefined && s.clock >= ask.due) {
       // Brought by the one it is about; if they have not found you in half an hour, it comes anyway.
@@ -9254,10 +9350,15 @@ export class Engine {
       s.objects = s.objects.filter((o) => !set.has(o.id));
       delete g.props;
     }
-    for (const e of stepPlot(s)) {
+    const scene = { at: (scene: PlotScene) => this.atPlotScene(plot, scene), speaker };
+    for (const e of stepPlot(s, scene)) {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
       if (e.type === "card")
-        this.cards.push({ kind: "turn", title: plot.title, text: plotLine(plot, e.line), moment: e.line, focus: e.focus && plot.cast[e.focus] });
+        this.cards.push({
+          kind: e.from ? "speech" : "turn", title: plot.title, text: plotLine(plot, e.line, s), moment: e.line, focus: e.focus && plot.cast[e.focus],
+          speaker: e.from && plot.cast[e.from], ...(e.at ? { scene: { plot: plot.id, began: plot.began, at: e.at } } : {}),
+        });
+      else if (e.type === "note") this.event(plotLine(plot, e.line, s), "social");
       else if (e.type === "approach" && who) {
         // A seizure that cleared the debt is told by the ending, not by "the rest is still owed".
         if (e.line === "seize" && (plot.owed ?? 0) <= 0) continue;
@@ -9278,16 +9379,22 @@ export class Engine {
       else if (e.type === "owe" && plot.owed) plot.owed = Math.max(1, Math.round(plot.owed * e.times));
       else if (e.type === "choose") {
         // The day's first decision waits a minute or three of play.
-        const due = s.clock - plot.began < 1800 ? plot.began + 1200 + Math.floor(this.rng(`${plot.id}:due`) * 2400) : undefined;
-        plot.asking = { line: e.line, focus: e.focus && plot.cast[e.focus], by: e.from && plot.cast[e.from], choices: e.choices, at: s.clock, ...(due ? { due } : {}) };
+        const due = !e.at && s.clock - plot.began < 1800 ? plot.began + 1200 + Math.floor(this.rng(`${plot.id}:due`) * 2400) : undefined;
+        plot.asking = { line: e.line, focus: e.focus && plot.cast[e.focus], by: e.from && plot.cast[e.from], choices: e.choices, at: s.clock, scene: e.at, ...(due ? { due } : {}) };
         if (!due) this.askPlot(plot);
       }
       else if (e.type === "gather") this.appoint(plot, e);
     }
-    const ending = endPlot(s);
-    if (ending) {
-      const line = plotLine(plot, ending.id);
-      this.cards.push({ kind: "ending", title: plot.title, text: line, ending: ending.id });
+    if (journal && fired !== plot.fired.length && plotKnown(plot)) {
+      if (!wasKnown) plot.aim = s.lifeAim;
+      syncPlotAim(s, plot);
+    }
+    const ending = endPlot(s, scene);
+    if (ending && journal) delete plot.asking;
+    if (ending && plotKnown(plot)) {
+      const line = plotLine(plot, ending.id, s);
+      if (ending.quiet) this.event(line, "social");
+      else this.cards.push({ kind: "ending", title: plot.title, text: line, ending: ending.id });
       (s.record ??= []).push({ day: Math.floor(s.clock / 86400), clock: s.clock, card: `plot:${ending.id}`, choice: -1, line });
     }
   }
@@ -9811,7 +9918,7 @@ export class Engine {
   private approach(clock: number) {
     const ap = this.approaching!, p = this.state.player;
     const a = this.actorsById?.get(ap.id);
-    if (!a || a.dead || clock > ap.until) {
+    if (!a || a.dead || clock > ap.until || ap.valid?.() === false) {
       this.approaching = undefined;
       return;
     }
@@ -11187,6 +11294,7 @@ export class Engine {
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
+      if (this.state.cave) caveTime(this.caves, elapsed);
       diseaseTime(this.state, elapsed, next - elapsed);
       this.fireExposure(elapsed, next - elapsed);
       if (player.dead) break;

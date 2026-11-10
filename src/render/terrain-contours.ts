@@ -668,6 +668,13 @@ function rasterWallContours(
       (c) =>
         px >= c.x && px < c.x + c.width && sy >= c.y && sy < c.y + c.height,
     );
+  // Ground two tiers up lifts more than a cell: unhidden, the row behind a
+  // bluff's back rim showed as a band across the top of the bluff.
+  const hidden = (px: number, py: number, L: number) => {
+    for (let j = R + 1; j <= (maxTier - L) * R; j++)
+      if ((lvl(px, py + j) - L) * R >= j) return true;
+    return false;
+  };
   const at = (
     row: number,
     px: number,
@@ -1058,7 +1065,7 @@ function rasterWallContours(
         wet && north < L && sample(cx, Math.floor((py - 1) / 16))?.surface === "water";
       // Water is the living-water layer's to draw; a baked copy here sat
       // over it as a flat, contact-shaded rectangle beside every drop.
-      if (material?.surface !== "water" && ownsAt(Math.floor(px / 16), row) && !clipped(row, px, sy)) {
+      if (material?.surface !== "water" && ownsAt(Math.floor(px / 16), row) && !clipped(row, px, sy) && !hidden(px, py, L)) {
         if (rgba) {
           const spot = at(row, px, sy, true, L);
           if (spot) spot.layer.pixels.set(rgba, spot.i);

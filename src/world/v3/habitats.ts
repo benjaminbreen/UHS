@@ -21,6 +21,8 @@ export type Habitat = {
   layeredForest?: boolean;
   /** Shared stand structure: 0 is a clearing, 1 is a grove interior. */
   grove?: number;
+  lushness?: number;
+  rainSeasonBlooms?: boolean;
   ecology: Ecology;
   colorway?: Colorway;
   kind: HabitatKind;

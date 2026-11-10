@@ -57,8 +57,15 @@ function bilinearWaterDistance(sample: TopographySample, x: number, y: number) {
     fy = y - 0.5 - iy;
   const d = (a: number, b: number) => {
     const c = sample(a, b);
-    // A canal draws its own lips and gives its neighbours no shoreline.
-    if (c?.surface === "water" && c.waterVisual?.kind === "canal") return 4;
+    // A canal draws its own lips and gives its neighbours no shoreline,
+    // except at its mouth, where the stream's water comes up to meet it.
+    if (c?.surface === "water" && c.waterVisual?.kind === "canal") {
+      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        const n = sample(a + dx, b + dy);
+        if (n?.surface === "water" && !n.bridge && n.waterVisual?.kind !== "canal") return -1.2;
+      }
+      return 4;
+    }
     return (
       c?.waterVisual?.distance ??
       (c?.surface === "water" || c?.bridge

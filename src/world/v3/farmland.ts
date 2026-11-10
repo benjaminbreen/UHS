@@ -35,6 +35,9 @@ export type FieldCell = {
   flood?: boolean;
   /** Edges, same bits, where the ground drops to the bench below. */
   riser?: number;
+  /** Corners cut off on the diagonal: north-east 1, south-east 2, south-west
+   * 4, north-west 8. A bench's outline follows a slanting hillside. */
+  cut?: number;
   /** A kitchen garden bed: planted close, cropped in succession, and drawn
    * right up to its fence. */
   garden?: boolean;
@@ -465,6 +468,8 @@ export function planFarmland(input: {
   // the channels have water in them.
   /** Every river, lake, creek and rivulet in reach, sampled every third cell. */
   const fresh: Point[] = [];
+  /** Those at the water's edge, leaving out the middle of a lake. */
+  const shore: Point[] = [];
   const source = (() => {
     let best = Infinity,
       found: Point | undefined;
@@ -475,6 +480,7 @@ export function planFarmland(input: {
         // A rivulet is under a cell across, so its centre is barely wet.
         if (f.water >= 1 || f.kind === "sea") continue;
         fresh.push({ x, y });
+        if (f.water > -3) shore.push({ x, y });
         const d = Math.hypot(x - c.x, y - c.y);
         if (d > edge + 4 && d < best) {
           best = d;
@@ -522,10 +528,16 @@ export function planFarmland(input: {
     let level = tierAt(first.x, first.y);
     for (let a = from; a <= to; a++) {
       const here = point(a, b);
-      if (diggable(here) && tierAt(here.x, here.y) !== level) {
+      // Dug by eye, not to a line: it gives a cell or two, away from the track.
+      const want = across + Math.round(noise(seed, a, across * 31, 16, "canal-drift") * 2.4);
+      const side = point(a, b + Math.sign(want - b));
+      if (b !== want && diggable(here) && diggable(side) && tierAt(side.x, side.y) === level) {
+        channel(here);
+        b += Math.sign(want - b);
+      } else if (diggable(here) && tierAt(here.x, here.y) !== level) {
         // One cell across at a time, and never more than two off the line.
         for (const d of [1, -1]) {
-          if (Math.abs(b + d - across) > 2) continue;
+          if (b + d < across || b + d - across > 2) continue;
           const q = point(a, b + d);
           if (!diggable(q) || tierAt(q.x, q.y) !== level) continue;
           channel(here);
@@ -578,6 +590,7 @@ export function planFarmland(input: {
   /** Bench number up from the lip, -1 off the hillside. */
   const benchAt = new Int16Array(benched ? side * side : 0).fill(-1);
   const level = new Int16Array(benchAt.length);
+  const betweenSteps = new Uint8Array(benchAt.length);
   /** Distance up from the lip, in cells. */
   const rise = new Float32Array(benchAt.length).fill(Infinity);
   const hill = (x: number, y: number) =>
@@ -691,7 +704,8 @@ export function planFarmland(input: {
         1.6;
       const span = d + u;
       let b: number;
-      if (span <= narrow) {
+      if (span <= terrace.reach) {
+        betweenSteps[i] = 1;
         const n = Math.max(1, Math.round(span / terrace.depth));
         b = Math.max(0, Math.min(n - 1, Math.floor(((d + drift) / span) * n)));
       } else if (d <= terrace.reach)
@@ -812,6 +826,10 @@ export function planFarmland(input: {
   // across the way the ground falls. Bench plots are a quarter the size of a
   // field, so a hillside gets several to each field the cap allows.
   const benchParcels = new Set<number>();
+  /** Lots along a stream: like benches, they follow a line that slants. */
+  const bankParcels = new Set<number>();
+  /** How far from the water the first row of them ends. */
+  let bankRow = 0;
   const benchCap = cap * 3;
   const gridCount = () => parcels.length - benchParcels.size;
   const centreOf = (cells: number[]) => {
@@ -883,15 +901,22 @@ export function planFarmland(input: {
       y0 = Infinity,
       x1 = -Infinity,
       y1 = -Infinity;
+    // One furrow direction to a plot: across the way most of it falls.
+    let fall = 0;
     for (const key of keys) {
       const [x, y] = key.split(",").map(Number);
       const i = slot(x, y);
-      const gx = riseAt(x + 2, y, i) - riseAt(x - 2, y, i);
-      const gy = riseAt(x, y + 2, i) - riseAt(x, y - 2, i);
+      fall +=
+        Math.abs(riseAt(x + 2, y, i) - riseAt(x - 2, y, i)) -
+        Math.abs(riseAt(x, y + 2, i) - riseAt(x, y - 2, i));
+    }
+    const axis = fall > 0 ? "y" : "x";
+    for (const key of keys) {
+      const [x, y] = key.split(",").map(Number);
       fields.set(key, {
         parcel: id,
         crop,
-        axis: Math.abs(gx) > Math.abs(gy) ? "y" : "x",
+        axis,
         edges: 0,
         fence: 0,
         boundary,
@@ -910,6 +935,136 @@ export function planFarmland(input: {
       cells: keys.length,
       access,
     });
+  }
+
+  // --- Banks ------------------------------------------------------------------
+  // A system that lives by its water lays its first lots along the stream:
+  // rows of plots that follow the bank, cut across at a plot's length. They
+  // are ordinary fields after that, and come out of the same cap.
+  if (pull >= 0.5 && shore.length && !lands.floor.pastoral) {
+    const nearest = wet ? 3 : 4;
+    const depth = Math.max(3, Math.min(back, 6));
+    const deep = nearest + (pull >= 0.9 ? 3 : 2) * depth;
+    const len = Math.max(6, along);
+    bankRow = nearest + depth;
+    const reachCells = Math.ceil(deep) + 1;
+    // Eight-cell blocks within reach of a shore point, each scanned once: a
+    // marsh has thousands of shore points and their neighbourhoods overlap.
+    const blocks = new Set<number>();
+    const span = Math.ceil(reachCells / 8);
+    for (const q of shore)
+      for (let by = (q.y >> 3) - span; by <= (q.y >> 3) + span; by++)
+        for (let bx = (q.x >> 3) - span; bx <= (q.x >> 3) + span; bx++)
+          blocks.add(bx * 65536 + by + 32768);
+    const bank = new Map<string, { x: number; y: number; row: number; near: boolean }>();
+    for (const b of blocks) {
+      const bx = Math.floor(b / 65536),
+        by = b - bx * 65536 - 32768;
+      for (let y = by * 8; y < by * 8 + 8; y++)
+        for (let x = bx * 8; x < bx * 8 + 8; x++) {
+          const key = cellKey(x, y);
+          const p = { x, y };
+          if (cheb(p) > outer || dist(p) < edge) continue;
+          const f = sample(x, y);
+          if (f.kind === "sea" || f.water < nearest || f.water >= deep) continue;
+          if (
+            !ground(x, y) ||
+            !arable(x, y) ||
+            foreign(x, y) ||
+            fields.has(key) ||
+            laneMargin.has(key) ||
+            slotCells.has(key) ||
+            canals.has(key) ||
+            culverts.has(key)
+          )
+            continue;
+          bank.set(key, {
+            x,
+            y,
+            row: Math.floor((f.water - nearest) / depth),
+            near: f.water < nearest + 1.5,
+          });
+        }
+    }
+    const seeds: Point[] = [];
+    for (const b of [...bank.values()].filter((b) => b.near).sort((a, b) => dist(a) - dist(b)))
+      if (!seeds.some((q) => Math.hypot(q.x - b.x, q.y - b.y) < len)) seeds.push(b);
+    const lots = new Map<string, { seed: number; row: number; keys: string[] }>();
+    for (const [key, b] of bank) {
+      let best = -1,
+        bd = len * 2;
+      for (const [i, q] of seeds.entries()) {
+        const d = Math.hypot(q.x - b.x, q.y - b.y);
+        // A lot keeps to its own bank.
+        if (d >= bd || sample((q.x + b.x) >> 1, (q.y + b.y) >> 1).water < 1) continue;
+        best = i;
+        bd = d;
+      }
+      if (best < 0) continue;
+      const id = `${best}:${b.row}`;
+      const lot = lots.get(id) ?? { seed: best, row: b.row, keys: [] };
+      lot.keys.push(key);
+      lots.set(id, lot);
+    }
+    let cut = 0;
+    for (const lot of [...lots.values()].sort((a, b) => a.seed - b.seed || a.row - b.row)) {
+      if (cut >= cap * 0.7) break;
+      if (lot.keys.length < 8) continue;
+      const mine = new Set(lot.keys);
+      let access: Point | undefined,
+        best = Infinity;
+      for (const key of lot.keys) {
+        const [x, y] = key.split(",").map(Number);
+        for (const [dx, dy] of N4) {
+          const q = { x: x + dx, y: y + dy };
+          if (mine.has(cellKey(q.x, q.y)) || bank.has(cellKey(q.x, q.y)) || !arable(q.x, q.y)) continue;
+          if (N4.filter(([ex, ey]) => !taken(q.x + ex, q.y + ey)).length < 3) continue;
+          if (dist(q) < best) [best, access] = [dist(q), q];
+        }
+      }
+      if (!access) continue;
+      const at0 = seeds[lot.seed];
+      const land = lands[zoneOfTier(tierAt(at0.x, at0.y))];
+      if (land.pastoral) continue;
+      // The wet crop takes the row at the water.
+      const crop =
+        (lot.row === 0 && land.rotation.find((c) => crops[c].wet)) ||
+        land.rotation[(lot.seed * 2 + lot.row) % land.rotation.length];
+      const id = nextParcel++;
+      groupOf.set(id, 300000);
+      bankParcels.add(id);
+      let x0 = Infinity,
+        y0 = Infinity,
+        x1 = -Infinity,
+        y1 = -Infinity;
+      for (const key of lot.keys) {
+        const [x, y] = key.split(",").map(Number);
+        const gx = sample(x + 2, y).water - sample(x - 2, y).water;
+        const gy = sample(x, y + 2).water - sample(x, y - 2).water;
+        fields.set(key, {
+          parcel: id,
+          crop,
+          axis: Math.abs(gx) > Math.abs(gy) ? "y" : "x",
+          edges: 0,
+          fence: 0,
+          boundary: system.boundary,
+          wet: flooded || (wet && crops[crop].wet === true),
+          ...(system.irrigation === "flood" && { flood: flooded }),
+        });
+        x0 = Math.min(x0, x);
+        y0 = Math.min(y0, y);
+        x1 = Math.max(x1, x);
+        y1 = Math.max(y1, y);
+      }
+      parcels.push({
+        id,
+        rect: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
+        crop,
+        cells: lot.keys.length,
+        access,
+      });
+      cut++;
+    }
   }
 
   const wedge = FRAMES.map((f, k) => ({
@@ -1139,41 +1294,185 @@ export function planFarmland(input: {
   }
 
   // --- Feeder -----------------------------------------------------------------
-  // From the nearest open water to the nearest trunk, two straight legs.
-  if (irrigated && canals.size && source) {
-    {
-      let target: Point | undefined,
-        near = Infinity;
-      for (const k of canals) {
-        const [x, y] = k.split(",").map(Number);
-        const d = Math.hypot(x - source.x, y - source.y);
-        if (d < near) {
-          near = d;
-          target = { x, y };
-        }
-      }
-      if (target && near < 90) {
-        const legs: Point[] = [];
-        const corner = { x: target.x, y: source.y };
-        for (const [a, b] of [
-          [source, corner],
-          [corner, target],
-        ] as const) {
-          const n = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y));
-          for (let i = 0; i <= n; i++)
-            legs.push({
-              x: a.x + Math.sign(b.x - a.x) * i,
-              y: a.y + Math.sign(b.y - a.y) * i,
-            });
-        }
-        for (const p of legs) {
-          const k = cellKey(p.x, p.y);
-          if (sample(p.x, p.y).water < 1 || taken(p.x, p.y)) continue;
-          fields.delete(k);
-          channel(p);
-        }
+  // A channel nobody farms beside was never dug.
+  for (const set of [canals, culverts])
+    for (const k of [...set]) {
+      const [x, y] = k.split(",").map(Number);
+      let farmed = false;
+      for (let dy = -4; dy <= 4 && !farmed; dy++)
+        for (let dx = -4; dx <= 4 && !farmed; dx++)
+          farmed = fields.has(cellKey(x + dx, y + dy));
+      if (!farmed) set.delete(k);
+    }
+  /** The cheapest way, cell to cell, from `starts` to a cell `goal` accepts.
+   * Built ground and the sea are closed, a step in the ground is dear, and
+   * `cost` adds to each cell entered. Empty if there is none within reach. */
+  const route = (
+    starts: Point[],
+    goal: (x: number, y: number, k: string) => boolean,
+    cost: (x: number, y: number, k: string, water: number) => number,
+    turn: number,
+  ): Point[] => {
+    const R = outer + 24,
+      W = R * 2 + 1;
+    const best = new Int32Array(W * W * 4).fill(1 << 30);
+    const prev = new Int32Array(best.length).fill(-1);
+    const buckets: number[][] = [];
+    const cellOf = (st: number) => ({ x: c.x - R + ((st >> 2) % W), y: c.y - R + (((st >> 2) / W) | 0) });
+    for (const p of starts) {
+      if (Math.abs(p.x - c.x) > R || Math.abs(p.y - c.y) > R) continue;
+      const i = ((p.y - c.y + R) * W + (p.x - c.x + R)) * 4;
+      for (let d = 0; d < 4; d++) {
+        best[i + d] = 0;
+        (buckets[0] ??= []).push(i + d);
       }
     }
+    for (let c0 = 0; c0 < Math.min(buckets.length, 3000); c0++)
+      for (const st of buckets[c0] ?? []) {
+        if (best[st] !== c0) continue;
+        const { x, y } = cellOf(st),
+          dir = st & 3;
+        if (c0 && goal(x, y, cellKey(x, y))) {
+          const out: Point[] = [];
+          for (let at = st; at >= 0; at = prev[at]) out.push(cellOf(at));
+          return out.reverse();
+        }
+        const tier = tierAt(x, y),
+          onLane = laneCells.has(cellKey(x, y));
+        for (let nd = 0; nd < 4; nd++) {
+          if (c0 && nd === (dir + 2) % 4) continue;
+          const qx = x + N4[nd][0],
+            qy = y + N4[nd][1];
+          if (Math.abs(qx - c.x) > R || Math.abs(qy - c.y) > R) continue;
+          const k = cellKey(qx, qy);
+          const f = sample(qx, qy);
+          if (f.kind === "sea" && f.water < 0) continue;
+          if (f.water >= 0 && taken(qx, qy) && !laneCells.has(k) && !canals.has(k)) continue;
+          const step =
+            c0 +
+            4 +
+            cost(qx, qy, k, f.water) +
+            // Straight over a track, never along it.
+            (laneCells.has(k) ? (onLane ? 80 : 10) : 0) +
+            (c0 && nd !== dir ? turn : 0) +
+            (c0 && f.water >= 0 && tierAt(qx, qy) !== tier ? 40 : 0);
+          const next = ((qy - c.y + R) * W + (qx - c.x + R)) * 4 + nd;
+          if (step >= best[next]) continue;
+          best[next] = step;
+          prev[next] = st;
+          (buckets[step] ??= []).push(next);
+        }
+      }
+    return [];
+  };
+  /** Channels led from the water, which the wedge trim below leaves alone. */
+  const led = new Set<string>();
+  const lay = (path: Point[]) => {
+    for (const p of path) {
+      // The cut runs through the shallows to the stream's own water.
+      if (sample(p.x, p.y).water < -0.9) continue;
+      const k = cellKey(p.x, p.y);
+      fields.delete(k);
+      channel(p);
+      led.add(k);
+    }
+  };
+  const open = fresh.filter((p) => sample(p.x, p.y).water < 0);
+  // Lots along a stream are watered by a channel that leaves it above them
+  // and runs behind the first row, bending as the stream bends.
+  if (irrigated && open.length && bankParcels.size) {
+    const todo = new Map<string, Point>();
+    for (const [k, cell] of fields)
+      if (bankParcels.has(cell.parcel)) {
+        const [x, y] = k.split(",").map(Number);
+        todo.set(k, { x, y });
+      }
+    const stretches: Point[][] = [];
+    while (todo.size) {
+      const [k0, p0] = todo.entries().next().value!;
+      todo.delete(k0);
+      const group = [p0];
+      for (const p of group)
+        for (let dy = -2; dy <= 2; dy++)
+          for (let dx = -2; dx <= 2; dx++) {
+            const k = cellKey(p.x + dx, p.y + dy);
+            const q = todo.get(k);
+            if (!q) continue;
+            todo.delete(k);
+            group.push(q);
+          }
+      stretches.push(group);
+    }
+    for (const group of stretches.sort((a, b) => b.length - a.length).slice(0, 3)) {
+      if (group.length < 40) continue;
+      const far = (from: Point) =>
+        group.reduce((m, p) => (Math.hypot(p.x - from.x, p.y - from.y) > Math.hypot(m.x - from.x, m.y - from.y) ? p : m));
+      const a = far(far(group[0])),
+        b = far(a);
+      // The head is the end further from the town.
+      const [head, tail] = dist(a) > dist(b) ? [a, b] : [b, a];
+      const span = Math.hypot(head.x - tail.x, head.y - tail.y);
+      const intake = open.reduce((m, p) => (Math.hypot(p.x - head.x, p.y - head.y) < Math.hypot(m.x - head.x, m.y - head.y) ? p : m));
+      lay(
+        route(
+          [intake],
+          (x, y) =>
+            Math.hypot(x - tail.x, y - tail.y) < Math.max(6, span * 0.3) &&
+            Math.abs(sample(x, y).water - bankRow) < 1,
+          (x, y, _k, water) =>
+            Math.round(Math.abs(water - bankRow) * 6 + noise(seed, x, y, 11, "bank-canal") * 3),
+          0,
+        ),
+      );
+    }
+  }
+  // Whatever else was dug is fed from the nearest open water by the easiest
+  // way over the ground, giving a little to the lie of the land.
+  if (irrigated && open.length && [...canals].some((k) => !led.has(k)))
+    lay(
+      route(
+        open,
+        (_x, _y, k) => canals.has(k),
+        (x, y, k) =>
+          Math.round(noise(seed, x, y, 14, "feeder") * 6) +
+          (fields.has(k) ? 12 : 0),
+        6,
+      ),
+    );
+  // A channel no water reaches carries nothing and is not kept.
+  if (led.size) {
+    const fed = [...led];
+    const reached = new Set(fed);
+    for (const k of fed) {
+      const [x, y] = k.split(",").map(Number);
+      for (const [dx, dy] of N4) {
+        const n = cellKey(x + dx, y + dy);
+        if (reached.has(n) || (!canals.has(n) && !culverts.has(n))) continue;
+        reached.add(n);
+        fed.push(n);
+      }
+    }
+    for (const set of [canals, culverts]) for (const k of [...set]) if (!reached.has(k)) set.delete(k);
+  }
+  // A spur that waters nothing is not dug: each loose end is cut back to the
+  // last field it passes or the channel it left.
+  for (let ends = [...canals]; ends.length; ) {
+    const next: string[] = [];
+    for (const k of ends) {
+      if (!canals.has(k)) continue;
+      const [x, y] = k.split(",").map(Number);
+      const joined = N4.filter(([dx, dy]) => {
+        const n = cellKey(x + dx, y + dy);
+        return canals.has(n) || culverts.has(n) || sample(x + dx, y + dy).water < 0;
+      });
+      let beside = false;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) beside ||= fields.has(cellKey(x + dx, y + dy));
+      if (joined.length > 1 || beside) continue;
+      canals.delete(k);
+      for (const [dx, dy] of joined) next.push(cellKey(x + dx, y + dy));
+    }
+    ends = next;
   }
 
   // --- Wells ------------------------------------------------------------------
@@ -1255,7 +1554,8 @@ export function planFarmland(input: {
     const [x, y] = k.split(",").map(Number);
     let edges = 0,
       fence = 0,
-      riser = 0;
+      riser = 0,
+      open = 0;
     const group = groupOf.get(cell.parcel);
     const terraced = benchParcels.has(cell.parcel);
     for (const [bit, dx, dy] of [
@@ -1268,18 +1568,28 @@ export function planFarmland(input: {
       // Bench against bench is the terrace wall, not a fence: drawn on the
       // upper side, where the drop is.
       if (terraced && n && benchParcels.has(n.parcel)) {
-        const step =
-          benchAt[slot(x, y)] - benchAt[slot(x + dx, y + dy)];
-        if (step > 0) riser |= bit;
+        const here = slot(x, y), there = slot(x + dx, y + dy);
+        // A lone brink supports one half-step; an actual tier change draws its own face.
+        if (
+          level[here] === level[there] &&
+          benchAt[here] > benchAt[there] &&
+          (benchAt[there] === 0 || (betweenSteps[here] && betweenSteps[there]))
+        ) riser |= bit;
         // Plots along one bench are parted by a marker stone, not a wall.
         continue;
       }
       if (!n || n.parcel !== cell.parcel) edges |= bit;
-      if (!n || groupOf.get(n.parcel) !== group) fence |= bit;
+      // A terrace has its risers and the brink below it, and no wall round it;
+      // nor do lots along a bank.
+      if (terraced || bankParcels.has(cell.parcel)) {
+        if (!n) open |= bit;
+      } else if (!n || groupOf.get(n.parcel) !== group) fence |= bit;
     }
     cell.edges = edges;
     cell.fence = fence;
     if (riser) cell.riser = riser;
+    const cut = [3, 6, 12, 9].reduce((m, pair, k) => m | ((open & pair) === pair ? 1 << k : 0), 0);
+    if (cut) cell.cut = cut;
     if (["none", "ditch", "baulk"].includes(cell.boundary)) {
       const era = eraEnclosure(setting.year);
       if (era !== "none") cell.enclosure = era;
@@ -1301,7 +1611,7 @@ export function planFarmland(input: {
     const [x, y] = k.split(",").map(Number);
     const d = cheb({ x, y });
     const farthest = wedge.reduce((m, w) => Math.max(m, w.u), inner);
-    if (d > farthest + 1) canals.delete(k);
+    if (d > farthest + 1 && !led.has(k)) canals.delete(k);
   }
   // Each farming household takes the fields it can walk to: out of the
   // nearest gate and along the track, not across the town and round the

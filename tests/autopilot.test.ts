@@ -128,6 +128,33 @@ describe("typed errands", () => {
     runtime.move(1, 0);
     expect(runtime.autopilot).toBeUndefined();
   });
+
+  it("walks to a reachable cave entrance across the current map", async () => {
+    const e = smallSession({ ...panelSetting("london", 1400), playableMap: { id: "test-caves", size: 384, exits: [] } });
+    e.state.player.pos = { x: 0, y: 4, space: "outside" };
+    e.world.topography = (x, y) => ({
+      height: y === -1 && (Math.abs(x - 10) <= 2 || Math.abs(x + 107) <= 2) ? 1 : 0,
+      surface: "grass",
+      rock: "limestone",
+    });
+    e.world.blocked = (x, y) => x < -112 || x > 12 || y < 0 || y > 5;
+    e.world.canCross = (from, to) => (from.x < 5) === (to.x < 5);
+    const runtime = new Runtime(e, { cacheTerrain: false });
+    expect(e.inspect("cave-mouth:10,0")).toBeDefined();
+
+    expect((await runtime.say("find a cave")).text).toBe("You set off toward a cave entrance.");
+    for (let n = 0; n < 150 && runtime.running; n++) runtime.tick();
+    expect(e.state.player.pos).toEqual({ x: -107, y: 0, space: "outside" });
+    expect(runtime.verbs().alternate?.label).toBe("Enter the cave");
+    expect((await runtime.say("look for the nearest cave")).text).toBe("You are already at a cave entrance.");
+  });
+
+  it("reports missing caves separately from cave lions", async () => {
+    const runtime = new Runtime(smallSession(panelSetting("london", 1400)), { cacheTerrain: false });
+    expect((await runtime.say("find a cave")).text).toBe("There are no cave entrances nearby.");
+    expect((await runtime.say("find a cave lion")).text).toBe("There is no cave lion anywhere nearby.");
+    expect(runtime.running).toBe(false);
+  });
 });
 
 describe("the Jev router", () => {

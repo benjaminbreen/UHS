@@ -544,6 +544,8 @@ export type PlayerCommand =
       target: string;
       action:
         | "talk"
+        /** Whatever a cave target offers: go in, climb, take, read. */
+        | "cave"
         | "enter"
         | "exit"
         | "open"
@@ -664,6 +666,9 @@ export type Snapshot = {
   /** Taken to whoever keeps order, waiting to be dealt with. */
   complaints?: { by: string; story: Word; at: number; spokenFor?: string; seen?: boolean }[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
+  /** The trip underground in progress, and what each cave remembers. */
+  cave?: import("./cave").CaveRun;
+  caves?: Record<string, import("./cave").CaveRecord>;
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */
   legends?: Record<string, import("./combat").Legend>;

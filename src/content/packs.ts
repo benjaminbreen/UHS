@@ -4,6 +4,7 @@ import { items as baseItems } from "./legacy-packs";
 import { ecologicalItems } from "./ecology/resources";
 import { forageItems } from "./ecology/forage";
 import { metalItems } from "./ecology/metals";
+import { caveItems } from "./caves/items";
 import { floraItems } from "./ecology/flora";
 import { wearableItems } from "./characters/wearables";
 import { dungItems } from "./fauna/dung";
@@ -47,6 +48,7 @@ export const items: Record<
   ...ecologicalItems,
   ...forageItems,
   ...metalItems,
+  ...caveItems,
   ...floraItems,
   ...wearableItems,
   ...dungItems,

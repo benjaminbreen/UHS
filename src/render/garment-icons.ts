@@ -1,5 +1,6 @@
 import { dyes, type Cloth } from "../content/characters/wardrobe/cloth";
 import { periodLook } from "../content/economy/wares";
+import { caveItems } from "../content/caves/items";
 import { GARMENT_ICON, garmentArt, type IconArt } from "./garment-art";
 import { itemArt, itemColors } from "./item-art";
 
@@ -44,8 +45,15 @@ export function periodArt(id: string): string {
 /** An item's own drawing, for the things that are not clothes. */
 export function itemIconFor(id: string): string | undefined {
   const dated = periodArt(id);
-  return dated in itemArt ? dated : id in itemArt ? id : undefined;
+  if (dated in itemArt) return dated;
+  if (id in itemArt) return id;
+  const sprite = caveItems[id]?.sprite;
+  if (!sprite) return;
+  const icon = caveIconForSprite[sprite] ?? sprite;
+  return icon in itemArt ? icon : undefined;
 }
+
+const caveIconForSprite: Record<string, string> = { rock: "stone", "rock-1": "stone", "ecology-fruit-item": "fruit" };
 
 function rgb(hex: string) {
   const n = parseInt(hex.slice(1), 16);

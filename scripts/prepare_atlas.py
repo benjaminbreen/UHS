@@ -4,8 +4,8 @@ from pathlib import Path
 sys.setrecursionlimit(100000)
 ROOT=Path(__file__).resolve().parent.parent
 REV='ca96624a56bd078437bca8184e78163e5039ad19'
-NAMES=['ne_10m_land','ne_10m_rivers_lake_centerlines']
-EXPECTED={'ne_10m_land': '1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416', 'ne_10m_rivers_lake_centerlines': 'bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a', 'ne_10m_populated_places_simple': 'fd3fa867a320cbd5c5b6bb5bc550afeec2939fb2cef688e508007282a55ac42f'}
+NAMES=['ne_10m_land','ne_10m_rivers_lake_centerlines','ne_10m_rivers_europe','ne_10m_rivers_north_america']
+EXPECTED={'ne_10m_rivers_europe': '90712202ac46985812e90840df9acd5101599a9c649868d5bc55ee96c2fedd4c', 'ne_10m_rivers_north_america': 'dcd2348655a5f3d0ea7be35024073ab24f09115d2e4efb77e7bc0a33567db682', 'ne_10m_land': '1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416', 'ne_10m_rivers_lake_centerlines': 'bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a', 'ne_10m_populated_places_simple': 'fd3fa867a320cbd5c5b6bb5bc550afeec2939fb2cef688e508007282a55ac42f'}
 # The 10m coastline can put a port on its shore, but at one tolerance worldwide
 # it is 4 MB. Within a degree of a gazetteer town coast keeps ~10-tile and
 # rivers ~6-tile accuracy; elsewhere both are generalized to ~60 tiles.
@@ -47,7 +47,9 @@ for name in NAMES:
  data=json.loads(raw)
  out['sources'].append({'url':url,'sha256':hashlib.sha256(raw).hexdigest(),'license':'Public domain — Natural Earth'})
  for f in data['features']:
-  g=f['geometry']; coords=g['coordinates']
+  g=f['geometry']
+  if not g: continue
+  coords=g['coordinates']
   if name.endswith('land'):
    polys=[coords] if g['type']=='Polygon' else coords
    for poly in polys:
@@ -58,8 +60,6 @@ for name in NAMES:
      if len(s)>=4: out['land'].append(s)
   else:
    lines=[coords] if g['type']=='LineString' else coords
-   rank=f['properties'].get('scalerank',10)
-   if rank is None or rank>6: continue
    for line in lines:
     out['rivers'].append({'name':f['properties'].get('name_en') or f['properties'].get('name') or 'River','points':[[round(x,4),round(y,4)] for x,y,*_ in simplify(line,river_tolerance)]})
 path=ROOT/'src/content/geography/atlas.generated.json'

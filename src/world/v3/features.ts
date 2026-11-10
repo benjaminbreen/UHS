@@ -87,6 +87,7 @@ export function walkStream(
       if (overshoot++ >= 1) break;
     }
     const wander = noise(seed, x, y, 17, `${salt}-wander`) - 0.5;
+    const here = toWater ? toWater(x, y) : Infinity;
     let best: number[] | undefined,
       // A little tolerance for flat ground, but never a climb of a tier's
       // worth: a walk that climbs keeps its low tier and digs a trench.
@@ -112,7 +113,6 @@ export function walkStream(
       // instead of stalling.
       // Near the channel the pull dominates, so a creek joins the river
       // instead of running along its floodplain.
-      const here = toWater ? toWater(x, y) : Infinity;
       const pull = toWater ? (toWater(nx, ny) - here) * bias * (here < 10 ? 2.5 : 0.45) : 0;
       const score = nh + bend * bias + (d % 2) * wander * bias * 1.6 + dropCost + pull;
       if (score < bestH) {

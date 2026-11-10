@@ -1,9 +1,8 @@
+import type Phaser from "phaser";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
 
-/** A ground-cover kit: how one kind of turf and its paths are painted. Only
- * the terrain kits lab sets one, through the ground style, so the shipped
- * raster is unchanged until kits are chosen in the world. Altitude, banks
- * and ramps stay with the contour renderer; a kit only colours their lips. */
+/** A ground-cover kit for turf, its plants and paths. Altitude, banks and ramps
+ * stay with the contour renderer; a kit only colours their lips. */
 
 export type Hex = string;
 
@@ -264,6 +263,33 @@ function tuftStamp(kit: GroundKit, form: TuftForm, variant: number) {
   return out;
 }
 
+export function kitTuftFrame(scene: Phaser.Scene, kit: GroundKit, season: string, roll: number) {
+  const { kit: dressed } = resolve(kit, season);
+  const forms = dressed.tufts.forms.filter((f) => f.weight > 0);
+  if (!forms.length) return undefined;
+  const variants = 5;
+  const key = `tuft-kit-${kit.id}-${season}`;
+  if (!scene.textures.exists(key)) {
+    const width = 21, height = Math.ceil(Math.max(...forms.map((f) => f.height)) * 1.3) + 6;
+    const atlas = scene.textures.createCanvas(key, width * variants, height * forms.length)!;
+    const ctx = atlas.getContext();
+    forms.forEach((form, row) => {
+      for (let i = 0; i < variants; i++) {
+        for (const [offset, { c, a }] of tuftStamp(dressed, form, i * 7 + row)) {
+          const x = Math.round(offset / 64), y = offset - x * 64;
+          ctx.fillStyle = `rgba(${c.join(",")},${a})`;
+          ctx.fillRect(i * width + width / 2 - 0.5 + x, (row + 1) * height - 3 + y, 1, 1);
+        }
+        atlas.add(`${key}-${row * variants + i}`, 0, i * width, row * height, width, height);
+      }
+    });
+    atlas.refresh();
+  }
+  let pick = roll * forms.reduce((sum, f) => sum + f.weight, 0), row = 0;
+  while (row < forms.length - 1 && pick >= forms[row].weight) pick -= forms[row++].weight;
+  return `${key}-${row * variants + Math.min(variants - 1, Math.floor(pick / forms[row].weight * variants))}`;
+}
+
 function floretStamp(kit: GroundKit, petal: Rgb, small: boolean) {
   const out = new Map<number, Pixel>();
   const set = (dx: number, dy: number, c: Rgb, a = 1) => out.set(dx * 64 + dy, { c, a });
@@ -383,9 +409,11 @@ export function kitGroundPixel(
   wy: number,
   wild: (x: number, y: number) => number,
   trod: Trod,
+  paintPlants = true,
 ): Rgb {
   const r = resolve(kit, season);
   const ground = turfPixel(r.kit, r, wx, wy, trod);
+  if (!paintPlants) return ground;
   const plant = plantPixel(r, wx, wy, wild, trod);
   return plant ? (plant.a >= 1 ? plant.c : mix(ground, plant.c, plant.a)) : ground;
 }

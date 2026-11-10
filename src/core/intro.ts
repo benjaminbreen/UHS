@@ -11,6 +11,7 @@ import { matchesCharacterScope } from "../content/characters/resolve";
 import { regionPhrase } from "../content/geography/region-label";
 import { unusualOf } from "./unusual";
 import { kinOf } from "./kin";
+import { plotKnown, plotRoleKnown } from "./plot";
 import { seasonAt } from "./livelihood";
 import { skySeed, weatherAt } from "./weather";
 import { random } from "./random";
@@ -93,15 +94,14 @@ function tiding(setting: WorldSetting, here: string, community: string): IntroSp
  * fall on. */
 function plotParagraph(s: Snapshot): IntroSpan[] {
   const plot = s.plot;
-  const wording = plot && !plot.ended ? PLOTS.find((t) => t.id === plot.id)?.wording : undefined;
+  const wording = plot && !plot.ended && plotKnown(plot) ? PLOTS.find((t) => t.id === plot.id)?.wording : undefined;
   const lines = wording && { ...wording.at(-1)!.lines, ...wording[plot!.wording]?.lines };
   if (!plot || !lines) return [];
-  const cast = new Set(Object.values(plot.cast));
   const slot = (key: string): IntroSpan | string | undefined => {
     const id = plot.refs?.[key];
     const text = plot.words[key];
     if (text === undefined) return;
-    return id ? { text, ref: id, mark: cast.has(id) ? "plot" : "kin" } : text;
+    return id ? { text, ref: id, mark: plotRoleKnown(plot, id) ? "plot" : "kin" } : text;
   };
   const pledge = lines.pledge && plot.words.child ? lines.pledge : undefined;
   return [lines.intro, pledge ?? lines.threat, !pledge && plot.words.partner ? lines.partner : undefined]

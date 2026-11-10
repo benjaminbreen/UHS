@@ -1,5 +1,5 @@
 import { KIN_LINES, type KinNeed } from "../content/plots/kin";
-import { plotLine, plotTemplate } from "./plot";
+import { plotKnown, plotLine, plotRoleKnown, plotTemplate } from "./plot";
 import { random } from "./random";
 import { sexOf } from "./brief";
 import type { Actor, Snapshot } from "./types";
@@ -41,7 +41,7 @@ export function kinOf(s: Snapshot): { actor: Actor; kind: KinKind }[] {
 /** Red for the player's own people, gold for whoever the plot has drawn in. */
 export function markOf(s: Snapshot, id: string): "kin" | "plot" | undefined {
   const plot = s.plot;
-  if (plot && !plot.ended && Object.values(plot.cast).includes(id)) return "plot";
+  if (plot && !plot.ended && plotRoleKnown(plot, id)) return "plot";
   if (kinOf(s).some((k) => k.actor.id === id)) return "kin";
 }
 
@@ -55,7 +55,7 @@ export function kinCall(s: Snapshot, k: KinState, clock: number, food: number, a
   const away = clock - (k.home ?? k.since);
   const hour = Math.floor(clock / HOUR) % 24;
   const plot = s.plot;
-  const plotLineFor = plot && !plot.ended && plotTemplate(plot)?.wording[plot.wording]?.lines["kin-partner"];
+  const plotLineFor = plot && !plot.ended && plotKnown(plot) && plotTemplate(plot)?.wording[plot.wording]?.lines["kin-partner"];
   const quiet = (id: string) => clock - (k.talked[id] ?? k.since);
   // Missing the player and dropping by are the family's, not each person's:
   // one child says it for all of them, once a day.

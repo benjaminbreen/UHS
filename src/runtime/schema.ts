@@ -59,6 +59,7 @@ import {
 import { materials } from "../content/characters/wardrobe/cloth";
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
+import { plotRoles } from "../content/plots/types";
 // A garment's cloth rides after `~` (see clothId): `garment-dress~wool.bleached.0`.
 const item = z.string().regex(/^[a-z][a-z0-9-]{0,39}(~[a-z0-9.-]{1,30})?$/);
 const inventory = z.record(item, z.number().int().min(0).max(1000000));
@@ -546,6 +547,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       target: z.string().max(100),
       action: z.enum([
         "talk",
+        "cave",
         "enter",
         "exit",
         "open",
@@ -860,6 +862,8 @@ export const snapshotSchema = z.object({
     })
     .strict()
     .optional(),
+  cave: z.any().optional(),
+  caves: z.record(z.string(), z.any()).optional(),
   fauna: z.array(faunaGroup).max(5000).optional(),
   legends: z
     .record(
@@ -1047,6 +1051,26 @@ export const snapshotSchema = z.object({
       total: z.number().optional(),
       seized: z.number().optional(),
       fired: z.array(z.string().max(40)).max(40),
+      firedAt: z.record(z.string().max(40), z.number()).optional(),
+      asking: z.object({
+        line: z.string().max(40),
+        focus: z.string().max(100).optional(),
+        by: z.string().max(100).optional(),
+        choices: z.array(z.object({
+          id: z.string().max(40),
+          check: z.object({
+            stat: z.union([
+              z.enum(["strength", "agility", "endurance", "wit", "openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]),
+              z.templateLiteral(["{", z.string().max(40), "}"]),
+            ]),
+            skill: z.enum(skillIds).optional(),
+            odds: z.number(),
+          }).strict().optional(),
+        }).strict()).max(20),
+        at: z.number(),
+        due: z.number().optional(),
+        scene: z.enum(["doorstep", ...plotRoles]).optional(),
+      }).strict().optional(),
       ended: z.string().max(40).optional(),
       aim: lifeAim.optional(),
     })

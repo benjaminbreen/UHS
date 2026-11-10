@@ -122,7 +122,7 @@ import { VitalsOverlay } from "./VitalsOverlay";
 import { markEvent, vitalsEnabled, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
 import { PlotCard, STORY_LOOK_KEY, type StoryLook } from "./PlotCard";
-import { type PlotCard as PlotCardData } from "../core/plot";
+import { plotKnown, type PlotCard as PlotCardData } from "../core/plot";
 import { markOf } from "../core/kin";
 import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
@@ -196,6 +196,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
   const aim = runtime.engine.state.lifeAim;
+  const plot = runtime.engine.state.plot;
   const propControls = runtime.propControls();
   const verbs = { ...runtime.verbs(), held: propControls.held };
   const speaker = runtime.nearestSpeaker();
@@ -488,6 +489,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       }
       return;
     }
+    if (runtime.engine.cards.some((c) => c.scene && c.speaker === id && runtime.engine.canShowCard(c))) return;
     setSituation(situation);
     setSaid(line);
     setDialogueActorId(id);
@@ -557,9 +559,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const covered = !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen;
   useEffect(() => {
     if (card || covered) return;
+    const engine = runtime.engine;
+    while (engine.cards[0] && !engine.canShowCard(engine.cards[0])) engine.cards.shift();
     // Someone come to talk waits until the held work or passing hours are over.
-    if (runtime.engine.cards[0]?.kind === "speech" && (runtime.workHold !== undefined || runtime.passing)) return;
-    const next = runtime.engine.cards.shift();
+    const first = engine.cards[0];
+    if ((first?.kind === "speech" || first?.scene) && (runtime.workHold !== undefined || runtime.passing)) return;
+    const next = engine.cards.shift();
     if (!next) return;
     runtime.hold(true);
     setCard(next);
@@ -639,7 +644,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     const ready = () => {
       if (!activeRef.current && g.canvas?.dataset.ready === "true")
         g.canvas.dataset.ready = "false";
-      if (g.canvas?.dataset.terrainReady !== "true") return;
+      if (g.canvas?.dataset.terrainPlayable !== "true") return;
       g.events.off(Phaser.Core.Events.POST_RENDER, ready);
       onReadyRef.current?.();
     };
@@ -881,7 +886,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     return ambienceFor({
       weather,
       indoors: p.pos.space !== "outside",
-      room: room && layout ? { area: room.w * room.d, finish: layout.params.finish } : undefined,
+      // A cave is the biggest, hardest room there is.
+      room: room && layout ? { area: room.w * room.d, finish: layout.params.finish } : p.pos.space.startsWith("cave:") ? { area: 220, finish: 2 } : undefined,
       year: setting?.year,
       faith: setting ? religiousProfile(setting)?.faith : undefined,
       fireDistance: Math.min(
@@ -932,6 +938,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   useEffect(() => audio?.setScene(ambience), [audio, ambience]);
   useEffect(() => {
     if (p.pos.space === "outside") return audio?.setInterior(undefined);
+    if (p.pos.space.startsWith("cave:")) return audio?.setInterior("cave");
     const place = runtime.engine.world.place(p.pos.space);
     const faith = setting ? religiousProfile(setting)?.faith : undefined;
     audio?.setInterior(
@@ -2088,13 +2095,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           <button onClick={() => setModal("map")}>Explore the map<ArrowRight size={14} /></button>
                         </li>
                       )}
-                      {runtime.engine.state.plot && !runtime.engine.state.plot.ended && (
+                      {plot && !plot.ended && plotKnown(plot) && (
                         <li>
                           <button onClick={() => setTask({ kind: "plot" })}>
                             <span className="today-icon"><ScrollText size={15} /></span>
                             <span className="today-text">
                               <small>Plot</small>
-                              {runtime.engine.state.plot.title}
+                              {plot.title}
                             </span>
                           </button>
                         </li>

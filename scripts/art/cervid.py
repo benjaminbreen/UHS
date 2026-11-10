@@ -71,7 +71,7 @@ KINDS = {
         "brown": _c("#170f09", "#3b2a1c", "#5a412b", "#79593c", "#dad4c6", "#aaa192", "#7b7469", "#2c1e13", "#0c0806", "#070504", "#cbb48a", "#8e7652", "#6a4038"),
     }, weights={"dark": 3, "brown": 1}),
     # 0.6 m at the shoulder, drawn a little over. h is the white face line.
-    "gazelle": dict(s=0.34, leg=1.06, girth=0.85, hump=0.0, stripe=False, mane=False, antler="lyre", tail=2.5, muzzle=1.1,
+    "gazelle": dict(s=0.42, leg=1.06, girth=0.85, hump=0.0, stripe=False, mane=False, antler="lyre", tail=2.5, muzzle=1.1,
                     carry=(-1.0, -5.0), snout=7.5, fine=True, hooves=0, skull=3.4, earlean=-40, cannon=0.6, band=True, ear=1.35, throat="b", limb=0.85, hm=40, gait="stot",
                     forms={"buck": dict(antlers=1.0, s=1.0), "doe": dict(antlers=0.65, s=0.92)},
                     form_weights={"buck": 1.0, "doe": 2.0}, coats={
@@ -80,7 +80,7 @@ KINDS = {
         "goitered": _c("#241a10", "#8a6a45", "#b99a6c", "#d0b384", "#fbf7ee", "#f2ebdf", "#e6ddcd", "#6e5232", "#1a120b", "#0b0806", "#8a7862", "#3a2e22", "#8a5a4a"),
     }, weights={"dorcas": 3, "chinkara": 2, "goitered": 2}),
     # 0.8 m at the shoulder. h is the white face, s the chocolate band.
-    "springbok": dict(s=0.4, leg=1.0, girth=0.95, hump=0.0, stripe=False, mane=False, antler="lyre", tail=2.2, muzzle=1.1,
+    "springbok": dict(s=0.46, leg=1.0, girth=0.95, hump=0.0, stripe=False, mane=False, antler="lyre", tail=2.2, muzzle=1.1,
                       carry=(-1.0, -4.0), snout=7.5, fine=True, hooves=0, skull=3.4, earlean=-40, cannon=0.6, band=True, ear=1.2, throat="b", limb=0.9, hm=40, gait="pronk",
                       whiteface=True,
                       forms={"ram": dict(antlers=0.8, s=1.0), "ewe": dict(antlers=0.55, s=0.92)},

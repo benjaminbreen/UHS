@@ -7,7 +7,7 @@ silhouette from a side-on one, not a rotation of it.
 Style follows set B -- masses at native size, light from above, one hue-matched
 outline round the whole silhouette, no interior outlines, binary alpha, no baked
 shadow -- with Stardew-style exaggeration: heads and eyes a little large, legs a
-little short, so a 16px rabbit still reads as a rabbit. Size hierarchy is kept
+little short, so a small rabbit still reads as a rabbit. Size hierarchy is kept
 against the 29px standing human: horse and foal are at true scale, rabbits are
 lifted off it because a true-scale rabbit is four pixels of body.
 """
@@ -49,8 +49,8 @@ STATES = {
     "hare": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
 }
 # True scale against the 29px human is ~17px per metre. Horse 2.4m long and
-# 1.55m at the withers lands on 40x36; the foal is 60% of it. Rabbits are drawn
-# well over scale so they stay legible, matched to set B's 14px sparrow.
+# 1.55m at the withers lands on 40x36; the foal is 60% of it. Rabbits and
+# hares are enlarged for legibility, but need to read below the antelopes.
 # HEADROOM is empty rows added on top for the airborne frames -- a hopping
 # rabbit was losing its ear tips off the canvas. Drawing coordinates stay
 # measured from the standing pose; finish() shifts the whole sprite down.
@@ -61,9 +61,9 @@ FOOTROOM = 3
 STANDING_SIZES = {
     "horse": (40, 35),
     "foal": (24, 23),
-    "rabbit": (16, 16),
+    "rabbit": (13, 12),
     "rabbit-kit": (10, 10),
-    "hare": (24, 21),
+    "hare": (17, 15),
 }
 NATIVE_SIZES = {
     k: (w, h + HEADROOM[k] + FOOTROOM) for k, (w, h) in STANDING_SIZES.items()
@@ -76,11 +76,6 @@ class Canvas(_BCanvas):
         self.palette = PALETTES[species]
         self.pad = HEADROOM[species]
         self.px = {}
-
-    def finish(self):
-        if self.pad:
-            self.px = {(x, y + self.pad): role for (x, y), role in self.px.items()}
-        return super().finish()
 
 
 def mirror(im):
@@ -512,29 +507,29 @@ def equine(species, state, facing, frame):
 # ------------------------------------------------------------------- rabbits
 LEPORID = {
     "rabbit": dict(
-        ground=14, haunch=(1, 5, 9, 13), chest=(6, 8, 12, 13), head=(8, 4, 13, 9),
-        ear_x=(8, 11), ear_w=2, ear_h=5, eye=(11, 6), nose=(13, 8), tail=(1, 7), tail_r=2,
-        fore_x=10, hind_x=2, foot_w=3,
-        f_body=(3, 7, 12, 14), f_head=(5, 2, 10, 8), f_ear=(5, 9), f_ear_h=3,
-        f_eye=((6, 5), (9, 5)), f_nose=(7, 7), f_paw=(5, 10), n_rump=(3, 6, 12, 14), n_tail=(7, 7),
-        hop=4, arch=3,
+        ground=11, haunch=(1, 5, 7, 10), chest=(5, 6, 9, 10), head=(6, 3, 10, 7),
+        ear_x=(6, 8), ear_w=1, ear_h=4, eye=(9, 5), nose=(10, 6), tail=(1, 6), tail_r=1,
+        fore_x=8, hind_x=2, foot_w=2,
+        f_body=(2, 5, 10, 11), f_head=(3, 2, 9, 7), f_ear=(3, 8), f_ear_h=2,
+        f_eye=((4, 4), (8, 4)), f_nose=(6, 6), f_paw=(4, 8), n_rump=(2, 5, 10, 11), n_tail=(6, 7),
+        hop=3, arch=3,
     ),
     # Longer in the ear, the leg and the body than a rabbit, and it stands
     # up on its forelegs; the ear tips and the top of the tail are black.
     "hare": dict(
-        ground=20, haunch=(2, 8, 12, 18), chest=(9, 7, 16, 14), head=(13, 2, 19, 8),
-        ear_x=(13, 16), ear_w=2, ear_h=9, eye=(17, 4), nose=(19, 6), tail=(1, 9), tail_r=2,
-        fore_x=15, hind_x=2, foot_w=5, fore_h=6, tips=True,
-        f_body=(6, 9, 17, 20), f_head=(7, 2, 16, 9), f_ear=(8, 14), f_ear_h=7,
-        f_eye=((9, 5), (14, 5)), f_nose=(11, 8), f_paw=(8, 15), n_rump=(5, 8, 18, 20), n_tail=(10, 10),
-        hop=7, arch=3,
+        ground=14, haunch=(2, 6, 10, 13), chest=(7, 5, 12, 11), head=(10, 2, 14, 7),
+        ear_x=(10, 12), ear_w=1, ear_h=6, eye=(13, 4), nose=(14, 6), tail=(1, 8), tail_r=2,
+        fore_x=11, hind_x=2, foot_w=3, fore_h=4, tips=True,
+        f_body=(4, 6, 12, 14), f_head=(5, 2, 11, 8), f_ear=(5, 10), f_ear_h=4,
+        f_eye=((6, 5), (10, 5)), f_nose=(8, 7), f_paw=(5, 10), n_rump=(3, 6, 13, 14), n_tail=(7, 8),
+        hop=5, arch=3,
     ),
     "rabbit-kit": dict(
         ground=8, haunch=(1, 3, 5, 8), chest=(3, 4, 7, 8), head=(4, 2, 7, 6),
         ear_x=(4, 6), ear_w=1, ear_h=3, eye=(6, 4), nose=(7, 5), tail=(1, 5), tail_r=1,
         fore_x=5, hind_x=2, foot_w=2,
-        f_body=(2, 4, 7, 8), f_head=(2, 1, 7, 5), f_ear=(3, 6), f_ear_h=2,
-        f_eye=((3, 3), (6, 3)), f_nose=(4, 4), f_paw=(3, 6), n_rump=(1, 3, 8, 8), n_tail=(4, 4),
+        f_body=(2, 4, 7, 8), f_head=(2, 2, 7, 6), f_ear=(3, 6), f_ear_h=1,
+        f_eye=((3, 4), (6, 4)), f_nose=(4, 5), f_paw=(3, 6), n_rump=(2, 4, 7, 8), n_tail=(4, 5),
         hop=2, arch=2,
     ),
 }
@@ -600,9 +595,11 @@ def _leporid_side(species, state, frame):
     if state != "rest":
         airborne = lift > 0
         fw = p["foot_w"]
-        hind = rect((p["hind_x"], ground - 1 + (0 if not airborne else -2), p["hind_x"] + fw, ground - (0 if not airborne else 2)))
+        hind_y = ground - (lift if airborne else 0)
+        hind = rect((p["hind_x"], hind_y - 1, p["hind_x"] + fw, hind_y))
         fh = p.get("fore_h", 1)
-        fore = rect((p["fore_x"] + stretch, ground - fh + (0 if not airborne else -3), p["fore_x"] + stretch + 1, ground - (0 if not airborne else 3)))
+        fore_y = hind_y - (1 if airborne else 0)
+        fore = rect((p["fore_x"] + stretch, fore_y - fh, p["fore_x"] + stretch + 1, fore_y))
         if moving and airborne:
             hind = shift(hind, -1, 0)
             fore = shift(fore, 1, 0)

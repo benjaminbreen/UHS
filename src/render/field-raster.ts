@@ -353,6 +353,18 @@ export function rasterFieldTile(
         if (frozen) rgb = mix(rgb, [206, 212, 204], 0.5);
         put(px, py, rgb);
       }
+  // Past a cut corner's diagonal the cell is the trodden apron round the field.
+  if (f.cut)
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const t = Math.max(
+          f.cut & 1 ? px - py : 0,
+          f.cut & 2 ? px + py - 15 : 0,
+          f.cut & 4 ? py - px : 0,
+          f.cut & 8 ? 15 - px - py : 0,
+        );
+        if (t > 0) put(px, py, t === 1 ? soil[0] : troddenPixel(gx + px, gy + py, t / 16, headland));
+      }
   if (!frozen)
     paintFences(sample, x, y, ox, oy, put, (px, py, v) => {
       const i = (py * 16 + px) * 4;

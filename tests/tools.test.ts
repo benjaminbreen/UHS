@@ -147,6 +147,20 @@ it("refuses to chop grass and cuts it with the scythe instead", () => {
   expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-stubble");
 });
 
+it("clears grass tufts by hand, with an implement, and with a sickle", () => {
+  const engine = createSession("roman", "tools");
+  ground(engine);
+  for (const [x, tool] of [[1, undefined], [5, "axe"], [9, "sickle"]] as const) {
+    plant(engine, { id: `decor-${x}-0`, x, y: 0, sprite: tool === "axe" ? "dry-grass-tuft" : "grass-tuft", solid: false });
+    engine.state.player.pos = { x: x - 1, y: 0, space: "outside" };
+    if (tool) holding(engine, tool);
+    if (tool === "sickle") engine.execute({ type: "interact", action: "reap", target: `tile:${x},0` });
+    else engine.execute({ type: "swing", direction: 1 });
+    expect(engine.state.tiles?.[tileKey(x, 0)]?.cut).toBe(true);
+    expect(engine.world.decoration(x, 0)).toBeUndefined();
+  }
+});
+
 it("digs a furrow in the ground underfoot when nothing faces the player", () => {
   const engine = createSession("roman", "tools");
   ground(engine);

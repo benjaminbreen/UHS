@@ -45,7 +45,7 @@ export function useTypewriter(
       const currentSound = voice.current;
       if (currentSound && /\S/.test(ch))
         void (typeof currentSound === "function"
-          ? gameAudio()?.sound(currentSound(), "blip")
+          ? gameAudio()?.sound(currentSound, "blip")
           : gameAudio()?.event("blip"));
       timer = window.setTimeout(
         next,

@@ -77,38 +77,40 @@ export function boundaryWater(
             : best,
         undefined,
       );
-      const end = target ?? (outlet && outlet !== port ? outlet.point : hollow);
+      const join = target ?? (outlet !== port ? outlet?.point : undefined);
+      const end = join ?? hollow;
       const normal = outward(port.edge.side);
       const c1 = [start[0] - normal[0] * 24, start[1] - normal[1] * 24];
       const c2 = [(c1[0] + end[0]) / 2, (c1[1] + end[1]) / 2];
       const points: number[][] = [];
       const length = Math.hypot(end[0] - start[0], end[1] - start[1]);
       const count = Math.max(12, Math.ceil(length / 3));
+      // Bends across the course: long loops that grow with its length and
+      // short ones on top. The port stays put; the far end joins water or is
+      // a head that may lie anywhere.
+      const loop = Math.min(30, length * 0.3);
+      const across = [-(end[1] - start[1]) / (length || 1), (end[0] - start[0]) / (length || 1)];
       for (let i = 0; i <= count; i++) {
         const t = i / count,
           u = 1 - t;
+        const along = t * length,
+          salt = port.crossing.at * 100;
         const bend =
-          (noise(
-            seed,
-            (i / count) * length,
-            port.crossing.at * 100,
-            40,
-            "edge-channel",
-          ) -
-            0.5) *
-          10 *
-          Math.sin(Math.PI * t) ** 2;
+          ((noise(seed, along, salt, 36, "edge-channel") - 0.5) * loop +
+            (noise(seed, along, salt, 13, "edge-channel-2") - 0.5) * 7) *
+          Math.min(1, t * 4) *
+          (join ? Math.min(1, u * 4) : 1);
         points.push([
           u ** 3 * start[0] +
             3 * u * u * t * c1[0] +
             3 * u * t * t * c2[0] +
-            t ** 3 * end[0] -
-            normal[1] * bend,
+            t ** 3 * end[0] +
+            across[0] * bend,
           u ** 3 * start[1] +
             3 * u * u * t * c1[1] +
             3 * u * t * t * c2[1] +
             t ** 3 * end[1] +
-            normal[0] * bend,
+            across[1] * bend,
         ]);
       }
       channels.push({

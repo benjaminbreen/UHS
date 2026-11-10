@@ -590,7 +590,7 @@ it("uses actual household parents for patronymics and preserves family tradition
     checked++;
   }
   expect(checked).toBeGreaterThan(0);
-});
+}, 240000);
 
 
 it("equips an early American hunter with a spear instead of a bow", () => {

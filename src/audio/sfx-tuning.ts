@@ -24,18 +24,19 @@ export const neutral: Tuning = {
 };
 
 const STORE = "uhs-sfx-tuning-v1";
+const defaults: Record<string, Partial<Tuning>> = saved;
 const load = (): Record<string, Partial<Tuning>> => {
   try {
-    return { ...saved, ...JSON.parse(localStorage.getItem(STORE) ?? "{}") };
+    return JSON.parse(localStorage.getItem(STORE) ?? "{}") ?? {};
   } catch {
-    return { ...saved };
+    return {};
   }
 };
 let overrides = load();
 
 export function tuning(group: string): Tuning {
   const base = group === "step" ? { ...neutral, spacing: 8 } : neutral;
-  return { ...base, ...overrides[group] };
+  return { ...base, ...defaults[group], ...overrides[group] };
 }
 export function setTuning(group: string, patch: Partial<Tuning>) {
   overrides = { ...overrides, [group]: { ...overrides[group], ...patch } };
@@ -51,7 +52,8 @@ export function resetTuning(group?: string) {
 /** Only changed values, so the JSON stays short. */
 export function tuningJson() {
   const out: Record<string, Partial<Tuning>> = {};
-  for (const [group, values] of Object.entries(overrides)) {
+  for (const group of Object.keys({ ...defaults, ...overrides })) {
+    const values = { ...defaults[group], ...overrides[group] };
     const base = tuning("");
     const changed = Object.fromEntries(
       Object.entries(values).filter(

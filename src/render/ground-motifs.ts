@@ -1,3 +1,7 @@
+import type Phaser from "phaser";
+import type { Habitat } from "../world/v3/habitats";
+import { groundKits } from "../content/graphics/ground-kits";
+import { kitTuftFrame, pickKit } from "./ground-kit";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
 
 /** Where grass grows thick: drifts a few cells across with bare runs between.
@@ -107,6 +111,104 @@ const swardMotifs = [
   ["0303030", "1223221", "0111110"],
   ["000040", "000300", "003200", "122100", "011000"],
 ];
+
+export const TUFT_ATLAS = "tufts";
+const tuftSilhouettes = [
+  [
+    "..4.........",
+    "...43....5..",
+    "....43...4..",
+    ".....3..43..",
+    ".34..32.3...",
+    "...43.233.3.",
+    "....323233..",
+    ".....2223...",
+    "....112211..",
+  ],
+  [
+    ".......5....",
+    ".......44...",
+    "..4....3....",
+    "...43..3....",
+    "....43.2..3.",
+    ".....32343..",
+    "....23233...",
+    ".....222....",
+    "....11211...",
+  ],
+  [
+    "............",
+    ".....4...4..",
+    ".3....43.3..",
+    "..43...33...",
+    "....43223...",
+    "....112211..",
+  ],
+  [
+    "....5.......",
+    "....44...5..",
+    ".....4...44.",
+    ".4...3...3..",
+    "..43.3..43..",
+    "...433..3...",
+    "....2332334.",
+    "...3322233..",
+    "....122221..",
+    ".....1111...",
+  ],
+  [
+    "............",
+    "............",
+    "..4...4.....",
+    "...43..3..4.",
+    ".3..322333..",
+    "..3322233...",
+    "....112211..",
+  ],
+  [
+    "......5.....",
+    ".....44.....",
+    ".....4....3.",
+    "....43..43..",
+    "..4.3..43...",
+    "...432.3....",
+    "....3232....",
+    "...33223....",
+    "....12211...",
+  ],
+];
+const tuftTones = {
+  green: ["#30381b80", "#475a30", "#6b8347", "#92a659", "#bcc57d"],
+  cool: ["#29332680", "#3e5237", "#5e774c", "#81965e", "#abb781"],
+  dry: ["#3c301980", "#76612f", "#a18a4b", "#c5ab68", "#e1c886"],
+};
+export function grassTuftFrame(scene: Phaser.Scene, habitat: Habitat | undefined, dry: boolean, season: string, roll: number) {
+  const kit = pickKit(groundKits, habitat?.ecology, habitat?.colorway, habitat?.vegetation);
+  const frame = kit && kitTuftFrame(scene, kit, habitat?.dry ? `${season}-dry` : season, roll);
+  if (frame) return frame;
+  const style = dry || season === "autumn" || season === "winter" ? "dry"
+    : habitat?.ecology === "boreal-woodland" ? "cool" : "green";
+  if (!scene.textures.exists(TUFT_ATLAS)) {
+    const width = 12, height = 10;
+    const atlas = scene.textures.createCanvas(TUFT_ATLAS, tuftSilhouettes.length * width, height * 3)!;
+    const ctx = atlas.getContext();
+    Object.entries(tuftTones).forEach(([key, tones], row) => {
+      tuftSilhouettes.forEach((glyph, i) => {
+        glyph.forEach((line, y) => {
+          for (let x = 0; x < line.length; x++) {
+            const tone = tones[Number(line[x]) - 1];
+            if (!tone) continue;
+            ctx.fillStyle = tone;
+            ctx.fillRect(i * width + x, row * height + y, 1, 1);
+          }
+        });
+        atlas.add(`tuft-${key}-${i}`, 0, i * width, row * height, width, glyph.length);
+      });
+    });
+    atlas.refresh();
+  }
+  return `tuft-${style}-${Math.floor(roll * tuftSilhouettes.length)}`;
+}
 const SPROUT = 6;
 /** Sprouts on a finer lattice fill the gaps the clump lattice leaves, so the
  * sward has more than one scale of mark. Sparser where clumps are sparse. */

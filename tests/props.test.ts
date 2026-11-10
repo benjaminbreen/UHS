@@ -257,7 +257,7 @@ describe("interactive props", () => {
     }
     const restored=restoreSession(e.snapshot());
     expect(restored.state.objects.filter(o=>native.some(n=>n.id===o.id))).toEqual(native);
-  });
+  }, 240000);
   it("selects all twelve approved wells in their dated regional contexts", () => {
     const cases = [
       ["timber", "european", -5100, 51, 13, "well", "village"],

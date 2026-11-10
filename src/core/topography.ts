@@ -73,6 +73,7 @@ export type TopographyCell = {
     flood?: boolean;
     /** Edges, same bits, where a terrace wall drops to the bench below. */
     riser?: number;
+    cut?: number;
     /** Inside a household's or church's yard rather than the farmland. */
     yard?: boolean;
     garden?: boolean;

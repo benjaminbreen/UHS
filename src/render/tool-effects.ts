@@ -254,10 +254,12 @@ export class ToolEffects {
           : strike(effect.tool, loudest.hit, loudest.kind, loudest.damaged),
         "strike",
       );
-    const landed = effect.hits.filter(
+    const struck = effect.hits.filter(
       (h) => h.hit !== "creature" && (h.damaged || h.solid),
     );
-    for (const h of landed) this.flash(h);
+    for (const h of struck) this.flash(h);
+    // Cut growth gives no resistance: holding the beat for it made mowing drag.
+    const landed = struck.filter((h) => h.solid || h.kind !== "swish");
     const rest = () => {
       if (facing) this.react(facing, 1);
       // The corners rattle rather than break: half the debris, no sound.
@@ -580,7 +582,8 @@ export class ToolEffects {
     } else if (hit.kind === "scuff") {
       this.burst({ x: at.x, y: at.y }, palette, count, 0.9);
     } else if (hit.kind === "swish") {
-      this.burst({ x: at.x, y: at.y - 5 }, palette, count, 1.3);
+      if (hit.damaged && !hit.solid) this.shred(at, palette);
+      else this.burst({ x: at.x, y: at.y - 5 }, palette, count, 1.3);
     } else if (hit.hit === "tree" || hit.hit === "trunk") {
       // Dust off the bark at the strike point, and leaves shaken loose above.
       this.burst({ x: at.x, y: at.y - 9 }, palette, count, 1.2);
@@ -648,12 +651,14 @@ export class ToolEffects {
     return { x, y: y - this.view.lift(x, y) };
   }
   private play(effect: ToolEffect) {
-    void gameAudio()?.sound(
-      effect.kind === "miss"
-        ? strike("haft", "air", "whoosh")
-        : this.rise(work(effect.kind)),
-      "work",
-    );
+    const kind = effect.kind;
+    if (kind === "fill" || kind === "douse")
+      void gameAudio()?.sound(() => work(kind), kind);
+    else
+      void gameAudio()?.sound(
+        kind === "miss" ? strike("haft", "air", "whoosh") : this.rise(work(kind)),
+        "work",
+      );
     const target = this.point(effect.at);
     const from = this.point(effect.from);
     // Work underfoot has no direction of its own; take it from the player.
@@ -676,8 +681,7 @@ export class ToolEffects {
         this.burst(this.point(cell), SOIL, 6, 1.1);
     if (effect.kind === "reap" || effect.kind === "cut")
       for (const cell of effect.cells ?? [effect.at]) {
-        const cut = this.point(cell);
-        this.burst({ x: cut.x, y: cut.y - 4 }, LEAF, 7, 1.3);
+        this.shred(this.point(cell), LEAF);
       }
     if (effect.kind === "hit" || effect.kind === "buck")
       this.burst(
@@ -830,6 +834,53 @@ export class ToolEffects {
     });
   }
   /** Chips, leaves or clods thrown out of the cut. */
+  /** Cut growth flies apart: blades thrown out in a ring, hanging a moment,
+   * then tumbling down. Flipped, not rotated, so they stay on the pixel grid. */
+  private shred(at: { x: number; y: number }, drawn: number[]) {
+    const count = 8;
+    // The sprite's shadow tones fly as grit; only its lit, unblued colours read as leaf.
+    const lit = drawn.filter((c) => ((c >> 8) & 255) > 105 && ((c >> 8) & 255) > (c & 255) + 16);
+    const palette = lit.length ? lit : LEAF;
+    const turn = Math.random() * Math.PI;
+    for (let i = 0; i < count; i++) {
+      const a = turn + (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const reach = 8 + Math.random() * 8;
+      const blade = this.scene.add
+        .rectangle(at.x, at.y - 6, i % 2 ? 4 : 2, i % 2 ? 2 : 3, palette[i % palette.length])
+        .setDepth(at.y + 4000);
+      this.live.add(blade);
+      const x = at.x + Math.cos(a) * reach,
+        y = at.y - 9 + Math.sin(a) * reach * 0.55;
+      this.scene.tweens.add({
+        targets: blade,
+        scaleX: -1,
+        duration: 50 + Math.random() * 30,
+        yoyo: true,
+        repeat: 4,
+      });
+      this.scene.tweens.add({
+        targets: blade,
+        x,
+        y,
+        duration: 120,
+        ease: "Cubic.easeOut",
+        onComplete: () =>
+          this.scene.tweens.add({
+            targets: blade,
+            x: x + (Math.random() - 0.5) * 10,
+            y: y + 11 + Math.random() * 5,
+            alpha: { from: 1, to: 0, delay: 240, duration: 140 },
+            delay: 40,
+            duration: 380,
+            ease: "Sine.easeIn",
+            onComplete: () => {
+              this.live.delete(blade);
+              blade.destroy();
+            },
+          }),
+      });
+    }
+  }
   private burst(
     at: { x: number; y: number },
     palette: number[],

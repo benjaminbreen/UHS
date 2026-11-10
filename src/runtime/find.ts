@@ -13,7 +13,7 @@ export type FindTarget = {
 };
 
 const VERBS =
-  /^\s*(?:find|locate|go to|goto|walk to|head (?:to|for)|approach|hunt)\b/i;
+  /^\s*(?:find|locate|look for|search for|go (?:and )?find|go to|goto|walk to|head (?:to|for)|approach|hunt)\b/i;
 const FILLER =
   /^(?:the|a|an|some|any|my|nearest|closest|nearby|first|me|to|for|of)$/;
 

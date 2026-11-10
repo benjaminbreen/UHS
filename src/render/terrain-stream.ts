@@ -4,7 +4,7 @@ import { workerBudget } from "../runtime/device";
 import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
-import type { WorldModel } from "../core/types";
+import type { Point, WorldModel } from "../core/types";
 import { topographySteps } from "./topography";
 import {
   addPixelTexture,
@@ -69,6 +69,7 @@ export type SunPhase = {
 const WORKER_LIMIT = workerBudget();
 /** Under every ground page, whatever row it belongs to. */
 const PREVIEW_DEPTH = -1e6;
+const ENTRY_RADIUS = 8;
 const NO_SUN: SunPhase = { id: "night", cast: [0, 0], opacity: 0 };
 /** Rasterize off-thread, install one small chunk per frame, retain a bounded
  * ring for backtracking. Neither movement nor lighting re-rasterizes terrain. */
@@ -82,6 +83,7 @@ export class TerrainStream {
   /** Resent to every worker spawned later, and on restyle. */
   private styling: Extract<TerrainRequest, { style: GroundStyle | null }>;
   private started = performance.now();
+  private playable = false;
   private loaded = false;
   private dirty = true;
   private queue: [string, TerrainRegion][] = [];
@@ -105,6 +107,7 @@ export class TerrainStream {
     private scene: Phaser.Scene,
     private world: WorldModel,
     private seed: string,
+    private entry?: Point,
   ) {
     ensureWaterAtlas(scene);
     const retained = takeTerrainWorker(world);
@@ -324,9 +327,8 @@ export class TerrainStream {
     // A chunk costs several frames' budget to compose, so it is spent in
     // slices: the generator stops between ground rows and the walk keeps its
     // frame. Draining whole chunks was the hitch on walking into new ground.
-    // Nothing to stutter before the first fill lands, and a blank world is
-    // worse than a long frame, so the budget only bites once loaded.
-    const budget = this.loaded
+    // Once the scene can be revealed, keep streaming within the play budget.
+    const budget = this.playable
       ? perf.terrainInstallBudget
       : Math.max(perf.terrainInstallBudget, 16);
     if (perf.terrainInstallBudget <= 0) return;
@@ -461,6 +463,22 @@ export class TerrainStream {
       ([, r]) => this.priority(r) < 100000,
     );
     const ready = visible.every(([id]) => this.chunks.has(id));
+    const entry = this.entry;
+    const playable =
+      ready ||
+      (!this.loaded &&
+        entry !== undefined &&
+        this.chunks.has(`${Math.floor(entry.x / SIZE)},${Math.floor(entry.y / SIZE)}`) &&
+        visible.every(([id, r]) => {
+          if (this.chunks.has(id)) return true;
+          return this.previews.has(id) && (
+            entry.x + ENTRY_RADIUS < r.x ||
+            entry.x - ENTRY_RADIUS >= r.x + SIZE ||
+            entry.y + ENTRY_RADIUS < r.y ||
+            entry.y - ENTRY_RADIUS >= r.y + SIZE
+          );
+        }));
+    canvas.dataset.terrainPlayable = String(playable);
     canvas.dataset.terrainReady = String(ready);
     canvas.dataset.terrainPending = String(
       [...this.wanted.keys()].filter((id) => !this.chunks.has(id)).length,
@@ -472,6 +490,12 @@ export class TerrainStream {
     canvas.dataset.terrainInstallMaxMs = this.maxInstall.toFixed(1);
     canvas.dataset.terrainGroundInstallMaxMs = this.maxGroundInstall.toFixed(1);
     canvas.dataset.terrainBatchedTiles = String(this.batchedTiles);
+    if (playable && !this.playable) {
+      this.playable = true;
+      canvas.dataset.terrainPlayableMs = String(
+        Math.round(performance.now() - this.started),
+      );
+    }
     if (ready && !this.loaded) {
       this.loaded = true;
       canvas.dataset.terrainLoadMs = String(
@@ -500,6 +524,7 @@ export class TerrainStream {
         .setDepth(PREVIEW_DEPTH)
         .setVisible(!this.hidden),
     );
+    if (this.entry && !this.playable) this.dirty = true;
   }
   private dropPreview(key: string) {
     const image = this.previews.get(key);

@@ -14,7 +14,7 @@ import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
 import type { Runtime } from "../runtime/session";
 import { loreFor, type LoreTopic, type TaskLore } from "../content/task-lore";
-import { plotLine } from "../core/plot";
+import { plotKnown, plotLine, plotRoleKnown, plotTemplate } from "../core/plot";
 import { aimLabel } from "../content/goals/types";
 
 /** A scene the task screen can draw: a figure, what they hold, what is round them. */
@@ -384,8 +384,10 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
 
   if (source.kind === "plot") {
     const plot = s.plot;
-    if (!plot || plot.ended) return undefined;
+    if (!plot || plot.ended || !plotKnown(plot)) return undefined;
+    const journal = plotTemplate(plot)?.journal;
     const cast = Object.entries(plot.cast).flatMap(([role, id]) => {
+      if (!plotRoleKnown(plot, id)) return [];
       const a = s.actors.find((x) => x.id === id);
       return a ? [{ role, a }] : [];
     });
@@ -393,8 +395,10 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
     const left = (plot.deadline - s.clock) / 3600;
     const facts: Fact[] = [
       { label: "What", text: plotLine(plot, "aim") },
-      { label: "How it began", text: plotLine(plot, "intro") },
-      ...cast.map(({ role, a }) => ({ label: role.charAt(0).toUpperCase() + role.slice(1), text: `${a.name}, ${a.role.toLowerCase()}.` })),
+      ...(journal
+        ? journal.notes.filter((note) => plot.fired.includes(note.after)).map(({ label, line }) => ({ label, text: plotLine(plot, line, s) }))
+        : [{ label: "How it began", text: plotLine(plot, "intro") },
+          ...cast.map(({ role, a }) => ({ label: role.charAt(0).toUpperCase() + role.slice(1), text: `${a.name}, ${a.role.toLowerCase()}.` }))]),
       ...(plot.owed !== undefined && plot.total
         ? [{ label: "Owed", text: plot.owed === plot.total ? `${plot.words.amount}, none of it paid.` : `${plot.owed} of the ${plot.words.amount} still to pay.` }]
         : []),
@@ -563,7 +567,7 @@ export function tasksOf(runtime: Runtime, actorId: string): { source: TaskSource
     return [
       ...(s.lifeAim ? [{ source: { kind: "aim" } as const, label: aimLabel(s.lifeAim) }] : []),
       ...runtime.dayGoals().map((g) => ({ source: { kind: "goal", id: g.id } as const, label: g.text })),
-      ...(s.plot && !s.plot.ended ? [{ source: { kind: "plot" } as const, label: s.plot.title }] : []),
+      ...(s.plot && !s.plot.ended && plotKnown(s.plot) ? [{ source: { kind: "plot" } as const, label: s.plot.title }] : []),
     ];
   const it = runtime.engine.world.itinerary?.(actorId);
   return it

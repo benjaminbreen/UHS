@@ -56,6 +56,23 @@ const reviews: Record<string, Review> = {
       ["settlement-edge", "place=normandy&ecology=temperate-woodland&population=sparse&start=resident&pattern=clustered"],
     ],
   },
+  vegetation: {
+    dir: "artifacts/vegetation-comparison",
+    title: "Grass tufts, shrubs and wildflower drifts",
+    seed: "ground-growth-review",
+    common: "landform=plain&relief=0&water=none&population=none&start=wanderer",
+    centre: "spawn",
+    studies: ([
+      ["boreal", "lon=-69&lat=56&ecology=boreal-woodland&season=spring&year=1687"],
+      ["sahel-spring", "lon=-8&lat=15&ecology=dry-scrub&colorway=sahel&season=spring&year=1999"],
+      ["sahel-summer", "lon=-8&lat=15&ecology=dry-scrub&colorway=sahel&season=summer&year=1999"],
+      ["meadow", "lon=0&lat=49&ecology=grassland&season=spring&year=1400"],
+      ["prairie", "lon=-96&lat=39&ecology=grassland&colorway=prairie&season=summer&year=1700"],
+    ] as const).flatMap(([name, query]) =>
+      [8, 9].map((revision): [string, string] => [
+        `${name}-${revision === 8 ? "before" : "after"}`, `${query}&vegetationRevision=${revision}`,
+      ])),
+  },
   scenery: {
     dir: `artifacts/scenery-composition/${process.env.UHS_REVIEW_PHASE ?? "after"}`,
     title: "Ground wear, tree lighting and shoreline groups",
@@ -399,7 +416,8 @@ async function run(review: Review) {
         seed: review.seed,
         pauseWater: !query.includes("waterContext"),
       });
-      if (review === reviews.scenery || review === reviews.groves || review === reviews.placements) {
+      if (review === reviews.scenery || review === reviews.groves || review === reviews.placements ||
+        review === reviews.vegetation) {
         await page.addStyleTag({ content: ".gsp{display:none!important}" });
         await page.evaluate(() => {
           (window as any).terrainLab.scene.options.waterAnimation = false;
@@ -433,6 +451,18 @@ async function run(review: Review) {
         await settled(page);
       }
       if (review.centre === "spawn") await centreOnSpawn(page);
+      const offset = review === reviews.vegetation &&
+        (name.startsWith("boreal") ? [-28, -16] : name.startsWith("prairie") ? [-28, 20] : undefined);
+      if (offset) {
+        await page.evaluate(([dx, dy]) => {
+          const lab = (window as any).terrainLab, spawn = lab.runtime.engine.world.spawn;
+          const center = { x: spawn.x + dx, y: spawn.y + dy };
+          lab.scene.options.center = center;
+          lab.scene.draw();
+          lab.scene.cameras.main.centerOn(center.x * 16 + 8, center.y * 16 + 8);
+        }, offset);
+        await settled(page);
+      }
       if (review.centre === "paths" && name.startsWith("grassland"))
         await centreOnPaths(page);
       if (review.centre === "arroyo") await centreOnArroyo(page);
@@ -483,12 +513,14 @@ async function run(review: Review) {
         await settled(page);
         await zoom(page, 1);
       }
+      if (review === reviews.vegetation) await zoom(page, 1.75);
       await page.locator("canvas").screenshot({ path: `${review.dir}/${name}.png` });
-      await zoom(page, 2);
+      const detailZoom = review === reviews.vegetation && name.startsWith("boreal") ? 4 : 2;
+      await zoom(page, detailZoom);
       await page
         .locator("canvas")
         .screenshot({ path: `${review.dir}/${name}-detail.png` });
-      cards.push(card(name, url, `<a href="${name}-detail.png">2× detail</a> · `));
+      cards.push(card(name, url, `<a href="${name}-detail.png">${detailZoom}× detail</a> · `));
       if (review.paving) console.log(` ${name}`, await pavingReport(page));
       else console.log(` ${name}`);
     }

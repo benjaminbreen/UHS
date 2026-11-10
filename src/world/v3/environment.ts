@@ -222,7 +222,7 @@ export function createEnvironment(
       const stream = joinStream(
         w.stream,
         settled.filter((o) => o.kind === w.kind).map((o) => o.stream),
-        (x, y) => tierOfHeight(terraceHeight(x, y, w.ceiling), w.ceiling),
+        (x, y) => tierOfHeight(terraceHeight(Math.round(x), Math.round(y), w.ceiling), w.ceiling),
       );
       if (!stream) continue;
       settled.push({ ...w, stream });
@@ -274,14 +274,14 @@ export function createEnvironment(
         const thin = taken.length >= count;
         if (taken.some(([tx, ty]) => Math.hypot(tx - c.p[0], ty - c.p[1]) < (thin ? 28 : 40))) continue;
         const stream = connectedWater && kind === "creek"
-          ? tributary(seed, `${kind}-${bx}-${by}-${taken.length}`, c.p, openWater, (x, y) => terraceHeight(x, y, ceiling), (h) => tierOfHeight(h, ceiling))
+          ? tributary(seed, `${kind}-${bx}-${by}-${taken.length}`, c.p, openWater, (x, y) => terraceHeight(Math.round(x), Math.round(y), ceiling), (h) => tierOfHeight(h, ceiling))
           : walkStream(
           seed,
           `${kind}-${bx}-${by}-${taken.length}`,
           c.p,
           // A wash runs on the ground the terraces are cut from, so it keeps
           // to the low of each one and leaves it where the rim dips.
-          kind === "arroyo" ? (x, y) => terraceHeight(x, y, ceiling) : field,
+          kind === "arroyo" ? (x, y) => terraceHeight(Math.round(x), Math.round(y), ceiling) : field,
           // Inside the channel proper, not merely near its bank.
           (x, y) => openWater(x, y) < -2,
           (h) => tierOfHeight(h, ceiling),
@@ -368,6 +368,8 @@ export function createEnvironment(
   for (let dy = -3; dy <= 3; dy++)
     for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= 10) DISC.push([dx, dy]);
   const window = new Float64Array(DISC.length);
+  // Callers pass whole cells: `lobed` keys on them, and a stream walk's
+  // fractional points each cost 37 uncached fields and churned the cache.
   const terraceHeight = (x: number, y: number, ceiling: number) => {
     for (let i = 0; i < DISC.length; i++) window[i] = lobedHeight(x + DISC[i][0], y + DISC[i][1], ceiling);
     return window.sort()[DISC.length >> 1];

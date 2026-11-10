@@ -2,9 +2,10 @@ import { PLOTS } from "../content/plots";
 import { matchesCharacterScope } from "../content/characters/resolve";
 import { random } from "./random";
 import { orderKeeper } from "../content/history/order";
-import type { Condition, Effect, PlotContext } from "../content/plots/types";
+import { sexOf } from "./brief";
+import type { Condition, Effect, PlotChoice, PlotContext, PlotScene } from "../content/plots/types";
 import type { Occasion } from "../content/plots/scenes";
-import type { Position, Snapshot } from "./types";
+import { distance, type Actor, type Position, type Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
 import type { Intro } from "./intro";
 
@@ -31,7 +32,7 @@ export type PlotState = {
   firedAt?: Record<string, number>;
   /** A choice card waiting on an answer, and when it was last put up; `due`, while it has yet to be
    * brought, and `by`, whoever comes to ask it. */
-  asking?: { line: string; focus?: string; by?: string; choices: import("../content/plots/types").PlotChoice[]; at: number; due?: number };
+  asking?: { line: string; focus?: string; by?: string; choices: PlotChoice[]; at: number; due?: number; scene?: PlotScene };
   /** The life aim the plot displaced, given back when it ends. */
   aim?: Snapshot["lifeAim"];
 };
@@ -48,6 +49,7 @@ export type PlotCard = {
   focus?: string;
   /** Who says it, for a speech. */
   speaker?: string;
+  scene?: { plot: string; began: number; at: PlotScene };
   /** Which ending, so the emblem can show how it came out. */
   ending?: string;
   /** The plot banner drawn at this moment of the plot, on a turn. */
@@ -58,13 +60,53 @@ export type PlotCard = {
 
 export const plotTemplate = (plot: PlotState) => PLOTS.find((t) => t.id === plot.id);
 
-const templateOf = (plot: PlotState) => PLOTS.find((t) => t.id === plot.id);
+function plotPerson(player: Actor, actor: Actor) {
+  const relation = player.relations?.find((r) => r.other === actor.id)?.kind;
+  const sex = sexOf(actor);
+  const kin = (male: string, female: string, neutral: string) => sex === "male" ? male : sex === "female" ? female : neutral;
+  if (relation === "parent") return `${actor.name}, your ${kin("father", "mother", "parent")}`;
+  if (relation === "child") return `${actor.name}, your ${kin("son", "daughter", "child")}`;
+  if (actor.relations?.some((r) => r.kind === "parent" && player.relations?.some((p) => p.kind === "parent" && p.other === r.other)))
+    return `${actor.name}, your ${kin("brother", "sister", "sibling")}`;
+  if (relation === "ritual-kin") return `${actor.name}, your kin by ceremony`;
+  if (relation && relation !== "co-resident") return `${actor.name}, your ${relation}`;
+  if (relation === "co-resident" || (actor.householdId && actor.householdId === player.householdId))
+    return `${actor.name}, a member of your household`;
+  return `${actor.name}, ${distance(player.home, actor.home) <= 32 ? "your neighbor" : "another member of your settlement"}`;
+}
 
-export function plotLine(plot: PlotState, key: string) {
+export function plotLine(plot: PlotState, key: string, snapshot?: Snapshot) {
   // A scoped wording leaves out lines the general one words well enough.
-  const wording = templateOf(plot)?.wording;
+  const wording = plotTemplate(plot)?.wording;
   const line = wording?.[plot.wording]?.lines[key] ?? wording?.at(-1)?.lines[key] ?? "";
-  return line.replace(/\{(\w+)\}/g, (_, w) => plot.words[w] ?? "");
+  return line.replace(/\{(\w+)\}/g, (_, w: string) => {
+    if (w.endsWith("Who")) {
+      const role = w.slice(0, -3);
+      const actor = snapshot?.actors.find((a) => a.id === (plot.refs?.[role] ?? plot.cast[role]));
+      if (snapshot && actor) return plotPerson(snapshot.player, actor);
+      const name = plot.words[role];
+      return name ? `${name}, another member of your settlement` : "someone from your settlement";
+    }
+    return plot.words[w] ?? "";
+  });
+}
+
+export function plotKnown(plot: PlotState) {
+  const journal = plotTemplate(plot)?.journal;
+  return !journal || plot.fired.includes(journal.opens);
+}
+
+export function plotRoleKnown(plot: PlotState, id: string) {
+  const journal = plotTemplate(plot)?.journal;
+  return journal
+    ? plot.fired.includes(journal.opens) && journal.notes.some((note) => plot.fired.includes(note.after) && note.roles?.some((role) => plot.cast[role] === id))
+    : Object.values(plot.cast).includes(id);
+}
+
+export function syncPlotAim(snapshot: Snapshot, plot: PlotState) {
+  if (!plotKnown(plot)) return;
+  const subjects = Object.values(plot.cast).filter((id) => plotRoleKnown(plot, id));
+  snapshot.lifeAim = { id: `plot:${plot.id}`, text: plotLine(plot, "aim", snapshot), subjects, revision: 1 };
 }
 
 const RECENT = "uhs.recent-plots";
@@ -98,7 +140,12 @@ function remember(id: string) {
  * starts that plot later in a life, once the last one has ended. */
 /** `chapter` draws afresh for a later part of the same life: the years after a jump. */
 export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: string, chapter?: number): PlotState | undefined {
-  if (snapshot.plot && !(only && snapshot.plot.ended)) return snapshot.plot;
+  if (snapshot.plot && !(only && snapshot.plot.ended)) {
+    const plot = snapshot.plot;
+    if (!plot.ended && !plotKnown(plot) && snapshot.lifeAim?.id === `plot:${plot.id}`) snapshot.lifeAim = plot.aim;
+    if (plotTemplate(plot)?.journal && !plot.asking?.scene) delete plot.asking;
+    return plot;
+  }
   const seed = snapshot.manifest.seed;
   const households = snapshot.households ?? [];
   const context: PlotContext = {
@@ -155,16 +202,13 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
   };
   snapshot.plot = plot;
   remember(plot.id);
-  snapshot.lifeAim = {
-    id: `plot:${plot.id}`,
-    text: plotLine(plot, "aim"),
-    subjects: Object.values(plot.cast),
-    revision: 1,
-  };
+  syncPlotAim(snapshot, plot);
   return plot;
 }
 
-function holds(c: Condition, plot: PlotState, snapshot: Snapshot): boolean {
+type PlotStep = { at: (scene: PlotScene) => boolean; speaker?: string };
+
+function holds(c: Condition, plot: PlotState, snapshot: Snapshot, scene?: PlotStep): boolean {
   switch (c.type) {
     case "since": return snapshot.clock >= plot.began + c.hours * 3600;
     case "due": return snapshot.clock >= plot.deadline + (c.hours ?? 0) * 3600;
@@ -175,10 +219,12 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot): boolean {
     case "came": return plot.fired.includes("came");
     case "gathered": return !!plot.gathering && snapshot.clock >= plot.gathering.until;
     case "talked": return plot.fired.includes(`talked:${c.role}`);
+    case "speaking": return scene?.speaker !== undefined && scene.speaker === plot.cast[c.role];
+    case "at": return scene?.at(c.scene) ?? false;
     case "brought": return plot.fired.includes("worked") && plot.fired.lastIndexOf(`talked:${c.role}`) > plot.fired.indexOf("worked");
-    case "not": return !holds(c.of, plot, snapshot);
-    case "all": return c.of.every((x) => holds(x, plot, snapshot));
-    case "any": return c.of.some((x) => holds(x, plot, snapshot));
+    case "not": return !holds(c.of, plot, snapshot, scene);
+    case "all": return c.of.every((x) => holds(x, plot, snapshot, scene));
+    case "any": return c.of.some((x) => holds(x, plot, snapshot, scene));
     case "after": {
       if (!plot.fired.includes(c.id)) return false;
       // Noted the first time it is looked for, which is the step it fired on.
@@ -191,9 +237,9 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot): boolean {
 /** What the plot does now: the opening on the first call, then the first
  * development whose condition has come true. One a step, so each sees what
  * the last one did to the deadline and the debt. The engine applies the effects. */
-export function stepPlot(snapshot: Snapshot): Effect[] {
+export function stepPlot(snapshot: Snapshot, scene?: PlotStep): Effect[] {
   const plot = snapshot.plot;
-  const template = plot && !plot.ended ? templateOf(plot) : undefined;
+  const template = plot && !plot.ended ? plotTemplate(plot) : undefined;
   if (!plot || !template) return [];
   const effects: Effect[] = [];
   if (!plot.fired.includes("opening")) {
@@ -201,7 +247,7 @@ export function stepPlot(snapshot: Snapshot): Effect[] {
     effects.push(...template.opening);
   }
   for (const d of template.developments) {
-    if (plot.fired.includes(d.id) || !holds(d.when, plot, snapshot)) continue;
+    if (plot.fired.includes(d.id) || !holds(d.when, plot, snapshot, scene)) continue;
     plot.fired.push(d.id);
     effects.push(...d.then);
     break;
@@ -210,11 +256,11 @@ export function stepPlot(snapshot: Snapshot): Effect[] {
 }
 
 /** Called after the effects have landed, so an ending sees what they did. */
-export function endPlot(snapshot: Snapshot) {
+export function endPlot(snapshot: Snapshot, scene?: PlotStep) {
   const plot = snapshot.plot;
-  const template = plot && templateOf(plot);
+  const template = plot && plotTemplate(plot);
   if (!plot || plot.ended || !template) return;
-  const ending = template.endings.find((e) => holds(e.when, plot, snapshot));
+  const ending = template.endings.find((e) => holds(e.when, plot, snapshot, scene));
   if (!ending) return;
   plot.ended = ending.id;
   if (plot.id === "debt" && (plot.owed ?? 0) <= 0) {
@@ -224,6 +270,6 @@ export function endPlot(snapshot: Snapshot) {
       delete h.owes;
     }
   }
-  snapshot.lifeAim = plot.aim;
+  if (plotKnown(plot)) snapshot.lifeAim = plot.aim;
   return ending;
 }

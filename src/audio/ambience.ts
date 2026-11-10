@@ -207,77 +207,6 @@ function noiseBuffer(ctx: BaseAudioContext, seconds: number) {
 }
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
-/** Writes one small sound into `out` from 0 and returns how many samples it
- * took. `size` runs 0 to 1, a fine droplet to a fat drop. */
-type Grain = (out: Float32Array, size: number, sr: number) => number;
-/** A seamless loop of many grains at random times and places in the stereo
- * field: the stuff rain is made of. */
-function scatter(ctx: BaseAudioContext, seconds: number, perSecond: number, grain: Grain) {
-  const sr = ctx.sampleRate,
-    n = Math.floor(sr * seconds);
-  const buffer = ctx.createBuffer(2, n, sr);
-  const left = buffer.getChannelData(0),
-    right = buffer.getChannelData(1);
-  const tmp = new Float32Array(Math.ceil(sr * 0.4));
-  for (let i = Math.round(perSecond * seconds); i > 0; i--) {
-    const at = Math.floor(Math.random() * n);
-    // Many small drops for every big one.
-    const len = grain(tmp, Math.random() ** 3, sr);
-    const pan = Math.random(),
-      l = Math.sqrt(1 - pan),
-      r = Math.sqrt(pan);
-    for (let j = 0; j < len; j++) {
-      const k = (at + j) % n;
-      left[k] += tmp[j] * l;
-      right[k] += tmp[j] * r;
-    }
-  }
-  return buffer;
-}
-/** A noise burst: a droplet hitting something too soft to ring. */
-const tick =
-  (ms: [number, number]): Grain =>
-  (out, size, sr) => {
-    const tau = (rand(...ms) * (0.5 + size)) / 1000,
-      len = Math.ceil(tau * 5 * sr),
-      a = 0.15 + 0.85 * size;
-    for (let i = 0; i < len; i++) out[i] = (Math.random() * 2 - 1) * a * Math.exp(-i / sr / tau);
-    return len;
-  };
-/** A click that rings: a drop on a leaf, a tile, a stretched hide. Bigger
- * drops ring lower. */
-const ping =
-  (hz: [number, number], ms: number, click = 0.5): Grain =>
-  (out, size, sr) => {
-    const f = rand(...hz) * (1.25 - 0.5 * size),
-      tau = (ms * rand(0.6, 1.4)) / 1000,
-      len = Math.ceil(tau * 5 * sr),
-      a = 0.15 + 0.85 * size,
-      w = (2 * Math.PI * f) / sr,
-      ct = 0.0008 * sr;
-    for (let i = 0; i < len; i++)
-      out[i] =
-        a * (Math.sin(w * i) * Math.exp(-i / sr / tau) +
-          click * (Math.random() * 2 - 1) * Math.exp(-i / ct));
-    return len;
-  };
-/** Rain on each surface: the sparse drops you can pick out, at drizzle rates,
- * and the dense layer that only a heavy rain adds. */
-// Real rain is broadband with the top rolled off; a narrow band-pass makes a
-// tonal stripe that reads as static. So each surface only sets where its top
-// falls away.
-const patterOf: Record<Surface, { grain: Grain; hz: number }> = {
-  leaves: { grain: ping([400, 3800], 4, 0.8), hz: 6000 },
-  needles: { grain: tick([0.4, 1.2]), hz: 8000 },
-  grass: { grain: tick([0.6, 1.8]), hz: 5500 },
-  ground: { grain: tick([1.5, 4]), hz: 2800 },
-  paving: { grain: ping([600, 4500], 1.5, 1), hz: 6500 },
-};
-/** Rain on the roof overhead: thatch and hide take it as soft thuds, tile as
- * ticks. */
-const thud = ping([250, 900], 6, 1.2),
-  clink = ping([900, 5000], 2, 0.8);
-
 type Bed = { node: GainNode; start?: () => void };
 
 /** Continuous environmental beds. Levels glide slowly, so weather, a doorway or
@@ -285,18 +214,13 @@ type Bed = { node: GainNode; start?: () => void };
  * the same mix can be rendered offline for review. */
 export class Ambience {
   private beds = {} as Record<
-    | "wash"
-    | "roar"
-    | "roofSoft"
-    | "roofHard"
+    | "rain"
     | "wind"
     | "water"
     | "town"
     | "fire",
     Bed
   >;
-  private patter = new Map<Surface, { sparse: Bed; dense: Bed }>();
-  private rainBus: GainNode;
   private chirps: GainNode;
   private outside: BiquadFilterNode;
   private waterTone: BiquadFilterNode;
@@ -315,15 +239,6 @@ export class Ambience {
     this.outside.type = "lowpass";
     this.outside.frequency.value = 20000;
     this.outside.connect(out);
-    this.rainBus = ctx.createGain();
-    // Rain comes in sheets: two slow, unrelated swells on top of its level.
-    const sheets = ctx.createGain();
-    // Recorded rain carries little above 6 kHz; synthetic grains want to hiss there.
-    const dull = ctx.createBiquadFilter();
-    dull.type = "highshelf";
-    dull.frequency.value = 5000;
-    dull.gain.value = -9;
-    this.rainBus.connect(dull).connect(sheets).connect(this.outside);
     const lfo = (rate: number, depth: number, target: AudioParam) => {
       const osc = ctx.createOscillator();
       osc.frequency.value = rate;
@@ -333,8 +248,6 @@ export class Ambience {
       osc.start();
       this.sources.push(osc);
     };
-    lfo(0.071, 0.22, sheets.gain);
-    lfo(0.163, 0.12, sheets.gain);
     const filter = (type: BiquadFilterType, hz: number, q = 0.7) => {
       const f = ctx.createBiquadFilter();
       f.type = type;
@@ -347,15 +260,16 @@ export class Ambience {
       g.gain.value = value;
       return g;
     };
-    // Rain is three layers. The wash is thousands of tiny far-off impacts, a
-    // grainy hiss rather than flat noise; the roar is the low body of a
-    // downpour; and the patter (built per surface, on demand) is the drops
-    // close by.
-    this.beds.wash = this.bed(this.rainBus, () => scatter(ctx, 5.3, 2600, tick([0.3, 0.9])), filter("highpass", 250), filter("lowpass", 7000), loud(0.6));
-    this.beds.roar = this.bed(this.rainBus, () => brownBuffer(ctx, 6.1), filter("bandpass", 700, 0.5), loud(0.5));
-    // Overhead rain is in the room with you, not muffled with the outdoors.
-    this.beds.roofSoft = this.bed(out, () => scatter(ctx, 6.7, 700, thud), filter("lowpass", 2800), loud(0.3));
-    this.beds.roofHard = this.bed(out, () => scatter(ctx, 5.9, 520, clink), filter("lowpass", 6000), loud(0.25));
+    const rain = loud(0);
+    rain.connect(this.outside);
+    this.beds.rain = {
+      node: rain,
+      start: () => {
+        const source = this.loop(noiseBuffer(ctx, 4.3));
+        source.connect(filter("lowpass", 900, 1)).connect(loud(0.22)).connect(rain);
+        source.connect(filter("bandpass", 5200, 0.6)).connect(loud(0.07)).connect(rain);
+      },
+    };
 
     // Wind: band-passed noise whose centre drifts, so it gusts and sighs.
     const band = filter("bandpass", 420, 1.4);
@@ -411,23 +325,6 @@ export class Ambience {
     this.sources.push(src);
     return src;
   }
-  /** The near drops for one surface, built the first time it rains on it. */
-  private patterFor(surface: Surface) {
-    let layers = this.patter.get(surface);
-    if (layers) return layers;
-    const { grain, hz } = patterOf[surface];
-    const make = (seconds: number, perSecond: number, level: number) => {
-      const f = this.ctx.createBiquadFilter();
-      f.type = "lowpass";
-      f.frequency.value = hz;
-      const trim = this.ctx.createGain();
-      trim.gain.value = level;
-      return this.bed(this.rainBus, () => scatter(this.ctx, seconds, perSecond, grain), f, trim);
-    };
-    layers = { sparse: make(11.3, 28, 0.9), dense: make(6.3, 520, 0.35) };
-    this.patter.set(surface, layers);
-    return layers;
-  }
   /** `instant` skips the glide, for an offline render that starts mid-storm. */
   set(mix: AmbienceMix, instant = false) {
     const before = this.lastHour;
@@ -450,19 +347,7 @@ export class Ambience {
       }
       glide(bed.node.gain, value, seconds);
     };
-    const r = mix.rain;
-    const outdoors = 1 - mix.inside;
-    fade(this.beds.wash, r ** 0.8, 2.5);
-    fade(this.beds.roar, ramp(r, 0.2, 1) ** 1.5, 2.5);
-    if (r > 0) this.patterFor(mix.surface);
-    for (const [surface, layers] of this.patter) {
-      const on = surface === mix.surface ? 1 : 0;
-      fade(layers.sparse, on * Math.min(1, r * 4), 2.5);
-      fade(layers.dense, on * ramp(r, 0.2, 0.9), 2.5);
-    }
-    // Even a tiled roof drums a little through its timbers.
-    fade(this.beds.roofSoft, mix.inside * (1 - 0.6 * mix.hard) * Math.min(1, r * 1.5), 1.2);
-    fade(this.beds.roofHard, mix.inside * mix.hard * Math.min(1, r * 1.5), 1.2);
+    fade(this.beds.rain, mix.rain, 2.5);
     fade(this.beds.wind, mix.wind, 3);
     fade(this.beds.water, mix.water, 2);
     fade(this.beds.town, mix.town, 3);
@@ -470,7 +355,6 @@ export class Ambience {
     glide(this.waterTone.frequency, mix.swell ? 700 : 3200, 2);
     // A roof cuts the top off the outside world and drops its level.
     glide(this.outside.frequency, mix.inside ? 620 : 20000, 0.6);
-    glide(this.rainBus.gain, 0.4 + 0.6 * outdoors, 0.6);
     glide(this.chirps.gain, mix.inside ? 0.35 : 1, 0.6);
   }
   /** Schedules the one-off voices up to `until` on the context's clock: live,
@@ -631,20 +515,7 @@ export class Ambience {
       }
     this.outside.disconnect();
     this.beds.fire.node.disconnect();
-    this.beds.roofSoft.node.disconnect();
-    this.beds.roofHard.node.disconnect();
   }
-}
-
-/** Integrated noise: weighted to the bass the way a heavy rain's body is. */
-function brownBuffer(ctx: BaseAudioContext, seconds: number) {
-  const buffer = noiseBuffer(ctx, seconds);
-  for (let c = 0; c < 2; c++) {
-    const data = buffer.getChannelData(c);
-    let v = 0;
-    for (let i = 0; i < data.length; i++) data[i] = v = v * 0.985 + data[i] * 0.12;
-  }
-  return buffer;
 }
 
 /** The ambience for one scene, rendered offline with the live master chain:

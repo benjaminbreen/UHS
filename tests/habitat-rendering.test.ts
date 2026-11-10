@@ -5,6 +5,8 @@ import { naturalGround, rasterHabitatTile } from "../src/render/habitat-raster";
 import type { TopographySample } from "../src/core/topography";
 import type { LandSample } from "../src/world/v2/landscape";
 import { bloomsAt } from "../src/content/ecology/blooms";
+import { kitGroundPixel, pickKit } from "../src/render/ground-kit";
+import { groundKits } from "../src/content/graphics/ground-kits";
 const land: LandSample = {
   water: 80,
   shoreWidth: 3,
@@ -30,6 +32,35 @@ it("thins flowering colonies toward worn ground while preserving untouched turf"
   expect(blooms(0.5).length).toBeGreaterThan(0);
   expect(blooms(0.5).length).toBeLessThan(untouched.length * 0.4);
   expect(blooms(1)).toEqual([]);
+});
+it("keeps lush Sahel turf free of wildflowers before the rains", () => {
+  const habitat = { ecology: "dry-scrub" as const, kind: "open" as const,
+    cover: 0.2, wet: 0.2, exposed: 0.1, lushness: 0.8, rainSeasonBlooms: true, season: "spring" };
+  const sample: TopographySample = () => ({ height: 0, surface: "dry", habitat });
+  const count = () => {
+    let total = 0;
+    for (let y = 0; y < 30; y++)
+      for (let x = 0; x < 30; x++) total += bloomsAt(sample, x, y, 0, 0, 0, "africa").length;
+    return total;
+  };
+  expect(count()).toBe(0);
+  habitat.season = "summer";
+  expect(count()).toBeGreaterThan(15);
+  habitat.lushness = 0;
+  expect(count()).toBeLessThan(5);
+});
+it("keeps the shipped prairie kit's turf but leaves its plants to the object layers", () => {
+  const habitat = { ecology: "grassland" as const, colorway: "prairie" as const,
+    kind: "meadow" as const, cover: 0.2, wet: 0.3, exposed: 0.1, season: "summer" };
+  const old: TopographySample = () => ({ height: 0, surface: "grass", habitat });
+  const objects: TopographySample = () => ({ height: 0, surface: "grass", habitat: { ...habitat, lushness: 0.6 } });
+  const kit = pickKit(groundKits, "grassland", "prairie")!;
+  const base = new Uint8ClampedArray(16 * 16 * 4);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++)
+      base.set([...kitGroundPixel(kit, "summer", x, y, () => 1, () => 0, false), 255], (y * 16 + x) * 4);
+  expect(rasterHabitatTile(objects, 0, 0, 0, 0).pixels).toEqual(base);
+  expect(rasterHabitatTile(old, 0, 0, 0, 0).pixels).not.toEqual(base);
 });
 describe("local habitat composition", () => {
   it("retains every climatic envelope while producing multiple connected habitat types", () => {

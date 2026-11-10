@@ -938,6 +938,8 @@ const lowPlants = new Set([
   "nature-understory-low-heath",
   "nature-understory-fungi",
 ]);
+export const isGrassTuft = (sprite: string | undefined) =>
+  sprite === "grass-tuft" || sprite === "dry-grass-tuft";
 const frameHeight = (sprite: string) =>
   (natureAtlas.frames as Record<string, { frame: { h: number } }>)[sprite]
     ?.frame.h;
@@ -946,7 +948,7 @@ export function plantClass(sprite: string | undefined): PlantClass {
   if (sprite === "rock" || sprite.startsWith("nature-rock")) return "none";
   // Worked ground is not a plant: an axe has no business with a furrow.
   if (worked.has(sprite) || sprite === "nature-waterfall") return "none";
-  if (lowPlants.has(sprite) || sprite.startsWith("ecology-")) return "grass";
+  if (isGrassTuft(sprite) || lowPlants.has(sprite) || sprite.startsWith("ecology-")) return "grass";
   // Understory and scrub are brush whatever their silhouette: one cut takes
   // any of them off at the root.
   if (sprite.includes("understory") || sprite.includes("scrub")) return "shrub";

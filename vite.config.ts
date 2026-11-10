@@ -138,5 +138,8 @@ export default defineConfig({
     // Other sessions' worktrees and review output would otherwise reload
     // every open game whenever they write a file.
     watch: { ignored: ["**/.claude/worktrees/**", "**/artifacts/**"] },
+    // UHS_STILL=1 keeps an open game as it is while files change under it;
+    // a manual reload still picks the changes up.
+    hmr: process.env.UHS_STILL ? false : undefined,
   },
 });

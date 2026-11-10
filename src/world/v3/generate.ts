@@ -10,7 +10,7 @@ import { bindWorkStations, dayStations, livelihoodOf, placeFor } from "./routine
 import { adjacentTerrain } from "../travel/terrain-preview";
 import { waterDepthAt, MAX_WADING_DEPTH } from "../../core/water-field";
 import { mapEntrances, type MapEntrance } from "../travel/entrances";
-import { understorySize } from "../../content/ecology/vegetation";
+import { plantClass, understorySize } from "../../content/ecology/vegetation";
 import {
   broadleafAge,
   crownRadius,
@@ -744,6 +744,7 @@ export function createSettlementWorld(
       : (regional?.settingAt(x, y) ?? pack.setting!);
   const habitatCache = new Map<string, ReturnType<typeof habitatAt>>();
   const composedVegetation = (pack.setting?.vegetationRevision ?? 0) >= 8;
+  const patchyGrowth = (pack.setting?.vegetationRevision ?? 0) >= 9;
   /** A settlement stands in a clearing: without this a woodland village is
    * drawn on forest-floor litter and never shows its grass. Reads sites, not
    * plans, because planning itself samples habitat. */
@@ -814,6 +815,17 @@ export function createSettlementWorld(
       if (composedVegetation && !value.vegetation &&
         (value.ecology.includes("woodland") || value.colorway === "swamp"))
         value.grove = groveAt(seed, x + land.origin.x, y + land.origin.y) * (1 - cleared * 0.95);
+      if (patchyGrowth) {
+        const ax = x + land.origin.x, ay = y + land.origin.y;
+        const prairie = value.colorway === "prairie";
+        const growth = 0.82 * noise(seed, ax, ay, 30, "ground-growth") +
+          0.18 * noise(seed, ax, ay, 9, "ground-growth-fringe") +
+          (prairie ? 0.12 : 0) + value.wet * 0.14 - value.exposed * 0.18;
+        value.lushness = Math.min(1, Math.max(0, (growth - 0.38) / 0.45)) ** 1.8;
+        const region = value.site?.region ?? value;
+        value.rainSeasonBlooms = setting.climate === "monsoon" || region.ecology === "savanna" ||
+          region.colorway === "sahel" || region.colorway === "monsoon";
+      }
       trimCache(habitatCache, 65536);
       habitatCache.set(key, value);
     }
@@ -1390,7 +1402,7 @@ export function createSettlementWorld(
                         (scape?.kind === "arroyo" ? (scape.strength < 1 ? 4 : 0.2) : 1)
                       : 0.015)
                   ? "bush"
-                  : relief && n < 0.016 && f.moisture > 0.5 && f.moisture < 0.73
+                  : relief && n < 0.008 && f.moisture > 0.5 && f.moisture < 0.73
                     ? "flowers"
                     : undefined;
     let selected = sprite;
@@ -1420,7 +1432,7 @@ export function createSettlementWorld(
         // ground clumps on its own field: shrubColony's band is too rare to
         // carry all the ground cover.
         const clump = h!.site
-          ? Math.max(colony, 0.14 + 3 * Math.min(1, Math.max(0, (noise(seed, x + land.origin.x, y + land.origin.y, 14, "cover-clump") - 0.45) / 0.25)))
+          ? Math.max(colony, 0.06 + 3 * Math.min(1, Math.max(0, (noise(seed, x + land.origin.x, y + land.origin.y, 14, "cover-clump") - 0.57) / 0.18)))
           : colony;
         const density =
           ((h!.ecology === "desert"
@@ -1475,7 +1487,10 @@ export function createSettlementWorld(
           : selected.includes("heath") || selected === "flowers"
             ? 0.1
             : 0.15) *
-          shelter
+          shelter *
+          (h?.lushness !== undefined && plantClass(selected) === "shrub"
+            ? 0.2 + 0.65 * h.lushness
+            : 1)
     )
       selected = undefined;
     if (
@@ -1559,6 +1574,22 @@ export function createSettlementWorld(
       random(seed, "tended", x + land.origin.x, y + land.origin.y) <
         tendedAt(x, y) * (/flower/.test(selected) ? 0.5 : 1))
       selected = undefined;
+    if (h?.lushness !== undefined && selected === "flowers") selected = undefined;
+    if (!selected && !tree && h?.lushness !== undefined && !f.snow &&
+      h.ecology !== "desert" && h.ecology !== "tundra" && h.exposed < 0.58 &&
+      f.water > (f.shoreWidth ?? 3) && scape?.kind !== "trail") {
+      const ax = x + land.origin.x, ay = y + land.origin.y;
+      const patch = noise(seed, ax, ay, 4, "grass-tuft-patch");
+      const open = h.grove === undefined ? 1 - h.cover * 0.7 : 1 - h.grove * 0.95;
+      const density = (0.015 + h.lushness * (h.colorway === "prairie" ? 0.68 : 0.5)) *
+        (0.15 + patch * 1.45) * open;
+      if (random(seed, "grass-tuft", ax, ay) < density &&
+        ["grass", "dry"].includes(terrain(x, y)) &&
+        random(seed, "tended", ax, ay) >= tendedAt(x, y)) {
+        const dry = h.dry || h.rainSeasonBlooms || h.ecology === "dry-scrub" || h.vegetation === "steppe";
+        selected = dry ? "dry-grass-tuft" : "grass-tuft";
+      }
+    }
     return selected
       ? {
           id: `decor-${x}-${y}`,
@@ -2375,6 +2406,7 @@ export function createSettlementWorld(
   // from the season and the tide.
   function topography(x: number, y: number): TopographyCell {
     const c = topographyCell(x, y);
+    if (c.habitat?.lushness !== undefined) c.habitat.season = liveSeason;
     if (c.field) {
       c.field.stage = cropStage(c.field.crop, liveSeason, pack.setting?.lat ?? 0);
       if (c.field.flood !== undefined) {
@@ -2483,7 +2515,8 @@ export function createSettlementWorld(
       // A grass slope beside a road's ramp would step the bank twice.
       const roadRamp = () => [-2, -1, 0, 1, 2].some((dy) => [-2, -1, 0, 1, 2].some((dx) =>
         nearby(x + dx, y + dy).some((p) => slopesFor(p).has(cellKey(x + dx, y + dy)))));
-      if (slope && !roadRamp()) {
+      // A natural slope can cross the underlying contour at a building's door.
+      if (slope && !nearby(x, y).some((p) => p.built?.has(key)) && !roadRamp()) {
         c.ramp = slope;
         c.rampStyle = rampStyleFor(c, "natural", x, y);
       }

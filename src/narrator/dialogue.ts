@@ -18,7 +18,7 @@ import { languageBrief } from "../content/history/languages";
 import { random } from "../core/random";
 import { distance } from "../core/types";
 import { narratorProvider } from "./turn";
-import { plotLine } from "../core/plot";
+import { plotLine, plotTemplate } from "../core/plot";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
 
@@ -91,7 +91,7 @@ function playerPresence(runtime: Runtime) {
 function plotBrief(runtime: Runtime, actor: Actor) {
   const plot = runtime.engine.state.plot;
   const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === actor.id);
-  if (!plot || !role) return "";
+  if (!plot || !role || plotTemplate(plot)?.journal) return "";
   const line = (key: string) => plotLine(plot, key);
   return [
     `Events affecting you ("${plot.title}"; your part: ${role}): ${line("intro")}`,

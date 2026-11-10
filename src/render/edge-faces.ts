@@ -391,9 +391,12 @@ export function tuftPixel(turf: ArrayLike<number>, j: number, h: number, wx: num
 export function caveAt(rock: Rock | "earth", wx: number, wy: number) {
   const odds = { limestone: 0.3, sandstone: 0.22, chalk: 0.15, redstone: 0.2, laterite: 0.12, shale: 0.08, granite: 0.1, basalt: 0.1, earth: 0 }[rock];
   const g = Math.floor(wx / 112);
-  if (hash(g, wy >> 6, 111) >= odds) return undefined;
-  const hw = 6 + Math.floor(hash(g, wy >> 6, 113) * 4);
-  const cx = g * 112 + 24 + Math.floor(hash(g, wy >> 6, 115) * 64);
+  // Bands break between cell rows, so a face that wobbles a few pixels about
+  // its row keeps one mouth, and the engine finds it from the cell alone.
+  const band = (wy + 25) >> 6;
+  if (hash(g, band, 111) >= odds) return undefined;
+  const hw = 6 + Math.floor(hash(g, band, 113) * 4);
+  const cx = g * 112 + 24 + Math.floor(hash(g, band, 115) * 64);
   return Math.abs(wx - cx) <= hw + 3 ? { cx, hw, dx: wx - cx } : undefined;
 }
 

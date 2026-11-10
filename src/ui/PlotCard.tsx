@@ -6,7 +6,7 @@ import { formatHistoricalYear } from "../core/calendar";
 import { seasonFor } from "../core/season";
 import { sexOf } from "../core/brief";
 import { kinOf } from "../core/kin";
-import { plotLine, plotTemplate, type PlotCard as Card } from "../core/plot";
+import { plotKnown, plotLine, plotRoleKnown, plotTemplate, type PlotCard as Card } from "../core/plot";
 import { settlementName, type IntroSpan } from "../core/intro";
 import type { Actor } from "../core/types";
 import type { PlotLook } from "../content/plots/types";
@@ -313,7 +313,7 @@ type Asked = { span: IntroSpan; x: number; y: number };
 function Ask({ runtime, asked }: { runtime: Runtime; asked: Asked }) {
   const s = runtime.engine.state, plot = s.plot;
   const a = asked.span.ref ? s.actors.find((x) => x.id === asked.span.ref) : undefined;
-  const role = plot && a && Object.entries(plot.cast).find(([, id]) => id === a.id)?.[0];
+  const role = plot && a && plotRoleKnown(plot, a.id) && Object.entries(plot.cast).find(([, id]) => id === a.id)?.[0];
   const kin = a && kinOf(s).find((k) => k.actor.id === a.id);
   const sex = a && sexOf(a);
   const line = role ? plotLine(plot!, `cast-${role}`)
@@ -386,7 +386,7 @@ function Goal({ aim, due, people = [], selected, onAsk }: {
 /** The plot's palette as the CSS variables the frames are drawn in. */
 export function plotColours(runtime: Runtime) {
   const plot = runtime.engine.state.plot;
-  const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
+  const look = (plot && plotKnown(plot) && plotTemplate(plot)?.look) || DAWN;
   return {
     "--ink": look.palette.ink,
     "--fill": look.palette.fill,
@@ -417,7 +417,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
     if (outcome) begin.current?.focus({ preventScroll: true });
   }, [outcome]);
   const plot = runtime.engine.state.plot;
-  const look = (plot && plotTemplate(plot)?.look) ?? DAWN;
+  const look = (plot && plotKnown(plot) && plotTemplate(plot)?.look) || DAWN;
   const setting = runtime.engine.world.pack.setting;
   const colours = plotColours(runtime);
   const season = setting && seasonFor(setting.climate, setting.season, runtime.engine.state.clock).label.toLowerCase();

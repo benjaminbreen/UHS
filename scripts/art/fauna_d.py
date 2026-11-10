@@ -208,9 +208,9 @@ STATES = {
 }
 # Drawing coordinates are measured with the ground line at GROUND; HEADROOM is
 # empty rows above for horns, ears and the top of a stride.
-GROUND = {"cattle": 38, "water-buffalo": 38, "dog": 20, "donkey": 32, "zebra": 34, "camel": 46, "cat": 16, "mouse": 8}
+GROUND = {"cattle": 38, "water-buffalo": 38, "dog": 20, "donkey": 32, "zebra": 34, "camel": 46, "cat": 16, "mouse": 6}
 HEADROOM = {"cattle": 5, "water-buffalo": 6, "dog": 4, "donkey": 7, "zebra": 6, "camel": 3, "cat": 8, "mouse": 3}
-WIDTH = {"cattle": 50, "water-buffalo": 52, "dog": 32, "donkey": 40, "zebra": 46, "camel": 54, "cat": 28, "mouse": 16}
+WIDTH = {"cattle": 50, "water-buffalo": 52, "dog": 32, "donkey": 40, "zebra": 46, "camel": 54, "cat": 28, "mouse": 13}
 # Against the 29px human: a cow's withers ~22px, a donkey's 19, a zebra's 22,
 # a village dog's 10, a camel's hump 36.
 NATIVE_SIZES = {s: (WIDTH[s], GROUND[s] + 4 + HEADROOM[s]) for s in GROUND}
@@ -2290,18 +2290,18 @@ def mouse(form, state, frame):
     g = GROUND["mouse"]
     nose = frame % 2
     if state == "idle":  # up on its haunches, turning a seed in its paws
-        c.paint(flat(line((5, g), (2, g - 1), 1) | line((2, g - 1), (0, g - 3 + nose), 1), "u"))
-        body = ellipse((4, g - 7, 10, g))
-        c.paint(lit(body, 1, 1, (5, 8)))
-        c.paint(flat(ellipse((7, g - 5, 10, g - 1)), "b"))
-        hx, hy = 7, g - 11
-        c.paint(shade(ellipse((hx, hy, hx + 5, hy + 4)) | polygon([(hx + 4, hy + 1), (hx + 7, hy + 3 + nose), (hx + 4, hy + 4)]), 1, 1))
-        c.paint(flat(ellipse((hx - 1, hy - 2, hx + 2, hy + 1)), "u"))
+        c.paint(flat(line((5, g), (3, g - 1)) | line((3, g - 1), (1, g - 3 + nose)), "u"))
+        body = ellipse((4, g - 5, 8, g))
+        c.paint(lit(body, 1, 1, (5, 7)))
+        c.paint(flat(rect((7, g - 3, 8, g - 1)), "b"))
+        hx, hy = 6, g - 7
+        c.paint(shade(ellipse((hx, hy, hx + 3, hy + 3)), 1, 1))
+        c.paint(flat(ellipse((hx - 1, hy - 1, hx + 1, hy + 1)), "u"))
         c.dot(hx, hy - 1, "d")
-        c.dot(hx + 3, hy + 1, "d" if frame == 6 else "e")
-        c.dot(hx + 7, hy + 3 + nose, "k")
-        c.dot(10, g - 5 + (frame // 2) % 2, "u")  # paws at the mouth
-        c.dot(9, g - 5 + (frame // 2) % 2, "t")
+        c.dot(hx + 2, hy + 1, "d" if frame == 6 else "e")
+        c.dot(hx + 4, hy + 2 + nose, "k")
+        c.dot(9, g - 3 + (frame // 2) % 2, "u")
+        c.dot(8, g - 3 + (frame // 2) % 2, "t")
         c.paint(flat(rect((5, g, 7, g)), "u"))
         return c.finish()
     run = state == "flee"
@@ -2310,46 +2310,48 @@ def mouse(form, state, frame):
     stretch = 1 if run else 0
     bob = -step if move else 0
     wave = [0, 1, 0, -1][frame % 4] if not run else 0
-    c.paint(flat(line((4, g - 2 + bob), (1, g - 2 + wave), 1) | line((1, g - 2 + wave), (-2, g - 1 + (0 if run else -wave)), 1), "u"))
-    body = ellipse((3 - stretch, g - 6 + bob, 11 + stretch, g))
-    c.paint(lit(body, 1, 1, (4, 9)))
+    c.paint(flat(line((4, g - 1 + bob), (2, g - 2 + wave)) | line((2, g - 2 + wave), (0, g - 1 - wave)), "u"))
+    body = ellipse((3 - stretch, g - 4 + bob, 8 + stretch, g))
+    c.paint(lit(body, 1, 1, (4, 7)))
     c.paint(flat({(x, y) for x, y in body if y >= g - 1}, "b"))
-    low = 2 if state == "forage" and not move else 0
-    hx, hy = 9 + stretch, g - 7 + bob + low
-    c.paint(shade(ellipse((hx, hy, hx + 4, hy + 4)) | polygon([(hx + 3, hy + 1), (hx + 7, hy + 3 + nose), (hx + 3, hy + 4)]), 1, 1))
-    ear = ellipse((hx - 1, hy - 2 + (1 if run else 0), hx + 2, hy + 1))
+    low = 1 if state == "forage" and not move else 0
+    hx, hy = 7 + stretch, g - 4 + bob + low
+    c.paint(shade(ellipse((hx, hy, hx + 3, hy + 3)), 1, 1))
+    ear = ellipse((hx - 1, hy - 1, hx + 1, hy + 1))
     c.paint(flat(ear, "u"))
-    c.dot(hx, hy - 1 + (1 if run else 0), "d")
-    c.dot(hx + 3, hy + 1, "e")
-    c.dot(hx + 7, hy + 3 + nose, "k")
-    for x, lift in ((4, step), (9 + stretch, 1 - step if move else 0)):
+    c.dot(hx, hy - 1, "d")
+    c.dot(hx + 2, hy + 1, "e")
+    c.dot(hx + 4, hy + 2 + nose, "k")
+    for x, lift in ((4, step), (7 + stretch, 1 - step if move else 0)):
         c.paint(flat(rect((x, g - lift, x + 1, g - lift)), "u"))
     return c.finish()
 
 
 def _mouse_face(form, state, frame, south):
     c = Canvas("mouse")
-    g, cx = GROUND["mouse"], 7
+    g, cx = GROUND["mouse"], 6
     nose = frame % 2
     move = state in ("wander", "flee") or (state == "forage" and frame in (0, 1, 2))
     step = frame % 2 if move else 0
     up = state == "idle"
     if not south:
         wave = [0, 1, 0, -1][frame % 4]
-        c.paint(flat(line((cx, g - 1), (cx + wave, g + 1), 1) | line((cx + wave, g + 1), (cx - wave, g + 3), 1), "u"))
-    body = ellipse((cx - 4, g - (8 if up else 6) - step, cx + 4, g))
+        c.paint(flat(line((cx, g - 2), (cx + wave, g - 1)) | line((cx + wave, g - 1), (cx - wave, g + 1)), "u"))
+    body = ellipse((cx - 3, g - (5 if up else 4) - step, cx + 3, g))
     c.paint(lit(body, 1, 1, (cx - 2, cx + 2)))
-    hy = g - (11 if up else 8) - step + (2 if state == "forage" and not move else 0)
+    hy = g - (7 if up else 5) - step + (1 if state == "forage" and not move else 0)
     for sgn in (-1, 1):
-        c.paint(flat(ellipse((cx + sgn * 3 - 1, hy - 2, cx + sgn * 3 + 2, hy + 1)), "u"))
-        c.dot(cx + sgn * 3, hy - 1, "d")
-    c.paint(shade(ellipse((cx - 3, hy, cx + 3, hy + 5)), 1, 1))
+        ear_x = cx + sgn * 2
+        c.paint(flat(ellipse((ear_x - 1, hy - 1, ear_x + 1, hy + 1)), "u"))
+        c.dot(ear_x, hy - 1, "d")
+    c.paint(shade(ellipse((cx - 2, hy, cx + 2, hy + 3)), 1, 1))
     if south:
-        c.dot(cx - 2, hy + 2, "e"); c.dot(cx + 2, hy + 2, "e")
-        c.dot(cx, hy + 4 + nose, "k")
+        c.dot(cx - 1, hy + 1, "e"); c.dot(cx + 1, hy + 1, "e")
+        c.dot(cx, hy + 2 + nose, "k")
         if up:
-            c.paint(flat(rect((cx - 1, hy + 6, cx + 1, hy + 6)), "u"))
-        c.paint(flat(rect((cx - 3, g, cx - 2, g - step)) | rect((cx + 2, g - (1 - step if move else 0), cx + 3, g)), "u"))
+            c.paint(flat(rect((cx - 1, hy + 4, cx + 1, hy + 4)), "u"))
+        c.dot(cx - 2, g - step, "u")
+        c.dot(cx + 2, g - (1 - step if move else 0), "u")
     return c.finish()
 
 FACE = {"cattle": _cattle_face, "water-buffalo": lambda f, st, fr, south: _cattle_face(f, st, fr, south, "water-buffalo"), "dog": _dog_face, "donkey": _donkey_face, "zebra": _zebra_face, "camel": _camel_face, "cat": _cat_face, "mouse": _mouse_face}

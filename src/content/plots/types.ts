@@ -4,9 +4,12 @@ import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
 import type { Occasion } from "./scenes";
 
-export type PlotRole = "creditor" | "landlord" | "official" | "accuser" | "witness" | "rival" | "suspect" | "host"
-  | "giver" | "inlaw" | "claimant" | "elder" | "customer" | "patron"
-  | "kin" | "friend" | "neighbour" | "stranger" | "child" | "helper" | "buyer" | "beloved";
+export const plotRoles = ["creditor", "landlord", "official", "accuser", "witness", "rival", "suspect", "host",
+  "giver", "inlaw", "claimant", "elder", "customer", "patron", "kin", "friend", "neighbour", "stranger", "child",
+  "helper", "buyer", "beloved"] as const;
+export type PlotRole = typeof plotRoles[number];
+
+export type PlotScene = "doorstep" | PlotRole;
 
 /** What kind of day the plot makes. The draw balances shapes, so the many
  * plots where someone comes to demand something do not crowd out the rest. */
@@ -29,6 +32,8 @@ export type Condition =
   | { type: "since"; hours: number }
   /** The player has spoken with this member of the cast since the plot began. */
   | { type: "talked"; role: PlotRole }
+  | { type: "speaking"; role: PlotRole }
+  | { type: "at"; scene: PlotScene }
   /** The player has spoken with them after finishing a day's work since the plot began. */
   | { type: "brought"; role: PlotRole }
   /** The deadline has passed by `hours`, or is that close when negative. */
@@ -56,9 +61,10 @@ export type Effect =
   | { type: "approach"; role: PlotRole; line: string }
   /** The world stops for a decision; the banner shows the scene at `line`. `from` walks up and asks
    * it in person: only for a question they would put to you themselves. */
-  | { type: "choose"; line: string; focus?: PlotRole; from?: PlotRole; choices: PlotChoice[] }
+  | { type: "choose"; line: string; focus?: PlotRole; from?: PlotRole; at?: PlotScene; choices: PlotChoice[] }
   /** A turn: the world stops and the card shows this line, the camera on `focus`. */
-  | { type: "card"; line: string; focus?: PlotRole }
+  | { type: "card"; line: string; focus?: PlotRole; from?: PlotRole; at?: PlotScene }
+  | { type: "note"; line: string }
   | { type: "regard"; role: PlotRole; delta: number }
   | { type: "seize"; role: PlotRole }
   | { type: "walk-off"; role: PlotRole; to: WalkOff }
@@ -105,8 +111,10 @@ export type PlotTemplate = {
   payee?: PlotRole;
   opening: Effect[];
   developments: { id: string; when: Condition; then: Effect[] }[];
+  /** The first discovery opens the plot. Later notes reveal only the roles the player has learned about. */
+  journal?: { opens: string; missed: string; notes: { after: string; line: string; label: string; roles?: PlotRole[] }[] };
   /** First match ends the plot; its line is the closing text. */
-  endings: { id: string; when: Condition }[];
+  endings: { id: string; when: Condition; quiet?: boolean }[];
   /** First scope match wins; the last entry has none. */
   wording: PlotWording[];
 };

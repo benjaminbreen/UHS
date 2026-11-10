@@ -11,6 +11,9 @@ import atlasW from "../public/fauna-w/atlas.json" with { type: "json" };
 import atlasO from "../public/fauna-o/atlas.json" with { type: "json" };
 import atlasK from "../public/fauna-k/atlas.json" with { type: "json" };
 import atlasE from "../public/fauna-e/atlas.json" with { type: "json" };
+import studiesC from "../public/fauna-c/studies.json" with { type: "json" };
+import studiesR from "../public/fauna-r/studies.json" with { type: "json" };
+import studiesW from "../public/fauna-w/studies.json" with { type: "json" };
 import { faunaFacings, faunaFrames, faunaProfiles } from "../src/content/fauna";
 import { faunaStates } from "../src/core/fauna";
 
@@ -158,6 +161,17 @@ describe("four-direction fauna", () => {
     expect(foal.w).toBeLessThan(horse.w);
     expect(horse.h).toBeLessThan(mammoth.h);
     expect(mammoth.h).toBeLessThan(columbian.h);
+
+    const heights = [
+      studiesC.mouse,
+      studiesC["rabbit-kit"],
+      studiesC.rabbit,
+      studiesW.hare,
+      studiesR.gazelle,
+      studiesR.springbok,
+    ].map(({ standing }) => standing[1]);
+    for (let i = 1; i < heights.length; i++)
+      expect(heights[i]).toBeGreaterThan(heights[i - 1]);
   });
 });
 
