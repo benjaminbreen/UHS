@@ -1292,6 +1292,15 @@ export function urbanNeighborhood(
       if (rank.built) { seededIndustry = rank; reserve(rank.block); break; }
     }
   }
+  // Once there are cars a house stands back from the sidewalk behind a lawn;
+  // shops and offices still build to it.
+  const lawned = form.motor && !form.oldCore
+    ? layout.blocks.filter((b) => !["downtown", "commercial", "industrial", "historic"].includes(uses.get(b) ?? "") && b.w >= 12 && b.h >= 12)
+    : [];
+  const inset = (by: number) => {
+    for (const b of lawned) { b.x += by; b.y += by; b.w -= by * 2; b.h -= by * 2; }
+  };
+  inset(2);
   for (const rank of ranks) {
     if (rank === seededIndustry || parkRanks.has(rank) || lots.length >= capacity) continue;
     blockLots(rank.block);
@@ -1302,6 +1311,13 @@ export function urbanNeighborhood(
       if (parkRanks.has(rank) || lots.length >= capacity) continue;
       infill(rank);
     }
+  // The lawn is kept clear: bins and wash lines belong behind the house.
+  for (const b of lawned)
+    for (const r of [
+      { x: b.x, y: b.y, w: b.w + 4, h: 2 }, { x: b.x, y: b.y + b.h + 2, w: b.w + 4, h: 2 },
+      { x: b.x, y: b.y, w: 2, h: b.h + 4 }, { x: b.x + b.w + 2, y: b.y, w: 2, h: b.h + 4 },
+    ]) api.reserveGround({ x: r.x - 2, y: r.y - 2, w: r.w, h: r.h });
+  inset(-2);
   infillOpen();
 
   for (const rank of ranks)

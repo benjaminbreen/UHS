@@ -912,6 +912,21 @@ export function composeUrban(
 
   if (motorCore) {
     cutStreets(plaza);
+    // No street runs close alongside a wider one: the sliver between them
+    // holds nothing, and their junctions run together.
+    const kept: Segment[] = [];
+    for (const s of [...streets].sort((a, b) => a.tier - b.tier)) {
+      let runs: [number, number][] = [[lo(s), hi(s)]];
+      for (const o of kept) {
+        const gap = Math.abs(across(o) - across(s));
+        if (axisOf(o) !== axisOf(s) || !gap || gap >= (span(o.tier) + span(s.tier)) / 2 + 8) continue;
+        runs = runs
+          .flatMap(([a, b]): [number, number][] => [[a, Math.min(b, lo(o) - 1)], [Math.max(a, hi(o) + 1), b]])
+          .filter(([a, b]) => b - a >= 12);
+      }
+      for (const [a, b] of runs) kept.push({ a: point(s, a), b: point(s, b), tier: s.tier });
+    }
+    streets.splice(0, streets.length, ...kept);
     lines.clear();
     for (const s of streets) mark(s);
   }
@@ -1406,7 +1421,7 @@ export function composeUrban(
             ? { x: lo(s), y: across(s) + off, w: hi(s) - lo(s) + 1, h: verge }
             : { x: across(s) + off, y: lo(s), w: verge, h: hi(s) - lo(s) + 1 };
         verges.push({ ...r, axis: axisOf(s), side });
-        if (!wants("tree")) continue;
+        if (!wants("tree") || motorCore) continue;
         const phase = 2 + Math.floor(rand("trees", s.a.x, s.a.y, side) * 4);
         for (let v = lo(s) + phase; v <= hi(s) - 2; v += 6) {
           const p = axisOf(s) === "x" ? { x: v, y: r.y } : { x: r.x, y: v };
@@ -1439,9 +1454,27 @@ export function composeUrban(
         }
       }
     }
-  // Lit streets are a modern fabric's habit; an older city lamps its
-  // arterials only where its place and date did.
-  if (wants("lamp") || lit) {
+  // A motor-age street keeps its furniture in the strip at the kerb, on a
+  // beat: a lamp every twelve cells, staggered across the street, and on a
+  // main street a tree between each pair.
+  if (motorCore)
+    for (const s of streets) {
+      if (s.tier > 1) continue;
+      const [slo, shi] = spanOffsets(span(s.tier));
+      for (const side of [-1, 1]) {
+        const row = across(s) + (side < 0 ? -slo - 1 : shi + 1);
+        for (let v = lo(s) + 2; v <= hi(s) - 2; v++) {
+          const beat = (((v + (side < 0 ? 0 : 6)) % 12) + 12) % 12;
+          if (beat % 6 || (beat && (s.tier || !wants("tree")))) continue;
+          const [x, y] = axisOf(s) === "x" ? [v, row] : [row, v];
+          if (!holds(x, y, 1) || lines.has(cellKey(x, y))) continue;
+          if (streets.some((o) => axisOf(o) !== axisOf(s) && Math.abs(across(o) - v) <= span(o.tier) / 2 + 3 &&
+            row >= lo(o) - 4 && row <= hi(o) + 4)) continue;
+          furniture.push({ kind: beat ? "tree" : "lamp", x, y });
+        }
+      }
+    }
+  else if (wants("lamp") || lit) {
     const lampAt = (x: number, y: number) => {
       if (!holds(x, y, 1) || lines.has(cellKey(x, y))) return;
       if (

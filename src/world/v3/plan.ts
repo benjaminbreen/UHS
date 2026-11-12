@@ -613,7 +613,7 @@ export function planSettlement(
     for (const junction of plan.junctions ?? []) {
       if (junction.approaches.length < 3) continue;
       const widest = Math.max(...junction.approaches.map((a) => a.span));
-      const busy = junction.approaches.filter((a) => a.span >= 8).length >= 3;
+      const busy = junction.approaches.filter((a) => a.span >= 6).length >= 3;
       for (const a of junction.approaches) {
         if (!busy && a.span > widest / 2) continue;
         for (let d = 0; d < 4; d++)
@@ -3936,6 +3936,23 @@ export function planSettlement(
           if (material) plan.streetSurfaces!.set(k, material);
         }
       });
+      // Across its lawn, a walk from the door to the sidewalk.
+      if (!fronted) {
+        const walk: string[] = [];
+        for (let d = 0; d < 5; d++) {
+          const k = cellKey(door.x - nx * d, door.y - ny * d);
+          if (plan.pavement!.get(k) === "footway") {
+            for (const c of walk)
+              if (setSurface(c, "paving", 5)) {
+                plan.pavement!.set(c, "yard");
+                plan.streetSurfaces!.set(c, footwaySurface ?? "concrete");
+              }
+            break;
+          }
+          if (plan.solid.has(k) || roads.has(k)) break;
+          walk.push(k);
+        }
+      }
       if (fronted && fabric.furniture?.includes("planter") && ny)
         for (const dx of [-2, 2]) {
           const at = { x: point.x + dx, y: point.y };

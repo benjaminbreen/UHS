@@ -1,4 +1,4 @@
-import { cellKey, type Junction, type SettlementPlan } from "./types";
+import { cellKey, type Junction, type Lane, type SettlementPlan } from "./types";
 
 /** Resolve whole approaches before paint, medians, parking or signals. */
 export function resolveJunctions(plan: SettlementPlan, occupied = plan.solid): Junction[] {
@@ -16,7 +16,8 @@ export function resolveJunctions(plan: SettlementPlan, occupied = plan.solid): J
   const result: Junction[] = [];
   const walk = (x: number, y: number) => {
     const k = cellKey(x, y), p = plan.pavement?.get(k);
-    return (p === "footway" || p === "square") && !occupied.has(k);
+    // Paving with no role is a path worn across the corner: walkable too.
+    return (p === "footway" || p === "square" || (!p && !lanes.has(k) && plan.surface.get(k) === "paving")) && !occupied.has(k);
   };
   for (const first of pending) {
     const queue = [first];
@@ -45,6 +46,7 @@ export function resolveJunctions(plan: SettlementPlan, occupied = plan.solid): J
         if (lane) lane.junction = true;
       }
     const junction: Junction = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, approaches: [] };
+    const found: { paths: ({ x: number; y: number }[] | undefined)[]; rows: (Lane | undefined)[][]; toward: number }[] = [];
     for (const [axis, edge, toward, from, to] of [
       ["x", x0 - 1, 1, y0, y1], ["x", x1 + 1, -1, y0, y1],
       ["y", y0 - 1, 1, x0, x1], ["y", y1 + 1, -1, x0, x1],
@@ -78,29 +80,34 @@ export function resolveJunctions(plan: SettlementPlan, occupied = plan.solid): J
           }
           return undefined;
         }));
-        // Crosswalks are painted where a main road is crossed, not at every
-        // meeting of two side streets.
-        const crossing = Math.max(junction.w, junction.h) > 4 && span >= 4 && lane.marks.crossing !== "none" && paths.every(Boolean);
-        if (crossing)
-          for (const path of paths)
-            for (const p of path!) {
-              const k = cellKey(p.x, p.y);
-              const end = path!.at(-1)!;
-              plan.surface.set(k, "paving");
-              plan.pavement!.set(k, "footway");
-              plan.streetSurfaces!.set(k, plan.streetSurfaces?.get(cellKey(end.x, end.y)) ?? "concrete");
-              plan.reserved.add(k);
-              plan.traffic.add(k);
-            }
-        junction.approaches.push({ axis, start: u, edge, span, toward, crossing, landings });
-        for (const [d, row] of rows.entries())
-          for (const l of row) {
-            if (l!.toJunction !== undefined && Math.abs(l!.toJunction) <= d + 1) continue;
-            l!.toJunction = toward * (d + 1);
-            l!.crossing = crossing;
-          }
+        found.push({ paths, rows, toward });
+        junction.approaches.push({ axis, start: u, edge, span, toward, crossing: false, landings });
         u += span - 1;
       }
+    }
+    // Crosswalks are painted where main streets meet, not where a side
+    // street joins one or two side streets cross.
+    const main = junction.approaches.filter((a) => a.span > 4).length >= 3;
+    for (const [i, a] of junction.approaches.entries()) {
+      const { paths, rows, toward } = found[i];
+      a.crossing = main && rows[0][0]!.marks.crossing !== "none" && paths.every(Boolean);
+      if (a.crossing)
+        for (const path of paths)
+          for (const p of path!) {
+            const k = cellKey(p.x, p.y);
+            const end = path!.at(-1)!;
+            plan.surface.set(k, "paving");
+            plan.pavement!.set(k, "footway");
+            plan.streetSurfaces!.set(k, plan.streetSurfaces?.get(cellKey(end.x, end.y)) ?? "concrete");
+            plan.reserved.add(k);
+            plan.traffic.add(k);
+          }
+      for (const [d, row] of rows.entries())
+        for (const l of row) {
+          if (l!.toJunction !== undefined && Math.abs(l!.toJunction) <= d + 1) continue;
+          l!.toJunction = toward * (d + 1);
+          l!.crossing = a.crossing;
+        }
     }
     result.push(junction);
   }

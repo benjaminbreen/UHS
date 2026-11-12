@@ -280,7 +280,8 @@ export function carriagewayPixel(
     const dash = mod(v, 48) < 20;
     switch (m.centre) {
       case "yellow-double":
-        if (u === c - 3 || u === c - 2 || u === c + 1 || u === c + 2) return paint(YELLOW);
+        // A side street carries one line, not the main road's pair.
+        if (lane.span < 6 ? u === c - 1 || u === c : u === c - 3 || u === c - 2 || u === c + 1 || u === c + 2) return paint(YELLOW);
         break;
       case "yellow-dashed":
         if ((u === c - 1 || u === c) && dash) return paint(YELLOW);
@@ -300,12 +301,11 @@ export function carriagewayPixel(
       }
   }
   if (P) {
-    // Stalls marked with a tick across the lane and a short foot along it.
+    // Stalls marked with a tick across the lane.
     const lowSide = u < P;
     const d = lowSide ? P - 1 - u : u - (W - P);
     const s = mod(v, STALL * 16);
     if (d >= 0 && d < P - GUTTER && (s === 0 || s === 1) && d < 14) return paint(WHITE);
-    if ((d === 0 || d === 1) && (s <= 6 || s >= STALL * 16 - 5)) return paint(WHITE);
   }
   return base;
 }
