@@ -1467,7 +1467,7 @@ function rasterGroundTile(
           wear > trod
             ? { coverage: joined, radius: 0.6, cross: 0.5, ruts: false as const, dung: false as const }
             : routed && { ...routed, coverage: joined };
-        if (routed?.paved && field === routed && inside) {
+        if (routed?.paved && wear <= trod) {
           const tone = blacktopPixel(routed, wx, wy, dustOf(cell.biome));
           if (tone) {
             pixels.set(tone, (py * 16 + px) * 4);
