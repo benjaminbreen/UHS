@@ -3946,21 +3946,48 @@ export function planSettlement(
           if (material) plan.streetSurfaces!.set(k, material);
         }
       });
-      // Across its lawn, a walk from the door to the sidewalk.
-      if (!fronted) {
-        const walk: string[] = [];
-        for (let d = 0; d < 5; d++) {
-          const k = cellKey(door.x - nx * d, door.y - ny * d);
-          if (plan.pavement!.get(k) === "footway") {
-            for (const c of walk)
-              if (setSurface(c, "paving", 5)) {
-                plan.pavement!.set(c, "yard");
-                plan.streetSurfaces!.set(c, footwaySurface ?? "concrete");
-              }
+      // Across its lawn, a walk from the door to the sidewalk; beside some
+      // houses a drive, with the car on it.
+      if (!fronted && lot.use !== "industrial" && !lot.venue) {
+        const open = (k: string) => !plan.solid.has(k) && ["yard", "garden", undefined].includes(plan.pavement!.get(k)) &&
+          !urbanLots.some((l) => l !== lot && l.rect && ((x, y) => x >= l.rect!.x && x < l.rect!.x + l.rect!.w && y >= l.rect!.y && y < l.rect!.y + l.rect!.h)(...(k.split(",").map(Number) as [number, number])));
+        /** Cells from here out to the footway, or nothing if the way is shut. */
+        const reach = (x: number, y: number, dx: number, dy: number) => {
+          const cells: string[] = [];
+          for (let d = 0; d < 6; d++) {
+            const k = cellKey(x + dx * d, y + dy * d);
+            if (plan.pavement!.get(k) === "footway") return cells;
+            if (!open(k)) return undefined;
+            cells.push(k);
+          }
+          return undefined;
+        };
+        const pave = (cells: string[]) => {
+          for (const c of cells)
+            if (setSurface(c, "paving", 5)) {
+              plan.pavement!.set(c, "yard");
+              plan.streetSurfaces!.set(c, footwaySurface ?? "concrete");
+              plan.reserved.add(c);
+            }
+        };
+        pave(reach(door.x, door.y, -nx, -ny) ?? []);
+        const pool = pack.setting && ny && rand("drive", i) < 0.6 ? vehiclePool(pack.setting) : [];
+        const car = pool.length ? parkedCar(pool, rand("drive-car", i), rand("drive-paint", i)) : undefined;
+        if (car) {
+          const length = carLength(car.model, "y"), front = ny < 0 ? rect.y + rect.h : rect.y - 1;
+          for (const x0 of [rect.x + rect.w, rect.x - 2]) {
+            const out = [reach(x0, front, 0, -ny), reach(x0 + 1, front, 0, -ny)];
+            const beside = Array.from({ length }, (_, d) => [cellKey(x0, front + ny * (d + 1)), cellKey(x0 + 1, front + ny * (d + 1))]).flat();
+            if (!out[0] || !out[1] || !beside.every(open)) continue;
+            pave([...out[0], ...out[1], ...beside]);
+            for (const c of beside) plan.solid.add(c);
+            plan.objects.push({
+              id: `${id}-car`, name: car.label, description: car.about, kind: "monument",
+              sprite: `vehicle-${car.model}-${car.paint}-${ny < 0 ? "n" : "s"}`,
+              pos: pos({ x: x0, y: Math.max(front + ny, front + ny * length) }), inventory: {}, claim: "landscape",
+            });
             break;
           }
-          if (plan.solid.has(k) || roads.has(k)) break;
-          walk.push(k);
         }
       }
       if (fronted && fabric.furniture?.includes("planter") && ny)

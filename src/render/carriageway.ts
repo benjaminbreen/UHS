@@ -290,7 +290,7 @@ export function carriagewayPixel(
     switch (m.centre) {
       case "yellow-double":
         // A side street carries one line, not the main road's pair.
-        if (lane.span < 6 ? u === c - 1 || u === c : u === c - 3 || u === c - 2 || u === c + 1 || u === c + 2) return paint(YELLOW);
+        if (lane.span < 5 ? u === c - 1 || u === c : u === c - 3 || u === c - 2 || u === c + 1 || u === c + 2) return paint(YELLOW);
         break;
       case "yellow-dashed":
         if ((u === c - 1 || u === c) && dash) return paint(YELLOW);

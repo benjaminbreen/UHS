@@ -9,6 +9,8 @@ export type StreetStroke = {
   /** Half-width and footway at `b`, where the street narrows along its run. */
   to?: number;
   walkTo?: number;
+  /** Footway on the north or west side and on the south or east, where they differ. */
+  walks?: [number, number];
   /** How the carriageway is painted, where the town marks its roads. */
   marks?: import("../../content/settlements/streets/markings").RoadMarkings;
 };
@@ -45,7 +47,7 @@ export function streetDistance(s: StreetStroke, x: number, y: number) {
 export function strokeSection(s: StreetStroke, x: number, y: number) {
   const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len2 = dx * dx + dy * dy || 1;
   const t = s.to === undefined ? 0 : Math.max(0, Math.min(1, ((x - s.a[0]) * dx + (y - s.a[1]) * dy) / len2));
-  const walk = s.walk ?? 2;
+  const walk = s.walks ? s.walks[strokeFrame(s, x, y).across < 0 ? 0 : 1] : s.walk ?? 2;
   return { radius: s.radius + ((s.to ?? s.radius) - s.radius) * t, walk: walk + ((s.walkTo ?? walk) - walk) * t };
 }
 
@@ -117,6 +119,7 @@ export function composeStreetGeometry(
       // middle of its run; a street laid without one gets two cells.
       const mid = r.points[r.points.length >> 1], sx = a.x === b.x ? 1 : 0, sy = sx ? 0 : 1;
       let walk = 0;
+      const walks: [number, number] = [0, 0];
       for (const side of [-1, 1]) {
         let n = 0;
         for (let d = Math.ceil(radius); d < Math.ceil(radius) + 5; d++) {
@@ -125,6 +128,7 @@ export function composeStreetGeometry(
           else if (n) break;
         }
         walk = Math.max(walk, n);
+        walks[side < 0 ? 0 : 1] = n;
       }
       // Run on to the far side of the cells the road was stamped over, so no
       // island of carriageway is left past the stroke's end.
@@ -133,7 +137,7 @@ export function composeStreetGeometry(
       return [{ a: [a.x + 0.5 + (a.x === b.x ? offset : 0) - ex, a.y + 0.5 + (a.y === b.y ? offset : 0) - ey],
         b: [b.x + 0.5 + (a.x === b.x ? offset : 0) + ex, b.y + 0.5 + (a.y === b.y ? offset : 0) + ey], radius,
         material, footway: paved && paved !== "earth" ? paved : material, tier: /-(street-\d|avenue)-/.exec(r.id)?.[1],
-        walk: sectioned && walk ? walk : 2, ...(marks && { marks }) }];
+        walk: sectioned && walk ? walk : 2, ...(sectioned && walk && { walks }), ...(marks && { marks }) }];
     });
   if (!strokes.length) return;
   // Where the main street leaves town it narrows to the highway's two
@@ -142,13 +146,18 @@ export function composeStreetGeometry(
     const c = plan.site.center, far = plan.site.profile.radius * 0.6;
     for (const s of [...strokes]) {
       if (s.tier !== "street-0") continue;
+      // A street already down to two lanes meets the highway as it is, a
+      // few cells out past the last cross street's footway.
+      const narrow = s.radius <= 3;
       for (const [end, other] of [[s.a, s.b], [s.b, s.a]]) {
         if (Math.hypot(end[0] - c.x, end[1] - c.y) < far) continue;
         const dx = Math.sign(Math.round(end[0] - other[0])), dy = Math.sign(Math.round(end[1] - other[1]));
         if (strokes.some((o) => o !== s && o.tier === s.tier && Math.hypot(o.a[0] - end[0], o.a[1] - end[1]) < s.radius * 2 + 1 ||
           o !== s && o.tier === s.tier && Math.hypot(o.b[0] - end[0], o.b[1] - end[1]) < s.radius * 2 + 1)) continue;
         const off = Number.isInteger(s.radius) ? 0.5 : 0;
-        strokes.push({ ...s, a: [end[0], end[1]], b: [end[0] + dx * 8 - (dy ? off : 0), end[1] + dy * 8 - (dx ? off : 0)], to: 2.6, walkTo: 0 });
+        const run = narrow ? 4 : 8;
+        strokes.push({ ...s, a: [end[0], end[1]], b: [end[0] + dx * run - (dy ? off : 0), end[1] + dy * run - (dx ? off : 0)],
+          to: 2.6, walkTo: 0, walks: undefined, ...(narrow && { walk: 0 }) });
       }
     }
   }

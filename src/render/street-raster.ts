@@ -297,7 +297,9 @@ export function rasterStreetTile(
         if (d < 0 && made) {
           const smooth = road === "asphalt" || road === "concrete";
           // A real kerb is near; inside a junction's mouth there is none to gutter.
-          const kerbs = { low: d > -18, high: d > -18 };
+          // Nor past the last corner, where the street is already the highway.
+          const open = closest.to !== undefined && !closest.walk;
+          const kerbs = { low: d > -18 && !open, high: d > -18 && !open };
           if (c.lane)
             colour = carriagewayPixel(colour, c.lane, c.lane.at * 16 + (c.lane.axis === "x" ? py : px),
               c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx, kerbs, smooth);
@@ -313,7 +315,7 @@ export function rasterStreetTile(
           }
         }
         if (road !== "cobble" && road !== "slab") {
-          if (d < 0 && d > -4) {
+          if (d < 0 && d > -4 && !(closest.to !== undefined && !closest.walk)) {
             // The kerb faces whichever way the road's edge does here.
             const gx = union(ax + 0.25, ay) - union(ax - 0.25, ay), gy = union(ax, ay + 0.25) - union(ax, ay - 0.25);
             const side: Side = Math.abs(gy) >= Math.abs(gx) ? (gy < 0 ? "n" : "s") : gx < 0 ? "w" : "e";

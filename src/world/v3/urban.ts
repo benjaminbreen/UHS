@@ -710,10 +710,55 @@ export function urbanNeighborhood(
     return !!r && s.tier > 0 &&
       [s.a, s.b].every((p) => p.x >= r.x - 1 && p.x <= r.x + r.w && p.y >= r.y - 1 && p.y <= r.y + r.h);
   };
+  // Past the business blocks a main street is two lanes between grass
+  // strips; it is wide, with parking, only where the shops are. The change
+  // comes at a cross street, as it does on the ground.
+  const NARROW = 5;
+  const narrowFrom = (s: (typeof layout.streets)[number]) => {
+    if (!form.motor || form.oldCore || s.tier || layout.tiers[0] <= NARROW) return undefined;
+    const x = s.a.y === s.b.y, c = site.center;
+    const along = (p: Point) => (x ? p.x : p.y), home = along(c);
+    const inner = Math.abs(along(s.a) - home) <= Math.abs(along(s.b) - home) ? s.a : s.b, outer = inner === s.a ? s.b : s.a;
+    const dir = Math.sign(along(outer) - along(inner));
+    if (!dir) return undefined;
+    const lo = Math.min(along(s.a), along(s.b)), hi = Math.max(along(s.a), along(s.b)), level = x ? s.a.y : s.a.x;
+    const cross = layout.streets
+      .filter((o) => o.tier && (o.a.y === o.b.y) !== x)
+      .filter((o) => {
+        const v = x ? o.a.x : o.a.y, a = x ? o.a.y : o.a.x, b = x ? o.b.y : o.b.x;
+        return v > lo + 4 && v < hi - 8 && Math.min(a, b) <= level && Math.max(a, b) >= level &&
+          (v - home) * dir >= layout.half * 0.3;
+      })
+      .map((o) => (x ? o.a.x : o.a.y))
+      .sort((a, b) => (a - b) * dir)[0];
+    if (cross === undefined) return undefined;
+    const at = cross - dir * 2;
+    return { inner, outer, at: x ? { x: at, y: level } : { x: level, y: at }, x, dir, level };
+  };
   for (const [i, s] of [...layout.streets]
     .sort((a, b) => a.tier - b.tier)
-    .entries())
-    api.lay(s.a, s.b, `${old(s) ? "old" : "street"}-${s.tier}-${i}`, layout.tiers[s.tier]);
+    .entries()) {
+    const id = `${old(s) ? "old" : "street"}-${s.tier}-${i}`, n = narrowFrom(s);
+    if (!n) {
+      api.lay(s.a, s.b, id, layout.tiers[s.tier]);
+      continue;
+    }
+    api.lay(n.inner, n.at, id, layout.tiers[0]);
+    api.lay(n.at, n.outer, `${id}-out`, NARROW);
+  }
+  for (const s of layout.streets) {
+    const n = narrowFrom(s);
+    if (!n) continue;
+    // Where the parking lanes were, grass between the kerb and the walk.
+    const span = layout.tiers[0], lo = Math.floor((span - 1) / 2), hi = span - 1 - lo;
+    const from = Math.min(n.x ? n.at.x : n.at.y, n.x ? n.outer.x : n.outer.y) + (n.dir > 0 ? 3 : 0),
+      to = Math.max(n.x ? n.at.x : n.at.y, n.x ? n.outer.x : n.outer.y) - (n.dir < 0 ? 3 : 0);
+    for (const [off, w] of [[-lo, lo - 2], [3, hi - 2]])
+      if (w > 0)
+        api.paintBlock(
+          n.x ? { x: from, y: n.level + off, w: to - from + 1, h: w } : { x: n.level + off, y: from, w, h: to - from + 1 },
+          "grass", "verge");
+  }
   for (const [i, s] of layout.diagonals.entries())
     api.lay(s.a, s.b, `avenue-${i}`, layout.tiers[s.tier]);
   for (const r of layout.verges) {
@@ -741,12 +786,23 @@ export function urbanNeighborhood(
       for (const [off, w] of [
         [level - lo - walk, walk],
         [level + hi + 1, walk],
-      ])
-        api.paintFootway(
-          horizontal
-            ? { x: from, y: off, w: to - from + 1, h: w }
-            : { x: off, y: from, w, h: to - from + 1 },
-        );
+      ]) {
+        const rect = horizontal
+          ? { x: from, y: off, w: to - from + 1, h: w }
+          : { x: off, y: from, w, h: to - from + 1 };
+        // No sidewalk is laid along open country: the last street has one
+        // on its town side only.
+        if (form.motor && !form.oldCore) {
+          let inside = 0, all = 0;
+          for (let v = from; v <= to; v += 2) {
+            all++;
+            const far = off < level ? off - 4 : off + w + 3;
+            if (layout.holds(horizontal ? v : far, horizontal ? far : v, 1)) inside++;
+          }
+          if (inside < all * 0.3) continue;
+        }
+        api.paintFootway(rect);
+      }
     }
 
   if (api.bank) riverside();
