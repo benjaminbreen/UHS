@@ -6538,9 +6538,9 @@ button:disabled {
     right: 10px;
     top: 10px;
     z-index: 4;
-    width: 136px;
-    height: 96px;
-    padding: 4px;
+    width: 88px;
+    height: 68px;
+    padding: 3px;
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -6626,24 +6626,7 @@ button:disabled {
     );
   }
 
-  /* Closed, the narrator is a scroll in the corner; open, it is a sheet. */
-  .narrator-tab {
-    position: absolute;
-    right: 12px;
-    bottom: calc(var(--bottom-bar-h) + 8px);
-    z-index: 4;
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--bg-2) 90%, transparent);
-    color: var(--gold);
-    box-shadow:
-      0 3px 0 var(--bg-0),
-      0 6px 14px #0007;
-  }
+  .quick-actions .narrator-tab { position: relative; }
   .narrator-tab[data-unread]::after {
     content: "";
     position: absolute;
@@ -9322,7 +9305,7 @@ button:disabled {
 
 @media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
   .app {
-    --bottom-bar-h: 108px;
+    --bottom-bar-h: 58px;
     --phone-top-h: 48px;
     position: fixed;
     inset: var(--viewport-top, 0px) 0 auto;
@@ -9339,14 +9322,18 @@ button:disabled {
   .bottom-bar {
     height: var(--bottom-bar-h);
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 44px 44px;
+    grid-template-rows: 44px;
+    grid-auto-rows: 44px;
     gap: 6px;
     padding: 7px 8px;
     background: color-mix(in srgb, var(--bg) 96%, transparent);
     position: relative;
     z-index: 8;
   }
-  .quick-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  /* The command box is a row of its own only while the narrator is open. */
+  .app[data-phone-overlay="narrator"] { --bottom-bar-h: 108px; }
+  .app:not([data-phone-overlay="narrator"]) .bottom-bar .command-input { display: none; }
+  .quick-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
   .quick-actions > button, .rest-menu > button { width: 100%; min-width: 0; min-height: 44px; }
   .quick-actions button { justify-content: center; padding: 4px; }
   .quick-actions button span { display: block; font: 10px var(--sans); color: var(--cream); }
@@ -9363,7 +9350,7 @@ button:disabled {
     box-shadow: 0 -12px 40px #0006;
   }
   .quick-actions .rest-options button { width: 100%; min-height: 48px; font-size: 17px; padding: 10px; }
-  .touch-controls { bottom: calc(var(--bottom-bar-h) + 56px); padding: 0 12px; }
+  .touch-controls { bottom: calc(var(--bottom-bar-h) + 14px); padding: 0 12px; }
   .touch-controls[hidden] { display: none; }
   .touch-stick { width: 96px; height: 96px; opacity: 0.8; }
   .touch-run {
@@ -9392,11 +9379,11 @@ button:disabled {
   .mobile-sheet-grabber { height: 44px; padding-inline: 48px; }
   .phone-sheet-close { position: absolute; top: 0; right: 4px; display: grid; place-items: center; width: 44px; height: 44px; z-index: 3; }
   .app[data-phone-overlay] .world-status, .app[data-phone-overlay] .world-minimap,
-  .app[data-phone-overlay] .narrator-tab, .app[data-world-input-blocked] .world-tooltip { visibility: hidden; pointer-events: none; }
+  .app[data-world-input-blocked] .world-tooltip { visibility: hidden; pointer-events: none; }
   .world-status {
     display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-    position: absolute; top: 112px; left: 10px; right: 10px; z-index: 4;
-    max-height: calc(100% - var(--bottom-bar-h) - 130px); overflow-y: auto;
+    position: absolute; top: 58px; left: 10px; right: 10px; z-index: 4;
+    max-height: calc(100% - var(--bottom-bar-h) - 76px); overflow-y: auto;
     overscroll-behavior: contain; pointer-events: none;
   }
   .world-status .toasts, .world-status .world-notice, .world-status > .work-card {
@@ -9409,6 +9396,10 @@ button:disabled {
   .world-status .world-notice { pointer-events: auto; font-size: 13px; padding: 8px 12px; animation: none; }
   .world-notice button { min-height: 32px; }
   .world-status > .work-card { pointer-events: auto; flex-shrink: 0; }
+  /* One line until tapped, and clear of the minimap beside it. */
+  .world-status > .work-card { max-width: calc(100% - 96px); }
+  .world-status > .work-card:not([data-open]) :is(.work-sub, .work-span) { display: none; }
+  .world-status > .work-card:not([data-open]) .work-title b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .work-card-head { min-height: 44px; }
   .work-more { width: 40px; height: 40px; }
   .modal-backdrop { top: var(--viewport-top, 0px); bottom: auto; height: var(--viewport-height, 100dvh); padding: 10px; }
@@ -9473,7 +9464,7 @@ button:disabled {
   [data-tip]::after { display: none; }
 }
 @media (max-height: 500px) and (max-width: 1024px) and (pointer: coarse) {
-  .app { --phone-top-h: 44px; --bottom-bar-h: 58px; }
+  .app, .app[data-phone-overlay="narrator"] { --phone-top-h: 44px; --bottom-bar-h: 58px; }
   .bottom-bar { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: 44px; }
   .quick-actions button span { display: none; }
   .touch-controls { bottom: calc(var(--bottom-bar-h) + 12px); }

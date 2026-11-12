@@ -666,21 +666,32 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     // followed here instead, once the run of events has settled.
     g.scale.stopListeners();
     let settle: number | undefined;
+    const fit = () => {
+      const el = mount.current;
+      if (!el || el.clientWidth < 1 || el.clientHeight < 1) return;
+      if (
+        Math.abs(g.scale.width - el.clientWidth) < 2 &&
+        Math.abs(g.scale.height - el.clientHeight) < 2
+      )
+        return;
+      markEvent(`canvas ${el.clientWidth}x${el.clientHeight}`);
+      g.scale.resize(el.clientWidth, el.clientHeight);
+    };
     const follow = new ResizeObserver(() => {
       window.clearTimeout(settle);
-      settle = window.setTimeout(() => {
-        const el = mount.current;
-        if (!el || el.clientWidth < 1 || el.clientHeight < 1) return;
-        if (
-          Math.abs(g.scale.width - el.clientWidth) < 2 &&
-          Math.abs(g.scale.height - el.clientHeight) < 2
-        )
-          return;
-        markEvent(`canvas ${el.clientWidth}x${el.clientHeight}`);
-        g.scale.resize(el.clientWidth, el.clientHeight);
-      }, RESIZE_SETTLE_MS);
+      settle = window.setTimeout(fit, RESIZE_SETTLE_MS);
     });
     follow.observe(mount.current);
+    // The observer misses some changes when a phone's keyboard or bars come
+    // and go, leaving the world drawn in a corner of its canvas. Two ticks
+    // at one size is settled, so this cannot chase the bars either.
+    let seen = "";
+    const reconcile = window.setInterval(() => {
+      const el = mount.current;
+      const size = el ? `${el.clientWidth}x${el.clientHeight}` : "";
+      if (size === seen) fit();
+      seen = size;
+    }, 500);
     if (import.meta.env.DEV)
       (window as unknown as { uhsGame?: Phaser.Game }).uhsGame = g;
     registerGame(g);
@@ -689,6 +700,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     });
     return () => {
       window.clearTimeout(settle);
+      window.clearInterval(reconcile);
       follow.disconnect();
       registerGame(undefined);
       watchGame(undefined);
@@ -1511,18 +1523,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               </span>
             </button>
           )}
-          {phone && !narratorOpen && (
-            <button
-              className="narrator-tab"
-              aria-label="Narration"
-              data-unread={
-                runtime.engine.state.narration?.length ? true : undefined
-              }
-              onClick={() => { setRestOpen(false); setNarratorOpen(true); }}
-            >
-              <ScrollText size={20} />
-            </button>
-          )}
           <NarratorPanel
             anchor={commandForm}
             open={narratorOpen && !modal}
@@ -1655,6 +1655,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   <span>Rest</span>
                 </button>
               </div>
+              {phone && (
+                <button
+                  className="narrator-tab"
+                  aria-label="Narration"
+                  aria-expanded={narratorOpen}
+                  data-unread={runtime.engine.state.narration?.length ? true : undefined}
+                  onClick={() => { setRestOpen(false); setNarratorOpen((open) => !open); }}
+                >
+                  <ScrollText size={17} />
+                  <span>Act</span>
+                </button>
+              )}
             </div>
             <form
               ref={commandForm}

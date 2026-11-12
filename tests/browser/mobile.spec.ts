@@ -360,6 +360,13 @@ test("phone dialogs, sheets, and menus stay usable across sizes and rotation", a
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.setViewportSize({ width: 390, height: 664 });
+  // The game follows its container back out after a keyboard or a bar has squeezed it.
+  await page.setViewportSize({ width: 390, height: 330 });
+  await page.waitForTimeout(100);
+  await page.setViewportSize({ width: 390, height: 664 });
+  await expect.poll(() => page.locator(".game-container canvas").evaluate((el: HTMLCanvasElement) =>
+    Math.abs(el.height - el.parentElement!.clientHeight) < 2 && Math.abs(el.width - el.parentElement!.clientWidth) < 2)).toBe(true);
+  await page.getByRole("button", { name: "Narration", exact: true }).click();
   const command = page.getByRole("textbox", { name: "Action command", exact: true });
   await command.focus();
   await page.evaluate(() => {
