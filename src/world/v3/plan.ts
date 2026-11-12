@@ -5958,6 +5958,18 @@ export function planSettlement(
   if (palette) stepGround(plan, roads, seed, infillStone(palette), footwaySurface !== "earth" && footwaySurface !== "plank" ? squareStone : undefined);
   if (profile.paved && !industrialAge) unpaveBackland();
   if (pack.setting?.terrainRevision) levelAprons();
+  // A town laid out for cars was graded for them: streets and blocks one
+  // step off the centre's level are brought to it, so no bank crosses a road.
+  if (pack.setting?.terrainRevision && motorAge && urban && composed) {
+    const base = Math.round(sample(c.x, c.y).elevation / 14);
+    plan.groundLevels ??= new Map();
+    for (const k of new Set([...plan.groundLevels.keys(), ...plan.pavement!.keys(), ...(plan.lanes?.keys() ?? []), ...roads])) {
+      const [x, y] = k.split(",").map(Number);
+      if (Math.hypot(x - c.x, y - c.y) > profile.radius) continue;
+      const own = plan.groundLevels.get(k) ?? Math.round(sample(x, y).elevation / 14);
+      if (Math.abs(own - base) === 1) plan.groundLevels.set(k, base);
+    }
+  }
   footTraffic(plan.roads);
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
