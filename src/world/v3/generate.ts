@@ -118,6 +118,16 @@ const roadless = (p: Pack) =>
 /** What the browser worker hands the main thread. Its routines are searched
  * after the props are placed, as createSession's withProps would, so arrival
  * does not spend a second and a half searching them again on the main thread. */
+/** The cells of one parcel are equal records. Shared, they stay shared through
+ * the structured clone to each thread, where they were most of a plan's
+ * weight. Receivers only read them. */
+function sharedCells<V>(cells: Map<string, V>) {
+  const seen = new Map<string, V>();
+  return new Map([...cells].map(([k, v]) => {
+    const id = JSON.stringify(v);
+    return [k, seen.get(id) ?? (seen.set(id, v), v)] as const;
+  }));
+}
 export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSettlement) {
   // Not warmed here: withProps clears and searches every routine again.
   const world = createSettlementWorld(pack, seed, cached, false);
@@ -3000,7 +3010,7 @@ export function createSettlementWorld(
       regionalSites: regionalPlanner?.prepare(),
       plans: [...plans].map(([key, p]) => [
         key,
-        { ...p, site: preparedSite(p.site) },
+        { ...p, fields: p.fields && sharedCells(p.fields), site: preparedSite(p.site) },
       ]),
       links: [...links],
       roads: [...roadCache],

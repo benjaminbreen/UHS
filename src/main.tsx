@@ -5,10 +5,13 @@ import "./ui/style.css";
 import { PropLabHost } from "./dev/PropLabHost";
 import { installVitals, vitalsEnabled } from "./runtime/vitals";
 import { VitalsOverlay } from "./ui/VitalsOverlay";
+import { shrinkCaches } from "./core/cache";
+import { smallMemoryDevice } from "./runtime/device";
 import { Analytics } from "@vercel/analytics/react";
 const Game = lazy(() => import("./runtime/bootstrap").then((m) => ({ default: m.Game })));
 async function start() {
   installVitals();
+  if (smallMemoryDevice()) shrinkCaches();
   if (window.location.pathname === "/edumode" || window.location.pathname === "/edumode/teacher") {
     const { EduMode, EduTeacher } = await import("./edu/EduMode");
     createRoot(document.getElementById("root")!).render(

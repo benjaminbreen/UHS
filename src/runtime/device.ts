@@ -21,6 +21,12 @@ export function smallMemoryDevice() {
   return (cached = coarse && shortest <= 834);
 }
 
+/** A world worker cannot ask what device it is on, so it is told. */
+export function tellMemory(worker: Worker) {
+  if (smallMemoryDevice()) worker.postMessage({ shrinkCaches: true });
+  return worker;
+}
+
 /**
  * Terrain workers to run at once. Each one holds its own copy of the world and
  * its own copy of the module graph, so this is the largest memory dial there

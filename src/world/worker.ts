@@ -14,6 +14,7 @@ import { stateHash } from "../core/random";
 import { loadPrepared, preparedKey, savePrepared } from "../runtime/prepared-store";
 import { withTravelWaterways, type TravelWaterwayInputs } from "./travel/waterways";
 import type { PreparedSettlement } from "./v3/prepared";
+import { shrinkCaches } from "../core/cache";
 export type WorldPreparationRequest = {
   prepare: { setting: WorldSetting; seed: string; cachePrepared: boolean; retire: boolean; waterways?: TravelWaterwayInputs };
 };
@@ -34,8 +35,10 @@ self.onmessage = (
     | ChunkRequest
     | TerrainRequest
     | WorldPreparationRequest
+    | { shrinkCaches: true }
   >,
 ) => {
+  if ("shrinkCaches" in event.data) return shrinkCaches();
   if ("prepare" in event.data) {
     void prepare(event.data.prepare);
     return;

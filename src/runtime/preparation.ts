@@ -7,7 +7,7 @@ import { withTravelWaterways, type TravelWaterwayInputs } from "../world/travel/
 import type { WorldPreparationRequest, WorldPreparationResult } from "../world/worker";
 import { retainTerrainWorker } from "./terrain-worker-owner";
 import { markEvent } from "./vitals";
-import { smallMemoryDevice } from "./device";
+import { smallMemoryDevice, tellMemory } from "./device";
 
 /** A phone killed for memory takes its worker with it without firing onerror,
  * which used to leave the splash waiting for a message that never came. Long
@@ -43,9 +43,9 @@ export async function prepareSettingSession(
     return createSession("atlas", seed, { setting: resolved });
   }
   signal?.throwIfAborted();
-  const worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
+  const worker = tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), {
     type: "module",
-  });
+  }));
   const retire = smallMemoryDevice();
   let owned = true;
   try {
