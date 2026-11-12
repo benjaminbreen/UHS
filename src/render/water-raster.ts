@@ -1,3 +1,4 @@
+import { railOver } from "./trunk-rail";
 import { rasterHabitatTile } from "./habitat-raster";
 import { shoreDistance, shorePixel, tidalFlat } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
@@ -487,6 +488,7 @@ export function rasterWaterTile(
       rect(sx + 3, sy + 2, 1, 1, palette.submerged[1]);
     }
   }
+  if (cell.rail) railOver(pixels, cell.rail, x, y, ox, oy, false, undefined, true);
   return {
     x,
     y,

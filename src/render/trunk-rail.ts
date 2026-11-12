@@ -1,15 +1,15 @@
 import { levelCrossing, railPixel } from "./carriageway";
 import { waterHash as hash } from "./water-style";
 
-/** Half the ballast bed, in pixels, and where `railPixel` centres a track. */
-const BED = 12;
-const TRACK = 18;
+/** Half the double-track formation, in pixels: `railPixel` is 64 across. */
+const BED = 32;
+const TRACK = 32;
 /** How far a platform stands out from the bed, in pixels. */
 const PLATFORM = 22;
 
-/** Lay a single running line over a finished ground tile: the track follows
- * its segments at any angle, sampled from the same ballast, sleepers and
- * rails the stations use. */
+/** Lay a double-track main line over a finished ground tile: the formation
+ * follows its segments at any angle, sampled from the same ballast, sleepers
+ * and rails the stations use, so it meets a station's own track unbroken. */
 export function railOver(
   pixels: Uint8ClampedArray,
   rail: readonly (readonly [number, number, number, number])[],
@@ -21,6 +21,8 @@ export function railOver(
   crossing = false,
   /** A platform stands on the side this points to. */
   platform?: readonly [number, number],
+  /** Over water: a timber trestle carries the rails. */
+  trestle = false,
 ) {
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
@@ -56,9 +58,14 @@ export function railOver(
         pixels.set(out <= 2 ? [66, 62, 58, 255] : out <= 4 ? [206, 200, 184, 255] : out === PLATFORM ? [112, 106, 96, 255] : flag ? [146, 140, 128, 255] : [172, 166, 152, 255], i);
         continue;
       }
-      if (crossing) {
+      if (crossing || trestle) {
         if (Math.abs(across) > BED) continue;
-        const c = levelCrossing([pixels[i], pixels[i + 1], pixels[i + 2]], Math.round(across) + TRACK, Math.round(along), true);
+        const edge = Math.abs(across) > BED - 2,
+          beam = Math.round(along) % 16 < 2;
+        const under: [number, number, number] = trestle
+          ? edge ? [52, 40, 30] : beam ? [70, 54, 40] : [104, 82, 60]
+          : [pixels[i], pixels[i + 1], pixels[i + 2]];
+        const c = levelCrossing(under, Math.round(across) + TRACK, Math.round(along), true);
         pixels.set([c[0], c[1], c[2], 255], i);
         continue;
       }

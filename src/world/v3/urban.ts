@@ -426,7 +426,7 @@ export function urbanNeighborhood(
     site.aspect,
     pack.year,
     [...precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })), ...(mosqueScales.length ? [{ sizes: mosqueScales.map(mosqueSize) }] : [])],
-    !!zoning && site.profile.radius >= 40,
+    site.rail ?? (!!zoning && site.profile.radius >= 40),
     lampFor(pack).street,
   );
   const used = new Set<string>();

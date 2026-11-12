@@ -198,8 +198,9 @@ export function composeUrban(
   year?: number,
   /** Courts, arenas and markets, each as its sizes largest first. */
   precincts?: { sizes: readonly (readonly [number, number])[] }[],
-  /** An industrial-age town has a railway through it. */
-  railway = false,
+  /** An industrial-age town has a railway through it; a trunk line that
+   * reaches the town says exactly where. */
+  railway: boolean | Rail = false,
   /** Whether the place and date lit its streets, not only its square. */
   lit = (year ?? 0) >= 1700,
 ): UrbanLayout {
@@ -1120,7 +1121,7 @@ export function composeUrban(
 
   // The railway skirts the old centre, as the lines did that reached towns
   // already built, and runs on past the edge. No street runs along it.
-  const rail: Rail | undefined = railway
+  const rail: Rail | undefined = typeof railway === "object" ? railway : railway
     ? (() => {
         const axis = rand("rail-axis") < 0.5 ? "x" : "y";
         const side = rand("rail-side") < 0.5 ? -1 : 1;

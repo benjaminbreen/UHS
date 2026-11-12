@@ -42,6 +42,8 @@ export type Site = {
   cores?: { x: number; y: number; radius: number; weight?: number }[];
   /** Built extent's width over its height, where the place says so. */
   aspect?: number;
+  /** The strip a trunk railway takes through the town. */
+  rail?: import("./blocks").Rail;
 };
 export type Road = {
   id: string;

@@ -82,7 +82,7 @@ it("carries a trunk railway across a map border at the same cell on both sides",
   // Two squares side by side on the Pacific Railroad west of Cheyenne.
   const west = toAtlas(-105.4, 41.25), east = { x: west.x + 384, y: west.y };
   const edge = (origin: { x: number; y: number }, x: number) =>
-    trunkRoads(origin, 192, 1880, sample).rails.flat().filter((p) => p.x === x).map((p) => p.y + origin.y);
+    trunkRoads(origin, 192, 1880, sample).roads.filter((r) => r.kind === "rail").flatMap((r) => r.points).filter((p) => p.x === x).map((p) => p.y + origin.y);
   const leaving = edge(west, 191), entering = edge(east, -192);
   expect(leaving.length).toBeGreaterThan(0);
   expect(entering.length).toBeGreaterThan(0);

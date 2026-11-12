@@ -28,6 +28,7 @@ import { preparedSite, type PreparedSettlement } from "./prepared";
 import { withProps } from "../../content/props/place";
 import { pathArt } from "./path-art";
 import { trunkRoads } from "./trunk";
+import { urbanSite } from "./urban";
 import {
   blacktopLine,
   roadMarkings,
@@ -201,22 +202,30 @@ export function createSettlementWorld(
   // Trunk railways and highways cross a playable map on their own line of
   // the atlas, so both sides of every border agree where they run.
   const trunkTowns = (half: number) => {
-    const towns: { x: number; y: number; r: number }[] = [];
+    const towns: { id: string; x: number; y: number; r: number; urban: boolean }[] = [];
     if (!regionalPlanner) return towns;
     const lo = (v: number) => Math.floor((v - half) / DISTRICT_SIZE), hi = (v: number) => Math.floor((v + half) / DISTRICT_SIZE);
     for (let cy = lo(land.origin.y); cy <= hi(land.origin.y); cy++)
       for (let cx = lo(land.origin.x); cx <= hi(land.origin.x); cx++)
         for (const site of regionalPlanner.sitesIn(cx, cy))
-          towns.push({ x: site.center.x, y: site.center.y, r: site.profile.radius + 6 });
+          towns.push({ id: site.id, x: site.center.x, y: site.center.y, r: site.profile.radius + 6, urban: urbanSite(site, site.pack ?? pack) });
     return towns;
   };
   const trunk =
     half !== undefined && pack.setting
       ? trunkRoads(land.origin, half, pack.setting.year, land.sample, trunkTowns(half))
       : undefined;
-  const trunkArt = trunk?.rails.length
-    ? pathArt(trunk.rails.map((points, i) => ({ id: `rail-${i}`, points, width: 1, kind: "street" as const, cost: 0 })), false, false, false)
-    : undefined;
+  /** Track segments near each cell, in map coordinates. */
+  const trunkArt = new Map<string, [number, number, number, number][]>();
+  for (const line of trunk?.rails ?? [])
+    for (let i = 1; i < line.length; i++) {
+      const a = line[i - 1], b = line[i];
+      for (let y = Math.floor(Math.min(a.y, b.y)) - 3; y <= Math.max(a.y, b.y) + 3; y++)
+        for (let x = Math.floor(Math.min(a.x, b.x)) - 3; x <= Math.max(a.x, b.x) + 3; x++) {
+          const k = cellKey(x, y);
+          trunkArt.set(k, [...(trunkArt.get(k) ?? []), [a.x, a.y, b.x, b.y]]);
+        }
+    }
   /** Cells of the trunk roads, as against the railways. */
   const highway = new Set<string>();
   for (const r of trunk?.roads ?? []) if (r.kind === "street") roadCells(r, (x, y) => highway.add(cellKey(x, y)));
@@ -224,7 +233,7 @@ export function createSettlementWorld(
   const crossings = new Set<string>();
   if (trunk?.rails.length) {
     const lines = new Set<string>();
-    for (const line of trunk.rails) for (const p of line) lines.add(cellKey(p.x, p.y));
+    for (const r of trunk.roads) if (r.kind === "rail") for (const p of r.points) lines.add(cellKey(p.x, p.y));
     const mark = (r: Road) =>
       r.kind !== "rail" && r.kind !== "bridge" &&
       roadCells(r, (x, y) => { if (lines.has(cellKey(x, y))) crossings.add(cellKey(x, y)); });
@@ -544,8 +553,9 @@ export function createSettlementWorld(
         (((x-o.center.x)**2+(y-o.center.y)**2)/o.profile.radius**2<own ||
           ((x-o.center.x)**2+(y-o.center.y)**2)/o.profile.radius**2===own && o.id<s.id));
     };
+    const strip = trunk?.through.get(s.id);
     const plan = planSettlement(
-      s,
+      strip ? { ...s, rail: strip } : s,
       s.pack ?? pack,
       seed,
       land.sample,
@@ -2154,7 +2164,7 @@ export function createSettlementWorld(
       const local = regional.settingAt(x, y);
       if (
         !blacktop &&
-        !trunkArt?.has(cellKey(x, y)) &&
+        !trunkArt.has(cellKey(x, y)) &&
         regional.placeAt(x, y) &&
         settlementProfile(local).paved &&
         (!local.streetRevision ||
@@ -2227,9 +2237,9 @@ export function createSettlementWorld(
         // A blacktop trunk road is drawn from its strokes, not as worn earth.
         if ((center.has(cellKey(x, y)) || doorstep) && !(blacktop && highway.has(cellKey(x, y)))) cell.surface = "soil";
       }
-    const track = trunkArt?.get(cellKey(x, y));
+    const track = trunkArt.get(cellKey(x, y));
     if (track) {
-      cell.rail = track.map((s) => [s.a[0] - x, s.a[1] - y, s.b[0] - x, s.b[1] - y]);
+      cell.rail = track.map(([ax, ay, bx, by]) => [ax - x, ay - y, bx - x, by - y]);
       if ([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) =>
         crossings.has(cellKey(x + dx, y + dy)) || nearby(x + dx, y + dy).some((p) => p.traffic.has(cellKey(x + dx, y + dy)))))
         cell.crossing = true;
