@@ -10,6 +10,7 @@ import { formatHistoricalYear } from "../core/calendar";
 import { PeriodMap, footprints, periodCaptions, periodStyle } from "./period-map";
 import { noise } from "../world/geography/noise";
 import { railSpeed } from "../world/v3/railway";
+import { routesIn } from "../world/travel/routes";
 import { endowmentFor, resourceName, sourceOf, tradeOf, type Ground, type Resource } from "../content/economy/endowments";
 import { capabilitiesFor } from "../content/characters/resolve";
 
@@ -341,6 +342,9 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
               ? roads.flatMap((road, i) => footprints(road.map(toFrame)).map((f, n) =>
                 <ellipse key={`${i}-${n}`} className="map-foot" cx={f.x} cy={f.y} rx={3} ry={1.5} transform={`rotate(${f.angle} ${f.x} ${f.y})`} />))
               : roads.map((road, i) => <path key={i} d={smooth(road.map(toFrame))} />)}
+            {!earth && setting && routesIn(origin.x + center.x - span / 2, origin.y + center.y - span, origin.x + center.x + span / 2, origin.y + center.y + span, setting.year)
+              .map(({ route, run }, i) => <path key={`trunk${i}`} className={`map-trunk is-${route.kind}`}
+                d={smooth(run.map((p) => toFrame({ x: p.x - origin.x, y: p.y - origin.y })))}><title>{route.name}</title></path>)}
           </svg>
           {lens === "resources" && cells.map((c) => c.land && <div key={`t${c.x},${c.y}`} className="map-lens-land" data-land={c.land}
             style={{ ...toScreen({ x: c.x - c.size / 2, y: c.y - c.size / 2 }), width: `${(c.size / span) * 100}%`, height: `${(c.size / (span * H / W)) * 100}%` }} />)}

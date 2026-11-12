@@ -7426,6 +7426,12 @@ button:disabled {
   opacity: 0.75;
   vector-effect: non-scaling-stroke;
 }
+/* Trunk routes: a made road is a solid line, a railway a barred one, a
+   motorway a broad one. Listed after the period styles' own road rule. */
+.map-roads path.map-trunk.map-trunk { stroke: #7a3b22; stroke-width: 2.2; stroke-dasharray: none; opacity: 0.9; }
+.map-roads path.map-trunk.map-trunk.is-rail { stroke: #1f1b1a; stroke-width: 2.4; stroke-dasharray: 7 3; stroke-linecap: butt; }
+.map-roads path.map-trunk.map-trunk.is-motorway { stroke: #c2571f; stroke-width: 3.4; }
+
 .map-modal .map-settlement,
 .map-modal .map-settlement:hover {
   min-width: 0;

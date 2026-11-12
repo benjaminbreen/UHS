@@ -27,6 +27,7 @@ import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
 import { withProps } from "../../content/props/place";
 import { pathArt } from "./path-art";
+import { trunkRoads } from "./trunk";
 import {
   blacktopLine,
   roadMarkings,
@@ -100,6 +101,8 @@ export const DISTRICT_SIZE = 384;
  * costs more than a frame has. */
 const ROUTINE_BUDGET = 48;
 export type SettlementWorld = WorldModel & {
+  /** Trunk roads and railways crossing this map, in its own cells. */
+  trunk?: ReturnType<typeof trunkRoads> & { crossings: string[] };
   planAt(x: number, y: number): SettlementPlan | undefined;
   /** A site's plan by its id, once it has been built. */
   planOf(siteId: string): SettlementPlan | undefined;
@@ -195,6 +198,45 @@ export function createSettlementWorld(
     regional && regionalPlanner
       ? regionalTransport(regional, regionalPlanner.sitesIn, land.sample)
       : undefined;
+  // Trunk railways and highways cross a playable map on their own line of
+  // the atlas, so both sides of every border agree where they run.
+  const trunkTowns = (half: number) => {
+    const towns: { x: number; y: number; r: number }[] = [];
+    if (!regionalPlanner) return towns;
+    const lo = (v: number) => Math.floor((v - half) / DISTRICT_SIZE), hi = (v: number) => Math.floor((v + half) / DISTRICT_SIZE);
+    for (let cy = lo(land.origin.y); cy <= hi(land.origin.y); cy++)
+      for (let cx = lo(land.origin.x); cx <= hi(land.origin.x); cx++)
+        for (const site of regionalPlanner.sitesIn(cx, cy))
+          towns.push({ x: site.center.x, y: site.center.y, r: site.profile.radius + 6 });
+    return towns;
+  };
+  const trunk =
+    half !== undefined && pack.setting
+      ? trunkRoads(land.origin, half, pack.setting.year, land.sample, trunkTowns(half))
+      : undefined;
+  const trunkArt = trunk?.rails.length
+    ? pathArt(trunk.rails.map((points, i) => ({ id: `rail-${i}`, points, width: 1, kind: "street" as const, cost: 0 })), false, false, false)
+    : undefined;
+  /** Cells of the trunk roads, as against the railways. */
+  const highway = new Set<string>();
+  for (const r of trunk?.roads ?? []) if (r.kind === "street") roadCells(r, (x, y) => highway.add(cellKey(x, y)));
+  /** Cells where a road crosses a trunk railway on the level. */
+  const crossings = new Set<string>();
+  if (trunk?.rails.length) {
+    const lines = new Set<string>();
+    for (const line of trunk.rails) for (const p of line) lines.add(cellKey(p.x, p.y));
+    const mark = (r: Road) =>
+      r.kind !== "rail" && r.kind !== "bridge" &&
+      roadCells(r, (x, y) => { if (lines.has(cellKey(x, y))) crossings.add(cellKey(x, y)); });
+    trunk.roads.forEach(mark);
+    transport?.roadsIn({ x: -half!, y: -half!, w: half! * 2, h: half! * 2 }).forEach(mark);
+  }
+  /** Country roads in an area: the regional network and any trunk route. */
+  const countryRoads = (area: { x: number; y: number; w: number; h: number }) => [
+    ...(transport?.roadsIn(area) ?? []),
+    ...(trunk?.roads.filter((r) =>
+      r.points.some((p) => p.x >= area.x && p.x < area.x + area.w && p.y >= area.y && p.y < area.y + area.h)) ?? []),
+  ];
   const home = {
     x: Math.floor(land.origin.x / DISTRICT_SIZE),
     y: Math.floor(land.origin.y / DISTRICT_SIZE),
@@ -481,14 +523,15 @@ export function createSettlementWorld(
         for (const neighbor of sitesIn(cx + dx, cy + dy))
           connections.push(...link(s, neighbor));
       }
-    if (transport)
+    if (transport || trunk)
       connections.push(
-        ...transport.roadsIn({
+        // A railway or a motorway is no street: the town does not build along it.
+        ...countryRoads({
           x: s.center.x - s.profile.radius - 40,
           y: s.center.y - s.profile.radius - 40,
           w: s.profile.radius * 2 + 80,
           h: s.profile.radius * 2 + 80,
-        }),
+        }).filter((r) => r.kind !== "rail" && !trunk?.motorways.has(r.id)),
       );
     const others = [-1, 0, 1]
       .flatMap((dy) => [-1, 0, 1].flatMap((dx) => sitesIn(cx + dx, cy + dy)))
@@ -567,9 +610,11 @@ export function createSettlementWorld(
               ? Math.max(64, territoryReach(s.profile.radius, s.pack ?? pack)) : 64),
             (pack.setting?.worksiteRevision??1)>=5 && !!fishingWaterfront((s.pack??pack).setting!) ? s.profile.radius+180 : 0,
           );
+          // Measured to the block's centre, so half a block further; a
+          // feeder canal runs up to 24 cells past the fields.
           if (
-            Math.abs(s.center.x - (bx * 64 + 32)) > reach ||
-            Math.abs(s.center.y - (by * 64 + 32)) > reach
+            Math.abs(s.center.x - (bx * 64 + 32)) > reach + 56 ||
+            Math.abs(s.center.y - (by * 64 + 32)) > reach + 56
           )
             continue;
           const p = getPlan(s.cx, s.cy, s.id);
@@ -588,7 +633,7 @@ export function createSettlementWorld(
       : undefined;
   const regionalArt = new Map<string, ReturnType<typeof pathArt>>();
   function regionalStrokes(x: number, y: number) {
-    if (!blacktop || !transport) return [];
+    if (!blacktop || !(transport || trunk)) return [];
     const c = coord(x, y),
       key = cellKey(c.x, c.y);
     let index = regionalArt.get(key);
@@ -599,13 +644,11 @@ export function createSettlementWorld(
         w: DISTRICT_SIZE + 16,
         h: DISTRICT_SIZE + 16,
       };
-      index = pathArt(
-        transport.roadsIn(area).filter((r) => r.kind !== "bridge"),
-        true,
-        false,
-        false,
-        blacktop,
-      );
+      const made = countryRoads(area).filter((r) => r.kind !== "bridge" && r.kind !== "rail");
+      index = pathArt(made.filter((r) => !trunk?.motorways.has(r.id)), true, false, false, blacktop);
+      // A carriageway runs one way: its middle line divides two lanes.
+      for (const [k, strokes] of pathArt(made.filter((r) => trunk?.motorways.has(r.id)), true, false, false, "white"))
+        index.set(k, [...(index.get(k) ?? []), ...strokes]);
       trimCache(regionalArt, 32);
       regionalArt.set(key, index);
     }
@@ -684,14 +727,14 @@ export function createSettlementWorld(
       old = roadCache.get(key);
     if (old) return old;
     const tiles = new Map<string, Terrain>();
-    if (transport) {
+    if (transport || trunk) {
       const area = {
         x: c.x * DISTRICT_SIZE - land.origin.x,
         y: c.y * DISTRICT_SIZE - land.origin.y,
         w: DISTRICT_SIZE,
         h: DISTRICT_SIZE,
       };
-      for (const r of transport.roadsIn(area))
+      for (const r of countryRoads(area))
         roadCells(r, (px, py) => {
           if (
             px >= area.x &&
@@ -2111,6 +2154,7 @@ export function createSettlementWorld(
       const local = regional.settingAt(x, y);
       if (
         !blacktop &&
+        !trunkArt?.has(cellKey(x, y)) &&
         regional.placeAt(x, y) &&
         settlementProfile(local).paved &&
         (!local.streetRevision ||
@@ -2180,8 +2224,18 @@ export function createSettlementWorld(
             y >= b.y - 1 &&
             y < b.y + b.h + 1,
         );
-        if (center.has(cellKey(x, y)) || doorstep) cell.surface = "soil";
+        // A blacktop trunk road is drawn from its strokes, not as worn earth.
+        if ((center.has(cellKey(x, y)) || doorstep) && !(blacktop && highway.has(cellKey(x, y)))) cell.surface = "soil";
       }
+    const track = trunkArt?.get(cellKey(x, y));
+    if (track) {
+      cell.rail = track.map((s) => [s.a[0] - x, s.a[1] - y, s.b[0] - x, s.b[1] - y]);
+      if ([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) =>
+        crossings.has(cellKey(x + dx, y + dy)) || nearby(x + dx, y + dy).some((p) => p.traffic.has(cellKey(x + dx, y + dy)))))
+        cell.crossing = true;
+      const halt = trunk!.stations.find((s) => Math.hypot(s.x - x, s.y - y) < 8);
+      if (halt) cell.platform = halt.toward;
+    }
     if (
       environment &&
       cell.surface !== "water" &&
@@ -2222,7 +2276,9 @@ export function createSettlementWorld(
       for (const p of nearby(x, y))
         wear = Math.max(wear, (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0);
       wear = Math.max(wear, crownWear(x, y));
-      if (wear) cell.groundWear = Math.max(cell.groundWear ?? 0, wear);
+      // Tyres wear blacktop, not the ground: a metalled highway keeps its verges.
+      const metalled = blacktop && [-2, -1, 0, 1, 2].some((dx) => [-2, -1, 0, 1, 2].some((dy) => highway.has(cellKey(x + dx, y + dy))));
+      if (wear && !metalled) cell.groundWear = Math.max(cell.groundWear ?? 0, wear);
       const tended = tendedAt(x, y);
       if (tended) cell.tended = tended;
     }
@@ -2423,7 +2479,8 @@ export function createSettlementWorld(
     l.stamp = waterStamp;
     const dry = (l.dry ??= { surface: c.surface, waterDepth: c.waterDepth, landscape: c.landscape, distance: v.distance });
     // Roads, bridges and fields keep their ground; basins flood as fields.
-    const d = l.water && !c.bridge && !c.ramp && !c.feature && !c.field && !c.pathArt?.length
+    // A gravel bank is the stream's own shore and goes under with it.
+    const d = l.water && !c.bridge && !c.ramp && (!c.feature || c.feature === "bank") && !c.field && !c.pathArt?.length
       ? l.water[seasons.indexOf(liveSeason)]
       : dry.distance;
     v.distance = d;
@@ -3031,6 +3088,7 @@ export function createSettlementWorld(
     initialObjects: [],
     enclosures: [],
     spawn: { x: 0, y: 0, space: "outside" },
+    trunk: trunk && { ...trunk, crossings: [...crossings] },
     planOf: (siteId: string) => plans.get(siteId),
     planAt: (x, y) => {
       const c = coord(x, y);

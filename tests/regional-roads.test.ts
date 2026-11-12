@@ -75,3 +75,17 @@ it("retains bridge geometry when a regional route shares a crossing", () => {
       .every((c) => c.status === "routed"),
   ).toBe(true);
 });
+
+it("carries a trunk railway across a map border at the same cell on both sides", async () => {
+  const { trunkRoads } = await import("../src/world/v3/trunk");
+  const { toAtlas } = await import("../src/world/geography/coordinates");
+  // Two squares side by side on the Pacific Railroad west of Cheyenne.
+  const west = toAtlas(-105.4, 41.25), east = { x: west.x + 384, y: west.y };
+  const edge = (origin: { x: number; y: number }, x: number) =>
+    trunkRoads(origin, 192, 1880, sample).rails.flat().filter((p) => p.x === x).map((p) => p.y + origin.y);
+  const leaving = edge(west, 191), entering = edge(east, -192);
+  expect(leaving.length).toBeGreaterThan(0);
+  expect(entering.length).toBeGreaterThan(0);
+  expect(Math.abs(Math.min(...leaving) - Math.min(...entering))).toBeLessThanOrEqual(1);
+  expect(trunkRoads(west, 192, 1860, sample).rails).toHaveLength(0);
+});
