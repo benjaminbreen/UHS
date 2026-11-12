@@ -76,8 +76,10 @@ export function voxelWeather(
 ) {
   const frame = snow > 0.05 ? model.snowFrame : wetness > 0.15 ? model.wetFrame : undefined;
   if (!frame) return undefined;
+  const texture = sheet(frame);
+  if (!scene.textures.exists(texture) || !scene.textures.get(texture).has(frame)) return undefined;
   return scene.add
-    .image(image.x, image.y, sheet(frame), frame)
+    .image(image.x, image.y, texture, frame)
     .setOrigin(image.originX, image.originY)
     .setDepth(image.depth + 0.2)
     .setAlpha(Math.min(1, snow > 0.05 ? snow * 1.5 : wetness));

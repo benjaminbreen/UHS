@@ -82,6 +82,7 @@ export class TimeTravel {
       rebuilt = result.phases.filter((p) => p.incarnation !== 0).length;
       engine = new Engine(result.world, this.origin.items);
       engine.initialize(this.lineage.seed);
+      engine.state.manifest.hazards = source.state.manifest.hazards ?? 1;
       engine.state.manifest.content = 2;
       engine.state.player = {
         ...engine.state.player,

@@ -76,9 +76,9 @@ export function CombatTestPanel({
         </label>
         <p>
           {weapon === "item:bow"
-            ? "Bow · 3–8 damage · 10 tiles. Hold F or right mouse, aim with the cursor, release."
+            ? "Bow · 3–8 damage · 10 tiles. Click to shoot at the cursor; hold F or the mouse to draw harder."
             : weapon === "item:sling"
-            ? "Sling · 2–6 damage, long stun · 8 tiles. Hold F or right mouse to whirl; longer is harder."
+            ? "Sling · 2–6 damage, long stun · 8 tiles. Hold F or the mouse to whirl; longer is harder."
             : `Damage ${stats.damage} · knockback ${stats.knock}. F strikes; hold X or right mouse and aim with the cursor to throw.`}
         </p>
         <div className="live-animal-actions">

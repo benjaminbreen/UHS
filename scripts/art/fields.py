@@ -30,7 +30,8 @@ HUE = {'wheat': '#d9b45a', 'barley': '#cfb163', 'rye': '#c7a866', 'oats': '#d8c2
        'sorghum': '#b5713a', 'teff': '#c9a25e', 'rice': '#d9c05a', 'dry-rice': '#d1b95c', 'maize': '#e0b640',
        'beans': '#7f9a4a', 'squash': '#d98a2e', 'potato': '#8fa04e', 'quinoa': '#c66a5a', 'yam': '#9fae4c',
        'cassava': '#7c9648', 'taro': '#5f8f4a', 'sugarcane': '#8fa85a', 'olive': '#6f7d3f', 'vine': '#6b4c7a',
-       'date': '#b8823c', 'orchard': '#c25b4a', 'flax': '#8fa3c9', 'cotton': '#e8e2d2', 'vegetables': '#6f9a48'}
+       'date': '#b8823c', 'orchard': '#c25b4a', 'flax': '#8fa3c9', 'cotton': '#e8e2d2', 'vegetables': '#6f9a48',
+       'lentils': '#b59a5a', 'turnip': '#c9a3c8', 'mulberry': '#5a2d4a', 'tea': '#7fae4a', 'tobacco': '#b88a3e'}
 
 GRAINS = ['wheat', 'barley', 'rye', 'oats', 'millet', 'sorghum', 'teff', 'rice', 'dry-rice']
 LOW = ['beans', 'squash', 'potato', 'quinoa', 'yam', 'cassava', 'taro', 'flax', 'cotton', 'vegetables']
@@ -47,6 +48,11 @@ for _n in ('olive', 'orchard'):
     SIZES[_n], HABIT[_n] = (32, 40), 'woody'
 SIZES['date'], HABIT['date'] = (32, 48), 'woody'
 SIZES['vine'], HABIT['vine'] = (24, 24), 'woody'
+for _n, _s, _h in (('lentils', (16, 18), 'broadleaf'), ('turnip', (16, 18), 'broadleaf'),
+                   ('tobacco', (16, 28), 'broadleaf'), ('tea', (16, 20), 'woody'),
+                   ('mulberry', (32, 40), 'woody')):
+    SIZES[_n], HABIT[_n] = _s, _h
+EXTRA = ['lentils', 'turnip', 'tobacco', 'tea', 'mulberry']
 
 
 def shade(hex_, f):
@@ -126,117 +132,78 @@ def blob(d, cx, cy, rx, ry, pal, hi=True):
 
 # ---------------------------------------------------------------- grains
 
-def head(name, md, x, y, pal, side):
-    """One ear, drawn into the mass layer so the plant carries one outline.
-    (x, y) is where the ear starts; it hangs below that."""
+def ear(name, d, x, y, pal, side):
+    """One ear in fine pixels, unoutlined: a lit left column, a shaded right,
+    so a field of them reads as grain rather than as a row of clubs."""
     dk, mid, lt = pal
-    if name in ('wheat', 'barley'):
-        # Fat spike: a solid three-wide body with paired grains stepping down
-        # it, so it reads as an ear rather than as dither.
-        md.rectangle((x - 1, y + 1, x + 1, y + 6), fill=mid)
-        md.point((x, y), fill=mid)
-        for i in (1, 3, 5):
-            md.point((x - 1, y + i), fill=lt)
-            md.point((x + 1, y + i + 1), fill=dk)
-        md.point((x, y + 1), fill=lt)
-    elif name == 'rye':
-        # Slimmer and longer than wheat, nodding at the tip.
-        md.rectangle((x - 1, y + 2, x, y + 8), fill=mid)
-        md.rectangle((x - 1 + side, y, x + side, y + 2), fill=mid)
-        for i in (2, 4, 6):
-            md.point((x - 1, y + i), fill=lt)
-            md.point((x, y + i + 1), fill=dk)
-        md.point((x - 1 + side, y), fill=lt)
+    if name in ('wheat', 'barley', 'rye'):
+        n = {'wheat': 5, 'barley': 4, 'rye': 6}[name]
+        d.point((x, y), fill=lt)
+        for i in range(1, n + 1):
+            d.point((x, y + i), fill=lt if i % 2 else mid)
+            d.point((x + 1, y + i), fill=mid if i % 2 else dk)
+        if name == 'wheat':
+            d.point((x - 1, y - 1), fill=mid)
+            d.point((x + 1, y - 1), fill=mid)
+        else:
+            for k in range(1, 4 if name == 'barley' else 3):
+                d.point((x + side * k, y - k), fill=mid)
     elif name == 'oats':
-        # Open panicle: two heavy spikelets hanging off short branches.
-        md.line((x, y, x, y + 7), fill=dk)
-        for i, dy in enumerate((1, 5)):
-            s = side if i % 2 == 0 else -side
-            md.line((x, y + dy, x + s * 2, y + dy + 1), fill=dk)
-            md.rectangle((x + s * 2 - 1, y + dy + 1, x + s * 2 + 1, y + dy + 3), fill=mid)
-            md.point((x + s * 2 - 1, y + dy + 2), fill=lt)
-            md.point((x + s * 2 + 1, y + dy + 3), fill=dk)
-    elif name == 'millet':
-        # Thick club, nodding over at the tip.
-        md.rectangle((x - 1, y + 2, x + 1, y + 8), fill=mid)
-        md.rectangle((x - 1 + side, y, x + side, y + 2), fill=mid)
-        for i in (2, 4, 6):
-            md.point((x - 1, y + i), fill=lt)
-            md.point((x + 1, y + i + 1), fill=dk)
-        md.point((x + side, y), fill=lt)
-    elif name == 'sorghum':
-        # A dense rounded panicle sitting on the cane.
-        md.ellipse((x - 2, y, x + 2, y + 6), fill=mid)
-        md.ellipse((x - 2, y + 1, x, y + 3), fill=lt)
-        md.point((x + 2, y + 4), fill=dk)
+        d.line((x, y, x, y + 6), fill=dk)
+        for dy, s in ((1, side), (3, -side), (5, side)):
+            d.point((x + s, y + dy), fill=lt)
+            d.point((x + s, y + dy + 1), fill=mid)
+    elif name in ('millet', 'sorghum'):
+        if name == 'sorghum':
+            d.rectangle((x - 1, y, x + 1, y + 3), fill=mid)
+            d.point((x - 1, y), fill=lt); d.point((x, y), fill=lt)
+            d.point((x + 1, y + 3), fill=dk)
+        else:
+            d.point((x + side, y), fill=lt)
+            for i in range(1, 6):
+                d.point((x, y + i), fill=lt if i % 2 else mid)
+                d.point((x + 1, y + i), fill=mid if i % 2 else dk)
     elif name == 'teff':
-        # Airy panicle: fine branches off a short axis, each tipped with grain.
-        md.line((x, y + 1, x, y + 7), fill=mid)
-        for dx, dy in ((-3, 0), (-2, 3), (2, 2), (3, 0), (0, -1)):
-            md.line((x, y + 3, x + dx, y + dy), fill=mid)
-            md.point((x + dx, y + dy), fill=lt)
-    else:  # rice, dry-rice: a heavy panicle arching over to one side
-        md.line((x, y + 2, x, y + 8), fill=mid)
-        arc = [(x, y + 2), (x + side, y), (x + side * 3, y + 1)]
-        md.line(arc, fill=mid)
-        for px, py in arc[1:]:
-            md.rectangle((px, py, px, py + 2), fill=mid)
-            md.point((px, py + 1), fill=lt)
-        md.point((x + side * 3, y + 3), fill=dk)
-
-
-def awns(name, d, x, y, colour, side):
-    """Bristles, drawn after the outline so they stay one pixel wide: an ear
-    that gets outlined at this size turns into a club."""
-    if name == 'barley':
-        for dx in (-1, 0, 1):
-            d.line((x + dx, y, x + dx * 4, y - 5), fill=colour)
-    elif name == 'wheat':
-        for dx, dy in ((-2, -3), (0, -4), (2, -3)):
-            d.line((x, y, x + dx, y + dy), fill=colour)
+        d.line((x, y + 1, x, y + 5), fill=mid)
+        for dx, dy in ((-2, 1), (2, 0), (-1, -1), (1, 3), (-2, 4)):
+            d.point((x + dx, y + dy), fill=lt)
+    else:  # rice, dry-rice: a panicle bowing over to one side
+        d.point((x, y + 2), fill=mid)
+        for k, (dx, dy) in enumerate(((1, 1), (2, 1), (3, 2), (3, 3), (4, 4))):
+            d.point((x + side * dx, y + dy), fill=lt if k % 2 else mid)
 
 
 def grain(name, stage, v):
-    """A clump of three canes in one silhouette: 2px stems so the outline has
-    something to hold, deliberate leans rather than jitter, one leaf each."""
+    """Five culms on 1px stems, back ones darker and shorter; one blade each,
+    no keyline. Heavier art made a field read as a picket fence."""
     w, h = 16, 24
     im, d = canvas(w, h)
-    ground(d, w, h)
+    d.ellipse((3, h - 5, w - 4, h - 2), fill=SHADOW)
     ripe = stage == 'ripe'
-    m, md = layer(im)
     if name == 'rice':
-        d.rectangle((1, h - 6, w - 2, h - 3), fill=WATER[0])
-        for x in (2, 8, 12):
-            d.line((x, h - 5, x + 2, h - 5), fill=WATER[1])
-    cane = STRAW[1] if ripe else G[1]
-    caneLit = STRAW[2] if ripe else G[2]
-    leaf = [G[2], G[4]] if not ripe else [STRAW[1], STRAW[3]]
+        d.ellipse((1, h - 6, w - 2, h - 2), fill=WATER[0])
+        d.line((3, h - 4, 5, h - 4), fill=WATER[1])
+    stem = [STRAW[1], STRAW[2]] if ripe else [G[0], G[2]]
+    blade = [STRAW[0], STRAW[2]] if ripe else [G[1], G[3]]
     pal = ramp(HUE[name]) if ripe else [G[1], G[3], G[4]]
-    # Three canes leaning out from the middle, the tallest off-centre so the
-    # clump has a front and a back rather than reading as a fan.
-    canes = [(4, -1, 11), (8, 0, 7), (12, 1, 10)] if v == 0 else [(4, -1, 9), (8, 0, 8), (12, 1, 12)]
-    if not ripe:
-        canes = [(x, lean, top + 3) for x, lean, top in canes]
     base = h - 3
-    for i, (x, lean, top) in enumerate(canes):
+    tall = 0 if name not in ('sorghum', 'millet') else -1
+    culms = [(4, -2, 8, 0), (11, 2, 7, 0), (6, -2, 3, 1), (10, 1, 4, 1), (8, 0, 1, 1)]
+    if v:
+        culms = [(x, l, t + (1 if i % 2 else -1), f) for i, (x, l, t, f) in enumerate(culms)]
+    if not ripe:
+        culms = [(x, l, t + 3, f) for x, l, t, f in culms]
+    for i, (x, lean, top, front) in enumerate(culms):
+        top = max(1, top + tall)
         tx = x + lean
-        md.line((x, base, tx, top + 1), fill=cane, width=2)
-        md.line((x - 1, base, tx - 1, top + 1), fill=caneLit)
-        # One blade per cane, a leaf shape rather than a line so the outline
-        # wraps it; low on the stem, clear of the ear.
+        d.line((x, base, tx, top + 6), fill=stem[front])
         s = -1 if lean < 0 else 1
-        by = base - 3 - i * 3
-        md.polygon([(x, by), (x + s * 2, by - 2), (x + s * 4, by - 2), (x + s * 2, by + 1)], fill=leaf[0])
-        md.point((x + s * 2, by - 1), fill=leaf[1])
-        head(name, md, tx, top - 6, pal, s or 1)
-    im.alpha_composite(outlined(m))
-    for i, (x, lean, top) in enumerate(canes):
-        awns(name, d, x + lean, top - 6, pal[1], -1 if lean < 0 else 1)
+        by = base - 2 - (i % 3) * 2
+        d.line((x, by, x + s * 3, by - 3), fill=blade[front])
+        if not ripe:
+            d.line((x, by - 4, x - s * 2, by - 7), fill=blade[front])
+        ear(name, d, tx, top, pal if front else [pal[0], pal[0], pal[1]], s)
     return im
-
-
-# ---------------------------------------------------------------- tall crops
-
 def maize(stage, v):
     w, h = 16, 32
     im, d = canvas(w, h)
@@ -369,24 +336,32 @@ def low(name, stage, v):
                 fp.point((6, 2), fill='#e9e5f2')
                 fp.point((10, 3), fill='#e9e5f2')
         elif name == 'yam':
-            # Vine twines up a stake.
+            # A vine twining up a stake, heart-shaped leaves on short stalks
+            # on alternate sides.
             sx = 8 if v == 0 else 7
-            d.line((sx, 15, sx, 2), fill=WOOD[1])
-            d.point((sx, 2), fill=WOOD[3])
-            for i, y in enumerate((13, 10, 7, 4)):
+            sp = part(ink_for(WOOD[1]))
+            sp.line((sx, 15, sx, 1), fill=WOOD[2])
+            sp.point((sx, 1), fill=WOOD[3])
+            for y in range(14, 2, -2):
+                d.point((sx + (1 if y % 4 else -1), y), fill=G[2])
+            for i, y in enumerate((12, 8, 4)):
                 s = 1 if (i + v) % 2 else -1
-                d.line((sx, y, sx + s * 3, y - 1), fill=pal[1])
-                md.polygon([(sx + s * 3, y - 3), (sx + s * 5, y - 1), (sx + s * 3, y + 1), (sx + s * 1, y - 1)], fill=pal[1])
-                md.point((sx + s * 3, y - 2), fill=pal[2])
+                lx = sx + s * 4
+                lp = part(ink_for(pal[1]))
+                lp.polygon([(lx - 2, y - 1), (lx, y), (lx + 2, y - 1), (lx + 2, y + 1), (lx, y + 3), (lx - 2, y + 1)], fill=pal[1])
+                lp.point((lx - 1, y), fill=pal[2])
+                lp.line((sx, y + 1, lx - s * 2, y + 1), fill=G[1])
         elif name == 'cassava':
-            for x, top in ((5, 6), (10, 3)) if v == 0 else ((4, 4), (9, 7), (13, 5)):
-                d.line((x, 15, x, top), fill='#8a4c3c')
-                d.point((x, 14), fill='#b0705a')
-                # Palmate leaf: fingers radiating from the stem tip.
-                for dx, dy in ((-3, -1), (-2, -3), (0, -4), (2, -3), (3, -1)):
-                    md.line((x, top, x + dx, top + dy), fill=pal[1])
-                    md.point((x + dx, top + dy), fill=pal[2])
-                md.point((x, top), fill=pal[2])
+            # Knobbly woody stems with a fan of narrow leaflets at each top.
+            for x, top in ((4, 5), (11, 3)) if v == 0 else ((5, 3), (12, 6)):
+                sp = part(ink_for('#7a4434'))
+                sp.line((x, 15, x, top + 1), fill='#9a5a44')
+                for ny in range(14, top + 2, -3):
+                    sp.point((x + 1, ny), fill='#c08060')
+                fp = part(ink_for(pal[1]))
+                for dx, dy in ((-4, 2), (-4, -2), (-1, -4), (2, -4), (4, -1), (4, 3)):
+                    fp.line((x, top, x + dx, top + dy), fill=pal[1])
+                    fp.point((x + dx // 2, top + dy // 2), fill=pal[2])
         else:  # taro: big arrow leaves on tall petioles
             for x, top, s in ((4, 5, -1), (9, 3, 1), (12, 7, 1)) if v == 0 else ((5, 4, 1), (10, 6, -1)):
                 d.line((x, 14, x + s, top + 3), fill=G[1])
@@ -394,16 +369,20 @@ def low(name, stage, v):
                 md.line((x + s, top - 1, x + s, top + 3), fill=pal[2])
                 md.point((x + s - 1, top), fill=pal[3])
     elif name == 'beans':
-        # Bushy plant with trifoliate leaves; pods hang when ripe.
-        for x, y in ((4, 10), (11, 11), (8, 5)) if v == 0 else ((5, 6), (11, 9), (7, 12)):
-            d.line((8, 15, x, y), fill=G[1])
-            for dx, dy in ((-2, 1), (2, 1), (0, -2)):
-                blob(md, x + dx, y + dy, 2, 1, pal, hi=False)
-            md.point((x - 2, y - 2), fill=pal[3])
+        # A bush of separate trifoliate sprays on thin stems, so it reads as
+        # leaves with daylight between rather than one mound.
+        sprays = ((3, 10), (12, 9), (7, 4)) if v == 0 else ((4, 6), (12, 7), (8, 11))
+        for x, y in sprays:
+            d.line((8, 15, x, y + 1), fill=G[1])
+            lp = part(ink_for(pal[1]))
+            for dx, dy in ((-3, 1), (3, 1), (0, -2)):
+                lp.ellipse((x + dx - 2, y + dy - 1, x + dx + 1, y + dy + 1), fill=pal[1])
+                lp.point((x + dx - 1, y + dy - 1), fill=pal[2])
         if ripe:
-            for x, y in ((6, 12), (11, 10), (9, 14)):
-                d.line((x, y, x, y + 3), fill='#a9a55c')
-                d.point((x, y + 3), fill='#7e7c40')
+            for x, y in ((5, 11), (11, 12), (9, 8)):
+                pp = part(ink_for('#9a9450'))
+                pp.line((x, y, x + 1, y + 3), fill='#c8c070')
+                pp.point((x, y), fill='#e2dc98')
     elif name == 'quinoa':
         # One stout stalk carrying the panicle, with a shorter leafy shoot
         # beside it. Two full plants will not fit sixteen pixels without the
@@ -598,22 +577,34 @@ def tree(name, stage, v):
                     fp = part(ink_for('#4a3555'))
                     fp.point((lx + dx, ly + dy), fill='#4a3555')
                     fp.point((lx + dx, ly + dy - 1), fill='#6d5480')
-    else:  # orchard: straight trunk, round crown, red and yellow fruit
-        md.line((cx, base, cx, 18), fill='#5a4a38', width=3)
-        md.line((cx - 1, base, cx - 1, 18), fill='#8f7a5a')
-        md.line((cx, 22, cx - 5, 17), fill='#5a4a38', width=2)
-        md.line((cx, 22, cx + 5, 16), fill='#5a4a38', width=2)
-        pal = [G[0], '#4f7a3a', '#74a04a', '#a9c862'] if not ripe else [G[0], '#4f7a3a', '#729a46', '#a2bc5c']
-        crown(md, cx, 13, 12 if v == 0 else 11, 9, pal, rng, n=6)
-        if not ripe:
-            for i in range(5):
-                md.point((8 + rng.randrange(16), 7 + rng.randrange(8)), fill='#f4e4ea')
-        else:
-            for i in range(7):
-                x, y = 7 + rng.randrange(18), 8 + rng.randrange(10)
-                c = HUE['orchard'] if i % 3 else '#e2c24a'
-                md.rectangle((x, y, x + 1, y + 1), fill=c)
-                md.point((x, y), fill=shade(c, 1.3))
+    else:  # orchard: a forked trunk under separate leaf clumps, fruit hung in them
+        barkInk = ink_for('#5a4a38')
+        tp = part(barkInk)
+        tp.line((cx, base, cx, base - 10), fill='#5a4a38', width=3)
+        tp.line((cx - 1, base, cx - 1, base - 10), fill='#8f7a5a')
+        s = 1 if v == 0 else -1
+        for ex, ey in ((cx - 8 * s, 17), (cx + 7 * s, 15), (cx + s, 9)):
+            lp = part(barkInk)
+            lp.line((cx, base - 9, ex, ey), fill='#5a4a38', width=2)
+        pal = ['#2f5a2c', '#4f7a3a', '#74a04a', '#a9c862']
+        clumps = [(cx - 9 * s, 16, 6, 5), (cx + 8 * s, 14, 6, 5), (cx + s, 8, 7, 5), (cx - 3 * s, 12, 5, 4)]
+        for lx, ly, rx, ry in clumps:
+            cp = part(ink_for(pal[1]))
+            cp.ellipse((lx - rx, ly - ry, lx + rx, ly + ry), fill=pal[1])
+            cp.ellipse((lx - rx + 1, ly - ry + 1, lx + 1, ly), fill=pal[2])
+            cp.point((lx - rx + 2, ly - ry + 1), fill=pal[3])
+            for dx, dy in ((-rx - 1, 1), (rx + 1, 0), (1, -ry - 1)):
+                cp.point((lx + dx, ly + dy), fill=pal[2])
+            cp.point((lx + 2, ly + ry - 1), fill=pal[0])
+            for _ in range(3 if ripe else 2):
+                fx, fy = lx + rng.randrange(-rx + 2, rx - 1), ly + rng.randrange(-ry + 2, ry)
+                fp = part(ink_for('#6a2a24') if ripe else ink_for('#d8c8d0'))
+                if ripe:
+                    c = HUE['orchard'] if rng.random() < .7 else '#e2c24a'
+                    fp.rectangle((fx, fy, fx + 1, fy + 1), fill=c)
+                    fp.point((fx, fy), fill=shade(c, 1.35))
+                else:
+                    fp.point((fx, fy), fill='#f8eef2')
     return parts_done()
 
 
@@ -745,6 +736,136 @@ def sprout(name, kind, v):
     return parts_done()
 
 
+
+# ---------------------------------------------------------------- later additions
+# Drawn lighter than the crops above: a keyline only on the big masses, fine
+# stems left bare, so a field of them reads as plants rather than stickers.
+
+def extra(name, stage, v):
+    w, h = SIZES[name]
+    im, gd = canvas(w, h)
+    ground(gd, w, h, inset=6 if w > 16 else 2)
+    ripe = stage == 'ripe'
+    part, parts_done = parts(im)
+    base = h - 3
+    # Fine detail lands on top of the outlined masses, unoutlined.
+    fine = Image.new('RGBA', im.size)
+    d = ImageDraw.Draw(fine)
+    if name == 'lentils':
+        # A low tangle of wiry stems with tiny paired leaflets; ripe plants
+        # go straw-coloured and carry flat pods.
+        stem = STRAW[1] if ripe else G[1]
+        lf = [STRAW[2], STRAW[3]] if ripe else [G[2], G[3]]
+        tips = ((2, 8), (5, 5), (9, 4), (12, 6), (14, 9)) if v == 0 else ((2, 9), (6, 4), (10, 6), (13, 5))
+        for i, (x, y) in enumerate(tips):
+            d.line((8, base, x, y), fill=stem)
+            for t in (0.35, 0.7):
+                px = round(8 + (x - 8) * t); py = round(base + (y - base) * t)
+                d.point((px - 1, py), fill=lf[0]); d.point((px + 1, py), fill=lf[0])
+            d.point((x, y), fill=lf[1])
+            if ripe and i % 2 == 0:
+                d.rectangle((x, y + 2, x + 1, y + 2), fill=HUE['lentils'])
+                d.point((x, y + 2), fill='#e2cc8a')
+    elif name == 'turnip':
+        # A rosette of lobed leaves over a purple-shouldered root that shows
+        # above the soil once it has swelled.
+        if ripe:
+            rp = part(ink_for('#8a5a8a'))
+            rp.ellipse((4, base - 5, 11, base + 1), fill='#efe6dc')
+            rp.chord((4, base - 5, 11, base + 1), 180, 360, fill='#a0679f')
+            rp.point((5, base - 3), fill='#c99ac6')
+            rp.point((6, base - 1), fill='#ffffff')
+        lp = part(ink_for(G[2]))
+        ty = base - 6 if ripe else base - 2
+        for dx, top in ((-5, 5), (-2, 2), (2, 1), (5, 4)) if v == 0 else ((-5, 4), (-1, 1), (3, 2), (6, 6)):
+            x = 8 + dx
+            lp.line((8, ty, x, top + 3), fill=G[1])
+            lp.ellipse((x - 1, top, x + 1, top + 4), fill=G[2])
+            lp.point((x - 1, top + 1), fill=G[3])
+    elif name == 'tobacco':
+        # A single stalk of long drooping leaves with a midrib, biggest at the
+        # foot; pink trumpet flowers on top while green, leaves gold when ripe.
+        pal = ['#7a5a26', '#b8903e', '#d9b45e', '#efd690'] if ripe else ['#2f5a2c', '#4f8a3c', '#74ac4c', '#a6d070']
+        sp = part(ink_for('#4a6a30'))
+        sp.line((8, base, 8, 5), fill='#5a7a38' if not ripe else '#8a7a40')
+        leaves = ((base - 2, -1, 7), (base - 5, 1, 7), (base - 9, -1, 6), (base - 13, 1, 5), (base - 17, -1, 4))
+        for y, s, r in leaves:
+            s = s if v == 0 else -s
+            lp = part(ink_for(pal[1]))
+            # Up from the stalk, out, then the tip droops below the joint.
+            pts = [(8, y), (8 + s * 2, y - 2), (8 + s * (r - 1), y - 2), (8 + s * r, y), (8 + s * r, y + 2),
+                   (8 + s * (r - 2), y + 1), (8 + s * 2, y + 1)]
+            lp.polygon(pts, fill=pal[1])
+            lp.line((8 + s * 2, y - 1, 8 + s * (r - 1), y - 1), fill=pal[2])
+            d.line((8 + s, y, 8 + s * (r - 1), y), fill=pal[0])
+            d.point((8 + s * 3, y - 1), fill=pal[3])
+        if not ripe:
+            for x, y in ((6, 3), (8, 2), (10, 3), (9, 4)):
+                d.point((x, y), fill='#e47c9e')
+                d.point((x, y - 1), fill='#f8c6d6')
+            d.point((7, 4), fill='#4f8a3c')
+    elif name == 'tea':
+        # Clipped into a waist-high table: a broad, slightly domed top of small
+        # glossy leaves over a few woody stems. The spring flush is a pale
+        # fringe of new shoots standing up off the table.
+        rng = random.Random(f'tea{v}')
+        bp = part(ink_for('#3d6a34'))
+        bp.polygon([(1, 9), (2, 6), (5, 5), (11, 5), (14, 6), (15, 9), (14, 12), (11, 13), (5, 13), (2, 12)], fill='#3d6a34')
+        for x in (4, 8, 11):
+            bp.line((x, 13, x + (1 if x < 8 else -1 if x > 8 else 0), base), fill='#5a4430')
+        for _ in range(30):
+            x, y = 2 + rng.randrange(12), 6 + rng.randrange(7)
+            c = '#7aac4e' if y < 8 else '#5a8c42' if y < 11 else '#2f5428'
+            d.point((x, y), fill=c)
+            if y < 9 and rng.random() < .5:
+                d.point((x + 1, y), fill='#9cc664')
+        d.line((4, 6, 11, 6), fill='#6a9c48')
+        if ripe:
+            for x in range(2, 15, 2):
+                y = 5 if 2 < x < 14 else 6
+                d.point((x + v, y - 1), fill='#b8e070')
+                d.point((x + v, y), fill='#d8f098')
+    else:  # mulberry: pollarded, knobbed head, straight shoots in leaf
+        cx = 16
+        rng = random.Random(f'mulberry{v}')
+        tp = part(ink_for('#5e4a36'))
+        tp.polygon([(cx - 3, base), (cx + 3, base), (cx + 2, base - 9), (cx - 2, base - 9)], fill='#6a5640')
+        tp.line((cx - 2, base, cx - 2, base - 8), fill='#937a5a')
+        tp.ellipse((cx - 4, base - 13, cx + 4, base - 7), fill='#6a5640')
+        tp.point((cx - 2, base - 11), fill='#a58c68')
+        tp.point((cx + 2, base - 9), fill='#4a3a2a')
+        knob = (cx, base - 12)
+        tips = [(4, 15), (8, 7), (13, 3), (19, 3), (24, 6), (28, 14)]
+        if v:
+            tips = [(32 - x, y + (1 if i % 2 else 0)) for i, (x, y) in enumerate(tips)]
+        for tx, ty in tips:
+            tp.line((knob, (tx, ty)), fill='#7a6248')
+        # Broad leaves hung along each shoot's outer two thirds, in a separate
+        # clump per shoot so the switches show between them.
+        pal = ['#2f5a2c', '#4a7d38', '#6fa048', '#a2c86a']
+        for i, (tx, ty) in enumerate(tips):
+            cp = part(ink_for(pal[1]))
+            for t in (0.6, 0.8, 1.0):
+                lx = round(knob[0] + (tx - knob[0]) * t) + rng.randrange(-1, 2)
+                ly = round(knob[1] + (ty - knob[1]) * t)
+                cp.ellipse((lx - 2, ly - 2, lx + 2, ly + 1), fill=pal[1])
+                cp.point((lx - 1, ly - 1), fill=pal[2])
+                if t > .6:
+                    d.point((lx - 1, ly - 2), fill=pal[3])
+                d.point((lx + 1, ly + 1), fill=pal[0])
+        if ripe:
+            for _ in range(10):
+                tx, ty = tips[rng.randrange(len(tips))]
+                t = .5 + rng.random() * .45
+                x = round(knob[0] + (tx - knob[0]) * t) + rng.randrange(-2, 3)
+                y = round(knob[1] + (ty - knob[1]) * t) + 1
+                c = HUE['mulberry'] if rng.random() < .7 else '#c24a5a'
+                d.point((x, y), fill=c); d.point((x, y + 1), fill=shade(c, .7))
+    parts_done()
+    im.alpha_composite(fine)
+    return im
+
+
 def build_fields():
     frames = {}
     for stage in ('green', 'ripe'):
@@ -758,6 +879,8 @@ def build_fields():
             for name in ('olive', 'date', 'orchard'):
                 frames[f'crop-{name}-{stage}-{v}'] = tree(name, stage, v)
             frames[f'crop-vine-{stage}-{v}'] = vine(stage, v)
+            for name in EXTRA:
+                frames[f'crop-{name}-{stage}-{v}'] = extra(name, stage, v)
     # Seedlings: sown ground shows the crop coming up rather than nothing.
     for name, habit in HABIT.items():
         for v in (0, 1):

@@ -8,6 +8,7 @@ export type WaterObject = {
   seed: number;
   existing?: boolean;
   ecology?: string;
+  colorway?: string;
   season?: string;
   kind: "rock" | "reeds" | "lilies" | "seaweed" | "herb";
 };
@@ -252,51 +253,39 @@ export function drawScenery(
         for (let xx = -r * 1.2; xx < r * 1.2; xx++)
           if ((xx * xx) / (r * r * 1.5) + (yy * yy) / (r * r * 0.45) < 1)
             dot(x + xx + 1, y + yy + 1, 1, 1, "#143f54", 0.22);
-      for (let yy = -Math.ceil(r * 1.25); yy < r * 0.4; yy++)
-        for (let xx = -Math.ceil(r); xx <= r; xx++) {
-          const px = xx / r,
-            py = (yy + r * 0.4) / (r * 0.78);
-          if (
-            Math.abs(px) * (0.55 + waterHash(seed, 26) * 0.15) +
-              Math.abs(py) * 0.5 >
-              0.98 ||
-            px * px + py * py >
-              1.02 + Math.sin(Math.atan2(py, px) * 5 + seed) * 0.13
-          )
-            continue;
-          base[xx + half] = yy;
-          const n = waterNoise(xx + seed, yy, 3, 16),
-            edge = px * px + py * py > 0.83;
-          const c = edge
-            ? "#3b4b4a"
-            : py < -0.35
-              ? px < 0.15
-                ? "#c9c393"
-                : "#a7ad88"
-              : px < -0.35
-                ? "#899780"
-                : px > 0.35
-                  ? "#52635e"
-                  : n > 0.58
-                    ? "#a0a486"
-                    : "#748475";
-          dot(x + xx, y + yy, 1, 1, c);
-          if (
-            !edge &&
-            py < -0.15 &&
-            px < 0.3 &&
-            waterNoise(xx + seed, yy, 4, 54) > 0.64
-          )
-            dot(x + xx, y + yy, 1, 1, "#8d9e58");
-          if (
-            !edge &&
-            py > 0.05 &&
-            Math.abs(px - 0.24 * Math.sin(py * 3 + seed)) < 0.06
-          )
-            dot(x + xx, y + yy, 1, 1, "#465956");
-          if (!edge && n > 0.64 && py < -0.25)
-            dot(x + xx, y + yy, 1, 1, "#ddd2a2");
+      // Light from the upper left: a pale cap, a mid body, a shaded right
+      // and foot, a dark wet line where it meets the water.
+      const w = Math.max(2, Math.round(r * 0.9)),
+        h = Math.max(2, Math.round(r * 1.1)),
+        lean = waterHash(seed, 26) - 0.5,
+        mossy = seed % 3 === 0 && w >= 5;
+      const span = (yy: number) => {
+        const v = (-yy / h) * 0.92;
+        return Math.max(0, Math.round(w * Math.sqrt(1 - v ** 2.4)) - (yy === 0 && w >= 4 ? 1 : 0));
+      };
+      for (let yy = -h; yy <= 0; yy++) {
+        const v = -yy / h,
+          wide = span(yy),
+          shift = Math.round(lean * 2 * v);
+        for (let xx = -wide; xx <= wide; xx++) {
+          const u = wide ? xx / wide : 0,
+            top = yy === -h || Math.abs(xx) > span(yy - 1),
+            side = Math.abs(xx) === wide;
+          if (yy === 0 && Math.abs(xx + shift) <= half) base[xx + shift + half] = 0;
+          const c =
+            yy === 0
+              ? side ? "#3b4b4a" : "#465956"
+              : side || top
+                ? u > 0.1 || (side && v < 0.4) ? "#3b4b4a" : "#52635e"
+                : v > 0.5 && u < 0.35
+                  ? mossy && u < 0 && v > 0.65 ? "#8d9e58" : "#c9c393"
+                  : u > 0.45 || v < 0.28
+                    ? "#748475"
+                    : "#a0a486";
+          dot(x + xx + shift, y + yy, 1, 1, c);
         }
+      }
+      if (w >= 4) dot(x - Math.round(w * 0.45) + Math.round(lean * 1.6), y - Math.round(h * 0.72), 2, 1, mossy ? "#c9c393" : "#ddd2a2");
       // Use the rendered silhouette's bottom edge, not the object's placement anchor.
       for (let xx = -half; xx <= half; xx++) {
         const bottom = base[xx + half];
@@ -406,63 +395,141 @@ export function drawScenery(
         dot(x - 1, y - 7, 1, 1, "#e4b85d");
       }
     } else if (o.kind === "lilies") {
-      for (let pad = 0; pad < 3; pad++) {
-        const cx = x + (pad - 1) * r * 0.9,
-          cy = y + Math.sin(pad * 3 + seed) * 4 + Math.sin(t * 0.8 + pad) * 0.5,
-          sz = r * (pad === 1 ? 0.72 : 0.5);
-        for (let yy = -Math.ceil(sz * 0.65); yy <= sz * 0.65; yy++)
-          for (let xx = -Math.ceil(sz); xx <= sz; xx++) {
-            if (
-              (xx * xx) / (sz * sz) + (yy * yy) / (sz * sz * 0.43) > 1 ||
-              (xx > 0 && Math.abs(yy) < xx * 0.35)
-            )
-              continue;
-            dot(cx + xx + 1, cy + yy + 2, 1, 1, "#155d5c", 0.4);
+      const arid = o.ecology === "desert" || o.ecology === "dry-scrub" || o.colorway === "papyrus",
+        lotus = o.ecology === "tropical-woodland",
+        boreal = o.ecology === "boreal-woodland";
+      // White water lily; pink lotus in the tropics; the Nile's blue lotus; the north's yellow pond-lily.
+      const petal = lotus ? "#f2a6b8" : arid ? "#9db0ee" : boreal ? "#f0d040" : "#fff4dc",
+        heart = boreal ? "#c98f2a" : "#ebba5e";
+      const pads = 3 + Math.floor(waterHash(seed, 31) * 3);
+      for (let pad = 0; pad < pads; pad++) {
+        const a = pad === 0 ? (lotus ? 4 : 3) : 1 + Math.floor(waterHash(seed, 40 + pad) * (lotus ? 3.5 : 2.6)),
+          b = Math.max(1, Math.round(a * 0.6)),
+          angle = waterHash(seed, 50 + pad) * 6.283,
+          reach = pad === 0 ? 0 : 4 + waterHash(seed, 60 + pad) * 6,
+          cx = Math.round(x + Math.cos(angle) * reach * 1.3),
+          cy = Math.round(y + Math.sin(angle) * reach * 0.7 + Math.sin(t * 0.8 + pad) * 0.5),
+          notch = waterHash(seed, 70 + pad) < 0.5 ? 1 : -1;
+        for (let yy = -b; yy <= b; yy++)
+          for (let xx = -a; xx <= a; xx++) {
+            if ((xx * xx) / ((a + 0.4) * (a + 0.4)) + (yy * yy) / ((b + 0.4) * (b + 0.4)) > 1) continue;
+            // A lily pad is cut to its stalk; a lotus leaf is whole.
+            if (!lotus && a > 1 && xx * notch > 0 && yy === 0) continue;
+            dot(cx + xx + 1, cy + yy + 1, 1, 1, "#155d5c", 0.35);
+          }
+        for (let yy = -b; yy <= b; yy++)
+          for (let xx = -a; xx <= a; xx++) {
+            if ((xx * xx) / ((a + 0.4) * (a + 0.4)) + (yy * yy) / ((b + 0.4) * (b + 0.4)) > 1) continue;
+            if (!lotus && a > 1 && xx * notch > 0 && yy === 0) continue;
             dot(
               cx + xx,
               cy + yy,
               1,
               1,
-              yy > sz * 0.35
-                ? "#32612f"
-                : xx < 0 && yy < 0
-                  ? "#a5bc43"
-                  : "#6b9d35",
+              yy === b || (yy > 0 && Math.abs(xx) === a)
+                ? "#2f6a35"
+                : yy < 0 && xx <= 0
+                  ? "#8fbf48"
+                  : "#5f9a3a",
             );
-            if (xx === 0 || yy === 0) dot(cx + xx, cy + yy, 1, 1, "#85b641");
           }
-        if (pad === 1 && seed % 3 === 0) {
-          dot(cx - 1, cy - 3, 3, 3, "#f9e8ba");
-          dot(cx - 2, cy - 2, 5, 1, "#fff1d5");
-          dot(cx, cy - 2, 1, 1, "#ebba5e");
+        if (lotus && a >= 3) dot(cx, cy, 1, 1, "#2f6a35");
+        if (a >= 3 && o.season !== "winter" && waterHash(seed, 80 + pad) < 0.6) {
+          const fx = cx - notch * 2, fy = cy - 1;
+          dot(fx - 1, fy, 3, 1, petal);
+          dot(fx, fy - 1, 1, 3, petal);
+          dot(fx, fy, 1, 1, heart);
+        }
+      }
+      if (o.ecology === "wetland")
+        for (let i = 0; i < 12; i++)
+          dot(
+            x + Math.round((waterHash(seed, 90 + i) - 0.5) * 22),
+            y + Math.round((waterHash(seed, 110 + i) - 0.5) * 12),
+            1,
+            1,
+            i % 3 ? "#9fc94a" : "#7fb040",
+          );
+    } else if (o.kind === "reeds") {
+      const sway = (j: number, h: number, i: number) => Math.sin(t * 0.6 + i + j * 0.15) * (j / h) * 1.5;
+      dot(x - 5, y + 1, 11, 1, "#143f54", 0.25);
+      if (o.ecology === "tropical-woodland") {
+        // Broad arrowhead leaves on single stalks, the taro and arums of wet tropical ground.
+        const leaf = [".ll..", "lhlll", "llhll", ".lld.", "..d.."];
+        for (let i = 0; i < 4; i++) {
+          const lx = x + [-5, -1, 3, 6][i] + Math.round((waterHash(seed, i) - 0.5) * 2),
+            h = 5 + Math.floor(waterHash(seed, 10 + i) * 6);
+          for (let j = 0; j < h; j++) dot(lx + 2, y - j, 1, 1, j < 2 ? "#226b3c" : "#2f7a40");
+          leaf.forEach((line, yy) =>
+            [...line].forEach((ch, xx) => {
+              if (ch !== ".")
+                dot(lx + (i % 2 ? 4 - xx : xx), y - h - 4 + yy, 1, 1, ch === "h" ? "#7fc45a" : ch === "d" ? "#226b3c" : "#3f9a4a");
+            }),
+          );
+        }
+      } else if (o.colorway === "papyrus") {
+        for (let i = 0; i < 5; i++) {
+          const bx = x + (i - 2) * 3 + Math.round((waterHash(seed, i) - 0.5) * 2),
+            h = 10 + Math.floor(waterHash(seed, 10 + i) * 8);
+          for (let j = 0; j < h; j++) dot(bx + sway(j, h, i), y - j, 1, 1, j < 2 ? "#3c6b34" : "#5f8f3f");
+          // The umbel: a green starburst at the head of each stem.
+          dot(bx - 2, y - h, 5, 1, "#8fb54a");
+          dot(bx - 1, y - h - 1, 3, 1, "#8fb54a");
+          dot(bx - 2, y - h - 2, 1, 1, "#c9d27a");
+          dot(bx, y - h - 2, 1, 1, "#c9d27a");
+          dot(bx + 2, y - h - 2, 1, 1, "#c9d27a");
+          dot(bx - 3, y - h + 1, 1, 1, "#6f9a40");
+          dot(bx + 3, y - h + 1, 1, 1, "#6f9a40");
+        }
+      } else if (o.ecology === "boreal-woodland" || o.ecology === "tundra") {
+        // A sedge tussock: short stiff blades off one crown.
+        for (let i = -4; i <= 4; i++) {
+          const h = 3 + Math.floor(waterHash(seed, i + 9) * 4) - Math.abs(i) / 2;
+          for (let j = 0; j < h; j++)
+            dot(x + i + Math.round((i / 4) * (j / 3)), y - j, 1, 1, j >= h - 1 ? "#9aa55a" : (i + 9) % 3 ? "#3f6b3c" : "#567a40");
+        }
+        dot(x - 2, y, 5, 1, "#6f6238");
+      } else {
+        const plumes = o.ecology === "grassland" || o.ecology === "dry-scrub" || o.ecology === "desert",
+          dry = plumes || o.season === "autumn" || o.season === "winter";
+        const stems = 6 + Math.floor(waterHash(seed, 3) * 3);
+        for (let i = 0; i < stems; i++) {
+          const bx = x + Math.round((i - (stems - 1) / 2) * 1.6 + (waterHash(seed, i) - 0.5)),
+            h = 8 + Math.floor(waterHash(seed, 10 + i) * 9),
+            lean = (waterHash(seed, 20 + i) - 0.5) * 4;
+          for (let j = 0; j < h; j++)
+            dot(
+              bx + (lean * j) / h + sway(j, h, i),
+              y - j,
+              1,
+              1,
+              j < 2 ? "#285a3e" : i % 3 === 0 ? (dry ? "#b7ae62" : "#9eb54e") : i % 3 === 1 ? (dry ? "#7f8a48" : "#4f8a45") : "#2f6a43",
+            );
+          if (i % 3 !== 0) continue;
+          const tx = Math.round(bx + lean);
+          if (plumes) {
+            // Common reed: a soft tan plume drooping off the tip.
+            dot(tx, y - h - 2, 2, 1, "#e0d1a4");
+            dot(tx, y - h - 1, 3, 1, "#d2c08e");
+            dot(tx + 1, y - h, 2, 1, "#b9a26a");
+          } else {
+            // Cattail: a brown head below a bare spike.
+            dot(tx, y - h - 1, 1, 1, "#9eb54e");
+            dot(tx, y - h + 1, 1, 4, "#7a4a2a");
+            dot(tx, y - h + 1, 1, 1, "#b98a4a");
+          }
         }
       }
     } else {
-      const underwater = o.kind === "seaweed",
-        alpha = underwater ? 0.4 + s.clarity * 0.4 : 1;
+      const alpha = 0.4 + s.clarity * 0.4;
       for (let blade = 0; blade < 7; blade++) {
         const h = 7 + waterHash(seed, blade) * 15,
           bx = x + (blade - 3) * 2;
         for (let j = 0; j < h; j++) {
-          const sway =
-            Math.sin(t * (underwater ? 1.4 : 0.6) + blade + j * 0.15) *
-            (j / h) *
-            (underwater ? 4 : 1.5);
+          const sway = Math.sin(t * 1.4 + blade + j * 0.15) * (j / h) * 4;
           dot(bx + sway, y - j, 2, 1, blade % 2 ? "#276f4e" : "#3d8553", alpha);
-          dot(
-            bx + sway,
-            y - j,
-            1,
-            1,
-            underwater ? "#63b99a" : "#9eb54e",
-            alpha,
-          );
-          if (underwater && j % 5 === 0)
-            dot(bx + sway - 2, y - j, 4, 1, "#38987b", alpha);
-        }
-        if (!underwater && blade % 3 === 0) {
-          dot(bx, y - h, 2, 5, "#80532f");
-          dot(bx, y - h, 1, 4, "#c09246");
+          dot(bx + sway, y - j, 1, 1, "#63b99a", alpha);
+          if (j % 5 === 0) dot(bx + sway - 2, y - j, 4, 1, "#38987b", alpha);
         }
       }
     }

@@ -7,6 +7,8 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { culturalThemes } from "../src/audio/cultural-themes";
 import { compose, type Arrangement } from "../src/audio/score";
+import { situationThemes } from "../src/audio/situation-themes";
+import { layeredThemes } from "../src/audio/layered-themes";
 
 const output = join(process.cwd(), "public/audio/previews");
 await mkdir(output, { recursive: true });
@@ -40,6 +42,20 @@ const previews: Arrangement[] = [
     era: "pastoral" as const,
   })),
 ];
+// Names on the command line render only the pieces whose id contains one,
+// situation and layered pieces included; the manifest is left alone.
+const wanted = process.argv.slice(2);
+if (wanted.length) {
+  previews.push(
+    ...[...situationThemes(), ...layeredThemes].map((t) => ({
+      themeId: t.id,
+      season: "spring" as const,
+      period: "day" as const,
+      era: "pastoral" as const,
+    })),
+  );
+  previews.splice(0, previews.length, ...previews.filter((p) => wanted.some((w) => p.themeId.includes(w))));
+}
 const report: object[] = [];
 try {
   for (const arrangement of previews) {
@@ -104,7 +120,7 @@ try {
       "libmp3lame",
       "-q:a",
       "3",
-      join(output, `${name}.mp3`),
+      join(wanted.length ? wavOutput : output, `${name}.mp3`),
     ]);
     const score = compose(arrangement);
     const entry = {
@@ -121,7 +137,7 @@ try {
     console.log(JSON.stringify(entry));
     await page.close();
   }
-  await writeFile(
+  if (!wanted.length) await writeFile(
     join(output, "manifest.json"),
     JSON.stringify(report, null, 2) + "\n",
   );

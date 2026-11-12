@@ -297,7 +297,7 @@ export function rasterLivingWater(
         (profile.plants === 0 || profile.bankClimate === "desert")
       )
         continue;
-      if (refined && !rock && depth > 0.2 && waterHash(gx, gy, 359) > 0.22)
+      if (refined && !rock && depth > 0.2 && waterHash(gx, gy, 359) > 0.45)
         continue;
       items.push({
         x: Math.round(x),
@@ -307,6 +307,7 @@ export function rasterLivingWater(
           : 4,
         seed,
         ecology: profile.bankClimate,
+        colorway: cell.habitat?.colorway,
         season: cell.habitat?.season,
         kind: rock
           ? "rock"
@@ -314,7 +315,7 @@ export function rasterLivingWater(
             ? "herb"
             : profile.kind === "coast"
               ? "seaweed"
-              : waterHash(gx, gy, 356) < 0.5
+              : waterHash(gx, gy, 356) < (depth < 0.9 ? 0.75 : 0.2)
                 ? "reeds"
                 : "lilies",
       });

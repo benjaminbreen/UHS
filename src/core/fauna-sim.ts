@@ -32,6 +32,11 @@ export type FaunaWorld = {
   /** How well the player carries to an animal: 1 is a person walking in the
    * open, less is quieter. Other people are always 1. */
   noise?: number;
+  /** Cells the player covered since the last tick. Flight is paced to it:
+   * the clock runs faster for someone standing than for someone running, and
+   * a deer that outruns a sprinter would cross the screen in a blink in front
+   * of someone who is not moving. Absent, animals run flat out. */
+  pressed?: number;
   /** The player is in the air this tick, and a charge goes under them. */
   dodging?: boolean;
   /** An animal has reached the player. `dir` is the way it was travelling. */
@@ -45,6 +50,12 @@ export type FaunaWorld = {
   onDrop?(hunter: FaunaGroup, prey: string, at: Point): void;
   /** Rain or snow falling: grazers stand bunched, rumps to the wind. */
   rain?: boolean;
+  /** The player as a hunter sizes them up: how badly hurt, 0 to 1; whether
+   * they carry meat or a light; how many others are with them. */
+  quarry?: { hurt: number; meat: boolean; light: boolean; company: number; asleep?: boolean };
+  /** Fires burning out of doors. Most hunters will not come near one. */
+  lights?: readonly Point[];
+  season?: string;
   /** Carcasses lying out, for the scavengers. */
   carrion?: readonly Point[];
   /** Where the wind blows toward, in screen radians: 0 is east. */
@@ -115,6 +126,10 @@ const POINT_BLANK = 2.5;
 /** What flat-out is to a walk for wild game. A person running covers six
  * cells a tick, and nobody runs down a fresh deer. */
 const BOLT = 3.5;
+/** The same with nobody pressing it: a canter, not a sprint. */
+const CANTER = 1.4;
+/** This tick's running pace for wild animals, between the two. */
+let bolt = BOLT;
 /** How far one group's presence puts another off a patch of ground. */
 const ELBOW = 8;
 /** Where a flock settles round its leader's landing cell. */
@@ -636,6 +651,27 @@ function bestStep(
   return best;
 }
 
+/** A step toward `goal` for a hunter on purpose. Once the greedy step stands
+ * stuck against something, the leader takes the way round and keeps to it; the
+ * rest follow the leader. */
+function closeOn(world: FaunaWorld, p: FaunaProfile, taken: Bodies, g: FaunaGroup, m: FaunaMember, goal: Point) {
+  const lead = g.members[0];
+  if (m !== lead) return bestStep(world, p, taken, m, g.route?.length ? lead : goal, false);
+  const end = { x: Math.round(goal.x), y: Math.round(goal.y) };
+  const last = g.route?.[g.route.length - 1];
+  if (last && (last.x !== end.x || last.y !== end.y)) g.route = undefined;
+  if (!g.route?.length) {
+    const step = bestStep(world, p, taken, m, goal, false);
+    if (step) return step;
+    g.route = route(world, p, m, end);
+  }
+  const r = g.route;
+  if (!r) return undefined;
+  r.splice(0, r.findIndex((c) => c.x === m.x && c.y === m.y) + 1);
+  const next = r[0];
+  return next && !taken.blocks(m, next) && !world.occupied(next.x, next.y) ? next : undefined;
+}
+
 /** Followers keep station: give way when a neighbour is on top of them, and
  * on the move fall in behind the leader, staggered, the way stock walks a
  * lane. Only run for groups near the player; further off the cheap follow
@@ -710,7 +746,7 @@ function moveMember(
 
 /** A mark over one animal's head: "!" when it bolts or is struck, "?" when
  * something catches its eye. The renderer finds the sprite by this id. */
-function cue(world: FaunaWorld, g: FaunaGroup, m: FaunaMember, kind: "alarm" | "notice" | "anger", toward?: Point) {
+function cue(world: FaunaWorld, g: FaunaGroup, m: FaunaMember, kind: "alarm" | "notice" | "anger" | "warn", toward?: Point) {
   const n = m.n ?? g.members.indexOf(m);
   world.emit?.({ kind: "cue", who: `${g.id}-${n}`, cue: kind, toward: toward && { x: toward.x, y: toward.y } });
 }
@@ -756,7 +792,7 @@ function run(
   const from = a.from!;
   const [rx, ry] = m.young ? [0, 0] : (p.body ?? [0, 0]);
   // Faster than a person runs: the way out is sideways, not away.
-  let steps = Math.ceil(7 * tier.speed);
+  let steps = Math.ceil(2 * bolt * tier.speed);
   const rest = (seconds: number) => {
     a.phase = "recover";
     a.until = clock + seconds;
@@ -822,8 +858,10 @@ function fight(
     (g.provoked ?? 0) <= clock ||
     !target ||
     target.space !== "outside" ||
-    hyp(lead, target) > LOSE_INTEREST
+    hyp(lead, target) > (SNAKE.test(p.id) || CROCODILE.test(p.id) ? 4 : LOSE_INTEREST)
   ) {
+    // A hunt that came to nothing, often a fence it could not get through, is not tried again at once.
+    if (g.maneater || hunter(p, faunaCombat(p))) g.balked = clock + 600;
     g.provoked = undefined;
     endAttack(g);
     return false;
@@ -901,12 +939,222 @@ function fight(
     // The line is set a tick before it is run, which is the time to leave it.
     if (!pack) return true;
   }
+  // A snake strikes the length of itself and no further.
   if (a.phase === "charge")
-    run(g, m, p, combat, world, clock, taken, target, pack ? 5 : CHARGE_RUN);
+    run(g, m, p, combat, world, clock, taken, target, pack ? 5 : SNAKE.test(p.id) ? 2 : CHARGE_RUN);
   else if (clock >= a.until) {
     m.pose = undefined;
     g.attack = undefined;
   }
+  return true;
+}
+
+/** What fears nothing does not run from a person: it watches. */
+const fearless = (p: FaunaProfile) => {
+  const c = faunaCombat(p);
+  return p.category === "wild" && c.temper === "charge" && c.damage >= 28;
+};
+/** Game seconds an animal threatens before it comes. Long enough to back off. */
+const WARN = 24;
+const SNAKE = /cobra|viper|mamba|rattlesnake|adder/;
+/** Snakes that strike from where they lie, with no display first. */
+const SILENT_SNAKE = /viper|adder/;
+const CROCODILE = /crocodile|alligator/;
+const BEAR = /bear/;
+const RUTTING = /deer|elk|moose|wapiti|reindeer/;
+const night = (world: FaunaWorld) => world.hour >= 20 || world.hour < 5;
+const dusk = (world: FaunaWorld) => (world.hour >= 18 && world.hour < 20) || (world.hour >= 5 && world.hour < 7);
+/** Hunters of big game: what could take a person. */
+const hunter = (p: FaunaProfile, combat: FaunaCombat) =>
+  p.category === "wild" && combat.damage >= 8 && !!p.preyTags?.includes("ungulate") && !CROCODILE.test(p.id);
+const nearLight = (world: FaunaWorld, at: Point, r: number) => (world.lights ?? []).some((l) => hyp(l, at) <= r);
+
+/** How far out it warns and how close it lets you come, after the season,
+ * the hour, its young and its wounds have had their say. */
+function standoff(g: FaunaGroup, p: FaunaProfile, combat: FaunaCombat, world: FaunaWorld, clock: number) {
+  const bold = p.category === "wild" && combat.temper === "charge" && combat.damage >= 28;
+  let near = p.defends ?? (bold ? 3 : undefined);
+  if (near === undefined && RUTTING.test(p.id) && world.season === "autumn") near = 2;
+  if (near === undefined && g.rabid) near = 4;
+  if (near === undefined) return undefined;
+  let k = 1;
+  // A mother with young, a bear fattening for winter, a beast with a wound.
+  if (g.members.some((m) => m.young)) k *= 1.5;
+  if (BEAR.test(p.id) && world.season === "autumn") k *= 1.3;
+  if ((g.hurtUntil ?? 0) > clock && combat.temper !== "bolt") k *= 1.4;
+  if (hunter(p, combat)) {
+    if (night(world)) k *= 1.3;
+    if (world.quarry?.meat) k *= 1.3;
+    if (world.quarry?.light) k *= 0.5;
+  }
+  const strike = near * k;
+  const warn = SNAKE.test(p.id)
+    ? SILENT_SNAKE.test(p.id) ? 0 : /rattlesnake/.test(p.id) ? 3.5 : 2.5
+    : CROCODILE.test(p.id) ? 3 : strike * 1.9 + 1;
+  return { strike, warn };
+}
+
+function provoke(world: FaunaWorld, g: FaunaGroup, m: FaunaMember, clock: number, toward: Point) {
+  g.warning = g.stalking = undefined;
+  g.provoked = clock + 30;
+  for (const o of g.members) if (o.pose === "warn") o.pose = undefined;
+  cue(world, g, m, "anger", toward);
+}
+
+/** Backs off: turns away and keeps its distance from people for a while. */
+function standDown(g: FaunaGroup, clock: number) {
+  g.warning = g.stalking = undefined;
+  g.hurtUntil = clock + 90;
+  for (const m of g.members) if (m.pose === "warn" || m.pose === "stalk") m.pose = undefined;
+}
+
+/** The threat before the attack: a dangerous animal the player comes too
+ * near stops, faces them, shows them what it is (a bear up on its hind legs,
+ * a cobra's hood, a hippo's gape), and gives them a moment to back away.
+ * Backing off ends it. Coming on, running, or waiting it out brings it. A
+ * bear will often bluff, and break off from someone who stands still; most
+ * hunters break off from a light. Returns true when it has the group's tick. */
+function threaten(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number) {
+  const player = world.humans[0];
+  if (!player || player.space !== "outside" || g.provoked !== undefined || g.owner) return false;
+  if ((g.hurtUntil ?? 0) > clock && !g.rabid) return false;
+  const combat = faunaCombat(p);
+  const range = standoff(g, p, combat, world, clock);
+  if (!range) return false;
+  const m = nearestTo(g, player);
+  const d = hyp(m, player);
+  const turns = Boolean(p.directions);
+  // A crocodile lying in the water takes whoever comes to the edge.
+  const water = (at: Point) => world.topography?.(at.x, at.y)?.surface === "water";
+  const ambush = CROCODILE.test(p.id) && water(m) && d <= 2.5;
+  if (g.warning === undefined) {
+    if (d <= range.strike * 0.6 || ambush || (g.rabid && d <= range.strike) || (SILENT_SNAKE.test(p.id) && d <= range.strike)) {
+      provoke(world, g, m, clock, player);
+      return false;
+    }
+    if (d > range.warn || g.rabid) return false;
+    g.warning = clock + WARN;
+    cue(world, g, m, "warn", player);
+  }
+  const running = (world.pressed ?? 0) >= 2;
+  if (d > range.warn * 1.25) {
+    // Gave it room: it watches a moment longer, then goes about its business.
+    g.warning = undefined;
+    for (const o of g.members) if (o.pose === "warn") o.pose = undefined;
+    return false;
+  }
+  if (d <= range.strike || (running && hunter(p, combat))) {
+    provoke(world, g, m, clock, player);
+    return false;
+  }
+  if (clock >= g.warning) {
+    const still = (world.pressed ?? 0) < 0.5;
+    if ((BEAR.test(p.id) && still && world.rng(`fauna-${g.id}-bluff-${clock}`) < 0.55) || (hunter(p, combat) && world.quarry?.light)) {
+      standDown(g, clock);
+      return false;
+    }
+    provoke(world, g, m, clock, player);
+    return false;
+  }
+  for (const o of g.members) {
+    face(o, player.x - o.x, player.y - o.y, turns);
+    if (o === m || hyp(o, player) <= range.warn) o.pose = p.art.warn ? "warn" : p.art.idle ? "idle" : undefined;
+  }
+  // Keeps up the display, a fresh mark every few seconds.
+  if (Math.floor(clock / TICK) % 3 === 0) cue(world, g, m, "warn", player);
+  g.target = undefined;
+  return true;
+}
+
+/** A hunter weighing up the player as a meal: one alone, hurt, or carrying
+ * meat, out at night, in a hard winter, or for a man-eater anyone at all.
+ * It creeps up from far off, and the first the player knows of it may be
+ * the mark over its head as it gathers itself to spring. Company, a light
+ * or a fire turns it away; a man-eater only sometimes. */
+function huntPlayer(
+  g: FaunaGroup,
+  p: FaunaProfile,
+  world: FaunaWorld,
+  clock: number,
+  taken: Bodies,
+) {
+  const player = world.humans[0];
+  const q = world.quarry;
+  if (!player || !q || player.space !== "outside" || g.provoked !== undefined || g.owner || g.stockRaid) return false;
+  const combat = faunaCombat(p);
+  if (!hunter(p, combat) && !g.maneater) return false;
+  const lead = nearestTo(g, player);
+  const d = hyp(lead, player);
+  const hour = Math.floor(clock / 3600);
+  const bold = !!g.maneater && world.rng(`fauna-${g.id}-bold-${hour}`) < 0.5;
+  const deterred = q.company >= 2 || ((q.light || nearLight(world, player, 5)) && !bold);
+  if (g.stalking !== undefined) {
+    if (deterred || clock > g.stalking || d > p.alertRadius * 4) {
+      standDown(g, clock);
+      return false;
+    }
+  } else {
+    if (deterred || clock < (g.balked ?? 0) || d > (g.maneater ? 40 : p.alertRadius * 3)) return false;
+    if (!g.maneater && (clock < (g.fedUntil ?? 0) || q.company > 0)) return false;
+    let pressure = g.maneater ? 0.8 : 0;
+    if (night(world)) pressure += 0.35;
+    else if (dusk(world)) pressure += 0.15;
+    pressure += q.hurt * 0.4 + (q.meat ? 0.25 : 0) + (q.asleep ? 0.3 : 0);
+    if (/wolf/.test(p.id) && world.season === "winter") pressure += 0.3;
+    if (!g.maneater && pressure < 0.3) return false;
+    if (world.rng(`fauna-${g.id}-hunt-${hour}`) >= pressure * 0.3) return false;
+    g.stalking = clock + 900;
+    g.quarry = undefined;
+  }
+  const pack = combat.temper === "pack";
+  if (d <= (pack ? RING + 1.5 : 5)) {
+    provoke(world, g, lead, clock, player);
+    cue(world, g, lead, "warn", player);
+    return false;
+  }
+  const turns = Boolean(p.directions);
+  g.state = p.art.stalk ? "stalk" : "wander";
+  for (const o of g.members) {
+    o.pose = p.art.stalk ? "stalk" : undefined;
+    const to = closeOn(world, p, taken, g, o, player);
+    if (to && !(to.x === player.x && to.y === player.y)) moveMember(o, to, taken, turns);
+    face(o, player.x - o.x, player.y - o.y, turns);
+  }
+  g.pos = { x: g.members[0].x, y: g.members[0].y, space: "outside" };
+  return true;
+}
+
+/** A raider a plot has loosed makes for the fold after dark. A light there,
+ * or someone sitting up with the stock, sends it off; it tries again another
+ * night. Returns true when it has the group's tick. */
+function raid(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number, taken: Bodies) {
+  const r = g.stockRaid;
+  if (!r || g.provoked !== undefined) return false;
+  const dark = night(world) || (r.night === false && dusk(world));
+  const turns = Boolean(p.directions);
+  const lead = g.members[0];
+  const goal = dark ? r.at : g.home;
+  const player = world.humans[0];
+  const watched = !!player && player.space === "outside" && !world.quarry?.asleep && hyp(player, r.at) <= 7;
+  if (dark && hyp(lead, r.at) <= 9 && (nearLight(world, r.at, 5) || watched)) {
+    if (r.repelled === undefined || r.repelled < clock - 600) {
+      r.repelled = clock;
+      cue(world, g, lead, "alarm", r.at);
+    }
+    standDown(g, clock);
+    g.fright = { ...r.at };
+    return false;
+  }
+  // At the fold the ordinary hunt takes over, with the stock as its quarry.
+  if (dark && hyp(lead, r.at) <= 4) return false;
+  if (hyp(lead, goal) <= 2) return false;
+  g.state = dark ? (p.art.stalk ? "stalk" : "wander") : "wander";
+  for (const o of g.members) {
+    o.pose = dark && p.art.stalk ? "stalk" : undefined;
+    const to = closeOn(world, p, taken, g, o, goal);
+    if (to) moveMember(o, to, taken, turns);
+  }
+  g.pos = { x: lead.x, y: lead.y, space: "outside" };
   return true;
 }
 
@@ -920,12 +1168,14 @@ function chooseQuarry(
   clock: number,
   herds: readonly { group: FaunaGroup; profile: FaunaProfile }[],
 ) {
+  if (g.hound) return houndQuarry(g, world, clock, herds);
   if (!p.preyTags?.length) return undefined;
   if (clock < (g.fedUntil ?? 0)) return undefined;
   if (aerialStates.has(g.state)) return undefined;
   // A house cat hunts under people's feet; a wolf does not.
   const shy = p.category === "wild" ? p.alertRadius : 1;
-  if (nearestThreat(world.humans, g.pos, shy)) return undefined;
+  // A raider at the fold after dark is past caring who is asleep indoors.
+  if (!g.stockRaid && nearestThreat(world.humans, g.pos, shy)) return undefined;
   // A kept hunter works its whole round, not just what it can see from the step.
   const range = Math.max(
     p.alertRadius * HUNT_RADIUS,
@@ -959,6 +1209,34 @@ function chooseQuarry(
     bestD = range;
   for (const h of edible) {
     const d = hyp(h.group.pos, g.pos);
+    if (d < bestD) {
+      best = h.group;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+/** A hunting dog works close to its hunter: a hare or a bird it can catch,
+ * or a deer or a boar it can run down and hold at bay until the hunter comes. */
+function houndQuarry(
+  g: FaunaGroup,
+  world: FaunaWorld,
+  clock: number,
+  herds: readonly { group: FaunaGroup; profile: FaunaProfile }[],
+) {
+  const master = world.humans[0];
+  if (!master || master.x < -1e5 || clock < (g.fedUntil ?? 0)) return undefined;
+  const held = herds.find((h) => h.group.id === g.quarry && h.group.members.length);
+  if (held && hyp(held.group.pos, master) <= 14 && (g.hard ?? 0) < STAMINA * 1.4) return held.group;
+  g.quarry = undefined;
+  let best: FaunaGroup | undefined,
+    bestD = 8;
+  for (const h of herds) {
+    if (!h.group.members.length || h.group.owner || h.profile.category !== "wild") continue;
+    if ((h.group.burrowed ?? 0) > clock || aerialStates.has(h.group.state)) continue;
+    if (h.profile.prey !== "small-animal" && h.profile.prey !== "ungulate") continue;
+    const d = hyp(h.group.pos, master);
     if (d < bestD) {
       best = h.group;
       bestD = d;
@@ -1093,6 +1371,7 @@ export function advanceFauna(
   clock: number,
 ) {
   now = clock;
+  bolt = CANTER + (BOLT - CANTER) * Math.min(1, (world.pressed ?? 6) / 6);
   const taken = new Bodies();
   for (const g of groups) {
     const body = faunaProfile(g.speciesId)?.body;
@@ -1168,17 +1447,15 @@ export function advanceFauna(
       }
       g.burrowed = undefined;
     }
-    // A gander does not wait to be struck: come onto its ground and it comes for you.
-    if (
-      p.defends &&
-      g.provoked === undefined &&
-      player?.space === "outside" &&
-      (g.hurtUntil ?? 0) <= clock &&
-      g.members.some((m) => hyp(m, player) <= p.defends!)
-    ) {
-      g.provoked = clock + 30;
-      cue(world, g, nearestTo(g, player), "anger", player);
-    }
+    if (g.rabid === undefined && /feral-dog|street-dog|pariah/.test(g.speciesId)) g.rabid = world.rng(`fauna-${g.id}-rabid`) < 0.03;
+    if (raid(g, p, world, clock, taken) || threaten(g, p, world, clock) || huntPlayer(g, p, world, clock, taken)) continue;
+    // In the water an ambusher shows only its eyes until it comes.
+    if (p.art.lurk)
+      for (const m of g.members) {
+        const wet = world.topography?.(m.x, m.y)?.surface === "water";
+        if (wet && g.provoked === undefined && g.state !== "flee" && !m.pose) m.pose = "lurk";
+        else if (m.pose === "lurk" && (!wet || g.provoked !== undefined)) m.pose = undefined;
+      }
     if (g.provoked !== undefined && fight(g, p, world, clock, taken)) {
       const lead = g.members[0];
       g.pos = { x: lead.x, y: lead.y, space: "outside" };
@@ -1304,6 +1581,8 @@ export function advanceFauna(
         );
         g.target = { ...(land ?? away), space: "outside" };
         g.nextDecisionAt = clock + TICK;
+      } else if (fearless(p) && !hurt && world.humans.includes(threat)) {
+        for (const m of g.members) face(m, threat.x - m.x, threat.y - m.y, turns);
       } else if (
         (!kept || hurt || chasers.includes(threat)) &&
         g.state !== "flee"
@@ -1353,9 +1632,21 @@ export function advanceFauna(
       !!victim &&
       quarry!.state !== "flee" &&
       hyp(victim, g.members[0]) <= LEAP;
-    if (quarry && springs)
+    const reached = !!g.hound && !!victim && hyp(victim, g.members[0]) <= 1.5;
+    if (quarry && reached && faunaProfile(quarry.speciesId)?.prey === "ungulate") {
+      // Too big to pull down alone: it bays, and the animal turns to face it.
+      victim!.stun = clock + 3 * TICK;
+      face(g.members[0], victim!.x - g.members[0].x, victim!.y - g.members[0].y, turns);
+      cue(world, g, g.members[0], "anger", victim);
+      g.state = "idle";
+      g.since = clock;
+      g.target = undefined;
+      g.quarry = undefined;
+      g.fedUntil = clock + 4 * TICK;
+    } else if (quarry && (springs || reached)) {
       pounce(g, p, quarry, victim!, world, clock, taken, turns);
-    else if (quarry) {
+      if (g.hound) g.fedUntil = clock + 4 * TICK;
+    } else if (quarry) {
       if (near && g.quarry !== quarry.id)
         cue(world, g, g.members[0], "notice", quarry.pos);
       g.quarry = quarry.id;
@@ -1370,6 +1661,21 @@ export function advanceFauna(
       }
       g.target = { ...quarry.pos };
       g.nextDecisionAt = clock + p.urgentDecisionSeconds;
+    }
+    // At heel: a dog left behind runs to catch up, then works round its owner.
+    if (g.hound && !quarry && !g.catching && player && player.x > -1e5) {
+      if (hyp(g.pos, player) > 4) {
+        g.state = "chase";
+        g.since = clock;
+        g.target = { x: player.x, y: player.y, space: "outside" };
+        g.nextDecisionAt = clock + TICK;
+      } else if (g.state === "chase") {
+        g.state = "idle";
+        g.since = clock;
+        g.target = undefined;
+      }
+      g.home = { x: player.x, y: player.y, space: "outside" };
+      g.homeRadius = 2;
     }
     if (
       clock >= g.nextDecisionAt &&
@@ -1424,25 +1730,37 @@ export function advanceFauna(
       (fleeing
         ? // Graded: a shape at the edge of what it notices is a trot, a person
           // on top of it is a bolt.
-          kept ? 1 + 0.6 * (g.panic ?? 1) : (1.2 + (g.panic ?? 1)) * BOLT
+          kept ? 1 + 0.6 * (g.panic ?? 1) : (1.2 + (g.panic ?? 1)) * bolt
         : flying
           ? 3
           : g.state === "chase"
             ? // Short of a fleeing deer, behind a rabbit with a head start.
-              1.8 * (kept ? 1 : BOLT)
+              1.8 * (kept ? 1 : bolt)
             : g.state === "stalk"
               ? 0.5
               : 1) *
       (running ? winded : 1) *
       TIERS[g.members[0].tier ?? "ordinary"].speed;
     g.stride += p.pace * boost;
-    let steps = Math.min(running && !kept ? 9 : 3, Math.floor(g.stride));
+    let steps = Math.min(running && (!kept || g.hound) ? 9 : 3, Math.floor(g.stride));
     g.stride -= steps;
     const leader = g.members[0];
+    // Away, but not dead away: the line swings a little each tick, and
+    // each animal holds its own a shade off the herd's.
+    const line =
+      fleeing && threat
+        ? Math.atan2(leader.y - threat.y, leader.x - threat.x) + (world.rng(`fauna-${g.id}-jink`) - 0.5) * 1.1
+        : 0;
     const bolting =
       fleeing && threat
         ? [...g.members].sort((a, b) => hyp(a, threat) - hyp(b, threat))
         : undefined;
+    const aims = new Map<FaunaMember, Point>(
+      (bolting ?? []).map((m, i) => {
+        const a = line + ((i % 3) - 1) * 0.18;
+        return [m, { x: Math.round(m.x + Math.cos(a) * 14), y: Math.round(m.y + Math.sin(a) * 14) }];
+      }),
+    );
     // Only worth weighing cover for animals the player can see running.
     const refuge: Refuge | undefined =
       fleeing && near && world.habitat
@@ -1485,7 +1803,8 @@ export function advanceFauna(
             ? bestStep(world, p, taken, m, hole, false)
             : rejoin && hyp(rejoin, threat) >= Math.min(hyp(m, threat), 6)
               ? rejoin
-              : bestStep(world, p, taken, m, threat, true, refuge);
+              : bestStep(world, p, taken, m, aims.get(m)!, false, refuge) ??
+                bestStep(world, p, taken, m, threat, true, refuge);
           if (to) {
             moveMember(m, to, taken, turns);
             moved = true;

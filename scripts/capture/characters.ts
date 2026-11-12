@@ -789,6 +789,51 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     await writeDataUrl(sheet, out("sick"));
   },
+  /** A baby on the back in each mood, three mothers: five facings, then a walk seen from front and behind. */
+  async baby(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const mothers = [["timbuktu", 1400, "back"], ["mongolia", 1200, "board"], ["delhi", 1600, "hip"], ["london", 1350, "arms"], ["paris", 1888, "pram"]].map(([id, year, carry], i) =>
+        ({ ...generateCharacter(settingFor(places.find((p: any) => p.id === id), year), "baby-review", `m${i}`, 26, "farmer", undefined, undefined, "female").appearance, carry }));
+      const moods = ["asleep", "watching", "fussing", "crying"], S = 4, cw = 40 * S, ch = 50 * S;
+      const views: [number, string, number][] = [[4, "idle", 0], [3, "idle", 0], [2, "idle", 0], [1, "idle", 0], [0, "idle", 0], [4, "walk", 1], [2, "walk", 1], [2, "walk", 3], [2, "push", 1]];
+      const sheet = document.createElement("canvas");
+      sheet.width = views.length * cw; sheet.height = mothers.length * moods.length * ch;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      const frame = document.createElement("canvas"); frame.width = frame.height = 80;
+      const fc = frame.getContext("2d")!;
+      mothers.forEach((a: any, m: number) => moods.forEach((mood, r) => views.forEach(([facing, pose, f], c) => {
+        ctx.fillStyle = (m + r) % 2 ? "#6f8a55" : "#78935c";
+        ctx.fillRect(c * cw, (m * moods.length + r) * ch, cw, ch);
+        drawCharacter(fc, { ...a, wearing: { ...a.wearing, infant: true, infantMood: mood, infantCarry: a.carry } }, [0, 1, 1, 2, 2, 2, 3, 3][facing], pose, f, undefined, facing, "neutral");
+        ctx.drawImage(frame, 20, 28, 40, 50, c * cw, (m * moods.length + r) * ch, cw, ch);
+      })));
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("baby"));
+    const night = await page.evaluate(async () => {
+      const { drawSettle, SETTLE_W: W, SETTLE_H: H } = await import("/src/ui/settle-art.ts" as string);
+      const looks = [{ skin: "#5a3a28", hair: "#1c1410", cloth: "#7a2a22", wrap: "#d8a23a", head: "#c8402a" }, { skin: "#e8c4a0", hair: "#2a2020", cloth: "#c9b99a", wrap: "#5a6a8a" }];
+      const frames = [{ breath: 0, sway: -1, calm: 0, stir: 0 }, { breath: 1, sway: 1, calm: 0.3, stir: 0.8 }, { breath: 0.5, sway: 0, calm: 0.6, stir: 0 }, { breath: 1, sway: 1, calm: 1, stir: 0 }];
+      const sheet = document.createElement("canvas"), S = 4;
+      sheet.width = frames.length * W * S; sheet.height = looks.length * H * S;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      const one = document.createElement("canvas"); one.width = W; one.height = H;
+      looks.forEach((look, r) => frames.forEach((f, c) => {
+        drawSettle(one.getContext("2d")!, look, { ...f, time: 1000 + c * 333 });
+        ctx.drawImage(one, c * W * S, r * H * S, W * S, H * S);
+      }));
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(night, out("baby-settle"));
+  },
   /** E against F, the paper doll: generated people in five facings and a walk,
    * every garment and headwear, a crowd at play scale, and F's accessories and fibres. */
   doll: (page) => dollSheets(page, ["e", "f"], "doll"),
@@ -1107,7 +1152,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           renderers.g.draw(fc, a.appearance, 1, pa, f, undefined, 2, "neutral");
           two.ctx.drawImage(frame, 16, 8, 48, 72, f * 160 + 8, row * 150, 96, 144);
           renderers.g.draw(fc, b.appearance, 3, pb, f, propOf(held), 6, "neutral");
-          two.ctx.drawImage(frame, 16, 8, 48, 72, f * 160 + 8 + 40, row * 150, 96, 144);
+          two.ctx.drawImage(frame, 16, 8, 48, 72, f * 160 + 8 + 52, row * 150, 96, 144);
         }
         two.ctx.fillStyle = "#26352c"; two.ctx.font = "12px monospace"; two.ctx.fillText(`${pa} / ${pb}`, 4, row * 150 + 148);
       });
@@ -1947,7 +1992,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   /** A spread wide enough to judge the shading engine rather than one draw:
    * dark and light palettes, bare and clothed, thin limbs, all four views.
    * POSES, SCALE and ONLY narrow it when chasing one case; RENDERER (a–d),
-   * PROP (a carried sprite) and FRAMES (all, or a list) study an action. */
+   * PROP (a carried sprite) and FRAMES (all, or a list) study an action.
+   * WATER cuts each figure at the scene's waterline: wade at its deepest, swimmers at theirs. */
   async "sprite-study"(page) {
     const knobs = {
       poses: (process.env.POSES ?? "idle,chop").split(","),
@@ -1956,6 +2002,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       renderer: process.env.RENDERER ?? "b",
       prop: process.env.PROP,
       frames: process.env.FRAMES === "all" ? [0, 1, 2, 3] : process.env.FRAMES?.split(",").map(Number),
+      water: !!process.env.WATER,
     };
     await characterLab(page);
     const sheet = await page.evaluate(async (k) => {
@@ -1963,13 +2010,18 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         "/src/render/characters/renderers.ts" as string
       );
       const drawCharacter = renderers[k.renderer].draw;
-      const art = k.prop
-        ? (await (await import("/src/render/characters/props.ts" as string)).loadCarriedArt()).get(k.prop)
+      const props = await import("/src/render/characters/props.ts" as string);
+      const icons = await import("/src/render/garment-icons.ts" as string);
+      const art = k.prop?.startsWith("icon:")
+        ? props.iconCarriedArt(k.prop, (c: CanvasRenderingContext2D) => icons.drawGarmentIcon(c, k.prop!.slice(5), 0, 0), icons.GARMENT_ICON)
+        : k.prop
+        ? (await props.loadCarriedArt()).get(k.prop)
         : undefined;
       const { originalAppearance } = await import(
         "/src/core/character.ts" as string
       );
       const base = originalAppearance as any;
+      const { SWIM_IMMERSION } = await import("/src/render/characters/doll/draw.ts" as string);
       const people = [
         // Near-black hair on deep skin, short tunic: the common village draw.
         { skin: "#70472f", hairColor: "#171312", hair: "braid",
@@ -2007,7 +2059,16 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
             for (const frame of frames ?? [pose === "idle" ? 0 : 1]) {
               bc.clearRect(0, 0, 80, 80);
               drawCharacter(bc, a, dir, pose, frame, art, dir * 2);
-              ctx.drawImage(b, 8, 16, cell, cell, col * cell * S, row * cell * S, cell * S, cell * S);
+              const x = col * cell * S, y = row * cell * S;
+              if (k.water) {
+                const line = 80 - (pose === "swim" || pose === "tread" ? SWIM_IMMERSION : 16);
+                ctx.fillStyle = "#3f8f9a";
+                ctx.fillRect(x, y + (line - 16) * S, cell * S, (80 - line) * S);
+                ctx.drawImage(b, 8, 16, cell, line - 16, x, y, cell * S, (line - 16) * S);
+                ctx.globalAlpha = 0.3;
+                ctx.drawImage(b, 8, line, cell, 80 - line, x, y + (line - 16) * S, cell * S, (80 - line) * S);
+                ctx.globalAlpha = 1;
+              } else ctx.drawImage(b, 8, 16, cell, cell, x, y, cell * S, cell * S);
               col++;
             }
       });

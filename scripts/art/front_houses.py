@@ -269,7 +269,11 @@ def adopt(recipes):
         r['frontHouse'] = spec
         r['front'] = True
         r['footprint'] = [fw, fh]
-        r['entrance'] = [fw // 2, fh]
+        if spec.get('form') == 'gable':
+            r['entrance'] = [fw // 2, fh]
+        else:
+            e = EaveHouse(spec)
+            r['entrance'] = [max(0, min(fw - 1, (e.door_x - e.x0) // 16)), fh]
         n += 1
     return n
 

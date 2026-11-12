@@ -162,10 +162,12 @@ export function addLivingWater(
   scene.textures.addCanvas(bendKey, bends);
   resources.textures.push(bendKey);
   let tint: number[] | undefined;
+  let frogs = 1;
   for (let y = 0; y < height && !tint; y += 2)
     for (let x = 0; x < width && !tint; x += 2) {
       const c = sample(x, y);
       if (c) tint = beachTint(c);
+      if (c?.habitat?.season === "winter" && c.habitat.ecology !== "tropical-woodland") frogs = 0;
     }
   const compiling = performance.now();
   const base = new Phaser.Display.BaseShader(
@@ -188,7 +190,7 @@ export function addLivingWater(
           polish?.enabled ? polish.blend : 0,
           polish?.enabled ? polish.ripples : 0,
           polish?.enabled ? 1 : 0,
-          0,
+          frogs,
         ],
       },
       bankParams: {

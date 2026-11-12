@@ -75,6 +75,10 @@ export const guards: readonly GarmentKit[] = [
     shield: [g("none", 3), g("round", 2), g("tall", 1)], shieldColor: [g(PAINTED), g(WOOD)], shieldMark: [g("chevron", 1), g("none", 2)],
     accessory: arms(["spear", 4], ["halberd", 2], ["crossbow", 2]),
   }),
+  // The longbow, not the crossbow, armed the English and Welsh levy.
+  kit("english-longbow", "English and Welsh archers: the longbow", { years: [1250, 1550], cultures: ["european"], bounds: [-5.8, 49.9, 1.8, 55.8] }, {
+    accessory: arms(["bow", 5], ["spear", 2], ["halberd", 1]),
+  }),
   kit("pike-and-shot", "Halberdier and arquebusier: morion and breastplate", { years: [1450, 1650], cultures: ["european"] }, {
     garment: [g("coat", 2), g("tunic", 1)],
     headwear: [g("kettle", 6), g("helmet", 1)],
@@ -123,7 +127,7 @@ export const guards: readonly GarmentKit[] = [
     headwear: [g("nasal", 5), g("cap", 2)],
     armour: [g("lamellar", 5), g("quilted", 2)], armourColor: [g(IRON, 3), g(LACQUER, 1)],
     shield: [g("round", 3), g("none", 2)], shieldColor: [g(HIDE), g(WOOD)],
-    accessory: arms(["bow", 4], ["spear", 4]),
+    accessory: arms(["bow", 6], ["spear", 3]),
   }),
 
   kit("sa-early", "Mauryan to Rajput: quilt, round shield, spear", { years: [-600, 1200], cultures: ["south-asian"] }, {
@@ -161,7 +165,7 @@ export const guards: readonly GarmentKit[] = [
     shield: [g("none")],
     // The sashimono, in the lord's colours: rarely worn at a peacetime gate.
     backFlag: [g("", 3), g("#e8e0d0", 1), g("#a8362c", 1), g("#2a3a5a", 1)],
-    accessory: arms(["spear", 4], ["glaive", 4], ["bow", 1]),
+    accessory: arms(["spear", 3], ["glaive", 3], ["bow", 3]),
   }),
   kit("japan-edo", "Edo gate guard: no armour in peacetime, the spear by the gate", { years: [1600, 1870], cultures: ["east-asian"], bounds: [128, 30, 146, 46] }, {
     garment: [g("open-robe", 2), g("long-tunic", 1)], ...sandals,
@@ -198,7 +202,7 @@ export const guards: readonly GarmentKit[] = [
     headwear: [g("plume", 3), g("none", 3), g("jaguar", 1), g("eagle", 1)],
     armour: [g("quilted")],
     shield: [g("round")], shieldColor: [g(PAINTED), g(OXHIDE), g("#2f6a8a")], shieldMark: [g("bands", 2), g("none", 1)],
-    accessory: arms(["spear", 2], ["macuahuitl", 3]),
+    accessory: arms(["spear", 2], ["macuahuitl", 3], ["bow", 2]),
   }),
   kit("andes", "Quilted tunic, cane helmet, small round shield", { years: [-500, 1540], cultures: ["andean"] }, {
     garment: [g("tunic")], ...sandals,

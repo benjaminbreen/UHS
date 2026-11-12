@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { SWIM_IMMERSION } from "./doll/draw";
 
 type Ripple = {
   x: number;
@@ -16,7 +17,11 @@ type Contact = {
   travel: number;
   foot: number;
   ripples: Ripple[];
+  wake: { x: number; y: number; at: number; dx: number; dy: number }[];
+  stroke: number;
 };
+
+const WAKE_MS = 1100;
 
 export class WadingEffects {
   private contacts = new Map<string, Contact>();
@@ -34,16 +39,19 @@ export class WadingEffects {
     time: number,
     moving: boolean,
     flow: readonly [number, number] = [0, 0],
+    /** The stroke's frame for a swimmer, who floats at a fixed waterline. */
+    stroke?: number,
   ) {
     let c = this.contacts.get(id);
     const wet = depth > 0.025;
     if (!wet) {
       body.setCrop();
-      body.setData("waterDepth", 0);
+      body.setData("waterDepth", 0).setData("immersion", 0).setData("swimming", false);
       if (c) this.remove(id);
       return;
     }
-    const immersion = Math.max(1, Math.min(16, Math.round(depth * 19)));
+    const swim = stroke !== undefined;
+    const immersion = swim ? SWIM_IMMERSION : Math.max(1, Math.min(16, Math.round(depth * 19)));
     const waterline = Math.round(body.y - immersion);
     if (!c) {
       c = {
@@ -59,14 +67,24 @@ export class WadingEffects {
         ripples: [
           { x: body.x, y: waterline, at: time, side: 0, entry: moving },
         ],
+        wake: [],
+        stroke: -1,
       };
       this.contacts.set(id, c);
     }
     const distance = Math.hypot(body.x - c.x, body.y - c.y);
     if (moving && distance < 12) c.travel += distance;
+    if (swim && moving && distance > 0.05 && distance < 12 && time - (c.wake.at(-1)?.at ?? -Infinity) > 70)
+      c.wake.push({ x: body.x, y: waterline, at: time, dx: (body.x - c.x) / distance, dy: (body.y - c.y) / distance });
     c.x = body.x;
     c.y = body.y;
-    if (c.travel >= 7) {
+    if (swim) {
+      c.travel = 0;
+      // A splash as the hands sweep out through the surface; treading water rings slowly.
+      if (stroke !== c.stroke && stroke === 1)
+        c.ripples.push({ x: body.x, y: waterline + 1, at: time, side: 0, entry: moving });
+      c.stroke = stroke;
+    } else if (c.travel >= 7) {
       c.travel %= 7;
       c.foot = 1 - c.foot;
       c.ripples.push({
@@ -78,13 +96,14 @@ export class WadingEffects {
       });
     }
     c.ripples = c.ripples.filter((r) => time - r.at < 850).slice(-8);
+    c.wake = c.wake.filter((w) => time - w.at < WAKE_MS);
     body.setCrop(0, 0, 80, 80 - immersion);
     c.submerged
       .setTexture(body.texture.key)
       .setPosition(body.x, body.y)
       .setCrop(0, 80 - immersion, 80, immersion)
       .setTint(0x4cbcc4)
-      .setAlpha(0.38)
+      .setAlpha(swim ? 0.22 : 0.38)
       .setDepth(body.depth - 0.02)
       .setVisible(body.visible);
     c.back
@@ -157,6 +176,20 @@ export class WadingEffects {
         }
       }
     }
+    // A V wake: each point left behind spreads both ways off the line of travel.
+    for (const w of c.wake) {
+      const age = (time - w.at) / WAKE_MS,
+        spread = 2 + age * 9;
+      const x = w.x + flow[0] * age * 4,
+        y = w.y + flow[1] * age * 4;
+      for (const side of [1, -1]) {
+        const px = Math.round(x - w.dy * spread * side - w.dx * 2),
+          py = Math.round(y + w.dx * spread * side * 0.5 - w.dy);
+        const g = py > waterline ? c.front : c.back;
+        g.fillStyle(0xc3f2e5, (1 - age) * 0.55);
+        g.fillRect(px, py, 2, 1);
+      }
+    }
     const lap = Math.sin(time / 310 + body.x * 0.13);
     arc(c.back, body.x, waterline, 6, 2, 17, 31, 0.55, 0x319daf);
     arc(
@@ -170,7 +203,7 @@ export class WadingEffects {
       0.65 + lap * 0.15,
       0xd8f8e8,
     );
-    body.setData("waterDepth", depth);
+    body.setData("waterDepth", depth).setData("immersion", immersion).setData("swimming", swim);
   }
 
   remove(id: string) {

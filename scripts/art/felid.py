@@ -80,6 +80,13 @@ KINDS = {
         "golden": _c("#2b1a0b", "#a2682a", "#d49c4d", "#e5b66d", "#f0d29e", "#f4eadb", "#25160a", "#2f1c0d"),
         "black": _c("#0e0b09", "#251e1a", "#372d27", "#4c4038", "#60534a", "#41362f", "#191311", "#1d1613"),
     }, weights={"golden": 9, "black": 1}),
+    # Plain tawny or grey, small-headed, long in the hind leg, and a long heavy
+    # tail with a dark tip; white muzzle and a black mark either side of it.
+    "cougar": dict(ground_tail=True, s=0.76, leg=0.98, fore=0.92, tail=1.2, sabre=False, spots=False, head=0.78, girth=0.86, coats={
+        "tawny": _c("#2a1b0e", "#8f6a42", "#b98f60", "#cfa87a", "#e3c69c", "#f1e6d4", "#3a2a1c", "#2c1d12"),
+        "grey": _c("#25211c", "#7a6f62", "#a39888", "#bcb2a2", "#d4ccbe", "#efebe4", "#35302a", "#28241f"),
+        "red": _c("#2a170b", "#8a522c", "#b87444", "#cf9160", "#e4b48a", "#f2e4d4", "#3a2416", "#2c1a0e"),
+    }, weights={"tawny": 5, "grey": 2, "red": 2}),
 }
 SPECIES = list(KINDS)
 for _k in KINDS.values():
@@ -94,7 +101,7 @@ def dims(sp):
 
 NATIVE_SIZES = {sp: (dims(sp)[0], dims(sp)[1] + 4 + dims(sp)[2]) for sp in SPECIES}
 STANDING_SIZES = {sp: (dims(sp)[0], dims(sp)[1] + 1) for sp in SPECIES}
-STATES = {sp: {"idle": 16, "wander": 8, "stalk": 8, "chase": 8, "flee": 8, "pounce": 8, "rest": 16} for sp in SPECIES}
+STATES = {sp: {"idle": 16, "wander": 8, "stalk": 8, "chase": 8, "flee": 8, "pounce": 8, "rest": 16, "warn": 8} for sp in SPECIES}
 PALETTES = {sp: next(iter(k["coats"].values())) for sp, k in KINDS.items()}
 FORMS = {sp: list(k.get("forms", {sp: {}})) for sp, k in KINDS.items()}
 
@@ -253,9 +260,13 @@ def head(c, p):
     if p["mouth"]:
         c.px[at(add(add((hx, hy), fwd, 3.2 * hs), down, 2.3))] = "p"
         c.px[at(add(add((hx, hy), fwd, 2.6 * hs), down, 2.3))] = "p"
+    if p["mouth"] > 1 and not K["sabre"]:  # the snarl: fangs top and bottom
+        c.px[at(add(add((hx, hy), fwd, 4.6 * hs), down, 1.9))] = "i"
+        c.px[at(add(add((hx, hy), fwd, 4.0 * hs), down, 2.4 + p["mouth"] * 2.2 - 1.2))] = "i"
+        c.px[at(add(add((hx, hy), fwd, 3.6 * hs), down, 2.4 + p["mouth"] * 1.1))] = "p"
     if K["sabre"]:  # hanging below the chin even with the mouth shut
         root = add(add((hx, hy), fwd, 4.3 * hs), down, 2.2)
-        for i in range(4 + 2 * p["mouth"]):
+        for i in range(4 + round(2 * p["mouth"])):
             q = at(add(root, rot((-0.25, 1), look), i * 0.9))
             c.px[q] = "i"
     ex, ey = at(add(add((hx, hy), fwd, 2.4 * hs), down, -0.8))
@@ -539,6 +550,22 @@ def idle(frame):
     return p
 
 
+def warn(frame):
+    """Crouched and backing, ears flat, the mouth wide in a snarl, and the
+    long tail lashing from side to side along the grass."""
+    lg = K["leg"]
+    top = GM - 21 * lg
+    lash = math.sin(2 * math.pi * frame / 8)
+    hiss = [0.6, 1.2, 1.6, 1.6, 1.6, 1.2, 0.8, 0.6][frame]
+    swat = frame in (3, 4)
+    g = GM
+    p = pose(hip=(23.5, top + 7), sh=(41, top + 8.5), head=(48.5, top + 7.5 - hiss * 0.5), look=-8 - hiss * 4, ears="flat",
+             mouth=hiss, breath=1 if frame in (2, 3) else 0,
+             feet=dict(fh=(21.5, g), nh=(24.5, g), ff=(42.5, g), nf=(45.5, g - (3.5 if swat else 0))), reach=2 if swat else None,
+             tail=[(0, 0), (-5, 1 + lash), (-10, 1 - lash * 2.5), (-14, 3 + lash * 3)])
+    return p
+
+
 def rest(frame):
     return pose(down=True, breath=1 if frame % 8 in (2, 3, 4, 5) else 0)
 
@@ -571,6 +598,9 @@ def face(state, frame, south):
         ears = "back" if frame >= 2 else "up"
         if 2 <= frame <= 4:
             lifts = dict(ff=6, nf=6, fh=2, nh=2)
+    elif state == "warn":
+        low, mouth, ears = 4.5, 1, "flat"
+        lifts = {"nf": 2.5 if frame in (3, 4) else 0}
     elif state == "idle":
         mouth = 1 if 8 <= frame <= 11 else 0
         eye = not (8 <= frame <= 11 or frame == 14)
@@ -625,6 +655,9 @@ def face(state, frame, south):
         c.px[nose] = "k"
         if mouth:
             c.px[(nose[0], nose[1] + 2)] = "p"
+        if state == "warn":
+            c.px.update({(nose[0], nose[1] + 3): "p", (nose[0] - 1, nose[1] + 2): "i", (nose[0] + 1, nose[1] + 2): "i",
+                         (nose[0] - 1, nose[1] + 1): "o", (nose[0] + 1, nose[1] + 1): "o"})
         if K["sabre"]:
             for sgn in (-1, 1):
                 for i in range(2 + mouth):
@@ -653,7 +686,7 @@ def face(state, frame, south):
     for x, key in ((cx - 3.5, "fh"), (cx + 3.5, "nh")):
         leg(x, key, top + 9 + y0 + low, False, 1.8)
     tl = K["tail"]
-    sw = math.sin(2 * math.pi * t) * (1.5 if state != "stalk" else 0.3)
+    sw = math.sin(2 * math.pi * t) * (1.5 if state != "stalk" else 0.3) * (2.5 if state == "warn" else 1)
     tp = [(cx, top + 8 + y0 + low), (cx + sw * 0.5, top + 8 + 6 * tl + y0 + low), (cx + sw, top + 8 + 12 * tl + y0 + low)]
     if K.get("ground_tail") and tp[-1][1] > g:  # the rest of it lies along the grass
         tp = [tp[0], (tp[1][0], min(tp[1][1], g)), (cx + sw + 3.5, g)]
@@ -765,7 +798,7 @@ def face_rest(c, frame, south):
 
 # ------------------------------------------------------------------- build
 SIDE = {"idle": idle, "wander": walk, "stalk": stalk, "chase": lambda f: gallop(f, "flat"),
-        "flee": gallop, "pounce": pounce, "rest": rest}
+        "flee": gallop, "pounce": pounce, "rest": rest, "warn": warn}
 DIRECTIONS = ("south", "east", "north", "west")
 
 

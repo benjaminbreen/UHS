@@ -568,7 +568,8 @@ def wolf(state, frame):
     ground = 23
     if state == "rest":
         return _wolf_rest(c, frame)
-    low = 2 if state == "stalk" else 0
+    warn = state == "warn"
+    low = 2 if state == "stalk" or warn else 0
     bounce = round(1.5 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
     by = low - bounce
     hip_h, hip_f = (10, 12 + by), (24, 12 + by)
@@ -594,6 +595,9 @@ def wolf(state, frame):
         tail = polygon([(2, 9 + by), (9, 9 + by), (9, 13 + by), (1, 12 + by)])
     elif state == "stalk":
         tail = polygon([(6, 11 + by), (9, 10 + by), (9, 14 + by), (4, 20 + by), (2, 19 + by)])
+    elif warn:  # stiff and up, the tip quivering
+        q = frame % 2
+        tail = polygon([(7, 10 + by), (9, 9 + by), (9, 13 + by), (2, 6 + by - q), (1, 4 + by - q), (3, 3 + by - q)])
     else:
         wag = 1 if state == "idle" and frame in (2, 3, 6, 7) else 0
         tail = polygon([(7, 10 + by), (9, 9 + by), (9, 14 + by), (3 - wag, 18 + by), (1 - wag, 16 + by)])
@@ -613,13 +617,17 @@ def wolf(state, frame):
     if running:
         hx, hy = 28, 5 + by
         neck = polygon([(22, 8 + by), (29, 8 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
-    elif state == "stalk":
-        hx, hy = 28, 8 + by
+    elif state == "stalk" or warn:
+        hx, hy = 28 + (1 if warn and frame in (3, 4) else 0), 8 + by + (1 if warn else 0)
         neck = polygon([(22, 8 + by), (29, 9 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
     else:
         hx, hy = 27, 2 + by
         neck = polygon([(22, 8 + by), (29, 8 + by), (hx + 4, hy + 5), (hx - 1, hy + 5)])
     c.paint(shade(neck, 1, 1))
+    if warn:  # hackles up from the neck to the middle of the back
+        for x in range(14, 27):
+            c.dot(x, 5 + by - (x % 2) - (1 if frame in (2, 3, 4, 5) and x % 2 else 0), "d")
+            c.dot(x, 6 + by, "d")
     _wolf_head(c, hx, hy, frame, state)
     draw_leg("nh", hip_h, True, True)
     draw_leg("nf", hip_f, False, True)
@@ -643,6 +651,8 @@ def _wolf_head(c, x, y, frame, state):
     c.dot(x + 3, y + 2, "a" if not (frame == 6 and state == "idle") else "d")
     flick = state == "idle" and frame in (3, 4)
     ear = polygon([(x + 2, y + 1), (x + 3 + (1 if flick else 0), y - 3), (x + 5, y + 1)])
+    if state == "warn":  # ears pinned back
+        ear = polygon([(x + 1, y + 2), (x - 2, y), (x + 4, y + 1)])
     c.paint(flat(ear, "m"))
     c.dot(x + 3, y - 1, "d")
     if state == "chase" and frame % 2:
@@ -650,6 +660,12 @@ def _wolf_head(c, x, y, frame, state):
         c.dot(x + 9, y + 7, "a")  # tongue
     if state == "stalk":
         c.dot(x + 9, y + 6, "h")  # bared tooth
+    if state == "warn":  # lips back off the teeth, the jaw dropped
+        for k in range(4, 10):
+            c.dot(x + k, y + 6, "o" if k < 8 else "h")
+            c.dot(x + k, y + 7, "d")
+        c.dot(x + 9, y + 5, "h")
+        c.dot(x + 6, y + 5, "h")
 
 
 def _wolf_rest(c, frame):

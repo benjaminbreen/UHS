@@ -34,17 +34,25 @@ when the task is actually about its subject:
 ## Verifying
 
 - `npm run check` — **the gate before you call work done.** Typecheck, unit
-  tests and a production build. It is the only thing you need to pass;
-  nothing below is a gate.
+  tests and a production build. Stops scheduling tests after the first failure.
+  It is the only gate.
+- `npm run typecheck` — run TypeScript with the build's heap limit.
 - `npm test` — the fast default: mechanics, terrain/rendering contracts, and
   representative integration checks. Keep repeated world builds, regional
   matrices and exhaustive rendering combinations in `test:full`.
-- `npx vitest run tests/<name>.test.ts` — after an edit, run just what covers it.
-  Explicit files or `-t` names include their opt-in cases automatically.
+- `npm run test:quick -- tests/<name>.test.ts` — run the default cases in a
+  file, reuse cached transforms, and stop scheduling tests at the first failure.
+  Add `-t "name"` to narrow it further.
+- `npm run test:watch -- tests/<name>.test.ts` — rerun the default cases as
+  their source files change. Prefix with `CHOKIDAR_USEPOLLING=1` if native
+  file events are unavailable.
+- `npx vitest run tests/<name>.test.ts` — include the file's opt-in cases.
+  A `-t` name filter also enables them in ordinary runs.
 - `npm run shot -- artifacts/x.png "A dyer in Kyoto, 1350"` — one
-  screenshot of the running game. Starts the dev server itself if needed.
-  More `out.png "prompt"` pairs in the same call share the server and
-  browser, which is much faster than one call each.
+  screenshot of the running game. Starts a private dev server by default.
+  Set `UHS_URL` or `PORT` to use a running server. More `out.png "prompt"`
+  pairs in one call share the server and browser. Each shot has a 120-second
+  deadline, configurable with `UHS_SHOT_TIMEOUT_MS`.
 - `npm run town:sheet` — a generated settlement without a browser. Use before
   and after changing layout, yards or building art.
 - `npm run capture:characters -- <preset>` and `npm run capture:terrain -- <review>`
@@ -97,10 +105,10 @@ Do not grep or read these whole; they are generated or bulk content:
 `src/core/engine.ts` and `src/render/WorldScene.ts` are each over 250k: search
 for the symbol and read a range.
 
-To play or playtest the game yourself, use the agent tools, not screenshots
-and scripts: `npm run agent:serve` is an MCP server that puts you in a world
-(look, goto, act, errand, travel). `npm run agent:run` lets a model play on its
-own. See `docs/AGENTS.md`.
+Playtest game mechanics with `npm run agent:play -- --setting "Weaver in Oaxaca 1650" --seed playtest`.
+It runs offline and leaves a replayable record. Type `look` to start.
+Use `npm run --silent agent:serve` for MCP or `npm run agent:run` for a model-driven
+run. See `docs/AGENTS.md`.
 
 ## Do not add scaffolding
 

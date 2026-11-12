@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSettingSession, type Runtime } from "../src/runtime/session";
-import { startPlot } from "../src/core/plot";
+import { plotLine, startPlot, type PlotState } from "../src/core/plot";
+import { STANCE_VOICE, stanceOf } from "../src/content/plots/stance";
 import { PLOTS } from "../src/content/plots";
 import { accused } from "../src/content/plots/accused";
 import { commission } from "../src/content/plots/commission";
 import { debt } from "../src/content/plots/debt";
 import { feast } from "../src/content/plots/feast";
+import { maneater } from "../src/content/plots/maneater";
+import { raid } from "../src/content/plots/raid";
 import { token } from "../src/content/plots/token";
 import type { PlotTemplate } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
@@ -14,7 +17,7 @@ import { Engine } from "../src/core/engine";
 import { doorApproach } from "../src/core/doors";
 import { markOf } from "../src/core/kin";
 import { items } from "../src/content/packs";
-import type { PlayerCommand } from "../src/core/types";
+import type { PlayerCommand, Stats } from "../src/core/types";
 import { taskView, tasksOf } from "../src/ui/task-view";
 import { smallSession } from "./fixtures";
 
@@ -52,6 +55,28 @@ describe("plot templates", () => {
       for (const w of plot.wording)
         for (const key of called) expect(w.lines[key] ?? plot.wording.at(-1)!.lines[key], `${plot.id} ${w.title}: ${key}`).toBeTruthy();
     }
+  });
+
+  it("say a spoken line the speaker's way, where the wording that gives the line has one", () => {
+    const stats = { openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50, strength: 50, wit: 50 } as Stats;
+    expect(stanceOf(stats, 0)).toBeUndefined();
+    expect(stanceOf({ ...stats, agreeableness: 20 }, 0)).toBe("bully");
+    expect(stanceOf({ ...stats, agreeableness: 20 }, 4)).toBe("reluctant");
+    for (const plot of PLOTS) {
+      const slots = (line: string) => line.match(/\{\w+\}/g) ?? [];
+      const known = new Set(plot.wording.flatMap((w) => Object.entries(w.lines)).filter(([k]) => !k.includes(".")).flatMap(([, l]) => slots(l)));
+      for (const w of plot.wording)
+        for (const [key, line] of Object.entries(w.lines)) {
+          const [base, stance] = key.split(".");
+          if (!stance) continue;
+          expect(STANCE_VOICE, key).toHaveProperty(stance);
+          expect(w.lines[base], `${plot.id}: ${key}`).toBeTruthy();
+          for (const slot of slots(line)) expect(known, `${plot.id} ${key}: ${slot}`).toContain(slot);
+        }
+    }
+    const plot = { id: "accused", wording: accused.wording.length - 1, words: { thing: "a hen", amount: "two baskets", due: "by sundown" }, cast: {} } as unknown as PlotState;
+    expect(plotLine(plot, "accuse", undefined, "bully")).toBe("You stole a hen from me. I want two baskets for it by sundown. If I don't get it, I'll tell everyone here you're a thief.");
+    expect(plotLine({ ...plot, wording: 0 }, "accuse", undefined, "bully")).toContain("magistrate");
   });
 });
 
@@ -186,26 +211,28 @@ describe("Something at the Door", () => {
 
 describe("plots played out in London, 1750", () => {
   it("binds a seeded debt, sends the creditor over, and ends it by payment or seizure", () => {
-    const e = session();
+    const e = smallSession({ ...setting, economyRevision: 1 }, "b");
+    const local = e.world.pack.setting!;
     const s = e.state;
-    delete s.plot;
+    s.clock = 9 * 3600 + 54;
     const home = s.households!.find((h) => h.members.includes(s.player.id))!;
-    const lender = s.actors.find((a) => a.kind === "human" && !a.dead && (a.age ?? 30) >= 18 &&
+    const creditor = s.actors.find((a) => a.kind === "human" && !a.dead && (a.age ?? 30) >= 18 &&
       a.householdId && a.householdId !== home.id)!;
-    const supplier = s.households!.find((h) => h.id === lender.householdId)!;
+    const supplier = s.households!.find((h) => h.id === creditor.householdId)!;
     supplier.makes = [...(supplier.makes ?? []), "bread"];
-    supplier.producers = { ...supplier.producers, bread: lender.id };
+    supplier.producers = { ...supplier.producers, bread: creditor.id };
     home.owes = supplier.id;
-    home.credit = { good: "bread", from: supplier.id, seller: lender.id, debtor: s.player.id, amount: 8, reason: "household", repayment: "money" };
-    const plot = drawOnly(debt, () => startPlot(e.state, setting))!;
+    home.credit = { good: "bread", from: supplier.id, seller: creditor.id, debtor: s.player.id, amount: 8, reason: "household", repayment: "money" };
+    const plot = startPlot(s, local, debt.id)!;
     expect(plot.id).toBe("debt");
+    expect(plot.cast.creditor).toBe(creditor.id);
     expect(e.state.lifeAim?.id).toBe("plot:debt");
     const again = structuredClone(e.state);
     delete again.plot;
-    expect(drawOnly(debt, () => startPlot(again, setting))?.cast).toEqual(plot.cast);
+    expect(startPlot(again, local, debt.id)?.cast).toEqual(plot.cast);
 
-    const creditor = e.state.actors.find((a) => a.id === plot.cast.creditor)!;
-    for (let i = 0; i < 30 && !e.approacher; i++) act(e, { type: "wait", seconds: 60 });
+    creditor.pos = { ...s.player.pos, x: s.player.pos.x + 1 };
+    expect(act(e, { type: "wait", seconds: 6 }).status).toBe("completed");
     expect(e.approacher?.id).toBe(creditor.id);
     expect(e.cards.find((c) => c.kind === "speech")?.text).toContain(plot.words.amount);
 
@@ -314,5 +341,32 @@ describe("plots played out in London, 1750", () => {
     order.fired.push("worked");
     act(e, { type: "interact", target: patron.id, action: "talk" });
     expect(order.ended).toBe("delivered");
+  });
+  it("looses a named man-eater in lion country and ends when the player kills it", () => {
+    const e = session();
+    delete e.state.plot;
+    const tsavo = { ...setting, lon: 38.5, lat: -3, year: 1898, culture: "east-southern-african" as const, settlement: "village" as const };
+    expect(maneater.weight({ seed: "b", setting: tsavo, clock: 0, player: e.state.player, actors: e.state.actors, households: [] })).toBeGreaterThan(0);
+    const plot = drawOnly(maneater, () => startPlot(e.state, tsavo))!;
+    expect(plot.words.species).toBe("lion");
+    e.advance(60);
+    const beast = e.state.fauna?.find((g) => g.id === plot.refs?.beast);
+    expect(beast?.maneater?.name).toBe(plot.words.beast);
+    plot.fired.push("beast:slain");
+    e.advance(60);
+    expect(plot.ended).toBe("slain");
+  });
+  it("sends a raider to the household's pen at dusk and ends in the morning", () => {
+    const e = session();
+    e.state.player.origin = { ...e.state.player.origin!, livelihood: "shepherd" };
+    delete e.state.plot;
+    const gevaudan = { ...setting, lon: 3.5, lat: 44.7, year: 1765, culture: "european" as const, settlement: "village" as const };
+    const plot = drawOnly(raid, () => startPlot(e.state, gevaudan))!;
+    expect(plot.words.kind).toBe("wolf");
+    e.advance(plot.deadline - 11 * 3600 - e.state.clock + 60);
+    expect(e.state.fauna?.find((g) => g.id === plot.refs?.beast)?.stockRaid?.at).toBeTruthy();
+    plot.fired.push("move");
+    e.advance(plot.deadline - e.state.clock + 60);
+    expect(["moved", "took", "killed"]).toContain(plot.ended);
   });
 });

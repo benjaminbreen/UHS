@@ -241,6 +241,8 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
       if (result.leave || result.ended) {
         setLeft(true);
         setResponding(false);
+        // Leave the line up a moment, then get out of the way of the walk.
+        if (result.lead && actor?.errand?.label.startsWith("Showing you")) setTimeout(close, 2200);
       }
       say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
     }

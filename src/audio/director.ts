@@ -20,6 +20,7 @@ import { events, noise, playSound, tone, type EventId, type Sound } from "./sfx"
 import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, silence, type AmbienceMix } from "./ambience";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
+import { situationTheme, type Situation } from "./situation-themes";
 
 export interface AudioState {
   loading: boolean;
@@ -59,11 +60,13 @@ const SLOW_FADE_IN = 8;
 const SLOW_FADE_OUT = 4;
 const pick = <T>(list: readonly T[]) =>
   list[Math.floor(Math.random() * list.length)];
+const timed = anywhereThemes.filter((t) => t.hours),
+  shared = [...themes, ...anywhereThemes.filter((t) => !t.hours)];
 function shuffled(themeId = pick(themes).id): Arrangement {
   return {
     themeId,
     season: pick(seasons),
-    period: pick(periods),
+    period: timed.some((t) => t.id === themeId) ? "day" : pick(periods),
     era: pick(eras),
   };
 }
@@ -93,7 +96,18 @@ export class AudioDirector {
   private setting = "";
   /** The building's piece; null for a room kept quiet, undefined outdoors. */
   private inside?: InteriorMusic | null;
-  private rotation = new MusicRotation([], [...themes, ...anywhereThemes]);
+  /** A situation's piece holding the stage over place and room. */
+  private held?: string;
+  private heldLoops = false;
+  private workIdle?: ReturnType<typeof setTimeout>;
+  private place?: { culture?: CultureId; year?: number; at: string };
+  private arrivals = 0;
+  private lastArrival = -Infinity;
+  private rotation = new MusicRotation([], shared);
+  private clock = 0;
+  private playful = false;
+  /** World hour (absolute) at which each timed piece last played. */
+  private timedAt = new Map<string, number>();
   private state: AudioState = {
     loading: false,
     playing: false,
@@ -252,12 +266,22 @@ export class AudioDirector {
       (ctx.currentTime - run.start) / secondsPerBeat + run.offset,
     );
     if (beat >= run.score.beats) {
+      if (this.held && this.heldLoops) {
+        this.patch({ beat: 0 });
+        this.begin();
+        return;
+      }
+      if (this.held) {
+        this.retire(false, SLOW_FADE_OUT);
+        this.patch({ playing: false, beat: 0 });
+        return;
+      }
       if (this.state.followWorld && this.inside === undefined) {
         this.retire(false, SLOW_FADE_OUT);
         this.patch({ playing: false, beat: 0 });
         this.later(GAP_MIN + Math.random() * GAP_SPREAD, () => {
           this.configure(shuffled(
-            this.rotation.next(this.state.arrangement.themeId),
+            this.nextTheme(this.state.arrangement.themeId),
           ));
           void this.play(SLOW_FADE_IN);
         });
@@ -341,22 +365,49 @@ export class AudioDirector {
   ) {
     const key = `${culture}:${year}:${location?.lon}:${location?.lat}`;
     if (key === this.setting) return;
-    const firstSetting = !this.setting;
+    const firstSetting = !this.setting,
+      before = this.place;
     this.setting = key;
+    this.place = { culture, year, at: `${location?.lon}:${location?.lat}` };
+    // Years pass within a life without a cue; no life jumps sixty at once, so more is time travel.
+    const slipped = Math.abs((before?.year ?? 0) - (year ?? 0)) > 60,
+      now = performance.now();
+    if (!firstSetting && (slipped || (before?.at !== this.place.at && now - this.lastArrival > 60000))) {
+      if (!slipped) this.lastArrival = now;
+      void this.cue(
+        slipped
+          ? situationTheme("timeslip", culture, year)
+          : situationTheme("arrival", culture, year, this.arrivals++),
+      );
+    }
     const direct = culture && year !== undefined
       ? culturalMusic(culture, year, location).direct
       : [];
-    this.rotation = new MusicRotation(direct, [...themes, ...anywhereThemes]);
+    this.rotation = new MusicRotation(direct, shared);
     // Setting refreshes affect the next piece, not the one already underway.
     if (firstSetting && this.state.followWorld && this.inside === undefined &&
       !this.state.playing && !this.state.loading)
-      this.configure({ themeId: this.rotation.next() });
+      this.configure({ themeId: this.nextTheme() });
+  }
+  setClock(seconds: number, playful: boolean) {
+    this.clock = seconds;
+    this.playful = playful;
+  }
+  /** A piece that belongs to this hour and has not yet played today, else the rotation's next. */
+  private nextTheme(previous?: string) {
+    const hours = this.clock / 3600,
+      hour = hours % 24;
+    const due = timed.find((t) => (!t.playful || this.playful) && hour >= t.hours![0] && hour < t.hours![1] && hours - (this.timedAt.get(t.id) ?? -Infinity) > 12);
+    if (!due) return this.rotation.next(previous);
+    this.timedAt.set(due.id, hours);
+    this.state = { ...this.state, arrangement: { ...this.state.arrangement, period: "day" } };
+    return due.id;
   }
   /** Crossing a threshold swaps the score at once, as an RPG does at an inn door. */
   setInterior(music: InteriorMusic | null | undefined) {
     if (music === this.inside) return;
     this.inside = music;
-    if (!this.state.followWorld) return;
+    if (!this.state.followWorld || this.held) return;
     this.generation++;
     clearTimeout(this.pending);
     this.retire(false, 1.5);
@@ -364,13 +415,78 @@ export class AudioDirector {
     if (music === null) return;
     const themeId = music
       ? interiorThemes[music].id
-      : this.rotation.next(this.state.arrangement.themeId);
+      : this.nextTheme(this.state.arrangement.themeId);
     this.patch({ arrangement: { ...this.state.arrangement, themeId } });
     if (this.ctx) void this.play(1.5);
   }
+  /** A short piece over whatever is playing, which steps back for it. */
+  async cue(themeId: string) {
+    const ctx = this.ctx;
+    if (!ctx || this.disposed || this.held || !this.state.followWorld) return;
+    const score = compose({ ...this.state.arrangement, themeId, period: "day" });
+    await prepareScore(ctx, score, () => !this.disposed);
+    if (this.disposed || this.held) return;
+    const secondsPerBeat = 60 / score.bpm,
+      seconds = score.beats * secondsPerBeat,
+      now = ctx.currentTime + 0.05;
+    const under = this.run?.gain.gain;
+    if (under) {
+      under.cancelAndHoldAtTime(now);
+      under.linearRampToValueAtTime(0.25, now + 0.6);
+      under.setValueAtTime(0.25, now + seconds);
+      under.linearRampToValueAtTime(1, now + seconds + 3);
+    }
+    const mix = createMix(ctx, this.music!, score.bpm, { melody: 1, harmony: 1, bass: 1, percussion: 1 }, score.reverb);
+    for (const note of score.notes)
+      scheduleNote(ctx, mix.stems[note.stem], note, now + note.beat * secondsPerBeat, secondsPerBeat);
+    setTimeout(() => mix.disconnect(), (seconds + (score.reverb?.[1] ?? 2.6) + 1) * 1000);
+  }
+  /** F held at a work station starts the work dance. It runs on between
+   * stages and stops when the day's work is done or the player leaves it. */
+  work(state: "hold" | "done") {
+    const dance = situationTheme("work", this.place?.culture, this.place?.year);
+    if (this.held && this.held !== dance) return;
+    clearTimeout(this.workIdle);
+    if (state === "hold") {
+      this.setSituation("work");
+      this.workIdle = setTimeout(() => this.held === dance && this.setSituation(undefined), 30000);
+    } else if (this.held) {
+      this.setSituation(undefined);
+      void this.cue(situationTheme("workdone", this.place?.culture, this.place?.year));
+    }
+  }
+  /** A situation takes the score from place and room until it is released.
+   * The work dance starts at once and loops; the others play once and leave silence. */
+  setSituation(situation: Situation | undefined) {
+    const themeId = situation && situationTheme(situation, this.place?.culture, this.place?.year);
+    if (themeId === this.held) return;
+    const quick = situation === "work" || this.heldLoops;
+    this.held = themeId;
+    this.heldLoops = situation === "work";
+    if (!this.state.followWorld) return;
+    this.generation++;
+    clearTimeout(this.pending);
+    this.retire(false, quick ? 0.4 : 2.5);
+    this.patch({ playing: false, loading: false, beat: 0 });
+    if (themeId) {
+      this.patch({ arrangement: { ...this.state.arrangement, themeId, period: "day" } });
+      if (this.ctx && quick) void this.play(0.15);
+      else if (this.ctx) this.later(2500, () => this.play(1.5));
+      return;
+    }
+    const inside = this.inside;
+    if (inside === null) return;
+    this.patch({
+      arrangement: {
+        ...this.state.arrangement,
+        themeId: inside ? interiorThemes[inside].id : this.nextTheme(this.state.arrangement.themeId),
+      },
+    });
+    if (this.ctx) this.later(3000, () => this.play(SLOW_FADE_IN));
+  }
   follow(enabled: boolean) {
     this.patch({ followWorld: enabled });
-    if (enabled) this.configure({ themeId: this.rotation.next() });
+    if (enabled) this.configure({ themeId: this.nextTheme() });
   }
   /** The world's ambient picture: weather, water, a town, a fire, a roof. */
   private pinned?: AmbienceMix;

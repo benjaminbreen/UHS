@@ -136,6 +136,20 @@ try {
       );
     await page.evaluate(() => {
       window.longTasks = [];
+      const start = performance.now(), stages = {};
+      window.startupStages = stages;
+      const selectors = {
+        portraitMs: ".arrival-details.is-ready",
+        engineMs: ".arrival-enter:not([disabled])",
+        playableMs: '.game-container canvas[data-terrain-playable="true"]',
+      };
+      const observer = new MutationObserver(() => {
+        for (const [stage, selector] of Object.entries(selectors))
+          if (stages[stage] === undefined && document.querySelector(selector))
+            stages[stage] = Math.round(performance.now() - start);
+        if (stages.playableMs !== undefined) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "disabled", "data-terrain-playable"] });
     });
     const selection = Date.now();
     memory?.phase("loading");
@@ -156,6 +170,7 @@ try {
         .then(() => Date.now() - selection),
     ]);
     const startupTasks = await page.evaluate(() => window.longTasks);
+    const startupStages = await page.evaluate(() => window.startupStages);
     await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 30000 });
     await page
       .locator('.game-container canvas[data-terrain-pending="0"]')
@@ -278,6 +293,7 @@ try {
       shellMs,
       readyMs,
       entryMs,
+      startupStages,
       startupTasks,
       sample,
       metrics,

@@ -41,7 +41,7 @@ export class Reflections {
     const view = this.scene.cameras.main.worldView;
     const seen = new Set<Phaser.GameObjects.Image>();
     for (const im of sources) {
-      if (!im.active || !im.visible || im.alpha < 0.5 || seen.has(im) || waterborneFrames.has(im.frame.name) || im.getData?.("aboard")) continue;
+      if (!im.active || !im.visible || im.alpha < 0.5 || seen.has(im) || waterborneFrames.has(im.frame.name) || im.getData?.("aboard") || im.getData?.("swimming")) continue;
       const w = im.displayWidth,
         h = im.displayHeight,
         left = im.x - im.originX * w,
@@ -61,17 +61,21 @@ export class Reflections {
       // A slow sway, out of step from one double to the next, stands in for
       // the ripple that breaks a real reflection.
       const sway = Math.round(Math.sin(time / 900 + (im.x + im.y) * 0.05));
+      // A wader or swimmer mirrors about the waterline, and only what is above it.
+      const immersion: number = im.getData?.("immersion") ?? 0;
       m.setTexture(im.texture.key, im.frame.name)
         .setOrigin(im.originX, 0)
         .setFlipX(im.flipX)
         .setFlipY(true)
         .setScale(im.scaleX, im.scaleY)
-        .setPosition(im.x + sway, feet)
+        .setPosition(im.x + sway, feet - 2 * immersion * im.scaleY)
         .setTint(tint)
         .setAlpha(0.45)
         .setDepth(depthOver(feet + h))
         .setMask(mask)
         .setVisible(true);
+      if (immersion) m.setCrop(0, 0, im.frame.width, im.frame.height - immersion);
+      else if (m.isCropped) m.setCrop();
     }
     for (const [im, m] of this.mirrors)
       if (!seen.has(im)) {

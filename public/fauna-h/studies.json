@@ -1,0 +1,87 @@
+{
+  "hippopotamus": {
+    "palette": [
+      "#120d0e",
+      "#4a3d40",
+      "#6e5c5c",
+      "#8d7a76",
+      "#a8948c",
+      "#c08a7e",
+      "#d98c8f",
+      "#efe6cf",
+      "#100b0b",
+      "#2a1e20",
+      "#3a3033",
+      "#c3d3c4"
+    ],
+    "states": {
+      "idle": 16,
+      "graze": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16,
+      "swim": 8,
+      "lurk": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      74,
+      56
+    ],
+    "standing": [
+      74,
+      30
+    ],
+    "looks": {
+      "roles": {
+        "o": "#120d0e",
+        "d": "#4a3d40",
+        "m": "#6e5c5c",
+        "l": "#8d7a76",
+        "h": "#a8948c",
+        "b": "#c08a7e",
+        "n": "#d98c8f",
+        "w": "#efe6cf",
+        "e": "#100b0b",
+        "k": "#2a1e20",
+        "s": "#3a3033",
+        "x": "#c3d3c4"
+      },
+      "forms": [
+        {
+          "id": "hippopotamus",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#120d0e",
+          "d": "#4a3d40",
+          "m": "#6e5c5c",
+          "l": "#8d7a76",
+          "h": "#a8948c",
+          "b": "#c08a7e",
+          "n": "#d98c8f",
+          "w": "#efe6cf",
+          "e": "#100b0b",
+          "k": "#2a1e20",
+          "s": "#3a3033",
+          "x": "#c3d3c4"
+        }
+      },
+      "coatFrom": {}
+    }
+  }
+}

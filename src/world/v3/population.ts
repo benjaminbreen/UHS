@@ -32,6 +32,7 @@ import { residenceFor } from "../../content/households/residence";
 import { pluralMarriageFor } from "../../content/households/plural-marriage";
 import { bondageFor } from "../../content/households/bondage";
 import { nursingFor } from "../../content/households/nursing";
+import { marriageAgeFor } from "../../content/households/marriage-age";
 import { ritualKinFor } from "../../content/households/ritual-kin";
 import { capabilitiesFor } from "../../content/characters/resolve";
 import { goodName, productFor, sellerOf } from "../../content/economy/products";
@@ -143,6 +144,7 @@ export function populateHouseholds(
       plural: pluralMarriageFor(pack.setting),
       bondage: bondageFor(pack.setting),
       nursing: nursingFor(pack.setting),
+      marriage: pack.setting?.lifeStoryRevision ? marriageAgeFor(pack.setting) : undefined,
       player: owner === "player",
       modern: year >= 1900,
       revised: !!pack.setting?.lifeStoryRevision,
@@ -155,6 +157,7 @@ export function populateHouseholds(
       history: story.history,
       fortune: story.fortune,
       infants: story.infants,
+      babies: story.babies,
       nurse: story.nurse,
       makes: goodsOf(
         kit ?? (parent && livelihoodOf(pack, { origin: parent } as Actor)),

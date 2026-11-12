@@ -21,6 +21,7 @@ import { places } from "../src/content/geography/places";
 import { placeAtYear } from "../src/content/geography/eras";
 import { layeredThemes } from "../src/audio/layered-themes";
 import { interiorThemes } from "../src/audio/interior-themes";
+import { situationTheme, situationThemes, tunes } from "../src/audio/situation-themes";
 import { AudioDirector } from "../src/audio/director";
 import { catalog } from "../src/audio/sfx";
 import { ambienceFor, bellFor, townKindFor } from "../src/audio/ambience";
@@ -103,6 +104,32 @@ describe("original soundtrack scores", () => {
         }
       }
     }
+  });
+  it("dresses every situation tune for every culture without losing a beat", () => {
+    const length = (loop: string) => loop.split(" ").reduce((n, t) => n + Number(t.split(":")[1]), 0);
+    for (const theme of situationThemes()) {
+      const beats = theme.bars * theme.meter,
+        score = compose({ ...defaultArrangement, themeId: theme.id });
+      expect(score.theme.id, theme.id).toBe(theme.id);
+      for (const layer of theme.layers)
+        expect(beats % length(layer.loop), `${theme.id} ${layer.voice}`).toBe(0);
+      expect(score.notes.some((n) => n.stem === "melody"), theme.id).toBe(true);
+      for (const n of score.notes) {
+        expect(n.beat + n.duration, theme.id).toBeLessThanOrEqual(beats + 1e-9);
+        expect(n.midi, theme.id).toBeGreaterThanOrEqual(24);
+        expect(n.midi, theme.id).toBeLessThanOrEqual(96);
+      }
+    }
+    for (const tune of tunes.filter((t) => !t.everywhere)) {
+      const five = compose({ ...defaultArrangement, themeId: `${tune.id}--east-asia` });
+      const scale = tune.mode === "major" ? [0, 2, 4, 7, 9] : [0, 3, 5, 7, 10];
+      for (const n of five.notes.filter((n) => n.stem !== "percussion"))
+        expect(scale, `${tune.id} ${n.midi}`).toContain((n.midi - tune.tonic + 120) % 12);
+    }
+    expect(situationTheme("passing", "european", 1300)).toBe("what-the-river-keeps--europe-medieval");
+    expect(situationTheme("passing", "european", 1900)).toBe("what-the-river-keeps--europe-modern");
+    expect(situationTheme("arrival", "andean", 1400, 1)).toBe("gate-left-open--andes");
+    expect(situationTheme("timeslip", undefined)).toBe("the-year-turns-over--anywhere");
   });
   it("loops every layer of the layered pieces within the piece", () => {
     for (const theme of [...layeredThemes, ...Object.values(interiorThemes)])

@@ -1,6 +1,7 @@
 import { waterborneFrames } from "../content/graphics/models";
 import { socialLabels } from "../core/bonds";
 import { shownStock } from "../core/economy";
+import { keepsShop } from "../core/shop";
 import { parseLoad } from "../content/economy/carrying";
 import { propDefs } from "../content/props/catalog";
 import { portableProps } from "./characters/props";
@@ -10,6 +11,7 @@ import { FishingGear, type Gear } from "./fishing-gear";
 import { fishingWaterfront } from "../content/settlements/waterfronts";
 import { TrainLayer } from "./trains";
 import { CabLayer } from "./cabs";
+import { BabyEffects } from "./baby-effects";
 import { VehicleLayer, crewPlace, vehiclePose } from "./vehicles";
 import type { CharacterAppearance } from "../core/character";
 import type { SettlementPlan } from "../world/v3/types";
@@ -161,6 +163,9 @@ import {
   type LiveGraphicsSettings,
 } from "./live-graphics";
 import { ToolEffects, ROLL_MS, projectileArrowTexture } from "./tool-effects";
+const LAUNCHERS = new Set(["bow", "sling", "crossbow", "musket", "rifle", "blowgun", "hawk"]);
+/** Hunting gear drawn from its item icon, not from a prop atlas. */
+const HUNT_ICONS = ["bow", "arrow", "sling", "throwing-stick", "blowgun", "dart", "bolt", "shot", "cartridge", "snare", "hawk"];
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
 import { sexOf } from "../core/brief";
@@ -272,6 +277,9 @@ import { Mist } from "./mist";
 import { CloudShadows } from "./cloud-shadows";
 import { Reflections } from "./reflections";
 import { accentFor, AmbientLife, critterFor, type CritterKind } from "./ambient-life";
+import { SmallCreatures } from "./small-creatures";
+import { Monkeys } from "./monkeys";
+import { itemColors } from "./item-art";
 import { Flies, type FlySource } from "./flies";
 import { freshDung } from "../core/dung";
 import { freshCarcass } from "../core/remains";
@@ -584,6 +592,7 @@ export class WorldScene extends Phaser.Scene {
       },
     }));
   }
+  private babyFx?: BabyEffects;
   private feelFx?: PlayerFeel;
   private get feel() {
     return (this.feelFx ??= new PlayerFeel(this));
@@ -640,6 +649,8 @@ export class WorldScene extends Phaser.Scene {
   private heaveSerial = 0;
   private windSprites: WindSprite[] = [];
   private treeFinds?: TreeFinds;
+  private smallLife?: SmallCreatures;
+  private monkeys?: Monkeys;
   private findsDirty = true;
   private treeFindSerial = 0;
   /** Hanging layers drawn over a prop's rigid frame, swayed by the same wind.
@@ -922,7 +933,7 @@ export class WorldScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.input.mouse?.disableContextMenu();
-    for (const id of ["bow", "arrow", "sling"]) {
+    for (const id of HUNT_ICONS) {
       if (this.textures.exists(id)) continue;
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = 24;
@@ -947,11 +958,15 @@ export class WorldScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       this.toolEffects?.dispose();
       this.treeFinds?.dispose();
+      this.smallLife?.clear();
+      this.monkeys?.clear();
       this.findsDirty = true;
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
       this.feelFx?.dispose();
       this.cueFx?.dispose();
+      this.babyFx?.dispose();
+      this.babyFx = undefined;
     });
     this.events.once("shutdown", () => this.characters?.destroy());
     this.events.once("destroy", () => this.characters?.destroy());
@@ -993,6 +1008,30 @@ export class WorldScene extends Phaser.Scene {
     this.clouds = new CloudShadows(this);
     this.life = new AmbientLife(this, (kind, x, y) => this.critterGround(kind, x, y));
     this.accent = new AmbientLife(this, (kind, x, y) => this.critterGround(kind, x, y), "accent");
+    this.smallLife = new SmallCreatures(this, {
+      cell: (x, y) => this.runtime.engine.world.topography?.(x, y),
+      player: () => this.entities.get("player"),
+      plants: () => this.plantImages,
+      seed: () => hashSeed(this.runtime.engine.state.manifest.seed),
+    });
+    this.monkeys = new Monkeys(this, {
+      player: () => this.entities.get("player"),
+      people: () =>
+        this.runtime.engine.state.actors
+          .filter((a) => a.kind === "human" && !a.dead && a.pos.space === "outside")
+          .flatMap((a) => this.entities.get(a.id) ?? []),
+      plants: () => this.plantImages,
+      seed: () => hashSeed(this.runtime.engine.state.manifest.seed),
+      steal: () => {
+        const e = this.runtime.engine;
+        const item = Object.keys(e.state.player.inventory).find(
+          (id) => (e.state.player.inventory[id] ?? 0) > 0 && e.item(id)?.edible && e.item(id)?.sprite !== "water",
+        );
+        if (!item) return undefined;
+        this.runtime.command({ type: "snatched", item });
+        return itemColors[item]?.[0] ?? "#e8c040";
+      },
+    });
     this.flies = new Flies(this);
     this.remainsLife = new RemainsLife(this);
     this.input.keyboard!.removeCapture([
@@ -1085,11 +1124,17 @@ export class WorldScene extends Phaser.Scene {
     );
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.options.lab || this.modalOpen || pointer.event?.target !== this.game.canvas) return;
-      if (pointer.rightButtonDown()) {
+      // With a bow or sling in hand, a click shoots where it points; hold to draw harder.
+      if (this.launcher() && !phoneLayout() && (pointer.leftButtonDown() || pointer.rightButtonDown())) {
+        this.mouseTarget = this.pointerCell(pointer);
+        this.beginAim("bow", "mouse", "mouse");
+        return;
+      }
+      const thrown = this.runtime.engine.state.player.heldItem;
+      if (pointer.rightButtonDown() || (!phoneLayout() && (thrown === "throwing-stick" || thrown === "harpoon"))) {
         this.mouseTarget = this.pointerCell(pointer);
         const player = this.runtime.engine.state.player;
-        if (this.launcher()) this.beginAim("bow", "mouse", "mouse");
-        else if (player.held || player.heldItem) this.beginAim("throw", "mouse", "mouse");
+        if (player.held || player.heldItem) this.beginAim("throw", "mouse", "mouse");
         return;
       }
       // A second finger means a pinch, not a walk order.
@@ -1166,7 +1211,8 @@ export class WorldScene extends Phaser.Scene {
     };
     this.input.on("pointerup", endPinch);
     this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
-      if ((pointer.event as MouseEvent)?.button === 2 && this.aimTrigger === "mouse")
+      const button = (pointer.event as MouseEvent)?.button;
+      if ((button === 2 || button === 0) && this.aimTrigger === "mouse")
         this.finishAim();
     });
     this.input.on("pointerupoutside", endPinch);
@@ -1503,9 +1549,11 @@ export class WorldScene extends Phaser.Scene {
   private vault(dx: number, dy: number, time: number) {
     const engine = this.runtime.engine;
     if (!engine.vaultAhead(dx, dy)) return false;
-    if ((!this.shiftHeld || this.runSteps < 2) && !engine.fenceAhead(dx, dy)) return false;
+    const ditch = engine.ditchAhead(dx, dy);
+    if ((!this.shiftHeld || this.runSteps < 2) && !engine.fenceAhead(dx, dy) && !ditch) return false;
     const before = { ...engine.state.player.pos };
-    const cleared = this.runtime.jump(dx, dy, "short", true);
+    // A standing jump lands on the far bank; a running one would overshoot it.
+    const cleared = this.runtime.jump(dx, dy, "short", !ditch || this.shiftHeld);
     const now = engine.state.player.pos;
     if (now.x === before.x && now.y === before.y) return false;
     const im = this.entities.get("player");
@@ -1818,7 +1866,11 @@ export class WorldScene extends Phaser.Scene {
       this.traders = engine.traders()
         .filter((t) => Math.abs(t.at.x - p.x) + Math.abs(t.at.y - p.y) < 24 &&
           (t.actor.pos.space === p.space || (!!t.door && (p.space ?? "outside") === "outside")))
-        .map((t) => ({ id: t.actor.id, door: t.actor.pos.space === p.space ? undefined : t.at }));
+        .map((t) => ({ id: t.actor.id, door: t.actor.pos.space === p.space ? undefined : t.at, house: t.actor.householdId ?? t.actor.id, keeps: keepsShop(engine.world.pack, t.actor) }))
+        // A shop reads as one seller, not a family each with a coin: one per household, two indoors at most.
+        .sort((a, b) => Number(b.keeps) - Number(a.keeps))
+        .filter((t, i, all) => all.findIndex((o) => o.house === t.house) === i)
+        .slice(0, (p.space ?? "outside") === "outside" ? undefined : 2);
     }
     const mark = (this.traderMark ??= this.add.graphics());
     mark.clear().setDepth(1e7 - 1);
@@ -3163,7 +3215,7 @@ export class WorldScene extends Phaser.Scene {
     return key;
   }
   private texture(frame: string) {
-    if (frame === "bow" || frame === "arrow" || frame === "sling") return frame;
+    if (HUNT_ICONS.includes(frame)) return frame;
     if (frame.startsWith("tuft-kit-")) return frame.slice(0, frame.lastIndexOf("-"));
     if (frame.startsWith("tuft-")) return TUFT_ATLAS;
     if (!this.sheetFrames) {
@@ -3436,7 +3488,7 @@ export class WorldScene extends Phaser.Scene {
   }
   private launcher() {
     const item = this.runtime.engine.state.player.heldItem;
-    return item === "bow" || item === "sling";
+    return !!item && LAUNCHERS.has(item);
   }
   /** Turns of the sling so far: slow at first, winding up to a steady hum. */
   private slingTurns(ms: number) {
@@ -3476,7 +3528,7 @@ export class WorldScene extends Phaser.Scene {
   private beginAim(kind: "bow" | "throw", input: "mouse" | "touch", trigger: "keyboard" | "mouse" | "touch") {
     if (this.aimStarted !== undefined) return;
     const p = this.runtime.engine.state.player;
-    if (kind === "bow" && !this.runtime.engine.ammo()) return;
+    if (kind === "bow" && !this.runtime.engine.ammo() && p.heldItem !== "hawk") return;
     if (kind === "throw" && !(p.held || p.heldItem)) return;
     const [dx, dy] = this.jumpDirection();
     this.aimStarted = this.time.now;
@@ -3502,7 +3554,12 @@ export class WorldScene extends Phaser.Scene {
     const p = this.runtime.engine.state.player.pos;
     const dx = Math.sign(target.x - p.x), dy = Math.sign(target.y - p.y);
     if (!dx && !dy) return;
-    if (kind === "bow") this.runtime.shootBow(target, Math.min(1, 0.35 + elapsed / 650));
+    if (kind === "bow") {
+      this.runtime.shootBow(target, Math.min(1, 0.6 + elapsed / 500));
+      const player = this.entities.get("player");
+      // The kick of the string: a jolt back, then square again.
+      if (player) this.feel.spring(player, 0.9, 1.08, 170);
+    }
     else this.runtime.throwHeld(dx, dy, this.aimRunning, undefined, target);
   }
   cancelAim() {
@@ -3836,6 +3893,15 @@ export class WorldScene extends Phaser.Scene {
   private rimColour(side: number) {
     return side > 0 ? 0xffdca6 : 0xffb46e;
   }
+  /** The edge light on people and animals: the low sun's, or after dark a pale
+   * one, so a figure the night has greyed stands off ground of the same value. */
+  private figureRim() {
+    const side = this.rimSide();
+    if (side) return { side, colour: this.rimColour(side), alpha: 0.85 };
+    return !this.roomView && !this.caveView && (this.nightGrade?.night ?? 0) > 0.35
+      ? { side: -1, colour: 0xd4e2ff, alpha: 0.5 }
+      : undefined;
+  }
   private rimLight(id: string, owner: Phaser.GameObjects.Image) {
     const entry = this.rims.get(id);
     if (entry && entry.owner === owner) return;
@@ -3843,9 +3909,9 @@ export class WorldScene extends Phaser.Scene {
     this.rims.set(id, { rim: this.add.image(owner.x, owner.y, owner.texture.key, owner.frame.name), owner });
   }
   private syncRims() {
-    const side = this.rimSide();
+    const light = this.figureRim();
     for (const [id, { rim, owner }] of this.rims) {
-      if (!side || !owner.active) {
+      if (!light || !owner.active) {
         rim.destroy();
         this.rims.delete(id);
         continue;
@@ -3855,11 +3921,11 @@ export class WorldScene extends Phaser.Scene {
         .setOrigin(owner.originX, owner.originY)
         .setFlip(owner.flipX, owner.flipY)
         .setScale(owner.scaleX, owner.scaleY)
-        .setPosition(owner.x + side, owner.y)
+        .setPosition(owner.x + light.side, owner.y)
         .setDepth(owner.depth - 0.01)
         .setVisible(owner.visible)
-        .setAlpha(0.85 * owner.alpha)
-        .setTintFill(this.rimColour(side));
+        .setAlpha(light.alpha * owner.alpha)
+        .setTintFill(light.colour);
     }
   }
   /** Just over the ground, under everything standing on it. */
@@ -3979,9 +4045,9 @@ export class WorldScene extends Phaser.Scene {
     // The year has turned: fields stand at the new season's stage, so the
     // ground under them is drawn again.
     const tide = setting ? tideAt(setting, e.state.clock) : 0;
-    if (setting && (this.fieldSeason !== season || this.fieldTide !== tide)) {
+    if (setting && (w !== this.drawnWorld || this.fieldSeason !== season || this.fieldTide !== tide)) {
       w.setSeason?.(season, tide);
-      this.terrainStream?.setSeason(season, tide);
+      if (w === this.drawnWorld) this.terrainStream?.setSeason(season, tide);
       this.fieldSeason = season;
       this.fieldTide = tide;
     }
@@ -4076,6 +4142,20 @@ export class WorldScene extends Phaser.Scene {
         : undefined,
       hashSeed(e.state.manifest.seed),
     );
+    const small =
+      outdoors && setting && this.weather && perf.fauna && this.runtime.engine.world.topography
+        ? {
+            climate: setting.climate,
+            ecology: setting.environment?.ecology ?? "grassland",
+            season: this.season,
+            tempC: this.weather.tempC,
+            day: this.light.id !== "night" && this.light.id !== "dusk",
+            coast: setting.water.startsWith("coast"),
+            tint: this.tint,
+          }
+        : undefined;
+    this.smallLife?.set(small);
+    this.monkeys?.set(small && setting ? { ...small, lat: setting.lat, lon: setting.lon, night: this.light.id === "night", dawn: this.light.id === "early-morning" } : undefined);
     this.accent?.set(
       outdoors && setting && this.weather && perf.fauna
         ? accentFor(
@@ -4150,6 +4230,8 @@ export class WorldScene extends Phaser.Scene {
     if (w !== this.drawnWorld) {
       this.toolEffects?.dispose();
       this.treeFinds?.dispose();
+      this.smallLife?.clear();
+      this.monkeys?.clear();
       this.findsDirty = true;
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
@@ -4161,6 +4243,8 @@ export class WorldScene extends Phaser.Scene {
       // way back out is what made a settlement fill in a quadrant at a time.
       this.toolEffects?.dispose();
       this.treeFinds?.dispose();
+      this.smallLife?.clear();
+      this.monkeys?.clear();
       this.findsDirty = true;
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
@@ -4173,9 +4257,9 @@ export class WorldScene extends Phaser.Scene {
           this,
           w,
           e.state.manifest.seed,
-          !this.drawnWorld && !this.options.lab ? p : undefined,
+          !this.options.lab ? p : undefined,
+          this.fieldSeason ? { season: this.fieldSeason, tide: this.fieldTide } : undefined,
         );
-        if (this.fieldSeason) this.terrainStream.setSeason(this.fieldSeason, this.fieldTide);
       }
       this.terrainStream.setHidden(false);
       this.terrainStream.setView(
@@ -5102,7 +5186,8 @@ export class WorldScene extends Phaser.Scene {
     this.separate(p);
     // Figures take a third less of the hour's tint, as Stardew keeps its
     // people lit: under the full night multiply a dark face goes to a blank.
-    const lift = (c: number) => c + Math.round((255 - c) * 0.35);
+    const kept = 0.35 + 0.15 * (this.nightGrade?.night ?? 0);
+    const lift = (c: number) => c + Math.round((255 - c) * kept);
     const figureTint =
       (lift((this.tint >> 16) & 255) << 16) | (lift((this.tint >> 8) & 255) << 8) | lift(this.tint & 255);
 
@@ -5445,11 +5530,12 @@ export class WorldScene extends Phaser.Scene {
         const im = this.entities.get(o.id);
         if (im) {
           this.tweens.killTweensOf(im);
-          if (o.item === "arrow") im.setTexture(projectileArrowTexture(this));
+          const shaft = o.item === "arrow" || o.item === "bolt" || o.item === "dart";
+          if (shaft) im.setTexture(projectileArrowTexture(this, o.item as "arrow"));
           im.setData("projectile", true);
           im.setOrigin(0.5, 0.5)
-            .setScale(o.item === "arrow" ? 1 : (o.item === "stick" || o.prop === "stick" ? 14 : 24) / im.height)
-            .setRotation(Math.atan2(o.projectile.dy, o.projectile.dx) + (o.item === "arrow" ? 0 : Math.PI / 2))
+            .setScale(shaft ? 1 : (o.item === "stick" || o.prop === "stick" ? 14 : 24) / im.height)
+            .setRotation(Math.atan2(o.projectile.dy, o.projectile.dx) + (shaft ? 0 : Math.PI / 2))
             .setPosition(o.pos.x * 16 + 8, o.pos.y * 16 + 11 - this.lift(o.pos.x * 16 + 8, o.pos.y * 16 + 16));
           this.shadows.get(o.id)?.setVisible(false);
         }
@@ -5645,6 +5731,8 @@ export class WorldScene extends Phaser.Scene {
         if (tier.tint !== 0xffffff) im.setTint(mixTint(this.tint, tier.tint));
         const wet = (m.muddy ?? 0) - e.state.clock;
         if (wet > 0) im.setTint(mixTint(this.tint, muddied(wet / MUD_DRIES)));
+        // A mad dog's coat goes dull and staring.
+        if (g.rabid) im.setTint(mixTint(this.tint, 0xc8c2a0));
         const flip = !turns && m.direction === 3;
         if (im.flipX !== flip) im.setFlipX(flip);
         // Three clear rows under the hooves in every study frame.
@@ -6304,7 +6392,7 @@ export class WorldScene extends Phaser.Scene {
         )
           this.feel.trail(pose.x, pose.y, DUSK_DUST);
       }
-      if (this.rimSide()) this.rimLight(id, im);
+      if (this.figureRim()) this.rimLight(id, im);
       if (pose.moving && !aerial && dt && profile && this.snow >= 0.34) {
         const ground = topo?.(Math.floor(pose.x / 16), Math.floor((pose.y - 8) / 16));
         if (ground && ground.surface !== "water")
@@ -6530,9 +6618,11 @@ export class WorldScene extends Phaser.Scene {
     );
     mark("water");
     this.terrainStream?.update();
+    const landing = this.terrainStream && this.runtime.journey?.landing();
+    if (landing) this.terrainStream?.prefetchLanding(landing.world, landing.point, this.runtime.engine.state.clock);
     if (this.runtime.timeVisualClock !== undefined && lightingAt(this.runtime.timeVisualClock).id !== this.light.id) this.draw();
     mark("terrain");
-    if (!this.options.lab && this.ready && perf.ambientPeople && !this.runtime.timeTravelLocked) {
+    if (!this.options.lab && this.ready && perf.ambientPeople && !this.runtime.timeTravelLocked && !this.runtime.workInProgress) {
       const clock = this.runtime.displayClock();
       this.buildRoutines(clock);
       // A full pass now and then lets people walk into and out of view; in
@@ -6646,6 +6736,7 @@ export class WorldScene extends Phaser.Scene {
       texture: (frame) => this.texture(frame),
       frame: (frame) => this.textureFrame(frame),
       redraw: () => this.draw(),
+      playerCell: () => this.runtime.engine.state.player.pos,
     });
     this.toolEffects.consume(this.runtime.toolEffect);
     this.toolEffects.consumeSwing(this.runtime.swingEffect);
@@ -6675,6 +6766,8 @@ export class WorldScene extends Phaser.Scene {
       this.treeFinds.drop(find);
     }
     this.treeFinds.update(time);
+    this.smallLife?.update(time);
+    this.monkeys?.update(time);
     const fires = this.runtime.engine.state.fires ?? [];
     if (fires.length || this.burning)
       (this.burning ??= new Burning(this)).update(
@@ -6727,6 +6820,9 @@ export class WorldScene extends Phaser.Scene {
         .map(([id]) => id),
       time,
     );
+    const baby = this.runtime.engine.state.baby;
+    (this.babyFx ??= new BabyEffects(this, (id) => this.entities.get(id))).update(
+      baby, baby ? (this.humanActors.get(baby.with)?.direction ?? 2) : 2, time, baby && this.humanActors.get(baby.with)?.appearance?.wearing.infantCarry);
     this.combat().charging(this.runtime.charge);
     this.runtime.aiming = this.aimStarted !== undefined;
     const aimed = this.aimPath();
@@ -6745,7 +6841,7 @@ export class WorldScene extends Phaser.Scene {
       active instanceof HTMLTextAreaElement ||
       active instanceof HTMLSelectElement ||
       (active instanceof HTMLElement && active.isContentEditable) ||
-      this.modalOpen;
+      this.modalOpen || this.runtime.workInProgress;
     if (typing) {
       this.heldDirections.clear();
       this.touchStick = undefined;
@@ -6759,7 +6855,7 @@ export class WorldScene extends Phaser.Scene {
       else this.wallRun = undefined;
     }
     // A walk begun from the command box ("find the cat") runs with focus still there.
-    if (!this.options.lab && (!typing || this.runtime.running)) {
+    if (!this.options.lab && !this.runtime.workInProgress && (!typing || this.runtime.running)) {
       this.chargeTell(time);
       if (
         this.jumpStarted !== undefined &&
@@ -7082,6 +7178,8 @@ export class WorldScene extends Phaser.Scene {
         // Breathing has no blink frame: the player stays plain idle for idle's blink.
         if (id === "player" && pose === "idle" && this.poseFrame(id, "idle", time) !== 3) pose = "breathe";
         if (moving && water > 0.025 && !active && !winding) pose = "wade";
+        const swimming = craft === "swimming" && water > 0.025 && !active && !winding;
+        if (swimming) pose = moving ? "swim" : "tread";
         if (craft && craft !== "swimming") pose = boatPosture(boatType);
         if (id !== "player") this.notice(id, im, pose, time);
         // Someone reacting stops what they were doing to do it.
@@ -7117,7 +7215,8 @@ export class WorldScene extends Phaser.Scene {
         if (motion) pose = motion.pose;
         const drawing = id === "player" && this.aimKind === "bow" && this.aimStarted !== undefined;
         const slinging = drawing && me.heldItem === "sling";
-        if (drawing) pose = slinging ? "whirl" : "draw";
+        const hawking = drawing && me.heldItem === "hawk";
+        if (drawing) pose = slinging ? "whirl" : hawking ? "cast" : "draw";
         // Something heavy in the arms shortens the stride.
         const laden = loadWeight > 0;
         const cadence = 1 / (1 + loadWeight * 0.12 + (tired ? 0.14 : 0));
@@ -7177,6 +7276,8 @@ export class WorldScene extends Phaser.Scene {
             ? motion.index
             : slinging
             ? Math.floor(this.slingTurns(time - this.aimStarted!) * 3) % 3
+            : hawking
+            ? 0
             : drawing
             ? Math.min(2, Math.floor((time - this.aimStarted!) / poseTiming("draw")))
             : winding
@@ -7386,7 +7487,7 @@ export class WorldScene extends Phaser.Scene {
             const dx = [0, 1, 0, -1][human.direction];
             this.feel.breath(im.x + dx * 4, im.y - 31, dx, im.depth + (human.direction ? 0.1 : -0.1));
           }
-          if (this.rimSide()) this.rimLight(id, im);
+          if (this.figureRim()) this.rimLight(id, im);
           // Townsfolk mark only snow: a wet street under a crowd would be all prints.
           if (ground && (id === "player" || ground === "snow"))
             this.feel.track(
@@ -7437,6 +7538,7 @@ export class WorldScene extends Phaser.Scene {
           sample && wetPos
             ? sample(wetPos.x, wetPos.y)?.waterVisual?.flow
             : undefined,
+          swimming && (pose === "swim" || pose === "tread") ? index : undefined,
         );
         // Asleep, only the head shows, on the pillow; the room draws the rest
         // under the covers. After wading, which uncrops anyone on dry ground.
@@ -7450,8 +7552,8 @@ export class WorldScene extends Phaser.Scene {
             .setPosition(pillow.x, pillow.y)
             .setDepth(pillow.depth);
         } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
-        if (!texture) this.shadows.get(id)?.setVisible(false);
-        if (texture && this.options.shadows !== false) {
+        if (!texture || swimming) this.shadows.get(id)?.setVisible(false);
+        if (texture && !swimming && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
             this.shadowPhase,
@@ -7583,10 +7685,11 @@ export class WorldScene extends Phaser.Scene {
       }
       const dx = o.projectile!.dx, dy = o.projectile!.dy;
       const length = Math.hypot(dx, dy) || 1;
-      const reach = o.item === "arrow" ? 4 : 8;
+      const thin = o.item === "arrow" || o.item === "bolt" || o.item === "dart";
+      const reach = thin ? 4 : 8;
       shaft.setPosition(Math.round(animal.x - dx / length * reach),
         Math.round(animal.y - animal.displayHeight * 0.53 - dy / length * reach * 0.5));
-      shaft.setRotation(Math.atan2(dy, dx) + (o.item === "arrow" ? 0 : Math.PI / 2) + animal.rotation);
+      shaft.setRotation(Math.atan2(dy, dx) + (thin ? 0 : Math.PI / 2) + animal.rotation);
       shaft.setDepth(animal.depth + 1);
     }
   }
@@ -7959,7 +8062,7 @@ export class WorldScene extends Phaser.Scene {
     if (other && id !== "player") {
       const off = this.apart.get(other) ?? { x: 0, y: 0 };
       const dx = im.x - was.x - (other.x - off.x), dy = im.y - was.y - (other.y - off.y), d = Math.hypot(dx, dy);
-      const gap = d ? Math.min(6, Math.max(0, 22 - d)) * (other === this.entities.get("player") ? 1 : 0.5) : 0;
+      const gap = d ? Math.min(10, Math.max(0, 26 - d)) * (other === this.entities.get("player") ? 1 : 0.5) : 0;
       tx = Math.round((dx / (d || 1)) * gap);
       ty = Math.round((dy / (d || 1)) * gap * 0.5);
     }

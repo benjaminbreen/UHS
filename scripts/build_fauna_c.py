@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS, facings as facings_c, STATES as STATES_C
 from art.atlas import pack_atlas, write_metadata
 from art.quality.hue import tint_outline
-from art import fauna_d, fox, fourway, proboscidean, cervid, felid, grazer, ursid, ratite, macropod
+from art import fauna_d, fox, fourway, proboscidean, cervid, felid, grazer, ursid, ratite, macropod, reptile, hippo
 
 root = Path(__file__).resolve().parent.parent
 out = root / "public/fauna-c"
@@ -22,9 +22,9 @@ for name, im in sprites.items():
     assert set(im.getchannel("A").getdata()) <= {0, 255}, name
     assert len(im.getcolors(im.width * im.height)) <= 24, name
     assert im.getbbox(), name
-# The deer, the jackal, the coyote and the hare are a sheet of their own,
+# The deer, the wild dogs, hyenas and the hare are a sheet of their own,
 # fetched when one is in the world, or set C outgrows a GPU texture.
-WILD = {*fourway.DEER_KINDS, "golden-jackal", "coyote", "hare"}
+WILD = {*fourway.DEER_KINDS, "golden-jackal", "coyote", "hare", "spotted-hyena", "striped-hyena", "african-wild-dog", "dhole", "dingo"}
 
 
 def kind_of(name):
@@ -58,7 +58,9 @@ for rig_art, sprites_of, sheet in ((proboscidean, proboscidean.fauna_megafauna, 
                                    (grazer, grazer.fauna_grazer, "fauna-g"),
                                    (ursid, ursid.fauna_ursid, "fauna-u"),
                                    (ratite, ratite.fauna_ratite, "fauna-o"),
-                                   (macropod, macropod.fauna_macropod, "fauna-k")):
+                                   (macropod, macropod.fauna_macropod, "fauna-k"),
+                                   (reptile, reptile.fauna_reptile, "fauna-x"),
+                                   (hippo, hippo.fauna_hippo, "fauna-h")):
     mega = {name: tint_outline(im) for name, im in sprites_of().items()}
     for name, im in mega.items():
         assert set(im.getchannel("A").getdata()) <= {0, 255}, name

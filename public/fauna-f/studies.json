@@ -21,7 +21,8 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 8
     },
     "directions": [
       "south",
@@ -118,7 +119,8 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 8
     },
     "directions": [
       "south",
@@ -200,7 +202,8 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 8
     },
     "directions": [
       "south",
@@ -297,7 +300,8 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 8
     },
     "directions": [
       "south",
@@ -479,7 +483,8 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 8
     },
     "directions": [
       "south",
@@ -576,7 +581,8 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 8
     },
     "directions": [
       "south",
@@ -688,7 +694,8 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 8
     },
     "directions": [
       "south",
@@ -758,6 +765,119 @@
           "i": "#efe6d0",
           "p": "#8a4a45",
           "t": "#1d1613"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "cougar": {
+    "palette": [
+      "#2a1b0e",
+      "#8f6a42",
+      "#b98f60",
+      "#cfa87a",
+      "#e3c69c",
+      "#f1e6d4",
+      "#17120e",
+      "#c8963a",
+      "#3a2a1c",
+      "#efe6d0",
+      "#8a4a45",
+      "#2c1d12"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      52,
+      42
+    ],
+    "standing": [
+      52,
+      25
+    ],
+    "looks": {
+      "roles": {
+        "o": "#2a1b0e",
+        "d": "#8f6a42",
+        "m": "#b98f60",
+        "l": "#cfa87a",
+        "h": "#e3c69c",
+        "b": "#f1e6d4",
+        "k": "#17120e",
+        "e": "#c8963a",
+        "s": "#3a2a1c",
+        "i": "#efe6d0",
+        "p": "#8a4a45",
+        "t": "#2c1d12"
+      },
+      "forms": [
+        {
+          "id": "cougar",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "tawny": 5,
+            "grey": 2,
+            "red": 2
+          }
+        }
+      ],
+      "coats": {
+        "tawny": {
+          "o": "#2a1b0e",
+          "d": "#8f6a42",
+          "m": "#b98f60",
+          "l": "#cfa87a",
+          "h": "#e3c69c",
+          "b": "#f1e6d4",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#3a2a1c",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#2c1d12"
+        },
+        "grey": {
+          "o": "#25211c",
+          "d": "#7a6f62",
+          "m": "#a39888",
+          "l": "#bcb2a2",
+          "h": "#d4ccbe",
+          "b": "#efebe4",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#35302a",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#28241f"
+        },
+        "red": {
+          "o": "#2a170b",
+          "d": "#8a522c",
+          "m": "#b87444",
+          "l": "#cf9160",
+          "h": "#e4b48a",
+          "b": "#f2e4d4",
+          "k": "#17120e",
+          "e": "#c8963a",
+          "s": "#3a2416",
+          "i": "#efe6d0",
+          "p": "#8a4a45",
+          "t": "#2c1a0e"
         }
       },
       "coatFrom": {}

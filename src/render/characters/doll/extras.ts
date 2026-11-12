@@ -1,4 +1,5 @@
-import { ACCENT, APRON, CLOAK, H, HAIR, KERCHIEF, LEATHER, LOWER, METAL, Mask, SHAWL, SKIN, TOP, TRIM, W, WHITE, rnd, type Sheet } from "./paint";
+import type { InfantCarry } from "../../../content/characters/wardrobe/regions/work-dress";
+import { ACCENT, APRON, BLUSH, CLOAK, EYE, H, HAIR, KERCHIEF, LEATHER, LIP, LOWER, METAL, Mask, SHAWL, SKIN, STEEL, TOP, TRIM, W, WHITE, WOOD, rnd, type Sheet } from "./paint";
 
 /** What the accessories need of the figure: its facing, its rows and widths,
  * and where its centre line runs at each height. */
@@ -147,16 +148,26 @@ export function bag(f: Figure, kind: "purse" | "satchel") {
   if (kind === "satchel") s.px(rnd(x), y0 + 1, METAL, 4);
 }
 
+export type InfantMood = "asleep" | "watching" | "fussing" | "crying";
+
 /** A baby tied on the back in a cloth. "behind" is the bundle, painted before
  * the garment so the body covers it unless seen from behind; "over" is the
  * baby's head at the shoulder and the cloth's ends knotted on the chest, and
- * goes after the mother's head when her back is turned. */
-export function infant(f: Figure, layer: "behind" | "over") {
+ * goes after the mother's head when her back is turned. The mood is in the
+ * head: sunk in the cloth asleep, up over the shoulder awake, an arm out when
+ * fussing, thrown back with a fist up when crying. */
+export function infant(f: Figure, layer: "under" | "behind" | "over", mood: InfantMood = "asleep", carry: InfantCarry = "back") {
+  if (carry === "pram") return pram(f, layer, mood);
+  if (layer === "under") return;
+  if (carry === "board") return cradleboard(f, layer, mood);
+  if (carry !== "back") return inFront(f, layer, mood, carry);
   const { s, yOf } = f;
   const back = away(f);
   const top = f.shoulder - 1;
+  const upset = mood === "fussing" || mood === "crying";
   if (layer === "behind") {
     const m = new Mask();
+    let low = [0, 0];
     for (let y = f.hip; y <= top; y++) {
       const u = Math.sin((Math.PI * (y - f.hip + 1)) / (top - f.hip + 2));
       const half = f.waistW * (0.7 + 0.3 * u),
@@ -164,21 +175,196 @@ export function infant(f: Figure, layer: "behind" | "over") {
       const c = sideX(f, y, 0, -(f.chestD + depth * 0.6));
       const w = Math.hypot(half * f.cos, depth * f.sin);
       m.span(yOf(y), rnd(c - w + 0.5), rnd(c + w - 0.5));
+      if (y === f.hip + 1) low = [rnd(c - w + 0.5), rnd(c + w - 0.5)];
     }
     s.put(m, TRIM, { ring: "ink", shade: 0.35, light: 0.2, top: true, bottom: true });
+    // Feet out of the cloth at either hip; one kicks when the baby is upset.
+    if (back) {
+      const feet = new Mask().set(low[0] - 1, yOf(f.hip + 1)).set(low[1] + 1, yOf(f.hip + 1) - (upset ? 1 : 0));
+      s.put(feet, SKIN, { ring: "ink", shade: 0 });
+    }
     return;
   }
   // The head rides high on one side, cheek against the mother's back.
-  const x = rnd(sideX(f, top, back ? -(f.shoulderW - 2.5) : -(f.shoulderW + 0.5), -(f.chestD + 0.8))),
-    y = yOf(top) - (back ? 2 : 4);
+  const x0 = rnd(sideX(f, top, back ? -(f.shoulderW - 2.5) : -(f.shoulderW + 0.5), -(f.chestD + 0.8))),
+    y = yOf(top) - (back ? 2 : 4) + (mood === "asleep" ? 1 : mood === "crying" ? -2 : -1);
+  const side = x0 < f.centre(top) ? -1 : 1;
+  // Awake, the head comes out past the mother's own to see round her.
+  const x = x0 + (mood === "asleep" || back ? 0 : side * 2);
+  const out = side;
+  if (upset) {
+    const arm = new Mask().line(x + out * 2, y + 3, x + out * 3, y + (mood === "crying" ? 0 : 2), 1);
+    s.put(arm, SKIN, { ring: "ink", shade: 0 });
+  }
   const head = new Mask().span(y, x - 1, x + 1).span(y + 1, x - 2, x + 2).span(y + 2, x - 2, x + 2).span(y + 3, x - 2, x + 2).span(y + 4, x - 1, x + 1);
-  s.put(head, back ? HAIR : SKIN, { ring: "ink", shade: 0.3, light: 0.2, top: true });
+  // From behind a waking baby has turned to look out past the mother's arm.
+  const turned = back && mood !== "asleep";
+  s.put(head, back ? HAIR : SKIN, {
+    ring: "ink", shade: 0.3, light: 0.2, top: true,
+    zone: turned ? (px, py) => (py > y && (px - x) * out >= (mood === "crying" ? -2 : 1) ? SKIN : HAIR) : undefined,
+  });
   if (!back) s.put(new Mask().span(y, x - 1, x + 1), HAIR, { ring: "none", shade: 0 });
+  if (!back || turned) {
+    const e = turned ? [x + out * 2] : [x - 1, x + 1];
+    if (mood === "watching") for (const ex of e) s.px(ex, y + 2, EYE, 3);
+    else for (const ex of e) s.retone(ex, y + 2, 1);
+    if (mood === "crying") {
+      s.px(turned ? x + out : x, y + 3, EYE, 3);
+      for (const ex of e) s.px(ex, y + 3, BLUSH, 3);
+    } else if (mood === "fussing") s.px(turned ? x + out : x, y + 3, LIP, 2);
+  }
+  // Asleep, the cloth is pulled up round the head.
+  if (mood === "asleep") s.put(new Mask().span(y + 3, x - 2, x + 2).span(y + 4, x - 1, x + 1), TRIM, { ring: "none", shade: 0.3, light: 0.2 });
   if (f.cos < 0.3) return;
   const knot = [sideX(f, f.shoulder - 3, 0, f.chestD), yOf(f.shoulder - 3)] as const;
   const ties = new Mask();
   for (const side of [-1, 1]) ties.line(sideX(f, f.shoulder, side * (f.shoulderW - 1), f.chestD * 0.6), yOf(f.shoulder), knot[0], knot[1], 1);
   s.put(ties, TRIM, { ring: "none", shade: 0, dark: 1 });
+}
+
+/** A baby's face, five pixels across, looking out at the viewer. */
+function babyFace(f: Figure, x: number, y: number, mood: InfantMood) {
+  const { s } = f;
+  const head = new Mask().span(y, x - 1, x + 1).span(y + 1, x - 2, x + 2).span(y + 2, x - 2, x + 2).span(y + 3, x - 2, x + 2).span(y + 4, x - 1, x + 1);
+  s.put(head, SKIN, { ring: "ink", shade: 0.3, light: 0.2, top: true });
+  s.put(new Mask().span(y, x - 1, x + 1), HAIR, { ring: "none", shade: 0 });
+  for (const ex of [x - 1, x + 1]) {
+    if (mood === "watching") s.px(ex, y + 2, EYE, 3);
+    else s.retone(ex, y + 2, 1);
+    if (mood === "crying") s.px(ex, y + 3, BLUSH, 3);
+  }
+  if (mood === "crying") s.px(x, y + 3, EYE, 3);
+  else if (mood === "fussing") s.px(x, y + 3, LIP, 2);
+}
+
+/** Laced to a board carried on the back: the baby looks out behind, under a
+ * hoop that keeps the sun and a fall off its face. Its arms are laced in, so
+ * the mood is all in the face. */
+function cradleboard(f: Figure, layer: "behind" | "over", mood: InfantMood) {
+  const { s, yOf } = f;
+  const back = away(f);
+  const top = f.shoulder + 3;
+  const at = (y: number) => sideX(f, Math.min(y, f.shoulder), 0, -(f.chestD + 1.6));
+  const half = (y: number) => Math.hypot((f.waistW * 0.72 - (y > f.shoulder + 1 ? 1 : 0)) * f.cos, 1.2 * f.sin);
+  if (layer === "behind") {
+    const m = new Mask();
+    for (let y = f.hip - 1; y <= top; y++) m.span(yOf(y), rnd(at(y) - half(y) + 0.5), rnd(at(y) + half(y) - 0.5));
+    s.put(m, WOOD, { ring: "ink", shade: 0.35, light: 0.2, top: true });
+    return;
+  }
+  if (!back) {
+    if (f.cos < 0.3) return;
+    for (const side of [-1, 1]) {
+      const x = sideX(f, f.shoulder, side * (f.shoulderW - 2), f.chestD * 0.8);
+      s.put(new Mask().line(x, yOf(f.shoulder), x, yOf(f.shoulder - 4), 1), LEATHER, { ring: "none", shade: 0, dark: 1 });
+    }
+    return;
+  }
+  const c = rnd(at(f.hip)), w = Math.max(1, rnd(half(f.hip)) - 1);
+  const cover = new Mask();
+  for (let y = f.hip; y <= f.shoulder - 3; y++) cover.span(yOf(y), c - w, c + w);
+  // Lacing down the front of the cover.
+  s.put(cover, LEATHER, { ring: "line", shade: 0.3, light: 0.2, tone: (x, y, t) => (x === c && (y & 1) ? 4 : t) });
+  const hy = yOf(f.shoulder + 2);
+  babyFace(f, c, hy, mood);
+  s.put(new Mask().span(hy - 2, c - 2, c + 2).set(c - 3, hy - 1).set(c + 3, hy - 1), WOOD, { ring: "ink", shade: 0, light: 0.3 });
+}
+
+/** A pram pushed ahead: a deep body on four wheels, a hood at the handle end,
+ * and the baby's face under it. Drawn beyond the pusher when their back is
+ * turned and in front of them otherwise. */
+function pram(f: Figure, layer: "under" | "behind" | "over", mood: InfantMood) {
+  const { s, yOf } = f;
+  const back = away(f);
+  if (layer !== (back ? "under" : "over")) return;
+  const ground = yOf(0) + rnd(f.cos * 3);
+  const side = Math.abs(f.sin) > 0.5;
+  const dir = f.sx * (f.sin >= 0 ? 1 : -1);
+  const tyre = { ring: "ink", shade: 0.3 } as const;
+  if (side) {
+    // Seen from the side: the handle and hood nearest the pusher.
+    const x0 = rnd(f.centre(0) + dir * (f.chestD + 4)), len = 13;
+    const X = (i: number) => x0 + dir * i;
+    const span = (m: Mask, y: number, i0: number, i1: number) => m.span(y, Math.min(X(i0), X(i1)), Math.max(X(i0), X(i1)));
+    const body = new Mask();
+    for (let r = 0; r < 6; r++) span(body, ground - 11 + r, r === 5 ? 1 : 0, len - 1 - (r === 5 ? 1 : 0));
+    s.put(body, LEATHER, { ring: "ink", shade: 0.3, light: 0.25, top: true });
+    const hood = new Mask();
+    for (let r = 0; r < 5; r++) span(hood, ground - 16 + r, 0, 2 + r);
+    s.put(hood, LEATHER, { ring: "ink", shade: 0.2, light: 0.3, top: true, dark: 1 });
+    s.put(new Mask().line(X(0), ground - 13, X(-2), ground - 16, 1), STEEL, { ring: "none", shade: 0 });
+    s.put(span(new Mask(), ground - 5, 2, len - 3), STEEL, { ring: "none", shade: 0 });
+    for (const i of [2, len - 4]) {
+      const wheel = new Mask();
+      span(wheel, ground - 4, i, i + 1); span(wheel, ground - 3, i - 1, i + 2); span(wheel, ground - 2, i - 1, i + 2); span(wheel, ground - 1, i, i + 1);
+      s.put(wheel, STEEL, tyre);
+    }
+    // Blanket, and the face on the pillow under the hood.
+    for (let i = 7; i < len - 1; i++) s.px(X(i), ground - 11, WHITE, 3);
+    const hx = X(4);
+    s.px(hx, ground - 13, HAIR, 3); s.px(hx + dir, ground - 13, SKIN, 3); s.px(hx, ground - 12, SKIN, 3); s.px(hx + dir, ground - 12, SKIN, 3);
+    s.px(hx + dir * 2, ground - 12, SKIN, 3); s.px(hx + dir * 2, ground - 13, SKIN, 3);
+    if (mood === "watching") s.px(hx + dir, ground - 13, EYE, 3);
+    else s.retone(hx + dir, ground - 13, 1);
+    if (mood === "crying") s.px(hx + dir * 2, ground - 12, EYE, 3);
+    if (mood === "fussing" || mood === "crying") s.put(new Mask().line(X(7), ground - 12, X(8), ground - (mood === "crying" ? 16 : 14), 1), SKIN, { ring: "ink", shade: 0 });
+    return;
+  }
+  // End on. Coming toward the viewer the foot of the pram leads and the hood
+  // stands behind it; going away, the hood's back is all there is to see.
+  const c = rnd(f.centre(0)), top = ground - (back ? 15 : 11);
+  const body = new Mask();
+  for (let r = 0; r < 7; r++) body.span(top + r, c - 5 + (r === 6 ? 1 : 0), c + 5 - (r === 6 ? 1 : 0));
+  const hood = new Mask().span(top - 5, c - 4, c + 4);
+  for (let r = 1; r < 5; r++) hood.span(top - 5 + r, c - 5, c + 5);
+  s.put(hood, LEATHER, { ring: "ink", shade: 0.2, light: 0.3, top: true, dark: 1 });
+  if (!back) {
+    babyFace(f, c, top - 4, mood);
+    if (mood === "fussing" || mood === "crying") s.put(new Mask().line(c + 3, top - 1, c + 4, top - (mood === "crying" ? 6 : 4), 1), SKIN, { ring: "ink", shade: 0 });
+  }
+  s.put(body, LEATHER, { ring: "ink", shade: 0.3, light: 0.25, top: true });
+  if (!back) for (let x = c - 4; x <= c + 4; x++) s.px(x, top, WHITE, 3);
+  for (const x of [c - 5, c + 5]) s.put(new Mask().line(x, top + 7, x, top + 10, 1.6), STEEL, tyre);
+}
+
+/** Carried in front: astride the hip with an arm round it, or swaddled and
+ * held across the chest. From behind only a hip baby's head shows. */
+function inFront(f: Figure, layer: "behind" | "over", mood: InfantMood, carry: "hip" | "arms") {
+  const { s, yOf } = f;
+  const back = away(f);
+  const upset = mood === "fussing" || mood === "crying";
+  const lift = mood === "asleep" ? 1 : 0;
+  if (carry === "hip") {
+    const x = rnd(sideX(f, f.hip + 3, f.waistW + 1.5, back ? 0 : f.chestD * 0.4)), y = yOf(f.hip + 5);
+    if (layer === "behind") {
+      if (!back) return;
+      s.put(new Mask().span(y - 4, x - 1, x + 1).span(y - 3, x - 2, x + 2).span(y - 2, x - 2, x + 2).span(y - 1, x - 1, x + 1), HAIR, { ring: "ink", shade: 0.3 });
+      return;
+    }
+    if (back) return;
+    const body = new Mask();
+    for (let r = 0; r < 5; r++) body.span(y + r, x - 2, x + 1);
+    // Bare, with a cloth round the middle, and a leg round the mother's waist.
+    s.put(body, SKIN, { ring: "ink", shade: 0.3, zone: (_x, py) => (py >= y + 3 ? WHITE : SKIN) });
+    const to = rnd(sideX(f, f.hip + 1, f.waistW - 2, f.chestD));
+    s.put(new Mask().line(x, y + 4, to, y + 5, 1), SKIN, { ring: "ink", shade: 0 });
+    if (upset) s.put(new Mask().line(x + 1, y, x + 3, y - (mood === "crying" ? 3 : 1), 1), SKIN, { ring: "ink", shade: 0 });
+    babyFace(f, x, y - 5 + lift, mood);
+    return;
+  }
+  if (layer === "behind" || back) return;
+  // Swaddled: a banded bundle across the chest, the head in the crook of an arm.
+  const row = f.shoulder - 5, cx = sideX(f, row, 0, f.chestD + 1), y = yOf(row);
+  const span = Math.max(2, rnd(4 * Math.abs(f.cos) + 1.5));
+  const end = f.sin * f.sx > 0.3 ? 1 : -1;
+  const bundle = new Mask();
+  for (let r = 0; r < 4; r++) bundle.span(y + r, rnd(cx - span + (r === 3 ? 1 : 0)), rnd(cx + span - (r === 0 ? 1 : 0)));
+  s.put(bundle, WHITE, { ring: "ink", shade: 0.3, light: 0.2, zone: (px) => ((px - rnd(cx)) % 3 === 0 ? TRIM : WHITE) });
+  // The arm under it.
+  s.put(new Mask().span(y + 4, rnd(cx - span + 1), rnd(cx + span - 1)), SKIN, { ring: "ink", shade: 0.3 });
+  const hx = rnd(cx + end * span);
+  if (upset) s.put(new Mask().line(hx - end, y, hx - end * 2, y - (mood === "crying" ? 3 : 2), 1), SKIN, { ring: "ink", shade: 0 });
+  babyFace(f, hx, y - 3 + lift, mood);
 }
 
 /** Rings of metal at each bare wrist. */

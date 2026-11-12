@@ -69,6 +69,8 @@ export type Effect =
   | { type: "seize"; role: PlotRole }
   | { type: "walk-off"; role: PlotRole; to: WalkOff }
   | { type: "extend"; hours: number }
+  /** Loose the plot's predator, `words.species`: a man-eater on the district, or a raider on the household's pen. */
+  | { type: "loose"; as: "maneater" | "raider" }
   /** What is owed, multiplied: 0.7 after a good haggle, 1.5 when they ask for more. */
   | { type: "owe"; times: number }
   /** People meet at a cast member's house, before the authority, on the common

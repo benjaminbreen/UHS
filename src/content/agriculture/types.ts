@@ -33,6 +33,11 @@ export type CropId =
   | "flax"
   | "cotton"
   | "vegetables"
+  | "lentils"
+  | "turnip"
+  | "mulberry"
+  | "tea"
+  | "tobacco"
   | "pasture"
   | "fallow";
 

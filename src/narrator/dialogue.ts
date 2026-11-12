@@ -19,6 +19,7 @@ import { random } from "../core/random";
 import { distance } from "../core/types";
 import { narratorProvider } from "./turn";
 import { plotLine, plotTemplate } from "../core/plot";
+import { STANCE_VOICE, stanceOf } from "../content/plots/stance";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
 
@@ -93,11 +94,14 @@ function plotBrief(runtime: Runtime, actor: Actor) {
   const role = plot && !plot.ended && Object.keys(plot.cast).find((r) => plot.cast[r] === actor.id);
   if (!plot || !role || plotTemplate(plot)?.journal) return "";
   const line = (key: string) => plotLine(plot, key);
+  const stance = stanceOf(statsOf(runtime.engine.state.manifest.seed, actor), actor.trust);
   return [
     `Events affecting you ("${plot.title}"; your part: ${role}): ${line("intro")}`,
     `Possible consequence if the obligation is not met: ${line("threat")} This has not happened merely because delivery is outstanding.`,
     `Your stake and feelings come from these events and your relationship with the player, not from being cast as ${role}. A friend, acquaintance and enemy need not make the same request in the same way.`,
     line(`cast-${role}`) && `About you: ${line(`cast-${role}`)}`,
+    stance && `How you put it: ${STANCE_VOICE[stance]}`,
+    "When you speak of these events, say outright what happened, why you hold the player to it, what you want and what you will do otherwise. No hints, no telling small details, nothing the player has to work out.",
     `Outstanding obligation: ${line("aim")}${plot.words.amount ? ` Amount: ${plot.words.amount}.` : ""}`,
     (plot.owed ?? 0) > 0 && plot.deadline - runtime.engine.state.clock <= 3600 ? "The deadline is within an hour or has passed; the outstanding obligation may now be urgent." : "The deadline is not imminent.",
     "Conversation priority: if the player is offering comfort, affection or company, answer that alone. Do not attach an obligation reminder. Mention the obligation again only for a practical question about it, a refusal or retraction, or an imminent deadline. Acknowledging agreement needs no repeated amount or deadline.",
@@ -258,11 +262,20 @@ export function shout(text: string) {
   return /!\s*$/.test(loud) ? loud : `${loud}!!!`;
 }
 
-function forSale(runtime: Runtime, actor: Actor) {
+const TRADER = /merchant|trader|peddler|pedlar|shop|seller|vendor|hawker|broker|dealer|monger|innkeeper|tavern|chandler|grocer|baker|potter|smith/i;
+function forSale(runtime: Runtime, actor: Actor, stats: ReturnType<typeof statsOf>) {
   const shop = runtime.engine.shopOf(actor.id);
   const goods = shop && Object.entries(shop.stock).filter(([, n]) => (n ?? 0) > 0)
     .map(([id]) => runtime.engine.item(id)?.name.toLowerCase()).filter(Boolean).slice(0, 8);
-  return goods?.length ? `You have goods out for sale here: ${goods.join(", ")}. If the player wants to buy or sell, agree and set "trade".` : "";
+  if (!goods?.length) return "";
+  // Talkative, open, not too soft, and selling for a living: the one who calls out to passers-by.
+  const eager = stats.extraversion * 0.4 + stats.openness * 0.2 + (100 - stats.agreeableness) * 0.15 + (TRADER.test(actor.role) ? 30 : 0);
+  const pitch = eager >= 60
+    ? "You are keen to sell: unless the player is clearly busy or hostile, bring your goods up yourself early on, praise them, name a price, and set \"trade\" if they show any interest."
+    : eager >= 40
+      ? "If the talk gives you an opening, you may mention what you have for sale."
+      : "You do not push your goods; sell if asked.";
+  return `You have goods out for sale here: ${goods.join(", ")}. If the player wants to buy or sell, agree and set "trade". ${pitch} How hard anyone sells also follows the custom of this place and date: haggling and calling out to strangers is normal in some markets and unseemly in others.`;
 }
 
 export function dialogueContext(runtime: Runtime, actor: Actor) {
@@ -386,7 +399,10 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     engine.standsGround(actor)
       ? "If the player refuses to leave your private home or gives a grave insult, you will stand your ground and threaten to strike; the engine carries out this response. Do not claim to leave or seek help instead."
       : "If the player refuses to leave your private home or gives a grave insult, you will shout for help and leave to report them; the engine carries out this response. Do not claim to attack them.",
-    forSale(runtime, actor),
+    forSale(runtime, actor, stats),
+    actor.trust >= 0 && !intruding && !terrified(runtime, actor)
+      ? `If the player asks after someone or somewhere, seems lost, or you want them to meet someone (kin, a neighbour, someone who can help them), you may offer to take them there yourself${stats.agreeableness + stats.extraversion >= 120 ? "; you like doing this and offer readily" : ""}. Once they agree, set "lead".`
+      : "",
     terrified(runtime, actor)
       ? `${actor.terror!.cause === "assault" ? "THE PLAYER HAS STRUCK YOU." : actor.terror!.cause === "anger" ? "YOU HAVE LOST YOUR TEMPER AND ARE THREATENING THE PLAYER." : "YOU ARE TERRIFIED. The player has broken into your home with a heavy tool and is inside, or right there, smashing things."} ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
       : anger(actor, state.clock),
@@ -521,6 +537,7 @@ export async function dialogueTurn(
       mood?: Expression;
       action?: string;
       leave?: WalkOff;
+      lead?: string;
       ask?: "made" | "accepted" | "declined";
       favour?: Favour;
       trade?: boolean;
@@ -542,6 +559,7 @@ export async function dialogueTurn(
     const offended = (data.regard ?? 0) <= -2;
     if (refusing || (data.regard ?? 0) <= -3) {
       data.leave = undefined;
+      data.lead = undefined;
       data.receive = undefined;
       data.trade = undefined;
       data.ask = undefined;
@@ -554,7 +572,7 @@ export async function dialogueTurn(
     }
     // The furious have their say and go; a householder throwing you out stays put.
     else if (angerLevel(actor, runtime.engine.state.clock) === 3 && !runtime.engine.trespassing(actor)) data.leave ??= "away";
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, trespass: data.trespass, leave: data.leave, ask: data.ask, favour: data.favour, trade: data.trade, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, trespass: data.trespass, leave: data.leave, lead: data.lead, ask: data.ask, favour: data.favour, trade: data.trade, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")
@@ -564,7 +582,7 @@ export async function dialogueTurn(
 }
 
 export type DialogueReply = Omit<DialogueLine, "speaker"> & {
-  leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour;
+  leave?: WalkOff; lead?: string; ask?: "made" | "accepted" | "declined"; favour?: Favour;
   trade?: boolean; receive?: DialogueGift; regard?: number; mood?: Expression;
   trespass?: "warned" | "refused" | "leaving"; ended?: boolean;
   error?: string; aborted?: boolean;
@@ -585,7 +603,11 @@ export function commitDialogue(runtime: Runtime, actorId: string, said: string, 
   if (!said.trim()) { received = gift(); exchange(); }
   else { exchange(); received = gift(); }
   const actor = runtime.engine.state.actors.find((a) => a.id === actorId);
-  if (actor?.terror?.fight) {
+  if (actor && reply.lead && !reply.leave && runtime.engine.leadPlayer(actor, reply.lead)) {
+    runtime.escort(actorId);
+    reply.ended = true;
+    reply.action ??= "sets off, beckoning you along";
+  } else if (actor?.terror?.fight) {
     reply.ended = true;
     reply.action = "raises a hand, ready to strike";
   } else if (actor?.errand && (actor.errand !== priorErrand || distance(actor.pos, runtime.engine.state.player.pos) > 2.5)) {

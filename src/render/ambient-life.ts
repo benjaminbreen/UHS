@@ -38,7 +38,7 @@ const specs: Record<CritterKind, Spec> = {
   midge: { density: 110, depth: 18450, colors: ["#3b3d33", "#4a4c40"] },
   gull: { density: 10, depth: 18700, colors: ["#f4f3ee", "#e2e5e8"], ink: "#4d535b" },
   hawk: { density: 0, depth: 18750, colors: ["#4b3a2b"] },
-  dragonfly: { density: 40, depth: 18450, colors: ["#3c8fc4", "#3a9f78", "#b9533a"] },
+  dragonfly: { density: 40, depth: 18450, colors: ["#3c8fc4", "#3a9f78", "#b9533a"], ink: "#dcecf0" },
   fluff: { density: 45, depth: 18450, colors: ["#f6f3e8", "#ebe5d2"] },
 };
 
@@ -69,8 +69,8 @@ const shapes: Record<CritterKind, string[][]> = {
     ["XXXXXXX", ".XXXXX.", "...X...", "..XXX.."],
   ],
   dragonfly: [
-    [".X...", "XXX..", ".X...", ".X...", "....."],
-    [".X...", ".X...", "XXX..", ".X...", "....."],
+    ["oo.X.oo", "..oXo..", "oo.X.oo", "...X...", "...X..."],
+    [".o.X.o.", "..oXo..", ".o.X.o.", "...X...", "...X..."],
   ],
   fluff: [
     [".X...", "X.X..", ".X...", ".....", "....."],

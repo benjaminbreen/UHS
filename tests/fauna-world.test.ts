@@ -454,6 +454,72 @@ describe("fauna behaviour", () => {
       expect(Math.abs(d.x - e.x) > rx || d.y > e.y + 1 || d.y < e.y - ry).toBe(true);
     }
   });
+  it("a deer canters from someone standing and sprints from someone running", () => {
+    const run = (pressed: number) => {
+      const deer = group("chital", 10, 10);
+      const world = sim({ humans: [{ x: 6, y: 10, space: "outside" }], pressed });
+      advanceFauna([deer], world, 6);
+      return Math.hypot(deer.members[0].x - 10, deer.members[0].y - 10);
+    };
+    expect(run(0)).toBeLessThan(4);
+    expect(run(6)).toBeGreaterThan(5);
+  });
+  it("a polar bear does not run from a person, and comes for one who walks up", () => {
+    const bear = group("polar-bear", 10, 10);
+    const person = { x: 2, y: 10, space: "outside" };
+    const world = sim({ humans: [person] });
+    for (let t = 6; t <= 60; t += 6) advanceFauna([bear], world, t);
+    expect(Math.hypot(bear.members[0].x - 10, bear.members[0].y - 10)).toBeLessThanOrEqual(1.5);
+    person.x = bear.members[0].x - 2;
+    advanceFauna([bear], world, 66);
+    expect(bear.provoked).toBeGreaterThan(66);
+  });
+  it("warns someone off before it comes, and lets them go if they back away", () => {
+    const bear = group("polar-bear", 10, 10);
+    const person = { x: 5, y: 10, space: "outside" };
+    const world = sim({ humans: [person] });
+    advanceFauna([bear], world, 6);
+    expect(bear.warning).toBeGreaterThan(6);
+    expect(bear.provoked).toBeUndefined();
+    person.x = 0;
+    advanceFauna([bear], world, 12);
+    expect(bear.warning).toBeUndefined();
+    expect(bear.provoked).toBeUndefined();
+  });
+  it("comes for someone who waits out a lion's warning, but not for one holding a light", () => {
+    const stay = (light: boolean) => {
+      const lion = group("lion", 10, 10);
+      const world = sim({ humans: [{ x: 5, y: 10, space: "outside" }], quarry: { hurt: 0, meat: false, light, company: 0 } });
+      for (let t = 6; t <= 42; t += 6) advanceFauna([lion], world, t);
+      return lion;
+    };
+    expect(stay(false).provoked).toBeDefined();
+    expect(stay(true).provoked).toBeUndefined();
+  });
+  it("sends a man-eater creeping up on someone alone at night", () => {
+    const tiger = group("tiger", 10, 10);
+    tiger.maneater = { name: "the Champawat tigress" };
+    const person = { x: 30, y: 10, space: "outside" };
+    const world = sim({ hour: 23, humans: [person], quarry: { hurt: 0, meat: false, light: false, company: 0 } });
+    let t = 6;
+    for (; t <= 1200 && tiger.provoked === undefined; t += 6) advanceFauna([tiger], world, t);
+    expect(tiger.provoked).toBeDefined();
+    expect(tiger.members[0].x).toBeGreaterThan(20);
+  });
+  it("drives a raider off a fold where a fire is burning", () => {
+    const wolves = group("gray-wolf", 2, 10);
+    wolves.stockRaid = { at: { x: 20, y: 10, space: "outside" } };
+    const world = sim({ hour: 23, lights: [{ x: 21, y: 10 }] });
+    for (let t = 6; t <= 600 && wolves.stockRaid.repelled === undefined; t += 6) advanceFauna([wolves], world, t);
+    expect(wolves.stockRaid.repelled).toBeDefined();
+  });
+  it("goes round a wall between a raider and the fold", () => {
+    const wolves = group("gray-wolf", 2, 10);
+    wolves.stockRaid = { at: { x: 20, y: 10, space: "outside" } };
+    const world = sim({ hour: 23, blocked: (x, y) => x === 8 && y > 2 && y < 18 });
+    for (let t = 6; t <= 900; t += 6) advanceFauna([wolves], world, t);
+    expect(wolves.members[0].x).toBeGreaterThan(8);
+  });
   it("keeps a calf at its mother's side", () => {
     const herd = group("cattle", 10, 10);
     herd.state = "graze";

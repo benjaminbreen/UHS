@@ -2,11 +2,10 @@ import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { createSession } from "./session";
 import { integratedSetting } from "../content/geography/defaults";
-import { packForSetting } from "../content/geography/pack";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
-import type { PreparedSettlement } from "../world/v3/prepared";
+import { withTravelWaterways, type TravelWaterwayInputs } from "../world/travel/waterways";
+import type { WorldPreparationRequest, WorldPreparationResult } from "../world/worker";
 import { retainTerrainWorker } from "./terrain-worker-owner";
-import { preparedKey } from "./prepared-store";
 import { markEvent } from "./vitals";
 import { smallMemoryDevice } from "./device";
 
@@ -26,7 +25,9 @@ export async function prepareSettingSession(
   signal?: AbortSignal,
   cachePrepared = true,
   onCharacter?: CharacterPrepared,
+  waterways?: TravelWaterwayInputs,
 ) {
+  signal?.throwIfAborted();
   const resolved = populateCharacter(
     integratedSetting(settingSchema.parse(setting)),
     seed,
@@ -37,8 +38,10 @@ export async function prepareSettingSession(
       "player", resolved.character!.age!, resolved.role, resolved.characterName),
     age: resolved.character!.age!,
   });
-  if (typeof Worker === "undefined")
+  if (typeof Worker === "undefined") {
+    if (waterways) resolved.playableMap = withTravelWaterways(resolved.playableMap!, waterways);
     return createSession("atlas", seed, { setting: resolved });
+  }
   signal?.throwIfAborted();
   const worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
     type: "module",
@@ -46,7 +49,7 @@ export async function prepareSettingSession(
   const retire = smallMemoryDevice();
   let owned = true;
   try {
-    const prepared = await new Promise<PreparedSettlement>(
+    const { prepared, playableMap } = await new Promise<WorldPreparationResult>(
       (resolve, reject) => {
         const abort = () => {
           cleanup();
@@ -66,25 +69,16 @@ export async function prepareSettingSession(
           signal?.removeEventListener("abort", abort);
         };
         signal?.addEventListener("abort", abort, { once: true });
-        worker.onmessage = ({ data }) => {
+        worker.onmessage = ({ data }: MessageEvent<WorldPreparationResult | { error: string }>) => {
           cleanup();
-          if (data.error) reject(Error(data.error));
-          else resolve(data.prepared);
+          if ("error" in data) reject(Error(data.error));
+          else resolve(data);
         };
         worker.onerror = (e) => {
           cleanup();
           reject(Error(e.message));
         };
-        worker.postMessage({
-          // A world seen before comes ready-made from the worker's cache, so it
-          // only has to rebuild the functions around the geometry.
-          prepare: {
-            pack: packForSetting(resolved),
-            seed,
-            key: cachePrepared ? preparedKey(resolved, seed) : undefined,
-            retire,
-          },
-        });
+        worker.postMessage({ prepare: { setting: resolved, seed, cachePrepared, retire, waterways } } satisfies WorldPreparationRequest);
       },
     );
     signal?.throwIfAborted();
@@ -92,6 +86,7 @@ export async function prepareSettingSession(
       worker.terminate();
       owned = false;
     }
+    if (playableMap) resolved.playableMap = playableMap;
     const engine = createSession(
       "atlas",
       seed,

@@ -78,8 +78,7 @@ const venueGlyphs: Record<string, number> = {
   lodge: 6,
   "gaming-house": 15,
 };
-/** Trades with a mark of their own. A general shopkeeper, merchant or trader
- * gets none: a board that says only "shop" tells a passer-by nothing. Words
+/** Trades with a mark of their own. Words
  * match whole, so a swineherd is not a wine seller. */
 const trades: [RegExp, number][] = [
   [/\b(barber|barbers|surgeon)\b/, 17],
@@ -113,6 +112,8 @@ const trades: [RegExp, number][] = [
     4,
   ],
   [/\b(potter|oilman|oilseller)\b/, 5],
+  // General dealers carry the scales: weighed goods, not one craft.
+  [/\b(merchant|trader|shopkeeper|storekeeper|grocer|dealer|peddler|pedlar|factor|broker|general)\b/, 11],
 ];
 
 export function emblemFor(
@@ -133,8 +134,7 @@ const japan = (lon: number, lat: number) => lon >= 130 && lat >= 30 && lat <= 46
 const china = (lon: number, lat: number) => lon >= 100 && lon < 125 && lat >= 18 && lat <= 45;
 
 /** Which wall sign a street's shops hang, if any. Scoped interpretations,
- * not dates of invention. Rome is left out: its shopfronts carry their
- * painted notices and reliefs in the building art. */
+ * not dates of invention. */
 export function signFor(pack: Pack): { key: string; style: WallStyle } | undefined {
   const s = pack.setting;
   if (!s || s.settlement === "camp" || s.settlement === "farm") return;
@@ -152,14 +152,25 @@ export function signFor(pack: Pack): { key: string; style: WallStyle } | undefin
     if (year >= 1500 && s.lon >= 3 && s.lon <= 20 && s.lat >= 46 && s.lat <= 56) return pick("cutout");
     return pick(year >= 1500 ? "painted" : "oak");
   }
-  if (s.culture === "east-asian" && year >= 600 && year < 1870) {
+  // Painted boards and terracotta reliefs by Roman and Hellenistic shop doors (Pompeii, Ostia).
+  if (year >= -400 && year < 600 && s.lat >= 30 && s.lat <= 46 && s.lon >= -10 && s.lon <= 40 &&
+    (s.culture === "european" || s.culture === "north-african-west-asian")) return pick("painted");
+  // Han market wards hung boards and wine flags; Japan is later.
+  if (s.culture === "east-asian" && year >= (china(s.lon, s.lat) ? -200 : 600) && year < 1870) {
     if (japan(s.lon, s.lat)) return pick(year >= 1600 ? "noren" : "split");
     return pick("lacquer");
   }
   if ((s.culture === "south-asian" || s.culture === "southeast-asian") && year >= 1000 && year < 1870)
     return pick("pennant");
-  if ((s.culture === "north-african-west-asian" || s.culture === "inner-eurasian") && year >= 1000 && year < 1870)
+  // From the Abbasid suqs on; Silk Road oasis towns with them.
+  if ((s.culture === "north-african-west-asian" || s.culture === "inner-eurasian") && year >= 750 && year < 1870)
     return pick("bazaar");
+  // Swahili coast towns traded the Indian Ocean bazaar's way: an inference.
+  if (s.culture === "east-southern-african" && year >= 1000 && year < 1870 && s.lon >= 38) return pick("bazaar");
+  // Colonial towns from New Spain to Peru hung Spanish painted signs.
+  if ((s.culture === "mesoamerican" || s.culture === "andean") && year >= 1550 && year < 1870) return pick("painted");
+  // From the nineteenth century, a lettered board over the shop nearly everywhere a shop stood.
+  if (year >= 1800 && (s.culture === "european" || year >= 1870)) return pick("fascia");
   return undefined;
 }
 
@@ -185,10 +196,12 @@ export function wallSignFor(pack: Pack, street: { style: WallStyle }, emblem: nu
   const drink = venue === "tavern" || emblem === 0;
   let style: WallStyle = street.style;
   let mark = emblem;
-  if (venue === "tavern" && lon >= -6 && lon <= 2 && lat >= 50 && lat <= 56 && year >= 1200 && year < 1600) style = "bush";
+  // The bush or ivy over a wine shop is Roman before it is English.
+  if (venue === "tavern" && ((lon >= -6 && lon <= 2 && lat >= 50 && lat <= 56 && year >= 1200 && year < 1600) ||
+    (street.style === "painted" && year < 600))) style = "bush";
   else if (emblem === 17 && pack.setting?.culture === "european" && year >= 1500) style = "barber";
   else if (drink && japan(lon, lat) && year >= 1600) style = "sugidama";
-  else if (drink && china(lon, lat) && year >= 960) style = "wineflag";
+  else if (drink && china(lon, lat) && year >= -200) style = "wineflag";
   if (mark === 3 && lon >= 6 && lon <= 17 && lat >= 46 && lat <= 55) mark = 16;
   return { key: `wallsign-${style}`, variant: MARKED.has(style) ? mark : 0 };
 }

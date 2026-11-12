@@ -5,13 +5,19 @@ import {
 } from "../render/terrain-worker";
 import { createWorld } from "./generate";
 import { packs } from "../content/packs";
-import type { Pack, WorldModel } from "../core/types";
+import type { WorldModel } from "../core/types";
 import { createSettlementWorld, prepareSettlement } from "./v3/generate";
 import { createAtlasWorld } from "./v2/generate";
 import { packForSetting } from "../content/geography/pack";
 import type { WorldSetting } from "../content/geography/types";
 import { stateHash } from "../core/random";
-import { loadPrepared, savePrepared } from "../runtime/prepared-store";
+import { loadPrepared, preparedKey, savePrepared } from "../runtime/prepared-store";
+import { withTravelWaterways, type TravelWaterwayInputs } from "./travel/waterways";
+import type { PreparedSettlement } from "./v3/prepared";
+export type WorldPreparationRequest = {
+  prepare: { setting: WorldSetting; seed: string; cachePrepared: boolean; retire: boolean; waterways?: TravelWaterwayInputs };
+};
+export type WorldPreparationResult = { prepared: PreparedSettlement; playableMap?: WorldSetting["playableMap"] };
 export type ChunkRequest = {
   setting?: WorldSetting;
   generator?: 1 | 2 | 3;
@@ -27,9 +33,7 @@ self.onmessage = (
   event: MessageEvent<
     | ChunkRequest
     | TerrainRequest
-    | {
-        prepare: { pack: Pack; seed: string; key?: string; retire?: boolean };
-      }
+    | WorldPreparationRequest
   >,
 ) => {
   if ("prepare" in event.data) {
@@ -40,7 +44,8 @@ self.onmessage = (
     "pack" in event.data ||
     "region" in event.data ||
     "style" in event.data ||
-    "previews" in event.data
+    "previews" in event.data ||
+    "warm" in event.data
   ) {
     handleTerrainRequest(event.data);
     return;
@@ -65,15 +70,25 @@ self.onmessage = (
 
 /** The cache is read and written here, not on the main thread: either way the
  * whole settlement is structured-cloned, and that took 800ms of the start. */
-async function prepare({ pack, seed, key: cacheKey, retire }: { pack: Pack; seed: string; key?: string; retire?: boolean }) {
+async function prepare({ setting, seed, cachePrepared, retire, waterways }: WorldPreparationRequest["prepare"]) {
   try {
-    const cached = cacheKey ? await loadPrepared(cacheKey).catch(() => undefined) : undefined;
-    const { world: settlement, prepared } = prepareSettlement(pack, seed, cached);
+    const recipe = cachePrepared && waterways ? preparedKey(setting, seed, waterways) : undefined;
+    const hit = recipe ? await loadPrepared(recipe, true).catch(() => undefined) : undefined;
+    const playableMap = waterways
+      ? hit?.playableMap ?? withTravelWaterways(setting.playableMap!, waterways)
+      : undefined;
+    if (playableMap) setting.playableMap = playableMap;
+    const cacheKey = hit?.key ?? (cachePrepared ? preparedKey(setting, seed) : undefined);
+    const cached = hit ?? (cacheKey ? await loadPrepared(cacheKey).catch(() => undefined) : undefined);
+    const { world: settlement, prepared } = prepareSettlement(packForSetting(setting), seed, cached?.prepared);
     useTerrainWorld(settlement);
+    const entry = cacheKey && (!cached || (recipe && cached.recipe !== recipe))
+      ? { key: cacheKey, prepared, recipe, playableMap }
+      : undefined;
     // A phone terminates this worker on receipt; finish its cache transaction first.
-    if (retire && cacheKey && !cached) await savePrepared(cacheKey, prepared);
-    self.postMessage({ prepared });
-    if (!retire && cacheKey && !cached) void savePrepared(cacheKey, prepared);
+    if (retire && entry) await savePrepared(entry);
+    self.postMessage({ prepared, playableMap } satisfies WorldPreparationResult);
+    if (!retire && entry) void savePrepared(entry);
   } catch (error) {
     self.postMessage({ error: String(error) });
   }

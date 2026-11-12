@@ -6,6 +6,9 @@ import { ancientThemes } from "./ancient-themes";
 import { africanThemes } from "./african-themes";
 import { modernThemes } from "./modern-themes";
 import { overworldTheme } from "./overworld-theme";
+import { mainTheme } from "./main-theme";
+import { noonTheme } from "./noon-theme";
+import { afternoonTheme } from "./afternoon-theme";
 import { southAsianThemes } from "./south-asian-themes";
 import { europeanThemes } from "./european-themes";
 import { lastWinterTrain } from "./winter-train-theme";
@@ -54,6 +57,10 @@ export interface LayeredTheme {
   lon?: [number, number];
   /** Plays in every shuffle, never as a direct hit. */
   anywhere?: boolean;
+  /** Hours of the world's day [from, to) it belongs to: played once in that window, and at no other time. */
+  hours?: [number, number];
+  /** Only for a player character whose stats read as playful. */
+  playful?: boolean;
   /** Reverb send and length in seconds; default a modest room. */
   reverb?: [number, number];
   sections?: { bar: number; label: string }[];
@@ -3003,6 +3010,9 @@ export const layeredThemes: LayeredTheme[] = [
     ],
   },
   overworldTheme,
+  mainTheme,
+  noonTheme,
+  afternoonTheme,
   {
     id: "past-the-next-hill",
     title: "Past the next hill",

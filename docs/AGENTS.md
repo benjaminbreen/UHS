@@ -11,12 +11,14 @@ is the contract; `src/agents/` implements it.
   agent keeps the rules a person keeps. `tools` is the only list of what an
   agent can do; everything below reads it.
 - **Solo**, `npm run agent:serve`. An MCP server over stdio. The agent
-  decides its own pace and keeps its own notes.
+  decides its own pace and keeps its own notes. The first tool call builds the world.
+- **Playtest**, `npm run agent:play`. Drive the same tools from a terminal or
+  a sequence of commands on stdin. Uses offline dialogue and records a replay.
 - **Run**, `npm run agent:run`. The game drives a model itself
   (`src/agents/loop.ts`, `src/agents/providers.ts`). It works with models
   that cannot call tools: each turn the model replies with one JSON object
   naming a tool.
-- **Record**, `src/agents/record.ts`. Both modes write the same folder.
+- **Record**, `src/agents/record.ts`. All three modes write the same folder.
 
 The scripts run under `vite-node`, not `tsx`: map travel loads its data with
 Vite's `import.meta.glob`.
@@ -69,13 +71,33 @@ setting's design notes and the full item catalogue. Breaking that is a bug.
 
 ## Running
 
+Start a repeatable playtest in a terminal. Type `look` to see the scene,
+`help` for available tools, and `quit` when done.
+
 ```bash
-npm run agent:serve -- --setting "Clerk in Lagos, 1925"
+npm run agent:play -- --setting "Weaver in Oaxaca 1650" --seed playtest
+```
+
+Commands take a tool name and an optional JSON object. For a scripted run,
+use `--silent` so stdout contains only one JSON reply per command. Replies
+include the status, scene text, and game clock before and after each tool call.
+The run folder is printed to stderr at the end. Open its `review.html` or
+pass the folder to `npm run replay -- <folder>`.
+
+```bash
+printf '%s\n' 'look' 'act {"command":{"type":"wait","seconds":60}}' 'look' |
+  npm run --silent agent:play -- --setting "tiny desert island 10x5 in 1944" --seed playtest
+```
+
+`agent:play` accepts `--setting`, `--seed`, `--concern`, `--time-travel`, and
+`--out`. It uses the engine's dialogue and needs no API keys.
+
+```bash
+npm run --silent agent:serve -- --setting "Clerk in Lagos, 1925" --offline
 ```
 
 To give it to Claude Code: `claude mcp add uhs -- npm run --silent agent:serve`
-(add `-- --setting "…"` to choose the place). It is not registered in the repo
-by default, because it would start a world in every session.
+(run from the repo root and add `-- --setting "…"` to choose the place).
 
 ```bash
 ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --days 2
@@ -100,7 +122,7 @@ ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --d
 | `--no-rationale` | run | Omit the request for a declared reason and expectation; native model reasoning may still occur |
 | `--repeat N` | run | N runs with the same options, each its own folder |
 
-Both modes open with the same framing (`FRAMING` and `ASK_REASON` in
+MCP and model-driven runs open with the same framing (`FRAMING` and `ASK_REASON` in
 `src/agents/agent.ts`): MCP sends it as the server's instructions, run mode
 puts it before its reply format. The manifest records the instructions given,
 and in MCP mode the connecting host's name and version, since the host's own

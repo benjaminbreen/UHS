@@ -32,6 +32,7 @@ const ACTS: Record<
     move: "hop",
     sound: "alarm",
   },
+  warn: { ms: 1500, mark: { glyph: "bang", color: 0xe0402e }, move: "shake", sound: "alarm" },
   question: {
     pose: "shrug",
     ms: 900,

@@ -7,7 +7,8 @@ import { kinWord, inWords } from "../concerns";
 import { standingOf } from "../standing";
 import { rollStats } from "../stats";
 import { conditionsOf, healthPerson } from "../health";
-import { inheritLikeness } from "../character";
+import { child } from "./child";
+import { legacy } from "../baby";
 import { plotKnown, plotLine, plotTemplate, startPlot } from "../plot";
 import { ensureLifeAim } from "../life-aim";
 import { causeOfDeath, epidemic } from "../../content/history/deaths";
@@ -157,34 +158,10 @@ function cast(engine: Engine) {
   for (let i = 0; i < (h?.infants ?? 0); i++) {
     const id = `${h!.id}-infant-${i}`, sex: Sex = random(seed, id, "sex") < 0.5 ? "female" : "male";
     const born = from - Math.floor(random(seed, id, "age") * 4);
-    const make = child(engine, id, born, sex, p, partner && byId.get(partner.id)), drawn = make(from - born);
+    const make = child(seed, setting, id, born, sex, p, partner && byId.get(partner.id)), drawn = make(from - born);
     people[id] = { id, name: drawn.name, first: firstOf(drawn), sex, born, kind: "child", role: "Child", with: partner?.id, drawn, make };
   }
   return { h, people, rank: standingOf(seed, p)?.rank ?? "labouring" };
-}
-
-/** A newborn drawn with the family's name and looks; drawn again older, the
- * name and face kept, the work and clothes their age's. */
-function child(engine: Engine, id: string, born: number, sex: Sex, a?: Partial<Actor>, b?: Partial<Actor>, avoid?: ReadonlySet<string>) {
-  const seed = engine.state.manifest.seed;
-  const father = [a, b].find((x) => x?.origin?.sex === "male" || x?.appearance?.physique?.sex === "male") ?? a;
-  const mother = father === a ? b : a;
-  const format = father?.origin?.nameFormat;
-  const families = format === "family-personal" || format === "personal-family"
-    ? father?.origin?.nameFamilies
-    : format === "personal-two-families" && father?.origin?.nameFamilies?.[0] && mother?.origin?.nameFamilies?.[0]
-      ? [father.origin.nameFamilies[0], mother.origin.nameFamilies[0]]
-      : undefined;
-  const looks = [a?.appearance, b?.appearance].filter((x): x is NonNullable<typeof x> => !!x);
-  let first: Drawn | undefined;
-  return (age: number): Drawn => {
-    const drawn = generateCharacter({ ...engine.world.pack.setting!, year: born + age }, seed, id, age, age < 14 ? "Child" : undefined, first?.name, families,
-      sex, father?.origin?.nameTradition, { community: father?.origin?.community, parentPersonal: father?.origin?.namePersonal, avoid });
-    if (drawn.appearance && looks.length) drawn.appearance = inheritLikeness(drawn.appearance, looks, seed, id);
-    if (first) drawn.origin = { ...drawn.origin, nameFormat: first.origin.nameFormat, nameFamilies: first.origin.nameFamilies, namePersonal: first.origin.namePersonal };
-    first ??= drawn;
-    return drawn;
-  };
 }
 
 /**
@@ -290,6 +267,10 @@ export function liveYears(engine: Engine): Life {
     if (news)
       lines.push({ kind: "news", text: news.text.replace(/\{here\}/g, setting.location).replace(/[{}]/g, ""), note: news.note });
 
+    const carried = s.baby && people[s.baby.id];
+    const took = carried && alive(carried, year) && ageOf(carried, year) === 6 ? legacy(s.baby!).line : undefined;
+    if (took) lines.push({ kind: "body", text: took, who: carried!.id });
+
     // Births, then marriages, then deaths, so a newborn meets its first year.
     const couples: [Person | "player", Person][] = [];
     const spouses = Object.values(people).filter((x) => x.kind === "partner" && athome(x, year - 1));
@@ -311,7 +292,7 @@ export function liveYears(engine: Engine): Life {
       const sex: Sex = r("sex", key) < 0.5 ? "female" : "male";
       const parents = [a === "player" ? p : actorOf(a), actorOf(b)];
       const taken = new Set([p.name, firstOf(p), ...Object.values(people).filter((x) => alive(x, year)).flatMap((x) => [x.name, x.first])]);
-      const make = child(engine, id, year, sex, parents[0], parents[1], taken), drawn = make(0);
+      const make = child(seed, setting, id, year, sex, parents[0], parents[1], taken), drawn = make(0);
       const baby: Person = { id, name: drawn.name, first: firstOf(drawn), sex, born: year, kind: a === "player" ? "child" : "grandchild", role: "Child",
         drawn, make, ...(a === "player" ? { with: b.id } : { of: a.id, with: b.id }) };
       people[id] = baby;
@@ -527,6 +508,12 @@ export function liveOn(engine: Engine, life: Life, year: number): Engine {
       id: x.id, age: n, relations,
     };
     if (actor.role === "Child" && n >= 15) actor.role = p.role;
+    if (s.baby?.id === x.id) {
+      const got = legacy(s.baby);
+      if (got.skill) actor.skills = { [got.skill]: got.xp };
+      if (got.line) actor.memories.push(got.line);
+      if (got.carer && byId.has(got.carer)) actor.memories.push(`${byId.get(got.carer)!.name} minded ${x.first} as a baby, and they stayed close.`);
+    }
     s.actors.push(actor);
     byId.set(x.id, actor);
     h.members.push(x.id);
@@ -581,9 +568,12 @@ export function liveOn(engine: Engine, life: Life, year: number): Engine {
     h.fortune = last?.fortune ?? before;
     h.infants = Object.values(people).filter((x) => !x.away && x.born <= year && year - x.born < 5 && !byId.has(x.id) &&
       (x.died === undefined || x.died > year) && (x.left === undefined || x.left > year)).length;
+    h.babies = Object.values(people).filter((x) => !x.away && x.born <= year && year - x.born < 2 && !byId.has(x.id) &&
+      (x.died === undefined || x.died > year) && (x.left === undefined || x.left > year)).length;
     if (p.inventory.coin) p.inventory.coin = Math.max(0, Math.round(p.inventory.coin * clamp(h.fortune / Math.max(0.05, before), 0.2, 3)));
   }
 
+  delete s.baby;
   p.age = (p.age ?? 30) + span;
   p.stats = rollStats(seed, p);
   Object.assign(p, { health: 100, hunger: 10, fatigue: 0, activity: "Exploring" });

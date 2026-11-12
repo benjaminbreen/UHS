@@ -19,7 +19,8 @@
       "wander": 8,
       "flee": 8,
       "chase": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 16
     },
     "directions": [
       "south",
@@ -139,7 +140,8 @@
       "wander": 8,
       "flee": 8,
       "chase": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 16
     },
     "directions": [
       "south",
@@ -231,7 +233,8 @@
       "wander": 8,
       "flee": 8,
       "chase": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 16
     },
     "directions": [
       "south",
@@ -309,7 +312,8 @@
       "wander": 8,
       "flee": 8,
       "chase": 8,
-      "rest": 16
+      "rest": 16,
+      "warn": 16
     },
     "directions": [
       "south",

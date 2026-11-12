@@ -8,7 +8,7 @@ import { catchFate, type CatchFate } from "./fishing";
  * hunter carried, and whether they also kept a line of snares. Worked out
  * from the society's tools and its contact with others rather than per region.
  */
-export type HuntWeapon = "spear" | "atlatl" | "bow" | "crossbow" | "firearm";
+export type HuntWeapon = "spear" | "atlatl" | "bow" | "crossbow" | "firearm" | "blowgun" | "throwing-stick" | "harpoon";
 type Weights = Partial<Record<HuntWeapon, number>>;
 
 export function weaponWeights(s: WorldSetting): Weights {
@@ -34,11 +34,49 @@ export function weaponWeights(s: WorldSetting): Weights {
   // 1850 drove out the bow nearly everywhere.
   const guns = y >= 1500 && (capabilitiesFor(s).has("european_contact") || (c === "west-central-african" && y >= 1650));
   if (guns) w.firearm = y < 1700 ? 1 : y < 1850 ? 4 : 30;
+  const at = (west: number, south: number, east: number, north: number) => s.lon >= west && s.lon <= east && s.lat >= south && s.lat <= north;
+  // Blowguns with curare in the Amazon and the Guianas; with ipoh poison
+  // among the Penan of Borneo and the Orang Asli of Malaya.
+  if (y >= -1000 && ((americas && s.climate === "tropical") || c === "southeast-asian")) w.blowgun = 4;
+  // Hunting sticks thrown at birds and small game: Aboriginal Australia (the
+  // returning boomerang was a toy), the Hopi rabbit stick, Egyptian fowling.
+  if (c === "australian-pacific" && at(112, -44, 154, -10)) w["throwing-stick"] = 3;
+  if (americas && at(-115, 31, -103, 38)) w["throwing-stick"] = 1.5;
+  if (c === "north-african-west-asian" && y >= -3000 && y < 0 && at(29, 22, 34, 32)) w["throwing-stick"] = 1;
+  // Seals and walrus taken at the ice edge and the breathing hole with a
+  // toggling harpoon: Inuit, Yupik, Chukchi.
+  if (s.climate === "tundra" && y >= -2500) w.harpoon = 3;
   return w;
 }
 
 /** What each weapon plays as. The crossbow and the gun use the bow until they have art of their own. */
-export const weaponHand: Record<HuntWeapon, "spear" | "bow"> = { spear: "spear", atlatl: "spear", bow: "bow", crossbow: "bow", firearm: "bow" };
+export const weaponHand: Record<HuntWeapon, "spear" | "bow"> = { spear: "spear", atlatl: "spear", bow: "bow", crossbow: "bow", firearm: "bow", blowgun: "bow", "throwing-stick": "spear", harpoon: "spear" };
+
+/** What a hunter carries for each way of hunting. A gun after 1850 is a
+ * breech-loader with cartridges; before it, a muzzle-loader with shot. */
+export function huntKit(weapon: HuntWeapon, year: number): Record<string, number> {
+  switch (weapon) {
+    case "bow": return { bow: 1, arrow: 12 };
+    case "crossbow": return { crossbow: 1, bolt: 10 };
+    case "firearm": return year < 1850 ? { musket: 1, shot: 10 } : { rifle: 1, cartridge: 20 };
+    case "blowgun": return { blowgun: 1, dart: 16 };
+    case "throwing-stick": return { spear: 1, "throwing-stick": 2 };
+    case "harpoon": return { harpoon: 1 };
+    default: return { spear: 1 };
+  }
+}
+
+/** Where hawks and falcons were flown. Mostly a sport of rank, but on the
+ * steppe and among the Arabs and Persians a hunter's working tool. */
+export function hawkingChance(s: WorldSetting, hunter: boolean, elite: boolean) {
+  const c = s.culture, y = s.year;
+  const steppe = c === "inner-eurasian" && s.lat < 55 && y >= -500 && y < 1950;
+  const westAsia = c === "north-african-west-asian" && y >= 300 && y < 1950;
+  const courts = (c === "european" && y >= 500 && y < 1750) || (c === "east-asian" && y >= -200 && y < 1900) || (c === "south-asian" && y >= 1000 && y < 1900);
+  if (steppe || westAsia) return hunter ? 0.25 : elite ? 0.3 : 0;
+  if (courts) return elite ? 0.3 : hunter ? 0.04 : 0;
+  return 0;
+}
 
 /** A hunter's weapon. `roll` is the hunter's; `hand` keeps the choice to what they actually carry. */
 export function huntWeapon(s: WorldSetting, roll: number, hand?: "spear" | "bow"): HuntWeapon {
@@ -52,7 +90,7 @@ export function huntWeapon(s: WorldSetting, roll: number, hand?: "spear" | "bow"
 /** Whether a hunter also keeps snares. Snares and pitfalls are older than any
  * record of them; fur trapping made them the main work in the boreal north. */
 export function keepsTraps(s: WorldSetting, roll: number, label = "") {
-  return /trap|fowl/i.test(label) || roll < (s.climate === "boreal" || s.climate === "tundra" ? 0.6 : 0.35);
+  return /trap|fowl|snar/i.test(label) || roll < (s.climate === "boreal" || s.climate === "tundra" ? 0.6 : 0.35);
 }
 
 export const huntWords: Record<HuntWeapon, { weapon: string; ready: string }> = {
@@ -61,6 +99,9 @@ export const huntWords: Record<HuntWeapon, { weapon: string; ready: string }> = 
   bow: { weapon: "the bow", ready: "String the bow and check the arrows" },
   crossbow: { weapon: "the crossbow", ready: "Wax the crossbow string and check the bolts" },
   firearm: { weapon: "the gun", ready: "Clean the gun and measure out powder and shot" },
+  blowgun: { weapon: "the blowgun", ready: "Dip fresh darts in the poison and dry them" },
+  "throwing-stick": { weapon: "the throwing stick", ready: "Pick out the throwing sticks and check them for cracks" },
+  harpoon: { weapon: "the harpoon", ready: "Coil the line and check the harpoon head" },
 };
 
 // Autumn is the hunter's season nearly everywhere: the animals are fat, the

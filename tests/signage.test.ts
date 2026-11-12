@@ -25,19 +25,20 @@ function pack(query: string): Pack {
 }
 
 describe("compact historical signage", () => {
-  it("selects frames by place and date without exporting signs into camps or antiquity", () => {
+  it("selects frames by place and date without exporting signs into camps", () => {
     expect(signFor(pack("London 1308"))?.key).toBe("wallsign-oak");
     expect(signFor(pack("London 1650"))?.key).toBe("wallsign-painted");
     expect(signFor(pack("London 1780"))?.key).toBe("wallsign-fascia");
-    expect(signFor(pack("London 1880"))).toBeUndefined();
+    expect(signFor(pack("London 1880"))?.key).toBe("wallsign-fascia");
     expect(signFor(pack("Amsterdam 1650"))?.key).toBe("wallsign-cutout");
     expect(signFor(pack("Beijing 1700"))?.key).toBe("wallsign-lacquer");
-    expect(signFor(pack("Beijing 1920"))).toBeUndefined();
+    expect(signFor(pack("Beijing 1920"))?.key).toBe("wallsign-fascia");
     expect(signFor(pack("Kyoto 1400"))?.key).toBe("wallsign-split");
     expect(signFor(pack("Kyoto 1700"))?.key).toBe("wallsign-noren");
     expect(signFor(pack("Cairo 1200"))?.key).toBe("wallsign-bazaar");
     expect(signFor(pack("Delhi 1500"))?.key).toBe("wallsign-pennant");
-    expect(signFor(pack("Rome 100 BCE"))).toBeUndefined();
+    expect(signFor(pack("Rome 100 BCE"))?.key).toBe("wallsign-painted");
+    expect(signFor(pack("Beijing 100"))?.key).toBe("wallsign-lacquer");
     const camp = pack("Beijing 1700");
     camp.setting = { ...camp.setting!, settlement: "camp" };
     expect(signFor(camp)).toBeUndefined();
@@ -65,8 +66,8 @@ describe("compact historical signage", () => {
     expect(emblemFor(undefined, "apothecary")).toBe(10);
     expect(emblemFor(undefined, "bookseller")).toBe(8);
     expect(emblemFor(undefined, "swineherd")).toBeUndefined();
-    expect(emblemFor(undefined, "shopkeeper", "Shop")).toBeUndefined();
-    expect(emblemFor(undefined, "merchant", "Merchant's shop")).toBeUndefined();
+    expect(emblemFor(undefined, "shopkeeper", "Shop")).toBe(11);
+    expect(emblemFor(undefined, "merchant", "Merchant's shop")).toBe(11);
     expect(emblemFor(undefined, "resident", "The baker's shop")).toBe(3);
     expect(emblemFor("school", "baker")).toBe(8);
     expect(emblemFor("assembly")).toBe(11);

@@ -177,6 +177,19 @@ const missiles: Record<string, Missile> = {
   "river-rock": { damage: 3, stun: 18, range: 6 },
   stone: { damage: 3, stun: 18, range: 6 },
   wood: { damage: 2, stun: 12, range: 5 },
+  "throwing-stick": { damage: 6, stun: 16, range: 9 },
+  harpoon: { damage: 10, stun: 8, range: 7 },
+};
+/** What each launcher looses and how hard. `perDraw` is extra damage at a
+ * full draw; a crossbow or a gun hits the same however long you aim. `reload`
+ * is the seconds the next shot takes: about twenty for a muzzle-loader. */
+export type Launcher = { ammo: string; range: number; damage: number; perDraw: number; stun: number; reload: number; poison?: boolean };
+export const launchers: Record<string, Launcher> = {
+  bow: { ammo: "arrow", range: 10, damage: 3, perDraw: 5, stun: 4, reload: 2 },
+  crossbow: { ammo: "bolt", range: 12, damage: 9, perDraw: 0, stun: 6, reload: 8 },
+  musket: { ammo: "shot", range: 11, damage: 16, perDraw: 0, stun: 10, reload: 20 },
+  rifle: { ammo: "cartridge", range: 16, damage: 18, perDraw: 0, stun: 10, reload: 3 },
+  blowgun: { ammo: "dart", range: 9, damage: 1, perDraw: 0, stun: 2, reload: 2, poison: true },
 };
 export function missileOf(thing: {
   prop?: string;
@@ -247,6 +260,8 @@ export type CreatureHit = {
 export const cueKinds = [
   /** Something sudden: a charge beginning, a fight breaking out nearby. */
   "alarm",
+  /** An animal's threat: back off now. */
+  "warn",
   /** Nothing came of it: nobody in sight, nothing found. */
   "question",
   /** Trust lost. */

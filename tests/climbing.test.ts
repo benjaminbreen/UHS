@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { createSession, Runtime } from "../src/runtime/session";
 import { commandSchema } from "../src/runtime/schema";
 
@@ -268,4 +268,25 @@ it("takes toll at a town gate by day and shuts it at night", () => {
   engine.state.clock = day + 22 * 3600;
   expect(runtime.command({ type: "move", dx: 0, dy: 1 })?.reason).toMatch(/shut for the night/);
   runtime.dispose();
+});
+
+it("retries a failed watch route when the gates open", () => {
+  const engine = createSession("roman", "watch-routing");
+  engine.state.manifest.simulation = 2;
+  engine.state.manifest.watchRouting = 1;
+  engine.state.clock = 5 * 3600 - 18;
+  engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+  engine.state.objects = [];
+  engine.world.places = [];
+  engine.world.blocked = () => false;
+  const guard = engine.state.actors.find((a) => a.kind === "human")!;
+  engine.state.actors = [guard];
+  guard.pos = { x: 0, y: 0, space: "outside" };
+  guard.post = { at: { x: 4, y: 0 }, rest: { x: 0, y: 0 }, night: true };
+  const route = vi.spyOn(engine, "findRoute").mockReturnValue({ status: "budget", path: [], visited: 5000, cost: Infinity });
+
+  engine.advance(36);
+
+  expect(route).toHaveBeenCalledTimes(2);
+  expect(route).toHaveBeenLastCalledWith(guard.pos, { ...guard.post.at, space: "outside" }, guard.id, 5000);
 });

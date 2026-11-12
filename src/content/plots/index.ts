@@ -31,6 +31,7 @@ import { levy } from "./levy";
 import { locusts } from "./locusts";
 import { longing } from "./longing";
 import { loose } from "./loose";
+import { maneater } from "./maneater";
 import { marriage } from "./marriage";
 import { matchmaker } from "./matchmaker";
 import { naming } from "./naming";
@@ -38,6 +39,7 @@ import { qingming } from "./qingming";
 import { quake } from "./quake";
 import { quarrel } from "./quarrel";
 import { rack } from "./rack";
+import { raid } from "./raid";
 import { rain } from "./rain";
 import { rent } from "./rent";
 import { rival } from "./rival";
@@ -66,7 +68,7 @@ export const PLOTS: PlotTemplate[] = [debt, rent, levy, accused, rival, robbery,
   run, apprentice, breakdown, rain, birthing, batch, slack, herds, glut, shift, ledger,
   labour, fever, firstday, wandering, quarrel, drawn, longing, jesa, qingming, toga, naming,
   comet, quake, flood, locusts, whale, wreck, hoard, ruler, sickness, traders,
-  boundary, store, smuggler, rack, token, well, contest, loose, follower, matchmaker];
+  boundary, store, smuggler, rack, token, well, contest, loose, follower, matchmaker, maneater, raid];
 
 export const ROLE_NAMES: Record<PlotRole, string> = {
   creditor: "Creditor", landlord: "Landlord", official: "Official", accuser: "Accuser",

@@ -92,6 +92,7 @@ import { carryKit } from "../content/economy/carrying";
 import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../content/economy/processes";
 import { pieceOf, recipeFor } from "../content/economy/recipes";
 import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
+import { FORD_CARD } from "../content/cards/hazards";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { fieldParcel, findPlace, waterfrontMember, type StepPlace } from "./work-places";
 import { catchFate, catchOf, fishingPractice, fishingWords, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
@@ -100,12 +101,14 @@ import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
+import { stanceOf } from "../content/plots/stance";
 import { endPlot, plotKnown, plotLine, plotTemplate, startPlot, stepPlot, syncPlotAim, type PlotCard, type PlotState } from "./plot";
 import { claimFor, shareWords, type Claim } from "../content/economy/claims";
 import { resourceName, sourceOf, tradeOf, type Resource } from "../content/economy/endowments";
 import type { Effect, PlotChoice, PlotScene } from "../content/plots/types";
 import { groundFor, sceneFor, type Occasion, type Scene } from "../content/plots/scenes";
 import { kinCall, kinOf } from "./kin";
+import { babyTime, canNurse, her, jolt, minded, minders, newBaby, she, tendOf, type Baby, type Motion, type Tend } from "./baby";
 import { composeIntro, introText, settlementName } from "./intro";
 import { bodilyLimits, ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress } from "./health";
 import { treatments, type Treatment } from "../content/health/infections";
@@ -134,6 +137,7 @@ import {
   memberAt,
   TIERS,
   missileOf,
+  launchers,
   weaponOf,
   type CueKind,
   type Signal,
@@ -276,6 +280,7 @@ const SWIM_WARNINGS: [number, string][] = [
   [0.75, "You are tiring badly. Make for shore."],
   [0.9, "You are swallowing water. You cannot keep this up much longer."],
 ];
+const FORD_DEPTH = 0.55;
 /** Clock seconds: leaning on someone this soon after is the same collision. */
 const BUMP_GAP = 2;
 export type TreeFind = "nest" | "hive" | "fruit" | "cones";
@@ -460,9 +465,10 @@ export class Engine {
             pack: world.pack.id,
             schema: world.pack.setting ? 2 : 1,
             simulation: world.generatorVersion === 3 ? 2 : 1,
-            hazards: 1,
+            hazards: 2,
             survival: 1,
             disease: 1,
+            ...(world.generatorVersion === 3 ? { watchRouting: 1 as const } : {}),
             generator: world.generatorVersion ?? (world.pack.setting ? 2 : 1),
             content: 1,
             atlas: world.pack.setting ? 2 : 1,
@@ -1107,7 +1113,8 @@ export class Engine {
    * what it asks, and at least two of its choices make sense in this world. */
   private usableCard(card: ChoiceCard, t = this.trade()) {
     const setting = this.world.pack.setting;
-    return (!card.work || card.work.includes(t?.kit.activity ?? "")) &&
+    return (!card.hazards || card.hazards === this.state.manifest.hazards) &&
+      (!card.work || card.work.includes(t?.kit.activity ?? "")) &&
       (!card.who || !!this.cardPerson(card, t)) &&
       (!card.needs || (!!setting && card.needs.every((n) => capabilitiesFor(setting).has(n)))) &&
       (!card.fishing || this.fishingFits(card.fishing, t)) &&
@@ -1133,8 +1140,9 @@ export class Engine {
   private offerCard(card: ChoiceCard, care?: { who: string; ailment: string }) {
     const s = this.state, boss = bossTitle(this.world.pack.setting);
     const encounter = s.encounter?.card === card.id;
+    const ford = encounter && card.id === FORD_CARD.id;
     const stats = this.stats();
-    const person = care ? s.actors.find((a) => a.id === care.who) : encounter ? s.actors.find((a) => a.id.startsWith("robber-")) : this.cardPerson(card);
+    const person = care ? s.actors.find((a) => a.id === care.who) : ford ? undefined : encounter ? s.actors.find((a) => a.id.startsWith("robber-")) : this.cardPerson(card);
     const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
     const kin = care && kinOf(s).find((k) => k.actor.id === care.who);
     if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.care?.card === card.id && s.care.who === care.who ? s.care.at : s.clock };
@@ -1142,7 +1150,7 @@ export class Engine {
     const drawnStep = this.trade()?.process.steps[s.economy?.work?.drawn ?? -1];
     this.cards.unshift({
       kind: "speech",
-      title: encounter ? "On the road" : care ? (kin ? `your ${kinWord(kin.kind, kin.actor)}` : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: ford ? "At the river" : encounter ? "On the road" : care ? (kin ? `your ${kinWord(kin.kind, kin.actor)}` : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {
@@ -1169,13 +1177,18 @@ export class Engine {
     if (id.startsWith("toll:")) return this.tollAnswer(n);
     const s = this.state, p = s.player;
     const care = s.care?.card === id ? s.care : undefined;
-    const encounter = s.encounter?.card === id;
+    const encounter = s.encounter?.card === id ? s.encounter : undefined;
+    const ford = id === FORD_CARD.id ? encounter : undefined;
     const work = care || encounter ? undefined : s.economy!.work!;
     const card = this.choiceCard(id)!, c = card.choices[n];
-    if (encounter) p.encounterAfter = s.clock + 86400;
     if (care) delete s.care;
-    else if (encounter) { delete s.encounter; this.robbersLeave(); }
-    else delete work!.card;
+    else if (encounter) {
+      delete s.encounter;
+      if (!ford) {
+        p.encounterAfter = s.clock + 86400;
+        this.robbersLeave();
+      }
+    } else delete work!.card;
     const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
     const won = !c.check || this.rng(`card:${id}`) < oddsOf(c.check, this.stats(), c.check.skill ? this.skillLevel(c.check.skill) : 0);
     const effects = won ? c.then : (c.otherwise ?? []);
@@ -1232,6 +1245,10 @@ export class Engine {
     if (record.length > 5000) record.shift();
     if (!careOption) this.event(line);
     this.lastChoice = { card: id, line, won: c.check ? won : undefined, changes, go };
+    if (ford && n === 0 && !p.dead) {
+      const step = { type: "move" as const, dx: ford.at.x - p.pos.x, dy: ford.at.y - p.pos.y };
+      if (!this.validate(step)) this.execute(step, true);
+    }
     const t = this.trade();
     if (work && t && t.stage >= t.process.stages.length) this.finishWork(t);
   }
@@ -1276,6 +1293,17 @@ export class Engine {
   }
 
   private choiceCard(id: string): ChoiceCard | undefined {
+    if (id === FORD_CARD.id) {
+      const [cross, retreat] = FORD_CARD.choices, check = cross.check!;
+      const p = this.state.player;
+      const load = p.held ? 0.15 : p.heldItem ? 0.05 : 0;
+      const swimming = this.knows("swimmer") ? 0.12 : this.canSwim() ? 0.05 : 0;
+      return {
+        ...FORD_CARD,
+        text: FORD_CARD.text + (load ? " What you're holding will make it harder to keep your balance." : ""),
+        choices: [{ ...cross, check: { ...check, odds: check.odds + swimming - load } }, retreat],
+      };
+    }
     if (id !== "care-symptoms") return CARDS.find((c) => c.id === id);
     const s = this.state, care = s.care, p = s.player;
     if (!care) return;
@@ -1425,7 +1453,7 @@ export class Engine {
       tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
     };
   }
-  private doWork(hunted = false) {
+  private *doWork(hunted = false) {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length) return;
     const s = this.state;
@@ -1448,8 +1476,11 @@ export class Engine {
     const caught = practice && setting && catchOf(setting, practice, (seasonAt(setting.season, s.clock) ?? "spring") as SeasonId,
       (s.clock / 3600) % 24, random(s.manifest.seed, "catch", t.household.id, t.day));
     this.working = true;
-    this.advance((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
-    this.working = false;
+    try {
+      yield* this.advanceSteps((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
+    } finally {
+      this.working = false;
+    }
     const reaped = this.farming(t) ? this.tendFarm(t, process.steps[t.stage].name) : undefined;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
@@ -2686,9 +2717,16 @@ export class Engine {
     return (
       !!this.lowPropAhead(dx, dy) ||
       this.fenceAhead(dx, dy) ||
+      this.ditchAhead(dx, dy) ||
       (p.space === "outside" &&
         isRock(this.world.decoration(p.x + dx, p.y + dy)?.sprite))
     );
+  }
+  /** An irrigation channel in the next cell: a stride wide. */
+  ditchAhead(dx: number, dy: number) {
+    const p = this.state.player.pos;
+    const c = p.space === "outside" ? this.world.topography?.(p.x + dx, p.y + dy) : undefined;
+    return c?.surface === "water" && !c.bridge && c.waterVisual?.kind === "canal";
   }
   fenceAhead(dx: number, dy: number) {
     const p = this.state.player.pos;
@@ -2972,12 +3010,14 @@ export class Engine {
     );
   }
   bowRange() {
-    return (this.state.player.heldItem === "sling" ? 8 : 10) + this.rangeBonus();
+    const held = this.state.player.heldItem ?? "";
+    return (launchers[held]?.range ?? (held === "sling" ? 8 : 10)) + this.rangeBonus();
   }
   /** What a bow or sling in hand would loose next. */
   ammo() {
     const p = this.state.player;
-    if (p.heldItem === "bow") return p.inventory.arrow ? "arrow" : undefined;
+    const launcher = launchers[p.heldItem ?? ""];
+    if (launcher) return p.inventory[launcher.ammo] ? launcher.ammo : undefined;
     if (p.heldItem === "sling")
       return ["pebble", "river-rock", "flint", "obsidian"].find((i) => p.inventory[i]);
   }
@@ -3137,6 +3177,7 @@ export class Engine {
     const reels = combat.mass < 4 && (m.stun ?? 0) + 12 <= clock;
     if (reels) m.stun = clock + (weapon.stun ?? 6);
     const killed = m.hp <= 0;
+    if (killed && g.members.length === 1 && this.state.plot?.refs?.beast === g.id) this.state.plot.fired.push("beast:slain");
     const hit: CreatureHit = {
       group: g.id,
       n: m.n!,
@@ -3196,7 +3237,8 @@ export class Engine {
         `You kill ${m.name ?? `the ${faunaName(g, m)}`}.${took ? ` You take ${took}.` : ""}`,
       );
       const trade = this.trade();
-      if (!g.owner && profile?.category === "wild" && combat.yields.meat && trade?.process.steps[trade.stage]?.scene === "hunt") this.doWork(true);
+      if (!g.owner && profile?.category === "wild" && combat.yields.meat && trade?.process.steps[trade.stage]?.scene === "hunt")
+        for (const _ of this.doWork(true)) {}
       const legend = this.state.legends?.[legendKey(g.id, m.n!)];
       if (legend) legend.slain = clock;
     }
@@ -3229,6 +3271,67 @@ export class Engine {
       }
     }
     return hit;
+  }
+  /** What a set snare has caught by now. A night out is the usual set; a
+   * snare looked at after an hour has caught nothing. */
+  private checkSnare(snare: WorldObject) {
+    const hours = (this.state.clock - snare.laid!) / 3600;
+    const setting = this.state.manifest.setting;
+    const game = (setting ? faunaAt(setting) : []).filter((f) => f.category === "wild" && f.prey === "small-animal" && faunaCombat(f).yields.meat);
+    const odds = hours < 3 ? 0 : Math.min(0.75, (hours / 12) * 0.6);
+    const caught = game.length && this.rng(`snare-${snare.id}`) < odds
+      ? game[Math.floor(this.rng(`snare-kind-${snare.id}`) * game.length)]
+      : undefined;
+    if (!caught) {
+      this.event(hours < 3 ? "You take up the snare. It has had no time to catch anything." : "The snare is empty. You take it up.");
+      return;
+    }
+    const took: string[] = [];
+    for (const [item, n] of Object.entries(faunaCombat(caught).yields)) {
+      if (!this.items[item] || !n) continue;
+      this.state.player.inventory[item] = (this.state.player.inventory[item] ?? 0) + n;
+      took.push(`${n} ${this.items[item].name.toLowerCase()}`);
+    }
+    this.grantXp("hunting", 6);
+    const name = caught.label.replace(/ study$/, "").toLowerCase();
+    this.event(`The snare has caught ${/^[aeiou]/.test(name) ? "an" : "a"} ${name}. You take ${took.join(", ")}.`);
+  }
+  /** The hawk off the fist at whatever is nearest the mark, a bird or
+   * something the size of a hare. It binds to it or misses, and comes back. */
+  private flyHawk(target: Point) {
+    const p = this.state.player;
+    const from = { x: p.pos.x, y: p.pos.y };
+    const span = Math.hypot(target.x - from.x, target.y - from.y) || 1;
+    const k = Math.min(1, 12 / span);
+    const mark = { x: Math.round(from.x + (target.x - from.x) * k), y: Math.round(from.y + (target.y - from.y) * k) };
+    p.direction = Math.abs(mark.y - from.y) > Math.abs(mark.x - from.x) ? (mark.y < from.y ? 0 : 2) : mark.x > from.x ? 1 : 3;
+    let found: { g: FaunaGroup; m: FaunaMember; d: number } | undefined;
+    if (p.pos.space === "outside")
+      for (const g of this.state.fauna ?? []) {
+        const profile = faunaProfile(g.speciesId);
+        if (!profile || g.owner || profile.category !== "wild" || faunaCombat(profile).mass >= 2) continue;
+        if (profile.prey !== "small-animal" && profile.locomotion !== "ground-and-flight") continue;
+        for (const m of g.members) {
+          const d = Math.hypot(m.x - mark.x, m.y - mark.y);
+          if (d <= 3 && (!found || d < found.d)) found = { g, m, d };
+        }
+      }
+    const binds = !!found && this.rng("hawk") < 0.55 + this.skillLevel("hunting") * 0.05;
+    const creature = binds ? this.strikeFauna(found!.g, found!.m, { damage: 999, knock: 0 }, [0, 0], 1) : undefined;
+    if (creature) this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
+    else if (found) {
+      found.g.panic = 1;
+      found.g.alarm = this.state.clock;
+    }
+    const to = found ? { x: found.m.x, y: found.m.y } : mark;
+    this.lastThrow = {
+      from, to, sprite: "hawk", launcher: "hawk", creature,
+      hit: { at: to, hit: creature ? "creature" : "air", kind: creature ? "flinch" : "whoosh", solid: false, damaged: !!creature },
+    };
+    this.grantXp("hunting", creature ? 6 : 1);
+    if (!found) this.event("You cast off the hawk. It finds nothing and comes back to the fist.");
+    else if (!creature) this.event("The hawk stoops and misses, and comes back to the fist.");
+    this.advance(10);
   }
   /** Skill gains since the UI last looked. Never saved. */
   skillGains: SkillGain[] = [];
@@ -3272,6 +3375,9 @@ export class Engine {
         0.004;
     const before = skills[skill] ?? 0;
     const xp = before + amount * aptitude;
+    const b = this.state.baby;
+    if (b?.with === "player" && b.mood !== "asleep" && skill !== "wayfaring")
+      (b.seen ??= {})[skill] = (b.seen[skill] ?? 0) + amount;
     skills[skill] = xp;
     const level = levelOf(xp);
     const rose = level > levelOf(before);
@@ -3315,8 +3421,10 @@ export class Engine {
   private noise() {
     const since = this.state.clock - this.lastStep.clock;
     const gait = since > 4 ? 0.55 : this.lastStep.run ? 1.3 : 0.8;
+    const b = this.state.baby;
+    const baby = b?.with !== "player" ? 1 : b.mood === "crying" ? 2.4 : b.mood === "fussing" ? 1.4 : 1;
     return (
-      gait *
+      gait * baby *
       (1 - this.skillLevel("hunting") * PER_LEVEL.huntingQuiet) *
       (this.knows("stalker") ? 0.7 : 1) *
       (this.knows("calm-hand") && !this.lastStep.run ? 0.8 : 1)
@@ -4021,6 +4129,7 @@ export class Engine {
     const p = this.state.player;
     if (p.dead || damage <= 0) return;
     p.health = Math.max(0, (p.health ?? 100) - damage);
+    if (this.state.baby) jolt(this.state.baby, 45);
     if (injury) p.injury = { name: injury, until: Math.max(p.injury?.until ?? 0, this.state.clock + 3 * 86400), ...(this.state.manifest.disease ? { since: this.state.clock, open: /cut|bite|bitten|scratch|gash|burn|claw|pierc|bleed/i.test(injury) } : {}) };
     // A bad fall or a burn heals to a mark that stays.
     if (injury && (damage >= 35 || injury === "burned skin")) this.scar(injury);
@@ -4138,7 +4247,8 @@ export class Engine {
       (1 - this.skillLevel("animals") * 0.02) *
       (this.knows("steady-nerve") ? 0.75 : 1);
     p.health = Math.max(0, (p.health ?? 100) - damage);
-    if (this.state.manifest.disease && damage >= 8 && random(this.state.manifest.seed, "animal-wound", g.id, m.n ?? 0, this.state.clock) < 0.6)
+    if (g.rabid) p.injury = { name: "a rabid dog's bite", until: this.state.clock + 30 * 86400, since: this.state.clock, open: true };
+    else if (this.state.manifest.disease && damage >= 8 && random(this.state.manifest.seed, "animal-wound", g.id, m.n ?? 0, this.state.clock) < 0.6)
       p.injury = { name: "an animal wound", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
     this.signal({
       kind: "mauled",
@@ -4231,6 +4341,19 @@ export class Engine {
     for (const [at, text] of SWIM_WARNINGS)
       if (before < at * SWIM_RANGE && p.swum >= at * SWIM_RANGE) this.event(text);
   }
+  private offerFord(x: number, y: number) {
+    const s = this.state, p = s.player, sample = this.world.topography;
+    if (s.manifest.hazards !== 2 || p.pos.space !== "outside" || p.afloat || p.mount || !sample ||
+        sample(x, y)?.waterVisual?.kind !== "river" ||
+        waterDepthAt(sample, x + 0.5, y + 0.5) < FORD_DEPTH ||
+        waterDepthAt(sample, p.pos.x + 0.5, p.pos.y + 0.5) >= FORD_DEPTH) return false;
+    s.encounter = { card: FORD_CARD.id, at: { x, y, space: p.pos.space }, clock: s.clock };
+    this.lastStep.steps = 0;
+    delete this.lastLeap;
+    this.event("You stop at the edge of the current.");
+    this.offerCard(this.choiceCard(FORD_CARD.id)!);
+    return true;
+  }
   private washAshore() {
     const p = this.state.player;
     const size = this.state.manifest.setting?.playableMap?.size ?? 400;
@@ -4284,6 +4407,8 @@ export class Engine {
     sling?: boolean;
     /** A thrown rock that broke into pieces and is gone. */
     crumbles?: boolean;
+    /** What loosed it, when it was not a bow: crossbow, musket, rifle, blowgun, hawk. */
+    launcher?: string;
   };
   /** A tree that has just given up what it kept in its crown. `taken` is the
    * comb pulled out of a hive, which is what sets the bees off. */
@@ -6473,6 +6598,29 @@ export class Engine {
     };
   }
   act(request: CommandRequest): CommandResult {
+    const action = this.actionSteps(request);
+    let step = action.next();
+    while (!step.done) step = action.next();
+    return step.value;
+  }
+  async actSliced(request: CommandRequest, nextFrame: () => Promise<void>): Promise<CommandResult> {
+    const action = this.actionSteps(request);
+    const frameBudget = 8;
+    let deadline = performance.now() + frameBudget;
+    try {
+      for (let step = action.next(); ; step = action.next()) {
+        if (step.done) return step.value;
+        if (performance.now() >= deadline) {
+          await nextFrame();
+          deadline = performance.now() + frameBudget;
+        }
+      }
+    } catch (error) {
+      action.throw(error);
+      throw error;
+    }
+  }
+  private *actionSteps(request: CommandRequest): Generator<void, CommandResult> {
     const payload = canonical(request.command);
     const prior = Object.hasOwn(this.state.receipts, request.actionId)
       ? this.state.receipts[request.actionId]
@@ -6534,14 +6682,15 @@ export class Engine {
       else {
         this.fixDay();
         this.returnHired();
-        this.execute(request.command);
-        if (request.command.type === "move") {
-          this.arrive();
-          this.gateToll(request.command.dx, request.command.dy);
-        }
+        const command = request.command;
+        const beforeFord = command.type === "choose" && command.card === FORD_CARD.id ? copy(this.state.player.pos) : undefined;
+        yield* this.executeSteps(command);
+        const move = command.type === "move" && this.state.encounter?.card !== FORD_CARD.id;
+        const crossed = beforeFord && distance(beforeFord, this.state.player.pos) > 0;
+        if (move || crossed) this.arrive();
+        if (move) this.gateToll(command.dx, command.dy);
         if (this.state.plot && !this.state.plot.ended && plotTemplate(this.state.plot)?.journal &&
-            (request.command.type === "move" || (request.command.type === "interact" &&
-              (request.command.action === "enter" || request.command.action === "exit"))))
+            (move || crossed || (command.type === "interact" && (command.action === "enter" || command.action === "exit"))))
           this.runPlot();
         const held = heldObject(this.state);
         if (held) held.pos = copy(this.state.player.pos);
@@ -6615,6 +6764,14 @@ export class Engine {
       return !choice ? "There is nothing to answer." : this.choiceProblem(choice);
     }
     if (c.type === "interact" && c.action === "douse") return this.douseProblem(c.target);
+    if (c.type === "interact" && c.action === "snare") {
+      const at = this.tileAt(c.target);
+      if (p.heldItem !== "snare") return "Take a snare in hand first.";
+      if (!at || p.pos.space !== "outside") return "Set it on open ground outside.";
+      if (Math.max(Math.abs(at.x - p.pos.x), Math.abs(at.y - p.pos.y)) > 1) return "Stand next to the spot.";
+      if (this.blocked(at.x, at.y, "outside") || this.state.objects.some((o) => o.pos.space === "outside" && o.pos.x === at.x && o.pos.y === at.y))
+        return "There is no room for a snare there.";
+    }
     if (c.type === "interact" && c.action === "light")
       return this.lightProblem(c.target);
     if (c.type === "interact" && c.action === "burn")
@@ -6631,10 +6788,12 @@ export class Engine {
       return this.climbable() ? undefined : "There is nothing here to climb.";
     }
     if (c.type === "shoot") {
-      if (p.heldItem !== "bow" && p.heldItem !== "sling")
-        return "Take a bow or a sling in hand first.";
+      if (p.heldItem === "hawk") return undefined;
+      const launcher = launchers[p.heldItem ?? ""];
+      if (!launcher && p.heldItem !== "sling")
+        return "Take a bow, a gun or a sling in hand first.";
       if (!this.ammo())
-        return p.heldItem === "bow" ? "You have no arrows." : "You have no stones to sling.";
+        return launcher ? `You have no ${this.items[launcher.ammo].name.toLowerCase()} left.` : "You have no stones to sling.";
       if (c.target.x === p.pos.x && c.target.y === p.pos.y)
         return "Aim away from yourself.";
       return undefined;
@@ -6734,6 +6893,8 @@ export class Engine {
       if (!g || this.state.clock >= g.until) return "There is nothing to go to.";
       return p.afloat || p.perch || p.mount ? "Get down first." : undefined;
     }
+    if (c.type === "tend") return this.tendNow() ? undefined : "There is nothing the baby needs.";
+    if (c.type === "settle") return this.state.baby?.with === "player" && c.quality >= 0 && c.quality <= 1 ? undefined : "There is no baby to settle.";
     if (c.type === "wait" || c.type === "pass")
       return Number.isInteger(c.seconds) && c.seconds > 0 && c.seconds <= 3600
         ? undefined
@@ -6750,6 +6911,7 @@ export class Engine {
       return p.worn?.[c.slot]
         ? undefined
         : "There is nothing there to take off.";
+    if (c.type === "snatched") return this.state.player.inventory[c.item] ? undefined : "There is nothing to take.";
     if (c.type === "narrate") return validateIntents(this, c.intents);
     if (c.type === "swing")
       return p.perch ? `Climb down from ${p.perch.label} first.` : undefined;
@@ -6915,6 +7077,8 @@ export class Engine {
       )
         return true;
       if (g.train) return true;
+      const plotted = (g.maneater ?? g.stockRaid)?.plot;
+      if (plotted) return plotted === this.state.plot?.id && !this.state.plot.ended;
       if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));
       return !!g.gateId;
     });
@@ -7132,6 +7296,55 @@ export class Engine {
     }
     return out;
   }
+  /** Plots: a predator come in from well off, by the player or `near`, to hunt
+   * people (`maneater`) or the stock at `stockRaid.at`. Returns its group id. */
+  loosePredator(speciesId: string, opts: { maneater?: FaunaGroup["maneater"]; stockRaid?: FaunaGroup["stockRaid"]; near?: Point }) {
+    const profile = faunaProfile(speciesId);
+    const from = opts.near ?? opts.stockRaid?.at ?? this.state.player.pos;
+    if (!profile) return;
+    const [lo, hi] = profile.groupSize;
+    const count = opts.maneater ? 1 : Math.min(hi, lo + Math.floor(this.rng("loose-size") * 2));
+    const angle = this.rng("loose-angle") * 2 * Math.PI;
+    let entry: Point | undefined;
+    for (let r = 30; r >= 10 && !entry; r -= 2) {
+      const x = Math.round(from.x + Math.cos(angle) * r), y = Math.round(from.y + Math.sin(angle) * r);
+      if (!this.blocked(x, y, "outside") && !this.faunaAt(x, y)) entry = { x, y };
+    }
+    if (!entry) return;
+    const members: FaunaMember[] = [];
+    for (let ring = 0; ring <= 3 && members.length < count; ring++)
+      for (let dy = -ring; dy <= ring && members.length < count; dy++)
+        for (let dx = -ring; dx <= ring && members.length < count; dx++) {
+          const x = entry.x + dx, y = entry.y + dy;
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring || this.blocked(x, y, "outside") || this.faunaAt(x, y)) continue;
+          members.push({ x, y, direction: from.x < x ? 3 : 1, ...(opts.maneater ? { tier: "strong" as const, name: opts.maneater.name } : {}) });
+        }
+    const clock = this.state.clock, pos = { ...entry, space: "outside" };
+    const group: FaunaGroup = {
+      id: `loose-${speciesId}-${clock}-${this.raidSerial++}`,
+      speciesId, members, pos, home: { ...pos }, homeRadius: 24,
+      state: "wander", nextDecisionAt: clock + 30, stride: 0, since: clock,
+      ...(opts.maneater ? { maneater: opts.maneater } : {}),
+      ...(opts.stockRaid ? { stockRaid: opts.stockRaid } : {}),
+    };
+    this.enrol(group);
+    (this.state.fauna ??= []).push(group);
+    this.state.revision++;
+    return group.id;
+  }
+  /** What became of a loosed predator once the player has not killed it (that fires `beast:slain`). */
+  predatorFate(id: string): "alive" | "took" | "repelled" | "gone" {
+    const g = this.state.fauna?.find((o) => o.id === id);
+    if (!g?.members.length) return "gone";
+    return g.stockRaid?.took !== undefined ? "took" : g.stockRaid?.repelled !== undefined ? "repelled" : "alive";
+  }
+  /** Where the household keeps its animals: the herd's home, the pen gate, else the house. */
+  keptPen(): Position {
+    const s = this.state;
+    const herd = s.fauna?.find((g) => g.owner === "player");
+    const gate = s.objects.find((o) => o.kind === "gate" && o.owner === "player" && /-pen\d+-gate$/.test(o.id));
+    return copy(herd?.home ?? gate?.pos ?? s.player.home);
+  }
   private devSerial = 0;
   /** Dev panel: real, simulated animals in a ring round the player. */
   devSpawnFauna(speciesId: string, count: number, tier?: FaunaTier) {
@@ -7203,12 +7416,52 @@ export class Engine {
     }
     this.state.revision++;
   }
+  /** The player's hunting dog, put down beside them when it is not already
+   * near: at the start of a life, and after a journey or a spell indoors. */
+  private keepHound() {
+    const p = this.state.player.pos;
+    if (p.space !== "outside") return;
+    const fauna = (this.state.fauna ??= []);
+    let dog = fauna.find((g) => g.hound && g.owner === "player");
+    if (dog?.members.length && Math.hypot(dog.pos.x - p.x, dog.pos.y - p.y) < 30) return;
+    const spot = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1]]
+      .map(([dx, dy]) => ({ x: p.x + dx, y: p.y + dy }))
+      .find((c) => !this.blocked(c.x, c.y, "outside") && !this.faunaAt(c.x, c.y));
+    if (!spot) return;
+    if (!dog) {
+      dog = {
+        id: "player-hound", speciesId: "dog", owner: "player", hound: true, members: [],
+        pos: { ...p }, home: { ...p }, homeRadius: 2, state: "idle", nextDecisionAt: 0, stride: 0, since: 0,
+      };
+      fauna.push(dog);
+    }
+    dog.members = [{ x: spot.x, y: spot.y, direction: 2 }];
+    dog.pos = { x: spot.x, y: spot.y, space: "outside" };
+    dog.home = { ...dog.pos };
+  }
+  /** The dog has caught something: it brings it in. */
+  private houndKill(prey: FaunaGroup) {
+    const profile = faunaProfile(prey.speciesId);
+    if (!profile) return;
+    const took: string[] = [];
+    for (const [item, n] of Object.entries(faunaCombat(profile).yields)) {
+      if (!this.items[item] || !n) continue;
+      this.state.player.inventory[item] = (this.state.player.inventory[item] ?? 0) + n;
+      took.push(`${n} ${this.items[item].name.toLowerCase()}`);
+    }
+    const name = profile.label.replace(/ study$/, "").toLowerCase();
+    this.grantXp("hunting", 4);
+    this.event(`Your dog catches ${/^[aeiou]/.test(name) ? "an" : "a"} ${name}${took.length ? ` and brings it in. You take ${took.join(", ")}` : ""}.`);
+  }
   /** Habitat suitability per species and cell, built on first use and kept:
    * the sim asks for it several times per animal per tick. */
   private habitat?: (speciesId: string, x: number, y: number) => number;
   /** One six-second step for the animal groups near the player. Their pace
    * is their own: a wolf outruns a person, a sheep does not keep up. */
+  /** Where the player stood at the last animal tick. */
+  private faunaSaw: Point = { x: 0, y: 0 };
   private stepFauna(clock: number) {
+    if (this.state.player.inventory.hound) this.keepHound();
     const groups = this.state.fauna;
     if (!groups?.length) return;
     const player = this.state.player;
@@ -7252,6 +7505,18 @@ export class Engine {
       if (startled) g.hurtUntil = Math.max(g.hurtUntil ?? 0, clock + 30);
     }
     this.bark(near, clock);
+    for (const g of near)
+      for (const m of [...g.members])
+        if (m.poisoned !== undefined && m.poisoned <= clock) {
+          m.poisoned = undefined;
+          const hit = this.strikeFauna(g, m, { damage: 999, knock: 0 }, [0, 0], 1);
+          if (hit?.killed) {
+            const pos = { x: hit.to.x, y: hit.to.y, space: "outside" as const };
+            const kind = remainsOf(g.speciesId);
+            if (kind) this.state.objects.push(remainsObject(kind, g.speciesId, undefined, pos, clock, `remains-${g.id}-${m.n}-${clock}`));
+          }
+        }
+    if (near.some((g) => !g.members.length)) this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
     advanceFauna(
       near,
       {
@@ -7277,9 +7542,20 @@ export class Engine {
         carrion: this.state.objects.filter((o) => o.remains === "carcass").map((o) => o.pos),
         ...this.faunaSky(clock),
         noise: this.noise(),
+        quarry: {
+          hurt: 1 - (player.health ?? 100) / 100,
+          meat: (player.inventory.meat ?? 0) > 0,
+          light: player.torchOut !== undefined,
+          company: humans.slice(1).filter((h) => distance(h, player.pos) <= 6).length,
+        },
+        lights: this.state.objects.filter((o) => o.kind === "fire" && o.pos.space === "outside").map((o) => o.pos),
+        season: this.world.pack.setting ? seasonAt(this.world.pack.setting.season, clock) : undefined,
+        pressed: Math.hypot(player.pos.x - this.faunaSaw.x, player.pos.y - this.faunaSaw.y),
         dodging: clock - this.lastJump <= 6,
         onMaul: (g, m, dir, damage) => this.mauled(g, m, dir, damage),
         onKill: (g, prey, at) => {
+          if (g.stockRaid) g.stockRaid.took = clock;
+          if (g.hound) this.houndKill(prey);
           const kind = remainsOf(prey.speciesId);
           if (!kind) return;
           const pos = { x: at.x, y: at.y, space: "outside" as const };
@@ -7318,6 +7594,7 @@ export class Engine {
       },
       clock,
     );
+    this.faunaSaw = { x: player.pos.x, y: player.pos.y };
     for (const g of near)
       for (const m of g.members) {
         if (!m.name || Math.hypot(m.x - focus.x, m.y - focus.y) > 12) continue;
@@ -7623,7 +7900,10 @@ export class Engine {
   leapDistance() {
     return this.lastLeap?.distance ?? 1;
   }
-  execute(c: PlayerCommand) {
+  execute(c: PlayerCommand, crossingFord = false) {
+    for (const _ of this.executeSteps(c, crossingFord)) {}
+  }
+  private *executeSteps(c: PlayerCommand, crossingFord = false) {
     const p = this.state.player;
     if (c.type === "become") {
       this.becomeKin(c.heir);
@@ -7633,6 +7913,20 @@ export class Engine {
     if (c.type === "care") { this.giveCare(c.target, c.treatment); return; }
     this.lastImpact = undefined;
     delete this.lastTreeFind;
+    this.motion = c.type === "move" ? (c.run ? "run" : "walk") : c.type === "swing" || c.type === "interact" ? "work" : "still";
+    if (c.type === "move" && c.run && this.state.baby && this.rng("jostle") < 0.2) jolt(this.state.baby, 12);
+    if (c.type === "tend") { this.tend(); return; }
+    if (c.type === "snatched") {
+      if (!p.inventory[c.item]) return;
+      p.inventory[c.item]! -= 1;
+      if (!p.inventory[c.item]) delete p.inventory[c.item];
+      this.event(`A monkey snatches your ${(this.item(c.item)?.name ?? c.item).toLowerCase()} and is up a tree with it.`, "world");
+      return;
+    }
+    if (c.type === "settle") {
+      if (this.state.baby) this.state.baby.night = { day: Math.floor(this.state.clock / 86400), quality: c.quality };
+      return;
+    }
     if (c.type !== "move" && c.type !== "pass") this.lastStep.steps = 0;
     if (c.type === "learn") {
       (p.techniques ??= []).push(c.technique);
@@ -7833,8 +8127,9 @@ export class Engine {
       const to = path.at(-1) ?? from;
       const hit = this.hitClass(to.x, to.y, p.pos.space);
       const found = p.pos.space === "outside" ? this.faunaAt(to.x, to.y) : undefined;
+      if (p.heldItem === "hawk") return this.flyHawk(c.target);
       const shot = this.ammo()!;
-      if (shot !== "arrow") {
+      if (p.heldItem === "sling") {
         // A stone stuns more than it wounds, and lies where it falls.
         const creature = found && this.strikeFauna(
           found.g, found.m,
@@ -7866,27 +8161,34 @@ export class Engine {
         this.advance(2);
         return;
       }
+      const held = p.heldItem!, launcher = launchers[held];
       const creature = found && this.strikeFauna(
         found.g, found.m,
         {
-          damage: 3 + 5 * (c.power ?? 1) + (this.knows("heavy-draw") ? 3 : 0),
-          knock: 1,
-          stun: this.knows("pinning-shot") ? 8 : 4,
+          damage: launcher.damage + launcher.perDraw * (c.power ?? 1) + (held === "bow" && this.knows("heavy-draw") ? 3 : 0),
+          knock: launcher.damage >= 9 ? 2 : launcher.poison ? 0 : 1,
+          stun: launcher.stun * (this.knows("pinning-shot") ? 2 : 1),
         },
         [dx, dy], 1,
       );
-      p.inventory.arrow!--;
-      if (!p.inventory.arrow) delete p.inventory.arrow;
+      if (creature && !creature.killed && launcher.poison) {
+        const struck = found!.g.members.find((m) => m.n === creature.n);
+        // Curare kills a monkey in a few minutes; it runs on until then.
+        if (struck) struck.poisoned = this.state.clock + 90 + Math.round(this.rng("poison") * 120);
+      }
+      p.inventory[shot]!--;
+      if (!p.inventory[shot]) delete p.inventory[shot];
       this.grantXp("marksmanship", creature ? 7 : 1);
-      const spentId = path.length
-        ? `spent-arrow-${this.state.revision}` : undefined;
+      // A bullet is not picked up again; an arrow, a bolt or a dart is.
+      const spentId = path.length && (shot === "arrow" || shot === "bolt" || shot === "dart")
+        ? `spent-${shot}-${this.state.revision}` : undefined;
       if (spentId)
         this.state.objects.push({
           id: spentId,
-          name: "Arrow",
+          name: this.items[shot].name,
           kind: "item",
-          item: "arrow",
-          sprite: "arrow",
+          item: shot,
+          sprite: shot,
           pos: { ...p.pos, x: creature?.to.x ?? to.x, y: creature?.to.y ?? to.y },
           inventory: {},
           projectile: {
@@ -7900,11 +8202,19 @@ export class Engine {
         this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
       const kind = creature ? "flinch" : reactionFor(hit.hit, "thrown");
       this.lastThrow = {
-        from, to, sprite: "arrow", arrow: true, straight: true, creature, id: spentId,
+        from, to, sprite: shot, arrow: true, straight: true, creature, id: spentId,
+        ...(held !== "bow" ? { launcher: held } : {}),
         hit: { at: to, hit: creature ? "creature" : hit.hit, kind, solid: isSolid(kind), damaged: !!creature },
       };
-      this.event(creature ? "Your arrow finds its mark." : "You loose an arrow.");
-      this.advance(2);
+      const words: Record<string, [string, string]> = {
+        bow: ["Your arrow finds its mark.", "You loose an arrow."],
+        crossbow: ["Your bolt strikes home.", "You loose a bolt and span the crossbow again."],
+        musket: ["Your shot strikes home.", "You fire, and stop to load again."],
+        rifle: ["Your shot strikes home.", "You fire."],
+        blowgun: ["Your dart sticks. The poison will take a few minutes.", "Your dart flies wide."],
+      };
+      this.event(words[held][creature ? 0 : 1]);
+      this.advance(launcher.reload);
       return;
     }
     if (c.type === "throw") {
@@ -8017,11 +8327,11 @@ export class Engine {
       if (distance) this.grantXp("marksmanship", struck ? 7 : 1);
       if (struck)
         this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
-      if ((item === "spear" || item === "stick" || prop.prop === "spear" || prop.prop === "stick") &&
+      if ((item === "spear" || item === "harpoon" || item === "stick" || prop.prop === "spear" || prop.prop === "stick") &&
           landing?.kind !== "sink" && !bursts) {
         prop.projectile = {
           dx: landed.x - p.pos.x, dy: landed.y - p.pos.y,
-          ...(struck && (item === "spear" || prop.prop === "spear")
+          ...(struck && (item === "spear" || item === "harpoon" || prop.prop === "spear")
             ? { lodgedIn: { group: struck.group, n: struck.n } }
             : {}),
         };
@@ -8043,7 +8353,7 @@ export class Engine {
         id: prop.id,
         small: !!item,
         bounce,
-        straight: item === "spear" || (!!prop.prop && (weaponOf(prop.prop).thrown ?? 0) > 1),
+        straight: item === "spear" || item === "harpoon" || (!!prop.prop && (weaponOf(prop.prop).thrown ?? 0) > 1),
         from: { x: p.pos.x, y: p.pos.y },
         to: { x: landed.x, y: landed.y },
         sprite,
@@ -8123,6 +8433,7 @@ export class Engine {
           ? this.traversal(p.pos, c.dx, c.dy, c.jump, c.run)
           : undefined;
       if (leap && leap.kind !== "blocked") {
+        if (c.traverse && leap.kind === "hop" && this.offerFord(p.pos.x + c.dx, p.pos.y + c.dy)) return;
         this.lastLeap = leap;
         if (c.jump) this.lastJump = this.state.clock;
         p.pos.x += c.dx * leap.distance;
@@ -8179,6 +8490,7 @@ export class Engine {
         this.advance(2);
         return;
       }
+      if (!crossingFord && !aloft && this.offerFord(p.pos.x + c.dx, p.pos.y + c.dy)) return;
       if (beast) {
         const { g, m } = beast.found;
         const from = { x: m.x, y: m.y };
@@ -8430,7 +8742,8 @@ export class Engine {
         p.heldItem = loose.item;
         this.state.objects = this.state.objects.filter((o) => o !== loose);
         this.advance(2);
-        this.event(`You pick up ${loose.name.toLowerCase()}.`);
+        if (loose.item === "snare" && loose.laid !== undefined) this.checkSnare(loose);
+        else this.event(`You pick up ${loose.name.toLowerCase()}.`);
         return;
       }
     }
@@ -8601,6 +8914,13 @@ export class Engine {
     switch (c.action) {
       case "talk":
         if (a) {
+          const b = this.state.baby;
+          if (b?.with === "player" && b.mood === "watching" && a.kind === "human" && !this.cooed.has(a.id)) {
+            this.cooed.add(a.id);
+            a.trust += 1;
+            this.cue(a.id, "warm", p.pos);
+            this.event(`${a.name} makes a face at ${b.name}, who stares back.`);
+          }
           if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
           const errand = this.state.asks?.find((x) => x.kind === "talk-to" && x.to === a.id);
           const sender = errand && this.state.actors.find((x) => x.id === errand.by);
@@ -8641,14 +8961,8 @@ export class Engine {
           // Still holding a loss against you: asking again does not help.
           else this.cue(a.id, "anger", p.pos);
           this.grantXp("speech", 8);
-          const owner = this.world.places.find((b) => b.owner === a.id);
-          if (a.trust >= 2) {
-            this.state.permissions[a.id] = this.state.clock + 3600 * 3;
-            this.event(
-              `${a.name}: “${this.world.pack.greeting} You may visit ${owner?.name.toLowerCase() ?? "our household"} for the next few hours.”`,
-              "social",
-            );
-          } else
+          if (a.trust >= 2) this.state.permissions[a.id] = this.state.clock + 3600 * 3;
+          else
             this.event(
               `${a.name}: “Something has gone missing. Return it before asking for favors.”`,
               "social",
@@ -8806,7 +9120,7 @@ export class Engine {
         this.event("You rest beside the household’s work. Your fatigue eases.");
         break;
       case "work":
-        this.doWork();
+        yield* this.doWork();
         break;
       case "launch":
         if (o && this.atBoat(o) && !o.away && !p.afloat) {
@@ -8850,6 +9164,21 @@ export class Engine {
       case "douse":
         this.douse(this.tileAt(c.target)!);
         break;
+      case "snare": {
+        const at = this.tileAt(c.target)!;
+        this.state.objects.push({
+          id: `snare-${this.state.revision}`, name: "Snare", kind: "item", item: "snare", sprite: "snare",
+          pos: { x: at.x, y: at.y, space: "outside" }, inventory: {}, laid: this.state.clock,
+        });
+        if (p.inventory.snare) {
+          p.inventory.snare--;
+          if (!p.inventory.snare) delete p.inventory.snare;
+        } else delete p.heldItem;
+        this.grantXp("hunting", 1);
+        this.advance(60);
+        this.event("You set the snare. Leave it overnight and come back to check it.");
+        break;
+      }
       case "burn": {
         const at = this.tileAt(c.target)!;
         this.advance(20);
@@ -9152,6 +9481,144 @@ export class Engine {
 
   /** Those of the dead player's household who could go on as them: alive,
    * twelve or older, eldest first. */
+  private motion: Motion = "still";
+  private babyKey?: string;
+  private babyRain?: { at: number; wet: boolean };
+  private cooed = new Set<string>();
+  private syncBaby() {
+    const s = this.state, h = this.household(s.player.householdId);
+    const key = `${s.player.name}:${h?.id}:${h?.infants ?? 0}`;
+    if (key === this.babyKey) return;
+    this.babyKey = key;
+    if (!h?.infants) delete s.baby;
+    else if (!s.baby?.id.startsWith(`${h.id}-`)) {
+      const b = newBaby(s, this.world.pack.setting);
+      if (b) s.baby = b;
+      else delete s.baby;
+    }
+  }
+  private babyStep(b: Baby, elapsed: number, auto: boolean) {
+    const s = this.state, p = s.player, before = b.mood, needed = b.need;
+    if (b.with !== "player") {
+      const carer = this.actorsById?.get(b.with);
+      if (!carer || carer.dead) {
+        b.with = "player";
+        return;
+      }
+      minded(b, elapsed, canNurse(s, b.with));
+      if (b.mood === "crying" && !b.sent) {
+        b.sent = true;
+        this.event(`${carer.name} sends word: ${b.name} is hungry and will not settle.`);
+      }
+      return;
+    }
+    const slot = Math.floor(s.clock / 300);
+    if (this.babyRain?.at !== slot) {
+      const setting = this.world.pack.setting;
+      const sky = weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", s.clock).condition;
+      this.babyRain = { at: slot, wet: sky === "rain" || sky === "snow" };
+    }
+    babyTime(b, elapsed, {
+      motion: p.activity === "Sleeping" ? "work" : this.motion,
+      rain: this.babyRain.wet && p.pos.space === "outside",
+      nurse: canNurse(s, "player"),
+      auto,
+    });
+    if (auto || (b.mood === before && b.need === needed)) return;
+    const why = b.need === "milk" ? `${she(b)} is hungry` : b.need === "wet" ? `the rain is getting to ${her(b)}`
+      : b.need === "tired" ? `${she(b)} is worn out and cannot drop off` : b.need === "bored" ? `${she(b)} wants to be moving` : "something startled " + her(b);
+    const cap = (t: string) => t[0].toUpperCase() + t.slice(1);
+    if (b.mood === "crying" && before !== "crying") this.event(`${b.name} is crying: ${why}.`);
+    else if (b.mood === "fussing" && before !== "crying" && (before !== "fussing" || b.need !== needed)) this.event(`${b.name} starts to fuss. ${cap(why)}.`);
+    else if (b.mood === "asleep" && before !== "asleep") this.event(`${b.name} has fallen asleep.`);
+  }
+  /** Whoever is in reach and would mind the baby. */
+  private minderNear() {
+    const p = this.state.player;
+    return minders(this.state)
+      .filter((a) => a.pos.space === p.pos.space && distance(a.pos, p.pos) <= 1.6)
+      .sort((a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos))[0];
+  }
+  tendNow(): (Tend & { label: string }) | undefined {
+    const s = this.state, b = s.baby, p = s.player;
+    if (!b || p.dead) return undefined;
+    const carer = b.with === "player" ? undefined : s.actors.find((a) => a.id === b.with);
+    const near = !!carer && carer.pos.space === p.pos.space && distance(carer.pos, p.pos) <= 1.6;
+    const t = tendOf(s, this.minderNear()?.id, near);
+    if (!t) return undefined;
+    const first = (id: string) => { const a = s.actors.find((x) => x.id === id)!; return a.origin?.namePersonal ?? a.name.split(" ")[0]; };
+    const label = t.kind === "take" ? `Take ${b.name} back from ${first(t.who)}`
+      : t.kind === "give" ? `Give ${b.name} to ${first(t.who)}`
+      : t.kind === "cover" ? `Cover ${b.name} from the rain`
+      : t.kind === "nurse" ? `Feed ${b.name}`
+      : t.kind === "rock" ? `Rock ${b.name}`
+      : `Play with ${b.name}`;
+    return { ...t, label };
+  }
+  private tend() {
+    const s = this.state, b = s.baby!, t = this.tendNow()!;
+    const S = she(b)[0].toUpperCase() + she(b).slice(1);
+    if (t.kind === "give") {
+      const a = s.actors.find((x) => x.id === t.who)!;
+      b.with = a.id;
+      delete b.sent;
+      delete b.need;
+      b.calm = Math.max(b.calm, 70);
+      b.mood = b.mood === "asleep" ? "asleep" : "watching";
+      this.cue(a.id, "take", s.player.pos);
+      this.advance(30);
+      this.event(`You hand ${b.name} to ${a.name}.${canNurse(s, a.id) ? "" : ` ${S} will want you back when ${she(b)} is hungry.`}`);
+    } else if (t.kind === "take") {
+      const a = s.actors.find((x) => x.id === t.who)!;
+      b.with = "player";
+      delete b.sent;
+      b.still = b.lull = 0;
+      this.cue("player", "take", a.pos);
+      this.advance(30);
+      this.event(`${a.name} hands ${b.name} back to you.${b.need === "milk" ? ` ${S} is hungry.` : ""}`);
+    } else if (t.kind === "cover") {
+      b.covered = true;
+      b.wet = 0;
+      b.calm = Math.min(100, b.calm + 25);
+      this.advance(6);
+      this.event(`You pull a cloth up over ${b.name}'s head.`);
+    } else if (t.kind === "nurse") {
+      this.advance(480);
+      b.milk = 0;
+      b.calm = 95;
+      delete b.need;
+      b.mood = b.tired >= 50 ? "asleep" : "watching";
+      b.still = b.lull = 0;
+      this.event(`You stop and feed ${b.name}.${b.mood === "asleep" ? ` ${S} falls asleep before ${she(b)} has finished.` : ""}`);
+    } else if (t.kind === "rock") {
+      const hungry = b.need === "milk";
+      this.advance(20);
+      b.calm = Math.min(hungry ? 45 : 100, b.calm + 30);
+      b.lull += 50;
+      if (!hungry && b.need !== "wet" && b.calm >= 55) {
+        const sleepy = b.tired >= 60;
+        delete b.need;
+        b.mood = sleepy ? "asleep" : "watching";
+        if (sleepy) b.lull = b.still = 0;
+        this.event(sleepy ? `You sway until ${b.name} goes heavy and sleeps.` : `${b.name} quiets.`);
+      } else {
+        b.mood = b.calm < 20 ? "crying" : "fussing";
+        if (hungry && b.calm >= 45) this.event(`Rocking only does so much: ${b.name} is hungry.`);
+      }
+    } else {
+      b.played = s.clock;
+      b.calm = 100;
+      this.cue("player", "warm");
+      this.advance(10);
+      const lines = [
+        `${b.name} grabs your finger and will not let go.`,
+        `You pull a face over your shoulder, and ${b.name} laughs.`,
+        `${b.name} pats your neck with a wet hand.`,
+        `You hum, and ${b.name} hums something back.`,
+      ];
+      this.event(lines[Math.floor(this.rng("play") * lines.length)]);
+    }
+  }
   heirs() {
     const s = this.state, h = this.household(s.player.householdId);
     return s.actors.filter((a) => a.kind === "human" && !a.dead && (a.age ?? 0) >= 12 && !!h?.members.includes(a.id))
@@ -9184,6 +9651,7 @@ export class Engine {
     };
     s.ailments = (s.ailments ?? []).filter((a) => a.who !== "player").map((a) => (a.who === id ? { ...a, who: "player" } : a));
     s.bonds = s.bonds?.filter((b) => b.with !== id);
+    if (s.baby?.with === id) s.baby.with = "player";
     if (s.plot) for (const [role, who] of Object.entries(s.plot.cast)) if (who === id) delete s.plot.cast[role];
     s.relationships = undefined;
     s.kin = undefined;
@@ -9351,6 +9819,8 @@ export class Engine {
       delete g.props;
     }
     const scene = { at: (scene: PlotScene) => this.atPlotScene(plot, scene), speaker };
+    const fate = plot.refs?.beast && this.predatorFate(plot.refs.beast);
+    if (fate && fate !== "alive" && !plot.fired.includes("beast:slain") && !plot.fired.includes(`beast:${fate}`)) plot.fired.push(`beast:${fate}`);
     for (const e of stepPlot(s, scene)) {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
       if (e.type === "card")
@@ -9362,7 +9832,7 @@ export class Engine {
       else if (e.type === "approach" && who) {
         // A seizure that cleared the debt is told by the ending, not by "the rest is still owed".
         if (e.line === "seize" && (plot.owed ?? 0) <= 0) continue;
-        this.approaching = { id: who.id, line: plotLine(plot, e.line), until: s.clock + 7200 };
+        this.approaching = { id: who.id, line: plotLine(plot, e.line, undefined, stanceOf(statsOf(s.manifest.seed, who), who.trust)), until: s.clock + 7200 };
         if (s.kin) s.kin.last = s.clock;
       }
       else if (e.type === "regard" && who) this.regard(who, e.delta);
@@ -9376,6 +9846,12 @@ export class Engine {
         }
       } else if (e.type === "walk-off" && who) this.walkOff(who, e.to);
       else if (e.type === "extend") plot.deadline += e.hours * 3600;
+      else if (e.type === "loose") {
+        const id = this.loosePredator(plot.words.species, e.as === "maneater"
+          ? { maneater: { name: plot.words.beast, plot: plot.id } }
+          : { stockRaid: { at: this.keptPen(), plot: plot.id, night: true } });
+        if (id) (plot.refs ??= {}).beast = id;
+      }
       else if (e.type === "owe" && plot.owed) plot.owed = Math.max(1, Math.round(plot.owed * e.times));
       else if (e.type === "choose") {
         // The day's first decision waits a minute or three of play.
@@ -9391,6 +9867,7 @@ export class Engine {
     }
     const ending = endPlot(s, scene);
     if (ending && journal) delete plot.asking;
+    if (ending && plot.refs?.beast) s.fauna = s.fauna?.filter((g) => g.id !== plot.refs!.beast);
     if (ending && plotKnown(plot)) {
       const line = plotLine(plot, ending.id, s);
       if (ending.quiet) this.event(line, "social");
@@ -9684,7 +10161,12 @@ export class Engine {
     if (day && itineraryAt(day, this.state.clock).activity === "rest" && a.activity !== "At home") return false;
     if (keepsShop(this.world.pack, a)) return a.activity !== "At home";
     const hour = Math.floor(this.state.clock / 3600) % 24;
-    return a.pos.space !== "outside" && a.pos.space === this.household(a.householdId)?.residence && hour >= 8 && hour < 18;
+    if (hour < 8 || hour >= 18) return false;
+    const home = this.household(a.householdId)?.residence;
+    if (a.pos.space !== "outside") return a.pos.space === home;
+    // On the front step of their own workshop counts: crafts sold from the doorway.
+    const house = home ? this.world.place(home) : undefined, door = house && (house.door ?? house.entrance);
+    return !!door && Math.abs(a.pos.x - door.x) + Math.abs(a.pos.y - door.y) <= 3;
   }
   /** A seller's wares in a line: "Sells salt, wool and cloth · buys rice". */
   tradeLine(id: string) {
@@ -10092,6 +10574,26 @@ export class Engine {
     if (!ask.meet || distance(a.pos, ask.meet) < 2 || a.errand) return;
     a.errand = { to: { ...ask.meet }, label: `Going to ${ask.task?.toLowerCase() ?? "work"}`, until: this.state.clock + 7200 };
   }
+  /** "Come, I'll take you to her": they set off for a person or place they
+   * named and the player walks behind. False if the name is nobody here. */
+  leadPlayer(a: Actor, target: string) {
+    const name = target.trim().toLowerCase().replace(/\s*\(.*\)$/, "").replace(/^(the|my|our) /, "");
+    const people = this.state.actors.filter((o) => o.kind === "human" && !o.dead && o.id !== a.id && o.id !== this.state.player.id);
+    const kin = people.filter((o) => a.relations?.some((r) => r.other === o.id));
+    const first = (o: Actor) => o.name.toLowerCase().split(" ")[0];
+    const person = [kin, people].map((list) => list.find((o) => o.name.toLowerCase() === name || first(o) === name.split(" ")[0])).find(Boolean) ??
+      (/^(wife|husband|mother|father|son|daughter|brother|sister|family)/.test(name) ? kin[0] : undefined);
+    const place = person ? undefined : /^(home|house)$/.test(name) ? this.world.places.find((p) => p.owner === a.id) :
+      this.world.places.find((p) => p.name.toLowerCase().replace(/^the /, "") === name) ?? this.world.places.find((p) => p.name.toLowerCase().includes(name));
+    const to = person ? (person.pos.space === "outside" ? copy(person.pos) : copy(person.home)) : place ? { ...doorApproach(place), space: "outside" } : undefined;
+    if (!to) return false;
+    a.errand = { to, label: `Showing you the way to ${person?.name ?? place!.name}`, until: this.state.clock + 1200, chase: person?.id };
+    a.activity = a.errand.label;
+    a.offRoutine = true;
+    a.consentUntil = this.state.clock + 1200;
+    this.event(`${a.name} sets off to show you the way. You follow.`, "social");
+    return true;
+  }
   /** Once the player has followed them there, the work itself, in their words. */
   private offerHelp(ask: Ask, a: Actor) {
     ask.offered = true;
@@ -10488,14 +10990,14 @@ export class Engine {
     this.blockComplaint = { id: a.id, at: this.state.clock };
     this.cue(a.id, "anger");
   }
-  private stepToward(a: Actor, target: Position) {
+  private stepToward(a: Actor, target: Position, watchPost = false) {
     // Livelihood callbacks write a.pos behind the engine's back.
     this.syncActor(a);
     if (a.pos.space !== target.space) return;
     if (this.state.manifest.simulation === 2) {
       if (a.pos.x === target.x && a.pos.y === target.y) return;
       if (
-        (a.householdId &&
+        ((a.householdId || watchPost) &&
           this.blocked(target.x, target.y, target.space) &&
           !this.barrierAt(target, target.space)) ||
         this.actorAt(target, a.id)
@@ -10513,7 +11015,10 @@ export class Engine {
         if (!alternative) return;
         target = alternative;
       }
+      if (watchPost && a.pos.x === target.x && a.pos.y === target.y) return;
       const key = `${target.space}:${target.x},${target.y}`;
+      const failed = watchPost && `${a.id}:${a.pos.x},${a.pos.y}:${key}:${townGateShut(this.state.clock)}`;
+      if (failed && this.failedWatchRoutes.has(failed)) return;
       let cached = this.routes.get(a.id);
       if (
         !cached ||
@@ -10528,6 +11033,7 @@ export class Engine {
           path: this.findRoute(a.pos, target, a.id, 5000).path,
         };
         this.routes.set(a.id, cached);
+        if (failed && !cached.path.length) this.failedWatchRoutes.add(failed);
       }
       const step = cached.path[0];
       if (!step) return;
@@ -10845,7 +11351,7 @@ export class Engine {
     const setting = this.world.pack.setting;
     if (!setting) return {};
     const seed = this.state.manifest.seed, salt = household?.id ?? a.id;
-    const weapon = huntWeapon(setting, random(seed, "weapon", salt), a.inventory.bow ? "bow" : a.inventory.spear ? "spear" : undefined);
+    const weapon = huntWeapon(setting, random(seed, "weapon", salt), a.inventory.bow || a.inventory.crossbow || a.inventory.musket || a.inventory.rifle || a.inventory.blowgun ? "bow" : a.inventory.spear || a.inventory.harpoon ? "spear" : undefined);
     const fate = huntFate(setting);
     return {
       ready: huntWords[weapon].ready, weapon: huntWords[weapon].weapon, danger: dangerOf(setting), lord: fate.owed?.to ?? "the lord",
@@ -10946,7 +11452,11 @@ export class Engine {
     const night = dark(clock);
     const on = !!post.night === night;
     const round = on && post.round;
-    if (round && a.pos.x === round[post.leg ?? 0].x && a.pos.y === round[post.leg ?? 0].y) post.leg = ((post.leg ?? 0) + 1) % round.length;
+    if (!round) delete post.arrive;
+    if (round && a.pos.x === round[post.leg ?? 0].x && a.pos.y === round[post.leg ?? 0].y) {
+      post.leg = ((post.leg ?? 0) + 1) % round.length;
+      delete post.arrive;
+    }
     const to = { ...(round ? round[post.leg ?? 0] : on ? post.at : post.rest), space: "outside" as const };
     a.heldItem = on && post.torch && night ? "torch" : armsOf(a);
     const hour = Math.floor(clock / 3600);
@@ -10958,9 +11468,22 @@ export class Engine {
     // Someone else on the rest spot: beside it will do.
     const there = a.pos.space === "outside" && (a.pos.x === to.x && a.pos.y === to.y || (!on && distance(a.pos, to) < 1.5));
     if (!there) {
-      if (!this.visible(a.pos) && !this.visible(to) && !round && !this.blocked(to.x, to.y, "outside") && !this.actorAt(to, a.id))
-        this.moveActor(a, to);
-      else this.stepToward(a, to);
+      const unseen = !this.visible(a.pos) && !this.visible(to);
+      const watchRouting = !!this.state.manifest.watchRouting;
+      if (watchRouting && (unseen || this.working)) {
+        // Unseen patrols and work time skips keep the walking time between posts.
+        if (round) post.arrive ??= clock + 6 * (Math.abs(a.pos.x - to.x) + Math.abs(a.pos.y - to.y));
+        if (post.arrive === undefined || clock >= post.arrive) {
+          if (!this.blocked(to.x, to.y, "outside") && !this.actorAt(to, a.id)) this.moveActor(a, to);
+          else if (round) post.leg = ((post.leg ?? 0) + 1) % round.length;
+          delete post.arrive;
+        }
+      } else {
+        delete post.arrive;
+        if (unseen && !round && !this.blocked(to.x, to.y, "outside") && !this.actorAt(to, a.id))
+          this.moveActor(a, to);
+        else this.stepToward(a, to, watchRouting);
+      }
       a.activity = round ? "Walking the night round" : on ? "Going on watch" : "Coming off watch";
       return;
     }
@@ -11195,6 +11718,14 @@ export class Engine {
         : `You lie down and rest ${Math.round(hours)} hour${hours >= 2 ? "s" : ""}.`,
     );
 
+    const b = this.state.baby;
+    if (b?.with === "player" && hours >= 5) {
+      const q = b.night?.day === Math.floor(started / 86400) ? b.night.quality : 0.5;
+      p.fatigue = Math.max(0, Math.min(100, p.fatigue + (q >= 0.7 ? -6 : q >= 0.35 ? 3 : 8)));
+      this.event(q >= 0.7 ? `${b.name} sleeps through until first light.` : q >= 0.35 ? `${b.name} wakes you once in the night to be fed.` : `${b.name} wakes you again and again, and you get up tired.`);
+      Object.assign(b, { milk: 25, tired: 5, calm: 90, wet: 0, mood: "watching", still: 0, lull: 0 });
+      delete b.need;
+    }
     // A proper night is the one thing that mends you; nothing else restores
     // health but food.
     const canMend = !this.state.manifest.survival || p.hunger < 75;
@@ -11240,10 +11771,15 @@ export class Engine {
   }
 
   advance(seconds: number, heldActor?: string) {
+    for (const _ of this.advanceSteps(seconds, heldActor)) {}
+  }
+  private failedWatchRoutes = new Set<string>();
+  private *advanceSteps(seconds: number, heldActor?: string) {
     if (this.state.player.dead) return;
     this.syncSeason();
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
+    this.failedWatchRoutes.clear();
     this.tickObstacles = new Map();
     this.barriersAt = new Map();
     this.objectsById = new Map();
@@ -11283,6 +11819,7 @@ export class Engine {
       a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
     );
     updateRelationships(this.state);
+    this.syncBaby();
     const end = this.state.clock + seconds;
     const player = this.state.player;
     // Building a routine costs a path search per station, and a city has a
@@ -11291,11 +11828,13 @@ export class Engine {
     // ticks and every replay spends the budget on the same people.
     let routineBuilds = 0;
     while (this.state.clock < end) {
+      yield;
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
       if (this.state.cave) caveTime(this.caves, elapsed);
       diseaseTime(this.state, elapsed, next - elapsed);
+      if (this.state.baby) this.babyStep(this.state.baby, elapsed, seconds > 240);
       this.fireExposure(elapsed, next - elapsed);
       if (player.dead) break;
       player.hunger = Math.min(100, player.hunger + elapsed / 1800);
@@ -11435,6 +11974,8 @@ export class Engine {
         if (a.kind === "human" && this.shooPests(a, next)) continue;
         if (a.kind === "human" && a.errand) {
           if (next < a.errand.until) {
+            const chased = a.errand.chase && this.actorsById?.get(a.errand.chase);
+            if (chased && !chased.dead) a.errand.to = chased.pos.space === "outside" ? copy(chased.pos) : copy(chased.home);
             a.activity = a.errand.label;
             a.offRoutine = true;
             // A brisk walk, not the one step an idle resident takes per tick.

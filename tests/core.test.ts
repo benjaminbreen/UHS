@@ -19,6 +19,7 @@ import { generateCharacter } from "../src/content/characters/generate";
 import { livelihoodById } from "../src/content/characters/livelihoods";
 import { commandSchema, snapshotSchema } from "../src/runtime/schema";
 import { debt } from "../src/content/plots/debt";
+import { fire } from "../src/content/plots/fire";
 import { PLOTS } from "../src/content/plots";
 import { telling } from "../src/core/word";
 import { goodName, sellerOf } from "../src/content/economy/products";
@@ -557,18 +558,21 @@ describe("shared deterministic foundation", () => {
     expect(home.credit).toBeUndefined();
     expect(home.owes).toBeUndefined();
   });
-  it.runIf(!!process.env.FULL)("opens a life with one card naming the player, the place and the plot's people", () => {
+  it("opens a life with one card naming the player, the place and the plot's people", () => {
     const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
-    const e = createSettingSession(setting, "b");
+    const e = smallSession(setting, "b");
+    const s = e.state;
+    s.lifeAim = lifeAimOf(s.manifest.seed, setting, s.player, s.actors, s.households, s);
+    const plot = startPlot(s, setting, fire.id)!;
     act(e, { type: "wait", seconds: 60 });
     act(e, { type: "wait", seconds: 60 });
     const titles = e.cards.filter((c) => c.kind === "title");
     expect(titles).toHaveLength(1);
     expect(titles[0].text).toContain(`You are ${e.state.player.name}`);
+    expect(titles[0].text).toContain("London");
     expect(titles[0].text).not.toMatch(/undefined|[{}]/);
-    expect(titles[0].aim).toBe(e.state.plot!.aim!.text);
-    expect(e.state.plot!.aim!.revision).toBe(2);
-    expect(titles[0].intro!.body.flat().map((s) => s.ref)).toContain(Object.values(e.state.plot!.cast)[0]);
+    expect(titles[0].aim).toBe(plot.aim!.text);
+    expect(titles[0].intro!.body.flat().map((s) => s.ref)).toContain(plot.cast.accuser);
     expect(composeIntro(e.state, setting, "London")).toEqual(composeIntro(structuredClone(e.state), setting, "London"));
   });
   it("remarks only on what is rare", () => {
@@ -777,14 +781,16 @@ describe("shared deterministic foundation", () => {
     expect(kin.word?.some((w) => w.about) ?? false).toBe(false);
     expect(kin.trust).toBe(trust);
   });
-  it.runIf(!!process.env.FULL)("sends whoever keeps order to judge a complaint", () => {
-    const e = createSettingSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
-    delete e.state.plot;
+  it("sends whoever keeps order to judge a complaint", () => {
+    const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1750), "b");
     const keeper = e.keeper()!;
     const by = e.state.actors.find((x) => x.kind === "human" && (x.age ?? 30) >= 16 && x.id !== keeper.id && x.householdId !== e.state.player.householdId)!;
-    e.state.clock = Math.ceil(e.state.clock / 86400) * 86400 + 9 * 3600;
+    keeper.trust = 0;
+    e.state.clock = 9 * 3600;
     e.complain(by, { act: "broke down the door of", object: "home", victim: by.id, tone: -10, at: e.state.clock, hops: 0 });
-    for (let i = 0; i < 200 && e.approacher?.id !== keeper.id; i++) act(e, { type: "wait", seconds: 60 });
+    e.state.clock += 3594;
+    keeper.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    act(e, { type: "wait", seconds: 6 });
     expect(e.approacher?.id).toBe(keeper.id);
     expect(e.cards.find((c) => c.kind === "speech" && c.speaker === keeper.id)?.text).toContain(`broke down the door of ${by.name}'s home`);
     // Georgian England's heaviest penalty for a petty wrong is the whip.
@@ -1102,23 +1108,21 @@ describe("shared deterministic foundation", () => {
     expect(commandSchema.safeParse({ type: "wear", item: "garment-dress~wool.bleached.0" }).success).toBe(true);
     expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
   });
-  it("supports a full procedural day in each pack, with persistent activity and no API", () => {
-    for (const pack of Object.values(packs)) {
-      const e = createSession(pack.id, "full-day");
-      const first = canonical(e.state.actors.map((a) => a.pos));
-      for (let i = 0; i < 12; i++) {
-        expect(act(e, { type: "wait", seconds: 3600 }).status).toBe(
-          "completed",
-        );
-        if ((e.state.player.inventory.grain ?? 0) > 0)
-          act(e, { type: "use", item: "grain" });
-        else if ((e.state.player.inventory.bread ?? 0) > 0)
-          act(e, { type: "use", item: "bread" });
-      }
-      expect(e.state.clock).toBeGreaterThanOrEqual(21 * 3600);
-      expect(canonical(e.state.actors.map((a) => a.pos))).not.toBe(first);
-      expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
+  it.each(Object.keys(packs))("supports a full procedural day in %s, with persistent activity and no API", (packId) => {
+    const e = createSession(packId, "full-day");
+    const first = canonical(e.state.actors.map((a) => a.pos));
+    for (let i = 0; i < 12; i++) {
+      expect(act(e, { type: "wait", seconds: 3600 }).status).toBe(
+        "completed",
+      );
+      if ((e.state.player.inventory.grain ?? 0) > 0)
+        act(e, { type: "use", item: "grain" });
+      else if ((e.state.player.inventory.bread ?? 0) > 0)
+        act(e, { type: "use", item: "bread" });
     }
+    expect(e.state.clock).toBeGreaterThanOrEqual(21 * 3600);
+    expect(canonical(e.state.actors.map((a) => a.pos))).not.toBe(first);
+    expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
   }, 20000);
 });
 

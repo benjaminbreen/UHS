@@ -315,6 +315,8 @@ export const characterAppearanceSchema = z.object({
     hood: z.enum(hoods).optional(),
     sidearm: z.enum(sidearms).optional(),
     infant: z.boolean().optional(),
+    infantMood: z.enum(["asleep", "watching", "fussing", "crying"]).optional(),
+    infantCarry: z.enum(["back", "board", "hip", "arms", "pram"]).optional(),
     armour: z.enum(armours).optional(),
     armourColor: z.string().optional(),
     shield: z.enum(shields).optional(),
@@ -425,7 +427,7 @@ const actor = z.object({
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
   wayfarer: z.object({ until: z.number() }).optional(),
   watch: z.object({ path: z.array(point).max(400), loop: z.boolean(), speed: z.number(), waits: z.tuple([z.number(), z.number()]), phase: z.number() }).optional(),
-  post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional() }).optional(),
+  post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional(), arrive: z.number().optional() }).optional(),
 });
 const object = z.object({
   resource: z
@@ -541,6 +543,8 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
     })
     .strict(),
   z.object({ type: z.literal("attend") }).strict(),
+  z.object({ type: z.literal("tend") }).strict(),
+  z.object({ type: z.literal("settle"), quality: z.number().min(0).max(1) }).strict(),
   z
     .object({
       type: z.literal("interact"),
@@ -588,6 +592,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "burn",
         "fill",
         "douse",
+        "snare",
       ]),
       // A dismount taken over an edge carries the side it goes off.
       dx: z.number().int().min(-1).max(1).optional(),
@@ -779,6 +784,18 @@ export const snapshotSchema = z.object({
     base: z.number().int().nonnegative().optional(),
     done: z.boolean().optional(),
   }).strict()).max(8).optional(),
+  baby: z.object({
+    id: z.string().max(120), name: z.string().max(80), sex: z.enum(["female", "male"]), with: z.string().max(120),
+    mood: z.enum(["asleep", "watching", "fussing", "crying"]),
+    milk: z.number().min(0).max(100), tired: z.number().min(0).max(100), calm: z.number().min(0).max(100), wet: z.number().min(0).max(100), still: z.number().min(0), lull: z.number().min(0),
+    covered: z.boolean().optional(),
+    need: z.enum(["milk", "wet", "tired", "startled", "bored"]).optional(),
+    seen: z.record(z.string(), z.number()).optional(),
+    held: z.record(z.string(), z.number()).optional(),
+    played: z.number().optional(),
+    sent: z.boolean().optional(),
+    night: z.object({ day: z.number().int(), quality: z.number().min(0).max(1) }).strict().optional(),
+  }).strict().optional(),
   goalDay: z.number().int().nonnegative().optional(),
   goalFlags: z.object({
     traded: z.boolean(),
@@ -902,6 +919,7 @@ export const snapshotSchema = z.object({
         }).strict()).max(500).optional(),
         fortune: z.number().min(0).max(1).optional(),
         infants: z.number().int().nonnegative().max(100).optional(),
+        babies: z.number().int().nonnegative().max(100).optional(),
         nurse: z.literal("out").optional(),
         familyPlans: z.array(z.object({
           kind: z.literal("seek-match"),
@@ -917,7 +935,7 @@ export const snapshotSchema = z.object({
         pack: z.enum(["roman", "neolithic"]),
         schema: z.literal(1),
         simulation: z.literal(1),
-        hazards: z.literal(1).optional(),
+        hazards: z.union([z.literal(1), z.literal(2)]).optional(),
         survival: z.literal(1).optional(),
         disease: z.literal(1).optional(),
         generator: z.literal(1),
@@ -931,7 +949,7 @@ export const snapshotSchema = z.object({
         pack: z.literal("atlas"),
         schema: z.literal(2),
         simulation: z.literal(1),
-        hazards: z.literal(1).optional(),
+        hazards: z.union([z.literal(1), z.literal(2)]).optional(),
         survival: z.literal(1).optional(),
         disease: z.literal(1).optional(),
         generator: z.literal(2),
@@ -946,7 +964,8 @@ export const snapshotSchema = z.object({
         pack: z.literal("atlas"),
         schema: z.literal(2),
         simulation: z.literal(2),
-        hazards: z.literal(1).optional(),
+        watchRouting: z.literal(1).optional(),
+        hazards: z.union([z.literal(1), z.literal(2)]).optional(),
         survival: z.literal(1).optional(),
         disease: z.literal(1).optional(),
         generator: z.literal(3),

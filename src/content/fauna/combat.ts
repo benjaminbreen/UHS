@@ -89,6 +89,13 @@ const table: Record<string, FaunaCombat> = {
   "grey-fox": { ...beast(6, 0, 1), damage: 2, yields: { meat: 1, hide: 1 } },
   fennec: { ...beast(3, 0, 0), damage: 1, yields: { hide: 1 } },
   "gray-wolf": beast(24, 1, 2, "pack", 8),
+  // A clan's bite cracks bone; a striped hyena alone mostly bluffs.
+  "spotted-hyena": beast(30, 2, 3, "pack", 11),
+  "striped-hyena": beast(22, 1, 2, "pack", 8),
+  "african-wild-dog": beast(18, 1, 2, "pack", 7),
+  dhole: beast(16, 1, 2, "pack", 7),
+  dingo: beast(18, 1, 2, "pack", 7),
+  "street-dog": beast(12, 1, 1, "pack", 5),
   "wild-boar": beast(30, 2, 8, "charge", 12),
   aurochs: beast(70, 3, 20, "charge", 22),
   // A family closes round its young and the matriarch comes at the threat.
@@ -117,6 +124,7 @@ const table: Record<string, FaunaCombat> = {
   tiger: { ...beast(95, 4, 28, "charge", 32), yields: { meat: 28, hide: 1 } },
   leopard: { ...beast(45, 2, 10, "charge", 20), yields: { meat: 10, hide: 1 } },
   jaguar: { ...beast(60, 3, 14, "charge", 24), yields: { meat: 14, hide: 1 } },
+  cougar: { ...beast(45, 2, 10, "charge", 20), yields: { meat: 10, hide: 1 } },
   zebra: beast(28, 3, 12),
   // A cow moose with a calf, or a bull in rut, kicks and tramples.
   moose: beast(55, 4, 30, "charge", 18),
@@ -134,6 +142,18 @@ const table: Record<string, FaunaCombat> = {
   // The herd backs into a ring, horns out, and a bull comes out of it at you.
   "musk-ox": beast(60, 4, 25, "charge", 20),
   yak: beast(50, 4, 25),
+  // A bite is a dose of venom, not a wound; one blow kills the snake.
+  ...Object.fromEntries(
+    [["indian-cobra", 22], ["egyptian-cobra", 22], ["russells-viper", 24], ["saw-scaled-viper", 18], ["black-mamba", 28],
+     ["western-diamondback", 20], ["timber-rattlesnake", 20], ["european-adder", 8]]
+      .map(([id, damage]) => [id, { hp: 3, mass: 0, temper: "charge", damage, yields: {} } as FaunaCombat]),
+  ),
+  "nile-crocodile": { ...beast(120, 5, 30, "charge", 40), yields: { meat: 30, hide: 1 } },
+  "saltwater-crocodile": { ...beast(140, 6, 35, "charge", 44), yields: { meat: 35, hide: 1 } },
+  "mugger-crocodile": { ...beast(80, 4, 20, "charge", 30), yields: { meat: 20, hide: 1 } },
+  "american-alligator": { ...beast(90, 4, 22, "charge", 30), yields: { meat: 22, hide: 1 } },
+  // The tusks cut a canoe in half; it kills more people than any other big animal.
+  hippopotamus: beast(200, 7, 60, "charge", 45),
 };
 
 /** A species without an entry is sized from what the profile already says. */

@@ -33,6 +33,7 @@ import {
 import { culturalThemes } from "../audio/cultural-themes";
 import { layeredThemes } from "../audio/layered-themes";
 import { interiorThemes } from "../audio/interior-themes";
+import { situationThemes } from "../audio/situation-themes";
 import { renderWav } from "../audio/synth";
 import { catalog } from "../audio/sfx";
 import "./audio-lab.css";
@@ -358,6 +359,31 @@ export function AudioLab({
                     <div>
                       <strong>{theme.title}</strong>
                       <small>{room}</small>
+                    </div>
+                    <span className="audio-track-dot">
+                      {theme.id === arrangement.themeId ? "●" : "○"}
+                    </span>
+                  </button>
+                ))}
+                <div className="audio-library-heading">
+                  <div className="audio-label">05 / SITUATIONS</div>
+                  <span>{situationThemes().length} dressings</span>
+                </div>
+                {situationThemes().map((theme, i) => (
+                  <button
+                    className={`audio-track ${theme.id === arrangement.themeId ? "selected" : ""}`}
+                    key={theme.id}
+                    aria-pressed={theme.id === arrangement.themeId}
+                    title={`${theme.subtitle} ${theme.evidence}`}
+                    onClick={() => {
+                      director.setLevel("melody", 1);
+                      director.configure({ themeId: theme.id, period: "day" });
+                    }}
+                  >
+                    <span className="audio-track-number">S{i + 1}</span>
+                    <div>
+                      <strong>{theme.title}</strong>
+                      <small>{theme.place}</small>
                     </div>
                     <span className="audio-track-dot">
                       {theme.id === arrangement.themeId ? "●" : "○"}

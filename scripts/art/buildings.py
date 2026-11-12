@@ -383,6 +383,7 @@ def build_buildings(root, sprites):
     from art.oblique_modern import ObliqueModern, modern_recipes
     from art.sacred import VoxelTemple, sacred_recipes
     from art.front_worksites import worksite_recipes, FrontWorksitePainter
+    from art.front_family import recipes as family_recipes, adopt as adopt_family, FrontFamilyPainter
     build_banner(sprites)
     recipes={**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
@@ -390,7 +391,8 @@ def build_buildings(root, sprites):
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source),
-             **modern_recipes(), **sacred_recipes(), **worksite_recipes(root, source)}
+             **modern_recipes(), **sacred_recipes(), **worksite_recipes(root, source),
+             **family_recipes(root, source)}
     # Pre-industrial European houses are drawn front-on, from specs.
     from art.front_houses import adopt, FrontHousePainter
     adopt(recipes)
@@ -399,6 +401,8 @@ def build_buildings(root, sprites):
     # Roman houses, shops, insulae and temples, and Persian houses, likewise.
     from art.front_ancient import adopt as adopt_ancient, FrontAncientPainter
     adopt_ancient(recipes)
+    # Families registered with front_family: a spec per look, every street form.
+    adopt_family(recipes)
     from art.front_classical_props import PROPS as CLASSICAL_PROPS, sprite as classical_prop
     for name in CLASSICAL_PROPS:
         sprites[f'study-classical-{name}'] = classical_prop(name)
@@ -417,6 +421,7 @@ def build_buildings(root, sprites):
         r=recipes[name]
         out,shadows={},{}
         painter=(FrontWorksitePainter if r.get('frontWorksite') else
+                 FrontFamilyPainter if r.get('frontFamily') else
                  FrontAncientPainter if r.get('frontAncient') else
                  FrontHousePainter if r.get('frontHouse') else
                  FrontCivicPainter if r.get('frontCivic') else
@@ -502,7 +507,7 @@ def build_buildings(root, sprites):
             **({'glow':re.sub(r'-(north|east|west)$','',name)+'-glow'} if getattr(artist,'night',None) is not None else {}),
             # Painters that mark their glass, and tents with none: nothing for the game to guess at.
             **({'unglazed':True} if getattr(artist,'night',None) is None and any(r.get(k) for k in
-               ('frontHouse','frontCivic','frontAncient','frontWorksite','steppe','forager','campStyle')) else {}),
+               ('frontHouse','frontFamily','frontCivic','frontAncient','frontWorksite','steppe','forager','campStyle')) else {}),
             **({'voxel':True,'glow':name+'-glow','lampFrame':name+'-lamps','lights':artist.lights,
                 'snowFrame':name+'-snow','wetFrame':name+'-wet','life':life} if voxel else {}),
             **({'clocks':artist.clocks} if getattr(artist,'clocks',None) else {}),

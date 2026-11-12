@@ -62,7 +62,7 @@ def dims(sp):
 
 NATIVE_SIZES = {sp: (dims(sp)[0], dims(sp)[1] + 4 + dims(sp)[2]) for sp in SPECIES}
 STANDING_SIZES = {sp: (dims(sp)[0], dims(sp)[1] + 1) for sp in SPECIES}
-STATES = {sp: {"idle": 16, "forage": 16, "wander": 8, "flee": 8, "chase": 8, "rest": 16} for sp in SPECIES}
+STATES = {sp: {"idle": 16, "forage": 16, "wander": 8, "flee": 8, "chase": 8, "rest": 16, "warn": 16} for sp in SPECIES}
 PALETTES = {sp: next(iter(k["coats"].values())) for sp, k in KINDS.items()}
 
 K = KINDS["brown-bear"]
@@ -322,6 +322,25 @@ def forage(frame):
     return pose(head=add(base["head"], (0.5, 8)), look=60 + (rake % 2) * 8, feet=f, mouth=1 if frame in (7, 15) else 0)
 
 
+# How far up on its hind legs, frame by frame: up, huffing and popping the
+# jaw, down hard on the forepaws in a bluff, then head low and swinging.
+WARN_RISE = [0.3, 0.7, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+
+def warn(frame):
+    u = WARN_RISE[frame]
+    if u > 0.3:
+        return standing(u, look=-5 + (frame % 2) * 10, mouth=1 if frame in (3, 5, 7) else 0, paws=((4, 4), (6.5, 8)))
+    base = pose()
+    slam = frame in (9, 10)
+    swing = [0, 0, 1.5, 0, -1.5, 0][frame - 10] if frame >= 10 else 0
+    f = dict(base["feet"])
+    if slam:
+        f["ff"], f["nf"] = (f["ff"][0] + 2, GM), (f["nf"][0] + 2, GM)
+    return pose(head=add(base["head"], (1 + swing * 0.3, 4 + (1 if slam else 0))), look=30 + swing * 6, ears="back",
+                mouth=1 if frame in (9, 12, 14) else 0, feet=f, breath=1 if slam else 0)
+
+
 def rest(frame):
     return pose(down=True, breath=1 if frame % 8 in (2, 3, 4, 5) else 0)
 
@@ -355,6 +374,11 @@ def face(state, frame, south):
         else:
             headdrop = 7
             lifts["nf"] = [0, 3, 1.5, 0][frame % 4]
+    elif state == "warn":
+        rear = WARN_RISE[frame]
+        mouth = 1 if frame in (3, 5, 7, 9, 12, 14) else 0
+        ears = "back"
+        headdrop = 0 if rear else 4
     elif state == "rest":
         return face_rest(c, frame, south)
     rise = rear * 16 * lg
@@ -451,7 +475,7 @@ def face_rest(c, frame, south):
 
 # ------------------------------------------------------------------- build
 SIDE = {"idle": idle, "forage": forage, "wander": walk, "flee": gallop, "chase": lambda f: gallop(f, True),
-        "rest": rest}
+        "rest": rest, "warn": warn}
 DIRECTIONS = ("south", "east", "north", "west")
 
 

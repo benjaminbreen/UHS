@@ -177,12 +177,27 @@ export const workDress: readonly GarmentKit[] = [
   ),
 ];
 
-/** Where a baby went to market and to the field tied on its mother's back in
- * a cloth: the West African wrapper, the Japanese onbu and Korean podaegi, the
- * Andean lliclla, the Mesoamerican rebozo. Europe and West Asia swaddled and
- * cradled, South Asia carried on the hip, and North America used the
- * cradleboard. Those are left undrawn rather than given the wrong carry. */
-export const babyOnBack: readonly string[] = [
-  "west-central-african", "east-southern-african", "east-asian", "southeast-asian",
-  "mesoamerican", "andean",
-];
+export type InfantCarry = "back" | "board" | "hip" | "arms" | "pram";
+const CARRY: Record<string, InfantCarry> = {
+  "west-central-african": "back", "east-southern-african": "back", "east-asian": "back", "southeast-asian": "back",
+  mesoamerican: "back", andean: "back",
+  "other-indigenous-american": "board", "inner-eurasian": "board",
+  "south-asian": "hip", "australian-pacific": "hip",
+  european: "arms", "north-african-west-asian": "arms",
+};
+/** How a baby went about with whoever had it. Tied on the back in a cloth:
+ * the West African wrapper, the Japanese onbu and Korean podaegi, the Andean
+ * lliclla, the Mesoamerican rebozo. Laced to a cradleboard carried on the
+ * back across North America and the northern steppe and forest. Astride the
+ * hip in South Asia and the Pacific. Swaddled and carried in the arms or a
+ * shawl in Europe and West Asia, where the cradle stayed at home. Boards went
+ * out of use in the twentieth century. The pram came in from Britain in the
+ * 1850s and was ordinary in European and settler towns by the 1880s, and in
+ * East Asian cities a century later. */
+export function infantCarry(culture: string | undefined, year = 0): InfantCarry | undefined {
+  const carry = CARRY[culture ?? ""];
+  if (year >= 1880 && (culture === "european" || culture === "australian-pacific")) return "pram";
+  if (year >= 1920 && carry === "board") return culture === "other-indigenous-american" ? "pram" : "arms";
+  if (year >= 1970 && culture === "east-asian") return "pram";
+  return carry;
+}

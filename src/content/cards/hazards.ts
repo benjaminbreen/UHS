@@ -5,6 +5,102 @@ import type { ChoiceCard } from "./types";
 // commonest deaths at work wherever records were kept.
 export const HAZARD_CARDS: ChoiceCard[] = [
   {
+    id: "hazard-oven-burn",
+    slot: "bake-oven",
+    hazards: 2,
+    evidence: "inferred",
+    text: "The loaf catches as you try to draw it out. You could reach in to free it while the oven is still hot.",
+    choices: [
+      {
+        label: "Reach in and free the loaf",
+        note: "keep the next batch on time · risk a burn",
+        check: { stat: "agility", skill: "crafting", odds: 0.55 },
+        then: [{ type: "day", delta: 1 }],
+        line: "You freed the loaf and got your hand out in time.",
+        otherwise: [{ type: "hurt", n: 12, cause: "a burn at the oven", injury: "burned hand" }],
+        otherwiseLine: "Your hand brushed the hot oven as the loaf came free.",
+      },
+      {
+        label: "Let it cool first",
+        note: "safe · the next batch will be late",
+        then: [{ type: "minutes", n: 30 }, { type: "day", delta: -1 }],
+        line: "You let the oven cool enough to free the loaf.",
+      },
+    ],
+  },
+  {
+    id: "hazard-tool-slip",
+    slot: "wood-knot",
+    hazards: 2,
+    evidence: "inferred",
+    text: "The piece shifts under your tool. You can keep working if you hold it firmly with your other hand.",
+    choices: [
+      {
+        label: "Hold it steady and keep working",
+        note: "get more done · risk a cut",
+        check: { stat: "agility", skill: "woodcraft", odds: 0.55 },
+        then: [{ type: "day", delta: 1 }],
+        line: "You held the piece steady and finished the job.",
+        otherwise: [{ type: "hurt", n: 10, cause: "a slipping tool", injury: "cut palm" }],
+        otherwiseLine: "The piece shifted again and the tool cut your palm.",
+      },
+      {
+        label: "Stop and brace the piece",
+        note: "safe · takes fifteen minutes",
+        then: [{ type: "minutes", n: 15 }],
+        line: "You took the time to brace the piece before finishing the job.",
+      },
+    ],
+  },
+  {
+    id: "hazard-pen-crush",
+    slot: "herd-home",
+    hazards: 2,
+    evidence: "inferred",
+    text: "The {herd} bunch up at the pen entrance. If you stand in the gap, you could get them through before they scatter.",
+    choices: [
+      {
+        label: "Stand in the gap and guide them through",
+        note: "pen them quickly · risk getting knocked down",
+        check: { stat: "strength", skill: "animals", odds: 0.55 },
+        then: [{ type: "day", delta: 1 }],
+        line: "You held your ground and got the {herd} through.",
+        otherwise: [{ type: "hurt", n: 16, cause: "a crush at the pen", injury: "bruised ribs" }],
+        otherwiseLine: "The {herd} knocked you into the side of the pen as they crowded through.",
+      },
+      {
+        label: "Stand back and let them settle",
+        note: "safe · takes twenty minutes",
+        then: [{ type: "minutes", n: 20 }],
+        line: "You stood back until the {herd} settled and went in.",
+      },
+    ],
+  },
+  {
+    id: "hazard-field-slip",
+    slot: "farm-weed",
+    hazards: 2,
+    evidence: "inferred",
+    text: "The ground between the rows gives way under your feet. The far rows still need weeding.",
+    choices: [
+      {
+        label: "Step across and finish the far rows",
+        note: "get more done · risk a fall",
+        check: { stat: "agility", skill: "farming", odds: 0.55 },
+        then: [{ type: "day", delta: 1 }],
+        line: "You found your footing and finished the far rows.",
+        otherwise: [{ type: "hurt", n: 10, cause: "a fall in the field", injury: "twisted ankle" }],
+        otherwiseLine: "Your foot slipped into a rut and your ankle turned under you.",
+      },
+      {
+        label: "Walk around to the far side",
+        note: "safe · takes twenty minutes",
+        then: [{ type: "minutes", n: 20 }],
+        line: "You went around the field and worked back from the far edge.",
+      },
+    ],
+  },
+  {
     id: "hazard-swamped",
     slot: "gather-2",
     work: ["Working the water", "Working near water"],
@@ -103,6 +199,30 @@ export const HAZARD_CARDS: ChoiceCard[] = [
     },
   ]),
 ];
+
+export const FORD_CARD: ChoiceCard = {
+  id: "river-ford",
+  slot: "river-ford",
+  evidence: "inferred",
+  text: "The river deepens here. The current is strong enough to knock you off your feet.",
+  choices: [
+    {
+      label: "Step into the current",
+      note: "endurance and wayfaring help · a fall costs one heart",
+      check: { stat: "endurance", skill: "wayfaring", odds: 0.6 },
+      then: [{ type: "fatigue", n: 5 }],
+      line: "You braced against the current and kept your footing.",
+      otherwise: [{ type: "hurt", n: 20, cause: "a fall in the river", injury: "bruised knee" }, { type: "fatigue", n: 12 }],
+      otherwiseLine: "The current knocked you down and you struck your knee on the riverbed.",
+    },
+    {
+      label: "Stay back",
+      note: "look for shallower water or a bridge",
+      then: [],
+      line: "You stayed back from the current.",
+    },
+  ],
+};
 
 export const ROADSIDE_CARDS: ChoiceCard[] = [{
   id: "roadside-robbery", slot: "roadside", evidence: "inferred",

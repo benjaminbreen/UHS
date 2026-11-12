@@ -827,6 +827,8 @@ export type CharacterAppearance = {
     sidearm?: (typeof sidearms)[number];
     /** A baby tied on the back in a cloth. Set from the household, not rolled. */
     infant?: boolean;
+    infantMood?: "asleep" | "watching" | "fussing" | "crying";
+    infantCarry?: "back" | "board" | "hip" | "arms" | "pram";
     armour?: (typeof armours)[number];
     /** Iron, bronze, lacquer or the quilt's cloth. */
     armourColor?: string;

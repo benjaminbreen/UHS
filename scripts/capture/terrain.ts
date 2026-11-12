@@ -273,6 +273,7 @@ const reviews: Record<string, Review> = {
       ["woodland-rolling", "ecology=temperate-woodland&season=summer&water=river-ew&landform=rolling&relief=0.5"],
       ["grassland-plain", "ecology=grassland&season=spring&water=river-ns&landform=plain&relief=0.25"],
       ["boreal-ridge", "ecology=boreal-woodland&season=summer&water=lake&landform=ridge&relief=0.8"],
+      ["tropical-rolling", "ecology=tropical-woodland&season=summer&water=river-ew&landform=rolling&relief=0.4"],
     ],
   },
   arroyos: {

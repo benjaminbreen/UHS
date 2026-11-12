@@ -5,8 +5,10 @@ and the live adult, at 3x, every time.
     python3 scripts/art/front_review.py out.png a.png b.png     # new sprites beside them
 
 The pinned gold masters live in scripts/art/reference/front/. The top row
-shows each one as pinned and as the code draws it today, so drift shows.
-When new work beats a gold master, re-pin it with --pin.
+shows each one as pinned, and beside it as the code draws it today if the
+two have drifted apart.
+When new work beats a gold master, re-pin it by name: --pin <name>. A bare
+--pin lists the masters and how far each has drifted.
 """
 from pathlib import Path
 import sys
@@ -25,7 +27,13 @@ def gold():
     from art.front_kit import Front, spec
     from art.front_house import GableHouse
     im, _ = Front(spec('modern-immeuble-0')).build()
-    return {'immeuble-0': im, 'gable-shingle': GableHouse().build()}
+    out = {'immeuble-0': im, 'gable-shingle': GableHouse().build()}
+    # Regional masters: the house a new family in that part of the world is held to.
+    from art.front_family import load
+    casa = load()['casa']['build']
+    out.update({'casa-caribe': casa('caribe', 0, 'row', 12, 2).build(), 'casa-bahay': casa('bahay', 0, 'row', 12, 2).build(),
+                'casa-oaxaca': casa('oaxaca', 0, 'row', 12, 2).build()})
+    return out
 
 
 def drift(a, b):
@@ -48,7 +56,9 @@ def sheet(items, out, zoom=3, masters=True, columns=None):
         if pinned.exists():
             p = Image.open(pinned).convert('RGBA')
             cells.append((f'{name} (pinned)', p))
-            cells.append((f'{name} now · {drift(p, im) * 100:.1f}% changed', im))
+            # Shown only when the code no longer draws what was pinned.
+            if drift(p, im) > 0.005:
+                cells.append((f'{name} now · {drift(p, im) * 100:.1f}% changed', im))
         else:
             cells.append((f'{name} (not pinned)', im))
     cells += list(items)
@@ -83,17 +93,27 @@ def sheet(items, out, zoom=3, masters=True, columns=None):
     print(f'wrote {out}')
 
 
-def pin():
+def pin(names):
+    """Pin the named masters as the code draws them now. Naming them is the
+    point: a bare --pin once re-pinned a master nobody meant to touch."""
     REF.mkdir(parents=True, exist_ok=True)
-    for name, im in gold().items():
-        im.save(REF / f'{name}.png')
+    now = gold()
+    if not names:
+        for name, im in now.items():
+            p = REF / f'{name}.png'
+            state = 'not pinned' if not p.exists() else f'{drift(Image.open(p).convert("RGBA"), im) * 100:.1f}% changed'
+            print(f'{name}: {state}')
+        print('name the masters to pin: front_review.py --pin <name> ...')
+        return
+    for name in names:
+        now[name].save(REF / f'{name}.png')
         print(f'pinned {name}')
 
 
 if __name__ == '__main__':
     args = sys.argv[1:]
     if args and args[0] == '--pin':
-        pin()
+        pin(args[1:])
     else:
         out = args[0] if args else 'artifacts/front-review.png'
         sheet([(Path(p).stem, Image.open(p).convert('RGBA')) for p in args[1:]], out)

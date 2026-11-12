@@ -470,15 +470,17 @@ def build_animated_details(sprites):
         sprites[f'animation-roof-fan-{phase}'] = im
 
 
-def urban_recipes(root, source):
+def urban_recipes(root, source, bases=None, halls=()):
+    """Street forms of the kit's bases, or of `bases` drawn from `source`;
+    `halls` are extra bases that also get the civic hall form."""
     import json
     from art.modern import modern_form_allowed, modern_label, modernise
     kit=json.loads((root/'src/content/graphics/urban.json').read_text())
     out={}
-    for base in kit['bases']:
+    for base in bases or kit['bases']:
         original=source['buildings'][base]
         for form,shape in {**kit['forms'],**kit['civicForms']}.items():
-            if 'bases' in shape and base not in shape['bases']:
+            if 'bases' in shape and base not in shape['bases'] and not (form=='hall' and base in halls):
                 continue
             modern_base=base.startswith('modern-')
             if form in ('midrise','office') and not modern_base:

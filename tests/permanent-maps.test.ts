@@ -114,11 +114,18 @@ it("names squares for the feature in them, before any town", async () => {
   }
 });
 it("places entrances on reachable boundaries and exposes blocked connections", () => {
+  const terrainReads = new Set<string>(), blockedReads = new Set<string>();
+  let terrainCalls = 0, blockedCalls = 0;
+  const approaches: number[] = [];
   const world = {
     spawn: { x: 0, y: 0 },
-    terrain: () => "grass",
-    blocked: (x: number, _y: number) => x === 1,
-    canCross: () => true,
+    terrain: (x: number, y: number) => { terrainCalls++; terrainReads.add(`${x},${y}`); return "grass"; },
+    blocked: (x: number, y: number) => { blockedCalls++; blockedReads.add(`${x},${y}`); return x === 1; },
+    canCross: (from: { y: number }, to: { x: number; y: number }) => {
+      if (to.x !== -1 || to.y !== 0) return true;
+      approaches.push(from.y);
+      return from.y === 1;
+    },
   } as unknown as WorldModel;
   const exits = [{ id: "a~b", to: "b", bearing: "W", mode: "land" }];
   const [e] = mapEntrances(world, 16, exits);
@@ -126,6 +133,10 @@ it("places entrances on reachable boundaries and exposes blocked connections", (
   expect(e.path[0]).toEqual({ x: 0, y: 0 });
   expect(e.path.at(-1)).toEqual(e.point);
   expect(e.path.every((p) => p.x < 1)).toBe(true);
+  expect(terrainCalls).toBe(terrainReads.size);
+  expect(blockedCalls).toBe(blockedReads.size);
+  expect(approaches[0]).toBe(0);
+  expect(approaches).toContain(1);
   const boxed = {
     ...world,
     blocked: (x: number, y: number) => Math.abs(x) + Math.abs(y) > 0,

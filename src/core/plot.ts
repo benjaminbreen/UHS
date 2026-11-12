@@ -5,6 +5,7 @@ import { orderKeeper } from "../content/history/order";
 import { sexOf } from "./brief";
 import type { Condition, Effect, PlotChoice, PlotContext, PlotScene } from "../content/plots/types";
 import type { Occasion } from "../content/plots/scenes";
+import type { Stance } from "../content/plots/stance";
 import { distance, type Actor, type Position, type Snapshot } from "./types";
 import type { WorldSetting } from "../content/geography/types";
 import type { Intro } from "./intro";
@@ -75,10 +76,11 @@ function plotPerson(player: Actor, actor: Actor) {
   return `${actor.name}, ${distance(player.home, actor.home) <= 32 ? "your neighbor" : "another member of your settlement"}`;
 }
 
-export function plotLine(plot: PlotState, key: string, snapshot?: Snapshot) {
+export function plotLine(plot: PlotState, key: string, snapshot?: Snapshot, stance?: Stance) {
   // A scoped wording leaves out lines the general one words well enough.
   const wording = plotTemplate(plot)?.wording;
-  const line = wording?.[plot.wording]?.lines[key] ?? wording?.at(-1)?.lines[key] ?? "";
+  const lines = wording?.[plot.wording]?.lines[key] !== undefined ? wording[plot.wording].lines : wording?.at(-1)?.lines;
+  const line = (stance && lines?.[`${key}.${stance}`]) || lines?.[key] || "";
   return line.replace(/\{(\w+)\}/g, (_, w: string) => {
     if (w.endsWith("Who")) {
       const role = w.slice(0, -3);

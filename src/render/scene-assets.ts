@@ -18,6 +18,8 @@ const atlases = {
   faunao: "/fauna-o/atlas",
   faunak: "/fauna-k/atlas",
   faunae: "/fauna-e/atlas",
+  faunax: "/fauna-x/atlas",
+  faunah: "/fauna-h/atlas",
   faunaw: "/fauna-w/atlas",
   "nature-shadows": "/nature/shadows",
   "nature-shadows-2": "/nature/shadows-2",
@@ -84,6 +86,9 @@ export const lazySheets = [
   "faunao",
   "faunak",
   "faunae",
+  // Snakes, crocodiles and the hippo: warm country and its rivers.
+  "faunax",
+  "faunah",
   // The deer, jackals, coyotes and hares: wild country, not every town.
   "faunaw",
 ] as const;

@@ -8,19 +8,22 @@ import { places } from "../src/content/geography/places";
 import { settingFor } from "../src/content/geography/resolve";
 import * as device from "../src/runtime/device";
 import * as session from "../src/runtime/session";
+import * as store from "../src/runtime/prepared-store";
+import * as travelWaterways from "../src/world/travel/waterways";
 import { takeTerrainWorker } from "../src/runtime/terrain-worker-owner";
+import type { WorldPreparationRequest, WorldPreparationResult } from "../src/world/worker";
 
 it.each([true, false])("hands off a prepared world with phone memory policy %s", async (phone) => {
   const setting = settingFor(places.find((p) => p.id === "konya")!, -6499);
-  const prepared = prepareSettlement(packForSetting(integratedSetting(setting)), "handoff").prepared;
+  const engine = createSession("roman", "handoff", { generator: 1 });
+  const prepared = { sites: [], plans: [] } as unknown as WorldPreparationResult["prepared"];
   const order: string[] = [];
   const terminate = vi.fn(() => { order.push("terminate"); });
-  const requests: { prepare: { retire: boolean } }[] = [];
-  const create = createSession;
+  const requests: WorldPreparationRequest[] = [];
   vi.spyOn(device, "smallMemoryDevice").mockReturnValue(phone);
-  vi.spyOn(session, "createSession").mockImplementation((...args) => {
+  const create = vi.spyOn(session, "createSession").mockImplementation(() => {
     order.push("session");
-    return create(...args);
+    return engine;
   });
   vi.stubGlobal("Worker", class {
     terminate = terminate;
@@ -31,8 +34,9 @@ it.each([true, false])("hands off a prepared world with phone memory policy %s",
     }
   });
   try {
-    const engine = await prepareSettingSession(setting, "handoff", undefined, false);
-    expect(requests[0].prepare.retire).toBe(phone);
+    await expect(prepareSettingSession(setting, "handoff", undefined, false)).resolves.toBe(engine);
+    expect(requests[0].prepare).toMatchObject({ retire: phone, setting: { placeId: setting.placeId } });
+    expect(create).toHaveBeenCalledWith("atlas", "handoff", expect.objectContaining({ prepared }));
     expect(order).toEqual(phone ? ["terminate", "session"] : ["session"]);
     const retained = takeTerrainWorker(engine.world);
     expect(!!retained).toBe(!phone);
@@ -61,6 +65,41 @@ it("cancels preparation with one worker termination and no lingering timeout", a
   } finally {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  }
+});
+
+it("indexes an existing prepared map by its inputs so the next load skips river sampling", async () => {
+  const setting = settingFor(places.find((p) => p.id === "konya")!, -6499);
+  const playableMap = { id: "tile:175,-201", size: 384 as const, exits: [{ id: "edge", to: "tile:175,-202", bearing: "N", mode: "land" }] };
+  const resolved = { ...playableMap, exits: [{ ...playableMap.exits[0], waterways: [{ at: 0.5, width: 0.02, flow: 1 }] }] };
+  const seed = "cache-test";
+  const prepared = { propsRouted: true } as WorldPreparationResult["prepared"];
+  const key = store.preparedKey({ ...setting, playableMap: resolved }, seed);
+  let row: Parameters<typeof store.savePrepared>[0] = { key, prepared };
+  const sample = vi.spyOn(travelWaterways, "withTravelWaterways").mockReturnValue(resolved);
+  vi.spyOn(store, "loadPrepared").mockImplementation(async (lookup, byRecipe) =>
+    lookup === (byRecipe ? row.recipe : row.key) ? row : undefined);
+  const save = vi.spyOn(store, "savePrepared").mockImplementation(async (entry) => { row = entry; });
+  const generator = await import("../src/world/v3/generate");
+  const build = vi.spyOn(generator, "prepareSettlement").mockReturnValue({ world: {} as ReturnType<typeof prepareSettlement>["world"], prepared });
+  const worker = { onmessage: (_event: { data: WorldPreparationRequest }) => {}, postMessage: (_data: WorldPreparationResult) => {} };
+  vi.stubGlobal("self", worker);
+  try {
+    await import("../src/world/worker");
+    const request = { prepare: { setting: { ...setting, playableMap }, seed, retire: true, cachePrepared: true, waterways: { source: setting, neighbors: [setting] } } };
+    const load = () => new Promise((resolve) => {
+      worker.postMessage = resolve;
+      worker.onmessage({ data: structuredClone(request) });
+    });
+    await expect(load()).resolves.toEqual({ prepared, playableMap: resolved });
+    await expect(load()).resolves.toEqual({ prepared, playableMap: resolved });
+    expect(sample).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(row.key).toBe(key);
+    expect(build.mock.calls.map(([, , cached]) => cached)).toEqual([prepared, prepared]);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   }
 });
 

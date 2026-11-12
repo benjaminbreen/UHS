@@ -547,9 +547,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           (mine ||
             random(seed, "board", b.id) <
               // Whole words: "workshop" is not a shop.
-              (/\b(shop|market|stall|apothecary|tea)\b/i.test(b.name)
-                ? 0.5
-                : 0.15));
+              (/\b(shop|store|market|stall|apothecary|tea)\b/i.test(b.name)
+                ? 0.8
+                : 0.4));
         const hung = sign && emblem !== undefined ? wallSignFor(world.pack, sign, emblem, venue?.kind) : undefined;
         const boardable = !!hung;
         // Signs keep apart, and the same mark further apart still: a row

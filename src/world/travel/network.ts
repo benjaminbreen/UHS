@@ -142,9 +142,11 @@ export async function loadTileNames(ids: string[]) {
       .filter((b) => !bands.has(b))
       .map(async (b) => {
         const load = bandFiles[`../../content/geography/travel/generated/tile-names/${b}.json`];
-        bands.set(b, load ? await load() : {});
         const rows = settlementFiles[`../../content/geography/travel/generated/settlements/${b}.json`];
-        if (rows) addSettlements(await rows());
+        const [names, settlements] = await Promise.all([load?.(), rows?.()]);
+        if (bands.has(b)) return;
+        if (settlements) addSettlements(settlements);
+        bands.set(b, names ?? {});
       }),
   );
 }

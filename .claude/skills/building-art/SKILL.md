@@ -96,11 +96,47 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_mudbrick.py` | Early mud-brick houses in five regional looks (Çatalhöyük, Mesopotamia, Egypt, Indus, Levant): flat roofs on a thick ledge with a shadow band under it, decks sunk inside lit parapets, doors in deep reveals, roof life |
 | `scripts/art/front_meso.py` | Mesoamerican houses, Maya and Nahua: thatched jacales, flat-roofed calli, granaries and sweat baths, each frame from its recipe |
 | `scripts/art/front_ancient.py` | Wires the Roman (`house-roman-ob-*`) and Iranian (`westasian-courtyard-iranian-*`) frames to those builders |
+| `scripts/art/front_family.py` | The registry for house families drawn from specs: bake hook, every street form, entrance under the drawn door, lamplight frame, A/B, street and night sheets, audit. New regional house sets go through it |
+| `scripts/art/front_iberia.py` | The `casa` family: seventeen looks of the Iberian world and the Mediterranean (New Spain, Lima, the Caribbean, the Andes, Brazil and Portugal early and late, Andalusia, Castile, Italy early and late, the Aegean, the Philippine bahay na bato early and late, Goa). Its parts are the library for this kind of house: barrel tile (`tejado`, `alero`, `caballete`), flat roofs from above (`azotea`), window cages (`reja`), balconies (`balcon`, `corredor`, `cajon`), stone doorways (`portada`, `porton`), shell windows (`capiz`, `concha`), shop bays (`tienda`), spouts, niches, finials |
 | `scripts/art/front_audit.py` | The checkable rules; runs inside `oblique_audit.py` |
 | `scripts/art/front_review.py` | Review sheets beside the pinned gold masters |
 | `scripts/art/reference/front/` | Pinned gold masters |
 
 Each module's `__main__` draws its own review sheet.
+
+## Adding a regional house family
+
+The `casa` family is the pattern. A new set of houses needs no change to the
+bake, the atlas or the renderer:
+
+1. **Parts first.** Draw what the region has that the library lacks as
+   module-level functions taking `(c, x, y, ...)` and a ramp, so the next
+   region can use them. Reuse `front_iberia`'s roofs, openings and balconies
+   before drawing new ones. A part that can be lit after dark takes `lit=`
+   and marks its region with `glow()`: 1 for panes, 2 for an open room.
+2. **A look, not a sprite.** A look is a base spec, three colour variants,
+   a `humble` override for small and poor houses, its usual storeys and its
+   tallest (`LOOKS` in `front_iberia.py`). One builder,
+   `house(look, variant, form, cells, seed)`, must draw it at every width
+   from 64px to 272px and every form in `urban.json` (row, wide, tall, shop,
+   cottage, hut, stall, hall). Settle geometry in `__init__` (`x0`, `W`,
+   `base`, `floors`, `door_x`, `door_size`) so the bake can place the
+   entrance without painting.
+3. **Register it**: `front_family.register(prefix, looks, house)`, and add
+   the module to `front_family.MODULES`. The game then has
+   `<prefix>-<look>-<0..2>` and `-urban-<form>` frames, each with its
+   walkable entrance in the cell the door is drawn in and a `-glow` frame.
+4. **Review** with `npm run art:family -- <prefix> out.png [look ...]`:
+   `out.png` is every look at every form beside the gold masters, `-street`
+   a street of each, `-night` the same streets lamplit. Judge the street
+   before the single sprite. `npm run art:family` alone lists the looks.
+5. **Route it** in a subject file under `src/content/graphics/`
+   (`iberian-houses.ts`: region boxes and the dates a look's marks became
+   common), call it from `pack.ts`, and add a row per look to the house
+   cases in `tests/place-eras.test.ts`.
+
+The audit (`families()` in `front_audit.py`) builds every registered look at
+every form, so a width that crashes or dithers fails `npm run art:front`.
 
 ## Working loop
 
@@ -113,8 +149,11 @@ Each module's `__main__` draws its own review sheet.
 4. `npm run art:front` (audit plus review). It must be clean.
 5. Show the user one sheet. At most three passes before asking.
 6. On approval, bake with `npm run art` and check one shot in game
-   (`npm run shot`). If the new work beats a gold master, re-pin it with
-   `front_review.py --pin` and note it below.
+   (`npm run shot`). If the new work beats a gold master, re-pin it by name
+   with `front_review.py --pin <name>` and note it below. A bare `--pin`
+   lists the masters and their drift. `casa-caribe`, `casa-bahay` and
+   `casa-oaxaca` are pinned as regional masters: hold a new house of that
+   part of the world to them.
 
 A fresh-eyes critique helps: give a subagent the sheet, the gold masters and
 this file, and ask for specific defects.
@@ -125,7 +164,13 @@ this file, and ask for specific defects.
   seven pre-industrial European house families with all their urban forms
   (`front_houses.adopt`, called from `scripts/art/buildings.py`). Churches,
   halls and civic buildings in those towns are still oblique.
-- The walkable entrance is still the footprint's middle, not the door.
+- Entrances follow the drawn door for eave-front European houses and every
+  registered family. Gabled houses have a centred door; Roman, Persian,
+  East Asian and civic painters still use the footprint's middle.
+- `casa` weak spots: the Aegean cube is plain, the Goan porch small, the
+  Portuguese upper windows crowd the eave. Its hall form is a wide house,
+  not yet an arcaded cabildo. Venice has no look of its own and gets the
+  early Italian one.
 - Roman relief and dipinto fixtures exist in the library but are not hung in
   game: Roman shopfronts bake their own. The fascia is hung blank; lettering it
   in the street's language (sign-texture.ts) is not done.
@@ -162,3 +207,5 @@ Append a dated line when the user approves or rejects something.
 - 2026-11-02 Dithering allowed when it is tasteful: single dithered rows in thatch courses and under an eave read as straw, as the old Mesoamerican sprites drew it. Large checkerboard gradients are still out (the audit's dither limit stands).
 - 2026-11-03 Mesoamerican houses: a first pass with too few looks, doors filling the wall and coarse thatch was sent back. Approved and wired: one house per game frame from its recipe (the old painter's choices kept), slim doors with wall above the lintel, thatch in fine dithered courses (`front_meso.py`).
 - 2026-11-07 Twenty-two landmarks redrawn front-on and approved from A/B sheets: Mamluk, Maghrebi, Ottoman and Swahili mosques, Sephardi synagogue, madrasa (Ottoman, Mamluk, Maghrebi looks), Mesopotamian temple and ziggurat, pylon temple, chahar taq, stepped platform, dagoba, heiau, marae, Javanese candi, Khmer temple, Nahua twin temple, great kiva, Romanesque and mission churches, Globe, playhouse, picture house. The old Hittite and Maya temples were preferred to their redraws and kept.
+- 2026-11-11 Colonial Iberian American houses approved from A/B and street sheets ("nice work", "good job"), then extended on request to the Mediterranean, the Philippines and Goa and wired in as the `casa` family. The user asked that it be the gold standard future work builds on: modular parts, reusable forms, and a harness that makes the next family cheap. Hence `front_family.py`. Unglazed, shuttered windows and no chimneys are deliberate for these regions; lamplight comes from shutters ajar, lattices and shell panes.
+- 2026-11-11 Review by street, not by sprite: the user's approvals came from the street sheets. A family's sheet shows every form the game bakes, not one showpiece width.

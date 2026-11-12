@@ -11,6 +11,8 @@ import atlasW from "../public/fauna-w/atlas.json" with { type: "json" };
 import atlasO from "../public/fauna-o/atlas.json" with { type: "json" };
 import atlasK from "../public/fauna-k/atlas.json" with { type: "json" };
 import atlasE from "../public/fauna-e/atlas.json" with { type: "json" };
+import atlasX from "../public/fauna-x/atlas.json" with { type: "json" };
+import atlasH from "../public/fauna-h/atlas.json" with { type: "json" };
 import studiesC from "../public/fauna-c/studies.json" with { type: "json" };
 import studiesR from "../public/fauna-r/studies.json" with { type: "json" };
 import studiesW from "../public/fauna-w/studies.json" with { type: "json" };
@@ -115,6 +117,8 @@ describe("four-direction fauna", () => {
     ...atlasO.frames,
     ...atlasK.frames,
     ...atlasE.frames,
+    ...atlasX.frames,
+    ...atlasH.frames,
   } as Record<
     string,
     { frame: { w: number; h: number } }
@@ -134,7 +138,7 @@ describe("four-direction fauna", () => {
           );
           for (const id of ids) {
             expect(
-              id.replace(/^fauna[cmrfguwoke]-/, "").startsWith(`${borrowed[profile.id] ?? profile.id}-`),
+              id.replace(/^fauna[cmrfguwokexh]-/, "").startsWith(`${borrowed[profile.id] ?? profile.id}-`),
             ).toBe(true);
             expect(frames[id], id).toBeDefined();
             seen.add(id);

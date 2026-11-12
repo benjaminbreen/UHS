@@ -1,0 +1,1049 @@
+{
+  "indian-cobra": {
+    "palette": [
+      "#120c06",
+      "#4d3417",
+      "#7d5a2b",
+      "#a07a40",
+      "#dcc790",
+      "#2d1e0e",
+      "#e8d7a2",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      39,
+      28
+    ],
+    "standing": [
+      39,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#120c06",
+        "d": "#4d3417",
+        "m": "#7d5a2b",
+        "l": "#a07a40",
+        "b": "#dcc790",
+        "p": "#2d1e0e",
+        "q": "#e8d7a2",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "indian-cobra",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "brown": 1
+          }
+        }
+      ],
+      "coats": {
+        "brown": {
+          "o": "#120c06",
+          "d": "#4d3417",
+          "m": "#7d5a2b",
+          "l": "#a07a40",
+          "b": "#dcc790",
+          "p": "#2d1e0e",
+          "q": "#e8d7a2",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "egyptian-cobra": {
+    "palette": [
+      "#100c08",
+      "#3d3122",
+      "#655339",
+      "#86714f",
+      "#c9b88f",
+      "#1c150d",
+      "#a89470",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      41,
+      29
+    ],
+    "standing": [
+      41,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#100c08",
+        "d": "#3d3122",
+        "m": "#655339",
+        "l": "#86714f",
+        "b": "#c9b88f",
+        "p": "#1c150d",
+        "q": "#a89470",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "egyptian-cobra",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "olive": 1
+          }
+        }
+      ],
+      "coats": {
+        "olive": {
+          "o": "#100c08",
+          "d": "#3d3122",
+          "m": "#655339",
+          "l": "#86714f",
+          "b": "#c9b88f",
+          "p": "#1c150d",
+          "q": "#a89470",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "russells-viper": {
+    "palette": [
+      "#140d06",
+      "#5a4022",
+      "#9a7442",
+      "#bb9560",
+      "#e1cfa2",
+      "#3a230f",
+      "#efe1bc",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      35,
+      27
+    ],
+    "standing": [
+      35,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#140d06",
+        "d": "#5a4022",
+        "m": "#9a7442",
+        "l": "#bb9560",
+        "b": "#e1cfa2",
+        "p": "#3a230f",
+        "q": "#efe1bc",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "russells-viper",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "tan": 1
+          }
+        }
+      ],
+      "coats": {
+        "tan": {
+          "o": "#140d06",
+          "d": "#5a4022",
+          "m": "#9a7442",
+          "l": "#bb9560",
+          "b": "#e1cfa2",
+          "p": "#3a230f",
+          "q": "#efe1bc",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "saw-scaled-viper": {
+    "palette": [
+      "#18110a",
+      "#6a5235",
+      "#a3875e",
+      "#c4a97e",
+      "#e6d8b5",
+      "#4b3520",
+      "#efe4c6",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      27,
+      26
+    ],
+    "standing": [
+      27,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#18110a",
+        "d": "#6a5235",
+        "m": "#a3875e",
+        "l": "#c4a97e",
+        "b": "#e6d8b5",
+        "p": "#4b3520",
+        "q": "#efe4c6",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "saw-scaled-viper",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "sand": 1
+          }
+        }
+      ],
+      "coats": {
+        "sand": {
+          "o": "#18110a",
+          "d": "#6a5235",
+          "m": "#a3875e",
+          "l": "#c4a97e",
+          "b": "#e6d8b5",
+          "p": "#4b3520",
+          "q": "#efe4c6",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "black-mamba": {
+    "palette": [
+      "#0d0d0b",
+      "#3c3d35",
+      "#62645a",
+      "#828577",
+      "#b9b9a2",
+      "#2a2b25",
+      "#9fa190",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      46,
+      30
+    ],
+    "standing": [
+      46,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#0d0d0b",
+        "d": "#3c3d35",
+        "m": "#62645a",
+        "l": "#828577",
+        "b": "#b9b9a2",
+        "p": "#2a2b25",
+        "q": "#9fa190",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "black-mamba",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#0d0d0b",
+          "d": "#3c3d35",
+          "m": "#62645a",
+          "l": "#828577",
+          "b": "#b9b9a2",
+          "p": "#2a2b25",
+          "q": "#9fa190",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "western-diamondback": {
+    "palette": [
+      "#120e0a",
+      "#5a4b3a",
+      "#8f7c63",
+      "#ad9a7e",
+      "#ddd2b6",
+      "#3d2e22",
+      "#e4dccb",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      39,
+      28
+    ],
+    "standing": [
+      39,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#120e0a",
+        "d": "#5a4b3a",
+        "m": "#8f7c63",
+        "l": "#ad9a7e",
+        "b": "#ddd2b6",
+        "p": "#3d2e22",
+        "q": "#e4dccb",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "western-diamondback",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#120e0a",
+          "d": "#5a4b3a",
+          "m": "#8f7c63",
+          "l": "#ad9a7e",
+          "b": "#ddd2b6",
+          "p": "#3d2e22",
+          "q": "#e4dccb",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "timber-rattlesnake": {
+    "palette": [
+      "#130e06",
+      "#6b5524",
+      "#a88a43",
+      "#c6a85e",
+      "#e4d49c",
+      "#2a1e10",
+      "#e9dcae",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      37,
+      28
+    ],
+    "standing": [
+      37,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#130e06",
+        "d": "#6b5524",
+        "m": "#a88a43",
+        "l": "#c6a85e",
+        "b": "#e4d49c",
+        "p": "#2a1e10",
+        "q": "#e9dcae",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "timber-rattlesnake",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "yellow": 1
+          }
+        }
+      ],
+      "coats": {
+        "yellow": {
+          "o": "#130e06",
+          "d": "#6b5524",
+          "m": "#a88a43",
+          "l": "#c6a85e",
+          "b": "#e4d49c",
+          "p": "#2a1e10",
+          "q": "#e9dcae",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        },
+        "dark": {
+          "o": "#0e0b08",
+          "d": "#3b3226",
+          "m": "#5f5240",
+          "l": "#7a6b55",
+          "b": "#b4a68a",
+          "p": "#1c1610",
+          "q": "#a69780",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "european-adder": {
+    "palette": [
+      "#100e0c",
+      "#5b5650",
+      "#918b80",
+      "#b3ada0",
+      "#d9d3c2",
+      "#1d1916",
+      "#cfc8b8",
+      "#0a0807",
+      "#0b0908",
+      "#c97a7a",
+      "#c8323a",
+      "#f2ecdc",
+      "#b59a6a"
+    ],
+    "states": {
+      "idle": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "rest": 16,
+      "warn": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      27,
+      26
+    ],
+    "standing": [
+      27,
+      10
+    ],
+    "looks": {
+      "roles": {
+        "o": "#100e0c",
+        "d": "#5b5650",
+        "m": "#918b80",
+        "l": "#b3ada0",
+        "b": "#d9d3c2",
+        "p": "#1d1916",
+        "q": "#cfc8b8",
+        "e": "#0a0807",
+        "k": "#0b0908",
+        "n": "#c97a7a",
+        "t": "#c8323a",
+        "w": "#f2ecdc",
+        "r": "#b59a6a"
+      },
+      "forms": [
+        {
+          "id": "european-adder",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 1,
+            "brown": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#100e0c",
+          "d": "#5b5650",
+          "m": "#918b80",
+          "l": "#b3ada0",
+          "b": "#d9d3c2",
+          "p": "#1d1916",
+          "q": "#cfc8b8",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        },
+        "brown": {
+          "o": "#120b06",
+          "d": "#5d3a1e",
+          "m": "#8e6236",
+          "l": "#ae7f4d",
+          "b": "#d6b585",
+          "p": "#2a170b",
+          "q": "#c9a072",
+          "e": "#0a0807",
+          "k": "#0b0908",
+          "n": "#c97a7a",
+          "t": "#c8323a",
+          "w": "#f2ecdc",
+          "r": "#b59a6a"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "nile-crocodile": {
+    "palette": [
+      "#0e0d07",
+      "#3a3a20",
+      "#5e5d33",
+      "#7f7c49",
+      "#cbbf86",
+      "#2a2914",
+      "#33321b",
+      "#0b0a07",
+      "#c9a23a",
+      "#e2cf8e",
+      "#f4f0e0",
+      "#c3d3c4"
+    ],
+    "states": {
+      "idle": 16,
+      "rest": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "warn": 16,
+      "lurk": 16,
+      "swim": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      76,
+      48
+    ],
+    "standing": [
+      76,
+      16
+    ],
+    "looks": {
+      "roles": {
+        "o": "#0e0d07",
+        "d": "#3a3a20",
+        "m": "#5e5d33",
+        "l": "#7f7c49",
+        "b": "#cbbf86",
+        "p": "#2a2914",
+        "s": "#33321b",
+        "e": "#0b0a07",
+        "y": "#c9a23a",
+        "n": "#e2cf8e",
+        "w": "#f4f0e0",
+        "x": "#c3d3c4"
+      },
+      "forms": [
+        {
+          "id": "nile-crocodile",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "olive": 1
+          }
+        }
+      ],
+      "coats": {
+        "olive": {
+          "o": "#0e0d07",
+          "d": "#3a3a20",
+          "m": "#5e5d33",
+          "l": "#7f7c49",
+          "b": "#cbbf86",
+          "p": "#2a2914",
+          "s": "#33321b",
+          "e": "#0b0a07",
+          "y": "#c9a23a",
+          "n": "#e2cf8e",
+          "w": "#f4f0e0",
+          "x": "#c3d3c4"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "saltwater-crocodile": {
+    "palette": [
+      "#0d0c09",
+      "#3a3527",
+      "#605840",
+      "#827959",
+      "#d2c79a",
+      "#27231a",
+      "#2f2b20",
+      "#0b0a07",
+      "#c9a23a",
+      "#e2cf8e",
+      "#f4f0e0",
+      "#c3d3c4"
+    ],
+    "states": {
+      "idle": 16,
+      "rest": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "warn": 16,
+      "lurk": 16,
+      "swim": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      85,
+      54
+    ],
+    "standing": [
+      85,
+      18
+    ],
+    "looks": {
+      "roles": {
+        "o": "#0d0c09",
+        "d": "#3a3527",
+        "m": "#605840",
+        "l": "#827959",
+        "b": "#d2c79a",
+        "p": "#27231a",
+        "s": "#2f2b20",
+        "e": "#0b0a07",
+        "y": "#c9a23a",
+        "n": "#e2cf8e",
+        "w": "#f4f0e0",
+        "x": "#c3d3c4"
+      },
+      "forms": [
+        {
+          "id": "saltwater-crocodile",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#0d0c09",
+          "d": "#3a3527",
+          "m": "#605840",
+          "l": "#827959",
+          "b": "#d2c79a",
+          "p": "#27231a",
+          "s": "#2f2b20",
+          "e": "#0b0a07",
+          "y": "#c9a23a",
+          "n": "#e2cf8e",
+          "w": "#f4f0e0",
+          "x": "#c3d3c4"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "mugger-crocodile": {
+    "palette": [
+      "#0c0c0a",
+      "#3d3d34",
+      "#62624f",
+      "#83836a",
+      "#c7c09a",
+      "#2a2a22",
+      "#33332a",
+      "#0b0a07",
+      "#c9a23a",
+      "#e2cf8e",
+      "#f4f0e0",
+      "#c3d3c4"
+    ],
+    "states": {
+      "idle": 16,
+      "rest": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "warn": 16,
+      "lurk": 16,
+      "swim": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      65,
+      42
+    ],
+    "standing": [
+      65,
+      14
+    ],
+    "looks": {
+      "roles": {
+        "o": "#0c0c0a",
+        "d": "#3d3d34",
+        "m": "#62624f",
+        "l": "#83836a",
+        "b": "#c7c09a",
+        "p": "#2a2a22",
+        "s": "#33332a",
+        "e": "#0b0a07",
+        "y": "#c9a23a",
+        "n": "#e2cf8e",
+        "w": "#f4f0e0",
+        "x": "#c3d3c4"
+      },
+      "forms": [
+        {
+          "id": "mugger-crocodile",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#0c0c0a",
+          "d": "#3d3d34",
+          "m": "#62624f",
+          "l": "#83836a",
+          "b": "#c7c09a",
+          "p": "#2a2a22",
+          "s": "#33332a",
+          "e": "#0b0a07",
+          "y": "#c9a23a",
+          "n": "#e2cf8e",
+          "w": "#f4f0e0",
+          "x": "#c3d3c4"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "american-alligator": {
+    "palette": [
+      "#080807",
+      "#22231e",
+      "#373831",
+      "#4c4e44",
+      "#c9c4a8",
+      "#151612",
+      "#1b1c18",
+      "#0b0a07",
+      "#b8b25a",
+      "#e2cf8e",
+      "#f4f0e0",
+      "#c3d3c4"
+    ],
+    "states": {
+      "idle": 16,
+      "rest": 16,
+      "wander": 8,
+      "flee": 8,
+      "chase": 8,
+      "pounce": 8,
+      "warn": 16,
+      "lurk": 16,
+      "swim": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      70,
+      45
+    ],
+    "standing": [
+      70,
+      15
+    ],
+    "looks": {
+      "roles": {
+        "o": "#080807",
+        "d": "#22231e",
+        "m": "#373831",
+        "l": "#4c4e44",
+        "b": "#c9c4a8",
+        "p": "#151612",
+        "s": "#1b1c18",
+        "e": "#0b0a07",
+        "y": "#b8b25a",
+        "n": "#e2cf8e",
+        "w": "#f4f0e0",
+        "x": "#c3d3c4"
+      },
+      "forms": [
+        {
+          "id": "american-alligator",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "black": 1
+          }
+        }
+      ],
+      "coats": {
+        "black": {
+          "o": "#080807",
+          "d": "#22231e",
+          "m": "#373831",
+          "l": "#4c4e44",
+          "b": "#c9c4a8",
+          "p": "#151612",
+          "s": "#1b1c18",
+          "e": "#0b0a07",
+          "y": "#b8b25a",
+          "n": "#e2cf8e",
+          "w": "#f4f0e0",
+          "x": "#c3d3c4"
+        }
+      },
+      "coatFrom": {}
+    }
+  }
+}

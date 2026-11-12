@@ -11,6 +11,8 @@ import studiesU from "../../render/generated/fauna-u-studies.json" with { type: 
 import studiesO from "../../render/generated/fauna-o-studies.json" with { type: "json" };
 import studiesK from "../../render/generated/fauna-k-studies.json" with { type: "json" };
 import studiesE from "../../render/generated/fauna-e-studies.json" with { type: "json" };
+import studiesX from "../../render/generated/fauna-x-studies.json" with { type: "json" };
+import studiesH from "../../render/generated/fauna-h-studies.json" with { type: "json" };
 
 export const habitatTags = [
   "settlement",
@@ -179,7 +181,9 @@ export function directionalStudy(
     | keyof typeof studiesU
     | keyof typeof studiesO
     | keyof typeof studiesK
-    | keyof typeof studiesE,
+    | keyof typeof studiesE
+    | keyof typeof studiesX
+    | keyof typeof studiesH,
 ): Pick<FaunaProfile, "art" | "palette" | "directions" | "body"> {
   const [set, studies] = (
     [
@@ -192,6 +196,8 @@ export function directionalStudy(
       ["faunao", studiesO],
       ["faunak", studiesK],
       ["faunae", studiesE],
+      ["faunax", studiesX],
+      ["faunah", studiesH],
       ["faunac", studiesC],
     ] as const
   ).find(([, s]) => species in s)!;

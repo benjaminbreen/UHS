@@ -148,6 +148,51 @@ it.runIf(!!process.env.FULL)("lets a model live through its turns and keep a dia
   expect(a.record.entries.filter((e) => e.tool === "act")).toHaveLength(3);
 });
 
+it.runIf(!!process.env.FULL)("lists MCP tools before resolving the starting world", async () => {
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: ["node_modules/vite-node/vite-node.mjs", "scripts/agent.ts", "--", "serve", "--setting", "zzzzq-no-uhs-place", "--offline", "--time-travel"],
+    cwd: process.cwd(),
+    stderr: "pipe",
+  });
+  const client = new Client({ name: "uhs-test", version: "1.0" });
+  try {
+    await client.connect(transport);
+    expect((await client.listTools()).tools.map((tool) => tool.name).sort()).toEqual([
+      "act", "errand", "goto", "inspect", "look", "talk", "time_travel", "travel",
+    ]);
+    const failure = await client.callTool({ name: "look", arguments: {} });
+    expect(failure.isError).toBe(true);
+    expect(failure.content).toEqual([expect.objectContaining({ text: expect.stringContaining("No place or period matched") })]);
+  } finally { await client.close(); }
+}, 60000);
+
+it.runIf(!!process.env.FULL)("plays offline from piped commands and replays the recorded tool calls", () => {
+  const out = mkdtempSync(join(tmpdir(), "uhs-play-"));
+  try {
+    const cli = ["node_modules/vite-node/vite-node.mjs", "scripts/agent.ts", "--"];
+    const text = execFileSync(process.execPath, [...cli, "play", "--setting", "tiny desert island 10x5 in 1944", "--seed", "play-check", "--concern", "--out", out], {
+      input: 'look\ninspect {\nact {"command":{"type":"wait","seconds":60}}\nlook\nquit\nlook\n',
+      encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: 60000,
+    });
+    const replies = text.trim().split("\n").map((line) => JSON.parse(line));
+    expect(replies.map((reply) => reply.tool)).toEqual(["look", "inspect", "act", "look"]);
+    expect(replies[0].text).toContain("Concern:");
+    expect(replies[1].status).toBe("invalid");
+    expect(replies[2].status).toBe("completed");
+    expect(replies[2].after - replies[2].clock).toBe(60);
+    expect(replies[3].hash).toBe(replies[2].hash);
+    const [run] = readdirSync(out);
+    const dir = join(out, run);
+    const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+    expect(manifest).toMatchObject({ mode: "play", concern: true, offline: true, environment: null, result: { calls: 3 } });
+    const replay = execFileSync(process.execPath, [cli[0], "scripts/replay.ts", "--", dir], {
+      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60000,
+    });
+    expect(replay).toContain("Agent replay verified: 3 tool calls");
+  } finally { rmSync(out, { recursive: true, force: true }); }
+}, 120000);
+
 it.runIf(!!process.env.FULL)("serves MCP tools and replays a run from its recorded setting, rejecting changed state", async () => {
   const out = mkdtempSync(join(tmpdir(), "uhs-agent-"));
   const transport = new StdioClientTransport({

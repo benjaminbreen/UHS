@@ -49,6 +49,7 @@ SPECIES = ("sheep", "goat", "pig", "chicken", "gray-wolf", *DEER_KINDS)
 DIRECTIONS = ("south", "east", "north", "west")
 PALETTES = {**{s: B_PALETTES[s] for s in SPECIES if s not in DEER_KINDS}, **{s: k["palette"] for s, k in DEER_KINDS.items()}}
 STATES = {s: B_STATES["red-deer" if s in DEER_KINDS else s] for s in SPECIES}
+STATES["gray-wolf"] = {**STATES["gray-wolf"], "warn": 8}
 NATIVE_SIZES = {s: (40, 40 + DEER_PAD) if s in DEER_KINDS else B_SIZES[s] for s in SPECIES}
 GROUND = {"sheep": 22, "goat": 22, "pig": 20, "chicken": 16, "gray-wolf": 23, **dict.fromkeys(DEER_KINDS, 36)}
 STANDING_SIZES = {s: (NATIVE_SIZES[s][0], GROUND[s]) for s in SPECIES}
@@ -254,10 +255,11 @@ def chicken_end(state, frame, south):
 def wolf_end(state, frame, south):
     c = Canvas("gray-wolf")
     run = state == "chase"
-    s = Stride("flee" if run else "wander" if state == "stalk" else state, frame, walk=(3.0, 2.5, 0.62), run=(5.0, 4.5, 0.4))
+    warn = state == "warn"
+    s = Stride("flee" if run else "wander" if state == "stalk" else "idle" if warn else state, frame, walk=(3.0, 2.5, 0.62), run=(5.0, 4.5, 0.4))
     g, cx = GROUND["gray-wolf"], 19
     rest = state == "rest"
-    low = 2 if state == "stalk" else 0
+    low = 2 if state == "stalk" or warn else 0
     by = 9 if rest else _by(s) + low
     if not rest:
         end_legs(c, s, (16, 22), 12 + by, g, 2, ("fh", "ff") if south else ("ff", "fh"), "d", "o")
@@ -277,9 +279,13 @@ def wolf_end(state, frame, south):
     flick = 1 if state == "idle" and frame in (3, 4) else 0
     down = 6 if state == "dig" else 0
     if south:
-        hy = (2 if not low else 5) + by + down + (1 if s.nod else 0)
+        hy = (2 if not low else 5) + by + down + (1 if s.nod else 0) + (1 if warn else 0)
+        if warn:  # the ruff standing up behind the lowered head
+            for k in range(-4, 5):
+                c.dot(cx + k, hy - 2 - (abs(k) + frame) % 2, "d")
         for sgn in (-1, 1):
-            c.paint(flat(polygon([(cx + sgn * 1, hy + 1), (cx + sgn * (4 + flick), hy - 4), (cx + sgn * 5, hy + 2)]), "m"))
+            apex = (cx + sgn * 6, hy - 1) if warn else (cx + sgn * (4 + flick), hy - 4)
+            c.paint(flat(polygon([(cx + sgn * 1, hy + 1), apex, (cx + sgn * 5, hy + 2)]), "m"))
             c.dot(cx + sgn * 4, hy - 1, "d")
         head = ellipse((cx - 4, hy, cx + 4, hy + 6))
         hp = shade(head, 1, 1)
@@ -291,6 +297,9 @@ def wolf_end(state, frame, south):
         c.dot(cx, hy + 5, "e")
         if run and frame % 2:
             c.dot(cx, hy + 8, "a")  # tongue
+        if warn:
+            c.paint({(cx - 1, hy + 7): "h", (cx, hy + 7): "o", (cx + 1, hy + 7): "h", (cx, hy + 8): "d",
+                     (cx - 2, hy + 6): "o", (cx + 2, hy + 6): "o"})
         for sgn in (-1, 1):
             c.dot(cx + sgn * 2, hy + 2, "d" if state == "idle" and frame == 6 else "a")
     else:
@@ -300,8 +309,12 @@ def wolf_end(state, frame, south):
                 c.paint(flat(polygon([(cx + sgn * 1, hy + 2), (cx + sgn * (4 + flick), hy - 3), (cx + sgn * 5, hy + 3)]), "m"))
             c.paint(shade(ellipse((cx - 4, hy, cx + 4, hy + 6)), 1, 1))
             c.paint(px)
-        if run:
-            sway, length = round(2 * math.sin(2 * math.pi * s.t)), 4
+        if warn:
+            for y in range(6 + by, 14 + by):
+                c.dot(cx, y, "d")
+                c.dot(cx + (1 if (y + frame // 2) % 2 else -1), y, "d")
+        if run or warn:
+            sway, length = (round(2 * math.sin(2 * math.pi * s.t)), 4) if run else (frame % 2, 3)
         elif state == "dig":
             sway, length = [0, 1, 2, 1, 0, -1, -2, -1][frame], 7
         else:

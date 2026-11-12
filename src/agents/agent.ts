@@ -103,6 +103,12 @@ export type StartOptions = {
   modelFetch?: typeof fetch;
 };
 
+export function availableTools({ timeTravel, offline }: Pick<StartOptions, "timeTravel" | "offline">): ToolName[] {
+  return (Object.keys(tools) as ToolName[]).filter(
+    (n) => (n !== "time_travel" || timeTravel) && (n !== "say" || !offline),
+  );
+}
+
 /** One person in one world, driven by tool calls. It plays through the same
  * `Runtime` the browser drives, so it keeps the same rules. */
 export class Agent {
@@ -136,9 +142,7 @@ export class Agent {
       record.trace({ kind: `engine-${kind}`, response: { ...data, clock: runtime.engine.state.clock } });
       if (kind === "command") this.label(data.request as { command: z.infer<typeof commandSchema> }, data.result as CommandResult);
     };
-    this.names = (Object.keys(tools) as ToolName[]).filter(
-      (n) => (n !== "time_travel" || options.timeTravel) && (n !== "say" || !options.offline),
-    );
+    this.names = availableTools(options);
   }
 
   get engine(): Engine {

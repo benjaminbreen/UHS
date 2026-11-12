@@ -62,6 +62,7 @@ import {
 } from "lucide-react";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
+import { launchers } from "../core/combat";
 import { lightingAt } from "../render/lighting";
 import { describedRegionAt } from "../content/geography/region-label";
 import { resourceName, sourceOf, tradeOf } from "../content/economy/endowments";
@@ -93,7 +94,8 @@ const formatZoom = (z: number) =>
   Number.isInteger(z) ? `${z}` : z.toFixed(2).replace(/0$/, "");
 import { download } from "../runtime/storage";
 import { distance, type PlayerCommand, type Position } from "../core/types";
-import { describeStats, statKeys } from "../core/stats";
+import { describeStats, statKeys, statsOf } from "../core/stats";
+import { isPlayful } from "../core/persona";
 import { describeStanding, standingOf } from "../core/standing";
 import { outlookOf, shortLabel } from "../core/outlook";
 
@@ -139,6 +141,7 @@ import type { TaskSource } from "./task-view";
 import type { SkillId } from "../core/skills";
 import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
+import { SettleScene } from "./SettleScene";
 import { WikiFocus } from "./WikiFocus";
 import {
   ACCENTS,
@@ -199,6 +202,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const plot = runtime.engine.state.plot;
   const propControls = runtime.propControls();
   const verbs = { ...runtime.verbs(), held: propControls.held };
+  const baby = runtime.engine.state.baby, tend = runtime.engine.tendNow();
   const speaker = runtime.nearestSpeaker();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [sky, setSky] = useState<{ skill?: SkillId; pick?: Pick; levelUp?: boolean }>();
@@ -235,6 +239,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     return () => director.dispose();
   }, [active]);
   const [restOpen, setRestOpen] = useState(false);
+  const [bedtime, setBedtime] = useState<{ go: () => void }>();
+  useEffect(() => {
+    runtime.onBedtime = (go) => {
+      runtime.hold(true);
+      setBedtime({ go });
+    };
+    return () => { runtime.onBedtime = undefined; };
+  }, [runtime]);
   const [card, setCard] = useState<PlotCardData>();
   const [inspecting, setInspecting] = useState<string>();
   const [modal, setModal] = useState<
@@ -377,7 +389,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     return () => window.clearTimeout(t);
   }, [hintsShown]);
   // A conversation leaves the world live, so the player can walk away from it.
-  const touchBlocked = (!!modal && modal !== "dialogue") || audioOpen || characterOpen || portraitOpen || !!card || !!inspecting || !!sky || !!task || (phone && (sheetOpen || narratorOpen || restOpen));
+  const touchBlocked = runtime.workInProgress || (!!modal && modal !== "dialogue") || audioOpen || characterOpen || portraitOpen || !!card || !!inspecting || !!sky || !!task || (phone && (sheetOpen || narratorOpen || restOpen));
   useEffect(() => { if (touchBlocked) runtime.stop(); }, [touchBlocked, runtime]);
   useEffect(() => {
     if (!modal && !audioOpen && !sky && !task) return;
@@ -556,7 +568,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     }
   });
   // A card waits under anything opened over the world, rather than sitting on top of it.
-  const covered = !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen;
+  const covered = runtime.workInProgress || !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen;
   useEffect(() => {
     if (card || covered) return;
     const engine = runtime.engine;
@@ -745,7 +757,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   };
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
-      if (runtime.timeTravelLocked) return;
+      if (runtime.timeTravelLocked || runtime.workInProgress) return;
       if ((e.metaKey || e.ctrlKey) && e.code === "Digit3") {
         e.preventDefault();
         if (!e.repeat) {
@@ -811,6 +823,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           setModal("shop");
         }
       }
+      if (e.code === "KeyB" && !e.repeat) runtime.tend();
       if (e.key.toLowerCase() === "m") setModal("map");
       if (e.key.toLowerCase() === "n") setModal("notebook");
     };
@@ -818,7 +831,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       if (e.code === "KeyF") runtime.releaseCharge();
     };
     // A keyup lost to another window would leave the wind-up running.
-    const cancel = () => (runtime.charge = undefined);
+    const cancel = () => {
+      runtime.charge = undefined;
+      runtime.releaseCharge();
+    };
     window.addEventListener("keydown", listener);
     window.addEventListener("keyup", release);
     window.addEventListener("blur", cancel);
@@ -951,6 +967,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     () => audio?.setSetting(setting?.culture, setting?.year, setting),
     [audio, setting?.culture, setting?.year, setting?.lon, setting?.lat],
   );
+  audio?.setClock(obs.clock, isPlayful(statsOf(runtime.engine.state.manifest.seed, p)));
+  useEffect(() => audio?.setSituation(p.dead ? "passing" : undefined), [audio, p.dead]);
   useEffect(() => applyTheme(accent, background, setting?.culture), [accent, background, setting?.culture]);
   useEffect(() => applyProseFont(proseFont), [proseFont]);
   useEffect(() => {
@@ -1038,6 +1056,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const workPlan = runtime.engine.workPlan();
   const workLive = !phone && !!workPlan &&
     !(workPlan.done >= workPlan.stages.length && !workPlan.waiting && !(workPlan.side && !workPlan.side.done));
+  const workDone = !!workPlan && workPlan.done >= workPlan.stages.length;
+  useEffect(() => {
+    if (runtime.workHold !== undefined) audio?.work("hold");
+  }, [audio, runtime.workHold]);
+  useEffect(() => {
+    if (workDone) audio?.work("done");
+  }, [audio, workDone]);
   const workCard = (
     <WorkCard
       runtime={runtime}
@@ -1359,6 +1384,15 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onGain={() => setSideTab("inventory")}
             slot={(item) => document.querySelector<HTMLElement>(`.inventory-list [data-item="${CSS.escape(item)}"]`)}
           />
+          {bedtime && baby && (
+            <SettleScene baby={baby} appearance={runtime.appearanceFor(p)} culture={runtime.engine.world.pack.setting?.culture}
+              onDone={(quality) => {
+                setBedtime(undefined);
+                runtime.hold(false);
+                runtime.command({ type: "settle", quality });
+                bedtime.go();
+              }} />
+          )}
           <TouchControls
             enabled={!touchBlocked}
             scene={() =>
@@ -1370,6 +1404,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onPrimaryDown={() => runVerb("primary", true)}
             onPrimaryUp={() => runtime.releaseCharge()}
             onAlternate={() => runVerb("alternate")}
+            tend={tend?.label}
+            onTend={() => runtime.tend()}
           />
           <div className="world-status">
             <div className="hud-top">
@@ -1383,9 +1419,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 heading?.focus({ preventScroll: true });
               });
             }} space={p.pos.space} home={runtime.engine.state.households?.find((h) => h.members.includes(p.id))?.residence} events={obs.events} omit={[view.notice, runtime.engine.lastChoice?.line]} />
-            {(view.notice || view.running) && (
-              <div className="world-notice" data-walking={view.running || undefined} role="status">
-                {view.running ? <><Footprints size={13} /><span>Walking…</span><button onClick={() => runtime.stop()}><Pause size={11} /> Stop</button></> : view.notice}
+            {(runtime.workInProgress || view.notice || view.running) && (
+              <div className="world-notice" data-walking={view.running && !runtime.workInProgress || undefined} role="status">
+                {runtime.workInProgress ? "Working…" : view.running ? <><Footprints size={13} /><span>Walking…</span><button onClick={() => runtime.stop()}><Pause size={11} /> Stop</button></> : view.notice}
               </div>
             )}
             {borderHint && <div className="world-notice border-hint" role="status" aria-label="Map travel">{borderHint}</div>}
@@ -1523,9 +1559,15 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   />
                 )}
                 {p.heldItem === "bow"
-                  ? <span>Right mouse · Aim and shoot · {p.inventory.arrow ?? 0} arrows</span>
+                  ? <span>Click · Shoot, hold to draw harder · {p.inventory.arrow ?? 0} arrows</span>
                   : p.heldItem === "sling"
-                  ? <span>Right mouse · Whirl and let fly · {runtime.engine.ammo() ? "stones ready" : "no stones"}</span>
+                  ? <span>Click · Hold to whirl, release to let fly · {runtime.engine.ammo() ? "stones ready" : "no stones"}</span>
+                  : p.heldItem === "hawk"
+                  ? <span>Click · Cast off the hawk at a bird or a hare</span>
+                  : p.heldItem && launchers[p.heldItem]
+                  ? <span>Click · Shoot · {p.inventory[launchers[p.heldItem].ammo] ?? 0} {runtime.engine.items[launchers[p.heldItem].ammo].name.toLowerCase()}</span>
+                  : p.heldItem === "throwing-stick" || p.heldItem === "harpoon"
+                  ? <span>Click · Throw, hold to aim</span>
                   : (p.held || p.heldItem) && <span className="prompt-note"><kbd>X</kbd> Throw, hold to aim</span>}
                 {trader && (
                   <KeyPrompt
@@ -1539,6 +1581,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       setModal("shop");
                     }}
                   />
+                )}
+                {tend ? (
+                  <KeyPrompt key={tend.label} code="KeyB" letter="B" label={tend.label} kind={baby!.mood === "crying" ? "tend-urgent" : "tend"}
+                    onClick={() => runtime.tend()} />
+                ) : baby && (
+                  <span className="prompt-note" data-testid="baby-note">
+                    {baby.with === "player"
+                      ? `${baby.name} is ${baby.mood === "asleep" ? "asleep" : "awake and watching"}`
+                      : `${baby.name} is with ${runtime.engine.state.actors.find((a) => a.id === baby.with)?.name.split(" ")[0] ?? "someone"}`}
+                  </span>
                 )}
                 {verbs.alternate && (
                   <KeyPrompt
@@ -3041,6 +3093,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           runtime.engine.snapshot(),
                         )
                       }
+                      disabled={runtime.workInProgress}
                     >
                       <Download size={16} /> Export world
                     </button>

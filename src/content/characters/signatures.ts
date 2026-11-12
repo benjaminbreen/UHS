@@ -307,4 +307,36 @@ export const citySignatures: readonly CitySignature[] = [
     },
     evidence: "The Lower East Side's needle trades made most of America's ready-made clothing; the 1911 Triangle fire killed 146 garment workers.",
   },
+  // Peoples of the bow: places where hunting and archery were a large part of
+  // ordinary life, not a sideline of farming villages.
+  {
+    id: "siberia-hunters",
+    scope: { years: [-3000, 1900], bounds: [60, 50, -170, 78] },
+    boost: { hunter: 3 },
+    evidence: "Wild reindeer were speared and shot at river crossings across the Taimyr and Yamal into the twentieth century, and Russian rule from the 1600s was paid for in sable taken by native hunters as fur tribute (yasak).",
+  },
+  {
+    id: "steppe-archers",
+    scope: { years: [-1000, 1850], cultures: ["inner-eurasian"] },
+    boost: { hunter: 2.5, warrior: 2 },
+    evidence: "Steppe boys rode and shot from childhood; Carpini (1246) says Mongol men did little but hunt and practise archery, and the winter ring hunt (nerge) was both food and army drill.",
+  },
+  {
+    id: "americas-bow-hunters",
+    scope: { years: [500, 1880], cultures: ["other-indigenous-american"] },
+    boost: { hunter: 2 },
+    evidence: "Once the bow replaced the spear-thrower, deer, bison and small game supplied much of the protein even in maize-farming societies such as the Mississippian towns.",
+  },
+  {
+    id: "english-longbow",
+    scope: { years: [1250, 1550], bounds: [-5.8, 49.9, 1.8, 55.8] },
+    boost: { warrior: 2 },
+    evidence: "The Assize of Arms of 1252 required yeomen to keep a bow, and Edward III's order of 1363 made archery practice compulsory on holidays; English and Welsh archers made up most of the armies of Crécy and Agincourt.",
+  },
+  {
+    id: "japan-bushi",
+    scope: { years: [900, 1600], bounds: [128, 30, 146, 46] },
+    boost: { warrior: 2 },
+    evidence: "The early samurai fought as mounted archers; the warrior's way was called kyūba no michi, the way of horse and bow, and the yumi stayed a samurai weapon after the spear rose in the 1400s.",
+  },
 ];

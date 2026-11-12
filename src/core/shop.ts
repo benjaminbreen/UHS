@@ -45,7 +45,10 @@ export function sellsTrade(pack: Pack, actor: Actor) {
   const kit = livelihoodOf(pack, actor);
   // Farmers and herders sell at market, not from the field; a porter dressed as a tailor is still a porter.
   if (!goodsOf(kit, pack.setting?.economyRevision).some((g) => g !== "grain" && (g !== "meat" || kit!.id === "butcher"))) return false;
-  return (actor.origin?.roleLabel ?? kit!.label).toLowerCase() === actor.role.toLowerCase();
+  const label = (actor.origin?.roleLabel ?? kit!.label).toLowerCase(), role = actor.role.toLowerCase();
+  // "Potter" and "village potter" are one trade; "porter" and "potter" are not.
+  const words = (s: string) => s.split(/[^a-z]+/).filter((w) => w.length > 3);
+  return label === role || label.includes(role) || role.includes(label) || words(label).some((w) => words(role).includes(w));
 }
 export function keepsShop(pack: Pack, actor: Actor) {
   if (!sellsTrade(pack, actor)) return false;

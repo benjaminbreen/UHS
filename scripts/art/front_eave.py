@@ -125,6 +125,12 @@ class EaveHouse:
         self.W = s['W']
         self.base = 30 + self.rise + 26 + sum(self.heights)
         self.c = C(self.x0 + self.W + 40, self.base + 6)
+        # Settled here, not while painting, so the bake can put the walkable
+        # entrance under the door.
+        n = max(2, self.W // 44)
+        self.cols = [self.x0 + round(self.W * (k + 0.5) / n) for k in range(n)]
+        self.door_col = n // 2 if n % 2 else n // 2 - (1 if s['seed'] % 2 else 0)
+        self.door_x = self.cols[self.door_col]
 
     # ---------------------------------------------------------------- walls
 
@@ -205,9 +211,7 @@ class EaveHouse:
         c, s = self.c, self.s
         x0, W = self.x0, self.W
         frame, infill = s['windows']
-        n = max(2, W // 44)
-        cols = [x0 + round(W * (k + 0.5) / n) for k in range(n)]
-        door_col = n // 2 if n % 2 else n // 2 - (1 if self.s['seed'] % 2 else 0)
+        cols, door_col, n = self.cols, self.door_col, len(self.cols)
         dw, dh = (22, 44) if s['door'] != 'panel' else (22, 44)
         self.door_h = dh
         self.sills = []
@@ -244,8 +248,6 @@ class EaveHouse:
             top, h, _ = self.floors[0]
             self.shop_counter(cols[k], top + 10, max(26, self.W // len(cols) - 12), h - 22)
         cx = cols[door_col]
-        self.door_x = cx
-        self.cols, self.door_col = cols, door_col
         if skip and skip[0] - 14 <= cx <= skip[1] + 14:
             return
         dx, dy = cx - dw // 2, self.base - dh

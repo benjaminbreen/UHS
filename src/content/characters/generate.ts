@@ -1,6 +1,7 @@
 import { inventedName } from "./invented-name";
 import { random } from "../../core/random";
-import { huntWeapon, weaponHand } from "../economy/hunting";
+import { hawkingChance, huntKit, huntWeapon, keepsTraps } from "../economy/hunting";
+import { faunaAt } from "../fauna";
 import {
   bodyFromPhysique,
   generateAppearance,
@@ -527,11 +528,20 @@ export function generateCharacter(
   const inventory: Inventory = eligibleInventory(livelihood.inventory, context);
   // The old mining kit used obsidian as a stand-in for every mineral.
   if (s.worksiteRevision && livelihood.activity === "Working underground") delete inventory.obsidian;
-  if (livelihood.activity === "Looking for game")
-    Object.assign(inventory, weaponHand[huntWeapon(s, random(seed, id, "weapon"))] === "spear" ? { spear: 1 } : { bow: 1, arrow: 12 });
+  const hunter = livelihood.activity === "Looking for game";
+  if (hunter) {
+    Object.assign(inventory, huntKit(huntWeapon(s, random(seed, id, "weapon")), s.year));
+    if (keepsTraps(s, random(seed, id, "traps"), livelihood.label)) inventory.snare = 3;
+    // Dogs went hunting nearly everywhere there were dogs.
+    if (faunaAt(s).some((f) => f.id === "dog") && random(seed, id, "hound") < 0.5) inventory.hound = 1;
+  }
   else if (/hunter|archer|bowman/i.test(livelihood.label)) Object.assign(inventory, { bow: 1, arrow: 12 });
+  // Steppe herders rode armed with the bow against wolves and raiders.
+  else if (/herd/i.test(livelihood.label) && sex !== "female" && s.culture === "inner-eurasian" && s.year >= -1000 && s.year < 1850) Object.assign(inventory, { bow: 1, arrow: 12 });
   else if (/shepherd|herd|slinger/i.test(livelihood.label)) Object.assign(inventory, { sling: 1, pebble: 8 });
   if (accessory) inventory[accessory] = 1;
+  if (accessory === "bow") inventory.arrow = Math.max(inventory.arrow ?? 0, 12);
+  if (random(seed, id, "hawk") < hawkingChance(s, hunter, livelihood.rank === "elite")) inventory.hawk = 1;
   return {
     ...(accessory && { heldItem: accessory }),
     name: explicitName || naming.display,

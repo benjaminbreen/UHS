@@ -119,12 +119,10 @@ recording that replays exactly (`npm run replay`).
 ## Agents
 
 A model can live in any setting the game supports, through the same rules a
-player has. `npm run agent:serve` is an MCP server for an agent such as Claude
-Code to wander as long as it likes; `npm run agent:run` lets the game drive a
-model itself (Anthropic, or any OpenAI-compatible endpoint, local models
-included), once or many times, with an optional briefing. Each run leaves a
-folder with its manifest, every call and reply, and a readable chronicle. See
-[docs/AGENTS.md](docs/AGENTS.md).
+player has. Use `npm run agent:play` for an offline terminal playtest or to pipe
+in a sequence of commands. Use `npm run --silent agent:serve` to connect an MCP
+client, or `npm run agent:run` to have the game drive a model directly. Each run
+leaves a replayable record with every tool call and reply. See [docs/AGENTS.md](docs/AGENTS.md).
 
 ## Classroom mode
 
@@ -149,6 +147,9 @@ npm test              # fast routine suite
 npm run test:full     # optional world/scenario matrices and exhaustive checks
 npm run test:browser  # browser interactions, including mobile WebKit
 ```
+
+Run `npm run test:quick -- tests/characters.test.ts` for a focused, cached run.
+Use `npm run test:watch -- tests/characters.test.ts` to rerun it on edits.
 
 ## License
 

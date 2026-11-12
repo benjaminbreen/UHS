@@ -202,7 +202,34 @@ const HARD: HitClass[] = ["rock", "stone", "metal"];
 const LEAFY: HitClass[] = ["brush", "grass", "crop", "fiber"];
 const CONTACT = 0.035;
 
-export function projectileRelease(kind: "arrow" | "spear" | "stone"): Sound {
+export function projectileRelease(kind: "arrow" | "spear" | "stone" | "crossbow" | "musket" | "rifle" | "blowgun"): Sound {
+  // The trigger's clack, the heavy prod slamming forward.
+  if (kind === "crossbow")
+    return [
+      noise(0, 0.025, 0.22, 2800, { q: 1 }),
+      tone(0, 0.09, 0.2, vary(140), { to: 85, wave: "triangle" }),
+      tone(0.005, 0.1, 0.12, vary(420), { to: 260, wave: "triangle" }),
+    ];
+  // Black powder: a deep boom with a rough crackle on its front.
+  if (kind === "musket")
+    return [
+      noise(0, 0.06, 0.3, 3000, { q: 0.7 }),
+      noise(0, 0.45, 0.5, 900, { to: 240, filter: "lowpass", attack: 0.003 }),
+      tone(0, 0.3, 0.4, vary(70), { to: 38 }),
+    ];
+  // Smokeless powder: a sharp crack, less body.
+  if (kind === "rifle")
+    return [
+      noise(0, 0.08, 0.45, 2400, { q: 0.7 }),
+      noise(0, 0.22, 0.3, 700, { to: 260, filter: "lowpass", attack: 0.002 }),
+      tone(0, 0.15, 0.25, vary(95), { to: 50 }),
+    ];
+  // Hardly a sound at all: a short puff of breath.
+  if (kind === "blowgun")
+    return [
+      noise(0, 0.07, 0.12, 1100, { to: 500, filter: "lowpass", attack: 0.01 }),
+      noise(0.01, 0.04, 0.04, 3600, { q: 1.2 }),
+    ];
   // The cord snapping straight, then the stone's whine going away.
   if (kind === "stone")
     return [
@@ -211,6 +238,7 @@ export function projectileRelease(kind: "arrow" | "spear" | "stone"): Sound {
     ];
   return kind === "arrow"
     ? [
+        noise(0, 0.018, 0.16, 2600, { q: 0.8 }),
         tone(0, 0.13, 0.28, vary(310), { to: 175, wave: "triangle" }),
         noise(0.012, 0.11, 0.12, 3500, { to: 1400, q: 2 }),
       ]
@@ -220,7 +248,13 @@ export function projectileRelease(kind: "arrow" | "spear" | "stone"): Sound {
       ];
 }
 
-export function projectileImpact(kind: "arrow" | "spear", hit: HitClass): Sound {
+/** The small brass bells on a hawk's legs, which tell the falconer where it is. */
+export function hawkBells(): Sound {
+  return [...ring(0, 2600, 0.3, 0.05), ...ring(0.09, 2950, 0.25, 0.04), ...ring(0.2, 2600, 0.2, 0.03)];
+}
+
+export function projectileImpact(kind: "arrow" | "spear" | "ball", hit: HitClass): Sound {
+  if (kind === "ball") return [noise(0, 0.03, 0.14, 1600, { q: 1.5 }), ...body(hit, 0.4)];
   const weight = kind === "spear" ? 0.9 : 0.5;
   return [
     ...body(hit, weight),
@@ -229,6 +263,15 @@ export function projectileImpact(kind: "arrow" | "spear", hit: HitClass): Sound 
     ...(hit === "soil" || hit === "grass" || hit === "sand"
       ? [noise(0.025, 0.13, kind === "spear" ? 0.12 : 0.07, 700,
           { to: 330, filter: "lowpass" as const })]
+      : []),
+    // An arrow that sticks: a dull thunk, then the shaft shivering, two close
+    // pitches beating at about the rate the drawn tail wags.
+    ...(kind === "arrow" && hit !== "creature" && hit !== "water" && !HARD.includes(hit)
+      ? [
+          tone(0, 0.07, 0.2, vary(170), { to: 95, wave: "triangle" }),
+          tone(0.03, 0.26, 0.035, 250, { wave: "triangle" }),
+          tone(0.03, 0.26, 0.035, 262, { wave: "triangle" }),
+        ]
       : []),
   ];
 }
@@ -870,6 +913,46 @@ export function bumpPerson(kind: VoiceKind, annoyed = false): Sound {
     }),
   ];
 }
+/** A baby's voice: small, high and soft. The cry is kept round and quiet, as
+ * it repeats every few seconds for as long as the player leaves it. */
+export const baby = {
+  coo: (): Sound => {
+    const f = vary(560, 0.08);
+    return [
+      tone(0, 0.16, 0.035, f, { to: f * 1.18, attack: 0.03 }),
+      tone(0.2, 0.22, 0.03, f * 1.12, { to: f * 0.95, attack: 0.04 }),
+    ];
+  },
+  laugh: (): Sound =>
+    Array.from({ length: 4 }, (_, i) => {
+      const f = vary(640 + i * 45, 0.05);
+      return tone(i * 0.11, 0.08, 0.04, f, { to: f * 1.2, wave: "triangle", attack: 0.008 });
+    }),
+  fuss: (): Sound =>
+    Array.from({ length: Math.round(rand(2, 3)) }, (_, i) => {
+      const f = vary(590, 0.06);
+      return tone(i * 0.21, 0.15, 0.035, f, { to: f * 0.84, wave: "triangle", attack: 0.02 });
+    }),
+  cry: (): Sound => {
+    const f = vary(520, 0.06);
+    return [
+      tone(0, 0.5, 0.045, f * 0.9, { to: f * 1.08, wave: "triangle", attack: 0.07 }),
+      tone(0.05, 0.42, 0.012, f * 2, { to: f * 2.1, attack: 0.08 }),
+      tone(0.5, 0.3, 0.035, f * 1.05, { to: f * 0.7, wave: "triangle", attack: 0.01 }),
+      noise(0.86, 0.12, 0.012, 1800, { q: 0.7, attack: 0.04 }),
+    ];
+  },
+  sigh: (): Sound => [tone(0, 0.4, 0.025, 500, { to: 380, attack: 0.08 })],
+};
+/** One hummed note of a lullaby, a fifth under it once the baby is nearly gone. */
+export function hum(freq: number, deep = false): Sound {
+  return [
+    tone(0, 1.5, 0.07, freq, { wave: "triangle", attack: 0.12 }),
+    tone(0, 1.2, 0.03, freq * 2, { attack: 0.15 }),
+    ...(deep ? [tone(0, 1.9, 0.045, freq * (2 / 3), { attack: 0.25 })] : []),
+  ];
+}
+
 /** Broad shapes of animal. Species matter less than size and whether it flies. */
 /** A dog close by: two or three sharp barks. */
 export function bark(): Sound {
@@ -947,6 +1030,7 @@ export function cockCrow(near = 1): Sound {
   ];
 }
 export const catalog: { name: string; detail: string; make: () => Sound }[] = [
+  ...(["coo", "laugh", "fuss", "cry", "sigh"] as const).map((k) => ({ name: `Baby: ${k}`, detail: "The carried baby", make: baby[k] })),
   ...(
     [
       ["bare", "grass"],

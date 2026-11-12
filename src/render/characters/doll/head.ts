@@ -165,7 +165,10 @@ export function hairBehind(h: Head) {
     shade: 0.3,
     light: 0.25,
     bottom: true,
-    tone: hair === "braid" ? (x, y, t) => ((x + y) % 2 ? Math.min(t, 2) : t) : undefined,
+    tone: hair === "braid" ? (x, y, t) => ((x + y) % 2 ? Math.min(t, 2) : t)
+      // Seen from behind, the strands on the skull run on down the fall.
+      : h.refined && (h.view === "back" || h.view === "bq") ? (x, _y, t) => (t === 3 && [4, 7, 9].includes(x - h.x0) ? 2 : t)
+      : undefined,
   });
   if (hair === "braid") {
     const tie = m();
@@ -486,6 +489,8 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
       const c = x - h.x0,
         r = y - h.y0;
       if (t === 3 && (view === "back" || view === "bq") && r >= 3 && r < back - 1 && (c === 4 || c === 9)) return 2;
+      // A sheen across the crown.
+      if (h.refined && t === 3 && (view === "back" || view === "bq") && r === 2 && c >= 5 && c <= 8) return 4;
       return t;
     },
   });

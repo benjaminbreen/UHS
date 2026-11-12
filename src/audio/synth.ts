@@ -78,6 +78,8 @@ export function synthesize(
               voice === "clarinet" ||
               voice === "choir" ||
               voice === "singer" ||
+              voice === "cello" ||
+              voice === "duduk" ||
               voice === "sho" ||
               voice === "throat" ||
               voice === "whistle" ||
@@ -101,7 +103,9 @@ export function synthesize(
     voice === "guitar" ||
     voice === "eguitar" ||
     voice === "fuzz" ||
-    voice === "tanbur"
+    voice === "tanbur" ||
+    voice === "kora" ||
+    voice === "koto"
   ) {
     const [brightness, decay, nasal] = {
       pluck: [0.45, 1.4, 0.15],
@@ -115,6 +119,9 @@ export function synthesize(
       eguitar: [0.5, 1.6, 0.6],
       fuzz: [0.8, 0.8, 0.3],
       tanbur: [0.75, 1, 0.2],
+      kora: [0.6, 1.5, 0.08],
+      // Plectra near the bridge of a long silk string: sharp, hollow, quick to thin.
+      koto: [0.95, 2, 0.5],
     }[voice];
     pluckString(
       data,
@@ -490,6 +497,40 @@ export function synthesize(
             harmonic ** 0.3;
         }
       sample = sample * 0.09 + breath * 0.01;
+    } else if (voice === "cello" || voice === "duduk") {
+      // Vibrato as a real pitch swing (cents), arriving after the note has settled.
+      const [cents, hz, wait] = voice === "cello" ? [16, 5.6, 0.22] : [11, 4.6, 0.35];
+      const vibrato =
+        ((frequency * (2 ** (cents / 1200) - 1)) / hz) *
+        Math.sin(2 * Math.PI * hz * t) *
+        Math.min(1, Math.max(0, t - wait) * 2.5);
+      for (let harmonic = 1; harmonic <= 14; harmonic++) {
+        const f = frequency * harmonic;
+        if (f > rate * 0.45) break;
+        const level =
+          voice === "cello"
+            ? // Bowed string through a wooden body: air and plate resonances.
+              (0.3 +
+                1 / (1 + ((f - 270) / 110) ** 2) +
+                0.7 / (1 + ((f - 580) / 200) ** 2) +
+                0.3 / (1 + ((f - 1500) / 450) ** 2)) /
+              harmonic
+            : // Apricot-wood pipe, wide reed: odd harmonics, soft top, a lot of air.
+              ((harmonic % 2 ? 1 : 0.16) * (0.4 + 1 / (1 + ((f - 800) / 500) ** 2))) /
+              harmonic ** 1.5;
+        sample += level * Math.sin(harmonic * (phase + vibrato));
+      }
+      sample =
+        voice === "cello"
+          ? sample * 0.26 + breath * 0.012 * (1 + 3 * Math.exp(-t * 18))
+          : sample * 0.42 + breath * 0.04;
+    } else if (voice === "celesta") {
+      // Felt hammer on a steel plate over a wooden resonator: round, with a small tink.
+      sample =
+        0.55 * Math.sin(phase) * Math.exp(-t * 2.4) +
+        0.1 * Math.sin(phase * 2) * Math.exp(-t * 5) +
+        0.07 * Math.sin(phase * 5.4) * Math.exp(-t * 22) +
+        random() * 0.04 * Math.exp(-t * 250);
     } else if (voice === "crack") {
       // A heated bone splitting: a hard snap with a small, high ring.
       sample =
@@ -737,6 +778,8 @@ export function scheduleNote(
     note.voice === "clarinet" ||
     note.voice === "choir" ||
     note.voice === "singer" ||
+    note.voice === "cello" ||
+    note.voice === "duduk" ||
     note.voice === "theremin" ||
     note.voice === "organ" ||
     note.voice === "pad" ||
@@ -760,7 +803,8 @@ export function scheduleNote(
       : note.voice === "strings" ||
           note.voice === "drone" ||
           note.voice === "choir" ||
-          note.voice === "singer"
+          note.voice === "singer" ||
+          note.voice === "duduk"
         ? 0.16
         : sustained
           ? 0.055
@@ -791,6 +835,9 @@ export function scheduleNote(
         note.voice === "uke" ||
         note.voice === "guitar" ||
         note.voice === "agogo" ||
+        note.voice === "celesta" ||
+        note.voice === "kora" ||
+        note.voice === "koto" ||
         note.voice === "udu"
       ? 0.65
       : note.voice === "gong" ||

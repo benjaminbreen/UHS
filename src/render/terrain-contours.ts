@@ -9,7 +9,7 @@ import type Phaser from "phaser";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import type { TerrainRegion } from "./terrain-region";
 import type { GroundTileData } from "./habitat-raster";
-import type { WaterTileData } from "./water-raster";
+import { isCanal, type WaterTileData } from "./water-raster";
 import { paintedGround } from "./material-edges";
 import { contourSurfaces } from "./contour-surfaces";
 import {
@@ -412,8 +412,11 @@ export function wallOwnsCell(sample: TopographySample, x: number, y: number) {
   // Raised water still needs a height change nearby: away from one the wall
   // pass paints nothing, and claiming the cell only suppressed its water tile.
   const raisedWater = !!c && c.surface === "water" && c.height > 0;
+  // A canal is drawn by neither this pass nor the living water: claiming it
+  // left a flat blank cell wherever a channel ran beside a step.
   if (
     !c ||
+    isCanal(c) ||
     (!raisedWater && (!paintedGround(c) || c.feature === "paving" || c.field))
   )
     return false;

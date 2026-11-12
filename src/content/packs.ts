@@ -81,6 +81,15 @@ export const items: Record<
   scales: { id: "scales", name: "Hand scales", description: "A beam and two pans on cords, with a set of weights, for coin, gold dust, spice or medicine.", sprite: "scales", value: 8, hand: {} },
   briefcase: { id: "briefcase", name: "Briefcase", description: "A flat leather case with a handle for papers: deeds, ledgers, contracts, drawings.", sprite: "briefcase", value: 6, hand: {} },
   "doctor-bag": { id: "doctor-bag", name: "Doctor's bag", description: "A hinged leather bag that opens wide on a metal frame, holding instruments, dressings and medicines.", sprite: "doctor-bag", value: 10, hand: {} },
+  "throwing-stick": { id: "throwing-stick", name: "Throwing stick", description: "A flat, bent club of hardwood thrown spinning low over the ground at birds and small game. Australian hunting sticks, the Hopi rabbit stick and Egyptian fowling sticks were made not to come back.", sprite: "throwing-stick", value: 3, hand: {} },
+  blowgun: { id: "blowgun", name: "Blowgun", description: "A long tube of cane or bored wood. A puff of breath sends a light dart, tipped with curare or another plant poison, into a monkey or a bird high in the trees.", sprite: "blowgun", value: 6, hand: {} },
+  dart: { id: "dart", name: "Poison dart", description: "A palm-spine dart with a wad of kapok to seal the tube, its tip dipped in poison. The animal runs on for a while before it falls.", sprite: "dart", value: 1 },
+  bolt: { id: "bolt", name: "Crossbow bolt", description: "A short, heavy arrow with an iron head, also called a quarrel.", sprite: "bolt", value: 1 },
+  shot: { id: "shot", name: "Shot and powder", description: "Lead balls and a horn of black powder: one charge for each shot from a muzzle-loading gun.", sprite: "shot", value: 1 },
+  cartridge: { id: "cartridge", name: "Cartridge", description: "A brass case holding powder, primer and bullet together, loaded from the breech.", sprite: "cartridge", value: 1 },
+  snare: { id: "snare", name: "Snare", description: "A running noose of cord or wire on a peg, set where a hare or a bird runs. Set it, leave it overnight, and come back to see what it has caught.", sprite: "snare", value: 1, hand: {} },
+  hound: { id: "hound", name: "Hunting dog", description: "A dog that goes out with you: it runs down hares and birds and holds a deer or a boar at bay until you come up. Dogs hunted with people for at least fifteen thousand years.", sprite: "hound", value: 20 },
+  hawk: { id: "hawk", name: "Hawk", description: "A trained hawk or falcon carried hooded on a gloved fist and cast off at birds and hares. It comes back to the fist for meat.", sprite: "hawk", value: 40, hand: {} },
   sling: { id: "sling", name: "Sling", description: "Two cords and a pouch; whirled overhead, it hurls a stone hard enough to kill.", sprite: "sling", value: 3, hand: {} },
 };
 export const packs: Record<string, Pack> = resolvePlayablePacks();

@@ -49,6 +49,8 @@ const singles: Record<Trait, [low: string, high: string]> = {
   agreeableness: ["blunt", "kind"],
   neuroticism: ["unflappable", "anxious"],
 };
+/** Outgoing and careless at once: about one person in seven. */
+export const isPlayful = (stats: Stats) => stats.extraversion - stats.conscientiousness >= 26;
 const HIGH = 62;
 const LOW = 38;
 

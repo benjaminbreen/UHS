@@ -7,6 +7,7 @@ import type { ResidenceCustom } from "../../content/households/residence";
 import type { PluralMarriage } from "../../content/households/plural-marriage";
 import type { HouseholdBondage } from "../../content/households/bondage";
 import type { NursingCustom } from "../../content/households/nursing";
+import type { MarriageAge } from "../../content/households/marriage-age";
 
 /** Someone the story leaves living in the house. */
 export type Resident = {
@@ -51,6 +52,8 @@ export function householdStory(o: {
   plural?: Pick<PluralMarriage, "share" | "minMeans" | "word">;
   bondage?: Pick<HouseholdBondage, "minMeans" | "share" | "servants" | "ages" | "girls" | "word">;
   nursing?: Pick<NursingCustom, "mode" | "minMeans" | "odds">;
+  /** When people marry here; absent keeps the older one-size rule. */
+  marriage?: Pick<MarriageAge, "women" | "men" | "never">;
   player: boolean;
   modern: boolean;
   revised?: boolean;
@@ -75,6 +78,13 @@ export function householdStory(o: {
     babies = 0,
     children = 0,
     heirKept = false;
+  // A birth every two or three years while the couple can have one; far fewer
+  // once families were planned.
+  const fertility = Y >= 1950 ? 0.3 : Y >= 1900 ? 0.5 : 0.85;
+  // Of the children who would die young, about half were gone within the first year.
+  const lost = (age: number) => (o.modern ? 0.03 : 0.3) * (1 - Math.exp(-(age + 0.5) / 1.5));
+  const wm = o.marriage;
+  const weds = (sex?: Sex) => (!wm ? 19 : sex === "female" ? wm.women : wm.men);
   const rule = o.residence?.rule;
   /** Whether a grown child of this sex stays at home when they marry. */
   const keeps = (sex: Sex) => rule === "patrilocal" ? sex === "male" : rule === "matrilocal" ? sex === "female" : undefined;
@@ -89,13 +99,20 @@ export function householdStory(o: {
         fromHead: "co-resident",
         age: 18 + Math.floor(r("lodger", i) * 30),
       });
-  } else if (o.revised
+  } else if (wm
+    ? r("union") < clamp((a - (weds(o.sex) - 3)) / 5, 0, 1 - wm.never) * (o.apprentice ? 0.45 : 1)
+    : o.revised
     ? r("union") < clamp((a - 17) / 18, 0.15, 0.82) * (o.apprentice ? 0.45 : 1)
     : o.player || r("wed") < (a < 25 ? 0.5 : 0.9)) {
-    unionYear = at(born + (o.revised
+    unionYear = at(born + (wm
+      ? Math.min(a, weds(o.sex) - 2 + Math.floor(r("wed-age") * 5))
+      : o.revised
       ? Math.min(a, 17 + Math.floor(r("wed-age") * 9))
       : 17 + Math.floor(r("wed-age") * 9)));
-    const older = (n: number) => o.revised
+    // Husbands are older by the gap between the two marriage ages, give or take.
+    const older = (n: number) => wm
+      ? (o.sex === "female" ? 1 : -1) * (wm.men - wm.women + n - 3)
+      : o.revised
       ? (r("gap-direction") < 0.5 ? n : -n)
       : (o.sex === "female" ? n : -n);
     const unions: {
@@ -137,7 +154,7 @@ export function householdStory(o: {
         as: partnerAs,
         toHead: "partner",
         fromHead: "partner",
-        age: Math.max(o.revised ? 18 : 16, living.partnerAge),
+        age: Math.max(wm ? Math.min(18, wm.women - 1) : o.revised ? 18 : 16, living.partnerAge),
         sex: other,
       });
     unions.forEach((u, ui) => {
@@ -149,12 +166,12 @@ export function householdStory(o: {
         t += 2 + Math.floor(r("space", ui, t) * 2)
       ) {
         if (mother - (Y - t) > 42) break;
-        if (younger - (Y - t) < 18) continue;
-        if (r("birth", ui, t) > 0.75) continue;
+        if (younger - (Y - t) < (wm ? Math.min(18, Math.max(15, wm.women - 1)) : 18)) continue;
+        if (r("birth", ui, t) > fertility) continue;
         const age = Y - t,
           sex: Sex = r("sex", ui, t) < 0.5 ? "female" : "male",
           as = offspring(sex);
-        if (r("lost", ui, t) < (o.modern ? 0.03 : 0.3)) {
+        if (r("lost", ui, t) < lost(age)) {
           history.push({
             year: at(t + r("lost-at", ui, t) * Math.min(8, age)),
             kind: "died",
@@ -170,7 +187,10 @@ export function householdStory(o: {
         }
         const k = keeps(sex);
         const leaving = k === undefined ? 1 : !k ? 1.8 : !o.residence!.heirOnly ? 0.25 : heirKept ? 1.2 : 0.15;
-        const grown = age >= 15 && r("left", ui, t) < clamp(((age - 14) / 8) * leaving);
+        // Where people marry young, daughters are gone at marriage; where they
+        // marry late, the young drift out to service and work over years.
+        const out = wm && weds(sex) <= 20 ? (age - (weds(sex) - 2)) / 4 : (age - 14) / 8;
+        const grown = age >= 15 && r("left", ui, t) < clamp(out * leaving);
         if (grown || children >= 4 || (o.small && age >= 12)) {
           history.push({
             year: at(t + 14 + r("left-at", ui, t) * Math.max(0, age - 14)),
@@ -214,15 +234,24 @@ export function householdStory(o: {
   if (o.residence) {
     for (const [i, m] of [...residents.entries()]) {
       const k = keeps(m.sex!);
-      if (m.fromHead !== "child" || m.age < 18 || k === false ||
-          r("married-in", i) >= o.residence.stay * clamp((m.age - 17) / 6)) continue;
+      const mm = weds(m.sex);
+      if (m.fromHead !== "child" || m.age < (wm ? Math.min(18, mm) : 18) || k === false ||
+          r("married-in", i) >= o.residence.stay * clamp(wm ? (m.age - (mm - 2)) / 4 : (m.age - 17) / 6)) continue;
       const sex: Sex = m.sex === "female" ? "male" : "female";
       const as = sex === "female" ? "daughter-in-law" : "son-in-law";
       residents.push({
         as, toHead: "parent-in-law", fromHead: "child-in-law", sex, spouseOf: i,
         age: Math.max(16, m.age + (sex === "male" ? 1 : -4) + Math.floor(r("in-law-age", i) * 5)),
       });
-      history.push({ year: at(Y - r("married-in-at", i) * Math.min(5, m.age - 17)), kind: "joined", as });
+      const wed = r("married-in-at", i) * (wm ? Math.max(1, Math.min(8, m.age - mm + 2)) : Math.min(5, m.age - 17));
+      history.push({ year: at(Y - wed), kind: "joined", as });
+      // The young couple's own children, the head's grandchildren.
+      for (let c = Math.floor(wed) - 1; c >= 0; c -= 2 + Math.floor(r("grand-space", i, c) * 2)) {
+        if (r("grand-birth", i, c) > fertility || r("grand-lost", i, c) < lost(c)) continue;
+        history.push({ year: Y - c, kind: "born", as: r("grand-sex", i, c) < 0.5 ? "granddaughter" : "grandson" });
+        infants++;
+        if (c < 2) babies++;
+      }
     }
   }
   const partnered = residents.find((m) => m.toHead === "partner");
@@ -375,6 +404,7 @@ export function householdStory(o: {
     residents: o.small ? residents.slice(0, 2) : residents,
     history,
     infants,
+    babies: nurse === "out" ? Math.max(0, babies - 1) : babies,
     nurse,
     fortune: clamp(fortune, 0.02),
     weatherFrom,

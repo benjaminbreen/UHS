@@ -237,11 +237,19 @@ def sacred():
     yield from studies()
 
 
+def families():
+    """Every look of the registered house families, at every street form."""
+    from art.front_family import subjects as registered
+    for name, im, h in registered():
+        yield name, im, h, None if h.all_shop else h.door_h, []
+
+
 def audit():
     faults = ramp_faults()
     n = 0
     from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), meso(), worksites(), sacred()):
+    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), meso(), worksites(), sacred(),
+                                             families()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1

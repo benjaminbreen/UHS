@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
-import { projectileImpact, projectileRelease, scrape, strike, work, type Sound } from "../audio/sfx";
+import { hawkBells, projectileImpact, projectileRelease, scrape, strike, work, type Sound } from "../audio/sfx";
 import type { Hit, HitClass, ToolClass } from "../core/reactions";
 import type { CreatureHit } from "../core/combat";
 import type { Point } from "../core/types";
@@ -8,6 +8,8 @@ import { spritePalette } from "./sprite-palette";
 import { LootEffects } from "./loot-effects";
 import { flushBirds } from "./ambient-life";
 import type { CharacterPose } from "./characters/poses";
+import { iconCarriedArt } from "./characters/props";
+import { drawGarmentIcon, garmentIconFor, itemIconFor, GARMENT_ICON } from "./garment-icons";
 
 /** The freeze on a blow that lands on scenery. */
 const HIT_STOP_MS = 55;
@@ -81,6 +83,8 @@ export type ThrowEffect = {
   /** An item from the hand rather than a prop. */
   small?: boolean;
   launchMs?: number;
+  /** What loosed it, when it was not a bow: crossbow, musket, rifle, blowgun, hawk. */
+  launcher?: string;
 };
 /** A pile shifting one cell, or refusing to. */
 export type ShoveEffect = {
@@ -146,18 +150,87 @@ const DEBRIS: Record<HitClass, number[]> = {
   creature: [0xe6d5c0, 0xc9b199],
   air: [0xffffff],
 };
-export function projectileArrowTexture(scene: Phaser.Scene) {
-  if (!scene.textures.exists("projectile-arrow")) {
+export function projectileArrowTexture(scene: Phaser.Scene, kind: "arrow" | "bolt" | "dart" = "arrow") {
+  const key = `projectile-${kind}`;
+  if (!scene.textures.exists(key)) {
     const ink = scene.make.graphics({ x: 0, y: 0 });
-    ink.fillStyle(0x392d22).fillRect(1, 2, 10, 2);
-    ink.fillStyle(0xb9955c).fillRect(2, 2, 9, 1);
-    ink.fillStyle(0xded9bd).fillRect(10, 1, 3, 3);
-    ink.fillStyle(0xeee9d4).fillRect(12, 2, 2, 1);
-    ink.fillStyle(0xb9a4a0).fillRect(0, 0, 2, 2).fillRect(0, 3, 2, 2);
-    ink.generateTexture("projectile-arrow", 14, 5);
+    if (kind === "bolt") {
+      // Short and heavy, with an iron head and stiff vanes.
+      ink.fillStyle(0x392d22).fillRect(1, 1, 8, 3);
+      ink.fillStyle(0x8a6038).fillRect(2, 2, 7, 1);
+      ink.fillStyle(0x8d949c).fillRect(8, 1, 3, 3);
+      ink.fillStyle(0xcfd4da).fillRect(10, 2, 1, 1);
+      ink.fillStyle(0x6a5a4a).fillRect(0, 0, 2, 1).fillRect(0, 4, 2, 1);
+      ink.generateTexture(key, 11, 5);
+    } else if (kind === "dart") {
+      // A needle with a kapok wad at the tail.
+      ink.fillStyle(0xa89868).fillRect(3, 1, 8, 1);
+      ink.fillStyle(0xf2eee2).fillRect(0, 0, 3, 3);
+      ink.fillStyle(0x4a6a2c).fillRect(10, 1, 1, 1);
+      ink.generateTexture(key, 11, 3);
+    } else {
+      ink.fillStyle(0x392d22).fillRect(1, 2, 10, 2);
+      ink.fillStyle(0xb9955c).fillRect(2, 2, 9, 1);
+      ink.fillStyle(0xded9bd).fillRect(10, 1, 3, 3);
+      ink.fillStyle(0xeee9d4).fillRect(12, 2, 2, 1);
+      ink.fillStyle(0xb9a4a0).fillRect(0, 0, 2, 2).fillRect(0, 3, 2, 2);
+      ink.generateTexture(key, 14, 5);
+    }
     ink.destroy();
   }
-  return "projectile-arrow";
+  return key;
+}
+export function projectileBallTexture(scene: Phaser.Scene) {
+  if (!scene.textures.exists("projectile-ball")) {
+    const ink = scene.make.graphics({ x: 0, y: 0 });
+    ink.fillStyle(0x2a2a30).fillRect(0, 0, 3, 2);
+    ink.fillStyle(0xd8dde0).fillRect(2, 0, 1, 1);
+    ink.generateTexture("projectile-ball", 3, 2);
+    ink.destroy();
+  }
+  return "projectile-ball";
+}
+/** A thrown item at the size it has in the hand, so it keeps the game's pixel. */
+function heldTexture(scene: Phaser.Scene, item: string) {
+  const key = `held-${item}`;
+  if (scene.textures.exists(key)) return key;
+  const icon = garmentIconFor(item) ?? itemIconFor(item);
+  const art = icon && iconCarriedArt(`icon:${item}`, (ctx) => drawGarmentIcon(ctx, icon, 0, 0), GARMENT_ICON);
+  if (!art) return undefined;
+  scene.textures.addCanvas(key, art.image);
+  return key;
+}
+/** A round puff of gun smoke, 3 to 9 pixels across. */
+function smokeTexture(scene: Phaser.Scene, step: number) {
+  const key = `gun-smoke-${step}`;
+  if (!scene.textures.exists(key)) {
+    const r = 1.5 + step, size = Math.ceil(r * 2);
+    const ink = scene.make.graphics({ x: 0, y: 0 });
+    for (let y = 0; y < size; y++)
+      for (let x = 0; x < size; x++) {
+        const d = Math.hypot(x + 0.5 - r, y + 0.5 - r);
+        if (d <= r) ink.fillStyle(d > r - 1 || y > r ? 0xcfcac0 : 0xeeeae2).fillRect(x, y, 1, 1);
+      }
+    ink.generateTexture(key, size, size);
+    ink.destroy();
+  }
+  return key;
+}
+/** A small hawk seen from above, wings up (0) or down (1), 11 by 7. */
+function hawkTexture(scene: Phaser.Scene, beat: 0 | 1) {
+  const key = `flying-hawk-${beat}`;
+  if (!scene.textures.exists(key)) {
+    const ink = scene.make.graphics({ x: 0, y: 0 });
+    ink.fillStyle(0x3a2a1e);
+    if (beat) ink.fillRect(0, 3, 4, 1).fillRect(7, 3, 4, 1).fillRect(1, 4, 2, 1).fillRect(8, 4, 2, 1);
+    else ink.fillRect(1, 0, 2, 1).fillRect(8, 0, 2, 1).fillRect(2, 1, 3, 2).fillRect(6, 1, 3, 2);
+    ink.fillStyle(0x7a5232).fillRect(4, 2, 3, 3).fillRect(5, 5, 1, 2);
+    ink.fillStyle(0xd8c8a0).fillRect(5, 3, 1, 2);
+    ink.fillStyle(0xe8b040).fillRect(5, 1, 1, 1);
+    ink.generateTexture(key, 11, 7);
+    ink.destroy();
+  }
+  return key;
 }
 /** Everything a tool throws off: chips, dust, the arc of the swing and the
  * tree going over. Sprites here are owned by this class, not by the scenery
@@ -194,6 +267,8 @@ export class ToolEffects {
       frame: (frame: string) => string | number;
       /** The scene draws the thrown object once it has landed. */
       redraw: () => void;
+      /** Where the player stands now, for a hawk coming back to the fist. */
+      playerCell?: () => { x: number; y: number };
     },
   ) {}
   /** Plays once per effect serial, on the frame of the pose where the tool
@@ -369,13 +444,17 @@ export class ToolEffects {
     });
   }
   private playThrow(effect: ThrowEffect) {
+    if (effect.launcher === "hawk") return this.playHawk(effect);
+    const gun = effect.launcher === "musket" || effect.launcher === "rifle";
     const from = this.point(effect.from),
       to = this.point(effect.to);
     const span = Math.max(
       Math.abs(effect.to.x - effect.from.x),
       Math.abs(effect.to.y - effect.from.y),
     );
-    const flight = effect.sling
+    const flight = gun
+      ? 40 + span * 8
+      : effect.sling || effect.launcher === "crossbow"
       ? Math.round(flightMs(span, true) * 0.75)
       : flightMs(span, effect.straight);
     const generation = this.generation;
@@ -383,7 +462,7 @@ export class ToolEffects {
       if (generation !== this.generation) return;
       void gameAudio()?.sound(
         effect.arrow || effect.straight
-          ? projectileImpact(effect.arrow ? "arrow" : "spear", effect.hit.hit)
+          ? projectileImpact(gun ? "ball" : effect.arrow ? "arrow" : "spear", effect.hit.hit)
           : effect.crumbles
             ? strike("thrown", "stone", "shatter", true)
             : strike("thrown", effect.hit.hit, effect.hit.kind, effect.hit.damaged),
@@ -407,21 +486,23 @@ export class ToolEffects {
       this.scene.time.delayedCall(flight, land);
       return;
     }
-    void gameAudio()?.sound(effect.arrow ? projectileRelease("arrow") :
+    if (gun) this.muzzle(from, to, effect.launcher === "musket");
+    void gameAudio()?.sound(effect.launcher ? projectileRelease(effect.launcher as "crossbow") : effect.arrow ? projectileRelease("arrow") :
       effect.sling ? projectileRelease("stone") :
       effect.straight ? projectileRelease("spear") : strike("haft", "air", "whoosh"), "throw");
+    const held = effect.small && !effect.arrow && !gun ? heldTexture(this.scene, frame) : undefined;
     const image = this.scene.add
       .image(
         from.x,
         from.y - 12,
-        effect.arrow ? projectileArrowTexture(this.scene) : this.view.texture(frame),
-        effect.arrow ? undefined : this.view.frame(frame),
+        gun ? projectileBallTexture(this.scene) : effect.arrow ? projectileArrowTexture(this.scene, frame === "bolt" || frame === "dart" ? frame : "arrow") : held ?? this.view.texture(frame),
+        effect.arrow || held ? undefined : this.view.frame(frame),
       )
       .setOrigin(0.5, 0.5)
       .setTint(this.view.tint())
       .setDepth(to.y + 4600);
     // A long thing is thrown at body scale, not at the height it stands in a yard.
-    if (effect.small && !effect.arrow) image.setScale(effect.sling ? 0.3 : 0.4);
+    if (!held && effect.small && !effect.arrow) image.setScale(effect.sling ? 0.3 : 0.4);
     else if (image.height > 24) image.setScale(24 / image.height);
     const shade = this.scene.add
       .ellipse(from.x, from.y - 1, 9, 4, 0x000000, 0.28)
@@ -464,7 +545,7 @@ export class ToolEffects {
             a.y + (ground.y - a.y) * t.v - 1).setScale(1 - rise / 60);
           if (!effect.straight) image.setRotation(spin * t.v);
           // A slung stone is too quick to see; what shows is the streak it leaves.
-          if (effect.sling && a === from && ++streak % 2) this.streak(image.x, image.y, image.depth);
+          if ((effect.sling || effect.arrow) && a === from && (gun || ++streak % 2)) this.streak(image.x, image.y, image.depth);
         },
         onComplete: done,
       });
@@ -479,6 +560,10 @@ export class ToolEffects {
     };
     leg(from, arrival, flight, effect.straight ? 5 : effect.sling ? 3 + span * 0.6 : 9 + span * 3, () => {
       land();
+      if (effect.arrow && !gun && effect.hit.hit !== "creature" && effect.hit.hit !== "water" && generation === this.generation) {
+        this.impact(to);
+        return this.quiver(image, heading, finish);
+      }
       const skip = effect.bounce && this.point(effect.bounce);
       if (!skip || generation !== this.generation) return finish();
       leg(to, skip, 170, 7, () => {
@@ -486,6 +571,98 @@ export class ToolEffects {
         finish();
       });
     }, to);
+  }
+  /** A gun going off: the flash at the muzzle, a cloud of white smoke that
+   * hangs and drifts, and the kick. Black powder made a lot of smoke. */
+  private muzzle(from: { x: number; y: number }, to: { x: number; y: number }, black: boolean) {
+    const a = Math.atan2(to.y - from.y, to.x - from.x);
+    const mx = from.x + Math.cos(a) * 12, my = from.y - 19 + Math.sin(a) * 6;
+    const flash = this.scene.add.graphics().setPosition(Math.round(mx), Math.round(my)).setDepth(from.y + 4700);
+    this.live.add(flash);
+    flash.fillStyle(0xfff4c8).fillRect(-2, -1, 4, 3).fillStyle(0xffb648).fillRect(2, 0, 3, 1).fillRect(-1, -3, 1, 2).fillRect(-1, 2, 1, 2);
+    this.scene.time.delayedCall(60, () => {
+      this.live.delete(flash);
+      flash.destroy();
+    });
+    for (let i = 0; i < (black ? 7 : 3); i++) {
+      const puff = this.scene.add.image(Math.round(mx + Math.cos(a) * i * 2), Math.round(my + Math.sin(a) * i), smokeTexture(this.scene, i % 2))
+        .setAlpha(0.85).setDepth(from.y + 4690);
+      this.live.add(puff);
+      const t = { v: 0 }, x0 = puff.x, y0 = puff.y;
+      const dx = Math.cos(a) * (6 + i * 2) + (i % 2 ? 3 : -3), dy = -6 - i * 2;
+      this.scene.tweens.add({
+        targets: t, v: 1,
+        duration: black ? 1400 + i * 120 : 600,
+        ease: "Quad.easeOut",
+        // The puff grows in whole steps, never by scaling its pixels.
+        onUpdate: () => {
+          puff.setTexture(smokeTexture(this.scene, Math.min(3, (i % 2) + Math.floor(t.v * 3))))
+            .setPosition(Math.round(x0 + dx * t.v), Math.round(y0 + dy * t.v)).setAlpha(0.85 * (1 - t.v));
+        },
+        onComplete: () => {
+          this.live.delete(puff);
+          puff.destroy();
+        },
+      });
+    }
+    this.scene.cameras.main.shake(black ? 120 : 80, black ? 0.004 : 0.0025);
+  }
+  /** The hawk off the fist: out low and fast, a stoop on the quarry, and back
+   * to the fist with or without it. */
+  private playHawk(effect: ThrowEffect) {
+    const from = this.point(effect.from), to = this.point(effect.to);
+    const generation = this.generation;
+    const hawk = this.scene.add.image(from.x, from.y - 14, hawkTexture(this.scene, 0))
+      .setOrigin(0.5, 0.5).setTint(this.view.tint()).setDepth(to.y + 4700);
+    const shade = this.scene.add.rectangle(from.x, from.y - 1, 5, 1, 0x000000, 0.22).setDepth(to.y * 16 + 5);
+    this.live.add(hawk).add(shade);
+    void gameAudio()?.sound(hawkBells(), "air");
+    const span = Math.hypot(effect.to.x - effect.from.x, effect.to.y - effect.from.y);
+    const fly = (a: { x: number; y: number }, b: { x: number; y: number }, ms: number, high: number, done: () => void) => {
+      const t = { v: 0 };
+      hawk.setFlipX(b.x < a.x);
+      this.scene.tweens.add({
+        targets: t, v: 1, duration: ms,
+        onUpdate: () => {
+          const x = a.x + (b.x - a.x) * t.v, y = a.y + (b.y - a.y) * t.v;
+          hawk.setPosition(Math.round(x), Math.round(y - 14 - Math.sin(Math.PI * t.v) * high));
+          hawk.setTexture(hawkTexture(this.scene, (Math.floor(this.scene.time.now / 120) % 2) as 0 | 1));
+          shade.setPosition(Math.round(x), Math.round(y - 1));
+        },
+        onComplete: done,
+      });
+    };
+    const home = () => {
+      this.live.delete(hawk);
+      this.live.delete(shade);
+      hawk.destroy();
+      shade.destroy();
+      this.landedThrow = effect.serial;
+      this.view.redraw();
+    };
+    fly(from, to, 200 + span * 60, 18, () => {
+      if (generation !== this.generation) return home();
+      if (effect.creature) {
+        void gameAudio()?.sound(strike("blunt", "creature", "flinch", true), "strike");
+        this.burst({ x: to.x, y: to.y - 4 }, [0xffffff, 0xe8e2d4, 0xcfc8b8], 6, 0.6);
+      }
+      this.scene.time.delayedCall(effect.creature ? 260 : 60, () => {
+        const back = this.point(this.view.playerCell?.() ?? effect.from);
+        fly(to, back, 240 + span * 50, 10, home);
+      });
+    });
+  }
+  /** The arrow stands where it struck and its tail shivers, pivoting on the head. */
+  private quiver(image: Phaser.GameObjects.Image, heading: number, done: () => void) {
+    image.setOrigin(0.85, 0.5).setPosition(image.x + Math.cos(heading) * 5, image.y + Math.sin(heading) * 5);
+    const t = { v: 0 };
+    this.scene.tweens.add({
+      targets: t,
+      v: 1,
+      duration: 360,
+      onUpdate: () => image.setRotation(heading + Math.sin(t.v * Math.PI * 8) * 0.28 * (1 - t.v)),
+      onComplete: done,
+    });
   }
   private streak(x: number, y: number, depth: number) {
     const dot = this.scene.add.rectangle(Math.round(x), Math.round(y), 2, 1, 0xf6efdc, 0.7).setDepth(depth - 1);

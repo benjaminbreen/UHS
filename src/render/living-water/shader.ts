@@ -90,7 +90,9 @@ void main(){
  if(ocean)wave=sin(depth*2.2+t*1.6-delay/17.+noise(p/64.)*.25);
  float cluster=noise((q+vec2(warp*.5,0.))/vec2(32.,16.))*.7+noise(q/vec2(8.,4.))*.3;
  float detail=noise((q+vec2(13.,57.))/vec2(16.,8.));
- float bed=noise(p/49.)*1.4+noise(p/19.)*.5;
+ // The small octave is read on a skewed grid: square to the tiles, its
+ // lattice showed as tile-sized blocks in the shallows.
+ float bed=noise(p/49.)*1.4+noise(vec2(p.x+p.y*.6,p.y-p.x*.6)/22.)*.5;
  float depthTone=clamp(depth*(kind>.5&&kind<1.5?.58:.95)+bed-.8,0.,6.8);
  depthTone+=polishParams.z*.95;
  float z=depthTone*.82+(a+b)*(ocean?.08:.18)+wave*(ocean?.2:.35)+(detail-.5)*(ocean?.18:.4);
@@ -100,7 +102,7 @@ void main(){
  float gradSteps=ocean?8.:2.;
  float k=clamp(floor(z+1.),0.,8.),f=floor(fract(max(0.,z+1.))*gradSteps)/gradSteps;
  vec3 color=mix(tone(k,row),tone(min(k+1.,8.),row),f);
- color=mix(color,tone(0.,row),caustic*mix(1.,.08,murkMix)*(1.+polishParams.z*.8));
+ color=mix(color,tone(max(k-3.,0.),row),caustic*mix(1.,.08,murkMix)*(1.+polishParams.z*.8));
  float fishGrid=polishParams.z>.5?40.:80.;
  vec2 fishCell=floor(p/fishGrid),fishLocal=mod(p,fishGrid);
  float fishSeed=hash(fishCell);
@@ -146,8 +148,11 @@ void main(){
    float swash=ocean?1.8:1.;
    if(depth<rim+.07*swash&&depth>rim-.06*swash&&broken>.2)color=mix(color,vec3(.96,1.,.92),polishParams.y*(.75+.2*lap));
    if(depth>.15&&depth<.65&&abs(depth-rim-.23)<.045&&broken>.48)color=mix(color,vec3(.92,1.,.94),polishParams.y*.45);
-   vec4 above=texture2D(iChannel2,(local+vec2(.5,-.5))/resolution);
-   if(delay>.5&&above.a>.6&&art.a<.4&&sin(t*2.+p.x*.6)>.0)color=mix(color,vec3(.95,1.,.94),polishParams.y*.8);
+   // The same lap breaks round whatever stands in the water. An object's
+   // drawn shadow marks its waterline, so leaves in the air get none.
+   float reach=lap>0.?2.:1.;
+   float touch=max(texture2D(iChannel2,(local+vec2(.5,.5-reach))/resolution).a,max(texture2D(iChannel2,(local+vec2(.5-reach,.5))/resolution).a,texture2D(iChannel2,(local+vec2(.5+reach,.5))/resolution).a));
+   if(art.a>.15&&art.a<.45&&touch>.6&&broken>.3)color=mix(color,vec3(.96,1.,.92),polishParams.y*(.75+.2*lap));
  }
  // Sparse, world-anchored reflective facets follow the same daylight phase as shadows.
  vec2 glitterCell=floor(p/vec2(13.,9.));vec2 g=mod(p,vec2(13.,9.));

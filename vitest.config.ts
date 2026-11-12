@@ -2,8 +2,10 @@ import { defineConfig } from "vitest/config";
 import { parseCLI } from "vitest/node";
 
 const { filter, options } = parseCLI(["vitest", ...process.argv.slice(2)]);
-// Explicit targets must exercise their integration cases too.
-const full = !!process.env.FULL || filter.length > 0 || !!options.testNamePattern;
+// Explicit targets include integration cases unless the quick suite was requested.
+const mode = process.env.FULL;
+const full = mode !== "0" && (!!mode || filter.length > 0 || !!options.testNamePattern);
+const poll = process.env.CHOKIDAR_USEPOLLING;
 
 // Long scenarios stay opt-in; mixed files gate their expensive cases with FULL.
 export const slow = [
@@ -16,6 +18,8 @@ export const slow = [
 ].map((name) => `tests/${name}.test.ts`);
 
 export default defineConfig({
+  // On macOS, Chokidar selects FSEvents before reading the polling variable.
+  server: poll === "1" || poll === "true" ? { watch: { usePolling: true } } : undefined,
   test: {
     include: ["tests/*.test.ts"],
     exclude: full ? [] : slow,

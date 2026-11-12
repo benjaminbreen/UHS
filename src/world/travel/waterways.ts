@@ -94,3 +94,20 @@ export function sharedCrossings(
   }
   return result;
 }
+
+type PlayableMap = NonNullable<WorldSetting["playableMap"]>;
+export type TravelWaterwayInputs = { source: WorldSetting; neighbors: WorldSetting[] };
+
+export function withTravelWaterways(map: PlayableMap, { source, neighbors }: TravelWaterwayInputs): PlayableMap {
+  return {
+    ...map,
+    exits: map.exits.map((exit, i) => {
+      const { to, seam, peer } = exit;
+      const a = seam ? edgeCrossings(source, map.id, map.size, seam) : [];
+      const b = peer ? edgeCrossings(neighbors[i], to, map.size, peer) : [];
+      const waterways = map.id < to ? sharedCrossings(a, b)
+        : sharedCrossings(b, a).map((p) => ({ ...p, flow: -p.flow }));
+      return { ...exit, waterways };
+    }),
+  };
+}

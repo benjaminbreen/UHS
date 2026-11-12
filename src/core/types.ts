@@ -66,6 +66,8 @@ export type Household = {
   fortune?: number;
   /** Children too small to be out in the street, counted rather than drawn. */
   infants?: number;
+  /** How many of those are under two: carried, and at the breast. */
+  babies?: number;
   /** A baby sent out of the house to a wet nurse. */
   nurse?: "out";
   familyPlans?: { kind: "seek-match"; subject: string }[];
@@ -253,7 +255,7 @@ export type Actor = {
   knownResources?: string[];
   task?: { target: string; until: number };
   /** Somewhere they have taken themselves off to, off their routine until `until`. */
-  errand?: { to: Position; label: string; until: number; pose?: "sit" | "sit-seat" | "idle" | "sway" | "work"; face?: Point };
+  errand?: { to: Position; label: string; until: number; /** An actor to walk to wherever they have got to. */ chase?: string; pose?: "sit" | "sit-seat" | "idle" | "sway" | "work"; face?: Point };
   id: string;
   name: string;
   role: string;
@@ -320,7 +322,7 @@ export type Actor = {
   guard?: { ward: string; since?: number; warned?: number };
   /** Keeping a town gate, or walking the streets by night. On shift they
    * stand at `at`, or go round `round`; off it they rest at `rest`. */
-  post?: { at: Point; rest: Point; night?: boolean; torch?: boolean; face?: number; round?: Point[]; leg?: number; called?: number };
+  post?: { at: Point; rest: Point; night?: boolean; torch?: boolean; face?: number; round?: Point[]; leg?: number; called?: number; arrive?: number };
   /** Terrified by someone breaking into their home: until when, which home,
    * whether they fight or cower, and when a blow last set them back. */
   terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" | "fright" };
@@ -490,9 +492,10 @@ export type WorldManifest = {
   schema: 1 | 2;
   simulation: 1 | 2;
   /** Absent in older saves and replays, which retain harmless impacts. */
-  hazards?: 1;
+  hazards?: 1 | 2;
   survival?: 1;
   disease?: 1;
+  watchRouting?: 1;
   generator: 1 | 2 | 3;
   content: 1 | 2;
   atlas: 1 | 2;
@@ -528,6 +531,8 @@ export type PlayerCommand =
       target?: Point;
     }
   | { type: "shoot"; target: Point; power?: number }
+  /** A monkey makes off with one of the player's things. */
+  | { type: "snatched"; item: ItemId }
   /** A swing of whatever is in hand, at whatever the arc finds. Takes no
    * target: the cone in front of the player is the target. */
   | { type: "swing"; power?: 1 | 2; plunge?: boolean; direction?: number }
@@ -539,6 +544,10 @@ export type PlayerCommand =
   | { type: "pass"; seconds: number }
   /** Goes to the plot's gathering and waits there for it to begin. */
   | { type: "attend" }
+  /** The one thing the baby needs now: feed, rock, cover, hand over, take back. */
+  | { type: "tend" }
+  /** How the baby was got to sleep for the night, 0-1. */
+  | { type: "settle"; quality: number }
   | {
       type: "interact";
       target: string;
@@ -585,6 +594,7 @@ export type PlayerCommand =
         | "burn"
         | "fill"
         | "douse"
+        | "snare"
         | "look";
       /** A descent taken over an edge rather than back the way you came. */
       dx?: number;
@@ -672,6 +682,7 @@ export type Snapshot = {
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */
   legends?: Record<string, import("./combat").Legend>;
+  baby?: import("./baby").Baby;
   manifest: WorldManifest;
   clock: number;
   revision: number;

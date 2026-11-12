@@ -1,3 +1,36 @@
+## Houses of the Iberian world — November 11, 2026
+
+Towns from Mexico to Manila no longer share two generic "Mediterranean"
+houses. A new front-on family, `casa` (`scripts/art/front_iberia.py`), draws
+seventeen looks by region and date: New Spain's flat-roofed azotea houses
+(Oaxaca, Mexico City in tezontle, Puebla in talavera), Lima's box balconies,
+Caribbean and Andean gallery houses, the Portuguese world before and after
+glass, Andalusia, Castile, Italy early and late, the Aegean, the Philippine
+bahay na bato and Goa. `src/content/graphics/iberian-houses.ts` chooses the
+look. Each look is drawn at every street form and width, with its walkable
+entrance under the drawn door and a lamplit frame for unglazed windows.
+House families now register with `scripts/art/front_family.py`, which
+supplies the bake hook, review sheets (`npm run art:family`) and audit; the
+`building-art` skill says how to add one. Eave-front European houses also
+got entrances under their doors.
+
+## The baby on the back — November 10, 2026
+
+Where babies rode on the back (`babyOnBack`), the player's household's
+youngest is now a passenger with a mood (`core/baby.ts`, `state.baby`):
+asleep, watching, fussing or crying, shown only by the sprite's pose
+(`infant` in `doll/extras.ts`), the marks over it (`render/baby-effects.ts`)
+and its voice. Walking lulls, standing still wakes, running and blows jolt,
+rain wets, and milk comes due every two or three hours. One key, B, does
+whatever is needed (`tend`): feed, rock, cover, play, hand to a household
+member or kin, take back. Long unplayed stretches (work, sleep, travel) feed
+and hush the baby on the way. A crying baby carries to game; a waking one
+warms whoever you talk to. What the baby was awake for becomes the grown
+child's first skill and a line in the years (`legacy`). A night's sleep opens
+the Settle scene (`ui/SettleScene.tsx`): hold and release with the baby's
+breathing; how it goes decides how the night's rest is. Other cultures' carries
+(cradleboard, cradle, hip) are not drawn yet and have no baby in play.
+
 ## Terraces, cliffs, tidal flats — November 9, 2026
 
 Relief is cut differently. The height a terrace comes from is the landform plus

@@ -52,6 +52,7 @@ export type ChoiceCard = {
   scope?: CharacterScope;
   /** Only for this work: the activities whose days it belongs to. */
   work?: readonly string[];
+  hazards?: 2;
   /** What the society must have been able to do for this to happen at all. */
   needs?: readonly SocietyCapability[];
   /** Only for a fishing day, and how the household fishes: in its own boat,

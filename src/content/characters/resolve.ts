@@ -329,7 +329,10 @@ function weighted(
   return pool.map((l) => {
     const c = classOf(l);
     const total = mass.get(c) || 1;
-    const boost = signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
+    // In a foraging band nearly every grown man hunted: Lee's !Kung and the
+    // Plains bands alike put about half the adults on game, not a few specialists.
+    const band = l.id === "hunter" && (s.settlement === "camp" || !capabilities.has("settled_agriculture")) ? 1.6 : 1;
+    const boost = band * signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
     // Share of the settlement for this class, split by weight within it.
     return { ...l, weight: (shares[c] * (l.weight ?? 1) * era(l) * boost * 100) / total };
   });

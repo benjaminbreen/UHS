@@ -1,7 +1,9 @@
 import { frostCover, snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
 import { workerBudget } from "../runtime/device";
-import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
+import { peekTerrainWorker, takeTerrainWorker } from "../runtime/terrain-worker-owner";
+import { seasonAt } from "../core/livelihood";
+import { tideAt } from "../content/geography/waterscapes";
 import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
 import type { Point, WorldModel } from "../core/types";
@@ -71,6 +73,7 @@ const WORKER_LIMIT = workerBudget();
 const PREVIEW_DEPTH = -1e6;
 const ENTRY_RADIUS = 8;
 const NO_SUN: SunPhase = { id: "night", cast: [0, 0], opacity: 0 };
+const warmedLandings = new WeakMap<WorldModel, string>();
 /** Rasterize off-thread, install one small chunk per frame, retain a bounded
  * ring for backtracking. Neither movement nor lighting re-rasterizes terrain. */
 export class TerrainStream {
@@ -80,6 +83,8 @@ export class TerrainStream {
   private previews = new Map<string, Phaser.GameObjects.Image>();
   private wanted = new Map<string, TerrainRegion>();
   private completed: TerrainResponse[] = [];
+  private entryKey?: string;
+  private prewarmed: boolean;
   /** Resent to every worker spawned later, and on restyle. */
   private styling: Extract<TerrainRequest, { style: GroundStyle | null }>;
   private started = performance.now();
@@ -108,9 +113,14 @@ export class TerrainStream {
     private world: WorldModel,
     private seed: string,
     private entry?: Point,
+    field?: { season: string; tide: number },
   ) {
     ensureWaterAtlas(scene);
     const retained = takeTerrainWorker(world);
+    if (entry) this.entryKey = `${Math.floor(entry.x / SIZE)},${Math.floor(entry.y / SIZE)}`;
+    const warmed = warmedLandings.get(world);
+    this.prewarmed = !!retained && warmed !== undefined && warmed === this.entryKey;
+    warmedLandings.delete(world);
     const first: Rasterizer = {
       reserved: true,
       worker:
@@ -140,10 +150,21 @@ export class TerrainStream {
       ).options.shorePolish,
       snow: snowCover(),
       frost: frostCover(),
+      ...field,
     };
     first.worker.postMessage(this.styling);
     this.pool.push(first);
     live.add(this);
+  }
+  prefetchLanding(world: WorldModel, point: Point, clock: number) {
+    if (!this.playable || warmedLandings.has(world)) return;
+    const worker = peekTerrainWorker(world);
+    const setting = world.pack.setting;
+    if (!worker || !setting) return;
+    const cx = Math.floor(point.x / SIZE), cy = Math.floor(point.y / SIZE);
+    warmedLandings.set(world, `${cx},${cy}`);
+    worker.postMessage({ ...this.styling, season: seasonAt(setting.season, clock), tide: tideAt(setting, clock) });
+    worker.postMessage({ warm: { x: cx * SIZE, y: cy * SIZE, prefix: `stream-${cx},${cy}` } } satisfies TerrainRequest);
   }
   private listen(r: Rasterizer) {
     const canvas = this.scene.game.canvas;
@@ -212,19 +233,21 @@ export class TerrainStream {
     if (this.queue.length >= 3) this.grow();
     for (const r of this.pool) {
       if (r.busy || r.sweeping || r.reserved) continue;
+      const index = this.prewarmed && !this.playable && this.pool[0].sweeping &&
+        this.queue[0]?.[0] === this.entryKey ? 1 : 0;
       while (
-        this.queue.length &&
-        (this.chunks.has(this.queue[0][0]) ||
-          this.inFlight(this.queue[0][0]) ||
-          this.job?.key === this.queue[0][0])
+        this.queue.length > index &&
+        (this.chunks.has(this.queue[index][0]) ||
+          this.inFlight(this.queue[index][0]) ||
+          this.job?.key === this.queue[index][0])
       )
-        this.queue.shift();
-      const next = this.queue[0];
+        this.queue.splice(index, 1);
+      const next = this.queue[index];
       if (!next) return;
       // Lookahead waits its turn: an idle worker rastering ground nobody can
       // see competes for a core with the chunk the camera is sitting on.
       if (this.priority(next[1]) >= 100000 && !this.visibleReady()) return;
-      this.queue.shift();
+      this.queue.splice(index, 1);
       const [id, region] = next;
       r.busy = id;
       r.worker.postMessage({
@@ -306,7 +329,8 @@ export class TerrainStream {
    * view is covered in about the time one chunk takes to raster properly. */
   private sweep() {
     const pending = [...this.wanted]
-      .filter(([id]) => !this.chunks.has(id) && !this.previews.has(id))
+      .filter(([id, region]) => !this.chunks.has(id) && !this.previews.has(id) &&
+        (!this.entry || this.playable || this.priority(region) < 100000))
       .sort(([, a], [, b]) => this.priority(a) - this.priority(b))
       .map(([id, region]) => ({ id: `${this.generation}:${id}`, region }));
     if (!pending.length) {
@@ -448,13 +472,20 @@ export class TerrainStream {
   private priority(r: TerrainRegion) {
     const dx = Math.abs(r.x + SIZE / 2 - this.center.x),
       dy = Math.abs(r.y + SIZE / 2 - this.center.y);
-    return (
-      (dx > this.reach.x + SIZE / 2 || dy > this.reach.y + SIZE / 2 + 4
-        ? 100000
-        : 0) +
-      dx * dx +
-      dy * dy
-    );
+    const distance = dx * dx + dy * dy;
+    if (dx > this.reach.x + SIZE / 2 || dy > this.reach.y + SIZE / 2 + 4)
+      return 100000 + distance;
+    if (!this.playable && this.nearEntry(r))
+      return this.entryKey === `${r.x / SIZE},${r.y / SIZE}` ? -2 : -1;
+    return distance;
+  }
+  private nearEntry(r: TerrainRegion) {
+    const entry = this.entry;
+    if (!entry) return false;
+    const half = (this.world.pack.setting?.playableMap?.size ?? Infinity) / 2;
+    return r.x < half && r.x + SIZE > -half && r.y < half && r.y + SIZE > -half &&
+      entry.x + ENTRY_RADIUS >= r.x && entry.x - ENTRY_RADIUS < r.x + SIZE &&
+      entry.y + ENTRY_RADIUS >= r.y && entry.y - ENTRY_RADIUS < r.y + SIZE;
   }
   private metrics() {
     this.dirty = false;
@@ -463,21 +494,11 @@ export class TerrainStream {
       ([, r]) => this.priority(r) < 100000,
     );
     const ready = visible.every(([id]) => this.chunks.has(id));
-    const entry = this.entry;
     const playable =
       ready ||
       (!this.loaded &&
-        entry !== undefined &&
-        this.chunks.has(`${Math.floor(entry.x / SIZE)},${Math.floor(entry.y / SIZE)}`) &&
-        visible.every(([id, r]) => {
-          if (this.chunks.has(id)) return true;
-          return this.previews.has(id) && (
-            entry.x + ENTRY_RADIUS < r.x ||
-            entry.x - ENTRY_RADIUS >= r.x + SIZE ||
-            entry.y + ENTRY_RADIUS < r.y ||
-            entry.y - ENTRY_RADIUS >= r.y + SIZE
-          );
-        }));
+        this.entryKey !== undefined && this.chunks.has(this.entryKey) &&
+        visible.every(([id, r]) => this.chunks.has(id) || (!this.nearEntry(r) && this.previews.has(id))));
     canvas.dataset.terrainPlayable = String(playable);
     canvas.dataset.terrainReady = String(ready);
     canvas.dataset.terrainPending = String(

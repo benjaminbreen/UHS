@@ -128,6 +128,10 @@ export default defineConfig({
       },
     },
   ],
+  // Every JSON import is a default import, and the generated ones run to
+  // megabytes. As a parsed string, not an object literal with an export per
+  // key, the 8 MB building models no longer run the build out of heap.
+  json: { namedExports: false, stringify: true },
   build: {
     rollupOptions: { output: { manualChunks: { phaser: ["phaser"] } } },
   },

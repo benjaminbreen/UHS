@@ -238,20 +238,70 @@ it("shares nearby preparation with crossing and cancels pending work on disposal
 });
 it("crosses a land border away from the original entrance marker", async () => {
   const { make, exits, runtime } = fixture();
+  const prepared = make(b);
+  let calls = 0;
   const journey = new MapTravel(
     runtime,
     a,
     1300,
-    async (id) => make(id),
+    async () => { calls++; return prepared; },
     exits,
     () => [],
   );
-  runtime.engine.state.player.pos = { x: -192, y: 35, space: "outside" };
+  runtime.engine.state.player.direction = 3;
+  runtime.engine.state.player.pos = { x: -136, y: 100, space: "outside" };
+  journey.observe();
+  await Promise.resolve();
+  expect(journey.landing()?.point).toEqual({ x: 190, y: 100 });
+  expect(journey.landing()?.world).toBe(prepared.world);
+  runtime.engine.state.player.pos = { x: -192, y: 100, space: "outside" };
   expect(journey.intercept({ type: "move", dx: -1, dy: 0 })).toBe(true);
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(journey.id).toBe(b);
   // The far side of the same line of ground, not the entrance marker.
-  expect(runtime.engine.state.player.pos).toMatchObject({ x: 190, y: 35 });
+  expect(runtime.engine.state.player.pos).toMatchObject({ x: 190, y: 100 });
+  expect(calls).toBe(1);
+  runtime.dispose();
+});
+
+it("can prefetch an exit again after turning toward a different border", async () => {
+  const { exits, runtime } = fixture();
+  const [west] = (runtime.engine.world as { entrances?: () => MapEntrance[] }).entrances!();
+  const north = { ...west, id: "north", to: "north-map", bearing: "N", point: { x: 0, y: -192 } };
+  Object.assign(runtime.engine.world, { entrances: () => [west, north] });
+  const calls: string[] = [];
+  const journey = new MapTravel(runtime, a, 1300, (id, _year, signal) => {
+    calls.push(id);
+    return new Promise((_resolve, reject) => signal!.addEventListener("abort", () => reject(signal!.reason)));
+  }, exits);
+  const player = runtime.engine.state.player;
+  player.pos = { x: -160, y: -160, space: "outside" };
+  player.direction = 3;
+  journey.observe();
+  player.direction = 0;
+  journey.observe();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  player.direction = 3;
+  journey.observe();
+  expect(calls).toEqual([b, north.to, b]);
+  runtime.dispose();
+});
+it("prepares the destination and predicts the landing from a route to a border", async () => {
+  const { make, exits, runtime } = fixture();
+  const requests: string[] = [];
+  const journey = new MapTravel(runtime, a, 1300, async (id) => {
+    requests.push(id);
+    return make(id);
+  }, exits);
+  runtime.route = [{ x: -15, y: 75 }];
+  journey.observe();
+  expect(requests).toEqual([]);
+  runtime.route = [{ x: -1, y: 0 }, { x: -192, y: 75 }];
+  journey.observe();
+  journey.observe();
+  expect(requests).toEqual([b]);
+  await Promise.resolve();
+  expect(journey.landing()?.point).toEqual({ x: 190, y: 75 });
   runtime.dispose();
 });
 it("prices a long journey in days, overland where it can and by sea where it must", () => {

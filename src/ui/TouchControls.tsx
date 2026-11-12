@@ -16,8 +16,7 @@ import {
   Sword,
   Target,
   TrainFront,
-  type LucideIcon,
-} from "lucide-react";
+  type LucideIcon, Baby } from "lucide-react";
 import type { Verb } from "../runtime/session";
 
 const ICONS: Record<Verb["kind"], LucideIcon> = {
@@ -65,6 +64,8 @@ export function TouchControls({
   onPrimaryDown,
   onPrimaryUp,
   onAlternate,
+  tend,
+  onTend,
 }: {
   scene: () => TouchTarget | undefined;
   enabled: boolean;
@@ -74,6 +75,9 @@ export function TouchControls({
   onPrimaryDown: () => void;
   onPrimaryUp: () => void;
   onAlternate: () => void;
+  /** What the baby needs, when the hands can give it. */
+  tend?: string;
+  onTend: () => void;
 }) {
   const [knob, setKnob] = useState<{ x: number; y: number; run: boolean }>();
   const [running, setRunning] = useState(false);
@@ -223,6 +227,11 @@ export function TouchControls({
             )}
           >
             <Target size={18} />
+          </button>
+        )}
+        {tend && (
+          <button key={tend} className="touch-small touch-tend" aria-label={tend} onClick={() => { buzz(); onTend(); }}>
+            <Baby size={18} />
           </button>
         )}
         {alternate && (

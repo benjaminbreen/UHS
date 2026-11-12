@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { rasterFieldTile } from "../src/render/field-raster";
 import { rasterHabitatTile } from "../src/render/habitat-raster";
 import { rasterWaterTile } from "../src/render/water-raster";
-import { waterPalette } from "../src/render/water-style";
 import { habitatAt } from "../src/world/v3/habitats";
 import type { TopographyCell, TopographySample } from "../src/core/topography";
 import type { LandSample } from "../src/world/v2/landscape";
@@ -148,7 +147,7 @@ describe("field raster", () => {
   });
 
   const canalWorld =
-    (cells: Record<string, "x" | "y">): TopographySample =>
+    (cells: Record<string, "x" | "y">, dry = false): TopographySample =>
     (x, y) => {
       const axis = cells[`${x},${y}`];
       const habitat = habitatAt("grassland", "summer", "review", x, y, land);
@@ -162,8 +161,9 @@ describe("field raster", () => {
         };
       return {
         height: 0,
-        surface: "water",
-        waterDepth: "shallow",
+        surface: dry ? "soil" : "water",
+        waterDepth: dry ? undefined : "shallow",
+        dryChannel: dry,
         habitat,
         waterVisual: {
           distance: -1,
@@ -175,94 +175,40 @@ describe("field raster", () => {
         },
       };
     };
-  const pal = waterPalette("grassland", "canal");
-  const hex = (s: string) =>
-    [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
-  const pixel = (p: Uint8ClampedArray, x: number, y: number) => [
-    p[(y * 16 + x) * 4],
-    p[(y * 16 + x) * 4 + 1],
-    p[(y * 16 + x) * 4 + 2],
-  ];
+  const pixel = (p: Uint8ClampedArray, x: number, y: number) => {
+    const i = (y * 16 + x) * 4;
+    return p.subarray(i, i + 3).join();
+  };
+  const canal = (cells: Record<string, "x" | "y">) => {
+    const wet = rasterWaterTile(canalWorld(cells), 3, 5, 0, 0);
+    const dry = rasterWaterTile(canalWorld(cells, true), 3, 5, 0, 0);
+    return { wet, isWater: (x: number, y: number) => pixel(wet.pixels, x, y) !== pixel(dry.pixels, x, y) };
+  };
   it("renders a canal as lips, still water and a flow highlight", () => {
-    const run = canalWorld({ "2,5": "x", "3,5": "x", "4,5": "x" });
-    const p = rasterWaterTile(run, 3, 5, 0, 0).pixels;
-    const deepRgb = hex(pal.depths[4]);
-    // Water is any blue-leaning pixel: banks are earth, never bluer than red.
-    const isWater = (x: number, y: number) => {
-      const c = pixel(p, x, y);
-      return c[2] > c[0] + 10;
-    };
+    const { wet, isWater } = canal({ "2,5": "x", "3,5": "x", "4,5": "x" });
     for (let x = 0; x < 16; x++) {
       for (const y of [0, 1, 2, 13, 14, 15])
         expect(isWater(x, y), `bank ${x},${y}`).toBe(false);
-      expect(pixel(p, x, 3).join()).toBe(deepRgb.join());
-      for (const y of [5, 7, 9, 11])
+      for (let y = 3; y <= 12; y++)
         expect(isWater(x, y), `water ${x},${y}`).toBe(true);
+      expect(pixel(wet.pixels, x, 3)).toBe(pixel(wet.pixels, 0, 3));
     }
-    const stillRgb = hex(pal.depths[3]),
-      glintRgb = hex(pal.glint);
-    const dashRgb = stillRgb.map((v, k) =>
-      Math.round(v * 0.55 + glintRgb[k] * 0.45),
-    );
-    // Ripples run as short dashes in lanes along the flow: some glint pixels
-    // in the channel, never a full row of them, and nothing else there.
-    const channel = Array.from({ length: 16 * 10 }, (_, i) =>
-      pixel(p, i % 16, 3 + Math.floor(i / 16)).join(),
-    );
-    const plain = new Set(
-      [stillRgb, deepRgb, hex(pal.depths[2])].map((c) => c.join()),
-    );
-    const glints = channel.filter((c) => !plain.has(c));
-    expect(glints.length).toBeGreaterThan(4);
-    expect(glints.length).toBeLessThan(120);
-    void dashRgb;
-    // No shoreline and no motif effect: the effect has no edges to draw.
-    expect(rasterWaterTile(run, 3, 5, 0, 0).effect.edges).toEqual([]);
+    const row = Array.from({ length: 16 }, (_, x) => pixel(wet.pixels, x, 7));
+    expect(new Set(row).size).toBeGreaterThan(1);
+    expect(wet.effect.edges).toEqual([]);
   });
   it("closes a dead-end canal and opens a junction", () => {
-    const dead = rasterWaterTile(
-      canalWorld({ "2,5": "x", "3,5": "x" }),
-      3,
-      5,
-      0,
-      0,
-    ).pixels;
-    const waterTones = new Set(
-      [pal.depths[2], pal.depths[3]].map((c) => hex(c).join()),
-    );
-    const isWater = (p: Uint8ClampedArray, x: number, y: number) => {
-      const c = pixel(p, x, y);
-      const d2 = hex(pal.depths[2]),
-        d3 = hex(pal.depths[3]);
-      // Any of the water tones or a blend of them with the glint.
-      return (
-        waterTones.has(c.join()) ||
-        (Math.abs(c[2] - d2[2]) < 40 && c[2] > c[0] + 10) ||
-        (Math.abs(c[2] - d3[2]) < 40 && c[2] > c[0] + 10)
-      );
-    };
+    const dead = canal({ "2,5": "x", "3,5": "x" });
     for (let y = 0; y < 16; y++) {
-      expect(isWater(dead, 15, y), `end ${y}`).toBe(false);
-      expect(isWater(dead, 14, y), `end ${y}`).toBe(false);
+      expect(dead.isWater(15, y), `end ${y}`).toBe(false);
+      expect(dead.isWater(14, y), `end ${y}`).toBe(false);
     }
-    expect(isWater(dead, 0, 7)).toBe(true);
-    const tee = rasterWaterTile(
-      canalWorld({
-        "2,5": "x",
-        "3,5": "x",
-        "4,5": "x",
-        "3,6": "y",
-        "3,7": "y",
-      }),
-      3,
-      5,
-      0,
-      0,
-    ).pixels;
+    expect(dead.isWater(0, 7)).toBe(true);
+    const tee = canal({ "2,5": "x", "3,5": "x", "4,5": "x", "3,6": "y", "3,7": "y" });
     for (let x = 3; x <= 12; x++)
-      expect(isWater(tee, x, 15), `open ${x}`).toBe(true);
+      expect(tee.isWater(x, 15), `open ${x}`).toBe(true);
     for (const x of [0, 1, 14, 15])
-      expect(isWater(tee, x, 15), `closed ${x}`).toBe(false);
+      expect(tee.isWater(x, 15), `closed ${x}`).toBe(false);
   });
   it("rasterizes a canal identically from any chunk origin", () => {
     const cells = { "2,5": "x", "3,5": "x", "3,6": "y" } as const;

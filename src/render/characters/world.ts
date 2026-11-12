@@ -300,8 +300,8 @@ export class WorldCharacters {
       if (!turn) {
         frames.push({ pose, frame: (frame + 1) % frameCount(pose) });
         // Prepare the player's whole stride while idle; NPCs need only the next frame.
-        if (actor.id === "player" && ["breathe", "idle", "walk", "run", "setoff", "halt", "wade"].includes(pose))
-          for (const gait of (pose === "wade" ? ["wade"] : ["breathe", "idle", "walk", "run", "setoff", "halt"]) as CharacterPose[])
+        if (actor.id === "player" && ["breathe", "idle", "walk", "run", "setoff", "halt", "wade", "swim", "tread"].includes(pose))
+          for (const gait of (pose === "wade" ? ["wade"] : pose === "swim" || pose === "tread" ? ["swim", "tread"] : ["breathe", "idle", "walk", "run", "setoff", "halt"]) as CharacterPose[])
             for (let next = 0; next < frameCount(gait); next++) frames.push({ pose: gait, frame: next });
       }
       for (const next of frames) {

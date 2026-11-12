@@ -1,5 +1,5 @@
 import type { TimeTravel } from "../core/time/travel";
-import type { FaunaTier } from "../core/combat";
+import { launchers, type FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
 import type { EventId } from "../audio/sfx";
 import {
@@ -45,7 +45,8 @@ import { useOf } from "../content/props/uses";
 import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
-import { babyOnBack } from "../content/characters/wardrobe/regions/work-dress";
+import { infantCarry } from "../content/characters/wardrobe/regions/work-dress";
+import { carriers } from "../core/baby";
 import type {
   ToolEffect,
   SwingEffect,
@@ -115,6 +116,7 @@ import {
 } from "../core/types";
 import { items, packs } from "../content/packs";
 import { rollStats } from "../core/stats";
+import { random } from "../core/random";
 import { narratorTurn, type Turn } from "../narrator/turn";
 import { herdCount } from "../content/fauna/herding";
 import { Autopilot, parsePlan, type Plan } from "./autopilot";
@@ -273,6 +275,7 @@ export function createSettingSession(setting: WorldSetting, seed = "earth-2") {
 }
 export function restoreSession(value: unknown) {
   const save = snapshotSchema.parse(value);
+  if (save.manifest.generator === 3) save.manifest.watchRouting = 1;
   const engine = createSession(save.manifest.pack, save.manifest.seed, { snapshot: save });
   const ids = new Set<string>();
   for (const e of [save.player, ...save.actors, ...save.objects]) {
@@ -391,7 +394,9 @@ export class Runtime {
       : this.defaultAppearance(actor);
     const record = this.bodyRecord(actor);
     const base = { ...drawn, ...(record ? { record } : {}), restingPose: restingPortraitPoseOf(statsOf(this.engine.state.manifest.seed, actor)) };
-    if (this.carriesInfant(actor)) base.wearing = { ...base.wearing, infant: true };
+    const setting = this.engine.world.pack.setting;
+    const carry = infantCarry(setting?.culture, setting?.year);
+    if (carry && this.carriesInfant(actor)) base.wearing = { ...base.wearing, infant: true, infantMood: this.infantMood(actor.id), infantCarry: carry };
     if (!actor.worn) return base;
     return {
       ...base,
@@ -400,24 +405,25 @@ export class Runtime {
       ),
     };
   }
-  private infantCarriers = new Map<string, { key: string; id?: string }>();
-  /** One woman of the household carries its baby, where babies were carried on the back. */
+  private infantCarriers = new Map<string, { key: string; ids: string[] }>();
+  /** The player's baby shows its mood; other people's doze and wake by the half hour. */
+  private infantMood(id: string) {
+    const b = this.engine.state.baby;
+    if (b?.with === id) return b.mood;
+    return random(this.engine.state.manifest.seed, "infant", id, Math.floor(this.engine.state.clock / 1800)) < 0.6 ? "asleep" as const : "watching" as const;
+  }
   private carriesInfant(actor: Partial<Pick<Actor, "id" | "householdId">>) {
-    const culture = this.engine.world.pack.setting?.culture;
-    if (!actor.householdId || !culture || !babyOnBack.includes(culture)) return false;
-    const h = this.engine.state.households?.find((x) => x.id === actor.householdId);
+    const s = this.engine.state;
+    if (!actor.householdId || !actor.id) return false;
+    const h = s.households?.find((x) => x.id === actor.householdId);
     if (!h?.infants) return false;
-    const key = `${h.infants}:${h.members.join()}`;
+    const key = `${Math.floor(s.clock / 86400)}:${h.babies}:${h.infants}:${s.baby?.with}:${h.members.join()}`;
     let hit = this.infantCarriers.get(h.id);
     if (hit?.key !== key) {
-      const people = [this.engine.state.player, ...this.engine.state.actors];
-      const id = h.members.find((m) => {
-        const a = people.find((p) => p.id === m);
-        return a?.origin?.sex === "female" && (a.age ?? 0) >= 15 && (a.age ?? 0) <= 45;
-      });
-      this.infantCarriers.set(h.id, (hit = { key, id }));
+      const people = [s.player, ...s.actors];
+      this.infantCarriers.set(h.id, (hit = { key, ids: carriers(s, h, (id) => people.find((p) => p.id === id)) }));
     }
-    return hit.id === actor.id;
+    return hit.ids.includes(actor.id);
   }
   /** What the actor's life has done to their body, in steps coarse enough to key a portrait. */
   private bodyRecord(
@@ -699,8 +705,8 @@ export class Runtime {
       if (command.type === "shoot") {
         this.characterAction = {
           serial: ++this.characterSerial,
-          pose: flight?.sling ? "whirl" : "draw",
-          at: performance.now() - poseTiming(flight?.sling ? "whirl" : "draw") * 3,
+          pose: flight?.sling ? "whirl" : flight?.launcher === "hawk" ? "cast" : "draw",
+          at: performance.now() - poseTiming(flight?.sling ? "whirl" : flight?.launcher === "hawk" ? "cast" : "draw") * (flight?.launcher === "hawk" ? 2 : 3),
           prop: previousProp,
         };
         return;
@@ -949,8 +955,8 @@ export class Runtime {
         this.engine.state.manifest.setting,
         this.engine.state.manifest.generator,
       );
-    this.journey?.observe();
-    this.cached = timed("runtime view", () => this.view(refresh));
+    if (!this.workInProgress) this.journey?.observe();
+    this.cached = timed("runtime view", () => this.view(refresh && !this.workInProgress));
     for (const listener of this.subscribers) listener();
   }
   /** Counts clicks on what is already selected, which open its photograph. */
@@ -976,6 +982,8 @@ export class Runtime {
     );
   }
   replace(engine: Engine, preserveJourney = false, preserveTime = false) {
+    this.work = undefined;
+    this.workHold = undefined;
     if (preserveJourney) this.timeTravel?.rebase(engine);
     else if (!preserveTime) this.timeTravel = undefined;
     if (!preserveJourney) this.journey?.dispose();
@@ -1002,6 +1010,7 @@ export class Runtime {
   /** What the renderer draws: the world clock plus the time that has passed
    * since the last command. Monotonic, and never behind the simulation. */
   displayClock() {
+    if (this.work) return this.work.clock;
     if (this.timeVisualClock !== undefined) return this.timeVisualClock;
     if (this.timeTravelLocked || this.held || this.engine.state.player.dead) return this.engine.state.clock;
     if (this.journey?.busy) return this.engine.state.clock;
@@ -1030,7 +1039,7 @@ export class Runtime {
   /** Hands the drawn time back to the simulation, so positions the player can
    * click on agree with the ones on screen. */
   flushAmbient() {
-    if (this.timeTravelLocked) return;
+    if (this.timeTravelLocked || this.workInProgress) return;
     if (this.journey?.busy) return;
     const seconds = Math.floor(this.displayClock() - this.engine.state.clock);
     if (seconds >= 1)
@@ -1123,6 +1132,7 @@ export class Runtime {
     cards.push({ kind: "speech", title: "Narrator", text: question, choose: { card: "offer", choices: [{ index: 0, label: "Yes" }, { index: 1, label: "Not now" }] } });
   }
   setOff(plan: Plan) {
+    if (this.workInProgress) return;
     this.flushAmbient();
     this.stop(false);
     this.autopilot = new Autopilot(plan, this.engine);
@@ -1211,12 +1221,14 @@ export class Runtime {
     };
   }
   command(command: PlayerCommand) {
-    if (this.timeTravelLocked) return;
+    if (this.timeTravelLocked || this.workInProgress) return;
+    if (this.passing && command.type === "interact" && command.action === "work") return;
     if (this.replay) {
       this.notice = "Continue from this point before taking a new action.";
       this.emit();
       return;
     }
+    if (this.bedtime(command)) return;
     const parsed = commandSchema.safeParse(command);
     if (!parsed.success) {
       this.notice = "That command is not supported.";
@@ -1253,15 +1265,55 @@ export class Runtime {
         reason: this.notice,
       };
     }
-    const result = this.actAndPresent({
+    const request = {
       actionId: `ui-${this.engine.state.revision}-${++this.serial}`,
       expectedRevision: this.engine.state.revision,
       command,
-    });
+    };
+    if (command.type === "interact" && command.action === "work" && typeof requestAnimationFrame !== "undefined") {
+      void this.workStage(request);
+      return;
+    }
+    return this.completeDispatch(command, this.actAndPresent(request));
+  }
+  private work?: { clock: number };
+  get workInProgress() {
+    return this.work !== undefined;
+  }
+  private async workStage(request: CommandRequest) {
+    const engine = this.engine;
+    const work = this.work = { clock: engine.state.clock };
+    try {
+      this.emit(false);
+      const result = await engine.actSliced(request, async () => {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        if (this.disposed || this.work !== work) throw new Error("Work stage cancelled.");
+      });
+      if (this.disposed || this.work !== work) return;
+      this.work = undefined;
+      this.syncAmbient();
+      this.animateCommand(request.command, result.status !== "rejected");
+      if (result.status === "rejected" && this.autopilot) this.finish(result.reason ?? "You can go no further.");
+      this.completeDispatch(request.command, result);
+    } catch (error) {
+      if (this.disposed || this.work !== work) return;
+      this.work = undefined;
+      this.workHold = undefined;
+      this.stop(false);
+      this.syncAmbient();
+      this.notice = error instanceof Error ? error.message : "Work could not finish.";
+      this.emit();
+    }
+  }
+  private completeDispatch(command: PlayerCommand, result: ReturnType<Engine["act"]>) {
     this.notice = result.reason ?? "";
     if (result.status !== "rejected") this.onChange?.();
-    if (result.status === "completed" && command.type === "interact" && command.action === "work" && result.elapsedSeconds >= 1200)
-      this.passHours(this.engine.state.clock - result.elapsedSeconds, this.engine.state.clock);
+    if (command.type === "interact" && command.action === "work") {
+      if (this.workHold !== undefined)
+        this.workHold = result.status === "completed" && this.verbs().primary?.kind === "work" ? performance.now() : undefined;
+      if (result.status === "completed" && result.elapsedSeconds >= 1200)
+        this.passHours(this.engine.state.clock - result.elapsedSeconds, this.engine.state.clock);
+    }
     this.emit();
     return result;
   }
@@ -1302,6 +1354,7 @@ export class Runtime {
     }
   }
   act(request: CommandRequest) {
+    if (this.workInProgress) throw Error("A work stage is in progress.");
     if (this.timeTravelLocked) throw Error("Time travel is in progress.");
     if (this.replay)
       throw Error("Continue from this replay point before acting.");
@@ -1703,6 +1756,12 @@ export class Runtime {
       primary = { kind: "strike", label: "Set it alight", command: burn };
     else if (item?.id === "bow")
       primary = { kind: "shoot", label: (p.inventory.arrow ?? 0) > 0 ? "Draw bow" : "No arrows" };
+    else if (item && launchers[item.id])
+      primary = { kind: "shoot", label: this.engine.ammo() ? { crossbow: "Aim crossbow", musket: "Aim gun", rifle: "Aim rifle", blowgun: "Raise blowgun" }[item.id]! : `No ${this.engine.items[launchers[item.id].ammo].name.toLowerCase()}` };
+    else if (item?.id === "hawk")
+      primary = { kind: "shoot", label: "Cast off the hawk" };
+    else if (item?.id === "snare")
+      primary = { kind: "strike", label: "Set a snare", command: { type: "interact", target: Engine.tileTarget(facing.x, facing.y), action: "snare" } };
     else if (item?.id === "sling")
       primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
     else if (train) primary = { kind: "board", label: `Board the ${train.label} train` };
@@ -1827,6 +1886,7 @@ export class Runtime {
   /** Runs a slot and hands the verb back. Talk is returned unrun: the
    * dialogue panel is React's, not the engine's. */
   runVerb(slot: "primary" | "alternate"): Verb | undefined {
+    if (this.workInProgress) return;
     const verb = this.verbs()[slot];
     if (!verb) {
       this.notice =
@@ -1885,6 +1945,26 @@ export class Runtime {
     return verb;
   }
   /** A pose for the player that no command asked for: a flinch, say. */
+  /** The UI's night scene: shown before a night's sleep with a baby to settle; it calls `go` when done. */
+  onBedtime?: (go: () => void) => void;
+  private bedtime(command: PlayerCommand) {
+    const s = this.engine.state, b = s.baby;
+    if (!this.onBedtime || b?.with !== "player" || s.player.dead) return false;
+    const night = command.type === "sleep" ? command.seconds >= 5 * 3600 : command.type === "interact" && command.action === "sleep";
+    const hour = Math.floor(s.clock / 3600) % 24;
+    if (!night || (hour >= 4 && hour < 18) || b.night?.day === Math.floor(s.clock / 86400)) return false;
+    if (this.engine.validate(command)) return false;
+    this.onBedtime(() => this.command(command));
+    return true;
+  }
+  /** The baby's key: does what is needed and plays the body's part of it. */
+  tend() {
+    const t = this.engine.tendNow();
+    if (!t) return;
+    this.command({ type: "tend" });
+    this.playPose(t.kind === "give" ? "pay" : t.kind === "take" ? "receive" : "sway");
+    return t;
+  }
   playPose(pose: CharacterPose) {
     this.characterAction = {
       serial: ++this.characterSerial,
@@ -1942,7 +2022,7 @@ export class Runtime {
   releaseCharge() {
     if (this.workHold !== undefined) {
       this.workHold = undefined;
-      this.emit();
+      if (!this.workInProgress) this.emit(false);
     }
     const c = this.charge;
     this.charge = undefined;
@@ -1961,6 +2041,7 @@ export class Runtime {
    * swing waits for the release, so a wind-up does not start with a flail
    * that sends the game running before the wide one lands. */
   pressSwing(): Verb | undefined {
+    if (this.workInProgress) return;
     if (!this.replay && this.armPlunge()) return undefined;
     const verb = this.verbs().primary;
     if (verb?.kind === "work") {
@@ -2023,6 +2104,7 @@ export class Runtime {
   }
   /** Turns to a blocked step without taking it, so F and E act that way. */
   face(dx: number, dy: number) {
+    if (this.workInProgress) return;
     const p = this.engine.state.player;
     if (p.perch || (!dx && !dy)) return;
     const direction = dx === 0 ? (dy < 0 ? 0 : 2) : dx > 0 ? 1 : 3;
@@ -2270,8 +2352,16 @@ export class Runtime {
       this.emit();
     }
   }
+  /** Walk behind someone who is showing the player the way. */
+  escort(id: string) {
+    this.stop(false);
+    this.follow = id;
+    this.steps = 0;
+    this.running = true;
+    this.emit();
+  }
   tick() {
-    if (this.timeTravelLocked || this.passing || this.engine.state.player.dead) return;
+    if (this.timeTravelLocked || this.workInProgress || this.passing || this.engine.state.player.dead) return;
     if (this.replay) {
       if (this.replay.playing) this.stepReplay();
       return;
@@ -2279,11 +2369,12 @@ export class Runtime {
     if (!this.running) {
       if (this.workHold !== undefined && performance.now() - this.workHold >= WORK_STAGE_MS) {
         const verb = this.verbs().primary;
-        if (verb?.kind === "work") {
-          this.runVerb("primary");
-          this.workHold = this.verbs().primary?.kind === "work" ? performance.now() : undefined;
-        } else this.workHold = undefined;
-        this.emit();
+        if (verb?.kind === "work" && verb.command) {
+          this.command(verb.command);
+          return;
+        }
+        this.workHold = undefined;
+        this.emit(false);
       }
       // Standing still still spends time. Small blocks, because the whole block
       // is simulated in one frame: 600 seconds at once is a visible hitch, and
@@ -2316,10 +2407,12 @@ export class Runtime {
         !this.engine.visible(a.pos) ||
         a.trust < 0 ||
         (a.consentUntil ?? 0) < this.engine.state.clock ||
-        this.steps++ > 150
+        this.steps++ > 400 ||
+        (a.errand?.label.startsWith("Showing you") && distance(a.pos, a.errand.to) < 1.5 && distance(p, a.pos) <= 2.2)
       ) {
+        const there = a?.errand?.label.startsWith("Showing you");
         this.stop();
-        this.notice = "The accompanying walk has ended.";
+        this.notice = there ? "You have arrived." : "The accompanying walk has ended.";
         this.emit();
         return;
       }
@@ -2372,6 +2465,10 @@ export class Runtime {
       ...((plan?.kind === "roam" && plan.run) ||
         (plan?.kind === "workday" && work?.steps[work.done]?.scene === "hunt" && this.engine.state.player.heldItem === "spear") ? { run: true } : {}),
     });
+    if (this.engine.state.encounter) {
+      this.stop();
+      return;
+    }
     if (result?.status === "rejected") {
       if (this.autopilot) {
         this.route = [];

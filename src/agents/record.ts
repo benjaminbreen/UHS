@@ -50,17 +50,17 @@ export type Entry = {
 export type Manifest = {
   id: string;
   startedAt: string;
-  mode: "serve" | "run";
+  mode: "serve" | "run" | "play";
   protocol?: number;
   setting?: { asked?: string; place: string; year: number; role: string; seed: string };
   initialSetting?: WorldSetting;
   timeTravel?: boolean;
   offline?: boolean;
+  concern?: boolean;
   [key: string]: unknown;
 };
 
-/** One run: a manifest saying what produced it and an entry per tool call.
- * Solo and run mode write the same thing; where it goes is the caller's. */
+/** One run: a manifest saying what produced it and an entry per tool call. */
 export class RunRecord {
   readonly entries: Entry[] = [];
   readonly traces: Trace[] = [];

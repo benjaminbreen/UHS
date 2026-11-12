@@ -20,6 +20,10 @@ export const faunaStates = [
   // Drawn, never decided: a swimmer on water paddles, or upends to feed.
   "swim",
   "dabble",
+  // Drawn and decided: the threat before an attack (a bear up on its hind
+  // legs, a cobra's hood, a rattle) and an ambusher showing only its eyes.
+  "warn",
+  "lurk",
 ] as const;
 
 export type FaunaState = (typeof faunaStates)[number];
@@ -48,6 +52,8 @@ export type FaunaMember = {
   shy?: { x: number; y: number; until: number };
   /** Clock until which a blow has it reeling: it does not move. */
   stun?: number;
+  /** Struck by a poisoned dart: the clock at which it drops. */
+  poisoned?: number;
   /** A calf in its mother's herd, drawn small, with the member number of its
    * mother. Species with young art of their own have a group of young instead. */
   young?: boolean;
@@ -119,6 +125,18 @@ export type FaunaGroup = {
   hurtUntil?: number;
   /** Clock until which the group means the player harm. */
   provoked?: number;
+  /** A named man-eater a plot has loosed: it hunts people, not game. */
+  maneater?: { name: string; plot?: string };
+  /** A raider a plot has loosed on someone's stock: the pen it is making for. */
+  stockRaid?: { at: Position; plot?: string; night?: boolean; repelled?: number; took?: number };
+  /** Clock until which the group is warning the player off before it comes. */
+  warning?: number;
+  /** Clock until which it is creeping up on the player to take them. */
+  stalking?: number;
+  /** Until when a hunt that came to nothing is not tried again. */
+  balked?: number;
+  /** A dog gone mad: no warning, no fear, and it bites whoever is near. */
+  rabid?: boolean;
   attack?: FaunaAttack;
   /** Packs: how far round the ring they have worked, in eighths of a turn. */
   ring?: number;
@@ -127,6 +145,8 @@ export type FaunaGroup = {
   train?: boolean;
   /** Kept animals: who tends them, which gate they pass, where they graze. */
   owner?: string;
+  /** A hunting dog: it keeps to its owner and runs down game near them. */
+  hound?: boolean;
   gateId?: string;
   pasture?: Position;
   /** Burrowers: clock until which they are down the hole, out of sight. */

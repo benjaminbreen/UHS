@@ -10,7 +10,7 @@ const input = process.argv[2];
 if (!input) throw Error("Usage: npm run replay -- <run-folder|recording.json>");
 const file = statSync(input).isDirectory() ? join(input, "manifest.json") : input;
 const record = JSON.parse(readFileSync(file, "utf8"));
-if (record.mode === "serve" || record.mode === "run") {
+if (record.mode === "serve" || record.mode === "run" || record.mode === "play") {
   const manifest = record as Manifest;
   if (manifest.protocol !== PROTOCOL)
     throw Error(`Unsupported agent protocol: ${manifest.protocol}. Expected ${PROTOCOL}.`);
@@ -31,7 +31,7 @@ if (record.mode === "serve" || record.mode === "run") {
     const response = trace.response as { body: string; status: number };
     return new Response(response.body, { status: response.status });
   };
-  const replay = await startAgent({ setting, seed: manifest.setting.seed, timeTravel: manifest.timeTravel, offline: !!manifest.offline, modelFetch }, new RunRecord({ mode: "run" }));
+  const replay = await startAgent({ setting, seed: manifest.setting.seed, timeTravel: manifest.timeTravel, offline: !!manifest.offline, concern: manifest.concern, modelFetch }, new RunRecord({ mode: manifest.mode }));
   try {
     let calls = 0;
     for (const entry of entries) {

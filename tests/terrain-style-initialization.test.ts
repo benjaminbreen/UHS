@@ -42,3 +42,36 @@ it("starts ground and worker banks at the same altitude scale", async () => {
   setGroundStyle(undefined);
   expect(projection.TERRAIN_RISE).toBe(projection.DEFAULT_TERRAIN_RISE);
 });
+
+it("reuses the warmed landing raster and previews only under the same terrain style", async () => {
+  const { handleTerrainRequest, useTerrainWorld } = await import("../src/render/terrain-worker");
+  const topography = vi.fn(() => ({ height: 0, surface: "grass" as const }));
+  const postMessage = vi.fn();
+  vi.stubGlobal("self", { postMessage });
+  try {
+    useTerrainWorld({ topography } as unknown as WorldModel);
+    const region = { x: 16, y: 32, prefix: "stream-1,2" };
+    const style = { style: null, living: false, season: "summer", tide: 0 };
+    handleTerrainRequest(style);
+    handleTerrainRequest({ warm: region });
+    expect(topography).toHaveBeenCalled();
+    topography.mockClear();
+    handleTerrainRequest({ ...style });
+    handleTerrainRequest({ previews: [{ id: "preview", region }] });
+    handleTerrainRequest({ id: "landing", region });
+    expect(topography).not.toHaveBeenCalled();
+    expect(postMessage.mock.calls.map(([data]) => data)).toMatchObject([
+      { id: "preview", preview: expect.anything() },
+      { previewsDone: true },
+      { id: "landing", cells: expect.any(Array) },
+    ]);
+
+    handleTerrainRequest({ warm: region });
+    topography.mockClear();
+    handleTerrainRequest({ ...style, season: "winter" });
+    handleTerrainRequest({ id: "winter-landing", region });
+    expect(topography).toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

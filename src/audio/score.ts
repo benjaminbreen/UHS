@@ -2,6 +2,7 @@
 import { culturalThemes, type CulturalTheme } from "./cultural-themes";
 import { layeredThemes, type LayeredTheme } from "./layered-themes";
 import { interiorThemes } from "./interior-themes";
+import { situationThemes } from "./situation-themes";
 export const seasons = ["spring", "summer", "autumn", "winter"] as const;
 export const periods = ["dawn", "day", "dusk", "night"] as const;
 export type Season = (typeof seasons)[number];
@@ -77,7 +78,12 @@ export type Voice =
   | "muted"
   | "clarinet"
   | "choir"
-  | "singer";
+  | "singer"
+  | "cello"
+  | "duduk"
+  | "celesta"
+  | "kora"
+  | "koto";
 const unpitched = new Set<Voice>([
   "kick",
   "brush",
@@ -418,7 +424,8 @@ export function compose(arrangement: Arrangement): Score {
   if (cultural) return composeCultural(cultural, arrangement);
   const layered =
     layeredThemes.find((t) => t.id === arrangement.themeId) ??
-    Object.values(interiorThemes).find((t) => t.id === arrangement.themeId);
+    Object.values(interiorThemes).find((t) => t.id === arrangement.themeId) ??
+    situationThemes().find((t) => t.id === arrangement.themeId);
   if (layered) return composeLayered(layered, arrangement);
   const theme = themes.find((t) => t.id === arrangement.themeId) ?? themes[0];
   const { period, era, season } = arrangement;

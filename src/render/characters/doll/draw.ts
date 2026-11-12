@@ -22,6 +22,9 @@ import {
 
 /** Feet stand on this row. */
 const GY = 77;
+/** Body-space row a swimmer's shoulders are sunk to; `SWIM_IMMERSION` is the matching waterline. */
+const SWIM_SHOULDER = 13;
+export const SWIM_IMMERSION = H - GY + SWIM_SHOULDER - 1;
 /** A step forward drops the foot this far down the screen. */
 const TILT = 0.25;
 
@@ -321,9 +324,9 @@ const social: Partial<Record<CharacterPose, readonly Key[]>> = {
   ],
   listen: [
     { hands: [[-4, -6, 2]], mid: 0.6 },
-    { hands: [[-4, -6, 2]], mid: 0.6, nod: 1 },
+    { hands: [[-4, -6, 2]], mid: 0.6, nod: 1, lean: 0.6 },
     { hands: [[-4, -6, 2]], mid: 0.6 },
-    { hands: [[-4, -6, 2]], mid: 0.6, tilt: 0.5 },
+    { hands: [[-4, -6, 2]], mid: 0.6, tilt: 0.6, feet: [[0, 0, 0], [0, 0.6, 0.6]], knee: 1 },
   ],
   "fold-arms": [
     { hands: [[-5.6, -4, 2.4]] },
@@ -366,6 +369,13 @@ const actions: Partial<Record<CharacterPose, readonly Key[]>> = {
     { one: [0, 4, -1], tool: [0, 0.4, 1], lean: -0.3 },
     { one: [0, 1, 4.2], lean: 1.8, feet: [[0, 0, 2.4], [0, 0, -1.4]], smear: "hands" },
     { one: [-1, -3, 3], lean: 0.8 },
+  ],
+  // Bow in the far hand, string hand to the cheek, then the snap back past the ear.
+  draw: [
+    { off: [-2.2, -2, 4], one: [-3, -2.5, 3.4], feet: [[0, 0, 1.4], [0, 0, -1.4]] },
+    { off: [-2.4, 0, 5.6], one: [-3.2, 0.6, 2.4], lean: -0.2, feet: [[0, 0, 1.6], [0, 0, -1.6]] },
+    { off: [-2.4, 0.6, 6.2], one: [-3.6, 2.4, 0.2], lean: -0.5, face: "squint", feet: [[0, 0, 1.6], [0, 0, -1.6]] },
+    { off: [-2.4, 1.4, 5.8], one: [-2.2, 3.2, -2.6], lean: -1, smear: "hands", feet: [[0, 0, 1.6], [0, 0, -1.6]] },
   ],
   cast: [
     { grip: [-1.5, 4, -1.6], tool: [0, 0.8, -0.6], lean: -0.5 },
@@ -544,8 +554,22 @@ function ik(root: J, target: J, l1: number, l2: number, pole: J): Limb {
 
 const swings = new Set<CharacterPose>([
   "swing", "chop", "dig", "reap", "till", "axe-chop", "pick-strike", "stick-swing", "shovel-dig", "rake-pull",
-  "sickle-cut", "scythe-sweep", "slash", "carve", "cast", "whirl", "spin", "plunge", "draw",
+  "sickle-cut", "scythe-sweep", "slash", "carve", "cast", "whirl", "spin", "plunge",
 ]);
+// A crossbow or a gun brought up level to the shoulder, then the kick.
+const levelled: readonly Key[] = [
+  { one: [-2.6, -2, 3], off: [-2.4, -1.5, 5], tool: [0, 0.6, 1], feet: [[0, 0, 1.2], [0, 0, -1.2]] },
+  { one: [-3, 0.6, 2], off: [-2.4, 0.4, 5.2], tool: [0, 0.08, 1], feet: [[0, 0, 1.4], [0, 0, -1.4]] },
+  { one: [-3, 0.6, 2], off: [-2.4, 0.4, 5.2], tool: [0, 0.08, 1], face: "squint", feet: [[0, 0, 1.4], [0, 0, -1.4]] },
+  { one: [-3, 1.6, 0.8], off: [-2.4, 1.8, 4.4], tool: [0, 0.5, 1], lean: -1, face: "squint", feet: [[0, 0, 1.4], [0, 0, -1.4]] },
+];
+// A blowgun held at the lips in both hands, the far one out along the tube.
+const blowing: readonly Key[] = [
+  { one: [-3.4, 1, 2.4], off: [-3, 0.6, 4], tool: [0, 0.4, 1] },
+  { one: [-3.6, 2.6, 1.6], off: [-3.2, 2.2, 4.4], tool: [0, 0.12, 1] },
+  { one: [-3.6, 2.6, 1.6], off: [-3.2, 2.2, 4.4], tool: [0, 0.12, 1], face: "squint" },
+  { one: [-3.6, 2.6, 1.6], off: [-3.2, 2.2, 4.4], tool: [0, 0.12, 1], face: "o", lean: 0.4 },
+];
 const thrusts = new Set<CharacterPose>(["thrust", "spear-thrust", "spear-throw", "knife-thrust", "pitchfork-jab"]);
 const crouches = new Set<CharacterPose>(["pickup", "drop", "stoop", "kneel", "work-fish", "work-rinse", "work-tend"]);
 
@@ -593,16 +617,20 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
       hands[i] = run
         ? [side * (d.shoulderW + 0.3), sh - d.upper - 0.5 + Math.max(0, s) * 0.4, s]
         : hang(side, s, Math.abs(s) * (g ? 0.35 : 0.2));
+      // G: the forward hand crosses the body and the back one swings wide, so the swing shows head-on.
+      if (g && !run) hands[i][0] -= side * s * 0.35;
     }
     const contact = frame % 4 === 2;
     rise = run ? (frame % 4 === 0 ? 1 : contact ? -1 : 0) : contact ? -1 : 0;
     sway = Math.sin(p) * (run ? 1.4 : 1);
+    // G: the shoulders rock over the leading foot.
+    if (g) tilt = Math.sin(p) * 0.6;
     moving = true;
     // The run's passing frames leave the ground: both feet up.
     if (run && frame % 4 === 0) for (const f of feet) f.at[1] += 1;
   };
 
-  const key = actions[pose]?.[frame & 3];
+  const key = (pose === "draw" && prop && prop.kind !== "bow" ? (prop.sprite === "icon:blowgun" ? blowing : levelled) : actions[pose])?.[frame & 3];
   if (key) {
     // Two-sided targets: index 0 is the figure's left.
     const hand = (side: number, r: Rel): J => [side * (d.shoulderW + r[0]), sh + r[1], r[2]];
@@ -653,6 +681,7 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     // A march: the head held level and the free arm swung stiff.
     if (armed) {
       nod = 0;
+      tilt = 0;
       lean = -0.2;
       rise = frame % 4 === 2 ? -1 : 0;
     }
@@ -670,6 +699,31 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
       for (const h of hands) h[1] += 1.5;
       nod = 1;
     }
+  } else if (pose === "swim" || pose === "tread") {
+    // Sunk to one shoulder height for every body, so the scene's waterline is a constant.
+    const beat = frame & 3, w = d.shoulderW;
+    rise = SWIM_SHOULDER - sh + (pose === "swim" ? [0, 0, 1, 1] : [0, 1, 1, 0])[beat];
+    const hip = d.hip + rise;
+    if (pose === "swim") {
+      // Breaststroke: glide, sweep out, pull to the chest, shoot forward. A frog kick behind.
+      // Raised by TILT times the reach so the hands break the surface in front, where reach drops them down the screen.
+      const reach: J[] = [[1, sh + 0.5 + 7 * TILT, 7], [w + 4, sh + 0.5 + 4 * TILT, 4], [w - 1, sh - 2.5, 1.5], [1.5, sh - 0.5, 4]];
+      const kick: J[] = [[hipX * 0.6, hip, -9], [hipX, hip + 1, -8], [hipX + 2.5, hip, -5], [hipX + 4, hip, -8]];
+      const [hx, hy, hz] = reach[beat], [fx, fy, fz] = kick[beat];
+      hands[0] = [hx, hy, hz];
+      hands[1] = [-hx, hy, hz];
+      feet[0] = { at: [fx, fy, fz], knee: beat === 2 ? 3 : 0.6 };
+      feet[1] = { at: [-fx, fy, fz], knee: beat === 2 ? 3 : 0.6 };
+      lean = 1.2;
+    } else {
+      const out = [w + 2.5, w + 1, w + 2.5, w + 4][beat];
+      hands[0] = [out, sh - 3.5, 2.5];
+      hands[1] = [-out, sh - 3.5, 2.5];
+      feet[0] = { at: [hipX + 1, hip - 6 + (beat & 1), 2 - (beat & 1) * 2], knee: 2 };
+      feet[1] = { at: [-hipX - 1, hip - 6 + (~beat & 1), (beat & 1) * 2], knee: 2 };
+    }
+    blink = pose === "tread" && beat === 3;
+    moving = pose === "swim";
   } else if (pose === "idle" || pose === "breathe" || pose === "straighten" || pose === "recover") {
     blink = frame === 3;
     if (pose === "breathe" && (frame === 1 || frame === 2)) rise = 1;
@@ -748,11 +802,24 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     hands[1] = [-d.shoulderW * 0.45, sh - 5 + dy + (beat === 3 ? -1 : 0), fz];
     lean = pose === "tug" ? -0.6 : 0.8;
     if (pose === "work-pound" || pose === "work-check") nod = 1;
+  } else if (pose === "push") {
+    const beat = frame & 3, fz = [5, 5.6, 5, 4.4][beat];
+    hands[0] = [d.shoulderW * 0.5, sh - 6, fz];
+    hands[1] = [-d.shoulderW * 0.5, sh - 6, fz];
+    lean = 1 + (beat === 1 ? 0.3 : 0);
+    feet[0] = { at: [hipX, 2, 1.5] };
+    feet[1] = { at: [-hipX, 2, -1.5] };
   } else {
     blink = frame === 3;
   }
   const trade = pose in trades;
-  if (prop?.kind === "both" && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !trade) {
+  // Walking or standing behind a pram: the hands stay on its bar.
+  if (a.wearing.infant && a.wearing.infantCarry === "pram" && pose !== "push" && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !trade) {
+    hands[0] = [d.shoulderW * 0.5, sh - 6, 5];
+    hands[1] = [-d.shoulderW * 0.5, sh - 6, 5];
+    lean += 0.5;
+  }
+  if (prop?.kind === "both" && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade) {
     hands[0] = [d.shoulderW - 1, sh - 4, 2.5];
     hands[1] = [-(d.shoulderW - 1), sh - 4, 2.5];
   }
@@ -1326,8 +1393,10 @@ export function drawCharacterF(
   // swinging with the last frame's stride.
   const settle = Math.abs(turn) === 1 ? Math.sign(turn) * t.cos : 0;
   const drift = (f: number) => f * ((r.moving ? -t.sx * t.sin * (pose === "run" ? 2 : 1.2) : 0) + prev.sway * t.cos - settle);
-  headArgs.drift = drift(1);
-  const cloakMask = a.wearing.cloak ? cloak(t, d, yOf, centre, drift) : undefined;
+  // G: hair and a cloak swing wider than a sash end.
+  const loose = g ? (f: number) => drift(f * 1.6) : drift;
+  headArgs.drift = loose(1);
+  const cloakMask = a.wearing.cloak ? cloak(t, d, yOf, centre, loose) : undefined;
   // Its inside, in the body's shadow: a step darker, or pale cloth reads as an outline.
   if (cloakMask && !backView) s.put(cloakMask, CLOAK, { shade: 0.4, bottom: true, dark: 1 });
   if (!backView) hairBehind(headArgs);
@@ -1398,8 +1467,10 @@ export function drawCharacterF(
       const sy = yOf(y);
       const base = lerp(d.hipW, d.hipW + k.flare, f * f);
       const c = centre(hip);
-      let x0 = c - Math.hypot(base * t.cos, (d.bellyD + k.flare * 0.6 * f) * t.sin),
-        x1 = c + Math.hypot(base * t.cos, (d.bellyD + k.flare * 0.6 * f) * t.sin);
+      // G: a skirt seen head-on swings to the side a frame after the step.
+      const swing = g ? prev.sway * t.cos * f : 0;
+      let x0 = c + swing - Math.hypot(base * t.cos, (d.bellyD + k.flare * 0.6 * f) * t.sin),
+        x1 = c + swing + Math.hypot(base * t.cos, (d.bellyD + k.flare * 0.6 * f) * t.sin);
       // The bottom of the hem follows where the legs were a frame ago.
       for (const x of legX(Math.min(sy, GY - 1), y <= hem + 1 ? prev : r)) {
         x0 = Math.min(x0, x - 1.2);
@@ -1427,8 +1498,9 @@ export function drawCharacterF(
   }
   const fig: Figure = { s, cos: t.cos, sin: t.sin, sx: t.sx, yOf, centre, hip: d.hip, shoulder: d.shoulder, leg: d.cut,
     shoulderW: d.shoulderW, waistW: d.waistW, bellyD: d.bellyD, chestD: d.chestD, drift, refined: g };
-  const carrying = g && a.wearing.infant && !d.child;
-  if (carrying && !backView) infant(fig, "behind");
+  const carrying = g && a.wearing.infant;
+  if (carrying && !backView) infant(fig, "behind", a.wearing.infantMood, a.wearing.infantCarry);
+  if (carrying && backView) infant(fig, "under", a.wearing.infantMood, a.wearing.infantCarry);
   const { zone, tone } = garment(k, d, t, yOf, centre, hem, bare, s.key);
   s.put(body, TOP, { zone, tone, shade: 0.34, light: fabricLight[k.material ?? "cotton"], top: true, bottom: hem !== undefined });
   if (hem !== undefined) hemDetail(s, a, t, yOf(hem), centre(hip));
@@ -1503,12 +1575,12 @@ export function drawCharacterF(
       },
     });
   }
-  if (carrying && backView) infant(fig, "behind");
-  if (carrying && !backView) infant(fig, "over");
+  if (carrying && backView) infant(fig, "behind", a.wearing.infantMood, a.wearing.infantCarry);
+  if (carrying && !backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
 
   // ---- the head, then anything raised above it
   drawHead(headArgs);
-  if (carrying && backView) infant(fig, "over");
+  if (carrying && backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
   if (w.neckwear && w.neckwear !== "none" && !["hood", "headscarf", "veil"].includes(w.headwear)) neckwear(fig, w.neckwear);
   for (const { arm, z } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
   if (w.wrist === "bangles") bangles(fig, r.arms.map((arm) => project(t, arm.end)).map(([x, y]) => [x, y] as const));
@@ -1518,7 +1590,76 @@ export function drawCharacterF(
   s.resolve(palette(a), image.data);
   ctx.putImageData(image, 0, 0);
   // A thrown spear has left the hand.
-  if (prop && !held && !shoulderLoad && !work && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
+  const levelled = pose === "draw" && r.tool && /^icon:(crossbow|musket|rifle|blowgun)$/.exec(prop?.sprite ?? "")?.[1];
+  if (prop?.kind === "bow" && pose === "draw") drawBow(ctx, t, r, frame & 3);
+  else if (levelled) drawLevelled(ctx, t, r, levelled);
+  else if (prop && !held && !shoulderLoad && !work && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
+}
+
+/** A gun, a crossbow or a blowgun along the line of aim, drawn as a few
+ * strokes: the icons are drawn on the diagonal and do not turn cleanly. */
+function drawLevelled(ctx: CanvasRenderingContext2D, t: Turn, r: Rig, kind: string) {
+  const hand = r.arms[r.near].end, n = len(r.tool!) || 1;
+  const dir: J = [r.tool![0] / n, r.tool![1] / n, r.tool![2] / n];
+  const at = (k: number): J => [hand[0] + dir[0] * k, hand[1] + dir[1] * k, hand[2] + dir[2] * k];
+  const line = (a: J, b: J, color: string, dy = 0) => {
+    const [x0, y0] = project(t, a), [x1, y1] = project(t, b);
+    const steps = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+    ctx.fillStyle = color;
+    for (let i = 0; i <= steps; i++) ctx.fillRect(Math.round(x0 + ((x1 - x0) * i) / steps), Math.round(y0 + ((y1 - y0) * i) / steps) + dy, 1, 1);
+  };
+  ctx.save();
+  if (t.cos < -0.3) ctx.globalCompositeOperation = "destination-over";
+  if (kind === "blowgun") {
+    line(at(-1), at(15), "#2a1c14", 1);
+    line(at(-1), at(15), "#a8955a");
+    for (const k of [4, 9, 14]) line(at(k), at(k), "#d8c890");
+  } else {
+    const reach = kind === "crossbow" ? 10 : kind === "rifle" ? 12 : 13;
+    line(at(-3), at(reach), "#2a1c14", 1);
+    line(at(-3), at(kind === "crossbow" ? reach : 3), "#7a5232");
+    if (kind !== "crossbow") line(at(3), at(reach), "#5e6268");
+    else {
+      // The prod across the front, and its string drawn back to the nut.
+      const prod = (side: number): J => [at(reach)[0] + side * 3.5, at(reach)[1], at(reach)[2] - 1.2];
+      line(prod(-1), prod(1), "#2a1c14", 1);
+      line(prod(-1), at(reach), "#a8733a");
+      line(at(reach), prod(1), "#a8733a");
+      line(prod(-1), at(reach - 3), "#d6ccb2");
+      line(at(reach - 3), prod(1), "#d6ccb2");
+    }
+  }
+  ctx.restore();
+}
+
+/** The bow at full stretch is drawn, not pasted: the stave bends with the
+ * pull and the string runs to the hand. */
+function drawBow(ctx: CanvasRenderingContext2D, t: Turn, r: Rig, frame: number) {
+  const grip = r.arms[1 - r.near].end,
+    pull = r.arms[r.near].end;
+  const bend = [1.4, 2.2, 3, 1.2][frame];
+  const at = (u: number): J => [grip[0], grip[1] + u * 8, grip[2] + 2.5 - u * u * bend];
+  const line = (a: J, b: J, color: string, dx = 0) => {
+    const [x0, y0] = project(t, a), [x1, y1] = project(t, b);
+    const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+    ctx.fillStyle = color;
+    for (let i = 0; i <= n; i++) ctx.fillRect(Math.round(x0 + ((x1 - x0) * i) / n) + dx, Math.round(y0 + ((y1 - y0) * i) / n), 1, 1);
+  };
+  ctx.save();
+  // Held out in front, so only a figure turned away hides it.
+  if (t.cos < -0.3) ctx.globalCompositeOperation = "destination-over";
+  const top = at(-1), bottom = at(1);
+  if (frame === 1 || frame === 2) {
+    line(top, pull, "#d6ccb2");
+    line(pull, bottom, "#d6ccb2");
+    line(pull, [grip[0], grip[1] + 0.5, grip[2] + 4], "#b9955c");
+    line([grip[0], grip[1] + 0.5, grip[2] + 4], [grip[0], grip[1] + 0.5, grip[2] + 5], "#ded9bd");
+    line(pull, [pull[0], pull[1], pull[2] + 1], "#b9a4a0");
+  } else line(top, bottom, "#d6ccb2");
+  const out = project(t, at(0))[0] >= project(t, pull)[0] ? 1 : -1;
+  for (let i = 0; i < 6; i++) line(at(-1 + i / 3), at(-1 + (i + 1) / 3), "#2a1c14", out);
+  for (let i = 0; i < 6; i++) line(at(-1 + i / 3), at(-1 + (i + 1) / 3), i === 2 || i === 3 ? "#3a2618" : "#a8733a");
+  ctx.restore();
 }
 
 export function drawCharacterG(...args: Parameters<typeof drawCharacterF>) {
@@ -1857,8 +1998,11 @@ function garment(
     // Folds below the waist, opening out toward the hem and on the shade side deeper.
     if (flared && y > hipRow + 1 && y < hemRow - (banded ? 1 : 0)) {
       const spread = 1.5 + (y - hipRow) * (long ? 0.28 : 0.4);
-      if (Math.abs(Math.abs(dx) - spread) < 0.5 && (facing || t.sin > 0.5)) return 2;
+      if (Math.abs(Math.abs(dx) - spread) < 0.5) return 2;
     }
+    // From behind: a fold between the shoulder blades, the spine on a bare back, a tailored coat's seam to its vent.
+    if (t.cos < -0.1 && Math.abs(dx + off * 0.8) < 0.6 && y >= top + 2 &&
+      y < (bare ? hipRow : g === "coat" || g === "suit" ? hemRow : top + 5)) return 2;
     return tn;
   };
   return { zone, tone };

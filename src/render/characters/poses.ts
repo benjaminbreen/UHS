@@ -7,6 +7,8 @@ export const poses = [
   "run",
   "climb",
   "wade",
+  "swim",
+  "tread",
   "carry",
   "pickup",
   "drop",
@@ -103,6 +105,8 @@ export const poses = [
   "sway",
   "tug",
   "lift",
+  /** Both hands on a bar ahead and the weight leant into it: a pram, a barrow, a cart. */
+  "push",
   "startle",
   "jump",
   "land",
@@ -170,6 +174,8 @@ export const frameCount = (pose: CharacterPose) =>
   pose === "walk" || pose === "run" ? 8 : poseFrames;
 export function poseTiming(pose: CharacterPose) {
   if (pose === "wade") return 210;
+  if (pose === "swim") return 190;
+  if (pose === "tread") return 300;
   // Eight frames in the time the four used to take.
   if (pose === "walk") return 80;
   // A run reads as a run through cadence as much as through the pose. Eight
@@ -182,7 +188,7 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "adjust-hat" || pose === "straighten" || pose === "touch-face" || pose === "inspect-held") return 160;
   if (pose === "recover") return 55;
   if (pose === "stoop" || pose === "sway") return 320;
-  if (pose === "kneel" || pose === "tug" || pose === "lift") return 240;
+  if (pose === "kneel" || pose === "tug" || pose === "lift" || pose === "push") return 240;
   // Crouch, launch, apex, reach for the ground. The scene spreads these over
   // the arc itself; this is the lab's cadence.
   if (pose === "jump") return 90;
@@ -213,7 +219,7 @@ export function poseTiming(pose: CharacterPose) {
   // Raise and dive are spread over the jump; the impact and rise are quick.
   if (pose === "plunge") return 80;
   if (pose === "cast") return 120;
-  if (pose === "draw") return 140;
+  if (pose === "draw") return 100;
   // The last of these is the release; the scene loops the first three while aiming.
   if (pose === "whirl") return 90;
   // A knife is quick: the whole cut is over before a swing reaches its top.

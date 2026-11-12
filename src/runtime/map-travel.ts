@@ -1,4 +1,4 @@
-import { edgeCrossings, sharedCrossings } from "../world/travel/waterways";
+import { withTravelWaterways, type TravelWaterwayInputs } from "../world/travel/waterways";
 import { Engine } from "../core/engine";
 import { seedAilments } from "../core/health";
 import { skySeed } from "../core/weather";
@@ -11,7 +11,7 @@ import {
 } from "../world/travel/geography";
 import { toAtlas } from "../world/geography/atlas";
 import type { Coordinate } from "../world/travel/types";
-import type { PlayerCommand, Snapshot } from "../core/types";
+import type { PlayerCommand, Point, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import {
@@ -28,13 +28,14 @@ import { settingForTravelStop } from "../world/travel/environment";
 import type { SettlementWorld } from "../world/v3/generate";
 import { DAY, railSpeed, timetable } from "../world/v3/railway";
 import type { MapEntrance } from "../world/travel/entrances";
-export function travelSetting(
+function travelSettings(
   map: PermanentMap,
   exits: MapExit[],
   year: number,
 ) {
   const setting = settingForTravelStop(map, year);
   setting.hydrologyRevision = 3;
+  const waterways: TravelWaterwayInputs = { source: { ...setting }, neighbors: [] };
   setting.playableMap = {
     id: map.networkId,
     name: map.name,
@@ -43,12 +44,9 @@ export function travelSetting(
       const destination = permanentMap(to, year);
       const next = settingForTravelStop(destination, year);
       const peer = permanentExits(to, year).find((e) => e.id === id)?.seam;
-      const a = seam ? edgeCrossings(setting, map.networkId, 384, seam) : [];
-      const b = peer ? edgeCrossings(next, to, 384, peer) : [];
-      const waterways = map.networkId < to ? sharedCrossings(a, b)
-        : sharedCrossings(b, a).map((p) => ({ ...p, flow: -p.flow }));
+      waterways.neighbors.push(next);
       return {
-        id, to, bearing, mode, seam, waterways,
+        id, to, bearing, mode, seam,
         name: destination.name, settlement: destination.settlement,
         peer: peer ? { side: peer.side, start: peer.start, end: peer.end } : undefined,
         neighbor: {
@@ -63,11 +61,18 @@ export function travelSetting(
       };
     }),
   };
-  setting.environment!.population =
-    map.settlement === "city" || map.settlement === "town" || map.settlement === "village"
+  setting.environment = {
+    ...setting.environment!,
+    population: map.settlement === "city" || map.settlement === "town" || map.settlement === "village"
       ? "settled"
-      : (map.countryside ?? "none");
-  setting.environment!.start = "wanderer";
+      : (map.countryside ?? "none"),
+    start: "wanderer",
+  };
+  return { setting, waterways };
+}
+export function travelSetting(map: PermanentMap, exits: MapExit[], year: number) {
+  const { setting, waterways } = travelSettings(map, exits, year);
+  setting.playableMap = withTravelWaterways(setting.playableMap!, waterways);
   return setting;
 }
 export async function prepareTravelMap(
@@ -76,17 +81,27 @@ export async function prepareTravelMap(
   signal?: AbortSignal,
   saved?: Snapshot,
 ) {
-  await loadTileNames([id]);
+  const [{ prepareSettingSession }] = await Promise.all([import("./preparation"), loadTileNames([id])]);
+  signal?.throwIfAborted();
+  const seed = saved?.manifest.seed ?? "travel-review:" + id;
+  if (saved?.manifest.setting) return prepareSettingSession(saved.manifest.setting, seed, signal);
   const map = permanentMap(id, year),
     exits = permanentExits(id, year);
-  const { prepareSettingSession } = await import("./preparation");
-  return prepareSettingSession(
-    saved?.manifest.setting ?? travelSetting(map, exits, year),
-    saved?.manifest.seed ?? "travel-review:" + id,
-    signal,
-  );
+  const { setting, waterways } = travelSettings(map, exits, year);
+  return prepareSettingSession(setting, seed, signal, true, undefined, waterways);
 }
 type Prepared = { id: string; engine: Engine };
+function acrossBorder(bearing: string, from: Point, half: number) {
+  switch (bearing) {
+    case "N": return { x: from.x, y: half - 2 };
+    case "S": return { x: from.x, y: -half + 1 };
+    case "E": return { x: -half + 1, y: from.y };
+    case "W": return { x: half - 2, y: from.y };
+  }
+}
+function borderDistances({ x, y }: Point, half: number) {
+  return { N: half + y, E: half - 1 - x, S: half - 1 - y, W: half + x };
+}
 export class MapTravel {
   readonly visited = new Map<string, Snapshot>();
   busy = false;
@@ -98,6 +113,7 @@ export class MapTravel {
     promise: Promise<Prepared>;
   };
   private prefetchFailures = new Set<string>();
+  private approach?: { entrance: MapEntrance; from: Point };
   private arrival?: { id: string; x: number; y: number };
   constructor(
     readonly runtime: Runtime,
@@ -152,7 +168,8 @@ export class MapTravel {
         }
         const result = { id, engine: fresh };
         this.staged = result;
-        if (this.pending?.id === id) this.pending = undefined;
+        this.prefetchFailures.delete(id);
+        if (this.pending?.abort === abort) this.pending = undefined;
         return result;
       })
       .catch((e) => {
@@ -164,28 +181,55 @@ export class MapTravel {
   }
   observe() {
     if (this.closed || this.busy) return;
-    const p = this.runtime.engine.state.player.pos;
+    const { player, manifest } = this.runtime.engine.state;
+    const p = player.pos;
+    this.approach = undefined;
     if (p.space !== "outside") return;
     if (
       this.arrival &&
       Math.hypot(p.x - this.arrival.x, p.y - this.arrival.y) > 4
     )
       this.arrival = undefined;
-    const nearest = this.entrances
-      .filter((e) => e.point && e.walkable && e.id !== this.arrival?.id)
-      .sort(
-        (a, b) =>
-          Math.hypot(p.x - a.point!.x, p.y - a.point!.y) -
-          Math.hypot(p.x - b.point!.x, p.y - b.point!.y),
-      )[0];
-    if (
-      nearest &&
-      !this.prefetchFailures.has(nearest.to) &&
-      Math.hypot(p.x - nearest.point!.x, p.y - nearest.point!.y) < 32
-    )
-      void this.load(nearest.to).catch(() => {
-        this.prefetchFailures.add(nearest.to);
-      });
+    const half = manifest.setting!.playableMap!.size / 2;
+    const distance = borderDistances(p, half);
+    const routeEnd = this.runtime.route.at(-1);
+    const routeDistance = routeEnd && borderDistances(routeEnd, half);
+    const heading = ["N", "E", "S", "W"][player.direction];
+    let best = 48;
+    let bestRoute = 2;
+    let routeEntrance: MapEntrance | undefined;
+    for (const entrance of this.entrances) {
+      if (!entrance.point || !entrance.walkable || entrance.id === this.arrival?.id) continue;
+      const side = (entrance.seam?.side ?? entrance.bearing) as keyof typeof distance;
+      const routeEdge = routeDistance?.[side];
+      if (routeEdge !== undefined && routeEdge >= 0 && routeEdge < bestRoute) {
+        routeEntrance = entrance;
+        bestRoute = routeEdge;
+      }
+      const edge = distance[side];
+      const score = (edge ?? Math.hypot(p.x - entrance.point.x, p.y - entrance.point.y))
+        - (side === heading ? 16 : 0);
+      if (score >= best) continue;
+      this.approach = { entrance, from: p };
+      best = score;
+    }
+    if (routeEntrance && routeEnd) this.approach = { entrance: routeEntrance, from: routeEnd };
+    const id = this.approach?.entrance.to;
+    if (!id || this.staged?.id === id || this.pending?.id === id || this.prefetchFailures.has(id)) return;
+    const pending = this.load(id);
+    const signal = this.pending?.abort.signal;
+    void pending.catch(() => {
+      if (!signal?.aborted) this.prefetchFailures.add(id);
+    });
+  }
+  landing() {
+    const { approach, staged } = this;
+    if (this.closed || this.busy || !staged || approach?.entrance.to !== staged.id) return;
+    const { player } = this.runtime.engine.state;
+    if (player.pos.space !== "outside") return;
+    const half = staged.engine.state.manifest.setting!.playableMap!.size / 2;
+    const point = acrossBorder(approach.entrance.bearing, approach.from, half);
+    if (point) return { point, world: staged.engine.world };
   }
   borderHint() {
     if (this.busy) return "Preparing the next map…";
@@ -287,12 +331,7 @@ export class MapTravel {
       const half = destination.engine.state.manifest.setting!.playableMap!.size / 2;
       // The neighbour's edge is the same line of ground, so step straight on
       // across it; its paired entrance is only for a border cell it walls off.
-      const across = {
-        N: { x: from.x, y: half - 2 },
-        S: { x: from.x, y: -half + 1 },
-        E: { x: -half + 1, y: from.y },
-        W: { x: half - 2, y: from.y },
-      }[exit.bearing as "N"];
+      const across = acrossBorder(exit.bearing, from, half);
       const incoming = world.entrances().find((e) => e.id === exit.id);
       const point =
         across && !world.blocked(across.x, across.y, "outside")
@@ -592,9 +631,11 @@ export async function prepareConnectedStart(
     return prepareSettingSession(setting, seed, signal, true, onCharacter);
   }
   const id = mapForCoordinate({ lon: setting.lon, lat: setting.lat });
-  await loadTileNames([id]);
+  const [{ prepareSettingSession }] = await Promise.all([import("./preparation"), loadTileNames([id])]);
+  signal?.throwIfAborted();
   const map = permanentMap(id, setting.year);
   const exits = permanentExits(id, setting.year);
+  const { setting: travel, waterways } = travelSettings(map, exits, setting.year);
   const bounded = {
     ...setting,
     // The world is generated about the square's centre so that its borders
@@ -608,8 +649,7 @@ export async function prepareConnectedStart(
       (setting.location !== "Countryside" && !setting.placeId?.startsWith("area-"))
         ? setting.location
         : map.name,
-    playableMap: travelSetting(map, exits, setting.year).playableMap,
+    playableMap: travel.playableMap,
   };
-  const { prepareSettingSession } = await import("./preparation");
-  return prepareSettingSession(bounded, seed, signal, true, onCharacter);
+  return prepareSettingSession(bounded, seed, signal, true, onCharacter, waterways);
 }

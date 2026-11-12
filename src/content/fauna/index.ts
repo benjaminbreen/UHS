@@ -5,6 +5,7 @@ import { directionalFauna } from "./directional";
 import { domesticFauna } from "./domestic";
 import { bears } from "./bears";
 import { bigGame } from "./big-game";
+import { dangerousFauna } from "./dangerous";
 import { foxes } from "./foxes";
 import { megafauna } from "./megafauna";
 import { temperateFauna } from "./temperate";
@@ -24,6 +25,7 @@ export const faunaProfiles = [
   ...megafauna,
   ...bears,
   ...bigGame,
+  ...dangerousFauna,
 ];
 
 export function faunaProfile(id: string) {

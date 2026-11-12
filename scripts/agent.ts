@@ -2,6 +2,7 @@
  * An agent in a UHS world. See docs/AGENTS.md.
  *
  *   npm run agent:serve -- [--setting "Clerk in Lagos, 1925"] [--seed s] [--time-travel]
+ *   npm run agent:play -- [--setting ...] [--seed s]
  *   npm run agent:run -- [--setting ...] [--days 3] [--model m] [--base-url url] [--briefing file.md] [--repeat N]
  *   npm run agent:batch -- experiment.json [--out runs]
  *
@@ -13,9 +14,10 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeF
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { basename, dirname, resolve } from "node:path";
+import { createInterface } from "node:readline";
 import { z } from "zod";
-import { startAgent, tools, FRAMING, ASK_REASON, type Agent } from "../src/agents/agent";
-import { RunRecord, type Manifest } from "../src/agents/record";
+import { availableTools, startAgent, tools, FRAMING, ASK_REASON, type Agent } from "../src/agents/agent";
+import { RunRecord, type Entry, type Manifest } from "../src/agents/record";
 import { live } from "../src/agents/loop";
 import { anthropic, openaiCompatible } from "../src/agents/providers";
 import { loadEnv } from "vite";
@@ -30,9 +32,14 @@ const flag = (name: string) => {
   return i < 0 ? undefined : args[i + 1];
 };
 const has = (name: string) => args.includes(name);
-if (mode !== "serve" && mode !== "run" && mode !== "batch") {
-  console.error("Usage: scripts/agent.ts serve|run|batch [options]; see docs/AGENTS.md.");
+if (mode !== "serve" && mode !== "play" && mode !== "run" && mode !== "batch") {
+  console.error("Usage: scripts/agent.ts serve|play|run|batch [options]; see docs/AGENTS.md.");
   process.exit(1);
+}
+if (has("--help")) {
+  console.log(`See docs/AGENTS.md for options to agent:${mode}.`);
+  if (mode === "play") console.log('Type one tool and optional JSON input per line. For example: look or act {"command":{"type":"wait","seconds":60}}. Type help for tools and quit to end.');
+  process.exit(0);
 }
 
 const out = flag("--out") ?? "runs";
@@ -193,13 +200,13 @@ async function runOnce(spec: RunSpec) {
 
 if (mode === "serve") {
   const { record } = fileRecord({ mode: "serve", ...(start.offline ? { environment: null } : {}) });
-  const agent: Agent = await startAgent({ ...start, modelFetch: environment(record) }, record);
+  let agent: Promise<Agent> | undefined;
   const instructions = `${FRAMING}\n\n${ASK_REASON} Give them in each call's rationale.`;
   record.start({ instructions });
   const server = new McpServer({ name: "world", version: String(game.version) }, { instructions });
   // The host's own prompt and scaffolding are part of the agent being run.
   server.server.oninitialized = () => record.start({ host: server.server.getClientVersion() });
-  for (const name of agent.names)
+  for (const name of availableTools(start))
     server.registerTool(
       name,
       {
@@ -207,9 +214,57 @@ if (mode === "serve") {
         inputSchema: tools[name].input,
         annotations: { readOnlyHint: name === "look" || name === "inspect" },
       },
-      async (input: unknown) => ({ content: [{ type: "text" as const, text: await agent.call(name, input) }] }),
+      async (input: unknown) => {
+        agent ??= startAgent({ ...start, modelFetch: environment(record) }, record);
+        return { content: [{ type: "text" as const, text: await (await agent).call(name, input) }] };
+      },
     );
   await server.connect(new StdioServerTransport());
+} else if (mode === "play") {
+  const file = fileRecord({ mode: "play", environment: null });
+  const interactive = !!process.stdin.isTTY && !!process.stdout.isTTY;
+  const reply = (result: Pick<Entry, "tool" | "status" | "text"> & Partial<Pick<Entry, "clock" | "after" | "hash">>) =>
+    console.log(interactive ? result.text : JSON.stringify(result));
+  let error: string | undefined;
+  try {
+    if (interactive) console.error('Preparing the world. Type "look" to see it, or "help" for tools.');
+    const agent = await startAgent({ ...start, offline: true }, file.record);
+    const lines = createInterface({ input: process.stdin, output: interactive ? process.stdout : undefined, terminal: interactive, crlfDelay: Infinity });
+    try {
+      if (interactive) lines.prompt();
+      for await (const line of lines) {
+        const parts = /^(\S+)(?:\s+(.*))?$/.exec(line.trim());
+        if (parts) {
+          const [, tool, json = "{}"] = parts;
+          if (tool === "quit") break;
+          if (tool === "help") {
+            reply({ tool, status: "ok", text: agent.names.map((name) => `${name}  ${tools[name].description}`).join("\n") });
+          } else {
+            let input: unknown;
+            try { input = JSON.parse(json); }
+            catch { reply({ tool, status: "invalid", text: "Use a tool name followed by a JSON object." }); }
+            if (input !== undefined) {
+              const text = await agent.call(tool, input);
+              const { status, clock, after, hash } = file.record.entries.at(-1)!;
+              reply({ tool, status, text, clock, after, hash });
+            }
+          }
+        }
+        if (interactive) lines.prompt();
+      }
+    } finally {
+      lines.close();
+      agent.runtime.dispose();
+    }
+  } catch (failure) {
+    error = failure instanceof Error ? failure.message : String(failure);
+    console.error(error);
+    process.exitCode = 1;
+  }
+  if (file.dir()) {
+    file.finish({ result: error ? { error } : { calls: file.record.entries.length }, endedAt: new Date().toISOString() });
+    console.error(`Playtest saved to ${file.dir()}`);
+  }
 } else if (mode === "run") {
   const number = (name: string, min: number, max = Infinity, integer = false) => {
     const text = flag(name);

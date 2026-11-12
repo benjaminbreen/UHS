@@ -43,6 +43,8 @@ export function mapEntrances(
   const first = index(start.x, start.y);
   previous[first] = -1;
   queue.push(first);
+  const water = new Int8Array(size * size), passable = new Int8Array(size * size);
+  const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const edge: number[] = [],
     shore: number[] = [];
   for (let head = 0; head < queue.length; head++) {
@@ -51,22 +53,15 @@ export function mapEntrances(
     if (p.x === -half || p.y === -half || p.x === half - 1 || p.y === half - 1)
       edge.push(i);
     let coastal = false;
-    for (const [dx, dy] of [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ]) {
+    for (const [dx, dy] of steps) {
       const q = { x: p.x + dx, y: p.y + dy };
       if (q.x < -half || q.y < -half || q.x >= half || q.y >= half) continue;
-      if (world.terrain(q.x, q.y) === "water") coastal = true;
       const k = index(q.x, q.y);
-      if (
-        previous[k] !== -2 ||
-        world.blocked(q.x, q.y, "outside") ||
-        (world.canCross && !world.canCross(p, q))
-      )
-        continue;
+      water[k] ||= world.terrain(q.x, q.y) === "water" ? 1 : -1;
+      if (water[k] > 0) coastal = true;
+      if (previous[k] !== -2) continue;
+      passable[k] ||= world.blocked(q.x, q.y, "outside") ? -1 : 1;
+      if (passable[k] < 0 || (world.canCross && !world.canCross(p, q))) continue;
       previous[k] = i;
       queue.push(k);
     }

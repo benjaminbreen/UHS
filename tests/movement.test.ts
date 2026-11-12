@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 import { createSession } from "../src/runtime/session";
 import type { PlayerCommand } from "../src/core/types";
 import { itineraryAt, type Itinerary } from "../src/core/itinerary";
+import type { TopographyCell } from "../src/core/topography";
 
 it("accepts all eight directions, charges longer diagonals and prevents corner cutting", () => {
   const e = createSession("roman", "movement");
@@ -172,4 +173,72 @@ it("retains harmless impacts for worlds recorded before hazards were introduced"
   e.world.topography = (x) => ({ height: x <= 0 ? 5 : 0, surface: "grass" });
   e.execute({ type: "move", dx: 1, dy: 0 });
   expect(e.state.player.health).toBe(100);
+});
+
+const ford = (x: number): TopographyCell => x < 1 || x > 2
+  ? { height: 0, surface: "grass" }
+  : {
+    height: 0,
+    surface: "water",
+    waterVisual: { kind: "river", distance: -1.9, gradient: [0, 0], flow: [0, 1], ecology: "temperate-woodland", shoreWidth: 1, frozenMargin: false },
+  };
+
+it("offers a ford choice before moving and resolves the crossing using effective endurance", () => {
+  const e = hazardField("ford");
+  const p = e.state.player;
+  e.world.topography = ford;
+  p.stats = { ...e.stats(), endurance: 45 };
+  p.canSwim = false;
+  p.skills = {};
+  const rng = e.rng.bind(e);
+  vi.spyOn(e, "rng").mockImplementation((purpose) => purpose === "card:river-ford" ? 0.55 : rng(purpose));
+  const move = { type: "move", dx: 1, dy: 0 } as const;
+  const cross = { type: "choose", card: "river-ford", choice: 0 } as const;
+  const retreat = { ...cross, choice: 1 };
+  let serial = 0;
+  const act = (command: PlayerCommand) =>
+    e.act({ actionId: `ford-${serial++}`, expectedRevision: e.state.revision, command });
+  p.fatigue = 10;
+  expect(act(move).status).toBe("completed");
+  expect(p.pos.x).toBe(0);
+  expect(e.cards[0].choose?.choices[0].odds).toBeCloseTo(0.6);
+  expect(act(move).status).toBe("rejected");
+  expect(act(retreat).status).toBe("completed");
+  expect(p.pos.x).toBe(0);
+  expect(p.health).toBe(100);
+
+  p.fatigue = 90;
+  expect(act({ ...move, traverse: true }).status).toBe("completed");
+  expect(e.cards[0].choose?.choices[0].odds).toBeLessThan(0.55);
+  expect(act(cross).status).toBe("completed");
+  expect(p.pos.x).toBe(1);
+  expect(p.health).toBe(80);
+  expect(p.injury?.name).toBe("bruised knee");
+  expect(act(move).status).toBe("completed");
+  expect(e.state.encounter).toBeUndefined();
+  expect(p.pos.x).toBe(2);
+  expect(p.health).toBe(80);
+
+  expect(act(move).status).toBe("completed");
+  p.fatigue = 10;
+  p.stats.endurance = 75;
+  expect(act({ ...move, dx: -1 }).status).toBe("completed");
+  expect(act(cross).status).toBe("completed");
+  expect(p.pos.x).toBe(2);
+  expect(p.health).toBe(80);
+});
+
+it("does not interrupt a bridge or a world with the original hazard rules", () => {
+  for (const bridge of [true, false]) {
+    const e = hazardField(`ford-bridge-${bridge}`);
+    if (!bridge) e.state.manifest.hazards = 1;
+    e.world.topography = (x) => {
+      const cell = ford(x);
+      return bridge && x === 1 ? { ...cell, bridge: true } : cell;
+    };
+    e.execute({ type: "move", dx: 1, dy: 0 });
+    expect(e.state.encounter).toBeUndefined();
+    expect(e.state.player.pos.x).toBe(1);
+    expect(e.state.player.health).toBe(100);
+  }
 });

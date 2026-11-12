@@ -3,8 +3,11 @@ const workers = new WeakMap<WorldModel, Worker>();
 export function retainTerrainWorker(world: WorldModel, worker: Worker) {
   workers.set(world, worker);
 }
+export function peekTerrainWorker(world: WorldModel) {
+  return workers.get(world);
+}
 export function takeTerrainWorker(world: WorldModel) {
-  const worker = workers.get(world);
+  const worker = peekTerrainWorker(world);
   workers.delete(world);
   return worker;
 }
