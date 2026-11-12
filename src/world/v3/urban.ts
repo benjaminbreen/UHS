@@ -2036,13 +2036,19 @@ export function urbanNeighborhood(
         const model = buildingModels[frame];
         if (!model) continue;
         const [w, h] = model.footprint;
+        // A house in a town of cars stands back from the sidewalk behind a
+        // lawn; a shop is built up to it.
+        const back = form.motor && !form.oldCore && recipe.kind.includes("home") ? 2 : 0;
         const rect = {
-          x: door.x - model.entrance[0],
-          y: door.y - model.entrance[1],
+          x: door.x - model.entrance[0] + nx * back,
+          y: door.y - model.entrance[1] + ny * back,
           w,
           h,
         };
-        if (!clear(rect) || !fits(rect) || !within(rect)) continue;
+        const lawn = !back ? undefined
+          : ny ? { x: rect.x, y: ny < 0 ? rect.y + h : rect.y - back, w, h: back }
+          : { x: nx < 0 ? rect.x + w : rect.x - back, y: rect.y, w: back, h };
+        if (!clear(rect) || !fits(rect) || !within(rect) || (lawn && !free(lawn))) continue;
         // Not a shop in a suburb or a factory yard, not a bungalow downtown.
         const use =
           useAt.get(cellKey(rect.x + (w >> 1), rect.y + (h >> 1))) ?? here;
@@ -2054,15 +2060,16 @@ export function urbanNeighborhood(
         )
           continue;
         const lot: UrbanLot = {
-          point: { x: door.x, y: door.y },
+          point: { x: door.x + nx * back, y: door.y + ny * back },
           quarter: reach < 0.38 ? "market" : "residential",
-          use: use ?? (zoning ? "commercial" : undefined),
+          use: back ? "suburb" : use ?? (zoning ? "commercial" : undefined),
           nx,
           ny,
           frame,
           rect,
           yard: rect,
           workPoint: { x: door.x - nx, y: door.y - ny },
+          ...(lawn && { forecourt: lawn }),
         };
         if (place(open, lot)) break;
       }

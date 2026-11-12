@@ -3896,7 +3896,7 @@ export function planSettlement(
       }
       const fc = lot.forecourt;
       if (fc) {
-        paint(fc, cityGround === "grass" ? "grass" : "dirt", true, 3, "yard");
+        paint(fc, cityGround === "grass" || (motorAge && pack.setting?.climate !== "arid") ? "grass" : "dirt", true, 3, "yard");
         eachCell(fc, (x, y) => plan.reserved.add(cellKey(x, y)));
       }
       // Beyond a forecourt, the footway runs at the street, not at the wall.
