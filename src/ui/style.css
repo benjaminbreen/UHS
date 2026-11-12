@@ -9397,7 +9397,8 @@ button:disabled {
   .world-notice button { min-height: 32px; }
   .world-status > .work-card { pointer-events: auto; flex-shrink: 0; }
   /* One line until tapped, and clear of the minimap beside it. */
-  .world-status > .work-card { max-width: calc(100% - 96px); }
+  .world-status > .work-card:not([data-open]) { max-width: calc(100% - 96px); }
+  .world-status:has(> .work-card[data-open]) { z-index: 5; }
   .world-status > .work-card:not([data-open]) :is(.work-sub, .work-span) { display: none; }
   .world-status > .work-card:not([data-open]) .work-title b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .work-card-head { min-height: 44px; }
