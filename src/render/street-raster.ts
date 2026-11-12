@@ -5,7 +5,7 @@ import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
-import { streetDistance, streetUnionDistance, strokeFrame, throughStroke } from "../world/v3/street-geometry";
+import { streetDistance, streetUnionDistance, strokeFrame, strokeSection, throughStroke } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 /** World-space value noise at stone scale, so a seam wanders by whole stones. */
 const jitter = (wx: number, wy: number) => {
@@ -289,7 +289,7 @@ export function rasterStreetTile(
         const union = (qx: number, qy: number) => streetUnionDistance(strokes, qx, qy) * 16;
         const d = union(ax, ay);
         // Past every street's own footway the ground shows.
-        if (d > 0 && !infill && !strokes.some((o) => streetDistance(o, ax, ay) <= (o.walk ?? 2))) continue;
+        if (d > 0 && !infill && !strokes.some((o) => streetDistance(o, ax, ay) <= strokeSection(o, ax, ay).walk)) continue;
         const road = closest.material ?? material, walk = closest.footway ?? "concrete";
         let colour: RGB = pavingStonePixel(wx, wy, d < 0 ? road : walk, "street");
         const made = road === "asphalt" || road === "concrete" || road === "sett" || road === "brick";
@@ -303,12 +303,13 @@ export function rasterStreetTile(
               c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx, kerbs, smooth);
           else if (closest.marks) {
             // Off the grid a street carries the same section in its own frame.
-            const f = strokeFrame(closest, ax, ay), span = Math.round(closest.radius * 2);
+            const f = strokeFrame(closest, ax, ay), half = Math.round(strokeSection(closest, ax, ay).radius * 16);
             const crossed = strokes.some((o) => o !== closest && streetDistance(o, ax, ay) < 0 &&
               Math.abs((o.b[0] - o.a[0]) * (closest.b[1] - closest.a[1]) - (o.b[1] - o.a[1]) * (closest.b[0] - closest.a[0])) > 0.01);
             colour = carriagewayPixel(colour,
-              { axis: f.xlike ? "x" : "y", at: 0, span, marks: closest.marks, junction: crossed },
-              Math.floor((f.across + closest.radius) * 16), Math.floor(f.along * 16), Math.round((f.along - f.across) * 16), kerbs, smooth);
+              { axis: f.xlike ? "x" : "y", at: 0, span: half / 8, junction: crossed,
+                marks: closest.to === undefined ? closest.marks : { ...closest.marks, parking: false, lanes: false } },
+              Math.floor(f.across * 16) + half, Math.floor(f.along * 16), Math.round((f.along - f.across) * 16), kerbs, smooth);
           }
         }
         if (road !== "cobble" && road !== "slab") {

@@ -6,6 +6,9 @@ export type StreetStroke = {
   a: [number, number]; b: [number, number]; radius: number; material?: StreetMaterial; footway?: StreetMaterial; tier?: string;
   /** Cells of footway beyond each kerb. */
   walk?: number;
+  /** Half-width and footway at `b`, where the street narrows along its run. */
+  to?: number;
+  walkTo?: number;
   /** How the carriageway is painted, where the town marks its roads. */
   marks?: import("../../content/settlements/streets/markings").RoadMarkings;
 };
@@ -34,7 +37,16 @@ export function streetDistance(s: StreetStroke, x: number, y: number) {
   const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len = Math.hypot(dx, dy) || 1;
   const along = ((x - s.a[0]) * dx + (y - s.a[1]) * dy) / len,
     across = Math.abs((x - s.a[0]) * dy - (y - s.a[1]) * dx) / len;
-  return Math.max(across - s.radius, -along - 0.5, along - len - 0.5);
+  const radius = s.to === undefined ? s.radius : s.radius + (s.to - s.radius) * Math.max(0, Math.min(1, along / len));
+  return Math.max(across - radius, -along - 0.5, along - len - 0.5);
+}
+
+/** A street's half-width and footway where a point lies along it. */
+export function strokeSection(s: StreetStroke, x: number, y: number) {
+  const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len2 = dx * dx + dy * dy || 1;
+  const t = s.to === undefined ? 0 : Math.max(0, Math.min(1, ((x - s.a[0]) * dx + (y - s.a[1]) * dy) / len2));
+  const walk = s.walk ?? 2;
+  return { radius: s.radius + ((s.to ?? s.radius) - s.radius) * t, walk: walk + ((s.walkTo ?? walk) - walk) * t };
 }
 
 export function streetUnionDistance(strokes: StreetStroke[], x: number, y: number) {
@@ -49,8 +61,10 @@ export function streetUnionDistance(strokes: StreetStroke[], x: number, y: numbe
     const ax = nearest.b[0] - nearest.a[0], ay = nearest.b[1] - nearest.a[1];
     const bx = stroke.b[0] - stroke.a[0], by = stroke.b[1] - stroke.a[1];
     if (Math.abs(ax * by - ay * bx) < 0.01) continue;
-    const h = Math.max(0, 1 - Math.abs(distance - streetDistance(stroke, x, y)));
-    rounded = Math.min(rounded, distance - h * h * 0.25);
+    // A kerb laid for cars turns a wider corner than one laid for carts.
+    const k = nearest.marks ? 1.75 : 1;
+    const h = Math.max(0, k - Math.abs(distance - streetDistance(stroke, x, y))) / k;
+    rounded = Math.min(rounded, distance - h * h * k * 0.25);
   }
   return rounded;
 }
@@ -122,6 +136,22 @@ export function composeStreetGeometry(
         walk: sectioned && walk ? walk : 2, ...(marks && { marks }) }];
     });
   if (!strokes.length) return;
+  // Where the main street leaves town it narrows to the highway's two
+  // lanes over a few lengths, its footways running out beside it.
+  if (sectioned) {
+    const c = plan.site.center, far = plan.site.profile.radius * 0.6;
+    for (const s of [...strokes]) {
+      if (s.tier !== "street-0") continue;
+      for (const [end, other] of [[s.a, s.b], [s.b, s.a]]) {
+        if (Math.hypot(end[0] - c.x, end[1] - c.y) < far) continue;
+        const dx = Math.sign(Math.round(end[0] - other[0])), dy = Math.sign(Math.round(end[1] - other[1]));
+        if (strokes.some((o) => o !== s && o.tier === s.tier && Math.hypot(o.a[0] - end[0], o.a[1] - end[1]) < s.radius * 2 + 1 ||
+          o !== s && o.tier === s.tier && Math.hypot(o.b[0] - end[0], o.b[1] - end[1]) < s.radius * 2 + 1)) continue;
+        const off = Number.isInteger(s.radius) ? 0.5 : 0;
+        strokes.push({ ...s, a: [end[0], end[1]], b: [end[0] + dx * 8 - (dy ? off : 0), end[1] + dy * 8 - (dx ? off : 0)], to: 2.6, walkTo: 0 });
+      }
+    }
+  }
   // A street is surfaced as its kind, not segment by segment: a main road
   // that votes for the square's stone where it passes one would change
   // surface half way along.
@@ -152,7 +182,7 @@ export function composeStreetGeometry(
     if (buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) continue;
     const closest = throughStroke(list, x + 0.5, y + 0.5);
     const d = streetUnionDistance(list, x + 0.5, y + 0.5);
-    if (d > (closest.walk ?? 2)) continue;
+    if (d > strokeSection(closest, x + 0.5, y + 0.5).walk) continue;
     geometry.set(k, { strokes: list, infill: false });
     plan.surface.set(k, "paving");
     plan.streetSurfaces!.set(k, (d <= 0 ? closest.material : closest.footway) ?? "slab");
@@ -160,6 +190,8 @@ export function composeStreetGeometry(
     if (d <= 0) {
       plan.pavement!.delete(k);
       plan.traffic.add(k);
+      // A narrowing street is painted in its own frame, not the grid's.
+      if (closest.to !== undefined) plan.lanes?.delete(k);
     } else {
       plan.pavement!.set(k, "footway");
       plan.lanes?.delete(k);
