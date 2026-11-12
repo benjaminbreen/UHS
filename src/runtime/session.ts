@@ -855,9 +855,16 @@ export class Runtime {
     this.chunks = new ChunkCache(options.cacheTerrain !== false);
     this.engine = engine;
     this.attachChronicle(engine);
+    this.warmRoads(engine);
     this.syncAmbient();
     this.cached = this.view();
     this.startJourney(engine);
+  }
+  /** Routes the day's travellers while the world is still loading; the world
+   * keeps them, so the first step does not stall on the pathfinding. Reads
+   * only: the snapshot is untouched and replays are unaffected. */
+  private warmRoads(engine: Engine) {
+    if (engine.state.player.pos.space === "outside") engine.world.wayfarers?.(engine.state.clock);
   }
   private attachChronicle(engine: Engine) {
     this.chronicle = startChronicle(engine, "human");
@@ -993,6 +1000,7 @@ export class Runtime {
     this.stop();
     this.engine = engine;
     this.attachChronicle(engine);
+    this.warmRoads(engine);
     this.onRecord?.("world", { manifest: engine.state.manifest });
     if (!preserveJourney) this.startJourney(engine);
     this.selected = undefined;

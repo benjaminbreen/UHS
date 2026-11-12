@@ -43,7 +43,8 @@ export function Sprite({ name, scale = 2, maxSize }: { name: string; scale?: num
                     : name in sheets.civic.frames
                     ? sheets.civic
                     : sheets.atlas;
-  const f = source.frames[name]?.frame;
+  const entry = source.frames[name];
+  const f = entry?.frame;
   if (!f) return null;
   if (maxSize) scale = Math.min(scale, maxSize / Math.max(f.w, f.h));
   // The sheet is shown at its own size and the element is scaled afterwards.
@@ -60,9 +61,8 @@ export function Sprite({ name, scale = 2, maxSize }: { name: string; scale?: num
         height: f.h,
         transform: scale === 1 ? undefined : `scale(${scale})`,
         transformOrigin: "top left",
-        backgroundImage: `url(${source.image})`,
+        backgroundImage: `url(${entry.image ?? source.image})`,
         backgroundPosition: `-${f.x}px -${f.y}px`,
-        backgroundSize: `${source.meta.size.w}px ${source.meta.size.h}px`,
         imageRendering: "pixelated",
         flexShrink: 0,
       }}

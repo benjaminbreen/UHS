@@ -23,6 +23,7 @@ import { SplashStars } from "./SplashStars";
 import { Arrival } from "./Arrival";
 import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
 import type { CharacterPrepared, StartingCharacter } from "../runtime/preparation";
+import { setVitalsEnabled, vitalsEnabled } from "../runtime/vitals";
 import "./splash.css";
 const HINTS = [
   "A potter in Jenne-jeno, 800 CE",
@@ -72,6 +73,7 @@ export function Splash({
   }>();
   const [aboutOpen, setAboutOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [devMode, setDevMode] = useState(vitalsEnabled);
   const [prompt, setPrompt] = useState(() => new URLSearchParams(location.search).get("start") ?? "");
   const [hint] = useState(() => HINTS[Math.floor(Math.random() * HINTS.length)]);
   const [quick, setQuick] = useState(readQuick);
@@ -450,6 +452,18 @@ export function Splash({
                   })}
                 </div>
               </section>
+              <fieldset className="splash-random-mode">
+                <legend>Developer</legend>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={devMode}
+                    onChange={(e) => { setDevMode(e.target.checked); setVitalsEnabled(e.target.checked); }}
+                  />
+                  Dev mode
+                  <span className="splash-tip" role="tooltip">Shows memory counters and the last crash report at the bottom of the screen.</span>
+                </label>
+              </fieldset>
             </div>
           </div>
           <div className="splash-status" role="status">

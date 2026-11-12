@@ -487,8 +487,8 @@ function useSkyline(runtime: Runtime) {
       for (const sprite of sprites) {
         const name = (Object.keys(sheets) as SheetName[]).find((n) => sheets[n].frames[sprite]);
         if (!name) continue;
-        const f = sheets[name].frames[sprite].frame;
-        const img = await image(sheets[name].image).catch(() => undefined);
+        const { frame: f, image: page } = sheets[name].frames[sprite];
+        const img = await image(page ?? sheets[name].image).catch(() => undefined);
         if (!img) continue;
         const c = document.createElement("canvas");
         c.width = f.w;

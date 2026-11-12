@@ -23,6 +23,7 @@ type Snapshot = {
 };
 
 const KEY = "uhs.vitals";
+const CRASH = "uhs.vitals.crash";
 const FLAG = "uhs.vitals.until";
 /** Survives the reload after a crash, but a debugging session does not become
  * a permanent fixture of the game. ?vitals=0 clears it at once. */
@@ -34,10 +35,23 @@ export function vitalsEnabled() {
   return enabled;
 }
 
+/** The start screen's dev-mode box: the same switch as ?vitals=1. */
+export function setVitalsEnabled(on: boolean) {
+  enabled = on;
+  try {
+    if (on) localStorage.setItem(FLAG, String(Date.now() + STICKS_FOR_MS));
+    else localStorage.removeItem(FLAG);
+  } catch {
+    // The readout still shows for this page load.
+  }
+  window.dispatchEvent(new Event("uhs-vitals"));
+}
+
 function readFlag() {
   const param = new URLSearchParams(window.location.search).get("vitals");
   try {
     if (param === "0") {
+      localStorage.removeItem(CRASH);
       localStorage.removeItem(FLAG);
       return false;
     }
@@ -141,6 +155,13 @@ export function installVitals() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) previous = JSON.parse(raw) as Snapshot;
+    // The next snapshot overwrites KEY within seconds, so a kill is kept apart
+    // until a later one replaces it; otherwise a second reload loses it.
+    if (previous && !previous.closed) localStorage.setItem(CRASH, raw!);
+    else {
+      const kept = localStorage.getItem(CRASH);
+      if (kept) previous = JSON.parse(kept) as Snapshot;
+    }
   } catch {
     previous = undefined;
   }

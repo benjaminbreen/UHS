@@ -1,9 +1,10 @@
 import { createRoot } from "react-dom/client";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { Engine } from "./core/engine";
 import "./ui/style.css";
 import { PropLabHost } from "./dev/PropLabHost";
-import { installVitals } from "./runtime/vitals";
+import { installVitals, vitalsEnabled } from "./runtime/vitals";
+import { VitalsOverlay } from "./ui/VitalsOverlay";
 import { Analytics } from "@vercel/analytics/react";
 const Game = lazy(() => import("./runtime/bootstrap").then((m) => ({ default: m.Game })));
 async function start() {
@@ -125,6 +126,12 @@ async function start() {
     const [engine, setEngine] = useState<Engine>();
     const [entered, setEntered] = useState(false);
     const [ready, setReady] = useState(false);
+    const [vitals, setVitals] = useState(vitalsEnabled);
+    useEffect(() => {
+      const sync = () => setVitals(vitalsEnabled());
+      window.addEventListener("uhs-vitals", sync);
+      return () => window.removeEventListener("uhs-vitals", sync);
+    }, []);
     return <>
       {engine && <div className="prepared-game" inert={!entered}><Suspense fallback={null}>
         <Game engine={engine} active={entered} onReady={() => setReady(true)} />
@@ -133,6 +140,8 @@ async function start() {
         onPrepared={(engine) => { setReady(false); setEngine(engine); }}
         onStart={() => setEntered(true)}
         onCancel={() => { setEngine(undefined); setReady(false); }} />}
+      {/* Here, not in the game: after a crash the phone reloads to the start screen. */}
+      {vitals && <VitalsOverlay />}
       <Analytics />
     </>;
   }

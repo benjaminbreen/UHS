@@ -120,8 +120,7 @@ import { WorkCard } from "./WorkCard";
 import { Toasts } from "./Toasts";
 import { EveningLedger } from "./EveningLedger";
 import { setRealLanguage, useRealLanguage } from "./real-language";
-import { VitalsOverlay } from "./VitalsOverlay";
-import { markEvent, vitalsEnabled, watchGame } from "../runtime/vitals";
+import { markEvent, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
 import { PlotCard, STORY_LOOK_KEY, type StoryLook } from "./PlotCard";
 import { plotKnown, type PlotCard as PlotCardData } from "../core/plot";
@@ -293,7 +292,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     eveningSeen.current = evening.day;
     setModal("evening");
   }, [evening]);
-  const [showVitals] = useState(vitalsEnabled);
   const phone = usePhoneLayout();
   const headerActions = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -3186,7 +3184,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           </section>
         </div>
       )}
-      {showVitals && <VitalsOverlay />}
     </div>
   );
 }

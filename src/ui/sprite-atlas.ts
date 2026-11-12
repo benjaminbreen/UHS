@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import artVersion from "../render/generated/art-version.json" with { type: "json" };
+import { pageImage, pagedSheets } from "../render/scene-assets";
 
 // Same URLs as WorldScene.preload, query string included, so the UI and Phaser
 // share one download. Importing the JSON instead put 1.5MB of frames in the
@@ -24,11 +25,12 @@ const sheets = {
 export type SheetName = keyof typeof sheets;
 export type Sheet = {
   image: string;
+  /** A frame of a paged sheet names its own 1024px page; a whole building
+   * sheet decodes to as much as 144MB, which ends a phone tab. */
   frames: Record<
     string,
-    { frame: { x: number; y: number; w: number; h: number } }
+    { frame: { x: number; y: number; w: number; h: number }; image?: string }
   >;
-  meta: { size: { w: number; h: number } };
 };
 export type Sheets = Record<SheetName, Sheet>;
 
@@ -42,10 +44,18 @@ const listeners = new Set<() => void>();
 export function loadSheets() {
   pending ??= Promise.all(
     (Object.keys(sheets) as SheetName[]).map(async (name) => {
-      const res = await fetch(`${sheets[name]}.json${stamp}`);
-      if (!res.ok) throw new Error(`${sheets[name]}.json: ${res.status}`);
+      const key = sheets[name].slice("/packs/".length);
+      const paged = (pagedSheets as readonly string[]).includes(key);
+      const url = paged ? `/packs/pages/${key}.json${stamp}` : `${sheets[name]}.json${stamp}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url}: ${res.status}`);
       const json = await res.json();
-      return [name, { ...json, image: sheetImage(name) }] as const;
+      const frames: Sheet["frames"] = paged ? {} : json.frames;
+      if (paged)
+        (json as Sheet["frames"][]).forEach((page, i) => {
+          for (const id in page) frames[id] = { frame: page[id].frame, image: pageImage(key, i) };
+        });
+      return [name, { frames, image: sheetImage(name) }] as const;
     }),
   ).then((entries) => {
     loaded = Object.fromEntries(entries) as Sheets;

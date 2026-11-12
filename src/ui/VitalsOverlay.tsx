@@ -8,7 +8,11 @@ const NEXT: Record<View, View> = { bar: "full", full: "dot", dot: "bar" };
 
 export function VitalsOverlay() {
   const [vitals, setVitals] = useState(() => currentVitals());
-  const [view, setView] = useState<View>("bar");
+  const [view, setView] = useState<View>(() => {
+    const last = lastSession();
+    return last && !last.closed ? "full" : "bar";
+  });
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     const id = setInterval(() => setVitals(currentVitals()), 1000);
     return () => clearInterval(id);
@@ -28,7 +32,7 @@ export function VitalsOverlay() {
     borderRadius: 4,
     background: crashed ? "rgba(90,0,0,.85)" : "rgba(0,0,0,.72)",
     color: "#9f9",
-    font: "10px/1.35 ui-monospace, monospace",
+    font: "11px/1.35 ui-monospace, monospace",
     whiteSpace: "pre-wrap",
   };
   if (view === "dot")
@@ -60,6 +64,18 @@ export function VitalsOverlay() {
       {crashed ? "\n⚠ last session died without unload — tap for detail" : ""}
       {view === "full" ? report("previous session", previous) : ""}
       {view === "full" ? report("now", vitals) : ""}
+      {view === "full" && previous && (
+        <button
+          type="button"
+          style={{ display: "block", marginTop: 8, padding: "8px 12px", font: "inherit" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            void navigator.clipboard?.writeText(report("previous session", previous)).then(() => setCopied(true));
+          }}
+        >
+          {copied ? "Copied" : "Copy crash report"}
+        </button>
+      )}
     </div>
   );
 }
