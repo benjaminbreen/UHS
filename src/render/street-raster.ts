@@ -5,7 +5,7 @@ import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
-import { streetDistance, streetUnionDistance } from "../world/v3/street-geometry";
+import { streetUnionDistance, throughStroke } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 /** World-space value noise at stone scale, so a seam wanders by whole stones. */
 const jitter = (wx: number, wy: number) => {
@@ -285,12 +285,13 @@ export function rasterStreetTile(
       if (c.streetGeometry && !track) {
         const { strokes, infill } = c.streetGeometry;
         const ax = (wx + 0.5) / 16, ay = (wy + 0.5) / 16;
-        const closest = strokes.reduce((a, b) => streetDistance(a, ax, ay) <= streetDistance(b, ax, ay) ? a : b);
+        const closest = throughStroke(strokes, ax, ay);
         const d = streetUnionDistance(strokes, ax, ay) * 16;
         if (d > 32 && !infill) continue;
         const road = closest.material ?? material, walk = closest.footway ?? "concrete";
         let colour: RGB = pavingStonePixel(wx, wy, d < 0 ? road : walk, "street");
-        if (d < 0 && c.lane)
+        // Paint belongs on a made road, never on flags or cobbles.
+        if (d < 0 && c.lane && (road === "asphalt" || road === "concrete" || road === "sett" || road === "brick"))
           colour = carriagewayPixel(colour, c.lane, c.lane.at * 16 + (c.lane.axis === "x" ? py : px),
             c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx,
             { low: false, high: false }, road === "asphalt" || road === "concrete");

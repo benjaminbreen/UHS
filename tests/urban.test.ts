@@ -326,7 +326,7 @@ it("frames modern civic squares without roads, market stalls or a shared fire", 
       for (let x = square.x; x < square.x + square.w; x++) expect(p.lanes!.has(`${x},${y}`)).toBe(false);
     expect(p.objects.filter((o) => o.id.startsWith("city-square-bench-") && o.sprite.startsWith("study-propb-street-bench-"))).toHaveLength(4);
     for (const o of p.objects.filter((o) => o.id.includes("-quarter-well"))) {
-      expect(o.sprite).toBe("study-propb-pump-0");
+      expect(o.sprite).toBe("study-propb-street-fountain-0");
       expect(p.pavement!.get(`${o.pos.x},${o.pos.y}`)).toBe("footway");
     }
     expect(p.junctions!.some((j) => j.approaches.some((a) => a.crossing))).toBe(true);

@@ -66,7 +66,7 @@ export function trunkRoads(
           reach = town.r + 40;
         if (!strip) {
           const side = across(local[at]) < across(town) ? -1 : 1;
-          strip = { axis: alongX ? "x" : "y", level: Math.round(across(town) + side * town.r * 0.4) - 2, lo: Math.round(mid - reach), hi: Math.round(mid + reach), span: 4 };
+          strip = { axis: alongX ? "x" : "y", level: Math.round(across(town) + side * town.r * 0.8) - 2, lo: Math.round(mid - reach), hi: Math.round(mid + reach), span: 4 };
           through.set(town.id, strip);
         }
         const centre = strip.level + 2,

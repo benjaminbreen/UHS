@@ -77,6 +77,8 @@ export function sunAndSand(c: Color, dust: number, wx: number, wy: number, aspha
   out = mixC(out, SAND, 0.18 * dust);
   // Blown sand lies in soft patches where feet and wheels do not sweep, in
   // two steps with a dithered edge, and a stray grain here and there.
+  // Wheels sweep a carriageway clean.
+  if (asphalt) return out;
   const lie = waterNoise(wx, wy, 14, 581) + (hash(wx, wy, 583) - 0.5) * 0.06;
   const deep = 0.84 - 0.1 * dust,
     thin = 0.72 - 0.1 * dust;

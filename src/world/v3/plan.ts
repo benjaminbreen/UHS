@@ -1022,8 +1022,9 @@ export function planSettlement(
         place(`bin-${i}`, "Litter basket", furniture?.bin ?? "study-propb-litter-bin-0", { x: x + 3, y: court.y + court.h - 3 });
       }
       const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
-      source.name = "Public water pump";
-      source.sprite = "study-propb-pump-0";
+      const piped = (pack.setting?.year ?? 0) >= 1900;
+      source.name = piped ? "Drinking fountain" : "Public water pump";
+      source.sprite = piped ? "study-propb-street-fountain-0" : "study-propb-pump-0";
       source.pos = pos({ x: court.x + 1, y: court.y + court.h - 2 });
       waterStand.x = source.pos.x + 1; waterStand.y = source.pos.y;
       place("newsstand", "Newspaper kiosk", furniture?.kiosk ?? "study-propb-newsstand-2",
@@ -1420,7 +1421,7 @@ export function planSettlement(
       });
       if (usable < 6) return;
       if (fabric.motor && rect.w >= 8 && rect.h >= 8) {
-        const cx = rect.x + (rect.w >> 1), cy = rect.y + (rect.h >> 1);
+        const cx = rect.x + (rect.w >> 1), cy = rect.y + (rect.h >> 1), wide = Math.min(rect.w, rect.h) >= 15 ? 1 : 0;
         const path = (x: number, y: number) => {
           const k = cellKey(x, y);
           if (plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
@@ -1431,16 +1432,17 @@ export function planSettlement(
           plan.reserved.add(k);
         };
         eachCell(rect, (x, y) => {
-          if (Math.abs(x - cx) <= 1 || Math.abs(y - cy) <= 1 ||
-            x === rect.x || y === rect.y || x === rect.x + rect.w - 1 || y === rect.y + rect.h - 1) path(x, y);
+          // A small park is lawn with two paths, not a paved yard with beds.
+          if (Math.abs(x - cx) <= wide || Math.abs(y - cy) <= wide || (wide &&
+            (x === rect.x || y === rect.y || x === rect.x + rect.w - 1 || y === rect.y + rect.h - 1))) path(x, y);
         });
-        for (let d = -2; d <= 2; d++) {
+        for (let d = -wide - 1; d <= wide + 1; d++) {
           path(rect.x - 1, cy + d); path(rect.x + rect.w, cy + d);
           path(cx + d, rect.y - 1); path(cx + d, rect.y + rect.h);
         }
         plan.plots.push({ ...rect, id: `${site.id}-park-${index}`, kind: "public", access: { x: cx, y: cy } });
-        for (const [i, x] of [rect.x + 3, rect.x + rect.w - 4].entries())
-          for (const [j, y] of [rect.y + 3, rect.y + rect.h - 4].entries()) {
+        for (const [i, x] of [rect.x + 2, rect.x + rect.w - 3].entries())
+          for (const [j, y] of [rect.y + 2, rect.y + rect.h - 3].entries()) {
             if (Math.abs(x - cx) < 3 || Math.abs(y - cy) < 3) continue;
             const k = cellKey(x, y);
             if (plan.solid.has(k)) continue;
@@ -1979,7 +1981,7 @@ export function planSettlement(
           paintCourt,
           paintBlock,
         );
-    composeStreetGeometry(plan, urbanLots.flatMap((lot) => lot.rect ? [lot.rect] : []));
+    if (!motorAge) composeStreetGeometry(plan, urbanLots.flatMap((lot) => lot.rect ? [lot.rect] : []));
     // Composed buildings are installed later; crossings must already respect them.
     const crossingObstacles = new Set(plan.solid);
     for (const lot of urbanLots)
@@ -3817,7 +3819,8 @@ export function planSettlement(
       entranceLabel,
     });
     if (urban) {
-      const pavedLot = profile.paved && !meiji && !!lot.use && ["downtown", "commercial", "tenement", "rowhouse"].includes(lot.use);
+      const pavedLot = profile.paved && !meiji && !!lot.use &&
+        (motorAge ? ["downtown", "commercial"] : ["downtown", "commercial", "tenement", "rowhouse"]).includes(lot.use);
       // A garden town's house stands in grass; only its doorstep and back strip wear.
       paint(yard, pavedLot ? "paving" : cityGround === "grass" ? "grass" : "dirt", true, 3, "yard");
       if (pavedLot) eachCell(yard, (x, y) => {
@@ -3917,7 +3920,9 @@ export function planSettlement(
           }
         return false;
       };
-      eachCell(footway, (x, y) => {
+      // A motor-age house has a lawn to the sidewalk, not a slab at its wall.
+      const fronted = !motorAge || pavedLot;
+      if (fronted) eachCell(footway, (x, y) => {
         const k = cellKey(x, y);
         if (plotted || !streetNear(x, y)) return;
         if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false)) {
@@ -3931,7 +3936,7 @@ export function planSettlement(
           if (material) plan.streetSurfaces!.set(k, material);
         }
       });
-      if (fabric.furniture?.includes("planter") && ny)
+      if (fronted && fabric.furniture?.includes("planter") && ny)
         for (const dx of [-2, 2]) {
           const at = { x: point.x + dx, y: point.y };
           const k = cellKey(at.x, at.y);
@@ -5365,10 +5370,10 @@ export function planSettlement(
       plan.solid.add(cellKey(out.x, out.y));
       plan.objects.push({
         id: `${site.id}-quarter-well${wells.length}`,
-        name: fabric.motor ? "Public water pump" : "Shared water source",
+        name: fabric.motor ? (motorAge ? "Drinking fountain" : "Public water pump") : "Shared water source",
         kind: "well",
         pos: pos(out),
-        sprite: fabric.motor ? "study-propb-pump-0" : nativeOrnament("well") || "well",
+        sprite: fabric.motor ? (motorAge ? "study-propb-street-fountain-0" : "study-propb-pump-0") : nativeOrnament("well") || "well",
         inventory: {},
       });
     }
@@ -5932,7 +5937,7 @@ export function planSettlement(
   }
   if (organic && !urban) pruneStubs();
   if (urban) absorbVacantStrips();
-  tidyGround(plan, roads);
+  tidyGround(plan, roads, motorAge);
   if (palette) stepGround(plan, roads, seed, infillStone(palette), footwaySurface !== "earth" && footwaySurface !== "plank" ? squareStone : undefined);
   if (profile.paved && !industrialAge) unpaveBackland();
   if (pack.setting?.terrainRevision) levelAprons();
@@ -6109,7 +6114,7 @@ function stepGround(plan: SettlementPlan, routes: Set<string>, seed: string, inf
   }
 }
 
-function tidyGround(plan: SettlementPlan, routes: Set<string>) {
+function tidyGround(plan: SettlementPlan, routes: Set<string>, motorAge: boolean) {
   const at = (x: number, y: number) => plan.surface.get(cellKey(x, y));
   const open = (t?: Terrain) => t === "paving" || t === "dirt" || t === "grass";
   const fixed = (k: string) =>
@@ -6145,7 +6150,9 @@ function tidyGround(plan: SettlementPlan, routes: Set<string>) {
         if (open(u) && u !== t) tally.set(u!, [...(tally.get(u!) ?? []), n]);
       }
       const most = [...tally.values()].sort((a, b) => b.length - a.length)[0];
-      if (most && most.length >= 3) {
+      // A motor-age town's paving is laid where it is meant; it does not
+      // creep into the green by majority.
+      if (most && most.length >= 3 && !(motorAge && plan.surface.get(most[0]) === "paving")) {
         change.set(k, most[0]);
         continue;
       }

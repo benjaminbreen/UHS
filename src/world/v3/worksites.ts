@@ -8,7 +8,7 @@ import type { Rect, SettlementPlan } from "./types";
 import type { Sample } from "./roads";
 import { launchAt, shoreDirections, type Launch } from "./shoreline";
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
-import { industrialized } from "../../content/settlements/modernity";
+import { industrialized, motorized } from "../../content/settlements/modernity";
 import { infillStone, streetPalette } from "../../content/settlements/streets/palettes";
 
 const key = (x: number, y: number) => `${x},${y}`;
@@ -93,7 +93,8 @@ export function planWorksites(
       }
       placed.add(profile.kind);
       if (profile.revision && !profile.essential) processingCount++;
-      if(!launch) {paint(r,"dirt");grade(r);}
+      // A modern hospital or works stands in kept grounds, not a bare yard.
+      if(!launch) {paint(r,profile.siting==="urban" && motorized(s) ? "grass" : "dirt");grade(r);}
       // A paved town gravels its work yards rather than leave them to mud.
       const gravel = !launch && pack.setting && infillStone(streetPalette(pack.setting));
       cells(r,(x,y)=>{
@@ -182,6 +183,8 @@ export function planWorksites(
         const r = { x: Math.round(c.x + Math.cos(a)*ring-w/2), y: Math.round(c.y + Math.sin(a)*ring-h/2), w, h };
         const half = s.playableMap && s.playableMap.size/2;
         if (half && (r.x < -half+4 || r.y < -half+4 || r.x+w > half-4 || r.y+h > half-4)) continue;
+        // The grid's two main roads cross at the centre; a yard across either cuts the town in half.
+        if (motorized(s) && (r.x-10 < c.x && r.x+w+10 > c.x || r.y-10 < c.y && r.y+h+10 > c.y)) continue;
         if (profile.waterSupply) {
           let fresh = false;
           for (let dy = -24; dy <= r.h+24 && !fresh; dy += 4)

@@ -2,7 +2,7 @@ import { cellKey, type SettlementPlan, type Rect } from "./types";
 import type { StreetMaterial } from "../../content/settlements/streets";
 import type { StreetSurface } from "../../content/settlements/streets/palettes";
 
-export type StreetStroke = { a: [number, number]; b: [number, number]; radius: number; material?: StreetMaterial; footway?: StreetMaterial };
+export type StreetStroke = { a: [number, number]; b: [number, number]; radius: number; material?: StreetMaterial; footway?: StreetMaterial; tier?: string };
 
 export type StreetGeometry = { strokes: StreetStroke[]; infill: boolean };
 
@@ -33,6 +33,21 @@ export function streetUnionDistance(strokes: StreetStroke[], x: number, y: numbe
   return rounded;
 }
 
+/** Whose surface a point takes: where carriageways cross, the wider street
+ * runs through and the narrower butts into it; elsewhere the nearest. */
+export function throughStroke(strokes: StreetStroke[], x: number, y: number) {
+  let best = strokes[0], bestD = streetDistance(best, x, y);
+  for (const s of strokes.slice(1)) {
+    const d = streetDistance(s, x, y);
+    const on = d <= 0, bestOn = bestD <= 0;
+    if (on && bestOn ? s.radius > best.radius || (s.radius === best.radius && d < bestD) : d < bestD) {
+      best = s;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 /** Made streets share continuous edges and rounded junctions, in their own stone. */
 export function composeStreetGeometry(plan: SettlementPlan, buildings: Rect[] = []) {
   const footway = [...plan.pavement ?? []].find(([k, role]) => role === "footway" && plan.streetSurfaces?.get(k));
@@ -53,11 +68,30 @@ export function composeStreetGeometry(plan: SettlementPlan, buildings: Rect[] = 
       }
       const material = [...materials].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "slab";
       if (material === "earth") return [];
-      return [{ a: [a.x + 0.5 + (a.x === b.x ? offset : 0), a.y + 0.5 + (a.y === b.y ? offset : 0)],
-        b: [b.x + 0.5 + (a.x === b.x ? offset : 0), b.y + 0.5 + (a.y === b.y ? offset : 0)], radius,
-        material, footway: walk && walk !== "earth" ? walk : material }];
+      // A stub shorter than the street is wide is a junction's leftover, and
+      // drew as a bar of the wrong stone across it.
+      if (Math.hypot(b.x - a.x, b.y - a.y) < radius) return [];
+      // Run on to the far side of the cells the road was stamped over, so no
+      // island of carriageway is left past the stroke's end.
+      const out = Math.max(0, radius - 0.5), length = Math.hypot(b.x - a.x, b.y - a.y),
+        ex = ((b.x - a.x) / length) * out, ey = ((b.y - a.y) / length) * out;
+      return [{ a: [a.x + 0.5 + (a.x === b.x ? offset : 0) - ex, a.y + 0.5 + (a.y === b.y ? offset : 0) - ey],
+        b: [b.x + 0.5 + (a.x === b.x ? offset : 0) + ex, b.y + 0.5 + (a.y === b.y ? offset : 0) + ey], radius,
+        material, footway: walk && walk !== "earth" ? walk : material, tier: /-(street-\d|avenue)-/.exec(r.id)?.[1] }];
     });
   if (!strokes.length) return;
+  // A street is surfaced as its kind, not segment by segment: a main road
+  // that votes for the square's stone where it passes one would change
+  // surface half way along.
+  for (const tier of new Set(strokes.map((s) => s.tier))) {
+    const same = strokes.filter((s) => s.tier === tier), tally = new Map<StreetMaterial, number>();
+    for (const s of same) if (s.material) tally.set(s.material, (tally.get(s.material) ?? 0) + Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
+    const most = [...tally].sort((a, b) => b[1] - a[1])[0]?.[0];
+    for (const s of same) {
+      if (s.footway === s.material) s.footway = most;
+      s.material = most;
+    }
+  }
   const index = new Map<string, StreetStroke[]>();
   for (const s of strokes) {
     const pad = s.radius + 3;
@@ -74,7 +108,7 @@ export function composeStreetGeometry(plan: SettlementPlan, buildings: Rect[] = 
     if (plan.solid.has(k) || (role && !["lane", "footway", "vacant"].includes(role))) continue;
     const [x, y] = k.split(",").map(Number);
     if (buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) continue;
-    const closest = list.reduce((a, b) => streetDistance(a, x + 0.5, y + 0.5) <= streetDistance(b, x + 0.5, y + 0.5) ? a : b);
+    const closest = throughStroke(list, x + 0.5, y + 0.5);
     const d = streetUnionDistance(list, x + 0.5, y + 0.5);
     if (d > 2) continue;
     geometry.set(k, { strokes: list, infill: false });

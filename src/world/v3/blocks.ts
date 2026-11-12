@@ -10,7 +10,7 @@ import type {
 import { urbanFootprint } from "../../content/settlements/scale";
 import { line, spanOffsets } from "./roads";
 import { cellKey, type Rect } from "./types";
-import { connectStreetComponents } from "./street-network";
+import { connectStreetComponents, streetComponents } from "./street-network";
 
 export type Gate = { point: Point; nx: number; ny: number; axis: "x" | "y" };
 export type Tier = 0 | 1 | 2;
@@ -237,7 +237,9 @@ export function composeUrban(
     shape: Rect;
     core: boolean;
   };
-  const specs: readonly DistrictSpec[] = form.districts?.length
+  // A town laid out for cars is one grid: quarters each with their own
+  // module left streets that stopped at every seam.
+  const specs: readonly DistrictSpec[] = form.districts?.length && !motorCore
     ? form.districts
     : [{ plan: form.plan, block: form.block, regularity: form.regularity }];
   const core = specs[0];
@@ -502,21 +504,13 @@ export function composeUrban(
       focus.x -= Math.sign(focus.x - center.x) * 2;
       focus.y -= Math.sign(focus.y - center.y) * 2;
     }
-  const plaza = {
-    x: focus.x - (size >> 1),
-    y: focus.y - (size >> 1),
-    w: size,
-    h: size,
-  };
+  // A motor-age square is the corner block at the main crossing: both main
+  // roads run straight past it.
+  const plaza = motorCore
+    ? { x: focus.x + hiA + margin(0) + 1, y: focus.y - loA - margin(0) - size, w: size, h: size }
+    : { x: focus.x - (size >> 1), y: focus.y - (size >> 1), w: size, h: size };
 
-  const civicBlock = motorCore && half >= 40 ? {
-    west: plaza.x - 12 - hiA,
-    east: plaza.x + plaza.w + 11 + loA,
-    north: plaza.y - 14 - hiA,
-    south: plaza.y + plaza.h + 2 + spanOffsets(street)[0],
-  } : undefined;
-
-  const framed = !civicBlock && (motorCore || core.plan === "orthogonal");
+  const framed = !motorCore && core.plan === "orthogonal";
 
   // --- Arterials -------------------------------------------------------------
   // One axis-aligned run per gate, bent where the fabric is irregular so the
@@ -655,8 +649,8 @@ export function composeUrban(
       if (hi - lo < 12) continue;
       streets.push(
         axis === "x"
-          ? { a: { x: at, y: lo }, b: { x: at, y: hi }, tier: 0 }
-          : { a: { x: lo, y: at }, b: { x: hi, y: at }, tier: 0 },
+          ? { a: { x: at, y: lo }, b: { x: at, y: hi }, tier: motorCore ? 1 : 0 }
+          : { a: { x: lo, y: at }, b: { x: hi, y: at }, tier: motorCore ? 1 : 0 },
       );
     }
   }
@@ -916,13 +910,8 @@ export function composeUrban(
     streets.push(...cut);
   }
 
-  if (civicBlock) {
-    // The civic block contains its frontages; through traffic goes around it.
-    const { west, east, north, south } = civicBlock;
-    cutStreets({ x: west + 1, y: north + 1, w: east - west - 1, h: south - north - 1 });
-    const corners = [{ x: west, y: north }, { x: east, y: north },
-      { x: east, y: south }, { x: west, y: south }];
-    for (const [i, a] of corners.entries()) streets.push({ a, b: corners[(i + 1) % 4], tier: i === 2 ? 1 : 0 });
+  if (motorCore) {
+    cutStreets(plaza);
     lines.clear();
     for (const s of streets) mark(s);
   }
@@ -995,7 +984,7 @@ export function composeUrban(
 
   // --- Further squares and diagonals ----------------------------------------
   const squares: Rect[] = [];
-  if (form.squares) {
+  if (form.squares && !motorCore) {
     const size2 = Math.max(7, even(size * 0.6) + 1);
     const crossings: Point[] = [];
     for (const s of streets)
@@ -1069,6 +1058,9 @@ export function composeUrban(
             h,
           };
           if (!clearOf(r, plaza, arterial + 2)) continue;
+          // The square no longer holds the centre, so a precinct could land on the crossing.
+          if (motorCore && streets.some((s) => s.tier === 0 &&
+            overlaps(s, { x: r.x - arterial, y: r.y - arterial, w: r.w + arterial * 2, h: r.h + arterial * 2 }))) continue;
           if (squares.some((q) => !clearOf(r, q, 3))) continue;
           if (grounds.some((q) => q && !clearOf(r, q, arterial + 4))) continue;
           let ok = true;
@@ -1096,9 +1088,7 @@ export function composeUrban(
     ].sort((a, b) => rand("diag", a[0], a[1]) - rand("diag", b[0], b[1]));
     for (const [sx, sy] of corners) {
       if (diagonals.length >= form.diagonals) break;
-      const a = civicBlock
-        ? { x: sx < 0 ? civicBlock.west : civicBlock.east, y: sy < 0 ? civicBlock.north : civicBlock.south }
-        : frame
+      const a = frame
           ? { x: sx < 0 ? frame.w : frame.e, y: sy < 0 ? frame.n : frame.s }
           : { x: sx < 0 ? plaza.x - 1 : plaza.x + plaza.w, y: sy < 0 ? plaza.y - 1 : plaza.y + plaza.h };
       let b = a;
@@ -1343,40 +1333,40 @@ export function composeUrban(
     lines.clear();
     for (const s of streets) mark(s);
   }
-  if (civicBlock) {
-    const { west, east, north, south } = civicBlock;
-    const perimeter = streets.filter((s) => axisOf(s) === "x"
-      ? across(s) === north || across(s) === south
-      : across(s) === west || across(s) === east);
-    for (const s of perimeter) streets.splice(streets.indexOf(s), 1);
-    cutStreets({ x: west + 1, y: north + 1, w: east - west - 1, h: south - north - 1 });
-    streets.push(...perimeter);
-    for (const s of streets)
-      if ((axisOf(s) === "x" && across(s) === south) ||
-        (axisOf(s) === "y" && across(s) >= plaza.x && across(s) < plaza.x + plaza.w && lo(s) >= south))
-        s.tier = 1;
-    lines.clear();
-    for (const s of streets) mark(s);
-  }
-  if (form.motor) {
-    for (const r of squares) {
-      const gap = Math.ceil(street / 2) + 2;
-      const corners = [{ x: r.x - gap, y: r.y - gap }, { x: r.x + r.w + gap - 1, y: r.y - gap },
-        { x: r.x + r.w + gap - 1, y: r.y + r.h + gap - 1 }, { x: r.x - gap, y: r.y + r.h + gap - 1 }];
-      for (const [i, a] of corners.entries()) {
-        const b = corners[(i + 1) % 4];
-        if (line(a, b).every((p) => holds(p.x, p.y, 2))) streets.push({ a, b, tier: 1 });
-      }
-    }
-  }
   // A framed town's streets all reach each other without crossing a square.
   if (form.motor || framed) {
+    // Ground already taken (a works yard, water) breaks a street here, where
+    // the pieces can still be joined, not later when it is painted.
+    const free = (p: Point, reach: number) => {
+      for (let dy = -reach; dy <= reach; dy++)
+        for (let dx = -reach; dx <= reach; dx++) if (!usable!(p.x + dx, p.y + dy)) return false;
+      return true;
+    };
+    if (motorCore && usable)
+      for (const s of streets.splice(0)) {
+        let from: number | undefined;
+        for (let v = lo(s); v <= hi(s) + 1; v++) {
+          const ok = v <= hi(s) && free(point(s, v), Math.ceil(span(s.tier) / 2) + 1);
+          if (ok) from ??= v;
+          else if (from !== undefined) {
+            if (v - from >= 6) streets.push({ a: point(s, from), b: point(s, v - 1), tier: s.tier });
+            from = undefined;
+          }
+        }
+      }
     connectStreetComponents(streets, (p) => {
-      if (!holds(p.x, p.y, 2)) return false;
+      if (!holds(p.x, p.y, 2) || (motorCore && usable && !free(p, 3))) return false;
       const spaces = [frameInterior ?? plaza, ...squares, ...grounds.filter((r): r is Rect => !!r)];
       if (spaces.some((r) => p.x >= r.x - 2 && p.x < r.x + r.w + 2 && p.y >= r.y - 2 && p.y < r.y + r.h + 2)) return false;
-      return !civicBlock || p.x <= civicBlock.west || p.x >= civicBlock.east || p.y <= civicBlock.north || p.y >= civicBlock.south;
+      return true;
     });
+    if (motorCore) {
+      // A piece nothing could reach is not a street.
+      const groups = streetComponents(streets), size = new Map<number, number>();
+      for (const [i, g] of groups.entries()) size.set(g, (size.get(g) ?? 0) + hi(streets[i]) - lo(streets[i]));
+      const main = [...size].sort((a, b) => b[1] - a[1])[0]?.[0];
+      for (let i = streets.length - 1; i >= 0; i--) if (groups[i] !== main) streets.splice(i, 1);
+    }
     lines.clear();
     for (const s of streets) mark(s);
   }

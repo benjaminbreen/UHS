@@ -1323,7 +1323,9 @@ export function urbanNeighborhood(
           h: rank.block.h + 2,
         },
         use === "industrial" ? "dirt"
-          : use && ["downtown", "commercial", "tenement", "rowhouse"].includes(use) ? "paving"
+          // Once there are cars, a house row stands in its own ground; only
+          // the business blocks are paved from wall to wall.
+          : use && (form.motor ? ["downtown", "commercial"] : ["downtown", "commercial", "tenement", "rowhouse"]).includes(use) ? "paving"
           : form.backs && rank.built && pack.setting?.climate !== "arid" ? "grass" : undefined,
         role,
       );

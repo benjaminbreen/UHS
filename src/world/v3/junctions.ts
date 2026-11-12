@@ -78,7 +78,9 @@ export function resolveJunctions(plan: SettlementPlan, occupied = plan.solid): J
           }
           return undefined;
         }));
-        const crossing = span >= 4 && lane.marks.crossing !== "none" && paths.every(Boolean);
+        // Crosswalks are painted where a main road is crossed, not at every
+        // meeting of two side streets.
+        const crossing = Math.max(junction.w, junction.h) > 4 && span >= 4 && lane.marks.crossing !== "none" && paths.every(Boolean);
         if (crossing)
           for (const path of paths)
             for (const p of path!) {

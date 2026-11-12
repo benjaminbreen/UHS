@@ -51,16 +51,6 @@ const stages: Record<string, Stage[]> = {
         footway: ["brick", "concrete"],
       },
     },
-    {
-      until: 1960,
-      palette: {
-        main: ["asphalt"],
-        local: ["concrete", "asphalt"],
-        lane: ["concrete"],
-        square: ["concrete"],
-        footway: ["concrete"],
-      },
-    },
   ],
   britain: [
     { until: 1935, palette: settsAndFlags("sett") },
