@@ -77,3 +77,8 @@ body:has(.arrival.is-leaving) .prepared-game[inert]{visibility:visible;animation
 .arrival-enter:active:not(:disabled){background:#e4bb68}
 .arrival-enter:focus-visible{outline:2px solid #f7edd4;outline-offset:3px}
 .arrival-enter:disabled{background:#2a3646;color:#c6cde0;border-color:#c7a66666;box-shadow:none;opacity:1}
+/* On a phone the way in is always on screen, whatever the strip above it holds. */
+@media(max-width:630px){.arrival-strip{padding-bottom:calc(86px + env(safe-area-inset-bottom))}.arrival-enter{position:fixed;left:14px;right:14px;bottom:max(12px,env(safe-area-inset-bottom));width:auto;margin:0;z-index:3;box-shadow:0 0 0 6px #111b26e6,0 -10px 24px 8px #111b26cc}.arrival-progress{display:none}}
+@media(max-width:630px) and (max-height:720px){.arrival-location .arrival-map{max-height:128px}.arrival-identity h1{font-size:30px}}
+/* A transform on the strip, even a finished one, would pin the button to the strip instead of the screen. */
+@media(max-width:630px){.arrival.is-opening:not(.is-leaving) .arrival-strip{animation-name:arrival-fade}.arrival.is-leaving .arrival-strip{animation-name:arrival-out}}

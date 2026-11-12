@@ -9465,13 +9465,16 @@ button:disabled {
   [data-tip]::after { display: none; }
 }
 @media (max-height: 500px) and (max-width: 1024px) and (pointer: coarse) {
-  .app, .app[data-phone-overlay="narrator"] { --phone-top-h: 44px; --bottom-bar-h: 58px; }
-  .bottom-bar { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: 44px; }
+  .app, .app[data-phone-overlay="narrator"] { --phone-top-h: 40px; --bottom-bar-h: 50px; }
+  .bottom-bar { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: 40px; padding-block: 4px; }
+  .quick-actions > button, .rest-menu > button { min-height: 40px; }
   .quick-actions button span { display: none; }
-  .touch-controls { bottom: calc(var(--bottom-bar-h) + 12px); }
+  .touch-controls { bottom: calc(var(--bottom-bar-h) + 8px); }
   .touch-stick { width: 80px; height: 80px; }
-  .world-minimap { width: 112px; height: 72px; }
-  .world-status { top: 86px; right: 130px; max-height: calc(100% - var(--bottom-bar-h) - 96px); }
+  .world-minimap { width: 96px; height: 62px; }
+  /* A short screen has no room for a card across the middle of it. */
+  .world-status { top: 54px; right: auto; width: min(44%, 280px); max-height: calc(100% - var(--bottom-bar-h) - 64px); }
+  .world-status > .work-card:not([data-open]) { max-width: 100%; }
   .character-panel .character-header { min-height: 68px; padding-block: 8px; }
   .map-stage { max-height: 38dvh; }
 }
@@ -10541,3 +10544,26 @@ svg.lucide :is(circle, rect, ellipse, polygon) { fill: color-mix(in srgb, curren
 }
 .settle-skip:hover { color: #d8ccb0; }
 @keyframes settle-in { from { opacity: 0; } }
+
+/* Phone legibility: running text in the reading face, and the smallest
+ * screens given back the room the chrome was holding. */
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .survival-details, .stats > p, .stats .outlook, .settings-footnote p, .modal-settings .settings-footnote p {
+    font-family: var(--sans); font-size: 14px; line-height: 1.45;
+  }
+  /* The Go button already carries the hint's glow. */
+  .world-status > .work-card .work-hint { display: none; }
+  .map-title { gap: 6px 8px; padding: 12px 58px 8px 12px; }
+  .map-title h2 { font-size: 20px; }
+  .map-toggle button, .map-period button { min-height: 38px; padding-inline: 9px; font-size: 11px; }
+}
+@media (max-width: 360px) {
+  .topbar:not(.desktop-topbar) :is(.icon-button, .topbar-avatar) { width: 38px; }
+  .topbar:not(.desktop-topbar) > .header-actions { gap: 0; }
+  .topbar:not(.desktop-topbar) > .world-selector { padding: 0 10px; }
+  .topbar:not(.desktop-topbar) .world-selector svg { display: none; }
+  .world-minimap { width: 72px; height: 58px; }
+  .vitals { gap: 4px; padding-left: 8px; }
+  .vitals .survival-toggle { gap: 5px; padding: 0 2px; }
+  .world-status > .work-card:not([data-open]) { max-width: calc(100% - 80px); }
+}

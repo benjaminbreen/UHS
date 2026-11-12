@@ -829,3 +829,9 @@
     transition: none !important;
   }
 }
+/* A start line longer than a phone is wide ends in an ellipsis, not mid-word. */
+.splash-input input { text-overflow: ellipsis; }
+@media (max-width: 520px) {
+  .splash-input input { font-size: 17px; }
+  .splash-random-mode label { font-size: 11px; letter-spacing: 1px; color: #a9b6cc; }
+}
