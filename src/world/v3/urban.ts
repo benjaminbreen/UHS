@@ -142,6 +142,8 @@ export type UrbanSurface = {
   shore?: Point;
   /** Land within two cells of water, where a quay and its street can stand. */
   bank?(x: number, y: number): boolean;
+  /** River water a street may bridge. */
+  river?(x: number, y: number): boolean;
   /** Paved strip between a riverside street and the water. */
   paintQuay?(rect: Rect): void;
   /** Where a bridge meets this bank; an offset square gathers at it. */
@@ -428,6 +430,7 @@ export function urbanNeighborhood(
     [...precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })), ...(mosqueScales.length ? [{ sizes: mosqueScales.map(mosqueSize) }] : [])],
     site.rail ?? (!!zoning && site.profile.radius >= 40),
     lampFor(pack).street,
+    api.river,
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {

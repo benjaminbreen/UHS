@@ -437,6 +437,9 @@ export function planSettlement(
       condition: road.condition ?? 1,
     };
     const material = surface ?? (road.kind === "lane" ? laneSurface : stone);
+    // A motor road crosses a stream on a culvert: the street's own surface
+    // runs over it, not a timber deck.
+    const culvert = motorAge && road.kind === "bridge" && (road.span ?? 0) >= 4;
     plan.roads.push(road);
     for (const p of road.points) centers.add(cellKey(p.x, p.y));
     roadCells(road, (x, y) => {
@@ -474,7 +477,7 @@ export function planSettlement(
                 ? 6
                 : 4;
       if (
-        !setSurface(k, f.water < 0 ? "bridge" : stone ? "paving" : "dirt", rank)
+        !setSurface(k, f.water < 0 && !culvert ? "bridge" : stone ? "paving" : "dirt", rank)
       )
         return;
       if (material && stone && !plan.streetSurfaces!.has(k))
@@ -781,7 +784,7 @@ export function planSettlement(
             : label.startsWith("street-2")
               ? laneSurface
               : undefined,
-        true,
+        !(outside && width),
       );
       if (!outside && !kind && !old)
         carriageway(road, trams && label.startsWith("street-0"));
@@ -791,27 +794,30 @@ export function planSettlement(
       const next = runs[i + 1];
       if (!next || span < 2) continue;
       const gap = line(points.at(-1)!, next[0]);
+      // A road bridge carries the whole street over, on whatever bank
+      // lies between; a footbridge spans only the water.
+      const roadBridge = motorAge && urban && !outside && span >= 4;
       const wet = gap.slice(1, -1).every((p) => {
         const f = sample(p.x, p.y);
         const k = cellKey(p.x, p.y);
         return (
-          f.water < 4 &&
-          f.kind === "river" &&
+          (roadBridge ? f.water >= 4 || f.kind === "river" : f.water < 4 && f.kind === "river") &&
           !plan.solid.has(k) &&
           !noRoad.has(k)
         );
       });
-      if (gap.length > 12 || !wet) continue;
+      if (gap.length > (roadBridge ? 42 : 12) || !wet) continue;
       const deck: Road = {
         id: `${site.id}-${label}-bridge-${i}`,
         points: gap,
-        width: Math.min(1, width),
-        span: Math.min(3, span),
+        width: roadBridge ? width : Math.min(1, width),
+        span: roadBridge ? span : Math.min(3, span),
         kind: "bridge",
         cost: gap.length,
       };
       roadCells(deck, (x, y) => bridges.add(cellKey(x, y)));
       addRoad(deck);
+      if (roadBridge) carriageway({ ...deck, kind: "street" });
     }
     if (!first && !label.startsWith("field-")) plan.diagnostics.routeFailures++;
     return first;
@@ -1675,6 +1681,10 @@ export function planSettlement(
           bank: (x, y) => {
             const f = sample(x, y);
             return f.water >= 4 && f.water < 6.5 && f.kind !== "lake";
+          },
+          river: (x, y) => {
+            const f = sample(x, y);
+            return f.water < 4 && f.kind === "river";
           },
           paintQuay: (rect) =>
             eachCell(rect, (x, y) => {
@@ -4218,6 +4228,22 @@ export function planSettlement(
     const throughRoads = new Set<string>();
     for (const road of connections)
       roadCells(road, (x, y) => throughRoads.add(cellKey(x, y)));
+    // A street that reaches the town's edge without meeting another runs on
+    // as a gravel road, as a street does where the houses stop.
+    if (motorAge && urban && composed)
+      for (const [i, r] of plan.roads.filter((r) => /-street-[12]/.test(r.id) && r.span).entries())
+        for (const [end, from] of [[r.points[0], r.points[1]], [r.points.at(-1)!, r.points.at(-2)!]]) {
+          if (!from) continue;
+          const dx = Math.sign(end.x - from.x), dy = Math.sign(end.y - from.y);
+          if (Math.hypot(end.x - c.x, end.y - c.y) < profile.radius * 0.6) continue;
+          if (plan.roads.some((o) => o !== r && /-street-/.test(o.id) &&
+            o.points.some((q) => Math.abs(q.x - end.x) <= 1 && Math.abs(q.y - end.y) <= 1))) continue;
+          let open = true;
+          for (let d = r.span!; d <= r.span! + 3 && open; d++)
+            for (let v = -r.span!; v <= r.span!; v++)
+              if (roads.has(cellKey(end.x + dx * d - dy * v, end.y + dy * d + dx * v))) open = false;
+          if (open) lay(end, { x: end.x + dx * 14, y: end.y + dy * 14 }, `field-end-${i}-${dx}${dy}`, 2, true, "lane");
+        }
     let centerlines: Set<string> | undefined;
     const farmland = planFarmland({
       grows: playerCrop ? { player: playerCrop } : undefined,
@@ -4227,6 +4253,7 @@ export function planSettlement(
       sample,
       urban,
       connections,
+      motor: motorAge && urban,
       taken: (x, y) => {
         const k = cellKey(x, y);
         return (
@@ -4253,7 +4280,11 @@ export function planSettlement(
       lane: (a, b, label) =>
         line(a, b).some((p) => plan.solid.has(cellKey(p.x, p.y))) || alongStep(line(a, b))
           ? connect(a, b, `field-${label}`, 0, bounds)?.points
-          : lay(a, b, `field-${label}`, 1, true, "path")?.points,
+          // Motor traffic leaves town on a two-lane road and reaches the
+          // fields on graded gravel, not on a cart track.
+          : motorAge && urban
+            ? lay(a, b, `field-${label}`, label.startsWith("spoke") ? 3 : 2, true, label.startsWith("spoke") ? "street" : "lane")?.points
+            : lay(a, b, `field-${label}`, 1, true, "path")?.points,
       join: (a, label) => connect(a, c, `field-${label}`, 0, bounds)?.points,
       street: (x, y) => {
         centerlines ??= new Set(

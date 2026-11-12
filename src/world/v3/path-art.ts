@@ -64,6 +64,8 @@ export function pathArt(
     }
     // A blacktop road is two car lanes wide whatever the track under it was.
     const blacktop = paved && road.width >= 1;
+    // A farm road off it is graded gravel, a truck wide.
+    const gravel = blacktop && isGravel(road);
     for (let i = 1; i < selected.length; i++) {
       const a = selected[i - 1],
         b = selected[i],
@@ -73,14 +75,16 @@ export function pathArt(
           // Art half-width only; the route's reserved cells are unchanged. A
           // cart road at the generated width painted a 48px ribbon through a
           // village, roughly twice what the reference art carries.
-          radius: blacktop
+          radius: gravel
+            ? 1.5
+            : blacktop
             ? 2.6
             : road.width
               ? road.width * 0.72 + 0.44
               : (shared ? 0.6 : 0.8) * wear(road.loads?.[0]),
           ...(ruts === false && { ruts }),
           ...(dung === false && { dung }),
-          ...(blacktop && { paved }),
+          ...(blacktop && { paved: gravel ? ("gravel" as const) : paved }),
         };
       const count = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2),
         seen = new Set<string>(),
@@ -103,13 +107,15 @@ export function pathArt(
   return index;
 }
 
+const isGravel = (road: Road) => road.kind === "lane" && road.width >= 1 && road.id.includes("-field");
+
 /** A footpath fed by a few households wears a little wider, not a lane's width. */
 const wear = (load = 1) => 1 + 0.14 * Math.min(4, load - 1);
 
 /** Union cardinal edges before simplification, stopping at every junction. A
  * shared segment has one owner and the widest road wins, regardless of order. */
 export function uniqueRoads(roads: readonly Road[]): Road[] {
-  type Edge = { a: Point; b: Point; width: number; load: number; key: string };
+  type Edge = { a: Point; b: Point; width: number; load: number; key: string; gravel: boolean };
   const key = (p: Point) => `${p.x},${p.y}`;
   const edges = new Map<string, Edge>();
   for (const road of roads) {
@@ -121,7 +127,7 @@ export function uniqueRoads(roads: readonly Road[]): Road[] {
         load = Math.min(road.loads?.[i - 1] ?? 1, road.loads?.[i] ?? 1),
         old = edges.get(k);
       if (!old || old.width < road.width)
-        edges.set(k, { a, b, width: road.width, load, key: k });
+        edges.set(k, { a, b, width: road.width, load, key: k, gravel: isGravel(road) });
       else if (old.width === road.width) old.load = Math.max(old.load, load);
     }
   }
@@ -134,9 +140,9 @@ export function uniqueRoads(roads: readonly Road[]): Road[] {
     }
   const seen = new Set<string>(),
     out: Road[] = [];
-  const stop = (p: Point, width: number, load: number) => {
+  const stop = (p: Point, width: number, load: number, first = false) => {
     const list = adjacency.get(key(p))!;
-    return list.length !== 2 || list.some((e) => e.width !== width || e.load !== load);
+    return list.length !== 2 || list.some((e) => e.width !== width || e.load !== load || e.gravel !== first);
   };
   const walk = (first: Edge, start: Point) => {
     let edge = first,
@@ -146,24 +152,24 @@ export function uniqueRoads(roads: readonly Road[]): Road[] {
       seen.add(edge.key);
       p = key(edge.a) === key(p) ? edge.b : edge.a;
       points.push(p);
-      if (stop(p, first.width, first.load)) break;
+      if (stop(p, first.width, first.load, first.gravel)) break;
       const next = adjacency.get(key(p))!.find((e) => !seen.has(e.key));
       if (!next) break;
       edge = next;
     }
     out.push({
-      id: `network-${out.length}`,
+      id: `network${first.gravel ? "-field" : ""}-${out.length}`,
       points,
       width: first.width,
-      kind: first.width ? "street" : "path",
+      kind: first.gravel ? "lane" : first.width ? "street" : "path",
       cost: 0,
       ...(!first.width && { loads: [first.load] }),
     });
   };
   for (const edge of edges.values()) {
     if (seen.has(edge.key)) continue;
-    if (stop(edge.a, edge.width, edge.load)) walk(edge, edge.a);
-    else if (stop(edge.b, edge.width, edge.load)) walk(edge, edge.b);
+    if (stop(edge.a, edge.width, edge.load, edge.gravel)) walk(edge, edge.a);
+    else if (stop(edge.b, edge.width, edge.load, edge.gravel)) walk(edge, edge.b);
   }
   for (const edge of edges.values())
     if (!seen.has(edge.key)) walk(edge, edge.a);

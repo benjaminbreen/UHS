@@ -21,7 +21,7 @@ const GUTTER = 13;
  * straight edge, a white edge line, one centre line and a gravel shoulder.
  * Undefined past the shoulder, where the verge's own ground shows. */
 export function blacktopPixel(
-  f: { radius: number; side?: number; along?: number; paved?: "yellow" | "white" | "none" },
+  f: { radius: number; side?: number; along?: number; paved?: "yellow" | "white" | "none" | "gravel" },
   wx: number,
   wy: number,
   dust = 0,
@@ -29,6 +29,15 @@ export function blacktopPixel(
   const d = Math.abs(f.side ?? 0),
     r = f.radius * 16,
     along = f.along ?? 0;
+  if (f.paved === "gravel") {
+    if (d >= r) return;
+    const g = hash(wx, wy, 791);
+    let gravel: RGB = g < 0.3 ? [124, 117, 102] : g < 0.85 ? [146, 138, 121] : [168, 160, 140];
+    // Two wheel tracks packed pale, loose stone thrown to the edges.
+    if (Math.abs(d - r * 0.45) <= 2.5) gravel = tint(gravel, 9);
+    else if (d >= r - 3) gravel = tint(gravel, -12);
+    return dust ? sunAndSand(gravel as Color, dust, wx, wy, false) : gravel;
+  }
   // A ditch either side, a grassy trough with water standing in its bottom;
   // in dry country a shallow scrape the sand fills.
   if (d >= r + 6) return;

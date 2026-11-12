@@ -139,6 +139,8 @@ export function planFarmland(input: {
   urban: boolean;
   /** Regional roads through the area, whose runs out of town become spokes. */
   connections: Road[];
+  /** Tracks are graded roads for motor traffic: wider, and the spokes straight. */
+  motor?: boolean;
   /** Ground the plan has already given to something else. */
   taken: (x: number, y: number) => boolean;
   /** Buildings and walls, which a parcel keeps a clear cell away from. */
@@ -326,8 +328,9 @@ export function planFarmland(input: {
   const remember = (points: Point[]) => {
     for (const p of points) {
       laneCells.add(cellKey(p.x, p.y));
-      for (let dy = -1; dy <= 1; dy++)
-        for (let dx = -1; dx <= 1; dx++)
+      const m = input.motor ? 2 : 1;
+      for (let dy = -m; dy <= m; dy++)
+        for (let dx = -m; dx <= m; dx++)
           laneMargin.add(cellKey(p.x + dx, p.y + dy));
     }
   };
@@ -407,7 +410,9 @@ export function planFarmland(input: {
     }
     const points = polyline(
       f,
-      jogged(`spoke-${k}`, outer, gu, gv).map(({ a, b }) => ({ u: a, v: b })),
+      input.motor
+        ? [{ u: outer, v: gv }, { u: gu, v: gv }]
+        : jogged(`spoke-${k}`, outer, gu, gv).map(({ a, b }) => ({ u: a, v: b })),
       `spoke-${k}`,
     );
     if (!points.length) continue;

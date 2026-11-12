@@ -92,7 +92,7 @@ export type PathField = {
   radius: number;
   ruts?: false;
   dung?: false;
-  paved?: "yellow" | "white" | "none";
+  paved?: "yellow" | "white" | "none" | "gravel";
   /** Signed distance from the centre line and distance along it, in native
    * pixels, for a paved road's paint. */
   side?: number;

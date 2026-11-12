@@ -203,6 +203,8 @@ export function composeUrban(
   railway: boolean | Rail = false,
   /** Whether the place and date lit its streets, not only its square. */
   lit = (year ?? 0) >= 1700,
+  /** River water, which a motor-age street bridges where it would stop. */
+  river?: (x: number, y: number) => boolean,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -1360,8 +1362,26 @@ export function composeUrban(
     if (motorCore && usable)
       for (const s of streets.splice(0)) {
         let from: number | undefined;
+        const reach = Math.ceil(span(s.tier) / 2) + 1;
+        const clear: boolean[] = [];
+        for (let v = lo(s); v <= hi(s); v++) clear[v - lo(s)] = free(point(s, v), reach);
+        // A main street bridges a river: a short break that is all river
+        // bank stays in the street, and the deck is laid with it.
+        if (river && s.tier < 2)
+          for (let i = 1; i < clear.length; i++) {
+            if (clear[i] || !clear[i - 1]) continue;
+            let j = i;
+            const wet = (k: number) => {
+              const p = point(s, lo(s) + k);
+              for (let d = -reach - 1; d <= reach + 1; d++)
+                for (let e = -reach - 1; e <= reach + 1; e++) if (river(p.x + d, p.y + e)) return true;
+              return false;
+            };
+            while (j < clear.length && !clear[j] && wet(j)) j++;
+            if (j < clear.length && clear[j] && j - i <= 40) clear.fill(true, i, j);
+          }
         for (let v = lo(s); v <= hi(s) + 1; v++) {
-          const ok = v <= hi(s) && free(point(s, v), Math.ceil(span(s.tier) / 2) + 1);
+          const ok = v <= hi(s) && clear[v - lo(s)];
           if (ok) from ??= v;
           else if (from !== undefined) {
             if (v - from >= 6) streets.push({ a: point(s, from), b: point(s, v - 1), tier: s.tier });
@@ -1381,6 +1401,26 @@ export function composeUrban(
       for (const [i, g] of groups.entries()) size.set(g, (size.get(g) ?? 0) + hi(streets[i]) - lo(streets[i]));
       const main = [...size].sort((a, b) => b[1] - a[1])[0]?.[0];
       for (let i = streets.length - 1; i >= 0; i--) if (groups[i] !== main) streets.splice(i, 1);
+      // The last street: where side streets run out at the town's edge, a
+      // street across their ends closes the block instead of leaving stubs.
+      const meets = (s: Segment, v: number, w: number) => streets.some((o) => o !== s &&
+        (axisOf(o) === axisOf(s)
+          ? across(o) === w && v >= lo(o) - 1 && v <= hi(o) + 1
+          : Math.abs(across(o) - v) <= 1 && w >= lo(o) - 1 && w <= hi(o) + 1));
+      for (const s of [...streets])
+        for (const v of [lo(s), hi(s)]) {
+          if (!s.tier || meets(s, v, across(s))) continue;
+          const at = (w: number) => (axisOf(s) === "x" ? { x: v, y: w } : { x: w, y: v });
+          const home = axisOf(s) === "x" ? focus.y : focus.x;
+          for (const dir of [Math.sign(home - across(s)) || 1, -Math.sign(home - across(s)) || -1]) {
+            let w = across(s) + dir;
+            while (Math.abs(w - across(s)) <= 60 && holds(at(w).x, at(w).y, -2) && (!usable || free(at(w), 3)) &&
+              !streets.some((o) => o !== s && axisOf(o) === axisOf(s) && across(o) === w && v >= lo(o) - 1 && v <= hi(o) + 1)) w += dir;
+            if (Math.abs(w - across(s)) > 60 || !holds(at(w).x, at(w).y, -2) || (usable && !free(at(w), 3))) continue;
+            streets.push({ a: at(across(s)), b: at(w), tier: 1 });
+            break;
+          }
+        }
     }
     lines.clear();
     for (const s of streets) mark(s);

@@ -22,8 +22,8 @@ export type PathStroke = {
   ruts?: false;
   /** False where no draft animals leave dung and straw on the road. */
   dung?: false;
-  /** Blacktop, with the colour of its centre line. */
-  paved?: "yellow" | "white" | "none";
+  /** Blacktop, with the colour of its centre line; or graded gravel. */
+  paved?: "yellow" | "white" | "none" | "gravel";
 };
 export type TopographyCell = {
   pathArt?: PathStroke[];
