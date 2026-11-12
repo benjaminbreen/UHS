@@ -2848,7 +2848,8 @@ export function planSettlement(
     // allows; the yard is fitted round it afterwards.
     // Where no public building takes the tall platform, the first house
     // that is not the player's does: the chief's, or the leading family's.
-    const high = !!yards.mound && !highHouse && owner !== "player" && !(yards.mound.sacred && sacred);
+    // A shrine takes it only where one was actually given a lot.
+    const high = !!yards.mound && !highHouse && owner !== "player" && !(yards.mound.sacred && frontage.some((l) => l.religious));
     const stand = high ? { face: yards.mound!.face, apron: 2, rise: yards.mound!.rise } : yards.plinth;
     const margin = high ? 2 : 1;
     let apron = 0;

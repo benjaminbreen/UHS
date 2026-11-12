@@ -2243,6 +2243,14 @@ export function createSettlementWorld(
       if ([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) =>
         crossings.has(cellKey(x + dx, y + dy)) || nearby(x + dx, y + dy).some((p) => p.traffic.has(cellKey(x + dx, y + dy)))))
         cell.crossing = true;
+      // Animated water is held back from under the trestle, not from the
+      // whole reach the track's segments are indexed over.
+      if (cell.surface === "water" && track.some(([ax, ay, bx, by]) => {
+        const dx = bx - ax, dy = by - ay,
+          t = Math.max(0, Math.min(1, ((x + 0.5 - ax) * dx + (y + 0.5 - ay) * dy) / (dx * dx + dy * dy || 1)));
+        return Math.hypot(x + 0.5 - ax - t * dx, y + 0.5 - ay - t * dy) <= 2.5;
+      }))
+        cell.trestle = true;
       const halt = trunk!.stations.find((s) => Math.hypot(s.x - x, s.y - y) < 8);
       if (halt) cell.platform = halt.toward;
     }

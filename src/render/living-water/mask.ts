@@ -67,6 +67,7 @@ export function rasterLivingWater(
       if (
         !cell?.waterVisual ||
         cell.bridge ||
+        cell.trestle ||
         cell.ramp ||
         cell.waterVisual.kind === "canal" ||
         cell.feature === "paving" ||
@@ -231,7 +232,7 @@ export function rasterLivingWater(
   const shoreAt = (x: number, y: number) => {
     const cell = sample(Math.floor(x / 16), Math.floor(y / 16));
     if (
-      !cell?.waterVisual || cell.bridge || cell.ramp ||
+      !cell?.waterVisual || cell.bridge || cell.trestle || cell.ramp ||
       (!refined && cell.surface !== "water") ||
       (refined && (cell.height > 0 || cell.feature === "paving" || cell.surface === "soil")) ||
       cell.waterVisual.kind === "canal"

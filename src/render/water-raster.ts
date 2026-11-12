@@ -488,7 +488,7 @@ export function rasterWaterTile(
       rect(sx + 3, sy + 2, 1, 1, palette.submerged[1]);
     }
   }
-  if (cell.rail) railOver(pixels, cell.rail, x, y, ox, oy, false, undefined, true);
+  if (cell.rail && cell.trestle) railOver(pixels, cell.rail, x, y, ox, oy, false, undefined, true);
   return {
     x,
     y,

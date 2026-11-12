@@ -44,6 +44,8 @@ export type TopographyCell = {
   earth?: import("../content/settlements/urban-form/types").EarthFinish;
   /** Railway track near this cell, as segments from this cell's corner. */
   rail?: [number, number, number, number][];
+  /** A railway trestle stands over this water. */
+  trestle?: boolean;
   /** A road crosses the track here on the level. */
   crossing?: boolean;
   /** A station platform stands beside the track, on the side this points to. */

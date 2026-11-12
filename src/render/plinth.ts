@@ -103,7 +103,9 @@ function facePixel(face: PlinthFace, k: Kit, wx: number, r: number, rise: number
     const t = r / (rise - 1),
       tuft = hash(wx, r >> 1, 947);
     if (r === rise - 1) return mix(turf[2], soil[0], 0.35);
-    return tuft < 0.1 ? turf[1] : tuft > 0.9 || t > 0.6 ? turf[2] : r === 0 ? turf[1] : turf[0];
+    // The sward ramp is for blades on lit turf; a bank in the lee is duller.
+    const [base, light, dark] = [turf[0], mix(turf[0], turf[1], 0.3), turf[2]].map((c) => mix(c, soil[1], 0.45));
+    return tuft < 0.1 ? light : tuft > 0.9 || t > 0.6 ? dark : r === 0 ? light : base;
   }
   if (r === rise - 1) return mix(lit(k.face, 0.5), soil[0], 0.3);
   if (face === "mud")
