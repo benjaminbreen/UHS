@@ -31,18 +31,36 @@ export function parseLighting(id: string | null): LightingId {
 export const shadowFrame = (phase: LightingId, frame: string) =>
   `${phase}:${frame.startsWith("vehicle-") ? frame.replace(/-\d+-([ewsn])$/, "-0-$1") : frame}`;
 const channels = (hex: string) => [16, 8, 0].map((s) => (parseInt(hex, 16) >> s) & 255);
-/** The wash and grade keyframes: the presets plus two of their own, so the
- * dark holds through the small hours and dawn comes up blue before it warms. */
+/** The wash and grade keyframes: the presets plus a few of their own, so the
+ * dark holds through the small hours, the sky is already paling at five, when
+ * most trades rise, and it turns rose before the sun is up at six. */
 const washKeys = [
   ...lightingPresets,
-  { ...lightingPresets[5], hour: 3 },
+  { ...lightingPresets[5], hour: 4.25 },
   {
     hour: 5,
-    ambient: "2c3a5c",
-    ambientAlpha: 0.34,
+    ambient: "46527e",
+    ambientAlpha: 0.2,
     grade: { shadow: [0.92, 0.95, 1.1], light: [1.0, 1.0, 1.04], curve: 0.1 },
   },
+  {
+    hour: 5.6,
+    ambient: "86708a",
+    ambientAlpha: 0.11,
+    grade: { shadow: [0.91, 0.94, 1.1], light: [1.05, 1.0, 0.96], curve: 0.12 },
+  },
 ].sort((a, b) => a.hour - b.hour);
+/** What sprites are multiplied by. The phases change at a stroke, which is
+ * right for shadows; the night's blue leaving the figures at six sharp was
+ * what made five o'clock look like midnight. */
+export function tintAt(clock: number) {
+  const hour = (((clock / 3600) % 24) + 24) % 24;
+  const night = channels(lightingPresets[5].tint), early = channels(lightingPresets[0].tint);
+  const t = Math.min(1, Math.max(0, (hour - 4.25) / 1.75));
+  if (hour >= 6 || t === 0) return parseInt(lightingAt(clock).tint, 16);
+  const c = night.map((v, k) => Math.round(v + (early[k] - v) * t));
+  return (c[0] << 16) | (c[1] << 8) | c[2];
+}
 function washSpan(clock: number) {
   const hour = (((clock / 3600) % 24) + 24) % 24;
   const n = washKeys.length;

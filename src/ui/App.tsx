@@ -4,6 +4,7 @@ import { TimeModal } from "./time/TimeModal";
 import { Years } from "./time/Years";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
+import { abilitiesOf } from "../content/characters/abilities";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
 import { CharacterPanel } from "./CharacterPanel";
 import "./settings.css";
@@ -337,6 +338,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   );
   const liveGraphicsRef = useRef(liveGraphics);
   const [narratorBusy, setNarratorBusy] = useState(false);
+  const [narratorAsked, setNarratorAsked] = useState<string>();
   const [narratorError, setNarratorError] = useState("");
   const [dialogueActorId, setDialogueActorId] = useState<string | null>(null);
   const commandForm = useRef<HTMLFormElement>(null);
@@ -346,6 +348,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setNarratorOpen(true);
     setNarratorBusy(true);
     setNarratorError("");
+    setNarratorAsked(text);
     setCommand("");
     const turn = await runtime.say(text);
     setNarratorBusy(false);
@@ -1527,6 +1530,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             anchor={commandForm}
             open={narratorOpen && !modal}
             busy={narratorBusy}
+            asked={narratorAsked}
             error={narratorError}
             last={runtime.engine.state.narration?.at(-1)}
             onClose={() => setNarratorOpen(false)}
@@ -1896,7 +1900,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   ) : (
                     focusSprite && (
                       <div className="focus-thumbnail">
-                        <Sprite name={focusSprite} scale={1} />
+                        <Sprite name={focusSprite} scale={1} maxSize={78} />
                       </div>
                     )
                   )}
@@ -2108,6 +2112,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 {sideTab === "skills" && (
                   <SkillsPanel
                     skills={runtime.engine.skills()}
+                    work={abilitiesOf(obs.manifest.seed, p).map((h) => ({ label: h.ability.label, rank: h.rank }))}
                     known={known}
                     pending={pending}
                     onOpen={(skill) => setSky({ skill })}

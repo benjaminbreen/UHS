@@ -19,6 +19,7 @@ export function NarratorPanel({
   anchor,
   open,
   busy,
+  asked,
   error,
   last,
   onClose,
@@ -27,6 +28,8 @@ export function NarratorPanel({
   anchor: RefObject<HTMLElement | null>;
   open: boolean;
   busy: boolean;
+  /** What the player just said, shown while the answer is on its way. */
+  asked?: string;
   error: string;
   last?: { input: string; text: string };
   onClose: () => void;
@@ -99,12 +102,16 @@ export function NarratorPanel({
         </span>
       </header>
       <div className="narrator-body">
-        {busy ? (
-          <p className="narrator-busy" aria-live="polite">
-            <span />
-            <span />
-            <span />
-          </p>
+        {busy || (last && !last.text && !error) ? (
+          <>
+            <p className="narrator-said">{asked ?? last?.input}</p>
+            <p className="narrator-busy" aria-live="polite">
+              <span />
+              <span />
+              <span />
+              <em>The narrator is working out what happens…</em>
+            </p>
+          </>
         ) : error ? (
           <p className="narrator-error">{error}</p>
         ) : last ? (

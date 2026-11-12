@@ -267,7 +267,7 @@ import {
   type StationActivity,
 } from "../core/itinerary";
 import { SNOW_SHADOW } from "./shadow-style";
-import { cloudWash, gradeAt, lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
+import { cloudWash, gradeAt, lightingAt, lightingPreset, shadowFrame, tintAt, washAt } from "./lighting";
 import { windowGlow } from "./window-light";
 import { greetingFor, twoHanded } from "../content/characters/greetings";
 import { buildingSnowBank, buildingWear } from "./building-wear";
@@ -4028,7 +4028,9 @@ export class WorldScene extends Phaser.Scene {
     this.tint =
       this.options.colorGrade === false
         ? 0xffffff
-        : parseInt(this.light.tint, 16);
+        : this.options.lighting
+          ? parseInt(this.light.tint, 16)
+          : tintAt(rt.timeVisualClock ?? e.state.clock);
     // A generated room lights its people with its own layer.
     const lit = this.selfLit(p.space);
     if (lit) this.tint = 0xffffff;

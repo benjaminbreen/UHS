@@ -5,6 +5,8 @@ import {
   lightingPresets,
   parseLighting,
   shadowFrame,
+  tintAt,
+  washAt,
 } from "../src/render/lighting";
 
 it("changes lighting only at six local-time boundaries, including midnight rollover", () => {
@@ -24,6 +26,14 @@ it("changes lighting only at six local-time boundaries, including midnight rollo
   expect(lightingAt(9 * 3600)).toBe(lightingAt(10 * 3600 + 59 * 60));
   expect(parseLighting("day")).toBe("midday");
   expect(parseLighting("warm")).toBe("afternoon");
+});
+it("pales toward dawn from the small hours, ahead of the six o'clock phase", () => {
+  const night = parseInt(lightingPresets[5].tint, 16);
+  expect(tintAt(3 * 3600)).toBe(night);
+  expect(washAt(3 * 3600).alpha).toBeCloseTo(lightingPresets[5].ambientAlpha);
+  expect(washAt(5 * 3600).alpha).toBeLessThan(0.25);
+  expect(tintAt(5 * 3600) >> 16).toBeGreaterThan(night >> 16);
+  expect(tintAt(6 * 3600)).toBe(parseInt(lightingPresets[0].tint, 16));
 });
 it("all shadow casters have six pivoted masks; low sun reverses direction and night has no solar cast", () => {
   const atlas = JSON.parse(

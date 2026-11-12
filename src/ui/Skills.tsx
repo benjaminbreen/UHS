@@ -229,7 +229,6 @@ export function SkillToast({
 
 export type Pick = { skill: SkillId; tier: Tier; options: TechniqueId[] };
 
-const shown = skillIds.filter((id) => !SKILLS[id].hidden);
 
 function XpBar({ xp }: { xp: number }) {
   const { level, into, span } = progress(xp);
@@ -276,23 +275,42 @@ function Milestones({
 /** The sidebar tab: every skill at a glance, and the way into the full view. */
 export function SkillsPanel({
   skills,
+  work,
   known,
   pending,
   onOpen,
 }: {
   skills: Skills;
+  /** What the character sheet calls abilities: the trade they arrived with. */
+  work?: readonly { label: string; rank: number }[];
   known: readonly TechniqueId[];
   pending: readonly Pick[];
   onOpen: (skill?: SkillId) => void;
 }) {
+  const level = (id: SkillId) => progress(skills[id] ?? 0).level;
   return (
     <div className="skills-panel">
-      {GROUPS.map((group) => (
+      {!!work?.length && (
+        <section aria-label="Your work" data-group="Work">
+          <h3>Your work</h3>
+          {work.map((w) => (
+            <p key={w.label} className="skill-work">
+              <span>{w.label}</span>
+              <b aria-label={`${w.rank} of 3`}>{"◆".repeat(w.rank)}<i>{"◆".repeat(3 - w.rank)}</i></b>
+            </p>
+          ))}
+        </section>
+      )}
+      {GROUPS.map((group) => {
+        // A hidden skill earns nothing yet, but a baker still arrives a
+        // seasoned hand at it; what is practised leads its group.
+        const rows = skillIds
+          .filter((id) => SKILLS[id].group === group && (!SKILLS[id].hidden || level(id) > 0))
+          .sort((a, b) => level(b) - level(a));
+        return !rows.length ? null : (
         <section key={group} aria-label={group} data-group={group}>
           <h3>{group}</h3>
-          {shown
-            .filter((id) => SKILLS[id].group === group)
-            .map((id) => {
+          {rows.map((id) => {
               const Icon = ICONS[id];
               const xp = skills[id] ?? 0;
               const level = progress(xp).level;
@@ -304,7 +322,7 @@ export function SkillsPanel({
                   data-waiting={
                     pending.some((p) => p.skill === id) || undefined
                   }
-                  onClick={() => onOpen(id)}
+                  onClick={() => onOpen(SKILLS[id].hidden ? undefined : id)}
                 >
                   <span className="skill-icon">
                     <Icon size={15} />
@@ -322,7 +340,8 @@ export function SkillsPanel({
               );
             })}
         </section>
-      ))}
+        );
+      })}
       <button className="skills-more" onClick={() => onOpen()}>
         See all skills ›
       </button>
