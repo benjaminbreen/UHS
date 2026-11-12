@@ -1,6 +1,13 @@
 import type { WorldSetting } from "../geography/types";
 import type { Boundary, CropId } from "../agriculture/types";
 import { lifeway } from "./lifeways";
+import type { EarthFinish } from "./urban-form/types";
+
+/** What a house platform is faced with. plaster: lime stucco over rubble.
+ * dressed: squared kerb stones round rammed earth. drystone: stacked field
+ * stone under a pebble floor. mud: raised earth smeared with clay. earth: a
+ * turfed bank under a clay cap. */
+export type PlinthFace = "plaster" | "dressed" | "drystone" | "mud" | "earth";
 
 /** What stands in a household's yard, beyond the fence and the bed. `sprite`
  * is a prop family in the redrawn set; `where` says which part of the yard. */
@@ -43,6 +50,16 @@ export type YardKit = {
   /** Shares of yards that wrap the house, fence only the bed, or go unfenced. */
   styles: { wrap: number; side: number; open: number };
   beds: readonly CropId[];
+  /** How the open yard is kept. Absent, it is turf worn at the door. */
+  ground?: EarthFinish;
+  /** The low platform the house stands on; `apron` is the rows of it kept
+   * clear in front of the door. */
+  plinth?: { face: PlinthFace; apron: number };
+  /** The taller platform under the place's public building, `rise` pixels
+   * high; `sacred` puts its shrine or temple on one too. */
+  mound?: { face: PlinthFace; rise: number; sacred?: boolean };
+  /** Share of households with a second house beside them on one platform. */
+  group?: number;
   /** `sprites` is the kit's own planting; without it the yard takes from the
    * local wild mix. */
   tree?: { sprites?: readonly string[]; chance: number };
@@ -66,6 +83,8 @@ const stores: YardProp[] = [
 const toft: YardKit = {
   id: "toft",
   boundary: "era",
+  // The yard at the door was trodden mud; the green was the garth behind.
+  ground: "beaten",
   front: [2, 4],
   back: [2, 4],
   styles: { wrap: 0.55, side: 0.3, open: 0.15 },
@@ -164,6 +183,7 @@ const toft: YardKit = {
 const court: YardKit = {
   id: "court",
   boundary: "era",
+  ground: "beaten",
   front: [0, 0],
   styles: { wrap: 0, side: 0.75, open: 0.25 },
   beds: ["vine", "vegetables", "beans"],
@@ -229,26 +249,44 @@ const cottage: YardKit = {
 };
 
 /** The Mesoamerican house lot, the solar: maize, beans and squash grown
- * together by the house, fruit trees, and turkeys and hens kept out back. */
+ * together by the house, fruit trees, and turkeys and hens kept out back.
+ * The house stands on a low plastered platform, as excavated house mounds
+ * do across the Maya lowlands and the Basin of Mexico; the yard is swept. */
 const solar: YardKit = {
   id: "solar",
   boundary: "era",
-  front: [1, 2],
+  ground: "swept",
+  plinth: { face: "plaster", apron: 2 },
+  mound: { face: "plaster", rise: 13 },
+  group: 0.6,
+  front: [3, 4],
   back: [2, 3],
   styles: { wrap: 0.45, side: 0.35, open: 0.2 },
   beds: ["maize", "beans", "squash", "maize"],
   tree: { sprites: ["nature-tropical-broadleaf"], chance: 0.6 },
-  props: [...stores, { ...coop, name: "Turkey pen", chance: 0.5 }],
+  props: [
+    ...stores,
+    { ...coop, name: "Turkey pen", chance: 0.5 },
+    { prop: "metate", family: "metate", name: "Metate and mano", where: "door", chance: 0.8 },
+    { prop: "jar", family: "storage-jar", name: "Water jar", where: "door", chance: 0.7 },
+    { prop: "threeStoneHearth", family: "three-stone-hearth", name: "Three-stone hearth", where: "yard", chance: 0.5 },
+  ],
 };
+
+/** After the conquest the congregated towns built at ground level; the lot,
+ * its crops and its swept yard carried on. */
+const colonialSolar: YardKit = { ...solar, id: "colonial-solar", plinth: undefined, mound: undefined, group: undefined, front: [1, 2] };
 
 /** The Andes: a stone-walled patio and a plot of tubers and grain beside it;
  * few trees at that height. */
 const andean: YardKit = {
   id: "andean",
-  boundary: "era",
+  boundary: "wall",
+  ground: "beaten",
   front: [1, 2],
   back: [1, 2],
-  styles: { wrap: 0.5, side: 0.35, open: 0.15 },
+  // The kancha: houses inside one fieldstone wall.
+  styles: { wrap: 0.8, side: 0.15, open: 0.05 },
   beds: ["potato", "quinoa", "potato", "maize"],
   tree: { chance: 0.15 },
   props: [...stores],
@@ -259,6 +297,7 @@ const andean: YardKit = {
 const kampong: YardKit = {
   id: "kampong",
   boundary: "era",
+  ground: "swept",
   front: [1, 3],
   back: [2, 3],
   styles: { wrap: 0.35, side: 0.45, open: 0.2 },
@@ -280,14 +319,78 @@ const plain: YardKit = {
 
 /** China, Korea and Japan: a bamboo clump or a broadleaf behind the house.
  * Sweetgum and camphor were the planted village trees of the south; the
- * maple stands in for both. */
+ * maple stands in for both. The house stands on a stone-kerbed footing of
+ * rammed earth (taiji, gidan), and the yard is beaten flat for threshing. */
 const eastAsian: YardKit = {
   ...plain,
   id: "east-asian",
+  ground: "beaten",
+  plinth: { face: "dressed", apron: 1 },
+  mound: { face: "dressed", rise: 9, sacred: true },
   back: [2, 3],
   styles: { wrap: 0.6, side: 0.25, open: 0.15 },
   tree: { sprites: ["nature-bamboo-clump", "nature-bamboo-clump", "nature-maple"], chance: 0.5 },
   props: [...stores, { ...coop, chance: 0.3 }],
+};
+
+/** Japan: the farmhouse stands on footing stones at ground level, with a
+ * beaten working yard (niwa) before it; shrines and halls keep the stone
+ * terrace. */
+const japanese: YardKit = { ...eastAsian, id: "japanese", plinth: undefined };
+
+/** Polynesia: the house on a paepae, a platform of stacked field stone
+ * floored with water-worn pebbles, in a swept yard under breadfruit and
+ * coconut. Documented for Hawaii, the Marquesas and the Society Islands. */
+const paepae: YardKit = {
+  ...plain,
+  id: "paepae",
+  ground: "swept",
+  plinth: { face: "drystone", apron: 1 },
+  mound: { face: "drystone", rise: 10, sacred: true },
+  group: 0.4,
+  styles: { wrap: 0.1, side: 0.3, open: 0.6 },
+  beds: ["taro", "yam"],
+  props: [
+    ...stores,
+    { prop: "poundingMortar", family: "pounding-mortar", name: "Poi board and pounder", where: "door", chance: 0.6 },
+    { prop: "earthOven", family: "earth-oven", name: "Earth oven", where: "yard", chance: 0.6 },
+  ],
+};
+
+/** Eastern North America before 1650: houses on swept ground round a plaza,
+ * maize, beans and squash beside them, the corn in a raised crib. The
+ * townhouse or temple stood on an earthen platform mound, documented from
+ * Cahokia to the Gulf. */
+const woodland: YardKit = {
+  ...plain,
+  id: "woodland",
+  ground: "swept",
+  mound: { face: "earth", rise: 13, sacred: true },
+  back: [2, 3],
+  styles: { wrap: 0.05, side: 0.35, open: 0.6 },
+  beds: ["maize", "beans", "squash"],
+  props: [
+    ...stores,
+    { prop: "poundingMortar", family: "pounding-mortar", name: "Corn mortar", where: "door", chance: 0.6 },
+    { prop: "granaryStilt", family: "granary-stilt", name: "Corn crib", where: "back", chance: 0.5 },
+  ],
+};
+const americasNorthwest = (s: WorldSetting) => s.lon < -115 && s.lat > 40;
+
+/** The Pueblo Southwest: room blocks round a plaza of beaten earth, the
+ * grinding done at the door. */
+const pueblo: YardKit = {
+  ...plain,
+  id: "pueblo",
+  ground: "beaten",
+  styles: { wrap: 0, side: 0.3, open: 0.7 },
+  beds: ["maize", "beans", "squash"],
+  tree: { chance: 0.1 },
+  props: [
+    ...stores,
+    { prop: "metate", family: "metate", name: "Metate and mano", where: "door", chance: 0.7 },
+    { prop: "jar", family: "storage-jar", name: "Water jar", where: "door", chance: 0.6 },
+  ],
 };
 
 /** The walled court of the Near East and North Africa, the house standing
@@ -295,6 +398,8 @@ const eastAsian: YardKit = {
 const westAsian: YardKit = {
   ...court,
   id: "west-asian",
+  // Courts were floored with the same mud plaster as the roofs.
+  ground: "daub",
   front: [2, 3],
   styles: { wrap: 0.7, side: 0.25, open: 0.05 },
   tree: { sprites: ["nature-date-palm"], chance: 0.5 },
@@ -305,6 +410,7 @@ const westAsian: YardKit = {
 const croft: YardKit = {
   id: "croft",
   boundary: "era",
+  ground: "beaten",
   front: [1, 2],
   styles: { wrap: 0.15, side: 0.4, open: 0.45 },
   beds: ["wheat", "barley", "beans", "flax"],
@@ -357,6 +463,7 @@ const croft: YardKit = {
 const compound: YardKit = {
   id: "compound",
   boundary: "era",
+  ground: "swept",
   front: [2, 3],
   styles: { wrap: 0.1, side: 0.3, open: 0.6 },
   beds: ["sorghum", "millet", "beans", "yam"],
@@ -417,7 +524,11 @@ export function keptTrees(setting: WorldSetting): string[] {
 const angan: YardKit = {
   id: "angan",
   boundary: "era",
-  front: [1, 3],
+  // Smeared afresh with clay and dung (lipai), which is what an angan is.
+  ground: "daub",
+  // The otla: a mud platform along the front, sat on and slept on.
+  plinth: { face: "mud", apron: 1 },
+  front: [2, 3],
   styles: { wrap: 0.55, side: 0.3, open: 0.15 },
   beds: ["vegetables", "beans"],
   props: [
@@ -444,6 +555,7 @@ const angan: YardKit = {
 const encampment: YardKit = {
   id: "encampment",
   boundary: "none",
+  ground: "beaten",
   front: [1, 2],
   styles: { wrap: 0, side: 0, open: 1 },
   beds: [],
@@ -479,6 +591,7 @@ const encampment: YardKit = {
 const bandCamp: YardKit = {
   id: "band",
   boundary: "none",
+  ground: "beaten",
   front: [1, 2],
   styles: { wrap: 0, side: 0, open: 1 },
   beds: [],
@@ -505,6 +618,9 @@ const shoreYard: YardKit = {
 
 export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (!setting) return plain;
+  // Island households farmed; their lifeway is a hamlet, not a band's camp.
+  if (setting.culture === "australian-pacific" && setting.year < 1900 && Math.abs(setting.lat) < 25 && (setting.lon > 150 || setting.lon < -130))
+    return { ...paepae, tree: { sprites: keptTrees(setting), chance: 0.7 } };
   const way = lifeway(setting);
   if (way && way.mode !== "mixed-farming")
     return way.mode === "nomadic-pastoral"
@@ -522,7 +638,7 @@ export function yardKit(setting: WorldSetting | undefined): YardKit {
   )
     return cottage;
   if (culture === "north-african-west-asian") return climate === "arid" ? westAsian : court;
-  if (culture === "mesoamerican" && year < 1900) return solar;
+  if (culture === "mesoamerican" && year < 1900) return year < 1550 ? solar : colonialSolar;
   if (culture === "andean" && year < 1900) return andean;
   if (culture === "southeast-asian") return kampong;
   const forest = setting.environment?.ecology === "tropical-woodland";
@@ -533,6 +649,8 @@ export function yardKit(setting: WorldSetting | undefined): YardKit {
     return forest && keptTrees(setting).length ? { ...compound, id: "forest-compound", tree: { sprites: keptTrees(setting), chance: 0.75 } } : compound;
   if (culture === "south-asian" && year >= 1000 && year < 1950)
     return forest ? { ...angan, tree: { sprites: keptTrees(setting), chance: 0.7 } } : angan;
-  if (culture === "east-asian") return eastAsian;
+  if (culture === "east-asian") return setting.lon > 129.5 && setting.lat > 30 && setting.lat < 46 ? japanese : eastAsian;
+  if (culture === "other-indigenous-american" && year < 1650 && !americasNorthwest(setting))
+    return setting.lon < -103 && setting.lat < 38 ? pueblo : woodland;
   return plain;
 }

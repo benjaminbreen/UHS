@@ -66,6 +66,9 @@ export type Lifeway = {
     centre?: boolean;
     /** The fence round the stock at the middle of a ring. */
     fold?: Boundary;
+    /** The open middle of a ring kept as bare ground: a swept plaza, or
+     * the trampled floor of the fold. */
+    plaza?: import("./urban-form/types").EarthFinish;
     /** The fence round the whole camp, with a gate to the south. */
     perimeter?: Boundary;
     /** The bank or fence round each hamlet. */
@@ -123,7 +126,7 @@ export const lifeways: readonly Lifeway[] = [
     to: 1950,
     bounds: [-16.2, 14.3, -13, 16.3],
     share: { of: "herding", min: 0.45 },
-    camp: { form: "ring", groups: [1, 1], perGroup: [5, 8], spacing: 0, fold: "thorn" },
+    camp: { form: "ring", groups: [1, 1], perGroup: [5, 8], spacing: 0, fold: "thorn", plaza: "beaten" },
     evidence: {
       status: "documented",
       note: "A Fulbe herding camp, the wuro, was a ring of domed shelters of mats and branches round the place where the cattle were tethered for the night, each house belonging to a wife.",
@@ -263,6 +266,7 @@ export const lifeways: readonly Lifeway[] = [
       perGroup: [8, 12],
       spacing: 0,
       fold: "thorn",
+      plaza: "beaten",
       perimeter: "thorn",
     },
     evidence: {
@@ -286,6 +290,7 @@ export const lifeways: readonly Lifeway[] = [
       perGroup: [7, 11],
       spacing: 0,
       fold: "thorn",
+      plaza: "beaten",
     },
     evidence: {
       status: "documented",
@@ -302,7 +307,7 @@ export const lifeways: readonly Lifeway[] = [
     to: 1950,
     bounds: [-78, -20, -35, 6],
     share: { of: "farming", min: 0.3 },
-    camp: { form: "ring", groups: [1, 1], perGroup: [6, 9], spacing: 0, centre: true },
+    camp: { form: "ring", groups: [1, 1], perGroup: [6, 9], spacing: 0, centre: true, plaza: "swept" },
     evidence: {
       status: "documented",
       note: "Across the southern Amazon, from the Xingu to the Kayapo and Bororo, households stood round a cleared plaza with the men's house at its centre; the swidden gardens lay out in the forest beyond.",

@@ -42,6 +42,14 @@ export type TopographyCell = {
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
   /** How unpaved town ground is kept; absent on open-country dirt. */
   earth?: import("../content/settlements/urban-form/types").EarthFinish;
+  /** Railway track near this cell, as segments from this cell's corner. */
+  rail?: [number, number, number, number][];
+  /** A road crosses the track here on the level. */
+  crossing?: boolean;
+  /** A station platform stands beside the track, on the side this points to. */
+  platform?: [number, number];
+  /** A low house platform stands here. Presentation only, never movement. */
+  plinth?: { face: import("../content/settlements/yards").PlinthFace; steps?: boolean; rise?: number };
   habitat?: import("../world/v3/habitats").Habitat;
   /** What a tall natural face here is cut from. Presentation only. */
   rock?: import("../content/geography/rock").Rock;

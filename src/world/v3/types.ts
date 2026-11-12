@@ -50,7 +50,8 @@ export type Road = {
   width: number;
   /** Total cells across, for even widths a half-width cannot express. */
   span?: number;
-  kind: "street" | "lane" | "path" | "bridge";
+  /** `rail` is a trunk railway: reserved like a road, drawn as track. */
+  kind: "street" | "lane" | "path" | "bridge" | "rail";
   cost: number;
   /** Footpaths only: how many paths' walkers pass each point, its own
    * included, so a path wears wider toward the street it feeds. */
@@ -111,6 +112,8 @@ export type SettlementPlan = {
   pavement?: Map<string, Pavement>;
   /** Open ground whose finish the plan chose, over the town form's default. */
   earth?: Map<string, import("../../content/settlements/urban-form/types").EarthFinish>;
+  /** Cells of a house platform; `steps` is the one its stair comes down from. */
+  plinths?: Map<string, NonNullable<import("../../core/topography").TopographyCell["plinth"]>>;
   lanes?: Map<string, Lane>;
   junctions?: Junction[];
   streetGeometry?: Map<string, import("./street-geometry").StreetGeometry>;

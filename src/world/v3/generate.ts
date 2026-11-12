@@ -2136,6 +2136,8 @@ export function createSettlementWorld(
         if (pavement) cell.pavement = pavement;
         // An earth street is drawn as the ground it reserves, like its footways.
         else if (material === "earth") cell.pavement = "lane";
+        const plinth = p.plinths?.get(key);
+        if (plinth) cell.plinth = plinth;
         const lane = p.lanes?.get(key);
         if (lane && cell.feature === "paving") cell.lane = lane;
         const geometry = p.streetGeometry?.get(key);

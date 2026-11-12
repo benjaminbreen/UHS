@@ -1,6 +1,8 @@
 import type { Rock } from "../content/geography/rock";
 import type { EarthFinish } from "../content/settlements/urban-form/types";
 import { frostCover, snowCover, snowOver } from "./snow-cover";
+import { plinthOver } from "./plinth";
+import { railOver } from "./trunk-rail";
 import {
   edgeTufts,
   earthSpeckle,
@@ -168,6 +170,31 @@ function lipAt(sample: TopographySample, x: number, y: number, px: number, py: n
     open(0, -1) ? py : 9,
     open(0, 1) ? 15 - py : 9,
   );
+}
+
+/** A household yard's kept ground meets other bare earth along a wandering
+ * line, not the cell grid: the finish at this point, false where the yard
+ * gives way to plain earth, undefined where no yard is in reach. */
+function keptYard(sample: TopographySample, xx: number, yy: number, wx: number, wy: number): EarthFinish | false | undefined {
+  const x0 = Math.floor(xx - 0.5),
+    y0 = Math.floor(yy - 0.5),
+    fx = xx - 0.5 - x0,
+    fy = yy - 0.5 - y0;
+  let finish: EarthFinish | undefined,
+    kept = 0,
+    bare = 0;
+  for (let j = 0; j < 2; j++)
+    for (let i = 0; i < 2; i++) {
+      const c = sample(x0 + i, y0 + j),
+        w = (i ? fx : 1 - fx) * (j ? fy : 1 - fy);
+      if (c?.pavement === "yard" && c.earth && c.earth !== "lime" && c.earth !== "gravel") {
+        finish ??= c.earth;
+        kept += w;
+      } else if (c?.surface === "soil" && !c.feature) bare += w;
+    }
+  if (!finish) return undefined;
+  if (!bare) return finish;
+  return kept / (kept + bare) + (noise(wx, wy, 11, 941) - 0.5) * 0.5 > 0.5 ? finish : false;
 }
 
 /** Town ground as it is kept, on the local soil ramp: tone and shade.
@@ -373,6 +400,11 @@ export function rasterHabitatTile(
         const mud = d < 0.8 ? tidalFlat(cell, d, (x + ox) * 16 + px, (y + oy) * 16 + py) : undefined;
         if (mud) tile.pixels.set(mud, (py * 16 + px) * 4);
       }
+  if (cell.plinth || sample(x, y - 1)?.plinth || sample(x - 1, y)?.plinth || sample(x - 1, y - 1)?.plinth) {
+    const ramps = cell.habitat ? habitatRamps(cell.habitat, art) : { soilPalette: soils.grassland, palette: art.palettes.grassland };
+    plinthOver(tile.pixels, sample, x, y, ox, oy, ramps.soilPalette, ramps.palette);
+  }
+  if (cell.rail) railOver(tile.pixels, cell.rail, x, y, ox, oy, cell.crossing, cell.platform);
   if (snowCover() || frostCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
   return tile;
 }
@@ -1470,7 +1502,9 @@ function rasterGroundTile(
         if (routed?.paved && wear <= trod) {
           const tone = blacktopPixel(routed, wx, wy, dustOf(cell.biome));
           if (tone) {
-            pixels.set(tone, (py * 16 + px) * 4);
+            // Marked as made ground in the apron too, or the turf rims every cell.
+            trodden[at(px, py)] = 1;
+            if (inside) pixels.set(tone, (py * 16 + px) * 4);
             continue;
           }
         }
@@ -1554,8 +1588,9 @@ function rasterGroundTile(
           // Bare ground is close in value to its own soil ramp; packing it
           // one step darker is what lets the tread read without grain.
           if (!grassy) shade -= 9;
-          const finish = contact ? undefined : cell.earth;
-          if (finish) [tone, shade] = finishPixel(finish, wx, wy, soil, field.cross, lipAt(sample, x, y, px, py, finish));
+          const yard = keptYard(sample, xx, yy, wx, wy);
+          const finish = contact ? undefined : yard === false ? undefined : yard ?? cell.earth;
+          if (finish) [tone, shade] = finishPixel(finish, wx, wy, soil, field.cross, yard ? 9 : lipAt(sample, x, y, px, py, finish));
           const worked = !finish || finish === "beaten";
           // Cart ruts either side of the crown on wagon-width roads: a dark
           // groove with a lit lip on its outer side, broken so the pair never
