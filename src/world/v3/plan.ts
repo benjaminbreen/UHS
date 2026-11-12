@@ -1991,7 +1991,7 @@ export function planSettlement(
           paintCourt,
           paintBlock,
         );
-    if (!motorAge) composeStreetGeometry(plan, urbanLots.flatMap((lot) => lot.rect ? [lot.rect] : []));
+    composeStreetGeometry(plan, urbanLots.flatMap((lot) => lot.rect ? [lot.rect] : []), motorAge);
     // Composed buildings are installed later; crossings must already respect them.
     const crossingObstacles = new Set(plan.solid);
     for (const lot of urbanLots)

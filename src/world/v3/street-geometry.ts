@@ -2,7 +2,29 @@ import { cellKey, type SettlementPlan, type Rect } from "./types";
 import type { StreetMaterial } from "../../content/settlements/streets";
 import type { StreetSurface } from "../../content/settlements/streets/palettes";
 
-export type StreetStroke = { a: [number, number]; b: [number, number]; radius: number; material?: StreetMaterial; footway?: StreetMaterial; tier?: string };
+export type StreetStroke = {
+  a: [number, number]; b: [number, number]; radius: number; material?: StreetMaterial; footway?: StreetMaterial; tier?: string;
+  /** Cells of footway beyond each kerb. */
+  walk?: number;
+  /** How the carriageway is painted, where the town marks its roads. */
+  marks?: import("../../content/settlements/streets/markings").RoadMarkings;
+};
+
+/** Where a point sits in a street's own frame, in cells: `along` from the
+ * end nearer the origin, `across` from the centreline, positive to the south
+ * of a street that runs mostly east-west and to the east of any other. */
+export function strokeFrame(s: StreetStroke, x: number, y: number) {
+  let dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], ox = s.a[0], oy = s.a[1];
+  const len = Math.hypot(dx, dy) || 1;
+  dx /= len; dy /= len;
+  const xlike = Math.abs(dx) >= Math.abs(dy);
+  if (xlike ? dx < 0 : dy < 0) { dx = -dx; dy = -dy; ox = s.b[0]; oy = s.b[1]; }
+  return {
+    xlike,
+    along: (x - ox) * dx + (y - oy) * dy + (xlike ? ox : oy),
+    across: xlike ? (y - oy) * dx - (x - ox) * dy : (x - ox) * dy - (y - oy) * dx,
+  };
+}
 
 export type StreetGeometry = { strokes: StreetStroke[]; infill: boolean };
 
@@ -49,9 +71,15 @@ export function throughStroke(strokes: StreetStroke[], x: number, y: number) {
 }
 
 /** Made streets share continuous edges and rounded junctions, in their own stone. */
-export function composeStreetGeometry(plan: SettlementPlan, buildings: Rect[] = []) {
+export function composeStreetGeometry(
+  plan: SettlementPlan,
+  buildings: Rect[] = [],
+  /** Keep each street's own footway width instead of two cells everywhere. */
+  sectioned = false,
+) {
   const footway = [...plan.pavement ?? []].find(([k, role]) => role === "footway" && plan.streetSurfaces?.get(k));
-  const walk = footway && plan.streetSurfaces?.get(footway[0]);
+  const paved = footway && plan.streetSurfaces?.get(footway[0]);
+  const marks = plan.lanes?.values().next().value?.marks;
   const strokes = plan.roads.filter((r) => /-(street-\d|avenue-)/.test(r.id) && r.kind !== "bridge")
     .flatMap((r): StreetStroke[] => {
       const made = r.points.filter((p) => {
@@ -71,13 +99,27 @@ export function composeStreetGeometry(plan: SettlementPlan, buildings: Rect[] = 
       // A stub shorter than the street is wide is a junction's leftover, and
       // drew as a bar of the wrong stone across it.
       if (Math.hypot(b.x - a.x, b.y - a.y) < radius) return [];
+      // The footway a street already has, counted out from its kerb at the
+      // middle of its run; a street laid without one gets two cells.
+      const mid = r.points[r.points.length >> 1], sx = a.x === b.x ? 1 : 0, sy = sx ? 0 : 1;
+      let walk = 0;
+      for (const side of [-1, 1]) {
+        let n = 0;
+        for (let d = Math.ceil(radius); d < Math.ceil(radius) + 5; d++) {
+          const role = plan.pavement?.get(cellKey(mid.x + sx * side * d, mid.y + sy * side * d));
+          if (role === "footway" || role === "verge") n++;
+          else if (n) break;
+        }
+        walk = Math.max(walk, n);
+      }
       // Run on to the far side of the cells the road was stamped over, so no
       // island of carriageway is left past the stroke's end.
       const out = Math.max(0, radius - 0.5), length = Math.hypot(b.x - a.x, b.y - a.y),
         ex = ((b.x - a.x) / length) * out, ey = ((b.y - a.y) / length) * out;
       return [{ a: [a.x + 0.5 + (a.x === b.x ? offset : 0) - ex, a.y + 0.5 + (a.y === b.y ? offset : 0) - ey],
         b: [b.x + 0.5 + (a.x === b.x ? offset : 0) + ex, b.y + 0.5 + (a.y === b.y ? offset : 0) + ey], radius,
-        material, footway: walk && walk !== "earth" ? walk : material, tier: /-(street-\d|avenue)-/.exec(r.id)?.[1] }];
+        material, footway: paved && paved !== "earth" ? paved : material, tier: /-(street-\d|avenue)-/.exec(r.id)?.[1],
+        walk: sectioned && walk ? walk : 2, ...(marks && { marks }) }];
     });
   if (!strokes.length) return;
   // A street is surfaced as its kind, not segment by segment: a main road
@@ -110,7 +152,7 @@ export function composeStreetGeometry(plan: SettlementPlan, buildings: Rect[] = 
     if (buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) continue;
     const closest = throughStroke(list, x + 0.5, y + 0.5);
     const d = streetUnionDistance(list, x + 0.5, y + 0.5);
-    if (d > 2) continue;
+    if (d > (closest.walk ?? 2)) continue;
     geometry.set(k, { strokes: list, infill: false });
     plan.surface.set(k, "paving");
     plan.streetSurfaces!.set(k, (d <= 0 ? closest.material : closest.footway) ?? "slab");

@@ -5,7 +5,7 @@ import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
-import { streetUnionDistance, throughStroke } from "../world/v3/street-geometry";
+import { streetDistance, streetUnionDistance, strokeFrame, throughStroke } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 /** World-space value noise at stone scale, so a seam wanders by whole stones. */
 const jitter = (wx: number, wy: number) => {
@@ -286,22 +286,53 @@ export function rasterStreetTile(
         const { strokes, infill } = c.streetGeometry;
         const ax = (wx + 0.5) / 16, ay = (wy + 0.5) / 16;
         const closest = throughStroke(strokes, ax, ay);
-        const d = streetUnionDistance(strokes, ax, ay) * 16;
-        if (d > 32 && !infill) continue;
+        const union = (qx: number, qy: number) => streetUnionDistance(strokes, qx, qy) * 16;
+        const d = union(ax, ay);
+        // Past every street's own footway the ground shows.
+        if (d > 0 && !infill && !strokes.some((o) => streetDistance(o, ax, ay) <= (o.walk ?? 2))) continue;
         const road = closest.material ?? material, walk = closest.footway ?? "concrete";
         let colour: RGB = pavingStonePixel(wx, wy, d < 0 ? road : walk, "street");
+        const made = road === "asphalt" || road === "concrete" || road === "sett" || road === "brick";
         // Paint belongs on a made road, never on flags or cobbles.
-        if (d < 0 && c.lane && (road === "asphalt" || road === "concrete" || road === "sett" || road === "brick"))
-          colour = carriagewayPixel(colour, c.lane, c.lane.at * 16 + (c.lane.axis === "x" ? py : px),
-            c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx,
-            { low: false, high: false }, road === "asphalt" || road === "concrete");
+        if (d < 0 && made) {
+          const smooth = road === "asphalt" || road === "concrete";
+          // A real kerb is near; inside a junction's mouth there is none to gutter.
+          const kerbs = { low: d > -18, high: d > -18 };
+          if (c.lane)
+            colour = carriagewayPixel(colour, c.lane, c.lane.at * 16 + (c.lane.axis === "x" ? py : px),
+              c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx, kerbs, smooth);
+          else if (closest.marks) {
+            // Off the grid a street carries the same section in its own frame.
+            const f = strokeFrame(closest, ax, ay), span = Math.round(closest.radius * 2);
+            const crossed = strokes.some((o) => o !== closest && streetDistance(o, ax, ay) < 0 &&
+              Math.abs((o.b[0] - o.a[0]) * (closest.b[1] - closest.a[1]) - (o.b[1] - o.a[1]) * (closest.b[0] - closest.a[0])) > 0.01);
+            colour = carriagewayPixel(colour,
+              { axis: f.xlike ? "x" : "y", at: 0, span, marks: closest.marks, junction: crossed },
+              Math.floor((f.across + closest.radius) * 16), Math.floor(f.along * 16), Math.round((f.along - f.across) * 16), kerbs, smooth);
+          }
+        }
         if (road !== "cobble" && road !== "slab") {
-          if (d >= -2 && d < 0) colour = lit(kerbStone(road), -2);
-          if (d >= 0 && d < 2) colour = lit(kerbStone(road), d < 1 ? 2 : 0);
+          if (d < 0 && d > -4) {
+            // The kerb faces whichever way the road's edge does here.
+            const gx = union(ax + 0.25, ay) - union(ax - 0.25, ay), gy = union(ax, ay + 0.25) - union(ax, ay - 0.25);
+            const side: Side = Math.abs(gy) >= Math.abs(gx) ? (gy < 0 ? "n" : "s") : gx < 0 ? "w" : "e";
+            const dropped = c.lane?.crossing && Math.abs(c.lane.toJunction ?? 9) <= 2;
+            const tone = dropped
+              ? d > -2 ? lit(kerbStone(road), -1) : undefined
+              : kerbTone(side, Math.floor(-d), side === "n" || side === "s" ? wx : wy, kerbStone(road), colour, false);
+            if (tone) colour = tone;
+          }
         } else if (road !== walk && d >= -4 && d < 0) {
           // Cobbles stop at a row of long edge stones and a joint, not a cut.
           const along = closest.a[1] === closest.b[1] ? wx : wy;
           colour = d >= -1 ? lit(COURSE[road], -3) : mod(along, 7) === 0 ? lit(COURSE[road], -2) : lit(COURSE[road], d >= -2 ? 2 : 0);
+        }
+        // Where the footway ends against open ground it is cut, not kerbed.
+        if (d >= 0) {
+          const out = Math.min(north ? py : 99, south ? 15 - py : 99, west ? px : 99, east ? 15 - px : 99);
+          if (out < 3)
+            colour = cutEdge(out === (north ? py : 99) ? "n" : out === (south ? 15 - py : 99) ? "s" : out === (west ? px : 99) ? "w" : "e",
+              out, COURSE[walk], colour);
         }
         if (dust) colour = sunAndSand(colour as Color, dust, wx, wy, road === "asphalt" && d < -2);
         pixels.set([...colour, 255], (py * 16 + px) * 4);
