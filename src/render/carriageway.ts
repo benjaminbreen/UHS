@@ -284,7 +284,8 @@ export function carriagewayPixel(
     if (half && u >= P && u < W - P) return paint(WHITE);
   }
 
-  if (lane.span >= 4) {
+  // A back street carries no paint.
+  if (lane.span >= 5) {
     const c = W / 2;
     const dash = mod(v, 48) < 20;
     switch (m.centre) {

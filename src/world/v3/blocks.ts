@@ -1494,9 +1494,7 @@ export function composeUrban(
         }
       }
     }
-  // A motor-age street keeps its furniture in the strip at the kerb, on a
-  // beat: a lamp every twelve cells, staggered across the street, and on a
-  // main street a tree between each pair.
+  // A motor-age street keeps its furniture in the strip at the kerb, on a beat.
   if (motorCore)
     for (const s of streets) {
       if (s.tier > 1) continue;
@@ -1504,8 +1502,10 @@ export function composeUrban(
       for (const side of [-1, 1]) {
         const row = across(s) + (side < 0 ? -slo - 1 : shi + 1);
         for (let v = lo(s) + 2; v <= hi(s) - 2; v++) {
-          const beat = (((v + (side < 0 ? 0 : 6)) % 12) + 12) % 12;
-          if (beat % 6 || (beat && (s.tier || !wants("tree")))) continue;
+          // A lamp every twenty-four cells a side, the sides staggered; on
+          // a main street a tree at each quarter between.
+          const beat = (((v + (side < 0 ? 0 : 12)) % 24) + 24) % 24;
+          if (beat % 6 || (beat && (beat === 12 || s.tier || !wants("tree")))) continue;
           const [x, y] = axisOf(s) === "x" ? [v, row] : [row, v];
           if (!holds(x, y, 1) || lines.has(cellKey(x, y))) continue;
           if (streets.some((o) => axisOf(o) !== axisOf(s) && Math.abs(across(o) - v) <= span(o.tier) / 2 + 3 &&

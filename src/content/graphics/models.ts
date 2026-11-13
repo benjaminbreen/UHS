@@ -4,6 +4,19 @@ import models from "./models.generated.json" with { type: "json" };
 /** Compiled from content recipes by npm run art; shared by generator, game and lab. */
 export type BuildingModel = (typeof models)[keyof typeof models];
 export const buildingModels: Record<string, BuildingModel> = models;
+// The modern street kit (172 models) is compiled with `bounds` and the
+// anchor's height in some other frame than the sprite's, which drew each one
+// ten cells west of its lot. Its occlusion is right: the sprite is that wide
+// and four pixels taller, standing on the row below it. Fix in scripts/art.
+/** Rows of empty sprite above what one of those models draws. */
+const clearTop = new Map<unknown, number>();
+for (const model of Object.values(buildingModels) as { anchor: number[]; bounds: number[]; occlusion?: number[]; height?: number }[]) {
+  const o = model.occlusion;
+  if (!o || model.bounds[3] >= o[3]) continue;
+  model.bounds = [0, 0, o[2], o[3] + 4];
+  model.anchor = [model.anchor[0], o[3] + 1];
+  if (model.height) clearTop.set(model, Math.max(0, o[3] - model.height - 8));
+}
 export const waterborneFrames = new Set(Object.entries(worksites)
   .filter(([,s])=>"waterborne" in s && s.waterborne)
   .flatMap(([name])=>[name,...["north","east","west"].map(f=>`${name}-${f}`)])
@@ -26,7 +39,7 @@ export function buildingArtCells(
   const drawY = rect.y * 16 + rect.h * 16 - model.anchor[1];
   const left = Math.floor(drawX / 16);
   const right = Math.ceil((drawX + model.bounds[2]) / 16);
-  const top = Math.floor(drawY / 16);
+  const top = Math.floor((drawY + (clearTop.get(model) ?? 0)) / 16);
   const bottom = Math.ceil((drawY + model.bounds[3]) / 16);
   const cells: { x: number; y: number }[] = [];
   for (let y = top; y < bottom; y++)

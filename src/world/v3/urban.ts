@@ -480,7 +480,7 @@ export function urbanNeighborhood(
   };
   // Any town whose houses overhang their footprints keeps those roofs clear.
   const roofed =
-    plotted ||
+    plotted || americanStrip ||
     frames.some((f) => marginsOf(f)[1] > 0);
   let noted = 0;
   const note = (lot: UrbanLot) => {
@@ -773,7 +773,8 @@ export function urbanNeighborhood(
       if (old(s)) continue;
       if (form.footways === "main" && s.tier > 0) continue;
       const span = layout.tiers[s.tier],
-        walk = s.tier < 2 ? 2 : 1,
+        // A side street in a town of cars has one narrow walk each side.
+        walk = s.tier < 2 && !(form.motor && !form.oldCore && s.tier) ? 2 : 1,
         lo = Math.floor((span - 1) / 2),
         hi = span - 1 - lo;
       const horizontal = s.a.y === s.b.y;
@@ -2038,7 +2039,9 @@ export function urbanNeighborhood(
         const [w, h] = model.footprint;
         // A house in a town of cars stands back from the sidewalk behind a
         // lawn; a shop is built up to it.
-        const back = form.motor && !form.oldCore && recipe.kind.includes("home") ? 2 : 0;
+        // Houses in a town of cars stand in their own blocks, on lots.
+        if (form.motor && !form.oldCore && recipe.kind.includes("home")) continue;
+        const back = 0;
         const rect = {
           x: door.x - model.entrance[0] + nx * back,
           y: door.y - model.entrance[1] + ny * back,
@@ -2084,6 +2087,7 @@ export function urbanNeighborhood(
     const block = rank.block;
     const use = uses.get(block);
     if (use === "estate" || use === "industrial" || use === "tenement" || use === "rowhouse") return;
+    if (form.motor && !form.oldCore && use === "suburb" && rank.built) return;
     if (framesForBlock(block).some(tallKit)) return;
     // Offices, shops and works build over their whole block; homes keep yards.
     const own =
@@ -2096,7 +2100,8 @@ export function urbanNeighborhood(
           group: "infill",
         }))
       : candidatePool(quarters.get(block) ?? "residential").filter(
-          (c) => use !== "suburb" || c.kind.includes("home"),
+          (c) => (use !== "suburb" || c.kind.includes("home")) &&
+            !(form.motor && !form.oldCore && use !== "suburb" && c.kind.includes("home")),
         );
     if (!pool.length) return;
     const area = block.w * block.h;
@@ -2275,8 +2280,53 @@ export function urbanNeighborhood(
     return out;
   }
 
+  /** A block of detached houses in a town of cars: lots of one width along
+   * its south street, each door to the sidewalk, and where the block is deep
+   * enough a second row along the north street, seen from behind. */
+  function houseLots(rank: (typeof ranks)[number]): UrbanLot[] {
+    const block = rank.block, out: UrbanLot[] = [];
+    const homes = candidateBases.filter((c) => c.kind.includes("home")).map((c) => c.base);
+    const pool = homes.length ? homes : framesForBlock(block);
+    const faces = block.h >= 14 ? (["south", "north"] as const) : (["south"] as const);
+    const room = Math.floor(block.h / faces.length);
+    for (const face of faces) {
+      let x = block.x + 1;
+      while (x < block.x + block.w - 4 && lots.length < capacity) {
+        let step = 5;
+        // Never the same house twice running.
+        const order = [...pool].sort((a, b) => rand("house", x, block.y, face, a) - rand("house", x, block.y, face, b))
+          .sort((a, b) => Number(out.at(-1)?.frame.startsWith(a)) - Number(out.at(-1)?.frame.startsWith(b)));
+        for (const base of order) {
+            const frame = face === "north" && buildingModels[`${base}-north`] ? `${base}-north` : base;
+            const model = buildingModel(frame), [w, h] = model.footprint;
+            if (x + w > block.x + block.w - 1 || h + 2 > room) continue;
+            const rect = { x, y: face === "south" ? block.y + block.h - h - 1 : block.y + 1, w, h };
+            if (!api.dry(rect, false)) continue;
+            const point = { x: rect.x + model.entrance[0], y: rect.y + model.entrance[1] };
+            const ny = frame.endsWith("-north") ? 1 : -1, depth = Math.min(4, room - h - 1);
+            const lot: UrbanLot = {
+              point, quarter: "residential", use: "suburb", nx: 0, ny, frame, rect, yard: rect,
+              workPoint: { x: point.x, y: point.y - ny },
+              ...(depth >= 2 && { garden: { x: rect.x, y: face === "south" ? rect.y - depth : rect.y + h, w: w + 2, h: depth, last: false } }),
+            };
+            if (!place(rank, lot)) continue;
+            out.push(lot);
+            // Room for the drive, and for a roof wider than its walls.
+            step = w + 4 + marginsOf(frame)[0];
+            break;
+          }
+        x += step;
+      }
+    }
+    return out;
+  }
+
   function blockLots(block: Block): UrbanLot[] {
     const rank = ranks.find((r) => r.block === block)!;
+    if (form.motor && !form.oldCore && uses.get(block) === "suburb") {
+      const houses = houseLots(rank);
+      if (houses.length) return houses;
+    }
     if (uses.get(block) === "industrial") {
       const works = industrialLots(block);
       if (works.length) return works.filter((lot) => lots.length < capacity && place(rank, lot));
@@ -2594,7 +2644,10 @@ export function urbanNeighborhood(
  * Period facades are drawn front-on and carry no baked margins, but a
  * three-storey front still rises over the lot behind it. */
 function marginsOf(frame: string): number[] {
-  const model = buildingModel(frame) as { margins?: number[]; period?: boolean; footprint: number[] };
+  const model = buildingModel(frame) as { margins?: number[]; period?: boolean; candidate?: boolean; height?: number; footprint: number[] };
+  // The small street kit is drawn `height` pixels tall on its footprint.
+  if (model.candidate && model.height && !model.margins)
+    return [0, Math.max(0, Math.ceil((model.height - model.footprint[1] * 16) / 16))];
   if (model.margins || !model.period) return model.margins ?? [0, 0];
   const [w, h] = model.footprint;
   return [0, -Math.min(0, ...buildingRoofCells(frame, { x: 0, y: 0, w, h }).map((c) => c.y))];

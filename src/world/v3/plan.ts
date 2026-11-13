@@ -2883,10 +2883,12 @@ export function planSettlement(
     }
     const items = yards.props.filter(
       (p, n) =>
-        (!p.role || p.role.test(role)) && rand("yard-prop", i, n) < p.chance,
+        (!p.role || p.role.test(role)) && rand("yard-prop", i, n) < p.chance &&
+        // A town with sewers has no privies.
+        !(motorAge && urban && /privy/.test(p.family)),
     );
     const privy = privies[Math.floor(rand("privy-kind", i) * privies.length)];
-    if (privy && rand("privy-here", i) < 0.55)
+    if (privy && !(motorAge && urban) && rand("privy-here", i) < 0.55)
       items.push({ prop: privy, family: propDefs[privy].family, name: propDefs[privy].name, where: "back", chance: 1 });
     // Stores stand hard against the wall, clear of the door.
     const wallSpots: Point[] = [
@@ -3310,7 +3312,7 @@ export function planSettlement(
   const toftQueue: (() => void)[] = [];
   const gardenCells = new Set<string>();
   // What each town house's lot was laid out as: its quarter, and whether it stands in a terrace.
-  const lotRanks = new Map<string, { quarter?: Quarter; tight?: boolean }>();
+  const lotRanks = new Map<string, { quarter?: Quarter; tight?: boolean; use?: string }>();
   const yardPlans: (() => void)[] = [];
   if (placed) {
     for (const place of plan.places) reserveBuilding(place.sprite, place, place.entrance);
@@ -3975,7 +3977,7 @@ export function planSettlement(
         const car = pool.length ? parkedCar(pool, rand("drive-car", i), rand("drive-paint", i)) : undefined;
         if (car) {
           const length = carLength(car.model, "y"), front = ny < 0 ? rect.y + rect.h : rect.y - 1;
-          for (const x0 of [rect.x + rect.w, rect.x - 2]) {
+          for (const x0 of [rect.x + rect.w + 1, rect.x - 3]) {
             const out = [reach(x0, front, 0, -ny), reach(x0 + 1, front, 0, -ny)];
             const beside = Array.from({ length }, (_, d) => [cellKey(x0, front + ny * (d + 1)), cellKey(x0 + 1, front + ny * (d + 1))]).flat();
             if (!out[0] || !out[1] || !beside.every(open)) continue;
@@ -4017,7 +4019,7 @@ export function planSettlement(
       });
     else paint(yard, "dirt");
 
-    lotRanks.set(`${id}-plot`, { quarter: lot.quarter, tight: lot.tight });
+    lotRanks.set(`${id}-plot`, { quarter: lot.quarter, tight: lot.tight, use: lot.use });
     plan.plots.push({
       ...yard,
       id: `${id}-plot`,
@@ -4031,10 +4033,13 @@ export function planSettlement(
     if (toft)
       layToft(rect, door, point, workPoint, id, i, role, yard, owner);
     if (lot.garden) layGarden(lot.garden, rect, id, i, owner);
-    const side = {
-      x: workPoint.x + (ny ? (urban ? -1 : 2) : 0),
-      y: workPoint.y + (nx ? (urban ? -1 : 2) : 0),
-    };
+    // Nobody keeps a churn on the front walk of a house with a lawn.
+    const side = motorAge && urban && lot.use === "suburb" && ny
+      ? { x: rect.x + 1, y: ny < 0 ? rect.y - 1 : rect.y + rect.h }
+      : {
+          x: workPoint.x + (ny ? (urban ? -1 : 2) : 0),
+          y: workPoint.y + (nx ? (urban ? -1 : 2) : 0),
+        };
     const slot = {
       yard: [side],
       work: [{ x: workPoint.x - (ny ? 2 : 0), y: workPoint.y - (nx ? 2 : 0) }],
@@ -5079,7 +5084,8 @@ export function planSettlement(
       const door = painted ?? house.entrance;
       const streetSide = sideOf(house, house.entrance);
       const doorSide = painted ? "s" : streetSide;
-      const boundary = hovel ? pickBoundary(yardChoices, rand("hovel-fence", i))
+      const boundary = motorAge && rank?.use === "suburb" ? pickBoundary([["picket", 0.6], ["hedge", 0.4]], rand("home-fence", Math.floor(h.y / 12)))
+        : hovel ? pickBoundary(yardChoices, rand("hovel-fence", i))
         : grandly ? quarterly(grand, h.x, h.y, i) : quarterly(fronts, h.x, h.y, i);
       // Wide enough that the wall stands clear of the eaves.
       const reach: Record<Side, number> = { n: 2, s: 2, e: 2, w: 2 };
@@ -5087,8 +5093,15 @@ export function planSettlement(
       reach[across[streetSide]] = 2 + Math.floor(rand("lot-back", i) * 3);
       reach[streetSide] = 2 + Math.floor(rand("lot-front", i) * 3);
       // Railings round a Georgian area: one step out, the rest is pavement.
-      const shut = (shopfront || terrace) && !grandly;
-      if (shut) reach[streetSide] = boundary === "railing" && terrace ? 1 : 0;
+      // A house in a town of cars keeps an open lawn to the sidewalk and
+      // fences the yard behind it.
+      const homeLot = motorAge && rank?.use === "suburb";
+      const shut = (shopfront || terrace || homeLot) && !grandly;
+      if (homeLot) {
+        for (const side of ["n", "s", "e", "w"] as const) reach[side] = 1;
+        reach[across[streetSide]] = 4;
+      }
+      if (shut) reach[streetSide] = boundary === "railing" && terrace && !homeLot ? 1 : 0;
       if (grandly) for (const side of ["n", "s", "e", "w"] as const) reach[side] += 1 + Math.floor(rand("grand-reach", i, side) * 2);
       if (hovel) for (const side of ["n", "s", "e", "w"] as const) reach[side] = Math.min(reach[side], 2);
       const lot = { ...house };

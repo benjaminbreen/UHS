@@ -169,5 +169,8 @@ export function zoningFor(
   s: Pick<WorldSetting, "lon" | "lat">,
 ): Zoning & { modernity: Modernity } {
   const m = modernity(s);
-  return { ...(zonings[m.id] ?? generic), modernity: m };
+  const z = zonings[m.id] ?? generic;
+  // Rowhouses are the eastern seaboard's; west of the Mississippi a town was
+  // detached houses on lots from its first plat.
+  return { ...z, ...(m.id === "north-america" && s.lon < -90 && { inner: "suburb" as const }), modernity: m };
 }
