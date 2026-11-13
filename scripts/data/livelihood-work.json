@@ -648,6 +648,34 @@
         "water": 1,
         "bread": 2
       }
+    },
+    "estate": {
+      "activity": "Overseeing the estate",
+      "inventory": {
+        "water": 2,
+        "coin": 4
+      }
+    },
+    "law": {
+      "activity": "Hearing cases",
+      "inventory": {
+        "water": 1,
+        "coin": 3
+      }
+    },
+    "command": {
+      "activity": "Drilling the company",
+      "inventory": {
+        "water": 2,
+        "coin": 2
+      }
+    },
+    "business": {
+      "activity": "Minding the business",
+      "inventory": {
+        "water": 1,
+        "coin": 6
+      }
     }
   }
 }

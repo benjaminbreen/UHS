@@ -1,5 +1,5 @@
 import type { InfantCarry } from "../../../content/characters/wardrobe/regions/work-dress";
-import { ACCENT, APRON, BLUSH, CLOAK, EYE, H, HAIR, KERCHIEF, LEATHER, LIP, LOWER, METAL, Mask, SHAWL, SKIN, STEEL, TOP, TRIM, W, WHITE, WOOD, rnd, type Sheet } from "./paint";
+import { ACCENT, APRON, BLUSH, CLOAK, DRAPE, PURPLE, EYE, H, HAIR, KERCHIEF, LEATHER, LIP, LOWER, METAL, Mask, SHAWL, SKIN, STEEL, TOP, TRIM, W, WHITE, WOOD, rnd, type Sheet } from "./paint";
 
 /** What the accessories need of the figure: its facing, its rows and widths,
  * and where its centre line runs at each height. */
@@ -501,6 +501,54 @@ export function shawl(f: Figure, kind: "plain" | "fringed" | "patterned", stripe
       for (let x = 0; x < W; x++) if (m.has(x, y) && !m.has(x, y + 1) && x % 2 === 0) fringe.set(x, y + 1);
     s.put(fringe, kind === "fringed" ? SHAWL : TRIM, { ring: "none", shade: 0, dark: 1 });
   }
+}
+
+/** A toga: wool from the left shoulder round the back, under the right arm
+ * and up over the left shoulder again, so the right breast shows the tunic.
+ * The sinus hangs in a curve across the front, the umbo bunches at the chest,
+ * and a praetexta's straight edge is purple. A palla is worn the same way,
+ * dyed and to the knee. */
+export function toga(f: Figure, kind: "toga" | "praetexta" | "palla") {
+  const { s, yOf } = f;
+  const hem = kind === "palla" ? 2 + Math.round(f.leg * 0.4) : 3;
+  const front = !away(f) && f.cos > 0.2;
+  const m = new Mask(), fold = new Mask(), lit = new Mask();
+  // u runs from the wearer's right side (0) to the left (1).
+  const diag = (u: number) => f.hip + 1 + (f.shoulder - f.hip) * u;
+  const sinus = (u: number) => f.hip - 1 - (f.hip - 1 - (hem + (f.hip - hem) * 0.4)) * Math.sin(Math.PI * Math.min(1, u * 1.15));
+  const width = (y: number) =>
+    y > f.hip ? f.waistW + 0.8 + (f.shoulderW - f.waistW) * Math.min(1, (y - f.hip) / Math.max(1, f.shoulder - f.hip)) : f.waistW + 0.8 + (f.hip - y) * 0.12;
+  const at = (y: number, u: number) => {
+    const hw = width(y), D = (y > f.hip ? f.chestD : f.bellyD) + 0.8;
+    const lx = (2 * u - 1) * hw, fz = D * Math.sqrt(Math.max(0, 1 - (2 * u - 1) ** 2)) * (away(f) ? -1 : 1);
+    const swing = y < f.hip ? f.drift((f.hip - y) / Math.max(1, f.hip - hem)) * 0.5 : 0;
+    return rnd(sideX(f, y, lx, fz) + swing);
+  };
+  for (let y = f.shoulder + 1; y >= hem; y--) {
+    const hw = width(y), D = (y > f.hip ? f.chestD : f.bellyD) + 0.8;
+    const swing = y < f.hip ? f.drift((f.hip - y) / Math.max(1, f.hip - hem)) * 0.5 : 0;
+    for (let i = 0; i < 64; i++) {
+      const a = (i / 64) * Math.PI * 2, lx = Math.cos(a) * hw, fz = Math.sin(a) * D;
+      if (near(f, lx, fz) < 0 || y > diag((lx / hw + 1) / 2)) continue;
+      m.set(rnd(sideX(f, y, lx, fz) + swing), yOf(y));
+    }
+    if (!front) continue;
+    // The sinus's lower curve, and the folds falling below it and from the left shoulder.
+    for (let u = 0; u <= 1; u += 0.02) if (Math.abs(y - sinus(u)) < 0.5) fold.set(at(y, u), yOf(y));
+    if (y < sinus(0.3)) fold.set(at(y, 0.3), yOf(y));
+    if (y < diag(0.78) - 1) fold.set(at(y, 0.78), yOf(y));
+  }
+  // The umbo, pulled out over the band at the chest.
+  if (front) for (const u of [0.38, 0.46]) for (const dy of [1, 2]) lit.set(at(diag(u) - dy, u), yOf(diag(u) - dy));
+  const edge = (x: number, y: number) => !m.has(x, y - 1) && y < yOf(f.shoulder) + 1;
+  s.put(m, DRAPE, {
+    shade: 0.38,
+    light: 0.25,
+    top: true,
+    bottom: true,
+    zone: (x, y) => (kind === "praetexta" && (edge(x, y) || (y === yOf(hem) && front)) ? PURPLE : DRAPE),
+    tone: (x, y, t) => (lit.has(x, y) ? 4 : fold.has(x, y) && t > 2 ? 2 : t),
+  });
 }
 
 /** A hood worn down. The medieval hood's cape lies over the shoulders with a

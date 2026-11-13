@@ -102,6 +102,13 @@
     "religious-specialist",
     "banker",
     "shipowner",
-    "comprador"
+    "comprador",
+    "landowner",
+    "magistrate",
+    "lawyer",
+    "army-officer",
+    "scholar-official",
+    "planter",
+    "mill-owner"
   ]
 }

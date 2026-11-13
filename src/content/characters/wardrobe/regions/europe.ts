@@ -120,6 +120,51 @@ export const europe: readonly GarmentKit[] = [
     ],
   },
   {
+    // Italy under the Republic and the Principate, before the toga became a
+    // costume for the courts and the games. Men of standing put it on to be
+    // seen in the forum; most wore the belted tunic alone. Freeborn boys wore
+    // the purple-bordered praetexta until the toga of a man at about sixteen.
+    // Matrons wore the long stola over the tunic and a palla outdoors.
+    id: "rome-citizen",
+    label: "Rome · tunic, toga and stola",
+    scope: { years: [-500, 300], bounds: [6, 36.5, 19, 47.2] },
+    garment: [
+      { value: "tunic", weight: 8, sex: ["male"] },
+      { value: "dress", weight: 5, sex: ["female"], ages: ["adult", "elder"], means: ["common", "wealthy"] },
+      { value: "long-tunic", weight: 4, sex: ["female"] },
+    ],
+    sleeves: [{ value: "short", weight: 6, sex: ["male"] }, { value: "long", weight: 4, sex: ["female"] }, { value: "short", weight: 2, sex: ["female"] }],
+    motif: [{ value: "clavi", weight: 2, sex: ["male"], means: ["wealthy"], garments: ["tunic"] }, { value: "plain", weight: 6 }, { value: "band", weight: 1 }],
+    drape: [
+      { value: "praetexta", weight: 4, sex: ["male"], ages: ["child"], means: ["common", "wealthy"] },
+      { value: "toga", weight: 4, sex: ["male"], ages: ["youth", "adult", "elder"], means: ["wealthy"] },
+      { value: "toga", weight: 1, sex: ["male"], ages: ["adult", "elder"], means: ["common"] },
+      { value: "palla", weight: 4, sex: ["female"], ages: ["adult", "elder"] },
+      { value: "none", weight: 6 },
+    ],
+    leggings: [{ value: "none" }],
+    headwear: [
+      { value: "none", weight: 6 },
+      { value: "veil", weight: 3, sex: ["female"], ages: ["adult", "elder"] },
+      { value: "brimmed", weight: 2, livelihoods: ["farmer", "herder", "farm-hand"] },
+      { value: "cap", weight: 1, sex: ["male"], means: ["poor"] },
+    ],
+    footwear: [{ value: "sandals", weight: 5 }, { value: "shoes", weight: 3 }, { value: "none", weight: 2, means: ["poor"] }],
+    belt: [{ value: "cord", weight: 4 }, { value: "leather", weight: 3 }],
+    // The hooded paenula and the lacerna for weather and the road.
+    over: [{ value: "none", weight: 7 }, { value: "cloak", weight: 2 }],
+    material: [{ value: "wool", weight: 6 }, { value: "linen", weight: 3 }],
+    dye: [
+      { value: "undyed", weight: 6 },
+      { value: "bleached", weight: 3 },
+      { value: "madder", weight: 2 },
+      { value: "weld", weight: 1 },
+      { value: "woad", weight: 1 },
+      { value: "kermes", weight: 1, means: ["wealthy"] },
+      { value: "tyrian", weight: 1, means: ["elite"] },
+    ],
+  },
+  {
     id: "eu-medieval",
     label: "Europe · hose, hood and a fitted tunic",
     scope: { years: [500, 1350], cultures: ["european"] },

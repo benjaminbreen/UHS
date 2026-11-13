@@ -7,6 +7,7 @@ import type {
   hatTrims,
   waistcoats,
   shawls,
+  drapes,
   hoods,
   sidearms,
   armours,
@@ -100,6 +101,7 @@ export type GarmentKit = {
   hatTrim?: readonly Option<(typeof hatTrims)[number]>[];
   waistcoat?: readonly Option<(typeof waistcoats)[number]>[];
   shawl?: readonly Option<(typeof shawls)[number]>[];
+  drape?: readonly Option<(typeof drapes)[number]>[];
   hood?: readonly Option<(typeof hoods)[number]>[];
   sidearm?: readonly Option<(typeof sidearms)[number]>[];
   armour?: readonly Option<(typeof armours)[number]>[];
@@ -144,6 +146,7 @@ export const wardrobeSlots = [
   "hatTrim",
   "waistcoat",
   "shawl",
+  "drape",
   "hood",
   "sidearm",
   "armour",

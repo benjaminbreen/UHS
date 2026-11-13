@@ -32,8 +32,10 @@ async function castSheet(page: Page, name: string, rows: readonly (readonly [str
       const place = places.find((p: any) => p.id === placeId);
       if (!place) return;
       const setting = settingFor(place, year), x0 = (i % 3) * 4 * 3 * 48, y0 = Math.floor(i / 3) * 168;
-      trades.forEach((trade, n) => {
-        const c = generateCharacter(setting, `${name}-review`, `${name}-${i}-${n}`, 34, trade, undefined, undefined, "male");
+      trades.forEach((entry, n) => {
+        // "trade|sex|age", the last two optional.
+        const [trade, sex = "male", age = "34"] = entry.split("|");
+        const c = generateCharacter(setting, `${name}-review`, `${name}-${i}-${n}`, Number(age), trade, undefined, undefined, sex);
         const held = c.heldItem;
         const prop = held ? iconCarriedArt(`icon:${held}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(held) ?? itemIconFor(held) ?? held, 0, 0), GARMENT_ICON) : undefined;
         [[2, "idle", 0, 4], [1, "walk", 2, 3], [0, "idle", 0, 0]].forEach(([dir, pose, f, facing], j) => {
@@ -998,6 +1000,66 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Konya", "konya", 1200], ["Konya", "konya", 1600], ["Delhi", "delhi", 1650], ["Beijing", "beijing", 1400], ["Kyoto", "kyoto", 1500], ["Kyoto", "kyoto", 1750],
     ["Mongolia", "mongolia", 1250], ["Timbuktu", "timbuktu", 1450], ["Ethiopia", "ethiopia", 1500], ["Mexico", "mexico", 1450], ["Cusco", "cusco", 1450], ["Polynesia", "polynesia", 1600],
   ].map(([l, p, y]) => [l as string, p as string, y as number, ["town-watchman", "town-watchman", "town-watchman", "gate-keeper"]] as const)),
+
+  rome: (page) => castSheet(page, "rome", [
+    ["Office", "rome", 50, ["senator", "consul", "eques", "general"]],
+    ["Office", "rome", 50, ["pontifex", "emperor", "empress|female", "senator|male|62"]],
+    ["Street", "rome", 50, ["merchant", "baker|female", "weaver|female|40", "farmer"]],
+    ["Street", "rome", 50, ["scribe", "potter|male|15", "child|male|9", "child|female|9"]],
+    ["Street", "rome", 50, ["trader|female|50", "trader|male|50", "porter", "fuller"]],
+    ["Before", "rome", -600, ["merchant", "baker|female", "farmer", "scribe"]],
+  ]),
+
+  rulers: (page) => castSheet(page, "rulers", [
+    ["Nile", "nile", -1300, ["pharaoh", "queen|female", "vizier", "high priest"]],
+    ["Xi'an", "city-xian", -100, ["emperor", "minister", "farmer", "emperor|male|60"]],
+    ["Beijing", "beijing", 1500, ["emperor", "mandarin", "empress|female", "merchant"]],
+    ["Seoul", "city-seoul", 1600, ["king", "minister", "farmer", "merchant"]],
+    ["Kyoto", "kyoto", 1000, ["emperor", "minister", "farmer", "kuge"]],
+    ["Paris", "paris", 1250, ["king", "queen|female", "merchant", "farmer"]],
+    ["Constantinople", "city-constantinople", 900, ["emperor", "empress|female", "merchant", "farmer"]],
+    ["Persepolis", "city-persepolis", -480, ["king", "satrap", "farmer", "merchant"]],
+    ["Ctesiphon", "city-ctesiphon", 500, ["shahanshah", "farmer", "merchant", "king|male|60"]],
+    ["Delhi", "delhi", 1000, ["raja", "rani|female", "farmer", "merchant"]],
+    ["Agra", "city-agra", 1620, ["emperor", "vizier", "farmer", "merchant"]],
+    ["Istanbul", "city-istanbul", 1600, ["sultan", "vizier", "farmer", "merchant"]],
+    ["Mongolia", "mongolia", 1250, ["khan", "herder", "herder", "khan|male|60"]],
+    ["Timbuktu", "timbuktu", 1330, ["mansa", "minister", "trader", "farmer"]],
+    ["Gondar", "city-gondar", 1650, ["negus", "farmer", "merchant", "farmer"]],
+    ["Mexico", "mexico", 1500, ["tlatoani", "farmer", "merchant", "farmer"]],
+    ["Cusco", "cusco", 1500, ["sapa inca", "farmer", "weaver", "herder"]],
+  ]),
+
+  // Courts with no kit of their own, dressed from the nearest one.
+  nobles: (page) => castSheet(page, "nobles", [
+    ["Budapest", "city-budapest", 1620, ["duke", "duchess|female", "king", "farmer"]],
+    ["Kraków", "city-krakow", 1400, ["nobleman", "lady|female", "king", "merchant"]],
+    ["Seoul", "city-seoul", 1600, ["yangban", "minister", "lady|female", "farmer"]],
+    ["Hanoi", "city-hanoi", 1500, ["emperor", "mandarin", "farmer", "merchant"]],
+    ["Angkor", "city-angkor", 1150, ["king", "noble", "queen|female", "farmer"]],
+    ["Samarkand", "city-samarkand", 1400, ["emir", "khan", "merchant", "farmer"]],
+    ["Kano", "city-kano", 1600, ["emir", "king", "merchant", "farmer"]],
+    ["Benin City", "city-benin-city", 1600, ["king", "chief", "farmer", "merchant"]],
+    ["Great Zimbabwe", "city-great-zimbabwe", 1300, ["king", "noble", "herder", "farmer"]],
+    ["Kyiv", "city-kyiv", 1100, ["prince", "boyar", "farmer", "merchant"]],
+    ["Iroquoia", "iroquoia", 1600, ["sachem", "farmer", "hunter", "farmer"]],
+    ["Honolulu", "city-honolulu", 1780, ["ali'i", "chieftain", "fisher", "farmer"]],
+    ["Bengal", "bengal", 1100, ["raja", "zamindar", "farmer", "weaver"]],
+    ["Mesopotamia", "mesopotamia", -1800, ["king", "official", "farmer", "scribe"]],
+    ["Ireland", "early-ireland", 300, ["king", "noble", "farmer", "herder"]],
+  ]),
+
+  gentry: (page) => castSheet(page, "gentry", [
+    ["London", "london", 1600, ["landowner", "lawyer", "army-officer", "landowner|female"]],
+    ["London", "london", 1850, ["landowner", "lawyer", "mill-owner", "banker"]],
+    ["Beijing", "beijing", 1700, ["scholar-official", "landowner", "magistrate", "landowner|female"]],
+    ["Delhi", "delhi", 1650, ["landowner", "magistrate", "banker", "lawyer"]],
+    ["Konya", "konya", 1600, ["landowner", "magistrate", "lawyer", "banker"]],
+    ["Kyoto", "kyoto", 1100, ["landowner", "magistrate", "army-officer", "landowner|female"]],
+    ["Virginia", "virginia", 1770, ["planter", "lawyer", "army-officer", "planter|female"]],
+    ["Paris", "paris", 1250, ["landowner", "magistrate", "banker", "landowner|female"]],
+    ["Timbuktu", "timbuktu", 1400, ["landowner", "magistrate", "merchant", "farmer"]],
+  ]),
 
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {

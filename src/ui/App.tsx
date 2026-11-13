@@ -5,6 +5,8 @@ import { Years } from "./time/Years";
 import { CharacterSprite, npcFacing } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
 import { abilitiesOf } from "../content/characters/abilities";
+import { livelihoodById } from "../content/characters/livelihoods";
+import { rolesFrom } from "../content/characters/wardrobe/roles";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
 import { CharacterPanel } from "./CharacterPanel";
 import "./settings.css";
@@ -202,6 +204,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     (window as unknown as { uhs?: Runtime }).uhs = runtime;
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
+  const origin = runtime.engine.state.player.origin;
+  const rank = origin && livelihoodById(origin.livelihood)?.rank;
+  const eminent = rank === "gentry" || rank === "elite" || rolesFrom(p.role, origin?.roleLabel).includes("aristocrat");
   const aim = runtime.engine.state.lifeAim;
   const plot = runtime.engine.state.plot;
   const propControls = runtime.propControls();
@@ -1810,7 +1815,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label={`Open ${p.name}'s profile`}
               onClick={() => openCharacter(p.id)}
             >
-              <div className="portrait">
+              <div className={eminent ? "portrait eminent" : "portrait"} title={eminent ? "Of the elite" : undefined}>
                 <CharacterSprite
                   appearance={runtime.appearanceFor(p)}
                   age={p.age}

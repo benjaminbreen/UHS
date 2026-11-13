@@ -49,7 +49,10 @@ export const SKIN = 0,
   WOOD = 37,
   STRAW = 38,
   LIQUID = 39,
-  MATS = 40;
+  /** Toga or palla wool, and the Tyrian purple of a clavus or a praetexta's border. */
+  DRAPE = 40,
+  PURPLE = 41,
+  MATS = 42;
 
 /** Ties round toward the centre line, so a shape and its mirror land on mirrored columns. */
 export const rnd = (x: number) =>

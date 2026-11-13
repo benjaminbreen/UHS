@@ -2332,6 +2332,137 @@
       ],
       "standing": "unfree",
       "why": "Cutting, hanging, curing and packing tobacco on the Chesapeake estates, almost all of it done by enslaved people."
+    },
+    "landowner": {
+      "label": "Landowner",
+      "keyword": "estate",
+      "tier": "village",
+      "weight": 0.4,
+      "capabilities": [
+        "heritable_land"
+      ],
+      "lasting": true,
+      "inventory": {
+        "water": 2,
+        "coin": 4,
+        "bread": 2
+      },
+      "why": "Living on rents and the harvest of land worked by tenants or bound labour: the squire, the zamindar, the Chinese landlord, the Roman villa owner."
+    },
+    "magistrate": {
+      "label": "Magistrate",
+      "keyword": "law",
+      "tier": "town",
+      "weight": 0.3,
+      "capabilities": [
+        "writing",
+        "urban_settlement"
+      ],
+      "requires": [
+        "office"
+      ],
+      "sex": "male",
+      "sexUntil": 1950,
+      "inventory": {
+        "water": 1,
+        "coin": 3
+      },
+      "why": "Hearing cases and keeping order for the state: the county magistrate of China, the qadi, the justice of the peace, the Roman praetor's deputies."
+    },
+    "lawyer": {
+      "label": "Lawyer",
+      "keyword": "law",
+      "tier": "town",
+      "weight": 0.4,
+      "years": [
+        -200,
+        10001
+      ],
+      "capabilities": [
+        "writing",
+        "urban_settlement"
+      ],
+      "cultures": [
+        "european",
+        "north-african-west-asian",
+        "south-asian"
+      ],
+      "sex": "male",
+      "sexUntil": 1920,
+      "inventory": {
+        "water": 1,
+        "coin": 4
+      },
+      "why": "Pleading for clients before a court: the Roman advocate, the medieval serjeant and proctor, the vakil, the barrister."
+    },
+    "army-officer": {
+      "label": "Officer",
+      "keyword": "command",
+      "tier": "town",
+      "weight": 0.3,
+      "capabilities": [
+        "retained_military_service"
+      ],
+      "sex": "male",
+      "sexUntil": 1970,
+      "inventory": {
+        "water": 2,
+        "coin": 2
+      },
+      "why": "Commanding a company of a standing force: the centurion, the captain of a regiment, the Mughal mansabdar's lieutenant."
+    },
+    "scholar-official": {
+      "label": "Scholar-official",
+      "keyword": "writing",
+      "tier": "town",
+      "weight": 0.4,
+      "years": [
+        600,
+        1905
+      ],
+      "cultures": [
+        "east-asian"
+      ],
+      "sex": "male",
+      "inventory": {
+        "water": 1,
+        "coin": 3,
+        "reeds": 2
+      },
+      "why": "Holders of examination degrees, in office or waiting for it, who led local society from the Tang until the exams ended in 1905."
+    },
+    "planter": {
+      "label": "Planter",
+      "keyword": "estate",
+      "tier": "village",
+      "weight": 0.3,
+      "requires": [
+        "plantation"
+      ],
+      "lasting": true,
+      "inventory": {
+        "water": 2,
+        "coin": 6
+      },
+      "why": "The owner of an export estate, sugar, tobacco, cotton, coffee or tea, usually living on it."
+    },
+    "mill-owner": {
+      "label": "Mill Owner",
+      "keyword": "business",
+      "tier": "industrial",
+      "weight": 0.3,
+      "capabilities": [
+        "wage_labor"
+      ],
+      "years": [
+        1780,
+        10001
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 8
+      },
+      "why": "Owning a mill, works or factory and the wage labour in it, from the Lancashire cotton masters on."
     }
   }
 }

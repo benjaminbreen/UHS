@@ -1857,6 +1857,8 @@ export function drawCharacter(
             plaid: 6,
             jersey: 7,
             collar: 1,
+            clavi: 0,
+            laticlave: 0,
           }[named];
     if (!rear && a.wearing.garment !== "wrap")
       switch (motif) {

@@ -62,9 +62,9 @@ const jaws: Record<NonNullable<CharacterAppearance["jaw"]>, [number, number][]> 
 };
 
 const hides = {
-  all: new Set(["hood", "headscarf", "veil", "wrap", "turban", "wig", "helmet", "kabuto", "jaguar", "eagle"]),
+  all: new Set(["hood", "headscarf", "veil", "wrap", "turban", "wig", "helmet", "kabuto", "jaguar", "eagle", "nemes"]),
   top: new Set(["cap", "bowler", "flat-cap", "ball-cap", "brimmed", "conical", "fez", "top-hat", "nasal", "kettle", "official-cap",
-    "fedora", "boater", "cloche", "beret", "kerchief", "peaked-cap", "pith-helmet"]),
+    "fedora", "boater", "cloche", "beret", "kerchief", "peaked-cap", "pith-helmet", "mian", "kanmuri"]),
 };
 
 function hash(s: string) {
@@ -958,6 +958,43 @@ function headwear(h: Head, lo: number) {
       }
       break;
     }
+    case "crown":
+      // A band at the brow with five points; gems set in the band.
+      k.span(2, 0, 13).span(3, 0, 13);
+      for (const c of [0, 3, 10, 13]) k.span(1, c, c).span(0, c, c);
+      k.span(1, 6, 7).span(0, 6, 7).span(-1, 6, 7);
+      mat = METAL;
+      ring = "line";
+      if (front) extra.set(view === "front" ? 3 : 9, 3).set(view === "front" ? 10 : 12, 3).set(view === "front" ? 6 : 11, 2);
+      break;
+    case "nemes": {
+      // Close over the skull to the brow, the lappets falling past the ears.
+      k.span(-1, 4, 9).span(0, 2, 11).rows(1, [[0, 13], [-1, 14], [-1, 14]]);
+      const lap = view === "front" ? [[-2, 1], [12, 15]] : view === "q" ? [[-2, 2], [13, 15]] : view === "side" ? [[-2, 4]] : [[-2, 15]];
+      for (let r = 4; r <= last + 3; r++) for (const [c0, c1] of lap) k.span(r, c0 + (r > last ? 1 : 0), c1 - (r > last ? 1 : 0));
+      // The uraeus rearing at the brow.
+      if (view === "front") extra.set(6, 2).set(7, 2).set(6, 1);
+      if (view === "q") extra.set(10, 2).set(10, 1);
+      break;
+    }
+    case "mian":
+      // A cap on the topknot under a flat board, bead strings hanging from both ends.
+      k.span(-1, 4, 9).rows(0, [[2, 11], [1, 12], [1, 12], [1, 12]]);
+      if (sideways) {
+        k.span(-2, view === "side" ? -4 : -2, view === "side" ? 17 : 15);
+        for (const c of view === "side" ? [-4, 17] : [-2, 15]) for (let r = -1; r <= 3; r++) extra.set(c, r);
+      } else {
+        k.span(-2, -1, 14);
+        for (const c of [0, 2, 11, 13]) for (let r = -1; r <= 3; r++) if (r % 2 !== 0 || c % 2 === 0) extra.set(c, r);
+      }
+      break;
+    case "kanmuri":
+      // High on the topknot; the stiff tail stands up behind.
+      k.span(-2, 5, 8).span(-1, 3, 10).rows(0, [[2, 11], [1, 12], [1, 12]]);
+      if (view === "side") k.rows(-7, [[1, 2], [1, 2], [1, 2], [1, 2], [2, 3], [2, 3], [3, 4]]);
+      else if (view === "q") k.rows(-7, [[3, 4], [3, 4], [3, 4], [3, 4], [4, 4], [4, 5], [4, 5]]);
+      else k.rows(-7, [[6, 7], [6, 7], [6, 7], [6, 7], [6, 7]]);
+      break;
     case "wig":
       k.span(-2, 3, 10).span(-1, 1, 12).rows(0, [[0, 13], [-1, 14], [-1, 14]]);
       for (let r = 3; r <= 9 + lo; r++) k.span(r, -2, view === "front" ? 1 : 4).span(r, view === "front" ? 12 : 14, 15);
@@ -1020,6 +1057,8 @@ function headwear(h: Head, lo: number) {
     top: true,
     cast: true,
     bottom: hat !== "hood" && hat !== "headscarf" && hat !== "veil" && hat !== "kerchief",
+    // The nemes in gold and lapis stripes.
+    zone: hat === "nemes" ? (_x, y) => ((y - Y(0)) % 2 === 0 ? METAL : HAT) : undefined,
     tone:
       // Wound cloth: bands crossing on a slant, as the portrait winds them.
       hat === "turban" || (h.refined && hat === "wrap")
@@ -1052,10 +1091,10 @@ function headwear(h: Head, lo: number) {
   if (h.refined) brim(h, k.mask);
   hatTrim(h);
   if (!extra.mask.empty()) {
-    const accent = hat === "fillet" || hat === "turban" || hat === "kabuto" || hat === "eagle" ? METAL : TRIM;
+    const accent = hat === "fillet" || hat === "turban" || hat === "kabuto" || hat === "eagle" || hat === "nemes" ? METAL : TRIM;
     // Felt hats carry a band of the same felt, darker; a boater's is ribbon.
     const self = ["flat-cap", "ball-cap", "fedora", "cloche", "pillbox", "beret"].includes(hat);
-    s.put(extra.mask, hat === "plume" || hat === "jaguar" ? WHITE : self ? HAT : accent, {
+    s.put(extra.mask, hat === "plume" || hat === "jaguar" || hat === "mian" ? WHITE : self ? HAT : accent, {
       ring: hat === "plume" || (h.refined && hat === "fez") ? "ink" : "none",
       shade: 0.3,
       light: 0.3,

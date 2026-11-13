@@ -1271,12 +1271,28 @@ function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
           plaid: 6,
           jersey: 7,
           collar: 1,
+          clavi: 8,
+          laticlave: 9,
         }[named];
   const only = [MAT.cloth];
   // The neckline is where the chest starts, so a motif clears it whatever the
   // garment: a band across a deep V is a band across bare skin.
   const chest = Math.max(...necklineFor(m).map(([, y]) => y)) + 3;
   switch (motif) {
+    case 8:
+    case 9: {
+      // Purple clavi from each shoulder: narrow for an eques, broad for a senator.
+      const [inner, outer] = motif === 9 ? [3, 9] : [6, 9];
+      r.paint(
+        torso.filter((i) => {
+          const d = Math.abs((i % r.w) - bx(36));
+          return d >= inner * bs && d < outer * bs;
+        }),
+        (_c, px) => (px < bx(36) ? "#7a2a52" : "#5a1c3c"),
+        { only },
+      );
+      break;
+    }
     case 1:
       r.stroke(
         [

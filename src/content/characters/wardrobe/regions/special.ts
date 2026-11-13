@@ -1,3 +1,4 @@
+import { rulerDress } from "./rulers";
 import type { GarmentKit, Option } from "../types";
 
 /**
@@ -198,6 +199,75 @@ export const workingSets: readonly GarmentKit[] = [
   },
 ];
 
+const senatorial = ["senator", "magistrate", "princeps", "general"];
+const curule = ["magistrate", "princeps", "pontifex"];
+/**
+ * Roman office, wherever Rome governed. Only those whose role names it are
+ * dressed by it, so everyone else falls through to the street. Senators wore
+ * the broad stripe (latus clavus) and the plain toga; magistrates and priests
+ * the praetexta; equestrians the narrow stripe; a general in the field the
+ * cuirass and the red paludamentum. Priests sacrificed with the toga drawn
+ * over the head.
+ */
+export const romanOffice: readonly GarmentKit[] = [
+  {
+    id: "rome-office",
+    label: "Rome · the dress of office",
+    scope: { years: [-500, 300], bounds: [-10, 29, 42, 55] },
+    // Above the street and guard sets: only the named offices reach it.
+    priority: 5,
+    garment: [
+      { value: "tunic", sex: ["male"], roles: [...senatorial, "eques", "pontifex"] },
+      { value: "tunic", sex: ["male"], livelihoods: ["statesman", "ruler", "commander", "high-priest", "courtier", "envoy"] },
+      { value: "dress", sex: ["female"], roles: ["princeps", "aristocrat"] },
+      { value: "dress", sex: ["female"], livelihoods: ["ruler", "courtier"] },
+    ],
+    sleeves: [{ value: "short", sex: ["male"], roles: [...senatorial, "eques", "pontifex"] },
+      { value: "short", sex: ["male"], livelihoods: ["statesman", "ruler", "commander", "high-priest", "courtier", "envoy"] }],
+    motif: [
+      { value: "laticlave", sex: ["male"], roles: senatorial },
+      { value: "laticlave", sex: ["male"], livelihoods: ["statesman", "ruler", "commander"] },
+      { value: "clavi", sex: ["male"], roles: ["eques"] },
+      { value: "clavi", sex: ["male"], livelihoods: ["courtier", "envoy"] },
+    ],
+    drape: [
+      { value: "praetexta", sex: ["male"], roles: curule },
+      { value: "praetexta", sex: ["male"], livelihoods: ["ruler", "high-priest"] },
+      { value: "toga", sex: ["male"], roles: ["senator", "eques"] },
+      { value: "toga", sex: ["male"], livelihoods: ["statesman", "courtier", "envoy"] },
+      { value: "palla", sex: ["female"], roles: ["princeps", "aristocrat"] },
+      { value: "palla", sex: ["female"], livelihoods: ["ruler", "courtier"] },
+      { value: "none", roles: ["general"] },
+      { value: "none", livelihoods: ["commander"] },
+    ],
+    headwear: [
+      { value: "veil", roles: ["pontifex"] },
+      { value: "veil", livelihoods: ["high-priest"] },
+      { value: "fillet", roles: ["princeps"] },
+    ],
+    // Senators' calcei; a soldier's boots.
+    footwear: [
+      { value: "shoes", roles: [...curule, "senator", "eques"] },
+      { value: "shoes", livelihoods: ["statesman", "ruler", "high-priest", "courtier"] },
+      { value: "boots", roles: ["general"] },
+      { value: "boots", livelihoods: ["commander"] },
+    ],
+    over: [{ value: "cloak", roles: ["general"] }, { value: "cloak", livelihoods: ["commander"] }],
+    armour: [{ value: "cuirass", roles: ["general"] }, { value: "cuirass", livelihoods: ["commander"] }],
+    armourColor: [{ value: "#b08a4a", roles: ["general"] }, { value: "#b08a4a", livelihoods: ["commander"] }],
+    sidearm: [{ value: "sword", roles: ["general"] }, { value: "sword", livelihoods: ["commander"] }],
+    material: [{ value: "wool", roles: [...senatorial, "eques", "pontifex"] },
+      { value: "wool", livelihoods: ["statesman", "ruler", "commander", "high-priest", "courtier", "envoy"] }],
+    // White wool under the toga; the paludamentum and the general's tunic red.
+    dye: [
+      { value: "bleached", roles: ["senator", "magistrate", "princeps", "eques", "pontifex"] },
+      { value: "bleached", livelihoods: ["statesman", "ruler", "high-priest", "courtier", "envoy"] },
+      { value: "kermes", roles: ["general"] },
+      { value: "kermes", livelihoods: ["commander"] },
+    ],
+  },
+];
+
 /**
  * Court dress. Keyed to `elite`, which is one person in five hundred, so this
  * turns up as the occasional astonishing figure in a street rather than as a
@@ -302,6 +372,8 @@ export const courtDress: readonly GarmentKit[] = [
 
 export const specialSets: readonly GarmentKit[] = [
   ...workingSets,
+  ...romanOffice,
+  ...rulerDress,
   ...courtDress,
   ...futureDress,
 ];

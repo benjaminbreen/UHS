@@ -37,8 +37,19 @@ const patterns: Record<string, RegExp> = {
     /\b(boilermaker|welder|mechanic|machinist|plumber|electrician|pipefitter|ironworker|steelworker|roofer|mason|bricklayer|labou?rer|construction|longshoreman|dockworker|trucker|truck driver|lineman|miner|carpenter|roughneck|factory worker)\b/,
   office:
     /\b(clerk|accountant|lawyer|attorney|banker|manager|executive|secretary|receptionist|teacher|professor|analyst|salesman|saleswoman|realtor|insurance|administrator|consultant|doctor|pharmacist)\b/,
+  // Who wears regalia, and who wears the dress of a court office.
+  monarch: /\b(emperor|empress|king|queen|pharaoh|sultan|sultana|shah|shahanshah|khan|khagan|tsar|tsarina|mansa|negus|tlatoani|ajaw|ahau|sapa inca|maharaja|maharani|raja|rajah|rani|basileus|tenno|monarch|sovereign|chieftain|sachem|cacique|ariki|alii|ali'i)\b/,
+  official: /\b(vizier|minister|chancellor|mandarin|governor|satrap|nomarch|daimyo|kuge|scribe of the king|grand secretary)\b/,
+  "high-priest": /\b(high priest|high priestess|chief priest|first prophet)\b/,
+  // Roman office, for the dress that marked it.
+  senator: /\b(senator|senatorial|conscript fathers?)\b/,
+  magistrate: /\b(consul|proconsul|praetor|propraetor|aedile|quaestor|censor|dictator|magistrate)\b/,
+  princeps: /\b(emperor|empress|augustus|augusta|caesar|princeps)\b/,
+  eques: /\b(eques|equites|equestrian|procurator|prefect|praefectus)\b/,
+  general: /\b(general|imperator|legate|legatus|commander)\b/,
+  pontifex: /\b(pontifex|pontiff|flamen|augur|haruspex|rex sacrorum)\b/,
   aristocrat:
-    /\b(emperor|empress|king|queen|prince|princess|duke|duchess|earl|count|countess|marquess|marquis|baron|baroness|viscount|noble|nobleman|noblewoman|aristocrat|courtier|patrician|grandee|lord|lady|shogun|maharaja|maharani|sultan|sultana|tsar|tsarina|khan|pharaoh)\b/,
+    /\b(emperor|empress|king|queen|prince|princess|duke|duchess|earl|count|countess|marquess|marquis|baron|baroness|viscount|noble|nobleman|noblewoman|aristocrat|courtier|patrician|grandee|lord|lady|boyar|yangban|zamindar|nawab|emir|amir|shogun|maharaja|maharani|sultan|sultana|tsar|tsarina|khan|pharaoh)\b/,
 };
 /** Every tag that this person's stated role earns them. */
 export function rolesFrom(

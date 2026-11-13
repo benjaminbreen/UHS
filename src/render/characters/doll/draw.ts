@@ -6,11 +6,11 @@ import { flush, luma, mix, ramp, type Ramp } from "../v2/pixels";
 import { drawHead, hairBehind, headSpans, type Head, type View } from "./head";
 import { irisOf } from "../../portraits/sculpted";
 import { clothColours } from "../cloth";
-import { apron, bag, bangles, hoodDown, infant, neckwear, shawl, shoulderCloth, type Figure } from "./extras";
+import { apron, bag, bangles, hoodDown, infant, neckwear, shawl, shoulderCloth, toga, type Figure } from "./extras";
 import type { Material } from "../../../content/characters/wardrobe/cloth";
 import {
   ACCENT, APRON, BLUSH, DECO, MARK, ORN, PLUME, SMEAR, BOOT, CLOAK, CX, EYE, GLASS, H, HAIR, HAT, INNER, IRIS, KERCHIEF, LEATHER, LEG, LIP, LOWER, PATCH,
-  ARMOUR, EMBLEM, FLAG, LIQUID, MATS, STRAW, WOOD, METAL, Mask, SHAWL, SHEATH, SHIELD, STEEL, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
+  ARMOUR, DRAPE, EMBLEM, FLAG, LIQUID, MATS, PURPLE, STRAW, WOOD, METAL, Mask, SHAWL, SHEATH, SHIELD, STEEL, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
 } from "./paint";
 
 // Renderer F, the paper doll. A figure is a few joints in body space, turned
@@ -1301,6 +1301,9 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[APRON] = w.apron === "leather" ? ramp("#7a5236") : ramp(c.apron);
   p[VEST] = dye(c.vest);
   p[SHAWL] = dye(c.shawl);
+  // Undyed wool for a toga, worked white for the candidate; a palla takes the shawl's dyes.
+  p[DRAPE] = w.drape === "palla" ? dye(c.shawl) : ramp("#ebe3cc");
+  p[PURPLE] = dye("#6e2348", 1.1);
   // Black lacquer for a Japanese scabbard, pale wood for a kris, leather for the rest.
   p[SHEATH] = ramp(w.sidearm === "katana" ? "#2a2430" : w.sidearm === "kris" ? "#9a6a38" : "#4a3020");
   // Quilted armour is undyed cotton or linen; the rest is the metal or lacquer it was made of.
@@ -1555,7 +1558,8 @@ export function drawCharacterF(
   if (k.g === "poncho") poncho(s, t, d, yOf, centre, a);
   if (a.wearing.mantle) mantle(s, t, d, yOf, centre, drift);
   else if (k.pattern === "cloud") cloudCollar(s, t, d, yOf, centre);
-  if (g && w.shawl && w.shawl !== "none") shawl(fig, w.shawl, ["step", "strip", "chevron"].includes(w.trimPattern ?? ""));
+  if (g && w.drape && w.drape !== "none") toga(fig, w.drape);
+  else if (g && w.shawl && w.shawl !== "none") shawl(fig, w.shawl, ["step", "strip", "chevron"].includes(w.trimPattern ?? ""));
   else if (w.shoulderCloth && !a.wearing.cloak) shoulderCloth(fig);
   if (g && w.hood === "down" && w.headwear !== "hood") hoodDown(fig, k.g === "shirt");
   if (cloakMask && backView) {
@@ -1941,6 +1945,8 @@ function garment(
     if (bare) return k.legs === SKIN ? LOWER : k.legs;
     // Worn cloth is patched where it gave out first: the front of the skirt or the belly.
     if (k.quality < 0 && facing && Math.abs(dx - patchX) < 1 && (y === patchY || y === patchY + 1)) return PATCH;
+    if ((k.motif === "clavi" || k.motif === "laticlave") && Math.abs(t.cos) > 0.3 && y >= top && y < hemRow - 1)
+      if (k.motif === "clavi" ? ax > 1.4 && ax < 2.4 : ax > 0.9 && ax < 2.6) return PURPLE;
     // Fine work is embroidered in gold at the neck and along the hem band.
     if (k.quality >= 2 && facing && y === top && ax < 2.6 && x % 2 === 0) return METAL;
     if (k.quality >= 2 && banded && y === hemRow - 1 && y > hipRow && x % 2 === 0) return METAL;

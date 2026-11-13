@@ -154,6 +154,14 @@ export const headwear = [
   "peaked-cap",
   /** Cork or pith under khaki cloth, a dome with a brim longer front and back: the tropics, 1870s–1950s. */
   "pith-helmet",
+  /** A gold circlet with points: European, Byzantine, Persian and Indian kings. */
+  "crown",
+  /** The pharaoh's striped headcloth, its lappets falling to the chest. */
+  "nemes",
+  /** The Chinese emperor's flat-topped crown, bead strings at front and back. */
+  "mian",
+  /** The Japanese court cap of black lacquered gauze, its tail standing up behind. */
+  "kanmuri",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -173,6 +181,10 @@ export const motifs = [
   /** A white turned-down collar and a short button front: the shirtwaist and
    * the house dress. */
   "collar",
+  /** Roman clavi: a purple stripe down each side of the tunic from the
+   * shoulder. Narrow for an eques, broad (`laticlave`) for a senator. */
+  "clavi",
+  "laticlave",
 ] as const;
 /** What covers the leg between hem and ankle. */
 export const leggings = [
@@ -220,6 +232,9 @@ export const hatTrims = ["none", "feather", "cockade", "ribbon"] as const;
 export const waistcoats = ["none", "plain", "figured", "cardigan"] as const;
 /** A square of cloth worn over the shoulders and crossed or knotted at the front. */
 export const shawls = ["none", "plain", "fringed", "patterned"] as const;
+/** Wool wound round the body over the tunic: the plain toga, the
+ * purple-bordered toga praetexta of magistrates and boys, the woman's palla. */
+export const drapes = ["none", "toga", "praetexta", "palla"] as const;
 /** A hood lying back on the shoulders; worn up, it is the `hood` headwear. */
 export const hoods = ["none", "down"] as const;
 /** Worn at the hip or in the sash: a straight sword, a curved sabre, a
@@ -823,6 +838,7 @@ export type CharacterAppearance = {
     hatTrim?: (typeof hatTrims)[number];
     waistcoat?: (typeof waistcoats)[number];
     shawl?: (typeof shawls)[number];
+    drape?: (typeof drapes)[number];
     hood?: (typeof hoods)[number];
     sidearm?: (typeof sidearms)[number];
     /** A baby tied on the back in a cloth. Set from the household, not rolled. */

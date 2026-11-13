@@ -89,6 +89,10 @@ const byActivity: Record<string, Entry> = {
   "Keeping the house": ["serve"],
   "Keeping the record": ["serve"],
   "Standing watch": ["serve"],
+  "Overseeing the estate": ["serve"],
+  "Hearing cases": ["serve"],
+  "Drilling the company": ["serve"],
+  "Minding the business": ["serve"],
   "Tending the sick": ["serve"],
   "Attending on someone": ["serve"],
   "At the rite": ["serve", "wayside-shrine", "standing-stone"],
@@ -107,6 +111,7 @@ const indoors = new Set([
   "At the workbench", "Turning pots", "Making candles", "Keeping the record",
   "Household work", "Looking after the household", "Keeping the house",
   "Tending the sick", "Playing and telling",
+  "Hearing cases", "Minding the business",
 ]);
 
 /** Where a recipe's step is done, found on the map rather than at a prop. */

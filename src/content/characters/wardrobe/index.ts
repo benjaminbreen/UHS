@@ -317,7 +317,9 @@ export function wardrobeFor(
   const straw = headwear === "conical" || (headwear === "brimmed" &&
     (place.year < 1500 || ["farmer", "herder", "fisher"].includes(w.livelihood ?? "")));
   const head = weighted(palette, w.id, "dye-head") ?? lower;
-  const headColor = headwear === "fez" ? dyes.madder.hex
+  // Sacrificing with the head covered was the toga itself drawn up.
+  const headColor = headwear === "veil" && (chosen.drape === "toga" || chosen.drape === "praetexta") ? "#ebe3cc"
+    : headwear === "fez" ? dyes.madder.hex
     : headwear === "flat-cap" ? dyes[(["ash", "walnut", "soot"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 3)]].hex
     // Men's felt came in a few sober shades: grey, brown, black, navy.
     : headwear === "fedora" ? dyes[(["ash", "walnut", "soot", "umber", "woad"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 5)]].hex
@@ -387,9 +389,10 @@ export function wardrobeFor(
     trimPattern: chosen.trimPattern as CharacterAppearance["wearing"]["trimPattern"],
     hairOrnament: chosen.hairOrnament as CharacterAppearance["wearing"]["hairOrnament"],
     // A ribbon or feather needs a hat to sit on.
-    hatTrim: ["none", "flat-cap", "ball-cap", "kerchief", "headscarf"].includes(headwear) ? undefined : (chosen.hatTrim as CharacterAppearance["wearing"]["hatTrim"]),
+    hatTrim: ["none", "flat-cap", "ball-cap", "kerchief", "headscarf", "crown", "nemes", "mian", "kanmuri"].includes(headwear) ? undefined : (chosen.hatTrim as CharacterAppearance["wearing"]["hatTrim"]),
     waistcoat: chosen.waistcoat as CharacterAppearance["wearing"]["waistcoat"],
     shawl: chosen.shawl as CharacterAppearance["wearing"]["shawl"],
+    drape: chosen.drape as CharacterAppearance["wearing"]["drape"],
     // Worn up, a hood is headwear; it cannot also lie on the shoulders.
     hood: headwear === "hood" ? undefined : (chosen.hood as CharacterAppearance["wearing"]["hood"]),
     sidearm: chosen.sidearm as CharacterAppearance["wearing"]["sidearm"],
