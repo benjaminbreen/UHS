@@ -13,6 +13,18 @@ export function campKit(setting: WorldSetting) {
         description:
           "A temporary military camp with ordered tent streets and a guarded perimeter. An illustrative layout, not a reconstruction of a particular unit.",
       } as const;
+    case "headquarters":
+      return {
+        style: setting.year < 500 ? "leather" : "canvas",
+        label: "Staff tent",
+        command: "Command tent",
+        role: setting.year < 1500 ? "Bodyguard" : "Staff officer",
+        activity: "Camp duties",
+        formation: "rows",
+        supplies: "Headquarters stores",
+        description:
+          "The tents of a commander and staff behind a guarded perimeter. An illustrative layout, not a reconstruction of a particular army's.",
+      } as const;
     case "expedition":
       return {
         style: setting.year < 1970 ? "canvas" : "dome",

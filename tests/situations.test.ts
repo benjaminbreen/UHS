@@ -136,3 +136,11 @@ it("preserves model-supplied camp intent at a catalog location", async () => {
   const {setting}=await response.json();
   expect(setting).toMatchObject({placeId:london.placeId,settlement:"camp",architecture:"shelter",situation:{camp:"expedition",people:6}});
 });
+
+it("builds a commander's headquarters with a command tent among the staff", () => {
+  const camp = resolve("Roman military camp");
+  const e = createSettingSession({ ...camp, year: 1944, situation: { ...camp.situation!, camp: "headquarters", people: 8 } }, "hq-test");
+  expect(e.world.places[0].name).toBe("Command tent");
+  expect(e.world.places.slice(1).every((p) => p.name.startsWith("Staff tent"))).toBe(true);
+  expect(e.state.actors.filter((a) => a.role === "Staff officer")).toHaveLength(8);
+});

@@ -8,7 +8,7 @@ export const situationSchema = z
     depth: z.number().int().min(4).max(120).default(5),
     support: z.enum(["land", "raft", "boat", "swimming"]).default("land"),
     camp: z
-      .enum(["none", "military", "expedition", "pastoral", "gathering"])
+      .enum(["none", "military", "headquarters", "expedition", "pastoral", "gathering"])
       .default("none"),
     people: z.number().int().min(0).max(48).default(0),
     palms: z.number().int().min(0).max(6).default(0),

@@ -3,6 +3,7 @@ import { plotKnown, plotLine, plotRoleKnown, plotTemplate } from "./plot";
 import { random } from "./random";
 import { sexOf } from "./brief";
 import type { Actor, Snapshot } from "./types";
+import type { StartBrief } from "../content/geography/types";
 
 export type KinKind = "partner" | "child" | "parent" | "sibling";
 
@@ -89,4 +90,29 @@ export function kinCall(s: Snapshot, k: KinState, clock: number, food: number, a
       const pick = lines[Math.floor(random(s.manifest.seed, "kin", actor.id, need, Object.keys(k.said).length) * lines.length)];
       return { id: actor.id, need, line: pick };
     }
+}
+
+/** Gives the woven start's named people to the actors who stand in for them:
+ * kin to the household member of that relation and sex, figures to the
+ * nearest outsiders of their sex. Someone with no stand-in is left out. */
+export function nameBriefedPeople(s: Snapshot, brief?: StartBrief) {
+  if (!brief) return;
+  const used = new Set([s.player.id]);
+  const kin = kinOf(s);
+  for (const k of brief.kin ?? []) {
+    const match = kin.find((x) => x.kind === k.relation && !used.has(x.actor.id) && sexOf(x.actor) === k.sex);
+    if (!match) continue;
+    used.add(match.actor.id);
+    match.actor.name = k.name;
+  }
+  const at = s.player.pos;
+  const others = s.actors
+    .filter((a) => a.kind === "human" && !a.dead && (a.age ?? 30) >= 16 && a.householdId !== s.player.householdId && !kin.some((k) => k.actor.id === a.id))
+    .sort((a, b) => Math.hypot(a.pos.x - at.x, a.pos.y - at.y) - Math.hypot(b.pos.x - at.x, b.pos.y - at.y));
+  for (const f of brief.figures ?? []) {
+    const a = others.find((a) => !used.has(a.id) && sexOf(a) === f.sex);
+    if (!a) continue;
+    used.add(a.id);
+    Object.assign(a, { name: f.name, role: f.role });
+  }
 }

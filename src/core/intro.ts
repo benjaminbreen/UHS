@@ -47,7 +47,8 @@ const AREA = /\s(coast|shore|plain|plains|valley|highlands|hills|basin|delta|ben
 export const herePhrase = (name: string) => (AREA.test(name) ? `the ${name}` : name);
 
 function scene(s: Snapshot, setting: WorldSetting, here: string) {
-  const role = s.player.role.toLowerCase();
+  // A woven title keeps its proper nouns: "king of Macedon", not "macedon".
+  const role = setting.brief?.work ? s.player.role.charAt(0).toLowerCase() + s.player.role.slice(1) : s.player.role.toLowerCase();
   const region = regionPhrase({ ...setting, location: here });
   const hilly = setting.relief > 0.6;
   const urban = setting.settlement === "city" || setting.settlement === "port";
@@ -85,7 +86,12 @@ function self(s: Snapshot, top: Concern | undefined): IntroSpan[] {
 }
 
 function tiding(setting: WorldSetting, here: string, community: string): IntroSpan[] {
-  const t = TIDINGS.find((x) => matchesCharacterScope(x.scope, setting, community));
+  const woven = setting.brief?.tidings;
+  if (woven?.length)
+    return woven.flatMap((t) => sentence([{ text: t.text }]));
+  // News of the person you are is not news to you.
+  const figure = setting.brief?.figure?.split(/\s+/)[0];
+  const t = TIDINGS.find((x) => matchesCharacterScope(x.scope, setting, community) && !(figure && x.text.includes(figure)));
   if (!t) return [];
   return fill(t.text, (key) => (key === "here" ? here : { text: key, mark: "note", note: t.note }));
 }
@@ -272,6 +278,7 @@ export function composeIntro(s: Snapshot, setting?: WorldSetting, place?: string
   const first = [
     ...(setting ? sentence([{ text: scene(s, setting, here) }]) : []),
     ...sentence(self(s, top)),
+    ...(setting?.brief?.hook ? sentence([{ text: setting.brief.hook }]) : []),
     ...(setting ? tiding(setting, here, s.player.origin?.community ?? "*") : []),
   ];
   const plotted = plotParagraph(s);

@@ -66,10 +66,40 @@ export type WaterNeighbour = {
   bearing: (typeof bearings)[number];
 };
 /** Both interpreters produce this same immutable input. No model text is executable. */
+const sexSchema = z.enum(["male", "female"]);
+/** What World Weaver settled about the person beyond place and trade: who
+ * they are if they are someone, their people, their aim and the day's news.
+ * `documented` keeps the record apart from what was filled in. */
+export const startBriefSchema = z
+  .object({
+    figure: z.string().min(1).max(120).optional(),
+    work: z.string().min(1).max(60).optional(),
+    sex: sexSchema.optional(),
+    hook: z.string().min(1).max(500).optional(),
+    aim: z
+      .object({ text: z.string().min(1).max(240), reason: z.string().min(1).max(240), means: z.string().min(1).max(240) })
+      .strict()
+      .optional(),
+    kin: z
+      .array(z.object({ name: z.string().min(1).max(80), relation: z.enum(["parent", "partner", "child", "sibling"]), sex: sexSchema, documented: z.boolean() }).strict())
+      .max(6)
+      .optional(),
+    figures: z
+      .array(z.object({ name: z.string().min(1).max(80), role: z.string().min(1).max(100), sex: sexSchema, documented: z.boolean() }).strict())
+      .max(6)
+      .optional(),
+    tidings: z
+      .array(z.object({ text: z.string().min(1).max(300), documented: z.boolean() }).strict())
+      .max(3)
+      .optional(),
+  })
+  .strict();
+export type StartBrief = z.infer<typeof startBriefSchema>;
 export const settingSchema = z
   .object({
     version: z.literal(2),
     situation: situationSchema.optional(),
+    brief: startBriefSchema.optional(),
     // 1 is the scoped hand-written kits; 2 adds the ported naming
     // traditions and the capability-gated workforce.
     characterRevision: z.union([z.literal(1), z.literal(2)]).optional(),
@@ -157,7 +187,7 @@ export const settingSchema = z
         appearanceSeed: z.string().max(100).optional(),
         hunger: z.number().int().min(0).max(100),
         fatigue: z.number().int().min(0).max(100),
-        age: z.number().int().min(18).max(65).optional(),
+        age: z.number().int().min(18).max(90).optional(),
       })
       .strict()
       .optional(),

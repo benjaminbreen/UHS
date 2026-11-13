@@ -35,6 +35,7 @@ import {
 import { composeWearing, wornFromWearing } from "../core/wearing";
 import { restingPortraitPoseOf } from "../core/persona";
 import { statsOf } from "../core/stats";
+import { nameBriefedPeople } from "../core/kin";
 import {
   actorAppearance,
   generateAppearance,
@@ -251,6 +252,7 @@ export function createSession(
     goal.slot ??= GOAL_TEMPLATES.find((template) => template.id === goal.id)?.slot ??
       (["eat", "food-store", "sleep", "water", "firewood"].includes(goal.id) ? "need" : "social");
   }
+  nameBriefedPeople(engine.state, pack.setting?.brief);
   const plot = startPlot(engine.state, pack.setting);
   engine.state.ailments ??= seedAilments(engine.state, pack.setting, new Set(Object.values(engine.state.plot?.cast ?? {})));
   engine.state.bonds ??= bondsFor(engine.state, pack.setting);

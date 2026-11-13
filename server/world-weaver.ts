@@ -9,10 +9,12 @@ import {
   climates,
   forms,
   settingSchema,
+  startBriefSchema,
   waters,
   type AtlasPlace,
 } from "../src/content/geography/types";
 import { cultures } from "../src/content/history/types";
+import { livelihoodIds } from "../src/content/characters/livelihoods";
 import { featuredPlaces, places } from "../src/content/geography/places";
 import { normalize, settingFor } from "../src/content/geography/resolve";
 type Environment = Record<string, string | undefined>;
@@ -47,6 +49,9 @@ const weaverSchema = z
     culture: z.enum(cultures.map(([id]) => id)),
     settlement: z.enum(forms),
     architecture: z.enum(architectures),
+    work: z.enum(livelihoodIds as [string, ...string[]]).optional(),
+    age: z.number().int().min(18).max(90).optional(),
+    ...startBriefSchema.omit({ work: true }).shape,
   })
   .strict();
 const digest = (s: string) => createHash("sha256").update(s).digest();
@@ -116,13 +121,32 @@ export async function worldWeaver(
     ...new Map([...matches, ...featuredPlaces].map((p) => [p.id, p])).values(),
   ].slice(0, 65);
   const schema = strictSchema(weaverSchema);
-  const prompt = `Interpret a historical game starting situation.
-Choose a place from the catalog below and set placeId to its id, placeName/lon/lat to its values. Only when the description names somewhere absent from the catalog, use placeId "custom" with your own name and approximate Earth coordinates.
-Years use astronomical numbering: 100 BCE = -99. When the description names an era or a broad period rather than a date, pick a year at random from anywhere inside that era, not its midpoint or its round centuries; two readings of the same description should land on different years.
-Interpret vague, playful or fragmentary descriptions generously rather than refusing them: settle on one specific real place on Earth, one specific year, and one ordinary human role that a person could plausibly have held there and then. "A weird little guy in a weird place" is a fair request for, say, a reclusive toymaker in Austin in 2013, or a hermit charcoal-burner in the Harz in 1540. Never invent a fictional settlement name, magic, or a role the simulation could not stage; the player must always be an ordinary person somewhere real.
-role, characterName and community describe the person the player asked to be, not the place: an "orphan boy" is an orphan boy whatever the settlement does for a living. If the player states their personal name, use it exactly as characterName; otherwise give a plausible period- and culture-appropriate personal name. community is one short phrase for the household or group they belong to, or "" when they belong to none.
-climate, water, relief, culture, settlement and architecture are used only for a "custom" place; fill them plausibly regardless.
-The optional situation field preserves explicitly requested local circumstances even at a catalog location. Use islet with width/depth in game cells for tiny islands, open-ocean with raft/boat/swimming support for stranded people, or local with military/expedition/pastoral/gathering camp. people excludes the player. Never silently replace the requested camp or predicament with a conventional town. Omit situation for ordinary starts.
+  const prompt = `You are World Weaver. Turn the player's description into the start of a life in a historical simulation: one real place on Earth, one year, one person, on one specific day.
+
+WHO. Honour exactly what the description specifies and invent only what it leaves open.
+- It names a person ("Caesar", "Yuri Gagarin", "I am Ea-Nasir"): the player is that person, at a documented moment of their life, with their real name, age, family and companions. Set figure to their name.
+- It names a kind of person ("WW2 general", "Indonesian peasant", "potter's daughter", "a weird little guy"): the player is one plausible invented individual of that kind. Leave figure null.
+- It names only a place, an era or a mood ("ancient Rome", "medieval"): choose the person the way history would. Most people were farmers, labourers, servants, craftspeople and their families, so choose one of them, somewhere ordinary, not the era's celebrity or capital by default.
+In every case prefer an interesting moment to a typical one: a launch, a landing, a coronation, a famine, a fair, the week the news arrived.
+
+STAGING. The simulation stages a settlement (city, town, village, hamlet), a camp or a tiny island or open water. When the request lies beyond that (orbit, a moving train, a battle in progress), choose the nearest real moment it can stage and make the hook say so: Gagarin is better begun on 12 April 1961 in the field near Smelovka where he came down by parachute, met by a farm woman and her granddaughter, than nowhere. Never invent a fictional settlement or magic.
+The optional situation field gives the place itself: islet with width/depth in game cells for tiny islands; open-ocean with raft/boat/swimming support for people adrift; local with a camp of military (soldiers' lines), headquarters (a commander's tent among the staff tents), expedition, pastoral or gathering. people excludes the player. Omit situation for a settlement start.
+
+PLACE AND DATE. Choose a place from the catalog below and set placeId to its id, placeName/lon/lat to its values. Only when the description names somewhere absent from the catalog, or a famous moment happened elsewhere, use placeId "custom" with the real name and coordinates. climate, water, relief, culture, settlement and architecture are used only for a "custom" place; fill them plausibly regardless.
+Years use astronomical numbering: 100 BCE = -99. Check that the place existed in that year (Alexandria was founded in 331 BCE) and that a named person was alive, of that age, and there in that season. When the description gives only an era, pick a year at random from anywhere inside it, not its midpoint or round centuries; two readings of the same description should land on different years.
+
+THE PERSON.
+- role: their title as it reads after "a" or "an", lower case except proper nouns: "king of Macedon", "cosmonaut", "potter's daughter", "rice farmer".
+- work: the closest id from the list in the schema for what their days are spent doing. Rulers are ruler, generals commander, a pharaoh's minister statesman, a cosmonaut or pilot aviator; ordinary trades are what they say.
+- characterName: the stated name exactly; otherwise a period- and culture-appropriate personal name. sex and age (18 to 90) as recorded, or plausible.
+- community: one short phrase for their household or group, or "".
+- hook: one or two sentences, second person, present tense, on what makes this particular day matter.
+- aim: what this person wants from their life in one sentence (text), why (reason) and how they go about it (means). A king wants a king's things.
+- kin: the parent, partner, child or sibling who share their roof at this place, by real name for a named figure; at most four. Empty when they are away from home that day.
+- figures: up to four famous or notable people who would be close by that day (Hephaestion beside Alexander), with role and sex. Empty for an ordinary start unless someone notable is passing through.
+- tidings: up to two one-sentence items of real news people there and then would be talking about. Never news about the player as if they were someone else.
+- documented: true where the record says it, false where you filled it in.
+All text is plain modern English, no period voice.
 Catalog: ${JSON.stringify(candidates)}
 Request id (vary your year and name with it): ${randomUUID()}
 User description: ${input.prompt}`;
@@ -135,7 +159,7 @@ User description: ${input.prompt}`;
       "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
-        signal: AbortSignal.any([request.signal, AbortSignal.timeout(25000)]),
+        signal: AbortSignal.any([request.signal, AbortSignal.timeout(60000)]),
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${env.OPENAI_API_KEY!}`,
@@ -147,8 +171,8 @@ User description: ${input.prompt}`;
             type: "json_schema",
             json_schema: { name: "world_setting", schema, strict: true },
           },
-          max_completion_tokens: 900,
-          reasoning_effort: "none",
+          max_completion_tokens: 6000,
+          reasoning_effort: "low",
           temperature: 1,
         }),
       },
@@ -164,9 +188,9 @@ User description: ${input.prompt}`;
     const result = (await response.json()) as {
       choices?: { message?: { content?: string } }[];
     };
-    const chosen = weaverSchema.parse(
-      dropNulls(JSON.parse(result.choices?.[0]?.message?.content ?? "")),
-    );
+    const raw = dropNulls(JSON.parse(result.choices?.[0]?.message?.content ?? ""));
+    for (const key of ["figure", "hook"]) if (raw?.[key] === "") delete raw[key];
+    const chosen = weaverSchema.parse(raw);
     const place: AtlasPlace = places.find((p) => p.id === chosen.placeId) ?? {
       id: "custom",
       name: chosen.placeName,
@@ -181,11 +205,16 @@ User description: ${input.prompt}`;
       settlement: chosen.settlement,
       architecture: chosen.architecture,
     };
+    const { figure, sex, hook, aim, kin, figures, tidings } = chosen;
+    const brief = startBriefSchema.parse(JSON.parse(JSON.stringify({ figure: figure || undefined, work: chosen.work, sex, hook, aim,
+      kin: kin?.length ? kin : undefined, figures: figures?.length ? figures : undefined, tidings: tidings?.length ? tidings : undefined })));
     const setting = settingSchema.parse({
       ...settingFor(place, chosen.year),
       role: chosen.role,
       characterName: requestedName(input.prompt) ?? chosen.characterName,
       community: chosen.community,
+      ...(Object.keys(brief).length ? { brief } : {}),
+      ...(chosen.age ? { character: { age: chosen.age, hunger: 10, fatigue: 2 } } : {}),
     });
     return json({ setting: chosen.situation ? applySituation(setting, chosen.situation) : setting });
   } catch {

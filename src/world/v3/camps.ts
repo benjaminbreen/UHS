@@ -63,7 +63,7 @@ export function planCamp(plan: SettlementPlan, pack: Pack, seed: string) {
     const entrance = { x: p.x + model.entrance[0], y: p.y + model.entrance[1] };
     const place: Place = {
       id: `${plan.site.id}-camp-${i}`,
-      name: `${kit.label} ${i + 1}`,
+      name: i === 0 && "command" in kit && kit.command ? kit.command : `${kit.label} ${i + 1}`,
       description: kit.description,
       x: p.x,
       y: p.y,

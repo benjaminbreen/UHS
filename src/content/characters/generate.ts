@@ -18,6 +18,7 @@ import {
   type CharacterContext,
 } from "./resolve";
 import { asOfficiant } from "./officiant";
+import { livelihoodById } from "./livelihoods";
 import {
   generateAdornment,
   metalForMeans,
@@ -251,6 +252,11 @@ export function characterLivelihood(
       ? { ...l, activity: trade.activity, workplace: trade.workplace }
       : { ...l, label: "Apprentice" };
   };
+  // The weaver chose this work for the person asked for; no draw overrides it,
+  // and eminent work is found here though no settlement table carries it.
+  const briefed = id === "player" && s.brief?.work;
+  const asked = briefed ? context.livelihoods.find((l) => l.id === briefed) ?? livelihoodById(briefed) : undefined;
+  if (asked) return resolveApprentice(localRole(asked) ?? asked);
   if (key?.startsWith("apprentice ") && apprentice && allowedBy(standing, apprentice)) {
     const trade = tradeFor(requested!.slice("Apprentice ".length));
     if (trade)
@@ -441,6 +447,7 @@ export function generateCharacter(
   familyNaming?: FamilyNaming,
   localContext?: CharacterContext,
 ) {
+  if (id === "player" && s.brief?.sex) sex = s.brief.sex;
   // Where a plural population is authored, each person draws their own
   // community, so the appearance palette and the naming kit stay in step.
   const community = localContext?.community ?? familyNaming?.community ?? characterCommunity(s, seed, id);
@@ -466,7 +473,7 @@ export function generateCharacter(
     standing,
   );
   // Asking for work done by one sex asks for someone of it.
-  if (requestedRole && livelihood.sex && livelihood.sex !== sex)
+  if (requestedRole && livelihood.sex && livelihood.sex !== sex && !(id === "player" && s.brief?.sex))
     return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, livelihood.sex, inheritedTradition, familyNaming, localContext);
   const recognized =
     !requestedRole ||

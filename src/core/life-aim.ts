@@ -141,6 +141,10 @@ export function lifeAimOf(
   households: Household[] | undefined,
   snapshot?: Pick<Snapshot, "clock" | "ailments" | "bonds" | "economy">,
 ): PersonalAim {
+  const asked = player.id === "player" ? setting?.brief?.aim : undefined;
+  if (asked)
+    return { id: "brief", family: "brief", text: asked.text, subjects: [], revision: 2,
+      basis: { reason: asked.reason, means: asked.means } };
   const candidates = lifeAimOptions(seed, setting, player, actors, households, snapshot);
   const families = new Map<string, number>();
   for (const c of candidates) families.set(c.family, Math.max(families.get(c.family) ?? 0, c.weight));

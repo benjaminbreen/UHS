@@ -14,6 +14,8 @@ const nullable = (node: Node): Node => {
   return node;
 };
 const walk = (node: Node): Node => {
+  if (node.type === "array" && node.items && typeof node.items === "object")
+    return { ...node, items: walk(node.items as Node) };
   if (node.type !== "object" || typeof node.properties !== "object")
     return node;
   const properties = node.properties as Record<string, Node>;

@@ -104,9 +104,29 @@ export const livelihoods: readonly Livelihood[] = [
     inventory: { water: 2, fruit: 1 },
   },
 ];
+/** Work no settlement draws at random: only a start brief that names it gets
+ * it. One row per kind of eminence; the brief carries the local title, so a
+ * pharaoh, a doge and a Soviet marshal need no row of their own. */
+export const notableLivelihoods: readonly Livelihood[] = [
+  { id: "ruler", label: "Ruler", activity: "Holding court", rank: "elite", inventory: { water: 2, bread: 2 } },
+  { id: "commander", label: "Commander", activity: "Commanding", rank: "elite", inventory: { water: 2, bread: 2 } },
+  { id: "courtier", label: "Courtier", activity: "Attending at court", rank: "gentry", inventory: { water: 2, bread: 1 } },
+  { id: "statesman", label: "Statesman", activity: "Holding office", rank: "elite", inventory: { water: 2, bread: 1 } },
+  { id: "envoy", label: "Envoy", activity: "Traveling", rank: "gentry", inventory: { water: 2, bread: 2 } },
+  { id: "scholar", label: "Scholar", activity: "Keeping the record", rank: "gentry", inventory: { water: 2, bread: 1 } },
+  { id: "high-priest", label: "High priest", activity: "At the rite", rank: "elite", inventory: { water: 2, bread: 1 } },
+  { id: "aviator", label: "Aviator", activity: "Flying", rank: "middling", years: [1903, 10001], inventory: { water: 2, bread: 1 } },
+  { id: "explorer", label: "Explorer", activity: "On expedition", rank: "middling", inventory: { water: 2, bread: 2, tool: 1 } },
+  { id: "artist", label: "Artist", activity: "Making art", rank: "middling", inventory: { water: 2, tool: 1 } },
+  { id: "performer", label: "Performer", activity: "Playing and telling", rank: "middling", inventory: { water: 2 } },
+  { id: "rebel", label: "Rebel leader", activity: "Organizing", rank: "middling", inventory: { water: 2, bread: 2 } },
+  { id: "magnate", label: "Magnate", activity: "Exchanging goods", rank: "elite", inventory: { water: 2, bread: 2 } },
+];
 const index = new Map(
-  [...livelihoods, ...commonLivelihoods].map((l) => [l.id, l]),
+  [...livelihoods, ...commonLivelihoods, ...notableLivelihoods].map((l) => [l.id, l]),
 );
+/** Every work id a start brief may name. */
+export const livelihoodIds = [...index.keys()];
 /** Lookup across both lists, for display of an origin already generated. */
 export function livelihoodById(id: string) {
   return index.get(id);

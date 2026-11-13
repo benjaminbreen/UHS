@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import { resolveSetting, settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-import { createSession } from "../src/runtime/session";
+import { createSession, createSettingSession as createLocalSession } from "../src/runtime/session";
+import { composeIntro, introText } from "../src/core/intro";
+import { strictSchema } from "../server/json-schema";
 import { findPath } from "../src/core/pathfinding";
 import { worldWeaver } from "../server/world-weaver";
 import { createAtlasWorld } from "../src/world/v2/generate";
@@ -216,5 +219,47 @@ describe("shared World Weaver / procedural geography", () => {
         }),
       )) as typeof fetch;
     expect((await worldWeaver(request(), env, malformed)).status).toBe(502);
+  });
+  it("plays a named figure as themself: their work, people and aim, not a drawn trade", async () => {
+    const alexandria = places.find((p) => p.id === "alexandria")!;
+    const choice = {
+      placeId: "alexandria", placeName: "Alexandria", lon: alexandria.lon, lat: alexandria.lat, year: -330,
+      role: "king of Macedon", characterName: "Alexander", community: "the Macedonian court",
+      climate: alexandria.climate, water: alexandria.water, relief: alexandria.relief, culture: alexandria.culture,
+      settlement: alexandria.settlement, architecture: alexandria.architecture,
+      figure: "Alexander III of Macedon", work: "ruler", sex: "male", age: 24, situation: null,
+      hook: "Today you mark out the walls of your new city with barley meal.",
+      aim: { text: "Conquer the Persian Empire.", reason: "You are heir to Philip's war.", means: "Lead the army east." },
+      kin: [], figures: [{ name: "Hephaestion", role: "companion", sex: "male", documented: true }],
+      tidings: [{ text: "Darius is gathering a new army in Babylon.", documented: true }],
+    };
+    const provider = (async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(choice) } }] }))) as typeof fetch;
+    const response = await worldWeaver(
+      new Request("http://local/api/world-weaver", { method: "POST", body: JSON.stringify({ prompt: "alexander the great" }) }),
+      { OPENAI_API_KEY: "test-key" },
+      provider,
+    );
+    expect(response.status).toBe(200);
+    const { setting } = await response.json();
+    const engine = createLocalSession(setting, "alexander");
+    const s = engine.state;
+    expect(s.player.role).toBe("king of Macedon");
+    expect(s.player.origin?.livelihood).toBe("ruler");
+    expect(s.player.age).toBe(24);
+    expect(s.lifeAim?.text).toBe("Conquer the Persian Empire.");
+    expect(s.actors.some((a) => a.name === "Hephaestion")).toBe(true);
+    const text = introText(composeIntro(s, engine.world.pack.setting, "Alexandria"));
+    expect(text).toContain("a king of Macedon");
+    expect(text).toContain("barley meal");
+    expect(text).toContain("Darius");
+    expect(text).not.toContain("has come to Egypt");
+  }, 60000);
+  it("gives every nested object in the model's schema the strict-mode shape", () => {
+    const visit = (node: Record<string, unknown>): void => {
+      if (node.type === "object" || (Array.isArray(node.type) && node.type.includes("object")))
+        expect(node.additionalProperties).toBe(false);
+      for (const v of Object.values(node)) if (v && typeof v === "object") visit(v as Record<string, unknown>);
+    };
+    visit(strictSchema(z.object({ kin: z.array(z.object({ name: z.string() })).optional() })));
   });
 });
