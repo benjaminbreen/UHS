@@ -70,7 +70,9 @@ const PUBLIC: Rule[] = [
   { lon: [-1.5, 12], lat: [20, 37.4], from: 1510, pick: () => "kahvehane" },
   { lon: [12, 34], lat: [20, 33], from: 1510, pick: () => "kahvehane" },
   { lon: [-114, -104], lat: [31, 40], from: 700, pick: () => "kiva" },
-  { lon: [-10, 50], lat: [24, 56], from: -200, to: 500, pick: () => "roman-gaming-house" },
+  // The Greek gaming room is furnished as the Roman one: stools, lamps and a board, an inference.
+  { lon: [19, 40], lat: [22, 45], from: -600, to: -30, pick: () => "roman-gaming-house" },
+  { lon: [-10, 50], lat: [24, 56], from: -300, to: 500, pick: () => "roman-gaming-house" },
   { lon: [-11, 45], lat: [34, 72], from: 1400, to: 1950, pick: () => "gaming-house" },
   { lon: [128, 146], lat: [30, 46], from: 1600, to: 1900, pick: () => "bakuchi-den" },
   { lon: [98, 128], lat: [18, 46], from: 1100, to: 1950, pick: () => "chinese-gaming-house" },

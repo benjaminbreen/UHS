@@ -130,6 +130,9 @@ import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { ItemInspect, itemKind } from "./ItemInspect";
+import { GamingTable, type Seat } from "./gaming/GamingTable";
+import { tableGameFor } from "../content/games";
+import { venueOfClaim } from "../content/venues";
 const LiveGraphicsPanel = lazy(() => import("../dev/LiveGraphicsPanel").then((m) => ({ default: m.LiveGraphicsPanel })));
 const CombatTestPanel = lazy(() => import("../dev/CombatTestPanel").then((m) => ({ default: m.CombatTestPanel })));
 const SkillTestPanel = lazy(() => import("../dev/SkillTestPanel").then((m) => ({ default: m.SkillTestPanel })));
@@ -266,6 +269,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "shop"
     | null
   >(null);
+  const [gaming, setGaming] = useState<{ place: string; seed: string; seats: Seat[] }>();
   const [shopWith, setShopWith] = useState<string>();
   const [yearsToEnd, setYearsToEnd] = useState(false);
   const trader = runtime.nearestTrader();
@@ -837,6 +841,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         }
       }
       if (e.code === "KeyB" && !e.repeat) runtime.tend();
+      if (e.code === "KeyG" && !e.repeat) sitDownRef.current();
       if (e.key.toLowerCase() === "m") setModal("map");
       if (e.key.toLowerCase() === "n") setModal("notebook");
     };
@@ -882,6 +887,35 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               ? "Evening"
               : "Night";
   const setting = pack.setting;
+  const tableHere = useMemo(() => {
+    const place = p.pos.space === "outside" ? undefined : runtime.engine.world.place(p.pos.space);
+    const kind = place && venueOfClaim(place.claim)?.kind;
+    const game = tableGameFor(setting, kind);
+    return place && game && { place, kind, game };
+  }, [runtime, p.pos.space, setting]);
+  const sitDown = () => {
+    if (!tableHere) return;
+    const { place, game } = tableHere;
+    const inside = (a: { pos: { space: string } }) => (a.pos.space === place.id ? 0 : 1);
+    const far = (a: { pos: { x: number; y: number } }) => Math.hypot(a.pos.x - place.entrance.x, a.pos.y - place.entrance.y);
+    // The people in the room first, then whoever is nearest the door.
+    const people = runtime.engine.state.actors
+      .filter((a) => a.kind === "human" && !a.dead && (a.age ?? 30) >= 16)
+      .sort((a, b) => inside(a) - inside(b) || far(a) - far(b))
+      .slice(0, game.seats);
+    setGaming({
+      place: place.id,
+      seed: `${runtime.engine.state.manifest.seed}:${place.id}:${runtime.engine.state.clock}`,
+      seats: people.map((a) => ({ id: a.id, name: a.name.split(" ")[0], trade: a.role, age: a.age ?? 30, appearance: runtime.appearanceFor(a) })),
+    });
+  };
+  const sitDownRef = useRef(sitDown);
+  sitDownRef.current = sitDown;
+  // Walking into a gaming house sits you down; a tavern's game waits to be asked for.
+  useEffect(() => {
+    if (tableHere?.kind === "gaming-house") sitDown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableHere?.place.id]);
   const weather = weatherAt(
     skySeed(obs.manifest),
     setting?.climate ?? "temperate",
@@ -1584,6 +1618,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     }}
                   />
                 )}
+                {tableHere && (
+                  <KeyPrompt key="table" code="KeyG" letter="G" label={`Sit down to ${tableHere.game.title.toLowerCase()}`} kind="trade" onClick={sitDown} />
+                )}
                 {tend ? (
                   <KeyPrompt key={tend.label} code="KeyB" letter="B" label={tend.label} kind={baby!.mood === "crying" ? "tend-urgent" : "tend"}
                     onClick={() => runtime.tend()} />
@@ -2260,6 +2297,21 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 : { label: "Take in hand", onClick: () => runtime.command({ type: "hold", item: inspecting }) },
           ]}
           onClose={() => setInspecting(undefined)}
+        />
+      )}
+      {gaming && tableHere && tableHere.place.id === gaming.place && (
+        <GamingTable
+          game={tableHere.game}
+          seed={gaming.seed}
+          place={`${tableHere.place.name} · ${countryPlace?.[2] ?? pack.name}, ${pack.date}`}
+          seats={gaming.seats}
+          purse={setting && capabilitiesFor(setting).has("coinage") ? (p.inventory.coin ?? 0) : undefined}
+          money={(n) => (setting ? amountIn(setting, n, true) : `${n} coins`)}
+          onLeave={(s) => {
+            setGaming(undefined);
+            if (s.net || s.outcome || s.minutes > 1)
+              runtime.command({ type: "gamble", game: tableHere.game.id, net: s.net, minutes: s.minutes, ...(s.outcome ? { outcome: s.outcome } : {}) });
+          }}
         />
       )}
       {modal && modal !== "dialogue" && modal !== "time" && modal !== "evening" && modal !== "years" && (

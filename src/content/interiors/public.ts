@@ -402,7 +402,7 @@ export const moreTaverns: InteriorProfile[] = [
 export const gaming: InteriorProfile[] = [
   serving({
     id: "roman-gaming-house",
-    uses: ["venue.gaming-house"],
+    uses: ["venue.gaming-house", "venue.roman-gaming", "venue.kybeion"],
     regulars: { hours: [14, 23], fill: 0.5 },
     rooms: [taproom(["jars", "lamp", "lamp", "cat"], ["cup", "cup"]), chamber("bed")],
     styles: { bar: "game-tabula" },
@@ -454,7 +454,7 @@ export const gaming: InteriorProfile[] = [
   }),
   serving({
     id: "chinese-gaming-house",
-    uses: ["venue.gaming-house"],
+    uses: ["venue.gaming-house", "venue.chinese-gaming"],
     regulars: { hours: [15, 24], fill: 0.5 },
     rooms: [taproom(["lantern", "lantern", "frame", "cat"], ["cup", "cup"]), chamber("bed")],
     styles: { bar: "game-domino", frame: "scroll" },
@@ -480,7 +480,7 @@ export const gaming: InteriorProfile[] = [
   }),
   serving({
     id: "bakuchi-den",
-    uses: ["venue.gaming-house"],
+    uses: ["venue.gaming-house", "venue.bakuchi"],
     regulars: { hours: [18, 24], fill: 0.5 },
     rooms: [taproom(["lantern", "lantern", "frame"], ["cup", "shoes"]), chamber("mat")],
     styles: { bar: "game-chohan", frame: "scroll" },

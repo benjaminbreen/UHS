@@ -151,6 +151,8 @@ import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../conte
 import { livelihoodById } from "../content/characters/livelihoods";
 import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { amountIn, moneyFor } from "../content/economy/money";
+import { tableGames } from "../content/games";
+import { venueOfClaim } from "../content/venues";
 import { beastOf } from "../content/economy/carrying";
 import { climbable, useOf } from "../content/props/uses";
 import { workplaceFor } from "../content/characters/workplace";
@@ -1724,6 +1726,17 @@ export class Engine {
       this.today().made[item] = (this.today().made[item] ?? 0) + 1;
       this.event(`You weed and water the garden, and bring in ${this.lootName(item, 1)}.`);
     } else this.event("You weed and water the garden. It will repay the care.");
+  }
+  private gamble(c: Extract<PlayerCommand, { type: "gamble" }>) {
+    const p = this.state.player, setting = this.world.pack.setting;
+    const title = tableGames.find((g) => g.id === c.game)!.title.toLowerCase();
+    p.inventory.coin = (p.inventory.coin ?? 0) + c.net;
+    this.advance(c.minutes * 60);
+    const amount = (n: number) => (setting ? amountIn(setting, n, true) : `${n} coins`);
+    const time = c.minutes < 50 ? `${Math.round(c.minutes / 5) * 5 || 5} minutes` : c.minutes < 90 ? "an hour" : `${Math.round(c.minutes / 60)} hours`;
+    const result = c.net > 0 ? `come away ${amount(c.net)} up` : c.net < 0 ? `lose ${amount(-c.net)}` : "come away even";
+    const end = c.outcome === "caught" ? " You caught a cheat at the table." : c.outcome === "thrown-out" ? " You accused an honest player and were shown the door." : "";
+    this.event(`You spend ${time} at ${title} and ${result}.${end}`);
   }
   /** A wage or a day's takings in coin, moved by how the day went. */
   private takings(base: number, say: (amount: string) => string): Record<string, number> {
@@ -6716,6 +6729,11 @@ export class Engine {
     if ((p.stocked ?? 0) > this.state.clock && c.type !== "wait" && c.type !== "sleep" && !(c.type === "interact" && c.action === "talk"))
       return "You are serving your sentence.";
     if (this.state.encounter && !(c.type === "choose" && c.card === this.state.encounter.card)) return "Answer the encounter before doing anything else.";
+    if (c.type === "gamble") {
+      const kind = p.pos.space === "outside" ? undefined : venueOfClaim(this.world.place(p.pos.space)?.claim ?? "")?.kind;
+      if (!tableGames.some((g) => g.id === c.game && g.kinds.includes(kind!))) return "There is no game here.";
+      return -c.net > (p.inventory.coin ?? 0) ? "You can't lose more than you have." : undefined;
+    }
     if (c.type === "care") {
       const option = this.careOptions(c.target).find((o) => o.treatment === c.treatment);
       return option ? option.unavailable : "That care option is unavailable in this world.";
@@ -7911,6 +7929,7 @@ export class Engine {
     }
     if (p.dead) return;
     if (c.type === "care") { this.giveCare(c.target, c.treatment); return; }
+    if (c.type === "gamble") { this.gamble(c); return; }
     this.lastImpact = undefined;
     delete this.lastTreeFind;
     this.motion = c.type === "move" ? (c.run ? "run" : "walk") : c.type === "swing" || c.type === "interact" ? "work" : "still";

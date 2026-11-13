@@ -1,0 +1,31 @@
+.g-lab {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 30% 40% at 28% 30%, #6b3f1f55, transparent 70%),
+    radial-gradient(ellipse 25% 35% at 74% 60%, #8a5a2a33, transparent 70%),
+    #140d0b;
+  color: var(--text);
+}
+.g-switch {
+  position: fixed;
+  z-index: 80;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  padding: 4px 6px;
+  background: var(--bg-2);
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  box-shadow: var(--frame);
+  font: 11px var(--pixel);
+}
+.g-switch span { display: flex; gap: 2px; }
+.g-switch button { padding: 4px 8px; color: var(--muted); border-radius: 2px; }
+.g-switch button:hover { color: var(--cream); }
+.g-switch button[aria-pressed="true"] { background: var(--gold); color: var(--ink); }
+
+.g-lab .g-overlay { top: 48px; }
+.g-left { position: fixed; top: 50%; left: 0; right: 0; text-align: center; font: 18px var(--prose); color: var(--muted); }

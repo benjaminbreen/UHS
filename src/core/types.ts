@@ -539,6 +539,8 @@ export type PlayerCommand =
   | { type: "learn"; technique: import("./techniques").TechniqueId }
   | { type: "wait"; seconds: number }
   | { type: "care"; target: string; treatment: import("../content/health/infections").Treatment }
+  /** A sitting at a gaming table, settled when the player gets up: coin won or lost and the time it took. */
+  | { type: "gamble"; game: string; net: number; minutes: number; outcome?: "caught" | "thrown-out" }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */
   | { type: "pass"; seconds: number }

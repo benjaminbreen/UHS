@@ -520,6 +520,15 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
     .strict(),
   z.object({ type: z.literal("stow") }).strict(),
   z.object({ type: z.literal("care"), target: z.string().max(100), treatment: z.enum(treatments) }).strict(),
+  z
+    .object({
+      type: z.literal("gamble"),
+      game: z.string().max(40),
+      net: z.number().int().min(-500).max(500),
+      minutes: z.number().int().min(1).max(600),
+      outcome: z.enum(["caught", "thrown-out"]).optional(),
+    })
+    .strict(),
   z.object({ type: z.literal("drop") }).strict(),
   z
     .object({ type: z.literal("give"), target: z.string().max(100), item })
