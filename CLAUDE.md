@@ -184,8 +184,11 @@ for (const d of [2, 1, 0, 3]) drawCharacter(ctx, appearance, d, "walk", 0);
 - Saves are not a priority during early development. Terrain graphics,
   procedural composition and performance come first. Do not write save-system
   tests unless asked.
-- Buildings are drawn oblique; `python3 scripts/art/oblique_audit.py` must pass
-  before `npm run art`.
+- Art audits are advice, not gates. `python3 scripts/art/front_audit.py <family>`
+  flags black outlines, doors shorter than the adult, chimneys off the roof,
+  noisy palettes and dithered gradients in what you changed; a fault that is a
+  deliberate choice stays. Run it whole, or `oblique_audit.py` for the older
+  oblique painters, only when shared art code changed.
 - Never assert wall-clock timings in tests. Use `scripts/capture-benchmark.ts`.
 - Other agents share this checkout. Check `git status`, preserve unrelated
   changes, and do not sweep them into your commit.

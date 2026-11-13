@@ -1,6 +1,10 @@
 """Audit of the front-on art: the rules a picture can be checked against.
 
-    python3 scripts/art/front_audit.py        # exit 1 on a fault
+    python3 scripts/art/front_audit.py              # everything; exit 1 on a fault
+    python3 scripts/art/front_audit.py mod casa     # only what you touched: a family prefix
+    python3 scripts/art/front_audit.py huts meso    # or a group (see GROUPS)
+
+It is advice, not a gate. A fault that is a deliberate choice stays.
 
 What it checks, and why each rule exists, is in
 .claude/skills/building-art/SKILL.md. It cannot judge beauty; it catches the
@@ -24,6 +28,9 @@ MAX_COLOURS = 360
 # Colours used by one or two pixels: noise a hand-made palette would not have.
 MAX_STRAY = 0.08
 DITHER_SHARE = 0.0005
+# Small checkered textures (net curtains, straw) are fine; a patch this big is
+# a dithered gradient.
+DITHER_PATCH = 12
 
 
 def lum(c):
@@ -65,12 +72,13 @@ def image_faults(name, im):
             colours.add(p[:3])
             if max(p[:3]) < 14:
                 black += 1
-    for y in range(h - 3):
-        for x in range(w - 3):
+    k = DITHER_PATCH
+    for y in range(h - k + 1):
+        for x in range(w - k + 1):
             a, b = px[x, y], px[x + 1, y]
             if a[3] < 200 or b[3] < 200 or a == b:
                 continue
-            if all(px[x + i, y + j] == (a if (i + j) % 2 == 0 else b) for i in range(4) for j in range(4)):
+            if all(px[x + i, y + j] == (a if (i + j) % 2 == 0 else b) for j in range(k) for i in range(k)):
                 dither += 1
     if black:
         out.append(f'{name}: {black} pure black pixels (outlines are tinted)')
@@ -237,22 +245,42 @@ def sacred():
     yield from studies()
 
 
-def families():
+def families(prefixes=None):
     """Every look of the registered house families, at every street form."""
     from art.front_family import subjects as registered
-    for name, im, h in registered():
+    for name, im, h in registered(prefixes):
         yield name, im, h, None if h.all_shop else h.door_h, []
 
 
-def audit():
-    faults = ramp_faults()
-    n = 0
-    from itertools import chain
-    for name, im, b, door_h, windows in chain(subjects(), east_asian(), vernacular(), huts(), mudbrick(), meso(), worksites(), sacred(),
-                                             families()):
+GROUPS = dict(subjects=subjects, east_asian=east_asian, vernacular=vernacular, huts=huts, mudbrick=mudbrick,
+              meso=meso, worksites=worksites, sacred=sacred)
+
+
+def _check(job):
+    group, prefix = job
+    faults, n = [], 0
+    for name, im, b, door_h, windows in (families([prefix]) if prefix else GROUPS[group]()):
         faults += image_faults(name, im)
         faults += geometry_faults(name, b, door_h, windows)
         n += 1
+    return faults, n
+
+
+def audit(only=()):
+    """Groups and family prefixes in `only`, or everything; each in its own process."""
+    from multiprocessing import Pool
+    from art.front_family import load
+    prefixes = list(load())
+    jobs = [(g, None) for g in GROUPS if not only or g in only] + [('families', p) for p in prefixes
+                                                                   if not only or p in only]
+    unknown = set(only) - set(GROUPS) - set(prefixes)
+    if unknown:
+        sys.exit(f'unknown: {", ".join(sorted(unknown))}; groups are {", ".join(GROUPS)}, families {", ".join(prefixes)}')
+    faults, n = ramp_faults(), 0
+    with Pool(min(len(jobs), 8)) as pool:
+        for f, k in pool.imap(_check, jobs):
+            faults += f
+            n += k
     for f in faults:
         print(f)
     print(f'front audit: {"clean" if not faults else f"{len(faults)} faults"} ({n} buildings, {len(RAMPS)} ramps)')
@@ -260,4 +288,4 @@ def audit():
 
 
 if __name__ == '__main__':
-    sys.exit(0 if audit() else 1)
+    sys.exit(0 if audit(sys.argv[1:]) else 1)

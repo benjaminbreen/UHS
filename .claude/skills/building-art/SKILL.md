@@ -47,8 +47,9 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
    finished sprite was rejected as muddy: shift hue inside the ramps instead.
    Roof colours follow the old gold standard (navy slate, dark slate-zinc),
    never pale blue-white.
-6. **No dithering.** Checkerboard gradients read as a screen door. Use
-   clean stepped bands. The audit checks this.
+6. **No dithered gradients.** A checkerboard gradient reads as a screen door;
+   use clean stepped bands. Small textural dither (net curtains, straw
+   courses) is fine.
 7. **Tinted outlines, never black.** An outline takes a dark step of what it
    touches. The audit checks for black.
 8. **Palette discipline.** Colours used by a pixel or two are noise; the
@@ -98,7 +99,7 @@ Unconverted families still follow `OBLIQUE_ART.md`; a town must not mix the two.
 | `scripts/art/front_ancient.py` | Wires the Roman (`house-roman-ob-*`) and Iranian (`westasian-courtyard-iranian-*`) frames to those builders |
 | `scripts/art/front_family.py` | The registry for house families drawn from specs: bake hook, every street form, entrance under the drawn door, lamplight frame, A/B, street and night sheets, audit. New regional house sets go through it |
 | `scripts/art/front_iberia.py` | The `casa` family: seventeen looks of the Iberian world and the Mediterranean (New Spain, Lima, the Caribbean, the Andes, Brazil and Portugal early and late, Andalusia, Castile, Italy early and late, the Aegean, the Philippine bahay na bato early and late, Goa). Its parts are the library for this kind of house: barrel tile (`tejado`, `alero`, `caballete`), flat roofs from above (`azotea`), window cages (`reja`), balconies (`balcon`, `corredor`, `cajon`), stone doorways (`portada`, `porton`), shell windows (`capiz`, `concha`), shop bays (`tienda`), spouts, niches, finials |
-| `scripts/art/front_audit.py` | The checkable rules; runs inside `oblique_audit.py` |
+| `scripts/art/front_audit.py` | The checkable rules, as advice: `front_audit.py <prefix>` for one family |
 | `scripts/art/front_review.py` | Review sheets beside the pinned gold masters |
 | `scripts/art/reference/front/` | Pinned gold masters |
 
@@ -135,8 +136,8 @@ bake, the atlas or the renderer:
    common), call it from `pack.ts`, and add a row per look to the house
    cases in `tests/place-eras.test.ts`.
 
-The audit (`families()` in `front_audit.py`) builds every registered look at
-every form, so a width that crashes or dithers fails `npm run art:front`.
+`front_audit.py <prefix>` builds every look of a registered family at every
+form, so a width that crashes shows up there before the bake.
 
 ## Working loop
 
@@ -146,7 +147,8 @@ every form, so a width that crashes or dithers fails `npm run art:front`.
    adult: `.venv/bin/python scripts/art/front_review.py out.png new.png`.
 3. Zoom in at 3x and criticise it yourself before the user sees it: value
    structure, silhouette, shadow logic, repetition, scale. Fix what you find.
-4. `npm run art:front` (audit plus review). It must be clean.
+4. `python3 scripts/art/front_audit.py <prefix>` on what you touched. Its
+   faults are advice: fix the accidents, keep the choices.
 5. Show the user one sheet. At most three passes before asking.
 6. On approval, bake with `npm run art` and check one shot in game
    (`npm run shot`). If the new work beats a gold master, re-pin it by name
