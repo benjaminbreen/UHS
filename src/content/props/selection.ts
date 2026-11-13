@@ -696,7 +696,7 @@ export function propKit(pack: Pack): PropKit {
     .filter(k => !way?.mode.includes("foraging") || ["waterskin","barkBox","coolamon","parfleche","pacificBasket","andeanSack","keroseneTin"].includes(k));
   contexts.household.push(...containers);
   contexts.yard.push(...containers);
-  contexts.work.push(...containers.filter(k => ["merchantBale","riceBale","tradeJar","taru","egyptJar","canaanJar","grainHamper","grainBin","andeanSack","demijohn","keroseneTin"].includes(k)));
+  contexts.work.push(...containers.filter(k => ["merchantBale","riceBale","tradeJar","taru","egyptJar","canaanJar","grainHamper","grainBin","andeanSack","keroseneTin"].includes(k)));
   const equipment = regionalEquipment(pack.setting && { ...pack.setting, year });
   const foraging = way?.mode.includes("foraging");
   if (!foraging) {

@@ -26,7 +26,6 @@ export const containerProps: Record<string, PropDef> = {
   pacificBasket: { ...portable, name: "Plaited leaf carrying basket", family: "pacific-basket", sprite: "nature-container-pacificbasket", breakable: "fiber", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
   grainBin: { ...vessel, name: "Raised woven grain bin", family: "woven-grain-bin", sprite: "nature-container-grainbin", breakable: "fiber", contents: { grain: 8 }, shove: { as: "free", mass: 2.5 }, visualClearance: [1,1,1,0] },
   stonewareCrock: { ...portable, name: "Lidded stoneware crock", family: "stoneware-crock", sprite: "nature-container-stoneware", breakable: "glaze", shove: { as: "free", mass: 0.9 }, visualClearance: [1,1,0,0] },
-  demijohn: { ...portable, name: "Wicker-protected glass demijohn", family: "demijohn", sprite: "nature-container-demijohn", breakable: "glaze", shove: { as: "free", mass: 1.1 }, visualClearance: [1,1,0,0] },
   keroseneTin: { ...portable, name: "Reused kerosene tin", family: "kerosene-tin", sprite: "nature-container-kerosenetin", breakable: "metal", shove: { as: "free", mass: 0.7 }, visualClearance: [1,1,0,0] },
 };
 
@@ -53,7 +52,6 @@ export const containerAbout: Record<string, string> = {
   pacificBasket: "A carrying basket plaited from broad leaf strips, with folded corners and handles woven into the body.",
   grainBin: "A woven grain bin reinforced with wooden ribs, raised on short feet and closed with a removable lid.",
   stonewareCrock: "A thick-walled stoneware crock with a lid, lifting ears and blue bands, for keeping food and household supplies.",
-  demijohn: "A large green-glass bottle protected by a fitted wicker jacket, with carrying handles and a cork stopper.",
   keroseneTin: "A sheet-metal fuel tin reused as a household container. Its folded seams, wire handle and faded label are still visible.",
 };
 
@@ -102,7 +100,6 @@ export function regionalContainers(s: ContainerSite | undefined): string[] {
   if (["south-asian","southeast-asian"].includes(culture) && year >= -499 && lon >= 70 && lon <= 135 && lat >= 5 && lat <= 30 && !camp) result.push("grainBin");
   const europeanSupply = culture === "european" && lon >= -12 && lon <= 40 && lat >= 30 && lat <= 65;
   if (!camp && ((europeanSupply && year >= 1600) || (settlement === "port" && year >= 1750) || year >= 1850)) result.push("stonewareCrock");
-  if (!camp && ((europeanSupply && year >= 1700) || (settlement === "port" && year >= 1800) || year >= 1850)) result.push("demijohn");
   if ((year >= 1870 && (oldWorld || settlement === "port")) || year >= 1900) result.push("keroseneTin");
   return result;
 }
@@ -110,10 +107,10 @@ export function regionalContainers(s: ContainerSite | undefined): string[] {
 /** Match the function of an existing store, without changing its goods or ownership. */
 export function regionalContainer(s: ContainerSite | undefined, key: string, roll: number): string | undefined {
   const candidates = regionalContainers(s).filter((id) => {
-    if (["jug","flask","hideBag"].includes(key)) return ["waterskin","waterJar","milkBag","milkVessel","egyptJar","canaanJar","olla","demijohn","keroseneTin"].includes(id);
-    if (["jar","vat","glazed","amphora","room-jars"].includes(key)) return ["waterJar","onggiJar","tradeJar","urpu","taru","egyptJar","canaanJar","paintedChineseJar","olla","stonewareCrock","demijohn"].includes(id);
+    if (["jug","flask","hideBag"].includes(key)) return ["waterskin","waterJar","milkBag","milkVessel","egyptJar","canaanJar","olla","keroseneTin"].includes(id);
+    if (["jar","vat","glazed","amphora","room-jars"].includes(key)) return ["waterJar","onggiJar","tradeJar","urpu","taru","egyptJar","canaanJar","paintedChineseJar","olla","stonewareCrock"].includes(id);
     if (["sack","grainSacks","crate","crateStack","room-sacks","room-crate"].includes(key)) return ["merchantBale","riceBale","taru","andeanSack","parfleche","grainHamper","grainBin","keroseneTin"].includes(id);
-    if (key === "barrel") return ["taru","stonewareCrock","demijohn","keroseneTin"].includes(id);
+    if (key === "barrel") return ["taru","stonewareCrock","keroseneTin"].includes(id);
     if (["basket","liddedBasket","room-basket","coolamon","room-pack"].includes(key)) return ["barkBox","coolamon","milkVessel","milkBag","grainHamper","pacificBasket","grainBin","andeanSack","parfleche"].includes(id) || key === "room-pack" && id === "waterskin";
     return false;
   });

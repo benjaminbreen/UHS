@@ -4,6 +4,7 @@ import { modernBuildingSince } from "../../content/settlements/modern-buildings"
 import { regionalLook } from "../../content/graphics/regional-looks";
 import { mediterraneanShrineFrame, mediterraneanProp } from "../../content/graphics/mediterranean-buildings";
 import { resolveJunctions } from "./junctions";
+import { kerbsideFor } from "../../content/settlements/streets/kerbside";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
 import { railStaff, railVisitors } from "./rail-travellers";
@@ -574,6 +575,7 @@ export function planSettlement(
     return road;
   };
   const marks = pack.setting && roadMarkings(pack.setting);
+  const kerb = pack.setting && urban && composed ? kerbsideFor(pack.setting) : undefined;
   /** Each paved cell of a straight composed street records where it sits
    * across the road; where two streets overlap it is a junction. */
   // A large city's arterials carry the trams, where it ran them.
@@ -3972,7 +3974,18 @@ export function planSettlement(
               plan.reserved.add(c);
             }
         };
-        pave(reach(door.x, door.y, -nx, -ny) ?? []);
+        const walk = reach(door.x, door.y, -nx, -ny) ?? [];
+        pave(walk);
+        const thing = (sprite: string | undefined, name: string, x: number, y: number, tag: string) => {
+          const c = cellKey(x, y);
+          if (!sprite || !open(c) || plan.surface.get(c) === "paving") return;
+          plan.reserved.add(c);
+          plan.objects.push({ id: `${id}-${tag}`, name, kind: "monument", sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
+        };
+        const pickOf = (list: string[] | undefined, key: string) => list?.[Math.floor(rand(key, i) * list.length)];
+        // Its box stands where the walk meets the sidewalk.
+        const end = walk.at(-1)?.split(",").map(Number);
+        if (end) thing(pickOf(kerb?.mailbox, "mailbox"), "Mailbox", end[0] + (ny ? 1 : 0), end[1] + (nx ? 1 : 0), "mailbox");
         const pool = pack.setting && ny && rand("drive", i) < 0.6 ? vehiclePool(pack.setting) : [];
         const car = pool.length ? parkedCar(pool, rand("drive-car", i), rand("drive-paint", i)) : undefined;
         if (car) {
@@ -3983,6 +3996,7 @@ export function planSettlement(
             if (!out[0] || !out[1] || !beside.every(open)) continue;
             pave([...out[0], ...out[1], ...beside]);
             for (const c of beside) plan.solid.add(c);
+            if (rand("hoop", i) < 0.3) thing(kerb?.hoop, "Basketball hoop", x0, front + ny * (length + 1), "hoop");
             plan.objects.push({
               id: `${id}-car`, name: car.label, description: car.about, kind: "monument",
               sprite: `vehicle-${car.model}-${car.paint}-${ny < 0 ? "n" : "s"}`,
@@ -4109,7 +4123,8 @@ export function planSettlement(
         name: "Household stores",
         kind: "container",
         pos: pos(side),
-        sprite: "basket",
+        // A house on a lawn keeps its things in the bin by the back door.
+        sprite: (motorAge && urban && lot.use === "suburb" && kerb?.bin?.[Math.floor(rand("bin", i) * kerb.bin.length)]) || "basket",
         inventory: pack.setting?.characterRevision
           ? eligibleInventory(
               { grain: 4, wood: 2 },
@@ -5869,6 +5884,76 @@ export function planSettlement(
       else plan.streetSurfaces?.delete(k);
     }
   }
+  /** The small things of a street, each where it belongs: the name sign,
+   * hydrant, post box and telephone at corners, meters along the parked
+   * cars, the rest thinly along the kerb, a board by some shop doors. None
+   * is solid: the walk stays a walk. */
+  function kerbFixtures(kit: NonNullable<typeof kerb>) {
+    const taken = new Set(plan.objects.filter((o) => o.pos.space === "outside").map((o) => cellKey(o.pos.x, o.pos.y)));
+    const doors = new Set(plan.places.flatMap((p) => [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]
+      .map(([dx, dy]) => cellKey(p.entrance.x + dx, p.entrance.y + dy))));
+    const stand = (sprite: string | undefined, name: string, x: number, y: number, clear = 1) => {
+      const k = cellKey(x, y);
+      const role = plan.pavement?.get(k);
+      // The paved tree strip of a main street is part of its walk.
+      if (!sprite || !(role === "footway" || (role === "verge" && plan.surface.get(k) === "paving")) || plan.solid.has(k) || doors.has(k)) return false;
+      for (let dy = -clear; dy <= clear; dy++)
+        for (let dx = -clear; dx <= clear; dx++) if (taken.has(cellKey(x + dx, y + dy))) return false;
+      taken.add(k);
+      plan.objects.push({ id: `${site.id}-kerb-${x}-${y}`, name, kind: "monument", sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
+      return true;
+    };
+    for (const j of plan.junctions ?? []) {
+      if (j.approaches.length < 3) continue;
+      const main = j.approaches.some((a) => a.span >= 6);
+      const corner = (n: number, d: number) => [[j.x - d, j.y - d], [j.x + j.w - 1 + d, j.y - d], [j.x - d, j.y + j.h - 1 + d], [j.x + j.w - 1 + d, j.y + j.h - 1 + d]][n] as [number, number];
+      const at = (n: number, sprite: string | undefined, name: string) => stand(sprite, name, ...corner(n, 2)) || stand(sprite, name, ...corner(n, 1));
+      if (main || rand("kerb-sign", j.x, j.y) < 0.5) at(0, kit.nameSign, "Street sign");
+      if (rand("kerb-hydrant", j.x, j.y) < 0.35) at(3, kit.hydrant, "Fire hydrant");
+      if (main && rand("kerb-post", j.x, j.y) < 0.45) at(1, kit.postBox, "Post box") || at(2, kit.postBox, "Post box");
+      if (main && rand("kerb-phone", j.x, j.y) < 0.3) at(2, kit.phone, "Public telephone");
+    }
+    const total = kit.scatter.reduce((n, [, w]) => n + w, 0);
+    // A street with no marked carriageway still has a kerb: the walk's edge
+    // against the roadway's own stone.
+    const roadway = (n: string) => roads.has(n) && !plan.pavement!.has(n) && plan.surface.get(n) === "paving";
+    for (const [k, role] of [...plan.pavement!]) {
+      if (role !== "footway" && role !== "verge") continue;
+      const [x, y] = k.split(",").map(Number);
+      const beside = N4.map(([dx, dy]) => cellKey(x + dx, y + dy));
+      const lane = beside.map((n) => plan.lanes?.get(n)).find(Boolean);
+      if (!lane) {
+        if (beside.some(roadway) && total && rand("kerb-scatter", x, y) < 0.03) {
+          let pick = rand("kerb-kind", x, y) * total;
+          const [sprite] = kit.scatter.find(([, w]) => (pick -= w) < 0) ?? kit.scatter[0];
+          stand(sprite, kerbName(sprite), x, y);
+        }
+        continue;
+      }
+      if (lane.junction || lane.toJunction !== undefined) continue;
+      const along = lane.axis === "x" ? x : y;
+      if (kit.meter && lane.marks.parking && lane.span >= 6) {
+        if (((along % STALL) + STALL) % STALL === 0) stand(kit.meter, "Parking meter", x, y, 0);
+        continue;
+      }
+      const r = rand("kerb-scatter", x, y);
+      if (lane.span >= 5 && r < 0.02) stand(r < 0.008 ? kit.shelter ?? kit.busStop : kit.busStop, "Bus stop", x, y, 2);
+      else if (total && r < (lane.span >= 5 ? 0.05 : 0.025)) {
+        let pick = rand("kerb-kind", x, y) * total;
+        const [sprite] = kit.scatter.find(([, w]) => (pick -= w) < 0) ?? kit.scatter[0];
+        stand(sprite, kerbName(sprite), x, y);
+      }
+    }
+    if (kit.board)
+      for (const p of plan.places) {
+        if (p.access !== "public" || rand("kerb-board", p.x, p.y) > 0.35) continue;
+        const e = p.entrance, k = cellKey(e.x + 1, e.y);
+        if (plan.solid.has(k) || taken.has(k) || plan.surface.get(k) !== "paving" || plan.lanes?.has(k)) continue;
+        taken.add(k);
+        plan.objects.push({ id: `${p.id}-board`, name: "Shop board", kind: "monument",
+          sprite: kit.board[Math.floor(rand("kerb-board-kind", p.x, p.y) * kit.board.length)], pos: pos({ x: e.x + 1, y: e.y }), inventory: {}, claim: "landscape" });
+      }
+  }
   /** Paved infill laid across a terrace step was drawn as a staircase through
    * the stones. Grade each piece to the street it opens off, so the bank
    * falls at its edge instead. */
@@ -6029,6 +6114,7 @@ export function planSettlement(
   if (palette) stepGround(plan, roads, seed, infillStone(palette), footwaySurface !== "earth" && footwaySurface !== "plank" ? squareStone : undefined);
   if (profile.paved && !industrialAge) unpaveBackland();
   if (pack.setting?.terrainRevision) levelAprons();
+  if (kerb) kerbFixtures(kerb);
   // A town laid out for cars was graded for them: streets and blocks one
   // step off the centre's level are brought to it, so no bank crosses a road.
   if (pack.setting?.terrainRevision && motorAge && urban && composed) {
@@ -6268,3 +6354,9 @@ function tidyGround(plan: SettlementPlan, routes: Set<string>, motorAge: boolean
   }
 
 }
+
+const KERB_NAMES: [RegExp, string][] = [
+  [/news-box/, "Newspaper box"], [/vending/, "Vending machine"], [/bicycle/, "Bicycle"], [/bike-rack/, "Bicycle rack"],
+  [/utility-cabinet/, "Utility cabinet"], [/kerb-rubbish/, "Rubbish for collection"], [/street-bin/, "Litter bin"],
+];
+const kerbName = (sprite: string) => KERB_NAMES.find(([re]) => re.test(sprite))?.[1] ?? "Street furniture";

@@ -170,7 +170,6 @@ describe("interactive props", () => {
       ["pacificBasket","australian-pacific",1800,-21,-175],
       ["grainBin","south-asian",1600,26,75],
       ["stonewareCrock","european",1800,51,7],
-      ["demijohn","european",1800,43,5],
       ["keroseneTin","european",1900,51,0],
     ] as const;
     for (const [key,culture,year,lat,lon] of cases) {
@@ -205,7 +204,7 @@ describe("interactive props", () => {
     expect(regionalContainers({...s,culture:"australian-pacific",year:1800,lat:-42,lon:173})).not.toContain("pacificBasket");
     expect(regionalContainers({...s,culture:"south-asian",year:1600,lat:26,lon:75,settlement:"camp"})).not.toContain("grainBin");
     const europe={...s,culture:"european" as const,lat:51,lon:7};
-    for (const key of ["stonewareCrock","demijohn","keroseneTin"])
+    for (const key of ["stonewareCrock","keroseneTin"])
       expect(regionalContainers({...europe,year:1400}),key).not.toContain(key);
     expect(regionalContainers({...europe,year:1850})).not.toContain("keroseneTin");
     expect(regionalContainers({...s,culture:"mesoamerican",year:2020,lat:19,lon:-99})).toContain("olla");

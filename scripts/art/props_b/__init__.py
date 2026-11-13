@@ -120,6 +120,8 @@ from .street import STREET
 DRAW_B.update(STREET)
 from .goods import GOODS
 DRAW_B.update(GOODS)
+from .kerbside import KERBSIDE
+DRAW_B.update(KERBSIDE)
 from .fronts import FRONTS
 DRAW_B.update(FRONTS)
 
