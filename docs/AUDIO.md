@@ -10,12 +10,22 @@ traditions remain eligible through the game's present (2026); contemporary
 sounds do not enter ancient settings. Hawaiʻi and the Ethiopian highlands use
 their regional music family even where the gazetteer label differs.
 
-Automatic playback starts with a dated regional piece when available, then
+Automatic playback starts with a dated regional piece when available, before
+any time-of-day theme, then
 alternates regional music with the five seasonal/travel compositions and three
 deliberately shared themes. “Where the horizon leads” is a five-minute original
 orchestral roaming theme, eligible in every culture and era. Each group exhausts
 its songs before repeating, with no immediate repeat. Settings without a regional match use the
 shared rotation. Manual selections remain available in the studio.
+
+High-risk ground and nearby human or animal warnings fade into “Where the path
+grows quiet,” a wistful flute-and-harp piece. Active human attacks or animals pursuing the player switch promptly to
+“Stand your ground,” an original 16-bit RPG battle theme. Both loop while needed.
+Six continuous seconds at a lower threat level release combat to danger or the
+normal soundtrack; the outgoing cue fades over four seconds as the normal music
+fades in over six. Entering a room during danger updates where music returns.
+Death takes priority, and manual studio selection with world following disabled
+is left alone. Both pieces are available in the studio's situation music list.
 
 Open **Audio studio** with **Command+1** (Mac), **Ctrl+1**, the music-note button in the header, or Settings. Click **Listen** to enable browser audio. Closing the studio keeps music playing on the map. Escape closes it. Opening the studio stops walking, and its controls cannot advance simulation time.
 

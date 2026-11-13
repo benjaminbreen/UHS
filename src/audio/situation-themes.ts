@@ -1,10 +1,24 @@
 import type { CultureId } from "../content/history/types";
 import type { Layer, LayeredTheme } from "./layered-themes";
 import type { Voice } from "./score";
+import type { FaunaGroup } from "../core/fauna";
+import type { Position } from "../core/types";
 
 /** Music for what is happening, not where: each tune is written once and
  * played on the instruments, scale and tuning of the place it is heard in. */
-export type Situation = "arrival" | "passing" | "timeslip" | "work" | "workdone";
+export type Situation = "arrival" | "passing" | "timeslip" | "work" | "workdone" | "danger" | "combat";
+export type ThreatMusic = "danger" | "combat" | undefined;
+
+export function threatMusic(score: number, fauna: readonly FaunaGroup[], pos: Position, clock: number): ThreatMusic {
+  let danger = score >= 2;
+  if (score >= 3) return "combat";
+  if (pos.space === "outside") for (const g of fauna) {
+    if (g.pos.space !== pos.space || !g.members.some((m) => (m.hp ?? 1) > 0 && Math.hypot(m.x - pos.x, m.y - pos.y) <= 12)) continue;
+    if ((g.provoked ?? 0) > clock) return "combat";
+    if ((g.warning ?? 0) > clock || (g.stalking ?? 0) > clock) danger = true;
+  }
+  return danger ? "danger" : undefined;
+}
 
 interface Tune {
   id: string;
@@ -109,7 +123,64 @@ const kits: Record<string, [Voice, string, number][]> = {
   sticks: [["wood", "A#4:1:1 A#4:1:.6", 0.14], ["udu", "G2:1 -:.5 G2:.5 D3:1 -:1", 0.26]],
 };
 
+const battleA = bars(
+  "D5:.75 A4:.25 D5:.5 F5:.5 E5:.5 D5:.5 A5:1",
+  "G5:.5 F5:.5 E5:1 C#5:.5 E5:.5 A4:1",
+  "F5:.75 D5:.25 F5:.5 A5:.5 G5:.5 F5:.5 D5:1",
+  "E5:.5 F5:.5 G5:1 E5:.5 C5:.5 G4:1",
+  "D5:.5 F5:.5 A5:1 C6:.5 A5:.5 F5:1",
+  "Bb5:.75 A5:.25 G5:.5 F5:.5 E5:1 D5:1",
+  "C#5:.5 E5:.5 G5:.5 Bb5:.5 A5:.5 E5:.5 C#5:1",
+  "D5:1 A4:.5 C#5:.5 E5:.5 G5:.5 C#6:1",
+);
+const battleB = bars(
+  "A5:1.5 G5:.5 F5:1 C6:1", "B5:.5 G5:.5 E5:1 G5:1 B5:1",
+  "A5:1.5 F5:.5 D5:1 F5:1", "G5:.5 A5:.5 Bb5:1 A5:1 G5:1",
+  "F5:.5 A5:.5 D6:1 C6:.5 A5:.5 F5:1", "E5:.5 G5:.5 C6:1 Bb5:.5 G5:.5 E5:1",
+  "D5:.5 F5:.5 Bb5:1 A5:.5 F5:.5 D5:1", "C#5:.5 E5:.5 G5:.5 Bb5:.5 A5:1 C#6:1",
+);
+const battleChords = ["D3 F3 A3", "A2 C#3 E3", "Bb2 D3 F3", "C3 E3 G3", "D3 F3 A3", "G2 Bb2 D3", "A2 C#3 E3", "A2 C#3 E3"];
+const battleHarmony = [...battleChords, ...battleChords, "F3 A3 C4", "E3 G3 B3", "D3 F3 A3", "G2 Bb2 D3", "D3 F3 A3", "C3 E3 G3", "Bb2 D3 F3", "A2 C#3 E3", ...battleChords];
+
 export const tunes: Tune[] = [
+  {
+    id: "under-watchful-skies", situation: "danger", title: "Where the path grows quiet",
+    subtitle: "A wistful flute over a small harp figure: the path feels uncertain, but the world is still beautiful.",
+    mode: "minor", tonic: 4, bpm: 84, meter: 4, bars: 16, everywhere: true, reverb: [0.2, 2.4],
+    fixed: [
+      { voice: "flute", stem: "melody", velocity: 0.13, pan: -0.08, loop: bars(
+        "B4:1 E5:2 F#5:.5 G5:.5", "E5:2 D5:1 G4:1",
+        "B4:1 D5:2 B4:1", "A4:2 F#4:1 -:1",
+        "B4:1 E5:1 G5:1 F#5:1", "E5:2 D5:1 C5:1",
+        "C5:1 B4:1 A4:2", "F#4:2 B4:1 -:1",
+        "B4:1 E5:2 G5:1", "G5:1 E5:2 D5:1",
+        "D5:1 B4:1 G4:2", "A4:2 -:1 F#4:1",
+        "G4:1 B4:1 E5:2", "E5:1 D5:1 C5:2",
+        "C5:1 E5:1 B4:1 A4:1", "F#4:1 B4:2 -:1",
+      ) },
+      { voice: "harp", stem: "harmony", velocity: 0.14, pan: 0.2, loop: bars(
+        "E3:1 B3:1 G4:1 B3:1", "C3:1 G3:1 E4:1 G3:1",
+        "G3:1 D4:1 B4:1 D4:1", "D3:1 A3:1 F#4:1 A3:1",
+        "E3:1 B3:1 G4:1 B3:1", "C3:1 G3:1 E4:1 G3:1",
+        "A2:1 E3:1 C4:1 E3:1", "B2:1 F#3:1 D4:1 F#3:1",
+      ) },
+      { voice: "cello", stem: "bass", velocity: 0.08, loop: "E2:4 C3:4 G2:4 D3:4 E2:4 C3:4 A2:4 B2:4" },
+    ],
+  },
+  {
+    id: "stand-your-ground", situation: "combat", title: "Stand your ground",
+    subtitle: "An original 16-bit RPG battle theme: a leaping brass hook, racing strings, a climbing middle and a driving backbeat.",
+    mode: "minor", tonic: 2, bpm: 156, meter: 4, bars: 32, everywhere: true, reverb: [0.16, 1.5],
+    fixed: [
+      { voice: "horn", stem: "melody", velocity: 0.3, loop: bars(battleA, battleA, battleB, battleA), pan: -0.12 },
+      { voice: "strings", stem: "harmony", velocity: 0.14, loop: battleHarmony.map((c) => { const [r, t, f] = c.split(" "); return rep(2, `${r}:.25 ${f}:.25 ${t}:.25 ${f}:.25 ${r}:.25 ${t}:.25 ${f}:.25 ${t}:.25`); }).join(" "), pan: 0.25 },
+      { voice: "bass", stem: "bass", velocity: 0.22, loop: battleHarmony.map((c) => { const [r, , f] = c.split(" "); return `${r}:1 ${r}:.5 ${f}:.5 ${r}:.5 ${f}:.5 ${r}:1`; }).join(" ") },
+      { voice: "organ", stem: "harmony", velocity: 0.09, loop: battleHarmony.map((c) => `-:.5 ${c.replaceAll(" ", "+")}:.5 -:1 ${c.replaceAll(" ", "+")}:1 -:1`).join(" "), pan: -0.3 },
+      { voice: "kick", stem: "percussion", velocity: 0.33, loop: "C2:.5 -:1 C2:.5 -:1 C2:.5 -:.5" },
+      { voice: "snare", stem: "percussion", velocity: 0.2, loop: "-:1 C4:.5 -:1.5 C4:.5 -:.5" },
+      { voice: "hat", stem: "percussion", velocity: 0.09, loop: eighths, pan: 0.2 },
+    ],
+  },
   {
     id: "over-the-rise",
     situation: "arrival",

@@ -21,7 +21,8 @@ import { places } from "../src/content/geography/places";
 import { placeAtYear } from "../src/content/geography/eras";
 import { layeredThemes } from "../src/audio/layered-themes";
 import { interiorThemes } from "../src/audio/interior-themes";
-import { situationTheme, situationThemes, tunes } from "../src/audio/situation-themes";
+import { situationTheme, situationThemes, threatMusic, tunes } from "../src/audio/situation-themes";
+import type { FaunaGroup } from "../src/core/fauna";
 import { AudioDirector } from "../src/audio/director";
 import { catalog } from "../src/audio/sfx";
 import { ambienceFor, bellFor, townKindFor } from "../src/audio/ambience";
@@ -428,6 +429,87 @@ describe("town ambience", () => {
 
 
 describe("soundtrack setting updates", () => {
+  it("distinguishes risky ground, warnings and attacks without treating ordinary wildlife as combat", () => {
+    const pos = { x: 0, y: 0, space: "outside" };
+    const animal = { pos, members: [{ x: 2, y: 0, hp: 10 }], warning: 120 } as FaunaGroup;
+    expect(threatMusic(0, [], pos, 100)).toBeUndefined();
+    expect(threatMusic(1, [], pos, 100)).toBeUndefined();
+    expect(threatMusic(2, [], pos, 100)).toBe("danger");
+    expect(threatMusic(3, [], pos, 100)).toBe("combat");
+    expect(threatMusic(0, [animal], pos, 100)).toBe("danger");
+    expect(threatMusic(0, [{ ...animal, warning: undefined, state: "chase" }], pos, 100)).toBeUndefined();
+    expect(threatMusic(0, [{ ...animal, provoked: 120 }], pos, 100)).toBe("combat");
+    expect(threatMusic(0, [animal], pos, 130)).toBeUndefined();
+    expect(threatMusic(0, [animal], { ...pos, x: 30 }, 100)).toBeUndefined();
+    expect(threatMusic(0, [animal], { ...pos, space: "house" }, 100)).toBeUndefined();
+    expect(threatMusic(0, [{ ...animal, members: [] }], pos, 100)).toBeUndefined();
+  });
+
+  it("escalates immediately, holds through brief lulls, and returns to the current room after safety", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
+    vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
+    const director = new AudioDirector();
+    const theme = () => director.getSnapshot().arrangement.themeId;
+    try {
+      director.setSetting("european", 1500);
+      director.setThreat("danger");
+      expect(theme()).toBe("under-watchful-skies--anywhere");
+      director.setThreat("combat");
+      expect(theme()).toBe("stand-your-ground--anywhere");
+      director.setThreat(undefined);
+      vi.advanceTimersByTime(5000);
+      expect(theme()).toBe("stand-your-ground--anywhere");
+      director.setThreat("combat");
+      vi.advanceTimersByTime(6000);
+      expect(theme()).toBe("stand-your-ground--anywhere");
+      director.work("hold");
+      expect(theme()).toBe("stand-your-ground--anywhere");
+      director.setThreat("danger");
+      vi.advanceTimersByTime(6000);
+      expect(theme()).toBe("under-watchful-skies--anywhere");
+      director.setInterior("home");
+      expect(theme()).toBe("under-watchful-skies--anywhere");
+      director.setThreat(undefined);
+      vi.advanceTimersByTime(3000);
+      director.setThreat(undefined);
+      vi.advanceTimersByTime(3000);
+      expect(theme()).toBe(interiorThemes.home.id);
+      director.setThreat("combat");
+      director.setThreat(undefined);
+      director.setSituation("passing");
+      vi.advanceTimersByTime(10000);
+      expect(theme()).toBe(situationTheme("passing", "european", 1500));
+      director.setThreat("combat");
+      expect(theme()).toBe(situationTheme("passing", "european", 1500));
+    } finally {
+      director.dispose();
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it.each([6, 12, 18])("starts with regional music at hour %s before shared clock themes", (hour) => {
+    vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
+    vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
+    const director = new AudioDirector();
+    try {
+      director.setClock(hour * 3600, true);
+      director.setSetting("east-asian", 1500);
+      expect(culturalMusic("east-asian", 1500).direct.map((t) => t.id))
+        .toContain(director.getSnapshot().arrangement.themeId);
+      director.follow(true);
+      if (hour === 6)
+        expect(director.getSnapshot().arrangement.themeId).toBe("every-life-there-is");
+      else
+        expect([...themes, ...anywhereThemes].map((t) => t.id))
+          .toContain(director.getSnapshot().arrangement.themeId);
+    } finally {
+      director.dispose();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("skips making effects when muted or when effects volume is zero", async () => {
     vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
     vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });

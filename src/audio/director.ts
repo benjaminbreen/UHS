@@ -20,7 +20,7 @@ import { events, noise, playSound, tone, type EventId, type Sound } from "./sfx"
 import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, silence, type AmbienceMix } from "./ambience";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
-import { situationTheme, type Situation } from "./situation-themes";
+import { situationTheme, type Situation, type ThreatMusic } from "./situation-themes";
 
 export interface AudioState {
   loading: boolean;
@@ -99,6 +99,9 @@ export class AudioDirector {
   /** A situation's piece holding the stage over place and room. */
   private held?: string;
   private heldLoops = false;
+  private situation?: Situation;
+  private threat?: ThreatMusic;
+  private threatRelease?: ReturnType<typeof setTimeout>;
   private workIdle?: ReturnType<typeof setTimeout>;
   private place?: { culture?: CultureId; year?: number; at: string };
   private arrivals = 0;
@@ -268,7 +271,7 @@ export class AudioDirector {
     if (beat >= run.score.beats) {
       if (this.held && this.heldLoops) {
         this.patch({ beat: 0 });
-        this.begin();
+        this.begin(0, 0.04);
         return;
       }
       if (this.held) {
@@ -387,7 +390,7 @@ export class AudioDirector {
     // Setting refreshes affect the next piece, not the one already underway.
     if (firstSetting && this.state.followWorld && this.inside === undefined &&
       !this.state.playing && !this.state.loading)
-      this.configure({ themeId: this.nextTheme() });
+      this.configure({ themeId: direct.length ? this.rotation.next() : this.nextTheme() });
   }
   setClock(seconds: number, playful: boolean) {
     this.clock = seconds;
@@ -455,22 +458,45 @@ export class AudioDirector {
       void this.cue(situationTheme("workdone", this.place?.culture, this.place?.year));
     }
   }
+  setThreat(threat: ThreatMusic) {
+    if (this.situation === "passing" || this.disposed) return;
+    if (threat === this.threat) return;
+    this.threat = threat;
+    clearTimeout(this.threatRelease);
+    const current = this.situation;
+    if (threat === "combat" || (threat === "danger" && current !== "combat")) {
+      this.setSituation(threat);
+    } else if (current === "danger" || current === "combat") {
+      // Brief lulls between blows or along a risk boundary are not safety.
+      this.threatRelease = setTimeout(() => {
+        if (!this.disposed && this.situation !== "passing") this.setSituation(this.threat);
+      }, 6000);
+    }
+  }
   /** A situation takes the score from place and room until it is released.
-   * The work dance starts at once and loops; the others play once and leave silence. */
+   * Work and threats loop; the passing piece plays once and leaves silence. */
   setSituation(situation: Situation | undefined) {
     const themeId = situation && situationTheme(situation, this.place?.culture, this.place?.year);
     if (themeId === this.held) return;
-    const quick = situation === "work" || this.heldLoops;
+    const wasThreat = this.situation === "danger" || this.situation === "combat";
+    const isThreat = situation === "danger" || situation === "combat";
+    const quick = situation === "work" || this.situation === "work";
+    this.situation = situation;
+    if (situation === "passing") {
+      clearTimeout(this.threatRelease);
+      this.threat = undefined;
+    }
     this.held = themeId;
-    this.heldLoops = situation === "work";
+    this.heldLoops = situation === "work" || isThreat;
     if (!this.state.followWorld) return;
     this.generation++;
     clearTimeout(this.pending);
-    this.retire(false, quick ? 0.4 : 2.5);
+    this.retire(false, situation === "combat" ? 0.35 : wasThreat ? 4 : quick ? 0.4 : 2.5);
     this.patch({ playing: false, loading: false, beat: 0 });
     if (themeId) {
       this.patch({ arrangement: { ...this.state.arrangement, themeId, period: "day" } });
-      if (this.ctx && quick) void this.play(0.15);
+      if (this.ctx && isThreat) void this.play(situation === "combat" ? 0.25 : 3);
+      else if (this.ctx && quick) void this.play(0.15);
       else if (this.ctx) this.later(2500, () => this.play(1.5));
       return;
     }
@@ -482,11 +508,16 @@ export class AudioDirector {
         themeId: inside ? interiorThemes[inside].id : this.nextTheme(this.state.arrangement.themeId),
       },
     });
-    if (this.ctx) this.later(3000, () => this.play(SLOW_FADE_IN));
+    if (this.ctx && wasThreat) void this.play(6);
+    else if (this.ctx) this.later(3000, () => this.play(SLOW_FADE_IN));
   }
   follow(enabled: boolean) {
     this.patch({ followWorld: enabled });
-    if (enabled) this.configure({ themeId: this.nextTheme() });
+    if (enabled) {
+      const themeId = this.held ?? (this.inside ? interiorThemes[this.inside].id : this.nextTheme());
+      if (!this.held && this.inside === null) this.stop();
+      else this.configure({ themeId });
+    }
   }
   /** The world's ambient picture: weather, water, a town, a fire, a roof. */
   private pinned?: AmbienceMix;
@@ -603,6 +634,9 @@ export class AudioDirector {
   dispose() {
     if (active === this) active = undefined;
     this.disposed = true;
+    clearTimeout(this.threatRelease);
+    clearTimeout(this.workIdle);
+    clearTimeout(this.pending);
     this.generation++;
     this.resumeOnVisible = false;
     this.retire(true);

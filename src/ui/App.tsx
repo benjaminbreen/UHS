@@ -71,6 +71,7 @@ import { capabilitiesFor } from "../content/characters/resolve";
 import { SkyScene, WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
+import { threatMusic } from "../audio/situation-themes";
 import { ambienceFor } from "../audio/ambience";
 import { interiorMusic } from "../audio/interior-themes";
 import { buildingUse } from "../content/interiors/select";
@@ -1016,6 +1017,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   );
   audio?.setClock(obs.clock, isPlayful(statsOf(runtime.engine.state.manifest.seed, p)));
   useEffect(() => audio?.setSituation(p.dead ? "passing" : undefined), [audio, p.dead]);
+  useEffect(() => {
+    if (!audio || p.dead) return;
+    const engine = runtime.engine, state = engine.state;
+    audio.setThreat(threatMusic(engine.danger().score, state.fauna ?? [], state.player.pos, state.clock));
+  }, [audio, runtime, obs.revision, p.dead]);
   useEffect(() => applyTheme(accent, background, setting?.culture), [accent, background, setting?.culture]);
   useEffect(() => applyProseFont(proseFont), [proseFont]);
   useEffect(() => {
