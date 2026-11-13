@@ -28,6 +28,7 @@ import {
 } from "../../content/settlements/modernity";
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
 import { modernBuildings, modernCivicBuilding, stationBuildings } from "../../content/settlements/modern-buildings";
+import { streetFrames, streetLooks } from "../../content/settlements/street-looks";
 import {
   BOULEVARD,
   MOTOR_SPANS,
@@ -1220,6 +1221,48 @@ export function urbanNeighborhood(
     if (use) uses.set(block, use);
     quarters.set(block, use ? quarterFor(use, block) : quarterOf(block));
   }
+  // A block's place in the town's mix of street looks, ranked from a smooth
+  // field: each look gets its exact share, and its blocks lie together.
+  const lookRank = new Map<Block, number>();
+  if (zoning) {
+    const lattice = (i: number, j: number) => rand("look-field", i, j);
+    const field = (b: Block) => {
+      const x = (b.x + b.w / 2) / 40, y = (b.y + b.h / 2) / 40;
+      const i = Math.floor(x), j = Math.floor(y);
+      const u = (x - i) ** 2 * (3 - 2 * (x - i)), v = (y - j) ** 2 * (3 - 2 * (y - j));
+      const top = lattice(i, j) * (1 - u) + lattice(i + 1, j) * u;
+      return top * (1 - v) + (lattice(i, j + 1) * (1 - u) + lattice(i + 1, j + 1) * u) * v;
+    };
+    const order = layout.blocks.map((b) => ({ b, f: field(b) })).sort((p, q) => p.f - q.f);
+    order.forEach(({ b }, i) => lookRank.set(b, (i + 0.5) / order.length));
+  }
+  const looksFor = new Map<LandUse, ReturnType<typeof streetLooks>>();
+  /** The frames of the street look this block is built in, one colouring of
+   * it and perhaps a one-off among them; undefined keeps the older kit. */
+  function streetLookFrames(block: Block) {
+    const use = uses.get(block);
+    if (!use || !pack.setting) return undefined;
+    let looks = looksFor.get(use);
+    if (!looks) looksFor.set(use, (looks = streetLooks(pack.setting, use)));
+    let u = lookRank.get(block) ?? 1;
+    const fabric = looks.blocks.find(({ share }) => (u -= share) < 0)?.look;
+    if (!fabric) return undefined;
+    const colouring = (look: string, key: string) => {
+      const frames = streetFrames(look as Parameters<typeof streetFrames>[0]);
+      const n = new Set(frames.map((f) => f.split("-urban-")[0])).size;
+      const v = Math.floor(rand(key, block.x, block.y) * n);
+      return frames.filter((f) => f.startsWith(`mod-${look}-${v}-urban-`));
+    };
+    const pool = colouring(fabric, "look-colour");
+    const odds = looks.accents.reduce((t, a) => t + a.share, 0);
+    let pick = rand("accent", block.x, block.y);
+    if (pick < Math.min(0.7, odds * 3)) {
+      pick *= odds / Math.min(0.7, odds * 3);
+      const accent = looks.accents.find(({ share }) => (pick -= share) < 0)?.look;
+      if (accent) pool.push(...colouring(accent, "accent-colour"));
+    }
+    return pool;
+  }
   const useAt = new Map<string, LandUse>();
   for (const [block, use] of uses)
     for (const k of cells(block)) useAt.set(k, use);
@@ -1261,7 +1304,7 @@ export function urbanNeighborhood(
     if (!fits(lot.rect)) return false;
     // Nor may a roof or side wall draw over the rails.
     if (overhang(lot).some((r) => cells(r).some((k) => railBed.has(k)))) return false;
-    if (roofed) {
+    if (roofed || lot.frame.startsWith("mod-")) {
       // The hall, the church and the venues were placed by other hands.
       for (; noted < lots.length; noted++) note(lots[noted]);
       if (cells(lot.rect).some((k) => shade.has(k))) return false;
@@ -1805,6 +1848,11 @@ export function urbanNeighborhood(
     if (yardRanges.get(block)) return atelierFrames;
     let pool = blockKits.get(block);
     if (pool) return pool;
+    const street = streetLookFrames(block);
+    if (street?.length) {
+      blockKits.set(block, street);
+      return street;
+    }
     pool = framesFor(quarters.get(block) ?? "residential", uses.get(block));
     if (zoning && uses.get(block) !== "industrial") {
       // A family is one kit's base in all its widths (`modern-shop-urban-*`),
@@ -2644,7 +2692,10 @@ export function urbanNeighborhood(
  * Period facades are drawn front-on and carry no baked margins, but a
  * three-storey front still rises over the lot behind it. */
 function marginsOf(frame: string): number[] {
-  const model = buildingModel(frame) as { margins?: number[]; period?: boolean; candidate?: boolean; height?: number; footprint: number[] };
+  const model = buildingModel(frame) as { margins?: number[]; period?: boolean; candidate?: boolean; height?: number; footprint: number[]; anchor: number[] };
+  // A twentieth-century street block keeps the ground its facade is drawn
+  // over, and an alley behind that.
+  if (frame.startsWith("mod-")) return [0, Math.ceil(model.anchor[1] / 16) - model.footprint[1] + 2];
   // The small street kit is drawn `height` pixels tall on its footprint.
   if (model.candidate && model.height && !model.margins)
     return [0, Math.max(0, Math.ceil((model.height - model.footprint[1] * 16) / 16))];

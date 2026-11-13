@@ -9,6 +9,7 @@ import { civicProfile } from "../src/content/settlements/civic";
 import { inside } from "../src/world/v3/types";
 import { roadCells } from "../src/world/v3/roads";
 import { modernBuildingSince } from "../src/content/settlements/modern-buildings";
+import { streetMix } from "../src/content/settlements/street-looks";
 import { buildingModels } from "../src/content/graphics/models";
 import { mediterraneanStyle, watchtowerFrame, mediterraneanShrineFrame, mediterraneanInsulaFrames, retainedTowerStyle } from "../src/content/graphics/mediterranean-buildings";
 const resolved = resolveSetting("Rome 100 BCE");
@@ -369,4 +370,17 @@ it("assigns coherent, deterministic materials to civic squares and street lanes"
     expect(materials.size).toBe(1);
     expect(materials.has("earth")).toBe(false);
   }
+});
+
+it("mixes twentieth-century street looks by place and date", () => {
+  const share = (m: Record<string, number>, ...looks: string[]) => looks.reduce((t, l) => t + (m[l] ?? 0), 0);
+  const santaCruz = streetMix({ lon: -122.03, lat: 36.97, year: 1985 });
+  expect(share(santaCruz, "brick", "strip", "bank", "office")).toBeGreaterThan(0.45);
+  expect(share(santaCruz, "strip-mx", "brick-mx", "moderno")).toBeGreaterThan(0.1);
+  expect(share(santaCruz, "strip-asia", "brick-cn")).toBeGreaterThan(0.005);
+  expect(streetMix({ lon: -122.03, lat: 36.97, year: 1965 })["strip-asia"]).toBeUndefined();
+  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }))).toEqual(["zakkyo"]);
+  expect(streetMix({ lon: 31.2, lat: 30, year: 1975 })).toEqual({});
+  for (const m of [santaCruz, streetMix({ lon: 18.4, lat: -33.9, year: 1960 })])
+    expect(share(m, ...Object.keys(m))).toBeLessThanOrEqual(1.0001);
 });
