@@ -216,7 +216,7 @@ export const eastAsia: readonly GarmentKit[] = [
     front: [{ value: "cross" }],
     leggings: [{ value: "wide", weight: 8 }],
     headwear: [
-      { value: "brimmed", weight: 6, sex: ["male"], ages: ["adult", "elder"] },
+      { value: "gat", weight: 6, sex: ["male"], ages: ["adult", "elder"] },
       { value: "band", weight: 3, sex: ["male"] },
       { value: "none", weight: 5, sex: ["female"] },
       { value: "headscarf", weight: 2, sex: ["female"] },
@@ -225,5 +225,12 @@ export const eastAsia: readonly GarmentKit[] = [
     belt: [{ value: "sash" }],
     material: [{ value: "hemp", weight: 4 }, { value: "ramie", weight: 3 }, { value: "cotton", weight: 4 }, { value: "silk", weight: 1, means: ["wealthy"] }],
     dye: [{ value: "bleached", weight: 7 }, { value: "undyed", weight: 5 }, { value: "indigo", weight: 1 }, { value: "safflower", weight: 1, sex: ["female"] }],
+  },
+  {
+    // The Manchu cut, imposed on Han men in 1645 on pain of death and kept until 1912.
+    id: "qing-queue",
+    label: "Qing · the shaved brow and the queue",
+    scope: { years: [1645, 1912], cultures: ["east-asian"], bounds: [73, 21.5, 124.5, 54] },
+    hairdress: [{ value: "queue", weight: 1, sex: ["male"], ages: ["youth", "adult", "elder"] }],
   },
 ];

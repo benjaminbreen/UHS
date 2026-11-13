@@ -323,7 +323,7 @@ export function wardrobeFor(
     : headwear === "flat-cap" ? dyes[(["ash", "walnut", "soot"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 3)]].hex
     // Men's felt came in a few sober shades: grey, brown, black, navy.
     : headwear === "fedora" ? dyes[(["ash", "walnut", "soot", "umber", "woad"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 5)]].hex
-    : headwear === "bowler" || headwear === "top-hat" ? dyes.soot.hex
+    : headwear === "bowler" || headwear === "top-hat" || headwear === "tricorne" || headwear === "bicorne" ? dyes.soot.hex
     : straw || headwear === "boater" || headwear === "pith-helmet" ? dyes.undyed.hex
     : head ? dyes[head].hex : base.lowerColor;
   const neck = chosen.neck as "none" | "beads" | "chain" | undefined;
@@ -340,7 +340,7 @@ export function wardrobeFor(
     ...(dye ? { color: dyes[dye].hex } : {}),
     ...(lower ? { lowerColor: dyes[lower].hex } : {}),
     ...(trim ? { trim: dyes[trim].hex } : {}),
-    ...(lower ? { cloakColor: dyes[lower].hex } : {}),
+    ...(chosen.overColor ? { cloakColor: chosen.overColor as string } : lower ? { cloakColor: dyes[lower].hex } : {}),
     garment,
     cut: (chosen.cut as typeof base.cut) ?? (["coat", "dress", "gown"].includes(garment) ? "fitted" : "straight"),
     front: (chosen.front as typeof base.front) ?? (garment === "open-robe" || garment === "coat" ? "open" : "closed"),
@@ -389,10 +389,11 @@ export function wardrobeFor(
     trimPattern: chosen.trimPattern as CharacterAppearance["wearing"]["trimPattern"],
     hairOrnament: chosen.hairOrnament as CharacterAppearance["wearing"]["hairOrnament"],
     // A ribbon or feather needs a hat to sit on.
-    hatTrim: ["none", "flat-cap", "ball-cap", "kerchief", "headscarf", "crown", "nemes", "mian", "kanmuri"].includes(headwear) ? undefined : (chosen.hatTrim as CharacterAppearance["wearing"]["hatTrim"]),
+    hatTrim: ["none", "flat-cap", "ball-cap", "kerchief", "headscarf", "crown", "nemes", "mian", "kanmuri", "gat"].includes(headwear) ? undefined : (chosen.hatTrim as CharacterAppearance["wearing"]["hatTrim"]),
     waistcoat: chosen.waistcoat as CharacterAppearance["wearing"]["waistcoat"],
     shawl: chosen.shawl as CharacterAppearance["wearing"]["shawl"],
     drape: chosen.drape as CharacterAppearance["wearing"]["drape"],
+    hairdress: chosen.hairdress as CharacterAppearance["wearing"]["hairdress"],
     // Worn up, a hood is headwear; it cannot also lie on the shoulders.
     hood: headwear === "hood" ? undefined : (chosen.hood as CharacterAppearance["wearing"]["hood"]),
     sidearm: chosen.sidearm as CharacterAppearance["wearing"]["sidearm"],

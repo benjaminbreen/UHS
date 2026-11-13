@@ -162,6 +162,12 @@ export const headwear = [
   "mian",
   /** The Japanese court cap of black lacquered gauze, its tail standing up behind. */
   "kanmuri",
+  /** Black felt cocked up on three sides: Europe and its colonies, about 1690 to 1800. */
+  "tricorne",
+  /** Cocked on two sides and worn crosswise: officers and gentlemen, about 1790 to 1820. */
+  "bicorne",
+  /** The Joseon man's black horsehair hat: a tall narrow crown on a wide flat brim. */
+  "gat",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -232,6 +238,9 @@ export const hatTrims = ["none", "feather", "cockade", "ribbon"] as const;
 export const waistcoats = ["none", "plain", "figured", "cardigan"] as const;
 /** A square of cloth worn over the shoulders and crossed or knotted at the front. */
 export const shawls = ["none", "plain", "fringed", "patterned"] as const;
+/** Hair as the law or the rule required it, over whatever the person would
+ * have worn: the Qing queue, the Latin tonsure, the Buddhist monk's shaved head. */
+export const hairdresses = ["none", "queue", "tonsure", "shaven"] as const;
 /** Wool wound round the body over the tunic: the plain toga, the
  * purple-bordered toga praetexta of magistrates and boys, the woman's palla. */
 export const drapes = ["none", "toga", "praetexta", "palla"] as const;
@@ -839,6 +848,7 @@ export type CharacterAppearance = {
     waistcoat?: (typeof waistcoats)[number];
     shawl?: (typeof shawls)[number];
     drape?: (typeof drapes)[number];
+    hairdress?: (typeof hairdresses)[number];
     hood?: (typeof hoods)[number];
     sidearm?: (typeof sidearms)[number];
     /** A baby tied on the back in a cloth. Set from the household, not rolled. */

@@ -8,6 +8,7 @@ import type {
   waistcoats,
   shawls,
   drapes,
+  hairdresses,
   hoods,
   sidearms,
   armours,
@@ -82,6 +83,8 @@ export type GarmentKit = {
   /** Worn over the garment. A mantle stops at the elbow; a cloak falls to
    * the hem. */
   over?: readonly Option<"none" | "cloak" | "mantle" | "shoulder-cloth">[];
+  /** A hex colour for the cloak when it is not the garment's: the Dominican's black over white. */
+  overColor?: readonly Option<string>[];
   /** What cloth was available here, and what could be got onto it. Resolved
    * per slot like everything else, so a kit can change the dyes and inherit
    * the silhouettes. */
@@ -102,6 +105,7 @@ export type GarmentKit = {
   waistcoat?: readonly Option<(typeof waistcoats)[number]>[];
   shawl?: readonly Option<(typeof shawls)[number]>[];
   drape?: readonly Option<(typeof drapes)[number]>[];
+  hairdress?: readonly Option<(typeof hairdresses)[number]>[];
   hood?: readonly Option<(typeof hoods)[number]>[];
   sidearm?: readonly Option<(typeof sidearms)[number]>[];
   armour?: readonly Option<(typeof armours)[number]>[];
@@ -147,6 +151,8 @@ export const wardrobeSlots = [
   "waistcoat",
   "shawl",
   "drape",
+  "hairdress",
+  "overColor",
   "hood",
   "sidearm",
   "armour",

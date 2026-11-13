@@ -38,6 +38,10 @@ const held = (f: typeof clergy, ...xs: [Accessory, number][]) => xs.map(([v, w])
 // Clergy by the office the role names: an Orthodox priest, deacon, monk or bishop.
 const as = (...roles: string[]) => <T>(value: T, weight = 1): Option<T> => ({ value, weight, livelihoods: CLERGY, ages: ["adult", "elder"], roles });
 const cleric = as("cleric"), deacon = as("deacon"), bishop = as("bishop"), monastic = as("monastic");
+// The Buddhist monk's shaved head, whatever the law asked of laymen.
+const shaven: Option<"shaven"> = { value: "shaven", weight: 1, roles: ["monastic"] };
+// Orders are named in the role whatever the livelihood says.
+const order = (role: string) => <T>(value: T, weight = 1): Option<T> => ({ value, weight, roles: [role] });
 type Box = readonly [number, number, number, number];
 // Greece and the Balkans, Romania, Rus, Belarus, the Caucasus, the Levant, Egypt and Nubia.
 const ORTHODOX: Box[] = [
@@ -66,6 +70,21 @@ export const street: readonly GarmentKit[] = [
     belt: [clergy("cord")], hood: [clergy("down", 3), clergy("none", 1)], headwear: [clergy("none")],
     accessory: held(clergy, ["beads", 4], ["censer", 1], ["none", 1]),
   }),
+  // The clerical tonsure, Latin clergy's mark until 1972.
+  { ...kit("clergy-latin-tonsure", "The shaved crown of the Latin clergy", { years: [500, 1900], cultures: ["european"] }, {
+    hairdress: [{ value: "tonsure", weight: 1, roles: ["cleric"], sex: ["male"], ages: ["adult", "elder"] }],
+  }) },
+  // Habits by order: Franciscan brown or undyed grey with the knotted cord, Dominican white under a black cloak,
+  // Benedictine black, Cistercian undyed white; nuns veiled.
+  { ...kit("clergy-orders", "Habits by order: grey and black friars, black and white monks", { years: [1100, 1950], cultures: ["european"] }, {
+    garment: [order("franciscan")("robe"), order("dominican")("robe"), order("benedictine")("robe"), order("cistercian")("robe")],
+    dye: [order("franciscan")("walnut", 2), order("franciscan")("greige", 1), order("dominican")("bleached"), order("benedictine")("soot"), order("cistercian")("bleached")],
+    over: [order("dominican")("cloak"), order("cistercian")("none")],
+    belt: [order("franciscan")("cord"), order("dominican")("leather"), order("benedictine")("leather"), order("cistercian")("sash")],
+    hood: [order("franciscan")("down"), order("dominican")("down"), order("benedictine")("down"), order("cistercian")("down")],
+    headwear: [{ value: "veil", weight: 1, roles: ["franciscan", "dominican", "benedictine", "cistercian", "monastic"], sex: ["female"] }],
+    overColor: [order("dominican")("#24222a")],
+  }), priority: 3 },
   kit("clergy-islamic", "Imam and scholar: white turban, robe, prayer beads", { years: [650, 1950], cultures: ["north-african-west-asian", "inner-eurasian"] }, {
     garment: [clergy("open-robe", 2), clergy("robe", 2)], dye: [clergy("bleached", 3), clergy("greige", 1)],
     headwear: [clergy("turban")], accessory: held(clergy, ["beads", 3], ["ledger", 1]),
@@ -75,12 +94,12 @@ export const street: readonly GarmentKit[] = [
     headwear: [{ value: "turban", weight: 1, roles: ["imam"] }], accessory: [{ value: "beads", weight: 1, roles: ["imam"] }],
   }), priority: 3 },
   kit("clergy-theravada", "The saffron robe and the alms bowl", { years: [-250, 1950], cultures: ["southeast-asian"] }, {
-    garment: [clergy("wrap")], dye: [clergy("saffron", 3), clergy("turmeric", 2)],
+    garment: [clergy("wrap")], dye: [clergy("saffron", 3), clergy("turmeric", 2)], hairdress: [shaven],
     headwear: [clergy("none")], footwear: [clergy("none")], accessory: held(clergy, ["alms-bowl", 4], ["beads", 1]),
   }),
   kit("clergy-east-asia", "Buddhist monk: grey robe, begging bowl, a wide hat on the road", { years: [300, 1950], cultures: ["east-asian"] }, {
     garment: [clergy("robe")], dye: [clergy("ash", 3), clergy("soot", 2), clergy("ochre", 1)],
-    headwear: [clergy("none", 3), clergy("conical", 1)], footwear: [clergy("sandals")],
+    headwear: [clergy("none", 3), clergy("conical", 1)], footwear: [clergy("sandals")], hairdress: [shaven],
     accessory: held(clergy, ["alms-bowl", 3], ["beads", 2]),
   }),
   kit("clergy-south-asia", "Brahmin and ascetic: the wrap, bare chest, the mala", { years: [-1000, 1950], cultures: ["south-asian"] }, {
@@ -88,7 +107,7 @@ export const street: readonly GarmentKit[] = [
     headwear: [clergy("none")], footwear: [clergy("none")], accessory: held(clergy, ["beads", 3], ["alms-bowl", 1]),
   }),
   kit("clergy-tibet", "Maroon robes of the Himalaya", { years: [800, 1950], cultures: ["inner-eurasian"], bounds: [78, 27, 100, 36] }, {
-    garment: [clergy("robe")], dye: [clergy("madder")], headwear: [clergy("none")], accessory: held(clergy, ["beads", 3], ["alms-bowl", 1]),
+    garment: [clergy("robe")], dye: [clergy("madder")], hairdress: [shaven], headwear: [clergy("none")], accessory: held(clergy, ["beads", 3], ["alms-bowl", 1]),
   }),
   ...orthodox,
   kit("clergy-ethiopia", "Ethiopian priest: white shamma, turban, prayer staff", { years: [330, 1950], bounds: [35.5, 6, 43, 16.5] }, {

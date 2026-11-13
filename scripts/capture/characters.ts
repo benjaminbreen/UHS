@@ -1061,6 +1061,16 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Timbuktu", "timbuktu", 1400, ["landowner", "magistrate", "merchant", "farmer"]],
   ]),
 
+  /** Cocked hats, the Qing queue, the Joseon gat, the tonsure and habits by order. */
+  hats: (page) => castSheet(page, "hats", [
+    ["London", "london", 1750, ["shopkeeper", "landowner", "farmer", "shopkeeper|female"]],
+    ["London", "london", 1805, ["landowner", "General", "shopkeeper", "farmer"]],
+    ["Beijing", "beijing", 1800, ["farmer", "merchant", "Buddhist monk", "scholar-official"]],
+    ["Seoul", "city-seoul", 1750, ["farmer", "landowner", "merchant", "farmer|female"]],
+    ["Paris", "paris", 1300, ["Franciscan friar", "Dominican friar", "Benedictine monk", "Cistercian monk"]],
+    ["London", "london", 1400, ["Poor Clare nun|female", "priest", "Capuchin friar", "Benedictine nun|female"]],
+  ]),
+
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {
     await characterLab(page);

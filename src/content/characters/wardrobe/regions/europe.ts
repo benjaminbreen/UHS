@@ -40,6 +40,30 @@ const neckties = (bow: number): readonly Option<"none" | "neckerchief" | "neckti
 
 export const europe: readonly GarmentKit[] = [
   {
+    id: "eu-tricorne",
+    label: "Europe · the cocked hat",
+    scope: { years: [1690, 1790], cultures: ["european"] },
+    priority: 1,
+    headwear: [{ value: "tricorne", weight: 7, sex: ["male"], ages: ["youth", "adult", "elder"] }, { value: "cap", weight: 2, sex: ["male"], means: ["poor"] },
+      { value: "headscarf", weight: 5, sex: ["female"] }, { value: "brimmed", weight: 1, sex: ["female"] }, { value: "none", weight: 2 }],
+  },
+  {
+    id: "eu-bicorne",
+    label: "Europe · the bicorne and the round hat",
+    scope: { years: [1790, 1820], cultures: ["european"] },
+    priority: 1,
+    headwear: [{ value: "bicorne", weight: 2, sex: ["male"], means: ["wealthy", "elite"] }, { value: "top-hat", weight: 4, sex: ["male"], means: ["wealthy", "elite"] },
+      { value: "cap", weight: 4, sex: ["male"] }, { value: "brimmed", weight: 3 },
+      { value: "headscarf", weight: 5, sex: ["female"] }, { value: "none", weight: 2 }],
+  },
+  {
+    id: "eu-bicorne-officer",
+    label: "Europe · the officer's bicorne",
+    scope: { years: [1790, 1830], cultures: ["european"] },
+    priority: 4.6,
+    headwear: [{ value: "bicorne", weight: 1, livelihoods: ["army-officer"] }, { value: "bicorne", weight: 1, roles: ["general"] }],
+  },
+  {
     id: "eu-before-bowler",
     label: "Europe · caps and tall hats before the bowler",
     scope: { years: [1700, 1850], cultures: ["european"] },
