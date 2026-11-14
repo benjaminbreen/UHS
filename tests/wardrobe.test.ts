@@ -356,7 +356,7 @@ it("splits Indigenous America by climate rather than by culture tag", () => {
   // that dress nothing alike.
   const north = crowd("other-indigenous-american", 1500, {}, 200, [-100, 45]);
   const amazon = crowd("other-indigenous-american", 1500, {}, 200, [-60, -5]);
-  expect(share(north, (w) => w.footwear === "shoes")).toBeGreaterThan(0.4);
+  expect(share(north, (w) => w.footwear === "moccasins")).toBeGreaterThan(0.4);
   expect(share(north, (w) => w.leggings !== "none")).toBeGreaterThan(0.5);
   expect(amazon.map((w) => w.leggings)).toEqual(
     amazon.map(() => "none"),

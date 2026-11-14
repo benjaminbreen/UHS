@@ -6,7 +6,7 @@ import { flush, luma, mix, ramp, type Ramp } from "../v2/pixels";
 import { drawHead, hairBehind, headSpans, type Head, type View } from "./head";
 import { irisOf } from "../../portraits/sculpted";
 import { clothColours } from "../cloth";
-import { apron, bag, bangles, hoodDown, infant, neckwear, shawl, shoulderCloth, toga, type Figure } from "./extras";
+import { apron, bag, bangles, creel, hoodDown, infant, neckwear, shawl, shoulderCloth, toga, type Figure } from "./extras";
 import type { Material } from "../../../content/characters/wardrobe/cloth";
 import {
   ACCENT, APRON, BLUSH, DECO, MARK, ORN, PLUME, SMEAR, BOOT, CLOAK, CX, EYE, GLASS, H, HAIR, HAT, INNER, IRIS, KERCHIEF, LEATHER, LEG, LIP, LOWER, PATCH,
@@ -1164,7 +1164,8 @@ type Kit = {
   hem?: number;
   flare: number;
   legs: number;
-  feet: "none" | "sandals" | "shoes" | "boots" | "sneakers";
+  feet: CharacterAppearance["wearing"]["footwear"];
+  guards: boolean;
   belt: "none" | "cord" | "sash" | "leather" | "wide";
   motif: string;
   band: boolean;
@@ -1220,6 +1221,7 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     flare,
     legs: g === "suit" ? TOP : leggings === "none" ? SKIN : calf && leggings === "hose" ? LEG : LOWER,
     feet: w.footwear ?? "shoes",
+    guards: w.wrist === "sleeve-guards",
     belt: bare || g === "gown" || g === "poncho" || silhouette === "empire" ? "none" : (w.belt ?? "leather"),
     motif: g === "wrap" || bare ? "plain" : named === "auto" ? ["plain", "placket", "band", "yoke", "stitch"][outfit % 5] : named,
     // Most hemmed garments carry a band at the hem, whatever their motif.
@@ -1318,7 +1320,7 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[PLUME] = ramp(c.plume);
   // Stitches that stand out from the band they are worked on; gold on fine cloth.
   p[ACCENT] = ramp((w.quality ?? 0) >= 2 ? "#e0bc5e" : luma(w.trim) > 0.45 ? "#2c2a44" : "#efe6d0");
-  p[APRON] = w.apron === "leather" ? ramp("#7a5236") : ramp(c.apron);
+  p[APRON] = w.apron === "leather" ? ramp("#7a5236") : w.apron === "striped" ? ramp("#3e5f9c") : ramp(c.apron);
   p[VEST] = dye(c.vest);
   p[SHAWL] = dye(c.shawl);
   // Undyed wool for a toga, worked white for the candidate; a palla takes the shawl's dyes.
@@ -1535,6 +1537,7 @@ export function drawCharacterF(
   const carrying = g && a.wearing.infant;
   if (carrying && !backView) infant(fig, "behind", a.wearing.infantMood, a.wearing.infantCarry);
   if (carrying && backView) infant(fig, "under", a.wearing.infantMood, a.wearing.infantCarry);
+  if (a.wearing.bag === "creel" && !carrying) creel(fig, "behind");
   const { zone, tone } = garment(k, d, t, yOf, centre, hem, bare, s.key);
   s.put(body, TOP, { zone, tone, shade: 0.34, light: fabricLight[k.material ?? "cotton"], top: true, bottom: hem !== undefined });
   if (hem !== undefined) hemDetail(s, a, t, yOf(hem), centre(hip));
@@ -1567,7 +1570,7 @@ export function drawCharacterF(
   if (a.wearing.necklace) necklace(s, t, d, yOf, centre);
   const w = a.wearing;
   if (w.apron && w.apron !== "none" && !bare) apron(fig, w.apron);
-  if (w.bag && w.bag !== "none") bag(fig, w.bag);
+  if (w.bag === "purse" || w.bag === "satchel") bag(fig, w.bag);
   // G: a watch chain looped from the middle button to the waistcoat pocket.
   if (g && (k.g === "suit" || vested) && t.cos > 0.3) {
     const y = yOf(hip + 3), c = centre(hip + 3), side = s.key;
@@ -1613,6 +1616,7 @@ export function drawCharacterF(
   }
   if (carrying && backView) infant(fig, "behind", a.wearing.infantMood, a.wearing.infantCarry);
   if (carrying && !backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
+  if (w.bag === "creel" && !carrying) creel(fig, "over");
 
   if (w.shroud) shroud(s, t, d, yOf, centre, w.mask === "grille");
 
@@ -1903,8 +1907,15 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
   // The shoe: three wide head-on, reaching forward as the body turns.
   const fx0 = rnd(ax - 1 + Math.min(0, along * 1.5)),
     fx1 = rnd(ax + 1 + Math.max(0, along * 1.5));
-  foot.span(fy - 1, fx0, fx1).span(fy, fx0, fx1);
-  if (Math.abs(along) > 0.5) foot.clear(along > 0 ? fx0 : fx1, fy - 1);
+  const geta = k.feet === "geta";
+  foot.span(fy - 1, fx0, fx1);
+  // Geta stand on two teeth; clogs rise high over the instep.
+  if (geta) foot.span(fy - 2, fx0, fx1).set(fx0, fy).set(fx1, fy);
+  else foot.span(fy, fx0, fx1);
+  if (k.feet === "clogs") foot.span(fy - 2, rnd(ax - 1), rnd(ax + 1));
+  const tip = along > 0.5 ? fx1 + 1 : along < -0.5 ? fx0 - 1 : undefined;
+  if (k.feet === "slippers" && tip !== undefined) foot.set(tip, fy - 1).set(tip, fy - 2);
+  if (Math.abs(along) > 0.5 && !geta) foot.clear(along > 0 ? fx0 : fx1, fy - 1);
   m.minus(foot);
   const boots = k.feet === "boots";
   const shin = (y: number) => y >= Math.round(ay) - 2;
@@ -1921,7 +1932,8 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
       : boots && y === Math.round(ay) - 2 && tone >= 2 ? 4
       : tone,
   });
-  const shoe = k.feet === "none" || k.feet === "sandals" ? SKIN : k.feet === "boots" ? BOOT : k.feet === "sneakers" ? TOP : LEATHER;
+  const shoe = k.feet === "none" || k.feet === "sandals" || k.feet === "geta" || k.feet === "paduka" ? SKIN : k.feet === "boots" ? BOOT
+    : k.feet === "sneakers" ? TOP : k.feet === "clogs" ? WOOD : k.feet === "slippers" ? TRIM : LEATHER;
   const toe = along > 0.3 ? fx1 : along < -0.3 ? fx0 : rnd(ax + 0.5 * s.key);
   s.put(foot, shoe, {
     shade: 0.4,
@@ -1933,6 +1945,9 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
     zone: (x, y) =>
       k.feet === "sneakers" && y === fy ? SOLE
       : k.feet === "sandals" && (y === fy || (y === fy - 1 && x === rnd(ax))) ? LEATHER
+      : (geta && y >= fy - 1) || (k.feet === "paduka" && y === fy) ? WOOD
+      // Beadwork across the vamp.
+      : k.feet === "moccasins" && y === fy - 1 && x === toe ? KERCHIEF
       : shoe,
   });
 }
@@ -1956,6 +1971,7 @@ function drawArm(s: Sheet, t: Turn, arm: Limb, k: Kit, dark: number, upperOnly =
     zone: (x, y) => {
       if (hand.has(x, y) && !(fore.has(x, y) && y < hy - 0.5)) return SKIN;
       if (fore.has(x, y) && !upper.has(x, y)) {
+        if (k.guards && k.sleeves === "long" && Math.abs(y - ey) >= Math.abs(hy - ey) * 0.3 && y < Math.round(hy)) return BOOT;
         if (k.sleeves === "long" || k.sleeves === "loose") return cuffed && y >= Math.round(hy) - 1 && k.sleeve === TOP ? TRIM : k.sleeve;
         return SKIN;
       }

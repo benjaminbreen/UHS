@@ -95,6 +95,11 @@ const footLabel: Record<Exclude<(typeof footwear)[number], "none">, string> = {
   shoes: "Shoes",
   boots: "Boots",
   sneakers: "Sneakers",
+  clogs: "Clogs",
+  geta: "Geta",
+  moccasins: "Moccasins",
+  slippers: "Pointed slippers",
+  paduka: "Toe-knob sandals (paduka)",
 };
 const beltLabel: Record<
   Exclude<(typeof beltStyles)[number], "none">,
@@ -151,6 +156,16 @@ const about: Record<ItemId, string> = {
     "Leather rising above the ankle, for mud, snow, stirrups and long roads.",
   "footwear-sneakers":
     "Canvas or leather uppers on a rubber sole, light and quiet underfoot.",
+  "footwear-clogs":
+    "Shoes carved from a single block of willow or poplar; loud on cobbles, dry in mud.",
+  "footwear-geta":
+    "A wooden board raised on two teeth and held by a cloth thong between the toes.",
+  "footwear-moccasins":
+    "Soft smoked hide gathered round the foot and stitched over the toes, often beaded.",
+  "footwear-slippers":
+    "Coloured leather with a pointed toe that turns up, slipped off at every threshold.",
+  "footwear-paduka":
+    "A wooden sole with a knob gripped between the big toe and the next.",
   "headwear-band":
     "A strip of cloth or leather tied round the brow to keep hair and sweat from the eyes.",
   "headwear-cap":

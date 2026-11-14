@@ -1132,6 +1132,17 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["London", "london", 1850, ["weaver|female|70", "weaver|female|68", "farmer|male|75", "farmer|male|72"]],
   ]),
 
+  /** Trades known by their dress, and shoes by region. */
+  trades: (page) => castSheet(page, "trades", [
+    ["London", "london", 1880, ["butcher", "clerk", "baker", "fisher|female|40"]],
+    ["Paris", "paris", 1750, ["miller", "baker|male|30", "weaver|female|30", "farmer|male|40"]],
+    ["London", "london", 1850, ["clerk|male|25", "fisher|female|30", "weaver|female|40", "butcher|male|40"]],
+    ["Kyoto", "kyoto", 1750, ["weaver|female|25", "weaver|male|30", "farmer|male|40", "weaver|female|40"]],
+    ["Istanbul", "city-istanbul", 1700, ["weaver|male|30", "trader|male|40", "weaver|female|30", "landowner|male|50"]],
+    ["Delhi", "delhi", 1650, ["weaver|male|30", "landowner|male|40", "weaver|female|25", "farmer|male|30"]],
+    ["Plains", "great-plains-early", 1820, ["hunter", "hunter|female|25", "herder|male|40", "hunter|male|20"]],
+  ]),
+
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {
     await characterLab(page);

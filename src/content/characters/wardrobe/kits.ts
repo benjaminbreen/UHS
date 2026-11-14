@@ -16,7 +16,7 @@ import { innerEurasia } from "./regions/inner-eurasia";
 import { southAsia } from "./regions/south-asia";
 import { southeastAsia } from "./regions/southeast-asia";
 import { westAsiaNorthAfrica } from "./regions/west-asia-north-africa";
-import { workDress } from "./regions/work-dress";
+import { workDress, tradeDress, regionalShoes } from "./regions/work-dress";
 import { layers } from "./regions/layers";
 import { sidearms } from "./regions/sidearms";
 import { guards } from "./regions/guards";
@@ -377,6 +377,8 @@ export const eraFloors: readonly GarmentKit[] = [
  * through to the era floor it sits inside. */
 export const regionalKits: readonly GarmentKit[] = [
   ...workDress,
+  ...tradeDress,
+  ...regionalShoes,
   ...layers,
   ...sidearms,
   ...embroidery,

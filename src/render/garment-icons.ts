@@ -20,6 +20,11 @@ const byId: Record<string, string> = {
   "belt-cord": "cord",
   "belt-sash": "sash",
   "belt-leather": "leather",
+  "footwear-clogs": "shoes",
+  "footwear-moccasins": "shoes",
+  "footwear-slippers": "shoes",
+  "footwear-geta": "sandals",
+  "footwear-paduka": "sandals",
 };
 export function garmentIconFor(baseId: string): string | undefined {
   const mapped = byId[baseId];

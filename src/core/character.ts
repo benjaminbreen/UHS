@@ -228,6 +228,16 @@ export const footwear = [
   "boots",
   /** Rubber-soled canvas or leather trainers; white sole. */
   "sneakers",
+  /** Carved from one block of wood: the Low Countries, northern France, Lancashire. */
+  "clogs",
+  /** A wooden board on two teeth, held by a thong: Japan. */
+  "geta",
+  /** Soft smoked hide, often beaded on the vamp: North America. */
+  "moccasins",
+  /** Coloured leather with a pointed, turned-up toe: the Ottoman, Persian and Mughal worlds. */
+  "slippers",
+  /** A wooden sole gripped by a knob between the toes: South Asia. */
+  "paduka",
 ] as const;
 export const eyewear = ["none", "glasses", "sunglasses"] as const;
 /** Worn over the garment at work: linen for the kitchen and the shop, leather
@@ -236,10 +246,16 @@ export const aprons = ["none", "cloth", "leather",
   /** A bibbed wrap apron over the whole front, ties at the back: the house and the laundry, 1880s–1960s. */
   "pinafore",
   /** Bib-and-brace denim over the shirt, in the trouser cloth. */
-  "overalls"] as const;
+  "overalls",
+  /** Blue-and-white striped linen: the butcher's, from about 1800. */
+  "striped"] as const;
 /** Carried at the hip: a purse on the belt, a satchel on a strap. */
-export const bags = ["none", "purse", "satchel"] as const;
-export const wristwear = ["none", "bangles"] as const;
+export const bags = ["none", "purse", "satchel",
+  /** A wicker basket carried on the back by shoulder straps: the fishwife's creel. */
+  "creel"] as const;
+export const wristwear = ["none", "bangles",
+  /** Black cotton sleeves from wrist to elbow, to keep ink and dust off the shirt: clerks, 1850s to 1950s. */
+  "sleeve-guards"] as const;
 /** Round the neck above the garment: a working neckerchief, a starched ruff,
  * a gentleman's cravat. */
 export const neckwear = ["none", "neckerchief", "ruff", "cravat", "necktie", "bow-tie",

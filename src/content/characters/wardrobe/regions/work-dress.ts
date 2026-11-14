@@ -223,6 +223,45 @@ export const workDress: readonly GarmentKit[] = [
   },
 ];
 
+const CLERKS = ["clerk", "bank-clerk", "notary"];
+/** Dress a trade could be known by across the street. */
+export const tradeDress: readonly GarmentKit[] = [
+  { id: "trade-butcher", label: "The butcher's striped apron", scope: { years: [1800, 3000], cultures: ["european"] }, priority: 1,
+    apron: [{ value: "striped", weight: 3, livelihoods: ["butcher"] }, { value: "cloth", weight: 1, livelihoods: ["butcher"] }] },
+  // Flour got into everything; millers and bakers wore pale linen it would not show on.
+  { id: "trade-flour", label: "Millers and bakers in white", scope: { years: [-800, 3000] }, priority: 1,
+    dye: [{ value: "bleached", weight: 2, livelihoods: ["miller", "baker"] }, { value: "undyed", weight: 1, livelihoods: ["miller", "baker"] }] },
+  { id: "trade-flour-cap", label: "The miller's and baker's cap", scope: { years: [1300, 1950], cultures: ["european"] }, priority: 1,
+    headwear: [{ value: "cap", livelihoods: ["miller", "baker"] }] },
+  // At the desk in shirtsleeves and waistcoat, the coat on its peg.
+  { id: "trade-clerk", label: "The clerk's sleeve guards", scope: { years: [1850, 1960] }, priority: 1,
+    garment: [{ value: "shirt", livelihoods: CLERKS, share: 0.6 }],
+    waistcoat: [{ value: "plain", livelihoods: CLERKS, share: 0.6 }],
+    wrist: [{ value: "sleeve-guards", livelihoods: CLERKS, share: 0.6 }] },
+  // Fisherwomen carried the catch to market in a creel on the back.
+  { id: "trade-creel", label: "The fishwife's creel", scope: { years: [1500, 1960], cultures: ["european"] }, priority: 1,
+    bag: [{ value: "creel", weight: 3, livelihoods: ["fisher"], sex: ["female"] }, { value: "none", weight: 1, livelihoods: ["fisher"], sex: ["female"] }] },
+];
+
+/** Shoes particular to a region, over whatever the regional kit offers. */
+export const regionalShoes: readonly GarmentKit[] = [
+  { id: "shoes-clogs", label: "Clogs", scope: { years: [1300, 1940], cultures: ["european"], bounds: [0.5, 46, 12, 55] }, priority: 0.8,
+    footwear: [{ value: "clogs", means: ["poor", "common"], share: 0.5 }] },
+  // The mill towns of Lancashire and Yorkshire.
+  { id: "shoes-clogs-north", label: "Northern England · clogs", scope: { years: [1750, 1940], cultures: ["european"], bounds: [-3.5, 53, -1, 54.5] }, priority: 0.8,
+    footwear: [{ value: "clogs", means: ["poor", "common"], share: 0.5 }] },
+  { id: "shoes-geta", label: "Japan · geta", scope: { years: [700, 1950], bounds: [128, 30, 146, 46] }, priority: 0.8,
+    footwear: [{ value: "geta", share: 0.6 }] },
+  { id: "shoes-moccasins", label: "North America · moccasins", scope: { years: [-3000, 1950], cultures: ["other-indigenous-american"], bounds: [-170, 25, -50, 72] }, priority: 0.8,
+    footwear: [{ value: "moccasins" }] },
+  { id: "shoes-ottoman", label: "Ottoman and Persian slippers", scope: { years: [1300, 1930], cultures: ["north-african-west-asian", "inner-eurasian"], bounds: [-10, 25, 65, 45] }, priority: 0.8,
+    footwear: [{ value: "slippers", means: ["common", "wealthy"], share: 0.5 }] },
+  { id: "shoes-jutti", label: "South Asia · juttis and paduka", scope: { years: [-500, 3000], cultures: ["south-asian"] }, priority: 0.8,
+    footwear: [{ value: "paduka", roles: ["cleric"] }, { value: "paduka", share: 0.08 }] },
+  { id: "shoes-mughal", label: "Mughal India · the jutti", scope: { years: [1500, 3000], cultures: ["south-asian"] }, priority: 0.9,
+    footwear: [{ value: "slippers", means: ["common", "wealthy"], share: 0.4 }] },
+];
+
 export type InfantCarry = "back" | "board" | "hip" | "arms" | "pram";
 const CARRY: Record<string, InfantCarry> = {
   "west-central-african": "back", "east-southern-african": "back", "east-asian": "back", "southeast-asian": "back",

@@ -139,6 +139,4 @@ export const hairdos: readonly GarmentKit[] = [
     dye: [{ value: "soot", sex: F, ages: ["elder"], share: 0.45 }] },
   { id: "elder-shawl", label: "Old women's shawls", scope: { years: [1000, 3000], cultures: ["european", "north-african-west-asian", "south-asian", "mesoamerican", "andean"] },
     shawl: [{ value: "plain", weight: 2, sex: F, ages: ["elder"], share: 0.6 }, { value: "fringed", weight: 1, sex: F, ages: ["elder"], share: 0.6 }] },
-  { id: "elder-staff", label: "The old walk with a stick", scope: { years: [-3000, 3000] }, priority: 0.5,
-    accessory: [{ value: "walking-cane", ages: ["elder"], share: 0.3 }] },
 ];

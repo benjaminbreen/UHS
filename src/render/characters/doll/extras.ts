@@ -1,5 +1,5 @@
 import type { InfantCarry } from "../../../content/characters/wardrobe/regions/work-dress";
-import { ACCENT, APRON, BLUSH, CLOAK, DRAPE, PURPLE, EYE, H, HAIR, KERCHIEF, LEATHER, LIP, LOWER, METAL, Mask, SHAWL, SKIN, STEEL, TOP, TRIM, W, WHITE, WOOD, rnd, type Sheet } from "./paint";
+import { ACCENT, APRON, BLUSH, CLOAK, DRAPE, PURPLE, EYE, H, HAIR, KERCHIEF, LEATHER, LIP, LOWER, METAL, Mask, SHAWL, SKIN, STEEL, STRAW, TOP, TRIM, W, WHITE, WOOD, rnd, type Sheet } from "./paint";
 
 /** What the accessories need of the figure: its facing, its rows and widths,
  * and where its centre line runs at each height. */
@@ -31,7 +31,7 @@ const near = (f: Figure, lx: number, fz: number) => -lx * f.sx * f.sin + fz * f.
 
 /** Over the front: a waist apron of linen, a smith's leather bib on a neck
  * strap, a bibbed pinafore, or denim overalls in the trouser cloth. */
-export function apron(f: Figure, kind: "cloth" | "leather" | "pinafore" | "overalls") {
+export function apron(f: Figure, kind: "cloth" | "leather" | "pinafore" | "overalls" | "striped") {
   if (kind === "pinafore" || kind === "overalls") return bib(f, kind);
   const { s, yOf } = f;
   const mat = kind === "leather" ? LEATHER : APRON;
@@ -58,6 +58,7 @@ export function apron(f: Figure, kind: "cloth" | "leather" | "pinafore" | "overa
     shade: 0.3,
     light: kind === "leather" ? 0.25 : 0.15,
     bottom: true,
+    zone: kind === "striped" ? (x) => (x % 2 ? WHITE : APRON) : undefined,
     // One fold down the cloth; the leather hangs stiff.
     tone: (x, y, t) => (kind === "cloth" && t === 3 && x === rnd(sideX(f, f.hip, 0, f.bellyD) + 0.5 * s.key) && y > yOf(waist) + 1 ? 2 : t),
   });
@@ -122,6 +123,30 @@ function bib(f: Figure, kind: "pinafore" | "overalls") {
 }
 
 /** A purse hung from the belt, or a satchel on a strap across the body. */
+/** A wicker creel on the back, its rim above the shoulders, on two straps. */
+export function creel(f: Figure, layer: "behind" | "over") {
+  const { s, yOf } = f;
+  const back = away(f);
+  if (layer === "over" && !back) {
+    if (f.cos < 0.3) return;
+    const straps = new Mask();
+    for (const side of [-1, 1]) {
+      const x = sideX(f, f.shoulder, side * (f.shoulderW - 2), f.chestD);
+      straps.line(x, yOf(f.shoulder), sideX(f, f.shoulder - 4, side * (f.waistW - 1), f.chestD), yOf(f.shoulder - 4), 1);
+    }
+    s.put(straps, LEATHER, { ring: "none", shade: 0 });
+    return;
+  }
+  if (layer === "over" ? !back : back) return;
+  const m = new Mask();
+  for (let y = f.hip - 1; y <= f.shoulder + 3; y++) {
+    const half = (f.shoulderW - 1 + (y - f.hip) * 0.12) * Math.abs(f.cos) + 3 * Math.abs(f.sin);
+    const c = sideX(f, y, 0, -(f.chestD + 2.5));
+    m.span(yOf(y), rnd(c - half + 0.5), rnd(c + half - 0.5));
+  }
+  s.put(m, STRAW, { ring: "ink", shade: 0.35, light: 0.25, top: true, bottom: true, tone: (x, y, t) => (t >= 2 && (x + y) % 3 === 0 ? t - 1 : t) });
+}
+
 export function bag(f: Figure, kind: "purse" | "satchel") {
   const { s, yOf } = f;
   const lx = f.waistW + 0.2;
