@@ -16,7 +16,6 @@ const setting = (
     places.find((p) => p.id === "konya")!,
     pattern === "dense" ? 1300 : -6499,
   ),
-  terrainRevision: 2,
   geographyMode: "configured",
   water: "river-ew",
   settlementPattern: pattern,

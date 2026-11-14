@@ -20,17 +20,13 @@ export function environmentFor(
 /** Called only for new worlds. Workers and replay consume the pinned input as-is. */
 export function integratedSetting(s: WorldSetting): WorldSetting {
   s = { ...s, friendshipRevision: s.friendshipRevision ?? 1, worksiteRevision: s.worksiteRevision ?? 7, employmentRevision: s.employmentRevision ?? 1, beliefRevision: s.beliefRevision ?? 1, namingRevision: s.namingRevision ?? 1 };
-  if (s.terrainRevision === 1)
-    return { ...s, characterRevision: s.characterRevision ?? 1 };
   if (s.geographyRevision)
     return {
       ...s,
       characterRevision: s.characterRevision ?? 1,
       economyRevision: 1,
       terraceRevision: 1,
-      vegetationRevision: s.vegetationRevision ?? 6,
       ecologyRevision: 2,
-      hydrologyRevision: 3,
     };
   const geographyMode = s.environment ? "configured" : "earth";
   // The map is the climate of 1991-2020. Before the Holocene the setting's own
@@ -45,16 +41,12 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     characterRevision: 2,
     economyRevision: 1,
     geographyRevision: 1,
-    urbanRevision: 2,
     roadRevision: 1,
     streetRevision: 1,
     terraceRevision: 1,
     placementRevision: s.placementRevision ?? 1,
-    vegetationRevision: 9,
     ecologyRevision: 2,
-    hydrologyRevision: 3,
     geographyMode,
-    terrainRevision: 2,
     environment: s.environment ?? environmentFor({ ...s, climate, ecologyRevision: 2, geographyMode: "earth" }),
   };
 }

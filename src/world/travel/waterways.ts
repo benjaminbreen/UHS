@@ -23,7 +23,6 @@ function native(setting: WorldSetting, id: string) {
     const s = {
       ...setting,
       ecologyRevision: 2 as const,
-      hydrologyRevision: 3 as const,
       playableMap: undefined,
     };
     land = createEnvironment(

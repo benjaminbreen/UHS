@@ -53,18 +53,11 @@ The UI, the agent tools and replay all use this path. Do not mutate state from R
 
 ## Generation and revisions
 
-New worlds use generator 3 (`createSettlementWorld`, `src/world/v3/`). `integratedSetting` in `src/content/geography/defaults.ts` pins them to the current revision of each subsystem: terrain, vegetation, hydrology, urban form, roads and so on. The world doc lists them.
+New worlds use generator 3 (`createSettlementWorld`, `src/world/v3/`). Terrain, vegetation, hydrology and urban form have one model each. `integratedSetting` in `src/content/geography/defaults.ts` still pins a few revision fields (ecology, roads, streets, placement, characters, worksites and so on); the world doc lists them.
 
-Older generators and revisions are still branched in the code:
+Generator 1 (`src/world/generate.ts`, with the `roman` and `neolithic` packs from `src/content/legacy-packs.ts`) stays as a small authored town for mechanics tests and the building lab. No playable world uses it.
 
-- generator 1 (`src/world/generate.ts`)
-- generator 2 (`src/world/v2/generate.ts`)
-- `urban-v1.ts`
-- vegetation revisions below 9
-- hydrology revisions below 3
-- `src/content/legacy-packs.ts`
-
-They exist so old records replay. **Nobody's saves depend on them yet.** Do not add a new revision gate when you change generation: change the current behaviour in place, and bump `PREPARED_VERSION` (`src/world/v3/prepared.ts`) when cached worlds would be wrong. When you work in an area that has old branches, deleting them and their tests is part of the job.
+The remaining revision branches exist so old records replay. **Nobody's saves depend on them yet.** Do not add a new revision gate when you change generation: change the current behaviour in place, and bump `PREPARED_VERSION` (`src/world/v3/prepared.ts`) when cached worlds would be wrong. When you work in an area that has old branches, deleting them and their tests is part of the job.
 
 ## Where the code doubles up
 

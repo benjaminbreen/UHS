@@ -1,50 +1,6 @@
 import { expect, it } from "vitest";
-import { permanentExits, mapForCoordinate } from "../src/world/travel/network";
+import { mapForCoordinate } from "../src/world/travel/network";
 const london = mapForCoordinate({ lon: -0.12, lat: 51.5 });
-import { boundarySample, type BoundarySeam } from "../src/world/travel/seams";
-function point(seam: BoundarySeam, size: number, t: number) {
-  const u = seam.start + (seam.end - seam.start) * t,
-    a = -size / 2 + u * (size - 1);
-  return seam.side === "N"
-    ? [a, -size / 2]
-    : seam.side === "S"
-      ? [a, size / 2 - 1]
-      : seam.side === "W"
-        ? [-size / 2, a]
-        : [size / 2 - 1, a];
-}
-it("shares shoreline, river and road profiles in both directions", () => {
-  for (const id of [
-    mapForCoordinate({ lon: -117.16, lat: 32.72 }),
-    london,
-    mapForCoordinate({ lon: 29.28, lat: 0.14 }),
-  ]) {
-    for (const exit of permanentExits(id, 1300).filter((e) => e.seam)) {
-      const back = permanentExits(exit.to, 1300).find((e) => e.id === exit.id)!;
-      expect(back.seam!.water).toEqual(exit.seam!.water);
-      for (const t of [0.1, 0.3, 0.5, 0.7, 0.9, exit.seam!.roadAt]) {
-        const a = point(exit.seam!, 384, t),
-          b = point(back.seam!, 384, t);
-        const one = boundarySample(384, [exit.seam!], a[0], a[1])!;
-        const two = boundarySample(384, [back.seam!], b[0], b[1])!;
-        expect(one.water).toBeCloseTo(two.water, 6);
-        expect(one.height).toBeCloseTo(two.height, 6);
-        expect(one.kind).toEqual(two.kind);
-        // Only an overland crossing carries a road; a shore seam is open water.
-        if (t === exit.seam!.roadAt && exit.seam!.road) {
-          expect(one.road).toBe(true);
-          expect(two.road).toBe(true);
-        }
-        if (!exit.seam!.road) {
-          expect(one.kind).toBe("sea");
-          expect(one.water).toBeLessThan(0);
-        }
-      }
-      expect(boundarySample(384, [exit.seam!], 0, 0)).toBeUndefined();
-    }
-  }
-});
-
 const portrait = async (id: string, year: number) => {
   const { permanentMap, permanentExits } = await import(
     "../src/world/travel/network"

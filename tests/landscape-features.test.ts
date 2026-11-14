@@ -12,8 +12,6 @@ const setting = (ecology: WorldSetting["environment"] extends infer E ? (E exten
     relief: 0.45,
     water: "river-ns",
     season: "summer",
-    terrainRevision: 2,
-    vegetationRevision: 6,
     climate: "temperate",
     environment: { ecology, colorway, landform: "rolling", population: "none", start: "wanderer", household: "mixed" },
   }) as unknown as WorldSetting;
@@ -118,7 +116,7 @@ it("derives entrance wear without changing planted ground or the settlement layo
   const resolved = resolveSetting("medieval Normandy");
   if ("error" in resolved) throw Error(resolved.error);
   const { geographyRevision: _geography, ...local } = resolved.setting;
-  const s: WorldSetting = { ...local, terrainRevision: 2,
+  const s: WorldSetting = { ...local, 
     environment: { ...local.environment!, ecology: "grassland", landform: "plain",
       population: "sparse", start: "resident", household: "mixed" } };
   const world = createSettlementWorld(packForSetting(s), "ground-use-review", undefined, false);

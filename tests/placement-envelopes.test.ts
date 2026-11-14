@@ -20,7 +20,7 @@ import type { WorldSetting } from "../src/content/geography/types";
 const setting = (revision: 0 | 1): WorldSetting => {
   const resolved = resolveSetting("medieval Normandy");
   if ("error" in resolved) throw Error(resolved.error);
-  return { ...resolved.setting, placementRevision: revision, terrainRevision: 2, vegetationRevision: 8, water: "none",
+  return { ...resolved.setting, placementRevision: revision, water: "none",
     environment: { ecology: "temperate-woodland", landform: "plain", population: "sparse", start: "resident", household: "mixed" } };
 };
 const flat = () => ({ elevation: 14, moisture: 0.5, water: 100, kind: "river" as const, snow: false });

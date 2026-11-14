@@ -12,7 +12,7 @@ import { createSettingSession, Runtime } from "../src/runtime/session";
 import { crossing } from "../src/world/v3/roads";
 import { launchAt, shoreDirections } from "../src/world/v3/shoreline";
 import type { SettlementWorld } from "../src/world/v3/generate";
-import type { LandSample } from "../src/world/v2/landscape";
+import type { LandSample } from "../src/world/geography/landscape";
 const setting = (q = "medieval Normandy") => {
   const r = resolveSetting(q);
   if ("error" in r) throw Error(r.error);

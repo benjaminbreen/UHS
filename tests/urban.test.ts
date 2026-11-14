@@ -274,10 +274,8 @@ it.runIf(!!process.env.FULL)("zones an industrial-age city into a downtown, fact
   expect(interwar.objects.some((o) => o.sprite.includes("traffic-signal-0"))).toBe(true);
 });
 
-it("keeps urban geometry deterministic and the old selection opt-in", () => {
+it("keeps urban geometry deterministic", () => {
   expect(city("same").places).toEqual(city("same").places);
-  const old = { ...setting, urbanRevision: undefined };
-  expect(settlementProfile(old).pattern).toBe("planned");
   expect(settlementProfile(setting).pattern).toBe("dense");
 });
 

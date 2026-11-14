@@ -474,7 +474,7 @@ export class Engine {
             survival: 1,
             disease: 1,
             ...(world.generatorVersion === 3 ? { watchRouting: 1 as const } : {}),
-            generator: world.generatorVersion ?? (world.pack.setting ? 2 : 1),
+            generator: world.generatorVersion ?? 1,
             content: 1,
             atlas: world.pack.setting ? 2 : 1,
             ...(world.pack.setting

@@ -21,8 +21,9 @@ and its exits into a `WorldSetting`.
 ## Borders
 
 A border is the same line of Earth seen from both sides, so coasts, rivers
-and relief run straight across. `sampleSeam` and `boundarySample` in
-`seams.ts` reconcile local noise along it; only the outer band blends.
+and relief run straight across. `sampleSeam` in `seams.ts` records each
+border's profile, and `boundaryWater` (`v3/boundary-water.ts`) joins water
+across it; only the outer band blends.
 `waterways.ts` and `water-edges.ts` match rivers across the edge;
 `entrances.ts` finds reachable entry points. Trunk routes (`routes.ts`) live
 in atlas coordinates so both sides of a border draw the same road or rail.

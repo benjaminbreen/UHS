@@ -228,7 +228,7 @@ function periodRole(frame: string): string {
  * ask this, so neither can drift from the other's idea of where a town is. */
 export function urbanSite(site: Site, pack: Pack): boolean {
   return (
-    !!pack.setting?.urbanRevision &&
+    !!pack.setting &&
     site.profile.radius >= 24 &&
     (["dense", "planned", "waterfront"].includes(site.profile.pattern) ||
       pack.setting?.settlement === "city" ||
@@ -247,7 +247,7 @@ export function siteGate(
   pack: Pack,
   from: Point,
 ): Gate | undefined {
-  if (!urbanSite(site, pack) || (pack.setting?.urbanRevision ?? 0) < 2) return;
+  if (!urbanSite(site, pack)) return;
   return nearestGate(
     urbanGates(site.id, site.center, site.profile.radius, siteForm(site, pack)),
     site.center,

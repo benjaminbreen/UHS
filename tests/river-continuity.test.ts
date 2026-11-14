@@ -21,7 +21,6 @@ it("keeps a river connected where the nearest atlas segment changes direction", 
     relief: 0.2,
     water: "none",
     geographyMode: "earth",
-    hydrologyRevision: 2,
     environment: { ecology: "tropical-woodland", landform: "plain" },
   } as WorldSetting;
   const regional = {

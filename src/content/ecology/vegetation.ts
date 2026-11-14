@@ -8,7 +8,6 @@ export function vegetationPattern(
   s: WorldSetting,
   land: LandSample,
 ): VegetationPattern | undefined {
-  if ((s.vegetationRevision ?? 0) < 6) return undefined;
   if (s.environment?.vegetation) return s.environment.vegetation;
   const ecology = s.environment?.ecology;
   const colorway = s.environment?.colorway;
@@ -591,7 +590,6 @@ function baseMix(s: WorldSetting): Mix {
     ];
   if (
     colorway &&
-    (s.vegetationRevision ?? 0) >= 6 &&
     (s.environment?.ecology !== "tropical-woodland" || colorway !== "monsoon")
   ) {
     const mix = regional[colorway];
@@ -604,10 +602,7 @@ function baseMix(s: WorldSetting): Mix {
       ["nature-bamboo-clump", 1],
       [thorn, 1],
     ];
-  if (
-    (s.vegetationRevision ?? 0) >= 4 &&
-    s.environment?.ecology === "tropical-woodland"
-  ) {
+  if (s.environment?.ecology === "tropical-woodland") {
     // Inland South/Southeast Asian seasonal woodland: an authored growth-form mix.
     if (s.lon >= 75 && s.lon <= 110 && s.lat >= 8 && s.lat <= 28)
       return [
@@ -623,8 +618,6 @@ function baseMix(s: WorldSetting): Mix {
       return [];
     case "boreal-woodland":
       return north;
-    case "tropical-woodland":
-      return humid;
     case "desert":
       if (s.lat > 0 && s.lat < 30 && s.lon > -20 && s.lon < 55) return sahel;
       // The saguaro's own range: the Sonoran Desert and nowhere else.
@@ -822,11 +815,7 @@ export function vegetationUnderstory(
     if (wet && roll < 0.6) return "nature-understory-sedge";
     return roll < 0.85 ? "nature-understory-dry-bunchgrass" : scrub;
   }
-  if (
-    (s.vegetationRevision ?? 0) >= 4 &&
-    !land.snow &&
-    land.water > (land.shoreWidth ?? 3)
-  ) {
+  if (!land.snow && land.water > (land.shoreWidth ?? 3)) {
     if ((wet || h.ecology === "wetland") && roll < 0.65)
       return "nature-understory-sedge";
     if (["dry-scrub", "desert", "grassland"].includes(h.ecology) && roll < 0.6)
@@ -854,7 +843,7 @@ export function vegetationUnderstory(
         ? s.lon >= 60 &&
           s.lon <= 155 &&
           Math.abs(s.lat) < 32 &&
-          roll < ((s.vegetationRevision ?? 0) >= 4 ? 0.08 : 0.5)
+          roll < 0.08
           ? ginger
           : fern
         : "ecology-grazing";

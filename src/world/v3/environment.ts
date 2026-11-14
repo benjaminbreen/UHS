@@ -2,12 +2,9 @@ import { boundaryWater } from "./boundary-water";
 import { landscapeRecipe } from "../../content/ecology/landscapes";
 import { drainageAt } from "./drainage";
 import { tributary } from "./tributaries";
-import { boundarySample } from "../travel/seams";
 import { trimCache } from "../../core/cache";
-import { marshBasin } from "./wet-features";
 import { floodReach, waterscape } from "../../content/geography/waterscapes";
 import type { WorldSetting } from "../../content/geography/types";
-import { habitatLayout } from "../../content/ecology/variants";
 import {
   STREAM_BLOCK,
   streamDistance,
@@ -34,8 +31,6 @@ export function createEnvironment(
   const cfg = s.environment!;
   const ws = waterscape(s);
   const byS = seasons.map((season) => waterscape({ ...s, season }));
-  const simpleWater = !!s.hydrologyRevision;
-  const connectedWater = (s.hydrologyRevision ?? 0) >= 2;
   const origin = toAtlas(s.lon, s.lat);
   const plan = regionalLandforms(
     s,
@@ -140,7 +135,7 @@ export function createEnvironment(
     (noise(seed, t, 0, 70, "meander") - 0.5) * 30 +
     (noise(seed, t, 0, 25, "meander-2") - 0.5) * 8;
   const meander = (x: number, y: number): [number, number] => {
-    if (connectedWater && regional && s.geographyMode !== "configured") {
+    if (regional && s.geographyMode !== "configured") {
       // A shared continuous warp cannot jump when the nearest river segment changes.
       return [
         x + (noise(seed, x + origin.x, y + origin.y, 90, "river-warp-x") - 0.5) * 12,
@@ -173,20 +168,7 @@ export function createEnvironment(
   };
   // Open water from the big sources only, for stream walks to end at.
   const openWater = (x: number, y: number): number => {
-    if (connectedWater) return (s.hydrologyRevision === 3 ? nativeWater(x, y) : mainWater(x, y)).water;
-    const [mx, my] = meander(x, y);
-    if (simpleWater && s.geographyMode === "configured")
-      return s.water.startsWith("river")
-        ? (configuredPlan ?? plan).river(mx, my).water
-        : 1000;
-    if (regional) {
-      const a = earth(mx, my);
-      const feature = simpleWater ? regional.featureAt(mx, my, ["land", "sea", "lake", "river"]) : undefined;
-      if (simpleWater && feature)
-        return feature.feature.kind === "land" ? -feature.distance : feature.distance;
-      return Math.min(simpleWater ? a.coast : Math.abs(a.coast), a.river - 4);
-    }
-    return s.water.startsWith("river") ? plan.river(mx, my).water : 1000;
+    return nativeWater(x, y).water;
   };
   // How many steps the ground may climb: a floodplain tops out at two, a
   // mountain range at four or five. More than that on one hillside draws
@@ -208,7 +190,7 @@ export function createEnvironment(
     const key = `${bx},${by}`;
     let list = joinedBlocks.get(key);
     if (list) return list;
-    const joins = (w: Walked) => w.kind === "arroyo" || (w.kind === "creek" && connectedWater);
+    const joins = (w: Walked) => w.kind === "arroyo" || w.kind === "creek";
     const near: { w: Walked; rank: string; own: boolean }[] = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++)
@@ -252,13 +234,13 @@ export function createEnvironment(
     const ceiling = ceilingOf(relief);
     // Search near real outlets; dry blocks need not contain a stream.
     if (kind) {
-      const count = connectedWater ? 2 : simpleWater ? 1 : 2 + Math.floor(random(seed, "stream-count", bx, by) * 3);
+      const count = 2;
       const candidates: { p: number[]; score: number }[] = [];
-      for (let i = 0; i < (connectedWater ? 28 : 14); i++) {
+      for (let i = 0; i < 28; i++) {
         const cx = bx * STREAM_BLOCK + 8 + random(seed, "spring-x", bx, by, i) * (STREAM_BLOCK - 16) - ox,
           cy = by * STREAM_BLOCK + 8 + random(seed, "spring-y", bx, by, i) * (STREAM_BLOCK - 16) - oy;
         const w = openWater(cx, cy);
-        if (w < (connectedWater ? 20 : 14) || (simpleWater && kind === "creek" && w > 90) || (regional && regional.placeAt(cx, cy))) continue;
+        if (w < 20 || (kind === "creek" && w > 90) || (regional && regional.placeAt(cx, cy))) continue;
         const near = w < 90 ? 1 - Math.abs(w - 40) / 60 : 0;
         candidates.push({
           p: [Math.round(cx), Math.round(cy)],
@@ -268,12 +250,12 @@ export function createEnvironment(
       candidates.sort((a, b) => b.score - a.score);
       const taken: number[][] = [];
       // After the creeks, a few rivulets from the springs left over.
-      const rivulets = connectedWater && kind === "creek" ? 3 : 0;
+      const rivulets = kind === "creek" ? 3 : 0;
       for (const c of candidates) {
         if (taken.length >= count + rivulets) break;
         const thin = taken.length >= count;
         if (taken.some(([tx, ty]) => Math.hypot(tx - c.p[0], ty - c.p[1]) < (thin ? 28 : 40))) continue;
-        const stream = connectedWater && kind === "creek"
+        const stream = kind === "creek"
           ? tributary(seed, `${kind}-${bx}-${by}-${taken.length}`, c.p, openWater, (x, y) => terraceHeight(Math.round(x), Math.round(y), ceiling), (h) => tierOfHeight(h, ceiling))
           : walkStream(
           seed,
@@ -288,9 +270,9 @@ export function createEnvironment(
           60,
           0.006,
           (x, y) => Math.min(120, openWater(x, y)),
-          kind === "arroyo" ? "wash" : !simpleWater,
+          kind === "arroyo" ? "wash" : false,
         );
-        if (!stream || (simpleWater && kind === "creek" && stream.pond)) continue;
+        if (!stream || (kind === "creek" && stream.pond)) continue;
         // Through a town's outskirts is fine (roads bridge it, houses keep
         // off water); through its centre is not.
         if (
@@ -342,7 +324,6 @@ export function createEnvironment(
       for (let dx = -1; dx <= 1; dx++) out.push(...streamsIn(bx + dx, by + dy));
     return out;
   };
-  const stationTiers = new Map<string, number>();
   // The height the terraces are cut from: the landform, plus lobes about a
   // step tall so a hillside's brinks run in spurs and bays rather than as
   // parallel rules, then a median over a disc, which rounds corners and
@@ -381,9 +362,6 @@ export function createEnvironment(
     const wx = x + (noise(seed, x, y, 75, "shore-warp-x") - 0.5) * 36,
       wy = y + (noise(seed, x, y, 87, "shore-warp-y") - 0.5) * 36;
     let waterFlow: readonly [number, number] = [0, 0];
-    // Stable distance along the river course, for the step ladder. Atlas
-    // rivers project onto their fixed flow; planned ones report it directly.
-    let riverAlong: number | undefined;
     let water = 1000,
       floodplain = 3,
       shoreWidth = 2,
@@ -392,9 +370,8 @@ export function createEnvironment(
       s.water.startsWith("river") &&
       (!regional || s.geographyMode === "configured")
     ) {
-      const r = (simpleWater ? configuredPlan ?? plan : plan).river(...meander(x, y));
+      const r = (configuredPlan ?? plan).river(...meander(x, y));
       ({ water, floodplain, shoreWidth, waterFlow } = r);
-      riverAlong = r.along;
     } else if (s.water.startsWith("coast")) {
       const signed =
         s.water === "coast-n"
@@ -420,7 +397,7 @@ export function createEnvironment(
       floodplain = shoreWidth + 4;
     } else if (s.water === "ocean") {
       // Open water, with the occasional bar or rock breaking the surface.
-      const bar = noise(seed, x, y, 54, "sandbars") - (s.hydrologyRevision === 3 && s.playableMap ? Math.max(0, Math.hypot(x, y) - s.playableMap.size * 0.32) / 250 : 0);
+      const bar = noise(seed, x, y, 54, "sandbars") - (s.playableMap ? Math.max(0, Math.hypot(x, y) - s.playableMap.size * 0.32) / 250 : 0);
       water = bar > 0.88 ? (bar - 0.88) * 170 - 5 : -22 - (0.88 - bar) * 44;
       kind = "sea";
       shoreWidth = 1.5 + noise(seed, x, y, 33, "bar-edges") * 2;
@@ -436,13 +413,6 @@ export function createEnvironment(
       shoreWidth = 0.7 + noise(seed, x, y, 25, "lake-margin") * 3;
       floodplain = shoreWidth + noise(seed, x, y, 40, "lake-flat") * 7;
     }
-    if (s.hydrologyRevision !== 3 && cfg.ecology === "wetland" && s.water === "none") {
-      const pool = noise(seed, x, y, 24, "pools");
-      if (pool > 0.72) {
-        water = (0.72 - pool) * 70;
-        kind = "lake";
-      }
-    }
     if (regional) {
       const [mx, my] = meander(x, y);
       const atlas = earth(mx, my);
@@ -454,7 +424,7 @@ export function createEnvironment(
         atlas.river - riverWidth - bankShape,
         atlas.river - 2.5,
       );
-      const coast = connectedWater ? earth(x, y).coast : atlas.coast;
+      const coast = earth(x, y).coast;
       const earthWater = Math.min(coast, riverWater);
       // Explorer recipes constrain a bounded starting area; beyond it the same
       // generator returns to Earth geography, rather than extending a coast forever.
@@ -474,9 +444,8 @@ export function createEnvironment(
             ? 4 + noise(seed, fx, fy, 80, "floodplain") * 9
             : shoreWidth;
         waterFlow = atlas.riverFlow;
-        riverAlong = fx * atlas.riverFlow[0] + fy * atlas.riverFlow[1];
       }
-      const feature = s.hydrologyRevision === 3 && weight === 1 && (s.water === "ocean" || s.water === "island") ? undefined : regional.featureAt(mx, my, [
+      const feature = weight === 1 && (s.water === "ocean" || s.water === "island") ? undefined : regional.featureAt(mx, my, [
         "land",
         "sea",
         "lake",
@@ -495,20 +464,13 @@ export function createEnvironment(
               ? feature.distance -
                 localBank * Math.max(0, 1 - Math.max(0, -feature.distance) / 4)
               : feature.distance;
-          if (!connectedWater || featureWater < water) {
+          if (featureWater < water) {
             water = featureWater;
             kind = type;
             waterFlow = feature.flow;
           }
         } else if (type === "land") water = Math.max(0.1, -feature.distance);
       }
-    }
-    const swamp = s.hydrologyRevision === 2 && (regional?.habitatAt(x, y) ?? s.environment)?.colorway === "swamp";
-    if (swamp && water > -1.2 && water < 24 && kind !== "sea") {
-      const spread = 3 + noise(seed, fx, fy, 24, "swamp-inundation") * 9;
-      water = Math.max(-1.2, water - spread);
-      shoreWidth = 1.1;
-      floodplain = Math.max(floodplain, 12);
     }
     let reef: LandSample["reef"];
     if (ws.reef === "atoll") {
@@ -529,12 +491,12 @@ export function createEnvironment(
       water = Math.max(water, 36 - Math.hypot(x, y));
       reef = r < R ? "lagoon" : "outer";
     } else if (ws.reef === "fringing" && kind === "sea") reef = "outer";
-    return { water, floodplain, shoreWidth, waterFlow, kind, riverAlong, reef };
+    return { water, floodplain, shoreWidth, waterFlow, kind, reef };
   };
   const connectedBoundary = boundaryWater(s, seed, nativeWater, field);
   const mainWater = (x: number, y: number) => {
     const native = nativeWater(x, y);
-    return s.hydrologyRevision === 3 ? { ...native, ...connectedBoundary(x, y, native) } : native;
+    return { ...native, ...connectedBoundary(x, y, native) };
   };
   // A qanat's line of shaft mounds, one every seven cells, from the hills to the town.
   const qanatAngle = random(seed, "qanat-angle") * Math.PI * 2;
@@ -565,7 +527,7 @@ export function createEnvironment(
     const profile = ecologyProfiles[habitat.ecology];
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
-    let { water, floodplain, shoreWidth, waterFlow, kind, riverAlong, reef } = s.hydrologyRevision === 3 ? nativeWater(x, y) : mainWater(x, y);
+    let { water, floodplain, shoreWidth, waterFlow, kind, reef } = nativeWater(x, y);
     const town = regional
       ? (() => {
           const place = regional.placeAt(x, y);
@@ -639,41 +601,6 @@ export function createEnvironment(
       floodplain = 40;
       waterFlow = [0, 0];
     }
-    // Oxbows: a crescent of still water on the floodplain, its horns toward
-    // the river, in the green envelopes.
-    if (
-      !simpleWater &&
-      kind === "river" &&
-      water > 5 &&
-      water < 18 &&
-      !["desert", "dry-scrub", "tundra"].includes(habitat.ecology)
-    ) {
-      const bx = Math.floor(fx / 48),
-        by = Math.floor(fy / 48);
-      if (random(seed, "oxbow", bx, by) < 0.4) {
-        const cxAbs = bx * 48 + 8 + random(seed, "oxbow-x", bx, by) * 32,
-          cyAbs = by * 48 + 8 + random(seed, "oxbow-y", bx, by) * 32;
-        const cx = cxAbs - (regional ? origin.x : 0),
-          cy = cyAbs - (regional ? origin.y : 0);
-        const ow = openWater(cx, cy);
-        if (ow > 7 && ow < 15) {
-          const r = 5 + random(seed, "oxbow-r", bx, by) * 3;
-          const gx = openWater(cx + 3, cy) - openWater(cx - 3, cy),
-            gy = openWater(cx, cy + 3) - openWater(cx, cy - 3);
-          const g = Math.hypot(gx, gy) || 1;
-          const dist = Math.hypot(x - cx, y - cy) || 1;
-          const ring = Math.abs(dist - r);
-          const dot = ((x - cx) * gx + (y - cy) * gy) / (g * dist);
-          if (ring < 1.6 && dot > -0.35 && !regional?.placeAt(x, y)) {
-            water = ring - 1.6 + (noise(seed, fx, fy, 5, "oxbow-rim") - 0.5) * 0.5;
-            kind = "lake";
-            shoreWidth = 0.8;
-            floodplain = 1.4;
-            waterFlow = [0, 0];
-          }
-        }
-      }
-    }
     // Landscape streams: a creek from a spring to open water or a pond, a dry
     // arroyo in dry country, an animal trail from pasture to water.
     let landscape: LandSample["landscape"] = qanat(x, y, water);
@@ -684,7 +611,7 @@ export function createEnvironment(
     let washTier: number | undefined;
     const preCreek = { water, floodplain };
     for (const { stream, kind: sort, thin } of streamsNear(x, y)) {
-      const d = streamDistance(stream, x, y, connectedWater ? 8 : 4);
+      const d = streamDistance(stream, x, y, 8);
       if (!d) continue;
       if (sort === "creek") {
         // Two cells of water widening downstream, a narrow gravel edge, and a
@@ -695,8 +622,8 @@ export function createEnvironment(
         const width = thin
           ? // Water is decided a cell at a time: under 0.71 a diagonal run breaks into beads.
             0.74 + d.along * 0.12 + (noise(seed, fx, fy, 7, "creek-width") - 0.5) * 0.06 + (plunge ? 0.5 : 0)
-          : (connectedWater ? 0.8 : 0.55) +
-            d.along * (connectedWater ? 0.7 : 0.45) +
+          : 0.8 +
+            d.along * 0.7 +
             (noise(seed, fx, fy, 7, "creek-width") - 0.5) * 0.3 +
             (plunge ? 0.7 : 0);
         const pool = stream.pond ? d.toEnd - (3 + noise(seed, fx, fy, 6, "pond-rim") * 1.4) : Infinity;
@@ -708,7 +635,7 @@ export function createEnvironment(
         // The creek's distance field runs six cells out so the shore raster
         // interpolates smoothly; the terrace rule below ignores it (a small
         // distance would otherwise read as a floodplain and flatten a ring).
-        if (creekWater < water && (simpleWater || water > 3) && creekWater < 6) {
+        if (creekWater < water && creekWater < 6) {
           water = creekWater;
           waterGradient =
             pool < d.distance - width
@@ -763,7 +690,7 @@ export function createEnvironment(
         landscape = { kind: "trail", strength: 1 - d.distance / 0.9 };
       }
     }
-    if (s.hydrologyRevision === 3 && s.playableMap) {
+    if (s.playableMap) {
       const joined = connectedBoundary(x, y, { water, kind, waterFlow, floodplain, shoreWidth });
       ({ water, kind, waterFlow, floodplain, shoreWidth } = joined);
     }
@@ -781,31 +708,6 @@ export function createEnvironment(
         water = Math.max(-1.2, water - spread);
         floodplain = Math.max(floodplain, spread + 5);
       }
-    }
-    // Real pools join the terrain sample before settlement siting and routing.
-    // A common basin center controls eligibility across every pixel of the pool.
-    const basin = s.hydrologyRevision === 3 ? undefined : marshBasin(seed, fx, fy, habitat.ecology);
-    // A bog or flooded savanna admits more pools than the envelope alone.
-    const pooling = habitatLayout(habitat.colorway).wet;
-    if (
-      s.hydrologyRevision !== 3 &&
-      (!simpleWater || habitat.ecology === "wetland") &&
-      basin &&
-      basin.distance < 2 &&
-      water > shoreWidth + 5 &&
-      profile.moisture * pooling > 0.36 &&
-      basin.wet > 0.57 / Math.max(0.6, pooling) &&
-      field(
-        basin.x - (regional ? origin.x : 0),
-        basin.y - (regional ? origin.y : 0),
-      ) < 0.5 &&
-      !regional?.placeAt(x, y)
-    ) {
-      water = basin.distance;
-      kind = "lake";
-      shoreWidth = 0.5;
-      floodplain = 2.5;
-      waterFlow = [0, 0];
     }
     // A regional map calls all dry land "sea" when no river is near, so test distance from the shore.
     if (form === "cenote" && (kind !== "sea" || water > 6)) {
@@ -838,25 +740,6 @@ export function createEnvironment(
         waterFlow = [0, 0];
       }
     }
-    const seam = s.playableMap && s.hydrologyRevision !== 3 && !(simpleWater && s.geographyMode === "earth")
-      ? boundarySample(
-          s.playableMap.size,
-          s.playableMap.exits.flatMap((e) => (e.seam ? [e.seam] : [])),
-          x,
-          y,
-        )
-      : undefined;
-    if (seam) {
-      water =
-        Math.max(-64, Math.min(64, water)) * (1 - seam.weight) +
-        seam.water * seam.weight;
-      if (seam.weight > 0.5) {
-        kind = seam.kind;
-        waterFlow = seam.flow;
-        shoreWidth = seam.kind === "sea" ? 6 : 2;
-        floodplain = shoreWidth + 3;
-      }
-    }
     const moisture = Math.max(
       0.05,
       Math.min(
@@ -886,49 +769,15 @@ export function createEnvironment(
     // draws its first step as a ruled line the length of the screen.
     const terrace =
       floodplain + 10 + (noise(seed, fx, fy, 19, "terrace-edge") - 0.5) * 9;
-    // The river's own step: the valley floor is a terrace ladder walked
-    // downstream, so a river in high country drops a tier at a rapid every
-    // so often instead of flowing along a trench cut to the map's floor.
-    // Sampled on a coarse lattice along the flow and quantised, so both
-    // banks and the water agree on where each step is.
-    let valleyFloor = 0;
-    if (!simpleWater && kind === "river" && water < terrace && ceiling > 3 && riverAlong !== undefined) {
-      const [tx, ty] = waterFlow;
-      const len = Math.hypot(tx, ty) || 1;
-      const ux = tx / len,
-        uy = ty / len;
-      const along = riverAlong;
-      // The floor at a point is the lowest ground the river has crossed so
-      // far this reach (sampled every 12 cells upstream along the flow), one
-      // step down: it can only descend, and it drops where the land does.
-      // Cached per 12-cell station so both banks and the water agree.
-      const REACH = 480;
-      const station = Math.floor(along / 12);
-      const head = Math.floor(along / REACH) * (REACH / 12);
-      let floor = Infinity;
-      for (let st = head; st <= station; st++) {
-        const key = `${st}`;
-        let t = stationTiers.get(key);
-        if (t === undefined) {
-          const sx = x + ux * (st * 12 - along),
-            sy = y + uy * (st * 12 - along);
-          t = tierOfHeight(field(sx, sy), ceiling);
-          trimCache(stationTiers, 4096);
-          stationTiers.set(key, t);
-        }
-        floor = Math.min(floor, t);
-      }
-      valleyFloor = Math.max(0, Math.min(baseTier - 1, floor - 1));
-    }
     // Ground the flood covers is valley floor even when dry.
     // Every shore keeps a low margin two to four cells deep: a bank standing
     // at the water's edge cuts the shoreline square along its cells.
     const margin = 2.6 + noise(seed, fx, fy, 13, "shore-margin") * 1.6;
     let level =
       water < Math.max(floodplain, margin) || (reaches && water < Math.max(...reaches))
-        ? valleyFloor
+        ? 0
         : water < terrace
-          ? Math.max(valleyFloor, Math.min(valleyFloor + 1, baseTier))
+          ? Math.min(1, baseTier)
           : baseTier;
     // A sea cliff: the land stands straight up behind a narrow beach, two to
     // four steps high, and comes down again inland a step at a time. Low,
@@ -980,12 +829,7 @@ export function createEnvironment(
             }),
           }
         : {}),
-      elevation: seam
-        ? Math.round(
-            (level * 14 * (1 - seam.weight) + seam.height * seam.weight) / 14,
-          ) * 14
-        : level * 14,
-      travelRoad: !!seam?.road && water >= 0,
+      elevation: level * 14,
       // The land's stature, not its step count: scree, snow and alpine plants read it.
       summit: Math.max(ceiling, 1 + relief * 8) * 14,
       ...(habitat.colorway === "ice" || altitude + level * metresPerTier(relief) > snowlineAt(s.lat, "summer") + 150

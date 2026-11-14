@@ -8,11 +8,10 @@ chosen, and the two renderers that draw it. Entry files:
 
 ## Geometry
 
-New worlds use `hydrologyRevision: 3`: `nativeWater` in `v3/environment.ts`
-follows the Earth atlas's coasts and rivers at the map's real coordinates,
-warped into meanders, coves and bars. `boundaryWater` (`boundary-water.ts`)
-matches water across map edges, and `wet-features.ts` supplies small marsh
-basins; streams come from
+`nativeWater` in `v3/environment.ts` follows the Earth atlas's coasts and
+rivers at the map's real coordinates, warped into meanders, coves and bars.
+`boundaryWater` (`boundary-water.ts`) matches water across map edges, and
+`wet-features.ts` shapes river banks; streams come from
 `features.ts` and `tributaries.ts` (see [TERRAIN.md](TERRAIN.md)).
 
 Gameplay reads shallow/deep from the cell (`TopographyCell.waterDepth`);
@@ -66,7 +65,6 @@ Regional water goes in `waterscapes.ts`. New water drawing goes in
 
 Retiring these is welcome; there are no saves to preserve:
 
-- `hydrologyRevision` 1 and 2 branches (`mainWater`, the rev-2 swamp, rev <3 marsh basins).
 - The legacy CPU water path, once a Canvas fallback is decided.
 
 ## Lab and checks

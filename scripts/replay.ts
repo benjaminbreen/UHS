@@ -62,7 +62,6 @@ if (record.mode === "serve" || record.mode === "run" || record.mode === "play") 
     {
       setting: manifest.generator !== 1 ? manifest.setting : undefined,
       content: manifest.content,
-      generator: manifest.generator,
     },
   );
   replay.state.manifest = structuredClone(manifest);

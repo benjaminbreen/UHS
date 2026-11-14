@@ -35,7 +35,7 @@ const reviews: Record<string, Review> = {
     dir: `artifacts/placement-composition/${process.env.UHS_REVIEW_PHASE ?? "after"}`,
     title: "Fields, building clearance and rural house fitting",
     seed: "placement-composition",
-    common: `ecology=temperate-woodland&water=none&season=spring&year=1400&start=resident&vegetationRevision=8&placementRevision=${process.env.UHS_PLACEMENT_REVISION ?? 1}`,
+    common: `ecology=temperate-woodland&water=none&season=spring&year=1400&start=resident&placementRevision=${process.env.UHS_PLACEMENT_REVISION ?? 1}`,
     centre: "none",
     studies: [
       ["flat-village", "place=normandy&landform=plain&relief=0&population=sparse&pattern=clustered"],
@@ -48,7 +48,7 @@ const reviews: Record<string, Review> = {
     dir: `artifacts/grove-composition/${process.env.UHS_REVIEW_PHASE ?? "after"}`,
     title: "Shared groves, clearings and woodland edges",
     seed: "scenery-composition",
-    common: `season=spring&landform=plain&relief=0&year=785&water=none&vegetationRevision=${process.env.UHS_VEGETATION_REVISION ?? 8}`,
+    common: `season=spring&landform=plain&relief=0&year=785&water=none`,
     centre: "none",
     studies: [
       ["temperate", "ecology=temperate-woodland&population=none&start=wanderer"],
@@ -62,16 +62,13 @@ const reviews: Record<string, Review> = {
     seed: "ground-growth-review",
     common: "landform=plain&relief=0&water=none&population=none&start=wanderer",
     centre: "spawn",
-    studies: ([
+    studies: [
       ["boreal", "lon=-69&lat=56&ecology=boreal-woodland&season=spring&year=1687"],
       ["sahel-spring", "lon=-8&lat=15&ecology=dry-scrub&colorway=sahel&season=spring&year=1999"],
       ["sahel-summer", "lon=-8&lat=15&ecology=dry-scrub&colorway=sahel&season=summer&year=1999"],
       ["meadow", "lon=0&lat=49&ecology=grassland&season=spring&year=1400"],
       ["prairie", "lon=-96&lat=39&ecology=grassland&colorway=prairie&season=summer&year=1700"],
-    ] as const).flatMap(([name, query]) =>
-      [8, 9].map((revision): [string, string] => [
-        `${name}-${revision === 8 ? "before" : "after"}`, `${query}&vegetationRevision=${revision}`,
-      ])),
+    ],
   },
   scenery: {
     dir: `artifacts/scenery-composition/${process.env.UHS_REVIEW_PHASE ?? "after"}`,

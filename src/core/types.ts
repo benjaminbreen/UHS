@@ -504,7 +504,7 @@ export type WorldManifest = {
   survival?: 1;
   disease?: 1;
   watchRouting?: 1;
-  generator: 1 | 2 | 3;
+  generator: 1 | 3;
   content: 1 | 2;
   atlas: 1 | 2;
   setting?: WorldSetting;

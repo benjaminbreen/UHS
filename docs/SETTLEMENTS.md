@@ -50,7 +50,7 @@ searches have explicit budgets; player routing is unchanged.
 
 ## Towns
 
-New worlds pin `urbanRevision: 2`. `blocks.ts` partitions a town into gates,
+`blocks.ts` partitions a town into gates,
 arterials, a public square and recursively subdivided rectangular blocks; no
 graph search runs. `urban.ts` fits parcels; a refused parcel leaves open
 ground. Towns with a defensive circuit get walls, gatehouses and towers
@@ -125,7 +125,6 @@ its own module.
 
 Retiring or merging these is welcome; there are no saves to preserve:
 
-- `v3/urban-v1.ts` (`urbanRevision: 1`).
 - Two functions named `modernBuildings`: `src/content/geography/pack.ts`
   (by setting) and `src/content/settlements/modern-buildings.ts` (by setting
   and land use, the one towns use). Merge them.

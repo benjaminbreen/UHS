@@ -404,3 +404,30 @@ export function terrainJump(
     landing ?? { kind: "blocked", reason: "No clear landing within reach." }
   );
 }
+export function reliefCell(
+  height: HeightTier,
+  water: number,
+  moisture: number,
+): TopographyCell {
+  return {
+    height,
+    moisture,
+    biome:
+      moisture > 0.73
+        ? "wetland"
+        : moisture < 0.48
+          ? "dry-upland"
+          : "grassland",
+    surface:
+      water < 0
+        ? "water"
+        : moisture > 0.73
+          ? "damp"
+          : moisture < 0.48
+            ? "dry"
+            : "grass",
+    ...(water < 0
+      ? { waterDepth: water > -2 ? ("shallow" as const) : ("deep" as const) }
+      : {}),
+  };
+}
