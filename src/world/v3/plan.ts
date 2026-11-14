@@ -317,6 +317,17 @@ export function planSettlement(
     diagnostics: { routeFailures: 0, rejectedBuildings: 0, timing: {} },
   };
   if (pack.setting?.situation && pack.setting.situation.camp !== "none") return planCamp(plan, pack, seed);
+  if (urban && pack.setting?.terrainRevision) {
+    const graded = townTerraces(sample, c, r);
+    if (graded.size) {
+      plan.groundLevels = graded;
+      const raw = sample;
+      sample = (x, y) => {
+        const f = raw(x, y), t = graded.get(cellKey(x, y));
+        return t === undefined ? f : { ...f, elevation: t * 14 };
+      };
+    }
+  }
   const centers = new Set<string>();
   const roads = plan.traffic,
     bridges = new Set<string>(),
@@ -5733,12 +5744,14 @@ export function planSettlement(
       if (random(seed, owner, "cat") > 0.15 + grain(owner) * 0.5) continue;
       const yard = freeBeside(owner)[0];
       if (!yard) continue;
+      // The step in front of the door, where a caller would stand.
+      const door = plan.work.get(owner)?.home;
       (plan.fauna ??= []).push({
         id: `${site.id}-cat-${owner}`,
         speciesId: cat.id,
         members: [{ ...yard, direction: 1 }],
         pos: pos(yard),
-        home: pos(yard),
+        home: pos(door ? { x: door.x, y: door.y + 1 } : yard),
         homeRadius: 12,
         state: "rest",
         nextDecisionAt: 0,
@@ -6238,6 +6251,86 @@ function dropStubFences(
 }
 
 const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
+
+/** Noise leaves a town scattered with terraces too small or narrow to build
+ * on. Each dry patch of one level inside the town that has no room for a
+ * house, and does not front water, takes the level it borders most. The box
+ * reaches past the town so a hill running out of it keeps its full size. */
+function townTerraces(sample: Sample, c: Point, r: number) {
+  const reach = Math.ceil(r * 1.3), x0 = c.x - reach, y0 = c.y - reach, n = reach * 2 + 1;
+  const level = new Int16Array(n * n), wet = new Uint8Array(n * n);
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const f = sample(x0 + i, y0 + j);
+      level[j * n + i] = Math.round(f.elevation / 14);
+      wet[j * n + i] = f.water < 0 ? 1 : 0;
+    }
+  const raw = level.slice();
+  // Each town cell takes the commonest level round it, so a bank crosses the
+  // town in a few broad curves instead of wandering through every block. The
+  // shore keeps its own low margin.
+  const R = 5, SHORE = 3, count = new Int32Array(64);
+  for (let pass = 0; pass < 2; pass++) {
+    const from = level.slice();
+    for (let j = R; j < n - R; j++)
+      for (let i = R; i < n - R; i++) {
+        const k = j * n + i;
+        if (wet[k] || Math.hypot(x0 + i - c.x, y0 + j - c.y) > r) continue;
+        count.fill(0);
+        let shore = false;
+        for (let dy = -R; dy <= R && !shore; dy++)
+          for (let dx = -R; dx <= R; dx++) {
+            const q = k + dy * n + dx;
+            if (wet[q]) {
+              if (Math.abs(dx) <= SHORE && Math.abs(dy) <= SHORE) shore = true;
+            } else count[from[q] & 63]++;
+          }
+        if (shore) continue;
+        let best = from[k];
+        for (let t = 0; t < 64; t++) if (count[t] > count[best]) best = t;
+        level[k] = best;
+      }
+  }
+  // A five-cell square of one level: room for a house and its doorstep.
+  const CORE = 2, MIN_CORE = 40;
+  for (let pass = 0; pass < 4; pass++) {
+    const seen = new Uint8Array(n * n);
+    let merged = false;
+    for (let s = 0; s < n * n; s++) {
+      if (seen[s] || wet[s]) continue;
+      const t = level[s], part = [s], border = new Map<number, number>();
+      let cores = 0, shore = false;
+      seen[s] = 1;
+      for (let q = 0; q < part.length; q++) {
+        const i = part[q] % n, j = (part[q] / n) | 0;
+        let core = i >= CORE && j >= CORE && i < n - CORE && j < n - CORE;
+        for (let dy = -CORE; core && dy <= CORE; dy++)
+          for (let dx = -CORE; core && dx <= CORE; dx++) if (level[(j + dy) * n + i + dx] !== t) core = false;
+        if (core) cores++;
+        for (const [dx, dy] of N4) {
+          const a = i + dx, b = j + dy;
+          if (a < 0 || b < 0 || a >= n || b >= n) { shore = true; continue; }
+          const k = b * n + a;
+          if (wet[k]) shore = true;
+          else if (level[k] !== t) border.set(level[k], (border.get(level[k]) ?? 0) + 1);
+          else if (!seen[k]) seen[k] = 1, part.push(k);
+        }
+      }
+      if (shore || cores >= MIN_CORE || !border.size) continue;
+      const to = [...border].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
+      for (const k of part) level[k] = to;
+      merged = true;
+    }
+    if (!merged) break;
+  }
+  const out = new Map<string, number>();
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const k = j * n + i, x = x0 + i, y = y0 + j;
+      if (level[k] !== raw[k] && Math.hypot(x - c.x, y - c.y) <= r) out.set(cellKey(x, y), level[k]);
+    }
+  return out;
+}
 /** The town's ground as one plan: a square's edge is trodden to earth before
  * it meets turf, and a sliver or hole one or two cells across takes the
  * ground round it. */

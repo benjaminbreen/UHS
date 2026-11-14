@@ -768,6 +768,7 @@ export class WorldScene extends Phaser.Scene {
   /** Time after which a cock may crow again. */
   private crowAt = 0;
   private jostleSerial = 0;
+  private shied = new Map<string, number>();
   private faunaMotion = new FaunaMotion();
   private faunaSeen = new Map<string, number>();
   /** Cast shadows by pose, facing and lighting phase. */
@@ -5857,6 +5858,14 @@ export class WorldScene extends Phaser.Scene {
           true,
         );
         const im = this.entities.get(id)!;
+        // Shied off by someone walking through: a flapping hop away.
+        const shied = m.shy?.until ?? 0, wasShy = this.shied.get(id);
+        if (wasShy !== undefined && shied > wasShy && shied > e.state.clock) {
+          this.faunaMotion.hurry(id);
+          this.faunaMotion.leap(id, 5, 0.26);
+          this.feel.puff(im.x, im.y, FAUNA_DUST, 2);
+        }
+        this.shied.set(id, shied);
         // Not until whatever did it has actually arrived.
         if ((m.stun ?? 0) > e.state.clock + 6 && !struck.has(id))
           this.stunned.add(id);
@@ -5899,6 +5908,7 @@ export class WorldScene extends Phaser.Scene {
       if (!this.faunaSprites.has(id)) this.faunaMood.delete(id);
     for (const id of this.faunaSeen.keys())
       if (!this.faunaSprites.has(id)) this.faunaSeen.delete(id);
+    for (const id of this.shied.keys()) if (!this.faunaSprites.has(id)) this.shied.delete(id);
     // Walked into: it hops out of the way, and the player feels the bump.
     const jostle = rt.jostleEffect;
     if (jostle && jostle.serial !== this.jostleSerial) {
@@ -7306,7 +7316,10 @@ export class WorldScene extends Phaser.Scene {
           ? this.workMotion(id, at, time, human.origin?.livelihood, human.heldItem) : undefined;
         const use = id !== "player" && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
         const pair = !moving && !active && !winding && !landed && !stunt && !seat && !use ? this.together(id, at, time) : undefined;
-        this.standApart(id, im, pair?.im, moving);
+        const romp = pair && "romp" in pair ? (pair.romp as { x: number; y: number }) : undefined;
+        this.standApart(id, im, romp ? undefined : pair?.im, moving);
+        this.romp(im, romp, moving);
+        if (at && !at.moving && /^(Calling|Waiting) for /.test(at.label)) this.doorGreet(id, im, time);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active || winding) pose = action!.pose;
         else if (landed) pose = after;
@@ -7404,7 +7417,7 @@ export class WorldScene extends Phaser.Scene {
           const still = g.still === undefined ? 0 : time - g.still,
             walked = (g.still ?? time) - g.since;
           if (
-            (pose === "walk" || pose === "run") &&
+            (pose === "walk" || pose === "run") && moving &&
             time - g.since < SETOFF_MS
           ) {
             pose = "setoff";
@@ -7412,7 +7425,7 @@ export class WorldScene extends Phaser.Scene {
           } else if (pose === "walk" && time - (g.pivot ?? -Infinity) < PIVOT_MS) {
             pose = "halt";
             gaitFrame = 0;
-          } else if (pose === "walk" || pose === "run") {
+          } else if ((pose === "walk" || pose === "run") && moving) {
             // From the push-off, so every walk starts on the same foot.
             const steps = ((time - g.since - SETOFF_MS) * cadence) / poseTiming(pose);
             gaitFrame = lame ? limpFrame(steps, frameCount(pose), lame) : Math.floor(steps) % frameCount(pose);
@@ -7521,6 +7534,7 @@ export class WorldScene extends Phaser.Scene {
           (id === "player" ? this.blockedFacing : undefined) ??
           cued?.facing ??
           (pair && pose === pair.pose ? pair.facing : undefined) ??
+          (!pair && at?.activity === "visit" && !at.moving ? this.crowdFacing(id, time) : undefined) ??
           workFacing ??
           human.facing ??
           facingFromDirection(human.direction);
@@ -8170,7 +8184,7 @@ export class WorldScene extends Phaser.Scene {
     if (!me) return undefined;
     let other: string | undefined, kind: "chat" | "sale" = "chat", sells = false;
     if (talking && (id === talking || id === "player")) other = id === "player" ? talking : "player";
-    else if (at && !at.moving && (at.activity === "visit" || keeps(at)) && id !== "player") {
+    else if (at && !at.moving && (at.activity === "visit" || at.activity === "play" || keeps(at)) && id !== "player") {
       other = this.partnerOf(id, at, time);
       const there = other && this.ambient.get(other);
       if (!there) return undefined;
@@ -8184,6 +8198,7 @@ export class WorldScene extends Phaser.Scene {
     if (!im) return undefined;
     const facing = facingFromStep((im.x - me.x) / 16, (im.y - me.y) / 16, at?.direction ?? this.humanActors.get(id)?.direction ?? 2);
     const first = id < other!;
+    if (at?.activity === "play") return this.playGame(id, other!, me, im, first, time);
     const offset = this.poseOffset(first ? id : other!);
     const loop = (pose: CharacterPose) => ({ pose, index: Math.floor((time + this.poseOffset(id)) / poseTiming(pose)) % 4, facing, im });
     // Walked up to each other: the greeting first, once.
@@ -8233,9 +8248,10 @@ export class WorldScene extends Phaser.Scene {
   private partnerOf(id: string, at: Ambient, time: number) {
     const known = this.partners.get(id);
     if (known && time < known.until) return known.partner;
-    let partner: string | undefined, best = 2.2;
+    let partner: string | undefined, best = at.activity === "play" ? 2.6 : 2.2;
     for (const [other, there] of this.ambient) {
-      if (other === id || there.moving || !(there.activity === "visit" || (!keeps(at) && keeps(there)))) continue;
+      if (other === id || there.moving) continue;
+      if (at.activity === "play" ? there.activity !== "play" : !(there.activity === "visit" || (!keeps(at) && keeps(there)))) continue;
       const d = Math.hypot(there.x - at.x, there.y - at.y);
       if (d < best) (best = d), (partner = other);
     }
@@ -8243,6 +8259,66 @@ export class WorldScene extends Phaser.Scene {
     return partner;
   }
   private partners = new Map<string, { partner?: string; until: number }>();
+  /** Two children at play: tag round and round the spot between them, one a
+   * little behind the other, or a clapping game with a jump on the last beat. */
+  private playGame(id: string, other: string, me: Phaser.GameObjects.Image, im: Phaser.GameObjects.Image, first: boolean, time: number) {
+    const pair = first ? `${id}|${other}` : `${other}|${id}`;
+    if (random(this.runtime.engine.state.manifest.seed, "game", pair) < 0.55) {
+      const mine = this.romped.get(me) ?? { x: 0, y: 0 }, theirs = this.romped.get(im) ?? { x: 0, y: 0 };
+      const mid = { x: ((im.x - theirs.x) - (me.x - mine.x)) / 2, y: ((im.y - theirs.y) - (me.y - mine.y)) / 2 };
+      const t = (time / 1700 + (first ? 0 : 0.36)) * Math.PI * 2;
+      const romp = { x: Math.round(mid.x + Math.cos(t) * 13), y: Math.round(mid.y + Math.sin(t) * 6) };
+      return { pose: "run" as CharacterPose, index: Math.floor(time / poseTiming("run")) % frameCount("run"), facing: facingFromStep(-Math.sin(t), Math.cos(t) * 0.5, 2), im, romp };
+    }
+    const facing = facingFromStep((im.x - me.x) / 16, (im.y - me.y) / 16, 2);
+    const pose: CharacterPose = Math.floor((time + (first ? 0 : 150)) / 1300) % 4 === 3 ? "jump" : "clap";
+    return { pose, index: Math.floor(time / poseTiming(pose)) % 4, facing, im };
+  }
+  /** Moves a child along their game, two pixels a frame at most, and back to
+   * their spot when it ends. A walk tween owns the position, so it is dropped then. */
+  private romp(im: Phaser.GameObjects.Image, to: { x: number; y: number } | undefined, moving: boolean) {
+    const was = this.romped.get(im);
+    if (moving) return void this.romped.delete(im);
+    if (!was && !to) return;
+    const from = was ?? { x: 0, y: 0 }, aim = to ?? { x: 0, y: 0 };
+    const step = (a: number, b: number) => a + Math.max(-2, Math.min(2, b - a));
+    const next = { x: step(from.x, aim.x), y: step(from.y, aim.y) };
+    im.setPosition(im.x - from.x + next.x, im.y - from.y + next.y);
+    if (next.x || next.y || to) this.romped.set(im, next);
+    else this.romped.delete(im);
+  }
+  private romped = new WeakMap<Phaser.GameObjects.Image, { x: number; y: number }>();
+  /** Where someone in a crowd looks: at the middle of everyone stood there
+   * for the same thing, so a festival or a gathering faces in. */
+  private crowdFacing(id: string, time: number) {
+    if (time >= this.crowdsAt) {
+      this.crowdsAt = time + 1000;
+      this.crowds.clear();
+      const stood = [...this.ambient].filter(([, a]) => !a.moving && a.activity === "visit");
+      for (const [who, a] of stood) {
+        let x = 0, y = 0, n = 0;
+        for (const [, b] of stood)
+          if (b.label === a.label && Math.hypot(b.x - a.x, b.y - a.y) < 5) (x += b.x), (y += b.y), n++;
+        if (n < 4 || Math.hypot(x / n - a.x, y / n - a.y) < 0.7) continue;
+        this.crowds.set(who, facingFromStep(x / n - a.x, y / n - a.y, a.direction));
+      }
+    }
+    return this.crowds.get(id);
+  }
+  private crowds = new Map<string, number>();
+  private crowdsAt = 0;
+  /** Waiting at a door for someone: a greeting as they come out to go together. */
+  private doorGreet(id: string, im: Phaser.GameObjects.Image, time: number) {
+    for (const [other, there] of this.ambient) {
+      const them = other !== id && there.moving ? this.entities.get(other) : undefined;
+      if (!them || Math.hypot(them.x - im.x, them.y - im.y) > 40) continue;
+      const key = `door|${id}|${other}`;
+      if (time - (this.passed.get(key) ?? -Infinity) < 120000) continue;
+      this.passed.set(key, time);
+      this.cues.react(id, this.fondOf(id, other) ? "wave" : "greet", { x: (them.x - 8) / 16, y: (them.y - 16) / 16 });
+      return;
+    }
+  }
   private chatBeat = new Map<string, number>();
   private glances = new Map<string, { other?: string; until: number; scan: number }>();
   private passed = new Map<string, number>();

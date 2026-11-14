@@ -185,6 +185,38 @@ function group(speciesId: string, x: number, y: number): FaunaGroup {
 }
 
 describe("fauna behaviour", () => {
+  it("a yard dog walks out at its owner's heel and goes home when they go in", () => {
+    const dog = group("dog", 10, 10);
+    dog.owner = "ana";
+    dog.nextDecisionAt = 0;
+    const ana = { x: 10, y: 12, space: "outside" };
+    const world = sim({ humans: [{ x: -1e6, y: -1e6, space: "outside" }, ana], owners: new Map([["ana", ana]]) });
+    for (let t = 6; t <= 120; t += 6) {
+      ana.y = 12 + t / 6;
+      advanceFauna([dog], world, t);
+    }
+    expect(Math.hypot(dog.pos.x - ana.x, dog.pos.y - ana.y)).toBeLessThanOrEqual(4);
+    world.owners = new Map();
+    world.humans = [{ x: -1e6, y: -1e6, space: "outside" }];
+    for (let t = 126; t <= 600; t += 6) advanceFauna([dog], world, t);
+    expect(Math.hypot(dog.pos.x - 10, dog.pos.y - 10)).toBeLessThanOrEqual(dog.homeRadius + 2);
+  });
+  it("hens scatter together from someone walking through them", () => {
+    const hens = group("chicken", 10, 10);
+    hens.members.push({ x: 11, y: 10, direction: 1 }, { x: 10, y: 11, direction: 1 });
+    const before = hens.members.map((m) => ({ ...m }));
+    advanceFauna([hens], sim({ humans: [{ x: -1e6, y: -1e6, space: "outside" }, { x: 10, y: 9, space: "outside" }] }), 6);
+    expect(hens.members.filter((m, i) => m.x !== before[i].x || m.y !== before[i].y).length).toBeGreaterThan(1);
+  });
+  it("a house cat sits out the rain on its owner's doorstep", () => {
+    const cat = group("cat", 4, 4);
+    cat.owner = "ana";
+    cat.home = { x: 10, y: 10, space: "outside" };
+    cat.nextDecisionAt = 0;
+    const world = sim({ rain: true });
+    for (let t = 6; t <= 600; t += 6) advanceFauna([cat], world, t);
+    expect(cat.pos).toMatchObject({ x: 10, y: 10 });
+  });
   it("a deer looks up before it runs, a sheep pays no attention", () => {
     const deer = group("red-deer", 10, 10),
       sheep = group("sheep", 10, 20);

@@ -2847,8 +2847,10 @@ export function createSettlementWorld(
             ? { ...s, pos: { x: friendly.door!.x, y: friendly.door!.y + 1 }, label: `Calling on ${friendly.name}`, toward: `${friendly.name}'s door` }
             : s,
         );
+      // A child goes out with a parent the same way.
+      const child = (person(id)?.age ?? 30) < 12;
       const lead = person(id)
-        ?.relations?.filter((r) => r.kind === "friend" && r.other < id)
+        ?.relations?.filter((r) => (r.kind === "friend" && r.other < id) || (child && r.kind === "parent"))
         .map((r) => r.other)
         .find((other) => {
           const theirs = plan!.stations.get(other)?.[0];
@@ -2872,7 +2874,9 @@ export function createSettlementWorld(
       const name = lead ? (person(lead)?.name ?? "a friend") : "";
       const meet: Station | undefined =
         leader && door
-          ? { pos: { x: door.x + 1, y: door.y }, activity: "visit", label: `Calling for ${name}`, toward: `${name}'s door`, minutes: 3 }
+          ? door.x === bed.x && door.y === bed.y || near(door, bed, 2)
+            ? { pos: { x: door.x + 1, y: door.y }, activity: "visit", label: `Waiting for ${name}`, toward: "the door", minutes: 3 }
+            : { pos: { x: door.x + 1, y: door.y }, activity: "visit", label: `Calling for ${name}`, toward: `${name}'s door`, minutes: 3 }
           : undefined;
       const parting: Station | undefined = meet
         ? {

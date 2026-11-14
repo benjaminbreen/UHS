@@ -7520,19 +7520,18 @@ export class Engine {
         Math.abs(g.pos.x - focus.x) <= 80 && Math.abs(g.pos.y - focus.y) <= 80,
     );
     if (!near.length) return;
+    const about = this.state.actors.filter(
+      (a) =>
+        a.kind === "human" &&
+        a.pos.space === "outside" &&
+        Math.abs(a.pos.x - focus.x) <= 90 &&
+        Math.abs(a.pos.y - focus.y) <= 90,
+    );
     const humans = [
       // Indoors the player's cell is in the house's own grid, which the
       // animals outside would read as a spot in the field and charge.
       player.pos.space === "outside" ? player.pos : { x: -1e6, y: -1e6, space: "outside" },
-      ...this.state.actors
-        .filter(
-          (a) =>
-            a.kind === "human" &&
-            a.pos.space === "outside" &&
-            Math.abs(a.pos.x - focus.x) <= 90 &&
-            Math.abs(a.pos.y - focus.y) <= 90,
-        )
-        .map((a) => a.pos),
+      ...about.map((a) => a.pos),
     ];
     // A scuffle or someone running among them sends even a kept flock off,
     // the way a blow would.
@@ -7576,6 +7575,7 @@ export class Engine {
             this.state.player.pos.y === y),
         gateOpen: (id) => !!this.object(id)?.open,
         humans,
+        owners: new Map(about.map((a) => [a.id, a.pos])),
         rng: (purpose) => this.rng(purpose),
         hour: (clock / 3600) % 24,
         habitat: (this.habitat ??= habitatScorer(this.world)),

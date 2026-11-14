@@ -24,6 +24,8 @@ export type FaunaWorld = {
   gateOpen(id: string | undefined): boolean;
   /** People close enough to matter, the player first. */
   humans: readonly Position[];
+  /** The people out of doors among them, by id: a dog keeps to its owner. */
+  owners?: ReadonlyMap<string, Position>;
   rng(purpose: string): number;
   hour: number;
   /** How well a cell suits a species, 0 to 1. The engine caches it; without
@@ -293,7 +295,7 @@ function face(m: FaunaMember, dx: number, dy: number, all: boolean) {
  * only moves when someone is on top of it. Birds hop off a little earlier. */
 function alertRadius(p: FaunaProfile) {
   if (p.category === "wild") return p.alertRadius;
-  return p.locomotion === "ground-and-flight" ? 2 : 1.2;
+  return p.locomotion === "ground-and-flight" ? 2 : p.category === "domestic" && p.social === "flock" ? 1.6 : 1.2;
 }
 
 /** `noise` applies to the first threat only, which is the player. */
@@ -529,6 +531,17 @@ function decide(
     g.since = clock;
     return;
   }
+  // A house cat keeps to its owner's doorstep, and sits the rain out in the doorway.
+  const doorstep = g.speciesId === "cat" && !!g.owner;
+  if (doorstep && world.rain) {
+    if (hyp(g.pos, g.home) > 0.5) {
+      g.state = "wander";
+      g.target = { ...g.home };
+    } else g.state = doze;
+    g.nextDecisionAt = calm();
+    g.since = clock;
+    return;
+  }
   if (soak(g, p, world, clock)) return;
   if (scavenge(g, p, world, clock)) return;
   const prowl = p.art.stalk ? "stalk" : "wander";
@@ -564,6 +577,10 @@ function decide(
   ]);
   if ((g.state === "wander" || g.state === "stalk") && roam)
     g.target = { ...roam, space: "outside" };
+  if (doorstep && g.state === doze && hyp(g.pos, g.home) > 0.5) {
+    g.state = "wander";
+    g.target = { ...g.home };
+  }
   g.nextDecisionAt = calm();
   g.since = clock;
 }
@@ -1473,6 +1490,7 @@ export function advanceFauna(
         : world.humans;
     const bird = p.locomotion === "ground-and-flight";
     const kept = p.category !== "wild";
+    const hens = p.category === "domestic" && p.social === "flock";
     const turns = Boolean(p.directions);
     const airborne = aerialStates.has(g.state);
     // Struck by a person: even a kept animal runs, and from further off.
@@ -1559,7 +1577,8 @@ export function advanceFauna(
       threat &&
       g.alarm !== undefined &&
       close <= band &&
-      (clock >= g.alarm || stampede || (!kept && close <= FLUSH));
+      // A hen walked through does not wait to look.
+      (clock >= g.alarm || stampede || (!kept && close <= FLUSH) || hens);
     if (watching || (threat && !breaking))
       for (const m of g.members)
         face(m, threat!.x - m.x, threat!.y - m.y, turns);
@@ -1679,6 +1698,20 @@ export function advanceFauna(
       g.home = { x: player.x, y: player.y, space: "outside" };
       g.homeRadius = 2;
     }
+    // A yard dog goes out with its owner and comes home when they go in.
+    const master = g.speciesId === "dog" && !g.hound && g.owner ? world.owners?.get(g.owner) : undefined;
+    const heel = master && !quarry && g.provoked === undefined && g.state !== "flee" && hyp(master, g.pos) <= 16 ? master : undefined;
+    if (heel) {
+      const want = hyp(g.pos, heel) > 3.5 ? "chase" : hyp(g.pos, heel) > 2.5 ? "wander" : g.state === "chase" || g.state === "wander" ? "idle" : g.state;
+      if (want !== g.state) g.since = clock;
+      g.state = want;
+      g.target = want === "chase" || want === "wander" ? { x: heel.x, y: heel.y, space: "outside" } : undefined;
+      g.nextDecisionAt = clock + TICK;
+    } else if (g.speciesId === "dog" && !g.hound && g.owner && !quarry && !g.target && g.state !== "flee" && hyp(g.pos, g.home) > g.homeRadius + 2) {
+      g.state = "wander";
+      g.target = { ...g.home };
+      g.since = clock;
+    }
     if (
       clock >= g.nextDecisionAt &&
       g.state !== "flee" &&
@@ -1744,8 +1777,9 @@ export function advanceFauna(
       (running ? winded : 1) *
       TIERS[g.members[0].tier ?? "ordinary"].speed;
     g.stride += p.pace * boost;
-    let steps = Math.min(running && (!kept || g.hound) ? 9 : 3, Math.floor(g.stride));
+    let steps = Math.min(running && (!kept || g.hound || heel) ? 9 : 3, Math.floor(g.stride));
     g.stride -= steps;
+    if (hens && breaking && !steps) steps = 1;
     const leader = g.members[0];
     // Away, but not dead away: the line swings a little each tick, and
     // each animal holds its own a shade off the herd's.
@@ -1815,10 +1849,16 @@ export function advanceFauna(
         // Cornered: nothing to do but face whoever is coming.
         if (!moved) steps = 0;
       } else if (kept && threat && breaking) {
+        const human = world.humans.includes(threat);
+        // A flock walked through scatters together, each a hop or two clear.
+        const scatter = human && hens;
         for (const m of g.members)
-          if (hyp(m, threat) < (world.humans.includes(threat) ? radius : 3)) {
-            const to = bestStep(world, p, taken, m, threat, true);
-            if (to) moveMember(m, to, taken, turns);
+          if (hyp(m, threat) < (scatter ? radius + 1 : human ? radius : 3)) {
+            for (let i = scatter ? 2 : 1; i > 0; i--) {
+              const to = bestStep(world, p, taken, m, threat, true);
+              if (to) moveMember(m, to, taken, turns);
+            }
+            if (scatter) m.shy = { x: threat.x, y: threat.y, until: clock + 2 * TICK };
           }
         steps = 0;
       } else if (watching) {
