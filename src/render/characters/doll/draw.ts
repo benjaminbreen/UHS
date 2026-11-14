@@ -828,7 +828,11 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     hands[1] = [-(d.shoulderW + 0.5), sh + 8, 0];
   }
   // A guard's pole stands upright in the hand, at rest and on the march alike.
-  if (prop && shouldered(prop.sprite.slice(5)) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
+  // A yoke's chains are steadied with a hand on each.
+  if (prop?.sprite === "icon:yoke" && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade) {
+    hands[0] = [d.shoulderW + 1.5, sh + 7, 0];
+    hands[1] = [-(d.shoulderW + 1.5), sh + 7, 0];
+  } else if (prop && shouldered(prop.sprite.slice(5)) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
     hands[near] = [ns * (d.shoulderW - 0.5), sh - 1, 3];
   else if (prop && upright(prop) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
     hands[near] = [ns * (d.shoulderW + 0.6), sh - (prop.sprite === "icon:musket" || prop.sprite === "icon:rifle" || prop.sprite === "icon:crossbow" ? 9 : prop.sprite === "icon:macuahuitl" ? 12 : 6), 1.5];
@@ -847,8 +851,8 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
 }
 
 /** Polearms and long guns a figure stands with: drawn by the painter, not from the icon. */
-const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|rifle|harpoon|paddle|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole)$/.test(prop.sprite);
-const shouldered = (kind?: string) => kind === "water-pole" || kind === "carrying-pole";
+const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|rifle|harpoon|paddle|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole|yoke)$/.test(prop.sprite);
+const shouldered = (kind?: string) => kind === "water-pole" || kind === "carrying-pole" || kind === "yoke";
 const EMBLEMS: Record<string, string> = { cowhide: "#ece4d4", lambda: "#8a2a22", cross: "#ece4d4", chevron: "#d8b04a", tiger: "#d8a03a", bands: "#ece4d4", rim: "#a4aab0" };
 
 /** The pole from the ground (or the hip, for a gun) to above the head, with
@@ -992,7 +996,9 @@ function shield(s: Sheet, t: Turn, kind: "round" | "tall", elbow: J, hand: J, ma
 /** A pole over the shoulder with a pail or basket at each end. Side on, both
  * loads show; from the front or back only the near one, hanging before the chest. */
 function shoulderPole(s: Sheet, t: Turn, kind: string, x: number, y: number, side: number, near: boolean, swing = 0, bounce = 0) {
-  const pails = kind === "water-pole";
+  // A yoke lies across both shoulders, square to the pole's line of travel.
+  const yoke = kind === "yoke";
+  const pails = kind === "water-pole" || yoke;
   // Loads hang on cords: they swing behind the stride and bounce against the step.
   const load = (hang: number, at: number) => {
     const cx = hang + Math.round(swing), top = at + Math.round(bounce);
@@ -1003,17 +1009,19 @@ function shoulderPole(s: Sheet, t: Turn, kind: string, x: number, y: number, sid
     if (pails) s.put(new Mask().span(top + 3, rnd(cx - 2.5), rnd(cx + 2.5)), STEEL, { ring: "none", shade: 0, light: 0 });
     s.put(new Mask().line(rnd(hang), y + 1, rnd(cx), top - 1, 1), LEATHER, { ring: "none", shade: 0, light: 0 });
   };
-  if (t.view !== "front" && t.view !== "back") {
+  if (yoke ? Math.abs(t.cos) > 0.3 : t.view !== "front" && t.view !== "back") {
     // Foreshortened in three-quarter: the far end rides higher.
-    const reach = 11 * Math.abs(t.sin), rise = Math.round(3 * Math.abs(t.cos));
+    const reach = yoke ? 7 * Math.abs(t.cos) : 11 * Math.abs(t.sin), rise = Math.round((yoke ? 2 : 3) * Math.abs(yoke ? t.sin : t.cos));
     s.put(new Mask().line(rnd(x - reach), y + rise, rnd(x + reach), y - rise, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
-    if (near) [[x - reach + 1, y + rise], [x + reach - 1, y - rise]].forEach(([cx, cy]) => load(cx, cy + 7));
+    if (near) [[x - reach + 1, y + rise], [x + reach - 1, y - rise]].forEach(([cx, cy]) => load(cx, cy + (yoke ? 13 : 7)));
     return;
   }
   if (!near) return;
-  const cx = x + side * 3;
-  s.put(new Mask().line(rnd(x + side), y - 1, rnd(cx), y + 3, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
-  load(cx, y + 8);
+  const cx = x + side * (yoke ? 1 : 3);
+  // Side on, the yoke is seen end-on as a block on the shoulder.
+  if (yoke) s.put(new Mask().span(y - 1, rnd(x - 1.5), rnd(x + 1.5)).span(y, rnd(x - 1.5), rnd(x + 1.5)), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+  else s.put(new Mask().line(rnd(x + side), y - 1, rnd(cx), y + 3, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+  load(cx, y + (yoke ? 13 : 8));
 }
 
 /** What a trade works with, drawn from where the hands are. `body` is a

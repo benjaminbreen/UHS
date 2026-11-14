@@ -36,6 +36,8 @@ import { composeWearing, wornFromWearing } from "../core/wearing";
 import { restingPortraitPoseOf } from "../core/persona";
 import { statsOf } from "../core/stats";
 import { nameBriefedPeople } from "../core/kin";
+import { smokingHabit, supplyFor } from "../content/characters/smoking";
+import { healthPerson } from "../core/health";
 import {
   actorAppearance,
   generateAppearance,
@@ -248,6 +250,12 @@ export function createSession(
     engine.state.player.stats = rollStats(seed, engine.state.player);
     engine.state.player.health = 100;
   }
+    // A habitual smoker or chewer starts with a few days' supply.
+    const habit = smokingHabit(pack.setting, healthPerson(engine.state.player, pack.setting), random(seed, "smokes", "player"), random(seed, "smoke-form", "player"));
+    if (habit) {
+      const supply = supplyFor(habit, pack.year), inv = engine.state.player.inventory;
+      inv[supply] = (inv[supply] ?? 0) + 3;
+    }
   for (const goal of engine.state.goals ?? []) {
     goal.slot ??= GOAL_TEMPLATES.find((template) => template.id === goal.id)?.slot ??
       (["eat", "food-store", "sleep", "water", "firewood"].includes(goal.id) ? "need" : "social");

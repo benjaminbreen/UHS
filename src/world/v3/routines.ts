@@ -761,6 +761,7 @@ export function planRoutines(
         carryKit(pack),
         undefined,
         goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision)[0],
+        random(seed, "carry", id),
       ),
     );
   }

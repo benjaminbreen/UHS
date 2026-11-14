@@ -474,6 +474,26 @@ export class PixelRoom {
           x += 7;
           break;
         }
+        case "tobacco": {
+          if (k < 0.45) {
+            // A lidded tin or jar of cut leaf.
+            const R = k < 0.2 ? P.brass : P.clay;
+            this.r(x, base - 5, 4, 5, (i, j) => (j === 0 ? R[5] : j === 1 ? R[1] : i === 0 ? R[4] : R[3]));
+            x += 5;
+          } else if (k < 0.8) {
+            // A rope of twisted dark leaf.
+            this.r(x, base - 2, 6, 2, (i, j) => ((i + j) % 2 ? 0x5a3418 : 0x7a4a22));
+            x += 7;
+          } else {
+            // Clay pipes laid one above another.
+            for (let l = 0; l < 3; l++) {
+              this.r(x, base - 1 - l * 2, 6, 1, 0xeee8da);
+              this.s(x + 5, base - 2 - l * 2, 0xd8d0c0);
+            }
+            x += 7;
+          }
+          break;
+        }
         case "leather": {
           this.r(x, base - 3, 3, 3, (i, j) => (j === 0 ? 0x8a5a32 : i === 2 ? 0x3a2414 : 0x6a4224));
           this.r(x + 3, base - 2, 2, 2, 0x4a2c18);

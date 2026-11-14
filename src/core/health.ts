@@ -330,6 +330,32 @@ export function healthResearch(s: Snapshot) {
 export const ailing = (s: Snapshot, id: string, clock: number) =>
   (s.ailments ?? []).reduce((worst, a) => (a.who === id ? Math.max(worst, severity(a, clock)) : worst), 0);
 
+/** What an illness shows from across a street, 0 to 1 each. */
+export type Symptoms = { cough: number; sneeze: number; fever: number; nausea: number };
+const SHOWS: Record<string, Partial<Symptoms>> = {
+  cough: { cough: 1, sneeze: 0.7, fever: 0.3 },
+  measles: { cough: 0.7, sneeze: 0.5, fever: 0.8 },
+  fever: { fever: 1 },
+  smallpox: { fever: 1 },
+  plague: { fever: 1, nausea: 0.5 },
+  flux: { nausea: 1 },
+  wound: { fever: 0.6 },
+};
+
+export function symptomsShown(s: Snapshot, a: Actor, setting: WorldSetting | undefined, clock: number): Symptoms {
+  const out: Symptoms = { cough: 0, sneeze: 0, fever: 0, nausea: 0 };
+  const add = (shows: Partial<Symptoms>, v: number) => {
+    for (const k of Object.keys(shows) as (keyof Symptoms)[]) out[k] = Math.max(out[k], shows[k]! * v);
+  };
+  for (const ail of s.ailments ?? []) if (ail.who === a.id && SHOWS[ail.id]) add(SHOWS[ail.id], severity(ail, clock));
+  for (const c of conditionsOf(s.manifest.seed, a, setting)) {
+    if (c.id === "consumption") add({ cough: 1 }, 0.5);
+    // Tertian malaria: the fever comes back every third day.
+    if (c.id === "ague" && Math.floor(clock / DAY) % 3 === 0) add({ fever: 1 }, 0.4);
+  }
+  return out;
+}
+
 export function bodilyLimits(s: Snapshot) {
   const p = s.player;
   const sick = ailing(s, p.id, s.clock), injury = p.injury && p.injury.until > s.clock ? 0.15 : 0;

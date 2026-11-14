@@ -76,6 +76,18 @@ export const wares: Ware[] = [
   // Friction matches from the 1830s; safety matches from the 1850s.
   { id: "matches", name: "Matches", sprite: "torch", value: 1, good: "light", scope: { years: [1830, 10001] },
     description: "A box of strike-anywhere matches." },
+  // Tobacco reached every continent within a century of 1550; see content/characters/smoking.ts.
+  { id: "pipe-tobacco", name: "Pipe tobacco", sprite: "tobacco", value: 2, good: "tobacco", scope: { years: [1600, 10001] },
+    description: "Cured leaf, cut fine or twisted into a rope, sold by the ounce for the pipe." },
+  { id: "snuff", name: "Snuff", sprite: "tobacco", value: 3, good: "tobacco", scope: { years: [1650, 1950], cultures: ["european", "east-asian"] },
+    description: "Tobacco ground to powder and scented, taken in a pinch up the nose; the polite way to take it in the eighteenth century." },
+  { id: "cigars", name: "Cigars", sprite: "tobacco", value: 3, good: "tobacco", scope: { years: [1800, 10001] },
+    description: "Whole leaf rolled tight in a wrapper leaf: Havana, Manila, or a cheap local cheroot." },
+  // The Bonsack rolling machine, 1881, made the cigarette cheap.
+  { id: "cigarettes", name: "Cigarettes", sprite: "tobacco", value: 2, good: "tobacco", scope: { years: [1880, 10001] },
+    description: "A packet of machine-rolled cigarettes." },
+  { id: "betel", name: "Betel quid", sprite: "greens", value: 1, good: "tobacco", scope: { years: [-500, 10001], cultures: ["south-asian", "southeast-asian"] },
+    description: "Sliced areca nut and a smear of lime folded in a betel leaf; chewed, it stains the mouth and the spit red." },
   { id: "kerosene-lamp", name: "Kerosene lamp", sprite: "torch", value: 6, good: "light", scope: { years: [1860, 1970] },
     description: "A glass chimney over a flat wick, brighter than any candle and cheaper to burn." },
 ];

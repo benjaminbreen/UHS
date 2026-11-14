@@ -23,11 +23,12 @@ export const shopKinds: ShopKind[] = [
   { id: "fine", label: "Workshop", match: /lacquer|paint|jewel|gold|silver|engrav|print|book|scribe|clock|glass/, fixture: ["fixture"] },
   { id: "drink", label: "Wine shop", match: /brew|wine|vint|distil|sake|ale\b/ },
   { id: "oil", label: "Oil shop", match: /\boil|press/ },
+  { id: "tobacco", label: "Tobacconist", match: /tobacc|snuff|cigar|paan|betel/ },
   { id: "general", label: "Shop", match: /trad|merchant|broker|factor|deal|grocer|shop|peddl|market|sell|monger|vendor/ },
 ];
 const BY_GOOD: Record<string, string> = {
   bread: "bread", meat: "meat", fish: "fish", ironwork: "tools", timber: "timber", pots: "pots",
-  cloth: "cloth", leather: "leather", light: "candles", drink: "drink", oil: "oil", grain: "general",
+  cloth: "cloth", leather: "leather", light: "candles", tobacco: "tobacco", drink: "drink", oil: "oil", grain: "general",
 };
 
 /** The kind of shop a keeper's livelihood or goods make, if any. */

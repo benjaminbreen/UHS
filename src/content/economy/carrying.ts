@@ -29,8 +29,16 @@ const styles: Partial<Record<string, Partial<Record<Load, CarryStyle>>>> = {
   "inner-eurasian": { bundle: "back" },
 };
 
+export type CarryKit = {
+  vessel: string; basket: string; bundle: string; tool: string;
+  /** Shares of people who carry these on a shoulder pole or a yoke instead. */
+  poled?: Partial<Record<Load, readonly [string, number]>>;
+  /** A basket to market and home again, before the shopping bag. */
+  shopping?: string;
+};
+
 /** What people in this place carry things in, and how. */
-export function carryKit(pack: Pack) {
+export function carryKit(pack: Pack): CarryKit {
   const culture = pack.setting?.culture ?? "european";
   const year = pack.year;
   const yard = propKit(pack).contexts.yard;
@@ -52,12 +60,29 @@ export function carryKit(pack: Pack) {
   const contact = ["mesoamerican", "andean"].includes(culture) ? year >= 1550
     : culture === "australian-pacific" ? year >= 1800 : true;
   const metal = !pack.setting || capabilitiesFor(pack.setting).has("metallurgy");
+  // Korea carried on the jige, an A-frame on the back, not the pole.
+  const korea = !!pack.setting && pack.setting.lon > 124 && pack.setting.lon < 131 && pack.setting.lat > 33 && pack.setting.lat < 43;
+  const poleland = ((culture === "east-asian" && !korea) || culture === "southeast-asian") && year < 1970;
   return {
     vessel: as(vessel, "vessel"),
     basket: as("basket", "basket"),
     bundle: as(bundle, "bundle"),
     tool: contact ? `prop:hoe${metal ? "" : "#1"}@hand` : "prop:digging-stick@hand",
+    poled: {
+      vessel: poleland ? ["water-pole", culture === "east-asian" ? 0.7 : 0.45]
+        // The bucket yoke: water and milk in Europe from the 1600s until the tap.
+        : culture === "european" && vessel === "bucket" && year >= 1600 && year < 1920 ? ["yoke", 0.4] : undefined,
+      basket: poleland ? ["carrying-pole", 0.5] : undefined,
+      bundle: poleland ? ["carrying-pole", 0.4] : undefined,
+    },
+    shopping: year < 1920 ? as("basket", "basket") : undefined,
   };
+}
+
+/** How this person carries a kind of load: `roll` is theirs, the same every day. */
+export function borne(kit: CarryKit, load: Load, roll: number) {
+  const alt = kit.poled?.[load];
+  return alt && roll < alt[1] ? alt[0] : kit[load];
 }
 
 /** A carried prop's key and style, when a held thing is a load. */
@@ -82,7 +107,9 @@ export function withLoads(
   bought?: string,
   /** The good this person makes, carried from their work to the next stop. */
   made?: string,
+  roll = 1,
 ) {
+  const vessel = borne(kit, "vessel", roll), basket = borne(kit, "basket", roll);
   const out = stations.map((s) => ({ ...s }));
   // The day is a loop: the station after the last is the first.
   const bear = (i: number, load: string) => {
@@ -94,15 +121,19 @@ export function withLoads(
     // The field's generic tool becomes this place's.
     if (s.carry === "tool" && (s.activity === "tend" || s.label === "At the field")) s.carry = kit.tool;
     if (s.activity === "visit" && bought && s.label.startsWith("Buying"))
-      bear(i + 1, shownAs[bought] ?? kit.basket);
+      bear(i + 1, shownAs[bought] ?? basket);
     if (s.carry) return;
     if (s.activity === "draw-water") {
-      s.carry = kit.vessel;
-      bear(i + 1, kit.vessel);
-    } else if (s.activity === "gather") {
-      s.carry = kit.basket;
-      bear(i + 1, kit.basket);
-    } else if (s.activity === "haul") s.carry = kit.bundle;
+      s.carry = vessel;
+      bear(i + 1, vessel);
+    } else if (s.activity === "gather" || s.label === "Washing clothes at the water") {
+      s.carry = basket;
+      bear(i + 1, basket);
+    } else if (s.activity === "haul") s.carry = borne(kit, "bundle", roll);
+    else if (s.activity === "visit" && kit.shopping && /market|square|bazaar/i.test(s.label)) {
+      s.carry = kit.shopping;
+      bear(i + 1, kit.shopping);
+    }
   });
   const product = made && shownAs[made];
   let last = -1;

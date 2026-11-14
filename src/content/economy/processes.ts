@@ -86,6 +86,8 @@ const byActivity: Record<string, Entry> = {
   "Exchanging goods": ["serve", "market-counter", "beam-scale", "crate-stack", "grain-sacks"],
   "Exchanging supplies": ["serve", "market-counter", "beam-scale", "crate-stack", "grain-sacks"],
   "Minding the stall": ["serve", "market-counter", "beam-scale", "crate-stack"],
+  "Selling tobacco": ["serve"],
+  "Making up betel": ["serve"],
   "Keeping the house": ["serve"],
   "Keeping the record": ["serve"],
   "Standing watch": ["serve"],
@@ -110,7 +112,7 @@ const indoors = new Set([
   "Twisting fibre", "Making clothes", "Household craft work", "Making shoes",
   "At the workbench", "Turning pots", "Making candles", "Keeping the record",
   "Household work", "Looking after the household", "Keeping the house",
-  "Tending the sick", "Playing and telling",
+  "Tending the sick", "Playing and telling", "Selling tobacco", "Making up betel",
   "Hearing cases", "Minding the business",
 ]);
 

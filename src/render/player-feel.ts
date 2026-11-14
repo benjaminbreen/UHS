@@ -209,6 +209,122 @@ export class PlayerFeel {
     }
   }
 
+  /** A fit of two or three coughs, each a jolt and a grey burst from the
+   * mouth. A face turned to the viewer (`dx` 0) coughs down and out. */
+  cough(im: Sprite, x: number, y: number, dx: number, depth: number, fits: number) {
+    for (let n = 0; n < fits; n++)
+      this.scene.time.delayedCall(n * 210, () => {
+        if (!im.active) return;
+        this.spring(im, 1.06, 0.93, 150);
+        for (let i = 0; i < 3; i++) {
+          const rect = this.scene.add
+            .rectangle(x + dx * 2, y + 1, i ? 2 : 3, 2, i === 2 ? 0xb8b4ac : 0xdcd8d0)
+            .setAlpha(0.95)
+            .setDepth(depth);
+          const out = (i - 1) * 3;
+          this.scene.tweens.add({
+            targets: rect,
+            x: rect.x + (dx ? dx * (6 + i * 2) : out * 2.4),
+            y: rect.y + (dx ? out * 0.6 - 1 : 4 + i * 2),
+            alpha: 0,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            duration: 320 + i * 60,
+            ease: "Quad.easeOut",
+            onComplete: () => rect.destroy(),
+          });
+        }
+      });
+  }
+
+  /** Ah... the head goes back and the body draws up, then the snap forward
+   * and a fan of spray. */
+  sneeze(im: Sprite, x: number, y: number, dx: number, depth: number) {
+    this.springUntil = this.scene.time.now + 760;
+    const s = { y: 1 };
+    this.scene.tweens.add({
+      targets: s,
+      y: 1.08,
+      duration: 380,
+      ease: "Sine.easeIn",
+      onUpdate: () => im.active && im.setScale(1 / s.y, s.y),
+      onComplete: () => {
+        if (!im.active) return;
+        this.spring(im, 1.14, 0.86, 240);
+        for (let i = 0; i < 8; i++) {
+          const fan = (i / 7 - 0.5) * 1.4;
+          const dot = this.scene.add
+            .rectangle(x + dx * 3, y + 1, 1, 1, i % 3 ? 0xf4f8ff : 0xc4dcf0)
+            .setDepth(depth);
+          const reach = 7 + Math.random() * 6;
+          const fx = dx ? dx * Math.cos(fan) : Math.sin(fan),
+            fy = dx ? Math.sin(fan) : Math.cos(fan);
+          const t = { v: 0 };
+          const [ox, oy] = [dot.x, dot.y];
+          this.scene.tweens.add({
+            targets: t,
+            v: 1,
+            duration: 380 + Math.random() * 160,
+            ease: "Quad.easeOut",
+            onUpdate: () => dot.setPosition(ox + fx * reach * t.v, oy + fy * reach * 0.5 * t.v + 6 * t.v * t.v).setAlpha(1 - t.v * t.v),
+            onComplete: () => dot.destroy(),
+          });
+        }
+      },
+    });
+  }
+
+  /** A fever's sweat: a drop flicked off each side of the brow. */
+  sweat(x: number, y: number, depth: number) {
+    for (const side of [-1, 1]) {
+      if (Math.random() < 0.3) continue;
+      const drop = this.scene.add.rectangle(x + side * 4, y, 1, 2, 0x9fd0f4).setDepth(depth);
+      const t = { v: 0 };
+      this.scene.tweens.add({
+        targets: t,
+        v: 1,
+        duration: 560,
+        onUpdate: () => drop.setPosition(x + side * (4 + 5 * t.v), y - 6 * t.v + 12 * t.v * t.v).setAlpha(1 - t.v * t.v),
+        onComplete: () => drop.destroy(),
+      });
+    }
+  }
+
+  /** Queasy: a little green squiggle wobbling up off the head. */
+  queasy(x: number, y: number, depth: number) {
+    for (let i = 0; i < 3; i++) {
+      const bit = this.scene.add.rectangle(x - 2 + i * 2, y, 2, 1, i === 1 ? 0x7fae4c : 0x9ccc62).setDepth(depth);
+      const t = { v: 0 };
+      this.scene.tweens.add({
+        targets: t,
+        v: 1,
+        duration: 1100,
+        onUpdate: () =>
+          bit.setPosition(x - 2 + i * 2 + Math.sin(t.v * 12 + i * 2) * 1.5, y - 8 * t.v + (i === 1 ? -1 : 0)).setAlpha(Math.min(1, (1 - t.v) * 2)),
+        onComplete: () => bit.destroy(),
+      });
+    }
+  }
+
+  /** A drop of blood left on the ground. */
+  bleed(x: number, y: number, depth: number, color = 0x8a1414) {
+    const mark = this.scene.add
+      .rectangle(Math.round(x + (Math.random() - 0.5) * 9), Math.round(y + 1 + Math.random() * 2), Math.random() < 0.4 ? 2 : 1, 1, color, 0.9)
+      .setDepth(depth);
+    this.prints.push(mark);
+    this.scene.tweens.add({
+      targets: mark,
+      alpha: 0,
+      delay: 14000,
+      duration: 8000,
+      onComplete: () => {
+        this.prints = this.prints.filter((p) => p !== mark);
+        mark.destroy();
+      },
+    });
+    if (this.prints.length > MAX_PRINTS) this.prints.shift()?.destroy();
+  }
+
   /** Blades either side of the foot bow outward and whip back upright. */
   part(x: number, y: number, depth: number) {
     const greens = SURFACES.grass!.puff!;

@@ -53,6 +53,7 @@ export const goods: Good[] = [
     match: /carpent|wheelwright|joiner|thatch|sawyer|wood/,
   },
   { id: "light", noun: "candles", match: /candle|chandler|soap|tallow/ },
+  { id: "tobacco", noun: "tobacco", match: /tobacconist|snuff|cigar|paan|betel/ },
   { id: "hide", noun: "hides", match: /^$/ },
   { id: "fibre", noun: "wool and flax", match: /^$/ },
   { id: "milk", noun: "milk", match: /^$/ },
@@ -63,7 +64,7 @@ export const standsIn: Record<string, string> = { bread: "grain" };
 const byTrade: Record<string, string[]> = {
   baker: ["bread"], miller: ["grain"], butcher: ["meat"],
   dairymaid: ["milk"], milkmaid: ["milk"], "dairy-farmer": ["milk"], confectioner: [],
-  innkeeper: ["drink"], publican: ["drink"],
+  innkeeper: ["drink"], publican: ["drink"], tobacconist: ["tobacco"], "paan-seller": ["tobacco"],
   "basket-weaver": ["pots"], "basket-maker": ["pots"], cooper: ["pots"],
   "net-maker": [], "vine-dresser": [], "market-gardener": [],
   "tea-grower": [], "tea-picker": [], "cotton-grower": ["fibre"], "jute-grower": [],

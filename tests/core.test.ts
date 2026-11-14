@@ -1,4 +1,4 @@
-import { bodyState, bodySummary, diseaseState, diseaseTime, exposure, infect, onsets, mealExposure, healthResearch, updateCourse, severity, resolvedInfection } from "../src/core/health";
+import { bodyState, bodySummary, diseaseState, diseaseTime, exposure, infect, onsets, mealExposure, healthResearch, updateCourse, severity, resolvedInfection, symptomsShown } from "../src/core/health";
 import { smallSession } from "./fixtures";
 import { describe, it, expect, vi } from "vitest";
 import { doorApproach } from "../src/core/doors";
@@ -69,6 +69,20 @@ describe("exposure, symptoms and care", () => {
     e.state.ailments!.push(ail);
     return ail;
   }
+
+  it("shows a cough as coughing and the flux as nausea, and nothing once mended", () => {
+    const e = clinic(), p = e.state.player;
+    symptomatic(e, "cough");
+    const cough = symptomsShown(e.state, p, setting, e.state.clock);
+    expect(cough.cough).toBeGreaterThan(0.3);
+    expect(cough.nausea).toBe(0);
+    e.state.ailments = [];
+    symptomatic(e, "flux");
+    const flux = symptomsShown(e.state, p, setting, e.state.clock);
+    expect(flux.cough).toBe(0);
+    expect(flux.nausea).toBeGreaterThan(0.3);
+    expect(symptomsShown(e.state, p, setting, e.state.clock + 30 * 86400).nausea).toBe(0);
+  });
 
   it("accumulates indoor contact by duration, permits exposure before symptoms, and reduces outdoor exposure", () => {
     const a = clinic(), b = clinic(), outside = clinic();

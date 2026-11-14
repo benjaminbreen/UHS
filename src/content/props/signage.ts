@@ -26,6 +26,7 @@ export const signLabels = [
   "Candle",
   "Ox",
   "Saw",
+  "Pipe",
 ] as const;
 export const signStyles = [
   "oak",
@@ -88,6 +89,7 @@ const trades: [RegExp, number][] = [
   [/\b(chandler|candlemaker|tallowman)\b/, 21],
   [/\b(butcher|flesher|slaughterman)\b/, 22],
   [/\b(carpenter|joiner|cooper|wheelwright|cabinetmaker)\b/, 23],
+  [/\b(tobacconist|snuff|cigar)\b/, 24],
   [/\b(fishmonger|fishseller|fishwife)\b/, 7],
   [/\b(bookseller|bookbinder|stationer|printer|scribe)\b/, 8],
   [/\b(tea|teahouse|teaseller|coffee|coffeehouse)\b/, 9],

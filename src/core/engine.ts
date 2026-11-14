@@ -150,6 +150,7 @@ import { faunaAt, faunaCombat, faunaProfile } from "../content/fauna";
 import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../content/agriculture/pests";
 import { livelihoodById } from "../content/characters/livelihoods";
 import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
+import { smokingFrom } from "../content/characters/smoking";
 import { amountIn, moneyFor } from "../content/economy/money";
 import { tableGames } from "../content/games";
 import { venueOfClaim } from "../content/venues";
@@ -11890,6 +11891,12 @@ export class Engine {
       this.brawl();
       this.watch();
       this.passersBy();
+      const day = Math.floor(next / 86400);
+      if (player.smoked !== day) {
+        const smoking = player.smoked === undefined ? undefined : smokingFrom(player.inventory, this.world.pack.setting);
+        if (smoking) player.inventory[smoking.item] = (player.inventory[smoking.item] ?? 0) - 1;
+        player.smoked = day;
+      }
       if (next % 600 === 0) this.runIndoors(next);
       this.confront(next);
       this.beeStep(next);

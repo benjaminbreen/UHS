@@ -70,6 +70,7 @@ export const items: Record<
   ledger: { id: "ledger", name: "Register", description: "A bound book or roll of accounts: who has paid, who owes, what came through the gate.", sprite: "ledger", value: 4, hand: {} },
   "water-pole": { id: "water-pole", name: "Pails on a pole", description: "Two pails slung from a pole across the shoulder: water to sell by the cup, or night soil to the fields.", sprite: "water-pole", value: 4, hand: {} },
   "carrying-pole": { id: "carrying-pole", name: "Carrying pole", description: "A springy pole across one shoulder with a basket at each end: how loads moved through most of Asia.", sprite: "carrying-pole", value: 3, hand: {} },
+  yoke: { id: "yoke", name: "Yoke and pails", description: "A wooden yoke shaped to the neck and shoulders, a pail hung from each end: how milk and water were carried in Europe until the tap.", sprite: "yoke", value: 4, hand: {} },
   "lamp-pole": { id: "lamp-pole", name: "Lamplighter's pole", description: "A long pole with a hook to open a street lamp and a wick to light it.", sprite: "lamp-pole", value: 3, hand: {} },
   "sweep-brush": { id: "sweep-brush", name: "Sweep's brush", description: "A round head of stiff bristle on jointed rods, pushed up a chimney to bring the soot down.", sprite: "sweep-brush", value: 3, hand: {} },
   lute: { id: "lute", name: "Lute", description: "A plucked instrument with a round back and a fretted neck: lute, oud, pipa, biwa, kora.", sprite: "lute", value: 12, hand: {} },

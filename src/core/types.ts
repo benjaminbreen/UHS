@@ -272,6 +272,8 @@ export type Actor = {
   encounterAfter?: number;
   trust: number;
   /** When the player last cost them trust. */
+  /** The day the player last got through some tobacco or betel. */
+  smoked?: number;
   wronged?: number;
   /** Until when they refuse to speak to the player at all. */
   shuns?: number;

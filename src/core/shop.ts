@@ -72,7 +72,9 @@ export function stockFor(
   const goods = goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision);
   const ids = new Set<ItemId>(goods.flatMap((g) => SHELF[g] ?? []));
   const setting = pack.setting;
-  for (const w of wares) if (goods.includes(w.good) && setting && matchesCharacterScope(w.scope, setting)) ids.add(w.id);
+  // An alehouse kept tobacco and pipes for its drinkers.
+  const sold = goods.includes("drink") ? [...goods, "tobacco"] : goods;
+  for (const w of wares) if (sold.includes(w.good) && setting && matchesCharacterScope(w.scope, setting)) ids.add(w.id);
   const worn = Object.values(actor.worn ?? {}).filter((id): id is ItemId => !!id);
   for (const g of goods) for (const id of worn) if (DRESSED[g]?.test(id)) ids.add(id);
   // Helmets and arrowheads from the smith, until guns made them obsolete.

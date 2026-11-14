@@ -26,6 +26,7 @@ import { poses, workPoseFor } from "../src/render/characters/poses";
 import { greetingFor } from "../src/content/characters/greetings";
 import { places } from "../src/content/geography/places";
 import { settingFor } from "../src/content/geography/resolve";
+import { smokingFrom, smokingHabit } from "../src/content/characters/smoking";
 import { defaultRenderer, workerDrawn } from "../src/render/characters/renderers";
 import { drawCharacterF, drawCharacterG } from "../src/render/characters/doll/draw";
 
@@ -40,6 +41,20 @@ it("carries the same healed cheek scar into the world sprite", () => {
     return data;
   };
   expect(render("cheek")).not.toEqual(render("none"));
+});
+
+it("smokes only where and when tobacco had come, in the local manner", () => {
+  const at = (id: string, year: number) => settingFor(places.find((p) => p.id === id)!, year);
+  const man = { age: 40, sex: "male" as const, role: "porter" };
+  const share = (id: string, year: number) => Array.from({ length: 200 }, (_, i) => smokingHabit(at(id, year), man, i / 200, 0.5)).filter(Boolean);
+  expect(share("london", 1400)).toEqual([]);
+  expect(share("london", 1680).length).toBeGreaterThan(60);
+  expect(share("london", 1680).every((f) => f === "clay-pipe")).toBe(true);
+  expect(share("kyoto", 1750)).toContain("kiseru");
+  expect(smokingHabit(at("london", 1950), man, 0.1, 0.1)).toBe("cigarette");
+  expect(smokingHabit(at("london", 1950), { ...man, age: 10 }, 0, 0)).toBeUndefined();
+  expect(smokingFrom({ "pipe-tobacco": 2 }, at("kyoto", 1750))?.form).toBe("kiseru");
+  expect(smokingFrom({ cigarettes: 0 }, at("london", 1950))).toBeUndefined();
 });
 
 it("greets in the manner of the place and the time", () => {

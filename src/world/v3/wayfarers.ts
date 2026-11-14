@@ -1,4 +1,4 @@
-import { carryKit } from "../../content/economy/carrying";
+import { borne, carryKit } from "../../content/economy/carrying";
 import { characterLivelihood, generateCharacter } from "../../content/characters/generate";
 import { resolveCharacterContext, workAt } from "../../content/characters/resolve";
 import { proceduralName } from "../../content/geography/character";
@@ -411,7 +411,7 @@ function roadParty(
     label: stopLabel,
     minutes: (kind.halt === "trade" ? 40 : 15) + r("minutes") * 40,
   };
-  const carry = kind.carry && kit[kind.carry];
+  const carry = kind.carry && borne(kit, kind.carry, r("carry"));
   const pace = PACE / (kind.speed ?? 1);
   const arrive = (6 + r("arrive") * 10) * 60;
   /** `lag` tiles behind whoever leads, and halting that much short of them. */

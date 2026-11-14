@@ -387,7 +387,7 @@ export function populateHouseholds(
       const actor = world.initialActors.find((b) => b.id === head);
       plan.work.set(head, site);
       if (plan.stations.has(head))
-        plan.stations.set(head, withLoads(routineFor(plan, seed, pack, head, site, actor), carryKit(pack), undefined, goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision)[0]));
+        plan.stations.set(head, withLoads(routineFor(plan, seed, pack, head, site, actor), carryKit(pack), undefined, goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision)[0], random(seed, "carry", head)));
     }
     for (const p of pending) if (p.household === h) p.site = { ...p.site, home: { x: host.home.x, y: host.home.y } };
   }
@@ -509,6 +509,7 @@ export function populateHouseholds(
         carryKit(pack),
         buy?.good,
         child ? undefined : goodsOf(kit, pack.setting?.economyRevision)[0],
+        random(seed, "carry", id),
       ),
     );
   }

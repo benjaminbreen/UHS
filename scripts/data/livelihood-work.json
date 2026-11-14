@@ -649,6 +649,20 @@
         "bread": 2
       }
     },
+    "tobacco": {
+      "activity": "Selling tobacco",
+      "inventory": {
+        "coin": 2,
+        "pipe-tobacco": 2
+      }
+    },
+    "betel": {
+      "activity": "Making up betel",
+      "inventory": {
+        "coin": 2,
+        "betel": 3
+      }
+    },
     "estate": {
       "activity": "Overseeing the estate",
       "inventory": {

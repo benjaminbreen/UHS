@@ -217,6 +217,12 @@ const TURN_HOLD_MS = 60;
 /** The lean into a first step, and the rock back and settle out of a walk. */
 const SETOFF_MS = 80;
 const HALT_MS = 200;
+/** A limp: the half of the stride on the bad leg hurried, the good leg's
+ * half drawn out, over the same cycle so the feet do not slide. */
+function limpFrame(steps: number, n: number, lame: number) {
+  const quick = lame === 2 ? 0.5 : 0.65, half = n / 2, u = steps % n;
+  return u < half * quick ? Math.floor(u / quick) : Math.min(n - 1, half + Math.floor((u - half * quick) / (2 - quick)));
+}
 /** A gap between steps shorter than this is still one walk, not a stop and a start. */
 const GAIT_GAP_MS = 60;
 /** The rock back as a walk swings round three eighths or more. */
@@ -338,6 +344,9 @@ import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from 
 import { TiltShiftPipeline } from "./tilt-shift";
 import { NightGradePipeline } from "./night-grade";
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
+import { healthPerson, symptomsShown, type Symptoms } from "../core/health";
+import { smokingFrom, smokingHabit, type SmokeForm } from "../content/characters/smoking";
+import { Smokers } from "./smoking";
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
 /** A hearth plume: fewer, slower and taller than a campfire's. */
@@ -600,6 +609,28 @@ export class WorldScene extends Phaser.Scene {
   /** Animals knocked silly by something thrown: stars go round their heads. */
   private stunned = new Set<string>();
   /** Last drawn pose frame per person, so a footfall fires once per contact. */
+  private smokersFx?: Smokers;
+  private get smokers() {
+    return (this.smokersFx ??= new Smokers(
+      this,
+      (im, x, y, dx, depth) => this.feel.sneeze(im, x, y, dx, depth),
+      (x, y) => this.feel.bleed(x, y, this.printDepth(), 0x8c2a1c),
+    ));
+  }
+  private habits = new Map<string, SmokeForm | null>();
+  private emberGlow = 0;
+  private habitOf(id: string) {
+    if (id === "player") return smokingFrom(this.runtime.engine.state.player.inventory, this.runtime.engine.world.pack.setting)?.form;
+    let form = this.habits.get(id);
+    if (form === undefined) {
+      const { state, world } = this.runtime.engine;
+      const actor = state.actors.find((a) => a.id === id);
+      const seed = state.manifest.seed;
+      form = (actor?.kind === "human" && smokingHabit(world.pack.setting, healthPerson(actor), random(seed, "smokes", id), random(seed, "smoke-form", id))) || null;
+      this.habits.set(id, form);
+    }
+    return form ?? undefined;
+  }
   private footfalls = new Map<string, number>();
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number; next?: number; started?: number; sign?: number }>();
@@ -727,6 +758,9 @@ export class WorldScene extends Phaser.Scene {
   private rained = false;
   /** Golden-hour rim light: a warm copy of each figure a pixel toward the sun, behind it. */
   private rims = new Map<string, { rim: Phaser.GameObjects.Image; owner: Phaser.GameObjects.Image }>();
+  private symptoms = new Map<string, { s: Symptoms; at: number; next: number; sweat: number }>();
+  private sickPose = new Map<string, { pose: CharacterPose; from: number; until: number }>();
+  private bledAt = 0;
   private rainbow?: Phaser.GameObjects.Graphics;
   /** Where fallen leaves lie, for feet to kick through. */
   private leafPiles: { x: number; y: number }[] = [];
@@ -968,6 +1002,8 @@ export class WorldScene extends Phaser.Scene {
       this.babyFx?.dispose();
       this.babyFx = undefined;
     });
+      this.smokersFx?.dispose();
+      this.habits.clear();
     this.events.once("shutdown", () => this.characters?.destroy());
     this.events.once("destroy", () => this.characters?.destroy());
     this.fireFrames = animatedFrames(
@@ -6097,6 +6133,7 @@ export class WorldScene extends Phaser.Scene {
       .renderTexture(0, 0, width, height)
       .setOrigin(0)
       .setDepth(19000)
+    this.emberGlow = lamps;
       .setBlendMode(Phaser.BlendModes.MULTIPLY)
       .setVisible(false);
   }
@@ -7226,6 +7263,13 @@ export class WorldScene extends Phaser.Scene {
         if (!g)
           this.gaits.set(
             id,
+        const free = !this.options.freeze && !swimming && !(craft && craft !== "swimming");
+        const smoking = this.smokers.update(id, this.habitOf(id), im, human.direction,
+          free && !asleep && !work && !use && !/work|gather|sleep/i.test(human.activity) && this.cameras.main.worldView.contains(im.x, im.y),
+          this.emberGlow, time);
+        const sick = (free ? this.showSymptoms(id, human.direction, im, moving, asleep, time) : undefined) ?? smoking;
+        const sickPose = sick && !moving && !cued && !asleep && (pose === "idle" || pose === "breathe") ? sick : undefined;
+        if (sickPose) pose = sickPose.pose;
             // Someone first drawn mid-stride has no set-off; an infinite
             // `since` made their walk frame NaN, drawn high off the ground.
             (g = moving
@@ -7238,7 +7282,9 @@ export class WorldScene extends Phaser.Scene {
           g.still = undefined;
         } else g.still ??= time;
         let gaitFrame: number | undefined;
-        if (!active && !landed && !recovering && !stunt && !cued && !fidget?.pose && !npcGesture) {
+        // Down to half health the player favours a leg; under a quarter, badly.
+        const lame = id === "player" && (me.health ?? 100) < 50 ? ((me.health ?? 100) < 25 ? 2 : 1) : 0;
+        if (!active && !landed && !recovering && !stunt && !cued && !fidget?.pose && !npcGesture && !sickPose) {
           const still = g.still === undefined ? 0 : time - g.still,
             walked = (g.still ?? time) - g.since;
           if (
@@ -7250,13 +7296,14 @@ export class WorldScene extends Phaser.Scene {
           } else if (pose === "walk" && time - (g.pivot ?? -Infinity) < PIVOT_MS) {
             pose = "halt";
             gaitFrame = 0;
-          } else if (pose === "walk" || pose === "run")
+          } else if (pose === "walk" || pose === "run") {
             // From the push-off, so every walk starts on the same foot.
-            gaitFrame =
-              Math.floor(
-                ((time - g.since - SETOFF_MS) * cadence) /
-                  poseTiming(pose),
-              ) % frameCount(pose);
+            const steps = ((time - g.since - SETOFF_MS) * cadence) / poseTiming(pose);
+            gaitFrame = lame ? limpFrame(steps, frameCount(pose), lame) : Math.floor(steps) % frameCount(pose);
+            // The dip onto the bad leg, mid-stance.
+            if (lame && (gaitFrame === 1 || gaitFrame === 2) && time >= this.feel.springUntil)
+              im.setScale(1 + 0.015 * lame, 1 - 0.035 * lame);
+          }
           else if (
             (pose === "idle" || pose === "breathe") &&
             walked > 300 &&
@@ -7346,6 +7393,8 @@ export class WorldScene extends Phaser.Scene {
         // half turn is a single frame, which the eight-way sprites make
         // more obvious than the four-way ones did.
         const workFacing = work?.site && pose === work.pose &&
+                        : sickPose
+                          ? Math.min(3, Math.floor(((time - sickPose.from) / (sickPose.until - sickPose.from)) * 4))
           Math.hypot(work.site.x - at!.x, work.site.y - at!.y) > 0.35
             ? facingFromStep(work.site.x - at!.x, work.site.y - at!.y, at!.direction)
             : undefined;
@@ -7555,6 +7604,10 @@ export class WorldScene extends Phaser.Scene {
             .setDepth(pillow.depth);
         } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
         if (!texture || swimming) this.shadows.get(id)?.setVisible(false);
+          if (lame === 2 && time >= this.bledAt && wetPos && !craft) {
+            this.bledAt = time + (moving ? 260 + Math.random() * 420 : 2500 + Math.random() * 2500);
+            this.feel.bleed(im.x, im.y, this.printDepth());
+          }
         if (texture && !swimming && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
@@ -8118,6 +8171,50 @@ export class WorldScene extends Phaser.Scene {
   /** What someone is doing at the piece of their room they are at. */
   private indoorPose(use: NonNullable<ReturnType<Runtime["engine"]["indoorUse"]>>, activity: string, space: string): CharacterPose {
     const meal = /eat|meal|supper|breakfast|dinner/i.test(activity);
+  /** Coughs, sneezes, a fever's sweat and queasiness, as often as the illness
+   * runs to: a mild case up and about once a minute or so, the worst, in bed,
+   * every few seconds. Returns a pose to hold while standing. */
+  private showSymptoms(id: string, direction: number, im: Phaser.GameObjects.Image, moving: boolean, asleep: boolean, time: number) {
+    if (!this.cameras.main.worldView.contains(im.x, im.y)) return undefined;
+    let sick = this.symptoms.get(id);
+    if (!sick || time - sick.at > 4000) {
+      const { state, world } = this.runtime.engine;
+      const actor = id === "player" ? state.player : state.actors.find((a) => a.id === id);
+      const s = actor ? symptomsShown(state, actor, world.pack.setting, state.clock) : { cough: 0, sneeze: 0, fever: 0, nausea: 0 };
+      sick = { s, at: time, next: sick?.next ?? 0, sweat: sick?.sweat ?? 0 };
+      this.symptoms.set(id, sick);
+    }
+    const { cough, sneeze, fever, nausea } = sick.s;
+    const fits = cough + sneeze + nausea;
+    if (!fits && fever < 0.2) return undefined;
+    const dx = asleep ? 0 : [0, 1, 0, -1][direction];
+    const mouth = asleep ? { x: im.x, y: im.y - 2 } : { x: im.x + dx * 4, y: im.y - 26 };
+    const depth = im.depth + (asleep || direction ? 0.1 : -0.1);
+    if (fever >= 0.2 && time >= sick.sweat) {
+      if (sick.sweat) this.feel.sweat(im.x, asleep ? im.y - 4 : im.y - 34, depth);
+      sick.sweat = time + (2200 + Math.random() * 2600) / fever;
+    }
+    // Spread out, so a street of the sick does not cough in chorus.
+    if (fits && !sick.next) sick.next = time + (Math.random() * 20000) / fits;
+    if (fits && time >= sick.next) {
+      sick.next = time + (14000 + Math.random() * 20000) / Math.max(0.25, fits);
+      let r = Math.random() * fits;
+      const still = !moving && !asleep;
+      if ((r -= cough) < 0) {
+        this.feel.cough(im, mouth.x, mouth.y, dx, depth, cough > 0.6 ? 3 : 2);
+        if (still) this.sickPose.set(id, { pose: "touch-face", from: time, until: time + 640 });
+      } else if ((r -= sneeze) < 0) {
+        this.feel.sneeze(im, mouth.x, mouth.y, dx, depth);
+        if (still) this.sickPose.set(id, { pose: "touch-face", from: time + 380, until: time + 900 });
+      } else {
+        this.feel.queasy(im.x, asleep ? im.y - 8 : im.y - 42, depth);
+        if (still) this.sickPose.set(id, { pose: "stoop", from: time, until: time + 1300 });
+      }
+    }
+    const held = this.sickPose.get(id);
+    if (held && time >= held.until) this.sickPose.delete(id);
+    return held && time >= held.from && time < held.until ? held : undefined;
+  }
     if (use.role === "seat") return use.on === "seat" ? "sit-seat" : use.on === "floor" ? "sit" : meal ? "give" : "idle";
     if (use.role === "fire")
       return use.cooking || /cook|brew/i.test(activity) || meal ? "work-stir"

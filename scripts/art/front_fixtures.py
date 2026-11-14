@@ -97,6 +97,10 @@ EMBLEMS = [
                        "....oooo...."]),
     ('Saw', 'steel', ["ooooo.......", "owwvo.......", "ow.voooooooo", "owwvahhhhhho", "ooooabbbbbbo",
                       "....ococococ"]),
+    # The tobacconist's clay pipe, smoke curling off the bowl.
+    ('Pipe', 'ivory', [".........i..", "..........i.", ".........i..", "..........i.", "........oooo",
+                       "........ohbo", "........oabo", "oooooooooabo", "ohhaaaaaabco", "ooooooooocco",
+                       "........ooo."]),
 ]
 EMBLEM_RAMP = {
     'pewter': ramp(240, 0.02, lift=-0.04), 'steel': ramp(245, 0.025, lift=-0.08),

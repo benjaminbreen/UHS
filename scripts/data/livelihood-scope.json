@@ -2333,6 +2333,40 @@
       "standing": "unfree",
       "why": "Cutting, hanging, curing and packing tobacco on the Chesapeake estates, almost all of it done by enslaved people."
     },
+    "tobacconist": {
+      "label": "Tobacconist",
+      "keyword": "tobacco",
+      "tier": "town",
+      "weight": 1,
+      "capabilities": [
+        "urban_settlement"
+      ],
+      "years": [
+        1600,
+        10001
+      ],
+      "why": "Tobacco shops opened in every port and market town within a generation of the leaf's arrival; alehouses sold it too."
+    },
+    "paan-seller": {
+      "label": "Paan Seller",
+      "keyword": "betel",
+      "tier": "town",
+      "weight": 1,
+      "capabilities": [
+        "urban_settlement"
+      ],
+      "years": [
+        -500,
+        10001
+      ],
+      "bounds": [
+        60,
+        -11,
+        141,
+        37
+      ],
+      "why": "Betel quid was made up to order at street stalls and small shops across South and Southeast Asia for two thousand years."
+    },
     "landowner": {
       "label": "Landowner",
       "keyword": "estate",
