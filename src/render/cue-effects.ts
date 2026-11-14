@@ -66,6 +66,11 @@ const ACTS: Record<
   halt: { pose: "halt-hand", ms: 1600 },
   strike: { pose: "swing", ms: 480, move: "shake" },
   struck: { pose: "hurt", ms: 520, move: "shake", sound: "alarm" },
+  // Mark only: whatever the two are doing goes on underneath.
+  chatter: { ms: 1400, mark: { glyph: "dots", color: 0x5c6470 } },
+  fond: { ms: 1300, mark: { glyph: "heart", color: 0xd9527a } },
+  grumble: { ms: 1300, mark: { glyph: "vein", color: 0xc23a2e }, move: "shake" },
+  wonder: { ms: 1100, mark: { glyph: "query", color: 0x4a78b8 } },
 };
 /** Feet to just over the hair. A person's canvas is mostly empty headroom,
  * so its height says nothing about where the head is. */

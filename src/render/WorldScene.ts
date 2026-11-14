@@ -7575,6 +7575,7 @@ export class WorldScene extends Phaser.Scene {
         const turnMotion = turnAge < 90 && turn.sign
           ? turn.sign * (turnAge < 25 ? 3 : turnAge < 58 ? 2 : 1)
           : 0;
+        const passBy = moving && id !== "player" && !craft ? this.glanceAt(id, im, turn.facing, time) : 0;
         const texture = this.characters.frame(
           // Their own facing, or wherever a cue or a glance has turned them.
           asleep
@@ -7586,7 +7587,7 @@ export class WorldScene extends Phaser.Scene {
           // Eyes shut: the blink frame.
           asleep ? 3 : index,
           prop,
-          turnMotion,
+          turnMotion || passBy * 3,
           condition,
         );
         // A hit-stop holds the figures too, not only what is tweened.
@@ -8198,8 +8199,22 @@ export class WorldScene extends Phaser.Scene {
     const wary = (id === "player" ? 0 : this.humanActors.get(id)?.trust ?? 0) < 0;
     if (kind === "chat") {
       const speaking = (turn % 2 === 0) === first;
-      if (speaking) return loop(turn % 3 === 2 ? "gesture" : "talk");
-      return wary || this.poseOffset(id) % 5 === 0 ? loop("fold-arms") : turn % 4 === 3 ? once("nod") : loop("listen");
+      const seed = engine.state.manifest.seed, pair = first ? `${id}|${other}` : `${other}|${id}`;
+      // One pair in a dozen is having words.
+      const quarrel = other !== "player" && id !== "player" && random(seed, "quarrel", pair) < 0.08;
+      if (speaking && other !== "player" && id !== "player" && this.chatBeat.get(id) !== turn) {
+        this.chatBeat.set(id, turn);
+        if (this.cameras.main.worldView.contains(me.x, me.y)) {
+          const roll = random(seed, "chat", id, turn);
+          const kin = this.fondOf(id, other!);
+          const mark = quarrel ? (roll < 0.45 ? "grumble" : undefined)
+            : kin && roll < 0.3 ? "fond"
+            : roll < 0.3 ? "chatter" : roll < 0.38 ? "wonder" : undefined;
+          if (mark) this.cues.react(id, mark);
+        }
+      }
+      if (speaking) return loop(quarrel ? (turn % 2 ? "point" : "gesture") : turn % 3 === 2 ? "gesture" : "talk");
+      return wary || quarrel || this.poseOffset(id) % 5 === 0 ? loop("fold-arms") : turn % 4 === 3 ? once("nod") : loop("listen");
     }
     // A sale: the buyer points at what they want, the two argue the price,
     // the coin goes over and the goods come back.
@@ -8228,6 +8243,49 @@ export class WorldScene extends Phaser.Scene {
     return partner;
   }
   private partners = new Map<string, { partner?: string; until: number }>();
+  private chatBeat = new Map<string, number>();
+  private glances = new Map<string, { other?: string; until: number; scan: number }>();
+  private passed = new Map<string, number>();
+  /** Kin, household or a friend: who gets a wave and a heart, not a nod. */
+  private fondOf(id: string, other: string) {
+    const kind = this.runtime.engine.state.actors.find((a) => a.id === id)?.relations?.find((r) => r.other === other)?.kind;
+    return !!kind && kind !== "servant" && kind !== "master" && kind !== "apprentice";
+  }
+  /** Walking past someone: the head turns to them as they go by. Someone
+   * standing nods to a passer-by, or waves to kin and friends; two friends
+   * passing in the street show a heart. Returns which way the head turns. */
+  private glanceAt(id: string, im: Phaser.GameObjects.Image, face: number, time: number) {
+    let g = this.glances.get(id);
+    if (!g) this.glances.set(id, (g = { until: 0, scan: time + Math.random() * 300 }));
+    if (time >= g.until && time >= g.scan) {
+      g.scan = time + 300;
+      g.other = undefined;
+      if (!this.cameras.main.worldView.contains(im.x, im.y)) return 0;
+      for (const other of [...this.humanActors.keys(), "player"]) {
+        const there = other === id ? undefined : this.entities.get(other);
+        if (!there?.visible) continue;
+        const dx = (there.x - im.x) / 16, dy = (there.y - im.y) / 16, d = Math.hypot(dx, dy);
+        if (d > 1.8 || d < 0.4) continue;
+        const ahead = (facingFromStep(dx, dy, face) - face + 8) % 8;
+        if (ahead > 1 && ahead < 7) continue;
+        const pair = id < other ? `${id}|${other}` : `${other}|${id}`;
+        if (time - (this.passed.get(pair) ?? -Infinity) < 30000) continue;
+        this.passed.set(pair, time);
+        g.other = other;
+        g.until = time + 1000;
+        const fond = other !== "player" && this.fondOf(id, other);
+        const amb = this.ambient.get(other);
+        const toward = { x: (im.x - 8) / 16, y: (im.y - 16) / 16 };
+        if (amb && !amb.moving && !/work|gather|sleep|rest/i.test(amb.activity)) this.cues.react(other, fond ? "wave" : "nod", toward);
+        if (fond) this.cues.react(id, "fond");
+        break;
+      }
+    }
+    const there = time < g.until && g.other ? this.entities.get(g.other) : undefined;
+    if (!there) return 0;
+    const turn = (facingFromStep((there.x - im.x) / 16, (there.y - im.y) / 16, face) - face + 8) % 8;
+    return turn >= 1 && turn <= 3 ? 1 : turn >= 5 ? -1 : 0;
+  }
   /** A figure is wider than its tile, so two people talking from neighbouring
    * tiles touch faces. Each steps back a pixel a frame, and the offset is taken
    * back before the next frame; the player stays put under the camera. */

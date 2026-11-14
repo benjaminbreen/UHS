@@ -292,6 +292,11 @@ export const cueKinds = [
   "strike",
   /** A blow taken. */
   "struck",
+  /** Marks over two people talking, the scene's own: talk, fondness, a quarrel, a question. */
+  "chatter",
+  "fond",
+  "grumble",
+  "wonder",
 ] as const;
 export type CueKind = (typeof cueKinds)[number];
 
