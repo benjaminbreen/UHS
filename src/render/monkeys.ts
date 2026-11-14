@@ -3,7 +3,7 @@ import type { SmallLifeContext } from "./small-creatures";
 
 type Image = Phaser.GameObjects.Image;
 type Species =
-  | "japanese" | "barbary" | "rhesus" | "langur" | "vervet" | "colobus" | "capuchin" | "howler"
+  | "japanese" | "barbary" | "rhesus" | "long-tailed" | "langur" | "vervet" | "colobus" | "capuchin" | "howler"
   | "olive-baboon" | "hamadryas" | "gelada" | "lar-gibbon" | "ring-tailed" | "sifaka";
 type Family = "macaque" | "baboon" | "gibbon" | "lemur";
 export type MonkeyContext = SmallLifeContext & { lat: number; lon: number; night: boolean; dawn: boolean };
@@ -100,6 +100,8 @@ const SPECIES: Record<Species, Record<string, string>> = {
   // The Barbary macaque has no tail to speak of.
   barbary: { f: "#b08a5a", F: "#d4b484", c: "#d8a090", C: "#c09a6a", h: "#7a5a3a" },
   rhesus: { f: "#9a7a52", F: "#c8a878", c: "#e0a08e", C: "#8a6a44", h: "#6a4a30", t: "#8a6a44" },
+  // The crab-eating macaque: grey-brown, a pale whiskered face, a tail as long as itself.
+  "long-tailed": { f: "#857c6a", F: "#b4ac96", c: "#c89a8a", C: "#d0c8b4", h: "#4e4638", t: "#857c6a" },
   langur: { f: "#a8a49a", F: "#d8d4c8", c: "#2a2420", C: "#c8c4b8", h: "#2a2420", t: "#a8a49a", k: "#8a6a3a" },
   vervet: { f: "#8a8a6a", F: "#d8d4c0", c: "#2a2420", C: "#e8e4d4", h: "#2a2420", t: "#8a8a6a", k: "#8a6a3a" },
   colobus: { f: "#1e1c1c", F: "#2a2626", c: "#3a3430", C: "#f2f0ea", h: "#141212", t: "#f2f0ea", k: "#c8a060" },
@@ -136,6 +138,7 @@ function speciesAt(ctx: MonkeyContext, h: number): Species | undefined {
   if (lon > -18 && lon < 52 && lat > -35 && lat < 16) return ctx.ecology === "tropical-woodland" && h > 0.55 ? "colobus" : "vervet";
   if (lon > 66 && lon < 92 && lat > 6 && lat < 31) return h < 0.5 ? "langur" : "rhesus";
   if (lon > 90 && lon < 122 && lat > -8 && lat < 26 && h < 0.55) return "lar-gibbon";
+  if (lon > 92 && lon < 127 && lat > -11 && lat < 20) return "long-tailed";
   if (lon > 60 && lon < 135 && lat > -11 && lat < 36) return "rhesus";
 }
 
@@ -336,7 +339,25 @@ export class Monkeys {
         this.pace += (Math.hypot(player.x - this.last.x, player.y - this.last.y) / ((time - this.last.t) / 1000) - this.pace) * 0.1;
       this.last = { x: player.x, y: player.y, t: time };
     }
+    if (this.troop.some((m) => !m.tree.active)) this.relink();
     for (const m of this.troop) this.step(m, time, ctx, player);
+  }
+
+  /** The scenery is redrawn whenever the ground changes (a swing that cuts the
+   * grass will do it); the troop stays put in the redrawn trees. */
+  private relink() {
+    const at = new Map<string, Image>();
+    for (const images of this.view.plants().values()) {
+      if (!images.length) continue;
+      const tree = images.reduce((a, b) => (b.displayHeight > a.displayHeight ? b : a));
+      at.set(`${Math.round(tree.x)},${Math.round(tree.y)}`, tree);
+    }
+    const same = (t: Image) => (t.active ? t : at.get(`${Math.round(t.x)},${Math.round(t.y)}`));
+    for (const m of this.troop) {
+      const tree = same(m.tree);
+      if (tree) m.tree = tree;
+      for (const leg of [m.leg, ...m.legs]) if (leg?.tree) leg.tree = same(leg.tree) ?? leg.tree;
+    }
   }
 
   private begin(m: Monkey, time: number) {
@@ -370,6 +391,28 @@ export class Monkeys {
       } else this.scamper(m, this.crown(m.tree, (m.troop % 3) - 1));
       this.begin(m, time + m.troop * 60);
       if (m === from || m.troop % 2) this.call(m);
+    }
+  }
+
+  /** A swing at a monkey misses: it is off before the blow arrives, and the
+   * rest of the troop takes fright with it. */
+  swung(x: number, y: number, time: number) {
+    const player = this.view.player();
+    const near = this.troop.filter((m) => !m.riding && Math.hypot(m.x - x, m.y - m.z - (y - 8)) < 40);
+    if (!player || !near.length) return;
+    for (const m of near) {
+      if (m.z > 3) {
+        this.rustle(m.tree);
+        this.call(m);
+        m.legs = [];
+        this.scamper(m, this.crown(m.tree, Math.sign(m.x - x) || 1));
+        this.begin(m, time);
+      }
+    }
+    const ground = near.find((m) => m.z <= 3);
+    if (ground) {
+      ground.leg = undefined;
+      this.alarm(ground, time, player);
     }
   }
 
@@ -411,7 +454,7 @@ export class Monkeys {
       .setOrigin(0.5, leg.hang ? 0 : leg.spin ? 0.6 : 1)
       .setAngle(leg.spin ? leg.spin * t * (m.image.flipX ? -1 : 1) : sway)
       .setPosition(Math.round(m.x), Math.round(m.y - m.z - (leg.spin ? 5 * m.size : 0)))
-      .setDepth(aloft ? m.tree.depth + 0.05 + m.troop * 0.001 : m.y + 0.5)
+      .setDepth(aloft ? Math.max(m.tree.depth, ...[leg, ...m.legs].map((l) => l.tree?.depth ?? 0)) + 0.05 + m.troop * 0.001 : m.y + 0.5)
       .setTint(ctx.tint);
     m.shadow.setPosition(Math.round(m.x), Math.round(m.y)).setDepth(m.y + 0.4).setVisible(!aloft);
     const body = BODY[familyOf(this.species!)];

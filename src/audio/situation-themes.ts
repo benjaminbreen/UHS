@@ -14,8 +14,8 @@ export function threatMusic(score: number, fauna: readonly FaunaGroup[], pos: Po
   if (score >= 3) return "combat";
   if (pos.space === "outside") for (const g of fauna) {
     if (g.pos.space !== pos.space || !g.members.some((m) => (m.hp ?? 1) > 0 && Math.hypot(m.x - pos.x, m.y - pos.y) <= 12)) continue;
-    if ((g.provoked ?? 0) > clock) return "combat";
-    if ((g.warning ?? 0) > clock || (g.stalking ?? 0) > clock) danger = true;
+    if (g.attack && (g.provoked ?? 0) > clock) return "combat";
+    if ((g.provoked ?? 0) > clock || (g.warning ?? 0) > clock || (g.stalking ?? 0) > clock) danger = true;
   }
   return danger ? "danger" : undefined;
 }

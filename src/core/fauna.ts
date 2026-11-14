@@ -135,6 +135,8 @@ export type FaunaGroup = {
   stalking?: number;
   /** Until when a hunt that came to nothing is not tried again. */
   balked?: number;
+  /** Until when a hunter that found no way round does not search again. */
+  unrouted?: number;
   /** A dog gone mad: no warning, no fear, and it bites whoever is near. */
   rabid?: boolean;
   attack?: FaunaAttack;

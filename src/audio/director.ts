@@ -16,7 +16,7 @@ import {
   MusicRotation,
 } from "./cultural-themes";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
-import { events, noise, playSound, tone, type EventId, type Sound } from "./sfx";
+import { events, interfaceClick, noise, playSound, tone, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, silence, type AmbienceMix } from "./ambience";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
@@ -101,11 +101,11 @@ export class AudioDirector {
   private heldLoops = false;
   private situation?: Situation;
   private threat?: ThreatMusic;
+  private dangerQueued = false;
   private threatRelease?: ReturnType<typeof setTimeout>;
   private workIdle?: ReturnType<typeof setTimeout>;
-  private place?: { culture?: CultureId; year?: number; at: string };
-  private arrivals = 0;
-  private lastArrival = -Infinity;
+  private place?: { culture?: CultureId; year?: number };
+  private resolutions = 0;
   private rotation = new MusicRotation([], shared);
   private clock = 0;
   private playful = false;
@@ -211,6 +211,13 @@ export class AudioDirector {
   async play(fadeIn = 0.8) {
     clearTimeout(this.pending);
     if (this.state.playing || this.state.loading) return;
+    if (this.dangerQueued && !this.held && this.state.followWorld) {
+      this.dangerQueued = false;
+      this.situation = "danger";
+      this.held = situationTheme("danger", this.place?.culture, this.place?.year);
+      this.heldLoops = false;
+      this.patch({ arrangement: { ...this.state.arrangement, themeId: this.held, period: "day" }, beat: 0 });
+    }
     const generation = ++this.generation;
     this.patch({ loading: true, error: "" });
     try {
@@ -269,6 +276,15 @@ export class AudioDirector {
       (ctx.currentTime - run.start) / secondsPerBeat + run.offset,
     );
     if (beat >= run.score.beats) {
+      if (this.situation === "danger" && this.state.followWorld) {
+        this.setSituation(undefined);
+        return;
+      }
+      if (this.dangerQueued && !this.held && this.state.followWorld) {
+        this.dangerQueued = false;
+        this.setSituation("danger");
+        return;
+      }
       if (this.held && this.heldLoops) {
         this.patch({ beat: 0 });
         this.begin(0, 0.04);
@@ -371,18 +387,11 @@ export class AudioDirector {
     const firstSetting = !this.setting,
       before = this.place;
     this.setting = key;
-    this.place = { culture, year, at: `${location?.lon}:${location?.lat}` };
+    this.place = { culture, year };
     // Years pass within a life without a cue; no life jumps sixty at once, so more is time travel.
-    const slipped = Math.abs((before?.year ?? 0) - (year ?? 0)) > 60,
-      now = performance.now();
-    if (!firstSetting && (slipped || (before?.at !== this.place.at && now - this.lastArrival > 60000))) {
-      if (!slipped) this.lastArrival = now;
-      void this.cue(
-        slipped
-          ? situationTheme("timeslip", culture, year)
-          : situationTheme("arrival", culture, year, this.arrivals++),
-      );
-    }
+    const slipped = Math.abs((before?.year ?? 0) - (year ?? 0)) > 60;
+    if (!firstSetting && slipped)
+      void this.cue(situationTheme("timeslip", culture, year));
     const direct = culture && year !== undefined
       ? culturalMusic(culture, year, location).direct
       : [];
@@ -421,6 +430,9 @@ export class AudioDirector {
       : this.nextTheme(this.state.arrangement.themeId);
     this.patch({ arrangement: { ...this.state.arrangement, themeId } });
     if (this.ctx) void this.play(1.5);
+  }
+  plotResolution() {
+    return this.cue(situationTheme("arrival", this.place?.culture, this.place?.year, this.resolutions++));
   }
   /** A short piece over whatever is playing, which steps back for it. */
   async cue(themeId: string) {
@@ -464,17 +476,21 @@ export class AudioDirector {
     this.threat = threat;
     clearTimeout(this.threatRelease);
     const current = this.situation;
-    if (threat === "combat" || (threat === "danger" && current !== "combat")) {
-      this.setSituation(threat);
-    } else if (current === "danger" || current === "combat") {
+    if (threat === "danger" && current !== "danger") this.dangerQueued = true;
+    if (threat === "combat") {
+      if (current === "danger") this.dangerQueued = true;
+      this.setSituation("combat");
+    } else if (current === "combat") {
       // Brief lulls between blows or along a risk boundary are not safety.
       this.threatRelease = setTimeout(() => {
-        if (!this.disposed && this.situation !== "passing") this.setSituation(this.threat);
+        if (!this.disposed && this.situation !== "passing") this.setSituation(undefined);
       }, 6000);
+    } else if (this.dangerQueued && !this.held && !this.state.playing && !this.state.loading && this.ctx && this.state.followWorld) {
+      void this.play(3);
     }
   }
   /** A situation takes the score from place and room until it is released.
-   * Work and threats loop; the passing piece plays once and leaves silence. */
+   * Work and combat loop; danger plays through once. */
   setSituation(situation: Situation | undefined) {
     const themeId = situation && situationTheme(situation, this.place?.culture, this.place?.year);
     if (themeId === this.held) return;
@@ -485,9 +501,10 @@ export class AudioDirector {
     if (situation === "passing") {
       clearTimeout(this.threatRelease);
       this.threat = undefined;
+      this.dangerQueued = false;
     }
     this.held = themeId;
-    this.heldLoops = situation === "work" || isThreat;
+    this.heldLoops = situation === "work" || situation === "combat";
     if (!this.state.followWorld) return;
     this.generation++;
     clearTimeout(this.pending);
@@ -627,6 +644,19 @@ export class AudioDirector {
   }
   event(id: EventId) {
     return this.sound(events[id], id);
+  }
+  async interfaceSound(kind: "open" | "close" | "tab") {
+    if (this.disposed || this.state.muted || !this.state.sfxVolume) return;
+    const now = performance.now();
+    if (now - (this.lastSfx.get("interface") ?? -Infinity) < 45) return;
+    this.lastSfx.set("interface", now);
+    try {
+      const ctx = await this.unlock();
+      if (!this.disposed && !this.state.muted && this.state.sfxVolume)
+        playSound(ctx, this.sfx!, interfaceClick(kind), ctx.currentTime + 0.005);
+    } catch {
+      // A blocked audio context must not interrupt navigation.
+    }
   }
   resetMix() {
     stems.forEach((stem) => this.setLevel(stem, defaultLevels[stem]));

@@ -10,6 +10,7 @@ import {
 import type { ReligiousProfile } from "../../content/settlements/religious/types";
 import { urbanForm } from "../../content/settlements/urban-form";
 import { lampFor } from "../../content/settlements/ornaments";
+import { SITES, siteKindOf } from "./sites";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import type { Pack, Point } from "../../core/types";
@@ -88,6 +89,8 @@ export type UrbanLot = {
   venue?: import("../../content/venues").Venue;
   /** A building standing on a precinct's edge: public, unhoused. */
   piece?: { name: string; about: string };
+  /** The paved lot a roadside business stands on. */
+  site?: { kind: import("./sites").SiteKind; rect: Rect };
 };
 
 export type UrbanSurface = {
@@ -378,6 +381,8 @@ export function urbanNeighborhood(
           };
         })
     : [];
+  // In a town laid out for cars those businesses stand only on lots of their own.
+  const infillBases = form.motor && !form.oldCore ? candidateBases.filter((c) => !siteKindOf(c.kind)) : candidateBases;
   const rand = (...keys: (string | number)[]) =>
     random(seed, site.id, "urban", ...keys);
   // A waterfront square faces the water; a bridgehead market gathers where
@@ -1403,6 +1408,7 @@ export function urbanNeighborhood(
   const inset = (by: number) => {
     for (const b of lawned) { b.x += by; b.y += by; b.w -= by * 2; b.h -= by * 2; }
   };
+  roadsideSites();
   inset(2);
   for (const rank of ranks) {
     if (rank === seededIndustry || parkRanks.has(rank) || lots.length >= capacity) continue;
@@ -1419,7 +1425,13 @@ export function urbanNeighborhood(
     for (const r of [
       { x: b.x, y: b.y, w: b.w + 4, h: 2 }, { x: b.x, y: b.y + b.h + 2, w: b.w + 4, h: 2 },
       { x: b.x, y: b.y, w: 2, h: b.h + 4 }, { x: b.x + b.w + 2, y: b.y, w: 2, h: b.h + 4 },
-    ]) api.reserveGround({ x: r.x - 2, y: r.y - 2, w: r.w, h: r.h });
+    ])
+      // Not where a business has its apron down to the sidewalk.
+      for (const k of cells({ x: r.x - 2, y: r.y - 2, w: r.w, h: r.h })) {
+        if (used.has(k)) continue;
+        const [x, y] = k.split(",").map(Number);
+        api.reserveGround({ x, y, w: 1, h: 1 });
+      }
   inset(-2);
   infillOpen();
 
@@ -1921,10 +1933,10 @@ export function urbanNeighborhood(
   /** Candidate businesses are more likely near the square; homes soften the
    * residential and elite quarters without turning every gap into retail. */
   function candidatePool(quarter: Quarter): CandidateRecipe[] {
-    const homes = candidateBases.filter((candidate) =>
+    const homes = infillBases.filter((candidate) =>
       candidate.kind.includes("home"),
     );
-    const commercial = candidateBases.filter(
+    const commercial = infillBases.filter(
       (candidate) => !candidate.kind.includes("home"),
     );
     if (quarter === "market" || quarter === "craft") return commercial;
@@ -1941,7 +1953,7 @@ export function urbanNeighborhood(
    * older town thins out toward its edge. */
   function infillOpen() {
     const pool: CandidateRecipe[] = americanStrip
-      ? candidateBases
+      ? infillBases
       : urbanFrames(pack, form.storeys, true).filter((base) => !base.endsWith("-urban-stall")).map((base) => ({
           base,
           model: buildingModel(base),
@@ -2326,6 +2338,44 @@ export function urbanNeighborhood(
       y += depth + 10;
     }
     return out;
+  }
+
+  /** Once customers drive, a filling station, a market, a drive-in, a motel
+   * and a garage each take a lot of their own on a block's south side: the
+   * building at the back, its apron between it and the street. */
+  function roadsideSites() {
+    if (!form.motor || form.oldCore) return;
+    const wanted: import("./sites").SiteKind[] = site.profile.radius >= 60
+      ? ["gas", "market", "drive-in", "motel", "garage", "gas", "market"] : ["gas", "market", "drive-in", "garage"];
+    const blocks = ranks
+      .filter((r) => !parkRanks.has(r) && !["industrial", "downtown", "historic"].includes(uses.get(r.block) ?? ""))
+      .sort((a, b) => Number(onArterial(b.block)) - Number(onArterial(a.block)) ||
+        rand("site-block", a.block.x, a.block.y) - rand("site-block", b.block.x, b.block.y));
+    const held = new Set<Block>();
+    for (const [n, kind] of wanted.entries()) {
+      const bases = candidateBases.filter((c) => siteKindOf(c.kind) === kind)
+        .sort((a, b) => rand("site-base", n, a.base) - rand("site-base", n, b.base));
+      search: for (const rank of blocks) {
+        if (held.has(rank.block)) continue;
+        for (const { base, model } of bases) {
+          const [w, h] = model.footprint, kit = SITES[kind], block = rank.block;
+          const sw = w + kit.side * 2, sh = h + kit.depth;
+          if (sw > block.w || sh > block.h) continue;
+          for (const x of [block.x, block.x + block.w - sw]) {
+            const ground = { x, y: block.y + block.h - sh, w: sw, h: sh };
+            if (!fits(ground)) continue;
+            const rect = { x: x + kit.side, y: ground.y, w, h };
+            const point = { x: rect.x + model.entrance[0], y: rect.y + model.entrance[1] };
+            const lot: UrbanLot = { point, quarter: "market", use: "commercial", nx: 0, ny: -1, frame: base, rect, yard: rect,
+              workPoint: { x: point.x, y: point.y + 1 }, site: { kind, rect: ground } };
+            if (!place(rank, lot)) continue;
+            reserve(ground);
+            held.add(block);
+            break search;
+          }
+        }
+      }
+    }
   }
 
   /** A block of detached houses in a town of cars: lots of one width along

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { Engine } from "../core/engine";
 import type { WorldSetting } from "../content/geography/types";
 import { resolveCharacterContext } from "../content/characters/resolve";
@@ -9,10 +9,11 @@ import { statsOf } from "../core/stats";
 import type { StartingCharacter } from "../runtime/preparation";
 import { formatHistoricalYear } from "../core/calendar";
 import { ArrivalPortrait } from "./ArrivalPortrait";
-import { ArrivalMap } from "./ArrivalMap";
 import { aimLabel } from "../content/goals/types";
 import { arrivalBackdrop, birthPercentile } from "./arrival-data";
 import "./arrival.css";
+
+const ArrivalMap = lazy(() => import("./ArrivalMap").then((m) => ({ default: m.ArrivalMap })));
 
 export function Arrival({ setting, engine, character, ready = !!engine, onEnter, onCancel }: {
   setting: WorldSetting;
@@ -62,7 +63,7 @@ export function Arrival({ setting, engine, character, ready = !!engine, onEnter,
           </div>}
         </div>
       </div>
-      <div className="arrival-location"><ArrivalMap lon={setting.lon} lat={setting.lat} year={setting.year} place={setting.location} /><p>{setting.location} · {formatHistoricalYear(setting.year)}</p></div>
+      <div className="arrival-location"><Suspense fallback={<div className="arrival-map" style={{ aspectRatio: "36 / 17" }} />}><ArrivalMap lon={setting.lon} lat={setting.lat} year={setting.year} place={setting.location} /></Suspense><p>{setting.location} · {formatHistoricalYear(setting.year)}</p></div>
       <div className="arrival-time">
         {birth !== null && <><div className="arrival-ring" style={{ background: `conic-gradient(#ddb66e ${birth}%, #5d6370 ${birth}% 100%)` }}><div><strong>{birth}%</strong></div></div><p>of all estimated human births came before this life</p><a href="https://www.prb.org/news/how-many-people-have-ever-lived-on-earth/" target="_blank" rel="noreferrer">Population Reference Bureau</a></>}
         <button className="arrival-enter" type="button" disabled={!engine || requested} onClick={() => setRequested(true)}>{requested ? "Entering life…" : engine ? "Enter life →" : "Preparing life…"}</button>

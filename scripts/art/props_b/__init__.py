@@ -122,6 +122,8 @@ from .goods import GOODS
 DRAW_B.update(GOODS)
 from .kerbside import KERBSIDE
 DRAW_B.update(KERBSIDE)
+from .roadside import ROADSIDE
+DRAW_B.update(ROADSIDE)
 from .fronts import FRONTS
 DRAW_B.update(FRONTS)
 
@@ -140,6 +142,7 @@ LAYERED = {
 
 # Props that move on their own: the base sprite plus `-m1..` motion frames.
 ANIMATED = {
+ 'pole-sign': 4,
  'censer': 4,
  'beehive': 4,
  'beam-scale': 8,

@@ -7,6 +7,8 @@ from each material's stepped ramp, so the result stays pixel art.
 
   .venv/bin/python scripts/art/voxel_items.py [out.png] [--old old.json]
   .venv/bin/python scripts/art/voxel_items.py --bake   # public/items for the game
+  .venv/bin/python scripts/art/voxel_items.py --bake form-   # only the keys with that prefix
+  .venv/bin/python scripts/art/voxel_items.py --forms [out.png]   # the craft forms
 """
 import math
 import sys
@@ -15,6 +17,9 @@ import numpy as np
 
 sys.path.insert(0, __file__.rsplit('/', 2)[0])
 from art.voxel import _occlusion, h3, hexrgb  # noqa: E402
+
+# Stand-ins a craft form is baked with; the game swaps in the ingredients' ramps.
+BODY, TRIM = '#c08040', '#4080c0'
 
 def item_ramp(base, n=10):
     """Shadows sink toward a cool violet and gain saturation; lights lift
@@ -134,7 +139,7 @@ def render(M, yaw, pitch=28, ppv=1.0, size=24, center=None, index=False):
         across[sel] = (xi + yi) // kk; up[sel] = zi // kk
         out[k, 0], out[k, 1], out[k, 3] = mat[k], lvl[k], 255
         # Only cloth takes a fibre; elsewhere the place would just cost bytes.
-        cloth = np.array([b is not None and b == M.dye for b in M.bases])[mat] & k
+        cloth = np.array([b is not None and b in (M.dye, BODY, TRIM) for b in M.bases])[mat] & k
         out[cloth, 2] = (across[cloth] & 15) | ((up[cloth] & 15) << 4)
         out = out.reshape(size, size, 4)
     for i in np.unique(m):
@@ -1847,6 +1852,177 @@ ITEMS.update({
 })
 
 
+# ---- craft forms -------------------------------------------------------------
+# Things a player makes: a shape with two open slots, each filled by an
+# ingredient. A slot is (base colour, gloss, grain); grain is (cell, seed) or None.
+
+def _slot(M, spec):
+    base, gloss, grain = spec
+    return M.mat(base, gloss), M.mat(item_ramp(base)[3], gloss), grain
+
+def _fill(M, mask, slot):
+    M.put(mask, slot[0])
+    if slot[2]:
+        M.put(mask & (M.noise(*slot[2]) < 0.13), slot[1])
+    return mask
+
+def form_figure(b, t):
+    M = Model((20, 20))
+    B, T = _slot(M, b), _slot(M, t)
+    for sx in (-1, 1):
+        _fill(M, M.seg((sx * 2.8, 0, 0.6), (sx * 1.6, 0, 7), 1.0), T)
+    _fill(M, M.seg((-4, 0, 12.5), (-9, 0, 9.5), 0.9) | M.seg((4, 0, 12.5), (9, 0, 17), 0.9), T)
+    _fill(M, M.ell((0, 0, 10.5), (4.6, 3.6, 5)), B)
+    _fill(M, M.ell((0, 0, 18.6), (3.9, 3.5, 3.7)), B)
+    M.put(M.lathe([14.3, 15.5], [2.7, 2.7]), T[1])
+    eye = M.mat('#2a2224')
+    for sx in (-1, 1):
+        M.put(M.ell((sx * 1.6, -3.2, 19), (0.7, 0.8, 0.8)), eye)
+    return M
+
+def form_bundle(b, t):
+    M = Model((25, 30))
+    B, T = _slot(M, b), _slot(M, t)
+    rolls = [(-2.6, 2.6, -9, 8), (2.6, 2.6, -8, 9.5), (0, 6.6, -8.5, 8.5)]
+    for y, z, x0, x1 in rolls:
+        _fill(M, M.seg((x0, y, z), (x1, y, z), 2.5), B)
+    for y, z, x0, x1 in rolls:
+        M.put(M.seg((x0, y, z), (x1, y, z), 3.0) & (np.abs(np.abs(M.X) - 4.5) < 0.8), T[0])
+    return M
+
+def form_vessel(b, t):
+    M = Model((20, 34))
+    B, T = _slot(M, b), _slot(M, t)
+    s = _fill(M, M.lathe([1, 2.5, 7, 11, 13, 14.5], [4, 6.2, 8.2, 7.6, 6.2, 6.9], wall=1.5), B)
+    M.put(s & (M.Z > 12.9), T[0])
+    M.put(s & (np.abs(M.Z - 8) < 0.6), T[1])
+    for sx in (-1, 1):
+        M.put((np.abs(np.hypot(M.X - sx * 7.6, M.Z - 10.5) - 2.2) < 0.7) & (np.abs(M.Y) < 0.9) & (M.X * sx > 7.4), T[0])
+    return M
+
+def _along(M):
+    """Distance along and across a haft running up and to the right."""
+    return (M.X + 8) * 0.685 + (M.Z - 3) * 0.728, (M.Z - 3) * 0.685 - (M.X + 8) * 0.728
+
+def form_blade(b, t):
+    M = Model((20, 20))
+    B, T = _slot(M, b), _slot(M, t)
+    a, s = _along(M)
+    p = lambda k: (-8 + 0.685 * k, 0, 3 + 0.728 * k)
+    w = 2.9 * np.clip((23 - a) / 7, 0, 1) ** 0.6 * np.clip((a - 8) / 2, 0, 1) ** 0.5
+    _fill(M, (a >= 8) & (np.abs(s) < w) & (np.abs(M.Y) < 0.35 + 0.7 * (1 - np.abs(s) / 2.9)), B)
+    _fill(M, M.seg(p(0), p(10), 1.25), T)
+    lash = M.seg(p(7), p(10.6), 1.65)
+    M.put(lash, T[1])
+    M.put(lash & (np.floor(a / 0.7) % 2 == 0), T[0])
+    return M
+
+def form_pole(b, t):
+    M = Model((20, 20))
+    B, T = _slot(M, b), _slot(M, t)
+    _fill(M, M.seg((-3.5, 0, 0.6), (2, 0, 15), 0.85), T)
+    _fill(M, M.ell((3.2, 0, 18.6), (4.3, 3.9, 4.6)), B)
+    M.put(M.ell((2.1, 0, 15), (1.8, 1.8, 1.3)), T[1])
+    return M
+
+def form_raft(b, t):
+    M = Model((32, 40))
+    B, T = _slot(M, b), _slot(M, t)
+    for i in range(-2, 3):
+        o = (i % 2) * 1.2 - 0.6
+        _fill(M, M.seg((-9.5 + o, i * 3.4, 2.2), (9.5 + o, i * 3.4, 2.2), 1.75), B)
+    for x in (-5.5, 5.5):
+        _fill(M, M.seg((x, -9, 4), (x, 9, 4), 0.75), T)
+        for i in range(-2, 3):
+            M.put(M.seg((x - 0.2, i * 3.4, 2.2), (x + 0.2, i * 3.4, 2.2), 2.15) & (M.Z > 2.4), T[1])
+    return M
+
+def form_cord(b, t):
+    M = Model((20, 42))
+    B, T = _slot(M, b), _slot(M, t)
+    R, ang = np.hypot(M.X, M.Y), np.arctan2(M.Y, M.X)
+    s = np.zeros_like(M.m, bool)
+    for k in range(3):
+        s |= np.hypot(R - (7 - k * 0.5), M.Z - (1.9 + k * 2.3)) <= 1.3
+    s |= M.seg((6.5, 0, 6.5), (10.5, -3, 1.2), 1.1)
+    _fill(M, s, B)
+    M.put(s & (np.floor(ang * 7 + M.Z * 0.9) % 2 == 0), B[1])
+    wrap = (np.abs(M.X + 1) < 1.1) & (M.Y < 0) & (np.abs(R - 6.5) < 2.3) & (M.Z < 8.6)
+    M.put(wrap, T[0])
+    return M
+
+def form_mat(b, t):
+    M = Model((18, 14))
+    B, T = _slot(M, b), _slot(M, t)
+    s = _fill(M, M.box(-7.5, 7.5, -0.7, 0.7, 4, 19), B)
+    M.put(s & ((np.floor((M.X + 20) / 2.5) + np.floor(M.Z / 2.5)) % 2 == 0), B[1])
+    M.put(s & (np.abs(M.X) > 6.4), T[0])
+    _fill(M, M.seg((-9.5, 0, 19.6), (9.5, 0, 19.6), 0.9), T)
+    for x in range(-7, 8, 2):
+        M.put(M.seg((x, 0, 4), (x, 0, 1.2), 0.45), B[0])
+    return M
+
+def form_cake(b, t):
+    M = Model((20, 36))
+    B, T = _slot(M, b), _slot(M, t)
+    _fill(M, M.lathe([0.5, 1.5, 2.6], [6, 8.8, 9.8]), T)
+    s = _fill(M, M.ell((0, 0, 2.5), (6.8, 6.8, 6)) & (M.Z >= 1.5), B)
+    M.put(s & (M.Z > 6) & ((np.abs(M.X) < 0.6) | (np.abs(M.Y) < 0.6)), B[1])
+    return M
+
+def form_box(b, t):
+    M = Model((32, 30))
+    B, T = _slot(M, b), _slot(M, t)
+    s = _fill(M, M.box(-7, 7, -5, 5, 0.5, 9.5), B)
+    M.put(s & (np.abs(M.Z - 6.8) < 0.45), B[1])
+    M.put(M.box(-7.4, 7.4, -5.4, 5.4, 0.5, 9.9) & (np.abs(np.abs(M.X) - 4) < 0.9), T[0])
+    M.put(M.box(-1.2, 1.2, -6, -5, 5.6, 7.8), T[1])
+    return M
+
+def form_frame(b, t):
+    M = Model((34, 22))
+    B, T = _slot(M, b), _slot(M, t)
+    for x in (-7.5, 7.5):
+        _fill(M, M.seg((x, -5, 0.6), (x, 3.2, 15), 0.85) | M.seg((x, 5, 0.6), (x, -3.2, 15), 0.85), B)
+    _fill(M, M.seg((-10.5, 0, 10.6), (10.5, 0, 10.6), 0.85), B)
+    for x in (-7.5, 7.5):
+        M.put(M.ell((x, 0, 9.2), (1.5, 1.7, 1.6)), T[1])
+    _fill(M, M.box(-4, 4, -1.5, 1.5, 4.5, 11.8) & ~M.box(-4, 4, -0.8, 0.8, 0, 10.4), T)
+    return M
+
+def form_mask(b, t):
+    M = Model((14, 10))
+    B, T = _slot(M, b), _slot(M, t)
+    for i in range(-3, 4):
+        a = i * 0.26
+        _fill(M, M.seg((math.sin(a) * 6, 0.6, 12 + math.cos(a) * 8), (math.sin(a) * 9.5, 0.6, 12 + math.cos(a) * 12), 0.8), T)
+    _fill(M, M.ell((0, 0, 11.5), (7.2, 2.4, 9.6)) & (M.Y < 1), B)
+    _fill(M, M.seg((0, -2.4, 14.5), (0, -3.2, 10), 0.9, 1.3), B)
+    M.put(M.ell((0, 0, 11.5), (7.3, 2.6, 9.7)) & (M.Y < 1) & (np.abs(M.Z - 17) < 0.8), T[0])
+    hole = M.mat('#2a2224')
+    for sx in (-1, 1):
+        M.put(M.ell((sx * 3.2, -2, 13.8), (1.9, 1.6, 1.1)), hole)
+    M.put(M.ell((0, -2, 6.4), (2.6, 1.6, 0.9)), hole)
+    return M
+
+FORMS = {
+    'figure': form_figure, 'bundle': form_bundle, 'vessel': form_vessel, 'blade': form_blade,
+    'pole': form_pole, 'raft': form_raft, 'cord': form_cord, 'mat': form_mat,
+    'cake': form_cake, 'box': form_box, 'frame': form_frame, 'mask': form_mask,
+}
+STUFF = {
+    'sponge': ('#d9b44a', 0, (1.0, 3)),
+    'wood': ('#7a5234', 0.2, None),
+    'clay': ('#b8683c', 0.4, None),
+    'stone': ('#8a8a86', 0.1, (1.5, 5)),
+    'bone': ('#e8dcc4', 0.3, None),
+    'reed': ('#7f9a4a', 0, None),
+}
+ITEMS.update({f'form-{k}': (k.capitalize(), lambda f=f: f((BODY, 0.2, None), (TRIM, 0.2, None))) for k, f in FORMS.items()})
+SLOTS = {BODY: 'body', item_ramp(BODY)[3]: 'body-dark', TRIM: 'trim', item_ramp(TRIM)[3]: 'trim-dark'}
+PAIRS = [('sponge', 'wood'), ('wood', 'reed'), ('clay', 'bone'), ('stone', 'wood'), ('bone', 'clay'), ('reed', 'sponge')]
+
+
 def icon(M, size=48, fill=0.9, yaw=None, pitch=None, index=False):
     """The model rendered and fitted to the icon, centred on what is drawn."""
     yaw = M.view[0] if yaw is None else yaw
@@ -1896,6 +2072,27 @@ def sheet(out, old=None, cols=16):
     im.save(out)
 
 
+def forms_sheet(out):
+    from PIL import Image, ImageDraw, ImageFont
+    font = lambda s: ImageFont.truetype('/System/Library/Fonts/Supplemental/Georgia.ttf', s)
+    BG, CELL, INK, DIM = (13, 20, 38), (22, 32, 56), (230, 220, 196), (140, 146, 170)
+    cw, chh, left, top = 128, 118, 96, 96
+    im = Image.new('RGB', (left + len(PAIRS) * cw + 20, top + len(FORMS) * chh + 16), BG)
+    dr = ImageDraw.Draw(im)
+    dr.text((20, 16), f'Craft forms — {len(FORMS)} shapes, each filled by two ingredients', font=font(22), fill=INK)
+    for j, (b, t) in enumerate(PAIRS):
+        dr.text((left + j * cw + 8, 62), f'{b}, with {t}', font=font(14), fill=DIM)
+    for i, (name, make) in enumerate(FORMS.items()):
+        y = top + i * chh
+        dr.text((20, y + 44), name, font=font(16), fill=INK)
+        for j, (b, t) in enumerate(PAIRS):
+            x = left + j * cw
+            dr.rounded_rectangle([x, y, x + cw - 10, y + chh - 10], 6, fill=CELL)
+            a = Image.fromarray(icon(make(STUFF[b], STUFF[t]))).resize((96, 96), Image.NEAREST)
+            im.paste(a, (x + (cw - 10 - 96) // 2, y + 6), a)
+    im.save(out)
+
+
 YAWS, PITCHES, TURN = 24, (8, 28, 52), 128
 
 
@@ -1914,24 +2111,37 @@ def _turn(key):
     return key, icon(M, index=True), frames, M.dye, M.bases, M.ramps
 
 
-def bake(out):
+def bake(out, only=None):
     """Index sprites for the game: public/items/icons.png (48px), one
     turntable per item under turn/, and items.json with each material's ramp,
-    or which ramp a cloth's dye replaces."""
+    or which ramp a cloth's dye or a craft form's ingredient replaces. `only`
+    bakes the keys with that prefix into what is already there."""
     import json, os
     from multiprocessing import Pool
     from PIL import Image
     os.makedirs(f'{out}/turn', exist_ok=True)
-    keys = list(ITEMS)
     per = 12
-    sheet = np.zeros((48 * -(-len(keys) // per), 48 * per, 4), np.uint8)
     manifest = {'icon': 48, 'perRow': per, 'turn': {'size': TURN, 'yaws': YAWS, 'pitches': list(PITCHES)}, 'items': {}}
+    keys, prior = list(ITEMS), None
+    if only:
+        manifest = json.load(open(f'{out}/items.json'))
+        prior = np.array(Image.open(f'{out}/icons.png').convert('RGBA'))
+        keys = [k for k in ITEMS if k.startswith(only)]
+    at = {k: manifest['items'].get(k, {}).get('i') for k in keys}
+    free = len(manifest['items'])
+    for k in keys:
+        if at[k] is None:
+            at[k] = free; free += 1
+    sheet = np.zeros((48 * -(-free // per), 48 * per, 4), np.uint8)
+    if prior is not None:
+        sheet[:prior.shape[0]] = prior
     with Pool() as pool:
-        for i, (key, ic, frames, dye, bases, ramps) in enumerate(pool.imap(_turn, keys)):
+        for key, ic, frames, dye, bases, ramps in pool.imap(_turn, keys):
+            i = at[key]
             sheet[(i // per) * 48:(i // per + 1) * 48, (i % per) * 48:(i % per + 1) * 48] = ic
             Image.fromarray(frames).save(f'{out}/turn/{key}.png', optimize=True)
             dark = item_ramp(dye)[3] if dye else None
-            mats = [None] + [('dye' if dye and b == dye else 'dye-dark' if dye and b == dark else r)
+            mats = [None] + [('dye' if dye and b == dye else 'dye-dark' if dye and b == dark else SLOTS.get(b, r))
                              for b, r in zip(bases[1:], ramps[1:])]
             manifest['items'][key] = {'i': i, 'label': ITEMS[key][0], 'mats': mats, **({'dye': dye} if dye else {})}
             print(key, flush=True)
@@ -1944,7 +2154,9 @@ if __name__ == '__main__':
     args = sys.argv[1:]
     old = None
     if '--bake' in args:
-        bake('public/items'); sys.exit()
+        i = args.index('--bake'); bake('public/items', args[i + 1] if len(args) > i + 1 else None); sys.exit()
+    if '--forms' in args:
+        args.remove('--forms'); forms_sheet(args[0] if args else 'artifacts/craft-forms.png'); sys.exit()
     if '--old' in args:
         i = args.index('--old'); old = json.load(open(args[i + 1]))['out']; del args[i:i + 2]
     sheet(args[0] if args else 'artifacts/voxel-items.png', old)

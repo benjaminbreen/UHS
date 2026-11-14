@@ -18,12 +18,19 @@ orchestral roaming theme, eligible in every culture and era. Each group exhausts
 its songs before repeating, with no immediate repeat. Settings without a regional match use the
 shared rotation. Manual selections remain available in the studio.
 
-High-risk ground and nearby human or animal warnings fade into “Where the path
-grows quiet,” a wistful flute-and-harp piece. Active human attacks or animals pursuing the player switch promptly to
-“Stand your ground,” an original 16-bit RPG battle theme. Both loop while needed.
-Six continuous seconds at a lower threat level release combat to danger or the
-normal soundtrack; the outgoing cue fades over four seconds as the normal music
-fades in over six. Entering a room during danger updates where music returns.
+Crossing map boundaries leaves the current song uninterrupted. The short
+“Over the rise” and “A gate left open” motifs now mark plot-ending cards,
+alternating their culture- and era-specific arrangements. Time travel retains
+its separate cue.
+
+High-risk ground and nearby warnings queue “Where the path grows quiet” after
+whichever track is playing. It plays once in full, even after reaching safety;
+repeated danger updates do not stack copies. Being attacked interrupts with “Stand your ground.” Player-initiated hits alone
+do not start battle music. Killing non-domestic prey or pests plays a short, quiet
+success effect without ducking or changing the song.
+Combat loops until six continuous seconds without a threat, then fades back.
+If combat interrupts the danger piece, it is queued to play again in full.
+Entering a room during danger updates where music returns after the piece ends.
 Death takes priority, and manual studio selection with world following disabled
 is left alone. Both pieces are available in the studio's situation music list.
 

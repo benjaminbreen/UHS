@@ -738,7 +738,17 @@ function pluck(at: number, n: number, gain: number, dur = 0.42): Sound {
 const run = (notes: number[], gap: number, gain: number, dur?: number): Sound =>
   notes.flatMap((n, i) => pluck(i * gap, n, gain * (1 - i * 0.08), dur));
 
+export function interfaceClick(kind: "open" | "close" | "tab"): Sound {
+  const f = kind === "open" ? 760 : kind === "close" ? 520 : 650;
+  return [
+    tone(0, 0.045, 0.035, f, { to: f * 0.8, attack: 0.003 }),
+    tone(0, 0.025, 0.009, f * 1.5, { attack: 0.002 }),
+    noise(0, 0.018, 0.006, 1600, { filter: "lowpass", attack: 0.003 }),
+  ];
+}
+
 export const events = {
+  preyCaught: () => run([7, 9, 12], 0.065, 0.09, 0.28),
   /** Something taken up: a pop and a rising fifth. */
   pickup: () => [
     tone(0, 0.05, 0.16, 320, { to: 760, attack: 0.004 }),

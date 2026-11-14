@@ -66,6 +66,7 @@ import { materials } from "../content/characters/wardrobe/cloth";
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
 import { plotRoles } from "../content/plots/types";
+import { forms } from "../core/making";
 // A garment's cloth rides after `~` (see clothId): `garment-dress~wool.bleached.0`.
 const item = z.string().regex(/^[a-z][a-z0-9-]{0,39}(~[a-z0-9.-]{1,30})?$/);
 const inventory = z.record(item, z.number().int().min(0).max(1000000));
@@ -80,6 +81,8 @@ const itemDef = z
     description: z.string().max(160).optional(),
     flammable: z.boolean().optional(),
     floats: z.boolean().optional(),
+    hand: z.object({ strike: z.boolean().optional(), edge: z.boolean().optional() }).strict().optional(),
+    made: z.object({ form: z.enum(forms), body: item, trim: item, flop: z.literal(true).optional() }).strict().optional(),
   })
   .strict();
 const stat = z.number().int().min(0).max(100);
@@ -157,6 +160,19 @@ const intent = z.discriminatedUnion("type", [
         )
         .max(6)
         .optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("make"),
+      from: z.tuple([item, item]),
+      name: z.string().min(1).max(40),
+      description: z.string().max(160),
+      form: z.enum([...forms, "nothing"]),
+      difficulty: z.number().min(1).max(5),
+      minutes: z.number().min(1).max(240).optional(),
+      flop: z.object({ name: z.string().min(1).max(40), description: z.string().max(160), form: z.enum(forms) }).strict().optional(),
+      said: z.string().max(200).optional(),
     })
     .strict(),
   z
@@ -412,6 +428,7 @@ const actor = z.object({
   inventory,
   activity: z.string(),
   hungerDebt: z.number().nonnegative().optional(),
+  smoked: z.number().optional(),
   encounterAfter: z.number().optional(),
   fatigue: z.number().min(0).max(100),
   hunger: z.number().min(0).max(100),
@@ -872,6 +889,7 @@ export const snapshotSchema = z.object({
     })
     .strict()
     .optional(),
+  made: z.array(z.object({ item, clock: z.number(), said: z.string().max(200) }).strict()).max(2000).optional(),
   record: z
     .array(z.object({ day: z.number().int(), clock: z.number(), card: z.string().max(64), choice: z.number().int(), line: z.string().max(300) }).strict())
     .max(5000)

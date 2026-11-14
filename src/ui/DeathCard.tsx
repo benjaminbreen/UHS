@@ -5,6 +5,7 @@ import type { Runtime } from "../runtime/session";
 import { CharacterSprite } from "./CharacterSprite";
 import { inWords } from "../core/concerns";
 import { typicalDeathAge } from "../core/time/mortality";
+import { ItemIcon } from "./components";
 import "./time/time.css";
 
 const counted = (n: number) => (n === 1 ? "one" : inWords(n));
@@ -34,6 +35,10 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
     partner ? `${partner.name.split(" ")[0]} outlived you.` : "",
     typical ? `Most people here who reached twenty lived to about ${typical}. You lived to ${p.age}.` : "",
   ].filter(Boolean);
+  const best = (s.made ?? [])
+    .map((m) => ({ ...m, def: engine.item(m.item) }))
+    .filter((m) => m.def && !m.def.made?.flop)
+    .sort((a, b) => b.def!.value - a.def!.value)[0];
   return (
     <div className="collapse-notice death-card" role="alertdialog" aria-label={`${p.name} has died`}>
       <div>
@@ -49,6 +54,13 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
           {setting ? `, ${formatHistoricalYear(setting.year)}` : ""}
         </p>
         {summary.length > 0 && <p className="death-summary">{summary.join(" ")}</p>}
+        {best && (
+          <p className="make-death">
+            <ItemIcon id={best.item} sprite={best.def!.sprite} scale={4} />
+            <span>The best thing you made: {best.def!.name.toLowerCase()}.</span>
+            {best.said && <em>“{best.said}”</em>}
+          </p>
+        )}
         {heirs.length > 0 && (
           <>
             <small>GO ON AS</small>

@@ -6,6 +6,7 @@ import { narrator } from "./narrator";
 import { dialogue } from "./dialogue";
 import { jevRoute } from "./jev";
 import { education } from "./edu";
+import { craft } from "./craft";
 export const handleEdu = handler("/api/edu", education, 100000);
 export const handleTimeArrival = handler("/api/time-arrival", timeArrival, 6000);
 export const handleTaskLore = handler("/api/task-lore", taskLore, 3000);
@@ -18,6 +19,7 @@ export const handleWorldWeaver = handler(
 export const handleNarrator = handler("/api/narrator", narrator, 24000);
 export const handleDialogue = handler("/api/dialogue", dialogue, 10000);
 export const handleJev = handler("/api/jev", jevRoute, 16000);
+export const handleCraft = handler("/api/craft", craft, 2000);
 function handler(path: string, route: Route, limit: number) {
   return async (
     req: IncomingMessage & { body?: unknown },

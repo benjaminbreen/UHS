@@ -1,3 +1,4 @@
+import { motorized } from "../settlements/modernity";
 import type { Pack } from "../../core/types";
 import type { CultureId } from "../history/types";
 import { eraAt } from "../history/dates";
@@ -347,6 +348,8 @@ export function propKit(pack: Pack): PropKit {
     (pack.setting?.settlement === "farm" || rural)
   )
     contexts.privy.push("privyDung");
+  // A town of the motor age is sewered: no household keeps a privy.
+  if (!rural && pack.setting && motorized(pack.setting)) contexts.privy = [];
   // A board to sit on is older than any of this; it needs sawn timber and a
   // settled house, so it starts with the farming villages rather than a camp.
   if (year >= -5999 && pack.setting?.settlement !== "camp") {

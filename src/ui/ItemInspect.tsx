@@ -18,7 +18,7 @@ export function itemKind(def: ItemDef) {
 
 /** An item held up to the light: it turns by itself, and drags round under
  * the pointer, sideways for its heading and up and down for its tilt. */
-function Turntable({ id, fallback }: { id: string; fallback?: string }) {
+export function Turntable({ id, fallback }: { id: string; fallback?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [sheet, setSheet] = useState<HTMLCanvasElement>();
   const turn = voxelTurn();

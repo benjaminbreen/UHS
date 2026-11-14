@@ -414,3 +414,104 @@ test("notifications pause for reading, refresh repeated messages, and can be dis
   await page.clock.runFor(16);
   await expect(toast).toHaveCount(0);
 });
+
+test("a walking NPC stays beside the player while the conversation is open", async ({ page }) => {
+  await page.route("**/api/dialogue", (route) => route.fulfill({ json: { text: "Hello there.", regard: 0 } }));
+  await page.goto("/?start=A%20Roman%20baker%20in%20Ostia%2C%20100%20CE&seed=talk-routine");
+  await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  const confirm = page.getByRole("dialog").getByRole("button", { name: "Begin", exact: true });
+  await confirm.or(page.locator(".arrival")).waitFor({ state: "visible", timeout: 30000 });
+  if (await confirm.isVisible()) await confirm.click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
+  await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
+  await page.getByRole("button", { name: /Begin your day/ }).click();
+  const start = await page.evaluate(() => {
+    const r = (window as any).__uhs, e = r.engine;
+    r.stop();
+    r.ambientRate = 0;
+    e.state.plot = undefined;
+    const actor = e.state.actors.find((a: any) => a.kind === "human" && !a.dead);
+    const pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+    Object.assign(actor, { pos, offRoutine: false, hunger: 0, task: undefined, errand: undefined, terror: undefined, mount: undefined });
+    const routine = { start: e.state.clock / 60, period: 10, segments: [{ from: 0, to: 10, pos,
+      path: Array.from({ length: 100 }, (_, i) => ({ x: pos.x + i, y: pos.y })), activity: "work", label: "Walking" }] };
+    const itinerary = e.world.itinerary?.bind(e.world);
+    e.world.itinerary = (id: string) => id === actor.id ? routine : itinerary?.(id);
+    const pending = e.world.routinePending?.bind(e.world);
+    e.world.routinePending = (id: string) => id === actor.id ? false : pending?.(id);
+    e.confronter = actor.id;
+    r.emit();
+    return { id: actor.id, pos };
+  });
+  const conversation = page.getByRole("dialog", { name: /Conversation with/ });
+  await expect(conversation).toBeVisible();
+  const result = await page.evaluate(({ id }) => {
+    const r = (window as any).__uhs, e = r.engine;
+    const scene = (window as any).uhsGame.scene.getScene("world");
+    const actor = e.state.actors.find((a: any) => a.id === id);
+    const image = scene.entities.get(id);
+    const before = { x: image.x, y: image.y };
+    scene.moveAmbient(e.state.clock + 120);
+    const after = { x: image.x, y: image.y };
+    for (const seconds of [1, 6, 90]) r.command({ type: "pass", seconds });
+    return { before, after, pos: actor.pos, conversing: e.conversing,
+      walkedOff: e.state.events.some((event: any) => event.text.includes("calls after you")) };
+  }, start);
+  expect(Math.hypot(result.after.x - result.before.x, result.after.y - result.before.y)).toBeLessThanOrEqual(2);
+  expect(result.pos).toEqual(start.pos);
+  expect(result.conversing).toBe(start.id);
+  expect(result.walkedOff).toBe(false);
+  await expect(conversation).toBeVisible();
+});
+
+test("walking indoors does not replay an earlier swing", async ({ page }) => {
+  await page.goto("/?start=A%20Roman%20baker%20in%20Ostia%2C%20100%20CE&seed=indoor-swing");
+  await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  const confirm = page.getByRole("dialog").getByRole("button", { name: "Begin", exact: true });
+  await confirm.or(page.locator(".arrival")).waitFor({ state: "visible", timeout: 30000 });
+  if (await confirm.isVisible()) await confirm.click();
+  await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
+  await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
+  await page.getByRole("button", { name: /Begin your day/ }).click();
+  await page.evaluate(() => {
+    const r = (window as any).__uhs, e = r.engine;
+    r.stop();
+    r.ambientRate = 0;
+    e.state.plot = undefined;
+    const home = e.state.households.find((h: any) => h.members.includes("player"));
+    const place = e.world.place(home.residence);
+    e.state.player.pos = { ...place.entrance, space: "outside" };
+    if (r.command({ type: "interact", target: place.id, action: "enter" }).status !== "completed") throw Error("Could not enter home");
+  });
+  await page.waitForFunction(() => !!(window as any).uhsGame.scene.getScene("world").roomView);
+  await page.evaluate(async () => {
+    const r = (window as any).__uhs, scene = (window as any).uhsGame.scene.getScene("world");
+    const modulePath = "/src/render/combat-effects.ts";
+    const { CombatEffects } = await import(modulePath);
+    const sweep = CombatEffects.prototype.sweep;
+    (window as any).indoorSwings = 0;
+    CombatEffects.prototype.sweep = function (...args: any[]) {
+      (window as any).indoorSwings++;
+      return sweep.apply(this, args);
+    };
+    r.command({ type: "stow" });
+    r.command({ type: "swing", power: 1 });
+    scene.combat().consume(r.swingEffect);
+  });
+  await page.waitForFunction(() => (window as any).indoorSwings === 1);
+  const until = await page.evaluate(() => {
+    const r = (window as any).__uhs, e = r.engine, scene = (window as any).uhsGame.scene.getScene("world");
+    for (let n = 0; n < 4; n++) {
+      const p = e.state.player.pos;
+      const step = [[1, 0], [0, 1], [-1, 0], [0, -1]].find(([dx, dy]) => !e.blocked(p.x + dx, p.y + dy, p.space) && !e.actorAt({ ...p, x: p.x + dx, y: p.y + dy }));
+      if (!step) throw Error("No room to walk");
+      if (r.command({ type: "move", dx: step[0], dy: step[1] }).status !== "completed") throw Error("Could not walk");
+      scene.combat().consume(r.swingEffect);
+    }
+    return scene.time.now + 500;
+  });
+  await page.waitForFunction((until) => (window as any).uhsGame.scene.getScene("world").time.now > until, until);
+  expect(await page.evaluate(() => (window as any).indoorSwings)).toBe(1);
+});

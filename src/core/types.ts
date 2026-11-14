@@ -1,5 +1,6 @@
 import type { PersonBrief } from "./brief";
 import type { CharacterAppearance, WearSlot } from "./character";
+import type { Flop, Form, Made } from "./making";
 import type { LandscapeStyle } from "../content/graphics/landscapes";
 import type { WorldSetting } from "../content/geography/types";
 export type PackId = string;
@@ -34,6 +35,8 @@ export type ItemDef = {
   description?: string;
   flammable?: boolean;
   floats?: boolean;
+  /** Made by hand from two things; picks its shape and colours. */
+  made?: Made;
 };
 /** All 0-100. The first four drive checks; the rest colour dialogue. */
 export type Stats = {
@@ -269,11 +272,11 @@ export type Actor = {
   fatigue: number;
   hunger: number;
   hungerDebt?: number;
+  /** The day the player last got through some tobacco or betel. */
+  smoked?: number;
   encounterAfter?: number;
   trust: number;
   /** When the player last cost them trust. */
-  /** The day the player last got through some tobacco or betel. */
-  smoked?: number;
   wronged?: number;
   /** Until when they refuse to speak to the player at all. */
   shuns?: number;
@@ -743,6 +746,8 @@ export type Snapshot = {
   evening?: Evening;
   /** The day's work places and people, fixed at its first command. */
   workday?: { day: number; places: Record<string, { pos: Position; label: string; patient?: string; crop?: string; board?: string } | null> };
+  /** Everything the player has made by hand, with what they said they were doing. */
+  made?: { item: ItemId; clock: number; said: string }[];
   /** Every choice made at work over the life, for the account of it. */
   record?: { day: number; clock: number; card: string; choice: number; line: string }[];
   /** A card about someone's illness, the player's own or kin's, waiting on an answer. */
@@ -794,6 +799,8 @@ export type Intent =
       };
       consumes?: { item: ItemId; quantity: number }[];
     }
+  /** Two carried things worked into a new one; `from` is body, then trim. */
+  | { type: "make"; from: [ItemId, ItemId]; name: string; description: string; form: Form | "nothing"; difficulty: number; minutes?: number; flop?: Flop; said?: string }
   | { type: "pass"; minutes: number }
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }

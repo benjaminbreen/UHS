@@ -9,7 +9,7 @@ import { SkillLore, type Place } from "./SkillLore";
 import "./skill-sky.css";
 
 const HOLD_MS = 750;
-const shown = skillIds.filter((id) => !SKILLS[id].hidden);
+const shown = skillIds;
 
 type Mode = "sky" | "skill" | "choose" | "lore";
 const THEME_KEY = "uhs-skill-sky-theme";
@@ -315,7 +315,7 @@ export function SkillSky({
   });
 
   const learned = known.length;
-  const waiting = pending.filter((p) => !SKILLS[p.skill].hidden);
+  const waiting = pending;
 
   return (
     <div
@@ -628,7 +628,7 @@ function SkillPage({
                         <button className="vault-ask" onClick={() => onLore(id)} aria-label={`History of ${t.name}`}>
                           ?
                         </button>
-                        <span>{t.ready === false ? "Not in the game yet" : t.does}</span>
+                        <span>{t.ready === false ? "Coming later" : t.does}</span>
                       </div>
                     );
                   })}

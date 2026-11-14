@@ -5,6 +5,7 @@ import { regionalLook } from "../../content/graphics/regional-looks";
 import { mediterraneanShrineFrame, mediterraneanProp } from "../../content/graphics/mediterranean-buildings";
 import { resolveJunctions } from "./junctions";
 import { kerbsideFor } from "../../content/settlements/streets/kerbside";
+import { SITES, siteLayout } from "./sites";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
 import { railStaff, railVisitors } from "./rail-travellers";
@@ -3896,6 +3897,40 @@ export function planSettlement(
             sprite: yardTree(i),
             inventory: {},
           });
+        }
+      }
+      if (lot.site) {
+        const { kind, rect: ground } = lot.site, plot = siteLayout(kind, ground, rect, door, pack.setting?.year ?? 0, (key) => rand("site", i, key));
+        eachCell(ground, (x, y) => {
+          const k = cellKey(x, y);
+          if ((x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h) || plan.solid.has(k)) return;
+          if (!setSurface(k, "paving", 5)) return;
+          plan.pavement!.set(k, "court");
+          plan.streetSurfaces!.set(k, SITES[kind].surface);
+          plan.reserved.add(k);
+        });
+        // The apron runs out to the sidewalk, across whatever strip the block left.
+        for (let x = ground.x; x < ground.x + ground.w; x++)
+          for (let y = ground.y + ground.h; y < ground.y + ground.h + 4; y++) {
+            const k = cellKey(x, y);
+            if (plan.pavement!.get(k) === "footway" || plan.lanes?.has(k) || plan.solid.has(k) || !setSurface(k, "paving", 5)) break;
+            plan.pavement!.set(k, "court");
+            plan.streetSurfaces!.set(k, SITES[kind].surface);
+            plan.reserved.add(k);
+          }
+        plan.loadingBays ??= new Map();
+        for (const bay of plot.bays) eachCell(bay, (x, y) => plan.loadingBays!.set(cellKey(x, y), bay));
+        for (const [n, p] of plot.props.entries())
+          plan.objects.push({ id: `${id}-site-${n}`, name: p.name, kind: "monument", sprite: p.sprite, pos: pos(p), inventory: {}, claim: "landscape" });
+        const pool = pack.setting ? vehiclePool(pack.setting) : [];
+        for (const [n, c] of plot.cars.entries()) {
+          const car = pool.length ? parkedCar(pool, rand("site-car", i, n), rand("site-paint", i, n)) : undefined;
+          if (!car) continue;
+          plan.objects.push({ id: `${id}-site-car-${n}`, name: car.label, description: car.about, kind: "monument",
+            sprite: `vehicle-${car.model}-${car.paint}-${c.heading}`, pos: pos(c), inventory: {}, claim: "landscape" });
+          const length = carLength(car.model, c.heading === "n" ? "y" : "x");
+          for (let d = 0; d < length; d++)
+            for (const e of [0, 1]) plan.solid.add(c.heading === "n" ? cellKey(c.x + e, c.y - d) : cellKey(c.x + d, c.y - e));
         }
       }
       const fc = lot.forecourt;

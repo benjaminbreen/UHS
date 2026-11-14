@@ -200,8 +200,11 @@ it("offers a mortar to use, not to climb", () => {
   expect(engine.climbable()).toBeUndefined();
   expect(engine.usable()).toMatchObject({ id: "it", use: "pound" });
   const clock = engine.state.clock;
+  const crafting = engine.skills().crafting ?? 0;
   engine.act({ actionId: "use", expectedRevision: engine.state.revision, command: { type: "interact", target: "it", action: "use-prop" } });
   expect(engine.state.clock).toBeGreaterThan(clock);
+  // Hands on the work teach the craft, whatever the person's trade.
+  expect(engine.skills().crafting).toBeGreaterThan(crafting);
 });
 
 it("leans a freestanding marker on a running collision, then topples it with a walking push", () => {

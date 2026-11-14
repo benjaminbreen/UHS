@@ -832,6 +832,9 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
   if (prop?.sprite === "icon:yoke" && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade) {
     hands[0] = [d.shoulderW + 1.5, sh + 7, 0];
     hands[1] = [-(d.shoulderW + 1.5), sh + 7, 0];
+  } else if (prop && sheltering(prop.sprite) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade) {
+    // Held up before the chest, the shaft past the face to the canopy.
+    hands[near] = [ns * (d.shoulderW - 1.5), sh + 2, 3];
   } else if (prop && shouldered(prop.sprite.slice(5)) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
     hands[near] = [ns * (d.shoulderW - 0.5), sh - 1, 3];
   else if (prop && upright(prop) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
@@ -851,7 +854,8 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
 }
 
 /** Polearms and long guns a figure stands with: drawn by the painter, not from the icon. */
-const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|rifle|harpoon|paddle|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole|yoke)$/.test(prop.sprite);
+const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|rifle|harpoon|paddle|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole|yoke|umbrella|paper-umbrella|banana-leaf)$/.test(prop.sprite);
+const sheltering = (sprite: string) => /^icon:(umbrella|paper-umbrella|banana-leaf)$/.test(sprite);
 const shouldered = (kind?: string) => kind === "water-pole" || kind === "carrying-pole" || kind === "yoke";
 const EMBLEMS: Record<string, string> = { cowhide: "#ece4d4", lambda: "#8a2a22", cross: "#ece4d4", chevron: "#d8b04a", tiger: "#d8a03a", bands: "#ece4d4", rim: "#a4aab0" };
 
@@ -877,6 +881,7 @@ function pole(sheet: Sheet, kind: string, hand: J, trail = 0, bob = 0) {
   const x = rnd(hand[0]),
     hy = Math.round(hand[1]),
     side = hand[0] >= CX ? 1 : -1;
+  if (/umbrella|banana-leaf/.test(kind)) return;
   if (kind === "walking-cane") {
     s.put(new Mask().line(x, hy - 1, x, GY - 1, 1).set(x + side, hy - 2).set(x + side * 2, hy - 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
     return;
@@ -1630,6 +1635,48 @@ export function drawCharacterF(
   if (prop?.kind === "bow" && pose === "draw") drawBow(ctx, t, r, frame & 3);
   else if (levelled) drawLevelled(ctx, t, r, levelled);
   else if (prop && !held && !shoulderLoad && !work && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
+  if (held && /umbrella|banana-leaf/.test(held)) canopy(ctx, held, poleHand, headArgs.x0 + 6.5, headArgs.y0, t.view === "side" ? t.sx : 0, behind(poleHand[2]));
+}
+
+/** An umbrella or a leaf held over the head: the shaft from the fist, the
+ * canopy clear of the crown and tipped into the rain when walking side on. */
+function canopy(ctx: CanvasRenderingContext2D, kind: string, hand: J, headX: number, headTop: number, ahead: number, hidden: boolean) {
+  const px = (c: string, x: number, y: number, w = 1) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, 1); };
+  const hx = Math.round(hand[0]), hy = Math.round(hand[1]);
+  // Clear of the tallest hat, not just the head.
+  const band = ctx.getImageData(Math.round(headX) - 6, 0, 13, headTop + 1).data;
+  for (let y = 0; y <= headTop; y++)
+    if ([...Array(13).keys()].some((i) => band[(y * 13 + i) * 4 + 3] > 0)) {
+      headTop = y;
+      break;
+    }
+  if (kind === "banana-leaf") {
+    // Flat over the head, the far end drooping, held up by its stalk.
+    const cx = Math.round(headX + ahead * 2), y = headTop - 5, end = ahead || (hx >= headX ? 1 : -1);
+    if (!hidden) for (let j = hy; j > y + 2; j--) px("#5a7a2e", hx + Math.round(((cx - hx) * (hy - j)) / (hy - y)), j);
+    for (let i = -10; i <= 10; i++) {
+      // Arched over the head, the far end drooping past the shoulder.
+      const a = Math.abs(i), lift = a < 4 ? 0 : a < 8 ? 1 : 2, droop = i * end > 6 ? i * end - 6 : 0;
+      const top = y + lift + droop, thick = a < 7 ? 3 : 2;
+      px("#2e5a26", cx + i, top - 1);
+      for (let k = 0; k < thick; k++) px(k === 0 ? "#6aa84a" : (i + k) % 3 ? "#4a8a3a" : "#3e7a32", cx + i, top + k);
+      px("#2e5a26", cx + i, top + thick);
+    }
+    for (let i = -8; i <= 8; i++) px("#b8dc8a", cx + i, y + 1 + (Math.abs(i) < 4 ? 0 : Math.abs(i) < 8 ? 1 : 2) + (i * end > 6 ? i * end - 6 : 0));
+    return;
+  }
+  const paper = kind === "paper-umbrella";
+  const [body, lit, rim, shaft] = paper ? ["#c0703a", "#e09a5a", "#8a4a26", "#a8884a"] : ["#33333c", "#50505c", "#1e1e26", "#4a3a2a"];
+  const cx = Math.round(headX + (hx - headX) * 0.35 + ahead * 2), top = headTop - 10;
+  if (!hidden) for (let j = hy + 3; j > top + 5; j--) px(shaft, hx + Math.round(((cx - hx) * (hy + 3 - j)) / (hy + 3 - top - 5)), j);
+  px(paper ? "#5a3a1e" : "#2a2a30", cx, top - 1);
+  [2, 5, 8, 10, 11, 12].forEach((half, r) => {
+    px(r === 5 ? rim : body, cx - half, top + r, half * 2 + 1);
+    if (r && r < 4) px(lit, cx - half + 1, top + r, Math.max(2, half - 3));
+  });
+  // A paper umbrella shows its spokes; a cloth one hangs in points at the ribs.
+  if (paper) for (let k = -10; k <= 10; k += 4) px("#8a4a26", cx + k, top + 4);
+  else for (const k of [-12, -7, -2, 3, 8]) px(rim, cx + k, top + 6, 2);
 }
 
 /** A gun, a crossbow or a blowgun along the line of aim, drawn as a few

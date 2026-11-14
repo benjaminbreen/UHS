@@ -57,12 +57,12 @@ export function statsOf(
 ): Stats {
   return actor.stats ?? rollStats(seed, actor);
 }
-const words: Record<keyof Stats, [low: string, high: string]> = {
+export const statWords: Record<keyof Stats, [low: string, high: string]> = {
   strength: ["frail", "strong"],
   agility: ["clumsy", "nimble"],
   endurance: ["easily spent", "tireless"],
   wit: ["slow-witted", "sharp"],
-  openness: ["set in their ways", "curious"],
+  openness: ["conventional", "curious"],
   conscientiousness: ["careless", "diligent"],
   extraversion: ["reserved", "outgoing"],
   agreeableness: ["hard-nosed", "warm"],
@@ -71,7 +71,7 @@ const words: Record<keyof Stats, [low: string, high: string]> = {
 /** Only the traits that stand out, so most people get two or three words. */
 export function describeStats(stats: Stats): string[] {
   return keys.flatMap((k) =>
-    stats[k] >= 68 ? [words[k][1]] : stats[k] <= 32 ? [words[k][0]] : [],
+    stats[k] >= 68 ? [statWords[k][1]] : stats[k] <= 32 ? [statWords[k][0]] : [],
   );
 }
 export const statKeys = keys;

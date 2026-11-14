@@ -654,7 +654,7 @@ function bestStep(
 /** A step toward `goal` for a hunter on purpose. Once the greedy step stands
  * stuck against something, the leader takes the way round and keeps to it; the
  * rest follow the leader. */
-function closeOn(world: FaunaWorld, p: FaunaProfile, taken: Bodies, g: FaunaGroup, m: FaunaMember, goal: Point) {
+function closeOn(world: FaunaWorld, p: FaunaProfile, taken: Bodies, g: FaunaGroup, m: FaunaMember, goal: Point, clock: number) {
   const lead = g.members[0];
   if (m !== lead) return bestStep(world, p, taken, m, g.route?.length ? lead : goal, false);
   const end = { x: Math.round(goal.x), y: Math.round(goal.y) };
@@ -662,8 +662,10 @@ function closeOn(world: FaunaWorld, p: FaunaProfile, taken: Bodies, g: FaunaGrou
   if (last && (last.x !== end.x || last.y !== end.y)) g.route = undefined;
   if (!g.route?.length) {
     const step = bestStep(world, p, taken, m, goal, false);
-    if (step) return step;
+    if (step || clock < (g.unrouted ?? 0)) return step;
     g.route = route(world, p, m, end);
+    // No way there: the search is the dearest thing a tick does, so not every tick.
+    if (!g.route) g.unrouted = clock + 60;
   }
   const r = g.route;
   if (!r) return undefined;
@@ -1116,7 +1118,7 @@ function huntPlayer(
   g.state = p.art.stalk ? "stalk" : "wander";
   for (const o of g.members) {
     o.pose = p.art.stalk ? "stalk" : undefined;
-    const to = closeOn(world, p, taken, g, o, player);
+    const to = closeOn(world, p, taken, g, o, player, clock);
     if (to && !(to.x === player.x && to.y === player.y)) moveMember(o, to, taken, turns);
     face(o, player.x - o.x, player.y - o.y, turns);
   }
@@ -1151,7 +1153,7 @@ function raid(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number, 
   g.state = dark ? (p.art.stalk ? "stalk" : "wander") : "wander";
   for (const o of g.members) {
     o.pose = dark && p.art.stalk ? "stalk" : undefined;
-    const to = closeOn(world, p, taken, g, o, goal);
+    const to = closeOn(world, p, taken, g, o, goal, clock);
     if (to) moveMember(o, to, taken, turns);
   }
   g.pos = { x: lead.x, y: lead.y, space: "outside" };

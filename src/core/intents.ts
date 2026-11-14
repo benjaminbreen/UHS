@@ -1,5 +1,7 @@
 import type { Engine } from "./engine";
 import { statsOf } from "./stats";
+import { oddsOf } from "./cards";
+import { madeTraits } from "./making";
 import {
   forageByCover,
   forageByTerrain,
@@ -40,6 +42,11 @@ export function validateIntents(engine: Engine, intents: Intent[]) {
       for (const c of i.consumes ?? [])
         if ((p.inventory[c.item] ?? 0) < c.quantity)
           return `You do not have ${engine.item(c.item)?.name.toLowerCase() ?? c.item}.`;
+  for (const i of intents)
+    if (i.type === "make")
+      for (const id of i.from)
+        if (!engine.item(id) || (p.inventory[id] ?? 0) < (i.from[0] === i.from[1] ? 2 : 1))
+          return `You do not have ${engine.item(id)?.name.toLowerCase() ?? id}.`;
 }
 /** Runs every intent in order and returns one outcome line per intent, so
  * the caller can tell the narrator what actually happened. */
@@ -54,6 +61,8 @@ export function resolveIntents(engine: Engine, intents: Intent[]): string[] {
         return climb(engine, i.target);
       case "invent":
         return invent(engine, i);
+      case "make":
+        return make(engine, i);
       case "pass": {
         const minutes = clamp(Math.round(i.minutes), 1, 1440);
         engine.advance(minutes * 60);
@@ -251,6 +260,44 @@ function invent(engine: Engine, i: Extract<Intent, { type: "invent" }>) {
   engine.advance(120);
   engine.event(`You now have ${def.name.toLowerCase()}.`);
   return `Made ${def.name.toLowerCase()} (value ${def.value}).`;
+}
+function make(engine: Engine, i: Extract<Intent, { type: "make" }>) {
+  const s = engine.state,
+    p = s.player;
+  if (i.form === "nothing") {
+    engine.advance(60);
+    return "Nothing comes of it.";
+  }
+  const [a, b] = i.from.map((id) => engine.item(id)!);
+  const difficulty = clamp(Math.round(i.difficulty), 1, 5),
+    level = engine.skillLevel("crafting");
+  engine.advance(clamp(Math.round(i.minutes ?? 20), 5, 240) * 60);
+  const won = engine.rng("make") < oddsOf({ stat: "wit", skill: "crafting", odds: 0.95 - difficulty * 0.13 }, engine.stats(), level);
+  for (const part of [a, b]) p.inventory[part.id] = (p.inventory[part.id] ?? 0) - 1;
+  const flop = won ? undefined : (i.flop ?? { name: "Ruined " + b.name.toLowerCase(), description: "It did not work.", form: "bundle" as const });
+  const grade = flop ? "" : level < difficulty * 2 ? "Crude " : level >= difficulty * 2 + 8 ? "Fine " : "";
+  const plain = (flop?.name ?? i.name).replace(/^(crude|rough|simple|fine|makeshift)\s+/i, "").slice(0, 34);
+  const name = grade ? grade + plain.toLowerCase() : plain[0].toUpperCase() + plain.slice(1);
+  const made = { form: flop?.form ?? i.form, body: a.id, trim: b.id, ...(flop ? { flop: true as const } : {}) };
+  s.catalog ??= {};
+  let id = "x-" + (slug(name) || "thing");
+  for (let n = 2; s.catalog[id] && JSON.stringify(s.catalog[id].made) !== JSON.stringify(made); n++)
+    id = `x-${slug(name) || "thing"}-${n}`;
+  const def: ItemDef = (s.catalog[id] ??= {
+    id,
+    name,
+    description: (flop?.description ?? i.description).slice(0, 160),
+    sprite: lookSprites.wood,
+    value: flop ? 0 : Math.round((a.value + b.value) * (grade === "Crude " ? 1 : grade ? 2 : 1.4)) + difficulty,
+    made,
+    ...(flop ? {} : madeTraits(i.form, a, b)),
+  });
+  p.inventory[id] = (p.inventory[id] ?? 0) + 1;
+  s.made = [...(s.made ?? []), { item: id, clock: s.clock, said: (i.said ?? "").slice(0, 200) }].slice(-2000);
+  engine.grantXp("crafting", flop ? 3 : 6 + difficulty * 4);
+  const an = /^[aeiou]/i.test(def.name) ? "an" : "a";
+  engine.event(flop ? `It goes wrong. You are left with ${an} ${def.name.toLowerCase()}.` : `You have made ${an} ${def.name.toLowerCase()}.`);
+  return `${flop ? "Failed; left with" : "Made"} ${def.name.toLowerCase()} (value ${def.value}).`;
 }
 function travel(
   engine: Engine,

@@ -25,8 +25,6 @@ export const GROUPS = ["Land", "Combat", "Craft", "People", "Road"] as const;
 export type SkillDef = {
   name: string;
   group: (typeof GROUPS)[number];
-  /** Nothing earns it yet, so the panel leaves it out. */
-  hidden?: boolean;
   /** What earns it, for the panel. */
   earned: string;
   /** What a level is worth, for the panel. */
@@ -56,6 +54,7 @@ export const PER_LEVEL = {
   wayfaringStamina: 0.03,
   watercraftPace: 0.05,
   armsDamage: 0.03,
+  craftingYield: 0.03,
 };
 
 export const SKILLS: Record<SkillId, SkillDef> = {
@@ -129,11 +128,11 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   crafting: {
     name: "Crafting",
     group: "Craft",
-    hidden: true,
-    earned: "Making things",
-    perk: () => "Nothing yet",
+    earned: "A day at a trade that makes things, and time put in at a bench, loom, quern, oven or forge",
+    perk: (l) => `A day's making yields ${pct(l * PER_LEVEL.craftingYield)} more`,
     stat: "wit",
-    trades: /smith|potter|weaver|cook|baker|brewer|tanner|carpenter|apothecar/i,
+    trades:
+      /smith|potter|weaver|cook|baker|brewer|tanner|carpenter|apothecar|boatwright|brick|lime|dyer|fuller|spinner|comber|basket|bark-cloth|butcher|leather|saddler|miller|printer|cobbler|shoemaker|tailor|cooper|joiner|glass|chandler|maker/i,
   },
   speech: {
     name: "Speech",

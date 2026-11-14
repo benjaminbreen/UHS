@@ -94,6 +94,7 @@ import { pieceOf, recipeFor } from "../content/economy/recipes";
 import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
 import { FORD_CARD } from "../content/cards/hazards";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
+import { giftOf, type Form } from "./making";
 import { fieldParcel, findPlace, waterfrontMember, type StepPlace } from "./work-places";
 import { catchFate, catchOf, fishingPractice, fishingWords, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
 import { dangerOf, gameOf, GIVE_UP_HOURS, huntFate, huntWeapon, huntWords, keepsTraps } from "../content/economy/hunting";
@@ -149,8 +150,8 @@ import {
 import { faunaAt, faunaCombat, faunaProfile } from "../content/fauna";
 import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../content/agriculture/pests";
 import { livelihoodById } from "../content/characters/livelihoods";
-import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { smokingFrom } from "../content/characters/smoking";
+import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { amountIn, moneyFor } from "../content/economy/money";
 import { tableGames } from "../content/games";
 import { venueOfClaim } from "../content/venues";
@@ -446,7 +447,7 @@ function tollName(s: import("./types").Pack["setting"]) {
 const workSkill: Record<ProcessFamily, SkillId> = {
   tend: "farming",
   gather: "foraging",
-  transform: "trade",
+  transform: "crafting",
   carry: "wayfaring",
   serve: "speech",
 };
@@ -1642,15 +1643,17 @@ export class Engine {
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const work = s.economy.work?.day === t.day ? s.economy.work : undefined;
     if (work) work.done = true;
+    const skill = process.skill ?? workSkill[process.family];
+    const craft = skill === "crafting" ? 1 + this.skillLevel("crafting") * PER_LEVEL.craftingYield : 1;
     const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : this.farming(t) ? this.settleHarvest(t)
-      : dayOfWork(s.economy, household, (1 + 0.25 * (work?.quality ?? 0)) * (work?.catch ?? 1) * (1 - this.catchOwed()));
+      : dayOfWork(s.economy, household, craft * (1 + 0.25 * (work?.quality ?? 0)) * (work?.catch ?? 1) * (1 - this.catchOwed()));
     if (work?.catch !== undefined) Object.assign(made, this.settleCatch(t));
     if (process.paid === "takings") {
       const coin = this.takings(2, (amount) => `You took ${amount} over the day.`);
-      for (const [g, n] of Object.entries(dayOfWork(s.economy, household, 1 + 0.25 * (work?.quality ?? 0)))) made[g] = n;
+      for (const [g, n] of Object.entries(dayOfWork(s.economy, household, craft * (1 + 0.25 * (work?.quality ?? 0))))) made[g] = n;
       Object.assign(made, coin);
     }
     // Work that makes nothing the town trades in, a forager's or a fisher's,
@@ -1663,7 +1666,7 @@ export class Engine {
         }
     const today = this.today().made;
     for (const [g, n] of Object.entries(made)) today[g] = (today[g] ?? 0) + n;
-    this.grantXp(process.skill ?? workSkill[process.family], 20);
+    this.grantXp(skill, 20);
     if (s.goalFlags) s.goalFlags.worked = true;
     // Money has its own line from whoever paid it; this one names what was made.
     const goods = Object.keys(made).filter((g) => g !== "coin");
@@ -2435,7 +2438,14 @@ export class Engine {
   /** The player as they would float: a swimmer counts as afloat in deep water. */
   private floater(deep: boolean) {
     const p = this.state.player;
-    return deep && this.canSwim() && !p.afloat ? { ...p, afloat: "swimming" as const } : p;
+    if (!deep || p.afloat) return p;
+    return this.carriesMade("raft") ? { ...p, afloat: "raft" as const } : this.canSwim() ? { ...p, afloat: "swimming" as const } : p;
+  }
+  /** Whether the player carries a sound hand-made thing of this shape. */
+  private carriesMade(form: Form) {
+    const p = this.state.player;
+    return Object.values(this.state.catalog ?? {}).some((d) =>
+      d.made?.form === form && !d.made?.flop && ((p.inventory[d.id] ?? 0) > 0 || p.heldItem === d.id));
   }
   playerCanCross(from: Point, to: Point) {
     const deep = this.deep(from.x, from.y) || this.deep(to.x, to.y);
@@ -2444,7 +2454,7 @@ export class Engine {
       return (!((from.x !== to.x) && (from.y !== to.y)) ||
         (afloatAt(this.world, p, from.x, to.y) && afloatAt(this.world, p, to.x, from.y)));
     // Hauling out of deep water onto a bank the wading rule would refuse.
-    if (p.afloat === "swimming" && afloatAt(this.world, p, from.x, from.y) &&
+    if ((p.afloat === "swimming" || (p.afloat === "raft" && this.carriesMade("raft"))) && afloatAt(this.world, p, from.x, from.y) &&
       (from.x === to.x || from.y === to.y) && !this.deep(to.x, to.y))
       return !this.blocked(to.x, to.y, "outside");
     return this.world.canCross?.(from, to) ?? true;
@@ -4344,8 +4354,15 @@ export class Engine {
   }
   private swimStep(depth: number) {
     const p = this.state.player;
-    if (!p.afloat && depth > MAX_WADING_DEPTH && this.canSwim()) p.afloat = "swimming";
-    else if (p.afloat === "swimming" && depth <= MAX_WADING_DEPTH) delete p.afloat;
+    const deep = depth > MAX_WADING_DEPTH;
+    if (!p.afloat && deep && this.carriesMade("raft")) {
+      p.afloat = "raft";
+      this.event("You push your raft out and climb on.");
+    } else if (p.afloat === "raft" && !deep && this.carriesMade("raft")) {
+      delete p.afloat;
+      this.event("You drag your raft up the bank.");
+    } else if (!p.afloat && deep && this.canSwim()) p.afloat = "swimming";
+    else if (p.afloat === "swimming" && !deep) delete p.afloat;
     if (p.afloat !== "swimming") {
       if (p.swum) p.swum = Math.max(0, p.swum - 8) || undefined;
       return;
@@ -5551,7 +5568,7 @@ export class Engine {
     const name = this.state.objects.find((o) => o.id === u.id)?.name.toLowerCase() ?? "it";
     switch (u.use) {
       case "draw":
-        if (this.item("water")) p.inventory.water = Math.max(p.inventory.water ?? 0, 2);
+        if (this.item("water")) p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
         p.fatigue = Math.min(100, p.fatigue + 1);
         this.event(`You draw water at the ${name} and fill your vessel.`);
         break;
@@ -5565,6 +5582,8 @@ export class Engine {
         break;
       default:
         p.fatigue = Math.min(100, p.fatigue + 3);
+        // Anyone learns a little by putting their hands to it, trade or no trade.
+        if (u.use !== "tend") this.grantXp("crafting", 4);
         this.event(`You ${u.verb.toLowerCase().replace(/ (at|on)$/, "")} the ${name} a while.`);
     }
   }
@@ -7479,6 +7498,9 @@ export class Engine {
    * is their own: a wolf outruns a person, a sheep does not keep up. */
   /** Where the player stood at the last animal tick. */
   private faunaSaw: Point = { x: 0, y: 0 };
+  /** The cells each animal stood on, tick by tick, for the renderer to walk it
+   * through: a block of standing still runs many ticks in one frame. Not saved. */
+  readonly faunaTrails = new Map<string, { clock: number; x: number; y: number }[]>();
   private stepFauna(clock: number) {
     if (this.state.player.inventory.hound) this.keepHound();
     const groups = this.state.fauna;
@@ -7614,6 +7636,15 @@ export class Engine {
       clock,
     );
     this.faunaSaw = { x: player.pos.x, y: player.pos.y };
+    for (const g of near)
+      for (const m of g.members) {
+        const id = `${g.id}-${m.n}`, trail = this.faunaTrails.get(id), last = trail?.at(-1);
+        if (last && last.x === m.x && last.y === m.y) continue;
+        if (!trail) this.faunaTrails.set(id, [{ clock, x: m.x, y: m.y }]);
+        else if (trail.push({ clock, x: m.x, y: m.y }) > 48) trail.shift();
+      }
+    if (clock % 600 === 0)
+      for (const [id, trail] of this.faunaTrails) if (clock - trail.at(-1)!.clock > 600) this.faunaTrails.delete(id);
     for (const g of near)
       for (const m of g.members) {
         if (!m.name || Math.hypot(m.x - focus.x, m.y - focus.y) > 12) continue;
@@ -8691,7 +8722,7 @@ export class Engine {
         name: def.name,
         kind: "item",
         item: id,
-        sprite: def.sprite,
+        sprite: def.made ? `made:${id}` : def.sprite,
         pos: spot,
         inventory: {},
       });
@@ -8714,7 +8745,9 @@ export class Engine {
       if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
       const peace = a.trust < 0;
       this.regard(a, peace ? 3 : 1);
-      a.memories.push(`You gave them ${def.name.toLowerCase()}${peace ? " to make peace" : ""}.`);
+      const gift = def.made && giftOf(def, a.name, a.age);
+      if (gift) this.regard(a, gift.regard);
+      a.memories.push(`You gave them ${def.name.toLowerCase()}${gift ? " you made yourself" : ""}${peace ? " to make peace" : ""}.`);
       if (peace) {
         a.word = a.word?.filter((w) => w.hops > 0 || w.tone >= 0);
         if (this.state.complaints) this.state.complaints = this.state.complaints.filter((x) => x.by !== a.id);
@@ -8727,7 +8760,7 @@ export class Engine {
       this.event(
         alms
           ? `You put ${def.name.toLowerCase()} in ${a.name}'s ${a.heldItem === "alms-bowl" ? "bowl" : "hand"}. "${BLESSINGS[this.world.pack.setting?.culture ?? ""] ?? "Bless you for it."}"`
-          : `You hand ${def.name.toLowerCase()} to ${a.name}. ${peace ? "They take it, and the grudge with it." : "They take it."}`,
+          : `You hand ${def.name.toLowerCase()} to ${a.name}. ${peace ? "They take it, and the grudge with it." : gift ? gift.line : "They take it."}`,
         "social",
       );
       if (advanceLifeAim(this.state, { type: "give", actor: a.id, item: c.item }))
@@ -9120,7 +9153,7 @@ export class Engine {
         this.descend(c.dx || c.dy ? { dx: c.dx ?? 0, dy: c.dy ?? 0 } : undefined);
         break;
       case "drink":
-        p.inventory.water = Math.max(p.inventory.water ?? 0, 2);
+        p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
         if (!this.state.manifest.survival) p.fatigue = Math.max(0, p.fatigue - 2);
         this.advance(30);
         this.event("You drink cool water and refill your vessel.");
@@ -11871,6 +11904,12 @@ export class Engine {
       this.fireExposure(elapsed, next - elapsed);
       if (player.dead) break;
       player.hunger = Math.min(100, player.hunger + elapsed / 1800);
+      const day = Math.floor(next / 86400);
+      if (player.smoked !== day) {
+        const smoking = player.smoked === undefined ? undefined : smokingFrom(player.inventory, this.world.pack.setting);
+        if (smoking) player.inventory[smoking.item] = (player.inventory[smoking.item] ?? 0) - 1;
+        player.smoked = day;
+      }
       if (this.state.manifest.survival)
         player.hungerDebt = Math.max(0, (player.hungerDebt ?? 0) + elapsed * (player.hunger >= 100 ? 1 : -3));
       player.fatigue = Math.min(
@@ -11904,12 +11943,6 @@ export class Engine {
       this.brawl();
       this.watch();
       this.passersBy();
-      const day = Math.floor(next / 86400);
-      if (player.smoked !== day) {
-        const smoking = player.smoked === undefined ? undefined : smokingFrom(player.inventory, this.world.pack.setting);
-        if (smoking) player.inventory[smoking.item] = (player.inventory[smoking.item] ?? 0) - 1;
-        player.smoked = day;
-      }
       if (next % 600 === 0) this.runIndoors(next);
       this.confront(next);
       this.beeStep(next);
@@ -12212,6 +12245,7 @@ export class Engine {
     // itinerary time that the renderer draws after the command.
     for (const a of actors) {
       if (
+        a.id === heldActor || a.id === this.conversing ||
         a.kind !== "human" || a.offRoutine || a.task || a.tends || a.errand ||
         a.hunger > 45 || this.world.routinePending?.(a.id)
       )

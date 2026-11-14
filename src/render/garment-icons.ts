@@ -47,6 +47,7 @@ export function itemIconFor(id: string): string | undefined {
   const dated = periodArt(id);
   if (dated in itemArt) return dated;
   if (id in itemArt) return id;
+  if (sharedArt[id]) return sharedArt[id];
   const sprite = caveItems[id]?.sprite;
   if (!sprite) return;
   const icon = caveIconForSprite[sprite] ?? sprite;
@@ -54,6 +55,8 @@ export function itemIconFor(id: string): string | undefined {
 }
 
 const caveIconForSprite: Record<string, string> = { rock: "stone", "rock-1": "stone", "ecology-fruit-item": "fruit" };
+/** Wares drawn with another item's icon until they have their own. */
+const sharedArt: Record<string, string> = { "pipe-tobacco": "tobacco", snuff: "tobacco", cigars: "tobacco", cigarettes: "tobacco", betel: "greens" };
 
 function rgb(hex: string) {
   const n = parseInt(hex.slice(1), 16);

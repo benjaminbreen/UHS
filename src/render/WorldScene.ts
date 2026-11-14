@@ -1,3 +1,4 @@
+import { loadVoxelItems, voxelIcon, voxelItemsReady } from "./voxel-items";
 import { waterborneFrames } from "../content/graphics/models";
 import { socialLabels } from "../core/bonds";
 import { shownStock } from "../core/economy";
@@ -49,7 +50,6 @@ const GENERIC_TRADES = [
   "hardware",
   "pharmacy",
   "shop",
-];
   "shoes",
   "jeweler",
   "radio",
@@ -57,6 +57,7 @@ const GENERIC_TRADES = [
   "butcher",
   "sweets",
   "juice",
+];
 import type { Place } from "../core/types";
 import type { WorldSetting } from "../content/geography/types";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
@@ -224,13 +225,13 @@ const RUN_GRACE_MS = 200;
 const TURN_HOLD_MS = 60;
 /** The lean into a first step, and the rock back and settle out of a walk. */
 const SETOFF_MS = 80;
-const HALT_MS = 200;
 /** A limp: the half of the stride on the bad leg hurried, the good leg's
  * half drawn out, over the same cycle so the feet do not slide. */
 function limpFrame(steps: number, n: number, lame: number) {
   const quick = lame === 2 ? 0.5 : 0.65, half = n / 2, u = steps % n;
   return u < half * quick ? Math.floor(u / quick) : Math.min(n - 1, half + Math.floor((u - half * quick) / (2 - quick)));
 }
+const HALT_MS = 200;
 /** A gap between steps shorter than this is still one walk, not a stop and a start. */
 const GAIT_GAP_MS = 60;
 /** The rock back as a walk swings round three eighths or more. */
@@ -351,11 +352,10 @@ import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
 import { TiltShiftPipeline } from "./tilt-shift";
 import { NightGradePipeline } from "./night-grade";
-/** People drawn at once. Beyond roughly this many the per-head frame cache,
 import { healthPerson, symptomsShown, type Symptoms } from "../core/health";
 import { smokingFrom, smokingHabit, type SmokeForm } from "../content/characters/smoking";
 import { Smokers } from "./smoking";
-import { RainCovers, coverFor, coverTint, type Cover } from "./rain-cover";
+import { RainCovers, coverFor, coverItem, shawlTint, type Cover } from "./rain-cover";
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
@@ -588,6 +588,7 @@ export class WorldScene extends Phaser.Scene {
   private plantHeights = new Map<string, number>();
   /** The images standing on a cell, so a blow can rock the right plant. */
   private plantImages = new Map<string, Phaser.GameObjects.Image[]>();
+  private monkeySwing = -1;
   /** One plant per selectable crop cell, so a selected crop can be outlined
    * the way a tree or a person is. */
   private cropImages = new Map<string, Phaser.GameObjects.Image>();
@@ -597,6 +598,7 @@ export class WorldScene extends Phaser.Scene {
   private torchFlame?: TorchFlame;
   private structureDecay?: StructureDecay;
   private combatEffects?: CombatEffects;
+  private effectsSpace?: string;
   private cueFx?: CueEffects;
   /** How people show what they make of things. */
   private get cues() {
@@ -616,9 +618,6 @@ export class WorldScene extends Phaser.Scene {
   private get feel() {
     return (this.feelFx ??= new PlayerFeel(this));
   }
-  /** Animals knocked silly by something thrown: stars go round their heads. */
-  private stunned = new Set<string>();
-  /** Last drawn pose frame per person, so a footfall fires once per contact. */
   private smokersFx?: Smokers;
   private get smokers() {
     return (this.smokersFx ??= new Smokers(
@@ -627,20 +626,20 @@ export class WorldScene extends Phaser.Scene {
       (x, y) => this.feel.bleed(x, y, this.printDepth(), 0x8c2a1c),
     ));
   }
+  private habits = new Map<string, SmokeForm | null>();
   private rainFx?: RainCovers;
-  private covers = new Map<string, { cover?: Cover; tint: number; ribbed: boolean }>();
+  private covers = new Map<string, { cover?: Cover; tint: number; item?: string }>();
   private coverOf(id: string, age: number) {
     let c = this.covers.get(id);
     if (!c) {
       const { state, world } = this.runtime.engine, seed = state.manifest.seed, pack = world.pack;
       const cover = coverFor(pack.setting, pack.year, random(seed, "rain-cover", id), age < 13);
       const culture = pack.setting?.culture;
-      c = { cover, tint: cover ? coverTint(cover, culture, pack.year, random(seed, "rain-tint", id)) : 0, ribbed: culture === "east-asian" && pack.year < 1920 };
+      c = { cover, tint: shawlTint(random(seed, "rain-tint", id)), item: cover && coverItem(cover, culture, pack.year) };
       this.covers.set(id, c);
     }
     return c;
   }
-  private habits = new Map<string, SmokeForm | null>();
   private emberGlow = 0;
   private habitOf(id: string) {
     if (id === "player") return smokingFrom(this.runtime.engine.state.player.inventory, this.runtime.engine.world.pack.setting)?.form;
@@ -654,6 +653,9 @@ export class WorldScene extends Phaser.Scene {
     }
     return form ?? undefined;
   }
+  /** Animals knocked silly by something thrown: stars go round their heads. */
+  private stunned = new Set<string>();
+  /** Last drawn pose frame per person, so a footfall fires once per contact. */
   private footfalls = new Map<string, number>();
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number; next?: number; started?: number; sign?: number }>();
@@ -767,6 +769,7 @@ export class WorldScene extends Phaser.Scene {
   private crowAt = 0;
   private jostleSerial = 0;
   private faunaMotion = new FaunaMotion();
+  private faunaSeen = new Map<string, number>();
   /** Cast shadows by pose, facing and lighting phase. */
   private faunaShadows = new Map<
     string,
@@ -777,13 +780,13 @@ export class WorldScene extends Phaser.Scene {
   private layers: Phaser.GameObjects.GameObject[] = [];
   private snowyCasts = false;
   private breathAt = new Map<string, number>();
+  private symptoms = new Map<string, { s: Symptoms; at: number; next: number; sweat: number }>();
+  private sickPose = new Map<string, { pose: CharacterPose; from: number; until: number }>();
+  private bledAt = 0;
   private frost = 0;
   private rained = false;
   /** Golden-hour rim light: a warm copy of each figure a pixel toward the sun, behind it. */
   private rims = new Map<string, { rim: Phaser.GameObjects.Image; owner: Phaser.GameObjects.Image }>();
-  private symptoms = new Map<string, { s: Symptoms; at: number; next: number; sweat: number }>();
-  private sickPose = new Map<string, { pose: CharacterPose; from: number; until: number }>();
-  private bledAt = 0;
   private rainbow?: Phaser.GameObjects.Graphics;
   /** Where fallen leaves lie, for feet to kick through. */
   private leafPiles: { x: number; y: number }[] = [];
@@ -1021,16 +1024,14 @@ export class WorldScene extends Phaser.Scene {
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
       this.feelFx?.dispose();
-      this.cueFx?.dispose();
-      this.babyFx?.dispose();
-      this.babyFx = undefined;
       this.smokersFx?.dispose();
       this.habits.clear();
       this.rainFx?.dispose();
       this.covers.clear();
+      this.cueFx?.dispose();
+      this.babyFx?.dispose();
+      this.babyFx = undefined;
     });
-      this.smokersFx?.dispose();
-      this.habits.clear();
     this.events.once("shutdown", () => this.characters?.destroy());
     this.events.once("destroy", () => this.characters?.destroy());
     this.fireFrames = animatedFrames(
@@ -2997,10 +2998,6 @@ export class WorldScene extends Phaser.Scene {
     this.layers.push(image);
   }
 
-  /** The family name of whoever keeps this place, where the culture and the
-   * century give people family names at all. Generation already decides that,
-   * so a one-word name simply yields nothing here. */
-  private ownerSurname(place: Place): string | undefined {
   /** Every sign spot the art left on a front: a trade, a language, a paint
    * and words for each, or nothing. A building's first spot carries its own
    * trade; the others are neighbours renting the rest of the ground floor. */
@@ -3042,6 +3039,10 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  /** The family name of whoever keeps this place, where the culture and the
+   * century give people family names at all. Generation already decides that,
+   * so a one-word name simply yields nothing here. */
+  private ownerSurname(place: Place): string | undefined {
     if (!place.owner) return undefined;
     const owner = this.runtime.engine.state.actors.find(
       (actor) => actor.id === place.owner,
@@ -3322,8 +3323,20 @@ export class WorldScene extends Phaser.Scene {
     );
     return key;
   }
+  /** A hand-made thing set down: its own icon, in the colours of what went into it. */
+  private madeTexture(frame: string) {
+    if (this.textures.exists(frame)) return frame;
+    const icon = voxelItemsReady() ? voxelIcon(frame.slice(5)) : undefined;
+    if (!icon) {
+      void loadVoxelItems();
+      return "__DEFAULT";
+    }
+    this.textures.addCanvas(frame, icon)?.add(frame, 0, 0, 0, icon.width, icon.height);
+    return frame;
+  }
   private texture(frame: string) {
     if (HUNT_ICONS.includes(frame)) return frame;
+    if (frame.startsWith("made:")) return this.madeTexture(frame);
     if (frame.startsWith("tuft-kit-")) return frame.slice(0, frame.lastIndexOf("-"));
     if (frame.startsWith("tuft-")) return TUFT_ATLAS;
     if (!this.sheetFrames) {
@@ -4348,7 +4361,7 @@ export class WorldScene extends Phaser.Scene {
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
       this.terrainAnchor = undefined;
-    } else if (p.space !== "outside") {
+    } else if (p.space !== this.effectsSpace) {
       // Indoors the street is only out of sight. Rasterising it again on the
       // way back out is what made a settlement fill in a quadrant at a time.
       this.toolEffects?.dispose();
@@ -4357,10 +4370,10 @@ export class WorldScene extends Phaser.Scene {
       this.monkeys?.clear();
       this.findsDirty = true;
       this.combatEffects?.dispose();
-      this.combatEffects = undefined;
-      this.terrainStream?.setHidden(true);
+      this.terrainStream?.setHidden(p.space !== "outside");
       this.terrainAnchor = undefined;
     }
+    this.effectsSpace = p.space;
     if (w.topography && p.space === "outside") {
       if (!this.terrainStream) {
         this.terrainStream = new TerrainStream(
@@ -5100,6 +5113,7 @@ export class WorldScene extends Phaser.Scene {
             );
             this.addChurchBanner(b, placement, w.pack.setting, image.y);
             this.addBuildingSign(b, placement, w.pack.setting, image.y);
+            this.addShopSigns(b, placement, w.pack.setting, image.y);
             if (
               (b.access === "household" ||
                 (placement.model as { smoke?: unknown[] }).smoke?.length) &&
@@ -5116,7 +5130,6 @@ export class WorldScene extends Phaser.Scene {
             p.x - (fence.x + fence.w) > 100 ||
             fence.y - p.y > 100 ||
             p.y - (fence.y + fence.h) > 100
-            this.addShopSigns(b, placement, w.pack.setting, image.y);
           )
             continue;
           if (fence.parts) {
@@ -5223,6 +5236,7 @@ export class WorldScene extends Phaser.Scene {
       Math.max(this.scale.width, this.scale.height) / rt.zoom / 32 +
       AMBIENT_MARGIN;
     for (const a of e.state.actors) {
+      if (a.id === e.conversing) continue;
       // In a vehicle: placed in their crew place from the vehicle's clock,
       // wherever the simulation last left them.
       if (a.mount && a.kind === "human") {
@@ -5787,7 +5801,11 @@ export class WorldScene extends Phaser.Scene {
         const id =
           m.n === undefined ? `${g.id}-${i}` : faunaSpriteId(g.id, m.n);
         const at = { x: m.x, y: m.y, space: "outside" };
-        if (!visible(at)) continue;
+        const drawn = this.faunaMotion.walking(id) && this.faunaMotion.at(id);
+        if (!visible(at) && !(drawn && visible({ x: drawn.x / 16, y: drawn.y / 16, space: "outside" }))) continue;
+        const trail = e.faunaTrails.get(id), seen = this.faunaSeen.get(id);
+        const fresh = trail && seen !== undefined ? trail.filter((q) => q.clock > seen) : [];
+        if (trail) this.faunaSeen.set(id, trail.at(-1)!.clock);
         // Fright runs through a herd from the side the player is on.
         const fright = Math.hypot(m.x - p.x, m.y - p.y);
         this.faunaMotion.aim(
@@ -5797,6 +5815,13 @@ export class WorldScene extends Phaser.Scene {
           URGENT.has(g.state),
           !!this.options.freeze || !this.entities.has(id),
           Math.min(0.5, Math.max(0, fright - 2) * 0.07),
+          // A block of several ticks is walked in the real time it stands for.
+          fresh.length > 1
+            ? {
+                points: fresh.map((q) => ({ x: q.x * 16 + 8, y: q.y * 16 + 16 })),
+                seconds: Math.min(4, (fresh.at(-1)!.clock - fresh[0].clock + 6) / rt.ambientRate),
+              }
+            : undefined,
         );
         const phase = this.poseOffset(id) % 8;
         const facing = FACINGS[m.direction] ?? "east";
@@ -5872,6 +5897,8 @@ export class WorldScene extends Phaser.Scene {
     this.faunaMotion.keep(this.faunaSprites);
     for (const id of this.faunaMood.keys())
       if (!this.faunaSprites.has(id)) this.faunaMood.delete(id);
+    for (const id of this.faunaSeen.keys())
+      if (!this.faunaSprites.has(id)) this.faunaSeen.delete(id);
     // Walked into: it hops out of the way, and the player feels the bump.
     const jostle = rt.jostleEffect;
     if (jostle && jostle.serial !== this.jostleSerial) {
@@ -6176,6 +6203,7 @@ export class WorldScene extends Phaser.Scene {
     // Low sun is lost behind cloud.
     const golden = graded ? w.golden * 0.14 * (1 - weather / 0.3) : 0;
     const lamps = graded ? w.lamps : 0;
+    this.emberGlow = lamps;
     // Rooms go dark one at a time, so the hour is part of the key.
     const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.floor(clock / 900)}:${this.snow}`;
     if (key === this.washKey) return;
@@ -6206,7 +6234,6 @@ export class WorldScene extends Phaser.Scene {
       .renderTexture(0, 0, width, height)
       .setOrigin(0)
       .setDepth(19000)
-    this.emberGlow = lamps;
       .setBlendMode(Phaser.BlendModes.MULTIPLY)
       .setVisible(false);
   }
@@ -6851,7 +6878,12 @@ export class WorldScene extends Phaser.Scene {
       playerCell: () => this.runtime.engine.state.player.pos,
     });
     this.toolEffects.consume(this.runtime.toolEffect);
-    this.toolEffects.consumeSwing(this.runtime.swingEffect);
+    const swing = this.runtime.swingEffect;
+    if (swing && swing.serial !== this.monkeySwing) {
+      this.monkeySwing = swing.serial;
+      this.monkeys?.swung(swing.from.x * 16 + 8, swing.from.y * 16 + 8, this.time.now);
+    }
+    this.toolEffects.consumeSwing(swing);
     this.toolEffects.consumeThrow(this.runtime.throwEffect);
     this.toolEffects.consumeShove(this.runtime.shoveEffect);
     const heave = this.runtime.heaveEffect;
@@ -6878,8 +6910,10 @@ export class WorldScene extends Phaser.Scene {
       this.treeFinds.drop(find);
     }
     this.treeFinds.update(time);
+    mark("tool effects");
     this.smallLife?.update(time);
     this.monkeys?.update(time);
+    mark("small life");
     const fires = this.runtime.engine.state.fires ?? [];
     if (fires.length || this.burning)
       (this.burning ??= new Burning(this)).update(
@@ -7299,6 +7333,21 @@ export class WorldScene extends Phaser.Scene {
           id !== "player" && !moving ? this.cues.poseFor(id) : undefined;
         if (cued) pose = cued.pose;
         const asleep = use?.role === "bed" && this.pillows.has(id);
+        const free = !this.options.freeze && !swimming && !(craft && craft !== "swimming");
+        const smoking = this.smokers.update(id, this.habitOf(id), im, human.direction,
+          free && !asleep && !work && !use && !/work|gather|sleep/i.test(human.activity) && this.cameras.main.worldView.contains(im.x, im.y),
+          this.emberGlow, time);
+        const raining = this.weather?.condition === "rain" && (this.weather.rain ?? 0) >= 0.15 && wetPos?.space === "outside";
+        const cover = raining && free && !asleep && !work && !use && this.cameras.main.worldView.contains(im.x, im.y)
+          ? this.coverOf(id, human.age ?? 30) : undefined;
+        const headLoad = /@head$/.test(human.heldItem ?? "");
+        const hands = !heldSprite && loadWeight === 0;
+        const over = cover?.cover && !headLoad && (cover.cover === "cloth" || hands) ? cover.cover : undefined;
+        (this.rainFx ??= new RainCovers(this)).update(id, over, cover?.tint ?? 0, im, this.headTop(im), human.direction, time);
+        const rainProp = over && over !== "cloth" ? `icon:${cover!.item}` : undefined;
+        const sick = (free ? this.showSymptoms(id, human.direction, im, moving, asleep, time) : undefined) ?? smoking;
+        const sickPose = sick && !moving && !cued && !asleep && (pose === "idle" || pose === "breathe") ? sick : undefined;
+        if (sickPose) pose = sickPose.pose;
         const npcGesture = id !== "player" && !moving && !cued && !asleep && pose === "idle" && !this.options.freeze
           ? this.idleGesture(id, time, !!heldSprite, !!human.appearance?.wearing.headwear && human.appearance.wearing.headwear !== "none", loadWeight,
             () => statsOf(this.runtime.engine.state.manifest.seed, human))
@@ -7334,30 +7383,9 @@ export class WorldScene extends Phaser.Scene {
         // Quicker, shorter steps to get out of the rain.
         const cadence = (raining ? 1.2 : 1) / (1 + loadWeight * 0.12 + (tired ? 0.14 : 0));
         let g = this.gaits.get(id);
-        const free = !this.options.freeze && !swimming && !(craft && craft !== "swimming");
-        const smoking = this.smokers.update(id, this.habitOf(id), im, human.direction,
-          free && !asleep && !work && !use && !/work|gather|sleep/i.test(human.activity) && this.cameras.main.worldView.contains(im.x, im.y),
-          this.emberGlow, time);
-        const raining = this.weather?.condition === "rain" && (this.weather.rain ?? 0) >= 0.15 && wetPos?.space === "outside";
-        const cover = raining && free && !asleep && !work && !use && this.cameras.main.worldView.contains(im.x, im.y)
-          ? this.coverOf(id, human.age ?? 30) : undefined;
-        const headLoad = /@head$/.test(human.heldItem ?? "");
-        const hands = !heldSprite && loadWeight === 0;
-        const over = cover?.cover && !headLoad && (cover.cover === "cloth" || hands) ? cover.cover : undefined;
-        (this.rainFx ??= new RainCovers(this)).update(id, over, cover?.tint ?? 0, !!cover?.ribbed, im, this.headTop(im), human.direction, time);
-        const sick = (free ? this.showSymptoms(id, human.direction, im, moving, asleep, time) : undefined) ?? smoking;
-        const sickPose = sick && !moving && !cued && !asleep && (pose === "idle" || pose === "breathe") ? sick : undefined;
-        if (sickPose) pose = sickPose.pose;
         if (!g)
           this.gaits.set(
             id,
-        const free = !this.options.freeze && !swimming && !(craft && craft !== "swimming");
-        const smoking = this.smokers.update(id, this.habitOf(id), im, human.direction,
-          free && !asleep && !work && !use && !/work|gather|sleep/i.test(human.activity) && this.cameras.main.worldView.contains(im.x, im.y),
-          this.emberGlow, time);
-        const sick = (free ? this.showSymptoms(id, human.direction, im, moving, asleep, time) : undefined) ?? smoking;
-        const sickPose = sick && !moving && !cued && !asleep && (pose === "idle" || pose === "breathe") ? sick : undefined;
-        if (sickPose) pose = sickPose.pose;
             // Someone first drawn mid-stride has no set-off; an infinite
             // `since` made their walk frame NaN, drawn high off the ground.
             (g = moving
@@ -7444,6 +7472,8 @@ export class WorldScene extends Phaser.Scene {
                       ? 0
                       : cued
                         ? cued.index
+                        : sickPose
+                          ? Math.min(3, Math.floor(((time - sickPose.from) / (sickPose.until - sickPose.from)) * 4))
                         : npcGesture
                           ? npcGesture.index
                         : fidget?.pose
@@ -7469,6 +7499,7 @@ export class WorldScene extends Phaser.Scene {
         }
         const prop =
           heldSprite ??
+          rainProp ??
           (at?.activity === "haul-catch" && (!work || work.pose === "work-hang" && work.index < 2) ? CATCH : undefined) ??
           // A thrown object stays in the hand through the windup. Striking
           // also swings, but then the hand is still full and this never runs.
@@ -7481,8 +7512,6 @@ export class WorldScene extends Phaser.Scene {
         // half turn is a single frame, which the eight-way sprites make
         // more obvious than the four-way ones did.
         const workFacing = work?.site && pose === work.pose &&
-                        : sickPose
-                          ? Math.min(3, Math.floor(((time - sickPose.from) / (sickPose.until - sickPose.from)) * 4))
           Math.hypot(work.site.x - at!.x, work.site.y - at!.y) > 0.35
             ? facingFromStep(work.site.x - at!.x, work.site.y - at!.y, at!.direction)
             : undefined;
@@ -7655,6 +7684,10 @@ export class WorldScene extends Phaser.Scene {
             !this.direction().some(Boolean)
           )
             this.feel.skid(im, this.shadows.get(id), human.direction, DUST);
+          if (lame === 2 && time >= this.bledAt && wetPos && !craft) {
+            this.bledAt = time + (moving ? 260 + Math.random() * 420 : 2500 + Math.random() * 2500);
+            this.feel.bleed(im.x, im.y, this.printDepth());
+          }
           if (fidget?.shiver) {
             const nudge = Math.floor(time / 50) % 2 ? 0.6 : -0.6;
             im.x = Math.round(im.x) + nudge;
@@ -7692,10 +7725,6 @@ export class WorldScene extends Phaser.Scene {
             .setDepth(pillow.depth);
         } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
         if (!texture || swimming) this.shadows.get(id)?.setVisible(false);
-          if (lame === 2 && time >= this.bledAt && wetPos && !craft) {
-            this.bledAt = time + (moving ? 260 + Math.random() * 420 : 2500 + Math.random() * 2500);
-            this.feel.bleed(im.x, im.y, this.printDepth());
-          }
         if (texture && !swimming && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
@@ -7912,6 +7941,11 @@ export class WorldScene extends Phaser.Scene {
   private moveAmbient(clock: number) {
     for (const id of this.ambient.keys()) {
       if (!this.entities.has(id)) continue;
+      if (id === this.runtime.engine.conversing) {
+        const a = this.runtime.engine.state.actors.find((actor) => actor.id === id);
+        if (a) this.ambient.set(id, { ...this.ambient.get(id)!, ...a.pos, direction: a.direction, moving: false });
+        continue;
+      }
       const rider = this.mountedActors.get(id);
       if (rider?.mount) {
         const at = this.mountAt(rider, clock);
@@ -8217,48 +8251,6 @@ export class WorldScene extends Phaser.Scene {
   }
   private apart = new WeakMap<Phaser.GameObjects.Image, { x: number; y: number }>();
   private saleBeat = new Map<string, number>();
-  private idleGesture(id: string, time: number, held: boolean, hat: boolean, load: number, temperament?: () => Stats) {
-    if (load >= 2) return undefined;
-    const offset = this.poseOffset(id), cycle = 16000 + offset % 14000;
-    const beat = (time + offset) % cycle;
-    if (beat >= 640) return undefined;
-    // The habits a temperament runs to, taken in turn from one pause to the next.
-    const habits: CharacterPose[] = ["sway"];
-    const stats = temperament?.();
-    if (held && !load) habits.push("inspect-held");
-    if (hat && !held) habits.push("adjust-hat");
-    if (stats) {
-      if (stats.neuroticism > 60 && !held) habits.push("touch-face", "touch-face");
-      if (stats.conscientiousness > 60) habits.push("straighten", "straighten");
-      if (stats.extraversion > 65) habits.push("shrug");
-      if (stats.agreeableness > 65) habits.push("nod");
-    } else habits.push("straighten");
-    const pose = habits[(Math.floor((time + offset) / cycle) + offset) % habits.length];
-    return { pose, index: heldFrame(pose, beat, 160) };
-  }
-  private bare = new WeakMap<object, Actor["appearance"]>();
-  /** Hat and hood off for bed. */
-  private bareHeaded(a: Actor["appearance"]) {
-    if (!a || a.wearing.headwear === "none") return a;
-    let out = this.bare.get(a);
-    if (!out) this.bare.set(a, (out = { ...a, wearing: { ...a.wearing, headwear: "none" } }));
-    return out;
-  }
-  private crownOf(key: string) {
-    let top = this.crowns.get(key);
-    if (top === undefined) {
-      const src = this.textures.get(key).getSourceImage() as HTMLCanvasElement;
-      const data = src.getContext?.("2d")?.getImageData(0, 0, src.width, src.height).data;
-      top = 0;
-      if (data) for (let i = 3; i < data.length; i += 4) if (data[i]) { top = Math.floor((i >> 2) / src.width); break; }
-      this.crowns.set(key, top);
-      if (this.crowns.size > 512) this.crowns.delete(this.crowns.keys().next().value!);
-    }
-    return top;
-  }
-  /** What someone is doing at the piece of their room they are at. */
-  private indoorPose(use: NonNullable<ReturnType<Runtime["engine"]["indoorUse"]>>, activity: string, space: string): CharacterPose {
-    const meal = /eat|meal|supper|breakfast|dinner/i.test(activity);
   /** Coughs, sneezes, a fever's sweat and queasiness, as often as the illness
    * runs to: a mild case up and about once a minute or so, the worst, in bed,
    * every few seconds. Returns a pose to hold while standing. */
@@ -8303,6 +8295,48 @@ export class WorldScene extends Phaser.Scene {
     if (held && time >= held.until) this.sickPose.delete(id);
     return held && time >= held.from && time < held.until ? held : undefined;
   }
+  private idleGesture(id: string, time: number, held: boolean, hat: boolean, load: number, temperament?: () => Stats) {
+    if (load >= 2) return undefined;
+    const offset = this.poseOffset(id), cycle = 16000 + offset % 14000;
+    const beat = (time + offset) % cycle;
+    if (beat >= 640) return undefined;
+    // The habits a temperament runs to, taken in turn from one pause to the next.
+    const habits: CharacterPose[] = ["sway"];
+    const stats = temperament?.();
+    if (held && !load) habits.push("inspect-held");
+    if (hat && !held) habits.push("adjust-hat");
+    if (stats) {
+      if (stats.neuroticism > 60 && !held) habits.push("touch-face", "touch-face");
+      if (stats.conscientiousness > 60) habits.push("straighten", "straighten");
+      if (stats.extraversion > 65) habits.push("shrug");
+      if (stats.agreeableness > 65) habits.push("nod");
+    } else habits.push("straighten");
+    const pose = habits[(Math.floor((time + offset) / cycle) + offset) % habits.length];
+    return { pose, index: heldFrame(pose, beat, 160) };
+  }
+  private bare = new WeakMap<object, Actor["appearance"]>();
+  /** Hat and hood off for bed. */
+  private bareHeaded(a: Actor["appearance"]) {
+    if (!a || a.wearing.headwear === "none") return a;
+    let out = this.bare.get(a);
+    if (!out) this.bare.set(a, (out = { ...a, wearing: { ...a.wearing, headwear: "none" } }));
+    return out;
+  }
+  private crownOf(key: string) {
+    let top = this.crowns.get(key);
+    if (top === undefined) {
+      const src = this.textures.get(key).getSourceImage() as HTMLCanvasElement;
+      const data = src.getContext?.("2d")?.getImageData(0, 0, src.width, src.height).data;
+      top = 0;
+      if (data) for (let i = 3; i < data.length; i += 4) if (data[i]) { top = Math.floor((i >> 2) / src.width); break; }
+      this.crowns.set(key, top);
+      if (this.crowns.size > 512) this.crowns.delete(this.crowns.keys().next().value!);
+    }
+    return top;
+  }
+  /** What someone is doing at the piece of their room they are at. */
+  private indoorPose(use: NonNullable<ReturnType<Runtime["engine"]["indoorUse"]>>, activity: string, space: string): CharacterPose {
+    const meal = /eat|meal|supper|breakfast|dinner/i.test(activity);
     if (use.role === "seat") return use.on === "seat" ? "sit-seat" : use.on === "floor" ? "sit" : meal ? "give" : "idle";
     if (use.role === "fire")
       return use.cooking || /cook|brew/i.test(activity) || meal ? "work-stir"

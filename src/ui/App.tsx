@@ -133,9 +133,11 @@ import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { ItemInspect, itemKind } from "./ItemInspect";
+import { MakePanel } from "./MakePanel";
 import { GamingTable, type Seat } from "./gaming/GamingTable";
 import { tableGameFor } from "../content/games";
 import { venueOfClaim } from "../content/venues";
+import { setMadeItems } from "../render/voxel-items";
 const LiveGraphicsPanel = lazy(() => import("../dev/LiveGraphicsPanel").then((m) => ({ default: m.LiveGraphicsPanel })));
 const CombatTestPanel = lazy(() => import("../dev/CombatTestPanel").then((m) => ({ default: m.CombatTestPanel })));
 const SkillTestPanel = lazy(() => import("../dev/SkillTestPanel").then((m) => ({ default: m.SkillTestPanel })));
@@ -258,6 +260,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   }, [runtime]);
   const [card, setCard] = useState<PlotCardData>();
   const [inspecting, setInspecting] = useState<string>();
+  const [making, setMaking] = useState<{ first?: string }>();
+  const [gaming, setGaming] = useState<{ place: string; seed: string; seats: Seat[] }>();
+  setMadeItems(runtime.engine.state.catalog);
   const [modal, setModal] = useState<
     | "time"
     | "world"
@@ -275,7 +280,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "shop"
     | null
   >(null);
-  const [gaming, setGaming] = useState<{ place: string; seed: string; seats: Seat[] }>();
   const [shopWith, setShopWith] = useState<string>();
   const [yearsToEnd, setYearsToEnd] = useState(false);
   const trader = runtime.nearestTrader();
@@ -400,7 +404,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     return () => window.clearTimeout(t);
   }, [hintsShown]);
   // A conversation leaves the world live, so the player can walk away from it.
-  const touchBlocked = runtime.workInProgress || (!!modal && modal !== "dialogue") || audioOpen || characterOpen || portraitOpen || !!card || !!inspecting || !!sky || !!task || (phone && (sheetOpen || narratorOpen || restOpen));
+  const touchBlocked = runtime.workInProgress || (!!modal && modal !== "dialogue") || audioOpen || characterOpen || portraitOpen || !!card || !!inspecting || !!making || !!sky || !!task || (phone && (sheetOpen || narratorOpen || restOpen));
   useEffect(() => { if (touchBlocked) runtime.stop(); }, [touchBlocked, runtime]);
   useEffect(() => {
     if (!modal && !audioOpen && !sky && !task) return;
@@ -591,6 +595,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     if (!next) return;
     runtime.hold(true);
     setCard(next);
+    if (next.kind === "ending") void gameAudio()?.plotResolution();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, obs.clock, covered, card, runtime.engine.cards.length, runtime.workHold, runtime.passing]);
   const lookAt = (id?: string) =>
@@ -1028,6 +1033,27 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     audio.setThreat(threatMusic(engine.danger().score, state.fauna ?? [], state.player.pos, state.clock));
   }, [audio, runtime, obs.revision, p.dead]);
   useEffect(() => applyTheme(accent, background, setting?.culture), [accent, background, setting?.culture]);
+  const previousPanels = useRef<unknown[] | undefined>(undefined);
+  useEffect(() => {
+    const panels = [modal, audioOpen, characterOpen, portraitOpen, inspecting, making, gaming, sky, task, restOpen, narratorOpen, sheetOpen];
+    const before = previousPanels.current;
+    previousPanels.current = panels;
+    if (!audio || !before) return;
+    if (panels.some((value, i) => value && !before[i]) || (modal && before[0] && modal !== before[0]))
+      void audio.interfaceSound("open");
+    else if (panels.some((value, i) => !value && before[i]))
+      void audio.interfaceSound("close");
+  }, [audio, modal, audioOpen, characterOpen, portraitOpen, inspecting, making, gaming, sky, task, restOpen, narratorOpen, sheetOpen]);
+  useEffect(() => {
+    if (!audio) return;
+    const observer = new MutationObserver((records) => {
+      if (records.some(({ target, oldValue }) => target instanceof Element && target.isConnected &&
+        target.matches('[role="tab"][aria-selected="true"]') && oldValue === "false"))
+        void audio.interfaceSound("tab");
+    });
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["aria-selected"], attributeOldValue: true });
+    return () => observer.disconnect();
+  }, [audio]);
   useEffect(() => applyProseFont(proseFont), [proseFont]);
   useEffect(() => {
     if (modal === "notebook") void audio?.sound(pageTurn(), "page");
@@ -2129,6 +2155,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 )}
                 {sideTab === "inventory" && (
                   <div className="nearby-list inventory-list">
+                    {Object.values(p.inventory).filter((n) => n! > 0).length > 0 && (
+                      <button className="make-open" onClick={() => setMaking({})}>
+                        Make something
+                      </button>
+                    )}
                     {Object.entries(p.inventory)
                       .filter(([, n]) => n! > 0)
                       .map(([id, n]) => (
@@ -2306,10 +2337,15 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               : runtime.item(inspecting)!.wear
                 ? { label: "Wear", onClick: () => runtime.command({ type: "wear", item: inspecting }) }
                 : { label: "Take in hand", onClick: () => runtime.command({ type: "hold", item: inspecting }) },
+            { label: "Make something", onClick: () => setMaking({ first: inspecting }) },
+            ...(runtime.item(inspecting)!.made
+              ? [{ label: "Set down", onClick: () => { runtime.command({ type: "hold", item: inspecting }); runtime.command({ type: "drop" }); } }]
+              : []),
           ]}
           onClose={() => setInspecting(undefined)}
         />
       )}
+      {making && <MakePanel runtime={runtime} first={making.first} onClose={() => setMaking(undefined)} />}
       {gaming && tableHere && tableHere.place.id === gaming.place && (
         <GamingTable
           game={tableHere.game}

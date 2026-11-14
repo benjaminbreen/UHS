@@ -429,6 +429,31 @@ describe("town ambience", () => {
 
 
 describe("soundtrack setting updates", () => {
+  it("reserves regional arrival motifs for plot resolutions instead of map crossings", async () => {
+    vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
+    vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
+    const director = new AudioDirector();
+    const cue = vi.spyOn(director, "cue").mockResolvedValue(undefined);
+    try {
+      director.setSetting("european", 1500, { lon: 10, lat: 45 });
+      director.setSetting("european", 1500, { lon: 11, lat: 45 });
+      director.setSetting("east-asian", 1500, { lon: 135, lat: 35 });
+      expect(cue).not.toHaveBeenCalled();
+      await director.plotResolution();
+      await director.plotResolution();
+      expect(cue.mock.calls.map(([id]) => id)).toEqual([
+        situationTheme("arrival", "east-asian", 1500, 0),
+        situationTheme("arrival", "east-asian", 1500, 1),
+      ]);
+      director.setSetting("east-asian", 1900, { lon: 135, lat: 35 });
+      expect(cue).toHaveBeenLastCalledWith(situationTheme("timeslip", "east-asian", 1900));
+    } finally {
+      director.dispose();
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
+  });
+
   it("distinguishes risky ground, warnings and attacks without treating ordinary wildlife as combat", () => {
     const pos = { x: 0, y: 0, space: "outside" };
     const animal = { pos, members: [{ x: 2, y: 0, hp: 10 }], warning: 120 } as FaunaGroup;
@@ -438,54 +463,70 @@ describe("soundtrack setting updates", () => {
     expect(threatMusic(3, [], pos, 100)).toBe("combat");
     expect(threatMusic(0, [animal], pos, 100)).toBe("danger");
     expect(threatMusic(0, [{ ...animal, warning: undefined, state: "chase" }], pos, 100)).toBeUndefined();
-    expect(threatMusic(0, [{ ...animal, provoked: 120 }], pos, 100)).toBe("combat");
+    expect(threatMusic(0, [{ ...animal, provoked: 120 }], pos, 100)).toBe("danger");
+    expect(threatMusic(0, [{ ...animal, provoked: 120, attack: { n: 0, phase: "windup", until: 110 } }], pos, 100)).toBe("combat");
     expect(threatMusic(0, [animal], pos, 130)).toBeUndefined();
     expect(threatMusic(0, [animal], { ...pos, x: 30 }, 100)).toBeUndefined();
     expect(threatMusic(0, [animal], { ...pos, space: "house" }, 100)).toBeUndefined();
     expect(threatMusic(0, [{ ...animal, members: [] }], pos, 100)).toBeUndefined();
   });
 
-  it("escalates immediately, holds through brief lulls, and returns to the current room after safety", () => {
+  it("queues danger until a track ends, plays it through safety, and lets combat interrupt", () => {
     vi.useFakeTimers();
     vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
     vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
     const director = new AudioDirector();
+    const transport = director as unknown as {
+      ctx: { currentTime: number; close(): Promise<void> };
+      run: { score: { bpm: number; beats: number }; start: number; offset: number };
+      tick(): void;
+      retire(): void;
+    };
+    vi.spyOn(transport, "retire").mockImplementation(() => {});
+    vi.spyOn(director, "play").mockResolvedValue(undefined);
+    transport.ctx = { currentTime: 9, close: async () => {} };
+    const finish = () => {
+      transport.run = { score: { bpm: 60, beats: 8 }, start: 0, offset: 0 };
+      transport.tick();
+    };
     const theme = () => director.getSnapshot().arrangement.themeId;
     try {
       director.setSetting("european", 1500);
+      Object.assign(director.getSnapshot(), { playing: true });
+      const original = theme();
       director.setThreat("danger");
-      expect(theme()).toBe("under-watchful-skies--anywhere");
-      director.setThreat("combat");
-      expect(theme()).toBe("stand-your-ground--anywhere");
+      expect(theme()).toBe(original);
       director.setThreat(undefined);
-      vi.advanceTimersByTime(5000);
-      expect(theme()).toBe("stand-your-ground--anywhere");
-      director.setThreat("combat");
-      vi.advanceTimersByTime(6000);
-      expect(theme()).toBe("stand-your-ground--anywhere");
-      director.work("hold");
-      expect(theme()).toBe("stand-your-ground--anywhere");
-      director.setThreat("danger");
-      vi.advanceTimersByTime(6000);
+      expect(theme()).toBe(original);
+      finish();
       expect(theme()).toBe("under-watchful-skies--anywhere");
       director.setInterior("home");
+      vi.advanceTimersByTime(10000);
       expect(theme()).toBe("under-watchful-skies--anywhere");
-      director.setThreat(undefined);
-      vi.advanceTimersByTime(3000);
-      director.setThreat(undefined);
-      vi.advanceTimersByTime(3000);
+      finish();
       expect(theme()).toBe(interiorThemes.home.id);
       director.setThreat("combat");
       director.setThreat(undefined);
+      expect(theme()).toBe("stand-your-ground--anywhere");
+      vi.advanceTimersByTime(5000);
+      director.setThreat("combat");
+      director.setThreat(undefined);
+      vi.advanceTimersByTime(5000);
+      expect(theme()).toBe("stand-your-ground--anywhere");
+      vi.advanceTimersByTime(1000);
+      expect(theme()).toBe(interiorThemes.home.id);
+      director.setSituation("danger");
+      director.setThreat("combat");
+      expect(theme()).toBe("stand-your-ground--anywhere");
+      director.setThreat(undefined);
       director.setSituation("passing");
       vi.advanceTimersByTime(10000);
-      expect(theme()).toBe(situationTheme("passing", "european", 1500));
-      director.setThreat("combat");
       expect(theme()).toBe(situationTheme("passing", "european", 1500));
     } finally {
       director.dispose();
       vi.useRealTimers();
       vi.unstubAllGlobals();
+      vi.restoreAllMocks();
     }
   });
 

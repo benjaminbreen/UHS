@@ -302,12 +302,11 @@ export function SkillsPanel({
         </section>
       )}
       {GROUPS.map((group) => {
-        // A hidden skill earns nothing yet, but a baker still arrives a
-        // seasoned hand at it; what is practised leads its group.
+        // What is practised leads its group.
         const rows = skillIds
-          .filter((id) => SKILLS[id].group === group && (!SKILLS[id].hidden || level(id) > 0))
+          .filter((id) => SKILLS[id].group === group)
           .sort((a, b) => level(b) - level(a));
-        return !rows.length ? null : (
+        return (
         <section key={group} aria-label={group} data-group={group}>
           <h3>{group}</h3>
           {rows.map((id) => {
@@ -322,7 +321,7 @@ export function SkillsPanel({
                   data-waiting={
                     pending.some((p) => p.skill === id) || undefined
                   }
-                  onClick={() => onOpen(SKILLS[id].hidden ? undefined : id)}
+                  onClick={() => onOpen(id)}
                 >
                   <span className="skill-icon">
                     <Icon size={15} />

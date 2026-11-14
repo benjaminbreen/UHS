@@ -128,7 +128,7 @@ export const alternateTrees = {
 export function sceneAssets(shadows = true) {
   return {
     atlases: Object.entries(atlases)
-      .filter(([key]) => shadows || !key.endsWith("shadows"))
+      .filter(([key]) => shadows || !/-shadows(?:-\d+)?$/.test(key))
       .map(([key, path]) => ({
         key,
         image: `${path}.png?v=${artStamp}`,

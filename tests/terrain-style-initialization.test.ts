@@ -2,11 +2,25 @@ import { expect, it, vi } from "vitest";
 import type Phaser from "phaser";
 import type { WorldModel } from "../src/core/types";
 import type { PreparedSettlement } from "../src/world/v3/prepared";
+import { sceneAssets } from "../src/render/scene-assets";
 
 vi.mock("../src/render/water-motifs", () => ({ ensureWaterAtlas: vi.fn() }));
 vi.mock("../src/render/living-water/game", () => ({ usesLivingWater: () => false }));
 
-it("gives a fresh terrain worker prepared geometry for an ordinary world", async () => {
+it("omits every shadow atlas when shadows are disabled", () => {
+  const shadows = sceneAssets().atlases.filter((a) => a.image.includes("/shadows") || a.image.includes("-shadows"));
+  expect(shadows.map((a) => a.key)).toContain("nature-shadows-2");
+  const keys = sceneAssets(false).atlases.map((a) => a.key);
+  for (const atlas of shadows) expect(keys).not.toContain(atlas.key);
+  expect(keys).toContain("nature");
+  expect(keys).toContain("buildings");
+});
+
+it.each([1, 3])("releases prepared geometry after handing it to %i terrain workers", async (limit) => {
+  vi.resetModules();
+  const device = await import("../src/runtime/device");
+  vi.spyOn(device, "workerBudget").mockReturnValue(limit);
+  vi.spyOn(device, "tellMemory").mockImplementation((worker) => worker);
   const { TerrainStream } = await import("../src/render/terrain-stream");
   const prepared = { sites: [], plans: [] } as unknown as PreparedSettlement;
   const prepare = vi.fn(() => prepared);
@@ -21,10 +35,19 @@ it("gives a fresh terrain worker prepared geometry for an ordinary world", async
     const stream = new TerrainStream(scene, world, "fresh-terrain");
     expect(prepare).toHaveBeenCalledTimes(1);
     expect(postMessage.mock.calls[0][0]).toMatchObject({ pack: world.pack, prepared, seed: "fresh-terrain" });
+    const lifecycle = stream as unknown as { prepared?: PreparedSettlement; grow(): void };
+    if (limit > 1) expect(lifecycle.prepared).toBe(prepared);
+    for (let i = 1; i < limit; i++) lifecycle.grow();
+    expect(postMessage.mock.calls.filter(([message]) => message.prepared === prepared)).toHaveLength(limit);
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(lifecycle.prepared).toBeUndefined();
+    lifecycle.grow();
+    expect(prepare).toHaveBeenCalledTimes(1);
     stream.dispose();
-    expect(terminate).toHaveBeenCalledTimes(1);
+    expect(terminate).toHaveBeenCalledTimes(limit);
   } finally {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   }
 });
 

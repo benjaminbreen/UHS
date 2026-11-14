@@ -2691,90 +2691,123 @@ button:disabled {
   gap: 8px;
 }
 /* World Weaver: an atlas desk, framed in brass. */
+/* The start screen keeps its navy and gold; its controls are the sidebar's pixel ones. */
 .modal-world {
-  width: min(1130px, 100%);
-  padding: 52px 38px 28px;
-  background:
-    radial-gradient(ellipse at 65% 15%, #18233355, transparent 60%),
-    linear-gradient(125deg, #0d1521, #111a28 55%, #0b1420);
+  width: min(900px, 100%);
+  max-height: calc(100dvh - 40px);
+  padding: 26px 28px 18px;
+  background: linear-gradient(125deg, #0d1521, #111a28 55%, #0b1420);
   border: 2px solid #dbb864;
-  box-shadow:
-    0 28px 100px #000a,
-    inset 0 0 45px #060d1844;
-  color: #f4eee0;
-}
-.modal-world .close-modal {
-  border: 1px solid #b99b53;
-  border-radius: 4px;
-  color: #efca72;
-}
-.weaver {
-  font-family: Georgia, "Times New Roman", serif;
+  box-shadow: inset 0 0 0 2px var(--frame-dark), 0 28px 100px #000a;
+  color: var(--cream);
 }
 .weaver h2 {
-  font-size: clamp(32px, 4.2vw, 58px);
+  margin: 0 44px 16px 0;
+  font-size: 36px;
   font-weight: 400;
   line-height: 1.2;
-  margin: 0 0 24px;
-  letter-spacing: -1px;
 }
-.weaver button,
-.weaver input,
-.weaver select {
-  font-family: inherit;
+.weaver :is(button, select, small, summary, .weaver-route) {
+  font-family: var(--serif);
 }
-.weaver-modes {
-  margin: 0 0 26px;
-  gap: 10px;
+.weaver input {
+  font-family: var(--prose);
 }
-.weaver-modes button {
+.weaver :is(.weaver-examples, .weaver-prompt .random-start, .weaver-modes) button,
+.weaver .weaver-prompt .random-start,
+.weaver :is(input, select),
+.weaver .place-pick button {
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  background: #ffffff08;
+  box-shadow: inset 0 0 0 1px #ffffff17, 0 2px 0 #0008;
+  color: var(--cream);
+  transition: box-shadow var(--t-med), color var(--t-fast), transform var(--t-fast);
+}
+.weaver :is(input, select) {
+  background: #070c15;
+  box-shadow: inset 0 0 0 1px #ffffff12, inset 0 2px 3px #0008;
+}
+.weaver :is(.weaver-examples button, .random-start, .place-pick button):hover:not(:disabled),
+.weaver :is(input, select):hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--gold), 0 2px 0 #0008;
+}
+.weaver :is(.weaver-examples button, .random-start, .place-pick button):active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 1px var(--frame-hi);
+}
+.weaver :is(input, select):focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--gold), 0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+.weaver select option {
+  background: #111c2b;
+}
+
+/* Procedural / World Weaver: the Local / Region track. */
+.weaver .weaver-modes {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: 0 0 14px;
+  padding: 3px;
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  background: #0009;
+  box-shadow: inset 0 0 0 1px #ffffff12;
+}
+.weaver .weaver-modes button {
   display: flex;
   align-items: center;
-  text-align: left;
-  gap: 23px;
-  width: 350px;
-  padding: 12px 25px;
-  background: #ffffff03;
-  border-color: #46505a;
-  font-size: 21px;
-  color: #f4eee0;
-}
-.weaver-modes svg {
-  width: 33px;
-  height: 33px;
-  stroke-width: 1.3;
-}
-.weaver-modes small {
-  display: block;
+  gap: 10px;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
   font-size: 15px;
-  margin-top: 4px;
-  color: #dedbd3;
+  text-align: left;
 }
-.weaver-modes button[aria-pressed="true"],
-.weaver .random-start {
-  background: linear-gradient(120deg, #e9cb7130, #e9cb7115);
-  border: 1px solid #f2ce75;
-  box-shadow: inset 0 0 0 1px #e7c26b55;
+.weaver .weaver-modes button:hover:not([aria-pressed="true"]):not(:disabled) {
+  background: #ffffff08;
+  color: var(--cream);
 }
+.weaver .weaver-modes button[aria-pressed="true"] {
+  color: var(--cream);
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 16%, #1d2a3f), #121c2c);
+  box-shadow: inset 0 1px 0 #ffffff12, 0 1px 3px #0007;
+}
+.weaver .weaver-modes svg {
+  width: 20px;
+  height: 20px;
+  color: var(--gold);
+}
+.weaver .weaver-modes small {
+  display: block;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .weaver-prompt {
   display: flex;
-  gap: 16px;
-  margin-bottom: 21px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 .weaver .random-start {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  width: 250px;
   flex-shrink: 0;
-  color: #ffdb88;
-  border-radius: 7px;
-  font-size: 23px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  color: var(--gold);
+  font-size: 16px;
 }
-.random-start svg {
-  width: 32px;
-  height: 32px;
+.weaver .random-start svg {
+  width: 20px;
+  height: 20px;
 }
 .weaver-prompt > div {
   position: relative;
@@ -2783,216 +2816,190 @@ button:disabled {
 }
 .weaver-prompt input {
   width: 100%;
-  height: 62px;
-  background: #090f1988;
-  border: 1px solid #aa8c50;
-  border-radius: 6px;
-  padding: 0 50px 0 20px;
-  color: #fff7e7;
-  font-size: 21px;
+  height: 44px;
+  padding: 0 44px 0 14px;
+  color: var(--cream);
+  font-size: 16px;
 }
 .weaver-prompt > div button {
   position: absolute;
-  right: 12px;
-  top: 18px;
-  background: none;
+  right: 10px;
+  top: 11px;
   border: 0;
-  color: #afcff2;
+  background: none;
+  color: var(--muted);
 }
-.weaver-examples {
-  gap: 12px 16px;
-  margin: 0 0 24px;
-}
-.weaver-examples button {
-  font-size: 16px;
-  padding: 9px 20px;
-  background: linear-gradient(#ffffff05, #ffffff02);
-  border-color: #46505a;
-  color: #f0eadc;
-}
-.weaver-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  border-top: 1px solid #a58a4b;
-  padding-top: 20px;
-}
-.weaver h3 {
+.weaver .weaver-examples {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 20px;
-  font-weight: 400;
+  flex-wrap: wrap;
+  gap: 6px;
   margin: 0 0 16px;
 }
-.weaver h3 svg,
-.weaver-field > svg,
-.weaver-result svg {
-  color: #f1c56f;
-  flex-shrink: 0;
+.weaver .weaver-examples button {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.weaver .weaver-examples button[aria-pressed="true"] {
+  color: var(--gold-hi);
+  box-shadow: inset 0 0 0 1px var(--gold), 0 2px 0 #0008;
+}
+
+.weaver-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 18px;
+  align-items: start;
+  padding-top: 16px;
+  border-top: 1px solid #ffffff14;
 }
 .weaver-manual {
-  border-right: 1px solid #46505a;
-  padding-right: 19px;
+  display: grid;
+  gap: 10px;
+}
+.weaver .start-preview {
+  padding: 10px 12px;
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  background: linear-gradient(110deg, #ddba6512, #0d1522);
+  box-shadow: inset 0 0 0 1px #ffffff12;
+  font: 16px var(--serif);
+}
+.weaver .start-preview p {
+  font-size: 13px;
+}
+.weaver-manual summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.weaver-manual summary::-webkit-details-marker {
+  display: none;
+}
+.weaver-manual summary::after {
+  content: "›";
+  transition: transform var(--t-fast);
+}
+.weaver-manual details[open] summary::after {
+  transform: rotate(90deg);
+}
+.weaver-manual summary:hover {
+  color: var(--cream);
+}
+.weaver-manual summary svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
 }
 .weaver-field {
   display: grid;
-  grid-template-columns: 25px 125px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 18px 108px minmax(0, 1fr);
+  gap: 8px;
   align-items: center;
-  border: 1px solid #283a53;
-  background: #1b293e55;
-  border-radius: 6px;
-  padding: 7px 8px 7px 13px;
-  margin-bottom: 8px;
-  font-size: 15px;
+  margin-top: 8px;
+  font-size: 14px;
 }
-.weaver-field input,
-.weaver-field select {
+.weaver-field > svg {
+  width: 17px;
+  height: 17px;
+  color: var(--gold);
+}
+.weaver-field :is(input, select) {
   width: 100%;
   min-width: 0;
-  background: #090f1980;
-  border: 1px solid #9b804c;
-  border-radius: 6px;
-  padding: 13px 14px;
-  color: #f0eadc;
-  font-size: 15px;
-}
-.weaver-field select option {
-  background: #111c2b;
+  padding: 7px 9px;
+  color: var(--cream);
+  font-size: 14px;
 }
 .weaver-field small {
   grid-column: 3;
-  font-size: 10px;
-  color: #c0c6d2;
   margin-top: -3px;
-  line-height: 1.4;
+  color: var(--muted);
+  font-size: 11px;
+}
+.weaver .place-pick button {
+  padding: 0 8px;
+  color: var(--gold);
+}
+.weaver-location > small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font: 11px var(--serif);
 }
 .weaver .atlas-map {
-  margin: 0 0 12px;
-  border-color: #a8945d;
-}
-.weaver-result {
-  border: 1px solid #8a784d;
-  border-radius: 6px;
-  padding: 14px 18px;
-  background:
-    radial-gradient(ellipse at right bottom, #797a3c33, transparent 65%),
-    #0b111acc;
-}
-.weaver-result h4 {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  font-weight: 400;
-  font-size: 18px;
-  color: #ffd781;
-  margin: 0 0 9px;
-}
-.weaver-result p {
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 0 0 3px;
-}
-.weaver-result small {
-  color: #cecac0;
-  font-size: 14px;
-}
-.weaver-bottom {
-  border-top: 1px solid #a58a4b;
-  margin-top: 24px;
-  padding-top: 24px;
-  display: flex;
-  justify-content: center;
-}
-.weaver-bottom .filled-button {
-  width: 426px;
-  max-width: 100%;
-  height: 63px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  background: linear-gradient(120deg, #e3bc62, #f4d88b 52%, #d6ac51);
-  border: 1px solid #ffdf91;
-  border-radius: 6px;
-  color: #171306;
-  font-size: 27px;
-  box-shadow: inset 0 0 20px #fff2b633;
+  height: 168px;
+  margin: 0;
+  object-fit: fill;
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px #ffffff12;
 }
 .weaver-route {
-  font-size: 14px;
   color: #d9c795;
+  font-size: 13px;
 }
-.weaver button:focus-visible,
-.weaver input:focus-visible,
-.weaver select:focus-visible {
-  outline: 2px solid #b5d6fc;
-  outline-offset: 3px;
+.weaver-bottom {
+  position: sticky;
+  bottom: -18px;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 12px 0 0;
+  border-top: 1px solid #ffffff14;
+  background: var(--start-panel);
+}
+.weaver-bottom .filled-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 300px;
+  max-width: 100%;
+  height: 44px;
+  font-size: 19px;
+}
+.weaver-bottom .filled-button svg {
+  color: inherit;
 }
 @media (max-width: 760px) {
   .modal-world {
-    padding: 55px 20px 22px;
+    padding: 38px 18px 16px;
   }
-  .weaver-details {
-    grid-template-columns: 1fr;
+  .weaver h2 {
+    font-size: 28px;
   }
-  .weaver-manual {
-    border-right: 0;
-    padding-right: 0;
+  .weaver .weaver-modes {
+    display: flex;
+  }
+  .weaver .weaver-modes button {
+    flex: 1;
   }
   .weaver-prompt {
     flex-direction: column;
   }
   .weaver .random-start {
-    width: 100%;
-    padding: 12px;
+    justify-content: center;
+    padding: 9px;
   }
-  .weaver-modes {
-    flex-wrap: nowrap;
+  .weaver-details {
+    grid-template-columns: 1fr;
   }
-  .weaver-modes button {
-    width: 50%;
-    gap: 10px;
-    padding: 12px;
-    font-size: 17px;
+  .weaver-location {
+    order: -1;
   }
-  .weaver-modes small {
-    font-size: 12px;
-  }
-  .weaver-field {
-    grid-template-columns: 22px 105px minmax(0, 1fr);
-  }
-  .weaver-examples {
-    gap: 8px;
-  }
-  .weaver-examples button {
-    font-size: 14px;
-    padding: 8px 12px;
-  }
-}
-.weaver button,
-.weaver input,
-.weaver select,
-.weaver label,
-.weaver p,
-.weaver small {
-  font-weight: 400;
-}
-.weaver .atlas-map {
-  height: 202px;
-  object-fit: fill;
-}
-.weaver-bottom .filled-button svg {
-  color: #171306;
-}
-@media (max-width: 760px) {
   .weaver .atlas-map {
     height: auto;
+    max-height: 165px;
   }
-}
-.weaver {
-  font-family: "Baskervville", Georgia, serif;
+  .weaver-bottom {
+    bottom: -16px;
+  }
 }
 
 /* Shared start-screen palette and selection preview. */
@@ -3079,155 +3086,6 @@ button:disabled {
 .region-tag[data-culture="australian-pacific"] {
   color: #dba0a0;
 }
-.modal-world {
-  width: min(940px, 100%);
-  padding: 26px 28px 18px;
-  max-height: calc(100dvh - 40px);
-}
-.weaver h2 {
-  font-size: 36px;
-  margin: 0 44px 14px 0;
-  letter-spacing: -0.5px;
-}
-.weaver-modes {
-  margin-bottom: 14px;
-  gap: 9px;
-}
-.weaver-modes button {
-  width: 280px;
-  padding: 8px 16px;
-  gap: 15px;
-  font-size: 17px;
-}
-.weaver-modes small {
-  font-size: 12px;
-  margin-top: 2px;
-}
-.weaver-modes svg {
-  width: 25px;
-  height: 25px;
-}
-.weaver-prompt {
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.weaver .random-start {
-  width: 190px;
-  font-size: 18px;
-  gap: 14px;
-}
-.random-start svg {
-  width: 24px;
-  height: 24px;
-}
-.weaver-prompt input {
-  height: 44px;
-  font-size: 17px;
-  padding-left: 15px;
-}
-.weaver-prompt > div button {
-  top: 10px;
-}
-.weaver-examples {
-  gap: 7px 10px;
-  margin-bottom: 16px;
-}
-.weaver-examples button {
-  font-size: 13px;
-  padding: 6px 12px;
-}
-.weaver-details {
-  gap: 16px;
-  padding-top: 14px;
-}
-.weaver h3 {
-  font-size: 16px;
-  gap: 10px;
-  margin-bottom: 11px;
-}
-.weaver h3 svg {
-  width: 20px;
-  height: 20px;
-}
-.weaver-manual {
-  padding-right: 15px;
-}
-.weaver-field {
-  grid-template-columns: 20px 99px minmax(0, 1fr);
-  gap: 8px;
-  font-size: 13px;
-  padding: 5px 6px 5px 9px;
-  margin-bottom: 6px;
-}
-.weaver-field > svg {
-  width: 19px;
-  height: 19px;
-}
-.weaver-field input,
-.weaver-field select {
-  padding: 9px 10px;
-  font-size: 13px;
-}
-.weaver-field small {
-  font-size: 9px;
-  grid-column: 2 / 4;
-}
-.weaver .atlas-map {
-  height: 148px;
-  margin-bottom: 10px;
-}
-.weaver .start-preview {
-  font-size: 14px;
-  padding: 9px 12px;
-}
-.weaver .start-preview p {
-  font-size: 12px;
-}
-.weaver-bottom {
-  position: sticky;
-  bottom: -18px;
-  background: var(--start-panel);
-  margin-top: 16px;
-  padding: 12px 0 0;
-  z-index: 1;
-}
-.weaver-bottom .filled-button {
-  height: 44px;
-  width: 320px;
-  font-size: 21px;
-}
-@media (max-width: 760px) {
-  .modal-world {
-    padding: 38px 18px 16px;
-  }
-  .weaver h2 {
-    font-size: 28px;
-  }
-  .weaver-modes button {
-    width: 50%;
-    font-size: 15px;
-    padding: 8px;
-    gap: 8px;
-  }
-  .weaver .random-start {
-    width: 100%;
-    padding: 9px;
-  }
-  .weaver-details {
-    grid-template-columns: 1fr;
-  }
-  .weaver-manual {
-    padding-right: 0;
-  }
-  .weaver .atlas-map {
-    height: auto;
-    max-height: 165px;
-  }
-  .weaver-bottom {
-    bottom: -16px;
-  }
-}
-
 .sidebar .character > div:last-child {
   min-width: 0;
 }
@@ -4150,8 +4008,8 @@ button:disabled {
   align-items: center;
   gap: 10px;
   padding: 7px 0;
-  font-family: var(--sans);
-  font-size: 15px;
+  font-family: var(--serif);
+  font-size: 16px;
 }
 .abilities-tab .ability-list.wide li + li {
   border-top: 1px solid var(--line-soft);
@@ -4872,6 +4730,138 @@ button:disabled {
 .bearing.panel-card {
   display: flex;
   gap: 48px;
+}
+/* Only Today stays a card; the rest sit on the painting under a hairline. */
+.character-main .panel-card:not(:has(.day-plan)) {
+  padding: 12px 2px 0;
+  background: none;
+  backdrop-filter: none;
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+  border-radius: 0;
+}
+.equipment[data-dragging] .equip-slot:not([data-fits]) {
+  opacity: 0.35;
+}
+.equip-slot[data-fits] button {
+  border: 1px solid var(--gold);
+  background: #d9a84510;
+}
+.character-side .hand-actions {
+  flex-wrap: wrap;
+  margin: 8px 0 4px;
+}
+.character-side .hand-actions span {
+  flex: 1 0 100%;
+  color: var(--cream);
+  font-size: 13px;
+}
+.abilities-tab {
+  grid-template-columns: minmax(0, 540px) minmax(0, 400px);
+}
+.abilities-tab .stat-bars {
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin: 8px 0 18px;
+  padding: 0;
+}
+.abilities-tab .stat-bars li {
+  grid-template-columns: 168px minmax(0, 1fr) 32px;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 3px;
+  color: #cfd4e4;
+  font-size: 16px;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.abilities-tab .stat-bars li:hover {
+  background: #ffffff0a;
+  color: var(--cream);
+}
+.abilities-tab .stat-bars i {
+  position: relative;
+  height: 8px;
+  border-radius: 2px;
+  background: #ffffff12;
+  box-shadow: inset 0 1px 1px #0006;
+}
+.abilities-tab .stat-bars b {
+  border-radius: 2px;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--gold) 60%, #000);
+  transform-origin: left;
+  transition: filter var(--t-fast);
+}
+.abilities-tab .stat-bars li:hover b {
+  filter: brightness(1.15);
+}
+/* Average, so 52 reads as middling at a glance. */
+.abilities-tab .stat-bars:not([data-group="needs"]) i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 1px;
+  height: 12px;
+  background: #ffffff33;
+}
+.stat-bars em {
+  color: var(--muted);
+  font-size: 15px;
+  font-style: normal;
+  text-align: right;
+}
+.stat-bars li[data-urgent] b {
+  background: var(--rose);
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--rose) 60%, #000);
+}
+.stat-summary {
+  margin: 0 0 16px;
+  color: var(--cream);
+  font-size: 17px;
+  line-height: 1.4;
+}
+/* Pixelify's 5 reads as S and its 8 as 6, so numbers take the reading face. */
+:root :is(.num, .time-year, .work-span, .sky-card .role > span, .today-log time, .day-plan time, .stat-bars em) {
+  font-family: var(--prose);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+:root :is(.stat-summary, .character-about, .reputation, .character-quote, .belonging-note span) {
+  font-family: var(--prose);
+}
+/* Tooltips in the panel are sentences: reading face, sentence case, under the row's start. */
+.character-panel :is(.stat-bars li, .ability-list li)[data-tip]::after {
+  left: 0;
+  top: calc(100% + 3px);
+  max-width: 260px;
+  padding: 6px 9px;
+  white-space: normal;
+  width: max-content;
+  font: 13px/1.35 var(--prose);
+  letter-spacing: 0;
+  text-transform: none;
+  transform: translateY(-3px);
+}
+.character-panel :is(.stat-bars li, .ability-list li)[data-tip]:hover::after {
+  transform: none;
+  transition-delay: 0.4s;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .abilities-tab .stat-bars b {
+    animation: bar-fill 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 35ms + 60ms);
+  }
+  .character-panel .pips i.on {
+    animation: pip-pop 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  }
+  .character-panel .pips i:nth-child(2) { animation-delay: 70ms; }
+  .character-panel .pips i:nth-child(3) { animation-delay: 140ms; }
+}
+@keyframes bar-fill {
+  from { transform: scaleX(0); }
+}
+@keyframes pip-pop {
+  from { transform: rotate(45deg) scale(0); }
 }
 /* The Ideology tab. Positions have no hierarchy to draw, so they sit in a row
  * rather than on a map, and the panel is chrome rather than world: line icons
@@ -8132,6 +8122,119 @@ button:disabled {
   text-transform: uppercase;
   color: #a7b6cc66;
 }
+.make { overflow-y: auto; }
+.make-hands {
+  position: relative;
+  display: flex;
+  gap: 28px;
+  margin-bottom: 8px;
+  animation: inspect-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.make-hand {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+  border: 1px dashed var(--line-soft);
+  border-radius: 50%;
+  background: radial-gradient(circle, #f0e6cf14 0%, transparent 68%);
+  filter: drop-shadow(0 8px 14px #0008);
+}
+.make-hand:not(:disabled) { border-style: solid; cursor: pointer; }
+.make-hands.is-working .make-hand { animation: make-work 380ms ease-in-out infinite alternate; }
+.make-hands.is-working .make-hand + .make-hand { animation-name: make-work-b; }
+@keyframes make-work {
+  to { transform: translateX(34px) rotate(8deg); }
+}
+@keyframes make-work-b {
+  to { transform: translateX(-34px) rotate(-8deg); }
+}
+.make-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-height: 124px;
+  margin: 14px auto 0;
+  overflow-y: auto;
+}
+.make-strip button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: #0003;
+}
+.make-strip button:hover { border-color: var(--gold); }
+.make-strip small {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font: 10px var(--pixel);
+  color: var(--cream);
+}
+.make-line { margin-top: 16px; }
+.make-line input {
+  width: min(440px, 100%);
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--gold);
+  background: transparent;
+  color: #f4ead2;
+  font: 18px var(--serif);
+  text-align: center;
+}
+.make-line input:focus { outline: none; border-bottom-width: 2px; }
+.make-line div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-top: 10px;
+}
+.make-line div button {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--muted);
+}
+.make-line div button:hover { color: #fff4dc; }
+.make-past ul {
+  max-height: 60vh;
+  margin: 14px auto 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  text-align: left;
+  width: min(440px, 100%);
+}
+.make-past li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.make-past li span { display: grid; gap: 2px; }
+.make-past li em { color: var(--muted); font-size: 15px; }
+.make-death {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 10px 0;
+}
+.make-death em { color: var(--muted); }
+.inventory-list .make-open {
+  justify-content: center;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+@media (max-width: 420px) {
+  .make-hand { width: 108px; height: 108px; }
+  .make-hands { gap: 16px; }
+}
 @media (max-height: 700px) {
   .inspect-stage { width: min(288px, 70vw); }
   .inspect-desc { font-size: 15px; }
@@ -10418,7 +10521,8 @@ button:disabled {
 
 /* Pixel frames: a hard dark edge, a one-pixel highlight inside, a flat drop. Last in the file and led
    by :root so they win over the component rules above. */
-:root :is(.narrator-panel, .command-input, .prop-prompts .key-prompt, .map-controls, .map-switcher, .time-pill) {
+:root :is(.narrator-panel, .command-input, .prop-prompts .key-prompt, .map-controls, .map-switcher, .time-pill,
+  .close-modal, .wear-action, .hand-actions button, .follow-day) {
   border: 2px solid var(--frame-dark);
   border-radius: 3px;
   background: var(--bg-2);
@@ -10431,14 +10535,36 @@ button:disabled {
 :root .portrait { background: var(--bg-3); border: 2px solid var(--frame-dark); border-radius: 2px; box-shadow: inset 0 0 0 1px var(--frame-hi); }
 :root .portrait.eminent { border-color: #8a6418; box-shadow: inset 0 0 0 1px #f2d37a, inset 0 0 0 2px #c9972e; }
 :root .map-button { border: 2px solid var(--frame-dark); border-radius: 2px; }
-:root :is(.work-actions .primary, .prop-prompts .key-prompt kbd) {
+:root :is(.work-actions .primary, .prop-prompts .key-prompt kbd, .filled-button) {
   color: var(--frame-dark);
   background: var(--gold);
   border: 2px solid var(--frame-dark);
   border-radius: 2px;
   box-shadow: inset 0 -2px color-mix(in srgb, var(--gold) 65%, #000);
 }
-:root .work-actions .primary:active { box-shadow: inset 0 2px color-mix(in srgb, var(--gold) 65%, #000); transform: translateY(1px); }
+:root :is(.work-actions .primary, .filled-button):active { box-shadow: inset 0 2px color-mix(in srgb, var(--gold) 65%, #000); transform: translateY(1px); }
+:root .filled-button { font-family: var(--serif); }
+:root :is(.close-modal, .wear-action, .hand-actions button, .follow-day) { color: var(--cream); font-family: var(--serif); }
+/* Dark glass rather than the plum panel, so it sits on the navy and painted modals too. */
+:root .close-modal { color: var(--gold); background: #0007; }
+:root :is(.close-modal, .wear-action, .hand-actions button, .follow-day:not([disabled])):hover { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold), 0 3px 0 #0008; }
+:root :is(.close-modal, .wear-action, .hand-actions button, .follow-day:not([disabled])):active { box-shadow: inset 0 0 0 1px var(--frame-hi); transform: translateY(2px); }
+
+/* Section tabs in modals, as in the sidebar: the body face, a gold bar under the open one. */
+:root :is(.character-panel nav, .settings-tabs) button {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  font: 15px var(--serif);
+  letter-spacing: 0;
+  text-transform: none;
+}
+:root :is(.character-panel nav, .settings-tabs) button:hover { color: var(--cream); }
+:root :is(.character-panel nav, .settings-tabs) button[aria-selected="true"] { color: var(--cream); box-shadow: inset 0 -3px var(--gold); }
+:root .settings-tabs { gap: 20px; padding-bottom: 0; }
+:root .settings-tabs button { flex: 0 0 auto; padding: 10px 0; }
 
 /* Small labels in the body face at a readable size, not 8px spaced caps. */
 :root :is(.today-aim small, .today-head, .eyebrow, .narrator-title) { font: 500 12px var(--serif); letter-spacing: 0.02em; text-transform: none; }

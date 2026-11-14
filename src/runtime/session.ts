@@ -18,6 +18,7 @@ import {
 } from "../audio/handling";
 import { timed } from "../render/perf-switches";
 import { communityLabels } from "../content/ecology/communities";
+import { faunaProfile } from "../content/fauna";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { resolveCharacterContext } from "../content/characters/resolve";
@@ -35,15 +36,16 @@ import {
 import { composeWearing, wornFromWearing } from "../core/wearing";
 import { restingPortraitPoseOf } from "../core/persona";
 import { statsOf } from "../core/stats";
-import { nameBriefedPeople } from "../core/kin";
 import { smokingHabit, supplyFor } from "../content/characters/smoking";
 import { healthPerson } from "../core/health";
+import { nameBriefedPeople } from "../core/kin";
 import {
   actorAppearance,
   generateAppearance,
   type AppearancePalette,
 } from "../core/character";
 import type { Actor, Intent, ItemId, Position } from "../core/types";
+import { guessMaking, type Making } from "../core/making";
 import { useOf } from "../content/props/uses";
 import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
@@ -248,14 +250,14 @@ export function createSession(
     }
     if (resolved?.situation?.landform === "open-ocean") engine.state.player.inventory = { water: 2, bread: 2 };
     engine.state.player.stats = rollStats(seed, engine.state.player);
-    engine.state.player.health = 100;
-  }
     // A habitual smoker or chewer starts with a few days' supply.
     const habit = smokingHabit(pack.setting, healthPerson(engine.state.player, pack.setting), random(seed, "smokes", "player"), random(seed, "smoke-form", "player"));
     if (habit) {
       const supply = supplyFor(habit, pack.year), inv = engine.state.player.inventory;
       inv[supply] = (inv[supply] ?? 0) + 3;
     }
+    engine.state.player.health = 100;
+  }
   for (const goal of engine.state.goals ?? []) {
     goal.slot ??= GOAL_TEMPLATES.find((template) => template.id === goal.id)?.slot ??
       (["eat", "food-store", "sleep", "water", "firewood"].includes(goal.id) ? "need" : "social");
@@ -317,7 +319,7 @@ export function restoreSession(value: unknown) {
  * is one logged command and one retained receipt, neither of which is ever
  * trimmed, so this trades log growth against how coarsely an actor the engine
  * rather than a routine moves steps across the screen. */
-const IDLE_BLOCK = 60;
+const IDLE_BLOCK = 12;
 export const JUMP_MS = 260;
 export const LONG_JUMP_MS = 300;
 export const JUMP_CHARGE_MS = 240;
@@ -1238,6 +1240,56 @@ export class Runtime {
       outcomes: result?.status === "completed" ? this.engine.lastOutcomes : [],
     };
   }
+  private makings = new Map<string, Making>();
+  /** Two carried things and what the player does with them. The model, or a
+   * plain guess without one, says what that would make; the engine rolls it.
+   * The same things and words get the same answer for the whole session. */
+  async craft(a: ItemId, b: ItemId, text: string): Promise<{ id?: ItemId; text: string }> {
+    const e = this.engine, da = e.item(a), db = e.item(b), pack = e.world.pack;
+    if (!da || !db) return { text: "You do not have those." };
+    const intent = text.trim().slice(0, 200) || "put them together";
+    const key = `${a}|${b}|${intent.toLowerCase()}`;
+    let making = this.makings.get(key);
+    if (!making) {
+      try {
+        const res = await this.modelFetch("/api/craft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            a: { name: da.name, description: da.description ?? "" },
+            b: { name: db.name, description: db.description ?? "" },
+            intent,
+            place: `${pack.name}, ${pack.region}`.slice(0, 120),
+            year: pack.year,
+          }),
+        });
+        if (res.ok) {
+          const m = (await res.json()) as Omit<Making, "body"> & { body: "a" | "b" };
+          making = { ...m, body: m.body === "b" ? 1 : 0 };
+        }
+      } catch {
+        // No model: the plain guess below.
+      }
+      making ??= guessMaking(da, db, intent);
+      this.makings.set(key, making);
+    }
+    const before = { ...e.state.player.inventory };
+    const { result } = this.narrate([{
+      type: "make",
+      from: making.body ? [b, a] : [a, b],
+      name: making.name,
+      description: making.description,
+      form: making.form,
+      difficulty: making.difficulty,
+      minutes: making.minutes,
+      flop: making.flop,
+      said: intent,
+    }]);
+    if (result?.status !== "completed") return { text: (result?.status === "rejected" && result.reason) || "You cannot do that just now." };
+    const held = e.state.player.inventory;
+    const id = Object.keys(held).find((k) => (held[k] ?? 0) > (before[k] ?? 0));
+    return { id, text: making.description };
+  }
   command(command: PlayerCommand) {
     if (this.timeTravelLocked || this.workInProgress) return;
     if (this.passing && command.type === "interact" && command.action === "work") return;
@@ -1415,6 +1467,13 @@ export class Runtime {
     this.animateCommand(command, result.status !== "rejected", previousProp, previousPlant);
     const audio = gameAudio();
     if (result.status !== "completed" || !audio) return result;
+    const preyHits = command.type === "swing" ? this.engine.lastSwing?.creatures ?? [] :
+      (command.type === "shoot" || command.type === "throw") && this.engine.lastThrow?.creature ? [this.engine.lastThrow.creature] : [];
+    if (preyHits.some((hit) => {
+      const animal = faunaProfile(hit.species);
+      return hit.killed && animal && animal.category !== "domestic" && !animal.preyTags?.length &&
+        !state.fauna?.find((g) => g.id === hit.group)?.owner;
+    })) void audio.event("preyCaught");
     if (door && !!door.open !== wasOpen)
       void audio.event(door.open ? "door" : "doorClose");
     else if (command.type === "interact" && command.action === "knock")

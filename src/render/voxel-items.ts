@@ -4,11 +4,14 @@ import {
   type Material,
 } from "../content/characters/wardrobe/cloth";
 import { garmentIconFor, periodArt } from "./garment-icons";
+import type { Made } from "../core/making";
 
 /** Voxel item art baked by scripts/art/voxel_items.py --bake. Sprites carry a
  * material in red and a ramp step in green; colour is applied here, so a
- * garment takes the dye in its id without a sprite per dye. */
-type Mat = string[] | "dye" | "dye-dark" | null;
+ * garment takes the dye in its id without a sprite per dye, and a hand-made
+ * thing takes the colours of what went into it. */
+type Slot = "body" | "body-dark" | "trim" | "trim-dark";
+type Mat = string[] | "dye" | "dye-dark" | Slot | null;
 type Manifest = {
   icon: number;
   perRow: number;
@@ -51,8 +54,16 @@ export function loadVoxelItems() {
 export const voxelItemsReady = () => !!manifest;
 export const voxelTurn = () => manifest?.turn;
 
+let catalog: Record<string, { made?: Made }> = {};
+/** The game's invented items, so a hand-made one can find its shape. */
+export function setMadeItems(items: Record<string, { made?: Made }> | undefined) {
+  catalog = items ?? {};
+}
+
 export function voxelKey(id: string) {
   if (!manifest) return undefined;
+  const made = catalog[id]?.made;
+  if (made) return `form-${made.form}` in manifest.items ? `form-${made.form}` : undefined;
   const base = parseCloth(id)?.base ?? id;
   const key = garmentIconFor(base) ?? periodArt(base);
   return key in manifest.items ? key : base in manifest.items ? base : undefined;
@@ -114,23 +125,45 @@ function rampRgb(base: string, n = 10) {
 const hex = (rgb: number[]) =>
   "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
 
-function clothOf(key: string, id: string) {
+type Grain = ((a: number, u: number) => number) | undefined;
+/** The surface a thing lends to what is made of it. */
+function grainOf(id: string): Grain {
+  if (/sponge|pumice|coral|dung/.test(id)) return (a, u) => 2 * Math.min(0, fibre("hide", a, u));
+  if (/stone|flint|rock|ore|granite/.test(id)) return (a, u) => fibre("wool", a, u);
+  return undefined;
+}
+function grains(key: string, id: string): Grain[] | undefined {
+  const mats = manifest!.items[key].mats;
+  const made = catalog[id]?.made;
+  if (made) return mats.map((m) => (m === "body" ? grainOf(made.body) : m === "trim" ? grainOf(made.trim) : undefined));
   const material = parseCloth(id)?.cloth.material;
   if (!material) return undefined;
-  return {
-    material,
-    dyed: manifest!.items[key].mats.map((m) => m === "dye" || m === "dye-dark"),
-  };
+  return mats.map((m) => (m === "dye" || m === "dye-dark" ? (a, u) => fibre(material, a, u) : undefined));
 }
 
-function palette(key: string, id: string) {
+/** A thing's colour as an ingredient: the ramp of its own main material. */
+function stuff(id: string, depth = 0): number[][] {
+  const made = catalog[id]?.made;
+  if (made && depth < 4) return stuff(made.body, depth + 1);
+  const key = voxelKey(id);
+  return (key && palette(key, id)[1]) || rampRgb("#9a8a70");
+}
+
+function palette(key: string, id: string): number[][][] {
   const item = manifest!.items[key];
   const dye = parseCloth(id)?.cloth.dye;
   const cloth = dye ? dyes[dye].hex : item.dye;
+  const made = catalog[id]?.made;
+  const slot = (m: Slot) => {
+    const ramp = made ? stuff(m.startsWith("body") ? made.body : made.trim, 1) : rampRgb("#9a8a70");
+    return m.endsWith("dark") ? rampRgb(hex(ramp[3])) : ramp;
+  };
   return item.mats.map((m) =>
     m === null
       ? []
-      : m === "dye"
+      : typeof m === "string" && m !== "dye" && m !== "dye-dark"
+        ? slot(m)
+        : m === "dye"
         ? rampRgb(cloth!)
         : m === "dye-dark"
           ? rampRgb(hex(rampRgb(cloth!)[3]))
@@ -176,7 +209,7 @@ function paint(
   w: number,
   h: number,
   ramps: number[][][],
-  cloth?: { dyed: boolean[]; material: Material },
+  grain?: Grain[],
 ) {
   const c = document.createElement("canvas");
   c.width = w;
@@ -189,9 +222,10 @@ function paint(
       if (!src.data[s + 3]) continue;
       const m = src.data[s];
       let step = src.data[s + 1];
-      if (cloth?.dyed[m] && step > 0) {
+      const g = grain?.[m];
+      if (g && step > 0) {
         const b = src.data[s + 2];
-        step = Math.max(1, Math.min(9, step + fibre(cloth.material, b & 15, b >> 4)));
+        step = Math.max(1, Math.min(9, step + g(b & 15, b >> 4)));
       }
       const rgb = ramps[m]?.[step];
       if (!rgb) continue;
@@ -210,7 +244,7 @@ export function voxelIcon(id: string) {
   const key = voxelKey(id);
   if (!key || !icons) return undefined;
   const q = parseCloth(id)?.cloth;
-  const cacheKey = `${key}|${q?.dye ?? ""}|${q?.material ?? ""}`;
+  const cacheKey = catalog[id]?.made ? id : `${key}|${q?.dye ?? ""}|${q?.material ?? ""}`;
   let c = iconCache.get(cacheKey);
   if (!c) {
     const { icon, perRow } = manifest!;
@@ -222,7 +256,7 @@ export function voxelIcon(id: string) {
       icon,
       icon,
       palette(key, id),
-      clothOf(key, id),
+      grains(key, id),
     );
     iconCache.set(cacheKey, c);
   }
@@ -234,11 +268,11 @@ export function voxelTurntable(id: string) {
   const key = voxelKey(id);
   if (!key) return undefined;
   const q = parseCloth(id)?.cloth;
-  const cacheKey = `${key}|${q?.dye ?? ""}|${q?.material ?? ""}`;
+  const cacheKey = catalog[id]?.made ? id : `${key}|${q?.dye ?? ""}|${q?.material ?? ""}`;
   let p = turnCache.get(cacheKey);
   if (!p) {
     p = pixels(`/items/turn/${key}.png`).then((d) =>
-      paint(d, 0, 0, d.width, d.height, palette(key, id), clothOf(key, id)),
+      paint(d, 0, 0, d.width, d.height, palette(key, id), grains(key, id)),
     );
     turnCache.set(cacheKey, p);
   }

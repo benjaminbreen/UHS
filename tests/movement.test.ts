@@ -79,6 +79,39 @@ it("keeps routine collision positions current between simulation ticks", () => {
 });
 
 
+it("holds a walking NPC through the talk command and subsequent conversation updates", () => {
+  const e = createSession("roman", "talk-routine-position");
+  const actor = e.state.actors.find((a) => a.kind === "human")!;
+  const start = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
+  e.state.actors = [actor];
+  e.state.clock = 0;
+  Object.assign(actor, { pos: { ...start }, offRoutine: false, hunger: 0 });
+  const routine: Itinerary = {
+    start: 0,
+    period: 10,
+    segments: [{ from: 0, to: 10, pos: start,
+      path: Array.from({ length: 100 }, (_, i) => ({ x: start.x + i, y: start.y })),
+      activity: "work", label: "Walking" }],
+  };
+  e.world.itinerary = (id) => id === actor.id ? routine : undefined;
+  const result = e.act({ actionId: "talk", expectedRevision: e.state.revision,
+    command: { type: "interact", target: actor.id, action: "talk" } });
+  expect(result.status).toBe("completed");
+  expect(actor.pos).toEqual(start);
+  e.conversing = actor.id;
+  for (const seconds of [1, 6, 90]) {
+    e.advance(seconds);
+    expect(actor.pos).toEqual(start);
+    expect(e.conversing).toBe(actor.id);
+    expect(e.brokeOff).toBeUndefined();
+  }
+  expect(e.state.events.some((event) => event.text.includes("calls after you"))).toBe(false);
+  e.conversing = undefined;
+  e.advance(1);
+  expect(actor.pos.x).toBe(Math.round(itineraryAt(routine, e.state.clock).x));
+  expect(actor.pos).not.toEqual(start);
+});
+
 function hazardField(seed: string) {
   const e = createSession("roman", seed);
   e.state.actors = [];

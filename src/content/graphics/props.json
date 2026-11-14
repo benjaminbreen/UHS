@@ -3560,6 +3560,14 @@
     {"id": "wheelie-bin", "name": "Wheeled bin", "group": "Street furniture", "size": [13, 20], "description": "A household's wheeled rubbish bin.", "variants": ["Green", "Black", "Blue", "Brown"]},
     {"id": "kerb-rubbish", "name": "Rubbish for collection", "group": "Street furniture", "size": [20, 13], "description": "What is put out at the kerb on collection day.", "variants": ["Black sacks", "Netted bags", "Tied cartons"]},
     {"id": "pavement-board", "name": "Pavement board", "group": "Street furniture", "size": [12, 18], "description": "A shop's folding board stood out on the pavement.", "variants": ["Chalkboard", "White", "Yellow"]},
-    {"id": "driveway-hoop", "name": "Basketball hoop", "group": "Street furniture", "size": [17, 48], "description": "A basketball hoop on a pole beside the drive.", "variants": ["Hoop"]}
+    {"id": "driveway-hoop", "name": "Basketball hoop", "group": "Street furniture", "size": [17, 48], "description": "A basketball hoop on a pole beside the drive.", "variants": ["Hoop"]},
+    {"id": "pump-island", "name": "Pump island", "group": "Street furniture", "size": [66, 58], "description": "Petrol pumps on their island, bare or under the station's canopy.", "variants": ["Globe pumps", "Red canopy", "Blue canopy", "Green canopy"]},
+    {"id": "price-sign", "name": "Station sign", "group": "Street furniture", "size": [22, 54], "description": "A filling station's sign at the roadside, with its prices.", "variants": ["Globe", "Red", "Blue", "Green"]},
+    {"id": "pole-sign", "name": "Pole sign", "group": "Street furniture", "size": [28, 56], "description": "A business's sign on a tall pole, with bulbs chasing round it.", "variants": ["Motel arrow", "Diner round", "Market panel", "Drive-in star"]},
+    {"id": "trolley-bay", "name": "Trolley bay", "group": "Street furniture", "size": [36, 20], "description": "Shopping trolleys nested in a rail corral in a car park.", "variants": ["Full", "Nearly empty"]},
+    {"id": "menu-board", "name": "Menu board", "group": "Street furniture", "size": [20, 32], "description": "A drive-in's menu on posts with an order speaker.", "variants": ["Red", "Teal"]},
+    {"id": "tyre-stack", "name": "Stacked tyres", "group": "Street furniture", "size": [24, 22], "description": "Tyres stacked outside a garage.", "variants": ["Tall stack", "Two stacks"]},
+    {"id": "ice-chest", "name": "Ice chest", "group": "Street furniture", "size": [26, 20], "description": "The freezer cabinet outside a store's door.", "variants": ["Bagged ice", "Drinks cooler"]},
+    {"id": "produce-stand", "name": "Produce stand", "group": "Street furniture", "size": [32, 20], "description": "Crates of fruit and vegetables set out in front of a grocer.", "variants": ["Fruit", "Greens"]}
   ]
 }

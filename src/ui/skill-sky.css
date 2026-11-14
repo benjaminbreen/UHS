@@ -1,9 +1,10 @@
 /* The skills screen: a pixel sky, with clean glass panels over it in the
  * game's own type and colours. */
 .vault {
-  --sans: "DM Sans", system-ui, sans-serif;
-  --pixel: "Silkscreen", "Courier New", monospace;
-  --serif: "Baskervville", Georgia, serif;
+  /* The game's faces: pixel for names and labels, the reader's choice for prose. */
+  --sans: var(--prose);
+  --pixel: "Pixelify Sans", "Silkscreen", monospace;
+  --serif: "Pixelify Sans", "Silkscreen", monospace;
   --text: #f0e6cf;
   --muted: #a7b6cc;
   --accent: #e8c27e;
@@ -67,7 +68,7 @@
   display: inline-block;
   min-width: 18px;
   padding: 0 4px;
-  font: 9px/16px var(--pixel);
+  font: 11px/16px var(--pixel);
   text-align: center;
   color: var(--text);
   border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
@@ -76,9 +77,8 @@
 }
 /* Small pixel labels: the game's own voice for anything that is a tag. */
 .vault-tag {
-  font: 9px var(--pixel);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
 }
 .vault-canvas { position: absolute; inset: 0; }
 .vault-canvas canvas { display: block; image-rendering: pixelated; }
@@ -99,7 +99,7 @@
   animation: vault-rise 0.9s 0.25s cubic-bezier(0.2, 1, 0.3, 1) both;
   transition: opacity 0.4s;
 }
-.vault-head small { font: 9px var(--pixel); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.vault-head small { font: 12px var(--pixel); letter-spacing: 0.02em; color: var(--accent); }
 .vault-head h1 { margin: 4px 0 0; font: 400 38px/1 var(--serif); }
 .vault-head p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
 .vault-head p span { margin: 0 4px; color: var(--accent); }
@@ -114,8 +114,22 @@
   transition: color 0.2s, transform 0.2s;
 }
 .vault-theme:hover, .vault-close:hover { color: var(--text) !important; }
-.vault-close { right: 24px; grid-auto-flow: column; gap: 8px; font-size: 17px !important; }
-.vault-theme { right: 104px; width: 34px; }
+.vault-close { right: 24px; font-size: 17px !important; }
+.vault-theme { right: 68px; }
+/* The game's close key: a framed square, as on every other screen. */
+.vault-theme,
+.vault-close {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  background: #0007;
+  box-shadow: var(--frame);
+}
+.vault-close { color: var(--gold) !important; }
+.vault-theme:hover, .vault-close:hover { box-shadow: inset 0 0 0 1px var(--gold), 0 3px 0 #0008; }
+.vault-theme:active, .vault-close:active { transform: translateY(2px); box-shadow: inset 0 0 0 1px var(--frame-hi); }
+.vault-close kbd { display: none; }
 /* A crescent that turns into a sun. */
 .vault-theme i {
   width: 16px;
@@ -140,9 +154,8 @@
   align-items: center;
   gap: 10px;
   padding: 9px 16px;
-  font: 10px var(--pixel) !important;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 12px var(--pixel) !important;
+  letter-spacing: 0.02em;
   color: var(--on-accent) !important;
   background: var(--accent) !important;
   clip-path: var(--steps);
@@ -181,16 +194,15 @@
   border-radius: 50%;
 }
 .vault-label small {
-  font: 8px var(--pixel);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
   color: var(--tint);
   opacity: 0.8;
   text-shadow: 0 0 6px var(--halo);
 }
 .vault-label strong {
-  font: 600 13px/1.2 var(--sans);
-  letter-spacing: 0.16em;
+  font: 400 14px/1.2 var(--serif);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text);
   text-shadow: 0 1px 0 var(--halo), 0 0 10px var(--halo), 0 0 4px var(--halo);
@@ -219,9 +231,8 @@
 .vault-label-bar i { position: absolute; inset: 0 auto 0 0; background: var(--tint); box-shadow: 0 0 6px var(--tint); }
 .vault-label em {
   margin-top: 2px;
-  font: normal 8px var(--pixel);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
   color: var(--accent);
   text-shadow: 0 0 8px var(--halo);
   animation: vault-pulse-text 1.6s ease-in-out infinite;
@@ -304,9 +315,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 14px;
-  font: 9px var(--pixel);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 .vault-page-nav > button:hover { color: var(--text); }
@@ -323,12 +333,11 @@
 .vault-page-nav span button:hover { color: var(--text); border-color: var(--accent) !important; }
 .vault-page header { display: flex; align-items: flex-end; gap: 12px; }
 .vault-page header > div { flex: 1; min-width: 0; }
-.vault-page header small { font: 9px var(--pixel); letter-spacing: 0.16em; text-transform: uppercase; color: var(--tint); }
+.vault-page header small { font: 12px var(--pixel); letter-spacing: 0.02em; color: var(--tint); }
 .vault-page h2 {
   margin: 6px 0 0;
   font: 400 36px/1 var(--serif);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 .vault-rank { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
 .vault-level {
@@ -361,7 +370,7 @@
   transform: rotate(45deg);
 }
 .vault-bar b[data-past] { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
-.vault-progress small { display: block; margin-top: 9px; font: 8px var(--pixel); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.vault-progress small { display: block; margin-top: 9px; font: 12px var(--sans); letter-spacing: 0.02em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .vault-about { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
 .vault-about p { margin: 0; font-size: 14px; font-style: italic; color: var(--muted); }
 .vault-chart { flex: none; width: 64px; height: 64px; overflow: visible; }
@@ -382,7 +391,7 @@
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
-.vault-page dt { font: 8px/18px var(--pixel); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.vault-page dt { font: 12px/18px var(--pixel); letter-spacing: 0.02em; color: var(--muted); }
 .vault-page dd { margin: 0; }
 .vault-tiers { position: relative; margin: 0; padding: 0 0 0 22px; list-style: none; }
 .vault-tiers::before {
@@ -400,11 +409,10 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 7px;
-  font: 9px var(--pixel);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font: 13px var(--pixel);
+  letter-spacing: 0.02em;
 }
-.vault-tiers h4 small { margin-left: auto; font: 8px var(--pixel); letter-spacing: 0.12em; color: var(--muted); }
+.vault-tiers h4 small { margin-left: auto; font: 12px var(--pixel); letter-spacing: 0.02em; color: var(--muted); }
 .vault-tiers h4 i {
   position: absolute;
   left: -21px;
@@ -431,7 +439,7 @@
   background: color-mix(in srgb, var(--text) 4%, transparent);
   border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
 }
-.vault-tablet strong { font: 600 12px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; }
+.vault-tablet strong { font: 400 15px var(--serif); letter-spacing: 0; }
 .vault-tablet span { color: var(--muted); }
 .vault-tablet[data-chosen] {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
@@ -449,9 +457,8 @@
   margin-top: 8px;
   width: 100%;
   padding: 10px 12px;
-  font: 600 12px var(--sans) !important;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font: 400 15px var(--serif) !important;
+  letter-spacing: 0;
   color: var(--on-accent) !important;
   background: var(--accent) !important;
   clip-path: var(--steps);
@@ -477,15 +484,14 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-  font: 11px var(--pixel);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font: 13px var(--pixel);
+  letter-spacing: 0.02em;
   color: var(--accent);
   animation: vault-rise 1s 0.2s ease-out both;
 }
 .vault-rises::before, .vault-rises::after { content: ""; width: 6px; height: 6px; background: currentColor; transform: rotate(45deg); }
-.vault-choose header small { display: block; font: 9px var(--pixel); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
-.vault-choose h2 { margin: 8px 0 0; font: 300 34px/1.1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; }
+.vault-choose header small { display: block; font: 12px var(--pixel); letter-spacing: 0.02em; color: var(--muted); }
+.vault-choose h2 { margin: 8px 0 0; font: 400 34px/1.1 var(--serif); letter-spacing: 0; }
 .vault-choose header p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
 .vault-choose header small, .vault-choose h2, .vault-choose header p { transition: opacity 0.6s; }
 .vault-choose:not([data-ready]) header small,
@@ -549,7 +555,7 @@
 }
 .vault-plate[data-focus] .vault-glyph i { transform: rotate(45deg) scale(1.15); }
 .vault-plate-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.vault-plate-text strong { font: 600 16px/1.2 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.vault-plate-text strong { font: 400 17px/1.2 var(--serif); letter-spacing: 0; }
 .vault-plate-text > span { font-size: 15px; line-height: 1.35; }
 .vault-plate-text em { font-size: 13px; line-height: 1.35; color: var(--muted); }
 .vault-hold {
@@ -558,9 +564,8 @@
   display: block;
   margin-top: 10px;
   height: 22px;
-  font: 8px/22px var(--pixel);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font: 12px/22px var(--pixel);
+  letter-spacing: 0.02em;
   text-align: center;
   color: var(--muted);
   border-top: 1px solid var(--line);
@@ -608,7 +613,7 @@
   background: var(--glass);
   clip-path: var(--steps);
 }
-.vault-later { font: 9px var(--pixel) !important; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent) !important; }
+.vault-later { font: 12px var(--pixel) !important; letter-spacing: 0.02em; color: var(--accent) !important; }
 .vault-later:hover { text-decoration: underline; text-underline-offset: 4px; }
 .vault-choose:not([data-ready]) footer { opacity: 0; }
 
@@ -625,8 +630,8 @@
   white-space: nowrap;
 }
 .vault-flourish strong {
-  font: 300 40px var(--sans);
-  letter-spacing: 0.18em;
+  font: 400 40px var(--serif);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
   text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 60%, transparent), 0 2px 0 var(--halo);
@@ -639,9 +644,8 @@
   from { opacity: 0; transform: translateY(-20px); filter: blur(4px) brightness(3); }
 }
 .vault-flourish small {
-  font: 9px var(--pixel);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
   color: var(--text);
   text-shadow: 0 0 10px var(--halo);
   animation: vault-rise 0.8s 1.2s ease-out both;
@@ -722,24 +726,21 @@
 }
 .vault-lore-panel > * { animation: vault-ink 0.7s calc(0.7s + var(--i, 0) * 80ms) ease-out both; }
 .vault-lore header small {
-  font: 9px var(--pixel);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
   color: var(--ember);
 }
 .vault-lore-back {
   float: right;
-  font: 9px var(--pixel) !important;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 12px var(--pixel) !important;
+  letter-spacing: 0.02em;
   color: var(--muted) !important;
 }
 .vault-lore-back:hover { color: var(--text) !important; }
 .vault-lore h2 {
   margin: 6px 0 0;
-  font: 300 34px/1.05 var(--sans);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 400 32px/1.05 var(--serif);
+  letter-spacing: 0;
 }
 .vault-lore header p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 .vault-lore header p span { margin: 0 4px; color: var(--ember); }
@@ -747,9 +748,8 @@
 .vault-lore-chips button,
 .vault-lore-more button {
   padding: 5px 10px;
-  font: 600 10px var(--sans) !important;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 400 13px var(--serif) !important;
+  letter-spacing: 0;
   color: var(--muted) !important;
   border: 1px solid color-mix(in srgb, var(--text) 18%, transparent) !important;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
@@ -793,27 +793,25 @@
 }
 .vault-lore-article h3 {
   margin: 0 0 6px;
-  font: 600 13px var(--sans);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 400 15px var(--serif);
+  letter-spacing: 0;
 }
 .vault-lore-article p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; color: color-mix(in srgb, var(--text) 86%, transparent); }
 .vault-lore-article a,
 .vault-lore-sources a { color: inherit; text-decoration: none; }
 .vault-lore-article > div > a {
-  font: 9px var(--pixel);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
   color: var(--accent);
 }
 .vault-lore-article > div > a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .vault-lore-empty { margin: 0; font-size: 14px; font-style: italic; color: var(--muted); }
-.vault-lore-loading { display: flex; align-items: center; gap: 6px; font: 9px var(--pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.vault-lore-loading { display: flex; align-items: center; gap: 6px; font: 12px var(--pixel); letter-spacing: 0.02em; color: var(--muted); }
 .vault-lore-loading i { width: 6px; height: 6px; background: var(--ember); animation: vault-pulse-text 0.9s ease-in-out infinite; }
 .vault-lore-loading i:nth-child(2) { animation-delay: 0.15s; }
 .vault-lore-loading i:nth-child(3) { animation-delay: 0.3s; margin-right: 6px; }
 .vault-lore-more { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
-.vault-lore-more small { margin-right: 4px; font: 8px var(--pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.vault-lore-more small { margin-right: 4px; font: 12px var(--pixel); letter-spacing: 0.02em; color: var(--muted); }
 .vault-lore-sources { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .vault-lore-sources h4 {
   display: flex;
@@ -821,9 +819,8 @@
   align-items: baseline;
   gap: 4px 12px;
   margin: 0 0 10px;
-  font: 9px var(--pixel);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font: 12px var(--pixel);
+  letter-spacing: 0.02em;
 }
 .vault-lore-sources h4 small { font: italic 12px var(--sans); letter-spacing: 0; text-transform: none; color: var(--muted); }
 .vault-lore-sources ol { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
@@ -855,7 +852,7 @@
   .vault-awaits { top: auto; bottom: 22px; white-space: nowrap; }
   .vault-hints { display: none; }
   .vault-label { width: 124px; margin-left: -62px; }
-  .vault-label strong { font-size: 11px; letter-spacing: 0.1em; }
+  .vault-label strong { font-size: 11px; letter-spacing: 0.08em; }
   .vault-label-bar { width: 54px; }
   .vault[data-mode="skill"] .vault-label[data-focus] small { font-size: 11px; gap: 10px; }
   .vault-page { top: auto; right: 10px; left: 10px; bottom: 12px; width: auto; max-height: 60%; transform: none; }

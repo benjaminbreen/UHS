@@ -981,7 +981,8 @@ def tienda(c, cx, base, w, wood, stone, seed=0, lit=None):
     y = base - h
     op.shopfront_open(c, x, y, w, h, wood, stone)
     cw, cy = w - 17, base - 13
-    glow(lit, x, y + 4, cw, h - 18, 2)
+    # A lamp's worth, not the whole opening: the game draws glow over whatever stands in front.
+    glow(lit, x + 3, y + 6, cw - 6, 8, 2)
     for gx in range(x + 2, x + cw - 4, 6):
         g = GOODS[int(h2(gx, seed, 5) * len(GOODS))]
         hh = 3 + int(h2(gx, seed, 6) * 3)

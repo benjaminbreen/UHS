@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { handleTimeArrival, handleTaskLore, handleDialogue, handleNarrator, handleWorldWeaver, handleEdu, handleJev } from "./server/node-handler";
+import { handleTimeArrival, handleTaskLore, handleDialogue, handleNarrator, handleWorldWeaver, handleEdu, handleJev, handleCraft } from "./server/node-handler";
 import { execFile } from "node:child_process";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -44,6 +44,7 @@ export default defineConfig({
           void handleDialogue(req, res);
         });
         server.middlewares.use("/api/jev", (req, res) => { void handleJev(req, res); });
+        server.middlewares.use("/api/craft", (req, res) => { void handleCraft(req, res); });
         server.middlewares.use("/api/edu", (req, res) => { void handleEdu(req, res); });
         // Dev only: the studio's ambience tab plays the reference recordings
         // that `npm run audio:ambience` fetched, and appends listening verdicts.

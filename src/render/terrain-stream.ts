@@ -136,6 +136,7 @@ export class TerrainStream {
         prepared: this.prepared,
         seed,
       } satisfies TerrainRequest);
+      if (WORKER_LIMIT === 1) this.prepared = undefined;
     }
     // A retained worker may still hold the previous scene's style.
     this.styling = {
@@ -214,6 +215,7 @@ export class TerrainStream {
     } satisfies TerrainRequest);
     r.worker.postMessage(this.styling);
     this.pool.push(r);
+    if (this.pool.length === WORKER_LIMIT) this.prepared = undefined;
   }
   /** Every chunk the camera can see is built. */
   private visibleReady() {
@@ -689,6 +691,7 @@ export class TerrainStream {
     this.abort();
     for (const r of this.pool) r.worker.terminate();
     this.pool = [];
+    this.prepared = undefined;
     for (const key of [...this.previews.keys()]) this.dropPreview(key);
     this.completed = [];
     for (const chunk of this.chunks.values()) this.release(chunk);

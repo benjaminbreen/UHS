@@ -45,7 +45,9 @@ import { dayPlan } from "../core/itinerary";
 import { asDoing } from "../core/agenda";
 import type { TaskSource } from "./task-view";
 import { dispositionOf, standingOf, householdLine } from "../core/persona";
-import { statsOf, statKeys } from "../core/stats";
+import { statsOf, statKeys, describeStats, statWords } from "../core/stats";
+import { random } from "../core/random";
+import { sayingFor } from "../content/characters/sayings";
 import { reputation } from "../core/word";
 import { abilitiesOf } from "../content/characters/abilities";
 import { livelihoodById } from "../content/characters/livelihoods";
@@ -236,6 +238,9 @@ function groupHousehold(
   return { groups, hidden };
 }
 
+const abilityTip = (stat: string, rank: number) =>
+  `${["Learning", "Practised", "Expert"][Math.max(0, Math.min(2, rank - 1))]}. Leans on ${stat}.`;
+
 const Pips = ({ rank, tone }: { rank: number; tone: string }) => (
   <span className="pips" data-tone={tone} aria-label={`${rank} of 3`}>
     {[1, 2, 3].map((i) => (
@@ -388,11 +393,13 @@ function Equipment({
   hand,
   worn,
   wearing,
+  dragging,
   onEquip,
   onClear,
 }: {
   runtime: Runtime;
   hand?: { sprite: string; name: string };
+  dragging?: string;
   worn: Partial<Record<string, string>>;
   /** The colours the sprite is actually drawn in. The item icons are one
    * generic shape per slot, so the swatch is what tells a purple tunic from
@@ -410,7 +417,7 @@ function Equipment({
     return def?.wear?.slot ?? (def ? "hand" : undefined);
   };
   return (
-    <div className="equipment">
+    <div className="equipment" data-dragging={dragging ? true : undefined}>
       {EQUIP_SLOTS.map(({ slot, label }) => {
         const id = slot === "hand" ? undefined : worn[slot];
         const filled =
@@ -437,6 +444,7 @@ function Equipment({
             data-slot={slot}
             data-over={over === slot || undefined}
             data-filled={!!filled || undefined}
+            data-fits={(dragging && slotFor(dragging) === slot) || undefined}
             onDragOver={(e) => {
               const item = e.dataTransfer.types.includes("text/plain");
               if (!item) return;
@@ -502,13 +510,14 @@ export function CharacterPanel({
   onTask?: (task: TaskSource) => void;
 }) {
   const [tab, setTab] = useState<
-    "profile" | "household" | "abilities" | "beliefs" | "ideology"
+    "profile" | "household" | "stats" | "beliefs" | "ideology"
   >("profile");
   const [selectedStanceId, setSelectedStanceId] = useState<string | undefined>(
     undefined,
   );
   const [shown, setShown] = useState<string | undefined>(undefined);
   const [inspecting, setInspecting] = useState<string>();
+  const [dragging, setDragging] = useState<string>();
   const [selectedPowerName, setSelectedPowerName] = useState<
     string | undefined
   >(undefined);
@@ -726,10 +735,15 @@ export function CharacterPanel({
         <h2>{actor.name}</h2>
         <p>
           {actor.role}
-          {actor.age !== undefined && ` · ${actor.age} years`}
+          {actor.age !== undefined && (
+            <>
+              {" · "}
+              <span className="num">{actor.age}</span> years
+            </>
+          )}
         </p>
         <span className="where">
-          {pack.region} · {pack.date}
+          {pack.region} · <span className="num">{pack.date}</span>
         </span>
       </header>
       <nav role="tablist" aria-label="Character sections">
@@ -737,7 +751,7 @@ export function CharacterPanel({
           [
             ["profile", "Profile"],
             ["household", "Household"],
-            ["abilities", "Abilities"],
+            ["stats", "Stats"],
             ["beliefs", "Beliefs"],
             ["ideology", "Ideology"],
           ] as const
@@ -791,32 +805,9 @@ export function CharacterPanel({
                 </ul>
               </>
             )}
-            <h3>Carrying</h3>
-            <div className="carrying">
-              {hand ? (
-                <>
-                  <ItemIcon id={hand.id} sprite={hand.sprite} scale={1} />
-                  <span>{hand.name}</span>
-                </>
-              ) : (
-                <span>Nothing in hand</span>
-              )}
-            </div>
-            {isPlayer && hand && (
-              <div className="hand-actions">
-                <button onClick={() => runtime.command({ type: "stow" })}>
-                  Put away
-                </button>
-                {inHand && (
-                  <button onClick={() => runtime.command({ type: "drop" })}>
-                    Set down
-                  </button>
-                )}
-              </div>
-            )}
             <i className="rule-diamond" aria-hidden="true" />
             <p className="character-quote">
-              &ldquo;A quiet life keeps the village strong.&rdquo;
+              &ldquo;{sayingFor(stats, pack.setting?.year, random(seed, "saying", actor.id))}&rdquo;
             </p>
             {follow && (
               <button
@@ -939,7 +930,7 @@ export function CharacterPanel({
                   {held.map(({ ability, rank }) => {
                     const Icon = icons[ability.icon] ?? Hand;
                     return (
-                      <li key={ability.id} data-tone={ability.stat}>
+                      <li key={ability.id} data-tone={ability.stat} data-tip={abilityTip(ability.stat, rank)}>
                         <Icon size={22} />
                         <span>{ability.label}</span>
                         <Pips rank={rank} tone={ability.stat} />
@@ -1017,6 +1008,7 @@ export function CharacterPanel({
               hand={hand}
               worn={actor.worn ?? {}}
               wearing={actor.appearance?.wearing}
+              dragging={dragging}
               onEquip={(item, slot) =>
                 isPlayer &&
                 runtime.command(
@@ -1034,6 +1026,19 @@ export function CharacterPanel({
                 )
               }
             />
+            {isPlayer && hand && (
+              <div className="hand-actions">
+                <span>{hand.name}</span>
+                <button onClick={() => runtime.command({ type: "stow" })}>
+                  Put away
+                </button>
+                {inHand && (
+                  <button onClick={() => runtime.command({ type: "drop" })}>
+                    Set down
+                  </button>
+                )}
+              </div>
+            )}
             <h3>Belongings</h3>
             <ul className="belongings">
               {goods.map(([id, n]) => (
@@ -1041,9 +1046,11 @@ export function CharacterPanel({
                   <button
                     aria-pressed={(shown ?? goods[0]?.[0]) === id}
                     draggable={isPlayer}
-                    onDragStart={(e) =>
-                      e.dataTransfer.setData("text/plain", id)
-                    }
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", id);
+                      setDragging(id);
+                    }}
+                    onDragEnd={() => setDragging(undefined)}
                     onClick={() =>
                       (shown ?? goods[0]?.[0]) === id
                         ? setInspecting(id)
@@ -1237,34 +1244,59 @@ export function CharacterPanel({
           )}
         </div>
       )}
-      {tab === "abilities" && (
+      {tab === "stats" && (
         <div className="character-tab abilities-tab">
+          <section className="panel-card">
+            <p className="stat-summary">
+              {isPlayer ? "You are" : `${actor.name.split(" ")[0]} is`}{" "}
+              {describeStats(stats).join(", ") || "unremarkable"}.
+            </p>
+            {(
+              [
+                ["Needs", [
+                  ["health", actor.health ?? 100, (actor.health ?? 100) < 40, "Lower is worse. Rest and food bring it back."],
+                  ["hunger", actor.hunger, actor.hunger > 55, "Higher is hungrier."],
+                  ["fatigue", actor.fatigue, actor.fatigue > 65, "Higher is more tired. Sleep clears it."],
+                ]],
+                ...([["Body", statKeys.slice(0, 4)], ["Temperament", statKeys.slice(4)]] as const).map(
+                  ([title, keys]) => [title, keys.map((k) => [k, stats[k], false, `${statWords[k][0]} ↔ ${statWords[k][1]}. 50 is average.`])],
+                ),
+              ] as [string, [string, number, boolean, string][]][]
+            ).map(([title, rows], g) => (
+              <div key={title}>
+                <h3>{title}</h3>
+                <ul className="stat-bars" data-group={title.toLowerCase()}>
+                  {rows.map(([key, value, urgent, tip], i) => (
+                    <li
+                      key={key}
+                      data-urgent={urgent || undefined}
+                      data-tip={tip}
+                      style={{ "--i": g * 4 + i } as CSSProperties}
+                    >
+                      <span>{key}</span>
+                      <i>
+                        <b style={{ width: `${value}%` }} />
+                      </i>
+                      <em>{Math.round(value)}</em>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
           <section className="panel-card">
             <h3>What {actor.name.split(" ")[0]} can do</h3>
             <ul className="ability-list wide">
               {held.map(({ ability, rank }) => {
                 const Icon = icons[ability.icon] ?? Hand;
                 return (
-                  <li key={ability.id}>
+                  <li key={ability.id} data-tone={ability.stat} data-tip={abilityTip(ability.stat, rank)}>
                     <Icon size={16} />
                     <span>{ability.label}</span>
                     <Pips rank={rank} tone={ability.stat} />
                   </li>
                 );
               })}
-            </ul>
-          </section>
-          <section className="panel-card">
-            <h3>Measures</h3>
-            <ul className="stat-bars">
-              {statKeys.map((key) => (
-                <li key={key}>
-                  <span>{key}</span>
-                  <i>
-                    <b style={{ width: `${stats[key]}%` }} />
-                  </i>
-                </li>
-              ))}
             </ul>
           </section>
         </div>

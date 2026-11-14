@@ -11,11 +11,12 @@ import {
 import type { Engine } from "../src/core/engine";
 import type { FaunaTier } from "../src/core/combat";
 import { statsOf } from "../src/core/stats";
-import { SKILLS, skillIds } from "../src/core/skills";
+import { skillIds } from "../src/core/skills";
 import { TECHNIQUES, techniqueIds } from "../src/core/techniques";
 import { SKILL_CONTEXT, skillContext } from "../src/content/skill-context";
 import { cultures } from "../src/content/history/types";
 import { eras } from "../src/content/history/dates";
+import { giftOf, guessMaking } from "../src/core/making";
 
 function field(seed: string) {
   const engine = createSession("roman", seed);
@@ -64,6 +65,8 @@ it("starts a person off knowing their own trade", () => {
   expect(levelOf(hunter.hunting)).toBeGreaterThanOrEqual(4);
   expect(levelOf(potter.hunting)).toBe(0);
   expect(levelOf(potter.speech)).toBeGreaterThan(0);
+  expect(levelOf(potter.crafting)).toBeGreaterThanOrEqual(4);
+  expect(levelOf(startingSkills("s", { id: "d", role: "Dyer", age: 40 }).crafting)).toBeGreaterThanOrEqual(4);
   const young = startingSkills("s", { id: "c", role: "Hunter", age: 15 });
   expect(levelOf(young.hunting)).toBeLessThan(levelOf(hunter.hunting));
 });
@@ -274,7 +277,6 @@ it("long arm adds a tile to every throw and shot", () => {
 it("finds history for every skill, most specific first", () => {
   for (const skill of skillIds) {
     expect(SKILL_CONTEXT[skill].entries.some((e) => !e.cultures && !e.eras)).toBe(true);
-    if (SKILLS[skill].hidden) continue;
     for (const id of techniqueIds.filter((t) => TECHNIQUES[t].skill === skill))
       expect(SKILL_CONTEXT[skill].techniques[id]?.note, id).toBeTruthy();
   }
@@ -286,7 +288,7 @@ it("finds history for every skill, most specific first", () => {
 });
 
 it("covers every era and every culture zone for every visible skill", () => {
-  for (const skill of skillIds.filter((id) => !SKILLS[id].hidden))
+  for (const skill of skillIds)
     for (const [culture] of cultures) {
       expect(SKILL_CONTEXT[skill].entries.some((e) => e.cultures?.includes(culture)), `${skill} ${culture}`).toBe(true);
       for (const era of eras) {
@@ -295,4 +297,42 @@ it("covers every era and every culture zone for every visible skill", () => {
         expect(wiki.length && sources.length).toBeTruthy();
       }
     }
+});
+
+it("makes a new thing from two carried things, by its shape and what went in", () => {
+  const engine = field("make");
+  const p = engine.state.player;
+  p.inventory = { wood: 3, stone: 1 };
+  p.skills = { crafting: xpFor(20) };
+  const make = (from: [string, string], form: "raft" | "nothing" = "raft") =>
+    ({ type: "narrate" as const, intents: [{ type: "make" as const, from, name: "crude log raft", description: "Logs under a stone.", form, difficulty: 1, minutes: 30 }] });
+  expect(engine.validate(make(["stone", "stone"]))).toMatch(/do not have/);
+  engine.execute(make(["wood", "stone"], "nothing"));
+  expect(p.inventory).toEqual({ wood: 3, stone: 1 });
+  const clock = engine.state.clock;
+  engine.execute(make(["wood", "stone"]));
+  const [id] = Object.keys(engine.state.catalog ?? {});
+  expect(engine.item(id)).toMatchObject({
+    name: "Fine log raft",
+    floats: true,
+    made: { form: "raft", body: "wood", trim: "stone" },
+  });
+  expect(p.inventory).toMatchObject({ wood: 2, stone: 0, [id]: 1 });
+  expect(engine.state.clock - clock).toBe(1800);
+  expect(p.skills.crafting).toBeGreaterThan(xpFor(20));
+  expect(snapshotSchema.safeParse(JSON.parse(JSON.stringify(engine.state))).success).toBe(true);
+  expect(engine.state.made).toEqual([{ item: id, clock: engine.state.clock, said: "" }]);
+  const guess = guessMaking(engine.item("wood")!, engine.item("stone")!, "lash them into a raft");
+  expect(guess).toMatchObject({ form: "raft", body: 0, flop: { name: "Half a raft", form: "raft" } });
+
+  // A master's work at no skill fails sooner or later, and leaves something behind.
+  p.skills = {};
+  p.inventory = { wood: 8, stone: 8 };
+  for (let n = 0; n < 8 && !engine.item("x-half-a-raft"); n++)
+    engine.execute({ type: "narrate", intents: [{ type: "make", from: ["wood", "stone"], name: "log raft", description: "", form: "raft", difficulty: 5, flop: guess.flop, said: "lash them" }] });
+  expect(engine.item("x-half-a-raft")).toMatchObject({ value: 0, made: { form: "raft", flop: true } });
+  expect(engine.item("x-half-a-raft")!.floats).toBeUndefined();
+  expect(p.inventory["x-half-a-raft"]).toBeGreaterThan(0);
+  expect(giftOf(engine.item("x-half-a-raft")!, "Ana").regard).toBe(-1);
+  expect(giftOf(engine.item(id)!, "Ana").line).toContain("You made this?");
 });

@@ -272,6 +272,7 @@ export function WorldSetup({
       if (!controller.current?.signal.aborted) setBusy(false);
     }
   };
+  const yearShown = prompt.trim() && shown ? shown.year : year;
   return (
     <div className="weaver">
       <h2>Where will you begin?</h2>
@@ -371,164 +372,165 @@ export function WorldSetup({
       </div>
       <div className="weaver-details">
         <div className="weaver-manual">
-          <h3>
-            <Settings2 />
-            Set the details manually
-          </h3>
-          <label className="weaver-field">
-            <MapPin />
-            <span>Place</span>
-            <div className="place-pick">
-              <select
-                aria-label="Place"
-                value={
-                  places.some((p) => p.id === shown?.placeId)
-                    ? shown!.placeId
-                    : place
-                }
-                disabled={busy}
-                onChange={(e) => choose(e.target.value)}
-              >
-                {shown && !places.some((p) => p.id === shown.placeId) && (
-                  <option value={shown.placeId}>{shown.location}</option>
-                )}
-                {places.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                aria-label="Another curated start"
-                title="Another curated start"
-                disabled={busy}
-                onClick={(e) => {
-                  e.preventDefault();
-                  reroll();
-                }}
-              >
-                <Dices />
-              </button>
-            </div>
-          </label>
-          <label className="weaver-field">
-            <CalendarDays />
-            <span>Starting year</span>
-            <input
-              aria-label="Starting year"
-              type="number"
-              value={prompt.trim() && shown ? shown.year : year}
-              disabled={busy}
-              onChange={(e) => {
-                editDetails();
-                setYear(e.target.value);
-              }}
-            />
-            <small>
-              Negative years use astronomical numbering (−99 = 100 BCE).
-            </small>
-          </label>
-          <label className="weaver-field">
-            <House />
-            <span>Settlement layout</span>
-            <select
-              value={pattern}
-              disabled={busy}
-              onChange={(e) => setPattern(e.target.value as Pattern | "")}
-            >
-              <option value="">Choose from the setting</option>
-              {patterns.map((p) => (
-                <option key={p} value={p}>
-                  {
-                    {
-                      farmstead: "Farmstead",
-                      clustered: "Clustered village",
-                      roadside: "Roadside village",
-                      dense: "Dense town",
-                      planned: "Planned streets",
-                      waterfront: "Waterfront settlement",
-                      encampment: "Herding camp",
-                      band: "Foraging band camp",
-                    }[p]
-                  }
-                </option>
-              ))}
-            </select>
-          </label>
-          {localSetting &&
-            localSetting.lon >= -84 &&
-            localSetting.lon <= -75 &&
-            localSetting.lat >= 35 &&
-            localSetting.lat <= 40 &&
-            localSetting.year >= 1607 &&
-            localSetting.year < 1750 && (
-              <label className="weaver-field">
-                <UserRound />
-                <span>Starting community</span>
-                <select
-                  aria-label="Starting community"
-                  disabled={busy}
-                  value={community ?? communityFor(localSetting)}
-                  onChange={(e) => {
-                    setCommunity(
-                      e.target.value as WorldSetting["characterCommunity"],
-                    );
-                    setDraft((previous) =>
-                      previous
-                        ? { ...previous, characterName: "Traveler" }
-                        : previous,
-                    );
-                  }}
-                >
-                  <option value="english-colonial">
-                    English colonial household
-                  </option>
-                  <option value="indigenous-local">
-                    Indigenous local community
-                  </option>
-                  {localSetting.year >= 1619 && (
-                    <option value="african-diaspora">
-                      African-descended community
-                    </option>
-                  )}
-                </select>
-                <small>
-                  Chooses this starting community, not the population of all
-                  Virginia.
-                </small>
-              </label>
-            )}
-          <label className="weaver-field">
-            <UserRound />
-            <span>Role</span>
-            <input
-              aria-label="Role"
-              placeholder="Choose from the setting"
-              value={role || shown?.role || ""}
-              disabled={busy}
-              onChange={(e) => {
-                editDetails();
-                setRole(e.target.value);
-              }}
-            />
-          </label>
-        </div>
-        <div className="weaver-location">
-          <h3>
-            <MapPin />
-            Location on the world
-          </h3>
-          <AtlasMap
-            lon={shown?.lon ?? chosen.lon}
-            lat={shown?.lat ?? chosen.lat}
-            onChoose={busy ? undefined : choose}
-          />
           {weaving ? (
             <p className="weaver-route">World Weaver is interpreting this…</p>
           ) : (
             preview && <StartPreview setting={preview} />
           )}
+          <details>
+            <summary>
+              <Settings2 />
+              Set the details yourself
+            </summary>
+            <label className="weaver-field">
+              <MapPin />
+              <span>Place</span>
+              <div className="place-pick">
+                <select
+                  aria-label="Place"
+                  value={
+                    places.some((p) => p.id === shown?.placeId)
+                      ? shown!.placeId
+                      : place
+                  }
+                  disabled={busy}
+                  onChange={(e) => choose(e.target.value)}
+                >
+                  {shown && !places.some((p) => p.id === shown.placeId) && (
+                    <option value={shown.placeId}>{shown.location}</option>
+                  )}
+                  {places.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  aria-label="Another curated start"
+                  title="Another curated start"
+                  disabled={busy}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    reroll();
+                  }}
+                >
+                  <Dices />
+                </button>
+              </div>
+            </label>
+            <label className="weaver-field">
+              <CalendarDays />
+              <span>Starting year</span>
+              <input
+                aria-label="Starting year"
+                type="number"
+                value={yearShown}
+                disabled={busy}
+                onChange={(e) => {
+                  editDetails();
+                  setYear(e.target.value);
+                }}
+              />
+              <small>
+                {Number.isInteger(Number(yearShown)) && String(yearShown) !== ""
+                  ? `${formatHistoricalYear(Number(yearShown))} · a minus sign for BCE`
+                  : "A minus sign for BCE"}
+              </small>
+            </label>
+            <label className="weaver-field">
+              <House />
+              <span>Settlement layout</span>
+              <select
+                value={pattern}
+                disabled={busy}
+                onChange={(e) => setPattern(e.target.value as Pattern | "")}
+              >
+                <option value="">Choose from the setting</option>
+                {patterns.map((p) => (
+                  <option key={p} value={p}>
+                    {
+                      {
+                        farmstead: "Farmstead",
+                        clustered: "Clustered village",
+                        roadside: "Roadside village",
+                        dense: "Dense town",
+                        planned: "Planned streets",
+                        waterfront: "Waterfront settlement",
+                        encampment: "Herding camp",
+                        band: "Foraging band camp",
+                      }[p]
+                    }
+                  </option>
+                ))}
+              </select>
+            </label>
+            {localSetting &&
+              localSetting.lon >= -84 &&
+              localSetting.lon <= -75 &&
+              localSetting.lat >= 35 &&
+              localSetting.lat <= 40 &&
+              localSetting.year >= 1607 &&
+              localSetting.year < 1750 && (
+                <label className="weaver-field">
+                  <UserRound />
+                  <span>Starting community</span>
+                  <select
+                    aria-label="Starting community"
+                    disabled={busy}
+                    value={community ?? communityFor(localSetting)}
+                    onChange={(e) => {
+                      setCommunity(
+                        e.target.value as WorldSetting["characterCommunity"],
+                      );
+                      setDraft((previous) =>
+                        previous
+                          ? { ...previous, characterName: "Traveler" }
+                          : previous,
+                      );
+                    }}
+                  >
+                    <option value="english-colonial">
+                      English colonial household
+                    </option>
+                    <option value="indigenous-local">
+                      Indigenous local community
+                    </option>
+                    {localSetting.year >= 1619 && (
+                      <option value="african-diaspora">
+                        African-descended community
+                      </option>
+                    )}
+                  </select>
+                  <small>
+                    Chooses this starting community, not the population of all
+                    Virginia.
+                  </small>
+                </label>
+              )}
+            <label className="weaver-field">
+              <UserRound />
+              <span>Role</span>
+              <input
+                aria-label="Role"
+                placeholder="Choose from the setting"
+                value={role || shown?.role || ""}
+                disabled={busy}
+                onChange={(e) => {
+                  editDetails();
+                  setRole(e.target.value);
+                }}
+              />
+            </label>
+          </details>
+        </div>
+        <div className="weaver-location">
+          <AtlasMap
+            lon={shown?.lon ?? chosen.lon}
+            lat={shown?.lat ?? chosen.lat}
+            onChoose={busy ? undefined : choose}
+          />
+          <small>Click the map to start somewhere else.</small>
         </div>
       </div>
       {prompt.trim() && (mode === "model" || needsModel) && (
