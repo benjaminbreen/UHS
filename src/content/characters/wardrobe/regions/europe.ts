@@ -141,13 +141,45 @@ export const europe: readonly GarmentKit[] = [
     footwear: [{ value: "boots", weight: 1, roles: ["plague-doctor"] }],
   },
   // Colonial and republican elites in the Americas dressed from Madrid, then Paris.
-  ...([["farthingale", 1560, 1640], ["crinoline", 1856, 1870], ["bustle", 1870, 1890]] as const).map(([value, from, to]): GarmentKit => ({
+  ...([["farthingale", 1560, 1640], ["empire", 1800, 1825], ["crinoline", 1856, 1870], ["bustle", 1870, 1890]] as const).map(([value, from, to]): GarmentKit => ({
     id: `americas-${value}`,
     label: `The Americas · the ${value} among the wealthy`,
     scope: { years: [from, to], cultures: ["mesoamerican", "andean", "other-indigenous-american"], bounds: [-130, -60, -30, 72] },
     priority: 1,
     silhouette: [{ value, weight: 1, sex: ["female"], means: ["wealthy", "elite"], ages: ["youth", "adult", "elder"] }],
   })),
+  {
+    // Linen caps, worn by nearly every grown woman from the farm to the town house.
+    id: "eu-linen-cap",
+    label: "Europe · the linen cap",
+    scope: { years: [1600, 1790], cultures: ["european"] },
+    priority: 1.2,
+    headwear: [{ value: "mobcap", weight: 6, sex: ["female"], ages: ["adult", "elder"] }, { value: "mobcap", weight: 2, sex: ["female"], ages: ["youth"] },
+      { value: "headscarf", weight: 2, sex: ["female"], means: ["poor"] }, { value: "brimmed", weight: 1, sex: ["female"] }, { value: "none", weight: 2, sex: ["female"], ages: ["youth"] }],
+  },
+  {
+    // After 1790 the cap stayed on working women and indoors; ladies went out in bonnets.
+    id: "eu-linen-cap-late",
+    label: "Europe · the cap and the bonnet",
+    scope: { years: [1790, 1850], cultures: ["european"] },
+    priority: 1.2,
+    headwear: [{ value: "mobcap", weight: 5, sex: ["female"], means: ["poor", "common"], ages: ["adult", "elder"] },
+      { value: "headscarf", weight: 2, sex: ["female"], means: ["poor"] }, { value: "brimmed", weight: 1, sex: ["female"], means: ["poor", "common"] },
+      { value: "brimmed", weight: 4, sex: ["female"], means: ["wealthy", "elite"] }, { value: "mobcap", weight: 1, sex: ["female"], means: ["wealthy", "elite"], ages: ["elder"] },
+      { value: "none", weight: 2, sex: ["female"], ages: ["youth"] }],
+  },
+  {
+    // White muslin from under the bust, after the Greek statues.
+    id: "eu-empire",
+    label: "Europe · the high waist",
+    scope: { years: [1795, 1822], cultures: ["european"] },
+    priority: 1,
+    silhouette: [{ value: "empire", weight: 7, sex: ["female"], means: ["wealthy", "elite"] }, { value: "empire", weight: 5, sex: ["female"], means: ["common"] },
+      { value: "empire", weight: 2, sex: ["female"], means: ["poor"] }, { value: "none", weight: 2, sex: ["female"], means: ["poor"] }],
+    garment: [{ value: "dress", weight: 1, sex: ["female"], means: ["wealthy", "elite"] }],
+    dye: [{ value: "bleached", weight: 5, sex: ["female"], means: ["wealthy", "elite"] }, { value: "woad", weight: 1, sex: ["female"], means: ["wealthy", "elite"] },
+      { value: "weld", weight: 1, sex: ["female"], means: ["wealthy", "elite"] }],
+  },
   {
     id: "eu-tricorne",
     label: "Europe · the cocked hat",

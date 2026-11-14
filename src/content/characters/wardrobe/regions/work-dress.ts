@@ -175,6 +175,52 @@ export const workDress: readonly GarmentKit[] = [
       ],
     }),
   ),
+  // Carrying on the head, on a ring of cloth: the ordinary way to move water,
+  // washing and market goods across Africa, South Asia, Southeast Asia, Egypt
+  // and the Levant, Mesoamerica and the Mediterranean.
+  ...([
+    { id: "head-loads", scope: { years: [-3000, 10001], cultures: ["west-central-african", "east-southern-african", "south-asian", "southeast-asian", "mesoamerican", "north-african-west-asian"] } },
+    { id: "head-loads-mediterranean", scope: { years: [-3000, 1960], bounds: [-10, 34, 30, 42.5] } },
+  ] as const).map(({ id, scope }): GarmentKit => ({
+    id,
+    label: "Loads carried on the head",
+    scope,
+    priority: 1.5,
+    headLoad: [
+      { value: "jar", weight: 1, livelihoods: ["water-carrier"], sex: ["female"] },
+      { value: "bundle", weight: 1, livelihoods: ["laundress", "washerwoman"] },
+      { value: "basket", weight: 3, livelihoods: ["street-vendor", "hawker", "pedlar", "milkmaid", "dairymaid", "market-gardener"] },
+      { value: "none", weight: 2, livelihoods: ["street-vendor", "hawker", "pedlar", "milkmaid", "dairymaid", "market-gardener"] },
+      { value: "jar", weight: 2, sex: ["female"], means: ["poor", "common"], ages: ["youth", "adult"] },
+      { value: "basket", weight: 2, sex: ["female"], means: ["poor", "common"], ages: ["youth", "adult"] },
+      { value: "bundle", weight: 1, means: ["poor", "common"], ages: ["youth", "adult"] },
+      { value: "none", weight: 9, ages: ["youth", "adult", "elder"] },
+    ],
+  })),
+  {
+    // Spinning on the walk, distaff under the arm, before the wheel and the mill took it over.
+    id: "distaff",
+    label: "Spinning with the distaff",
+    scope: { years: [-3000, 1850], cultures: ["european", "north-african-west-asian", "inner-eurasian"] },
+    priority: 1.5,
+    handwork: [
+      { value: "distaff", weight: 1, livelihoods: ["spinner"] },
+      { value: "distaff", weight: 1, sex: ["female"], means: ["poor", "common"], ages: ["adult", "elder"] },
+      { value: "none", weight: 4, sex: ["female"], means: ["poor", "common"], ages: ["adult", "elder"] },
+    ],
+  },
+  {
+    // In the Andes the drop spindle never went away.
+    id: "distaff-andes",
+    label: "The Andes · spinning on the walk",
+    scope: { years: [-1500, 10001], cultures: ["andean"] },
+    priority: 1.5,
+    handwork: [
+      { value: "distaff", weight: 1, livelihoods: ["spinner"] },
+      { value: "distaff", weight: 2, sex: ["female"], ages: ["youth", "adult", "elder"] },
+      { value: "none", weight: 3, sex: ["female"], ages: ["youth", "adult", "elder"] },
+    ],
+  },
 ];
 
 export type InfantCarry = "back" | "board" | "hip" | "arms" | "pram";

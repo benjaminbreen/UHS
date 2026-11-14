@@ -6,7 +6,7 @@ import type { GarmentKit, Option } from "../types";
  */
 
 type Arm = Option<"none" | "dagger" | "sword" | "sabre" | "katana" | "kris">;
-const fighters = ["soldier", "warrior", "retainer", "night-watchman"];
+const fighters = ["soldier", "warrior", "retainer", "night-watchman", "samurai"];
 const armed = (main: Arm["value"], second: Arm["value"] = "dagger"): Arm[] => [
   { value: main, livelihoods: fighters, ages: ["youth", "adult", "elder"], weight: 4 },
   { value: second, livelihoods: fighters, ages: ["youth", "adult", "elder"], weight: 1 },

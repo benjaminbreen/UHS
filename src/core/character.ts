@@ -178,6 +178,8 @@ export const headwear = [
   "bork",
   /** The Sikh turban, tied to a peak over the brow. */
   "dastar",
+  /** The linen cap with a frilled edge that European women wore indoors and out, about 1600 to 1850. */
+  "mobcap",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -253,16 +255,27 @@ export const waistcoats = ["none", "plain", "figured", "cardigan"] as const;
 /** A square of cloth worn over the shoulders and crossed or knotted at the front. */
 export const shawls = ["none", "plain", "fringed", "patterned"] as const;
 /** Hair as the law or the rule required it, over whatever the person would
- * have worn: the Qing queue, the Latin tonsure, the Buddhist monk's shaved head. */
-export const hairdresses = ["none", "queue", "tonsure", "shaven"] as const;
+ * have worn: the Qing queue, the Latin tonsure, the Buddhist monk's shaved head, the chonmage. */
+export const hairdresses = ["none", "queue", "tonsure", "shaven",
+  /** The Edo man's shaved pate and oiled topknot. */
+  "chonmage"] as const;
 /** Wool wound round the body over the tunic: the plain toga, the
  * purple-bordered toga praetexta of magistrates and boys, the woman's palla. */
 export const drapes = ["none", "toga", "praetexta", "palla"] as const;
 /** What holds a skirt out: the cone of the Spanish farthingale (about 1550 to 1620),
  * the dome of the crinoline (1856 to 1868), the bustle at the back (1870 to 1889). */
-export const silhouettes = ["none", "farthingale", "crinoline", "bustle"] as const;
-/** Over the face: the plague doctor's beak (1619 on) and the Venetian bauta. */
-export const masks = ["none", "beak", "bauta"] as const;
+export const silhouettes = ["none", "farthingale", "crinoline", "bustle",
+  /** The waist raised under the bust, the skirt falling straight: 1795 to 1822. */
+  "empire"] as const;
+/** Over the face: the plague doctor's beak (1619 on), the Venetian bauta, and
+ * women's street veils: the Ottoman yaşmak (white, below the eyes), the
+ * Egyptian burqu' (black, hanging to the chest), the haik drawn across all
+ * but one eye, and the burqa's grille. */
+export const masks = ["none", "beak", "bauta", "yashmak", "niqab", "haik", "grille"] as const;
+/** Carried on the head on a cloth pad: a water jar, a basket, a bundle. */
+export const headLoads = ["none", "jar", "basket", "bundle"] as const;
+/** Work done walking: the distaff under the arm and the spindle turning below the hand. */
+export const handwork = ["none", "distaff"] as const;
 /** A hood lying back on the shoulders; worn up, it is the `hood` headwear. */
 export const hoods = ["none", "down"] as const;
 /** Worn at the hip or in the sash: a straight sword, a curved sabre, a
@@ -872,6 +885,10 @@ export type CharacterAppearance = {
     mask?: (typeof masks)[number];
     /** The kamishimo's stiff winged shoulder piece, over the kimono. */
     kataginu?: boolean;
+    /** A woman's street wrap from head to ankle: chador, haik, ferace, çarşaf, burqa. */
+    shroud?: boolean;
+    headLoad?: (typeof headLoads)[number];
+    handwork?: (typeof handwork)[number];
     hood?: (typeof hoods)[number];
     sidearm?: (typeof sidearms)[number];
     /** A baby tied on the back in a cloth. Set from the household, not rolled. */

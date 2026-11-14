@@ -52,7 +52,7 @@ const styles: Record<CharacterAppearance["hair"] | "queue", Style | undefined> =
 };
 /** The cut as drawn: a queue replaces the person's own; a tonsure is a crop with the crown shaved. */
 const hairOf = (a: CharacterAppearance) =>
-  a.wearing.hairdress === "queue" ? "queue" : a.wearing.hairdress === "tonsure" ? "cropped" : a.wearing.hairdress === "shaven" ? "bald" : a.hair;
+  a.wearing.hairdress === "queue" ? "queue" : a.wearing.hairdress === "tonsure" ? "cropped" : a.wearing.hairdress === "shaven" ? "bald" : a.wearing.hairdress === "chonmage" ? "topknot" : a.hair;
 
 /** Broad and round heads fill the 14-column box; the rest are two columns
  * narrower, so a face is not always the widest it could be. */
@@ -69,7 +69,7 @@ const jaws: Record<NonNullable<CharacterAppearance["jaw"]>, [number, number][]> 
 const hides = {
   all: new Set(["hood", "headscarf", "veil", "wrap", "turban", "wig", "helmet", "kabuto", "jaguar", "eagle", "nemes", "wimple", "hennin", "dastar"]),
   top: new Set(["cap", "bowler", "flat-cap", "ball-cap", "brimmed", "conical", "fez", "top-hat", "nasal", "kettle", "official-cap",
-    "fedora", "boater", "cloche", "beret", "kerchief", "peaked-cap", "pith-helmet", "mian", "kanmuri", "tricorne", "bicorne", "gat", "capotain", "bork"]),
+    "fedora", "boater", "cloche", "beret", "kerchief", "peaked-cap", "pith-helmet", "mian", "kanmuri", "tricorne", "bicorne", "gat", "capotain", "bork", "mobcap"]),
 };
 
 function hash(s: string) {
@@ -647,6 +647,22 @@ function mask(h: Head, lo: number) {
   const end = 9 + lo;
   const [c0, c1] = view === "front" ? [1, 12] : view === "q" ? [3, 14] : [6, 14];
   const eyes = view === "front" ? [[3, 4], [9, 10]] : view === "q" ? [[5, 6], [10, 10]] : [[9, 9]];
+  const veil = a.wearing.mask;
+  if (veil === "yashmak" || veil === "niqab" || veil === "haik" || veil === "grille") {
+    // Street veils: below the eyes, or the whole face with one eye left free, or a grille over it.
+    const from = veil === "yashmak" || veil === "niqab" ? 7 : 3;
+    const to = veil === "niqab" ? end + 4 : end + 1;
+    for (let r = from; r <= to; r++) {
+      const narrow = veil === "niqab" && r > end + 1 ? r - end - 1 : 0;
+      k.span(r, view === "front" ? c0 + 1 + narrow : c0 + narrow, view === "front" ? c1 - 1 - narrow : c1);
+    }
+    s.put(k.mask, veil === "yashmak" ? WHITE : HAT, {
+      ring: "line", shade: 0.3, light: 0.2, bottom: true,
+      tone: veil === "grille" ? (x, y, t) => (y >= Y(5) && y <= Y(7) && (x + y) % 2 === 0 ? 1 : t) : undefined,
+    });
+    if (veil === "haik") for (let c = eyes[0][0]; c <= eyes[0][1]; c++) s.px(X(c), Y(6), EYE, 0);
+    return;
+  }
   if (a.wearing.mask === "bauta") {
     for (let r = 3; r <= end + 1; r++) k.span(r, c0, c1);
     // The chin juts forward so the wearer can eat and talk behind it.
@@ -1070,6 +1086,17 @@ function headwear(h: Head, lo: number) {
       else if (view !== "front") extra.mask.line(X(tip), Y(-11), X(6), Y(13), 3);
       break;
     }
+    case "mobcap": {
+      // Gathered linen over the crown, set back so the hair shows at the brow, a frill at the edge.
+      const spans = headSpans(h);
+      k.span(-1, 4, 9);
+      for (let r = 0; r <= 1; r++) k.span(r, spans[r][0], spans[r][1]);
+      if (view === "front") for (let r = 2; r <= 5; r++) k.span(r, spans[r][0] - 1, spans[r][0]).span(r, spans[r][1], spans[r][1] + 1);
+      else if (view === "back" || view === "bq") for (let r = 2; r <= 6; r++) k.span(r, spans[r][0], spans[r][1]);
+      else for (let r = 2; r <= 6; r++) k.span(r, spans[r][0], 4);
+      ring = "line";
+      break;
+    }
     case "capotain":
       k.rows(-6, [[4, 9], [4, 9], [4, 9], [4, 9], [3, 10], [3, 10], [3, 10], [3, 10]]).span(2, sideways ? -1 : 0, sideways ? 14 : 13);
       extra.span(1, 3, 10);
@@ -1172,6 +1199,8 @@ function headwear(h: Head, lo: number) {
           ? (x, y, t) => (t >= 3 && (x + y) % 3 === 0 ? 2 : t)
         : hat === "wig"
           ? (_x, y, t) => (t >= 3 && y > Y(2) && (y - Y(0)) % 2 === 0 ? 2 : t)
+        : hat === "mobcap"
+          ? (x, y, t) => (t >= 3 && (y === Y(1) || x === X(0) || x === X(13)) && (x + y) % 2 === 0 ? 2 : t)
         : hat === "conical"
           ? (x, y, t) => (t >= 3 && Math.abs(x - X(6.5)) % 3 === 0 && y > Y(-3) ? 2 : t)
           : cloth

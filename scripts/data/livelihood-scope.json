@@ -2497,6 +2497,63 @@
         "coin": 8
       },
       "why": "Owning a mill, works or factory and the wage labour in it, from the Lancashire cotton masters on."
+    },
+    "samurai": {
+      "label": "Samurai",
+      "keyword": "warfare",
+      "tier": "town",
+      "weight": 12,
+      "sex": "male",
+      "years": [
+        1600,
+        1872
+      ],
+      "bounds": [
+        128,
+        30,
+        146,
+        46
+      ],
+      "capabilities": [
+        "retained_military_service"
+      ],
+      "inventory": {
+        "water": 1,
+        "coin": 2
+      },
+      "why": "After the 1590s sword hunts and the separation of the classes, samurai lived in the castle towns on rice stipends, serving as officials, guards and clerks: about half of Edo and a fifth or more of most castle towns, abolished in 1871."
+    },
+    "palanquin-bearer": {
+      "label": "Palanquin Bearer",
+      "keyword": "portering",
+      "tier": "town",
+      "weight": 0.6,
+      "sex": "male",
+      "years": [
+        1000,
+        1920
+      ],
+      "cultures": [
+        "south-asian",
+        "east-asian",
+        "southeast-asian"
+      ],
+      "why": "Officials, the wealthy and women in seclusion went through the streets in litters and chairs on men's shoulders: the palki of India, the sedan chair of China, the kago of Japan, the gama of Korea."
+    },
+    "sedan-chairman": {
+      "label": "Sedan Chairman",
+      "keyword": "portering",
+      "tier": "town",
+      "weight": 0.4,
+      "sex": "male",
+      "years": [
+        1630,
+        1850
+      ],
+      "cultures": [
+        "european"
+      ],
+      "why": "Hired chairs carried by two men stood in ranks in London, Paris, Bath and Edinburgh from the 1630s until cabs replaced them in the early nineteenth century."
     }
   }
 }

@@ -52,7 +52,9 @@ export const SKIN = 0,
   /** Toga or palla wool, and the Tyrian purple of a clavus or a praetexta's border. */
   DRAPE = 40,
   PURPLE = 41,
-  MATS = 42;
+  /** Fired earthenware: a water jar. */
+  CLAY = 42,
+  MATS = 43;
 
 /** Ties round toward the centre line, so a shape and its mirror land on mirrored columns. */
 export const rnd = (x: number) =>

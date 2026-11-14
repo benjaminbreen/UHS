@@ -79,6 +79,7 @@ const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   capotain: "Capotain hat",
   bork: "Janissary cap (börk)",
   dastar: "Dastar (turban)",
+  mobcap: "Linen cap",
 };
 const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",

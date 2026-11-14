@@ -1086,6 +1086,20 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Tokyo", "city-tokyo", 1750, ["samurai", "magistrate", "courtesan|female", "courtesan|female|19"]],
   ]),
 
+  /** Street wraps and face veils, head-loads, the distaff, the linen cap and high waist, samurai and chair bearers. */
+  everyday: (page) => castSheet(page, "everyday", [
+    ["Istanbul", "city-istanbul", 1700, ["merchant|female", "weaver|female", "landowner|female", "midwife|female"]],
+    ["Isfahan", "city-isfahan", 1850, ["merchant|female", "weaver|female", "landowner|female", "midwife|female"]],
+    ["Algiers", "city-algiers", 1800, ["merchant|female", "weaver|female", "landowner|female", "midwife|female"]],
+    ["Kabul", "city-kabul", 1900, ["merchant|female", "weaver|female", "landowner|female", "midwife|female"]],
+    ["Lagos", "city-lagos", 1850, ["water-carrier|female", "street-vendor|female", "laundress|female", "farmer|female"]],
+    ["Paris", "paris", 1400, ["spinner|female|40", "farmer|female|35", "weaver|female|50", "farmer|female|28"]],
+    ["London", "london", 1750, ["shopkeeper|female", "farmer|female", "landowner|female", "laundress|female"]],
+    ["Paris", "paris", 1810, ["landowner|female|24", "shopkeeper|female", "merchant|female", "farmer|female"]],
+    ["Tokyo", "city-tokyo", 1750, ["samurai", "samurai|male|45", "merchant", "palanquin-bearer"]],
+    ["London", "london", 1760, ["sedan-chairman", "sedan-chairman|male|40", "shopkeeper", "landowner"]],
+  ]),
+
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {
     await characterLab(page);

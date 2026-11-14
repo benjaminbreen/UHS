@@ -239,7 +239,9 @@ export const eastAsia: readonly GarmentKit[] = [
     label: "Edo Japan · the kamishimo",
     scope: { years: [1600, 1868], bounds: [130, 30, 146, 46] },
     priority: 4.6,
-    over: [{ value: "kataginu", weight: 1, roles: ["samurai"], sex: ["male"], ages: ["youth", "adult", "elder"] },
+    // Formal dress on duty; about the town, a plain kimono and hakama.
+    over: [{ value: "kataginu", weight: 2, roles: ["samurai"], sex: ["male"], ages: ["youth", "adult", "elder"] },
+      { value: "none", weight: 3, roles: ["samurai"], sex: ["male"], ages: ["youth", "adult", "elder"] },
       { value: "kataginu", weight: 1, roles: ["official"], sex: ["male"] },
       { value: "kataginu", weight: 1, livelihoods: ["magistrate", "scholar-official", "army-officer", "landowner"], sex: ["male"] }],
     // Hemp in indigo, brown or black, often in a fine stencilled pattern.
@@ -249,5 +251,24 @@ export const eastAsia: readonly GarmentKit[] = [
     ]),
     leggings: [{ value: "wide", weight: 1, roles: ["samurai"], sex: ["male"] }, { value: "wide", weight: 1, roles: ["official"], sex: ["male"] },
       { value: "wide", weight: 1, livelihoods: ["magistrate", "scholar-official", "army-officer", "landowner"], sex: ["male"] }],
+  },
+  {
+    // Samurai in the castle towns went armed with the two swords but without armour or spear.
+    id: "japan-samurai-town",
+    label: "Edo Japan · the samurai about town",
+    scope: { years: [1600, 1872], bounds: [128, 30, 146, 46] },
+    priority: 3.5,
+    accessory: [{ value: "none", weight: 3, livelihoods: ["samurai"] }, { value: "fan", weight: 1, livelihoods: ["samurai"] }],
+    armour: [{ value: "none", weight: 1, livelihoods: ["samurai"] }],
+    headwear: [{ value: "none", weight: 5, livelihoods: ["samurai"] }, { value: "conical", weight: 1, livelihoods: ["samurai"] }],
+    garment: [{ value: "open-robe", weight: 1, livelihoods: ["samurai"] }],
+    leggings: [{ value: "wide", weight: 1, livelihoods: ["samurai"] }],
+  },
+  {
+    // The shaved pate and topknot, for townsmen and samurai alike until the 1871 cropping edict.
+    id: "japan-chonmage",
+    label: "Edo Japan · the chonmage",
+    scope: { years: [1600, 1872], bounds: [128, 30, 146, 46] },
+    hairdress: [{ value: "chonmage", weight: 1, sex: ["male"], ages: ["youth", "adult", "elder"] }],
   },
 ];

@@ -10,7 +10,7 @@ import { apron, bag, bangles, hoodDown, infant, neckwear, shawl, shoulderCloth, 
 import type { Material } from "../../../content/characters/wardrobe/cloth";
 import {
   ACCENT, APRON, BLUSH, DECO, MARK, ORN, PLUME, SMEAR, BOOT, CLOAK, CX, EYE, GLASS, H, HAIR, HAT, INNER, IRIS, KERCHIEF, LEATHER, LEG, LIP, LOWER, PATCH,
-  ARMOUR, DRAPE, EMBLEM, FLAG, LIQUID, MATS, PURPLE, STRAW, WOOD, METAL, Mask, SHAWL, SHEATH, SHIELD, STEEL, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
+  ARMOUR, CLAY, DRAPE, EMBLEM, FLAG, LIQUID, MATS, PURPLE, STRAW, WOOD, METAL, Mask, SHAWL, SHEATH, SHIELD, STEEL, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
 } from "./paint";
 
 // Renderer F, the paper doll. A figure is a few joints in body space, turned
@@ -1203,6 +1203,8 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
   const silhouette = hem !== undefined && ["dress", "gown", "skirt"].includes(g) ? (w.silhouette ?? "none") : "none";
   // Hooped skirts sweep the ground.
   if (silhouette === "farthingale" || silhouette === "crinoline") hem = 0;
+  // A column of muslin from under the bust.
+  if (silhouette === "empire") [hem, flare] = [1, 0.8];
   const outfit = [...(w.color + w.trim + g + w.belt)].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
   const named = w.motif ?? "auto";
   const cardigan = w.waistcoat === "cardigan" && !bare && g !== "poncho";
@@ -1213,7 +1215,7 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     flare,
     legs: g === "suit" ? TOP : leggings === "none" ? SKIN : calf && leggings === "hose" ? LEG : LOWER,
     feet: w.footwear ?? "shoes",
-    belt: bare || g === "gown" || g === "poncho" ? "none" : (w.belt ?? "leather"),
+    belt: bare || g === "gown" || g === "poncho" || silhouette === "empire" ? "none" : (w.belt ?? "leather"),
     motif: g === "wrap" || bare ? "plain" : named === "auto" ? ["plain", "placket", "band", "yoke", "stitch"][outfit % 5] : named,
     // Most hemmed garments carry a band at the hem, whatever their motif.
     band: (outfit >> 3) % 3 !== 0,
@@ -1317,6 +1319,7 @@ function palette(a: CharacterAppearance): Ramp[] {
   // Undyed wool for a toga, worked white for the candidate; a palla takes the shawl's dyes.
   p[DRAPE] = w.drape === "palla" ? dye(c.shawl) : ramp("#ebe3cc");
   p[PURPLE] = dye("#6e2348", 1.1);
+  p[CLAY] = ramp("#a85a3a");
   // Black lacquer for a Japanese scabbard, pale wood for a kris, leather for the rest.
   p[SHEATH] = ramp(w.sidearm === "katana" ? "#2a2430" : w.sidearm === "kris" ? "#9a6a38" : "#4a3020");
   // Quilted armour is undyed cotton or linen; the rest is the metal or lacquer it was made of.
@@ -1606,12 +1609,17 @@ export function drawCharacterF(
   if (carrying && backView) infant(fig, "behind", a.wearing.infantMood, a.wearing.infantCarry);
   if (carrying && !backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
 
+  if (w.shroud) shroud(s, t, d, yOf, centre, w.mask === "grille");
+
   // ---- the head, then anything raised above it
   drawHead(headArgs);
+  if (w.headLoad && w.headLoad !== "none") headLoad(s, w.headLoad, headArgs.x0, headArgs.y0);
   if (carrying && backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
-  if (w.neckwear && w.neckwear !== "none" && !["hood", "headscarf", "veil"].includes(w.headwear)) neckwear(fig, w.neckwear);
-  for (const { arm, z } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
+  if (w.neckwear && w.neckwear !== "none" && !["hood", "headscarf", "veil"].includes(w.headwear) && !w.shroud) neckwear(fig, w.neckwear);
+  // Under a street wrap the arms hold it shut from inside.
+  if (!w.shroud) for (const { arm, z } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
   if (w.wrist === "bangles") bangles(fig, r.arms.map((arm) => project(t, arm.end)).map(([x, y]) => [x, y] as const));
+  if (w.handwork === "distaff" && !prop && !w.shroud) distaff(s, t, r, d);
   if (workOver) implement(...work!);
 
   const image = ctx.getImageData(0, 0, W, H);
@@ -2000,7 +2008,9 @@ function garment(
       }
       if (g === "suit" && ax < 0.6 && y < waist) return TRIM;
     }
-    if ((g === "gown" || (laced && k.belt === "none")) && y === waist) return TRIM;
+    if (k.silhouette === "empire") {
+      if (y === yOf(d.shoulder - 3)) return TRIM;
+    } else if ((g === "gown" || (laced && k.belt === "none")) && y === waist) return TRIM;
     const m = k.motif;
     if (m === "stitch" && y === hemRow - 2 && x % 2 === 0) return TRIM;
     if (m === "yoke" && y <= top + 1) return TRIM;
@@ -2133,6 +2143,62 @@ function mantle(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: 
     m.span(yOf(y), rnd(centre(y) - w + 0.5) + Math.min(0, o), rnd(centre(y) + w - 0.5) + Math.max(0, o));
   }
   s.put(m, CLOAK, { shade: 0.36, light: 0.2, top: true, bottom: true });
+}
+
+/** A woman's street wrap: from the crown to the ground, held closed in front,
+ * the arms inside it. A burqa falls in fine pleats. */
+function shroud(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number, pleated: boolean) {
+  const m = new Mask();
+  for (let y = d.shoulder + 1; y >= 0; y--) {
+    const f = (d.shoulder + 1 - y) / (d.shoulder + 1);
+    const w = Math.hypot((d.shoulderW + 1 + f * 2) * t.cos, (d.chestD + 1 + f * 1.5) * t.sin);
+    const c = centre(Math.max(y, d.hip));
+    m.span(Math.min(GY - 1, yOf(y)), rnd(c - w + 0.5), rnd(c + w - 0.5));
+  }
+  const top = yOf(d.shoulder - 2);
+  s.put(m, CLOAK, {
+    shade: 0.38,
+    light: 0.2,
+    bottom: true,
+    tone: (x, y, tone) => {
+      if (tone < 3 || y < top) return tone;
+      if (pleated) return x % 2 === 0 ? 2 : tone;
+      // The edge it is held shut by, and a fold either side.
+      const c = rnd(centre(d.hip) + t.sx * t.sin * d.chestD * 0.5);
+      return t.cos > 0.3 && (x === c || x === c - 3 || x === c + 3) ? 2 : tone;
+    },
+  });
+}
+
+/** A distaff of wool or flax under the far arm and a drop spindle turning
+ * below the near hand, the thread running between. */
+function distaff(s: Sheet, t: Turn, r: Rig, d: Dims) {
+  const [nx, ny] = project(t, r.arms[r.near].end);
+  const [fx, fy] = project(t, r.arms[1 - r.near].end);
+  const out = fx < nx ? -1 : 1;
+  const stick = new Mask().line(fx, fy + 2, fx + out * 2, fy - d.shoulder + d.hip - 8, 1);
+  const tip = [rnd(fx + out * 2), rnd(fy - d.shoulder + d.hip - 8)];
+  s.put(stick, WOOD, { ring: "none", shade: 0, light: 0 });
+  s.put(new Mask().rect(tip[0] - 1, tip[1] - 3, tip[0] + 1, tip[1]).span(tip[1] - 4, tip[0], tip[0]), WHITE, { ring: "ink", shade: 0.3, light: 0.3 });
+  const spin = new Mask().line(nx, ny + 4, nx, ny + 7, 1).span(rnd(ny + 7), rnd(nx - 1), rnd(nx + 1));
+  s.put(new Mask().line(nx, ny + 1, nx, ny + 3, 1), WHITE, { ring: "none", shade: 0, light: 0 });
+  s.put(spin, WOOD, { ring: "line", shade: 0, light: 0 });
+}
+
+/** Carried on the head on a ring of cloth: a water jar, a shallow basket, a bundle. */
+function headLoad(s: Sheet, kind: "jar" | "basket" | "bundle", x0: number, y0: number) {
+  const c = x0 + 6.5;
+  const rows = (top: number, halves: number[]) => {
+    const m = new Mask();
+    halves.forEach((h, i) => m.span(top - i, rnd(c - h + 0.5), rnd(c + h - 0.5)));
+    return m;
+  };
+  s.put(rows(y0 - 1, [3]), KERCHIEF, { ring: "line", shade: 0.3, light: 0.2 });
+  if (kind === "jar") s.put(rows(y0 - 2, [3, 4, 4.5, 4.5, 4, 2.5, 1.5, 2]), CLAY, { ring: "ink", shade: 0.35, light: 0.3, top: true });
+  else if (kind === "basket") {
+    s.put(rows(y0 - 2, [4.5, 5.5, 6, 6]), STRAW, { ring: "ink", shade: 0.3, light: 0.25, tone: (x, y, tn) => (tn >= 3 && (x + y) % 3 === 0 ? 2 : tn) });
+    s.put(new Mask().span(y0 - 6, rnd(c - 4), rnd(c - 2)).span(y0 - 6, rnd(c), rnd(c + 1)).span(y0 - 6, rnd(c + 3), rnd(c + 4)), ACCENT, { ring: "line", shade: 0, light: 0.4 });
+  } else s.put(rows(y0 - 2, [4, 5, 5, 4]), KERCHIEF, { ring: "ink", shade: 0.35, light: 0.25, top: true });
 }
 
 /** The kamishimo's kataginu: stiff wings standing past the shoulders, the

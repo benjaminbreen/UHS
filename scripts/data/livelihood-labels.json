@@ -8953,7 +8953,7 @@
       5
      ]
     },
-    "label": "Mestre de A\u00e7\u00facar",
+    "label": "Mestre de Açúcar",
     "weight": 3
    },
    {
@@ -14377,6 +14377,68 @@
     },
     "label": "Mujahid",
     "weight": 4
+   }
+  ],
+  "palanquin-bearer": [
+   {
+    "scope": {
+     "years": [
+      1000,
+      1920
+     ],
+     "bounds": [
+      128,
+      30,
+      146,
+      46
+     ]
+    },
+    "label": "Kago Bearer"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1920
+     ],
+     "bounds": [
+      98,
+      18,
+      125,
+      42
+     ]
+    },
+    "label": "Sedan Bearer"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1920
+     ],
+     "bounds": [
+      124,
+      33,
+      131,
+      43.5
+     ]
+    },
+    "label": "Gama Bearer"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1920
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Palki Bearer"
    }
   ]
  }

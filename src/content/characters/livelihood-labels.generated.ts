@@ -1091,4 +1091,10 @@ export const localLabels: Readonly<
     { scope: {"years":[1963,1975],"bounds":[-18,10,-13,13]}, label: "PAIGC Fighter", weight: 4 },
     { scope: {"years":[1979,1993],"bounds":[60,29,75,39]}, label: "Mujahid", weight: 4 },
   ],
+  "palanquin-bearer": [
+    { scope: {"years":[1000,1920],"bounds":[128,30,146,46]}, label: "Kago Bearer" },
+    { scope: {"years":[1000,1920],"bounds":[98,18,125,42]}, label: "Sedan Bearer" },
+    { scope: {"years":[1000,1920],"bounds":[124,33,131,43.5]}, label: "Gama Bearer" },
+    { scope: {"years":[1000,1920],"bounds":[60,5,98,37]}, label: "Palki Bearer" },
+  ],
 };

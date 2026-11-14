@@ -1,4 +1,5 @@
-import type { GarmentKit } from "../types";
+import type { GarmentKit, Option } from "../types";
+import type { masks } from "../../../../core/character";
 
 /**
  * North Africa and West Asia. Loose covering cloth against sun and dust is the
@@ -10,6 +11,23 @@ import type { GarmentKit } from "../types";
  * and after, not a general Islamic or Middle Eastern hat, and putting it in
  * earlier bands would be the commonest way to get this region wrong.
  */
+type Wrap = { id: string; label: string; years: [number, number]; bounds: [number, number, number, number]; colors: string[]; masks: [(typeof masks)[number], number][] };
+const women = { sex: ["female"], ages: ["youth", "adult", "elder"] } as const;
+function streetWraps(wraps: Wrap[]): GarmentKit[] {
+  return wraps.map(({ id, label, years, bounds, colors, masks }): GarmentKit => ({
+    id,
+    label,
+    scope: { years, bounds },
+    priority: 1.5,
+    over: [{ value: "shroud", weight: 5, ...women, means: ["common", "wealthy", "elite"] }, { value: "none", weight: 1, ...women, means: ["common", "wealthy", "elite"] },
+      { value: "shroud", weight: 2, ...women, means: ["poor"] }, { value: "none", weight: 3, ...women, means: ["poor"] }],
+    overColor: colors.map((value): Option<string> => ({ value, weight: 1, ...women })),
+    headwear: [{ value: "veil", weight: 1, ...women }],
+    mask: [...masks.map(([value, weight]): Option<(typeof masks)[number][0]> => ({ value, weight, ...women, means: ["common", "wealthy", "elite"] })),
+      { value: "none", weight: 1, ...women, means: ["poor"] }],
+  }));
+}
+
 export const westAsiaNorthAfrica: readonly GarmentKit[] = [
   {
     id: "wana-ancient",
@@ -232,4 +250,21 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     material: [{ value: "cotton", weight: 6 }, { value: "silk", weight: 3, means: ["wealthy"] }, { value: "wool", weight: 2 }],
     dye: [{ value: "madder", weight: 3 }, { value: "indigo", weight: 3 }, { value: "pomegranate", weight: 2 }, { value: "undyed", weight: 3 }, { value: "goldthread", weight: 1, means: ["wealthy"] }],
   },
+  // Women's street wraps, head to ankle, in the towns: the outdoor dress of
+  // respectable women. Field and herding women went less covered, so the poor
+  // wear them less.
+  ...streetWraps([
+    // Safavid and Qajar Iran: the chador, black or dark blue, over a white face veil (the rubandeh).
+    { id: "iran-chador", label: "Iran · the chador", years: [1500, 1979], bounds: [44, 25, 63.5, 39.8], colors: ["#24222a", "#24222a", "#2c3550"], masks: [["yashmak", 3], ["none", 2]] },
+    // The Ottoman ferace, a long coat in a colour, with the white yaşmak below the eyes.
+    { id: "ottoman-ferace", label: "Ottoman towns · the ferace and yaşmak", years: [1500, 1880], bounds: [20, 29.5, 45, 43], colors: ["#3b4a62", "#5a3a5e", "#3e5a3a", "#5a4030"], masks: [["yashmak", 5], ["none", 1]] },
+    // From the 1880s the black çarşaf and the peçe over the face.
+    { id: "ottoman-carsaf", label: "Ottoman towns · the çarşaf", years: [1880, 1925], bounds: [20, 29.5, 45, 43], colors: ["#24222a"], masks: [["niqab", 3], ["none", 2]] },
+    // Cairo and the Hijaz: the black habara and the long burqu' from the nose to the chest.
+    { id: "egypt-habara", label: "Egypt and Arabia · the habara and burqu'", years: [1500, 1925], bounds: [24, 12, 45, 31.5], colors: ["#24222a", "#24222a", "#3a2e3e"], masks: [["niqab", 5], ["none", 1]] },
+    // The white wool haik, drawn across the face to leave one eye.
+    { id: "maghreb-haik", label: "The Maghreb · the haik", years: [900, 1960], bounds: [-10, 27, 11.5, 37.5], colors: ["#ebe3cc"], masks: [["haik", 4], ["yashmak", 2], ["none", 1]] },
+    // The pleated burqa with its grille, Kabul to Peshawar.
+    { id: "afghan-burqa", label: "Afghanistan · the burqa", years: [1800, 10001], bounds: [60, 29, 72, 38.5], colors: ["#4a6a9a", "#ebe3cc", "#7a6a4a"], masks: [["grille", 1]] },
+  ]),
 ];
