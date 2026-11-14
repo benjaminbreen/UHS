@@ -1860,6 +1860,9 @@ export function drawCharacter(
             clavi: 0,
             laticlave: 0,
             regimental: 1,
+            studs: 0,
+            tracksuit: 1,
+            "tie-dye": 0,
           }[named];
     if (!rear && a.wearing.garment !== "wrap")
       switch (motif) {

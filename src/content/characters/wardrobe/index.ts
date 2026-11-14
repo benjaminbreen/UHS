@@ -110,7 +110,7 @@ function skirted(
 ) {
   if (garment !== "dress" && garment !== "skirt" && garment !== "gown")
     return legs;
-  if (legs === "none" || legs === "hose" || legs === "wrapped") return legs;
+  if (legs === "none" || legs === "hose" || legs === "wrapped" || legs === "fishnet") return legs;
   return random(id, "under-skirt") < 0.55 ? "hose" : "none";
 }
 /** Cloth that repays fine work, best first. A masterpiece is made of the best
@@ -133,13 +133,18 @@ function weighted<T>(
   for (const o of options) if ((roll -= o.weight ?? 1) < 0) return o.value;
   return options[options.length - 1].value;
 }
+function shared(share: Option<unknown>["share"], w: Wearer) {
+  if (share === undefined) return true;
+  const roll = random(w.id, "wardrobe-share");
+  return typeof share === "number" ? roll < share : roll >= share[0] && roll < share[1];
+}
 function pick<T>(
   options: readonly Option<T>[],
   w: Wearer,
   band: ReturnType<typeof ageBandOf>,
   key: string,
 ): T | undefined {
-  const usable = options.filter((o) => fits(o, w, band) && (o.share === undefined || random(w.id, "wardrobe-share") < o.share));
+  const usable = options.filter((o) => fits(o, w, band) && shared(o.share, w));
   if (!usable.length) return undefined;
   const total = usable.reduce((n, o) => n + (o.weight ?? 1), 0);
   let roll = random(w.id, "wardrobe-v3", key) * total;
@@ -271,10 +276,17 @@ export function fibresFor(
 }
 /** What the wardrobe asks of the person under it: a shave, a beard, powder. */
 export function groomed<A extends CharacterAppearance>(a: A): A {
-  const { shave, hairdress } = a.wearing;
+  const { shave, hairdress, hairDye, makeup } = a.wearing;
   const beard = shave === "clean" ? "none" : shave === "full" && a.beard === "none" ? "short" : a.beard;
-  const hairColor = hairdress === "powdered" || hairdress === "pouf" ? "#e6e2d8" : a.hairColor;
-  return beard === a.beard && hairColor === a.hairColor ? a : { ...a, beard, hairColor };
+  const hairColor = hairdress === "powdered" || hairdress === "pouf" ? "#e6e2d8" : hairDye ?? a.hairColor;
+  const skin = makeup === "goth" ? mixHex(a.skin, "#f4efe8", 0.4) : makeup === "ganguro" ? mixHex(a.skin, "#7a4a2a", 0.45) : a.skin;
+  // An afro needs hair that will stand up into one.
+  const wearing = hairdress === "afro" && a.face?.hairTexture !== "curly" && a.face?.hairTexture !== "coiled" ? { ...a.wearing, hairdress: "none" as const } : a.wearing;
+  return beard === a.beard && hairColor === a.hairColor && skin === a.skin && wearing === a.wearing ? a : { ...a, beard, hairColor, skin, wearing };
+}
+function mixHex(a: string, b: string, t: number) {
+  const p = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  return `#${[0, 1, 2].map((i) => Math.round(p(a, i) + (p(b, i) - p(a, i)) * t).toString(16).padStart(2, "0")).join("")}`;
 }
 /**
  * Dress one person. Resolution is per slot, not per kit: the narrowest kit
@@ -412,6 +424,8 @@ export function wardrobeFor(
     drape: chosen.drape as CharacterAppearance["wearing"]["drape"],
     hairdress: chosen.hairdress as CharacterAppearance["wearing"]["hairdress"],
     shave: chosen.shave as CharacterAppearance["wearing"]["shave"],
+    makeup: chosen.makeup as CharacterAppearance["wearing"]["makeup"],
+    hairDye: chosen.hairDye as string | undefined,
     silhouette: chosen.silhouette as CharacterAppearance["wearing"]["silhouette"],
     mask: chosen.mask as CharacterAppearance["wearing"]["mask"],
     headLoad: chosen.headLoad as CharacterAppearance["wearing"]["headLoad"],

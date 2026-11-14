@@ -82,6 +82,7 @@ const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   mobcap: "Linen cap",
   shako: "Shako",
   bearskin: "Bearskin cap",
+  tam: "Tam",
 };
 const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",
@@ -89,6 +90,7 @@ const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   wrapped: "Leg wrappings",
   sarong: "Sarong",
   wide: "Wide trousers",
+  fishnet: "Fishnet tights",
 };
 const footLabel: Record<Exclude<(typeof footwear)[number], "none">, string> = {
   sandals: "Sandals",
@@ -146,6 +148,8 @@ const about: Record<ItemId, string> = {
     "Strips of cloth wound round the calves from ankle to knee, against thorns and cold.",
   "leggings-sarong":
     "A tube of cloth stepped into and knotted at the waist, cool and endlessly retied.",
+  "leggings-fishnet":
+    "Black net tights, worn under a short skirt and laddered on purpose.",
   "leggings-wide":
     "Loose, full trousers gathered at the waist, comfortable for squatting, riding and heat.",
   "footwear-sandals":
@@ -187,6 +191,8 @@ const about: Record<ItemId, string> = {
     "A long cloth wound about the head in careful folds; its style says where the wearer is from.",
   "headwear-headscarf":
     "A square of cloth folded and tied over the hair, for modesty, dust or warmth.",
+  "headwear-tam":
+    "A big knitted cap in red, gold and green, slouched to hold the locks.",
   "headwear-fez":
     "A brimless, flat-topped cap of red felt, often with a tassel.",
   "headwear-veil":

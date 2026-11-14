@@ -1166,6 +1166,7 @@ type Kit = {
   legs: number;
   feet: CharacterAppearance["wearing"]["footwear"];
   guards: boolean;
+  fishnet: boolean;
   belt: "none" | "cord" | "sash" | "leather" | "wide";
   motif: string;
   band: boolean;
@@ -1219,7 +1220,8 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     sleeves: cardigan ? "long" : sleeves,
     hem,
     flare,
-    legs: g === "suit" ? TOP : leggings === "none" ? SKIN : calf && leggings === "hose" ? LEG : LOWER,
+    legs: g === "suit" ? TOP : leggings === "none" || leggings === "fishnet" ? SKIN : calf && leggings === "hose" ? LEG : LOWER,
+    fishnet: leggings === "fishnet",
     feet: w.footwear ?? "shoes",
     guards: w.wrist === "sleeve-guards",
     belt: bare || g === "gown" || g === "poncho" || silhouette === "empire" ? "none" : (w.belt ?? "leather"),
@@ -1288,7 +1290,8 @@ function palette(a: CharacterAppearance): Ramp[] {
   // Lips as the portrait paints them: coloured on women, a shade line on men.
   const light = [1, 3, 5].reduce((sum, i) => sum + parseInt(a.skin.slice(i, i + 2), 16), 0) / 3;
   const female = a.physique?.sex === "female";
-  p[LIP] = ramp(mix(a.skin, light > 170 ? "#c4506a" : "#7a2e3c", female ? 0.6 : 0.32), "skin");
+  p[LIP] = w.makeup === "goth" ? ramp("#2c1a30") : w.makeup === "ganguro" ? ramp("#eee4d6")
+    : ramp(mix(a.skin, light > 170 ? "#c4506a" : "#7a2e3c", female ? 0.6 : 0.32), "skin");
   p[IRIS] = flat(irisOf(a), mix(irisOf(a), "#231a2b", 0.4));
   p[BLUSH] = flat(mix(flush(a.skin), a.skin, 0.25));
   p[EYE] = flat("#231a2b");
@@ -1925,7 +1928,7 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
     // Bare legs stay unlit, as G's bare arms do.
     light: k.legs === SKIN ? 0 : 0.3,
     dark,
-    zone: (_x, y) => (boots && shin(y) ? BOOT : k.legs),
+    zone: (x, y) => (boots && shin(y) ? BOOT : k.fishnet && (x + y) % 2 === 0 ? EYE : k.legs),
     tone: (_x, y, tone) =>
       wrapped && y < ay - 1 && y > ky - 2 && y % 2 === 0 ? Math.min(tone, 2)
       // A boot's top turns down in a lighter cuff.
@@ -2080,6 +2083,9 @@ function garment(
       const r = (y - top) * 0.75, w = d.shoulderW * 0.7;
       if (Math.abs(dx + w - r) < 0.6 || Math.abs(dx - w + r) < 0.6) return WHITE;
     }
+    if (m === "studs" && y <= top + 2 && ax > 1.4 && (x + y) % 2 === 0) return METAL;
+    if (m === "tracksuit" && y <= hipRow && ((facing && ax < 0.6 && y > top) || Math.abs(ax - (d.shoulderW * Math.abs(t.cos) - 1.2)) < 0.5)) return WHITE;
+    if (m === "tie-dye" && y <= hemRow && Math.round(Math.hypot(dx, y - top - 4)) % 3 === 0) return TRIM;
     if (m === "stitch" && y === hemRow - 2 && x % 2 === 0) return TRIM;
     if (m === "yoke" && y <= top + 1) return TRIM;
     if (m === "stripes" && (y - top) % 3 === 2) return TRIM;

@@ -10,6 +10,7 @@ import type {
   drapes,
   hairdresses,
   shaves,
+  makeups,
   silhouettes,
   masks,
   headLoads,
@@ -68,8 +69,9 @@ export type WearerScope = {
 };
 /** One choice in a slot. `weight` defaults to 1. `share` offers it to only
  * that fraction of wearers, the same ones for every option with that share,
- * and leaves the rest to the next kit. */
-export type Option<T> = WearerScope & { value: T; weight?: number; garments?: readonly Garment[]; share?: number };
+ * and leaves the rest to the next kit. A range picks a band of the same
+ * roll, so looks that share a place can be kept apart. */
+export type Option<T> = WearerScope & { value: T; weight?: number; garments?: readonly Garment[]; share?: number | readonly [number, number] };
 
 /** Everything a kit may say about how people here dress. Every slot is
  * optional: a kit that only knows about hats says only that, and the rest
@@ -118,6 +120,9 @@ export type GarmentKit = {
   drape?: readonly Option<(typeof drapes)[number]>[];
   hairdress?: readonly Option<(typeof hairdresses)[number]>[];
   shave?: readonly Option<(typeof shaves)[number]>[];
+  makeup?: readonly Option<(typeof makeups)[number]>[];
+  /** A hex colour the hair is dyed or bleached. */
+  hairDye?: readonly Option<string>[];
   silhouette?: readonly Option<(typeof silhouettes)[number]>[];
   mask?: readonly Option<(typeof masks)[number]>[];
   headLoad?: readonly Option<(typeof headLoads)[number]>[];
@@ -170,6 +175,8 @@ export const wardrobeSlots = [
   "drape",
   "hairdress",
   "shave",
+  "makeup",
+  "hairDye",
   "silhouette",
   "mask",
   "headLoad",

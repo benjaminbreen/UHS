@@ -184,6 +184,8 @@ export const headwear = [
   "shako",
   /** The grenadier's tall fur cap. */
   "bearskin",
+  /** A big slouched knit cap, room for locks inside: the Rastafarian tam. */
+  "tam",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -209,6 +211,12 @@ export const motifs = [
   "laticlave",
   /** White crossbelts over a coat with facings: the line soldier, about 1690 to 1870. */
   "regimental",
+  /** Metal studs across the shoulders: the biker's and the punk's leather jacket. */
+  "studs",
+  /** A zip down the front and a stripe down each side. */
+  "tracksuit",
+  /** Rings of dye from the chest outward. */
+  "tie-dye",
 ] as const;
 /** What covers the leg between hem and ankle. */
 export const leggings = [
@@ -220,6 +228,8 @@ export const leggings = [
   "sarong",
   /** Cut wide and falling straight to the ankle: hakama, salwar, sarouel. */
   "wide",
+  /** Black net tights under a short skirt. */
+  "fishnet",
 ] as const;
 export const footwear = [
   "none",
@@ -289,7 +299,13 @@ export const hairdresses = ["none", "queue", "tonsure", "shaven",
   /** The Western man's queue tied with a ribbon, plain or powdered: about 1700 to 1800. */
   "tied", "powdered",
   /** A child's shaved head with a forelock and tufts left: China and Japan. */
-  "tufts"] as const;
+  "tufts",
+  /** Late twentieth-century cuts: the punk's mohawk and spikes, the quiff of
+   * the teddy boy and rocker, the afro, locks, and hair simply grown long. */
+  "mohawk", "spikes", "quiff", "afro", "locs", "long"] as const;
+/** Paint on the face as a look, not a cosmetic: the goth's pale face and dark
+ * lips, the ganguro's deep tan and white lips. */
+export const makeups = ["none", "goth", "ganguro"] as const;
 /** Fashion's word on the beard: shaved clean, or grown. "none" leaves it to the person. */
 export const shaves = ["none", "clean", "full"] as const;
 /** Wool wound round the body over the tunic: the plain toga, the
@@ -915,6 +931,9 @@ export type CharacterAppearance = {
     drape?: (typeof drapes)[number];
     hairdress?: (typeof hairdresses)[number];
     shave?: (typeof shaves)[number];
+    makeup?: (typeof makeups)[number];
+    /** Hair dyed or bleached, as a hex colour. */
+    hairDye?: string;
     silhouette?: (typeof silhouettes)[number];
     mask?: (typeof masks)[number];
     /** The kamishimo's stiff winged shoulder piece, over the kimono. */

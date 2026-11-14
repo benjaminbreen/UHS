@@ -1143,6 +1143,22 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Plains", "great-plains-early", 1820, ["hunter", "hunter|female|25", "herder|male|40", "hunter|male|20"]],
   ]),
 
+  /** Street styles of the later twentieth century, asked for by name. */
+  styles: (page) => castSheet(page, "styles", [
+    ["London", "london", 1957, ["teddy boy|male|19", "teddy boy|male|22", "rocker|male|20", "clerk|male|30"]],
+    ["London", "london", 1965, ["rocker|male|20", "mod|male|19", "mod|female|19", "weaver|female|20"]],
+    ["San Francisco", "city-san-francisco", 1969, ["hippie|male|22", "hippie|female|20", "afro|male|24", "hippie|male|25"]],
+    ["London", "london", 1978, ["punk|male|19", "punk|female|18", "skinhead|male|19", "punk|male|22"]],
+    ["London", "london", 1985, ["goth|female|20", "goth|male|22", "punk|female|20", "goth|female|25"]],
+    ["New York", "city-new-york", 1984, ["rapper|male|18", "b-boy|male|20", "hip hop|female|19", "rapper|male|24"]],
+    ["Seattle", "city-seattle", 1993, ["grunge|male|22", "grunge|female|20", "hip hop|male|20", "hip hop|female|20"]],
+    ["Kingston", "city-kingston", 1980, ["rasta|male|30", "rasta|male|22", "rasta|female|25", "rasta|male|50"]],
+    ["Brazzaville", "city-brazzaville", 1990, ["sapeur|male|30", "sapeur|male|24", "sapeur|male|40", "clerk|male|30"]],
+    ["Los Angeles", "city-los-angeles", 1990, ["cholo|male|20", "cholo|male|24", "hip hop|male|19", "punk|female|19"]],
+    ["Tokyo", "city-tokyo", 1999, ["ganguro|female|18", "lolita|female|20", "gyaru|female|17", "punk|male|20"]],
+    ["New York", "city-new-york", 2010, ["hipster|male|28", "hipster|female|27", "emo|female|17", "emo|male|17"]],
+  ]),
+
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {
     await characterLab(page);

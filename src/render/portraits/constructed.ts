@@ -1274,6 +1274,9 @@ function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
           clavi: 8,
           laticlave: 9,
           regimental: 10,
+          studs: 0,
+          tracksuit: 1,
+          "tie-dye": 0,
         }[named];
   const only = [MAT.cloth];
   // The neckline is where the chest starts, so a motif clears it whatever the
