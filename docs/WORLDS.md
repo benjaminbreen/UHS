@@ -1,123 +1,122 @@
-# Procedural Earth and World Weaver
+# Worlds: settings, geography and generation
 
-Both modes produce a `WorldSetting` with the same data format; they can choose different places, dates, and characters. The same TypeScript generator, simulation, save, and replay then run it. A model never draws tiles or supplies executable rules.
+How a prompt becomes a `WorldSetting`, how that setting is pinned, and how the
+generator turns it into a world. Entry files: `src/content/geography/types.ts`
+(the setting contract), `src/content/geography/defaults.ts` (`integratedSetting`),
+`src/runtime/session.ts` and `src/world/worker.ts` (generator dispatch).
 
-**New world → Procedural** recognizes bundled place names, common period words, dates, roles, and seasons. Try Elizabethan London, Hellenistic Alexandria, a Roman legionary in Umbria, a free Black farmer in 19th-century Haiti, or a Paleolithic shaman in Siberia. The place selector also works without a prompt. Period-only input uses a visible local fallback. Requests that identify a place or culture zone and a period can resolve without a model; unrecognized details are flagged rather than silently ignored. Unknown input stays in the form so it can be revised. Periods and centuries choose a year from their range using the world seed. Exact dates are preserved and take precedence over period words. Character names and initial hunger/fatigue are also seeded and saved; these use existing simulation fields, not a new RPG statistics system. The numeric year field uses astronomical numbering: 0 is 1 BCE, −99 is 100 BCE.
+## From prompt to setting
 
-The procedural path makes no model or geocoding requests. Once the application assets are loaded, play is local. Opening/reloading the website without an internet connection is not yet guaranteed: there is no service worker that installs the application offline.
+- **Procedural.** `src/content/geography/resolve.ts` reads bundled place names,
+  period words, dates, roles and seasons offline. Exact dates beat period
+  words; a period picks a year from its range with the world seed. Years are
+  astronomical (0 is 1 BCE). Unrecognised details are flagged, not dropped.
+- **World Weaver.** If the local matcher cannot resolve a request, the optional
+  `/api/world-weaver` endpoint (`server/world-weaver.ts`, Vercel handler
+  `api/world-weaver.ts`) interprets it into the same fields, including
+  coordinates for places outside the catalog. It uses `OPENAI_API_KEY` and
+  `UHS_WORLD_WEAVER_MODEL` (default `gpt-6-luna`), is on when the key is set
+  unless `UHS_WORLD_WEAVER_ENABLED=0`, and checks
+  `UHS_WORLD_WEAVER_ACCESS_CODE` (`UHS_CLASSROOM_CODE` is an alias). Never give
+  keys a `VITE_` prefix. The setting is saved whole, so replay never calls the
+  model again. Tests inject a fake provider.
+- **Places.** `src/content/geography/places.ts` holds featured anchors and
+  aliases over the generated Natural Earth catalog (`places.generated.json`,
+  built by `npm run prepare:atlas`). Catalog rank is modern prominence;
+  `src/content/settlements/urban-form/` and `src/content/geography/onsets.ts`
+  date it down (when a place can be a town, when farming began). Before the
+  farming onset a place is a camp.
+- **Content.** `src/content/geography/pack.ts` adapts a setting to the content
+  and art packs. Buildings, households, props and labels resolve from
+  coordinates and year; the twelve cultural families are fallbacks that dated
+  regional files override.
 
-**New world → World Weaver · LLM enabled** first tries the local matcher. A clear request such as “renaissance Florence weaver” makes no network request. An incomplete request such as “ancient shaman guy”, or one with unrecognized details, goes to the optional World Weaver endpoint for interpretation. It returns the same setting fields, including approximate coordinates for places outside the bundled catalog. The setting is saved in full, so continuing, exporting, importing, and replaying never requires another interpretation request. This implements model-assisted world creation; model dialogue and autonomous model-driven NPCs are separate future features.
+## Pinned revisions
 
-## Optional LLM server
+`integratedSetting` runs once, for new worlds only. Workers and replay use the
+pinned values as they are. New worlds get:
 
-Copy `.env.example` to `.env.local`, then set:
+| Field | New worlds | What older values mean |
+|---|---|---|
+| `terrainRevision` | 2 (environment model) | 1: the rev-1 relief study; absent: original landscape |
+| `geographyRevision` | 1 (integrated Earth geography) | absent: no regional context |
+| `ecologyRevision` | 2 (RESOLVE colourways) | 1: climate-rule envelopes only |
+| `hydrologyRevision` | 3 (native water) | 1–2: main-water reaches; 2 adds swamp |
+| `vegetationRevision` | 9 | 1–8: earlier spacing, mixes and understory |
+| `urbanRevision` | 2 (dated block grammar) | 1: fixed lattice in `v3/urban-v1.ts` |
+| `roadRevision` | 1 (sparse regional graph) | absent: older routing |
+| `streetRevision` | 1 (earth unless dated paving) | |
+| `terraceRevision` | 1 (towns level and wall their steps) | |
+| `placementRevision` | 1 unless supplied | 0: older placement |
+| `characterRevision` | 2 (naming traditions, gated workforce) | 1: hand-written kits |
+| `economyRevision` | 1 | |
+| `worksiteRevision` | 7 | 1–6: earlier worksite sets |
+| `friendshipRevision`, `employmentRevision`, `beliefRevision`, `namingRevision` | 1 | |
 
-```dotenv
-UHS_WORLD_WEAVER_ENABLED=1
-GEMINI_API_KEY=your-server-key
-UHS_WORLD_WEAVER_ACCESS_CODE=your-access-code
-UHS_WORLD_WEAVER_MODEL=gemini-3.5-flash-lite
-```
+The schema for each is in `src/content/geography/types.ts`. Grep the field name
+to find every branch it controls.
 
-Restart `npm run dev`. The Vite development server serves `/api/world-weaver`; `api/world-weaver.ts` provides the equivalent Vercel serverless handler. Configure the same environment variables on the hosting server. A static-only host supports procedural mode but needs a separate compatible endpoint for World Weaver. API keys must never use the `VITE_` prefix. The access code is entered only when interpretation is needed and is not saved with the world. The old `UHS_CLASSROOM_CODE` environment variable and `X-Classroom-Code` header remain compatibility aliases; World Weaver is not limited to classroom use.
+## Generator dispatch
 
-The endpoint checks the access code, request size, and structured response. It has a 25-second provider timeout and two-request concurrency limit per server instance. Use provider project quotas to bound spending across server instances. The endpoint defaults to disabled. Tests inject a fake provider; no paid requests are needed for development or verification.
+The manifest's `generator` picks the world builder:
 
-## How geography works
+- **3 (all new worlds):** `createSettlementWorld` in `src/world/v3/generate.ts`.
+- **2:** `createAtlasWorld` in `src/world/v2/generate.ts`, for old generator-2 saves.
+- **1:** `createWorld` in `src/world/generate.ts`, for the original pack presets
+  and `src/dev/fixtures.ts`.
 
-New procedural and World Weaver worlds use the shared relief/environment generator with `geographyRevision: 1`. World creation pins this input once; terrain workers consume it unchanged. The explorer uses the same pipeline with a bounded configured starting landscape, blending back to Earth beyond 192–384 tiles. The original revision-one study and older pinned settings retain their existing dispatch.
+Fresh playable starts go through `prepareConnectedStart` in
+`src/runtime/map-travel.ts` (see [TRAVEL.md](TRAVEL.md)).
 
-- **One coordinate field.** Earth coordinates use 2,048 game tiles per degree. Coastlines, major river lines and broad mountain/climate fields constrain local terrain. Fine relief, floodplains, banks, materials and habitats use the shared terrain implementation. This is compressed game geography, not distance-preserving surveying.
-- **Dated regional constraints.** Regional files contain bounds, date ranges, reusable content defaults, named settlement points/footprints, land-use/water polygons and river/transport lines. Geographic overrides and land-use restrictions are independent: a park cannot hide the island underneath it. Known places take precedence over procedural settlement rolls. Approximate geometry is identified as inference.
-- **Districts are indexes, not towns.** A 384-tile district can contain multiple named places or neighborhoods. Large footprints are subdivided into local neighborhoods; settlement IDs preserve the named parent and coordinates. Shared placement rejects protected open land and confines buildings/yards to their allocated footprint. Unresearched countryside uses terrain-suitable procedural settlements; an anchored region permits settlement only inside known footprints.
-- **Continuous travel.** Loaded chunks sample the same world. Regional routes are planned before buildings, cross district boundaries and retain shared endpoints. Failed road searches remain blocked connections, not invented usable crossings. Land travel can continue beyond the starting region; ocean travel is not implemented.
-- **Local content.** Settlement buildings, households, prop kits, resources and the location display resolve from coordinates and the world date. The twelve broad content families are fallback production defaults, not ethnic/political polygons. Dated regional and place defaults override them. Content libraries still require substantial historical expansion.
-- **One map.** Regional overview terrain uses the same geography. Named destinations can be labeled without activating their populations. Detailed scenery remains local, avoiding household generation merely to draw a continental overview.
+## Geography
 
-The imported gazetteer does not supply founding dates. Its general named-place coverage is conservatively enabled from 1990; this cutoff is a coverage policy, not a claim about when those places existed. Earlier named coverage comes from dated regional files or the explicitly requested starting setting. Initial regional data includes approximate London (1500–1665), Iberian city anchors (1500–1899), and New York (1850–1913). These are ordinary production data, not custom generators. Sources and limitations live beside each feature.
+- Earth data lives in `src/world/geography/` (atlas, landscape, climate,
+  noise, coordinates): 2,048 game tiles per degree, coastlines, major rivers,
+  broad relief and climate. Fine relief, banks and habitats come from v3 (see
+  [TERRAIN.md](TERRAIN.md)).
+- Dated regional constraints (bounds, date ranges, named settlement footprints,
+  land use, rivers, transport lines) are in `src/content/geography/regions/`,
+  resolved by `src/world/regional/` (`context.ts`, `settlements.ts`,
+  `transport.ts`). Known places beat procedural settlement rolls; an anchored
+  region allows settlement only inside its footprints.
+- The catalog's named places switch on from 1990; earlier coverage comes from
+  dated regional files or the starting setting.
 
-### Shared geographic queries
+### Queries
 
-`WorldModel.geography` exposes read-only `packAt`, `placesIn`, `connectionsIn` and `resourcesAt` queries. Local places include stable generated identities; wider queries retain named anchors without creating distant households. Connections carry endpoints, mode, geometry and `proposed`/`routed`/`blocked` status. `routed` means road geometry was generated; it is not a promise of verified end-to-end gameplay access. River/sea/ferry links remain unserved proposals. Resource potentials indicate habitat opportunities, not stocks, yields, production or actual trade.
+`WorldModel.geography` (`src/core/geography.ts`) offers read-only `packAt`,
+`placesIn`, `connectionsIn`, `resourcesAt` and `landPotentialAt`. Connections
+carry `proposed`/`routed`/`blocked` status. Resource and land potentials are
+physical opportunities, not stocks or prices. Boats, freight and trade should
+consume these queries rather than build another network.
 
-Future boat traffic and economic dependencies should consume these same places, links and resource queries. Add their mutable activity to the simulation rather than inventing another geographic network. No boat agents, freight, transport schedules or economic production chains were added in this pass.
+## Islands, rafts and camps
 
-`landPotentialAt` is the finer local query for later settlement evolution. It
-derives normalized arable, pasture, fishing, wild-food, timber, reed, clay,
-stone and mineral-prospectivity opportunities from the existing terrain,
-drainage and habitat fields. These are physical opportunities, not stocks or
-prices. `subsistence`, `materials` and `buildability` are summaries; culture,
-technology, access and demand must weight the underlying yields before calling
-them economic value. In particular, mineral potential does not assert an ore
-deposit without authored geology.
+A setting can carry a `situation` (`src/content/geography/situation.ts`): a
+landform and size, land/raft/boat/swimming support, a camp kind, population.
+These starts use configured local terrain, not the Earth map. The local parser
+handles "tiny desert island 20x8", "ww2 pilot downed, floating in atlantic",
+"Everest base camp" and the like without a model. Camp kits are in
+`src/content/settlements/camps/`, layout in `src/world/v3/camps.ts`, shelter
+art in `scripts/art/camps.py`.
 
-Settlement plans now expose shared `occupied`, `access` and `clearance` claims.
-The first blocks movement and construction, the second protects roads and
-thresholds, and the third protects visible roof, canopy and prop silhouettes.
-New vegetation revision 7 tests a tree's whole crown against those claims and
-regional roads. Revision-6 worlds retain their previous vegetation placement.
-Roads, plots, parcels and places carry stable ids plus a baseline year and
-minimal condition or use state for later epoch changes. The baseline is the
-date represented by the generated snapshot, not a claim about construction;
-no production or historical mutation loop is implied yet.
+## Where to extend
 
-## Extending it
+- A new place or dated region: `places.ts` or a file in `regions/`.
+- A new generation rule: v3 only. Gate it behind a revision field only if you
+  must keep old output; there are no saves to preserve, so changing the
+  current revision directly is usually right.
 
-`src/content/geography/regions/` contains dated regional constraints; `src/world/regional/` resolves geography, settlement identities and transport. `src/content/geography/defaults.ts` upgrades new-world inputs. `src/content/geography/places.ts` contains the featured anchors and aliases. `types.ts` defines the setting contract, `resolve.ts` interprets offline text, and `pack.ts` adapts that setting to existing content and art. `src/world/v2/landscape.ts` describes terrain; `src/world/v3/` plans new settlements and samples chunks. See [SETTLEMENTS.md](SETTLEMENTS.md) for roads, plots, farms, pens and daily activity. `server/world-weaver.ts` only interprets settings.
+## Legacy, do not extend
 
-A place's settlement rank in that catalog is Natural Earth's modern cartographic prominence, so it describes the present settlement network and no earlier one. Two tables date it down.
+Retiring these is welcome when you work nearby:
 
-`src/content/settlements/urban-form/` says when towns of a given kind existed in a region. `settingFor` ranks a place as a town only from the earliest date a fabric there covers its culture family and coordinates, or from the date in `src/content/geography/onsets.ts` when the modern named-place network formed, whichever comes first. Each fabric also carries a `storeys` cap, so a single-storey fabric is never handed a three-storey building model.
+- `src/world/generate.ts` (generator 1) and `src/world/v2/generate.ts` (generator 2).
+- Revision branches below the values in the table above.
 
-`src/content/geography/onsets.ts` also holds rough regional dates for settled farming. Before it, a place is a camp with forager roles, no fields, no livestock and no paving. Somewhere that never farmed becomes a settlement when the modern network reaches it, not on a farming date it never had.
-
-Both tables are regional, not per settlement, and the farming dates are round numbers from the general archaeological literature rather than a reviewed dataset. A culture family with no urban entry is not being described as lacking towns; its layouts have not been researched.
-
-The bundled catalog combines featured settings, Natural Earth place coordinates, and original UHS area descriptions where a named coordinate could be matched. The old UHS adjacency graph is not used. Broad regional coordinates from that graph are deliberately not treated as individual place locations. Named coordinates and default ecology are approximate and can be overridden in the featured anchor table.
+## Checks
 
 ```sh
-npm run prepare:atlas
-npm run agent:serve -- --setting "Elizabethan London"
-npx vitest run tests/world-v2.test.ts
+npm run test:quick -- tests/world-v2.test.ts
+npm run agent:play -- --setting "Elizabethan London" --seed check
 ```
-
-Atlas preparation uses Python's standard library, caches pinned public-domain Natural Earth inputs, and records checksums. Generated files ship with the application; players do not download GIS datasets. Source details are in `ASSET_PROVENANCE.md`.
-
-New worlds have generator version 3, simulation version 2, atlas/schema version 2 and geography revision 1. They retain their resolved setting in the manifest. Existing generator-2 saves and the original generator-1 Roman/Neolithic presets preserve their earlier generator and simulation. Layout-affecting changes require deliberate version handling.
-
-## Current scope
-
-This is broad geographic generation using the existing early-build simulation. Regional art libraries, clothes, crop varieties, household inventories, and occupational behavior still need expansion; a recognized place name does not imply a bespoke city or economy. Architecture currently reuses classical, mudbrick, timber, courtyard, board, thatched-house, and simple shelter components. Prehistoric and seasonal settings affect initial terrain/content; ice sheets, sea-level histories, and an evolving hydrological simulation are not implemented.
-
-Travel now resolves content by locality, using explicit dated coverage where supplied and broad fallback libraries elsewhere. Comprehensive historical regional profiles are not yet authored. Long-distance transport, ocean crossing, polar coverage above 85°, and dateline wrap remain outside this build. Terrain caches are bounded; explored actors and objects persist, so extremely long journeys still need entity streaming before population memory can plateau.
-
-## Explicit local situations
-
-A setting can now carry optional `situation` data, independent of its gazetteer
-place: a landform and tile dimensions, land/raft/boat/swimming support, a camp
-kind, population and palm count. World Weaver retains this data even when it
-chooses an existing catalog place. The local interpreter also handles the
-standard island, afloat and camp prompts without a provider call.
-
-These starts use configured local terrain instead of the connected Earth map.
-A `10x5` island has a 10-by-5-cell bounding box, an elliptical sand shore and a
-palm; it creates no settlement or incidental household props. An open-ocean
-start retains its water spawn and permits player movement on the selected
-support without making deep water walkable for ordinary characters. Rafts
-and boats render with the player and respond to the existing light grade.
-Boarding, ocean currents, rescue events and travel between ports are not part
-of this first implementation.
-
-Camp kits live in `src/content/settlements/camps/`, with layout in
-`src/world/v3/camps.ts` and native shelter art in `scripts/art/camps.py`.
-Military camps use ordered rows; expedition camps use clusters and dated
-canvas/dome shelters; pastoral camps have felt tents and a flock; forest
-gatherings use temporary shelters around a hearth. These are explicitly
-illustrative layouts, not reconstructions of named historical camps. Existing
-content continues to resolve the people by location and date. New camp
-shelters follow the shared 12px right return and atlas/model contract.
-
-Acceptance prompts: `tiny desert island`, `tiny desert island 20x8`,
-`ww2 pilot downed, floating in atlantic`, `Everest base camp`,
-`Everest base camp 2020`, `Roman military camp`, `pastoral camp`, and
-`tribal gathering in the forest`.

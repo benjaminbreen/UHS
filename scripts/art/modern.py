@@ -9,7 +9,7 @@ The drawing vocabulary lives in module functions rather than on the class, so
 `InfillBuilding` and any later modern painter can borrow a window or a
 storefront without inheriting a mid-rise silhouette.
 
-Rules from BUILDING_ART.md that this file leans on:
+Rules from the building-art skill that this file leans on:
   - a flat roof faces the sky, so it is lighter than the wall and evenly lit;
   - the one dark line that seats a roof is where the parapet turns onto it;
   - detail is subtraction. One rhythm of windows, one band of glazing.

@@ -1,150 +1,190 @@
-# Characters and the character lab
+# Characters
 
-Open `/character-lab`, or use **Settings → Character lab · appearance & clothing** in the game. **⌘3 / Ctrl+3** toggles the in-game lab; Escape closes it. Both views use the same native-pixel character painter as the world.
+How people are generated, dressed, drawn, animated and shown. The key entry
+points are:
+- `src/content/characters/generate.ts`: who a person is
+- `src/content/characters/wardrobe/`: what they wear
+- `src/render/characters/doll/draw.ts`: the world sprite
+- `src/render/portraits/sculpted.ts`: the bust
+- `src/ui/CharacterPanel.tsx`: the profile
 
-## Review and customization
+## Generation pipeline
 
-- Generate repeatable populations of 24, 48, 96 or 192 characters using a seed and batch number. Click a character to edit it. “Same wardrobe” isolates body, complexion and hair differences.
-- Five height categories are available: child, youth/short adult, medium, tall and tallest. Generated adults use approximately 80% medium, 10% short, 9% tall and 1% tallest. These are art weights, not historical demographic claims. D uses two-pixel body-height steps: medium men are two pixels below its previous default, medium women four below, short men four below and short women six below. Tall men retain the previous default; tallest women reach that height too. Children have a body nine pixels below the tall adult, shorter arms and thinner limbs; head pixels are retained. C and the drawn renderers keep their previous geometry.
-- “Age for preview & population” controls the lab cohort and eligible height options. Children under 13 default to the child category; teens use short or medium. Game actors use their actual age, and the editor cannot apply the child category to an adult. Unknown ages default to adult; the uncustomized adult player uses medium height. D's proportion update applies to existing worlds and recipes as a rendering change: height category values and deterministic generation rolls are unchanged.
-- Edit complexion, hair color, eight hair silhouettes, five facial-hair options, eight garment silhouettes, cloth/trouser/trim colors, cloaks, five headwear options, necklaces and earrings.
-- Choose a pose, direction and any portable prop. Pause and step individual frames. The sheet shows north/east/south/west, with four frames per row.
-- Export the selected appearance as JSON, import it, copy a recipe link, or export native-resolution transparent PNG animation/population sheets.
-- In the in-game lab, select the player or an NPC and apply the current appearance. The actor's explicit `appearance.wearing` record is the source for clothing type and colors in the renderer. This is an art customization operation, not a simulated purchase or dressing action.
+Players, settlement adults and household members all come from one
+deterministic pipeline in `src/content/characters/`. It makes no model calls.
 
-Unrestricted lab combinations are visual studies, not claims of historically attested dress. Actors without an explicit appearance preserve their legacy complexion/clothing palette and resolve stable body, face, hair and wardrobe variation. Generic dated wardrobe kits in `src/content/characters/wardrobes.ts` provide silhouette defaults, not authenticated historical costume reconstructions. Explicit wardrobes take precedence. Existing generation inputs, eras and recorded world composition are not changed. Historical wardrobe selection remains a content-authoring task; the renderer does not branch on cultural families.
+| File | Owns |
+|---|---|
+| `context-types.ts` | The small flat content contracts |
+| `profiles/names.ts`, `name-kits.ts`, `profiles/*-names.ts` | Naming samples; `name-kits.ts` only assembles regional modules |
+| `profiles/communities.ts` | Community scenarios and appearance kits (`AppearanceKit`), including adornment pools |
+| `livelihoods.ts`, `livelihoods.generated.ts` | Livelihoods and their activity and supply kits |
+| `resolve.ts` | Selection by year, geographic box, culture and community (`matchesCharacterScope`) |
+| `validate.ts` | Reference and evidence checks on load. Equal-specificity conflicts fail rather than depending on file order |
+| `generate.ts` | Independent seeded streams per world seed, actor and purpose, so changing a role never rerolls a face or a name |
+| `invented-name.ts` | Invented names where no naming kit covers a place, labelled "Invented name" in game |
+
+- **Provenance.** `Actor.origin` records the community, naming kit, livelihood
+  and qualifications used.
+- **Employment.** Once buildings, fields, pens and venues are placed,
+  `src/world/v3/employment.ts` reconciles resident occupations with the work
+  actually available, and gives each worker a real destination. No mine, mill
+  or hospital is invented to employ someone.
+- **Names.** Name kits declare their format (`personal`, `personal-family`,
+  `personal-patronymic`, and others). A patronymic is never inherited as a
+  family name, and custom names are never split. Children take components from
+  their actual parents.
+- **Revision pins.** New worlds pin `characterRevision`, `namingRevision`,
+  `beliefRevision` and `employmentRevision` in the setting
+  (`src/content/geography/defaults.ts`). Settings without them take older
+  paths. Extend the pinned path only.
+
+**To extend:** add a scoped kit or profile to the relevant subject file, with
+exact applicability, evidence status, sources and limitations. Reuse appearance
+and livelihood definitions rather than copying a whole character per era.
+Scopes AND across fields, OR within lists, and use half-open year ranges.
+Palette and frequency weights are art direction, not demographic estimates.
+Community never determines personality or skill.
+
+## Wardrobe
+
+`wardrobeFor` (`src/content/characters/wardrobe/index.ts`) dresses a person
+from their region, date, livelihood and means (`meansOf`). It draws from:
+- `kits.ts` and `regions/*.ts`: dated kits per culture region
+- `regions/work-dress.ts`: aprons, bags, neckwear, keyed on livelihood
+- `regions/layers.ts`: waistcoats, shawls, hoods
+- `regions/sidearms.ts`
+- `regions/headdress.ts`: hair ornaments, hat trims
+- `regions/embroidery.ts`: trim patterns
+- `regions/street.ts`, `guards.ts`, `rulers.ts`, `special.ts`: dress for those
+  roles
+
+Kits choose cuts, fronts, fibres and colours; each slot can carry its own
+restrictions. Explicit appearance recipes always win. `wardrobes.ts` is a
+re-export shim.
+
+## The world sprite
+
+`src/render/characters/renderers.ts` lists renderers A–G. **G is the
+default**: `characterSprites: "g"` in `src/render/live-graphics.ts`, and
+**Settings → Display → Character sprites** switches renderers live.
+
+G is the paper doll in `doll/` (`draw.ts`, `head.ts`, `paint.ts`, `extras.ts`)
+with the `g` flag set:
+- **Rig.** About a dozen joints in body space, turned to eight facings and
+  projected onto the native grid, so nothing is resampled. The adult is 37px,
+  and the head is about 40% of that.
+- **Parts.** Every part is a pixel mask at final size. `paint.ts` records a
+  material and one of five tones per pixel; colour comes from `ramp()` at the
+  end.
+- **Wardrobe as rules.** Garments, hair, beards and headwear are rules over the
+  joints, so a new kit item works in every facing and pose.
+- **Fibre and wear.** Silk takes a sheen, fur takes pale tips. Worn cloth
+  frays, and fine cloth is embroidered.
+- **Faces.** It draws the face's `adornment` and `injuryScar`.
+- **Motion.** Cloaks, sashes, braids and scabbards trail the stride.
+- **Actions** are keyframes in `doll/draw.ts` (`actions`): jump, land,
+  stumble, hurt, climb, roll, the tool families (chop, dig, rake, sickle,
+  scythe, thrust, throw, stick, cast) and the work motions.
+- **Idle.** NPCs pick idle gestures by temperament (`WorldScene.idleGesture`)
+  and breathe at idle (`WorldScene.poseFrame`). Elders stoop.
+- `poses.ts` holds the shared pose list and `heldFrame` timing.
+- `world.ts` caches composed frames per scene.
+- `props.ts` draws held objects.
+- `shadow.ts` projects the whole pose onto the ground.
+
+Resting expressions come from stats through `restingExpressionOf`
+(`src/core/persona.ts`); hurt and startle override them.
+
+**Legacy, do not extend:** renderers A (`draw.ts`), B (`v2/`), C, D, E
+(`v3/draw.ts`) and F (G without the flag). They stay selectable for
+comparison only. Retiring them, and the shared code only they use, is welcome
+when you are working in this area.
+
+## Portraits
+
+`src/render/portraits/sculpted.ts` draws the bust the game shows
+(`src/ui/CharacterSprite.tsx` calls `drawSculptedPortrait`). It matches the G
+sprite's clothes and colours through `clothColours`.
+- **Expressions.** `constructed.ts` supplies `FacePose`: eleven numbers applied
+  as pixel offsets, with twelve named poses in one table.
+  - `facePose(expression, amount)` tweens between poses.
+  - Blinking and the speaking mouth (`visemeFor`) run on their own clocks.
+- **Mood in dialogue.** In conversation the NPC wears the `mood` the model
+  chose for its own line, a field of the dialogue reply beside `regard`. Only
+  `regard` moves `actor.trust`.
+- **Faces vary independently.** Eye shape, nose profile (nine `noseForm`
+  entries), brow connection, eye alignment and detail, injury scars and
+  adornment each have their own seeded stream. Adding one never rerolls the
+  others.
+- **Ageing.** One stored recipe ages continuously: cheeks, jaw, lids, greying,
+  hairline and lines.
+- **Adornment.** Ear and nose ornaments and face marks (ink, scar or paint) come
+  from `AppearanceKit.adornment`. A kit that names none gets none.
+  - The drawn marks are schematic. They stand for the practice of marking the
+    face, never for a particular community's design or meaning.
+  - `describeAdornment` (`src/core/character.ts`) names what is worn, in plain
+    words, under **Worn and marked** in the panel.
+
+**Legacy, do not extend:**
+- `setSculptedRefined(false)`, which keeps the earlier bust
+- `layered.ts`, `three-quarter.ts` and `raster.ts`, which are lab-only systems
+  listed in `systems.ts`
 
 ## The character panel
 
-Clicking the sidebar portrait opens a profile for the player; clicking a person under **Around you** opens the same panel for them. `src/ui/CharacterPanel.tsx` renders three tabs — Profile, Household, Abilities — from data that already exists plus three derived functions. Nothing new is stored on an actor, so a village of four hundred residents costs nothing to give trades and temperaments.
-
-- **Stats** (`src/core/stats.ts`) roll from the seed and the actor id: strength, agility, endurance, wit and the five broad personality traits, all 0–100. Endurance was added after the first saves; those load with the mean of strength and agility rather than a fresh roll, which would move a known character.
-- **Disposition and standing** (`src/core/persona.ts`) are read off those stats. Disposition prefers a pair of traits over a single one. Standing is how the settlement holds someone — years in one place, diligence, household size — and is separate from `actor.trust`, which stays the player's own account of them.
-- **Abilities** (`src/content/characters/abilities.ts`) map the 138 livelihoods onto about twenty broad practices, ranked 1–3 from practice, the leaning stat and age. The generated livelihood list is not edited; matching is by id. One or two abilities outside the trade are drawn deterministically, so everyone knows a couple of ordinary things.
-- **Today** comes from the resident's existing routine (`dayPlan` in `src/core/itinerary.ts`). The routine walks the same circuit several times a day, so repeats collapse to one entry and the time shown is the nearest round. The player has no routine and sees recent events instead.
-- **Available** is the engine's own affordance list for that person, and disappears when they walk out of sight.
-
-These are playable derivations from generated data, not biography. `tests/persona.test.ts`, `tests/day-plan.test.ts` and the deleted `character-panel.spec.ts` (`git show bef96b22^:tests/browser/character-panel.spec.ts`) cover them; the browser spec captures `artifacts/character-panel-*.png`.
+Click the sidebar portrait, or a person under **Around you**, to open
+`src/ui/CharacterPanel.tsx`. It has three tabs: Profile, Household and
+Abilities. Nothing new is stored on an actor; everything is derived.
+- `src/core/stats.ts`: strength, agility, endurance, wit and five personality
+  traits, rolled from seed and actor id.
+- `src/core/persona.ts`: disposition and standing. Standing is separate from
+  `actor.trust`.
+- `src/content/characters/abilities.ts`: livelihoods mapped onto about twenty
+  practices, ranked 1–3.
+- **Today**: `dayPlan` in `src/core/itinerary.ts`.
 
 ## Beliefs
 
-`src/content/beliefs/` holds 214 belief systems across the twelve culture regions, each scoped by a year range and a lon/lat box and resolved by the same `matchesCharacterScope` the name kits use. Each region file also carries a few wide era floors — foragers, early farming, the long middle, the early modern centuries, the industrial period — so a date always lands on something; a dated entry beats a floor because it is narrower in years times degrees. The setting's own culture region is preferred over a box that spills across a border, but only as a preference, since some places carry a neighbour's culture tag. `npx tsx scripts/check-beliefs.ts [region]` reports coverage against every place the app can generate; it currently stands at 99%, the remainder being Antarctica and islands nobody had reached yet. A system lists its powers in three ranks — `paramount`, `major`, `local` — with a relation edge where a hierarchy is worth drawing, a few lines of practice, who officiates, and an evidence record with sources and limitations. The local ranks matter most: they are the powers an ordinary person addresses without going through a temple.
+`src/content/beliefs/` holds dated, boxed belief systems per culture region
+(`systems/*.ts`, exemplar `systems/egypt.ts`). They are resolved by the same
+scope rules as name kits, with wide era floors so every date lands somewhere.
+- **Powers.** A system ranks its powers `paramount`, `major` or `local`, with
+  `relations` (child-of, consort-of, aspect-of and others), practices,
+  officiants, and evidence with sources and limitations.
+- **Names.** Real names are used where they survive. Reconstructed vocabulary
+  (Proto-Indo-European, Proto-Bantu and others) is marked `hypothesis`, with
+  the form given in `gloss`. No deity name is invented and presented as
+  recovered. `unscopedBeliefs` supplies an unnamed practice at `fictional`
+  status. Pre-1788 Australia stays descriptive by rule.
+- **A person's belief** is derived, not stored: `beliefOf` picks a patron, an
+  observance level and a practice.
+- **Links and glyphs.** `wikiFor` links each system and power to Wikipedia.
+  Glyphs are 11px text drawings in `src/render/glyphs/`, picked per power by
+  `icons.ts`.
+- **Accuracy.** The regional files were drafted by model agents. Expect errors
+  of detail.
 
-Powers carry their real names wherever names survive — Inmar and Keremet in the tenth-century Urals, the Scythian list from Herodotus, the thirty-seven Burmese nats, Sedna and Sila in the Arctic — including reconstructions where comparative work supplies them, such as the Proto-Indo-European \*Dyēus Ph₂tḗr, marked `hypothesis` and flagged as reconstruction in the limitation. Where no name was recorded, 158 powers carry a reconstructed one instead — Proto-Uralic \*ilma and \*tuli in the northern forest, Proto-Yeniseian \*qu'j in the taiga, Proto-Bantu \*nyambe, Proto-Oceanic \*qatua, Proto-Mayan \*k'uh — with the `gloss` field giving the form, the language and the sense. These are reconstructions of vocabulary standing in for a religious role, which the entry says plainly: a word for "sky" is not evidence of a sky god by that name, and the reconstructed stage usually postdates the horizon. 33 systems stay wholly descriptive, either because even a reconstruction would be a stretch — Papuan highland prehistory, the pre-Bantu forest, Teotihuacan, whose own language is unresolved — or because the material is not ours to enumerate, which is the rule for pre-1788 Australia.
+**Checks:**
+- `npx tsx scripts/check-beliefs.ts [region]`: coverage against every place
+- `npx tsx scripts/check-beliefs-wiki.ts --fix`: dead links
+- `tests/beliefs.test.ts`, `tests/belief-hierarchy.test.ts`
 
-Powers are tied to each other by `relations` — `child-of`, `consort-of`, `sibling-of`, `aspect-of`, `serves`, `rival-of`, `taught-by` — and the panel draws them as lines between the icons. 604 relations across 177 systems; 37 stay unconnected, which is usually the true shape: an ancestor cult with a remote creator above it has no pantheon to draw. A relation must name a power in the same list, cannot point at itself, and descent cannot loop; `tests/beliefs.test.ts` enforces all three. Where a relation is a scholarly argument rather than a plain statement of the tradition — Asherah as YHWH's consort, Perun against Veles — the system's limitation says so.
+## Labs and checks
 
-Every system carries a `wiki` link to its tradition's English Wikipedia article, and 650-odd powers carry their own; `wikiFor(system, power)` falls back from one to the other, ready for a detail panel that pulls extracts and thumbnails. `npx tsx scripts/check-beliefs-wiki.ts --fix` checks every link against the live API and drops dead power-level ones so they fall back.
-
-Where nothing is recorded for a place and date, `unscopedBeliefs` supplies an unnamed practice — the ancestors, the sky, the water, the land — at `fictional` status. No proper deity name is ever invented and presented as recovered.
-
-Each power carries a pixel glyph. `src/render/glyphs/` holds 161 of them, eleven pixels square, written as text — `.` contour, `o` body, `O` highlight — and drawn straight to a canvas, tinted by rank. `src/content/beliefs/icons.ts` picks one per power from what it is called and what it is for, name first, so "the waters, healing" is water before it is medicine. About a tenth fall back to a rank default. The deleted `glyph-sheet.spec.ts` (`git show bef96b22^:tests/browser/glyph-sheet.spec.ts`) renders a contact sheet to `artifacts/glyph-sheet.png`; pass `GLYPHS=a,b,c` to render only some.
-
-A person's own belief is derived, not stored: `beliefOf` picks a patron from the powers near to hand, an observance level from their traits, and one practice line they keep. `tests/beliefs.test.ts` checks the shape of every system, that relations point at powers in their own list, and that documented entries carry sources.
-
-The regional files were drafted by model agents against a hand-written exemplar (`systems/egypt.ts`) and are content, not scholarship: expect errors of detail, particularly in the traditions with the thinnest written record.
-
-## Art and animation
-
-`src/core/character.ts` owns appearance data, deterministic variants and the legacy fallback. `src/runtime/schema.ts` validates imported appearance recipes. Appearance is optional, so existing actors remain readable without regeneration.
-
-`src/render/characters/` contains the shared painter:
-
-- `pixels.ts`: integer raster masks, palette ramps and garment-mask unions. Sleeves join the torso before outlining; there are no independent boxed shoulder caps. Shadows retain the material hue, with strong dark green/blue/brown/etc. contours instead of a universal black or gray outline. Cuffs have flat endpoints, and hands use small palm/thumb clusters.
-- `head.ts`: separate front/back/profile anatomy, hair, facial hair and headwear. Side profiles have their own forehead, nose, chin and ear placement.
-- `draw.ts`: four-direction body poses, opposing near/far arm and leg movement, elbow bends, hands and carried-object layering. Forward and backward stride poses alternate through neutral poses; repeated neutral frames are intentional.
-- `props.ts`: native, transparency-cropped art for all 18 currently portable prop definitions. Containers retain their source pixels; the stick has a direction/pose-aware held drawing. One-hand, hanging and two-hand supports share the character hand positions. Tall hanging objects are lifted clear of the feet. Large vessels/crates can obscure the face because their original dimensions are retained.
-- `world.ts`: scene-owned cached character frames, evicted after inactivity. Appearance resolution is cached and held-object lookup is indexed at scene refresh. Lab populations cache their four composite pages rather than rerasterizing everyone on every animation loop.
-
-The game draws with renderer D (`v3/draw.ts`, `renderers.ts`). Its body is modelled as distance fields and ray-cast onto the native grid, so all eight facings are true turns rather than a profile with the head turned; clothing detail and motifs are surface zones that wrap the body. Wardrobe selection uses the `wardrobe-v3` seed stream; face and name streams stay independent. All newly generated residents and scenario characters use regional wardrobe kits. Kits can choose straight, fitted or full cuts and closed, open or overlapping fronts, with garment restrictions on individual slot choices. Unsewn garments have bare arms, wide trousers keep separate legs, and mantle/shoulder cloth survive equipment composition. Hats and inner layers have independent colors; dyed equipment supplies the color of its own slot. Walking canes and folding fans are actual inventory items with dedicated hand poses; household work substitutes loads without depositing personal accessories. Review with `capture:characters -- wardrobe accessories cloth`.
-
-B and D draw five resting expressions: neutral, smile, soft, serious and concerned. World actors derive them from `statsOf` through `restingExpressionOf`: extraversion at least 72 smiles (about 10% of generated people), high neuroticism looks concerned, high agreeableness looks soft, and very low agreeableness or low agreeableness with high conscientiousness looks serious. Everyone else is neutral, including ordinary introverts. This is presentation, not a new stored personality or mood; hurt and startle override it. Nose shading is separated from the mouth by a skin row so the neutral mouth cannot inherit an accidental raised corner. Review with `capture:characters -- expressions`.
-
-D's lower garment profile spans the animated legs at the hem, widening with the stride while the waist stays fitted. The head is B's drawing (`v2/head.ts`) one size smaller, relit at the rim and hair and shadowed under brim and chin, with the face interior left as drawn so it stays legible. C is the same body at adult proportions with a modelled head. **Settings → Display → Character sprites** switches B, C, D, E and F live; the character lab compares any two side by side.
-
-F (`doll/`) is a paper doll in the SNES/Stardew manner, an A/B candidate against E. A dozen joints in body space are turned to the eight facings and projected straight onto the native grid, so nothing is resampled. Each part (leg, garment silhouette, arm, skull, hair, hat) is a pixel mask drawn at final size, and `paint.ts` records material and one of five tones per pixel rather than colour. Every part gets the same treatment: flat fields, a shade band on the side away from the light, a dark line round it on whatever lies behind, and a cast shade under heads and brims. Colour comes from `ramp()` only at the end. Garments, hair styles, beards and all headwear are rules over the joints and the 14-column head box, so a new kit item works in every facing and pose. The head is chibi-large (about 40% of the 37px adult), with two-row eyes that carry a white so they read on any skin. F also draws what E ignores. **Fibres:** silk takes a sheen, barkcloth painted bands, fur pale tips, and hide a fringed hem. **Quality:** worn cloth is patched and frays; fine cloth (2 and up) is embroidered in gold. **Other kit:** the shoulder cloth, plus four look slots added for it: `apron` (cloth, leather), `bag` (purse, satchel), `wrist` (bangles) and `neckwear` (neckerchief, ruff, cravat). These are resolved like any wardrobe slot from `wardrobe/regions/work-dress.ts`, keyed mostly on livelihood and means, with a few regional kits: European house aprons, purses, ruffs 1560–1650, cravats and fichus 1660–1850, the Edo inro, and bangles. `trimPattern` names the pattern worked into hem bands and chest panels (cross-stitch, meander, chevron, diamond, stepped fret, dots, strip cloth, cloud collar), chosen per culture region in `wardrobe/regions/embroidery.ts` and drawn as a three-row tile in a colour that contrasts with the trim. F also pushes a trim too close in value to its cloth lighter or darker so bands read. `hairOrnament` (comb, pins, flower, net, ribbon) and `hatTrim` (feather, cockade, ribbon band) come from `wardrobe/regions/headdress.ts`. F draws the face's `adornment` record as the portraits do: ear and nose ornaments in their metal, and marks in ink, paint or raised scar. Cloaks, sash tails, aprons, braids and long hair swing a frame behind the stride and trail as the figure travels. Actions are keyframes in `doll/draw.ts` (`actions`): jump, land, stumble, startle, hurt, skid, climb, hang, kick and roll each set hand and foot targets, rise, lean, knee, head tilt, a forced expression (surprise, wince, gritted teeth) and hair lift per frame; the scene still supplies the arc and the squash. A turn shows its three beats: the head leads, the body comes halfway round, and the cloth settles. Tools have their own keys by family (chop, dig, rake, sickle, scythe, thrust, throw, stick, cast). Each key gives a two-handed grip and a tool axis, and the carried art is turned along that axis by inverse mapping; atlas art for shovels, rakes, scythes and the like is head-down. Contact and launch frames draw a half-transparent smear behind the hand, the tool's head or the feet. The idle gestures (sway, straighten, adjust-hat, touch-face, inspect-held, shrug, nod, breathe) are keyed too, and NPCs now choose them by temperament in `WorldScene.idleGesture`. `heldFrame` in `poses.ts` gives each action uneven frame holds (a long wind-up, a snap to contact, a held impact) for both renderers. Strike frames still begin at two beats, so tool effects land where they did. `npm run capture:characters -- doll` writes the E/F sheets: people, walks, every kit item, a crowd, and `doll-dress`, each accessory and fibre once. `UHS_SPRITES=f npm run shot` shows F in the game.
-
-G, the default since October 2026, is F with one flag (`g` in `doll/draw.ts`, `refined` on the head and figure). Legs are three pixels longer while hems stay at F's height (`Dims.cut`), the waist is narrower, the arms reach the hip and the stride is fuller. Brims shade the face and are lit on top; back views shade the nape and a shaved skull's lower third; crowns come in three domes per lineage. NPCs breathe and shift their weight at idle (`WorldScene.poseFrame`, G only), talkers move the mouth and nod, elders (lined or weathered faces) stoop and shorten their stride, and the run leans harder with pumping arms. Feathers, fez tassels, ribbon tails, drop earrings and neckerchief points lag and swing. G alone draws the `waistcoat`, `shawl`, `hood` (worn down: a medieval cape with a liripipe, or a hoodie) and `sidearm` slots (sword, sabre, katana pair, dagger, kris), assigned in `wardrobe/regions/layers.ts` and `sidearms.ts`; scabbards swing with the stride and stream out at a run, and a standing swordsman rests a hand on the hilt. `npm run capture:characters -- doll-g` writes the F/G sheets.
-
-The shared pose list lives in `poses.ts`. C/D have dedicated push-off, braking and reversal-skid poses for the existing scene transitions, with counterlean, recovery and hair/hem lag. Eight-way turns lead with the head, pivot the facing after a beat and settle the shoulders and loose cloth; gait frames continue through the turn. Jump, landing, stumble, wall kick and hanging/climbing have distinct joint poses. Held props keep their grips through push-off and braking. Scene cues and passersby use small nods or waves, with greetings chosen by trust. D's tucked roll remains a separate refinement; it currently falls back to a standing rig.
-
-D separates spear thrusts, spear throws, knife thrusts and stick swings, as well as axe chops, pick strikes, shovel digs, rake pulls, sickle cuts, scythe sweeps and pitchfork jabs. Each has its own bracing, contact and recovery sequence, cadence, and hand-guided prop angle. The thrown spear leaves the sprite on the same frame the projectile launches. Gameplay tool effects and strike cues land on each pose's contact frame. Review the four-frame actions with `capture:characters -- weapons`; the action timing and wiring are covered by `tests/swing.test.ts` and `tests/tools.test.ts`. Lifting and pulling have distinct effort poses. Sparse idle gestures depend on headwear and held objects, while fatigue and carried weight shorten the stride and alter posture and pace without changing the actor's appearance recipe.
-
-Everyday work uses distinct stirring, kneading, pounding, weaving, scrubbing, tending and sorting motions selected from the resident's routine or the player's work command. Workers face nearby work objects, alternate two strokes with a brief pause, occasionally inspect the result, and make a small contact effect at the object. Review the frames with `capture:characters -- work`.
-
-Gameplay wires movement, successful interaction animations, resting, gathering/working and eating activities. The additional expressive poses are available in the lab; this does not add new combat, throwing or emotion rules.
-
-Runtime command outcomes trigger presentation animations without moving inventory ownership into the renderer. Space with a held stick animates the actual strike; with no eligible target, it produces a visual air swing without damage. Picking up removes the ground object and attaches it to the actor. Dropping restores the ground object. Human shadows project the complete composed pose (including carried objects), cache by frame and lighting phase, and reuse the existing six time-of-day cast directions/opacities. Small foot-contact shadows remain at night. Prop/building shadow behavior is unchanged.
-
-## Verification and review
-
-`tests/characters.test.ts` checks variant coverage, repeatability, validation, explicit clothing precedence and complete portable-art coverage. The deleted `characters.spec.ts` (`git show bef96b22^:tests/browser/characters.spec.ts`) exercises the editor, 192-person batches, frame stepping/export, all props in all directions, crisp alpha, profile/stride distinctions and actual game pickup/swing/drop/customization. Existing prop browser and rule tests also pass.
-
-Run:
-
-```sh
-npm run build
-npx vitest run tests/characters.test.ts tests/props.test.ts
-```
-
-`npm run capture:characters -- refinement` captures a green-shirt/brown-hair four-direction walk and the same outfit in the world. Run it with no argument for every sheet, or name one of `lab`, `walk`, `heights`, `props`, `polish`, `refinement`, `village`, `sprite-light`, `sprite-study`. It starts against the development server on port 5173; review images live in `artifacts/characters/`.
-
-Before implementation, the complete existing worktree was committed as `222f0b7` and pushed to `origin/codex/character-lab`. Remote `main` contains the earlier UHS project with unrelated Git history and was preserved. The character work was subsequently reviewed and checkpointed for integration into `v2`; see the current top of `PROGRESS.md` for verification.
-
-## Face, wardrobe, posture and lighting study
-
-The lab exposes five head shapes and five jaw shapes, three body silhouettes, six resting postures, four sleeve cuts, three hem treatments and shoulder cloth. Strength and physique profile are **appearance metadata**, not a new gameplay strength statistic. `faceFromTraits(seed,index,age,physique)` uses age and supplied physical traits as weighted art direction; original jaws and alternative shapes remain possible. Explicit recipes override generated choices. No personality or competence is inferred from face shape. Existing actors supply age; absent physique values receive deterministic visual defaults.
-
-Body taper/fullness, chest light, underarm folds, belt gathers, long tunics and lower-colored skirts provide silhouette and material variation without scaling pixels. Idle phase is offset per actor. Held burdens affect posture; hand-on-hip and clasped-hand resting poses yield to actual carried objects and actions.
-
-The lighting control affects the native preview shadow and six-person production-renderer village study. The selected recipe and held object appear alongside an original adult, strong adult, elder, child and tall adult. `npm run capture:characters -- village` captures matching morning, midday, dusk and night scenes. All five height categories retain their age boundaries; ordinary adults default to medium height.
-
-## Final contour and motion polish
-
-Skin contours now use a dark brown/plum ramp even for pale complexions. Lower/right silhouette edges use a slightly cooler, deeper shade than upper/left edges; hair and cloth retain their material hue. Hand tips have a defined lower contour. Side walking keeps opposing arms and legs but reduces hand travel from ±3px to ±2px and its lift from 2px to 1px.
-
-Idle poses no longer turn the head. Only the resting player automatically enters `breathe`: a four-second cycle with a one-pixel shoulder/chest lift, fixed head and feet, and fixed grips. The lab exposes this pose for frame stepping. NPC idle poses remain still apart from blinking.
-
-Build −1 is the new default, narrowing the torso/shoulders one native pixel without resampling the head. Previous builds 0/1/2 remain selectable and retain their geometry. Procedural adult width weights are 75% narrow, 18% previous, 6% broad and 1% full; children default narrow. Height-category distribution is unchanged; D uses the shorter proportions described above. Review `artifacts/characters/final-polish.png` or run `npm run capture:characters -- polish`.
-
-## Portrait faces: ornament, noses and expression
-
-The sculpted bust (`portraits/sculpted.ts`) draws the refined model by default; `setSculptedRefined(false)` brings back the earlier one. It is matched to the G sprite: the same colours through `clothColours` (cloth, hat, waistcoat, shawl, hat trim), hair at its record colour, the shoulder cloth, shawl, waistcoat and hood worn down, feathers, cockades and ribbons on hats, and hats sized to sit over the hair, which is cleared from inside them. `npm run capture:characters -- portrait-ab` shows the sprite, the earlier bust and the refined one for 32 people.
-
-Open `/portrait-lab`, or **Settings → Developer → Portrait lab**. Slot C, `src/render/portraits/constructed.ts`, is the bust the game actually shows.
-
-**Eye placement.** Both eyes sit a pixel nearer the midline than they did. The old placement left five pixels of flat cheek between the near eye and the nose bridge, and `generateFace` drew wide, average and close spacing evenly, so a third of every crowd was wide-set. Spacing is now weighted four average to two close to one wide, and the `wide` and `close` offsets are unchanged.
-
-Background appearance kits also weight eye shape and nose profile, alongside existing lid, bridge, head and hair traits. The pools overlap: these are broad regional art palettes, not measured demographic frequencies or an ethnicity classifier. European and African kits now specify their lid/fold defaults explicitly rather than inheriting the unplaced global draw. Continuing US community profiles cover dates through 2026; historical settlement population shares retain their original dates. New weights affect newly generated recipes; stored anatomy and generator-v1 inputs remain unchanged. The sculpted renderer distinguishes a full crease, a quiet low crease and no crease, renders the stored inner-eye fold, and no longer treats a monolid as a tired/heavy lid. Women retain their recorded brow shape rather than always receiving an arch. Review with `capture:characters -- portrait-backgrounds`.
-
-Refined hair uses texture-specific volume and outlines: straight hair stays closer and smoother, waves bend the outline, loose curls form larger clusters and coils use a fuller silhouette with smaller surface detail. Stable partings and fringe lengths vary among people; the front edge and fringe sit higher to leave clear forehead above the brows. Loose curls use varied cluster sizes, a broken outline and small curved light/dark marks rather than a smooth cap. Loose curls continue around bobs and long locks; the `curls` cut with coiled texture supplies the fullest rounded natural silhouette. Hair remains clipped beneath hats. Curl centres are prepared once per bust rather than during every ray sample.
-
-Facial noise and iris colour now exclude hair style and texture, so changing either preserves facial proportions, eye spacing and eye colour. This deliberately refreshes fine rendered variation once for existing refined portraits; stored recipes and the earlier renderer keep their original inputs. African appearance kits retain their weighted curly/coiled textures and now weight natural-volume and braided styles more strongly, with separate dated Congo weights. These are art choices, not demographic estimates. `capture:characters -- portrait-hair` deliberately forces seven treatments on the same four faces to compare rendering; ordinary generation still uses its regional pools.
-
-Adult refined jaws now taper beneath localized cheek volumes rather than a low spherical bulge. Women retain fuller lower cheeks and a softer cheek-to-jaw transition so the taper does not read as hollowing. The chin has a forward, gently flattened form and a clearer transition into the neck; very wide jaws and recessed or strongly projecting chins remain tail variations. A small contact shadow fades down the neck beneath the projected chin and follows head pose. Child and earlier-renderer geometry retain their previous rules. `capture:characters -- portrait-jaw` checks the same four adults from the front and three-quarter at ages 30 and 70.
-
-The refined bust ages one stored recipe continuously: young-adult cheek fullness recedes, cheek volume sits lower, the jaw softens, lips thin and some upper lids lower. Cheek descent and jowls use a later curve, beginning between 56 and 64 and becoming pronounced toward 80; earlier greying, lid changes and lines keep their own timing. Hair greys and hairlines recede gradually with stable individual onset rather than a shared birthday cutoff; recorded grey hair remains grey. Skin and eye colour and the underlying identity seed stay fixed. Forehead lines are broken and softly shaded, and cheek-fold contrast grows with age. The earlier sculpted renderer retains its previous age rules. `capture:characters -- portrait-age` holds four adult recipes and their dress fixed across ages 20, 40, 60 and 80.
-
-`browConnection` adds partial and fully joined brows without changing the anatomy seed. West and South Asian kits use 2% joined and 4% partial for men, 4% joined and 8% partial for women. Other kits use 0.75% joined and 1.5% partial for men, 1.5% joined and 3% partial for women. These exclusive art probabilities are not demographic estimates. Partial bridges vary in density; both forms follow the inner brow ends through expression, blinking and head turn. The independent draw preserves these art rates across generations; older recipes without it keep separate brows. Review with `capture:characters -- portrait-brow-connections`.
-
-`eyeAlignment` is a separate art distribution: 10% slightly inward, 89% aligned and 1% slightly outward, from `eye-alignment-v1`. Aligned irises sit a pixel farther apart than the old three-quarter pose and remain centred face-on. `eyeDetail` uses an independent stream: 60% of women and 40% of men receive the combined look (an extra pixel of iris width, larger pupils where at least three iris columns fit, and visible lower lashes); the remainder sample the seven other combinations. Narrow eyes clamp the iris and pupil to their opening. These stored visual details leave anatomy and personality draws unchanged; older recipes derive stable defaults. `capture:characters -- portrait-eye-alignment portrait-eye-detail` shows the variants.
-
-**Noses.** Nine profiles instead of four: the original short, straight, broad and aquiline, plus hooked, snub, bulbous, narrow and flat. `noseForm` holds each one as five numbers — bridge convexity, tip reach, how far the tip hangs below or above the base, wing width and where the base sits — so the profile line, the lit side and the nostrils all follow from one table. The four originals stay common in the draw; the five additions share the remainder.
-
-**Ornament and marks.** An appearance now carries an optional `adornment`: an ear ornament (stud, hoop, drop, spool, cuff), a nose ornament (stud, ring, septum), a face mark pattern, whether that mark is ink, scar or paint, its colour, and the ornament's metal. Which of these occur, and how often, is content: `AppearanceKit.adornment` in `src/content/characters/profiles/communities.ts` carries weighted pools per region, in the same repeat-to-weight form as the eyelid and hair-texture pools, and a kit that names none gets none. The worn `earrings` item still works and draws as a drop.
-
-The drawn mark patterns are schematic — a few lines, dots or a block, in the places faces are marked — and stand for the practice of marking the face, never for a particular community's design, meaning, status or age grade. The regional pools are art direction about visibility, not measured frequencies. Marks are withheld below twelve and stretched lobes below ten. Anything a hat, hood or beard covers is covered, because marks only paint pixels that are already skin.
-
-**Healed injury scars.** `injuryScar` records a brow, cheek, temple or lip seam, or a less common burn patch, with its own side. The independent `injury-scar-v1` stream gives newly generated adults aged eighteen or older a 20% chance for men and 5% for women; these are chosen art probabilities, not historical prevalence estimates. Explicit recipes retain their scar or explicit `none`; older recipes without the field receive a stable identity-based draw when resolved. This adds visual history without rerolling anatomy, personality, ornaments or gameplay. Scars stay with the individual rather than being inherited, and appear on both G sprites and sculpted portraits. Intentional scarification remains in `adornment`; illness and injuries earned during play remain in the body record. `capture:characters -- portrait-jewelry-scars` shows the jewelry and all five injury-scar shapes.
-
-**Expressions.** `FacePose` is eleven numbers — inner and outer brow, upper and lower lid, eye opening, mouth curve, opening and width, cheek, gaze and one asymmetry term — applied as pixel offsets to the resting drawing. Twelve named poses (`neutral`, `smile`, `happy`, `laugh`, `sad`, `angry`, `stern`, `surprised`, `worried`, `thoughtful`, `wry`, `tired`) are entries in one table, so every face wears every expression from the same recipe and still looks like itself. `facePose(expression, amount)` returns a partial pose, which is what makes a change a movement rather than a cut: `CharacterSprite` plays half out of the old pose, half into the new one, then all the way, at 55 ms a frame. Blinking and the speaking mouth run on their own clocks over the top of it, and reduced motion swaps straight to the target.
-
-In the game, the NPC in conversation wears the mood the model chose for its own line. `mood` is a field of the dialogue reply schema alongside `regard`, so the model picks the face and the words together rather than having a face inferred from the text afterwards; the system prompt asks for anger or sternness where the player gave offence and warmth where the words pleased. Strict mode forces every field, so a line without a mood arrives as null and is dropped, and the portrait falls back to how the NPC already regards the player. While a reply is in flight the face is thoughtful. Nothing is persisted: the mood belongs to the line, and `regard` remains the thing that actually moves `actor.trust`.
-
-The speaking mouth works around whatever the pose already does with it, one row either side, so a laughing face moves while it talks instead of holding one gape.
-
-The player's own portrait shows what the condition column says: a wound outranks exhaustion, exhaustion outranks an empty stomach.
-
-**Saying what the portrait shows.** `describeAdornment` turns the recipe into plain phrases — "Bone spool in a stretched lobe", "Lines across both cheeks, cut into the skin" — and the character panel lists them under the portrait as **Worn and marked**, above Carrying, for the player and for anyone opened from Around you. The phrasing is description only: it names the shape and the material and never a design, a people, or what a mark might mean to the person wearing it. A person wearing nothing gets no heading. One metal covers a person's ear ornament, nose ornament and necklace, so the drawn beads and the described ones agree.
-
-`npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament` writes contact sheets to `artifacts/portrait-lab/`. `tests/portraits.test.ts` covers the pose table and the adornment pools; the deleted `portrait-lab.spec.ts` (`git show bef96b22^:tests/browser/portrait-lab.spec.ts`) exercises the lab.
+- **Labs.** `/character-lab` (or ⌘3 / Ctrl+3 in game) edits any appearance,
+  generates seeded crowds, steps frames, exports PNG and JSON, and can apply an
+  appearance to an actor. Its free combinations are visual studies, not
+  attested dress. `/portrait-lab` is the bust's lab.
+- **Review sheets.** `npm run capture:characters -- <preset>`. A wrong name
+  lists them all. Useful ones:
+  - `doll-g`, `wardrobe`, `street`, `soldiers`, `professions`
+  - `expressions`, `weapons`, `work`
+  - `portrait-ab`, `portrait-age`
+- **More sheets.** `npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament`.
+- **In game.** `UHS_SPRITES=f npm run shot` shows another renderer in game.
+- **Tests:**
+  - `tests/characters.test.ts`, `characters-world.test.ts`
+  - `character-generation.test.ts`, `portraits.test.ts`
+  - `persona.test.ts`, `day-plan.test.ts`
+  - `swing.test.ts`, `tools.test.ts`

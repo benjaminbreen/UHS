@@ -1,7 +1,8 @@
 # Scenarios from sources (shelved)
 
-Status: planned, not started. Waits on the plot system (bucket A), whose
-situation format is what this feature produces. Written September 2026.
+> **Idea, not built.** No worldbuilder, director or extractor exists. The plot
+> system it would feed does: `PlotTemplate` in `src/content/plots/types.ts`,
+> run by `src/core/plot.ts` ([PLOTS.md](../PLOTS.md)).
 
 ## The idea
 

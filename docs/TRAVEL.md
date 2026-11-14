@@ -1,133 +1,81 @@
-# Geographic travel review
+# Travel: maps, borders and journeys
 
-The `/geography-lab` panel is the first integration of a shared travel foundation. It is linked from Settings → Developer. It does not change movement, world generation, saves, or rendering in ordinary games.
+How the playable world is cut into maps, how the player crosses from one to
+the next, and how long journeys work. Entry files:
+`src/world/travel/network.ts` (map identity and exits),
+`src/runtime/map-travel.ts` (live crossing, `journeyPlan`,
+`prepareConnectedStart`), `src/world/travel/seams.ts` (borders).
 
-## Implemented
+## Maps
 
-- Global H3 resolution-4 geographic identities and reciprocal adjacency, including polar addresses. The dependency is pinned. `src/world/travel/` owns routing independently of the React panel.
-- Land/sea classification from the existing quarter-degree Natural Earth atlas mask. Edges sample the intervening mask at approximately 8 km intervals. A* uses geographic distance and a modest penalty from the existing relief sampler. Mixed land–sea queries share that graph, allowing an edge across one sampled coastline and charging a 75 km-equivalent transfer penalty to discourage repeated embarkation. This is a routing preference, not elapsed time or historical transport cost. There is no distance or expansion-count cutoff; searches exhaust the finite graph if necessary. Queries execute in a worker. Canonical endpoint ordering makes reversed searches use the same path.
-- Geographic anchors assembled from the existing catalog plus compact regional travel files. IDs are independent of display names. The catalog's `year` and modern population are not used as historical founding/size evidence.
-- Explicit settlement scenario windows for the two review corridors. These are **inferred coverage intervals**, not founding or abandonment dates. Outside coverage the geographic location remains, its landscape name is shown, and the panel does not assert a named town. Missing evidence is not evidence of an uninhabited landscape.
-- Stop selection preserves requested waypoints, scoped anchors encountered on the path, and persistent changes in the existing broad climate estimate. It adds representative landscapes according to adjustable geographic spacing. Local suggested widths are 384, 512, or 640 tiles; nominal traversal assumes the existing 140 ms walking cadence.
-- Short geographic names live in regional content files. Generic landscape names are descriptive fallbacks, not fictional ancient toponyms. Duplicate broad names can occur in distinct cells; cell IDs and coordinates disambiguate them.
-- A pan/zoom Earth map, optional routing-cell overlay, clickable proposed stops and adjacent cells, arbitrary catalog endpoints, editable via locations, year and spacing, combined land–sea mode by default, optional walking-only/sea-only restrictions, reversal, and shareable URL state.
-- Mixed journeys preserve both sides of every land/water transition during compression. Coastal stops mark boarding and landfall; water sections are blue and require a boat. The nominal walking estimate excludes water maps; sailing duration is not modeled. Named settlement endpoints snap to land in mixed mode. Coastal transfer points are approximate, not surveyed harbours, and boat gameplay is not implemented.
-- Changing either endpoint clears prior waypoints; endpoint URLs without explicit waypoints do not inherit preset waypoints. Failed queries clear old results and finish loading; all statistics hide while recalculating. Existing explicit mode URLs and preset restrictions remain respected.
-- A lazily loaded local preview uses the existing preparation worker, `Runtime`, and `WorldScene`. Its gold rectangle is an adjustable boundary overlay. The preview uses the geographic anchor where available, not the snapped routing cell center. It does not enforce movement bounds or install exits.
+A playable map is one 384-tile square of the Earth atlas at native scale,
+`tile:i,j` (`tileId`, `parseTile`, `permanentMap` in `network.ts`; the size is
+`REGION_CELL` in `src/world/regional/context.ts`). A square is about 21 km
+across. It is generated about its exact centre, and `permanentExits` gives
+its four neighbours. The setting carries this as `playableMap` (size 304,
+384 or 512). A square of open sea keeps a drawn ocean.
 
-The British preset requests London, Western Thames valley, Oxford, and Edinburgh. The Morocco–India preset supplies major waypoints through Cairo and western/central Asia. These are query examples, not stored adjacency tables. The latter is an illustrative medieval corridor, **not Ibn Battuta's literal itinerary**. The Iceland example demonstrates sea routing, not a playable vessel mechanic.
+Fresh starts go through `prepareConnectedStart`. `travelSetting` turns a map
+and its exits into a `WorldSetting`.
 
-## Ocean compression and regional names
+## Borders
 
-Open-water gaps use basin-specific spacing independent of the land slider: Atlantic 2,200 km, Pacific 1,300 km, Indian and Southern 1,600 km, Arctic 1,000 km. Marginal seas use shorter spacing. These are gameplay tuning values, not sailing speeds. Distances along the actual routed cells accumulate against this spacing; requested locations and coastal transfers remain pinned. Islands encountered by a path are retained, but the planner does not invent island detours. Typical crossing counts are targets, not hard basin-wide caps.
+A border is the same line of Earth seen from both sides, so coasts, rivers
+and relief run straight across. `sampleSeam` and `boundarySample` in
+`seams.ts` reconcile local noise along it; only the outer band blends.
+`waterways.ts` and `water-edges.ts` match rivers across the edge;
+`entrances.ts` finds reachable entry points. Trunk routes (`routes.ts`) live
+in atlas coordinates so both sides of a border draw the same road or rail.
 
-Water names describe fixed geographic sectors and selected marginal seas in `oceans.ts`. All five oceans have coverage, including longitude wraparound. Labels are simplified geographic interpretations; there is no current, sea ice, seasonal navigability or historical navigation model. Ocean convention reference: [NOAA](https://oceanservice.noaa.gov/facts/howmanyoceans.html).
+`MapTravel` in `map-travel.ts` handles a crossing: it prepares the
+neighbour in the worker, puts the traveller at the matching point on the far
+edge, keeps visited maps in the session, and holds one prepared destination
+at a time. The traveller keeps personal seed, cultural context, concern and
+home household; residents and scenery use the destination's. One weather seed,
+`manifest.sky`, follows the journey.
 
-`north-american-landscapes.ts` contains compact polygons with stable region IDs. Names and approximate extents are interpreted from [USGS physiographic regions](https://pubs.usgs.gov/gip/70039236/report.pdf) and [regional descriptions](https://pubs.usgs.gov/ha/ha730/ch_f/F-text1.html), not imported survey boundaries. More specific areas precede broad ones. The existing generator is unchanged: these polygons name travel cells and preserve sustained region transitions, not terrain-generation inputs. Coverage currently emphasizes the contiguous US; global land naming remains incomplete. Add regional content rather than route-specific names or adjacencies.
+## Journeys
 
-London–El Paso at land spacing 180 km now yields roughly 28 stops, with about five water stops including coastal approaches. The US sequence includes named coastal plains, Mississippi landscapes, Piney Woods, Texas prairies, Edwards Plateau and Chihuahuan Desert. Other routes and spacing settings produce different counts. Tests exercise Atlantic, Pacific, Indian, Arctic and Southern ocean passages, independence from land spacing, and naming coverage on this journey.
+Choosing a point on the Earth map calls `journeyPlan`, which prices the route
+with the H3 router (`src/world/travel/routing.ts`, `h3-js`) at 25 km a day
+overland and 100 km a day by sea, and the days pass at once. H3 cells now
+serve only this pricing.
 
-## Global landscape naming
+## Names
 
-The naming resolver now uses imported global data rather than nearest-place names or route-specific lists:
+A square is named for a town standing in it that year, else from a prebuilt
+table of physical features (river mouths and confluences, lake shores, peaks,
+ranges, bays, marshes) from Natural Earth and GeoNames, never from countries
+or populated places. `resolveGeographicName` in `src/world/travel/naming.ts`
+resolves it. Data: `npm run prepare:tile-names` writes
+`src/content/geography/travel/generated/tile-names/`; `npm run
+prepare:travel-names` builds the regional and ecoregion labels. Hand-written
+regional names are in `src/content/geography/travel/`. Names are modern;
+dated names would be a later layer.
 
-- Natural Earth physical region and marine polygons: 1,332 compiled records, split into nine generated regional files. Source revision and SHA-256 checksums are pinned. Detailed features must contain the center and most samples of a nominal 2 km geographic footprint; holes are excluded. Large islands and continents provide broader context. Boundaries are approximate, as Natural Earth documents, and are simplified further for this inspector.
-- RESOLVE Ecoregions 2017: global terrestrial regional fallback, rasterized at quarter-degree cell centers. The importer preserves full source labels and uses shortened display labels. Ecological-region labels describe the modern source classification; they are **not historical vegetation, climate, language or polity assertions** and do not change the existing terrain generator. The generic Rock and Ice category is excluded from names. Labels that cannot be shortened safely fall through to broader geography.
-- Existing compact US polygons remain explicit refinements. Scoped authored stops and known dated settlements retain their display names. Unresearched catalog settlements now display resolved geography rather than a fabricated `City area` label; their catalog IDs and requested endpoints remain unchanged.
+## Previews
 
-The H3 map identity and geographic routing are independent of these names. The new global label IDs are metadata, not new map IDs or a replacement adjacency graph. Natural Earth reuses a source ID for two distant Flores islands; IDs are qualified by source region, preserving the original ID separately. Multipart records within a source region are merged. Source links and naming confidence are visible in the inspector.
+`resolveMapEnvironment` and `settingForTravelStop` in
+`src/world/travel/environment.ts`, with `terrain-preview.ts`, build the
+inputs for previewing a map without playing it.
 
-`Geographic naming coverage` shows route label counts and runs an on-demand audit in the existing worker. It combines 2,048 equal-area globe samples with catalog anchors, deduplicated by routing cell. Green points have specific feature/refinement labels, gold points broader regional names, and red points missing coverage; clicking a point inspects it. This is a reproducible sample audit, not proof of complete global or historical coverage. Remaining gaps generally expose coastline/resolution disagreement and are left explicit rather than borrowing a distant name.
+## Where to extend
 
-Rebuild with `npm run prepare:travel-names`. Natural Earth preparation uses Python's standard library. Ecoregion preparation requires `.venv/bin/python -m pip install -r scripts/travel-names-requirements.txt`. Original downloads are cached under ignored `scripts/source-cache`; only the roughly 4 MB compiled naming data ships. The 149 MB ecoregion source archive is not bundled. No runtime network or model calls are required.
+Live crossing changes go in `MapTravel`; border matching in `seams.ts` and
+`waterways.ts`; naming in `naming.ts` and its data. Boats, freight and sea
+travel should build on `journeyPlan` and the geography queries in
+[WORLDS.md](WORLDS.md).
 
-Sources: [Natural Earth physical labels](https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-physical-labels/) and [public-domain terms](https://www.naturalearthdata.com/about/terms-of-use/); [RESOLVE Ecoregions 2017](https://ecoregions.appspot.com/), Dinerstein et al. (2017), [doi:10.1093/biosci/bix014](https://doi.org/10.1093/biosci/bix014), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Changes: polygon simplification, merged source parts, shortened names and a coarse regional raster. Download URLs/checksums and attribution are embedded in generated metadata.
+## Legacy, do not extend
 
-## Deliberate limits before live-game integration
+Retiring these is welcome:
 
-The H3 grid is the stable shared geographic graph. **Compression currently proposes stops for the selected route. It is not yet the finalized, globally shared network of playable maps and exits.** Reviewing that policy is the purpose of this panel. Distinct itineraries can retain different subsets of the same geographic cells. No route-specific worlds are instantiated.
+- The `/geography-lab` route planner and its permanent-network panel
+  (`src/dev/GeographyLab.tsx`, `src/dev/PermanentMaps.tsx`,
+  `src/world/travel/network-worker.ts`, the `planTravel` spacing study in
+  `travel/worker.ts`). The live game uses atlas squares, not that network.
 
-The coarse mask can omit small islands, narrow waterways or land bridges. Anchors snap to nearby accessible cell centers; long offsets are flagged and drawn dashed. A failed search reports failure rather than substituting a straight-line connection. This resolution does not distinguish every pair of close locations. Historical shoreline change, researched road networks, and dated transport access are not modeled.
+## Checks
 
-Climate and cultural-library labels are the current broad generation estimates. They are not historical climate reconstructions, ethnic borders, language maps, or political borders. Their visible inaccuracies are review findings. The current local generator still determines preview settlement placement and environmental detail; travel scenario coverage is not a replacement for its inputs or historical resolver.
-
-Full polar geography can be inspected, but the existing local setting schema remains limited to ±85°. Sea and out-of-range local previews are disabled. No renderer or terrain system was changed to work around these limits.
-
-Next integration decisions: freeze the shared compression/stop policy; connect dated settlement resolution consistently to generation; define crossing and arrival records; then install actual boundaries and preserve return visits. The panel and travel module should remain the production inspector and foundation, not be copied into another implementation.
-
-## Verification
-
-`npx vitest run tests/travel.test.ts` covers identity, date-independent geography, reciprocal land edges and return paths, compression, waypoint preservation, island disconnection, sea routing, polar cells, and invalid input.
-
-The deleted `geography-lab.spec.ts` checks the production review UI, dates, compression, cell inspection, share state, mobile width, and the existing local renderer/boundary overlay. Run a production preview on that port first; without the environment variable the tests use the standard development server on 5173.
-
-## Reviewed default
-
-User testing selected 500 km as the default land spacing. New preset journeys use 500 km; explicit shared URL settings remain respected, and ocean spacing stays independent. This changes geographic compression, not local map size or walking speed.
-
-## Proposed next phase: permanent playable maps
-
-First make compressed stops and their connections independent of a requested destination. A map must expose the same exits regardless of arrival direction, route query, or generation order. Use the shared geographic graph and stable geographic anchors, with roughly 500 km land spacing as a density target, retaining necessary nearby cities, islands, passes and coastal transfers. Each compressed connection must retain its underlying geographic path and reciprocal arrival mapping. This is the remaining architectural step before live boundary crossing; the current route-specific review selection is not sufficient.
-
-The first review milestone is destination-free exploration in this same panel: select any map, inspect its exits, follow an exit, and return. Check loops, intersecting journeys, later catalog additions and globally distributed areas. Once those connections are consistent, feed a map's anchor and bounded footprint into the existing terrain/hinterland preparation, preserving its visual scale and sampler. Small, medium and large local bounds remain independent of geographic travel distance.
-
-Then connect on-foot boundary crossing to the existing runtime: prepare the destination, place the player at the paired entrance, and preserve visited map state within the running session. Sea exits declare a boat requirement for future vessel gameplay. Save-system expansion remains secondary to playable terrain, transitions and performance. The first live acceptance check is walking between generated maps and returning to the same changed place, using globally generated connections rather than a bespoke corridor.
-
-## Shared preview environment
-
-`resolveMapEnvironment` is now the common input resolver for travel-cell inspection and terrain previews. It samples the same 128-tile ambient blocks and climate rule as the existing regional generator, applies dated regional/place defaults, and resolves fine Earth coastline/river distances at the actual map anchor. Requested/catalog stops use their actual coordinates even when their coarse routing cell is offset. Climate, ecology and relief in the panel therefore describe the input used to prepare that preview.
-
-`settingForTravelStop` builds explicit generator inputs rather than spreading a nearby catalog place. Culture and architecture can still use a disclosed nearest-catalog fallback when regional coverage is absent, but climate, relief and water layout do not. Earth mode keeps actual coastlines; the local `water` recipe is only populated from matching regional defaults. The same existing climate expression was extracted into a pure helper without changing ordinary regional-generation behavior.
-
-Fine shoreline classification is separate from the coarse routing mask and is shown in the inspector. This allows inspection of a land anchor on a small island even if the routing cell is ocean. It does not yet solve tiny-island connectivity in the global graph. Polar metadata remains inspectable; local preparation still respects its existing ±85° latitude limit.
-
-A 640-tile Jersey sampling check has dry central land and water along all four boundaries using the existing terrain generator. Arid examples near Dulan, Ashgabat, central Australia and the Sahara remain in the desert envelope at the start and beyond it. Naming ecoregions remain labels only; they are not silently promoted into historical climate inputs. The broad climate sampler itself is still an approximation.
-
-## Implementation stages after ecological review
-
-1. **Permanent map network.** Turn the existing geographic graph into a destination-independent playable network. Map records have stable geographic IDs, anchors, local sizes and paired exits; names and dated settlement states remain separate. Use 500 km as the land density target, existing ocean compression, and explicit retention of nearby named anchors, islands and geographic bottlenecks. Connections retain traversable underlying paths. The geography panel must let a user pick any map, follow exits without selecting a destination, and return through the same connection. Different queries and generation orders must find the same network. Catalog additions enrich or locally subdivide it without renaming existing maps. This is the next implementation milestone, not another route-specific demo.
-2. **Bounded generation.** Feed those records into the existing Earth sampler, terrain renderer, settlement and hinterland composer. Apply small/medium/large footprints, keep local features and dated habitation consistent, and place reachable paired entrances at the boundary. Preview full islands and uninhabited maps as well as cities. Do not scale real geographic distance into local walking distance.
-3. **Live crossing and return visits.** Walking through an exit prepares the connected map, transfers the player to its paired entrance, and retains changes to visited maps within the current session. Prevent immediate accidental return crossings. Sea edges expose their boat requirement; vessel gameplay is separate.
-4. **Preparation and performance.** Bound generation work to the playable footprint and needed margins, prepare nearby exits, release distant render resources, and test repeated crossings on large settlements and coastlines. Keep one production path shared with the inspector.
-5. **Global and historical refinement.** Expand small-island/polar support and sparse geographic coverage, improve transitions and dated settlement/cultural inputs, then add transport behavior and richer historical layers. Language, religion and polity remain independent of permanent map identity. Save-system expansion remains deferred until requested.
-
-Acceptance routes include Britain and Morocco–India, alongside arbitrary island, ocean and southern-hemisphere cases. These are checks of shared rules, not hand-authored exceptions. The network's topology must be reviewed before installing live boundary crossings.
-
-## Stages 1–2 implementation
-
-The new Permanent maps section uses src/world/travel/network.ts, independently of itinerary selection. Land grouping is a deterministic maximal spaced set on the existing atlas mask, targeting roughly 500 km rather than enforcing an exact distance; geography can retain closer cells. Ocean grouping remains coarser. Catalog records retain their own IDs and attach locally; adding a place can change nearby connections but never existing backbone IDs. Graph rules are deterministic, not saved per query. Fine shoreline checks correct the coarse mask at anchors. Connections are reciprocal and their geographic paths are resolved canonically by the existing router when followed.
-
-The earlier journey planner remains a spacing study. Its compressed stops are not substituted for permanent nodes. The next integration step is to route journey selection through the permanent network as live travel is connected; the destination-free inspector already follows that network.
-
-Local sizes are now 384 by default and 512 for dated cities. Large is reserved and not offered in generation. The playableMap setting is an opt-in generation contract: existing unbounded inputs remain unchanged. Regional sites must fit within the footprint; unseen districts outside it are not planned. Rendering keeps an apron while the playable area is bounded. Shared preparation records reachable entrances and approach paths; blocked boundaries remain visible review findings rather than invented roads through impassable terrain. Existing terrain geometry, coastline sampling and settlement construction are reused.
-
-The small-island atlas/routing discrepancy is still a data-resolution constraint: boat access can attach a fine island anchor to an ocean backbone node, while local land rendering uses the fine anchor. Ocean-only local scenes and local polar settings beyond 85 degrees remain deferred. Stage 3 will implement crossing, paired arrival, and within-session return state using these same records.
-
-## Stages 3–4 implementation
-
-Use Permanent maps → Play connected maps to enter the existing game UI with bounded travel enabled. The runtime travel controller resolves the same permanent exits and uses the existing worker preparation path. A boundary step validates the geographic connection, prepares the destination, checks its paired entrance, then transfers the traveler. A failed preparation keeps the source active. Return visits restore session snapshots; inventory identities remain unique across maps. Arrivals require stepping away before returning. Boat exits are exposed but cannot yet be crossed.
-
-Approaching a land entrance starts one cancellable preparation. Only the active map and at most one prepared destination retain generated worlds; visited maps keep simulation state. Replacing a world disposes terrain streams, while generation and scenery requests are bounded to the footprint plus required margins. Loading time does not advance the ambient clock. The inspector and live game use the same map records and generator. The older route-spacing chart remains a separate itinerary study.
-
-This completes the initial live crossing and resource-lifetime implementation. The next refinement is broader live traversal coverage, especially reachable entrances on rugged coasts, before making bounded travel the default start flow. Persistent multi-map saves, polar scenes and vessel gameplay remain separate work.
-
-## Connected starts and boundary contracts (September 11)
-
-Normal starts now opt into permanent maps. New sizes are small 304 and medium 384 (dated cities only); larger footprints are reserved. Land connectivity uses bounded route search around water barriers. Catalog attachments include available cardinal directions, so a catalog leaf no longer forces every exit toward its single parent. Full-edge crossing uses the matching reachable land connection; the near-border toast names the connection and the camera is clamped with a small margin.
-
-Each land edge has a shared profile generated once from geographic samples between its anchors, with the same water distances, water kind, elevation and trail position supplied to both ends. Opposite sides and normalized segments allow different local map sizes and multiple connections per side. Only the outer 32 tiles blend toward the shared profile. Permanent IDs and interior Earth sampling remain unchanged; names and dated habitation remain independent. Ecological revision 1 separately smooths the old starting-climate cutoff and regional sample blocks, sharing weights between moisture, palettes and vegetation.
-
-## Atlas tiles replace the H3 map network — September 24, 2026
-
-The permanent network above is superseded. A playable map is now one 384-tile square of the atlas at its native scale (`tile:i,j` in `src/world/travel/network.ts`), generated about the square's exact centre, and its four exits are the squares beside it. A border is the same line of Earth seen from both maps, so coasts, rivers and relief run straight across; the shared seam profile only reconciles local noise. Crossing puts the traveller at the matching point on the far edge. Island and ocean portraits are gone, except that a square of open sea keeps the drawn ocean, since it has nowhere to stand. One weather seed (`manifest.sky`) follows the journey so the sky does not change at a border.
-
-Squares are about 21 km across, so walking a region takes many maps. Long distances are covered by journeys instead: choosing a point on the Earth map prices the route with the H3 router (`journeyPlan`, 25 km a day overland, 100 km a day by sea) and the days pass at once. The router's H3 cells now serve only that pricing.
-
-Crossing keeps the traveller's personal seed, cultural context, concern and home
-household. Local residents and scenery use the destination's context; the
-traveller's outlook, religious practice and family descriptions keep their own.
-The optional identity record is captured on the first crossing; existing world
-generation inputs stay unchanged. Older recordings of crossings may diverge
-when checked against this corrected travel behaviour.
-
-A square is named for a town standing in it that year (or within 10 km of its centre), else from a prebuilt table (`npm run prepare:tile-names`, output in `generated/tile-names/`, one file per 32-row band loaded near the traveller). The table takes the most specific physical feature in the square: a river's mouth, confluence or headwaters, a lake shore, a peak's slopes, then ranges, bays, capes, marshes and streams. Natural Earth supplies large features and river geometry; GeoNames supplies small ones, reading only physical feature classes, so no populated place, country or province can name a map. Adjacent squares are kept apart by taking the next-best feature, and a square with nothing of its own is named from a strong feature beside it ("Hills south of Lake Taal"). The older fallbacks (atlas river, region with a position, distance from a town) remain for any square the table misses. Names are modern; dated historical names are a later layer.
+- Tests: `map-travel`, `map-seams`, `travel`, `travel-naming`,
+  `travel-environment`, `permanent-maps`.

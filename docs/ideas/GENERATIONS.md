@@ -1,6 +1,12 @@
 # Generations: a death, a line, and what survives of a life
 
-Status: plan, September 30, 2026. Builds on the time-travel flow in `TIME.md`.
+> **Idea, not built.** Mortality (`src/core/time/mortality.ts`), causes of
+> death (`src/content/history/deaths.ts`), the years (`src/core/time/years.ts`)
+> and the death card (`src/ui/DeathCard.tsx`) exist; see [TIME.md](../TIME.md)
+> and [LIVES.md](../LIVES.md). The tree, keepsakes, memory and the passing
+> scene below do not.
+
+Builds on the time-travel flow in [TIME.md](../TIME.md).
 Procedural everywhere; Luna is called in exactly three places, each with a
 deterministic fallback, and never changes dates, kin or the world.
 
@@ -55,7 +61,7 @@ weathered by the structure model. Three generations on, it is a bare patch.
   14. `CharacterSprite` at any age is free.
 - `Household.history` has `wed|born|died|left|joined|built|inherited|moved|
   fire|good-year|bad-year|robbed`. The tree is these events, continued.
-- `CollapseNotice` is the death screen ("YOUR LIFE HAS ENDED"). It is a hook.
+- `DeathCard` (`src/ui/DeathCard.tsx`) is the death screen, with **Go on as** and **Close this life**.
 - `birthPercentile` on the arrival screen. Keep using it: "so many were born
   before you; so many since" is the frame for the whole feature.
 - `NameTradition.windows` and `familyNamesFrom` already change naming over
@@ -66,7 +72,8 @@ weathered by the structure model. Three generations on, it is a bare patch.
 
 ### 1. A life has a length
 
-`src/core/time/mortality.ts`. Deterministic from seed and person id.
+Built: `src/core/time/mortality.ts` and `src/content/history/deaths.ts`, used by
+`src/core/time/years.ts`. The rest of this section is the original design.
 
 - Adult hazard is Gompertz: `h(x) = a · e^(b·x)`, `b = 0.09`. Choose `a` so
   that the remaining expectation at 20 is 38 years before 1800, 45 for
@@ -231,7 +238,7 @@ such jumps. The death year is fixed, so a player who jumps to 1770 knows
 ## Build order
 
 1. `mortality.ts`, `deaths.ts`, `tree.ts` with `householdStory` reuse and
-   family names carried; tests in `tests/time.test.ts`: fixed seed gives the
+   family names carried; tests in `tests/time-travel.test.ts`: fixed seed gives the
    same tree twice, no one bears a child before 15 or after 45, remaining
    expectation at 20 within two years of the target per era. Delete
    `lineage.ts` when the tree passes.

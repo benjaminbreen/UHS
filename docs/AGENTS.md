@@ -18,7 +18,12 @@ is the contract; `src/agents/` implements it.
   (`src/agents/loop.ts`, `src/agents/providers.ts`). It works with models
   that cannot call tools: each turn the model replies with one JSON object
   naming a tool.
-- **Record**, `src/agents/record.ts`. All three modes write the same folder.
+- **Record**, `src/agents/record.ts`. All three modes write the same folder;
+  `src/agents/viewer.ts` builds its `review.html`.
+- **In-browser**, `src/agents/webmcp.ts`. An older, smaller tool set (observe,
+  inspect, act) registered from `src/runtime/bootstrap.tsx`. It is a second
+  tool surface: add new abilities to `tools` in `agent.ts`, and port this one
+  onto the core rather than extending it.
 
 The scripts run under `vite-node`, not `tsx`: map travel loads its data with
 Vite's `import.meta.glob`.
@@ -209,13 +214,8 @@ not evidence that it faithfully describes a model's internal computation.
 
 `npm run replay -- runs/<id>` replays without any model calls, checking each
 reply, game clock and state hash. Narrator, dialogue and router responses are
-reused and their requests must match exactly. Protocol 5 adds symptom observations,
-validated `act {command:{type:"care",target:"player",treatment:"rest"}}` actions,
-and separate research health state to protocol 4's bodily constraints and danger.
-Protocol 6 adds short aliases, name targets, readable `inspect`, waiting cards
-shown in the reply that raised them, and heirs after death. Protocol 7 hides
-the concern and the narrator's own instructions from the agent's view. Earlier protocols
-are rejected explicitly.
+reused and their requests must match exactly. `PROTOCOL` in `agent.ts` is the
+current protocol; replay rejects older ones.
 
 ## Coverage
 
@@ -224,9 +224,6 @@ What a person can do and an agent cannot yet:
 - Boarding a train (`travel` makes the journey overland).
 - Follow and climb shortcuts the browser binds to keys; the same commands
   are reachable through `act`.
-
-`src/agents/webmcp.ts` is the older in-browser tool set (observe, inspect,
-act). It is due to move onto the core with an in-browser experiment mode.
 
 ## Known limits
 

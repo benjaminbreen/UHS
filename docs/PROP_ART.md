@@ -1,19 +1,38 @@
 # Drawing props
 
-Rules learned the hard way while redrawing the water, farm and workshop
-families. They apply to any new prop art in `scripts/art/props_b/`.
+How prop art is drawn and built. What props do in the game, and where they
+are placed, is [PROPS.md](PROPS.md). Buildings are the `building-art` skill.
+
+## Three prop painters
+
+- **`scripts/art/props_b/`** draws almost every family (`DRAW_B`). New prop art
+  goes here. `npm run art:props` (`scripts/build_props.py`) builds the atlas.
+- **`scripts/art/props/`** is the older 48x48 study set. It still draws 17
+  families, all chests, mortars, fires, hearths, ovens, stoves, lamps and
+  lanterns, through the `draw_prop` fallback in `build_props.py`. Porting
+  them to `props_b` and deleting the fallback is welcome; `props/states.py`
+  is still imported for runtime state sprites.
+- **`scripts/art/front_props.py`** draws props baked into front-on buildings
+  (wells, fountains, pots, trees). It belongs to the building painters.
+
+Behaviour lives in `src/content/props/catalog.ts`; art budget and variants in
+`src/content/graphics/props.json`. That split is deliberate.
+
+## Design rule
+
+Keep behaviour, physical definition, visual recipe and historical selection
+separate. One plain earthen jar can serve Egypt and India; a jar of water and
+a jar of grain differ in contents, not in implementation. Variants change the
+readable silhouette (wide mouth or narrow neck, handled or not, lidded or
+open), not just the hue. Open lids, broken pots, spills and debris are states
+of a family, not new families.
 
 ## Scale
 
-**One metre is about 17 source pixels, in both axes.** The ruler is the
-character: a standing body is 29px for roughly 1.7 m. It is *not* the terrain
-grid, where a tile is 16px for 2 m — props are drawn at about twice the ground
-scale, which is the usual convention for this kind of view.
-
-Work out the object's real size first, in metres, then convert. A hand pump is
-0.35 m across, so it is 6 px wide and its spout is one pixel thick. A well kerb
-is 2.5 m across, so it is 42 px. If those two come out the same width, the
-drawing is wrong no matter how good the shading is.
+The ruler is the adult figure, 37px tall (`front_style.FIGURE`), not the 16px
+terrain cell. Work out the object's real size in metres first, then convert
+against the figure. A hand pump and a well kerb must not come out the same
+width, however good the shading.
 
 Every family declares its agreed size in `src/content/graphics/props.json` as
 `"size": [w, h]`. The build prints anything over budget.
@@ -121,17 +140,6 @@ height field. Add a car by adding a `MODELS` entry and render it with the
 others before building; the sheet is `public/props/vehicles`, built by
 `npm run art:props`.
 
-## Buildings
-
-`building.py` holds the shared vocabulary — `_wall`, `_roof`, `_door`,
-`_ground`, `_flies` — and every structure on the map is built from it: a wall
-seen square on with a good deal of roof above it, lit from the upper left, the
-eaves throwing a line of shadow down onto the wall. A region is a choice of
-materials, not a redraw. Walls take their light across their width (bright at
-the left, shaded at the right corner, darker at the ground); roofs narrow as
-they climb, widen their overhang as they descend, and carry their own course
-pattern per material.
-
 ## Working method
 
 Draw, render, look. Do not write more than one prop between renders.
@@ -176,7 +184,7 @@ is judged against buildings.
 
 ## Reviewing
 
-Open the prop lab (Settings → Prop lab) and tick **A/B compare**: the older
+Open the prop lab (`/prop-lab`, or Settings → Prop lab) and tick **A/B compare**: the older
 study and the redrawn one appear side by side under the same light, background
 and figure. The stage grows with the largest frame, so a loom is not clipped.
 

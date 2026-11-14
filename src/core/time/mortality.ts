@@ -4,7 +4,7 @@ import type { Rank } from "../../content/characters/context-types";
  * How likely someone is to die in a year, by age and date. Adults follow
  * Gompertz-Makeham, `a·e^(b·x) + c`, with `a` solved so that the years left at
  * twenty match the period's target; children take the period's infant and
- * child losses. Targets after GENERATIONS.md: e20 of 38 before 1800 (Wrigley
+ * child losses. Targets after docs/ideas/GENERATIONS.md: e20 of 38 before 1800 (Wrigley
  * and Schofield's England), 45 to 1900, 52 to 1950, 58 after; deep prehistory
  * lower, after skeletal estimates. Elsewhere the fall in deaths came after
  * 1950 (Riley's global life expectancy series), so the old rates hold till then.

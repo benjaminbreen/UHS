@@ -1,98 +1,78 @@
-# Time travel implementation plan
+# Time: the years and time travel
 
-## Accepted experience
+Two ways the clock moves past a single day. **The years** run a life forward
+from the evening ledger. **Time travel** jumps the same site up to a thousand
+years either way. Entry files: `src/core/time/`, `src/ui/time/Years.tsx`,
+`src/ui/time/TimeModal.tsx`.
 
-The central world selector opens a dedicated time dialog; New world keeps its
-existing behavior. Choose a year within 1,000 years either side of the current
-date, clipped to the existing −1,000,000…10,000 limits. Selection does not
-change the world. Start prepares the destination, accelerates and decelerates
-through stylized days and nights, then opens a short arrival account and the
-new playable character's relationship to the previous one. A clickable direct
-ancestral line connects every generation. The family is procedural fiction;
-regional historical context retains its evidence and limitations.
+## The years
 
-## Work sequence
+`src/core/time/years.ts`, opened from the ledger (**Let the years pass**,
+**To the end**) and from the Rest menu.
 
-1. Add deterministic site chronology, dated setting resolution and an explicit
-   lineage. Use the existing geographic/content resolvers. Preserve original
-   terrain and sites; retain earlier fabric as ruins. Returning to an already
-   visited date restores its session checkpoint. No save-system expansion.
-2. Add material/component structural state shared by natural deterioration and
-   future impact/fire commands. A ruin's surviving walls determine collision.
-   Keep burial and vegetation separate from surviving structure. Add native
-   pixel ruin rendering without rewriting the existing building art compiler.
-3. Implement a runtime time-travel transaction: pause, prepare, animate, commit,
-   announce. Errors/cancellation retain the current world. Keep animation time
-   separate from simulation time and prevent ordinary runtime input throughout.
-4. Build the distinctive minimal time dialog, transition, arrival view and
-   linked family tree. Integrate original synthesized sound with existing audio
-   preferences; support keyboard, mobile and reduced motion.
-5. Add optional server-side GPT-5.6 Luna arrival prose from committed changes
-   and historical context, with a deterministic fallback. Model prose cannot
-   change lineage, physics, dates or authoritative world state.
-6. Verify chronology/order invariants, kinship, damage/collision, API fallback,
-   and complete browser flows. Run npm test and production build. Inspect UI
-   screenshots and a representative settlement before/after.
+- `liveYears(engine)` steps the life a year at a time:
+  - deaths from `yearlyRisk` and `childbedRisk` in `mortality.ts`, with causes
+    from `src/content/history/deaths.ts`;
+  - marriages and births by `householdWays` (`src/content/history/households.ts`);
+  - children made by `child.ts`;
+  - conditions with age;
+  - tidings from `src/content/history/tidings.ts`;
+  - the plot carried on.
+- `liveOn(engine, life, year)` builds the world at a chosen year: the same
+  house and town, the player older, the household as the years made it, some
+  neighbours gone and their houses taken by newcomers.
+- `endOfLife` closes it at the player's death, which leads to `DeathCard`
+  ([LIVES.md](LIVES.md)).
 
-## Constraints and decisions
+The screen is `Years.tsx`.
 
-Historical progression is guided by existing regional/date data, not an
-unconstrained alternate-history economy. New scoped context belongs in regional
-files. Ancient fabric must not silently change material with the date. The
-initial continuity model evolves existing building sites; citywide population,
-street-network redevelopment and complete historical coverage remain explicit
-extension points, not claims made by the arrival prose. Weapons and torch
-interactions are future work; structural damage accepts their future effects.
+## Time travel
 
-Keep courtyard-art work already present in the checkout intact. Changes to
-WorldScene must be small integration points. Timeline state is session-local
-in this first delivery and must not be mistaken for a durable save format.
+`TimeTravel` in `src/core/time/travel.ts`, opened from "Change your world"
+(`TimeModal.tsx`). `prepare(year, source)` builds the destination off to the
+side. `commit` swaps it in. An error or cancel keeps the current world.
 
-## Initial implementation
+- `setting.ts`: `settingAt` and `timeContext` give the dated setting.
+  `YEAR_MIN` and `YEAR_MAX` are the limits.
+- `world.ts`: `buildingAt` and `temporalWorld` give each building site its
+  incarnations. Earlier fabric survives as ruins, and the terrain is kept.
+- `structure.ts`: material decay and damage per wall section, roof, charring,
+  burial and vegetation (`ageStructure`, `damageStructure`). A ruin's
+  surviving walls set collision.
+- `objects.ts`: props age when abandoned.
+- `lineage.ts`: an invented direct line of ancestors and descendants, so the
+  player arrives as a relative.
 
-The complete choose → prepare → passage → arrival → family flow is wired to
-Change your world. Original synthesized audio follows the existing mute/SFX
-settings. Reduced motion uses a short transition without repeated day/night
-cycles. The quotation is from Shakespeare's *The Tempest*.
+Returning to a visited date restores its session checkpoint. Checkpoints are
+session-local, not saves. Changing maps discards them.
 
-`src/core/time` owns deterministic building-site incarnations, material decay,
-prop remains and parent-child links. Twelve wall sections, roof integrity,
-charring, burial and vegetation are separate values. `damageStructure` accepts
-localized impact, fire and repair effects; weapons, ignition and fire spread
-are not implemented. The renderer uses native pixel rubble and surviving walls;
-partial original roofs and bespoke ruin silhouettes remain art improvements.
+Optional arrival prose comes from `server/time-arrival.ts` (`gpt-6-luna`),
+with a local fallback. It summarises committed state and cannot change it.
 
-Naples has a scoped sourced historical account and inferred local names.
-Elsewhere the existing date/regional profiles drive the destination, with a
-plain fallback account. Eligible venues replace earlier institutions on
-occupied sites. This is not exhaustive historical reconstruction: founding and
-abandonment of whole settlements, changing street plans, migration, population
-and regional events need additional authored profiles and simulation rules.
-Trees and terrain landforms currently persist across the passage.
+## Which to extend
 
-Returning to a visited date restores its session checkpoint. Unvisited dates
-are evaluated from the initial site chronology, independently of scrub order.
-The lineage survives geographic map travel; changing maps starts a new local
-site chronology and discards the old map's temporal checkpoints. Branching
-player interventions and persistent history across reloads are not implemented.
-Do not represent the reconstructed family as a documented genealogy.
+The two share `child.ts` and the dated content, but each has its own family
+model:
 
-Optional `/api/time-arrival` prose uses server-side `gpt-6-luna` with reasoning
-disabled, fixed input
-limits and a timeout. It can summarize supplied history and committed state;
-it cannot invent authoritative events or change the simulation. Missing keys,
-provider failures and access-code-protected deployments retain local prose.
+- `years.ts` carries the real household. **Extend it** for anything within a
+  lifetime: kin, fortune, the plot's tail.
+- `lineage.ts` invents a separate chain for time travel. It is the candidate
+  to retire. Deriving time-travel relatives from the household that `years.ts`
+  carries would leave one family model. That is welcome work if you are in
+  this area.
 
-Next foundations: retain local histories across map changes; layer interventions
-on the dated site model; add repair/maintenance and ignition commands; expand
-scoped historical profiles; improve partial-collapse art and vegetation
-succession. Durable timeline storage can follow when saves become a priority.
+`years.ts` does not age buildings; time travel does. Within a lifetime that is
+acceptable.
 
-## Verification
+## Not built
 
-Ten focused tests and the full desktop/mobile browser journey pass. A live
-Luna call succeeded; no-key and provider-failure fallbacks are covered.
-Production build and TypeScript checks pass. The full suite reports 571 passes,
-four assertion failures reproduced on unchanged HEAD, and a world-v2 timeout
-that passes in isolation (4/4). Two worker-update timeouts also occurred under
-shared-machine contention. No failing assertion was attributed to time travel.
+- A plot's tail resolved by the years.
+- A record of the life (a printable summary) at its end.
+- Durable timelines across reloads.
+- Fire and weapon damage commands. `damageStructure` accepts them, but nothing
+  issues them yet.
+
+## Checks
+
+- `tests/time-travel.test.ts`, which covers the years too.
+- `tests/browser/time-travel.spec.ts`.

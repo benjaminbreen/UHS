@@ -4,7 +4,7 @@ A building shows its front square on, its right-hand wall as a shallow strip
 sheared up at 45 degrees, and a roof that leans back over both. The strip is
 a nod to depth, not a measured projection: a house three tiles deep shows
 twelve pixels of side wall. scripts/art/oblique_audit.py checks painters
-against this file; OBLIQUE_ART.md explains the choices.
+against this file; git show e8680a53:docs/OBLIQUE_ART.md explains the choices.
 """
 
 # Screen px of depth per world px, used for offsets such as a set-back nave.

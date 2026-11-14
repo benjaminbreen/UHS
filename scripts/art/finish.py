@@ -6,7 +6,7 @@ A painter maps its materials to a finish -- ('tiles', ramp), ('ashlar',
 ramp) and so on -- and `finish_image` repaints those pixels in place. Tone
 is per plane, not per pixel: the lit front, the shaded side and a cast
 shadow each take one step, and the pattern supplies the rest, so broad
-faces stay quiet and texture sits in clusters (BUILDING_ART.md).
+faces stay quiet and texture sits in clusters (the building-art skill).
 """
 import numpy as np
 

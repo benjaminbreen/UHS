@@ -1,81 +1,73 @@
-# Assets and historical grounding
+# Asset provenance
 
-## Shipped graphics
+Where every shipped asset comes from, and under what terms. Update this when
+you add an asset from outside the repo's own code.
 
-The sprite and terrain pixels in `public/packs/atlas.png` and `terrain.png` are generated from the project's original integer-coordinate recipes in `scripts/build_art.py`, `scripts/art_world.py` and the modules under `scripts/art/`. The separate `lighting-shadows.png/json` atlas derives masks and pivots from those original silhouettes. No downloaded sprite pixels, mockup crops, or premium-preview pixels are included. Frame totals in the generated manifests include character poses and terrain transition combinations; they do not count distinct authored object designs.
+## Graphics
 
-The visual references are the supplied mockups (including `reference/mockup target 3.png`), Mystic Woods, and the supplied desert/swamp sheets. Their broad lessons are limited color ramps, readable silhouettes, repeated material patterns, quiet terrain, and larger multi-cell buildings. Original buildings, trees, props, people, and animals were inspected in the proof sheet and in the running game.
+The pixel art in `public/packs/`, `public/props/`, `public/nature/` and the
+fauna sets is generated from the project's own code in `scripts/art/` and the
+`scripts/build_*.py` builders. It is original work, and none of it is copied
+from downloaded sprites, mockups or premium previews. Shadows
+(`lighting-shadows.png/json`) are derived from those silhouettes.
 
-Style constraints: north-up orthogonal ground; visible front facades; consistent upper-left highlights; small explicit color ramps (up to six tones for foliage); restrained outlines; nearest-neighbor scaling; 16-pixel ground cells, 20 × 32 world-character canvases, and larger building/tree sprites. Broad foliage clusters and repeatable wall/roof motifs carry detail. Footprints and ground anchors are independent of frame bounds.
+**Exception: the tree study layer.** `src/assets/trees.png` and the growth
+strips in `src/assets/trees/` came from outside the project. They are not
+in any built atlas, but `src/render/scene-assets.ts` loads them for the
+optional tree study layer in the live graphics panel, so they ship in the
+build. Their licence has not been verified; one of them may be from the
+Pixel Crawler free pack (Anokolisa), whose terms are in a PDF that was not
+retrieved. Remove them, or confirm the terms, before any public release that
+depends on them.
 
-## Arrival backdrop art
+**Style references (local only, not shipped).** These are excluded by
+`.gitignore`:
+- Mystic Woods (free version: noncommercial, no redistribution)
+- supplied desert and swamp sheets (no licence found)
+- Pixel Crawler
 
-The fifty arrival backdrops listed in `scripts/art/opening-prompts.json` were generated with OpenAI's built-in image generation tool on October 14, 2026 and saved as WebP assets in `public/opening/`. They are illustrative reconstructions for broad date and geographic ranges, not depictions of excavated plans or evidence for individual historical details. No downloaded reference pixels were used. Follow-up edits removed a domestic dog from African deep prehistory, chickens and banana plants from the pre-contact Caribbean, and poultry from early Indian, Chinese and European farming scenes; European Bronze/Iron Age spinning uses a hand-held spindle. The second and third batches fill frequent fallback matches found in 5,000 actual random starts per mode. The third batch also corrects cross-region substitutions such as Öskemen 1847 receiving South Asian temple art; geographic ranges and climate, terrain and settlement guards constrain reuse. Additional edits remove medieval European sunflowers, early Southeast Asian poultry and pre-Columbian-exchange maize and chili from northern China.
+None of their pixels are in the atlases. Importing any of them would mean
+following their terms.
 
-## Supplied reference downloads
+## Arrival backdrops
 
-- `mystic_woods_free_2/read_me.txt` identifies the free version as noncommercial and disallows redistribution/resale even if modified. Marked premium-preview areas are not treated as usable sprites.
-- No license document accompanied the supplied desert/swamp files in this workspace. They remain local visual references; their pixels are not redistributed in the application.
-- `.gitignore` excludes these supplied reference directories/files. The user does not intend to publish the complete repository. A future decision to import actual pixels must retain and follow the relevant terms.
-- No paid assets were purchased. Asset spending: $0.
+The WebP backdrops in `public/opening/` and `src/assets/arrival-atlas-*.webp`
+were made with OpenAI image generation from the prompts in
+`scripts/art/opening-prompts.json`. They are illustrative reconstructions for
+broad dates and regions, not evidence. Edits have removed anachronisms (for
+example, poultry and New World crops in the wrong places), and matching guards
+keep each image to its region and climate.
 
-## Geographic source
+## Geography
 
-Natural Earth `ne_10m_rivers_lake_centerlines.geojson`, upstream commit `ca96624a56bd078437bca8184e78163e5039ad19`, provides the lower Tiber centerline. Natural Earth describes its data as public domain: https://www.naturalearthdata.com/about/terms-of-use/ . The prepared JSON records the exact source URL, SHA-256, EPSG:32633 projection, origin, extent, and limitations. `scripts/prepare_geography.py` reproduces the extraction with pyproj.
-
-The source's 1:10m notation means 1:10 million map scale. It is not ten-metre spatial resolution. Local width, shoreline treatment, and historical channel position are not measured by this source. The small extractor uses pyproj and bounding-box segment selection instead of installing GDAL; it does not claim to implement the design brief's complete GIS pipeline.
+- **Natural Earth** (public domain): land, rivers and populated places,
+  extracted by `scripts/prepare_atlas.py`, `prepare_places.py` and
+  `prepare_geography.py`. Source URLs and SHA-256 hashes are embedded in the
+  generated atlas and `places.sources.json`. Regenerate with
+  `npm run prepare:atlas`. The 1:10m scale means 1:10 million, not ten-metre
+  resolution.
+- **RESOLVE Ecoregions 2017** (Dinerstein et al., CC BY 4.0): biome and
+  ecoregion lookup in `src/content/geography/travel/generated/ecoregions.json`.
+- **The author's earlier UHS geography catalog**: landscape descriptions in
+  `scripts/data/legacy-areas.json`.
 
 ## Historical evidence
 
-The Roman vocabulary is informed by the Archaeological Park of Ostia's site and urban-development material. The Neolithic vocabulary is informed by the Çatalhöyük Research Project's architecture material and site management plan. Exact URLs, the specific claims they support, and limitations are in `src/content/packs.ts` and the in-game evidence panel. The buildings, people, prices, routines, English Neolithic resident labels, and particular settlement plans are generated assumptions.
+Sources cited by content live with the content: `src/content/packs.ts`,
+`src/content/history/`, and the evidence shown in game. Generated buildings,
+people, prices and plans are game assumptions, not excavated plans.
 
-The Neolithic roof-entry mechanic is simplified: a persistent entrance at the ladder leads to an attached interior. This does not implement the complete rooftop circulation of Çatalhöyük. The game does not identify its generated neighborhood as an excavated plan.
+## Type and icons
 
-The interface uses the locally served Baskervville face documented below, with DM Sans requested through Google Fonts for small labels and system fallbacks. Lucide icons come from the installed package and retain its package license.
+- `public/fonts/Baskervville-Regular.ttf`: unmodified, from Google Fonts. SIL
+  Open Font License 1.1, with the licence text at
+  `public/fonts/OFL-Baskervville.txt`.
+- DM Sans: loaded from Google Fonts.
+- Icons: `lucide-react`, under its package licence.
 
-The Anatolian vegetation selection uses hackberry and oak, attested among the project’s botanical remains: https://www.catalhoyuk.com/newsletters/05/bots98.html . This does not establish individual tree locations or precise canopy morphology. The generic acacia art remains available in the atlas for future appropriate settings but is not selected by the Anatolian pack.
+## Audio
 
-## UI typeface
+All music and sound is synthesised by the project's own code in
+`src/audio/`. No recordings, samples or soundfonts are used.
 
-`public/fonts/Baskervville-Regular.ttf` is the unmodified Baskervville regular face, downloaded from Google Fonts (fonts.gstatic.com, v20). Copyright 2018 The Baskervville Project Authors. Licensed under the SIL Open Font License 1.1; the full license is included as `public/fonts/OFL-Baskervville.txt`. It is served locally. The existing small DM Sans labels still use the Google Fonts stylesheet with a sans-serif fallback.
-
-## Graphics polish
-
-The atlas includes 18 portrait identity/color variants, deeper Roman roof and facade modules, distinct mudbrick roof furnishings, angular shaded foliage, stone quay edges and a reusable bridge arch. Terrain remains 16 px; larger assets span cells. Roman forecourts and waterfront surfaces are cosmetic recipes in `src/render/materials.ts`, shared by the scene and minimap. They do not alter the authoritative terrain, collision footprints, object identities or save schema. Visual flourishes are illustrative, not additional archaeological evidence.
-
-## Target 3 depth pass
-
-`scripts/art_world.py` contains the reusable world-art recipes: eight terrain variations, connected cardinal/diagonal edge masks, raised bank faces and shallow-water fringes, layered foliage clusters, repainted mudbrick houses, larger world characters, rocks and props. The frame total includes 255 natural-bank masks, 255 masks for each of three ground-edge materials, and projected-shadow variants; these are combinations of a small authoring vocabulary.
-
-The initial target-3 pass used fixed-direction silhouette shadows and a `shadows.json` anchor file. Those outputs have since been replaced by `lighting-shadows.png/json`, compiled from original silhouettes by `scripts/art/shadows.py` using the six local-time treatments in `src/content/graphics/lighting.json`. Native atlas pivots anchor the masks; solar casts vary by time band and disappear at night, while contact masks remain. Painted highlights remain authored into the source pixels. See [GRAPHICS.md](GRAPHICS.md#time-of-day-lighting) for the current method and limits. Ripples animate independently of simulation time. Crop clumps share their existing parent object and all disappear when that patch is depleted. Decorative paths are derived through the existing static collision map, cached per world, and never change entity positions or the save format. Roof-entry households retain roof access; a facade niche is not a new doorway.
-
-September 6 modular refinement: the building recipes in `src/content/graphics/buildings.json` and compilers under `scripts/art/` are original integer-pixel source work. Classical, mudbrick, timber, courtyard and weatherboard assets share those parts; no reference-image pixels or additional downloaded assets were incorporated. Existing mudbrick and classical frame IDs are retained. New later-era examples are graphics construction studies and do not claim historical authentication. The lab and gameplay load the same generated atlas and contracts. No money was spent.
-
-## Original soundtrack and cultural profiles
-
-The five themes in `src/audio/score.ts` are original code-authored compositions. `src/audio/synth.ts` synthesizes the instrument sounds and six audition cues locally; no game music, recorded instrument samples or downloaded soundfonts are used. `scripts/render-audio.ts` produces the seven MP3 listening copies and a signal/metadata manifest under `public/audio/previews/`. See [AUDIO.md](AUDIO.md) for reproduction and export details.
-
-The pastoral, chamber and electronic treatments are stylistic previews, not authenticated performances for particular historical cultures or eras. Future instrument, tuning, ornament and repertoire claims need dated, local evidence. The [twelve content families](UHS_DESIGN.md#20-cultural-content-families-and-dated-local-profiles) are production decisions and supply no historical evidence on their own.
-
-## V2 procedural Earth atlas
-
-`src/content/geography/atlas.generated.json` contains Natural Earth 1:110m land outlines and selected 1:10m river centerlines, simplified by `scripts/prepare_atlas.py`. Named coordinates use Natural Earth populated places and geographic regions through `scripts/prepare_places.py`. Upstream revision: `ca96624a56bd078437bca8184e78163e5039ad19` of [natural-earth-vector](https://github.com/nvkelso/natural-earth-vector). Natural Earth is [public domain](https://www.naturalearthdata.com/about/terms-of-use/). Exact URLs and SHA-256 hashes are embedded in the atlas and `places.sources.json`. `npm run prepare:atlas` regenerates both.
-
-The place importer reuses landscape descriptions extracted from the user's original [UHS geography catalog](https://github.com/benjaminbreen/UHS/blob/302c17dd8b2d7c809c7056ee9f7f8ed973a8dffa/constants/gameData/geography.ts), held in `scripts/data/legacy-areas.json`. Its old regional coordinates and adjacency graph are not used. Only named coordinate matches are included. Featured settings, mountain belts, climate defaults, local channels, settlements, and paths are authored/generated game data.
-
-The hide/reed shelters and thatched house are original additions to the existing code-authored building recipes; no external art or purchased assets were used.
-
-## Regional biome map and reference packs — September 13, 2026
-
-`src/content/geography/travel/generated/ecoregions.json` now also carries each
-RESOLVE ecoregion's biome number and is read by `src/content/ecology/variants.ts`
-to choose ecological envelopes and colourways for Earth coordinates. Source and
-licence are unchanged (RESOLVE Ecoregions 2017, Dinerstein et al., CC BY 4.0).
-
-The Pixel Crawler free pack (Anokolisa), `src/assets/trees.png` and the `src/assets/trees/`
-growth strips in the workspace were used only as style references for the
-blade hatch, ramp saturation and the seven new regional tree recipes in
-`scripts/art/regional_trees.py`. Their pixels are not included in any shipped
-atlas. The Pixel Crawler terms are in a linked PDF that was not retrieved;
-the strips carry no licence file here. The default ground style no longer
-applies the baked GRASS+ swatch overlay, so shipped turf texture is authored.
+No paid assets have been bought.

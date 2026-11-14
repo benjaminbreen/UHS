@@ -108,7 +108,7 @@ same seed and commands always produce the same world.
 |---|---|
 | `src/core` | State, action rules, time, visibility, randomness, pathfinding. No browser or historical content. |
 | `src/content` | Geography, eras, cultures, professions, wardrobe, plots and card text. |
-| `src/world/v2`, `v3` | The region atlas and the local scene: terrain, water, settlements, buildings. |
+| `src/world` | World generation: Earth geography, the local scene (`v3`), map squares and travel. |
 | `src/runtime` | Commands, worker bridge, persistence, replay. |
 | `src/render` | The Phaser view. It draws the world and never decides outcomes. |
 | `scripts/` | Art pipeline, geography preparation, capture and headless tools. |
@@ -135,9 +135,10 @@ and three server-side environment variables — see
 ## Documentation
 
 Design notes live in [`docs/`](docs). Start with
-[UHS_DESIGN.md](docs/UHS_DESIGN.md) for architecture,
+[ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the code fits together,
 [HISTORY.md](docs/HISTORY.md) for eras and content, and
-[PROGRESS.md](docs/PROGRESS.md) for recent work.
+[PROGRESS.md](docs/PROGRESS.md) for current priorities. Agents working in the
+repo should read [AGENTS.md](AGENTS.md).
 
 ## Development
 

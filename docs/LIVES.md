@@ -1,116 +1,108 @@
-# Lives: conditions, illness, bonds and concerns
+# Lives: body, illness, death, bonds and concerns
 
-Status: building, October 2026. What the opening card says about a person
-comes from here, and later plots read the same facts.
+What makes one life particular and what can end it: lasting conditions,
+illness and care, hunger and danger, death and going on as kin, bonds, and
+the concerns the opening card reads. Entry files: `src/core/health.ts`,
+`src/content/health/`, `src/core/bonds.ts`, `src/core/concerns.ts`,
+`src/core/danger.ts`, `src/ui/DeathCard.tsx`.
 
-## Why
+## Conditions
 
-The opening card's second sentence ("You are Teriʻi, twenty-two, and …")
-needs the one or two most pressing or remarkable things about a life. Belief
-stances are for the Beliefs tab; they read as cryptic here. The facts that
-make a life particular are bodily, familial and local: a sister with a fever,
-a son gone to sea, someone you hope to marry, hearing lost to a childhood
-illness.
+`src/content/health/conditions.ts` with `conditionsOf` in
+`src/core/health.ts`. These are lasting conditions such as hearing loss, a
+limp, smallpox scars, recurring malaria, consumption or a stammer. Each has a
+rate by age, sex, era and place, a period name with a modern gloss, and
+plain lines. They derive from the seed like stats, so every resident has them
+at no storage cost. Rates are realistic: before modern medicine most adults
+had something. No slurs; a period term gets the modern name in its gloss.
+Conditions colour text; they do not yet change play.
 
-Story first. Conditions do not change play yet (hearing, sight, gait); that
-is a later pass.
+## Illness
 
-## Four layers
+Acute illness lives in `state.ailments` (`src/content/health/ailments.ts`):
+fevers, flux, coughs, childbed, smallpox, measles, plague in plague years,
+broken bones. The sick stay home. A death removes the person and writes
+`died` into the household's history.
 
-1. **Conditions** (`src/content/health/conditions.ts`, `src/core/health.ts`).
-   Lasting: hearing loss, poor sight, cataract, colour-blindness, a limp, a
-   clubfoot, missing fingers, smallpox scars, goitre, recurring malaria,
-   consumption, the falling sickness, melancholy, a stammer, rickets, Nile
-   bilharzia. Each has a rate by age, sex, era and place, a period name with
-   a modern gloss, and plain lines. Derived from the seed like stats, so every
-   resident has them at no storage cost. Rates are realistic: before modern
-   medicine a large share of adults had something; the card mentions one only
-   when it outranks everything else. No slurs; period terms that are not slurs
-   ("the falling sickness") with the modern name in the gloss.
-2. **Ailments** (`src/content/health/ailments.ts`). Acute and stateful in
-   `state.ailments`: fevers, the flux, coughs, childbed, smallpox, measles,
-   plague in plague years, broken bones. Seasonal and regional, more for the
-   young and the old. Each has a course fixed at onset (mend, linger, die)
-   in older manifests, which the player can turn by sitting with the sick.
-   New worlds use the exposure and care rules below. The sick stay home,
-   laid up. A death removes the person, writes `died` into the household's
-   history, and shows a turn card. Legacy worlds protect plot cast from illness.
-3. **Bonds** (`state.bonds`, `src/core/bonds.ts`). From the player outward:
-   someone they love (mutual or not; same-sex love exists and is usually
-   unspoken, open only where the culture made room for it, as among Greek
-   men in the classical period), a match being arranged, a rival in the same
-   trade, an estranged sibling. Absent family and recent deaths come from the
-   household's history, given reasons by era and place.
-4. **Concerns** (`src/core/concerns.ts`). Every fact above, plus the
-   household events the intro already used (widowed, newly come, newly
-   married, a new baby), scored for urgency. The intro's second sentence takes
-   the top one; a life without a plot may take the second for its second
-   paragraph. A belief is a concern only where it collides with the plot
-   (usury called theft, while in debt). The rare line takes the rarest
-   condition or stat.
+New worlds pin `manifest.disease = 1` (`src/runtime/schema.ts`), which turns
+on transmission (`src/content/health/infections.ts`):
 
-## Later
+- Respiratory infection builds with shared indoor and close time.
+- Provisions can expose a household.
+- Open wounds can become infected.
+- Incubation precedes symptoms, and recovery gives temporary protection.
 
-Play effects of conditions; pregnancy and childbirth as state; plots chosen
-by concern (a sick child makes the Mending or the Hungry Season likelier);
-burials and remains; the bereaved mourning.
+Practitioners must actually exist nearby and supplies are finite. Treatment
+changes recovery and mortality. Diagnoses and latent outcomes are research
+only. Rates are inferred game calibrations; the sources are in
+`infectionEvidence`.
 
-## Bodily needs and danger in play
+**Care.** Care cards (`src/content/cards/care.ts`) wait in `state.care`,
+apart from the work. For the player's own illness they offer the healer, lying
+up, a household remedy, prayer or keeping on, with honest odds: before germ
+theory a fee bought care, not a cure. For kin they offer sitting with them or
+sending for the healer. The `care` command and the body panel expose the same
+treatments. A card's `risk` effect can start an illness. Illness wears health
+down and costs up to half of strength, agility and endurance
+(`engine.stats()`).
 
-Fresh worlds set `manifest.survival = 1`. Hunger rises about two points per
-game hour; eating uses the actual carried food. Hunger above 60 and fatigue
-above 50 gradually reduce physical ability, and severe exhaustion prevents
-running while allowing slower walking. The common limits apply to work,
-combat and narrator attempts. Thirst has no upkeep requirement. Brief rests
-and drinking cannot replace a night's sleep.
+**Hazards.** Drowning, falls and rock falls are choices on hazard cards
+(`src/content/cards/hazards.ts`, filtered by trade), not silent rolls.
 
-Sheltered sleep restores fatigue; healing also needs enough food and cannot
-remove an active illness. Going without food for days accumulates a deficit;
-after two full days at maximum hunger, health wears down slowly. Meals and
-time fed reduce that deficit. Injuries expire by game time. Illness, injury,
-food deficit and effective ability are visible in the body panel, agent
-observations and research snapshots. Player illnesses travel across maps.
-These are gameplay calibrations, not a medical model.
+## Body and danger
 
-Fresh worlds also pin `manifest.disease = 1`. Respiratory infection accumulates
-with shared indoor/close outdoor time, provisions can expose a household, and
-open wounds can become infected. Incubation precedes symptoms; recovery grants
-temporary protection for the two infectious profiles. Other existing ailments
-retain scoped outside introductions without simulated transmission. Cold or rain
-can injure an exposed sleeper but no longer spontaneously creates an infection.
+New worlds pin `manifest.survival = 1`:
 
-The body panel, patient inspection and `care` command expose the same actions:
-rest, nursing, wound dressing, consultation, appropriate medicine, rehydration
-and a day's careful household food/water preparation. No thirst upkeep is added.
-Practitioners must actually exist nearby; supplies are finite. Modern supply is
-seeded by date and settlement with inferred local variation, never guaranteed
-by a year alone. Treatment alters recovery and mortality without repeated cure
-rolls; conversation alone has no biological effect. Symptoms and uncertain
-assessments are visible, while underlying diagnoses, exposure sources and latent
-outcome draws are research-only. Plot characters have no illness exemption in
-these worlds. Older manifests keep their previous illness and care rules.
+- Hunger rises about two points per game hour, and eating uses carried food.
+- High hunger and fatigue reduce physical ability.
+- After two full days at maximum hunger, health wears down.
+- Sheltered sleep restores fatigue. There is no thirst upkeep.
 
-Mechanisms draw on [CDC respiratory guidance](https://www.cdc.gov/respiratory-viruses/about/index.html),
-[WHO diarrhoeal disease guidance](https://www.who.int/news-room/fact-sheets/detail/diarrhoeal-disease)
-and [WHO wound guidance](https://www.who.int/publications/i/item/prevention-and-management-of-wound-infection).
-Hazards, course lengths, protection and supply probabilities are explicitly
-inferred gameplay parameters, not measured historical rates. Research snapshots
-include this limitation and the sources. Infection and prevention travel with
-the player; local contaminated provisions remain on their own map.
+`src/core/danger.ts` rates the ground nearby from buildings, cover, people,
+guards and darkness. A robbery is a choice card: surrender, run or resist. It
+has a one-day cooldown. NPCs defend themselves and can retaliate after
+serious provocation, with a visible threat first.
 
-`core/danger.ts` assesses current ground and four nearby locations from
-buildings, cover, tracks, nearby people/guards and darkness. Broad setting
-and date defaults tune robbery frequency; they are inferred game balancing,
-not measured historical crime rates. The 32-cell area id is for locating and
-recording risk, not a separate authored crime map. Ruins do not offer the
-same protection as buildings in use.
+## Death and going on
 
-A robbery uses the normal choice cards: surrender coins or a carried item,
-run, or resist. Body and skills affect checks. It interrupts the current
-action, requires an answer before continuing, and has a one-day cooldown
-carried with the player. This represents an encounter, rather than adding a
-persistent bandit population. Existing NPCs can defend themselves against
-assault or retaliate after serious provocation; a visible threat precedes
-their blows. Their hostility and current attack state feed the same danger
-assessment for human and model players. A decision to walk away ends a new
-retaliation. Older manifests without `survival` keep their previous rules.
+When the player dies, in a day or in the years, `DeathCard.tsx` names the
+cause, age, place and year. The player then chooses:
+
+- **Go on as** one of the household aged twelve or more: the `become`
+  command, which swaps identity and carries the household, plot and record.
+- **Close this life**.
+
+## A baby on the back
+
+`src/core/baby.ts`: an infant carried by a parent, with mood and needs
+(milk, wet, tired, startled, bored). It reacts to motion and rain and can be
+nursed. The carrying cloth comes from `infantCarry` in the wardrobe.
+
+## Bonds and concerns
+
+- **Bonds** (`state.bonds`, `src/core/bonds.ts`): someone the player loves, a
+  match being arranged, a rival in the trade, an estranged sibling. Absent
+  family and recent deaths come from household history.
+- **Concerns** (`src/core/concerns.ts`) score every fact above, plus
+  household events (widowed, newly married, a new baby), for urgency. The
+  opening card's second sentence takes the top one. A belief counts only
+  where it collides with the plot.
+
+## Legacy, do not extend
+
+Manifests without `survival` or `disease` keep the older rules: a fixed
+illness course set at onset, and plot cast exempt from illness. Extend only
+the `disease: 1` and `survival: 1` paths. Retiring the old branches is welcome
+when you work here.
+
+## Not built
+
+- Conditions that change play (hearing, sight, gait).
+- Pregnancy as state.
+- Burial of the dead. Graveyards are scenery props (`graveMound`), and
+  `src/core/remains.ts` is animal remains.
+- Mourning.
+
+## Checks
+
+`tests/core.test.ts`, `tests/combat.test.ts`, `tests/baby.test.ts`.
