@@ -18,7 +18,7 @@ const patterns: Record<string, RegExp> = {
     /\b(soldier|infantry|infantryman|trooper|private|corporal|sergeant|rifleman|legionary|legionnaire|hoplite|musketeer|grenadier|conscript|marine|warrior|men-at-arms|man-at-arms|guardsman)\b/,
   // Anyone who stands watch or fights, so the guard kits can arm them.
   guard:
-    /\b(guard|guardsman|watchman|watchmen|gate[- ]?keeper|sentry|sentinel|warrior|retainer|soldier|legionary|hoplite|halberdier|musketeer|pikeman|man-at-arms|men-at-arms|samurai|ashigaru|janissary|mamluk|sepoy|bannerman)\b/,
+    /\b(guard|guardsman|watchman|watchmen|gate[- ]?keeper|sentry|sentinel|warrior|retainer|soldier|legionary|hoplite|halberdier|musketeer|pikeman|man-at-arms|men-at-arms|samurai|ashigaru|janissary|mamluk|sepoy|bannerman|spearman|archer|peltast|phalangite|mercenary|auxiliary|praetorian|crossbowman|longbowman|arquebusier|landsknecht|fusilier|grenadier|dragoon|redcoat|strelets|sipahi|ghulam|qizilbash|tufangchi|paik|sowar|barqandaz|horseman|moran)\b/,
   // Islamic clergy by title, so a qazi in Delhi dresses as one and not as a brahmin.
   imam: /\b(imam|qadi|qazi|kadi|mullah|mufti|muezzin|dervish|sufi)\b/,
   // Clergy by office, so a deacon, a monk and a bishop of one church dress apart.

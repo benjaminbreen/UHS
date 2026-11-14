@@ -220,6 +220,7 @@ export function characterLivelihood(
   context = resolveCharacterContext(s),
   sex: Sex = "unspecified",
   standing: "free" | "unfree" = "free",
+  age?: number,
 ) {
   const alias: Record<string, string> = {
     forager: "gatherer",
@@ -285,10 +286,9 @@ export function characterLivelihood(
   // "unspecified" is no constraint rather than no match -- read as a constraint
   // it excluded all 62 sex-marked roles, which is every herding role there is,
   // so no settlement could staff a pen.
-  const open =
-    sex === "unspecified"
-      ? context.livelihoods
-      : context.livelihoods.filter((l) => !l.sex || l.sex === sex);
+  const open = context.livelihoods.filter((l) =>
+    (sex === "unspecified" || !l.sex || l.sex === sex) &&
+    (age === undefined || !l.ages || (age >= l.ages[0] && age < l.ages[1])));
   /* Work marked unfree is only for those held in bondage. The reverse is not
    * true: enslaved and bound people did every kind of work there was, so the
    * marked rows bias the draw rather than bounding it -- treating them as the
@@ -471,6 +471,7 @@ export function generateCharacter(
     context,
     sex,
     standing,
+    age,
   );
   // Asking for work done by one sex asks for someone of it.
   if (requestedRole && livelihood.sex && livelihood.sex !== sex && !(id === "player" && s.brief?.sex))

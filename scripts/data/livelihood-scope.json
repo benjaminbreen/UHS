@@ -1663,10 +1663,10 @@
     "soldier": {
       "label": "Soldier",
       "keyword": "warfare",
-      "tier": "industrial",
-      "weight": 1.5,
+      "tier": "town",
+      "weight": 2.5,
       "years": [
-        1870,
+        -2500,
         10001
       ],
       "sex": "male",
@@ -1676,7 +1676,7 @@
         "bread": 1,
         "tool": 1
       },
-      "why": "A conscript or regular in a standing army. The older `warrior` is a craft of the village and closes where wage labour comes in, so after 1900 nobody in a modern state fought."
+      "why": "A paid or levied soldier of a standing force, quartered in the towns: the legionary, the janissary, the bannerman, the redcoat, the sepoy, and after 1870 the conscript. Capitals and garrison towns hold more (see signatures.ts)."
     },
     "physician": {
       "label": "Physician",
@@ -2554,6 +2554,51 @@
         "european"
       ],
       "why": "Hired chairs carried by two men stood in ranks in London, Paris, Bath and Edinburgh from the 1630s until cabs replaced them in the early nineteenth century."
+    },
+    "young-warrior": {
+      "label": "Warrior",
+      "keyword": "warfare",
+      "tier": null,
+      "weight": 60,
+      "sex": "male",
+      "ages": [
+        16,
+        31
+      ],
+      "why": "Where fighting was a stage of a man's life rather than a trade: an age-set or a cohort of young men who herded, raided and defended together until they were initiated as elders. Only where an age-set existed; see requirements.ts.",
+      "requires": [
+        "age-sets"
+      ]
+    },
+    "veteran": {
+      "label": "Old Soldier",
+      "keyword": "security",
+      "tier": "town",
+      "weight": 2,
+      "sex": "male",
+      "ages": [
+        45,
+        120
+      ],
+      "capabilities": [
+        "retained_military_service"
+      ],
+      "why": "Discharged and invalid soldiers: Rome settled its veterans in colonies, and from 1670 Paris and London kept them in the Invalides and Chelsea, where the fit stood guard."
+    },
+    "sutler": {
+      "label": "Sutler",
+      "keyword": "retail",
+      "tier": "town",
+      "weight": 0.4,
+      "years": [
+        1500,
+        1900
+      ],
+      "cultures": [
+        "european",
+        "south-asian"
+      ],
+      "why": "Armies were fed and supplied by the people who followed them: the sutler and the vivandière with her cask in Europe, the regimental bazaar of Mughal and Company armies in India."
     }
   }
 }

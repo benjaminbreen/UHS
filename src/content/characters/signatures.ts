@@ -18,7 +18,7 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "rome-imperial",
     scope: { years: [-100, 450], places: ["rome"] },
-    boost: { porter: 4, "dock-labourer": 3, boatman: 2, baker: 3, miller: 2, "household-slave": 2 },
+    boost: { porter: 4, "dock-labourer": 3, boatman: 2, baker: 3, miller: 2, "household-slave": 2, soldier: 3 },
     labels: {
       porter: [{ label: "Grain Porter", weight: 4 }],
       boatman: [{ label: "Tiber Bargeman", weight: 4 }],
@@ -67,7 +67,7 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "tenochtitlan",
     scope: { years: [1325, 1521], places: ["mexico"] },
-    boost: { boatman: 5, porter: 4, farmer: 2, "market-seller": 3, craftsperson: 2 },
+    boost: { boatman: 5, porter: 4, farmer: 2, "market-seller": 3, craftsperson: 2, soldier: 2 },
     labels: {
       boatman: [{ label: "Canoe Paddler", weight: 4 }],
       porter: [{ label: "Carrier", weight: 3 }],
@@ -80,7 +80,7 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "cusco-inca",
     scope: { years: [1438, 1533], places: ["cusco-city"] },
-    boost: { stonemason: 4, mason: 3, weaver: 3, retainer: 2, porter: 2 },
+    boost: { stonemason: 4, mason: 3, weaver: 3, retainer: 2, porter: 2, soldier: 2 },
     labels: {
       weaver: [{ label: "Fine-cloth Weaver", weight: 3 }],
       retainer: [{ label: "Yanacona Servant", weight: 3 }],
@@ -91,7 +91,7 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "mughal-delhi",
     scope: { years: [1639, 1857], places: ["delhi"] },
-    boost: { craftsperson: 2, warrior: 3, retainer: 3, servant: 2, weaver: 2 },
+    boost: { craftsperson: 2, warrior: 3, retainer: 3, servant: 2, weaver: 2, soldier: 3 },
     labels: {
       craftsperson: [
         { label: "Court Workshop Artisan", weight: 3 },
@@ -105,7 +105,7 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "london-early-modern",
     scope: { years: [1550, 1800], places: ["london"] },
-    boost: { servant: 3, housemaid: 2, porter: 2, boatman: 3, tailor: 2, "dock-labourer": 2, apprentice: 2 },
+    boost: { servant: 3, housemaid: 2, porter: 2, boatman: 3, tailor: 2, "dock-labourer": 2, apprentice: 2, soldier: 2 },
     labels: { boatman: [{ label: "Waterman", weight: 4 }] },
     evidence: "Domestic service was the largest single occupation in early modern London; thousands of Thames watermen were the city's taxis; apprentices were perhaps a tenth of the adult men.",
   },
@@ -133,7 +133,7 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "beijing-ming-qing",
     scope: { years: [1420, 1911], places: ["beijing"] },
-    boost: { clerk: 1.5, servant: 2, warrior: 3, porter: 2, carter: 2 },
+    boost: { clerk: 1.5, servant: 2, warrior: 3, porter: 2, carter: 2, soldier: 3 },
     labels: {
       warrior: [
         { label: "Bannerman", weight: 4 },
@@ -146,12 +146,30 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "istanbul-ottoman",
     scope: { years: [1453, 1922], places: ["city-istanbul"] },
-    boost: { boatman: 4, porter: 3, baker: 2, warrior: 2, "household-slave": 2 },
+    boost: { boatman: 4, porter: 3, baker: 2, warrior: 2, "household-slave": 2, soldier: 3 },
     labels: {
       boatman: [{ label: "Caique Rower", weight: 4 }],
       warrior: [{ label: "Janissary", weight: 4 }],
     },
     evidence: "The city was crossed by thousands of caiques; its porters' guilds carried everything up the hills; the Janissaries garrisoned it until 1826, and the state fixed and policed the price of bread.",
+  },
+  {
+    id: "capitals-early-modern",
+    scope: { years: [1500, 1870], places: ["city-vienna", "city-madrid", "city-moscow", "city-st-petersburg", "city-berlin", "city-isfahan", "city-agra", "city-lahore", "city-seoul", "city-ayutthaya"] },
+    boost: { soldier: 2.5, "army-officer": 2 },
+    evidence: "The gunpowder states kept their standing troops in and around the court: Berlin was a quarter soldiers and their families under Frederick William I, and the Safavid, Mughal and Joseon guards lived in the capital.",
+  },
+  {
+    id: "capitals-medieval",
+    scope: { years: [330, 1453], places: ["city-constantinople"] },
+    boost: { soldier: 2.5 },
+    evidence: "The tagmata, the palace guards and the Varangians were quartered in the city.",
+  },
+  {
+    id: "capitals-chinese",
+    scope: { years: [-200, 1421], places: ["city-xian", "city-nanjing"] },
+    boost: { soldier: 2.5 },
+    evidence: "Chang'an under the Han and Tang and Ming Nanjing held the Southern and Northern armies and the capital garrisons.",
   },
   {
     id: "alexandria-hellenistic-roman",
@@ -222,7 +240,7 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "paris-old-regime",
     scope: { years: [1600, 1789], places: ["paris"] },
-    boost: { servant: 3, "domestic-servant": 2, porter: 2, seamstress: 2, tailor: 2, "water-carrier": 3 },
+    boost: { servant: 3, "domestic-servant": 2, porter: 2, seamstress: 2, tailor: 2, "water-carrier": 3, soldier: 2 },
     labels: { seamstress: [{ label: "Linen Maid", weight: 1 }] },
     evidence: "Servants were about one Parisian in fourteen before the Revolution; Mercier counted twenty thousand water carriers brought the Seine to its upper floors.",
   },

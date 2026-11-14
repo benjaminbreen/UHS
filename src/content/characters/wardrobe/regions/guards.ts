@@ -1,4 +1,5 @@
 import type { Accessory, GarmentKit, Option } from "../types";
+import type { DyeId } from "../cloth";
 
 /**
  * Guards, watchmen and warriors: what they wore on the body and head and what
@@ -34,6 +35,10 @@ const u = on("soldier"), q = on("guerrilla");
 const uniform = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit): GarmentKit => ({
   id: `uniform-${id}`, label, scope, priority: 4, ...parts,
 });
+const coats = (id: string, label: string, scope: GarmentKit["scope"], ...dyes: [DyeId, number][]): GarmentKit => ({
+  id: `coat-${id}`, label, scope, priority: 4.5,
+  dye: dyes.map(([value, weight]) => ({ value, weight, livelihoods: ["soldier", "army-officer"], ages: ["youth", "adult"] })),
+});
 const TAIWAN = [119.3, 21.8, 122.1, 25.4] as const, HONG_KONG = [113.8, 22.15, 114.45, 22.6] as const;
 const TURKEY = [26, 36.5, 41.6, 42.2] as const, TURKEY_NE = [41.6, 36, 43.5, 41.1] as const;
 const bare = { footwear: [g("none" as const)] };
@@ -54,6 +59,14 @@ export const guards: readonly GarmentKit[] = [
     shield: [g("tall")], shieldColor: [g(PAINTED)], shieldMark: [g("rim")],
     accessory: arms(["spear", 1]),
   }),
+  // Over the gentry kit (3.5), which would otherwise put a centurion in a toga.
+  { ...kit("centurion", "The centurion: mail, greaves, the vine staff", { years: [-300, 400], cultures: ["european"] }, {
+    garment: [g("tunic", 1, { roles: undefined, livelihoods: ["army-officer"] })], footwear: [g("sandals", 1, { roles: undefined, livelihoods: ["army-officer"] })],
+    headwear: [g("helmet", 1, { roles: undefined, livelihoods: ["army-officer"] })],
+    over: [g("cloak", 1, { roles: undefined, livelihoods: ["army-officer"] })],
+    drape: [g("none", 1, { roles: undefined, livelihoods: ["army-officer"] })],
+    armour: [g("mail", 1, { roles: undefined, livelihoods: ["army-officer"] })], armourColor: [g(IRON, 1, { roles: undefined, livelihoods: ["army-officer"] })],
+  }), priority: 4 },
   kit("early-medieval", "The war band: nasal helm, round shield, spear", { years: [400, 1050], cultures: ["european"] }, {
     garment: [g("tunic")],
     headwear: [g("nasal", 4), g("helmet", 1), g("none", 2)],
@@ -226,6 +239,16 @@ export const guards: readonly GarmentKit[] = [
     shield: [g("none", 4), g("round", 1)], shieldColor: [g(HIDE)],
     accessory: arms(["bow", 5], ["spear", 3]),
   }),
+  // Coat colours of the standing armies before khaki, officers included.
+  coats("britain", "The British red coat", { years: [1660, 1870], bounds: [-11, 49.5, 2, 61] }, ["kermes", 3], ["madder", 2]),
+  coats("france-white", "French grey-white", { years: [1660, 1789], bounds: [-5, 42, 8, 51.5] }, ["bleached", 3], ["greige", 2]),
+  coats("france-blue", "French blue after the Revolution", { years: [1789, 1870], bounds: [-5, 42, 8, 51.5] }, ["indigo", 3], ["woad", 2]),
+  coats("prussia", "Prussian blue", { years: [1660, 1870], bounds: [6, 50, 23, 56] }, ["indigo", 3], ["woad", 1]),
+  coats("austria", "Habsburg white", { years: [1700, 1870], bounds: [9, 44, 27, 50], cultures: ["european"] }, ["bleached", 3], ["white", 1]),
+  coats("russia", "Russian green", { years: [1700, 1870], bounds: [27, 45, 60, 65], cultures: ["european"] }, ["chrome", 3]),
+  coats("qing", "The colours of the Eight Banners", { years: [1644, 1912], bounds: [98, 18, 125, 42], cultures: ["east-asian"] }, ["weld", 1], ["bleached", 1], ["madder", 1], ["indigo", 1]),
+  { id: "guard-moran", label: "The moran's red cloth", scope: { years: [-500, 1960], bounds: [33, -6, 38.5, 3] }, priority: 4.5,
+    dye: [{ value: "madder", weight: 4, livelihoods: ["young-warrior"] }, { value: "ochre", weight: 1, livelihoods: ["young-warrior"] }] },
   uniform("1870", "Coat, peaked cap and the breech-loader", { years: [1870, 1914] }, {
     garment: [u("coat")], leggings: [u("trousers")], footwear: [u("boots")], belt: [u("leather")],
     headwear: [u("peaked-cap", 5), u("helmet", 1), u("cap", 1)],

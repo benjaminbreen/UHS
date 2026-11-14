@@ -205,6 +205,21 @@ export const europe: readonly GarmentKit[] = [
     headwear: [{ value: "bicorne", weight: 1, livelihoods: ["army-officer"] }, { value: "bicorne", weight: 1, roles: ["general"] }],
   },
   {
+    id: "eu-officer",
+    label: "Europe · the officer's coat and sash",
+    scope: { years: [1650, 1870], cultures: ["european"] },
+    priority: 4.5,
+    garment: [{ value: "coat", weight: 1, livelihoods: ["army-officer"] }],
+    belt: [{ value: "sash", weight: 1, livelihoods: ["army-officer"] }],
+  },
+  {
+    id: "eu-officer-tricorne",
+    label: "Europe · the officer's tricorne",
+    scope: { years: [1690, 1790], cultures: ["european"] },
+    priority: 4.6,
+    headwear: [{ value: "tricorne", weight: 1, livelihoods: ["army-officer"] }],
+  },
+  {
     id: "eu-before-bowler",
     label: "Europe · caps and tall hats before the bowler",
     scope: { years: [1700, 1850], cultures: ["european"] },

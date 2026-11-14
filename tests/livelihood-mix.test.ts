@@ -629,9 +629,11 @@ describe("the professions expansion", () => {
   const at = (lon: number, lat: number, year: number) => ({ ...settingFor("medieval Normandy"), lon, lat, year, water: "coast-s" as const });
 
   it("keeps soldiers in modern states and names them by army", () => {
-    // `warrior` is a village craft and closes with industry, so 1916 Paris had nobody under arms.
+    // `warrior` is a village craft and closes with industry; the soldier is a town's, early and late.
     for (const q of ["Paris 1916", "Shanghai 1930", "Lagos 1960", "Mexico City 1950"]) expect(ids(q).has("soldier"), q).toBe(true);
-    expect(ids("Paris 1850").has("soldier")).toBe(false);
+    expect(ids("Paris 1850").has("soldier")).toBe(true);
+    expect(names("soldier", at(-0.1, 51.5, 1750))).toContain("Redcoat");
+    expect(names("soldier", { ...at(116.4, 39.9, 1750), culture: "east-asian" })).toContain("Bannerman");
     expect(names("soldier", at(2.35, 48.85, 1916))).toContain("Poilu");
     expect(names("soldier", at(37.6, 55.7, 1942))).toContain("Red Army Soldier");
     expect(names("soldier", at(36.8, -1.3, 1940))).toContain("Askari");

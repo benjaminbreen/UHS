@@ -200,7 +200,8 @@ for (const [id, r] of Object.entries(EXTRA)) {
   const shape = work.keywords[r.keyword];
   if (!shape) { console.error(`extra role ${id}: unknown keyword ${r.keyword}`); continue; }
   roles.set(id, {
-    id, label: r.label, tier: r.tier ?? "village",
+    // A null tier is work of every settlement form, camp and village alike.
+    id, label: r.label, tier: "tier" in r ? r.tier ?? undefined : "village",
     activity: shape.activity, inventory: r.inventory ?? shape.inventory,
     needs: r.capabilities ?? [], needsAny: r.anyCapability ?? [], excludes: [],
     sex: r.sex,
@@ -301,7 +302,7 @@ writeFileSync(
     `export const commonLivelihoods: readonly Livelihood[] = [\n` +
     [...roles.values()].map((r) =>
       `  {\n    id: ${JSON.stringify(r.id)},\n    label: ${JSON.stringify(r.label)},\n` +
-      `    activity: ${JSON.stringify(r.activity)},\n    tier: ${JSON.stringify(r.tier)},\n` +
+      `    activity: ${JSON.stringify(r.activity)},\n` + (r.tier ? `    tier: ${JSON.stringify(r.tier)},\n` : "") +
       ((sc: any, years: any) =>
         (years ? `    years: [${years[0]}, ${years[1]}],\n` : "") +
         (sc?.bounds ? `    bounds: ${JSON.stringify(sc.bounds)},\n` : "") +
@@ -313,6 +314,7 @@ writeFileSync(
         ) +
         (sc?.ecologies ? `    ecologies: ${JSON.stringify(sc.ecologies)},\n` : "") +
         (sc?.minPopulation ? `    minPopulation: ${sc.minPopulation},\n` : "") +
+        (sc?.ages ? `    ages: [${sc.ages[0]}, ${sc.ages[1]}],\n` : "") +
         (sc?.requires ? `    requires: ${JSON.stringify(sc.requires)},\n` : "") +
         (sc?.weight ? `    weight: ${sc.weight},\n` : "") +
         (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : "") +

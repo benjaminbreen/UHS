@@ -5888,6 +5888,743 @@
    {
     "scope": {
      "years": [
+      -2500,
+      -550
+     ],
+     "bounds": [
+      24,
+      22,
+      63,
+      40
+     ]
+    },
+    "label": "Spearman",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      -2500,
+      -550
+     ],
+     "bounds": [
+      24,
+      22,
+      63,
+      40
+     ]
+    },
+    "label": "Archer"
+   },
+   {
+    "scope": {
+     "years": [
+      -800,
+      -338
+     ],
+     "bounds": [
+      19,
+      34,
+      30,
+      42
+     ]
+    },
+    "label": "Hoplite",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      -800,
+      -338
+     ],
+     "bounds": [
+      19,
+      34,
+      30,
+      42
+     ]
+    },
+    "label": "Peltast"
+   },
+   {
+    "scope": {
+     "years": [
+      -338,
+      -30
+     ],
+     "bounds": [
+      19,
+      29,
+      45,
+      43
+     ]
+    },
+    "label": "Phalangite",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      -338,
+      -30
+     ],
+     "bounds": [
+      19,
+      29,
+      45,
+      43
+     ]
+    },
+    "label": "Mercenary"
+   },
+   {
+    "scope": {
+     "years": [
+      -300,
+      400
+     ],
+     "bounds": [
+      -10,
+      30,
+      40,
+      56
+     ]
+    },
+    "label": "Legionary",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      -300,
+      400
+     ],
+     "bounds": [
+      -10,
+      30,
+      40,
+      56
+     ]
+    },
+    "label": "Auxiliary",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      -27,
+      312
+     ],
+     "bounds": [
+      12.2,
+      41.7,
+      12.8,
+      42.1
+     ]
+    },
+    "label": "Praetorian",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      -27,
+      312
+     ],
+     "bounds": [
+      12.2,
+      41.7,
+      12.8,
+      42.1
+     ]
+    },
+    "label": "Urban Cohort Soldier",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1050,
+      1450
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Man-at-arms"
+   },
+   {
+    "scope": {
+     "years": [
+      1050,
+      1450
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Crossbowman",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1050,
+      1450
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Archer"
+   },
+   {
+    "scope": {
+     "years": [
+      1250,
+      1550
+     ],
+     "bounds": [
+      -5.8,
+      49.9,
+      1.8,
+      55.8
+     ]
+    },
+    "label": "Longbowman",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1450,
+      1650
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Pikeman",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1450,
+      1650
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Arquebusier",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1450,
+      1650
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Halberdier"
+   },
+   {
+    "scope": {
+     "years": [
+      1480,
+      1560
+     ],
+     "bounds": [
+      5,
+      45,
+      17,
+      55
+     ]
+    },
+    "label": "Landsknecht",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1700
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Musketeer",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1700
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Pikeman"
+   },
+   {
+    "scope": {
+     "years": [
+      1680,
+      1870
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Fusilier",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1670,
+      1870
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Grenadier"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1870
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Dragoon"
+   },
+   {
+    "scope": {
+     "years": [
+      1660,
+      1870
+     ],
+     "bounds": [
+      -11,
+      49.5,
+      2,
+      61
+     ]
+    },
+    "label": "Redcoat",
+    "weight": 5
+   },
+   {
+    "scope": {
+     "years": [
+      1563,
+      1789
+     ],
+     "bounds": [
+      2.1,
+      48.7,
+      2.6,
+      49.0
+     ]
+    },
+    "label": "French Guard",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1550,
+      1700
+     ],
+     "bounds": [
+      27,
+      45,
+      60,
+      65
+     ]
+    },
+    "label": "Strelets",
+    "weight": 4
+   },
+   {
+    "scope": {
+     "years": [
+      1380,
+      1517
+     ],
+     "bounds": [
+      19,
+      34,
+      45,
+      43
+     ]
+    },
+    "label": "Janissary",
+    "weight": 4
+   },
+   {
+    "scope": {
+     "years": [
+      1517,
+      1826
+     ],
+     "bounds": [
+      19,
+      29,
+      48,
+      43
+     ]
+    },
+    "label": "Janissary",
+    "weight": 4
+   },
+   {
+    "scope": {
+     "years": [
+      1380,
+      1826
+     ],
+     "bounds": [
+      19,
+      29,
+      48,
+      43
+     ]
+    },
+    "label": "Sipahi"
+   },
+   {
+    "scope": {
+     "years": [
+      1826,
+      1870
+     ],
+     "bounds": [
+      19,
+      29,
+      48,
+      43
+     ]
+    },
+    "label": "Nizam Soldier",
+    "weight": 4
+   },
+   {
+    "scope": {
+     "years": [
+      1250,
+      1517
+     ],
+     "bounds": [
+      25,
+      22,
+      42,
+      38
+     ]
+    },
+    "label": "Mamluk",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      830,
+      1258
+     ],
+     "cultures": [
+      "north-african-west-asian"
+     ],
+     "bounds": [
+      35,
+      25,
+      63,
+      40
+     ]
+    },
+    "label": "Ghulam",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1501,
+      1736
+     ],
+     "bounds": [
+      44,
+      25,
+      63,
+      40
+     ]
+    },
+    "label": "Qizilbash",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1501,
+      1870
+     ],
+     "bounds": [
+      44,
+      25,
+      63,
+      40
+     ]
+    },
+    "label": "Tufangchi",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1550
+     ],
+     "cultures": [
+      "south-asian"
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Paik",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1526,
+      1858
+     ],
+     "cultures": [
+      "south-asian"
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Sowar",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1526,
+      1858
+     ],
+     "cultures": [
+      "south-asian"
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Barqandaz",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1750,
+      1870
+     ],
+     "cultures": [
+      "south-asian"
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Sepoy",
+    "weight": 4
+   },
+   {
+    "scope": {
+     "years": [
+      -221,
+      1644
+     ],
+     "cultures": [
+      "east-asian"
+     ],
+     "bounds": [
+      98,
+      18,
+      125,
+      42
+     ],
+     "except": [
+      [
+       113.8,
+       22.15,
+       114.45,
+       22.6
+      ]
+     ]
+    },
+    "label": "Garrison Soldier",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      -400,
+      1300
+     ],
+     "cultures": [
+      "east-asian"
+     ],
+     "bounds": [
+      98,
+      18,
+      125,
+      42
+     ],
+     "except": [
+      [
+       113.8,
+       22.15,
+       114.45,
+       22.6
+      ]
+     ]
+    },
+    "label": "Crossbowman"
+   },
+   {
+    "scope": {
+     "years": [
+      1644,
+      1870
+     ],
+     "cultures": [
+      "east-asian"
+     ],
+     "bounds": [
+      98,
+      18,
+      125,
+      42
+     ],
+     "except": [
+      [
+       113.8,
+       22.15,
+       114.45,
+       22.6
+      ]
+     ]
+    },
+    "label": "Bannerman",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1644,
+      1870
+     ],
+     "cultures": [
+      "east-asian"
+     ],
+     "bounds": [
+      98,
+      18,
+      125,
+      42
+     ],
+     "except": [
+      [
+       113.8,
+       22.15,
+       114.45,
+       22.6
+      ]
+     ]
+    },
+    "label": "Green Standard Soldier",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1400,
+      1868
+     ],
+     "bounds": [
+      128,
+      30,
+      146,
+      46
+     ]
+    },
+    "label": "Ashigaru",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1300,
+      1521
+     ],
+     "bounds": [
+      -105,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Warrior",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      1400,
+      1900
+     ],
+     "cultures": [
+      "west-central-african"
+     ],
+     "bounds": [
+      -17,
+      10,
+      25,
+      18
+     ]
+    },
+    "label": "Horseman"
+   },
+   {
+    "scope": {
+     "years": [
       1870,
       10001
      ]
@@ -14439,6 +15176,353 @@
      ]
     },
     "label": "Palki Bearer"
+   }
+  ],
+  "young-warrior": [
+   {
+    "scope": {
+     "years": [
+      -500,
+      1960
+     ],
+     "cultures": [
+      "east-southern-african"
+     ],
+     "bounds": [
+      33,
+      -6,
+      38.5,
+      3
+     ]
+    },
+    "label": "Moran",
+    "weight": 3
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1960
+     ],
+     "cultures": [
+      "east-southern-african"
+     ],
+     "bounds": [
+      33,
+      -6,
+      38.5,
+      3
+     ]
+    },
+    "label": "Young Warrior"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1960
+     ],
+     "bounds": [
+      26,
+      4,
+      34,
+      12
+     ]
+    },
+    "label": "Cattle-camp Warrior"
+   },
+   {
+    "scope": {
+     "years": [
+      1500,
+      1900
+     ],
+     "bounds": [
+      34,
+      3,
+      43,
+      10
+     ]
+    },
+    "label": "Young Warrior"
+   },
+   {
+    "scope": {
+     "years": [
+      1816,
+      1879
+     ],
+     "bounds": [
+      28,
+      -32,
+      33,
+      -26
+     ]
+    },
+    "label": "Regiment Warrior"
+   },
+   {
+    "scope": {
+     "years": [
+      1300,
+      1521
+     ],
+     "bounds": [
+      -105,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Young Warrior"
+   },
+   {
+    "scope": {
+     "years": [
+      1700,
+      1880
+     ],
+     "cultures": [
+      "other-indigenous-american"
+     ],
+     "bounds": [
+      -115,
+      30,
+      -90,
+      53
+     ]
+    },
+    "label": "Warrior",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1700,
+      1880
+     ],
+     "cultures": [
+      "other-indigenous-american"
+     ],
+     "bounds": [
+      -115,
+      30,
+      -90,
+      53
+     ]
+    },
+    "label": "Dog Soldier"
+   }
+  ],
+  "veteran": [
+   {
+    "scope": {
+     "years": [
+      -100,
+      400
+     ],
+     "bounds": [
+      -10,
+      30,
+      40,
+      56
+     ]
+    },
+    "label": "Veteran"
+   },
+   {
+    "scope": {
+     "years": [
+      1674,
+      10001
+     ],
+     "bounds": [
+      2.1,
+      48.7,
+      2.6,
+      49.0
+     ]
+    },
+    "label": "Invalid Soldier"
+   },
+   {
+    "scope": {
+     "years": [
+      1692,
+      10001
+     ],
+     "bounds": [
+      -0.5,
+      51.3,
+      0.3,
+      51.7
+     ]
+    },
+    "label": "Chelsea Pensioner"
+   }
+  ],
+  "sutler": [
+   {
+    "scope": {
+     "years": [
+      1700,
+      1900
+     ],
+     "bounds": [
+      -5,
+      42,
+      8,
+      51.5
+     ]
+    },
+    "label": "Vivandière"
+   },
+   {
+    "scope": {
+     "years": [
+      1500,
+      1900
+     ],
+     "bounds": [
+      5,
+      45,
+      17,
+      55
+     ]
+    },
+    "label": "Marketender"
+   },
+   {
+    "scope": {
+     "years": [
+      1500,
+      1900
+     ],
+     "cultures": [
+      "south-asian"
+     ]
+    },
+    "label": "Bazaar Trader"
+   }
+  ],
+  "army-officer": [
+   {
+    "scope": {
+     "years": [
+      -300,
+      400
+     ],
+     "bounds": [
+      -10,
+      30,
+      40,
+      56
+     ]
+    },
+    "label": "Centurion"
+   },
+   {
+    "scope": {
+     "years": [
+      1450,
+      10001
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Captain",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1450,
+      10001
+     ],
+     "cultures": [
+      "european"
+     ]
+    },
+    "label": "Lieutenant",
+    "weight": 2
+   },
+   {
+    "scope": {
+     "years": [
+      1380,
+      1826
+     ],
+     "bounds": [
+      19,
+      29,
+      48,
+      43
+     ]
+    },
+    "label": "Agha"
+   },
+   {
+    "scope": {
+     "years": [
+      1556,
+      1858
+     ],
+     "cultures": [
+      "south-asian"
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Mansabdar"
+   },
+   {
+    "scope": {
+     "years": [
+      1750,
+      1947
+     ],
+     "cultures": [
+      "south-asian"
+     ],
+     "bounds": [
+      60,
+      5,
+      98,
+      37
+     ]
+    },
+    "label": "Subedar"
+   },
+   {
+    "scope": {
+     "years": [
+      1644,
+      1912
+     ],
+     "cultures": [
+      "east-asian"
+     ],
+     "bounds": [
+      98,
+      18,
+      125,
+      42
+     ],
+     "except": [
+      [
+       113.8,
+       22.15,
+       114.45,
+       22.6
+      ]
+     ]
+    },
+    "label": "Banner Captain"
    }
   ]
  }

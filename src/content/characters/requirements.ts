@@ -257,6 +257,17 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
   // Irregular war: the Peninsular guerrilla, the Mexican Revolution, the
   // European resistance, the wars of decolonisation and the Central American
   // and Afghan insurgencies.
+  // Societies where fighting was a stage of a young man's life: the Maasai and
+  // Samburu moran, Nuer and Dinka cattle camps, the Oromo gada, Zulu amabutho,
+  // the Mexica telpochcalli, the Plains warrior societies.
+  "age-sets": [
+    at(-500, [33, -6, 38.5, 3], 1960),
+    at(-500, [26, 4, 34, 12], 1960),
+    at(1500, [34, 3, 43, 10], 1900),
+    at(1816, [28, -32, 33, -26], 1879),
+    at(1300, [-105, 13, -86, 23], 1521),
+    at(1700, [-115, 30, -90, 53], 1880),
+  ],
   insurgency: [
     at(1808, [-10, 36, 3, 44], 1814),
     at(1910, [-118, 14, -86, 33], 1930),

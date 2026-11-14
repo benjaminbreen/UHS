@@ -228,6 +228,8 @@ export type Livelihood = {
   ecologies?: readonly Ecology[];
   /** A settlement smaller than this cannot support the trade. */
   minPopulation?: number;
+  /** Years of life the work is held in, half-open: an age-set, a pension. */
+  ages?: readonly [number, number];
   /** Animals, materials or institutions the work cannot exist without; see requirements.ts. */
   requires?: readonly string[];
   /**

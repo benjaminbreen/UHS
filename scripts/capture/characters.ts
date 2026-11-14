@@ -1100,6 +1100,20 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["London", "london", 1760, ["sedan-chairman", "sedan-chairman|male|40", "shopkeeper", "landowner"]],
   ]),
 
+  /** Standing soldiers before 1870, their officers and followers, and age-set warriors. */
+  soldiers: (page) => castSheet(page, "soldiers", [
+    ["Rome", "rome", 100, ["soldier", "soldier|male|24", "army-officer", "veteran|male|55"]],
+    ["Paris", "paris", 1400, ["soldier", "soldier|male|24", "army-officer", "soldier|male|35"]],
+    ["London", "london", 1750, ["soldier", "soldier|male|24", "army-officer", "veteran|male|60"]],
+    ["Berlin", "city-berlin", 1760, ["soldier", "soldier|male|24", "army-officer", "sutler|female"]],
+    ["Istanbul", "city-istanbul", 1700, ["soldier", "soldier|male|24", "army-officer", "soldier|male|40"]],
+    ["Delhi", "delhi", 1650, ["soldier", "soldier|male|24", "army-officer", "sutler"]],
+    ["Beijing", "beijing", 1750, ["soldier", "soldier|male|24", "army-officer", "soldier|male|40"]],
+    ["Maasai", "maasai", 1850, ["young-warrior|male|18", "young-warrior|male|22", "young-warrior|male|26", "herder|male|50"]],
+    ["Tenochtitlan", "mexico", 1500, ["young-warrior|male|18", "soldier", "warrior", "young-warrior|male|25"]],
+    ["Plains", "great-plains-early", 1820, ["young-warrior|male|18", "young-warrior|male|24", "hunter", "young-warrior|male|28"]],
+  ]),
+
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {
     await characterLab(page);

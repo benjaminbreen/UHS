@@ -478,7 +478,7 @@ export function resolveCharacterContext(
   const tiered = revised
     ? commonLivelihoods.filter(
         (l) =>
-          tierApplies(l.tier!, s, capabilities) &&
+          (!l.tier || tierApplies(l.tier, s, capabilities)) &&
           supported(l) &&
           inScope(l, s, localRequirements) &&
           needsMet(l.needs ?? authoredNeeds.get(l.id)),
