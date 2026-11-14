@@ -10,6 +10,8 @@ A module registers a prefix, its looks and one builder:
 
     front_family.register('casa', {'oaxaca': dict(label=, about=, wall=, roof=, variants=3)}, house)
 
+A look may add `forms=` to bake only the street forms it is built in.
+
 `house(look, variant, form, cells, seed)` returns an unpainted object whose
 geometry is already settled (x0, W, base, floors, door_x, door_size), with
 `build()` returning the sprite and leaving `night` (a lamplit frame or None).
@@ -29,7 +31,7 @@ import zlib
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
-MODULES = ('art.front_iberia', 'art.front_modern')
+MODULES = ('art.front_iberia', 'art.front_modern', 'art.front_modern_world')
 # Front-on houses are drawn at the adult's scale, so old footprints widen.
 SCALE = 1.45
 FAMILIES = {}
@@ -79,7 +81,20 @@ def recipes(root, source):
                     description=L['about'], windowStyle='shutter', chimneys=0, stories=1,
                     seed=zlib.crc32(f'{prefix}-{look}-{v}'.encode()) % 9973)
     halls = {n for n in base if n.endswith('-0')}
-    return {**base, **urban_recipes(root, {**source, 'buildings': base}, bases=list(base), halls=halls)}
+    streets = urban_recipes(root, {**source, 'buildings': base}, bases=list(base), halls=halls)
+    return {**base, **{n: r for n, r in streets.items() if baked(n)}}
+
+
+def allowed(prefix, look, form):
+    """A look may name the street forms it is built in (`forms`); a bank has
+    no stall-width frame, and baking one only fills the atlas."""
+    forms = FAMILIES[prefix]['looks'][look].get('forms')
+    return not forms or form in forms
+
+
+def baked(name):
+    got = parse(name)
+    return not got or not got[3] or allowed(got[0], got[1], got[3])
 
 
 def adopt(recipes):
@@ -116,7 +131,9 @@ class FrontFamilyPainter:
             h = load()[prefix]['build'](look, variant, form, cells, seed)
             im = h.build()
             _PAINTED[key] = dict(image=im, night=h.night, w=im.width, h=im.height, anchor_x=h.x0 + h.W // 2,
-                                 door_x=h.door_x, door_size=h.door_size, door_ground=h.base + 1, bottom=h.base + 1)
+                                 door_x=h.door_x, door_size=h.door_size, door_ground=h.base + 1, bottom=h.base + 1,
+                                 overlays=getattr(h, 'overlays', None), smoke=getattr(h, 'smoke', None),
+                                 shop_signs=getattr(h, 'shop_signs', None))
         self.__dict__.update(_PAINTED[key])
 
     def render(self):
@@ -137,6 +154,8 @@ def subjects(prefixes=None):
         for look, L in fam['looks'].items():
             for v in range(L['variants']):
                 for form, cells in FORMS if v == 0 else FORMS[:1]:
+                    if not allowed(prefix, look, form):
+                        continue
                     h = fam['build'](look, v, form, cells, v * 7 + cells)
                     yield f'{prefix}-{look}-{v}-{form}', h.build(), h
 
@@ -239,7 +258,8 @@ def sheets(prefix, out, sets=None, only=None):
     bands, rows = [], []
     for k in looks:
         L = fam['looks'][k]
-        cells = [(f'{form} · {n * 16}px', b(k, 0, form, n, 3).build()) for form, n in FORMS]
+        cells = [(f'{form} · {n * 16}px', b(k, 0, form, n, 3).build()) for form, n in FORMS
+                 if allowed(prefix, k, form)]
         cells += [(f'colour {v}', b(k, v, 'row', 12, 5 + v).build()) for v in range(1, L['variants'])]
         bands.append((f'{title.get(k, prefix)} · {k} · {L["label"]}', cells))
         rows.append((f'{k} · {L["label"]}', [b(k, 0, 'cottage', 6, 1), b(k, 0, 'row', 12, 2),

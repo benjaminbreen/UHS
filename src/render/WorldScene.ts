@@ -37,7 +37,8 @@ import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety, reviewedPropFrame } from "./prop-variety";
 import { ensureSignTexture, inkFor, signWidth } from "./sign-texture";
-import { signLanguage, signOptions } from "../content/settlements/signs";
+import { secondLanguage, signLanguage, signOptions, signPaints } from "../content/settlements/signs";
+import { drawShopSign, fitWord, type SignSlot } from "./shop-signs";
 /** Trades for a shopfront the kit did not name. */
 const GENERIC_TRADES = [
   "grocery",
@@ -49,6 +50,13 @@ const GENERIC_TRADES = [
   "pharmacy",
   "shop",
 ];
+  "shoes",
+  "jeweler",
+  "radio",
+  "books",
+  "butcher",
+  "sweets",
+  "juice",
 import type { Place } from "../core/types";
 import type { WorldSetting } from "../content/geography/types";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
@@ -2902,7 +2910,11 @@ export class WorldScene extends Phaser.Scene {
                 ? 420
                 : kind === "pennant"
                   ? 170
-                  : 240,
+                  : kind === "acfan"
+                    ? 70
+                    : kind === "turbine"
+                      ? 130
+                      : 240,
         phase: random(seed, "building-overlay", id, i) * 4,
       });
     });
@@ -2970,6 +2982,47 @@ export class WorldScene extends Phaser.Scene {
    * century give people family names at all. Generation already decides that,
    * so a one-word name simply yields nothing here. */
   private ownerSurname(place: Place): string | undefined {
+  /** Every sign spot the art left on a front: a trade, a language, a paint
+   * and words for each, or nothing. A building's first spot carries its own
+   * trade; the others are neighbours renting the rest of the ground floor. */
+  private addShopSigns(
+    place: Place,
+    placement: ReturnType<typeof buildingPlacement>,
+    setting: WorldSetting | undefined,
+    top: number,
+  ) {
+    const model = placement.model as typeof placement.model & { shopSigns?: SignSlot[]; business?: string };
+    if (!model.shopSigns?.length || !setting) return;
+    const first = signLanguage(setting);
+    if (!first) return;
+    const second = secondLanguage(setting);
+    const paints = signPaints(setting);
+    const seed = this.runtime.engine.state.manifest.seed;
+    model.shopSigns.forEach(([sx, sy, w, h, kind, hint], i) => {
+      const r = (k: string) => random(seed, "shop-sign", k, place.id, i);
+      const own = i === 0 ? model.business : undefined;
+      if (own?.startsWith("residential") || r("bare") < 0.12) return;
+      const trade = hint || own || GENERIC_TRADES[Math.floor(r("trade") * GENERIC_TRADES.length)];
+      const language = second && r("language") < second[1] ? second[0] : first;
+      const options = signOptions(trade, language, this.ownerSurname(place), r("name") < 0.3);
+      const fit = fitWord(options, language, w, h, kind, r("word"));
+      if (!fit) return;
+      const paint = paints[Math.floor(r("paint") * paints.length)];
+      const made = drawShopSign(this, w, h, kind, paint, language, fit.word, fit.text, Math.floor(r("accent") * 15));
+      if (!made) return;
+      const x = Math.round(placement.x - model.anchor[0] + sx), y = Math.round(top - model.anchor[1] + sy);
+      const image = this.add.image(x, y, made.key).setOrigin(0, 0).setTint(this.tint).setDepth(placement.depth + 1);
+      this.layers.push(image);
+      if (!made.lit) return;
+      const at = (depth: number) => this.add.image(x, y, made.lit!).setOrigin(0, 0).setDepth(depth).setVisible(false);
+      const pane = at(placement.depth + 1.1);
+      const halo = at(19001).setBlendMode(Phaser.BlendModes.ADD);
+      this.layers.push(pane, halo);
+      this.lamps.push({ pane, halo });
+      this.washKey = "";
+    });
+  }
+
     if (!place.owner) return undefined;
     const owner = this.runtime.engine.state.actors.find(
       (actor) => actor.id === place.owner,
@@ -5044,6 +5097,7 @@ export class WorldScene extends Phaser.Scene {
             p.x - (fence.x + fence.w) > 100 ||
             fence.y - p.y > 100 ||
             p.y - (fence.y + fence.h) > 100
+            this.addShopSigns(b, placement, w.pack.setting, image.y);
           )
             continue;
           if (fence.parts) {

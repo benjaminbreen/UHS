@@ -375,6 +375,8 @@ def build_buildings(root, sprites):
     build_meso_animations(sprites)
     from art.city_station import build_station_animations
     build_station_animations(sprites)
+    from art.front_modern import animations as modern_animations
+    sprites.update(modern_animations())
     from art.precincts import PrecinctPiece, build_precinct_sprites, precinct_recipes
     build_precinct_sprites(sprites)
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
@@ -468,7 +470,7 @@ def build_buildings(root, sprites):
             life=[]
             for k,spec in enumerate(artist.bake_life()):
                 names=[f'{name}~{k}-{f}' for f in range(len(spec['frames']))]
-                for n,im in zip(names,spec['frames']):out[n]=im
+                for n,frame in zip(names,spec['frames']):out[n]=frame
                 life.append({**{a:b for a,b in spec.items() if a!='frames'},'f':names})
         w,h=im.size
         model={
@@ -504,6 +506,7 @@ def build_buildings(root, sprites):
             **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
+            **({'shopSigns':artist.shop_signs} if getattr(artist,'shop_signs',None) else {}),
             **({'glow':re.sub(r'-(north|east|west)$','',name)+'-glow'} if getattr(artist,'night',None) is not None else {}),
             # Painters that mark their glass, and tents with none: nothing for the game to guess at.
             **({'unglazed':True} if getattr(artist,'night',None) is None and any(r.get(k) for k in

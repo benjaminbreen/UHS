@@ -209,10 +209,10 @@ camp_frames=_with_glow({k:S.pop(k) for k in list(buildings)
                             (buildings[k].get('regionalHouse') or '').startswith(CAMP_FAMILIES))})
 regional_frames=_with_glow({k:S.pop(k) for k in list(buildings)
                  if k in S and buildings[k].get('regionalHouse')})
-# The modern gold masters and their lit-room frames: towers too tall to
-# share the house page.
+# The modern gold masters and the front-on modern family, with their lit-room
+# frames: towers too tall to share the house page.
 modern_frames={k:S.pop(k) for k in list(S)
-               if (buildings.get(k) or buildings.get(k[:-5]) or {}).get('obliqueModern')}
+               if k.startswith('mod-') or (buildings.get(k) or buildings.get(k[:-5]) or {}).get('obliqueModern')}
 # The street kit built in voxels, with its lit rooms and lamps; its snow and
 # wet layers load only when the weather asks for them.
 def _voxel(k):

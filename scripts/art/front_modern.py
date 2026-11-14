@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from art import front_materials as fm  # noqa: E402
 from art.front_materials import C, RAMPS, ramp, h2  # noqa: E402
 from art import front_openings as op  # noqa: E402
+from art import front_iberia as ib  # noqa: E402
 from art.front_kit import outline, consolidate, FONT  # noqa: E402
 
 ALU = ramp(245, 0.01, lift=0.04)
@@ -34,6 +35,7 @@ BRONZE = ramp(55, 0.04, lift=-0.2)          # dark anodised aluminium
 CONCRETE = ramp(85, 0.014, lift=0.02)
 CMU = ramp(80, 0.02, lift=0.04)
 TAR = ramp(275, 0.018, lift=-0.14)
+FELT = ramp(255, 0.014, lift=0.0)           # felt under a silvered coat
 GRAVEL = ramp(70, 0.03, lift=-0.02)
 IMPER = ramp(32, 0.1, lift=-0.08)           # the red waterproofing coat of a Mexican roof
 TIN = ramp(240, 0.014, lift=-0.02)
@@ -140,7 +142,13 @@ KANA = {k: v.replace('/', '') for k, v in KANA.items()}
 
 # ------------------------------------------------------------------ lettering
 
+# Scripts other modules draw: char -> (w, h, bits).
+EXTRA = {}
+
+
 def glyph(ch):
+    if ch in EXTRA:
+        return EXTRA[ch]
     if ch in KANA:
         return 5, 5, KANA[ch]
     if ch in WIDE:
@@ -391,13 +399,14 @@ def unit(c, x, by, w, h, d, r, top=None, louvres=False, fan=False):
         for a in range(16):
             c.p(cx + round(4 * math.cos(a * math.pi / 8)), cy + round(2 * math.sin(a * math.pi / 8)), r[5])
         c.rect(cx - 1, cy, 3, 1, r[4])
-    for yy in range(by - d, by):
-        q = c.g(x + w, yy)
-        if q[3]:
-            op.cast(c, x + w, yy, 3, 1, 0.7)
+    for yy in range(by - h - d + 2, by + 1):
+        op.cast(c, x + w, yy, 2, 1, 0.7)
+    op.cast(c, x + 1, by, w + 1, 1, 0.7)
 
 
 def vent(c, x, by, h=7, r=ALU):
+    op.cast(c, x + 2, by - h + 1, 2, h, 0.72)
+    op.cast(c, x, by, 4, 1, 0.72)
     c.rect(x, by - h, 2, h, r[3])
     c.rect(x, by - h, 1, h, r[1])
     c.rect(x - 1, by - h - 2, 4, 2, r[2])
@@ -431,7 +440,8 @@ def sash(b, cx, sill, w=16, h=30, frame=WHITE, trim=LIMESTONE, blind=None, lit=N
             c.rect(x + i, y - 4 - lift, 1, 4 + lift, arch[5] if i % 3 == 2 else arch[4 if lift > 1 else 3])
             c.p(x + i, y - 4 - lift, arch[2])
     else:
-        raised(c, x - 2, y - 4, w + 4, 4, trim, 2)
+        op.raised(c, x - 3, y - 3, w + 6, h + 3, trim, 2)
+        ib.guardapolvo(c, x, y - 3, w, trim)
     c.rect(x, y, w, h, frame[3])
     c.rect(x, y, w, 1, frame[2])
     mid = y + h // 2
@@ -444,8 +454,7 @@ def sash(b, cx, sill, w=16, h=30, frame=WHITE, trim=LIMESTONE, blind=None, lit=N
         c.rect(x + 2, y + 1 + bh, w - 4, 1, blind[3])
         c.p(cx, y + 2 + bh, blind[4])
     op.reveal(c, x + 1, y + 1, w - 2, h - 2, 2)
-    raised(c, x - 2, sill, w + 4, 3, trim, 2)
-    op.cast(c, x - 2, sill + 3, w + 4, 2, 0.7)
+    ib.repison(c, x, sill, w, trim)
     b.panes.append((x + 2, y + 2, w - 4, h - 4, lit or 'warm', h2(cx, sill, b.seed + 9) < 0.55))
 
 
@@ -530,20 +539,118 @@ def awning(c, x, y, w, a, bb=None, depth=9, valance=5, stripe=6):
     op.cast(c, x, y + depth + valance + 2, w, 7, 0.58)
 
 
-def box_sign(b, x, y, w, h, word, face, ink, frame=ALU, scale=None):
-    c = b.c
-    raised(c, x, y, w, h, frame, 3)
-    c.rect(x + 2, y + 2, w - 4, h - 4, face[2])
-    c.rect(x + 2, y + 2, w - 4, 1, face[1])
-    if scale is None:
-        scale = 2 if text_w(word, 2) <= w - 6 and h >= 14 else 1
-    tw, th = text_w(word, scale), 5 * scale
-    text(c, x + (w - tw) // 2, y + (h - th) // 2, word, ink[1] if ink is not face else face[5], ink[4], scale)
-    b.signs.append((x + 2, y + 2, w - 4, h - 4))
-    op.cast(c, x, y + h, w, 2, 0.7)
+def box_sign(b, x, y, w, h, word=None, face=None, ink=None, frame=ALU, scale=None, trade=None):
+    """A lit box sign over a shop: the game draws it."""
+    b.sign(x, y, w, h, 'box', trade)
 
 
 # ------------------------------------------------------------------ the building
+
+def surface(c, x, y, w, h, r, seed=0):
+    """A roof deck from above, in the sun: felt in laid strips, gravel, square
+    pavers or ribbed iron, chosen by its material. Light values; the
+    parapets' shadows give it depth."""
+    if w <= 0 or h <= 0:
+        return
+    if r is TAR:
+        r = FELT
+    c.rect(x, y, w, h, r[2])
+    if r is GRAVEL:
+        for yy in range(y, y + h):
+            for xx in range(x, x + w):
+                k = h2(xx, yy, seed)
+                if k < 0.1:
+                    c.p(xx, yy, r[1])
+                elif k > 0.92:
+                    c.p(xx, yy, r[3])
+        return
+    if r in IRONROOF.values():
+        for xx in range(x + 1, x + w - 1, 5):
+            c.rect(xx, y, 1, h, r[1])
+            c.rect(xx + 1, y, 1, h, r[3])
+        return
+    if r in (CONCRETE, TRAVY, PANEL, WHITE, TERRA) or r is LIMESTONE:
+        for py in range(y + h, y - 15, -16):
+            for px in range(x, x + w, 16):
+                ty, tx = max(y, py - 16), px
+                th, tw = py - ty, min(16, x + w - px)
+                if th <= 0:
+                    continue
+                k = h2(px, py, seed)
+                c.rect(tx, ty, tw, th, r[1] if k < 0.2 else r[3] if k > 0.88 else r[2])
+                c.rect(tx, ty, tw, 1, r[1] if k >= 0.2 else r[0])
+                c.rect(tx, ty + th - 1, tw, 1, r[3])
+                c.rect(tx + tw - 1, ty, 1, th, r[3])
+        return
+    for cy in range(y + h - 10, y - 10, -10):
+        if cy >= y:
+            c.rect(x, cy, w, 1, r[1])
+        if y <= cy + 1 < y + h:
+            c.rect(x, cy + 1, w, 1, r[3])
+    k = h2(seed, 7, 41)
+    if w > 60 and h > 20:
+        px, py = x + 8 + int(k * (w - 30)), y + 6 + int(h2(seed, 8, 43) * (h - 16))
+        c.rect(px, py, 16, 7, r[1])
+        c.rect(px, py + 6, 16, 1, r[3])
+        c.rect(px + 15, py, 1, 7, r[3])
+
+
+def chimney(c, x, by, r, h=12):
+    """A plastered stack with its cap and pots, its top seen from above."""
+    c.rect(x, by - h, 9, h, r[2])
+    c.rect(x, by - h, 1, h, r[1])
+    c.rect(x + 8, by - h, 1, h, r[4])
+    c.rect(x - 1, by - h - 4, 11, 4, r[1])
+    c.rect(x - 1, by - h - 1, 11, 1, r[3])
+    for px in (x + 1, x + 5):
+        c.rect(px, by - h - 7, 3, 3, BRICK[3])
+        c.rect(px, by - h - 7, 3, 1, BRICK[1])
+        c.p(px + 1, by - h - 7, INK[3])
+    op.cast(c, x + 9, by - h + 1, 2, h, 0.7)
+    op.cast(c, x + 1, by, 10, 1, 0.7)
+
+
+def puddle(c, x, y, r, seed):
+    """Standing water by a drain: a darker stain with the sky in it."""
+    for i, w in enumerate((5, 9, 11, 9, 5)):
+        c.rect(x + 6 - w // 2 + (seed % 3), y - 4 + i, w, 1, (FELT if r is TAR else r)[3])
+    c.rect(x + 4 + (seed % 3), y - 2, 5, 1, SKY[3])
+    c.rect(x + 5 + (seed % 3), y - 2, 2, 1, SKY[1])
+
+
+def bulkhead(c, x, by, w, h, d, r):
+    """The stair's housing on a roof: a box with a door, its slab from above."""
+    unit(c, x, by, w, h, d, r)
+    c.rect(x + 3, by - h + 3, 9, h - 3, r[5])
+    c.rect(x + 4, by - h + 4, 7, h - 4, CHOCOLATE[3])
+    c.rect(x + 4, by - h + 4, 7, 1, CHOCOLATE[2])
+    c.p(x + 9, by - h // 2, ALU[1])
+    c.rect(x + 2, by - h - 1, 11, 1, r[5])
+    unit(c, x + w - 6, by - h - d + 3, 3, 4, 2, ALU)
+
+
+def skylight(c, x, by, w, d):
+    """A hipped glass light on a curb, seen from above."""
+    c.rect(x, by - 3, w, 3, CONCRETE[3])
+    c.rect(x, by - 3, w, 1, CONCRETE[2])
+    c.rect(x, by - 3 - d, w, d, CONCRETE[2])
+    c.rect(x + 2, by - 1 - d, w - 4, d - 2, GLASS[4])
+    c.rect(x + 2, by - 1 - d, w - 4, (d - 2) // 2, GLASS[3])
+    for i in range(d - 3):
+        c.p(x + 4 + i, by - 2 - d + 1 + i, GLASS[1])
+    for xx in range(x + 2 + (w - 4) // 3, x + w - 2, (w - 4) // 3):
+        c.rect(xx, by - 1 - d, 1, d - 2, ALU[2])
+    op.cast(c, x + w, by - d - 2, 2, d + 2, 0.7)
+
+
+def turbine(b, x, by):
+    """A whirlybird vent: its stem drawn here, its turning head an overlay."""
+    c = b.c
+    c.rect(x + 2, by - 6, 3, 6, ALU[3])
+    c.rect(x + 2, by - 6, 1, 6, ALU[1])
+    c.rect(x + 1, by - 1, 5, 1, ALU[4])
+    b.overlays.append(['turbine', x, by - 13])
+
 
 class Block:
     """One building from a spec, geometry settled before any paint: x0, W,
@@ -566,11 +673,18 @@ class Block:
         self.top = self.base - sum(self.hs) - self.para
         self.c = C(self.x1 + 16 + self.right, self.base + 10)
         self.panes, self.signs, self.neon, self.bulbs, self.lamps = [], [], {}, {}, []
+        self.overlays, self.smoke, self.shop_signs = [], [], []
         self.door_x, self.door_size = self.x0 + self.W // 2, (22, 44)
         self.plan()
 
     all_shop = False
     stacks = ()
+    # A flat roof shows half the footprint's depth: room to walk on.
+    DEPTH = dict(row=48, tall=48, wide=56, hall=56, shop=40, cottage=30, hut=28, stall=24)
+
+    @property
+    def roof_depth(self):
+        return self.s.get('roof_depth', self.DEPTH.get(self.form, 44))
 
     @property
     def roof_span(self):
@@ -584,7 +698,7 @@ class Block:
         return 0, 0
 
     def headroom(self):
-        return self.HEAD
+        return self.HEAD + self.roof_depth - 14
 
     def plan(self):
         pass
@@ -616,6 +730,11 @@ class Block:
             c.p(x, y, CREAM[0])
             c.p(x, y + 1, GOLD[4])
             g['px'].append((x, y))
+
+    def sign(self, x, y, w, h, kind='board', trade=None):
+        """Leave room for a shop sign the game draws: board, words and all."""
+        self.shop_signs.append([x, y, w, h, kind] + ([trade] if trade else []))
+        op.cast(self.c, x, y + h, w, 2, 0.74)
 
     def lamp(self, x, y, colour='warm'):
         self.lamps.append((x, y, colour))
@@ -692,26 +811,90 @@ class Block:
 
     # ------------------------------------------------ roofs
 
-    def deck(self, depth=16, membrane=TAR, coping=CONCRETE, inset=0, y=None):
-        """A flat roof seen from above behind its parapet; returns the back row."""
+    def deck(self, depth=None, membrane=TAR, coping=CONCRETE, inset=0, y=None, furnish=True, clear=()):
+        """A flat roof seen from above inside its parapets; returns the back row.
+        Its depth is the roof's, so the deck can be walked on."""
         c = self.c
+        d = self.roof_depth if depth is None else depth
         x0, x1 = self.x0 + inset, self.x1 - inset
         y1 = self.top if y is None else y
-        y0 = y1 - depth
-        c.rect(x0, y0, x1 - x0, depth, membrane[3])
-        for xx in range(x0 + 18 + self.seed % 9, x1 - 4, 26):
-            c.rect(xx, y0 + 3, 1, depth - 3, membrane[4])
-        if x1 - x0 > 60:
-            px0 = x0 + 10 + round((x1 - x0 - 50) * h2(self.seed, 1, 5))
-            c.rect(px0, y0 + depth // 2, 22, depth // 3, membrane[2])
-        c.rect(x0 + 3, y0 + 3, x1 - x0 - 6, 2, membrane[4])
-        c.rect(x0 + 3, y0 + 3, 2, depth - 3, membrane[4])
-        c.rect(x0, y0, x1 - x0, 1, coping[1])
-        c.rect(x0, y0 + 1, x1 - x0, 2, coping[4])
-        c.rect(x0, y0, 3, depth, coping[2])
-        c.rect(x0, y0, 1, depth, coping[1])
-        c.rect(x1 - 3, y0, 3, depth, coping[3])
+        y0 = y1 - d
+        P = 4 if d >= 30 else 3
+        fx0, fx1, fy0, fy1 = x0 + P, x1 - P, y0 + P + 4, y1 - 2
+        surface(c, fx0, fy0, fx1 - fx0, fy1 - fy0, membrane, self.seed)
+        # the back parapet's top and its face towards us, the sides' tops
+        c.rect(x0, y0, x1 - x0, P, coping[1])
+        c.rect(x0, y0, x1 - x0, 1, coping[0])
+        c.rect(x0 + P, y0 + P, x1 - x0 - 2 * P, 4, coping[3])
+        c.rect(x0 + P, y0 + P, x1 - x0 - 2 * P, 1, coping[2])
+        c.rect(x0 + P, y0 + P + 3, x1 - x0 - 2 * P, 1, coping[4])
+        c.rect(x0, y0, P, d, coping[1])
+        c.rect(x0, y0, 1, d, coping[0])
+        c.rect(x1 - P, y0, P, d, coping[2])
+        c.rect(x1 - 1, y0, 1, d, coping[3])
+        c.rect(x0, y1 - 2, x1 - x0, 2, coping[1])
+        c.rect(x0, y1 - 2, x1 - x0, 1, coping[0])
+        op.cast(c, fx0, fy0, fx1 - fx0, 3, 0.66)
+        cast_right(c, fx0, fy0 + 3, fy1 - fy0 - 3, 2, 0.7)
+        if furnish:
+            self.furnish(fx0, fy0, fx1, fy1, membrane, clear)
         return y0
+
+    def furnish(self, x0, y0, x1, y1, membrane, clear=()):
+        """What stands on a flat roof: a stair bulkhead, a fan unit, stacks,
+        a skylight, drains; placed from the seed, never on each other."""
+        c, sd, W = self.c, self.seed, x1 - x0
+        D = y1 - y0
+        if membrane in IRONROOF.values():
+            for k, cx in enumerate(range(x0 + 14 + sd % 11, x1 - 12, 52)):
+                by = y0 + D // 2 + (k % 2) * 6
+                chimney(c, cx, by, WHITE if k % 2 else CREAM)
+                self.smoke.append([cx + 4, by - 16, 'chimney'])
+            return
+        dx = x0 + 3 + round(h2(sd, 2, 11) * 8)
+        dy = y1 - 4
+        if membrane not in (GRAVEL,):
+            puddle(c, dx + 2, dy - 1, membrane, sd)
+        c.rect(dx, dy, 3, 2, membrane[5])
+        c.rect(dx, dy, 3, 1, membrane[4])
+        if D < 16 or W < 40:
+            vent(c, x1 - 8, y0 + D // 2 + 4, 6)
+            return
+        back = y0 + min(D - 6, 16)
+        free = [(x0 + 4, x1 - 4)]
+        for a, b in clear:
+            free = [p for f in free for p in ((f[0], min(f[1], a)), (max(f[0], b), f[1])) if p[1] - p[0] > 0]
+
+        def take(w):
+            for i, (a, b) in enumerate(free):
+                if b - a >= w:
+                    left = h2(sd, a, 31) < 0.5
+                    s0 = a if left else b - w
+                    free[i:i + 1] = [(a, s0 - 4), (s0 + w + 4, b)]
+                    return s0
+            return None
+
+        if self.form in ('row', 'tall', 'wide', 'hall') and W >= 100:
+            bx = take(24)
+            if bx is not None:
+                bulkhead(c, bx, back + 6, 24, 15, 8, CONCRETE)
+        fan = take(20)
+        if fan is not None:
+            fy = back + 4 + round(h2(sd, 5, 3) * max(0, D - 26))
+            unit(c, fan, fy, 20, 8, 9, DOVE, louvres=True, fan=True)
+            self.overlays.append(['acfan', fan + 10 - 5, fy - 8 - 9 // 2 - 1 - 3])
+        if W >= 150:
+            sx = take(18)
+            if sx is not None:
+                skylight(c, sx, back + 2, 18, 9)
+        for k in range(1):
+            vx = take(6)
+            if vx is not None:
+                vent(c, vx + 2, back + 2 + round(h2(sd, k, 9) * max(0, D - 18)), 6 + k)
+        if W >= 110 and self.form not in ('row', 'tall', 'wide', 'hall'):
+            tx = take(8)
+            if tx is not None:
+                turbine(self, tx + 1, back + 8)
 
     def coping(self, coping=CONCRETE, y=None, over=1):
         c = self.c
@@ -731,9 +914,39 @@ class Block:
     def paint(self):
         raise NotImplementedError
 
+    def weather(self):
+        """Wear on the walls: grime drawn down from the ends of each upper
+        sill, damp rising at the foot. Each pixel steps one down its own ramp."""
+        c, wear, sd = self.c, self.s.get('wear', 0.5), self.seed
+        ramps = [v for v in self.s.values() if isinstance(v, list) and len(v) == 8 and isinstance(v[0], tuple)]
+        ramps += [BRICK, CONCRETE, LIMESTONE, CREAM, WHITE, STEEL, PANEL, TRAVY, BUFF, CHOCOLATE, YBRICK, SAGE]
+        index = {q: (r, i) for r in ramps for i, q in enumerate(r) if type(q) is tuple and type(q[0]) is int}
+
+        def step(x, y):
+            q = c.g(x, y)
+            if q[3] and q in index and (x, y) not in c.glass:
+                r, i = index[q]
+                c.p(x, y, r[min(7, i + 1)])
+
+        for x, y, w, h, *_ in self.panes:
+            sill = y + h + 5
+            if sill > self.base - 50:
+                continue
+            for sx in (x - 1, x + w):
+                n = int(6 + 12 * wear * h2(sx, sill, sd))
+                for k in range(n):
+                    if h2(sx, sill + k, sd + 1) < 0.9 - k / n * 0.6:
+                        step(sx, sill + k)
+        for xx in range(self.x0, self.x1):
+            rise = int(3 + 4 * wear + 2 * math.sin(xx * 0.19 + sd) + 1.5 * math.sin(xx * 0.05))
+            for k in range(max(0, rise)):
+                if k < rise - 1 or h2(xx, k, sd) < 0.5:
+                    step(xx, self.base - 1 - k)
+
     def build(self):
         self.paint()
         c = self.c
+        self.weather()
         outline(c)
         consolidate(c)
         for y in range(c.h):
@@ -786,7 +999,7 @@ class FalseFront(Block):
         step = 0 if s.get('crown') == 'square' or W < 96 else 8
         fy = top + step
         # the gable roof running back, seen over the front
-        ins, rd = 4, 20
+        ins, rd = 4, round(self.roof_depth * 0.6)
         ridge = (x0 + x1) // 2
         for xx in range(x0 + ins, x1 - ins):
             left = xx < ridge
@@ -834,12 +1047,9 @@ class FalseFront(Block):
         # the painted sign
         word = s['word'] if text_w(s['word'], 2) <= W - 24 else s.get('short', s['word'][:4])
         sy = fy + 15
-        sw = min(W - 12, text_w(word, 2) + 18)
+        sw = min(W - 12, 76)
         sx = (x0 + x1) // 2 - sw // 2
-        raised(c, sx, sy, sw, 15, trim, 2)
-        c.rect(sx + 2, sy + 2, sw - 4, 11, s['board'][2])
-        c.rect(sx + 2, sy + 2, sw - 4, 1, s['board'][1])
-        text(c, sx + (sw - text_w(word, 2)) // 2, sy + 3, word, s['ink'][1], s['ink'][5], 2)
+        self.sign(sx, sy, sw, 15, 'board')
         # an upper storey
         if self.floors > 1:
             t, b = self.floor(1)
@@ -988,11 +1198,7 @@ class BrickBlock(Block):
             if s.get('fascia') == 'box':
                 box_sign(self, a + 8, sy, sw - 16, sh, word, s['face'], s['face_ink'])
             else:
-                c.rect(a + 7, sy, sw - 14, sh, s['face'][3])
-                raised(c, a + 7, sy, sw - 14, sh, s['face'], 3)
-                sc = 2 if text_w(word, 2) < sw - 22 else 1
-                text(c, a + (sw - text_w(word, sc)) // 2, sy + (sh - 5 * sc) // 2, word, s['face_ink'][1],
-                     s['face_ink'][5], sc)
+                self.sign(a + 7, sy, sw - 14, sh, 'board')
             gy = sy + sh + 3
             dx = a + sw // 2 if sw >= 80 else b_ - 18
             dw = 22
@@ -1010,7 +1216,7 @@ class BrickBlock(Block):
             if s.get('awning'):
                 a1, a2 = s['awning']
                 awning(c, a + 6, gy + 1, sw - 12, a1, a2)
-        self.deck(14, TAR)
+        self.deck(None, TAR)
         dy = self.top - 3
         unit(c, x0 + W // 3, dy, 18, 7, 6, DOVE, fan=True)
         vent(c, x1 - 20, dy - 2)
@@ -1037,12 +1243,17 @@ class Diner(Block):
         x0, x1, W, base, top = self.x0, self.x1, self.W, self.base, self.top
         en, ink = s['enamel'], s['ink']
         # roof: barrel with a clerestory monitor, then the sign on its legs
-        rd = 16
+        rd = self.roof_depth - 10
         for yy in range(top - rd, top):
-            c.rect(x0 + 2, yy, W - 4, 1, s['roof'][2 if yy < top - rd + 5 else 3])
+            t = (yy - top + rd) / rd
+            c.rect(x0 + 2, yy, W - 4, 1, s['roof'][1 if t < 0.2 else 2 if t < 0.55 else 3 if t < 0.85 else 4])
+        for xx in range(x0 + 12, x1 - 6, 12):
+            c.rect(xx, top - rd + 1, 1, rd - 2, s['roof'][3])
+            c.rect(xx + 1, top - rd + 1, 1, rd - 2, s['roof'][1])
+        c.rect(x0 + 2, top - rd, W - 4, 1, s['roof'][0])
         for k in range(3):
             c.p(x0 + 2 + k, top - rd + 2 - k, (0, 0, 0, 0))
-        my = top - 11
+        my = top - rd // 2 - 2
         c.rect(x0 + 14, my - 3, W - 28, 3, s['roof'][1])
         c.rect(x0 + 14, my, W - 28, 5, en[4])
         for xx in range(x0 + 18, x1 - 18, 8):
@@ -1067,10 +1278,7 @@ class Diner(Block):
             c.rect(x0, yy, W, 1, ink[2])
         dx = self.door_x
         span = (dx + 22, x1 - 4) if x1 - dx > dx - x0 else (x0 + 4, dx - 22)
-        word = s['word'] if text_w(s['word'], 2) < span[1] - span[0] else 'DINER'
-        sc = 2 if text_w(word, 2) < span[1] - span[0] else 1
-        tw = text_w(word, sc)
-        text(c, (span[0] + span[1]) // 2 - tw // 2, top + 3 + (2 if sc == 1 else 0), word, ink[2], ink[5], sc)
+        self.sign(span[0], top + 4, span[1] - span[0], self.para - 7, 'paint', 'diner')
         c.rect(x0, top + self.para - 1, W, 1, STEEL[4])
         # windows over the booths
         wy, wh = top + self.para, 20
@@ -1127,7 +1335,7 @@ class Motel(Block):
         return 0, 40
 
     def headroom(self):
-        return max(self.HEAD, 178 - self.H0 - self.PARA)
+        return max(self.HEAD + self.roof_depth - 14, 178 - self.H0 - self.PARA)
 
     def plan(self):
         self.office = min(56, self.W)
@@ -1140,7 +1348,7 @@ class Motel(Block):
         wall, fas = s['wall'], s['fascia']
         cmu(c, x0, top, W, base - top, wall)
         # roof: gravel from above over a deep fascia
-        rd = 14
+        rd = self.roof_depth - 6
         for yy in range(top - rd, top):
             for xx in range(x0 - 4, x1 + 4):
                 k = h2(xx, yy, 21)
@@ -1150,6 +1358,7 @@ class Motel(Block):
         c.rect(x0 - 4, top, W + 8, self.para, fas[2])
         c.rect(x0 - 4, top + self.para - 1, W + 8, 1, fas[4])
         op.cast(c, x0, top + self.para, W, 7, 0.56)
+        self.furnish(x0 + 2, top - rd + 3, x1 - 2, top - 3, GRAVEL)
         # office
         ow = self.office
         dx = self.door_x
@@ -1263,7 +1472,7 @@ class Bank(Block):
         return 0, 26 if self.W >= 112 else 0
 
     def headroom(self):
-        return max(self.HEAD, 132 - sum(self.hs))
+        return max(self.HEAD + self.roof_depth - 14, 132 - sum(self.hs))
 
     def plan(self):
         self.door_x = self.x0 + self.W // 2
@@ -1325,13 +1534,16 @@ class Bank(Block):
         for k in range(3):
             c.rect(dx - dw // 2 - 6 - 2 * k, gy1 + 2 * k + 1, dw + 12 + 4 * k, 2, TRAV[1 + k])
         # the slab and its name
-        c.rect(x0 - 6, top - 12, W + 12, 12, GRAVEL[2])
-        c.rect(x0 - 6, top - 12, W + 12, 1, GRAVEL[1])
+        rd = self.roof_depth - 6
+        c.rect(x0 - 6, top - rd, W + 12, rd, WHITE[2])
+        c.rect(x0 - 6, top - rd, W + 12, 1, WHITE[1])
+        surface(c, x0 - 2, top - rd + 3, W + 4, rd - 6, GRAVEL, self.seed)
+        op.cast(c, x0 - 2, top - rd + 3, W + 4, 2, 0.7)
         c.rect(x0 - 6, top - 3, W + 12, 3, WHITE[1])
+        self.furnish(x0, top - rd + 3, x1, top - 3, GRAVEL)
         c.rect(x0 - 6, top, W + 12, self.para, WHITE[2])
         c.rect(x0 - 6, top + self.para - 2, W + 12, 2, WHITE[4])
-        word = next((w_ for w_ in s['names'] if text_w(w_) < W - 10), 'BANK')
-        text(c, (x0 + x1) // 2 - text_w(word) // 2, top + 4, word, BRONZE[3], BRONZE[1])
+        self.sign(x0 + 4, top + 2, W - 8, self.para - 4, 'paint', 'bank')
         # the time and temperature pylon
         if self.right:
             px0 = x1 + 8
@@ -1418,6 +1630,7 @@ class Strip(Block):
                 c.rect(bx - 1, base - 38, 5, 2, STEEL[1])
                 c.rect(bx - 1, base - 20, 5, 2, STEEL[3])
                 barber(c, bx, base - 36, 0)
+                self.overlays.append(['barber', bx, base - 36])
             elif k % 2 == 0 and skeleton_w('OPEN') < dx - a - 30:
                 self.tube(skeleton('OPEN', a + 10, base - 30), 'red', f'open{k}', 'flicker' if k == 0 else 'steady')
         # mansard and its signs
@@ -1429,7 +1642,7 @@ class Strip(Block):
         for k, ((a, b_), (word, goods, face, ink)) in enumerate(zip(self.units, biz)):
             sw = min(b_ - a - 12, max(text_w(word, 2) + 12, 40))
             box_sign(self, (a + b_) // 2 - sw // 2, my + 4, sw, 15, word, face, ink)
-        self.deck(14, GRAVEL, CONCRETE, y=my)
+        self.deck(None, GRAVEL, CONCRETE, y=my)
         for a, b_ in self.units:
             unit(c, (a + b_) // 2 - 9, my - 3, 18, 6, 6, DOVE, fan=True)
         self.foot()
@@ -1439,8 +1652,9 @@ def barber(c, x, y, k):
     """A barber's pole, 3 x 16, its stripes risen k pixels."""
     for yy in range(16):
         for i in range(3):
-            u = (i + yy + k) % 6
-            c.p(x + i, y + yy, RED[2] if u < 2 else WHITE[1] if u < 4 else BLUE[2])
+            u = (i + yy + k) % 4
+            col = RED[2] if u == 0 else BLUE[2] if u == 2 else WHITE[1]
+            c.p(x + i, y + yy, col if i < 2 else fm.mix(col, INK[4], 0.3))
     c.p(x, y, WHITE[0])
 
 
@@ -1516,7 +1730,7 @@ class Office(Block):
         c.rect(x0, top, W, self.para, (pier or mull)[2])
         c.rect(x0, top + self.para - 1, W, 1, (pier or mull)[4])
         self.coping((pier or mull), over=1)
-        dy0 = self.deck(16, TAR, pier or ALU)
+        dy0 = self.deck(None, TAR, pier or ALU)
         pw = max(30, W // 2)
         px0 = (x0 + x1) // 2 - pw // 2
         unit(c, px0, top - 5, pw, 14, 8, pier or CONCRETE, louvres=True)
@@ -1560,6 +1774,7 @@ class Theatre(Block):
         x0, x1, W, base, top = self.x0, self.x1, self.W, self.base, self.top
         wall, acc, acc2 = s['wall'], s['accent'], s['accent2']
         mid = (x0 + x1) // 2
+        self.deck(None, TAR, wall, y=top + 14)
         steps = [(W, 0), (W * 3 // 5, 7), (W * 3 // 10, 14)] if W >= 112 else [(W, 0), (W // 2, 7)]
         for w_, rise in steps:
             panels(c, mid - w_ // 2, top + 14 - rise, w_, base - top - 14 + rise, wall, 24, 10, 2, self.seed)
@@ -1761,10 +1976,7 @@ class Moderno(Block):
             sc = 2 if text_w(word, 2) < bw - 6 else 1
             if text_w(word, sc) > bw - 4:
                 word = word[:max(3, (bw - 4) // (4 * sc))]
-            c.rect(a + 4, t0 + 3, bw, 14, bg[2])
-            c.rect(a + 4, t0 + 3, bw, 1, bg[1])
-            c.rect(a + 4, t0 + 16, bw, 1, bg[4])
-            text(c, a + 4 + (bw - text_w(word, sc)) // 2, t0 + 10 - 5 * sc // 2, word, fg[1], INK[3], sc)
+            self.sign(a + 4, t0 + 3, bw, 14, 'board')
             sx, sw, sy = a + 6, bw - 4, t0 + 20
             c.rect(sx - 1, sy, sw + 2, 5, ALU[2])
             c.rect(sx - 1, sy, sw + 2, 1, ALU[0])
@@ -1795,7 +2007,7 @@ class Moderno(Block):
             self.panes.append((gx + 2, base - 44, gw - 4, 42, 'dim', True))
         # roof
         self.coping(frame)
-        self.deck(14, IMPER, frame)
+        self.deck(None, IMPER, frame)
         tank = s['tinaco']
         for k, tx in enumerate([x1 - 26, x1 - 44][:1 + (W >= 144)]):
             c.rect(tx - 1, top - 6, 18, 3, CMU[3])
@@ -1854,19 +2066,15 @@ class Zakkyo(Block):
                 c.rect(gx, gy, gw, 3, WHITE[3])
                 for yy in range(gy + 4, gy + gh, 5):
                     c.rect(gx, yy, gw, 1, WHITE[1])
-                if text_w(word, 2) < gw - 4:
-                    text(c, gx + (gw - text_w(word, 2)) // 2, gy + 6, word, kan[2], None, 2)
-                elif text_w(word) < gw - 4:
-                    text(c, gx + (gw - text_w(word)) // 2, gy + 8, word, kan[2], None)
-                self.signs.append((gx, gy, gw, gh))
+                self.sign(gx + 2, gy + 3, gw - 4, gh - 6, 'box')
             else:
                 interior(c, gx, gy, gw, gh, 'empty', self.seed + i)
                 if style == 2:
                     for xx in range(gx, gx + gw, 2):
                         c.rect(xx, gy, 1, gh - 3, s['blind'][1 + (xx // 2) % 2])
                 reflect(c, gx, gy, gw, gh, GLASS, i)
-                if style == 0 and text_w(word) < gw - 4:
-                    text(c, gx + (gw - text_w(word)) // 2, gy + 8, word, kan[1], None)
+                if style == 0:
+                    self.sign(gx + 3, gy + 5, gw - 6, 13, 'paint')
             for xx in range(wx + ww // 2, wx + ww, ww):
                 c.rect(xx, wy, 2, wh, ALU[2])
             c.rect(wx, wy, ww, 1, ALU[1])
@@ -1886,12 +2094,7 @@ class Zakkyo(Block):
             c.rect(x0, b - 2, W, 2, tile[3])
             # kanban
             ky, kh = t + 4, b - t - 8
-            raised(c, kx - 1, ky - 1, 14, kh + 2, ALU, 2)
-            c.rect(kx + 1, ky + 1, 10, kh - 2, kan[2])
-            c.rect(kx + 1, ky + 1, 10, 1, kan[1])
-            ink = INK if any(kan is r for r in (YELLOW, SAFFRON, LIME)) else WHITE
-            vtext(c, kx + 6 - 2, ky + 4, word[:5], ink[1] if ink is WHITE else ink[2], kan[4], 7)
-            self.signs.append((kx + 1, ky + 1, 10, kh - 2, 'flicker' if i == self.floors - 1 else 'steady'))
+            self.sign(kx - 2, ky - 1, 16, kh + 2, 'box')
         c.rect(kx + 4, top + self.para, 3, base - top - self.para - 58, ALU[3])
         # ground floor
         t0, _ = self.floor(0)
@@ -1909,8 +2112,6 @@ class Zakkyo(Block):
             c.rect(px0, fy + 4, 6, 15, nr[2])
             c.rect(px0, fy + 4, 6, 1, nr[1])
             c.rect(px0 + 5, fy + 4, 1, 15, nr[4])
-        text(c, nx + 1, fy + 9, 'ラー', WHITE[1])
-        text(c, nx + 14, fy + 9, 'メン', WHITE[1])
         lx, ly = x0 + 4 + sw - 6, fy + 10
         for i, wdt in enumerate((4, 6, 7, 7, 6, 4)):
             c.rect(lx - wdt // 2, ly + i, wdt, 1, RED[2 if i < 3 else 3])
@@ -1936,7 +2137,7 @@ class Zakkyo(Block):
             self.panes.append((x1 - 12, base - 42, dw - 6, 40, 'cool', True))
         # roof
         self.coping(ALU)
-        self.deck(14, CONCRETE, ALU)
+        self.deck(None, CONCRETE, ALU)
         tx = x0 + 10
         c.rect(tx + 2, top - 8, 2, 6, INK[3])
         c.rect(tx + 18, top - 8, 2, 6, INK[3])
@@ -2019,7 +2220,7 @@ class Stalinka(Block):
         x0, x1, W, base, top = self.x0, self.x1, self.W, self.base, self.top
         wall, trim, roof = s['wall'], s['trim'], IRONROOF[s['roof']]
         n = len(self.cols)
-        hipped(c, x0 - 3, x1 + 3, top, 22, roof)
+        hipped(c, x0 - 3, x1 + 3, top, round(self.roof_depth * 0.66), roof)
         for vx in (x0 + W // 5, x1 - W // 5):
             c.rect(vx, top - 20, 6, 12, BRICK[3])
             c.rect(vx, top - 20, 6, 2, BRICK[1])
@@ -2252,11 +2453,16 @@ class Panelka(Block):
         # roof and slogan
         c.rect(x0, top, W, self.para, PANEL[2])
         self.coping(PANEL)
-        self.deck(14, TAR, PANEL)
-        unit(c, (x0 + x1) // 2 - 16, top - 4, 32, 14, 6, CONCRETE)
-        c.rect((x0 + x1) // 2 - 6, top - 13, 8, 9, s['door'][3])
         word = next((w_ for w_ in SLOGANS[s.get('slogan', 0):] + SLOGANS if text_w(w_, 2) <= W - 12), None)
-        if word and self.floors >= 4:
+        word = word if self.floors >= 4 else None
+        y0 = self.deck(None, TAR, PANEL, furnish=not word)
+        if word:
+            by = y0 + 13
+            unit(c, x0 + 12, by, 30, 14, 8, CONCRETE)
+            c.rect(x0 + 18, by - 12, 8, 12, s['door'][3])
+            unit(c, x1 - 34, by, 20, 8, 9, DOVE, louvres=True, fan=True)
+            self.overlays.append(['acfan', x1 - 29, by - 8 - 4 - 1 - 3])
+        if word:
             tw = text_w(word, 2)
             lx, ly = (x0 + x1) // 2 - tw // 2, top - 34
             for yy in (ly - 2, ly + 11):
@@ -2380,13 +2586,7 @@ class Tehran(Block):
         for k, (a, b_) in enumerate(self.bays):
             word, goods, bg, fg = TEHRAN_SHOPS[(k + self.seed + s.get('shift', 0)) % len(TEHRAN_SHOPS)]
             bw = b_ - a - 6
-            raised(c, a + 3, t0 + 4, bw, 15, bg, 2)
-            if word in FARSI:
-                farsi(c, a + 3 + bw // 2 - 13, t0 + 6, word, fg[1], bg[5], 2)
-            else:
-                sc = 2 if text_w(word, 2) < bw - 6 else 1
-                text(c, a + 3 + (bw - text_w(word, sc)) // 2, t0 + 11 - 5 * sc // 2, word, fg[1], bg[5], sc)
-            self.signs.append((a + 5, t0 + 6, bw - 4, 11))
+            self.sign(a + 3, t0 + 4, bw, 15, 'board')
             sx, sw, sy = a + 5, bw - 4, t0 + 22
             c.rect(sx - 1, sy, sw + 2, 5, s['shutter'][2])
             c.rect(sx - 1, sy, sw + 2, 1, s['shutter'][0])
@@ -2410,7 +2610,7 @@ class Tehran(Block):
             self.lamp(gx + 10, base - 50)
         # roof
         self.coping(TRAVY)
-        self.deck(14, CONCRETE, TRAVY)
+        self.deck(None, CONCRETE, TRAVY)
         for k, cx in enumerate([x0 + W // 4, x0 + 3 * W // 4][:1 + (W >= 128)]):
             unit(c, cx - 9, top - 9, 18, 12, 7, ALU, louvres=True)
             c.rect(cx - 2, top - 9, 5, 7, ALU[3])
@@ -2519,16 +2719,7 @@ class Delhi(Block):
         for k, (a, b_) in enumerate(self.bays):
             word, goods, bg, fg = DELHI[(k * 2 + self.seed + s.get('shift', 0)) % len(DELHI)]
             bw = b_ - a - 4
-            raised(c, a + 2, t0 + 2, bw, 17, bg, 2)
-            sc = 2 if text_w(word, 2) < bw - 6 else 1
-            if text_w(word, sc) > bw - 4:
-                word = word.split()[0]
-            text(c, a + 2 + (bw - text_w(word, sc)) // 2, t0 + 10 - 5 * sc // 2, word, fg[1],
-                 INK[3] if bg is not INK else None, sc)
-            if word == 'CHEMIST' and bw > 50:
-                c.rect(a + 5, t0 + 9, 7, 3, CRIMSON[2])
-                c.rect(a + 7, t0 + 7, 3, 7, CRIMSON[2])
-            self.signs.append((a + 4, t0 + 4, bw - 4, 13))
+            self.sign(a + 2, t0 + 2, bw, 17, 'board')
             sx, sw, sy = a + 4, bw - 4, t0 + 22
             c.rect(sx - 1, sy, sw + 2, 5, ALU[2])
             c.rect(sx - 1, sy, sw + 2, 1, ALU[0])
@@ -2541,7 +2732,7 @@ class Delhi(Block):
             self.panes.append((sx, sy + 5, sw, base - sy - 5, 'cool', True))
             c.rect(sx, base - 3, sw, 3, CONCRETE[2])
         # roof
-        self.deck(12, CONCRETE, CONCRETE, y=top - 2)
+        self.deck(None, CONCRETE, CONCRETE, y=top - 2)
         hx = x0 + 6
         unit(c, hx, top - 5, 26, 18, 5, s['hut'])
         c.rect(hx + 4, top - 21, 10, 16, s['door'][3])
@@ -2637,11 +2828,7 @@ class Veranda(Block):
         # the shop
         t0 = self.floor(0)[0]
         fy0 = t0 + (12 if self.floors > 1 else 4)
-        raised(c, x0 + 5, fy0, W - 10, 14, s['sign'], 2)
-        word = s['word'] if text_w(s['word'], 2) < W - 20 else s['word'].split()[0]
-        sc = 2 if text_w(word, 2) < W - 20 else 1
-        text(c, mid - text_w(word, sc) // 2, fy0 + 7 - 5 * sc // 2, word, s['sign_ink'][1], s['sign'][5], sc)
-        self.signs.append((x0 + 7, fy0 + 2, W - 14, 10))
+        self.sign(x0 + 5, fy0, W - 10, 14, 'board')
         t0 = fy0 - 3
         dx = self.door_x
         for lx, rx in ((x0 + 6, dx - 13), (dx + 13, x1 - 6)):
@@ -2681,7 +2868,7 @@ class Veranda(Block):
             c.rect(p, roof_y + 1, 1, base - roof_y - 1, iron[1])
             c.rect(p + 2, roof_y + 1, 1, base - roof_y - 1, iron[4])
             c.rect(p - 1, base - 3, 5, 3, iron[3])
-        self.deck(10, IRONROOF['red'], WHITE, y=top - 1, inset=2)
+        self.deck(None, IRONROOF['red'], WHITE, y=top - 1, inset=2)
         self.lamp(dx, t0 + 18)
         self.foot()
 
@@ -2707,10 +2894,12 @@ class BoKaap(Block):
         c, s = self.c, self.s
         x0, x1, W, base, top = self.x0, self.x1, self.W, self.base, self.top
         pt = top + 6
-        self.deck(10, IRONROOF['red'], WHITE, y=pt)
+        self.deck(None, IRONROOF['red'], WHITE, y=pt)
+        rd = self.roof_depth
         for a, _ in self.houses[1:]:
-            c.rect(a - 1, pt - 10, 3, 10, WHITE[2])
-            c.rect(a - 1, pt - 10, 1, 10, WHITE[1])
+            c.rect(a - 1, pt - rd, 4, rd, WHITE[2])
+            c.rect(a - 1, pt - rd, 1, rd, WHITE[0])
+            cast_right(c, a + 3, pt - rd + 8, rd - 10, 2, 0.7)
         for k, (a, b_) in enumerate(self.houses):
             col = BOLD[(self.seed * 5 + k * 3 + s.get('shift', 0)) % len(BOLD)]
             hw, cx = b_ - a, (a + b_) // 2
@@ -2931,6 +3120,59 @@ ABOUT = {
 }
 
 
+def animations():
+    """Four-frame loops the game turns at points the painters publish
+    (`overlays`): a roof fan, a whirlybird vent, a barber's pole."""
+    from PIL import Image
+    out = {}
+    for f in range(4):
+        c = C(11, 7)
+        for yy in range(7):
+            for xx in range(11):
+                e = ((xx - 5) / 5.5) ** 2 + ((yy - 3) / 3.5) ** 2
+                if e <= 1:
+                    c.p(xx, yy, ALU[4] if e > 0.6 and yy < 3 else ALU[6] if yy < 3 else ALU[5])
+        for n in range(3):
+            a = f * math.pi / 6 + n * 2 * math.pi / 3
+            for t in (1, 2, 3, 4):
+                c.p(5 + round(math.cos(a) * t), 3 + round(math.sin(a) * t * 0.62), ALU[2] if t < 4 else ALU[3])
+        c.p(5, 3, ALU[1])
+        out[f'animation-acfan-{f}'] = c.im
+    for f in range(4):
+        c = C(7, 8)
+        for xx in range(7):
+            band = (xx + f) % 4
+            col = ALU[(1, 2, 3, 2)[band]] if xx < 5 else ALU[(3, 4, 5, 4)[band]]
+            top = 2 if xx in (0, 6) else 1 if xx in (1, 5) else 0
+            c.rect(xx, top, 1, 7 - top, col)
+            if band == 0:
+                c.rect(xx, top + 1, 1, 5 - top, ALU[4] if xx >= 5 else ALU[3])
+        c.rect(0, 6, 7, 1, ALU[5])
+        c.rect(3, 0, 1, 1, ALU[0])
+        out[f'animation-turbine-{f}'] = c.im
+    for f in range(4):
+        c = C(3, 16)
+        for yy in range(16):
+            for i in range(3):
+                u = (i + yy + f) % 4
+                col = RED[2] if u == 0 else BLUE[2] if u == 2 else WHITE[1]
+                c.p(i, yy, col if i < 2 else fm.mix(col, INK[4], 0.3))
+        out[f'animation-barber-{f}'] = c.im
+    wash = [WHITE, SKY, SALMON, BUTTER]
+    for f in range(4):
+        c = C(22, 12)
+        for k, col in enumerate(wash):
+            sway = round(math.sin(f * math.pi / 2 + k * 1.3) * 1.5)
+            gx, gw, gh = 1 + k * 5, 4, 6 + (k * 3) % 4
+            for yy in range(gh):
+                dx = round(sway * yy / gh)
+                c.rect(gx + dx, 1 + yy, gw, 1, col[1] if yy else col[0])
+                c.p(gx + dx + gw - 1, 1 + yy, col[3])
+            c.p(gx + 1, 0, INK[3])
+        out[f'animation-wash-{f}'] = c.im
+    return out
+
+
 def house(look, variant=0, form='row', cells=12, seed=0):
     cls, _, colours = LOOKS[look]
     return cls(colours[variant % len(colours)], form, cells, seed)
@@ -2942,8 +3184,24 @@ def build(look, variant=0, form='row', cells=12, seed=0):
 
 from art import front_family  # noqa: E402
 
-front_family.register('mod', {k: dict(label=L[1], about=ABOUT[k][1], wall=ABOUT[k][0], roof='flat',
-                                      variants=len(L[2])) for k, L in LOOKS.items()}, house)
+# The street forms each look is built in; the rest would only fill the atlas.
+FORMS = dict(
+    falsefront='row shop tall cottage', brick='row shop wide tall hall', diner='row shop cottage',
+    motel='row wide cottage hall', bank='row shop tall hall', strip='row shop wide hall',
+    office='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
+    zakkyo='row shop tall cottage hut', stalinka='row wide tall hall', panelka='row wide tall hall',
+    tehran='row shop wide tall hall', delhi='row shop tall cottage hut', veranda='row shop wide tall cottage',
+    bokaap='row shop cottage hut')
+FORMS.update({'brick-mx': FORMS['brick'], 'brick-cn': FORMS['brick'], 'strip-mx': FORMS['strip'],
+              'strip-asia': FORMS['strip']})
+
+def register():
+    front_family.register('mod', {k: dict(label=L[1], about=ABOUT[k][1], wall=ABOUT[k][0], roof='flat',
+                                          variants=len(L[2]), forms=set(FORMS[k].split()))
+                                  for k, L in LOOKS.items()}, house)
+
+
+register()
 
 
 # ------------------------------------------------------------------ review
