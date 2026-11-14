@@ -9,8 +9,19 @@
       "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_geography_regions_polys.geojson",
       "sha256": "b7b26e50ea917d3696aec87f932def2bf5f890f5770e441d59c162c6f4c92a77",
       "license": "Public domain \u2014 Natural Earth"
+    },
+    {
+      "url": "https://files.isimip.org/ISIMIP3a/InputData/socioeconomic/pop/histsoc/population_histsoc_30arcmin_annual_1850_1900.nc",
+      "sha256": "2a001ca338d9819f4c1f3f6e03ea89fd9645e1b9a12cb5fca90289cd3b354a72",
+      "license": "CC BY 4.0 \u2014 ISIMIP3a, from HYDE 3.3"
+    },
+    {
+      "url": "https://files.isimip.org/ISIMIP3a/InputData/socioeconomic/pop/histsoc/population_histsoc_30arcmin_annual_1901_2021.nc",
+      "sha256": "1490903f44a51eca79453c9551265c4feaea04e814a7cb0332ac48de9c109435",
+      "license": "CC BY 4.0 \u2014 ISIMIP3a, from HYDE 3.3"
     }
   ],
   "legacyRevision": "302c17dd8b2d7c809c7056ee9f7f8ed973a8dffa",
-  "matchedLegacyAreas": 180
+  "matchedLegacyAreas": 180,
+  "addedForPopulation": 142
 }

@@ -45,62 +45,68 @@ export function randomPopulationWeightedYear(draw: number) {
 /** How a start picks its place. The year is population-weighted either way. */
 export type StartMode = "any" | "realistic";
 
-/* The curated anchors in places.ts are not in the generated table, so they take
- * the country of the nearest place that is. Without this the best-authored
- * starts in the game — Rome, London, Delhi — would be undrawable. */
-const placeCountry: Record<string, string> = {};
-for (const p of places) {
-  if (mapped[p.id]) {
-    placeCountry[p.id] = mapped[p.id];
-    continue;
-  }
-  let best: { code: string; distance: number } | undefined;
-  for (const other of places) {
-    const code = mapped[other.id];
-    if (!code) continue;
-    const dx = (other.lon - p.lon) * Math.cos((p.lat * Math.PI) / 180);
-    const distance = Math.hypot(dx, other.lat - p.lat);
-    if (!best || distance < best.distance) best = { code, distance };
-  }
-  if (best) placeCountry[p.id] = best.code;
-}
-/** Places sharing a country, so a country's people are split between them. */
-const countryPlaces = places.reduce<Record<string, number>>((count, p) => {
-  const code = placeCountry[p.id];
-  if (code) count[code] = (count[code] ?? 0) + 1;
-  return count;
-}, {});
+const catchmentYears = population.catchmentYears as number[];
+const catchments = population.catchments as Record<string, number[]>;
+const urbanYears = population.urbanYears as number[];
+const urban = population.urban as Record<string, number[]>;
 
-function sliceFor(year: number) {
+function nearestIndex(years: readonly number[], year: number) {
   let best = 0;
-  for (let i = 1; i < slices.length; i++)
-    if (Math.abs(slices[i] - year) < Math.abs(slices[best] - year)) best = i;
+  for (let i = 1; i < years.length; i++)
+    if (Math.abs(years[i] - year) < Math.abs(years[best] - year)) best = i;
   return best;
 }
 
+const unit = (draw: number) => (draw >>> 0) / 0x1_0000_0000;
+const townKinds = new Set(["city", "port"]);
+
+/** People in each country's catchments, all places and town places only. */
+const countryCatchment = catchmentYears.map((_, k) => {
+  const all: Record<string, number> = {};
+  const towns: Record<string, number> = {};
+  for (const p of places) {
+    const code = mapped[p.id];
+    const people = catchments[p.id]?.[k] ?? 0;
+    all[code] = (all[code] ?? 0) + people;
+    if (townKinds.has(p.settlement)) towns[code] = (towns[code] ?? 0) + people;
+  }
+  return { all, towns };
+});
+
 /**
- * A place drawn in proportion to the people alive in its country that year.
- * A country's population is split evenly between its places, so this decides
- * which country you are born in, not which kind of place within it: the atlas
- * is ranked by modern prominence, so medieval France still means Paris.
+ * A place drawn in proportion to the people alive near it that year: its
+ * country's total, split by the share of that country living nearer to it than
+ * to any other place. Before 1850 the split is the 1850 one.
  */
 function populationWeightedPlace(draw: number, year: number) {
-  const at = sliceFor(year);
+  const at = nearestIndex(slices, year);
+  const k = nearestIndex(catchmentYears, year);
   const weights = places.map((p) => {
-    const code = placeCountry[p.id];
-    const series = code ? byCountry[code] : undefined;
-    return series ? series[at] / countryPlaces[code] : 0;
+    const code = mapped[p.id];
+    const total = countryCatchment[k].all[code];
+    return total > 0 ? (byCountry[code][at] * (catchments[p.id]?.[k] ?? 0)) / total : 0;
   });
   const total = weights.reduce((sum, w) => sum + w, 0);
-  // No country in the table holds anyone that year: fall back to an even draw
-  // rather than returning nothing.
-  if (!(total > 0)) return places[draw % places.length];
-  let remaining = ((draw >>> 0) / 0x1_0000_0000) * total;
+  let remaining = unit(draw) * total;
   for (let i = 0; i < places.length; i++) {
     remaining -= weights[i];
     if (remaining < 0) return places[i];
   }
   return places[places.length - 1];
+}
+
+/**
+ * Whether a start at a town place is in the town or the country around it.
+ * Town places hold most of a country's catchment, so the odds are scaled up to
+ * land the country's urban share overall rather than that share of the towns.
+ */
+function inTown(draw: number, place: (typeof places)[number], year: number) {
+  const code = mapped[place.id];
+  const share = urban[code]?.[nearestIndex(urbanYears, year)];
+  if (share === undefined) return true;
+  const k = nearestIndex(catchmentYears, year);
+  const towns = countryCatchment[k].towns[code] / countryCatchment[k].all[code];
+  return unit(draw) < share / 100 / towns;
 }
 
 /**
@@ -118,16 +124,18 @@ export function randomStartFromDraws(
     mode === "realistic"
       ? populationWeightedPlace(draws[0], year)
       : places[draws[0] % places.length];
-  const base = settingFor(place, year);
+  let base = settingFor(place, year);
+  if (mode === "realistic" && townKinds.has(base.settlement) && !inTown(draws[3] ?? 0, place, year))
+    base = { ...base, settlement: "village", population: undefined };
   // The work available here, rather than a fixed five; a Kyoto start can be a
   // dyer and a Manchester one a match worker.
   const work = resolveCharacterContext(base).livelihoods;
-  let pick = ((draws[1] ?? 0) / 0x1_0000_0000) * work.reduce((sum, l) => sum + (l.weight ?? 1), 0);
+  let pick = unit(draws[1] ?? 0) * work.reduce((sum, l) => sum + (l.weight ?? 1), 0);
   const role = (work.find((l) => (pick -= l.weight ?? 1) < 0) ?? work[work.length - 1]).label;
   const setting = populateCharacter({ ...base, role, settlement: tillersHome(base, role) }, seed);
   return { seed, setting };
 }
 
 export function randomStart(mode: StartMode = "realistic") {
-  return randomStartFromDraws(crypto.getRandomValues(new Uint32Array(3)), mode);
+  return randomStartFromDraws(crypto.getRandomValues(new Uint32Array(4)), mode);
 }

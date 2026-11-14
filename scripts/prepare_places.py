@@ -198,16 +198,59 @@ for p in json.loads((ROOT/'scripts/data/extra-places.json').read_text())['places
  if p.get('water','none')=='none' and water: record['water']=water
  result[norm(p['name'])]=record
 
-for f in sorted(cities,key=lambda f:-(f['properties']['pop_max'] or 0)):
- p=f['properties'];name=p['name'];key=norm(name);lon,lat=p['longitude'],p['latitude']
- if p['scalerank']>4 or key in result or abs(lat)>85:continue
+def gazetteer(p):
+ name=p['name'];key=norm(name);lon,lat=p['longitude'],p['latitude']
  near,water,settlement=waters(lon,lat,rank(p))
  record=dict(id='city-'+key.replace(' ','-'),name=name,aliases=[p['nameascii']] if p.get('nameascii')!=name and p.get('nameascii') else [],lon=round(lon,4),lat=round(lat,4),**{**defaults(lon,lat),'settlement':settlement,**({'water':water} if water else {})},**near)
  if p['pop_max']: record['population']=int(p['pop_max'])
  result[key]=record
+for f in sorted(cities,key=lambda f:-(f['properties']['pop_max'] or 0)):
+ p=f['properties']
+ if p['scalerank']>4 or norm(p['name']) in result or abs(p['latitude'])>85:continue
+ gazetteer(p)
+
+# The sweep above follows modern prominence, so a crowded farming plain had one
+# place standing for a hundredth of humanity. Lesser gazetteer towns are added
+# where a place's share of the people nearest it, in 1850 or 2021, exceeds CAP.
+CAP=0.003
+import subprocess, h5py, numpy as np
+featured=json.loads(subprocess.run(['npx','tsx','-e','import { featuredPlaces } from "./src/content/geography/places"; console.log(JSON.stringify(featuredPlaces.map(({lon,lat,name,aliases})=>({lon,lat,names:[name,...aliases]}))))'],cwd=ROOT,capture_output=True,text=True,check=True).stdout)
+# places.ts drops a generated place that shares a featured name.
+taken={norm(n) for f in featured for n in f['names']}
+grids=[]
+for span,index in [('1850_1900',0),('1901_2021',120)]:
+ grid=ROOT/'scripts/source-cache'/f'population_histsoc_30arcmin_annual_{span}.nc'
+ if not grid.exists():raise FileNotFoundError(f'{grid.name}: run scripts/prepare_population.py first, which fetches it')
+ sources.append({'url':f'https://files.isimip.org/ISIMIP3a/InputData/socioeconomic/pop/histsoc/{grid.name}','sha256':hashlib.sha256(grid.read_bytes()).hexdigest(),'license':'CC BY 4.0 — ISIMIP3a, from HYDE 3.3'})
+ with h5py.File(grid) as f:
+  g=f['total-population'][index];grids.append(np.where(g<1e19,g,0));glon,glat=np.meshgrid(f['lon'][:],f['lat'][:])
+peopled=(grids[0]>0)|(grids[1]>0)
+cx,cy=glon[peopled],glat[peopled];cos=np.cos(np.radians(cy))
+people=np.stack([g[peopled]/g[peopled].sum() for g in grids])
+spots=[(r['lon'],r['lat']) for r in result.values()]+[(f['lon'],f['lat']) for f in featured]
+best=np.full(len(cx),np.inf);owner=np.zeros(len(cx),int)
+def claim(i,lon,lat):
+ d=((cx-lon)*cos)**2+(cy-lat)**2;u=d<best;best[u]=d[u];owner[u]=i
+for i,(lon,lat) in enumerate(spots):claim(i,lon,lat)
+spare=[f['properties'] for f in cities if f['properties']['scalerank']>4 and abs(f['properties']['latitude'])<=85]
+done=set();added=0
+while True:
+ share=np.zeros((2,len(spots)))
+ for k in range(2):np.add.at(share[k],owner,people[k])
+ worst=share.max(axis=0);worst[list(done)]=0;i=int(np.argmax(worst))
+ if worst[i]<CAP:break
+ at=np.array(spots)
+ def nearest_spot(p):
+  d=((at[:,0]-p['longitude'])*math.cos(math.radians(p['latitude'])))**2+(at[:,1]-p['latitude'])**2
+  return int(np.argmin(d)),d.min()
+ # A town at least 20 km out that the crowded place is nearest to; the largest wins.
+ inside=[p for p in spare if norm(p['name']) not in result and norm(p['name']) not in taken and (lambda n:n[0]==i and n[1]>0.04)(nearest_spot(p))]
+ if not inside:done.add(i);continue
+ p=max(inside,key=lambda p:p['pop_max'] or 0)
+ gazetteer(p);spots.append((p['longitude'],p['latitude']));claim(len(spots)-1,p['longitude'],p['latitude']);added+=1
 # Fix the catalog culture vocabulary centrally; data generation never invents runtime IDs.
 alias={'north-american':'other-indigenous-american','south-american':'andean','sub-saharan-african':'west-central-african','mena':'north-african-west-asian','central-asian':'inner-eurasian'}
 for p in result.values():p['culture']=alias.get(p['culture'],p['culture'])
 (ROOT/'src/content/geography/places.generated.json').write_text(json.dumps(list(result.values()),ensure_ascii=False,separators=(',',':')))
-(ROOT/'src/content/geography/places.sources.json').write_text(json.dumps({'sources':sources,'legacyRevision':'302c17dd8b2d7c809c7056ee9f7f8ed973a8dffa','matchedLegacyAreas':matched},indent=2)+'\n')
-print(f'{matched} legacy areas matched; {len(result)} total named anchors')
+(ROOT/'src/content/geography/places.sources.json').write_text(json.dumps({'sources':sources,'legacyRevision':'302c17dd8b2d7c809c7056ee9f7f8ed973a8dffa','matchedLegacyAreas':matched,'addedForPopulation':added},indent=2)+'\n')
+print(f'{matched} legacy areas matched; {len(result)} total named anchors, {added} added where people were crowded')

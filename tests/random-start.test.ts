@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { places } from "../src/content/geography/places";
+import population from "../src/content/geography/population.generated.json" with { type: "json" };
 import {
   randomPopulationWeightedYear,
   randomStartFromDraws,
@@ -52,6 +53,28 @@ describe("random starts", () => {
     expect(weighted("south-asian") + weighted("east-asian")).toBeGreaterThan(
       0.4,
     );
+  });
+
+  it("splits a country by where its people lived, and mostly outside towns before industry", () => {
+    const byId = new Map(places.map((place) => [place.id, place]));
+    let chinese = 0,
+      farWest = 0,
+      towns = 0;
+    for (let i = 0; i < 600; i++) {
+      const { setting } = randomStartFromDraws(
+        // 838 CE.
+        new Uint32Array([(i * 2654435761) >>> 0, 0, 0x6000_0000, (i * 2246822519) >>> 0]),
+        "realistic",
+      );
+      const place = byId.get(setting.placeId)!;
+      if (setting.settlement === "city" || setting.settlement === "port") towns++;
+      if (population.places[place.id as keyof typeof population.places] !== "CHN") continue;
+      chinese++;
+      if (place.lon < 100) farWest++;
+    }
+    // An even split put a third of China in Tibet and Xinjiang.
+    expect(farWest / chinese).toBeLessThan(0.1);
+    expect(towns / 600).toBeLessThan(0.15);
   });
 
   it.runIf(!!process.env.FULL)("leaves no place unreachable, including the curated anchors", () => {

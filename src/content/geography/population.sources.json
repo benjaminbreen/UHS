@@ -9,7 +9,52 @@
       "url": "https://ourworldindata.org/grapher/population.csv?csvType=full&useColumnShortNames=true",
       "sha256": "31c97de9a52df0792e34c4bb5ee80bf266cfa12bc0587c829715e0829a97a536",
       "license": "CC BY 4.0 \u2014 Our World in Data"
+    },
+    {
+      "url": "https://geo.public.data.uu.nl/vault-hyde/HYDE%203.3%5B1701183392%5D/original/hyde33_c7_base_mrt2023/zip/5000BC_pop.zip",
+      "sha256": "14d20c52f8560018a28c62779b7a054d6dab7be5fffe0e982e9c6947c0165806",
+      "license": "CC BY 4.0 \u2014 HYDE 3.3, Klein Goldewijk et al."
+    },
+    {
+      "url": "https://geo.public.data.uu.nl/vault-hyde/HYDE%203.3%5B1701183392%5D/original/hyde33_c7_base_mrt2023/zip/1000BC_pop.zip",
+      "sha256": "93a5fce6f5d2a1fab01b6cac821d967ddff92b598a42b67bc7520ffb185d61aa",
+      "license": "CC BY 4.0 \u2014 HYDE 3.3, Klein Goldewijk et al."
+    },
+    {
+      "url": "https://geo.public.data.uu.nl/vault-hyde/HYDE%203.3%5B1701183392%5D/original/hyde33_c7_base_mrt2023/zip/0AD_pop.zip",
+      "sha256": "2b3e97bf64ab93f2de47fe219ece25289f1ff4fbeff8609349e5502e09194fbc",
+      "license": "CC BY 4.0 \u2014 HYDE 3.3, Klein Goldewijk et al."
+    },
+    {
+      "url": "https://geo.public.data.uu.nl/vault-hyde/HYDE%203.3%5B1701183392%5D/original/hyde33_c7_base_mrt2023/zip/500AD_pop.zip",
+      "sha256": "2cb46cd02d01466e0a559fdc6c01fd160e97d806525494fdeb2e1bccb9483889",
+      "license": "CC BY 4.0 \u2014 HYDE 3.3, Klein Goldewijk et al."
+    },
+    {
+      "url": "https://geo.public.data.uu.nl/vault-hyde/HYDE%203.3%5B1701183392%5D/original/hyde33_c7_base_mrt2023/zip/1000AD_pop.zip",
+      "sha256": "1e066b3018ee9c7aea956c3743b2b14f7d8bb6ef98c4feb3e906821d6df0eec8",
+      "license": "CC BY 4.0 \u2014 HYDE 3.3, Klein Goldewijk et al."
+    },
+    {
+      "url": "https://geo.public.data.uu.nl/vault-hyde/HYDE%203.3%5B1701183392%5D/original/hyde33_c7_base_mrt2023/zip/1500AD_pop.zip",
+      "sha256": "83d9ccba8cba2de08baa155f459c920a8b9c7a0f2ce05bcd9346a163382964d1",
+      "license": "CC BY 4.0 \u2014 HYDE 3.3, Klein Goldewijk et al."
+    },
+    {
+      "url": "https://files.isimip.org/ISIMIP3a/InputData/socioeconomic/pop/histsoc/population_histsoc_30arcmin_annual_1850_1900.nc",
+      "sha256": "2a001ca338d9819f4c1f3f6e03ea89fd9645e1b9a12cb5fca90289cd3b354a72",
+      "license": "CC BY 4.0 \u2014 ISIMIP3a, from HYDE 3.3"
+    },
+    {
+      "url": "https://files.isimip.org/ISIMIP3a/InputData/socioeconomic/pop/histsoc/population_histsoc_30arcmin_annual_1901_2021.nc",
+      "sha256": "1490903f44a51eca79453c9551265c4feaea04e814a7cb0332ac48de9c109435",
+      "license": "CC BY 4.0 \u2014 ISIMIP3a, from HYDE 3.3"
+    },
+    {
+      "url": "https://ourworldindata.org/grapher/urbanization-last-500-years.csv?csvType=full&useColumnShortNames=true",
+      "sha256": "85f781e9247ecdc6c20b0ba47f3276325075635f02ac9a1e0b6bb3ee3e7ddebe",
+      "license": "CC BY 4.0 \u2014 Our World in Data, from HYDE 3.3"
     }
   ],
-  "placesByNearestCountry": 33
+  "placesByNearestCountry": 38
 }
