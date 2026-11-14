@@ -10,7 +10,7 @@ describe("random starts", () => {
     for (const id of ["area-oahu-basin", "area-iceland", "city-philadelphia"]) {
       const index = places.findIndex((place) => place.id === id);
       expect(index, id).toBeGreaterThanOrEqual(0);
-      const start = randomStartFromDraws(new Uint32Array([index, 0, 0]));
+      const start = randomStartFromDraws(new Uint32Array([index, 0, 0]), "any");
       expect(start.setting.placeId).toBe(id);
     }
   });

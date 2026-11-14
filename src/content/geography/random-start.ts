@@ -6,91 +6,45 @@ import { resolveCharacterContext } from "../characters/resolve";
 
 const firstRandomYear = -12999; // 13,000 BCE in astronomical numbering
 const onePastPresent = 2027;
-/**
- * Approximate global population anchors, in millions.  The historical series
- * follows HYDE's long-run reconstruction, with recent UN-derived values via
- * Our World in Data: https://ourworldindata.org/grapher/population
- *
- * They weight *when* a start occurs by the number of people alive, not the
- * chance that the selected atlas place held that share of population. Regional
- * population weighting needs a separately reviewed spatial dataset.
- */
-const globalPopulationMillions = [
-  [firstRandomYear, 1.5],
-  [-9999, 2],
-  [-4999, 18],
-  [0, 188],
-  [500, 210],
-  [1000, 295],
-  [1500, 461],
-  [1600, 554],
-  [1700, 603],
-  [1800, 989],
-  [1900, 1654],
-  [1950, 2545],
-  [2000, 6145],
-  [onePastPresent, 8200],
-] as const;
-
-type PopulationSegment = {
-  start: number;
-  end: number;
-  startPopulation: number;
-  endPopulation: number;
-  area: number;
-};
-
-const populationSegments: PopulationSegment[] = globalPopulationMillions
-  .slice(0, -1)
-  .map(([start, startPopulation], i) => {
-    const [end, endPopulation] = globalPopulationMillions[i + 1];
-    return {
-      start,
-      end,
-      startPopulation,
-      endPopulation,
-      // Trapezoidal person-years under this linearly interpolated segment.
-      area: ((startPopulation + endPopulation) * (end - start)) / 2,
-    };
-  });
-
-const populationArea = populationSegments.reduce(
-  (sum, segment) => sum + segment.area,
-  0,
-);
-
-/** Draw a year from the population-weighted historical timeline. */
-export function randomPopulationWeightedYear(draw: number) {
-  const unit = (draw >>> 0) / 0x1_0000_0000;
-  let remaining = unit * populationArea;
-  const segment =
-    populationSegments.find((candidate) => {
-      if (remaining < candidate.area) return true;
-      remaining -= candidate.area;
-      return false;
-    }) ?? populationSegments.at(-1)!;
-  const duration = segment.end - segment.start;
-  const change = segment.endPopulation - segment.startPopulation;
-  // Invert the integral of a linear population curve within the segment.
-  const offset =
-    change === 0
-      ? remaining / segment.startPopulation
-      : (2 * remaining) /
-        (segment.startPopulation +
-          Math.sqrt(
-            segment.startPopulation ** 2 + (2 * change * remaining) / duration,
-          ));
-  return Math.min(segment.end - 1, segment.start + Math.floor(offset));
-}
-
-/** How a start picks its place. The year is population-weighted either way. */
-export type StartMode = "any" | "realistic";
 
 /* Per-country population, and the country each place stands in. See
  * scripts/prepare_population.py for what the two are and are not. */
 const slices = population.years as number[];
 const byCountry = population.countries as Record<string, number[]>;
 const mapped = population.places as Record<string, string>;
+
+/* World population per slice, summed from the same table the place draw uses.
+ * Years between slices are interpolated in log space: growth compounds, and a
+ * straight line from 5000 BCE to 1 CE drew half again too many starts in
+ * between. Before the first slice and after the last, the edge value holds. */
+const world = slices.map((_, i) =>
+  Object.values(byCountry).reduce((sum, series) => sum + series[i], 0),
+);
+const cumulative = new Float64Array(onePastPresent - firstRandomYear + 1);
+for (let year = firstRandomYear, i = 1, k = 0; year < onePastPresent; year++, i++) {
+  while (k < slices.length - 1 && slices[k + 1] <= year) k++;
+  const next = Math.min(k + 1, slices.length - 1);
+  const t = next > k && year > slices[k] ? (year - slices[k]) / (slices[next] - slices[k]) : 0;
+  const alive = Math.exp(Math.log(world[k]) * (1 - t) + Math.log(world[next]) * t);
+  cumulative[i] = cumulative[i - 1] + alive;
+}
+
+/** Draw a year in proportion to the people alive in it. */
+export function randomPopulationWeightedYear(draw: number) {
+  const target = ((draw >>> 0) / 0x1_0000_0000) * cumulative[cumulative.length - 1];
+  let lo = 0,
+    hi = cumulative.length - 2;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cumulative[mid + 1] <= target) lo = mid + 1;
+    else hi = mid;
+  }
+  return firstRandomYear + lo;
+}
+
+/** How a start picks its place. The year is population-weighted either way. */
+export type StartMode = "any" | "realistic";
+
 /* The curated anchors in places.ts are not in the generated table, so they take
  * the country of the nearest place that is. Without this the best-authored
  * starts in the game — Rome, London, Delhi — would be undrawable. */
@@ -150,13 +104,13 @@ function populationWeightedPlace(draw: number, year: number) {
 }
 
 /**
- * Fresh browser entropy across the entire atlas and 10,000 BCE–present. A
+ * Fresh browser entropy across the entire atlas and 13,000 BCE–present. A
  * start's year is population-weighted; curated examples/default years are not
  * hidden random-start inputs.
  */
 export function randomStartFromDraws(
   draws: Uint32Array,
-  mode: StartMode = "any",
+  mode: StartMode = "realistic",
   seed = `world-${crypto.randomUUID()}`,
 ) {
   const year = randomPopulationWeightedYear(draws[2] ?? 0);
@@ -168,11 +122,12 @@ export function randomStartFromDraws(
   // The work available here, rather than a fixed five; a Kyoto start can be a
   // dyer and a Manchester one a match worker.
   const work = resolveCharacterContext(base).livelihoods;
-  const role = work[draws[1] % work.length].label;
+  let pick = ((draws[1] ?? 0) / 0x1_0000_0000) * work.reduce((sum, l) => sum + (l.weight ?? 1), 0);
+  const role = (work.find((l) => (pick -= l.weight ?? 1) < 0) ?? work[work.length - 1]).label;
   const setting = populateCharacter({ ...base, role, settlement: tillersHome(base, role) }, seed);
   return { seed, setting };
 }
 
-export function randomStart(mode: StartMode = "any") {
+export function randomStart(mode: StartMode = "realistic") {
   return randomStartFromDraws(crypto.getRandomValues(new Uint32Array(3)), mode);
 }

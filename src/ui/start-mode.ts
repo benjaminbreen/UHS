@@ -18,10 +18,10 @@ export const startModes: { value: StartMode; label: string; hint: string }[] = [
 
 export function readStartMode(): StartMode {
   try {
-    return localStorage.getItem(KEY) === "realistic" ? "realistic" : "any";
+    return localStorage.getItem(KEY) === "any" ? "any" : "realistic";
   } catch {
     // Private browsing and blocked site data both throw here.
-    return "any";
+    return "realistic";
   }
 }
 
