@@ -170,6 +170,41 @@ def hip_roof(c, L, R, eave, depth, r, tex=None):
     return top
 
 
+def pigeon_loft(b, lx, ly):
+    """A pigeon loft on poles over a roof, its birds an overlay."""
+    c = b.c
+    c.rect(lx, ly - 20, 24, 20, PIGEON[2])
+    c.rect(lx, ly - 20, 24, 1, PIGEON[0])
+    c.rect(lx + 23, ly - 20, 1, 20, PIGEON[4])
+    for j in range(3):
+        c.rect(lx + 4 + j * 7, ly - 12, 3, 3, PIGEON[6])
+    for xx in (lx + 1, lx + 11, lx + 22):
+        c.rect(xx, ly - 42, 1, 22, WOOD[3])
+    for (ax, ay, bx2, by2) in ((lx + 1, ly - 42, lx + 22, ly - 22), (lx + 22, ly - 42, lx + 1, ly - 22),
+                               (lx - 2, ly - 42, lx + 25, ly - 42), (lx - 2, ly - 32, lx + 25, ly - 32)):
+        for x_, y_ in line(ax, ay, bx2, by2):
+            c.p(x_, y_, WOOD[2])
+    op.cast(c, lx + 24, ly - 18, 2, 18, 0.7)
+    b.overlays.append(['pigeons', lx + 5, ly - 27])
+
+
+def peel(c, x, y, w, h, wall, under, seed, n=6):
+    """Paint flaking off a rendered wall: blots of the older coat beneath,
+    each with the broken edge of the new one lit along its top."""
+    for k in range(n):
+        px = x + int(h2(k, 1, seed) * (w - 14))
+        py = y + int(h2(k, 2, seed) * (h - 10))
+        pw, ph = 5 + int(h2(k, 3, seed) * 9), 3 + int(h2(k, 4, seed) * 5)
+        for yy in range(py, py + ph):
+            inset = abs(yy - py - ph // 2) * 2 // 3 + int(h2(k, yy, seed) * 2)
+            for xx in range(px + inset, px + pw - inset):
+                q = c.g(xx, yy)
+                if q in wall:
+                    c.p(xx, yy, under[wall.index(q)])
+            c.p(px + inset - 1, yy, wall[4])
+        c.rect(px + 2, py - 1, max(1, pw - 4), 1, wall[0])
+
+
 # ------------------------------------------------------------------ Cairo
 
 CAIRO_SHOPS = [('فول', 'counter', JADE, WHITE), ('PHARMACY', 'shelves', GREEN, WHITE), ('شاي', 'counter', CRIMSON, SAFFRON),
@@ -347,19 +382,7 @@ class Cairo(Block):
         cylinder(c, x0 + W // 3 + 4, ty, 14, 12, DOVE, lid=DOVE[4])
         if W >= 96:
             lx, ly = x1 - 34, y0 + min(34, self.roof_depth - 8)
-            c.rect(lx, ly - 20, 24, 20, PIGEON[2])
-            c.rect(lx, ly - 20, 24, 1, PIGEON[0])
-            c.rect(lx + 23, ly - 20, 1, 20, PIGEON[4])
-            for j in range(3):
-                c.rect(lx + 4 + j * 7, ly - 12, 3, 3, PIGEON[6])
-            for xx in (lx + 1, lx + 11, lx + 22):
-                c.rect(xx, ly - 42, 1, 22, WOOD[3])
-            for (ax, ay, bx2, by2) in ((lx + 1, ly - 42, lx + 22, ly - 22), (lx + 22, ly - 42, lx + 1, ly - 22),
-                                       (lx - 2, ly - 42, lx + 25, ly - 42), (lx - 2, ly - 32, lx + 25, ly - 32)):
-                for x_, y_ in line(ax, ay, bx2, by2):
-                    c.p(x_, y_, WOOD[2])
-            op.cast(c, lx + 24, ly - 18, 2, 18, 0.7)
-            self.overlays.append(['pigeons', lx + 5, ly - 27])
+            pigeon_loft(self, lx, ly)
             wx = x0 + W // 3 + 24
             if lx - wx >= 30:
                 washline(self, wx, lx - 6, ly - 4)
@@ -605,12 +628,7 @@ class Storey(Block):
         for i in range(1, self.floors):
             t, b = self.floor(i)
             for k, (a, b_) in enumerate(self.units):
-                wx, ww = a + 8, b_ - a - 16
-                c.rect(wx, t + 6, ww, b - t - 10, s['frame'][3])
-                for yy in range(t + 8, b - 6, 3):
-                    c.rect(wx + 2, yy, ww - 4, 2, GLASS[2] if (yy // 3) % 2 else GLASS[3])
-                c.rect(wx + ww // 2, t + 6, 1, b - t - 10, s['frame'][2])
-                self.panes.append((wx + 2, t + 8, ww - 4, b - t - 14, 'warm', h2(k, i, self.seed) < 0.6))
+                self.storey_window(a + 10, b_ - a - 20, t + 5, b - t - 12, k, i)
             slab(c, x0 - 3, b - 3, W + 6, CONCRETE)
             breeze(c, x0 - 2, b - 19, W + 4, 16, s['breeze'])
         t0 = self.floor(0)[0]
@@ -632,13 +650,58 @@ class Storey(Block):
         for yy in range(base - 40, base - 4, 6):
             c.rect(dx + 3, yy, 14, 1, s['frame'][4])
         slab(c, x0 - 4, t0 + 18, W + 8, TIN, 3)
-        # a hipped iron roof over a thin eave
+        # a hipped iron roof over a thin eave, rust bleeding from its nails
         c.rect(x0 - 4, top - 2, W + 8, 3, wall[4])
-        hip_roof(c, x0 - 4, x1 + 4, top - 1, round(self.roof_depth * 0.8), s["roof"])
-        for xx in range(x0, x1, 6):
-            if h2(xx, 2, self.seed) < 0.25:
-                c.rect(xx, top - 20 + int(h2(xx, 3, self.seed) * 12), 3, 2, RUST[3])
+        rd = round(self.roof_depth * 0.8)
+        ridge = hip_roof(c, x0 - 4, x1 + 4, top - 1, rd, s["roof"])
+        for xx in range(x0, x1, 5):
+            if h2(xx, 2, self.seed) < 0.3:
+                ry = top - 4 - int(h2(xx, 3, self.seed) * (rd - 8))
+                L = 2 + int(h2(xx, 4, self.seed) * 5)
+                c.rect(xx, ry, 2, L, RUST[3])
+                c.rect(xx, ry, 1, L, RUST[2])
+        # the overhead tank on its steel stand, standing through the roof
+        if W >= 80:
+            tx, tb = x1 - 30, top - 6
+            for px in (tx + 1, tx + 15):
+                c.rect(px, tb - 18, 2, 18, INK[3])
+            for x_, y_ in line(tx + 3, tb - 16, tx + 14, tb - 3):
+                c.p(x_, y_, INK[3])
+            c.rect(tx - 1, tb - 20, 20, 2, INK[2])
+            unit(c, tx, tb - 20, 18, 14, 6, s['tank'])
+            for xx in range(tx + 4, tx + 16, 5):
+                c.rect(xx, tb - 34, 1, 14, s['tank'][4])
+            aerial(c, x0 + W // 3, ridge + 4, 24)
         self.foot(CONCRETE)
+
+    def storey_window(self, wx, ww, wy, wh, k, i):
+        """Glass louvres (nako) in a painted frame, a wire screen on one
+        half, and the burglar-proof bars over the lot."""
+        c, s = self.c, self.s
+        fr = s['frame']
+        c.rect(wx - 2, wy - 2, ww + 4, wh + 4, fr[2])
+        c.rect(wx - 2, wy - 2, ww + 4, 1, fr[1])
+        c.rect(wx, wy, ww, wh, ROOM[6])
+        half = ww // 2
+        for yy in range(wy + 1, wy + wh - 1, 3):
+            c.rect(wx + 1, yy, ww - 2, 1, GLASS[1])
+            c.rect(wx + 1, yy + 1, ww - 2, 1, GLASS[3])
+        if h2(k, i, self.seed) < 0.5:
+            for yy in range(wy, wy + wh):
+                for xx in range(wx + half, wx + ww):
+                    if (xx + yy) % 2 == 0:
+                        c.p(xx, yy, DOVE[4])
+        c.rect(wx + half, wy, 1, wh, fr[3])
+        op.reveal(c, wx, wy, ww, wh, 2)
+        bars = s.get('bars', INK)
+        for xx in range(wx + 2, wx + ww - 1, 4):
+            c.rect(xx, wy - 1, 1, wh + 2, bars[2])
+        for yy in (wy + 3, wy + wh - 4):
+            c.rect(wx - 1, yy, ww + 2, 1, bars[2])
+        for xx in range(wx + 4, wx + ww - 3, 8):
+            for d in range(-2, 3):
+                c.p(xx + d, wy + wh // 2 + abs(d) - 1, bars[1])
+        self.panes.append((wx + 1, wy + 1, ww - 2, wh - 2, 'warm', h2(k, i, self.seed + 1) < 0.6))
 
 
 # ------------------------------------------------------------------ Havana
@@ -679,6 +742,8 @@ class Habana(Block):
         x0, x1, W, base, top = self.x0, self.x1, self.W, self.base, self.top
         wall, deco = s['wall'], s.get('deco')
         stucco(c, x0, top, W, base - top, wall, 2, self.seed)
+        if not deco:
+            peel(c, x0 + 2, top + 2, W - 4, self.floor(0)[0] - top - 4, wall, s['under'], self.seed, max(3, W // 24))
         cols = [CRIMSON, COBALT, SAFFRON, JADE]
         for i in range(1, self.floors):
             t, b = self.floor(i)
@@ -742,18 +807,29 @@ class Habana(Block):
             for j, w_ in enumerate((W, W * 2 // 3, W // 3)):
                 c.rect(mid - w_ // 2, top - j * 8, w_, 8, wall[1 + (j % 2)])
                 c.rect(mid - w_ // 2, top - j * 8, w_, 1, wall[0])
-            name = s.get('name', 'HOTEL')
-            if skeleton_w(name) < W - 16 and self.floors > 1:
-                nx = mid - skeleton_w(name) // 2
-                c.rect(nx - 4, top + 3, skeleton_w(name) + 8, 13, INK[3])
-                self.tube(skeleton(name, nx, top + 4), s.get('neon', 'pink'), 'name', 'flicker')
+            if self.floors > 1:
+                nw = min(W - 16, 64)
+                self.sign(mid - nw // 2, top + 3, nw, 14, 'neon')
         else:
             c.rect(x0, top - 10, W, 10, wall[1])
             for xx in range(x0 + 3, x1 - 3, 6):
                 c.rect(xx, top - 8, 3, 8, wall[0])
                 c.rect(xx + 2, top - 8, 1, 8, wall[3])
             c.rect(x0 - 1, top - 12, W + 2, 3, wall[0])
-        self.deck(None, CONCRETE, wall, y=top - (16 if deco else 10))
+        y1 = top - (16 if deco else 10)
+        y0 = self.deck(None, CONCRETE, wall, y=y1, furnish=False)
+        # the azotea: a tank on its stand, the wash, and a loft of pigeons
+        D = y1 - y0
+        tx = x0 + 8
+        c.rect(tx - 1, y0 + min(D - 4, 24) - 6, 18, 6, CONCRETE[3])
+        c.rect(tx - 1, y0 + min(D - 4, 24) - 6, 18, 1, CONCRETE[1])
+        cylinder(c, tx, y0 + min(D - 4, 24) - 6, 16, 14, DOVE, lid=DOVE[4])
+        cast_right(c, tx + 16, y0 + min(D - 4, 24) - 24, 22, 3, 0.66)
+        if W >= 96:
+            lx = x1 - 34
+            pigeon_loft(self, lx, y0 + min(D - 6, 32))
+            if lx - tx >= 52:
+                washline(self, tx + 24, lx - 6, y0 + min(D - 6, 30))
         self.foot(LIMESTONE)
 
 
@@ -1161,11 +1237,12 @@ NEW = {
         dict(wall=BRICK, sash=WHITE, pilaster=SAGE), dict(wall=BUFF, sash=CREAM, pilaster=OXBLOOD, arched=True, shift=3),
         dict(kind='precinct', frame=ALU, shift=5)]),
     'storey': (Storey, 'Lagos storey-building', [
-        dict(wall=SAND, frame=JADE, breeze=CONCRETE, roof=RUST), dict(wall=MINT, frame=COBALT, breeze=WHITE, roof=TIN, shift=2),
-        dict(wall=PEACH, frame=CRIMSON, breeze=SAND, roof=IRONROOF['red'], shift=5)]),
+        dict(wall=SAND, frame=JADE, breeze=CONCRETE, roof=RUST, tank=DOVE),
+        dict(wall=MINT, frame=COBALT, breeze=WHITE, roof=TIN, tank=COBALT, bars=CRIMSON, shift=2),
+        dict(wall=PEACH, frame=CRIMSON, breeze=SAND, roof=IRONROOF['red'], tank=DOVE, shift=5)]),
     'habana': (Habana, 'Havana portales', [
-        dict(wall=SKY, shutter=JADE, trim=WHITE), dict(wall=SALMON, shutter=COBALT, trim=WHITE, shift=2),
-        dict(wall=LILAC, trim=WHITE, shutter=WOOD, deco=True, name='HOTEL', neon='pink', shift=4)]),
+        dict(wall=SKY, shutter=JADE, trim=WHITE, under=PEACH), dict(wall=SALMON, shutter=COBALT, trim=WHITE, under=SAND, shift=2),
+        dict(wall=LILAC, trim=WHITE, shutter=WOOD, deco=True, shift=4)]),
     'mission': (Mission, 'California mission revival', [
         dict(wall=WHITE, iron=INK, door=WOOD, ink=OXBLOOD), dict(wall=CREAM, iron=INK, door=JADE, ink=JADE, shift=2),
         dict(wall=PEACH, iron=INK, door=OXBLOOD, ink=COBALT, shift=4)]),

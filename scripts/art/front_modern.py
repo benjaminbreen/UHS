@@ -1921,136 +1921,261 @@ def poster(c, x, y, w, h, seed):
 
 # ------------------------------------------------------------------ Mexico City
 
-ROTULOS = [('TORTAS', RED, YELLOW), ('FARMACIA', GREEN, WHITE), ('ABARROTES', BLUE, WHITE),
-           ('PAPELERIA', ORANGE, WHITE), ('TAQUERIA', YELLOW, RED), ('REFACCIONES', WHITE, RED)]
+def herreria(c, x, y, w, h, r, seed=0):
+    """A Mexican steel casement, herrería: a frame of flat bar, a fixed band
+    of small lights along the top, opening leaves below divided in
+    rectangles, and a bar bent into a step or a diamond across the middle."""
+    c.rect(x, y, w, h, r[3])
+    op.glass(c, x + 1, y + 1, w - 2, h - 2)
+    band = 7
+    c.rect(x, y + band, w, 1, r[3])
+    for xx in range(x + 4, x + w - 2, 4):
+        c.rect(xx, y, 1, band, r[3])
+    leaves = max(2, round(w / 10))
+    for j in range(1, leaves):
+        c.rect(x + round(w * j / leaves), y + band, 1, h - band, r[3])
+    my = y + band + (h - band) // 2
+    c.rect(x, my, w, 1, r[3])
+    pattern = seed % 3
+    for xx in range(x + 1, x + w - 1):
+        u = (xx - x) % 8
+        if pattern == 0:
+            dy = -2 if u < 4 else 2
+        elif pattern == 1:
+            dy = min(u, 8 - u) - 2
+        else:
+            dy = 0 if u % 4 else -3
+        c.p(xx, my + dy, r[3])
+    c.rect(x, y, w, 1, r[1])
+    c.rect(x, y, 1, h, r[2])
+
+
+def mosaic(c, x, y, w, h, a, b, seed=0):
+    """A panel of venecitas, the small glass tiles of the fifties, in two
+    colours laid at random with a pale joint."""
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            if (xx - x) % 3 == 2 or (yy - y) % 3 == 2:
+                c.p(xx, yy, WHITE[2])
+            else:
+                k = h2((xx - x) // 3, (yy - y) // 3, seed)
+                c.p(xx, yy, a[1] if k < 0.45 else a[2] if k < 0.8 else b[1])
+    op.reveal(c, x, y, w, h, 1)
+
+
+def gas_cylinder(c, x, by, r=None):
+    """A 30 kg LP gas cylinder on a roof, its hood and valve on top."""
+    r = r or WHITE
+    cylinder(c, x, by, 8, 14, r, lid=None)
+    c.rect(x + 2, by - 18, 4, 3, r[3])
+    c.rect(x + 2, by - 18, 4, 1, r[1])
+    c.rect(x + 1, by - 6, 6, 1, RED[2])
+    c.rect(x + 8, by - 13, 6, 1, ALU[3])
+
+
+def tinaco(c, x, by, r, w=16, h=16):
+    """A water tank on its stand of block: asbestos cement banded, or the
+    later black plastic one ribbed."""
+    c.rect(x - 1, by - 6, w + 2, 6, CMU[2])
+    c.rect(x - 1, by - 6, w + 2, 1, CMU[1])
+    c.rect(x + w // 2, by - 5, 1, 5, CMU[4])
+    cylinder(c, x, by - 6, w, h, r, lid=r[1])
+    for yy in range(by - 6 - h + 4, by - 7, 5):
+        c.rect(x, yy, w, 1, r[4])
+    cast_right(c, x + w, by - 6 - h - 2, h + 6, 3, 0.66)
 
 
 class Moderno(Block):
-    """A Mexico City block of 1950-1985: a painted concrete frame, steel
-    casements under sun visors, tubular balconies, a breeze-block stair, shops
-    behind roll-down cortinas with their names painted on the wall, tinacos on
-    a red roof and rebar left standing for the floor not yet built."""
-    FLOORS = dict(row=3, tall=4, shop=2, cottage=1, hut=2, stall=1, hall=4)
+    """A Mexico City apartment block of 1950-1985: a painted concrete frame
+    of columns and floor beams, steel casements (herrería) under thin
+    concrete visors, a panel of venecitas under a window here and there,
+    tubular balconies, a stair behind a lattice of breeze block; shops
+    behind cortinas with their names painted on the wall over them. On the
+    red-coated azotea, tinacos on block stands, gas cylinders, a room for
+    the help, the wash on its lines, and rebar left for the next floor."""
+    FLOORS = dict(row=3, tall=4, shop=2, cottage=1, hut=2, stall=1, hall=4, wide=3)
     H0, H1, PARA, HEAD = 60, 48, 8, 34
 
     def plan(self):
         self.stair = self.W >= 112 and self.floors > 1
-        n = max(1, round((self.W - (24 if self.stair else 0)) / 56))
+        n = max(1, round((self.W - (24 if self.stair else 0)) / 52))
         a = self.x0 + (24 if self.stair else 0)
         self.bays = [(a + round((self.x1 - a) * k / n), a + round((self.x1 - a) * (k + 1) / n)) for k in range(n)]
-        self.door_x = self.x0 + 12 if self.stair else (self.bays[0][0] + self.bays[0][1]) // 2
+        self.door_x = self.x0 + 12 if self.stair else self.bays[0][0] + 14
         self.door_size = (20, 44)
+        self.cols = [self.x0] + [a for a, _ in self.bays[1:]] + [self.x1 - 6] + ([self.x0 + 22] if self.stair else [])
 
     def paint(self):
         c, s = self.c, self.s
         x0, x1, W, base, top = self.x0, self.x1, self.W, self.base, self.top
-        wall, frame, steel = s['wall'], s['frame'], s['steel']
+        wall, frame = s['wall'], s['frame']
+        t0 = self.floor(0)[0]
         stucco(c, x0, top, W, base - top, wall, 2, self.seed)
-        # stair in breeze block
         if self.stair:
-            st, sb = top + self.para, self.floor(0)[0]
-            for yy in range(st, sb):
-                for xx in range(x0 + 2, x0 + 22):
-                    a, b2 = (xx - x0 - 2) % 5, (yy - st) % 5
-                    c.p(xx, yy, frame[1] if a == 4 or b2 == 4 else frame[2] if (a, b2) in ((0, 0), (3, 0), (0, 3), (3, 3))
-                        else ROOM[5])
-            self.panes.append((x0 + 2, st, 20, sb - st, 'dim', True))
-        # upper floors
+            self.moderno_stair()
         for i in range(1, self.floors):
             t, b = self.floor(i)
             for k, (a, b_) in enumerate(self.bays):
-                cx = (a + b_) // 2
-                balcony = (k + i + self.seed) % 3 == 0 and b_ - a >= 48
-                ww = min(30, b_ - a - 16)
-                wh = 26 if not balcony else 36
-                wx, wy = cx - ww // 2, b - 8 - wh
-                c.rect(wx, wy, ww, wh, steel[3])
-                c.rect(wx + 1, wy + 1, ww - 2, wh - 2, GLASS[4])
-                op.glass(c, wx + 1, wy + 1, ww - 2, wh - 2)
-                for xx in range(wx, wx + ww, max(6, ww // 4)):
-                    c.rect(xx, wy, 1, wh, steel[3])
-                for yy in range(wy, wy + wh, 9):
-                    c.rect(wx, yy, ww, 1, steel[3])
-                if (k * 5 + i) % 4 == 1:
-                    c.rect(wx + 1, wy + 1, ww - 2, wh // 2, s['curtain'][1])
-                    c.rect(wx + 1, wy + 1 + wh // 2, ww - 2, 1, s['curtain'][3])
-                op.reveal(c, wx, wy, ww, wh, 2)
-                self.panes.append((wx + 1, wy + 1, ww - 2, wh - 2, 'warm', h2(k, i, self.seed) < 0.6))
-                raised(c, wx - 4, wy - 5, ww + 8, 3, frame, 1)
-                c.rect(wx - 4, wy - 7, ww + 8, 2, frame[0])
-                op.cast(c, wx, wy - 2, ww, 4, 0.62)
-                if balcony:
-                    sy = b - 6
-                    raised(c, wx - 6, sy - 2, ww + 12, 4, frame, 1)
-                    for ry in (sy - 14, sy - 8):
-                        c.rect(wx - 6, ry, ww + 12, 1, s['rail'][1])
-                        c.rect(wx - 6, ry + 1, ww + 12, 1, s['rail'][3])
-                    for xx in range(wx - 6, wx + ww + 7, 6):
-                        c.rect(xx, sy - 14, 1, 12, s['rail'][2])
-                    op.cast(c, wx - 6, sy + 2, ww + 12, 3, 0.66)
+                self.moderno_bay(a, b_, b, i, k)
+            # the floor beam, painted as the frame
+            c.rect(x0, b - 5, W, 5, frame[2])
+            c.rect(x0, b - 5, W, 1, frame[1])
+            c.rect(x0, b - 1, W, 1, frame[4])
+            op.cast(c, x0, b, W, 2, 0.72)
+        for xx in self.cols:
+            c.rect(xx, top, 6, t0 - top, frame[2])
+            c.rect(xx, top, 1, t0 - top, frame[1])
+            c.rect(xx + 5, top, 1, t0 - top, frame[4])
+            cast_right(c, xx + 6, top, t0 - top, 2, 0.74)
+        self.moderno_ground()
+        self.moderno_roof()
+        self.foot()
+
+    def moderno_stair(self):
+        c, s = self.c, self.s
+        st, sb = self.top + self.para, self.floor(0)[0]
+        x = self.x0 + 4
+        for yy in range(st, sb):
+            for xx in range(x, x + 18):
+                a, b2 = (xx - x) % 6, (yy - st) % 6
+                if a == 5 or b2 == 5:
+                    col = s['frame'][2] if b2 != 5 or a == 5 else s['frame'][1]
+                elif 1 <= a <= 3 and 1 <= b2 <= 3:
+                    col = ROOM[5] if (a, b2) != (1, 1) else ROOM[4]
                 else:
-                    raised(c, wx - 2, b - 8, ww + 4, 2, frame, 1)
-            raised(c, x0, b - 4, W, 5, frame, 1)
-            op.cast(c, x0, b + 1, W, 2, 0.72)
-        cols = [x0] + [a for a, _ in self.bays[1:]] + [x1 - 6] + ([x0 + 22] if self.stair else [])
-        for xx in cols:
-            raised(c, xx, top, 6, self.floor(0)[0] - top, frame, 1)
-        # ground: shops behind cortinas, the residents' gate
-        t0, _ = self.floor(0)
-        raised(c, x0, t0 - 2, W, 4, frame, 1)
+                    col = s['frame'][1]
+                c.p(xx, yy, col)
+        self.panes.append((x, st, 18, sb - st, 'dim', True))
+
+    def moderno_bay(self, a, b_, b, i, k):
+        c, s, frame = self.c, self.s, self.s['frame']
+        cx = (a + b_) // 2
+        balcony = (k + i + self.seed) % 3 == 0 and b_ - a >= 46
+        ww = min(32, b_ - a - 18)
+        wh = 26 if not balcony else 36
+        sill = b - 16 if not balcony else b - 6
+        wx, wy = cx - ww // 2, sill - wh
+        c.rect(wx - 1, wy - 1, ww + 2, wh + 1, s['wall'][4])
+        herreria(c, wx, wy, ww, wh, s['steel'], self.seed + k + i)
+        if h2(k, i, self.seed + 2) < 0.55:
+            cw = round((ww - 2) * (0.3 + 0.4 * h2(k, i, self.seed + 3)))
+            cy0 = wy + 8
+            for xx in range(wx + 1, wx + 1 + cw):
+                c.rect(xx, cy0, 1, wh - 9, s['curtain'][1 if (xx - wx) % 3 else 2])
+            c.rect(wx + cw, cy0, 1, wh - 9, s['curtain'][3])
+        op.reveal(c, wx + 1, wy + 1, ww - 2, wh - 2, 2)
+        self.panes.append((wx + 1, wy + 8, ww - 2, wh - 9, 'warm', h2(k, i, self.seed) < 0.6))
+        # the visor: a thin slab out over the window, its top from above
+        c.rect(wx - 5, wy - 7, ww + 10, 4, frame[1])
+        c.rect(wx - 5, wy - 7, ww + 10, 1, frame[0])
+        c.rect(wx - 5, wy - 3, ww + 10, 1, frame[3])
+        op.cast(c, wx - 3, wy - 2, ww + 6, 4, 0.58)
+        if balcony:
+            sy = b - 6
+            c.rect(wx - 7, sy, ww + 14, 4, frame[1])
+            c.rect(wx - 7, sy, ww + 14, 1, frame[0])
+            c.rect(wx - 7, sy + 3, ww + 14, 1, frame[4])
+            r = s['rail']
+            for ry in (sy - 14, sy - 7):
+                c.rect(wx - 7, ry, ww + 14, 2, r[1])
+                c.rect(wx - 7, ry + 1, ww + 14, 1, r[3])
+            for xx in (wx - 7, wx + ww + 6):
+                c.rect(xx, sy - 14, 1, 14, r[2])
+            op.cast(c, wx - 7, sy + 4, ww + 14, 3, 0.62)
+        else:
+            c.rect(wx - 3, sill, ww + 6, 3, frame[1])
+            c.rect(wx - 3, sill, ww + 6, 1, frame[0])
+            c.rect(wx - 3, sill + 2, ww + 6, 1, frame[4])
+            if (k + i + self.seed) % 2 == 1:
+                mosaic(c, wx + 1, sill + 4, ww - 2, b - sill - 9, s['tile'], s['tile2'], self.seed + k * 7 + i)
+
+    def moderno_ground(self):
+        c, s = self.c, self.s
+        x0, x1, W, base = self.x0, self.x1, self.W, self.base
+        frame = s['frame']
+        t0 = self.floor(0)[0]
+        c.rect(x0, t0 - 2, W, 4, frame[1])
+        c.rect(x0, t0 - 2, W, 1, frame[0])
         for k, (a, b_) in enumerate(self.bays):
-            word, bg, fg = ROTULOS[(k + self.seed * 2 + s.get('shift', 0)) % len(ROTULOS)]
-            bw = b_ - a - 8
-            sc = 2 if text_w(word, 2) < bw - 6 else 1
-            if text_w(word, sc) > bw - 4:
-                word = word[:max(3, (bw - 4) // (4 * sc))]
-            self.sign(a + 4, t0 + 3, bw, 14, 'board')
-            sx, sw, sy = a + 6, bw - 4, t0 + 20
-            c.rect(sx - 1, sy, sw + 2, 5, ALU[2])
-            c.rect(sx - 1, sy, sw + 2, 1, ALU[0])
-            c.rect(sx - 1, sy + 4, sw + 2, 1, ALU[4])
+            sx, sw = a + 8, b_ - a - 12
+            if not self.stair and k == 0:
+                self.moderno_gate(self.door_x)
+                sx, sw = a + 30, b_ - a - 34
+                if sw < 20:
+                    continue
+            # the shop's name painted straight on the wall
+            self.sign(sx - 2, t0 + 4, sw + 4, 13, 'paint')
+            sy = t0 + 20
+            c.rect(sx - 1, sy, sw + 2, base - sy, ROOM[6])
             up = [0.85, 0.35, 0.0][(k + self.seed) % 3]
             open_h = round((base - sy - 5) * up)
             if open_h > 4:
-                interior(c, sx, sy + 5, sw, open_h, ['shelves', 'counter', 'books'][k % 3], self.seed + k)
+                interior(c, sx, sy + 5, sw, open_h, ['shelves', 'counter', 'racks'][(k + self.seed) % 3], self.seed + k)
                 self.panes.append((sx, sy + 5, sw, open_h, 'shop', True))
-            for yy in range(sy + 5 + open_h, base):
-                c.rect(sx, yy, sw, 1, ALU[(1, 2, 2, 3)[(yy - sy) % 4]])
-            if open_h < base - sy - 6:
-                c.rect(sx, sy + 5 + open_h, sw, 2, ALU[4])
-                c.rect(sx + sw // 2 - 2, base - 6, 4, 2, ALU[5])
-            if word.startswith('FARM') and b_ - a >= 56:
-                cxp, cyp = b_ - 10, t0 + 26
-                self.tube(line(cxp - 4, cyp, cxp + 4, cyp) + line(cxp, cyp - 4, cxp, cyp + 4), 'green', f'cross{k}')
+            roller(c, sx, sy, sw, base - sy, s['cortina'], up)
         if self.stair:
-            gx, gw = x0 + 2, 20
-            c.rect(gx, base - 46, gw, 46, steel[3])
-            op.glass(c, gx + 2, base - 44, gw - 4, 42)
-            for xx in range(gx + 2, gx + gw - 2, 3):
-                c.rect(xx, base - 44, 1, 42, steel[2])
-            for yy in (base - 30, base - 16):
-                c.rect(gx, yy, gw, 1, steel[2])
-            for i in range(gw):
-                c.p(gx + i, base - 40 + abs(i - gw // 2) // 2, steel[1])
-            self.panes.append((gx + 2, base - 44, gw - 4, 42, 'dim', True))
-        # roof
-        self.coping(frame)
-        self.deck(None, IMPER, frame)
-        tank = s['tinaco']
-        for k, tx in enumerate([x1 - 26, x1 - 44][:1 + (W >= 144)]):
-            c.rect(tx - 1, top - 6, 18, 3, CMU[3])
-            c.rect(tx - 1, top - 6, 18, 1, CMU[1])
-            cylinder(c, tx, top - 6, 16, 13, tank, lid=tank[1])
-        if W >= 128:
-            rx, rw = x0 + 8, 34
-            unit(c, rx, top - 4, rw, 18, 4, CMU)
-            c.rect(rx + 4, top - 18, 9, 14, steel[3])
-            c.rect(rx + 18, top - 17, 10, 7, GLASS[4])
-        for xx in cols:
+            self.moderno_gate(self.door_x)
+        for xx in self.cols:
+            raised(c, xx, t0 + 2, 6, base - t0 - 2, frame, 1)
+
+    def moderno_gate(self, cx):
+        """The residents' door: an iron gate over glass in a frame of stone."""
+        c, s = self.c, self.s
+        base = self.base
+        gx, gw = cx - 10, 20
+        raised(c, gx - 3, base - 49, gw + 6, 49, TRAV, 1)
+        c.rect(gx, base - 46, gw, 46, s['steel'][3])
+        op.glass(c, gx + 2, base - 44, gw - 4, 30)
+        for xx in range(gx + 3, gx + gw - 2, 3):
+            c.rect(xx, base - 44, 1, 30, s['steel'][2])
+        for i in range(gw - 4):
+            c.p(gx + 2 + i, base - 36 + abs(i - (gw - 4) // 2) // 2, s['steel'][1])
+        c.rect(gx, base - 14, gw, 14, s['steel'][3])
+        c.rect(gx + 1, base - 13, gw - 2, 1, s['steel'][2])
+        c.rect(gx + gw - 5, base - 22, 2, 2, GOLD[1])
+        self.panes.append((gx + 2, base - 44, gw - 4, 30, 'dim', True))
+        self.lamp(cx, base - 52)
+
+    def moderno_roof(self):
+        c, s = self.c, self.s
+        x0, x1, W, top = self.x0, self.x1, self.W, self.top
+        y0 = self.deck(None, IMPER, s['frame'], furnish=False)
+        D = top - y0
+        # the room for the help, its door to the roof
+        if W >= 112:
+            rx, rw = x0 + 8, 36
+            rb = y0 + min(D - 8, 24)
+            stucco(c, rx, rb - 22, rw, 22, s['wall'], 2, self.seed + 5)
+            c.rect(rx, rb - 22, 1, 22, s['wall'][1])
+            c.rect(rx + rw - 1, rb - 22, 1, 22, s['wall'][4])
+            c.rect(rx - 1, rb - 29, rw + 2, 7, IMPER[1])
+            c.rect(rx - 1, rb - 29, rw + 2, 1, IMPER[0])
+            c.rect(rx - 1, rb - 23, rw + 2, 1, IMPER[3])
+            c.rect(rx + 5, rb - 18, 10, 18, s['steel'][3])
+            c.rect(rx + 6, rb - 17, 8, 7, GLASS[3])
+            herreria(c, rx + 20, rb - 17, 12, 10, s['steel'], self.seed)
+            cast_right(c, rx + rw, rb - 28, 28, 3, 0.66)
+            op.cast(c, rx, rb, rw + 2, 2, 0.7)
+            aerial(c, rx + rw - 6, rb - 29, 26)
+        # tinacos, the gas, the lines of wash
+        tx = x1 - 26
+        tinaco(c, tx, y0 + min(D - 4, 26), s['tinaco'])
+        if W >= 144:
+            tinaco(c, tx - 22, y0 + min(D - 6, 22), s['tinaco'])
+        gas_cylinder(c, tx - (40 if W >= 144 else 16), y0 + min(D - 6, 28))
+        if W >= 96:
+            lx0, lx1 = x0 + (52 if W >= 112 else 8), tx - (46 if W >= 144 else 22)
+            if lx1 - lx0 >= 26:
+                for px in (lx0, lx1):
+                    c.rect(px, y0 + 8, 1, 14, DOVE[3])
+                for j, ly in enumerate((y0 + 9, y0 + 15)):
+                    c.rect(lx0, ly, lx1 - lx0, 1, DOVE[4])
+                for wx in range(lx0 + 2, lx1 - 20, 22):
+                    self.overlays.append(['wash', wx, y0 + 9])
+        for xx in self.cols:
             for i in (1, 4):
-                c.rect(xx + i, top - 11, 1, 9, RUST[3])
-                c.p(xx + i, top - 12, RUST[1])
-        self.foot()
+                c.rect(xx + i, top - 13, 1, 11, RUST[3])
+                c.p(xx + i, top - 14, RUST[1])
 
 
 # ------------------------------------------------------------------ Tokyo
@@ -3526,9 +3651,12 @@ LOOKS = {
         dict(wall=BUFF, accent=OXBLOOD, accent2=TEAL, name='RIALTO', neon='pink', marquee=['MATINEE', 'SAT & SUN']),
     ]),
     'moderno': (Moderno, 'Mexico City moderno', [
-        dict(wall=MINT, frame=WHITE, steel=INK, rail=WHITE, curtain=CREAM, tinaco=DOVE),
-        dict(wall=SALMON, frame=CREAM, steel=SAGE, rail=SAGE, curtain=YELLOW, tinaco=INK, shift=1),
-        dict(wall=BUTTER, frame=WHITE, steel=INK, rail=TEAL, curtain=SKY, tinaco=DOVE, shift=3),
+        dict(wall=MINT, frame=WHITE, steel=INK, rail=WHITE, curtain=CREAM, tinaco=DOVE, tile=TURQ, tile2=COBALT,
+             cortina=ALU),
+        dict(wall=SALMON, frame=CREAM, steel=SAGE, rail=SAGE, curtain=YELLOW, tinaco=INK, tile=SAFFRON, tile2=CRIMSON,
+             cortina=SKY, shift=1),
+        dict(wall=BUTTER, frame=WHITE, steel=INK, rail=TEAL, curtain=SKY, tinaco=DOVE, tile=JADE, tile2=TURQ,
+             cortina=ALU, shift=3),
     ]),
     'zakkyo': (Zakkyo, 'Tokyo zakkyo building', [
         dict(tile=JTILES[0], noren=COBALT, tank=CREAM, blind=SAFFRON),

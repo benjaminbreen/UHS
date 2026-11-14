@@ -11,8 +11,9 @@
 import type { WorldSetting } from "../geography/types";
 import SCRIPT_WORDS from "./sign-words.json" with { type: "json" };
 
-export type SignLanguage = "en" | "fr" | "es" | "pt" | "id" | "tr" | "sw" | "ru" | "ar" | "fa" | "zh" | "zhs" | "ja";
-export const SCRIPTED = new Set<SignLanguage>(["ar", "fa", "zh", "zhs", "ja"]);
+export type SignLanguage =
+  "en" | "fr" | "es" | "pt" | "id" | "tr" | "sw" | "ru" | "ar" | "fa" | "zh" | "zhs" | "ja" | "hi" | "ko";
+export const SCRIPTED = new Set<SignLanguage>(["ar", "fa", "zh", "zhs", "ja", "hi", "ko"]);
 
 /** Which language a modern street writes in.
  *
@@ -25,10 +26,12 @@ export function signLanguage(setting: WorldSetting): SignLanguage | undefined {
   if (year < 1800) return undefined;
   const box = (w: number, e: number, s: number, n: number) =>
     lon >= w && lon <= e && lat >= s && lat <= n;
-  if (culture === "south-asian") return undefined;
+  // The Hindi belt and Bombay sign in Devanagari; Bengali, Gujarati, the
+  // Dravidian scripts and Urdu are not drawn yet.
+  if (culture === "south-asian") return year >= 1900 && box(72.5, 88, 18.8, 31) ? "hi" : undefined;
   if (culture === "east-asian") {
     if (box(128, 146, 30, 46)) return year >= 1870 ? "ja" : undefined;
-    if (box(124, 131, 33, 43)) return undefined; // Hangul is not drawn yet
+    if (box(124, 131, 33, 43)) return year >= 1945 ? "ko" : year >= 1910 ? "ja" : undefined;
     return year < 1850 ? undefined : box(73, 135, 18, 54) && year >= 1956 && !box(113.8, 114.5, 22.1, 22.6) ? "zhs" : "zh";
   }
   if (culture === "north-african-west-asian") {
@@ -39,8 +42,12 @@ export function signLanguage(setting: WorldSetting): SignLanguage | undefined {
   }
   if (culture === "southeast-asian")
     return box(95, 120, -11, 7) || box(99, 105, 1, 7) ? "id" : undefined;
-  if (culture === "west-central-african")
+  if (culture === "west-central-african") {
+    // Nigeria, Ghana, Sierra Leone, Liberia and the Gambia sign in English.
+    if (box(2.7, 14.7, 4, 13.9) || box(-3.3, 1.2, 4.7, 11.2) || box(-13.3, -7.4, 4.3, 10) || box(-16.9, -13.8, 13, 13.9))
+      return "en";
     return box(-18, 16, 4, 17) ? "fr" : box(11, 24, -18, -4) ? "pt" : "en";
+  }
   if (culture === "east-southern-african")
     return box(29, 42, -12, 5) ? "sw" : box(30, 41, -27, -10) ? "pt" : "en";
   if (culture === "mesoamerican" || culture === "andean") return "es";
@@ -272,6 +279,7 @@ export function secondLanguage(setting: WorldSetting): [SignLanguage, number] | 
   if (first === "ar" || first === "fa") return [setting.year < 1952 ? "fr" : "en", 0.14];
   if (first === "zh" && setting.lon > 113.8 && setting.lon < 114.5) return ["en", 0.25];
   if (first === "ja") return ["en", 0.1];
+  if (first === "hi") return ["en", 0.45];
   return undefined;
 }
 
@@ -281,6 +289,8 @@ export function signPaints(setting: WorldSetting): string[] {
   if (first === "ar" || first === "fa") return ["#2f6b4f", "#b33a2e", "#2a4f8f", "#e0b23c", "#ece4cf", "#1f6f74", "#6b3a2a"];
   if (first === "zh" || first === "zhs") return ["#b8262c", "#1d5a3a", "#d9a632", "#1e3557", "#f2e8d0", "#2b2b2b"];
   if (first === "ja") return ["#f2ecdc", "#1f3b6a", "#c43c2e", "#2e6b4a", "#e9c54a", "#30303a"];
+  if (first === "hi") return ["#e8b730", "#b8302a", "#f1ead6", "#1f4e8c", "#2e7a4a", "#d2602a"];
+  if (first === "ko") return ["#f3f0e6", "#1f4a8a", "#c0392b", "#2f7a52", "#f0c43a"];
   if (first === "ru") return ["#2c4a7a", "#a8322b", "#ece6d6", "#3d6b4a", "#5a5a64"];
   return ["#2f5d4a", "#9c3528", "#2b4a7a", "#d8a43b", "#ebe2cb", "#35353f", "#7a3b5e", "#c8642c"];
 }

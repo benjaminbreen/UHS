@@ -7,7 +7,7 @@
  */
 import type Phaser from "phaser";
 import { GLYPHS, signable } from "./sign-texture";
-import { ARABIC_SIZES, CJK_SIZES, SCRIPT_BITMAPS } from "./sign-glyphs.generated";
+import { ARABIC_SIZES, CJK_SIZES, DEVA_SIZES, SCRIPT_BITMAPS } from "./sign-glyphs.generated";
 import type { SignLanguage } from "../content/settlements/signs";
 
 export type SignKind = "board" | "box" | "paint" | "neon" | "blade";
@@ -70,11 +70,11 @@ function latinGlyph(char: string, scale: number): Bitmap {
 
 /** Every way this word can be set, largest first. */
 function settings(word: string, language: SignLanguage, vertical: boolean): Bitmap[] {
-  if (language === "ar" || language === "fa") {
+  if (language === "ar" || language === "fa" || language === "hi") {
     if (vertical) return [];
-    return [...ARABIC_SIZES].reverse().flatMap((size) => decoded(`${size}:${word}`) ?? []);
+    return [...(language === "hi" ? DEVA_SIZES : ARABIC_SIZES)].reverse().flatMap((size) => decoded(`${size}:${word}`) ?? []);
   }
-  if (language === "zh" || language === "zhs" || language === "ja") {
+  if (language === "zh" || language === "zhs" || language === "ja" || language === "ko") {
     return [...CJK_SIZES].reverse().flatMap((size) => {
       const chars = [...word].map((ch) => decoded(`${size}:${ch}`));
       return chars.every(Boolean) ? [stack(chars as Bitmap[], vertical)] : [];
@@ -185,8 +185,9 @@ export function drawShopSign(
       ink = lit ? shade(tube, 0.55) : shade(tube, 0.25);
       shadow = lit ? undefined : "#15121a";
     } else {
-      ink = paint;
-      shadow = shade(paint, -0.6);
+      // Lettered straight on a wall of unknown colour: a pale paint would vanish.
+      ink = light(paint) ? shade(paint, -0.55) : paint;
+      shadow = shade(ink, -0.6);
     }
     const tx = Math.floor((w - text.w) / 2), ty = Math.floor((h - text.h) / 2);
     for (let y = 0; y < text.h; y++)
